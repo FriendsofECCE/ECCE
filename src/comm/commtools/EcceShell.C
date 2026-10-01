@@ -77,11 +77,10 @@ string EcceShell::cmdshell(const string& title,
                            const string& user,
                            const string& password,
                            const string& cmd,
-                           const string& file,
-                           bool xtermFlag)
+                           const string& file)
 {
   return remoteShell(machineName, shell, user, password,
-                     "", file, title, cmd, xtermFlag);
+                     "", file, title, cmd);
 }
 
 string EcceShell::topshell(const string& machineName,
@@ -94,41 +93,8 @@ string EcceShell::topshell(const string& machineName,
 }
 
 
-static void xhostCmd(const string& refMachineName, const string& machineName)
-{
-  string xhostStr;
-  string configName = RefMachine::configFile(refMachineName);
-
-  if (access(configName.c_str(), F_OK) == 0) {
-    ifstream is(configName.c_str());
-    char buf[256];
-    while (!is.eof()) {
-      is.getline(buf,255);
-      if (strncmp(buf,"xhost:",6) == 0) {
-        // strips off the first 6 characters and leaves the rest
-        xhostStr = "xhost +";
-
-        xhostStr += &buf[6];
-        // guarantee we aren't just completely opening an X server
-        if (xhostStr.find_last_not_of(" \t") != 6)
-          system(xhostStr.c_str());
-        is.close();
-        return;
-      }
-    }
-    is.close();
-  }
-
-  xhostStr = "xhost +" + machineName;
-  // guarantee we aren't just completely opening an X server
-  if (xhostStr.find_last_not_of(" \t") != 6)
-    system(xhostStr.c_str());
-}
-
-
-
 // ---------------------------------------------------------------------------
-// ECCE_TRANSPORT=ssh: local terminal running the OpenSSH client
+// A remote machine: a local terminal running the OpenSSH client
 // ---------------------------------------------------------------------------
 
 static string shQuote(const string& s)
@@ -200,7 +166,7 @@ string EcceShell::remoteCommand(const string& mshell, const string& sourceFile,
   const bool csh = m.find("csh") != string::npos;
 
   // The file is written for the machine's own shell, so it is sourced by
-  // that shell, as the pty path did; the quoting below is for the login
+  // that shell; the quoting below is for the login
   // shell that receives the line, which may be another one.
   string inner;
   if (sourceFile != "")
@@ -401,8 +367,7 @@ string EcceShell::remoteShell
   const string& pathBase,
   const string& pathFull,
   const string& title,
-  const string& cmd,
-  bool xtermFlag
+  const string& cmd
 )
 {
   p_status = 0;
@@ -420,162 +385,66 @@ string EcceShell::remoteShell
     return "Machine \"" + machineName + "\" is not currently registered.";
   }
 
-  if (xtermFlag && RCommand::usesLibssh(refMachine->fullname(), shell, user))
+  if (RCommand::usesSsh(refMachine->fullname(), shell, user))
     return sshTerminal(refMachine, shell, user, password, pathBase, pathFull,
                        title, cmd);
 
-  bool frontendFlag = refMachine->singleConnect() ||
-                      (refMachine->frontendMachine()!="" &&
-                       (refMachine->frontendBypass()=="" ||
-                        !RCommand::isSameDomain(refMachine->frontendBypass())));
-  bool presetDisplayFlag = true;
-
-  RCommand* rcmd = 0;
-
-  if (!frontendFlag) {
-    rcmd = new RCommand(refMachine->fullname(), shell, 
-                        refMachine->shell(), user, password,
-                        refMachine->frontendMachine(),
-                        refMachine->frontendBypass(),
-                        refMachine->shellPath(),refMachine->libPath(),
-                        refMachine->sourceFile());
-    if (!rcmd->isOpen()) {
-      ErrMsg().flush();
-      p_status = -1;
-      ret = rcmd->commError().c_str();
-      delete rcmd;
-      return ret;
-    }
-
-    // Added to handle Mac OS X ssh connections that don't use port forwarding
-    // GDB 5/12/09
-    presetDisplayFlag = rcmd->exec("echo $DISPLAY");
+  // A local machine; a remote shell that is gone is refused by RCommand.
+  RCommand rcmd(refMachine->fullname(), shell, refMachine->shell(), user,
+                password, refMachine->frontendMachine(),
+                refMachine->frontendBypass(), refMachine->shellPath(),
+                refMachine->libPath(), refMachine->sourceFile());
+  if (!rcmd.isOpen()) {
+    ErrMsg().flush();
+    p_status = -1;
+    return rcmd.commError();
   }
 
-  string theShell = RCommand::commandShell(refMachine->fullname(),shell,user);
-
-  bool displayFlag = !presetDisplayFlag;
-
-  bool xsetFlag = displayFlag || theShell=="" || theShell=="ssh" ||
-                  theShell=="sshpass" || theShell.find("ssh/")==0 ||
-                  theShell.find("/ssh")==theShell.length()-4 ||
-                  !RCommand::isRemote(refMachine->fullname(), theShell, user);
-
-  bool dblXtermFlag = xtermFlag && xsetFlag;
-
-  string execStr;
-  if (dblXtermFlag)
-    execStr = shellCmd(title);
-  else if (cmd != "")
-    execStr = cmd;
-
-  string xsetStr = "xset q";
-  string display = "";
-
-  if (machineName!="" && displayFlag) {
-    xhostCmd(machineName, refMachine->fullname());
-
-    // Determine a good DISPLAY environment variable value.  This logic
-    // even handles inter-domain remote shells when the current DISPLAY
-    // value is inadequate (not fully qualified).
-    if (getenv("DISPLAY"))
-      display = getenv("DISPLAY");
-
-    size_t colon = display.find(":");
-    if (colon == string::npos) {
-      display.append(":0.0");
-      colon = display.find(":");
-    }
-
-    if (display.find(".")==string::npos || display.find(".")>colon) {
-      // Note prefer machine name from DISPLAY rather than from library calls
-      Host myhost;
-      string machine;
-      if (colon == 0) {
-        machine = myhost.host_name();
-      }
-      else
-        machine = display.substr(0, colon);
-
-      string fullname = myhost.fullyQualifiedName();
-      if (fullname != myhost.host_name()) {
-        display = machine + fullname.substr(fullname.find('.')) + 
-                  display.substr(colon, display.size()-colon);
-      } else {
-        display = machine +  display.substr(colon, display.size()-colon);
-      }
-    }
-
-    execStr.append(" -display " + display);
-    xsetStr.append(" -display " + display);
-  }
-
-  string args = "";
+  string execStr = shellCmd(title);
+  string args;
 
   // this would be a dirshell() invocation
   if (pathBase!="" && pathFull!="") {
-    if (frontendFlag) {
-      args = refMachine->shell() + " -c \"";
-      if (refMachine->sourceFile() != "")
-        args += "source " + refMachine->sourceFile() + " && ";
+    args = refMachine->shell() + " -c \"";
+    if (refMachine->sourceFile() != "")
+      args += "source " + refMachine->sourceFile() + " && ";
+    if (rcmd.cd(pathFull.c_str())) {
       args += "cd " + pathFull + " && $SHELL\"";
-    } else if (!rcmd->cd(pathFull.c_str())) {
-      if (!rcmd->cd(pathBase.c_str())) {
-        args = refMachine->shell() + " -c \"";
-        if (refMachine->sourceFile() != "")
-          args += "source " + refMachine->sourceFile() + " && ";
-        args += "$SHELL\"";
-        ret = "The calculation and base directories on " + machineName +
-              " do not exist--starting shell in home directory.";
-      }
-      else {
-        args = refMachine->shell() + " -c \"";
-        if (refMachine->sourceFile() != "")
-          args += "source " + refMachine->sourceFile() + " && ";
-        args += "cd " + pathBase + " && $SHELL\"";
-        ret = "The calculcation directory on " + machineName + " does not "
-              "exist--starting shell in base directory.";
-      }
+    } else if (!rcmd.cd(pathBase.c_str())) {
+      args += "$SHELL\"";
+      ret = "The calculation and base directories on " + machineName +
+            " do not exist--starting shell in home directory.";
     } else {
-      args = refMachine->shell() + " -c \"";
-      if (refMachine->sourceFile() != "")
-        args += "source " + refMachine->sourceFile() + " && ";
-      args += "cd " + pathFull + " && $SHELL\"";
+      args += "cd " + pathBase + " && $SHELL\"";
+      ret = "The calculcation directory on " + machineName + " does not "
+            "exist--starting shell in base directory.";
     }
-
-    if (dblXtermFlag)
-      execStr.append(" -e");
+    execStr.append(" -e");
 
   // this is a cmdshell() invocation
   } else if (cmd != "") {
     args = cmd;
 
-    if (dblXtermFlag) {
-      if (pathFull != "") {
-        if (frontendFlag) {
+    if (pathFull != "") {
+      if (!rcmd.exists(pathFull.c_str())) {
+        p_status = -1;
+        return "The file " + pathFull + " on " + machineName +
+               " does not exist--cannot run remote command.";
+      } else if (pathFull.find("amica.out") != string::npos) {
+        // this little bit of magic checks if any line is > 80 characters
+        // and overrides the default xterm width of 80 to 132 if it is
+        // GDB 12/3/02 only do this logic for Amica at the request of evorpa
+        string pcmd = "perl -e 'open(INFILE, \"" + pathFull + "\"); "
+                      "while (<INFILE>) {exit(0) if (length() > 81); "
+                      "exit(1) if ($lines_in++ > 1000);} exit(1);'";
+        if (rcmd.exec(pcmd))
+          execStr.append(" -geom 132x40");
+        else
           execStr.append(" -geom 80x40");
-        } else if (!rcmd->exists(pathFull.c_str())) {
-          ret = "The file " + pathFull + " on " + machineName +
-              " does not exist--cannot run remote command.";
-          p_status = -1;
-          delete rcmd;
-          return ret;
-        } else if (pathFull.find("amica.out") != string::npos) {
-          // this little bit of magic checks if any line is > 80 characters
-          // and overrides the default xterm width of 80 to 132 if it is
-          // GDB 12/3/02 only do this logic for Amica at the request of evorpa
-          string pcmd = "perl -e 'open(INFILE, \"" + pathFull + "\"); "
-                        "while (<INFILE>) {exit(0) if (length() > 81); "
-                        "exit(1) if ($lines_in++ > 1000);} exit(1);'";
-          if (rcmd->exec(pcmd))
-            execStr.append(" -geom 132x40");
-          else
-            execStr.append(" -geom 80x40");
-        } else
-          execStr.append(" -geom 80x40");
-      }
-      execStr.append(" -e");
+      } else
+        execStr.append(" -geom 80x40");
     }
+    execStr.append(" -e");
 
   // this is a topshell() invocation
   } else {
@@ -583,61 +452,21 @@ string EcceShell::remoteShell
     if (refMachine->sourceFile() != "")
       args += "source " + refMachine->sourceFile() + " && ";
     args += "cd ~ && $SHELL\"";
-
-    if (dblXtermFlag)
-      execStr.append(" -e");
+    execStr.append(" -e");
   }
 
-  string errorMessage = "Can't display to local machine.  ";
-
-  if (displayFlag) {
-    errorMessage += "Either you "
-         "must explicitly issue the command 'xhost +" +refMachine->fullname()
-         + "' on the local machine or the DISPLAY variable ";
-
-    if (display != "")
-      errorMessage += "set to " + display;
- 
-    errorMessage += " is incorrect.  It must be fully qualified with the "
-          "domain name if you are displaying to a machine on another domain.";
-  } else if (theShell=="" || theShell=="ssh" ||
-             theShell=="sshpass" || theShell.find("ssh/")==0)
-    errorMessage += "Ssh X11 port forwarding may be disabled by ssh "
-                    "configuration or your ~/.ssh/known_hosts file may "
-                    "contain invalid entries for this machine.";
-  else
-    errorMessage += "Site-specific remote X Windows shell command did "
-                    "not work.";
-
-  string output;
+  const string errorMessage = "Can't display to the local X server.";
   string cmdErr;
 
-  if (frontendFlag) {
-    if (!RCommand::bgcommand(execStr, args, cmdErr, machineName,
-                             shell, user, password)) {
-      ret = cmdErr;
-      ret += " -- " + errorMessage;
-      p_status = -1;
-    }
-  } else if (xsetFlag) {
-    if (!rcmd->exec(xsetStr.c_str(), errorMessage.c_str())) {
-      ret = rcmd->commError().c_str();
-      p_status = -1;
-    } else if (!RCommand::bgcommand(execStr, args, cmdErr, machineName,
-                                    shell, user, password)) {
-      ret = cmdErr;
-      ret += " -- " + errorMessage;
-      p_status = -1;
-    }
+  if (!rcmd.exec("xset q", errorMessage.c_str())) {
+    ret = rcmd.commError();
+    p_status = -1;
   } else if (!RCommand::bgcommand(execStr, args, cmdErr, machineName,
-                                 shell, user, password)) {
-    ret = cmdErr;
-    ret += " -- " + errorMessage;
+                                  shell, user, password)) {
+    ret = cmdErr + " -- " + errorMessage;
     p_status = -1;
   }
 
-  if (rcmd != (RCommand*)0)
-    delete rcmd;
   return ret;
 }
 

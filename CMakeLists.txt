@@ -1607,31 +1607,14 @@ if(PYTHON3_EXECUTABLE)
   # Generous: 20 apps x (window wait + settle), plus broker startup.
   set_tests_properties(apps PROPERTIES TIMEOUT 1800)
 
-  # tests/shells -- does a long command's echo come back byte for byte
-  # from csh, tcsh and bash (and through zsh/ksh login shells on a hop)?
-  # A line editor redrawing it hangs job monitoring forever (#143, #69).
-  # Pty harness plus a driver linked against the real RCommand.  Not
-  # installed.  See tests/shells/run_tests.py.
-  #
-  #     cd build-cmake && ctest -R shells --output-on-failure
-  add_executable(testRCommandEcho tests/shells/testRCommandEcho.C)
-  target_link_libraries(testRCommandEcho PRIVATE
-    eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
-    ecceutil ${XercesC_LIBRARIES})
-  add_test(NAME shells
-           COMMAND ${PYTHON3_EXECUTABLE}
-                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/shells/run_tests.py
-                   --driver $<TARGET_FILE:testRCommandEcho>
-           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/shells)
-  set_tests_properties(shells PROPERTIES TIMEOUT 900)
-
   # tests/transport -- DirectTransport against a real /bin/sh (#204).
   add_executable(testTransport tests/transport/testTransport.C)
   target_link_libraries(testTransport PRIVATE eccercmd ecceutil)
   add_test(NAME transport COMMAND testTransport)
   set_tests_properties(transport PROPERTIES TIMEOUT 120)
 
-  # RCommand in ECCE_TRANSPORT=direct mode against the pty path (#204).
+  # RCommand on a local machine against results recorded from the old pty
+  # path (#204).
   add_executable(testRCommandDirect tests/transport/testRCommandDirect.C)
   target_link_libraries(testRCommandDirect PRIVATE
     eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
@@ -1639,7 +1622,7 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME transport_rcommand COMMAND testRCommandDirect)
   set_tests_properties(transport_rcommand PROPERTIES TIMEOUT 120)
 
-  # The machine's sourceFile under ECCE_TRANSPORT=direct, pty as the oracle.
+  # The machine's sourceFile on a local machine, against recorded results.
   add_executable(testRCommandSource tests/transport/testRCommandSource.C)
   target_link_libraries(testRCommandSource PRIVATE
     eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
@@ -1656,8 +1639,8 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME transport_removed_shells COMMAND testRemovedShells)
   set_tests_properties(transport_removed_shells PROPERTIES TIMEOUT 120)
 
-  # EcceShell's local terminal for ECCE_TRANSPORT=ssh (#204): command line
-  # and argv with stub terminals, no connection.
+  # EcceShell's local terminal for an ssh machine (#204): command line and
+  # argv with stub terminals, no connection.
   add_executable(testTerminalArgv tests/transport/testTerminalArgv.C)
   target_link_libraries(testTerminalArgv PRIVATE
     eccecomm eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml
@@ -1672,21 +1655,13 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME transport_openssh COMMAND testOpenSshTransport)
   set_tests_properties(transport_openssh PROPERTIES TIMEOUT 180)
 
-  # ECCE_TRANSPORT / Preferences resolution of the transport (#204).
-  add_executable(testTransportPref tests/transport/testTransportPref.C)
-  target_link_libraries(testTransportPref PRIVATE
-    eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
-    ecceutil ${XercesC_LIBRARIES})
-  add_test(NAME transport_pref COMMAND testTransportPref)
-  set_tests_properties(transport_pref PROPERTIES TIMEOUT 60)
-
   # SshTransport against tests/transport/sshd; needs that sshd running, so
   # not a ctest.  tests/transport/sshd/build_test.sh builds it in a container.
   if(LIBSSH_FOUND)
     add_executable(testSshTransport tests/transport/testSshTransport.C)
     target_link_libraries(testSshTransport PRIVATE eccercmd ecceutil)
 
-    # RCommand over libssh against the pty ssh path; same sshd, run by
+    # RCommand over ssh against recorded results; same sshd, run by
     # tests/transport/sshd/rcommand_test.sh, so not a ctest either.
     add_executable(testRCommandSsh tests/transport/testRCommandSsh.C)
     target_link_libraries(testRCommandSsh PRIVATE
@@ -1736,10 +1711,17 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME launch_socketcomms
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/run_tests.py
-                   --build ${CMAKE_BINARY_DIR} --transport direct
-                   --job-comms socket
+                   --build ${CMAKE_BINARY_DIR} --job-comms socket
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_socketcomms PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+  # An 8.x eccejobmaster exports ECCE_TRANSPORT=pty; it must be ignored.
+  add_test(NAME launch_legacy_transport
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/run_tests.py
+                   --build ${CMAKE_BINARY_DIR} --legacy-transport pty
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_legacy_transport PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
   add_test(NAME launch_jobwait
            COMMAND ${PYTHON3_EXECUTABLE}

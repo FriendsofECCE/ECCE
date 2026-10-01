@@ -1,8 +1,8 @@
-// RCommand under ECCE_TRANSPORT=direct against results recorded from the pty
-// path (#204): the same operations through RCommand("system") must return the
-// same values and the same output, so callers need no change.  execbg's PID
-// is only checked for being a live process.  golden/rcommand_direct.txt;
-// ECCE_GOLDEN_RECORD=1 rewrites it from the pty run.
+// RCommand on a local machine against results recorded from the old pty
+// path (#204): the same operations through RCommand("system") must keep
+// returning the same values and the same output, so callers need no change.
+// execbg's PID is only checked for being a live process.
+// golden/rcommand_direct.txt.
 
 #include <cstdio>
 #include <cstdlib>
@@ -39,18 +39,13 @@ static string rec(const string& name, bool ret, const string& out,
          (err.empty() ? "" : " err=[" + esc(err) + "]");
 }
 
-// Runs the whole scenario; returns one line per operation.  pidAlive is
+// Runs the whole scenario; returns one line per operation.  bgAlive is
 // set when execbg produced a live process.
-static bool scenario(bool direct, const string& tmp, vector<string>& log,
-                     bool& bgAlive)
+static bool scenario(const string& tmp, vector<string>& log, bool& bgAlive)
 {
-  if (direct) setenv("ECCE_TRANSPORT", "direct", 1);
-  else setenv("ECCE_TRANSPORT", "pty", 1);
-
   RCommand rc("system", "", "bash");
   if (!rc.isOpen()) {
-    cout << "no session (" << (direct ? "direct" : "pty") << "): "
-         << rc.commError() << endl;
+    cout << "no session: " << rc.commError() << endl;
     return false;
   }
 
@@ -64,8 +59,7 @@ static bool scenario(bool direct, const string& tmp, vector<string>& log,
   EXECOUT("multi-line", "echo a; echo b; echo c");
   EXECOUT("empty output", "true");
   EXECOUT("stderr merged", "echo out; echo err 1>&2; echo out2");
-  // Output of these differs by design: the pty leaves its own "CMDSTAT=3"
-  // and prompt in the buffer, and the wording of "not found" is the shell's.
+  // The output of these is not part of the contract, only the verdict.
 #define EXECOUT_STATUS_ONLY(name, cmd) \
   do { r = rc.execout(cmd, o); \
        log.push_back(rec(name, r, "", rc.commError())); } while (0)
@@ -157,60 +151,81 @@ static void check(const char* name, bool ok)
   if (!ok) extra++;
 }
 
-// Direct-only behaviour and the conditions that keep the pty.
+static string slurp(const string& f);
+
+// A local machine's own behaviour.
 static void directChecks()
 {
-  setenv("ECCE_TRANSPORT", "direct", 1);
+  {
+    // An 8.x eccejobmaster exports ECCE_TRANSPORT=pty to its children: the
+    // value is noted on stderr, never an error, and the default is used.
+    setenv("ECCE_TRANSPORT", "pty", 1);
+    fflush(stderr);
+    string logName = "/tmp/testRCommandDirectErrXXXXXX";
+    int fd = mkstemp(&logName[0]);
+    int saved = dup(2);
+    dup2(fd, 2);
+    string o;
+    bool ok;
+    {
+      RCommand rc("system", "", "bash");
+      ok = rc.isOpen() && rc.execout("echo ok", o) && o == "ok\r\n" &&
+           rc.streamFd() == -1 && rc.sshBackend() == "";
+    }
+    fflush(stderr);
+    dup2(saved, 2);
+    close(saved);
+    close(fd);
+    string said = slurp(logName);
+    unlink(logName.c_str());
+    unsetenv("ECCE_TRANSPORT");
+    check("ECCE_TRANSPORT=pty: the default transport runs the command", ok);
+    check("ECCE_TRANSPORT=pty: noted in one line",
+          said == "ECCE_TRANSPORT=pty is no longer supported; using the "
+                  "default transport\n");
+    setenv("ECCE_TRANSPORT", "ssh", 1);
+    {
+      RCommand rc("system", "", "bash");
+      check("ECCE_TRANSPORT=ssh is ignored", rc.isOpen() && rc.exec("true"));
+    }
+    unsetenv("ECCE_TRANSPORT");
+  }
   {
     RCommand rc("system", "", "bash", "", "", "", "", "/opt/ecce_test_path",
                 "/opt/ecce_test_lib");
     string p, l;
-    check("direct: open", rc.isOpen());
+    check("local: open", rc.isOpen());
     rc.execout("echo $PATH", p);
     rc.execout("echo $LD_LIBRARY_PATH", l);
-    check("direct: shellPath prefixed",
+    check("local: shellPath prefixed",
           p.compare(0, 20, "/opt/ecce_test_path:") == 0);
-    check("direct: libPath prefixed",
+    check("local: libPath prefixed",
           l.compare(0, 19, "/opt/ecce_test_lib:") == 0);
-    check("direct: remoteShellIsBash", rc.remoteShellIsBash());
-    check("direct: hop refused",
+    check("local: hop refused",
           !rc.hop("elsewhere") &&
-          rc.commError() == "hop is not available with ECCE_TRANSPORT=direct");
-    check("direct: raw api fails without crashing",
-          !rc.expwrite("date") && rc.expect1("x") == -1 &&
-          rc.expfid() == -1 && rc.commError() != "");
-    rc.patalloc(1, "x");
-    check("direct: patexpect fails", rc.patexpect() == -1);
-    rc.patfree();
-    check("direct: still usable", rc.exec("true"));
+          rc.commError() == "hop is only available on an ssh connection");
+    check("local: no stream open", rc.streamFd() == -1 &&
+          !rc.streamWrite("date") && rc.commError() != "");
+    check("local: still usable", rc.exec("true"));
   }
   {
     // This machine is never reached through a front end, so the front end
-    // is ignored, in either mode.
-    const char* modes[] = { "direct", "ssh" };
-    for (int i = 0; i < 2; i++) {
-      setenv("ECCE_TRANSPORT", modes[i], 1);
-      RCommand rc("system", "", "bash", "", "", "frontend.invalid", "");
-      string o;
-      check((string("local machine with a front end is direct (") + modes[i] + ")").c_str(),
-            rc.isOpen() && rc.isDirect() && rc.execout("echo here", o) &&
-            o == "here\r\n");
-    }
-    setenv("ECCE_TRANSPORT", "direct", 1);
-  }
-  {
-    RCommand rc("system", "", "bash", "", "", "", "", "", "", "", false);
-    check("allowDirect=false keeps the pty", rc.isOpen() && rc.expfid() > 0);
+    // is ignored.
+    RCommand rc("system", "", "bash", "", "", "frontend.invalid", "");
+    string o;
+    check("local machine with a front end runs locally",
+          rc.isOpen() && rc.sshBackend() == "" && rc.execout("echo here", o) &&
+          o == "here\r\n");
   }
   {
     RCommand rc("system", "", "bash", "", "", "", "", "", "", "/nonexistent");
-    check("a missing sourceFile stays direct", rc.isOpen() && rc.expfid() == -1);
+    check("a missing sourceFile stays local", rc.isOpen());
   }
   {
     string out, err;
     bool ok = RCommand::command("echo via_command", out, err, "system", "",
                                 "bash");
-    check("static command() works in direct mode",
+    check("static command() works",
           ok && out == "via_command\r\n");
   }
 }
@@ -220,8 +235,8 @@ static void put(const string& f, const string& content)
   ofstream(f.c_str()) << content;
 }
 
-// Local get/put: one `cp -r` per call, "No such file" only a warning.  The
-// expectations are what the pty path produced before the copy left it.
+
+// Local get/put: one `cp -r` per call, "No such file" only a warning.
 static string slurp(const string& f)
 {
   ifstream in(f.c_str());
@@ -355,18 +370,8 @@ int main()
     subs.push_back(make_pair(string("/bin/sh"), string("@SH@")));
   }
 
-  if (golden::recording()) {
-    if (!scenario(false, tmp, dir, bg)) {
-      cout << "FAIL: no pty session with bash here" << endl;
-      return 1;
-    }
-    golden::record("rcommand_direct", dir, subs);
-    string cmd = "rm -rf " + tmp;
-    if (system(cmd.c_str()) != 0) {}
-    return bg ? 0 : 1;
-  }
-  if (!scenario(true, tmp, dir, bg)) {
-    cout << "FAIL: no direct session" << endl;
+  if (!scenario(tmp, dir, bg)) {
+    cout << "FAIL: no local session" << endl;
     return 1;
   }
 

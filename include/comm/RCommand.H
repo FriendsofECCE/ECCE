@@ -39,12 +39,9 @@ class RCommand
 {
 
 public:
-  // Constructor.  With ECCE_TRANSPORT=direct a local connection runs its
-  // commands through a DirectTransport instead of a pty shell, unless
-  // allowDirect is false: callers that use the raw expect API (expwrite,
-  // expfid, expect...) need the pty.  ECCE_TRANSPORT=ssh does the same and
-  // also sends ssh machines through libssh (SshTransport) unless allowSsh
-  // is false; a front end is reached by a forwarded channel or a nested ssh
+  // Constructor.  A local machine runs its commands through a
+  // DirectTransport; an ssh machine goes through libssh (SshTransport), where
+  // a front end is reached by a forwarded channel or a nested ssh
   // (SshTransport::FrontEnd) and hop() opens a new connection through it.
   // A host whose ~/.ssh/config shares connections (ControlMaster/ControlPath)
   // is served by the OpenSSH client instead (OpenSshTransport); see
@@ -53,20 +50,13 @@ public:
              const string& locShell="csh", const string& userName="",
              const string& password="", const string& frontendMachine="",
              const string& frontendBypass="", const string& shellPath="",
-             const string& libPath="", const string& sourceFile="",
-             bool allowDirect=true, bool allowSsh=true);
+             const string& libPath="", const string& sourceFile="");
 
   // Destructor
     ~RCommand(void);
 
   // Operations
     bool isOpen(void);    // Check connection status
-    // Which dialect the post-login environment setup used for this
-    // connection -- true only when the machine's configured shell
-    // (RefMachine::shell(), passed in here as locShell) is literally
-    // "bash"; csh/tcsh/anything else uses the original, long-tested
-    // csh-style syntax. Only meaningful after a connection attempt.
-    bool remoteShellIsBash(void) const;
     bool fileOp(const string& op, const string& filename);
     bool exists(const string& filename);
     bool directory(const string& filename);
@@ -99,40 +89,32 @@ public:
              const string& shellPath="", const string& libPath="",
              const string& sourceFile="");
 
-    // Direct and ssh modes: the monitor stream.  startStream() runs the command
-    // on pipes; expfid()/expwrite() then address it, and \003 sent through
-    // exec() becomes SIGINT to its process group.
-    bool isDirect(void) const { return p_direct && !p_ssh; }
-    // True when startStream() is available: direct, or ssh over libssh
-    // (the stream then has its own session and thread).
-    bool canStream(void) const { return p_direct; }
+    // The monitor stream.  startStream() runs the command on pipes (over
+    // ssh, on a session and thread of its own); streamFd()/streamWrite() then
+    // address it, and \003 sent through exec() becomes SIGINT to its process
+    // group.  streamFd() is -1 when no stream is open.
     bool startStream(const string& command);
     void stopStream(int graceMs=2000);
 
-    bool expwrite(const string& command);
-    bool expwrite(const char* command);
-    bool expwritefull(const string& command);
-    void exptimeout(const int& timeout=0);
-    char* expout(void);
-    void patalloc(int numPatterns, ...);
-    void patfree(void);
-    int patexpect(void);
-    int expect(int numPatterns, ...);
-    int expect1(const char* pat);
-    int expect2(const char* pat1, const char* pat2);
-    int expfid(void);
+    bool streamWrite(const string& command);
+    bool streamWrite(const char* command);
+    // Timeout in seconds for execout() and friends; 0 restores the default,
+    // negative means none.
+    void streamTimeout(const int& timeout=0);
+    int streamFd(void);
 
     string commError(void); // Return error message string
 
-    // Asked when an ssh host key is not in known_hosts (ECCE_TRANSPORT=ssh).
+    // Asked when an ssh host key is not in known_hosts.
     // Return true to accept and record it.  Unset, the key is refused and
     // the user is told to run ssh once by hand.
     typedef bool (*HostKeyHook)(const string& host, const string& fingerprint);
     static HostKeyHook hostKeyHook;
 
     // Non-empty (a message fit to show the user) when remShell is anything
-    // but the ssh family (ssh, sshpass, ssh/ftp): telnet, Globus, rsh and
-    // the shells remote_shells.site used to define are all refused.
+    // but the ssh family (ssh, and the old sshpass and ssh/ftp, which mean
+    // ssh now): telnet, Globus, rsh and the shells remote_shells.site used to
+    // define are all refused.
     static string removedShellMessage(const string& remShell);
 
     static bool get(string& errMessage,
@@ -187,15 +169,8 @@ public:
                                 const string& remShell, const bool& isRemote,
                                 string& commandWithArgs);
 
-    // ECCE_TRANSPORT=ssh and a remote ssh machine: the test the constructor
-    // applies.  usesLibssh() is the same test, kept under its old name: a
+    // A remote machine in the ssh family: the test the constructor applies.  A
     // build without libssh serves these machines with the OpenSSH client.
-    static bool usesLibssh(const string& machine, const string& remShell,
-                           const string& userName);
-    // The transport every process of a user agrees on: ECCE_TRANSPORT when
-    // set (direct, ssh, or pty for the shell session), else "ssh" if
-    // Edit > Preferences asks for it, else "pty".
-    static string transportMode();
     static bool usesSsh(const string& machine, const string& remShell,
                         const string& userName);
     static bool isRemote(const string& machine, const string& remShell,
@@ -207,57 +182,31 @@ public:
                                const string& userName="");
     static bool isSameDomain(const string& machine);
     static string whereami(void);
-    static string commandShell(const string& machine="",
-                         const string& remShell="", const string& userName="");
 
 private:
-    static bool fidwrite(const int& fid, const string& command,
-                         string& errMessage);
-    static bool copy(string& errMessage,
-                     const string& machine, const string& copyCmd,
-                     const string& userName, const string& password,
-                     char** argv);
-    static string ftpTarget(const string& ftpIn);
-    static bool ftp(string& errMessage, const string& machine,
-                    const string& copyCmd, const string& userName,
-                    const string& password, char** argv,
-                    const char** fromFiles, const string& toFile,
-                    const bool& putFlag);
+    // get/put for every overload: local cp, or SFTP for an ssh machine.
+    static bool copyFiles(bool putFlag, string& errMessage,
+                          const string& machine, const string& remShell,
+                          const string& userName, const string& password,
+                          const vector<string>& files, const string& toFile);
     static bool globFiles(const char** inFiles, char**& outFiles,int& numFiles);
-    static string shellCommand(const string& remShell, const string& machine,
-                               const string& locShell, const string& userName,
-                               const bool& hopFlag, char** argv);
-    static string copyCommand(const string& remShell, const bool& isRemote,
-                              const string& machine, const string& userName,
-                              int& argc, char** argv);
-    static string copyToShell(const string& copyCmd);
-    static void expMungedOutputFix();
 
     static const bool getPassCache(const string& shell, const string& machine,
                                    const string& userName, string& passBuf);
     static void  setPassCache(const string& shell, const string& machine,
                               const string& userName, const string& password);
 
-    int p_fid;
-    int p_pid;
-    struct exp_case* p_pats;
     bool p_connected;
-    bool p_background;
-    int p_hopCount;
+    int p_timeout;           // seconds for execout(); <= 0 means none
     string p_shell;
     string p_machine;
     string p_errMessage;
-    bool p_remoteBash;    // set by exec() -- see remoteShellIsBash()
-    Transport* p_transport;  // non-null only when a Transport backs this
-    bool p_direct;           // true for DirectTransport and the ssh transports alike
+    Transport* p_transport;  // null until a connection is made
     bool p_ssh;              // the Transport is a RemoteTransport
     string p_scriptPrefix;   // PATH/LD_LIBRARY_PATH setup for every script
     DirectTransport::Stream p_stream;
     RemoteStream* p_sshStream;
 
-    bool directExecout(const string& command, string& output,
-                       const string& errorMessage, const int& timeout);
-    bool directUnsupported(const char* what);
     bool sshConnect(const string& machine, const string& userName,
                     const string& password, const string& jumpHost = "");
     bool sshConnectLibssh(const string& machine, const string& userName,

@@ -58,7 +58,6 @@ int main(int argc, char** argv)
     setenv("ECCE_REALUSER", getenv("USER") ? getenv("USER") : "root", 1);
     setenv("ECCE_AUTHCACHE_NO_BROADCAST", "1", 1);
     setenv("ECCE_REALUSERHOME", getenv("HOME"), 1);
-    setenv("ECCE_TRANSPORT", "ssh", 1);
     auto count = [&]() {
       int n = 0;
       FILE* f = fopen(alog, "r");
@@ -107,7 +106,6 @@ int main(int argc, char** argv)
   setenv("ECCE_AUTHCACHE_NO_BROADCAST", "1", 1);
   if (getenv("HOME") && !getenv("ECCE_REALUSERHOME"))
     setenv("ECCE_REALUSERHOME", getenv("HOME"), 1);
-  setenv("ECCE_TRANSPORT", "ssh", 1);
 
   const string interactive = "No shared ssh connection to " + host +
     " is open. Run \"ssh " + host + "\" once in a terminal (that opens it), "
@@ -119,8 +117,8 @@ int main(int argc, char** argv)
   check("served by the OpenSSH client", rc.sshBackend() == "openssh", rc.sshBackend());
   check("runs a command", rc.execout("echo before", o) && o == "before\r\n", o);
   check("starts the monitor stream", rc.startStream("cat"));
-  int fd = rc.expfid();
-  check("stream echoes", rc.expwrite("ping") && [&] {
+  int fd = rc.streamFd();
+  check("stream echoes", rc.streamWrite("ping") && [&] {
     fd_set f; FD_ZERO(&f); FD_SET(fd, &f);
     struct timeval tv = { 5, 0 };
     char b[64];
@@ -166,7 +164,7 @@ int main(int argc, char** argv)
   RCommand rc4(host, "ssh", "bash", user);
   check("works again over the new master", rc4.isOpen() && rc4.execout("echo recovered", o) &&
         o == "recovered\r\n", rc4.commError());
-  check("monitor stream works again", rc4.startStream("cat") && rc4.expwrite("pong"));
+  check("monitor stream works again", rc4.startStream("cat") && rc4.streamWrite("pong"));
   rc4.stopStream(500);
 
   cout << (failures ? "FAILED " : "PASSED ") << failures << endl;

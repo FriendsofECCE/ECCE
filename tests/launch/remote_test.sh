@@ -1,13 +1,12 @@
 #!/bin/bash
 # Launch a real MOPAC job on a REMOTE machine (the test sshd from
-# tests/transport/sshd) through the pty ssh path and through libssh (#204,
-# #107).  Usage: remote_test.sh [bashuser|cshuser ...]   (default: both)
+# tests/transport/sshd) over ssh (#204, #107).  Usage: remote_test.sh [bashuser|cshuser ...]   (default: both)
 #
 # The client runs in a container (Containerfile.launch) so the test owns the
 # ~/.ssh that ssh reads; OpenSSH takes it from the passwd home, which an
 # isolated $HOME on the host cannot override.  RUN_ARGS overrides the
-# arguments to run_tests.py (default: --transport both --drop --kill).  The build goes to build-ssh in
-# the worktree, untracked.  To run beside another run: ECCE_TEST_SSH_PORT,
+# arguments to run_tests.py (default: --drop --kill).  The build goes to build-ssh in the worktree,
+# untracked.  To run beside another run: ECCE_TEST_SSH_PORT,
 # ECCE_TEST_SSH_NAME (run.sh), ECCE_TEST_CLIENT_HOME, ECCE_TEST_STATE (a path
 # inside the client home, e.g. /tmp/client/st), ECCE_DATASERVER_PORT, ECCE_BROKER_PORT.
 #
@@ -16,7 +15,7 @@
 # is opened with the key, and the key is then taken away, so a new connection
 # from ECCE (libssh or ssh) cannot log in and only the master gets through.
 # ECCE selects the OpenSSH client by itself; RUN_ARGS defaults to
-# "--transport ssh --shared-connection --kill" here (no --drop: killing the
+# "--shared-connection --kill" here (no --drop: killing the
 # monitor's sshd session would kill the master).
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
@@ -42,8 +41,8 @@ podman run --rm --userns=keep-id --network host -e HOME=/tmp/client -e USER=ecce
   ${ECCE_TEST_STATE:+-e ECCE_TEST_STATE} ${ECCE_DATASERVER_PORT:+-e ECCE_DATASERVER_PORT} \
   ${ECCE_BROKER_PORT:+-e ECCE_BROKER_PORT} ${ECCE_SSH_KEEPALIVE:+-e ECCE_SSH_KEEPALIVE} ${ECCE_SSH_BACKEND:+-e ECCE_SSH_BACKEND} \
   -e PORT="$port" -e USERS="$users" -e CM="${ECCE_TEST_CONTROLMASTER:-}" \
-  -e RUN_ARGS="${RUN_ARGS:-${ECCE_TEST_CONTROLMASTER:+--transport ssh --shared-connection --kill}}" \
-  -e RUN_ARGS_DEFAULT="--transport both --drop --kill" localhost/ecce-launch bash -c '
+  -e RUN_ARGS="${RUN_ARGS:-${ECCE_TEST_CONTROLMASTER:+--shared-connection --kill}}" \
+  -e RUN_ARGS_DEFAULT="--drop --kill" localhost/ecce-launch bash -c '
   set -e
   install -d -m 700 ~/.ssh
   install -m 600 /state/id_ed25519 ~/.ssh/ecce_test_key

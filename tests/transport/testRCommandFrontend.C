@@ -1,9 +1,8 @@
 // RCommand to a machine that is only reachable through a front end (#204):
-// ECCE_TRANSPORT=ssh must return the values and output recorded from the pty
-// path, which ssh's from the front end, through either a forwarded connection
-// or a nested ssh.  golden/rcommand_frontend_*.txt; ECCE_GOLDEN_RECORD=1
-// rewrites them from the pty run.  Run by sshd/frontend_test.sh, which
-// provides the containers and ~/.ssh; exit 77 without them.
+// the values and output recorded from the old pty path, which ssh'd from the
+// front end, must keep coming back through either a forwarded connection or a
+// nested ssh.  golden/rcommand_frontend_*.txt.  Run by sshd/frontend_test.sh,
+// which provides the containers and ~/.ssh; exit 77 without them.
 //   testRCommandFrontend <frontend> <expected mode: forward|nested>
 
 #include <cstdio>
@@ -61,27 +60,18 @@ static string trim(string o)
   return o;
 }
 
-static void setMode(bool ssh)
-{
-  if (ssh) setenv("ECCE_TRANSPORT", "ssh", 1);
-  else setenv("ECCE_TRANSPORT", "pty", 1);
-}
-
-static bool scenario(bool ssh, const string& user, const string& shell,
+static bool scenario(const string& user, const string& shell,
                      const string& front, const string& rdir,
                      const string& ldir, const string& wantMode,
                      vector<string>& log)
 {
-  setMode(ssh);
   RCommand rc("node", "ssh", shell, user, "", front);
   if (!rc.isOpen()) {
-    cout << "no session (" << (ssh ? "ssh" : "pty") << ", " << user << "): "
-         << rc.commError() << endl;
+    cout << "no session (" << user << "): " << rc.commError() << endl;
     return false;
   }
-  if (ssh)
-    check("libssh, front end mode " + wantMode + " (" + user + ")",
-          rc.expfid() == -1 && rc.frontEndMode() == wantMode);
+  check("front end mode " + wantMode + " (" + user + ")",
+        rc.frontEndMode() == wantMode);
 
   string o;
   bool r;
@@ -141,8 +131,7 @@ static bool scenario(bool ssh, const string& user, const string& shell,
   r = rc.shellput(from, dest);
   log.push_back(rec("shellput", r, "", r ? "" : rc.commError()));
   EXECOUT("shellput content", "cat " + dest + "/lplain");
-  // The pty's dd/cat copy drops the mode; SFTP and the nested copy keep it.
-  if (ssh) check("shellput keeps the exec bit", rc.executable(dest + "/lscript"));
+  check("shellput keeps the exec bit", rc.executable(dest + "/lscript"));
 
   string getdir = ldir + "/got";
   mkdir(getdir.c_str(), 0755);
@@ -174,30 +163,27 @@ static bool scenario(bool ssh, const string& user, const string& shell,
   }
   string rsum;
   rc.execout("cat " + rdir + "/big.sum", rsum);
-  // The pty path cannot move binary data this size, so there is no oracle.
-  if (ssh) check("shellget of a 300 kB binary file is intact",
-                 r && trim(sum) == trim(rsum) && !sum.empty());
+  check("shellget of a 300 kB binary file is intact",
+        r && trim(sum) == trim(rsum) && !sum.empty());
   return true;
 }
 
 // hop() from the front end to the node: commands then run on the node.
-static void hopChecks(bool ssh, const string& user, const string& shell,
+static void hopChecks(const string& user, const string& shell,
                       const string& front)
 {
-  setMode(ssh);
-  string tag = ssh ? "ssh" : "pty";
   RCommand rc(front, "ssh", shell, user);
   string o;
-  if (!rc.isOpen()) { check(tag + " hop: open " + front, false); return; }
+  if (!rc.isOpen()) { check("hop: open " + front, false); return; }
   rc.execout("hostname", o);
-  check(tag + " hop: starts on the front end (" + trim(o) + ")", trim(o) == front, ssh);
+  check("hop: starts on the front end (" + trim(o) + ")", trim(o) == front);
   bool r = rc.hop("node", shell, user);
-  check(tag + " hop: hop() succeeds " + (r ? "" : rc.commError()), r, ssh);
+  check(string("hop: hop() succeeds ") + (r ? "" : rc.commError()), r);
   rc.execout("hostname", o);
-  check(tag + " hop: commands now run on node (" + trim(o) + ")", trim(o) == "node", ssh);
-  check(tag + " hop: cd and pwd on node", rc.cd("/tmp") && rc.execout("pwd", o) &&
-        trim(o) == "/tmp", ssh);
-  if (ssh) check("ssh hop: still libssh", rc.expfid() == -1 && rc.isOpen());
+  check("hop: commands now run on node (" + trim(o) + ")", trim(o) == "node");
+  check("hop: cd and pwd on node", rc.cd("/tmp") && rc.execout("pwd", o) &&
+        trim(o) == "/tmp");
+  check("hop: connection still open", rc.isOpen());
 }
 
 int main(int argc, char** argv)
@@ -227,8 +213,7 @@ int main(int argc, char** argv)
   int diffs = 0;
 
   if (argc > 3 && string(argv[3]) == "hop") {   // hop checks alone, for debugging
-    hopChecks(false, "cshuser", "csh", front);
-    hopChecks(true, "cshuser", "csh", front);
+    hopChecks("cshuser", "csh", front);
     return failures ? 1 : 0;
   }
 
@@ -236,7 +221,6 @@ int main(int argc, char** argv)
     string user = accts[a].user, shell = accts[a].shell;
     cout << "== " << user << " (" << shell << ") via " << front << endl;
     string rdir = "/tmp/ecce_fe_" + user;
-    setMode(true);
     {
       RCommand rc("node", "ssh", shell, user, "", front);
       string o;
@@ -252,34 +236,12 @@ int main(int argc, char** argv)
     vector<string> log;
     golden::Subs subs;
     const string name = "rcommand_frontend_" + shell;
-    if (golden::recording()) {
-      if (!scenario(false, user, shell, front, rdir, ldir, wantMode, log)) {
-        cout << "FAIL: no pty session (reference)" << endl;
-        return 1;
-      }
-      golden::record(name, log, subs);
-      setMode(true);
-      RCommand rc("node", "ssh", shell, user, "", front);
-      string o;
-      rc.execout("rm -rf " + rdir, o);
-      continue;
-    }
-    if (!scenario(true, user, shell, front, rdir, ldir, wantMode, log)) {
+    if (!scenario(user, shell, front, rdir, ldir, wantMode, log)) {
       cout << "FAIL: no ssh session" << endl;
       return 1;
     }
     diffs += golden::compare(name, log, subs);
-    // The pty hop times out now and then here with no libssh involved (and
-    // has corrupted the heap afterwards), so its result is reported, not
-    // counted; the libssh hop is what is under test.
-    if (shell == "bash") {
-      cout.flush();
-      pid_t pid = fork();
-      if (pid == 0) { hopChecks(false, user, shell, front); cout.flush(); _exit(0); }
-      if (pid > 0) { int st; waitpid(pid, &st, 0); }
-    }
-    hopChecks(true, user, shell, front);
-    setMode(true);
+    hopChecks(user, shell, front);
     RCommand rc("node", "ssh", shell, user, "", front);
     string o;
     rc.execout("rm -rf " + rdir, o);

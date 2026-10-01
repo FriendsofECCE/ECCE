@@ -1,6 +1,6 @@
 #!/bin/bash
 # Builds ecmd and testBgcommand with libssh in the Containerfile.build image
-# and runs RCommand::bgcommand against the sshd from run.sh, pty then ssh.
+# and runs RCommand::bgcommand against the sshd from run.sh.
 # Usage: [ECCE_TEST_SSH_PORT=2222] [ECCE_TEST_SSH_STATE=dir] bgcommand_test.sh
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
@@ -11,7 +11,7 @@ if ! podman image exists localhost/ecce-sshbuild; then
   podman build -q -t localhost/ecce-sshbuild -f "$here/Containerfile.build" "$here" >/dev/null
 fi
 podman run --rm --network host -v "$root:/src:Z" -v "$state:/state:Z,ro" \
-  -e PORT="$port" -e MODES="${MODES:-}" -e LOG="${LOG:-}" -e SHELLCMD="${SHELLCMD:-}" localhost/ecce-sshbuild bash -c '
+  -e PORT="$port" -e LOG="${LOG:-}" -e SHELLCMD="${SHELLCMD:-}" localhost/ecce-sshbuild bash -c '
   set -e
   install -d -m 700 /root/.ssh
   install -m 600 /state/id_ed25519 /root/.ssh/ecce_test_key
@@ -32,5 +32,5 @@ podman run --rm --network host -v "$root:/src:Z" -v "$state:/state:Z,ro" \
   [ -z "$SHELLCMD" ] || exec bash -c "$SHELLCMD"
   rc=0
   [ -z "$LOG" ] || export ECCE_RCOM_LOGMODE=1
-  for mode in ${MODES:-pty ssh}; do build-ssh/testBgcommand $mode || rc=1; done
+  build-ssh/testBgcommand || rc=1
   exit $rc'

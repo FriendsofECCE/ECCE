@@ -1,4 +1,4 @@
-// EcceShell's local-terminal command (ECCE_TRANSPORT=ssh, #204): the remote
+// EcceShell's local-terminal command for an ssh machine (#204): the remote
 // command line, the terminal argv and the detached start, with stub terminals
 // standing in for xterm.  No connection is made.
 

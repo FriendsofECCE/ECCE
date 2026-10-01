@@ -1,8 +1,7 @@
-// RCommand over libssh (ECCE_TRANSPORT=ssh) against results recorded from the
-// pty ssh path (#204): the same operations through RCommand to the test sshd
-// must return the same values and output, for a tcsh and a bash account.
-// golden/rcommand_ssh_*.txt; ECCE_GOLDEN_RECORD=1 rewrites them from the pty
-// run.
+// RCommand over ssh against results recorded from the old pty ssh path
+// (#204): the same operations through RCommand to the test sshd must keep
+// returning the same values and output, for a tcsh and a bash account.
+// golden/rcommand_ssh_*.txt.
 // Needs the sshd from tests/transport/sshd/run.sh and a ~/.ssh with the test
 // key, known_hosts and config that rcommand_test.sh sets up; exit 77 if absent.
 
@@ -56,45 +55,24 @@ static string readFile(const string& f)
 }
 
 // ECCE_TEST_CONTROLMASTER=1 (controlmaster_test.sh): HOST is a name whose ssh
-// config shares one connection that is the only way in, so the ssh side must
-// run over the OpenSSH client.  The pty oracle uses ORACLE_HOST, an ordinary
-// login with its own copy of the key.
+// config shares one connection that is the only way in, so the session must
+// run over the OpenSSH client.
 static const char* HOST = "127.0.0.1";
-static const char* ORACLE_HOST = "127.0.0.1";
 static bool controlMaster = false;
 
-struct OracleHost {
-  explicit OracleHost(bool on) : saved(HOST) { if (on && controlMaster) HOST = ORACLE_HOST; }
-  ~OracleHost() { HOST = saved; }
-  const char* saved;
-};
-
-static void setMode(bool ssh)
-{
-  if (ssh) setenv("ECCE_TRANSPORT", "ssh", 1);
-  else setenv("ECCE_TRANSPORT", "pty", 1);
-}
-
 // Runs the whole scenario; one line per operation.
-static bool scenario(bool ssh, const string& user, const string& shell,
+static bool scenario(const string& user, const string& shell,
                      const string& rdir, const string& ldir,
                      vector<string>& log, bool& bgAlive)
 {
-  OracleHost oracle(!ssh);
-  setMode(ssh);
   RCommand rc(HOST, "ssh", shell, user);
   if (!rc.isOpen()) {
-    cout << "no session (" << (ssh ? "ssh" : "pty") << ", " << user << "): "
-         << rc.commError() << endl;
-    return false;
-  }
-  if (ssh && rc.expfid() != -1) {
-    cout << "the ssh transport was not used" << endl;
+    cout << "no session (" << user << "): " << rc.commError() << endl;
     return false;
   }
   // The ControlMaster test says which backend must have been chosen.
   const char* want = getenv("ECCE_TEST_EXPECT_BACKEND");
-  if (ssh && want && rc.sshBackend() != want) {
+  if (want && rc.sshBackend() != want) {
     cout << "expected the " << want << " backend, got '" << rc.sshBackend()
          << "'" << endl;
     return false;
@@ -105,9 +83,8 @@ static bool scenario(bool ssh, const string& user, const string& shell,
 #define EXECOUT(name, cmd) \
   do { o = "untouched"; r = rc.execout(cmd, o); \
        log.push_back(rec(name, r, o, r ? "" : rc.commError())); } while (0)
-  // The pty leaves its own "CMDSTAT=n" and prompt in the buffer and words
-  // a missing command as csh does ("Could not find command"; bash gets the
-  // generic text), so only the verdict is compared.
+  // The wording of a missing command is the remote shell's own, so only the
+  // verdict is compared.
 #define EXECOUT_STATUS_ONLY(name, cmd) \
   do { r = rc.execout(cmd, o); \
        log.push_back(rec(name, r, "")); } while (0)
@@ -115,8 +92,7 @@ static bool scenario(bool ssh, const string& user, const string& shell,
   EXECOUT("echo", "echo hello");
   EXECOUT("multi-line", "echo a; echo b; echo c");
   EXECOUT("empty output", "true");
-  // The pty path leaves a remote command's stderr on this process's own
-  // stderr; the ssh path merges it into the output (checked in sshChecks).
+  // stderr is merged into the output (checked in sshChecks).
   EXECOUT_STATUS_ONLY("stderr merged", "echo out; echo err 1>&2; echo out2");
   EXECOUT("status 1", "(exit 1)");
   EXECOUT_STATUS_ONLY("status 3", "echo before; (exit 3)");
@@ -265,7 +241,7 @@ static bool scenario(bool ssh, const string& user, const string& shell,
   r = RCommand::put(serr, HOST, "ssh", user, "", one, sdir);
   log.push_back(rec("put glob without a match", r, ""));
 
-  // The pty path's copy() ignores missing files; so does the ssh path.
+  // A missing file is only a warning, as it always was.
   one.clear();
   one.push_back(ldir + "/no_such_file");
   r = RCommand::put(serr, HOST, "ssh", user, "", one, sdir);
@@ -306,16 +282,15 @@ static bool scenario(bool ssh, const string& user, const string& shell,
 // stdin is written from here: echo, merged stderr, EOF, interrupt, stop.
 static void streamChecks(const string& user, const string& shell)
 {
-  setMode(true);
   RCommand rc(HOST, "ssh", shell, user, "", "", "", "/opt/ecce_test_path");
   string o;
-  check("stream: open", rc.isOpen() && rc.canStream());
+  check("stream: open", rc.isOpen());
   rc.exec("rm -rf /tmp/ecce_stream_" + user + " && mkdir -p /tmp/ecce_stream_" + user);
   rc.cd("/tmp/ecce_stream_" + user);
 
   check("stream: starts", rc.startStream("pwd; echo err 1>&2; cat; echo after-eof"));
   check("stream: not started twice", !rc.startStream("cat"));
-  int fd = rc.expfid();
+  int fd = rc.streamFd();
   check("stream: has a descriptor", fd > 2);
 
   auto readFor = [&](const string& want, int ms) {
@@ -336,11 +311,11 @@ static void streamChecks(const string& user, const string& shell)
   check("stream: runs in the directory, stderr merged: " + esc(first),
         first.find("/tmp/ecce_stream_" + user + "\n") != string::npos &&
         first.find("err\n") != string::npos);
-  check("stream: write reaches the script's stdin", rc.expwrite("ping 1"));
+  check("stream: write reaches the script's stdin", rc.streamWrite("ping 1"));
   check("stream: reply comes back",
         readFor("ping 1\n", 5000).find("ping 1\n") != string::npos);
   check("stream: a large reply survives",
-        rc.expwrite(string(20000, 'x')) &&
+        rc.streamWrite(string(20000, 'x')) &&
         readFor(string(20000, 'x') + "\n", 5000).size() >= 20000);
 
   time_t t0 = time(0);
@@ -350,11 +325,11 @@ static void streamChecks(const string& user, const string& shell)
   ssize_t n;
   (void)n; (void)b;
   check("stream: stop returns within the grace period", time(0) - t0 <= 4);
-  check("stream: descriptor is gone afterwards", rc.expfid() == -1);
+  check("stream: descriptor is gone afterwards", rc.streamFd() == -1);
 
   // EOF from the far end closes the descriptor.
   check("stream: starts (short)", rc.startStream("echo hi; sleep 1"));
-  fd = rc.expfid();
+  fd = rc.streamFd();
   string hi = readFor("hi\n", 5000);
   check("stream: short script output", hi == "hi\n");
   bool eof = false;
@@ -371,7 +346,7 @@ static void streamChecks(const string& user, const string& shell)
 
   // ^C ends a long script's shell; the stream then ends.
   check("stream: starts (long)", rc.startStream("sleep 30; echo late"));
-  fd = rc.expfid();
+  fd = rc.streamFd();
   usleep(500000);
   t0 = time(0);
   check("stream: interrupt accepted", rc.execout("\003", o));
@@ -391,7 +366,6 @@ static void streamChecks(const string& user, const string& shell)
 
 static void sshChecks(const string& user, const string& shell)
 {
-  setMode(true);
   {
     RCommand rc(HOST, "ssh", shell, user, "", "", "", "/opt/ecce_test_path",
                 "/opt/ecce_test_lib");
@@ -401,62 +375,45 @@ static void sshChecks(const string& user, const string& shell)
     rc.execout("echo $LD_LIBRARY_PATH", l);
     check("ssh: shellPath prefixed", p.compare(0, 20, "/opt/ecce_test_path:") == 0);
     check("ssh: libPath prefixed", l.compare(0, 19, "/opt/ecce_test_lib:") == 0);
-    check("ssh: remoteShellIsBash", rc.remoteShellIsBash());
     check("ssh: stderr merged into output",
           rc.execout("echo out; echo err 1>&2; echo out2", p) &&
           p == "out\r\nerr\r\nout2\r\n");
     check("ssh: hop to an unknown host fails cleanly",
           !rc.hop("no-such-host.invalid") && rc.commError() != "");
-    check("ssh: raw api fails without crashing",
-          !rc.expwrite("date") && rc.expect1("x") == -1 && rc.expfid() == -1 &&
-          !rc.isDirect() && rc.canStream());
-  }
-  {
-    RCommand rc(HOST, "ssh", shell, user, "", "", "", "", "", "", false);
-    check("allowDirect=false keeps the pty", rc.isOpen() && rc.expfid() > 0);
-  }
-  {
-    RCommand rc(HOST, "ssh", shell, user, "", "", "", "", "", "", true, false);
-    check("allowSsh=false keeps the pty", rc.isOpen() && rc.expfid() > 0);
+    check("ssh: no stream before startStream",
+          !rc.streamWrite("date") && rc.streamFd() == -1);
   }
   {
     RCommand rc(HOST, "ssh", shell, user, "", "", "", "", "", "/nonexistent");
-    check("a missing sourceFile stays on libssh", rc.isOpen() && rc.expfid() == -1);
+    check("a missing sourceFile does not stop the connection", rc.isOpen());
   }
   {
     RCommand rc(HOST, "rsh", shell, user);
-    check("rsh is refused", !rc.isOpen() && rc.expfid() == -1);
+    check("rsh is refused", !rc.isOpen());
   }
   {
     RCommand rc("system", "", "bash");
     string o;
-    check("local machine is direct", rc.isOpen() && rc.execout("echo x", o) &&
-          o == "x\r\n" && rc.expfid() == -1);
+    check("local machine runs locally", rc.isOpen() && rc.execout("echo x", o) &&
+          o == "x\r\n" && rc.sshBackend() == "");
   }
 }
 
-// A sourceFile in the account's own login-shell syntax: the pty sources it in
-// its shell, libssh in a shell run once at connect, and both must see the
-// same variables, PATH, unset variables and working directory.
-static bool sourceScenario(bool ssh, const string& user, const string& shell,
+// A sourceFile in the account's own login-shell syntax, run once at connect:
+// the variables, PATH, unset variables and working directory it leaves must
+// stay what the old pty session saw.
+static bool sourceScenario(const string& user, const string& shell,
                            const string& srcFile, const string& shellPath,
                            const string& rdir, vector<string>& log)
 {
-  OracleHost oracle(!ssh);
-  setMode(ssh);
   RCommand rc(HOST, "ssh", shell, user, "", "", "", shellPath, "", srcFile);
   if (!rc.isOpen()) {
-    cout << "no session (" << (ssh ? "ssh" : "pty") << ", " << user << "): "
-         << rc.commError() << endl;
-    return false;
-  }
-  if (ssh && rc.expfid() != -1) {
-    cout << "the ssh transport was not used" << endl;
+    cout << "no session (" << user << "): " << rc.commError() << endl;
     return false;
   }
   // The ControlMaster test says which backend must have been chosen.
   const char* want = getenv("ECCE_TEST_EXPECT_BACKEND");
-  if (ssh && want && rc.sshBackend() != want) {
+  if (want && rc.sshBackend() != want) {
     cout << "expected the " << want << " backend, got '" << rc.sshBackend()
          << "'" << endl;
     return false;
@@ -506,7 +463,6 @@ static void sourceChecks(const string& user, const string& shell,
   { ofstream f((ldir + "/srctool").c_str()); f << "#!/bin/sh\necho tool ran\n"; }
   chmod((ldir + "/srctool").c_str(), 0755);
   {
-    setMode(true);
     RCommand rc(HOST, "ssh", shell, user);
     string o;
     rc.exec("mkdir -p " + rdir + "/bin");
@@ -529,25 +485,15 @@ static void sourceChecks(const string& user, const string& shell,
     const string name = "rcommand_ssh_source_" + shell + "_" + char('0' + c);
     golden::Subs subs;
     subs.push_back(make_pair(ldir, string("@LDIR@")));
-    if (golden::recording()) {
-      if (!sourceScenario(false, user, shell, cases[c].file, cases[c].prefix, rdir, log)) {
-        check("sourceFile: pty session (reference)", false);
-        continue;
-      }
-      golden::record(name, log, subs);
-      continue;
-    }
-    if (!sourceScenario(true, user, shell, cases[c].file, cases[c].prefix, rdir, log)) {
+    if (!sourceScenario(user, shell, cases[c].file, cases[c].prefix, rdir, log)) {
       check("sourceFile: ssh session", false);
       continue;
     }
     extra += golden::compare(name, log, subs);
   }
-  if (golden::recording()) return;
   {
     // The stream runs on a session of its own and must see the same
     // imported environment and directory as a command on the main one.
-    setMode(true);
     RCommand rc(HOST, "ssh", shell, user, "", "", "", "", "", rdir + "/srcfile");
     const string cmd = "echo \"[$ECCE_T1][$ECCE_T_AFTER][$LOGNAME]\"; pwd; "
                        "ecce_src_tool";
@@ -555,7 +501,7 @@ static void sourceChecks(const string& user, const string& shell,
     bool ok = rc.isOpen() && rc.execout(cmd, viaExec) && rc.startStream(cmd);
     check("sourceFile: stream starts", ok);
     if (ok) {
-      int fd = rc.expfid();
+      int fd = rc.streamFd();
       string got;
       for (int i = 0; i < 100 && got.find("tool ran") == string::npos; i++) {
         fd_set f; FD_ZERO(&f); FD_SET(fd, &f);
@@ -576,14 +522,13 @@ static void sourceChecks(const string& user, const string& shell,
     rc.stopStream();
   }
   {
-    setMode(true);
     { ofstream f((ldir + "/srcbad").c_str()); f << "exit 3\n"; }
     RCommand rc0(HOST, "ssh", shell, user);
     string badPath = ldir + "/srcbad";
     const char* from[] = { badPath.c_str(), 0 };
     rc0.shellput(from, rdir);
     RCommand rc(HOST, "ssh", shell, user, "", "", "", "", "", rdir + "/srcbad");
-    // csh's exit only ends the sourced file, as it does in the pty session.
+    // csh's exit only ends the sourced file.
     if (csh)
       check("csh: exit in the sourceFile only ends it", rc.isOpen());
     else
@@ -599,7 +544,6 @@ static bool acceptHook(const string&, const string&) { hookCalled = true; return
 // which the setup gave a known_hosts line but no IdentityFile.
 static void authChecks(const string& user, const string& shell)
 {
-  setMode(true);
   {
     RCommand rc("pwhost", "ssh", shell, user, "ecce-test");
     string o;
@@ -714,7 +658,7 @@ int main()
   const char* home = getenv("HOME");
   if (home && !getenv("ECCE_REALUSERHOME")) setenv("ECCE_REALUSERHOME", home, 1);
   controlMaster = getenv("ECCE_TEST_CONTROLMASTER") != 0;
-  if (controlMaster) { HOST = "cm"; ORACLE_HOST = "oracle"; }
+  if (controlMaster) HOST = "cm";
   if (!controlMaster &&
       (!home || access((string(home) + "/.ssh/ecce_test_key").c_str(), R_OK) != 0)) {
     cout << "SKIP: run through tests/transport/sshd/rcommand_test.sh" << endl;
@@ -741,7 +685,6 @@ int main()
     cout << "== " << user << " (" << shell << ")" << endl;
 
     string rdir = "/tmp/ecce_rcssh_" + user;
-    setMode(true);
     {
       RCommand rc(HOST, "ssh", shell, user);
       string o;
@@ -759,30 +702,21 @@ int main()
     bool bg = false;
     golden::Subs subs;
     subs.push_back(make_pair(ldir, string("@LDIR@")));
-    if (golden::recording()) {
-      if (!scenario(false, user, shell, rdir, ldir, log, bg)) {
-        cout << "FAIL: no pty session (reference)" << endl;
-        return 1;
-      }
-      golden::record("rcommand_ssh_" + shell, log, subs);
-    } else {
-      if (!scenario(true, user, shell, rdir, ldir, log, bg)) {
-        cout << "FAIL: no ssh session" << endl;
-        return 1;
-      }
-      failures += golden::compare("rcommand_ssh_" + shell, log, subs);
+    if (!scenario(user, shell, rdir, ldir, log, bg)) {
+      cout << "FAIL: no ssh session" << endl;
+      return 1;
     }
+    failures += golden::compare("rcommand_ssh_" + shell, log, subs);
     if (!bg) {
       failures++;
       cout << "FAIL execbg live pid" << endl;
     }
 
-    if (!golden::recording()) sshChecks(user, shell);
+    sshChecks(user, shell);
     sourceChecks(user, shell, rdir, ldir);
-    if (!golden::recording()) streamChecks(user, shell);
-    if (!controlMaster && !golden::recording()) authChecks(user, shell);
+    streamChecks(user, shell);
+    if (!controlMaster) authChecks(user, shell);
 
-    setMode(true);
     RCommand rc(HOST, "ssh", shell, user);
     string o;
     rc.execout("rm -rf " + rdir, o);

@@ -1,6 +1,5 @@
-// RCommand::bgcommand -> ecmd -> RCommand::command end to end (#204), for the
-// pty path and ECCE_TRANSPORT=ssh (argv[1] = pty|ssh), against the test sshd
-// from tests/transport/sshd/run.sh; bgcommand_test.sh sets up $ECCE_HOME, the
+// RCommand::bgcommand -> ecmd -> RCommand::command end to end (#204), over
+// ssh, against the test sshd from tests/transport/sshd/run.sh; bgcommand_test.sh sets up $ECCE_HOME, the
 // machine list and ~/.ssh.  Exit 77 if the setup is absent.
 
 #include <cstdio>
@@ -40,7 +39,7 @@ static string trim(string s)
 }
 
 // What the background command did on the remote machine is read with the
-// OpenSSH client, whatever transport is under test.
+// OpenSSH client, independently of ECCE.
 static string remote(const string& user, const string& cmd)
 {
   string q = "'";
@@ -72,13 +71,11 @@ static string waitFor(const string& user, const string& file, int secs)
   return "";
 }
 
-static void scenario(const string& mode, const string& user,
-                     const string& machine, const string& password)
+static void scenario(const string& user, const string& machine,
+                     const string& password)
 {
-  const string tag = mode + "/" + user + "/" + machine;
-  const string id = mode + user + machine;
-  if (mode == "ssh") setenv("ECCE_TRANSPORT", "ssh", 1);
-  else setenv("ECCE_TRANSPORT", "pty", 1);
+  const string tag = user + "/" + machine;
+  const string id = user + machine;
   // An earlier run's background command keeps its ssh child for a while,
   // and the child check below would count it.
   for (int i = 0; i < 30 && system("pgrep -x ssh >/dev/null") == 0; i++)
@@ -100,10 +97,9 @@ static void scenario(const string& mode, const string& user,
         host != "" && host == want);
 
   // The marker is written first and the command then sleeps, so ecmd is
-  // still connected: a pty ssh child proves the pty path, none the libssh one.
+// still connected: an ssh child would mean the OpenSSH client, not libssh.
   bool sshChild = system("pgrep -x ssh >/dev/null") == 0;
-  check(tag + ": ecmd " + (mode == "ssh" ? "has no ssh child (libssh)" :
-        "runs a pty ssh child"), sshChild == (mode != "ssh"));
+  check(tag + ": ecmd has no ssh child (libssh)", !sshChild);
 
   // EcceShell's shape: a program with its own arguments, here a stub in
   // place of xterm, which records the DISPLAY it was started with.
@@ -121,24 +117,23 @@ static void scenario(const string& mode, const string& user,
   string rec = waitFor(user, "/tmp/xt-" + id, 20);
   cout << "     stub saw: [" << rec << "]" << endl;
   check(tag + ": stub ran with its arguments", rec.find("|-title T -e") != string::npos);
-  if (mode == "ssh")
-    cout << "     (remote DISPLAY under ssh: [" << rec.substr(0, rec.find('|'))
-         << "]; libssh does no X11 forwarding)" << endl;
+  cout << "     (remote DISPLAY: [" << rec.substr(0, rec.find('|'))
+       << "]; libssh does no X11 forwarding)" << endl;
   remote(user, "rm -f /tmp/bg-" + id + " /tmp/xt-" + id);
 }
 
 int main(int argc, char** argv)
 {
-  if (argc < 2 || !getenv("ECCE_HOME")) {
-    cout << "usage: testBgcommand pty|ssh (via bgcommand_test.sh)" << endl;
+  (void)argv;
+  if (argc < 1 || !getenv("ECCE_HOME")) {
+    cout << "usage: testBgcommand (via bgcommand_test.sh)" << endl;
     return 77;
   }
-  string mode = argv[1];
   const char* users[] = { "cshuser", "bashuser" };
   for (int i = 0; i < 2; i++)
-    scenario(mode, users[i], "sshbg", "");
+    scenario(users[i], "sshbg", "");
   // pwhost has no key: the password travels through the AuthCache FIFO.
-  scenario(mode, "bashuser", "pwhost", "ecce-test");
+  scenario("bashuser", "pwhost", "ecce-test");
   cout << (failures ? "FAILED" : "PASSED") << endl;
   return failures ? 1 : 0;
 }

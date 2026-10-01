@@ -1,9 +1,8 @@
-// A machine's sourceFile under ECCE_TRANSPORT=direct against results recorded
-// from the pty path (#204): the variables the file sets, PATH it prepends to,
-// what it unsets, and a missing file must give the same answers, for a
+// A machine's sourceFile on a local machine against results recorded from the
+// old pty path (#204): the variables the file sets, PATH it prepends to, what
+// it unsets, and a missing file must keep giving the same answers, for a
 // bash-syntax and a csh-syntax file.  Shells that are not installed are
-// skipped.  golden/rcommand_source_<n>.txt, one per case below;
-// ECCE_GOLDEN_RECORD=1 rewrites them from the pty run.
+// skipped.  golden/rcommand_source_<n>.txt, one per case below.
 
 #include <cstdio>
 #include <cstdlib>
@@ -42,21 +41,13 @@ static bool have(const string& shell)
   return system(cmd.c_str()) == 0;
 }
 
-static bool scenario(bool direct, const string& shell, const string& srcFile,
+static bool scenario(const string& shell, const string& srcFile,
                      const string& shellPath, const string& tmp,
                      vector<string>& log)
 {
-  if (direct) setenv("ECCE_TRANSPORT", "direct", 1);
-  else setenv("ECCE_TRANSPORT", "pty", 1);
-
   RCommand rc("system", "", shell, "", "", "", "", shellPath, "", srcFile);
   if (!rc.isOpen()) {
-    cout << "no session (" << (direct ? "direct" : "pty") << ", " << shell
-         << "): " << rc.commError() << endl;
-    return false;
-  }
-  if (direct && rc.expfid() != -1) {
-    cout << "the direct transport was not used" << endl;
+    cout << "no session (" << shell << "): " << rc.commError() << endl;
     return false;
   }
 
@@ -140,6 +131,12 @@ int main()
     snprintf(name, sizeof name, "rcommand_source_%d", (int)c);
     golden::Subs subs;
     subs.push_back(make_pair(tmp, string("@TMP@")));
+    // A shell that did not read the file starts where this process is.
+    {
+      char cwd[4096];
+      if (getcwd(cwd, sizeof cwd))
+        subs.push_back(make_pair(string(cwd), string("@CWD@")));
+    }
     // "PATH head" shows the caller's own first directories after ours, or
     // alone when the file was not read.
     {
@@ -150,18 +147,9 @@ int main()
       subs.push_back(make_pair(":" + path.substr(0, path.find(':')) + "\\r",
                                string(":@PATH0@\\r")));
     }
-    if (golden::recording()) {
-      if (!scenario(false, k.shell, k.file, k.pathPrefix, tmp, log)) {
-        cout << "SKIP: no pty session, nothing recorded" << endl;
-        continue;
-      }
-      golden::record(name, log, subs);
-      ran++;
-      continue;
-    }
-    if (!scenario(true, k.shell, k.file, k.pathPrefix, tmp, log)) {
+    if (!scenario(k.shell, k.file, k.pathPrefix, tmp, log)) {
       failures++;
-      cout << "FAIL: no direct session" << endl;
+      cout << "FAIL: no session" << endl;
       continue;
     }
     ran++;
@@ -170,7 +158,6 @@ int main()
 
   // A shell that cannot be started is a failed connection, with its message.
   {
-    setenv("ECCE_TRANSPORT", "direct", 1);
     put(tmp + "/src.bad", "exit 3\n");
     RCommand rc("system", "", "bash", "", "", "", "", "", "", tmp + "/src.bad");
     bool ok = !rc.isOpen() && rc.commError().find("src.bad") != string::npos;

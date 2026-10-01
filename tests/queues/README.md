@@ -4,7 +4,7 @@
 tests/queues/run_tests.py                       everything (golden, stand-ins, real Slurm, SGE, HTCondor)
 tests/queues/run_tests.py --suite local         golden + PBS/LSF/Moab stand-ins, no scheduler needed
 tests/queues/run_tests.py --suite slurm         this machine's real Slurm (or: sge, htcondor)
-tests/queues/run_tests.py --manager pbs --code mopac --transport unset
+tests/queues/run_tests.py --manager pbs --code mopac
 tests/queues/run_tests.py --update-golden       rewrite tests/queues/golden/
 tests/teaching/run_tests.py --queue slurm --case o2 --case h2se --case benzene
 ```
@@ -33,8 +33,7 @@ data server 8696, broker 8688.
   of the job (Slurm `scontrol`, Grid Engine `qstat -j`/`qacct`, HTCondor's job ad:
   queue, time limit, cpus, memory, account, run directory) and for the long job
   `RunMgmt::terminate` (the Organizer's Kill) ending the scheduler job and
-  leaving the calculation `killed`.  Every run is repeated for
-  `ECCE_TRANSPORT` unset and `direct`.
+  leaving the calculation `killed`.
 
 ## The stand-in schedulers are not PBS, LSF or Moab
 

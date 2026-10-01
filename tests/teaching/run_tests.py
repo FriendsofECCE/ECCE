@@ -10,7 +10,7 @@ MO ordering in the diatomics, bond angles across a group and a period,
 hypervalent isomer energies, pi systems.
 
     tests/teaching/run_tests.py [--build build] [--jobs N] [--case NAME ...]
-                                [--group A|B|C] [--transport unset|direct|ssh|both]
+                                [--group A|B|C]
                                 [--queue shell|slurm] [--keep] [-v]
 
 Needs NWChem and the prerequisites of tests/launch.  Exit status 77 (CTest
@@ -108,7 +108,7 @@ def run_one(s, case, mode, deck, stamp):
     r.deck = deck
     t0 = time.time()
     try:
-        name = "teach-%s%s-%s" % (case.name, "" if mode == "unset" else "-" + mode, stamp)
+        name = "teach-%s-%s" % (case.name, stamp)
         rundir = os.path.join(s.state, "jobs")
         os.makedirs(rundir, exist_ok=True)
         deckfile = os.path.join(s.state, "deck-%s.nw" % name)
@@ -232,10 +232,6 @@ def main():
     ap.add_argument("--jobs", type=int, default=1, help="calculations to run at once")
     ap.add_argument("--case", action="append", help="only this case (repeatable)")
     ap.add_argument("--group", choices=("A", "B", "C"), help="only set A, B or C")
-    ap.add_argument("--transport", default="unset",
-                    choices=("unset", "direct", "ssh", "both"),
-                    help="ECCE_TRANSPORT for the ECCE processes started; 'both' runs "
-                    "everything under unset, then under direct")
     ap.add_argument("--queue", default="shell", choices=("shell", "slurm"),
                     help="run through this machine's queue manager: 'slurm' submits "
                     "with the local sbatch to the 'normal' partition (default: the "
@@ -264,7 +260,7 @@ def main():
 
     build = os.path.abspath(args.build)
     harness.prerequisites(build, ("nwchem", "perl"))
-    modes = ["unset", "direct"] if args.transport == "both" else [args.transport]
+    modes = ["run"]
 
     say("generating %d input decks with ai.nwchem" % len(chosen))
     decks = {}
@@ -283,7 +279,7 @@ def main():
             say("=== %s\n%s" % (c.name, decks[c.name]))
 
     s = Session(build, "teach", {"NWChem": shutil.which("nwchem")}, (8596, 8588),
-                keep=args.keep, transport=modes[0])
+                keep=args.keep)
     if args.queue == "slurm":
         res = subprocess.run(["sinfo", "-h", "-o", "%R"], stdout=subprocess.PIPE,
                              stderr=subprocess.DEVNULL) if shutil.which("sbatch") else None
@@ -307,9 +303,8 @@ def main():
             say("FAILED: services did not start")
             return 1
         for mode in modes:
-            s.transport = None if mode == "unset" else mode
-            say("--- running %d calculations, %d at a time (ECCE_TRANSPORT=%s)"
-                % (len(chosen), args.jobs, mode))
+            say("--- running %d calculations, %d at a time"
+                % (len(chosen), args.jobs))
             stamp = str(int(time.time()))
             results = {}
             # longest first, so the slow ones do not start last
@@ -351,7 +346,7 @@ def report(all_results, args, elapsed):
         order = [c.name for c in C.CASES if c.name in results]
         say("")
         say("=" * 100)
-        say("RESULTS (ECCE_TRANSPORT=%s)" % mode)
+        say("RESULTS")
         for name in order:
             r = results[name]
             say("")

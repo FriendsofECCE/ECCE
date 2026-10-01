@@ -21,6 +21,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <stdarg.h> // va_start
 #include <sys/socket.h>
 
 #ifndef __APPLE__
@@ -44,7 +45,6 @@
 
 #include "comm/RCommand.H"
 
-#include "comm/expect.h"
 #include "comm/DirectTransport.H"
 #include "comm/OpenSshTransport.H"
 #include "comm/RemoteTransport.H"
@@ -56,26 +56,10 @@
 /*#define MAXLINE 256*/
 #define MAXLINE 16384
 
-static const char* sshpass_opts[] = {"-o", "PasswordAuthentication=yes",
-                                     "-o", "StrictHostKeyChecking=no",
-                                     "-o", "FallBackToRsh=no",
-                                     "-o", "UseRsh=no",
-                                     "-o", "RhostsAuthentication=no",
-                                     "-o", "RhostsRSAAuthentication=no",
-                                     "-o", "RSAAuthentication=no",
-                                     "-o", "TISAuthentication=no",
-                                     0};
-
 // A machine CONFIG's locShell can be a bare name or a full path
-// ("/usr/bin/bash", "/bin/csh", ...). Classify by basename, not by an
-// exact match against the full string, so "/usr/bin/bash" is
-// recognised the same as "bash". ECCE's LOCAL shell only ever needs to
-// be csh, tcsh or bash (Andy, 2026-09-28) -- zsh/mksh/ksh/dash/sh are
-// only ever relevant as a REMOTE login shell during a hop, which is a
-// different code path (waitShellReady() below) and never runs this
-// classification. Anything else here is refused outright rather than
-// silently guessing csh syntax, which used to fail the login with a
-// generic, misleading "(incorrect password?)" (#143/#69).
+// ("/usr/bin/bash", "/bin/csh", ...). Classify by basename. ECCE only needs to
+// source a machine's file in csh, tcsh or bash; anything else is refused
+// rather than guessed at as csh (#143/#69).
 enum ShellDialect { SHELL_CSH, SHELL_BASH, SHELL_UNSUPPORTED };
 
 static ShellDialect classifyShell(const string& locShell)
@@ -91,49 +75,6 @@ static ShellDialect classifyShell(const string& locShell)
     return SHELL_BASH;
 
   return SHELL_UNSUPPORTED;
-}
-
-// A login shell (tcsh, zsh, ksh93) freshly spawned by "locShell -i"
-// can still be mid-setup -- reading its startup file, enabling its own
-// line editor -- when we start writing to it, and a raw-mode editor's
-// terminal setup can flush already-typed-ahead input, discarding it.
-// A fixed sleep is exactly the hang-shaped risk this file already had
-// (#143/#69): poll with a real probe instead, so the wait is only ever
-// as long as it needs to be, and never longer than the retry budget.
-static bool waitShellReady(int fid)
-{
-  static const char* probe = "echo ECCE_READY_''PROBE";
-  // A bare substring, not "\r\n...\r\n"-anchored: bash's bracketed-paste
-  // escapes and a shell's own prompt/echo quirks (bsd-csh prints its
-  // prompt directly against a command's output with no newline between)
-  // can land other bytes at that exact boundary. All that matters here
-  // is "did this shell just run our command" -- unlike the item-1
-  // sentinel, nothing downstream parses what follows this match.
-  static const char* mark = "ECCE_READY_PROBE";
-  size_t problen = strlen(probe);
-
-  int savedTimeout = exp_timeout;
-  exp_timeout = 1;
-
-  bool ready = false;
-  for (int tries = 0; !ready && tries < 10; tries++) {
-    if (write(fid, probe, problen) != (ssize_t)problen ||
-        write(fid, "\n", 1) != 1)
-      break;
-
-    if (exp_expectl(fid, exp_glob, mark, 1, exp_end) == 1) {
-      ready = true;
-    } else {
-      // ksh93 can be left at a "> " continuation prompt if a flush cut
-      // the probe mid-word; Ctrl-C plus a newline gets back to a plain
-      // prompt before the next attempt instead of compounding garbage.
-      write(fid, "\x03", 1);
-      write(fid, "\n", 1);
-    }
-  }
-
-  exp_timeout = savedTimeout;
-  return ready;
 }
 
 RCommand::HostKeyHook RCommand::hostKeyHook = 0;
@@ -174,8 +115,8 @@ bool RCommand::importSourceFile(const string& sourceFile, const string& locShell
     return false;
   }
 
-  // The test-and-source line is the one the pty login sends; -f and
-  // --norc --noprofile keep everything but the file itself out of the diff.
+  // -f and --norc --noprofile keep everything but the file itself out of
+  // the diff.
   const string srcLine = csh ?
     "if (-e " + sourceFile + ") source " + sourceFile :
     "[ -e " + sourceFile + " ] && source " + sourceFile;
@@ -243,7 +184,7 @@ bool RCommand::importSourceFile(const string& sourceFile, const string& locShell
     changed.insert(b->first);
   }
 
-  // The pty session stays in the directory the file cd'd to.
+  // The file may cd; later commands start where it left off.
   map<string, string>::const_iterator wb = before.find("PWD"),
                                       wa = after.find("PWD");
   if (wb != before.end() && wa != after.end() && wa->second != wb->second)
@@ -309,9 +250,8 @@ static bool looksLikeCode(const string& prompt)
          l.find("duo")!=string::npos || l.find("code")!=string::npos;
 }
 
-// Logs in over libssh with the credentials the pty login loop would use:
-// the password given, then AuthCache, then passdialog; passdialog's
-// "passcode" for what looks like a second factor.
+// Logs in over libssh: the password given, then AuthCache, then passdialog;
+// passdialog's "passcode" for what looks like a second factor.
 bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
                                 const string& password, const string& jumpHost)
 {
@@ -418,10 +358,8 @@ void RCommand::adoptTransport(Transport* t)
     delete p_transport;
   }
   p_transport = t;
-  p_direct = true;
   p_ssh = true;
-  p_remoteBash = true;
-  exp_timeout = RC_EXEC_TIMEOUT;
+  p_timeout = RC_EXEC_TIMEOUT;
   p_connected = true;
 }
 
@@ -494,10 +432,9 @@ bool RCommand::sshConnect(const string& machine, const string& userName,
 #endif
 }
 
-// hop() over libssh: a new connection to hopMachine, through the same
-// front end the current one used, or through the current machine when there
-// was none.  The pty path types ssh into its shell; that would nest one
-// hop deeper each time here, and compute nodes are reached from the front end.
+// hop(): a new connection to hopMachine, through the same front end the
+// current one used, or through the current machine when there was none.
+// Compute nodes are reached from the front end, so hops do not nest.
 bool RCommand::sshHop(const string& hopMachine, const string& locShell,
                       const string& userName, const string& password,
                       const string& shellPath, const string& libPath,
@@ -539,117 +476,6 @@ string RCommand::frontEndMode() const
   return "";
 }
 
-bool RCommand::directUnsupported(const char* what)
-{
-  p_errMessage = string(what) + " is not available with ECCE_TRANSPORT=" +
-                 (p_ssh ? "ssh" : "direct");
-  return false;
-}
-
-int RCommand::expect1(const char* pat)
-{
-  if (p_direct) { directUnsupported("expect1"); return -1; }
-  int ixp = exp_expectl(p_fid, exp_glob, pat, 1, exp_end);
-
-  if (ixp < 1) {
-    p_connected = false;
-    p_errMessage =
-      "Lost remote shell connection attempting to read command output";
-  }
-
-  return ixp;
-}
-
-int RCommand::expect2(const char* pat1, const char* pat2)
-{
-  if (p_direct) { directUnsupported("expect2"); return -1; }
-  int ixp = exp_expectl(p_fid, exp_glob, pat1, 1,
-                               exp_glob, pat2, 2, exp_end);
-
-  if (ixp < 1) {
-    p_connected = false;
-    p_errMessage =
-      "Lost remote shell connection attempting to read command output";
-  }
-
-  return ixp;
-}
-
-void RCommand::patalloc(int numPatterns, ...)
-{
-  if (p_direct) { directUnsupported("patalloc"); return; }
-  int it;
-  va_list ap;
-  va_start(ap, numPatterns);
-
-  p_pats = (struct exp_case*)malloc((numPatterns+1) * sizeof(struct exp_case));
-
-  for (it=0; it<numPatterns; it++) {
-    p_pats[it].pattern = strdup((char*)va_arg(ap, char*));
-    p_pats[it].type = exp_glob;
-    p_pats[it].value = it+1;
-  }
-  p_pats[numPatterns].type = exp_end;
-
-  va_end(ap);
-}
-
-void RCommand::patfree(void)
-{
-  if (p_direct) return;
-  int it;
-
-  for (it=0; p_pats[it].type != exp_end; it++)
-    free(p_pats[it].pattern);
-
-  free((char*)p_pats);
-}
-
-int RCommand::patexpect(void)
-{
-  if (p_direct) { directUnsupported("patexpect"); return -1; }
-  int ixp = exp_expectv(p_fid, p_pats);
-
-  if (ixp < 1) {
-    p_connected = false;
-    p_errMessage =
-      "Lost remote shell connection attempting to read command output";
-  }
-
-  return ixp;
-}
-
-int RCommand::expect(int numPatterns, ...)
-{
-  if (p_direct) { directUnsupported("expect"); return -1; }
-  int it;
-  va_list ap;
-  va_start(ap, numPatterns);
-
-  struct exp_case* pats = (struct exp_case*)malloc((numPatterns+1) *
-                                                   sizeof(struct exp_case));
-  for (it=0; it<numPatterns; it++) {
-    pats[it].pattern = (char*)va_arg(ap, char*);
-    pats[it].type = exp_glob;
-    pats[it].value = it+1;
-  }
-  pats[numPatterns].type = exp_end;
-
-  va_end(ap);
-
-  int ixp = exp_expectv(p_fid, pats);
-
-  free((char*)pats);
-
-  if (ixp < 1) {
-    p_connected = false;
-    p_errMessage =
-      "Lost remote shell connection attempting to read command output";
-  }
-
-  return ixp;
-}
-
 // A dead reader must give EPIPE, not SIGPIPE.
 static bool sendAll(int fd, const string& data)
 {
@@ -663,119 +489,33 @@ static bool sendAll(int fd, const string& data)
   return true;
 }
 
-int RCommand::expfid(void)
+int RCommand::streamFd(void)
 {
-  if (p_direct) {
-    if (p_stream.rfd >= 0) return p_stream.rfd;
-    directUnsupported("expfid");
-    return -1;
-  }
-  return p_fid;
+  return p_stream.rfd;
 }
 
-bool RCommand::expwrite(const string& command)
+bool RCommand::streamWrite(const string& command)
 {
-  if (p_direct) {
-    if (p_stream.wfd < 0) return directUnsupported("expwrite");
-    if (p_ssh ? sendAll(p_stream.wfd, command + "\n")
-              : static_cast<DirectTransport*>(p_transport)->writeStream(
-                  p_stream, command + "\n"))
-      return true;
-    p_errMessage = "Lost connection to the job monitor attempting to send command";
+  if (p_stream.wfd < 0) {
+    p_errMessage = "No job monitor stream is open";
     return false;
   }
-  int comlen = command.length();
-
-  if (comlen >= MAXLINE) {
-    p_errMessage = "Exceeds maximum C shell command length of 16384 characters";
-    return false;
-  }
-
-  if (write(p_fid, command.c_str(), comlen)==comlen && write(p_fid, "\n", 1)==1)
+  if (p_ssh ? sendAll(p_stream.wfd, command + "\n")
+            : static_cast<DirectTransport*>(p_transport)->writeStream(
+                p_stream, command + "\n"))
     return true;
-
-  p_connected = false;
-  p_errMessage = "Lost remote shell connection attempting to send command";
+  p_errMessage = "Lost connection to the job monitor attempting to send command";
   return false;
 }
 
-bool RCommand::expwrite(const char* command)
+bool RCommand::streamWrite(const char* command)
 {
-  if (p_direct) return expwrite(string(command));
-  int comlen = strlen(command);
-
-  if (comlen >= MAXLINE) {
-    p_errMessage = "Exceeds maximum C shell command length of 16384 characters";
-    return false;
-  }
-
-  if (write(p_fid, command, comlen)==comlen && write(p_fid, "\n", 1)==1)
-    return true;
-
-  p_connected = false;
-  p_errMessage = "Lost remote shell connection attempting to send command";
-  return false;
+  return streamWrite(string(command));
 }
 
-bool RCommand::expwritefull(const string& command)
+void RCommand::streamTimeout(const int& timeout)
 {
-  if (p_direct) return directUnsupported("expwritefull");
-  int comlen = command.length();
-
-  if (write(p_fid, command.c_str(), comlen)==comlen && write(p_fid, "\n", 1)==1)
-    return true;
-
-  p_connected = false;
-  p_errMessage = "Lost remote shell connection attempting to send data";
-  return false;
-}
-
-void RCommand::exptimeout(const int& timeout)
-{
-  if (timeout == 0)
-    exp_timeout = RC_EXEC_TIMEOUT;
-  else
-    exp_timeout = timeout;
-}
-
-char* RCommand::expout(void)
-{
-  if (p_direct) {
-    directUnsupported("expout");
-    static char empty[1] = "";
-    return empty;
-  }
-  *exp_match = '\0';
-
-  // strip /r characters
-  char* expptr = exp_buffer;
-  int offset = 0;
-
-  for (; *expptr != '\0'; expptr++) {
-    if (*(expptr+offset) == '\r')
-      offset++;
-
-    *expptr = *(expptr+offset);
-  }
-
-  return exp_buffer;
-}
-
-bool RCommand::fidwrite(const int& fid, const string& command,
-                        string& errMessage)
-{
-  int comlen = command.length();
-
-  if (comlen >= MAXLINE) {
-    errMessage = "Exceeds maximum C shell command length of 16384 characters";
-    return false;
-  }
-
-  if (write(fid, command.c_str(), comlen)==comlen && write(fid, "\n", 1)==1)
-    return true;
-
-  errMessage = "Lost remote shell connection attempting to send command";
-  return false;
+  p_timeout = timeout == 0 ? RC_EXEC_TIMEOUT : timeout;
 }
 
 string RCommand::whereami(void)
@@ -907,254 +647,42 @@ string RCommand::removedShellMessage(const string& remShell)
          "edit this machine in Machine Registration and choose ssh.";
 }
 
-string RCommand::shellCommand(const string& remShell, const string& machine,
-                              const string& locShell, const string& userName,
-                              const bool& hopFlag, char** argv)
-{
-  string theShell;
-
-  static const char* minfc  =  "-fc";
-  static const char* minc  =  "-c";
-
-  // REVERTED 2026-09-03: "--norc --noprofile" (instead of csh-style "-f")
-  // for bash here was well-intentioned (see git history) but turned out
-  // to be actively harmful for at least one real setup: it skips
-  // ~/.bashrc entirely, and for a user whose .bashrc is what actually
-  // sets up a compute code's environment (e.g. sourcing a vendor
-  // profile script that exports GAUSS_ARCHDIR/GAUSS_BSDDIR/G16BASIS/etc
-  // -- more than the ECCE-generated submit script itself sets), that
-  // silently broke job launches that depended on it, coinciding exactly
-  // with the fix landing. Reverted pending a fix that doesn't assume
-  // anything about what a user's dotfiles do or don't need to provide --
-  // e.g. having ECCE's own generated submit scripts source the same
-  // vendor profile explicitly, so job correctness never depends on
-  // ~/.bashrc content one way or the other. The original bracketed-
-  // paste-mode issue this was investigating is independent and still
-  // handled further down (the "unalias -a...bind...enable-bracketed-
-  // paste off" block).
-  string echoshell = "echo +hi+ && " + locShell + " -f";
-
-  static const char* minl  =  "-l";
-  // bash spawned this way (as the remote command of a real ssh session,
-  // as opposed to the same-domain "local shell" exp_spawnv() shortcut
-  // built from echoshell above) has a confirmed, reproducible bug:
-  // readline duplicates a trailing fragment of a long command line's
-  // echo a second time after the real, correct echo -- and since a
-  // caller's command text can legitimately contain its own "did this
-  // die" marker as a literal substring (e.g. job monitoring's "echo
-  // eccejobmonitor_went_bye_bye"), that duplicate reads as a false
-  // "command already finished" signal. Confirmed live, directly: the
-  // identical test over the "local shell" shortcut (which also runs
-  // bash, just not through ssh) never reproduces this -- so it's
-  // specific to interactive bash under a real pty-forwarded ssh
-  // session, not bash in general. --noediting disables readline
-  // entirely while keeping -i (interactive: reads ~/.bashrc, sets a
-  // default prompt, etc.) intact.
-  // bash requires GNU long options before short options in the same
-  // invocation ("bash -i --noediting" errors with "--: invalid option";
-  // "bash --noediting -i" is the form that actually works) -- confirmed
-  // directly.
-  static const char* cmdBash[] = {"echo", "+hi+", "&&", "", "--noediting", "-i", 0};
-  static const char* cmdOther[] = {"echo", "+hi+", "&&", "", "-i", 0};
-  const char** cmd = (locShell == "bash") ? cmdBash : cmdOther;
-  cmd[3] = strdup(locShell.c_str());
-
-  // ssh verbose flag for recognizing authentication success/failure
-  static const char* minv  =  "-v";
-
-  // for forwarding ssh X11 connections
-  static const char* mino  =  "-o";
-  static const char* minx  =  "ForwardX11=yes";
-
-  int argc = 1, it;
-
-  string theMachine = (machine=="" || machine=="-f" || machine=="system")?
-                       RCommand::whereami(): machine;
-
-  if (RCommand::isRemote(machine, remShell, userName)) {
-    if (remShell=="" || remShell=="ssh" || remShell=="sshpass" ||
-        remShell.find("ssh/")==0) {
-      theShell = "ssh";
-
-      // enable ssh verbose mode
-      argv[argc++] = (char*)minv;
-
-      // enable ssh X11 port forwarding
-      argv[argc++] = (char*)mino;
-      argv[argc++] = (char*)minx;
-
-      // All the ssh "-o" options that attempt to force password authentication.
-      // They seem to have some effect although I'm sure the server side sshd
-      // daemon ultimately decides what authentication it will accept.
-      // Only apply these if the shell is sshpass to potentially allow other
-      // types of ssh authentication as long as it doesn't break the expect
-      // pattern matching.
-      if (remShell == "sshpass")
-        for (it=0; sshpass_opts[it]!=(char*)0; it++)
-          argv[argc++] = (char*)sshpass_opts[it];
-
-    }
-
-    if (userName!="") {
-      argv[argc++] = (char*)minl;
-      argv[argc++] = strdup((char*)userName.c_str());
-    }
-
-    argv[argc++] = strdup((char*)theMachine.c_str());
-
-    // for ssh, recognize authentication success/failure from verbose
-    // mode logging and request a local "csh" shell after the connection
-    // is established if there are no hops being done
-    // Otherwise there are problems with authentication when making hops
-    // to other machines from the one initially logged in on
-    if (theShell!="ssh" || !hopFlag) {
-      for (it=0; cmd[it]!=(char*)0; it++)
-        argv[argc++] = (char*)cmd[it];
-    }
-
-  } else {
-    theShell = locShell;
-
-    // The "-f" or "system" value for the machine indicates a local launch
-    // that is a fast shell (doesn't read .cshrc) and thus picks up the
-    // environment of the calling process.  This is suitable for using an
-    // RCommand instance to replace the usual system() calls.
-    if (machine=="-f" || machine=="system")
-      argv[argc++] = (char*)minfc;
-    else
-      argv[argc++] = (char*)minc;
-
-    argv[argc++] = strdup((char*)echoshell.c_str());
-  }
-
-  argv[0] = strdup((char*)theShell.c_str());
-  argv[argc] = (char*)0;
-
-  if (exp_loguser == 1) {
-    cout << "Remote shell command:" << endl;
-    for (it=0; it<argc; it++)
-      cout << "arg " << it << ": " << argv[it] << endl;
-    cout << "End remote shell command" << endl; 
-  }
-
-  return theShell;
-}
-
-string RCommand::copyCommand(const string& remShell, const bool& isRemote,
-                             const string& machine, const string& userName,
-                             int& argc, char** argv)
-{
-  string theCopy;
-
-  static const char* minr = "-r";
-
-  static const char* mini = "-i";
-
-  argc = 1;
-  int it;
-
-  if (isRemote) {
-    // ssh/ftp copies with ftp; every other supported shell uses scp.
-    if (remShell.size() >= 4 && remShell.compare(remShell.size()-4, 4, "/ftp") == 0) {
-      theCopy = "ftp";
-      argv[argc++] = (char*)mini;
-      argv[argc++] = strdup((char*)machine.c_str());
-
-    } else {
-      theCopy = "scp";
-
-      if (remShell == "sshpass")
-        for (it=0; sshpass_opts[it]!=(char*)0; it++)
-          argv[argc++] = (char*)sshpass_opts[it];
-
-      argv[argc++] = (char*)minr;
-    }
-
-  } else {
-    theCopy = "cp";
-    argv[argc++] = (char*)minr;
-  }
-
-  argv[0] = strdup((char*)theCopy.c_str());
-  argv[argc] = (char*)0;
-
-  return theCopy;
-}
-
-string RCommand::copyToShell(const string& copyCmd)
-{
-  string shellCmd = copyCmd;
-
-  if (copyCmd=="scp" || copyCmd=="sftp")
-    shellCmd = "ssh";
-
-  return shellCmd;
-}
-
 // ---------- Constructors ------------
-///////////////////////////////////////////////////////////////////////////////
-//
-//  Description
-//    Create Context for Executing Shell Commands.
-//
-//  Implementation
-//
-///////////////////////////////////////////////////////////////////////////////
-string RCommand::transportMode()
+// An 8.x eccejobmaster exports ECCE_TRANSPORT=pty to the programs it starts.
+// There is one transport now, so the value is only noted, never an error.
+static void noteLegacyTransport()
 {
+  static bool noted = false;
   const char* env = getenv("ECCE_TRANSPORT");
-  if (env && *env) return env;
-
-  // Ecce asserts on either being unset, and plain tools use RCommand too.
-  if (!getenv("ECCE_REALUSERHOME") || !getenv("ECCE_HOME")) return "pty";
-  Preferences pref(PrefLabels::GLOBALPREFFILE);
-  // Built-in ssh unless the user has unticked it.
-  bool builtin = true;
-  if (!pref.getBool(PrefLabels::BUILTINSSH, builtin)) builtin = true;
-  return builtin ? "ssh" : "pty";
+  if (noted || !env || strcmp(env, "pty") != 0) return;
+  noted = true;
+  cerr << "ECCE_TRANSPORT=pty is no longer supported; using the default "
+          "transport" << endl;
 }
 
+// A remote machine reached through the ssh family of shells.
 bool RCommand::usesSsh(const string& machine, const string& remShell,
                        const string& userName)
 {
-  return transportMode() == "ssh" &&
-         RCommand::isRemote(machine, remShell, userName) &&
-         (remShell=="" || remShell=="ssh" || remShell=="sshpass" ||
-          remShell.find("ssh/")==0);
-}
-
-bool RCommand::usesLibssh(const string& machine, const string& remShell,
-                          const string& userName)
-{
-  return usesSsh(machine, remShell, userName);
+  return RCommand::isRemote(machine, remShell, userName) &&
+         RCommand::removedShellMessage(remShell) == "";
 }
 
 RCommand::RCommand(const string& machine, const string& remShell,
                    const string& locShell, const string& userName,
                    const string& password, const string& frontendMachine,
                    const string& frontendBypass, const string& shellPath,
-                   const string& libPath, const string& sourceFile,
-                   bool allowDirect, bool allowSsh)
+                   const string& libPath, const string& sourceFile)
 {
   p_connected = false;
-  p_background = false;
-  p_hopCount = 0;
-  p_remoteBash = false;
+  p_timeout = RC_EXEC_TIMEOUT;
   p_transport = 0;
-  p_direct = false;
   p_ssh = false;
   p_sshStream = 0;
-  p_fid = -1;
-  p_pid = 0;
-  p_pats = 0;
 
-  if (getenv("ECCE_RCOM_DEBUGGING"))
-    exp_is_debugging = 1;
-  else
-    exp_is_debugging = 0;
+  noteLegacyTransport();
 
   if (getenv("ECCE_RCOM_LOGMODE")) {
-    exp_loguser = 1;
     cout << endl;
     cout << "Creating remote shell:" << endl;
     cout << "machine (" << machine << ")" << endl;
@@ -1167,38 +695,21 @@ RCommand::RCommand(const string& machine, const string& remShell,
       if (frontendBypass != "")
         cout << "frontend bypass domain (" << frontendBypass << ")" << endl;
     }
-  } else
-    exp_loguser = 0;
+  }
 
-  // Catch exp_buffer overflows and bump up the size of the internal
-  // expect buffers to something reasonable instead of the default 2000 chars
-  exp_match_max = 50000;
-  // Found that exp_full_buffer was resulting in some bizarre behavior with
-  // mpp2 "shellput" file transfer freezing up.  So, disable it and hopefully
-  // this won't cause any issues with other aspects of remote communication
-  //exp_full_buffer = 1;
-
-  // Bump up timeout because connection failures can take a long time
-  exp_timeout = RC_CONNECT_TIMEOUT;
-
-  // Set the machine and user name variables for the benefit of error
-  // messages (the values passed in are const)
+  // Set the machine name for the benefit of error messages
   p_machine = (machine=="" || machine=="-f" || machine=="system")?
                RCommand::whereami(): machine;
 
-  if (RCommand::isRemote(machine, remShell, userName)) {
+  const bool remote = RCommand::isRemote(machine, remShell, userName);
+  if (remote) {
     p_errMessage = RCommand::removedShellMessage(remShell);
     if (p_errMessage != "")
       return;
   }
 
-  const string mode = transportMode();
-  if (allowDirect && (mode=="direct" || mode=="ssh") &&
-      !RCommand::isRemote(machine, remShell, userName)) {
-    p_direct = true;
+  if (!remote) {
     p_transport = new DirectTransport;
-    p_remoteBash = true;
-    exp_timeout = RC_EXEC_TIMEOUT;
 
     if (shellPath != "") {
       const char* cur = getenv("PATH");
@@ -1217,504 +728,34 @@ RCommand::RCommand(const string& machine, const string& remShell,
     }
 
     if (getenv("ECCE_RCOM_LOGMODE"))
-      cout << "Direct mode: commands run without a shell session" << endl;
+      cout << "Local machine: commands run without a shell session" << endl;
 
     p_connected = true;
     return;
   }
 
-  if (allowDirect && allowSsh && usesSsh(machine, remShell, userName)) {
-    p_shell = "ssh";
-    const string pathLine = shellPath == "" ? "" :
-      "PATH=" + shQuote(shellPath) + ":$PATH; export PATH\n";
-    const string libLine = libPath == "" ? "" :
-      "LD_LIBRARY_PATH=" + shQuote(libPath) + ":$LD_LIBRARY_PATH; "
-      "export LD_LIBRARY_PATH\n";
-    p_scriptPrefix = pathLine + libLine;
-    // A refused or failed login is final: falling back to the pty would
-    // only prompt the user a second time for the same thing.
-    // The pty path's own test: a machine inside the front end's domain is
-    // reached directly.
-    const string jump = frontendMachine != "" &&
-      (frontendBypass=="" || !RCommand::isSameDomain(frontendBypass)) ?
-      frontendMachine : string("");
-    if (sshConnect(p_machine, userName, password, jump) && sourceFile != "") {
-      std::set<std::string> changed;
-      if (!importSourceFile(sourceFile, locShell, true, changed)) {
-        p_connected = false;
-        return;
-      }
-      // A variable the file set already carries the prefix it saw.
-      p_scriptPrefix = (changed.count("PATH") ? "" : pathLine) +
-                       (changed.count("LD_LIBRARY_PATH") ? "" : libLine);
-    }
-    return;
-  }
-
-  string theMachine, shellMachine;
-
-  // for machines that use a front-end (like mpp2), check if the machine
-  // running ECCE is within the domain given by frontendBypass.  If so, the
-  // there is no need to connect to the front-end first.
-  if (frontendMachine!="" &&
-      (frontendBypass=="" || !RCommand::isSameDomain(frontendBypass))) {
-    theMachine = shellMachine = frontendMachine;
-    p_hopCount++;
-  } else {
-    theMachine = p_machine;
-    shellMachine = machine;
-  }
-
-  // Need updatable copies
-  string theUser;
-  if (userName == "")
-    theUser = Ecce::realUser();
-  else
-    theUser = userName;
-
-  string thePass = password;
-
-  char *argv[MAXARGS];
-
-  p_shell = RCommand::shellCommand(remShell, shellMachine, locShell, userName,
-                                   p_hopCount>0, argv);
-
-  if ((p_fid = exp_spawnv((char*)p_shell.c_str(), argv)) <= 0) {
-    p_errMessage = "Unable to run remote shell " + p_shell +
-                   " (not in the path?)";
-    return;
-  }
-
-  bool done;
-  string output;
-  bool login_prompt = false;
-
-  // Save away spawned process id in order to use waitpid in destructor
-  // which guarantees it will be waiting on the right process
-  p_pid = exp_pid;
-
-  string notFoundStr = p_shell + ": Command not found";
-
-  // passcode prompting variables
-  string passCmd;
-  FILE* passPtr;
-  char passBuf[MAXLINE];
-  passBuf[0] = '\0';
-  char codeBuf[MAXLINE];
-
-  bool iHop = false;
-
-hopToIt:
-
-  do {
-    done = true;  // be optimistic
-
-    switch (exp_expectl(p_fid, exp_glob, notFoundStr.c_str(), 1,
-                               exp_glob, "execvp(", 1,
-                               exp_glob, "denied", 2,
-                               exp_glob, "failed", 2,
-                               exp_glob, " closed", 2,
-                               exp_glob, "Connection refused", 3,
-                               exp_glob, "Bad host name", 4,
-                               exp_glob, "Unknown host", 4,
-                               exp_glob, "incorrect", 5,
-                               exp_glob, "Connection timed out", 6,
-                               exp_glob, "^Usage:", 7,
-                               exp_glob, "\r\nUsage:", 7,
-                               exp_glob, "(yes/no)? $", 8,
-                               exp_glob, "password: $", 9,
-                               exp_glob, "Password: $", 9,
-                               exp_glob, "Password:$", 9,
-                               exp_glob, "passphrase*: $", 9,
-                               exp_glob, "PASSCODE:$", 10,
-                               exp_glob, "PASSCODE: $", 10,
-                               exp_glob, "login: $", 12,
-                               exp_glob, "Authentication succeeded", 14,
-                               // Modern OpenSSH's actual -v output for a
-                               // successful key-based (no password prompt)
-                               // login is "Authenticated to <host> ...
-                               // using \"publickey\"." -- not the literal
-                               // "Authentication succeeded" text above,
-                               // which this decades-old pattern list has
-                               // apparently always expected. Confirmed via
-                               // a direct `ssh -v` run against a real
-                               // key-trusted host: this is genuinely what
-                               // current OpenSSH prints, not a fluke.
-                               // Without this, a key-authenticated
-                               // connection is never recognized as
-                               // successful and the loop times out --
-                               // reported live as "Failed to open remote
-                               // shell ... (incorrect password?)" against
-                               // a machine that never even prompted for
-                               // one. Password-based logins were already
-                               // fine (they complete via the "+hi+\r\n"
-                               // echo marker below, once the shell after a
-                               // successful password entry is reached).
-                               exp_glob, "Authenticated to*", 14,
-                               exp_glob, "+hi+\r\n", 14,
-                               exp_end)) {
-
-      case 1:
-        p_errMessage = "Unable to find remote shell " + p_shell +
-                       " (not in the path?)";
-        return;
-
-      case 2:
-      case EXP_EOF:
-        p_errMessage = "Permission to run remote shell " + p_shell +
-                       " denied for " + theMachine;
-        if (p_shell == "rsh")
-          p_errMessage +=
-                       " (do you have a .rhosts entry on " + theMachine + "?)";
-        else if (p_shell == "ssh")
-          p_errMessage += " (incorrect password?)";
-      return;
-
-      case 3:
-        p_errMessage = "Shell authentication server for " + p_shell +
-                       " not running or installed on " + theMachine;
-        return;
-
-      case 4:
-        p_errMessage = "Unknown or unavailable host " + theMachine;
-        return;
-
-      case 5:
-        p_errMessage = "Invalid username " + theUser +
-                       " for host " + theMachine;
-        return;
-
-      case 6:
-        p_errMessage = "Timeout trying to connect to " + theMachine +
-                       " with remote shell " + p_shell;
-        return;
-
-      case 7:
-        p_errMessage = "Invalid syntax for remote shell command";
-        return;
-
-      case 8:
-        // Allows yes/no questions of any type and just says "yes".
-        // Should only see this for the man-in-the-middle attack warning
-        if (!expwrite("yes")) return;
-        done = false;
-        break;
- 
-      case 9:
-        if (thePass=="" &&
-            !RCommand::getPassCache(p_shell, theMachine, theUser, thePass)) {
-          //  Resolved against $ECCE_HOME/bin: the apps no longer run with
-          //  their working directory set to bin, so the bare "./passdialog"
-          //  this used to be found nothing (#134).
-          passCmd = Ecce::ecceBinCommand("passdialog") + " password " +
-                    theMachine + " " + theUser;
-          if ((passPtr = popen(passCmd.c_str(), "r")) != NULL) {
-            if (fgets(passBuf, sizeof(passBuf), passPtr) != NULL) {
-              // strip off the trailing newline
-              passBuf[strlen(passBuf)-1] = '\0';
-              // handle password dialog cancel button
-              if (strcmp(passBuf, "") == 0) {
-                // close the pipe
-                pclose(passPtr);
-                return;
-              }
-
-              thePass = passBuf;
-            } else {
-              // close the pipe
-              pclose(passPtr);
-              return;
-            }
-
-            // close the pipe
-            pclose(passPtr);
-          } else
-            return;
-        }
-
-        exp_elide(thePass.c_str());
-        if (!expwrite(thePass)) return;
-        done = false;
-        break;
-
-      case 10:
-        passCmd = Ecce::ecceBinCommand("passdialog") + " passcode " +
-                  theMachine + " " + theUser;
-        if ((passPtr = popen(passCmd.c_str(), "r")) != NULL) {
-          if (fgets(codeBuf, sizeof(codeBuf), passPtr) != NULL) {
-            // strip off the trailing newline
-            codeBuf[strlen(codeBuf)-1] = '\0';
-            // handle password dialog cancel button
-            if (strcmp(codeBuf, "") == 0) {
-              // close the pipe
-              pclose(passPtr);
-              return;
-            }
-
-            exp_elide(codeBuf);
-            if (!expwrite(codeBuf)) {
-              // close the pipe
-              pclose(passPtr);
-              return;
-            }
-            done = false;
-          } else {
-            // close the pipe
-            pclose(passPtr);
-            return;
-          }
-
-          // close the pipe
-          pclose(passPtr);
-        } else
-          return;
-        break;
-
-      case 12:
-        if (login_prompt) {
-          p_errMessage = "Invalid username " + theUser +
-                         ", or password for host " + theMachine;
-          return;
-        }
-
-        if (!expwrite(userName)) return;
-        login_prompt = true;
-        done = false;
-        break;
-
-      case 14:
-        // Successful login recognized
-        break;
-
-      case EXP_TIMEOUT:
-        p_errMessage = "Timeout running remote shell " + p_shell +
-                       " for " + theMachine;
-        return;
-
-      default:
-        p_errMessage =
-          "Unrecognized authentication failure running remote shell " +
-          p_shell + " for " + theMachine;
-        return;
-    }
-  } while (!done);
-
-  exp_elide(NULL);
-
-  // Request a csh shell for ssh logins
-  string cmd;
-  if (p_shell=="ssh" && p_hopCount>0) {
-    cmd = locShell + " -i";
-    if (!expwrite(cmd)) return;
-  }
-
-  // Which dialect is actually listening on the other end of this
-  // connection? Originally this whole login sequence assumed csh/tcsh
-  // unconditionally -- fine as long as the remote account's login shell
-  // actually is tcsh, broken (silently: setenv/if ($?VAR) is invalid bash
-  // syntax) if it's bash instead, which is entirely outside ECCE's
-  // control on a shared cluster account.
-  //
-  // An earlier version of this fix ran an active probe here (checking
-  // specifically for a `tcsh` binary) -- wrong, and it caused exactly
-  // this failure mode live: this box has plain `csh` (which the SSH
-  // remote command above already launched successfully, confirmed by
-  // reaching this point at all -- see shellCommand()'s "echo +hi+ && "
-  // + locShell construction, matched via the "+hi+\r\n" pattern in the
-  // login loop above) but no separate `tcsh` binary, so the probe
-  // concluded "no tcsh, use bash" and sent bash syntax (PS1=...) to an
-  // actual csh session, which doesn't understand it -- no "+go+" prompt
-  // ever appeared, hanging expect1() below indefinitely.
-  //
-  // The actual fix needs no probe at all: reaching this point already
-  // proves locShell (whatever shell RefMachine::shell() configured for
-  // this machine -- "csh" by default) is genuinely present and working,
-  // since shellCommand() already used that exact value to build the SSH
-  // remote command, and we just matched its "+hi+" echo. So just check
-  // locShell's own value directly -- it's already the single source of
-  // truth for what's actually running, no separate detection needed.
-  // Classify by basename (classifyShell), not an exact match against
-  // the literal string "bash" -- a CONFIG naming "/usr/bin/bash" used
-  // to fall through to csh syntax and fail the login outright. Anything
-  // that isn't csh/tcsh/bash is refused rather than guessed at (see
-  // classifyShell's comment).
-  ShellDialect dialect = classifyShell(locShell);
-  if (dialect == SHELL_UNSUPPORTED) {
-    p_errMessage = "Unsupported local shell '" + locShell + "' for " +
-                   theMachine + " -- ECCE needs csh, tcsh or bash";
-    return;
-  }
-  bool useBash = (dialect == SHELL_BASH);
-  p_remoteBash = useBash;
-
-  // Login failure is caught by trying to set the prompt.
-  // Can't parse for a successful login without the expwrite because I don't
-  // know what the prompt might be if the user overrides the default "%" in
-  // their .cshrc.
-  // A login failure will be recognized after expect sees an EOF meaning
-  // the shell has closed.
-  // Buffer isn't flushed from previous write so the prompt may show up
-  // on a line with other output instead of by itself as it should elsewhere.
-  // By echoing out $prompt we should be able to work around this and
-  // get reliable checks for good logins.
-  if (useBash) {
-    // bash's bracketed-paste mode (readline emitting \e[?2004h before
-    // and \e[?2004l after every prompt) breaks every "\r\n+go+"-style
-    // pattern match downstream: it inserts the escape sequence *between*
-    // the \r\n and the prompt text, so the literal "\r\n+go+" adjacency
-    // every match in this file assumes never actually appears in the
-    // raw stream. Confirmed live, directly: a real connection with a
-    // real password succeeded completely (confirmed via an
-    // ECCE_RCOM_LOGMODE trace showing a correct "date" command result),
-    // but exec("date") inside isOpen() still reported failure, and every
-    // report of this looked identical to a wrong password from the
-    // outside (RCommand's own generic "(incorrect password?)" fallback
-    // message) -- unrelated to auth. Only reachable via RCommand's
-    // "shellCommand()"-selected local-shell path (same-domain targets
-    // get spawned as a plain "bash -f", not through ssh -v, which
-    // doesn't hit this), so a purely-ssh-based repro never surfaced it.
-    // Disabling it once, right after setting the prompt, keeps it off
-    // for the rest of the session -- readline re-emits the escape
-    // sequence around every future prompt otherwise, since it's a
-    // per-prompt readline behavior, not a one-time startup message.
-    //  "set +o emacs; set +o vi" turns readline off.  Otherwise a long
-    //  command's echo comes back redrawn (wrapped with "\r", or
-    //  horizontally scrolled with a leading "<"), so the exact-echo match
-    //  eccejobstore waits on never arrives and monitoring hangs forever
-    //  (#69 Bug 2; the bash side of #143).  The local "bash -f" spawn
-    //  has readline on; --noediting only covers the direct ssh path.
-    //  PROMPT_COMMAND: RHEL's /etc/bashrc prints an xterm title escape
-    //  before every prompt, so "\r\n+go+" never matches (#200).
-    if (!expwrite("unalias -a 2>/dev/null; PS1='+go+'; unset PROMPT_COMMAND; "
-                  "bind 'set enable-bracketed-paste off' 2>/dev/null; "
-                  "set +o emacs; set +o vi"))
-      return;
-  } else {
-    //  "unset edit": where csh is tcsh (Ubuntu), its line editor wraps a
-    //  long command's echo at 80 columns with " \b", so the exact-echo
-    //  match that eccejobstore waits on never arrives and monitoring
-    //  hangs forever (#143).  bsd-csh has no editor and ignores it.
-    if (!expwrite("unalias precmd; set prompt=+go+; unset echo; unset edit"))
-      return;
-  }
-  if (expect1("+go+$") != 1) {
-    p_errMessage =
-      "Unsuccessful remote shell login--invalid username or password";
-    return;
-  }
-
-  // Set timeout back to normal
-  exp_timeout = RC_EXEC_TIMEOUT;
-
-  if (!useBash) {
-    if (!expwrite("unalias *")) return;
-    if (expect1("\r\n+go+$") != 1) {
-      p_errMessage = "Unsuccessful remote shell login--unalias * failed";
+  p_shell = "ssh";
+  const string pathLine = shellPath == "" ? "" :
+    "PATH=" + shQuote(shellPath) + ":$PATH; export PATH\n";
+  const string libLine = libPath == "" ? "" :
+    "LD_LIBRARY_PATH=" + shQuote(libPath) + ":$LD_LIBRARY_PATH; "
+    "export LD_LIBRARY_PATH\n";
+  p_scriptPrefix = pathLine + libLine;
+  // A refused or failed login is final.  A machine inside the front end's
+  // domain is reached directly.
+  const string jump = frontendMachine != "" &&
+    (frontendBypass=="" || !RCommand::isSameDomain(frontendBypass)) ?
+    frontendMachine : string("");
+  if (sshConnect(p_machine, userName, password, jump) && sourceFile != "") {
+    std::set<std::string> changed;
+    if (!importSourceFile(sourceFile, locShell, true, changed)) {
+      p_connected = false;
       return;
     }
+    // A variable the file set already carries the prefix it saw.
+    p_scriptPrefix = (changed.count("PATH") ? "" : pathLine) +
+                     (changed.count("LD_LIBRARY_PATH") ? "" : libLine);
   }
-
-  // set $PATH
-  if (shellPath != "") {
-    if (useBash) {
-      // Safe even if $PATH happens to be unset (prefix + trailing colon,
-      // harmless) -- no need for tcsh's two-branch $?PATH existence check.
-      cmd = "export PATH=\"" + shellPath + ":${PATH}\"";
-      if (!expwrite(cmd)) return;
-      if (expect1("\r\n+go+$") != 1) {
-        p_errMessage = "Unsuccessful remote shell login--export PATH " +
-                       shellPath + ":${PATH} failed";
-        return;
-      }
-    } else {
-      cmd = "if ($?PATH) setenv PATH \"" + shellPath + ":${PATH}\"";
-      if (!expwrite(cmd)) return;
-      if (expect1("\r\n+go+$") != 1) {
-        p_errMessage = "Unsuccessful remote shell login--setenv PATH " +
-                       shellPath + ":${PATH} failed";
-        return;
-      }
-      cmd = "if ($?PATH == 0) setenv PATH \"" + shellPath + "\"";
-      if (!expwrite(cmd)) return;
-      if (expect1("\r\n+go+$") != 1) {
-        p_errMessage = "Unsuccessful remote shell login--setenv PATH " +
-                       shellPath + " failed";
-        return;
-      }
-    }
-  }
-
-  // set $LD_LIBRARY_PATH
-  if (libPath != "") {
-    if (useBash) {
-      cmd = "export LD_LIBRARY_PATH=\"" + libPath + ":${LD_LIBRARY_PATH}\"";
-      if (!expwrite(cmd)) return;
-      if (expect1("\r\n+go+$") != 1) {
-        p_errMessage =
-          "Unsuccessful remote shell login--export LD_LIBRARY_PATH "+
-          libPath + ":${LD_LIBRARY_PATH} failed";
-        return;
-      }
-    } else {
-      cmd = "if ($?LD_LIBRARY_PATH) setenv LD_LIBRARY_PATH \"" +
-            libPath + ":${LD_LIBRARY_PATH}\"";
-      if (!expwrite(cmd)) return;
-      if (expect1("\r\n+go+$") != 1) {
-        p_errMessage = "Unsuccessful remote shell login--setenv LD_LIBRARY_PATH "+
-                       libPath + ":${LD_LIBRARY_PATH} failed";
-        return;
-      }
-      cmd = "if ($?LD_LIBRARY_PATH == 0) setenv LD_LIBRARY_PATH \"" +
-                       libPath + "\"";
-      if (!expwrite(cmd)) return;
-      if (expect1("\r\n+go+$") != 1) {
-        p_errMessage = "Unsuccessful remote shell login--setenv LD_LIBRARY_PATH "+
-                       libPath + " failed";
-        return;
-      }
-    }
-  }
-
-  // source file, if specified
-  if (sourceFile != "") {
-    cmd = useBash ?
-      ("[ -e " + sourceFile + " ] && source " + sourceFile) :
-      ("if (-e " + sourceFile + ") source " + sourceFile);
-    if (!expwrite(cmd)) return;
-    if (expect1("\r\n+go+$") != 1) {
-      p_errMessage = "Unsuccessful remote shell login--source " +
-                     sourceFile + " failed";
-      return;
-    }
-  }
-
-  // it appears this was a successful connection so cache the user entered
-  // password if applicable
-  if (thePass != "")
-    RCommand::setPassCache(p_shell, theMachine, theUser, thePass);
-
-  if (!iHop && p_hopCount>0) {
-    iHop = true;
-
-    // now connect to the actual destination from the front-end
-    theMachine = p_machine;
-
-    // assume that the final machine uses the same remote shell as the
-    // front-end machine and that the user is also the same (not specified)
-    cmd = p_shell;
-
-    // ssh only needs the -v flag to check authentication and -X tries to
-    // ensure X11 port forwarding will work.  All the other should be
-    // ignored as they have caused issues on mpp2 at least
-    if (p_shell == "ssh")
-      cmd += " -X -v";
-    cmd += " " + theMachine;
-
-    if (!expwrite(cmd)) return;
-    goto hopToIt;
-  }
-
-  p_connected = true;
 }
 
 
@@ -1723,467 +764,20 @@ bool RCommand::hop(const string& hopMachine, const string& locShell,
                    const string& shellPath, const string& libPath,
                    const string& sourceFile)
 {
-  if (p_direct) {
-    if (p_ssh) return sshHop(hopMachine, locShell, userName, password,
-                             shellPath, libPath, sourceFile);
-    return directUnsupported("hop");
-  }
-
-  p_hopCount++;
-
-  bool done;
-  string output;
-  bool login_prompt = false;
-
-  string theUser;
-  if (userName == "")
-    theUser = Ecce::realUser();
-  else
-    theUser = userName;
-
-  string thePass = password;
-
-  string notFoundStr = p_shell + ": Command not found";
-
-  // assume that the hopMachine uses the same remote shell as the original
-  // remote shell and that the user is also the same (not specified)
-  string cmd = p_shell;
-  // ssh only needs the -v flag to check authentication and all the other
-  // options such as forwarding X11 should be ignored
-  // (they cause issues for mpp2 at least)
-  if (p_shell == "ssh")
-    cmd += " -v";
-  cmd += " " +  hopMachine;
-
-  // passcode prompting variables
-  string passCmd;
-  FILE* passPtr;
-  char passBuf[MAXLINE];
-  passBuf[0] = '\0';
-  char codeBuf[MAXLINE];
-
-  if (!expwrite(cmd)) return false;
-
-  do {
-    done = true;  // be optimistic
-
-    switch (exp_expectl(p_fid, exp_glob, notFoundStr.c_str(), 1,
-                               exp_glob, "execvp(", 1,
-                               exp_glob, "denied", 2,
-                               exp_glob, "failed", 2,
-                               exp_glob, " closed", 2,
-                               exp_glob, "Connection refused", 3,
-                               exp_glob, "Bad host name", 4,
-                               exp_glob, "Unknown host", 4,
-                               exp_glob, "incorrect", 5,
-                               exp_glob, "Connection timed out", 6,
-                               exp_glob, "^Usage:", 7,
-                               exp_glob, "\r\nUsage:", 7,
-                               exp_glob, "(yes/no)? $", 8,
-                               exp_glob, "password: $", 9,
-                               exp_glob, "Password: $", 9,
-                               exp_glob, "Password:$", 9,
-                               exp_glob, "passphrase*: $", 9,
-                               exp_glob, "PASSCODE:$", 10,
-                               exp_glob, "PASSCODE: $", 10,
-                               exp_glob, "login: $", 12,
-                               exp_glob, "Authentication succeeded", 14,
-                               // Modern OpenSSH's actual -v output for a
-                               // successful key-based (no password prompt)
-                               // login is "Authenticated to <host> ...
-                               // using \"publickey\"." -- not the literal
-                               // "Authentication succeeded" text above,
-                               // which this decades-old pattern list has
-                               // apparently always expected. Confirmed via
-                               // a direct `ssh -v` run against a real
-                               // key-trusted host: this is genuinely what
-                               // current OpenSSH prints, not a fluke.
-                               // Without this, a key-authenticated
-                               // connection is never recognized as
-                               // successful and the loop times out --
-                               // reported live as "Failed to open remote
-                               // shell ... (incorrect password?)" against
-                               // a machine that never even prompted for
-                               // one. Password-based logins were already
-                               // fine (they complete via the "+hi+\r\n"
-                               // echo marker below, once the shell after a
-                               // successful password entry is reached).
-                               exp_glob, "Authenticated to*", 14,
-                               exp_glob, "+hi+\r\n", 14,
-                               exp_end)) {
-
-      case 1:
-        p_errMessage = "Unable to find remote shell " + p_shell +
-                       " (not in the path?)";
-        return false;
-
-      case 2:
-      case EXP_EOF:
-        p_errMessage = "Permission to run remote shell " + p_shell +
-                       " denied for " + hopMachine;
-        if (p_shell == "rsh")
-          p_errMessage +=
-                       " (do you have a .rhosts entry on " + hopMachine + "?)";
-        else if (p_shell=="ssh" && password=="")
-          p_errMessage = "No password configured for " + hopMachine +
-                       " (did you set a new passphrase without reconfiguring?)";
-        else if (p_shell == "ssh")
-          p_errMessage += " (incorrect password?)";
-      return false;
-
-      case 3:
-        p_errMessage = "Shell authentication server for " + p_shell +
-                       " not running or installed on " + hopMachine;
-        return false;
-
-      case 4:
-        p_errMessage = "Unknown or unavailable host " + hopMachine;
-        return false;
-
-      case 5:
-        p_errMessage = "Invalid username " + theUser +
-                       " for host " + hopMachine;
-        return false;
-
-      case 6:
-        p_errMessage = "Timeout trying to connect to " + hopMachine +
-                       " with remote shell " + p_shell;
-        return false;
-
-      case 7:
-        p_errMessage = "Invalid syntax for remote shell command";
-        return false;
-
-      case 8:
-        // Allows yes/no questions of any type and just says "yes".
-        // Should only see this for the man-in-the-middle attack warning
-        if (!expwrite("yes")) return false;
-        done = false;
-        break;
- 
-      case 9:
-        if (thePass=="" &&
-            !RCommand::getPassCache(p_shell, hopMachine, theUser, thePass)) {
-          passCmd = Ecce::ecceBinCommand("passdialog") + " password " +
-                    hopMachine + " " + theUser;
-          if ((passPtr = popen(passCmd.c_str(), "r")) != NULL) {
-            if (fgets(passBuf, sizeof(passBuf), passPtr) != NULL) {
-              // strip off the trailing newline
-              passBuf[strlen(passBuf)-1] = '\0';
-              // handle password dialog cancel button
-              if (strcmp(passBuf, "") == 0) {
-                // close the pipe
-                pclose(passPtr);
-                return false;
-              }
-
-              thePass = passBuf;
-            } else {
-              // close the pipe
-              pclose(passPtr);
-              return false;
-            }
-
-            // close the pipe
-            pclose(passPtr);
-          } else
-            return false;
-        }
-
-        exp_elide(thePass.c_str());
-        if (!expwrite(thePass)) return false;
-        done = false;
-        break;
-
-      case 10:
-        passCmd = Ecce::ecceBinCommand("passdialog") + " passcode " +
-                  hopMachine + " " + theUser;
-        if ((passPtr = popen(passCmd.c_str(), "r")) != NULL) {
-          if (fgets(codeBuf, sizeof(codeBuf), passPtr) != NULL) {
-            // strip off the trailing newline
-            codeBuf[strlen(codeBuf)-1] = '\0';
-            // handle password dialog cancel button
-            if (strcmp(codeBuf, "") == 0) {
-              // close the pipe
-              pclose(passPtr);
-              return false;
-            }
-
-            exp_elide(codeBuf);
-            if (!expwrite(codeBuf)) {
-              // close the pipe
-              pclose(passPtr);
-              return false;
-            }
-            done = false;
-          } else {
-            // close the pipe
-            pclose(passPtr);
-            return false;
-          }
-
-          // close the pipe
-          pclose(passPtr);
-        } else
-          return false;
-        break;
-
-      case 12:
-        if (login_prompt) {
-          p_errMessage = "Invalid username " + theUser +
-                         ", or password for host " + p_machine;
-          return false;
-        }
-
-        if (!expwrite(userName)) return false;
-        login_prompt = true;
-        done = false;
-        break;
-
-      case 14:
-        // Successful login recognized
-        break;
-
-      case EXP_TIMEOUT:
-        p_errMessage = "Timeout running remote shell " + p_shell +
-                       " for " + p_machine;
-        return false;
-
-      default:
-        p_errMessage =
-          "Unrecognized authentication failure running remote shell " +
-          p_shell + " for " + p_machine;
-        return false;
-    }
-  } while (!done);
-
-  exp_elide(NULL);
-
-  // Request a csh shell for ssh logins
-  if (p_shell == "ssh") {
-    cmd = locShell + " -i";
-    if (!expwrite(cmd)) return false;
-
-    // locShell -i is a fresh interactive login shell on the hop
-    // machine (tcsh, zsh, ksh93, ...) -- it can still be sourcing its
-    // startup file and enabling its own raw-mode editor when we write
-    // the init line next, and that editor's terminal setup can flush
-    // (discard) whatever we already typed. Wait for it to actually be
-    // reading before sending anything else, rather than racing it.
-    if (!waitShellReady(p_fid)) {
-      p_errMessage = "Timeout waiting for " + locShell +
-                     " to start on " + hopMachine;
-      return false;
-    }
-  }
-
-  // Same dialect handling as the main constructor above (see its
-  // comments for the full story of why this exists): reaching this
-  // point already proves locShell is genuinely present and working on
-  // the hop machine, since shellCommand()/the cmd above already used
-  // that exact value and we're about to match its output. No separate
-  // detection needed, just check locShell's own value directly.
-  // Classify by basename (classifyShell), not an exact match against
-  // the literal string "bash" -- see the main constructor above. This
-  // is ECCE's own local-shell config for the hop machine (the shell it
-  // will send further commands in), not the login shell "locShell -i"
-  // above ran into -- that one can legitimately be zsh/mksh/ksh93 and
-  // waitShellReady() above already handles it, but locShell itself is
-  // still restricted to csh/tcsh/bash.
-  ShellDialect dialect = classifyShell(locShell);
-  if (dialect == SHELL_UNSUPPORTED) {
-    p_errMessage = "Unsupported local shell '" + locShell + "' for " +
-                   hopMachine + " -- ECCE needs csh, tcsh or bash";
+  if (!p_ssh || !p_transport) {
+    p_errMessage = "hop is only available on an ssh connection";
     return false;
   }
-  bool useBash = (dialect == SHELL_BASH);
-  p_remoteBash = useBash;
-
-  // Login failure is caught by trying to set the prompt.
-  // Can't parse for a successful login without the expwrite because I don't
-  // know what the prompt might be if the user overrides the default "%" in
-  // their .cshrc.
-  // A login failure will be recognized after expect sees an EOF meaning
-  // the shell has closed.
-  // Buffer isn't flushed from previous write so the prompt may show up
-  // on a line with other output instead of by itself as it should elsewhere.
-  // By echoing out $prompt we should be able to work around this and
-  // get reliable checks for good logins.
-  if (useBash) {
-    // See the main constructor's identical setup line above for the
-    // full story on why bracketed-paste mode needs disabling here too.
-    //  See the matching "set +o emacs" note above (#69, #143): a hop's
-    //  "bash -i" runs on the remote pty ssh allocates, readline on.
-    if (!expwrite("unalias -a 2>/dev/null; PS1='+go+'; unset PROMPT_COMMAND; "
-                  "bind 'set enable-bracketed-paste off' 2>/dev/null; "
-                  "set +o emacs; set +o vi"))
-      return false;
-  } else {
-    //  See the matching "unset edit" note above (#143).
-    if (!expwrite("unalias precmd; set prompt=+go+; unset echo; unset edit"))
-      return false;
-  }
-  if (expect1("+go+$") != 1) {
-    p_errMessage =
-      "Unsuccessful remote shell login--invalid username or password";
-    return false;
-  }
-
-  // Set timeout back to normal
-  exp_timeout = RC_EXEC_TIMEOUT;
-
-  if (!useBash) {
-    if (!expwrite("unalias *")) return false;
-    if (expect1("\r\n+go+$") != 1) {
-      p_errMessage = "Unsuccessful remote shell login--unalias * failed";
-      return false;
-    }
-  }
-
-  // set $PATH
-  if (shellPath != "") {
-    if (useBash) {
-      cmd = "export PATH=\"" + shellPath + ":${PATH}\"";
-      if (!expwrite(cmd)) return false;
-      if (expect1("\r\n+go+$") != 1) {
-        p_errMessage = "Unsuccessful remote shell login--export PATH " +
-                       shellPath + ":${PATH} failed";
-        return false;
-      }
-    } else {
-      cmd = "if ($?PATH) setenv PATH \"" + shellPath + ":${PATH}\"";
-      if (!expwrite(cmd)) return false;
-      if (expect1("\r\n+go+$") != 1) {
-        p_errMessage = "Unsuccessful remote shell login--setenv PATH " +
-                       shellPath + ":${PATH} failed";
-        return false;
-      }
-      cmd = "if ($?PATH == 0) setenv PATH \"" + shellPath + "\"";
-      if (!expwrite(cmd)) return false;
-      if (expect1("\r\n+go+$") != 1) {
-        p_errMessage = "Unsuccessful remote shell login--setenv PATH " +
-                       shellPath + " failed";
-        return false;
-      }
-    }
-  }
-
-  // set $LD_LIBRARY_PATH
-  if (libPath != "") {
-    if (useBash) {
-      cmd = "export LD_LIBRARY_PATH=\"" + libPath + ":${LD_LIBRARY_PATH}\"";
-      if (!expwrite(cmd)) return false;
-      if (expect1("\r\n+go+$") != 1) {
-        p_errMessage =
-          "Unsuccessful remote shell login--export LD_LIBRARY_PATH "+
-          libPath + ":${LD_LIBRARY_PATH} failed";
-        return false;
-      }
-    } else {
-      cmd = "if ($?LD_LIBRARY_PATH) setenv LD_LIBRARY_PATH \"" +
-            libPath + ":${LD_LIBRARY_PATH}\"";
-      if (!expwrite(cmd)) return false;
-      if (expect1("\r\n+go+$") != 1) {
-        p_errMessage = "Unsuccessful remote shell login--setenv LD_LIBRARY_PATH "+
-                       libPath + ":${LD_LIBRARY_PATH} failed";
-        return false;
-      }
-      cmd = "if ($?LD_LIBRARY_PATH == 0) setenv LD_LIBRARY_PATH \"" +
-                       libPath + "\"";
-      if (!expwrite(cmd)) return false;
-      if (expect1("\r\n+go+$") != 1) {
-        p_errMessage = "Unsuccessful remote shell login--setenv LD_LIBRARY_PATH "+
-                       libPath + " failed";
-        return false;
-      }
-    }
-  }
-
-  // source file, if specified
-  if (sourceFile != "") {
-    cmd = useBash ?
-      ("[ -e " + sourceFile + " ] && source " + sourceFile) :
-      ("if (-e " + sourceFile + ") source " + sourceFile);
-    if (!expwrite(cmd)) return false;
-    if (expect1("\r\n+go+$") != 1) {
-      p_errMessage = "Unsuccessful remote shell login--source " +
-                     sourceFile + " failed";
-      return false;
-    }
-  }
-
-  // it appears this was a successful connection so cache the user entered
-  // password if applicable
-  if (thePass != "")
-    RCommand::setPassCache(p_shell, hopMachine, theUser, thePass);
-
-  return true;
+  return sshHop(hopMachine, locShell, userName, password, shellPath, libPath,
+                sourceFile);
 }
 
 
 // ---------- Destructors ------------
 RCommand::~RCommand(void)
-{ 
-  if (p_direct) {
-    stopStream();
-    delete p_transport;
-    return;
-  }
-
-  if (p_connected) {
-hopToExit:
-    // send the exit to the shell.  If it fails I really don't know what an
-    // appropriate reaction would be so I ignore the return value and just
-    // hope for the GOODBYE acknowledgement.  Note that if there are
-    // running jobs when the destructor is called then we've only expressed
-    // our intent to exit as soon as those jobs are done.
-    (void)expwrite("exit; echo GOODBYE");
-    (void)expect1("GOODBYE\r\n");
-
-    if (p_shell=="ssh") {
-      // Let the first exit finish cleanly before the one that logs out.
-      sleep(1);
-      (void)expwrite("exit");
-      // If background commands were issued in this shell, then waiting for
-      // the regular ssh "connection closed" message will result in the
-      // exit hanging.  Use the ssh verbose mesage about "exit-status"
-      // because this happens before it waits on background jobs.
-      // (void)expect1("Connection to * closed.");
-      if (p_background)
-        (void)expect1("exit-status reply");
-      else
-        (void)expect1("Connection to * closed.");
-    }
-
-    // It is possible to be all hopped up!!  Actually, two hops should
-    // be the maximum:  one from a front-end to the actual compute machine and
-    // then from the compute machine to a compute node.  Regardless, for
-    // each hop, an exit is necessary to close connection.
-    if (p_hopCount > 0) {
-      p_hopCount--;
-      goto hopToExit;
-    }
-
-    // this first wait is for the remote connection to close in response to
-    // the "exit" command above
-
-    // rsh will not exit until background jobs (eg, xterm&) exit so this is
-    // a hack doing a "WNOHANG" wait on an rsh with a background job.  It will
-    // leave defunct processes hanging around but I didn't see a good solution.
-    if (p_shell == "rsh")
-      (void)wait3(NULL, WNOHANG, NULL);
-    else if (p_background)
-      (void)waitpid(p_pid, NULL, WNOHANG);
-    else if (kill(p_pid, SIGTERM) == 0)
-      // go ahead and kill the process because otherwise waitpid sometimes
-      // does not return for 30+ seconds and there really is no reason to
-      // be nice to the process once we know the remote connection is exitted.
-      (void)waitpid(p_pid, NULL, 0);
-  }
-
-  // now close the file descriptor associated with the expect pty
-  close(p_fid);
-  (void)wait3(NULL, WNOHANG, NULL);
+{
+  stopStream();
+  delete p_transport;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2203,13 +797,7 @@ bool RCommand::command(const string& command, string& output,
 {
   bool status = false;
 
-  if (getenv("ECCE_RCOM_DEBUGGING"))
-    exp_is_debugging = 1;
-  else
-    exp_is_debugging = 0;
-
   if (getenv("ECCE_RCOM_LOGMODE")) {
-    exp_loguser = 1;
     cout << endl;
     cout << "Running remote command:" << endl;
     cout << "command (" << command << ")" << endl;
@@ -2223,16 +811,14 @@ bool RCommand::command(const string& command, string& output,
       if (frontendBypass != "")
         cout << "frontend bypass domain (" << frontendBypass << ")" << endl;
     }
-  } else
-    exp_loguser = 0;
+  }
 
   RCommand rcmd(machine, remShell, locShell, userName, password,
                 frontendMachine, frontendBypass);
   if (rcmd.isOpen()) {
-    // turn off the timeout because these may be xterms and the like that
-    // the user doesn't want disappearing on them even after ECCE has been
-    // closed
-    exp_timeout = -1;
+    // No timeout: these may be xterms and the like that the user doesn't
+    // want disappearing even after ECCE has been closed.
+    rcmd.streamTimeout(-1);
 
     status = rcmd.execout(command, output);
   }
@@ -2319,13 +905,6 @@ bool RCommand::bgcommand(const string& command, string& errMessage,
   return status;
 }
 
-string RCommand::commandShell(const string& machine, const string& remShell,
-                              const string& userName)
-{
-  (void)machine; (void)userName;
-  return remShell;
-}
-
 string RCommand::argsToCommand(const string& command, const string& args,
                                const string& remShell, const bool& isRemote,
                                string& commandWithArgs)
@@ -2407,35 +986,8 @@ bool RCommand::fileOp(const string& op, const string& filename)
         opone=="x" || opone=="o" || opone=="z"))
     return false;
 
-  // Previous approaches here both had real, confirmed-live bugs:
-  //   1. csh's `if (-x file) echo TRUE` is not valid bash -- bash parses
-  //      `(...)` as a subshell, so `-x` is interpreted as an attempt to
-  //      run a command literally named "-x". Needed dialect branching.
-  //   2. A hand-rolled "echo TRUE"/"echo FALSE" + expect2() pattern
-  //      match (two attempts) was never reliable: an unanchored pattern
-  //      matched the command's own terminal echo (it contains the
-  //      literal substring "echo TRUE"); anchoring that with "\r\n...$"
-  //      fixed the false-positive but introduced a genuine, reproducible
-  //      race under fast back-to-back calls (confirmed via 10 repeated
-  //      live runs: correct results only when artificial delay --
-  //      verbose logging -- was inserted between send and match,
-  //      otherwise frequent 30s timeouts/wrong results) -- almost
-  //      certainly the vendored 1990s Expect matcher not handling a
-  //      "$"-anchored, end-of-buffer pattern correctly across output
-  //      that arrives in more than one incremental read.
-  //
-  // Sidesteps both: `test`/`[` is a real external command
-  // (/usr/bin/test, or a builtin with identical POSIX syntax/exit-status
-  // semantics in bash, dash, AND csh/tcsh) -- no dialect branching
-  // needed at all. And rather than reinvent pattern matching, this just
-  // hands the test off to execout(), which already reliably detects
-  // success/failure via $?/$status (the exact mechanism proven across
-  // this whole session's real end-to-end job launches) -- its own
-  // pattern ("CMDSTAT=0*\r\n+go+", no leading anchor) is naturally
-  // robust to fragmented reads because "CMDSTAT=" only ever appears in
-  // real output, never in the command's own echoed source text, so it
-  // doesn't need the strict end-of-buffer anchor that made fileOp()'s
-  // own pattern fragile.
+  // `test` is a real command with the same syntax in every shell, so no
+  // dialect branching is needed; execout() supplies the exit status.
   // "o" (csh's "owned by you") has no lowercase equivalent in POSIX
   // test -- bash/POSIX use capital -O for this.
   string bashOpone = (opone == "o") ? "O" : opone;
@@ -2473,54 +1025,24 @@ bool RCommand::executable(const string& filename)
 
 bool RCommand::cd(const string& directory)
 {
-  // Old comment here claimed "cd is interpreted by the C shell [so] it
-  // doesn't work to append an echo $status to the end", and instead
-  // hand-rolled success detection by literal-text-matching the command's
-  // own echo in exp_buffer and checking whether anything followed it.
-  // Confirmed live, directly, that this hand-rolled check is simply
-  // broken under bash: a `cd /tmp` that provably succeeded (confirmed
-  // via a follow-up `pwd` genuinely showing /tmp) was still reported as
-  // a failure -- exp_buffer's post-match state after expect1()'s own
-  // "\r\n+go+$" truncation doesn't leave the buffer in the shape this
-  // code assumed. Same bug class as the old fileOp() -- reinventing
-  // success detection instead of using the one mechanism (execout()'s
-  // $?/$status check) already proven reliable throughout this whole
-  // session's real job launches. `cd` is a shell builtin in bash, dash,
-  // AND csh/tcsh alike, and all of them set $?/$status from it just
-  // like any other command -- there's no actual C-shell-specific
-  // limitation here. Running it via execout() (no subshell involved,
-  // since this is one command line sent to the existing persistent
-  // remote shell) changes that shell's real working directory exactly
-  // as before, it just detects success correctly now.
-
   if (!p_connected) return false;
 
-  // save a microsecond by calling fileOp directly
   if (!fileOp("d", directory)) {
     p_errMessage = "Directory " + directory + " does not exist";
     return false;
   }
 
+  // Nothing persists between commands, so remember where we are, as an
+  // absolute path; the transport prepends the cd to every later command.
   string output;
-  if (p_direct) {
-    // Nothing persists between commands, so remember where we are, as an
-    // absolute path; the transport prepends the cd to every later command.
-    if (!execout("cd -- " + directory + " && pwd", output)) {
-      p_errMessage = "Unable to cd to " + directory;
-      return false;
-    }
-    while (!output.empty() && (output[output.size()-1]=='\n' ||
-                               output[output.size()-1]=='\r'))
-      output.erase(output.size()-1);
-    p_transport->setDir(output);
-    return true;
-  }
-
-  if (!execout("cd " + directory, output)) {
+  if (!execout("cd -- " + directory + " && pwd", output)) {
     p_errMessage = "Unable to cd to " + directory;
     return false;
   }
-
+  while (!output.empty() && (output[output.size()-1]=='\n' ||
+                             output[output.size()-1]=='\r'))
+    output.erase(output.size()-1);
+  p_transport->setDir(output);
   return true;
 }
 
@@ -2532,7 +1054,7 @@ bool RCommand::which(const string& filename, string& path)
   if (path[0] != '/') {
     string pathvar;
     if (execout("echo $PATH", pathvar)) {
-      // get rid of newline stuff expect appends--2 characters instead of 1
+      // drop the trailing CR LF
       pathvar.resize(pathvar.length()-2);
 
       char* pathstr = strdup(pathvar.c_str());
@@ -2565,9 +1087,9 @@ bool RCommand::which(const string& filename, string& path)
   return ret;
 }
 
-// What the pty path hands back: every newline as CR LF, and the stray
-// backspace and colour sequences expMungedOutputFix() removes.
-static string ptyStyleOutput(const string& raw)
+// Callers were written against output with every newline as CR LF and the
+// stray backspace and colour sequences removed.
+static string crlfOutput(const string& raw)
 {
   string s;
   s.reserve(raw.size() + raw.size()/16);
@@ -2588,23 +1110,34 @@ static string ptyStyleOutput(const string& raw)
   return s;
 }
 
-bool RCommand::directExecout(const string& command, string& output,
-                             const string& errorMessage, const int& timeout)
+bool RCommand::execout(const string& command, string& output,
+                       const string& errorMessage, const int& timeout)
 {
   output = "";
+  if (!p_connected) return false;
+
+  if (command == "\003") {
+    if (p_sshStream) {
+      static_cast<RemoteTransport*>(p_transport)->interruptStream(p_sshStream);
+      return true;
+    }
+    if (p_ssh || p_stream.pid <= 0) return false;
+    static_cast<DirectTransport*>(p_transport)->interruptStream(p_stream);
+    return true;
+  }
 
   if (timeout != 0)
-    exp_timeout = timeout;
+    p_timeout = timeout;
 
   TransportResult r = p_transport->run(p_scriptPrefix + "exec 2>&1\n" +
                                        command + "\n",
-                                       exp_timeout > 0 ? exp_timeout : -1);
+                                       p_timeout > 0 ? p_timeout : -1);
 
   if (timeout > 0)
-    exp_timeout = RC_EXEC_TIMEOUT;
+    p_timeout = RC_EXEC_TIMEOUT;
 
   if (getenv("ECCE_RCOM_LOGMODE"))
-    cout << "Direct command (" << command << ") in ("
+    cout << "Command (" << command << ") in ("
          << p_transport->dir() << ") status " << r.status
          << (r.error.empty() ? "" : " " + r.error) << endl;
 
@@ -2620,9 +1153,8 @@ bool RCommand::directExecout(const string& command, string& output,
   } else if (r.status == 0) {
     status = true;
   } else {
-    // The pty path only recognises a status that begins with 0, 1 or 2
-    // (glob patterns on "CMDSTAT=").  Mirror that, including its message
-    // for the rest.
+    // Callers were written against a status that begins with 0, 1 or 2;
+    // anything else has always been reported as "no status returned".
     char lead = std::to_string(r.status)[0];
     if (lead=='1' || lead=='2')
       p_errMessage = errorMessage != "" ? errorMessage :
@@ -2631,13 +1163,13 @@ bool RCommand::directExecout(const string& command, string& output,
       p_errMessage = "No status returned from executing command " + command;
   }
 
-  output = ptyStyleOutput(r.out);
+  output = crlfOutput(r.out);
   return status;
 }
 
 bool RCommand::startStream(const string& command)
 {
-  if (!p_direct || !p_connected || p_stream.rfd >= 0) return false;
+  if (!p_transport || !p_connected || p_stream.rfd >= 0) return false;
   string error;
   if (p_ssh) {
     int fd = -1;
@@ -2650,7 +1182,7 @@ bool RCommand::startStream(const string& command)
     p_stream.rfd = p_stream.wfd = fd;
     if (getenv("ECCE_RCOM_LOGMODE"))
       cout << "ssh stream (" << command << ") in (" << p_transport->dir()
-           << ") on its own session, no pty" << endl;
+           << ") on its own session" << endl;
     return true;
   }
   if (!static_cast<DirectTransport*>(p_transport)->openStream(
@@ -2660,13 +1192,13 @@ bool RCommand::startStream(const string& command)
   }
   if (getenv("ECCE_RCOM_LOGMODE"))
     cout << "Direct stream (" << command << ") in (" << p_transport->dir()
-         << ") pid " << p_stream.pid << " on pipes, no pty" << endl;
+         << ") pid " << p_stream.pid << " on pipes" << endl;
   return true;
 }
 
 void RCommand::stopStream(int graceMs)
 {
-  if (!p_direct) return;
+  if (!p_transport) return;
   if (p_sshStream) {
     static_cast<RemoteTransport*>(p_transport)->closeStream(p_sshStream, graceMs);
     p_sshStream = 0;
@@ -2681,165 +1213,6 @@ void RCommand::stopStream(int graceMs)
     cout << "Direct stream closed, status " << st << endl;
 }
 
-bool RCommand::execout(const string& command, string& output,
-                       const string& errorMessage, const int& timeout)
-{
-  if (!p_connected) return false;
-
-  if (p_direct && command == "\003") {
-    if (p_sshStream) {
-      static_cast<RemoteTransport*>(p_transport)->interruptStream(p_sshStream);
-      return true;
-    }
-    if (p_ssh || p_stream.pid <= 0) return false;
-    static_cast<DirectTransport*>(p_transport)->interruptStream(p_stream);
-    return true;
-  }
-
-  if (p_direct)
-    return directExecout(command, output, errorMessage, timeout);
-
-  bool status = false;
-  string cmdstat = command;
-
-  // $status is csh/tcsh's exit-status variable; bash/sh use $? instead --
-  // $status is simply unset in bash, so this would silently always
-  // produce an empty "CMDSTAT=" with no digit, matching none of the
-  // patterns below and failing every single remote command with "No
-  // status returned". Confirmed via a live standalone repro against a
-  // real bash remote connection.
-  cmdstat.append(p_remoteBash ? "; echo CMDSTAT=$?" : "; echo CMDSTAT=$status");
-
-  if (timeout != 0)
-    exp_timeout = timeout;
-
-  // temporarily restore the full buffer flag to be able to recognize
-  // when the output is more than can be handled
-  exp_full_buffer = 1;
-
-  if (!expwrite(cmdstat)) return false;
-  switch (exp_expectl(p_fid, exp_glob, "CMDSTAT=0*\r\n+go+", 1,
-                             exp_glob, "Command not found*\r\n+go+", 2,
-                             exp_glob, "CMDSTAT=1*\r\n+go+", 3,
-                             exp_glob, "CMDSTAT=2*\r\n+go+", 3,
-                             exp_glob, "\r\n+go+", 4, exp_end)) {
-
-    case -1:
-      p_connected = false;
-      p_errMessage = "Lost remote shell connection attempting to read output "
-                     "of command " + command;
-      break;
-
-    case 1:
-      status = true;
-      *exp_match = '\0';
-      break;
-
-    case 2:
-      p_errMessage = "Could not find command " + command;
-      break;
-
-    case 3:
-      if (exp_buffer_end == exp_match_end)
-        *exp_match = '\0';
-      if (errorMessage != "")
-        p_errMessage = errorMessage;
-      else
-        p_errMessage = "Failed executing command " + command;
-      break;
-
-    case 4:
-      p_errMessage = "No status returned from executing command " + command;
-      break;
-
-    case EXP_FULLBUFFER:
-      p_errMessage = "Command output buffer length exceeded "
-                     "(partial results returned)";
-      break;
-
-    case EXP_EOF:
-      p_errMessage = "Unexpected termination of remote shell executing command "
-                     + command;
-      break;
-
-    case EXP_TIMEOUT:
-      p_errMessage = "Unexpected timeout executing command " + command;
-      break;
-
-    default:
-      p_errMessage = "Unexpected output executing command " + command;
-  }
-
-  // Some how, some way, expect introduces some bogus characters in the
-  // output.  These include escape sequences and backspace characters.
-  // These completely hose ecce processing and thus these characters need
-  // to be stripped out.  This seems to happen on mpp2, and possibly only
-  // mpp2 so maybe this fix can be conditionalized based on the machine.
-  RCommand::expMungedOutputFix();
-
-  // Matches whichever status-variable text was actually echoed back as
-  // part of the command's own terminal echo (see cmdstat construction
-  // above) -- "$status" (7 chars) for csh/tcsh, "$?" (2 chars) for bash.
-  const char* statusVarEcho = p_remoteBash ? "$?" : "$status";
-  int statusVarLen = p_remoteBash ? 2 : 7;
-  string nlPattern = string(statusVarEcho) + "\r\n";
-  string crPattern = string(statusVarEcho) + "\r";
-  char* line = strstr(exp_buffer, nlPattern.c_str());
-
-  if (line != NULL)
-    output = line + statusVarLen + 2;
-  else if ((line = strstr(exp_buffer, crPattern.c_str())) != NULL)
-    // this fixes some weird problem that occured on a Dell Linux workstation
-    output = line + statusVarLen + 3;
-  else if (status)
-    output = "";
-  else
-    output = exp_buffer;
-
-  if (timeout > 0)
-    exp_timeout = RC_EXEC_TIMEOUT;
-
-  // clear the full buffer flag again
-  exp_full_buffer = 0;
-
-  return status;
-}
-
-
-void RCommand::expMungedOutputFix()
-{
-  // strip out backspace sequences (which includes the character right
-  // before the backspace)
-  if (strlen(exp_buffer) > 1) {
-    char* bsptr = strchr(exp_buffer+1, 8);
-    while (bsptr != NULL) {
-      memmove(bsptr-1, bsptr+1, strlen(exp_buffer) - (bsptr - exp_buffer));
-      bsptr = strchr(bsptr-1, 8);
-    }
-  }
-
-  // strip out the longer escape sequence
-  char findme[6];
-  findme[0] = 27;
-  findme[1] = 91;
-  findme[2] = 48;
-  findme[3] = 48;
-  findme[4] = 109;
-  findme[5] = '\0';
-  char *eptr;
-  while ((eptr = strstr(exp_buffer, findme)) != NULL) {
-    memmove(eptr, eptr+5, strlen(exp_buffer) - (eptr - exp_buffer) - 4);
-  }
-
-  // strip out the shorter escape sequence
-  findme[0] = 27;
-  findme[1] = 91;
-  findme[2] = 109;
-  findme[3] = '\0';
-  while ((eptr = strstr(exp_buffer, findme)) != NULL) {
-    memmove(eptr, eptr+3, strlen(exp_buffer) - (eptr - exp_buffer) - 2);
-  }
-}
 
 
 bool RCommand::exec(const string& command,
@@ -2855,182 +1228,27 @@ bool RCommand::execbg(const string& command, string& output,
 {
   if (!p_connected) return false;
 
-  if (p_direct) {
-    string error;
-    long pid = p_transport->spawnDetached(p_scriptPrefix + "nohup " + command,
-                                          error);
-    if (getenv("ECCE_RCOM_LOGMODE"))
-      cout << "Direct background command (" << command << ") in ("
-           << p_transport->dir() << ") pid " << pid << endl;
-    if (pid < 0) {
-      p_errMessage = errorMessage != "" ? errorMessage :
-                     "Failed executing background command " + command;
-      output = "";
-      return false;
-    }
-    output = std::to_string(pid);
-    p_background = true;
-    return true;
-  }
-
-  bool status = false;
-
-  // Old approach sent "command&; sleep 2" and hoped an asynchronous
-  // job-control "Exit N" notification would arrive before the next
-  // prompt, on the theory that 2 seconds was "a semi-reliable" window
-  // (GDB's own 2001 comment, quoted in git history) -- and extracted
-  // `output` by text-slicing everything after the command's own echoed
-  // "; sleep 2" text. Confirmed live, directly, that this is broken
-  // under bash run without job control -- every RCommand-spawned
-  // "bash -i" session here reports "no job control in this shell" (see
-  // every login trace this session), so there is no "Exit N" message to
-  // ever catch, and the "; sleep 2" text-slicing produced outright
-  // corrupted output: a real job submission's `output` came back as the
-  // command's own echoed source text, e.g. "./submit__Calculation-5&;
-  // sleep 2" -- which Launch.C's bgFlag job-id parsing (expecting a
-  // "[1] 12345"-style job-control PID notification, per
-  // siteconfig/QueueManagers' Shell manager) then accepted whole-cloth
-  // as the "job id" (its own fallback for "no ']' found" is "use the
-  // untouched string"), corrupting the eccejobmaster launch command
-  // built from it and leaving the calculation stuck with no way to
-  // reconnect job monitoring later.
-  //
-  // $! (PID of the most recently backgrounded job) is a POSIX shell
-  // builtin available in bash, dash, AND csh/tcsh alike, with or
-  // without job control -- unlike a job-control notification, it's
-  // always populated the instant a command is backgrounded, so this
-  // sidesteps the whole "wait and hope" heuristic entirely. Echoing it
-  // immediately with an unambiguous marker (same reasoning as
-  // fileOp()'s TRUE/FALSE redesign) reuses one reliable mechanism
-  // instead of two fragile ones. Launch.C needs no changes: its
-  // existing "no ']' found -> use the string as-is" fallback already
-  // does exactly the right thing with a clean, bare PID.
-  // nohup: without it, the backgrounded command is still a member of
-  // this connection's own session -- if the connection closes (e.g.
-  // RCommand's destructor runs once Launch::doLaunch() returns) while
-  // the command is still running, it gets SIGHUP'd along with
-  // everything else in that session. Confirmed live: a real, longer-
-  // running job submitted this way died mid-computation with the
-  // compute code's own crash log reporting "Error: hangup" -- neither
-  // this call nor the generated submit script itself
-  // (Launch::generateJobSubmissionFile()) had ever protected against
-  // this, it just was never exercised long enough to matter until job
-  // submission started reliably working today. Explicit redirect avoids
-  // nohup's own default behavior of creating a stray nohup.out in the
-  // run directory when stdout isn't already redirected -- this command
-  // already handles its own output via generated shell-script
-  // redirects, nothing here needs to see it.
-  //  The redirection has to be written in the dialect of the shell that
-  //  will parse it, and that shell is csh unless the machine is
-  //  registered as using bash -- the same distinction p_remoteBash
-  //  already makes for $status vs $? everywhere else in this file.
-  //
-  //  "> /dev/null 2>&1" is the sh form.  csh reads it as TWO output
-  //  redirections -- "2" is an ordinary word, and ">&1" is csh's
-  //  redirect-both operator -- and refuses the whole command with
-  //  "Ambiguous output redirect."  Nothing is started, no PID comes
-  //  back, and because execbg()'s caller treats a backgrounded launch
-  //  as successful, ECCE reports the calculation as started.  That is
-  //  the entire failure: files staged, job never runs, no error (#141).
-  //
-  //  It went unnoticed because the two csh implementations disagree.
-  //  Debian's default csh is bsd-csh, which accepts the sh form; Ubuntu
-  //  and RHEL ship tcsh as /usr/bin/csh, which rejects it.  So the same
-  //  build launches jobs on one machine and silently fails on another,
-  //  with "csh" installed and working on both.  Test against tcsh
-  //  specifically, not whatever "csh" resolves to locally.
-  //
-  //  ">& /dev/null" is csh's own form and is what ECCE's generated
-  //  submit scripts have always used.
-  const string redirect = p_remoteBash ? " > /dev/null 2>&1" : " >& /dev/null";
-
-  if (!expwrite("nohup " + command + redirect + " & echo RC_EXECBG_PID=$!"))
-    return false;
-
-  int matchResult = expect1("RC_EXECBG_PID=*\r\n+go+");
-  switch (matchResult) {
-    case 1:
-      status = true;
-      p_background = true;
-      break;
-
-    case EXP_TIMEOUT:
-      p_errMessage = "Unexpected timeout of remote shell executing "
-                     "background command " + command;
-      break;
-
-    case EXP_EOF:
-      p_errMessage = "Unexpected termination of remote shell executing "
-                     "background command " + command;
-      break;
-
-    default:
-      if (errorMessage != "")
-        p_errMessage = errorMessage;
-      else
-        p_errMessage = "Failed executing background command " + command;
-  }
-
-  RCommand::expMungedOutputFix();
-
-  // Extract the marker's value BEFORE truncating exp_buffer at the
-  // match -- unlike execout() (which searches for text that comes
-  // *before* its own match point, so truncating there is harmless),
-  // the PID text here is *inside* the matched region itself, so
-  // truncating first would wipe out exactly the value being extracted.
-  // Confirmed live: this was the actual cause of a first attempt at
-  // this fix coming back with an empty output every time.
-  //
-  // Take the LAST occurrence of the marker, not the first: the buffer
-  // contains it twice -- once in the terminal's own echo of the raw,
-  // unexpanded command text we typed ("echo RC_EXECBG_PID=$!", literal
-  // "$!"), and once in the shell's real, expanded output
-  // ("RC_EXECBG_PID=12345"). strstr()'s first hit is always the echo,
-  // confirmed live: an earlier version of this fix using the first
-  // occurrence captured the literal string "$!" as the "PID" every
-  // single run. Same underlying lesson as fileOp()'s original bug
-  // (matching a command's own echo instead of its real output), just
-  // solved by taking the last hit instead of anchoring on "\r\n".
-  const char* marker = "RC_EXECBG_PID=";
-  char* line = strstr(exp_buffer, marker);
-  char* nextHit;
-  while (line != NULL && (nextHit = strstr(line + 1, marker)) != NULL)
-    line = nextHit;
-
-  if (line != NULL) {
-    output = line + strlen(marker);
-    string::size_type pos = output.find_first_of("\r\n");
-    if (pos != string::npos)
-      output = output.substr(0, pos);
-  } else if (status)
+  // nohup so the job outlives this connection; the PID comes back on stdout.
+  string error;
+  long pid = p_transport->spawnDetached(p_scriptPrefix + "nohup " + command,
+                                        error);
+  if (getenv("ECCE_RCOM_LOGMODE"))
+    cout << "Background command (" << command << ") in ("
+         << p_transport->dir() << ") pid " << pid << endl;
+  if (pid < 0) {
+    p_errMessage = errorMessage != "" ? errorMessage :
+                   "Failed executing background command " + command;
     output = "";
-  else
-    output = exp_buffer;
-
-  return status;
-}
-
-bool RCommand::remoteShellIsBash(void) const
-{
-  return p_remoteBash;
+    return false;
+  }
+  output = std::to_string(pid);
+  return true;
 }
 
 bool RCommand::isOpen(void)
 {
-  if (p_direct)
-    return p_connected;
-
-  if (p_connected) {
-    p_connected = exec("date");
-    if (!p_connected)
-      p_errMessage = "Opened remote shell on " + p_machine +
-                     ", but unable to process new commands";
-  } else if (p_errMessage.empty())
-    // Only when open() itself set nothing specific (e.g. "Unsupported
-    // local shell ...", #143/08716de) -- otherwise that message is more
-    // useful than this generic guess and was getting overwritten.
-    p_errMessage = "Failed to open remote shell on " + p_machine +
-                   " (incorrect password?)";
+  if (!p_connected && p_errMessage.empty())
+    p_errMessage = "Failed to open a connection to " + p_machine;
 
   return p_connected;
 }
@@ -3038,9 +1256,8 @@ bool RCommand::isOpen(void)
 string RCommand::commError(void)
 { return p_errMessage; }
 
-// A local get/put as one `cp -r` without the pty.  The verdict comes from
-// cp's messages, as it did on the pty: "No such file" is only a warning,
-// any other "cp: " line fails the copy.
+// A local get/put as one `cp -r`.  The verdict comes from cp's messages:
+// "No such file" is only a warning, any other "cp: " line fails the copy.
 static bool localCopy(string& errMessage, const string& machine, char** argv)
 {
   string script = "exec 2>&1; exec cp -r --";
@@ -3069,646 +1286,13 @@ static bool localCopy(string& errMessage, const string& machine, char** argv)
       continue;
     if (line.compare(0, 4, "cp: ") != 0) continue;
     if (line.find("specified more than once") != string::npos) return true;
-    // Everything cp said from here on, as the pty path reported it.
+    // Everything cp said from here on.
     errMessage = "Copy command cp failed for " + where + ": " +
                  text.substr(start + 4,
                              text.find_last_not_of("\n") + 1 - (start + 4));
     return false;
   }
   return true;
-}
-
-bool RCommand::copy(string& errMessage,
-                    const string& machine, const string& copyCmd,
-                    const string& userName, const string& password,
-                    char** argv)
-{
-  if (copyCmd == "cp")
-    return localCopy(errMessage, machine, argv);
-
-  bool status = false;
-
-  if (getenv("ECCE_RCOM_DEBUGGING"))
-    exp_is_debugging = 1;
-  else
-    exp_is_debugging = 0;
-
-  if (getenv("ECCE_RCOM_LOGMODE")) {
-    exp_loguser = 1;
-    cout << endl;
-    cout << "Performing remote copy:" << endl;
-    cout << "machine (" << machine << ")" << endl;
-    cout << "copy command (" << copyCmd << ")" << endl;
-    cout << "user name (" << userName << ")" << endl;
-    cout << "password is " << password.length() << " characters" << endl <<endl;
-  } else
-    exp_loguser = 0;
-
-  // Bump timeout way up because copies can take seemingly forever
-  exp_timeout = RC_COPY_TIMEOUT;
-
-  // Set the machine and user name variables for the benefit of error
-  // messages (the values passed in are const)
-  string theMachine = (machine=="" || machine=="-f" || machine=="system")?
-                      RCommand::whereami(): machine;
-  string theUser;
-  if (userName == "")
-    theUser = Ecce::realUser();
-  else
-    theUser = userName;
-
-  string thePass = password;
-
-  if (exp_loguser == 1) {
-    cout << "remote copy command:" << endl;
-    for (int it=0; argv[it]; it++)
-      cout << "arg " << it << ": " << argv[it] << endl;
-    cout << "end remote copy command" << endl; 
-  }
-
-  int theFid;
-  if ((theFid = exp_spawnv((char*)copyCmd.c_str(), argv)) <= 0) {
-    errMessage = "Unable to spawn copy command " + copyCmd;
-    return false;
-  }
-
-  string notFoundStr = copyCmd + ": Command not found";
-
-  // passcode prompting variables
-  string passCmd;
-  FILE* passPtr;
-  char passBuf[MAXLINE];
-  passBuf[0] = '\0';
-  char codeBuf[MAXLINE];
-
-  bool done;
-  do {
-    done = true;  // be optimistic
-
-    int iexp = exp_expectl(theFid, exp_glob, notFoundStr.c_str(), 1,
-                                exp_glob, "execvp(", 1,
-                                exp_glob, "scp: warning: *\r\n", 2,
-                                exp_glob, "cp: No match", 2,
-                                exp_glob, "No match", 2,
-                                exp_glob, ": No such file or directory", 2,
-                                exp_glob, "cp: warning: * specified more than once",16,
-                                exp_glob, "cp: *\r\n", 3,
-                                exp_glob, "denied", 4,
-                                exp_glob, "failed", 4,
-                                exp_glob, " closed", 4,
-                                exp_glob, "remote server failed", 4,
-                                exp_glob, "rcmd: *\r\n", 4,
-                                exp_glob, "ssh1: *\r\n", 4,
-                                exp_glob, "ssh2: *\r\n", 4,
-                                exp_glob, "Connection refused", 5,
-                                exp_glob, "Bad host name", 6,
-                                exp_glob, "Unknown host", 6,
-                                exp_glob, "incorrect", 7,
-                                exp_glob, "failed to store", 8,
-                                exp_glob, "No space left", 8,
-                                exp_glob, "disk space exceeded", 8,
-                                exp_glob, "Connection timed out", 9,
-                                exp_glob, "^Usage:", 10,
-                                exp_glob, "\r\nUsage:", 10,
-                                exp_glob, "failure", 11,
-                                exp_glob, "alert", 11,
-                                exp_glob, "(yes/no)? $", 12,
-                                exp_glob, "password: $", 14,
-                                exp_glob, "Password: $", 14,
-                                exp_glob, "Password:$", 14,
-                                exp_glob, "passphrase*: $", 14,
-                                exp_glob, "PASSCODE:$", 15,
-                                exp_glob, "PASSCODE: $", 15,
-                                exp_end);
-    switch (iexp) {
-      case 1:
-        errMessage = "Unable to find copy command " + copyCmd;
-        if (copyCmd == "scp")
-          errMessage += " (is scp in the path for " + theUser +
-                        " on " + theMachine + "?)";
-        break;
-
-      case 2:
-        // scp warnings should just be ignored rather than caught as errors
-        // which would be done in the next case statement without this one
-        // also used to ignore failures in wildcard matches
-        done = false;
-        break;
-
-      case 3:
-        exp_match[strlen(exp_match)-2] = '\0';
-        errMessage = "Copy command " + copyCmd + " failed for " + theMachine +
-                     ": " + &exp_match[4];
-        break;
-
-      case 4:
-        errMessage = "Permission to run copy command " + copyCmd +
-                     " denied for " + theMachine;
-        if (copyCmd == "rcp")
-          errMessage+=" (do you have a .rhosts entry on " + theMachine + "?)";
-        else if (copyCmd=="scp" && thePass=="")
-          errMessage = "No password configured for " + theMachine +
-                       " (did you set a new passphrase without reconfiguring?)";
-        else if (copyCmd == "scp")
-          errMessage += " (incorrect password?)";
-        break;
-
-      case 5:
-        errMessage = "Copy command authentication server for " + copyCmd +
-                     " not running or installed on " + theMachine;
-        break;
-
-      case 6:
-        errMessage = "Unknown or unavailable host " + theMachine;
-        break;
-
-      case 7:
-        errMessage = "Invalid username " + theUser + " for host " +theMachine;
-        break;
-
-      case 8:
-        errMessage = "Copy command " + copyCmd + " failed due to lack of "
-                     "disk space under destination directory";
-        break;
-
-      case 9:
-        errMessage = "Timeout trying to connect to " + theMachine +
-                     " with remote copy command " + copyCmd;
-        break;
-
-      case 10:
-        errMessage = "Invalid syntax for remote copy command";
-        break;
-
-      case 11:
-        errMessage = "Remote copy authentication failure";
-        break;
-
-      case 12:
-        // Allows a yes/no question of any type and just says "yes".
-        // Should only see this for the man-in-the-middle attack warning on mpp1
-        if (!fidwrite(theFid, "yes", errMessage)) break;
-        done = false;
-        break;
-
-      case 14:
-        if (thePass=="" &&
-            !RCommand::getPassCache(copyCmd, theMachine, theUser, thePass)) {
-          passCmd = Ecce::ecceBinCommand("passdialog") + " password " +
-                    theMachine + " " + theUser;
-          if ((passPtr = popen(passCmd.c_str(), "r")) != NULL) {
-            if (fgets(passBuf, sizeof(passBuf), passPtr) != NULL) {
-              // strip off the trailing newline
-              passBuf[strlen(passBuf)-1] = '\0';
-              // handle password dialog cancel button
-              if (strcmp(passBuf, "") == 0) {
-                // close the pipe
-                pclose(passPtr);
-                break;
-              }
-
-              thePass = passBuf;
-            } else {
-              // close the pipe
-              pclose(passPtr);
-              break;
-            }
-
-            // close the pipe
-            pclose(passPtr);
-          } else
-            break;
-        }
-
-        exp_elide(thePass.c_str());
-        if (!fidwrite(theFid, thePass, errMessage)) break;
-        done = false;
-        break;
-
-      case 15:
-        passCmd = Ecce::ecceBinCommand("passdialog") + " passcode " +
-                  theMachine + " " + theUser;
-        if ((passPtr = popen(passCmd.c_str(), "r")) != NULL) {
-          if (fgets(codeBuf, sizeof(codeBuf), passPtr) != NULL) {
-            // strip off the trailing newline
-            codeBuf[strlen(codeBuf)-1] = '\0';
-            // handle password dialog cancel button
-            if (strcmp(codeBuf, "") == 0) {
-              // close the pipe
-              pclose(passPtr);
-              break;
-            }
-
-            exp_elide(codeBuf);
-            if (!fidwrite(theFid, codeBuf, errMessage)) {
-              // close the pipe
-              pclose(passPtr);
-              break;
-            }
-            done = false;
-          } else {
-            // close the pipe
-            pclose(passPtr);
-            break;
-          }
-
-          // close the pipe
-          pclose(passPtr);
-        }
-        break;
- 
-      case 16:
-      case EXP_ABEOF:
-        // Abnormal EOF comes across occasionally with copy commands
-        // but it seems like it is only with successful copies
-      case EXP_EOF:
-        // Successful copy without password
-        status = true;
-        break;
-
-      case EXP_TIMEOUT:
-        errMessage = "Timeout running copy command " + copyCmd +
-                     " for " + theMachine;
-        break;
-
-      default:
-        errMessage = "Unrecognized authentication failure running copy "
-                     "command " + copyCmd + " for " + theMachine + "\n";
-        errMessage += exp_buffer;
-        if (exp_loguser == 1)
-          cout << "copy hit switch default with iexp " << iexp << endl;
-    }
-  } while (!done);
-
-  exp_elide(NULL);
-
-  // Set timeout back to normal.
-  // Since the copy is a one shot operation this should only be significant
-  // when the copy is done while there is also a separate open RCommand shell
-  // connection which actually does happen in the launch process because
-  // it keeps an ongoing shell connection
-  exp_timeout = RC_EXEC_TIMEOUT;
-
-  // Shouldn't complain even if spawned process has already been closed by EOF
-  close(theFid);
-
-  // it appears this was a successful connection so cache the user entered
-  // password if applicable
-  if (thePass != "")
-    RCommand::setPassCache(copyCmd, theMachine, theUser, thePass);
-
-  return status;
-}
-
-
-string RCommand::ftpTarget(const string& ftpIn)
-{
-#if 0000
-  string ftpOut = " ";
-
-  string::size_type slash = ftpIn.find_last_of('/');
-  if (slash != string::npos)
-    ftpOut += ftpIn.substr(slash+1);
-  else
-    ftpOut += ftpIn;
-#else
-  // wildcard ftp operations fail when the target has a wildcard, but
-  // work fine with just the dot
-  string ftpOut = " .";
-#endif
-
-  return ftpOut;
-}
-
-
-bool RCommand::ftp(string& errMessage, const string& machine,
-                   const string& copyCmd, const string& userName,
-                   const string& password, char** argv,
-                   const char** fromFiles, const string& toFile,
-                   const bool& putFlag)
-{
-  bool status = false;
-
-  if (getenv("ECCE_RCOM_DEBUGGING"))
-    exp_is_debugging = 1;
-  else
-    exp_is_debugging = 0;
-
-  if (getenv("ECCE_RCOM_LOGMODE"))
-    exp_loguser = 1;
-  else
-    exp_loguser = 0;
-
-  // Bump timeout way up because copies can take seemingly forever
-  exp_timeout = RC_COPY_TIMEOUT;
-
-  // Set the machine and user name variables for the benefit of error
-  // messages (the values passed in are const)
-  string theMachine = (machine=="" || machine=="-f" || machine=="system")?
-                      RCommand::whereami(): machine;
-
-  string theUser;
-  if (userName == "")
-    theUser = Ecce::realUser();
-  else
-    theUser = userName;
-
-  string thePass = password;
-
-  if (exp_loguser == 1) {
-    cout << "remote " << copyCmd << " command:" << endl;
-    for (int it=0; argv[it]; it++)
-      cout << "arg " << it << ": " << argv[it] << endl;
-    cout << "end remote " << copyCmd << " command" << endl; 
-  }
-
-  int theFid;
-  if ((theFid = exp_spawnv((char*)copyCmd.c_str(), argv)) <= 0) {
-    errMessage = "Unable to spawn " + copyCmd + " command";
-    return false;
-  }
-
-  string cdCmd = putFlag? "cd ": "lcd ";
-  cdCmd += toFile;
-
-  string mkdirCmdBase = putFlag? "mkdir ": "lmkdir ";
-  string mkdirCmd;
-
-  bool ftp_bye = true;
-  bool done;
-  string xfer_type = putFlag? "put ": "get ";
-  int xfer_count = 0;
-  bool cdFlag = false;
-  bool mkdirFlag = false;
-  string::size_type slash = toFile.find('/');
-
-  // passcode prompting variables
-  string passCmd;
-  FILE* passPtr;
-  char passBuf[MAXLINE];
-  passBuf[0] = '\0';
-  char codeBuf[MAXLINE];
-
-  do {
-    done = true;  // be optimistic
-
-    switch (exp_expectl(theFid, exp_glob, "ftp: Command not found", 1,
-                                exp_glob, "sftp: Command not found", 1,
-                                exp_glob, "execvp(", 1,
-                                exp_glob, "unknown host\r\nftp> $", 2,
-                                exp_glob, "unknown host\r\nsftp> $", 2,
-                                exp_glob, "(yes/no)? $", 3,
-                                exp_glob, "Name *: $", 4,
-                                exp_glob, "Password:$", 5,
-                                exp_glob, "Password: $", 5,
-                                exp_glob, "password: $", 5,
-                                exp_glob, "Login failed.\r\nftp> $", 6,
-                                exp_glob, "Login failed.\r\nsftp> $", 6,
-                                exp_glob, "Permission denied", 6,
-                                exp_glob, "logged in*\r\nftp> $", 7,
-                                exp_glob, "logged in*\r\nsftp> $", 7,
-                                exp_glob, "login ok*\r\nftp> $", 7,
-                                exp_glob, "login ok*\r\nsftp> $", 7,
-                                exp_glob, "Type set to *\r\nftp> $", 8,
-                                exp_glob, "Type set to *\r\nsftp> $", 8,
-                                exp_glob,
-                                "No such file or directory*\r\nftp> $", 9,
-                                exp_glob,
-                                "No such file or directory*\r\nsftp> $", 9,
-                                exp_glob, "does not exist.\r\nftp> $", 9,
-                                exp_glob, "does not exist.\r\nsftp> $", 9,
-                                exp_glob, "Couldn't create directory*\r\nsftp> $", 9,
-                                exp_glob, "not found.*\r\nsftp> $", 9,
-                                exp_glob, "Permission denied*\r\nftp> $", 10,
-                                exp_glob, "Permission denied*\r\nsftp> $", 10,
-                                exp_glob, "No space left*\r\nftp> $", 11,
-                                exp_glob, "No space left*\r\nsftp> $", 11,
-                                exp_glob, "disk space exceeded*\r\nftp> $", 11,
-                                exp_glob, "disk space exceeded*\r\nsftp> $", 11,
-                                exp_glob,
-                                "CWD command successful.\r\nftp> $",12,
-                                exp_glob,
-                                "CWD command successful.\r\nsftp> $",12,
-                                exp_glob, "Local directory now*\r\nftp> $",12,
-                                exp_glob, "Local directory now*\r\nsftp> $",12,
-                                exp_glob,
-                                "Transfer complete.\r\n*\r\nftp> $", 14,
-                                exp_glob,
-                                "Transfer complete.\r\n*\r\nsftp> $", 14,
-                                exp_glob, "100%*\r\nsftp> $", 14,
-                                // this check for the prompt by itself
-                                // needs to be after the check for 100%
-                                // file transfer
-                                exp_glob, "\r\nsftp> $", 8,
-                                exp_glob, "PASSCODE:$", 15,
-                                exp_glob, "PASSCODE: $", 15,
-                                exp_end)) {
-      case 1:
-        errMessage = "Unable to find " + copyCmd + " command";
-        ftp_bye = false;
-        break;
-
-      case 2:
-        errMessage = "Unknown or unavailable host " + theMachine;
-        break;
-
-      case 3:
-        // Allows yes/no questions of any type and just says "yes".
-        // Should only see this for the man-in-the-middle attack warning
-        if (!fidwrite(theFid, "yes", errMessage)) break;
-        done = false;
-        break;
-
-      case 4:
-        // should also work when userName isn't given since the default <cr>
-        // response for ftp is the current user
-        if (!fidwrite(theFid, userName, errMessage)) break;
-        done = false;
-        break;
-
-      case 5:
-        if (thePass=="" &&
-            !RCommand::getPassCache(copyCmd, theMachine, theUser, thePass)) {
-          passCmd = Ecce::ecceBinCommand("passdialog") + " password " +
-                    theMachine + " " + theUser;
-          if ((passPtr = popen(passCmd.c_str(), "r")) != NULL) {
-            if (fgets(passBuf, sizeof(passBuf), passPtr) != NULL) {
-              // strip off the trailing newline
-              passBuf[strlen(passBuf)-1] = '\0';
-              // handle password dialog cancel button
-              if (strcmp(passBuf, "") == 0) {
-                // close the pipe
-                pclose(passPtr);
-                break;
-              }
-
-              thePass = passBuf;
-            } else {
-              // close the pipe
-              pclose(passPtr);
-              break;
-            }
-
-            // close the pipe
-            pclose(passPtr);
-          } else
-            break;
-        }
-
-        exp_elide(thePass.c_str());
-        if (!fidwrite(theFid, thePass, errMessage)) break;
-        done = false;
-        break;
-
-      case 6:
-        if (thePass == "")
-          errMessage = "No password configured for " + theMachine +
-                       " (did you set a new passphrase without reconfiguring?)";
-        else
-          errMessage = "Invalid username " + theUser +
-                       " or password for host " + theMachine;
-        break;
-
-      case 7:
-        if (!fidwrite(theFid, "bin", errMessage)) break;
-        done = false;
-        break;
-
-      case 8:
-        if (!mkdirFlag) {
-          slash = toFile.find('/', slash+1);
-          if (slash != string::npos) {
-            mkdirCmd = mkdirCmdBase + toFile.substr(0, slash);
-            if (!fidwrite(theFid, mkdirCmd, errMessage)) break;
-          } else {
-            mkdirFlag = true;
-            mkdirCmd = mkdirCmdBase + toFile;
-            if (!fidwrite(theFid, mkdirCmd, errMessage)) break;
-          }
-        } else if (!cdFlag) {
-          cdFlag = true;
-          if (!fidwrite(theFid, cdCmd, errMessage)) break;
-        } else {
-          if (!fidwrite(theFid, xfer_type + fromFiles[0] +
-                        RCommand::ftpTarget(fromFiles[0]), errMessage)) break;
-        }
-        done = false;
-        break;
-
-      case 9:
-        if (!mkdirFlag) {
-          slash = toFile.find('/', slash+1);
-          if (slash != string::npos) {
-            mkdirCmd = mkdirCmdBase + toFile.substr(0, slash);
-            if (!fidwrite(theFid, mkdirCmd, errMessage)) break;
-          } else {
-            mkdirFlag = true;
-            mkdirCmd = mkdirCmdBase + toFile;
-            if (!fidwrite(theFid, mkdirCmd, errMessage)) break;
-          }
-          done = false;
-        } else if (!cdFlag) {
-          cdFlag = true;
-          if (!fidwrite(theFid, cdCmd, errMessage)) break;
-          done = false;
-        } else {
-          errMessage = copyCmd + " failed due to nonexistent source files or "
-                     "destination directory";
-        }
-        break;
-
-      case 10:
-        errMessage = copyCmd +" failed due to lack of read or write permission";
-        break;
-
-      case 11:
-        errMessage = copyCmd + " failed due to lack of disk space under " +
-                     toFile;
-        if (putFlag)
-          errMessage += " on " + theMachine;
-        break;
-
-      case 12:
-        if (!fidwrite(theFid, xfer_type + fromFiles[0] +
-                      RCommand::ftpTarget(fromFiles[0]), errMessage)) break;
-        done = false;
-        break;
-
-      case 14:
-        // Successful transfer of a single file
-        xfer_count++;
-        if (fromFiles[xfer_count] != NULL) {
-          if (!fidwrite(theFid, xfer_type + fromFiles[xfer_count] +
-               RCommand::ftpTarget(fromFiles[xfer_count]), errMessage)) break;
-          done = false;
-        }
-        else
-          status = true;
-        break;
-
-      case 15:
-        passCmd = Ecce::ecceBinCommand("passdialog") + " passcode " +
-                  theMachine + " " + theUser;
-        if ((passPtr = popen(passCmd.c_str(), "r")) != NULL) {
-          if (fgets(codeBuf, sizeof(codeBuf), passPtr) != NULL) {
-            // strip off the trailing newline
-            codeBuf[strlen(codeBuf)-1] = '\0';
-            // handle password dialog cancel button
-            if (strcmp(codeBuf, "") == 0) {
-              // close the pipe
-              pclose(passPtr);
-              break;
-            }
-
-            exp_elide(codeBuf);
-            if (!fidwrite(theFid, codeBuf, errMessage)) {
-              // close the pipe
-              pclose(passPtr);
-              break;
-            }
-            done = false;
-          } else {
-            // close the pipe
-            pclose(passPtr);
-            break;
-          }
-
-          // close the pipe
-          pclose(passPtr);
-        }
-        break;
-
-      case EXP_TIMEOUT:
-        errMessage = "Timeout running " + copyCmd + " for " + theMachine;
-        break;
-
-      case EXP_EOF:
-      default:
-        errMessage = "Unrecognized " + copyCmd + " failure for " + theMachine;
-    }
-  } while (!done);
-
-  exp_elide(NULL);
-
-  // Set timeout back to normal.
-  // Since the ftp/sftp is a one shot operation this should only be significant
-  // when the ftp/sftp is done while there is also a separate open RCommand
-  // shell connection which actually does happen in the launch process because
-  // it keeps an ongoing shell connection
-  exp_timeout = RC_EXEC_TIMEOUT;
-
-  if (ftp_bye && !fidwrite(theFid, "bye", errMessage))
-    status = false;
-
-  // Shouldn't complain even if spawned process has already been closed by EOF
-  close(theFid);
-
-  // it appears this was a successful connection so cache the user entered
-  // password if applicable
-  if (thePass != "")
-    RCommand::setPassCache(copyCmd, theMachine, theUser, thePass);
-
-  return status;
 }
 
 
@@ -3737,20 +1321,9 @@ bool RCommand::globFiles(const char** inFiles, char**& outFiles, int& numFiles)
 }
 
 
-// The machines the ssh transport serves; the same test as the constructor's.
-static bool useSshCopy(const string& machine, const string& remShell,
-                       const string& userName)
-{
-  return RCommand::transportMode()=="ssh" &&
-         RCommand::isRemote(machine, remShell, userName) &&
-         (remShell=="" || remShell=="ssh" || remShell=="sshpass" ||
-          remShell.find("ssh/")==0);
-}
-
-// scp -r over SFTP, with the pty path's leniency: copy() ignores "No such
-// file or directory", so a missing source or a several-files-to-a-file
-// target is skipped with a warning and the call still succeeds, which is what
-// callers were written against.  Remote paths are relative to the login
+// scp -r over SFTP, with the old scp behaviour callers were written against:
+// a missing source or a several-files-to-a-file target is skipped with a
+// warning and the call still succeeds.  Remote paths are relative to the login
 // directory, local wildcards are expanded here and remote ones by the remote
 // shell.
 static void copyWarn(const string& what)
@@ -3833,240 +1406,55 @@ bool RCommand::sshCopy(bool putFlag, const string& machine,
   return true;
 }
 
-bool RCommand::get(string& errMessage,
-                   const string& machine, const string& remShell,
-                   const string& userName, const string& password,
-                   int numFiles, ...)
+// The one entry the get/put overloads share.  An ssh machine goes over SFTP
+// (sshCopy), any other remote shell is refused, and a local machine is a
+// `cp -r`: sources that do not exist are dropped by the glob, and if none
+// are left cp itself reports the missing operand.
+bool RCommand::copyFiles(bool putFlag, string& errMessage,
+                         const string& machine, const string& remShell,
+                         const string& userName, const string& password,
+                         const vector<string>& files, const string& toFile)
 {
-  string toFile;
-  char** fromFileStrs;
-  int it;
+  if (RCommand::isRemote(machine, remShell, userName)) {
+    string removed = RCommand::removedShellMessage(remShell);
+    if (removed != "") {
+      errMessage = removed;
+      return false;
+    }
+    return RCommand::sshCopy(putFlag, machine, remShell, userName, password,
+                             files, toFile, errMessage);
+  }
 
-  if (numFiles < 2)
+  vector<const char*> in;
+  for (size_t i = 0; i < files.size(); i++) in.push_back(files[i].c_str());
+  in.push_back(NULL);
+  char** globbed;
+  int num;
+  if (!RCommand::globFiles(&in[0], globbed, num))
     return false;
 
-  va_list ap;
-  va_start(ap, numFiles);
+  vector<char*> argv;
+  argv.push_back((char*)"cp");
+  argv.push_back((char*)"-r");
+  for (int i = 0; i < num; i++) argv.push_back(globbed[i]);
+  argv.push_back((char*)toFile.c_str());
+  argv.push_back((char*)0);
 
-  if (useSshCopy(machine, remShell, userName)) {
-    vector<string> fs;
-    for (int k=0; k<numFiles-1; k++) fs.push_back(va_arg(ap, char*));
-    string to = va_arg(ap, char*);
-    va_end(ap);
-    return RCommand::sshCopy(false, machine, remShell, userName, password,
-                             fs, to, errMessage);
-  }
+  bool status = localCopy(errMessage, machine, &argv[0]);
 
-  bool isRemote = RCommand::isRemote(machine, remShell, userName);
-
-  if (isRemote) {
-    string removed = RCommand::removedShellMessage(remShell);
-    if (removed != "") {
-      errMessage = removed;
-      va_end(ap);
-      return false;
-    }
-  }
-
-  int argc = 0;
-  char** argv = (char**)malloc((numFiles+MAXARGS) * sizeof(char*));
-
-  string theCopy = RCommand::copyCommand(remShell, isRemote, machine,
-                                         userName, argc, argv);
-
-  if (theCopy!="ftp" && theCopy!="sftp" && isRemote) {
-    string fromFileBaseStr = "";
-    if (userName!="")
-      fromFileBaseStr = userName + "@";
-
-    fromFileBaseStr += machine + ":";
-
-
-    fromFileStrs = (char**)malloc(numFiles * sizeof(char*));
-    fromFileStrs[numFiles-1] = NULL;
-    int fromFileBaseLen = fromFileBaseStr.length() + 1;
-
-    char *vaptr;
-    for (it=0; it<numFiles; it++) {
-      vaptr = (char*)va_arg(ap, char*);
-      fromFileStrs[it] = (char*)malloc(fromFileBaseLen + strlen(vaptr));
-      strcpy(fromFileStrs[it], fromFileBaseStr.c_str());
-      strcat(fromFileStrs[it], vaptr);
-    }
-
-    toFile = (char*)va_arg(ap, char*);
-    va_end(ap);
-
-  } else if (!isRemote) {
-    char **fromFiles = (char**)malloc(numFiles * sizeof(char*));
-    for (it=0; it<numFiles-1; it++)
-      fromFiles[it] = (char*)va_arg(ap, char*);
-    fromFiles[numFiles-1] = NULL;
-
-    toFile = (char*)va_arg(ap, char*);
-    va_end(ap);
-
-    int numGlob;
-    if (RCommand::globFiles((const char**)fromFiles, fromFileStrs, numGlob))
-      argv = (char**)realloc(argv, (numGlob+MAXARGS) * sizeof(char*));
-    else
-      return false;
-
-    free(fromFiles);
-  }
-
-  bool status;
-  if (theCopy=="ftp" || theCopy=="sftp") {
-    fromFileStrs = (char**)malloc(numFiles * sizeof(char*));
-    for (it=0; it<numFiles-1; it++)
-      fromFileStrs[it] = strdup((char*)va_arg(ap, char*));
-    fromFileStrs[numFiles-1] = NULL;
-
-    toFile = (char*)va_arg(ap, char*);
-    va_end(ap);
-
-    status = RCommand::ftp(errMessage, machine, theCopy, userName, password,
-                           argv, (const char**)fromFileStrs, toFile, false);
-  }
-  else {
-    for (it=0; fromFileStrs[it]!=NULL; it++)
-      argv[argc++] = (char*)fromFileStrs[it];
-
-    argv[argc++] = strdup((char*)toFile.c_str());
-    argv[argc] = (char*)0;
-
-    status = RCommand::copy(errMessage, machine, theCopy, userName,
-                            password, argv);
-  }
-
-  for (it=0; fromFileStrs[it]!=NULL; it++)
-    free(fromFileStrs[it]);
-  free(fromFileStrs);
-
-  free(argv);
-
+  for (int i = 0; i < num; i++) free(globbed[i]);
+  free(globbed);
   return status;
 }
 
-/**
- * Method that uses vector to pass in filenames.
- * This method creates the data structures required by the original
- * methods and invokes them rather than re-implementing.
- */
-bool RCommand::get(string& errMessage,
-                   const string& machine, const string& remShell,
-                   const string& userName, const string& password,
-                   const vector<string>& fromFiles, const string& toFile)
+static vector<string> collectFiles(const char** fromFiles)
 {
-   bool ret = false;
-   int idx = 0;
-
-   char **fileStrs = (char**)malloc((fromFiles.size()+1)*sizeof(char*));
-
-   string fullFile;
-   for (idx=0; idx<fromFiles.size(); idx++) {
-      fileStrs[idx] = strdup((char*)fromFiles[idx].c_str());
-   }
-
-   // last char* must be NULL
-   fileStrs[fromFiles.size()] = NULL;
-   ret =  RCommand::get(errMessage, machine, remShell,
-                        userName, password, (const char **)fileStrs, toFile);
-
-   // Clean up memory
-   for (idx=0; fileStrs[idx]!=NULL;  idx++) {
-      free(fileStrs[idx]);
-   }
-   free((char*)fileStrs);
-
-   return ret;
+  vector<string> fs;
+  for (int n = 0; fromFiles[n] != NULL; n++) fs.push_back(fromFiles[n]);
+  return fs;
 }
 
 bool RCommand::get(string& errMessage,
-                   const string& machine, const string& remShell,
-                   const string& userName, const string& password,
-                   const char** fromFiles, const string& toFile)
-{
-  char** fromFileStrs;
-  int it;
-
-  int numFiles;
-  for (numFiles=0; fromFiles[numFiles]!=NULL; numFiles++);
-
-  if (useSshCopy(machine, remShell, userName)) {
-    vector<string> fs(fromFiles, fromFiles + numFiles);
-    return RCommand::sshCopy(false, machine, remShell, userName, password,
-                             fs, toFile, errMessage);
-  }
-
-  bool isRemote = RCommand::isRemote(machine, remShell, userName);
-
-  if (isRemote) {
-    string removed = RCommand::removedShellMessage(remShell);
-    if (removed != "") {
-      errMessage = removed;
-      return false;
-    }
-  }
-
-  int argc = 0;
-  char** argv = (char**)malloc((numFiles+MAXARGS) * sizeof(char*));
-
-  string theCopy = RCommand::copyCommand(remShell, isRemote, machine,
-                                         userName, argc, argv);
-
-  if (theCopy!="ftp" && theCopy!="sftp" && isRemote) {
-    string fromFileBaseStr = "";
-    if (userName!="")
-      fromFileBaseStr = userName + "@";
-
-    fromFileBaseStr += machine + ":";
-
-
-    fromFileStrs = (char**)malloc((numFiles+1) * sizeof(char*));
-    fromFileStrs[numFiles] = NULL;
-    int fromFileBaseLen = fromFileBaseStr.length() + 1;
-
-    for (it=0; it<numFiles; it++) {
-      fromFileStrs[it] = (char*)malloc(fromFileBaseLen + strlen(fromFiles[it]));
-      strcpy(fromFileStrs[it], fromFileBaseStr.c_str());
-      strcat(fromFileStrs[it], fromFiles[it]);
-    }
-  }
-  else if (!isRemote) {
-    int numGlob;
-    if (RCommand::globFiles(fromFiles, fromFileStrs, numGlob))
-      argv = (char**)realloc(argv, (numGlob+MAXARGS) * sizeof(char*));
-    else
-      return false;
-  }
-
-  bool status;
-  if (theCopy=="ftp" || theCopy=="sftp")
-    status = RCommand::ftp(errMessage, machine, theCopy, userName, password,
-                            argv, fromFiles, toFile, false);
-  else {
-    for (it=0; fromFileStrs[it]!=NULL; it++)
-      argv[argc++] = (char*)fromFileStrs[it];
-
-    argv[argc++] = strdup((char*)toFile.c_str());
-    argv[argc] = (char*)0;
-
-    status = RCommand::copy(errMessage, machine, theCopy, userName, password,
-                            argv);
-
-    for (it=0; fromFileStrs[it]!=NULL; it++)
-      free(fromFileStrs[it]);
-    free(fromFileStrs);
-  }
-
-  free(argv);
-
-  return status;
-}
-
-
-bool RCommand::put(string& errMessage,
                    const string& machine, const string& remShell,
                    const string& userName, const string& password,
                    int numFiles, ...)
@@ -4074,203 +1462,74 @@ bool RCommand::put(string& errMessage,
   if (numFiles < 2)
     return false;
 
-  int it;
   va_list ap;
   va_start(ap, numFiles);
-
-  if (useSshCopy(machine, remShell, userName)) {
-    vector<string> fs;
-    for (int k=0; k<numFiles-1; k++) fs.push_back(va_arg(ap, char*));
-    string to = va_arg(ap, char*);
-    va_end(ap);
-    return RCommand::sshCopy(true, machine, remShell, userName, password,
-                             fs, to, errMessage);
-  }
-
-  char **fromFiles = (char**)malloc(numFiles * sizeof(char*));
-  for (it=0; it<numFiles-1; it++)
-    fromFiles[it] = (char*)va_arg(ap, char*);
-  fromFiles[numFiles-1] = NULL;
-
-  string toFile;
-  bool isRemote = RCommand::isRemote(machine, remShell, userName);
-
-  if (isRemote) {
-    string removed = RCommand::removedShellMessage(remShell);
-    if (removed != "") {
-      errMessage = removed;
-      va_end(ap);
-      return false;
-    }
-  }
-
-  int argc = 0;
-  char** argv = (char**)malloc((numFiles+MAXARGS) * sizeof(char*));
-
-  string theCopy = RCommand::copyCommand(remShell, isRemote, machine,
-                                         userName, argc, argv);
-
-  if (theCopy=="ftp" || theCopy=="sftp" || theCopy=="cp")
-    toFile = (char*)va_arg(ap, char*);
-  else {
-    toFile = "";
-    if (userName!="")
-      toFile = userName + "@";
-    toFile += machine + ":" + (char*)va_arg(ap, char*);
-
-  }
-
+  vector<string> fs;
+  for (int k=0; k<numFiles-1; k++) fs.push_back(va_arg(ap, char*));
+  string to = va_arg(ap, char*);
   va_end(ap);
 
-  char** globbedFiles;
-  int numGlob;
-  if (RCommand::globFiles((const char**)fromFiles, globbedFiles, numGlob))
-    argv = (char**)realloc(argv, (numGlob+MAXARGS) * sizeof(char*));
-  else
-    return false;
-
-  bool status;
-
-  if (theCopy=="ftp" || theCopy=="sftp")
-    status  = RCommand::ftp(errMessage, machine, theCopy, userName, password,
-                             argv, (const char**)globbedFiles, toFile, true);
-  else {
-    for (it=0; globbedFiles[it]!=NULL; it++)
-      argv[argc++] = (char*)globbedFiles[it];
-
-    argv[argc++] = strdup((char*)toFile.c_str());
-    argv[argc] = (char*)0;
-
-    status  = RCommand::copy(errMessage, machine, theCopy, userName, password,
-                             argv);
-  }
-
-  free(fromFiles);
-
-  for (it=0; globbedFiles[it]!=NULL; it++)
-    free(globbedFiles[it]);
-  free(globbedFiles);
-
-  free(argv);
-
-  return status;
+  return RCommand::copyFiles(false, errMessage, machine, remShell, userName,
+                             password, fs, to);
 }
 
+bool RCommand::get(string& errMessage,
+                   const string& machine, const string& remShell,
+                   const string& userName, const string& password,
+                   const vector<string>& fromFiles, const string& toFile)
+{
+  return RCommand::copyFiles(false, errMessage, machine, remShell, userName,
+                             password, fromFiles, toFile);
+}
+
+bool RCommand::get(string& errMessage,
+                   const string& machine, const string& remShell,
+                   const string& userName, const string& password,
+                   const char** fromFiles, const string& toFile)
+{
+  return RCommand::copyFiles(false, errMessage, machine, remShell, userName,
+                             password, collectFiles(fromFiles), toFile);
+}
+
+bool RCommand::put(string& errMessage,
+                   const string& machine, const string& remShell,
+                   const string& userName, const string& password,
+                   int numFiles, ...)
+{
+  if (numFiles < 2)
+    return false;
+
+  va_list ap;
+  va_start(ap, numFiles);
+  vector<string> fs;
+  for (int k=0; k<numFiles-1; k++) fs.push_back(va_arg(ap, char*));
+  string to = va_arg(ap, char*);
+  va_end(ap);
+
+  return RCommand::copyFiles(true, errMessage, machine, remShell, userName,
+                             password, fs, to);
+}
+
+bool RCommand::put(string& errMessage,
+                   const string& machine, const string& remShell,
+                   const string& userName, const string& password,
+                   const vector<string>& fromFiles, const string& toFile)
+{
+  return RCommand::copyFiles(true, errMessage, machine, remShell, userName,
+                             password, fromFiles, toFile);
+}
 
 bool RCommand::put(string& errMessage,
                    const string& machine, const string& remShell,
                    const string& userName, const string& password,
                    const char** fromFiles, const string& toFile)
 {
-  char **globbedFiles;
-
-  if (useSshCopy(machine, remShell, userName)) {
-    int n;
-    for (n=0; fromFiles[n]!=NULL; n++);
-    vector<string> fs(fromFiles, fromFiles + n);
-    return RCommand::sshCopy(true, machine, remShell, userName, password,
-                             fs, toFile, errMessage);
-  }
-
-  int numFiles;
-  if (!RCommand::globFiles(fromFiles, globbedFiles, numFiles))
-    return false;
-
-  string fullToFile;
-  bool isRemote = RCommand::isRemote(machine, remShell, userName);
-
-  if (isRemote) {
-    string removed = RCommand::removedShellMessage(remShell);
-    if (removed != "") {
-      errMessage = removed;
-      return false;
-    }
-  }
-
-  int argc = 0;
-  char* argv[MAXARGS];
-
-  string theCopy = RCommand::copyCommand(remShell, isRemote, machine,
-                                         userName, argc, argv);
-
-  if (theCopy=="ftp" || theCopy=="sftp" || theCopy=="cp")
-    fullToFile = toFile;
-  else {
-    fullToFile = "";
-    if (userName!="")
-      fullToFile = userName + "@";
-    fullToFile += machine + ":" + toFile;
-
-  }
-
-  int it;
-  bool status;
-  if (theCopy=="ftp" || theCopy=="sftp")
-    status = RCommand::ftp(errMessage, machine, theCopy, userName, password,
-                           argv, (const char**)globbedFiles, fullToFile, true);
-  else {
-    char** globArgv = (char**)malloc((numFiles+MAXARGS) * sizeof(char*));
-
-    for (it=0; it<argc; it++)
-      globArgv[it] = argv[it];
-
-    for (it=0; globbedFiles[it]!=NULL; it++)
-      globArgv[argc++] = (char*)globbedFiles[it];
-
-    globArgv[argc++] = strdup((char*)fullToFile.c_str());
-    globArgv[argc] = (char*)0;
-
-    status = RCommand::copy(errMessage, machine, theCopy, userName, password,
-                            globArgv);
-
-    free(globArgv);
-  }
-
-  for (it=0; globbedFiles[it]!=NULL; it++)
-    free(globbedFiles[it]);
-  free(globbedFiles);
-
-  return status;
+  return RCommand::copyFiles(true, errMessage, machine, remShell, userName,
+                             password, collectFiles(fromFiles), toFile);
 }
 
 
-/**
- * Method that uses vector to pass in filenames.
- * This method creates the data structures required by the original
- * methods and invokes it rather than re-implementing.
- */
-bool RCommand::put(string& errMessage,
-                   const string& machine, const string& remShell,
-                   const string& userName, const string& password,
-                   const vector<string>& fromFiles, const string& toFile)
-{
-   bool ret = false;
-   int idx = 0;
-
-   char **fileStrs = (char**)malloc((fromFiles.size()+1)*sizeof(char*));
-
-   string fullFile;
-   for (idx=0; idx<fromFiles.size(); idx++) {
-      fileStrs[idx] = strdup((char*)fromFiles[idx].c_str());
-   }
-
-   // last char* must be NULL
-   fileStrs[fromFiles.size()] = NULL;
-   ret =  RCommand::put(errMessage, machine, remShell,
-                        userName, password, (const char **)fileStrs, toFile);
-
-   // Clean up memory
-   for (idx=0; fileStrs[idx]!=NULL;  idx++) {
-      free(fileStrs[idx]);
-   }
-   free((char*)fileStrs);
-
-   return ret;
-}
-
-
-// Copy one file byte for byte, the way the direct-mode shellput/shellget
-// stand in for the pty's dd and cat.
+// Copy one file byte for byte: a local machine has no transport to carry it.
 static bool copyFileData(const string& from, const string& to)
 {
   ifstream in(from.c_str(), std::ios::binary);
@@ -4290,8 +1549,8 @@ static string underDir(const string& dir, const string& path)
   return dir + "/" + path;
 }
 
-// Direct mode copies locally; ssh mode goes over SFTP.  remote is already
-// resolved against the directory cd() set.
+// A local machine copies the file itself; an ssh machine goes over SFTP.
+// remote is already resolved against the directory cd() set.
 bool RCommand::transferFile(bool putFlag, const string& local,
                             const string& remote)
 {
@@ -4306,14 +1565,9 @@ bool RCommand::transferFile(bool putFlag, const string& local,
 bool RCommand::shellput(const char** fromFiles, const string& toFile)
 {
   string fullToFile;
-  string cmdstat;
   char* baseFrom;
   bool status = false;
   char **globbedFiles;
-  char buf[5000];
-  int fid;
-  struct stat statbuf;
-  int iread, nread, xread, tread;
   int ig;
 
   int numFiles;
@@ -4322,163 +1576,22 @@ bool RCommand::shellput(const char** fromFiles, const string& toFile)
 
   if (!p_connected) return false;
 
-  if (p_direct) {
-    for (ig=0; globbedFiles[ig]!=NULL; ig++) {
-      if ((baseFrom = strrchr(globbedFiles[ig], '/')) != NULL)
-        fullToFile = toFile + baseFrom;
-      else
-        fullToFile = toFile + "/" + globbedFiles[ig];
-
-      status = transferFile(true, globbedFiles[ig],
-                            underDir(p_transport->dir(), fullToFile));
-      if (!status) {
-        p_errMessage = string("Failed executing put file script");
-        break;
-      }
-    }
-    for (ig=0; globbedFiles[ig]!=NULL; ig++)
-      free(globbedFiles[ig]);
-    free(globbedFiles);
-    return status;
-  }
-
   for (ig=0; globbedFiles[ig]!=NULL; ig++) {
     if ((baseFrom = strrchr(globbedFiles[ig], '/')) != NULL)
       fullToFile = toFile + baseFrom;
     else
       fullToFile = toFile + "/" + globbedFiles[ig];
 
-    // open local input file
-    if (access(globbedFiles[ig], F_OK) == 0) {
-      // attempted to optimize the read/write in perl with the following
-      // script.  But, it turned out to be nearly twice as slow as the
-      // unoptimized line-by-line version so I'll just leave it here for
-      // posterity.  Note that this version is so terse because there is
-      // a 256 character limit for commands to C shell.  The STOP_XFER
-      // write is not needed for the sysread/syswrite version because it
-      // it reads based on the size of the file.
-
-	//16 June 2015 -- on modern systems the C shell limit seems to be 64k
-	//or higher
-
-      //cmdstat = "perl -e 'open(TMP,\">" + fullToFile + "\");$n=" + nstr + ";$t=0;while ($t<$n){$i=sysread(STDIN,$s,$n-$t);$t=$t+$i;syswrite(TMP,$s,$i);}close(TMP);';echo CMDSTAT=$status";
-
-      // this version proved to be unreliable, especially to mpp2.  I'm not
-      // sure why, but it would lock up quite consistently when trying to
-      // write the data in the file to stdout (the expect pty).  But, I'll
-      // save this one for posterity too.  Note that this protocol uses
-      // both a START_XFER and STOP_XFER message for synchronization rather
-      // than a byte count.
-      //cmdstat = "perl -e '$nl = chr(10); open(TMP, \">" + fullToFile + "\"); print \"START_XFER$nl\"; while ( <STDIN> ) { if ( /STOP_XFER/ ) { close(TMP); exit;} print TMP $_;}'; echo CMDSTAT=$status";
-
-      fid = open(globbedFiles[ig], O_RDONLY);
-      (void)fstat(fid, &statbuf);
-      nread = statbuf.st_size;
-
-      sprintf(buf, "%d", nread);
-      string nreadstr = buf;
-
-      cmdstat = "dd ibs=1 of=" + fullToFile + " count=" + nreadstr +
-                (p_remoteBash ? "; echo CMDSTAT=$?" : "; echo CMDSTAT=$status");
-
-      if (!expwrite(cmdstat)) return false;
-      // scan until start of file to be transferred
-      for (*buf='\0'; *buf!='\n'; read(p_fid, buf, 1));
-
-      //the line below is for supporting the perl script protocol for
-      //file transfer and not needed for the dd based implementation
-      //(void)expect1("START_XFER");
-
-      xread = nread - 4096;
-      tread = 0;
-
-#if 000
-      // this allows stream i/o in case that proves more reliable
-      FILE* fp = fdopen(p_fid, "r+");
-      setbuf(fp, (char*)0);
-#endif
-
-      while (tread < xread) {
-        iread = read(fid, buf, 4096);
-        tread += iread;
-#if 111
-        if (write(p_fid, buf, iread) != iread) return false;
-#else
-        // stream i/o version
-        buf[iread] = '\0';
-        if (fputs(buf, fp) <= 0) return false;
-#endif
-      }
-
-      while (tread < nread) {
-        iread = read(fid, buf, nread-tread);
-        tread += iread;
-#if 111
-        if (write(p_fid, buf, iread) != iread) return false;
-#else
-        // stream i/o version
-        buf[iread] = '\0';
-        if (fputs(buf, fp) <= 0) return false;
-#endif
-      }
-      (void)close(fid);
-
-      //the line below is for supporting the perl script protocol for
-      //file transfer and not needed for the dd based implementation
-      //if (!expwrite("STOP_XFER")) return false;
-
-      switch (exp_expectl(p_fid, exp_glob, "CMDSTAT=0*\r\n+go+", 1,
-                                 exp_glob, "Command not found*\r\n+go+", 2,
-                                 exp_glob, "CMDSTAT=1*\r\n+go+", 3,
-                                 exp_glob, "CMDSTAT=2*\r\n+go+", 3,
-                                 exp_glob, "\r\n+go+", 4, exp_end)) {
-
-        case -1:
-          p_connected = false;
-          p_errMessage = "Lost remote shell connection attempting to read "
-                         "output of put file operation";
-          break;
-
-        case 1:
-          status = true;
-          break;
-
-        case 2:
-          p_errMessage = "Could not find put file script";
-          break;
-
-        case 3:
-          p_errMessage = "Failed executing put file script";
-          break;
-
-        case 4:
-          p_errMessage = "No status returned from put file script";
-          break;
-
-        case EXP_EOF:
-          status = true;
-          p_errMessage = "Unexpected termination of remote shell executing put file script";
-          break;
-
-        case EXP_TIMEOUT:
-          p_errMessage = "Unexpected timeout executing put file script";
-          break;
-
-        default:
-          p_errMessage = "Unexpected output executing put file script";
-      }
-
-      if (!status)
-        return false;
-
-    } else
-      return false;
+    status = transferFile(true, globbedFiles[ig],
+                          underDir(p_transport->dir(), fullToFile));
+    if (!status) {
+      p_errMessage = string("Failed executing put file script");
+      break;
+    }
   }
-
   for (ig=0; globbedFiles[ig]!=NULL; ig++)
     free(globbedFiles[ig]);
   free(globbedFiles);
-
   return status;
 }
 
@@ -4518,18 +1631,10 @@ bool RCommand::shellget(const char** fromFiles, const string& toFile)
 {
   string fullToFile;
   string cmd;
-  string countstr;
   string globbedFileStr;
   string globbedFile;
   char* baseFrom;
   bool status = false;
-  char buf[5000];
-  string wcstr;
-  char* endptr;
-  int lines, bytes;
-  int nread, tread, iread, xread;
-  char* bufptr;
-  char* crptr;
 
   if (!p_connected) return false;
 
@@ -4547,129 +1652,13 @@ bool RCommand::shellget(const char** fromFiles, const string& toFile)
         else
           fullToFile = toFile + "/" + globbedFile;
 
-        if (p_direct) {
-          status = transferFile(false, fullToFile,
-                                underDir(p_transport->dir(), globbedFile));
-          if (!status) {
-            p_errMessage = "Failed executing cat command for get file "
-                           "operation";
-            return false;
-          }
-          continue;
-        }
-
-        cmd = "wc -lc " + globbedFile;
-        execout(cmd, wcstr);
-        lines = (int)strtol((char*)wcstr.c_str(), &endptr, 10);
-        bytes = (int)strtol(endptr, NULL, 10);
-
-        ofstream os(fullToFile.c_str());
-
-        if (os) {
-          cmd = "cat " + globbedFile +
-                (p_remoteBash ? "; echo CMDSTAT=$?" : "; echo CMDSTAT=$status");
-          if (!expwrite(cmd)) return false;
-
-          // the commented out logic was failing because I found that
-          // there were backspace characters sometimes being introduced
-          // in the echo of the cat command.  Therefore, the only reliable
-          // way to skip over this line is to search character by character
-          // for a newline.  I left the old logic just because it is such a
-          // mystery where these backspace characters are coming from.
-          // nread = cmd.length() + 3;
-          // tread = 0;
-          // // read passed the cat command to the file data
-          // while (tread < nread) {
-          //   tread += read(p_fid, buf, nread-tread);
-          // }
-          for (*buf='\0'; *buf!='\n'; read(p_fid, buf, 1));
-
-          nread = bytes + lines - 1;
-          tread = 0;
-          xread = nread - 4096;
-
-          // get the bulk of the file in 4096 byte chunks max
-          // so buf is guaranteed not to overflow
-          while (tread < xread) {
-            iread = read(p_fid, buf, 4096);
-            tread += iread;
-            buf[iread] = '\0';
-
-            // strip carriage returns out of buf
-            bufptr = buf;
-            crptr = strchr(bufptr, 13);
-            while (crptr != NULL) {
-              *crptr = '\0';
-              os << bufptr;      
-              bufptr = crptr+1;
-              crptr = strchr(bufptr, 13);
-            }
-            os << bufptr;      
-          }
-
-          // get the remainder of the file (<4096 bytes)
-          while (tread < nread) {
-            iread = read(p_fid, buf, nread-tread);
-            tread += iread;
-            buf[iread] = '\0';
-
-            // strip carriage returns out of buf
-            bufptr = buf;
-            crptr = strchr(bufptr, 13);
-            while (crptr != NULL) {
-              *crptr = '\0';
-              os << bufptr;      
-              bufptr = crptr+1;
-              crptr = strchr(bufptr, 13);
-            }
-            os << bufptr;      
-          }
-
-          os << endl;      
-          os.close(); 
-        }
-
-        switch (exp_expectl(p_fid, exp_glob, "CMDSTAT=0*\r\n+go+", 1,
-                                   exp_glob, "CMDSTAT=1*\r\n+go+", 2,
-                                   exp_glob, "CMDSTAT=2*\r\n+go+", 2,
-                                   exp_glob, "\r\n+go+", 3, exp_end)) {
-
-          case -1:
-            p_connected = false;
-            p_errMessage = "Lost remote shell connection attempting to cat "
-                           "file for get file operation";
-            break;
-
-          case 1:
-            status = true;
-            break;
-
-          case 2:
-            p_errMessage = "Failed executing cat command for get file operation";
-            break;
-
-          case 3:
-            p_errMessage = "No status returned from executing cat command for "
-                           "get file operation";
-            break;
-
-          case EXP_EOF:
-            p_errMessage = "Unexpected termination of remote shell executing "
-                           "cat command for get file operation";
-            break;
-
-          case EXP_TIMEOUT:
-            p_errMessage = "Unexpected timeout executing cat command for"
-                           "get file operation";
-            break;
-
-          default:
-            p_errMessage = "Unexpected output executing cat command for "
-                           "get file operatoin";
-        }
-
-        if (!status)
+        status = transferFile(false, fullToFile,
+                              underDir(p_transport->dir(), globbedFile));
+        if (!status) {
+          p_errMessage = "Failed executing cat command for get file "
+                         "operation";
           return false;
+        }
       }
     }
   }
@@ -4683,8 +1672,7 @@ const bool RCommand::getPassCache(const string& shell, const string& machine,
 {
   bool ret = false;
 
-  string protocol = RCommand::copyToShell(shell);
-  string url = protocol + "://" + machine;
+  string url = shell + "://" + machine;
   BasicAuth *ba = AuthCache::getCache().getAuthentication(url, user, "", 1);
   if (ba != NULL) {
     ret = true;
@@ -4700,8 +1688,7 @@ void RCommand::setPassCache(const string& shell, const string& machine,
                             const string& user, const string& password)
 {
   // add to AuthCache so it is available to other apps
-  string protocol = RCommand::copyToShell(shell);
-  string url = protocol + "://" + machine;
+  string url = shell + "://" + machine;
   AuthCache::getCache().addAuthentication(url, user, password, "",true);
 }
 

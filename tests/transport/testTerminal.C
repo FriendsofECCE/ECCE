@@ -1,4 +1,4 @@
-// EcceShell's entry points over ECCE_TRANSPORT=ssh (#204) against the test
+// EcceShell's entry points for an ssh machine (#204) against the test
 // sshd: the terminal is a stub that runs its -e command on a pty with typed
 // input, so a real OpenSSH client logs in and a real login shell (csh or
 // bash) answers.  Run by terminal_test.sh, which sets up the machines.

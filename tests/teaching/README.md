@@ -10,7 +10,6 @@ tests/teaching/run_tests.py --group B                one set
 tests/teaching/run_tests.py --case co --case hf -v   named cases, every check shown
 tests/teaching/run_tests.py --list
 tests/teaching/run_tests.py --show-decks --case h2se print the generated decks
-tests/teaching/run_tests.py --transport direct       set ECCE_TRANSPORT for the ECCE processes
 ```
 
 CTest: `ctest -R teaching` (SKIP, exit 77, without NWChem, csh, apache2, java).

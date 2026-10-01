@@ -1,5 +1,5 @@
 #!/bin/bash
-# EcceShell's local terminal over ECCE_TRANSPORT=ssh (#204), against the test
+# EcceShell's local terminal for an ssh machine (#204), against the test
 # sshd from run.sh, in the libssh build container.  The terminal is a stub
 # that runs the -e command under script(1) with typed input.
 set -eu
@@ -45,6 +45,6 @@ echo done > $STUB_OUT.done
 STUB
   chmod +x /tmp/stubterm
   export ECCE_HOME=$eh ECCE_REALUSER=root ECCE_REALUSERHOME=/root \
-         ECCE_TRANSPORT=ssh ECCE_TERMINAL=/tmp/stubterm STUB_DIRS=1
+         ECCE_TERMINAL=/tmp/stubterm STUB_DIRS=1
   [ -z "${SHELLCMD:-}" ] || exec bash -c "$SHELLCMD"
   build-ssh/testTerminal'

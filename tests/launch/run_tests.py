@@ -14,11 +14,10 @@ installed /opt/ecce: the test assembles its own $ECCE_HOME of symlinks
 (binaries from --build, scripts/data/packaging from the repository) and
 prints where each one resolves.
 
-    tests/launch/run_tests.py [--build build-native] [--transport unset|direct|both]
-                              [--keep] [-v]
+    tests/launch/run_tests.py [--build build-native] [--keep] [-v]
     tests/launch/run_tests.py --nwchem-restart     # #202: relaunch a finished NWChem job
     tests/launch/run_tests.py --machine sshtest --remote-user bashuser \
-                              --transport unset|ssh|both [--drop]
+                              [--drop]
 
 With --machine the job runs on a machine reached over ssh instead of on
 localhost.  The test registers it (MyMachines, Queues, CONFIG.<machine>) for
@@ -26,10 +25,9 @@ the isolated user and leaves ~/.ssh alone, so the caller has to have made
 `--machine` and its host resolvable by ssh non-interactively; see
 tests/launch/remote_test.sh, which does that inside a container.  MOPAC
 there is a wrapper that sleeps first, so the remote monitor can be observed
-while it runs: its stdin must be a pty over the pty ssh path and not one
-over libssh, and no scp may be started over libssh.  --drop adds a run per
-transport in which the monitor's sshd session is killed mid-job; the job must
-still end completed, through eccejobstore's restart.
+while it runs: its stdin must not be a tty, and no scp may be started over
+libssh.  --drop adds a run in which the monitor's sshd session is killed
+mid-job; the job must still end completed, through eccejobstore's restart.
 
 Exit status 77 (CTest SKIP) when a prerequisite is missing.
 """
@@ -235,7 +233,7 @@ class Suite(object):
         if self.remote():
             env["ECCE_RCOM_LOGMODE"] = "1"
         env.update(extra or {})
-        if (extra or {}).get("ECCE_TRANSPORT") == "ssh":
+        if self.remote():
             env["PATH"] = self.stubDir() + ":" + env["PATH"]
         return env
 
@@ -314,11 +312,9 @@ class Suite(object):
                 pass
         return True
 
-    def driver(self, *argv, transport=None, extra=None):
+    def driver(self, *argv, extra=None):
         """One launchjob invocation, with credentials piped in."""
         pipe = self.authFile(os.path.join(self.state, "auth.pipe"))
-        if extra is None:
-            extra = {"ECCE_TRANSPORT": transport} if transport else None
         #  The gateway starts every app with `cd $ECCE_HOME/bin && ./app`,
         #  and eccejobmaster runs "./eccejobstore" relative to that, so the
         #  default mirrors it.  --cwd . shows what happens otherwise.
@@ -353,12 +349,11 @@ class Suite(object):
         rc, out = self.sshRun(MONITOR_PIDS)
         return [int(w) for w in out.split() if w.isdigit()]
 
-    def one(self, label, transport, drop=False, kills=0, env=None,
-            giveup=False):
+    def one(self, label, drop=False, kills=0, env=None, giveup=False):
         """One job.  drop: kill the monitor's sshd session once (#205);
         kills: kill the remote monitor process that many times, as a login
         node would (#206); giveup: expect monitoring to be abandoned."""
-        say("--- %s (ECCE_TRANSPORT=%s)" % (label, transport or "unset"))
+        say("--- %s" % label)
         self.dropNote = ""
         if self.remote():
             left = self.monitorPids()
@@ -386,7 +381,9 @@ class Suite(object):
         url = out.strip().splitlines()[-1]
         say("  calculation: " + url)
 
-        extra = {"ECCE_TRANSPORT": transport} if transport else {}
+        extra = {}
+        if self.args.legacy_transport:
+            extra["ECCE_TRANSPORT"] = self.args.legacy_transport
         extra.update(env or {})
         if self.args.job_comms:
             extra["ECCE_JOB_COMMS"] = self.args.job_comms
@@ -394,8 +391,11 @@ class Suite(object):
         say("\n".join("  | " + line for line in out.strip().splitlines()))
         if not self.check(rc == 0, "Launch ran to the end"):
             return
+        if self.args.legacy_transport == "pty":
+            self.check("ECCE_TRANSPORT=pty is no longer supported" in out,
+                       "ECCE_TRANSPORT=pty was noted and the job ran on")
         if self.remote():
-            self.checkTransport(out, transport)
+            self.checkTransport(out)
             ran = [l.split(":", 1)[1].strip() for l in out.splitlines()
                    if l.startswith("run directory:")]
             rundir = ran[-1] if ran else rundir
@@ -474,20 +474,12 @@ class Suite(object):
         say("  eccejobmonitor stdin: %s" % stdin)
         if self.remote():
             isPty = stdin is not None and stdin.startswith("/dev/pts/")
-            if not self.check(stdin is not None, "remote monitor seen while the job ran"):
-                pass
-            elif transport == "ssh":
-                self.check(not isPty, "remote monitor stdin is not a tty over libssh (%s)" % stdin)
-            else:
-                #  ssh is given the shell as a command, so even this path
-                #  has no tty on the remote side.
-                say("  (pty ssh path: remote monitor stdin %s)" % stdin)
+            if self.check(stdin is not None, "remote monitor seen while the job ran"):
+                self.check(not isPty, "remote monitor stdin is not a tty (%s)" % stdin)
         elif stdin is not None:
-            self.check(stdin.startswith("pipe:") == (transport == "direct"),
-                       "monitor stdin is %s under %s"
-                       % ("a pipe" if transport == "direct" else "a tty",
-                          label))
-        elif transport == "direct":
+            self.check(stdin.startswith("pipe:"),
+                       "monitor stdin is a pipe under %s" % label)
+        else:
             self.check(False, "monitor seen while the job ran")
         if giveup:
             text = self.masterLog(name)
@@ -541,7 +533,7 @@ class Suite(object):
         for prop in REQUIRED_PROPS:
             self.check(prop in props, "%s present in Props/" % prop)
         if self.remote():
-            self.checkRemoteRun(rundir, name, transport)
+            self.checkRemoteRun(rundir, name)
             if drop or self.args.hold:
                 self.checkRestarted(name)
             if self.args.expect_keepalive:
@@ -673,15 +665,13 @@ class Suite(object):
             except OSError:
                 pass
 
-    def checkTransport(self, launchOut, transport):
-        """The connection Launch made must be the one this mode asks for."""
+    def checkTransport(self, launchOut):
+        """The connection Launch made must be the one the machine needs."""
         which = "the OpenSSH client" if self.args.shared_connection else "libssh"
-        viaSsh = "ssh transport: commands run over " + which in launchOut
-        self.check(viaSsh == (transport == "ssh"),
-                   "Launch connected over %s"
-                   % (which if viaSsh else "the pty ssh path"))
+        self.check("ssh transport: commands run over " + which in launchOut,
+                   "Launch connected over %s" % which)
 
-    def checkRemoteRun(self, rundir, name, transport):
+    def checkRemoteRun(self, rundir, name):
         """Show that MOPAC ran in the sshd container, not here."""
         rc, out = self.sshRun("hostname; ls -A %s" % rundir)
         say("  remote host and run directory:\n" + "\n".join(
@@ -700,22 +690,17 @@ class Suite(object):
                 if "Started job monitor" in line:
                     say("  monitor connection: " + line.strip()[:160])
                     break
-            noPty = "stdio comms, no pty" in text
-            self.check("Started job monitor" in text and
-                       noPty == (transport == "ssh"),
-                       "the remote monitor ran %s"
-                       % ("over a channel, no pty" if transport == "ssh"
-                          else "over the pty ssh"))
-        if transport == "ssh":
-            used = ""
-            if os.path.exists(self.stubLog()):
-                with open(self.stubLog()) as handle:
-                    #  `ssh -G` is how ECCE asks whether the host shares a
-                    #  connection; it connects to nothing.
-                    used = "\n".join(l for l in handle.read().splitlines()
-                                     if not l.startswith("ssh -G ")).strip()
-            self.check(used == "", "no scp/sftp/ssh was started over libssh%s"
-                       % (": " + used.replace("\n", "; ") if used else ""))
+            self.check("Started job monitor (stdio comms)" in text,
+                       "the remote monitor ran over a channel")
+        used = ""
+        if os.path.exists(self.stubLog()):
+            with open(self.stubLog()) as handle:
+                #  `ssh -G` is how ECCE asks whether the host shares a
+                #  connection; it connects to nothing.
+                used = "\n".join(l for l in handle.read().splitlines()
+                                 if not l.startswith("ssh -G ")).strip()
+        self.check(used == "", "no scp/sftp/ssh was started over libssh%s"
+                   % (": " + used.replace("\n", "; ") if used else ""))
         self.check(not os.path.exists(rundir),
                    "the run directory does not exist on this machine")
 
@@ -770,8 +755,10 @@ def prerequisites(build):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--build", default=os.path.join(REPO, "build-native"))
-    parser.add_argument("--transport", default="both",
-                        choices=("unset", "direct", "ssh", "both"))
+    parser.add_argument("--legacy-transport", metavar="VALUE",
+                        help="run the jobs with ECCE_TRANSPORT=VALUE, as an "
+                        "8.x eccejobmaster exports it; there is only one "
+                        "transport, so the job must run as usual")
     parser.add_argument("--machine", default="localhost",
                         help="machine to run on; anything but localhost is "
                         "registered as an ssh machine (default: localhost)")
@@ -780,7 +767,7 @@ def main():
     parser.add_argument("--cwd", help="working directory of the launch "
                         "(default $ECCE_HOME/bin, as under the gateway)")
     parser.add_argument("--drop", action="store_true",
-                        help="also run each remote transport with the "
+                        help="also run with the "
                         "monitor's ssh session killed mid-job")
     parser.add_argument("--kill", action="store_true",
                         help="#205/#206: kill the remote monitor process four "
@@ -855,17 +842,10 @@ def main():
                 == os.path.join(REPO, "scripts", "gensub"),
                 "gensub on PATH -> %s" % found)
 
-    second = ("ssh", "ssh") if args.machine != "localhost" else ("direct", "direct")
-    if args.machine != "localhost" and args.transport == "direct":
-        skip("--transport direct is for localhost")
-    #  The pty path is no longer the default, so it is asked for by name.
-    modes = {"unset": [("pty", "pty")], "direct": [("direct", "direct")],
-             "ssh": [("ssh", "ssh")],
-             "both": [("pty", "pty"), second]}[args.transport]
-    kill_modes = modes
-    modes = [m + (False,) for m in modes]
+    label = "ssh" if args.machine != "localhost" else "local"
+    modes = [(label, False)]
     if args.drop and args.machine != "localhost":
-        modes += [(label + "-drop", t, True) for label, t, _ in modes]
+        modes.append((label + "-drop", True))
     try:
         if not suite.services(True):
             suite.check(False, "services started")
@@ -874,19 +854,18 @@ def main():
             if args.nwchem_restart:
                 suite.nwchemRestart()
                 modes = []
-            for label, transport, drop in modes:
-                suite.one(label, transport, drop)
+            for name, drop in modes:
+                suite.one(name, drop)
             if args.kill and args.machine != "localhost":
-                for label, transport in kill_modes:
-                    suite.one(label + "-kill", transport, kills=4, env={
-                        "ECCE_JOB_MAXCONNECTS": "2",
-                        "ECCE_JOB_RESTARTRESET": "5",
-                        "ECCE_JOB_MAXQUICKTIME": "1"})
-                    suite.one(label + "-kill-noreset", transport, kills=4,
-                              giveup=True, env={
-                                  "ECCE_JOB_MAXCONNECTS": "2",
-                                  "ECCE_JOB_RESTARTRESET": "100000",
-                                  "ECCE_JOB_MAXQUICKTIME": "1"})
+                suite.one(label + "-kill", kills=4, env={
+                    "ECCE_JOB_MAXCONNECTS": "2",
+                    "ECCE_JOB_RESTARTRESET": "5",
+                    "ECCE_JOB_MAXQUICKTIME": "1"})
+                suite.one(label + "-kill-noreset", kills=4,
+                          giveup=True, env={
+                              "ECCE_JOB_MAXCONNECTS": "2",
+                              "ECCE_JOB_RESTARTRESET": "100000",
+                              "ECCE_JOB_MAXQUICKTIME": "1"})
         for name, path in sorted(suite.seen.items()):
             inBuild = os.path.dirname(path) == build
             suite.check(inBuild, "ran while the job was alive: %s" % path)

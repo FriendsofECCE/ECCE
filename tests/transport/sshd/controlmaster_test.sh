@@ -3,9 +3,8 @@
 # has ControlMaster/ControlPath/ControlPersist.  A master per account is
 # opened with the key, then the key is moved away, so any new connection
 # (libssh's, or an ssh without the master) cannot log in and only the master
-# gets in.  With ECCE_TRANSPORT=ssh ECCE picks the OpenSSH client by itself.
-#   1. testRCommandSsh: the RCommand operations through that connection, the
-#      pty ssh path to host `oracle` (an ordinary login) as the oracle.
+# gets in.  ECCE picks the OpenSSH client by itself.
+#   1. testRCommandSsh: the RCommand operations through that connection.
 #   2. testControlMasterLoss: the master dies mid-session.
 #   3. testControlMasterLoss --askpass: no master at all, so ECCE opens it
 #      through an askpass stub, for a password, for a password and then a
@@ -42,14 +41,8 @@ podman run --rm --network host -v "$root:/src:Z" -v "$state:/state:Z,ro" \
   set -e
   install -d -m 700 /root/.ssh
   install -m 600 /state/id_ed25519 /root/.ssh/ecce_test_key
-  install -m 600 /state/id_ed25519 /root/.ssh/ecce_oracle_key
   ssh-keyscan -p $PORT 127.0.0.1 2>/dev/null > /root/.ssh/known_hosts
   cat > /root/.ssh/config <<CFG
-Host oracle
-  HostName 127.0.0.1
-  Port $PORT
-  IdentityFile /root/.ssh/ecce_oracle_key
-  IdentitiesOnly yes
 Host cm
   HostName 127.0.0.1
   Port $PORT
@@ -93,7 +86,7 @@ CFG
   rc=0
   ECCE_TEST_CONTROLMASTER=1 ECCE_TEST_EXPECT_BACKEND=openssh build-ssh/testRCommandSsh || rc=1
   echo "--- ECCE_SSH_BACKEND=libssh cannot get in (no key): the message says why"
-  ECCE_SSH_BACKEND=libssh ECCE_TRANSPORT=ssh ECCE_REALUSER=root ECCE_REALUSERHOME=$HOME \
+  ECCE_SSH_BACKEND=libssh ECCE_REALUSER=root ECCE_REALUSERHOME=$HOME \
     ECCE_AUTHCACHE_NO_BROADCAST=1 build-ssh/testControlMasterLoss --libssh-refused bashuser || rc=1
   echo "--- the shared connection dies mid-session"
   KEY=/root/.ssh/ecce_test_key KEYAWAY=/root/.ssh/ecce_test_key.away \

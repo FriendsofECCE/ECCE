@@ -70,7 +70,6 @@
 #include "comm/JobParser.H"
 #include "comm/JobFailureReason.H"
 
-#include "comm/expect.h"
 
 //
 // types
@@ -1771,35 +1770,17 @@ void initMon(void)
 
     {
       // infinite timeout
-      remoteconn->exptimeout(-1);
+      remoteconn->streamTimeout(-1);
 
-      if (remoteconn->canStream()) {
-        // No pty: the monitor's stdout/stderr come back on a pipe and the
-        // framed protocol is read from it as usual.  No start marker is
-        // echoed, since nothing is waiting to consume it.
-        if (!remoteconn->startStream(cmd))
-          restart("System", remoteconn->commError());
-        logMessage("Job Monitor",
-                   "Started job monitor (stdio comms, no pty) with command: " +
-                   cmd);
-      } else {
-        // Wait for eccejobmonitor's own sentinel output, not the shell's
-        // echo of what we typed: a line editor can redraw or wrap that echo
-        // and the exact match then never arrives.
-        if (!remoteconn->expwrite("echo ECCE_MON_''START; " + cmd))
-          restart("System", remoteconn->commError());
-
-        if (remoteconn->expect1("\r\nECCE_MON_START\r\n") != 1)
-          restart("System", "Did not receive eccejobmonitor start sentinel");
-        else {
-          message = "Started job monitor (stdio comms) with command: ";
-          message += remoteconn->expout();
-          logMessage("Job Monitor", message);
-        }
-      }
+      // The monitor's stdout/stderr come back on a pipe and the framed
+      // protocol is read from it as usual.
+      if (!remoteconn->startStream(cmd))
+        restart("System", remoteconn->commError());
+      logMessage("Job Monitor",
+                 "Started job monitor (stdio comms) with command: " + cmd);
 
       // set file descriptor for stdio monitoring
-      fdesc = remoteconn->expfid();
+      fdesc = remoteconn->streamFd();
     }
   } else
     restartSystem("System", remoteconn->commError());
@@ -1971,19 +1952,8 @@ void interactGetOutput(void)
 
   XtRemoveInput(jobMonitorId);
 
-  if (remoteconn != (RCommand*)0 && remoteconn->canStream()) {
+  if (remoteconn != (RCommand*)0)
     remoteconn->stopStream();
-  } else if (remoteconn != (RCommand*)0) {
-    // check status of remote shell and prep it for further usage
-    // transferring output files, etc.
-    (void)remoteconn->expect1("\r\n+go+$");
-    if (remoteconn->isOpen())
-      logMessage("Benchmark", "eccejobmonitor done--"
-                 "remote shell connection open");
-    else
-      logMessage("Benchmark", "eccejobmonitor done--"
-                 "remote shell connection is not available");
-  }
 }
 
 

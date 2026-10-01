@@ -595,14 +595,15 @@ bool Launch::validateRemoteLogin(void)
     if (!ret)
       p_lastMessage = p_connection->commError();
     else
-      // Surfaces which shell dialect this connection actually ended up
-      // using, in the same status area that already shows "Job id is
-      // ..." via p_infoMessage below -- requested directly (issue #61)
-      // after several rounds of live debugging where the *only* way to
-      // tell bash from csh/tcsh was to read a raw connection trace.
-      p_infoMessage = "Connected (" +
-        string(p_connection->remoteShellIsBash() ? "bash" : "csh/tcsh") +
-        " shell)";
+      // The status area shows how the connection was made, so a
+      // transport problem can be told apart without reading a trace.
+    {
+      string how = p_connection->sshBackend();
+      if (how == "") how = "local";
+      if (p_connection->frontEndMode() != "")
+        how += ", front end " + p_connection->frontEndMode();
+      p_infoMessage = "Connected (" + how + ")";
+    }
   }
 
   return ret;
@@ -1992,10 +1993,7 @@ bool Launch::startJobStore(const string& importDir)
     }
   } else {
     // nohup added to fix to sh/bash shell issue with exitting ECCE
-    // The job's monitor keeps the transport it was launched with, whatever
-    // the preference says by the time it restarts.
-    string clientCmd = "ECCE_TRANSPORT=" + RCommand::transportMode() +
-                       " nohup " + Ecce::ecceBinCommand("eccejobmaster") + " ";
+    string clientCmd = "nohup " + Ecce::ecceBinCommand("eccejobmaster") + " ";
 
     string pipeName = AuthCache::pipeName();
     clientCmd += "-pipe " + pipeName + " ";

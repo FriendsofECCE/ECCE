@@ -162,7 +162,7 @@ def prerequisites(build, tools):
 class Session(object):
     """An isolated ECCE (services, $ECCE_HOME, user account) for one run."""
 
-    def __init__(self, build, tag, codes, ports, keep=False, transport=None):
+    def __init__(self, build, tag, codes, ports, keep=False):
         self.build = os.path.abspath(build)
         self.keep = keep
         self.failures = []
@@ -170,7 +170,6 @@ class Session(object):
         self._authLock = threading.Lock()
         self._authCount = 0
 
-        self.transport = None if transport in (None, "unset") else transport
         #  Own state and ports per suite: the default ones belong to
         #  tests/apps, which may be running beside this.
         os.environ.setdefault("ECCE_DATASERVER_PORT", str(ports[0]))
@@ -223,8 +222,6 @@ class Session(object):
         })
         env.pop("ECCE_NO_REAP", None)
         env.pop("ECCE_TRANSPORT", None)
-        if self.transport:
-            env["ECCE_TRANSPORT"] = self.transport
         env.update(extra or {})
         return env
 

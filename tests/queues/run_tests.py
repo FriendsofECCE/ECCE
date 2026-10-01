@@ -24,7 +24,7 @@ fixed settings and compared with tests/queues/golden/, so the csh-to-sh port
 of gensub can be checked against what csh produced.
 
     tests/queues/run_tests.py [--build build] [--suite local|golden|stubs|slurm|sge|htcondor|all]
-                              [--transport unset|direct|both] [--manager pbs ...]
+                              [--manager pbs ...]
                               [--update-golden] [--keep] [-v]
 
 "local" is golden plus stubs: everything that needs no scheduler.
@@ -730,15 +730,14 @@ class Live(object):
                 return h.read()
         return None
 
-    def run(self, mgr, code, transport, kill=False):
+    def run(self, mgr, code, kill=False):
         mname, prefix, machine = MANAGERS[mgr]
         rep, s = self.rep, self.s
         sched = self.sched(mgr)
         kind = "kill" if kill else "run"
         job = "%s-%s" % (code, kind)
-        rep.row(self.suite, mgr, transport, job)
-        say("--- %s %s %s (ECCE_TRANSPORT=%s)" % (mgr, code, kind, transport))
-        s.transport = None if transport == "unset" else transport
+        rep.row(self.suite, mgr, "stdio", job)
+        say("--- %s %s %s" % (mgr, code, kind))
         prof = dict(PROFILES["basic"])
         prof["queue"] = LIVE_QUEUE.get(mgr, prof["queue"])
         stamp = str(int(time.time()) % 100000)
@@ -815,7 +814,7 @@ class Live(object):
                 rep.check(os.path.exists(sub), "the submit command wrote %s" % os.path.basename(sub))
             keep = os.path.join(s.state, "scripts")
             os.makedirs(keep, exist_ok=True)
-            with open(os.path.join(keep, "%s.%s.%s.%s.sh" % (mgr, code, kind, transport)), "w") as h:
+            with open(os.path.join(keep, "%s.%s.%s.sh" % (mgr, code, kind)), "w") as h:
                 h.write(script)
 
         if kill:
@@ -888,9 +887,8 @@ def liveSuite(args, rep, suite, managers, stubdir=None):
     build = os.path.abspath(args.build)
     harness.prerequisites(build, ("nwchem", "mopac"))
     codes = {"NWChem": shutil.which("nwchem"), "MOPAC": None}
-    modes = ["unset", "direct"] if args.transport == "both" else [args.transport]
     s = harness.Session(build, "queue", {"NWChem": shutil.which("nwchem")},
-                        (8696, 8688), keep=args.keep, transport=None)
+                        (8696, 8688), keep=args.keep)
     live = Live(s, rep, args, suite, stubdir)
     codes["MOPAC"] = live.wrapper
     for m in managers:
@@ -907,14 +905,13 @@ def liveSuite(args, rep, suite, managers, stubdir=None):
             rep.check(False, "services did not start")
             rep.done()
             return
-        for mode in modes:
-            for m in managers:
-                for _ in range(args.repeat):
-                    for code in ("mopac", "nwchem"):
-                        if not args.code or code in args.code:
-                            live.run(m, code, mode)
-                    if not args.no_kill and (not args.code or "mopac" in args.code):
-                        live.run(m, "mopac", mode, kill=True)
+        for m in managers:
+            for _ in range(args.repeat):
+                for code in ("mopac", "nwchem"):
+                    if not args.code or code in args.code:
+                        live.run(m, code)
+                if not args.no_kill and (not args.code or "mopac" in args.code):
+                    live.run(m, "mopac", kill=True)
         outside = [p for p in s.seen.values() if os.path.dirname(p) != s.build]
         if outside:
             rep.row(suite, "-", "-", "binaries")
@@ -979,8 +976,6 @@ def main():
     ap.add_argument("--build", default=os.path.join(REPO, "build"))
     ap.add_argument("--suite", default="all",
                     choices=["all", "local", "golden", "stubs"] + list(REAL_MANAGERS))
-    ap.add_argument("--transport", default="both",
-                    choices=("unset", "direct", "ssh", "both"))
     ap.add_argument("--manager", action="append", choices=sorted(MANAGERS))
     ap.add_argument("--code", action="append", choices=("mopac", "nwchem"),
                     help="only this code (repeatable)")
