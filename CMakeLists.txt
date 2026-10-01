@@ -1160,6 +1160,21 @@ set(_ecce_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce)
 configure_file(${CMAKE_SOURCE_DIR}/packaging/ecce.in ${_ecce_wrapper} @ONLY)
 install(PROGRAMS ${_ecce_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
 
+# Desktop entry and icon (#211): a menu and search entry for ECCE.  They go
+# beside the wrapper's bin directory, so a ~/.local install gets
+# ~/.local/share/applications rather than a system path it cannot write.
+get_filename_component(_ecce_share ${ECCE_WRAPPER_DESTINATION} DIRECTORY)
+set(_ecce_share ${_ecce_share}/share)
+configure_file(${CMAKE_SOURCE_DIR}/packaging/desktop/ecce.desktop.in
+               ${CMAKE_BINARY_DIR}/wrappers/ecce.desktop @ONLY)
+install(FILES ${CMAKE_BINARY_DIR}/wrappers/ecce.desktop
+        DESTINATION ${_ecce_share}/applications COMPONENT client)
+foreach(_size 48 64)
+  install(FILES ${CMAKE_SOURCE_DIR}/packaging/desktop/ecce-${_size}.png
+          DESTINATION ${_ecce_share}/icons/hicolor/${_size}x${_size}/apps
+          RENAME ecce.png COMPONENT client)
+endforeach()
+
 # "Viewer" isn't a separate build target -- the legacy scripts/viewer
 # csh wrapper (not packaged, along with the rest of scripts/ -- see the
 # ECCE_GUI_APPS wrapper comment above) just re-execs builder with two
