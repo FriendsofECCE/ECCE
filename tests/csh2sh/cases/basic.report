@@ -1,0 +1,33 @@
+exit=1
+@T@/CONFIG.case
+  14 lines would be converted (ecce-csh2sh --convert)
+    line 11 [setup]  setenv MLIB_NUMBER_OF_THREADS 1
+        -> export MLIB_NUMBER_OF_THREADS=1
+    line 12 [setup]  setenv OMP_NUM_THREADS "1"
+        -> export OMP_NUM_THREADS="1"
+    line 13 [setup]  setenv EMPTY
+        -> export EMPTY=
+    line 14 [setup]  unsetenv DISPLAY
+        -> unset DISPLAY
+    line 15 [setup]  set refund = "refund.out"
+        -> refund="refund.out"
+    line 16 [setup]  set n=4
+        -> n=4
+    line 17 [setup]  set here = `pwd`
+        -> here=`pwd`
+    line 18 [setup]  echo done >& /dev/null
+        -> echo done > /dev/null 2>&1
+    line 19 [setup]  echo done >>& $runDir/log
+        -> echo done >> $runDir/log 2>&1
+    line 20 [setup]  echo done >&! $runDir/log
+        -> echo done > $runDir/log 2>&1
+    line 21 [setup]  make |& tee make.log
+        -> make 2>&1 | tee make.log
+    line 22 [setup]  echo x >! out.txt
+        -> echo x > out.txt
+    line 23 [setup]  exit (0)
+        -> exit 0
+    line 31 [NWChemCommand]  mpirun -np $totalprocs $nwchem $inFile >& $outFile
+        -> mpirun -np $totalprocs $nwchem $inFile > $outFile 2>&1
+
+Job scripts are POSIX sh; see GETTING_STARTED.md, "Job scripts are POSIX sh".

@@ -1,0 +1,46 @@
+exit=1
+@T@/CONFIG.case
+  needs attention (19 lines, gensub refuses a job until fixed):
+    line 3 [setup]  alias ll 'ls -l'
+        write: the sh equivalent (alias n='cmd', trap)
+    line 4 [setup]  switch ($runDir)
+        write: case ... in pattern) ... ;; esac
+    line 5 [setup]  case /scratch*:
+        write: case ... in pattern) ... ;; esac
+    line 7 [setup]  breaksw
+        write: case ... in pattern) ... ;; esac
+    line 10 [setup]  endsw
+        write: fi, done or esac
+    line 11 [setup]  @ n = $totalprocs * 2
+        write: x=$((expression))
+    line 12 [setup]  set files = (a b c)
+        write: a string, e.g. x="a b" (PATH="dir:$PATH" for path)
+    line 13 [setup]  echo $files[1]
+        write: sh has no arrays; keep one value per variable or loop over a list
+    line 14 [setup]  echo $#files
+        write: sh has no arrays; ${#x} is a string length (use "$#" for argument counts)
+    line 15 [setup]  echo $#argv
+        write: $1, $#, "$@"
+    line 16 [setup]  limit coredumpsize 0
+        write: ulimit
+    line 17 [setup]  echo $runDir:h
+        write: ${x%/*} for :h, ${x##*/} for :t
+    line 18 [setup]  if ($x =~ a*) then
+        write: if [ ... ]; then ... fi
+        note: pattern match (=~) has no certain sh equivalent
+    line 20 [setup]  endif
+        write: fi, done or esac
+    line 21 [setup]  if (-o $f) echo mine
+        write: if [ ... ]; then ... fi
+        note: file test -o has no certain sh equivalent here
+    line 22 [setup]  if ($#argv > 0) echo args
+        write: if [ ... ]; then ... fi
+        note: '$#argv' is not a number or a plain variable
+    line 23 [setup]  goto done
+        write: the sh equivalent (alias n='cmd', trap)
+    line 24 [setup]  foreach f (a b c)
+        write: for v in ...; do ... done
+    line 30 [setup]  foreach g (1 2)
+        write: for v in ...; do ... done
+
+Job scripts are POSIX sh; see GETTING_STARTED.md, "Job scripts are POSIX sh".

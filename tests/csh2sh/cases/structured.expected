@@ -1,0 +1,38 @@
+# If, foreach and while that mean the same in sh.
+setup {
+if [ -e /etc/hostname ]; then
+  echo present
+fi
+if [ -d "$HOME/scratch" ] && ! [ -f "$HOME/scratch/lock" ]; then
+  export SCR=$HOME/scratch
+elif [ -n "${TMPDIR+set}" ]; then
+  export SCR=$TMPDIR
+else
+  export SCR=/tmp
+fi
+if [ "$mdSystemName" != "" ] && [ "$(echo $runDir | grep "/dtemp")" = "" ]; then
+  hostname > $runDir/hopnode.out
+  if [ "$totalprocs" -gt 1 ]; then
+    echo parallel
+  fi
+fi
+if [ -e a ] || { [ -e b ] && [ -e c ]; }; then echo mixed; fi
+if [ -x "$nwchem" ]; then cp $nwchem /tmp/nwchem; fi
+if ! [ -n "${SCRATCH+set}" ]; then export SCRATCH=/tmp; fi
+for f in $runDir/*.in a "b c" "$list" `ls`; do
+  echo $f
+  if [ "$f" = a ]; then echo found; fi
+done
+i=0
+while [ "$i" -lt 3 ]; do
+  echo $i
+  i=1
+done
+}
+
+wrapup {
+cp x y
+if [ "$?" != 0 ]; then
+  echo "copy failed"
+fi
+}

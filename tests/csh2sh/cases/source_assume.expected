@@ -1,0 +1,12 @@
+# args: --assume-sh-twins
+# source again, twins assumed to exist where the job runs.
+setup {
+. @T@/have.sh
+. @T@/init/sh
+. @T@/lonely.sh
+. @T@/missing.sh
+. $MODULES/init/sh
+. ./have.sh
+source /etc/csh.login
+. @T@/have.sh # keep this comment
+}

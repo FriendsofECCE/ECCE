@@ -81,6 +81,9 @@
   use Getopt::Std;
   use Sys::Hostname;
   use Socket;
+  use FindBin;
+  use lib $FindBin::RealBin;
+  use CshToSh;
   #use strict vars;
 
   # These are all the command line args (optionally) needed for generating input
@@ -241,7 +244,7 @@
   # Apparently, subroutine names with '-' characters are illegal.
   $fct =~ s/-//g;
   if (defined($config{$fct})) {
-    print SUBMIT &shSnippet($fct, $config{$fct});
+    print SUBMIT &shSnippet($fct, $config{$fct}), "\n";
   } else {
     $fct = $lccode;
     $fct =~ s/-//g;
@@ -913,80 +916,18 @@ sub userCmd()
 # Returns the snippet as sh.  Plain `setenv N V`, `set N = V`, csh redirections
 # and `exit (n)` are translated; anything else csh is collected in
 # @::shErrors and reported once the script is generated, so a site sees every
-# offending line in one run.
+# offending line in one run.  The rules are CshToSh's, shared with ecce-csh2sh,
+# which also rewrites the structured forms (if, foreach, source) on request.
 sub shSnippet()
 {
   my ($key, $text) = @_;
-
-  # These csh constructs have no mechanical translation; each is reported with
-  # the sh form to write instead.  Guessing wrong here runs the wrong job.
-  my @cshOnly = (
-    [qr/^if\s*\(/,            'if [ ... ]; then ... fi'],
-    [qr/^else\s+if\b/,        'elif [ ... ]; then'],
-    [qr/^(?:endif|endsw|end)\s*$/, 'fi, done or esac'],
-    [qr/^foreach\b/,          'for v in ...; do ... done'],
-    [qr/^while\s*\(/,         'while [ ... ]; do ... done'],
-    [qr/^(?:switch|case|default:|breaksw)\b/, 'case ... in pattern) ... ;; esac'],
-    [qr/^repeat\b/,           'a for loop'],
-    [qr/^@\s/,                'x=$((expression))'],
-    [qr/^set\s+\w+\s*=\s*\(/, 'a string, e.g. x="a b" (PATH="dir:$PATH" for path)'],
-    [qr/^set\s+\w+\s*=\s*\S+\s+\S/, 'x="value with spaces"'],
-    [qr/^set\s+\w+\s*$/,      'x=""'],
-    [qr/^setenv\b/,           'export NAME=value'],
-    [qr/^source\s/,           '. file   (the file itself must be sh syntax)'],
-    [qr/^(?:limit|unlimit)\b/, 'ulimit'],
-    [qr/^(?:alias|unalias|rehash|onintr|goto)\b/, 'the sh equivalent (alias n=\'cmd\', trap)'],
-    [qr/\$\??\{?status\b/,    '$?'],
-    [qr/\$\{?\?\w/,           '${NAME+set} (or ${NAME:+set} for non-empty)'],
-    [qr/\$#?argv\b/,          '$1, $#, "$@"'],
-    [qr/\$\w+:[htre](?![\w])/, '${x%/*} for :h, ${x##*/} for :t'],
-    [qr/\$\{\w+:[htre]\}/,    '${x%/*} for :h, ${x##*/} for :t'],
-  );
-
-
   return $text if (!defined($text) || $text eq "");
-  my (@out, $heredoc);
-  my $n = 0;
-  foreach my $line (split(/\n/, $text, -1)) {
-    $n++;
-    if (defined($heredoc)) {
-      push @out, $line;
-      undef $heredoc if ($line =~ /^\s*\Q$heredoc\E\s*$/);
-      next;
-    }
-    if ($line =~ /^\s*(?:#|$)/) { push @out, $line; next; }
-    my ($ind, $body) = ($line =~ /^(\s*)(.*?)\s*$/);
-    my $orig = $body;
-
-    my $oneWord = qr/"[^"]*"|'[^']*'|`[^`]*`|[^\s"'`]\S*/;
-    if ($body =~ /^setenv\s+(\w+)\s+($oneWord)$/) {
-      $body = "export $1=$2";
-    } elsif ($body =~ /^setenv\s+(\w+)$/) {
-      $body = "export $1=";
-    } elsif ($body =~ /^unsetenv\s+(\w+)$/) {
-      $body = "unset $1";
-    } elsif ($body =~ /^set\s+(\w+)\s*=\s*($oneWord)\s*(;?\s*)$/ && $2 !~ /^\(/) {
-      $body = "$1=$2";
-    } elsif ($body =~ /^exit\s*\(\s*(\d+)\s*\)$/) {
-      $body = "exit $1";
-    }
-    $body =~ s/>>&\s*(?![0-9]\b)(\S+)/>> $1 2>&1/g;
-    $body =~ s/(?<![0-9&])>&!?\s*(?![0-9]\b)(\S+)/> $1 2>&1/g;
-    $body =~ s/\|&/2>&1 |/g;
-    $body =~ s/>>!/>>/g;
-    $body =~ s/>!/>/g;
-
-    foreach my $rule (@cshOnly) {
-      if ($body =~ $rule->[0]) {
-        push @::shErrors, sprintf("  %s, line %d: %s\n      ECCE job scripts are POSIX sh; write: %s\n",
-                                  $key, $n, $orig, $rule->[1]);
-        last;
-      }
-    }
-    if ($body =~ /<<-?\s*['"]?(\w+)['"]?/) { $heredoc = $1; }
-    push @out, $ind . $body;
+  my $res = CshToSh::snippet($text);
+  foreach my $iss (@{$res->{issues}}) {
+    push @::shErrors, sprintf("  %s, line %d: %s\n      ECCE job scripts are POSIX sh; write: %s\n",
+                              $key, $iss->{line}, $iss->{text}, $iss->{want});
   }
-  return join("\n", @out);
+  return $res->{text};
 }
 
 sub shErrorReport()
@@ -995,7 +936,9 @@ sub shErrorReport()
          "(job scripts are POSIX sh, #!/bin/sh).\n" .
          "Fix these entries (line numbers count within the entry) in the config " .
          "file that defines them, one of those listed below; see " .
-         "GETTING_STARTED.md, \"Job scripts are POSIX sh\":\n" .
+         "GETTING_STARTED.md, \"Job scripts are POSIX sh\".  " .
+         "ecce-csh2sh --check (--user or --siteconfig) lists them with the file " .
+         "and line, and ecce-csh2sh --convert rewrites what can be rewritten:\n" .
          join("", @::shErrors) .
          "Config files read: " . join(", ", @configFiles) . "\n";
 }

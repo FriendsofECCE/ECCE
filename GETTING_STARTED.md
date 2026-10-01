@@ -211,6 +211,29 @@ Equivalents: `if [ -e f ]; then ... fi`, `for x in a b; do ... done`,
 `csh` one), `x="a b"`, `PATH="dir:$PATH"; export PATH`, `n=$((a * b))`,
 `${VAR+set}` for `$?VAR`, `${x%/*}` for `$x:h`, `ulimit` for `limit`.
 
+`ecce-csh2sh` does the conversion for you. It rewrites what has an exact sh
+equivalent (everything in the table above that `gensub` translates, plus
+`if (-e|-d|-f|-x|... f) then`, `if ($?VAR)`, `if ("$X" == "y")` and numeric
+`<`/`>` tests with `&&`, `||`, `!`, `else if`, `else`, `endif`, one-line
+`if (...) command`, `foreach v (words) ... end`, `while (...) ... end`,
+`$status` and `source`). Anything it is not certain of is left alone and
+listed with the sh form to write. `source x.csh` becomes `. x.sh` when `x.sh`
+exists on the machine running the command, or always with `--assume-sh-twins`
+(then `x.sh` must exist where the job runs; `/init/csh` becomes `/init/sh`).
+
+    ecce-csh2sh --check --user          # ~/.ECCE/CONFIG.*, report only
+    ecce-csh2sh --convert --user        # rewrite; original kept as CONFIG.x.csh-backup
+    sudo ecce-csh2sh --convert --siteconfig   # submit.site and CONFIG.* in $ECCE_HOME/siteconfig
+
+`--check` exits 1 when anything needs attention. A second `--convert` changes
+nothing, and an existing `.csh-backup` is never overwritten (`--force`).
+Comments, blank lines, key order and every other key are untouched.
+
+`ecce` runs `--convert --user` once for each version of ECCE and tells you in a
+dialog which files it changed and which lines still need you. Installing the
+package never edits site files: it prints a notice when `submit.site` or a site
+`CONFIG.*` still holds csh, and you run the `sudo` command above.
+
 Migrating a site: run one job per machine after upgrading; a CONFIG that
 needs changes fails at launch with the lines named. The shipped
 `siteconfig/CONFIG-Examples/` are already converted. `sourceFile` in a CONFIG

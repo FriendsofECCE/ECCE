@@ -1,0 +1,55 @@
+exit=1
+@T@/CONFIG.case
+  25 lines would be converted (ecce-csh2sh --convert)
+    line 3 [setup]  if (-e /etc/hostname) then
+        -> if [ -e /etc/hostname ]; then
+    line 5 [setup]  endif
+        -> fi
+    line 6 [setup]  if (-d $HOME/scratch && ! -f $HOME/scratch/lock) then
+        -> if [ -d "$HOME/scratch" ] && ! [ -f "$HOME/scratch/lock" ]; then
+    line 7 [setup]  setenv SCR $HOME/scratch
+        -> export SCR=$HOME/scratch
+    line 8 [setup]  else if ($?TMPDIR) then
+        -> elif [ -n "${TMPDIR+set}" ]; then
+    line 9 [setup]  setenv SCR $TMPDIR
+        -> export SCR=$TMPDIR
+    line 11 [setup]  setenv SCR /tmp
+        -> export SCR=/tmp
+    line 12 [setup]  endif
+        -> fi
+    line 13 [setup]  if ("$mdSystemName" != "" && `echo $runDir | grep "/dtemp"` == "") then
+        -> if [ "$mdSystemName" != "" ] && [ "$(echo $runDir | grep "/dtemp")" = "" ]; then
+    line 14 [setup]  hostname >! $runDir/hopnode.out
+        -> hostname > $runDir/hopnode.out
+    line 15 [setup]  if ($totalprocs > 1) then
+        -> if [ "$totalprocs" -gt 1 ]; then
+    line 17 [setup]  endif
+        -> fi
+    line 18 [setup]  endif
+        -> fi
+    line 19 [setup]  if (-e a || -e b && -e c) echo mixed
+        -> if [ -e a ] || { [ -e b ] && [ -e c ]; }; then echo mixed; fi
+    line 20 [setup]  if (-x $nwchem) cp $nwchem /tmp/nwchem
+        -> if [ -x "$nwchem" ]; then cp $nwchem /tmp/nwchem; fi
+    line 21 [setup]  if (! $?SCRATCH) setenv SCRATCH /tmp
+        -> if ! [ -n "${SCRATCH+set}" ]; then export SCRATCH=/tmp; fi
+    line 22 [setup]  foreach f ($runDir/*.in a "b c" $list `ls`)
+        -> for f in $runDir/*.in a "b c" "$list" `ls`; do
+    line 24 [setup]  if ($f == a) echo found
+        -> if [ "$f" = a ]; then echo found; fi
+    line 25 [setup]  end
+        -> done
+    line 26 [setup]  set i = 0
+        -> i=0
+    line 27 [setup]  while ($i < 3)
+        -> while [ "$i" -lt 3 ]; do
+    line 29 [setup]  set i = 1
+        -> i=1
+    line 30 [setup]  end
+        -> done
+    line 35 [wrapup]  if ($status != 0) then
+        -> if [ "$?" != 0 ]; then
+    line 37 [wrapup]  endif
+        -> fi
+
+Job scripts are POSIX sh; see GETTING_STARTED.md, "Job scripts are POSIX sh".

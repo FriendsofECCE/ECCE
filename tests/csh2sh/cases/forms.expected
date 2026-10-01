@@ -1,0 +1,23 @@
+# Where a snippet may sit, and what is not one.
+NWChemEnvironment {
+PATH /opt/x/bin
+LD_LIBRARY_PATH /opt/x/lib
+}
+PBS {
+#PBS -V
+# setenv here is only a comment
+}
+setup { export A=b }
+wrapup: export C=d
+NWChemCommand { if [ -e x ]; then echo y; fi }
+Gaussian-16Command: export GAUSS_SCRDIR=/scratch
+orca_setup {
+export ORCA_TMP=/tmp
+}
+nwchem_loophole {
+if [ -e go ]; then
+  sh go > log 2>&1
+fi
+}
+sourceFile: /etc/profile.d/modules.csh
+filestoremove: *.tmp
