@@ -955,6 +955,12 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/eccejobmonitor)
           COMPONENT client)
 endif()
 
+# scripts/ecce-askpass: ssh's SSH_ASKPASS program, which RCommand hands to the
+# OpenSSH backend so that opening a shared connection asks in ECCE's dialogs.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-askpass
+        DESTINATION scripts
+        COMPONENT client)
+
 # scripts/ecce-csh2sh and its rules module CshToSh.pm: converts the csh snippets
 # in submit.site / CONFIG.* to the sh gensub now writes.  gensub `use`s
 # CshToSh.pm from its own directory, so it travels with it; the launcher runs

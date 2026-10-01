@@ -425,6 +425,21 @@ void RCommand::adoptTransport(Transport* t)
   p_connected = true;
 }
 
+// The program that asks for a login while a shared connection is opened:
+// ECCE_ASKPASS, else ECCE's own dialogs when there is a display to show them
+// on; "" means never ask.
+static string askpassProgram()
+{
+  const char* over = getenv("ECCE_ASKPASS");
+  if (over && *over) return over;
+  const char* home = getenv("ECCE_HOME");
+  const char* x = getenv("DISPLAY");
+  const char* w = getenv("WAYLAND_DISPLAY");
+  if (!home || !*home || !((x && *x) || (w && *w))) return "";
+  string path = string(home) + "/scripts/ecce-askpass";
+  return access(path.c_str(), X_OK) == 0 ? path : "";
+}
+
 // The OpenSSH client as a subprocess: it reuses a connection the user's
 // ssh configuration shares (ControlMaster), which libssh cannot, and it
 // never prompts.
@@ -434,6 +449,7 @@ bool RCommand::sshConnectOpenssh(const string& machine, const string& userName,
   OpenSshTransport* t = new OpenSshTransport(machine, 0, userName);
   t->setConnectTimeout(RC_CONNECT_TIMEOUT);
   if (jumpHost != "") t->setJumpHost(jumpHost, 0, userName);
+  t->setAskpass(askpassProgram());
   string error;
   if (!t->connect(error)) {
     p_errMessage = error;

@@ -6,6 +6,7 @@
 #include <csignal>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <map>
 #include <mutex>
 
@@ -117,7 +118,7 @@ struct OpenSshStream : RemoteStream {
 OpenSshTransport::OpenSshTransport(const std::string& host, int port,
                                    const std::string& user)
   : p_host(host), p_user(user), p_program("ssh"), p_port(port), p_jumpPort(0),
-    p_connectTimeout(15), p_connected(false)
+    p_connectTimeout(15), p_askTimeout(120), p_connected(false)
 {
 }
 
@@ -189,15 +190,27 @@ OpenSshTransport::Backend OpenSshTransport::backendFor(const std::string& host,
                                                         : BACKEND_LIBSSH;
 }
 
+namespace {
+const char* const kHostKeyText[] = {
+  "host key verification failed", "remote host identification has changed", 0 };
+const char* const kLoginText[] = {
+  "permission denied", "no more authentication methods",
+  "too many authentication failures", 0 };
+
+bool mentions(const std::string& low, const char* const* list)
+{
+  for (int i = 0; list[i]; i++)
+    if (low.find(list[i]) != std::string::npos) return true;
+  return false;
+}
+}  // namespace
+
 std::string OpenSshTransport::explainFailure(const std::string& host,
                                              const std::string& err,
                                              bool sharedConnection)
 {
-  static const char* const hostKey[] = {
-    "host key verification failed", "remote host identification has changed", 0 };
-  static const char* const login[] = {
-    "permission denied", "no more authentication methods",
-    "too many authentication failures", 0 };
+  const char* const* hostKey = kHostKeyText;
+  const char* const* login = kLoginText;
   static const char* const connection[] = {
     "could not resolve hostname", "connection refused", "connection timed out",
     "no route to host", "connection closed by", "connection reset by",
@@ -254,6 +267,16 @@ std::vector<std::string> OpenSshTransport::sshArgs(const std::string& remoteCmd)
     a.push_back("-o"); a.push_back("ServerAliveInterval=" + std::to_string(ka));
     a.push_back("-o"); a.push_back("ServerAliveCountMax=3");
   }
+  std::vector<std::string> t = targetArgs();
+  a.insert(a.end(), t.begin(), t.end());
+  a.push_back(p_host);
+  a.push_back(remoteCmd);
+  return a;
+}
+
+std::vector<std::string> OpenSshTransport::targetArgs() const
+{
+  std::vector<std::string> a;
   if (!p_configFile.empty()) { a.push_back("-F"); a.push_back(p_configFile); }
   if (p_port > 0) { a.push_back("-p"); a.push_back(std::to_string(p_port)); }
   if (!p_user.empty()) { a.push_back("-l"); a.push_back(p_user); }
@@ -263,9 +286,95 @@ std::vector<std::string> OpenSshTransport::sshArgs(const std::string& remoteCmd)
     a.push_back("-J");
     a.push_back(j);
   }
-  a.push_back(p_host);
-  a.push_back(remoteCmd);
   return a;
+}
+
+// ---- opening the shared connection ----
+
+namespace {
+std::mutex gMasterMu;
+// Hosts whose attempt was refused or cancelled, and when: a monitor that
+// reconnects every few seconds must not put up a dialog every time.
+std::map<std::string, time_t> gMasterFailed;
+const int kRetryAfterSec = 120;
+}  // namespace
+
+void OpenSshTransport::forgetMasterAttempts()
+{
+  std::lock_guard<std::mutex> lock(gMasterMu);
+  gMasterFailed.clear();
+}
+
+bool OpenSshTransport::masterAlive()
+{
+  std::vector<std::string> a;
+  a.push_back(p_program);
+  a.push_back("-O");
+  a.push_back("check");
+  std::vector<std::string> t = targetArgs();
+  a.insert(a.end(), t.begin(), t.end());
+  a.push_back(p_host);
+  return DirectTransport::runProcess(a, "", -1, -1, 15).status == 0;
+}
+
+bool OpenSshTransport::wantsMaster(const TransportResult& r) const
+{
+  if (p_askpass.empty() || r.status != 255 || r.timedOut) return false;
+  const std::string low = lower(r.err);
+  return (mentions(low, kLoginText) || mentions(low, kHostKeyText)) &&
+         configSharesConnection(p_host, p_user, p_configFile);
+}
+
+bool OpenSshTransport::openMaster()
+{
+  std::lock_guard<std::mutex> lock(gMasterMu);
+  // Another session may have opened it while this one waited its turn.
+  if (masterAlive()) return true;
+  const std::string key = p_configFile + "\n" + p_user + "\n" + p_host + "\n" +
+                          p_jumpHost;
+  std::map<std::string, time_t>::iterator f = gMasterFailed.find(key);
+  if (f != gMasterFailed.end() && time(0) - f->second < kRetryAfterSec)
+    return false;
+
+  // ssh asks again after a refusal; askpass records a cancel in this file
+  // (its directory is ours alone) so that one cancel is one dialog.
+  const char* tmpdir = getenv("TMPDIR");
+  std::string stateDir = std::string(tmpdir && *tmpdir ? tmpdir : "/tmp") +
+                         "/ecce-askpass.XXXXXX";
+  std::vector<char> tmpl(stateDir.begin(), stateDir.end());
+  tmpl.push_back('\0');
+  const bool haveState = mkdtemp(&tmpl[0]) != 0;
+  if (haveState) stateDir = &tmpl[0];
+
+  // The user's own ssh configuration decides ControlMaster and
+  // ControlPersist; -f leaves the master behind once the login is done.
+  std::vector<std::string> a;
+  a.push_back("env");
+  a.push_back("SSH_ASKPASS=" + p_askpass);
+  if (haveState) a.push_back("ECCE_ASKPASS_STATE=" + stateDir + "/cancelled");
+  a.push_back("SSH_ASKPASS_REQUIRE=force");
+  a.push_back("ECCE_ASKPASS_HOST=" + p_host);
+  a.push_back("ECCE_ASKPASS_USER=" + p_user);
+  a.push_back(p_program);
+  a.push_back("-f");
+  a.push_back("-N");
+  a.push_back("-x");
+  a.push_back("-o");
+  a.push_back("BatchMode=no");
+  a.push_back("-o");
+  a.push_back("ConnectTimeout=" + std::to_string(p_connectTimeout));
+  std::vector<std::string> t = targetArgs();
+  a.insert(a.end(), t.begin(), t.end());
+  a.push_back(p_host);
+  TransportResult r = DirectTransport::runProcess(a, "", -1, -1, p_askTimeout);
+  bool ok = !r.timedOut && r.status == 0 && masterAlive();
+  if (haveState) {
+    unlink((stateDir + "/cancelled").c_str());
+    rmdir(stateDir.c_str());
+  }
+  if (ok) gMasterFailed.erase(key);
+  else gMasterFailed[key] = time(0);
+  return ok;
 }
 
 std::string OpenSshTransport::envPrefix(std::string& error) const
@@ -309,6 +418,9 @@ TransportResult OpenSshTransport::runImpl(const std::string& script, int timeout
   // The script is read from fd 3 and stdin is /dev/null, as in DirectTransport.
   std::string full = "exec 3<&-\n" + envp + (useDir ? withDir(script) : script);
   res = DirectTransport::runProcess(sshArgs(kScriptExec), full, -1, -1, timeoutSec);
+  if (wantsMaster(res) && openMaster())
+    res = DirectTransport::runProcess(sshArgs(kScriptExec), full, -1, -1,
+                                      timeoutSec);
   explain(res);
   return res;
 }
@@ -323,6 +435,14 @@ TransportResult OpenSshTransport::runWithData(const std::string& script, int inF
 {
   TransportResult res = DirectTransport::runProcess(
     sshArgs(kDataExec), oneLine(script), inFd, outFd, timeoutSec);
+  // The failed attempt may have taken some of the data; a descriptor that
+  // cannot be rewound is not retried.
+  if (wantsMaster(res) &&
+      (inFd < 0 || lseek(inFd, 0, SEEK_SET) == 0) &&
+      (outFd < 0 || (lseek(outFd, 0, SEEK_SET) == 0 && ftruncate(outFd, 0) == 0)) &&
+      openMaster())
+    res = DirectTransport::runProcess(sshArgs(kDataExec), oneLine(script), inFd,
+                                      outFd, timeoutSec);
   explain(res);
   return res;
 }

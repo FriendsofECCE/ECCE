@@ -78,10 +78,25 @@ int main()
   spit(stub,
     "#!/bin/sh\n"
     "echo \"$@\" >> \"$STUB_LOG\"\n"
+    "op=; master=\n"
     "while [ $# -gt 0 ]; do case \"$1\" in\n"
-    "  -T|-x) shift;; -o|-F|-p|-l|-J) shift 2;; *) break;; esac; done\n"
+    "  -T|-x) shift;; -f|-N) master=1; shift;; -O) op=$2; shift 2;;\n"
+    "  -o|-F|-p|-l|-J) shift 2;; *) break;; esac; done\n"
     "host=$1; shift\n"
     "case \"$host\" in\n"
+    // A host with a shared connection that has to be opened by a login: -O
+    // check and the command see the master file, -f -N makes it after
+    // askpass has answered "secret".
+    "  needmaster)\n"
+    "    deny() { echo \"u@needmaster: Permission denied (publickey,password).\" >&2; exit 255; }\n"
+    "    if [ -n \"$op\" ]; then [ -e \"$STUB_MASTER\" ] && exit 0\n"
+    "      echo \"Control socket connect($STUB_MASTER): No such file or directory\" >&2; exit 255; fi\n"
+    "    if [ -n \"$master\" ]; then\n"
+    "      echo \"env: $SSH_ASKPASS_REQUIRE $ECCE_ASKPASS_HOST $ECCE_ASKPASS_USER\" >> \"$STUB_LOG\"\n"
+    "      ans=$(\"$SSH_ASKPASS\" \"u@needmaster's password: \") || deny\n"
+    "      [ \"$ans\" = secret ] || deny\n"
+    "      : > \"$STUB_MASTER\"; exit 0; fi\n"
+    "    [ -e \"$STUB_MASTER\" ] || deny;;\n"
     "  noauth) echo \"u@noauth: Permission denied (publickey,password).\" >&2; exit 255;;\n"
     "  badkey) echo \"Host key verification failed.\" >&2; exit 255;;\n"
     "  down) echo \"ssh: connect to host down port 22: Connection refused\" >&2; exit 255;;\n"
@@ -259,6 +274,99 @@ int main()
 
     check("explainFailure ignores ordinary text",
           OpenSshTransport::explainFailure("h", "ls: cannot access x\n").empty());
+  }
+
+  // ---- opening the shared connection through askpass ----
+  {
+    const string master = tmp + "/master", asklog = tmp + "/ask.log";
+    setenv("STUB_MASTER", master.c_str(), 1);
+    setenv("STUB_ASKLOG", asklog.c_str(), 1);
+    const string ok = tmp + "/askpass-ok", cancel = tmp + "/askpass-cancel",
+                 slow = tmp + "/askpass-slow";
+    spit(ok, "#!/bin/sh\necho \"$1\" >> \"$STUB_ASKLOG\"\necho secret\n", 0755);
+    spit(cancel, "#!/bin/sh\necho \"$1\" >> \"$STUB_ASKLOG\"\nexit 1\n", 0755);
+    spit(slow, "#!/bin/sh\necho \"$1\" >> \"$STUB_ASKLOG\"\nsleep 30\necho secret\n", 0755);
+    spit(tmp + "/shared.cfg", "Host noauth needmaster\n  ControlMaster auto\n  ControlPath " +
+         tmp + "/cm-%C\n");
+    const string noMaster = "No shared ssh connection to needmaster is open. Run "
+      "\"ssh needmaster\" once in a terminal (that opens it), then try again.";
+    auto asked = [&]() {
+      string s = slurp(asklog);
+      int n = 0;
+      for (size_t i = 0; i < s.size(); i++) n += s[i] == '\n';
+      return n;
+    };
+    auto mk = [&](const string& askpass) {
+      OpenSshTransport* x = make("needmaster", "u");
+      x->setConfigFile(tmp + "/shared.cfg");
+      if (!askpass.empty()) x->setAskpass(askpass);
+      return x;
+    };
+    string e;
+
+    OpenSshTransport::forgetMasterAttempts();
+    sh("rm -f " + master + " " + asklog);
+    sh("rm -f " + log);
+    OpenSshTransport* a = mk(ok);
+    bool c = a->connect(e);
+    check("no master: askpass answers and the connection is made", c, e);
+    check("the master exists and askpass was asked once, with the prompt",
+          slurp(master) == "" && access(master.c_str(), F_OK) == 0 && asked() == 1 &&
+          slurp(asklog) == "u@needmaster's password: \n", slurp(asklog));
+    string args = slurp(log);
+    check("opened with -f -N, not in batch mode, askpass forced for that host and user",
+          args.find("-f -N ") != string::npos && args.find("BatchMode=no") != string::npos &&
+          args.find("env: force needmaster u") != string::npos, args);
+    TransportResult r = a->run("echo hi");
+    check("the command runs, and nothing more is asked",
+          r.status == 0 && r.out == "hi\n" && asked() == 1, r.out + r.error);
+    delete a;
+
+    sh("rm -f " + master + " " + asklog);
+    OpenSshTransport::forgetMasterAttempts();
+    OpenSshTransport* b = mk(cancel);
+    c = b->connect(e);
+    check("cancelled: the no-shared-connection message", !c && e == noMaster, e);
+    check("cancelled: asked once", asked() == 1);
+    c = b->connect(e);
+    check("not asked again straight away", !c && e == noMaster && asked() == 1,
+          std::to_string(asked()));
+    OpenSshTransport* b2 = mk(ok);
+    c = b2->connect(e);
+    check("nor by another connection to the same host", !c && e == noMaster && asked() == 1);
+    // The user opened it by hand in the meantime.
+    spit(master, "");
+    c = b2->connect(e);
+    check("a master opened by hand is used without asking", c && asked() == 1, e);
+    delete b; delete b2;
+
+    sh("rm -f " + master + " " + asklog);
+    OpenSshTransport::forgetMasterAttempts();
+    OpenSshTransport* n = mk("");
+    sh("rm -f " + log);
+    c = n->connect(e);
+    check("no askpass: the message, and no attempt to open one",
+          !c && e == noMaster && slurp(log).find("-f -N") == string::npos, e);
+    delete n;
+
+    OpenSshTransport::forgetMasterAttempts();
+    OpenSshTransport* s = mk(slow);
+    s->setAskTimeout(2);
+    double t0 = now();
+    c = s->connect(e);
+    check("an unanswered prompt gives up", !c && e == noMaster && now() - t0 < 8 &&
+          access(master.c_str(), F_OK) != 0, e + " after " + std::to_string(now() - t0));
+    delete s;
+
+    OpenSshTransport::forgetMasterAttempts();
+    sh("rm -f " + asklog);
+    OpenSshTransport* u = make("noauth", "u");
+    u->setConfigFile(tmp + "/empty.cfg");
+    u->setAskpass(ok);
+    c = u->connect(e);
+    check("a host that does not share connections is never asked about",
+          !c && e.find("interactive login") != string::npos && asked() == 0, e);
+    delete u;
   }
 
   // ---- files ----

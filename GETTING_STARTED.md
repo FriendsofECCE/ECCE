@@ -485,7 +485,11 @@ ECCE runs commands on this machine directly and on ssh machines over its
 own libssh connection, with no shell session or prompts to match. A host
 whose ssh config shares connections (`ControlMaster`/`ControlPath`, often
 used to answer a second factor once) is reached through the `ssh` command
-instead, so it reuses that connection. An ssh host key ECCE has not seen
+instead, so it reuses that connection. When that connection is not open,
+ECCE opens it: the password or verification code (and an unknown host key)
+are asked in ECCE dialogs, so no terminal is needed. Without a display, or
+if the dialog is cancelled, ECCE says that no shared connection is open and
+to run `ssh <host>` once in a terminal. An ssh host key ECCE has not seen
 is asked about in a dialog, and is refused until accepted. The setting is
 **Edit > Preferences > External programs > Run commands without a shell
 session (built-in ssh)**, on by default; untick it, or set

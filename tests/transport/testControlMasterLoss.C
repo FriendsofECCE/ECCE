@@ -6,6 +6,12 @@
 // (host "cm", ControlMaster auto, the key moved away after the master is up).
 //   testControlMasterLoss USER
 // with KEY and KEYAWAY naming the private key's two places.
+//   testControlMasterLoss --askpass ok|cancel USER HOST ASKS
+// is the case where no master exists and ECCE opens it: ECCE_ASKPASS is a stub
+// (a script that logs each dialog it shows to $ASKLOG).  "ok" expects a
+// working connection after ASKS dialogs and a live master; "cancel" the
+// no-shared-connection message after one dialog, and none again for a second
+// try.
 
 #include <cstdio>
 #include <cstdlib>
@@ -41,6 +47,53 @@ int main(int argc, char** argv)
     RCommand rc("cm", "ssh", "bash", argv[2]);
     check("libssh cannot reuse the shared connection: " + rc.commError(),
           !rc.isOpen() && rc.sshBackend() == "" && rc.commError() != "");
+    cout << (failures ? "FAILED " : "PASSED ") << failures << endl;
+    return failures ? 1 : 0;
+  }
+  if (argc == 6 && string(argv[1]) == "--askpass") {
+    const string mode = argv[2], user = argv[3], host = argv[4];
+    const int asks = atoi(argv[5]);   // dialogs shown
+    const char* alog = getenv("ASKLOG");
+    if (!alog || !getenv("ECCE_ASKPASS")) { cout << "needs ASKLOG and ECCE_ASKPASS" << endl; return 2; }
+    setenv("ECCE_REALUSER", getenv("USER") ? getenv("USER") : "root", 1);
+    setenv("ECCE_AUTHCACHE_NO_BROADCAST", "1", 1);
+    setenv("ECCE_REALUSERHOME", getenv("HOME"), 1);
+    setenv("ECCE_TRANSPORT", "ssh", 1);
+    auto count = [&]() {
+      int n = 0;
+      FILE* f = fopen(alog, "r");
+      if (!f) return 0;
+      for (int c; (c = fgetc(f)) != EOF;) n += c == '\n';
+      fclose(f);
+      return n;
+    };
+    string o;
+    RCommand rc(host, "ssh", "bash", user);
+    if (mode == "ok") {
+      check("opens, with " + to_string(asks) + " dialog(s)",
+            rc.isOpen() && count() == asks, rc.commError() + " asked " + to_string(count()));
+      check("served by the OpenSSH client", rc.sshBackend() == "openssh", rc.sshBackend());
+      check("runs a command", rc.execout("echo asked", o) && o == "asked\r\n", o);
+      check("a master was left behind",
+            sh("ssh -O check -o BatchMode=yes -l " + user + " " + host + " 2>/dev/null") == 0);
+    } else {
+      const string msg = "No shared ssh connection to " + host +
+        " is open. Run \"ssh " + host + "\" once in a terminal (that opens it), "
+        "then try again.";
+      // A refused host key says to accept it by hand instead.
+      const string key = "The host key of " + host + " is not known or has "
+        "changed. Run \"ssh " + host + "\" once in a terminal to check and "
+        "accept it, then try again.";
+      check("cancelled: the message says what to do",
+            !rc.isOpen() && (rc.commError() == msg || rc.commError() == key) &&
+            count() == 1, rc.commError() + " asked " + to_string(count()));
+      RCommand again(host, "ssh", "bash", user);
+      check("and the second try does not ask again",
+            !again.isOpen() && (again.commError() == msg || again.commError() == key) &&
+            count() == 1, again.commError() + " asked " + to_string(count()));
+      check("no master was made",
+            sh("ssh -O check -o BatchMode=yes -l " + user + " " + host + " 2>/dev/null") != 0);
+    }
     cout << (failures ? "FAILED " : "PASSED ") << failures << endl;
     return failures ? 1 : 0;
   }

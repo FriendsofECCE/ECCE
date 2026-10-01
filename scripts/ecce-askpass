@@ -1,0 +1,58 @@
+#!/bin/sh
+# ssh's SSH_ASKPASS program for ECCE: asks in ECCE's own dialogs what ssh
+# asks while ECCE opens a shared connection for the user.  The prompt is
+# $1; the answer goes on stdout; exit 1 cancels.  ECCE_ASKPASS_HOST and
+# ECCE_ASKPASS_USER say what the dialog is for.  ssh asks again after a
+# refusal, so a cancel is remembered in ECCE_ASKPASS_STATE for the rest of
+# that ssh run: one cancel, one dialog.
+prompt=$1
+here=$(dirname "$0")
+bin=${ECCE_HOME:+$ECCE_HOME/bin}
+[ -x "$bin/passdialog" ] || bin=$here/../bin
+host=${ECCE_ASKPASS_HOST:-}
+user=${ECCE_ASKPASS_USER:-}
+
+cancel() {
+  [ -z "${ECCE_ASKPASS_STATE:-}" ] || : > "$ECCE_ASKPASS_STATE"
+  exit 1
+}
+
+# A prompt of the form user@host's password names the machine it is for,
+# which a front end makes different from the target.
+case $prompt in
+  *@*"'s "*)
+    who=${prompt%%"'s "*}
+    user=${who%@*}
+    host=${who#*@}
+    ;;
+esac
+
+kind=${SSH_ASKPASS_PROMPT:-}
+# Older ssh does not say that this is a yes/no question.
+case $prompt in *"continue connecting"*) kind=confirm ;; esac
+[ "$kind" = none ] && exit 0
+[ -z "${ECCE_ASKPASS_STATE:-}" ] || [ ! -e "$ECCE_ASKPASS_STATE" ] || exit 1
+
+case $kind in
+  confirm)
+    # Only an unknown host key is answered; any other question is "no".
+    h=$(printf '%s\n' "$prompt" | sed -n "s/.*authenticity of host '\([^' ]*\).*/\1/p" | head -n 1)
+    f=$(printf '%s\n' "$prompt" | sed -n 's/^\([A-Za-z0-9-]*\) key fingerprint is \(.*\)\.$/\2/p' | head -n 1)
+    t=$(printf '%s\n' "$prompt" | sed -n 's/^\([A-Za-z0-9-]*\) key fingerprint is .*/\1/p' | head -n 1)
+    [ -n "$h" ] && [ -n "$f" ] || exit 1
+    [ -x "$bin/hostkeydialog" ] || exit 1
+    "$bin/hostkeydialog" "$h" "$f" "$t" >/dev/null || cancel
+    echo yes
+    ;;
+  *)
+    case $(printf '%s' "$prompt" | tr 'A-Z' 'a-z') in
+      *passcode*|*verification*|*token*|*otp*|*duo*|*code*) what=passcode ;;
+      *) what=password ;;
+    esac
+    [ -x "$bin/passdialog" ] || exit 1
+    answer=$("$bin/passdialog" "$what" "$host" "$user") || cancel
+    # passdialog prints nothing when it is cancelled.
+    [ -n "$answer" ] || cancel
+    printf '%s\n' "$answer"
+    ;;
+esac

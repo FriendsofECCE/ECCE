@@ -12,9 +12,12 @@
 // with ControlMaster, so a user who logs in once with a second factor and
 // lets every later ssh reuse that connection needs this one.
 //
-// Never prompts: when a connection cannot be made without a question, the
-// error says to log in once with ssh.  A command is the script sent on stdin,
-// as in SshTransport; files are streamed through `cat`.
+// Never prompts itself.  When a host that shares connections has no live
+// master and a login needs a question, the master is opened once with
+// `ssh -f -N` and the questions go to the askpass program (SSH_ASKPASS), then
+// the command is run again; without one, or if it is cancelled, the error
+// says to log in once with ssh.  A command is the script sent on stdin, as in
+// SshTransport; files are streamed through `cat`.
 class OpenSshTransport : public RemoteTransport {
 public:
   OpenSshTransport(const std::string& host, int port = 0,
@@ -25,6 +28,16 @@ public:
   void setConnectTimeout(int sec) { p_connectTimeout = sec; }
   void setConfigFile(const std::string& path) { p_configFile = path; }
   void setSshProgram(const std::string& path) { p_program = path; }
+  // The program ssh runs to ask for a password, a second factor or a host-key
+  // confirmation when the shared connection has to be opened (it gets the
+  // prompt as argv[1], prints the answer, and exits non-zero to cancel; it
+  // finds the host and user in ECCE_ASKPASS_HOST and ECCE_ASKPASS_USER).
+  // Needs OpenSSH 8.4 for SSH_ASKPASS_REQUIRE.  Empty (the default): never
+  // ask.  setAskTimeout is how long one attempt may wait for the answers.
+  void setAskpass(const std::string& program) { p_askpass = program; }
+  void setAskTimeout(int sec) { p_askTimeout = sec; }
+  // Forgets which hosts had a refused or cancelled attempt (tests).
+  static void forgetMasterAttempts();
   // The front end (ssh -J); the target is reached through it by OpenSSH.
   void setJumpHost(const std::string& host, int port = 0,
                    const std::string& user = "");
@@ -101,11 +114,22 @@ private:
   TransportResult runWithData(const std::string& script, int inFd, int outFd,
                               int timeoutSec);
   void explain(TransportResult& r) const;
+  // The ssh options that name the target: -F, -p, -l, -J.
+  std::vector<std::string> targetArgs() const;
+  // `ssh -O check`: is there a live master for this host?
+  bool masterAlive();
+  // True when r says a login is needed on a host that shares connections and
+  // an askpass program is set.
+  bool wantsMaster(const TransportResult& r) const;
+  // Opens the shared connection through askpass; true when it is live.  One
+  // attempt at a time per host, and none for a while after a failed one.
+  bool openMaster();
   bool putInto(const std::string& local, const std::string& remote,
                std::string& error);
 
   std::string p_host, p_user, p_jumpHost, p_jumpUser, p_configFile, p_program;
-  int p_port, p_jumpPort, p_connectTimeout;
+  std::string p_askpass;
+  int p_port, p_jumpPort, p_connectTimeout, p_askTimeout;
   bool p_connected;
 };
 
