@@ -98,7 +98,10 @@ def lose(s, url, jobid, label):
     s.check(monitoring(s, url), "%s: the monitor is watching the job" % label)
     time.sleep(2)
     try:
-        os.killpg(jobid, signal.SIGKILL)
+        #  The job is not always its own group leader (built-in ssh starts
+        #  each command in a new group), so look the group up, as the
+        #  Shell cancel command does.
+        os.killpg(os.getpgid(jobid), signal.SIGKILL)
     except OSError as err:
         s.check(False, "%s: could not kill process group %d (%s)" % (label, jobid, err))
 
