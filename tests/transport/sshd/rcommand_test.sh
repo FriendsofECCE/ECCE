@@ -12,7 +12,7 @@ if ! podman image exists localhost/ecce-sshbuild; then
   podman build -q -t localhost/ecce-sshbuild -f "$here/Containerfile.build" "$here" >/dev/null
 fi
 podman run --rm --network host -v "$root:/src:Z" -v "$state:/state:Z,ro" \
-  -e N="${1:-1}" -e PORT="$port" localhost/ecce-sshbuild bash -c '
+  -e N="${1:-1}" -e PORT="$port" ${ECCE_GOLDEN_RECORD:+-e ECCE_GOLDEN_RECORD} localhost/ecce-sshbuild bash -c '
   set -e
   install -d -m 700 /root/.ssh
   install -m 600 /state/id_ed25519 /root/.ssh/ecce_test_key

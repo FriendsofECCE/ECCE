@@ -1,6 +1,8 @@
-// RCommand over libssh (ECCE_TRANSPORT=ssh) against the pty ssh path as the
-// oracle (#204): the same operations through RCommand to the test sshd must
-// return the same values and output both ways, for a tcsh and a bash account.
+// RCommand over libssh (ECCE_TRANSPORT=ssh) against results recorded from the
+// pty ssh path (#204): the same operations through RCommand to the test sshd
+// must return the same values and output, for a tcsh and a bash account.
+// golden/rcommand_ssh_*.txt; ECCE_GOLDEN_RECORD=1 rewrites them from the pty
+// run.
 // Needs the sshd from tests/transport/sshd/run.sh and a ~/.ssh with the test
 // key, known_hosts and config that rcommand_test.sh sets up; exit 77 if absent.
 
@@ -17,6 +19,7 @@
 #include <unistd.h>
 
 #include "comm/RCommand.H"
+#include "golden.H"
 
 using namespace std;
 
@@ -69,7 +72,7 @@ struct OracleHost {
 static void setMode(bool ssh)
 {
   if (ssh) setenv("ECCE_TRANSPORT", "ssh", 1);
-  else unsetenv("ECCE_TRANSPORT");
+  else setenv("ECCE_TRANSPORT", "pty", 1);
 }
 
 // Runs the whole scenario; one line per operation.
@@ -520,25 +523,27 @@ static void sourceChecks(const string& user, const string& shell,
     { rdir + "/srcfile", "/opt/ecce_pfx" },
     { rdir + "/no_such_source_file", "" } };
   for (int c = 0; c < 3; c++) {
-    vector<string> pty, ssh;
+    vector<string> log;
     cout << "source file " << cases[c].file << " shellPath=[" << cases[c].prefix
          << "]" << endl;
-    if (!sourceScenario(false, user, shell, cases[c].file, cases[c].prefix, rdir, pty)) {
-      check("sourceFile: pty session (oracle)", false);
+    const string name = "rcommand_ssh_source_" + shell + "_" + char('0' + c);
+    golden::Subs subs;
+    subs.push_back(make_pair(ldir, string("@LDIR@")));
+    if (golden::recording()) {
+      if (!sourceScenario(false, user, shell, cases[c].file, cases[c].prefix, rdir, log)) {
+        check("sourceFile: pty session (reference)", false);
+        continue;
+      }
+      golden::record(name, log, subs);
       continue;
     }
-    if (!sourceScenario(true, user, shell, cases[c].file, cases[c].prefix, rdir, ssh)) {
+    if (!sourceScenario(true, user, shell, cases[c].file, cases[c].prefix, rdir, log)) {
       check("sourceFile: ssh session", false);
       continue;
     }
-    for (size_t i = 0; i < pty.size() && i < ssh.size(); i++) {
-      if (pty[i] == ssh[i]) cout << "ok   " << pty[i] << endl;
-      else {
-        extra++;
-        cout << "FAIL\n  pty " << pty[i] << "\n  ssh " << ssh[i] << endl;
-      }
-    }
+    extra += golden::compare(name, log, subs);
   }
+  if (golden::recording()) return;
   {
     // The stream runs on a session of its own and must see the same
     // imported environment and directory as a command on the main one.
@@ -750,33 +755,32 @@ int main()
                  "chmod 755 " + rdir + "/script && echo x > " + rdir + "/sub/inner", o);
     }
 
-    vector<string> pty, ssh;
-    bool ptyBg = false, sshBg = false;
-    if (!scenario(false, user, shell, rdir, ldir, pty, ptyBg)) {
-      cout << "FAIL: no pty session (oracle)" << endl;
-      return 1;
+    vector<string> log;
+    bool bg = false;
+    golden::Subs subs;
+    subs.push_back(make_pair(ldir, string("@LDIR@")));
+    if (golden::recording()) {
+      if (!scenario(false, user, shell, rdir, ldir, log, bg)) {
+        cout << "FAIL: no pty session (reference)" << endl;
+        return 1;
+      }
+      golden::record("rcommand_ssh_" + shell, log, subs);
+    } else {
+      if (!scenario(true, user, shell, rdir, ldir, log, bg)) {
+        cout << "FAIL: no ssh session" << endl;
+        return 1;
+      }
+      failures += golden::compare("rcommand_ssh_" + shell, log, subs);
     }
-    if (!scenario(true, user, shell, rdir, ldir, ssh, sshBg)) {
-      cout << "FAIL: no ssh session" << endl;
-      return 1;
-    }
-
-    size_t n = pty.size() > ssh.size() ? pty.size() : ssh.size();
-    for (size_t i = 0; i < n; i++) {
-      string x = i < pty.size() ? pty[i] : "<missing>";
-      string y = i < ssh.size() ? ssh[i] : "<missing>";
-      if (x == y) cout << "ok   " << x << endl;
-      else { failures++; cout << "FAIL\n  pty " << x << "\n  ssh " << y << endl; }
-    }
-    if (!ptyBg || !sshBg) {
+    if (!bg) {
       failures++;
-      cout << "FAIL execbg live pid: pty=" << ptyBg << " ssh=" << sshBg << endl;
+      cout << "FAIL execbg live pid" << endl;
     }
 
-    sshChecks(user, shell);
+    if (!golden::recording()) sshChecks(user, shell);
     sourceChecks(user, shell, rdir, ldir);
-    streamChecks(user, shell);
-    if (!controlMaster) authChecks(user, shell);
+    if (!golden::recording()) streamChecks(user, shell);
+    if (!controlMaster && !golden::recording()) authChecks(user, shell);
 
     setMode(true);
     RCommand rc(HOST, "ssh", shell, user);

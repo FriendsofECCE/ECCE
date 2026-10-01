@@ -1,0 +1,7 @@
+ECCE_T variables: ret=1 out=[ECCE_T1=a b 'q' x\r\nECCE_T_AFTER=yes\r\n]
+PATH head: ret=1 out=[@TMP@/bin:@PATH0@\r\n]
+tool runs: ret=1 out=[tool ran\r\n]
+pwd before cd(): ret=1 out=[@TMP@/dest\r\n]
+which: ret=1 out=[@TMP@/bin/ecce_src_tool]
+cd: ret=1
+pwd after cd(): ret=1 out=[@TMP@\r\n]

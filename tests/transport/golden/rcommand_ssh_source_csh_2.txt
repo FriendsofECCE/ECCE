@@ -1,0 +1,8 @@
+ECCE_T variables: ret=1 out=[end\r\n]
+LOGNAME: ret=1 out=[1\r\n]
+PATH head: ret=1 out=[/usr/local/bin:/usr/bin\r\n]
+tool runs: ret=0
+pwd before cd(): ret=1 out=[/home/cshuser\r\n]
+which: ret=0 out=[]
+cd: ret=1 out=[]
+pwd after cd(): ret=1 out=[/tmp/ecce_rcssh_cshuser\r\n]

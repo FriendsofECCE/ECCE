@@ -39,16 +39,26 @@ static string trim(string s)
   return s;
 }
 
-// The oracle for what the background command did on the remote machine is
-// always the pty path, whatever mode is under test.
+// What the background command did on the remote machine is read with the
+// OpenSSH client, whatever transport is under test.
 static string remote(const string& user, const string& cmd)
 {
-  string saved = getenv("ECCE_TRANSPORT") ? getenv("ECCE_TRANSPORT") : "";
-  unsetenv("ECCE_TRANSPORT");
-  string out, err;
-  bool ok = RCommand::command(cmd, out, err, "127.0.0.1", "ssh", "csh", user);
-  if (!saved.empty()) setenv("ECCE_TRANSPORT", saved.c_str(), 1);
-  return ok ? trim(out) : "";
+  string q = "'";
+  for (size_t i = 0; i < cmd.size(); i++) {
+    if (cmd[i] == '\'') q += "'\\''";
+    else q += cmd[i];
+  }
+  q += "'";
+  string line = "ssh -o BatchMode=yes -o ConnectTimeout=15 -l " + user +
+                " 127.0.0.1 " + q + " </dev/null 2>/dev/null";
+  FILE* p = popen(line.c_str(), "r");
+  if (!p) return "";
+  string out;
+  char buf[512];
+  size_t n;
+  while ((n = fread(buf, 1, sizeof buf, p)) > 0) out.append(buf, n);
+  int st = pclose(p);
+  return st == 0 ? trim(out) : "";
 }
 
 // Waits for the command's marker file to hold something.
@@ -68,7 +78,11 @@ static void scenario(const string& mode, const string& user,
   const string tag = mode + "/" + user + "/" + machine;
   const string id = mode + user + machine;
   if (mode == "ssh") setenv("ECCE_TRANSPORT", "ssh", 1);
-  else unsetenv("ECCE_TRANSPORT");
+  else setenv("ECCE_TRANSPORT", "pty", 1);
+  // An earlier run's background command keeps its ssh child for a while,
+  // and the child check below would count it.
+  for (int i = 0; i < 30 && system("pgrep -x ssh >/dev/null") == 0; i++)
+    usleep(1000000);
   if (password != "") AuthCache::getCache().addAuthentication("ssh://" + machine, user, password, "", false);
 
   remote(user, "rm -f /tmp/bg-" + id + " /tmp/xt-" + id);

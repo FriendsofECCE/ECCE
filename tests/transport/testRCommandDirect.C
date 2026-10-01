@@ -1,7 +1,8 @@
-// RCommand under ECCE_TRANSPORT=direct against the pty path as the oracle
-// (#204): the same operations through RCommand("system") both ways must
-// return the same values and the same output, so callers need no change.
-// execbg's PID is only checked for being a live process.
+// RCommand under ECCE_TRANSPORT=direct against results recorded from the pty
+// path (#204): the same operations through RCommand("system") must return the
+// same values and the same output, so callers need no change.  execbg's PID
+// is only checked for being a live process.  golden/rcommand_direct.txt;
+// ECCE_GOLDEN_RECORD=1 rewrites it from the pty run.
 
 #include <cstdio>
 #include <cstdlib>
@@ -15,6 +16,7 @@
 #include <unistd.h>
 
 #include "comm/RCommand.H"
+#include "golden.H"
 
 using namespace std;
 
@@ -43,7 +45,7 @@ static bool scenario(bool direct, const string& tmp, vector<string>& log,
                      bool& bgAlive)
 {
   if (direct) setenv("ECCE_TRANSPORT", "direct", 1);
-  else unsetenv("ECCE_TRANSPORT");
+  else setenv("ECCE_TRANSPORT", "pty", 1);
 
   RCommand rc("system", "", "bash");
   if (!rc.isOpen()) {
@@ -326,34 +328,38 @@ int main()
   mkdir((tmp + "/sub").c_str(), 0755);
   put(tmp + "/sub/inner", "x\n");
 
-  vector<string> pty, dir;
-  bool ptyBg = false, dirBg = false;
-
-  if (!scenario(false, tmp, pty, ptyBg)) {
-    cout << "SKIP: no pty session with bash here, oracle unavailable" << endl;
-    return 0;
+  vector<string> dir;
+  bool bg = false;
+  golden::Subs subs;
+  subs.push_back(make_pair(tmp, string("@TMP@")));
+  {
+    // `which ./script` answers with a system directory, whichever the
+    // distribution keeps sh in.
+    subs.push_back(make_pair(string("/usr/bin/./script"), string("@BIN@/./script")));
+    subs.push_back(make_pair(string("/bin/./script"), string("@BIN@/./script")));
+    subs.push_back(make_pair(string("/usr/bin/sh"), string("@SH@")));
+    subs.push_back(make_pair(string("/bin/sh"), string("@SH@")));
   }
-  if (!scenario(true, tmp, dir, dirBg)) {
+
+  if (golden::recording()) {
+    if (!scenario(false, tmp, dir, bg)) {
+      cout << "FAIL: no pty session with bash here" << endl;
+      return 1;
+    }
+    golden::record("rcommand_direct", dir, subs);
+    string cmd = "rm -rf " + tmp;
+    if (system(cmd.c_str()) != 0) {}
+    return bg ? 0 : 1;
+  }
+  if (!scenario(true, tmp, dir, bg)) {
     cout << "FAIL: no direct session" << endl;
     return 1;
   }
 
-  int failures = 0;
-  size_t n = pty.size() > dir.size() ? pty.size() : dir.size();
-  for (size_t i = 0; i < n; i++) {
-    string a = i < pty.size() ? pty[i] : "<missing>";
-    string b = i < dir.size() ? dir[i] : "<missing>";
-    if (a == b) {
-      cout << "ok   " << a << endl;
-    } else {
-      failures++;
-      cout << "FAIL\n  pty   " << a << "\n  direct " << b << endl;
-    }
-  }
-  if (!ptyBg || !dirBg) {
+  int failures = golden::compare("rcommand_direct", dir, subs);
+  if (!bg) {
     failures++;
-    cout << "FAIL execbg live pid: pty=" << ptyBg << " direct=" << dirBg
-         << endl;
+    cout << "FAIL execbg live pid" << endl;
   }
 
   directChecks();

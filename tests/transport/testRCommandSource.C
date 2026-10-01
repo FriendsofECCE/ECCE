@@ -1,7 +1,9 @@
-// A machine's sourceFile under ECCE_TRANSPORT=direct against the pty path as
-// the oracle (#204): the variables the file sets, PATH it prepends to, what
-// it unsets, and a missing file must give the same answers both ways, for a
-// bash-syntax and a csh-syntax file.  Shells that are not installed are skipped.
+// A machine's sourceFile under ECCE_TRANSPORT=direct against results recorded
+// from the pty path (#204): the variables the file sets, PATH it prepends to,
+// what it unsets, and a missing file must give the same answers, for a
+// bash-syntax and a csh-syntax file.  Shells that are not installed are
+// skipped.  golden/rcommand_source_<n>.txt, one per case below;
+// ECCE_GOLDEN_RECORD=1 rewrites them from the pty run.
 
 #include <cstdio>
 #include <cstdlib>
@@ -14,6 +16,7 @@
 #include <unistd.h>
 
 #include "comm/RCommand.H"
+#include "golden.H"
 
 using namespace std;
 
@@ -44,7 +47,7 @@ static bool scenario(bool direct, const string& shell, const string& srcFile,
                      vector<string>& log)
 {
   if (direct) setenv("ECCE_TRANSPORT", "direct", 1);
-  else unsetenv("ECCE_TRANSPORT");
+  else setenv("ECCE_TRANSPORT", "pty", 1);
 
   RCommand rc("system", "", shell, "", "", "", "", shellPath, "", srcFile);
   if (!rc.isOpen()) {
@@ -132,27 +135,37 @@ int main()
     }
     cout << "== " << k.shell << " file=" << k.file << " shellPath=["
          << k.pathPrefix << "]" << endl;
-    vector<string> pty, dir;
-    if (!scenario(false, k.shell, k.file, k.pathPrefix, tmp, pty)) {
-      cout << "SKIP: no pty session, oracle unavailable" << endl;
+    vector<string> log;
+    char name[64];
+    snprintf(name, sizeof name, "rcommand_source_%d", (int)c);
+    golden::Subs subs;
+    subs.push_back(make_pair(tmp, string("@TMP@")));
+    // "PATH head" shows the caller's own first directories after ours, or
+    // alone when the file was not read.
+    {
+      string path = getenv("PATH") ? getenv("PATH") : "";
+      size_t c1 = path.find(':'), c2 = path.find(':', c1 + 1);
+      subs.push_back(make_pair(path.substr(0, c2) + "\\r",
+                               string("@PATH0@:@PATH1@\\r")));
+      subs.push_back(make_pair(":" + path.substr(0, path.find(':')) + "\\r",
+                               string(":@PATH0@\\r")));
+    }
+    if (golden::recording()) {
+      if (!scenario(false, k.shell, k.file, k.pathPrefix, tmp, log)) {
+        cout << "SKIP: no pty session, nothing recorded" << endl;
+        continue;
+      }
+      golden::record(name, log, subs);
+      ran++;
       continue;
     }
-    if (!scenario(true, k.shell, k.file, k.pathPrefix, tmp, dir)) {
+    if (!scenario(true, k.shell, k.file, k.pathPrefix, tmp, log)) {
       failures++;
       cout << "FAIL: no direct session" << endl;
       continue;
     }
     ran++;
-    size_t n = pty.size() > dir.size() ? pty.size() : dir.size();
-    for (size_t i = 0; i < n; i++) {
-      string a = i < pty.size() ? pty[i] : "<missing>";
-      string b = i < dir.size() ? dir[i] : "<missing>";
-      if (a == b) cout << "ok   " << a << endl;
-      else {
-        failures++;
-        cout << "FAIL\n  pty    " << a << "\n  direct " << b << endl;
-      }
-    }
+    failures += golden::compare(name, log, subs);
   }
 
   // A shell that cannot be started is a failed connection, with its message.

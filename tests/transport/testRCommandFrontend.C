@@ -1,7 +1,8 @@
 // RCommand to a machine that is only reachable through a front end (#204):
-// the pty path, which ssh's from the front end, is the oracle, and
-// ECCE_TRANSPORT=ssh must return the same values and output through either a
-// forwarded connection or a nested ssh.  Run by sshd/frontend_test.sh, which
+// ECCE_TRANSPORT=ssh must return the values and output recorded from the pty
+// path, which ssh's from the front end, through either a forwarded connection
+// or a nested ssh.  golden/rcommand_frontend_*.txt; ECCE_GOLDEN_RECORD=1
+// rewrites them from the pty run.  Run by sshd/frontend_test.sh, which
 // provides the containers and ~/.ssh; exit 77 without them.
 //   testRCommandFrontend <frontend> <expected mode: forward|nested>
 
@@ -17,6 +18,7 @@
 #include <unistd.h>
 
 #include "comm/RCommand.H"
+#include "golden.H"
 
 using namespace std;
 
@@ -62,7 +64,7 @@ static string trim(string o)
 static void setMode(bool ssh)
 {
   if (ssh) setenv("ECCE_TRANSPORT", "ssh", 1);
-  else unsetenv("ECCE_TRANSPORT");
+  else setenv("ECCE_TRANSPORT", "pty", 1);
 }
 
 static bool scenario(bool ssh, const string& user, const string& shell,
@@ -247,22 +249,26 @@ int main(int argc, char** argv)
                  "printf '#!/bin/sh\\necho hi\\n' > " + rdir + "/script && "
                  "chmod 755 " + rdir + "/script && echo x > " + rdir + "/sub/inner", o);
     }
-    vector<string> pty, ssh;
-    if (!scenario(false, user, shell, front, rdir, ldir, wantMode, pty)) {
-      cout << "FAIL: no pty session (oracle)" << endl;
-      return 1;
+    vector<string> log;
+    golden::Subs subs;
+    const string name = "rcommand_frontend_" + shell;
+    if (golden::recording()) {
+      if (!scenario(false, user, shell, front, rdir, ldir, wantMode, log)) {
+        cout << "FAIL: no pty session (reference)" << endl;
+        return 1;
+      }
+      golden::record(name, log, subs);
+      setMode(true);
+      RCommand rc("node", "ssh", shell, user, "", front);
+      string o;
+      rc.execout("rm -rf " + rdir, o);
+      continue;
     }
-    if (!scenario(true, user, shell, front, rdir, ldir, wantMode, ssh)) {
+    if (!scenario(true, user, shell, front, rdir, ldir, wantMode, log)) {
       cout << "FAIL: no ssh session" << endl;
       return 1;
     }
-    size_t n = pty.size() > ssh.size() ? pty.size() : ssh.size();
-    for (size_t i = 0; i < n; i++) {
-      string x = i < pty.size() ? pty[i] : "<missing>";
-      string y = i < ssh.size() ? ssh[i] : "<missing>";
-      if (x == y) cout << "ok   " << x << endl;
-      else { diffs++; cout << "FAIL\n  pty " << x << "\n  ssh " << y << endl; }
-    }
+    diffs += golden::compare(name, log, subs);
     // The pty hop times out now and then here with no libssh involved (and
     // has corrupted the heap afterwards), so its result is reported, not
     // counted; the libssh hop is what is under test.

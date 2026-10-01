@@ -105,7 +105,7 @@ if [ -n "${ECCE_FE_ROCKY:-}" ]; then
     ECCE_SSH_FRONTEND=nested /tmp/tsf /state/id_ed25519 $PFWD nested' || fail=1
 fi
 podman run --rm --network host -v "$root:/src:Z" -v "$state:/state:Z,ro" \
-  -e PFWD="$pfwd" -e PNOFWD="$pnofwd" -e CMD="${ECCE_FE_CMD:-}" localhost/ecce-sshbuild bash -c '
+  -e PFWD="$pfwd" -e PNOFWD="$pnofwd" -e CMD="${ECCE_FE_CMD:-}" ${ECCE_GOLDEN_RECORD:+-e ECCE_GOLDEN_RECORD} localhost/ecce-sshbuild bash -c '
   set -e
   install -d -m 700 /root/.ssh
   install -m 600 /state/id_ed25519 /root/.ssh/ecce_test_key

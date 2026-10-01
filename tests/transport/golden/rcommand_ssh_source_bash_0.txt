@@ -1,0 +1,8 @@
+ECCE_T variables: ret=1 out=[ECCE_T1=a b 'q' "d" $x\r\nECCE_T_AFTER=yes\r\nend\r\n]
+LOGNAME: ret=0 out=[0\r\n]
+PATH head: ret=1 out=[/tmp/ecce_rcssh_bashuser/bin:/usr/local/bin\r\n]
+tool runs: ret=1 out=[tool ran\r\n]
+pwd before cd(): ret=1 out=[/tmp/ecce_rcssh_bashuser/sub\r\n]
+which: ret=1 out=[/tmp/ecce_rcssh_bashuser/bin/ecce_src_tool]
+cd: ret=1 out=[]
+pwd after cd(): ret=1 out=[/tmp/ecce_rcssh_bashuser\r\n]
