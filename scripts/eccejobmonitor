@@ -3131,6 +3131,12 @@ sub JobWait
         }
         elsif ($status == $TRY_TIMEOUT)
         {
+            # The alarm can cut the last pause short just after the job
+            # wrote its files and exited; look once more before calling it
+            # gone, or a finished job is reported as killed (status 302).
+            $result = &$function();
+            return ($TRY_OK, $result) if ($result);
+
             $state = &JobCheck($id, $q, $file1);
             if (($state == $JOB_STATE_DONE) ||
                 ($state == $JOB_STATE_NONE))
