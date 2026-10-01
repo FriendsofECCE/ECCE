@@ -15,14 +15,9 @@ PARENTDIR = $(shell pwd)
 LIBRARY1 = libeccercmd.a
 LIBRARY2 = libeccecomm.a
 LIBRARY3 = libeccecommxt.a
-# Shared libecceexp.so intentionally not generated because it references Tcl
-# (not used by ECCE) and that causes the link to fail except when using a
-# linker directive and even then apps using libecceexp.so won't start.
-#LIBRARY4 = libecceexp.a
 SO_LIBRARY1 = $(patsubst %.a,%.so,$(LIBRARY1))
 SO_LIBRARY2 = $(patsubst %.a,%.so,$(LIBRARY2))
 SO_LIBRARY3 = $(patsubst %.a,%.so,$(LIBRARY3))
-#SO_LIBRARY4 = $(patsubst %.a,%.so,$(LIBRARY4))
 
 #Needed for paths etc
 include $(ECCE_MAKEINC_DIR)/Makefile.defs

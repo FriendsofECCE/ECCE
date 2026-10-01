@@ -764,7 +764,7 @@ def checkShellRotation(verbose):
         return 0
 
     libs = ["eccedsi", "eccexml", "eccetdat", "eccedav", "eccefaces",
-            "ecceutil", "eccecomm", "eccecipc", "ecceexp", "eccercmd"]
+            "ecceutil", "eccecomm", "eccecipc", "eccercmd"]
     out = os.path.join(HERE, "testShellRotation")
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(ROOT, "include"),
             "-o", out,
@@ -812,7 +812,7 @@ def checkFullOrbitalIrrep(verbose):
         return 0
 
     libs = ["eccedsi", "eccexml", "eccetdat", "eccedav", "eccefaces",
-            "ecceutil", "eccecomm", "eccecipc", "ecceexp", "eccercmd"]
+            "ecceutil", "eccecomm", "eccecipc", "eccercmd"]
     out = os.path.join(HERE, "testFullOrbitalIrrep")
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(ROOT, "include"),
             "-o", out,
@@ -899,7 +899,7 @@ def checkSubgroupCrossCheck(verbose):
         return 0
 
     libs = ["eccedsi", "eccexml", "eccetdat", "eccedav", "eccefaces",
-            "ecceutil", "eccecomm", "eccecipc", "ecceexp", "eccercmd"]
+            "ecceutil", "eccecomm", "eccecipc", "eccercmd"]
     out = os.path.join(HERE, "testSubgroupCrossCheck")
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(ROOT, "include"),
             "-o", out,
@@ -967,7 +967,7 @@ def checkDiatomicComposition(verbose):
         return 0
 
     libs = ["eccedsi", "eccexml", "eccetdat", "eccedav", "eccefaces",
-            "ecceutil", "eccecomm", "eccecipc", "ecceexp", "eccercmd"]
+            "ecceutil", "eccecomm", "eccecipc", "eccercmd"]
     out = os.path.join(HERE, "testDiatomicComposition")
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(ROOT, "include"),
             "-o", out,

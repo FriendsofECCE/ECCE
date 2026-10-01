@@ -175,7 +175,7 @@ def run(fixture, code, atoms):
 #  its absence is an environment fact and not a regression.
 SMOKE = os.path.join(HERE, "dialog_smoke.C")
 
-LIBS = ["eccecomm", "eccercmd", "ecceexp", "eccewxgui", "eccewxplotctrl",
+LIBS = ["eccecomm", "eccercmd", "eccewxgui", "eccewxplotctrl",
         "eccewxthings", "eccedsi", "eccedav", "eccecipc", "eccefaces",
         "eccexml", "eccetdat", "ecceutil"]
 

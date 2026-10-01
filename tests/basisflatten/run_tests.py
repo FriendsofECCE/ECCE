@@ -34,7 +34,7 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 
 BUILD = os.environ.get("ECCE_TEST_BUILD", os.path.join(ROOT, "build-cmake"))
 LIBS = ["eccedsi", "eccexml", "eccetdat", "eccedav", "eccefaces",
-        "ecceutil", "eccecomm", "eccecipc", "ecceexp", "eccercmd"]
+        "ecceutil", "eccecomm", "eccecipc", "eccercmd"]
 
 
 def main():

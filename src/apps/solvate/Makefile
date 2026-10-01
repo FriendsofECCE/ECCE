@@ -42,7 +42,6 @@ LDFLAGS = $(ECCE_LDFLAGS) $(LFLAGS)
 ECCE_LIBS =  \
             -leccecomm \
             -leccercmd \
-            -lecceexp \
             -leccewxgui \
             -leccewxplotctrl \
             -leccewxthings \

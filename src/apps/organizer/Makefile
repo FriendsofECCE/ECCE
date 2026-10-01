@@ -46,7 +46,6 @@ ECCE_LIBS =  \
             -leccecommxt \
             -leccecomm \
             -leccercmd \
-            -lecceexp \
             -leccewxgui \
             -leccewxplotctrl \
             -leccewxthings \

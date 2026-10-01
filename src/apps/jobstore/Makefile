@@ -43,7 +43,6 @@ LDFLAGS = $(ECCE_LDFLAGS) $(LFLAGS)
 ECCE_LIBS =  \
             -leccecommxt \
             -leccercmd \
-            -lecceexp \
             -lecceedsi \
             -leccedav \
             -leccecipc \

@@ -31,7 +31,7 @@ OUT = os.path.join(HERE, "testSlaterExpansion")
 #  of that parser here would agree with itself and prove nothing.
 BUILD = os.environ.get("ECCE_TEST_BUILD", os.path.join(ROOT, "build-cmake"))
 LIBS = ["eccedsi", "eccexml", "eccetdat", "eccedav", "eccefaces",
-        "ecceutil", "eccecomm", "eccecipc", "ecceexp", "eccercmd"]
+        "ecceutil", "eccecomm", "eccecipc", "eccercmd"]
 
 
 def roundTrip():

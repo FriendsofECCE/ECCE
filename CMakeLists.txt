@@ -16,11 +16,11 @@ project(ECCE CXX C Fortran)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# Every .c (not .C) file in this tree (33 total, under src/comm/expect,
-# src/inv/dbnodes, src/inv/flclient, src/inv/image, src/wxgui/wxplotctrl)
+# Every .c (not .C) file in this tree (under src/inv/dbnodes,
+# src/inv/flclient, src/inv/image, src/wxgui/wxplotctrl)
 # is vendored ~1990s third-party C, riddled with K&R-style empty-parens
-# forward declarations (e.g. `char *exp_printify();`, later defined and
-# called with real arguments) -- valid, unambiguous C when empty parens
+# forward declarations (e.g. `char *foo();`, later defined and called with
+# real arguments) -- valid, unambiguous C when empty parens
 # mean "unspecified arguments" (K&R/C89 through GNU's own default
 # extensions), a hard error under newer C standard defaults where empty
 # parens instead mean "takes no arguments". Confirmed via real Fedora CI
@@ -217,16 +217,6 @@ else()
   list(FILTER _rcmd_srcs EXCLUDE REGEX "/SshTransport\\.C$")
   set_property(TARGET eccercmd PROPERTY SOURCES ${_rcmd_srcs})
 endif()
-ecce_library(ecceexp    src/comm/expect)
-# Old build's src/comm/expect/Makefile: CCFLAGS += -DNO_UNION_WAIT (this vendored
-# Tcl/Expect code's WAIT_STATUS_TYPE macro defaults to the BSD "union wait" type,
-# which glibc has never provided on Linux - NO_UNION_WAIT selects plain "int").
-target_compile_definitions(ecceexp PRIVATE NO_UNION_WAIT)
-# (K&R empty-parens prototype conflicts in this vendored code are handled
-# by the tree-wide CMAKE_C_STANDARD gnu17 setting above, not a per-target
-# override here -- the same bug shape turned out to also be present in
-# src/inv/image's vendored C, not just here.)
-
 # --- src/inv -> libecceinv.a + libeccemoiv.a (libeccewxinv.a needs wx, TODO) ---
 ecce_library(ecceinv
   src/inv/dbelements
@@ -371,37 +361,37 @@ endfunction()
 ecce_app(load_tgbs src/apps/davutils
   LINK eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(ecmd src/apps/ecmd
-  LINK eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+  LINK eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 # jobstore builds two independent single-file programs from this directory,
 # each with its own main() - not combined into one binary (matches the old
 # Makefile's "multiple PROGRAMS -> each from its own matching .o" rule).
 add_executable(eccejobmaster src/apps/jobstore/eccejobmaster.C)
 target_include_directories(eccejobmaster PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(eccejobmaster PRIVATE
-  eccecommxt eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
+  eccecommxt eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
   ${XercesC_LIBRARIES})
 add_executable(eccejobstore src/apps/jobstore/eccejobstore.C)
 target_include_directories(eccejobstore PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(eccejobstore PRIVATE
-  eccecommxt eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
+  eccecommxt eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
   ${XercesC_LIBRARIES})
 
 # --- wx apps ---
 ecce_app(basistool src/apps/basistool WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(calced src/apps/calced WX
-  LINK eccecomm eccercmd ecceexp eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+  LINK eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(dirdyed src/apps/dirdyed WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(gateway src/apps/gateway WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(launcher src/apps/launcher WX
-  LINK eccecommxt eccecomm eccercmd ecceexp eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+  LINK eccecommxt eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(machbrowser src/apps/machbrowser WX
-  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd ecceexp eccetdat ecceutil)
+  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd eccetdat ecceutil)
 ecce_app(machregister src/apps/machregister WX
   # eccercmd for RCommand::localityNote (#144), the same decision the launch makes.
-  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd ecceexp eccetdat ecceutil)
+  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd eccetdat ecceutil)
 ecce_app(mddynamics src/apps/mddynamics WX
   LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(mdenergy src/apps/mdenergy WX
@@ -409,13 +399,13 @@ ecce_app(mdenergy src/apps/mdenergy WX
 ecce_app(mdoptimize src/apps/mdoptimize WX
   LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(mdprepare src/apps/mdprepare WX
-  LINK eccewxgui eccewxplotctrl eccewxthings eccecommxt eccecomm eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+  LINK eccewxgui eccewxplotctrl eccewxthings eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(msgdialog src/apps/messagedialog WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(metadyn src/apps/metadyn WX
-  LINK eccecomm eccercmd ecceexp eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+  LINK eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(organizer src/apps/organizer WX
-  LINK eccewxguicomm eccecommxt eccecomm eccercmd ecceexp eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+  LINK eccewxguicomm eccecommxt eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(hostkeydialog src/apps/hostkeydialog WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 if(GTK3_FOUND)
@@ -429,11 +419,11 @@ ecce_app(pertable src/apps/pertable WX
 ecce_app(polyed src/apps/polyrate WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(solvate src/apps/solvate WX
-  LINK eccecomm eccercmd ecceexp eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+  LINK eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 
 # --- wx + GL apps ---
 ecce_app(builder src/apps/builder WX GL
-  LINK eccewxguicomm eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccecommxt eccecomm eccercmd ecceexp
+  LINK eccewxguicomm eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccecommxt eccecomm eccercmd 
        eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
        X11::X11 jpeg freetype)
 ecce_app(vizthumbnail src/apps/vizthumbnail WX GL
@@ -1617,7 +1607,7 @@ if(PYTHON3_EXECUTABLE)
   # path (#204).
   add_executable(testRCommandDirect tests/transport/testRCommandDirect.C)
   target_link_libraries(testRCommandDirect PRIVATE
-    eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
+    eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat
     ecceutil ${XercesC_LIBRARIES})
   add_test(NAME transport_rcommand COMMAND testRCommandDirect)
   set_tests_properties(transport_rcommand PROPERTIES TIMEOUT 120)
@@ -1625,7 +1615,7 @@ if(PYTHON3_EXECUTABLE)
   # The machine's sourceFile on a local machine, against recorded results.
   add_executable(testRCommandSource tests/transport/testRCommandSource.C)
   target_link_libraries(testRCommandSource PRIVATE
-    eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
+    eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat
     ecceutil ${XercesC_LIBRARIES})
   add_test(NAME transport_source COMMAND testRCommandSource)
   set_tests_properties(transport_source PROPERTIES TIMEOUT 240)
@@ -1634,7 +1624,7 @@ if(PYTHON3_EXECUTABLE)
   # with one must fail with a message, not a spawn.
   add_executable(testRemovedShells tests/transport/testRemovedShells.C)
   target_link_libraries(testRemovedShells PRIVATE
-    eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
+    eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat
     ecceutil ${XercesC_LIBRARIES})
   add_test(NAME transport_removed_shells COMMAND testRemovedShells)
   set_tests_properties(transport_removed_shells PROPERTIES TIMEOUT 120)
@@ -1643,7 +1633,7 @@ if(PYTHON3_EXECUTABLE)
   # argv with stub terminals, no connection.
   add_executable(testTerminalArgv tests/transport/testTerminalArgv.C)
   target_link_libraries(testTerminalArgv PRIVATE
-    eccecomm eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml
+    eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
     eccetdat ecceutil ${XercesC_LIBRARIES})
   add_test(NAME transport_terminal COMMAND testTerminalArgv)
   set_tests_properties(transport_terminal PROPERTIES TIMEOUT 60)
@@ -1665,31 +1655,31 @@ if(PYTHON3_EXECUTABLE)
     # tests/transport/sshd/rcommand_test.sh, so not a ctest either.
     add_executable(testRCommandSsh tests/transport/testRCommandSsh.C)
     target_link_libraries(testRCommandSsh PRIVATE
-      eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
+      eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat
       ecceutil ${XercesC_LIBRARIES})
 
     # The same through a front end; tests/transport/sshd/frontend_test.sh.
     add_executable(testRCommandFrontend tests/transport/testRCommandFrontend.C)
     target_link_libraries(testRCommandFrontend PRIVATE
-      eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
+      eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat
       ecceutil ${XercesC_LIBRARIES})
 
     # EcceShell's terminals over ssh; tests/transport/sshd/terminal_test.sh.
     add_executable(testTerminal tests/transport/testTerminal.C)
     target_link_libraries(testTerminal PRIVATE
-      eccecomm eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml
+      eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
       eccetdat ecceutil ${XercesC_LIBRARIES})
 
     # A shared ssh connection that goes away; controlmaster_test.sh.
     add_executable(testControlMasterLoss tests/transport/testControlMasterLoss.C)
     target_link_libraries(testControlMasterLoss PRIVATE
-      eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
+      eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat
       ecceutil ${XercesC_LIBRARIES})
 
     # bgcommand -> ecmd -> command; tests/transport/sshd/bgcommand_test.sh.
     add_executable(testBgcommand tests/transport/testBgcommand.C)
     target_link_libraries(testBgcommand PRIVATE
-      eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
+      eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat
       ecceutil ${XercesC_LIBRARIES})
   endif()
 
@@ -1700,7 +1690,7 @@ if(PYTHON3_EXECUTABLE)
   add_executable(launchjob tests/launch/launchjob.C)
   target_include_directories(launchjob PRIVATE ${XercesC_INCLUDE_DIRS})
   target_link_libraries(launchjob PRIVATE
-    eccecommxt eccecomm eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml
+    eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
     eccetdat ecceutil ${XercesC_LIBRARIES})
   add_test(NAME launch
            COMMAND ${PYTHON3_EXECUTABLE}

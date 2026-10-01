@@ -49,7 +49,6 @@ ECCE_LIBS = \
             -leccefaces \
             -leccexml \
             -leccercmd \
-            -lecceexp \
             -leccetdat \
             -lecceutil
 

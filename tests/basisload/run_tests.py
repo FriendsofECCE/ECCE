@@ -73,7 +73,7 @@ REPO = os.path.dirname(os.path.dirname(HERE))
 BUILD = os.environ.get("ECCE_TEST_BUILD", os.path.join(REPO, "build-cmake"))
 DATASERVER = os.path.join(REPO, "packaging", "dataserver")
 LIBS = ["eccedsi", "eccexml", "eccetdat", "eccedav", "eccefaces",
-        "eccecipc", "ecceutil", "eccecomm", "ecceexp", "eccercmd"]
+        "eccecipc", "ecceutil", "eccecomm", "eccercmd"]
 NS = "http://www.emsl.pnl.gov/ecce:"
 LIBPATH = "/Ecce/system/GaussianBasisSetLibrary"
 
