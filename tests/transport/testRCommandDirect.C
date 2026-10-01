@@ -204,6 +204,112 @@ static void put(const string& f, const string& content)
   ofstream(f.c_str()) << content;
 }
 
+// Local get/put: one `cp -r` per call, "No such file" only a warning.  The
+// expectations are what the pty path produced before the copy left it.
+static string slurp(const string& f)
+{
+  ifstream in(f.c_str());
+  return string((istreambuf_iterator<char>(in)), istreambuf_iterator<char>());
+}
+
+static bool exists(const string& f)
+{
+  struct stat sb;
+  return stat(f.c_str(), &sb) == 0;
+}
+
+static void copyChecks(const string& tmp)
+{
+  const string src = tmp + "/csrc", dst = tmp + "/cdst";
+  mkdir(src.c_str(), 0755);
+  mkdir((src + "/tree").c_str(), 0755);
+  put(src + "/a1.txt", "one\n");
+  put(src + "/a2.txt", "two\n");
+  put(src + "/b.dat", "bee\n");
+  put(src + "/tree/leaf", "leaf\n");
+  string err;
+  bool r;
+
+  mkdir(dst.c_str(), 0755);
+  err = "";
+  r = RCommand::put(err, "system", "", "", "", 2, (src + "/*.txt").c_str(),
+                    dst.c_str());
+  check("copy: glob put ok", r && err == "");
+  check("copy: glob put matched .txt only",
+        slurp(dst + "/a1.txt") == "one\n" && slurp(dst + "/a2.txt") == "two\n" &&
+        !exists(dst + "/b.dat"));
+
+  err = "";
+  r = RCommand::get(err, "system", "", "", "", 2, (src + "/b.dat").c_str(),
+                    dst.c_str());
+  check("copy: get one file", r && slurp(dst + "/b.dat") == "bee\n");
+
+  err = "";
+  r = RCommand::put(err, "system", "", "", "", 2, (src + "/tree").c_str(),
+                    dst.c_str());
+  check("copy: directory source is recursive",
+        r && slurp(dst + "/tree/leaf") == "leaf\n");
+
+  vector<string> two;
+  two.push_back(src + "/a1.txt");
+  two.push_back(src + "/missing");
+  two.push_back(src + "/a2.txt");
+  mkdir((tmp + "/cdst2").c_str(), 0755);
+  err = "";
+  r = RCommand::get(err, "system", "", "", "", two, tmp + "/cdst2");
+  check("copy: a missing name among others is skipped",
+        r && slurp(tmp + "/cdst2/a1.txt") == "one\n" &&
+        slurp(tmp + "/cdst2/a2.txt") == "two\n");
+
+  // A name that matches nothing is dropped by the glob, so cp gets no
+  // source and says so; that is a failure, not the "No such file" warning.
+  err = "";
+  r = RCommand::get(err, "system", "", "", "", 2, (src + "/missing").c_str(),
+                    dst.c_str());
+  check("copy: only a missing name fails",
+        !r && err.find("Copy command cp failed") == 0 &&
+        err.find("missing destination file operand") != string::npos);
+  err = "";
+  r = RCommand::get(err, "system", "", "", "", 2, (src + "/nomatch*").c_str(),
+                    dst.c_str());
+  check("copy: an unmatched glob fails the same way",
+        !r && err.find("missing destination file operand") != string::npos);
+  err = "";
+  r = RCommand::put(err, "system", "", "", "", 3, (src + "/a1.txt").c_str(),
+                    (src + "/a2.txt").c_str(), (src + "/b.dat").c_str());
+  check("copy: several files to a file fails",
+        !r && err.find("Not a directory") != string::npos);
+  err = "";
+  r = RCommand::put(err, "system", "", "", "", 2, (src + "/a1.txt").c_str(),
+                    (tmp + "/nodir/x").c_str());
+  check("copy: a missing target directory is only a warning",
+        r && err == "" && !exists(tmp + "/nodir"));
+  err = "";
+  r = RCommand::put(err, "system", "", "", "", 2, (src + "/a1.txt").c_str(),
+                    (tmp + "/newname").c_str());
+  check("copy: single file to a new name",
+        r && slurp(tmp + "/newname") == "one\n");
+  put(src + "/it's a name", "q\n");
+  err = "";
+  r = RCommand::put(err, "system", "", "", "", 2, (src + "/it's a name").c_str(),
+                    dst.c_str());
+  check("copy: a quote in a name", r && exists(dst + "/it's a name"));
+  err = "";
+  r = RCommand::put(err, "system", "", "", "", 2, (src + "/a*").c_str(),
+                    "relative_dst_ecce_nosuch");
+  check("copy: several files to a missing target is only a warning",
+        r && err == "" && !exists("relative_dst_ecce_nosuch"));
+  if (geteuid() != 0) {
+    chmod(dst.c_str(), 0555);
+    err = "";
+    r = RCommand::put(err, "system", "", "", "", 2, (src + "/a1.txt").c_str(),
+                      (dst + "/ro").c_str());
+    check("copy: a refused write fails",
+          !r && err.find("Permission denied") != string::npos);
+    chmod(dst.c_str(), 0755);
+  }
+}
+
 int main()
 {
   // RCommand asks for the login it runs as.
@@ -251,6 +357,7 @@ int main()
   }
 
   directChecks();
+  copyChecks(tmp);
   failures += extra;
 
   string cmd = "rm -rf " + tmp;

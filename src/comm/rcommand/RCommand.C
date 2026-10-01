@@ -3023,11 +3023,54 @@ bool RCommand::isOpen(void)
 string RCommand::commError(void)
 { return p_errMessage; }
 
+// A local get/put as one `cp -r` without the pty.  The verdict comes from
+// cp's messages, as it did on the pty: "No such file" is only a warning,
+// any other "cp: " line fails the copy.
+static bool localCopy(string& errMessage, const string& machine, char** argv)
+{
+  string script = "exec 2>&1; exec cp -r --";
+  int n = 2;
+  for (; argv[n]; n++) script += " " + shQuote(argv[n]);
+
+  DirectTransport t;
+  TransportResult res = t.run(script, RC_COPY_TIMEOUT);
+  if (res.status == -1 || res.timedOut) {
+    errMessage = res.timedOut ? "Timeout running copy command cp"
+                              : "Unable to spawn copy command cp: " + res.error;
+    return false;
+  }
+
+  const string where = (machine=="" || machine=="-f" || machine=="system") ?
+                       RCommand::whereami() : machine;
+  string text = res.out + res.err;
+  size_t pos = 0;
+  while (pos < text.size()) {
+    size_t eol = text.find('\n', pos);
+    string line = text.substr(pos, eol == string::npos ? eol : eol - pos);
+    const size_t start = pos;
+    pos = eol == string::npos ? text.size() : eol + 1;
+    if (line.find("No such file or directory") != string::npos ||
+        line.find("No match") != string::npos)
+      continue;
+    if (line.compare(0, 4, "cp: ") != 0) continue;
+    if (line.find("specified more than once") != string::npos) return true;
+    // Everything cp said from here on, as the pty path reported it.
+    errMessage = "Copy command cp failed for " + where + ": " +
+                 text.substr(start + 4,
+                             text.find_last_not_of("\n") + 1 - (start + 4));
+    return false;
+  }
+  return true;
+}
+
 bool RCommand::copy(string& errMessage,
                     const string& machine, const string& copyCmd,
                     const string& userName, const string& password,
                     char** argv)
 {
+  if (copyCmd == "cp")
+    return localCopy(errMessage, machine, argv);
+
   bool status = false;
 
   if (getenv("ECCE_RCOM_DEBUGGING"))
