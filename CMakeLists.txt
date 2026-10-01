@@ -1727,6 +1727,11 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  add_test(NAME launch_jobwait
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/jobwait_test.py --control
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_jobwait PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
 
   # tests/teaching -- introductory chemistry teaching calculations run end
   # to end through Launch, with NWChem, and checked against known answers.
