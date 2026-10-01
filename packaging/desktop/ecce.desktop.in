@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=ECCE
+GenericName=Computational Chemistry Environment
+Comment=Build molecules, set up and run calculations, and analyse the results
+Exec=@ECCE_WRAPPER_DESTINATION@/ecce
+Icon=ecce
+Terminal=false
+Categories=Science;Chemistry;
+Keywords=chemistry;NWChem;Gaussian;ORCA;molecule;
+StartupWMClass=organizer
