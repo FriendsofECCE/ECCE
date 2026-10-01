@@ -82,9 +82,13 @@ public:
 
   // What the user is told when ssh printed `err` and exited 255: a message
   // for a failure that needs a login by hand, or for a connection that could
-  // not be made, or "" when err does not look like an ssh failure.
+  // not be made, or "" when err does not look like an ssh failure.  With
+  // sharedConnection (the host's config shares connections) a refused login
+  // is reported as "no shared connection is open", since opening it is what
+  // the user has to do.
   static std::string explainFailure(const std::string& host,
-                                    const std::string& err);
+                                    const std::string& err,
+                                    bool sharedConnection = false);
 
 private:
   OpenSshTransport(const OpenSshTransport&);

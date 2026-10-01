@@ -204,7 +204,12 @@ int main()
     const string interactive = "ssh to noauth needs an interactive login; "
       "log in once with 'ssh noauth' (your connection sharing / two-factor), "
       "then try again.";
+    // ssh -G must see a config of ours, not the tester's own.
+    spit(tmp + "/empty.cfg", "");
+    spit(tmp + "/shared.cfg", "Host noauth\n  ControlMaster auto\n  ControlPath " +
+         tmp + "/cm-%C\n");
     OpenSshTransport* n = make("noauth");
+    n->setConfigFile(tmp + "/empty.cfg");
     string e;
     bool ok = n->connect(e);
     check("refused login: the interactive-login message", !ok && e == interactive, e);
@@ -213,6 +218,18 @@ int main()
           r.status == -1 && r.error == interactive &&
           r.error.find("connection") != string::npos, r.error);
     delete n;
+
+    OpenSshTransport* sh1 = make("noauth", "u");
+    sh1->setConfigFile(tmp + "/shared.cfg");
+    ok = sh1->connect(e);
+    const string noMaster = "No shared ssh connection to noauth is open. Run "
+      "\"ssh noauth\" once in a terminal (that opens it), then try again.";
+    check("shared host, no master: says no shared connection is open",
+          !ok && e == noMaster && e.find("password") == string::npos, e);
+    TransportResult sr = sh1->run("echo hi");
+    check("the same on a command", sr.status == -1 && sr.error == noMaster,
+          sr.error);
+    delete sh1;
 
     OpenSshTransport* k = make("badkey");
     ok = k->connect(e);

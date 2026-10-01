@@ -56,8 +56,8 @@ int main(int argc, char** argv)
     setenv("ECCE_REALUSERHOME", getenv("HOME"), 1);
   setenv("ECCE_TRANSPORT", "ssh", 1);
 
-  const string interactive = "ssh to " + host + " needs an interactive login; "
-    "log in once with 'ssh " + host + "' (your connection sharing / two-factor), "
+  const string interactive = "No shared ssh connection to " + host +
+    " is open. Run \"ssh " + host + "\" once in a terminal (that opens it), "
     "then try again.";
 
   string o;

@@ -190,7 +190,8 @@ OpenSshTransport::Backend OpenSshTransport::backendFor(const std::string& host,
 }
 
 std::string OpenSshTransport::explainFailure(const std::string& host,
-                                             const std::string& err)
+                                             const std::string& err,
+                                             bool sharedConnection)
 {
   static const char* const hostKey[] = {
     "host key verification failed", "remote host identification has changed", 0 };
@@ -212,10 +213,14 @@ std::string OpenSshTransport::explainFailure(const std::string& host,
              "\"ssh " + host + "\" once in a terminal to check and accept it, "
              "then try again.";
   for (int i = 0; login[i]; i++)
-    if (low.find(login[i]) != std::string::npos)
+    if (low.find(login[i]) != std::string::npos) {
+      if (sharedConnection)
+        return "No shared ssh connection to " + host + " is open. Run \"ssh " +
+               host + "\" once in a terminal (that opens it), then try again.";
       return "ssh to " + host + " needs an interactive login; log in once "
              "with 'ssh " + host + "' (your connection sharing / two-factor), "
              "then try again.";
+    }
   for (int i = 0; connection[i]; i++) {
     size_t at = low.find(connection[i]);
     if (at == std::string::npos) continue;
@@ -285,7 +290,8 @@ void OpenSshTransport::explain(TransportResult& r) const
 {
   if (r.timedOut) return;
   if (r.status == 255) {
-    std::string why = explainFailure(p_host, r.err);
+    std::string why = explainFailure(p_host, r.err,
+      configSharesConnection(p_host, p_user, p_configFile));
     if (!why.empty()) { r.error = why; r.status = -1; }
   } else if (r.status < 0 && !r.error.empty() &&
              r.error.find("command not found") != std::string::npos) {
