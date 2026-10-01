@@ -141,7 +141,6 @@ public:
     static const wxWindowID ID_SPIN_QUEUE_MAXMEMORY;
     static const wxWindowID ID_PANEL_WXMACHINEREGISTER_APPLICATIONS;
     static const wxWindowID ID_SCROLLEDWINDOW_WXMACHINEREGISTER_FORM;
-    static const wxWindowID ID_CHECKBOX_REMSHELL_SSH_PASS;
     static const wxWindowID ID_TEXT_MACHINE_REFNAME;
     static const wxWindowID ID_TEXT_QUEUE_NAME;
     static const wxWindowID ID_CHOICEBOX_QUEUE;
@@ -152,7 +151,6 @@ public:
     static const wxWindowID ID_SPIN_QUEUE_MAXWALL;
     static const wxWindowID ID_CHECKBOX_REMSHELL_SSH;
     static const wxWindowID ID_BUTTON_FORM_CLOSE;
-    static const wxWindowID ID_CHECKBOX_REMSHELL_SSH_FTP;
     static const wxWindowID ID_SPIN_QUEUE_MINSCRATCH;
     static const wxWindowID ID_SPIN_MACHINE_NUMPROCS;
     static const wxWindowID ID_BUTTON_FORM_CLEAR;

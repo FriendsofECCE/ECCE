@@ -106,7 +106,7 @@ RefMachine *MachinePreferences::getRegisteredMachine()
 
 string MachinePreferences::getRemoteShell() const
 {
-    return p_remoteShell;
+    return RefMachine::sshFamilyName(p_remoteShell);
 }
 
 

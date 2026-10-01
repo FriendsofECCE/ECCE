@@ -87,8 +87,6 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent,
     p_codeNames = CodeFactory::getFullySupportedCodeNames();
 
     p_shellNames.push_back("ssh");
-    p_shellNames.push_back("ssh/ftp");
-    p_shellNames.push_back("sshpass");
 
     this->initialize();
     this->loadMachinesList();
@@ -239,12 +237,6 @@ void WxMachineRegister::initialize()
         ewxCheckBox *checkbox;
 
         checkbox = (ewxCheckBox*)(this->FindWindowById(ID_CHECKBOX_REMSHELL_SSH));
-        p_remshellsCheckboxes.push_back(checkbox);
-
-        checkbox = (ewxCheckBox*)(this->FindWindowById(ID_CHECKBOX_REMSHELL_SSH_FTP));
-        p_remshellsCheckboxes.push_back(checkbox);
-
-        checkbox = (ewxCheckBox*)(this->FindWindowById(ID_CHECKBOX_REMSHELL_SSH_PASS));
         p_remshellsCheckboxes.push_back(checkbox);
 
         p_queueAllctnAcctsCheckbox = (ewxCheckBox*)(wxWindow::FindWindowById(ID_CHECKBOX_QUEUE_ALLOCATION));
@@ -1410,8 +1402,6 @@ string WxMachineRegister::collectSettings() const
 
 
     ret += "&ssh=" + StringConverter::toString(p_remshellsCheckboxes[0]->IsChecked());
-    ret += "&sshftp=" + StringConverter::toString(p_remshellsCheckboxes[1]->IsChecked());
-    ret += "&sshpass=" + StringConverter::toString(p_remshellsCheckboxes[2]->IsChecked());
 
     // Applications - first pass in list of all known codes.  Then one by
     // one, pass in info for each code.

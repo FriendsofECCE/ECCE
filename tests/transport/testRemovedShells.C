@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 #include "comm/RCommand.H"
+#include "tdat/RefMachine.H"
 
 using namespace std;
 
@@ -64,6 +65,13 @@ int main()
   for (int i = 0; kept[i]; i++)
     check(RCommand::removedShellMessage(kept[i]).empty(),
           string("'") + kept[i] + "' is still supported");
+
+  // sshpass and ssh/ftp are plain ssh now: a machine saved with either
+  // reads back as ssh, and everything else is left alone.
+  check(RefMachine::sshFamilyName("sshpass") == "ssh", "sshpass reads as ssh");
+  check(RefMachine::sshFamilyName("ssh/ftp") == "ssh", "ssh/ftp reads as ssh");
+  check(RefMachine::sshFamilyName("ssh") == "ssh", "ssh stays ssh");
+  check(RefMachine::sshFamilyName("telnet") == "telnet", "telnet stays telnet");
 
   unlink((home + "/siteconfig/remote_shells.site").c_str());
   rmdir((home + "/siteconfig").c_str());

@@ -191,17 +191,8 @@ sub doAccept {
   }
   $line .= "\t";
 
-  $shell = "";
-  if ($contents{"ssh"} eq "true") { $shell = "ssh"; }
-  if ($contents{"sshftp"} eq "true") { 
-    $shell .= ":" if ($shell ne "");
-    $shell .= "ssh/ftp"; 
-  }
-  if ($contents{"sshpass"} eq "true") { 
-    $shell .= ":" if ($shell ne "");
-    $shell .= "sshpass"; 
-  }
-  if ($shell eq "") { $shell = "ssh";}  # don't leave empty field
+  # ssh is the only remote shell; the old sshftp and sshpass keys mean ssh.
+  $shell = "ssh";
   $line .= $shell . "\t";;
 
   foreach $code (@fullyregistered) {

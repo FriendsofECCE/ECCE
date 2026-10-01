@@ -520,10 +520,20 @@ vector<string>* RefMachine::remshells(void) const
   string remshells = p_remshells;
   string token;
   StringTokenizer next(remshells);
-  while (!(token = next.next(":")).empty())
-    result->push_back(token);
+  while (!(token = next.next(":")).empty()) {
+    token = sshFamilyName(token);
+    if (find(result->begin(), result->end(), token) == result->end())
+      result->push_back(token);
+  }
 
   return result;
+}
+
+// sshpass and ssh/ftp were separate choices once; every machine is reached
+// with plain ssh now, and a machine saved with either reads back as ssh.
+string RefMachine::sshFamilyName(const string& shell)
+{
+  return (shell == "sshpass" || shell == "ssh/ftp") ? string("ssh") : shell;
 }
 
 vector<string>* RefMachine::codes(void) const

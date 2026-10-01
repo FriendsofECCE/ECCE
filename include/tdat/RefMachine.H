@@ -104,6 +104,7 @@ public:
 
   // Query Operations
     bool hasRemShell(const string& remShell) const;
+    static string sshFamilyName(const string& shell);
     bool hasQueue(const string& queue) const;
     bool hasCode(const string& code) const;
 
