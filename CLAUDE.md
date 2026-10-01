@@ -827,13 +827,15 @@ MOPAC → spec) is the bridge it would reuse.
   my data" call synchronously fires a selection/change event into a
   handler with unmet dependencies) in any other panel that builds a
   grid before finishing `CreateControls()`.
-- **Three `.pjd` files are behind their generated code**, which was
-  edited by hand inside DialogBlocks' `////@begin`/`////@end` blocks:
-  `NModesGUI` (Graph/Table radio box, #109), `CalcEdGUI` (Verify
-  button and lamp, Use Symmetry, Regenerate Input) and
-  `WxMachineRegisterGUI` (scrolling form #187, locality label).
-  Regenerating any of them from DialogBlocks silently deletes those
-  controls. Port them into the `.pjd` first, in DialogBlocks itself.
+- **The `.pjd` (DialogBlocks) files are reference only; never regenerate
+  code from them.** They name plain wx classes, and PNNL's step that
+  turned the output into ECCE's `ewx` subclasses is lost, so
+  `dialogblocks --generate` replaces every `ewx` control with a plain
+  wx one (63 references became 3 in machine registration). Three are
+  also missing controls added by hand since: `NModesGUI` (#109),
+  `CalcEdGUI` (Verify, Use Symmetry, Regenerate Input) and
+  `WxMachineRegisterGUI` (#187). Edit the generated `.C`/`.H` directly;
+  when #210 reworks a dialog, delete its `.pjd` in the same commit.
 - **`wxEXPAND|wxALIGN_CENTER` on the same sizer item** — a documented wx
   footgun; alignment can suppress expand instead of being ignored.
   Combined with a widget that only learns its own size inside its first
