@@ -121,6 +121,12 @@ class TaskJob : public Job,
       virtual bool launchdata(const Launchdata& launchinfo);
       virtual Launchdata launchdata(const bool &useInputProvider = false) const;
 
+      /** The user asked for this job to be cancelled.  eccejobstore reads it
+          to tell a cancelled job from one that vanished.  Cleared by
+          launch and by any reset to created/ready. */
+      virtual bool killRequested(bool requested);
+      virtual bool killRequested() const;
+
       virtual bool joblog(const char* log);
       virtual string joblog(void) const;
 

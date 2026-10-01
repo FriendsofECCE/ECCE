@@ -2391,13 +2391,11 @@ void interactStatus(char* statusData)
   static int lastStatus = -1;
 
   int status = 0;
+  bool emptyStatus = (statusData==NULL || *statusData=='\0');
 
-  if (statusData==NULL || *statusData=='\0') {
+  if (emptyStatus)
     status = 302;
-    logErr("eccejobmonitor",
-           "Status message contained no value--setting calculation to killed "
-           "(possible file system problem on compute server, disk full?)");
-  } else
+  else
     status = atoi(statusData);
 
   if (lastStatus != status) {
@@ -2420,7 +2418,21 @@ void interactStatus(char* statusData)
       }
     } else if (status == 302) {
       gUnsuccessfulStatus = 0;
-      calcUpdateState(ResourceDescriptor::STATE_KILLED);
+      // 302 only means the job is gone.  It is a cancel only if the user
+      // asked for one (RunMgmt::terminate); read it fresh, the request was
+      // made by another process.
+      if (calculation && calculation->killRequested()) {
+        calcUpdateState(ResourceDescriptor::STATE_KILLED);
+      } else {
+        gFailReason = emptyStatus
+          ? "The job monitor sent an empty status (possible file system "
+            "problem on the compute server, disk full?) and the job was "
+            "not cancelled by the user"
+          : "The job ended with neither an output file nor a status file, "
+            "and was not cancelled by the user";
+        logErr("eccejobmonitor", gFailReason);
+        calcUpdateState(ResourceDescriptor::STATE_SYSTEM_FAILURE);
+      }
     } else if (status == 303) {
       gUnsuccessfulStatus = 0;
       calcUpdateState(ResourceDescriptor::STATE_LOADED);
