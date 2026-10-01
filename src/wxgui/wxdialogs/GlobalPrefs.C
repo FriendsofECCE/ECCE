@@ -90,7 +90,7 @@ GlobalPrefs::GlobalPrefs(wxWindow* parent)
     p_colorTheme(NULL), p_fontSize(NULL), p_dateFormat(NULL),
     p_timeFormat(NULL), p_unit(NULL), p_beepError(NULL), p_beepWarn(NULL),
     p_focus(NULL), p_confirmExit(NULL), p_closeShells(NULL),
-    p_savePasswords(NULL), p_builtinSsh(NULL), p_showBusy(NULL), p_alwaysOnTop(NULL),
+    p_savePasswords(NULL), p_showBusy(NULL), p_alwaysOnTop(NULL),
     p_leftClickNewApp(NULL), p_orientation(NULL),
     p_stateIconSizer(NULL), p_resetAll(NULL), p_restoring(true)
 {
@@ -297,7 +297,7 @@ void GlobalPrefs::createProgramsPage(wxWindow* page)
   termLabels.push_back("Other");
   p_terminal = makeProgramRow(sb, grid, _("Terminal:"), termLabels, termVals,
                               PrefLabels::TERMINAL);
-  p_terminal.choice->SetToolTip(_("Used only to run terminal editors such as vi, started as: terminal -e editor file. With built-in ssh, remote Open Shell and Tail use it too; otherwise they use xterm."));
+  p_terminal.choice->SetToolTip(_("Used only to run terminal editors such as vi, started as: terminal -e editor file. Open Shell and Tail on a remote machine use it too."));
 
   const char* brPresets[] = {"", "firefox", "firefox-esr", "chromium"};
   vector<string> brVals(brPresets, brPresets + 4);
@@ -311,31 +311,16 @@ void GlobalPrefs::createProgramsPage(wxWindow* page)
 
   outer->Add(box, 0, wxGROW|wxALL, PAD);
 
-  wxStaticBoxSizer* cbox = new wxStaticBoxSizer(wxVERTICAL, page, _("Connections"));
-  p_builtinSsh = new ewxCheckBox(cbox->GetStaticBox(), wxID_ANY,
-      _("Run commands without a shell session (built-in ssh)"),
-      wxDefaultPosition, wxDefaultSize, wxCHK_2STATE);
-  p_builtinSsh->SetToolTip(_("Runs commands on this machine directly and on ssh machines through ECCE's own ssh library instead of a scripted shell session. Applies to connections opened after the change."));
-  cbox->Add(p_builtinSsh, 0, wxALL, 3);
-  cbox->Add(new ewxStaticText(cbox->GetStaticBox(), wxID_ANY,
-      _("Applies to connections opened after the change. A host whose ssh config shares connections (ControlMaster) is served by the ssh command instead; see ECCE_SSH_BACKEND.")),
-      0, wxLEFT|wxBOTTOM, PAD);
-  p_builtinSsh->Bind(wxEVT_CHECKBOX, &GlobalPrefs::OnGlobalChange, this);
-  outer->Add(cbox, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, PAD);
-
   outer->Add(new ewxStaticText(page, wxID_ANY,
       _("Default editor: VISUAL or EDITOR if set, otherwise vi.\n"
         "Terminal editors (vi, vim, nano, emacs -nw) run in this terminal;\n"
-        "Open Shell and Tail use xterm, or this terminal with built-in ssh.\n"
+        "Open Shell and Tail use this terminal on a remote machine, xterm locally.\n"
         "Choose Other to type a command; it may include arguments.")),
       0, wxLEFT|wxRIGHT|wxBOTTOM, PAD*2);
 
   // Environment variables win over the settings above.
   string note = envOverrideNote("ECCE_EDITOR", "the editor");
   string b = envOverrideNote("ECCE_BROWSER", "the browser");
-  if (!note.empty() && !b.empty()) note += "\n";
-  note += b;
-  b = envOverrideNote("ECCE_TRANSPORT", "the built-in ssh");
   if (!note.empty() && !b.empty()) note += "\n";
   note += b;
   if (!note.empty()) {
@@ -527,7 +512,6 @@ void GlobalPrefs::OnResetAll(wxCommandEvent& event)
     setProgramRow(p_terminal, "");
     setProgramRow(p_browser, "");
   }
-  if (!p_builtinSsh->GetValue()) p_builtinSsh->SetValue(true);
 
   if (!isDefaultStatePref()) {
     resetAllStateColors();
@@ -617,7 +601,6 @@ void GlobalPrefs::saveSettings()
   eccePref.setString(PrefLabels::EDITOR, programValue(p_editor));
   eccePref.setString(PrefLabels::TERMINAL, programValue(p_terminal));
   eccePref.setString(PrefLabels::BROWSER, programValue(p_browser));
-  eccePref.setBool(PrefLabels::BUILTINSSH, p_builtinSsh->GetValue());
   eccePref.saveFile();
 
   Preferences colorPref = Preferences(PrefLabels::COLORPREFFILE);
@@ -693,8 +676,6 @@ void GlobalPrefs::restoreSettings()
   strBuf = "";
   eccePref.getString(PrefLabels::BROWSER, strBuf);
   setProgramRow(p_browser, strBuf);
-  if (!eccePref.getBool(PrefLabels::BUILTINSSH, boolBuf)) boolBuf = true;
-  p_builtinSsh->SetValue(boolBuf);
 
   Preferences colorPref = Preferences(PrefLabels::COLORPREFFILE);
   if (!colorPref.getString(PrefLabels::COLORTHEME, strBuf))
@@ -789,7 +770,7 @@ bool GlobalPrefs::isDefaultGatewayPref()
 bool GlobalPrefs::isDefaultPrograms()
 {
   return programValue(p_editor).empty() && programValue(p_terminal).empty() &&
-         programValue(p_browser).empty() && p_builtinSsh->GetValue();
+         programValue(p_browser).empty();
 }
 
 
