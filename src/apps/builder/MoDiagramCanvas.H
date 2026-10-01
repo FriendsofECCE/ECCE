@@ -112,6 +112,18 @@ class MoDiagramCanvas : public wxPanel
       p_haveFragments = haveFragments;
       p_note = note;
       p_headline = headline;
+      p_internal = MoColumn();
+      Refresh();
+    }
+
+    /**
+     * Ligand-internal levels of a metal complex (#162): a column of
+     * their own at the far right, grey, at their true energies, with no
+     * correlation lines.  Call after setDiagram(), which clears it.
+     */
+    void setInternal(const MoColumn& internal)
+    {
+      p_internal = internal;
       Refresh();
     }
 
@@ -590,7 +602,8 @@ class MoDiagramCanvas : public wxPanel
           const int count = level.degeneracy > 0 ? level.degeneracy : 1;
           const int groupLeft = x + drawn*slot;
 
-          const wxColour colour = levelColour(level);
+          const wxColour colour = p_muted ? wxColour(150, 150, 150)
+                                          : levelColour(level);
           dc.SetPen(wxPen(colour, 2));
 
           //  A DEGENERATE SET WHOSE ORBITALS ARE NOT AT ONE ENERGY is
@@ -996,7 +1009,7 @@ class MoDiagramCanvas : public wxPanel
         const int totalA = (int)(level.occupancy + 0.5);
         const int totalB = (int)(level.occupancyBeta + 0.5);
         if (totalA <= 0 && totalB <= 0) return;
-        dc.SetPen(wxPen(*wxBLUE, 2));
+        dc.SetPen(wxPen(p_muted ? wxColour(160, 160, 190) : *wxBLUE, 2));
         for (int d = 0; d < count; d++) {
           const bool up   = d < totalA;
           const bool down = d < totalB;
@@ -1033,7 +1046,7 @@ class MoDiagramCanvas : public wxPanel
       const int singles = (total < count) ? total : count;
       const int pairs   = total - singles;
 
-      dc.SetPen(wxPen(*wxBLUE, 2));
+      dc.SetPen(wxPen(p_muted ? wxColour(160, 160, 190) : *wxBLUE, 2));
       for (int d = 0; d < count; d++) {
         const int perOrbital = (d < singles ? 1 : 0) + (d < pairs ? 1 : 0);
         if (perOrbital <= 0) continue;
@@ -1091,8 +1104,8 @@ class MoDiagramCanvas : public wxPanel
 
       //  Energy range over everything that will be drawn.
       p_lo = p_hi = p_centre.levels[0].energy;
-      const MoColumn* cols[3] = { &p_left, &p_centre, &p_right };
-      for (int c = 0; c < 3; c++) {
+      const MoColumn* cols[4] = { &p_left, &p_centre, &p_right, &p_internal };
+      for (int c = 0; c < 4; c++) {
         for (size_t i = 0; i < cols[c]->levels.size(); i++) {
           p_lo = min(p_lo, cols[c]->levels[i].energy);
           p_hi = max(p_hi, cols[c]->levels[i].energy);
@@ -1253,10 +1266,21 @@ class MoDiagramCanvas : public wxPanel
       const int centreWidth = max(levelWidth,
                                   min(3*levelWidth, 26*widestRow(p_centre)));
 
-      const int xLeft   = size.x/6 - (leftWidth - levelWidth)/2;
-      const int xCentre = size.x/2 - centreWidth/2;
-      const int xRight  = (5*size.x)/6 - levelWidth
-                          - (rightWidth - levelWidth)/2;
+      //  With the ligand-internal column everything moves left to make
+      //  room; the donor column keeps its labels to its right, so the new
+      //  column sits beyond them and the donor-to-centre lines never
+      //  cross it.
+      const bool haveInternal = p_haveFragments && !p_internal.levels.empty();
+      const int xLeft   = haveInternal
+          ? (14*size.x)/100 - (leftWidth - levelWidth)/2
+          : size.x/6 - (leftWidth - levelWidth)/2;
+      const int xCentre = haveInternal ? (36*size.x)/100 - centreWidth/2
+                                       : size.x/2 - centreWidth/2;
+      const int xRight  = haveInternal
+          ? (58*size.x)/100 - (rightWidth - levelWidth)/2
+          : (5*size.x)/6 - levelWidth - (rightWidth - levelWidth)/2;
+      const int internalWidth = levelWidth;
+      const int xInternal = (80*size.x)/100 - internalWidth/2;
 
       //  The energy axis.  A correlation diagram without one is a set
       //  of floating dashes: the reader has to be told which way is up
@@ -1315,6 +1339,18 @@ class MoDiagramCanvas : public wxPanel
       }
       dc.DrawText(wxString(p_centre.title.c_str(), wxConvUTF8),
                   xCentre, top - 38);
+      if (haveInternal) {
+        dc.SetTextForeground(wxColour(130, 130, 130));
+        const string& t = p_internal.title;
+        const string::size_type nl = t.find('\n');
+        dc.DrawText(wxString(t.substr(0, nl).c_str(), wxConvUTF8),
+                    xInternal - 10, top - 38);
+        if (nl != string::npos) {
+          dc.DrawText(wxString(t.substr(nl + 1).c_str(), wxConvUTF8),
+                      xInternal - 10, top - 38 + dc.GetTextExtent(wxT("Xg")).y);
+        }
+        dc.SetTextForeground(wxColour(60, 60, 60));
+      }
 
       //  Correlation lines first, so the levels sit on top of them.
       if (p_haveFragments) {
@@ -1329,7 +1365,12 @@ class MoDiagramCanvas : public wxPanel
           const MoLevel& reached = p_centre.levels[link.centreLevel];
           wxColour tint = levelColour(reached);
           if (reached.pairing < 0) tint = wxColour(165, 165, 165);
-          else tint = wxColour((tint.Red()   + 2*255)/3,
+          else if (haveInternal) {
+            //  A metal complex's metal-ligand lines are the point of it.
+            tint = wxColour((2*tint.Red()   + 255)/3,
+                            (2*tint.Green() + 255)/3,
+                            (2*tint.Blue()  + 255)/3);
+          } else tint = wxColour((tint.Red()   + 2*255)/3,
                                (tint.Green() + 2*255)/3,
                                (tint.Blue()  + 2*255)/3);
           dc.SetPen(wxPen(tint, 1, wxPENSTYLE_SHORT_DASH));
@@ -1392,6 +1433,51 @@ class MoDiagramCanvas : public wxPanel
       //  qualitative diagram is what this is for.
       drawColumn(dc, p_centre, xCentre, centreWidth, plot, true, &p_hits,
                  -1, true);
+
+      //  THE LIGAND-FIELD SPLITTING (#162), between the two d-block
+      //  levels the panel marked, drawn beside the molecular column so
+      //  no level or label is moved for it.  Positions come from the
+      //  same levelYIn() the levels are drawn with.
+      {
+        size_t lower = 0, upper = 0;
+        if (MoDiagram::deltaLevels(p_centre.levels, lower, upper)) {
+          const int yLow = levelYIn(dc, p_centre, plot, true, (int)lower);
+          const int yHigh = levelYIn(dc, p_centre, plot, true, (int)upper);
+          const int ax = xCentre + centreWidth + 10;
+
+          string g = p_group;
+          for (size_t i = 0; i < g.size(); i++) g[i] = tolower(g[i]);
+          const char *name = (g == "oh") ? "\xce\x94o"
+                           : (g == "td") ? "\xce\x94t" : "\xce\x94";
+
+          dc.SetPen(wxPen(wxColour(30, 30, 30), 2));
+          dc.DrawLine(ax, yLow, ax, yHigh);
+          dc.DrawLine(ax, yHigh, ax - 4, yHigh + 8);
+          dc.DrawLine(ax, yHigh, ax + 4, yHigh + 8);
+          dc.DrawLine(ax, yLow, ax - 4, yLow - 8);
+          dc.DrawLine(ax, yLow, ax + 4, yLow - 8);
+
+          wxFont bold = *wxNORMAL_FONT;
+          bold.SetWeight(wxFONTWEIGHT_BOLD);
+          dc.SetFont(bold);
+          dc.SetTextForeground(wxColour(30, 30, 30));
+          const wxString text(name, wxConvUTF8);
+          dc.DrawText(text, ax + 6,
+                      (yLow + yHigh)/2 - dc.GetTextExtent(text).y/2);
+          dc.SetFont(*wxSMALL_FONT);
+        }
+      }
+
+      if (haveInternal) {
+        p_placed.clear();
+        p_notes.clear();
+        p_muted = true;
+        drawColumn(dc, p_internal, xInternal, internalWidth, plot, true,
+                   &p_hits, +1, true);
+        p_muted = false;
+        p_placed.clear();
+        p_notes.clear();
+      }
 
       //  The stack, from the bottom of the window upward.
       int line = size.y - 4;
@@ -1528,7 +1614,8 @@ class MoDiagramCanvas : public wxPanel
     }
 
     MoDiagramClickTarget *p_owner;
-    MoColumn p_left, p_centre, p_right;
+    MoColumn p_left, p_centre, p_right, p_internal;
+    bool     p_muted = false;   // drawing the ligand-internal column
     vector<MoConnection> p_links;
 
     /**

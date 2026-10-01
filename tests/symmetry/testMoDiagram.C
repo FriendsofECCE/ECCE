@@ -944,6 +944,58 @@ int main()
           "has real share on, unlike the ordinary one-sided rule");
   }
 
+  //  One partner per irrep, and the d block by composition (#162).
+  {
+    struct Row { const char* irrep; double occ; double energy; double share; };
+    const Row rows[] = {
+      {"T2G", 6.0, -0.35, 0.80},  // 0 t2g, occupied
+      {"EG",  4.0, -0.61, 0.30},  // 1 sigma-bonding eg, occupied
+      {"A1G", 0.0,  0.07, 0.30},  // 2 the LUMO, metal s
+      {"EG",  0.0,  0.28, 0.52},  // 3 eg*
+      {"EG",  0.0,  0.47, 0.15},  // 4 diffuse eg above it
+      {"EG",  0.0,  0.60, 0.05},  // 5 below the floor
+      {"T2G", 0.0,  0.62, 0.12},  // 6 t2g virtual
+      {"A2U", 0.0,  3.30, 0.99},  // 7 Rydberg-like, far above the frontier
+    };
+    vector<MoLevel> levels;
+    vector<double> share;
+    for (size_t i = 0; i < 8; i++) {
+      MoLevel l;
+      l.irrep = rows[i].irrep; l.occupancy = rows[i].occ;
+      l.energy = rows[i].energy; l.degeneracy = 1;
+      levels.push_back(l);
+      share.push_back(rows[i].share);
+    }
+
+    vector<bool> keep = MoDiagram::protectPartners(levels, share, 0.10);
+    check(!keep[0] && !keep[1], "occupied levels are never 'protected'");
+    check(keep[2], "A1G's only metal-heavy empty level is kept");
+    check(keep[3] && !keep[4] && !keep[5],
+          "EG keeps exactly one empty level: the lowest with real metal share");
+    check(keep[6], "T2G's empty level over the floor is kept");
+    check(!keep[7], "a metal-heavy level far above the frontier is not");
+    check(MoDiagram::protectPartners(levels, vector<double>(), 0.10)
+              == vector<bool>(8, false),
+          "no shares, no protection");
+
+    vector<string> d;
+    d.push_back("EG"); d.push_back("T2G");
+    MoDiagram::markDBlock(levels, d, share, 0.10);
+    check(levels[0].dBlock == MoLevel::D_OCCUPIED, "t2g (occupied) is d block");
+    check(levels[1].dBlock == MoLevel::D_OCCUPIED,
+          "the occupied eg with metal share is marked too");
+    check(levels[3].dBlock == MoLevel::D_EMPTY, "eg* is the empty d-block eg");
+    check(levels[6].dBlock == MoLevel::D_NONE,
+          "the weaker t2g virtual is not: only one empty level is marked");
+    check(levels[2].dBlock == MoLevel::D_NONE && levels[4].dBlock == MoLevel::D_NONE
+          && levels[5].dBlock == MoLevel::D_NONE,
+          "an a1g level and weaker eg levels are not");
+
+    size_t lo = 99, hi = 99;
+    check(MoDiagram::deltaLevels(levels, lo, hi) && lo == 0 && hi == 3,
+          "Delta runs from the highest occupied to the lowest empty d level");
+  }
+
   printf("\n  %s\n", bad ? "FAIL" : "PASS");
   return bad ? 1 : 0;
 }

@@ -1425,6 +1425,10 @@ void dumpColumn(std::ofstream& out, const string& name, const MoColumn& col,
         << " slot=" << lv.slot
         << " shareLeft=" << lv.shareLeft
         << " shareRight=" << lv.shareRight;
+    //  Only where set, so every non-metal golden is unchanged.
+    if (lv.dBlock != MoLevel::D_NONE)
+      out << " dBlock=" << (lv.dBlock == MoLevel::D_OCCUPIED ? "occupied"
+                                                              : "empty");
     if (localisedShare != 0 && i < localisedShare->size())
       out << " lowdinMax=" << (*localisedShare)[i];
     if (centreOP != 0 && i < centreOP->size())
@@ -1447,6 +1451,14 @@ void dumpColumn(std::ofstream& out, const string& name, const MoColumn& col,
   }
 }
 
+//  The ligand-internal levels a metal complex moves out of the centre
+//  column, with the same per-level diagnostics the centre carries.
+struct InternalColumn
+{
+  MoColumn col;
+  vector<double> loc, op, mull, norm, ml;
+};
+
 void dumpMoDiagram(const string& path, const string& group,
     const string& formula, const string& construction,
     const string& headline, const string& note,
@@ -1454,7 +1466,8 @@ void dumpMoDiagram(const string& path, const string& group,
     const vector<MoConnection>& links,
     const vector<double>& localisedShare, const vector<double>& centreOP,
     const vector<double>& mullikenMax, const vector<double>& normVals,
-    const vector<double>& metalLigandOP = vector<double>())
+    const vector<double>& metalLigandOP = vector<double>(),
+    const InternalColumn* internal = 0)
 {
   std::ofstream out(path.c_str());
   if (!out) return;
@@ -1467,6 +1480,10 @@ void dumpMoDiagram(const string& path, const string& group,
   dumpColumn(out, "centre", centre,
              &localisedShare, &centreOP, &mullikenMax, &normVals, &metalLigandOP);
   dumpColumn(out, "right", right, 0, 0, 0, 0);
+  if (internal != 0 && !internal->col.levels.empty()) {
+    dumpColumn(out, "internal", internal->col, &internal->loc, &internal->op,
+               &internal->mull, &internal->norm, &internal->ml);
+  }
   out << "links: " << links.size() << "\n";
   for (size_t i = 0; i < links.size(); i++) {
     out << "  link " << i << " left=" << links[i].leftLevel
@@ -1666,6 +1683,8 @@ void MoDiagramPanel::buildOnce()
   //  for every other construction, so classify()/connect() run exactly
   //  as before for them.
   vector<double> metalShare, metalLigandOP;
+  InternalColumn internal;   // SKELETON only, see below
+  string lumoNote;   // SKELETON only: says why the LUMO is not the eg* level
 
   if (energies == 0) {
     const string note = "This calculation has no orbital energies.";
@@ -2139,12 +2158,14 @@ void MoDiagramPanel::buildOnce()
   //  identified from the coordination skeleton, and only for
   //  UNoccupied levels (an occupied one is never hidden by hideAbove()
   //  anyway).
-  auto protectMetalVirtuals = [&]() -> vector<bool> {
-    vector<bool> protect(centre.levels.size(), false);
+  //  Per level (empty ones only), the metal's Lowdin share, or -1 where
+  //  it cannot be known.  One place, so both protections agree.
+  auto metalVirtualShares = [&]() -> vector<double> {
+    vector<double> share(centre.levels.size(), -1.0);
     if (metalAtomIndex < 0 || !(moHaveSqrtS || moSemiempirical) ||
         moPerAtomS.size() != elements.size() ||
         (size_t)metalAtomIndex >= elements.size()) {
-      return protect;
+      return share;
     }
     const vector<int> noShellSplit;
     for (size_t i = 0; i < centre.levels.size(); i++) {
@@ -2175,9 +2196,15 @@ void MoDiagramPanel::buildOnce()
         metalSum += shares[metalAtomIndex];
         ncomp++;
       }
-      if (ncomp == 0) continue;
-      if (metalSum/ncomp >= 0.10) protect[i] = true;
+      if (ncomp > 0) share[i] = metalSum/ncomp;
     }
+    return share;
+  };
+
+  auto protectMetalVirtuals = [&]() -> vector<bool> {
+    const vector<double> share = metalVirtualShares();
+    vector<bool> protect(share.size(), false);
+    for (size_t i = 0; i < share.size(); i++) protect[i] = share[i] >= 0.10;
     return protect;
   };
 
@@ -2249,15 +2276,12 @@ void MoDiagramPanel::buildOnce()
     for (size_t i = 0; i < elements.size(); i++) {
       valenceRoom += MoFragments::valenceOrbitals(elements[i]);
     }
-    //  NOT protected here (#183): hideBeyondValence()'s cut is a basis-
-    //  set-size artefact removal, not a chemistry judgement, and a flat
-    //  10% metal-share protection there pulled in Cr(CO)6's whole tail
-    //  of deep, weakly d-mixed Rydberg-like virtuals (24 shown levels
-    //  became 44) rather than just the handful of real antibonding
-    //  partners -- which suggestVirtualCutoff()'s own protection above
-    //  already keeps whenever a partner is genuinely close to the
-    //  valence region, confirmed against this fixture.
-    MoDiagram::hideBeyondValence(centre, valenceRoom);
+    //  Only ONE metal-heavy empty level per irrep is protected here
+    //  (#162): the flat 10% rule pulled in Cr(CO)6's tail of diffuse
+    //  virtuals (#183), but the antibonding partner of a sigma bond is
+    //  the level with the most metal in its irrep.
+    MoDiagram::hideBeyondValence(centre, valenceRoom,
+        MoDiagram::protectPartners(centre.levels, metalVirtualShares(), 0.10));
   }
 
   for (size_t i = 0; i < centre.levels.size(); i++) {
@@ -2757,6 +2781,58 @@ void MoDiagramPanel::buildOnce()
     MoDiagram::connect(left.levels, centre.levels, right.levels, links,
                        useMetalLigand ? 0.10 : 0.05, useMetalLigand);
 
+    //  THE METAL'S d BLOCK, BY COMPOSITION (#162).  The irreps its d
+    //  shell spans are read off the metal column, which already reduced
+    //  that shell in the molecule's group; which levels ARE the d block
+    //  is then decided by metal share, so no group is special-cased.
+    if (useMetalLigand && metalShare.size() == centre.levels.size()) {
+      vector<string> dIrreps;
+      for (size_t i = 0; i < left.levels.size(); i++) {
+        if (left.levels[i].shell == 2) dIrreps.push_back(left.levels[i].irrep);
+      }
+      MoDiagram::markDBlock(centre.levels, dIrreps, metalShare, 0.10);
+
+      size_t lower = 0, upper = 0;
+      if (MoDiagram::deltaLevels(centre.levels, lower, upper)) {
+        size_t lumo = centre.levels.size();
+        for (size_t i = 0; i < centre.levels.size(); i++) {
+          if (centre.levels[i].occupancy <= 0.0 &&
+              (lumo == centre.levels.size() ||
+               centre.levels[i].energy < centre.levels[lumo].energy)) {
+            lumo = i;
+          }
+        }
+        if (lumo < centre.levels.size() && lumo != upper) {
+          //  The shell is named only where the metal column has exactly
+          //  one non-d level of that irrep (a1g -> 4s in Oh).
+          string shell;
+          int found = 0;
+          for (size_t i = 0; i < left.levels.size(); i++) {
+            if (left.levels[i].shell == 2 ||
+                left.levels[i].irrep != centre.levels[lumo].irrep) continue;
+            const string::size_type a = left.levels[i].label.find('(');
+            const string::size_type b = left.levels[i].label.find(')');
+            if (a != string::npos && b != string::npos && b > a) {
+              shell = left.levels[i].label.substr(a + 1, b - a - 1);
+            }
+            found++;
+          }
+          if (found != 1) shell.clear();
+
+          ostringstream lumoText;
+          lumoText.setf(std::ios::fixed);
+          lumoText.precision(3);
+          lumoText << "  Lowest empty orbital: " << centre.levels[lumo].label
+                   << " (" << elements[metalAtomIndex]
+                   << (shell.empty() ? "" : " ") << shell << ", "
+                   << centre.levels[lumo].energy << " Ha). Orbital energies "
+                      "are not excitation energies: \xce\x94 here is not the "
+                      "spectroscopic ligand-field splitting.";
+          lumoNote = lumoText.str();
+        }
+      }
+    }
+
     //  PI-ONLY: THE FRAGMENT COLUMNS MUST DROP TOO, not just the
     //  molecular one -- see the trimming block right after connect()
     //  below (piOnlyApplied).
@@ -2768,6 +2844,55 @@ void MoDiagramPanel::buildOnce()
     MoDiagram::placeFragments(centre, left, right, links);
     MoDiagram::classifyByEnergy(left.levels, centre.levels,
                                 right.levels, links);
+
+    //  LIGAND-INTERNAL LEVELS LEAVE THE CENTRE (#162), after linking and
+    //  placement so those still see them: a level with no metal in it
+    //  (below classify()'s own floor) says nothing about the metal-ligand
+    //  interaction, and its own column keeps it at its true energy.
+    //  Links are positions in centre.levels, so they are renumbered, and
+    //  the links of a moved level dropped (it has no correlation lines).
+    if (useMetalLigand && metalShare.size() == centre.levels.size()) {
+      vector<int> newIndex(centre.levels.size(), -1);
+      MoColumn stay = centre;
+      stay.levels.clear();
+      internal.col.title = "Ligand orbitals\nnot involving " +
+          elements[metalAtomIndex];
+      vector<bool> moved(centre.levels.size(), false);
+      for (size_t i = 0; i < centre.levels.size(); i++) {
+        moved[i] = metalShare[i] < 0.10 &&
+                   centre.levels[i].character == MoLevel::NONBONDING;
+        if (moved[i]) {
+          internal.col.levels.push_back(centre.levels[i]);
+        } else {
+          newIndex[i] = (int)stay.levels.size();
+          stay.levels.push_back(centre.levels[i]);
+        }
+      }
+      if (!internal.col.levels.empty()) {
+        vector<double> *whole[5] = { &localisedShare, &centreOP,
+            &mullikenMaxVec, &normVec, &metalLigandOP };
+        vector<double> *part[5] = { &internal.loc, &internal.op,
+            &internal.mull, &internal.norm, &internal.ml };
+        for (int v = 0; v < 5; v++) {
+          if (whole[v]->size() != centre.levels.size()) continue;
+          vector<double> keep;
+          for (size_t i = 0; i < whole[v]->size(); i++) {
+            (moved[i] ? *part[v] : keep).push_back((*whole[v])[i]);
+          }
+          *whole[v] = keep;
+        }
+        vector<MoConnection> kept;
+        for (size_t k = 0; k < links.size(); k++) {
+          const int c = links[k].centreLevel;
+          if (c < 0 || c >= (int)newIndex.size() || newIndex[c] < 0) continue;
+          MoConnection link = links[k];
+          link.centreLevel = newIndex[c];
+          kept.push_back(link);
+        }
+        links = kept;
+        centre = stay;
+      }
+    }
 
     //  SAY WHICH OF THE TWO PLACEMENTS ACTUALLY HAPPENED.
     //
@@ -2862,15 +2987,19 @@ void MoDiagramPanel::buildOnce()
 
   if (!why.empty()) note << "  " << why;
 
+  note << lumoNote;
+
   progressDlg.progress(97, _("Drawing"));
   p_canvas->setGroup(group);
   p_canvas->setFormula(MoDiagram::formula(elements, charge));
   p_canvas->setDiagram(left, centre, right, links, haveFragments, note.str());
+  if (haveFragments) p_canvas->setInternal(internal.col);
   if (!dumpPath.empty()) {
     dumpMoDiagram(dumpPath, group, MoDiagram::formula(elements, charge),
         MoFragments::fragmentationName(p_fragmentation),
         "", note.str(), left, centre, right, links,
-        localisedShare, centreOP, mullikenMaxVec, normVec, metalLigandOP);
+        localisedShare, centreOP, mullikenMaxVec, normVec, metalLigandOP,
+        &internal);
 
     //  The fragment-orbital ligand-field MODEL (#162 follow-up): only
     //  for SKELETON, and only when a metal atom and a usable overlap

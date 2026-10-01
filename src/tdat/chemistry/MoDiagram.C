@@ -925,20 +925,116 @@ void MoDiagram::hideBeyondValence(MoColumn& centre, int room,
   //  NEVER FOLD AN OCCUPIED LEVEL AWAY.  An orbital with electrons in
   //  it is part of the molecule whatever the basis did, and hiding one
   //  would misstate the electron count the diagram shows.  A PROTECTED
-  //  VIRTUAL (#183) is kept the same way -- otherwise this second,
-  //  room-based fold silently undoes hideAbove()'s own protection for
-  //  any metal-heavy virtual that happens to sit past the room count.
+  //  VIRTUAL (#183) survives the same way, but only itself: raising the
+  //  cut to its energy would keep every level beneath it as well, and
+  //  one protected level far up the spectrum would bring the whole
+  //  tail with it.
   const bool haveProtect = (protect.size() == centre.levels.size());
   for (size_t i = keep; i < centre.levels.size(); i++) {
-    if (centre.levels[i].occupancy > 0.0 ||
-        (haveProtect && protect[i])) {
-      keep = i + 1;
-    }
+    if (centre.levels[i].occupancy > 0.0) keep = i + 1;
   }
 
-  if (keep < centre.levels.size()) {
-    hideAbove(centre, centre.levels[keep].energy - 1.0e-9, protect);
+  if (keep >= centre.levels.size()) return;
+
+  vector<MoLevel> kept;
+  int hidden = 0;
+  for (size_t i = 0; i < centre.levels.size(); i++) {
+    if (i >= keep && !(haveProtect && protect[i])) {
+      hidden += centre.levels[i].degeneracy;
+    } else {
+      kept.push_back(centre.levels[i]);
+    }
   }
+  centre.levels = kept;
+  centre.hiddenAboveCount = hidden;
+}
+
+
+vector<bool> MoDiagram::protectPartners(const vector<MoLevel>& levels,
+                                        const vector<double>& metalShare,
+                                        double floor)
+{
+  vector<bool> protect(levels.size(), false);
+  if (metalShare.size() != levels.size()) return protect;
+
+  //  The window: three HOMO-LUMO gaps above the LUMO.  Basis-set
+  //  Rydberg and polarisation levels carry a large metal share far up
+  //  the spectrum (Cr(CO)6 has a2u and t2u ones at 3.3 Ha) and are no
+  //  one's antibonding partner.
+  bool haveHomo = false, haveLumo = false;
+  double homo = 0.0, lumo = 0.0;
+  for (size_t i = 0; i < levels.size(); i++) {
+    if (levels[i].occupancy > 0.0) {
+      if (!haveHomo || levels[i].energy > homo) { homo = levels[i].energy; haveHomo = true; }
+    } else if (!haveLumo || levels[i].energy < lumo) {
+      lumo = levels[i].energy; haveLumo = true;
+    }
+  }
+  if (!haveHomo || !haveLumo) return protect;
+  const double cap = lumo + 3.0*(lumo - homo);
+
+  //  The LOWEST empty level of each irrep with real metal share: the
+  //  partner sits at the frontier, while "most metal" picks a diffuse
+  //  d-like level a hartree up.
+  map<string,size_t> best;
+  for (size_t i = 0; i < levels.size(); i++) {
+    if (levels[i].occupancy > 0.0 || metalShare[i] < floor ||
+        levels[i].energy > cap) continue;
+    map<string,size_t>::iterator it = best.find(levels[i].irrep);
+    if (it == best.end() || levels[i].energy < levels[it->second].energy) {
+      best[levels[i].irrep] = i;
+    }
+  }
+  for (map<string,size_t>::iterator it = best.begin(); it != best.end(); ++it) {
+    protect[it->second] = true;
+  }
+  return protect;
+}
+
+
+void MoDiagram::markDBlock(vector<MoLevel>& levels,
+                           const vector<string>& dIrreps,
+                           const vector<double>& metalShare, double floor)
+{
+  for (size_t i = 0; i < levels.size(); i++) levels[i].dBlock = MoLevel::D_NONE;
+  if (metalShare.size() != levels.size()) return;
+
+  //  Occupied: the most metal-like level of each d irrep.  Empty: ONE
+  //  level in all, the most metal-like of any d irrep -- in a pi-acceptor
+  //  complex the t2g virtual is mostly ligand pi*, and the d-based
+  //  antibonding level a splitting is measured to is the eg*.
+  int emptyPick = -1;
+  for (size_t d = 0; d < dIrreps.size(); d++) {
+    int pick = -1;
+    for (size_t i = 0; i < levels.size(); i++) {
+      if (levels[i].irrep != dIrreps[d] || metalShare[i] < floor) continue;
+      if (levels[i].occupancy > 0.0) {
+        if (pick < 0 || metalShare[i] > metalShare[pick]) pick = (int)i;
+      } else if (emptyPick < 0 || metalShare[i] > metalShare[emptyPick]) {
+        emptyPick = (int)i;
+      }
+    }
+    if (pick >= 0) levels[pick].dBlock = MoLevel::D_OCCUPIED;
+  }
+  if (emptyPick >= 0) levels[emptyPick].dBlock = MoLevel::D_EMPTY;
+}
+
+
+bool MoDiagram::deltaLevels(const vector<MoLevel>& levels,
+                            size_t& lower, size_t& upper)
+{
+  bool haveLower = false, haveUpper = false;
+  for (size_t i = 0; i < levels.size(); i++) {
+    if (levels[i].dBlock == MoLevel::D_OCCUPIED &&
+        (!haveLower || levels[i].energy > levels[lower].energy)) {
+      lower = i; haveLower = true;
+    }
+    if (levels[i].dBlock == MoLevel::D_EMPTY &&
+        (!haveUpper || levels[i].energy < levels[upper].energy)) {
+      upper = i; haveUpper = true;
+    }
+  }
+  return haveLower && haveUpper && levels[upper].energy > levels[lower].energy;
 }
 
 

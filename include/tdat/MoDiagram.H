@@ -183,8 +183,17 @@ struct MoLevel
     */
    vector<double> energies;
 
+   /**
+    * Whether this is the metal's d-block level of its irrep (metal
+    * complexes only): the occupied one and the empty one with the
+    * largest metal share, per irrep the d shell spans.  See
+    * MoDiagram::markDBlock().
+    */
+   enum DBlock { D_NONE, D_OCCUPIED, D_EMPTY };
+   DBlock         dBlock;
+
    MoLevel() : energy(0.0), occupancy(0.0), degeneracy(0),
-               occupancyBeta(-1.0),
+               occupancyBeta(-1.0), dBlock(D_NONE),
                shareLeft(-1.0), shareRight(-1.0), shell(-1), slot(-1),
                tabulated(0.0), character(UNKNOWN), pairing(-1) {}
 };
@@ -470,6 +479,44 @@ class MoDiagram
     */
    static void hideBeyondValence(MoColumn& centre, int room,
                                  const vector<bool>& protect);
+
+   /**
+    * ONE empty level per irrep: the lowest one whose metal share is at
+    * least @p floor, within three HOMO-LUMO gaps of the LUMO.  The
+    * antibonding partner of a metal-ligand bond, without the flat
+    * "metal share >= floor" rule that also keeps a tail of diffuse
+    * virtuals (#183).
+    *
+    * @param metalShare  one per level, negative where unknown
+    */
+   static vector<bool> protectPartners(const vector<MoLevel>& levels,
+                                       const vector<double>& metalShare,
+                                       double floor);
+
+   /**
+    * Mark the metal's d-block levels (MoLevel::dBlock).
+    *
+    * @param dIrreps     canonical irreps the metal's d shell spans in
+    *                    the molecule's group
+    * @param metalShare  one per level
+    *
+    * The occupied level of each d irrep with the largest metal share,
+    * and the one empty level of any d irrep with the largest, each at
+    * least @p floor.  Levels are matched by composition, not by name,
+    * so no group is special-cased.
+    */
+   static void markDBlock(vector<MoLevel>& levels,
+                          const vector<string>& dIrreps,
+                          const vector<double>& metalShare, double floor);
+
+   /**
+    * The two levels a ligand-field splitting is drawn between: the
+    * highest marked occupied and the lowest marked empty d-block
+    * level.  False when either is missing or they are not in that
+    * order.
+    */
+   static bool deltaLevels(const vector<MoLevel>& levels,
+                           size_t& lower, size_t& upper);
 
     /**
      * A cutoff that folds away genuine core orbitals and nothing else.
