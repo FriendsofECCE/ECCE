@@ -339,6 +339,30 @@ bool GatewayApp::OnInit()
     }
   }
 
+  // ecce-csh2sh (run by the `ecce` launcher, once per version) leaves a note
+  // when it converted the user's csh job-script snippets or found some it
+  // cannot convert.  Shown once.
+  string noticeName = Ecce::realUserHome();
+  noticeName += "/.ECCE/csh2sh-notice";
+  ifstream noticeFile(noticeName.c_str());
+  if (noticeFile) {
+    string noticeMsg, noticeLine;
+    while (getline(noticeFile, noticeLine)) {
+      noticeMsg += noticeLine;
+      noticeMsg += "\n";
+    }
+    noticeFile.close();
+    unlink(noticeName.c_str());
+
+    if (noticeMsg != "") {
+      ewxMessageDialog* noticeDlg = new ewxMessageDialog(dialogParent(),
+                  noticeMsg.c_str(), "Job scripts are now sh",
+                  wxOK|wxICON_INFORMATION|wxSTAY_ON_TOP, wxDefaultPosition);
+      noticeDlg->ShowModal();
+      noticeDlg->Destroy();
+    }
+  }
+
   return true;
 }
 

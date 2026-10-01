@@ -1,0 +1,14 @@
+# Reports csh left in the site job-script files; changes nothing (they are
+# %config files).  A failure here must never fail the install.
+ECCE_HOME=@ECCE_HOME_DIR@
+if [ -x "$ECCE_HOME/scripts/ecce-csh2sh" ] && command -v perl >/dev/null 2>&1; then
+  rc=0
+  out=$(ECCE_HOME="$ECCE_HOME" "$ECCE_HOME/scripts/ecce-csh2sh" --check --siteconfig --brief 2>/dev/null) || rc=$?
+  if [ "$rc" = 1 ]; then
+    echo "ecce: job scripts are now POSIX sh, and these site files contain csh:"
+    echo "$out"
+    echo "ecce: they were NOT changed.  See the lines:   ecce-csh2sh --check --siteconfig"
+    echo "ecce: convert what can be (keeps *.csh-backup): sudo ecce-csh2sh --convert --siteconfig"
+  fi
+fi
+exit 0

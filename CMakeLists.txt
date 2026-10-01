@@ -955,6 +955,26 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/eccejobmonitor)
           COMPONENT client)
 endif()
 
+# scripts/ecce-csh2sh and its rules module CshToSh.pm: converts the csh snippets
+# in submit.site / CONFIG.* to the sh gensub now writes.  gensub `use`s
+# CshToSh.pm from its own directory, so it travels with it; the launcher runs
+# ecce-csh2sh once per user and version, and the package scripts run it
+# (--check only) over the site files.  Both files are needed or gensub itself
+# fails to compile.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-csh2sh
+        DESTINATION scripts
+        COMPONENT client)
+install(FILES ${CMAKE_SOURCE_DIR}/scripts/CshToSh.pm
+        DESTINATION scripts
+        COMPONENT client)
+set(_c2s_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-csh2sh)
+file(WRITE ${_c2s_wrapper}
+"#!/bin/bash
+export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
+exec \"$ECCE_HOME/scripts/ecce-csh2sh\" \"$@\"
+")
+install(PROGRAMS ${_c2s_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
+
 # Read at runtime by Help > About ECCE (ewxApp::OnAbout).
 install(FILES ${CMAKE_SOURCE_DIR}/LICENSE
         DESTINATION .
@@ -1338,10 +1358,21 @@ foreach(_f ${_ecce_siteconfig_conffiles})
        "%config(noreplace) ${CPACK_PACKAGING_INSTALL_PREFIX}/siteconfig/${_f}")
 endforeach()
 file(WRITE ${_ecce_conffiles_debian} "${_ecce_conffiles_content}")
-set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${_ecce_conffiles_debian}")
+# The maintainer scripts only REPORT csh in the site job-script files (never
+# touch a conffile): the admin converts with `sudo ecce-csh2sh --convert --siteconfig`.
+configure_file(${CMAKE_SOURCE_DIR}/packaging/postinst.in
+               ${CMAKE_BINARY_DIR}/conffiles/postinst @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/packaging/rpm-post.sh.in
+               ${CMAKE_BINARY_DIR}/conffiles/rpm-post.sh @ONLY)
+set(CPACK_DEBIAN_PACKAGE_CONTROL_STRICT_PERMISSION TRUE)
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
+    "${_ecce_conffiles_debian};${CMAKE_BINARY_DIR}/conffiles/postinst")
+set(CPACK_RPM_POST_INSTALL_SCRIPT_FILE ${CMAKE_BINARY_DIR}/conffiles/rpm-post.sh)
 set(CPACK_RPM_USER_FILELIST "${_ecce_rpm_filelist}")
 # siteconfig/ is all client-side, so under the split it goes with ecce-client.
-set(CPACK_DEBIAN_CLIENT_PACKAGE_CONTROL_EXTRA "${_ecce_conffiles_debian}")
+set(CPACK_DEBIAN_CLIENT_PACKAGE_CONTROL_EXTRA
+    "${_ecce_conffiles_debian};${CMAKE_BINARY_DIR}/conffiles/postinst")
+set(CPACK_RPM_CLIENT_POST_INSTALL_SCRIPT_FILE ${CMAKE_BINARY_DIR}/conffiles/rpm-post.sh)
 set(CPACK_RPM_CLIENT_USER_FILELIST "${_ecce_rpm_filelist}")
 
 # ---------------------------------------------------------------------------
@@ -1692,6 +1723,17 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR} --jobs 4
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/teaching)
   set_tests_properties(teaching PROPERTIES TIMEOUT 7200 SKIP_RETURN_CODE 77)
+
+  # tests/csh2sh -- ecce-csh2sh and the csh rules gensub shares with it: fixtures
+  # converted and reported, converted snippets run under dash against tcsh's own
+  # environment, backups and idempotence, and the launcher's once-per-version
+  # run.  Needs perl; the tcsh comparisons skip without tcsh.
+  add_test(NAME csh2sh
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/csh2sh/run_tests.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/csh2sh)
+  set_tests_properties(csh2sh PROPERTIES TIMEOUT 300)
 
   # tests/queues -- batch-queue support.  "queues" needs no scheduler: gensub
   # scripts against golden files, and PBS/LSF/Moab against stand-in clients.
