@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""The local UDP link between ECCE apps and their relay.
+"""The local UDP link between ECCE apps and their relay, and the broker.
 
 * The relay and every app subscriber listen on 127.0.0.1 only, and a packet
   without the session's token is dropped by both ends (#194).
 * The port file holding the token is private to the user.
+* ecce_auth_changed carries a password, so it must stay inside the session
+  and never reach the broker.
 
 Runs an isolated broker and relay (tests/launch/harness.py) and the tree's
 own `jmsprobe`, which is the real JMSSubscriber/JMSPublisher/AuthCache.
@@ -31,6 +33,8 @@ import harness  # noqa: E402
 from harness import say  # noqa: E402
 
 LOCAL_TOPIC = "ecce_check_child"      # FILTER BY: USER:HOSTNAME:DISPLAY
+BROKER_TOPIC = "ecce_url_created"     # FILTER BY: NONE
+SECRET = "s3cret-not-for-the-broker"
 
 
 class Reader(threading.Thread):
@@ -99,11 +103,12 @@ def main():
     args = parser.parse_args()
     build = os.path.abspath(args.build)
 
-    harness.prerequisites(build, ())
+    harness.prerequisites(build, ("javac",))
     if not os.access(os.path.join(build, "jmsprobe"), os.X_OK):
         harness.skip("jmsprobe is not built in %s (ninja jmsprobe)" % build)
     jar = os.path.join(REPO, "java", "lib", "ecce_jms.jar")
-    if not os.path.exists(jar):
+    mqjar = os.path.join(REPO, "java", "lib", "activemq-all-5.1.0.jar")
+    if not os.path.exists(jar) or not os.path.exists(mqjar):
         harness.skip("java/lib jars are not built")
 
     s = harness.Session(build, "jms", {}, (8693, 8685), keep=args.keep)
@@ -111,6 +116,14 @@ def main():
     harness.link(os.path.join(build, "jmsprobe"),
                  os.path.join(os.environ["ECCE_TEST_HOME"], "bin", "jmsprobe"))
     env = s.env()
+    tapdir = os.path.join(s.state, "tap")
+    os.makedirs(tapdir, exist_ok=True)
+    tapJava = subprocess.run(
+        ["javac", "-cp", mqjar, "-d", tapdir, os.path.join(HERE, "BrokerTap.java")],
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if tapJava.returncode != 0:
+        harness.skip("cannot compile BrokerTap: " + tapJava.stdout.decode()[:200])
+
     children = []
 
     def spawn(argv):
@@ -184,6 +197,30 @@ def main():
         s.check(log.count("Dropped a packet without") == 1,
                 "relay reported dropped packets once")
 
+        # --- ecce_auth_changed stays in the session ------------------------
+        mqport = os.environ["ECCE_BROKER_PORT"]
+        tap, tapOut = spawn(["java", "-cp", "%s:%s" % (mqjar, tapdir), "BrokerTap",
+                             mqport, "20", SECRET])
+        s.check(tapOut.waitFor("READY", 30), "broker tap connected")
+        ap, authListener = spawn([probe, "listen", "ecce_auth_changed", "15"])
+        s.check(authListener.waitFor("READY"), "auth listener subscribed")
+        url = "http://localhost:%s/Ecce/" % os.environ["ECCE_DATASERVER_PORT"]
+        rc, out = s.run([probe, "auth-publish", url, "eccetest", SECRET, "ecce"])
+        s.check(rc == 0, "credential published")
+        s.check(authListener.waitFor("user=eccetest auth=yes", 10),
+                "a process of the session still receives ecce_auth_changed")
+        # Control: a broker topic does reach the tap.
+        s.run([probe, "publish", BROKER_TOPIC, "url=control-broker"])
+        s.check(tapOut.waitFor("TAP %s" % BROKER_TOPIC, 10),
+                "the tap sees an ordinary broker topic (control)")
+        time.sleep(2)
+        s.check(not tapOut.grep("ecce_auth_changed"),
+                "the broker saw no ecce_auth_changed traffic")
+        s.check(not tapOut.grep("secret=yes"), "the password reached the broker nowhere")
+
+        # A process that starts later finds the credential without asking.
+        rc, out = s.run([probe, "auth-get", url, "eccetest", "ecce"])
+        s.check("FOUND eccetest" in out, "a later process has the credential (no second prompt): %s" % out.strip())
         return finish(s)
     finally:
         for proc in children:
