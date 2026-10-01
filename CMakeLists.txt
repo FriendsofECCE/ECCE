@@ -50,7 +50,7 @@ endif()
 # plain `cpack`/`cpack -G DEB` ignores COMPONENT entirely and produces
 # one monolithic package exactly as before (CPACK_DEB_COMPONENT_INSTALL
 # defaults OFF). Turning this ON is what makes CPack actually split them.
-# ON on v9 (9.x ships ecce-client and ecce-server); 8.x on main is monolithic.
+# ON from 9.0 (ecce-client and ecce-server); 8.x release branches are monolithic.
 option(ECCE_SPLIT_PACKAGES "Package ecce-client and ecce-server as separate .deb/.rpm files instead of one monolithic package" ON)
 
 add_compile_options(-Wall -Wno-deprecated -Wno-sign-compare -Wno-non-virtual-dtor)
