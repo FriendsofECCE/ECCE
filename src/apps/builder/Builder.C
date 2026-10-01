@@ -768,6 +768,12 @@ void Builder::createMenus()
   p_toolbarMenu = new wxMenu;
   p_toolMenu->AppendSubMenu(p_toolbarMenu, _("Toolbars"),
                             _("Show/Hide Toolbars"));
+  //  Dragging a floating panel back needs a dock target, and that drag is
+  //  unreliable under GTK and impossible on Wayland (#53).
+  p_toolMenu->Append(ID_DOCK_FLOATING_PANELS, _("Dock Floating Panels"),
+                     _("Return every floating panel to its dock"));
+  Bind(wxEVT_MENU, &Builder::OnDockFloatingPanels, this,
+       ID_DOCK_FLOATING_PANELS);
 
   p_propertyMenu = GetMenuBar()->GetMenu(
                    GetMenuBar()->FindMenu(_("Properties")));
@@ -3296,6 +3302,24 @@ void Builder::OnToolMenuClick( wxCommandEvent& event )
 
 // The caption's pin button folds a property pane to its caption bar.
 // The resize is deferred so it never runs inside AUI's own event handling.
+/**
+ * Dock every floating pane on the side it came from.  wxAUI recreates a
+ * dock side that has emptied, so this works with nothing left docked there.
+ */
+void Builder::OnDockFloatingPanels(wxCommandEvent& event)
+{
+  wxAuiPaneInfoArray& panes = p_mgr.GetAllPanes();
+  bool changed = false;
+  for (size_t i = 0; i < panes.GetCount(); ++i) {
+    if (panes[i].IsFloating()) {
+      panes[i].Dock();
+      changed = true;
+    }
+  }
+  if (changed) p_mgr.Update();
+}
+
+
 void Builder::OnPaneButton(wxAuiManagerEvent& event)
 {
   wxAuiPaneInfo *pane = event.GetPane();

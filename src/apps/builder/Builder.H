@@ -87,6 +87,7 @@ class Builder: public BuilderGUI,
       ID_VIEW_TOOLBAR,
       ID_MEASURE_TOOLBAR,
       ID_DRAGGER_TOOLBAR,
+      ID_DOCK_FLOATING_PANELS,
     
       ID_MODE_SELECT,
       ID_MODE_ROTATE,
@@ -263,6 +264,7 @@ class Builder: public BuilderGUI,
 
       virtual void OnShowCmdClick( wxCommandEvent& event );
       virtual void OnToolMenuClick( wxCommandEvent& event );
+      void OnDockFloatingPanels( wxCommandEvent& event );
 
       virtual void OnPaneClose(wxAuiManagerEvent& event);
       void OnPaneButton(wxAuiManagerEvent& event);
