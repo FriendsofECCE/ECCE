@@ -23,6 +23,7 @@ package gov.pnnl.emsl.ecce.jms;
 
    import java.net.DatagramSocket;
    import java.net.DatagramPacket;
+   import java.net.InetAddress;
 
    import java.io.File;
    import java.io.FileOutputStream;
@@ -292,7 +293,7 @@ public class JMSDispatcher {
 
         // Now create the server socket:
         try {
-            p_serverSocket = new DatagramSocket();
+            p_serverSocket = new DatagramSocket(0, InetAddress.getByName("127.0.0.1"));
             p_port = p_serverSocket.getLocalPort();
             if (p_verbose) {
                 System.out.println("Connecting to port " + p_port);
@@ -430,10 +431,17 @@ public class JMSDispatcher {
             if (!dir.exists()) {
                 dir.mkdir();
             }
-            File file = new File(filePath);
-            PrintWriter pw = new PrintWriter(new FileOutputStream(file));
-            pw.print(p_port);
-            pw.close();
+            // Private to this user, and complete the moment it is visible.
+            java.nio.file.Path tmp = java.nio.file.Files.createTempFile(
+                dir.toPath(), host + "_port", ".tmp",
+                java.nio.file.attribute.PosixFilePermissions.asFileAttribute(
+                    java.nio.file.attribute.PosixFilePermissions.fromString(
+                        "rw-------")));
+            java.nio.file.Files.write(tmp, (p_port + "\n"
+                + MessageHelper.getToken() + "\n").getBytes());
+            java.nio.file.Files.move(tmp, new File(filePath).toPath(),
+                java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             
         } catch(Exception e) {
             System.out.println("Error saving port to file (no write access?):\n"
@@ -488,6 +496,10 @@ public class JMSDispatcher {
                 // Need to strip off the garbage characters from the
                 // buffer:
                 data = data.substring(0, packet.getLength());
+
+                if (!MessageHelper.acceptPacket(data)) {
+                    continue;
+                }
 
                 // Put this packet on the end of the queue
                 synchronized(p_packetQueue) {

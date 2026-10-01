@@ -211,12 +211,16 @@ public :
   static void   addBoolItem(const string& itemName, const bool& item,
                             string& packet);
 
+  // Every packet to or from the relay starts with the session's token;
+  // sendPacket() adds it, receivers drop what acceptPacket() refuses.
   static bool   sendPacket(const string& packet);
-  
+  static bool   acceptPacket(const string& packet);
+  static int    loopbackAddress();
 
 private :
   static string getEnv(const char* propertyName);
   static int JMSDISPATCH_PORT;
+  static string JMSDISPATCH_TOKEN;
   
 };
 

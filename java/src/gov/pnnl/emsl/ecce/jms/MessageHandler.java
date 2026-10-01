@@ -37,7 +37,7 @@ public class MessageHandler implements javax.jms.MessageListener {
       subscriberID = id;
       
       try {
-          inSocket = new DatagramSocket();
+          inSocket = new DatagramSocket(0, InetAddress.getByName("127.0.0.1"));
       } catch (Exception exc) {
           System.out.println("Unable to create a socket");
           System.out.println("Error: "+exc.toString());
@@ -76,7 +76,7 @@ public class MessageHandler implements javax.jms.MessageListener {
       
                   try {
                       // Create DatagramPacket
-                      InetAddress localAddr = InetAddress.getLocalHost();
+                      InetAddress localAddr = InetAddress.getByName("127.0.0.1");
                       String message = marshallMessage(body, sender, target);
                       
                       messagePacket  = new DatagramPacket(message.getBytes(), 
@@ -100,7 +100,8 @@ public class MessageHandler implements javax.jms.MessageListener {
   private String marshallMessage(String body, String sender, String target) {
     
     String ret = new String();
-    ret = "BODYSTART" + body + "BODYEND" + 
+    ret = MessageHelper.tokenPrefix() +
+          "BODYSTART" + body + "BODYEND" + 
           "SENDERSTART" + sender + "SENDEREND" +
           "TARGETSTART" + target + "TARGETEND" +
           "TOPICSTART" + topic + "TOPICEND";
