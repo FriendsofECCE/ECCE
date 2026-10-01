@@ -407,6 +407,7 @@ Target::Target() {
 
 // Static initialization:
 int DatagramUtil::JMSDISPATCH_PORT = -1; 
+string DatagramUtil::JMSDISPATCH_TOKEN;
 
 string DatagramUtil::getItem(const string& itemName, const string& packet) { 
   
@@ -496,13 +497,18 @@ void DatagramUtil::loadServerPort() {
     errMsg += fileName;
     EE_RT_ASSERT(infile.good(), EE_FATAL, errMsg);
 
-    infile >> JMSDISPATCH_PORT;
+    // The relay writes "<port>\n<token>\n" and renames the file into
+    // place, so a readable file is a complete one.
+    infile >> JMSDISPATCH_PORT >> JMSDISPATCH_TOKEN;
     infile.close();
+    errMsg = "No session token in ";
+    errMsg += fileName;
+    EE_RT_ASSERT(!JMSDISPATCH_TOKEN.empty(), EE_FATAL, errMsg);
 }
 
 int DatagramUtil::getServerPort() {
 
-  if (JMSDISPATCH_PORT == -1) {
+  if (JMSDISPATCH_PORT == -1 || JMSDISPATCH_TOKEN.empty()) {
     loadServerPort();
   } 
   return JMSDISPATCH_PORT;
@@ -517,8 +523,37 @@ string DatagramUtil::getEnv(const char* propertyName) {
     return property;
 }
 
-bool DatagramUtil::sendPacket (const string& packet) {
+int DatagramUtil::loopbackAddress() {
+  return htonl(INADDR_LOOPBACK);
+}
+
+bool DatagramUtil::acceptPacket(const string& packet) {
+  static bool reported = false;
+  getServerPort(); // loads the token
+  string prefix;
+  addItem("TOKEN", JMSDISPATCH_TOKEN, prefix);
+
+  // Compare every byte so the time does not depend on where it differs.
+  bool ok = packet.length() >= prefix.length();
+  unsigned char diff = 0;
+  for (size_t i = 0; ok && i < prefix.length(); i++)
+    diff |= (unsigned char)(packet[i] ^ prefix[i]);
+  ok = ok && diff == 0;
+
+  if (!ok && !reported) {
+    reported = true;
+    cerr << "JMS: dropped a packet without this session's token "
+         << "(further ones are dropped silently)" << endl;
+  }
+  return ok;
+}
+
+bool DatagramUtil::sendPacket (const string& body) {
   bool ret = true;
+  getServerPort(); // loads the token
+  string packet;
+  addItem("TOKEN", JMSDISPATCH_TOKEN, packet);
+  packet += body;
 
   // Create datagram socket:
   int s;
@@ -532,7 +567,7 @@ bool DatagramUtil::sendPacket (const string& packet) {
 
     addIN.sin_family      = AF_INET;
     addIN.sin_port        = htons(getServerPort());
-    addIN.sin_addr.s_addr = INADDR_ANY;
+    addIN.sin_addr.s_addr = loopbackAddress();
  
     // Check if packet size is too big (we are only receiving 4096 bytes)
     if (packet.length() > MAX_PACKET_LENGTH) {
