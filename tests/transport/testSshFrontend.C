@@ -95,7 +95,7 @@ int main(int argc, char** argv)
 
     // The monitor stream opens its own connection through the front end.
     int fd = -1;
-    SshStream* s = t.openStream("echo stream-$(hostname); cat", fd, err);
+    RemoteStream* s = t.openStream("echo stream-$(hostname); cat", fd, err);
     check(user + ": stream opens", s != 0, err);
     if (s) {
       if (write(fd, "ping\n", 5) < 0) {}

@@ -46,6 +46,8 @@
 
 #include "comm/expect.h"
 #include "comm/DirectTransport.H"
+#include "comm/OpenSshTransport.H"
+#include "comm/RemoteTransport.H"
 #ifdef ECCE_HAVE_LIBSSH
 #include "comm/SshTransport.H"
 #endif
@@ -310,8 +312,8 @@ static bool looksLikeCode(const string& prompt)
 // Logs in over libssh with the credentials the pty login loop would use:
 // the password given, then AuthCache, then passdialog; passdialog's
 // "passcode" for what looks like a second factor.
-bool RCommand::sshConnect(const string& machine, const string& userName,
-                          const string& password, const string& jumpHost)
+bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
+                                const string& password, const string& jumpHost)
 {
   const string theUser = userName == "" ? string(Ecce::realUser()) : userName;
 
@@ -391,16 +393,7 @@ bool RCommand::sshConnect(const string& machine, const string& userName,
   cj->passTried = false;
   const string thePass = c->pass, theJumpPass = cj->pass;
 
-  if (p_transport) {
-    stopStream();
-    delete p_transport;
-  }
-  p_transport = t;
-  p_direct = true;
-  p_ssh = true;
-  p_remoteBash = true;
-  exp_timeout = RC_EXEC_TIMEOUT;
-  p_connected = true;
+  adoptTransport(t);
 
   if (thePass != "")
     RCommand::setPassCache(p_shell, machine, theUser, thePass);
@@ -415,6 +408,76 @@ bool RCommand::sshConnect(const string& machine, const string& userName,
   return true;
 }
 
+#endif  // ECCE_HAVE_LIBSSH
+
+// A new transport replaces the one this connection had.
+void RCommand::adoptTransport(Transport* t)
+{
+  if (p_transport) {
+    stopStream();
+    delete p_transport;
+  }
+  p_transport = t;
+  p_direct = true;
+  p_ssh = true;
+  p_remoteBash = true;
+  exp_timeout = RC_EXEC_TIMEOUT;
+  p_connected = true;
+}
+
+// The OpenSSH client as a subprocess: it reuses a connection the user's
+// ssh configuration shares (ControlMaster), which libssh cannot, and it
+// never prompts.
+bool RCommand::sshConnectOpenssh(const string& machine, const string& userName,
+                                 const string& jumpHost)
+{
+  OpenSshTransport* t = new OpenSshTransport(machine, 0, userName);
+  t->setConnectTimeout(RC_CONNECT_TIMEOUT);
+  if (jumpHost != "") t->setJumpHost(jumpHost, 0, userName);
+  string error;
+  if (!t->connect(error)) {
+    p_errMessage = error;
+    delete t;
+    return false;
+  }
+  adoptTransport(t);
+  if (getenv("ECCE_RCOM_LOGMODE"))
+    cout << "ssh transport: commands run over the OpenSSH client on " << machine
+         << (jumpHost == "" ? "" : " through " + jumpHost + " (ssh -J)") << endl;
+  return true;
+}
+
+bool RCommand::useOpenssh(const string& machine, const string& userName,
+                          const string& jumpHost)
+{
+#ifdef ECCE_HAVE_LIBSSH
+  OpenSshTransport::Backend b = OpenSshTransport::backendFor(machine, userName);
+  // A front end whose own login is shared needs OpenSSH as well.
+  if (b == OpenSshTransport::BACKEND_LIBSSH && jumpHost != "" &&
+      OpenSshTransport::requestedBackend() == OpenSshTransport::BACKEND_AUTO &&
+      OpenSshTransport::configSharesConnection(jumpHost, userName))
+    b = OpenSshTransport::BACKEND_OPENSSH;
+  return b == OpenSshTransport::BACKEND_OPENSSH;
+#else
+  (void)machine; (void)userName; (void)jumpHost;
+  return true;
+#endif
+}
+
+// Connects to an ssh machine with the backend that serves it.
+bool RCommand::sshConnect(const string& machine, const string& userName,
+                          const string& password, const string& jumpHost)
+{
+  if (useOpenssh(machine, userName, jumpHost))
+    return sshConnectOpenssh(machine, userName, jumpHost);
+#ifdef ECCE_HAVE_LIBSSH
+  return sshConnectLibssh(machine, userName, password, jumpHost);
+#else
+  (void)password;
+  return false;
+#endif
+}
+
 // hop() over libssh: a new connection to hopMachine, through the same
 // front end the current one used, or through the current machine when there
 // was none.  The pty path types ssh into its shell; that would nest one
@@ -424,7 +487,7 @@ bool RCommand::sshHop(const string& hopMachine, const string& locShell,
                       const string& shellPath, const string& libPath,
                       const string& sourceFile)
 {
-  SshTransport* cur = static_cast<SshTransport*>(p_transport);
+  RemoteTransport* cur = static_cast<RemoteTransport*>(p_transport);
   const string jump = cur->jumpHost() != "" ? cur->jumpHost() : cur->host();
   const string user = userName != "" ? userName : cur->user();
   const string pathLine = shellPath == "" ? "" :
@@ -445,29 +508,18 @@ bool RCommand::sshHop(const string& hopMachine, const string& locShell,
   }
   return true;
 }
-#else
-bool RCommand::sshConnect(const string&, const string&, const string&,
-                          const string&)
+string RCommand::sshBackend() const
 {
-  return false;
+  if (!p_ssh || !p_transport) return "";
+  return dynamic_cast<const OpenSshTransport*>(p_transport) ? "openssh" : "libssh";
 }
-
-bool RCommand::sshHop(const string&, const string&, const string&,
-                      const string&, const string&, const string&,
-                      const string&)
-{
-  return false;
-}
-#endif
 
 string RCommand::frontEndMode() const
 {
-#ifdef ECCE_HAVE_LIBSSH
   if (p_ssh && p_transport) {
-    const SshTransport* t = static_cast<const SshTransport*>(p_transport);
+    const RemoteTransport* t = static_cast<const RemoteTransport*>(p_transport);
     if (t->jumpHost() != "") return t->nested() ? "nested" : "forward";
   }
-#endif
   return "";
 }
 
@@ -1057,11 +1109,7 @@ bool RCommand::usesSsh(const string& machine, const string& remShell,
 bool RCommand::usesLibssh(const string& machine, const string& remShell,
                           const string& userName)
 {
-#ifdef ECCE_HAVE_LIBSSH
   return usesSsh(machine, remShell, userName);
-#else
-  return false;
-#endif
 }
 
 RCommand::RCommand(const string& machine, const string& remShell,
@@ -1160,7 +1208,6 @@ RCommand::RCommand(const string& machine, const string& remShell,
   }
 
   if (allowDirect && allowSsh && usesSsh(machine, remShell, userName)) {
-#ifdef ECCE_HAVE_LIBSSH
     p_shell = "ssh";
     const string pathLine = shellPath == "" ? "" :
       "PATH=" + shQuote(shellPath) + ":$PATH; export PATH\n";
@@ -1186,14 +1233,6 @@ RCommand::RCommand(const string& machine, const string& remShell,
                        (changed.count("LD_LIBRARY_PATH") ? "" : libLine);
     }
     return;
-#else
-    static bool warned = false;
-    if (!warned) {
-      cerr << "Built-in ssh (ECCE_TRANSPORT=ssh): this build has no libssh; using the "
-              "pty ssh path" << endl;
-      warned = true;
-    }
-#endif
   }
 
   string theMachine, shellMachine;
@@ -2585,9 +2624,8 @@ bool RCommand::startStream(const string& command)
   if (!p_direct || !p_connected || p_stream.rfd >= 0) return false;
   string error;
   if (p_ssh) {
-#ifdef ECCE_HAVE_LIBSSH
     int fd = -1;
-    p_sshStream = static_cast<SshTransport*>(p_transport)->openStream(
+    p_sshStream = static_cast<RemoteTransport*>(p_transport)->openStream(
                     p_scriptPrefix + command, fd, error);
     if (!p_sshStream) {
       p_errMessage = "Could not start " + command + ": " + error;
@@ -2598,9 +2636,6 @@ bool RCommand::startStream(const string& command)
       cout << "ssh stream (" << command << ") in (" << p_transport->dir()
            << ") on its own session, no pty" << endl;
     return true;
-#else
-    return false;
-#endif
   }
   if (!static_cast<DirectTransport*>(p_transport)->openStream(
         command, p_stream, error)) {
@@ -2616,15 +2651,13 @@ bool RCommand::startStream(const string& command)
 void RCommand::stopStream(int graceMs)
 {
   if (!p_direct) return;
-#ifdef ECCE_HAVE_LIBSSH
   if (p_sshStream) {
-    static_cast<SshTransport*>(p_transport)->closeStream(p_sshStream, graceMs);
+    static_cast<RemoteTransport*>(p_transport)->closeStream(p_sshStream, graceMs);
     p_sshStream = 0;
     p_stream.rfd = p_stream.wfd = -1;
     if (getenv("ECCE_RCOM_LOGMODE")) cout << "ssh stream closed" << endl;
     return;
   }
-#endif
   if (p_ssh || p_stream.pid <= 0) return;
   int st = static_cast<DirectTransport*>(p_transport)->closeStream(
              p_stream, graceMs);
@@ -2638,12 +2671,10 @@ bool RCommand::execout(const string& command, string& output,
   if (!p_connected) return false;
 
   if (p_direct && command == "\003") {
-#ifdef ECCE_HAVE_LIBSSH
     if (p_sshStream) {
-      static_cast<SshTransport*>(p_transport)->interruptStream(p_sshStream);
+      static_cast<RemoteTransport*>(p_transport)->interruptStream(p_sshStream);
       return true;
     }
-#endif
     if (p_ssh || p_stream.pid <= 0) return false;
     static_cast<DirectTransport*>(p_transport)->interruptStream(p_stream);
     return true;
@@ -3647,7 +3678,6 @@ bool RCommand::globFiles(const char** inFiles, char**& outFiles, int& numFiles)
 }
 
 
-#ifdef ECCE_HAVE_LIBSSH
 // The machines the ssh transport serves; the same test as the constructor's.
 static bool useSshCopy(const string& machine, const string& remShell,
                        const string& userName)
@@ -3679,7 +3709,7 @@ bool RCommand::sshCopy(bool putFlag, const string& machine,
     errMessage = rc.commError();
     return false;
   }
-  SshTransport* t = static_cast<SshTransport*>(rc.p_transport);
+  RemoteTransport* t = static_cast<RemoteTransport*>(rc.p_transport);
   string err;
   vector<string> src;
 
@@ -3743,7 +3773,6 @@ bool RCommand::sshCopy(bool putFlag, const string& machine,
     if (!t->getTree(src[i], toFile, err)) { errMessage = err; return false; }
   return true;
 }
-#endif
 
 bool RCommand::get(string& errMessage,
                    const string& machine, const string& remShell,
@@ -3760,7 +3789,6 @@ bool RCommand::get(string& errMessage,
   va_list ap;
   va_start(ap, numFiles);
 
-#ifdef ECCE_HAVE_LIBSSH
   if (useSshCopy(machine, remShell, userName)) {
     vector<string> fs;
     for (int k=0; k<numFiles-1; k++) fs.push_back(va_arg(ap, char*));
@@ -3769,7 +3797,6 @@ bool RCommand::get(string& errMessage,
     return RCommand::sshCopy(false, machine, remShell, userName, password,
                              fs, to, errMessage);
   }
-#endif
 
   bool isRemote = RCommand::isRemote(machine, remShell, userName);
 
@@ -3907,13 +3934,11 @@ bool RCommand::get(string& errMessage,
   int numFiles;
   for (numFiles=0; fromFiles[numFiles]!=NULL; numFiles++);
 
-#ifdef ECCE_HAVE_LIBSSH
   if (useSshCopy(machine, remShell, userName)) {
     vector<string> fs(fromFiles, fromFiles + numFiles);
     return RCommand::sshCopy(false, machine, remShell, userName, password,
                              fs, toFile, errMessage);
   }
-#endif
 
   bool isRemote = RCommand::isRemote(machine, remShell, userName);
 
@@ -3994,7 +4019,6 @@ bool RCommand::put(string& errMessage,
   va_list ap;
   va_start(ap, numFiles);
 
-#ifdef ECCE_HAVE_LIBSSH
   if (useSshCopy(machine, remShell, userName)) {
     vector<string> fs;
     for (int k=0; k<numFiles-1; k++) fs.push_back(va_arg(ap, char*));
@@ -4003,7 +4027,6 @@ bool RCommand::put(string& errMessage,
     return RCommand::sshCopy(true, machine, remShell, userName, password,
                              fs, to, errMessage);
   }
-#endif
 
   char **fromFiles = (char**)malloc(numFiles * sizeof(char*));
   for (it=0; it<numFiles-1; it++)
@@ -4082,7 +4105,6 @@ bool RCommand::put(string& errMessage,
 {
   char **globbedFiles;
 
-#ifdef ECCE_HAVE_LIBSSH
   if (useSshCopy(machine, remShell, userName)) {
     int n;
     for (n=0; fromFiles[n]!=NULL; n++);
@@ -4090,7 +4112,6 @@ bool RCommand::put(string& errMessage,
     return RCommand::sshCopy(true, machine, remShell, userName, password,
                              fs, toFile, errMessage);
   }
-#endif
 
   int numFiles;
   if (!RCommand::globFiles(fromFiles, globbedFiles, numFiles))
@@ -4215,13 +4236,11 @@ static string underDir(const string& dir, const string& path)
 bool RCommand::transferFile(bool putFlag, const string& local,
                             const string& remote)
 {
-#ifdef ECCE_HAVE_LIBSSH
   if (p_ssh) {
     string error;
-    SshTransport* t = static_cast<SshTransport*>(p_transport);
+    RemoteTransport* t = static_cast<RemoteTransport*>(p_transport);
     return putFlag ? t->put(local, remote, error) : t->get(remote, local, error);
   }
-#endif
   return putFlag ? copyFileData(local, remote) : copyFileData(remote, local);
 }
 

@@ -5,10 +5,9 @@
 #include <string>
 #include <vector>
 
-struct SshStream;
 struct SshJump;
 
-#include "comm/Transport.H"
+#include "comm/RemoteTransport.H"
 
 struct ssh_session_struct;
 struct sftp_session_struct;
@@ -16,7 +15,7 @@ struct sftp_session_struct;
 // Runs scripts on a remote host over libssh: one exec channel per run(),
 // the script delivered as data on the channel's stdin, SFTP for files.
 // Needs libssh >= 0.10.  One connection is used by one thread at a time.
-class SshTransport : public Transport {
+class SshTransport : public RemoteTransport {
 public:
   // Asks the user something.  echo=false for a password.  Return false to
   // abort authentication.
@@ -54,39 +53,39 @@ public:
                    const std::string& user = "");
   void setJumpPromptCallback(const PromptFn& f) { p_jumpPrompt = f; }
   void setFrontEndMode(FrontEnd m) { p_feMode = m; }
-  const std::string& host() const { return p_host; }
-  const std::string& user() const { return p_user; }
-  const std::string& jumpHost() const { return p_jumpHost; }
+  virtual const std::string& host() const { return p_host; }
+  virtual const std::string& user() const { return p_user; }
+  virtual const std::string& jumpHost() const { return p_jumpHost; }
   // True once connected through a front end by nested exec.
-  bool nested() const { return p_nested; }
+  virtual bool nested() const { return p_nested; }
 
   // Connects, checks the host key, authenticates (agent and keys, then
   // keyboard-interactive, then password).
-  bool connect(std::string& error);
-  void disconnect();
-  bool connected() const { return p_session != 0; }
+  virtual bool connect(std::string& error);
+  virtual void disconnect();
+  virtual bool connected() const { return p_session != 0; }
 
   virtual TransportResult run(const std::string& script, int timeoutSec = -1);
   virtual long spawnDetached(const std::string& script, std::string& error,
                              const std::string& logFile = "");
 
   // SFTP; the file mode (permission bits) travels with the content.
-  bool put(const std::string& localPath, const std::string& remotePath,
+  virtual bool put(const std::string& localPath, const std::string& remotePath,
            std::string& error);
-  bool get(const std::string& remotePath, const std::string& localPath,
+  virtual bool get(const std::string& remotePath, const std::string& localPath,
            std::string& error);
 
   // scp -r semantics: a directory source is copied with its contents, and
   // when the target is an existing directory the source lands inside it.
-  bool putTree(const std::string& localPath, const std::string& remotePath,
+  virtual bool putTree(const std::string& localPath, const std::string& remotePath,
                std::string& error);
-  bool getTree(const std::string& remotePath, const std::string& localPath,
+  virtual bool getTree(const std::string& remotePath, const std::string& localPath,
                std::string& error);
   // 1 directory, 0 other file, -1 does not exist.
-  int remoteKind(const std::string& remotePath);
+  virtual int remoteKind(const std::string& remotePath);
   // The remote shell's expansion of a wildcard pattern (sorted; a pattern
   // matching nothing comes back as an error).
-  bool remoteGlob(const std::string& pattern, std::vector<std::string>& out,
+  virtual bool remoteGlob(const std::string& pattern, std::vector<std::string>& out,
                   std::string& error);
 
   // A long-running script on its own ssh session, for a reader that needs
@@ -95,12 +94,13 @@ public:
   // A private thread owns the session and shuttles between the channel and
   // the socket; when the channel or the connection ends, it closes its end
   // so the reader sees EOF.  The script runs in dir() with the env set.
-  SshStream* openStream(const std::string& script, int& fd, std::string& error);
+  virtual RemoteStream* openStream(const std::string& script, int& fd,
+                                   std::string& error);
   // SIGINT to the script's shell (the session has no tty for ^C).
-  void interruptStream(SshStream* s);
+  virtual void interruptStream(RemoteStream* s);
   // Sends EOF, gives the script graceMs to finish, closes everything and
   // joins the thread.  Frees s.
-  void closeStream(SshStream* s, int graceMs = 2000);
+  virtual void closeStream(RemoteStream* s, int graceMs = 2000);
 
 private:
   SshTransport(const SshTransport&);

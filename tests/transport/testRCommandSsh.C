@@ -52,7 +52,19 @@ static string readFile(const string& f)
   return string((istreambuf_iterator<char>(in)), istreambuf_iterator<char>());
 }
 
+// ECCE_TEST_CONTROLMASTER=1 (controlmaster_test.sh): HOST is a name whose ssh
+// config shares one connection that is the only way in, so the ssh side must
+// run over the OpenSSH client.  The pty oracle uses ORACLE_HOST, an ordinary
+// login with its own copy of the key.
 static const char* HOST = "127.0.0.1";
+static const char* ORACLE_HOST = "127.0.0.1";
+static bool controlMaster = false;
+
+struct OracleHost {
+  explicit OracleHost(bool on) : saved(HOST) { if (on && controlMaster) HOST = ORACLE_HOST; }
+  ~OracleHost() { HOST = saved; }
+  const char* saved;
+};
 
 static void setMode(bool ssh)
 {
@@ -65,6 +77,7 @@ static bool scenario(bool ssh, const string& user, const string& shell,
                      const string& rdir, const string& ldir,
                      vector<string>& log, bool& bgAlive)
 {
+  OracleHost oracle(!ssh);
   setMode(ssh);
   RCommand rc(HOST, "ssh", shell, user);
   if (!rc.isOpen()) {
@@ -74,6 +87,13 @@ static bool scenario(bool ssh, const string& user, const string& shell,
   }
   if (ssh && rc.expfid() != -1) {
     cout << "the ssh transport was not used" << endl;
+    return false;
+  }
+  // The ControlMaster test says which backend must have been chosen.
+  const char* want = getenv("ECCE_TEST_EXPECT_BACKEND");
+  if (ssh && want && rc.sshBackend() != want) {
+    cout << "expected the " << want << " backend, got '" << rc.sshBackend()
+         << "'" << endl;
     return false;
   }
 
@@ -419,6 +439,7 @@ static bool sourceScenario(bool ssh, const string& user, const string& shell,
                            const string& srcFile, const string& shellPath,
                            const string& rdir, vector<string>& log)
 {
+  OracleHost oracle(!ssh);
   setMode(ssh);
   RCommand rc(HOST, "ssh", shell, user, "", "", "", shellPath, "", srcFile);
   if (!rc.isOpen()) {
@@ -428,6 +449,13 @@ static bool sourceScenario(bool ssh, const string& user, const string& shell,
   }
   if (ssh && rc.expfid() != -1) {
     cout << "the ssh transport was not used" << endl;
+    return false;
+  }
+  // The ControlMaster test says which backend must have been chosen.
+  const char* want = getenv("ECCE_TEST_EXPECT_BACKEND");
+  if (ssh && want && rc.sshBackend() != want) {
+    cout << "expected the " << want << " backend, got '" << rc.sshBackend()
+         << "'" << endl;
     return false;
   }
   string o;
@@ -680,7 +708,10 @@ int main()
   setenv("ECCE_AUTHCACHE_NO_BROADCAST", "1", 1);
   const char* home = getenv("HOME");
   if (home && !getenv("ECCE_REALUSERHOME")) setenv("ECCE_REALUSERHOME", home, 1);
-  if (!home || access((string(home) + "/.ssh/ecce_test_key").c_str(), R_OK) != 0) {
+  controlMaster = getenv("ECCE_TEST_CONTROLMASTER") != 0;
+  if (controlMaster) { HOST = "cm"; ORACLE_HOST = "oracle"; }
+  if (!controlMaster &&
+      (!home || access((string(home) + "/.ssh/ecce_test_key").c_str(), R_OK) != 0)) {
     cout << "SKIP: run through tests/transport/sshd/rcommand_test.sh" << endl;
     return 77;
   }
@@ -745,7 +776,7 @@ int main()
     sshChecks(user, shell);
     sourceChecks(user, shell, rdir, ldir);
     streamChecks(user, shell);
-    authChecks(user, shell);
+    if (!controlMaster) authChecks(user, shell);
 
     setMode(true);
     RCommand rc(HOST, "ssh", shell, user);

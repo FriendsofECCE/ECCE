@@ -1659,6 +1659,13 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME transport_terminal COMMAND testTerminalArgv)
   set_tests_properties(transport_terminal PROPERTIES TIMEOUT 60)
 
+  # OpenSshTransport against a stand-in ssh script and the real `ssh -G`:
+  # process handling, file copies, streams, messages, backend choice.
+  add_executable(testOpenSshTransport tests/transport/testOpenSshTransport.C)
+  target_link_libraries(testOpenSshTransport PRIVATE eccercmd ecceutil)
+  add_test(NAME transport_openssh COMMAND testOpenSshTransport)
+  set_tests_properties(transport_openssh PROPERTIES TIMEOUT 180)
+
   # ECCE_TRANSPORT / Preferences resolution of the transport (#204).
   add_executable(testTransportPref tests/transport/testTransportPref.C)
   target_link_libraries(testTransportPref PRIVATE
@@ -1691,6 +1698,12 @@ if(PYTHON3_EXECUTABLE)
     target_link_libraries(testTerminal PRIVATE
       eccecomm eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml
       eccetdat ecceutil ${XercesC_LIBRARIES})
+
+    # A shared ssh connection that goes away; controlmaster_test.sh.
+    add_executable(testControlMasterLoss tests/transport/testControlMasterLoss.C)
+    target_link_libraries(testControlMasterLoss PRIVATE
+      eccercmd ecceexp eccedsi eccedav eccecipc eccefaces eccexml eccetdat
+      ecceutil ${XercesC_LIBRARIES})
 
     # bgcommand -> ecmd -> command; tests/transport/sshd/bgcommand_test.sh.
     add_executable(testBgcommand tests/transport/testBgcommand.C)

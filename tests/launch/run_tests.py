@@ -243,7 +243,11 @@ class Suite(object):
         """scp and friends that only record that they were started."""
         stubs = os.path.join(self.state, "stubs")
         os.makedirs(stubs, exist_ok=True)
-        for name in ("scp", "sftp", "ssh", "sshpass"):
+        if self.args.shared_connection and os.path.exists(os.path.join(stubs, "ssh")):
+            os.unlink(os.path.join(stubs, "ssh"))   # left by an earlier run
+        #  With a shared connection the OpenSSH client is what is under test.
+        for name in (("scp", "sftp", "sshpass") if self.args.shared_connection
+                     else ("scp", "sftp", "ssh", "sshpass")):
             path = os.path.join(stubs, name)
             with open(path, "w") as handle:
                 handle.write("#!/bin/sh\necho \"%s $*\" >> %s\nexit 99\n"
@@ -662,10 +666,11 @@ class Suite(object):
 
     def checkTransport(self, launchOut, transport):
         """The connection Launch made must be the one this mode asks for."""
-        viaSsh = "ssh transport: commands run over libssh" in launchOut
+        which = "the OpenSSH client" if self.args.shared_connection else "libssh"
+        viaSsh = "ssh transport: commands run over " + which in launchOut
         self.check(viaSsh == (transport == "ssh"),
                    "Launch connected over %s"
-                   % ("libssh" if viaSsh else "the pty ssh path"))
+                   % (which if viaSsh else "the pty ssh path"))
 
     def checkRemoteRun(self, rundir, name, transport):
         """Show that MOPAC ran in the sshd container, not here."""
@@ -696,7 +701,10 @@ class Suite(object):
             used = ""
             if os.path.exists(self.stubLog()):
                 with open(self.stubLog()) as handle:
-                    used = handle.read().strip()
+                    #  `ssh -G` is how ECCE asks whether the host shares a
+                    #  connection; it connects to nothing.
+                    used = "\n".join(l for l in handle.read().splitlines()
+                                     if not l.startswith("ssh -G ")).strip()
             self.check(used == "", "no scp/sftp/ssh was started over libssh%s"
                        % (": " + used.replace("\n", "; ") if used else ""))
         self.check(not os.path.exists(rundir),
@@ -777,6 +785,11 @@ def main():
                         "keepalive (ECCE_SSH_KEEPALIVE)")
     parser.add_argument("--nwchem-restart", action="store_true",
                         help="#202: only run NWChem, Reset for Restart, run again")
+    parser.add_argument("--shared-connection", action="store_true",
+                        help="the machine's ssh config shares one connection "
+                        "(ControlMaster) that is the only way in: Launch must "
+                        "choose the OpenSSH client and still run, monitor and "
+                        "copy back the job")
     parser.add_argument("--keep", action="store_true",
                         help="leave the services running afterwards")
     parser.add_argument("-v", "--verbose", action="store_true")

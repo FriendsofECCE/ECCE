@@ -23,12 +23,14 @@ struct ChildSpec {
   std::vector<std::string> envStore;
   std::vector<char*> envp;
   std::vector<char*> argv;
+  std::string exe;
   int maxFd;
 };
 
 void buildEnv(ChildSpec& cs, const std::map<std::string, std::string>& set,
               const std::map<std::string, bool>& unset)
 {
+  cs.exe = "/bin/sh";
   for (char** e = environ; e && *e; e++) {
     const char* eq = strchr(*e, '=');
     std::string name = eq ? std::string(*e, eq - *e) : std::string(*e);
@@ -81,7 +83,7 @@ void childExec(const ChildSpec& cs, int in, int out, int err, bool newGroup,
     closeFrom(3, cs.maxFd);
   }
 
-  execve("/bin/sh", const_cast<char* const*>(&cs.argv[0]), const_cast<char* const*>(&cs.envp[0]));
+  execve(cs.exe.c_str(), const_cast<char* const*>(&cs.argv[0]), const_cast<char* const*>(&cs.envp[0]));
   _exit(127);
 }
 
@@ -123,53 +125,56 @@ void sleepMs(int ms)
 
 }  // namespace
 
-TransportResult DirectTransport::run(const std::string& script, int timeoutSec)
+namespace {
+
+int highFd(int fd)
+{
+  int hi = fcntl(fd, F_DUPFD_CLOEXEC, 10);
+  if (hi >= 0) close(fd);
+  return hi;
+}
+
+// Runs the prepared child and collects its output.  The child's stdin is
+// `input` followed by whatever is read from inFd; with scriptOnFd3 the input
+// goes to fd 3 instead and stdin is /dev/null.  stdout goes to outFd when
+// that is >= 0, else it is captured.
+TransportResult runChild(ChildSpec& cs, const std::string& input, int inFd,
+                         int outFd, bool scriptOnFd3, int timeoutSec)
 {
   TransportResult res;
-  // sh reads the script through its own descriptor for /dev/fd/3, so fd 3
-  // itself can be closed: commands and daemons then never inherit it.
-  std::string full = "exec 3<&-\n" + withDir(script);
-
-  ChildSpec cs;
-  buildEnv(cs, p_env, p_unset);
-  static char a0[] = "sh", a1[] = "/dev/fd/3";
-  cs.argv.push_back(a0);
-  cs.argv.push_back(a1);
-  cs.argv.push_back(0);
-
-  int pin[2], pout[2], perr[2];
+  int pin[2], pout[2] = { -1, -1 }, perr[2];
   if (pipe2(pin, O_CLOEXEC) < 0) { res.error = strerror(errno); return res; }
-  if (pipe2(pout, O_CLOEXEC) < 0) {
+  if (outFd < 0 && pipe2(pout, O_CLOEXEC) < 0) {
     res.error = strerror(errno);
     close(pin[0]); close(pin[1]);
     return res;
   }
   if (pipe2(perr, O_CLOEXEC) < 0) {
     res.error = strerror(errno);
-    close(pin[0]); close(pin[1]); close(pout[0]); close(pout[1]);
+    close(pin[0]); close(pin[1]);
+    if (pout[0] >= 0) { close(pout[0]); close(pout[1]); }
     return res;
   }
+  auto closeAll = [&]() {
+    close(pin[0]); close(pin[1]); close(perr[0]); close(perr[1]);
+    if (pout[0] >= 0) { close(pout[0]); close(pout[1]); }
+  };
 
-  // Keep the script pipe and /dev/null clear of 0-3, which the child
-  // redirects onto.
-  int devnull = open("/dev/null", O_RDONLY | O_CLOEXEC);
-  if (devnull >= 0) {
-    int hi = fcntl(devnull, F_DUPFD_CLOEXEC, 10);
-    close(devnull);
-    devnull = hi;
+  // Keep the descriptors the child redirects onto clear of 0-3.
+  int devnull = -1;
+  if (scriptOnFd3) {
+    devnull = open("/dev/null", O_RDONLY | O_CLOEXEC);
+    if (devnull >= 0) devnull = highFd(devnull);
   }
-  if (devnull >= 0) {
-    int hi = fcntl(pin[0], F_DUPFD_CLOEXEC, 10);
-    if (hi >= 0) { close(pin[0]); pin[0] = hi; } else { close(devnull); devnull = -1; }
-  }
-  if (devnull < 0) {
+  if ((pin[0] = highFd(pin[0])) < 0 || (scriptOnFd3 && devnull < 0)) {
     res.error = strerror(errno);
-    close(pin[0]); close(pin[1]); close(pout[0]); close(pout[1]);
-    close(perr[0]); close(perr[1]);
+    if (devnull >= 0) close(devnull);
+    close(pin[1]); close(perr[0]); close(perr[1]);
+    if (pout[0] >= 0) { close(pout[0]); close(pout[1]); }
     return res;
   }
 
-  // A child that exits without reading the script must not kill us with SIGPIPE.
+  // A child that exits without reading its input must not kill us with SIGPIPE.
   sigset_t pipeSet, oldMask, pendBefore;
   sigemptyset(&pipeSet);
   sigaddset(&pipeSet, SIGPIPE);
@@ -180,30 +185,45 @@ TransportResult DirectTransport::run(const std::string& script, int timeoutSec)
   pid_t pid = fork();
   if (pid < 0) {
     res.error = strerror(errno);
-    close(pin[0]); close(pin[1]); close(pout[0]); close(pout[1]);
-    close(perr[0]); close(perr[1]); close(devnull);
+    closeAll();
+    if (devnull >= 0) close(devnull);
     pthread_sigmask(SIG_SETMASK, &oldMask, 0);
     return res;
   }
-  if (pid == 0) childExec(cs, devnull, pout[1], perr[1], true, pin[0]);
+  if (pid == 0)
+    childExec(cs, scriptOnFd3 ? devnull : pin[0], outFd >= 0 ? outFd : pout[1],
+              perr[1], true, scriptOnFd3 ? pin[0] : -1);
 
   setpgid(pid, pid);   // also done by the child; whoever runs first wins
-  close(pin[0]); close(pout[1]); close(perr[1]); close(devnull);
+  close(pin[0]); close(perr[1]);
+  if (pout[1] >= 0) close(pout[1]);
+  if (devnull >= 0) close(devnull);
   int fin = pin[1], fout = pout[0], ferr = perr[0];
-  setNonBlock(fin); setNonBlock(fout); setNonBlock(ferr);
+  setNonBlock(fin); setNonBlock(ferr);
+  if (fout >= 0) setNonBlock(fout);
 
   Clock::time_point deadline;
   if (timeoutSec > 0) deadline = Clock::now() + std::chrono::seconds(timeoutSec);
 
+  std::string pending = input;   // what is still to be written to the child
   size_t written = 0;
+  bool inDone = inFd < 0;
   char buf[65536];
   bool expired = false;
   while (fin >= 0 || fout >= 0 || ferr >= 0) {
+    if (fin >= 0 && written >= pending.size() && !inDone) {
+      ssize_t got = read(inFd, buf, sizeof buf);
+      if (got > 0) { pending.assign(buf, got); written = 0; }
+      else if (got == 0 || errno != EINTR) inDone = true;
+    }
+    if (fin >= 0 && written >= pending.size() && inDone) closeFd(fin);
+
     struct pollfd p[3];
     int n = 0, iIn = -1, iOut = -1, iErr = -1;
     if (fin >= 0)  { p[n].fd = fin;  p[n].events = POLLOUT; iIn = n++; }
     if (fout >= 0) { p[n].fd = fout; p[n].events = POLLIN;  iOut = n++; }
     if (ferr >= 0) { p[n].fd = ferr; p[n].events = POLLIN;  iErr = n++; }
+    if (n == 0) break;
     int ms = -1;
     if (timeoutSec > 0) {
       long left = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -219,10 +239,12 @@ TransportResult DirectTransport::run(const std::string& script, int timeoutSec)
     }
     if (r == 0) continue;
     if (iIn >= 0 && (p[iIn].revents & (POLLOUT | POLLERR | POLLHUP))) {
-      ssize_t w = write(fin, full.data() + written, full.size() - written);
-      if (w > 0) written += w;
-      if ((w < 0 && errno != EAGAIN && errno != EINTR) || written >= full.size())
-        closeFd(fin);
+      ssize_t w = write(fin, pending.data() + written, pending.size() - written);
+      if (w > 0) {
+        written += w;
+        if (timeoutSec > 0) deadline = Clock::now() + std::chrono::seconds(timeoutSec);
+      }
+      if (w < 0 && errno != EAGAIN && errno != EINTR) closeFd(fin);
     }
     int idx[2] = { iOut, iErr };
     int* fds[2] = { &fout, &ferr };
@@ -243,7 +265,7 @@ TransportResult DirectTransport::run(const std::string& script, int timeoutSec)
   int st = 0;
   bool reaped = false;
   if (!expired && timeoutSec > 0) {
-    // Output closed; the script may still be running.
+    // Output closed; the child may still be running.
     while (!reaped) {
       pid_t r = waitpid(pid, &st, WNOHANG);
       if (r == pid) reaped = true;
@@ -294,6 +316,82 @@ TransportResult DirectTransport::run(const std::string& script, int timeoutSec)
   }
   pthread_sigmask(SIG_SETMASK, &oldMask, 0);
   return res;
+}
+
+// argv[0] as a path: itself when it has a slash, else the first match on PATH.
+std::string findProgram(const std::string& name)
+{
+  if (name.find('/') != std::string::npos)
+    return access(name.c_str(), X_OK) == 0 ? name : "";
+  const char* path = getenv("PATH");
+  std::string dirs = path && *path ? path : "/usr/bin:/bin";
+  size_t pos = 0;
+  while (pos <= dirs.size()) {
+    size_t colon = dirs.find(':', pos);
+    if (colon == std::string::npos) colon = dirs.size();
+    std::string d = dirs.substr(pos, colon - pos);
+    std::string f = (d.empty() ? "." : d) + "/" + name;
+    if (access(f.c_str(), X_OK) == 0) return f;
+    pos = colon + 1;
+  }
+  return "";
+}
+
+}  // namespace
+
+TransportResult DirectTransport::run(const std::string& script, int timeoutSec)
+{
+  // sh reads the script through its own descriptor for /dev/fd/3, so fd 3
+  // itself can be closed: commands and daemons then never inherit it.
+  std::string full = "exec 3<&-\n" + withDir(script);
+
+  ChildSpec cs;
+  buildEnv(cs, p_env, p_unset);
+  static char a0[] = "sh", a1[] = "/dev/fd/3";
+  cs.argv.push_back(a0);
+  cs.argv.push_back(a1);
+  cs.argv.push_back(0);
+  return runChild(cs, full, -1, -1, true, timeoutSec);
+}
+
+TransportResult DirectTransport::runProcess(const std::vector<std::string>& args,
+                                            const std::string& input, int inFd,
+                                            int outFd, int timeoutSec)
+{
+  TransportResult res;
+  if (args.empty()) { res.error = "no command"; return res; }
+  ChildSpec cs;
+  std::map<std::string, std::string> none;
+  std::map<std::string, bool> noneUnset;
+  buildEnv(cs, none, noneUnset);
+  cs.exe = findProgram(args[0]);
+  if (cs.exe.empty()) { res.error = args[0] + ": command not found"; return res; }
+  std::vector<std::string> store(args);
+  for (size_t i = 0; i < store.size(); i++)
+    cs.argv.push_back(const_cast<char*>(store[i].c_str()));
+  cs.argv.push_back(0);
+  return runChild(cs, input, inFd, outFd, false, timeoutSec);
+}
+
+long DirectTransport::spawnProcess(const std::vector<std::string>& args, int in,
+                                   int out, int err, std::string& error)
+{
+  if (args.empty()) { error = "no command"; return -1; }
+  ChildSpec cs;
+  std::map<std::string, std::string> none;
+  std::map<std::string, bool> noneUnset;
+  buildEnv(cs, none, noneUnset);
+  cs.exe = findProgram(args[0]);
+  if (cs.exe.empty()) { error = args[0] + ": command not found"; return -1; }
+  std::vector<std::string> store(args);
+  for (size_t i = 0; i < store.size(); i++)
+    cs.argv.push_back(const_cast<char*>(store[i].c_str()));
+  cs.argv.push_back(0);
+  pid_t pid = fork();
+  if (pid < 0) { error = strerror(errno); return -1; }
+  if (pid == 0) childExec(cs, in, out, err, true);
+  setpgid(pid, pid);
+  return pid;
 }
 
 long DirectTransport::spawnDetached(const std::string& script, std::string& error,

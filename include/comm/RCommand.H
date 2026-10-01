@@ -28,7 +28,7 @@
 #include "comm/DirectTransport.H"
 
 class Transport;
-struct SshStream;
+struct RemoteStream;
 
 static const long RC_CONNECT_TIMEOUT = 60;  // Connect timeout seconds
 static const long RC_EXEC_TIMEOUT = 30;     // Normal execute timeout seconds
@@ -46,6 +46,9 @@ public:
   // also sends ssh machines through libssh (SshTransport) unless allowSsh
   // is false; a front end is reached by a forwarded channel or a nested ssh
   // (SshTransport::FrontEnd) and hop() opens a new connection through it.
+  // A host whose ~/.ssh/config shares connections (ControlMaster/ControlPath)
+  // is served by the OpenSSH client instead (OpenSshTransport); see
+  // ECCE_SSH_BACKEND in docs/ENVIRONMENT.md.
     RCommand(const string& machine="", const string& remShell="",
              const string& locShell="csh", const string& userName="",
              const string& password="", const string& frontendMachine="",
@@ -86,6 +89,10 @@ public:
     // "" unless libssh reaches this machine through a front end; then
     // "forward" (direct-tcpip channel) or "nested" (ssh run on the front end).
     string frontEndMode() const;
+
+    // "libssh" or "openssh" when an ssh transport serves this connection
+    // (OpenSSH for hosts whose ssh config shares connections), else "".
+    string sshBackend() const;
 
     bool hop(const string& hopMachine, const string& locShell="csh",
              const string& userName="", const string& password="",
@@ -181,8 +188,8 @@ public:
                                 string& commandWithArgs);
 
     // ECCE_TRANSPORT=ssh and a remote ssh machine: the test the constructor
-    // applies.  usesLibssh() adds that libssh is built in, i.e. that the
-    // connection really is libssh rather than the pty fallback.
+    // applies.  usesLibssh() is the same test, kept under its old name: a
+    // build without libssh serves these machines with the OpenSSH client.
     static bool usesLibssh(const string& machine, const string& remShell,
                            const string& userName);
     // The transport every process of a user agrees on: ECCE_TRANSPORT when
@@ -242,17 +249,24 @@ private:
     string p_errMessage;
     bool p_remoteBash;    // set by exec() -- see remoteShellIsBash()
     Transport* p_transport;  // non-null only when a Transport backs this
-    bool p_direct;           // true for DirectTransport and SshTransport alike
-    bool p_ssh;              // the Transport is an SshTransport
+    bool p_direct;           // true for DirectTransport and the ssh transports alike
+    bool p_ssh;              // the Transport is a RemoteTransport
     string p_scriptPrefix;   // PATH/LD_LIBRARY_PATH setup for every script
     DirectTransport::Stream p_stream;
-    SshStream* p_sshStream;
+    RemoteStream* p_sshStream;
 
     bool directExecout(const string& command, string& output,
                        const string& errorMessage, const int& timeout);
     bool directUnsupported(const char* what);
     bool sshConnect(const string& machine, const string& userName,
                     const string& password, const string& jumpHost = "");
+    bool sshConnectLibssh(const string& machine, const string& userName,
+                          const string& password, const string& jumpHost);
+    bool sshConnectOpenssh(const string& machine, const string& userName,
+                           const string& jumpHost);
+    static bool useOpenssh(const string& machine, const string& userName,
+                           const string& jumpHost);
+    void adoptTransport(Transport* t);
     bool sshHop(const string& hopMachine, const string& locShell,
                 const string& userName, const string& password,
                 const string& shellPath, const string& libPath,

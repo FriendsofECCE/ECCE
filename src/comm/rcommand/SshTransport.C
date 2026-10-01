@@ -1162,7 +1162,7 @@ bool SshTransport::getTree(const std::string& remotePath,
 
 // ---- the monitor stream ----
 
-struct SshStream {
+struct SshStream : RemoteStream {
   SshStream() : session(0), channel(0), jump(0), appFd(-1), pumpFd(-1),
                 graceMs(2000), intr(false), stop(false)
   { ctl[0] = ctl[1] = -1; }
@@ -1316,8 +1316,8 @@ void pump(SshStream* st)
 
 }  // namespace
 
-SshStream* SshTransport::openStream(const std::string& script, int& fd,
-                                    std::string& error)
+RemoteStream* SshTransport::openStream(const std::string& script, int& fd,
+                                       std::string& error)
 {
   std::string err;
   std::string envp = envPrefix(err);
@@ -1367,15 +1367,17 @@ SshStream* SshTransport::openStream(const std::string& script, int& fd,
   return 0;
 }
 
-void SshTransport::interruptStream(SshStream* st)
+void SshTransport::interruptStream(RemoteStream* rs)
 {
+  SshStream* st = static_cast<SshStream*>(rs);
   if (!st) return;
   st->intr = true;
   if (write(st->ctl[1], "i", 1) < 0) {}
 }
 
-void SshTransport::closeStream(SshStream* st, int graceMs)
+void SshTransport::closeStream(RemoteStream* rs, int graceMs)
 {
+  SshStream* st = static_cast<SshStream*>(rs);
   if (!st) return;
   st->graceMs = graceMs;
   st->stop = true;

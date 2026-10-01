@@ -318,7 +318,7 @@ void GlobalPrefs::createProgramsPage(wxWindow* page)
   p_builtinSsh->SetToolTip(_("Runs commands on this machine directly and on ssh machines through ECCE's own ssh library instead of a scripted shell session. Applies to connections opened after the change."));
   cbox->Add(p_builtinSsh, 0, wxALL, 3);
   cbox->Add(new ewxStaticText(cbox->GetStaticBox(), wxID_ANY,
-      _("Applies to connections opened after the change. Needs a build with libssh.")),
+      _("Applies to connections opened after the change. A host whose ssh config shares connections (ControlMaster) is served by the ssh command instead; see ECCE_SSH_BACKEND.")),
       0, wxLEFT|wxBOTTOM, PAD);
   p_builtinSsh->Bind(wxEVT_CHECKBOX, &GlobalPrefs::OnGlobalChange, this);
   outer->Add(cbox, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, PAD);
