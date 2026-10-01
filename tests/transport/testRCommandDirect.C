@@ -185,6 +185,20 @@ static void directChecks()
     check("direct: still usable", rc.exec("true"));
   }
   {
+    // This machine is never reached through a front end, so the front end
+    // is ignored, in either mode.
+    const char* modes[] = { "direct", "ssh" };
+    for (int i = 0; i < 2; i++) {
+      setenv("ECCE_TRANSPORT", modes[i], 1);
+      RCommand rc("system", "", "bash", "", "", "frontend.invalid", "");
+      string o;
+      check((string("local machine with a front end is direct (") + modes[i] + ")").c_str(),
+            rc.isOpen() && rc.isDirect() && rc.execout("echo here", o) &&
+            o == "here\r\n");
+    }
+    setenv("ECCE_TRANSPORT", "direct", 1);
+  }
+  {
     RCommand rc("system", "", "bash", "", "", "", "", "", "", "", false);
     check("allowDirect=false keeps the pty", rc.isOpen() && rc.expfid() > 0);
   }

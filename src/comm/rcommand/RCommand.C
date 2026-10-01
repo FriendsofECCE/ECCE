@@ -1178,8 +1178,7 @@ RCommand::RCommand(const string& machine, const string& remShell,
 
   const string mode = transportMode();
   if (allowDirect && (mode=="direct" || mode=="ssh") &&
-      !RCommand::isRemote(machine, remShell, userName) &&
-      frontendMachine=="") {
+      !RCommand::isRemote(machine, remShell, userName)) {
     p_direct = true;
     p_transport = new DirectTransport;
     p_remoteBash = true;
