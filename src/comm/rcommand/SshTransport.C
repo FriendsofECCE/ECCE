@@ -8,6 +8,12 @@
 #include <cstring>
 #include <fstream>
 #include <atomic>
+#include <condition_variable>
+#include <deque>
+#include <functional>
+#include <map>
+#include <memory>
+#include <mutex>
 #include <thread>
 
 #include <dirent.h>
@@ -240,109 +246,341 @@ std::string SshTransport::execLine(const std::string& remoteCmd) const
 
 // ---- the forwarded connection ----
 
-// A direct-tcpip channel on its own ssh session to the front end, pumped
-// to a socketpair whose other end is the inner session's transport (libssh
-// has no way to run a session over a channel).  One thread owns the outer
-// session from the moment it starts.
+// One authenticated session per front end is shared by every inner session
+// of the process, so a front end that asks for a second factor asks once.
+// libssh objects must never be used by two threads at once, so a front
+// end's session and its channels belong to one thread from login to logout
+// (frontEndMain).  The other threads reach it by a mutex-protected request
+// queue and a wake-up pipe, and reach their direct-tcpip channel through a
+// socketpair, which is a plain descriptor: an inner session's transport
+// (libssh has no way to run a session over a channel) is one end of the
+// pair, and the owner pumps the other end to and from the channel.
 struct SshJump {
-  SshJump() : outer(0), ch(0), appFd(-1), pumpFd(-1), stop(false)
-  { ctl[0] = ctl[1] = -1; }
-  ssh_session outer;
-  ssh_channel ch;
-  int appFd, pumpFd, ctl[2];
-  std::thread thread;
-  std::atomic<bool> stop;
+  SshJump() : appFd(-1) {}
+  int appFd;
 };
 
 namespace {
 
-void jumpPump(SshJump* j)
-{
-  ssh_session s = j->outer;
-  ssh_channel ch = j->ch;
-  ssh_set_blocking(s, 0);
-  std::string toCh, toApp;
-  size_t off = 0;
-  bool sockEof = false, chEof = false, fail = false, stopping = false;
-  Clock::time_point until;
-  char buf[16384];
+struct FwdReq {
+  FwdReq() : stop(false), port(0), done(false), ok(false), refused(false), appFd(-1) {}
+  bool stop;                       // not a connection request: end the thread
+  std::function<ssh_session(std::string&)> login;
+  std::string host;
+  int port;
+  bool done, ok, refused;          // the reply
+  std::string error;
+  int appFd;
+};
 
-  while (!fail) {
-    if (j->stop.load() && !stopping) {
-      stopping = true;
-      until = Clock::now() + std::chrono::seconds(1);
+struct SharedFrontEnd {
+  SharedFrontEnd() : idleSec(0), logins(0) { ctl[0] = ctl[1] = -1; }
+  ~SharedFrontEnd() { if (ctl[0] >= 0) close(ctl[0]); if (ctl[1] >= 0) close(ctl[1]); }
+  std::string key;
+  std::mutex mu;
+  std::condition_variable cv;
+  std::deque<FwdReq*> queue;
+  int ctl[2];
+  int idleSec;                     // how long an unused session stays logged in
+  std::atomic<bool> forwardRefused{false};
+  std::atomic<int> logins;
+};
+
+std::mutex poolMu;                 // before SharedFrontEnd::mu, always
+std::map<std::string, std::shared_ptr<SharedFrontEnd> > pool;
+std::atomic<int> totalLogins(0);
+std::atomic<bool> poolStopping(false);
+std::atomic<int> uniqueKey(0);
+
+struct Chan {
+  Chan() : ch(0), pumpFd(-1), off(0), sockEof(false), chEof(false) {}
+  ssh_channel ch;
+  int pumpFd;
+  std::string toCh, toApp;
+  size_t off;
+  bool sockEof, chEof;
+};
+
+void closeChan(Chan& c)
+{
+  if (c.pumpFd >= 0) {
+    shutdown(c.pumpFd, SHUT_RDWR);
+    close(c.pumpFd);
+    c.pumpFd = -1;
+  }
+  if (c.ch) {
+    ssh_channel_close(c.ch);
+    ssh_channel_free(c.ch);
+    c.ch = 0;
+  }
+}
+
+// One non-blocking pass over a channel.  True when it is finished.
+// connectionLost is set when libssh reports an error on the session.
+bool pumpChan(Chan& c, bool& connectionLost)
+{
+  char buf[16384];
+  if (!c.sockEof && c.off >= c.toCh.size()) {
+    ssize_t n = read(c.pumpFd, buf, sizeof buf);
+    if (n > 0) { c.toCh.assign(buf, n); c.off = 0; }
+    else if (n == 0 || (errno != EAGAIN && errno != EINTR)) c.sockEof = true;
+  }
+  if (c.off < c.toCh.size()) {
+    int n = ssh_channel_write(c.ch, c.toCh.data() + c.off,
+                              (uint32_t)(c.toCh.size() - c.off));
+    if (n == SSH_ERROR) { connectionLost = true; return true; }
+    if (n > 0) c.off += n;
+  } else if (c.sockEof) {
+    return true;
+  }
+  if (c.toApp.empty() && !c.chEof) {
+    int n = ssh_channel_read_nonblocking(c.ch, buf, sizeof buf, 0);
+    if (n == SSH_EOF) c.chEof = true;
+    else if (n == SSH_ERROR) { connectionLost = true; return true; }
+    else if (n > 0) c.toApp.append(buf, n);
+    ssh_channel_read_nonblocking(c.ch, buf, sizeof buf, 1);
+  }
+  if (!c.toApp.empty()) {
+    ssize_t w = send(c.pumpFd, c.toApp.data(), c.toApp.size(), MSG_NOSIGNAL | MSG_DONTWAIT);
+    if (w > 0) c.toApp.erase(0, w);
+    else if (w < 0 && errno != EAGAIN && errno != EINTR) return true;
+  }
+  return (c.chEof || ssh_channel_is_closed(c.ch)) && c.toApp.empty();
+}
+
+void finishReq(SharedFrontEnd* fe, FwdReq* r)
+{
+  std::lock_guard<std::mutex> lock(fe->mu);
+  r->done = true;
+  fe->cv.notify_all();
+}
+
+// The thread that owns one front end's session and channels.
+void frontEndMain(std::shared_ptr<SharedFrontEnd> fep)
+{
+  SharedFrontEnd* fe = fep.get();
+  ssh_session sess = 0;
+  std::vector<Chan> chans;
+  Clock::time_point idleSince = Clock::now();
+
+  auto dropSession = [&]() {
+    for (size_t i = 0; i < chans.size(); i++) closeChan(chans[i]);
+    chans.clear();
+    if (sess) {
+      ssh_set_blocking(sess, 1);
+      ssh_disconnect(sess);
+      ssh_free(sess);
+      sess = 0;
     }
-    if (!sockEof && off >= toCh.size()) {
-      ssize_t n = read(j->pumpFd, buf, sizeof buf);
-      if (n > 0) { toCh.assign(buf, n); off = 0; }
-      else if (n == 0 || (errno != EAGAIN && errno != EINTR)) sockEof = true;
+  };
+
+  // One forward over the shared session, logging in first when there is none.
+  auto open = [&](FwdReq* r) {
+    for (int attempt = 0; attempt < 2; attempt++) {
+      if (sess && !ssh_is_connected(sess)) dropSession();
+      if (!sess) {
+        std::string err;
+        sess = r->login(err);
+        if (!sess) { r->error = err; return; }
+        fe->logins++;
+        totalLogins++;
+      }
+      ssh_set_blocking(sess, 1);
+      ssh_channel fw = ssh_channel_new(sess);
+      int rc = fw ? ssh_channel_open_forward(fw, r->host.c_str(), r->port,
+                                             "127.0.0.1", 0) : SSH_ERROR;
+      ssh_set_blocking(sess, 0);
+      if (rc != SSH_OK) {
+        std::string why = ssh_get_error(sess);
+        if (fw) ssh_channel_free(fw);
+        // A dead session is not a refusal: log in again, once.
+        if (!ssh_is_connected(sess) && attempt == 0) continue;
+        r->error = why;
+        r->refused = ssh_is_connected(sess);
+        if (r->refused) {
+          fe->forwardRefused = true;
+          // A session that forwards nothing is of no use: log out.
+          if (chans.empty()) dropSession();
+        }
+        return;
+      }
+      int sp[2];
+      if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, sp) != 0) {
+        r->error = strerror(errno);
+        ssh_channel_free(fw);
+        return;
+      }
+      Chan c;
+      c.ch = fw;
+      c.pumpFd = sp[1];
+      fcntl(c.pumpFd, F_SETFL, fcntl(c.pumpFd, F_GETFL) | O_NONBLOCK);
+      chans.push_back(c);
+      r->appFd = sp[0];
+      r->ok = true;
+      return;
     }
-    if (off < toCh.size()) {
-      int n = ssh_channel_write(ch, toCh.data() + off, (uint32_t)(toCh.size() - off));
-      if (n == SSH_ERROR) break;
-      if (n > 0) off += n;
-    } else if (sockEof) {
-      break;
+  };
+
+  bool stop = false;
+  while (!stop) {
+    std::deque<FwdReq*> reqs;
+    {
+      std::lock_guard<std::mutex> lock(fe->mu);
+      reqs.swap(fe->queue);
     }
-    if (toApp.empty() && !chEof) {
-      int n = ssh_channel_read_nonblocking(ch, buf, sizeof buf, 0);
-      if (n == SSH_EOF) chEof = true;
-      else if (n == SSH_ERROR) break;
-      else if (n > 0) toApp.append(buf, n);
-      ssh_channel_read_nonblocking(ch, buf, sizeof buf, 1);
+    for (size_t i = 0; i < reqs.size(); i++) {
+      if (reqs[i]->stop) stop = true;
+      else open(reqs[i]);
+      finishReq(fe, reqs[i]);
     }
-    if (!toApp.empty()) {
-      ssize_t w = send(j->pumpFd, toApp.data(), toApp.size(), MSG_NOSIGNAL | MSG_DONTWAIT);
-      if (w > 0) toApp.erase(0, w);
-      else if (w < 0 && errno != EAGAIN && errno != EINTR) break;
+    if (stop || poolStopping.load()) break;
+
+    bool lost = false;
+    for (size_t i = 0; i < chans.size();) {
+      if (pumpChan(chans[i], lost)) {
+        closeChan(chans[i]);
+        chans.erase(chans.begin() + i);
+      } else {
+        i++;
+      }
     }
-    if ((chEof || ssh_channel_is_closed(ch)) && toApp.empty()) break;
-    if (stopping && Clock::now() >= until) break;
+    if (lost && sess && !ssh_is_connected(sess)) dropSession();
+
+    if (!chans.empty()) {
+      idleSince = Clock::now();
+    } else if (std::chrono::duration_cast<std::chrono::seconds>(
+                 Clock::now() - idleSince).count() >= fe->idleSec) {
+      // Nothing uses the session any more.  Leave under the pool's lock, so
+      // that nobody queues a request for a thread that has gone.
+      if (sess) dropSession();
+      std::lock_guard<std::mutex> pl(poolMu);
+      std::lock_guard<std::mutex> lock(fe->mu);
+      if (fe->queue.empty()) {
+        pool.erase(fe->key);
+        break;
+      }
+    }
 
     fd_set rfds;
     FD_ZERO(&rfds);
-    FD_SET(j->ctl[0], &rfds);
-    int maxfd = j->ctl[0];
-    if (!sockEof && off >= toCh.size()) {
-      FD_SET(j->pumpFd, &rfds);
-      maxfd = std::max(maxfd, j->pumpFd);
+    FD_SET(fe->ctl[0], &rfds);
+    int maxfd = fe->ctl[0];
+    bool busy = false;
+    std::vector<ssh_channel> watch;
+    for (size_t i = 0; i < chans.size(); i++) {
+      Chan& c = chans[i];
+      watch.push_back(c.ch);
+      if (!c.sockEof && c.off >= c.toCh.size()) {
+        FD_SET(c.pumpFd, &rfds);
+        maxfd = std::max(maxfd, c.pumpFd);
+      } else {
+        busy = true;
+      }
+      if (!c.toApp.empty()) busy = true;
     }
-    struct timeval tv = { 0, toApp.empty() && off >= toCh.size() ? 100000 : 5000 };
-    ssh_channel chans[2] = { ch, 0 };
-    ssh_channel outc[2] = { 0, 0 };
-    ssh_select(chans, outc, maxfd + 1, &rfds, &tv);
-    if (FD_ISSET(j->ctl[0], &rfds)) {
-      char c[16];
-      if (read(j->ctl[0], c, sizeof c) < 0) {}
+    watch.push_back(0);
+    std::vector<ssh_channel> out(watch.size(), (ssh_channel)0);
+    struct timeval tv = { 0, busy ? 5000 : 100000 };
+    if (chans.empty()) {
+      tv.tv_sec = 0; tv.tv_usec = 200000;
+      select(maxfd + 1, &rfds, 0, 0, &tv);
+    } else {
+      ssh_select(&watch[0], &out[0], maxfd + 1, &rfds, &tv);
+    }
+    if (FD_ISSET(fe->ctl[0], &rfds)) {
+      char junk[16];
+      if (read(fe->ctl[0], junk, sizeof junk) < 0) {}
     }
   }
-  (void)fail;
 
-  shutdown(j->pumpFd, SHUT_RDWR);
-  close(j->pumpFd);
-  j->pumpFd = -1;
-  ssh_set_blocking(s, 1);
-  ssh_channel_close(ch);
-  ssh_channel_free(ch);
-  ssh_disconnect(s);
-  ssh_free(s);
-  j->ch = 0;
-  j->outer = 0;
+  dropSession();
+  // Requests that arrived while leaving are answered, not left waiting.
+  {
+    std::lock_guard<std::mutex> pl(poolMu);
+    std::lock_guard<std::mutex> lock(fe->mu);
+    pool.erase(fe->key);
+    for (size_t i = 0; i < fe->queue.size(); i++) {
+      fe->queue[i]->error = "front end session closed";
+      fe->queue[i]->done = true;
+    }
+    fe->queue.clear();
+    fe->cv.notify_all();
+  }
+}
+
+// Opens a direct-tcpip channel to host:port over the shared session for
+// key, logging in with login() when there is none.  The request is answered
+// by the owner thread; this one waits.
+bool openForward(const std::string& key, int idleSec,
+                 const std::function<ssh_session(std::string&)>& login,
+                 const std::string& host, int port, int& appFd, bool& refused,
+                 bool& alreadyRefused, std::string& error)
+{
+  FwdReq req;
+  req.login = login;
+  req.host = host;
+  req.port = port;
+  std::shared_ptr<SharedFrontEnd> fe;
+  {
+    std::lock_guard<std::mutex> pl(poolMu);
+    std::map<std::string, std::shared_ptr<SharedFrontEnd> >::iterator it = pool.find(key);
+    alreadyRefused = it != pool.end() && it->second->forwardRefused.load();
+    if (alreadyRefused) return false;
+    if (it == pool.end()) {
+      fe.reset(new SharedFrontEnd);
+      fe->key = key;
+      fe->idleSec = idleSec;
+      if (pipe2(fe->ctl, O_CLOEXEC) != 0) {
+        error = strerror(errno);
+        return false;
+      }
+      pool[key] = fe;
+      std::thread(frontEndMain, fe).detach();
+    } else {
+      fe = it->second;
+    }
+    std::lock_guard<std::mutex> lock(fe->mu);
+    fe->queue.push_back(&req);
+    // Under the pool's lock the owner cannot be leaving: it leaves only
+    // when its queue is empty and it holds that lock.
+    if (write(fe->ctl[1], "r", 1) < 0) {}
+  }
+  {
+    std::unique_lock<std::mutex> lock(fe->mu);
+    fe->cv.wait(lock, [&] { return req.done; });
+  }
+  if (req.ok) { appFd = req.appFd; refused = false; return true; }
+  refused = req.refused;
+  error = req.error;
+  return false;
 }
 
 }  // namespace
 
-// Call after the inner session is freed: closing our end of the pair is
-// what tells the pump that the inner side is done.
+int SshTransport::frontEndLogins() { return totalLogins.load(); }
+
+void SshTransport::shutdownFrontEnds()
+{
+  poolStopping = true;
+  for (int i = 0; i < 300; i++) {
+    {
+      std::lock_guard<std::mutex> pl(poolMu);
+      if (pool.empty()) break;
+      for (std::map<std::string, std::shared_ptr<SharedFrontEnd> >::iterator it = pool.begin();
+           it != pool.end(); ++it)
+        if (write(it->second->ctl[1], "x", 1) < 0) {}
+    }
+    usleep(10000);
+  }
+  poolStopping = false;
+}
+
+// Call after the inner session is freed: the owner thread sees EOF on its
+// end of the pair and closes the channel.
 static void closeJump(SshJump* j)
 {
   if (!j) return;
   close(j->appFd);
-  j->stop = true;
-  if (write(j->ctl[1], "s", 1) < 0) {}
-  j->thread.join();
-  close(j->ctl[0]);
-  close(j->ctl[1]);
   delete j;
 }
 
@@ -352,51 +590,54 @@ ssh_session SshTransport::newSession(std::string& error, SshJump** linkOut)
   if (p_jumpHost.empty())
     return rawSession(p_host, p_port, p_user, p_prompt, -1, error);
 
-  ssh_session outer = rawSession(p_jumpHost, p_jumpPort, p_jumpUser,
-                                 p_jumpPrompt ? p_jumpPrompt : p_prompt, -1, error);
-  if (!outer) return 0;
-  if (p_feMode == FE_NESTED || p_nested) { p_nested = true; return outer; }
+  const PromptFn jumpPrompt = p_jumpPrompt ? p_jumpPrompt : p_prompt;
+  if (p_feMode == FE_NESTED || p_nested) {
+    p_nested = true;
+    return rawSession(p_jumpHost, p_jumpPort, p_jumpUser, jumpPrompt, -1, error);
+  }
 
-  ssh_channel fw = ssh_channel_new(outer);
+  // One session per front end, user and way of logging in; with
+  // ECCE_SSH_FRONTEND_POOL=0 each inner session gets one of its own.
+  std::string key = p_jumpUser + "@" + p_jumpHost + ":" + std::to_string(p_jumpPort) +
+                    "|" + p_configFile + "|" + p_knownHosts;
+  for (size_t i = 0; i < p_identities.size(); i++) key += "|" + p_identities[i];
+  const char* pe = getenv("ECCE_SSH_FRONTEND_POOL");
+  const bool pooled = !(pe && !strcmp(pe, "0"));
+  if (!pooled) key += "|#" + std::to_string(uniqueKey++);
+  const char* ie = getenv("ECCE_SSH_FRONTEND_IDLE");
+  const int idleSec = !pooled ? 0 : ie && *ie ? atoi(ie) : 120;
+
   int port = p_port > 0 ? p_port : 22;
-  if (!fw || ssh_channel_open_forward(fw, p_host.c_str(), port, "127.0.0.1", 0) != SSH_OK) {
-    std::string why = ssh_get_error(outer);
-    if (fw) ssh_channel_free(fw);
-    if (p_feMode == FE_AUTO && !p_forwardWorked) {
+  int appFd = -1;
+  bool refused = false, alreadyRefused = false;
+  std::string why;
+  auto login = [this, &jumpPrompt](std::string& err) {
+    return rawSession(p_jumpHost, p_jumpPort, p_jumpUser, jumpPrompt, -1, err);
+  };
+  if (!openForward(key, idleSec, login, p_host, port, appFd, refused,
+                   alreadyRefused, why)) {
+    if (alreadyRefused) { refused = true; why = "forwarding was refused earlier"; }
+    if (refused && p_feMode == FE_AUTO && (alreadyRefused || !p_forwardWorked)) {
       if (getenv("ECCE_RCOM_LOGMODE"))
         fprintf(stderr, "%s refused a forward to %s (%s); running ssh there "
                 "instead\n", p_jumpHost.c_str(), p_host.c_str(), why.c_str());
       p_nested = true;
-      return outer;
+      return rawSession(p_jumpHost, p_jumpPort, p_jumpUser, jumpPrompt, -1, error);
     }
-    error = p_jumpHost + " cannot forward a connection to " + p_host + ": " + why;
-    ssh_disconnect(outer);
-    ssh_free(outer);
+    if (refused)
+      error = p_jumpHost + " cannot forward a connection to " + p_host + ": " + why;
+    else
+      error = why;
     return 0;
   }
   p_forwardWorked = true;
 
-  int sp[2];
   SshJump* j = new SshJump;
-  if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, sp) != 0 ||
-      pipe2(j->ctl, O_CLOEXEC) != 0) {
-    error = strerror(errno);
-    ssh_channel_free(fw);
-    ssh_disconnect(outer);
-    ssh_free(outer);
-    delete j;
-    return 0;
-  }
-  j->outer = outer;
-  j->ch = fw;
-  j->appFd = sp[0];
-  j->pumpFd = sp[1];
-  fcntl(j->pumpFd, F_SETFL, fcntl(j->pumpFd, F_GETFL) | O_NONBLOCK);
-  j->thread = std::thread(jumpPump, j);
+  j->appFd = appFd;
 
   // libssh closes the descriptor it is given; we keep the original so the
-  // pump sees EOF only when we say so.
-  int fdc = dup(sp[0]);
+  // owner thread sees EOF only when we say so.
+  int fdc = dup(appFd);
   p_authFailed = false;
   ssh_session inner = rawSession(p_host, p_port, p_user, p_prompt, fdc, error);
   if (!inner) {
@@ -406,7 +647,7 @@ ssh_session SshTransport::newSession(std::string& error, SshJump** linkOut)
     if (p_authFailed && p_feMode == FE_AUTO) {
       std::string e2;
       ssh_session again = rawSession(p_jumpHost, p_jumpPort, p_jumpUser,
-                                     p_jumpPrompt ? p_jumpPrompt : p_prompt, -1, e2);
+                                     jumpPrompt, -1, e2);
       if (again) {
         if (getenv("ECCE_RCOM_LOGMODE"))
           fprintf(stderr, "%s; running ssh from %s instead\n", error.c_str(),

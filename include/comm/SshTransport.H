@@ -48,7 +48,15 @@ public:
   // works where TCP forwarding is off; FE_AUTO tries forwarding first and
   // falls back to nesting when the front end refuses the channel.
   // ECCE_SSH_FRONTEND=forward|nested|auto overrides the mode.
+  // Forwarding shares one login per front end between all the inner sessions
+  // of the process (ECCE_SSH_FRONTEND_POOL=0 gives each its own, as before);
+  // a nested ssh logs in per session.  The shared session is closed
+  // ECCE_SSH_FRONTEND_IDLE seconds (default 120) after its last channel.
   enum FrontEnd { FE_AUTO, FE_FORWARD, FE_NESTED };
+  // Logins to front ends made for forwarding so far in this process.
+  static int frontEndLogins();
+  // Logs the shared front-end sessions out and ends their threads.
+  static void shutdownFrontEnds();
   void setJumpHost(const std::string& host, int port = 0,
                    const std::string& user = "");
   void setJumpPromptCallback(const PromptFn& f) { p_jumpPrompt = f; }
