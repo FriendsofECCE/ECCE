@@ -298,23 +298,25 @@ being worked on rather than a schedule. Current work is tracked in the
   and MOPAC each still have options reachable in the code but not from
   the interface.
 
+**In 9.0** (previews: the 9.0.0-alpha releases):
+
+* **Separate client and server packages**: `ecce-client` for the machines
+  people sit at, `ecce-server` for the machine that holds the data.
+* **Jobs launched without an interactive shell**: commands run directly
+  on this machine and over ssh (libssh, or the `ssh` command for hosts
+  that share connections) elsewhere, and job scripts are POSIX sh, so
+  csh is no longer required.
+* **HTCondor** as a queue manager.
+
 **Next (9.x)** — the plan is on
 [#186](https://github.com/FriendsofECCE/ECCE/issues/186):
 
-* **Separate client and server packages**, once the server package can
-  run a central server on its own: `ecce-client` for the machines people
-  sit at, `ecce-server` for the machine that holds the data.
-* **Jobs launched without an interactive shell** (libssh, and a direct
-  local spawn), which ends the bash and csh problems for good and
-  retires the csh requirement.
 * **Native macOS and Windows clients**, once the client no longer needs
   its own data server and broker
   ([#133](https://github.com/FriendsofECCE/ECCE/issues/133)). macOS
   needs someone with a Mac to test it.
 * **Finishing Quantum ESPRESSO** and **registering GROMACS**
   ([#106](https://github.com/FriendsofECCE/ECCE/issues/106)).
-* **HTCondor**, which needs a different submission model rather than
-  another set of submit directives.
 
 **Under consideration**
 
