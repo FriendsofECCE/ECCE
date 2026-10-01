@@ -1643,11 +1643,11 @@ void initCache(void)
   // localconn may be corrupted so just don't even mess with looking at
   // the old one--leave it as a memory leak
   // Only exec/execout/cd go through localconn, so direct mode can serve it.
-  localconn = new RCommand("system", "", "csh", "", "", "", "", "", "", "");
+  localconn = new RCommand("system", "", "bash", "", "", "", "", "", "", "");
   if (localconn->isOpen())
-    logMessage("System", "Started local csh RCommand connection");
+    logMessage("System", "Started local RCommand connection");
   else
-    restart("System", "Unable to establish local csh RCommand connection");
+    restart("System", "Unable to establish local RCommand connection");
 
   if (!localconn->cd(tmpStorage)) {
     string message =  "Unable to cd to local calculation cache directory " +

@@ -47,7 +47,7 @@ public:
   // is served by the OpenSSH client instead (OpenSshTransport); see
   // ECCE_SSH_BACKEND in docs/ENVIRONMENT.md.
     RCommand(const string& machine="", const string& remShell="",
-             const string& locShell="csh", const string& userName="",
+             const string& locShell="bash", const string& userName="",
              const string& password="", const string& frontendMachine="",
              const string& frontendBypass="", const string& shellPath="",
              const string& libPath="", const string& sourceFile="");
@@ -84,7 +84,7 @@ public:
     // (OpenSSH for hosts whose ssh config shares connections), else "".
     string sshBackend() const;
 
-    bool hop(const string& hopMachine, const string& locShell="csh",
+    bool hop(const string& hopMachine, const string& locShell="bash",
              const string& userName="", const string& password="",
              const string& shellPath="", const string& libPath="",
              const string& sourceFile="");
@@ -144,14 +144,14 @@ public:
 
     static bool command(const string& command, string& output,
                 string& errMessage, const string& machine="",
-                const string& remShell="", const string& locShell="csh",
+                const string& remShell="", const string& locShell="bash",
                 const string& userName="", const string& password="",
                 const string& frontendMachine="",
                 const string& frontendBypass="");
 
     static bool command(const string& command, const string& args,
                 string& output, string& errMessage, const string& machine="",
-                const string& remShell="", const string& locShell="csh",
+                const string& remShell="", const string& locShell="bash",
                 const string& userName="", const string& password="",
                 const string& frontendMachine="",
                 const string& frontendBypass="");

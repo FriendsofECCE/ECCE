@@ -1336,7 +1336,7 @@ bool RCommand::sshCopy(bool putFlag, const string& machine,
                        const string& password, const vector<string>& files,
                        const string& toFile, string& errMessage)
 {
-  RCommand rc(machine, remShell, "csh", userName, password);
+  RCommand rc(machine, remShell, "bash", userName, password);
   if (!rc.isOpen()) {
     errMessage = rc.commError();
     return false;
