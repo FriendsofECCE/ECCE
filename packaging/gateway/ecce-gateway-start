@@ -157,6 +157,8 @@ elif [ ! -f "$ECCE_HOME/server/activemq-conf/activemq.xml" ] ||
   # A client-only install (split packaging): nothing to start locally.
   echo "ecce-gateway-start: no local broker (ecce-server not installed) and neither ECCE_REMOTE_SERVER nor siteconfig/SharedBroker is set." >&2
   echo "ecce-gateway-start: install ecce-server for a local broker, or point this client at a central one (ecce-remote-setup, then 'ecce -remote')." >&2
+  # A relay with no broker to connect to would only time out.
+  exit 1
 elif [ ! -d "$ACTIVEMQ_HOME" ]; then
   echo "ecce-gateway-start: no ActiveMQ at $ACTIVEMQ_HOME (apt install activemq, or set ACTIVEMQ_HOME to an upstream ActiveMQ Classic install) -- messaging will not work" >&2
 else
