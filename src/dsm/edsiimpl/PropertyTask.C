@@ -4,6 +4,7 @@
  *
  */
 #include <algorithm>
+#include <cstdio>
   using std::find;
 #include <strstream>
   using std::ostrstream;
@@ -683,7 +684,12 @@ bool PropertyTask::loadStep(Fragment *frag, int step)
     if (numStep < 0) numStep = geotrace->tables()-1;
     size_t numRows = frag->numAtoms();
     const vector<double>& xvalues = geotrace->values(numStep);
-    EE_ASSERT((3*numRows == xvalues.size()),EE_WARNING,"Bad Geomtrace");
+    if (3*numRows != xvalues.size()) {
+      fprintf(stderr, "GEOMTRACE step %d holds %lu values for %lu atoms; "
+              "coordinates left unchanged\n", numStep,
+              (unsigned long)xvalues.size(), (unsigned long)numRows);
+      return false;
+    }
     TAtm *atom;
     int ptr=0;
     for (size_t idx=0; idx<numRows; idx++) {
@@ -721,7 +727,12 @@ bool PropertyTask::loadStep(Fragment *frag, int step, PropertyDoc& doc)
       if (numStep < 0) numStep = geotrace->tables()-1;
       size_t numRows = frag->numAtoms();
       const vector<double>& xvalues = geotrace->values(numStep);
-       EE_ASSERT((3*numRows == xvalues.size()),EE_WARNING,"Bad Geomtrace");
+      if (3*numRows != xvalues.size()) {
+        fprintf(stderr, "GEOMTRACE step %d holds %lu values for %lu atoms; "
+                "coordinates left unchanged\n", numStep,
+                (unsigned long)xvalues.size(), (unsigned long)numRows);
+        return false;
+      }
       TAtm *atom;
       int ptr=0;
       for (size_t idx=0; idx<numRows; idx++)

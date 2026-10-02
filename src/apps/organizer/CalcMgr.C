@@ -4647,13 +4647,18 @@ void CalcMgr::resetWithLastGeom(WxResourceTreeItemData *itemData)
       int numSteps = geotrace->tables();
       int numRows = frag->numAtoms();
       const vector<double>& values = geotrace->values(numSteps-1);
-      EE_ASSERT((3*numRows == values.size()),EE_WARNING,"Bad Geomtrace");
-      TAtm *atom;
-      int ptr=0;
-      for (int idx=0; idx<numRows; idx++) {
-        atom = frag->atomRef(idx);
-        atom->coordinates(values[ptr],values[ptr+1], values[ptr+2]);
-        ptr+=3;
+      if (3*(size_t)numRows != values.size()) {
+        std::cerr << "GEOMTRACE last step holds " << values.size()
+                  << " values for " << numRows
+                  << " atoms; coordinates left unchanged" << std::endl;
+      } else {
+        TAtm *atom;
+        int ptr=0;
+        for (int idx=0; idx<numRows; idx++) {
+          atom = frag->atomRef(idx);
+          atom->coordinates(values[ptr],values[ptr+1], values[ptr+2]);
+          ptr+=3;
+        }
       }
 
       // Set the Fragment
