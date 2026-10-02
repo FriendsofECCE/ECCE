@@ -1,0 +1,476 @@
+basis                        el  mol  blocked(old) result
+IGLO-III                     B   BH3  yes     match
+IGLO-III                     C   CH4  yes     match
+IGLO-III                     Cl  HCl  yes     match
+IGLO-III                     F   HF   yes     match
+IGLO-III                     H   H2   yes     match
+IGLO-III                     N   NH3  yes     match
+IGLO-III                     O   H2O  yes     match
+IGLO-III                     P   PH3  yes     match
+IGLO-III                     S   H2S  yes     match
+IGLO-III                     Si  SiH4 yes     match
+IGLO-II                      B   BH3  yes     match
+IGLO-II                      C   CH4  yes     match
+IGLO-II                      Cl  HCl  yes     match
+IGLO-II                      F   HF   yes     match
+IGLO-II                      H   H2   yes     match
+IGLO-II                      N   NH3  yes     match
+IGLO-II                      O   H2O  yes     match
+IGLO-II                      P   PH3  yes     match
+IGLO-II                      S   H2S  yes     match
+IGLO-II                      Si  SiH4 yes     match
+aug-cc-pCV5Z                 B   BH3  yes     timeout
+aug-cc-pCV5Z                 C   CH4  yes     timeout
+aug-cc-pCV5Z                 F   HF   yes     skipped (a lighter element timed out)
+aug-cc-pCV5Z                 N   NH3  yes     skipped (a lighter element timed out)
+aug-cc-pCV5Z                 O   H2O  yes     skipped (a lighter element timed out)
+aug-cc-pCVDZ                 B   BH3  yes     match
+aug-cc-pCVDZ                 C   CH4  yes     match
+aug-cc-pCVDZ                 Cl  HCl  yes     match
+aug-cc-pCVDZ                 F   HF   yes     match
+aug-cc-pCVDZ                 N   NH3  yes     match
+aug-cc-pCVDZ                 Na  NaH  yes     match
+aug-cc-pCVDZ                 O   H2O  yes     match
+aug-cc-pCVDZ                 P   PH3  yes     match
+aug-cc-pCVDZ                 S   H2S  yes     match
+aug-cc-pCVDZ                 Si  SiH4 yes     match
+aug-cc-pCVQZ                 B   BH3  yes     match (explicit deck is linearly dependent, dE -8.5e-06 untightened)
+aug-cc-pCVQZ                 C   CH4  yes     timeout
+aug-cc-pCVQZ                 Cl  HCl  yes     skipped (a lighter element timed out)
+aug-cc-pCVQZ                 F   HF   yes     skipped (a lighter element timed out)
+aug-cc-pCVQZ                 N   NH3  yes     match (explicit deck is linearly dependent, dE 0.00024 untightened)
+aug-cc-pCVQZ                 O   H2O  yes     skipped (a lighter element timed out)
+aug-cc-pCVQZ                 P   PH3  yes     skipped (a lighter element timed out)
+aug-cc-pCVQZ                 S   H2S  yes     skipped (a lighter element timed out)
+aug-cc-pCVQZ                 Si  SiH4 yes     skipped (a lighter element timed out)
+aug-cc-pCVTZ                 B   BH3  yes     match
+aug-cc-pCVTZ                 C   CH4  yes     match
+aug-cc-pCVTZ                 Cl  HCl  yes     match
+aug-cc-pCVTZ                 F   HF   yes     match
+aug-cc-pCVTZ                 N   NH3  yes     match
+aug-cc-pCVTZ                 Na  NaH  yes     match
+aug-cc-pCVTZ                 O   H2O  yes     match
+aug-cc-pCVTZ                 P   PH3  yes     match (explicit deck is linearly dependent, dE -7.1e-06 untightened)
+aug-cc-pCVTZ                 S   H2S  yes     match
+aug-cc-pCVTZ                 Si  SiH4 yes     match (explicit deck is linearly dependent, dE -4.9e-06 untightened)
+aug-cc-pV(5+d)Z              Cl  HCl  yes     skipped (a lighter element timed out)
+aug-cc-pV(5+d)Z              P   PH3  yes     timeout
+aug-cc-pV(5+d)Z              S   H2S  yes     timeout
+aug-cc-pV(5+d)Z              Si  SiH4 yes     timeout
+aug-cc-pV(6+d)Z              Cl  HCl  yes     skipped (a lighter element timed out)
+aug-cc-pV(6+d)Z              P   PH3  yes     timeout
+aug-cc-pV(6+d)Z              S   H2S  yes     timeout
+aug-cc-pV(6+d)Z              Si  SiH4 yes     timeout
+aug-cc-pV(D+d)Z              Cl  HCl  yes     match
+aug-cc-pV(D+d)Z              P   PH3  yes     match
+aug-cc-pV(D+d)Z              S   H2S  yes     match
+aug-cc-pV(D+d)Z              Si  SiH4 yes     match
+aug-cc-pV(Q+d)Z              Cl  HCl  yes     skipped (a lighter element timed out)
+aug-cc-pV(Q+d)Z              P   PH3  yes     match (explicit deck is linearly dependent, dE -0.00081 untightened)
+aug-cc-pV(Q+d)Z              S   H2S  yes     match (explicit deck is linearly dependent, dE -0.0011 untightened)
+aug-cc-pV(Q+d)Z              Si  SiH4 yes     timeout
+aug-cc-pV(T+d)Z              Cl  HCl  yes     match
+aug-cc-pV(T+d)Z              P   PH3  yes     match (explicit deck is linearly dependent, dE -3.2e-05 untightened)
+aug-cc-pV(T+d)Z              S   H2S  yes     match
+aug-cc-pV(T+d)Z              Si  SiH4 yes     match (explicit deck is linearly dependent, dE -1.8e-05 untightened)
+aug-cc-pV5Z-PP               Br  HBr  yes     timeout
+aug-cc-pV5Z                  B   BH3  yes     timeout
+aug-cc-pV5Z                  Br  HBr  yes     skipped (a lighter element timed out)
+aug-cc-pV5Z                  C   CH4  yes     timeout
+aug-cc-pV5Z                  Cl  HCl  yes     skipped (a lighter element timed out)
+aug-cc-pV5Z                  F   HF   yes     skipped (a lighter element timed out)
+aug-cc-pV5Z                  H   H2   yes     differs (nbf 210 vs 210, dE 2.09e-06)
+aug-cc-pV5Z                  N   NH3  yes     timeout
+aug-cc-pV5Z                  O   H2O  yes     skipped (a lighter element timed out)
+aug-cc-pV5Z                  P   PH3  yes     skipped (a lighter element timed out)
+aug-cc-pV5Z                  S   H2S  yes     skipped (a lighter element timed out)
+aug-cc-pV5Z                  Si  SiH4 yes     skipped (a lighter element timed out)
+aug-cc-pV6Z                  B   BH3  yes     timeout
+aug-cc-pV6Z                  C   CH4  yes     timeout
+aug-cc-pV6Z                  Cl  HCl  yes     skipped (a lighter element timed out)
+aug-cc-pV6Z                  F   HF   yes     skipped (a lighter element timed out)
+aug-cc-pV6Z                  H   H2   yes     timeout
+aug-cc-pV6Z                  N   NH3  yes     timeout
+aug-cc-pV6Z                  O   H2O  yes     skipped (a lighter element timed out)
+aug-cc-pV6Z                  P   PH3  yes     skipped (a lighter element timed out)
+aug-cc-pV6Z                  S   H2S  yes     skipped (a lighter element timed out)
+aug-cc-pV6Z                  Si  SiH4 yes     skipped (a lighter element timed out)
+aug-cc-pVDZ-PP               Br  HBr  yes     match
+aug-cc-pVDZ                  B   BH3  yes     match
+aug-cc-pVDZ                  Br  HBr  yes     match
+aug-cc-pVDZ                  C   CH4  yes     match
+aug-cc-pVDZ                  Cl  HCl  yes     match
+aug-cc-pVDZ                  F   HF   yes     match
+aug-cc-pVDZ                  H   H2   yes     match
+aug-cc-pVDZ                  Li  LiH  yes     match
+aug-cc-pVDZ                  N   NH3  yes     match
+aug-cc-pVDZ                  Na  NaH  yes     match
+aug-cc-pVDZ                  O   H2O  yes     match
+aug-cc-pVDZ                  P   PH3  yes     match
+aug-cc-pVDZ                  S   H2S  yes     match
+aug-cc-pVDZ                  Si  SiH4 yes     match
+aug-cc-pVQZ-PP               Br  HBr  yes     match (explicit deck is linearly dependent, dE 2.8e-05 untightened)
+aug-cc-pVQZ                  B   BH3  yes     match
+aug-cc-pVQZ                  Br  HBr  yes     skipped (a lighter element timed out)
+aug-cc-pVQZ                  C   CH4  yes     timeout
+aug-cc-pVQZ                  Cl  HCl  yes     skipped (a lighter element timed out)
+aug-cc-pVQZ                  F   HF   yes     match
+aug-cc-pVQZ                  H   H2   yes     match
+aug-cc-pVQZ                  Li  LiH  yes     match
+aug-cc-pVQZ                  N   NH3  yes     match (explicit deck is linearly dependent, dE 2.7e-06 untightened)
+aug-cc-pVQZ                  Na  NaH  yes     match (explicit deck is linearly dependent, dE -3.1e-05 untightened)
+aug-cc-pVQZ                  O   H2O  yes     match
+aug-cc-pVQZ                  P   PH3  yes     skipped (a lighter element timed out)
+aug-cc-pVQZ                  S   H2S  yes     skipped (a lighter element timed out)
+aug-cc-pVQZ                  Si  SiH4 yes     timeout
+aug-cc-pVTZ-PP               Br  HBr  yes     match
+aug-cc-pVTZ                  B   BH3  yes     match
+aug-cc-pVTZ                  Br  HBr  yes     match
+aug-cc-pVTZ                  C   CH4  yes     match
+aug-cc-pVTZ                  Cl  HCl  yes     match
+aug-cc-pVTZ                  F   HF   yes     match
+aug-cc-pVTZ                  H   H2   yes     match
+aug-cc-pVTZ                  Li  LiH  yes     match
+aug-cc-pVTZ                  N   NH3  yes     match
+aug-cc-pVTZ                  Na  NaH  yes     match
+aug-cc-pVTZ                  O   H2O  yes     match
+aug-cc-pVTZ                  P   PH3  yes     match
+aug-cc-pVTZ                  S   H2S  yes     match
+aug-cc-pVTZ                  Si  SiH4 yes     match (explicit deck is linearly dependent, dE -5.1e-05 untightened)
+aug-cc-pwCV5Z                B   BH3  yes     timeout
+aug-cc-pwCV5Z                C   CH4  yes     timeout
+aug-cc-pwCV5Z                Cl  HCl  yes     skipped (a lighter element timed out)
+aug-cc-pwCV5Z                F   HF   yes     skipped (a lighter element timed out)
+aug-cc-pwCV5Z                H   H2   yes     unavailable
+aug-cc-pwCV5Z                N   NH3  yes     timeout
+aug-cc-pwCV5Z                O   H2O  yes     timeout
+aug-cc-pwCV5Z                P   PH3  yes     skipped (a lighter element timed out)
+aug-cc-pwCV5Z                S   H2S  yes     skipped (a lighter element timed out)
+aug-cc-pwCV5Z                Si  SiH4 yes     skipped (a lighter element timed out)
+aug-cc-pwCVDZ                B   BH3  yes     unavailable
+aug-cc-pwCVDZ                C   CH4  yes     unavailable
+aug-cc-pwCVDZ                Cl  HCl  yes     unavailable
+aug-cc-pwCVDZ                F   HF   yes     unavailable
+aug-cc-pwCVDZ                H   H2   yes     unavailable
+aug-cc-pwCVDZ                N   NH3  yes     unavailable
+aug-cc-pwCVDZ                O   H2O  yes     unavailable
+aug-cc-pwCVDZ                P   PH3  yes     unavailable
+aug-cc-pwCVDZ                S   H2S  yes     unavailable
+aug-cc-pwCVDZ                Si  SiH4 yes     unavailable
+aug-cc-pwCVQZ                B   BH3  yes     unavailable
+aug-cc-pwCVQZ                C   CH4  yes     timeout
+aug-cc-pwCVQZ                Cl  HCl  yes     skipped (a lighter element timed out)
+aug-cc-pwCVQZ                F   HF   yes     unavailable
+aug-cc-pwCVQZ                H   H2   yes     unavailable
+aug-cc-pwCVQZ                N   NH3  yes     timeout
+aug-cc-pwCVQZ                O   H2O  yes     unavailable
+aug-cc-pwCVQZ                P   PH3  yes     skipped (a lighter element timed out)
+aug-cc-pwCVQZ                S   H2S  yes     skipped (a lighter element timed out)
+aug-cc-pwCVQZ                Si  SiH4 yes     timeout
+aug-cc-pwCVTZ                B   BH3  yes     unavailable
+aug-cc-pwCVTZ                C   CH4  yes     unavailable
+aug-cc-pwCVTZ                Cl  HCl  yes     unavailable
+aug-cc-pwCVTZ                F   HF   yes     unavailable
+aug-cc-pwCVTZ                H   H2   yes     unavailable
+aug-cc-pwCVTZ                N   NH3  yes     unavailable
+aug-cc-pwCVTZ                O   H2O  yes     unavailable
+aug-cc-pwCVTZ                P   PH3  yes     unavailable
+aug-cc-pwCVTZ                S   H2S  yes     unavailable
+aug-cc-pwCVTZ                Si  SiH4 yes     unavailable
+aug-mcc-pV5Z                 H   H2   yes     match
+aug-mcc-pV6Z                 H   H2   yes     timeout
+aug-mcc-pV7Z                 H   H2   yes     timeout
+aug-mcc-pV8Z                 H   H2   yes     unavailable
+aug-mcc-pVQZ                 H   H2   yes     match
+aug-mcc-pVTZ                 H   H2   yes     match
+aug-pV7Z                     C   CH4  yes     unavailable
+aug-pV7Z                     F   HF   yes     unavailable
+aug-pV7Z                     H   H2   yes     timeout
+aug-pV7Z                     N   NH3  yes     unavailable
+aug-pV7Z                     O   H2O  yes     unavailable
+aug-pV7Z                     S   H2S  yes     unavailable
+aug-pc-0                     B   BH3  yes     match
+aug-pc-0                     Br  HBr  yes     match
+aug-pc-0                     C   CH4  yes     match
+aug-pc-0                     Cl  HCl  yes     match
+aug-pc-0                     F   HF   yes     match
+aug-pc-0                     H   H2   yes     match
+aug-pc-0                     Li  LiH  yes     match
+aug-pc-0                     N   NH3  yes     match
+aug-pc-0                     Na  NaH  yes     match
+aug-pc-0                     O   H2O  yes     match
+aug-pc-0                     P   PH3  yes     match
+aug-pc-0                     S   H2S  yes     match
+aug-pc-0                     Si  SiH4 yes     match
+aug-pc-1                     B   BH3  yes     match
+aug-pc-1                     Br  HBr  yes     match
+aug-pc-1                     C   CH4  yes     match
+aug-pc-1                     Cl  HCl  yes     match
+aug-pc-1                     F   HF   yes     match
+aug-pc-1                     H   H2   yes     match
+aug-pc-1                     Li  LiH  yes     match
+aug-pc-1                     N   NH3  yes     match
+aug-pc-1                     Na  NaH  yes     match
+aug-pc-1                     O   H2O  yes     match
+aug-pc-1                     P   PH3  yes     match
+aug-pc-1                     S   H2S  yes     match
+aug-pc-1                     Si  SiH4 yes     match
+aug-pc-2                     B   BH3  yes     match
+aug-pc-2                     Br  HBr  yes     match
+aug-pc-2                     C   CH4  yes     match
+aug-pc-2                     Cl  HCl  yes     match
+aug-pc-2                     F   HF   yes     match
+aug-pc-2                     H   H2   yes     match
+aug-pc-2                     Li  LiH  yes     match
+aug-pc-2                     N   NH3  yes     match
+aug-pc-2                     Na  NaH  yes     match
+aug-pc-2                     O   H2O  yes     match
+aug-pc-2                     P   PH3  yes     match
+aug-pc-2                     S   H2S  yes     match
+aug-pc-2                     Si  SiH4 yes     match
+aug-pc-3                     B   BH3  yes     match
+aug-pc-3                     Br  HBr  yes     match
+aug-pc-3                     C   CH4  yes     timeout
+aug-pc-3                     Cl  HCl  yes     match
+aug-pc-3                     F   HF   yes     match
+aug-pc-3                     H   H2   yes     match
+aug-pc-3                     Li  LiH  yes     match
+aug-pc-3                     N   NH3  yes     match
+aug-pc-3                     Na  NaH  yes     match
+aug-pc-3                     O   H2O  yes     match
+aug-pc-3                     P   PH3  yes     match
+aug-pc-3                     S   H2S  yes     match
+aug-pc-3                     Si  SiH4 yes     timeout
+aug-pc-4                     B   BH3  yes     timeout
+aug-pc-4                     Br  HBr  yes     timeout
+aug-pc-4                     C   CH4  yes     skipped (a lighter element timed out)
+aug-pc-4                     Cl  HCl  yes     skipped (a lighter element timed out)
+aug-pc-4                     F   HF   yes     skipped (a lighter element timed out)
+aug-pc-4                     H   H2   yes     match
+aug-pc-4                     Li  LiH  yes     match
+aug-pc-4                     N   NH3  yes     skipped (a lighter element timed out)
+aug-pc-4                     Na  NaH  yes     skipped (a lighter element timed out)
+aug-pc-4                     O   H2O  yes     skipped (a lighter element timed out)
+aug-pc-4                     P   PH3  yes     skipped (a lighter element timed out)
+aug-pc-4                     S   H2S  yes     skipped (a lighter element timed out)
+aug-pc-4                     Si  SiH4 yes     skipped (a lighter element timed out)
+aug-pcSseg-0                 B   BH3  yes     match
+aug-pcSseg-0                 Br  HBr  yes     match
+aug-pcSseg-0                 C   CH4  yes     match
+aug-pcSseg-0                 Cl  HCl  yes     match
+aug-pcSseg-0                 F   HF   yes     match
+aug-pcSseg-0                 H   H2   yes     match
+aug-pcSseg-0                 Li  LiH  yes     match
+aug-pcSseg-0                 N   NH3  yes     match
+aug-pcSseg-0                 Na  NaH  yes     match
+aug-pcSseg-0                 O   H2O  yes     match
+aug-pcSseg-0                 P   PH3  yes     match
+aug-pcSseg-0                 S   H2S  yes     match
+aug-pcSseg-0                 Si  SiH4 yes     match
+aug-pcSseg-1                 B   BH3  yes     match
+aug-pcSseg-1                 Br  HBr  yes     match
+aug-pcSseg-1                 C   CH4  yes     match
+aug-pcSseg-1                 Cl  HCl  yes     match
+aug-pcSseg-1                 F   HF   yes     match
+aug-pcSseg-1                 H   H2   yes     match
+aug-pcSseg-1                 Li  LiH  yes     match
+aug-pcSseg-1                 N   NH3  yes     match
+aug-pcSseg-1                 Na  NaH  yes     match
+aug-pcSseg-1                 O   H2O  yes     match
+aug-pcSseg-1                 P   PH3  yes     match
+aug-pcSseg-1                 S   H2S  yes     match
+aug-pcSseg-1                 Si  SiH4 yes     match
+aug-pcSseg-2                 B   BH3  yes     match
+aug-pcSseg-2                 Br  HBr  yes     match
+aug-pcSseg-2                 C   CH4  yes     match
+aug-pcSseg-2                 Cl  HCl  yes     match
+aug-pcSseg-2                 F   HF   yes     match
+aug-pcSseg-2                 H   H2   yes     match
+aug-pcSseg-2                 Li  LiH  yes     match
+aug-pcSseg-2                 N   NH3  yes     match
+aug-pcSseg-2                 Na  NaH  yes     match
+aug-pcSseg-2                 O   H2O  yes     match
+aug-pcSseg-2                 P   PH3  yes     match
+aug-pcSseg-2                 S   H2S  yes     match
+aug-pcSseg-2                 Si  SiH4 yes     match
+aug-pcSseg-3                 B   BH3  yes     match
+aug-pcSseg-3                 Br  HBr  yes     skipped (a lighter element timed out)
+aug-pcSseg-3                 C   CH4  yes     timeout
+aug-pcSseg-3                 Cl  HCl  yes     skipped (a lighter element timed out)
+aug-pcSseg-3                 F   HF   yes     match
+aug-pcSseg-3                 H   H2   yes     match
+aug-pcSseg-3                 Li  LiH  yes     match
+aug-pcSseg-3                 N   NH3  yes     match
+aug-pcSseg-3                 Na  NaH  yes     match
+aug-pcSseg-3                 O   H2O  yes     match
+aug-pcSseg-3                 P   PH3  yes     skipped (a lighter element timed out)
+aug-pcSseg-3                 S   H2S  yes     skipped (a lighter element timed out)
+aug-pcSseg-3                 Si  SiH4 yes     timeout
+aug-pcSseg-4                 B   BH3  yes     timeout
+aug-pcSseg-4                 Br  HBr  yes     skipped (a lighter element timed out)
+aug-pcSseg-4                 C   CH4  yes     timeout
+aug-pcSseg-4                 Cl  HCl  yes     skipped (a lighter element timed out)
+aug-pcSseg-4                 F   HF   yes     skipped (a lighter element timed out)
+aug-pcSseg-4                 H   H2   yes     match
+aug-pcSseg-4                 Li  LiH  yes     match
+aug-pcSseg-4                 N   NH3  yes     timeout
+aug-pcSseg-4                 Na  NaH  yes     skipped (a lighter element timed out)
+aug-pcSseg-4                 O   H2O  yes     timeout
+aug-pcSseg-4                 P   PH3  yes     skipped (a lighter element timed out)
+aug-pcSseg-4                 S   H2S  yes     skipped (a lighter element timed out)
+aug-pcSseg-4                 Si  SiH4 yes     skipped (a lighter element timed out)
+aug-pcseg-0                  B   BH3  yes     match
+aug-pcseg-0                  Br  HBr  yes     match
+aug-pcseg-0                  C   CH4  yes     match
+aug-pcseg-0                  Cl  HCl  yes     match
+aug-pcseg-0                  F   HF   yes     match
+aug-pcseg-0                  H   H2   yes     match
+aug-pcseg-0                  Li  LiH  yes     match
+aug-pcseg-0                  N   NH3  yes     match
+aug-pcseg-0                  Na  NaH  yes     match
+aug-pcseg-0                  O   H2O  yes     match
+aug-pcseg-0                  P   PH3  yes     match
+aug-pcseg-0                  S   H2S  yes     match
+aug-pcseg-0                  Si  SiH4 yes     match
+aug-pcseg-1                  B   BH3  yes     match
+aug-pcseg-1                  Br  HBr  yes     match
+aug-pcseg-1                  C   CH4  yes     match
+aug-pcseg-1                  Cl  HCl  yes     match
+aug-pcseg-1                  F   HF   yes     match
+aug-pcseg-1                  H   H2   yes     match
+aug-pcseg-1                  Li  LiH  yes     match
+aug-pcseg-1                  N   NH3  yes     match
+aug-pcseg-1                  Na  NaH  yes     match
+aug-pcseg-1                  O   H2O  yes     match
+aug-pcseg-1                  P   PH3  yes     match
+aug-pcseg-1                  S   H2S  yes     match
+aug-pcseg-1                  Si  SiH4 yes     match
+aug-pcseg-2                  B   BH3  yes     match
+aug-pcseg-2                  Br  HBr  yes     match
+aug-pcseg-2                  C   CH4  yes     match
+aug-pcseg-2                  Cl  HCl  yes     match
+aug-pcseg-2                  F   HF   yes     match
+aug-pcseg-2                  H   H2   yes     match
+aug-pcseg-2                  Li  LiH  yes     match
+aug-pcseg-2                  N   NH3  yes     match
+aug-pcseg-2                  Na  NaH  yes     match
+aug-pcseg-2                  O   H2O  yes     match
+aug-pcseg-2                  P   PH3  yes     match
+aug-pcseg-2                  S   H2S  yes     match
+aug-pcseg-2                  Si  SiH4 yes     match
+aug-pcseg-3                  B   BH3  yes     match
+aug-pcseg-3                  Br  HBr  yes     skipped (a lighter element timed out)
+aug-pcseg-3                  C   CH4  yes     timeout
+aug-pcseg-3                  Cl  HCl  yes     skipped (a lighter element timed out)
+aug-pcseg-3                  F   HF   yes     match
+aug-pcseg-3                  H   H2   yes     match
+aug-pcseg-3                  Li  LiH  yes     match
+aug-pcseg-3                  N   NH3  yes     match
+aug-pcseg-3                  Na  NaH  yes     match
+aug-pcseg-3                  O   H2O  yes     match
+aug-pcseg-3                  P   PH3  yes     match
+aug-pcseg-3                  S   H2S  yes     skipped (a lighter element timed out)
+aug-pcseg-3                  Si  SiH4 yes     timeout
+aug-pcseg-4                  B   BH3  yes     timeout
+aug-pcseg-4                  Br  HBr  yes     skipped (a lighter element timed out)
+aug-pcseg-4                  C   CH4  yes     timeout
+aug-pcseg-4                  Cl  HCl  yes     skipped (a lighter element timed out)
+aug-pcseg-4                  F   HF   yes     skipped (a lighter element timed out)
+aug-pcseg-4                  H   H2   yes     match
+aug-pcseg-4                  Li  LiH  yes     match
+aug-pcseg-4                  N   NH3  yes     timeout
+aug-pcseg-4                  Na  NaH  yes     skipped (a lighter element timed out)
+aug-pcseg-4                  O   H2O  yes     skipped (a lighter element timed out)
+aug-pcseg-4                  P   PH3  yes     skipped (a lighter element timed out)
+aug-pcseg-4                  S   H2S  yes     skipped (a lighter element timed out)
+aug-pcseg-4                  Si  SiH4 yes     skipped (a lighter element timed out)
+cc-pCV5Z                     B   BH3  yes     timeout
+cc-pCV5Z                     C   CH4  yes     timeout
+cc-pCV5Z                     Cl  HCl  yes     skipped (a lighter element timed out)
+cc-pCV5Z                     F   HF   yes     skipped (a lighter element timed out)
+cc-pCV5Z                     N   NH3  yes     timeout
+cc-pCV5Z                     Na  NaH  yes     skipped (a lighter element timed out)
+cc-pCV5Z                     O   H2O  yes     skipped (a lighter element timed out)
+cc-pCV5Z                     P   PH3  yes     skipped (a lighter element timed out)
+cc-pCV5Z                     S   H2S  yes     skipped (a lighter element timed out)
+cc-pCV5Z                     Si  SiH4 yes     skipped (a lighter element timed out)
+cc-pCV6Z(old)                O   H2O  yes     timeout
+cc-pCV6Z                     B   BH3  yes     timeout
+cc-pCV6Z                     C   CH4  yes     timeout
+cc-pCV6Z                     F   HF   yes     skipped (a lighter element timed out)
+cc-pCV6Z                     N   NH3  yes     timeout
+cc-pCV6Z                     O   H2O  yes     skipped (a lighter element timed out)
+cc-pCVDZ(old)                Cl  HCl  yes     match
+cc-pCVDZ(old)                P   PH3  yes     match
+cc-pCVDZ(old)                S   H2S  yes     match
+cc-pCVDZ(old)                Si  SiH4 yes     match
+cc-pCVDZ                     B   BH3  yes     match
+cc-pCVDZ                     C   CH4  yes     match
+cc-pCVDZ                     Cl  HCl  yes     match
+cc-pCVDZ                     F   HF   yes     match
+cc-pCVDZ                     Li  LiH  yes     match
+cc-pCVDZ                     N   NH3  yes     match
+cc-pCVDZ                     Na  NaH  yes     match
+cc-pCVDZ                     O   H2O  yes     match
+cc-pCVDZ                     P   PH3  yes     match
+cc-pCVDZ                     S   H2S  yes     match
+cc-pCVDZ                     Si  SiH4 yes     match
+cc-pCVQZ(old)                Cl  HCl  yes     match (explicit deck is linearly dependent, dE 0.00069 untightened)
+cc-pCVQZ(old)                P   PH3  yes     match (explicit deck is linearly dependent, dE 0.00072 untightened)
+cc-pCVQZ(old)                S   H2S  yes     match (explicit deck is linearly dependent, dE 0.0012 untightened)
+cc-pCVQZ(old)                Si  SiH4 yes     match (explicit deck is linearly dependent, dE 0.00023 untightened)
+cc-pCVQZ                     B   BH3  yes     match (explicit deck is linearly dependent, dE 2.7e-05 untightened)
+cc-pCVQZ                     C   CH4  yes     match (explicit deck is linearly dependent, dE 0.00024 untightened)
+cc-pCVQZ                     Cl  HCl  yes     match (explicit deck is linearly dependent, dE 0.00068 untightened)
+cc-pCVQZ                     F   HF   yes     match (explicit deck is linearly dependent, dE 0.00011 untightened)
+cc-pCVQZ                     Li  LiH  yes     match (explicit deck is linearly dependent, dE -3.1e-06 untightened)
+cc-pCVQZ                     N   NH3  yes     match (explicit deck is linearly dependent, dE 0.00022 untightened)
+cc-pCVQZ                     Na  NaH  yes     match (explicit deck is linearly dependent, dE 0.00013 untightened)
+cc-pCVQZ                     O   H2O  yes     match (explicit deck is linearly dependent, dE 0.00013 untightened)
+cc-pCVQZ                     P   PH3  yes     match (explicit deck is linearly dependent, dE 0.00072 untightened)
+cc-pCVQZ                     S   H2S  yes     match (explicit deck is linearly dependent, dE 0.0012 untightened)
+cc-pCVQZ                     Si  SiH4 yes     match (explicit deck is linearly dependent, dE 0.00023 untightened)
+cc-pCVTZ(old)                Cl  HCl  yes     match
+cc-pCVTZ(old)                P   PH3  yes     match
+cc-pCVTZ(old)                S   H2S  yes     match
+cc-pCVTZ(old)                Si  SiH4 yes     match
+cc-pCVTZ                     B   BH3  yes     match
+cc-pCVTZ                     C   CH4  yes     match
+cc-pCVTZ                     Cl  HCl  yes     match
+cc-pCVTZ                     F   HF   yes     match
+cc-pCVTZ                     Li  LiH  yes     match (explicit deck is linearly dependent, dE 1.8e-05 untightened)
+cc-pCVTZ                     N   NH3  yes     match
+cc-pCVTZ                     Na  NaH  yes     match
+cc-pCVTZ                     O   H2O  yes     match
+cc-pCVTZ                     P   PH3  yes     match
+cc-pCVTZ                     S   H2S  yes     match
+cc-pCVTZ                     Si  SiH4 yes     match
+d-aug-cc-pV5Z                B   BH3  yes     timeout
+d-aug-cc-pV5Z                C   CH4  yes     timeout
+d-aug-cc-pV5Z                F   HF   yes     skipped (a lighter element timed out)
+d-aug-cc-pV5Z                H   H2   yes     differs (nbf 280 vs 280, dE 2.35e-06)
+d-aug-cc-pV5Z                N   NH3  yes     timeout
+d-aug-cc-pV5Z                O   H2O  yes     timeout
+d-aug-cc-pV6Z                B   BH3  yes     timeout
+d-aug-cc-pV6Z                C   CH4  yes     timeout
+d-aug-cc-pV6Z                H   H2   yes     timeout
+d-aug-cc-pV6Z                N   NH3  yes     timeout
+d-aug-cc-pV6Z                O   H2O  yes     skipped (a lighter element timed out)
+d-aug-cc-pVDZ                B   BH3  yes     match
+d-aug-cc-pVDZ                C   CH4  yes     match
+d-aug-cc-pVDZ                F   HF   yes     match
+d-aug-cc-pVDZ                H   H2   yes     match
+d-aug-cc-pVDZ                N   NH3  yes     match
+d-aug-cc-pVDZ                O   H2O  yes     match
+d-aug-cc-pVQZ                B   BH3  yes     timeout
+d-aug-cc-pVQZ                C   CH4  yes     timeout
+d-aug-cc-pVQZ                F   HF   yes     skipped (a lighter element timed out)
+d-aug-cc-pVQZ                H   H2   yes     match
+d-aug-cc-pVQZ                N   NH3  yes     timeout
+d-aug-cc-pVQZ                O   H2O  yes     differs (nbf 290 vs 290, dE -1.74e-05)
+d-aug-cc-pVTZ                B   BH3  yes     match
+d-aug-cc-pVTZ                C   CH4  yes     match
+d-aug-cc-pVTZ                F   HF   yes     match
+d-aug-cc-pVTZ                H   H2   yes     match
+d-aug-cc-pVTZ                N   NH3  yes     match
+d-aug-cc-pVTZ                O   H2O  yes     match

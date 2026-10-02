@@ -279,11 +279,11 @@ sub wrNWChem{
   my $dftXCPolarization;
   my $dftCDPolarization;
 
-# HACK!! check basis set names for library to see if they are compound
-# basis set that are incorrectly merged into a single basis. If so, force
-# basis to use explicit list of coefficients.
-# Also, must use explicit exp & coef for the IGLO-II and IGLO-III
-# basis sets.  They are not in NWChems library, yet.
+# Write exponents and coefficients, not names, for sets NWChem's library
+# cannot stand in for: aug-cc-pwCV* (no hydrogen there), aug-pV7Z and
+# aug-mcc-pV8Z (it cannot load them), 5Z and up, and d-aug-cc-pVQZ, which no
+# check could settle. Every other aug-/d-aug-/-pCV/IGLO name was measured equal to ECCE's
+# set by tests/basisload/nwchem_library_check.py; add a name only on evidence.
   $useExplicitBasis = 0;
   if (exists($bs{"name_gbs"})) {
 #
@@ -301,10 +301,10 @@ sub wrNWChem{
     foreach $atom (sort keys %gbs)
     {
       if (!($atom =~ /coordinants/)) {
-        if ($gbs{$atom} =~ /^\s*\"\s*aug/i ||
-            $gbs{$atom} =~ /^\s*\"\s*d-aug/i ||
-            $gbs{$atom} =~ /-pcv/i ||
-            $gbs{$atom} =~ /IGLO-II/i) {
+        if ($gbs{$atom} =~ /^\s*\"\s*aug-cc-pwCV/i ||
+            $gbs{$atom} =~ /^\s*\"\s*(d-)?aug-.*V\(?[5-8][+Z]/i ||
+            $gbs{$atom} =~ /^\s*\"\s*d-aug-.*VQZ/i ||
+            $gbs{$atom} =~ /-pcv[5-8]/i) {
           $useExplicitBasis = 1;
         }
       }
