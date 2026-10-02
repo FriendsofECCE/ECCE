@@ -1485,14 +1485,11 @@ if(ECCE_SPLIT_PACKAGES)
   set(CPACK_DEBIAN_SERVER_FILE_NAME DEB-DEFAULT)
   set(CPACK_DEBIAN_SERVER_PACKAGE_DESCRIPTION
     "Extensible Computational Chemistry Environment - server (WebDAV data server, ActiveMQ broker configuration)")
-  # The broker/relay scripts and ecce-remote-setup ship in ecce-client, and
-  # a server machine needs them, so installing the server brings the client.
+  # The broker/relay scripts, ecce-remote-setup and the GUI-free job agent
+  # (launchjob, eccejobmaster, eccejobstore) ship in ecce-client, and a server
+  # needs them, so the server brings the client -- GUI libraries included,
+  # unused on a headless box. Accepted rather than a third package.
   set(CPACK_DEBIAN_SERVER_PACKAGE_DEPENDS "apache2, apache2-utils, activemq, ecce-client (= ${_ecce_deb_version})")
-  # Deliberately no CPACK_DEBIAN_SERVER_PACKAGE_RECOMMENDS "ecce-client":
-  # the central-server deployment (CLAUDE.md, #138/#167) is exactly a
-  # machine that runs ecce-server and nothing else, with every real user
-  # on a separate client machine -- recommending the client back would
-  # pull GUI/wx onto a headless server box by default.
   set(CPACK_DEBIAN_SERVER_PACKAGE_BREAKS "ecce (<< ${ECCE_MONOLITHIC_BREAK_VERSION})")
   set(CPACK_DEBIAN_SERVER_PACKAGE_REPLACES "ecce (<< ${ECCE_MONOLITHIC_BREAK_VERSION})")
 
