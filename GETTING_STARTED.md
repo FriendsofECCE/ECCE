@@ -79,7 +79,7 @@ cpack -G DEB
   dialogs, the job-side scripts the Launcher copies to compute hosts
   (`gensub`, `eccejobmonitor`, `*.desc`), the per-session JMSDispatcher
   relay, `siteconfig/`, and `ecce-remote-setup`/`ecce-diagnose`. Depends
-  on `python3-wxgtk4.0`, `csh | tcsh`, `perl`, `xterm` and
+  on `python3-wxgtk4.0`, `perl`, `xterm` and
   `default-jre-headless` (the JMSDispatcher relay runs unconditionally,
   including under `-remote` with no local `ecce-server` at all, so its
   JVM can't be left to arrive only via a Recommends); Recommends
