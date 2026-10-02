@@ -137,7 +137,10 @@ void VizPropertyPanel::doFocus(const bool& value)
     receiveFocus();
   } else {
     p_isPinned = false;
-    loseFocus();
+    // Builder::quit() unfocuses every panel of every context, and a
+    // panel's loseFocus() loads its own calc's geometry step into the
+    // shared scene graph -- the wrong molecule for any context not shown.
+    if (p_hasFocus) loseFocus();
   }
   p_hasFocus = value;
 }
