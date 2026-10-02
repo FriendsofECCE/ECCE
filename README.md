@@ -351,7 +351,7 @@ sudo apt-get install -y \
   default-jdk ant activemq git libssh-dev
 
 git clone https://github.com/FriendsofECCE/ECCE.git
-cd ECCE
+cd ECCE                # main is 9.0 development; for 8.x: git checkout stable-8
 mkdir -p build-cmake && cd build-cmake
 cmake -G Ninja ..
 ninja
@@ -370,6 +370,9 @@ without root and running two builds side by side are in
 ## Branches and releases
 
 * **`main`** is the 9.x line — build from it and file PRs against it.
+* **`stable-8`** is the latest 8.x release (it moves to each new 8.18.x
+  tag). Build from it for the stable version; the packages on the
+  Releases page are built from the same tags.
 * **`release/X.Y.Z`** branches cut a patch release: each starts from the
   previous release's tag and takes the fixes from `main` as
   cherry-picks, so a patch carries fixes and nothing else. Releases are
