@@ -853,8 +853,14 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/data/client)
           COMPONENT client)
 endif()
 if(EXISTS ${CMAKE_SOURCE_DIR}/data/admin)
+  # The basis-set library is the exception: local mode (#216) reads it
+  # from the install tree, so it ships with the client, at the same path
+  # ecce-dataserver-start reads (ecce-server depends on ecce-client).
   install(DIRECTORY ${CMAKE_SOURCE_DIR}/data/admin DESTINATION data
-          COMPONENT server)
+          COMPONENT server
+          PATTERN "basissets" EXCLUDE)
+  install(DIRECTORY ${CMAKE_SOURCE_DIR}/data/admin/basissets
+          DESTINATION data/admin COMPONENT client)
 endif()
 
 # scripts/parsers: per-code basis-set translation and I/O-format scripts
