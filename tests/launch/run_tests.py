@@ -16,6 +16,7 @@ prints where each one resolves.
 
     tests/launch/run_tests.py [--build build-native] [--keep] [-v]
     tests/launch/run_tests.py --nwchem-restart     # #202: relaunch a finished NWChem job
+    tests/launch/run_tests.py --local              # #216: data in a local folder
     tests/launch/run_tests.py --machine sshtest --remote-user bashuser \
                               [--drop]
 
@@ -26,7 +27,9 @@ the isolated user and leaves ~/.ssh alone, so the caller has to have made
 tests/launch/remote_test.sh, which does that inside a container.  MOPAC
 there is a wrapper that sleeps first, so the remote monitor can be observed
 while it runs: its stdin must not be a tty, and no scp may be started over
-libssh.  --drop adds a run in which the monitor's sshd session is killed
+libssh.  --local keeps the data in a folder (ECCE_LOCAL_DATA, #216): no
+data server is started and the tree install has no siteconfig/DataServers.
+--drop adds a run in which the monitor's sshd session is killed
 mid-job; the job must still end completed, through eccejobstore's restart.
 
 Exit status 77 (CTest SKIP) when a prerequisite is missing.
@@ -34,6 +37,7 @@ Exit status 77 (CTest SKIP) when a prerequisite is missing.
 
 import argparse
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -229,6 +233,9 @@ class Suite(object):
                 self.home, self.home, os.environ["PATH"]),
         })
         env.pop("ECCE_NO_REAP", None)
+        env.pop("ECCE_LOCAL_DATA", None)
+        if self.args.local:
+            env["ECCE_LOCAL_DATA"] = self.localData()
         env.pop("ECCE_TRANSPORT", None)
         if self.remote():
             env["ECCE_RCOM_LOGMODE"] = "1"
@@ -296,9 +303,15 @@ class Suite(object):
                                 stderr=subprocess.STDOUT, timeout=timeout)
         return result.returncode, result.stdout.decode("utf-8", "replace")
 
+    def localData(self):
+        return os.path.join(self.state, "localdata")
+
     def services(self, start):
+        servers = ["ecce-dataserver-start", "ecce-gateway-start"]
+        if self.args.local:
+            servers.remove("ecce-dataserver-start")
         if start:
-            for script in ("ecce-dataserver-start", "ecce-gateway-start"):
+            for script in servers:
                 rc, out = self.run([os.path.join(self.home, "bin", script)],
                                    timeout=240)
                 say("  %s: rc=%d %s" % (script, rc, out.strip().replace("\n", " | ")[:300]))
@@ -314,7 +327,8 @@ class Suite(object):
 
     def driver(self, *argv, extra=None):
         """One launchjob invocation, with credentials piped in."""
-        pipe = self.authFile(os.path.join(self.state, "auth.pipe"))
+        pipe = (os.devnull if self.args.local
+                else self.authFile(os.path.join(self.state, "auth.pipe")))
         #  The gateway starts every app with `cd $ECCE_HOME/bin && ./app`,
         #  and eccejobmaster runs "./eccejobstore" relative to that, so the
         #  default mirrors it.  --cwd . shows what happens otherwise.
@@ -326,6 +340,8 @@ class Suite(object):
         return self.env()["ECCE_REALUSER"]
 
     def userUrl(self):
+        if self.args.local:
+            return "file://%s/users/%s" % (self.localData(), self.user())
         import fixture
         return "%s/users/%s" % (fixture.base().rsplit("/users/", 1)[0], self.user())
 
@@ -388,6 +404,7 @@ class Suite(object):
         if self.args.job_comms:
             extra["ECCE_JOB_COMMS"] = self.args.job_comms
         rc, out = self.driver("launch", url, extra=extra)
+        launchOut = out
         say("\n".join("  | " + line for line in out.strip().splitlines()))
         if not self.check(rc == 0, "Launch ran to the end"):
             return
@@ -532,6 +549,8 @@ class Suite(object):
         say("  properties: " + " ".join(props))
         for prop in REQUIRED_PROPS:
             self.check(prop in props, "%s present in Props/" % prop)
+        if self.args.local:
+            self.checkLocalStore(url, launchOut)
         if self.remote():
             self.checkRemoteRun(rundir, name)
             if drop or self.args.hold:
@@ -539,6 +558,36 @@ class Suite(object):
             if self.args.expect_keepalive:
                 self.check("ssh keepalive: nothing heard" in self.storeLogs(),
                            "the ssh keepalive declared the stream dead")
+
+    def checkLocalStore(self, url, launchOut):
+        """#216: the results are files in the calculation's own folder."""
+        calc = url[len("file://"):] if url.startswith("file://") else url
+        calc = calc.rstrip("/")
+        self.check(calc.startswith(self.localData() + "/"),
+                   "the calculation is in the local data folder: %s" % calc)
+        outputs = os.listdir(os.path.join(calc, "Outputs"))
+        say("  Outputs/: %s" % " ".join(sorted(outputs)))
+        self.check("mopac.mopout" in outputs, "the output file was stored "
+                   "in the calculation's Outputs/")
+        with open(os.path.join(calc, "Props", "TE"), errors="replace") as handle:
+            te = handle.read()
+        self.check("<value" in te and 'name="TE"' in te,
+                   "Props/TE is the property document")
+        self.check("state after launch: submitted" in launchOut,
+                   "Launch left the calculation submitted")
+        with open(os.path.join(calc, "Outputs", "eccejobstorelog.ecce_run_log"),
+                  errors="replace") as handle:
+            changes = re.findall(r'name="Calculation State Change"[^>]*>\s*(\w+)',
+                                 handle.read())
+        self.check(changes[-2:] == ["Running", "Complete"], "the run log records "
+                   "the state changes Running, Complete (%s)" % ", ".join(changes))
+        ran = [l.split(":", 1)[1].strip() for l in launchOut.splitlines()
+               if l.startswith("run directory:")]
+        if not self.remote():
+            want = os.path.join(self.state, "jobs", os.path.relpath(
+                calc, os.path.join(self.localData(), "users", self.user())))
+            self.check(ran and ran[-1] == want, "the run directory has the "
+                       "server-mode layout: %s" % (ran[-1] if ran else None))
 
     def waitState(self, url, want=("completed", "loaded", "failed", "killed",
                                   "unsuccessful", "system_failure"), seconds=180):
@@ -739,12 +788,13 @@ def registerRemote(state, machine, user):
         handle.write("MOPAC: /home/%s/mopac-slow\nperlPath: /usr/bin\n" % user)
 
 
-def prerequisites(build):
+def prerequisites(build, local):
     for exe in ("launchjob", "eccejobstore", "eccejobmaster", "ecmd"):
         if not os.access(os.path.join(build, exe), os.X_OK):
             skip("%s is not built in %s (ninja launchjob eccejobmaster "
                  "eccejobstore ecmd)" % (exe, build))
-    for tool in ("mopac", "apache2", "htpasswd", "java", "perl"):
+    for tool in (("mopac", "java", "perl") if local else
+                 ("mopac", "apache2", "htpasswd", "java", "perl")):
         if not shutil.which(tool) and not (
                 tool == "apache2" and os.access("/usr/sbin/apache2", os.X_OK)):
             skip("%s is not installed" % tool)
@@ -789,13 +839,16 @@ def main():
     parser.add_argument("--job-comms", metavar="VALUE",
                         help="run the jobs with ECCE_JOB_COMMS=VALUE (socket "
                         "and socketlocal are read as stdio)")
+    parser.add_argument("--local", action="store_true",
+                        help="#216: keep the data in a local folder "
+                        "(ECCE_LOCAL_DATA) instead of a data server")
     parser.add_argument("--keep", action="store_true",
                         help="leave the services running afterwards")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
 
     build = os.path.abspath(args.build)
-    prerequisites(build)
+    prerequisites(build, args.local)
 
     state = isolate.resolveStateDir(
         os.environ.get("ECCE_TEST_STATE")
@@ -814,6 +867,10 @@ def main():
     install = treeInstall(state, build)
     settings = isolate.apply(install, state)
     home = settings["ECCE_HOME"]
+    if args.local:
+        #  Local mode must not need it; its absence proves it is not read.
+        os.unlink(os.path.join(home, "siteconfig", "DataServers"))
+        shutil.rmtree(os.path.join(state, "localdata"), ignore_errors=True)
     os.environ["ECCE_TEST_HOME"] = install
     say(isolate.describe(settings))
 
@@ -850,7 +907,8 @@ def main():
         if not suite.services(True):
             suite.check(False, "services started")
         else:
-            fixture.ensureRealUserAccount()
+            if not args.local:
+                fixture.ensureRealUserAccount()
             if args.nwchem_restart:
                 suite.nwchemRestart()
                 modes = []
