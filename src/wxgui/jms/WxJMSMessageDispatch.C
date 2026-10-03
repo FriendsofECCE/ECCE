@@ -478,7 +478,7 @@ void WxJMSMessageDispatch::getAppMCB(JMSMessage& startMsg)
       // Ids sometimes have trailing / sometimes not so we add if missing
       string contextid = startMsg.getProperty("calcurl");
       if (contextid != "")
-        if (contextid.find("http") == 0 &&
+        if ((contextid.find("http") == 0 || contextid.find("file://") == 0) &&
             contextid[contextid.length()-1] != '/') {
           contextid.append("/");
       }
@@ -852,7 +852,8 @@ void WxJMSMessageDispatch::setPollContext(const string& contextId)
    p_contextId = contextId;
    if (p_contextId != "" ) {
       // If the context id is a url, make sure it ends with /
-      if (p_contextId.find("http") == 0 &&
+      if ((p_contextId.find("http") == 0 ||
+           p_contextId.find("file://") == 0) &&
           p_contextId[p_contextId.length()-1] != '/') {
          p_contextId.append("/");
       }
