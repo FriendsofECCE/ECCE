@@ -1064,7 +1064,9 @@ fi")
     # else's central server, or none yet configured) must not try to
     # spawn it -- and must say clearly why not, rather than a bare
     # "No such file or directory" swallowed by the trailing `|| true`.
-    set(_dataserver_start "if [ -z \"$ECCE_NO_DATASERVER\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ]; then
+    # ECCE_LOCAL_DATA selects local mode (#216): data lives in that
+    # folder and no data server is wanted.
+    set(_dataserver_start "if [ -z \"$ECCE_NO_DATASERVER\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ] && [ -z \"$ECCE_LOCAL_DATA\" ]; then
   if [ -x \"$ECCE_HOME/bin/ecce-dataserver-start\" ]; then
     \"$ECCE_HOME/bin/ecce-dataserver-start\" || true
   else
