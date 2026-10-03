@@ -423,12 +423,14 @@ def quitVia(display, frame):
 # --- one session -------------------------------------------------------
 
 class Session(object):
-    def __init__(self, display, log, argv=(), extra=None, pipe=False):
+    def __init__(self, display, log, argv=(), extra=None, pipe=False,
+                 prefix=()):
         self.display = display
         self.extra = extra or {}
         self.log = open(log, "w")
         self.proc = subprocess.Popen(
-            [os.path.join(wrappers, "ecce")] + list(argv), env=self.env(),
+            list(prefix) + [os.path.join(wrappers, "ecce")] + list(argv),
+            env=self.env(),
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE if pipe else self.log,
             stderr=subprocess.STDOUT, start_new_session=True)
@@ -1355,11 +1357,33 @@ def makeLocalCalculation(env, home, data):
     return None if done.returncode == 0 else done.stdout.decode()[-1500:]
 
 
-def launchApp(checks, display, session, name, argv, logdir, titleHint):
+def straceCmd(path):
+    """strace of the file-system calls, following children, or () without it."""
+    if not shutil.which("strace"):
+        return ()
+    return ("strace", "-f", "-o", path, "-s", "300", "-e",
+            "trace=openat,getdents64,newfstatat,statx")
+
+
+def straceSaw(path, pattern, failed=False):
+    """Lines of an strace log matching pattern that did not fail (ENOENT),
+    or all of them with failed=True."""
+    found = []
+    with open(path, errors="replace") as handle:
+        for line in handle:
+            if re.search(pattern, line) and (failed or "ENOENT" not in line):
+                found.append(line.strip())
+    return found
+
+
+def launchApp(checks, display, session, name, argv, logdir, titleHint,
+              trace=None):
     """Start ecce-<name> through its wrapper; it must open a window and live."""
     before = set(w for w, _ in display.windows())
-    log = open(os.path.join(logdir, "local-%s.log" % name), "w")
-    proc = subprocess.Popen([os.path.join(wrappers, "ecce-" + name)] + argv,
+    log = open(os.path.join(logdir, "local-%s%s.log"
+                            % (name, "-ctx" if argv else "")), "w")
+    proc = subprocess.Popen(list(trace or ()) +
+                            [os.path.join(wrappers, "ecce-" + name)] + argv,
                             env=session.env(), stdout=log,
                             stderr=subprocess.STDOUT, start_new_session=True)
     deadline = time.time() + 90
@@ -1373,6 +1397,10 @@ def launchApp(checks, display, session, name, argv, logdir, titleHint):
                       % (name, " ".join(argv[-1:]) if argv else "(bare)",
                          [t for _, t in new]))
     time.sleep(8)
+    if shutil.which("import"):
+        subprocess.run(["import", "-window", "root", os.path.join(
+            logdir, "local-%s%s.png" % (name, "-ctx" if argv else ""))],
+            env=session.env(), timeout=30, stderr=subprocess.DEVNULL)
     up = proc.poll() is None
     checks.check(up, "%s still running 8s later%s"
                  % (name, "" if up else " (exit %s)" % proc.returncode))
@@ -1407,8 +1435,24 @@ def caseLocal(checks, display, logdir):
                  "no siteconfig/DataServers in this run's ECCE_HOME")
     checks.check(not portOpen(fixture.dataserverPort()) and not apacheProcs(),
                  "no data server running before the start")
+    user = os.path.join(data, "users", getpass.getuser())
+    os.makedirs(user)
+    base_env = display.env()
+    problem = makeLocalCalculation(base_env, home, data)
+    if not checks.check(problem is None, "project and calculation created "
+                        "through Resource::createChild"):
+        say("    " + (problem or ""))
+        return
+    say("    user folder holds: %s; proj/water holds: %s"
+        % (sorted(os.listdir(user)),
+           sorted(os.listdir(os.path.join(user, "proj", "water")))))
+    traced = bool(shutil.which("strace"))
+    if not traced:
+        say("    skip  no strace: the data is not checked as read")
+    organizerTrace = os.path.join(logdir, "local-organizer.strace")
     session = Session(display, os.path.join(logdir, "local.log"),
-                      extra={"ECCE_LOCAL_DATA": data, "ECCE_HOME": home})
+                      extra={"ECCE_LOCAL_DATA": data, "ECCE_HOME": home},
+                      prefix=straceCmd(organizerTrace))
     try:
         frame = session.organizer()
         if not checks.check(frame, "the Organizer opened"):
@@ -1427,24 +1471,61 @@ def caseLocal(checks, display, logdir):
         checks.check(not apacheProcs() and not portOpen(fixture.dataserverPort()),
                      "no Apache was started")
         checks.check(os.path.isdir(data), "the local data directory was made: %s" % data)
-        say("    data directory holds: %s" % sorted(os.listdir(data)))
         say("    windows now: %s" % [t for _, t in display.windows() if t])
-        # Smallest further steps: a project and calculation in the user's
-        # local folder, then the Builder bare, on it, and CalcEd on it.
-        problem = makeLocalCalculation(session.env(), home, data)
-        if checks.check(problem is None, "project and calculation created "
-                        "through Resource::createChild" ):
-            user = os.path.join(data, "users",
-                                getpass.getuser())
-            say("    user folder holds: %s" % sorted(os.listdir(user)))
-            calc = "file://" + os.path.join(user, "proj", "water") + "/"
-            launchApp(checks, display, session, "builder", [], logdir, "Builder")
-            launchApp(checks, display, session, "builder",
-                      ["-context", calc], logdir, "Builder")
-            launchApp(checks, display, session, "calced",
-                      ["-context", calc], logdir, "Calculation")
-        else:
-            say("    " + (problem or ""))
+        # Open the tree down to the project: double-clicks on this run's own
+        # display at fixed offsets from the frame.  Arrow keys and the Home
+        # button did not reach the tree.
+        env = display.env()
+        geo = subprocess.run(["xdotool", "getwindowgeometry",
+                              str(int(frame[0], 16))], env=env,
+                             stdout=subprocess.PIPE, timeout=10).stdout.decode()
+        pos = re.search(r"Position: (-?\d+),(-?\d+)", geo)
+        if pos:
+            # Tree rows (Local data, users, <user>, proj) are 18px apart and
+            # indented 10px; double-click opens a row.
+            for row in (1, 2, 3):
+                x = int(pos.group(1)) + 77 + 10 * (row - 1)
+                y = int(pos.group(2)) + 93 + 18 * (row - 1)
+                subprocess.run(["xdotool", "mousemove", str(x), str(y),
+                                "click", "--repeat", "2", "--delay", "100", "1"],
+                               env=env, timeout=10)
+                time.sleep(2)
+        time.sleep(3)
+        if shutil.which("import"):
+            subprocess.run(["import", "-window", "root",
+                            os.path.join(logdir, "local-organizer.png")],
+                           env=env, timeout=30, stderr=subprocess.DEVNULL)
+        if traced:
+            q = re.escape(user)
+            saw = straceSaw(organizerTrace, q + r"/\.ecce-meta\"", failed=True)
+            checks.check(saw, "the Organizer looked for the user folder's "
+                         ".ecce-meta (it has none: no properties yet)")
+            saw = straceSaw(organizerTrace, q + r"/proj/\.ecce-meta\"")
+            checks.check(saw, "the Organizer read the project's own .ecce-meta")
+            saw = straceSaw(organizerTrace, q + r"/proj/water/\.ecce-meta\"")
+            checks.check(saw, "the Organizer read the calculation's record in "
+                         "proj/.ecce-meta and its own (State, Application)")
+            saw = straceSaw(organizerTrace, r"getdents64|openat.*" + q + r"/proj\"")
+            checks.check(saw, "the Organizer listed the project directory")
+
+        calc = "file://" + os.path.join(user, "proj", "water") + "/"
+        calcdir = os.path.join(user, "proj", "water")
+        installed = os.path.realpath(os.path.join(install, "data"))
+        launchApp(checks, display, session, "builder", [], logdir, "Builder")
+        bt = os.path.join(logdir, "local-builder.strace")
+        launchApp(checks, display, session, "builder", ["-context", calc],
+                  logdir, "Builder", trace=straceCmd(bt))
+        ct = os.path.join(logdir, "local-calced.strace")
+        launchApp(checks, display, session, "calced", ["-context", calc],
+                  logdir, "Calculation", trace=straceCmd(ct))
+        if traced:
+            for app, log in (("Builder", bt), ("CalcEd", ct)):
+                saw = straceSaw(log, re.escape(calcdir) + r"/\.ecce-meta\"")
+                checks.check(saw, "%s opened the calculation's .ecce-meta" % app)
+                saw = straceSaw(log, re.escape(calcdir) + r"/[^/\"]+\"")
+                say("      %s opened %d file(s) under the calculation: %s"
+                    % (app, len(saw), sorted(set(
+                        re.findall(r'/water/([^/"]+)"', " ".join(saw))))))
         t0 = time.time()
         quitVia(display, frame)
         returned = session.ended(30)
