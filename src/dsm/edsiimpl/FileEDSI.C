@@ -82,23 +82,12 @@ bool FileEDSI::checkServer()
   return ret;
 }
 
-////////////////////////////////////////////////////////////////////////////
-// Description
-//   Return list of key attributes of file (see fstat).
-//   List here should match method describeMetaData().
-////////////////////////////////////////////////////////////////////////////
+// An empty list, as DavEDSI returns: a request for no names is a request
+// for every property (PROPFIND allprop), so callers see the stored ones
+// too, whatever their namespace.
 bool FileEDSI::describeServerMetaData(vector<string>& metadata)
 {
-  metadata.push_back("DAV:displayname");
-  metadata.push_back("DAV:getcontentlength");
-  metadata.push_back("DAV:getlastmodified");
-  metadata.push_back("resourcetype");
-  metadata.push_back("contenttype");
-  metadata.push_back("application");
-  // Resource asks for these by name to learn what a resource is.
-  vector<string> ecce = VDoc::wellKnownPropertyNames();
-  metadata.insert(metadata.end(), ecce.begin(), ecce.end());
-  // Others like ctime, atime, uid, gid also possible.
+  metadata.clear();
   return true;
 }
 
@@ -293,6 +282,24 @@ bool saveStore(const string& dir, const MetaStore& store)
   return true;
 }
 
+// A value goes into a PROPPATCH as XML content, so the server keeps what
+// an XML parser makes of it: callers (VDoc's rdf:Bag lists) wrap values in
+// CDATA, which the parse removes and a sidecar must remove too.
+string xmlContent(const string& value)
+{
+  const string open = "<![CDATA[", close = "]]>";
+  size_t b = value.find_first_not_of(" \t\r\n");
+  size_t e = value.find_last_not_of(" \t\r\n");
+  if (b == string::npos || value.compare(b, open.size(), open) != 0 ||
+      e + 1 < b + open.size() + close.size() ||
+      value.compare(e + 1 - close.size(), close.size(), close) != 0)
+    return value;
+  string inner = value.substr(b + open.size(),
+                              e + 1 - close.size() - b - open.size());
+  if (inner.find(close) != string::npos) return value;
+  return inner;
+}
+
 // Stored values replace the built-in one of the same name.
 void mergeStored(vector<MetaDataResult>& list, const PropMap& stored)
 {
@@ -468,7 +475,7 @@ static bool describePath(const string& path, const PropMap* stored,
   }
   metaDataNames.push_back(mdr);
 
-  // The extension only; DavEDSI's world gets a MIME type from Apache.
+  // As Apache would type it (mimeTypeFor).
   mdr.name = "contenttype";
   mdr.type = "string";
   if (file.is_dir()) {
@@ -478,6 +485,11 @@ static bool describePath(const string& path, const PropMap* stored,
   } else {
     mdr.value = mimeTypeFor(file.filename(), file.extension());
   }
+  metaDataNames.push_back(mdr);
+
+  // The name DavEDSI's callers ask for (Resource::getMimeType, VDoc), which
+  // is how a calculation's input file is told from its other files.
+  mdr.name = "DAV:getcontenttype";
   metaDataNames.push_back(mdr);
 
   mdr.name = "application";
@@ -589,16 +601,7 @@ istream *FileEDSI::getDataSet()
 
 bool FileEDSI::listCollection(vector<ResourceMetaDataResult>& result)
 {
-  // No request list: ask for everything the built-in list offers.
-  vector<MetaDataRequest> requests;
-  vector<string> names;
-  describeServerMetaData(names);
-  for (size_t i = 0; i < names.size(); i++) {
-    MetaDataRequest r;
-    r.name = names[i];
-    requests.push_back(r);
-  }
-  return listCollection(requests, result);
+  return listCollection(vector<MetaDataRequest>(), result);
 }
 
 bool FileEDSI::listCollection(const vector<MetaDataRequest>& requests,
@@ -643,6 +646,7 @@ bool FileEDSI::listCollection(const vector<MetaDataRequest>& requests,
           if (tmp[t].name == "contenttype") rmdr.contenttype = tmp[t].value;
         }
         applyStoredTypes(rmdr, tmp);
+        if (requests.empty()) rmdr.metaData = tmp;
         for (size_t q = 0; q < requests.size(); q++) {
           for (size_t t = 0; t < tmp.size(); t++) {
             if (tmp[t].name == requests[q].name) {
@@ -776,6 +780,7 @@ bool FileEDSI::getMetaData(const vector<MetaDataRequest>& requests,
     m_msgStack.add("RESOURCE_NOT_FOUND",path.c_str());
     return false;
   }
+  if (requests.empty()) results.insert(results.end(), tmp.begin(), tmp.end());
   for (size_t idx=0; idx<requests.size(); idx++) {
     for (size_t t = 0; t < tmp.size(); t++) {
       if (tmp[t].name == requests[idx].name) {
@@ -824,6 +829,7 @@ bool FileEDSI::putMetaData(const vector<MetaDataResult>& results)
   for (size_t i = 0; i < results.size(); i++) {
     if (results[i].name.empty()) continue;      // as DavEDSI drops them
     store[key][results[i].name] = results[i];
+    store[key][results[i].name].value = xmlContent(results[i].value);
   }
   if (!saveStore(dir, store)) {
     m_msgStack.add("UNABLE_TO_WRITE",sidecarPath(dir).c_str());
