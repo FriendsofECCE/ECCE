@@ -41,6 +41,17 @@ vector<Bookmark> EDSIServerCentral::p_mountPoints;
 // ECCE_LOCAL_DATA=<dir> selects local mode: the default (and only) data
 // server is file://<dir>, with no siteconfig/DataServers and no Apache.
 // Unset, which is the default, nothing below behaves differently.
+static string xmlEscape(const string& in)
+{
+  string out;
+  for (size_t i = 0; i < in.size(); i++) {
+    if (in[i] == '&') out += "&amp;";
+    else if (in[i] == '<') out += "&lt;";
+    else out += in[i];
+  }
+  return out;
+}
+
 static string localDataDir()
 {
   const char *dir = getenv("ECCE_LOCAL_DATA");
@@ -79,10 +90,17 @@ EDSIServerCentral::EDSIServerCentral()
   try {
     if (!localDataDir().empty()) {
       mkdir(localDataDir().c_str(), 0755);      // fine if it exists
+      // The libraries are read straight from the install tree, which is
+      // what data/admin/basissets and data/client/StructureLibrary are.
+      string data = Ecce::ecceDataPath();
       p_doc = parser.parse(string("<EcceData><EcceServer><Url>file://") +
-                           localDataDir() +
+                           xmlEscape(localDataDir()) +
                            "</Url><Desc>Local data</Desc></EcceServer>"
-                           "</EcceData>");
+                           "<BasisSet>file://" +
+                           xmlEscape(data + "/admin/basissets") +
+                           "</BasisSet><StructureLib>" +
+                           xmlEscape(data + "/client/StructureLibrary") +
+                           "</StructureLib></EcceData>");
     } else {
       p_doc = parser.parse(SFile(p_mountFile));
     }

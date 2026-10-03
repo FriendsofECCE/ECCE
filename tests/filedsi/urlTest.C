@@ -14,6 +14,13 @@ using namespace std;
 
 #include "util/EcceURL.H"
 #include "dsm/EDSIServerCentral.H"
+#include "dsm/EDSIGaussianBasisSetLibrary.H"
+#include "dsm/EDSI.H"
+#include "dsm/EDSIFactory.H"
+#include "dsm/TGaussianBasisSet.H"
+#include "dsm/TGBSConfig.H"
+#include "util/EcceException.H"
+#include "dsm/ResourceDescriptor.H"
 
 static int failures = 0;
 static void check(bool ok, const string& name, const string& why = "")
@@ -52,6 +59,50 @@ int main(int argc, char **argv)
     check(root.getPath() == dir, "local mode: getEcceRoot of home", home.getEcceRoot());
     check(home.isSystemFolder(), "local mode: data root is protected");
     check(!EcceURL(dir + "/proj").isSystemFolder(), "local mode: a project is not protected");
+
+    // The rest of checkServerSetup: user area, structure library, basis
+    // set library, all on a bare data directory and the install tree.
+    bool setup = false;
+    try { setup = central.checkServerSetup(); }
+    catch (const EcceException& e) { check(false, "local mode: checkServerSetup", e.what()); }
+    check(setup, "local mode: checkServerSetup succeeds on a bare data directory");
+    check(central.checkDefaultGBSL(), "local mode: basis set library reachable");
+
+    EcceURL gbsl = central.getDefaultBasisSetLibrary();
+    check(gbsl.getProtocol() == "file", "basis set library is a file:// URL", gbsl.toString());
+    EDSIGaussianBasisSetLibrary lib(gbsl);
+    vector<TGaussianBasisSet*> sets = lib.lookup("6-31G*", TGaussianBasisSet::UnknownGBSType, "C H");
+    int shells = 0;
+    for (size_t i = 0; i < sets.size(); i++) shells += sets[i]->num_contracted_sets("C");
+    check(!sets.empty() && shells > 0, "load 6-31G* for C H through file://",
+          "sets=" + string(1, '0' + (char)sets.size()));
+
+    EcceURL sl = central.getDefaultStructureLibrary();
+    EDSI *e = EDSIFactory::getEDSI(sl);
+    vector<ResourceResult> kids;
+    bool listed = e->listCollection(kids);
+    string firstFile;
+    string pending = sl.toString();
+    for (int depth = 0; depth < 4 && firstFile.empty(); depth++) {
+      e->setURL(EcceURL(pending));
+      vector<ResourceResult> level;
+      e->listCollection(level);
+      pending = "";
+      for (size_t j = 0; j < level.size(); j++) {
+        if (level[j].resourcetype == ResourceDescriptor::RT_DOCUMENT) {
+          firstFile = level[j].url.toString();
+          break;
+        }
+        if (pending.empty()) pending = level[j].url.toString();
+      }
+    }
+    check(listed && !kids.empty(), "structure library lists", sl.toString());
+    e->setURL(EcceURL(firstFile));
+    istream *in = e->getDataSet();
+    string body;
+    if (in) { char c; while (in->get(c)) body += c; delete in; }
+    check(!body.empty(), "read a structure file from the library", firstFile);
+    delete e;
   } else if (mode == "server-default") {
     EDSIServerCentral central;
     EcceURL home = central.getDefaultUserHome();
