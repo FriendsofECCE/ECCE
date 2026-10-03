@@ -55,6 +55,7 @@ broker scripts (and ecce-remote-setup) from packaging/.
 """
 
 import argparse
+import getpass
 import os
 import re
 import shutil
@@ -1332,6 +1333,67 @@ def apacheProcs():
     return found
 
 
+def makeLocalCalculation(env, home, data):
+    """A project and an NWChem calculation made through the real classes
+    (Resource::createChild, as the Organizer's New menu does), by
+    tests/filedsi/resourceTest, into the user's folder of the local data."""
+    build = os.environ.get("ECCE_TEST_BUILD", os.path.join(REPO, "build-cmake"))
+    libs = ["eccedsi", "eccexml", "eccetdat", "eccedav", "eccefaces",
+            "eccecipc", "ecceutil", "eccecomm", "eccercmd"]
+    driver = os.path.join(state, "resourceTest")
+    cmd = (["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"), "-o",
+            driver, os.path.join(HERE, "..", "filedsi", "resourceTest.C"),
+            "-L" + build] + ["-l" + l for l in libs] * 3 + ["-lxerces-c"])
+    built = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if built.returncode != 0:
+        return built.stdout.decode()[-1500:]
+    user = os.path.join(data, "users", getpass.getuser())
+    run_env = dict(env, ECCE_HOME=home, ECCE_LOCAL_DATA=data,
+                   ECCE_REALUSER=getpass.getuser())
+    done = subprocess.run([driver, "create", user], env=run_env,
+                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    return None if done.returncode == 0 else done.stdout.decode()[-1500:]
+
+
+def launchApp(checks, display, session, name, argv, logdir, titleHint):
+    """Start ecce-<name> through its wrapper; it must open a window and live."""
+    before = set(w for w, _ in display.windows())
+    log = open(os.path.join(logdir, "local-%s.log" % name), "w")
+    proc = subprocess.Popen([os.path.join(wrappers, "ecce-" + name)] + argv,
+                            env=session.env(), stdout=log,
+                            stderr=subprocess.STDOUT, start_new_session=True)
+    deadline = time.time() + 90
+    new = []
+    while time.time() < deadline and not new and proc.poll() is None:
+        # A frame, not the app's hidden helper window named after the binary.
+        new = [w for w in display.windows()
+               if w[0] not in before and w[1] and w[1] != name]
+        time.sleep(0.5)
+    ok = checks.check(bool(new), "%s %s: a window opened %s"
+                      % (name, " ".join(argv[-1:]) if argv else "(bare)",
+                         [t for _, t in new]))
+    time.sleep(8)
+    up = proc.poll() is None
+    checks.check(up, "%s still running 8s later%s"
+                 % (name, "" if up else " (exit %s)" % proc.returncode))
+    log.close()
+    with open(log.name, errors="replace") as handle:
+        text = handle.read()
+    marker = re.search(r"ASSERT|Assertion|Segmentation|terminate called|Fatal|"
+                       r"Error|FAILURE", text)
+    if marker or not ok or not up:
+        say("    %s log tail:\n      %s" % (name, "\n      ".join(
+            text.strip().splitlines()[-12:])))
+    checks.check(not marker, "%s output has no assertion or error marker" % name)
+    if proc.poll() is None:
+        try:
+            os.killpg(proc.pid, 15)
+            proc.wait(timeout=20)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    return ok and up
+
+
 def caseLocal(checks, display, logdir):
     """#216: local mode, no data server, no siteconfig/DataServers."""
     d = display.name
@@ -1367,6 +1429,22 @@ def caseLocal(checks, display, logdir):
         checks.check(os.path.isdir(data), "the local data directory was made: %s" % data)
         say("    data directory holds: %s" % sorted(os.listdir(data)))
         say("    windows now: %s" % [t for _, t in display.windows() if t])
+        # Smallest further steps: a project and calculation in the user's
+        # local folder, then the Builder bare, on it, and CalcEd on it.
+        problem = makeLocalCalculation(session.env(), home, data)
+        if checks.check(problem is None, "project and calculation created "
+                        "through Resource::createChild" ):
+            user = os.path.join(data, "users",
+                                getpass.getuser())
+            say("    user folder holds: %s" % sorted(os.listdir(user)))
+            calc = "file://" + os.path.join(user, "proj", "water") + "/"
+            launchApp(checks, display, session, "builder", [], logdir, "Builder")
+            launchApp(checks, display, session, "builder",
+                      ["-context", calc], logdir, "Builder")
+            launchApp(checks, display, session, "calced",
+                      ["-context", calc], logdir, "Calculation")
+        else:
+            say("    " + (problem or ""))
         t0 = time.time()
         quitVia(display, frame)
         returned = session.ended(30)
