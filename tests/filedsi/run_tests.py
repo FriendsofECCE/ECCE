@@ -106,6 +106,7 @@ def check_urls(state, env):
     expect = [
         ("file:///data/local", "isSystemFolder", "1"),
         ("file:///data/local/", "isSystemFolder", "1"),
+        ("file:///data/local/users", "isSystemFolder", "1"),
         ("file:///data/local/proj", "isSystemFolder", "0"),
         ("file:///data/localx", "isSystemFolder", "0"),
         ("file:///data/local/proj", "getEcceRoot", "[file:///data/local]"),

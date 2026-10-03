@@ -90,6 +90,8 @@ EDSIServerCentral::EDSIServerCentral()
   try {
     if (!localDataDir().empty()) {
       mkdir(localDataDir().c_str(), 0755);      // fine if it exists
+      mkdir((localDataDir() + "/users").c_str(), 0755);
+      mkdir((localDataDir() + "/users/" + Ecce::serverUser()).c_str(), 0755);
       // The libraries are read straight from the install tree, which is
       // what data/admin/basissets and data/client/StructureLibrary are.
       string data = Ecce::ecceDataPath();
@@ -558,8 +560,10 @@ EcceURL EDSIServerCentral::getUserHome(const EcceURL& rootUrl)
     // HACK tree control only works if root is double slash
     string path = "/";
     path = path + Ecce::realUserHome();
-    // Local mode: the data directory is the home.
-    if (!localDataDir().empty()) path = localDataDir();
+    // Local mode: <dir>/users/<user>, the same layout as a data server,
+    // which is what the gateway's user check expects.
+    if (!localDataDir().empty())
+      path = localDataDir() + "/users/" + Ecce::serverUser();
     ret.set(ret.getProtocol().c_str(), ret.getHost().c_str(),
             ret.getPort(), path.c_str());
   }

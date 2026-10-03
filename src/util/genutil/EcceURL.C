@@ -532,7 +532,7 @@ bool EcceURL::isSystemFolder() const
     if (!root.empty()) {
       string f = p_file;
       while (f.size() > 1 && f[f.size()-1] == '/') f.erase(f.size()-1);
-      return f == root;
+      return f == root || f == root + "/users";
     }
     return false;
   }

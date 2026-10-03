@@ -38,7 +38,7 @@ int main(int argc, char **argv)
       "http://h:8096/Ecce/users/tester", "http://h:8096/Ecce/users/tester/proj",
       "http://h:8096/Ecce/system/x", "http://h:8096/Ecce/share/StructureLibrary",
       "http://h:8096/other", "https://h/Ecce/users/tester/p/calc",
-      "file:///data/local", "file:///data/local/", "file:///data/local/proj",
+      "file:///data/local", "file:///data/local/", "file:///data/local/users", "file:///data/local/proj",
       "file:///data/localx", "file:///elsewhere/proj", 0 };
     for (int i = 0; urls[i]; i++) {
       EcceURL u(urls[i]);
@@ -52,13 +52,15 @@ int main(int argc, char **argv)
     string dir = argv[2];
     EDSIServerCentral central;       // no siteconfig/DataServers in ECCE_HOME
     EcceURL home = central.getDefaultUserHome();
-    check(home.getProtocol() == "file" && home.getPath() == dir,
-          "local mode: user home is the data directory", home.toString());
+    check(home.getProtocol() == "file" &&
+          home.getPath() == dir + "/users/" + getenv("ECCE_REALUSER"),
+          "local mode: user home is <dir>/users/<user>", home.toString());
     check(central.checkServer(), "local mode: checkServer");
     EcceURL root = home.getEcceRoot();
     check(root.getPath() == dir, "local mode: getEcceRoot of home", home.getEcceRoot());
-    check(home.isSystemFolder(), "local mode: data root is protected");
-    check(!EcceURL(dir + "/proj").isSystemFolder(), "local mode: a project is not protected");
+    check(EcceURL("file://" + dir).isSystemFolder() && EcceURL("file://" + dir + "/users").isSystemFolder(),
+          "local mode: data root and users folder are protected");
+    check(!EcceURL("file://" + dir + "/proj").isSystemFolder(), "local mode: a project is not protected");
 
     // The rest of checkServerSetup: user area, structure library, basis
     // set library, all on a bare data directory and the install tree.

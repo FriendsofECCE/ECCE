@@ -1301,7 +1301,81 @@ def caseBug(checks, display, logdir):
         session.kill()
 
 
-CASES = {"bug": caseBug, "window": caseWindow, "stop": caseStop, "remote": caseRemote,
+def localHome(base):
+    """An $ECCE_HOME with no siteconfig/DataServers, as a local install has."""
+    home = os.path.join(state, "ecce-home-local")
+    shutil.rmtree(home, ignore_errors=True)
+    os.makedirs(os.path.join(home, "siteconfig"))
+    for entry in os.listdir(base):
+        if entry != "siteconfig":
+            os.symlink(os.path.join(base, entry), os.path.join(home, entry))
+    for entry in os.listdir(os.path.join(base, "siteconfig")):
+        if entry != "DataServers":
+            os.symlink(os.path.join(base, "siteconfig", entry),
+                       os.path.join(home, "siteconfig", entry))
+    return home
+
+
+def apacheProcs():
+    """Pids of this run's own Apache: its command line names the state."""
+    found = []
+    for entry in os.listdir("/proc"):
+        if not entry.isdigit():
+            continue
+        try:
+            with open("/proc/%s/cmdline" % entry, "rb") as handle:
+                argv = handle.read()
+        except OSError:
+            continue
+        if state.encode() in argv and (b"apache2" in argv or b"httpd" in argv):
+            found.append(int(entry))
+    return found
+
+
+def caseLocal(checks, display, logdir):
+    """#216: local mode, no data server, no siteconfig/DataServers."""
+    d = display.name
+    if not checks.check(d != ":1", "own Xvfb %s, never :1" % d):
+        return
+    data = os.path.join(state, "localdata")
+    shutil.rmtree(data, ignore_errors=True)
+    home = localHome(os.environ["ECCE_HOME"])
+    checks.check(not os.path.exists(os.path.join(home, "siteconfig",
+                                                 "DataServers")),
+                 "no siteconfig/DataServers in this run's ECCE_HOME")
+    checks.check(not portOpen(fixture.dataserverPort()) and not apacheProcs(),
+                 "no data server running before the start")
+    session = Session(display, os.path.join(logdir, "local.log"),
+                      extra={"ECCE_LOCAL_DATA": data, "ECCE_HOME": home})
+    try:
+        frame = session.organizer()
+        if not checks.check(frame, "the Organizer opened"):
+            return
+        say("    window: %r" % (frame[1],))
+        orgs = named(d, "organizer")
+        exe = os.readlink("/proc/%d/exe" % orgs[0]) if orgs else ""
+        want = os.path.realpath(os.path.join(install, "bin", "organizer"))
+        checks.check(orgs and os.path.realpath(exe) == want
+                     and not exe.startswith("/opt/ecce"),
+                     "the Organizer running is %s, not /opt/ecce" % exe)
+        time.sleep(10)
+        checks.check(frame[0] in [w for w, _ in display.windows()]
+                     and session.proc.poll() is None,
+                     "still up, window still there, 10s later")
+        checks.check(not apacheProcs() and not portOpen(fixture.dataserverPort()),
+                     "no Apache was started")
+        checks.check(os.path.isdir(data), "the local data directory was made: %s" % data)
+        say("    data directory holds: %s" % sorted(os.listdir(data)))
+        say("    windows now: %s" % [t for _, t in display.windows() if t])
+        t0 = time.time()
+        quitVia(display, frame)
+        returned = session.ended(30)
+        checks.check(returned, "`ecce` returned after the Organizer closed")
+    finally:
+        session.kill()
+
+
+CASES = {"local": caseLocal, "bug": caseBug, "window": caseWindow, "stop": caseStop, "remote": caseRemote,
          "remote-down": caseRemoteDown,
          "quit-stop": caseQuitStop,
          "displays": caseDisplays, "shared": caseShared,
@@ -1337,6 +1411,13 @@ def main():
             #  Cases share one broker and data server, as sessions do;
             #  the stop case takes both down, the next session restarts
             #  the broker and this restarts the data server.
+            if name == "local":       # local mode has no data server
+                subprocess.run([os.path.join(install, "bin",
+                                             "ecce-dataserver-stop")],
+                               env=display.env(), stdout=subprocess.DEVNULL,
+                               stderr=subprocess.STDOUT, timeout=120)
+                CASES[name](checks, display, logdir)
+                continue
             subprocess.run([os.path.join(install, "bin",
                                          "ecce-dataserver-start")],
                            env=display.env(), stdout=subprocess.DEVNULL,
