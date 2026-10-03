@@ -288,7 +288,18 @@ def _openCalculation(display, results, verbose):
     log = accessLog()
     before = os.path.getsize(log) if os.path.exists(log) else 0
 
-    result = apps.run(display, "builder", args=("-context", url),
+    #  Without credentials builder stops at the modal "ECCE Authentication"
+    #  dialog and never reads the calculation.  A private state directory
+    #  has no saved login, so the run supplies one, as a user would type it.
+    #  Never under --use-real-state: that account's password is not ours.
+    args = ("-context", url)
+    if (os.path.realpath(fixture.stateHome())
+            != os.path.realpath(os.path.expanduser("~"))):
+        authPath = fixture.authFile(
+            os.path.join(fixture.stateHome(), ".ECCE", "auth.pipe"),
+            user=fixture.realUser())
+        args = ("-pipe", authPath) + args
+    result = apps.run(display, "builder", args=args,
                       windowTimeout=CASEDEFS.TIMEOUTS.get("builder", 40),
                       settle=15)
 
@@ -311,11 +322,12 @@ def _openCalculation(display, results, verbose):
                 if "calc-water-vib" in line and '" 2' in line:
                     served.append(line.split('"')[1].split()[1])
     if not served:
+        titles = ", ".join('"%s"' % t for _, t in result.windows[:3])
         results.fail(
             "calculation",
             "builder started but the data server served it nothing from %s.\n"
-            "      The -context argument was ignored, so this check would "
-            "pass without ever loading a calculation." % url)
+            "      Its windows: %s.  An \"ECCE Authentication\" window means "
+            "the -pipe credentials were refused." % (url, titles or "none"))
         return
 
     wanted = "Parameters/chemsys.mvm"

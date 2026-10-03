@@ -166,6 +166,20 @@ def ensureAccount():
     return userRoot, ""
 
 
+def realUser():
+    return os.environ.get("ECCE_REALUSER") or os.environ.get("USER") or ""
+
+
+def passwordFor(user):
+    """The password this suite gives an account it creates.
+
+    tests/modiagram runs the apps AS the fixture user, and the account is
+    created before the fixture: it must get the fixture's own password, or
+    its -pipe file never matches.
+    """
+    return PASSWORD if user == USER else "ecce"
+
+
 def ensureRealUserAccount():
     """Create the account the apps themselves will log in as.
 
@@ -179,7 +193,7 @@ def ensureRealUserAccount():
 
     Idempotent, and confined to whatever state directory is in force.
     """
-    user = os.environ.get("ECCE_REALUSER") or os.environ.get("USER") or ""
+    user = realUser()
     if not user:
         return ""
     userRoot = os.path.join(stateDir(), "htdocs", "Ecce", "users", user)
@@ -188,10 +202,7 @@ def ensureRealUserAccount():
     adduser = os.path.join(install_dir(), "bin", "ecce-dataserver-adduser")
     if not os.access(adduser, os.X_OK):
         return ""
-    #  tests/modiagram runs the apps AS the fixture user, and this runs
-    #  first: the fixture's own password, or its -pipe file never matches.
-    password = PASSWORD if user == USER else "ecce"
-    subprocess.run([adduser, "-b", user, password, "Ecce", "User"],
+    subprocess.run([adduser, "-b", user, passwordFor(user), "Ecce", "User"],
                    stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT,
                    timeout=60)
     return ("data server: created the %s account (a server with no account "
@@ -241,9 +252,15 @@ def install(name="calc-water-vib", source_dir=None):
     return "%s/%s" % (base(), name), ""
 
 
-def authFile(path, port=None):
-    """Write an -pipe auth file.  AuthCache unlinks it after reading."""
-    userRoot = os.path.join(stateDir(), "htdocs", "Ecce", "users", USER)
+def authFile(path, port=None, user=USER):
+    """Write an -pipe auth file.  AuthCache unlinks it after reading.
+
+    `user` must be the account the app logs in as, which is ECCE_REALUSER,
+    not necessarily the account holding the calculation: every app first
+    reads its own user's home collection, and without credentials for it
+    puts up the modal "ECCE Authentication" dialog before anything else.
+    """
+    userRoot = os.path.join(stateDir(), "htdocs", "Ecce", "users", user)
     base = "http://localhost:%d/" % (port or dataserverPort())
     name = realm(userRoot)
     keys = [base + name] if name else []
@@ -253,7 +270,7 @@ def authFile(path, port=None):
     with open(path, "w") as handle:
         handle.write("%d\n" % len(keys))
         for key in keys:
-            handle.write("%s|%s|%s\n" % (key, USER, PASSWORD))
+            handle.write("%s|%s|%s\n" % (key, user, passwordFor(user)))
     os.chmod(path, 0o600)
     return path
 
