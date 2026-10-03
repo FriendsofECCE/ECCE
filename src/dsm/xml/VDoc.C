@@ -3262,6 +3262,10 @@ vector<string> VDoc::parseDoc(const string& document)
 {
   vector<string> ret;
 
+  // saveInputs()/saveOutputs() store "" for an empty list.  A data server
+  // hands that back as an empty XML element; a local store as "".
+  if (document.find_first_not_of(" \t\r\n") == string::npos) return ret;
+
   BasicDOMParser parser;
   DOMDocument *domDocument = 0;
 
