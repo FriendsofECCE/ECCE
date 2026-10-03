@@ -685,11 +685,14 @@ MOPAC → spec) is the bridge it would reuse.
     is named. Before this, one unmappable element forced every element
     to be written out in full.
   - **NWChem needs no table**: ECCE's names *are* its library names
-    (both EMSL's). It has a blocklist instead, three quarters of which
-    is now stale (`aug-cc-pvdz`, `d-aug-cc-pvdz` and `iglo-ii` all work
-    in 7.2.3); only `-pcv` still holds. Do not just delete them — those
-    rules are about whether ECCE's *composite* matches the code's set of
-    the same name, not only availability.
+    (both EMSL's). It has a blocklist instead, measured with
+    `tests/basisload/nwchem_library_check.py` against NWChem 7.2.3: only
+    `aug-cc-pwCV*` (no hydrogen in NWChem's set), `aug-pV7Z`/`aug-mcc-pV8Z`
+    (unloadable), 5Z and up and `d-aug-cc-pVQZ` (unsettled) stay; every
+    other `aug-`/`d-aug-`/`-pCV`/`IGLO` name spans the same space as
+    ECCE's set. Beware that ECCE's explicit form repeats primitives, so
+    NWChem drops near-dependent vectors and its energy can differ from the
+    named form by up to 7e-4 Eh (QZ) until `lindep:tol` is tightened.
   - **ORCA is spherical-only.** It has no cartesian basis keyword at
     all, so `wrORCAGBS.pm` ignoring `$coordinants` is correct, not a bug.
     Gaussian's writer passes it and `ai.gauss16` emits `5D 7F`/`6D 10F`.

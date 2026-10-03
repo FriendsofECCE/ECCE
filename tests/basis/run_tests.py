@@ -136,6 +136,24 @@ CASES = [
         expect=[("I's ECP still written", lambda t: "ECP" in t and "I" in t)],
     ),
     dict(
+        name="nwchem-aug-named",
+        fixture="water_aug_ccpvdz.gbs",
+        exporter="std2NWChem",
+        #  aug-cc-pVDZ is NWChem's own set of that name (measured by
+        #  tests/basisload/nwchem_library_check.py), so it goes by name.
+        expect=[("O named", lambda t: 'O library "aug-cc-pVDZ"' in t),
+                ("no primitives", lambda t: " S" not in t)],
+    ),
+    dict(
+        name="nwchem-aug-pwcv-explicit",
+        fixture="water_aug_pwcvdz.gbs",
+        exporter="std2NWChem",
+        #  NWChem's library has no hydrogen in aug-cc-pwCVDZ, so the whole
+        #  calculation is written out.
+        expect=[("no library line", lambda t: "library" not in t),
+                ("primitives written", lambda t: "18.7311370" in t)],
+    ),
+    dict(
         name="orca-no-names-all-explicit",
         fixture="water_numonly.gbs",
         exporter="std2ORCA",

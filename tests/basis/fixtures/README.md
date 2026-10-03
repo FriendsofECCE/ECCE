@@ -6,6 +6,8 @@ optionally an `ECP` block.
 * `water_same.gbs`    every atom on one mappable basis -- the route-card case
 * `water_mixed.gbs`   O on 6-31G* (mappable), H on IGLO-II (not) -- per-element
 * `water_numonly.gbs` no `NameBasis` section at all -- everything explicit
+* `water_aug_ccpvdz.gbs`, `water_aug_pwcvdz.gbs`  one shared name each, to
+  exercise NWChem's name blocklist (named vs. forced explicit)
 * `pth_ecp.gbs`       Pt carrying an ECP beside a plain H
 
 The numbers are real (6-31G*/O, 6-31G/H, LANL2DZ/Pt) but trimmed to a few
