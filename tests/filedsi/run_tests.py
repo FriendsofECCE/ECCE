@@ -16,6 +16,7 @@ passed (or the suite was skipped).
 """
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -28,8 +29,44 @@ LIBS = ["eccedsi", "eccexml", "eccetdat", "eccedav", "eccefaces",
         "eccecipc", "ecceutil", "eccecomm", "eccercmd"]
 
 
+def parse_types(lines):
+    """(type, ext) pairs, lower-cased extensions."""
+    pairs = set()
+    for kind, exts in lines:
+        for e in exts.split():
+            pairs.add((kind, e.lower()))
+    return pairs
+
+
+def check_mime_table():
+    """Every AddType in httpd.conf.ecce is in data/client/config/mimetypes
+    and the reverse, so Apache and FileEDSI name a file the same way."""
+    conf = open(os.path.join(REPO, "packaging", "dataserver",
+                             "httpd.conf.ecce")).read().splitlines()
+    apache = parse_types(
+        m.groups() for m in (re.match(r"^\s*AddType\s+(\S+)\s+(.*\S)\s*$", l)
+                             for l in conf) if m and m.group(2) != ".shtml")
+    table = []
+    for l in open(os.path.join(REPO, "data", "client", "config",
+                               "mimetypes")).read().splitlines():
+        if l.strip() and not l.startswith("#"):
+            kind, _, exts = l.partition(" ")
+            table.append((kind, exts))
+    ours = parse_types(table)
+    for what, diff in (("in httpd.conf.ecce but not in mimetypes", apache - ours),
+                       ("in mimetypes but not in httpd.conf.ecce", ours - apache)):
+        if diff:
+            print("FAIL mime table: %s: %s" % (what, sorted(diff)))
+            return False
+    print("mime table: %d (type, extension) pairs agree" % len(ours))
+    return True
+
+
 def main():
     verbose = "-v" in sys.argv[1:]
+    mime_ok = check_mime_table()
+    if not mime_ok:
+        return 1
     if not all(os.path.exists(os.path.join(BUILD, "lib%s.a" % l)) for l in LIBS):
         print("SKIP: no built static libraries in %s (set ECCE_TEST_BUILD)"
               % BUILD)

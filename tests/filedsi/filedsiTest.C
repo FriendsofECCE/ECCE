@@ -111,6 +111,28 @@ int main(int argc, char **argv)
     bool found = true;
     getProp(file, NS + "nosuch", &found);
     check(!found, "unset property is absent");
+
+    // Content type comes from data/client/config/mimetypes, the table
+    // httpd.conf.ecce's AddType lines mirror (run_tests.py compares them).
+    check(getProp(file, "contenttype") == "chemical/x-nwchem-input",
+          "getMetaData contenttype of .nw", getProp(file, "contenttype"));
+    EDSI *le = edsi(proj);
+    vector<ResourceResult> rr;
+    le->listCollection(rr);
+    delete le;
+    check(rr.size() == 1 && rr[0].contenttype == "chemical/x-nwchem-input",
+          "listCollection contenttype of .nw",
+          rr.empty() ? "empty" : rr[0].contenttype);
+    string odd = proj + "/mol.G16IN";
+    put(odd, "x");
+    check(getProp(odd, "contenttype") == "chemical/x-gaussian16-input",
+          "extension match ignores case", getProp(odd, "contenttype"));
+    string unk = proj + "/seg.sgm";
+    put(unk, "x");
+    check(getProp(unk, "contenttype") == "sgm", "unlisted extension keeps itself",
+          getProp(unk, "contenttype"));
+    unlink(odd.c_str());
+    unlink(unk.c_str());
   }
 
   // The collection's own properties live apart from the child's.

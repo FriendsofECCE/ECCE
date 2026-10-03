@@ -17,6 +17,7 @@
 #include "util/ProgressEvent.H"
 #include "util/TDateTime.H"
 #include "util/AuthEvent.H"
+#include "util/Ecce.H"
 
 #include "dsm/FileEDSI.H"
 #include "dsm/ResourceDescriptor.H"
@@ -127,6 +128,7 @@ void FileEDSI::removeProgressEventListener(ProgressEventListener *l)
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <ctype.h>
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sstream>
@@ -349,6 +351,38 @@ void dropFileProps(const string& path)
   if (s.erase(tailOf(path))) saveStore(dir, s);
 }
 
+// MIME type of a file name from data/client/config/mimetypes, the table
+// Apache's AddType lines mirror.  An extension not in it keeps the
+// extension itself as its type (SegFactory selects on "sgm"/"frg").
+const string& mimeTypeFor(const string& name, const string& fallback)
+{
+  static std::map<string, string> table;
+  static bool loaded = false;
+  if (!loaded) {
+    loaded = true;
+    string path = string(Ecce::ecceDataPath()) + "/client/config/mimetypes";
+    ifstream in(path.c_str());
+    string line;
+    while (std::getline(in, line)) {
+      if (line.empty() || line[0] == '#') continue;
+      std::istringstream ls(line);
+      string type, ext;
+      ls >> type;
+      while (ls >> ext) {
+        for (size_t i = 0; i < ext.size(); i++) ext[i] = tolower(ext[i]);
+        table[ext] = type;
+      }
+    }
+  }
+  static string result;
+  size_t dot = name.rfind('.');
+  string ext = dot == string::npos ? string() : name.substr(dot);
+  for (size_t i = 0; i < ext.size(); i++) ext[i] = tolower(ext[i]);
+  std::map<string, string>::const_iterator it = table.find(ext);
+  result = (it == table.end()) ? fallback : it->second;
+  return result;
+}
+
 bool readAll(const string& path, string& out)
 {
   ifstream in(path.c_str(), std::ios::binary);
@@ -442,7 +476,7 @@ static bool describePath(const string& path, const PropMap* stored,
   } else if (file.is_link()) {
     mdr.value = "link";
   } else {
-    mdr.value = file.extension();
+    mdr.value = mimeTypeFor(file.filename(), file.extension());
   }
   metaDataNames.push_back(mdr);
 
@@ -643,7 +677,7 @@ bool FileEDSI::listCollection(vector<ResourceResult>& result)
         res.contenttype = "httpd/unix-directory";
         if (files[idx].is_regular_file()) {
           res.resourcetype = ResourceDescriptor::RT_DOCUMENT;
-          res.contenttype = files[idx].extension();
+          res.contenttype = mimeTypeFor(files[idx].filename(), files[idx].extension());
         }
         result.push_back(res);
       }
@@ -766,7 +800,7 @@ bool FileEDSI::getMetaData(const vector<MetaDataRequest>& requests,
   results.contenttype = "httpd/unix-directory";
   if (file.is_regular_file()) {
     results.resourcetype = ResourceDescriptor::RT_DOCUMENT;
-    results.contenttype = file.extension();
+    results.contenttype = mimeTypeFor(file.filename(), file.extension());
   }
   for (size_t i = 0; i < tmp.size(); i++) {
     results.metaData.push_back(tmp[i]);
