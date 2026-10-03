@@ -125,8 +125,12 @@ void FileEDSI::removeProgressEventListener(ProgressEventListener *l)
 
 
 #include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <sys/file.h>
 #include <sys/stat.h>
 #include <sstream>
+#include <memory>
 #include <map>
 
 namespace {
@@ -213,6 +217,27 @@ void locate(const string& path, string& dir, string& key)
 
 string sidecarPath(const string& dir) { return dir + "/" + SIDECAR; }
 
+// Exclusive lock on a directory's sidecar and on appends to files in it,
+// held across a whole read-modify-write.  flock() on a lock file next to
+// the sidecar: POSIX only.  A Windows port replaces this one class with
+// LockFileEx on the same file and nothing else changes.
+class DirLock {
+  public:
+    explicit DirLock(const string& dir) : p_fd(-1)
+    {
+      string path = dir + "/.ecce-meta.lock";
+      p_fd = open(path.c_str(), O_RDWR | O_CREAT, 0644);
+      if (p_fd >= 0) {
+        while (flock(p_fd, LOCK_EX) != 0 && errno == EINTR) {}
+      }
+    }
+    ~DirLock() { if (p_fd >= 0) close(p_fd); }   // closing drops the lock
+  private:
+    int p_fd;
+    DirLock(const DirLock&);
+    DirLock& operator=(const DirLock&);
+};
+
 MetaStore loadStore(const string& dir)
 {
   MetaStore store;
@@ -289,6 +314,13 @@ bool transferFileProps(const string& from, const string& to, bool keepSource)
   if (isDirectory(from) || isDirectory(to)) return true;
   string fdir = parentOf(from), tdir = parentOf(to);
   string fkey = tailOf(from), tkey = tailOf(to);
+  // Two directories are locked in name order so two transfers cannot
+  // wait on each other.
+  string first = fdir < tdir ? fdir : tdir;
+  string second = fdir < tdir ? tdir : fdir;
+  DirLock l1(first);
+  std::unique_ptr<DirLock> l2;
+  if (second != first) l2.reset(new DirLock(second));
   MetaStore fs = loadStore(fdir);
   MetaStore::iterator it = fs.find(fkey);
   if (it == fs.end()) return true;
@@ -312,6 +344,7 @@ void dropFileProps(const string& path)
 {
   if (isDirectory(path)) return;       // its sidecar goes with the directory
   string dir = parentOf(path);
+  DirLock lock(dir);
   MetaStore s = loadStore(dir);
   if (s.erase(tailOf(path))) saveStore(dir, s);
 }
@@ -330,7 +363,7 @@ bool readAll(const string& path, string& out)
 // Content-Range PUT that the property writers were built on.
 bool appendBytes(const string& path, const string& data, int bytesToOverwrite)
 {
-  // A lock would be taken here.
+  DirLock lock(parentOf(path));
   struct stat st;
   off_t size = (stat(path.c_str(), &st) == 0) ? st.st_size : 0;
   if (bytesToOverwrite > 0 && size > 0) {
@@ -752,7 +785,7 @@ bool FileEDSI::putMetaData(const vector<MetaDataResult>& results)
   }
   string dir, key;
   locate(path, dir, key);
-  // A lock would be taken here: read-modify-write of the whole sidecar.
+  DirLock lock(dir);
   MetaStore store = loadStore(dir);
   for (size_t i = 0; i < results.size(); i++) {
     if (results[i].name.empty()) continue;      // as DavEDSI drops them
@@ -776,6 +809,7 @@ bool FileEDSI::removeMetaData(const vector<MetaDataRequest>& requests)
   }
   string dir, key;
   locate(path, dir, key);
+  DirLock lock(dir);
   MetaStore store = loadStore(dir);
   MetaStore::iterator it = store.find(key);
   if (it == store.end()) return true;

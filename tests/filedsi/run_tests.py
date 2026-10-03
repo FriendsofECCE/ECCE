@@ -46,7 +46,7 @@ def main():
         rc = 0
         # resourceTest runs twice: create, then re-open in a new process.
         for name, args in (("filedsiTest", []), ("resourceTest", ["create"]),
-                           ("resourceTest", ["reopen"])):
+                           ("resourceTest", ["reopen"]), ("lockTest", [])):
             driver = os.path.join(state, name)
             if not os.path.exists(driver):
                 cmd = (["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"),
