@@ -1612,6 +1612,16 @@ if(PYTHON3_EXECUTABLE)
   # Generous: 20 apps x (window wait + settle), plus broker startup.
   set_tests_properties(apps PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
 
+  # tests/filedsi -- FileEDSI (file:// storage, no Apache, #216) against a
+  # temp directory, linked from the static libraries of build-cmake.
+  #
+  #     cd build-cmake && ctest -R filedsi --output-on-failure
+  add_test(NAME filedsi
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/filedsi/run_tests.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/filedsi)
+  set_tests_properties(filedsi PROPERTIES TIMEOUT 300)
+
   # tests/transport -- DirectTransport against a real /bin/sh (#204).
   add_executable(testTransport tests/transport/testTransport.C)
   target_link_libraries(testTransport PRIVATE eccercmd ecceutil)
