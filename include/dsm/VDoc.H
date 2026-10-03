@@ -54,6 +54,8 @@ class VDoc {
     ~VDoc();
 
     static string getEcceNamespace(void);
+    // The ecce: properties a Resource asks a server for, with prefix.
+    static vector<string> wellKnownPropertyNames(void);
     static string getCmcsNamespace(void);
     static string getDcNamespace(void);
     static string getDcQualifierNamespace(void);

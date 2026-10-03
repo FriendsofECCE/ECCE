@@ -44,27 +44,32 @@ def main():
         env["HOME"] = home
         env["ECCE_REALUSER"] = "tester"
         rc = 0
-        for name in ("filedsiTest", "resourceTest"):
+        # resourceTest runs twice: create, then re-open in a new process.
+        for name, args in (("filedsiTest", []), ("resourceTest", ["create"]),
+                           ("resourceTest", ["reopen"])):
             driver = os.path.join(state, name)
-            cmd = (["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"),
-                    "-o", driver, os.path.join(HERE, name + ".C"),
-                    "-L" + BUILD] + ["-l" + l for l in LIBS] * 3
-                   + ["-lxerces-c"])
-            proc = subprocess.run(cmd, capture_output=True, text=True)
-            if proc.returncode != 0:
-                print("could not build %s:\n%s" % (name, proc.stderr[-3000:]))
-                rc = 1
-                continue
+            if not os.path.exists(driver):
+                cmd = (["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"),
+                        "-o", driver, os.path.join(HERE, name + ".C"),
+                        "-L" + BUILD] + ["-l" + l for l in LIBS] * 3
+                       + ["-lxerces-c"])
+                proc = subprocess.run(cmd, capture_output=True, text=True)
+                if proc.returncode != 0:
+                    print("could not build %s:\n%s" % (name, proc.stderr[-3000:]))
+                    rc = 1
+                    continue
             scratch = os.path.join(state, name + ".store")
-            os.mkdir(scratch)
-            proc = subprocess.run([driver, scratch], capture_output=True,
-                                  text=True, env=env, timeout=120)
+            if not os.path.isdir(scratch):
+                os.mkdir(scratch)
+            proc = subprocess.run([driver] + args + [scratch],
+                                  capture_output=True, text=True, env=env,
+                                  timeout=120)
             lines = proc.stdout.splitlines()
             bad = [l for l in lines if l.startswith("FAIL ")]
             if verbose or bad or proc.returncode != 0:
                 print(proc.stdout + proc.stderr[-2000:])
-            print("%s: %d checks, %d failed" %
-                  (name, sum(1 for l in lines
+            print("%s %s: %d checks, %d failed" %
+                  (name, " ".join(args), sum(1 for l in lines
                              if l.startswith(("PASS ", "FAIL "))), len(bad)))
             if proc.returncode != 0 or bad:
                 rc = 1

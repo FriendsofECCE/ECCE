@@ -21,6 +21,7 @@
 #include "dsm/FileEDSI.H"
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/VDoc.H"
+#include "util/ResourceUtils.H"
 
 
 FileEDSI::FileEDSI() : EDSI()
@@ -93,18 +94,9 @@ bool FileEDSI::describeServerMetaData(vector<string>& metadata)
   metadata.push_back("resourcetype");
   metadata.push_back("contenttype");
   metadata.push_back("application");
-  // Resource asks for these by name to learn what a resource is; DavEDSI
-  // lists the same ones, and only stored properties can answer.
-  static const char *ecceProps[] = {
-    "state", "reviewed", "creationdate", "application", "empiricalFormula",
-    "name", "annotation", "citation", "owner", "theory", "runtype",
-    "launch_machine", "launch_queue", "launch_totalprocs", "startdate",
-    "completiondate", "job_clienthost", "job_jobid", "symmetrygroup",
-    "charge", "spinmultiplicity", "openshells", "coordsys", "numFunctions",
-    "numPrimitives", "ecpName", "chargeFittingName", "exchangeFittingName",
-    "contenttype", "resourcetype", 0 };
-  for (int i = 0; ecceProps[i]; i++)
-    metadata.push_back(VDoc::getEcceNamespace() + ":" + ecceProps[i]);
+  // Resource asks for these by name to learn what a resource is.
+  vector<string> ecce = VDoc::wellKnownPropertyNames();
+  metadata.insert(metadata.end(), ecce.begin(), ecce.end());
   // Others like ctime, atime, uid, gid also possible.
   return true;
 }
@@ -435,6 +427,24 @@ static bool describePath(const string& path, const PropMap* stored,
   return true;
 }
 
+// What DavEDSI::getResourceMetaDataResult does: the stored ecce:contenttype
+// names the kind of resource, and ecce:resourcetype marks a calculation (a
+// directory on disk) as a virtual document.
+static void applyStoredTypes(ResourceMetaDataResult& r,
+                             const vector<MetaDataResult>& props)
+{
+  string ns = VDoc::getEcceNamespace();
+  for (size_t i = 0; i < props.size(); i++) {
+    if (props[i].name == ns + ":contenttype") {
+      r.contenttype = props[i].value;
+    } else if (props[i].name == ns + ":resourcetype" &&
+               ResourceUtils::stringToResourceType(props[i].value) ==
+               ResourceDescriptor::RT_VIRTUAL_DOCUMENT) {
+      r.resourcetype = ResourceDescriptor::RT_VIRTUAL_DOCUMENT;
+    }
+  }
+}
+
 static const PropMap *findProps(const MetaStore& store, const string& key)
 {
   MetaStore::const_iterator it = store.find(key);
@@ -565,6 +575,7 @@ bool FileEDSI::listCollection(const vector<MetaDataRequest>& requests,
         for (size_t t = 0; t < tmp.size(); t++) {
           if (tmp[t].name == "contenttype") rmdr.contenttype = tmp[t].value;
         }
+        applyStoredTypes(rmdr, tmp);
         for (size_t q = 0; q < requests.size(); q++) {
           for (size_t t = 0; t < tmp.size(); t++) {
             if (tmp[t].name == requests[q].name) {
@@ -727,6 +738,7 @@ bool FileEDSI::getMetaData(const vector<MetaDataRequest>& requests,
   for (size_t i = 0; i < tmp.size(); i++) {
     results.metaData.push_back(tmp[i]);
   }
+  applyStoredTypes(results, tmp);
   return true;
 }
 

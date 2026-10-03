@@ -114,6 +114,23 @@ string VDoc::getEcceNamespace()
   return p_ecceNamespace;
 }
 
+vector<string> VDoc::wellKnownPropertyNames()
+{
+  static const char *names[] = {
+    "state", "reviewed", "creationdate", "application", "empiricalFormula",
+    "name", "annotation", "citation", "owner", "theory", "runtype",
+    "launch_machine", "launch_queue", "launch_totalprocs", "startdate",
+    "completiondate", "job_clienthost", "job_jobid", "symmetrygroup",
+    "charge", "spinmultiplicity", "openshells", "coordsys", "numFunctions",
+    "numPrimitives", "ecpName", "chargeFittingName", "exchangeFittingName",
+    "numAtoms", "numElectrons", "useExpCoef", "fragmentName", "reviewedDate",
+    "contenttype", "resourcetype", 0 };
+  vector<string> ret;
+  for (int i = 0; names[i]; i++)
+    ret.push_back(p_ecceNamespace + ":" + names[i]);
+  return ret;
+}
+
 
 /**
  * Gets standard CMCS Namespace.
