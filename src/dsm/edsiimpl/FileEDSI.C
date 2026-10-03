@@ -17,9 +17,12 @@
 #include "util/ProgressEvent.H"
 #include "util/TDateTime.H"
 #include "util/AuthEvent.H"
+#include "util/Ecce.H"
 
 #include "dsm/FileEDSI.H"
 #include "dsm/ResourceDescriptor.H"
+#include "dsm/VDoc.H"
+#include "util/ResourceUtils.H"
 
 
 FileEDSI::FileEDSI() : EDSI()
@@ -92,6 +95,9 @@ bool FileEDSI::describeServerMetaData(vector<string>& metadata)
   metadata.push_back("resourcetype");
   metadata.push_back("contenttype");
   metadata.push_back("application");
+  // Resource asks for these by name to learn what a resource is.
+  vector<string> ecce = VDoc::wellKnownPropertyNames();
+  metadata.insert(metadata.end(), ecce.begin(), ecce.end());
   // Others like ctime, atime, uid, gid also possible.
   return true;
 }
@@ -119,6 +125,399 @@ void FileEDSI::removeProgressEventListener(ProgressEventListener *l)
 }
 
 
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <ctype.h>
+#include <sys/file.h>
+#include <sys/stat.h>
+#include <sstream>
+#include <memory>
+#include <map>
+
+namespace {
+
+// One sidecar per directory holds the properties of its children, and of
+// the directory itself under ".": a listing reads one file instead of one
+// per child, and a directory copied or removed takes its subtree's
+// properties along with it.
+const char *SIDECAR = ".ecce-meta";
+
+typedef std::map<string, MetaDataResult> PropMap;   // by property name
+typedef std::map<string, PropMap> MetaStore;        // by resource name
+
+// A record is one line, "resource TAB name TAB type TAB value", with
+// backslash escapes so values can hold newlines and XML.
+string esc(const string& in)
+{
+  string out;
+  for (size_t i = 0; i < in.size(); i++) {
+    switch (in[i]) {
+      case '\\': out += "\\\\"; break;
+      case '\n': out += "\\n"; break;
+      case '\r': out += "\\r"; break;
+      case '\t': out += "\\t"; break;
+      default: out += in[i];
+    }
+  }
+  return out;
+}
+
+string unesc(const string& in)
+{
+  string out;
+  for (size_t i = 0; i < in.size(); i++) {
+    if (in[i] == '\\' && i + 1 < in.size()) {
+      char c = in[++i];
+      out += (c == 'n') ? '\n' : (c == 'r') ? '\r' : (c == 't') ? '\t' : c;
+    } else {
+      out += in[i];
+    }
+  }
+  return out;
+}
+
+bool isDirectory(const string& path)
+{
+  struct stat st;
+  return stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
+}
+
+string trimSlash(const string& path)
+{
+  string p = path;
+  while (p.size() > 1 && p[p.size()-1] == '/') p.erase(p.size()-1);
+  return p;
+}
+
+string parentOf(const string& path)
+{
+  string p = trimSlash(path);
+  size_t pos = p.rfind('/');
+  if (pos == string::npos) return ".";
+  return pos == 0 ? "/" : p.substr(0, pos);
+}
+
+string tailOf(const string& path)
+{
+  string p = trimSlash(path);
+  size_t pos = p.rfind('/');
+  return pos == string::npos ? p : p.substr(pos+1);
+}
+
+// Which sidecar, and which record inside it, describes this path.
+void locate(const string& path, string& dir, string& key)
+{
+  if (isDirectory(path)) {
+    dir = trimSlash(path);
+    key = ".";
+  } else {
+    dir = parentOf(path);
+    key = tailOf(path);
+  }
+}
+
+string sidecarPath(const string& dir) { return dir + "/" + SIDECAR; }
+
+// Exclusive lock on a directory's sidecar and on appends to files in it,
+// held across a whole read-modify-write.  flock() on a lock file next to
+// the sidecar: POSIX only.  A Windows port replaces this one class with
+// LockFileEx on the same file and nothing else changes.
+class DirLock {
+  public:
+    explicit DirLock(const string& dir) : p_fd(-1)
+    {
+      string path = dir + "/.ecce-meta.lock";
+      p_fd = open(path.c_str(), O_RDWR | O_CREAT, 0644);
+      if (p_fd >= 0) {
+        while (flock(p_fd, LOCK_EX) != 0 && errno == EINTR) {}
+      }
+    }
+    ~DirLock() { if (p_fd >= 0) close(p_fd); }   // closing drops the lock
+  private:
+    int p_fd;
+    DirLock(const DirLock&);
+    DirLock& operator=(const DirLock&);
+};
+
+MetaStore loadStore(const string& dir)
+{
+  MetaStore store;
+  ifstream in(sidecarPath(dir).c_str());
+  string line;
+  while (std::getline(in, line)) {
+    size_t a = line.find('\t');
+    size_t b = (a == string::npos) ? a : line.find('\t', a+1);
+    size_t c = (b == string::npos) ? b : line.find('\t', b+1);
+    if (c == string::npos) continue;
+    MetaDataResult m;
+    m.name = unesc(line.substr(a+1, b-a-1));
+    m.type = unesc(line.substr(b+1, c-b-1));
+    m.value = unesc(line.substr(c+1));
+    store[unesc(line.substr(0, a))][m.name] = m;
+  }
+  return store;
+}
+
+// Written to a temp name and renamed, so a reader never sees half a file.
+bool saveStore(const string& dir, const MetaStore& store)
+{
+  string path = sidecarPath(dir);
+  bool any = false;
+  for (MetaStore::const_iterator r = store.begin(); r != store.end(); ++r)
+    if (!r->second.empty()) any = true;
+  if (!any) {
+    unlink(path.c_str());
+    return true;
+  }
+  char pid[32];
+  sprintf(pid, ".%d", (int)getpid());
+  string tmp = path + pid;
+  {
+    ofstream out(tmp.c_str(), std::ios::binary);
+    if (!out) return false;
+    for (MetaStore::const_iterator r = store.begin(); r != store.end(); ++r) {
+      for (PropMap::const_iterator p = r->second.begin();
+           p != r->second.end(); ++p) {
+        out << esc(r->first) << '\t' << esc(p->second.name) << '\t'
+            << esc(p->second.type) << '\t' << esc(p->second.value) << '\n';
+      }
+    }
+    out.close();
+    if (!out) { unlink(tmp.c_str()); return false; }
+  }
+  if (rename(tmp.c_str(), path.c_str()) != 0) {
+    unlink(tmp.c_str());
+    return false;
+  }
+  return true;
+}
+
+// Stored values replace the built-in one of the same name.
+void mergeStored(vector<MetaDataResult>& list, const PropMap& stored)
+{
+  for (PropMap::const_iterator p = stored.begin(); p != stored.end(); ++p) {
+    bool found = false;
+    for (size_t i = 0; i < list.size(); i++) {
+      if (list[i].name == p->first) {
+        list[i] = p->second;
+        found = true;
+        break;
+      }
+    }
+    if (!found) list.push_back(p->second);
+  }
+}
+
+// Carry a file's record to the sidecar of its new name.  A directory's own
+// sidecar is inside it and travels with it, so there is nothing to do.
+bool transferFileProps(const string& from, const string& to, bool keepSource)
+{
+  if (isDirectory(from) || isDirectory(to)) return true;
+  string fdir = parentOf(from), tdir = parentOf(to);
+  string fkey = tailOf(from), tkey = tailOf(to);
+  // Two directories are locked in name order so two transfers cannot
+  // wait on each other.
+  string first = fdir < tdir ? fdir : tdir;
+  string second = fdir < tdir ? tdir : fdir;
+  DirLock l1(first);
+  std::unique_ptr<DirLock> l2;
+  if (second != first) l2.reset(new DirLock(second));
+  MetaStore fs = loadStore(fdir);
+  MetaStore::iterator it = fs.find(fkey);
+  if (it == fs.end()) return true;
+  PropMap props = it->second;
+  if (fdir == tdir) {
+    if (!keepSource) fs.erase(fkey);
+    fs[tkey] = props;
+    return saveStore(fdir, fs);
+  }
+  MetaStore ts = loadStore(tdir);
+  ts[tkey] = props;
+  bool ok = saveStore(tdir, ts);
+  if (!keepSource) {
+    fs.erase(fkey);
+    ok = saveStore(fdir, fs) && ok;
+  }
+  return ok;
+}
+
+void dropFileProps(const string& path)
+{
+  if (isDirectory(path)) return;       // its sidecar goes with the directory
+  string dir = parentOf(path);
+  DirLock lock(dir);
+  MetaStore s = loadStore(dir);
+  if (s.erase(tailOf(path))) saveStore(dir, s);
+}
+
+// MIME type of a file name from data/client/config/mimetypes, the table
+// Apache's AddType lines mirror.  An extension not in it keeps the
+// extension itself as its type (SegFactory selects on "sgm"/"frg").
+const string& mimeTypeFor(const string& name, const string& fallback)
+{
+  static std::map<string, string> table;
+  static bool loaded = false;
+  if (!loaded) {
+    loaded = true;
+    string path = string(Ecce::ecceDataPath()) + "/client/config/mimetypes";
+    ifstream in(path.c_str());
+    string line;
+    while (std::getline(in, line)) {
+      if (line.empty() || line[0] == '#') continue;
+      std::istringstream ls(line);
+      string type, ext;
+      ls >> type;
+      while (ls >> ext) {
+        for (size_t i = 0; i < ext.size(); i++) ext[i] = tolower(ext[i]);
+        table[ext] = type;
+      }
+    }
+  }
+  static string result;
+  size_t dot = name.rfind('.');
+  string ext = dot == string::npos ? string() : name.substr(dot);
+  for (size_t i = 0; i < ext.size(); i++) ext[i] = tolower(ext[i]);
+  std::map<string, string>::const_iterator it = table.find(ext);
+  result = (it == table.end()) ? fallback : it->second;
+  return result;
+}
+
+bool readAll(const string& path, string& out)
+{
+  ifstream in(path.c_str(), std::ios::binary);
+  if (!in) return false;
+  std::ostringstream ss;
+  ss << in.rdbuf();
+  out = ss.str();
+  return true;
+}
+
+// Truncate bytesToOverwrite off the end, then append: the contract of the
+// Content-Range PUT that the property writers were built on.
+bool appendBytes(const string& path, const string& data, int bytesToOverwrite)
+{
+  DirLock lock(parentOf(path));
+  struct stat st;
+  off_t size = (stat(path.c_str(), &st) == 0) ? st.st_size : 0;
+  if (bytesToOverwrite > 0 && size > 0) {
+    off_t keep = size - bytesToOverwrite;
+    if (keep < 0) keep = 0;
+    if (truncate(path.c_str(), keep) != 0) return false;
+  }
+  ofstream out(path.c_str(), std::ios::binary | std::ios::app);
+  if (!out) return false;
+  out << data;
+  out.close();
+  return !!out;
+}
+
+// SDirectory::copy flattens nested files, so recurse by hand.
+bool copyTree(const string& from, const string& to)
+{
+  if (!isDirectory(from)) {
+    SFile f(from);
+    SFile *n = f.copy(to);
+    bool ok = (n != 0) && n->exists();
+    delete n;
+    return ok;
+  }
+  if (!SDirectory::create(to.c_str(), 0755)) return false;
+  SDirectory dir(from);
+  vector<SFile> kids = dir.get_files(false);
+  for (size_t i = 0; i < kids.size(); i++) {
+    if (!copyTree(kids[i].path(), to + "/" + kids[i].filename())) return false;
+  }
+  return true;
+}
+
+} // namespace
+
+
+// The built-in file-system properties of a path, with the stored ones
+// (if any) laid over them.
+static bool describePath(const string& path, const PropMap* stored,
+                         vector<MetaDataResult>& metaDataNames)
+{
+  SFile file(path.c_str());
+  if (!file.exists()) return false;
+
+  MetaDataResult mdr;
+  char buf[128];
+
+  mdr.name = "DAV:displayname";
+  mdr.type = "string";
+  mdr.value = file.filename().c_str();
+  metaDataNames.push_back(mdr);
+
+  mdr.name = "DAV:getcontentlength";
+  mdr.type = "integer";
+  unsigned int fileSize = file.size();
+  sprintf(buf,"%u",fileSize);
+  mdr.value = buf;
+  metaDataNames.push_back(mdr);
+
+  mdr.name = "resourcetype";
+  mdr.type = "string";
+  if (file.is_dir()) {
+    mdr.value = "collection";
+  } else if (file.is_link()) {
+    mdr.value = "link";
+  } else {
+    mdr.value = "file";
+  }
+  metaDataNames.push_back(mdr);
+
+  // The extension only; DavEDSI's world gets a MIME type from Apache.
+  mdr.name = "contenttype";
+  mdr.type = "string";
+  if (file.is_dir()) {
+    mdr.value = "httpd/unix-directory";
+  } else if (file.is_link()) {
+    mdr.value = "link";
+  } else {
+    mdr.value = mimeTypeFor(file.filename(), file.extension());
+  }
+  metaDataNames.push_back(mdr);
+
+  mdr.name = "application";
+  mdr.type = "string";
+  mdr.value = "";
+  metaDataNames.push_back(mdr);
+
+  mdr.name = "DAV:getlastmodified";
+  mdr.type = "string";
+  mdr.value = file.lastModified().toString();
+  metaDataNames.push_back(mdr);
+
+  if (stored) mergeStored(metaDataNames, *stored);
+  return true;
+}
+
+// What DavEDSI::getResourceMetaDataResult does: the stored ecce:contenttype
+// names the kind of resource, and ecce:resourcetype marks a calculation (a
+// directory on disk) as a virtual document.
+static void applyStoredTypes(ResourceMetaDataResult& r,
+                             const vector<MetaDataResult>& props)
+{
+  string ns = VDoc::getEcceNamespace();
+  for (size_t i = 0; i < props.size(); i++) {
+    if (props[i].name == ns + ":contenttype") {
+      r.contenttype = props[i].value;
+    } else if (props[i].name == ns + ":resourcetype" &&
+               ResourceUtils::stringToResourceType(props[i].value) ==
+               ResourceDescriptor::RT_VIRTUAL_DOCUMENT) {
+      r.resourcetype = ResourceDescriptor::RT_VIRTUAL_DOCUMENT;
+    }
+  }
+}
+
+static const PropMap *findProps(const MetaStore& store, const string& key)
+{
+  MetaStore::const_iterator it = store.find(key);
+  return it == store.end() ? 0 : &it->second;
+}
+
 bool FileEDSI::exists(const bool& newUser)
 {
   SFile test(getURL().getPath());
@@ -127,154 +526,138 @@ bool FileEDSI::exists(const bool& newUser)
 
 istream* FileEDSI::getDataSubSet(int start_position, int length)
 {
-  istream* ret = NULL;
-  m_msgStack.add("NOT_IMPLEMENTED","getDataSubSet");
-  return ret;
+  std::ostringstream os;
+  if (!getDataSubSet(os, start_position, length)) return NULL;
+  return new std::istringstream(os.str());
 }
 
+// Bytes [start, start+length-1], clipped at end of file, as an HTTP Range.
 bool FileEDSI::getDataSubSet(ostream& dest, int start_position, int length)
 {
-  bool ret = false;
-  m_msgStack.add("NOT_IMPLEMENTED","getDataSubSet");
-  return ret;
+  m_msgStack.clear();
+  string all;
+  if (!readAll(p_url.getPath(), all)) {
+    m_msgStack.add("RESOURCE_NOT_FOUND",p_url.getPath().c_str());
+    return false;
+  }
+  if (start_position >= 0 && length > 0 && (size_t)start_position < all.size())
+    dest << all.substr(start_position, length);
+  return true;
 }
 
 unsigned long FileEDSI::getDataSetSize()
 {
-  unsigned long ret = 0;
-  m_msgStack.add("NOT_IMPLEMENTED","getDataSetSize");
-  return ret;
+  m_msgStack.clear();
+  struct stat st;
+  if (stat(p_url.getPath().c_str(), &st) != 0) {
+    m_msgStack.add("RESOURCE_NOT_FOUND",p_url.getPath().c_str());
+    return 0;
+  }
+  return st.st_size;
 }
 
-
+// Byte for byte: appendDataSet's overwrite count is in bytes, so a
+// line-based read that adds a final newline would break it.
 bool FileEDSI::getDataSet(ostream& dest)
 {
-  bool ret = false;
   m_msgStack.clear();
   SFile file(p_url.getPath().c_str());
-  if (file.exists() && file.is_regular_file()) {
-    static const int BUFSIZE=512;
-    char buf[BUFSIZE];
-    ifstream myfile(file.path().c_str());
-    if (myfile) {
-      while (myfile.getline(buf,BUFSIZE-1)) {
-        dest << buf << "\n";
-      }
-      myfile.close();
-      ret = true;
-    }
+  string all;
+  if (file.exists() && file.is_regular_file() && readAll(file.path(), all)) {
+    dest << all;
+    return true;
   }
-  return ret;
+  return false;
 }
 
-////////////////////////////////////////////////////////////////////////////
-// Description
-//   Open the file stream, read it into a memory stream and return that
-//   stream.
-//
-//   TODO handle symbolic links?
-////////////////////////////////////////////////////////////////////////////
 istream *FileEDSI::getDataSet()
 {
-  istream *ret = NULL;
   m_msgStack.clear();
-
-  static const int BUFSIZE=512;
-  char buf[BUFSIZE];
-
   SFile file(p_url.getPath().c_str());
   bool exists = file.exists();
   if (exists && file.is_regular_file()) {
-    ifstream myfile(file.path().c_str());
-    if (myfile) {
-      ostrstream mem;
-      while (myfile.getline(buf,BUFSIZE-1)) {
-        mem << buf << "\n";
-      }
-      myfile.close();
-      mem << ends;
-      string str = mem.str();
-
-      strstreambuf *buffer = new strstreambuf(str.length());
-      buffer->sputn(str.c_str(), str.length());
-      ret = new istream(buffer);
-
-    } else {
-      m_msgStack.add("UNABLE_TO_READ",file.path().c_str());
-    }
+    string all;
+    if (readAll(file.path(), all)) return new std::istringstream(all);
+    m_msgStack.add("UNABLE_TO_READ",file.path().c_str());
   } else if (exists) {
     m_msgStack.add("NOT_REGULAR_FILE",file.path().c_str());
   } else {
     m_msgStack.add("RESOURCE_NOT_FOUND",file.path().c_str());
   }
-  return ret;
+  return NULL;
 }
 
-////////////////////////////////////////////////////////////////////////////
-// Description
-////////////////////////////////////////////////////////////////////////////
-
-bool FileEDSI::listCollection(vector<ResourceMetaDataResult>& result) {
-  return false;
+bool FileEDSI::listCollection(vector<ResourceMetaDataResult>& result)
+{
+  // No request list: ask for everything the built-in list offers.
+  vector<MetaDataRequest> requests;
+  vector<string> names;
+  describeServerMetaData(names);
+  for (size_t i = 0; i < names.size(); i++) {
+    MetaDataRequest r;
+    r.name = names[i];
+    requests.push_back(r);
+  }
+  return listCollection(requests, result);
 }
 
-bool FileEDSI::listCollection(const vector<MetaDataRequest>& requests, vector<ResourceMetaDataResult>& result)
+bool FileEDSI::listCollection(const vector<MetaDataRequest>& requests,
+                              vector<ResourceMetaDataResult>& result)
 {
   bool ret = false;
+  m_msgStack.clear();
 
   SDirectory dir(p_url.getPath().c_str());
 
   if (!dir.exists()) {
     m_msgStack.add("RESOURCE_NOT_FOUND",dir.path().c_str());
-  } else if (dir.exists() && !dir.is_dir()) {
+  } else if (!dir.is_dir()) {
     m_msgStack.add("NOT_COLLECTION",dir.path().c_str());
   } else {
     vector<SFile> files = dir.get_files(false);
-    int cnt = files.size();
     ret = true;
+    MetaStore store = loadStore(trimSlash(dir.path()));   // once per listing
 
-    ResourceMetaDataResult rmdr;
-    vector<MetaDataResult> tmp;
-    for (int idx=0; idx<cnt; idx++) {
-      if (strncmp(files[idx].filename().c_str(), ".", 1) != 0) {
-        rmdr.url = files[idx].path().c_str();
-        rmdr.resourcetype = ResourceDescriptor::RT_COLLECTION;
-        if (files[idx].is_regular_file()) 
-          rmdr.resourcetype = ResourceDescriptor::RT_DOCUMENT;
-        rmdr.contenttype = "";
-        FileEDSI fe(files[idx].path().c_str());
-        tmp.clear();
-        // iterate through requested properties and add to actual result
-        if (fe.describeMetaData(tmp)) {
-          rmdr.metaData.clear();
-          vector<MetaDataRequest>::const_iterator requestIt = requests.begin();
-          while (requestIt != requests.end()) {
-            vector<MetaDataResult>::iterator resultIt = tmp.begin();
-            while (resultIt != tmp.end()) {
-              if (rmdr.contenttype.empty() && resultIt->name == "contenttype") {
-                rmdr.contenttype = resultIt->value;
-              }
-              if (resultIt->name.compare(requestIt->name) == 0) {
-                rmdr.metaData.push_back(*resultIt);
-                break;
-  
-              }
-              resultIt++;
+    for (size_t idx=0; idx<files.size(); idx++) {
+      // Dot files include the sidecar itself.
+      if (files[idx].filename().compare(0, 1, ".") == 0) continue;
+      ResourceMetaDataResult rmdr;
+      rmdr.url = files[idx].path().c_str();
+      rmdr.resourcetype = ResourceDescriptor::RT_COLLECTION;
+      if (files[idx].is_regular_file())
+        rmdr.resourcetype = ResourceDescriptor::RT_DOCUMENT;
+      rmdr.contenttype = "";
+
+      const PropMap *stored = 0;
+      MetaStore sub;
+      if (files[idx].is_dir()) {
+        sub = loadStore(trimSlash(files[idx].path()));
+        stored = findProps(sub, ".");
+      } else {
+        stored = findProps(store, files[idx].filename());
+      }
+
+      vector<MetaDataResult> tmp;
+      if (describePath(files[idx].path(), stored, tmp)) {
+        for (size_t t = 0; t < tmp.size(); t++) {
+          if (tmp[t].name == "contenttype") rmdr.contenttype = tmp[t].value;
+        }
+        applyStoredTypes(rmdr, tmp);
+        for (size_t q = 0; q < requests.size(); q++) {
+          for (size_t t = 0; t < tmp.size(); t++) {
+            if (tmp[t].name == requests[q].name) {
+              rmdr.metaData.push_back(tmp[t]);
+              break;
             }
-            requestIt++;
           }
         }
-        result.push_back(rmdr);
       }
+      result.push_back(rmdr);
     }
   }
-
   return ret;
 }
 
-////////////////////////////////////////////////////////////////////////////
-// Description
-////////////////////////////////////////////////////////////////////////////
 bool FileEDSI::listCollection(vector<ResourceResult>& result)
 {
   bool ret = false;
@@ -294,7 +677,7 @@ bool FileEDSI::listCollection(vector<ResourceResult>& result)
         res.contenttype = "httpd/unix-directory";
         if (files[idx].is_regular_file()) {
           res.resourcetype = ResourceDescriptor::RT_DOCUMENT;
-          res.contenttype = files[idx].extension();
+          res.contenttype = mimeTypeFor(files[idx].filename(), files[idx].extension());
         }
         result.push_back(res);
       }
@@ -353,186 +736,150 @@ bool FileEDSI::putDataSet(istream& putStream)
   return ret;
 }
 
-/////////////////////////////////////////////////////////////////////////////
-// Description
-/////////////////////////////////////////////////////////////////////////////
+
 bool FileEDSI::appendDataSet(const char* putStream, int bytesToOverwrite)
 {
-  bool ret = false;
-  m_msgStack.add("NOT_IMPLEMENTED","appendMetaData");
-  return ret;
+  m_msgStack.clear();
+  string path = p_url.getPath();
+  if (!putStream) putStream = "";
+  if (!appendBytes(path, putStream, bytesToOverwrite)) {
+    m_msgStack.add("UNABLE_TO_WRITE",path.c_str());
+    return false;
+  }
+  return true;
 }
 
-
-/////////////////////////////////////////////////////////////////////////////
-// Description
-/////////////////////////////////////////////////////////////////////////////
 bool FileEDSI::appendDataSet(istream& putStream, int bytesToOverwrite)
 {
-  bool ret = false;
-  m_msgStack.add("NOT_IMPLEMENTED","appendMetaData");
-  return ret;
+  m_msgStack.clear();
+  string path = p_url.getPath();
+  std::ostringstream ss;
+  ss << putStream.rdbuf();
+  if (!appendBytes(path, ss.str(), bytesToOverwrite)) {
+    m_msgStack.add("UNABLE_TO_WRITE",path.c_str());
+    return false;
+  }
+  return true;
 }
 
-/////////////////////////////////////////////////////////////////////////////
-// Description
-/////////////////////////////////////////////////////////////////////////////
-bool FileEDSI::getMetaData(const vector<MetaDataRequest>& requests, 
+bool FileEDSI::getMetaData(const vector<MetaDataRequest>& requests,
     vector<MetaDataResult>& results, bool getVDocMetaData)
 {
-  bool ret = false;
+  m_msgStack.clear();
+  string path = p_url.getPath();
+  string dir, key;
+  locate(path, dir, key);
+  MetaStore store = loadStore(dir);
 
   vector<MetaDataResult> tmp;
-  if (describeMetaData(tmp)) {
-    ret = true;
-    int numRequests = requests.size();
-    for (int idx=0; idx<numRequests; idx++) {
-      vector<MetaDataResult>::iterator resultIt = tmp.begin();
-      while (resultIt != tmp.end()) {
-        if (resultIt->name.compare(requests[idx].name) == 0) {
-          results.push_back(*resultIt);
-          break;
-        }
-        resultIt++;
+  if (!describePath(path, findProps(store, key), tmp)) {
+    m_msgStack.add("RESOURCE_NOT_FOUND",path.c_str());
+    return false;
+  }
+  for (size_t idx=0; idx<requests.size(); idx++) {
+    for (size_t t = 0; t < tmp.size(); t++) {
+      if (tmp[t].name == requests[idx].name) {
+        results.push_back(tmp[t]);
+        break;
       }
     }
-    tmp.clear();
   }
-
-  return ret;
+  return true;
 }
 
 bool FileEDSI::getMetaData(const vector<MetaDataRequest>& requests,
     ResourceMetaDataResult& results, bool getVDocMetaData)
 {
-  bool ret = false;
   SFile file(p_url.getPath().c_str());
 
   vector<MetaDataResult> tmp;
-  if (getMetaData(requests, tmp)) {
-    ret = true;
-    results.url = p_url;
-    results.resourcetype = ResourceDescriptor::RT_COLLECTION;
-    results.contenttype = "httpd/unix-directory";
-    if (file.is_regular_file()) {
-      results.resourcetype = ResourceDescriptor::RT_DOCUMENT;
-      results.contenttype = file.extension();
-    }
-    for (int i = 0; i < tmp.size(); i++) {
-      results.metaData.push_back(tmp[i]);
-    }
+  if (!getMetaData(requests, tmp)) return false;
+
+  results.url = p_url;
+  results.resourcetype = ResourceDescriptor::RT_COLLECTION;
+  results.contenttype = "httpd/unix-directory";
+  if (file.is_regular_file()) {
+    results.resourcetype = ResourceDescriptor::RT_DOCUMENT;
+    results.contenttype = mimeTypeFor(file.filename(), file.extension());
   }
-  return ret;
+  for (size_t i = 0; i < tmp.size(); i++) {
+    results.metaData.push_back(tmp[i]);
+  }
+  applyStoredTypes(results, tmp);
+  return true;
 }
 
-
-/////////////////////////////////////////////////////////////////////////////
-// Description
-/////////////////////////////////////////////////////////////////////////////
 bool FileEDSI::putMetaData(const vector<MetaDataResult>& results)
 {
-  bool ret = false;
-  m_msgStack.add("NOT_IMPLEMENTED","putMetaData");
-  return ret;
+  m_msgStack.clear();
+  string path = p_url.getPath();
+  if (!SFile(path.c_str()).exists()) {
+    m_msgStack.add("RESOURCE_NOT_FOUND",path.c_str());
+    return false;
+  }
+  string dir, key;
+  locate(path, dir, key);
+  DirLock lock(dir);
+  MetaStore store = loadStore(dir);
+  for (size_t i = 0; i < results.size(); i++) {
+    if (results[i].name.empty()) continue;      // as DavEDSI drops them
+    store[key][results[i].name] = results[i];
+  }
+  if (!saveStore(dir, store)) {
+    m_msgStack.add("UNABLE_TO_WRITE",sidecarPath(dir).c_str());
+    return false;
+  }
+  return true;
 }
 
-/////////////////////////////////////////////////////////////////////////////
-// Description
-/////////////////////////////////////////////////////////////////////////////
+// Removing a property that is not there succeeds, as a PROPPATCH remove does.
 bool FileEDSI::removeMetaData(const vector<MetaDataRequest>& requests)
 {
-  bool ret = false;
-  m_msgStack.add("NOT_IMPLEMENTED","removeMetaData");
-  return ret;
+  m_msgStack.clear();
+  string path = p_url.getPath();
+  if (!SFile(path.c_str()).exists()) {
+    m_msgStack.add("RESOURCE_NOT_FOUND",path.c_str());
+    return false;
+  }
+  string dir, key;
+  locate(path, dir, key);
+  DirLock lock(dir);
+  MetaStore store = loadStore(dir);
+  MetaStore::iterator it = store.find(key);
+  if (it == store.end()) return true;
+  for (size_t i = 0; i < requests.size(); i++) it->second.erase(requests[i].name);
+  if (it->second.empty()) store.erase(it);
+  if (!saveStore(dir, store)) {
+    m_msgStack.add("UNABLE_TO_WRITE",sidecarPath(dir).c_str());
+    return false;
+  }
+  return true;
 }
 
-/////////////////////////////////////////////////////////////////////////////
-// Description
-//   Return a pre-defined set of file system properties.  Some obviously
-//   missing stuff includes attributes like owner, creation date...
-/////////////////////////////////////////////////////////////////////////////
 bool FileEDSI::describeMetaData(vector<MetaDataResult>& metaDataNames)
 {
-  bool ret = false;
-  SFile file(p_url.getPath().c_str());
-  if (file.exists()) {
-    ret = true;
-    MetaDataResult mdr;
-    char buf[128];
-
-    // Name
-    mdr.name = "DAV:displayname";
-    mdr.type = "string";
-    mdr.value = file.filename().c_str(); 
-    metaDataNames.push_back(mdr);
-
-    // Size
-    mdr.name = "DAV:getcontentlength";
-    mdr.type = "integer";
-    unsigned int fileSize = file.size(); 
-    sprintf(buf,"%u",fileSize);
-    mdr.value = buf;
-    metaDataNames.push_back(mdr);
-
-    // resourcetype
-    mdr.name = "resourcetype";
-    mdr.type = "string";
-    if (file.is_dir()) {
-      mdr.value = "collection";
-    } else if (file.is_link()) {
-      mdr.value = "link";
-    } else {
-      mdr.value = "file";
-    }
-    metaDataNames.push_back(mdr);
-
-    // contenttype
-    mdr.name = "contenttype";
-    mdr.type = "string";
-    if (file.is_dir()) {
-      mdr.value = "httpd/unix-directory";
-    } else if (file.is_link()) {
-      mdr.value = "link";
-    } else {
-      mdr.value = file.extension();
-    }
-    metaDataNames.push_back(mdr);
-
-    // Application
-    mdr.name = "application";
-    mdr.type = "string";
-    mdr.value = "";
-    metaDataNames.push_back(mdr);
-
-    // Last Modified
-    mdr.name = "DAV:getlastmodified";
-    mdr.type = "string";
-    mdr.value = file.lastModified().toString();
-    metaDataNames.push_back(mdr);
-  } else {
-    m_msgStack.add("RESOURCE_NOT_FOUND",file.path().c_str());
-  }
-
-  return ret;
+  string path = p_url.getPath();
+  string dir, key;
+  locate(path, dir, key);
+  MetaStore store = loadStore(dir);
+  if (describePath(path, findProps(store, key), metaDataNames)) return true;
+  m_msgStack.add("RESOURCE_NOT_FOUND",path.c_str());
+  return false;
 }
 
-
-/////////////////////////////////////////////////////////////////////////////
-// Description
 // TODO - overwrite
-/////////////////////////////////////////////////////////////////////////////
 bool FileEDSI::moveResource(EcceURL& targetURL, EDSIOverwrite overwrite)
 {
   bool ret = false;
   m_msgStack.clear();
-  SDirectory dir(p_url.getPath().c_str());
+  string from = p_url.getPath();
+  string to = targetURL.getPath();
+  SDirectory dir(from.c_str());
   if (dir.exists()) {
-    if (dir.is_dir()) {
-      ret = dir.move(targetURL.getPath().c_str());
-    } else {
-      SFile file(dir.path());
-      ret = file.move(targetURL.getPath().c_str());
-    }
+    bool wasDir = dir.is_dir();
+    ret = wasDir ? dir.move(to.c_str()) : SFile(dir.path()).move(to.c_str());
+    // A directory's own sidecar moved with it; a file's record has to follow.
+    if (ret && !wasDir) ret = transferFileProps(from, to, false);
   }
   return ret;
 }
@@ -541,44 +888,43 @@ bool FileEDSI::copyResource(EcceURL& targetURL, EDSIOverwrite overwrite)
 {
   bool ret = false;
   m_msgStack.clear();
-  SDirectory dir(p_url.getPath().c_str());
+  string from = p_url.getPath();
+  string to = targetURL.getPath();
+  SDirectory dir(from.c_str());
   if (dir.exists()) {
-    ErrMsg errs;
-    errs.flush();
-    if (dir.is_dir() || dir.is_link()) {
-      SFile *newfile = dir.copy(targetURL.getPath().c_str());
-      delete newfile;
+    if (dir.is_dir()) {
+      ret = !SFile(to.c_str()).exists() && copyTree(from, to);
     } else {
-      SFile file(dir.path());
-      SFile *newfile = file.copy(targetURL.getPath().c_str());
+      ErrMsg errs;
+      errs.flush();
+      SFile *newfile = SFile(dir.path()).copy(to.c_str());
       delete newfile;
+      ret = (errs.count() == 0);
+      if (ret) ret = transferFileProps(from, to, true);
     }
-    ret = (errs.count() == 0);
   }
   return ret;
 }
 
 bool FileEDSI::removeResource()
 {
-  bool ret = false;
   m_msgStack.clear();
-  ret = removeHelper(p_url);
-  return ret;
+  return removeHelper(p_url);
 }
 
-/////////////////////////////////////////////////////////////////////////////
-// Description
-/////////////////////////////////////////////////////////////////////////////
 bool FileEDSI::removeHelper(const EcceURL& url)
 {
   bool ret = false;
-  SDirectory dir(p_url.getPath().c_str());
+  string path = url.getPath();
+  SDirectory dir(path.c_str());
   if (dir.exists()) {
-    if (dir.is_dir()) {
-      ret = dir.remove();
+    bool wasDir = dir.is_dir();
+    if (wasDir) {
+      ret = dir.remove();               // takes its own sidecar with it
     } else {
       SFile file(dir.path());
       ret = file.remove();
+      if (ret) dropFileProps(path);
     }
     if (!ret) {
       m_msgStack.add("UNABLE_TO_WRITE",dir.path().c_str());
@@ -699,13 +1045,10 @@ string FileEDSI::getClassName()
   return "FileEDSI";
 }
 
-/////////////////////////////////////////////////////////////////////////////
-// Description
-/////////////////////////////////////////////////////////////////////////////
+
 bool FileEDSI::isWritable()
 {
-  m_msgStack.add("NOT_IMPLEMENTED","isLocked");
-  return false;
+  return access(p_url.getPath().c_str(), W_OK) == 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -721,12 +1064,12 @@ bool FileEDSI::isLocked(string& locker)
 // Description
 /////////////////////////////////////////////////////////////////////////////
 bool FileEDSI::removeResources(const vector<EcceURL> urls) {
-  bool ret = false;
+  bool ret = true;
   m_msgStack.clear();
 
   int size = urls.size();
   for (int idx=0; idx<size; idx++) {
-    removeHelper(urls[idx]);
+    if (!removeHelper(urls[idx])) ret = false;
   }
   return ret;
 }

@@ -1,0 +1,56 @@
+# Extension -> MIME type for ECCE's files: one line per type,
+# 'type ext [ext...]', extensions with their dot.  Read by FileEDSI;
+# packaging/dataserver/httpd.conf.ecce carries the same table as AddType
+# lines for Apache, and tests/filedsi checks the two agree.
+
+chemical/x-ecce-mvm                      .ecce_mvm .mvm
+chemical/x-ecce-basisset                 .ecce_basisset
+text/x-xml-log                           .ecce_run_log
+chemical/x-gaussian-cube                 .cub .cube
+chemical/x-geom-constraint               .gcst
+chemical/x-esp-constraint                .ecst
+chemical/x-pdb                           .pdb
+chemical/x-amica-input                   .amica_in
+chemical/x-amica-aux-basisset            .bas
+chemical/x-nwchem-input                  .nw
+chemical/x-nwchem-output                 .nwout
+chemical/x-nwchem-mo                     .nw_mo
+chemical/x-nwchem-restart                .rst .qrs
+chemical/x-nwchem-topology               .top
+chemical/x-nwchem-esp                    .q
+chemical/x-nwchem-md-properties          .prp
+chemical/x-nwchem-md-output              .mdout
+chemical/x-nwchem-md-trajectory          .trj
+chemical/x-nwchem-md-pmf                 .pmf
+chemical/x-gromacs-mdp                   .mdp
+chemical/x-gromacs-coordinates           .gro
+chemical/x-gromacs-tpr                   .tpr
+chemical/x-gromacs-energy                .edr
+chemical/x-gromacs-trajectory            .xtc .trr
+chemical/x-nwdirdy-file30                .file30
+chemical/x-polyrate-input                .fu5
+chemical/x-polyrate-output               .fu6
+chemical/x-gaussian-checkpoint           .chk
+chemical/x-gaussian09-input              .g09in
+chemical/x-gaussian09-output             .g09out
+chemical/x-gaussian16-input              .g16in
+chemical/x-gaussian16-output             .g16out
+chemical/x-gaussian03-input              .g03in
+chemical/x-gaussian03-output             .g03out
+chemical/x-gaussian98-input              .g98in
+chemical/x-gaussian98-output             .g98out
+chemical/x-gaussian94-input              .g94in
+chemical/x-gaussian94-output             .g94out
+chemical/x-gaussian92-input              .g92in
+chemical/x-gaussian92-output             .g92out
+chemical/x-gamessuk-input                .gki
+chemical/x-gamessuk-output               .gko
+chemical/x-orca-input                    .orcain
+chemical/x-orca-output                   .orcaout
+chemical/x-mopac-input                   .mop
+chemical/x-mopac-output                  .mopout
+chemical/x-qe-input                      .pwin
+chemical/x-qe-output                     .pwout
+application/x-compress                   .Z
+application/x-gzip                       .gz .tgz
+image/x-icon                             .ico

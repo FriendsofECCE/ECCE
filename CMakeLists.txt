@@ -853,8 +853,14 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/data/client)
           COMPONENT client)
 endif()
 if(EXISTS ${CMAKE_SOURCE_DIR}/data/admin)
+  # The basis-set library is the exception: local mode (#216) reads it
+  # from the install tree, so it ships with the client, at the same path
+  # ecce-dataserver-start reads (ecce-server depends on ecce-client).
   install(DIRECTORY ${CMAKE_SOURCE_DIR}/data/admin DESTINATION data
-          COMPONENT server)
+          COMPONENT server
+          PATTERN "basissets" EXCLUDE)
+  install(DIRECTORY ${CMAKE_SOURCE_DIR}/data/admin/basissets
+          DESTINATION data/admin COMPONENT client)
 endif()
 
 # scripts/parsers: per-code basis-set translation and I/O-format scripts
@@ -1064,7 +1070,9 @@ fi")
     # else's central server, or none yet configured) must not try to
     # spawn it -- and must say clearly why not, rather than a bare
     # "No such file or directory" swallowed by the trailing `|| true`.
-    set(_dataserver_start "if [ -z \"$ECCE_NO_DATASERVER\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ]; then
+    # ECCE_LOCAL_DATA selects local mode (#216): data lives in that
+    # folder and no data server is wanted.
+    set(_dataserver_start "if [ -z \"$ECCE_NO_DATASERVER\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ] && [ -z \"$ECCE_LOCAL_DATA\" ]; then
   if [ -x \"$ECCE_HOME/bin/ecce-dataserver-start\" ]; then
     \"$ECCE_HOME/bin/ecce-dataserver-start\" || true
   else
@@ -1611,6 +1619,16 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   # Generous: 20 apps x (window wait + settle), plus broker startup.
   set_tests_properties(apps PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
+
+  # tests/filedsi -- FileEDSI (file:// storage, no Apache, #216) against a
+  # temp directory, linked from the static libraries of build-cmake.
+  #
+  #     cd build-cmake && ctest -R filedsi --output-on-failure
+  add_test(NAME filedsi
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/filedsi/run_tests.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/filedsi)
+  set_tests_properties(filedsi PROPERTIES TIMEOUT 300)
 
   # tests/transport -- DirectTransport against a real /bin/sh (#204).
   add_executable(testTransport tests/transport/testTransport.C)

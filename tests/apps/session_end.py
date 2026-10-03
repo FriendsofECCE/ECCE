@@ -55,6 +55,7 @@ broker scripts (and ecce-remote-setup) from packaging/.
 """
 
 import argparse
+import getpass
 import os
 import re
 import shutil
@@ -422,12 +423,14 @@ def quitVia(display, frame):
 # --- one session -------------------------------------------------------
 
 class Session(object):
-    def __init__(self, display, log, argv=(), extra=None, pipe=False):
+    def __init__(self, display, log, argv=(), extra=None, pipe=False,
+                 prefix=()):
         self.display = display
         self.extra = extra or {}
         self.log = open(log, "w")
         self.proc = subprocess.Popen(
-            [os.path.join(wrappers, "ecce")] + list(argv), env=self.env(),
+            list(prefix) + [os.path.join(wrappers, "ecce")] + list(argv),
+            env=self.env(),
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE if pipe else self.log,
             stderr=subprocess.STDOUT, start_new_session=True)
@@ -1301,7 +1304,237 @@ def caseBug(checks, display, logdir):
         session.kill()
 
 
-CASES = {"bug": caseBug, "window": caseWindow, "stop": caseStop, "remote": caseRemote,
+def localHome(base):
+    """An $ECCE_HOME with no siteconfig/DataServers, as a local install has."""
+    home = os.path.join(state, "ecce-home-local")
+    shutil.rmtree(home, ignore_errors=True)
+    os.makedirs(os.path.join(home, "siteconfig"))
+    for entry in os.listdir(base):
+        if entry != "siteconfig":
+            os.symlink(os.path.join(base, entry), os.path.join(home, entry))
+    for entry in os.listdir(os.path.join(base, "siteconfig")):
+        if entry != "DataServers":
+            os.symlink(os.path.join(base, "siteconfig", entry),
+                       os.path.join(home, "siteconfig", entry))
+    return home
+
+
+def apacheProcs():
+    """Pids of this run's own Apache: its command line names the state."""
+    found = []
+    for entry in os.listdir("/proc"):
+        if not entry.isdigit():
+            continue
+        try:
+            with open("/proc/%s/cmdline" % entry, "rb") as handle:
+                argv = handle.read()
+        except OSError:
+            continue
+        if state.encode() in argv and (b"apache2" in argv or b"httpd" in argv):
+            found.append(int(entry))
+    return found
+
+
+def makeLocalCalculation(env, home, data):
+    """A project and an NWChem calculation made through the real classes
+    (Resource::createChild, as the Organizer's New menu does), by
+    tests/filedsi/resourceTest, into the user's folder of the local data."""
+    build = os.environ.get("ECCE_TEST_BUILD", os.path.join(REPO, "build-cmake"))
+    libs = ["eccedsi", "eccexml", "eccetdat", "eccedav", "eccefaces",
+            "eccecipc", "ecceutil", "eccecomm", "eccercmd"]
+    driver = os.path.join(state, "resourceTest")
+    cmd = (["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"), "-o",
+            driver, os.path.join(HERE, "..", "filedsi", "resourceTest.C"),
+            "-L" + build] + ["-l" + l for l in libs] * 3 + ["-lxerces-c"])
+    built = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if built.returncode != 0:
+        return built.stdout.decode()[-1500:]
+    user = os.path.join(data, "users", getpass.getuser())
+    run_env = dict(env, ECCE_HOME=home, ECCE_LOCAL_DATA=data,
+                   ECCE_REALUSER=getpass.getuser())
+    done = subprocess.run([driver, "create", user], env=run_env,
+                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    return None if done.returncode == 0 else done.stdout.decode()[-1500:]
+
+
+def straceCmd(path):
+    """strace of the file-system calls, following children, or () without it."""
+    if not shutil.which("strace"):
+        return ()
+    return ("strace", "-f", "-o", path, "-s", "300", "-e",
+            "trace=openat,getdents64,newfstatat,statx")
+
+
+def straceSaw(path, pattern, failed=False):
+    """Lines of an strace log matching pattern that did not fail (ENOENT),
+    or all of them with failed=True."""
+    found = []
+    with open(path, errors="replace") as handle:
+        for line in handle:
+            if re.search(pattern, line) and (failed or "ENOENT" not in line):
+                found.append(line.strip())
+    return found
+
+
+def launchApp(checks, display, session, name, argv, logdir, titleHint,
+              trace=None):
+    """Start ecce-<name> through its wrapper; it must open a window and live."""
+    before = set(w for w, _ in display.windows())
+    log = open(os.path.join(logdir, "local-%s%s.log"
+                            % (name, "-ctx" if argv else "")), "w")
+    proc = subprocess.Popen(list(trace or ()) +
+                            [os.path.join(wrappers, "ecce-" + name)] + argv,
+                            env=session.env(), stdout=log,
+                            stderr=subprocess.STDOUT, start_new_session=True)
+    deadline = time.time() + 90
+    new = []
+    while time.time() < deadline and not new and proc.poll() is None:
+        # A frame, not the app's hidden helper window named after the binary.
+        new = [w for w in display.windows()
+               if w[0] not in before and w[1] and w[1] != name]
+        time.sleep(0.5)
+    ok = checks.check(bool(new), "%s %s: a window opened %s"
+                      % (name, " ".join(argv[-1:]) if argv else "(bare)",
+                         [t for _, t in new]))
+    time.sleep(8)
+    if shutil.which("import"):
+        subprocess.run(["import", "-window", "root", os.path.join(
+            logdir, "local-%s%s.png" % (name, "-ctx" if argv else ""))],
+            env=session.env(), timeout=30, stderr=subprocess.DEVNULL)
+    up = proc.poll() is None
+    checks.check(up, "%s still running 8s later%s"
+                 % (name, "" if up else " (exit %s)" % proc.returncode))
+    log.close()
+    with open(log.name, errors="replace") as handle:
+        text = handle.read()
+    marker = re.search(r"ASSERT|Assertion|Segmentation|terminate called|Fatal|"
+                       r"Error|FAILURE", text)
+    if marker or not ok or not up:
+        say("    %s log tail:\n      %s" % (name, "\n      ".join(
+            text.strip().splitlines()[-12:])))
+    checks.check(not marker, "%s output has no assertion or error marker" % name)
+    if proc.poll() is None:
+        try:
+            os.killpg(proc.pid, 15)
+            proc.wait(timeout=20)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    return ok and up
+
+
+def caseLocal(checks, display, logdir):
+    """#216: local mode, no data server, no siteconfig/DataServers."""
+    d = display.name
+    if not checks.check(d != ":1", "own Xvfb %s, never :1" % d):
+        return
+    data = os.path.join(state, "localdata")
+    shutil.rmtree(data, ignore_errors=True)
+    home = localHome(os.environ["ECCE_HOME"])
+    checks.check(not os.path.exists(os.path.join(home, "siteconfig",
+                                                 "DataServers")),
+                 "no siteconfig/DataServers in this run's ECCE_HOME")
+    checks.check(not portOpen(fixture.dataserverPort()) and not apacheProcs(),
+                 "no data server running before the start")
+    user = os.path.join(data, "users", getpass.getuser())
+    os.makedirs(user)
+    base_env = display.env()
+    problem = makeLocalCalculation(base_env, home, data)
+    if not checks.check(problem is None, "project and calculation created "
+                        "through Resource::createChild"):
+        say("    " + (problem or ""))
+        return
+    say("    user folder holds: %s; proj/water holds: %s"
+        % (sorted(os.listdir(user)),
+           sorted(os.listdir(os.path.join(user, "proj", "water")))))
+    traced = bool(shutil.which("strace"))
+    if not traced:
+        say("    skip  no strace: the data is not checked as read")
+    organizerTrace = os.path.join(logdir, "local-organizer.strace")
+    session = Session(display, os.path.join(logdir, "local.log"),
+                      extra={"ECCE_LOCAL_DATA": data, "ECCE_HOME": home},
+                      prefix=straceCmd(organizerTrace))
+    try:
+        frame = session.organizer()
+        if not checks.check(frame, "the Organizer opened"):
+            return
+        say("    window: %r" % (frame[1],))
+        orgs = named(d, "organizer")
+        exe = os.readlink("/proc/%d/exe" % orgs[0]) if orgs else ""
+        want = os.path.realpath(os.path.join(install, "bin", "organizer"))
+        checks.check(orgs and os.path.realpath(exe) == want
+                     and not exe.startswith("/opt/ecce"),
+                     "the Organizer running is %s, not /opt/ecce" % exe)
+        time.sleep(10)
+        checks.check(frame[0] in [w for w, _ in display.windows()]
+                     and session.proc.poll() is None,
+                     "still up, window still there, 10s later")
+        checks.check(not apacheProcs() and not portOpen(fixture.dataserverPort()),
+                     "no Apache was started")
+        checks.check(os.path.isdir(data), "the local data directory was made: %s" % data)
+        say("    windows now: %s" % [t for _, t in display.windows() if t])
+        # Open the tree down to the project: double-clicks on this run's own
+        # display at fixed offsets from the frame.  Arrow keys and the Home
+        # button did not reach the tree.
+        env = display.env()
+        geo = subprocess.run(["xdotool", "getwindowgeometry",
+                              str(int(frame[0], 16))], env=env,
+                             stdout=subprocess.PIPE, timeout=10).stdout.decode()
+        pos = re.search(r"Position: (-?\d+),(-?\d+)", geo)
+        if pos:
+            # Tree rows (Local data, users, <user>, proj) are 18px apart and
+            # indented 10px; double-click opens a row.
+            for row in (1, 2, 3):
+                x = int(pos.group(1)) + 77 + 10 * (row - 1)
+                y = int(pos.group(2)) + 93 + 18 * (row - 1)
+                subprocess.run(["xdotool", "mousemove", str(x), str(y),
+                                "click", "--repeat", "2", "--delay", "100", "1"],
+                               env=env, timeout=10)
+                time.sleep(2)
+        time.sleep(3)
+        if shutil.which("import"):
+            subprocess.run(["import", "-window", "root",
+                            os.path.join(logdir, "local-organizer.png")],
+                           env=env, timeout=30, stderr=subprocess.DEVNULL)
+        if traced:
+            q = re.escape(user)
+            saw = straceSaw(organizerTrace, q + r"/\.ecce-meta\"", failed=True)
+            checks.check(saw, "the Organizer looked for the user folder's "
+                         ".ecce-meta (it has none: no properties yet)")
+            saw = straceSaw(organizerTrace, q + r"/proj/\.ecce-meta\"")
+            checks.check(saw, "the Organizer read the project's own .ecce-meta")
+            saw = straceSaw(organizerTrace, q + r"/proj/water/\.ecce-meta\"")
+            checks.check(saw, "the Organizer read the calculation's record in "
+                         "proj/.ecce-meta and its own (State, Application)")
+            saw = straceSaw(organizerTrace, r"getdents64|openat.*" + q + r"/proj\"")
+            checks.check(saw, "the Organizer listed the project directory")
+
+        calc = "file://" + os.path.join(user, "proj", "water") + "/"
+        calcdir = os.path.join(user, "proj", "water")
+        installed = os.path.realpath(os.path.join(install, "data"))
+        launchApp(checks, display, session, "builder", [], logdir, "Builder")
+        bt = os.path.join(logdir, "local-builder.strace")
+        launchApp(checks, display, session, "builder", ["-context", calc],
+                  logdir, "Builder", trace=straceCmd(bt))
+        ct = os.path.join(logdir, "local-calced.strace")
+        launchApp(checks, display, session, "calced", ["-context", calc],
+                  logdir, "Calculation", trace=straceCmd(ct))
+        if traced:
+            for app, log in (("Builder", bt), ("CalcEd", ct)):
+                saw = straceSaw(log, re.escape(calcdir) + r"/\.ecce-meta\"")
+                checks.check(saw, "%s opened the calculation's .ecce-meta" % app)
+                saw = straceSaw(log, re.escape(calcdir) + r"/[^/\"]+\"")
+                say("      %s opened %d file(s) under the calculation: %s"
+                    % (app, len(saw), sorted(set(
+                        re.findall(r'/water/([^/"]+)"', " ".join(saw))))))
+        t0 = time.time()
+        quitVia(display, frame)
+        returned = session.ended(30)
+        checks.check(returned, "`ecce` returned after the Organizer closed")
+    finally:
+        session.kill()
+
+
+CASES = {"local": caseLocal, "bug": caseBug, "window": caseWindow, "stop": caseStop, "remote": caseRemote,
          "remote-down": caseRemoteDown,
          "quit-stop": caseQuitStop,
          "displays": caseDisplays, "shared": caseShared,
@@ -1337,6 +1570,13 @@ def main():
             #  Cases share one broker and data server, as sessions do;
             #  the stop case takes both down, the next session restarts
             #  the broker and this restarts the data server.
+            if name == "local":       # local mode has no data server
+                subprocess.run([os.path.join(install, "bin",
+                                             "ecce-dataserver-stop")],
+                               env=display.env(), stdout=subprocess.DEVNULL,
+                               stderr=subprocess.STDOUT, timeout=120)
+                CASES[name](checks, display, logdir)
+                continue
             subprocess.run([os.path.join(install, "bin",
                                          "ecce-dataserver-start")],
                            env=display.env(), stdout=subprocess.DEVNULL,

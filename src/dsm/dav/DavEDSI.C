@@ -259,51 +259,11 @@ bool DavEDSI::describeServerMetaData(vector<string>& metadata)
   initProgress();
   m_msgStack.clear();             // public method must clear
   //metadata.push_back(DAV_NSNAME +":href");
-  metadata.push_back(VDoc::getEcceNamespace() + ":state");
-  metadata.push_back(VDoc::getEcceNamespace() + ":reviewed");
-#if 000
-  metadata.push_back(DAV_NSNAME + ":creationdate");
-#else
-  metadata.push_back(VDoc::getEcceNamespace() + ":creationdate");
-#endif
+  // The list is cleared below (all properties are fetched), so only the
+  // set matters, not the order.
+  metadata = VDoc::wellKnownPropertyNames();
   metadata.push_back(DAV_NSNAME + ":getlastmodified");
   metadata.push_back(DAV_NSNAME + ":getcontenttype");
-  metadata.push_back(VDoc::getEcceNamespace() + ":application");
-  metadata.push_back(VDoc::getEcceNamespace() + ":empiricalFormula");
-  metadata.push_back(VDoc::getEcceNamespace() + ":name");
-  //metadata.push_back(VDoc::getEcceNamespace() + ":creationdate");
-  //metadata.push_back(VDoc::getEcceNamespace() + ":resourcetype");
-  metadata.push_back(VDoc::getEcceNamespace() + ":annotation");
-  metadata.push_back(VDoc::getEcceNamespace() + ":citation");
-  metadata.push_back(VDoc::getEcceNamespace() + ":owner");
-  metadata.push_back(VDoc::getEcceNamespace() + ":theory");
-  metadata.push_back(VDoc::getEcceNamespace() + ":runtype");
-  metadata.push_back(VDoc::getEcceNamespace() + ":launch_machine");
-  metadata.push_back(VDoc::getEcceNamespace() + ":launch_queue");
-  metadata.push_back(VDoc::getEcceNamespace() + ":launch_totalprocs");
-  metadata.push_back(VDoc::getEcceNamespace() + ":startdate");
-  metadata.push_back(VDoc::getEcceNamespace() + ":completiondate");
-  metadata.push_back(VDoc::getEcceNamespace() + ":job_clienthost");
-  metadata.push_back(VDoc::getEcceNamespace() + ":job_jobid");
-  // added for v4.0
-  metadata.push_back(VDoc::getEcceNamespace() + ":symmetrygroup");
-  metadata.push_back(VDoc::getEcceNamespace() + ":charge");
-  metadata.push_back(VDoc::getEcceNamespace() + ":spinmultiplicity");
-  metadata.push_back(VDoc::getEcceNamespace() + ":openshells");
-  metadata.push_back(VDoc::getEcceNamespace() + ":coordsys");
-
-  // added for v4.0 - new organizer's calculation panel
-  metadata.push_back(VDoc::getEcceNamespace() + ":numFunctions");
-  metadata.push_back(VDoc::getEcceNamespace() + ":numPrimitives");
-  metadata.push_back(VDoc::getEcceNamespace() + ":ecpName");
-  metadata.push_back(VDoc::getEcceNamespace() + ":chargeFittingName");
-  metadata.push_back(VDoc::getEcceNamespace() + ":exchangeFittingName");
-  metadata.push_back(VDoc::getEcceNamespace() + ":numAtoms");
-  metadata.push_back(VDoc::getEcceNamespace() + ":numElectrons");
-  metadata.push_back(VDoc::getEcceNamespace() + ":useExpCoef");
-  metadata.push_back(VDoc::getEcceNamespace() + ":fragmentName");
-  metadata.push_back(VDoc::getEcceNamespace() + ":reviewedDate");
-  metadata.push_back(VDoc::getEcceNamespace() + ":contenttype");
 
   // View all properties - performance problem?
   metadata.clear();

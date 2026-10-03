@@ -15,6 +15,8 @@
 #include <xercesc/dom/DOMNamedNodeMap.hpp>
 using namespace xercesc;
 
+#include <sys/stat.h>
+#include <sys/types.h>
 #include "util/Ecce.H"
 #include "util/ErrMsg.H"
 #include "util/KeyValueReader.H"
@@ -35,6 +37,28 @@ using namespace xercesc;
 
 // Class statics
 vector<Bookmark> EDSIServerCentral::p_mountPoints;
+
+// ECCE_LOCAL_DATA=<dir> selects local mode: the default (and only) data
+// server is file://<dir>, with no siteconfig/DataServers and no Apache.
+// Unset, which is the default, nothing below behaves differently.
+static string xmlEscape(const string& in)
+{
+  string out;
+  for (size_t i = 0; i < in.size(); i++) {
+    if (in[i] == '&') out += "&amp;";
+    else if (in[i] == '<') out += "&lt;";
+    else out += in[i];
+  }
+  return out;
+}
+
+static string localDataDir()
+{
+  const char *dir = getenv("ECCE_LOCAL_DATA");
+  string ret = dir ? dir : "";
+  while (ret.size() > 1 && ret[ret.size()-1] == '/') ret.erase(ret.size()-1);
+  return ret;
+}
 
 
 EDSIServerCentral::EDSIServerCentral()
@@ -64,7 +88,24 @@ EDSIServerCentral::EDSIServerCentral()
 
   BasicDOMParser parser;
   try {
-    p_doc = parser.parse(SFile(p_mountFile));
+    if (!localDataDir().empty()) {
+      mkdir(localDataDir().c_str(), 0755);      // fine if it exists
+      mkdir((localDataDir() + "/users").c_str(), 0755);
+      mkdir((localDataDir() + "/users/" + Ecce::serverUser()).c_str(), 0755);
+      // The libraries are read straight from the install tree, which is
+      // what data/admin/basissets and data/client/StructureLibrary are.
+      string data = Ecce::ecceDataPath();
+      p_doc = parser.parse(string("<EcceData><EcceServer><Url>file://") +
+                           xmlEscape(localDataDir()) +
+                           "</Url><Desc>Local data</Desc></EcceServer>"
+                           "<BasisSet>file://" +
+                           xmlEscape(data + "/admin/basissets") +
+                           "</BasisSet><StructureLib>" +
+                           xmlEscape(data + "/client/StructureLibrary") +
+                           "</StructureLib></EcceData>");
+    } else {
+      p_doc = parser.parse(SFile(p_mountFile));
+    }
   } catch (const EcceException& toCatch) {
     EE_RT_ASSERT(false, EE_FATAL, toCatch.what());
   }
@@ -174,7 +215,8 @@ bool EDSIServerCentral::checkServerSetup()
     static bool autoAllow = Ecce::ecceAutoAccounts();
     bool newUser = false;
 
-    if (autoAllow) {
+    // An account request is HTTP; a local data directory has no accounts.
+    if (autoAllow && !mount.getEcceUrl().isLocal()) {
       // check whether user exists before attempting connection so we
       // can create an account before a password dialog is ever shown
       string urlbase = mount.getUrl();
@@ -518,6 +560,10 @@ EcceURL EDSIServerCentral::getUserHome(const EcceURL& rootUrl)
     // HACK tree control only works if root is double slash
     string path = "/";
     path = path + Ecce::realUserHome();
+    // Local mode: <dir>/users/<user>, the same layout as a data server,
+    // which is what the gateway's user check expects.
+    if (!localDataDir().empty())
+      path = localDataDir() + "/users/" + Ecce::serverUser();
     ret.set(ret.getProtocol().c_str(), ret.getHost().c_str(),
             ret.getPort(), path.c_str());
   }
@@ -713,7 +759,8 @@ void EDSIServerCentral::loadMountPointInfo()
     errMessage +=  "  Please contact your ECCE administrator to restore this\n";
     errMessage +=  "  file.\n";
     SFile configFile(p_mountFile.c_str());
-    EE_RT_ASSERT(configFile.exists() ,EE_FATAL, errMessage); 
+    EE_RT_ASSERT(configFile.exists() || !localDataDir().empty(),
+                 EE_FATAL, errMessage); 
 
 
     // Retrieve application server mount points

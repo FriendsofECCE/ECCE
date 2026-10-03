@@ -1030,6 +1030,9 @@ IPropCalculation* Builder::createCalculation(const string& url)
 {
   if (url != DefaultCalculation::nextURL()
           && EcceURL(url).isLocal()
+          // A calculation in the local data folder (ECCE_LOCAL_DATA) is a
+          // directory behind a file:// URL, not a file name.
+          && EcceURL(url).getEcceRoot().empty()
           && !wxFileExists(url)) {
     return NULL;
   }

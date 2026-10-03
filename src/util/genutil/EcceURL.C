@@ -514,8 +514,28 @@ bool EcceURL::isLocal() const
 }
 
 
+// Local-data mode (ECCE_LOCAL_DATA=<dir>, see EDSIServerCentral): the
+// directory a file:// session stores everything under, "" when unset.
+static string localDataRoot()
+{
+  const char *dir = getenv("ECCE_LOCAL_DATA");
+  string ret = dir ? dir : "";
+  while (ret.size() > 1 && ret[ret.size()-1] == '/') ret.erase(ret.size()-1);
+  return ret;
+}
+
 bool EcceURL::isSystemFolder() const
 {
+  if (p_protocol == "file") {
+    // The local data root must not be renamed or deleted from the tree.
+    string root = localDataRoot();
+    if (!root.empty()) {
+      string f = p_file;
+      while (f.size() > 1 && f[f.size()-1] == '/') f.erase(f.size()-1);
+      return f == root || f == root + "/users";
+    }
+    return false;
+  }
   if (p_protocol == "http" || p_protocol == "https") {
     if (p_file == "/Ecce" ||
         p_file == "/Ecce/" ||
@@ -590,6 +610,13 @@ string EcceURL::getEcceUserName() const
 string EcceURL::getEcceRoot() const
 {
   string ret = "";
+  if (p_protocol == "file") {
+    // Inside the local data root, the root is that directory.
+    string root = localDataRoot();
+    if (!root.empty() && (p_file == root || p_file.find(root + "/") == 0))
+      ret = "file://" + root;
+    return ret;
+  }
   if (p_protocol == "http" || p_protocol == "https") {
     string target = "/Ecce";
     string url = toString();
