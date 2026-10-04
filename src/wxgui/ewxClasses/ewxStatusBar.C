@@ -41,7 +41,7 @@ bool ewxStatusBar::Create(wxWindow *parent, wxWindowID id, long style,
     return false;
   }
 
-  p_save = new wxBitmapButton(this, wxID_SAVE, ewxBitmap("save.xpm"),
+  p_save = new wxBitmapButton(this, wxID_SAVE, ewxBitmap::saveIcon(),
                               wxDefaultPosition, wxDefaultSize,
                               wxNO_BORDER|wxBU_EXACTFIT);
   p_runstate = new WxState(this);
@@ -161,7 +161,7 @@ void ewxStatusBar::setEditStatus(string editStatus)
 {
   p_editStatus = editStatus;
   if (editStatus == "MODIFIED") {
-    p_save->SetBitmapLabel(ewxBitmap("save.xpm"));
+    p_save->SetBitmapLabel(ewxBitmap::saveIcon());
     p_save->Enable(true);
     p_save->Show(true);
   }

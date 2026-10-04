@@ -238,7 +238,7 @@ void WxFeedback::setEditStatus(WxFeedback::EditStatus status)
       save->Show(true);
       save->showBorder(false);
    } else if (status == MODIFIED) {
-      save->SetBitmap(ewxBitmap("save.xpm",wxBITMAP_TYPE_XPM));
+      save->SetBitmap(ewxBitmap::saveIcon());
       save->Show(true);
       save->showBorder(true);
    } else {

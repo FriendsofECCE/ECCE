@@ -100,6 +100,18 @@ wxBitmap ewxBitmap::themedIcon(const wxString& icon, const wxSize& size)
 
 
 /**
+ * The theme's own save icon (wxART_FILE_SAVE), for the editors' save
+ * button; the old pixmap only if the theme has none.
+ */
+wxBitmap ewxBitmap::saveIcon()
+{
+  wxBitmap art = wxArtProvider::GetBitmap(wxART_FILE_SAVE, wxART_BUTTON,
+                                          wxSize(16, 16));
+  return art.IsOk() ? art : wxBitmap(ewxBitmap("save.xpm"));
+}
+
+
+/**
  * For a toolbar or button that should be sharp at any scale: the themed
  * icon at the pixmap's size and twice it, or the pixmap alone.
  */
