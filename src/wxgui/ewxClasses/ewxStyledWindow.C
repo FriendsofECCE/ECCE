@@ -127,73 +127,82 @@ wxColour ewxStyledWindow::getHightLightRowColor()
 
 
 /**
- * Compute a font size.
- * The base sizes are from our original font selections and are considered
- * Large. 
+ * Points to add to the theme's font size for the Font Size preference
+ * (0 small, 1 medium, 2 large, 3 extra large).  Medium is the theme's
+ * own size, so a default install draws exactly what GTK draws.
  */
-int ewxStyledWindow::getFontSize(int basesize)
+int ewxStyledWindow::getFontSizeStep()
 {
-  int size = basesize;
-  // As per prefs dialog, 0=small, 1=medium, 2 = large
   int pref = 1;
-  p_prefs->getInt("FONTSIZE",pref);
-  if (pref == 0) 
-     size-=3;
-  else if (pref == 1) 
-     size-=2;
-  else if (pref == 3) 
-     size+=3;
-  return size;
+  p_prefs->getInt("FONTSIZE", pref);
+  switch (pref) {
+    case 0:  return -1;
+    case 2:  return 2;
+    case 3:  return 4;
+    default: return 0;
+  }
 }
 
 
+// Fonts derive from the theme's GUI font (#210); the base sizes are the
+// old ones relative to its 10pt normal size.
+int ewxStyledWindow::getFontSize(int basesize)
+{
+  int theme = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT).GetPointSize();
+  return theme + (basesize - 10) + getFontSizeStep();
+}
+
+
+static wxFont themeFont(int size, wxFontWeight weight)
+{
+  wxFont font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
+  font.SetPointSize(size);
+  font.SetWeight(weight);
+  return font;
+}
+
+
+// Bold only for callers that mark a heading or a label role.
 wxFont ewxStyledWindow::getBoldFont()
 {
-   return wxFont(getFontSize(10), wxDEFAULT, 
-         wxNORMAL, wxBOLD, FALSE, _T("helvetica"));
+   return themeFont(getFontSize(10), wxFONTWEIGHT_BOLD);
 }
 
 
 wxFont ewxStyledWindow::getNormalFont()
 {
-   return wxFont(getFontSize(10), wxDEFAULT, 
-         wxNORMAL, wxNORMAL, FALSE, _T("helvetica"));
+   return themeFont(getFontSize(10), wxFONTWEIGHT_NORMAL);
 }
 
 
 wxFont ewxStyledWindow::getUnitFont()
 {
-   return wxFont(getFontSize(9), wxDEFAULT, 
-         wxNORMAL, wxLIGHT, FALSE, _T("helvetica"));
+   return themeFont(getFontSize(9), wxFONTWEIGHT_NORMAL);
 }
 
 
 wxFont ewxStyledWindow::getMonoSpaceFont()
 {
-   return wxFont(getFontSize(10), wxDEFAULT, 
-         wxNORMAL, wxNORMAL, FALSE, _T("courier"));
+   return wxFont(wxFontInfo(getFontSize(10)).Family(wxFONTFAMILY_TELETYPE));
 }
 
 
 // The following three fonts are used by pertable
 wxFont ewxStyledWindow::getAtomicNumFont()
 {
-   return wxFont(getFontSize(10), wxDEFAULT, 
-         wxNORMAL, wxBOLD, FALSE, _T("helvetica"));
+   return themeFont(getFontSize(9), wxFONTWEIGHT_NORMAL);
 }
 
 
 wxFont ewxStyledWindow::getBigAtomicSymbolFont()
 {
-   return wxFont(getFontSize(18), wxDEFAULT, 
-         wxNORMAL, wxBOLD, FALSE, _T("helvetica"));
+   return themeFont(getFontSize(18), wxFONTWEIGHT_BOLD);
 }
 
 
 wxFont ewxStyledWindow::getSmallLabelFont()
 {
-   return wxFont(getFontSize(9), wxDEFAULT, 
-         wxNORMAL, wxNORMAL, FALSE, _T("helvetica"));
+   return themeFont(getFontSize(9), wxFONTWEIGHT_NORMAL);
 }
 
 
@@ -202,47 +211,47 @@ void ewxStyledWindow::setStyles(wxWindow *win, bool recursive)
 #ifdef __WXMAC__
   return;
 #endif
-   // Only fonts and the read-only marker are set here; every other colour
+   // Only the font size preference and the read-only marker apply here; every other colour
    // is left to the GTK theme (#210).  wxNullColour hands a field back to
    // the theme when it becomes editable again.
    if (wxTextCtrl *text = dynamic_cast<wxTextCtrl*>(win)) {
-      text->SetFont(getBoldFont());
+      applyFont(text);
       setReadonlyMarker(win, !text->IsEditable());
 
    } else if (dynamic_cast<wxButton*>(win)) {
-      win->SetFont(getBoldFont());
+      applyFont(win);
 
    } else if (dynamic_cast<wxCheckBox*>(win)) {
-      win->SetFont(getBoldFont());
+      applyFont(win);
       // GTK3 paints a checkbox's background as a band across its label,
       // so a read-only checkbox gets no marker.
       win->SetBackgroundColour(wxNullColour);
 
    } else if (dynamic_cast<wxChoice*>(win)) {
-      win->SetFont(getBoldFont());
+      applyFont(win);
       ewxChoice *choice = dynamic_cast<ewxChoice*>(win);
       if (choice) setReadonlyMarker(win, !choice->IsEditable());
 
    } else if (dynamic_cast<wxComboBox*>(win)) {
-      win->SetFont(getBoldFont());
+      applyFont(win);
       ewxComboBox *box = dynamic_cast<ewxComboBox*>(win);
       if (box) setReadonlyMarker(win, !box->IsEditable());
 
    } else if (dynamic_cast<wxMenuBar*>(win)) {
-      win->SetFont(getBoldFont());
+      applyFont(win);
 
    } else if (dynamic_cast<wxScrolledWindow*>(win)) {
-      win->SetFont(getBoldFont());
+      applyFont(win);
 
    } else if (dynamic_cast<wxMenu*>(win)) {
-      win->SetFont(getBoldFont());
+      applyFont(win);
 
    } else if (ewxSpinCtrl *spin = dynamic_cast<ewxSpinCtrl*>(win)) {
-      win->SetFont(getBoldFont());
+      applyFont(win);
       setReadonlyMarker(win, !spin->IsEnabled());
 
    } else if (dynamic_cast<wxDialog*>(win)) {
-      win->SetFont(getBoldFont());
+      applyFont(win);
 
    } else if (dynamic_cast<wxStaticLine*>(win)) {
       // Many section-heading lines are stretched in both directions, and
@@ -251,37 +260,48 @@ void ewxStyledWindow::setStyles(wxWindow *win, bool recursive)
       win->SetBackgroundColour(wxTransparentColour);
 
    } else if (dynamic_cast<ewxNonBoldLabel*>(win)) {
-      win->SetFont(getNormalFont());
+      applyFont(win);
 
    } else if (dynamic_cast<ewxSmallLabel*>(win)) {
       win->SetFont(getSmallLabelFont());
 
    } else if (dynamic_cast<wxStaticText*>(win)) {
-      win->SetFont(getBoldFont());
+      applyFont(win);
 
    } else if (dynamic_cast<wxFrame*>(win)) {
-      win->SetFont(getBoldFont());
+      applyFont(win);
 
    } else if (dynamic_cast<wxNotebook*>(win)) {
-      win->SetFont(getBoldFont());
+      applyFont(win);
 
    } else if (dynamic_cast<wxListBox*>(win)) {
-      win->SetFont(getBoldFont());
+      applyFont(win);
       ewxListBox *list = dynamic_cast<ewxListBox*>(win);
       if (list) setReadonlyMarker(win, !list->IsEditable());
 
    } else if (dynamic_cast<wxListCtrl*>(win)) {
-      win->SetFont(getBoldFont());
+      applyFont(win);
 
    } else if (dynamic_cast<wxRadioBox*>(win)) {
-      win->SetFont(getBoldFont());
+      applyFont(win);
 
    } else if (dynamic_cast<wxTreeCtrl*>(win)) {
-      win->SetFont(getNormalFont());
+      applyFont(win);
    }
 
    //cout << ", " << recursive << ")" << endl;
    if (recursive) setChildStyles(win);
+}
+
+
+// Leaves the theme's font alone unless the Font Size preference moves it.
+void ewxStyledWindow::applyFont(wxWindow *win)
+{
+   int step = getFontSizeStep();
+   if (step == 0) return;
+   wxFont font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
+   font.SetPointSize(font.GetPointSize() + step);
+   win->SetFont(font);
 }
 
 

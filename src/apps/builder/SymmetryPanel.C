@@ -123,7 +123,7 @@ void SymmetryPanel::initializeGUI()
    cc->SetPopupMaxHeight(140);
 
    cc->GetTextCtrl()->SetBackgroundColour(ewxStyledWindow::getInputColor());
-   cc->GetTextCtrl()->SetFont(ewxStyledWindow::getBoldFont());
+   cc->GetTextCtrl()->SetFont(ewxStyledWindow::getNormalFont());
 
    ewxListViewComboPopup* iface =
      new ewxListViewComboPopup(ID_COMBO_SYMMETRY_GROUP);

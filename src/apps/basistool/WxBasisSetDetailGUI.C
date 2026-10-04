@@ -129,7 +129,7 @@ void WxBasisSetDetailGUI::CreateControls()
     itemBoxSizer6->Add(itemStaticText7, 0, wxALIGN_LEFT|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl8 = new ewxTextCtrl( itemPanel5, ID_TEXTCTRL_WXBASISSETDETAIL_REFERENCES, _T(""), wxDefaultPosition, wxSize(-1, 150), wxTE_MULTILINE|wxTE_READONLY );
-    itemTextCtrl8->SetFont(wxFont(10, wxTELETYPE, wxNORMAL, wxNORMAL, false, _T("Courier 10 Pitch")));
+    itemTextCtrl8->SetFont(ewxStyledWindow::getMonoSpaceFont());
     itemBoxSizer6->Add(itemTextCtrl8, 1, wxGROW|wxALL, 3);
 
     ewxPanel* itemPanel9 = new ewxPanel( itemPanel3, ID_PANEL_WXBASISSETDETAIL_DETAILS, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
@@ -145,7 +145,7 @@ void WxBasisSetDetailGUI::CreateControls()
     itemPanel12->SetSizer(itemBoxSizer13);
 
     ewxTextCtrl* itemTextCtrl14 = new ewxTextCtrl( itemPanel12, ID_TEXTCTRL_WXBASISSETDETAIL_DESCRIPTION, _T(""), wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY );
-    itemTextCtrl14->SetFont(wxFont(10, wxTELETYPE, wxNORMAL, wxNORMAL, false, _T("Courier 10 Pitch")));
+    itemTextCtrl14->SetFont(ewxStyledWindow::getMonoSpaceFont());
     itemBoxSizer13->Add(itemTextCtrl14, 1, wxGROW|wxALL, 3);
 
     itemNotebook11->AddPage(itemPanel12, _("Description"));

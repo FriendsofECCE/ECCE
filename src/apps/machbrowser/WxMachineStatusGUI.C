@@ -116,7 +116,7 @@ void WxMachineStatusGUI::CreateControls()
     itemBoxSizer4->Add(itemStaticText5, 0, wxGROW|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl6 = new ewxTextCtrl( itemPanel3, ID_TEXTCTRL_WXMACHINESTATUS_STATUS, _T(""), wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY|wxHSCROLL );
-    itemTextCtrl6->SetFont(wxFont(10, wxTELETYPE, wxNORMAL, wxNORMAL, false, _T("Courier 10 Pitch")));
+    itemTextCtrl6->SetFont(ewxStyledWindow::getMonoSpaceFont());
     itemBoxSizer4->Add(itemTextCtrl6, 1, wxGROW|wxALL, 3);
 
     ewxButton* itemButton7 = new ewxButton( itemPanel3, ID_BUTTON_WXMACHINESTATUS_CLOSE, _("Close"), wxDefaultPosition, wxDefaultSize, 0 );
