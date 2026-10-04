@@ -245,6 +245,10 @@ void ewxStyledWindow::setStyles(wxWindow *win, bool recursive)
       win->SetFont(getBoldFont());
 
    } else if (dynamic_cast<wxStaticLine*>(win)) {
+      // Many section-heading lines are stretched in both directions, and
+      // GTK3 fills a separator's whole box with its colour; keep the box
+      // clear, as the fixed window colour used to.
+      win->SetBackgroundColour(wxTransparentColour);
 
    } else if (dynamic_cast<ewxNonBoldLabel*>(win)) {
       win->SetFont(getNormalFont());
