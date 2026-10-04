@@ -77,6 +77,17 @@ bool CalcMgrApp::OnInit()
   SetTopWindow(p_calcMgr);
   registerTopShell(p_calcMgr);
 
+  // Test hook, inert unless set: open the tree down to this URL, so tests
+  // need no clicks at pixel positions.
+  if (const char *openUrl = getenv("ECCE_ORGANIZER_OPEN")) {
+    if (*openUrl) {
+      string target = openUrl;
+      p_calcMgr->CallAfter([this, target]() {
+        p_calcMgr->findNode(EcceURL(target), true, true);
+      });
+    }
+  }
+
   // Desk Top Messages
   subscribe("ecce_quit", (wxJmsCBFunc)&CalcMgrApp::quitMCB);
   subscribe("ecce_identify", (wxJmsCBFunc)&CalcMgrApp::identifyMCB);
