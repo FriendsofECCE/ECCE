@@ -213,6 +213,9 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     SurfDisplayTypeCmd type("Surface Type", p_sg, p_calc);
     type.getParameter("IsosurfStyle")->setString("Solid");
     type.execute();
+    //  The Builder's MoPanel does this on focus; without it the viewer
+    //  keeps its construction default and never takes the lobe mode.
+    p_viewer->setTransparencyType(SoGLRenderAction::SCREEN_DOOR);
     IsoValueCmd val("Iso Value", p_sg, p_calc);
     val.getParameter("Value")->setDouble(log10(iso));   // a log10 slider value
     val.getParameter("transparency")->setDouble(0.5);

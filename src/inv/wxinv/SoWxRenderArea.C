@@ -412,6 +412,10 @@ void SoWxRenderArea::setFallbackCallback(FallbackCallback cb, void *data)
 void SoWxRenderArea::applyTransparency()
 {
   SoGLRenderAction *a = p_sceneMgr->getGLRenderAction();
+  if (getenv("ECCE_DEBUG_TRANSPARENCY"))
+    fprintf(stderr, "[TRANSPARENCY] request=%d quick=%d noAlpha=%d fellBack=%d\n",
+            (int)p_requestedTransp, (int)p_quickTransp, (int)p_noAlpha,
+            (int)p_fellBack);
 #ifdef OIV_COIN
   if (p_requestedTransp == SoGLRenderAction::SCREEN_DOOR &&
       !p_quickTransp && !p_noAlpha && !p_fellBack) {
@@ -921,6 +925,8 @@ void SoWxRenderArea::redraw()
     GLint alphaBits = 0;
     glGetIntegerv(GL_ALPHA_BITS, &alphaBits);
     p_alphaChecked = true;
+    if (getenv("ECCE_DEBUG_TRANSPARENCY"))
+      fprintf(stderr, "[TRANSPARENCY] first frame alpha bits=%d\n", (int)alphaBits);
     if (alphaBits < 8) { p_noAlpha = true; applyTransparency(); }
   }
   const bool peeling = p_sceneMgr->getGLRenderAction()->getTransparencyType()

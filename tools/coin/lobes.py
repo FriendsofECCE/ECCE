@@ -35,9 +35,12 @@ MODES = {
     "sd": ["transparency SCREEN_DOOR"],                # vendored: the lobe mode; Coin: only with ECCE_QUICK_TRANSPARENCY=1
     "default": ["transparency SCREEN_DOOR"],           # Coin: what the Builder now does (accurate layers, 6 passes)
 }
+# Coin: no transparency command at all, so the calc scenes show what the Builder
+# path (the scene's `mo` command, as MoPanel focus) leaves the viewer in.
+MODES["builder"] = []
 for n in (2, 4, 6, 8, 12, 16):
     MODES["p%d" % n] = ["transparency SORTED_LAYERS_BLEND", "layerpasses %d" % n]
-COIN_ONLY = lambda k: k.startswith("p") or k == "default"
+COIN_ONLY = lambda k: k.startswith("p") or k in ("default", "builder")
 if os.environ.get("LOBE_MODES"):
     MODES = {k: v for k, v in MODES.items() if k in os.environ["LOBE_MODES"].split(",")}
 
@@ -47,11 +50,13 @@ def sceneText(stem, setup, modes):
     L += setup
     L += ["snap %s-base" % stem]
     for mk, cmds in modes.items():
+        if mk == "builder" and not stem.startswith("calc-"):
+            continue          # needs the `mo` command to be in the Builder state
         for ai, a in enumerate(ANGLES):
             if ai:
                 L.append("rotate %d" % (a - ANGLES[ai - 1]))
             t = "%s-%s-a%03d" % (stem, mk, a)
-            L += ["transparency SCREEN_DOOR", "isolobe none 0", "snap %s-none" % t,
+            L += ([] if mk == "builder" else ["transparency SCREEN_DOOR"]) + ["isolobe none 0", "snap %s-none" % t,
                   "isolobe pos 0", "snap %s-pop" % t, "isolobe neg 0", "snap %s-nop" % t,
                   "isolobe both 0", "snap %s-bop" % t] + cmds + [
                   "isolobe none 0.5", "snap %s-nonebl" % t,

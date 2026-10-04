@@ -24,6 +24,14 @@ the tie in opposite order. Depth peeling is order independent, but:
   SORTED_LAYERS_BLEND with `setSortedLayersNumPasses(6)` unless quick mode is
   on, the canvas has no alpha, or the scene fell back. SORTED_OBJECT_BLEND
   (ESP maps, opaque) and DELAYED_ADD pass through. Vendored build: unchanged.
+- Pitfall: the viewer is constructed with SCREEN_DOOR set directly on the
+  render action, and `applyTransparency` only runs on a request. Anything
+  that shows lobes without MoPanel/Cube focus (the scene script's `mo`
+  command, until fixed) stayed on the real screen door. `mo` now sends the
+  request; `ECCE_DEBUG_TRANSPARENCY=1` prints each request and the first
+  frame's alpha bits (Xvfb gives 8 via the WX_GL_MIN_ALPHA request).
+  `LOBE_MODES=builder tools/coin/lobes.py` checks the calc scenes with no
+  `transparency` command: 100% nearest-lobe.
 - Quick mode: Preferences > General > 3D viewer (`QuickTransparency` in the
   global pref file), or `ECCE_QUICK_TRANSPARENCY=1|0`. `SGViewer::
   setTransparencyType` reads it on every request, so it applies the next time
