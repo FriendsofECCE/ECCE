@@ -15,14 +15,15 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(ROOT, "tests", "apps"))
-import compare
+import compare, isoref
 
 OUT = os.path.abspath(sys.argv[1] if len(sys.argv) > 1
                       else os.path.join(ROOT, "build-coin-compare", "angles"))
 BUILDS = {"vendored": os.path.join(ROOT, "build-cmake"),
           "coin": os.path.join(ROOT, "build-coin")}
 SYS = ["benzene", "crco6", "water"]
-MODES = [("sb", "SORTED_OBJECT_BLEND"), ("sd", "SCREEN_DOOR"), ("da", "DELAYED_ADD")]
+MODES = [("sb", "SORTED_OBJECT_BLEND"), ("sd", "SCREEN_DOOR"), ("da", "DELAYED_ADD"),
+         ("sl", "SORTED_LAYERS_BLEND (coin; vendored = SORTED_OBJECT_BLEND)")]
 ANGLES = ["000", "045", "090"]
 
 
@@ -30,6 +31,7 @@ def render():
     import subprocess, xdisplay
     os.environ["LIBGL_ALWAYS_SOFTWARE"] = "1"
     os.environ.setdefault("ECCE_TEST_XDISPLAYS", "170-179")
+    os.environ["ECCE_COIN_ALPHA"] = "1"     # depth peeling needs a destination alpha
     for name, b in BUILDS.items():
         d = os.path.join(OUT, "raw", name)
         os.makedirs(d, exist_ok=True)
@@ -87,21 +89,27 @@ def main():
                         n if nm == "vend" else "", m["corrected_diff_px"] if nm == "vend" else 0,
                         m["corrected_max_channel_diff"] if nm == "vend" else 0,
                         m["mask_xor_px"] if nm == "vend" else 0, nm, f(l[0]), f(l[1])))
+                refimg = None
+                if mk in ("sb", "sl", "da"):    # blended modes only; atoms are not in the reference
+                    refimg = isoref.render(os.path.join(OUT, "raw", "coin", "%s-ref-a%s-iso.txt" % (s, a)),
+                                           c[0, 0])[0]
                 g = np.clip(cor.max(axis=2) * 4, 0, 255).astype(np.uint8)
                 d = np.stack([g, g, g], axis=2)
                 d[xor] = (255, 0, 0)
-                rows.append((n, mname, a, m, lv, lc, v, c, d))
+                rows.append((n, mname, a, m, lv, lc, v, c, d, refimg))
     open(os.path.join(OUT, "metrics.txt"), "w").write("\n".join(lines) + "\n")
     print("\n".join(lines))
     cell, lab = 200, 340
-    sheet = Image.new("RGB", (lab + 3 * cell, len(rows) * (cell + 2)), (30, 30, 30))
+    sheet = Image.new("RGB", (lab + 4 * cell, len(rows) * (cell + 2)), (30, 30, 30))
     dr = ImageDraw.Draw(sheet)
-    for i, (n, mname, a, m, lv, lc, v, c, d) in enumerate(rows):
+    for i, (n, mname, a, m, lv, lc, v, c, d, refimg) in enumerate(rows):
         y = i * (cell + 2)
         for j, arr in enumerate((v, c, d)):
             sheet.paste(Image.fromarray(arr).resize((cell, cell), Image.NEAREST), (lab + j * cell, y))
+        if refimg is not None:
+            sheet.paste(Image.fromarray(refimg).resize((cell, cell), Image.NEAREST), (lab + 3 * cell, y))
         t = [n, "%s, camera %d deg" % (mname, int(a)),
-             "vendored | coin | diff", "corrected diff px %d, xor %d" % (m["corrected_diff_px"], m["mask_xor_px"]),
+             "vendored | coin | diff | reference (lobes only)", "corrected diff px %d, xor %d" % (m["corrected_diff_px"], m["mask_xor_px"]),
              "vend red %d %s" % (lv[0][0], lv[0][1]), "vend grn %d %s" % (lv[1][0], lv[1][1]),
              "coin red %d %s" % (lc[0][0], lc[0][1]), "coin grn %d %s" % (lc[1][0], lc[1][1])]
         for k, x in enumerate(t):

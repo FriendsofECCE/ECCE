@@ -24,3 +24,18 @@ rotate 45
 snap @SYS@-sb-a045
 rotate 45
 snap @SYS@-sb-a090
+rotate -90
+# Coin only: depth peeling (the vendored column stays the per-object sort).
+transparency SORTED_OBJECT_BLEND
+coin: transparency SORTED_LAYERS_BLEND
+coin: layerpasses 6
+snap @SYS@-sl-a000
+exportiso @SYS@-ref-a000
+rotate 45
+snap @SYS@-sl-a045
+exportiso @SYS@-ref-a045
+rotate 45
+snap @SYS@-sl-a090
+exportiso @SYS@-ref-a090
+# Thumbnail path (Coin: EGL offscreen) in the same mode.
+thumb @SYS@-sl-thumb

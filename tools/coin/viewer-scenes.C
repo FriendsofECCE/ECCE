@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstdio>
 #include <sstream>
+#include <vector>
 #include <string>
 #include <unistd.h>
 
@@ -56,6 +57,29 @@ string xyzFor(const string& sys)
       o << "C " << 1.91 * ax[i][0] << " " << 1.91 * ax[i][1] << " " << 1.91 * ax[i][2] << "\n";
     for (int i = 0; i < 6; i++)
       o << "O " << 3.05 * ax[i][0] << " " << 3.05 * ax[i][1] << " " << 3.05 * ax[i][2] << "\n";
+  }
+  else if (sys == "waterbox") {
+    //  data/client/solvents/water216.xyz, 2x2x2: 5184 atoms (the file's
+    //  OW/HW tags are not element symbols).
+    const char *home = getenv("ECCE_HOME");
+    FILE *f = fopen((string(home ? home : ".") + "/data/client/solvents/water216.xyz").c_str(), "r");
+    if (!f) return "";
+    char line[256];
+    int n = 0;
+    double box = 0;
+    if (!fgets(line, sizeof line, f) || sscanf(line, "%d", &n) != 1 ||
+        !fgets(line, sizeof line, f) || sscanf(line, "%lf", &box) != 1) { fclose(f); return ""; }
+    struct A { char e; double x, y, z; };
+    std::vector<A> a;
+    while (fgets(line, sizeof line, f)) {
+      char sym[16]; double x, y, z;
+      if (sscanf(line, "%15s %lf %lf %lf", sym, &x, &y, &z) == 4) a.push_back({sym[0], x, y, z});
+    }
+    fclose(f);
+    o << a.size() * 8 << "\nwater box 2x2x2\n";
+    for (int i = 0; i < 2; i++) for (int j = 0; j < 2; j++) for (int k = 0; k < 2; k++)
+      for (size_t m = 0; m < a.size(); m++)
+        o << a[m].e << " " << a[m].x + i * box << " " << a[m].y + j * box << " " << a[m].z + k * box << "\n";
   }
   return o.str();
 }

@@ -47,6 +47,7 @@ class SceneScript
     bool dragAtom(const string& name, int atom, int dx, int dy);
     bool countRedraws(const string& name, const vector<string>& steps);
     bool snapshot(const string& name, int size, float r, float g, float b);
+    bool exportIso(const string& name);
     bool fail(const string& m) { p_msg = m; return false; }
 
     SGViewer *p_viewer;

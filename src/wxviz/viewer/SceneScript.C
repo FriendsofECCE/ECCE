@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstdio>
 #include <cmath>
 #include <cstdlib>
@@ -12,6 +13,14 @@
 #include "inv/SoOffscreenRenderer.H"
 #include "inv/SoWx/SoWxRenderArea.H"
 #include "inv/nodes/SoSwitch.H"
+#include "inv/actions/SoSearchAction.H"
+#include "inv/actions/SoGetMatrixAction.H"
+#include "inv/nodes/SoPerspectiveCamera.H"
+#include "inv/nodes/SoIndexedTriangleStripSet.H"
+#include "inv/nodes/SoVertexProperty.H"
+#include "inv/misc/SoChildList.H"
+#include "inv/nodes/SoSeparator.H"
+#include "inv/ChemKit/ChemIso.H"
 #include "inv/misc/SoChildList.H"
 
 #include "dsm/ICalculation.H"
@@ -92,13 +101,25 @@ bool SceneScript::run(const string& scriptPath)
   return true;
 }
 
+namespace { SoWxRenderArea *findRenderArea(wxWindow *w); double lastIso = 0.05; }
+
 bool SceneScript::exec(const vector<string>& w, const string& rest)
 {
   const string& c = w[0];
   if (getenv("SCENE_DEBUG")) fprintf(stderr, "SCENE exec: %s\n", rest.empty() ? c.c_str() : (c + " " + rest).c_str());
   SGFragment *frag = p_sg->getFragment();
 
-  if (c == "style") {
+  if (c == "coin:") {
+    //  "coin: <command>": runs the command on the Coin build only.
+#ifdef OIV_COIN
+    if (w.size() < 2) return fail("coin: needs a command");
+    string inner = rest.substr(rest.find(w[1]) + w[1].size());
+    size_t q = inner.find_first_not_of(" \t");
+    return exec(vector<string>(w.begin() + 1, w.end()), q == string::npos ? "" : inner.substr(q));
+#else
+    return true;
+#endif
+  } else if (c == "style") {
     CSStyleCmd cmd("Style", p_sg);
     DisplayDescriptor dd("default", rest, "Element");
     cmd.getParameter("descriptor")->setString(dd.toString());
@@ -153,6 +174,7 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     ICalculation *ic = dynamic_cast<ICalculation*>(p_calc);
     if (!ic || w.size() < 2) return fail("mo: needs a calculation and an MO number");
     double iso = w.size() > 2 ? atof(w[2].c_str()) : 0.05;
+    lastIso = iso;
     int res = w.size() > 3 ? atoi(w[3].c_str()) : 40;
     //  Grid box: atom extent plus 3.5 Angstrom.
     double lo[3] = {1e9, 1e9, 1e9}, hi[3] = {-1e9, -1e9, -1e9};
@@ -241,6 +263,23 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     val.getParameter("Value")->setDouble(log10(0.05));   // log10 slider value
     val.getParameter("transparency")->setDouble(0.5);
     val.execute();
+  } else if (c == "isolobe" && w.size() == 3) {
+    //  "isolobe <both|pos|neg> <transparency>": redraw the isosurface with
+    //  that transparency, optionally leaving only one lobe (the other's
+    //  threshold is set above any field value), for per-lobe depth checks.
+    IsoValueCmd val("Iso Value", p_sg, p_calc);
+    val.getParameter("Value")->setDouble(log10(lastIso));
+    val.getParameter("transparency")->setDouble(atof(w[2].c_str()));
+    val.execute();
+    SoSwitch *sw = (SoSwitch *)p_sg->getMORoot()->getChild(0);
+    SoSeparator *sep = (SoSeparator *)sw->getChild(0);
+    if (w[1] == "none" && sep->getNumChildren() == 3) {
+      ((ChemIso *)sep->getChild(1))->threshold.setValue(1e9);
+      ((ChemIso *)sep->getChild(2))->threshold.setValue(1e9);
+    } else if (w[1] != "both" && sep->getNumChildren() == 3) {
+      ChemIso *hide = (ChemIso *)sep->getChild(w[1] == "pos" ? 2 : 1);
+      hide->threshold.setValue(1e9);
+    }
   } else if (c == "nmvect" || c == "nmstep") {
     if (!p_calc || w.size() < 2) return fail(c + ": needs a calculation and a mode");
     int mode = atoi(w[1].c_str());
@@ -273,8 +312,17 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     if (w[1] == "SCREEN_DOOR") t = SoGLRenderAction::SCREEN_DOOR;
     else if (w[1] == "DELAYED_ADD") t = SoGLRenderAction::DELAYED_ADD;
     else if (w[1] == "SORTED_OBJECT_BLEND") t = SoGLRenderAction::SORTED_OBJECT_BLEND;
+#ifdef OIV_COIN
+    else if (w[1] == "SORTED_LAYERS_BLEND") t = SoGLRenderAction::SORTED_LAYERS_BLEND;
+#endif
     else return fail("transparency: unknown mode " + w[1]);
     p_viewer->setTransparencyType(t);
+#ifdef OIV_COIN
+  } else if (c == "layerpasses" && w.size() == 2) {
+    SoWxRenderArea *a = findRenderArea(p_viewer);
+    if (!a) return fail("no render area");
+    a->getSceneManager()->getGLRenderAction()->setSortedLayersNumPasses(atoi(w[1].c_str()));
+#endif
   } else if (c == "pick" && w.size() >= 3) {
     return pickAtoms(w[1], vector<string>(w.begin() + 2, w.end()));
   } else if (c == "drag" && w.size() == 5) {
@@ -310,6 +358,42 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     r.multVec(pos, np);
     cam->position.setValue(np);
     cam->orientation.setValue(r * cam->orientation.getValue());
+  } else if (c == "exportiso" && w.size() == 2) {
+    //  "exportiso <name>": the isosurface triangles in world space (position,
+    //  normal, packed colour per ChemIso) plus the camera, to <name>-iso.txt,
+    //  for tools/coin/isoref.py's renderer-independent reference image.
+    return exportIso(w[1]);
+  } else if (c == "timeframes" && w.size() == 3) {
+    //  "timeframes <name> <frames>": rotate 2 degrees, paint synchronously,
+    //  glFinish, per frame (4 s cap); writes mean/median/p95 ms to <name>.txt.
+    SoWxRenderArea *area = findRenderArea(p_viewer);
+    SoCamera *cam = p_viewer->getCamera();
+    if (!area || !cam) return fail("timeframes: no render area");
+    int frames = atoi(w[2].c_str());
+    std::vector<double> ms;
+    SbRotation r(SbVec3f(0, 1, 0), (float)(2.0 * M_PI / 180.0));
+    wxStopWatch total;
+    for (int i = 0; i < 3 + frames && total.Time() < 4000; i++) {
+      wxStopWatch f;
+      SbVec3f pos = cam->position.getValue(), np;
+      r.multVec(pos, np);
+      cam->position.setValue(np);
+      cam->orientation.setValue(r * cam->orientation.getValue());
+      area->Refresh(false);
+      area->Update();
+      glFinish();
+      if (i >= 3) ms.push_back((double)f.TimeInMicro().ToLong() / 1000.0);
+    }
+    if (ms.empty()) return fail("timeframes: no frames");
+    double sum = 0;
+    for (size_t i = 0; i < ms.size(); i++) sum += ms[i];
+    std::sort(ms.begin(), ms.end());
+    FILE *o = fopen((p_outdir + "/" + w[1] + ".txt").c_str(), "w");
+    if (o) {
+      fprintf(o, "frames %d mean_ms %.2f median_ms %.2f p95_ms %.2f\n", (int)ms.size(),
+              sum / ms.size(), ms[ms.size() / 2], ms[(size_t)(0.95 * (ms.size() - 1))]);
+      fclose(o);
+    }
   } else if (c == "clear") {
     p_sg->clearGridScene();
     p_sg->getNMVecRoot()->whichChild.setValue(SO_SWITCH_NONE);
@@ -558,6 +642,60 @@ bool SceneScript::countRedraws(const string& name, const vector<string>& steps)
   return true;
 }
 
+bool SceneScript::exportIso(const string& name)
+{
+  SoWxRenderArea *area = findRenderArea(p_viewer);
+  SoPerspectiveCamera *cam = dynamic_cast<SoPerspectiveCamera *>(p_viewer->getCamera());
+  if (!area || !cam) return fail("exportiso: needs a perspective camera");
+  SoSearchAction sa;
+  sa.setType(ChemIso::getClassTypeId(), FALSE);
+  sa.setInterest(SoSearchAction::ALL);
+  sa.apply(p_viewer->getTopNode());
+  FILE *o = fopen((p_outdir + "/" + name + "-iso.txt").c_str(), "w");
+  if (!o) return fail("exportiso: cannot write");
+  wxSize sz = area->GetClientSize();
+  SbVec3f pos = cam->position.getValue(), ax;
+  float ang;
+  cam->orientation.getValue().getValue(ax, ang);
+  fprintf(o, "size %d %d\ncamera %.9g %.9g %.9g  %.9g %.9g %.9g %.9g  %.9g %.9g\n", sz.x, sz.y,
+          pos[0], pos[1], pos[2], ax[0], ax[1], ax[2], ang, cam->heightAngle.getValue(),
+          cam->aspectRatio.getValue());
+  for (int k = 0; k < sa.getPaths().getLength(); k++) {
+    SoPath *path = sa.getPaths()[k];
+    SoGetMatrixAction ma(SbViewportRegion(SbVec2s(sz.x, sz.y)));
+    ma.apply(path);
+    SbMatrix m = ma.getMatrix(), nm = ma.getMatrix().inverse().transpose();
+    ChemIso *iso = (ChemIso *)path->getTail();
+    SoChildList *cl = iso->getChildren();
+    if (!cl || cl->getLength() == 0) continue;
+    SoIndexedTriangleStripSet *ts = (SoIndexedTriangleStripSet *)(*cl)[0];
+    SoVertexProperty *vp = (SoVertexProperty *)ts->vertexProperty.getValue();
+    int nv = vp->vertex.getNum(), nn = vp->normal.getNum();
+    uint32_t rgba = vp->orderedRGBA.getNum() ? vp->orderedRGBA[0] : 0xffffffff;
+    fprintf(o, "lobe %d %u %d\n", k, (unsigned)rgba, nn == nv);
+    const int32_t *ci = ts->coordIndex.getValues(0);
+    int n = ts->coordIndex.getNum();
+    for (int i = 0, st = 0; i < n; i++) {
+      if (ci[i] < 0) { st = i + 1; continue; }
+      if (i - st < 2 || ci[i - 1] < 0 || ci[i - 2] < 0) continue;
+      //  odd triangles of a strip are wound the other way; undo that so the
+      //  winding is the one GL's two-sided lighting sees.
+      int id[3] = {ci[i - 2], ci[i - 1], ci[i]};
+      if ((i - st) % 2 == 1) std::swap(id[1], id[2]);
+      fputs("tri", o);
+      for (int v = 0; v < 3; v++) {
+        SbVec3f P, N(0, 0, 0);
+        m.multVecMatrix(vp->vertex[id[v]], P);
+        if (nn == nv) nm.multDirMatrix(vp->normal[id[v]], N);
+        fprintf(o, " %.7g %.7g %.7g %.7g %.7g %.7g", P[0], P[1], P[2], N[0], N[1], N[2]);
+      }
+      fputs("\n", o);
+    }
+  }
+  fclose(o);
+  return true;
+}
+
 //  "snap": the real canvas, read back with glReadPixels at its own size.
 //  "thumb": the offscreen renderer the calculation thumbnail uses; where it
 //  cannot make a context (Coin under Xvfb) a .UNAVAILABLE note is written
@@ -589,6 +727,14 @@ bool SceneScript::snapshot(const string& name, int size, float r, float g,
   if (!rend) rend = new SoOffscreenRenderer(vp);
   rend->setComponents(SoOffscreenRenderer::RGB);
   rend->setBackgroundColor(SbColor(r, g, b));
+#ifdef OIV_COIN
+  //  Thumbnails draw with the viewer's mode, to exercise it through EGL.
+  if (SoWxRenderArea *a = findRenderArea(p_viewer)) {
+    SoGLRenderAction *src = a->getSceneManager()->getGLRenderAction();
+    rend->getGLRenderAction()->setTransparencyType(src->getTransparencyType());
+    rend->getGLRenderAction()->setSortedLayersNumPasses(src->getSortedLayersNumPasses());
+  }
+#endif
   if (!rend->render(p_viewer->getTopNode()) || !rend->getBuffer()) {
     std::ofstream(p_outdir + "/" + name + ".UNAVAILABLE")
         << "SoOffscreenRenderer::render failed\n";
