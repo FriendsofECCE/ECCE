@@ -203,6 +203,14 @@ The site defaults live in `/opt/ecce/siteconfig/submit.site`. To change them
 for one machine, put your own block in `~/.ECCE/CONFIG.<host>` — `gensub`
 reads that file **last**, so it wins.
 
+Jobs on this machine (`localhost`) need a `CONFIG.localhost` that names the
+codes. `ecce` copies the template `siteconfig/CONFIG-Examples/CONFIG.localhost`
+(bare names such as `nwchem`, `orca`, found through `PATH`) to
+`~/.ECCE/CONFIG.localhost` on a start where you have none, and never
+overwrites it; edit your copy to pin full paths. It is not copied when an
+admin has put a `siteconfig/CONFIG.localhost` there, since the site file takes
+precedence over yours.
+
 Variables you can use:
 
 `$account` `$code` `$ecceDir` `$host` `$infile` `$inFile` `$memory`

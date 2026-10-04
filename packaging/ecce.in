@@ -138,6 +138,18 @@ if [ "$c2s_seen" != "$ECCE_VERSION_STRING" ] && [ -d "$c2s_dir" ]; then
   fi
 fi
 
+# A fresh ~/.ECCE gets a CONFIG.localhost template so jobs on this machine find
+# the codes.  It is a template, not a site file: RefMachine::configFile prefers
+# siteconfig/CONFIG.<name> over the user's, so a shipped one would hide the
+# user's own paths.  An admin's site file or the user's own file wins; never
+# overwritten.
+c2s_tpl="$ECCE_HOME/siteconfig/CONFIG-Examples/CONFIG.localhost"
+if [ -f "$c2s_tpl" ] \
+   && [ ! -e "$ECCE_HOME/siteconfig/CONFIG.localhost" ] \
+   && [ ! -e "$c2s_dir/CONFIG.localhost" ]; then
+  mkdir -p "$c2s_dir" 2>/dev/null && cp "$c2s_tpl" "$c2s_dir/CONFIG.localhost" 2>/dev/null || true
+fi
+
 # Only -remote reaches ecce-gateway; it has no use for the rest.
 passthrough=()
 if $remote; then passthrough+=(-remote); fi

@@ -1,4 +1,6 @@
-# Configuration for "localhost" -- jobs run directly on this machine.
+# Template for ~/.ECCE/CONFIG.localhost -- jobs run directly on this machine.
+# `ecce` copies it there on the first start if you have no such file (and no
+# site CONFIG.localhost exists); edit your copy, it is never overwritten.
 #
 # Deliberately no "noRemoteAccess": that flag (see CONFIG.dummy, issue #94)
 # makes Launch stop after generating the input, so a file with it here would
@@ -6,8 +8,7 @@
 #
 # Bare command names, resolved through the PATH of the shell that runs the
 # job. gensub dies with "Path for <code> not found" without a value for the
-# code being run. To pin a path, put just that line in ~/.ECCE/CONFIG.localhost
-# (gensub merges it on top of this file).
+# code being run. To pin a path, replace the bare name, e.g. ORCA: /opt/orca/orca.
 NWChem: nwchem
 Gaussian-16: g16
 Gaussian-09: g09
