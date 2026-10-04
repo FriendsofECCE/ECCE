@@ -42,6 +42,10 @@
 #include <math.h>
 
 #include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <mutex>
+#include <thread>
 #include <exception>
 #include <iostream>
 #include <memory>
@@ -1765,58 +1769,100 @@ bool ComputeMoCmd::computeEspExact(SingleGrid *grid, vector<TAtm*> *atoms,
   float *esp = new float[gridRes];
   char msg[160];
 
-  //  Wrapped, because the first attempt at this reported only
-  //  "Unhandled unknown exception" and died -- which says nothing about
-  //  what threw or where.  Anything escaping here is reported with its
-  //  type and the plane it happened on, and the surface is left
-  //  uncoloured rather than the application being taken down.
-  unsigned long idx = 0;
-  int plane = 0;
+  //  Everything that does not depend on the grid point is done once
+  //  here; a point then costs one Boys function and one Hermite
+  //  recursion per merged shell-pair term (see EspField::prepare).
+  EspField::Prepared prepared;
+  EspField::prepare(basis, pairs, prepared);
+  cerr << "ESP: " << prepared.size() << " Hermite terms from "
+       << pairs.size() << " orbital pairs" << endl;
+
+  //  Planes are independent, so they are dealt out to worker threads.
+  //  Only this thread touches the progress monitor (wx is not
+  //  thread-safe); the workers just count finished planes, and report
+  //  anything they throw rather than letting it reach std::terminate.
+  unsigned nThreads = std::thread::hardware_concurrency();
+  if (const char *env = getenv("ECCE_ESP_THREADS")) {
+    const int n = atoi(env);
+    if (n > 0) nThreads = n;
+  }
+  if (nThreads == 0) nThreads = 1;
+  if ((int)nThreads > resZ) nThreads = resZ;
+
+  std::atomic<int> nextPlane(0);
+  std::atomic<int> donePlanes(0);
+  std::atomic<bool> stop(false);
+  std::atomic<bool> failed(false);
+  std::mutex failMutex;
+  string failWhat;
+
+  auto worker = [&]() {
+    try {
+      for (;;) {
+        const int plane = nextPlane.fetch_add(1);
+        if (plane >= resZ || stop.load()) return;
+        const double z = (zStart + plane*zDelta)*atob;
+        unsigned long idx = (unsigned long)plane*resX*resY;
+        for (int j = 0; j < resY; j++) {
+          const double y = (yStart + j*yDelta)*atob;
+          for (int i = 0; i < resX; i++) {
+            double point[3];
+            point[0] = (xStart + i*xDelta)*atob;
+            point[1] = y;
+            point[2] = z;
+            esp[idx++] = (float)EspField::potential(prepared, nuclei, point);
+          }
+        }
+        donePlanes.fetch_add(1);
+      }
+    }
+    catch (const std::exception& e) {
+      std::lock_guard<std::mutex> lock(failMutex);
+      failWhat = e.what();
+      failed = true; stop = true;
+    }
+    catch (...) {
+      std::lock_guard<std::mutex> lock(failMutex);
+      failWhat = "non-standard exception";
+      failed = true; stop = true;
+    }
+  };
+
+  cerr << "ESP: " << nThreads << " threads" << endl;
+  bool wasInterrupted = false;
+  std::vector<std::thread> workers;
   try {
-    for (plane = 0; plane < resZ; plane++) {
+    for (unsigned t = 0; t < nThreads; t++) workers.push_back(std::thread(worker));
+  }
+  catch (...) {
+    //  Could not start (all of) them: stop, join what did start, and
+    //  decline rather than leave a half-filled array.
+    stop = true; failed = true; failWhat = "could not start threads";
+  }
 
-      if (p_monitor != 0) {
-        sprintf(msg,
-                "Electrostatic potential: plane %d of %d, %d orbital pairs",
-                plane+1, resZ, (int)pairs.size());
-        if (p_monitor->isInterrupted(msg,
-                                     50 + (int)((plane+1)*50.0/resZ))) {
-          delete [] esp;
-          cerr << "ESP: interrupted on plane " << plane+1 << endl;
-          return false;
-        }
-      }
-      if (plane == 0) {
-        cerr << "ESP: first plane starting" << endl;
-      }
-
-      const double z = (zStart + plane*zDelta)*atob;
-      for (int j = 0; j < resY; j++) {
-        const double y = (yStart + j*yDelta)*atob;
-        for (int i = 0; i < resX; i++) {
-          double point[3];
-          point[0] = (xStart + i*xDelta)*atob;
-          point[1] = y;
-          point[2] = z;
-
-          esp[idx++] = (float)EspField::potential(basis, pairs, nuclei,
-                                                  point);
-        }
-      }
-      if (plane == 0) {
-        cerr << "ESP: first plane done" << endl;
+  while (donePlanes.load() < resZ && !stop.load()) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    if (p_monitor != 0) {
+      const int done = donePlanes.load();
+      sprintf(msg,
+              "Electrostatic potential: plane %d of %d, %d orbital pairs",
+              done, resZ, (int)pairs.size());
+      if (p_monitor->isInterrupted(msg, 50 + (int)(done*50.0/resZ))) {
+        wasInterrupted = true;
+        stop = true;
       }
     }
   }
-  catch (const std::exception& e) {
-    cerr << "ESP: threw on plane " << plane+1 << " of " << resZ
-         << ": " << e.what() << endl;
+  for (size_t t = 0; t < workers.size(); t++) workers[t].join();
+
+  if (wasInterrupted) {
     delete [] esp;
-    return true;
+    cerr << "ESP: interrupted after " << donePlanes.load() << " planes"
+         << endl;
+    return false;
   }
-  catch (...) {
-    cerr << "ESP: threw a non-standard exception on plane " << plane+1
-         << " of " << resZ << endl;
+  if (failed.load()) {
+    cerr << "ESP: failed: " << failWhat << endl;
     delete [] esp;
     return true;
   }

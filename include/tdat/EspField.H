@@ -91,6 +91,38 @@ class EspField
                             const vector<double>& density,
                             double cutoff, Pairs& pairs);
 
+    /**
+     * The selected pairs re-expressed once as Hermite Gaussians.
+     *
+     * Everything about a pair of primitives except the observation
+     * point (the Hermite expansion, the product centre, the prefactors
+     * and the density weight) is the same at every grid point, so it is
+     * done here, not per point.  Primitive pairs that share an exponent
+     * sum and centre -- every function pair of one shell pair -- are
+     * merged into one term, so the per-point cost scales with shell
+     * pairs, not function pairs.
+     */
+    struct Prepared
+    {
+      vector<double> p;          // exponent sum, per term
+      vector<double> center;     // product centre, 3 per term
+      vector<int>    order;      // highest Hermite order L, per term
+      vector<size_t> offset;     // into lambda, per term
+      vector<double> lambda;     // dense (L+1)^3, weight*2pi/p included
+
+      size_t size() const { return p.size(); }
+    };
+
+    static void prepare(const vector<EspBasisFunction>& basis,
+                        const Pairs& pairs, Prepared& out);
+
+    /** Same value as the Pairs overload, to rounding, much faster. */
+    static double electronicPotential(const Prepared& prep,
+                                      const double* point);
+    static double potential(const Prepared& prep,
+                            const vector<EspNucleus>& nuclei,
+                            const double* point);
+
     /** The electron density at a point, from the selected pairs. */
     static double density(const vector<EspBasisFunction>& basis,
                           const Pairs& pairs,
