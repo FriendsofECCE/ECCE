@@ -70,9 +70,80 @@ namespace {
 }
 
 
+
+//  Forward declaration; defined below with the series it wraps.
+static void boysSeries(int n, double T, double* values);
+
+namespace {
+  struct BoysTable {
+    static const int NMAX = 24;       // highest order tabulated
+    static const int TERMS = 8;       // Taylor terms
+    static const int WIDTH = NMAX + TERMS;
+    static constexpr double STEP = 0.05;
+    static constexpr double INV_STEP = 20.0;
+    vector<double> f;                 // F_m(i*STEP), m < WIDTH
+
+    BoysTable() {
+      const int rows = (int)(30.0*INV_STEP) + 2;
+      f.resize((size_t)rows*WIDTH);
+      for (int i = 0; i < rows; i++) {
+        boysSeries(WIDTH-1, i*STEP, &f[(size_t)i*WIDTH]);
+      }
+    }
+  };
+
+  const BoysTable& boysTable() {
+    static const BoysTable table;     // thread-safe one-time construction
+    return table;
+  }
+}
+
+double CoulombIntegrals::hermiteE(int i, int j, int t, double dist,
+                                  double a, double b)
+{
+  return hermite(i, j, t, dist, a, b);
+}
+
+
 void CoulombIntegrals::boys(int n, double T, vector<double>& values)
 {
-  values.assign(n+1, 0.0);
+  values.assign(n+1 > 0 ? n+1 : 0, 0.0);
+  if (n < 0) return;
+  boysSeries(n, T, &values[0]);
+}
+
+
+//  The grid loop calls this millions of times, and the series below
+//  runs ~60 terms near T = 30.  A Taylor expansion about a tabulated
+//  point (step 0.05, 8 terms) agrees to ~1e-17 and costs a handful of
+//  multiplies; F_n' = -F_{n+1} supplies the derivatives.
+void CoulombIntegrals::boys(int n, double T, double* values)
+{
+  if (n < 0) return;
+  const BoysTable& tab = boysTable();
+  if (T >= BOYS_ASYMPTOTIC || n > BoysTable::NMAX) {
+    boysSeries(n, T, values);
+    return;
+  }
+  const int i = (int)(T*BoysTable::INV_STEP + 0.5);
+  const double d = -(T - i*BoysTable::STEP);        // expand in -dT
+  const double* row = &tab.f[(size_t)i*BoysTable::WIDTH];
+  const double eT = exp(-T);
+
+  double top = 0.0, term = 1.0;
+  for (int k = 0; k < BoysTable::TERMS; k++) {
+    top += row[n+k]*term;
+    term *= d/(k+1);
+  }
+  values[n] = top;
+  for (int m = n; m > 0; m--) {
+    values[m-1] = (2.0*T*values[m] + eT)/(2.0*m - 1.0);
+  }
+}
+
+
+static void boysSeries(int n, double T, double* values)
+{
   if (n < 0) return;
 
   if (T < BOYS_ASYMPTOTIC) {
@@ -86,18 +157,20 @@ void CoulombIntegrals::boys(int n, double T, vector<double>& values)
       sum += term;
       if (term < 1.0e-16*sum) break;
     }
-    values[n] = sum*exp(-T);
+    const double eT = exp(-T);
+    values[n] = sum*eT;
 
     for (int m = n; m > 0; m--) {
-      values[m-1] = (2.0*T*values[m] + exp(-T))/(2.0*m - 1.0);
+      values[m-1] = (2.0*T*values[m] + eT)/(2.0*m - 1.0);
     }
   } else {
     //  Large T: the integrand is dominated by the lower limit and F_0
     //  approaches half the Gaussian integral.  Here upward recursion is
     //  the stable direction.
+    const double eT = exp(-T);
     values[0] = 0.5*sqrt(PI/T);
     for (int m = 1; m <= n; m++) {
-      values[m] = ((2.0*m - 1.0)*values[m-1] - exp(-T))/(2.0*T);
+      values[m] = ((2.0*m - 1.0)*values[m-1] - eT)/(2.0*T);
     }
   }
 }
