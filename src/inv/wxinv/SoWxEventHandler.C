@@ -71,8 +71,11 @@ void SoWxEventHandler::setUpCallbacks() {
   */
 
   if (SoDB::getSensorManager()->isDelaySensorPending()) {
-    wxIdleEvent event;
-    ProcessEvent(event);
+    // This runs inside SoSensorManager::insertDelaySensor(), before the
+    // sensor's own "scheduled" flag is set. Draining the queue here fires
+    // the sensor first and then leaves it marked scheduled for good, so a
+    // redraw sensor fired once and never again (#99). Defer to the idle loop.
+    wxWakeUpIdle();
   }
 }
 
