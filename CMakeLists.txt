@@ -95,7 +95,7 @@ include_directories(
 # #166: build against the system Coin3D instead of the
 # vendored Inventor core in src/inv. <inv/X/Y.H> includes are forwarded to
 # <Inventor/X/Y.h> by a generated overlay that is searched before include/.
-option(ECCE_USE_COIN "Build against Coin3D instead of the vendored Inventor core (#166; coexists with the vendored core until stage 4)" OFF)
+option(ECCE_USE_COIN "Build against the system Coin3D (default). OFF builds the vendored Inventor core in src/inv, kept as a fallback for one release (#166)" ON)
 if(ECCE_USE_COIN)
   file(GLOB _coin_scan LIST_DIRECTORIES true ${CMAKE_SOURCE_DIR}/src/*)
   list(FILTER _coin_scan EXCLUDE REGEX "/src/inv$")
@@ -1312,13 +1312,19 @@ set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 #  weak dependency there too, matching the Debian Recommends. ImageMagick
 #  and firefox match the Debian Suggests (ImageConverter.C's optional
 #  mogrify/convert export, and BrowserHelp.C's Help-menu fallback).
+# The Coin viewer needs EPEL 9 / Fedora Coin4 at runtime (rpmbuild would also
+# find it from the ELF, spelled out so the intent is visible).
+set(_coin_rpm "")
+if(ECCE_USE_COIN)
+  set(_coin_rpm ", Coin4")
+endif()
 find_program(RPMBUILD_EXECUTABLE rpmbuild)
 if(RPMBUILD_EXECUTABLE)
   list(APPEND CPACK_GENERATOR "RPM")
   set(CPACK_RPM_PACKAGE_LICENSE "ECL-2.0")
   set(CPACK_RPM_PACKAGE_GROUP "Applications/Engineering")
   set(CPACK_RPM_PACKAGE_URL "https://github.com/FriendsofECCE/ECCE")
-  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, python3-wxpython4, perl, xterm, mosquitto, apr-util")
+  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, python3-wxpython4, perl, xterm, mosquitto, apr-util${_coin_rpm}")
   set(CPACK_RPM_PACKAGE_SUGGESTS "nwchem, openssh-clients, ImageMagick, firefox")
   set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
   #  /opt/ecce is ours, but /opt itself is owned by filesystem(5).  Without
@@ -1498,7 +1504,7 @@ if(ECCE_SPLIT_PACKAGES)
     set(CPACK_RPM_CLIENT_FILE_NAME RPM-DEFAULT)
     # mosquitto provides both the library and the broker on RPM distros.
     set(CPACK_RPM_CLIENT_PACKAGE_REQUIRES
-        "python3-wxpython4, perl, xterm, mosquitto, curl")
+        "python3-wxpython4, perl, xterm, mosquitto, curl${_coin_rpm}")
     set(CPACK_RPM_CLIENT_PACKAGE_SUGGESTS
         "ecce-server, nwchem, openssh-clients, ImageMagick, firefox")
     # RPM has no direct Breaks/Replaces pair; Obsoletes+Provides is the

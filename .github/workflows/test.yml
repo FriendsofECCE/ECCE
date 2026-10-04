@@ -170,7 +170,8 @@ jobs:
             build-essential gfortran cmake ninja-build \
             libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
             libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
-            libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git dpkg-dev libssh-dev
+            libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git dpkg-dev libssh-dev \
+            python3 libcoin-dev libegl-dev
 
       - name: Install runtime dependencies
         run: |
