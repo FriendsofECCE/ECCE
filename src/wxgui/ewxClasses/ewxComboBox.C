@@ -15,7 +15,9 @@ using namespace std;
 
 ewxComboBox::ewxComboBox()
   : wxComboBox(),
-    ewxStyledWindow()
+    ewxStyledWindow(),
+    p_disabler(NULL),
+    p_explicitWidth(-1)
 {
 
 }
@@ -27,7 +29,9 @@ ewxComboBox::ewxComboBox(wxWindow* parent, wxWindowID id,
                          int n, const wxString choices[], long style,
                          const wxValidator& validator, const wxString& name)
   : wxComboBox(),
-    ewxStyledWindow()
+    ewxStyledWindow(),
+    p_disabler(NULL),
+    p_explicitWidth(-1)
 {
   Create(parent, id, value, pos, size, n, choices, style, validator, name);
 }
@@ -39,6 +43,7 @@ bool ewxComboBox::Create(wxWindow* parent, wxWindowID id,
                          int n, const wxString choices[], long style,
                          const wxValidator& validator, const wxString& name)
 {
+  p_explicitWidth = size.x;
   if (!wxComboBox::Create(parent, id, value, pos, size, n, choices, style,
                           validator, name)) {
     wxFAIL_MSG( wxT("ewxComboBox creation failed") );
@@ -52,6 +57,7 @@ bool ewxComboBox::Create(wxWindow* parent, wxWindowID id,
   PushEventHandler(p_disabler);
 
   setStyles(this);
+  fitDropDown(this, p_explicitWidth, value);
 
   return true;
 }
@@ -109,4 +115,16 @@ void ewxComboBox::setLeaveAsEnter(bool value)
   if (validator) {
     validator->setLeaveAsEnter(value);
   }
+}
+
+
+int ewxComboBox::DoInsertItems(const wxArrayStringsAdapter& items,
+                               unsigned int pos, void **clientData,
+                               wxClientDataType type)
+{
+  int ret = wxComboBox::DoInsertItems(items, pos, clientData, type);
+  // Not while the base class is still being created, which inserts the
+  // initial entries before the control is ready to be measured.
+  if (p_disabler) fitDropDown(this, p_explicitWidth, GetValue());
+  return ret;
 }

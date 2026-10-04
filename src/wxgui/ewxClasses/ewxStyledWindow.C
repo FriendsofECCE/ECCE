@@ -22,6 +22,7 @@
 #include <wx/treectrl.h>
 #include <wx/listctrl.h>
 #include <wx/settings.h>
+#include <wx/ctrlsub.h>
 
 #include "util/Color.H"
 #include "util/Preferences.H"
@@ -308,6 +309,31 @@ void ewxStyledWindow::applyFont(wxWindow *win)
 void ewxStyledWindow::setReadonlyMarker(wxWindow *win, bool readonly)
 {
    win->SetBackgroundColour(readonly ? getReadonlyColor() : wxNullColour);
+}
+
+
+/**
+ * Every drop-down is at least as wide as its widest entry, in the current
+ * font, so no entry is cut off; a larger width given at construction is
+ * kept.  See docs/claude/wx-viewer/drop-down-min-width.md.
+ */
+void ewxStyledWindow::fitDropDown(wxControlWithItems *ctrl, int explicitWidth,
+                                  const wxString& value)
+{
+   int widest = value.empty() ? 0 : ctrl->GetTextExtent(value).x;
+   for (unsigned int i = 0; i < ctrl->GetCount(); i++) {
+      widest = wxMax(widest, ctrl->GetTextExtent(ctrl->GetString(i)).x);
+   }
+   if (widest == 0) return;
+   // Room for the entry's padding and the drop-down arrow.  Not
+   // GetSizeFromTextSize(): wxGTK returns garbage for a combo box there.
+   int width = widest + 3*ctrl->GetCharHeight();
+   wxSize min = ctrl->GetMinSize();
+   if (width < explicitWidth) width = explicitWidth;
+   if (width != min.x) {
+      ctrl->SetMinSize(wxSize(width, min.y));
+      ctrl->InvalidateBestSize();
+   }
 }
 
 

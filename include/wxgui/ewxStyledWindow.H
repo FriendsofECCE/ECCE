@@ -14,6 +14,8 @@
 
 #include "wx/dcclient.h"
 
+class wxControlWithItems;
+
 class Preferences;
 
 class ewxStyledWindow
@@ -42,6 +44,9 @@ class ewxStyledWindow
       virtual void setCustomDisabledStyle(bool disabled);
 
       static void drawButtonBorder(wxPaintDC & dc, bool isSunken, int width=2);
+
+      static void fitDropDown(wxControlWithItems *ctrl, int explicitWidth,
+                              const wxString& value = wxEmptyString);
 
    protected:
       ewxStyledWindow();

@@ -7,7 +7,8 @@ ewxChoice::ewxChoice()
   : wxChoice(),
     ewxStyledWindow(),
     p_editable(true),
-    p_disabler(NULL)
+    p_disabler(NULL),
+    p_explicitWidth(-1)
 {
 }
 
@@ -18,7 +19,8 @@ ewxChoice::ewxChoice(wxWindow *parent, wxWindowID id, const wxPoint& pos,
   : wxChoice(),
     ewxStyledWindow(),
     p_editable(true),
-    p_disabler(NULL)
+    p_disabler(NULL),
+    p_explicitWidth(-1)
 {
   Create(parent, id, pos, size, n, choices, style, validator, name);
 }
@@ -30,7 +32,8 @@ ewxChoice::ewxChoice(wxWindow *parent, wxWindowID id, const wxPoint& pos,
   : wxChoice(),
     ewxStyledWindow(),
     p_editable(true),
-    p_disabler(NULL)
+    p_disabler(NULL),
+    p_explicitWidth(-1)
 {
   Create(parent, id, pos, size, choices, style, validator, name);
 }
@@ -47,6 +50,7 @@ bool ewxChoice::Create(wxWindow *parent, wxWindowID id, const wxPoint& pos,
         const wxSize& size, int n, const wxString choices[], long style,
         const wxValidator& validator, const wxString& name)
 {
+  p_explicitWidth = size.x;
   if (!wxChoice::Create(parent, id, pos, size, n, choices, style, validator,
                         name)) {
     wxFAIL_MSG( wxT("ewxChoice creation failed") );
@@ -61,6 +65,7 @@ bool ewxChoice::Create(wxWindow *parent, wxWindowID id, const wxPoint& pos,
         const wxSize& size, const wxArrayString& choices, long style,
         const wxValidator& validator, const wxString& name)
 {
+  p_explicitWidth = size.x;
   if (!wxChoice::Create(parent, id, pos, size, choices, style, validator,
                         name)) {
     wxFAIL_MSG( wxT("ewxChoice creation failed") );
@@ -78,6 +83,7 @@ bool ewxChoice::Create()
   PushEventHandler(p_disabler);
   p_editable = true;
   setStyles(this, false);
+  fitDropDown(this, p_explicitWidth);
 
   /*
   // Hack fix for selection highlight missing bug.
@@ -119,3 +125,15 @@ bool ewxChoice::IsEditable()
    return p_editable;
 }
 
+
+
+int ewxChoice::DoInsertItems(const wxArrayStringsAdapter& items,
+                             unsigned int pos, void **clientData,
+                             wxClientDataType type)
+{
+  int ret = wxChoice::DoInsertItems(items, pos, clientData, type);
+  // Not while the base class is still being created, which inserts the
+  // initial entries before the control is ready to be measured.
+  if (p_disabler) fitDropDown(this, p_explicitWidth);
+  return ret;
+}
