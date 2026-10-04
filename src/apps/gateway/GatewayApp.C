@@ -715,7 +715,9 @@ bool GatewayApp::checkUser()
     // switched it to an exists call.  The only potential problem is that
     // it exists and is a file but not a directory.
 
-    string userPath = directoryPath + "/" + Ecce::serverUser();
+    // Local mode's home is users/local, not users/<account>.
+    string userPath = LocalData::dir().empty() ?
+      directoryPath + "/" + Ecce::serverUser() : mount.toString();
     connection->setURL(userPath);
 
     userExists = connection->exists();

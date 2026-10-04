@@ -2,7 +2,7 @@
  * homeTest <data-folder>   (run with ECCE_LOCAL_DATA=<data-folder>,
  *                           ECCE_SERVER_LOGIN=tester)
  *
- * Local mode writes only inside the user's own home, <dir>/users/<user>,
+ * Local mode writes only inside the user's own home, <dir>/users/local,
  * as a data server refuses writes to users/ and the root: a refused write
  * returns failure with the NOT_PRIVLEDGES message the Organizer shows for
  * a server's 403.  Reads, and paths outside the data folder, are unaffected.
@@ -51,14 +51,14 @@ int main(int argc, char **argv)
 {
   if (argc < 2) return 2;
   string root = argv[1];
-  string home = root + "/users/tester";
+  string home = root + "/users/local";
 
   // First start: the home appears with the server list, not via FileEDSI.
   {
     EDSIServerCentral central;
-    check(onDisk(home), "first start creates users/<user>");
+    check(onDisk(home), "first start creates users/local");
   }
-  check(LocalData::userHome() == home, "userHome is users/tester",
+  check(LocalData::userHome() == home, "userHome is users/local",
         LocalData::userHome());
 
   // Something of another user's and of the root's own, made outside EDSI.

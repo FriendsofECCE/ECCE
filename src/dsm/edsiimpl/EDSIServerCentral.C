@@ -89,7 +89,7 @@ EDSIServerCentral::EDSIServerCentral()
     if (!localDataDir().empty()) {
       mkdir(localDataDir().c_str(), 0755);      // fine if it exists
       mkdir((localDataDir() + "/users").c_str(), 0755);
-      mkdir((localDataDir() + "/users/" + Ecce::serverUser()).c_str(), 0755);
+      mkdir(LocalData::userHome().c_str(), 0755);
       // The libraries are read straight from the install tree, which is
       // what data/admin/basissets and data/client/StructureLibrary are.
       string data = Ecce::ecceDataPath();

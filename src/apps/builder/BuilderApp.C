@@ -16,6 +16,7 @@ using std::cerr;
 using std::endl;
 
 #include "util/Ecce.H"
+#include "util/LocalData.H"
 #include "util/EcceURL.H"
 #include "util/StringTokenizer.H"
 #include "util/Command.H"
@@ -767,7 +768,9 @@ bool BuilderApp::checkUser()
   } else {
     // Verify the user has a valid directory.
     // Again leave this in for now but do we really care.
-    string userPath = directoryPath + "/" + Ecce::serverUser();
+    // Local mode's home is users/local, not users/<account>.
+    string userPath = LocalData::dir().empty() ?
+      directoryPath + "/" + Ecce::serverUser() : mount.toString();
     connection->setURL(userPath);
 
     userExists = connection->exists();

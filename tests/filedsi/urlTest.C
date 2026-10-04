@@ -55,8 +55,8 @@ int main(int argc, char **argv)
     EDSIServerCentral central;       // no siteconfig/DataServers in ECCE_HOME
     EcceURL home = central.getDefaultUserHome();
     check(home.getProtocol() == "file" &&
-          home.getPath() == dir + "/users/" + getenv("ECCE_REALUSER"),
-          "local mode: user home is <dir>/users/<user>", home.toString());
+          home.getPath() == dir + "/users/local",
+          "local mode: user home is <dir>/users/local", home.toString());
     check(central.checkServer(), "local mode: checkServer");
     EcceURL root = home.getEcceRoot();
     check(root.getPath() == dir, "local mode: getEcceRoot of home", home.getEcceRoot());
