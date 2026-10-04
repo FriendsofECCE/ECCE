@@ -1,0 +1,15 @@
+# A client host of the central-server and shared-broker deployments (#223):
+# the shipped ecce-client package, a virtual display, and the probes. The
+# accounts are created per container at run time. The debs come from the
+# build context (run_tests.sh copies them in) so the image tests the
+# packages that ship.
+FROM docker.io/library/debian:trixie
+RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get -qq -y \
+      --no-install-recommends install xvfb x11-utils python3-xlib \
+      mosquitto-clients procps iproute2 netcat-openbsd util-linux >/dev/null \
+ && rm -rf /var/lib/apt/lists/*
+COPY ecce-client.deb /tmp/
+RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get -qq -y \
+      --no-install-recommends install /tmp/ecce-client.deb >/dev/null \
+ && rm -rf /var/lib/apt/lists/* /tmp/ecce-client.deb
+CMD ["sleep", "infinity"]

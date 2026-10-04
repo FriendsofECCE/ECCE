@@ -1,0 +1,14 @@
+# The server host: both shipped packages under systemd (mode 3 needs
+# ecce-broker.service run by a real system manager).
+FROM docker.io/library/debian:trixie
+RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get -qq -y \
+      --no-install-recommends install systemd systemd-sysv dbus \
+      mosquitto-clients procps iproute2 netcat-openbsd sudo >/dev/null \
+ && rm -rf /var/lib/apt/lists/*
+COPY ecce-client.deb ecce-server.deb /tmp/
+RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get -qq -y \
+      --no-install-recommends install /tmp/ecce-client.deb /tmp/ecce-server.deb >/dev/null \
+ && rm -rf /var/lib/apt/lists/* /tmp/*.deb \
+ && useradd -m -s /bin/bash ecce
+STOPSIGNAL SIGRTMIN+3
+CMD ["/sbin/init"]
