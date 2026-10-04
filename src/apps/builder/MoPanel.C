@@ -452,7 +452,7 @@ void MoPanel::fillUI()
       p_mogrid->InsertCols(col, 1);
       p_mogrid->SetColLabelValue(col++, "MO");
       p_mogrid->InsertCols(col, 1);
-      p_mogrid->SetColLabelValue(col++, "Energy\nHartree");
+      p_mogrid->SetColLabelValue(col++, "E (Hartree)");
    }
    if (orbOcc) {
       p_mogrid->InsertCols(col, 1);
