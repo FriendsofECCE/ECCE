@@ -1801,6 +1801,21 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_cancel PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  add_test(NAME launch_cancel_local
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/cancel_test.py
+                   --build ${CMAKE_BINARY_DIR} --local
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_cancel_local PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+  # Needs NWChem; skipped (77) without it.
+  add_test(NAME launch_nwchem_restart_local
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/run_tests.py
+                   --build ${CMAKE_BINARY_DIR} --local --nwchem-restart
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_nwchem_restart_local PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   add_test(NAME launch_filewait
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/filewait_test.py
