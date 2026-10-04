@@ -58,6 +58,7 @@ USAGE
 #  tunnels.  The optional listen value is written to dataserver/listen.
 if [ "${1:-}" = "--server" ]; then
   STATEDIR="${ECCE_REALUSERHOME:-$HOME}/.ECCE"
+  mkdir -p "$STATEDIR" || exit 1
   echo "# ECCE central server: plain quits leave this broker running (ecce-remote-setup --server)" \
     >"$STATEDIR/mosquitto.server" || exit 1
   echo "Marked $STATEDIR/mosquitto.server: this account's broker is a central server's."
