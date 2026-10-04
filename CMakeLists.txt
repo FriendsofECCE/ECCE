@@ -1417,7 +1417,7 @@ if(ECCE_SPLIT_PACKAGES)
   # -remote client only needs the library, and the package's own system
   # service is of no use to it.
   set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS
-      "python3-wxgtk4.0, perl, xterm, libmosquitto1")
+      "python3-wxgtk4.0, perl, xterm, libmosquitto1, curl")
   # A client on the SAME machine as a server benefits from it (the
   # default "everything on one box" case this project still ships), but
   # a client of an already-central server (#167/#138 -- the teaching
@@ -1453,7 +1453,7 @@ if(ECCE_SPLIT_PACKAGES)
     set(CPACK_RPM_CLIENT_FILE_NAME RPM-DEFAULT)
     # mosquitto provides both the library and the broker on RPM distros.
     set(CPACK_RPM_CLIENT_PACKAGE_REQUIRES
-        "python3-wxpython4, perl, xterm, mosquitto")
+        "python3-wxpython4, perl, xterm, mosquitto, curl")
     set(CPACK_RPM_CLIENT_PACKAGE_SUGGESTS
         "ecce-server, nwchem, openssh-clients, ImageMagick, firefox")
     # RPM has no direct Breaks/Replaces pair; Obsoletes+Provides is the
