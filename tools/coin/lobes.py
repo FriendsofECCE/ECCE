@@ -23,7 +23,7 @@ import compare
 
 args = [a for a in sys.argv[1:] if not a.startswith("--")]
 OUT = os.path.abspath(args[0] if args else os.path.join(ROOT, "build-coin-compare", "lobes"))
-BUILDS = {"vendored": os.path.join(ROOT, "build-cmake"), "coin": os.path.join(ROOT, "build-coin")}
+BUILDS = {"vendored": os.path.join(ROOT, "build-oiv"), "coin": os.path.join(ROOT, "build-cmake")}
 if "--builds" in sys.argv:
     want = sys.argv[sys.argv.index("--builds") + 1].split(",")
     BUILDS = {k: v for k, v in BUILDS.items() if k in want}
@@ -32,11 +32,12 @@ ANGLES = [0, 45, 90]
 # key -> scene lines that put the renderer in the mode under test
 MODES = {
     "std": ["transparency SORTED_OBJECT_BLEND"],       # what ECCE requests
-    "sd": ["transparency SCREEN_DOOR"],                # what the Builder uses for MO lobes
+    "sd": ["transparency SCREEN_DOOR"],                # vendored: the lobe mode; Coin: only with ECCE_QUICK_TRANSPARENCY=1
+    "default": ["transparency SCREEN_DOOR"],           # Coin: what the Builder now does (accurate layers, 6 passes)
 }
 for n in (2, 4, 6, 8, 12, 16):
     MODES["p%d" % n] = ["transparency SORTED_LAYERS_BLEND", "layerpasses %d" % n]
-COIN_ONLY = lambda k: k.startswith("p")
+COIN_ONLY = lambda k: k.startswith("p") or k == "default"
 if os.environ.get("LOBE_MODES"):
     MODES = {k: v for k, v in MODES.items() if k in os.environ["LOBE_MODES"].split(",")}
 

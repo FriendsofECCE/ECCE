@@ -7,8 +7,8 @@
 # Needs two configured build trees, each with its own private install
 # prefix (cmake -DCMAKE_INSTALL_PREFIX/-DECCE_HOME_DIR/-DECCE_WRAPPER_
 # DESTINATION, see tests/apps/README):
-#   VENDORED_BUILD (default build-cmake)   configured with ECCE_USE_COIN=OFF
-#   COIN_BUILD     (default build-coin)    configured with ECCE_USE_COIN=ON
+#   VENDORED_BUILD (default build-oiv)     configured with ECCE_USE_COIN=OFF
+#   COIN_BUILD     (default build-cmake)   configured with ECCE_USE_COIN=ON
 # and Xvfb.  Runs only on private displays :170-:179.  Env: NO_BUILD=1
 # skips building/installing, ONLY=builtin|calc renders just that half
 # (keeps the other half of raw/), JOBS (default 6), ECCE_XVFB.
@@ -19,8 +19,8 @@
 set -eo pipefail
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 OUT=$(realpath -m "${1:-$ROOT/build-coin-compare}")
-VEND=$(realpath -m "${VENDORED_BUILD:-$ROOT/build-cmake}")
-COIN=$(realpath -m "${COIN_BUILD:-$ROOT/build-coin}")
+VEND=$(realpath -m "${VENDORED_BUILD:-$ROOT/build-oiv}")
+COIN=$(realpath -m "${COIN_BUILD:-$ROOT/build-cmake}")
 JOBS=${JOBS:-6}
 export ECCE_TEST_XDISPLAYS=170-179 LIBGL_ALWAYS_SOFTWARE=1
 

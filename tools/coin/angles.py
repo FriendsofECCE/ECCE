@@ -19,8 +19,8 @@ import compare, isoref
 
 OUT = os.path.abspath(sys.argv[1] if len(sys.argv) > 1
                       else os.path.join(ROOT, "build-coin-compare", "angles"))
-BUILDS = {"vendored": os.path.join(ROOT, "build-cmake"),
-          "coin": os.path.join(ROOT, "build-coin")}
+BUILDS = {"vendored": os.path.join(ROOT, "build-oiv"),
+          "coin": os.path.join(ROOT, "build-cmake")}
 SYS = ["benzene", "crco6", "water"]
 MODES = [("sb", "SORTED_OBJECT_BLEND"), ("sd", "SCREEN_DOOR"), ("da", "DELAYED_ADD"),
          ("sl", "SORTED_LAYERS_BLEND (coin; vendored = SORTED_OBJECT_BLEND)")]
