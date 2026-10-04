@@ -70,9 +70,13 @@ string BrowserHelp::URL(const string& key) const
     }
   }
   
-  if (!LocalData::dir().empty() && ret.find("http://") == string::npos &&
-      ret.find("file://") == string::npos)
-    return localURL(ret);
+  if (!LocalData::dir().empty() && ret.find("http://") == string::npos) {
+    // A file:// entry naming a page the install lacks opens the home page.
+    if (ret.find("file://") == 0 &&
+        access((p_filePrefix + ret.substr(7)).c_str(), R_OK) == 0)
+      return "file://" + p_filePrefix + ret.substr(7);
+    return localURL(ret.find("file://") == 0 ? string("HomeFallback") : ret);
+  }
 
   if (ret.size() > 0 && ret.find("http://") == string::npos &&
                         ret.find("file://") == string::npos)
