@@ -328,7 +328,7 @@ bool DirDyVTSTTask::move(EcceURL& target)
     else {
       ret = Resource::move(target);
     }
-    setURL(target);
+    if (ret) setURL(target);
   }
 
   return ret;

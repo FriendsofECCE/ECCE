@@ -23,6 +23,7 @@
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/VDoc.H"
 #include "util/ResourceUtils.H"
+#include "util/STLUtil.H"
 
 
 FileEDSI::FileEDSI() : EDSI()
@@ -316,33 +317,44 @@ void mergeStored(vector<MetaDataResult>& list, const PropMap& stored)
   }
 }
 
-// Carry a file's record to the sidecar of its new name.  A directory's own
-// sidecar is inside it and travels with it, so there is nothing to do.
+// Lock two directories in name order, so two operations cannot wait on
+// each other.
+class TwoDirLock {
+  public:
+    TwoDirLock(const string& a, const string& b) : p_first(a < b ? a : b)
+    {
+      if (a != b) p_second.reset(new DirLock(a < b ? b : a));
+    }
+  private:
+    DirLock p_first;
+    std::unique_ptr<DirLock> p_second;
+};
+
+// Carry a file's record to the sidecar of its new name, replacing whatever
+// record that name had.  A directory's own sidecar is inside it and
+// travels with it, so there is nothing to do.  The caller holds the locks
+// of both directories.
 bool transferFileProps(const string& from, const string& to, bool keepSource)
 {
-  if (isDirectory(from) || isDirectory(to)) return true;
+  if (isDirectory(to)) return true;
   string fdir = parentOf(from), tdir = parentOf(to);
   string fkey = tailOf(from), tkey = tailOf(to);
-  // Two directories are locked in name order so two transfers cannot
-  // wait on each other.
-  string first = fdir < tdir ? fdir : tdir;
-  string second = fdir < tdir ? tdir : fdir;
-  DirLock l1(first);
-  std::unique_ptr<DirLock> l2;
-  if (second != first) l2.reset(new DirLock(second));
   MetaStore fs = loadStore(fdir);
   MetaStore::iterator it = fs.find(fkey);
-  if (it == fs.end()) return true;
-  PropMap props = it->second;
+  PropMap props;
+  bool had = (it != fs.end());
+  if (had) props = it->second;
   if (fdir == tdir) {
     if (!keepSource) fs.erase(fkey);
-    fs[tkey] = props;
+    if (had) fs[tkey] = props;
+    else fs.erase(tkey);
     return saveStore(fdir, fs);
   }
   MetaStore ts = loadStore(tdir);
-  ts[tkey] = props;
+  if (had) ts[tkey] = props;
+  else ts.erase(tkey);
   bool ok = saveStore(tdir, ts);
-  if (!keepSource) {
+  if (!keepSource && had) {
     fs.erase(fkey);
     ok = saveStore(fdir, fs) && ok;
   }
@@ -419,23 +431,101 @@ bool appendBytes(const string& path, const string& data, int bytesToOverwrite)
   return !!out;
 }
 
-// SDirectory::copy flattens nested files, so recurse by hand.
+bool isStoreFile(const string& name)
+{
+  return name.compare(0, strlen(SIDECAR), SIDECAR) == 0;
+}
+
+// A plain file copy that refuses to replace an existing target.
+bool copyFile(const string& from, const string& to)
+{
+  ifstream in(from.c_str(), std::ios::binary);
+  if (!in) return false;
+  int fd = open(to.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0644);
+  if (fd < 0) return false;
+  close(fd);
+  ofstream out(to.c_str(), std::ios::binary | std::ios::trunc);
+  char buf[65536];
+  while (in.read(buf, sizeof(buf)) || in.gcount() > 0)
+    out.write(buf, in.gcount());
+  out.close();
+  if (!out) { unlink(to.c_str()); return false; }
+  return true;
+}
+
+// SDirectory::copy flattens nested files, so recurse by hand.  The
+// sidecar is copied (it is what carries the properties); its lock is not.
 bool copyTree(const string& from, const string& to)
 {
-  if (!isDirectory(from)) {
-    SFile f(from);
-    SFile *n = f.copy(to);
-    bool ok = (n != 0) && n->exists();
-    delete n;
-    return ok;
-  }
-  if (!SDirectory::create(to.c_str(), 0755)) return false;
+  if (!isDirectory(from)) return copyFile(from, to);
+  if (mkdir(to.c_str(), 0755) != 0) return false;
   SDirectory dir(from);
   vector<SFile> kids = dir.get_files(false);
   for (size_t i = 0; i < kids.size(); i++) {
-    if (!copyTree(kids[i].path(), to + "/" + kids[i].filename())) return false;
+    string name = kids[i].filename();
+    if (isStoreFile(name) && name != SIDECAR) continue;
+    if (!copyTree(kids[i].path(), to + "/" + name)) return false;
   }
   return true;
+}
+
+bool pathExists(const string& path)
+{
+  struct stat st;
+  return lstat(path.c_str(), &st) == 0;
+}
+
+// The name DavEDSI::uniqueName would give: name, then base-1.ext, ...
+string uniqueIn(const string& dir, const string& name, const string& pattern)
+{
+  if (!pathExists(dir + "/" + name)) return name;
+  string base = name, ext;
+  size_t dot = name.rfind('.');
+  if (dot != string::npos && dot > 0) {
+    base = name.substr(0, dot);
+    ext = name.substr(dot);
+  }
+  string format = "%s" + pattern + "%s";
+  for (int i = 1; i < 10000; i++) {
+    char buf[1024];
+    snprintf(buf, sizeof(buf), format.c_str(), base.c_str(), i, ext.c_str());
+    if (!pathExists(dir + "/" + buf)) return buf;
+  }
+  return name;
+}
+
+// rename() that never replaces an existing target, where the kernel and
+// file system can promise it; elsewhere a check just before.
+bool renameNoReplace(const string& from, const string& to)
+{
+#ifdef RENAME_NOREPLACE
+  if (renameat2(AT_FDCWD, from.c_str(), AT_FDCWD, to.c_str(),
+                RENAME_NOREPLACE) == 0) return true;
+  if (errno != EINVAL && errno != ENOSYS) return false;
+#endif
+  if (pathExists(to)) { errno = EEXIST; return false; }
+  return rename(from.c_str(), to.c_str()) == 0;
+}
+
+// Every resource below start (not start itself), as paths; store files
+// are not resources.
+void walk(const string& start, vector<string>& out)
+{
+  SDirectory dir(start);
+  vector<SFile> kids = dir.get_files(false);
+  for (size_t i = 0; i < kids.size(); i++) {
+    if (isStoreFile(kids[i].filename())) continue;
+    string path = start + "/" + kids[i].filename();
+    out.push_back(path);
+    if (isDirectory(path)) walk(path, out);
+  }
+}
+
+// A new child's URL in its parent's form: the resource pool is keyed by
+// URL text, so "file:///a" and "/a" would be two different resources.
+string childURL(const EcceURL& parent, const string& path)
+{
+  return parent.getProtocol() == "file" ? "file://" + path : path;
 }
 
 } // namespace
@@ -873,43 +963,75 @@ bool FileEDSI::describeMetaData(vector<MetaDataResult>& metaDataNames)
   return false;
 }
 
-// TODO - overwrite
+// Where a move or copy lands under the overwrite rule: SORTOF picks a
+// free name (and updates targetURL), NO refuses a taken one, YES removes it.
+bool FileEDSI::prepareTarget(EcceURL& targetURL, EDSIOverwrite overwrite)
+{
+  string to = trimSlash(targetURL.getPath());
+  if (overwrite == SORTOF) {
+    string name = uniqueIn(parentOf(to), tailOf(to), "-%d");
+    if (name != tailOf(to)) {
+      string path = parentOf(to) + "/" + name;
+      targetURL = EcceURL(targetURL.getProtocol().c_str(),
+                          targetURL.getHost().c_str(), targetURL.getPort(),
+                          path.c_str());
+    }
+  } else if (overwrite == YES && pathExists(to)) {
+    if (!removeHelper(targetURL)) return false;
+  } else if (overwrite == NO && pathExists(to)) {
+    m_msgStack.add("UNABLE_TO_COMPLETE_REQUEST",
+                   "  ECCE cannot overwrite existing resource.");
+    return false;
+  }
+  return true;
+}
+
 bool FileEDSI::moveResource(EcceURL& targetURL, EDSIOverwrite overwrite)
 {
-  bool ret = false;
   m_msgStack.clear();
-  string from = p_url.getPath();
-  string to = targetURL.getPath();
-  SDirectory dir(from.c_str());
-  if (dir.exists()) {
-    bool wasDir = dir.is_dir();
-    ret = wasDir ? dir.move(to.c_str()) : SFile(dir.path()).move(to.c_str());
-    // A directory's own sidecar moved with it; a file's record has to follow.
-    if (ret && !wasDir) ret = transferFileProps(from, to, false);
+  string from = trimSlash(p_url.getPath());
+  if (!pathExists(from)) {
+    m_msgStack.add("RESOURCE_NOT_FOUND", from.c_str());
+    return false;
   }
-  return ret;
+  if (!prepareTarget(targetURL, overwrite)) return false;
+  string to = trimSlash(targetURL.getPath());
+  // The rename and the property record move together under both locks.
+  TwoDirLock lock(parentOf(from), parentOf(to));
+  bool wasDir = isDirectory(from);
+  if (!renameNoReplace(from, to)) {
+    m_msgStack.add(errno == EEXIST ? "UNABLE_TO_COMPLETE_REQUEST"
+                                   : "UNABLE_TO_WRITE",
+                   errno == EEXIST ? "  ECCE cannot overwrite existing resource."
+                                   : to.c_str());
+    return false;
+  }
+  return wasDir || transferFileProps(from, to, false);
 }
 
 bool FileEDSI::copyResource(EcceURL& targetURL, EDSIOverwrite overwrite)
 {
-  bool ret = false;
   m_msgStack.clear();
-  string from = p_url.getPath();
-  string to = targetURL.getPath();
-  SDirectory dir(from.c_str());
-  if (dir.exists()) {
-    if (dir.is_dir()) {
-      ret = !SFile(to.c_str()).exists() && copyTree(from, to);
-    } else {
-      ErrMsg errs;
-      errs.flush();
-      SFile *newfile = SFile(dir.path()).copy(to.c_str());
-      delete newfile;
-      ret = (errs.count() == 0);
-      if (ret) ret = transferFileProps(from, to, true);
-    }
+  string from = trimSlash(p_url.getPath());
+  if (!pathExists(from)) {
+    m_msgStack.add("RESOURCE_NOT_FOUND", from.c_str());
+    return false;
   }
-  return ret;
+  if (!prepareTarget(targetURL, overwrite)) return false;
+  string to = trimSlash(targetURL.getPath());
+  if (isDirectory(from)) {
+    if (!copyTree(from, to)) {
+      m_msgStack.add("UNABLE_TO_WRITE", to.c_str());
+      return false;
+    }
+    return true;
+  }
+  TwoDirLock lock(parentOf(from), parentOf(to));
+  if (!copyFile(from, to)) {
+    m_msgStack.add("UNABLE_TO_WRITE", to.c_str());
+    return false;
+  }
+  return transferFileProps(from, to, true);
 }
 
 bool FileEDSI::removeResource()
@@ -959,7 +1081,7 @@ EcceURL *FileEDSI::makeCollection(const string& base, const string& pattern)
     SDirectory dir(p_url.getPath().c_str());
     if (dir.exists() && dir.is_dir()) {
       if (SDirectory::create(path.c_str(),0744)) {
-        ret = new EcceURL(path.c_str());
+        ret = new EcceURL(childURL(p_url, path));
       } else {
         m_msgStack.add("UNABLE_TO_WRITE",dir.path().c_str());
       }
@@ -992,7 +1114,7 @@ EcceURL *FileEDSI::makeDataSet(const string& base)
   // Check the parent directory exists
   if (dir.exists() && dir.is_dir()) {
     if (SFile::create(path.c_str(),0644)) {
-      ret = new EcceURL(path.c_str());
+      ret = new EcceURL(childURL(p_url, path));
     } else {
       m_msgStack.add("UNABLE_TO_WRITE",dir.path().c_str());
     }
@@ -1006,41 +1128,9 @@ EcceURL *FileEDSI::makeDataSet(const string& base)
   return ret;
 }
 
-/////////////////////////////////////////////////////////////////////////////
-// Description
-/////////////////////////////////////////////////////////////////////////////
 string FileEDSI::uniqueName(const string& guess, const string& pattern)
 {
-  string base = guess;
-  string ext;
-
-  // Strip of the file extension if there is one.
-  int pos = base.rfind('.');
-  if (pos != string::npos) {
-    ext = base.substr(pos);
-    base = base.substr(0,pos);
-  }
-
-  // Get all the items in the current collection.
-  // Maybe should use listCollection but this simpler
-  SDirectory dir(p_url.getPath().c_str());
-  if (dir.exists() && dir.is_dir()) {
-    vector<SFile> files = dir.get_files(false);
-    int cnt = files.size();
-    int num = 1;
-    char buf[128]; 
-    strcpy(buf,base.c_str());
-    for (int idx=0; idx<cnt; idx++) {
-      if (strcmp(buf,files[idx].pathtail().c_str()) == 0) {
-        string format = "%s"+pattern;
-        sprintf(buf,format.c_str(),base.c_str(),num++);
-        idx = 0;
-      }
-    }
-    base = buf;
-  }
-  base += ext;
-  return base;
+  return uniqueIn(trimSlash(p_url.getPath()), guess, pattern);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1060,9 +1150,12 @@ bool FileEDSI::isWritable()
 /////////////////////////////////////////////////////////////////////////////
 // Description
 /////////////////////////////////////////////////////////////////////////////
+// Nothing holds a resource locked between calls, as with DavEDSI; writes
+// are serialised per directory by DirLock instead.
 bool FileEDSI::isLocked(string& locker)
 {
-  m_msgStack.add("NOT_IMPLEMENTED","isLocked");
+  m_msgStack.clear();
+  locker = "";
   return false;
 }
 
@@ -1080,19 +1173,55 @@ bool FileEDSI::removeResources(const vector<EcceURL> urls) {
   return ret;
 }
 
-bool FileEDSI::efind(const string& key, const string& substring, 
+// Find by name: every resource below start whose path below start holds
+// substring.  DavEDSI matches the whole URL, which in a data folder would
+// match the folder's own name in every result.
+bool FileEDSI::efind(const string& key, const string& substring,
                      const EcceURL& start, vector<EcceURL>& matches)
 {
-  bool ret = false;
-  m_msgStack.add("NOT_IMPLEMENTED","putMetaData");
-  return ret;
+  m_msgStack.clear();
+  string root = trimSlash(start.getPath());
+  if (!isDirectory(root)) {
+    m_msgStack.add("RESOURCE_NOT_FOUND", root.c_str());
+    return false;
+  }
+  vector<string> all;
+  walk(root, all);
+  for (size_t i = 0; i < all.size(); i++) {
+    if (all[i].substr(root.size()).find(substring) != string::npos)
+      matches.push_back(EcceURL(childURL(start, all[i])));
+  }
+  return true;
 }
 
-bool FileEDSI::efindProp(const string& substring, const EcceURL& start, 
+// Calculations below start whose state is substring, ignoring case.
+bool FileEDSI::efindProp(const string& substring, const EcceURL& start,
                          vector<EcceURL>& matches)
 {
-  bool ret = false;
-  m_msgStack.add("NOT_IMPLEMENTED","putMetaData");
-  return ret;
+  m_msgStack.clear();
+  string root = trimSlash(start.getPath());
+  if (!isDirectory(root)) {
+    m_msgStack.add("RESOURCE_NOT_FOUND", root.c_str());
+    return false;
+  }
+  string ns = VDoc::getEcceNamespace();
+  string want = substring;
+  STLUtil::toUpper(want);
+  vector<string> all;
+  walk(root, all);
+  for (size_t i = 0; i < all.size(); i++) {
+    if (!isDirectory(all[i])) continue;
+    MetaStore store = loadStore(all[i]);
+    const PropMap *props = findProps(store, ".");
+    if (!props) continue;
+    PropMap::const_iterator rt = props->find(ns + ":resourcetype");
+    PropMap::const_iterator st = props->find(ns + ":state");
+    if (rt == props->end() || st == props->end() ||
+        ResourceUtils::stringToResourceType(rt->second.value) !=
+        ResourceDescriptor::RT_VIRTUAL_DOCUMENT) continue;
+    string val = st->second.value;
+    STLUtil::toUpper(val);
+    if (val == want) matches.push_back(EcceURL(childURL(start, all[i])));
+  }
+  return true;
 }
-
