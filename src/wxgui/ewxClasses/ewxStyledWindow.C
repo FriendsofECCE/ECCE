@@ -149,8 +149,19 @@ int ewxStyledWindow::getFontSizeStep()
 // old ones relative to its 10pt normal size.
 int ewxStyledWindow::getFontSize(int basesize)
 {
-  int theme = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT).GetPointSize();
-  return theme + (basesize - 10) + getFontSizeStep();
+  return getBaseFontSize() + (basesize - 10) + getFontSizeStep();
+}
+
+
+// ECCE's windows are dense: the theme's family at 10 pt, unless the
+// "Use the system font size" preference asks for the desktop's size.
+int ewxStyledWindow::getBaseFontSize()
+{
+  bool useSystem = false;
+  p_prefs->getBool(PrefLabels::USESYSTEMFONT, useSystem);
+  if (useSystem)
+    return wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT).GetPointSize();
+  return 10;
 }
 
 
@@ -295,13 +306,11 @@ void ewxStyledWindow::setStyles(wxWindow *win, bool recursive)
 }
 
 
-// Leaves the theme's font alone unless the Font Size preference moves it.
+// The theme's family at ECCE's base size plus the Font Size step.
 void ewxStyledWindow::applyFont(wxWindow *win)
 {
-   int step = getFontSizeStep();
-   if (step == 0) return;
    wxFont font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
-   font.SetPointSize(font.GetPointSize() + step);
+   font.SetPointSize(getBaseFontSize() + getFontSizeStep());
    win->SetFont(font);
 }
 

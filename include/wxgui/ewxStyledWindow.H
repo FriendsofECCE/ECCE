@@ -56,6 +56,7 @@ class ewxStyledWindow
       static void setReadonlyMarker(wxWindow *win, bool readonly);
       static int getFontSize(int basesize);
       static int getFontSizeStep();
+      static int getBaseFontSize();
       static void applyFont(wxWindow *win);
 
       static Preferences *p_prefs;

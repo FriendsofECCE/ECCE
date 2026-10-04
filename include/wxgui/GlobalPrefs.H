@@ -99,6 +99,7 @@ private:
   ewxChoice* p_dateFormat;
   ewxChoice* p_timeFormat;
   ewxChoice* p_unit;
+  ewxCheckBox* p_systemFont;
   ewxCheckBox* p_beepError;
   ewxCheckBox* p_beepWarn;
   ewxCheckBox* p_focus;
@@ -133,6 +134,7 @@ private:
   const static int p_timeFormatDefault = 0;
   // Default units family is DEFAULT_UNIT_FAMILY which is the 3rd one.
   const static int p_unitDefault = 2;
+  const static bool p_systemFontDefault = false;
   const static bool p_beepErrorDefault = true;
   const static bool p_beepWarnDefault = true;
   const static bool p_focusDefault = false;
