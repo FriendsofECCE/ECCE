@@ -91,7 +91,7 @@ GlobalPrefs::GlobalPrefs(wxWindow* parent)
   : p_publisher(NULL), p_book(NULL),
     p_fontSize(NULL), p_dateFormat(NULL),
     p_timeFormat(NULL), p_unit(NULL), p_systemFont(NULL), p_beepError(NULL), p_beepWarn(NULL),
-    p_focus(NULL), p_confirmExit(NULL), p_closeShells(NULL),
+    p_focus(NULL), p_quickTransp(NULL), p_confirmExit(NULL), p_closeShells(NULL),
     p_savePasswords(NULL), p_showBusy(NULL), p_alwaysOnTop(NULL),
     p_leftClickNewApp(NULL), p_orientation(NULL),
     p_localData(NULL), p_localFolder(NULL), p_openFolder(NULL),
@@ -247,6 +247,19 @@ void GlobalPrefs::createGeneralPage(wxWindow* page)
                              : &GlobalPrefs::OnGatewayChange, this);
   }
   outer->Add(box2, 0, wxGROW|wxALL, PAD);
+
+  wxStaticBoxSizer* box3 = new wxStaticBoxSizer(wxVERTICAL, page, _("3D viewer"));
+  p_quickTransp = new ewxCheckBox(box3->GetStaticBox(), wxID_ANY,
+      _("Quick transparency (faster, less accurate where orbital lobes overlap)"),
+      wxDefaultPosition, wxDefaultSize, wxCHK_2STATE);
+  p_quickTransp->SetToolTip(_("Applies the next time an orbital or isosurface "
+      "is shown in the Builder. Large scenes switch to this automatically."));
+  p_quickTransp->Bind(wxEVT_CHECKBOX, &GlobalPrefs::OnGlobalChange, this);
+  box3->Add(p_quickTransp, 0, wxALL, 3);
+  box3->Add(new ewxStaticText(box3->GetStaticBox(), wxID_ANY,
+      _("Applies the next time an orbital or isosurface is shown in the Builder.")),
+      0, wxLEFT|wxBOTTOM, PAD);
+  outer->Add(box3, 0, wxGROW|wxALL, PAD);
 
   page->SetSizer(outer);
 }
@@ -612,6 +625,7 @@ void GlobalPrefs::OnResetAll(wxCommandEvent& event)
     p_beepError->SetValue(p_beepErrorDefault);
     p_beepWarn->SetValue(p_beepWarnDefault);
     p_focus->SetValue(p_focusDefault);
+    p_quickTransp->SetValue(p_quickTranspDefault);
     OnGlobalChange(event);
   }
 
@@ -720,6 +734,7 @@ void GlobalPrefs::saveSettings()
   eccePref.setBool(PrefLabels::ERRORBEEP, p_beepError->GetValue());
   eccePref.setBool(PrefLabels::WARNINGBEEP, p_beepWarn->GetValue());
   eccePref.setBool(PrefLabels::FOCUSFOLLOWMOUSE, p_focus->GetValue());
+  eccePref.setBool(PrefLabels::QUICKTRANSPARENCY, p_quickTransp->GetValue());
   eccePref.setString(PrefLabels::EDITOR, programValue(p_editor));
   eccePref.setString(PrefLabels::TERMINAL, programValue(p_terminal));
   eccePref.setString(PrefLabels::BROWSER, programValue(p_browser));
@@ -787,6 +802,10 @@ void GlobalPrefs::restoreSettings()
   if (!eccePref.getBool(PrefLabels::FOCUSFOLLOWMOUSE, boolBuf))
     boolBuf = p_focusDefault;
   p_focus->SetValue(boolBuf);
+
+  if (!eccePref.getBool(PrefLabels::QUICKTRANSPARENCY, boolBuf))
+    boolBuf = p_quickTranspDefault;
+  p_quickTransp->SetValue(boolBuf);
 
   strBuf = "";
   eccePref.getString(PrefLabels::EDITOR, strBuf);
@@ -859,7 +878,8 @@ bool GlobalPrefs::isDefaultGlobalPref()
          p_unit->GetSelection() == p_unitDefault &&
          p_beepError->GetValue() == p_beepErrorDefault &&
          p_beepWarn->GetValue() == p_beepWarnDefault &&
-         p_focus->GetValue() == p_focusDefault;
+         p_focus->GetValue() == p_focusDefault &&
+         p_quickTransp->GetValue() == p_quickTranspDefault;
 }
 
 

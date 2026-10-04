@@ -17,8 +17,12 @@ sudo apt-get install -y \
   build-essential gfortran cmake ninja-build \
   libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
   libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
-  libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git libssh-dev
+  libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git libssh-dev \
+  python3 libcoin-dev libegl-dev
 ```
+
+On Rocky 9 (with EPEL and CRB enabled) and Fedora the Coin3D packages are
+`Coin4-devel` (runtime `Coin4`) and `mesa-libEGL-devel`.
 
 ## 2. Build
 
@@ -33,11 +37,19 @@ generator (Unix Makefiles on Debian) instead of Ninja, which still builds
 but via `make`, not the `ninja` command used everywhere else in this
 document.
 
-Optional (#166, experimental): `cmake -G Ninja -DECCE_USE_COIN=ON ..` builds
-the 3D viewer stack against the system Coin3D (`libcoin-dev` 4.0.x on Debian)
-instead of the vendored Open Inventor core; the default (OFF) is unchanged.
-Use a separate build directory (e.g. `build-coin`) so both configurations can
-be built from one tree, and have CI build both while the two coexist.
+The 3D viewer is built against the system Coin3D (`libcoin-dev` 4.0.x on
+Debian; `ECCE_USE_COIN=ON` is the default, #166). `-DECCE_USE_COIN=OFF` builds
+the vendored Open Inventor core in `src/inv` instead; it stays as a fallback
+for one release and needs no Coin3D. Use a separate build directory (e.g.
+`build-oiv`) for it: switching the option in one tree rebuilds everything.
+CI builds both.
+
+Orbital and isosurface lobes are drawn with accurate (depth-peeled)
+transparency, which needs an alpha buffer on the canvas; a scene whose frames
+take more than 100 ms switches itself to the stippled quick mode, with a note
+in the status bar. `ECCE_TRANSPARENCY_FALLBACK_MS=<ms>` moves that threshold
+(0 turns the switch off) and `ECCE_QUICK_TRANSPARENCY=1` forces quick mode, as
+does the "Quick transparency" preference.
 
 This produces the 19 GUI apps (`gateway`, `organizer`, `builder`,
 `pertable`, ...) plus the CLI apps, all statically linked against the
@@ -74,7 +86,10 @@ mosquitto` without affecting ECCE.
 
 On RHEL, Rocky and Fedora the RPM requires `mosquitto` (in EPEL on RHEL
 and Rocky: `sudo dnf install epel-release`) and `apr-util`; the server
-RPM also requires `httpd` and `httpd-tools`.
+RPM also requires `httpd` and `httpd-tools`. Both also require `Coin4`
+(EPEL 9 has 4.0.10, Fedora 4.0.10 and 4.0.7), so the Rocky and Fedora CI jobs
+build the default Coin viewer (not yet run in CI); the RPMs have not been installed or run on
+either distribution.
 
 The site configuration under `/opt/ecce/siteconfig` (the machine list,
 queues, `DataServers`, …) is marked as configuration from 8.17.0, so an

@@ -103,6 +103,7 @@ private:
   ewxCheckBox* p_beepError;
   ewxCheckBox* p_beepWarn;
   ewxCheckBox* p_focus;
+  ewxCheckBox* p_quickTransp;
   ewxCheckBox* p_confirmExit;
   ewxCheckBox* p_closeShells;
   ewxCheckBox* p_savePasswords;
@@ -138,6 +139,7 @@ private:
   const static bool p_beepErrorDefault = true;
   const static bool p_beepWarnDefault = true;
   const static bool p_focusDefault = false;
+  const static bool p_quickTranspDefault = false;
   const static bool p_confirmExitDefault = true;
   const static bool p_showBusyDefault = true;
   const static bool p_alwaysOnTopDefault = false;
