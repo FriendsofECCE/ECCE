@@ -199,6 +199,37 @@ string tailOf(const string& path)
   return pos == string::npos ? p : p.substr(pos+1);
 }
 
+// Lexical cleanup so "users/me/../x" cannot pass for being in the home.
+string cleanPath(const string& path)
+{
+  vector<string> parts;
+  size_t i = 0;
+  while (i <= path.size()) {
+    size_t j = path.find('/', i);
+    if (j == string::npos) j = path.size();
+    string c = path.substr(i, j - i);
+    if (c == "..") { if (!parts.empty()) parts.pop_back(); }
+    else if (!c.empty() && c != ".") parts.push_back(c);
+    i = j + 1;
+  }
+  string out;
+  for (size_t k = 0; k < parts.size(); k++) out += "/" + parts[k];
+  return out.empty() ? "/" : out;
+}
+
+// In local mode only the user's own home inside the data folder may be
+// written, as a data server refuses writes to users/ and the root.  Paths
+// outside the data folder are not this rule's business.
+bool outsideHome(const string& path)
+{
+  string root = LocalData::dir();
+  if (root.empty()) return false;
+  string p = cleanPath(path), r = cleanPath(root);
+  string h = cleanPath(LocalData::userHome());
+  if (p != r && p.compare(0, r.size() + 1, r + "/") != 0) return false;
+  return !(p == h || p.compare(0, h.size() + 1, h + "/") == 0);
+}
+
 // Which sidecar, and which record inside it, describes this path.
 void locate(const string& path, string& dir, string& key)
 {
@@ -535,6 +566,15 @@ string childURL(const EcceURL& parent, const string& path)
 
 } // namespace
 
+// The error a data server's 403 becomes (EcceDAVStatus), so callers show
+// their usual message.
+bool FileEDSI::forbidden(const string& path)
+{
+  if (!outsideHome(path)) return false;
+  m_msgStack.add("NOT_PRIVLEDGES", path.c_str());
+  return true;
+}
+
 
 // The built-in file-system properties of a path, with the stored ones
 // (if any) laid over them.
@@ -796,6 +836,7 @@ bool FileEDSI::putDataSet(const char *putStream)
 {
   bool ret = false;
   m_msgStack.clear();
+  if (forbidden(p_url.getPath())) return false;
 
   SFile file(p_url.getPath().c_str());
   ofstream ofs(file.path().c_str());
@@ -813,6 +854,7 @@ bool FileEDSI::putDataSet(istream& putStream)
 {
   bool ret = false;
   m_msgStack.clear();
+  if (forbidden(p_url.getPath())) return false;
 
   SFile file(p_url.getPath().c_str());
   ofstream ofs(file.path().c_str());
@@ -839,6 +881,7 @@ bool FileEDSI::putDataSet(istream& putStream)
 bool FileEDSI::appendDataSet(const char* putStream, int bytesToOverwrite)
 {
   m_msgStack.clear();
+  if (forbidden(p_url.getPath())) return false;
   string path = p_url.getPath();
   if (!putStream) putStream = "";
   if (!appendBytes(path, putStream, bytesToOverwrite)) {
@@ -851,6 +894,7 @@ bool FileEDSI::appendDataSet(const char* putStream, int bytesToOverwrite)
 bool FileEDSI::appendDataSet(istream& putStream, int bytesToOverwrite)
 {
   m_msgStack.clear();
+  if (forbidden(p_url.getPath())) return false;
   string path = p_url.getPath();
   std::ostringstream ss;
   ss << putStream.rdbuf();
@@ -912,6 +956,7 @@ bool FileEDSI::getMetaData(const vector<MetaDataRequest>& requests,
 bool FileEDSI::putMetaData(const vector<MetaDataResult>& results)
 {
   m_msgStack.clear();
+  if (forbidden(p_url.getPath())) return false;
   string path = p_url.getPath();
   if (!SFile(path.c_str()).exists()) {
     m_msgStack.add("RESOURCE_NOT_FOUND",path.c_str());
@@ -937,6 +982,7 @@ bool FileEDSI::putMetaData(const vector<MetaDataResult>& results)
 bool FileEDSI::removeMetaData(const vector<MetaDataRequest>& requests)
 {
   m_msgStack.clear();
+  if (forbidden(p_url.getPath())) return false;
   string path = p_url.getPath();
   if (!SFile(path.c_str()).exists()) {
     m_msgStack.add("RESOURCE_NOT_FOUND",path.c_str());
@@ -994,6 +1040,8 @@ bool FileEDSI::prepareTarget(EcceURL& targetURL, EDSIOverwrite overwrite)
 bool FileEDSI::moveResource(EcceURL& targetURL, EDSIOverwrite overwrite)
 {
   m_msgStack.clear();
+  if (forbidden(p_url.getPath())) return false;
+  if (forbidden(targetURL.getPath())) return false;
   string from = trimSlash(p_url.getPath());
   if (!pathExists(from)) {
     m_msgStack.add("RESOURCE_NOT_FOUND", from.c_str());
@@ -1017,6 +1065,7 @@ bool FileEDSI::moveResource(EcceURL& targetURL, EDSIOverwrite overwrite)
 bool FileEDSI::copyResource(EcceURL& targetURL, EDSIOverwrite overwrite)
 {
   m_msgStack.clear();
+  if (forbidden(targetURL.getPath())) return false;
   string from = trimSlash(p_url.getPath());
   if (!pathExists(from)) {
     m_msgStack.add("RESOURCE_NOT_FOUND", from.c_str());
@@ -1049,6 +1098,7 @@ bool FileEDSI::removeHelper(const EcceURL& url)
 {
   bool ret = false;
   string path = url.getPath();
+  if (forbidden(path)) return false;
   SDirectory dir(path.c_str());
   if (dir.exists()) {
     bool wasDir = dir.is_dir();
@@ -1075,6 +1125,7 @@ EcceURL *FileEDSI::makeCollection(const string& base, const string& pattern)
 {
   EcceURL *ret = NULL;
   m_msgStack.clear();
+  if (forbidden(p_url.getPath() + "/" + base)) return NULL;
 
   // At a minimum pattern must include int
   if (pattern.find("%d") != string::npos) {
@@ -1108,6 +1159,7 @@ EcceURL *FileEDSI::makeDataSet(const string& base)
 {
   EcceURL *ret = NULL;
   m_msgStack.clear();
+  if (forbidden(p_url.getPath() + "/" + base)) return NULL;
 
   // Get a unique name
   string newBase = uniqueName(base);
