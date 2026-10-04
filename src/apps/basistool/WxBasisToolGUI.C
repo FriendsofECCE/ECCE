@@ -622,7 +622,7 @@ void WxBasisToolGUI::CreateControls()
     itemBoxSizer94->Add(itemCheckBox99, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 3);
 
     ewxStaticLine* itemStaticLine100 = new ewxStaticLine( itemPanel93, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
-    itemBoxSizer94->Add(itemStaticLine100, 1, wxGROW, 3);
+    itemBoxSizer94->Add(itemStaticLine100, 0, wxGROW, 3);
 
     wxGridSizer* itemGridSizer101 = new wxGridSizer(3, 2, 0, 0);
     itemBoxSizer94->Add(itemGridSizer101, 0, wxGROW, 3);
