@@ -257,7 +257,6 @@ conf_listeners() {
   [ "$(R server grep -c '^listener 8088' $c)" = 1 ] && R server grep -qx 'listener 8088' $c ||
     { R server grep '^listener 8088' $c | head -3; return 1; }
 }
-get_curl() { R "$1" bash -c 'apt-get -qq update >/dev/null 2>&1; DEBIAN_FRONTEND=noninteractive apt-get -qq -y install curl >/dev/null 2>&1'; }
 copied() { R "$1" ecce-remote-setup server | grep -q "Copied the server's machine list"; }
 no_curl_warning() { local o; o="$(R alice ecce-remote-setup server 2>&1)"; ! grep -q 'curl not found' <<<"$o" || { echo "$o" | grep -A1 curl; return 1; }; }
 
@@ -269,7 +268,7 @@ mode2() {
   # A fresh dedicated server account, the documented steps in order.
   check "[mode2] ecce-remote-setup --server all on a fresh server account" \
     A server ecce ecce-remote-setup --server all
-  A server ecce mkdir -p /home/ecce/.ECCE /home/ecce/work /home/ecce/empty
+  A server ecce mkdir -p /home/ecce/work
   A server ecce touch /home/ecce/work/x
   A server ecce ecce-remote-setup --server all >/dev/null 2>&1
   check "[mode2] ecce-dataserver-start" A server ecce ecce-dataserver-start
@@ -279,23 +278,13 @@ mode2() {
   out="$(WD=/home/ecce/work A server ecce ecce-gateway-start 2>&1)"
   check "[mode2] ecce-gateway-start finds mosquitto on a Debian user's PATH (it lives in /usr/sbin)" \
     bash -c "! grep -q 'no mosquitto broker installed' <<<\"\$1\"" _ "$out"
-  if grep -q 'no mosquitto broker installed' <<<"$out"; then
-    APATH="$DPATH:/usr/sbin"
-    WD=/home/ecce/work A server ecce ecce-gateway-start >/dev/null 2>&1
-  fi
   check "[mode2] with listen 'all' the broker's config has ONE listener on 8088 (the '*' is not glob-expanded)" conf_listeners
-  if ! conf_listeners; then
-    A server ecce ecce-gateway-stop >/dev/null 2>&1
-    WD=/home/ecce/empty A server ecce ecce-gateway-start >/dev/null 2>&1
-  fi
-  APATH=""
   check "[mode2] the server's broker answers on 8088 from alice's host" wait_for R alice nc -z server 8088
   check "[mode2] the data server answers on 8096 from bob's host" wait_for R bob nc -z server 8096
 
   # Clients, as the docs say: root, ecce-remote-setup <server>.
   check "[mode2] ecce-remote-setup <server> copies the server's machine list on a stock client (needs curl)" no_curl_warning
   for u in alice bob; do
-    get_curl "$u"
     check "[mode2] $u's host: ecce-remote-setup server (with curl installed)" copied "$u"
   done
   start_sessions mode2
@@ -329,16 +318,8 @@ mode3() {
   R server systemctl enable --now ecce-broker >/dev/null 2>&1
   sleep 3
   check "[mode3] ecce-broker.service is active and listening on 8088 (as shipped, non-loopback declaration)" broker_up3
-  if ! broker_up3; then
-    # Same cause as mode 2's glob: systemd starts it in /, which is not empty.
-    R server bash -c 'mkdir -p /srv/empty /etc/systemd/system/ecce-broker.service.d &&
-      printf "[Service]\nWorkingDirectory=/srv/empty\n" > /etc/systemd/system/ecce-broker.service.d/cwd.conf &&
-      systemctl daemon-reload && systemctl restart ecce-broker'
-    sleep 3
-  fi
   check "[mode3] the broker answers on 8088 from alice's host" wait_for R alice nc -z server 8088
   for u in alice bob; do
-    get_curl "$u"
     check "[mode3] $u's host: ecce-remote-setup server; ecce-broker-setup server:8088" client3 "$u"
   done
   start_sessions mode3
