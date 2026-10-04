@@ -196,6 +196,7 @@ case "$LISTEN_SETTING" in
     ;;
   *)
     listen_loopback
+    set -f   # a '*' in the setting must not expand against the cwd
     for addr in $LISTEN_SETTING; do
       # This text is written into httpd.conf. Accept address material only,
       # so a stray setting cannot inject configuration.
@@ -214,6 +215,7 @@ case "$LISTEN_SETTING" in
         *)     add_listen "$addr:$PORT" ;;
       esac
     done
+    set +f
     ;;
 esac
 
