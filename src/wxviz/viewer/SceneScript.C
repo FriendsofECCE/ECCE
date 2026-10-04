@@ -44,10 +44,12 @@
 #include "inv/events/SoLocation2Event.H"
 #include "inv/events/SoMouseButtonEvent.H"
 #include "inv/nodes/SoCamera.H"
-#include "inv/actions/SoRayPickAction.H"
-#include "inv/SoPickedPoint.H"
-#include "inv/ChemKit/ChemDetail.H"
 #include "viz/TwoDMoveCmd.H"
+#include "dsm/ChemistryTask.H"
+#include "dsm/EDSIFactory.H"
+#include "util/SFile.H"
+#include "util/TempStorage.H"
+#include "wxviz/VizRender.H"
 
 #include "wxviz/MotionListener.H"
 #include "wxviz/SceneScript.H"
@@ -277,6 +279,23 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     return pickAtoms(w[1], vector<string>(w.begin() + 2, w.end()));
   } else if (c == "drag" && w.size() == 5) {
     return dragAtom(w[1], atoi(w[2].c_str()), atoi(w[3].c_str()), atoi(w[4].c_str()));
+  } else if (c == "vizthumb" && w.size() == 4) {
+    //  vizthumbnail's own entry point: VizRender::thumbnail(url, ...) builds
+    //  the container from the stored calculation, renders offscreen, stores
+    //  the JPEG on the task; read it back from the data server.
+    if (!p_calc) return fail("vizthumb: needs a calculation");
+    string url = p_calc->getURL().toString();
+    int tw = atoi(w[2].c_str()), th = atoi(w[3].c_str());
+    if (!VizRender::thumbnail(url, tw, th, 0.0, 0.0, 0.0)) {
+      FILE *u = fopen((p_outdir + "/" + w[1] + ".UNAVAILABLE").c_str(), "w");
+      if (u) { fprintf(u, "%s\n", VizRender::msg().c_str()); fclose(u); }
+      return true;
+    }
+    ChemistryTask *task = dynamic_cast<ChemistryTask *>(EDSIFactory::getResource(url));
+    SFile *tmp = TempStorage::getTempFile();
+    if (!task || !task->getThumbnail(tmp)) return fail("vizthumb: thumbnail not stored");
+    string cmd = "cp '" + tmp->path() + "' '" + p_outdir + "/" + w[1] + ".jpg'";
+    if (system(cmd.c_str()) != 0) return fail("vizthumb: copy failed");
   } else if (c == "redraws" && w.size() >= 3) {
     return countRedraws(w[1], vector<string>(w.begin() + 2, w.end()));
   } else if (c == "viewall") {
@@ -427,22 +446,6 @@ bool SceneScript::pickAtoms(const string& name, const vector<string>& atoms)
     int a = atoi(atoms[i].c_str()) - 1;
     SbVec2s pos = atomPixel(p_viewer, frag, a);
     frag->m_atomHighLight.clear();
-    if (getenv("SCENE_DEBUG")) {
-      SoRayPickAction rp(p_viewer->getViewportRegion());
-      rp.setPoint(pos);
-      rp.setPickAll(true);
-      rp.apply(area->getSceneManager()->getSceneGraph());
-      const SoPickedPointList &pl = rp.getPickedPointList();
-      fprintf(stderr, "raypick (%d,%d): %d hits\n", pos[0], pos[1], (int)pl.getLength());
-      for (int h = 0; h < pl.getLength(); h++) {
-        const SoPickedPoint *pp = pl[h];
-        const SoDetail *d = pp->getDetail();
-        fprintf(stderr, "  tail %s detail %s", pp->getPath()->getTail()->getTypeId().getName().getString(), d ? d->getTypeId().getName().getString() : "none");
-        const ChemDetail *cd = dynamic_cast<const ChemDetail *>(d);
-        if (cd) fprintf(stderr, " atom %d", (int)cd->getAtomIndex());
-        fprintf(stderr, "\n");
-      }
-    }
     sendMouse(area->getSceneManager(), true, pos, t);
     sendMouse(area->getSceneManager(), false, pos, t + 0.05);
     t += 1.0;

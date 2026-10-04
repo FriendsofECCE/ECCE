@@ -136,6 +136,9 @@ def cmdRender(a):
 
 def readPpm(path):
     import numpy as np
+    if path.endswith(".jpg"):          # vizthumb: the stored thumbnail
+        from PIL import Image
+        return np.array(Image.open(path).convert("RGB"))
     with open(path, "rb") as f:
         data = f.read()
     parts = data.split(None, 4)
@@ -144,29 +147,35 @@ def readPpm(path):
     return pix.reshape(h, w, 3)
 
 
-def compare(v, c, tol):
+def compare(v, c, tol, covtol=2):
     import numpy as np
     v = v.astype(int)
     c = c.astype(int)
     # the background is whatever the corner pixel is, per image
-    covV = (np.abs(v - v[0, 0]).max(axis=2) > 2)
-    covC = (np.abs(c - c[0, 0]).max(axis=2) > 2)
+    covV = (np.abs(v - v[0, 0]).max(axis=2) > covtol)
+    covC = (np.abs(c - c[0, 0]).max(axis=2) > covtol)
     both = covV & covC
     raw = np.abs(v - c)
     # Cast (#83): the vendored build adds a constant to lit surfaces.  Take
-    # it per channel as the median difference over pixels both builds cover
-    # and the vendored one has not clipped, so real differences stay.
+    # it per channel as the commonest non-zero difference over pixels both
+    # builds cover and the vendored one has not clipped (a median would be
+    # 0 whenever most of the image is stippled or unlit).  A pixel counts as
+    # matching if either the raw or the cast-removed difference is small, so
+    # surfaces that carry no cast are not penalised.
     off = [0, 0, 0]
     for k in range(3):
         ok = both & (v[:, :, k] < 250)
-        if ok.any():
-            off[k] = int(np.median((v[:, :, k] - c[:, :, k])[ok]))
+        d = (v[:, :, k] - c[:, :, k])[ok]
+        d = d[(d != 0) & (np.abs(d) <= 80)]
+        if d.size > 0.02 * max(1, int(ok.sum())):
+            off[k] = int(np.bincount(d + 80).argmax() - 80)
     vc = v.copy()
+    cor = np.abs(v - c)
     for k in range(3):
+        alt = np.abs(v[:, :, k] - off[k] - c[:, :, k])
+        cor[:, :, k] = np.where(covV, np.minimum(cor[:, :, k], alt), cor[:, :, k])
         vc[:, :, k] = np.where(covV, np.clip(v[:, :, k] - off[k], 0, 255), v[:, :, k])
-    cor = np.abs(vc - c)
-    for k in range(3):                      # clipped: offset not recoverable
-        cor[:, :, k][covV & (v[:, :, k] >= 250)] = 0
+        cor[:, :, k][covV & (v[:, :, k] >= 250)] = 0   # clipped: not recoverable
     total = v.shape[0] * v.shape[1]
     m = {
         "total_px": total,
@@ -220,11 +229,12 @@ def cmdDiff(a):
     cdir = os.path.join(a.raw_dir, "coin")
     names = sorted({f.rsplit(".", 1)[0] for d in (vdir, cdir)
                     for f in os.listdir(d)
-                    if f.endswith((".ppm", ".UNAVAILABLE"))})
+                    if f.endswith((".ppm", ".jpg", ".UNAVAILABLE"))})
     os.makedirs(a.out_dir, exist_ok=True)
     rows, results, missing = [], {}, []
     for n in names:
-        pv, pc = os.path.join(vdir, n + ".ppm"), os.path.join(cdir, n + ".ppm")
+        ext = ".jpg" if n.endswith("vizthumb") else ".ppm"
+        pv, pc = os.path.join(vdir, n + ext), os.path.join(cdir, n + ext)
         if not (os.path.exists(pv) and os.path.exists(pc)):
             who = "vendored" if not os.path.exists(pv) else "coin"
             why = ("renderer unavailable (offscreen)"
@@ -233,7 +243,7 @@ def cmdDiff(a):
             missing.append("%s: %s on %s" % (n, why, who))
             continue
         v, c = readPpm(pv), readPpm(pc)
-        m, vc, cor, xor = compare(v, c, a.tol)
+        m, vc, cor, xor = compare(v, c, a.tol, 24 if ext == ".jpg" else 2)  # JPEG noise
         d = os.path.join(a.out_dir, n)
         os.makedirs(d, exist_ok=True)
         Image.fromarray(v).save(os.path.join(d, "vendored.png"))
