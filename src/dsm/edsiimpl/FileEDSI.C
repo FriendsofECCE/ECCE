@@ -720,7 +720,7 @@ bool FileEDSI::listCollection(const vector<MetaDataRequest>& requests,
       // Dot files include the sidecar itself.
       if (files[idx].filename().compare(0, 1, ".") == 0) continue;
       ResourceMetaDataResult rmdr;
-      rmdr.url = files[idx].path().c_str();
+      rmdr.url = childURL(p_url, files[idx].path());
       rmdr.resourcetype = ResourceDescriptor::RT_COLLECTION;
       if (files[idx].is_regular_file())
         rmdr.resourcetype = ResourceDescriptor::RT_DOCUMENT;
@@ -771,7 +771,7 @@ bool FileEDSI::listCollection(vector<ResourceResult>& result)
     for (int idx=0; idx<cnt; idx++) {
       if (strncmp(files[idx].filename().c_str(), ".", 1) != 0) {
         ResourceResult res;
-        res.url = EcceURL(files[idx].path());
+        res.url = EcceURL(childURL(p_url, files[idx].path()));
         res.resourcetype = ResourceDescriptor::RT_COLLECTION;
         res.contenttype = "httpd/unix-directory";
         if (files[idx].is_regular_file()) {
