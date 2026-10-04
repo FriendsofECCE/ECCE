@@ -186,6 +186,32 @@ def check_urls(state, env):
         print("%s help %s: %s" % ("PASS" if good else "FAIL", label,
                                   "" if good else "%r, want %r" % (lines, want)))
         ok = ok and good
+
+    # The built help tree: in local mode every help.urls key must open a
+    # file that exists.
+    built = os.path.join(BUILD, "ecce-help-extracted", "EcceHelp")
+    if os.path.isdir(built):
+        real = os.path.join(state, "helpreal")
+        os.makedirs(os.path.join(real, "client", "WebHelp"))
+        os.symlink(built, os.path.join(real, "client", "WebHelp", "EcceHelp"))
+        os.symlink(os.path.join(REPO, "data", "client", "config"),
+                   os.path.join(real, "client", "config"))
+        keys = []
+        with open(os.path.join(REPO, "data", "client", "config", "help.urls")) as h:
+            for l in h:
+                if l.strip() and not l.startswith("#") and ":" in l:
+                    keys.append(l.split(":", 1)[0].strip())
+        _, out = run_url(new, env, "help", *keys, ECCE_DATA=real,
+                         ECCE_HELP="http://h:8096/", ECCE_LOCAL_DATA=root)
+        urls = [l.rsplit(" ", 1) for l in out.splitlines()]
+        missing = ["%s %s" % (k, u) for k, u in urls
+                   if not u.startswith("file://")
+                   or not os.path.isfile(u[7:].split("#")[0])]
+        good = not missing and len(keys) > 100
+        print("%s help local, built tree: %d keys, %d not a file%s" % (
+                  "PASS" if good else "FAIL", len(keys), len(missing),
+                  "" if not missing else ": " + "; ".join(missing)))
+        ok = ok and good
     return ok
 
 
