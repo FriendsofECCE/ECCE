@@ -37,6 +37,17 @@ class CoulombIntegrals
      */
     static void boys(int n, double T, vector<double>& values);
 
+    /** The same into a caller's buffer of n+1 doubles; no allocation. */
+    static void boys(int n, double T, double* values);
+
+    /**
+     * Hermite expansion coefficient E^{ij}_t for one Cartesian
+     * direction.  Independent of where the potential is wanted, which
+     * is why a grid loop computes these once (EspField::prepare).
+     */
+    static double hermiteE(int i, int j, int t, double dist,
+                           double a, double b);
+
     /**
      * The potential at C from the charge distribution of one primitive
      * Cartesian Gaussian pair.

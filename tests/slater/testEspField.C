@@ -173,6 +173,38 @@ int main() {
     check("a negligible off-diagonal is dropped", (double)pairs.size(), 2.0, 1e-12);
   }
 
+  //  ---- the prepared evaluation must agree with the plain one ----
+  //  Includes p functions so the Hermite recursion is exercised, and
+  //  the same shell centre twice so term merging is.
+  {
+    vector<EspBasisFunction> b;
+    b.push_back(s1(alpha, 0, 0, 0));
+    b.push_back(s1(0.4, 0.3, -0.2, 0.9));
+    for (int axis = 0; axis < 3; axis++) {
+      EspBasisFunction f = s1(0.7, 0.5, 0.1, -0.4);
+      f.powerX[0] = axis == 0; f.powerY[0] = axis == 1; f.powerZ[0] = axis == 2;
+      f.contraction[0] *= 2.0*sqrt(0.7);
+      b.push_back(f);
+    }
+    const size_t n = b.size();
+    vector<double> P(n*n);
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < n; j++) P[i*n+j] = 0.3/(1.0 + i + j) - 0.05*(i == j);
+    EspField::Pairs pairs;
+    EspField::selectPairs(b, P, 1e-12, pairs);
+    EspField::Prepared prep;
+    EspField::prepare(b, pairs, prep);
+    double worst = 0.0;
+    for (int k = 0; k < 40; k++) {
+      double pt[3] = { -3.0 + 0.17*k, 0.4 - 0.05*k, 0.9*sin(k) };
+      double a = EspField::electronicPotential(b, pairs, pt);
+      double c = EspField::electronicPotential(prep, pt);
+      worst = fmax(worst, fabs(a - c));
+    }
+    check("prepared evaluation matches the plain one (max |diff|)",
+          worst, 0.0, 1e-11);
+  }
+
   printf("\n  %s\n", bad ? "FAIL" : "PASS");
   return bad ? 1 : 0;
 }
