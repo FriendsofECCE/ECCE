@@ -29,6 +29,7 @@ public:
         virtual ~BrowserHelp();
 
         string URL(const string& key) const;
+        string localURL(const string& entry) const;
 
         void showHelpPage(const string& key) const;
         void showFeedbackPage(void) const;

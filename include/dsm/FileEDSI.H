@@ -81,6 +81,7 @@ class FileEDSI : public EDSI
 
    protected:
      bool removeHelper(const EcceURL& url);
+     bool prepareTarget(EcceURL& targetURL, EDSIOverwrite overwrite);
      AuthEventListener *p_authListener;
      ProgressEventListener *p_progressListener;
 };

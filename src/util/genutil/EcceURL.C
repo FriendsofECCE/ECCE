@@ -6,6 +6,7 @@
 #include "util/StringTokenizer.H"
 
 #include "util/EcceURL.H"
+#include "util/LocalData.H"
 #include "util/EcceMap.H"
 
 using std::find;
@@ -514,14 +515,9 @@ bool EcceURL::isLocal() const
 }
 
 
-// Local-data mode (ECCE_LOCAL_DATA=<dir>, see EDSIServerCentral): the
-// directory a file:// session stores everything under, "" when unset.
 static string localDataRoot()
 {
-  const char *dir = getenv("ECCE_LOCAL_DATA");
-  string ret = dir ? dir : "";
-  while (ret.size() > 1 && ret[ret.size()-1] == '/') ret.erase(ret.size()-1);
-  return ret;
+  return LocalData::dir();
 }
 
 bool EcceURL::isSystemFolder() const
@@ -592,6 +588,15 @@ bool EcceURL::isEcceUserHome() const
  */
 string EcceURL::getEcceUserName() const
 {
+  if (p_protocol == "file") {
+    // A local data folder has a data server's layout, <dir>/users/<user>.
+    string users = localDataRoot();
+    if (users.empty()) return "";
+    users += "/users/";
+    if (p_file.compare(0, users.size(), users) != 0) return "";
+    return p_file.substr(users.size(),
+                         p_file.find('/', users.size()) - users.size());
+  }
   if (p_file.length() <= 12)
     return "";
   if (p_file.substr(0, 12) != "/Ecce/users/")

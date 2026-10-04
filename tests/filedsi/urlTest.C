@@ -2,6 +2,7 @@
  * urlTest url              print what EcceURL answers for a fixed set of URLs
  * urlTest server <dir>     EDSIServerCentral in local mode (ECCE_LOCAL_DATA)
  * urlTest server-default   EDSIServerCentral reading siteconfig/DataServers
+ * urlTest help KEY...       the URL each help key opens
  *
  * "url" prints "<url> <function> <result>" lines; run_tests.py runs it
  * against the libraries as they were before the file:// work and as they
@@ -13,6 +14,7 @@
 using namespace std;
 
 #include "util/EcceURL.H"
+#include "util/BrowserHelp.H"
 #include "dsm/EDSIServerCentral.H"
 #include "dsm/EDSIGaussianBasisSetLibrary.H"
 #include "dsm/EDSI.H"
@@ -105,6 +107,11 @@ int main(int argc, char **argv)
     if (in) { char c; while (in->get(c)) body += c; delete in; }
     check(!body.empty(), "read a structure file from the library", firstFile);
     delete e;
+  } else if (mode == "help") {
+    BrowserHelp help;
+    for (int i = 2; i < argc; i++)
+      cout << argv[i] << " " << help.URL(argv[i]) << endl;
+    return 0;
   } else if (mode == "server-default") {
     EDSIServerCentral central;
     EcceURL home = central.getDefaultUserHome();

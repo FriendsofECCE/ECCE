@@ -57,6 +57,11 @@ private:
   void createProgramsPage(wxWindow* page);
   void createStatesPage(wxWindow* page);
   void createGatewayPage(wxWindow* page);
+  void createDataPage(wxWindow* page);
+  void updateDataPage();
+  void OnLocalDataToggle(wxCommandEvent& event);
+  void OnChangeDataFolder(wxCommandEvent& event);
+  void OnOpenDataFolder(wxCommandEvent& event);
   ProgramRow makeProgramRow(wxWindow* page, wxSizer* sizer,
                             const wxString& label,
                             const vector<string>& labels,
@@ -107,6 +112,12 @@ private:
   ewxCheckBox* p_alwaysOnTop;
   ewxCheckBox* p_leftClickNewApp;
   ewxChoice* p_orientation;
+
+  // Data folder page (#216); saved at once, never touched by Reset All.
+  ewxCheckBox* p_localData;
+  ewxTextCtrl* p_localFolder;
+  ewxButton* p_openFolder;
+  ewxStaticText* p_localNote;
 
   ProgramRow p_editor;
   ProgramRow p_terminal;

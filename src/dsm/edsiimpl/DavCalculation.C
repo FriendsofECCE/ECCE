@@ -2195,7 +2195,9 @@ bool DavCalculation::move(EcceURL& target)
     ret = Resource::move(target);
   }
 
-  setURL(target);
+  // A refused move (the name is taken) must leave this calculation where
+  // it is, not pointing at the one that holds the name.
+  if (ret) setURL(target);
   return ret;
 }
 

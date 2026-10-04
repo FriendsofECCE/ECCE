@@ -12,6 +12,7 @@
 using namespace std;
 
 #include "util/TempStorage.H"
+#include "util/LocalData.H"
 #include "util/Ecce.H"
 #include "util/SDirectory.H"
 #include "util/SFile.H"
@@ -205,15 +206,11 @@ string TempStorage::getJobRunDirectoryPath(const EcceURL& url)
    string fluff = "/Ecce/users/";
    fluff += Ecce::serverUser();
    fluff += "/";
-   // In local mode (ECCE_LOCAL_DATA) the user's folder plays the part of
-   // /Ecce/users/<user>, so a run directory has the same layout as with
-   // a data server.
-   const char *local = getenv("ECCE_LOCAL_DATA");
-   string localHome = local ? string(local) : "";
-   while (localHome.size() > 1 && localHome[localHome.size()-1] == '/')
-      localHome.erase(localHome.size()-1);
-   localHome += string("/users/") + Ecce::serverUser() + "/";
-   if (local && *local && url.isLocal() && fullFile.find(localHome) == 0)
+   // In local mode the user's folder plays the part of /Ecce/users/<user>,
+   // so a run directory has the same layout as with a data server.
+   string localHome = LocalData::userHome();
+   if (!localHome.empty()) localHome += "/";
+   if (!localHome.empty() && url.isLocal() && fullFile.find(localHome) == 0)
       fullFile = fullFile.substr(localHome.length()-1);
    else if (fullFile.find(fluff) == 0)
       fullFile = fullFile.substr(fluff.length()-1);
