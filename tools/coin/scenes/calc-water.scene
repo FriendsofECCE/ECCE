@@ -1,0 +1,15 @@
+# Calculation-backed scenes, run inside the Builder on the tests/apps
+# fixture calc-water-vib (Gaussian-16 water, STO-3G, opt+freq).
+style Ball And Stick
+viewall
+snap calc-water-base
+mo 5 0.05 40
+snap calc-water-mo5-homo
+clear
+nmvect 2
+snap calc-water-nmode-vectors
+nmstep 2 3
+snap calc-water-nmode-frame3
+gtstep 1
+snap calc-water-trace-step1
+thumb calc-water-thumb

@@ -108,6 +108,8 @@ SoWxRenderArea::SoWxRenderArea(wxWindow * parent,
   p_windowResized = false;
   p_inPaint = false;
   p_redrawPending = false;
+  p_frameCB = 0;
+  p_frameCBData = 0;
 
   // wx3.x wxGLCanvas no longer implicitly creates/owns a GL context (that
   // was wx2.8 behavior) - we must create and manage one explicitly now.
@@ -842,6 +844,7 @@ void SoWxRenderArea::redraw()
   }
   
   actualRedraw();
+  if (p_frameCB) p_frameCB(p_frameCBData);
 
   // swap those buffers!
   if (isDoubleBuffer()) {

@@ -94,6 +94,32 @@ jobs:
           name: ecce-debian-trixie-deb
           path: build-cmake/*.deb
 
+  # Build only, no packaging: keeps -DECCE_USE_COIN=ON (#166) compiling
+  # while the vendored Inventor core is still the default.
+  coin:
+    name: Debian, Coin3D viewer (build only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    container: debian:trixie
+    steps:
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y \
+            build-essential gfortran cmake ninja-build python3 \
+            libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
+            libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
+            libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git dpkg-dev file libssh-dev \
+            libcoin-dev
+
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -G Ninja -B build-coin -DECCE_USE_COIN=ON -DECCE_REQUIRE_LIBSSH=ON
+
+      - name: Build
+        run: cmake --build build-coin
+
   ubuntu:
     name: Ubuntu (apt)
     runs-on: ubuntu-latest

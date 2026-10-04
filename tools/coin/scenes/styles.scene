@@ -1,0 +1,29 @@
+# Every display style, labels, a selected atom and the thumbnail, for one
+# built-in system (@SYS@ is substituted by compare.py).
+labels none
+style Ball And Wireframe
+viewall
+snap @SYS@-ballwire
+style Ball And Stick
+snap @SYS@-ballstick
+style Stick
+snap @SYS@-stick
+style Wireframe
+snap @SYS@-wireframe
+style CPK
+snap @SYS@-cpk
+style Ball And Stick
+labels element
+snap @SYS@-ballstick-labels
+style Wireframe
+snap @SYS@-wireframe-labels
+labels none
+style Ball And Stick
+select 1
+snap @SYS@-ballstick-select1
+deselect
+thumb @SYS@-thumb
+# Synthetic pi field (no calculation): isosurface path only.
+style Ball And Stick
+isotest
+snap @SYS@-isotest

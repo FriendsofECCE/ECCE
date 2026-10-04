@@ -465,6 +465,12 @@ ecce_app(builder src/apps/builder WX GL
 ecce_app(vizthumbnail src/apps/vizthumbnail WX GL
   LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil X11::X11 jpeg freetype)
 
+# Headless scene renderer for comparing the vendored and Coin viewer builds
+# (tools/coin/compare.sh); built only on request.
+ecce_app(viewer-scenes tools/coin WX GL
+  LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil X11::X11 jpeg freetype)
+set_target_properties(viewer-scenes PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
 # --- src/apps/symmetry -> 5 standalone Fortran executables, no wx involvement.
 # Mirrors the old Makefile's "default:" target exactly (testnames is a
 # dev/test-only program the old default build skipped - left out here too).

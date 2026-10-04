@@ -4,6 +4,10 @@
 /lib/
 /obj/
 /build-cmake/
+/build-coin/
+/build-coin-compare/
+/inst-cmake/
+/inst-coin/
 src/apps/symmetry/*.mod
 __pycache__/
 

@@ -176,6 +176,15 @@ protected:
   // single/double buffer swapping.
   virtual void redraw();
   virtual void actualRedraw();
+
+ public:
+  // Called after each scene render, before the buffers are swapped; lets
+  // a test read the finished frame back (tools/coin/compare.sh).
+  typedef void (*FrameCallback)(void *userData);
+  void setFrameCallback(FrameCallback cb, void *userData)
+    { p_frameCB = cb; p_frameCBData = userData; }
+
+ protected:
   virtual void redrawOverlay();
   virtual void actualOverlayRedraw();
 
@@ -280,6 +289,9 @@ private:
   // dropped with no retry, which is what made geometry-trace/vibration
   // step-through and looped animation update unreliably (see OnPaint()).
   bool p_redrawPending;
+
+  FrameCallback p_frameCB;
+  void *p_frameCBData;
 };
 
 #endif

@@ -1,0 +1,52 @@
+#ifndef SCENESCRIPT_H_
+#define SCENESCRIPT_H_
+
+#include <string>
+#include <vector>
+using std::string;
+using std::vector;
+
+class IPropCalculation;
+class SGContainer;
+class SGViewer;
+
+/**
+ * Drives the viewer from a text script and writes offscreen snapshots, so
+ * two builds of the viewer stack can be compared with no input events.
+ * Used by the Builder (ECCE_VIEWER_SCENE=<script>, with the open
+ * calculation) and by tools/coin/viewer-scenes.C (plain XYZ systems).
+ *
+ * One command per line, '#' starts a comment:
+ *   style <DisplayStyle name>     labels none|element|name
+ *   select <n>... | deselect      (1-based atom numbers)
+ *   mo <n> [isovalue [res]]       compute MO n and show it  (needs calc)
+ *   nmvect <mode>                 normal-mode vectors       (needs calc)
+ *   nmstep <mode> <step>          one animation frame       (needs calc)
+ *   gtstep <n>                    one geometry-trace step   (needs calc)
+ *   viewall | clear               reset the camera / hide MO and modes
+ *   snap <name>   the canvas, read back with glReadPixels -> <name>.ppm
+ *   thumb <name>  64x64 black background, as the calculation thumbnail
+ */
+class SceneScript
+{
+  public:
+    SceneScript(SGViewer *viewer, SGContainer *sg, IPropCalculation *calc,
+                const string& outdir);
+
+    // Runs every line; stops at the first failing one.
+    bool run(const string& scriptPath);
+    const string& message() const { return p_msg; }
+
+  private:
+    bool exec(const vector<string>& w, const string& rest);
+    bool snapshot(const string& name, int size, float r, float g, float b);
+    bool fail(const string& m) { p_msg = m; return false; }
+
+    SGViewer *p_viewer;
+    SGContainer *p_sg;
+    IPropCalculation *p_calc;
+    string p_outdir;
+    string p_msg;
+};
+
+#endif
