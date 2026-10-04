@@ -2,6 +2,9 @@
 #include "inv/actions/SoGLRenderAction.H"
 #include "inv/elements/SoWindowElement.H"
 
+#ifdef OIV_COIN
+#include <Inventor/SbColor.h>
+#endif
 #include "inv/SoWx/SoWx.H"
 #include "inv/SoWx/SoWxRenderArea.H"
 #include "inv/SoWx/SoWxViewer.H"
