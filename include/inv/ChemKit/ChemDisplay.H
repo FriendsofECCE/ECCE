@@ -106,7 +106,11 @@ class ChemBondStuff;
 class ChemUnitCylinder;
 class ChemUnitSphere;
 class SoClipPlaneElement;
+#ifdef OIV_COIN
+#include <Inventor/elements/SoTextureCoordinateElement.h>   // a typedef in Coin
+#else
 class SoTextureCoordinateElement;
+#endif
 // --> CAstick
 class ChemResidueStuff;
 class ChemData;

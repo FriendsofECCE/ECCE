@@ -12,6 +12,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 ### wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls
 
 - [Open Inventor's redraw sensor is a ONE-SHOT that re-arms on render, and with a render callback installed nothing re-arms it](open-inventors-redraw-sensor-is-a-one.md)
+- [`ECCE_USE_COIN` builds the viewer stack against Coin3D; both builds coexist until stage 4](ecce-use-coin-builds-the-viewer-against-coin3d.md)
 - [wx3.2/GTK3 layout reentrancy](wx3-2-gtk3-layout-reentrancy.md)
 - [`wxGrid::CreateGrid()`/`SetTable()` synchronously fires `wxEVT_GRID_SELECT_CELL`](wxgrid-creategrid-settable-synchronously-fires-wxevt-grid.md)
 - [The `.pjd` (DialogBlocks) files are reference only; never regenerate code from them](the-pjd-dialogblocks-files-are-reference-only.md)

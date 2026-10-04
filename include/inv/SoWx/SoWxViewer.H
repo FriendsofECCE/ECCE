@@ -10,6 +10,9 @@
 #include <X11/Intrinsic.h>
 
 #include "inv/SoType.H"
+#ifdef OIV_COIN
+#include <Inventor/SbLinear.h>   // Coin headers do not pull this in transitively
+#endif
 #include "inv/SbTime.H"
 
 #define ID_VIEWER 1000000

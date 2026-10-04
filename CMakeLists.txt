@@ -92,6 +92,27 @@ include_directories(
   ${FREETYPE_UNQUALIFIED_INCLUDE_DIR}
 )
 
+# #166: build against the system Coin3D instead of the
+# vendored Inventor core in src/inv. <inv/X/Y.H> includes are forwarded to
+# <Inventor/X/Y.h> by a generated overlay that is searched before include/.
+option(ECCE_USE_COIN "Build against Coin3D instead of the vendored Inventor core (#166; coexists with the vendored core until stage 4)" OFF)
+if(ECCE_USE_COIN)
+  file(GLOB _coin_scan LIST_DIRECTORIES true ${CMAKE_SOURCE_DIR}/src/*)
+  list(FILTER _coin_scan EXCLUDE REGEX "/src/inv$")
+  file(GLOB _coin_scan_inc LIST_DIRECTORIES true ${CMAKE_SOURCE_DIR}/include/*)
+  list(FILTER _coin_scan_inc EXCLUDE REGEX "/include/inv$")
+  list(APPEND _coin_scan ${_coin_scan_inc})
+  execute_process(COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/coin/gen_shim.py
+                          ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR}/coin-shim ${_coin_scan}
+                  RESULT_VARIABLE _shim_rc)
+  if(NOT _shim_rc EQUAL 0)
+    message(FATAL_ERROR "gen_shim.py failed")
+  endif()
+  include_directories(BEFORE ${CMAKE_BINARY_DIR}/coin-shim)
+  add_compile_definitions(OIV_COIN)
+  find_library(COIN_LIBRARY Coin REQUIRED)
+endif()
+
 if(APPLE)
   # ~90 files across the tree spell OpenGL headers the Linux/X11 way
   # ("GL/gl.h", "GL/glu.h") -- Apple's own OpenGL framework headers live
@@ -222,21 +243,6 @@ else()
   set_property(TARGET eccercmd PROPERTY SOURCES ${_rcmd_srcs})
 endif()
 # --- src/inv -> libecceinv.a + libeccemoiv.a (libeccewxinv.a needs wx, TODO) ---
-ecce_library(ecceinv
-  src/inv/dbelements
-  src/inv/dbengines
-  src/inv/dbfields
-  src/inv/dbnodes
-  src/inv/dbsb
-  src/inv/dbso
-  src/inv/dbupgraders
-  src/inv/flclient
-  src/inv/image
-  src/inv/interaction
-  src/inv/nodekits
-)
-target_compile_definitions(ecceinv PRIVATE NDEBUG)
-target_link_libraries(ecceinv PRIVATE OpenGL::GL OpenGL::GLU)
 # Old build's src/inv/flclient/Makefile adds `pkg-config --cflags-only-I freetype2`
 # on top of the baseline include dir: some FreeType headers (ft2build.h) live at
 # the top of the freetype2 include tree, others (ftoutln.h etc, used elsewhere in
@@ -249,8 +255,30 @@ find_path(FREETYPE_ROOT_INCLUDE_DIR ft2build.h
 if(NOT FREETYPE_ROOT_INCLUDE_DIR)
   message(FATAL_ERROR "FreeType's ft2build.h not found -- searched the usual Linux and Homebrew locations")
 endif()
-target_include_directories(ecceinv PRIVATE ${FREETYPE_ROOT_INCLUDE_DIR})
-
+if(ECCE_USE_COIN)
+  # Only the FreeType font layer (flclient) is kept from the vendored core.
+  ecce_library(ecceinv src/inv/flclient)
+  target_compile_definitions(ecceinv PRIVATE NDEBUG)
+  target_include_directories(ecceinv PRIVATE ${FREETYPE_ROOT_INCLUDE_DIR})
+  target_link_libraries(ecceinv PUBLIC ${COIN_LIBRARY} OpenGL::GL OpenGL::GLU)
+else()
+  ecce_library(ecceinv
+    src/inv/dbelements
+    src/inv/dbengines
+    src/inv/dbfields
+    src/inv/dbnodes
+    src/inv/dbsb
+    src/inv/dbso
+    src/inv/dbupgraders
+    src/inv/flclient
+    src/inv/image
+    src/inv/interaction
+    src/inv/nodekits
+  )
+  target_compile_definitions(ecceinv PRIVATE NDEBUG)
+  target_link_libraries(ecceinv PRIVATE OpenGL::GL OpenGL::GLU)
+  target_include_directories(ecceinv PRIVATE ${FREETYPE_ROOT_INCLUDE_DIR})
+endif()
 ecce_library(eccemoiv src/inv/moiv)
 target_compile_definitions(eccemoiv PRIVATE NDEBUG)
 target_link_libraries(eccemoiv PRIVATE OpenGL::GL OpenGL::GLU)

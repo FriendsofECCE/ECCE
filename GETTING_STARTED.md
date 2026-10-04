@@ -33,6 +33,12 @@ generator (Unix Makefiles on Debian) instead of Ninja, which still builds
 but via `make`, not the `ninja` command used everywhere else in this
 document.
 
+Optional (#166, experimental): `cmake -G Ninja -DECCE_USE_COIN=ON ..` builds
+the 3D viewer stack against the system Coin3D (`libcoin-dev` 4.0.x on Debian)
+instead of the vendored Open Inventor core; the default (OFF) is unchanged.
+Use a separate build directory (e.g. `build-coin`) so both configurations can
+be built from one tree, and have CI build both while the two coexist.
+
 This produces the 19 GUI apps (`gateway`, `organizer`, `builder`,
 `pertable`, ...) plus the CLI apps, all statically linked against the
 in-tree libraries.
