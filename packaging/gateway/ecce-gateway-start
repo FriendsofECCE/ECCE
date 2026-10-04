@@ -181,12 +181,14 @@ else
        grep -q '^00000000000000000000000000000001 ' /proc/net/if_inet6; then
       echo "::1"
     fi
+    set -f   # "*" among the words must not expand against the cwd
     for b in $setting; do
       case "$b" in
         *[!A-Za-z0-9.:_-]*) echo "ecce-gateway-start: ignoring '$b' in the listen setting" >&2 ;;
         *) echo "$b" ;;
       esac
     done
+    set +f
   }
 
   # The configuration this account's broker should have right now. The
@@ -203,14 +205,14 @@ else
     echo "allow_anonymous true"
     [ -e "$MARKER" ] || return 0
     local b
-    for b in $(server_binds); do
+    while IFS= read -r b; do
       if [ "$b" = "*" ]; then echo "listener $BROKER_PORT"
       else echo "listener $BROKER_PORT $b"; fi
       echo "allow_anonymous false"
       echo "plugin $ECCE_HOME/server/ecce_users_auth.so"
       echo "plugin_opt_users_file $STATEDIR/dataserver/users"
       echo "acl_file $ECCE_HOME/server/mosquitto.acl"
-    done
+    done < <(server_binds)
   }
 
   if [ -e "$MARKER" ]; then
