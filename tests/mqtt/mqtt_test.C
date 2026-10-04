@@ -107,6 +107,7 @@ static bool runChild(const string& home, const string& display,
   pid_t pid = fork();
   if (pid == 0) {
     setenv("ECCE_REALUSERHOME", home.c_str(), 1);
+    setenv("HOST", "testhost", 1);
     setenv("DISPLAY", display.c_str(), 1);
     vector<char*> args;
     args.push_back((char*)g_self.c_str());
@@ -127,8 +128,16 @@ static void writeBrokerFile(const string& home, const string& sock,
   mkdir(home.c_str(), 0700);
   string dir = home + "/.ECCE";
   mkdir(dir.c_str(), 0700);
-  ofstream f((dir + "/broker").c_str());
-  f << "# test\nsocket=" << sock << "\nuser=" << user << "\nfuture_key=1\n";
+  // One file per session, named like ecce-gateway-start names it; HOST is
+  // "testhost" for every process below.
+  const char* displays[] = {":7", ":8"};
+  for (int i = 0; i < 2; i++) {
+    string key = string("testhost_") + displays[i];
+    for (size_t j = 0; j < key.size(); j++)
+      if (key[j] == ':') key[j] = '_';
+    ofstream f((dir + "/broker_" + key).c_str());
+    f << "# test\nsocket=" << sock << "\nuser=" << user << "\nfuture_key=1\n";
+  }
 }
 
 static void rmTree(const string& path)

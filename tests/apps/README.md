@@ -21,9 +21,9 @@ notices.
 ## The reaper, and why this suite turns it off
 
 Every ECCE app's wrapper runs `ecce-gateway-reap --if-idle` on exit, so
-a display's dispatcher is stopped once the last app on it closes (#102 —
-a SIGABRT once stranded one for ten days), and a per-user broker once the
-user's last session ends (#191). A server's broker and the data server
+a display's session files are removed once the last app on it closes, and
+a per-user broker is stopped once the user's last session ends (#102,
+#191). A server's broker and the data server
 are stopped only by `ecce-gateway-stop` (Quit and Stop Server), which
 calls the reaper with `--stop`.
 
@@ -33,7 +33,7 @@ gateway was being torn down after the first app exited, and every app
 after it met a dead gateway:
 
 ```
-ecce-gateway-reap: no ECCE app left on :70 -- stopping JMSDispatcher
+ecce-gateway-reap: no ECCE app left on :70 -- stopping mosquitto broker
 ```
 
 which surfaced as ten apps "opening no window" and gateway showing
@@ -45,10 +45,10 @@ general escape hatch for anything that manages the services itself — a
 debugging session, for instance.
 
 It is unset again for the shutdown, and that matters more than it looks:
-`ecce-gateway-stop` stops the dispatcher itself but hands the **broker**
-to `ecce-gateway-reap --stop`, which stops it once no display still has a
-dispatcher. With `ECCE_NO_REAP` still set, the reaper exited immediately
-and the broker was never stopped — every run leaked a 512MB JVM.
+`ecce-gateway-stop` hands the **broker** to `ecce-gateway-reap --stop`,
+which stops it once no app of the account is left. With `ECCE_NO_REAP`
+still set, the reaper exited immediately and the broker was never
+stopped.
 
 ## A window is not proof an app started
 
@@ -152,12 +152,12 @@ The two installs no longer share `~/.ECCE` either, because no run uses
 ## Every run is isolated from your real ECCE session
 
 All per-user state — preferences, the data server's whole document root,
-the ActiveMQ data directory, the JMS port files — lives in
+the mosquitto socket, the broker files — lives in
 `$ECCE_REALUSERHOME/.ECCE`, and both the C++ (`Ecce::realUserHome`) and the
 shell scripts honour that variable. The services are also per-user and
 listen on fixed ports. So a run that shares them with a live ECCE session
-does not collide tidily: two brokers contend for one `~/.ECCE/activemq`
-data directory, `ecce-dataserver-start` early-exits because "something is
+does not collide tidily: two brokers contend for one `~/.ECCE/mosquitto.sock`,
+`ecce-dataserver-start` early-exits because "something is
 already listening" and the apps then read somebody else's document root,
 and the result is a page of failures that read exactly like application
 bugs. A suite that can do that to you is not one you will trust.
@@ -170,13 +170,13 @@ gets:
   which is the variable everything else actually reads. It is kept
   between runs rather than thrown away, so the seeded document root and
   the synced basis-set library are paid for once;
-* its own ports, 8296 and 8288 by default rather than the real 8096/8088,
+* its own ports, 8296 and 8288 by default rather than the real 8096/8883,
   or the next free ones; `ECCE_DATASERVER_PORT` / `ECCE_BROKER_PORT`
   still pin them explicitly, and a pinned port that is busy is an error
   rather than a silent move;
 * its own `$ECCE_HOME`: a directory of symlinks to the installed tree
-  with one real `siteconfig/` of its own, with `DataServers` and
-  `jndi.properties` repointed at those ports. This is the piece that was
+  with one real `siteconfig/` of its own, with `DataServers`
+  repointed at the data server's port. This is the piece that was
   missing before, and its absence made moving the ports actively harmful
   — `siteconfig/DataServers` is where the *apps* learn the data server's
   URL, it is written at package time with `http://localhost:8096/Ecce`,

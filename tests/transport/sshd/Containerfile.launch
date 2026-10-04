@@ -3,5 +3,5 @@
 # need at run time.
 FROM localhost/ecce-sshbuild
 RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get -qq -y install \
-      apache2 apache2-utils activemq default-jre-headless perl tcsh mopac \
+      apache2 apache2-utils mosquitto perl tcsh mopac \
       python3 procps psmisc curl >/dev/null && rm -rf /var/lib/apt/lists/*

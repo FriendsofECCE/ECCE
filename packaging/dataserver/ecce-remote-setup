@@ -16,7 +16,7 @@
 # Run once per CLIENT installation, as whoever owns $ECCE_HOME
 # (normally root).  It does not touch anything on the server.
 #
-#   ecce-remote-setup <server-host> [data-port] [broker-port]
+#   ecce-remote-setup <server-host> [data-port]
 #
 # Afterwards, users run:
 #
@@ -29,7 +29,7 @@ set -u
 
 usage() {
   cat <<'USAGE'
-Usage: ecce-remote-setup <server-host> [data-port] [broker-port]
+Usage: ecce-remote-setup <server-host> [data-port]
        ecce-remote-setup --server [listen]
 
   --server      on the SERVER, as the account running it: mark its broker
@@ -37,10 +37,8 @@ Usage: ecce-remote-setup <server-host> [data-port] [broker-port]
                 listen (all, loopback or addresses) goes to dataserver/listen
   server-host   host name of the central ECCE server
   data-port     data server port      (default 8096)
-  broker-port   message broker port   (default 8088)
 
-Writes $ECCE_HOME/siteconfig/RemoteServer/ and repoints the broker URL, and
-copies the server's registered site machine list (Machines, Queues,
+Writes $ECCE_HOME/siteconfig/RemoteServer/ and copies the server's registered site machine list (Machines, Queues,
 CONFIG.*, *.Q) into siteconfig/ if the server publishes one. Re-run after
 the admin changes that list on the server.
 Run "ecce -remote" afterwards.
@@ -55,10 +53,9 @@ USAGE
 #  tunnels.  The optional listen value is written to dataserver/listen.
 if [ "${1:-}" = "--server" ]; then
   STATEDIR="${ECCE_REALUSERHOME:-$HOME}/.ECCE"
-  mkdir -p "$STATEDIR/activemq" || exit 1
   echo "# ECCE central server: plain quits leave this broker running (ecce-remote-setup --server)" \
-    >"$STATEDIR/activemq/server" || exit 1
-  echo "Marked $STATEDIR/activemq/server: this account's broker is a central server's."
+    >"$STATEDIR/mosquitto.server" || exit 1
+  echo "Marked $STATEDIR/mosquitto.server: this account's broker is a central server's."
   if [ -n "${2:-}" ]; then
     mkdir -p "$STATEDIR/dataserver" || exit 1
     echo "$2" >"$STATEDIR/dataserver/listen" || exit 1
@@ -77,7 +74,6 @@ fi
 
 HOST="$1"
 DATA_PORT="${2:-8096}"
-BROKER_PORT="${3:-8088}"
 
 : "${ECCE_HOME:=/opt/ecce}"
 SITE="$ECCE_HOME/siteconfig"
@@ -138,26 +134,8 @@ if [ -f "$SITE/site_runtime" ]; then
       "$SITE/site_runtime" > "$REMOTE/site_runtime"
 fi
 
-#  THE BROKER IS NOT PART OF THE RemoteServer SPLIT.
-#
-#  ECCE_REMOTE_SERVER selects RemoteServer/ for the data server and the
-#  runtime settings, and the C++ has always done exactly that -- but
-#  jndi.properties is read from $ECCE_HOME/siteconfig unconditionally,
-#  by the Java dispatcher, with no equivalent branch.  So a client told
-#  to use a central server would still look for a broker on localhost,
-#  and since -remote also stops one being started, it would find
-#  nothing.
-#
-#  An installation configured for a central server is configured for
-#  it, so the broker URL is repointed in place -- with the original
-#  kept, because an installation can be moved back.
-if [ -f "$SITE/jndi.properties" ]; then
-  if [ ! -f "$SITE/jndi.properties.local" ]; then
-    cp -p "$SITE/jndi.properties" "$SITE/jndi.properties.local"
-  fi
-  sed -e "s|^\( *java.naming.provider.url *= *\).*|\1tcp://$HOST:$BROKER_PORT|" \
-      "$SITE/jndi.properties.local" > "$SITE/jndi.properties"
-fi
+#  The broker needs no file of its own: under -remote it is on the data
+#  server's host (ecce-gateway-start), at ECCE_BROKER_PORT.
 
 #  Site machine list (issue #188).  ecce-dataserver-start publishes the
 #  server's siteconfig/{Machines,Queues,CONFIG.*,*.Q} under Ecce/system,
@@ -223,10 +201,6 @@ echo
 echo "Wrote:"
 echo "  $REMOTE/DataServers"
 [ -f "$REMOTE/site_runtime" ] && echo "  $REMOTE/site_runtime"
-[ -f "$SITE/jndi.properties.local" ] && \
-  echo "  $SITE/jndi.properties  (broker -> tcp://$HOST:$BROKER_PORT;"
-[ -f "$SITE/jndi.properties.local" ] && \
-  echo "                          original kept as jndi.properties.local)"
 echo
 echo "Users on this machine now run:"
 echo

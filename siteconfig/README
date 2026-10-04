@@ -11,9 +11,7 @@ DataServers - information on data servers used at this site.
 This information is filled in by the installation script and can be hand
 modified later.
 
-jndi.properties - information needed by the messaging server.
-This information is filled in by the installation script and can be hand
-modified later.
+RemoteServer/ - data server address used by "ecce -remote" (written by ecce-remote-setup).
 
 remote_shells.site - removed.  Site-defined remote shells are no longer
 supported: every machine connects with ssh (ssh, sshpass or ssh/ftp).  A

@@ -12,8 +12,11 @@ shared=""
 [ -x "$ECCE_HOME/bin/ecce-broker-setup" ] &&
   shared="$("$ECCE_HOME/bin/ecce-broker-setup" --show 2>/dev/null)"
 
-# The broker file is what the processes actually use.
-bfile="$STATEDIR/broker"
+# The broker file is what the processes actually use: this session's, or
+# failing that any one of this account's.
+HOST="${ECCE_HOST:-${HOST:-$(hostname)}}"
+bfile="$STATEDIR/broker_$(printf '%s_%s' "$HOST" "${DISPLAY:-:0}" | tr -c 'A-Za-z0-9._-' '_')"
+[ -e "$bfile" ] || bfile="$(ls "$STATEDIR"/broker_* 2>/dev/null | head -n1)"
 bsock="$(sed -n 's/^socket=//p' "$bfile" 2>/dev/null | head -n1)"
 bhost="$(sed -n 's/^host=//p' "$bfile" 2>/dev/null | head -n1)"
 bport="$(sed -n 's/^port=//p' "$bfile" 2>/dev/null | head -n1)"
@@ -34,7 +37,7 @@ elif [ -n "$bhost" ]; then
   fi
 elif [ -n "$pid" ] && [ "$(cat "/proc/$pid/comm" 2>/dev/null)" = mosquitto ]; then
   kind="this user's; stopped with the last session"
-  [ -e "$STATEDIR/activemq/server" ] && kind="a server's; stopped only by Quit and Stop Server"
+  [ -e "$STATEDIR/mosquitto.server" ] && kind="a server's; stopped only by Quit and Stop Server"
   echo "Broker:  mosquitto running (pid $pid, socket ${bsock:-unknown}, $kind)"
 else
   echo "Broker:  not running"

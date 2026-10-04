@@ -43,9 +43,9 @@ endif()
 # Road to 9.0, step 1: split the single monolithic package into
 # ecce-client (GUI apps, input generators/parsers, codereg dialogs, the
 # job-side scripts the Launcher copies to compute hosts, the per-session
-# JMSDispatcher relay, ecce-remote-setup) and ecce-server (the per-user
-# or central WebDAV data server and its content, the ActiveMQ broker
-# config and its start/stop). Every install() rule below carries a
+# gateway scripts, ecce-remote-setup) and ecce-server (the per-user
+# or central WebDAV data server and its content, its mosquitto
+# dependency). Every install() rule below carries a
 # COMPONENT tag either way -- that costs nothing when this is OFF, since
 # plain `cpack`/`cpack -G DEB` ignores COMPONENT entirely and produces
 # one monolithic package exactly as before (CPACK_DEB_COMPONENT_INSTALL
@@ -478,71 +478,11 @@ ecce_fortran_app(cleansym
           ${_sym_dir}/deter3.f ${_sym_dir}/dctr.f ${_sym_dir}/gensym.f ${_sym_dir}/errquit.f)
 
 # ------------------------------------------------------------------------
-# The JMS gateway: Java JMSDispatcher relay + ActiveMQ broker.
-#
-# Previously excluded entirely (see the old comment below, now corrected).
-# This wires up the single-machine "client and server both here" case
-# scripts/ecce/install_ecce used to configure interactively:
-#   - java/ is built with the existing Ant script (java/build/build.xml)
-#     into java/lib/ecce_jms.jar, installed alongside its activemq-all
-#     client jar under <prefix>/java/lib.
-#   - the ActiveMQ broker itself is the Debian-packaged `activemq` (not
-#     vendored -- see the "Migrate 3rd Party Libraries" project history
-#     for why this changed from a bundled 5.1.0 binary distribution: the
-#     package's own /usr/bin/activemq launcher script respects the same
-#     ACTIVEMQ_HOME/ACTIVEMQ_BASE overrides the old vendored one did,
-#     with no root-owned single-instance service involved, so the
-#     per-user launch model below didn't need to change, just which
-#     broker it launches). Our own known-working config
-#     (packaging/gateway/activemq.xml.ecce, installed to
-#     server/activemq-conf/activemq.xml) is copied into place per-user by
-#     ecce-gateway-start rather than relying on the package's own default
-#     (/etc/activemq/, root-owned, wrong port) -- see that script for the
-#     full rationale.
-#   - siteconfig/jndi.properties (the JNDI/topic config JMSDispatcher and
-#     every JMS-using C++ app read via $ECCE_HOME/siteconfig) is installed
-#     with its provider URL repointed at localhost instead of the
-#     hardcoded PNNL host it ships with.
-#   - packaging/gateway/ecce-gateway-{start,stop,status} manage the broker
-#     + JMSDispatcher as a per-user, per-machine background pair, replacing
-#     the old ecce-admin/start_ecce_server csh scripts and the old
-#     "ecce" launcher's one-gateway-per-toolbar-process model (this
-#     package has no single controlling toolbar process - each app is
-#     independently launchable - so the gateway is instead started lazily,
-#     idempotently, by whichever app needs it first, and left running).
+# The messaging gateway: packaging/gateway/ecce-gateway-* start a per-user
+# mosquitto on a Unix socket (or point the processes at a central or shared
+# broker) and write the broker file src/util/jms/MqttLink.C reads. The
+# broker is the distribution's mosquitto package; nothing is built here.
 # ------------------------------------------------------------------------
-find_program(ANT_EXECUTABLE ant)
-if(ANT_EXECUTABLE)
-  add_custom_command(
-    OUTPUT ${CMAKE_SOURCE_DIR}/java/lib/ecce_jms.jar
-    COMMAND ${ANT_EXECUTABLE} -f build.xml all
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/java/build
-    DEPENDS
-      ${CMAKE_SOURCE_DIR}/java/src/gov/pnnl/emsl/ecce/jms/JMSDispatcher.java
-      ${CMAKE_SOURCE_DIR}/java/src/gov/pnnl/emsl/ecce/jms/MessageHandler.java
-      ${CMAKE_SOURCE_DIR}/java/src/gov/pnnl/emsl/ecce/jms/MessageHelper.java
-      ${CMAKE_SOURCE_DIR}/java/src/gov/pnnl/emsl/ecce/jms/Execer.java
-      ${CMAKE_SOURCE_DIR}/java/src/gov/pnnl/emsl/ecce/jms/Sender.java
-      ${CMAKE_SOURCE_DIR}/java/src/gov/pnnl/emsl/ecce/jms/Target.java
-    COMMENT "Building ecce_jms.jar (ant)"
-  )
-  add_custom_target(ecce_jms ALL DEPENDS ${CMAKE_SOURCE_DIR}/java/lib/ecce_jms.jar)
-  install(FILES ${CMAKE_SOURCE_DIR}/java/lib/ecce_jms.jar
-                ${CMAKE_SOURCE_DIR}/java/lib/activemq-all-5.1.0.jar
-          DESTINATION java/lib
-          COMPONENT client)
-  set(ECCE_GATEWAY_JAVA_AVAILABLE TRUE)
-else()
-  message(WARNING "ant not found - the JMS gateway (java/) will not be built "
-                   "or packaged; ecce-gateway-start will have nothing to run.")
-  set(ECCE_GATEWAY_JAVA_AVAILABLE FALSE)
-endif()
-
-# The broker itself now comes from the Debian `activemq` package (see
-# CPACK_DEBIAN_PACKAGE_DEPENDS below) rather than a vendored tarball --
-# nothing to extract/install here, just our own config template (installed
-# above, alongside the ecce-gateway-* scripts).
-set(ECCE_GATEWAY_BROKER_AVAILABLE TRUE)
 
 # Help content: BrowserHelp::initialize() (src/util/genutil/BrowserHelp.C)
 # throws NullPointerException -- uncaught, crashing the whole app -- if
@@ -630,22 +570,9 @@ else()
   set(ECCE_HELP_AVAILABLE FALSE)
 endif()
 
-if(EXISTS ${CMAKE_SOURCE_DIR}/siteconfig/jndi.properties)
-  file(READ ${CMAKE_SOURCE_DIR}/siteconfig/jndi.properties _jndi_contents)
-  # The checked-in template points at PNNL's own broker; repoint it at the
-  # broker this package installs and starts locally (see ecce-gateway-start
-  # for the matching port).
-  string(REGEX REPLACE
-    "java\\.naming\\.provider\\.url[ \t]*=[ \t]*[^\r\n]*"
-    "java.naming.provider.url = tcp://localhost:8088"
-    _jndi_contents "${_jndi_contents}")
-  file(WRITE ${CMAKE_BINARY_DIR}/siteconfig-local/jndi.properties "${_jndi_contents}")
-endif()
-
 if(EXISTS ${CMAKE_SOURCE_DIR}/siteconfig/DataServers)
   file(READ ${CMAKE_SOURCE_DIR}/siteconfig/DataServers _dataservers_contents)
-  # Same idea as jndi.properties above, for the data server (see
-  # packaging/dataserver/ below): the checked-in template points at the
+  # The checked-in template points at the
   # real PNNL production server; repoint it at the data server this
   # package installs and starts locally (see ecce-dataserver-start for
   # the matching port). Both the default <Url> and the <BasisSet> URL
@@ -673,14 +600,14 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/siteconfig/site_runtime)
 endif()
 
 # Single directory install for everything in siteconfig/ *except* the
-# four files rewritten above, which install from their resolved
+# files rewritten above, which install from their resolved
 # siteconfig-local/ copies instead. (Deliberately one combined
 # install(DIRECTORY) rather than one per rewritten file above -- two
 # separate install(DIRECTORY siteconfig/ ...) calls with different
 # exclude sets would both run at install time and race on which version
 # of the non-excluded files wins.)
 # siteconfig/ is entirely client-side config: it tells a CLIENT install
-# where to find servers (DataServers, RemoteServer/, jndi.properties),
+# where to find servers (DataServers, RemoteServer/),
 # what compute resources/queues exist (Machines, Queues, CONFIG-Examples),
 # and how it should behave (site_runtime). Nothing under server/ reads
 # any of it -- the data server and broker are configured from
@@ -688,22 +615,17 @@ endif()
 # into the client component with no split needed.
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/siteconfig/ DESTINATION siteconfig
         COMPONENT client
-        PATTERN "jndi.properties" EXCLUDE
         PATTERN "RemoteServer" EXCLUDE
         PATTERN "DataServers" EXCLUDE
         PATTERN "site_runtime" EXCLUDE)
-install(FILES ${CMAKE_BINARY_DIR}/siteconfig-local/jndi.properties
-              ${CMAKE_BINARY_DIR}/siteconfig-local/DataServers
+install(FILES ${CMAKE_BINARY_DIR}/siteconfig-local/DataServers
               ${CMAKE_BINARY_DIR}/siteconfig-local/site_runtime
         DESTINATION siteconfig
         COMPONENT client)
 
-# ecce-gateway-{start,stop,status,reap}: manage the per-session
-# JMSDispatcher relay (always client-side, needs Java) AND, when it finds
-# server/activemq-conf/activemq.xml installed alongside it, the local
-# ActiveMQ broker too. A client-only install still needs these scripts
-# (the relay is unconditional) -- see ecce-gateway-start's own check for
-# what it does when the broker half of that config is missing.
+# ecce-gateway-{start,stop,status,reap}: start and stop the session's
+# mosquitto broker and keep the broker files. Client-side, since a client
+# on its own machine runs its own broker unless it uses -remote.
 install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-start
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-stop
@@ -712,14 +634,6 @@ install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/nwchem/ecce-nwchem-datadir
         DESTINATION bin
         COMPONENT client)
-# The broker's own config: only meaningful on a machine running the
-# broker, i.e. only needed by ecce-server. ecce-gateway-start checks for
-# this exact path to decide whether a local broker exists to start.
-install(FILES ${CMAKE_SOURCE_DIR}/packaging/gateway/activemq.xml.ecce
-        DESTINATION server/activemq-conf
-        RENAME activemq.xml
-        COMPONENT server)
-
 # Deployment mode 3, the site's shared broker (GETTING_STARTED.md,
 # "Deployment modes"). ecce-broker-setup writes siteconfig/SharedBroker,
 # which the clients read, so it goes with them; ecce-broker-run and the
@@ -767,7 +681,7 @@ endforeach()
 # ecce-dataserver-start for the full rationale. Requires the apache2 and
 # apache2-utils packages at runtime (see CPACK_DEBIAN_PACKAGE_DEPENDS
 # below); nothing to vendor/extract here since both are ordinary Debian
-# packages, unlike ActiveMQ above.
+# packages.
 # ------------------------------------------------------------------------
 # The dataserver's own start/stop/status/adduser: only meaningful on a
 # machine actually running the Apache instance, so these -- and the
@@ -1033,7 +947,7 @@ endif()
 # layout - not a port of the old scripts/ecce, ebuilder, eviewer etc,
 # which assume a vendored 3rdparty Python interpreter, multi-platform
 # ECCE_SYSDIR subdirectories, and (for the top-level "ecce" launcher) the
-# Java/ActiveMQ JMS messaging server. Those, plus the Perl/Python helper
+# messaging gateway. Those, plus the Perl/Python helper
 # scripts in scripts/ (gbs*, eccejobmonitor, processmachine, pmf_gui.py/
 # prp_gui.py), are deliberately left out of this package for now - they're
 # exactly the peripheral Perl/Python pieces Andy's own forks have already
@@ -1045,13 +959,10 @@ endif()
 # - see src/util/genutil/Ecce.C realUser()/realUserHome()) by every app, not
 # just the messaging-using ones; the previous wrapper never set them, so
 # every app would have aborted on first touching preferences/cache paths.
-# HOST must also be exported: the Java gateway writes its UDP port file
-# keyed by -DECCE_HOST (see JMSDispatcher.saveServerPort), while the C++
-# side reads it back keyed by the plain "HOST" env var (DatagramUtil::
-# loadServerPort, src/util/jms/JMSMessage.C) - tcsh set this automatically
-# for the old launcher; a plain sh/bash wrapper has to do it explicitly or
-# the two sides look for different filenames and JMS silently never
-# connects.
+# HOST must also be exported: the broker file and the session topics are
+# keyed by HOST and DISPLAY (ecce-gateway-start, MqttLink.C) - tcsh set
+# HOST automatically for the old launcher; a plain sh/bash wrapper has to
+# do it explicitly or the two sides name different sessions.
 set(ECCE_MESSAGING_APPS ${ECCE_GUI_APPS} eccejobmaster eccejobstore)
 
 foreach(_app ${ECCE_GUI_APPS} ${ECCE_CLI_APPS})
@@ -1096,10 +1007,10 @@ fi")
 fi")
     # Issue #102: the app is run, not exec'd, so this wrapper shell
     # outlives it and its EXIT trap runs however the app terminated --
-    # including the SIGABRT that stranded the broker and a JMSDispatcher
+    # including the SIGABRT that stranded the broker
     # for ten days on beryllium. ecce-gateway-reap --if-idle does nothing
     # while any other ECCE app is still up on this display, so only the
-    # last one out stops the display's relay, and the user's last session
+    # last one out stops the display's session files, and the user's last session
     # stops a per-user broker (never a server's or the site's shared one).
     # The data server stays up until an explicit Quit and Stop Server.
     # bash's own "Terminated" report for a SIGTERM (Quit and Stop Server
@@ -1293,7 +1204,7 @@ set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 # Sys::Hostname are in perl-modules, which perl-base alone lacks.
 # xterm: editing an input file with the default editor (vi) opens it in
 # an xterm (UserEditor.C).
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, activemq, perl, xterm")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, mosquitto, perl, xterm")
 # NWChem is a real Debian package (confirmed working: /usr/bin/nwchem,
 # symlinked to nwchem.openmpi by the package itself) and the auto-register-
 # this-machine flow (RunMgmt::registerLocalMachine()) defaults new machine
@@ -1324,11 +1235,8 @@ set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 #
 #    * apache2/apache2-utils are httpd/httpd-tools.
 #    * python3-wxgtk4.0 is python3-wxpython4.
-#    * ActiveMQ is not packaged for RHEL, Rocky or Fedora at all.  It
-#      cannot be a hard Requires without making the package
-#      uninstallable everywhere, so it is a Recommends (rpm >= 4.12) and
-#      GETTING_STARTED covers installing it by hand.  A missing broker is
-#      not silent -- ecce-gateway-start reports it.
+#    * mosquitto (broker and libmosquitto) is in Fedora and in EPEL for
+#      RHEL/Rocky; one package covers both here.
 #    * openssh-client is openssh-clients.
 #
 #  perl and xterm are Requires here for the same reasons given beside
@@ -1346,8 +1254,8 @@ if(RPMBUILD_EXECUTABLE)
   set(CPACK_RPM_PACKAGE_LICENSE "ECL-2.0")
   set(CPACK_RPM_PACKAGE_GROUP "Applications/Engineering")
   set(CPACK_RPM_PACKAGE_URL "https://github.com/FriendsofECCE/ECCE")
-  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, python3-wxpython4, perl, xterm")
-  set(CPACK_RPM_PACKAGE_SUGGESTS "activemq, nwchem, openssh-clients, ImageMagick, firefox")
+  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, python3-wxpython4, perl, xterm, mosquitto")
+  set(CPACK_RPM_PACKAGE_SUGGESTS "nwchem, openssh-clients, ImageMagick, firefox")
   set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
   #  /opt/ecce is ours, but /opt itself is owned by filesystem(5).  Without
   #  this the package claims /opt and conflicts with it.
@@ -1385,11 +1293,9 @@ endif()
 
 # The site configuration an admin edits (sudo ecce -admin, ecce-remote-
 # setup's copy of a server's machine list, #188) must survive upgrades,
-# so it is a Debian conffile / RPM %config(noreplace). jndi.properties
-# too: ecce-remote-setup points it at the central broker, and an upgrade
-# resetting it to localhost would silently break every -remote client.
+# so it is a Debian conffile / RPM %config(noreplace). 
 set(_ecce_siteconfig_conffiles
-  Machines Queues QueueManagers DataServers site_runtime jndi.properties
+  Machines Queues QueueManagers DataServers site_runtime
   submit.site AppColors StartupMessage NewUserMessage
   CONFIG.dummy dummy.Q example-slurm.Q
   CONFIG-Examples/CONFIG.loadleveler CONFIG-Examples/CONFIG.lsf
@@ -1482,30 +1388,23 @@ if(ECCE_SPLIT_PACKAGES)
   set(CPACK_DEBIAN_CLIENT_FILE_NAME DEB-DEFAULT)
   set(CPACK_DEBIAN_CLIENT_PACKAGE_DESCRIPTION
     "Extensible Computational Chemistry Environment - client (GUI apps, input generators/parsers, job-launch tooling)")
-  # apache2/apache2-utils and the broker move to ecce-server; everything
-  # else CPACK_DEBIAN_PACKAGE_DEPENDS listed for the monolithic build is
-  # still needed here (python3-wxgtk4.0 for scripts/codereg, perl/xterm
-  # for the same reasons given beside the monolithic set above -- none of
-  # that is server-side).
+  # apache2/apache2-utils move to ecce-server; everything else is needed
+  # here (python3-wxgtk4.0 for scripts/codereg, perl/xterm for the reasons
+  # given beside the monolithic set above).
   #
-  # default-jre-headless: the monolithic package never had to list a JVM
-  # explicitly because activemq (a hard Depends there) pulls in
-  # default-jre-headless transitively -- confirmed via `apt-cache depends
-  # activemq`. Splitting moves activemq to ecce-server and demotes it to
-  # a client Recommends, which would silently drop the client's own JVM
-  # need: ecce-gateway-start's "per-session JMSDispatcher relay" step
-  # runs `java gov.pnnl.emsl.ecce.jms.JMSDispatcher` unconditionally,
-  # including under -remote against a central broker with no local
-  # ecce-server at all, so it cannot be left to arrive only via a
-  # Recommends that a remote client has no reason to install.
+  # libmosquitto1 is what every messaging process links. The gateway
+  # scripts that start a per-user broker live here too, so a local-mode
+  # client needs the mosquitto package; it is a Recommends because a
+  # -remote client only needs the library, and the package's own system
+  # service is of no use to it.
   set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS
-      "python3-wxgtk4.0, perl, xterm, default-jre-headless")
+      "python3-wxgtk4.0, perl, xterm, libmosquitto1")
   # A client on the SAME machine as a server benefits from it (the
   # default "everything on one box" case this project still ships), but
   # a client of an already-central server (#167/#138 -- the teaching
   # deployment) has no use for a local data server or broker at all, so
   # this is Recommends, not Depends, matching the design brief.
-  set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, nwchem, openssh-client")
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, mosquitto, nwchem, openssh-client")
   set(CPACK_DEBIAN_CLIENT_PACKAGE_SUGGESTS "imagemagick, www-browser")
   # Lets dpkg upgrade a monolithic 8.x "ecce" straight into ecce-client:
   # without this, installing ecce-client while the old ecce package still
@@ -1517,12 +1416,12 @@ if(ECCE_SPLIT_PACKAGES)
   set(CPACK_DEBIAN_SERVER_PACKAGE_NAME "ecce-server")
   set(CPACK_DEBIAN_SERVER_FILE_NAME DEB-DEFAULT)
   set(CPACK_DEBIAN_SERVER_PACKAGE_DESCRIPTION
-    "Extensible Computational Chemistry Environment - server (WebDAV data server, ActiveMQ broker configuration)")
-  # The broker/relay scripts, ecce-remote-setup and the GUI-free job agent
+    "Extensible Computational Chemistry Environment - server (WebDAV data server, message broker)")
+  # The gateway scripts, ecce-remote-setup and the GUI-free job agent
   # (launchjob, eccejobmaster, eccejobstore) ship in ecce-client, and a server
   # needs them, so the server brings the client -- GUI libraries included,
   # unused on a headless box. Accepted rather than a third package.
-  set(CPACK_DEBIAN_SERVER_PACKAGE_DEPENDS "apache2, apache2-utils, activemq, ecce-client (= ${_ecce_deb_version})")
+  set(CPACK_DEBIAN_SERVER_PACKAGE_DEPENDS "apache2, apache2-utils, mosquitto, ecce-client (= ${_ecce_deb_version})")
   set(CPACK_DEBIAN_SERVER_PACKAGE_BREAKS "ecce (<< ${ECCE_MONOLITHIC_BREAK_VERSION})")
   set(CPACK_DEBIAN_SERVER_PACKAGE_REPLACES "ecce (<< ${ECCE_MONOLITHIC_BREAK_VERSION})")
 
@@ -1533,14 +1432,9 @@ if(ECCE_SPLIT_PACKAGES)
   if(RPMBUILD_EXECUTABLE)
     set(CPACK_RPM_CLIENT_PACKAGE_NAME "ecce-client")
     set(CPACK_RPM_CLIENT_FILE_NAME RPM-DEFAULT)
-    # java-headless: same rationale as CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS
-    # above -- the JMSDispatcher relay needs a JVM unconditionally, and on
-    # RPM distros activemq (the only thing that pulled one in transitively
-    # for the monolithic package, where it even applied -- see the
-    # monolithic CPACK_RPM_PACKAGE_SUGGESTS comment above) isn't even a
-    # hard Requires there, so it cannot be relied on at all here.
+    # mosquitto provides both the library and the broker on RPM distros.
     set(CPACK_RPM_CLIENT_PACKAGE_REQUIRES
-        "python3-wxpython4, perl, xterm, java-headless")
+        "python3-wxpython4, perl, xterm, mosquitto")
     set(CPACK_RPM_CLIENT_PACKAGE_SUGGESTS
         "ecce-server, nwchem, openssh-clients, ImageMagick, firefox")
     # RPM has no direct Breaks/Replaces pair; Obsoletes+Provides is the
@@ -1553,8 +1447,7 @@ if(ECCE_SPLIT_PACKAGES)
     set(CPACK_RPM_CLIENT_PACKAGE_CONFLICTS "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
     set(CPACK_RPM_SERVER_PACKAGE_NAME "ecce-server")
     set(CPACK_RPM_SERVER_FILE_NAME RPM-DEFAULT)
-    set(CPACK_RPM_SERVER_PACKAGE_REQUIRES "httpd, httpd-tools, ecce-client = ${_ecce_deb_version}")
-    set(CPACK_RPM_SERVER_PACKAGE_SUGGESTS "activemq")
+    set(CPACK_RPM_SERVER_PACKAGE_REQUIRES "httpd, httpd-tools, mosquitto, ecce-client = ${_ecce_deb_version}")
     set(CPACK_RPM_SERVER_PACKAGE_OBSOLETES "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
     set(CPACK_RPM_SERVER_PACKAGE_CONFLICTS "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
     set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "/opt")
@@ -1759,19 +1652,6 @@ if(PYTHON3_EXECUTABLE)
   target_link_libraries(launchjob PRIVATE
     eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
     eccetdat ecceutil ${XercesC_LIBRARIES})
-  # tests/jms -- the local UDP link between the apps and their relay, and
-  # what the broker is allowed to see.  jmsprobe is a test driver.
-  add_executable(jmsprobe tests/jms/jmsprobe.C)
-  target_include_directories(jmsprobe PRIVATE ${XercesC_INCLUDE_DIRS})
-  target_link_libraries(jmsprobe PRIVATE
-    eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
-    eccetdat ecceutil ${XercesC_LIBRARIES})
-  add_test(NAME jms
-           COMMAND ${PYTHON3_EXECUTABLE}
-                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/jms/run_tests.py
-                   --build ${CMAKE_BINARY_DIR}
-           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/jms)
-  set_tests_properties(jms PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
   add_test(NAME launch
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/run_tests.py

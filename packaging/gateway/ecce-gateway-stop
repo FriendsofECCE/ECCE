@@ -56,9 +56,9 @@ for _pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
   kill "$_pid" 2>/dev/null
 done
 
-# Unconditionally, not only when there was a pidfile to stop: the session
-# is over either way and this file holds a password.
-rm -f "$AUTHFILE" "$AUTHFILE".tmp.*
+# Unconditionally: the session is over either way, and the credential
+# file holds a password.
+rm -f "$AUTHFILE" "$AUTHFILE".tmp.* "$STATEDIR/broker_$(printf '%s_%s' "$HOST" "$DISPLAY" | tr -c 'A-Za-z0-9._-' '_')"
 
 # The explicit "Quit and Stop Server": this account's broker goes too once
 # no ECCE app is left -- unless it is the site's shared service

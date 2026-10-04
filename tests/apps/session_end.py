@@ -155,8 +155,8 @@ def say(text):
 
 def needsServerBroker(why):
     """The cases that need a mosquitto on TCP with accounts (ecce-remote-
-    setup --server, ecce-broker.service, #213 stages 3 and 4)."""
-    say("    skip  %s: needs the server-side mosquitto setup (#213 stage 3/4)"
+    setup --server, ecce-broker.service, #213 stage 4)."""
+    say("    skip  %s: needs the server-side mosquitto setup (#213 stage 4)"
         % why)
 
 
@@ -294,7 +294,7 @@ def brokerStopped(checks, amq, why):
 
 
 def brokersOf(statedirs):
-    """Pids of brokers whose ActiveMQ base is under one of statedirs."""
+    """Pids of mosquitto brokers started from one of statedirs."""
     found = []
     for entry in os.listdir("/proc"):
         if not entry.isdigit():
@@ -305,8 +305,7 @@ def brokersOf(statedirs):
         except OSError:
             continue
         for base in statedirs:
-            want = ("-Dactivemq.base=" + os.path.join(base, ".ECCE",
-                                                      "activemq")).encode()
+            want = os.path.join(base, ".ECCE", "mosquitto.conf").encode()
             if want in argv:
                 found.append(int(entry))
     return found
@@ -767,7 +766,7 @@ def caseRemote(checks, display, logdir):
     if not checks.check(amq and alive(amq) and sdisp and alive(sdisp),
                         "server broker %s and relay %s up" % (amq, sdisp)):
         return
-    marker = os.path.join(statedir(), "activemq", "server")
+    marker = os.path.join(statedir(), "mosquitto.server")
     mark = run("ecce-remote-setup", serverEnv, "--server")
     if not checks.check(mark.returncode == 0 and os.path.exists(marker),
                         "the server account marked (ecce-remote-setup "
@@ -776,7 +775,7 @@ def caseRemote(checks, display, logdir):
         return
     client = os.path.join(state, "client")
     os.makedirs(os.path.join(client, ".ECCE"), exist_ok=True)
-    chome = isolate.homeOverlay(apps.INSTALL, client, dport, bport)
+    chome = isolate.homeOverlay(apps.INSTALL, client, dport)
     extra = {"ECCE_REALUSERHOME": client, "ECCE_HOME": chome}
     # homeOverlay copies (not symlinks) siteconfig, so this is safe to
     # edit: make the client's machine list differ from the server's, so a
@@ -859,7 +858,7 @@ def caseRemote(checks, display, logdir):
         checks.check(cdisp and alive(cdisp), "client relay running (%s)"
                      % cdisp)
         checks.check(not os.path.exists(os.path.join(client, ".ECCE",
-                                                     "activemq.pid")),
+                                                     "mosquitto.pid")),
                      "no broker of the client's own")
         gw = gatewayIsTheTree(checks, cd)
         # The teacher's session ends first: its reaper runs, exactly as
@@ -907,11 +906,12 @@ def caseRemoteDown(checks, display, logdir):
     os.makedirs(os.path.join(client, ".ECCE"))
     dport = isolate._pickPort("ECCE_TEST_DOWN_DATA_PORT", 8390)
     bport = isolate._pickPort("ECCE_TEST_DOWN_BROKER_PORT", dport + 10)
-    chome = isolate.homeOverlay(apps.INSTALL, client, dport, bport)
-    extra = {"ECCE_REALUSERHOME": client, "ECCE_HOME": chome}
+    chome = isolate.homeOverlay(apps.INSTALL, client, dport)
+    extra = {"ECCE_REALUSERHOME": client, "ECCE_HOME": chome,
+             "ECCE_BROKER_PORT": str(bport)}
     setup = subprocess.run(
         [os.path.join(install, "bin", "ecce-remote-setup"), "localhost",
-         str(dport), str(bport)], env=dict(os.environ, **extra),
+         str(dport)], env=dict(os.environ, **extra),
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     if not checks.check(setup.returncode == 0, "ecce-remote-setup ran "
                         "against ports %d/%d with nothing on them"
@@ -1106,7 +1106,7 @@ def caseShared(checks, display, logdir):
 def caseMarkers(checks, display, logdir):
     """The reaper alone, on the two things that make a broker a server's.
 
-    The broker is a stand-in (sleep, under activemq.pid), so the
+    The broker is a stand-in (sleep, under mosquitto.pid), so the
     listen-beyond-loopback case needs no real outward socket.
     """
     return needsServerBroker("server markers")
@@ -1114,7 +1114,7 @@ def caseMarkers(checks, display, logdir):
     stopOwnBroker(env)
     base = os.path.join(statedir(), "activemq")
     conf = os.path.join(base, "conf", "activemq.xml")
-    marker = os.path.join(base, "server")
+    marker = os.path.join(statedir(), "mosquitto.server")
     os.makedirs(os.path.dirname(conf), exist_ok=True)
     saved = open(conf).read() if os.path.exists(conf) else None
     uri = 'uri="tcp://%s:%d"'
@@ -1130,7 +1130,7 @@ def caseMarkers(checks, display, logdir):
                 open(marker, "w").close()
             fake = subprocess.Popen(["sleep", "300"],
                                     start_new_session=True)
-            with open(os.path.join(statedir(), "activemq.pid"), "w") as f:
+            with open(os.path.join(statedir(), "mosquitto.pid"), "w") as f:
                 f.write("%d\n" % fake.pid)
             said = run("ecce-gateway-reap", env, "--if-idle")
             time.sleep(0.5)
@@ -1140,7 +1140,7 @@ def caseMarkers(checks, display, logdir):
                             said.stdout.decode().strip()))
             fake.kill()
             fake.wait()
-            for path in (marker, os.path.join(statedir(), "activemq.pid")):
+            for path in (marker, os.path.join(statedir(), "mosquitto.pid")):
                 try:
                     os.unlink(path)
                 except OSError:

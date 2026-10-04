@@ -19,7 +19,7 @@
 # come in over loopback ssh tunnels):
 #   - siteconfig/SharedBroker (mode 3): the site's service. Nothing here
 #     ever stops it, not even --stop.
-#   - $STATEDIR/activemq/server, written by `ecce-remote-setup --server`
+#   - $STATEDIR/mosquitto.server, written by `ecce-remote-setup --server`
 #     (mode 2): a server's. Only --stop stops it.
 #   - anything else this account started (mode 1): stopped with the
 #     user's last session, so idle per-user brokers do not pile up on a
@@ -72,6 +72,10 @@ fi
 # processes (AuthCache::sessionFile). It holds a password, so it must go
 # when the session's services do -- same lifetime as the port file, same
 # per-display key, and sanitised the same way the C++ side sanitises it.
+brokerfile() {
+  printf '%s/broker_%s' "$STATEDIR" \
+    "$(printf '%s_%s' "$HOST" "$1" | tr -c 'A-Za-z0-9._-' '_')"
+}
 authfile() {
   printf '%s/authcache_%s' "$STATEDIR" \
     "$(printf '%s_%s' "$HOST" "$1" | tr -c 'A-Za-z0-9._-' '_')"
@@ -150,7 +154,7 @@ reap_pid() {
 # it to. A session is a live ECCE app on a display, so keep only the
 # files one of those could be using. Limited to this HOST's
 # files, since a home directory shared over NFS holds other machines'.
-live_auth=""
+live_auth="" live_broker=""
 for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
   [ -O "/proc/$pid" ] || continue
   exe="$(readlink "/proc/$pid/exe" 2>/dev/null)" || continue
@@ -158,7 +162,8 @@ for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
   [ -r "/proc/$pid/environ" ] || continue
   d="$(tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null |
        sed -n 's/^DISPLAY=//p' | head -n1)"
-  [ -n "$d" ] && live_auth="$live_auth $(authfile "$d")"
+  [ -n "$d" ] && live_auth="$live_auth $(authfile "$d")" &&
+    live_broker="$live_broker $(brokerfile "$d")"
 done
 auth_prefix="$(authfile "")"      # .../authcache_<host>_
 for f in "$auth_prefix"*; do
@@ -168,6 +173,16 @@ for f in "$auth_prefix"*; do
   [ "$f" = "$base" ] &&
     say "no ECCE app left for $(basename "$base") -- removing session credential"
   rm -f "$f"
+done
+
+# The broker files of sessions with no app left. One written a minute ago
+# belongs to a session whose first app is about to start (the start script
+# writes it, then releases the lock, then the wrapper launches the app).
+broker_prefix="$(brokerfile "")"
+for f in "$broker_prefix"*; do
+  [ -e "$f" ] || continue
+  case " $live_broker " in *" $f "*) continue ;; esac
+  [ -n "$(find "$f" -mmin +1 2>/dev/null)" ] && rm -f "$f"
 done
 
 # --- 2. The broker, shared by every display ----------------------------
@@ -184,7 +199,7 @@ fi
 # say-so and runs while the Organizer that asked is still closing.
 if [ "$IF_IDLE" = 1 ]; then
   [ -z "$(apps_for_state)" ] || exit 0
-  [ -e "$STATEDIR/activemq/server" ] && exit 0
+  [ -e "$STATEDIR/mosquitto.server" ] && exit 0
 fi
 
 brokerpid=""
@@ -212,8 +227,8 @@ if [ -n "${brokerpid:-}" ]; then
   fi
   reap_pid "$brokerpid"
   # ecce-gateway-start decides whether a broker is running by pid, but
-  # leave no stale socket or broker file for a process that starts later.
-  rm -f "$STATEDIR/mosquitto.pid" "$STATEDIR/mosquitto.sock" "$STATEDIR/broker"
+  # leave no stale socket or broker files for a process that starts later.
+  rm -f "$STATEDIR/mosquitto.pid" "$STATEDIR/mosquitto.sock" "$STATEDIR"/broker_*
 fi
 
 exit 0

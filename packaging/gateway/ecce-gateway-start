@@ -4,9 +4,9 @@
 # needs messaging starts. Safe to call every time an app launches -- it
 # does nothing if the broker is already up.
 #
-# The processes find the broker through $STATEDIR/broker (MqttLink.C):
-# "socket=<path>" for this user's own mosquitto, "host=" and "port=" for a
-# central or shared one. There is no relay process any more.
+# The processes find the broker through $STATEDIR/broker_<host>_<display>
+# (MqttLink.C), one file per session: "socket=<path>" for this user's own
+# mosquitto, "host=" and "port=" for a central or shared one.
 #
 # Which broker, and whether one is started here, depends on the deployment
 # mode; see "--- 1." below.
@@ -23,8 +23,13 @@ export DISPLAY="${DISPLAY:-:0}"
 STATEDIR="$ECCE_REALUSERHOME/.ECCE"
 mkdir -p "$STATEDIR"
 
-# Written by ecce-gateway-start, read by every ECCE process (MqttLink.C).
-BROKERFILE="$STATEDIR/broker"
+# Written by ecce-gateway-start, read by every ECCE process (MqttLink.C),
+# which sanitises the name the same way.
+BROKERFILE="$STATEDIR/broker_$(printf '%s_%s' "$HOST" "$DISPLAY" | tr -c 'A-Za-z0-9._-' '_')"
+
+# The central broker's port under -remote. The per-user broker has no port;
+# a central one is at the data server's host.
+BROKER_PORT="${ECCE_BROKER_PORT:-8883}"
 
 port_open_at() { (exec 3<>"/dev/tcp/$1/$2") >/dev/null 2>&1; }
 # A remote host that drops packets would hang a plain connect for minutes.
@@ -33,19 +38,13 @@ port_open_remote() {
 }
 
 # -remote: the central server's broker and data server, as
-# ecce-remote-setup wrote them. Checked first so that a server that is down
+# ecce-remote-setup wrote the data server's address. Checked first so that a server that is down
 # gets one message naming it, rather than every app failing to connect.
 # Leaves the broker's host and port in RBHOST/RBPORT.
 check_central_server() {
-  local jndi="$ECCE_HOME/siteconfig/jndi.properties"
   local ds="$ECCE_HOME/siteconfig/RemoteServer/DataServers"
-  local bhost="" bport="" dhost="" dport="" url down="" host=""
+  local bhost="" bport="$BROKER_PORT" dhost="" dport="" url down="" host=""
   RBHOST="" RBPORT=""
-  url="$(sed -n 's/^[ \t]*java\.naming\.provider\.url[ \t]*=[ \t]*//p' "$jndi" 2>/dev/null | head -n1)"
-  case "$url" in
-    *tcp://*) url="${url#*tcp://}"; bhost="${url%%:*}"
-              bport="$(printf '%s' "${url#*:}" | sed 's/[^0-9].*//')" ;;
-  esac
   url="$(sed -n 's|.*<Url>[ \t]*\(https\{0,1\}://[^/<]*\).*|\1|p' "$ds" 2>/dev/null | head -n1)"
   if [ -n "$url" ]; then
     dport=80; case "$url" in https:*) dport=443 ;; esac
@@ -53,10 +52,11 @@ check_central_server() {
     dhost="${url%%:*}"
     case "$url" in *:*) dport="${url##*:}" ;; esac
   fi
-  if [ -z "$bhost" ] || [ -z "$bport" ] || [ -z "$dhost" ]; then
-    echo "ecce-gateway-start: -remote, but this client has no central server configured ($jndi, $ds) -- run ecce-remote-setup <server> first" >&2
+  if [ -z "$dhost" ]; then
+    echo "ecce-gateway-start: -remote, but this client has no central server configured ($ds) -- run ecce-remote-setup <server> first" >&2
     return 1
   fi
+  bhost="$dhost"
   if ! port_open_remote "$bhost" "$bport"; then down="$bhost:$bport (broker)"; fi
   if ! port_open_remote "$dhost" "$dport"; then
     down="${down:+$down and }$dhost:$dport (data server)"
@@ -90,8 +90,8 @@ fi
 #   3. siteconfig/SharedBroker declares the site's broker, a system
 #      service. It wins over -remote, so an app server can use a central
 #      data server with its own local broker.
-#   2. -remote: the central server's broker, as ecce-remote-setup wrote
-#      it into siteconfig/jndi.properties.
+#   2. -remote: the central server's broker, on the host of the data
+#      server in siteconfig/RemoteServer/DataServers, at $BROKER_PORT.
 #   1. otherwise this user's own mosquitto on a Unix socket, started here.
 SHARED=""
 if [ -x "$ECCE_HOME/bin/ecce-broker-setup" ]; then

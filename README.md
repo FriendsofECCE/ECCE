@@ -90,11 +90,10 @@ sudo apt install ./ecce_<version>_amd64.deb
 ```
 
 The `./` matters: it tells apt this is a local file, and apt then pulls
-in every dependency itself (Apache, ActiveMQ, wxPython, xterm).
+in every dependency itself (Apache, Mosquitto, wxPython, xterm).
 
 On RHEL, Rocky or Fedora, `sudo dnf install ./ecce-<version>.x86_64.rpm`.
-These distributions don't package ActiveMQ, so a machine that runs a
-broker needs it installed by hand — see
+The message broker is Mosquitto (in EPEL on RHEL and Rocky) — see
 [Deployment modes](GETTING_STARTED.md#deployment-modes).
 
 ECCE installs to `/opt/ecce` and puts `ecce` and its helper commands
@@ -222,7 +221,7 @@ from-scratch modernization of everything underneath the application:
 * **CMake/CPack** instead of the old `build_ecce`/recursive-make build.
 * **wxWidgets 3.2 on GTK3**, from 2.8 on GTK2; **Python 3** for the
   helper GUIs; **Xerces-C 3**; the system's current **Mesa**.
-* **Distribution-maintained servers**: Debian's ActiveMQ and Apache 2.4,
+* **Distribution-maintained servers**: Debian's Mosquitto and Apache 2.4,
   instead of 2008-era bundled builds.
 
 Since then the 8.x releases have added what the old ECCE never had:
@@ -348,7 +347,7 @@ sudo apt-get install -y \
   build-essential gfortran cmake ninja-build \
   libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
   libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
-  default-jdk ant activemq git libssh-dev
+  libmosquitto-dev mosquitto git libssh-dev
 
 git clone https://github.com/FriendsofECCE/ECCE.git
 cd ECCE                # main is 9.0 development; for 8.x: git checkout stable-8

@@ -269,9 +269,30 @@ bool MqttLink::ensureConnected()
   if (p_started) return p_mosq != nullptr;
   p_started = true;
 
-  // The broker file is written by ecce-gateway-start; this process may be
-  // started a moment before it is complete, so retry briefly.
-  string file = string(Ecce::realUserPrefPath()) + "broker";
+  // The session this process belongs to, with the same HOST and DISPLAY
+  // defaults ecce-gateway-start applies. A job store started from a
+  // detached or ssh launch may have neither; it only needs a key that
+  // matches the session it was started by when they are set.
+  const char* host = getenv("HOST");
+  const char* display = getenv("DISPLAY");
+  char hostbuf[256] = "localhost";
+  if (!host || !*host) {
+    if (gethostname(hostbuf, sizeof(hostbuf) - 1) != 0) strcpy(hostbuf, "localhost");
+    host = hostbuf;
+  }
+  if (!display || !*display) display = ":0";
+  string key = string(host) + "_" + display;
+  p_cfg.sessionKey = MqttConfig::sanitizeLevel(key);
+
+  // One broker file per session, so a local and a -remote session of one
+  // account on different displays do not overwrite each other. Written by
+  // ecce-gateway-start, whose tr(1) gives the same file name; this process
+  // may be started a moment before it is complete, so retry briefly.
+  for (size_t i = 0; i < key.size(); i++) {
+    unsigned char ch = key[i];
+    if (!isalnum(ch) && ch != '.' && ch != '_' && ch != '-') key[i] = '_';
+  }
+  string file = string(Ecce::realUserPrefPath()) + "broker_" + key;
   bool have = false;
   for (int i = 0; i < 50 && !(have = MqttConfig::parseFile(file, p_cfg)); i++)
     usleep(100000);
@@ -285,19 +306,6 @@ bool MqttLink::ensureConnected()
     p_cfg.user = u ? u : (pw ? pw->pw_name : "");
   }
   p_cfg.user = MqttConfig::sanitizeLevel(p_cfg.user);
-
-  // The same defaults ecce-gateway-start applies. A job store started from
-  // a detached or ssh launch may have neither; it only needs a key that
-  // matches the session it was started by when they are set.
-  const char* host = getenv("HOST");
-  const char* display = getenv("DISPLAY");
-  char hostbuf[256] = "localhost";
-  if (!host) {
-    if (gethostname(hostbuf, sizeof(hostbuf) - 1) != 0) strcpy(hostbuf, "localhost");
-    host = hostbuf;
-  }
-  if (!display) display = ":0";
-  p_cfg.sessionKey = MqttConfig::sanitizeLevel(string(host) + "_" + display);
 
   string messages = string(Ecce::ecceHome()) + "/data/client/config/ecce_messages";
   EE_RT_ASSERT(p_topics.load(messages), EE_FATAL, "Could not read " + messages);

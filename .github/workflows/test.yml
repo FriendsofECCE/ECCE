@@ -170,7 +170,7 @@ jobs:
             build-essential gfortran cmake ninja-build \
             libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
             libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
-            default-jdk ant git dpkg-dev
+            libmosquitto-dev mosquitto git dpkg-dev
 
       - name: Install runtime dependencies
         run: |
@@ -189,7 +189,7 @@ jobs:
           #   codereg dialogs need it at runtime.
           sudo apt-get install -y \
             apache2 apache2-utils xvfb libgl1-mesa-dri x11-utils \
-            mesa-utils activemq python3-wxgtk4.0
+            mesa-utils mosquitto python3-wxgtk4.0
 
       - name: Build
         run: |

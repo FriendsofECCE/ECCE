@@ -109,7 +109,7 @@ bool CalcMgrApp::OnInit()
   subscribe("ecce_data_server", (wxJmsCBFunc)&CalcMgrApp::msgDataServerMCB,false);
 
 
-  // Now tell JMSDispatcher that we are ready to start the subscriber
+  // Now tell the gateway that we are ready to start the subscriber
   // connection for these subscriptions 
   // (must happen AFTER all subscribe calls):
   startSubscriber();

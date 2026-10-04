@@ -3,7 +3,7 @@ type: map
 title: "The Gateway window no longer appears"
 area: services
 section: "The Gateway window and session end"
-paths: ["~/.ECCE/activemq/server"]
+paths: ["~/.ECCE/mosquitto.server"]
 issues: [93, 97, 185, 191]
 ---
 **The Gateway window no longer appears** (#93, 2026-09-22). `ecce`
@@ -23,7 +23,7 @@ session on any display; a server's broker never does on a plain quit**
 (#191). "A server's" comes only from declarations, never from who is
 connected (clients may tunnel in over loopback): `siteconfig/
 SharedBroker` (mode 3, a systemd service no user can stop, not even
-with Quit and Stop Server), or `~/.ECCE/activemq/server` (`ecce-remote-
+with Quit and Stop Server), or `~/.ECCE/mosquitto.server` (`ecce-remote-
 setup --server`; mode 2, stopped only by that account's Quit and Stop
 Server). The per-user broker is `mosquitto` on a Unix socket (#213). The data server is
 stopped only by Quit and Stop Server, in every mode (#97).

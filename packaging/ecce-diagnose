@@ -261,7 +261,7 @@ shell_run "dmesg 2>/dev/null | grep -i 'out of memory' | tail -10 || true"
 
 # ---------------------------------------------------------------- config
 say "ECCE configuration"
-for f in Machines Queues QueueManagers DataServers jndi.properties site_runtime; do
+for f in Machines Queues QueueManagers DataServers site_runtime; do
   [ -r "$HOME_DIR/siteconfig/$f" ] || continue
   note ""
   note "--- siteconfig/$f (comments stripped)"
@@ -335,9 +335,9 @@ fi
 # -------------------------------------------------------------- services
 say "Services"
 if have ss; then
-  shell_run "ss -ltnp 2>/dev/null | grep -E ':(8096|8095|8088|61616)' || echo 'nothing listening on the ECCE ports'"
+  shell_run "ss -ltnp 2>/dev/null | grep -E ':(8096|8883)' || echo 'nothing listening on the ECCE ports'"
 elif have netstat; then
-  shell_run "netstat -ltnp 2>/dev/null | grep -E ':(8096|8095|8088|61616)' || echo 'nothing listening on the ECCE ports'"
+  shell_run "netstat -ltnp 2>/dev/null | grep -E ':(8096|8883)' || echo 'nothing listening on the ECCE ports'"
 fi
 shell_run "pgrep -a -u \"\$(id -un)\" -f 'httpd|mosquitto|eccejobstore|eccejobmaster|eccejobmonitor' || echo 'no ECCE service processes for this user'"
 note ""
