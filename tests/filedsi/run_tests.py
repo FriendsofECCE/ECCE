@@ -237,7 +237,7 @@ def main():
         # resourceTest runs twice: create, then re-open in a new process.
         for name, args in (("filedsiTest", []), ("resourceTest", ["create"]),
                            ("resourceTest", ["reopen"]), ("lockTest", []),
-                           ("opsTest", [])):
+                           ("opsTest", []), ("homeTest", [])):
             driver = os.path.join(state, name)
             if not os.path.exists(driver):
                 cmd = (["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"),
@@ -252,8 +252,12 @@ def main():
             scratch = os.path.join(state, name + ".store")
             if not os.path.isdir(scratch):
                 os.mkdir(scratch)
+            run_env = dict(env)
+            if name == "homeTest":      # local mode: writes only in the home
+                run_env["ECCE_LOCAL_DATA"] = scratch
+                run_env["ECCE_SERVER_LOGIN"] = "tester"
             proc = subprocess.run([driver] + args + [scratch],
-                                  capture_output=True, text=True, env=env,
+                                  capture_output=True, text=True, env=run_env,
                                   timeout=120)
             lines = proc.stdout.splitlines()
             bad = [l for l in lines if l.startswith("FAIL ")]

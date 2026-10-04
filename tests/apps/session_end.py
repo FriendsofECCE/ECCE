@@ -1795,8 +1795,8 @@ def caseLocalPref(checks, display, logdir):
             checks.check(not apacheProcs() and
                          not portOpen(fixture.dataserverPort()),
                          "no Apache was started")
-            checks.check(os.path.isdir(os.path.join(first, "users", user)),
-                         "the folder has users/%s" % user)
+            checks.check(os.path.isdir(os.path.join(first, "users", "local")),
+                         "the folder has users/local")
             if shutil.which("import"):
                 preferencesShot(display, frame, logdir)
             quitVia(display, frame)

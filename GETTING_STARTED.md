@@ -380,6 +380,15 @@ a folder (local data mode, #216): set **Edit > Preferences > Data folder**
 environment, which wins over the preference. No data server is started.
 Server mode remains the default. The broker is unchanged.
 
+#### Local data mode (a data folder instead of a data server)
+
+Set `ECCE_LOCAL_DATA`, or Edit > Preferences > Data folder (default
+`~/.ECCE-local`), and no data server is started. Local mode keeps one data
+folder per computer account: users are separated by their operating-system
+accounts, and the person's home inside the folder is always `users/local`,
+whatever the account is called. On a shared generic lab account everyone
+would share that folder; use the central server (mode 2) there.
+
 #### Mode 2: a central server
 
 One account on the server runs the data server and broker for everyone.

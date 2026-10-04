@@ -80,6 +80,7 @@ class FileEDSI : public EDSI
      virtual string getClassName();
 
    protected:
+     bool forbidden(const string& path);
      bool removeHelper(const EcceURL& url);
      bool prepareTarget(EcceURL& targetURL, EDSIOverwrite overwrite);
      AuthEventListener *p_authListener;

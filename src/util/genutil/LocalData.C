@@ -182,7 +182,9 @@ string LocalData::userHome()
 {
   string d = dir();
   if (d.empty()) return "";
-  return d + "/users/" + Ecce::serverUser();
+  // A fixed name: OS account names are unsafe as folder names on Windows
+  // and macOS, and the folder already belongs to one OS account.
+  return d + "/users/local";
 }
 
 bool LocalData::prefEnabled()
