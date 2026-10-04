@@ -512,9 +512,9 @@ the data server's contents are untouched.
 
 - Existing data server accounts keep working as broker accounts. Nothing
   is re-created and no passwords change.
-- On the server account, run `ecce-remote-setup --server` once (the old
-  marker `~/.ECCE/activemq/server` is not read by 9.x), then restart the
-  services: `ecce-dataserver-stop; ecce-gateway-stop; ecce-dataserver-start
+- On the server account, restart the services (the 8.x central-server
+  mark, `~/.ECCE/activemq/server`, is carried over to
+  `~/.ECCE/mosquitto.server` at the first start): `ecce-dataserver-stop; ecce-gateway-stop; ecce-dataserver-start
   && ecce-gateway-start`. Stop any ActiveMQ still running there. The existing `dataserver/listen` setting is kept.
 - The firewall is unchanged: the broker is still on port 8088, the data
   server on 8096. Only the protocol on 8088 differs (MQTT, no longer

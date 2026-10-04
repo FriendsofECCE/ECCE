@@ -156,6 +156,12 @@ else
   SOCK="$(broker_socket)"
   CONF="$STATEDIR/mosquitto.conf"
   MARKER="$STATEDIR/mosquitto.server"
+  # An 8.x central server was marked under activemq/; without carrying the
+  # mark over, its upgraded account would serve no clients at all.
+  if [ ! -e "$MARKER" ] && [ -e "$STATEDIR/activemq/server" ]; then
+    cp "$STATEDIR/activemq/server" "$MARKER" &&
+      echo "ecce-gateway-start: carried the 8.x central-server mark over to $MARKER"
+  fi
 
   # The addresses of the data server's listen setting (ecce-dataserver-
   # start), so a server's broker is reachable exactly where its data
