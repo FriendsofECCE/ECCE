@@ -3,11 +3,10 @@
 Coin's <Inventor/X/Y.h>. Headers Coin lacks become empty stubs and are
 listed in missing.txt. inv/ChemKit comes from the tree (moiv's own)."""
 import os, re, sys
-root, out = sys.argv[1], sys.argv[2]
-coin = "/usr/include/Inventor"
+root, out, coin_inc = sys.argv[1], sys.argv[2], sys.argv[3]   # coin_inc: dir that holds Inventor/
 scan = [os.path.join(root, d) for d in ("src/inv/moiv", "src/inv/wxinv", "include/inv/ChemKit", "include/inv/SoWx")]
 # extra roots to scan (headers outside src/inv that include inv/)
-scan += sys.argv[3:]
+scan += sys.argv[4:]
 pat = re.compile(r'^\s*#\s*include\s+[<"](inv/[^>"]+)[>"]', re.M)
 seen = set()
 for d in scan:
@@ -25,7 +24,7 @@ for inc in sorted(seen):
     target = os.path.join(out, "inv", rel)
     os.makedirs(os.path.dirname(target), exist_ok=True)
     c = "Inventor/" + base + ".h"
-    if os.path.exists(os.path.join("/usr/include", c)):
+    if os.path.exists(os.path.join(coin_inc, c)):
         open(target, "w").write('#include <%s>\n' % c)
     else:
         open(target, "w").write('/* not in Coin: %s */\n' % inc)

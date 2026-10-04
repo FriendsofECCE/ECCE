@@ -105,13 +105,19 @@ if(ECCE_USE_COIN)
   file(GLOB _coin_scan_inc LIST_DIRECTORIES true ${CMAKE_SOURCE_DIR}/include/*)
   list(FILTER _coin_scan_inc EXCLUDE REGEX "/include/inv$")
   list(APPEND _coin_scan ${_coin_scan_inc})
+  # Coin 4.0.10 as packaged by EPEL/Fedora installs under include/Coin4, so
+  # the directory holding Inventor/ is found, not assumed to be /usr/include.
+  find_path(COIN_INCLUDE_DIR Inventor/SbString.h PATH_SUFFIXES Coin4 Coin3 Coin REQUIRED)
   execute_process(COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/coin/gen_shim.py
-                          ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR}/coin-shim ${_coin_scan}
+                          ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR}/coin-shim ${COIN_INCLUDE_DIR} ${_coin_scan}
                   RESULT_VARIABLE _shim_rc)
   if(NOT _shim_rc EQUAL 0)
     message(FATAL_ERROR "gen_shim.py failed")
   endif()
   include_directories(BEFORE ${CMAKE_BINARY_DIR}/coin-shim)
+  if(NOT COIN_INCLUDE_DIR STREQUAL "/usr/include")
+    include_directories(${COIN_INCLUDE_DIR})
+  endif()
   add_compile_definitions(OIV_COIN)
   find_library(COIN_LIBRARY Coin REQUIRED)
 endif()
