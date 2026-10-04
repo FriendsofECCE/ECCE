@@ -120,6 +120,7 @@ void WxAuth::OnChange( wxCommandEvent& event )
   // the Layout() method even after minor changes like showing/hiding fields
   // else things will look really bad
   Layout();
+  GetSizer()->SetSizeHints(this);
 }
 
 
