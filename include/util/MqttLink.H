@@ -148,6 +148,10 @@ public:
   const MqttTopicMap& topics() const { return p_topics; }
 
   bool publish(const std::string& topic, const JMSMessage& msg);
+  // True while a TCP broker is configured but this session has no data
+  // server login yet (e.g. the login dialog was cancelled): nothing can be
+  // published, and that is not a publish failure.
+  bool awaitingLogin();
 
   // Subscribes to everything the endpoint has added; also after reconnects.
   void activate(const std::shared_ptr<MqttEndpoint>& ep);

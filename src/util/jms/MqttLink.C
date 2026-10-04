@@ -511,6 +511,12 @@ static void addProp(mosquitto_property** p, const char* k, const string& v)
     mosquitto_property_add_string_pair(p, MQTT_PROP_USER_PROPERTY, k, v.c_str());
 }
 
+bool MqttLink::awaitingLogin()
+{
+  std::lock_guard<std::mutex> g(p_lock);
+  return !p_started && p_warnedNoLogin;
+}
+
 bool MqttLink::publish(const string& topic, const JMSMessage& msg)
 {
   if (!ensureConnected()) return false;

@@ -99,7 +99,9 @@ bool JMSPublisher::publish(const string& topic,
   bool ret = false;
   if (p_messagingEnabled) {
     ret = MqttLink::instance().publish(topic, msg);
-    if (!ret) {
+    // No login yet (cancelled dialog) is already logged once by MqttLink and
+    // is not a failure; any other refusal to publish still asserts.
+    if (!ret && !MqttLink::instance().awaitingLogin()) {
       EE_ASSERT(false, EE_WARNING, "publish failed!");
     }
   }
@@ -137,7 +139,7 @@ bool JMSPublisher::invoke(JMSMessage& msg,
 
       // ecce_get_app is the topic we need to do an invoke
       ret = MqttLink::instance().publish("ecce_get_app", msg);
-      if (!ret) {
+      if (!ret && !MqttLink::instance().awaitingLogin()) {
          EE_ASSERT(false, EE_WARNING, "publish failed!");
       }
    }
