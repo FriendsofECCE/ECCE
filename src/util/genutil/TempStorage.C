@@ -205,7 +205,17 @@ string TempStorage::getJobRunDirectoryPath(const EcceURL& url)
    string fluff = "/Ecce/users/";
    fluff += Ecce::serverUser();
    fluff += "/";
-   if (fullFile.find(fluff) == 0)
+   // In local mode (ECCE_LOCAL_DATA) the user's folder plays the part of
+   // /Ecce/users/<user>, so a run directory has the same layout as with
+   // a data server.
+   const char *local = getenv("ECCE_LOCAL_DATA");
+   string localHome = local ? string(local) : "";
+   while (localHome.size() > 1 && localHome[localHome.size()-1] == '/')
+      localHome.erase(localHome.size()-1);
+   localHome += string("/users/") + Ecce::serverUser() + "/";
+   if (local && *local && url.isLocal() && fullFile.find(localHome) == 0)
+      fullFile = fullFile.substr(localHome.length()-1);
+   else if (fullFile.find(fluff) == 0)
       fullFile = fullFile.substr(fluff.length()-1);
    else if (fullFile.find("/Ecce/users/") == 0)
       fullFile = fullFile.substr(11);

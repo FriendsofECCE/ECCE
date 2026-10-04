@@ -1335,10 +1335,12 @@ def apacheProcs():
     return found
 
 
-def makeLocalCalculation(env, home, data):
+def makeLocalCalculation(env, home, data, mode="create"):
     """A project and an NWChem calculation made through the real classes
     (Resource::createChild, as the Organizer's New menu does), by
-    tests/filedsi/resourceTest, into the user's folder of the local data."""
+    tests/filedsi/resourceTest, into the user's folder of the local data.
+    mode "mopac" makes proj-mopac/ch4 instead, a MOPAC calculation holding
+    a molecule and nothing else."""
     build = os.environ.get("ECCE_TEST_BUILD", os.path.join(REPO, "build-cmake"))
     libs = ["eccedsi", "eccexml", "eccetdat", "eccedav", "eccefaces",
             "eccecipc", "ecceutil", "eccecomm", "eccercmd"]
@@ -1351,8 +1353,9 @@ def makeLocalCalculation(env, home, data):
         return built.stdout.decode()[-1500:]
     user = os.path.join(data, "users", getpass.getuser())
     run_env = dict(env, ECCE_HOME=home, ECCE_LOCAL_DATA=data,
-                   ECCE_REALUSER=getpass.getuser())
-    done = subprocess.run([driver, "create", user], env=run_env,
+                   ECCE_REALUSER=getpass.getuser(),
+                   ECCE_NO_MESSAGING="1")     # no session to tell
+    done = subprocess.run([driver, mode, user], env=run_env,
                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return None if done.returncode == 0 else done.stdout.decode()[-1500:]
 
@@ -1534,7 +1537,132 @@ def caseLocal(checks, display, logdir):
         session.kill()
 
 
-CASES = {"local": caseLocal, "bug": caseBug, "window": caseWindow, "stop": caseStop, "remote": caseRemote,
+def caseLocalSave(checks, display, logdir):
+    """#216: CalcEd sets up and saves a calculation in local mode.
+
+    A MOPAC calculation holding only a molecule needs nothing but Save to
+    become launchable: the theory and runtype are the defaults and MOPAC
+    needs no basis set.  Ctrl+S goes to CalcEd's own window on this run's
+    Xvfb.
+    """
+    d = display.name
+    if not checks.check(d != ":1", "own Xvfb %s, never :1" % d):
+        return
+    data = os.path.join(state, "localdata-save")
+    shutil.rmtree(data, ignore_errors=True)
+    home = localHome(os.environ["ECCE_HOME"])
+    user = os.path.join(data, "users", getpass.getuser())
+    os.makedirs(user)
+    problem = makeLocalCalculation(display.env(), home, data, "mopac")
+    if not checks.check(problem is None, "MOPAC calculation with a methane "
+                        "molecule created"):
+        say("    " + (problem or ""))
+        return
+    calcdir = os.path.join(user, "proj-mopac", "ch4")
+    deck = os.path.join(calcdir, "Inputs", "mopac.mop")
+    checks.check(not os.path.exists(deck), "no input file before the save")
+    session = Session(display, os.path.join(logdir, "local-save.log"),
+                      extra={"ECCE_LOCAL_DATA": data, "ECCE_HOME": home})
+    try:
+        frame = session.organizer()
+        if not checks.check(frame, "the Organizer opened"):
+            return
+        before = set(w for w, _ in display.windows())
+        trace = os.path.join(logdir, "local-save-calced.strace")
+        log = open(os.path.join(logdir, "local-save-calced.log"), "w")
+        proc = subprocess.Popen(
+            list(straceCmd(trace)) + [os.path.join(wrappers, "ecce-calced"),
+                                      "-context", "file://" + calcdir + "/"],
+            env=session.env(), stdout=log, stderr=subprocess.STDOUT,
+            start_new_session=True)
+        try:
+            deadline = time.time() + 90
+            win = []
+            while time.time() < deadline and not win and proc.poll() is None:
+                win = [w for w in display.windows() if w[0] not in before
+                       and "MOPAC" in w[1]]
+                time.sleep(0.5)
+            if not checks.check(win, "CalcEd opened on the calculation %s"
+                                % [t for _, t in win]):
+                return
+            pids = named(d, "calced")
+            exe = os.readlink("/proc/%d/exe" % pids[0]) if pids else ""
+            checks.check(pids and os.path.realpath(exe) == os.path.realpath(
+                os.path.join(install, "bin", "calced")),
+                "the CalcEd running is %s" % exe)
+            #  It runs the details dialogs once to collect their defaults.
+            time.sleep(8)
+            env = display.env()
+            subprocess.run(["xdotool", "windowfocus", str(int(win[0][0], 16))],
+                           env=env, timeout=10, stderr=subprocess.DEVNULL)
+            time.sleep(0.5)
+            subprocess.run(["xdotool", "key", "ctrl+s"], env=env, timeout=10)
+            deadline = time.time() + 60
+            while time.time() < deadline and not os.path.exists(deck):
+                time.sleep(0.5)
+            #  The input checker reads the deck back after the save.
+            time.sleep(5)
+            if shutil.which("import"):
+                subprocess.run(["import", "-window", "root", os.path.join(
+                    logdir, "local-save.png")], env=env, timeout=30,
+                    stderr=subprocess.DEVNULL)
+            up = proc.poll() is None
+            checks.check(up, "CalcEd still running after the save")
+        finally:
+            if proc.poll() is None:
+                try:
+                    os.killpg(proc.pid, 15)
+                    proc.wait(timeout=20)
+                except (OSError, subprocess.TimeoutExpired):
+                    pass
+            log.close()
+        with open(log.name, errors="replace") as handle:
+            text = handle.read()
+        marker = re.search(r"ASSERT|Assertion|Segmentation|terminate called|"
+                           r"Fatal|FAILURE|Unhandled|ended by SIG", text)
+        if marker:
+            say("    calced log tail:\n      " + "\n      ".join(
+                text.strip().splitlines()[-15:]))
+        checks.check(not marker, "CalcEd output has no assertion or error marker")
+        if not checks.check(os.path.exists(deck), "Save wrote Inputs/mopac.mop"):
+            return
+        with open(deck, errors="replace") as handle:
+            text = handle.read()
+        say("    deck:\n      " + "\n      ".join(text.strip().splitlines()))
+        checks.check(len(re.findall(r"^\s*H\s", text, re.M)) == 4
+                     and re.search(r"^\s*C\s", text, re.M),
+                     "the deck holds methane's five atoms")
+        meta = {}
+        with open(os.path.join(calcdir, ".ecce-meta"), errors="replace") as handle:
+            for line in handle:
+                f = line.rstrip("\n").split("\t")
+                if len(f) == 4 and f[0] == ".":
+                    meta[f[1].rsplit(":", 1)[-1]] = f[3]
+        say("    state %r, theory %r, runtype %r" % (
+            meta.get("state"), meta.get("theory"), meta.get("runtype")))
+        checks.check(meta.get("state") == "Ready", "the calculation is Ready")
+        checks.check(meta.get("theory") and meta.get("runtype"),
+                     "theory and runtype were stored")
+        checks.check("mopac.mop" in meta.get("hasinputs", "")
+                     and "CDATA" not in meta.get("hasinputs", ""),
+                     "the input list names mopac.mop, as parsed XML")
+        params = os.listdir(os.path.join(calcdir, "Parameters"))
+        say("    Parameters/: %s" % sorted(params))
+        checks.check(any(p.startswith("GUIValues") or "Setup" in p
+                         for p in params), "the dialog settings were stored")
+        if straceCmd(trace):
+            saw = [l for l in straceSaw(trace, re.escape(deck) + r'"')
+                   if "O_RDONLY" in l]
+            checks.check(saw, "the deck was read back after it was written "
+                         "(the input checker)")
+        quitVia(display, frame)
+        checks.check(session.ended(30), "`ecce` returned after the Organizer "
+                     "closed")
+    finally:
+        session.kill()
+
+
+CASES = {"local": caseLocal, "local-save": caseLocalSave, "bug": caseBug, "window": caseWindow, "stop": caseStop, "remote": caseRemote,
          "remote-down": caseRemoteDown,
          "quit-stop": caseQuitStop,
          "displays": caseDisplays, "shared": caseShared,
@@ -1570,7 +1698,7 @@ def main():
             #  Cases share one broker and data server, as sessions do;
             #  the stop case takes both down, the next session restarts
             #  the broker and this restarts the data server.
-            if name == "local":       # local mode has no data server
+            if name in ("local", "local-save"):   # no data server
                 subprocess.run([os.path.join(install, "bin",
                                              "ecce-dataserver-stop")],
                                env=display.env(), stdout=subprocess.DEVNULL,

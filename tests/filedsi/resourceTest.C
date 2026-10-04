@@ -1,10 +1,12 @@
 /*
- * resourceTest create|reopen <scratch-dir>
+ * resourceTest create|reopen|mopac <scratch-dir>
  *
  * A project and a calculation made through the classes the apps use
  * (EDSIFactory::getResource, Resource::createChild) under a file:// URL
  * with no data server ("create"); a SEPARATE process then re-opens them
  * from disk alone ("reopen"), so nothing can come from a cache.  Prints "PASS name" / "FAIL name: why"; exit 1 on any FAIL.
+ * "mopac" makes proj-mopac/ch4, a MOPAC calculation holding only a methane
+ * molecule, which is what the Builder leaves for CalcEd to set up and save.
  */
 #include <iostream>
 #include <string>
@@ -12,6 +14,8 @@
 using namespace std;
 
 #include "dsm/EDSIFactory.H"
+#include "dsm/ICalculation.H"
+#include "tdat/Fragment.H"
 #include "dsm/Resource.H"
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/ResourceType.H"
@@ -52,6 +56,27 @@ int main(int argc, char **argv)
     check(calc->getProp(ns + ":application") == "NWChem", "application",
           calc->getProp(ns + ":application"));
     cout << (failures ? "FAILED " : "ALL OK ") << failures << " failure(s)" << endl;
+    return failures ? 1 : 0;
+  }
+
+  if (mode == "mopac") {
+    Resource *top = EDSIFactory::getResource(EcceURL("file://" + root));
+    ResourceDescriptor& rd = ResourceDescriptor::getResourceDescriptor();
+    ResourceType *projType = rd.getResourceType("collection", "ecceProject", "");
+    ResourceType *calcType = rd.getResourceType("virtual_document",
+                                                "ecceCalculation", "MOPAC");
+    Resource *proj = top && projType ? top->createChild("proj-mopac", projType) : 0;
+    Resource *calc = proj && calcType ? proj->createChild("ch4", calcType) : 0;
+    ICalculation *icalc = dynamic_cast<ICalculation*>(calc);
+    check(icalc != 0, "MOPAC calculation created");
+    if (!icalc) return 1;
+    vector<string> tags = {"C", "H", "H", "H", "H"};
+    const double xyz[] = { 0, 0, 0,   0.629, 0.629, 0.629,  -0.629, -0.629, 0.629,
+                          -0.629, 0.629, -0.629,   0.629, -0.629, -0.629 };
+    const int bonds[] = { 0, 1, 0, 2, 0, 3, 0, 4 };
+    Fragment frag("ch4", tags, xyz, 4, bonds);
+    check(icalc->fragment(&frag), "methane stored");
+    cout << calc->getURL().toString() << endl;
     return failures ? 1 : 0;
   }
 
