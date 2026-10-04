@@ -339,10 +339,10 @@ if have ss; then
 elif have netstat; then
   shell_run "netstat -ltnp 2>/dev/null | grep -E ':(8096|8095|8088|61616)' || echo 'nothing listening on the ECCE ports'"
 fi
-shell_run "pgrep -a -u \"\$(id -un)\" -f 'httpd|activemq|JMSDispatcher|eccejobstore|eccejobmaster|eccejobmonitor' || echo 'no ECCE service processes for this user'"
+shell_run "pgrep -a -u \"\$(id -un)\" -f 'httpd|mosquitto|eccejobstore|eccejobmaster|eccejobmonitor' || echo 'no ECCE service processes for this user'"
 note ""
 note "--- full ECCE process tree"
-shell_run "ps -u \"\$(id -un)\" -o pid,ppid,stat,etime,rss,args --forest 2>/dev/null | grep -iE 'ecce|activemq|JMSDispatcher|httpd|nwchem|orca|mopac|g16|g09|PID' | cut -c1-220 | head -60 || ps -u \"\$(id -un)\" -f | head -40"
+shell_run "ps -u \"\$(id -un)\" -o pid,ppid,stat,etime,rss,args --forest 2>/dev/null | grep -iE 'ecce|mosquitto|httpd|nwchem|orca|mopac|g16|g09|PID' | cut -c1-220 | head -60 || ps -u \"\$(id -un)\" -f | head -40"
 
 # --------------------------------------------------------- desktop
 say "Desktop and graphics"

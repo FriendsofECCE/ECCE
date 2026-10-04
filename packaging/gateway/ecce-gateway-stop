@@ -1,23 +1,19 @@
 #!/bin/bash
-# ecce-gateway-stop: stop this display's gateway and JMSDispatcher relay,
-# and this account's ActiveMQ broker (never the site's shared one).
+# ecce-gateway-stop: stop this display's gateway and, once no session of
+# this account is left, its mosquitto broker (never the site's shared one).
 
 set -u
 
 ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
 STATEDIR="$ECCE_REALUSERHOME/.ECCE"
 DISPLAY="${DISPLAY:-:0}"
-# Per-display, matching ecce-gateway-start; see the note there.
-PIDFILE="$STATEDIR/jmsdispatcher_${DISPLAY}.pid"
 # Prefer an inherited HOST over hostname(1): that is what the wrappers
-# export and what the C++ side reads back (DatagramUtil::loadServerPort,
-# AuthCache::sessionFile), so deriving it differently here can name a
+# export and what the C++ side reads back (AuthCache::sessionFile), so deriving it differently here can name a
 # file that does not exist. Same resolution order as ecce-gateway-reap.
 HOST="${ECCE_HOST:-${HOST:-$(hostname)}}"
-PORTFILE="$STATEDIR/${HOST}_${DISPLAY}"
 # The data server credential this session's processes share through
 # AuthCache::sessionFile(). It holds a password, so its lifetime is the
-# session's: same per-display key as the port file, sanitised the same
+# session's: same per-display key as the session's other state, sanitised the same
 # way the C++ side sanitises it.
 AUTHFILE="$STATEDIR/authcache_$(printf '%s_%s' "$HOST" "$DISPLAY" |
                                 tr -c 'A-Za-z0-9._-' '_')"
@@ -35,7 +31,7 @@ fi
 #
 # Reported from a live session 2026-09-22: the Organizer's new "Quit and
 # Stop Server" ran this and ecce-dataserver-stop, and left the Gateway
-# window sitting there -- now with no JMS dispatcher and no data server,
+# window sitting there -- now with no broker and no data server,
 # i.e. a visible window that cannot do anything, which is worse than not
 # having stopped the services at all.
 #
@@ -60,29 +56,12 @@ for _pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
   kill "$_pid" 2>/dev/null
 done
 
-if [ -f "$PIDFILE" ]; then
-  pid="$(cat "$PIDFILE")"
-  if kill -0 "$pid" 2>/dev/null; then
-    kill "$pid"
-    echo "ecce-gateway-stop: stopped JMSDispatcher (pid $pid)"
-  else
-    echo "ecce-gateway-stop: JMSDispatcher not running"
-  fi
-  rm -f "$PIDFILE" "$PORTFILE"
-else
-  echo "ecce-gateway-stop: JMSDispatcher not running for $DISPLAY (no pidfile)"
-fi
-
-# Pidfiles written before the per-display fix have no display in the name;
-# clean one up so it cannot be mistaken for this session's.
-rm -f "$STATEDIR/jmsdispatcher.pid"
-
 # Unconditionally, not only when there was a pidfile to stop: the session
 # is over either way and this file holds a password.
 rm -f "$AUTHFILE" "$AUTHFILE".tmp.*
 
 # The explicit "Quit and Stop Server": this account's broker goes too once
-# no display has a relay left -- unless it is the site's shared service
+# no ECCE app is left -- unless it is the site's shared service
 # (siteconfig/SharedBroker), which no user stops. The reaper decides.
 ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
 if [ -x "$ECCE_HOME/bin/ecce-gateway-reap" ]; then

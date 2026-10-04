@@ -175,10 +175,9 @@ export ECCE_DEBUG_AUTHPARENT="$ECCE_BUG_DIR/authparent.log"
 
 statedir="$ECCE_REALUSERHOME/.ECCE"
 jobroot="${ECCE_TMPDIR:-/tmp}/ecce_${ECCE_REALUSER:-$(id -un)}/jobs"
-# The broker and relay logs are rewritten whenever the service starts, so
-# they are copied whole; the data server's are appended to for good, so
+# The broker log is appended to like the data server's, so
 # note where each ends now and copy only what this session added.
-bug_logs="$statedir/activemq.log $statedir/jmsdispatcher.log $statedir/dataserver/logs/error_log $statedir/dataserver/logs/access_log"
+bug_logs="$statedir/mosquitto.log $statedir/dataserver/logs/error_log $statedir/dataserver/logs/access_log"
 declare -A startsize
 for f in $bug_logs; do
   startsize[$f]=$(stat -c %s "$f" 2>/dev/null || echo 0)
@@ -216,7 +215,7 @@ bug_finish() {
       continue
     fi
     off=0
-    case "$name" in error_log|access_log) off=${startsize[$f]:-0} ;; esac
+    case "$name" in error_log|access_log|mosquitto.log) off=${startsize[$f]:-0} ;; esac
     tail -c +$((off + 1)) "$f" > "$ECCE_BUG_DIR/$name" 2>/dev/null
   done
   # Job staging directories touched during the session: the logs and the

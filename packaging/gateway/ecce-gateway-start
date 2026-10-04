@@ -1,12 +1,15 @@
 #!/bin/bash
-# ecce-gateway-start: idempotently ensure the ECCE JMS gateway (the
-# ActiveMQ broker plus the per-user JMSDispatcher relay) is running on
-# this machine, for this user, before an ECCE app that needs messaging
-# starts. Safe to call every time an app launches -- it does nothing if
-# the gateway is already up.
+# ecce-gateway-start: idempotently make sure this session has a message
+# broker, and tell the ECCE processes where it is, before an ECCE app that
+# needs messaging starts. Safe to call every time an app launches -- it
+# does nothing if the broker is already up.
 #
-# Which broker the relay talks to, and whether one is started here,
-# depends on the deployment mode; see "--- 1." below.
+# The processes find the broker through $STATEDIR/broker (MqttLink.C):
+# "socket=<path>" for this user's own mosquitto, "host=" and "port=" for a
+# central or shared one. There is no relay process any more.
+#
+# Which broker, and whether one is started here, depends on the deployment
+# mode; see "--- 1." below.
 
 set -u
 
@@ -20,35 +23,9 @@ export DISPLAY="${DISPLAY:-:0}"
 STATEDIR="$ECCE_REALUSERHOME/.ECCE"
 mkdir -p "$STATEDIR"
 
-# ACTIVEMQ_HOME: Debian/Ubuntu package path by default; set it to an
-# upstream ActiveMQ Classic install (e.g. on RHEL, which packages none).
-ACTIVEMQ_HOME="${ACTIVEMQ_HOME:-/usr/share/activemq}"
+# Written by ecce-gateway-start, read by every ECCE process (MqttLink.C).
+BROKERFILE="$STATEDIR/broker"
 
-# The broker's listening port. Three things have to agree on it: this
-# script's check, activemq.xml's <transportConnector>, and
-# jndi.properties' java.naming.provider.url. They used to agree by all
-# three hardcoding 8088, which meant the port could not be changed without
-# editing installed files -- and so two ECCE instances could never run at
-# once, on one machine or in a test.
-#
-# Now only this variable is authoritative: the per-user copies of
-# activemq.xml and jndi.properties are resolved from it below. The C++ side
-# needs nothing, because it never reads either file -- it finds the
-# dispatcher through $STATEDIR/${HOST}_${DISPLAY} (see JMSMessage.C).
-BROKER_PORT="${ECCE_BROKER_PORT:-8088}"
-
-port_open() {
-  # The connect runs in a subshell, so fd 3 is closed when that subshell
-  # exits and there is nothing to clean up here.
-  #
-  # There used to be an "exec 3<&- 3>&- 2>/dev/null" cleanup line below.
-  # `exec` with redirections and no command applies them to the CURRENT
-  # shell, permanently -- so from the first port check onward this script's
-  # stderr went to /dev/null, and every error message after that point was
-  # silently discarded. That included the ones that matter most, like
-  # "did not report ready within 20s -- see <log>".
-  (exec 3<>"/dev/tcp/localhost/$1") >/dev/null 2>&1
-}
 port_open_at() { (exec 3<>"/dev/tcp/$1/$2") >/dev/null 2>&1; }
 # A remote host that drops packets would hang a plain connect for minutes.
 port_open_remote() {
@@ -56,13 +33,14 @@ port_open_remote() {
 }
 
 # -remote: the central server's broker and data server, as
-# ecce-remote-setup wrote them. Checked before starting the relay, which
-# would otherwise wait out its timeout against a server that is down and
-# leave nothing to say but "did not report ready".
+# ecce-remote-setup wrote them. Checked first so that a server that is down
+# gets one message naming it, rather than every app failing to connect.
+# Leaves the broker's host and port in RBHOST/RBPORT.
 check_central_server() {
   local jndi="$ECCE_HOME/siteconfig/jndi.properties"
   local ds="$ECCE_HOME/siteconfig/RemoteServer/DataServers"
   local bhost="" bport="" dhost="" dport="" url down="" host=""
+  RBHOST="" RBPORT=""
   url="$(sed -n 's/^[ \t]*java\.naming\.provider\.url[ \t]*=[ \t]*//p' "$jndi" 2>/dev/null | head -n1)"
   case "$url" in
     *tcp://*) url="${url#*tcp://}"; bhost="${url%%:*}"
@@ -83,6 +61,7 @@ check_central_server() {
   if ! port_open_remote "$dhost" "$dport"; then
     down="${down:+$down and }$dhost:$dport (data server)"
   fi
+  RBHOST="$bhost"; RBPORT="$bport"
   [ -z "$down" ] && return 0
   host="$bhost"
   [ "$bhost" = "$dhost" ] || host="$bhost / $dhost"
@@ -99,9 +78,8 @@ exec 9>>"$STATEDIR/.gateway.lock"
 flock -w 90 9 || echo "ecce-gateway-start: could not lock $STATEDIR/.gateway.lock; continuing" >&2
 
 # --- 0. Clean up after a session that died badly -----------------------
-# Issue #102: an aborted gateway's relay was left running and adopted by
-# the next session. The sweep only touches relays whose display has no
-# live ECCE app, so it cannot disturb a running session.
+# Issue #102: an aborted session's leftovers were adopted by the next one.
+# The sweep only touches displays with no live ECCE app.
 if [ -x "$ECCE_HOME/bin/ecce-gateway-reap" ]; then
   # It would wait for the lock we hold; tell it we hold it.
   ECCE_GATEWAY_LOCKED=1 "$ECCE_HOME/bin/ecce-gateway-reap" 9>&- || true
@@ -114,7 +92,7 @@ fi
 #      data server with its own local broker.
 #   2. -remote: the central server's broker, as ecce-remote-setup wrote
 #      it into siteconfig/jndi.properties.
-#   1. otherwise this user's own broker on BROKER_PORT, started here.
+#   1. otherwise this user's own mosquitto on a Unix socket, started here.
 SHARED=""
 if [ -x "$ECCE_HOME/bin/ecce-broker-setup" ]; then
   SHARED="$("$ECCE_HOME/bin/ecce-broker-setup" --show 2>/dev/null)" || SHARED=""
@@ -124,11 +102,32 @@ if [ -z "$SHARED" ] && [ -e "$ECCE_HOME/siteconfig/SharedBroker" ]; then
   SHARED="invalid"
 fi
 
+# Atomic, so a process starting now never reads half of it.
+write_broker_file() {
+  local tmp="$BROKERFILE.tmp.$$"
+  { printf 'user=%s\n' "$ECCE_REALUSER"; printf '%s\n' "$@"; } >"$tmp" &&
+    mv -f "$tmp" "$BROKERFILE"
+}
+
+# The socket must fit sun_path (107 bytes); a deep state directory gets a
+# short private directory under the runtime dir instead.
+broker_socket() {
+  local sock="$STATEDIR/mosquitto.sock" dir
+  if [ "${#sock}" -gt 100 ]; then
+    dir="${XDG_RUNTIME_DIR:-/tmp}/ecce-$(id -u)-$(printf '%s' "$STATEDIR" | cksum | cut -d' ' -f1)"
+    mkdir -p "$dir" && chmod 700 "$dir"
+    sock="$dir/mosquitto.sock"
+  fi
+  echo "$sock"
+}
+
 own_broker_pid() {
   local pid
-  pid="$(cat "$STATEDIR/activemq.pid" 2>/dev/null)"
-  if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then echo "$pid"; return; fi
-  pgrep -u "$(id -u)" -f "activemq.base=$STATEDIR/activemq( |$)" 2>/dev/null | head -n1
+  pid="$(cat "$STATEDIR/mosquitto.pid" 2>/dev/null)"
+  if [ -n "$pid" ] && [ "$(cat "/proc/$pid/comm" 2>/dev/null)" = mosquitto ]; then
+    echo "$pid"; return
+  fi
+  pgrep -u "$(id -u)" -f "mosquitto -c $STATEDIR/mosquitto.conf( |$)" 2>/dev/null | head -n1
 }
 
 if [ -n "$SHARED" ]; then
@@ -139,127 +138,51 @@ if [ -n "$SHARED" ]; then
     else
       echo "ecce-gateway-start: the site's shared broker $1:$2 (siteconfig/SharedBroker) is not answering -- ask the administrator to check 'systemctl status ecce-broker'" >&2
     fi
+    write_broker_file "host=$1" "port=$2"
   fi
 elif [ -n "${ECCE_REMOTE_SERVER:-}" ]; then
   check_central_server || exit 2
   echo "ecce-gateway-start: -remote -- using the central broker"
-elif port_open "$BROKER_PORT"; then
-  if [ -n "$(own_broker_pid)" ]; then
-    echo "ecce-gateway-start: broker already listening on $BROKER_PORT"
-  else
-    # Someone else's -- most likely another user's per-user broker, which
-    # goes when their last session ends, taking this session's messaging
-    # with it. A machine shared by several users wants a shared broker.
-    echo "ecce-gateway-start: port $BROKER_PORT is held by a broker this account did not start; using it, but it may stop when its owner quits. On a machine with several ECCE users, declare a shared broker (ecce-broker-setup), or set ECCE_BROKER_PORT." >&2
-  fi
-elif [ ! -f "$ECCE_HOME/server/activemq-conf/activemq.xml" ] ||
-     [ ! -x "$ECCE_HOME/bin/ecce-broker-run" ]; then
-  # A client-only install (split packaging): nothing to start locally.
-  echo "ecce-gateway-start: no local broker (ecce-server not installed) and neither ECCE_REMOTE_SERVER nor siteconfig/SharedBroker is set." >&2
-  echo "ecce-gateway-start: install ecce-server for a local broker, or point this client at a central one (ecce-remote-setup, then 'ecce -remote')." >&2
-  # A relay with no broker to connect to would only time out.
+  write_broker_file "host=$RBHOST" "port=$RBPORT"
+elif ! command -v mosquitto >/dev/null 2>&1; then
+  echo "ecce-gateway-start: no mosquitto broker installed and neither ECCE_REMOTE_SERVER nor siteconfig/SharedBroker is set." >&2
+  echo "ecce-gateway-start: install mosquitto for a local broker, or point this client at a central one (ecce-remote-setup, then 'ecce -remote')." >&2
   exit 1
-elif [ ! -d "$ACTIVEMQ_HOME" ]; then
-  echo "ecce-gateway-start: no ActiveMQ at $ACTIVEMQ_HOME (apt install activemq, or set ACTIVEMQ_HOME to an upstream ActiveMQ Classic install) -- messaging will not work" >&2
 else
-  echo "ecce-gateway-start: starting ActiveMQ broker..."
-  # A central server's broker must be reachable by its clients: it
-  # follows the data server's listen setting (#138, #167) -- loopback by
-  # default, every interface for anything else.
-  _listen="${ECCE_DATASERVER_LISTEN:-}"
-  if [ -z "$_listen" ] && [ -f "$STATEDIR/dataserver/listen" ]; then
-    _listen="$(sed -e 's/#.*//' "$STATEDIR/dataserver/listen" | tr -d ' \t\n')"
+  SOCK="$(broker_socket)"
+  if [ -n "$(own_broker_pid)" ] && [ -S "$SOCK" ]; then
+    echo "ecce-gateway-start: broker already running (pid $(own_broker_pid))"
+  else
+    echo "ecce-gateway-start: starting mosquitto broker..."
+    # No TCP listener and no authentication: the 0700 directory is what
+    # keeps other users out.
+    chmod 700 "$STATEDIR"
+    cat >"$STATEDIR/mosquitto.conf" <<EOF
+listener 0 $SOCK
+allow_anonymous true
+persistence false
+log_dest file $STATEDIR/mosquitto.log
+EOF
+    stale="$(own_broker_pid)"
+    [ -n "$stale" ] && kill "$stale" 2>/dev/null
+    rm -f "$SOCK"
+    (
+      umask 077
+      nohup mosquitto -c "$STATEDIR/mosquitto.conf" \
+        >"$STATEDIR/mosquitto.out" 2>&1 9>&- &
+      echo $! >"$STATEDIR/mosquitto.pid"
+    )
+    i=0
+    while [ $i -lt 40 ] && [ ! -S "$SOCK" ]; do
+      i=$((i + 1))
+      sleep 0.25
+    done
+    if [ ! -S "$SOCK" ]; then
+      echo "ecce-gateway-start: broker did not come up within 10s -- see $STATEDIR/mosquitto.log and mosquitto.out" >&2
+      exit 1
+    fi
   fi
-  case "${_listen:-loopback}" in
-    loopback) _amq_host=localhost ;;
-    *)        _amq_host=0.0.0.0 ;;
-  esac
-  (
-    nohup "$ECCE_HOME/bin/ecce-broker-run" "$STATEDIR/activemq" \
-      "$_amq_host" "$BROKER_PORT" >"$STATEDIR/activemq.log" 2>&1 9>&- &
-    # The reaper identifies this broker by it. ecce-broker-run execs the
-    # JVM, so $! is the broker itself.
-    echo $! >"$STATEDIR/activemq.pid"
-  )
-  i=0
-  while [ $i -lt 60 ]; do
-    if port_open "$BROKER_PORT"; then break; fi
-    i=$((i + 1))
-    sleep 0.5
-  done
-  if ! port_open "$BROKER_PORT"; then
-    echo "ecce-gateway-start: broker did not come up within 30s -- see $STATEDIR/activemq.log" >&2
-  fi
-fi
-
-# --- 2. Per-session JMSDispatcher gateway relay ------------------------
-# The JMSDispatcher is per SESSION, not per user: it is started with a
-# -DDISPLAY and writes its port to "$STATEDIR/${HOST}_${DISPLAY}", which
-# JMSMessage.C reads back and asserts on (EE_FATAL) when it is missing.
-# The pidfile therefore has to be per-display too.  It was not, so with a
-# dispatcher already running for one display, starting ECCE on a SECOND
-# display -- a VNC session, an X-forwarded session, a second seat --
-# reported "JMSDispatcher already running", never wrote that display's
-# port file, and every app then died on
-#   JMSMessage.C:497 Assertion (infile.good()) failed
-# Found by tests/apps, which runs the apps on an Xvfb display.
-PIDFILE="$STATEDIR/jmsdispatcher_${DISPLAY}.pid"
-PORTFILE="$STATEDIR/${HOST}_${DISPLAY}"
-
-running=0
-if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null \
-   && [ -f "$PORTFILE" ]; then
-  running=1
-fi
-
-if [ "$running" = "1" ]; then
-  echo "ecce-gateway-start: JMSDispatcher already running for $DISPLAY (pid $(cat "$PIDFILE"))"
-else
-  echo "ecce-gateway-start: starting JMSDispatcher..."
-  CP=""
-  for f in "$ECCE_HOME"/java/lib/*.jar; do CP="$f:$CP"; done
-
-  # Same story as activemq.xml: give the dispatcher a jndi.properties that
-  # names this instance's broker port, and put it ahead of the installed
-  # one on the classpath. $ECCE_HOME/siteconfig is root-owned and shared,
-  # so it cannot be rewritten per user or per instance anyway.
-  mkdir -p "$STATEDIR/siteconfig"
-  if [ -n "$SHARED" ] && [ "$SHARED" != "invalid" ] && [ -f "$ECCE_HOME/siteconfig/jndi.properties" ]; then
-    set -- $SHARED
-    sed -e "s|\(java\.naming\.provider\.url[ \t]*=[ \t]*\).*|\1tcp://$1:$2|" \
-        "$ECCE_HOME/siteconfig/jndi.properties" \
-        >"$STATEDIR/siteconfig/jndi.properties"
-  elif [ -n "${ECCE_REMOTE_SERVER:-}" ] && [ -f "$ECCE_HOME/siteconfig/jndi.properties" ]; then
-    # Keep the central broker's URL as ecce-remote-setup wrote it.
-    cp "$ECCE_HOME/siteconfig/jndi.properties" "$STATEDIR/siteconfig/jndi.properties"
-  elif [ -f "$ECCE_HOME/siteconfig/jndi.properties" ]; then
-    sed -e "s|\(java\.naming\.provider\.url[ \t]*=[ \t]*\).*|\1tcp://localhost:$BROKER_PORT|" \
-        "$ECCE_HOME/siteconfig/jndi.properties" \
-        >"$STATEDIR/siteconfig/jndi.properties"
-  fi
-  rm -f "$PORTFILE"
-  (
-    nohup java -DECCE_HOST="$HOST" -DDISPLAY="$DISPLAY" \
-      -DECCE_HOME="$ECCE_HOME" -DECCE_USERHOME="$ECCE_REALUSERHOME" \
-      -cp "$STATEDIR/siteconfig:$CP:$ECCE_HOME/siteconfig" \
-      gov.pnnl.emsl.ecce.jms.JMSDispatcher \
-      >"$STATEDIR/jmsdispatcher.log" 2>&1 9>&- &
-    echo $! >"$PIDFILE"
-  )
-  i=0
-  while [ ! -f "$PORTFILE" ] && [ $i -lt 40 ]; do
-    i=$((i + 1))
-    sleep 0.5
-  done
-  if [ ! -f "$PORTFILE" ]; then
-    echo "ecce-gateway-start: JMSDispatcher did not report ready within 20s -- see $STATEDIR/jmsdispatcher.log" >&2
-    # A relay that never reported is no use to anyone, and left running
-    # it would be adopted by nobody and reaped only by the next start.
-    pid="$(cat "$PIDFILE" 2>/dev/null)"
-    [ -n "$pid" ] && kill "$pid" 2>/dev/null
-    rm -f "$PIDFILE"
-    exit 1
-  fi
+  write_broker_file "socket=$SOCK"
 fi
 
 exit 0

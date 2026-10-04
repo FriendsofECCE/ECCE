@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <pwd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <chrono>
@@ -285,10 +286,17 @@ bool MqttLink::ensureConnected()
   }
   p_cfg.user = MqttConfig::sanitizeLevel(p_cfg.user);
 
+  // The same defaults ecce-gateway-start applies. A job store started from
+  // a detached or ssh launch may have neither; it only needs a key that
+  // matches the session it was started by when they are set.
   const char* host = getenv("HOST");
   const char* display = getenv("DISPLAY");
-  EE_RT_ASSERT(host, EE_FATAL, "You Must Define HOST");
-  EE_RT_ASSERT(display, EE_FATAL, "You Must Define DISPLAY");
+  char hostbuf[256] = "localhost";
+  if (!host) {
+    if (gethostname(hostbuf, sizeof(hostbuf) - 1) != 0) strcpy(hostbuf, "localhost");
+    host = hostbuf;
+  }
+  if (!display) display = ":0";
   p_cfg.sessionKey = MqttConfig::sanitizeLevel(string(host) + "_" + display);
 
   string messages = string(Ecce::ecceHome()) + "/data/client/config/ecce_messages";

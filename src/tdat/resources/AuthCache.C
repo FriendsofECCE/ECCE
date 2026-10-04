@@ -467,9 +467,15 @@ void AuthCache::msgIn(const JMSMessage& msg, const string& callerID)
   // already cached when the message is from the same app
   if (msg.getSender().getID() != callerID) {
     EcceURL url(msg.getProperty("url"));
+    string pass;
 
-    addAuthentication(url.getRef(), msg.getProperty("user"),
-                      msg.getProperty("auth"), msg.getProperty("realm"), false);
+    // The broadcast crosses the broker and so carries no password; the
+    // sender saved it to the session store before publishing.
+    if (sessionLookup(url.getRef(), msg.getProperty("user"),
+                      msg.getProperty("realm"), pass)) {
+      addAuthentication(url.getRef(), msg.getProperty("user"), pass,
+                        msg.getProperty("realm"), false);
+    }
   }
 }
 
@@ -884,7 +890,6 @@ bool AuthCache::addAuthentication
       JMSMessage *msg = publisher.newMessage();
       msg->addProperty("url", url);
       msg->addProperty("user", user);
-      msg->addProperty("auth", pass);
       msg->addProperty("realm", realm);
 
       publisher.publish("ecce_auth_changed",*msg);
