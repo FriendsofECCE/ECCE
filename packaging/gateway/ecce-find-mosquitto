@@ -1,0 +1,12 @@
+#!/bin/sh
+# Prints the path of the mosquitto broker binary, or fails. Debian puts it in
+# /usr/sbin, which is not on an ordinary user's PATH (nor under systemd's
+# minimal one), so PATH alone would report "not installed".
+for d in "" /usr/sbin/ /usr/local/sbin/ /usr/bin/ /usr/local/bin/ /usr/lib/mosquitto/; do
+  if [ -z "$d" ]; then
+    p="$(command -v mosquitto 2>/dev/null)" && [ -x "$p" ] && { echo "$p"; exit 0; }
+  elif [ -x "${d}mosquitto" ]; then
+    echo "${d}mosquitto"; exit 0
+  fi
+done
+exit 1

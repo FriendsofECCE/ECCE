@@ -59,7 +59,7 @@ decl="$("$ECCE_HOME/bin/ecce-broker-setup" --show)" ||
 set -- $decl
 PORT="$2"
 
-command -v mosquitto >/dev/null 2>&1 || die "mosquitto is not installed (apt install mosquitto)"
+MOSQUITTO="$("$ECCE_HOME/bin/ecce-find-mosquitto")" || die "mosquitto is not installed (apt install mosquitto)"
 [ -f "$ACL" ] || die "no access rules at $ACL (ecce-server not installed)"
 
 sync_accounts "$BASE"
@@ -91,4 +91,4 @@ conf="$BASE/mosquitto.conf"
 } >"$conf" || die "cannot write $conf"
 
 # exec, so the caller's $! and systemd's MainPID are the broker.
-exec mosquitto -c "$conf"
+exec "$MOSQUITTO" -c "$conf"

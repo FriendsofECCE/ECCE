@@ -148,7 +148,7 @@ elif [ -n "${ECCE_REMOTE_SERVER:-}" ]; then
   check_central_server || exit 2
   echo "ecce-gateway-start: -remote -- using the central broker"
   write_broker_file "host=$RBHOST" "port=$RBPORT"
-elif ! command -v mosquitto >/dev/null 2>&1; then
+elif ! MOSQUITTO="$("$ECCE_HOME/bin/ecce-find-mosquitto")"; then
   echo "ecce-gateway-start: no mosquitto broker installed and neither ECCE_REMOTE_SERVER nor siteconfig/SharedBroker is set." >&2
   echo "ecce-gateway-start: install mosquitto for a local broker, or point this client at a central one (ecce-remote-setup, then 'ecce -remote')." >&2
   exit 1
@@ -247,7 +247,7 @@ else
     rm -f "$SOCK"
     (
       umask 077
-      nohup mosquitto -c "$CONF" \
+      nohup "$MOSQUITTO" -c "$CONF" \
         >"$STATEDIR/mosquitto.out" 2>&1 9>&- &
       echo $! >"$STATEDIR/mosquitto.pid"
     )
