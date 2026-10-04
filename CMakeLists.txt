@@ -652,6 +652,19 @@ configure_file(${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-broker.service.in
 install(FILES ${CMAKE_BINARY_DIR}/systemd/ecce-broker.service
         DESTINATION server/systemd
         COMPONENT server)
+# The broker plugin that checks logins against the data server's users
+# file (a central server's broker, ecce-gateway-start). Needs mosquitto's
+# plugin header and apr-util, whose apr_password_validate reads htpasswd's
+# hash formats.
+if(NOT APPLE)   # macOS runs no central server
+  pkg_check_modules(APRUTIL REQUIRED IMPORTED_TARGET apr-util-1)
+  find_path(MOSQUITTO_PLUGIN_INCLUDE_DIR mosquitto_plugin.h REQUIRED)
+  add_library(ecce_users_auth MODULE src/mqttauth/ecce_users_auth.c)
+  set_target_properties(ecce_users_auth PROPERTIES PREFIX "")
+  target_include_directories(ecce_users_auth PRIVATE ${MOSQUITTO_PLUGIN_INCLUDE_DIR})
+  target_link_libraries(ecce_users_auth PRIVATE PkgConfig::APRUTIL)
+  install(TARGETS ecce_users_auth LIBRARY DESTINATION server COMPONENT server)
+endif()
 # The per-user access rules of a mosquitto serving clients over TCP: the
 # shared broker's and a central server's.
 install(FILES ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-mosquitto.acl
@@ -1209,7 +1222,7 @@ set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 # Sys::Hostname are in perl-modules, which perl-base alone lacks.
 # xterm: editing an input file with the default editor (vi) opens it in
 # an xterm (UserEditor.C).
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, mosquitto, perl, xterm")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, mosquitto, libaprutil1, perl, xterm")
 # NWChem is a real Debian package (confirmed working: /usr/bin/nwchem,
 # symlinked to nwchem.openmpi by the package itself) and the auto-register-
 # this-machine flow (RunMgmt::registerLocalMachine()) defaults new machine
@@ -1259,7 +1272,7 @@ if(RPMBUILD_EXECUTABLE)
   set(CPACK_RPM_PACKAGE_LICENSE "ECL-2.0")
   set(CPACK_RPM_PACKAGE_GROUP "Applications/Engineering")
   set(CPACK_RPM_PACKAGE_URL "https://github.com/FriendsofECCE/ECCE")
-  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, python3-wxpython4, perl, xterm, mosquitto")
+  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, python3-wxpython4, perl, xterm, mosquitto, apr-util")
   set(CPACK_RPM_PACKAGE_SUGGESTS "nwchem, openssh-clients, ImageMagick, firefox")
   set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
   #  /opt/ecce is ours, but /opt itself is owned by filesystem(5).  Without
@@ -1426,7 +1439,7 @@ if(ECCE_SPLIT_PACKAGES)
   # (launchjob, eccejobmaster, eccejobstore) ship in ecce-client, and a server
   # needs them, so the server brings the client -- GUI libraries included,
   # unused on a headless box. Accepted rather than a third package.
-  set(CPACK_DEBIAN_SERVER_PACKAGE_DEPENDS "apache2, apache2-utils, mosquitto, ecce-client (= ${_ecce_deb_version})")
+  set(CPACK_DEBIAN_SERVER_PACKAGE_DEPENDS "apache2, apache2-utils, mosquitto, libaprutil1, ecce-client (= ${_ecce_deb_version})")
   set(CPACK_DEBIAN_SERVER_PACKAGE_BREAKS "ecce (<< ${ECCE_MONOLITHIC_BREAK_VERSION})")
   set(CPACK_DEBIAN_SERVER_PACKAGE_REPLACES "ecce (<< ${ECCE_MONOLITHIC_BREAK_VERSION})")
 
@@ -1452,7 +1465,7 @@ if(ECCE_SPLIT_PACKAGES)
     set(CPACK_RPM_CLIENT_PACKAGE_CONFLICTS "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
     set(CPACK_RPM_SERVER_PACKAGE_NAME "ecce-server")
     set(CPACK_RPM_SERVER_FILE_NAME RPM-DEFAULT)
-    set(CPACK_RPM_SERVER_PACKAGE_REQUIRES "httpd, httpd-tools, mosquitto, ecce-client = ${_ecce_deb_version}")
+    set(CPACK_RPM_SERVER_PACKAGE_REQUIRES "httpd, httpd-tools, mosquitto, apr-util, ecce-client = ${_ecce_deb_version}")
     set(CPACK_RPM_SERVER_PACKAGE_OBSOLETES "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
     set(CPACK_RPM_SERVER_PACKAGE_CONFLICTS "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
     set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "/opt")
@@ -1491,6 +1504,11 @@ target_include_directories(mqtt_test PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(mqtt_test PRIVATE ecceutil ${XercesC_LIBRARIES})
 add_test(NAME mqtt COMMAND mqtt_test ${CMAKE_SOURCE_DIR})
 add_test(NAME mqtt-auth COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR})
+if(TARGET ecce_users_auth)
+  add_test(NAME mqtt-auth-plugin
+           COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR} $<TARGET_FILE:ecce_users_auth>)
+  set_tests_properties(mqtt-auth-plugin PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+endif()
 set_tests_properties(mqtt mqtt-auth PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
 if(PYTHON3_EXECUTABLE)
   add_test(NAME parsers

@@ -29,6 +29,7 @@ using std::ofstream;
 
 #include "wx/stopwatch.h"
 
+#include <atomic>
 #include <signal.h>
 #include <ctype.h>
 #include <dirent.h>
@@ -42,6 +43,7 @@ using std::ofstream;
 #include "util/ErrMsg.H"
 #include "util/SDirectory.H"
 #include "util/Preferences.H"
+#include "util/MqttLink.H"
 #include "util/PreferenceLabels.H"
 
 #include "dsm/EDSIFactory.H"
@@ -208,6 +210,27 @@ bool GatewayApp::OnInit()
 
   Ecce::initialize();
   offerLocalDataMove();
+
+  // A refused broker login would otherwise only reach this process's
+  // stderr, which nobody sees; the other apps' refusals are the same one.
+  MqttLink::setRefusalHandler(
+    [](const string& account, const string& host, int port, const string&) {
+      static std::atomic<bool> shown(false);
+      if (shown.exchange(true)) return;
+      string msg = "The ECCE message broker";
+      if (!host.empty())
+        msg += " (" + host + ":" + std::to_string(port) + ")";
+      msg += " refused the login of '" + account + "'.\n\n"
+             "Your data server login was accepted, but the message broker "
+             "did not know this account or its password, so jobs cannot "
+             "report back and ECCE's windows will not update each other.\n\n"
+             "Ask your ECCE administrator to check the account on the message broker.";
+      wxTheApp->CallAfter([msg]() {
+        ewxMessageDialog dlg(0, msg.c_str(), "Message broker refused the login",
+                             wxOK | wxICON_EXCLAMATION);
+        dlg.ShowModal();
+      });
+    });
 
   // Get rid of the leading "v" because it reads better and takes up
   // less space when the gateway is oriented vertically

@@ -75,7 +75,7 @@ jobs:
             build-essential gfortran cmake ninja-build \
             libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
             libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
-            libmosquitto-dev mosquitto git dpkg-dev file libssh-dev
+            libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git dpkg-dev file libssh-dev
 
       - uses: actions/checkout@v4
 
@@ -110,7 +110,7 @@ jobs:
             build-essential gfortran cmake ninja-build \
             libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
             libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
-            libmosquitto-dev mosquitto git dpkg-dev libssh-dev
+            libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git dpkg-dev libssh-dev
 
       - name: Configure
         run: cmake -G Ninja -B build-cmake -DECCE_REQUIRE_LIBSSH=ON
@@ -149,7 +149,7 @@ jobs:
             wxGTK-devel xerces-c-devel \
             mesa-libGL-devel mesa-libGLU-devel \
             gtk3-devel libX11-devel libICE-devel libXt-devel libjpeg-turbo-devel \
-            mosquitto-devel mosquitto libssh-devel
+            mosquitto-devel apr-util-devel mosquitto libssh-devel
 
       # actions/checkout doesn't work reliably inside an arbitrary
       # container image (no git-installed-as-a-prereq guarantee, and the
@@ -194,7 +194,7 @@ jobs:
             wxGTK-devel xerces-c-devel \
             mesa-libGL-devel mesa-libGLU-devel \
             gtk3-devel libX11-devel libICE-devel libXt-devel libjpeg-turbo-devel \
-            mosquitto-devel mosquitto libssh-devel
+            mosquitto-devel apr-util-devel mosquitto libssh-devel
 
       - name: Check out source
         run: |

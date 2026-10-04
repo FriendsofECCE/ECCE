@@ -21,12 +21,10 @@
 # the file.
 #
 # Every mode feeds the password to htpasswd on stdin (-i), never on its
-# command line, which would otherwise be visible to any user via ps. The
-# same account goes into the message broker's password file
-# ($STATEDIR/mosquitto_passwd), which a central server's mosquitto
-# authenticates its clients against (ecce-gateway-start): the password is
-# hashed by mosquitto_passwd -U in a private temporary file, and the
-# running broker is told to reread the file.
+# command line, which would otherwise be visible to any user via ps. A
+# central server's message broker checks logins against the same "users"
+# file (ecce_users_auth plugin, ecce-gateway-start), so there is nothing
+# else to write.
 
 set -u
 
@@ -37,41 +35,6 @@ if [ ! -d "$STATEDIR" ]; then
   echo "ecce-dataserver-adduser: $STATEDIR doesn't exist -- run ecce-dataserver-start first" >&2
   exit 1
 fi
-
-BROKER_PW="$STATEDIR/mosquitto_passwd"
-
-# add_broker_account USER PASS: the account's entry in the broker's
-# password file. Not for names the broker's topic hierarchy cannot carry.
-add_broker_account() {
-  local userid="$1" password="$2" tmp
-  if ! command -v mosquitto_passwd >/dev/null 2>&1; then
-    echo "ecce-dataserver-adduser: WARNING: mosquitto_passwd not found; '$userid' cannot log in to a central message broker until it is added to $BROKER_PW" >&2
-    return 0
-  fi
-  if ! [[ "$userid" =~ ^[A-Za-z0-9]+$ ]]; then
-    echo "ecce-dataserver-adduser: WARNING: '$userid' is not letters and digits only, so it gets no message broker account (a central broker will refuse it)" >&2
-    return 0
-  fi
-  tmp="$(mktemp "$STATEDIR/.mqpw.XXXXXX")" || return 1
-  # mosquitto_passwd has no stdin mode and -b would put the password on its
-  # command line; -U hashes a file in place. printf is a builtin.
-  printf '%s:%s\n' "$userid" "$password" >"$tmp"
-  if ! mosquitto_passwd -U "$tmp" >/dev/null 2>&1; then
-    rm -f "$tmp"
-    return 1
-  fi
-  ( umask 077
-    [ -f "$BROKER_PW" ] && grep -v "^${userid}:" "$BROKER_PW" >>"$tmp.old"
-    cat "$tmp" >>"$tmp.old" && mv -f "$tmp.old" "$BROKER_PW" ) || { rm -f "$tmp" "$tmp.old"; return 1; }
-  rm -f "$tmp"
-  # This account's own broker rereads its password file on SIGHUP.
-  local pid
-  pid="$(cat "$ECCE_REALUSERHOME/.ECCE/mosquitto.pid" 2>/dev/null)"
-  if [ -n "$pid" ] && [ "$(cat "/proc/$pid/comm" 2>/dev/null)" = mosquitto ]; then
-    kill -HUP "$pid" 2>/dev/null
-  fi
-  return 0
-}
 
 # create_account USER PASS FIRST LAST
 # Creates the htpasswd entry (password read from stdin, never argv) and
@@ -93,7 +56,6 @@ create_account() {
   else
     printf '%s\n' "$password" | htpasswd -i "$STATEDIR/users" "$userid" || return 2
   fi
-  add_broker_account "$userid" "$password" || return 3
 
   mkdir -p "$USERDIR"
   cat > "$USERDIR/.htaccess" <<EOF
@@ -190,7 +152,7 @@ if [ "${1:-}" = "--from" ]; then
       skipped=$((skipped + 1))
       continue
     elif [ "$rc" != "0" ]; then
-      echo "failed line $lineno: htpasswd or mosquitto_passwd failed for '$userid'"
+      echo "failed line $lineno: htpasswd failed for '$userid'"
       failed=$((failed + 1))
       continue
     fi
@@ -250,7 +212,7 @@ if [ "$rc" = "1" ]; then
   echo "ecce-dataserver-adduser: account '$userid' already exists" >&2
   exit 1
 elif [ "$rc" != "0" ]; then
-  echo "ecce-dataserver-adduser: htpasswd or mosquitto_passwd failed for '$userid'" >&2
+  echo "ecce-dataserver-adduser: htpasswd failed for '$userid'" >&2
   exit 1
 fi
 

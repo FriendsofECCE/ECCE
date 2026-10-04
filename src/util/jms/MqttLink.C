@@ -291,6 +291,17 @@ void MqttLink::setCredentialProvider(MqttCredentialProvider provider)
   credentialProvider() = provider;
 }
 
+static MqttRefusalHandler& refusalHandler()
+{
+  static MqttRefusalHandler h;
+  return h;
+}
+
+void MqttLink::setRefusalHandler(MqttRefusalHandler handler)
+{
+  refusalHandler() = handler;
+}
+
 bool MqttLink::ensureConnected()
 {
   std::unique_lock<std::mutex> g(p_lock);
@@ -406,11 +417,14 @@ void MqttLink::onConnect(mosquitto*, void* obj, int rc, int,
       if (rc == MQTT_RC_BAD_USERNAME_OR_PASSWORD || rc == MQTT_RC_NOT_AUTHORIZED)
         std::cerr << ". It did not accept the data server login '"
                   << self->p_cfg.user << "' (" << self->p_cfg.host << ":"
-                  << self->p_cfg.port << "): the account is missing from "
-                  << "the broker or has another password there; ask the "
-                  << "administrator to add it (ecce-dataserver-adduser, or "
-                  << "ecce-broker-setup --user for a shared broker)";
+                  << self->p_cfg.port << "): the account is not known "
+                  << "to the broker or has another password there; ask the "
+                  << "administrator (a shared broker's accounts are added with "
+                  << "ecce-broker-setup --user)";
       std::cerr << std::endl;
+      if ((rc == MQTT_RC_BAD_USERNAME_OR_PASSWORD || rc == MQTT_RC_NOT_AUTHORIZED) &&
+          refusalHandler())
+        refusalHandler()(self->p_cfg.user, self->p_cfg.host, self->p_cfg.port, why);
     }
     return;
   }

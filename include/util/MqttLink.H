@@ -72,6 +72,13 @@ typedef std::function<bool(const std::string& host, const std::string& display,
                            std::string& user, std::string& password)>
   MqttCredentialProvider;
 
+// Told once per refusal reason when the broker refuses the login, so a GUI
+// process can show it (util has no widgets). Called on libmosquitto's
+// thread: hand it to the main thread.
+typedef std::function<void(const std::string& account, const std::string& host,
+                           int port, const std::string& reason)>
+  MqttRefusalHandler;
+
 struct MqttInbound {
   std::string topic;    // the ECCE topic, e.g. ecce_url_state
   std::string user;     // publisher's account, from the topic
@@ -128,6 +135,7 @@ public:
 
   // Set once, before the first connection.
   static void setCredentialProvider(MqttCredentialProvider provider);
+  static void setRefusalHandler(MqttRefusalHandler handler);
 
   // Reads the configuration and connects (once). A missing configuration
   // is fatal after a short retry; an unreachable broker is retried by

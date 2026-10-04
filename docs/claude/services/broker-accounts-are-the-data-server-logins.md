@@ -3,7 +3,7 @@ type: rule
 title: "TCP broker accounts are the data server logins"
 area: services
 section: "Pitfalls"
-paths: ["src/util/jms/MqttLink.C", "src/tdat/resources/AuthCache.C", "src/apps/gateway/GatewayApp.C", "packaging/gateway/ecce-mosquitto.acl", "packaging/dataserver/ecce-dataserver-adduser", "packaging/gateway/ecce-broker-setup"]
+paths: ["src/util/jms/MqttLink.C", "src/tdat/resources/AuthCache.C", "src/apps/gateway/GatewayApp.C", "packaging/gateway/ecce-mosquitto.acl", "packaging/dataserver/ecce-dataserver-adduser", "packaging/gateway/ecce-broker-setup", "src/mqttauth/ecce_users_auth.c"]
 issues: [194, 213]
 ---
 **A TCP broker (central or shared) takes the data server account name and
@@ -20,16 +20,32 @@ to anonymous clients only. Things that fail silently:
   `GatewayApp::OnInit` subscribes after `checkUser()` for that reason.
   The broker file's `user=` is ignored for TCP. A Unix-socket broker is
   anonymous and needs none.
-- **Accounts.** `ecce-dataserver-adduser` writes the hashed password to
-  `.ECCE/dataserver/mosquitto_passwd` (`mosquitto_passwd -U` on a private
-  temp file; `-b` would put it on a command line) and SIGHUPs the account's
-  broker. Accounts made before this have no entry and cannot be added
-  without their password. Mode 3: `ecce-broker-setup --user NAME`
-  (`siteconfig/SharedBroker.passwd`, then `systemctl reload ecce-broker`).
-  Apache's `users` hashes are unreadable to mosquitto, so there are two
-  files written by one command.
-- **A refused login** is reported once on stderr with the reason code and
-  the account, then retried quietly; the wrapper's terminal shows it.
+- **Accounts, central server (mode 2).** The broker loads
+  `server/ecce_users_auth.so` (`src/mqttauth`, mosquitto plugin API v5,
+  `MOSQ_EVT_BASIC_AUTH`) with `plugin_opt_users_file` set to the data
+  server's own `dataserver/users`. `apr_password_validate` reads every
+  htpasswd hash (bcrypt, apr1 MD5, SHA1, crypt), so there is one account
+  list and accounts made by 8.x work unchanged. The file is re-read when
+  its mtime, size or inode changes: no restart or SIGHUP after adduser or a
+  password change. An unknown user is deferred (refused, as
+  `allow_anonymous false` does anonymous clients); a wrong password is
+  refused; names containing `/`, `+` or `#` are refused because `%u` is a
+  topic level and `a/b` would reach into `a`'s topics. The ACL stays the
+  broker's `acl_file`; `ctest -R mqtt-auth-plugin` checks both.
+  The plugin needs `libaprutil1`/`apr-util` at runtime and
+  `mosquitto-dev` + `libaprutil1-dev` to build.
+- **Accounts, shared broker (mode 3).** The per-user data servers sit in
+  homes the broker cannot read, so it keeps its own list:
+  `ecce-broker-setup --user NAME` (`siteconfig/SharedBroker.passwd`,
+  `mosquitto_passwd -U` on a private temp file, then `systemctl reload
+  ecce-broker`).
+- **A refused login** is reported once per reason on stderr, then retried
+  quietly, and the gateway (the first process to log in) also shows a
+  dialog "Message broker refused the login" naming the account, once per
+  process (`MqttLink::setRefusalHandler`, set in `GatewayApp::OnInit`; util
+  has no widgets). Other apps and eccejobstore keep stderr only. Only a
+  shared broker can refuse a valid data server login
+  (`session_end.py remote-refused`).
 - **Delivery, not SUBACK, is the test.** Mosquitto grants a wildcard
   subscription to a user the read rule then withholds everything from;
   `ctest -R mqtt-auth` checks delivery.

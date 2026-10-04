@@ -22,8 +22,8 @@ windows the way a window manager does (WM_DELETE_WINDOW):
               a -remote client logs in to it with its data server account,
               and neither the server's own plain quit nor the client's quit
               stops it
-  remote-refused  a -remote client whose login the central broker does not
-              accept is told so, with the account
+  remote-refused  a login the (shared) message broker does not accept is
+              reported in a dialog naming the account
   remote-down `ecce -remote` with nothing listening on the central
               server's ports: one message naming them, a non-zero exit,
               no gateway left to abort
@@ -158,28 +158,6 @@ except ImportError:
 
 def say(text):
     print(text, flush=True)
-
-
-def brokerAccount(user):
-    """Make sure `user` can log in to this account's central broker.
-
-    ecce-dataserver-adduser puts every account it creates in the broker's
-    password file; a state directory from before that has accounts
-    without. The password is the suite's own and the file is private.
-    """
-    pw = os.path.join(statedir(), "dataserver", "mosquitto_passwd")
-    try:
-        with open(pw) as handle:
-            if any(l.startswith(user + ":") for l in handle):
-                return
-    except OSError:
-        pass
-    os.makedirs(os.path.dirname(pw), exist_ok=True)
-    open(pw, "a").close()
-    os.chmod(pw, 0o600)
-    subprocess.run(["mosquitto_passwd", "-b", pw, user,
-                    fixture.passwordFor(user)], check=True,
-                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 # --- the process table ---------------------------------------------------
@@ -786,7 +764,6 @@ def caseRemote(checks, display, logdir):
                         "--server)"):
         say(mark.stdout.decode())
         return
-    brokerAccount(fixture.realUser())
     start = run("ecce-gateway-start", serverEnv)
     amq = broker()
     dport = fixture.dataserverPort()
@@ -929,76 +906,82 @@ def _remoteClient(checks, display, logdir, serverEnv, amq, dport, bport,
 
 
 def caseRemoteRefused(checks, display, logdir):
-    """`ecce -remote` with a login the central broker does not accept (the
-    account is on the data server but has another password in the broker's
-    file): the user is told so, with the account, not left with silence."""
-    serverEnv = display.env()
-    stopOwnBroker(serverEnv)
-    marker = os.path.join(statedir(), "mosquitto.server")
-    run("ecce-remote-setup", serverEnv, "--server")
-    account = fixture.realUser()
-    brokerAccount(account)
-    pw = os.path.join(statedir(), "dataserver", "mosquitto_passwd")
-    saved = open(pw).read()
-    subprocess.run(["mosquitto_passwd", "-b", pw, account, "not-the-password"],
-                   check=True, stdout=subprocess.DEVNULL,
-                   stderr=subprocess.DEVNULL)
-    client = os.path.join(state, "client-refused")
-    shutil.rmtree(client, ignore_errors=True)
-    os.makedirs(os.path.join(client, ".ECCE"))
+    """A login the message broker does not accept: the user gets a dialog
+    naming the account, not silence on a stderr nobody reads.
+
+    A central server's broker takes the data server's own users file, so
+    it cannot disagree with the data server; the shared broker (mode 3)
+    has an account list of its own, and here it lacks this account.
+    """
+    env = display.env()
+    stopOwnBroker(env)
+    sport = isolate._pickPort("ECCE_TEST_SHARED_BROKER_PORT",
+                              brokerPort() + 100)
+    decl = os.path.join(os.environ["ECCE_HOME"], "siteconfig",
+                        "SharedBroker")
+    accounts = os.path.join(os.environ["ECCE_HOME"], "siteconfig",
+                            "SharedBroker.passwd")
+    setup = run("ecce-broker-setup", env, "localhost:%d" % sport)
+    if not checks.check(setup.returncode == 0 and os.path.exists(decl),
+                        "ecce-broker-setup declared localhost:%d" % sport):
+        return
+    subprocess.run(
+        [os.path.join(install, "bin", "ecce-broker-setup"), "--user",
+         "someoneelse"], env=env, input=b"pw\n",
+        stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    serviceLog = open(os.path.join(logdir, "refused-service.log"), "w")
+    service = subprocess.Popen(
+        [os.path.join(install, "bin", "ecce-broker-run"), "--shared",
+         os.path.join(state, "service", "ecce-broker")],
+        env={"PATH": os.environ["PATH"],
+             "ECCE_HOME": os.environ["ECCE_HOME"]},
+        cwd="/", stdin=subprocess.DEVNULL, stdout=serviceLog,
+        stderr=subprocess.STDOUT, start_new_session=True)
     session = None
+    account = fixture.realUser()
     try:
-        run("ecce-gateway-start", serverEnv)
-        dport = fixture.dataserverPort()
-        chome = isolate.homeOverlay(apps.INSTALL, client, dport)
-        extra = {"ECCE_REALUSERHOME": client, "ECCE_HOME": chome}
-        subprocess.run([os.path.join(install, "bin", "ecce-remote-setup"),
-                        "localhost", str(dport)],
-                       env=dict(os.environ, **extra),
-                       stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+        deadline = time.time() + 60
+        while not portOpen(sport) and time.time() < deadline:
+            time.sleep(0.5)
+        if not checks.check(portOpen(sport) and service.poll() is None,
+                            "the stand-in service answers on %d" % sport):
+            return
         log = os.path.join(logdir, "remote-refused.log")
-        session = Session(display, log, ["-remote"], extra)
+        session = Session(display, log)
+        session.organizer()    # answers the login dialog on the way
         deadline = time.time() + 90
         said = ""
-        while time.time() < deadline:
+        dialog = None
+        while time.time() < deadline and not dialog:
             with open(log, errors="replace") as handle:
                 said = handle.read()
-            if "refused the connection" in said:
-                break
-            #  The login is asked for first, as in every session.
-            auth = next((w for w in display.windows()
-                         if w[1] == "ECCE Authentication"), None)
-            if auth:
-                env = display.env()
-                subprocess.run(["xdotool", "windowfocus",
-                                str(int(auth[0], 16))], env=env, timeout=10,
-                               stderr=subprocess.DEVNULL)
-                time.sleep(0.3)
-                subprocess.run(["xdotool", "type", "--delay", "50",
-                                fixture.passwordFor(account)], env=env,
-                               timeout=10)
-                subprocess.run(["xdotool", "key", "Return"], env=env,
-                               timeout=10)
-                time.sleep(3)
+            dialog = next((w for w in display.windows()
+                           if w[1] == "Message broker refused the login"),
+                          None)
             time.sleep(0.5)
+        checks.check(dialog is not None,
+                     "a dialog says the message broker refused the login")
         checks.check("refused the connection" in said
-                     and "'%s'" % account in said
-                     and "ecce-dataserver-adduser" in said,
-                     "the refused login was reported with the account and "
-                     "what to ask for")
+                     and "'%s'" % account in said,
+                     "and stderr names the account too")
     finally:
         if session is not None:
             session.kill()
-        checks.check(clearDisplay(display.name, [os.path.join(client,
-                                                              ".ECCE")]),
-                     "nothing left on %s" % display.name)
-        with open(pw, "w") as handle:
-            handle.write(saved)
+        checks.check(clearDisplay(display.name, [os.path.join(
+            os.environ["ECCE_REALUSERHOME"], ".ECCE")]),
+            "nothing left on %s" % display.name)
+        run("ecce-broker-setup", env, "--remove")
+        service.terminate()
         try:
-            os.unlink(marker)
+            service.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            service.kill()
+            service.wait()
+        serviceLog.close()
+        try:
+            os.unlink(accounts)
         except OSError:
             pass
-        stopOwnBroker(serverEnv)
 
 
 def caseRemoteDown(checks, display, logdir):

@@ -28,14 +28,14 @@ where `-remote` clients look). TCP brokers (central, shared) are plain TCP
 account (`~/.ECCE/mosquitto.server`, `ecce-remote-setup --server`) gets
 the same mosquitto as mode 1 plus TCP listeners (the data server's listen
 setting) with `per_listener_settings`: socket anonymous for its own
-processes, TCP with `dataserver/mosquitto_passwd` and
-`server/mosquitto.acl`; `ecce-gateway-start` restarts a broker whose
+processes, TCP with the `server/ecce_users_auth.so` plugin
+(logins checked against `dataserver/users`) and `server/mosquitto.acl`; `ecce-gateway-start` restarts a broker whose
 generated `mosquitto.conf` changed. Mode 3: `ecce-broker.service` runs
 `ecce-broker-run --shared <base>` (generated conf, accounts copied from
 `siteconfig/SharedBroker.passwd` by root `ExecStartPre=+`/`ExecReload=+`;
 never run under the system manager yet). Debian's own `mosquitto.service`
 (1883) is neither used nor disturbed. Packages: ecce-client depends on
 `libmosquitto1` and recommends `mosquitto` (the gateway scripts ship
-there); ecce-server depends on `mosquitto`; RPM `mosquitto` covers both.
+there); ecce-server depends on `mosquitto` and `libaprutil1` (RPM `apr-util`: the plugin); RPM `mosquitto` covers both.
 `tests/apps/session_end.py` covers all cases on tree binaries; `ctest -R
 mqtt` checks delivery on both a Unix-socket and a two-account TCP broker.

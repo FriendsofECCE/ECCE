@@ -280,11 +280,27 @@ static int freePort()
   return port;
 }
 
-static int authMain(const string& src)
+// htpasswd with the password on stdin, as ecce-dataserver-adduser does.
+// flags: "-B" bcrypt, "" the default (apr1 MD5), "-c" to create the file.
+static bool htpasswd(const string& file, const string& flags, const string& user,
+                     const string& pw)
+{
+  string cmd = "htpasswd -i " + flags + " " + file + " " + user + " >/dev/null 2>&1";
+  FILE* p = popen(cmd.c_str(), "w");
+  if (!p) return false;
+  fprintf(p, "%s\n", pw.c_str());
+  return pclose(p) == 0;
+}
+
+// With a plugin path, the broker checks logins against an htpasswd file
+// through ecce_users_auth (a central server's, ecce-gateway-start);
+// without, against a mosquitto password file (the shared broker's).
+static int authMain(const string& src, const string& plugin)
 {
   if (system("command -v mosquitto >/dev/null 2>&1 && "
-             "command -v mosquitto_passwd >/dev/null 2>&1") != 0) {
-    cout << "SKIP  no mosquitto binary" << endl;
+             "command -v mosquitto_passwd >/dev/null 2>&1 && "
+             "command -v htpasswd >/dev/null 2>&1") != 0) {
+    cout << "SKIP  no mosquitto or htpasswd binary" << endl;
     return 77;
   }
   const char* tmpbase = getenv("TMPDIR");
@@ -297,14 +313,18 @@ static int authMain(const string& src)
 
   // The account list is what ecce-dataserver-adduser writes: hashed by
   // mosquitto_passwd -U from a private file.
-  {
+  if (plugin.empty()) {
     int fd = open((tmp + "/passwd").c_str(), O_WRONLY | O_CREAT, 0600);
     string plain = "alice:alicepw\nbob:bobpw\n";
     if (write(fd, plain.c_str(), plain.size()) < 0) perror("write");
     close(fd);
-  }
-  if (system(("mosquitto_passwd -U " + tmp + "/passwd >/dev/null 2>&1").c_str()) != 0) {
-    cout << "FAIL  mosquitto_passwd" << endl;
+    if (system(("mosquitto_passwd -U " + tmp + "/passwd >/dev/null 2>&1").c_str()) != 0) {
+      cout << "FAIL  mosquitto_passwd" << endl;
+      return 1;
+    }
+  } else if (!htpasswd(tmp + "/passwd", "-B -c", "alice", "alicepw") ||
+             !htpasswd(tmp + "/passwd", "", "bob", "bobpw")) {
+    cout << "FAIL  htpasswd" << endl;
     return 1;
   }
   string acl = src + "/packaging/gateway/ecce-mosquitto.acl";
@@ -313,7 +333,9 @@ static int authMain(const string& src)
     c << "per_listener_settings true\npersistence false\n"
       << "log_dest file " << tmp << "/mosquitto.log\n"
       << "listener " << port << " 127.0.0.1\nallow_anonymous false\n"
-      << "password_file " << tmp << "/passwd\nacl_file " << acl << "\n";
+      << (plugin.empty() ? "password_file " + tmp + "/passwd\n"
+                         : "plugin " + plugin + "\nplugin_opt_users_file " + tmp + "/passwd\n")
+      << "acl_file " << acl << "\n";
   }
   pid_t broker = fork();
   if (broker == 0) {
@@ -430,6 +452,33 @@ static int authMain(const string& src)
     check(st != 0 && slurp(err2).find("no data server login") != string::npos,
           "with no login yet the library says so and does not connect");
 
+    if (!plugin.empty()) {
+      // The file changes under a running broker: an account made the 8.x
+      // way (default htpasswd hash, nothing else written), then a password
+      // change.
+      check(htpasswd(tmp + "/passwd", "", "carol", "carolpw"),
+            "carol added to the users file with the default htpasswd hash");
+      RawClient carol("carol", "carolpw", port);
+      check(carol.connack == 0, "carol logs in without a broker restart");
+      RawClient carolBad("carol", "nope", port);
+      check(carolBad.connack == 134 || carolBad.connack == 135,
+            "carol with a wrong password is refused");
+      RawClient carolSees("carol", "carolpw", port);
+      carolSees.subscribe("ecce/alice/#");
+      RawClient carolPub("carol", "carolpw", port);
+      check(carolPub.publish("ecce/alice/ecce_ejs_kill", "x") == 135,
+            "the ACL still stops carol writing into alice's topics");
+      check(!carolSees.got("ecce/alice"), "carol receives nothing of alice's");
+      check(htpasswd(tmp + "/passwd", "-B", "alice", "newpw"),
+            "alice's password changed in the users file");
+      RawClient aliceNew("alice", "newpw", port), aliceOld("alice", "alicepw", port);
+      check(aliceNew.connack == 0, "alice logs in with the new password");
+      check(aliceOld.connack == 134 || aliceOld.connack == 135,
+            "the old password is refused");
+      RawClient nobody("nobody", "x", port);
+      check(nobody.connack == 134 || nobody.connack == 135,
+            "an account that is not in the file is refused");
+    }
     pa.unsubscribe();
     rc = g_fail ? 1 : 0;
   }
@@ -448,7 +497,8 @@ int main(int argc, char** argv)
   if (n > 0) { exe[n] = 0; g_self = exe; }
 
   if (argc >= 2 && string(argv[1]) == "child") return childMain(argc, argv);
-  if (argc == 3 && string(argv[1]) == "auth") return authMain(argv[2]);
+  if (argc >= 3 && string(argv[1]) == "auth")
+    return authMain(argv[2], argc > 3 ? argv[3] : "");
   if (argc != 2) {
     cerr << "usage: mqtt_test <source dir>" << endl;
     return 1;

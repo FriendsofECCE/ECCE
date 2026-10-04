@@ -187,7 +187,7 @@ else
   # Unix socket is anonymous: the 0700 directory is what keeps other
   # users out, and this account's own processes need no login. A server
   # account (ecce-remote-setup --server) adds a TCP listener for its
-  # clients, with the accounts of its data server and the per-user rules.
+  # clients, with the accounts of its data server (the plugin reads its users file) and the per-user rules.
   # per_listener_settings, so the socket and the TCP listener differ.
   make_conf() {
     echo "per_listener_settings true"
@@ -201,7 +201,8 @@ else
       if [ "$b" = "*" ]; then echo "listener $BROKER_PORT"
       else echo "listener $BROKER_PORT $b"; fi
       echo "allow_anonymous false"
-      echo "password_file $STATEDIR/dataserver/mosquitto_passwd"
+      echo "plugin $ECCE_HOME/server/ecce_users_auth.so"
+      echo "plugin_opt_users_file $STATEDIR/dataserver/users"
       echo "acl_file $ECCE_HOME/server/mosquitto.acl"
     done
   }
@@ -211,10 +212,10 @@ else
       echo "ecce-gateway-start: $ECCE_HOME/server/mosquitto.acl is missing -- install ecce-server; a central broker is not started without its access rules" >&2
       exit 1
     fi
-    mkdir -p "$STATEDIR/dataserver"
-    # mosquitto does not start on a missing password file.
-    [ -e "$STATEDIR/dataserver/mosquitto_passwd" ] ||
-      ( umask 077; : >"$STATEDIR/dataserver/mosquitto_passwd" )
+    if [ ! -f "$ECCE_HOME/server/ecce_users_auth.so" ]; then
+      echo "ecce-gateway-start: $ECCE_HOME/server/ecce_users_auth.so is missing -- install ecce-server; a central broker is not started without its login check" >&2
+      exit 1
+    fi
   fi
   NEWCONF="$(make_conf)"
 

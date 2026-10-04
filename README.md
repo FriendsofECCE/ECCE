@@ -347,7 +347,7 @@ sudo apt-get install -y \
   build-essential gfortran cmake ninja-build \
   libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
   libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
-  libmosquitto-dev mosquitto git libssh-dev
+  libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git libssh-dev
 
 git clone https://github.com/FriendsofECCE/ECCE.git
 cd ECCE                # main is 9.0 development; for 8.x: git checkout stable-8

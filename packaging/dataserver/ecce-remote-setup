@@ -35,7 +35,7 @@ Usage: ecce-remote-setup <server-host> [data-port]
   --server      on the SERVER, as the account running it: mark its broker
                 as a central server's. It then listens on TCP port 8088
                 (ECCE_BROKER_PORT) beside the data server, for the accounts
-                of ecce-dataserver-adduser, and its plain quit leaves it
+                of this data server (its users file), and its plain quit leaves it
                 running; listen (all, loopback or addresses) goes to
                 dataserver/listen and applies to the data server and the
                 broker alike
@@ -53,8 +53,7 @@ USAGE
 #  server and broker.  It marks that account's broker as a server's, so
 #  the account's own plain quit never stops it under its clients; only
 #  its Quit and Stop Server does.  The mark is also what makes
-#  ecce-gateway-start give that broker a TCP listener (password file and
-#  access rules from ecce-dataserver-adduser and server/mosquitto.acl).  A mark, not a guess from the listen
+#  ecce-gateway-start give that broker a TCP listener (logins checked against the data server's users file by server/ecce_users_auth.so, access rules from server/mosquitto.acl).  A mark, not a guess from the listen
 #  address, because clients may reach a loopback-only server through ssh
 #  tunnels.  The optional listen value is written to dataserver/listen.
 if [ "${1:-}" = "--server" ]; then
@@ -62,9 +61,9 @@ if [ "${1:-}" = "--server" ]; then
   echo "# ECCE central server: plain quits leave this broker running (ecce-remote-setup --server)" \
     >"$STATEDIR/mosquitto.server" || exit 1
   echo "Marked $STATEDIR/mosquitto.server: this account's broker is a central server's."
-  echo "ecce-gateway-start (run by \"ecce\") starts it on TCP port ${ECCE_BROKER_PORT:-8088} with the"
-  echo "accounts of ecce-dataserver-adduser, and restarts a broker that already runs"
-  echo "here without that listener. Accounts that predate this need adding again."
+  echo "ecce-gateway-start (run by \"ecce\") starts it on TCP port ${ECCE_BROKER_PORT:-8088}, checking"
+  echo "logins against this data server's users file, and restarts a broker that"
+  echo "already runs here without that listener. Existing accounts work as they are."
   if [ -n "${2:-}" ]; then
     mkdir -p "$STATEDIR/dataserver" || exit 1
     echo "$2" >"$STATEDIR/dataserver/listen" || exit 1

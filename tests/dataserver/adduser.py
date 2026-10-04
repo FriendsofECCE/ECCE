@@ -25,7 +25,6 @@ REPO = os.path.dirname(os.path.dirname(HERE))
 SCRIPT = os.path.join(REPO, "packaging", "dataserver", "ecce-dataserver-adduser")
 
 REAL_HTPASSWD = shutil.which("htpasswd")
-REAL_MOSQ_PASSWD = shutil.which("mosquitto_passwd")
 
 WRAPPER = """#!/bin/bash
 echo "$@" >> "%(log)s"
@@ -58,11 +57,6 @@ class Harness:
         with open(wrapper_path, "w") as f:
             f.write(WRAPPER % {"log": self.log, "real": REAL_HTPASSWD})
         os.chmod(wrapper_path, 0o755)
-        if REAL_MOSQ_PASSWD:
-            mq = os.path.join(self.bindir, "mosquitto_passwd")
-            with open(mq, "w") as f:
-                f.write(WRAPPER % {"log": self.log, "real": REAL_MOSQ_PASSWD})
-            os.chmod(mq, 0o755)
 
     def cleanup(self):
         shutil.rmtree(self.home, ignore_errors=True)
@@ -135,38 +129,19 @@ def test_batch_flag():
 
 
 def test_broker_account():
-    """The account also goes into the message broker's password file,
-    hashed, privately, and without the password on any command line."""
-    if REAL_MOSQ_PASSWD is None:
-        print("skip - no mosquitto_passwd")
-        return
+    """The users file is the broker's account list too (ecce_users_auth), so
+    adduser writes no broker password file of its own."""
     h = Harness()
     try:
         r = h.run(["-b", "carol", "s3cret", "Carol", "Cee"])
-        r2 = h.run(["-b", "dave", "other-pw", "Dave", "Dee"])
-        path = os.path.join(h.statedir, "mosquitto_passwd")
-        if r.returncode or r2.returncode or not os.path.exists(path):
-            fail("broker account: adduser failed or wrote no file: %s" % r.stderr)
+        if r.returncode:
+            fail("adduser failed: %s" % r.stderr)
             return
-        mode = stat.S_IMODE(os.stat(path).st_mode)
-        with open(path) as f:
-            lines = f.read().splitlines()
-        if mode == 0o600:
-            ok("broker password file is private (0600)")
+        if os.path.exists(os.path.join(h.statedir, "mosquitto_passwd")):
+            fail("a broker password file was written")
         else:
-            fail("broker password file mode is %o" % mode)
-        if (len(lines) == 2 and lines[0].startswith("carol:$7$")
-                and lines[1].startswith("dave:$7$")
-                and "s3cret" not in "".join(lines)):
-            ok("both accounts are in it, hashed")
-        else:
-            fail("unexpected broker password file: %r" % lines)
-        assert_no_password_in_log(h, "s3cret", "other-pw")
-        bad = h.run(["-b", "bad.user", "x", "A", "B"])
-        if "no message broker account" in bad.stderr:
-            ok("a name the topic hierarchy cannot carry is warned about")
-        else:
-            fail("no warning for 'bad.user': %s" % bad.stderr)
+            ok("no separate broker password file")
+        assert_no_password_in_log(h, "s3cret")
     finally:
         h.cleanup()
 
