@@ -175,8 +175,8 @@ jobs:
 
       - name: Install runtime dependencies
         run: |
-          # apache2: the data server is a real per-user Apache instance,
-          #   and dpkg -i cannot configure the package without it.
+          # apache2: the data server is a real per-user Apache instance
+          #   (ecce-server depends on it; listed here so it is cached early).
           # xvfb: headless X.  These apps link GLX for the Open Inventor
           #   viewer, so broadwayd (used by the dialogs suite) is not an
           #   option -- it serves no GLX.
@@ -201,7 +201,12 @@ jobs:
         working-directory: build-cmake
         run: |
           cpack -G DEB
-          sudo dpkg -i ecce_*_amd64.deb
+          # Two packages since the client/server split (ecce-server depends
+          # on ecce-client, so one apt transaction takes both, in order).
+          # apt rather than dpkg -i so their dependencies are resolved;
+          # no recommends, to keep nwchem and friends out of the runner.
+          sudo apt-get install -y --no-install-recommends \
+            ./ecce-client_*_amd64.deb ./ecce-server_*_amd64.deb
 
       # ECCE_APPS_TRACE names each app before it starts.  Without it a
       # wedged suite leaves the last SUCCESSFUL app as the final log

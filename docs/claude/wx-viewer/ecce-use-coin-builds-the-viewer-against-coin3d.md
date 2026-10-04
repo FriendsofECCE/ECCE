@@ -15,6 +15,14 @@ unchanged otherwise. `<inv/X/Y.H>` includes are forwarded to
 `include/`; `OIV_COIN` is defined. `inv/ChemKit`, `inv/SoWx` and
 `inv/flclient.h` stay ours.
 
+Coin 4.0.10 (EPEL 9, Fedora, Homebrew) installs its headers under
+`include/Coin4/Inventor`, not `include/Inventor` as Debian's 4.0.3 and
+Ubuntu's 4.0.2 do. `gen_shim.py` once looked only in `/usr/include`, so it
+wrote every forwarder as an empty "not in Coin" stub and moiv failed with
+`SbString does not name a type`. CMake now `find_path`s the directory that
+holds `Inventor/SbString.h` (suffixes Coin4/Coin3/Coin), passes it to
+`gen_shim.py` and adds it to the include path when it is not `/usr/include`.
+
 Header fixes are portable and work in both builds: `ChemDisplay.H`
 includes Coin's `SoTextureCoordinateElement.h` (a typedef in Coin, so it
 cannot be forward-declared) and `SoWxViewer.H`/`SoWxRenderArea.C` include
