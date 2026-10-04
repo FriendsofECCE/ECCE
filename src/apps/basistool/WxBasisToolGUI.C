@@ -624,25 +624,26 @@ void WxBasisToolGUI::CreateControls()
     ewxStaticLine* itemStaticLine100 = new ewxStaticLine( itemPanel93, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer94->Add(itemStaticLine100, 0, wxGROW, 3);
 
-    wxGridSizer* itemGridSizer101 = new wxGridSizer(3, 2, 0, 0);
-    itemBoxSizer94->Add(itemGridSizer101, 0, wxGROW, 3);
+    wxFlexGridSizer* itemGridSizer101 = new wxFlexGridSizer(3, 2,
+        wxSizerFlags::GetDefaultBorder(), 2*wxSizerFlags::GetDefaultBorder());
+    itemBoxSizer94->Add(itemGridSizer101, wxSizerFlags().Border());
     ewxStaticText* itemStaticText102 = new ewxStaticText( itemPanel93, wxID_STATIC, _("Functions:"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemGridSizer101->Add(itemStaticText102, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);
+    itemGridSizer101->Add(itemStaticText102, wxSizerFlags().CenterVertical());
 
     ewxStaticText* itemStaticText103 = new ewxStaticText( itemPanel93, ID_STATIC_WXBASISTOOL_FUNCTIONS, _("40"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemGridSizer101->Add(itemStaticText103, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);
+    itemGridSizer101->Add(itemStaticText103, wxSizerFlags().CenterVertical());
 
     ewxStaticText* itemStaticText104 = new ewxStaticText( itemPanel93, wxID_STATIC, _("Primitives:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemGridSizer101->Add(itemStaticText104, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);
+    itemGridSizer101->Add(itemStaticText104, wxSizerFlags().CenterVertical());
 
     ewxStaticText* itemStaticText105 = new ewxStaticText( itemPanel93, ID_STATIC_WXBASISTOOL_PRIMATIVES, _("80"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemGridSizer101->Add(itemStaticText105, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);
+    itemGridSizer101->Add(itemStaticText105, wxSizerFlags().CenterVertical());
 
     ewxStaticText* itemStaticText106 = new ewxStaticText( itemPanel93, wxID_STATIC, _("Eff. Primitives:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemGridSizer101->Add(itemStaticText106, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);
+    itemGridSizer101->Add(itemStaticText106, wxSizerFlags().CenterVertical());
 
     ewxStaticText* itemStaticText107 = new ewxStaticText( itemPanel93, ID_STATIC_WXBASISTOOL_EFFPRIMATIVES, _("80"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemGridSizer101->Add(itemStaticText107, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 3);
+    itemGridSizer101->Add(itemStaticText107, wxSizerFlags().CenterVertical());
 
     itemSplitterWindow4->SplitHorizontally(itemPanel5, itemPanel71, 300);
     itemBoxSizer3->Add(itemSplitterWindow4, 1, wxGROW, 3);
