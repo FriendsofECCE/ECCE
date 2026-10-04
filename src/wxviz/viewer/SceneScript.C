@@ -300,6 +300,16 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     return countRedraws(w[1], vector<string>(w.begin() + 2, w.end()));
   } else if (c == "viewall") {
     p_viewer->viewAll();
+  } else if (c == "rotate" && w.size() == 2) {
+    //  Orbit the camera about the world y axis through the origin, by
+    //  degrees, relative to where it is now.
+    SoCamera *cam = p_viewer->getCamera();
+    if (!cam) return fail("rotate: no camera");
+    SbRotation r(SbVec3f(0, 1, 0), (float)(atof(w[1].c_str()) * M_PI / 180.0));
+    SbVec3f pos = cam->position.getValue(), np;
+    r.multVec(pos, np);
+    cam->position.setValue(np);
+    cam->orientation.setValue(r * cam->orientation.getValue());
   } else if (c == "clear") {
     p_sg->clearGridScene();
     p_sg->getNMVecRoot()->whichChild.setValue(SO_SWITCH_NONE);

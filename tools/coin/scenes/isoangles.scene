@@ -1,0 +1,26 @@
+# Synthetic pi field seen from the front, 45 and 90 degrees about the
+# vertical axis, in each transparency mode (tools/coin/angles.py).
+labels none
+style Ball And Stick
+viewall
+isotest
+transparency SCREEN_DOOR
+snap @SYS@-sd-a000
+rotate 45
+snap @SYS@-sd-a045
+rotate 45
+snap @SYS@-sd-a090
+rotate -90
+transparency DELAYED_ADD
+snap @SYS@-da-a000
+rotate 45
+snap @SYS@-da-a045
+rotate 45
+snap @SYS@-da-a090
+rotate -90
+transparency SORTED_OBJECT_BLEND
+snap @SYS@-sb-a000
+rotate 45
+snap @SYS@-sb-a045
+rotate 45
+snap @SYS@-sb-a090
