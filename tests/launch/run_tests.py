@@ -849,6 +849,8 @@ def main():
 
     build = os.path.abspath(args.build)
     prerequisites(build, args.local)
+    if args.nwchem_restart and not shutil.which("nwchem"):
+        skip("nwchem is not installed")
 
     state = isolate.resolveStateDir(
         os.environ.get("ECCE_TEST_STATE")

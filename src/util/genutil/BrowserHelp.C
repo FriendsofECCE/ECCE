@@ -19,6 +19,7 @@
 #include "util/PreferenceLabels.H"
 #include "util/StringTokenizer.H"
 #include "util/BrowserHelp.H"
+#include "util/LocalData.H"
 #include "util/NullPointerException.H"
 
 
@@ -69,6 +70,10 @@ string BrowserHelp::URL(const string& key) const
     }
   }
   
+  if (!LocalData::dir().empty() && ret.find("http://") == string::npos &&
+      ret.find("file://") == string::npos)
+    return localURL(ret);
+
   if (ret.size() > 0 && ret.find("http://") == string::npos &&
                         ret.find("file://") == string::npos)
     ret.insert(0, p_urlPrefix);
@@ -79,6 +84,44 @@ string BrowserHelp::URL(const string& key) const
 }
 
 
+
+
+/**
+ * Local mode has no data server to serve help, so a page is opened from
+ * the install tree instead.  The help CGIs only wrap a page in frames, so
+ * "cshelp?tool&page" and "toolhelp?tool&page" become that page itself.
+ * Pages written for the server refer to images as "/EcceHelp/...", which
+ * a browser cannot resolve under file://, so images may be missing.
+ */
+string BrowserHelp::localURL(const string& entry) const
+{
+  string root = p_filePrefix + "EcceHelp/";
+  string page = "homepage.html";
+  size_t q = entry.find('?');
+  if (entry.compare(0, 9, "EcceHelp/") == 0) {
+    page = entry.substr(9);
+  } else if (q != string::npos &&
+             (entry.find("cshelp") != string::npos ||
+              entry.find("toolhelp") != string::npos)) {
+    string args = entry.substr(q + 1);
+    size_t amp = args.find('&');
+    string tool = args.substr(0, amp);
+    string file = amp == string::npos ? "" : args.substr(amp + 1);
+    string anchor;
+    size_t amp2 = file.find('&');
+    if (amp2 != string::npos) {
+      anchor = "#" + file.substr(amp2 + 1);
+      file = file.substr(0, amp2);
+    }
+    if (file.empty()) file = "overview.shtml";
+    if (access((root + tool + "/" + file).c_str(), R_OK) == 0)
+      return "file://" + root + tool + "/" + file + anchor;
+  }
+  size_t hash = page.find('#');
+  if (access((root + page.substr(0, hash)).c_str(), R_OK) != 0)
+    page = "homepage.html";
+  return "file://" + root + page;
+}
 
 
 /**

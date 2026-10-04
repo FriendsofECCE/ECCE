@@ -9,6 +9,7 @@
 #ifndef WX_PRECOMP
 #include "wx/wx.h"
 #endif
+#include "wx/dirdlg.h"
 
 #include <cstdlib>
 #include <algorithm>
@@ -20,6 +21,7 @@
 #include "util/TDateTime.H"
 #include "util/UnitFactory.H"
 #include "util/Ecce.H"
+#include "util/LocalData.H"
 
 #include "dsm/ResourceDescriptor.H"
 
@@ -92,7 +94,8 @@ GlobalPrefs::GlobalPrefs(wxWindow* parent)
     p_focus(NULL), p_confirmExit(NULL), p_closeShells(NULL),
     p_savePasswords(NULL), p_showBusy(NULL), p_alwaysOnTop(NULL),
     p_leftClickNewApp(NULL), p_orientation(NULL),
-    p_stateIconSizer(NULL), p_resetAll(NULL), p_restoring(true)
+    p_localData(NULL), p_localFolder(NULL), p_openFolder(NULL),
+    p_localNote(NULL), p_stateIconSizer(NULL), p_resetAll(NULL), p_restoring(true)
 {
   p_editor.choice = p_terminal.choice = p_browser.choice = NULL;
   p_editor.text = p_terminal.text = p_browser.text = NULL;
@@ -116,6 +119,10 @@ GlobalPrefs::GlobalPrefs(wxWindow* parent)
   wxPanel* programs = new wxPanel(p_book);
   createProgramsPage(programs);
   p_book->AddPage(programs, _("External programs"));
+
+  wxPanel* data = new wxPanel(p_book);
+  createDataPage(data);
+  p_book->AddPage(data, _("Data folder"));
 
   wxPanel* states = new wxPanel(p_book);
   createStatesPage(states);
@@ -333,6 +340,119 @@ string GlobalPrefs::envOverrideNote(const char* var, const char* what)
   if (v == NULL || *v == '\0') return "";
   return string(var) + "=" + v + " is set and overrides " + what +
          " setting.";
+}
+
+
+void GlobalPrefs::createDataPage(wxWindow* page)
+{
+  wxBoxSizer* outer = new wxBoxSizer(wxVERTICAL);
+  wxStaticBoxSizer* box = new wxStaticBoxSizer(wxVERTICAL, page,
+                                               _("Where calculations are kept"));
+  wxWindow* sb = box->GetStaticBox();
+  p_localData = new ewxCheckBox(sb, wxID_ANY,
+      _("Keep calculations in a folder on this computer, not on a data server"));
+  box->Add(p_localData, 0, wxALL, PAD);
+
+  wxBoxSizer* row = new wxBoxSizer(wxHORIZONTAL);
+  row->Add(new ewxStaticText(sb, wxID_ANY, _("Folder:")), 0,
+           wxALIGN_CENTER_VERTICAL|wxRIGHT, PAD);
+  p_localFolder = new ewxTextCtrl(sb, wxID_ANY, wxEmptyString,
+                                  wxDefaultPosition, wxSize(320, -1),
+                                  wxTE_READONLY);
+  row->Add(p_localFolder, 1, wxALIGN_CENTER_VERTICAL|wxRIGHT, PAD);
+  ewxButton* change = new ewxButton(sb, wxID_ANY, _("Change..."));
+  row->Add(change, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, PAD);
+  p_openFolder = new ewxButton(sb, wxID_ANY, _("Open data folder"));
+  row->Add(p_openFolder, 0, wxALIGN_CENTER_VERTICAL);
+  box->Add(row, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, PAD);
+  outer->Add(box, 0, wxGROW|wxALL, PAD);
+
+  p_localNote = new ewxStaticText(page, wxID_ANY, wxEmptyString);
+  outer->Add(p_localNote, 0, wxLEFT|wxRIGHT|wxBOTTOM, PAD*2);
+  page->SetSizer(outer);
+
+  p_localData->Bind(wxEVT_CHECKBOX, &GlobalPrefs::OnLocalDataToggle, this);
+  change->Bind(wxEVT_BUTTON, &GlobalPrefs::OnChangeDataFolder, this);
+  p_openFolder->Bind(wxEVT_BUTTON, &GlobalPrefs::OnOpenDataFolder, this);
+  updateDataPage();
+}
+
+
+// The page shows the preference, which is what the NEXT start uses; the
+// running session keeps the mode it started in.
+void GlobalPrefs::updateDataPage()
+{
+  bool on = LocalData::prefEnabled();
+  string folder = LocalData::prefFolder();
+  string moveTo = LocalData::prefMoveTo();
+  p_localData->SetValue(on);
+  p_localFolder->SetValue(folder);
+  p_openFolder->Enable(wxDirExists(folder));
+
+  string note =
+      "The folder holds your projects and calculations. A change takes\n"
+      "effect the next time ECCE starts. Switching between a data server\n"
+      "and a folder copies nothing: the calculations of the other mode stay\n"
+      "where they are, and the new mode starts empty.";
+  if (!moveTo.empty())
+    note += "\n\nAt the next start ECCE will offer to move your calculations\n"
+            "from " + folder + " to " + moveTo + ".";
+  string now = LocalData::dir();
+  note += "\n\nThis session keeps its calculations " +
+          (now.empty() ? string("on a data server.") : "in " + now + ".");
+  const char* env = getenv("ECCE_LOCAL_DATA");
+  if (env && *env && !getenv("ECCE_LOCAL_DATA_FROM_PREF"))
+    note += "\n" + envOverrideNote("ECCE_LOCAL_DATA", "the data folder");
+  p_localNote->SetLabel(note);
+  Layout();
+}
+
+
+void GlobalPrefs::OnLocalDataToggle(wxCommandEvent& event)
+{
+  bool on = p_localData->GetValue();
+  // Turning the folder off also drops a move that was waiting for it.
+  LocalData::setPref(on, LocalData::prefFolder(),
+                     on ? LocalData::prefMoveTo() : "");
+  string msg = on ?
+      "From the next start, ECCE keeps your calculations in\n    " +
+      LocalData::prefFolder() + "\n\nCalculations on the data server stay "
+      "there; the folder starts empty." :
+      string("From the next start, ECCE keeps your calculations on a data "
+             "server.\n\nCalculations in the folder stay there; they are "
+             "not copied to the server.");
+  ewxMessageDialog dlg(this, msg, "ECCE data folder", wxOK|wxICON_INFORMATION,
+                       wxDefaultPosition);
+  dlg.ShowModal();
+  updateDataPage();
+}
+
+
+void GlobalPrefs::OnChangeDataFolder(wxCommandEvent& event)
+{
+  string folder = LocalData::prefFolder();
+  wxDirDialog dlg(this, _("Folder for ECCE calculations"), folder,
+                  wxDD_DEFAULT_STYLE);
+  if (dlg.ShowModal() != wxID_OK) return;
+  string chosen = dlg.GetPath().ToStdString();
+  if (chosen.empty()) return;
+  // A folder already holding calculations is moved at the next start,
+  // after asking; one that holds nothing yet is simply replaced.
+  if (chosen == folder)
+    LocalData::setPref(LocalData::prefEnabled(), folder, "");
+  else if (LocalData::isEmptyOrMissing(folder))
+    LocalData::setPref(LocalData::prefEnabled(), chosen, "");
+  else
+    LocalData::setPref(LocalData::prefEnabled(), folder, chosen);
+  updateDataPage();
+}
+
+
+void GlobalPrefs::OnOpenDataFolder(wxCommandEvent& event)
+{
+  string folder = LocalData::prefFolder();
+  const char* argv[] = { "xdg-open", folder.c_str(), NULL };
+  wxExecute(const_cast<char**>(argv), wxEXEC_ASYNC);
 }
 
 

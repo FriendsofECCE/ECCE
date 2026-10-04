@@ -346,6 +346,7 @@ bool Resource::move(EcceURL& target)
   EcceURL originalUrl = getEDSI()->getURL();
 
   bool ret = false;
+  bool inPlace = false;
   p_msgStack->clear();
 
   getEDSI()->setURL(p_url);
@@ -353,6 +354,7 @@ bool Resource::move(EcceURL& target)
 
     if (EcceURL::isSameDomain(target, getURL())) {
       // Local Move
+      inPlace = true;
       ret = getEDSI()->moveResource(target);
       if (!ret) {
         p_msgStack->add(getEDSI()->m_msgStack);
@@ -398,7 +400,9 @@ bool Resource::move(EcceURL& target)
   }
 
   if (ret) {
-    if (!p_url.isLocal()) {
+    // A file uploaded to a server stays where it was; anything moved
+    // within one store, a file:// one included (#216), has a new URL.
+    if (inPlace || !p_url.isLocal()) {
       EDSIFactory::renamePoolResource(p_url, target);
       setURL(target);
       clearChildren();

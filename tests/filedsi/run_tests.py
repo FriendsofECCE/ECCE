@@ -158,6 +158,34 @@ def check_urls(state, env):
     rc, out = run_url(new, env, "server-default", ECCE_HOME=REPO)
     print(out.rstrip())
     ok = ok and rc == 0
+
+    # Help: from the data server, or, in local mode, from the install tree.
+    hdata = os.path.join(state, "helpdata")
+    web = os.path.join(hdata, "client", "WebHelp", "EcceHelp")
+    os.makedirs(os.path.join(web, "gateway"))
+    os.symlink(os.path.join(REPO, "data", "client", "config"),
+               os.path.join(hdata, "client", "config"))
+    for page in ("homepage.html", "gateway/overview_usingtools.html"):
+        open(os.path.join(web, page), "w").close()
+    keys = ["Gateway", "Gateway.ecceBtn", "Gateway.calcMgrIcon"]
+    _, server = run_url(new, env, "help", *keys, ECCE_DATA=hdata,
+                        ECCE_HELP="http://h:8096/")
+    _, localh = run_url(new, env, "help", *keys, ECCE_DATA=hdata,
+                        ECCE_HELP="http://h:8096/", ECCE_LOCAL_DATA=root)
+    want_server = ["Gateway http://h:8096/EcceHelp/homepage.html",
+                   "Gateway.ecceBtn http://h:8096/cgi-bin/help/cshelp?gateway&overview_usingtools.html",
+                   "Gateway.calcMgrIcon http://h:8096/cgi-bin/help/toolhelp?calcmgr"]
+    want_local = ["Gateway file://%s/homepage.html" % web,
+                  "Gateway.ecceBtn file://%s/gateway/overview_usingtools.html" % web,
+                  # no calcmgr/overview.shtml in this tree: the home page
+                  "Gateway.calcMgrIcon file://%s/homepage.html" % web]
+    for label, got, want in (("server", server, want_server),
+                             ("local", localh, want_local)):
+        lines = got.strip().splitlines()
+        good = lines == want
+        print("%s help %s: %s" % ("PASS" if good else "FAIL", label,
+                                  "" if good else "%r, want %r" % (lines, want)))
+        ok = ok and good
     return ok
 
 
@@ -182,7 +210,8 @@ def main():
         rc = 0
         # resourceTest runs twice: create, then re-open in a new process.
         for name, args in (("filedsiTest", []), ("resourceTest", ["create"]),
-                           ("resourceTest", ["reopen"]), ("lockTest", [])):
+                           ("resourceTest", ["reopen"]), ("lockTest", []),
+                           ("opsTest", [])):
             driver = os.path.join(state, name)
             if not os.path.exists(driver):
                 cmd = (["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"),
@@ -210,6 +239,18 @@ def main():
             if proc.returncode != 0 or bad:
                 rc = 1
         if not check_urls(state, env):
+            rc = 1
+        # The data folder: which one a session uses, and moving it.
+        proc = subprocess.run([sys.executable,
+                               os.path.join(HERE, "localdata_test.py"), BUILD],
+                              capture_output=True, text=True, timeout=300)
+        bad = [l for l in proc.stdout.splitlines() if l.startswith(("FAIL", "SKIP"))]
+        if verbose or bad or proc.returncode != 0:
+            print(proc.stdout + proc.stderr[-2000:])
+        print("localdata_test: %d checks, %d failed" % (
+            proc.stdout.count("PASS ") + proc.stdout.count("FAIL "),
+            proc.stdout.count("FAIL ")))
+        if proc.returncode != 0:
             rc = 1
         return rc
     finally:

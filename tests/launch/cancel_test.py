@@ -13,7 +13,10 @@ MOPAC stand-in that sleeps first:
   c. rerun after (a), then lose the job as in (b)    -> system_failure,
      so the request of the earlier run is not inherited
 
-    tests/launch/cancel_test.py [--build build] [--keep]
+    tests/launch/cancel_test.py [--build build] [--keep] [--local]
+
+--local keeps the data in a folder (ECCE_LOCAL_DATA, #216) with no data
+server.
 
 Exit status 77 (CTest SKIP) when a prerequisite is missing.
 """
@@ -110,11 +113,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--build", default=os.path.join(REPO, "build"))
     parser.add_argument("--keep", action="store_true")
+    parser.add_argument("--local", action="store_true",
+                        help="#216: data in a local folder, no data server")
     args = parser.parse_args()
     build = os.path.abspath(args.build)
     harness.prerequisites(build, ("mopac",))
 
-    s = harness.Session(build, "cancel", {}, (8697, 8689), keep=args.keep)
+    s = harness.Session(build, "cancel-local" if args.local else "cancel", {},
+                        (8697, 8689), keep=args.keep, local=args.local)
     wrapper = os.path.join(s.state, "slow-mopac")
     with open(wrapper, "w") as h:
         h.write("#!/bin/sh\nsleep 300\nexec /usr/bin/mopac \"$@\"\n")

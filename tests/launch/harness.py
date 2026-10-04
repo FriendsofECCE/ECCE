@@ -162,9 +162,11 @@ def prerequisites(build, tools):
 class Session(object):
     """An isolated ECCE (services, $ECCE_HOME, user account) for one run."""
 
-    def __init__(self, build, tag, codes, ports, keep=False):
+    def __init__(self, build, tag, codes, ports, keep=False, local=False):
         self.build = os.path.abspath(build)
         self.keep = keep
+        #  #216: data in a folder (ECCE_LOCAL_DATA); no data server.
+        self.local = local
         self.failures = []
         self.seen = {}
         self._authLock = threading.Lock()
@@ -192,6 +194,10 @@ class Session(object):
         install = treeInstall(self.state, self.build)
         settings = isolate.apply(install, self.state)
         self.home = settings["ECCE_HOME"]
+        if self.local:
+            #  Local mode must not need it; its absence proves it is not read.
+            os.unlink(os.path.join(self.home, "siteconfig", "DataServers"))
+            shutil.rmtree(self.localData(), ignore_errors=True)
         os.environ["ECCE_TEST_HOME"] = install
         say(isolate.describe(settings))
 
@@ -222,8 +228,14 @@ class Session(object):
         })
         env.pop("ECCE_NO_REAP", None)
         env.pop("ECCE_TRANSPORT", None)
+        env.pop("ECCE_LOCAL_DATA", None)
+        if self.local:
+            env["ECCE_LOCAL_DATA"] = self.localData()
         env.update(extra or {})
         return env
+
+    def localData(self):
+        return os.path.join(self.state, "localdata")
 
     def run(self, argv, extra=None, timeout=180, cwd=None):
         result = subprocess.run(argv, env=self.env(extra), cwd=cwd,
@@ -233,14 +245,18 @@ class Session(object):
 
     def services(self, start):
         if start:
-            for script in ("ecce-dataserver-start", "ecce-gateway-start"):
+            servers = ["ecce-gateway-start"]
+            if not self.local:
+                servers.insert(0, "ecce-dataserver-start")
+            for script in servers:
                 rc, out = self.run([os.path.join(self.home, "bin", script)],
                                    timeout=240)
                 say("  %s: rc=%d %s" % (script, rc,
                                         out.strip().replace("\n", " | ")[:300]))
                 if rc != 0:
                     return False
-            self.fixture.ensureRealUserAccount()
+            if not self.local:
+                self.fixture.ensureRealUserAccount()
             return True
         for script in ("ecce-gateway-stop", "ecce-dataserver-stop"):
             try:
@@ -253,6 +269,8 @@ class Session(object):
         return self.env()["ECCE_REALUSER"]
 
     def userUrl(self):
+        if self.local:
+            return "file://%s/users/%s" % (self.localData(), self.user())
         return "%s/users/%s" % (
             self.fixture.base().rsplit("/users/", 1)[0], self.user())
 
@@ -280,8 +298,9 @@ class Session(object):
         The gateway starts every app with `cd $ECCE_HOME/bin && ./app`, and
         eccejobmaster runs "./eccejobstore" relative to that, so mirror it.
         """
+        pipe = os.devnull if self.local else self.authFile()
         return self.run([os.path.join(self.home, "bin", "launchjob"),
-                         "-pipe", self.authFile()] + list(argv),
+                         "-pipe", pipe] + list(argv),
                         cwd=os.path.join(self.home, "bin"), timeout=timeout)
 
     def registerMachine(self, name, manager, codes, queues=("normal", "debug"),

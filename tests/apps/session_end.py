@@ -1661,8 +1661,168 @@ def caseLocalSave(checks, display, logdir):
     finally:
         session.kill()
 
+def procEnv(pid):
+    try:
+        with open("/proc/%d/environ" % pid, "rb") as handle:
+            raw = handle.read().split(b"\0")
+    except OSError:
+        return {}
+    return dict(e.decode(errors="replace").split("=", 1)
+                for e in raw if b"=" in e)
 
-CASES = {"local": caseLocal, "local-save": caseLocalSave, "bug": caseBug, "window": caseWindow, "stop": caseStop, "remote": caseRemote,
+
+def preferencesShot(display, frame, logdir):
+    """Edit > Preferences, Data folder tab, as a screenshot to look at."""
+    env = display.env()
+    wid = str(int(frame[0], 16))
+    subprocess.run(["xdotool", "windowfocus", wid], env=env, timeout=10,
+                   stderr=subprocess.DEVNULL)
+    time.sleep(0.5)
+    subprocess.run(["xdotool", "key", "alt+e"], env=env, timeout=10)
+    time.sleep(1)
+    subprocess.run(["xdotool", "key", "n"], env=env, timeout=10)
+    deadline = time.time() + 20
+    prefs = None
+    while time.time() < deadline and not prefs:
+        prefs = next((w for w in display.windows()
+                      if w[1] == "ECCE Preferences"), None)
+        time.sleep(0.5)
+    if not prefs:
+        say("    (no Preferences window to photograph)")
+        return
+    time.sleep(2)
+    geo = subprocess.run(["xdotool", "getwindowgeometry", "--shell",
+                          str(int(prefs[0], 16))], env=env, timeout=10,
+                         stdout=subprocess.PIPE).stdout.decode()
+    size = dict(l.split("=") for l in geo.split() if "=" in l)
+    # Tabs: General, External programs, Data folder; the third is right of
+    # the other two, about 230 px in.
+    subprocess.run(["xdotool", "mousemove", "--window", str(int(prefs[0], 16)),
+                    "250", "18", "click", "1"], env=env, timeout=10)
+    time.sleep(2)
+    subprocess.run(["import", "-window", "root", os.path.join(
+        logdir, "local-pref-preferences.png")], env=env, timeout=30,
+        stderr=subprocess.DEVNULL)
+    closeWindow(display, prefs[0])
+    time.sleep(1)
+
+
+def caseLocalPref(checks, display, logdir):
+    """#216: local mode chosen by the preference alone, with no
+    ECCE_LOCAL_DATA; then a folder move asked for in Preferences and
+    accepted at the next start."""
+    d = display.name
+    if not checks.check(d != ":1", "own Xvfb %s, never :1" % d):
+        return
+    prefs = os.path.join(os.environ["ECCE_REALUSERHOME"], ".ECCE", "EcceGlobal")
+    os.makedirs(os.path.dirname(prefs), exist_ok=True)
+    saved = open(prefs).read() if os.path.exists(prefs) else None
+    first = os.path.join(state, "prefdata")
+    second = os.path.join(state, "prefdata-moved")
+    for p in (first, second):
+        shutil.rmtree(p, ignore_errors=True)
+    home = localHome(os.environ["ECCE_HOME"])
+    user = getpass.getuser()
+
+    def writePrefs(extra):
+        with open(prefs, "w") as handle:
+            handle.write((saved or "") + extra)
+
+    def start(tag):
+        session = Session(display, os.path.join(logdir, "local-pref-%s.log" % tag),
+                          extra={"ECCE_HOME": home})
+        session.extra.pop("ECCE_LOCAL_DATA", None)
+        return session
+
+    try:
+        writePrefs("LOCALDATA:\ttrue\nLOCALDATA.FOLDER:\t%s\n" % first)
+        env = display.env()
+        checks.check("ECCE_LOCAL_DATA" not in env,
+                     "the session starts with no ECCE_LOCAL_DATA")
+        session = start("first")
+        try:
+            frame = session.organizer()
+            if not checks.check(frame, "the Organizer opened"):
+                return
+            orgs = named(d, "organizer")
+            got = procEnv(orgs[0]).get("ECCE_LOCAL_DATA") if orgs else None
+            checks.check(got == first, "the wrapper exported the preference's "
+                         "folder to the Organizer: %r" % got)
+            checks.check(not apacheProcs() and
+                         not portOpen(fixture.dataserverPort()),
+                         "no Apache was started")
+            checks.check(os.path.isdir(os.path.join(first, "users", user)),
+                         "the folder has users/%s" % user)
+            if shutil.which("import"):
+                preferencesShot(display, frame, logdir)
+            quitVia(display, frame)
+            checks.check(session.ended(30), "`ecce` returned")
+        finally:
+            session.kill()
+
+        # Preferences asked for a new folder: offered and moved at start.
+        with open(os.path.join(first, "users", user, "marker"), "w") as handle:
+            handle.write("calculations")
+        writePrefs("LOCALDATA:\ttrue\nLOCALDATA.FOLDER:\t%s\n"
+                   "LOCALDATA.MOVETO:\t%s\n" % (first, second))
+        # The first session's apps may outlive `ecce` by a moment.
+        inuse = os.path.join(home, "bin", "ecce-localdata")
+        deadline = time.time() + 30
+        while time.time() < deadline and subprocess.run(
+                [inuse, "in-use", first], env=display.env()).returncode == 0:
+            time.sleep(1)
+        checks.check(time.time() < deadline,
+                     "no process of the first session holds the folder")
+        session = start("move")
+        try:
+            deadline = time.time() + 60
+            dialog = None
+            while time.time() < deadline and not dialog:
+                dialog = next((w for w in display.windows()
+                               if w[1] == "ECCE data folder"), None)
+                time.sleep(0.5)
+            if not checks.check(dialog, "the move is offered before the "
+                                "Organizer opens"):
+                return
+            # Listed is not yet mapped; a click before that goes nowhere.
+            deadline = time.time() + 30
+            while time.time() < deadline and b"IsViewable" not in subprocess.run(
+                    ["xwininfo", "-id", dialog[0]], env=env,
+                    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout:
+                time.sleep(0.5)
+            time.sleep(2)
+            if shutil.which("import"):
+                subprocess.run(["import", "-window", "root", os.path.join(
+                    logdir, "local-pref-move-dialog.png")], env=env,
+                    timeout=30, stderr=subprocess.DEVNULL)
+            clickLastButton(display, dialog[0])        # "Move", right-most
+            frame = session.organizer()
+            if not checks.check(frame, "the Organizer opened after the move"):
+                return
+            checks.check(not os.path.exists(first) and os.path.exists(
+                os.path.join(second, "users", user, "marker")),
+                "the folder moved, its contents with it")
+            orgs = named(d, "organizer")
+            got = procEnv(orgs[0]).get("ECCE_LOCAL_DATA") if orgs else None
+            checks.check(got == second, "the session uses the new folder: %r"
+                         % got)
+            text = open(prefs).read()
+            checks.check("LOCALDATA.FOLDER:\t%s" % second in text and
+                         "MOVETO" not in text,
+                         "the preference names the new folder, no move pending")
+            quitVia(display, frame)
+            checks.check(session.ended(30), "`ecce` returned")
+        finally:
+            session.kill()
+    finally:
+        if saved is None:
+            os.unlink(prefs)
+        else:
+            with open(prefs, "w") as handle:
+                handle.write(saved)
+
+
+CASES = {"local": caseLocal, "local-pref": caseLocalPref, "local-save": caseLocalSave, "bug": caseBug, "window": caseWindow, "stop": caseStop, "remote": caseRemote,
          "remote-down": caseRemoteDown,
          "quit-stop": caseQuitStop,
          "displays": caseDisplays, "shared": caseShared,
@@ -1698,7 +1858,7 @@ def main():
             #  Cases share one broker and data server, as sessions do;
             #  the stop case takes both down, the next session restarts
             #  the broker and this restarts the data server.
-            if name in ("local", "local-save"):   # no data server
+            if name in ("local", "local-save", "local-pref"):   # no data server
                 subprocess.run([os.path.join(install, "bin",
                                              "ecce-dataserver-stop")],
                                env=display.env(), stdout=subprocess.DEVNULL,
