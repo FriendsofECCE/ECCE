@@ -1290,6 +1290,11 @@ void SoWxRenderArea::constructorCommon(SbBool getMouseInput,
 
   p_sceneMgr = new SoSceneManager();
   p_sceneMgr->setRenderCallback(SoWxRenderArea::renderCB, this);
+#ifdef OIV_COIN
+  // Coin's render action starts in BLEND, Open Inventor's in SCREEN_DOOR;
+  // the Builder relies on the latter (the MO lobes are stippled, not blended).
+  p_sceneMgr->getGLRenderAction()->setTransparencyType(SoGLRenderAction::SCREEN_DOOR);
+#endif
 
   p_overlaySceneMgr = new SoSceneManager();
   p_overlaySceneMgr->setRenderCallback(SoWxRenderArea::renderOverlayCB, this);
