@@ -106,6 +106,7 @@ using std::vector;
 #include "viz/NodesInit.H"
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
+#include "viz/PropSGFragment.H"
 #include "viz/MoveAction.H"
 #include "viz/SGLattice.H"
 
@@ -145,6 +146,7 @@ using std::vector;
 #include "wxviz/SGSelection.H"
 #include "wxviz/SGViewer.H"
 #include "wxviz/StyleDropDown.H"
+#include "wxviz/SceneScript.H"
 #include "wxviz/VizRender.H"
 #include "wxviz/WxVizTool.H"
 #include "wxviz/WxVizToolFW.H"
@@ -4648,6 +4650,54 @@ void Builder::updatePropertyMenus()
                         "for this calculation\n", openPanelName);
       }
     }
+  }
+
+  //  ECCE_VIEWER_SCENE=<script> ECCE_VIEWER_SCENE_OUT=<dir>: render the
+  //  scenes of tools/coin/compare.sh in this calculation, then exit. Inert
+  //  unless set. Polls until the molecule is loaded, since this method
+  //  runs before the fragment is.
+  static bool sceneStarted = false;
+  const char *sceneScript = getenv("ECCE_VIEWER_SCENE");
+  if (sceneScript != 0 && !sceneStarted && p_calculation != 0) {
+    sceneStarted = true;
+    string script = sceneScript;
+    const char *o = getenv("ECCE_VIEWER_SCENE_OUT");
+    string outdir = o ? o : ".";
+    wxTimer *timer = new wxTimer();   // lives until the process exits
+    int *ticks = new int(0), *settled = new int(0);
+    timer->Bind(wxEVT_TIMER, [this, timer, ticks, settled, script, outdir](wxTimerEvent&) {
+      SGContainer *sg = getSG();
+      bool loaded = sg && sg->getFragment() && sg->getFragment()->numAtoms() > 0;
+      ++*ticks;
+      if (loaded) ++*settled;
+      bool ready = *settled >= 6;       // 3 s after the atoms appear
+      if (!ready && *ticks < 240) return;
+      timer->Stop();
+      //  The Builder's own canvas is as large as the pane layout leaves it
+      //  (181 px wide in the headless layout), so draw in a second viewer of
+      //  fixed size on the same scene graph.
+      wxFrame *frame = new wxFrame(NULL, wxID_ANY, "scene capture");
+      SGViewer *viewer = new SGViewer(frame, wxID_ANY);
+      viewer->setText("", "", "", "");
+      viewer->setSceneGraph(p_sgMgr);
+      viewer->setViewing(false);
+      viewer->setDecoration(false);
+      wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
+      viewer->SetMinSize(wxSize(480, 480));
+      sizer->Add(viewer, 1, wxEXPAND);
+      frame->SetSizerAndFit(sizer);
+      frame->Show(true);
+      for (int i = 0; i < 30; i++) { wxTheApp->Yield(true); wxMilliSleep(10); }
+      viewer->viewAll();
+      SceneScript run(viewer, sg, p_calculation, outdir);
+      if (!ready || !run.run(script)) {
+        string msg = ready ? run.message() : "molecule never loaded";
+        fprintf(stderr, "ECCE_VIEWER_SCENE: %s\n", msg.c_str());
+        std::ofstream(outdir + "/FAILED") << msg << "\n";
+      }
+      Close(true);
+    });
+    timer->Start(500);
   }
 
   // disable menu if no property guis found

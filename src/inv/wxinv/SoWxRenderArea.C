@@ -108,6 +108,8 @@ SoWxRenderArea::SoWxRenderArea(wxWindow * parent,
   p_windowResized = false;
   p_inPaint = false;
   p_redrawPending = false;
+  p_frameCB = 0;
+  p_frameCBData = 0;
 
   // wx3.x wxGLCanvas no longer implicitly creates/owns a GL context (that
   // was wx2.8 behavior) - we must create and manage one explicitly now.
@@ -347,12 +349,23 @@ int SoWxRenderArea::getOverlayBackgroundIndex() const
 */
 
 
+#ifdef OIV_COIN
+static void syncPickViewport(SoSceneManager *sm)
+{
+  sm->getHandleEventAction()->setViewportRegion(
+      sm->getGLRenderAction()->getViewportRegion());
+}
+#endif
+
 /**
  * Set current viewport region to use for rendering.
  */
 void SoWxRenderArea::setViewportRegion(const SbViewportRegion &newRegion) 
 {
   p_sceneMgr->getGLRenderAction()->setViewportRegion(newRegion);
+#ifdef OIV_COIN
+  syncPickViewport(p_sceneMgr);
+#endif
 }
 
 
@@ -842,6 +855,7 @@ void SoWxRenderArea::redraw()
   }
   
   actualRedraw();
+  if (p_frameCB) p_frameCB(p_frameCBData);
 
   // swap those buffers!
   if (isDoubleBuffer()) {
@@ -1068,6 +1082,12 @@ void SoWxRenderArea::sizeChanged(const SbVec2s &newSize)
 {
   p_sceneMgr->setWindowSize(newSize);
   p_overlaySceneMgr->setWindowSize(newSize);
+#ifdef OIV_COIN
+  // Coin's setWindowSize sizes only the render action; the handle-event
+  // action keeps its 400x400 default, so its ray pick missed every atom.
+  syncPickViewport(p_sceneMgr);
+  syncPickViewport(p_overlaySceneMgr);
+#endif
   
   // tell each device the new window size
   for (int i = 0; i < p_deviceList->getLength(); i++) {
@@ -1287,6 +1307,11 @@ void SoWxRenderArea::constructorCommon(SbBool getMouseInput,
 
   p_sceneMgr = new SoSceneManager();
   p_sceneMgr->setRenderCallback(SoWxRenderArea::renderCB, this);
+#ifdef OIV_COIN
+  // Coin's render action starts in BLEND, Open Inventor's in SCREEN_DOOR;
+  // the Builder relies on the latter (the MO lobes are stippled, not blended).
+  p_sceneMgr->getGLRenderAction()->setTransparencyType(SoGLRenderAction::SCREEN_DOOR);
+#endif
 
   p_overlaySceneMgr = new SoSceneManager();
   p_overlaySceneMgr->setRenderCallback(SoWxRenderArea::renderOverlayCB, this);

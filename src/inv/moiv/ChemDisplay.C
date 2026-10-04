@@ -658,6 +658,17 @@ ChemDisplay::GLRender(SoGLRenderAction *action)
 #endif
 	SoState *state = action->getState();
 
+#ifdef OIV_COIN
+	// Atoms are opaque and set their colours with glColor, so Coin never
+	// turns off GL_POLYGON_STIPPLE for them: after a SCREEN_DOOR isosurface
+	// they were drawn half missing. Turn it off before the attribute push
+	// (so the pop does not bring it back) and tell Coin's lazy element, so
+	// the next transparent shape sends its stipple again.
+	glDisable(GL_POLYGON_STIPPLE);
+	((SoGLLazyElement *)SoLazyElement::getInstance(state))->reset(
+		state, SoLazyElement::DIFFUSE_MASK | SoLazyElement::TRANSPARENCY_MASK);
+#endif
+
 // save rendering state 
 	glPushAttrib(GL_CURRENT_BIT|GL_LIGHTING_BIT|GL_ENABLE_BIT);
 

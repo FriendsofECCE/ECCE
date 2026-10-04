@@ -293,6 +293,10 @@ ecce_library(eccewxinv src/inv/wxinv)
 target_compile_definitions(eccewxinv PRIVATE NDEBUG ${wxWidgets_DEFINITIONS})
 target_include_directories(eccewxinv PRIVATE ${wxWidgets_INCLUDE_DIRS})
 target_link_libraries(eccewxinv PRIVATE ${wxWidgets_LIBRARIES} OpenGL::GL OpenGL::GLU)
+if(ECCE_USE_COIN AND UNIX AND NOT APPLE)
+  find_package(OpenGL REQUIRED COMPONENTS EGL)
+  target_link_libraries(eccewxinv PUBLIC OpenGL::EGL)
+endif()
 
 # --- src/wxviz -> libeccewxviz.a ---
 ecce_library(eccewxviz src/wxviz/viewer src/wxviz/viztools)
@@ -464,6 +468,19 @@ ecce_app(builder src/apps/builder WX GL
        X11::X11 jpeg freetype)
 ecce_app(vizthumbnail src/apps/vizthumbnail WX GL
   LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil X11::X11 jpeg freetype)
+
+# Headless scene renderer for comparing the vendored and Coin viewer builds
+# (tools/coin/compare.sh); built only on request.
+ecce_app(viewer-scenes tools/coin WX GL
+  LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil X11::X11 jpeg freetype)
+set_target_properties(viewer-scenes PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+# Coin only: the EGL offscreen path with no wx and no display.
+if(ECCE_USE_COIN)
+  add_executable(offscreen-check EXCLUDE_FROM_ALL tools/coin/offscreen/offscreen-check.C)
+  target_link_libraries(offscreen-check PRIVATE eccewxinv ${COIN_LIBRARY} ${wxWidgets_LIBRARIES} OpenGL::GL)
+  target_include_directories(offscreen-check PRIVATE ${wxWidgets_INCLUDE_DIRS})
+endif()
 
 # --- src/apps/symmetry -> 5 standalone Fortran executables, no wx involvement.
 # Mirrors the old Makefile's "default:" target exactly (testnames is a

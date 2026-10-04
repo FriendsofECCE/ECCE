@@ -124,6 +124,108 @@ theRotation = SbRotation(matrix); \
 #include "inv/elements/SoViewingMatrixElement.H"
 // <-- EGB && SGB
 
+#ifdef OIV_COIN
+#include "inv/elements/SoComplexityElement.H"
+#include "inv/elements/SoComplexityTypeElement.H"
+#endif
+
+// Draws the SoCylinder.  Coin's SoCylinder::GLRender sends the material of
+// the traversal state (a grey diffuse) on every call, which overwrites the
+// per-bond glColor3fv the caller just set, and tessellates differently.  So
+// under Coin the cylinder is drawn here with the geometry of the Open
+// Inventor 2.1 SoCylinder (object-space complexity, triangle strips, fans
+// for the caps) and no material of its own.
+static void
+renderSoCylinder(SoCylinder *cyl, SoGLRenderAction *action)
+{
+#ifndef OIV_COIN
+	cyl->GLRender(action);
+#else
+	const SoState *state = action->getState();
+	const float complexity = SoComplexityElement::get((SoState *)state);
+	if (SoComplexityTypeElement::get((SoState *)state) !=
+	    SoComplexityTypeElement::OBJECT_SPACE) {
+		cyl->GLRender(action);       // screen space: not used by ECCE
+		return;
+	}
+	int numSections, numSides;
+	if (complexity <= 0.5f) {
+		numSections = 1;
+		numSides = (int)(complexity * 26.0f + 3.0f);
+	} else {
+		numSections = (int)(14.0f * complexity - 6.0f);
+		numSides = (int)(complexity * 96.0f - 32.0f);
+	}
+	const int parts = cyl->parts.getValue();
+	const bool sides = (parts & 0x1) != 0, top = (parts & 0x2) != 0,
+	           bottom = (parts & 0x4) != 0;
+	const float r = cyl->radius.getValue(), hh = cyl->height.getValue() / 2.0f;
+
+	float *rx = new float[numSides], *rz = new float[numSides];
+	for (int i = 0; i < numSides; i++) {
+		const double th = i * 2.0 * M_PI / numSides;
+		rx[i] = (float)sin(th);
+		rz[i] = (float)-cos(th);
+	}
+
+	if (sides) {
+		const float dy = -2.0f / numSections;
+		float yTop = 1.0f;
+		for (int sec = 0; sec < numSections; sec++) {
+			const float yBot = yTop + dy;
+			glBegin(GL_TRIANGLE_STRIP);
+			for (int i = 0; i <= numSides; i++) {
+				const int k = i % numSides;
+				glNormal3f(rx[k], 0.0f, rz[k]);
+				glVertex3f(r * rx[k], yBot * hh, r * rz[k]);
+				glVertex3f(r * rx[k], yTop * hh, r * rz[k]);
+			}
+			glEnd();
+			yTop = yBot;
+		}
+	}
+
+	// Caps: concentric rings, the innermost one a fan, as in Open Inventor.
+	for (int cap = 0; cap < 2; cap++) {
+		if (!(cap == 0 ? top : bottom)) continue;
+		const float y = cap == 0 ? hh : -hh;
+		glNormal3f(0.0f, cap == 0 ? 1.0f : -1.0f, 0.0f);
+		float outer = 1.0f;
+		const float dR = -1.0f / numSections;
+		for (int sec = numSections - 1; sec >= 0; --sec) {
+			const float inner = outer + dR;
+			if (sec == 0) {
+				glBegin(GL_TRIANGLE_FAN);
+				glVertex3f(0.0f, y, 0.0f);
+				if (cap == 0) {
+					for (int i = numSides - 1; i >= 0; i--)
+						glVertex3f(outer * rx[i] * r, y, outer * rz[i] * r);
+					glVertex3f(outer * rx[numSides - 1] * r, y,
+					           outer * rz[numSides - 1] * r);
+				} else {
+					for (int i = 0; i < numSides; i++)
+						glVertex3f(outer * rx[i] * r, y, outer * rz[i] * r);
+					glVertex3f(outer * rx[0] * r, y, outer * rz[0] * r);
+				}
+				glEnd();
+			} else {
+				glBegin(GL_TRIANGLE_STRIP);
+				for (int i = 0; i <= numSides; i++) {
+					const int k = cap == 0 ? i % numSides
+					                       : (numSides - 1 - i % numSides + numSides) % numSides;
+					glVertex3f(outer * rx[k] * r, y, outer * rz[k] * r);
+					glVertex3f(inner * rx[k] * r, y, inner * rz[k] * r);
+				}
+				glEnd();
+				outer = inner;
+			}
+		}
+	}
+	delete [] rx;
+	delete [] rz;
+#endif
+}
+
 // --> roundcap optimization
 #define PRE_RENDER_CAP(ATOM,BOOLEAN) \
 BOOLEAN = true;  \
@@ -2026,7 +2128,7 @@ void ChemUnitCylinder::renderCylinder(const SbMatrix &theVertexMatrix,
 						glPushMatrix();
 
 							glMultMatrixf((const float*)&theVertexMatrix);
-							if (action!= NULL) soCylinder->GLRender(action);
+							if (action!= NULL) renderSoCylinder(soCylinder, action);
 						
 						glPopMatrix();
 
@@ -2105,7 +2207,7 @@ void ChemUnitCylinder::renderCylinder(const SbMatrix &theVertexMatrix,
 						glPushMatrix();
 
 							glMultMatrixf((const float*)&theVertexMatrix);
-							if (action!= NULL) soCylinder->GLRender(action);
+							if (action!= NULL) renderSoCylinder(soCylinder, action);
 						
 						glPopMatrix();
 
@@ -2185,7 +2287,7 @@ void ChemUnitCylinder::renderCylinder(const SbMatrix &theVertexMatrix,
 						glPushMatrix();
 
 							glMultMatrixf((const float*)&theVertexMatrix);
-							if (action!= NULL) soCylinder->GLRender(action);
+							if (action!= NULL) renderSoCylinder(soCylinder, action);
 						
 						glPopMatrix();
 
@@ -2265,7 +2367,7 @@ void ChemUnitCylinder::renderCylinder(const SbMatrix &theVertexMatrix,
 					case ChemDisplayParam::BONDCYLINDER_SOCYLINDER_ROUNDCAP:
 					{
 						if (action!= NULL)
-							soCylinder->GLRender(action);
+							renderSoCylinder(soCylinder, action);
 
 						break;
 					}

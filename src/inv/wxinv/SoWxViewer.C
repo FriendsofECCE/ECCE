@@ -3,6 +3,7 @@
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
+#include <cstring>
 #include "wx/wxprec.h"
 
 #ifdef __BORLANDC__
@@ -318,6 +319,19 @@ void SoWxViewer::CreateControls()
 #  else
                         None };
 #  endif
+#endif
+#if defined(OIV_COIN) && !defined(__WXMSW__) && !defined(__WXMAC__) && !defined(__WXCOCOA__)
+  //  Dev only (ECCE_COIN_ALPHA=1, tools/coin/lobes.py): Coin's
+  //  SORTED_LAYERS_BLEND needs an 8-bit alpha buffer and otherwise falls
+  //  back to the per-object sort.  Not requested by default: ECCE does not
+  //  use that mode.
+  if (getenv("ECCE_COIN_ALPHA")) {
+    int with_alpha[20] = { WX_GL_RGBA, WX_GL_MIN_RED, 1, WX_GL_MIN_GREEN, 1,
+                           WX_GL_MIN_BLUE, 1, WX_GL_DEPTH_SIZE, 1,
+                           WX_GL_MIN_ALPHA, 8, WX_GL_DOUBLEBUFFER, None };
+    if (wxGLCanvas::IsDisplaySupported(with_alpha))
+      memcpy(gl_attrib, with_alpha, sizeof gl_attrib);
+  }
 #endif
   p_renderArea = new SoWxRenderArea(this , wxID_ANY, wxDefaultPosition,
                                     wxDefaultSize, 0, "SoWxViewer", gl_attrib);

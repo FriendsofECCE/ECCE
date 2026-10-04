@@ -233,15 +233,12 @@ isoLibInitVolume(
     gCoordIndexPtr = ss->coordIndex.startEditing();
 
 
-// these code doesn't work with coin
-// -> sas
-#ifndef __coin
-    // Set the first value to be the end of a strip.  Increment gNmeshes.
+    // The vendored SoIndexedTriangleStripSet wants a leading end-of-strip
+    // marker; Coin treats it as an erroneous polygon and draws nothing.
+#ifndef OIV_COIN
     gCoordIndexPtr[0] = SO_END_STRIP_INDEX;
-     gNmeshes++;
+    gNmeshes++;
 #endif
-// <-- sas
-		
 
     // Start editing of the vertices.  Set the first value to the origin
     // here.  When the isosurfacing is finished, it will be set to

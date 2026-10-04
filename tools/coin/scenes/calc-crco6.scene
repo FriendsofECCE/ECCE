@@ -1,0 +1,7 @@
+# The MO of Cr(CO)6 from tests/modiagram/fixtures/orca-crco6 (ORCA RHF).
+# 54 = HOMO (54 doubly occupied orbitals).
+style Ball And Stick
+viewall
+snap calc-crco6-base
+mo 54 0.05 40
+snap calc-crco6-mo54-homo
