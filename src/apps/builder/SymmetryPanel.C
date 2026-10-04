@@ -73,6 +73,7 @@ void SymmetryPanel::eventMCB(const Event& event)
     SGFragment *frag = getFW().getSceneGraph().getFragment();
     wxComboCtrl *cc = (wxComboCtrl*)FindWindow(ID_COMBO_SYMMETRY_GROUP);
     cc->SetValue(frag->pointGroup());
+    updateUI(cc->GetValue() == "C1");
   }
 }
 
@@ -82,14 +83,21 @@ void SymmetryPanel::eventMCB(const Event& event)
  */
 void SymmetryPanel::updateUI(bool isC1)
 {
-   ewxButton *btn = 0;
-
-   btn = (ewxButton*)FindWindow(ID_BUTTON_SYMM_CLEAN);
-   btn->Enable(!isC1);
-   btn = (ewxButton*)FindWindow(ID_BUTTON_SYMM_FIND_IRREDUCIBLE);
-   btn->Enable(!isC1);
-   btn = (ewxButton*)FindWindow(ID_BUTTON_SYMM_GENERATE_MOLECULE);
-   btn->Enable(!isC1);
+   // A greyed-out button gives no reason, so the tooltip says what is
+   // missing; GTK shows tooltips on disabled buttons too.
+   static const wxString why =
+      _("\n(Needs a point group other than C1: use Find, or choose a group.)");
+   const wxWindowID ids[] = { ID_BUTTON_SYMM_CLEAN,
+                              ID_BUTTON_SYMM_FIND_IRREDUCIBLE,
+                              ID_BUTTON_SYMM_GENERATE_MOLECULE,
+                              ID_BUTTON_SYMM_GENERATE_GHOSTS };
+   for (wxWindowID id : ids) {
+      ewxButton *btn = (ewxButton*)FindWindow(id);
+      btn->Enable(!isC1);
+      wxString tip = btn->GetToolTipText();
+      if (tip.EndsWith(why)) tip.RemoveLast(why.length());
+      btn->SetToolTip(isC1 ? tip + why : tip);
+   }
 
 }
 
