@@ -1,11 +1,11 @@
 """Keep a run of this suite out of a real, live ECCE session.
 
 A test run brings up the same two per-user services a person's session uses
--- the ActiveMQ broker plus its JMSDispatcher, and the per-user Apache that
-is the data server -- and those services are keyed by state on disk and by
-fixed ports.  Overlapping with a developer's own running ECCE therefore does
-not produce a tidy "port in use" error.  It produces two brokers contending
-for one `~/.ECCE/activemq` data directory, a data server that early-exits
+-- the per-user mosquitto broker, and the per-user Apache that is the data
+server -- and those services are keyed by state on disk and by fixed
+ports.  Overlapping with a developer's own running ECCE therefore does not
+produce a tidy "port in use" error.  It produces two brokers contending for
+one `~/.ECCE/mosquitto.sock`, a data server that early-exits
 because "something is already listening" and then serves somebody else's
 document root, and a pile of app failures that read exactly like application
 bugs.  That is the class of false failure that makes a suite untrustworthy,
@@ -15,14 +15,15 @@ Four things have to move together, and the reason this was got wrong before
 is that they are in four different places:
 
   * **the state directory** -- `$ECCE_REALUSERHOME/.ECCE`, which holds the
-    preferences, the JMS port files, the ActiveMQ data directory and the
+    preferences, the broker files, the mosquitto socket and the
     data server's entire document root.  Both the C++ (`Ecce::realUserHome`)
     and every service script honour `ECCE_REALUSERHOME`.  `ECCE_TEST_STATE`
     was documented as the way to move it -- but nothing ever exported it as
     `ECCE_REALUSERHOME`, so it moved only `fixture.py`'s idea of where the
     state was, and not one of the services.
-  * **the two ports** -- `ECCE_DATASERVER_PORT` and `ECCE_BROKER_PORT`, read
-    by the service scripts.
+  * **the ports** -- `ECCE_DATASERVER_PORT`, read by the service scripts,
+    and `ECCE_BROKER_PORT`, the port of a central broker under -remote (the
+    per-user broker is on a Unix socket in the state directory).
   * **`siteconfig/DataServers`** -- which is where the *apps* learn the data
     server's URL, and it is written at package time with a hardcoded
     `http://localhost:8096/Ecce`.  Moving the port without moving this makes
@@ -111,12 +112,11 @@ def _link(source, target):
     os.symlink(source, target)
 
 
-def homeOverlay(install, state, dataserverPort, brokerPort):
+def homeOverlay(install, state, dataserverPort):
     """An `$ECCE_HOME` that differs from the installed one only in siteconfig.
 
-    `siteconfig/DataServers` names the data server's port and `jndi.
-    properties` the broker's, and both live in a root-owned install that a
-    test cannot edit.  Symlinking everything else and owning a real
+    `siteconfig/DataServers` names the data server's port, and it lives in
+    a root-owned install that a test cannot edit.  Symlinking everything else and owning a real
     `siteconfig/` costs a 128K copy and makes the whole of `$ECCE_HOME`
     honest about which instance this run is talking to.
     """
@@ -136,10 +136,6 @@ def homeOverlay(install, state, dataserverPort, brokerPort):
              (r"(<(?:Url|BasisSet)>\s*http://[^:<\s]+):\d+",
               r"\1:%d" % dataserverPort),
              expect=":%d" % dataserverPort)
-    _rewrite(os.path.join(siteconfig, "jndi.properties"),
-             (r"(java\.naming\.provider\.url[ \t]*=[ \t]*tcp://[^:\s]+):\d+",
-              r"\1:%d" % brokerPort),
-             expect=":%d" % brokerPort)
     return home
 
 
@@ -181,14 +177,14 @@ def killLeftovers(state):
     """Stop processes still holding THIS run's own state directory.
 
     A run that is killed (a ctest timeout, ^C, SIGTERM) never reaches its
-    `finally:` block, so the ActiveMQ brokers, the per-user apache2 and
+    `finally:` block, so the mosquitto brokers, the per-user apache2 and
     whatever else the services scripts started are left running -- and
     because they are per-user services keyed by state on disk, the next
     run collides with them: "httpd already running", "broker did not come
     up within 30s", every app then reporting no window.
 
     Matched by STATE DIRECTORY PATH in `/proc/<pid>/cmdline`, deliberately
-    never by process name -- "activemq"/"apache2" also names a real user's
+    never by process name -- "mosquitto"/"apache2" also names a real user's
     live session on their own, real `~/.ECCE`, and this must never be able
     to touch that.  A process whose command line does not mention this
     exact, isolated state directory is left alone, unconditionally.
@@ -262,7 +258,7 @@ def apply(install, state=None):
     brokerPort = _pickPort("ECCE_BROKER_PORT", DEFAULT_BROKER_PORT)
 
     os.makedirs(os.path.join(state, ".ECCE"), exist_ok=True)
-    home = homeOverlay(install, state, dataserverPort, brokerPort)
+    home = homeOverlay(install, state, dataserverPort)
 
     settings = {
         "ECCE_REALUSERHOME": state,

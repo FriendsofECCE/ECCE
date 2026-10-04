@@ -18,7 +18,7 @@ name: Build
 # RPM packages built here are real .rpm artifacts, but incomplete ones --
 # CPACK_RPM_PACKAGE_REQUIRES (the RPM equivalent of the existing
 # CPACK_DEBIAN_PACKAGE_DEPENDS) isn't set yet, so the package won't
-# auto-pull its runtime deps (apache2 equivalent, activemq, wx python
+# auto-pull its runtime deps (apache2 equivalent, mosquitto, wx python
 # bindings, ...) the way the .deb does. Worth fixing before treating
 # these as real release artifacts, not before treating them as "does
 # cpack's RPM generator work at all here" signal.
@@ -75,7 +75,7 @@ jobs:
             build-essential gfortran cmake ninja-build \
             libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
             libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
-            default-jdk ant git dpkg-dev file libssh-dev
+            libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git dpkg-dev file libssh-dev
 
       - uses: actions/checkout@v4
 
@@ -110,7 +110,7 @@ jobs:
             build-essential gfortran cmake ninja-build \
             libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
             libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
-            default-jdk ant git dpkg-dev libssh-dev
+            libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git dpkg-dev libssh-dev
 
       - name: Configure
         run: cmake -G Ninja -B build-cmake -DECCE_REQUIRE_LIBSSH=ON
@@ -149,7 +149,7 @@ jobs:
             wxGTK-devel xerces-c-devel \
             mesa-libGL-devel mesa-libGLU-devel \
             gtk3-devel libX11-devel libICE-devel libXt-devel libjpeg-turbo-devel \
-            java-latest-openjdk-devel ant libssh-devel
+            mosquitto-devel apr-util-devel mosquitto libssh-devel
 
       # actions/checkout doesn't work reliably inside an arbitrary
       # container image (no git-installed-as-a-prereq guarantee, and the
@@ -194,7 +194,7 @@ jobs:
             wxGTK-devel xerces-c-devel \
             mesa-libGL-devel mesa-libGLU-devel \
             gtk3-devel libX11-devel libICE-devel libXt-devel libjpeg-turbo-devel \
-            java-latest-openjdk-devel ant libssh-devel
+            mosquitto-devel apr-util-devel mosquitto libssh-devel
 
       - name: Check out source
         run: |
@@ -239,7 +239,7 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          brew install cmake ninja wxwidgets xerces-c ant gcc
+          brew install cmake ninja wxwidgets xerces-c mosquitto gcc
           # src/comm/commxt/JobStore.C calls raw X Toolkit Intrinsics
           # (XtAppAddSignal etc.) directly -- macOS has no native
           # equivalent and doesn't ship X11 at all by default. XQuartz

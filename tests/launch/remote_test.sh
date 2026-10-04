@@ -51,7 +51,7 @@ podman run --rm --userns=keep-id --network host -e HOME=/tmp/client -e USER=ecce
   [ -z "$CM" ] || printf "  ControlMaster auto\n  ControlPath $HOME/.ssh/cm-%%C\n  ControlPersist 10m\n" >> ~/.ssh/config
   RUN_ARGS=${RUN_ARGS:-$RUN_ARGS_DEFAULT}
   cd /src
-  ninja -C build-ssh launchjob eccejobstore eccejobmaster ecmd ecce_jms >/dev/null
+  ninja -C build-ssh launchjob eccejobstore eccejobmaster ecmd >/dev/null
   rc=0
   for u in $USERS; do
     echo "=== remote user $u"

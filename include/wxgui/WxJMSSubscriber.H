@@ -7,19 +7,20 @@
 #define WXJMSSUBSCRIBER_HH
 
 #include <map>
+#include <memory>
 #include <string>
   using std::map;
   using std::string;
   using std::less;
 
 #include "wx/wx.h"
-#include "wx/socket.h"
 #include "wx/event.h"
 
 #include "wxgui/WxJMSListener.H"
 
 class WxJMSSubscriber;
 class JMSMessage;
+class MqttEndpoint;
 
 
 // Typedef to simplify dealing with maps
@@ -43,7 +44,6 @@ class WxJMSSubscriber : public wxEvtHandler {
 
     string getMyName() const;  
     string getMyID() const;
-    int    getPort();
     bool   messagingEnabled();
 
     virtual bool subscribe(const char* topic, 
@@ -56,33 +56,27 @@ class WxJMSSubscriber : public wxEvtHandler {
     bool startSubscriber();
     void unsubscribe();
 
-    void processMessage(wxSocketEvent& event);
     bool holdMessages();
     bool resumeMessaging();
 
   private:
 
-    void initSocket();
     bool subscribeInternal(const char* topic, 
                            wxJMSCallbackStructure* cb,
                            bool filterSelf);
-
+    void deliver(const string& topic, JMSMessage& msg);
 
     wxCbMap cbStructs;               /**< holds the Ecce app's callback classes & 
                                       * functions - one pair for each 
                                       * subscription */
     string p_toolName;               /**< Name of tool - used to stamp messages */
     bool p_messagingEnabled;         /**< Indicates if messaging is enabled */
-    wxDatagramSocket *p_inputSocket; /**< Subscription socket, receives published
-                                      * messages from JMS server.  Socket is a 
-                                      * UDP (datagram) socket. */
-    int p_inPort;                    /**< Port used to read/process messages */
-
-
-    DECLARE_EVENT_TABLE()
-
+    bool p_started;
+    std::shared_ptr<MqttEndpoint> p_ep; /**< this subscriber's share of the
+                                      * process's MQTT connection; messages
+                                      * arrive on libmosquitto's thread and
+                                      * are run on the GUI thread via
+                                      * CallAfter */
 }; 
 
-#endif 
-
-
+#endif

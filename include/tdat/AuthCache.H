@@ -60,6 +60,10 @@ class AuthCache
      * the security properties of the file.
      */
     static string sessionFile();
+    static string sessionFileFor(const string& host, const string& display);
+    /** The data server login a TCP message broker is opened with. */
+    static bool brokerCredential(const string& host, const string& display,
+                                 string& user, string& password);
     static void sessionClear();
     void sessionLoad();
     void sessionSave() const;
@@ -108,6 +112,7 @@ class AuthCache
 
     static bool sessionWorthy(const string& url);
     static void sessionRead(vector<AuthTuple>& stored);
+    static void sessionReadFile(const string& path, vector<AuthTuple>& stored);
 
     static AuthCache  *p_singleton;
     UserPolicy         p_userPolicy;

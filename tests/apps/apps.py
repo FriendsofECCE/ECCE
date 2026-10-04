@@ -120,8 +120,8 @@ def startServices(display, log=None):
         # ECCE_GATEWAY_START / ECCE_DATASERVER_START point at an alternative
         # copy of the script.  This exists because /opt/ecce is root-owned:
         # a fix to a service script cannot be tried out without a packaging
-        # round-trip otherwise, and the JMSDispatcher per-display bug this
-        # suite found lives in exactly those scripts.  Normal runs leave
+        # round-trip otherwise, and bugs in these scripts are what this suite
+        # most often finds.  Normal runs leave
         # these unset and use what is installed.
         override = os.environ.get(script.upper().replace("-", "_"))
         path = override or os.path.join(INSTALL, "bin", script)
@@ -138,19 +138,11 @@ def startServices(display, log=None):
 def serviceState(display=None):
     """Are the two services up?  ASK ABOUT THE RIGHT DISPLAY.
 
-    The JMSDispatcher is per session, not per user: it is started with a
-    -DDISPLAY and its pidfile and port file are named after that display
-    (see ecce-gateway-start, and CLAUDE.md's note on the same trap).  So
-    `ecce-gateway-status` answers about whatever $DISPLAY it inherits --
-    and with no display passed that is the developer's own desktop, not
-    the Xvfb this run just started a dispatcher on.
-
-    The consequences ran both ways and both were bad: the suite reported
-    "gateway did not start, so nothing below can work" on a run whose
-    gateway was up and fine, and -- because stopServices() had the same
-    omission -- it left this run's dispatcher and broker running
-    afterwards, every time, which is exactly the orphan the next run then
-    collides with.
+    The broker file and the credential file are per session (host and
+    display), so `ecce-gateway-status` answers about whatever $DISPLAY it
+    inherits -- with none passed that is the developer's own desktop, not
+    the Xvfb this run started its session on.  stopServices() needs the
+    same display, or it leaves this run's broker running.
     """
     states = {}
     env = display.env() if display is not None else None
@@ -169,22 +161,16 @@ def serviceState(display=None):
 def stopServices(display=None):
     """Stop what this run started -- on the display it started it on.
 
-    See serviceState(): without the display, ecce-gateway-stop looks for
-    a pidfile named after the ambient $DISPLAY and finds nothing, so it
-    stops neither the dispatcher nor (because a dispatcher it cannot see
-    still counts as live) the broker.
+    See serviceState(): without the display, ecce-gateway-stop would remove
+    the ambient display's session files, not this run's.
     """
     env = dict(display.env() if display is not None else os.environ)
     #  Let the reaper run for the shutdown, whatever the sweep set.
     #
-    #  ecce-gateway-stop stops the dispatcher itself but hands the BROKER
-    #  to ecce-gateway-reap, which is the only thing that knows whether
-    #  another display still needs it.  The suite sets ECCE_NO_REAP=1 for
-    #  the duration of the sweep (see run_tests.py) and that variable was
-    #  inherited here -- so the reaper exited immediately, the broker was
-    #  never stopped, and every single run leaked a 512MB JVM.  Which is
-    #  #102 again, caused this time by the fix for it being switched off
-    #  and left off.
+    #  ecce-gateway-stop hands the broker to ecce-gateway-reap, which knows
+    #  whether another display still needs it.  The suite sets ECCE_NO_REAP=1
+    #  for the sweep (see run_tests.py); inherited here, the broker would
+    #  never be stopped.
     env.pop("ECCE_NO_REAP", None)
     for script in ("ecce-gateway-stop", "ecce-dataserver-stop"):
         path = os.path.join(INSTALL, "bin", script)

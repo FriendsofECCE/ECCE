@@ -128,6 +128,24 @@ def test_batch_flag():
         h.cleanup()
 
 
+def test_broker_account():
+    """The users file is the broker's account list too (ecce_users_auth), so
+    adduser writes no broker password file of its own."""
+    h = Harness()
+    try:
+        r = h.run(["-b", "carol", "s3cret", "Carol", "Cee"])
+        if r.returncode:
+            fail("adduser failed: %s" % r.stderr)
+            return
+        if os.path.exists(os.path.join(h.statedir, "mosquitto_passwd")):
+            fail("a broker password file was written")
+        else:
+            ok("no separate broker password file")
+        assert_no_password_in_log(h, "s3cret")
+    finally:
+        h.cleanup()
+
+
 def test_from_csv():
     h = Harness()
     try:
@@ -255,6 +273,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     test_batch_flag()
+    test_broker_account()
     test_from_csv()
     test_from_stdin()
 

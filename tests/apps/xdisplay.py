@@ -289,7 +289,12 @@ def _removeQuietly(path):
 
 
 def _freeDisplay():
-    for number in range(70, 100):
+    # ECCE_TEST_XDISPLAYS=160-169 keeps a run off other sessions' numbers.
+    first, last = 70, 99
+    span = os.environ.get("ECCE_TEST_XDISPLAYS", "")
+    if "-" in span:
+        first, last = (int(n) for n in span.split("-", 1))
+    for number in range(first, last + 1):
         if not os.path.exists("/tmp/.X11-unix/X%d" % number):
             return number
     raise DisplayUnavailable("no free X display number")

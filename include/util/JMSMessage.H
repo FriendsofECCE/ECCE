@@ -18,10 +18,6 @@
 
 // Constants 
 
-// Max size of a datagram packet sent between C++ and java
-// (Have to put this up here so I can use it to declare byte arrays)
-// (Hopefully there aren't any name collisions)
-const size_t MAX_PACKET_LENGTH = 4096;
 
 // The following are constants used in various messages.  There was no
 // good place to put them, so I just dumped them here.
@@ -176,7 +172,6 @@ private:
 }; 
 
 
-
 /** 
  * Struct of data needed to start up an app:
  */
@@ -189,41 +184,6 @@ struct StartupPacket {
   bool   invokeStarted;
   bool   execStarted;
 };
-
-
-
-class DatagramUtil {
-  
-public :
-
-  // Methods:
-  static string getItem(const string& itemName, const string& packet);
-
-  static int    getServerPort();
-
-  // Use this function to force a re-load from port file:
-  static void   loadServerPort();
-
-  static void   addItem(const string& itemName, const string& item,
-                        string& packet);
-  static void   addIntItem(const string& itemName, const int& item,
-                           string& packet);
-  static void   addBoolItem(const string& itemName, const bool& item,
-                            string& packet);
-
-  // Every packet to or from the relay starts with the session's token;
-  // sendPacket() adds it, receivers drop what acceptPacket() refuses.
-  static bool   sendPacket(const string& packet);
-  static bool   acceptPacket(const string& packet);
-  static int    loopbackAddress();
-
-private :
-  static string getEnv(const char* propertyName);
-  static int JMSDISPATCH_PORT;
-  static string JMSDISPATCH_TOKEN;
-  
-};
-
 
 #endif
 

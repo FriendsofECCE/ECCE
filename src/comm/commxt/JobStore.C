@@ -1593,9 +1593,6 @@ void initMessaging(void)
 {
   if (vsubscriber == (JMSSubscriber*)0) {
 
-    // Force a reload of the port from file (because port is cached so we
-    // don't have to look it up every time)
-    DatagramUtil::loadServerPort();
     vsubscriber = new JMSSubscriber("EcceJobStore");
 
     bool status = true;
@@ -1603,9 +1600,9 @@ void initMessaging(void)
     status &= vsubscriber->subscribe("ecce_url_removed",calcRemovedMCB);
     status &= vsubscriber->subscribe("ecce_quit",ecceExitMCB);
     status &= vsubscriber->subscribe("ecce_ejs_kill",ejsKillMCB);
-    // Now tell JMSDispatcher that we are ready to start the subscriber
-    // connection for these subscriptions 
-    // (must happen AFTER all subscribe calls):
+    // Subscribes at the broker (must happen AFTER all subscribe calls).
+    // The socket below is the subscriber's wake-up pipe: Xt is not thread
+    // safe, so libmosquitto's thread never calls into this loop.
     status &= vsubscriber->startSubscriber();
 
     if (!status)

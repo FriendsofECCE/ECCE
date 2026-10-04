@@ -64,10 +64,10 @@ those settings.
 | `ECCE_TMPDIR` | Where job-monitoring temporary files go, in `ecce_<user>` under it. | Path. Default `/tmp`. |
 | `ECCE_REMOTE_SERVER` | Central-server mode: read `siteconfig/RemoteServer/{DataServers,site_runtime}`, start no local broker or data server. `ecce -remote` sets it. | Set to enable. Default off. |
 | `ECCE_LOCAL_DATA` | Local data mode (#216): keep projects and calculations in this folder instead of a data server; no data server is started. Wins over Edit > Preferences > Data folder. The launchers export it for the whole session, set to the preference's folder or to empty (data server). | Path. Unset: the preference (off by default; folder `~/.ECCE-local`). Empty: a data server. |
-| `ECCE_NO_MESSAGING` | Run without the JMS broker. Apps do not publish or subscribe. The launchers set it for `ecce -admin` and `-machine`. | Set to enable. Default off. |
+| `ECCE_NO_MESSAGING` | Run without the message broker. Apps do not publish or subscribe. The launchers set it for `ecce -admin` and `-machine`. | Set to enable. Default off. |
 | `ECCE_NO_DATASERVER` | Launchers do not start the per-user data server. | Set to enable. Default off. |
 | `ECCE_DATASERVER_PORT` | Port of the per-user data server, as used by `ecce-dataserver-start` and `-status`. The test suite uses it for private servers. | Port. Default 8096. |
-| `ECCE_BROKER_PORT` | Port of the per-user broker, as used by `ecce-gateway-start`, `-status` and `-reap`. | Port. Default 8088. |
+| `ECCE_BROKER_PORT` | Port of the central broker under `ecce -remote`, as used by `ecce-gateway-start`. The per-user broker has no port. | Port. Default 8088. A server account's broker listens on it too. |
 | `ECCE_DATASERVER_LISTEN` | Which addresses the data server and its broker listen on. Also read from `~/.ECCE/dataserver/listen`; the variable wins. | `loopback` (default; `localhost` is the same), `all` (also `*`, `0.0.0.0`, `::`), or a list of addresses added to loopback. |
 | `ECCE_HELP` | Base URL of the help pages. Required by the help code. | URL. The launchers default it to `http://localhost:8096/`. |
 | `ECCE_NWCHEM_DATA` | Directory holding NWChem's force-field data (`amber_s/amber.par`), referred to as `$ECCE_NWCHEM_DATA` in `siteconfig/DataServers`. A setting that does not hold that file is ignored with a note. | Path. The launchers fill it in with `ecce-nwchem-datadir`, which searches the usual locations. |
@@ -112,7 +112,7 @@ and includes the `Authorization` header, which holds the password),
 
 The session's own output goes to `session.log` in that folder and is
 still shown in the terminal. When `ecce` returns, or on Ctrl-C, bug mode
-adds what the broker, session relay and per-user data server logged
+adds what the broker and per-user data server logged
 during the session (for a central server or a shared broker it notes that
 those logs are on the server), the job logs of jobs touched during the
 session, and the output of `ecce-diagnose`; then packs the folder as
@@ -181,7 +181,6 @@ These are CMake options, not environment variables: `ECCE_HOME_DIR`
 |---|---|
 | `VISUAL`, `EDITOR` | Editor when `ECCE_EDITOR` and the Preferences setting are empty. |
 | `HOST`, `DISPLAY` | The launchers default them (`hostname`, `:0`); per-session state files are keyed by both. |
-| `ACTIVEMQ_HOME` | ActiveMQ installation for the per-user broker. Default `/usr/share/activemq`. |
 | `GDK_BACKEND` | The launchers set it to `x11` under a Wayland session unless already set, to avoid mis-sized windows. |
 
 ## Keys in `site_runtime` that nothing in this build reads

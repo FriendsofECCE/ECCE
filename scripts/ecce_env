@@ -164,30 +164,6 @@ end
 # End site configurable variables
 ###############################################################################
 
-###############################################################################
-# Java environment for JMS
-###############################################################################
-
-# only do this if it's a full ECCE install and not for a builder install
-if (-d ${ECCE_HOME}/java) then
-
-  # set CLASSPATH to include the JMS jar files in the install tree
-  set CP=""
-  foreach file (${ECCE_HOME}/java/lib/*.jar)
-     set CP=${file}:${CP}
-  end
-
-  # add siteconfig directory to CLASSPATH to pick up jndi.properties files
-  if (! $?ECCE_REMOTE_SERVER) then
-    setenv CLASSPATH ${CP}:${ECCE_HOME}/siteconfig
-  else
-    setenv CLASSPATH ${CP}:${ECCE_HOME}/siteconfig/RemoteServer
-  endif
-endif
-
-###############################################################################
-# End Java env
-###############################################################################
 
 ###############################################################################
 # Mesa software OpenGL environment

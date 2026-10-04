@@ -6,7 +6,7 @@
 # does nothing if the data server is already up.
 #
 # This is the WebDAV counterpart to ecce-gateway-start (which handles the
-# JMS/ActiveMQ message server -- a separate, independent piece of old
+# mosquitto message broker -- a separate, independent piece of old
 # ECCE's server side). See packaging/dataserver/httpd.conf.ecce for the
 # full rationale behind running as a per-user, non-root instance rather
 # than a shared system service.

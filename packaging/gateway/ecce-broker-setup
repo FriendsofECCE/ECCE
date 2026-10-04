@@ -5,15 +5,22 @@
 # a system service (ecce-broker.service), instead of a per-user broker
 # for each. The declaration is $ECCE_HOME/siteconfig/SharedBroker, one
 # "host:port" line. While it exists, ecce-gateway-start starts no broker
-# of its own and points each session's relay there, and no user's quit,
+# of its own and points each session's processes there, and no user's quit,
 # reaper run or Quit and Stop Server ever stops a broker.
 #
 #   ecce-broker-setup [host[:port]]   declare it (default localhost:8088)
+#   ecce-broker-setup --user NAME     add an account, or change its password
+#   ecce-broker-setup --remove-user NAME
 #   ecce-broker-setup --remove        back to per-user brokers
 #   ecce-broker-setup --show          print "host port"; exit 1 if none
 #
+# The broker's accounts are the users' data server logins: --user takes
+# the same name and password a user has on their data server. They are kept
+# in $ECCE_HOME/siteconfig/SharedBroker.passwd, hashed.
+#
 # Run as whoever owns $ECCE_HOME (normally root). It writes the
-# declaration and prints the systemctl commands; it starts nothing.
+# declaration and the account list and prints the systemctl commands; it
+# starts nothing, and tells a running service to reread the accounts.
 
 set -u
 
@@ -21,10 +28,13 @@ set -u
 SITE="$ECCE_HOME/siteconfig"
 DECL="$SITE/SharedBroker"
 UNIT="$ECCE_HOME/server/systemd/ecce-broker.service"
+ACCOUNTS="$SITE/SharedBroker.passwd"
 
 usage() {
   cat <<'USAGE'
 Usage: ecce-broker-setup [host[:port]]   declare the shared broker (default localhost:8088)
+       ecce-broker-setup --user NAME     add an account (password asked, or one line on stdin)
+       ecce-broker-setup --remove-user NAME
        ecce-broker-setup --remove        back to per-user brokers
        ecce-broker-setup --show          print "host port"; exit 1 if none
 USAGE
@@ -47,8 +57,59 @@ show() {
   echo "$host $port"
 }
 
+# Tell a running service to reread the account list.
+reload_service() {
+  if [ "$(id -u)" = 0 ] && command -v systemctl >/dev/null 2>&1 &&
+     systemctl is-active --quiet ecce-broker 2>/dev/null; then
+    systemctl reload ecce-broker && echo "Told the running ecce-broker service to reread its accounts."
+  else
+    echo "If the service is running: sudo systemctl reload ecce-broker"
+  fi
+}
+
+# The account's line is hashed by mosquitto_passwd -U in a private temporary
+# file next to the list; -b would put the password on a command line.
+add_account() {
+  local name="$1" pw tmp
+  [[ "$name" =~ ^[A-Za-z0-9]+$ ]] || { echo "ecce-broker-setup: an account name is letters and digits (the data server's rule)" >&2; exit 2; }
+  command -v mosquitto_passwd >/dev/null 2>&1 || { echo "ecce-broker-setup: mosquitto_passwd not found (apt install mosquitto)" >&2; exit 1; }
+  [ -w "$SITE" ] || { echo "ecce-broker-setup: cannot write $SITE (run as its owner)" >&2; exit 1; }
+  if [ -t 0 ]; then
+    local again
+    read -r -s -p "Password for $name (the one on the data server)? " pw; echo
+    read -r -s -p "Again? " again; echo
+    [ "$pw" = "$again" ] || { echo "ecce-broker-setup: the two differ" >&2; exit 1; }
+  else
+    IFS= read -r pw
+  fi
+  [ -n "$pw" ] || { echo "ecce-broker-setup: empty password" >&2; exit 1; }
+  tmp="$(mktemp "$SITE/.SharedBroker.XXXXXX")" || exit 1
+  printf '%s:%s\n' "$name" "$pw" >"$tmp"
+  mosquitto_passwd -U "$tmp" >/dev/null 2>&1 || { rm -f "$tmp"; echo "ecce-broker-setup: mosquitto_passwd failed" >&2; exit 1; }
+  if [ -f "$ACCOUNTS" ]; then grep -v "^${name}:" "$ACCOUNTS" >>"$tmp.old"; fi
+  cat "$tmp" >>"$tmp.old" && chmod 600 "$tmp.old" && mv -f "$tmp.old" "$ACCOUNTS"
+  rm -f "$tmp" "$tmp.old"
+  echo "Account $name is in $ACCOUNTS."
+  reload_service
+}
+
+remove_account() {
+  local name="$1"
+  [ -f "$ACCOUNTS" ] && grep -q "^${name}:" "$ACCOUNTS" || { echo "ecce-broker-setup: no account $name" >&2; exit 1; }
+  grep -v "^${name}:" "$ACCOUNTS" >"$ACCOUNTS.new"
+  chmod 600 "$ACCOUNTS.new" && mv -f "$ACCOUNTS.new" "$ACCOUNTS"
+  echo "Account $name removed."
+  reload_service
+}
+
 case "${1:-}" in
   -h|--help) usage; exit 0 ;;
+  --user)
+    [ $# -eq 2 ] || { usage >&2; exit 2; }
+    add_account "$2"; exit 0 ;;
+  --remove-user)
+    [ $# -eq 2 ] || { usage >&2; exit 2; }
+    remove_account "$2"; exit 0 ;;
   --show)
     if show; then exit 0; fi
     [ -f "$DECL" ] && echo "ecce-broker-setup: $DECL is not host:port" >&2
@@ -106,13 +167,16 @@ if [ -f "$UNIT" ]; then
   echo "    sudo systemctl link $UNIT"
   echo "    sudo systemctl enable --now ecce-broker"
   echo
-  echo "It runs as its own account (ecce-broker), keeps its store in"
+  echo "It runs as its own account (ecce-broker), keeps its files in"
   echo "/var/lib/ecce-broker, and reads the port from $DECL."
+  echo "Every user needs an account on it, with the data server login as"
+  echo "name and password (sudo ecce-broker-setup --user NAME), then"
+  echo "sudo systemctl reload ecce-broker."
   case "$host" in
     localhost|127.*|::1) ;;
     *) echo "It listens on every interface, because '$host' is not a loopback"
-       echo "name. The broker has no authentication: firewall the port to the"
-       echo "machines that need it." ;;
+       echo "name. Passwords cross the network unencrypted (as the data"
+       echo "server's do): firewall the port to the machines that need it." ;;
   esac
   [ "$local_broker" = 1 ] || echo "($host is not this machine: run the service there instead.)"
 else
@@ -120,5 +184,6 @@ else
   echo "run on $host."
 fi
 echo
+echo "Debian's own mosquitto service (port 1883) is separate and unaffected."
 echo "Users then run plain \"ecce\" (or \"ecce -remote\" when the data"
 echo "server is central too, see ecce-remote-setup)."

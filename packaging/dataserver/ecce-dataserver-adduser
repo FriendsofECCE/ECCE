@@ -21,7 +21,10 @@
 # the file.
 #
 # Every mode feeds the password to htpasswd on stdin (-i), never on its
-# command line, which would otherwise be visible to any user via ps.
+# command line, which would otherwise be visible to any user via ps. A
+# central server's message broker checks logins against the same "users"
+# file (ecce_users_auth plugin, ecce-gateway-start), so there is nothing
+# else to write.
 
 set -u
 

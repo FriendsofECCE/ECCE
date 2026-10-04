@@ -90,11 +90,10 @@ sudo apt install ./ecce_<version>_amd64.deb
 ```
 
 The `./` matters: it tells apt this is a local file, and apt then pulls
-in every dependency itself (Apache, ActiveMQ, wxPython, xterm).
+in every dependency itself (Apache, Mosquitto, wxPython, xterm).
 
 On RHEL, Rocky or Fedora, `sudo dnf install ./ecce-<version>.x86_64.rpm`.
-These distributions don't package ActiveMQ, so a machine that runs a
-broker needs it installed by hand — see
+The message broker is Mosquitto (in EPEL on RHEL and Rocky) — see
 [Deployment modes](GETTING_STARTED.md#deployment-modes).
 
 ECCE installs to `/opt/ecce` and puts `ecce` and its helper commands
@@ -189,9 +188,10 @@ shared is up to the site; the three modes are set up step by step in
 3. **One shared broker on an app server** with many users logged in, run
    by systemd instead of one broker per user (`sudo ecce-broker-setup`).
 
-**Before putting a server on a network**: the broker has no
-authentication, and the data server uses HTTP Basic over plain HTTP, so
-passwords cross the network base64-encoded rather than encrypted. That
+**Before putting a server on a network**: a central or shared broker
+takes the data server login as its account and lets a user touch only
+that user's own topics, but the broker's and the data server's passwords
+(HTTP Basic over plain HTTP) cross the network unencrypted. That
 keeps users' data apart on a trusted network, and is not fine across an
 untrusted one — keep the ports on loopback and use ssh tunnels, or
 firewall them (#138).
@@ -222,7 +222,7 @@ from-scratch modernization of everything underneath the application:
 * **CMake/CPack** instead of the old `build_ecce`/recursive-make build.
 * **wxWidgets 3.2 on GTK3**, from 2.8 on GTK2; **Python 3** for the
   helper GUIs; **Xerces-C 3**; the system's current **Mesa**.
-* **Distribution-maintained servers**: Debian's ActiveMQ and Apache 2.4,
+* **Distribution-maintained servers**: Debian's Mosquitto and Apache 2.4,
   instead of 2008-era bundled builds.
 
 Since then the 8.x releases have added what the old ECCE never had:
@@ -305,10 +305,12 @@ plan as a whole is on [#186](https://github.com/FriendsofECCE/ECCE/issues/186).
   for hosts that share connections or are reached through a jump host),
   and job scripts are POSIX sh, so csh is no longer required ([#204](https://github.com/FriendsofECCE/ECCE/issues/204)).
 * **HTCondor as a supported queue manager** ([#105](https://github.com/FriendsofECCE/ECCE/issues/105)).
-* **Broker authentication**, so that the users of a shared server cannot
-  act in each other's name ([#194](https://github.com/FriendsofECCE/ECCE/issues/194)). It is decided first whether ECCE
-  moves from ActiveMQ to an MQTT broker (Mosquitto), which would also
-  remove Java from the client ([#213](https://github.com/FriendsofECCE/ECCE/issues/213)).
+* **Mosquitto instead of ActiveMQ**, removing Java from the client
+  ([#213](https://github.com/FriendsofECCE/ECCE/issues/213)), with broker
+  authentication, so that the users of a shared server cannot act in each
+  other's name ([#194](https://github.com/FriendsofECCE/ECCE/issues/194)).
+  9.x clients and servers do not interoperate with 8.x ones; see
+  [Upgrading from 8.x](GETTING_STARTED.md#upgrading-from-8x).
 
 **After 9.0, in estimated order:**
 
@@ -348,7 +350,7 @@ sudo apt-get install -y \
   build-essential gfortran cmake ninja-build \
   libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
   libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
-  default-jdk ant activemq git libssh-dev
+  libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git libssh-dev
 
 git clone https://github.com/FriendsofECCE/ECCE.git
 cd ECCE                # main is 9.0 development; for 8.x: git checkout stable-8

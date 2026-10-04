@@ -1,0 +1,13 @@
+# Access rules for a mosquitto that serves ECCE clients over TCP (a central
+# server, or the shared system broker). Every client authenticates, so %u
+# is the account the broker verified, never anything the client wrote in a
+# message.
+
+# A user reads and writes only below their own name, session messages
+# included (ecce/<user>/session/<host>_<display>/...).
+pattern readwrite ecce/%u/#
+
+# Machine registrations are site-wide: everyone may hear that one changed,
+# only its owner may say so. A "pattern" line because "topic" lines above
+# the first "user" line apply to anonymous clients only.
+pattern read ecce/+/ecce_machreg_changed

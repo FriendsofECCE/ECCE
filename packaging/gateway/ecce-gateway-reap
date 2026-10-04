@@ -1,6 +1,6 @@
 #!/bin/bash
-# ecce-gateway-reap: shut down JMSDispatcher relays that no longer belong
-# to a live ECCE session, and this user's own broker once none is left.
+# ecce-gateway-reap: clean up after ECCE sessions that are over, and stop
+# this user's own broker once none is left.
 #
 #   ecce-gateway-reap              full sweep, from ecce-gateway-start: a
 #                                  session that died badly (#102) is
@@ -8,24 +8,21 @@
 #                                  what to adopt. Never stops a broker.
 #   ecce-gateway-reap --if-idle    from every messaging wrapper's EXIT
 #                                  trap, however the app ended: stops a
-#                                  display's relay once no ECCE app is left
-#                                  on it, and a PER-USER broker once no
-#                                  session of this user is left anywhere.
+#                                  PER-USER broker once no ECCE app of this
+#                                  user is left anywhere.
 #   ecce-gateway-reap --stop       from ecce-gateway-stop (Quit and Stop
 #                                  Server): as the sweep, and stops this
-#                                  account's broker, a server's included,
-#                                  once no relay is left.
+#                                  account's broker, a server's included.
 #
 # Which broker a plain quit may stop is decided only by declarations,
 # never by guessing who is connected (a central server's clients may
 # come in over loopback ssh tunnels):
 #   - siteconfig/SharedBroker (mode 3): the site's service. Nothing here
 #     ever stops it, not even --stop.
-#   - $STATEDIR/activemq/server, written by `ecce-remote-setup --server`,
-#     or a broker configured to listen beyond loopback (mode 2): a
-#     server's. Only --stop stops it.
+#   - $STATEDIR/mosquitto.server, written by `ecce-remote-setup --server`
+#     (mode 2): a server's. Only --stop stops it.
 #   - anything else this account started (mode 1): stopped with the
-#     user's last session, so idle per-user JVMs do not pile up on a
+#     user's last session, so idle per-user brokers do not pile up on a
 #     machine with many users.
 #
 # Liveness is read from the process table (/proc/<pid>/exe), not from
@@ -38,8 +35,6 @@ ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
 ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
 STATEDIR="$ECCE_REALUSERHOME/.ECCE"
 HOST="${ECCE_HOST:-${HOST:-$(hostname)}}"
-BROKER_PORT="${ECCE_BROKER_PORT:-8088}"
-ACTIVEMQ_BASE="$STATEDIR/activemq"
 UID_="$(id -u)"
 
 IF_IDLE=0
@@ -77,6 +72,10 @@ fi
 # processes (AuthCache::sessionFile). It holds a password, so it must go
 # when the session's services do -- same lifetime as the port file, same
 # per-display key, and sanitised the same way the C++ side sanitises it.
+brokerfile() {
+  printf '%s/broker_%s' "$STATEDIR" \
+    "$(printf '%s_%s' "$HOST" "$1" | tr -c 'A-Za-z0-9._-' '_')"
+}
 authfile() {
   printf '%s/authcache_%s' "$STATEDIR" \
     "$(printf '%s_%s' "$HOST" "$1" | tr -c 'A-Za-z0-9._-' '_')"
@@ -149,51 +148,13 @@ reap_pid() {
   fi
 }
 
-# --- 1. JMSDispatcher relays, one per display --------------------------
-dispatchers_left=0
-for pidfile in "$STATEDIR"/jmsdispatcher_*.pid; do
-  [ -e "$pidfile" ] || continue
-
-  disp="${pidfile##*/jmsdispatcher_}"
-  disp="${disp%.pid}"
-  pid="$(cat "$pidfile" 2>/dev/null)"
-
-  if [ -z "${pid:-}" ] || ! kill -0 "$pid" 2>/dev/null; then
-    # Dispatcher already gone; only the bookkeeping is stale. Drop the
-    # port file too, or JMSMessage.C reads a dead port out of it.
-    rm -f "$pidfile" "$STATEDIR/${HOST}_${disp}" "$(authfile "$disp")" "$(authfile "$disp")".tmp.*
-    continue
-  fi
-
-  if [ -n "$(apps_for_display "$disp")" ]; then
-    # Still in use. In --if-idle mode that includes the display we were
-    # called for, which is the whole point: the wrapper trap fires when
-    # each app exits, and only the last one finds nothing left.
-    dispatchers_left=$((dispatchers_left + 1))
-    continue
-  fi
-
-  say "no ECCE app left on $disp -- stopping JMSDispatcher (pid $pid)"
-  reap_pid "$pid"
-  rm -f "$pidfile" "$STATEDIR/${HOST}_${disp}" "$(authfile "$disp")" "$(authfile "$disp")".tmp.*
-done
-
-# Pidfile written before the gateway was made per-display; it cannot be
-# attributed to a session, so it is only ever noise.
-rm -f "$STATEDIR/jmsdispatcher.pid"
-
-# --- 1b. Session credential files with no session left ------------------
-# The loop above removes a display's credential file along with its
-# dispatcher, which covers the ordinary per-user session. It does not
-# cover a session that never HAD a local dispatcher: "ecce -remote" (the
-# central-server client, whose credential is the central server's
-# password) and ECCE_NO_MESSAGING both skip ecce-gateway-start, so there
-# is no pidfile for the loop to find, and the file would outlive the
-# session indefinitely (#120). So also sweep by the thing that actually
-# defines a session here -- a live ECCE app on that display -- and keep
-# only the files that one of them could be using. Limited to this HOST's
+# --- 1. Session credential files with no session left -------------------
+# The data server credential outlives its session unless swept (#120), and
+# "ecce -remote" and ECCE_NO_MESSAGING never start a local broker to tie
+# it to. A session is a live ECCE app on a display, so keep only the
+# files one of those could be using. Limited to this HOST's
 # files, since a home directory shared over NFS holds other machines'.
-live_auth=""
+live_auth="" live_broker=""
 for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
   [ -O "/proc/$pid" ] || continue
   exe="$(readlink "/proc/$pid/exe" 2>/dev/null)" || continue
@@ -201,7 +162,8 @@ for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
   [ -r "/proc/$pid/environ" ] || continue
   d="$(tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null |
        sed -n 's/^DISPLAY=//p' | head -n1)"
-  [ -n "$d" ] && live_auth="$live_auth $(authfile "$d")"
+  [ -n "$d" ] && live_auth="$live_auth $(authfile "$d")" &&
+    live_broker="$live_broker $(brokerfile "$d")"
 done
 auth_prefix="$(authfile "")"      # .../authcache_<host>_
 for f in "$auth_prefix"*; do
@@ -213,59 +175,60 @@ for f in "$auth_prefix"*; do
   rm -f "$f"
 done
 
+# The broker files of sessions with no app left. One written a minute ago
+# belongs to a session whose first app is about to start (the start script
+# writes it, then releases the lock, then the wrapper launches the app).
+broker_prefix="$(brokerfile "")"
+for f in "$broker_prefix"*; do
+  [ -e "$f" ] || continue
+  case " $live_broker " in *" $f "*) continue ;; esac
+  [ -n "$(find "$f" -mmin +1 2>/dev/null)" ] && rm -f "$f"
+done
+
 # --- 2. The broker, shared by every display ----------------------------
 if [ -e "$ECCE_HOME/siteconfig/SharedBroker" ]; then
   [ "$EXPLICIT_STOP" = 1 ] &&
     say "the broker is the site's shared service (siteconfig/SharedBroker) -- left running"
   exit 0
 fi
-# The sweep never stops one, and nobody stops it while a relay is left.
-if [ "$IF_IDLE$EXPLICIT_STOP" = 00 ] || [ "$dispatchers_left" -gt 0 ]; then
+# The sweep never stops one.
+if [ "$IF_IDLE$EXPLICIT_STOP" = 00 ]; then
   exit 0
 fi
+# A plain quit waits for the last app; Quit and Stop Server is the user's
+# say-so and runs while the Organizer that asked is still closing.
 if [ "$IF_IDLE" = 1 ]; then
   [ -z "$(apps_for_state)" ] || exit 0
-  [ -e "$ACTIVEMQ_BASE/server" ] && exit 0
-  if [ -f "$ACTIVEMQ_BASE/conf/activemq.xml" ] &&
-     ! grep -q 'tcp://localhost:' "$ACTIVEMQ_BASE/conf/activemq.xml"; then
-    exit 0
-  fi
+  [ -e "$STATEDIR/mosquitto.server" ] && exit 0
 fi
 
 brokerpid=""
-if [ -f "$STATEDIR/activemq.pid" ]; then
-  brokerpid="$(cat "$STATEDIR/activemq.pid" 2>/dev/null)"
-  if [ -n "${brokerpid:-}" ] && ! kill -0 "$brokerpid" 2>/dev/null; then
+if [ -f "$STATEDIR/mosquitto.pid" ]; then
+  brokerpid="$(cat "$STATEDIR/mosquitto.pid" 2>/dev/null)"
+  if [ -z "${brokerpid:-}" ] ||
+     [ "$(cat "/proc/$brokerpid/comm" 2>/dev/null)" != mosquitto ]; then
     brokerpid=""
-    rm -f "$STATEDIR/activemq.pid"
+    rm -f "$STATEDIR/mosquitto.pid"
   fi
 fi
 
 if [ -z "${brokerpid:-}" ]; then
-  # No usable pidfile: either an orphan predating this script, or one
-  # whose pidfile was removed. Match on -Dactivemq.base, which names this
-  # user's own state directory -- precise enough not to touch another
-  # user's broker, or a second instance of our own on another base.
-  brokerpid="$(pgrep -u "$UID_" -f "activemq.base=$ACTIVEMQ_BASE( |$)" 2>/dev/null | head -n1)"
+  # No usable pidfile: match on the config path, which names this user's
+  # own state directory -- precise enough not to touch another user's
+  # broker, or a second instance of our own on another state directory.
+  brokerpid="$(pgrep -u "$UID_" -f "mosquitto -c $STATEDIR/mosquitto.conf( |$)" 2>/dev/null | head -n1)"
 fi
 
 if [ -n "${brokerpid:-}" ]; then
   if [ "$EXPLICIT_STOP" = 1 ]; then
-    say "stop requested, no ECCE session left -- stopping ActiveMQ broker (pid $brokerpid)"
+    say "stop requested, no ECCE session left -- stopping mosquitto broker (pid $brokerpid)"
   else
-    say "last ECCE session of this user ended -- stopping its ActiveMQ broker (pid $brokerpid)"
+    say "last ECCE session of this user ended -- stopping its mosquitto broker (pid $brokerpid)"
   fi
   reap_pid "$brokerpid"
-  rm -f "$STATEDIR/activemq.pid"
-
-  # ecce-gateway-start decides whether to start a broker by probing the
-  # port, so do not return until it has actually been released, or a
-  # restart immediately after a reap adopts a socket that is going away.
-  i=0
-  while [ $i -lt 40 ]; do
-    (exec 3<>"/dev/tcp/localhost/$BROKER_PORT") >/dev/null 2>&1 || break
-    i=$((i + 1)); sleep 0.25
-  done
+  # ecce-gateway-start decides whether a broker is running by pid, but
+  # leave no stale socket or broker files for a process that starts later.
+  rm -f "$STATEDIR/mosquitto.pid" "$STATEDIR/mosquitto.sock" "$STATEDIR"/broker_*
 fi
 
 exit 0

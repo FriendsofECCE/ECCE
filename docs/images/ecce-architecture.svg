@@ -32,7 +32,7 @@
   <text x="480" y="263" text-anchor="middle" font-size="14" font-weight="bold" fill="#24552f">Message broker</text>
   <text x="480" y="285" text-anchor="middle" font-size="13" fill="#333">lets the ECCE windows</text>
   <text x="480" y="305" text-anchor="middle" font-size="13" fill="#333">tell each other what changed</text>
-  <text x="480" y="325" text-anchor="middle" font-size="12" fill="#666">(ActiveMQ)</text>
+  <text x="480" y="325" text-anchor="middle" font-size="12" fill="#666">(Mosquitto)</text>
 
   <!-- Compute machine -->
   <rect x="670" y="40" width="270" height="330" rx="12" fill="#fdf1e4" stroke="#b86f1f" stroke-width="2"/>

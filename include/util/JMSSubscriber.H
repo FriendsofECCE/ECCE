@@ -3,8 +3,10 @@
 //
 //
 // CLASS SYNOPSIS:
-//    Provides an interface to the Java Messaging Service (JMS) using
-//    the Java Native Interface (JNI).
+//    Publish/subscribe messaging over the process's MQTT connection
+//    (util/MqttLink.H).  Messages are queued by libmosquitto's thread and
+//    delivered on the caller's thread by processMessage(), which a loop
+//    that is not thread safe (Xt) runs when getSocketID() is readable.
 //
 // EXPORTED TYPES:
 //    Class JMSSubscriber
@@ -24,6 +26,7 @@
 
 // System includes
    #include <map>
+   #include <memory>
    #include <string>
 
 // Library includes:
@@ -36,6 +39,7 @@
 
 class JMSSubscriber;
 class JMSMessage;
+class MqttEndpoint;
 class Target;
 
 // Generic typedef for callback function pointer
@@ -69,7 +73,6 @@ public:
   // ACCESSORS
      string getMyName() const;  
      string getMyID() const;
-     int    getPort();
      int    getSocketID();
      bool   messagingEnabled();
 
@@ -88,8 +91,8 @@ public:
      // Unsubscribes all topics for this subscriber
      void unsubscribe();
 
-    // When you are notified of a message, use this to read the message
-    // from the socket and call the callback function:
+    // When getSocketID() is readable, use this to run the callbacks of
+    // the messages that have arrived:
     void processMessage();
 
     // If you want to temporarily suspend messaging:
@@ -100,12 +103,9 @@ public:
 
 private:
 
-  // Methods
-  void initSocket();
   bool subscribeInternal(const char* topic, JMSCallbackStructure* cb,
                          bool filterSelf);
-
-  // Data:
+  void deliver(const string& topic, JMSMessage& msg);
 
   // holds the Ecce app's callback classes & functions (one pair for each
   // subscription)
@@ -114,13 +114,10 @@ private:
   // Tool info used to stamp messages:
   string p_toolName;
   bool p_messagingEnabled;
+  bool p_started;
 
-  // Socket stuff
-  int p_inPort;
-  int p_inputSocket;
+  std::shared_ptr<MqttEndpoint> p_ep;
 
 }; // JMSSubscriber
 
 #endif /* JMSSUBSCRIBER_HH */
-
-

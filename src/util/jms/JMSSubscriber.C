@@ -1,295 +1,100 @@
-//////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 // SOURCE FILENAME: JMSSubscriber.C
 //
-//
 // DESIGN:
-//
+//    One MqttEndpoint per subscriber.  libmosquitto's thread queues the
+//    messages and writes to the endpoint's self-pipe; getSocketID() is that
+//    pipe's read end, so the owner's loop (XtAppAddInput in the job store)
+//    calls processMessage() on its own thread.
 ///////////////////////////////////////////////////////////////////////////////
+#include <stdlib.h>
+#include <unistd.h>
 
-// System includes:
-   #include <sys/types.h>
-   #include <unistd.h>
-   #include <fcntl.h>
+#include "util/ErrMsg.H"
+#include "util/JMSMessage.H"
+#include "util/JMSSubscriber.H"
+#include "util/MqttLink.H"
 
-   #include <stdio.h>
-   #include <stdlib.h>
-   #include <sys/socket.h>
-   #include <netinet/in.h>
-
-#include <fstream>
-#include <strstream>
-using namespace std;
-   #include "util/SFile.H"
-
-// Application includes:
-   #include "util/JMSSubscriber.H"
-   #include "util/JMSMessage.H"
-   #include "util/ErrMsg.H"
-
-//#define debug
-
-/*******************************************************************
- Method : Constructor 
- Summary: 
-********************************************************************/
 JMSSubscriber::JMSSubscriber(const string& toolName) {
-
-  // Initialize variables:
-  p_toolName = toolName;  // To identify unique subscriber key
-  p_inPort = -1;
-  p_inputSocket = -1;
-  p_messagingEnabled =  (getenv("ECCE_NO_MESSAGING") == NULL) ? true : false;
-  
-  if (p_messagingEnabled)
-    initSocket();
-}
-
-/*******************************************************************
- Method : initSocket
- Summary: Initializes the server socket that is used for incoming
-          messages from the embedded java virtual machine.  Datagram
-          packets are sent from the java jms message handler to
-          this socket.
-********************************************************************/
-void JMSSubscriber::initSocket() {
- 
-  // Create datagram socket:
-  int s;
-  struct sockaddr_in addIN;
-
-  if ( (s = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
-    perror (("Can't create subscriber socket for " + getMyName()).c_str());
-
-  } else {
-
-    addIN.sin_family      = AF_INET;
-    addIN.sin_port        = htons(0); // let the port get chosen dynamically
-    addIN.sin_addr.s_addr = DatagramUtil::loopbackAddress();
-    
-    // Explicitly ::-qualified: this file has "using namespace std;" above,
-    // and newer libc++ (confirmed: Xcode 26.6 on macOS CI) resolves the
-    // unqualified call as ambiguous with std::bind() instead of clearly
-    // preferring the POSIX socket function -- a real macOS build break,
-    // not present on the Linux toolchains that don't hit this ambiguity.
-    if ( ::bind(s, (struct sockaddr *)&addIN, sizeof(addIN) ) < 0 ) {
-      perror (("Can't bind subscriber socket for + " + getMyName()).c_str());
-      close(s);
-
-    } else {
-    
-#ifdef __GNUC__
-      socklen_t len = sizeof(addIN);
-#else
-      int len = sizeof(addIN);
-#endif
-      if (getsockname(s, (struct sockaddr *) &addIN, &len) < 0) {
-        perror ("getsockname() failed.  Can't determine subscriber port!");
-        close(s);
-
-      } else {
-        p_inPort = ntohs(addIN.sin_port);
-#ifdef debug
-        cout << getMyName() << " listening on port " << p_inPort << endl;
-#endif
-        p_inputSocket = s;
-
-        // Now make this socket nonblocking so it doesn't hang XWindows:
-        if (fcntl(p_inputSocket, F_SETFL, O_NONBLOCK) < 0) {
-          perror (("Error making subscriber socket nonblocking for app + " 
-                   + getMyName()).c_str());
-        }
-      }
-    }
+  p_toolName = toolName;
+  p_started = false;
+  p_messagingEnabled = (getenv("ECCE_NO_MESSAGING") == NULL) ? true : false;
+  if (p_messagingEnabled) {
+    p_ep = std::make_shared<MqttEndpoint>(toolName);
+    p_ep->enablePipe();
+    p_ep->handler = [this](const string& t, JMSMessage& m) { deliver(t, m); };
   }
 }
 
-int JMSSubscriber::getPort() {
-  return p_inPort;
-
-}
-
-int JMSSubscriber::getSocketID() {  
-  return p_inputSocket;
-}
-
-/*******************************************************************
- Method : Destructor 
- Summary: 
-********************************************************************/
 JMSSubscriber::~JMSSubscriber() {
   unsubscribe();
 }
 
-/*******************************************************************
- Method : unsubscribe
- Summary: Unsubscribes to JMS and frees memory used by
-          cb structures.
-********************************************************************/
+int JMSSubscriber::getSocketID() {
+  return p_ep ? p_ep->pipeFd() : -1;
+}
+
 void JMSSubscriber::unsubscribe() {
-
-  if (p_messagingEnabled && p_inPort != -1) {
-
-    // delete the map of callback structures
-    cbMap::iterator it;
-    for (it = cbStructs.begin(); it != cbStructs.end(); it++) {
-      
-      if ((*it).second != NULL)
-        delete (*it).second;
-    }
-    cbStructs.clear();
-    
-    // close the connection to the jms server
-    string packet;
-    DatagramUtil::addItem("METHOD", "unsubscribe", packet);
-    DatagramUtil::addItem("NAME", getMyName(), packet);
-    DatagramUtil::addItem("ID", getMyID(), packet);
-    DatagramUtil::sendPacket(packet);
-    
-    // close the server socket
-    close(p_inputSocket);
-    
-    p_inputSocket = -1;
-    p_inPort = -1;
-    
-  }  
+  if (!p_ep) return;
+  for (cbMap::iterator it = cbStructs.begin(); it != cbStructs.end(); it++)
+    delete (*it).second;
+  cbStructs.clear();
+  p_ep->kill();
+  p_ep->clear();
+  MqttLink::instance().deactivate(p_ep);
+  p_ep.reset();
+  p_started = false;
 }
 
-/*******************************************************************
- Method : startSubscriber
- Summary: Starts the connection to activate all subscriptions
-          for this subscriber.  An app should call this only once,
-          after all subscriptions have been subscribed to.
-********************************************************************/
+// Must come after all subscribe calls: the broker is told about every
+// topic at once.
 bool JMSSubscriber::startSubscriber() {
-
-  bool ret = false;
-
-  if (p_messagingEnabled && p_inPort != -1) {
-      
-    // Create the packet to server to start up subscriber connection
-    string packet;
-    DatagramUtil::addItem("METHOD", "startsubscriber", packet);
-    DatagramUtil::addItem("NAME", getMyName(), packet);
-    DatagramUtil::addItem("ID", getMyID(), packet);
-
-    // Send the packet
-    ret = DatagramUtil::sendPacket(packet);
-    if (ret == false) {
-      EE_RT_ASSERT(false, EE_WARNING, "Error sending packet");
-    }
-  }  
-  return ret;
+  if (!p_ep) return false;
+  p_started = true;
+  MqttLink::instance().activate(p_ep);
+  return true;
 }
 
-/*******************************************************************
- Method : holdMessages
- Summary: Holds (and discards) all incoming messages for this 
-          subscriber until notified otherwise.
-********************************************************************/
 bool JMSSubscriber::holdMessages() {
- 
-  bool ret = false;
-
-  // Create the hold packet
-  string packet;
-  DatagramUtil::addItem("METHOD", "hold", packet);
-  DatagramUtil::addItem("NAME", getMyName(), packet);
-  DatagramUtil::addItem("ID", getMyID(), packet);
-
-  // Send the packet
-  ret = DatagramUtil::sendPacket(packet);
-    
-  if (ret == false) {
-    EE_RT_ASSERT(false, EE_WARNING, "Error sending hold packet");
-  }
-  
-  return ret;  
+  if (!p_ep) return false;
+  p_ep->hold(true);
+  return true;
 }
-/*******************************************************************
- Method : resumeMessaging
- Summary: Resumes normal handling of incoming messages.
-********************************************************************/
+
 bool JMSSubscriber::resumeMessaging() {
- 
-  bool ret = false;
-
-  // Create the hold packet
-  string packet;
-  DatagramUtil::addItem("METHOD", "resume",packet);
-  DatagramUtil::addItem("NAME", getMyName(), packet);
-  DatagramUtil::addItem("ID", getMyID(), packet);
-
-  // Send the packet
-  ret = DatagramUtil::sendPacket(packet);
-    
-  if (ret == false) {
-    EE_RT_ASSERT(false, EE_WARNING, "Error sending hold packet");
-  }
-  
-  return ret;  
+  if (!p_ep) return false;
+  p_ep->hold(false);
+  return true;
 }
 
-/*******************************************************************
- Method : subscribeInternal
- Summary: Does the real subscribe.  Should only be called if
-          messaging is enabled and the receive port/socket are valid.
-********************************************************************/
 bool JMSSubscriber::subscribeInternal(const char* topicStr,
                                       JMSCallbackStructure* cb,
                                       bool filterSelf) {
- 
   bool ret = false;
   EE_ASSERT(cb, EE_FATAL, "cbStruct is NULL!");
 
-  // First check that the user hasn't already subscribed to this topic:
   string topic(topicStr);
-  cbMap::iterator it = cbStructs.find(topic);
-  string errMsg = "Subscribe failed!";
-  
-  if (it == cbStructs.end()) {
-    
-    // Create the subscribe packet
-    string packet;
-    DatagramUtil::addItem("METHOD", "subscribe",packet);
-    DatagramUtil::addItem("TOPIC", topicStr,packet);
-    DatagramUtil::addItem("NAME", getMyName(), packet);
-    DatagramUtil::addItem("ID", getMyID(), packet);
-    DatagramUtil::addIntItem("PORT", p_inPort, packet);
-    DatagramUtil::addBoolItem("SELFFILTER", filterSelf, packet);
-    
-    // Only one subscription per topic...cache the callback 
-    //structures:
+  if (cbStructs.find(topic) == cbStructs.end()) {
     cbStructs[topic] = cb;
-    ret = DatagramUtil::sendPacket(packet);
-    
+    p_ep->add(topic, filterSelf);
+    if (p_started) MqttLink::instance().activate(p_ep);
+    ret = true;
   } else {
-    errMsg += "You already subscribed to topic " + topic;
+    EE_RT_ASSERT(false, EE_WARNING,
+                 "Subscribe failed! You already subscribed to topic " + topic);
     delete cb;
   }
-    
-  if (ret == false) {
-    EE_RT_ASSERT(false, EE_WARNING, errMsg);
-  }
-  
-  return ret;  
+  return ret;
 }
 
-/*******************************************************************
- Method : subscribe
- Summary: Uses JMS to subscribe to a message, filtering on the given
-          target.
-********************************************************************/
 bool JMSSubscriber::subscribe(const char* topicStr,
                               jmsCBFunc handler,
                               bool filterSelf) {
   bool ret = false;
-
-  if (p_messagingEnabled && p_inPort != -1) {
-    // Make a new callback structure:
+  if (p_ep) {
     JMSCallbackStructure* cbStruct = new JMSCallbackStructure;
     cbStruct->funcPtr.classFunc = handler;
     cbStruct->classPtr = this;
-        
     ret = subscribeInternal(topicStr, cbStruct, filterSelf);
   }
   return ret;
@@ -299,122 +104,39 @@ bool JMSSubscriber::subscribe(const char* topicStr,
                               jmsStaticCBFunc handler,
                               bool filterSelf) {
   bool ret = false;
-
-  if (p_messagingEnabled && p_inPort != -1) {
-  
-    // Make a new callback structure:
+  if (p_ep) {
     JMSCallbackStructure* cbStruct = new JMSCallbackStructure;
     cbStruct->funcPtr.staticFunc = handler;
     cbStruct->classPtr = NULL;
-    
     ret = subscribeInternal(topicStr, cbStruct, filterSelf);
   }
   return ret;
 }
 
-
-/*******************************************************************
- Method : getToolName
- Summary: Use this to get your tool name, as used for message
-          identification.
-********************************************************************/
 string JMSSubscriber::getMyName() const {
   return p_toolName;
 }
 
-/*******************************************************************
- Method : getProcessID
- Summary: Use this to get your process ID (pid), as used for message
-          identification.
-********************************************************************/
 string JMSSubscriber::getMyID() const {
-
-  // Determine unique process ID for identification and monitoring
-  // purposes using waitpid on that specific ID (platform specific):
-  int pid;
-
-  pid = getpid();
-
-  char buf[100];
-  sprintf(buf, "%d", pid);
-  return buf;
+  return std::to_string(getpid());
 }
 
-/*************************************************************************
- Method : processMessage
- Summary: 
-          Read the datagram socket, parse it into a message, a class
-          pointer, and a callback function pointer.  Then make the call.
- *************************************************************************/
 void JMSSubscriber::processMessage() {
+  // A callback may unsubscribe; keep the endpoint alive until it returns.
+  std::shared_ptr<MqttEndpoint> ep = p_ep;
+  if (ep) ep->drain();
+}
 
-  if (p_messagingEnabled && p_inPort != -1) {
-
-    ssize_t size;
-    char buf[MAX_PACKET_LENGTH + 1];
-    string packet;
-    
-    /*
-     * This should only be called when a datagram packet is present on 
-     * the socket.  However, we have found this to not be the case. So,
-     * p_inputSocket recv is nonblocking, and we ignore case where
-     * size = -1.
-     */
-    size = recv(p_inputSocket, buf, 
-                sizeof(char)*MAX_PACKET_LENGTH, 0);
-
-    ostrstream os;
-    os << getMyName() << " received packet " << size << endl;
-    if (size != -1) { // a packet was indeed there
-      buf[size] = '\0';
-      packet = buf;
-      if (!DatagramUtil::acceptPacket(packet))
-        return;
-      
-      // Create and parse the message
-      JMSMessage msg;
-      msg.loadBody(DatagramUtil::getItem("BODY", packet));
-      msg.loadSender(DatagramUtil::getItem("SENDER", packet));
-      msg.loadTarget(DatagramUtil::getItem("TARGET", packet));
-      os << msg.targetToString() << " " << msg.senderToString() << " " << msg.bodyToString() << endl;
-      
-      // Create the callback:
-      string topic = DatagramUtil::getItem("TOPIC", packet);
-      
-      cbMap::iterator it = cbStructs.find(topic);
-      if (it != cbStructs.end()) {     
-        JMSCallbackStructure *cbStruct = (*it).second;
-        JMSSubscriber *classPtr = cbStruct->classPtr;
-        
-        if (classPtr != NULL) {
-          jmsCBFunc cbFunc = cbStruct->funcPtr.classFunc;        
-          (classPtr->*cbFunc)(msg);
-
-        } else {
-          jmsStaticCBFunc cbFunc = cbStruct->funcPtr.staticFunc;
-          (*cbFunc)(msg);
-        }
-      }
-
-    } else { // No packet was there - false alarm
-      EE_ASSERT(0, EE_WARNING, 
-                "No packet was available, but XWindows socket "
-                "listener thought so.");
-    }
-    /*
-    SFile debug("/tmp/jmsdebug.txt");
-    if (debug.exists()) {
-       os << endl << ends;
-       ofstream ofs("/tmp/jmsdebug.txt",ios::app);
-       ofs << os.str();
-       ofs.close();
-    }
-    */
-    
-  }
+void JMSSubscriber::deliver(const string& topic, JMSMessage& msg) {
+  cbMap::iterator it = cbStructs.find(topic);
+  if (it == cbStructs.end()) return;
+  JMSCallbackStructure *cbStruct = (*it).second;
+  if (cbStruct->classPtr != NULL)
+    (cbStruct->classPtr->*(cbStruct->funcPtr.classFunc))(msg);
+  else
+    (*cbStruct->funcPtr.staticFunc)(msg);
 }
 
 bool JMSSubscriber::messagingEnabled() {
   return p_messagingEnabled;
 }
-

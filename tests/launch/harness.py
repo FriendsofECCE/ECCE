@@ -57,18 +57,15 @@ def treeInstall(state, build):
     if os.path.exists(nwdir):
         link(nwdir, os.path.join(home, "bin", "ecce-nwchem-datadir"))
     link(os.path.join(REPO, "scripts"), os.path.join(home, "scripts"))
-    link(os.path.join(REPO, "java", "lib"), os.path.join(home, "java", "lib"))
     link(os.path.join(REPO, "data", "admin"), os.path.join(home, "data", "admin"))
     link(os.path.join(REPO, "data", "client"), os.path.join(home, "data", "client"))
-    link(os.path.join(REPO, "packaging", "gateway", "activemq.xml.ecce"),
-         os.path.join(home, "server", "activemq-conf", "activemq.xml"))
     link(os.path.join(REPO, "packaging", "dataserver", "httpd.conf.ecce"),
          os.path.join(home, "server", "httpd-conf", "httpd.conf.ecce"))
 
-    #  siteconfig is generated at install time for these three files.
+    #  siteconfig is generated at install time for these two files.
     site = os.path.join(home, "siteconfig")
     shutil.copytree(os.path.join(REPO, "siteconfig"), site)
-    for name in ("jndi.properties", "DataServers", "site_runtime"):
+    for name in ("DataServers", "site_runtime"):
         shutil.copy(os.path.join(build, "siteconfig-local", name),
                     os.path.join(site, name))
     return home
@@ -151,7 +148,7 @@ def prerequisites(build, tools):
         if not os.access(os.path.join(build, exe), os.X_OK):
             skip("%s is not built in %s (ninja launchjob eccejobmaster "
                  "eccejobstore ecmd)" % (exe, build))
-    for tool in ("apache2", "htpasswd", "java", "perl") + tuple(tools):
+    for tool in ("apache2", "htpasswd", "mosquitto", "perl") + tuple(tools):
         if not shutil.which(tool) and not (
                 tool == "apache2" and os.access("/usr/sbin/apache2", os.X_OK)):
             skip("%s is not installed" % tool)
