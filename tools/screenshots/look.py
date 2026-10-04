@@ -123,6 +123,10 @@ def shoot(display, out, name, wrapper, args, size=None, after=None,
             extra = newWindows(display, known | {wid})
             if extra:
                 _, wid, title = extra[0]
+        #  Park the pointer off the window, so no hover or tooltip is
+        #  captured.
+        xdo(display, "mousemove", "1599", "1099")
+        time.sleep(2)
         path = os.path.join(out, name + ".png")
         subprocess.run(["import", "-display", display.name, "-window", wid,
                         path], check=False)
