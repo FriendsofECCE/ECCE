@@ -13,3 +13,5 @@ snap calc-water-nmode-frame3
 gtstep 1
 snap calc-water-trace-step1
 thumb calc-water-thumb
+# Six scene changes, one geometry-trace step each, no forced repaint.
+redraws calc-water-redraws 1 0 1 0 1 0

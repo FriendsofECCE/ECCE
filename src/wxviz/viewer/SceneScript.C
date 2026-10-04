@@ -38,6 +38,18 @@
 #include "inv/ChemKit/ChemDisplayPath.H"
 #include "inv/ChemKit/MFVec2i.H"
 
+#include "inv/SbViewportRegion.H"
+#include "inv/SoSceneManager.H"
+#include "inv/actions/SoGLRenderAction.H"
+#include "inv/events/SoLocation2Event.H"
+#include "inv/events/SoMouseButtonEvent.H"
+#include "inv/nodes/SoCamera.H"
+#include "inv/actions/SoRayPickAction.H"
+#include "inv/SoPickedPoint.H"
+#include "inv/ChemKit/ChemDetail.H"
+#include "viz/TwoDMoveCmd.H"
+
+#include "wxviz/MotionListener.H"
 #include "wxviz/SceneScript.H"
 #include "wxviz/SGSelection.H"
 #include "wxviz/SGViewer.H"
@@ -254,6 +266,19 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     g.getParameter("PropKey")->setString("GEOMTRACE");
     g.execute();
     p_sg->touchChemDisplay();
+  } else if (c == "transparency" && w.size() == 2) {
+    SoGLRenderAction::TransparencyType t;
+    if (w[1] == "SCREEN_DOOR") t = SoGLRenderAction::SCREEN_DOOR;
+    else if (w[1] == "DELAYED_ADD") t = SoGLRenderAction::DELAYED_ADD;
+    else if (w[1] == "SORTED_OBJECT_BLEND") t = SoGLRenderAction::SORTED_OBJECT_BLEND;
+    else return fail("transparency: unknown mode " + w[1]);
+    p_viewer->setTransparencyType(t);
+  } else if (c == "pick" && w.size() >= 3) {
+    return pickAtoms(w[1], vector<string>(w.begin() + 2, w.end()));
+  } else if (c == "drag" && w.size() == 5) {
+    return dragAtom(w[1], atoi(w[2].c_str()), atoi(w[3].c_str()), atoi(w[4].c_str()));
+  } else if (c == "redraws" && w.size() >= 3) {
+    return countRedraws(w[1], vector<string>(w.begin() + 2, w.end()));
   } else if (c == "viewall") {
     p_viewer->viewAll();
   } else if (c == "clear") {
@@ -315,6 +340,210 @@ void writePpm(const string& path, int w, int h, const unsigned char *rgb)
 }
 
 }  // namespace
+
+
+namespace {
+
+SbVec2s atomPixel(SGViewer *v, SGFragment *frag, int atom)
+{
+  SbVec3f p = frag->getAtomCoordinates(atom), d;
+  const SbViewportRegion& vpr = v->getViewportRegion();
+  SbViewVolume vv = v->getCamera()->getViewVolume(vpr.getViewportAspectRatio());
+  vv.projectToScreen(p, d);
+  SbVec2s sz = vpr.getViewportSizePixels();
+  return SbVec2s((short)(d[0] * sz[0] + 0.5f), (short)(d[1] * sz[1] + 0.5f));
+}
+
+void sendMouse(SoSceneManager *m, bool down, SbVec2s pos, double t)
+{
+  SoMouseButtonEvent e;
+  e.setButton(SoMouseButtonEvent::BUTTON1);
+  e.setState(down ? SoButtonEvent::DOWN : SoButtonEvent::UP);
+  e.setPosition(pos);
+  e.setTime(SbTime(t));
+  m->processEvent(&e);
+}
+
+void sendMove(SoSceneManager *m, SbVec2s pos, double t)
+{
+  SoLocation2Event e;
+  e.setPosition(pos);
+  e.setTime(SbTime(t));
+  m->processEvent(&e);
+}
+
+//  What the Builder does on a plain selection pick (Builder::
+//  selectionChangeCB reads the selection back into the fragment).
+void finishCB(void *data, ChemSelection *sel)
+{
+  SGFragment *frag = (SGFragment *)data;
+  ((SGSelection *)sel)->readSelection(frag);
+}
+
+//  Builder::motionChanged, minus the command manager.
+class DragListener : public MotionListener
+{
+ public:
+  DragListener(SGContainer *sg) : p_sg(sg) {}
+  virtual void motionChanged(const MotionData& d)
+  {
+    SGFragment *frag = p_sg->getFragment();
+    if (d.isButton1() && frag && frag->m_atomHighLight.size() > 0) {
+      TwoDMoveCmd cmd("Translate", p_sg);
+      cmd.getParameter("deltax")->setDouble(d.getDeltaX());
+      cmd.getParameter("deltay")->setDouble(d.getDeltaY());
+      cmd.getParameter("deltaz")->setDouble(d.getDeltaZ());
+      cmd.getParameter("movez")->setBoolean(d.wasShiftDown());
+      cmd.getParameter("doundo")->setBoolean(d.wasStartMotion());
+      cmd.execute();
+    }
+    p_sg->adjustAtomContainers();
+  }
+ private:
+  SGContainer *p_sg;
+};
+
+}  // namespace
+
+//  "pick <name> <atom>...": click each atom (1-based) through the viewer's
+//  scene manager, the path a wx mouse event takes once translated to an
+//  SoEvent (SoHandleEventAction -> SGSelection::handleEvent -> its own
+//  SoRayPickAction).  Writes the selection after each click.
+bool SceneScript::pickAtoms(const string& name, const vector<string>& atoms)
+{
+  SoWxRenderArea *area = findRenderArea(p_viewer);
+  SGFragment *frag = p_sg->getFragment();
+  if (!area || !frag) return fail("pick: no render area");
+  static bool wired = false;
+  if (!wired) {
+    p_viewer->getSel()->addFinishCallback(finishCB, frag);
+    wired = true;
+  }
+  wxTheApp->Yield(true);
+  FILE *o = fopen((p_outdir + "/" + name + ".txt").c_str(), "w");
+  if (!o) return fail("pick: cannot write output");
+  double t = 100.0;
+  for (size_t i = 0; i < atoms.size(); i++) {
+    int a = atoi(atoms[i].c_str()) - 1;
+    SbVec2s pos = atomPixel(p_viewer, frag, a);
+    frag->m_atomHighLight.clear();
+    if (getenv("SCENE_DEBUG")) {
+      SoRayPickAction rp(p_viewer->getViewportRegion());
+      rp.setPoint(pos);
+      rp.setPickAll(true);
+      rp.apply(area->getSceneManager()->getSceneGraph());
+      const SoPickedPointList &pl = rp.getPickedPointList();
+      fprintf(stderr, "raypick (%d,%d): %d hits\n", pos[0], pos[1], (int)pl.getLength());
+      for (int h = 0; h < pl.getLength(); h++) {
+        const SoPickedPoint *pp = pl[h];
+        const SoDetail *d = pp->getDetail();
+        fprintf(stderr, "  tail %s detail %s", pp->getPath()->getTail()->getTypeId().getName().getString(), d ? d->getTypeId().getName().getString() : "none");
+        const ChemDetail *cd = dynamic_cast<const ChemDetail *>(d);
+        if (cd) fprintf(stderr, " atom %d", (int)cd->getAtomIndex());
+        fprintf(stderr, "\n");
+      }
+    }
+    sendMouse(area->getSceneManager(), true, pos, t);
+    sendMouse(area->getSceneManager(), false, pos, t + 0.05);
+    t += 1.0;
+    fprintf(o, "click atom %d at (%d,%d): selected", a + 1, pos[0], pos[1]);
+    for (size_t k = 0; k < frag->m_atomHighLight.size(); k++)
+      fprintf(o, " %d", frag->m_atomHighLight[k] + 1);
+    fprintf(o, "\n");
+    p_viewer->getSel()->deselectAll();
+  }
+  fclose(o);
+  return true;
+}
+
+//  "drag <name> <atom> <dx> <dy>": click the atom, then press on it, hold
+//  past the drag delay, move by (dx,dy) pixels in 5 steps and release; the
+//  motion goes to a listener that does what Builder::motionChanged does.
+//  Writes the atom's coordinates before and after.
+bool SceneScript::dragAtom(const string& name, int atom1, int dx, int dy)
+{
+  SoWxRenderArea *area = findRenderArea(p_viewer);
+  SGFragment *frag = p_sg->getFragment();
+  if (!area || !frag) return fail("drag: no render area");
+  static DragListener *listener = 0;
+  static bool wired = false;
+  if (!wired) {
+    listener = new DragListener(p_sg);
+    p_viewer->getSel()->addFinishCallback(finishCB, frag);
+    p_viewer->getSel()->addMotionListener(listener);
+    wired = true;
+  }
+  p_viewer->setSelectModeDrag(true);
+  wxTheApp->Yield(true);
+  SoSceneManager *m = area->getSceneManager();
+  int a = atom1 - 1;
+  SbVec2s pos = atomPixel(p_viewer, frag, a);
+  FILE *o = fopen((p_outdir + "/" + name + ".txt").c_str(), "w");
+  if (!o) return fail("drag: cannot write output");
+  const double *x = frag->atomRef(a)->coordinates();
+  fprintf(o, "atom %d before %.3f %.3f %.3f at (%d,%d)\n", atom1, x[0], x[1], x[2], pos[0], pos[1]);
+
+  frag->m_atomHighLight.clear();
+  sendMouse(m, true, pos, 200.0);
+  sendMouse(m, false, pos, 200.05);
+  fprintf(o, "selected:");
+  for (size_t k = 0; k < frag->m_atomHighLight.size(); k++) fprintf(o, " %d", frag->m_atomHighLight[k] + 1);
+  fprintf(o, "\n");
+
+  double t = 300.0;
+  sendMouse(m, true, pos, t);
+  t += 0.5;                                   // past the 333 ms delay
+  sendMove(m, pos, t);
+  for (int i = 1; i <= 5; i++) {
+    t += 0.05;
+    sendMove(m, SbVec2s(pos[0] + dx * i / 5, pos[1] + dy * i / 5), t);
+  }
+  sendMouse(m, false, SbVec2s(pos[0] + dx, pos[1] + dy), t + 0.05);
+  wxTheApp->Yield(true);
+  x = frag->atomRef(a)->coordinates();
+  fprintf(o, "atom %d after %.3f %.3f %.3f\n", atom1, x[0], x[1], x[2]);
+  fclose(o);
+  return true;
+}
+
+namespace {
+void countFrame(void *p) { ++*(int *)p; }
+}
+
+//  "redraws <name> <step>...": N geometry-trace steps, one scene change
+//  each, letting the wx loop idle between them but never forcing a paint
+//  (no Refresh/Update, unlike snap); writes how many frames each produced.
+bool SceneScript::countRedraws(const string& name, const vector<string>& steps)
+{
+  SoWxRenderArea *area = findRenderArea(p_viewer);
+  if (!area || !p_calc) return fail("redraws: needs a calculation");
+  int frames = 0;
+  for (int i = 0; i < 20; i++) wxTheApp->Yield(true);     // settle
+  area->setFrameCallback(countFrame, &frames);
+  FILE *o = fopen((p_outdir + "/" + name + ".txt").c_str(), "w");
+  if (!o) return fail("redraws: cannot write output");
+  int total = 0;
+  for (size_t i = 0; i < steps.size(); i++) {
+    int before = frames;
+    GTStepCmd g("Trace Step", p_sg, p_calc);
+    g.getParameter("Index")->setInteger(atoi(steps[i].c_str()));
+    g.getParameter("PropKey")->setString("GEOMTRACE");
+    g.execute();
+    p_sg->touchChemDisplay();
+    for (int k = 0; k < 60 && frames == before; k++) {
+      wxTheApp->Yield(true);
+      wxMilliSleep(5);
+    }
+    wxTheApp->Yield(true);
+    fprintf(o, "step %s: %d frame(s)\n", steps[i].c_str(), frames - before);
+    if (frames > before) total++;
+  }
+  area->setFrameCallback(0, 0);
+  fprintf(o, "changes %d, changes that produced a render %d\n", (int)steps.size(), total);
+  fclose(o);
+  fprintf(stderr, "redraws %s: %d changes, %d rendered\n", name.c_str(), (int)steps.size(), total);
+  return true;
+}
 
 //  "snap": the real canvas, read back with glReadPixels at its own size.
 //  "thumb": the offscreen renderer the calculation thumbnail uses; where it

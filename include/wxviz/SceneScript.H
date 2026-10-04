@@ -23,6 +23,10 @@ class SGViewer;
  *   nmvect <mode>                 normal-mode vectors       (needs calc)
  *   nmstep <mode> <step>          one animation frame       (needs calc)
  *   gtstep <n>                    one geometry-trace step   (needs calc)
+ *   transparency SCREEN_DOOR|DELAYED_ADD|SORTED_OBJECT_BLEND
+ *   pick <name> <n>...            click atoms; selection -> <name>.txt
+ *   drag <name> <n> <dx> <dy>     select atom n, drag it by pixels; coords
+ *   redraws <name> <step>...      one gt step per change, frames -> <name>.txt
  *   viewall | clear               reset the camera / hide MO and modes
  *   snap <name>   the canvas, read back with glReadPixels -> <name>.ppm
  *   thumb <name>  64x64 black background, as the calculation thumbnail
@@ -39,6 +43,9 @@ class SceneScript
 
   private:
     bool exec(const vector<string>& w, const string& rest);
+    bool pickAtoms(const string& name, const vector<string>& atoms);
+    bool dragAtom(const string& name, int atom, int dx, int dy);
+    bool countRedraws(const string& name, const vector<string>& steps);
     bool snapshot(const string& name, int size, float r, float g, float b);
     bool fail(const string& m) { p_msg = m; return false; }
 

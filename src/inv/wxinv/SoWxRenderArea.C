@@ -349,12 +349,23 @@ int SoWxRenderArea::getOverlayBackgroundIndex() const
 */
 
 
+#ifdef OIV_COIN
+static void syncPickViewport(SoSceneManager *sm)
+{
+  sm->getHandleEventAction()->setViewportRegion(
+      sm->getGLRenderAction()->getViewportRegion());
+}
+#endif
+
 /**
  * Set current viewport region to use for rendering.
  */
 void SoWxRenderArea::setViewportRegion(const SbViewportRegion &newRegion) 
 {
   p_sceneMgr->getGLRenderAction()->setViewportRegion(newRegion);
+#ifdef OIV_COIN
+  syncPickViewport(p_sceneMgr);
+#endif
 }
 
 
@@ -1071,6 +1082,12 @@ void SoWxRenderArea::sizeChanged(const SbVec2s &newSize)
 {
   p_sceneMgr->setWindowSize(newSize);
   p_overlaySceneMgr->setWindowSize(newSize);
+#ifdef OIV_COIN
+  // Coin's setWindowSize sizes only the render action; the handle-event
+  // action keeps its 400x400 default, so its ray pick missed every atom.
+  syncPickViewport(p_sceneMgr);
+  syncPickViewport(p_overlaySceneMgr);
+#endif
   
   // tell each device the new window size
   for (int i = 0; i < p_deviceList->getLength(); i++) {

@@ -16,6 +16,7 @@ style Ball And Stick
 labels element
 snap @SYS@-ballstick-labels
 style Wireframe
+labels element
 snap @SYS@-wireframe-labels
 labels none
 style Ball And Stick
@@ -27,3 +28,20 @@ thumb @SYS@-thumb
 style Ball And Stick
 isotest
 snap @SYS@-isotest
+# Transparency modes the Builder uses: MO lobes SCREEN_DOOR, the default
+# after leaving the MO panel DELAYED_ADD, an ESP map SORTED_OBJECT_BLEND.
+transparency DELAYED_ADD
+snap @SYS@-isotest-delayed-add
+transparency SORTED_OBJECT_BLEND
+snap @SYS@-isotest-sorted-blend
+transparency SCREEN_DOOR
+clear
+# Labels by atom name, then picking and dragging through the viewer.
+style Ball And Stick
+labels name
+snap @SYS@-labels-name
+labels none
+viewall
+pick @SYS@-pick 1 2 3
+drag @SYS@-drag 2 40 -30
+snap @SYS@-after-drag

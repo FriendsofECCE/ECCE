@@ -184,6 +184,35 @@ def compare(v, c, tol):
     return m, vc, cor, covV ^ covC
 
 
+def textCompare(vdir, cdir):
+    """Scenes that write numbers or counts (pick, drag, redraws) instead of
+    pixels: report each text pair as same, or the differing lines.  Numbers
+    are compared to 1e-3."""
+    import re
+    out = []
+    names = sorted({f for d in (vdir, cdir) for f in os.listdir(d)
+                    if f.endswith(".txt")})
+    num = re.compile(r"-?\d+\.\d+")
+    for f in names:
+        pv, pc = os.path.join(vdir, f), os.path.join(cdir, f)
+        if not (os.path.exists(pv) and os.path.exists(pc)):
+            out.append("TEXT %-30s only on %s" % (f, "vendored" if os.path.exists(pv) else "coin"))
+            continue
+        lv, lc = open(pv).read().splitlines(), open(pc).read().splitlines()
+        bad = []
+        for i in range(max(len(lv), len(lc))):
+            x = lv[i] if i < len(lv) else ""
+            y = lc[i] if i < len(lc) else ""
+            nx, ny = num.findall(x), num.findall(y)
+            same = (num.sub("#", x) == num.sub("#", y) and len(nx) == len(ny) and
+                    all(abs(float(p) - float(q)) < 1e-3 for p, q in zip(nx, ny)))
+            if not same:
+                bad.append("   v: %s\n   c: %s" % (x, y))
+        out.append("TEXT %-30s %s" % (f, "same" if not bad else "DIFFER"))
+        out += bad
+    return out
+
+
 def cmdDiff(a):
     import numpy as np
     from PIL import Image, ImageDraw
@@ -231,6 +260,7 @@ def cmdDiff(a):
             m["mask_xor_px"], "DIFF" if m["flagged"] else ""))
     for n in missing:
         lines.append("MISSING: " + n)
+    lines += textCompare(vdir, cdir)
     open(os.path.join(a.out_dir, "summary.txt"), "w").write("\n".join(lines) + "\n")
     print("\n".join(lines))
 
