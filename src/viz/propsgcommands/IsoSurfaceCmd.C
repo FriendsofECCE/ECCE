@@ -3,6 +3,10 @@
 #include <vector>
 #include <iostream>
 using std::vector;
+
+// Surface diagnostics, only with ECCE_DEBUG_ISO set.
+static bool isoDebug() { static const bool on = getenv("ECCE_DEBUG_ISO") != 0; return on; }
+#define ISO_LOG if (!isoDebug()) {} else std::cerr
   using std::cout;
   using std::endl;
 #include "inv/nodes/SoSwitch.H"
@@ -64,7 +68,7 @@ bool IsoSurfaceCmd::execute()
    if (gridStruct != 0) {
 
       string fieldType = gridStruct->type();
-      std::cerr << "ISO: field '" << fieldType << "', grid "
+      ISO_LOG << "ISO: field '" << fieldType << "', grid "
                 << gridStruct->dimensions()[0] << "x"
                 << gridStruct->dimensions()[1] << "x"
                 << gridStruct->dimensions()[2]
@@ -238,7 +242,7 @@ bool IsoSurfaceCmd::execute()
         if (hi > lo) {
           gridStruct->colorFieldMin((float)lo);
           gridStruct->colorFieldMax((float)hi);
-          std::cerr << "ISO: colour range set manually to " << lo
+          ISO_LOG << "ISO: colour range set manually to " << lo
                     << " .. " << hi << std::endl;
         }
       }
@@ -261,12 +265,12 @@ bool IsoSurfaceCmd::execute()
           if (extreme > 0.0f) {
             gridStruct->colorFieldMin(-extreme);
             gridStruct->colorFieldMax(extreme);
-            std::cerr << "ISO: colour scaled to the isovalue " << isovalue
+            ISO_LOG << "ISO: colour scaled to the isovalue " << isovalue
                       << " shell (" << shell.size() << " points), range +/- "
                       << extreme << std::endl;
           }
         } else {
-          std::cerr << "ISO: only " << shell.size()
+          ISO_LOG << "ISO: only " << shell.size()
                     << " points near the isovalue; keeping the range"
                     << std::endl;
         }
@@ -277,7 +281,7 @@ bool IsoSurfaceCmd::execute()
           if (range > 0.0) {
             gridStruct->colorFieldMin(-range);
             gridStruct->colorFieldMax(range);
-            std::cerr << "ISO: colour range set to +/- " << range
+            ISO_LOG << "ISO: colour range set to +/- " << range
                       << " by ECCE_ESP_RANGE" << std::endl;
           }
         }
@@ -356,7 +360,7 @@ bool IsoSurfaceCmd::execute()
 #endif
 
 
-      std::cerr << "ISO: isosurface built" << std::endl;
+      ISO_LOG << "ISO: isosurface built" << std::endl;
       chemIso->addChild(isosurf1);
 
 
@@ -418,7 +422,7 @@ bool IsoSurfaceCmd::execute()
 
       // Putting the 'regenerate' here (at the end) seems to be very crucial
       // for this node to get re-displayed.
-      std::cerr << "ISO: mesh built" << std::endl;
+      ISO_LOG << "ISO: mesh built" << std::endl;
       chemMesh->regenerate(true);
 
       //-------------------------------------------------------------
@@ -448,7 +452,7 @@ bool IsoSurfaceCmd::execute()
 
       // Putting the 'regenerate' here (at the end) seems to be very crucial
       // for this node to get re-displayed.
-      std::cerr << "ISO: contour built" << std::endl;
+      ISO_LOG << "ISO: contour built" << std::endl;
       chemContour->regenerate(true);
 
 
