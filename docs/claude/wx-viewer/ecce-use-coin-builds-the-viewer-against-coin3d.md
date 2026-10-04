@@ -40,3 +40,7 @@ context + FBO through `cc_glglue_context_set_offscreen_cb_functions`. Traps:
   starts with zeroed padding so that path answers "no pbuffer".
 - Coin prints one harmless `glxglue_isdirect()` warning per run.
 `make offscreen-check` (target, Coin build) renders with no wx and no display.
+
+Renderer differences between the libraries that need code in our layer are
+listed in the `tools/coin/compare.sh` entry (transparency default, SoCylinder
+material, handle-event viewport, stipple leak).
