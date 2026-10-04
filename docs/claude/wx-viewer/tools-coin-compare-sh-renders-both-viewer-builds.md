@@ -24,9 +24,9 @@ Traps found building it:
   Coin under Xvfb ("Couldn't create GLX context"), (stage 3a fixed this with an EGL context, see the ECCE_USE_COIN entry). The vendored class
   crashes inside Mesa when destroyed, so the driver keeps one and `_exit`s.
 - Atom labels are drawn in the foreground colour (black on the default black
-  background until `ForegroundCmd` runs) and need `FL_FONT_PATH` pointing at
-  `data/client/fonts/` (with a trailing slash) when the Builder wrapper's
-  `ecce_env` is not used.
+  background until `ForegroundCmd` runs) and need the bundled font; `fl.c` finds
+  it from `ECCE_HOME` (see the atom-labels entry; the harness must not set
+  `FL_FONT_PATH`, which once hid blank labels on both builds).
 - A selected atom shows only if it goes through the viewer's `SGSelection`
   node (`getSelectionPath` + `ChemDisplayPath` + `merge`); filling
   `m_atomHighLight` alone changes nothing on screen.

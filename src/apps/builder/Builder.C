@@ -198,6 +198,7 @@ BEGIN_EVENT_TABLE( Builder, BuilderGUI )
     EVT_MENU( ID_MODE_BOND, Builder::OnModeBondClick )
     EVT_MENU( ID_MODE_STRUCTLIB, Builder::OnModeClick )
     EVT_BUTTON( ID_TOOL_GOHOME, Builder::OnToolGohomeClick )
+    EVT_MENU( ID_TOOL_RESETVIEW, Builder::OnToolResetViewClick )
     EVT_BUTTON( ID_TOOL_SETHOME, Builder::OnToolSethomeClick )
     EVT_MENU( ID_TOOL_STYLE, Builder::OnToolStyleClick )
     EVT_MENU( ID_TOOL_TRANSLATEM, Builder::OnToolTranslatemClick )
@@ -654,6 +655,10 @@ void Builder::createToolbar()
     ewxBitmap spinBitmap("spin.xpm");
     p_viewToolbar->AddTool(ViewerEvtHandler::ID_ENABLE_SPINNING, _T(""),
             spinBitmap, _("Enable/disable spinning"), wxITEM_CHECK);
+    wxBitmap resetIcon = ewxBitmap::themedIcon("go-home", wxSize(22, 22));
+    if (!resetIcon.IsOk()) resetIcon = ewxBitmap("home_view16.png", wxBITMAP_TYPE_PNG);
+    p_viewToolbar->AddTool(ID_TOOL_RESETVIEW, _T(""), resetIcon,
+            _("Reset view (Home)"));
 
     p_styleToolbar = new wxToolBar(this, ID_STYLE_TOOLBAR, wxDefaultPosition,
             wxDefaultSize, wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
@@ -738,6 +743,14 @@ void Builder::createMenus()
 
   p_renderMenu = GetMenuBar()->GetMenu(GetMenuBar()->FindMenu(_("Render")));
   ViewerEvtHandler::createRenderMenu(p_renderMenu);
+  {
+    // Next to View All; "Home" is the key Open Inventor viewers use for it.
+    size_t pos = 0;
+    if (p_renderMenu->FindChildItem(wxID_ZOOM_FIT, &pos)) pos++;
+    else pos = p_renderMenu->GetMenuItemCount();
+    p_renderMenu->Insert(pos, ID_TOOL_RESETVIEW, _("Reset View\tHome"),
+                          _("Undo rotation and zoom; atoms are not changed"));
+  }
 
   p_buildMenu = GetMenuBar()->GetMenu(GetMenuBar()->FindMenu(_("Build")));
   ViewerEvtHandler::createBuildMenu(p_buildMenu);
@@ -3260,6 +3273,17 @@ void Builder::OnToolGohomeClick( wxCommandEvent& event )
   p_zrot->SetValue(0);
   Command *cmd = new GoHomeCmd("Go Home", p_viewer);
   execute(cmd);
+}
+
+// Camera only: orientation back to the home orientation and the whole
+// system in view.  Atom coordinates and edits are untouched.
+void Builder::OnToolResetViewClick( wxCommandEvent& event )
+{
+  p_xrot->SetValue(0);
+  p_yrot->SetValue(0);
+  p_zrot->SetValue(0);
+  p_viewer->resetToHomePosition();
+  p_viewer->viewAll();
 }
 
 void Builder::OnToolSethomeClick( wxCommandEvent& event )

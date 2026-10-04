@@ -1,0 +1,44 @@
+# Every atom-label option, each preceded by a no-label render of the same
+# view, so a label's pixels are the difference between the pair.
+style Ball And Stick
+labels none
+viewall
+snap @SYS@-lab-off
+labels element
+snap @SYS@-lab-element
+labels none
+labels name
+snap @SYS@-lab-name
+labels none
+labels charge2
+snap @SYS@-lab-charge2
+labels none
+labels charge3
+snap @SYS@-lab-charge3
+labels none
+labels charge4
+snap @SYS@-lab-charge4
+labels none
+labels type
+snap @SYS@-lab-type
+labels none
+bondlabels on
+snap @SYS@-lab-bond
+bondlabels off
+residuelabels on
+snap @SYS@-lab-residue
+residuelabels off
+style Wireframe
+snap @SYS@-lab-off-wire
+labels element
+snap @SYS@-lab-element-wire
+labels none
+# Reset View must give back the first view after the camera was moved.
+labels none
+style Ball And Stick
+viewall
+snap @SYS@-rv-before
+rotate 50
+snap @SYS@-rv-moved
+resetview
+snap @SYS@-rv-after

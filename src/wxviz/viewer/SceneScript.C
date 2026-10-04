@@ -129,6 +129,10 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     int type = AtomLabelsCmd::NONE;
     if (rest == "element") type = AtomLabelsCmd::ELEMENT;
     else if (rest == "name") type = AtomLabelsCmd::ATOMNAME;
+    else if (rest == "charge2") type = AtomLabelsCmd::CHARGE2;
+    else if (rest == "charge3") type = AtomLabelsCmd::CHARGE3;
+    else if (rest == "charge4") type = AtomLabelsCmd::CHARGE4;
+    else if (rest == "type") type = AtomLabelsCmd::TYPE;
     else if (rest != "none") return fail("labels: unknown type " + rest);
     //  Labels apply to the selection if there is one; clear it first.
     frag->m_atomHighLight.clear();
@@ -136,6 +140,11 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     AtomLabelsCmd cmd("AtomLabel", p_sg);
     cmd.getParameter("type")->setInteger(type);
     cmd.execute();
+    p_sg->touchChemDisplay();
+  } else if (c == "bondlabels" || c == "residuelabels") {
+    if (rest != "on" && rest != "off") return fail(c + ": on or off");
+    if (c == "bondlabels") p_sg->setBondLabels(rest == "on");
+    else p_sg->setResidueLabels(rest == "on");
     p_sg->touchChemDisplay();
   } else if (c == "select") {
     //  Same route as WxVizTool::setSelection: the atoms go into the
@@ -350,6 +359,10 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
   } else if (c == "redraws" && w.size() >= 3) {
     return countRedraws(w[1], vector<string>(w.begin() + 2, w.end()));
   } else if (c == "viewall") {
+    p_viewer->viewAll();
+  } else if (c == "resetview") {
+    //  The Builder's Reset View: camera only.
+    p_viewer->resetToHomePosition();
     p_viewer->viewAll();
   } else if (c == "rotate" && w.size() == 2) {
     //  Orbit the camera about the world y axis through the origin, by

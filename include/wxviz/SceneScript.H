@@ -17,7 +17,9 @@ class SGViewer;
  * calculation) and by tools/coin/viewer-scenes.C (plain XYZ systems).
  *
  * One command per line, '#' starts a comment:
- *   style <DisplayStyle name>     labels none|element|name
+ *   style <DisplayStyle name>     labels none|element|name|charge2|charge3|charge4|type
+ *   resetview                     camera back to home orientation, view all
+ *   bondlabels on|off   residuelabels on|off
  *   select <n>... | deselect      (1-based atom numbers)
  *   mo <n> [isovalue [res]]       compute MO n and show it  (needs calc)
  *   nmvect <mode>                 normal-mode vectors       (needs calc)
