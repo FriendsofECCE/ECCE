@@ -482,6 +482,12 @@ if(ECCE_USE_COIN)
   target_include_directories(offscreen-check PRIVATE ${wxWidgets_INCLUDE_DIRS})
 endif()
 
+# Frame-time benchmark for the molecule viewer (tools/viewer-bench); built
+# only on request, by tools/viewer-bench/run.sh.
+ecce_app(viewer-bench tools/viewer-bench WX GL
+  LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil X11::X11 jpeg freetype)
+set_target_properties(viewer-bench PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
 # --- src/apps/symmetry -> 5 standalone Fortran executables, no wx involvement.
 # Mirrors the old Makefile's "default:" target exactly (testnames is a
 # dev/test-only program the old default build skipped - left out here too).
