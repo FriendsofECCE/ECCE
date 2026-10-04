@@ -23,6 +23,12 @@
 #include <wx/listctrl.h>
 #include <wx/settings.h>
 #include <wx/ctrlsub.h>
+#include <wx/grid.h>
+#include <wx/dataview.h>
+#include <wx/timer.h>
+#include <wx/treelist.h>
+#include <cstdio>
+#include <cstdlib>
 
 #include "util/Color.H"
 #include "util/Preferences.H"
@@ -45,13 +51,64 @@ Preferences *ewxStyledWindow::p_prefs = 0;
 /**
  * Constructor.
  */
+
+// Debug aid, inert unless ECCE_FONT_DUMP names a file: every few seconds it
+// appends the point size of each tree, list, grid and table control, with a
+// button's size for reference, so a control outside the shared font shows up.
+static void dumpFontsOf(wxWindow *win, FILE *out)
+{
+   const wxString name = win->GetClassInfo()->GetClassName();
+   if (dynamic_cast<wxTreeCtrl*>(win) || dynamic_cast<wxListCtrl*>(win) ||
+       dynamic_cast<wxGrid*>(win) || dynamic_cast<wxDataViewCtrl*>(win) ||
+       dynamic_cast<wxTreeListCtrl*>(win) || dynamic_cast<wxListBox*>(win) ||
+       dynamic_cast<wxButton*>(win)) {
+      fprintf(out, "%s %s %d\n", (const char*)name.utf8_str(),
+              win->GetName().utf8_str().data(), win->GetFont().GetPointSize());
+      if (wxGrid *grid = dynamic_cast<wxGrid*>(win))
+         fprintf(out, "  cell %d label %d\n",
+                 grid->GetDefaultCellFont().GetPointSize(),
+                 grid->GetLabelFont().GetPointSize());
+   }
+   wxWindowList kids = win->GetChildren();
+   for (wxWindowList::compatibility_iterator n = kids.GetFirst(); n;
+        n = n->GetNext())
+      dumpFontsOf(n->GetData(), out);
+}
+
+namespace {
+class FontDumpTimer : public wxTimer
+{
+public:
+   void Notify() override
+   {
+      FILE *out = fopen(getenv("ECCE_FONT_DUMP"), "a");
+      if (!out) return;
+      fprintf(out, "--\n");
+      for (wxWindowList::compatibility_iterator n = wxTopLevelWindows.GetFirst();
+           n; n = n->GetNext())
+         dumpFontsOf(n->GetData(), out);
+      fclose(out);
+   }
+};
+}
+
+static void startFontDump()
+{
+   static FontDumpTimer *timer = 0;
+   if (timer || !getenv("ECCE_FONT_DUMP") || !wxTheApp) return;
+   timer = new FontDumpTimer;
+   timer->Start(4000);
+}
+
 ewxStyledWindow::ewxStyledWindow()
 {
+   startFontDump();
    if (p_prefs == 0) p_prefs = new Preferences(PrefLabels::GLOBALPREFFILE);
 }
 
 ewxStyledWindow::ewxStyledWindow(wxWindow *win, bool recursive)
 {
+   startFontDump();
    if (p_prefs == 0) p_prefs = new Preferences(PrefLabels::GLOBALPREFFILE);
    setStyles(win, recursive);
 }
@@ -298,6 +355,17 @@ void ewxStyledWindow::setStyles(wxWindow *win, bool recursive)
       applyFont(win);
 
    } else if (dynamic_cast<wxTreeCtrl*>(win)) {
+      applyFont(win);
+
+   // Controls that are not wxScrolledWindows and would keep the system size.
+   } else if (wxGrid *grid = dynamic_cast<wxGrid*>(win)) {
+      applyFont(win);
+      wxFont font = win->GetFont();
+      grid->SetDefaultCellFont(font);
+      grid->SetLabelFont(font);
+
+   } else if (dynamic_cast<wxDataViewCtrl*>(win) ||
+              dynamic_cast<wxTreeListCtrl*>(win)) {
       applyFont(win);
    }
 
