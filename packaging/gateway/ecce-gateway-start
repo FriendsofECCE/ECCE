@@ -109,7 +109,7 @@ fi
 # Atomic, so a process starting now never reads half of it.
 write_broker_file() {
   local tmp="$BROKERFILE.tmp.$$"
-  { printf 'user=%s\n' "$ECCE_REALUSER"; printf '%s\n' "$@"; } >"$tmp" &&
+  { printf 'user=%s\n' "${BROKER_USER:-$ECCE_REALUSER}"; printf '%s\n' "$@"; } >"$tmp" &&
     mv -f "$tmp" "$BROKERFILE"
 }
 
@@ -266,7 +266,10 @@ else
       echo "ecce-gateway-start: this server's broker is not answering on port $BROKER_PORT -- see $STATEDIR/mosquitto.log and mosquitto.out (is another program using it? set ECCE_BROKER_PORT)" >&2
     fi
   fi
-  write_broker_file "socket=$SOCK"
+  # This account's own broker: no other user can reach it, so the topic
+  # user need not be personal, and a fixed name stays a valid MQTT topic
+  # level whatever the OS account is called (Windows names may hold '#').
+  BROKER_USER=local write_broker_file "socket=$SOCK"
 fi
 
 exit 0
