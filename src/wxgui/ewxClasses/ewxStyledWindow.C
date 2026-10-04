@@ -21,6 +21,8 @@
 #include <wx/statline.h>
 #include <wx/treectrl.h>
 #include <wx/listctrl.h>
+#include <wx/settings.h>
+#include <wx/ctrlsub.h>
 
 #include "util/Color.H"
 #include "util/Preferences.H"
@@ -35,6 +37,7 @@
 #include "wxgui/ewxSpinCtrl.H"
 #include "wxgui/ewxSmallLabel.H"
 #include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxThemeColours.H"
 
 
 Preferences *ewxStyledWindow::p_prefs = 0;
@@ -61,37 +64,41 @@ ewxStyledWindow::~ewxStyledWindow()
 {
 }
 
+// Colours come from the GTK theme (#210), so a dark theme and the
+// desktop's own palette apply; fixed ECCE colours are kept only where a
+// colour carries meaning (see ewxThemeColours.H).
 wxColour ewxStyledWindow::getWindowColor()
 {
-  return ewxColor(Color::WINDOW);
+  return wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE);
 }
 
+// Read-only fields take the window colour, so they stand apart from the
+// view-coloured editable ones in light and dark themes alike.
 wxColour ewxStyledWindow::getReadonlyColor()
 {
-  return ewxColor(Color::READONLY);
+  return wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE);
 }
 
 wxColour ewxStyledWindow::getButtonColor()
 {
-  return ewxColor(Color::WINDOW);
+  return wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE);
 }
 
 
 wxColour ewxStyledWindow::getInputColor()
 {
-  return ewxColor(Color::INPUT);
+  return wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
 }
 
 
 wxColour ewxStyledWindow::getTextColor()
 {
-  return ewxColor(Color::TEXT);
+  return wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
 }
 
 
 wxColour ewxStyledWindow::getBtn3DDkShadowColor()
 {
-  //  return wxSystemSettings::GetColour(wxSYS_COLOUR_BTNSHADOW);
   return wxSystemSettings::GetColour(wxSYS_COLOUR_3DDKSHADOW);
 }
 
@@ -110,84 +117,93 @@ wxColour ewxStyledWindow::getFocusedSelectionColor()
 
 wxColour ewxStyledWindow::getUnfocusedSelectionColor()
 {
-  return ewxColor(146, 146, 146);
+  return wxSystemSettings::GetColour(wxSYS_COLOUR_BTNSHADOW);
 }
 
 
 wxColour ewxStyledWindow::getHightLightRowColor()
 {
-  return ewxColor(200, 200, 200);
+  return ewxThemeColours::alternateRow();
 }
 
 
 /**
- * Compute a font size.
- * The base sizes are from our original font selections and are considered
- * Large. 
+ * Points to add to the theme's font size for the Font Size preference
+ * (0 small, 1 medium, 2 large, 3 extra large).  Medium is the theme's
+ * own size, so a default install draws exactly what GTK draws.
  */
-int ewxStyledWindow::getFontSize(int basesize)
+int ewxStyledWindow::getFontSizeStep()
 {
-  int size = basesize;
-  // As per prefs dialog, 0=small, 1=medium, 2 = large
   int pref = 1;
-  p_prefs->getInt("FONTSIZE",pref);
-  if (pref == 0) 
-     size-=3;
-  else if (pref == 1) 
-     size-=2;
-  else if (pref == 3) 
-     size+=3;
-  return size;
+  p_prefs->getInt("FONTSIZE", pref);
+  switch (pref) {
+    case 0:  return -1;
+    case 2:  return 2;
+    case 3:  return 4;
+    default: return 0;
+  }
 }
 
 
+// Fonts derive from the theme's GUI font (#210); the base sizes are the
+// old ones relative to its 10pt normal size.
+int ewxStyledWindow::getFontSize(int basesize)
+{
+  int theme = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT).GetPointSize();
+  return theme + (basesize - 10) + getFontSizeStep();
+}
+
+
+static wxFont themeFont(int size, wxFontWeight weight)
+{
+  wxFont font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
+  font.SetPointSize(size);
+  font.SetWeight(weight);
+  return font;
+}
+
+
+// Bold only for callers that mark a heading or a label role.
 wxFont ewxStyledWindow::getBoldFont()
 {
-   return wxFont(getFontSize(10), wxDEFAULT, 
-         wxNORMAL, wxBOLD, FALSE, _T("helvetica"));
+   return themeFont(getFontSize(10), wxFONTWEIGHT_BOLD);
 }
 
 
 wxFont ewxStyledWindow::getNormalFont()
 {
-   return wxFont(getFontSize(10), wxDEFAULT, 
-         wxNORMAL, wxNORMAL, FALSE, _T("helvetica"));
+   return themeFont(getFontSize(10), wxFONTWEIGHT_NORMAL);
 }
 
 
 wxFont ewxStyledWindow::getUnitFont()
 {
-   return wxFont(getFontSize(9), wxDEFAULT, 
-         wxNORMAL, wxLIGHT, FALSE, _T("helvetica"));
+   return themeFont(getFontSize(9), wxFONTWEIGHT_NORMAL);
 }
 
 
 wxFont ewxStyledWindow::getMonoSpaceFont()
 {
-   return wxFont(getFontSize(10), wxDEFAULT, 
-         wxNORMAL, wxNORMAL, FALSE, _T("courier"));
+   return wxFont(wxFontInfo(getFontSize(10)).Family(wxFONTFAMILY_TELETYPE));
 }
 
 
 // The following three fonts are used by pertable
 wxFont ewxStyledWindow::getAtomicNumFont()
 {
-   return wxFont(getFontSize(10), wxDEFAULT, 
-         wxNORMAL, wxBOLD, FALSE, _T("helvetica"));
+   return themeFont(getFontSize(9), wxFONTWEIGHT_NORMAL);
 }
 
 
 wxFont ewxStyledWindow::getBigAtomicSymbolFont()
 {
-   return wxFont(getFontSize(18), wxDEFAULT, 
-         wxNORMAL, wxBOLD, FALSE, _T("helvetica"));
+   return themeFont(getFontSize(18), wxFONTWEIGHT_BOLD);
 }
 
 
 wxFont ewxStyledWindow::getSmallLabelFont()
 {
-   return wxFont(getFontSize(9), wxDEFAULT, 
-         wxNORMAL, wxNORMAL, FALSE, _T("helvetica"));
+   return themeFont(getFontSize(9), wxFONTWEIGHT_NORMAL);
 }
 
 
@@ -196,150 +212,128 @@ void ewxStyledWindow::setStyles(wxWindow *win, bool recursive)
 #ifdef __WXMAC__
   return;
 #endif
-   //cout << "ewxStyledWindow::setStyles(";
-   
-   win->SetForegroundColour(getTextColor());
-   win->SetBackgroundColour(getWindowColor());
-
+   // Only the font size preference and the read-only marker apply here; every other colour
+   // is left to the GTK theme (#210).  wxNullColour hands a field back to
+   // the theme when it becomes editable again.
    if (wxTextCtrl *text = dynamic_cast<wxTextCtrl*>(win)) {
-      //cout << "wxTextCtrl";
-      text->SetFont(getBoldFont());
-      win->SetBackgroundColour(getInputColor());
-      if (!text->IsEditable()) {
-         win->SetBackgroundColour(getReadonlyColor());
-      }
+      applyFont(text);
+      setReadonlyMarker(win, !text->IsEditable());
 
    } else if (dynamic_cast<wxButton*>(win)) {
-      //cout << "wxButton";
-      win->SetBackgroundColour(getButtonColor());
-      win->SetFont(getBoldFont());
+      applyFont(win);
 
    } else if (dynamic_cast<wxCheckBox*>(win)) {
-      //cout << "wxCheckBox";
-      win->SetFont(getBoldFont());
-      // GTK3 paints a checkbox's background behind its whole label, so the
-      // input colour draws a band across the text; keep the window colour.
-      ewxCheckBox *ebox = dynamic_cast<ewxCheckBox*>(win);
-      if (ebox && !ebox->IsEditable()) {
-         //cout << "\tewxCheckBox";
-         win->SetBackgroundColour(getReadonlyColor());
-      }
+      applyFont(win);
+      // GTK3 paints a checkbox's background as a band across its label,
+      // so a read-only checkbox gets no marker.
+      win->SetBackgroundColour(wxNullColour);
 
    } else if (dynamic_cast<wxChoice*>(win)) {
-      //cout << "wxChoice";
-      win->SetFont(getBoldFont());
-      win->SetBackgroundColour(getInputColor());
+      applyFont(win);
       ewxChoice *choice = dynamic_cast<ewxChoice*>(win);
-      if (choice && !choice->IsEditable()) {
-         //cout << "\tewxChoice";
-         win->SetBackgroundColour(getReadonlyColor());
-      }
+      if (choice) setReadonlyMarker(win, !choice->IsEditable());
 
    } else if (dynamic_cast<wxComboBox*>(win)) {
-      //cout << "wxComboBox";
-      win->SetFont(getBoldFont());
-      win->SetBackgroundColour(getInputColor());
+      applyFont(win);
       ewxComboBox *box = dynamic_cast<ewxComboBox*>(win);
-      if (box) {
-         //cout << "\tewxComboBox";
-         if (!box->IsEditable()) {
-            win->SetBackgroundColour(getReadonlyColor());
-         }
-      }
+      if (box) setReadonlyMarker(win, !box->IsEditable());
 
    } else if (dynamic_cast<wxMenuBar*>(win)) {
-      //cout << "wxMenuBar";
-      win->SetBackgroundColour(getReadonlyColor());
-      win->SetFont(getBoldFont());
+      applyFont(win);
 
    } else if (dynamic_cast<wxScrolledWindow*>(win)) {
-      //cout << "wxScrolledWindow";
-      // scroll bars not set by this
-      win->SetBackgroundColour(getWindowColor());
-      win->SetFont(getBoldFont());
+      applyFont(win);
 
    } else if (dynamic_cast<wxMenu*>(win)) {
-      //cout << "wxMenu";
-      // This doesn't work but do it anyway
-      win->SetBackgroundColour(getReadonlyColor());
-      win->SetFont(getBoldFont());
+      applyFont(win);
 
    } else if (ewxSpinCtrl *spin = dynamic_cast<ewxSpinCtrl*>(win)) {
-      //cout << "ewxSpinCtrl";
-      win->SetFont(getBoldFont());
-      win->SetBackgroundColour(getInputColor());
-      if (!spin->IsEnabled()) {
-         win->SetBackgroundColour(getReadonlyColor());
-      }
+      applyFont(win);
+      setReadonlyMarker(win, !spin->IsEnabled());
 
    } else if (dynamic_cast<wxDialog*>(win)) {
-      //cout << "wxDialog";
-      win->SetBackgroundColour(getWindowColor());
-      win->SetFont(getBoldFont());
-      //Version 2.5.3
-      //win->SetBackgroundStyle(wxBG_STYLE_COLOUR);
-      //win->SetThemeEnabled(false);
+      applyFont(win);
 
    } else if (dynamic_cast<wxStaticLine*>(win)) {
-      //cout << "wxStaticLine";
-      win->SetBackgroundColour(getButtonColor());
+      // Many section-heading lines are stretched in both directions, and
+      // GTK3 fills a separator's whole box with its colour; keep the box
+      // clear, as the fixed window colour used to.
+      win->SetBackgroundColour(wxTransparentColour);
 
    } else if (dynamic_cast<ewxNonBoldLabel*>(win)) {
-      //cout << "ewxNonBoldLabel";
-      win->SetFont(getNormalFont());
+      applyFont(win);
 
    } else if (dynamic_cast<ewxSmallLabel*>(win)) {
-      //cout << "ewxSmallLabel";
       win->SetFont(getSmallLabelFont());
 
    } else if (dynamic_cast<wxStaticText*>(win)) {
-      //cout << "wxStaticText";
-      win->SetFont(getBoldFont());
+      applyFont(win);
 
    } else if (dynamic_cast<wxFrame*>(win)) {
-      //cout << "wxFrame";
-      win->SetBackgroundColour(getWindowColor());
-      win->SetFont(getBoldFont());
-      //Version 2.5.3
-      //SetBackgroundStyle(wxBG_STYLE_COLOUR);
+      applyFont(win);
 
    } else if (dynamic_cast<wxNotebook*>(win)) {
-      //cout << "wxNotebook";
-      // Setting background has side effect of eliminating
-      // faded unselected tabs.
-      win->SetBackgroundColour(getWindowColor());
-      win->SetFont(getBoldFont());
+      applyFont(win);
 
    } else if (dynamic_cast<wxListBox*>(win)) {
-      //cout << "wxListBox";
-      win->SetFont(getBoldFont());
-      // this is ignored for some reason 
-      win->SetBackgroundColour(getInputColor());
+      applyFont(win);
       ewxListBox *list = dynamic_cast<ewxListBox*>(win);
-      if (list && !list->IsEditable()) {
-         //cout << "\tewxListBox";
-         win->SetBackgroundColour(getReadonlyColor());
-      }
+      if (list) setReadonlyMarker(win, !list->IsEditable());
 
    } else if (dynamic_cast<wxListCtrl*>(win)) {
-      win->SetFont(getBoldFont());
-      win->SetBackgroundColour(getInputColor());
+      applyFont(win);
 
    } else if (dynamic_cast<wxRadioBox*>(win)) {
-      //cout << "wxRadioBox";
-      win->SetFont(getBoldFont());
-      win->SetBackgroundColour(getInputColor());
+      applyFont(win);
 
    } else if (dynamic_cast<wxTreeCtrl*>(win)) {
-      //cout << "wxTreeCtrl";
-      win->SetFont(getNormalFont());
-
-   } else {
-      //cout << "unknown window type";
+      applyFont(win);
    }
 
    //cout << ", " << recursive << ")" << endl;
    if (recursive) setChildStyles(win);
+}
+
+
+// Leaves the theme's font alone unless the Font Size preference moves it.
+void ewxStyledWindow::applyFont(wxWindow *win)
+{
+   int step = getFontSizeStep();
+   if (step == 0) return;
+   wxFont font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
+   font.SetPointSize(font.GetPointSize() + step);
+   win->SetFont(font);
+}
+
+
+void ewxStyledWindow::setReadonlyMarker(wxWindow *win, bool readonly)
+{
+   win->SetBackgroundColour(readonly ? getReadonlyColor() : wxNullColour);
+}
+
+
+/**
+ * Every drop-down is at least as wide as its widest entry, in the current
+ * font, so no entry is cut off; a larger width given at construction is
+ * kept.  See docs/claude/wx-viewer/drop-down-min-width.md.
+ */
+void ewxStyledWindow::fitDropDown(wxControlWithItems *ctrl, int explicitWidth,
+                                  const wxString& value)
+{
+   int widest = value.empty() ? 0 : ctrl->GetTextExtent(value).x;
+   for (unsigned int i = 0; i < ctrl->GetCount(); i++) {
+      widest = wxMax(widest, ctrl->GetTextExtent(ctrl->GetString(i)).x);
+   }
+   if (widest == 0) return;
+   // Room for the entry's padding and the drop-down arrow.  Not
+   // GetSizeFromTextSize(): wxGTK returns garbage for a combo box there.
+   int width = widest + 3*ctrl->GetCharHeight();
+   wxSize min = ctrl->GetMinSize();
+   if (width < explicitWidth) width = explicitWidth;
+   if (width != min.x) {
+      ctrl->SetMinSize(wxSize(width, min.y));
+      ctrl->InvalidateBestSize();
+   }
 }
 
 

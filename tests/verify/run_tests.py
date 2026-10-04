@@ -227,7 +227,8 @@ def dialog_smoke(verbose):
     cmd = [c for c in cmd if not c.startswith("--libs=")]
     p = subprocess.run(["wx-config", "--libs", "core,base,adv,html"],
                        capture_output=True, text=True)
-    cmd = cmd[:-1] + p.stdout.split() + ["-lxerces-c"]
+    #  libeccercmd's SSH transport needs libssh.
+    cmd = cmd[:-1] + p.stdout.split() + ["-lxerces-c", "-lssh"]
 
     build = subprocess.run(cmd, capture_output=True, text=True)
     if build.returncode != 0:

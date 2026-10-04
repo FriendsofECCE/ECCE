@@ -89,7 +89,7 @@ namespace {
 
 GlobalPrefs::GlobalPrefs(wxWindow* parent)
   : p_publisher(NULL), p_book(NULL),
-    p_colorTheme(NULL), p_fontSize(NULL), p_dateFormat(NULL),
+    p_fontSize(NULL), p_dateFormat(NULL),
     p_timeFormat(NULL), p_unit(NULL), p_beepError(NULL), p_beepWarn(NULL),
     p_focus(NULL), p_confirmExit(NULL), p_closeShells(NULL),
     p_savePasswords(NULL), p_showBusy(NULL), p_alwaysOnTop(NULL),
@@ -188,24 +188,18 @@ void GlobalPrefs::createGeneralPage(wxWindow* page)
 
   wxWindow* sb = box->GetStaticBox();
   int c;
-  ewxChoice** choices[] = {&p_colorTheme, &p_fontSize, &p_dateFormat,
+  // No colour theme: windows take the desktop's GTK theme (#210).
+  ewxChoice** choices[] = {&p_fontSize, &p_dateFormat,
                            &p_timeFormat, &p_unit};
-  const wxChar* labels[] = {_("Color Theme:"), _("Font Size:"),
+  const wxChar* labels[] = {_("Font Size:"),
                             _("Date Format:"), _("Time Format:"), _("Units:")};
-  for (c = 0; c < 5; c++) {
+  for (c = 0; c < 4; c++) {
     grid->Add(new ewxStaticText(sb, wxID_ANY, labels[c]), 0,
               wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL);
     *choices[c] = new ewxChoice(sb, wxID_ANY);
     grid->Add(*choices[c], 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL);
     (*choices[c])->Bind(wxEVT_CHOICE, &GlobalPrefs::OnGlobalChange, this);
   }
-
-  p_colorTheme->Append(_("Site Default"));
-  p_colorTheme->Append(_("Classic"));
-  p_colorTheme->Append(_("PNNL"));
-  p_colorTheme->Append(_("EMSL"));
-  p_colorTheme->Append(_("PNNL_EMSL"));
-  p_colorTheme->SetToolTip(_("Takes effect the next time ECCE is started"));
 
   p_fontSize->Append(_("Small"));
   p_fontSize->Append(_("Medium"));
@@ -603,7 +597,6 @@ void GlobalPrefs::OnResetAll(wxCommandEvent& event)
 {
   p_restoring = true;
   if (!isDefaultGlobalPref()) {
-    p_colorTheme->SetStringSelection(_("Site Default"));
     p_fontSize->SetSelection(p_fontSizeDefault);
     p_dateFormat->SetSelection(p_dateFormatDefault);
     p_timeFormat->SetSelection(p_timeFormatDefault);
@@ -723,11 +716,6 @@ void GlobalPrefs::saveSettings()
   eccePref.setString(PrefLabels::BROWSER, programValue(p_browser));
   eccePref.saveFile();
 
-  Preferences colorPref = Preferences(PrefLabels::COLORPREFFILE);
-  colorPref.setString(PrefLabels::COLORTHEME,
-                      p_colorTheme->GetStringSelection().ToStdString());
-  colorPref.saveFile();
-
   Preferences gwPref = Preferences(PrefLabels::GATEWAYPREFFILE);
   saveWindowSettings("GatewayPrefs", gwPref, false);
   gwPref.setBool(PrefLabels::CONFIRMEXIT, p_confirmExit->GetValue());
@@ -797,15 +785,6 @@ void GlobalPrefs::restoreSettings()
   eccePref.getString(PrefLabels::BROWSER, strBuf);
   setProgramRow(p_browser, strBuf);
 
-  Preferences colorPref = Preferences(PrefLabels::COLORPREFFILE);
-  if (!colorPref.getString(PrefLabels::COLORTHEME, strBuf))
-    strBuf = "Site Default";
-  // Prefs saved by 8.18.0-dev builds may hold the short-lived colour names.
-  if (strBuf == "Orange") strBuf = "PNNL";
-  else if (strBuf == "Green") strBuf = "EMSL";
-  else if (strBuf == "Orange and Green") strBuf = "PNNL_EMSL";
-  p_colorTheme->SetStringSelection(strBuf);
-
   Preferences gwPref = Preferences(PrefLabels::GATEWAYPREFFILE);
   restoreWindowSettings("GatewayPrefs", gwPref, false);
 
@@ -860,8 +839,7 @@ void GlobalPrefs::updateResetButton()
 
 bool GlobalPrefs::isDefaultGlobalPref()
 {
-  return p_colorTheme->GetStringSelection() == _("Site Default") &&
-         p_fontSize->GetSelection() == p_fontSizeDefault &&
+  return p_fontSize->GetSelection() == p_fontSizeDefault &&
          p_dateFormat->GetSelection() == p_dateFormatDefault &&
          p_timeFormat->GetSelection() == p_timeFormatDefault &&
          p_unit->GetSelection() == p_unitDefault &&

@@ -182,16 +182,14 @@ void ewxColorDialog::CreateControls( wxColour color )
   wxStaticLine* item87 = new wxStaticLine( item1, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
 
   item2->Add(item87, 0, wxGROW|wxLEFT|wxRIGHT, 5);
-  wxBoxSizer* item88 = new wxBoxSizer(wxHORIZONTAL);
-  item2->Add(item88, 1, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
+  wxStdDialogButtonSizer* item88 = new wxStdDialogButtonSizer;
+  item2->Add(item88, wxSizerFlags().Expand().Border());
 
-  item88->Add(0, 0, 1, wxALIGN_CENTER_VERTICAL|wxALL, 2);
   ewxButton* item89 = new ewxButton( item1, wxID_OK, _("OK"), wxDefaultPosition, wxDefaultSize, 0 );
-  item88->Add(item89, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
-  item88->Add(0, 0, 1, wxALIGN_CENTER_VERTICAL|wxALL, 2);
+  item88->AddButton(item89);
   ewxButton* item90 = new ewxButton( item1, wxID_CANCEL, _("Cancel"), wxDefaultPosition, wxDefaultSize, 0 );
-  item88->Add(item90, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
-  item88->Add(0, 0, 1, wxALIGN_CENTER_VERTICAL|wxALL, 2);
+  item88->AddButton(item90);
+  item88->Realize();
 
   //  wxButton* item91 = new wxButton( item1, ID_CUSTOMCOLOR, _("Add to Custom Colors"), wxDefaultPosition, wxDefaultSize, 0 );
   //  item88->Add(item91, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);

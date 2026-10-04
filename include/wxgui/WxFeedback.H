@@ -107,7 +107,7 @@ class WxFeedback : public WxFeedbackGUI
       virtual void OnShowGateway(wxCommandEvent& event);
 
    protected:
-      void FlashOn(const char* color);
+      void FlashOn(const wxColour& bkg);
       void FlashOff(wxTimerEvent& event);
 
       WxFeedback::EditStatus  p_editStatus;

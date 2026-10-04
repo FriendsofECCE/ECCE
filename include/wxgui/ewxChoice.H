@@ -44,8 +44,14 @@ class ewxChoice : public wxChoice, public ewxStyledWindow
   protected:
     bool Create();
 
+    // Entries added at any time widen the control (fitDropDown).
+    virtual int DoInsertItems(const wxArrayStringsAdapter& items,
+                              unsigned int pos, void **clientData,
+                              wxClientDataType type) wxOVERRIDE;
+
     bool p_editable;
     ewxDisabler *p_disabler;
+    int p_explicitWidth;
 };
 
 #endif

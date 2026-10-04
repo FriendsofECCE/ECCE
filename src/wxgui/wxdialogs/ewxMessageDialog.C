@@ -53,7 +53,7 @@ ewxMessageDialog::ewxMessageDialog( wxWindow* parent,
   p_labelSizer->Add(icon, 0, wxALL, 5);
 
   p_label = new ewxStaticText(this, -1, message);
-  p_label->SetFont(getBoldFont());
+  p_label->SetFont(getNormalFont());
   p_label->Wrap(400);
 
   p_labelSizer->Add(p_label, 0, wxALL, 5);

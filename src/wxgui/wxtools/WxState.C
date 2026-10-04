@@ -32,8 +32,51 @@ using namespace std;
 #include "dsm/ResourceDescriptor.H"
 
 #include "wxgui/ewxColor.H"
+#include "wxgui/ewxThemeColours.H"
 
 #include "wxgui/WxState.H"
+
+
+// Indexed by RUNSTATE, ILLEGAL first and a LAST sentinel at the end.  The
+// shipped EcceGlobal holds the same values; tests/look/contrast.py checks
+// both against the light and dark theme backgrounds (4.5:1).
+static const char* LIGHT_STATE_COLOURS[] = {
+  "#ff0000",  // ILLEGAL
+  "#3a6ea5",  // CREATED
+  "#0000ff",  // READY
+  "#1f6f8f",  // SUBMITTED
+  "#007a00",  // RUNNING
+  "#007d49",  // COMPLETED
+  "#007d49",  // LOADED
+  "#6b6b6b",  // KILLED
+  "#a35200",  // UNSUCCESSFUL
+  "#d00000",  // FAILED
+  "#000000",  // SYSTEM
+  "#000000",  // LAST
+};
+
+static const char* DARK_STATE_COLOURS[] = {
+  "#ff8080",  // ILLEGAL
+  "#b0e2ff",  // CREATED
+  "#9999ff",  // READY
+  "#b4eeb4",  // SUBMITTED
+  "#00cd00",  // RUNNING
+  "#3ddc97",  // COMPLETED
+  "#3ddc97",  // LOADED
+  "#b0b0b0",  // KILLED
+  "#ffa500",  // UNSUCCESSFUL
+  "#ff8080",  // FAILED
+  "#e0e0e0",  // SYSTEM
+  "#e0e0e0",  // LAST
+};
+
+// The pre-9.0 defaults.  "Reset" in Preferences used to copy them into the
+// user's own file, so a user value equal to one of these is a stale copy
+// of an old default rather than a choice, and the new default wins.
+static const char* LEGACY_STATE_COLOURS[] = {
+  "", "#b0e2ff", "#0000ff", "#b4eeb4", "#00cd00", "#007d49", "#007d49",
+  "#757575", "#ffa500", "#ff0000", "#000000", "",
+};
 
 
 vector<string>   WxState::p_defaultColors;
@@ -82,19 +125,12 @@ void WxState::initializeColors()
 {
   if (p_defaultColors.size() == 0) {
 
-    // Some hardwired defaults just in case
-    p_defaultColors.push_back("#FF0000");  // ILLEGAL
-    p_defaultColors.push_back("#9999CC");  // CREATED
-    p_defaultColors.push_back("#0000FF");  // READY
-    p_defaultColors.push_back("#3399CC");  // SUBMITTED
-    p_defaultColors.push_back("#33CC33");  // RUNNING
-    p_defaultColors.push_back("#FFFFCC");  // COMPLETE
-    p_defaultColors.push_back("#3D3D3D");  // KILLED
-    p_defaultColors.push_back("#CC3333");  // UNSUCCESSFUL
-    p_defaultColors.push_back("#FF0000");  // FAILED
-    p_defaultColors.push_back("#FFFFCC");  // LOADED
-    p_defaultColors.push_back("#FF0000");  // SYSTEM
-    p_defaultColors.push_back("#000000");  // LAST
+    // Defaults in case EcceGlobal cannot be read.
+    const char** table = ewxThemeColours::isDark() ? DARK_STATE_COLOURS
+                                                   : LIGHT_STATE_COLOURS;
+    for (int i = 0; i <= ResourceDescriptor::NUMBER_OF_STATES; i++) {
+      p_defaultColors.push_back(table[i]);
+    }
 
     createBrushesAndPens();
 
@@ -324,7 +360,7 @@ void WxState::resetToSystemDefault()
 void WxState::resetToUserDefault()
 {
   Preferences sysPrefs(PrefLabels::GLOBALPREFFILE);
-  resetFromPreferences(sysPrefs);
+  resetFromPreferences(sysPrefs, true);
 }
 
 
@@ -332,11 +368,17 @@ void WxState::resetToUserDefault()
 /**
  * Reloads the user state color strings and recreates the brushes and pens.
  */
-void WxState::resetFromPreferences(const Preferences& sysPrefs)
+void WxState::resetFromPreferences(const Preferences& sysPrefs, bool user)
 {
+  bool dark = ewxThemeColours::isDark();
   int i = ResourceDescriptor::STATE_CREATED;
   for (; i < ResourceDescriptor::NUMBER_OF_STATES; i++) {
-    sysPrefs.getString(getPrefString(i), p_defaultColors[i]);
+    string value;
+    if (sysPrefs.getString(getPrefString(i), value)) {
+      bool stale = user && !dark &&
+                   wxString(value).IsSameAs(LEGACY_STATE_COLOURS[i], false);
+      if (!stale) p_defaultColors[i] = value;
+    }
     p_brushes[0][i]->SetColour(ewxColor(p_defaultColors[i]));
     p_pens[0][i]->SetColour(ewxColor(p_defaultColors[i]));
   }
@@ -403,7 +445,16 @@ string WxState::getName(bool capital)
 }
 
 
+// Light and dark themes keep separate colours, so each can be legible.
 string WxState::getPrefString(int state)
+{
+  string key = getPrefKey(state);
+  if (key != "" && ewxThemeColours::isDark()) key += ".Dark";
+  return key;
+}
+
+
+string WxState::getPrefKey(int state)
 {
   switch (state) {
   case ResourceDescriptor::STATE_CREATED:

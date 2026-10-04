@@ -280,7 +280,6 @@ void WxMachineRegisterGUI::CreateControls()
 
     ewxCheckBox* itemCheckBox27 = new ewxCheckBox( itemScrolledWindowForm, ID_CHECKBOX_REMSHELL_SSH, _("ssh"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     itemCheckBox27->SetValue(false);
-    itemCheckBox27->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, _T("Sans")));
     itemBoxSizer26->Add(itemCheckBox27, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
 
@@ -363,7 +362,6 @@ void WxMachineRegisterGUI::CreateControls()
     itemFlexGridSizer50->Add(itemSpinCtrl58, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText59 = new ewxStaticText( itemPanel36, wxID_STATIC, _("min"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemStaticText59->SetFont(wxFont(8, wxDEFAULT, wxNORMAL, wxBOLD, false, _T("Sans")));
     itemFlexGridSizer50->Add(itemStaticText59, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText60 = new ewxStaticText( itemPanel36, wxID_STATIC, _("Max Memory:"), wxDefaultPosition, wxDefaultSize, 0 );
@@ -373,7 +371,6 @@ void WxMachineRegisterGUI::CreateControls()
     itemFlexGridSizer50->Add(itemSpinCtrl61, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText62 = new ewxStaticText( itemPanel36, wxID_STATIC, _("GB"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemStaticText62->SetFont(wxFont(8, wxDEFAULT, wxNORMAL, wxBOLD, false, _T("Sans")));
     itemFlexGridSizer50->Add(itemStaticText62, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText63 = new ewxStaticText( itemPanel36, wxID_STATIC, _("Min Scratch:"), wxDefaultPosition, wxDefaultSize, 0 );
@@ -383,7 +380,6 @@ void WxMachineRegisterGUI::CreateControls()
     itemFlexGridSizer50->Add(itemSpinCtrl64, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText65 = new ewxStaticText( itemPanel36, wxID_STATIC, _("MB"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemStaticText65->SetFont(wxFont(8, wxDEFAULT, wxNORMAL, wxBOLD, false, _T("Sans")));
     itemFlexGridSizer50->Add(itemStaticText65, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxGridSizer* itemGridSizer66 = new wxGridSizer(1, 3, 0, 0);

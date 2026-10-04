@@ -33,6 +33,12 @@ class ewxComboBox : public wxComboBox, public ewxStyledWindow
       virtual bool IsEditable();
 
    protected:
+      // Entries added at any time widen the control (fitDropDown).
+      virtual int DoInsertItems(const wxArrayStringsAdapter& items,
+                                unsigned int pos, void **clientData,
+                                wxClientDataType type) wxOVERRIDE;
+
+      int p_explicitWidth;
       ewxDisabler * p_disabler;
       ewxComboEvtHelper * p_comboHelper;
 

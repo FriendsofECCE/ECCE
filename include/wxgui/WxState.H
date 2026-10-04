@@ -72,7 +72,9 @@ protected:
   static void initializeColors();
   static void createBrushesAndPens();
 
-  static void resetFromPreferences(const Preferences& prefs);
+  static void resetFromPreferences(const Preferences& prefs,
+                                   bool user = false);
+  static string getPrefKey(int state);
 
   /** The current run state to draw */
   ResourceDescriptor::RUNSTATE p_currentState;

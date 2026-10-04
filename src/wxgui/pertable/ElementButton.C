@@ -215,7 +215,10 @@ void ElementButton::OnPaint( wxPaintEvent& event )
   SetMinSize(wxSize(width, height));
 
   // Draw the atomic number if enabled.
-  dc.SetPen(wxPen(getTextColor()));
+  // The element colours are fixed and light, so the label is always dark,
+  // whatever the theme's own text colour is.
+  dc.SetPen(*wxBLACK_PEN);
+  dc.SetTextForeground(*wxBLACK);
   if (p_parent->isShowNumber()) {
     dc.SetFont(getAtomicNumFont());
     dc.DrawText(p_atomicNumStr, borderWidth, borderWidth);

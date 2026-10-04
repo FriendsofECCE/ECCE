@@ -2,6 +2,7 @@
 #define _EWXBITMAP_H
 
 #include "wx/bitmap.h"
+#include "wx/bmpbndl.h"
 #include "wxgui/ewxStyledWindow.H"
 
 /**
@@ -16,6 +17,10 @@ class ewxBitmap : public wxBitmap
       ewxBitmap(const ewxBitmap& bitmap);
 
       static wxString pixmapFile(const wxString& name);
+      static wxBitmapBundle bundle(const wxString& name,
+                                   long type=wxBITMAP_TYPE_XPM);
+      static wxString genericIconName(const wxString& file);
+      static wxBitmap themedIcon(const wxString& icon, const wxSize& size);
 };
 
 #endif

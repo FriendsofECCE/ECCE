@@ -1,13 +1,25 @@
 #
-# System Defaults for Runstate colors
+# System defaults for run-state colours, for light and dark themes.
+# Each must reach 4.5:1 against its theme's background; WxState.C holds
+# the same values as a fallback.  Checked by tests/look/contrast.py.
 #
-RUNSTATE.COMPLETED:     #007d49
-RUNSTATE.CREATED:       #b0e2ff
-RUNSTATE.FAILED:        #ff0000
-RUNSTATE.KILLED:        #757575
-RUNSTATE.LOADED:        #007d49
-RUNSTATE.READY:         #0000ff
-RUNSTATE.RUNNING:       #00cd00
-RUNSTATE.SUBMITTED:     #b4eeb4
-RUNSTATE.SYSTEM:        #000000
-RUNSTATE.UNSUCCESSFUL:  #ffa500
+RUNSTATE.COMPLETED:      #007d49
+RUNSTATE.CREATED:        #3a6ea5
+RUNSTATE.FAILED:         #d00000
+RUNSTATE.KILLED:         #6b6b6b
+RUNSTATE.LOADED:         #007d49
+RUNSTATE.READY:          #0000ff
+RUNSTATE.RUNNING:        #007a00
+RUNSTATE.SUBMITTED:      #1f6f8f
+RUNSTATE.SYSTEM:         #000000
+RUNSTATE.UNSUCCESSFUL:   #a35200
+RUNSTATE.COMPLETED.DARK: #3ddc97
+RUNSTATE.CREATED.DARK:   #b0e2ff
+RUNSTATE.FAILED.DARK:    #ff8080
+RUNSTATE.KILLED.DARK:    #b0b0b0
+RUNSTATE.LOADED.DARK:    #3ddc97
+RUNSTATE.READY.DARK:     #9999ff
+RUNSTATE.RUNNING.DARK:   #00cd00
+RUNSTATE.SUBMITTED.DARK: #b4eeb4
+RUNSTATE.SYSTEM.DARK:    #e0e0e0
+RUNSTATE.UNSUCCESSFUL.DARK: #ffa500

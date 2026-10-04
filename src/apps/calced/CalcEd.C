@@ -35,6 +35,7 @@
 #include "dsm/SummaryIterator.H"
 #include "dsm/CodeFactory.H"
 
+#include "wxgui/ewxThemeColours.H"
 #include "wxgui/ThingToggle.H"
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/EcceTool.H"
@@ -1393,13 +1394,13 @@ void CalcEd::setVerifyLight(bool checked, VerifyFinding::Level level,
   //  still carries its meaning to a reader who does not see the
   //  difference between the reds and greens.
   const char* glyph = "\xe2\x97\x8f";          // filled circle
-  wxColour colour(0, 140, 0);
+  wxColour colour = ewxThemeColours::statusText(ewxThemeColours::GOOD);
   if (level == VerifyFinding::BAD) {
     glyph = "\xe2\x9c\x95";                     // cross
-    colour = wxColour(190, 0, 0);
+    colour = ewxThemeColours::statusText(ewxThemeColours::BAD);
   } else if (level == VerifyFinding::UNSURE) {
     glyph = "\xe2\x9a\xa0";                     // warning sign
-    colour = wxColour(200, 130, 0);
+    colour = ewxThemeColours::statusText(ewxThemeColours::UNSURE);
   }
 
   lamp->SetLabel(wxString::FromUTF8(glyph));

@@ -29,15 +29,16 @@ ewxGrid::ewxGrid(wxWindow* parent, wxWindowID id,
   PushEventHandler(new ewxHelpHandler(this));
 
   setStyles(this);
-  SetDefaultCellTextColour(getTextColor());
-  SetDefaultCellBackgroundColour(getWindowColor());
+  // Cells as a GTK list view draws them, labels as the window (#210).
+  SetDefaultCellTextColour(wxSystemSettings::GetColour(wxSYS_COLOUR_LISTBOXTEXT));
+  SetDefaultCellBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_LISTBOX));
   SetDefaultCellFont(getNormalFont());
-  SetLabelTextColour(getTextColor());
-  SetLabelBackgroundColour(getWindowColor());
+  SetLabelTextColour(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNTEXT));
+  SetLabelBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE));
   SetLabelFont(getNormalFont());
-  SetGridLineColour(wxSystemSettings::GetColour(wxSYS_COLOUR_3DDKSHADOW));
+  SetGridLineColour(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNSHADOW));
   SetSelectionBackground(getFocusedSelectionColor());
-  SetSelectionForeground("WHITE");
+  SetSelectionForeground(wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHTTEXT));
 
   SetColLabelAlignment(wxALIGN_CENTRE, wxALIGN_CENTRE);
   SetRowLabelAlignment(wxALIGN_LEFT, wxALIGN_CENTRE);

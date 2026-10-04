@@ -18,7 +18,7 @@ public:
   virtual void OnShowGateway(wxCommandEvent& event);
 
 protected:
-  void FlashOn(const char* color);
+  void FlashOn(const wxColour& bkg);
   void FlashOff(wxTimerEvent& event);
 
   wxTextCtrl * p_textCtrl;

@@ -1542,6 +1542,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/verify/run_tests.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/verify)
 
+  # tests/look -- the colours that carry meaning (run states, checker
+  # status) reach 4.5:1 against light and dark theme backgrounds (#210).
+  #
+  #     cd build-cmake && ctest -R look --output-on-failure
+  add_test(NAME look_contrast
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/contrast.py)
+
   # tests/guivalues -- memory sizes saved before the GB-everywhere change
   # (Megawords, Megabytes) are converted by GUIValues::load() before a
   # dialog or a generator reads them.  Needs g++ and libecceutil.a.

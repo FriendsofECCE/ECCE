@@ -381,7 +381,9 @@ void WxBasisTool::initControls()
     // renders as an unusably squashed strip. Two earlier, independent
     // attempts at an explicit min-size hint here were both left commented
     // out rather than landed; this is that fix, actually applied.
-    p_elementsTable->SetMinSize(wxSize(-1, 200));
+    // 200 is only a floor; the table's own best height follows the font.
+    p_elementsTable->SetMinSize(wxSize(-1,
+        wxMax(200, p_elementsTable->GetBestSize().y)));
     wxSizer* szrElmts = p_elementsPanel->GetSizer();
     szrElmts->Add(p_elementsTable, 1, wxGROW|wxALL, 3);
    // szrElmts->Layout();
@@ -479,8 +481,20 @@ void WxBasisTool::initControls()
 //    this->Validate();
     this->Fit();
 
-    this->SetMinSize(wxSize(WXBASISTOOL_WINDOW_MINWIDTH,
-                            WXBASISTOOL_WINDOW_MINHEIGHT));
+    // The sizers decide the smallest usable window, so it follows the
+    // theme's font; the fixed values are only a floor.
+    // The splitter reports no useful best height of its own, so add up
+    // what each side needs: the molecule pane above the sash, the
+    // divider and the operations pane below it.
+    wxSize best = this->GetBestSize();
+    int splitNeeded = p_cntxtMoleculePanel->GetBestSize().y
+                    + p_mainSplitWindow->GetSashSize()
+                    + p_dividerPanel->GetBestSize().y
+                    + p_cntxtOprtnsPanel->GetBestSize().y;
+    int around = this->GetSize().y - p_mainSplitWindow->GetSize().y;
+    best.y = wxMax(best.y, around + splitNeeded);
+    this->SetMinSize(wxSize(wxMax(best.x, WXBASISTOOL_WINDOW_MINWIDTH),
+                            wxMax(best.y, WXBASISTOOL_WINDOW_MINHEIGHT)));
 }
 
 
@@ -516,7 +530,9 @@ void WxBasisTool::loadSettings(string fname)
      if (p_prefs->isDefined(key))
         p_prefs->getInt(key, h);
 
-     this->SetSize(x, y, w, h);
+     // A size saved under a smaller font would cut the content off.
+     wxSize least = this->GetMinSize();
+     this->SetSize(x, y, wxMax(w, least.x), wxMax(h, least.y));
 }
 
 

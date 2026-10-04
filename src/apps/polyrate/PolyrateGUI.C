@@ -23,6 +23,7 @@
 #endif
 
 ////@begin includes
+#include "wxgui/ewxThemeColours.H"
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxPanel.H"
 #include "wxgui/ewxListBox.H"
@@ -471,7 +472,7 @@ void PolyrateGUI::CreateControls()
     itemBoxSizer65->Add(itemStaticText68, 0, wxALIGN_CENTER_VERTICAL|wxTOP|wxBOTTOM, 5);
 
     ewxStaticText* itemStaticText69 = new ewxStaticText( itemPanel63, wxID_STATIC_PLYRT_CHKOPT, _("Warning: Additional hindered rotor\ntorsion mode options must be set\nto generate valid input file"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemStaticText69->SetForegroundColour(wxColour(255, 0, 0));
+    itemStaticText69->SetForegroundColour(ewxThemeColours::statusText(ewxThemeColours::BAD));
     itemStaticText69->Show(false);
     itemBoxSizer65->Add(itemStaticText69, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 

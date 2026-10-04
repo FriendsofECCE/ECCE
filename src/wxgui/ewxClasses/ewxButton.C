@@ -41,7 +41,7 @@ ewxButton::ewxButton()
   : wxButton(),
     ewxStyledWindow()
 {
-   p_fg = wxColour(1,1,1);
+   p_fg = wxNullColour;
 }
 
 
@@ -51,7 +51,7 @@ ewxButton::ewxButton(wxWindow* parent, wxWindowID id, const wxString& caption,
   : wxButton(),
     ewxStyledWindow()
 {
-   p_fg = wxColour(1,1,1);
+   p_fg = wxNullColour;
    Create(parent, id, caption, pos, size, style, validator, name);
 }
 
@@ -76,6 +76,13 @@ bool ewxButton::Create(wxWindow* parent, wxWindowID id,
    PushEventHandler(p_disabler);
 
    setStyles(this);
+
+   // GTK draws an exact-fit button with its frame touching the label, so
+   // it reads as plain text; keep a character's padding on each side.
+   if ((style & wxBU_EXACTFIT) && size.x <= 0 && !caption.empty()) {
+      wxSize best = GetBestSize();
+      SetMinSize(wxSize(best.x + 2*GetCharWidth(), -1));
+   }
 
    return true;
 }
@@ -105,6 +112,6 @@ void ewxButton:: setCustomDisabledStyle(bool enabled)
    if (enabled) {
       wxButton::SetForegroundColour(p_fg);
    } else {
-      wxButton::SetForegroundColour(wxColour(100,100,100));
+      wxButton::SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
    }
 }

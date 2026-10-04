@@ -23,6 +23,7 @@
 #endif
 
 ////@begin includes
+#include "wxgui/ewxThemeColours.H"
 #include "wxgui/ewxRadioButton.H"
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxPanel.H"
@@ -260,7 +261,7 @@ void DynamicsPanelGUI::CreateControls()
     itemBoxSizer3->Add(itemStaticText4, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText5 = new ewxStaticText( itemPanel1, wxID_STATIC, _("* "), wxDefaultPosition, wxDefaultSize, 0 );
-    itemStaticText5->SetForegroundColour(wxColour(255, 0, 0));
+    itemStaticText5->SetForegroundColour(ewxThemeColours::statusText(ewxThemeColours::BAD));
     itemStaticText5->SetFont(wxFont(14, wxSWISS, wxNORMAL, wxBOLD, false, _T("Sans")));
     itemBoxSizer3->Add(itemStaticText5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
@@ -691,7 +692,7 @@ void DynamicsPanelGUI::CreateControls()
     itemBoxSizer148->Add(5, 15, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP|wxBOTTOM, 0);
 
     ewxStaticText* itemStaticText150 = new ewxStaticText( itemPanel1, wxID_STATIC, _("*"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemStaticText150->SetForegroundColour(wxColour(255, 0, 0));
+    itemStaticText150->SetForegroundColour(ewxThemeColours::statusText(ewxThemeColours::BAD));
     itemStaticText150->SetFont(wxFont(14, wxSWISS, wxNORMAL, wxBOLD, false, _T("Sans")));
     itemBoxSizer148->Add(itemStaticText150, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 

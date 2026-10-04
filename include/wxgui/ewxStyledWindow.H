@@ -14,6 +14,8 @@
 
 #include "wx/dcclient.h"
 
+class wxControlWithItems;
+
 class Preferences;
 
 class ewxStyledWindow
@@ -43,12 +45,18 @@ class ewxStyledWindow
 
       static void drawButtonBorder(wxPaintDC & dc, bool isSunken, int width=2);
 
+      static void fitDropDown(wxControlWithItems *ctrl, int explicitWidth,
+                              const wxString& value = wxEmptyString);
+
    protected:
       ewxStyledWindow();
       ewxStyledWindow(wxWindow *win, bool recursive=true);
       void setStyles(wxWindow *win, bool recursive=true);
       void setChildStyles(wxWindow *win);
+      static void setReadonlyMarker(wxWindow *win, bool readonly);
       static int getFontSize(int basesize);
+      static int getFontSizeStep();
+      static void applyFont(wxWindow *win);
 
       static Preferences *p_prefs;
 

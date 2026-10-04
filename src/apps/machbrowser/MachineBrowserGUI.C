@@ -214,7 +214,7 @@ void MachineBrowserGUI::CreateControls()
     itemBoxSizer4->Add(itemBoxSizer24, 3, wxGROW|wxALL, 3);
 
     ewxTextCtrl* itemTextCtrl25 = new ewxTextCtrl( itemPanel3, ID_TEXTCTRL_MACHINEBROWSER_STATUS, _T(""), wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY|wxHSCROLL );
-    itemTextCtrl25->SetFont(wxFont(10, wxTELETYPE, wxNORMAL, wxNORMAL, false, _T("Courier 10 Pitch")));
+    itemTextCtrl25->SetFont(ewxStyledWindow::getMonoSpaceFont());
     itemBoxSizer24->Add(itemTextCtrl25, 1, wxGROW|wxALL, 3);
 
 ////@end MachineBrowserGUI content construction

@@ -1,6 +1,10 @@
 #
 # Application Color Mapping
 #
+# Since 9.0 ECCE's own windows follow the desktop's GTK theme, light or
+# dark, and ignore this file.  It still sets the colours of the xterm and
+# editor windows ECCE opens (Input, Readonly and Text).
+#
 # Four possible themes can be specified or colors can be set individually.
 # The four themes are:
 #   Classic - Traditional ECCE colors prior to version 5.0
@@ -38,12 +42,7 @@
 # $ECCE_HOME/siteconfig directory while user files are named MyAppColors
 # and reside in ~/.ECCE4 preferences directories.  Settings for colors in user
 # MyAppColors files override any in the site level AppColors file, though any
-# colors not set in the user file will fallback to the site settings.  The
-# Gateway Preferences dialog contains a choice box for selecting a theme as
-# well.  Setting this preference to "Site Default" (default unless a user
-# explicitly changes it) in the GUI will fallback to the site settings.
-# Although the MyAppColors file is automatically generated, overriding the
-# individual colors (Window, Input, etc.) can still be done by manually
-# editing the file.
+# colors not set in the user file will fallback to the site settings.
+# MyAppColors is edited by hand; there is no setting for it in Preferences.
 
 Theme: PNNL

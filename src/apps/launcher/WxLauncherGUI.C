@@ -23,6 +23,7 @@
 #endif
 
 ////@begin includes
+#include "wxgui/ewxThemeColours.H"
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxPanel.H"
 #include "wxgui/WxParameterEdit.H"
@@ -349,7 +350,7 @@ void WxLauncherGUI::CreateControls()
     itemFlexGridSizer31->Add(itemStaticText32, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 3);
 
     ewxStaticText* itemStaticText33 = new ewxStaticText( itemPanel30, wxID_STATIC, _("*"), wxDefaultPosition, wxSize(7, -1), 0 );
-    itemStaticText33->SetForegroundColour(wxColour(255, 0, 0));
+    itemStaticText33->SetForegroundColour(ewxThemeColours::statusText(ewxThemeColours::BAD));
     itemStaticText33->SetFont(wxFont(14, wxSWISS, wxNORMAL, wxNORMAL, false, _T("Sans")));
     itemFlexGridSizer31->Add(itemStaticText33, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 
@@ -379,11 +380,9 @@ void WxLauncherGUI::CreateControls()
     itemPanel46->SetSizer(itemBoxSizer47);
 
     ewxStaticText* itemStaticText48 = new ewxStaticText( itemPanel46, wxID_STATIC, _("Max."), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemStaticText48->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxNORMAL, false, _T("Sans")));
     itemBoxSizer47->Add(itemStaticText48, 0, wxGROW|wxRIGHT, 3);
 
     ewxStaticText* itemStaticText49 = new ewxStaticText( itemPanel46, ID_STATIC_WXLAUNCHER_MAXWALLTIME, _("02d 14h 30m"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemStaticText49->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxNORMAL, false, _T("Sans")));
     itemBoxSizer47->Add(itemStaticText49, 1, wxGROW|wxLEFT, 3);
 
     ewxStaticText* itemStaticText50 = new ewxStaticText( itemPanel42, wxID_STATIC, _T(""), wxDefaultPosition, wxSize(5, -1), 0 );
@@ -427,11 +426,9 @@ void WxLauncherGUI::CreateControls()
     itemPanel59->SetSizer(itemBoxSizer60);
 
     ewxStaticText* itemStaticText61 = new ewxStaticText( itemPanel59, wxID_STATIC, _("Max. per Node"), wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT );
-    itemStaticText61->SetFont(wxFont(8, wxDEFAULT, wxNORMAL, wxNORMAL, false, _T("Sans")));
     itemBoxSizer60->Add(itemStaticText61, 0, wxGROW|wxRIGHT, 3);
 
     ewxStaticText* itemStaticText62 = new ewxStaticText( itemPanel59, ID_STATIC_WXLAUNCHER_BATCHPROCSMAX, _("1"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemStaticText62->SetFont(wxFont(8, wxDEFAULT, wxNORMAL, wxNORMAL, false, _T("Sans")));
     itemBoxSizer60->Add(itemStaticText62, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 3);
 
     ewxStaticText* itemStaticText63 = new ewxStaticText( itemPanel54, wxID_STATIC, _T(""), wxDefaultPosition, wxSize(5, -1), 0 );
@@ -585,7 +582,7 @@ void WxLauncherGUI::CreateControls()
     itemFlexGridSizer90->Add(itemStaticText91, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 3);
 
     ewxStaticText* itemStaticText92 = new ewxStaticText( itemPanel89, wxID_STATIC, _("*"), wxDefaultPosition, wxSize(7, -1), 0 );
-    itemStaticText92->SetForegroundColour(wxColour(255, 0, 0));
+    itemStaticText92->SetForegroundColour(ewxThemeColours::statusText(ewxThemeColours::BAD));
     itemStaticText92->SetFont(wxFont(14, wxSWISS, wxNORMAL, wxNORMAL, false, _T("Sans")));
     itemFlexGridSizer90->Add(itemStaticText92, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 
@@ -603,7 +600,7 @@ void WxLauncherGUI::CreateControls()
     itemFlexGridSizer95->Add(itemStaticText96, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 3);
 
     ewxStaticText* itemStaticText97 = new ewxStaticText( itemPanel94, wxID_STATIC, _("*"), wxDefaultPosition, wxSize(7, -1), 0 );
-    itemStaticText97->SetForegroundColour(wxColour(255, 0, 0));
+    itemStaticText97->SetForegroundColour(ewxThemeColours::statusText(ewxThemeColours::BAD));
     itemStaticText97->SetFont(wxFont(14, wxSWISS, wxNORMAL, wxNORMAL, false, _T("Sans")));
     itemFlexGridSizer95->Add(itemStaticText97, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 
@@ -655,7 +652,7 @@ void WxLauncherGUI::CreateControls()
     itemFlexGridSizer115->Add(itemStaticText116, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 3);
 
     ewxStaticText* itemStaticText117 = new ewxStaticText( itemPanel114, wxID_STATIC, _("*"), wxDefaultPosition, wxSize(7, -1), 0 );
-    itemStaticText117->SetForegroundColour(wxColour(255, 0, 0));
+    itemStaticText117->SetForegroundColour(ewxThemeColours::statusText(ewxThemeColours::BAD));
     itemStaticText117->SetFont(wxFont(14, wxSWISS, wxNORMAL, wxNORMAL, false, _T("Sans")));
     itemFlexGridSizer115->Add(itemStaticText117, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 
@@ -687,7 +684,7 @@ void WxLauncherGUI::CreateControls()
     itemBoxSizer124->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxStaticText* itemStaticText126 = new ewxStaticText( itemPanel3, ID_STATICTEXT, _("*"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemStaticText126->SetForegroundColour(wxColour(255, 0, 0));
+    itemStaticText126->SetForegroundColour(ewxThemeColours::statusText(ewxThemeColours::BAD));
     itemStaticText126->SetFont(wxFont(14, wxSWISS, wxNORMAL, wxNORMAL, false, _T("Sans")));
     itemBoxSizer124->Add(itemStaticText126, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 

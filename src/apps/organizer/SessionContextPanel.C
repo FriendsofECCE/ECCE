@@ -448,14 +448,14 @@ wxColour SessionContextPanel::getPathColor(Session::LinkType linkType)
   switch (linkType) {
     case Session::INPUT_PROVIDER:
       prefKey = "Organizer.Session.Workflow.Color.InputProvider";
-      ret = (*wxBLACK);
+      ret = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
       break;
     case Session::PRIMARY_PATH:
       prefKey = "Organizer.Session.Workflow.Color.PrimaryPath";
       ret = (*wxGREEN);
       break;
     default:
-      ret = (*wxBLACK);
+      ret = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
       break;
   }
 

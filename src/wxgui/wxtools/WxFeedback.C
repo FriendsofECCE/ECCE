@@ -46,6 +46,7 @@
 #include "wxgui/DnDCalcDrop.H"
 #include "wxgui/ewxMessageDialog.H"
 #include "wxgui/ewxColor.H"
+#include "wxgui/ewxThemeColours.H"
 
 
 WxFeedback* WxFeedback::p_feedback = (WxFeedback*)0;
@@ -119,10 +120,9 @@ int WxFeedback::getSaveId() const
 }
 
 
-void WxFeedback::FlashOn(const char* color)
+void WxFeedback::FlashOn(const wxColour& bkg)
 {
   ewxTextCtrl *text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_FEEDBACK_MSG));
-  ewxColor bkg(color);
   wxString saved = text->GetValue();
   text->Clear();
   text->SetBackgroundColour(bkg);
@@ -308,9 +308,9 @@ void WxFeedback::setMessage(const string& message,
    }
 
    if (severity == WxFeedback::WARNING) {
-      FlashOn(Color::WARNING);
+      FlashOn(ewxThemeColours::statusTint(ewxThemeColours::UNSURE));
    } else if (severity==ERROR || severity==SYSTEM) {
-      FlashOn(Color::ERROR);
+      FlashOn(ewxThemeColours::statusTint(ewxThemeColours::BAD));
    }
 }
 
