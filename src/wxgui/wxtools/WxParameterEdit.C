@@ -110,7 +110,7 @@ void WxParameterEdit::createControls()
     p_unitsStaticText = new ewxSmallLabel( this, ID_STATIC_WXPARAMETEREDIT_UNITSLABEL, _(""), wxDefaultPosition, wxDefaultSize, 0 );
     szrRight->Add(p_unitsStaticText, 0, wxALIGN_BOTTOM, 5);
 
-    p_rangeStaticText = new ewxSmallLabel( this, ID_STATIC_WXPARAMETEREDIT_UNITSLABEL, _(""), wxDefaultPosition, wxDefaultSize, 0 );
+    p_rangeStaticText = new ewxStaticText( this, ID_STATIC_WXPARAMETEREDIT_UNITSLABEL, _(""), wxDefaultPosition, wxDefaultSize, 0 );
     szrRight->Add(p_rangeStaticText, 0, wxALIGN_BOTTOM, 5);
 
     szrMain->Add(szrRight, 0, wxALIGN_CENTER_VERTICAL, 5);
