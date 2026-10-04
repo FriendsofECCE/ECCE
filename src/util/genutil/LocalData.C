@@ -105,7 +105,12 @@ bool copyOne(const string& from, const string& to, const struct stat& st)
   if (n < 0) ok = false;
   close(in);
   if (close(out) != 0) ok = false;
+#ifdef __APPLE__
+  // macOS names the stat timestamps differently.
+  struct timespec times[2] = { st.st_atimespec, st.st_mtimespec };
+#else
   struct timespec times[2] = { st.st_atim, st.st_mtim };
+#endif
   utimensat(AT_FDCWD, to.c_str(), times, 0);
   return ok;
 }
