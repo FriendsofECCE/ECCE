@@ -239,7 +239,7 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          brew install cmake ninja wxwidgets xerces-c mosquitto gcc
+          brew install cmake ninja wxwidgets xerces-c mosquitto gcc libssh pkgconf
           # src/comm/commxt/JobStore.C calls raw X Toolkit Intrinsics
           # (XtAppAddSignal etc.) directly -- macOS has no native
           # equivalent and doesn't ship X11 at all by default. XQuartz
