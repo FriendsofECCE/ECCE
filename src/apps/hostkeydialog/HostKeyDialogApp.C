@@ -78,12 +78,13 @@ class HostKeyDialog : public ewxDialog
       t2->Wrap(wrap);
       top->Add(t2, 0, wxLEFT | wxRIGHT | wxBOTTOM, 12);
 
-      wxBoxSizer* btns = new wxBoxSizer(wxHORIZONTAL);
+      wxStdDialogButtonSizer* btns = new wxStdDialogButtonSizer;
       ewxButton* accept = new ewxButton(this, wxID_OK, "Accept and connect");
       ewxButton* cancel = new ewxButton(this, wxID_CANCEL, "Cancel");
-      btns->Add(accept, 0, wxRIGHT, 8);
-      btns->Add(cancel, 0);
-      top->Add(btns, 0, wxALIGN_RIGHT | wxALL, 12);
+      btns->AddButton(accept);
+      btns->AddButton(cancel);
+      btns->Realize();
+      top->Add(btns, wxSizerFlags().Expand().Border(wxALL, 12));
 
       SetSizerAndFit(top);
       Centre();

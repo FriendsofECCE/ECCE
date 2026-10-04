@@ -177,14 +177,16 @@ void ResidueIndexPromptGUI::CreateControls()
     ewxStaticLine* itemStaticLine18 = new ewxStaticLine( itemDialog1, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer17->Add(itemStaticLine18, 1, wxGROW|wxALL, 5);
 
-    wxBoxSizer* itemBoxSizer19 = new wxBoxSizer(wxHORIZONTAL);
-    itemBoxSizer2->Add(itemBoxSizer19, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 0);
+    wxStdDialogButtonSizer* itemStdDialogButtonSizer19 = new wxStdDialogButtonSizer;
+    itemBoxSizer2->Add(itemStdDialogButtonSizer19, wxSizerFlags().Expand().Border());
 
     ewxButton* itemButton20 = new ewxButton( itemDialog1, wxID_OK, _("&OK"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer19->Add(itemButton20, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+    itemStdDialogButtonSizer19->AddButton(itemButton20);
 
     ewxButton* itemButton21 = new ewxButton( itemDialog1, wxID_CANCEL, _("&Cancel"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer19->Add(itemButton21, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+    itemStdDialogButtonSizer19->AddButton(itemButton21);
+
+    itemStdDialogButtonSizer19->Realize();
 
 ////@end ResidueIndexPromptGUI content construction
 }

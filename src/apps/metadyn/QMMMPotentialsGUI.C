@@ -158,20 +158,16 @@ void QMMMPotentialsGUI::CreateControls()
     ewxStaticLine* itemStaticLine12 = new ewxStaticLine( itemDialog1, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     p_allSizers->Add(itemStaticLine12, 0, wxGROW|wxALL, 5);
 
-    wxBoxSizer* itemBoxSizer13 = new wxBoxSizer(wxHORIZONTAL);
-    p_allSizers->Add(itemBoxSizer13, 0, wxGROW, 5);
-
-    itemBoxSizer13->Add(0, 0, 1, wxALIGN_CENTER_VERTICAL, 5);
+    wxStdDialogButtonSizer* itemStdDialogButtonSizer13 = new wxStdDialogButtonSizer;
+    p_allSizers->Add(itemStdDialogButtonSizer13, wxSizerFlags().Expand().Border());
 
     ewxButton* itemButton15 = new ewxButton( itemDialog1, wxID_CLOSE, _("&Close"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer13->Add(itemButton15, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
-
-    itemBoxSizer13->Add(0, 0, 1, wxALIGN_CENTER_VERTICAL, 5);
+    itemStdDialogButtonSizer13->AddButton(itemButton15);
 
     ewxButton* itemButton17 = new ewxButton( itemDialog1, wxID_HELP, _("&Help"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer13->Add(itemButton17, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+    itemStdDialogButtonSizer13->AddButton(itemButton17);
 
-    itemBoxSizer13->Add(0, 0, 1, wxALIGN_CENTER_VERTICAL, 5);
+    itemStdDialogButtonSizer13->Realize();
 
 ////@end QMMMPotentialsGUI content construction
 }

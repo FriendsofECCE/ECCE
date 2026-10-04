@@ -183,20 +183,16 @@ void GeomConstraintsGUI::CreateControls()
     ewxStaticLine* itemStaticLine16 = new ewxStaticLine( itemDialog1, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     p_allSizers->Add(itemStaticLine16, 0, wxGROW|wxALL, 5);
 
-    wxBoxSizer* itemBoxSizer17 = new wxBoxSizer(wxHORIZONTAL);
-    p_allSizers->Add(itemBoxSizer17, 0, wxGROW, 5);
-
-    itemBoxSizer17->Add(0, 0, 1, wxALIGN_CENTER_VERTICAL, 5);
+    wxStdDialogButtonSizer* itemStdDialogButtonSizer17 = new wxStdDialogButtonSizer;
+    p_allSizers->Add(itemStdDialogButtonSizer17, wxSizerFlags().Expand().Border());
 
     ewxButton* itemButton19 = new ewxButton( itemDialog1, wxID_CLOSE, _("&Close"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer17->Add(itemButton19, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
-
-    itemBoxSizer17->Add(0, 0, 1, wxALIGN_CENTER_VERTICAL, 5);
+    itemStdDialogButtonSizer17->AddButton(itemButton19);
 
     ewxButton* itemButton21 = new ewxButton( itemDialog1, wxID_HELP, _("&Help"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer17->Add(itemButton21, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+    itemStdDialogButtonSizer17->AddButton(itemButton21);
 
-    itemBoxSizer17->Add(0, 0, 1, wxALIGN_CENTER_VERTICAL, 5);
+    itemStdDialogButtonSizer17->Realize();
 
 ////@end GeomConstraintsGUI content construction
 }

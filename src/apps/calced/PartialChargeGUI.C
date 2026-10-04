@@ -275,20 +275,16 @@ void PartialChargeGUI::CreateControls()
     ewxStaticLine* itemStaticLine42 = new ewxStaticLine( itemDialog1, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
     itemBoxSizer2->Add(itemStaticLine42, 0, wxGROW, 5);
 
-    wxBoxSizer* itemBoxSizer43 = new wxBoxSizer(wxHORIZONTAL);
-    itemBoxSizer2->Add(itemBoxSizer43, 0, wxGROW, 5);
-
-    itemBoxSizer43->Add(5, 5, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+    wxStdDialogButtonSizer* itemStdDialogButtonSizer43 = new wxStdDialogButtonSizer;
+    itemBoxSizer2->Add(itemStdDialogButtonSizer43, wxSizerFlags().Expand().Border());
 
     ewxButton* itemButton45 = new ewxButton( itemDialog1, wxID_CLOSE, _("&Close"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer43->Add(itemButton45, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
-
-    itemBoxSizer43->Add(5, 5, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+    itemStdDialogButtonSizer43->AddButton(itemButton45);
 
     ewxButton* itemButton47 = new ewxButton( itemDialog1, wxID_HELP, _("&Help"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer43->Add(itemButton47, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+    itemStdDialogButtonSizer43->AddButton(itemButton47);
 
-    itemBoxSizer43->Add(5, 5, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+    itemStdDialogButtonSizer43->Realize();
 
 ////@end PartialChargeGUI content construction
 }

@@ -82,14 +82,11 @@ bool CleanParameters::Create(wxWindow *parent)
 
   GetSizer()->Add(new ewxStaticLine(this, wxID_ANY), 0, wxALL|wxEXPAND, 5);
 
-  // OK and Cancel buttons; wxStdDialogButtonSizer looked ugly
-  wxSizer *buttonSizer = new wxBoxSizer(wxHORIZONTAL);
-  buttonSizer->AddStretchSpacer();
-  buttonSizer->Add(new wxButton(this, wxID_CLOSE));
-  buttonSizer->AddStretchSpacer();
-  buttonSizer->Add(new wxButton(this, wxID_HELP));
-  buttonSizer->AddStretchSpacer();
-  GetSizer()->Add(buttonSizer, 0, wxEXPAND|wxALIGN_CENTER_HORIZONTAL);
+  wxStdDialogButtonSizer *buttonSizer = new wxStdDialogButtonSizer;
+  buttonSizer->AddButton(new wxButton(this, wxID_CLOSE));
+  buttonSizer->AddButton(new wxButton(this, wxID_HELP));
+  buttonSizer->Realize();
+  GetSizer()->Add(buttonSizer, wxSizerFlags().Expand().Border());
 
   Fit();
 
