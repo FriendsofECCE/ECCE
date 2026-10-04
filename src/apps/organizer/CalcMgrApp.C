@@ -19,6 +19,7 @@
 
 #ifndef WX_PRECOMP
 #include "wx/wx.h"
+#include <wx/timer.h>
 #endif
 
 //#include <iostream>
@@ -77,6 +78,25 @@ bool CalcMgrApp::OnInit()
   SetTopWindow(p_calcMgr);
   registerTopShell(p_calcMgr);
 
+  // Test hook, inert unless set: open the tree down to this URL, so tests
+  // need no clicks at pixel positions.  The tree fills in lazily, so
+  // retry until the node exists.
+  if (const char *openUrl = getenv("ECCE_ORGANIZER_OPEN")) {
+    if (*openUrl)
+      openUrlWhenReady(openUrl, 20);
+  }
+
+  // Test hook, inert unless set: open the tree down to this URL, so tests
+  // need no clicks at pixel positions.
+  if (const char *openUrl = getenv("ECCE_ORGANIZER_OPEN")) {
+    if (*openUrl) {
+      string target = openUrl;
+      p_calcMgr->CallAfter([this, target]() {
+        p_calcMgr->findNode(EcceURL(target), true, true);
+      });
+    }
+  }
+
   // Desk Top Messages
   subscribe("ecce_quit", (wxJmsCBFunc)&CalcMgrApp::quitMCB);
   subscribe("ecce_identify", (wxJmsCBFunc)&CalcMgrApp::identifyMCB);
@@ -116,6 +136,18 @@ bool CalcMgrApp::OnInit()
   notifyReady();
 
   return true;
+}
+
+
+void CalcMgrApp::openUrlWhenReady(const string& url, int tries)
+{
+  if (p_calcMgr->findNode(EcceURL(url), true, true) != 0 || tries <= 0)
+    return;
+  wxTimer *timer = new wxTimer();
+  timer->Bind(wxEVT_TIMER, [this, url, tries](wxTimerEvent&) {
+    openUrlWhenReady(url, tries - 1);
+  });
+  timer->StartOnce(1000);
 }
 
 

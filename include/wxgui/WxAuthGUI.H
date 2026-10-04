@@ -38,7 +38,7 @@ class ewxDialog;
 #define SYMBOL_WXAUTHGUI_STYLE wxCAPTION|wxRESIZE_BORDER|wxSYSTEM_MENU|wxCLOSE_BOX
 #define SYMBOL_WXAUTHGUI_TITLE _("ECCE Authentication")
 #define SYMBOL_WXAUTHGUI_IDNAME ID_DIALOG
-#define SYMBOL_WXAUTHGUI_SIZE wxSize(380, 260)
+#define SYMBOL_WXAUTHGUI_SIZE wxDefaultSize
 #define SYMBOL_WXAUTHGUI_POSITION wxDefaultPosition
 ////@end control identifiers
 

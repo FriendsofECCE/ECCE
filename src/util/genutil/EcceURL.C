@@ -42,9 +42,18 @@ EcceURL::~EcceURL()
 {
 }
 
+// A local path is "file:///path" or a bare "/path" depending on who built
+// the URL (the local data tree's children have no protocol), and both name
+// the same place.
+static string withoutFileScheme(const string& url)
+{
+  return url.compare(0, 7, "file://") == 0 ? url.substr(7) : url;
+}
+
 bool EcceURL::operator==(const EcceURL& rhs) const
 {
-  return toDirString() == rhs.toDirString();
+  return withoutFileScheme(toDirString()) ==
+         withoutFileScheme(rhs.toDirString());
 }
 
 bool EcceURL::operator!=(const EcceURL& rhs) const
@@ -485,8 +494,8 @@ void EcceURL::parse(const char *xurl)
  */
 bool EcceURL::isChildOf(const EcceURL & parentUrl) const
 {
-  string parentUrlStr = parentUrl.toDirString();
-  string currentUrlStr = toString();
+  string parentUrlStr = withoutFileScheme(parentUrl.toDirString());
+  string currentUrlStr = withoutFileScheme(toString());
   return (currentUrlStr.find(parentUrlStr) == 0) &&
     parentUrlStr.length() < currentUrlStr.length();
 }

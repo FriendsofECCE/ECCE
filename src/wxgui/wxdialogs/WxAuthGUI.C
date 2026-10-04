@@ -105,6 +105,7 @@ bool WxAuthGUI::Create( wxWindow* parent, wxWindowID id, const wxString& caption
     ewxDialog::Create( parent, id, caption, pos, size, style );
 
     CreateControls();
+    GetSizer()->SetSizeHints(this);
     Centre();
 ////@end WxAuthGUI creation
     return true;
@@ -119,11 +120,17 @@ void WxAuthGUI::CreateControls()
 ////@begin WxAuthGUI content construction
     WxAuthGUI* itemDialog1 = this;
 
-    wxBitmap itemStaticBitmap2Bitmap(itemDialog1->GetBitmapResource(wxT("passprompt.xpm")));
-    (void)new wxStaticBitmap( itemDialog1, wxID_STATIC, itemStaticBitmap2Bitmap, wxDefaultPosition, wxDefaultSize, 0 );
+    // Logo beside the fields, not painted under them (unreadable text).
+    wxBoxSizer* outerSizer = new wxBoxSizer(wxHORIZONTAL);
+    itemDialog1->SetSizer(outerSizer);
+
+    wxImage logoImage(itemDialog1->GetBitmapResource(wxT("passprompt.xpm")).ConvertToImage());
+    logoImage.Rescale(114, 64, wxIMAGE_QUALITY_HIGH);
+    wxStaticBitmap* logo = new wxStaticBitmap( itemDialog1, wxID_STATIC, wxBitmap(logoImage), wxDefaultPosition, wxDefaultSize, 0 );
+    outerSizer->Add(logo, 0, wxALIGN_TOP|wxALL, 10);
 
     wxBoxSizer* itemBoxSizer3 = new wxBoxSizer(wxVERTICAL);
-    itemDialog1->SetSizer(itemBoxSizer3);
+    outerSizer->Add(itemBoxSizer3, 1, wxEXPAND|wxALL, 5);
 
     ewxStaticText* itemStaticText4 = new ewxStaticText( itemDialog1, wxID_STATIC_AUTH_PROMPT_LABEL, _("Please enter your data server\nuser name and password:"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer3->Add(itemStaticText4, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);

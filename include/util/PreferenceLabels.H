@@ -25,6 +25,7 @@ static const char *stateLoaded      ;
 static const char *stateSystem      ;
 
 static const char *FONTSIZE         ;
+static const char *USESYSTEMFONT    ;
 static const char *COLORTHEME       ;
 static const char *DATEFORMAT       ;
 static const char *TIMEFORMAT       ;

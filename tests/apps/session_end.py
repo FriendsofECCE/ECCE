@@ -1498,7 +1498,9 @@ def caseLocal(checks, display, logdir):
         say("    skip  no strace: the data is not checked as read")
     organizerTrace = os.path.join(logdir, "local-organizer.strace")
     session = Session(display, os.path.join(logdir, "local.log"),
-                      extra={"ECCE_LOCAL_DATA": data, "ECCE_HOME": home},
+                      extra={"ECCE_LOCAL_DATA": data, "ECCE_HOME": home,
+                             "ECCE_ORGANIZER_OPEN":
+                             "file://" + os.path.join(user, "proj", "water") + "/"},
                       prefix=straceCmd(organizerTrace))
     try:
         frame = session.organizer()
@@ -1519,24 +1521,10 @@ def caseLocal(checks, display, logdir):
                      "no Apache was started")
         checks.check(os.path.isdir(data), "the local data directory was made: %s" % data)
         say("    windows now: %s" % [t for _, t in display.windows() if t])
-        # Open the tree down to the project: double-clicks on this run's own
-        # display at fixed offsets from the frame.  Arrow keys and the Home
-        # button did not reach the tree.
         env = display.env()
-        geo = subprocess.run(["xdotool", "getwindowgeometry",
-                              str(int(frame[0], 16))], env=env,
-                             stdout=subprocess.PIPE, timeout=10).stdout.decode()
-        pos = re.search(r"Position: (-?\d+),(-?\d+)", geo)
-        if pos:
-            # Tree rows (Local data, users, <user>, proj) are 18px apart and
-            # indented 10px; double-click opens a row.
-            for row in (1, 2, 3):
-                x = int(pos.group(1)) + 77 + 10 * (row - 1)
-                y = int(pos.group(2)) + 93 + 18 * (row - 1)
-                subprocess.run(["xdotool", "mousemove", str(x), str(y),
-                                "click", "--repeat", "2", "--delay", "100", "1"],
-                               env=env, timeout=10)
-                time.sleep(2)
+        # The Organizer opened the tree down to the calculation itself
+        # (ECCE_ORGANIZER_OPEN, set in the session's environment).
+        time.sleep(5)
         time.sleep(3)
         if shutil.which("import"):
             subprocess.run(["import", "-window", "root",

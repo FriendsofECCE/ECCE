@@ -19,6 +19,7 @@ const char *PrefLabels::stateLoaded       = "RunState.Loaded";
 const char *PrefLabels::stateSystem       = "RunState.System";
 
 const char *PrefLabels::FONTSIZE          = "FontSize";      // Int
+const char *PrefLabels::USESYSTEMFONT     = "UseSystemFont"; // Boolean
 const char *PrefLabels::COLORTHEME        = "Theme";         // String
 const char *PrefLabels::DATEFORMAT        = "DateFormat";    // Int
 const char *PrefLabels::TIMEFORMAT        = "TimeFormat";    // Int

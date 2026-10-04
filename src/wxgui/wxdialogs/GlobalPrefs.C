@@ -90,7 +90,7 @@ namespace {
 GlobalPrefs::GlobalPrefs(wxWindow* parent)
   : p_publisher(NULL), p_book(NULL),
     p_fontSize(NULL), p_dateFormat(NULL),
-    p_timeFormat(NULL), p_unit(NULL), p_beepError(NULL), p_beepWarn(NULL),
+    p_timeFormat(NULL), p_unit(NULL), p_systemFont(NULL), p_beepError(NULL), p_beepWarn(NULL),
     p_focus(NULL), p_confirmExit(NULL), p_closeShells(NULL),
     p_savePasswords(NULL), p_showBusy(NULL), p_alwaysOnTop(NULL),
     p_leftClickNewApp(NULL), p_orientation(NULL),
@@ -218,6 +218,13 @@ void GlobalPrefs::createGeneralPage(wxWindow* page)
   for (size_t k = 0; k < unitNames.size(); k++) {
     p_unit->Append(unitNames[k]);
   }
+  // ECCE's windows are dense, so they use 10 pt unless the user asks for
+  // the desktop's size.  Fonts are set when a window is created.
+  p_systemFont = new ewxCheckBox(sb, wxID_ANY,
+      _("Use the system font size (takes effect when applications are next started)"),
+      wxDefaultPosition, wxDefaultSize, wxCHK_2STATE);
+  p_systemFont->Bind(wxEVT_CHECKBOX, &GlobalPrefs::OnGlobalChange, this);
+  box->Add(p_systemFont, 0, wxLEFT|wxRIGHT|wxBOTTOM, PAD);
   outer->Add(box, 0, wxGROW|wxALL, PAD);
 
   wxStaticBoxSizer* box2 = new wxStaticBoxSizer(wxVERTICAL, page, _("Behavior"));
@@ -598,6 +605,7 @@ void GlobalPrefs::OnResetAll(wxCommandEvent& event)
   p_restoring = true;
   if (!isDefaultGlobalPref()) {
     p_fontSize->SetSelection(p_fontSizeDefault);
+    p_systemFont->SetValue(p_systemFontDefault);
     p_dateFormat->SetSelection(p_dateFormatDefault);
     p_timeFormat->SetSelection(p_timeFormatDefault);
     p_unit->SetSelection(p_unitDefault);
@@ -705,6 +713,7 @@ void GlobalPrefs::saveSettings()
 
   Preferences eccePref = Preferences(PrefLabels::GLOBALPREFFILE);
   eccePref.setInt(PrefLabels::FONTSIZE, p_fontSize->GetSelection());
+  eccePref.setBool(PrefLabels::USESYSTEMFONT, p_systemFont->GetValue());
   eccePref.setInt(PrefLabels::DATEFORMAT, p_dateFormat->GetSelection());
   eccePref.setInt(PrefLabels::TIMEFORMAT, p_timeFormat->GetSelection());
   eccePref.setString(PrefLabels::UNITFAMILY, family);
@@ -743,6 +752,10 @@ void GlobalPrefs::restoreSettings()
   if (!eccePref.getInt(PrefLabels::FONTSIZE, intBuf))
     intBuf = p_fontSizeDefault;
   p_fontSize->SetSelection(intBuf);
+
+  if (!eccePref.getBool(PrefLabels::USESYSTEMFONT, boolBuf))
+    boolBuf = p_systemFontDefault;
+  p_systemFont->SetValue(boolBuf);
 
   if (!eccePref.getInt(PrefLabels::DATEFORMAT, intBuf))
     intBuf = p_dateFormatDefault;
@@ -840,6 +853,7 @@ void GlobalPrefs::updateResetButton()
 bool GlobalPrefs::isDefaultGlobalPref()
 {
   return p_fontSize->GetSelection() == p_fontSizeDefault &&
+         p_systemFont->GetValue() == p_systemFontDefault &&
          p_dateFormat->GetSelection() == p_dateFormatDefault &&
          p_timeFormat->GetSelection() == p_timeFormatDefault &&
          p_unit->GetSelection() == p_unitDefault &&
