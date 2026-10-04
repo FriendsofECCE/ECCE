@@ -27,8 +27,9 @@ DATAROOT="$STATEDIR/htdocs"
 # before. Seeding does not need the server stopped, so it belongs here.
 # Keep the Gaussian basis set library in step with the installed package.
 #
-# Clients do not read $ECCE_HOME/data/admin/basissets directly:
-# siteconfig/DataServers points <BasisSet> at
+# With a data server, clients do not read $ECCE_HOME/data/admin/basissets
+# directly (only local mode, #216, does): siteconfig/DataServers points
+# <BasisSet> at
 # http://localhost:8096/Ecce/system/GaussianBasisSetLibrary, so the library
 # has to live under the document root to be reachable at all.  Nothing used
 # to put it there -- installs only worked because their htdocs tree was

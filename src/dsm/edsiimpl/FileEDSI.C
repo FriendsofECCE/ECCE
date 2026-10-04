@@ -24,6 +24,7 @@
 #include "dsm/VDoc.H"
 #include "util/ResourceUtils.H"
 #include "util/STLUtil.H"
+#include "util/LocalData.H"
 
 
 FileEDSI::FileEDSI() : EDSI()
@@ -44,6 +45,9 @@ FileEDSI::FileEDSI(const EcceURL& url) : EDSI(url)
   // path to the file name before attempting to open/read the file.
   SFile file(p_url);
   p_url = file.path(true);
+  // Marks the local data folder as in use for this process's lifetime,
+  // so it is never moved under a job being followed (LocalData::move).
+  LocalData::dir();
 }
 
 FileEDSI::FileEDSI(const FileEDSI& rhs) : EDSI(rhs)
@@ -514,7 +518,8 @@ void walk(const string& start, vector<string>& out)
   SDirectory dir(start);
   vector<SFile> kids = dir.get_files(false);
   for (size_t i = 0; i < kids.size(); i++) {
-    if (isStoreFile(kids[i].filename())) continue;
+    // Hidden files are not resources, as listCollection treats them.
+    if (kids[i].filename().compare(0, 1, ".") == 0) continue;
     string path = start + "/" + kids[i].filename();
     out.push_back(path);
     if (isDirectory(path)) walk(path, out);

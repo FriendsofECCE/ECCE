@@ -27,6 +27,7 @@ using namespace xercesc;
 #include "dsm/EDSIServerCentral.H"
 #include "dsm/EDSIGaussianBasisSetLibrary.H"
 #include "dsm/EDSI.H"
+#include "util/LocalData.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/EcceDAVClient.H"
 #include "dsm/BasicDOMParser.H"
@@ -38,9 +39,9 @@ using namespace xercesc;
 // Class statics
 vector<Bookmark> EDSIServerCentral::p_mountPoints;
 
-// ECCE_LOCAL_DATA=<dir> selects local mode: the default (and only) data
+// Local mode (LocalData::dir() non-empty, #216): the default and only data
 // server is file://<dir>, with no siteconfig/DataServers and no Apache.
-// Unset, which is the default, nothing below behaves differently.
+// In server mode, the default, nothing below behaves differently.
 static string xmlEscape(const string& in)
 {
   string out;
@@ -54,10 +55,7 @@ static string xmlEscape(const string& in)
 
 static string localDataDir()
 {
-  const char *dir = getenv("ECCE_LOCAL_DATA");
-  string ret = dir ? dir : "";
-  while (ret.size() > 1 && ret[ret.size()-1] == '/') ret.erase(ret.size()-1);
-  return ret;
+  return LocalData::dir();
 }
 
 
@@ -357,6 +355,10 @@ int EDSIServerCentral::getAccess(const string& projectUrl, string& access, strin
 
   // retrieve access permissions via cgi-bin script
   EcceURL serverUrl(projectUrl);
+  if (serverUrl.isLocal()) {
+    errMessage = "Access control applies only to projects on a data server.";
+    return 500;
+  }
   string serverPath = serverUrl.getPath();
   serverPath.erase(0,5);
   string urlstr = serverUrl.getRef();
@@ -382,6 +384,10 @@ int EDSIServerCentral::setAccess(const string& projectUrl,
                                  string& errMessage)
 {
   EcceURL serverUrl(projectUrl);
+  if (serverUrl.isLocal()) {
+    errMessage = "Access control applies only to projects on a data server.";
+    return 500;
+  }
   EDSI *target = EDSIFactory::getEDSI(serverUrl);
   vector<MetaDataRequest> requests;
   ResourceMetaDataResult result;
@@ -563,7 +569,7 @@ EcceURL EDSIServerCentral::getUserHome(const EcceURL& rootUrl)
     // Local mode: <dir>/users/<user>, the same layout as a data server,
     // which is what the gateway's user check expects.
     if (!localDataDir().empty())
-      path = localDataDir() + "/users/" + Ecce::serverUser();
+      path = LocalData::userHome();
     ret.set(ret.getProtocol().c_str(), ret.getHost().c_str(),
             ret.getPort(), path.c_str());
   }

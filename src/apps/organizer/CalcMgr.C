@@ -30,6 +30,7 @@ using std::endl;
 #include <wx/dnd.h>
 #include <wx/treectrl.h>
 
+#include "util/LocalData.H"
 #include "util/Ecce.H"
 #include "util/ErrMsg.H"
 #include "util/Host.H"
@@ -808,7 +809,9 @@ bool CalcMgr::confirmAndQuit()
     // well means it is gone even if that script is not on PATH or
     // resolves the session key differently than this process did.
     AuthCache::sessionClear();
-    (void)system("ecce-dataserver-stop");
+    // A local-mode session started no data server; one running belongs to
+    // a server-mode session elsewhere and is not ours to stop.
+    if (LocalData::dir().empty()) (void)system("ecce-dataserver-stop");
     (void)system("ecce-gateway-stop");
   }
 
@@ -5362,7 +5365,9 @@ void CalcMgr::onSelectionChange(bool selectInTree)
 
       // Only work on project, not even virtual documents
       // @todo shouldn't use hardwired string
-      menuBar->Enable(wxID_CHANGE_ACCESS, isProject);
+      // A local folder has one user, so there is nobody to grant access.
+      menuBar->Enable(wxID_CHANGE_ACCESS,
+                      isProject && !itemData->getUrl().isLocal());
       menuBar->Enable(wxID_CUT, !isSystemFolder);
       menuBar->Enable(wxID_RENAME, !isSystemFolder);
       menuBar->Enable(wxID_DELETE, !isSystemFolder);

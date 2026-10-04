@@ -27,6 +27,7 @@
 
 #include "wx/timer.h"
 
+#include "util/LocalData.H"
 #include "util/BrowserHelp.H"
 #include "util/Preferences.H"
 #include "util/PreferenceLabels.H"
@@ -690,7 +691,9 @@ void Gateway::exitGateway()
       AuthCache::sessionClear();
       // Data server first: ecce-gateway-stop ends this process, so
       // nothing after it runs.
-      (void)system("ecce-dataserver-stop");
+      // A local-mode session started no data server; one running belongs to
+      // a server-mode session elsewhere and is not ours to stop.
+      if (LocalData::dir().empty()) (void)system("ecce-dataserver-stop");
       (void)system("ecce-gateway-stop");
     }
   } else {
