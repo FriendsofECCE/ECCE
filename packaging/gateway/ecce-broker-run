@@ -82,12 +82,14 @@ conf="$BASE/mosquitto.conf"
   echo "per_listener_settings true"
   echo "persistence false"
   echo "log_dest stderr"
+  set -f   # binds may be "*": no expansion against the cwd (systemd runs us in /)
   for b in $binds; do
     if [ "$b" = "*" ]; then echo "listener $PORT"; else echo "listener $PORT $b"; fi
     echo "allow_anonymous false"
     echo "password_file $BASE/passwd"
     echo "acl_file $ACL"
   done
+  set +f
 } >"$conf" || die "cannot write $conf"
 
 # exec, so the caller's $! and systemd's MainPID are the broker.
