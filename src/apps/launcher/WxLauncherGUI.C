@@ -380,11 +380,9 @@ void WxLauncherGUI::CreateControls()
     itemPanel46->SetSizer(itemBoxSizer47);
 
     ewxStaticText* itemStaticText48 = new ewxStaticText( itemPanel46, wxID_STATIC, _("Max."), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemStaticText48->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxNORMAL, false, _T("Sans")));
     itemBoxSizer47->Add(itemStaticText48, 0, wxGROW|wxRIGHT, 3);
 
     ewxStaticText* itemStaticText49 = new ewxStaticText( itemPanel46, ID_STATIC_WXLAUNCHER_MAXWALLTIME, _("02d 14h 30m"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemStaticText49->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxNORMAL, false, _T("Sans")));
     itemBoxSizer47->Add(itemStaticText49, 1, wxGROW|wxLEFT, 3);
 
     ewxStaticText* itemStaticText50 = new ewxStaticText( itemPanel42, wxID_STATIC, _T(""), wxDefaultPosition, wxSize(5, -1), 0 );
@@ -428,11 +426,9 @@ void WxLauncherGUI::CreateControls()
     itemPanel59->SetSizer(itemBoxSizer60);
 
     ewxStaticText* itemStaticText61 = new ewxStaticText( itemPanel59, wxID_STATIC, _("Max. per Node"), wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT );
-    itemStaticText61->SetFont(wxFont(8, wxDEFAULT, wxNORMAL, wxNORMAL, false, _T("Sans")));
     itemBoxSizer60->Add(itemStaticText61, 0, wxGROW|wxRIGHT, 3);
 
     ewxStaticText* itemStaticText62 = new ewxStaticText( itemPanel59, ID_STATIC_WXLAUNCHER_BATCHPROCSMAX, _("1"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
-    itemStaticText62->SetFont(wxFont(8, wxDEFAULT, wxNORMAL, wxNORMAL, false, _T("Sans")));
     itemBoxSizer60->Add(itemStaticText62, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 3);
 
     ewxStaticText* itemStaticText63 = new ewxStaticText( itemPanel54, wxID_STATIC, _T(""), wxDefaultPosition, wxSize(5, -1), 0 );

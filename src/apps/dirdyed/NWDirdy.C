@@ -677,6 +677,22 @@ void NWDirdy::reparentCodes(const bool& theoryFlag, const string& codeName,
 
 void NWDirdy::createDynamicGUI()
 {
+  // The charge and spin fields start empty, so they would size to nothing;
+  // give them room for their longest value in the theme's font.
+  const int fieldIds[] = { ID_COMBOBOX_DIRDY_CHARGE_TS, ID_COMBOBOX_DIRDY_CHARGE_R1,
+                           ID_COMBOBOX_DIRDY_CHARGE_R2, ID_COMBOBOX_DIRDY_CHARGE_P1,
+                           ID_COMBOBOX_DIRDY_CHARGE_P2, ID_CHOICE_DIRDY_SPIN_TS,
+                           ID_CHOICE_DIRDY_SPIN_R1, ID_CHOICE_DIRDY_SPIN_R2,
+                           ID_CHOICE_DIRDY_SPIN_P1, ID_CHOICE_DIRDY_SPIN_P2 };
+  for (size_t f = 0; f < WXSIZEOF(fieldIds); f++) {
+    wxWindow *field = FindWindow(fieldIds[f]);
+    if (!field) continue;
+    const char *widest = f < 5 ? "-10" : "Quintet";
+    // plus room for the drop-down button and the entry's padding
+    int width = field->GetTextExtent(widest).x + 3*field->GetCharHeight();
+    field->SetMinSize(wxSize(width, -1));
+  }
+
   // create bitmap buttons for electronic structure codes other than Amica
   ResourceDescriptor rd = ResourceDescriptor::getResourceDescriptor();
   ResourceType *rt;
