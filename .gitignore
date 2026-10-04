@@ -5,6 +5,7 @@
 /obj/
 /build-cmake/
 /build-coin/
+/build-oiv/
 /build-coin-compare/
 /inst-cmake/
 /inst-coin/

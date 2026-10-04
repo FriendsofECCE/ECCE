@@ -87,6 +87,14 @@ public:
   virtual void setTransparencyType(SoGLRenderAction::TransparencyType type);
   virtual SoGLRenderAction::TransparencyType getTransparencyType() const;
 
+  // Coin builds: a request for SCREEN_DOOR (the MO/isosurface lobes) is
+  // drawn with depth-peeled SORTED_LAYERS_BLEND unless quick mode is on,
+  // the canvas has no alpha, or a scene was too slow to peel (then
+  // fallbackCallback is told once).  No effect with the vendored core.
+  void setQuickTransparency(bool quick);
+  typedef void (*FallbackCallback)(void *data);
+  void setFallbackCallback(FallbackCallback cb, void *data);
+
   // Anti-aliasing methods.
   virtual void setAntialiasing(SbBool smoothing, int numPasses);
   virtual void getAntialiasing(SbBool &smoothing, int &numPasses) const;
@@ -292,6 +300,18 @@ private:
 
   FrameCallback p_frameCB;
   void *p_frameCBData;
+
+  void applyTransparency();
+  void timeFrame(double ms);
+  SoGLRenderAction::TransparencyType p_requestedTransp;
+  bool p_quickTransp;
+  bool p_noAlpha;          // canvas has no 8-bit alpha: peeling impossible
+  bool p_alphaChecked;
+  bool p_fellBack;         // too slow for this scene; cleared on a mode change
+  double p_recentMs[5];
+  int p_recentCount;
+  FallbackCallback p_fallbackCB;
+  void *p_fallbackCBData;
 };
 
 #endif

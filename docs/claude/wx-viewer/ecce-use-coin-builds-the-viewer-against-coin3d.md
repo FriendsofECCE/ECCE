@@ -1,11 +1,11 @@
 ---
 type: map
-title: "ECCE_USE_COIN builds the viewer stack against Coin3D; both builds coexist until stage 4"
+title: "ECCE_USE_COIN (default ON) builds the viewer stack against Coin3D; -DECCE_USE_COIN=OFF keeps the vendored core for one release"
 area: wx-viewer
 paths: [CMakeLists.txt, tools/coin/gen_shim.py, include/inv/ChemKit/ChemDisplay.H, include/inv/SoWx/SoWxViewer.H, src/inv/wxinv/SoWxRenderArea.C]
 issues: [166]
 ---
-`cmake -DECCE_USE_COIN=ON` (default OFF) does not compile the vendored
+`ECCE_USE_COIN` is ON by default (stage 4); with it the build does not compile the vendored
 Inventor core in `src/inv` (`db*`, `image`, `interaction`, `nodekits`).
 `ecceinv` shrinks to `src/inv/flclient` (our FreeType font layer) plus
 `libCoin`; `moiv`, `wxinv`, `src/viz`, `src/wxviz` and the apps build
@@ -20,12 +20,17 @@ includes Coin's `SoTextureCoordinateElement.h` (a typedef in Coin, so it
 cannot be forward-declared) and `SoWxViewer.H`/`SoWxRenderArea.C` include
 `SbLinear.h`/`SbColor.h`, which Coin's headers do not pull in transitively.
 
-Why both exist: the vendored core is still the shipped, tested viewer; the
-Coin build is validated side by side (stage 2 onwards) and the vendored
-core is removed only at stage 4. Use separate build directories
-(`build-cmake`, `build-coin`): switching the option in one tree rebuilds
-everything. After a change under `src/inv/moiv`, `src/inv/wxinv` or
-`include/inv/{ChemKit,SoWx}`, build both.
+Why both exist: the vendored core stays buildable (`-DECCE_USE_COIN=OFF`,
+CI job "vendored-inventor") for one release as a fallback, then goes. Use
+separate build directories (`build-cmake`, `build-oiv`): switching the option
+in one tree rebuilds everything. After a change under `src/inv/moiv`,
+`src/inv/wxinv` or `include/inv/{ChemKit,SoWx}`, build both.
+
+Packaging: the deb gets `libcoin80t64` from dpkg-shlibdeps (nothing hand
+listed); build-dep is `libcoin-dev` plus `libegl-dev` and `python3`
+(gen_shim). EPEL 9 and Fedora have `Coin4`/`Coin4-devel` (4.0.10; Fedora also
+4.0.7), so the RPM jobs use the Coin build and Requires `Coin4`; those jobs
+and the RPMs are unrun as of stage 4.
 
 Thumbnails (`SoOffscreenRenderer`): Coin's own GLX offscreen context fails
 under Xvfb and crashes with no `DISPLAY`. `src/inv/wxinv/CoinEglOffscreen.C`

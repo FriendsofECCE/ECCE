@@ -31,7 +31,6 @@ def render():
     import subprocess, xdisplay
     os.environ["LIBGL_ALWAYS_SOFTWARE"] = "1"
     os.environ.setdefault("ECCE_TEST_XDISPLAYS", "170-179")
-    os.environ["ECCE_COIN_ALPHA"] = "1"     # depth peeling needs a destination alpha
     for name, b in BUILDS.items():
         d = os.path.join(OUT, "raw", name)
         os.makedirs(d, exist_ok=True)

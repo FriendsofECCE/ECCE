@@ -24,6 +24,8 @@
 #include "viz/EcceDispParam.H"
 #include "viz/VR3dXVSmouse.H"
 
+#include "util/Preferences.H"
+#include "util/PreferenceLabels.H"
 #include "wxviz/SGViewer.H"
 #include "wxviz/SGSelection.H"
 #include "wxviz/MouseEventListener.H"
@@ -229,9 +231,31 @@ SGViewer::~SGViewer()
  */
 void SGViewer::setTransparencyType(SoGLRenderAction::TransparencyType type)
 {
-  //p_renderArea->setTransparencyType(SoGLRenderAction::DELAYED_ADD);
-  //p_renderArea->setTransparencyType(SoGLRenderAction::SCREEN_DOOR);
+  // Read at each request, so the Preferences checkbox takes effect the next
+  // time a panel asks for the lobe mode (a new scene).
+  bool quick = false;
+  const char *env = getenv("ECCE_QUICK_TRANSPARENCY");
+  if (env && *env) {
+    quick = *env != '0';
+  } else {
+    Preferences prefs(PrefLabels::GLOBALPREFFILE);
+    prefs.getBool(PrefLabels::QUICKTRANSPARENCY, quick);
+  }
+  p_renderArea->setQuickTransparency(quick);
+  p_renderArea->setFallbackCallback(&SGViewer::transparencyFallbackCB, this);
   p_renderArea->setTransparencyType(type);
+}
+
+
+// The render area gave up on accurate transparency for this scene.
+void SGViewer::transparencyFallbackCB(void *data)
+{
+  SGViewer *v = static_cast<SGViewer*>(data);
+  wxFrame *frame = wxDynamicCast(wxGetTopLevelParent(v), wxFrame);
+  if (frame && frame->GetStatusBar())
+    frame->SetStatusText(_("Large scene: quick transparency"));
+  if (getenv("ECCE_TRANSPARENCY_FALLBACK_MS"))
+    fprintf(stderr, "[TRANSPARENCY] fallback to quick mode\n");
 }
 
 

@@ -55,6 +55,7 @@ public:
   SbColor calculateContrastingColor();
 
   void setTransparencyType(SoGLRenderAction::TransparencyType type);
+  static void transparencyFallbackCB(void *data);
 
   void refreshRenderArea();
 

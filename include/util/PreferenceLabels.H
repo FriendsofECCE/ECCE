@@ -54,6 +54,7 @@ static const char *ORIENTATION      ;
 static const char *EDITOR           ;
 static const char *TERMINAL         ;
 static const char *BROWSER          ;
+static const char *QUICKTRANSPARENCY;   // Boolean: stippled lobes, not accurate blending (Coin viewer)
 static const char *LOCALDATA        ;   // Boolean: local data folder, not a server
 static const char *LOCALDATAFOLDER  ;   // String: that folder; empty is ~/.ECCE-local
 static const char *LOCALDATAMOVETO  ;   // String: move it here at the next start

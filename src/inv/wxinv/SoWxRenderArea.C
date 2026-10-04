@@ -13,6 +13,8 @@
 #include "inv/SoWx/SoWxKeyboard.H"
 
 
+#include <algorithm>
+#include <cstdlib>
 #include <iostream>
 using std::cerr;
 
@@ -383,8 +385,68 @@ const SbViewportRegion & SoWxRenderArea::getViewportRegion() const
  */
 void SoWxRenderArea::setTransparencyType(SoGLRenderAction::TransparencyType type)
 {
-  p_sceneMgr->getGLRenderAction()->setTransparencyType(type);
+  p_fellBack = false;   // every request is a fresh scene: measure again
+  p_requestedTransp = type;
+  applyTransparency();
   p_sceneMgr->scheduleRedraw();
+}
+
+
+void SoWxRenderArea::setQuickTransparency(bool quick)
+{
+  if (quick == p_quickTransp) return;
+  p_quickTransp = quick;
+  applyTransparency();
+}
+
+
+void SoWxRenderArea::setFallbackCallback(FallbackCallback cb, void *data)
+{
+  p_fallbackCB = cb;
+  p_fallbackCBData = data;
+}
+
+
+// SCREEN_DOOR is what the lobes ask for; in Coin builds that means accurate
+// (depth-peeled) blending unless something rules it out.
+void SoWxRenderArea::applyTransparency()
+{
+  SoGLRenderAction *a = p_sceneMgr->getGLRenderAction();
+#ifdef OIV_COIN
+  if (p_requestedTransp == SoGLRenderAction::SCREEN_DOOR &&
+      !p_quickTransp && !p_noAlpha && !p_fellBack) {
+    a->setTransparencyType(SoGLRenderAction::SORTED_LAYERS_BLEND);
+    a->setSortedLayersNumPasses(6);   // measured: 4 passes miss ~5% of overlaps
+    p_recentCount = 0;
+    return;
+  }
+#endif
+  a->setTransparencyType(p_requestedTransp);
+}
+
+
+// Called with each frame's time while peeling is active.  A median of five
+// frames keeps one slow first frame (shader and context setup) from
+// tripping it; the switch is one-way until the mode is requested again.
+void SoWxRenderArea::timeFrame(double ms)
+{
+  static double limit = -2;
+  if (limit < -1) {
+    const char *e = getenv("ECCE_TRANSPARENCY_FALLBACK_MS");
+    limit = (e && *e) ? atof(e) : 100.0;
+  }
+  if (limit <= 0) return;
+
+  p_recentMs[p_recentCount++ % 5] = ms;
+  if (p_recentCount < 5) return;
+  double v[5];
+  for (int i = 0; i < 5; i++) v[i] = p_recentMs[i];
+  std::sort(v, v + 5);
+  if (v[2] <= limit) return;
+
+  p_fellBack = true;
+  applyTransparency();
+  if (p_fallbackCB) p_fallbackCB(p_fallbackCBData);
 }
 
 
@@ -854,7 +916,24 @@ void SoWxRenderArea::redraw()
     p_windowResized = false;
   }
   
+#ifdef OIV_COIN
+  if (!p_alphaChecked) {
+    GLint alphaBits = 0;
+    glGetIntegerv(GL_ALPHA_BITS, &alphaBits);
+    p_alphaChecked = true;
+    if (alphaBits < 8) { p_noAlpha = true; applyTransparency(); }
+  }
+  const bool peeling = p_sceneMgr->getGLRenderAction()->getTransparencyType()
+                       == SoGLRenderAction::SORTED_LAYERS_BLEND;
+  wxLongLong t0 = peeling ? wxGetLocalTimeMillis() : wxLongLong(0);
   actualRedraw();
+  if (peeling) {
+    glFinish();
+    timeFrame((wxGetLocalTimeMillis() - t0).ToDouble());
+  }
+#else
+  actualRedraw();
+#endif
   if (p_frameCB) p_frameCB(p_frameCBData);
 
   // swap those buffers!
@@ -1312,6 +1391,14 @@ void SoWxRenderArea::constructorCommon(SbBool getMouseInput,
   // the Builder relies on the latter (the MO lobes are stippled, not blended).
   p_sceneMgr->getGLRenderAction()->setTransparencyType(SoGLRenderAction::SCREEN_DOOR);
 #endif
+  p_requestedTransp = SoGLRenderAction::SCREEN_DOOR;
+  p_quickTransp = false;
+  p_noAlpha = false;
+  p_alphaChecked = false;
+  p_fellBack = false;
+  p_recentCount = 0;
+  p_fallbackCB = NULL;
+  p_fallbackCBData = NULL;
 
   p_overlaySceneMgr = new SoSceneManager();
   p_overlaySceneMgr->setRenderCallback(SoWxRenderArea::renderOverlayCB, this);

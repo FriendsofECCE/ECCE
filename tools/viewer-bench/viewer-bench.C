@@ -21,6 +21,7 @@
 #include <GL/glx.h>
 
 #include "inv/SoWx/SoWx.H"
+#include "inv/SoWx/SoWxRenderArea.H"
 #include "inv/actions/SoSearchAction.H"
 #include "inv/misc/SoChildList.H"
 #include "inv/nodes/SoSeparator.H"
@@ -221,6 +222,7 @@ public:
   virtual int OnRun();
 
 private:
+  int runFallbackCheck();
   bool loadScene(const Config &c, string &err);
   bool measure(const Config &c, bool caching, int warm, int frames,
                double budget, Result &r);
@@ -364,6 +366,45 @@ bool BenchApp::measure(const Config &c, bool caching, int warm, int frames,
 }
 
 
+//  BENCH_FALLBACK=1: for each scene ask for the lobe transparency mode the
+//  way the MO panel does and report whether the render area fell back to
+//  quick mode.  ECCE_TRANSPARENCY_FALLBACK_MS moves the threshold.
+int BenchApp::runFallbackCheck()
+{
+  SoWxRenderArea *ra = dynamic_cast<SoWxRenderArea *>(p_canvas);
+  if (!ra) { fprintf(stderr, "canvas is not a SoWxRenderArea\n"); return 2; }
+  const Config configs[] = {
+    {"water", "Ball And Stick", true}, {"benzene", "Ball And Stick", true},
+    {"Cr(CO)6", "Ball And Stick", true}, {"water box", "Ball And Stick", true},
+  };
+  int bad = 0;
+  const char *lim = getenv("ECCE_TRANSPARENCY_FALLBACK_MS");
+  GLint ab = 0;
+  glGetIntegerv(GL_ALPHA_BITS, &ab);
+  printf("alpha bits %d, threshold %s ms\n", (int)ab, lim ? lim : "100 (default)");
+  for (size_t i = 0; i < sizeof configs / sizeof configs[0]; i++) {
+    string err;
+    if (!loadScene(configs[i], err)) { fprintf(stderr, "%s\n", err.c_str()); return 2; }
+    p_viewer->setTransparencyType(SoGLRenderAction::SCREEN_DOOR);
+    const SbRotation step(SbVec3f(0, 1, 0), 0.1f);
+    Clock::time_point t0 = Clock::now();
+    int n = 0;
+    for (; n < 12; n++) {
+      p_viewer->rotateCamera(step);
+      p_canvas->Refresh(false);
+      p_canvas->Update();
+      glFinish();
+    }
+    double ms = std::chrono::duration<double, std::milli>(Clock::now() - t0).count() / n;
+    bool quick = ra->getTransparencyType() != SoGLRenderAction::SORTED_LAYERS_BLEND;
+    printf("%-10s %6d atoms +iso: %7.1f ms/frame  mode %s\n",
+           configs[i].system.c_str(), p_atoms, ms,
+           quick ? "QUICK (fell back)" : "ACCURATE");
+  }
+  return bad;
+}
+
+
 int BenchApp::OnRun()
 {
   const char *e = getenv("BENCH_FRAMES");
@@ -380,6 +421,8 @@ int BenchApp::OnRun()
   p_canvas->Refresh(false);
   p_canvas->Update();
   Yield(true);
+
+  if (getenv("BENCH_FALLBACK")) return runFallbackCheck();
 
   const char *vendor = (const char *)glGetString(GL_VENDOR);
   const char *renderer = (const char *)glGetString(GL_RENDERER);

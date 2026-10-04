@@ -321,11 +321,10 @@ void SoWxViewer::CreateControls()
 #  endif
 #endif
 #if defined(OIV_COIN) && !defined(__WXMSW__) && !defined(__WXMAC__) && !defined(__WXCOCOA__)
-  //  Dev only (ECCE_COIN_ALPHA=1, tools/coin/lobes.py): Coin's
-  //  SORTED_LAYERS_BLEND needs an 8-bit alpha buffer and otherwise falls
-  //  back to the per-object sort.  Not requested by default: ECCE does not
-  //  use that mode.
-  if (getenv("ECCE_COIN_ALPHA")) {
+  //  Coin's depth-peeled transparency (SORTED_LAYERS_BLEND, used for the
+  //  MO lobes) needs an 8-bit alpha buffer.  Without one the render area
+  //  notices and draws the lobes with the screen door instead.
+  {
     int with_alpha[20] = { WX_GL_RGBA, WX_GL_MIN_RED, 1, WX_GL_MIN_GREEN, 1,
                            WX_GL_MIN_BLUE, 1, WX_GL_DEPTH_SIZE, 1,
                            WX_GL_MIN_ALPHA, 8, WX_GL_DOUBLEBUFFER, None };

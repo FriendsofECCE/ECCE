@@ -49,7 +49,9 @@ Traps found building it:
   per frame with `tools/coin/gltrace.c`):
   - Coin's render action starts in BLEND, Open Inventor's in SCREEN_DOOR; MO
     lobes (alpha 0.5) were blended onto black = half brightness. Set in
-    `SoWxRenderArea`'s constructor.
+    `SoWxRenderArea`'s constructor. (Panels asking for SCREEN_DOOR later get
+    depth-peeled blending in Coin builds; the scene scripts' `transparency`
+    command sets the action directly and bypasses that.)
   - Coin's `SoCylinder::GLRender` sends the state's grey diffuse on every
     call, overwriting `ChemUnitCylinder`'s per-bond `glColor3fv`, and uses 20
     slices where Open Inventor uses 16. The SOCYLINDER branch (the Builder's

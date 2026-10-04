@@ -12,7 +12,8 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 ### wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls
 
 - [Open Inventor's redraw sensor is a ONE-SHOT that re-arms on render, and with a render callback installed nothing re-arms it](open-inventors-redraw-sensor-is-a-one.md)
-- [`ECCE_USE_COIN` builds the viewer stack against Coin3D; both builds coexist until stage 4](ecce-use-coin-builds-the-viewer-against-coin3d.md)
+- [`ECCE_USE_COIN` (default ON) builds the viewer against Coin3D; `=OFF` keeps the vendored core for one release](ecce-use-coin-builds-the-viewer-against-coin3d.md)
+- [Coin SORTED_LAYERS_BLEND is the default lobe transparency (6 passes, alpha canvas); slow scenes fall back to SCREEN_DOOR](coin-sorted-layers-blend-is-the-default-lobe-transparency.md)
 - [`tools/coin/compare.sh` renders a fixed scene set with both viewer builds (#166 stage 2); harness pitfalls](tools-coin-compare-sh-renders-both-viewer-builds.md)
 - [wx3.2/GTK3 layout reentrancy](wx3-2-gtk3-layout-reentrancy.md)
 - [`wxGrid::CreateGrid()`/`SetTable()` synchronously fires `wxEVT_GRID_SELECT_CELL`](wxgrid-creategrid-settable-synchronously-fires-wxevt-grid.md)

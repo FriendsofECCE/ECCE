@@ -62,7 +62,6 @@ def sceneText(stem, setup, modes):
 
 def render(name, b):
     import xdisplay
-    os.environ["ECCE_COIN_ALPHA"] = "1"
     d = os.path.join(OUT, "raw", name)
     os.makedirs(d, exist_ok=True)
     for f in ("FAILED",):
@@ -117,7 +116,6 @@ def costScene(stem, setup, vendored):
 
 def cost(name, b):
     import xdisplay
-    os.environ["ECCE_COIN_ALPHA"] = "1"
     d = os.path.join(OUT, "cost", name)
     os.makedirs(d, exist_ok=True)
     env = dict(os.environ, LIBGL_ALWAYS_SOFTWARE="1", ECCE_HOME=ROOT,
