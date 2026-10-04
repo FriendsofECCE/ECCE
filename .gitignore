@@ -9,3 +9,6 @@ __pycache__/
 
 # Claude Code local session/settings state, not repo content
 /.claude/
+install-tree/
+verify-logs/
+dg-state/
