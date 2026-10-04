@@ -47,7 +47,7 @@ import signal
 import socket
 import time
 
-#  Deliberately not 8096/8883.  A suite whose default ports are the real
+#  Deliberately not 8096/8088.  A suite whose default ports are the real
 #  ones is one forgotten flag away from the collision this module exists to
 #  prevent.
 DEFAULT_DATASERVER_PORT = 8296

@@ -6,7 +6,8 @@
 #
 # The processes find the broker through $STATEDIR/broker_<host>_<display>
 # (MqttLink.C), one file per session: "socket=<path>" for this user's own
-# mosquitto, "host=" and "port=" for a central or shared one.
+# mosquitto, "host=" and "port=" for a central or shared one. Those are TCP
+# and take the data server login as their account (MqttLink, AuthCache).
 #
 # Which broker, and whether one is started here, depends on the deployment
 # mode; see "--- 1." below.
@@ -27,9 +28,12 @@ mkdir -p "$STATEDIR"
 # which sanitises the name the same way.
 BROKERFILE="$STATEDIR/broker_$(printf '%s_%s' "$HOST" "$DISPLAY" | tr -c 'A-Za-z0-9._-' '_')"
 
-# The central broker's port under -remote. The per-user broker has no port;
-# a central one is at the data server's host.
-BROKER_PORT="${ECCE_BROKER_PORT:-8883}"
+# The central broker's port: where a -remote client finds it on the data
+# server's host, and where a server account (ecce-remote-setup --server)
+# starts it. 8088 was ActiveMQ's, so existing firewall rules still apply.
+# The per-user broker has no port. Debian's own mosquitto.service is on
+# 1883 and is neither used nor disturbed.
+BROKER_PORT="${ECCE_BROKER_PORT:-8088}"
 
 port_open_at() { (exec 3<>"/dev/tcp/$1/$2") >/dev/null 2>&1; }
 # A remote host that drops packets would hang a plain connect for minutes.
@@ -150,25 +154,93 @@ elif ! command -v mosquitto >/dev/null 2>&1; then
   exit 1
 else
   SOCK="$(broker_socket)"
-  if [ -n "$(own_broker_pid)" ] && [ -S "$SOCK" ]; then
-    echo "ecce-gateway-start: broker already running (pid $(own_broker_pid))"
+  CONF="$STATEDIR/mosquitto.conf"
+  MARKER="$STATEDIR/mosquitto.server"
+
+  # The addresses of the data server's listen setting (ecce-dataserver-
+  # start), so a server's broker is reachable exactly where its data
+  # server is. "*" is every interface.
+  server_binds() {
+    local setting="${ECCE_DATASERVER_LISTEN:-}" b
+    if [ -z "$setting" ] && [ -f "$STATEDIR/dataserver/listen" ]; then
+      setting="$(sed -e 's/#.*//' "$STATEDIR/dataserver/listen" | tr -s ' \t\n' '   ')"
+    fi
+    setting="${setting# }"; setting="${setting% }"
+    case "${setting:-loopback}" in
+      loopback|localhost) setting="" ;;
+      all|'*'|0.0.0.0|::|'[::]') echo "*"; return 0 ;;
+    esac
+    echo "127.0.0.1"
+    if [ -r /proc/net/if_inet6 ] &&
+       grep -q '^00000000000000000000000000000001 ' /proc/net/if_inet6; then
+      echo "::1"
+    fi
+    for b in $setting; do
+      case "$b" in
+        *[!A-Za-z0-9.:_-]*) echo "ecce-gateway-start: ignoring '$b' in the listen setting" >&2 ;;
+        *) echo "$b" ;;
+      esac
+    done
+  }
+
+  # The configuration this account's broker should have right now. The
+  # Unix socket is anonymous: the 0700 directory is what keeps other
+  # users out, and this account's own processes need no login. A server
+  # account (ecce-remote-setup --server) adds a TCP listener for its
+  # clients, with the accounts of its data server and the per-user rules.
+  # per_listener_settings, so the socket and the TCP listener differ.
+  make_conf() {
+    echo "per_listener_settings true"
+    echo "persistence false"
+    echo "log_dest file $STATEDIR/mosquitto.log"
+    echo "listener 0 $SOCK"
+    echo "allow_anonymous true"
+    [ -e "$MARKER" ] || return 0
+    local b
+    for b in $(server_binds); do
+      if [ "$b" = "*" ]; then echo "listener $BROKER_PORT"
+      else echo "listener $BROKER_PORT $b"; fi
+      echo "allow_anonymous false"
+      echo "password_file $STATEDIR/dataserver/mosquitto_passwd"
+      echo "acl_file $ECCE_HOME/server/mosquitto.acl"
+    done
+  }
+
+  if [ -e "$MARKER" ]; then
+    if [ ! -f "$ECCE_HOME/server/mosquitto.acl" ]; then
+      echo "ecce-gateway-start: $ECCE_HOME/server/mosquitto.acl is missing -- install ecce-server; a central broker is not started without its access rules" >&2
+      exit 1
+    fi
+    mkdir -p "$STATEDIR/dataserver"
+    # mosquitto does not start on a missing password file.
+    [ -e "$STATEDIR/dataserver/mosquitto_passwd" ] ||
+      ( umask 077; : >"$STATEDIR/dataserver/mosquitto_passwd" )
+  fi
+  NEWCONF="$(make_conf)"
+
+  running="$(own_broker_pid)"
+  if [ -n "$running" ] && [ -S "$SOCK" ] &&
+     [ "$NEWCONF" = "$(cat "$CONF" 2>/dev/null)" ]; then
+    echo "ecce-gateway-start: broker already running (pid $running)"
   else
-    echo "ecce-gateway-start: starting mosquitto broker..."
-    # No TCP listener and no authentication: the 0700 directory is what
-    # keeps other users out.
+    if [ -n "$running" ]; then
+      echo "ecce-gateway-start: restarting the mosquitto broker (its configuration changed)..."
+    else
+      echo "ecce-gateway-start: starting mosquitto broker..."
+    fi
     chmod 700 "$STATEDIR"
-    cat >"$STATEDIR/mosquitto.conf" <<EOF
-listener 0 $SOCK
-allow_anonymous true
-persistence false
-log_dest file $STATEDIR/mosquitto.log
-EOF
-    stale="$(own_broker_pid)"
-    [ -n "$stale" ] && kill "$stale" 2>/dev/null
+    printf '%s\n' "$NEWCONF" >"$CONF"
+    if [ -n "$running" ]; then
+      kill "$running" 2>/dev/null
+      i=0
+      while [ $i -lt 40 ] && kill -0 "$running" 2>/dev/null; do
+        i=$((i + 1)); sleep 0.25
+      done
+    fi
     rm -f "$SOCK"
     (
       umask 077
-      nohup mosquitto -c "$STATEDIR/mosquitto.conf" \
+      nohup mosquitto -c "$CONF" \
         >"$STATEDIR/mosquitto.out" 2>&1 9>&- &
       echo $! >"$STATEDIR/mosquitto.pid"
     )
@@ -180,6 +252,9 @@ EOF
     if [ ! -S "$SOCK" ]; then
       echo "ecce-gateway-start: broker did not come up within 10s -- see $STATEDIR/mosquitto.log and mosquitto.out" >&2
       exit 1
+    fi
+    if [ -e "$MARKER" ] && ! port_open_at 127.0.0.1 "$BROKER_PORT"; then
+      echo "ecce-gateway-start: this server's broker is not answering on port $BROKER_PORT -- see $STATEDIR/mosquitto.log and mosquitto.out (is another program using it? set ECCE_BROKER_PORT)" >&2
     fi
   fi
   write_broker_file "socket=$SOCK"

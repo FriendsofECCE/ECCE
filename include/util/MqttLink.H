@@ -64,6 +64,14 @@ struct MqttConfig {
   static std::string sanitizeLevel(const std::string& s);
 };
 
+// Where a TCP connection (central or shared broker) gets its account: the
+// data server login of this session. Defined in tdat (AuthCache), which
+// util cannot call; host and display are the session's, as MqttLink
+// derives them. Returns false while there is no login yet.
+typedef std::function<bool(const std::string& host, const std::string& display,
+                           std::string& user, std::string& password)>
+  MqttCredentialProvider;
+
 struct MqttInbound {
   std::string topic;    // the ECCE topic, e.g. ecce_url_state
   std::string user;     // publisher's account, from the topic
@@ -118,9 +126,13 @@ class MqttLink {
 public:
   static MqttLink& instance();
 
+  // Set once, before the first connection.
+  static void setCredentialProvider(MqttCredentialProvider provider);
+
   // Reads the configuration and connects (once). A missing configuration
   // is fatal after a short retry; an unreachable broker is retried by
-  // libmosquitto in the background.
+  // libmosquitto in the background. A TCP broker needs a credential: with
+  // none yet this returns false and the next call tries again.
   bool ensureConnected();
   bool connected() const { return p_connected; }
 
@@ -154,6 +166,8 @@ private:
   std::vector<std::shared_ptr<MqttEndpoint>> p_endpoints;
   std::map<std::string, int> p_subscribed;   // broker filter -> options
   std::atomic<bool> p_connected{false};
+  std::string p_lastRefusal;   // so a retry loop reports a refusal once
+  bool p_warnedNoLogin = false;
   std::atomic<int> p_inflight{0};
   bool p_started = false;
 };

@@ -237,9 +237,26 @@ void MqttEndpoint::drain()
   }
 }
 
+// What JMSMessage::loadBody accepts. Another account can publish to
+// ecce_machreg_changed, and loadBody ends the process on a malformed body.
+static bool wellFormedBody(string body)
+{
+  while (!body.empty()) {
+    const char* items[] = {"NAME", "VALUE"};
+    for (int i = 0; i < 2; i++) {
+      string st = string(items[i]) + "START", en = string(items[i]) + "END";
+      size_t a = body.find(st), b = body.find(en);
+      if (a == string::npos || b == string::npos || b < a) return false;
+      body.erase(a, b + en.size() - a);
+    }
+  }
+  return true;
+}
+
 void MqttEndpoint::process(const MqttInbound& in)
 {
   if (!p_alive || !handler) return;
+  if (!wellFormedBody(in.payload)) return;
   auto get = [&in](const char* k) {
     auto it = in.props.find(k);
     return it == in.props.end() ? string() : it->second;
@@ -263,11 +280,21 @@ MqttLink& MqttLink::instance()
 
 MqttLink::~MqttLink() { shutdown(); }
 
+static MqttCredentialProvider& credentialProvider()
+{
+  static MqttCredentialProvider p;
+  return p;
+}
+
+void MqttLink::setCredentialProvider(MqttCredentialProvider provider)
+{
+  credentialProvider() = provider;
+}
+
 bool MqttLink::ensureConnected()
 {
   std::unique_lock<std::mutex> g(p_lock);
   if (p_started) return p_mosq != nullptr;
-  p_started = true;
 
   // The session this process belongs to, with the same HOST and DISPLAY
   // defaults ecce-gateway-start applies. A job store started from a
@@ -300,12 +327,31 @@ bool MqttLink::ensureConnected()
   EE_RT_ASSERT(!p_cfg.socket.empty() || !p_cfg.host.empty(), EE_FATAL,
                "No socket= or host= in " + file);
 
-  if (p_cfg.user.empty()) {
+  // A TCP broker authenticates: the account is the data server login of
+  // this session, and it is also the topic user the broker's ACL allows.
+  // The Unix-socket broker is private to the account and takes anyone.
+  string account, password;
+  bool tcp = p_cfg.socket.empty();
+  if (tcp) {
+    if (!credentialProvider() ||
+        !credentialProvider()(host, display, account, password) ||
+        account.empty()) {
+      if (!p_warnedNoLogin) {
+        p_warnedNoLogin = true;
+        std::cerr << "MQTT: no data server login for this session yet, so "
+                  << "not connecting to the message broker " << p_cfg.host
+                  << ":" << p_cfg.port << std::endl;
+      }
+      return false;
+    }
+    p_cfg.user = account;
+  } else if (p_cfg.user.empty()) {
     const char* u = getenv("USER");
     struct passwd* pw = getpwuid(getuid());
     p_cfg.user = u ? u : (pw ? pw->pw_name : "");
   }
   p_cfg.user = MqttConfig::sanitizeLevel(p_cfg.user);
+  p_started = true;
 
   string messages = string(Ecce::ecceHome()) + "/data/client/config/ecce_messages";
   EE_RT_ASSERT(p_topics.load(messages), EE_FATAL, "Could not read " + messages);
@@ -314,6 +360,7 @@ bool MqttLink::ensureConnected()
   p_mosq = mosquitto_new(nullptr, true, this);
   EE_RT_ASSERT(p_mosq, EE_FATAL, "mosquitto_new failed");
   mosquitto_int_option(p_mosq, MOSQ_OPT_PROTOCOL_VERSION, MQTT_PROTOCOL_V5);
+  if (tcp) mosquitto_username_pw_set(p_mosq, account.c_str(), password.c_str());
   mosquitto_connect_v5_callback_set(p_mosq, onConnect);
   mosquitto_disconnect_v5_callback_set(p_mosq, onDisconnect);
   mosquitto_message_v5_callback_set(p_mosq, onMessage);
@@ -333,7 +380,9 @@ bool MqttLink::ensureConnected()
   g.unlock();
   for (int i = 0; i < 150 && !p_connected; i++)
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
-  if (!p_connected)
+  bool refused;
+  { std::lock_guard<std::mutex> g2(p_lock); refused = !p_lastRefusal.empty(); }
+  if (!p_connected && !refused)
     std::cerr << "MQTT: no connection to the broker yet; retrying in the "
               << "background" << std::endl;
   return true;
@@ -344,11 +393,29 @@ void MqttLink::onConnect(mosquitto*, void* obj, int rc, int,
 {
   MqttLink* self = static_cast<MqttLink*>(obj);
   if (rc != 0) {
-    std::cerr << "MQTT: broker refused the connection: "
-              << mosquitto_reason_string(rc) << std::endl;
+    // libmosquitto retries; say it once per reason.
+    std::string why = mosquitto_reason_string(rc);
+    bool fresh;
+    {
+      std::lock_guard<std::mutex> g(self->p_lock);
+      fresh = (why != self->p_lastRefusal);
+      self->p_lastRefusal = why;
+    }
+    if (fresh) {
+      std::cerr << "MQTT: the message broker refused the connection: " << why;
+      if (rc == MQTT_RC_BAD_USERNAME_OR_PASSWORD || rc == MQTT_RC_NOT_AUTHORIZED)
+        std::cerr << ". It did not accept the data server login '"
+                  << self->p_cfg.user << "' (" << self->p_cfg.host << ":"
+                  << self->p_cfg.port << "): the account is missing from "
+                  << "the broker or has another password there; ask the "
+                  << "administrator to add it (ecce-dataserver-adduser, or "
+                  << "ecce-broker-setup --user for a shared broker)";
+      std::cerr << std::endl;
+    }
     return;
   }
   std::lock_guard<std::mutex> g(self->p_lock);
+  self->p_lastRefusal.clear();
   self->p_subscribed.clear();   // clean session: nothing survives
   self->p_connected = true;
   self->syncSubscriptions();
@@ -399,11 +466,16 @@ void MqttLink::syncSubscriptions()
 
 void MqttLink::activate(const std::shared_ptr<MqttEndpoint>& ep)
 {
+  {
+    std::lock_guard<std::mutex> g(p_lock);
+    bool known = false;
+    for (auto& e : p_endpoints) known |= (e == ep);
+    if (!known) p_endpoints.push_back(ep);
+  }
+  // Without a login yet (TCP broker) this is false; the subscriptions are
+  // made when a later call connects.
   if (!ensureConnected()) return;
   std::lock_guard<std::mutex> g(p_lock);
-  bool known = false;
-  for (auto& e : p_endpoints) known |= (e == ep);
-  if (!known) p_endpoints.push_back(ep);
   syncSubscriptions();
 }
 

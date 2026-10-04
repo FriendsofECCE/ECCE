@@ -33,8 +33,12 @@ Usage: ecce-remote-setup <server-host> [data-port]
        ecce-remote-setup --server [listen]
 
   --server      on the SERVER, as the account running it: mark its broker
-                as a central server's, so its plain quit leaves it running;
-                listen (all, loopback or addresses) goes to dataserver/listen
+                as a central server's. It then listens on TCP port 8088
+                (ECCE_BROKER_PORT) beside the data server, for the accounts
+                of ecce-dataserver-adduser, and its plain quit leaves it
+                running; listen (all, loopback or addresses) goes to
+                dataserver/listen and applies to the data server and the
+                broker alike
   server-host   host name of the central ECCE server
   data-port     data server port      (default 8096)
 
@@ -48,7 +52,9 @@ USAGE
 #  The SERVER's step: run once as the account that runs the central data
 #  server and broker.  It marks that account's broker as a server's, so
 #  the account's own plain quit never stops it under its clients; only
-#  its Quit and Stop Server does.  A mark, not a guess from the listen
+#  its Quit and Stop Server does.  The mark is also what makes
+#  ecce-gateway-start give that broker a TCP listener (password file and
+#  access rules from ecce-dataserver-adduser and server/mosquitto.acl).  A mark, not a guess from the listen
 #  address, because clients may reach a loopback-only server through ssh
 #  tunnels.  The optional listen value is written to dataserver/listen.
 if [ "${1:-}" = "--server" ]; then
@@ -56,6 +62,9 @@ if [ "${1:-}" = "--server" ]; then
   echo "# ECCE central server: plain quits leave this broker running (ecce-remote-setup --server)" \
     >"$STATEDIR/mosquitto.server" || exit 1
   echo "Marked $STATEDIR/mosquitto.server: this account's broker is a central server's."
+  echo "ecce-gateway-start (run by \"ecce\") starts it on TCP port ${ECCE_BROKER_PORT:-8088} with the"
+  echo "accounts of ecce-dataserver-adduser, and restarts a broker that already runs"
+  echo "here without that listener. Accounts that predate this need adding again."
   if [ -n "${2:-}" ]; then
     mkdir -p "$STATEDIR/dataserver" || exit 1
     echo "$2" >"$STATEDIR/dataserver/listen" || exit 1
@@ -135,7 +144,8 @@ if [ -f "$SITE/site_runtime" ]; then
 fi
 
 #  The broker needs no file of its own: under -remote it is on the data
-#  server's host (ecce-gateway-start), at ECCE_BROKER_PORT.
+#  server's host (ecce-gateway-start), at ECCE_BROKER_PORT (default 8088),
+#  and takes the data server login as its account.
 
 #  Site machine list (issue #188).  ecce-dataserver-start publishes the
 #  server's siteconfig/{Machines,Queues,CONFIG.*,*.Q} under Ecce/system,

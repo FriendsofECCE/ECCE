@@ -652,6 +652,11 @@ configure_file(${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-broker.service.in
 install(FILES ${CMAKE_BINARY_DIR}/systemd/ecce-broker.service
         DESTINATION server/systemd
         COMPONENT server)
+# The per-user access rules of a mosquitto serving clients over TCP: the
+# shared broker's and a central server's.
+install(FILES ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-mosquitto.acl
+        DESTINATION server RENAME mosquitto.acl
+        COMPONENT server)
 set(_bs_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-broker-setup)
 file(WRITE ${_bs_wrapper}
 "#!/bin/bash
@@ -1478,13 +1483,15 @@ enable_testing()
 find_program(PYTHON3_EXECUTABLE NAMES python3)
 
 # tests/mqtt -- the messaging library against a private mosquitto on a Unix
-# socket; checks delivery, not just acknowledgement.  SKIPs (77) without
-# the mosquitto binary.
+# socket; checks delivery, not just acknowledgement.  "auth" is the same on
+# a TCP broker with two accounts and the shipped access rules.  SKIPs (77)
+# without the mosquitto binary.
 add_executable(mqtt_test tests/mqtt/mqtt_test.C)
 target_include_directories(mqtt_test PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(mqtt_test PRIVATE ecceutil ${XercesC_LIBRARIES})
 add_test(NAME mqtt COMMAND mqtt_test ${CMAKE_SOURCE_DIR})
-set_tests_properties(mqtt PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+add_test(NAME mqtt-auth COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR})
+set_tests_properties(mqtt mqtt-auth PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
 if(PYTHON3_EXECUTABLE)
   add_test(NAME parsers
            COMMAND ${PYTHON3_EXECUTABLE}

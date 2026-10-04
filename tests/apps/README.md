@@ -170,7 +170,7 @@ gets:
   which is the variable everything else actually reads. It is kept
   between runs rather than thrown away, so the seeded document root and
   the synced basis-set library are paid for once;
-* its own ports, 8296 and 8288 by default rather than the real 8096/8883,
+* its own ports, 8296 and 8288 by default rather than the real 8096/8088,
   or the next free ones; `ECCE_DATASERVER_PORT` / `ECCE_BROKER_PORT`
   still pin them explicitly, and a pinned port that is busy is an error
   rather than a silent move;

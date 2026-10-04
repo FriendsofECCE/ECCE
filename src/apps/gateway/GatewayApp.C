@@ -225,16 +225,6 @@ bool GatewayApp::OnInit()
   SetTopWindow(p_gateway);
   registerTopShell(p_gateway);
   registerMyselfAsAppExecer(); // only gateway calls this
-  subscribe("ecce_activity",(wxJmsCBFunc)&GatewayApp::activityMCB, false);
-  subscribe("ecce_identify",(wxJmsCBFunc)&GatewayApp::identifyMCB);
-  subscribe("ecce_identify_reply",(wxJmsCBFunc)&GatewayApp::identifyReplyMCB);
-  subscribe("ecce_gateway_raise",(wxJmsCBFunc)&GatewayApp::raiseMeMCB);
-  subscribe("ecce_invoke_status",(wxJmsCBFunc)&GatewayApp::toolStartStatusMCB, false);
-  subscribe("ecce_preferences_gateway",(wxJmsCBFunc)&GatewayApp::preferenceMCB, false);
-  subscribe("ecce_auth_changed",(wxJmsCBFunc)&GatewayApp::authMCB, false);
-
-  startSubscriber();
-
   //  Only parent the authentication dialog to the Gateway frame when that
   //  frame is actually on screen.  Since #93 removed the Gateway window,
   //  p_gateway is constructed and then left unmapped -- and a modal dialog
@@ -325,6 +315,19 @@ bool GatewayApp::OnInit()
     p_gateway->quit(false);
     return false;
   }
+
+  // Subscribing opens the broker connection, and a central or shared broker
+  // takes the data server login as its account: the login is made above.
+  // A broker of this user's own (Unix socket) takes no login.
+  subscribe("ecce_activity",(wxJmsCBFunc)&GatewayApp::activityMCB, false);
+  subscribe("ecce_identify",(wxJmsCBFunc)&GatewayApp::identifyMCB);
+  subscribe("ecce_identify_reply",(wxJmsCBFunc)&GatewayApp::identifyReplyMCB);
+  subscribe("ecce_gateway_raise",(wxJmsCBFunc)&GatewayApp::raiseMeMCB);
+  subscribe("ecce_invoke_status",(wxJmsCBFunc)&GatewayApp::toolStartStatusMCB, false);
+  subscribe("ecce_preferences_gateway",(wxJmsCBFunc)&GatewayApp::preferenceMCB, false);
+  subscribe("ecce_auth_changed",(wxJmsCBFunc)&GatewayApp::authMCB, false);
+
+  startSubscriber();
 
   // notify pertinent eccejobstore processes to reconnect tooltalk messaging
   reconnectJobStoreMessaging();

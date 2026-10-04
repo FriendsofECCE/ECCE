@@ -20,6 +20,7 @@
 #include "util/StringTokenizer.H"
 #include "util/TempStorage.H"
 #include "util/JMSPublisher.H"
+#include "util/MqttLink.H"
 
 #include "tdat/RefMachine.H"
 #include "tdat/AuthCache.H"
@@ -151,17 +152,23 @@ void AuthCache::flushCache()
  */
 string AuthCache::sessionFile()
 {
-  const char *home = getenv("ECCE_REALUSERHOME");
   const char *host = getenv("HOST");
   const char *display = getenv("DISPLAY");
+  if (host == (const char*)0 || display == (const char*)0) return "";
+  return sessionFileFor(host, display);
+}
 
-  if (home == (const char*)0 || *home == '\0' ||
-      host == (const char*)0 || *host == '\0' ||
-      display == (const char*)0 || *display == '\0') {
+
+string AuthCache::sessionFileFor(const string& host, const string& display)
+{
+  const char *home = getenv("ECCE_REALUSERHOME");
+
+  if (home == (const char*)0 || *home == '\0' || host.empty() ||
+      display.empty()) {
     return "";
   }
 
-  string key = string(host) + "_" + display;
+  string key = host + "_" + display;
   // DISPLAY is normally ":1" or "host:1.0", but nothing stops it holding
   // a '/', which would turn this into a path.  Flatten anything that is
   // not plainly filename material.
@@ -174,6 +181,36 @@ string AuthCache::sessionFile()
 
   return string(home) + "/.ECCE/authcache_" + key;
 }
+
+
+/**
+ * The account a TCP message broker is opened with: this session's data
+ * server login, as the gateway stored it when the user logged in.  The
+ * account the session authenticated as (ECCE_SERVER_LOGIN) wins; else the
+ * last one stored.
+ */
+bool AuthCache::brokerCredential(const string& host, const string& display,
+                                 string& user, string& password)
+{
+  vector<AuthTuple> stored;
+  sessionReadFile(sessionFileFor(host, display), stored);
+  if (stored.empty()) return false;
+
+  const char *want = getenv("ECCE_SERVER_LOGIN");
+  int pick = (int)stored.size() - 1;
+  for (int idx = 0; want != (const char*)0 && idx < (int)stored.size(); idx++) {
+    if (stored[idx].user == want) pick = idx;
+  }
+  user = stored[pick].user;
+  password = stored[pick].pass;
+  return !user.empty() && !password.empty();
+}
+
+// Registered when this object is linked, which every program that can hold
+// a data server login does.
+static struct BrokerCredentialRegistration {
+  BrokerCredentialRegistration() { MqttLink::setCredentialProvider(AuthCache::brokerCredential); }
+} s_brokerCredentialRegistration;
 
 
 /**
@@ -209,7 +246,12 @@ void AuthCache::sessionLoad()
  */
 void AuthCache::sessionRead(vector<AuthTuple>& stored)
 {
-  string path = sessionFile();
+  sessionReadFile(sessionFile(), stored);
+}
+
+
+void AuthCache::sessionReadFile(const string& path, vector<AuthTuple>& stored)
+{
   if (path == "") return;
 
   FILE *fp = fopen(path.c_str(), "r");
