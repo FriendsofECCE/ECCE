@@ -32,6 +32,7 @@ ANGLES = [0, 45, 90]
 # key -> scene lines that put the renderer in the mode under test
 MODES = {
     "std": ["transparency SORTED_OBJECT_BLEND"],       # what ECCE requests
+    "sd": ["transparency SCREEN_DOOR"],                # what the Builder uses for MO lobes
 }
 for n in (2, 4, 6, 8, 12, 16):
     MODES["p%d" % n] = ["transparency SORTED_LAYERS_BLEND", "layerpasses %d" % n]
@@ -147,6 +148,30 @@ def costTable():
     print("\n".join(lines))
 
 
+def analyseSD(name, stem, mk, a):
+    """Screen door: each pixel is a lobe colour or what is behind it, so classify
+    the overlap pixels by which single-lobe stippled render they equal."""
+    import numpy as np
+    r = lambda t: compare.readPpm(os.path.join(OUT, "raw", name, "%s-%s-a%03d-%s.ppm" % (stem, mk, a, t))).astype(int)
+    none, pop, nop, bop = r("none"), r("pop"), r("nop"), r("bop")
+    nb, pbl, nbl, bbl = r("nonebl"), r("pbl"), r("nbl"), r("bbl")
+    tol = 3
+    ov = (np.abs(pop - none).max(axis=2) > tol) & (np.abs(nop - none).max(axis=2) > tol)
+    pos_near = np.abs(bop - pop).sum(axis=2) < np.abs(bop - nop).sum(axis=2)
+    ps = np.abs(pbl - nb).max(axis=2) > tol          # pos stipple passes here
+    ns = np.abs(nbl - nb).max(axis=2) > tol
+    isP = np.abs(bbl - pbl).sum(axis=2) <= 6
+    isN = np.abs(bbl - nbl).sum(axis=2) <= 6
+    both = ov & ps & ns & (np.abs(pbl - nbl).sum(axis=2) > 12)   # both lobes drawn here, colours distinguishable
+    vp = both & isP & ~isN
+    vn = both & isN & ~isP
+    vis = int((vp | vn).sum())
+    near_ok = int(((vp & pos_near) | (vn & ~pos_near)).sum())
+    back = int(((vp & ~pos_near) | (vn & pos_near)).sum())
+    bgpx = int((both & ~isP & ~isN).sum())
+    return int(ov.sum()), int(both.sum()), int((ov & (ps != ns)).sum()), vis, near_ok, back, bgpx
+
+
 def analyse(name, stem, mk, a):
     import numpy as np
     r = lambda t: compare.readPpm(os.path.join(OUT, "raw", name, "%s-%s-a%03d-%s.ppm" % (stem, mk, a, t))).astype(int)
@@ -226,7 +251,32 @@ def refCompare():
     print("\n".join(lines))
 
 
+def sdTable():
+    lines = ["%-9s %-15s %4s %7s %7s %7s %7s %7s %7s %7s" % ("build", "system", "deg", "overlap", "both", "maskdif", "visible", "nearer", "back", "other")]
+    tot = {}
+    for name in BUILDS:
+        for stem in SYS + ["calc-water-lobes", "calc-crco6-lobes"]:
+            for a in ANGLES:
+                try:
+                    o, b, md, v, ok, bk, ot = analyseSD(name, stem, "sd", a)
+                except FileNotFoundError:
+                    continue
+                lines.append("%-9s %-15s %4d %7d %7d %7d %7d %7d %7d %7d" % (name, stem, a, o, b, md, v, ok, bk, ot))
+                t = tot.setdefault(name, [0] * 7)
+                for i, x in enumerate((o, b, md, v, ok, bk, ot)):
+                    t[i] += x
+    lines.append("")
+    for name, t in tot.items():
+        lines.append("TOTAL %-9s overlap %d, both-stipple-pass %d, mask-differs %d, visible lobe px %d: nearer %.1f%%, back %.1f%% (of both-pass %.1f%%), neither %d" % (
+            name, t[0], t[1], t[2], t[3], 100.0 * t[4] / max(t[3], 1), 100.0 * t[5] / max(t[3], 1), 100.0 * t[5] / max(t[1], 1), t[6]))
+    open(os.path.join(OUT, "sd.txt"), "w").write("\n".join(lines) + "\n")
+    print("\n".join(lines))
+
+
 def main():
+    if "--sd" in sys.argv:
+        sdTable()
+        return
     if "--ref" in sys.argv:
         refCompare()
         return
