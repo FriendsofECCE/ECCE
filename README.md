@@ -188,9 +188,10 @@ shared is up to the site; the three modes are set up step by step in
 3. **One shared broker on an app server** with many users logged in, run
    by systemd instead of one broker per user (`sudo ecce-broker-setup`).
 
-**Before putting a server on a network**: the broker has no
-authentication, and the data server uses HTTP Basic over plain HTTP, so
-passwords cross the network base64-encoded rather than encrypted. That
+**Before putting a server on a network**: a central or shared broker
+takes the data server login as its account and lets a user touch only
+that user's own topics, but the broker's and the data server's passwords
+(HTTP Basic over plain HTTP) cross the network unencrypted. That
 keeps users' data apart on a trusted network, and is not fine across an
 untrusted one — keep the ports on loopback and use ssh tunnels, or
 firewall them (#138).
@@ -304,10 +305,12 @@ plan as a whole is on [#186](https://github.com/FriendsofECCE/ECCE/issues/186).
   for hosts that share connections or are reached through a jump host),
   and job scripts are POSIX sh, so csh is no longer required ([#204](https://github.com/FriendsofECCE/ECCE/issues/204)).
 * **HTCondor as a supported queue manager** ([#105](https://github.com/FriendsofECCE/ECCE/issues/105)).
-* **Broker authentication**, so that the users of a shared server cannot
-  act in each other's name ([#194](https://github.com/FriendsofECCE/ECCE/issues/194)). It is decided first whether ECCE
-  moves from ActiveMQ to an MQTT broker (Mosquitto), which would also
-  remove Java from the client ([#213](https://github.com/FriendsofECCE/ECCE/issues/213)).
+* **Mosquitto instead of ActiveMQ**, removing Java from the client
+  ([#213](https://github.com/FriendsofECCE/ECCE/issues/213)), with broker
+  authentication, so that the users of a shared server cannot act in each
+  other's name ([#194](https://github.com/FriendsofECCE/ECCE/issues/194)).
+  9.x clients and servers do not interoperate with 8.x ones; see
+  [Upgrading from 8.x](GETTING_STARTED.md#upgrading-from-8x).
 
 **After 9.0, in estimated order:**
 

@@ -64,7 +64,7 @@ those settings.
 | `ECCE_TMPDIR` | Where job-monitoring temporary files go, in `ecce_<user>` under it. | Path. Default `/tmp`. |
 | `ECCE_REMOTE_SERVER` | Central-server mode: read `siteconfig/RemoteServer/{DataServers,site_runtime}`, start no local broker or data server. `ecce -remote` sets it. | Set to enable. Default off. |
 | `ECCE_LOCAL_DATA` | Local data mode (#216): keep projects and calculations in this folder instead of a data server; no data server is started. Wins over Edit > Preferences > Data folder. The launchers export it for the whole session, set to the preference's folder or to empty (data server). | Path. Unset: the preference (off by default; folder `~/.ECCE-local`). Empty: a data server. |
-| `ECCE_NO_MESSAGING` | Run without the JMS broker. Apps do not publish or subscribe. The launchers set it for `ecce -admin` and `-machine`. | Set to enable. Default off. |
+| `ECCE_NO_MESSAGING` | Run without the message broker. Apps do not publish or subscribe. The launchers set it for `ecce -admin` and `-machine`. | Set to enable. Default off. |
 | `ECCE_NO_DATASERVER` | Launchers do not start the per-user data server. | Set to enable. Default off. |
 | `ECCE_DATASERVER_PORT` | Port of the per-user data server, as used by `ecce-dataserver-start` and `-status`. The test suite uses it for private servers. | Port. Default 8096. |
 | `ECCE_BROKER_PORT` | Port of the central broker under `ecce -remote`, as used by `ecce-gateway-start`. The per-user broker has no port. | Port. Default 8088. A server account's broker listens on it too. |
@@ -112,7 +112,7 @@ and includes the `Authorization` header, which holds the password),
 
 The session's own output goes to `session.log` in that folder and is
 still shown in the terminal. When `ecce` returns, or on Ctrl-C, bug mode
-adds what the broker, session relay and per-user data server logged
+adds what the broker and per-user data server logged
 during the session (for a central server or a shared broker it notes that
 those logs are on the server), the job logs of jobs touched during the
 session, and the output of `ecce-diagnose`; then packs the folder as

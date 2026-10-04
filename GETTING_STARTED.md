@@ -17,7 +17,7 @@ sudo apt-get install -y \
   build-essential gfortran cmake ninja-build \
   libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
   libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
-  default-jdk ant git
+  libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git libssh-dev
 ```
 
 ## 2. Build
@@ -42,7 +42,7 @@ in-tree libraries.
 ```
 cd build-cmake
 cpack -G DEB
-sudo apt-get install -y apache2 apache2-utils   # data server dependency
+sudo apt-get install -y apache2 apache2-utils mosquitto libaprutil1   # runtime dependencies
 sudo dpkg -i ecce_<version>_amd64.deb
 ```
 
@@ -54,8 +54,21 @@ running `ecce-builder` and friends directly skips that setup). No
 `ECCE_HOME` sourcing or environment setup required first.
 
 `apache2`/`apache2-utils` are real runtime dependencies (the data server
-below runs as a real Apache instance), not just build-time — `dpkg -i` will
-fail to configure without them if `apt-get install` wasn't run first.
+below runs as a real Apache instance), not just build-time. `mosquitto`
+is the message broker and `libaprutil1` is used by the central broker's
+login check (see "Deployment modes"). `dpkg -i` will fail to configure
+without them if `apt-get install` wasn't run first. Neither Java nor
+ActiveMQ is used. `sudo apt install ./ecce_<version>_amd64.deb` pulls
+in the dependencies itself.
+
+**Debian's `mosquitto` package also starts its own system service, on
+port 1883.** ECCE neither uses nor needs it: ECCE starts its own broker
+instances (below). It can be disabled with `sudo systemctl disable --now
+mosquitto` without affecting ECCE.
+
+On RHEL, Rocky and Fedora the RPM requires `mosquitto` (in EPEL on RHEL
+and Rocky: `sudo dnf install epel-release`) and `apr-util`; the server
+RPM also requires `httpd` and `httpd-tools`.
 
 The site configuration under `/opt/ecce/siteconfig` (the machine list,
 queues, `DataServers`, …) is marked as configuration from 8.17.0, so an
@@ -77,18 +90,22 @@ cpack -G DEB
 
 - **`ecce-client`** — the GUI apps, input generators/parsers, codereg
   dialogs, the job-side scripts the Launcher copies to compute hosts
-  (`gensub`, `eccejobmonitor`, `*.desc`), the per-session JMSDispatcher
-  relay, `siteconfig/`, and `ecce-remote-setup`/`ecce-diagnose`. Depends
-  on `python3-wxgtk4.0`, `perl`, `xterm` and
-  `default-jre-headless` (the JMSDispatcher relay runs unconditionally,
-  including under `-remote` with no local `ecce-server` at all, so its
-  JVM can't be left to arrive only via a Recommends); Recommends
-  `ecce-server`, `nwchem` and `openssh-client`; Suggests `imagemagick`
-  and `www-browser` (not Depends — a client of someone else's central
-  server needs neither `ecce-server` nor `nwchem` locally).
+  (`gensub`, `eccejobmonitor`, `*.desc`), the scripts that start the
+  per-user broker, `siteconfig/`, and `ecce-remote-setup`/`ecce-diagnose`.
+  Depends on `python3-wxgtk4.0`, `perl`, `xterm` and `libmosquitto1`
+  (every ECCE process links it); Recommends `ecce-server`, `mosquitto`
+  (the broker program, needed for a local session but not for a client
+  of a central server), `nwchem` and `openssh-client`; Suggests
+  `imagemagick` and `www-browser` (not Depends — a client of someone
+  else's central server needs neither `ecce-server` nor `nwchem`
+  locally).
 - **`ecce-server`** — the per-user or central WebDAV data server (Apache
-  config, structure/basis-set libraries, help content) and the ActiveMQ
-  broker's config. Depends on `apache2`, `apache2-utils`, `activemq`.
+  config, structure/basis-set libraries, help content), the central
+  broker's login-check plugin (`server/ecce_users_auth.so`) and access
+  rules (`server/mosquitto.acl`), and the shared-broker service unit.
+  Depends on `apache2`, `apache2-utils`, `mosquitto`, `libaprutil1` and
+  `ecce-client` (same version). The RPMs correspondingly require
+  `mosquitto`, `apr-util`, `httpd` and `httpd-tools`.
 
 Install both on one machine for the same all-in-one behaviour as the
 monolithic package. For the teaching/central-server deployment (one data
@@ -246,9 +263,9 @@ Everything that makes an instance distinct is an environment variable:
 
 | variable | default | what it moves |
 | --- | --- | --- |
-| `ECCE_REALUSERHOME` | `$HOME` | the whole `.ECCE` state directory: preferences, the data server's document root, JMS port files |
+| `ECCE_REALUSERHOME` | `$HOME` | the whole `.ECCE` state directory: preferences, the data server's document root, the per-session broker files |
 | `ECCE_DATASERVER_PORT` | `8096` | the data server |
-| `ECCE_BROKER_PORT` | `8088` | the ActiveMQ broker |
+| `ECCE_BROKER_PORT` | `8088` | the central broker's TCP port (`-remote` clients, and a server account's broker); a per-user broker has no port |
 
 So a completely separate instance, sharing nothing with your normal one, is:
 
@@ -259,11 +276,13 @@ ecce-dataserver-start && ecce-gateway-start
 ecce
 ```
 
-The per-user copies of `activemq.xml` and `jndi.properties` are resolved
-against `ECCE_BROKER_PORT` at start, so the broker and the dispatcher agree
-without editing anything installed. The C++ side needs no configuration at
-all — it finds the dispatcher through `$ECCE_REALUSERHOME/.ECCE/<host>_<display>`
-rather than reading either file.
+A per-user broker listens on a Unix socket in `$ECCE_REALUSERHOME/.ECCE`
+(mode 0700, no TCP port), so instances do not collide on it;
+`ECCE_BROKER_PORT` only matters to a central server's broker and to
+`-remote` clients. The processes find their broker through
+`$ECCE_REALUSERHOME/.ECCE/broker_<host>_<display>`, written by
+`ecce-gateway-start`, so a local and a `-remote` session of one account
+on different displays do not overwrite each other.
 
 One thing this does **not** move: a data server you have already registered
 in the GUI keeps whatever URL it was added with. A second instance on a
@@ -304,14 +323,15 @@ two cannot run at the same time on one display.
 
 ECCE has always been a client/server app; this fork packages both server
 pieces as **per-user background services** (not system daemons — no root
-needed, nothing shared between users):
+needed, nothing shared between users), apart from the optional shared
+broker of mode 3:
 
-- **JMS/messaging gateway** (ActiveMQ) — `ecce-gateway-start` /
+- **Message broker** (Mosquitto, MQTT 5) — `ecce-gateway-start` /
   `ecce-gateway-stop` / `ecce-gateway-status`
 - **Data server** (Apache + mod_dav, WebDAV) — `ecce-dataserver-start` /
   `ecce-dataserver-stop` / `ecce-dataserver-status`
 
-Both live under `~/.ECCE/<service>/`. **You don't normally need to run
+Both keep their files under `~/.ECCE/` (the broker's socket, configuration, log and pid file directly in it, the data server in `dataserver/`). **You don't normally need to run
 these by hand** — every `ecce-<app>` wrapper auto-starts both on launch if
 they aren't already running (this also means: if you start `gateway` while
 a service is already running, the wrapper's start call is a no-op — safe to
@@ -321,36 +341,44 @@ isolation).
 
 ### Deployment modes
 
-That is mode 1. A site can instead share the broker, the data server, or
-both. Which broker a quit may stop is decided only by what the admin
-declared (below), never by guessing who is connected. The data server is
-only ever stopped by **Quit and Stop Server**, in every mode.
+There are three. Which one a session uses is decided by the site's
+configuration, in this order: `siteconfig/SharedBroker` (mode 3), then
+`ecce -remote` (mode 2), otherwise mode 1. In every mode the broker is
+Mosquitto, never the system's own `mosquitto.service` (Debian runs that
+one on port 1883; ECCE does not use it and it can be disabled).
 
-The broker has no authentication, and the data server speaks plain HTTP
-(#138): whoever can reach their ports can use them. Keep them on loopback
-or firewall them. A firewall does not separate the users of one machine:
-on a shared server with a central broker, any user logged in to that
-server can send the broker messages in another user's name, for example
-to cancel that user's jobs (#194).
+| | broker | where it listens | who may connect |
+| --- | --- | --- | --- |
+| 1. local | one per user, started by `ecce-gateway-start` | a Unix socket in `~/.ECCE` (0700), no TCP port | the user's own processes |
+| 2. central server | the server account's broker | TCP, port 8088 (`ECCE_BROKER_PORT`) | accounts of the data server's `users` file |
+| 3. shared broker | one system service, `ecce-broker.service` | TCP, port 8088 unless declared otherwise | accounts in `siteconfig/SharedBroker.passwd` |
 
-### ActiveMQ on RHEL, Rocky and Fedora
+On a TCP broker (modes 2 and 3) no anonymous client is accepted, and an
+account may publish and subscribe only below `ecce/<its name>/` (plus
+hearing that a machine registration changed). One user therefore cannot
+act in another's name, for example by cancelling that user's jobs. The
+rules are `server/mosquitto.acl`. The data server still speaks plain
+HTTP and the broker's password is sent unencrypted too (#138): keep both
+ports on a trusted network or firewall them. The accounts keep users
+apart; they are not a defence against an untrusted network.
 
-These distributions don't package ActiveMQ, so
-a machine that runs a broker (modes 1 and 3) needs it installed by hand:
-a JRE (`dnf install java-17-openjdk-headless`), then the ActiveMQ Classic
-binary tarball from https://activemq.apache.org unpacked in, e.g.,
-`/opt/activemq`. Point ECCE at it with `export
-ACTIVEMQ_HOME=/opt/activemq` in the users' environment; for the mode 3
-service, add `Environment=ACTIVEMQ_HOME=/opt/activemq` to the unit.
-A client of a central server (mode 2) needs none of this.
+A client stopping never stops a central or shared broker. Which broker a
+quit may stop is decided only by what the admin declared, never by
+guessing who is connected. The data server is only ever stopped by
+**Quit and Stop Server**, in every mode.
 
 #### Mode 1: everything local (the default)
 
-Nothing to set up. A user's first session starts their own broker (port
-8088, loopback only) and data server. The broker stops when that user's
-last session ends, on any display. On a machine with several ECCE users
-use mode 3: per-user brokers all want port 8088, so the first user's is
-used by everyone else and goes away when that user quits.
+Nothing to set up. A user's first session starts their own broker (a
+Unix socket, no port, no password) and data server. The broker stops when
+that user's last session ends, on any display. Several users on one
+machine each get their own broker; mode 3 is only needed to share one.
+
+Instead of a data server, a single-user install can keep its projects in
+a folder (local data mode, #216): set **Edit > Preferences > Data folder**
+(default `~/.ECCE-local`), or `ECCE_LOCAL_DATA=<folder>` in the
+environment, which wins over the preference. No data server is started.
+Server mode remains the default. The broker is unchanged.
 
 #### Mode 2: a central server
 
@@ -363,6 +391,17 @@ ecce-dataserver-start && ecce-gateway-start
 ecce-dataserver-adduser          # once per user
 ```
 
+`--server` creates `~/.ECCE/mosquitto.server`. With that mark,
+`ecce-gateway-start` gives the account's broker, besides its own socket,
+a TCP listener on port 8088 (`ECCE_BROKER_PORT`) at the addresses of the
+listen setting, and restarts a broker that is already running without
+it. The broker checks each login against the data server's own `users`
+file (`~/.ECCE/dataserver/users`) through the plugin
+`/opt/ecce/server/ecce_users_auth.so`, rereading the file when it
+changes. A user's data server login is therefore also their broker login,
+and `ecce-dataserver-adduser` needs no separate step; an account or
+password change takes effect without restarting anything.
+
 For a class, `ecce-dataserver-adduser --from class.csv` creates a batch of
 accounts at once from a `username,password,first,last` CSV file (blank
 password fields get a random one generated); generated passwords are
@@ -370,7 +409,7 @@ written to `class.csv.passwords` for the admin to hand out and then delete.
 
 The listen setting is written once, to `~/.ECCE/dataserver/listen`, and
 both services read it: the data server's own `Listen` directive and the
-broker's bind address (#138). Leave out `all` if clients reach the
+broker's bind addresses (#138). Leave out `all` if clients reach the
 server through ssh tunnels. On each client machine, as root:
 
 ```
@@ -380,12 +419,14 @@ sudo ecce-remote-setup <server-host>
 `ecce-remote-setup` also copies the server's registered site machine list
 (`sudo ecce -admin` on the server) onto the client, so students don't
 register machines by hand; re-run it on the client after the admin
-changes that list (#188).
+changes that list (#188). It writes only the data server's address; the
+client finds the broker on the same host, port 8088 (set `ECCE_BROKER_PORT`
+in the client's environment if the server uses another).
 
 Users then run `ecce -remote`. A client quitting never stops the server's
 services, and neither does the server account's own plain quit; its
 Quit and Stop Server does. To make the account per-user again, remove
-`~/.ECCE/activemq/server`.
+`~/.ECCE/mosquitto.server`.
 
 Run the server under a dedicated account (e.g. `ecce`), not a teacher's
 own login shared with students — `ecce-dataserver-adduser` still creates
@@ -394,18 +435,36 @@ account (or root) can ever reach the pidfiles and stop the services; a
 client under `ECCE_REMOTE_SERVER` doesn't even get offered "Quit and Stop
 Server" (#190), only a plain Quit.
 
+Open to clients on the server: the data server port (8096 by default)
+and the broker port (8088). The data server and broker must both run for
+`ecce -remote` to start; if either is down, `ecce-gateway-start` names
+the host and port that does not answer.
+
 #### Mode 3: one shared broker on an app server
 
 One broker for every user of the machine, run by systemd under its own
-account, instead of one JVM per user. As root:
+account (`ecce-broker`, state in `/var/lib/ecce-broker`) instead of one
+broker per user. As root:
 
 ```
 sudo ecce-broker-setup           # declares localhost:8088 in siteconfig/SharedBroker
+sudo ecce-broker-setup --user alice   # one account per user; asks for the password
 sudo systemctl link /opt/ecce/server/systemd/ecce-broker.service
 sudo systemctl enable --now ecce-broker
 ```
 
-Sessions then start only their own relay, pointed at that broker. No
+The per-user data servers keep their user files in home directories the
+broker cannot read, so the shared broker has its own account list,
+`siteconfig/SharedBroker.passwd` (hashed, mode 0600). `--user NAME`
+adds an account, or changes its password; use the same name and password
+the user has on their data server, because that is what their session
+presents. `--remove-user NAME` deletes one. After a change run `sudo
+systemctl reload ecce-broker` (`ecce-broker-setup` does it itself when
+the service is running and it is run as root). The list is not synced
+with the data server: when a user's data server password changes,
+change it here too.
+
+Sessions then start no broker of their own and connect to this one. No
 quit, not even Quit and Stop Server, stops it; only `systemctl` does.
 `ecce-broker-setup host:port` names a broker on another port or machine
 (any non-loopback name makes the service listen on every interface).
@@ -416,6 +475,61 @@ or `ecce -remote` for a central one set up with `ecce-remote-setup
 <data-host>` as in mode 2; the shared broker is used either way. If you
 also run a central data server alongside the shared broker, give it its
 own dedicated account too, per mode 2 above.
+
+### When the broker refuses a login
+
+On a central or shared broker the Gateway shows a dialog, once per
+session, titled "Message broker refused the login": the data server
+accepted the user's login, but the broker did not know the account or its
+password. Until it is fixed, jobs do not report back and ECCE's windows do
+not update each other. The administrator checks, by mode:
+
+- **Mode 2**: the account must exist in the server account's
+  `~/.ECCE/dataserver/users` with the password the user types, and the
+  server's broker must be the one with the TCP listener: on the server,
+  `ls ~/.ECCE/mosquitto.server`, `ecce-gateway-status`, and
+  `~/.ECCE/mosquitto.log`. Re-run `ecce-remote-setup --server` and
+  `ecce-gateway-start` if the mark is missing.
+- **Mode 3**: `sudo ecce-broker-setup --user NAME` with the user's data
+  server password, then `sudo systemctl reload ecce-broker`;
+  `systemctl status ecce-broker` for the service.
+
+`ecce-diagnose` (also run by `ecce --bug`) lists what is listening on
+ports 8096 and 8088 and which `mosquitto` processes the user runs; it
+does not test a login.
+
+### Upgrading from 8.x
+
+9.x replaces ActiveMQ and its Java relay with Mosquitto. Install
+`mosquitto` (and `libaprutil1`/`apr-util` on a server) with the new
+packages; `activemq` and a JRE are no longer needed and can be removed.
+
+**Single-user install.** Nothing to configure: the next session starts a
+per-user Mosquitto in place of ActiveMQ. Calculations, preferences and
+the data server's contents are untouched.
+
+**Central server.**
+
+- Existing data server accounts keep working as broker accounts. Nothing
+  is re-created and no passwords change.
+- On the server account, run `ecce-remote-setup --server` once (the old
+  marker `~/.ECCE/activemq/server` is not read by 9.x), then restart the
+  services: `ecce-dataserver-stop; ecce-gateway-stop; ecce-dataserver-start
+  && ecce-gateway-start`. Stop any ActiveMQ still running there. The existing `dataserver/listen` setting is kept.
+- The firewall is unchanged: the broker is still on port 8088, the data
+  server on 8096. Only the protocol on 8088 differs (MQTT, no longer
+  OpenWire).
+- **Clients must be 9.x as well.** An 8.x client cannot talk to a 9.x
+  broker, nor a 9.x client to an 8.x server. Upgrade the server and every
+  client together, then re-run `sudo ecce-remote-setup <server-host>` on
+  each client only if the server's machine list changed.
+
+**Shared system broker (mode 3).** Add an account per user with
+`sudo ecce-broker-setup --user NAME` (the 8.x broker had no accounts),
+then `sudo systemctl restart ecce-broker`. `siteconfig/SharedBroker` is
+unchanged. The unit file is replaced by the new package; if the service
+was linked from `/opt/ecce/server/systemd/ecce-broker.service`, the link
+still points at it.
 
 ## 5. Create a data-server account
 
