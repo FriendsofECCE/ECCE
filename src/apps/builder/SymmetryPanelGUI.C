@@ -143,7 +143,7 @@ void SymmetryPanelGUI::CreateControls()
     ewxStaticText* itemStaticText9 = new ewxStaticText( itemPanel1, wxID_STATIC, _("Threshold:"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer8->Add(itemStaticText9, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
-    ewxTextCtrl* itemTextCtrl10 = new ewxTextCtrl( itemPanel1, ID_TEXTCTRL_SYMM_THRESHOLD, _("0.01"), wxDefaultPosition, wxSize(itemPanel1->GetTextExtent("0.00000").x + 16, -1), 0 );
+    ewxTextCtrl* itemTextCtrl10 = new ewxTextCtrl( itemPanel1, ID_TEXTCTRL_SYMM_THRESHOLD, _("0.01"), wxDefaultPosition, wxSize(itemPanel1->GetTextExtent("0.000000").x + 2*itemPanel1->GetCharHeight(), -1), 0 );
     if (ShowToolTips())
         itemTextCtrl10->SetToolTip(_("Threshold (in angstroms) for symmetry search"));
     itemBoxSizer8->Add(itemTextCtrl10, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);

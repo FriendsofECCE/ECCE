@@ -77,6 +77,13 @@ bool ewxButton::Create(wxWindow* parent, wxWindowID id,
 
    setStyles(this);
 
+   // GTK draws an exact-fit button with its frame touching the label, so
+   // it reads as plain text; keep a character's padding on each side.
+   if ((style & wxBU_EXACTFIT) && size.x <= 0 && !caption.empty()) {
+      wxSize best = GetBestSize();
+      SetMinSize(wxSize(best.x + 2*GetCharWidth(), -1));
+   }
+
    return true;
 }
 
