@@ -1446,7 +1446,7 @@ if(ECCE_SPLIT_PACKAGES)
   # ecce-server at all, so it cannot be left to arrive only via a
   # Recommends that a remote client has no reason to install.
   set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS
-      "python3-wxgtk4.0, csh | tcsh, perl, xterm, default-jre-headless")
+      "python3-wxgtk4.0, csh | tcsh, perl, xterm, default-jre-headless, curl")
   # A client on the SAME machine as a server benefits from it (the
   # default "everything on one box" case this project still ships), but
   # a client of an already-central server (#167/#138 -- the teaching
@@ -1513,7 +1513,7 @@ section) -- installing this package pulls in both.
     # monolithic CPACK_RPM_PACKAGE_SUGGESTS comment above) isn't even a
     # hard Requires there, so it cannot be relied on at all here.
     set(CPACK_RPM_CLIENT_PACKAGE_REQUIRES
-        "python3-wxpython4, tcsh, perl, xterm, java-headless")
+        "python3-wxpython4, tcsh, perl, xterm, java-headless, curl")
     set(CPACK_RPM_CLIENT_PACKAGE_SUGGESTS
         "ecce-server, nwchem, openssh-clients, ImageMagick, firefox")
     # RPM has no direct Breaks/Replaces pair; Obsoletes+Provides is the
