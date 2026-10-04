@@ -34,22 +34,26 @@ CALCS = [
 # ---------------------------------------------------------------- render
 
 def renderStandalone(binary, outdir, display):
+    # No FL_FONT_PATH: the font layer must find the fonts from ECCE_HOME
+    # alone, as under the sh wrappers (setting it hid that for a release).
     env = dict(os.environ, DISPLAY=display, LIBGL_ALWAYS_SOFTWARE="1",
-               ECCE_HOME=ROOT,
-               FL_FONT_PATH=os.path.join(ROOT, "data", "client", "fonts") + "/")
+               ECCE_HOME=ROOT)
+    env.pop("FL_FONT_PATH", None)
     state = os.path.join(outdir, "state")
     os.makedirs(state, exist_ok=True)
     env["ECCE_REALUSERHOME"] = state
-    for sysname in SYSTEMS:
-        script = os.path.join(outdir, sysname + ".scene")
-        text = open(os.path.join(SCENES, "styles.scene")).read()
+    jobs = [(sysname, "styles.scene") for sysname in SYSTEMS]
+    jobs.append(("benzene", "labels.scene"))
+    for sysname, sceneFile in jobs:
+        script = os.path.join(outdir, sysname + "-" + sceneFile)
+        text = open(os.path.join(SCENES, sceneFile)).read()
         open(script, "w").write(text.replace("@SYS@", sysname))
         r = subprocess.run([binary, outdir, script, sysname], env=env,
                            capture_output=True, text=True, timeout=300)
         if r.returncode != 0:
             print("viewer-scenes %s failed: %s" % (sysname,
                   (r.stdout + r.stderr)[-800:]))
-            open(os.path.join(outdir, sysname + ".FAILED"), "w").write(
+            open(os.path.join(outdir, sysname + "-" + sceneFile + ".FAILED"), "w").write(
                 r.stdout + r.stderr)
 
 
@@ -222,6 +226,30 @@ def textCompare(vdir, cdir):
     return out
 
 
+def labelCheck(vdir, cdir):
+    """Each label option that has text in the fixture must put label-coloured
+    pixels on screen in both builds (the foreground is green on this
+    scene's background).  A blank result is what a missing font gives."""
+    import numpy as np
+    out = []
+    for opt in ("element", "charge2", "charge3", "charge4", "bond",
+                "element-wire"):
+        f = "benzene-lab-%s.ppm" % opt
+        counts = []
+        for d in (vdir, cdir):
+            p = os.path.join(d, f)
+            if not os.path.exists(p):
+                counts.append(None)
+                continue
+            img = readPpm(p).astype(int)
+            counts.append(int(((img[..., 0] < 40) & (img[..., 1] > 215) &
+                               (img[..., 2] < 40)).sum()))
+        bad = any(c is None or c == 0 for c in counts)
+        out.append("LABELS %-14s vendored %s coin %s %s" % (
+            opt, counts[0], counts[1], "NO TEXT" if bad else "ok"))
+    return out
+
+
 def cmdDiff(a):
     import numpy as np
     from PIL import Image, ImageDraw
@@ -271,6 +299,7 @@ def cmdDiff(a):
     for n in missing:
         lines.append("MISSING: " + n)
     lines += textCompare(vdir, cdir)
+    lines += labelCheck(vdir, cdir)
     open(os.path.join(a.out_dir, "summary.txt"), "w").write("\n".join(lines) + "\n")
     print("\n".join(lines))
 

@@ -99,6 +99,7 @@ class Builder: public BuilderGUI,
       ID_MODE_SHAPE,
     
       ID_TOOL_GOHOME,
+      ID_TOOL_RESETVIEW,
       ID_TOOL_SETHOME,
       ID_TOOL_STYLE,
       ID_TOOL_TRANSLATEM,
@@ -299,6 +300,7 @@ class Builder: public BuilderGUI,
       virtual void OnToolStyleClick( wxCommandEvent& event );
       virtual void OnToolTranslatemClick( wxCommandEvent& event );
       virtual void OnToolGohomeClick( wxCommandEvent& event );
+      virtual void OnToolResetViewClick( wxCommandEvent& event );
       virtual void OnToolSethomeClick( wxCommandEvent& event );
       virtual void OnToolOrientClick( wxCommandEvent& event );
 

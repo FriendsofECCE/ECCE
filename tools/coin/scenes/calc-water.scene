@@ -3,6 +3,13 @@
 style Ball And Stick
 viewall
 snap calc-water-base
+# Atom names and types exist only on a loaded calculation.
+labels name
+snap calc-water-lab-name
+labels none
+labels type
+snap calc-water-lab-type
+labels none
 mo 5 0.05 40
 snap calc-water-mo5-homo
 clear

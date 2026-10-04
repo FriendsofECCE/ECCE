@@ -142,8 +142,19 @@ _flInitialize(FLfontImpl *impl)
   ev = getenv("FL_DEBUG");
   fl_debug = (ev && *ev != '0');
 
+  /* The sh wrappers do not export FL_FONT_PATH (the old csh ecce_env did),
+     so without this default the bundled font is not found and no label
+     draws. */
   ev = getenv("FL_FONT_PATH");
   if (ev && *ev) fontPath = ev;
+  else {
+    static char homeFonts[1024];
+    ev = getenv("ECCE_HOME");
+    if (ev && *ev &&
+        snprintf(homeFonts, sizeof homeFonts, "%s/data/client/fonts", ev)
+          < (int)sizeof homeFonts)
+      fontPath = homeFonts;
+  }
 
   if (impl->initialize)
     ret = impl->initialize();
