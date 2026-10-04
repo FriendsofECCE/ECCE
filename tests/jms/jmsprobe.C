@@ -40,7 +40,7 @@ int main(int argc, char **argv)
     JMSSubscriber sub("jmsprobe");
     sub.subscribe(g_topic.c_str(), got, false);
     sub.startSubscriber();
-    cout << "PORT " << sub.getPort() << endl << "READY" << endl;
+    cout << "READY" << endl;
     for (int i = 0; i < seconds * 5; i++) {
       fd_set fds;
       FD_ZERO(&fds);

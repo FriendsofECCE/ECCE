@@ -141,6 +141,9 @@ ecce_library(ecceutil
   src/util/units
 )
 target_compile_definitions(ecceutil PRIVATE ECCE_VERSION=\"${ECCE_VERSION_RAW}\")
+# Messaging (src/util/jms) is MQTT 5 on libmosquitto.
+pkg_check_modules(MOSQUITTO REQUIRED IMPORTED_TARGET libmosquitto)
+target_link_libraries(ecceutil PUBLIC PkgConfig::MOSQUITTO)
 
 # ------------------------------------------------------------------------
 # Where an installed ECCE lives, and where its ecce-<app> wrappers go.
@@ -1580,6 +1583,15 @@ include(CPack)
 # ---------------------------------------------------------------------------
 enable_testing()
 find_program(PYTHON3_EXECUTABLE NAMES python3)
+
+# tests/mqtt -- the messaging library against a private mosquitto on a Unix
+# socket; checks delivery, not just acknowledgement.  SKIPs (77) without
+# the mosquitto binary.
+add_executable(mqtt_test tests/mqtt/mqtt_test.C)
+target_include_directories(mqtt_test PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(mqtt_test PRIVATE ecceutil ${XercesC_LIBRARIES})
+add_test(NAME mqtt COMMAND mqtt_test ${CMAKE_SOURCE_DIR})
+set_tests_properties(mqtt PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
 if(PYTHON3_EXECUTABLE)
   add_test(NAME parsers
            COMMAND ${PYTHON3_EXECUTABLE}

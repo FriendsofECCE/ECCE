@@ -111,8 +111,8 @@ void AuthCache::flushCache()
 //
 // The fix is to give the credential a home that does not depend on
 // ordering: a small file in the user's own ECCE state directory, keyed by
-// host and DISPLAY exactly as the JMSDispatcher port file is (see
-// DatagramUtil::loadServerPort), created mode 0600, and deleted by
+// host and DISPLAY exactly as the MQTT session key is (see
+// MqttConfig in util/MqttLink.H), created mode 0600, and deleted by
 // ecce-gateway-stop / ecce-gateway-reap when the session's services go
 // away.  Every process loads it when its AuthCache is constructed and
 // rewrites it when it learns a credential, so sharing works in both

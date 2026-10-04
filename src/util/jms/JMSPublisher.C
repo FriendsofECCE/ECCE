@@ -16,6 +16,7 @@
    #include "util/ErrMsg.H"
    #include "util/Host.H"
    #include "util/JMSMessage.H"
+   #include "util/MqttLink.H"
 
 
 // Static initialization:
@@ -97,26 +98,13 @@ bool JMSPublisher::publish(const string& topic,
                                  const JMSMessage& msg) const {
   bool ret = false;
   if (p_messagingEnabled) {
-
-    // Convert the parameters to a datagram packet:
-    string packet;
-    DatagramUtil::addItem("METHOD", "publish", packet);
-    DatagramUtil::addItem("TOPIC", topic, packet);
-    DatagramUtil::addItem("BODY", msg.bodyToString(), packet);
-    DatagramUtil::addItem("SENDER", msg.senderToString(), packet);
-    DatagramUtil::addItem("TARGET", msg.targetToString(), packet);
-    DatagramUtil::addItem("REPLYTOPIC", msg.getReplyTopic(), packet);
-
-    // publish the message
-    ret = DatagramUtil::sendPacket(packet);
+    ret = MqttLink::instance().publish(topic, msg);
     if (!ret) {
       EE_ASSERT(false, EE_WARNING, "publish failed!");
     }
   }
   return ret;
 }
-
-
 
 /**
  * A convenience method to publish a message that invokes and application.
@@ -147,18 +135,8 @@ bool JMSPublisher::invoke(JMSMessage& msg,
       }
 
 
-      // Convert the parameters to a datagram packet:
-      string packet;
-      DatagramUtil::addItem("METHOD", "publish", packet);
       // ecce_get_app is the topic we need to do an invoke
-      DatagramUtil::addItem("TOPIC", "ecce_get_app", packet);
-      DatagramUtil::addItem("BODY", msg.bodyToString(), packet);
-      DatagramUtil::addItem("SENDER", msg.senderToString(), packet);
-      DatagramUtil::addItem("TARGET", msg.targetToString(), packet);
-      DatagramUtil::addItem("REPLYTOPIC", msg.getReplyTopic(), packet);
-
-      // publish the message
-      ret = DatagramUtil::sendPacket(packet);
+      ret = MqttLink::instance().publish("ecce_get_app", msg);
       if (!ret) {
          EE_ASSERT(false, EE_WARNING, "publish failed!");
       }
