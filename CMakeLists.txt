@@ -1373,7 +1373,7 @@ endif()
 set(_ecce_siteconfig_conffiles
   Machines Queues QueueManagers DataServers site_runtime
   submit.site AppColors StartupMessage NewUserMessage
-  CONFIG.dummy dummy.Q example-slurm.Q
+  CONFIG.dummy CONFIG.localhost dummy.Q example-slurm.Q
   CONFIG-Examples/CONFIG.loadleveler CONFIG-Examples/CONFIG.lsf
   CONFIG-Examples/CONFIG.mpp2 CONFIG-Examples/CONFIG.pbs
   CONFIG-Examples/CONFIG.sge CONFIG-Examples/CONFIG.workstation)

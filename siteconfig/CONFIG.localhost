@@ -1,0 +1,17 @@
+# Configuration for "localhost" -- jobs run directly on this machine.
+#
+# Deliberately no "noRemoteAccess": that flag (see CONFIG.dummy, issue #94)
+# makes Launch stop after generating the input, so a file with it here would
+# turn every local run into a manual one.
+#
+# Bare command names, resolved through the PATH of the shell that runs the
+# job. gensub dies with "Path for <code> not found" without a value for the
+# code being run. To pin a path, put just that line in ~/.ECCE/CONFIG.localhost
+# (gensub merges it on top of this file).
+NWChem: nwchem
+Gaussian-16: g16
+Gaussian-09: g09
+ORCA: orca
+MOPAC: mopac
+QuantumESPRESSO: pw.x
+perlPath: /usr/bin/perl
