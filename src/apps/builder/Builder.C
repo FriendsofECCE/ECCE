@@ -250,6 +250,8 @@ static bool internalSelect = false;
 //  addToolPanel() below, but OnToolMenuClick() needs to call
 //  debugPrintPaneSizes() earlier in the file.
 static int contentMinWidth(wxWindow *window);
+static int contentFixedHeight(wxWindow *window);
+static const int FIXED_PANE_HEIGHT_FALLBACK = 150;
 static void debugPrintPaneSizes(wxAuiManager &mgr);
 
 
@@ -4267,6 +4269,11 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
       //  below.
       wxSize minSize = pane.min_size;
       minSize.x = contentMinWidth(pane.window);
+      //  Likewise a fixed pane's saved height, which may predate a font
+      //  change.
+      if (pane.IsFixed() && !pane.IsToolbar() && pane.name != NAME_TOOL_CONTEXT) {
+        minSize.y = contentFixedHeight(pane.window);
+      }
       pane.MinSize(minSize);
     }
   }
@@ -4904,6 +4911,20 @@ static int contentMinWidth(wxWindow *window)
 }
 
 
+//  A fixed pane cannot be resized by the user, so its height is what its
+//  sizer needs in the current font.  A degenerate answer from a panel
+//  not yet laid out falls back to the old flat 150.
+static int contentFixedHeight(wxWindow *window)
+{
+  wxSizer *sizer = window ? window->GetSizer() : 0;
+  if (!sizer) {
+    return FIXED_PANE_HEIGHT_FALLBACK;
+  }
+  int h = sizer->GetMinSize().y;
+  return h < FIXED_PANE_HEIGHT_FALLBACK ? FIXED_PANE_HEIGHT_FALLBACK : h;
+}
+
+
 //  ECCE_DEBUG_PANEL_SIZE=1 also prints one [PANESIZE] line per currently
 //  shown docked pane, once the frame's layout has actually settled --
 //  this is how an affected applet is identified by data rather than by
@@ -4941,7 +4962,10 @@ void Builder::addToolPanel(wxWindow *panel, const string& name,
   int minWidth = contentMinWidth(panel);
   if (alwaysFixed) {
     pinfo.Fixed().MaximizeButton(false);
-    pinfo.MinSize(wxSize(minWidth, 150));
+    //  The context pane is a list that scrolls, so it keeps the floor.
+    int height = name == NAME_TOOL_CONTEXT ? FIXED_PANE_HEIGHT_FALLBACK
+                                           : contentFixedHeight(panel);
+    pinfo.MinSize(wxSize(minWidth, height));
   } else {
     pinfo.Resizable(true).MaximizeButton(true);
     // A resizable pane is only actually recoverable if there's a resize
