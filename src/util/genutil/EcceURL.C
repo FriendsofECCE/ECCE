@@ -42,9 +42,9 @@ EcceURL::~EcceURL()
 {
 }
 
-// A local path is "file:///path" or a bare "/path" depending on who built
-// the URL (the local data tree's children have no protocol), and both name
-// the same place.
+// "file:///path" and a bare "/path" name the same place. FileEDSI hands out
+// file:// URLs, but a bare path from elsewhere must still match, or the
+// tree cannot descend to it.
 static string withoutFileScheme(const string& url)
 {
   return url.compare(0, 7, "file://") == 0 ? url.substr(7) : url;
