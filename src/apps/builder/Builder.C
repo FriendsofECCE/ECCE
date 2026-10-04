@@ -518,12 +518,6 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   NodesInit::initClasses();
   AtomNodesInit::initClasses();
   SGFragment::initClass();
-#ifdef OIV_COIN
-  //  Coin aborts on a node of an unregistered type (NModeTraceCmd builds one);
-  //  the vendored core never registered it, and registering it there makes
-  //  NModeStepCmd's search crash, so it stays as it was until stage 4.
-  PropSGFragment::initClass();
-#endif
   SGContainer::initClass();
   SGContainerManager::initClass();
 

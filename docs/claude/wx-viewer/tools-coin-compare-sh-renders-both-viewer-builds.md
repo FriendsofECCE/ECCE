@@ -37,12 +37,14 @@ Traps found building it:
   passing 0.05 puts the surface above the field maximum and draws nothing.
 - Normal-mode indices are 0-based and the fixture has 3 modes; an index past
   the table gives zero displacement, not an error.
-- `PropSGFragment::initClass()` is never called by the vendored build. Coin
-  aborts (`SoType::isDerivedFrom`, bad type) as soon as the Vibrational
-  Frequencies panel builds one, so `Builder::Create` registers it under
-  `OIV_COIN` only; registering it in the vendored build crashes
-  `NModeStepCmd`'s search.
-- Result at stage 2: every scene renders on both builds except the
-  thumbnails on Coin, but the Coin build draws no isosurface at all (MO of
-  the fixtures and the synthetic `isotest` field both show the plain
-  molecule). That is the first stage 3 item.
+- `SO_NODE_INIT_CLASS`'s third argument is the PARENT's name, looked up
+  with `SoType::fromName`. `PropSGFragment` passed its own name, which gave
+  a type outside the SoNode tree: Coin aborted on it, the vendored core
+  left null action methods (crash in `SoSearchAction`). Fixed; it is now
+  registered from `SGContainer::initClass()`, so every app that builds a
+  container scene gets it.
+- `IsoLib` wrote a leading end-of-strip `-1` in `coordIndex`; Coin takes it
+  for an erroneous polygon and draws nothing. Skipped under `OIV_COIN`.
+  (`#ifdef __coin` blocks elsewhere in `moiv` are dead: nothing defines it.)
+- Remaining isosurface difference: Coin's lobes are 15-25 % darker than the
+  vendored ones (lighting of per-vertex packed colours), silhouettes match.

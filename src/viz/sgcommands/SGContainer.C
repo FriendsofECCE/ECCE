@@ -48,7 +48,8 @@
 #include "viz/AtomMeasureTorsion.H"
 #include "viz/AtomMeasureDist.H"
 #include "viz/SGLattice.H"
-#include "viz/SGContainer.H"   
+#include "viz/SGContainer.H"
+#include "viz/PropSGFragment.H"   
 #include "viz/SGFragment.H"   
 #include "viz/SGPlane.H"   
 #include "viz/MillerPlane.H"   
@@ -74,6 +75,9 @@ const float SGContainer::selectRGB[] = {1.0, 0.0, 1.0};
 void SGContainer::initClass()
 {
    SO_NODE_INIT_CLASS(SGContainer, SoSwitch,"Switch");
+   //  The normal-mode scene holds PropSGFragments; registering here covers
+   //  every app that builds a container scene (Coin aborts on an unknown type).
+   PropSGFragment::initClass();
 }
 
 /////////////////////////////////////////////////////////////////////////////

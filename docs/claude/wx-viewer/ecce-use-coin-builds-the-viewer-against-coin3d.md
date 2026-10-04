@@ -26,3 +26,17 @@ core is removed only at stage 4. Use separate build directories
 (`build-cmake`, `build-coin`): switching the option in one tree rebuilds
 everything. After a change under `src/inv/moiv`, `src/inv/wxinv` or
 `include/inv/{ChemKit,SoWx}`, build both.
+
+Thumbnails (`SoOffscreenRenderer`): Coin's own GLX offscreen context fails
+under Xvfb and crashes with no `DISPLAY`. `src/inv/wxinv/CoinEglOffscreen.C`
+(installed from `SoWx::init`, Coin builds on Linux only) supplies a Mesa EGL
+context + FBO through `cc_glglue_context_set_offscreen_cb_functions`. Traps:
+- Coin asserts a GLX context is current when it first sees a context; the
+  check cannot see EGL, so `COIN_GL_NO_CURRENT_CONTEXT_CHECK` is set in code.
+- glvnd refuses `eglMakeCurrent` (`EGL_BAD_ACCESS`) while a GLX context, such
+  as the wx canvas's, is current: release it first and give it back.
+- Coin casts our callback handle to its own GLX context struct in
+  `cc_glglue_context_max_dimensions` (reads +0x40/+0x48/+0x50); the handle
+  starts with zeroed padding so that path answers "no pbuffer".
+- Coin prints one harmless `glxglue_isdirect()` warning per run.
+`make offscreen-check` (target, Coin build) renders with no wx and no display.

@@ -25,8 +25,11 @@ SO_NODE_SOURCE(PropSGFragment);
 ///////////////////////////////////////////////////////////////////////////
 void PropSGFragment::initClass()
 {
-   //  Must be registered (Builder::Create): Coin aborts on an unregistered type.
-   SO_NODE_INIT_CLASS(PropSGFragment, SGFragment, "PropSGFragment");
+   //  The third argument names the PARENT type: the vendored macro looks it
+   //  up by name, and naming the class itself made a type outside the
+   //  SoNode tree, whose action methods are null (crash in SoSearchAction).
+   if (getClassTypeId() != SoType::badType()) return;
+   SO_NODE_INIT_CLASS(PropSGFragment, SGFragment, "SGFragment");
 }
 
 ///////////////////////////////////////////////////////////////////////////
