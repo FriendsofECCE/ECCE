@@ -65,7 +65,7 @@ def check_mime_table():
 def compile_url_driver(build, out):
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"), "-o", out,
             os.path.join(HERE, "urlTest.C"), "-L" + build]
-           + ["-l" + l for l in LIBS] * 3 + ["-lxerces-c"])
+           + ["-l" + l for l in LIBS] * 3 + ["-lxerces-c", "-lmosquitto"])
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
         print("could not build urlTest against %s:\n%s" % (build, proc.stderr[-2000:]))
@@ -243,7 +243,7 @@ def main():
                 cmd = (["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"),
                         "-o", driver, os.path.join(HERE, name + ".C"),
                         "-L" + BUILD] + ["-l" + l for l in LIBS] * 3
-                       + ["-lxerces-c"])
+                       + ["-lxerces-c", "-lmosquitto"])
                 proc = subprocess.run(cmd, capture_output=True, text=True)
                 if proc.returncode != 0:
                     print("could not build %s:\n%s" % (name, proc.stderr[-3000:]))
