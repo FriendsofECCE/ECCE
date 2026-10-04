@@ -612,15 +612,13 @@ if(EXISTS ${_ecce_help_tarball})
   add_custom_target(ecce_help_cgi_patch ALL
     DEPENDS ${CMAKE_BINARY_DIR}/ecce-help-extracted/.help-cgi-patched)
 
-  # Lives under data/client/ on disk (BrowserHelp's rare file:// fallback
-  # path expects that layout - see BrowserHelp::initialize()) but this is
-  # server content: served over HTTP by the data server's Apache instance
-  # (httpd.conf.ecce's "/EcceHelp" Alias) and the source of the help CGI
-  # scripts ecce-dataserver-start seeds into its own cgi-bin/ -- so it
-  # goes in the server component, not client, when packages are split.
+  # Client content: local mode (#216) opens these pages as files, with no
+  # data server.  A server serves the same files (httpd.conf.ecce's
+  # "/EcceHelp" Alias) and seeds its help CGIs from them, at this path,
+  # and ecce-server depends on ecce-client, so it always has them.
   install(DIRECTORY ${CMAKE_BINARY_DIR}/ecce-help-extracted/EcceHelp
           DESTINATION data/client/WebHelp
-          COMPONENT server)
+          COMPONENT client)
   set(ECCE_HELP_AVAILABLE TRUE)
 else()
   message(WARNING "No vendored help tarball at ${_ecce_help_tarball} - "
