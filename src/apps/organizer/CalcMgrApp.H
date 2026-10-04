@@ -30,6 +30,7 @@ DECLARE_CLASS(CalcMgrApp)
   virtual string getName() const;
 
   virtual int OnExit();
+  void openUrlWhenReady(const string& url, int tries);
 
   void quitMCB(JMSMessage& msg);
   void identifyMCB(JMSMessage& msg);

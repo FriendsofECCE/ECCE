@@ -1477,6 +1477,7 @@ def caseLocal(checks, display, logdir):
                      "no Apache was started")
         checks.check(os.path.isdir(data), "the local data directory was made: %s" % data)
         say("    windows now: %s" % [t for _, t in display.windows() if t])
+        env = display.env()
         # The Organizer opened the tree down to the calculation itself
         # (ECCE_ORGANIZER_OPEN, set in the session's environment).
         time.sleep(5)
