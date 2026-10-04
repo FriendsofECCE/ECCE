@@ -21,6 +21,7 @@
 #include <wx/statline.h>
 #include <wx/treectrl.h>
 #include <wx/listctrl.h>
+#include <wx/settings.h>
 
 #include "util/Color.H"
 #include "util/Preferences.H"
@@ -35,6 +36,7 @@
 #include "wxgui/ewxSpinCtrl.H"
 #include "wxgui/ewxSmallLabel.H"
 #include "wxgui/ewxStyledWindow.H"
+#include "wxgui/ewxThemeColours.H"
 
 
 Preferences *ewxStyledWindow::p_prefs = 0;
@@ -61,37 +63,41 @@ ewxStyledWindow::~ewxStyledWindow()
 {
 }
 
+// Colours come from the GTK theme (#210), so a dark theme and the
+// desktop's own palette apply; fixed ECCE colours are kept only where a
+// colour carries meaning (see ewxThemeColours.H).
 wxColour ewxStyledWindow::getWindowColor()
 {
-  return ewxColor(Color::WINDOW);
+  return wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE);
 }
 
+// Read-only fields take the window colour, so they stand apart from the
+// view-coloured editable ones in light and dark themes alike.
 wxColour ewxStyledWindow::getReadonlyColor()
 {
-  return ewxColor(Color::READONLY);
+  return wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE);
 }
 
 wxColour ewxStyledWindow::getButtonColor()
 {
-  return ewxColor(Color::WINDOW);
+  return wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE);
 }
 
 
 wxColour ewxStyledWindow::getInputColor()
 {
-  return ewxColor(Color::INPUT);
+  return wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
 }
 
 
 wxColour ewxStyledWindow::getTextColor()
 {
-  return ewxColor(Color::TEXT);
+  return wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
 }
 
 
 wxColour ewxStyledWindow::getBtn3DDkShadowColor()
 {
-  //  return wxSystemSettings::GetColour(wxSYS_COLOUR_BTNSHADOW);
   return wxSystemSettings::GetColour(wxSYS_COLOUR_3DDKSHADOW);
 }
 
@@ -110,13 +116,13 @@ wxColour ewxStyledWindow::getFocusedSelectionColor()
 
 wxColour ewxStyledWindow::getUnfocusedSelectionColor()
 {
-  return ewxColor(146, 146, 146);
+  return wxSystemSettings::GetColour(wxSYS_COLOUR_BTNSHADOW);
 }
 
 
 wxColour ewxStyledWindow::getHightLightRowColor()
 {
-  return ewxColor(200, 200, 200);
+  return ewxThemeColours::alternateRow();
 }
 
 
@@ -196,150 +202,88 @@ void ewxStyledWindow::setStyles(wxWindow *win, bool recursive)
 #ifdef __WXMAC__
   return;
 #endif
-   //cout << "ewxStyledWindow::setStyles(";
-   
-   win->SetForegroundColour(getTextColor());
-   win->SetBackgroundColour(getWindowColor());
-
+   // Only fonts and the read-only marker are set here; every other colour
+   // is left to the GTK theme (#210).  wxNullColour hands a field back to
+   // the theme when it becomes editable again.
    if (wxTextCtrl *text = dynamic_cast<wxTextCtrl*>(win)) {
-      //cout << "wxTextCtrl";
       text->SetFont(getBoldFont());
-      win->SetBackgroundColour(getInputColor());
-      if (!text->IsEditable()) {
-         win->SetBackgroundColour(getReadonlyColor());
-      }
+      setReadonlyMarker(win, !text->IsEditable());
 
    } else if (dynamic_cast<wxButton*>(win)) {
-      //cout << "wxButton";
-      win->SetBackgroundColour(getButtonColor());
       win->SetFont(getBoldFont());
 
    } else if (dynamic_cast<wxCheckBox*>(win)) {
-      //cout << "wxCheckBox";
       win->SetFont(getBoldFont());
-      // GTK3 paints a checkbox's background behind its whole label, so the
-      // input colour draws a band across the text; keep the window colour.
-      ewxCheckBox *ebox = dynamic_cast<ewxCheckBox*>(win);
-      if (ebox && !ebox->IsEditable()) {
-         //cout << "\tewxCheckBox";
-         win->SetBackgroundColour(getReadonlyColor());
-      }
+      // GTK3 paints a checkbox's background as a band across its label,
+      // so a read-only checkbox gets no marker.
+      win->SetBackgroundColour(wxNullColour);
 
    } else if (dynamic_cast<wxChoice*>(win)) {
-      //cout << "wxChoice";
       win->SetFont(getBoldFont());
-      win->SetBackgroundColour(getInputColor());
       ewxChoice *choice = dynamic_cast<ewxChoice*>(win);
-      if (choice && !choice->IsEditable()) {
-         //cout << "\tewxChoice";
-         win->SetBackgroundColour(getReadonlyColor());
-      }
+      if (choice) setReadonlyMarker(win, !choice->IsEditable());
 
    } else if (dynamic_cast<wxComboBox*>(win)) {
-      //cout << "wxComboBox";
       win->SetFont(getBoldFont());
-      win->SetBackgroundColour(getInputColor());
       ewxComboBox *box = dynamic_cast<ewxComboBox*>(win);
-      if (box) {
-         //cout << "\tewxComboBox";
-         if (!box->IsEditable()) {
-            win->SetBackgroundColour(getReadonlyColor());
-         }
-      }
+      if (box) setReadonlyMarker(win, !box->IsEditable());
 
    } else if (dynamic_cast<wxMenuBar*>(win)) {
-      //cout << "wxMenuBar";
-      win->SetBackgroundColour(getReadonlyColor());
       win->SetFont(getBoldFont());
 
    } else if (dynamic_cast<wxScrolledWindow*>(win)) {
-      //cout << "wxScrolledWindow";
-      // scroll bars not set by this
-      win->SetBackgroundColour(getWindowColor());
       win->SetFont(getBoldFont());
 
    } else if (dynamic_cast<wxMenu*>(win)) {
-      //cout << "wxMenu";
-      // This doesn't work but do it anyway
-      win->SetBackgroundColour(getReadonlyColor());
       win->SetFont(getBoldFont());
 
    } else if (ewxSpinCtrl *spin = dynamic_cast<ewxSpinCtrl*>(win)) {
-      //cout << "ewxSpinCtrl";
       win->SetFont(getBoldFont());
-      win->SetBackgroundColour(getInputColor());
-      if (!spin->IsEnabled()) {
-         win->SetBackgroundColour(getReadonlyColor());
-      }
+      setReadonlyMarker(win, !spin->IsEnabled());
 
    } else if (dynamic_cast<wxDialog*>(win)) {
-      //cout << "wxDialog";
-      win->SetBackgroundColour(getWindowColor());
       win->SetFont(getBoldFont());
-      //Version 2.5.3
-      //win->SetBackgroundStyle(wxBG_STYLE_COLOUR);
-      //win->SetThemeEnabled(false);
 
    } else if (dynamic_cast<wxStaticLine*>(win)) {
-      //cout << "wxStaticLine";
-      win->SetBackgroundColour(getButtonColor());
 
    } else if (dynamic_cast<ewxNonBoldLabel*>(win)) {
-      //cout << "ewxNonBoldLabel";
       win->SetFont(getNormalFont());
 
    } else if (dynamic_cast<ewxSmallLabel*>(win)) {
-      //cout << "ewxSmallLabel";
       win->SetFont(getSmallLabelFont());
 
    } else if (dynamic_cast<wxStaticText*>(win)) {
-      //cout << "wxStaticText";
       win->SetFont(getBoldFont());
 
    } else if (dynamic_cast<wxFrame*>(win)) {
-      //cout << "wxFrame";
-      win->SetBackgroundColour(getWindowColor());
       win->SetFont(getBoldFont());
-      //Version 2.5.3
-      //SetBackgroundStyle(wxBG_STYLE_COLOUR);
 
    } else if (dynamic_cast<wxNotebook*>(win)) {
-      //cout << "wxNotebook";
-      // Setting background has side effect of eliminating
-      // faded unselected tabs.
-      win->SetBackgroundColour(getWindowColor());
       win->SetFont(getBoldFont());
 
    } else if (dynamic_cast<wxListBox*>(win)) {
-      //cout << "wxListBox";
       win->SetFont(getBoldFont());
-      // this is ignored for some reason 
-      win->SetBackgroundColour(getInputColor());
       ewxListBox *list = dynamic_cast<ewxListBox*>(win);
-      if (list && !list->IsEditable()) {
-         //cout << "\tewxListBox";
-         win->SetBackgroundColour(getReadonlyColor());
-      }
+      if (list) setReadonlyMarker(win, !list->IsEditable());
 
    } else if (dynamic_cast<wxListCtrl*>(win)) {
       win->SetFont(getBoldFont());
-      win->SetBackgroundColour(getInputColor());
 
    } else if (dynamic_cast<wxRadioBox*>(win)) {
-      //cout << "wxRadioBox";
       win->SetFont(getBoldFont());
-      win->SetBackgroundColour(getInputColor());
 
    } else if (dynamic_cast<wxTreeCtrl*>(win)) {
-      //cout << "wxTreeCtrl";
       win->SetFont(getNormalFont());
-
-   } else {
-      //cout << "unknown window type";
    }
 
    //cout << ", " << recursive << ")" << endl;
    if (recursive) setChildStyles(win);
+}
+
+
+void ewxStyledWindow::setReadonlyMarker(wxWindow *win, bool readonly)
+{
+   win->SetBackgroundColour(readonly ? getReadonlyColor() : wxNullColour);
 }
 
 

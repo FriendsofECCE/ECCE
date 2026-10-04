@@ -90,7 +90,6 @@ private:
   JMSPublisher* p_publisher;
   ewxNotebook* p_book;
 
-  ewxChoice* p_colorTheme;
   ewxChoice* p_fontSize;
   ewxChoice* p_dateFormat;
   ewxChoice* p_timeFormat;

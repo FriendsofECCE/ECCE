@@ -209,7 +209,7 @@ void MDTaskPanel::setBackground(STATE state)
   }
   else if (state == LOSTFOCUS) {
     bgcolor = ewxStyledWindow::getUnfocusedSelectionColor();
-    fgcolor = wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHTTEXT);
+    fgcolor = wxSystemSettings::GetColour(wxSYS_COLOUR_BTNTEXT);
   }
   SetBackgroundColour(bgcolor);
   p_name->SetForegroundColour(fgcolor);

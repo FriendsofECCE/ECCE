@@ -7,19 +7,15 @@ using std::ostringstream;
 #include <wx/button.h>
 #include <wx/font.h>
 
+#include "wxgui/ewxThemeColours.H"
+
 #include "VerifyReportDialog.H"
 
 
-//  Chosen to stay legible against a white background rather than for
-//  saturation: a pale wash behind a whole line of monospaced text reads
-//  far better than a strong one, and these still separate clearly in
-//  greyscale, which is the cheapest check for a colour-blind reader.
-static const wxColour BAD_BG    (255, 221, 221);
-static const wxColour UNSURE_BG (255, 241, 204);
-static const wxColour GOOD_BG   (223, 245, 223);
-static const wxColour BAD_FG    (160,   0,   0);
-static const wxColour UNSURE_FG (150,  90,   0);
-static const wxColour GOOD_FG   (  0, 110,   0);
+//  Pale washes behind whole lines and darker text for the findings, in a
+//  light and a dark variant so they follow the theme (#210).
+static wxColour tint(ewxThemeColours::Status s) { return ewxThemeColours::statusTint(s); }
+static wxColour ink(ewxThemeColours::Status s)  { return ewxThemeColours::statusText(s); }
 
 
 static const char* levelWord(VerifyFinding::Level level)
@@ -94,9 +90,9 @@ void VerifyReportDialog::build(const string& codeName,
   wxFont bold = heading->GetFont();
   bold.SetWeight(wxFONTWEIGHT_BOLD);
   heading->SetFont(bold);
-  heading->SetForegroundColour(worst == VerifyFinding::BAD    ? BAD_FG :
-                               worst == VerifyFinding::UNSURE ? UNSURE_FG :
-                                                                GOOD_FG);
+  heading->SetForegroundColour(worst == VerifyFinding::BAD    ? ink(ewxThemeColours::BAD) :
+                               worst == VerifyFinding::UNSURE ? ink(ewxThemeColours::UNSURE) :
+                                                                ink(ewxThemeColours::GOOD));
   top->Add(heading, 0, wxALL, 8);
 
   //  Say what this does and does not cover, every time, where the
@@ -129,9 +125,9 @@ void VerifyReportDialog::build(const string& codeName,
     const long from = list->GetLastPosition();
     list->AppendText(wxString(row.str().c_str(), wxConvUTF8));
     list->SetStyle(from, list->GetLastPosition(),
-                   wxTextAttr(finding.level == VerifyFinding::BAD    ? BAD_FG :
-                              finding.level == VerifyFinding::UNSURE ? UNSURE_FG
-                                                                     : GOOD_FG));
+                   wxTextAttr(finding.level == VerifyFinding::BAD    ? ink(ewxThemeColours::BAD) :
+                              finding.level == VerifyFinding::UNSURE ? ink(ewxThemeColours::UNSURE)
+                                                                     : ink(ewxThemeColours::GOOD)));
   }
   top->Add(list, 0, wxEXPAND|wxLEFT|wxRIGHT|wxBOTTOM, 8);
 
@@ -229,8 +225,8 @@ void VerifyReportDialog::build(const string& codeName,
     text->AppendText(wxString((margin + shown + "\n").c_str(), wxConvUTF8));
     if (level != UNKNOWN) {
       wxTextAttr attr;
-      attr.SetBackgroundColour(level == WRONG  ? BAD_BG :
-                               level == UNSURE ? UNSURE_BG : GOOD_BG);
+      attr.SetBackgroundColour(level == WRONG  ? tint(ewxThemeColours::BAD) :
+                               level == UNSURE ? tint(ewxThemeColours::UNSURE) : tint(ewxThemeColours::GOOD));
       text->SetStyle(from, text->GetLastPosition(), attr);
     }
 

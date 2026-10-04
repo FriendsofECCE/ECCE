@@ -70,6 +70,7 @@
 #include "dsm/DirDyVTSTTask.H"
 #include "dsm/VDoc.H"
 
+#include "wxgui/ewxThemeColours.H"
 #include "wxgui/ewxBitmap.H"
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxBitmapButton.H"
@@ -471,7 +472,7 @@ void NWDirdy::refreshGUI()
             barrierLabel->Disable();
             barrierText->Disable();
             barrierText->SetLabel("Unknown");
-            barrierText->SetForegroundColour(wxColour(0, 0, 0));
+            barrierText->SetForegroundColour(wxNullColour);
           }
         }
       } else {
@@ -487,7 +488,7 @@ void NWDirdy::refreshGUI()
           barrierLabel->Disable();
           barrierText->Disable();
           barrierText->SetLabel("Unknown");
-          barrierText->SetForegroundColour(wxColour(0, 0, 0));
+          barrierText->SetForegroundColour(wxNullColour);
         } else {
           bitmap->Disable();
         }
@@ -542,29 +543,29 @@ void NWDirdy::setBarrierSummaryField()
 
         if (irow == 0) {
           barrierText->SetLabel("None");
-          barrierText->SetForegroundColour(wxColour(0, 0, 0));
+          barrierText->SetForegroundColour(wxNullColour);
         } else if (irow == 1) {
           barrierText->SetLabel("1 Imag. Freq.");
-          barrierText->SetForegroundColour(wxColour(0, 0, 0));
+          barrierText->SetForegroundColour(wxNullColour);
         } else {
           char buf[80];
           sprintf(buf, "%d Imag. Freqs.", irow);
           barrierText->SetLabel(buf);
-          barrierText->SetForegroundColour(wxColour(255, 0, 0));
+          barrierText->SetForegroundColour(ewxThemeColours::statusText(ewxThemeColours::BAD));
           p_feedback->setMessage("The transition state has multiple "
                                  "imaginary frequencies.", WxFeedback::WARNING);
         }
       } else {
         barrierText->SetLabel("Unknown");
-        barrierText->SetForegroundColour(wxColour(0, 0, 0));
+        barrierText->SetForegroundColour(wxNullColour);
       }
     } else {
       barrierText->SetLabel("Unknown");
-      barrierText->SetForegroundColour(wxColour(0, 0, 0));
+      barrierText->SetForegroundColour(wxNullColour);
     }
   } else {
     barrierText->SetLabel("Unknown");
-    barrierText->SetForegroundColour(wxColour(0, 0, 0));
+    barrierText->SetForegroundColour(wxNullColour);
   }
 }
 

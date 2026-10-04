@@ -41,7 +41,7 @@ ewxButton::ewxButton()
   : wxButton(),
     ewxStyledWindow()
 {
-   p_fg = wxColour(1,1,1);
+   p_fg = wxNullColour;
 }
 
 
@@ -51,7 +51,7 @@ ewxButton::ewxButton(wxWindow* parent, wxWindowID id, const wxString& caption,
   : wxButton(),
     ewxStyledWindow()
 {
-   p_fg = wxColour(1,1,1);
+   p_fg = wxNullColour;
    Create(parent, id, caption, pos, size, style, validator, name);
 }
 
@@ -105,6 +105,6 @@ void ewxButton:: setCustomDisabledStyle(bool enabled)
    if (enabled) {
       wxButton::SetForegroundColour(p_fg);
    } else {
-      wxButton::SetForegroundColour(wxColour(100,100,100));
+      wxButton::SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
    }
 }

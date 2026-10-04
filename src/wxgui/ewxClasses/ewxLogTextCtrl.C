@@ -4,6 +4,7 @@
 
 #include "wx/log.h"
 #include "wx/wx.h"
+#include "wxgui/ewxThemeColours.H"
 
 #include "util/JMSMessage.H"
 #include "util/JMSPublisher.H"
@@ -51,9 +52,8 @@ ewxLogTextCtrl::ewxLogTextCtrl(wxTextCtrl * textCtrl, wxStatusBar * statusBar)
 }
 
 
-void ewxLogTextCtrl::FlashOn(const char* color)
+void ewxLogTextCtrl::FlashOn(const wxColour& bkg)
 {
-  ewxColor bkg(color);
   wxString saved = p_textCtrl->GetValue();
   p_textCtrl->Clear();
   p_textCtrl->SetBackgroundColour(bkg);
@@ -80,7 +80,7 @@ void ewxLogTextCtrl::FlashOff(wxTimerEvent& WXUNUSED(event))
   p_textCtrl->SetValue(saved);
 
   if (p_statusBar)
-    p_statusBar->SetBackgroundColour(ewxStyledWindow::getWindowColor());
+    p_statusBar->SetBackgroundColour(wxNullColour);
 }
 
 
@@ -106,7 +106,7 @@ void ewxLogTextCtrl::DoLogTextAtLevel(wxLogLevel level, const wxString &szString
     if (p_beepError)
       wxBell();
 
-    FlashOn(Color::ERROR);
+    FlashOn(ewxThemeColours::statusTint(ewxThemeColours::BAD));
     break;
 
   case wxLOG_Warning:
@@ -119,7 +119,7 @@ void ewxLogTextCtrl::DoLogTextAtLevel(wxLogLevel level, const wxString &szString
     if (p_beepWarn)
       wxBell();
 
-    FlashOn(Color::WARNING);
+    FlashOn(ewxThemeColours::statusTint(ewxThemeColours::UNSURE));
     break;
 
   case wxLOG_Status:

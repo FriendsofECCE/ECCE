@@ -48,6 +48,7 @@ class ewxStyledWindow
       ewxStyledWindow(wxWindow *win, bool recursive=true);
       void setStyles(wxWindow *win, bool recursive=true);
       void setChildStyles(wxWindow *win);
+      static void setReadonlyMarker(wxWindow *win, bool readonly);
       static int getFontSize(int basesize);
 
       static Preferences *p_prefs;

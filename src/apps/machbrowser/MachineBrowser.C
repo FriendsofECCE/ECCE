@@ -199,9 +199,9 @@ void MachineBrowser::createControls()
     h = p_statusTextCtrl->GetCharHeight() * 24;
     p_statusTextCtrl->SetClientSize(w, h);
 
-    p_machView->addRowColor(getWindowColor()); // ECCE official gray90 (window)
-    p_machView->addRowColor(getHightLightRowColor()); // ECCE official gray75 (shadow)
-    p_machView->setBackground(getWindowColor());
+    p_machView->addRowColor(getInputColor());
+    p_machView->addRowColor(getHightLightRowColor());
+    p_machView->setBackground(getInputColor());
     p_machView->setModel(p_machModel);
 
     this->Fit();
