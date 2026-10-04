@@ -371,6 +371,10 @@ target_include_directories(eccejobmaster PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(eccejobmaster PRIVATE
   eccecommxt eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
   ${XercesC_LIBRARIES})
+# The wrappers ask it which data mode a session is in (#216).
+add_executable(ecce-localdata src/apps/localdata/ecce-localdata.C)
+target_include_directories(ecce-localdata PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(ecce-localdata PRIVATE ecceutil ${XercesC_LIBRARIES})
 add_executable(eccejobstore src/apps/jobstore/eccejobstore.C)
 target_include_directories(eccejobstore PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(eccejobstore PRIVATE
@@ -835,7 +839,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata
   autosym getfrag genmol genmollat cleansym symops)
 
 install(TARGETS ${ECCE_GUI_APPS} ${ECCE_CLI_APPS} RUNTIME DESTINATION bin
@@ -1070,6 +1074,15 @@ fi")
     # else's central server, or none yet configured) must not try to
     # spawn it -- and must say clearly why not, rather than a bare
     # "No such file or directory" swallowed by the trailing `|| true`.
+    set(_datamode "# Data mode for the whole session (#216): ECCE_LOCAL_DATA when set (empty
+# means a data server), else the LocalData preference. Exported, so every
+# app of a session uses one store and a preference change waits for the
+# next start.
+if [ -z \"\${ECCE_LOCAL_DATA+x}\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ] && [ -x \"$ECCE_HOME/bin/ecce-localdata\" ]; then
+  ECCE_LOCAL_DATA=$(\"$ECCE_HOME/bin/ecce-localdata\" 2>/dev/null) || ECCE_LOCAL_DATA=
+  export ECCE_LOCAL_DATA
+  if [ -n \"$ECCE_LOCAL_DATA\" ]; then export ECCE_LOCAL_DATA_FROM_PREF=1; fi
+fi")
     # ECCE_LOCAL_DATA selects local mode (#216): data lives in that
     # folder and no data server is wanted.
     set(_dataserver_start "if [ -z \"$ECCE_NO_DATASERVER\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ] && [ -z \"$ECCE_LOCAL_DATA\" ]; then
@@ -1100,6 +1113,7 @@ if [ $_status -gt 128 ] && [ $_status -ne 143 ]; then
 fi
 exit $_status")
   else()
+    set(_datamode "")
     set(_gateway_start "")
     set(_dataserver_start "")
     set(_app_exec "exec \"$ECCE_HOME/bin/${_app}\" \"$@\"")
@@ -1150,6 +1164,7 @@ export PATH=\"$ECCE_HOME/scripts:$ECCE_HOME/scripts/parsers:$PATH\"
 for _arg in \"$@\"; do
   if [ \"$_arg\" = \"-remote\" ]; then export ECCE_REMOTE_SERVER=1; fi
 done
+${_datamode}
 ${_gateway_start}
 ${_dataserver_start}
 ${_app_exec}
@@ -1211,10 +1226,19 @@ export ECCE_NWCHEM_DATA=\${ECCE_NWCHEM_DATA:-$(\"$ECCE_HOME/bin/ecce-nwchem-data
 export PATH=\"$ECCE_HOME/scripts:$ECCE_HOME/scripts/parsers:$PATH\"
 export ECCE_INVOKE_VIEWER=1
 export ECCE_INVOKE_FROMECCE=1
+# Data mode for the whole session (#216): ECCE_LOCAL_DATA when set (empty
+# means a data server), else the LocalData preference. Exported, so every
+# app of a session uses one store and a preference change waits for the
+# next start.
+if [ -z \"\${ECCE_LOCAL_DATA+x}\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ] && [ -x \"$ECCE_HOME/bin/ecce-localdata\" ]; then
+  ECCE_LOCAL_DATA=$(\"$ECCE_HOME/bin/ecce-localdata\" 2>/dev/null) || ECCE_LOCAL_DATA=
+  export ECCE_LOCAL_DATA
+  if [ -n \"$ECCE_LOCAL_DATA\" ]; then export ECCE_LOCAL_DATA_FROM_PREF=1; fi
+fi
 if [ -z \"$ECCE_NO_MESSAGING\" ]; then
   \"$ECCE_HOME/bin/ecce-gateway-start\" || { _rc=$?; echo \"ecce-viewer: not started -- no messaging relay for this session (see above)\" >&2; exit $_rc; }
 fi
-if [ -z \"$ECCE_NO_DATASERVER\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ]; then
+if [ -z \"$ECCE_NO_DATASERVER\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ] && [ -z \"$ECCE_LOCAL_DATA\" ]; then
   if [ -x \"$ECCE_HOME/bin/ecce-dataserver-start\" ]; then
     \"$ECCE_HOME/bin/ecce-dataserver-start\" || true
   else

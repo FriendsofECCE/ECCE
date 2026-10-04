@@ -224,10 +224,17 @@ void LocalData::setPref(bool enabled, const string& folder,
   pref.saveFile();
 }
 
+namespace {
+  // The folder this process holds, and its lock.  Built on first use:
+  // dir() can run from another file's static initialiser.
+  string& heldPath() { static string s; return s; }
+  int& heldLock() { static int fd = -1; return fd; }
+}
+
 void LocalData::hold(const string& path)
 {
-  static string held;
-  static int fd = -1;
+  int& fd = heldLock();
+  string& held = heldPath();
   if (held == path) return;
   if (fd >= 0) close(fd);
   mkdirs(path, 0700);
@@ -276,6 +283,12 @@ LocalData::MoveResult LocalData::move(const string& fromIn, const string& toIn,
   if (!isEmptyOrMissing(to)) {
     msg = to + " is not empty.";
     return TARGET_NOT_EMPTY;
+  }
+  // This process's own hold (the Gateway's, which asks) is not a user.
+  if (heldPath() == from && heldLock() >= 0) {
+    close(heldLock());
+    heldLock() = -1;
+    heldPath() = "";
   }
   // The exclusive lock is held for the whole move, so a session starting
   // meanwhile waits rather than opening a half-moved folder.
