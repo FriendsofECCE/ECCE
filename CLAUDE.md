@@ -45,7 +45,7 @@ subagent flags, directly.
 - **The Gateway window no longer appears** (#93): `ecce` opens the
   Organizer directly; the gateway process still owns the session.
   `ECCE_GATEWAY_WINDOW=1 ecce` brings the window back. Session-end and
-  broker-lifetime rules per deployment mode: `docs/claude/services.md`.
+  broker-lifetime rules per deployment mode: `docs/claude/services/`.
 - `GETTING_STARTED.md` (repo root) has the full build/package/install/
   first-login walkthrough. Don't reproduce it here.
 - **The central-server deployment is unconditional** (stated 2026-09-25).
@@ -74,24 +74,28 @@ subagent flags, directly.
   natively) — convert at the point closest to the generated input
   (`ai.<code>`/the `.tpl`), not by changing what the wire format itself
   accepts. See `scripts/codereg/{ged*,nedtheory,orcatheory,guktheory,
-  metathry}.py` for the pattern. (#77 history: `docs/claude/codereg.md`.)
+  metathry}.py` for the pattern. (#77 history: `docs/claude/codereg/`.)
 
-## Topic files — read the one for the area you touch
-Detailed maps and every pitfall found so far live in `docs/claude/`,
-so a session pays only for its own area. **Read the matching file
-before changing code there**; most entries describe silent failures
-that are not discoverable from the code.
-- `docs/claude/codereg.md` — code registration (EDML, `scripts/codereg`,
+## Knowledge bundle — read what applies before changing code
+Detailed maps and every pitfall found so far live in `docs/claude/`, an
+[Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf)
+(v0.1) bundle: one Markdown file per fact, YAML frontmatter (`type`:
+map/pitfall/checklist/rule, `title`, `area`, `paths`, `issues`), an
+`index.md` per area. Most entries describe silent failures that are not
+discoverable from the code, so **before changing a file, run
+`grep -rl '<file or directory name>' docs/claude` and read the hits**;
+browse `docs/claude/<area>/index.md` for an overview.
+- `codereg/` — code registration (EDML, `scripts/codereg`,
   `scripts/parsers` `ai.*`/`*.expt`/`*.desc`, basis writers, gensub,
   eccejobmonitor, how properties reach the Properties menu), the
   new-code checklist (ORCA, MOPAC), the input checker (#148).
-- `docs/claude/services.md` — gateway, ActiveMQ broker, per-user Apache
-  data server, sessions and session end, `$DISPLAY`-keyed state.
-- `docs/claude/mo-diagram.md` — the MO correlation diagram (#132).
-- `docs/claude/wx-viewer.md` — wx3.2/GTK3 pitfalls (layout reentrancy,
-  synchronous grid events, ewx event chains, sizer flags, AUI focus,
-  `.pjd` files), the Open Inventor viewer's redraw, C++ pitfalls
-  (iterator invalidation, format strings).
+- `services/` — gateway, broker, per-user Apache data server, sessions
+  and session end, `$DISPLAY`-keyed state.
+- `mo-diagram/` — the MO correlation diagram (#132).
+- `wx-viewer/` — wx3.2/GTK3 pitfalls, the Open Inventor viewer's
+  redraw, C++ pitfalls (iterator invalidation, format strings).
+New findings go in as new entry files (frontmatter as above), not as
+paragraphs here.
 
 ## GUI application layer
 - `src/apps/*` — one directory per top-level app (`builder`, `organizer`,
