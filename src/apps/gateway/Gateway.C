@@ -671,7 +671,9 @@ void Gateway::exitGateway()
     // ecce-dataserver-stop/ecce-gateway-stop can't reach the server's
     // services anyway (different account) -- offering the button is just
     // misleading, so don't.
-    if (!getenv("ECCE_REMOTE_SERVER"))
+    // Local data mode has no data server to stop; plain Quit already ends
+    // the session and the reaper stops the per-user broker.
+    if (!getenv("ECCE_REMOTE_SERVER") && LocalData::dir().empty())
       dlg.AddButton(ID_GATEWAY_QUIT_STOP_SERVER, "Quit and Stop Server");
     int result = dlg.ShowModal();
     if (result == wxID_OK)
