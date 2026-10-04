@@ -20,14 +20,17 @@ case "${1:-}" in
     done
     exit 1 ;;
   close)
-    # A close sent before wx runs its event loop is lost; ask again.
-    for attempt in 1 2 3; do
+    # The dialog is mapped before wx runs its modal loop, and a close that
+    # arrives in between is swallowed (seen under CPU load: up to 5 in a
+    # row). Ask again every 2 s until `ecce` returns.
+    for attempt in $(seq 30); do
       python3 /usr/local/bin/closewin.py :9 "ECCE Authentication" ||
-        { echo "no login dialog on :9"; xwininfo -root -tree | grep '"'; tail -3 "$LOG"; exit 2; }
-      for _ in $(seq 15); do
-        grep -q '^exit=' "$LOG" && exit 0
+        { grep -q '^exit=' "$LOG" && exit 0
+          echo "no login dialog on :9"; xwininfo -root -tree | grep '"'; tail -3 "$LOG"; exit 2; }
+      for _ in 1 2; do
         sleep 1
+        grep -q '^exit=' "$LOG" && exit 0
       done
     done
-    echo "ecce did not return after three closes"; tail -5 "$LOG"; exit 1 ;;
+    echo "ecce did not return after 30 closes in 60 s"; tail -5 "$LOG"; exit 1 ;;
 esac
