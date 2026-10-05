@@ -46,6 +46,18 @@ def masks():
     return res
 
 
+def got_final(lines):
+    names, on = [], False
+    for ln in lines:
+        if ln.startswith("FINAL "):
+            on = True
+        elif not ln.startswith("  "):
+            on = False
+        elif on and ln.strip() != "..":
+            names.append(ln.strip())
+    return names
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--libdir", default=os.path.join(ROOT, "build-cmake"))
@@ -101,6 +113,10 @@ def main():
                 if ln.startswith("FILTER "):
                     cur = int(ln.split()[1])
                     got[cur] = []
+                elif ln.startswith("FINAL "):
+                    cur = "final"
+                    got[cur] = []
+                    final_label = ln[6:]
                 elif ln.startswith("  "):
                     if ln.strip() != "..":
                         got[cur].append(ln.strip())
@@ -109,6 +125,15 @@ def main():
                     rows.append(tuple(int(v) for v in m.groups()))
                 elif ln.startswith("DIALOG "):
                     dlg = ln
+            if got.pop("final", None) is None or final_label != labels[0]:
+                print("FAIL: %s: displayed choice %r, want %r"
+                      % (size, final_label, labels[0]))
+                failures += 1
+            elif sorted(got_final(lines)) != sorted(f for f in FILES if any(
+                    fnmatch.fnmatchcase(f, p) for p in expect[0])):
+                print("FAIL: %s: list does not match displayed %r"
+                      % (size, final_label))
+                failures += 1
             if len(got) != len(labels):
                 print("FAIL: %s: %d filters listed, want %d\n%s" % (
                     size, len(got), len(labels), r.stdout + r.stderr[-500:]))
