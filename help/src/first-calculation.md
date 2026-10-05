@@ -52,7 +52,9 @@ Creation** if you prefer that.)
 1. Select `water-opt`.
 2. Choose **Tools > Builder...** (Ctrl+B).
 
-The Builder opens on this calculation. To add water from the structure
+The Builder opens on this calculation. (If you have not used the Builder
+before, [Looking at a file](looking-at-a-file.md) shows how to open existing
+structure files in it.) To add water from the structure
 library:
 
 1. In the **Mode Toolbar**, click the button with the tooltip **Import from
@@ -171,7 +173,8 @@ reported.
 1. Select `water-opt`.
 2. Choose **Tools > Viewer...** (Ctrl+R).
 
-The Viewer shows the final geometry. Open the results from its
+The Viewer shows the final geometry. (The same Viewer shows the output of a
+calculation run elsewhere: see [Looking at a file](looking-at-a-file.md).) Open the results from its
 **Properties** menu. Each entry shows or hides a panel.
 
 - **Calculation Summary** lists the theory, run type and basis set, and

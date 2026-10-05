@@ -181,7 +181,9 @@ computer.]
 For administrators and central servers, see `GETTING_STARTED.md`: it covers
 accounts for a class, the shared broker, and building from source.
 
-Continue with [Machines](machines.md).
+To look at a structure or at existing results first, continue with
+[Looking at a file](looking-at-a-file.md). To run calculations, continue with
+[Machines](machines.md).
 
 <!-- sources:
   release notes v9.0.0-alpha.4 (package names, install commands, Debian tested)

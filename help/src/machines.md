@@ -175,7 +175,8 @@ script on your computer and stops.
 5. Submit the job there yourself.
 6. When the job has finished, copy the output file back.
 7. In the Organizer, choose **File > Import Calculation from Output
-   File...** to bring the results into ECCE. [TO CHECK: the dialog that
+   File...** to bring the results into ECCE (see
+   [Looking at a file](looking-at-a-file.md)). [TO CHECK: the dialog that
    follows and which calculation the output is attached to.]
 
 <!-- sources:
