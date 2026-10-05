@@ -958,6 +958,10 @@ click blk:header:copy
 set blk:header %(hdr)s
 wait 1000
 shot %(o)s/job-script-copied.png
+words
+wait 500
+shot-dialog %(o)s/job-script-words.png
+click words:close
 quit
 """ % {"o": out, "hdr": esc("#SBATCH --qos=normal\n" + hdr)})
     clean(p, "job script PNGs")

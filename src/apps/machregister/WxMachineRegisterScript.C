@@ -165,7 +165,8 @@ bool MachRegScript::click(const string& name)
 
 bool MachRegScript::shot(const string& file, bool dialog)
 {
-    wxWindow* win = dialog ? static_cast<wxWindow*>(p_frame->p_rawDlg)
+    wxWindow* win = dialog ? static_cast<wxWindow*>(p_frame->p_rawDlg ?
+                             p_frame->p_rawDlg : p_frame->p_wordsDlg)
                            : p_frame;
     if (win == NULL)
         return false;
@@ -264,6 +265,7 @@ int MachRegScript::runCommand(const vector<string>& w)
         else fail("undo " + w[1] + " is not shown");
     }
     else if (cmd == "click" && n == 2) click(w[1]);
+    else if (cmd == "words") f->showWords();
     else if (cmd == "queue-apply") click("queue-apply");
     else if (cmd == "queue-remove") click("queue-remove");
     else if (cmd == "queue-clear") click("queue-clear");

@@ -37,6 +37,7 @@
 #include "wx/spinctrl.h"
 #include "wx/statline.h"
 #include "wx/timer.h"
+#include "wx/hyperlink.h"
 #include "wx/dialog.h"
 
 #include "util/BrowserHelp.H"
@@ -140,6 +141,7 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
     p_jobPage = NULL;
     p_cshTimer = NULL;
     p_rawDlg = NULL;
+    p_wordsDlg = NULL;
     p_scripted = getenv("ECCE_MACHREG_SCRIPT") != NULL;
     p_codeNames = CodeFactory::getFullySupportedCodeNames();
 
@@ -659,20 +661,13 @@ wxWindow* WxMachineRegister::createJobScriptPage(wxWindow* parent)
 
     addBlock(page, sizer, "header", "");
 
-    //  The names come from gensub's provideVariables().
-    wxStaticText* vars = new wxStaticText(page, wxID_ANY,
-        "Words starting with $ are replaced when the job is submitted: "
-        "$queue, $nodes, $totalprocs (all processors), $ppn (processors per "
-        "node), $wallTime (h:m:s), $wallHrMin, $wallSeconds, $cpuTime, "
-        "$memory (a number in the queue's memory unit, so write $memoryM "
-        "when that is MB), $mem_x_1024, $scratchSpace, $scratchDir, $runDir, "
-        "$inFile, $outFile, $submitFile (the job script's name), $account, "
-        "$host, $code, $qMgr, $mdSystemName and $mdCalcName. A request line "
-        "whose variable is empty is left out. The same words are replaced in "
-        "the two blocks below.");
-    vars->SetFont(vars->GetFont().Smaller());
-    vars->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
-    vars->Wrap(620);
+    //  The words come from gensub's provideVariables().
+    wxHyperlinkCtrl* vars = new wxHyperlinkCtrl(page, wxID_ANY,
+        "Available words...", "");
+    vars->SetToolTip("The $words that are replaced when a job is submitted");
+    vars->Bind(wxEVT_HYPERLINK, [this](wxHyperlinkEvent&) {
+        this->showWords();
+    });
     sizer->Add(vars, wxSizerFlags().Border(wxLEFT|wxRIGHT));
     reg("header:variables", vars);
 
@@ -2936,6 +2931,84 @@ void WxMachineRegister::blocksCheckCsh()
             }
         }
     }
+}
+
+
+//  What gensub's provideVariables() replaces, as a table.
+void WxMachineRegister::showWords()
+{
+    if (p_wordsDlg != NULL)
+        return;
+    static const char* const words[][2] = {
+        { "$queue", "the queue chosen in the Launcher" },
+        { "$nodes", "number of nodes" },
+        { "$totalprocs", "total number of processors" },
+        { "$ppn", "processors per node" },
+        { "$wallTime", "wall time as h:m:s" },
+        { "$wallHrMin", "wall time as hours and minutes" },
+        { "$wallSeconds", "wall time in seconds" },
+        { "$cpuTime", "CPU time" },
+        { "$memory", "memory, a number in the queue's memory unit" },
+        { "$memoryM", "$memory with an M after it, for queues counted in MB" },
+        { "$mem_x_1024", "memory times 1024" },
+        { "$scratchSpace", "scratch space" },
+        { "$scratchDir", "scratch directory" },
+        { "$runDir", "the run directory" },
+        { "$inFile", "name of the input file" },
+        { "$outFile", "name of the output file" },
+        { "$submitFile", "name of the job script" },
+        { "$account", "allocation account" },
+        { "$host", "name of this machine" },
+        { "$code", "the code that runs" },
+        { "$qMgr", "the queue manager" },
+        { "$mdSystemName", "name of the molecular dynamics system" },
+        { "$mdCalcName", "name of the molecular dynamics calculation" },
+    };
+    wxDialog* dlg = new wxDialog(this, wxID_ANY, "Available words",
+        wxDefaultPosition, wxSize(560, 560),
+        wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER);
+    wxBoxSizer* root = new wxBoxSizer(wxVERTICAL);
+    dlg->SetSizer(root);
+    wxListCtrl* list = new wxListCtrl(dlg, wxID_ANY, wxDefaultPosition,
+                                      wxDefaultSize, wxLC_REPORT|wxLC_SINGLE_SEL);
+    list->InsertColumn(0, "Word", wxLIST_FORMAT_LEFT, 140);
+    list->InsertColumn(1, "Meaning", wxLIST_FORMAT_LEFT, 380);
+    for (size_t i = 0; i < sizeof(words) / sizeof(words[0]); i++)
+    {
+        long r = list->InsertItem(i, words[i][0]);
+        list->SetItem(r, 1, words[i][1]);
+    }
+    root->Add(list, wxSizerFlags(1).Expand().Border());
+    wxStaticText* note = new wxStaticText(dlg, wxID_ANY,
+        "A request line whose word is empty is left out. The same words "
+        "work in the two command blocks.");
+    note->Wrap(520);
+    root->Add(note, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+    wxButton* close = new ewxButton(dlg, wxID_CLOSE, "&Close");
+    root->Add(close, wxSizerFlags().Right().Border());
+
+    bool modal = !p_scripted;
+    auto finish = [this, dlg, modal]() {
+        p_wordsDlg = NULL;
+        p_fields.erase("words:dialog");
+        if (modal)
+            dlg->EndModal(wxID_CLOSE);
+        else
+            dlg->Destroy();
+    };
+    close->Bind(wxEVT_BUTTON, [finish](wxCommandEvent&) { finish(); });
+    dlg->Bind(wxEVT_CLOSE_WINDOW, [finish](wxCloseEvent&) { finish(); });
+    reg("words:dialog", dlg);
+    reg("words:close", close);
+    p_wordsDlg = dlg;
+    dlg->CentreOnParent();
+    if (modal)
+    {
+        dlg->ShowModal();
+        dlg->Destroy();
+    }
+    else
+        dlg->Show();
 }
 
 

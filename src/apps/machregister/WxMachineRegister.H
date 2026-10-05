@@ -179,6 +179,7 @@ class WxMachineRegister: public ewxFrame
         void blocksRetarget();
         void blocksCheckCsh();
         void editFile();
+        void showWords();
         string rawFileText() const;
         string rawFileCheck(const string& text, bool& errors) const;
         bool rawFileSave(const string& text, string& err);
@@ -252,6 +253,7 @@ class WxMachineRegister: public ewxFrame
         wxSizer             *p_condorGrid;
         wxWindow            *p_jobPage;
         wxTimer             *p_cshTimer;
+        wxDialog            *p_wordsDlg;
         wxDialog            *p_rawDlg;     // Advanced: edit file
         wxCheckBox          *p_jobsCheck[3];   // [1] interactive, [2] files only
         wxStaticText        *p_jobsTag, *p_jobsMode;
