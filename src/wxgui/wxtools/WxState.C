@@ -3,6 +3,7 @@
  *
  *
  */
+#include <cmath>
 #include <iostream>
 using std::cout;
 using std::endl;
@@ -43,34 +44,34 @@ using namespace std;
 
 // Indexed by RUNSTATE, ILLEGAL first and a LAST sentinel at the end.  The
 // shipped EcceGlobal holds the same values; tests/look/contrast.py checks
-// both against the light and dark theme backgrounds (4.5:1).
+// both against the light and dark theme backgrounds.
 static const char* LIGHT_STATE_COLOURS[] = {
   "#ff0000",  // ILLEGAL
-  "#995b7d",  // CREATED
-  "#003f63",  // READY
-  "#387597",  // SUBMITTED
-  "#634400",  // RUNNING
-  "#007e5c",  // COMPLETED
-  "#007e5c",  // LOADED
+  "#56b4e9",  // CREATED
+  "#0000ff",  // READY
+  "#f0e442",  // SUBMITTED
+  "#007a00",  // RUNNING
+  "#007d49",  // COMPLETED
+  "#007d49",  // LOADED
   "#6b6b6b",  // KILLED
-  "#3f3c00",  // UNSUCCESSFUL
-  "#c23b22",  // FAILED
+  "#a35200",  // UNSUCCESSFUL
+  "#d00000",  // FAILED
   "#000000",  // SYSTEM
   "#000000",  // LAST
 };
 
 static const char* DARK_STATE_COLOURS[] = {
   "#ff8080",  // ILLEGAL
-  "#e6bcd4",  // CREATED
-  "#61a8cf",  // READY
-  "#a9dbf6",  // SUBMITTED
-  "#e69f00",  // RUNNING
-  "#36b290",  // COMPLETED
-  "#36b290",  // LOADED
+  "#b0e2ff",  // CREATED
+  "#9999ff",  // READY
+  "#f7ee8a",  // SUBMITTED
+  "#00cd00",  // RUNNING
+  "#3ddc97",  // COMPLETED
+  "#3ddc97",  // LOADED
   "#b0b0b0",  // KILLED
-  "#f0e442",  // UNSUCCESSFUL
-  "#ff8f73",  // FAILED
-  "#ffffff",  // SYSTEM
+  "#ffa500",  // UNSUCCESSFUL
+  "#ff8080",  // FAILED
+  "#e0e0e0",  // SYSTEM
   "#e0e0e0",  // LAST
 };
 
@@ -176,6 +177,24 @@ void WxState::resetUserPreferences()
 
 
 
+// A fill too light to stand out against a light theme (below 3:1, the WCAG
+// non-text minimum) gets an outline at half its brightness, so a pale
+// colour such as submitted's yellow can be used.  tests/look/contrast.py
+// applies the same rule.
+static wxColour outlineFor(const wxColour& fill)
+{
+  if (ewxThemeColours::isDark())
+    return fill;
+  double c[3] = { fill.Red() / 255.0, fill.Green() / 255.0, fill.Blue() / 255.0 };
+  for (int i = 0; i < 3; i++)
+    c[i] = c[i] <= 0.04045 ? c[i] / 12.92 : pow((c[i] + 0.055) / 1.055, 2.4);
+  double lum = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  if (lum <= 0.27)
+    return fill;
+  return wxColour(fill.Red() / 2, fill.Green() / 2, fill.Blue() / 2);
+}
+
+
 void WxState::createBrushesAndPens()
 {
   // Create two sets of pens and brushes
@@ -185,10 +204,10 @@ void WxState::createBrushesAndPens()
       if (idx == ResourceDescriptor::STATE_LOADED) {
         p_brushes[i].push_back(new wxBrush(ewxColor(p_defaultColors[idx]),
                                                     wxTRANSPARENT));
-        p_pens[i].push_back(new wxPen(ewxColor(p_defaultColors[idx])));
+        p_pens[i].push_back(new wxPen(outlineFor(ewxColor(p_defaultColors[idx]))));
       } else {
         p_brushes[i].push_back(new wxBrush(ewxColor(p_defaultColors[idx])));
-        p_pens[i].push_back(new wxPen(ewxColor(p_defaultColors[idx])));
+        p_pens[i].push_back(new wxPen(outlineFor(ewxColor(p_defaultColors[idx]))));
       }
     }
   }
@@ -366,7 +385,7 @@ void WxState::resetToSystemDefault()
   // Set system default color brushes and pens, do it for once
   for (size_t idx=0; idx<p_defaultColors.size(); idx++) {
     p_brushes[1][idx]->SetColour(ewxColor(p_defaultColors[idx]));
-    p_pens[1][idx]->SetColour(ewxColor(p_defaultColors[idx]));
+    p_pens[1][idx]->SetColour(outlineFor(ewxColor(p_defaultColors[idx])));
   }
 
 }
@@ -401,7 +420,7 @@ void WxState::resetFromPreferences(const Preferences& sysPrefs, bool user)
       if (!stale) p_defaultColors[i] = value;
     }
     p_brushes[0][i]->SetColour(ewxColor(p_defaultColors[i]));
-    p_pens[0][i]->SetColour(ewxColor(p_defaultColors[i]));
+    p_pens[0][i]->SetColour(outlineFor(ewxColor(p_defaultColors[i])));
   }
 }
 
