@@ -22,3 +22,8 @@ The job script ECCE generates is POSIX sh (#!/bin/sh), so the setup, wrapup
 and <Code>Command fragments in these files must be sh, not csh.  The examples
 here were converted from csh.  See "Job scripts are POSIX sh" in
 GETTING_STARTED.md.
+
+A machine's settings are the site file (siteconfig/CONFIG.<machinename>)
+merged with the user's own (~/.ECCE/CONFIG.<machinename>): per key, the
+user's non-empty value wins, keys are not case sensitive, and "key: -" in the
+user's file removes the site's value.  See "Job scripts" in GETTING_STARTED.md.

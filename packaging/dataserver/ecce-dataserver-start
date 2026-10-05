@@ -100,7 +100,10 @@ SITECONFIG_DEST="$DATAROOT/Ecce/system/siteconfig"
 rm -rf "$SITECONFIG_DEST"
 mkdir -p "$SITECONFIG_DEST"
 : > "$SITECONFIG_DEST/MANIFEST"
+# submit.site and QueueManagers go too, so a client's job scripts and
+# scheduler commands match the server's.
 for f in "$SITECONFIG_SRC/Machines" "$SITECONFIG_SRC/Queues" \
+         "$SITECONFIG_SRC/submit.site" "$SITECONFIG_SRC/QueueManagers" \
          "$SITECONFIG_SRC"/CONFIG.* "$SITECONFIG_SRC"/*.Q; do
   [ -f "$f" ] || continue
   cp "$f" "$SITECONFIG_DEST/"

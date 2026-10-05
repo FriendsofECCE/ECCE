@@ -43,7 +43,8 @@ Usage: ecce-remote-setup <server-host> [data-port]
   data-port     data server port      (default 8096)
 
 Writes $ECCE_HOME/siteconfig/RemoteServer/ and copies the server's registered site machine list (Machines, Queues,
-CONFIG.*, *.Q) into siteconfig/ if the server publishes one. Re-run after
+CONFIG.*, *.Q) and, from a server that publishes them, submit.site and
+QueueManagers into siteconfig/. Re-run after
 the admin changes that list on the server.
 Run "ecce -remote" afterwards.
 USAGE
@@ -148,11 +149,14 @@ fi
 #  and takes the data server login as its account.
 
 #  Site machine list (issue #188).  ecce-dataserver-start publishes the
-#  server's siteconfig/{Machines,Queues,CONFIG.*,*.Q} under Ecce/system,
+#  server's siteconfig/{Machines,Queues,submit.site,QueueManagers,CONFIG.*,*.Q}
+#  under Ecce/system,
 #  which is served without a login -- same tree the basis set library
 #  comes from -- so this needs no credentials.  All-or-nothing: a partial
 #  copy would leave CONFIG.* files with no matching Machines entry, or vice
-#  versa, which is worse than not copying at all.
+#  versa, which is worse than not copying at all.  The client fetches what
+#  the MANIFEST lists, so a server too old to list submit.site and
+#  QueueManagers leaves the client's own copies in place.
 MACHINES_MSG=""
 if ! command -v curl >/dev/null 2>&1; then
   echo "WARNING: curl not found -- cannot copy the server's machine list;" >&2
@@ -185,7 +189,8 @@ else
       BACKUP="$SITE/local-machines.orig"
       if [ ! -d "$BACKUP" ]; then
         mkdir -p "$BACKUP"
-        for f in "$SITE/Machines" "$SITE/Queues" "$SITE"/CONFIG.* "$SITE"/*.Q; do
+        for f in "$SITE/Machines" "$SITE/Queues" "$SITE/submit.site" \
+                 "$SITE/QueueManagers" "$SITE"/CONFIG.* "$SITE"/*.Q; do
           [ -f "$f" ] && cp -p "$f" "$BACKUP/"
         done
       fi

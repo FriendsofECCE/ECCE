@@ -139,10 +139,9 @@ if [ "$c2s_seen" != "$ECCE_VERSION_STRING" ] && [ -d "$c2s_dir" ]; then
 fi
 
 # A fresh ~/.ECCE gets a CONFIG.localhost template so jobs on this machine find
-# the codes.  It is a template, not a site file: RefMachine::configFile prefers
-# siteconfig/CONFIG.<name> over the user's, so a shipped one would hide the
-# user's own paths.  An admin's site file or the user's own file wins; never
-# overwritten.
+# the codes.  It is a template, not a site file, and is not copied when an
+# admin's siteconfig/CONFIG.<name> exists (the user's file would merge over
+# it, but there is nothing to seed).  Never overwritten.
 c2s_tpl="$ECCE_HOME/siteconfig/CONFIG-Examples/CONFIG.localhost"
 if [ -f "$c2s_tpl" ] \
    && [ ! -e "$ECCE_HOME/siteconfig/CONFIG.localhost" ] \

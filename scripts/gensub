@@ -134,6 +134,11 @@
   print SUBMIT &getHeader();
   &readConfig();
   ##&printConfig();
+  # Test hook (tests/queues/config_test.py): the merged key/value pairs.
+  if ($ENV{'GENSUB_DUMP_CONFIG'}) {
+    &printConfig();
+    exit 0;
+  }
 
   # HTCondor gives every job a private /tmp and /var/tmp (MOUNT_UNDER_SCRATCH),
   # so a run directory there does not exist for the job and it is held with
@@ -684,6 +689,7 @@ sub getVersion()
 #  key: value pairs like the old CONFIG.* files
 #  key  value pairs
 #  key {...}
+#   A value of "-" clears the key (it removes what an earlier file set).
 ##########################################################################
 sub readConfig() 
 {
@@ -707,23 +713,28 @@ sub readConfig()
            $value .= $_;
          }
         } else {
-          # one-liner - support ':' notation for old CONFIG* files
-          if (/:/) {
-            /^\s*(.*):\s*(.*)/;
-            $value = $2;
+          # one-liner: "key: value" (old CONFIG.* files) or "key value".
+          # A colon form needs the colon right after the first word, so
+          # "key value:with:colons" is a space form.
+          if (/^\s*([^\s:]+)\s*:\s*(.*)/) {
             $key = $1;
+            $value = $2;
+          } elsif (/^\s*(\S+)\s+(.*)/) {
+            $key = $1;
+            $value = $2;
           } else {
-            /^\s*(.*)\s*(.*)/;
-            $value = $2;
-            $key = $1;
+            $key = $_;
+            $value = "";
           }
-          $key =~ s/\s*$//;
         }
         $key =~ s/^\s*//;
         $key =~ s/\s*$//;
         $value =~ s/^\s*//;
         $value =~ s/\s*$//;
-        if ($value ne "") {
+        # "key: -" in a later file clears the key; it is never a value.
+        if ($value eq "-") {
+          delete $config{lc($key)};
+        } elsif ($value ne "") {
           $config{lc($key)} = $value;
         }
       }
@@ -742,7 +753,8 @@ sub readConfig()
 sub printConfig()
 {
   foreach $key (sort keys %config) {
-    print "$key: $config{$key}\n";
+    ($v = $config{$key}) =~ s/\n/\\n/g;
+    print "$key: $v\n";
   }
 }
 

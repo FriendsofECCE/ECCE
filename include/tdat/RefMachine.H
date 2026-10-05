@@ -30,8 +30,10 @@
 #include <fstream>
   using std::ifstream;
 
+#include <map>
 #include <string>
 #include <vector>
+  using std::map;
   using std::string;
   using std::vector;
 
@@ -114,7 +116,14 @@ public:
     static vector<string>* referenceNames(
                                const machineContextEnum& context = allMachines);
 
-    // name with path of CONFIG file
+    // Effective CONFIG.<refname> settings: site file, then user file, per key
+    // the last non-empty value wins, keys lower-cased, "key: -" in a later
+    // file removes the key.  scripts/gensub applies the same rule.
+    static map<string,string> config(const string& refname);
+
+    // Name with path of the first CONFIG.<refname> that exists (site, then
+    // user), "" if none.  For existence checks only; read values with
+    // config().
     static string configFile(const string& refname);
 
     static void markUpdateUserPrefs(void);

@@ -24,6 +24,12 @@
 #
 # Case for keys is not sensitive.
 #
+# A later file can clear a key an earlier one set by giving it the value -
+# (for example "setup: -" in ~/.ECCE/CONFIG.machinename).  An empty value
+# does not override anything.  The same merge, site then user, applies to
+# the keys ECCE itself reads from CONFIG.machinename (shell, sourceFile,
+# perlPath, frontendMachine, noRemoteAccess, ...).
+#
 #
 # Shell snippets (setup, wrapup, <code>Command, <code>_loophole) become part
 # of a #!/bin/sh job script, so they must be POSIX sh.  Plain csh forms
