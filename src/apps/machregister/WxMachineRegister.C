@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <fstream>
 #include <regex>
+#include <set>
 
 #include "wx/wxprec.h"
 
@@ -21,6 +22,13 @@
 #endif
 
 #include "wx/accel.h"
+#include "wx/collpane.h"
+#include "wx/filename.h"
+#include "wx/artprov.h"
+#include "wx/bmpbuttn.h"
+#include "wx/radiobut.h"
+#include "wx/statbmp.h"
+#include "wx/utils.h"
 #include "wx/display.h"
 #include "wx/artprov.h"
 #include "wx/statbmp.h"
@@ -28,6 +36,9 @@
 #include "wx/notebook.h"
 #include "wx/spinctrl.h"
 #include "wx/statline.h"
+#include "wx/timer.h"
+#include "wx/hyperlink.h"
+#include "wx/dialog.h"
 
 #include "util/BrowserHelp.H"
 #include "util/Ecce.H"
@@ -118,6 +129,19 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
     p_closing = false;
     p_slctRgstn = NULL;
     p_draft = NULL;
+    p_cfgPage = NULL;
+    p_jobsTag = NULL;
+    p_jobsUndoBox = NULL;
+    p_jobsUndo = NULL;
+    p_jobsCheck[0] = p_jobsCheck[1] = p_jobsCheck[2] = NULL;
+    p_jobsMode = NULL;
+    p_jobsIcon = NULL;
+    p_advanced = NULL;
+    p_condorGrid = NULL;
+    p_jobPage = NULL;
+    p_cshTimer = NULL;
+    p_rawDlg = NULL;
+    p_wordsDlg = NULL;
     p_scripted = getenv("ECCE_MACHREG_SCRIPT") != NULL;
     p_codeNames = CodeFactory::getFullySupportedCodeNames();
 
@@ -147,6 +171,7 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
 
 WxMachineRegister::~WxMachineRegister()
 {
+    delete p_cshTimer;
     delete p_draft;
 }
 
@@ -279,6 +304,7 @@ void WxMachineRegister::createControls()
     this->Bind(wxEVT_SPINCTRL, &WxMachineRegister::onFieldChanged, this);
     this->Bind(wxEVT_CHOICE, &WxMachineRegister::onFieldChanged, this);
     this->Bind(wxEVT_CHECKBOX, &WxMachineRegister::onFieldChanged, this);
+    this->Bind(wxEVT_RADIOBUTTON, &WxMachineRegister::onFieldChanged, this);
     p_fullName->Bind(wxEVT_TEXT, &WxMachineRegister::onFullNameText, this);
     p_queueChoice->Bind(wxEVT_CHOICE, &WxMachineRegister::onQueueChoice, this);
     p_queueApply->Bind(wxEVT_BUTTON, &WxMachineRegister::onQueueApply, this);
@@ -378,33 +404,222 @@ wxWindow* WxMachineRegister::createMachinePage(wxWindow* parent)
 }
 
 
+void WxMachineRegister::addHeading(wxWindow* page, wxSizer* sizer,
+                                   const string& text)
+{
+    wxStaticText* t = new wxStaticText(page, wxID_ANY, text);
+    wxFont f = t->GetFont();
+    f.MakeBold();
+    t->SetFont(f);
+    sizer->Add(t, wxSizerFlags().Border(wxLEFT|wxRIGHT|wxTOP));
+}
+
+
+//  One key: [label] [control] [source tag] [...].  Checkboxes carry their
+//  own label.  The control is registered under the lower-case key.
+void WxMachineRegister::addCfgRow(wxWindow* page, wxFlexGridSizer* grid,
+                                  const string& key, const string& label,
+                                  CfgKind kind, const string& tip)
+{
+    CfgRow r;
+    r.key = key;
+    r.label = label;
+    r.kind = kind;
+
+    if (kind == CfgCheck || kind == CfgCheckYes)
+        r.ctrl = new ewxCheckBox(page, wxID_ANY, label, wxDefaultPosition,
+                                 wxDefaultSize, wxCHK_2STATE);
+    else if (kind == CfgText)
+        r.ctrl = new ewxTextCtrl(page, wxID_ANY);
+    else
+    {
+        wxArrayString items;
+        if (kind == CfgShell)
+        {
+            items.Add("bash"); items.Add("sh"); items.Add("csh");
+            items.Add("tcsh");
+        }
+        else
+        {
+            items.Add("auto"); items.Add("yes"); items.Add("no");
+        }
+        r.ctrl = new ewxChoice(page, wxID_ANY, wxDefaultPosition,
+                               wxSize(160, -1), items);
+    }
+    r.ctrl->SetToolTip(tip);
+    reg(lowerOf(key), r.ctrl);
+
+    if (grid == NULL)           // driven by other controls
+    {
+        r.ctrl->Hide();
+        p_cfgRows.push_back(r);
+        return;
+    }
+
+    if (kind == CfgCheck || kind == CfgCheckYes)
+        grid->AddSpacer(0);
+    else
+    {
+        r.name = new ewxStaticText(page, wxID_ANY, label);
+        r.name->SetMinSize(wxSize(260, -1));
+        grid->Add(r.name, wxSizerFlags().Right().Border().CentreVertical());
+    }
+    grid->Add(r.ctrl, wxSizerFlags(1).Expand().Border().CentreVertical());
+
+    r.tag = new wxStaticText(page, wxID_ANY, "");
+    r.tag->SetFont(r.tag->GetFont().Smaller());
+    r.tag->SetMinSize(wxSize(r.tag->GetTextExtent("from server  ").x, -1));
+    grid->Add(r.tag, wxSizerFlags().Border().CentreVertical());
+
+    r.undo = makeUndo(page, r.undoBox);
+    r.undo->Bind(wxEVT_BUTTON, &WxMachineRegister::onCfgUndo, this);
+    grid->Add(r.undoBox, wxSizerFlags().Border().CentreVertical());
+
+    reg("tag:" + lowerOf(key), r.tag);
+    reg("undo:" + lowerOf(key), r.undo);
+    p_cfgRows.push_back(r);
+}
+
+
+//  A small undo button in a box of fixed size, so the columns do not move
+//  when it is hidden.
+wxBitmapButton* WxMachineRegister::makeUndo(wxWindow* page, wxWindow*& box)
+{
+    box = new wxPanel(page, wxID_ANY, wxDefaultPosition, wxSize(34, 30));
+    wxBitmapButton* b = new wxBitmapButton(box, wxID_ANY,
+        wxArtProvider::GetBitmapBundle(wxART_UNDO, wxART_BUTTON),
+        wxPoint(0, 0), wxDefaultSize, wxBU_EXACTFIT);
+    b->SetToolTip("Use the site value");
+    b->Hide();
+    return b;
+}
+
+
 wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
 {
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     ewxScrolledWindow* page = newPage(parent, sizer);
+    p_cfgPage = page;
 
-    wxFlexGridSizer* grid = new wxFlexGridSizer(2, 0, 0);
-    grid->AddGrowableCol(1);
-    sizer->Add(grid, wxSizerFlags().Expand());
+    #define GRID(name) \
+        wxFlexGridSizer* name = new wxFlexGridSizer(4, 0, 0); \
+        name->AddGrowableCol(1); \
+        sizer->Add(name, wxSizerFlags().Expand());
 
-    p_perlPath = new ewxTextCtrl(page, wxID_ANY);
-    p_perlPath->SetToolTip("Directory of the Perl 5 interpreter on the "
-                           "remote machine.");
-    p_qmgrPath = new ewxTextCtrl(page, wxID_ANY);
-    p_qmgrPath->SetToolTip("Directory holding the scheduler's commands on "
-                           "the remote machine.");
-    grid->Add(new ewxStaticText(page, wxID_ANY, "Perl on the remote machine"),
-              wxSizerFlags().Right().Border().CentreVertical());
-    grid->Add(p_perlPath, wxSizerFlags(1).Expand().Border().CentreVertical());
-    grid->Add(new ewxStaticText(page, wxID_ANY, "Scheduler command directory"),
-              wxSizerFlags().Right().Border().CentreVertical());
-    grid->Add(p_qmgrPath, wxSizerFlags(1).Expand().Border().CentreVertical());
+    addHeading(page, sizer, "Remote environment");
+    GRID(env)
+    addCfgRow(page, env, "shell", "Shell", CfgShell,
+              "The shell ECCE starts on the remote machine to read the file "
+              "below. bash is right unless that file is written for csh.");
+    addCfgRow(page, env, "sourceFile", "Script run at login (e.g. module setup)", CfgText,
+              "A file on the remote machine that sets up the environment "
+              "(module commands, paths) before a job runs.");
 
-    p_connNote = new wxStaticText(page, wxID_ANY, "");
-    sizer->Add(p_connNote, wxSizerFlags().Border());
+    addHeading(page, sizer, "Connect through a login host");
+    GRID(front)
+    addCfgRow(page, front, "frontendMachine", "Log in via (gateway host)", CfgText,
+              "Connect to this host first, then on to the machine. "
+              "Leave empty to connect directly.");
+    addCfgRow(page, front, "frontendBypass", "Connect directly from computers in", CfgText,
+              "A domain, such as .example.org. When this computer is inside "
+              "it, the login host is not used.");
 
-    reg("perlpath", p_perlPath);
-    reg("qmgrpath", p_qmgrPath);
+    addHeading(page, sizer, "Paths on the remote machine");
+    GRID(paths)
+    addCfgRow(page, paths, "perlPath", "Perl program", CfgText,
+              "Directory of the Perl 5 interpreter on the remote machine.");
+    addCfgRow(page, paths, "qmgrPath", "Directory of sbatch, squeue, ...", CfgText, "");
+    addCfgRow(page, paths, "libPath", "Library directory", CfgText,
+              "Directory added to LD_LIBRARY_PATH on the remote machine.");
+    addCfgRow(page, paths, "xappsPath", "X applications", CfgText,
+              "Directory of X applications on the remote machine.");
+
+    //  Normal mode is one line; the exceptions are chosen under Advanced.
+    wxBoxSizer* jobHead = new wxBoxSizer(wxHORIZONTAL);
+    sizer->Add(jobHead, wxSizerFlags().Expand());
+    wxStaticText* jobTitle = new wxStaticText(page, wxID_ANY,
+                                              "How jobs reach this machine");
+    wxFont jf = jobTitle->GetFont();
+    jf.MakeBold();
+    jobTitle->SetFont(jf);
+    jobHead->Add(jobTitle, wxSizerFlags().Border(wxLEFT|wxTOP));
+    p_jobsIcon = new wxStaticBitmap(page, wxID_ANY,
+        wxArtProvider::GetBitmapBundle(wxART_WARNING, wxART_BUTTON));
+    jobHead->Add(p_jobsIcon, wxSizerFlags().Border(wxLEFT|wxTOP)
+                                           .CentreVertical());
+    p_jobsMode = new wxStaticText(page, wxID_ANY, "");
+    jobHead->Add(p_jobsMode, wxSizerFlags().Border(wxLEFT|wxTOP)
+                                           .CentreVertical());
+    jobHead->AddStretchSpacer(1);
+    addCfgRow(page, NULL, "noRemoteAccess", "", CfgCheck, "");
+    addCfgRow(page, NULL, "userSubmit", "", CfgCheck, "");
+    p_jobsTag = new wxStaticText(page, wxID_ANY, "");
+    p_jobsTag->SetFont(p_jobsTag->GetFont().Smaller());
+    p_jobsTag->SetMinSize(wxSize(p_jobsTag->GetTextExtent("from server  ").x, -1));
+    jobHead->Add(p_jobsTag, wxSizerFlags().Border(wxTOP|wxBOTTOM|wxLEFT)
+                                          .CentreVertical());
+    p_jobsUndo = makeUndo(page, p_jobsUndoBox);
+    p_jobsUndo->Bind(wxEVT_BUTTON, &WxMachineRegister::onCfgUndo, this);
+    jobHead->Add(p_jobsUndoBox, wxSizerFlags().Border(wxTOP|wxRIGHT)
+                                              .CentreVertical());
+    reg("tag:jobs", p_jobsTag);
+    reg("undo:jobs", p_jobsUndo);
+    reg("jobs:mode", p_jobsMode);
+    reg("jobs:icon", p_jobsIcon);
+
+    p_advanced = new wxCollapsiblePane(page, wxID_ANY, "Advanced");
+    sizer->Add(p_advanced, wxSizerFlags().Expand().Border());
+    wxWindow* adv = p_advanced->GetPane();
+    wxBoxSizer* advBox = new wxBoxSizer(wxVERTICAL);
+    adv->SetSizer(advBox);
+
+    wxStaticText* subTitle = new wxStaticText(adv, wxID_ANY,
+                                              "Job submission");
+    subTitle->SetFont(jf);
+    advBox->Add(subTitle, wxSizerFlags().Border(wxLEFT|wxTOP));
+    //  Normal is not a choice: it is what happens when neither is ticked.
+    static const char* const jobText[3] = { "",
+        "Submit jobs interactively",
+        "Don't submit; only make the files" };
+    static const char* const jobNote[3] = { "",
+        "For sites that do not allow automated submission. ECCE copies the "
+        "input and job script to the run directory; you log in, submit the "
+        "job script yourself, and type the job ID into ECCE when asked, so "
+        "it can follow the job.",
+        "For machines ECCE cannot log in to, e.g. with two-factor "
+        "authentication. ECCE writes the input and job script on this "
+        "computer; you copy them to the machine, submit, and later import "
+        "the output (Organizer > File > Import Calculation from Output "
+        "File...)." };
+    static const char* const jobName[3] = { "", "jobs:user", "jobs:none" };
+    p_jobsCheck[0] = NULL;
+    for (int i = 1; i < 3; i++)
+    {
+        p_jobsCheck[i] = new wxCheckBox(adv, wxID_ANY, jobText[i]);
+        advBox->Add(p_jobsCheck[i], wxSizerFlags().Border(wxLEFT|wxTOP, 12));
+        wxStaticText* note = new wxStaticText(adv, wxID_ANY, jobNote[i]);
+        note->SetFont(note->GetFont().Smaller());
+        note->SetForegroundColour(wxSystemSettings::GetColour(
+                                  wxSYS_COLOUR_GRAYTEXT));
+        note->Wrap(620);
+        advBox->Add(note, wxSizerFlags().Border(wxLEFT, 36));
+        reg(jobName[i], p_jobsCheck[i]);
+    }
+    wxFlexGridSizer* advGrid = new wxFlexGridSizer(4, 0, 0);
+    advGrid->AddGrowableCol(1);
+    advBox->Add(advGrid, wxSizerFlags().Expand().Border(wxTOP));
+    addCfgRow(adv, advGrid, "singleConnect", "One connection for everything",
+              CfgTri, "yes: send commands and files over one connection. "
+              "auto: yes when this computer is outside the machine's domain.");
+    addCfgRow(adv, advGrid, "checkScratch", "Check the scratch directory "
+              "before a job starts", CfgCheckYes,
+              "Verify that the scratch directory exists and is writable.");
+    p_advanced->Bind(wxEVT_COLLAPSIBLEPANE_CHANGED,
+        [this](wxCollapsiblePaneEvent&) {
+            p_cfgPage->Layout();
+            p_cfgPage->FitInside();
+        });
+    #undef GRID
     return page;
 }
 
@@ -439,9 +654,146 @@ wxWindow* WxMachineRegister::createJobScriptPage(wxWindow* parent)
 {
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     ewxScrolledWindow* page = newPage(parent, sizer);
+    p_jobPage = page;
+
     p_jobNote = new wxStaticText(page, wxID_ANY, "");
     sizer->Add(p_jobNote, wxSizerFlags().Border());
+
+    addBlock(page, sizer, "header", "");
+
+    //  The words come from gensub's provideVariables().
+    wxHyperlinkCtrl* vars = new wxHyperlinkCtrl(page, wxID_ANY,
+        "Available words...", "");
+    vars->SetToolTip("The $words that are replaced when a job is submitted");
+    vars->Bind(wxEVT_HYPERLINK, [this](wxHyperlinkEvent&) {
+        this->showWords();
+    });
+    sizer->Add(vars, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+    reg("header:variables", vars);
+
+    addBlock(page, sizer, "setup", "Commands run before the calculation");
+    addBlock(page, sizer, "wrapup", "Commands run after the calculation");
+
+    //  Only HTCondor needs it.
+    wxFlexGridSizer* condor = new wxFlexGridSizer(4, 0, 0);
+    condor->AddGrowableCol(1);
+    sizer->Add(condor, wxSizerFlags().Expand().Border(wxTOP));
+    addCfgRow(page, condor, "condorAllowTmp", "Allow a run directory under "
+              "/tmp (HTCondor)", CfgCheck,
+              "HTCondor gives every job a private /tmp. Tick this only if "
+              "your pool does not, so that a run directory under /tmp or "
+              "/var/tmp works.");
+    p_cfgRows.back().gensubOnly = true;
+    p_condorGrid = condor;
+
+    ewxButton* adv = new ewxButton(page, wxID_ANY, "Advanced: edit file...");
+    adv->SetToolTip("Edit the whole settings file for this machine as text");
+    sizer->Add(adv, wxSizerFlags().Border());
+    reg("edit-file", adv);
+    adv->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { this->editFile(); });
+
+    p_cshTimer = new wxTimer(this);
+    this->Bind(wxEVT_TIMER, [this](wxTimerEvent&) { this->blocksCheckCsh(); });
     return page;
+}
+
+
+//  One block: heading, the inherited text (read-only), then the user's.
+void WxMachineRegister::addBlock(wxWindow* page, wxSizer* sizer,
+                                 const string& id, const string& title)
+{
+    BlockRow b;
+    b.id = id;
+    b.box = new wxBoxSizer(wxVERTICAL);
+    sizer->Add(b.box, wxSizerFlags().Expand());
+
+    wxFont mono(wxFontInfo().Family(wxFONTFAMILY_TELETYPE));
+    wxColour gray = wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT);
+
+    b.heading = new wxStaticText(page, wxID_ANY, title);
+    b.heading->SetFont(b.heading->GetFont().Bold());
+    b.box->Add(b.heading, wxSizerFlags().Border(wxLEFT|wxRIGHT|wxTOP));
+
+    b.siteLabel = new wxStaticText(page, wxID_ANY, "");
+    b.siteLabel->SetFont(b.siteLabel->GetFont().Smaller());
+    b.siteLabel->SetForegroundColour(gray);
+    b.box->Add(b.siteLabel, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+    b.site = new ewxTextCtrl(page, wxID_ANY, "", wxDefaultPosition,
+        wxSize(-1, 80), wxTE_MULTILINE|wxTE_READONLY|wxTE_DONTWRAP);
+    b.site->SetFont(mono);
+    b.site->SetForegroundColour(gray);
+    b.box->Add(b.site, wxSizerFlags().Expand().Border(wxLEFT|wxRIGHT));
+
+    wxBoxSizer* row = new wxBoxSizer(wxHORIZONTAL);
+    b.box->Add(row, wxSizerFlags().Expand());
+    b.yoursLabel = new wxStaticText(page, wxID_ANY, "Your text instead:");
+    row->Add(b.yoursLabel, wxSizerFlags().Border().CentreVertical());
+    b.copy = new ewxButton(page, wxID_ANY, "Copy site text to edit");
+    b.copy->SetToolTip("Start from the site's text and change it. Your text "
+                       "replaces the site's, it is not added to it.");
+    row->Add(b.copy, wxSizerFlags().Border(wxTOP|wxBOTTOM|wxRIGHT)
+                                   .CentreVertical());
+    b.none = new wxCheckBox(page, wxID_ANY, "Use no text");
+    b.none->SetToolTip("Ignore the site's text and put nothing here");
+    row->Add(b.none, wxSizerFlags().Border().CentreVertical());
+    row->AddStretchSpacer(1);
+    b.tag = new wxStaticText(page, wxID_ANY, "");
+    b.tag->SetFont(b.tag->GetFont().Smaller());
+    b.tag->SetMinSize(wxSize(b.tag->GetTextExtent("from server  ").x, -1));
+    row->Add(b.tag, wxSizerFlags().Border().CentreVertical());
+    b.undo = makeUndo(page, b.undoBox);
+    b.undo->Bind(wxEVT_BUTTON, [this, id](wxCommandEvent&) {
+        this->blockUndo(id);
+    });
+    row->Add(b.undoBox, wxSizerFlags().Border(wxRIGHT).CentreVertical());
+
+    b.user = new ewxTextCtrl(page, wxID_ANY, "", wxDefaultPosition,
+        wxSize(-1, 90), wxTE_MULTILINE|wxTE_DONTWRAP);
+    b.user->SetFont(mono);
+    b.box->Add(b.user, wxSizerFlags().Expand().Border(wxLEFT|wxRIGHT));
+
+    b.note = new wxStaticText(page, wxID_ANY, "");
+    b.note->SetFont(b.note->GetFont().Smaller());
+    b.note->SetForegroundColour(wxSystemSettings::GetColour(
+                                wxSYS_COLOUR_HOTLIGHT));
+    b.box->Add(b.note, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+
+    b.copy->Bind(wxEVT_BUTTON, [this, id](wxCommandEvent&) {
+        this->blockCopySite(id);
+    });
+    b.none->Bind(wxEVT_CHECKBOX, [this, id](wxCommandEvent& e) {
+        this->blockNone(id);
+        e.Skip();
+    });
+
+    reg("blk:" + id, b.user);
+    reg("blk:" + id + ":site", b.site);
+    reg("blk:" + id + ":label", b.siteLabel);
+    reg("blk:" + id + ":none", b.none);
+    reg("blk:" + id + ":copy", b.copy);
+    reg("blk:" + id + ":csh", b.note);
+    reg("tag:" + id, b.tag);
+    reg("undo:" + id, b.undo);
+    p_blocks.push_back(b);
+}
+
+
+WxMachineRegister::BlockRow* WxMachineRegister::block(const string& id)
+{
+    for (size_t i = 0; i < p_blocks.size(); i++)
+        if (p_blocks[i].id == id)
+            return &p_blocks[i];
+    return NULL;
+}
+
+
+//  The header is the block named after the queue manager; "" when the job
+//  runs without one.
+string WxMachineRegister::headerKey() const
+{
+    string q = (string)p_qmgrChoice->GetStringSelection();
+    string l = lowerOf(q);
+    return (l.empty() || l == "none" || l == "shell") ? "" : l;
 }
 
 
@@ -877,13 +1229,82 @@ MCD* WxMachineRegister::newDraft(const string& refName) const
 
     MCD* draft = new MCD(mode, site, user);
 
-    vector<string> keys;
+    //  Provenance from gensub itself, so the tags are what a job gets.
+    string err;
+    string out = explain(refName, err);
+    if (err.empty())
+        draft->loadExplain(out, err);
+    if (!err.empty())
+    {
+        fprintf(stderr, "[MACHREG] %sexplain failed: %s\n",
+                p_scripted ? "FAIL " : "", err.c_str());
+        vector<string> keys;
+        for (size_t i = 0; i < p_codeNames.size(); i++)
+            keys.push_back(p_codeNames[i]);
+        for (size_t i = 0; i < p_cfgRows.size(); i++)
+            keys.push_back(p_cfgRows[i].key);
+        keys.push_back("setup");
+        keys.push_back("wrapup");
+        for (int i = 1; i < (int)p_qmgrChoice->GetCount(); i++)
+            keys.push_back((string)p_qmgrChoice->GetString(i));
+        draft->loadFiles(keys);
+    }
     for (size_t i = 0; i < p_codeNames.size(); i++)
-        keys.push_back(p_codeNames[i]);
-    keys.push_back("perlPath");
-    keys.push_back("qmgrPath");
-    draft->loadFiles(keys);
+        draft->ensureKey(p_codeNames[i]);
+    for (size_t i = 0; i < p_cfgRows.size(); i++)
+        draft->ensureKey(p_cfgRows[i].key);
+    draft->ensureKey("setup");
+    draft->ensureKey("wrapup");
+    for (int i = 1; i < (int)p_qmgrChoice->GetCount(); i++)
+        draft->ensureKey((string)p_qmgrChoice->GetString(i));
     return draft;
+}
+
+
+//  GENSUB_EXPLAIN=1 gensub: the effective value of every key and the layers
+//  under it.  In admin mode the user's own files are hidden from it.
+string WxMachineRegister::explain(const string& refName, string& err) const
+{
+    string dir = (string)wxFileName::GetTempDir() + "/ecce-machreg-XXXXXX";
+    vector<char> tmpl(dir.begin(), dir.end());
+    tmpl.push_back('\0');
+    if (mkdtemp(&tmpl[0]) == NULL)
+    {
+        err = "cannot make a temporary directory";
+        return "";
+    }
+    dir = &tmpl[0];
+
+    string params = dir + "/params";
+    {
+        std::ofstream f(params.c_str());
+        f << " -H " << (refName.empty() ? "unnamed" : refName) << "\n"
+          << " -Q Shell\n -c NWChem\n -d localhost\n -n 1\n -N 1\n"
+          << " -r " << dir << "\n -i a\n -o a\n -f " << dir << "/submit__x\n";
+    }
+    wxString cmd = "perl \"" + string(Ecce::ecceHome()) +
+                   "/scripts/gensub\" -p \"" + params + "\"";
+    wxExecuteEnv env;
+    wxGetEnvMap(&env.env);
+    env.env["GENSUB_EXPLAIN"] = "1";
+    if (p_adminFlag)
+        env.env["ECCE_REALUSERHOME"] = dir;
+
+    wxArrayString lines, errors;
+    long rc = wxExecute(cmd, lines, errors, wxEXEC_SYNC, &env);
+    string out;
+    for (size_t i = 0; i < lines.GetCount(); i++)
+        out += (string)lines[i] + "\n";
+    if (rc != 0)
+    {
+        err = "gensub exited with " + std::to_string(rc);
+        if (errors.GetCount() > 0)
+            err += ": " + (string)errors[0];
+    }
+
+    unlink(params.c_str());
+    rmdir(dir.c_str());
+    return out;
 }
 
 
@@ -961,12 +1382,7 @@ void WxMachineRegister::draftToControls()
         p_draft->effective(p_codeNames[i], v);
         p_codePaths[i]->SetValue(v);
     }
-    string v;
-    p_draft->effective("perlPath", v);
-    p_perlPath->SetValue(v);
-    v = "";
-    p_draft->effective("qmgrPath", v);
-    p_qmgrPath->SetValue(v);
+    this->cfgToControls();
 
     if (p_slctRgstn != NULL)
     {
@@ -976,6 +1392,7 @@ void WxMachineRegister::draftToControls()
     }
     else
         this->clearQueues();
+    this->blocksToControls();
 
     p_deleteButton->Enable(p_slctRgstn != NULL &&
                            (p_adminFlag || p_loadedFrom == "yours"));
@@ -1239,7 +1656,434 @@ void WxMachineRegister::onQueueClear(wxCommandEvent&)
 
 //  ---- dirty tracking ------------------------------------------------------
 
-void WxMachineRegister::syncKey(MCD* draft, const string& key, const string& text)
+//  The value the inherited layers give (false: none, or the last cleared it).
+static bool inheritedValue(const MCD::KeyState& ks, bool cppOnly, string& v)
+{
+    for (size_t i = ks.inherited.size(); i-- > 0; )
+    {
+        const MCD::Layer& l = ks.inherited[i];
+        if (cppOnly && (l.source == "submit.site" || l.source == "vendor"))
+            continue;
+        v = l.value;
+        return l.hasValue;
+    }
+    return false;
+}
+
+
+//  ---- the Connection tab's keys ---------------------------------------------
+
+static bool isOneOf(const string& v, const char* a, const char* b)
+{
+    string l = lowerOf(strip(v));
+    return l == a || l == b;
+}
+
+static void qmgrCommandNames(const string& lq, string& a, string& b,
+                             string& dir)
+{
+    a = "sbatch"; b = "squeue"; dir = "/opt/slurm/bin";
+    if (lq == "pbs" || lq == "sge") { a = "qsub"; b = "qstat"; dir = "/opt/pbs/bin"; }
+    else if (lq == "lsf") { a = "bsub"; b = "bjobs"; dir = "/opt/lsf/bin"; }
+    else if (lq == "moab") { a = "msub"; b = "showq"; dir = "/opt/moab/bin"; }
+    else if (lq == "htcondor") { a = "condor_submit"; b = "condor_q"; dir = "/opt/condor/bin"; }
+}
+
+static string qmgrCommands(const string& lq)
+{
+    string a, b, dir;
+    qmgrCommandNames(lq, a, b, dir);
+    return "Directory holding " + a + ", " + b + " and the other scheduler "
+           "commands";
+}
+
+
+WxMachineRegister::CfgRow* WxMachineRegister::cfgRow(const string& key)
+{
+    string k = lowerOf(key);
+    for (size_t i = 0; i < p_cfgRows.size(); i++)
+        if (lowerOf(p_cfgRows[i].key) == k)
+            return &p_cfgRows[i];
+    return NULL;
+}
+
+
+//  What applies when no layer sets the key (RefMachine's own defaults).
+string WxMachineRegister::cfgDefault(const CfgRow& r) const
+{
+    switch (r.kind)
+    {
+        case CfgShell: return "bash";
+        case CfgCheck: return "false";
+        case CfgCheckYes: return "true";
+        case CfgTri: return "no";
+        default: return "";
+    }
+}
+
+
+//  One spelling per meaning, as RefMachine reads the values.
+string WxMachineRegister::cfgCanon(const CfgRow& r, const string& raw) const
+{
+    switch (r.kind)
+    {
+        case CfgCheck:
+            return isOneOf(raw, "true", "yes") ? "true" : "false";
+        case CfgCheckYes:
+            return isOneOf(raw, "false", "no") ? "false" : "true";
+        case CfgTri:
+            return isOneOf(raw, "true", "yes") ? "yes"
+                 : isOneOf(raw, "false", "no") ? "no" : "auto";
+        default:
+            return strip(raw);
+    }
+}
+
+
+string WxMachineRegister::cfgCtrlText(const CfgRow& r) const
+{
+    switch (r.kind)
+    {
+        case CfgCheck:
+        case CfgCheckYes:
+            return static_cast<wxCheckBox*>(r.ctrl)->IsChecked() ? "true"
+                                                                 : "false";
+        case CfgShell:
+        case CfgTri:
+            return (string)static_cast<wxChoice*>(r.ctrl)->GetStringSelection();
+        default:
+            return strip((string)static_cast<wxTextCtrl*>(r.ctrl)->GetValue());
+    }
+}
+
+
+string WxMachineRegister::cfgHint(const CfgRow& r) const
+{
+    const MCD::KeyState* ks = p_draft ? p_draft->state(r.key) : NULL;
+    if (ks != NULL && ks->edit == MCD::Clear)
+        return "(no value)";
+    string k = lowerOf(r.key);
+    if (k == "sourcefile") return "e.g. /etc/profile.d/modules.sh";
+    if (k == "frontendmachine") return "e.g. login.example.org";
+    if (k == "frontendbypass") return "e.g. .example.org";
+    if (k == "perlpath") return "e.g. /usr/bin";
+    if (k == "libpath") return "e.g. /opt/lib";
+    if (k == "xappspath") return "e.g. /usr/X11R6/bin";
+    if (k == "qmgrpath")
+    {
+        string a, b, dir;
+        qmgrCommandNames(lowerOf((string)p_qmgrChoice->GetStringSelection()),
+                         a, b, dir);
+        return "e.g. " + dir;
+    }
+    return "";
+}
+
+
+void WxMachineRegister::cfgToControl(const CfgRow& r)
+{
+    string v;
+    bool has = p_draft->effective(r.key, v, !r.gensubOnly);
+    string show = cfgCanon(r, has ? v : cfgDefault(r));
+    switch (r.kind)
+    {
+        case CfgText:
+        {
+            wxTextCtrl* t = static_cast<wxTextCtrl*>(r.ctrl);
+            t->SetValue(has ? v : "");
+            t->SetHint(cfgHint(r));
+            break;
+        }
+        case CfgCheck:
+        case CfgCheckYes:
+            static_cast<wxCheckBox*>(r.ctrl)->SetValue(show == "true");
+            break;
+        default:
+        {
+            wxChoice* c = static_cast<wxChoice*>(r.ctrl);
+            if (!c->SetStringSelection(show))
+            {
+                c->Append(show);        // a shell this list does not know
+                c->SetStringSelection(show);
+            }
+        }
+    }
+}
+
+
+void WxMachineRegister::cfgToControls()
+{
+    for (size_t i = 0; i < p_cfgRows.size(); i++)
+        cfgToControl(p_cfgRows[i]);
+    jobsToRadios();
+
+    //  Legacy: shown only when something sets it.
+    if (CfgRow* x = cfgRow("xappsPath"))
+    {
+        string v;
+        const MCD::KeyState* ks = p_draft->state(x->key);
+        bool show = p_draft->effective(x->key, v, true) ||
+                    (ks != NULL && ks->edit != MCD::Inherit);
+        x->name->Show(show);
+        x->ctrl->Show(show);
+        x->tag->Show(show);
+        x->undoBox->Show(show);
+        p_cfgPage->Layout();
+    }
+}
+
+
+static string layerTagName(const MCD::Layer& l, bool remote)
+{
+    if (remote && l.source != "user")
+        return "server";
+    return l.source == "site" ? "site" : "site defaults";
+}
+
+
+static string plainTag(MCD::Tag t)
+{
+    switch (t)
+    {
+        case MCD::TagServer: return "from server";
+        case MCD::TagSite:
+        case MCD::TagSiteDefaults: return "from site";
+        case MCD::TagYours:
+        case MCD::TagNoValue: return "your value";
+        case MCD::TagSiteEditing: return "site value";
+        default: return "not set";
+    }
+}
+
+
+//  The tag and its tooltip: the file the value is in, and what it overrides.
+void WxMachineRegister::cfgTagInfo(const string& key, bool cppOnly,
+                                   MCD::Tag& t, string& tip) const
+{
+    const MCD::KeyState* ks = p_draft->state(key);
+    t = MCD::TagDefault;
+    tip = "Not set; ECCE's built-in default applies";
+    if (ks == NULL)
+        return;
+    t = p_draft->tag(key, cppOnly);
+
+    string inh, inhFile, inhTag;
+    bool hasInh = inheritedValue(*ks, cppOnly, inh);
+    for (size_t k = ks->inherited.size(); k-- > 0 && inhTag.empty(); )
+        if (!cppOnly || !(ks->inherited[k].source == "submit.site" ||
+                          ks->inherited[k].source == "vendor"))
+        {
+            inhTag = layerTagName(ks->inherited[k], remoteClient());
+            inhFile = ks->inherited[k].file;
+        }
+    string file = p_draft->editedFile();
+    string shown = inh.find('\n') == string::npos ? " \"" + inh + "\"" : "";
+    string over = hasInh ? "\nOverrides the " + inhTag + " value" + shown +
+                           " (" + inhFile + ")" : "";
+    switch (t)
+    {
+        case MCD::TagDefault: break;
+        case MCD::TagServer:
+            tip = "Published by the ECCE server: " + inhFile + "\nChanges "
+                  "go to your own settings on this computer";
+            break;
+        case MCD::TagSite:
+        case MCD::TagSiteDefaults:
+            tip = "From " + inhFile;
+            break;
+        case MCD::TagYours:
+            tip = "Your value, stored in " + file + over;
+            break;
+        case MCD::TagSiteEditing:
+            tip = "Stored in " + file;
+            break;
+        case MCD::TagNoValue:
+            tip = "You cleared it; stored in " + file + over;
+            break;
+    }
+}
+
+
+//  Refresh each tag, tooltip and undo button from the draft.
+void WxMachineRegister::cfgTags()
+{
+    if (p_draft == NULL)
+        return;
+    string undoTip = p_adminFlag ? "Use the site default"
+                   : remoteClient() ? "Use the server value"
+                   : "Use the site value";
+    for (size_t i = 0; i < p_cfgRows.size(); i++)
+    {
+        const CfgRow& r = p_cfgRows[i];
+        if (r.tag == NULL)
+            continue;
+        const MCD::KeyState* ks = p_draft->state(r.key);
+        if (ks == NULL)
+            continue;
+        MCD::Tag t;
+        string tip;
+        cfgTagInfo(r.key, !r.gensubOnly, t, tip);
+        wxString text = plainTag(t);
+        if (r.tag->GetLabel() != text)
+            r.tag->SetLabel(text);
+        r.tag->SetForegroundColour(wxSystemSettings::GetColour(
+            (t == MCD::TagYours || t == MCD::TagNoValue ||
+             t == MCD::TagSiteEditing) ? wxSYS_COLOUR_WINDOWTEXT
+                                       : wxSYS_COLOUR_GRAYTEXT));
+        if (r.tag->GetToolTipText() != tip)
+            r.tag->SetToolTip(tip);
+        bool own = ks->edit != MCD::Inherit;
+        if (r.undo->IsShown() != own)
+            r.undo->Show(own);
+        r.undo->SetToolTip(undoTip);
+        if (r.kind == CfgText)
+            static_cast<wxTextCtrl*>(r.ctrl)->SetHint(cfgHint(r));
+    }
+
+    //  The job-handling group shows the two keys as one.
+    CfgRow* a = cfgRow("noRemoteAccess");
+    CfgRow* b = cfgRow("userSubmit");
+    if (a && b && p_jobsTag)
+    {
+        MCD::Tag ta, tb;
+        string tipa, tipb;
+        cfgTagInfo(a->key, true, ta, tipa);
+        cfgTagInfo(b->key, true, tb, tipb);
+        bool own = ta != MCD::TagDefault && (ta == MCD::TagYours ||
+                   ta == MCD::TagNoValue || ta == MCD::TagSiteEditing);
+        bool ownb = tb == MCD::TagYours || tb == MCD::TagNoValue ||
+                    tb == MCD::TagSiteEditing;
+        MCD::Tag t = (own || ownb) ? (own ? ta : tb)
+                   : ta != MCD::TagDefault ? ta : tb;
+        string tip = ta == MCD::TagDefault ? tipb
+                   : tb == MCD::TagDefault ? tipa : tipa + "\n" + tipb;
+        wxString text = plainTag(t);
+        if (p_jobsTag->GetLabel() != text)
+            p_jobsTag->SetLabel(text);
+        p_jobsTag->SetForegroundColour(wxSystemSettings::GetColour(
+            (own || ownb) ? wxSYS_COLOUR_WINDOWTEXT : wxSYS_COLOUR_GRAYTEXT));
+        if (p_jobsTag->GetToolTipText() != tip)
+            p_jobsTag->SetToolTip(tip);
+        jobsLine();
+        if (p_jobsUndo->IsShown() != (own || ownb))
+            p_jobsUndo->Show(own || ownb);
+        p_jobsUndo->SetToolTip(undoTip);
+    }
+}
+
+
+//  noRemoteAccess wins over userSubmit, as Launch applies them.
+int WxMachineRegister::jobsIndex() const
+{
+    CfgRow* a = const_cast<WxMachineRegister*>(this)->cfgRow("noRemoteAccess");
+    CfgRow* b = const_cast<WxMachineRegister*>(this)->cfgRow("userSubmit");
+    if (a && cfgCtrlText(*a) == "true")
+        return 2;
+    return b && cfgCtrlText(*b) == "true" ? 1 : 0;
+}
+
+
+void WxMachineRegister::jobsToRadios()
+{
+    if (p_jobsCheck[1] == NULL)
+        return;
+    int idx = jobsIndex();
+    p_jobsCheck[1]->SetValue(idx == 1);
+    p_jobsCheck[2]->SetValue(idx == 2);
+    p_jobsCheck[1]->Enable(idx != 2);
+    p_jobsCheck[2]->Enable(idx != 1);
+    //  Something other than normal: show the choice.
+    if (idx != 0 && p_advanced != NULL && !p_advanced->IsExpanded())
+    {
+        p_advanced->Expand();
+        p_cfgPage->Layout();
+        p_cfgPage->FitInside();
+    }
+    jobsLine();
+}
+
+
+//  The read-only line on the main area: the mode in words, the exceptions
+//  with a warning icon.
+void WxMachineRegister::jobsLine()
+{
+    if (p_jobsMode == NULL)
+        return;
+    int idx = jobsIndex();
+    wxString text = idx == 0 ? "ECCE submits the job"
+                  : idx == 1 ? "Interactive submission"
+                  : "Files only, not submitted";
+    bool layout = false;
+    if (p_jobsMode->GetLabel() != text)
+        { p_jobsMode->SetLabel(text); layout = true; }
+    if (p_jobsIcon->IsShown() != (idx != 0))
+        { p_jobsIcon->Show(idx != 0); layout = true; }
+    if (layout)
+        p_cfgPage->Layout();
+}
+
+
+//  The radios are the editor, the two hidden checkboxes carry the keys.
+void WxMachineRegister::jobsFromRadios()
+{
+    if (p_jobsCheck[1] == NULL)
+        return;
+    int sel = p_jobsCheck[2]->GetValue() ? 2 : p_jobsCheck[1]->GetValue() ? 1 : 0;
+    //  Ticking one disables the other.
+    p_jobsCheck[1]->Enable(sel != 2);
+    p_jobsCheck[2]->Enable(sel != 1);
+    if (sel == jobsIndex())
+        return;                 // e.g. both keys set: leave them as they are
+    static_cast<wxCheckBox*>(cfgRow("noRemoteAccess")->ctrl)->SetValue(sel == 2);
+    static_cast<wxCheckBox*>(cfgRow("userSubmit")->ctrl)->SetValue(sel == 1);
+}
+
+
+//  Back to the inherited value; "jobs" is both job-handling keys.
+void WxMachineRegister::cfgUndo(const string& key)
+{
+    if (p_draft == NULL)
+        return;
+    if (block(key) != NULL)
+    {
+        this->blockUndo(key);
+        return;
+    }
+    this->syncDraft();
+    vector<string> ks;
+    if (lowerOf(key) == "jobs")
+    {
+        ks.push_back("noRemoteAccess");
+        ks.push_back("userSubmit");
+    }
+    else
+        ks.push_back(key);
+    p_inCtrlUpdate = true;
+    for (size_t i = 0; i < ks.size(); i++)
+        if (CfgRow* r = cfgRow(ks[i]))
+        {
+            p_draft->useInherited(r->key);
+            cfgToControl(*r);
+        }
+    jobsToRadios();
+    p_inCtrlUpdate = false;
+    this->updateDirty();
+}
+
+
+void WxMachineRegister::onCfgUndo(wxCommandEvent& event)
+{
+    wxObject* o = event.GetEventObject();
+    if (o == p_jobsUndo)
+        cfgUndo("jobs");
+    for (size_t i = 0; i < p_cfgRows.size(); i++)
+        if (p_cfgRows[i].undo == o)
+            cfgUndo(p_cfgRows[i].key);
+}
+
+
+void WxMachineRegister::syncKey(MCD* draft, const string& key,
+                                const string& text, bool cppOnly)
 {
     string t = strip(text);
     const MCD::KeyState* ks = draft->state(key);
@@ -1247,12 +2091,12 @@ void WxMachineRegister::syncKey(MCD* draft, const string& key, const string& tex
         return;
 
     string cur;
-    bool has = draft->effective(key, cur);
+    bool has = draft->effective(key, cur, cppOnly);
     if ((has && t == cur) || (!has && t.empty()))
         return;
 
-    bool hasInh = !ks->inherited.empty() && ks->inherited.back().hasValue;
-    string inh = hasInh ? ks->inherited.back().value : string();
+    string inh;
+    bool hasInh = inheritedValue(*ks, cppOnly, inh);
     if (t.empty())
     {
         //  An emptied field overrides an inherited value with "no value".
@@ -1265,6 +2109,34 @@ void WxMachineRegister::syncKey(MCD* draft, const string& key, const string& tex
         draft->useInherited(key);
     else
         draft->setValue(key, t);
+}
+
+
+//  The other kinds hold a fixed set of values; "true" and "yes" are one
+//  value, so they are compared in canonical form and written as chosen.
+void WxMachineRegister::syncCfg(MCD* draft, const CfgRow& r)
+{
+    bool cpp = !r.gensubOnly;
+    if (r.kind == CfgText)
+    {
+        syncKey(draft, r.key, cfgCtrlText(r), cpp);
+        return;
+    }
+    const MCD::KeyState* ks = draft->state(r.key);
+    if (ks == NULL)
+        return;
+
+    string t = cfgCtrlText(r), cur;
+    bool has = draft->effective(r.key, cur, cpp);
+    if (t == cfgCanon(r, has ? cur : cfgDefault(r)))
+        return;
+
+    string inh;
+    bool hasInh = inheritedValue(*ks, cpp, inh);
+    if (t == cfgCanon(r, hasInh ? inh : cfgDefault(r)))
+        draft->useInherited(r.key);
+    else
+        draft->setValue(r.key, t);
 }
 
 
@@ -1286,17 +2158,20 @@ void WxMachineRegister::syncDraft()
     c.qmgr = (string)p_qmgrChoice->GetStringSelection();
     c.queues = p_queues;
 
+    this->blocksRetarget();
     syncKeys(p_draft);
 }
 
 
-//  The managed CONFIG keys: each code's path, perlPath and qmgrPath.
+//  The managed CONFIG keys: each code's path and the Connection tab's.
 void WxMachineRegister::syncKeys(MCD* draft)
 {
     for (size_t i = 0; i < p_codePaths.size(); i++)
         syncKey(draft, p_codeNames[i], (string)p_codePaths[i]->GetValue());
-    syncKey(draft, "perlPath", (string)p_perlPath->GetValue());
-    syncKey(draft, "qmgrPath", (string)p_qmgrPath->GetValue());
+    jobsFromRadios();
+    for (size_t i = 0; i < p_cfgRows.size(); i++)
+        syncCfg(draft, p_cfgRows[i]);
+    this->syncBlocks(draft);
 }
 
 
@@ -1323,7 +2198,7 @@ string WxMachineRegister::editedBase() const
 
 void WxMachineRegister::updateFooter()
 {
-    if (p_book == NULL || p_storeNote == NULL || p_connNote == NULL)
+    if (p_book == NULL || p_storeNote == NULL || p_cfgRows.empty())
         return;
 
     string base = editedBase();
@@ -1343,29 +2218,19 @@ void WxMachineRegister::updateFooter()
     if (p_storeNote->GetLabel() != note)
         p_storeNote->SetLabel(note);
 
-    wxString conn = "Not editable here yet. The remote shell (shell), the "
-        "file to source (sourceFile) and the login host (frontendMachine, "
-        "frontendBypass) are set in " + config + ".";
-    if (p_connNote->GetLabel() != conn)
-        { p_connNote->SetLabel(conn); p_connNote->Wrap(560); }
-
     string qm = (string)p_qmgrChoice->GetStringSelection();
     string lq = lowerOf(qm);
-    wxString job = "Not editable here yet. The commands run before and after "
-        "the code (setup, wrapup)";
-    if (lq != "none" && lq != "shell" && !lq.empty())
-        job += " and the " + qm + " header (" + lq + ")";
-    job += " are set in " + config + ".";
-    if (p_jobNote->GetLabel() != job)
-        { p_jobNote->SetLabel(job); p_jobNote->Wrap(560); }
-
-    string a = "sbatch", b = "squeue", dir = "/opt/slurm/bin";
-    if (lq == "pbs" || lq == "sge") { a = "qsub"; b = "qstat"; dir = "/opt/pbs/bin"; }
-    else if (lq == "lsf") { a = "bsub"; b = "bjobs"; dir = "/opt/lsf/bin"; }
-    else if (lq == "moab") { a = "msub"; b = "showq"; dir = "/opt/moab/bin"; }
-    else if (lq == "htcondor") { a = "condor_submit"; b = "condor_q"; dir = "/opt/condor/bin"; }
-    p_qmgrPath->SetHint("where " + a + ", " + b + " are, e.g. " + dir +
-                        "; empty if on PATH");
+    if (CfgRow* q = cfgRow("qmgrPath"))
+    {
+        static_cast<wxTextCtrl*>(q->ctrl)->SetHint(cfgHint(*q));
+        string a, b, dir;
+        qmgrCommandNames(lq, a, b, dir);
+        wxString lab = "Directory of " + a + ", " + b + ", ...";
+        if (q->name->GetLabel() != lab)
+            q->name->SetLabel(lab);
+        q->ctrl->SetToolTip(qmgrCommands(lq) + " on the remote machine. "
+                            "Leave empty if they are on the default PATH.");
+    }
 }
 
 
@@ -1376,6 +2241,8 @@ void WxMachineRegister::updateDirty()
         return;
 
     bool dirty = this->isDirty();
+    this->cfgTags();
+    this->blocksTags();
     p_saveButton->Enable(dirty && hasMinimalInput());
     wxString title = dirty ? wxString("*") + TITLE : wxString(TITLE);
     if ((string)this->GetTitle() != (string)title)
@@ -1386,6 +2253,8 @@ void WxMachineRegister::updateDirty()
 
 void WxMachineRegister::onFieldChanged(wxCommandEvent& event)
 {
+    if (p_cshTimer != NULL && !p_inCtrlUpdate)
+        p_cshTimer->StartOnce(600);
     this->updateDirty();
     event.Skip();
 }
@@ -1531,11 +2400,24 @@ bool WxMachineRegister::verifyInput()
         return false;
     }
 
+    //  ConfigFile cannot write a block with "}" in column 0.
+    for (size_t i = 0; i < p_blocks.size(); i++)
+    {
+        string t = (string)p_blocks[i].user->GetValue();
+        if (t.compare(0, 1, "}") == 0 || t.find("\n}") != string::npos)
+        {
+            displayMessage("A line in the job script text may not start with "
+                           "\"}\"; put a space before it.");
+            return false;
+        }
+    }
+
     //  Values land on one line of CONFIG.<machine>, and "-" there means
     //  "no value".
     vector<ewxTextCtrl*> texts = p_codePaths;
-    texts.push_back(p_perlPath);
-    texts.push_back(p_qmgrPath);
+    for (size_t i = 0; i < p_cfgRows.size(); i++)
+        if (p_cfgRows[i].kind == CfgText)
+            texts.push_back(static_cast<ewxTextCtrl*>(p_cfgRows[i].ctrl));
     for (size_t i = 0; i < texts.size(); i++)
     {
         string v = strip((string)texts[i]->GetValue());
@@ -1664,6 +2546,7 @@ bool WxMachineRegister::save()
     }
 
     this->syncDraft();
+    this->blocksCheckCsh();
     if (!this->verifyInput())
         return false;
 
@@ -1766,6 +2649,556 @@ bool WxMachineRegister::deleteMachine()
     this->redo(refName);
     this->notifyUpdate();
     return true;
+}
+
+
+//  ---- the Job script tab -----------------------------------------------------
+
+//  Where the inherited text comes from, in words.
+static string blockSource(const MCD::Layer& l, bool remote)
+{
+    string name = l.file;
+    size_t slash = name.rfind('/');
+    if (slash != string::npos)
+        name = name.substr(slash + 1);
+    if (remote && l.source != "user")
+        return "the ECCE server: " + name;
+    if (l.source == "site")
+        return "the site: " + name;
+    return "the site's default: " + name;
+}
+
+
+//  The header block follows the queue manager chosen on the Queues tab.
+void WxMachineRegister::blocksRetarget()
+{
+    BlockRow* h = block("header");
+    if (h == NULL || p_draft == NULL || headerKey() == h->key)
+        return;
+    syncBlock(p_draft, *h);
+    bool was = p_inCtrlUpdate;
+    p_inCtrlUpdate = true;
+    blockToControl(*h);
+    p_inCtrlUpdate = was;
+}
+
+
+void WxMachineRegister::blocksToControls()
+{
+    for (size_t i = 0; i < p_blocks.size(); i++)
+        blockToControl(p_blocks[i]);
+    blocksCheckCsh();
+}
+
+
+void WxMachineRegister::blockToControl(BlockRow& b)
+{
+    bool header = b.id == "header";
+    b.key = header ? headerKey() : b.id;
+    string qm = (string)p_qmgrChoice->GetStringSelection();
+
+    if (header)
+    {
+        b.heading->SetLabel("Request lines for " + qm);
+        p_jobNote->SetLabel(b.key.empty()
+            ? "No queue manager is set (Queues tab): the job runs directly on "
+              "the machine and needs no request lines."
+            : "Queue manager: " + qm + " (change it on the Queues tab). The "
+              "lines below go at the top of the job script and tell " + qm +
+              " what the job needs.");
+        p_jobNote->Wrap(600);
+    }
+
+    const MCD::KeyState* ks = b.key.empty() ? NULL : p_draft->state(b.key);
+    b.box->ShowItems(ks != NULL);
+    if (header)
+    {
+        wxWindow* vars = field("header:variables");
+        if (vars != NULL)
+            vars->Show(ks != NULL);
+        if (p_condorGrid != NULL)
+            p_condorGrid->ShowItems(lowerOf(qm) == "htcondor");
+    }
+    if (ks != NULL)
+    {
+        b.heading->SetToolTip("CONFIG key: " + ks->name);
+        string inh;
+        bool hasInh = inheritedValue(*ks, false, inh);
+        if (hasInh)
+            b.siteLabel->SetLabel("From " + blockSource(
+                ks->inherited.back(), remoteClient()) + " (read-only)");
+        else
+            b.siteLabel->SetLabel(p_adminFlag
+                ? "Nothing from the site's defaults."
+                : "The site gives no text here.");
+        b.site->ChangeValue(hasInh ? inh : "");
+        b.site->Show(hasInh);
+
+        bool cleared = ks->edit == MCD::Clear;
+        b.user->ChangeValue(ks->edit == MCD::Set ? ks->value : "");
+        b.user->Enable(!cleared);
+        b.user->SetHint(cleared ? "(no text)" : hasInh
+            ? "Empty: the text above is used" : "");
+        b.none->SetValue(cleared);
+        b.none->Show(hasInh || cleared);
+        b.copy->Enable(hasInh && !cleared);
+        b.copy->Show(hasInh);
+        b.note->Show(!b.note->GetLabel().empty());
+    }
+    if (p_jobPage != NULL)
+    {
+        p_jobPage->Layout();
+        static_cast<wxScrolledWindow*>(p_jobPage)->FitInside();
+    }
+}
+
+
+void WxMachineRegister::syncBlock(MCD* draft, const BlockRow& b)
+{
+    if (b.key.empty() || draft->state(b.key) == NULL)
+        return;
+    string t = strip((string)b.user->GetValue());
+    if (b.none->IsChecked() && b.none->IsShown())
+    {
+        if (!draft->clear(b.key))
+            draft->useInherited(b.key);
+    }
+    else if (t.empty())
+        draft->useInherited(b.key);
+    else
+        draft->setValue(b.key, t);
+}
+
+
+void WxMachineRegister::syncBlocks(MCD* draft)
+{
+    for (size_t i = 0; i < p_blocks.size(); i++)
+        syncBlock(draft, p_blocks[i]);
+}
+
+
+void WxMachineRegister::blocksTags()
+{
+    if (p_draft == NULL)
+        return;
+    string undoTip = p_adminFlag ? "Use the site default"
+                   : remoteClient() ? "Use the server text"
+                   : "Use the site text";
+    for (size_t i = 0; i < p_blocks.size(); i++)
+    {
+        const BlockRow& b = p_blocks[i];
+        const MCD::KeyState* ks = b.key.empty() ? NULL : p_draft->state(b.key);
+        if (ks == NULL)
+            continue;
+        MCD::Tag t;
+        string tip;
+        cfgTagInfo(b.key, false, t, tip);
+        wxString text = plainTag(t);
+        if (b.tag->GetLabel() != text)
+            b.tag->SetLabel(text);
+        b.tag->SetForegroundColour(wxSystemSettings::GetColour(
+            (t == MCD::TagYours || t == MCD::TagNoValue ||
+             t == MCD::TagSiteEditing) ? wxSYS_COLOUR_WINDOWTEXT
+                                       : wxSYS_COLOUR_GRAYTEXT));
+        tip += "\nCONFIG key: " + ks->name;
+        if (b.tag->GetToolTipText() != tip)
+            b.tag->SetToolTip(tip);
+        bool own = ks->edit != MCD::Inherit;
+        if (b.undo->IsShown() != own)
+            b.undo->Show(own);
+        b.undo->SetToolTip(undoTip);
+        b.copy->Enable(b.copy->IsShown() && !b.none->IsChecked());
+    }
+}
+
+
+//  Fills the box with the inherited text, which then replaces it.
+void WxMachineRegister::blockCopySite(const string& id)
+{
+    BlockRow* b = block(id);
+    const MCD::KeyState* ks = b && p_draft ? p_draft->state(b->key) : NULL;
+    string inh;
+    if (ks == NULL || !inheritedValue(*ks, false, inh))
+        return;
+    string mine = strip((string)b->user->GetValue());
+    if (!mine.empty() && mine != strip(inh) &&
+        this->ask("Copy Site Text", "Replace your text with the site text?",
+                  "What you typed in this box is lost.",
+                  wxYES_NO|wxICON_QUESTION, "Replace", "Keep", "") != wxID_YES)
+        return;
+    b->none->SetValue(false);
+    b->user->Enable(true);
+    b->user->SetValue(inh);
+    this->updateDirty();
+}
+
+
+void WxMachineRegister::blockUndo(const string& id)
+{
+    BlockRow* b = block(id);
+    if (b == NULL || p_draft == NULL)
+        return;
+    this->syncDraft();
+    p_draft->useInherited(b->key);
+    p_inCtrlUpdate = true;
+    blockToControl(*b);
+    p_inCtrlUpdate = false;
+    this->updateDirty();
+}
+
+
+void WxMachineRegister::blockNone(const string& id)
+{
+    BlockRow* b = block(id);
+    if (b == NULL)
+        return;
+    bool none = b->none->IsChecked();
+    if (none)
+    {
+        bool was = p_inCtrlUpdate;
+        p_inCtrlUpdate = true;
+        b->user->ChangeValue("");
+        p_inCtrlUpdate = was;
+    }
+    b->user->Enable(!none);
+    b->copy->Enable(!none);
+}
+
+
+//  csh text in a block.  gensub stops at the same lines when it makes a job
+//  script, so say so before saving.  firstLine: the file line the text
+//  starts on, so the numbers count within the block.
+static void cshNotices(const string& text, int firstLine, vector<string>& out)
+{
+    char tmpl[] = "/tmp/ecce-machreg-csh-XXXXXX";
+    int fd = mkstemp(tmpl);
+    if (fd < 0)
+        return;
+    FILE* f = fdopen(fd, "w");
+    fputs(text.c_str(), f);
+    fclose(f);
+
+    wxString cmd = "perl \"" + string(Ecce::ecceHome()) +
+                   "/scripts/ecce-csh2sh\" --check \"" + tmpl + "\"";
+    wxArrayString lines, errors;
+    wxExecute(cmd, lines, errors, wxEXEC_SYNC);
+    unlink(tmpl);
+
+    static const std::regex lineRe("^\\s+line (\\d+) \\[[^\\]]*\\]\\s+(.*)$");
+    static const std::regex wantRe("^\\s+(?:->|write:)\\s+(.*)$");
+    for (size_t i = 0; i < lines.GetCount(); i++)
+    {
+        std::smatch m;
+        string l = (string)lines[i];
+        if (std::regex_match(l, m, lineRe))
+            out.push_back("Line " + std::to_string(atoi(m[1].str().c_str()) -
+                          firstLine + 1) + " is csh: " + m[2].str());
+        else if (!out.empty() && std::regex_match(l, m, wantRe))
+            out.back() += "\n    write: " + m[1].str();
+    }
+}
+
+
+void WxMachineRegister::blocksCheckCsh()
+{
+    static const char* ids[] = { "setup", "wrapup" };
+    for (size_t k = 0; k < 2; k++)
+    {
+        BlockRow* b = block(ids[k]);
+        if (b == NULL)
+            continue;
+        string t = b->user->IsEnabled() ? strip((string)b->user->GetValue())
+                                        : string();
+        vector<string> found;
+        if (!t.empty())
+            cshNotices(b->id + " {\n" + t + "\n}\n", 2, found);
+        string msg;
+        for (size_t i = 0; i < found.size() && i < 3; i++)
+            msg += (i ? "\n" : "") + found[i];
+        if (found.size() > 3)
+            msg += "\n... and " + std::to_string(found.size() - 3) + " more";
+        if (!msg.empty())
+            msg += "\nJob scripts are POSIX sh; the job script cannot be "
+                   "made until this is fixed.";
+        if (b->note->GetLabel() != wxString(msg))
+        {
+            b->note->SetLabel(msg);
+            b->note->Show(!msg.empty());
+            if (p_jobPage != NULL)
+            {
+                p_jobPage->Layout();
+                static_cast<wxScrolledWindow*>(p_jobPage)->FitInside();
+            }
+        }
+    }
+}
+
+
+//  What gensub's provideVariables() replaces, as a table.
+void WxMachineRegister::showWords()
+{
+    if (p_wordsDlg != NULL)
+        return;
+    static const char* const words[][2] = {
+        { "$queue", "the queue chosen in the Launcher" },
+        { "$nodes", "number of nodes" },
+        { "$totalprocs", "total number of processors" },
+        { "$ppn", "processors per node" },
+        { "$wallTime", "wall time as h:m:s" },
+        { "$wallHrMin", "wall time as hours and minutes" },
+        { "$wallSeconds", "wall time in seconds" },
+        { "$cpuTime", "CPU time" },
+        { "$memory", "memory, a number in the queue's memory unit" },
+        { "$memoryM", "$memory with an M after it, for queues counted in MB" },
+        { "$mem_x_1024", "memory times 1024" },
+        { "$scratchSpace", "scratch space" },
+        { "$scratchDir", "scratch directory" },
+        { "$runDir", "the run directory" },
+        { "$inFile", "name of the input file" },
+        { "$outFile", "name of the output file" },
+        { "$submitFile", "name of the job script" },
+        { "$account", "allocation account" },
+        { "$host", "name of this machine" },
+        { "$code", "the code that runs" },
+        { "$qMgr", "the queue manager" },
+        { "$mdSystemName", "name of the molecular dynamics system" },
+        { "$mdCalcName", "name of the molecular dynamics calculation" },
+    };
+    wxDialog* dlg = new wxDialog(this, wxID_ANY, "Available words",
+        wxDefaultPosition, wxSize(560, 560),
+        wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER);
+    wxBoxSizer* root = new wxBoxSizer(wxVERTICAL);
+    dlg->SetSizer(root);
+    wxListCtrl* list = new wxListCtrl(dlg, wxID_ANY, wxDefaultPosition,
+                                      wxDefaultSize, wxLC_REPORT|wxLC_SINGLE_SEL);
+    list->InsertColumn(0, "Word", wxLIST_FORMAT_LEFT, 140);
+    list->InsertColumn(1, "Meaning", wxLIST_FORMAT_LEFT, 380);
+    for (size_t i = 0; i < sizeof(words) / sizeof(words[0]); i++)
+    {
+        long r = list->InsertItem(i, words[i][0]);
+        list->SetItem(r, 1, words[i][1]);
+    }
+    root->Add(list, wxSizerFlags(1).Expand().Border());
+    wxStaticText* note = new wxStaticText(dlg, wxID_ANY,
+        "A request line whose word is empty is left out. The same words "
+        "work in the two command blocks.");
+    note->Wrap(520);
+    root->Add(note, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+    wxButton* close = new ewxButton(dlg, wxID_CLOSE, "&Close");
+    root->Add(close, wxSizerFlags().Right().Border());
+
+    bool modal = !p_scripted;
+    auto finish = [this, dlg, modal]() {
+        p_wordsDlg = NULL;
+        p_fields.erase("words:dialog");
+        if (modal)
+            dlg->EndModal(wxID_CLOSE);
+        else
+            dlg->Destroy();
+    };
+    close->Bind(wxEVT_BUTTON, [finish](wxCommandEvent&) { finish(); });
+    dlg->Bind(wxEVT_CLOSE_WINDOW, [finish](wxCloseEvent&) { finish(); });
+    reg("words:dialog", dlg);
+    reg("words:close", close);
+    p_wordsDlg = dlg;
+    dlg->CentreOnParent();
+    if (modal)
+    {
+        dlg->ShowModal();
+        dlg->Destroy();
+    }
+    else
+        dlg->Show();
+}
+
+
+//  ---- Advanced: edit file -----------------------------------------------------
+
+string WxMachineRegister::rawFileText() const
+{
+    ConfigFile f;
+    f.load(p_draft->editedFile());
+    if (f.exists())
+        return f.text();
+    return "# Settings for " + p_loadedName + " (Register Machines)\n";
+}
+
+
+//  Problems in `text`; errors stop the save, the rest are warnings.
+string WxMachineRegister::rawFileCheck(const string& text, bool& errors) const
+{
+    errors = false;
+    ConfigFile f;
+    f.parse(text);
+    string report;
+    for (size_t i = 0; i < f.warnings().size(); i++)
+    {
+        const string& w = f.warnings()[i];
+        bool bad = w.find("not closed") != string::npos;
+        errors = errors || bad;
+        report += string(bad ? "Error: " : "Warning: ") + w + "\n";
+    }
+
+    //  A key some other layer (or this form) knows; the file's own keys do
+    //  not make themselves known.
+    std::set<string> known;
+    vector<string> dk = p_draft->keys();
+    for (size_t i = 0; i < dk.size(); i++)
+        if (!p_draft->state(dk[i])->inherited.empty())
+            known.insert(dk[i]);
+    for (size_t i = 0; i < p_cfgRows.size(); i++)
+        known.insert(lowerOf(p_cfgRows[i].key));
+    known.insert("setup");
+    known.insert("wrapup");
+    for (int i = 1; i < (int)p_qmgrChoice->GetCount(); i++)
+        known.insert(lowerOf((string)p_qmgrChoice->GetString(i)));
+    static const char* const per[] = { "", "command", "environment", "_setup",
+        "_wrapup", "_loophole", "filestoremove", "prelimfilestoremove" };
+    for (size_t i = 0; i < p_codeNames.size(); i++)
+        for (size_t j = 0; j < sizeof(per) / sizeof(per[0]); j++)
+            known.insert(lowerOf(p_codeNames[i]) + per[j]);
+    for (size_t i = 0; i < f.entries().size(); i++)
+        if (known.find(f.entries()[i].lkey) == known.end())
+            report += "Warning: line " + std::to_string(f.entries()[i].first + 1)
+                      + ": '" + f.entries()[i].key + "' is not a setting "
+                      "ECCE reads.\n";
+
+    vector<string> csh;
+    cshNotices(text, 1, csh);
+    for (size_t i = 0; i < csh.size(); i++)
+        report += "Warning: " + csh[i] + "\n";
+    if (report.empty())
+        report = "No problems found.\n";
+    return report;
+}
+
+
+bool WxMachineRegister::rawFileSave(const string& text, string& err)
+{
+    ConfigFile f;
+    f.setSiteFile(p_adminFlag);
+    if (!f.load(p_draft->editedFile()))
+    {
+        err = "Cannot read " + p_draft->editedFile();
+        return false;
+    }
+    f.setText(text);
+    return f.save(&err);
+}
+
+
+void WxMachineRegister::rawFileClosed(bool saved)
+{
+    for (std::map<string, wxWindow*>::iterator it = p_fields.begin();
+         it != p_fields.end(); )
+        if (it->first.compare(0, 4, "raw:") == 0)
+            p_fields.erase(it++);
+        else
+            ++it;
+    p_rawDlg = NULL;
+    if (saved)
+    {
+        this->redo(p_loadedName);
+        this->notifyUpdate();
+    }
+}
+
+
+//  The form and a raw edit are never merged: unsaved form changes are saved
+//  or dropped first.
+void WxMachineRegister::editFile()
+{
+    if (p_rawDlg != NULL || p_draft == NULL)
+        return;
+    if (p_loadedName.empty())
+    {
+        displayMessage("Save the machine first; then its settings file can "
+                       "be edited.");
+        return;
+    }
+    if (!this->resolveUnsaved("Discard Changes"))
+        return;
+    //  Discarded: the file, not the form, is what is edited now.
+    if (this->isDirty())
+        this->loadMachine(p_loadedName);
+
+    wxDialog* dlg = new wxDialog(this, wxID_ANY,
+        "Edit " + p_draft->editedFile(), wxDefaultPosition, wxSize(720, 560),
+        wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER);
+    wxBoxSizer* root = new wxBoxSizer(wxVERTICAL);
+    dlg->SetSizer(root);
+
+    wxStaticText* intro = new wxStaticText(dlg, wxID_ANY,
+        "The settings file for '" + p_loadedName + "', as text. Check looks "
+        "for mistakes; Save writes the file and shows the form again.");
+    intro->Wrap(680);
+    root->Add(intro, wxSizerFlags().Border());
+    wxTextCtrl* text = new wxTextCtrl(dlg, wxID_ANY, rawFileText(),
+        wxDefaultPosition, wxDefaultSize,
+        wxTE_MULTILINE|wxTE_DONTWRAP|wxHSCROLL);
+    text->SetFont(wxFont(wxFontInfo().Family(wxFONTFAMILY_TELETYPE)));
+    root->Add(text, wxSizerFlags(3).Expand().Border());
+    wxTextCtrl* report = new wxTextCtrl(dlg, wxID_ANY, "", wxDefaultPosition,
+        wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY|wxTE_DONTWRAP);
+    root->Add(report, wxSizerFlags(1).Expand().Border(wxLEFT|wxRIGHT));
+    wxBoxSizer* buttons = new wxBoxSizer(wxHORIZONTAL);
+    wxButton* check = new ewxButton(dlg, wxID_ANY, "&Check");
+    wxButton* cancel = new ewxButton(dlg, wxID_CANCEL, "Cancel");
+    wxButton* save = new ewxButton(dlg, wxID_SAVE, "&Save");
+    buttons->Add(check, wxSizerFlags().Border());
+    buttons->AddStretchSpacer(1);
+    buttons->Add(cancel, wxSizerFlags().Border());
+    buttons->Add(save, wxSizerFlags().Border());
+    root->Add(buttons, wxSizerFlags().Expand());
+    save->SetDefault();
+
+    bool modal = !p_scripted;
+    auto finish = [this, dlg, modal](bool saved) {
+        this->rawFileClosed(saved);
+        if (modal)
+            dlg->EndModal(saved ? wxID_OK : wxID_CANCEL);
+        else
+            dlg->Destroy();
+    };
+    check->Bind(wxEVT_BUTTON, [this, text, report](wxCommandEvent&) {
+        bool errors;
+        report->SetValue(this->rawFileCheck((string)text->GetValue(), errors));
+    });
+    save->Bind(wxEVT_BUTTON, [this, text, report, finish](wxCommandEvent&) {
+        bool errors;
+        string r = this->rawFileCheck((string)text->GetValue(), errors);
+        report->SetValue(r);
+        if (errors)
+        {
+            this->p_lastMessage = "not saved: " + r;
+            return;
+        }
+        string err;
+        if (!this->rawFileSave((string)text->GetValue(), err))
+        {
+            report->SetValue("Error: " + err + "\n");
+            this->p_lastMessage = err;
+            return;
+        }
+        finish(true);
+    });
+    cancel->Bind(wxEVT_BUTTON, [finish](wxCommandEvent&) { finish(false); });
+    dlg->Bind(wxEVT_CLOSE_WINDOW, [finish](wxCloseEvent&) { finish(false); });
+
+    reg("raw:text", text);
+    reg("raw:report", report);
+    reg("raw:check", check);
+    reg("raw:save", save);
+    reg("raw:cancel", cancel);
+    p_rawDlg = dlg;
+    dlg->CentreOnParent();
+    if (modal)
+    {
+        dlg->ShowModal();
+        dlg->Destroy();
+    }
+    else
+        dlg->Show();
 }
 
 

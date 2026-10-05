@@ -321,6 +321,14 @@ string ConfigFile::text() const
   return out;
 }
 
+void ConfigFile::setText(const string& text)
+{
+  if (text == this->text())
+    return;
+  parse(text);
+  p_modified = true;
+}
+
 bool ConfigFile::save(string* err)
 {
   if (p_path.empty()) {
