@@ -29,8 +29,15 @@ IMPLEMENT_APP_NO_MAIN(App)
 class Dlg : public ewxGenericFileDialog
 {
   public:
-    Dlg(const wxString& wild) { Create(NULL, "Open", "", "", wild,
-                                       wxFD_OPEN|wxFD_FILE_MUST_EXIST); }
+    Dlg(const wxString& wild)
+    {
+      Create(NULL, "Open", "", "", wild, wxFD_OPEN|wxFD_FILE_MUST_EXIST);
+      if (getenv("FD_RESTORE")) {  // as the app dialogs do after Create
+        restoreSettings();
+        printf("RESTORED %s\n", (const char*) m_list->GetDir().utf8_str());
+        fprintf(stderr, "m_dir=%s\n", (const char*) m_dir.utf8_str());
+      }
+    }
 
     void listIn(const wxString& dir, const wxSize& size, long hold,
                 int ntyped = 0, char** typed = NULL)

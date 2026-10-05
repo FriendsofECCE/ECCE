@@ -99,12 +99,17 @@ def main():
     open(os.path.join(home, "h.xyz"), "w").close()
     os.makedirs(os.path.join(data, "sub"))
     open(os.path.join(data, "sub", "b.xyz"), "w").close()
+    # The settings an old bug left behind: the list's "*" placeholder saved
+    # as part of the directory.
+    prefs = os.path.join(home, ".ECCE")
+    os.makedirs(prefs)
+    ini = os.path.join(prefs, "FileDialog.ini")
     typed = {os.path.join(data, "water.xyz"): os.path.join(data, "water.xyz"),
              "water.xyz": os.path.join(data, "water.xyz"),
              "./water.xyz": os.path.join(data, "water.xyz"),
              "sub/b.xyz": os.path.join(data, "sub", "b.xyz"),
              "~/h.xyz": os.path.join(home, "h.xyz")}
-    env = dict(os.environ, DISPLAY=o.display, HOME=home,
+    env = dict(os.environ, DISPLAY=o.display, HOME=home, FD_RESTORE="1",
                ECCE_REALUSERHOME=home, ECCE_HOME=ROOT, ECCE_NO_MESSAGING="1")
     xvfb = subprocess.Popen(["Xvfb", o.display, "-screen", "0", "1400x900x24"],
                             stdout=subprocess.DEVNULL,
@@ -114,10 +119,15 @@ def main():
         import time
         time.sleep(2)
         for size in ("default", "300x300"):
+            with open(ini, "w") as f:  # each run starts from the stale file
+                f.write("DIR=*/%s\nFILENAME=benzene.xyz\nFILTER=0\n[DIRS]\n"
+                        "0=*\n[MOUNTS]\n0=/\n" % data)
             r = out([binary, data, wild, size, "50"] + list(typed), env=env,
                     timeout=60)
             lines = r.stdout.splitlines()
+            if os.environ.get("FD_DEBUG"): print(r.stderr[-400:])
             got, cur, rows, dlg, ntyped = {}, None, [], None, 0
+            restored = False
             for ln in lines:
                 if ln.startswith("FILTER "):
                     cur = int(ln.split()[1])
@@ -132,6 +142,12 @@ def main():
                 elif ln.startswith("ROW "):
                     m = re.search(r"x=(\d+) y=(\d+) w=(\d+) h=(\d+)", ln)
                     rows.append(tuple(int(v) for v in m.groups()))
+                elif ln.startswith("RESTORED "):
+                    if os.path.normpath(ln[9:]) != data:
+                        print("FAIL: restored directory %r, want %r"
+                              % (ln[9:], data))
+                        failures += 1
+                    restored = True
                 elif ln.startswith("TYPED "):
                     name, _, path = ln[6:].partition(" => ")
                     if os.path.normpath(path) != typed[name]:
@@ -149,6 +165,11 @@ def main():
                     fnmatch.fnmatchcase(f, p) for p in expect[0])):
                 print("FAIL: %s: list does not match displayed %r"
                       % (size, final_label))
+                failures += 1
+            saved = open(ini).read()
+            if not restored or "*" in saved:
+                print("FAIL: %s: settings not restored or '*' saved again:\n%s"
+                      % (size, saved))
                 failures += 1
             if ntyped != len(typed):
                 print("FAIL: %s: %d typed names answered, want %d"
