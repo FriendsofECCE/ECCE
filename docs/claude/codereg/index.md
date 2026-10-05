@@ -126,3 +126,4 @@ dialog showing the deck with the offending lines marked.
 ### Machine configuration (CONFIG files)
 
 - [`CONFIG.<machine>` is the site file, then the user file, merged per key (C++ and gensub alike)](config-machine-is-site-then-user-per-key.md)
+- [`GENSUB_EXPLAIN=1 gensub` prints each CONFIG key's effective value and where it came from](gensub-explain-config-provenance.md)

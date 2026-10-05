@@ -18,6 +18,7 @@ Exit status 77 (CTest SKIP) without perl or configdump.
 """
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -180,6 +181,98 @@ def precedence(build, perl):
             env=env, stdout=subprocess.PIPE, text=True)
         check(parseDump(acc.stdout).get("shell") == "tcsh",
               "without a user file the site file applies")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def explain(build, perl):
+    """GENSUB_EXPLAIN agrees with GENSUB_DUMP_CONFIG and configdump, and its
+    provenance matches layers built here, independently of gensub."""
+    tmp = tempfile.mkdtemp(prefix="ecce-config-")
+    try:
+        home = os.path.join(tmp, "home")
+        user = os.path.join(tmp, "user")
+        os.makedirs(os.path.join(user, ".ECCE"))
+        os.makedirs(os.path.join(home, "data"))
+        os.symlink(os.path.join(REPO, "scripts"), os.path.join(home, "scripts"))
+        os.symlink(os.path.join(REPO, "data", "client"),
+                   os.path.join(home, "data", "client"))
+        sc = os.path.join(home, "siteconfig")
+        siteF = os.path.join(sc, "CONFIG.testhost")
+        userF = os.path.join(user, ".ECCE", "CONFIG.testhost")
+        subF = os.path.join(sc, "submit.site")
+        venF = os.path.join(sc, "CONFIG.ACME")
+        write(os.path.join(sc, "Machines"),
+              MACHINES.replace("Unspecified\tUnspecified\tUnspecified",
+                               "Acme\tUnspecified\tUnspecified", 1))
+        write(subF, "shell: sh\nsetup: echo SUBMITSITE\nonlysub: s\n")
+        write(venF, "onlysub: vendor\nvendoronly: v\n")
+        write(siteF, "Shell: tcsh\nsetup {\n  module load site\n}\n"
+                     "cleared: site\nsiteonly: yes\nbothset: site\n"
+                     "nwchemenvironment {\n  A=1\n  B=2\n}\n")
+        write(userF, "shell: bash\nsetup { module load user }\ncleared: -\n"
+                     "useronly: 1\nbothset: user\nclearthenset: -\n")
+        # a key cleared in the site file and set again by the user file
+        write(siteF, read(siteF) + "clearthenset: -\n")
+        write(userF, read(userF) + "clearthenset: back\n")
+        env = dict(os.environ, ECCE_HOME=home, ECCE_REALUSERHOME=user)
+        params = os.path.join(tmp, "params")
+        out = os.path.join(tmp, "submit__x")
+        write(params, " -H testhost\n -Q Shell\n -c NWChem\n -d localhost\n"
+                      " -n 1\n -N 1\n -r %s\n -i a.nw\n -o a.out\n -f %s\n"
+                      % (tmp, out))
+
+        def gensub(extra):
+            return subprocess.run(
+                [perl, os.path.join(REPO, "scripts", "gensub"), "-p", params],
+                env=dict(env, **extra), cwd=tmp, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, text=True)
+
+        ex = gensub({"GENSUB_EXPLAIN": "1"})
+        check(ex.returncode == 0, "GENSUB_EXPLAIN ran"
+              + ("" if ex.returncode == 0 else ": " + ex.stdout[-200:]))
+        check(not os.path.exists(out), "explain writes no job script")
+        rows = {}
+        for line in ex.stdout.splitlines():
+            r = json.loads(line)
+            rows[r["key"]] = r
+        # the dumps escape newlines; blocks are trimmed on read
+        eff = {k: r["value"].replace("\n", "\\n") for k, r in rows.items()
+               if r["value"] is not None}
+        dump = parseDump(gensub({"GENSUB_DUMP_CONFIG": "1"}).stdout)
+        check(eff == dump, "explain's effective values equal GENSUB_DUMP_CONFIG"
+              + ("" if eff == dump else "\n  %r\n  %r" % (eff, dump)))
+        cpp = parseDump(subprocess.run(
+            [os.path.join(build, "configdump"), "testhost"], env=env,
+            stdout=subprocess.PIPE, text=True).stdout)
+        # configdump reads only the machine files, so compare on its keys
+        check(all(eff.get(k) == v for k, v in cpp.items()) and
+              all(k in cpp for k in ("shell", "setup", "siteonly", "useronly",
+                                     "bothset", "nwchemenvironment")),
+              "explain's effective values equal configdump's")
+
+        want = {  # key: (value, source, file, [(overridden source, value)])
+            "shell": ("bash", "user", userF,
+                      [("submit.site", "sh"), ("site", "tcsh")]),
+            "setup": ("module load user", "user", userF,
+                      [("submit.site", "echo SUBMITSITE"),
+                       ("site", "module load site")]),
+            "onlysub": ("vendor", "vendor", venF, [("submit.site", "s")]),
+            "vendoronly": ("v", "vendor", venF, []),
+            "siteonly": ("yes", "site", siteF, []),
+            "useronly": ("1", "user", userF, []),
+            "bothset": ("user", "user", userF, [("site", "site")]),
+            "cleared": (None, "cleared", userF, [("site", "site")]),
+            "clearthenset": ("back", "user", userF, [("site", None),
+                                                    ("user", None)]),
+            "nwchemenvironment": ("A=1\n  B=2", "site", siteF, []),
+        }
+        for k, (val, src, f, ov) in want.items():
+            r = rows.get(k)
+            got = r and (r["value"], r["source"], r["file"],
+                         [(o["source"], o["value"]) for o in r["overridden"]])
+            check(got == (val, src, f, ov), "provenance of %s: %r" % (k, got))
+        check("nosuchkey" not in rows, "a key in no layer is absent")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -363,6 +456,7 @@ def main():
     if not args.processmachine:
         precedence(args.build, perl)
         sentinelScript(perl)
+        explain(args.build, perl)
     processmachine(args.processmachine)
     print("")
     print("FAILED: %d" % len(failures) if failures else "PASSED")

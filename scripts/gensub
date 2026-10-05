@@ -100,6 +100,7 @@
   local ($CC);        # comment character(s)
   local ($ecceHome);  # since we use it often
   local (%config);    # stuff from config files
+  local (%history);   # per key: the layers that set or cleared it, in order
   local (@msgs);      # error messages
 
   # -m (memory) and -x (scratch space) USE a value -- handleOptions does
@@ -129,6 +130,14 @@
   # output file from the beginning since the code may overwrite it.
   local $logfile = "$runDir/ecce.submit.log";
   local $statusFile = "$runDir/.ecce.status";
+
+  # GENSUB_EXPLAIN=1: where each key's value came from, as JSON lines.  Runs
+  # the same readConfig as a real run, before the submit file is touched.
+  if ($ENV{'GENSUB_EXPLAIN'}) {
+    &readConfig();
+    &printExplain();
+    exit 0;
+  }
 
   open(SUBMIT,"> $submitFile") || die "Unable to open $submitFile for write";
   print SUBMIT &getHeader();
@@ -734,8 +743,10 @@ sub readConfig()
         # "key: -" in a later file clears the key; it is never a value.
         if ($value eq "-") {
           delete $config{lc($key)};
+          push @{$::history{lc($key)}}, [$file, undef];
         } elsif ($value ne "") {
           $config{lc($key)} = $value;
+          push @{$::history{lc($key)}}, [$file, $value];
         }
       }
       close CONFIG;
@@ -755,6 +766,46 @@ sub printConfig()
   foreach $key (sort keys %config) {
     ($v = $config{$key}) =~ s/\n/\\n/g;
     print "$key: $v\n";
+  }
+}
+
+##########################################################################
+# Description
+#   Which layer a config file is: submit.site, vendor (CONFIG.VENDOR[.MODEL
+#   [.PROC]]), site (CONFIG.<host> in siteconfig) or user (~/.ECCE).
+##########################################################################
+sub sourceTag($)
+{
+  my ($f) = @_;
+  my $uh = $ENV{"ECCE_REALUSERHOME"};
+  return "user" if ($uh ne "" && index($f, "$uh/.ECCE/") == 0);
+  return "submit.site" if ($f =~ m{/submit\.site$});
+  return "site" if ($f =~ m{/CONFIG\.\Q$host\E$});
+  return "vendor";
+}
+
+##########################################################################
+# Description
+#   One JSON object per key that any layer set or cleared.  "value" is null
+#   and "source" is "cleared" when the last layer was a "key: -"; "overridden"
+#   lists the earlier layers (value null = that layer cleared).  Keys in no
+#   layer are absent: the built-in default applies.
+##########################################################################
+sub printExplain()
+{
+  require JSON::PP;
+  my $json = JSON::PP->new->canonical->ascii;
+  foreach my $key (sort keys %::history) {
+    my @h = @{$::history{$key}};
+    my $last = pop @h;
+    my $cleared = !defined($last->[1]);
+    my %o = (key => $key,
+             value => $cleared ? undef : $last->[1],
+             source => $cleared ? "cleared" : &sourceTag($last->[0]),
+             file => $last->[0],
+             overridden => [map { {source => &sourceTag($_->[0]),
+                                   file => $_->[0], value => $_->[1]} } @h]);
+    print $json->encode(\%o), "\n";
   }
 }
 
