@@ -46,7 +46,9 @@ the full path to the program:
    ```
 4. Save the file.
 
-The next job you launch uses the new path. A job fails with "Path for
+The Launcher offers a machine for a code when the machine's entry names the
+code, or when its CONFIG file gives the path of that code. The next job you
+launch uses the new path. A job fails with "Path for
 <code> not found" if the code you run has no line in this file.
 
 You can also set the path in the Machine Registration window, in the

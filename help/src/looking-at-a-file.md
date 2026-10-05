@@ -29,8 +29,8 @@ You can also open the Builder on a calculation, as in
 
 ### Load a file into the Builder
 
-1. In the Builder, choose **File > Import Chemical System...**.
-2. In the file window ("Load Chemical System into Current Context"), choose
+1. In the Builder, choose **File > Add Structure from File...**.
+2. In the file window, choose
    **Local Filesystem** in the server list at the top-left. The same list
    offers the data servers ECCE knows about.
 3. Go to the folder with your file. **Files of type:** lists the formats
@@ -45,21 +45,30 @@ What happens next depends on the format:
 - XYZ: ECCE asks for the units of the coordinates (the file does not
   record them): Ångströms, Bohr, picometers or nanometers.
 - PDB: if the file has several models, alternate locations or chains,
-  ECCE asks which to use. [TO CHECK: the labels of this window.]
-- CAR and MVM: loaded without a question.
+  ECCE asks which to use. [TO CHECK: the labels of this window.] A single
+  model such as glycine loads without a question.
+- CAR and MVM: loaded without a question. A CAR file such as `benzene.car`
+  (12 atoms) loads directly.
+
+The unit cell of a periodic CAR file is not drawn when you open the file.
+Choose **Tools > Periodic Builder**; **Show Lattice** is ticked there by
+default and draws the cell.
 
 For XYZ, PDB and CAR files ECCE works out the bond orders from the
 coordinates. MVM files carry their own bonds.
 
 To work on a file directly instead of adding it to a structure, choose
-**File > Open in New Context...** (Ctrl+O) and pick the file the same way.
-The Builder opens it as its own context. [TO CHECK: that this works for a
-file on the local file system, and where **File > Save** writes the changes.]
+**File > Open...** (Ctrl+O) and pick the file the same way. The Builder
+opens it as its own structure. The **Open structures** panel at the top
+right lists every structure that is open; click an entry to switch to it.
+**File > New** starts another empty structure and **File > Close** closes
+the current one.
 
-The same window also lists `.cube` and `.trj` files. A trajectory (`.trj`
-or multi-frame `.xyz`) and a Gaussian cube file open with **Open in New
-Context...**; **Import Chemical System...** reads only the four formats in
-the table. [TO CHECK: what **Open in New Context...** shows for each.]
+The same window also lists `.cube` and `.trj` files. A Gaussian cube file
+opens as a structure, with a **Cube File** panel that shows its grids.
+A trajectory (`.trj` or multi-frame `.xyz`) also opens with **File >
+Open...**; **Add Structure from File...** reads only the four formats in
+the table. [TO CHECK: what **File > Open...** shows for a trajectory.]
 
 ### Build from the structure library
 
@@ -73,8 +82,12 @@ folders `SimpleStructures` (organised by compound class, for example
 2. In the **Structure Library** panel, open a folder and click a
    structure. A preview appears.
 3. Click in the empty 3D view to add it. To attach it to a structure that
-   is already there, select the atom to bond it to first. [TO CHECK: the
-   selection step needed to join two fragments.]
+   is already there, first select the site to bond it to (see below).
+
+A fragment needs a free site. In benzene every carbon is saturated, so
+select the hydrogen that the fragment should replace before you click.
+Otherwise ECCE says "Cannot unambiguously connect fragments. Please select
+the sites that should be bonded."
 
 You can draw atoms with **Mode > Atom** (Ctrl+5), and finish with **Build >
 Add Hydrogen** and **Build > Clean**, as in the first calculation.
@@ -125,7 +138,8 @@ If the project already contains a calculation with that name, ECCE appends
 `-1`.
 
 The message line shows "Calculation output currently being imported into
-<project>/<calculation>." The calculation appears in the tree. The Viewer
+<project>/<calculation>." The calculation appears in the tree, is selected,
+and shows the run state "Imported". The Viewer
 can be slow to respond until the import has finished.
 
 Importing NWChem output prints "WARNING: Could not parse basis set from
@@ -209,14 +223,19 @@ the same steps on a calculation you ran yourself.
 Structures you save and calculations you import are stored in your projects,
 in the place ECCE keeps your data: the data server, or the local folder if
 you use local data mode (see [Installation](installation.md)). The Organizer
-tree shows them. [TO CHECK: that ECCE leaves your original structure file or output file
+tree shows them. [TO CHECK: that ECCE leaves your original output file
 unchanged.]
 
-A structure opened with **Import Chemical System...** is not saved until you
-choose **File > Save** in the Builder. **File > Save** is greyed out
-while the Builder shows the default (new, unnamed) context, because there
-is nowhere to save it; use **File > Save As...**. [TO CHECK: what
-**File > Save** does for a context opened from a file.]
+A structure opened from a file with **File > Open...** can be changed, and
+then **File > Save** is enabled. It writes back into that file, in ECCE's
+format. The original file changes only when you save.
+
+For a new structure that has no file, **File > Save** is greyed out because
+there is nowhere to save it. Use **File > Save As...**. It offers the
+structure formats CAR, MVM, NWChem, PDB and XYZ, and calculation types. A
+calculation can be saved into a project on the data server or into any
+folder on your disk. A calculation saved in a folder can be reopened with
+**File > Open...** and launched like any other.
 
 ## Next steps
 
