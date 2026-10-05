@@ -264,7 +264,8 @@ set qmgr Slurm
 tab queues
 set q-name short
 set q-maxprocs 64
-set q-maxwall 60
+set q-maxwall 0.5
+expect field q-maxwall 0.5
 set q-maxmem 8
 expect label queue-apply 'Add Queue'
 queue-apply
@@ -281,6 +282,8 @@ quit
     q = read(os.path.join(e.ue, "newhost.Q"))
     check("short" in q and "long" in q and "maxProcessors:" in q,
           "newhost.Q lists both queues")
+    check("short|runLimit:" in q and "30" in q.split("short|runLimit:")[1].split("\n")[0],
+          "0.5 h of wall time is stored as 30 minutes")
     check("newhost|queueMgrName:" in read(os.path.join(e.ue, "Queues")),
           "the user's Queues file names the queue manager")
     check("newhost" in machines(os.path.join(e.ue, "MyMachines")),

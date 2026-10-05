@@ -26,6 +26,7 @@
 #include "wx/statbmp.h"
 #include "wx/listctrl.h"
 #include "wx/notebook.h"
+#include "wx/spinctrl.h"
 #include "wx/statline.h"
 
 #include "util/BrowserHelp.H"
@@ -224,14 +225,7 @@ void WxMachineRegister::createControls()
     p_book->AddPage(createQueuesPage(p_book), "Queues");
     right->Add(p_book, wxSizerFlags(1).Expand().Border(wxTOP|wxRIGHT));
 
-    string where = p_adminFlag
-        ? "Settings you save are stored in the site configuration, shared by "
-          "everyone using this installation."
-        : remoteClient()
-            ? "Settings you save are stored in ~/.ECCE on this computer. "
-              "The server's own settings are not changed."
-            : "Settings you save are stored in ~/.ECCE on this computer.";
-    p_storeNote = new wxStaticText(panel, wxID_ANY, where);
+    p_storeNote = new wxStaticText(panel, wxID_ANY, "");
     right->Add(p_storeNote, wxSizerFlags().Border());
     top->Add(right, 1, wxEXPAND);
 
@@ -268,6 +262,10 @@ void WxMachineRegister::createControls()
     this->SetAcceleratorTable(wxAcceleratorTable(1, accel));
 
     this->Bind(wxEVT_CLOSE_WINDOW, &WxMachineRegister::onClose, this);
+    p_book->Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, [this](wxBookCtrlEvent& e) {
+        this->updateFooter();
+        e.Skip();
+    });
     p_list->Bind(wxEVT_LIST_ITEM_SELECTED, &WxMachineRegister::onListSelected, this);
     this->Bind(wxEVT_BUTTON, &WxMachineRegister::onSave, this, wxID_SAVE);
     this->Bind(wxEVT_BUTTON, &WxMachineRegister::onDelete, this, ID_DELETE);
@@ -393,18 +391,17 @@ wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
     p_perlPath->SetToolTip("Directory of the Perl 5 interpreter on the "
                            "remote machine.");
     p_qmgrPath = new ewxTextCtrl(page, wxID_ANY);
-    p_qmgrPath->SetToolTip("Directory of the scheduler's commands "
-                           "(sbatch, qsub, ...) on the remote machine.");
-    grid->Add(new ewxStaticText(page, wxID_ANY, "Perl"),
+    p_qmgrPath->SetToolTip("Directory holding the scheduler's commands on "
+                           "the remote machine.");
+    grid->Add(new ewxStaticText(page, wxID_ANY, "Perl on the remote machine"),
               wxSizerFlags().Right().Border().CentreVertical());
     grid->Add(p_perlPath, wxSizerFlags(1).Expand().Border().CentreVertical());
-    grid->Add(new ewxStaticText(page, wxID_ANY, "Scheduler commands"),
+    grid->Add(new ewxStaticText(page, wxID_ANY, "Scheduler command directory"),
               wxSizerFlags().Right().Border().CentreVertical());
     grid->Add(p_qmgrPath, wxSizerFlags(1).Expand().Border().CentreVertical());
 
-    sizer->Add(new wxStaticText(page, wxID_ANY,
-        "The shell, login host and further connection settings can be "
-        "edited in the file for now."), wxSizerFlags().Border());
+    p_connNote = new wxStaticText(page, wxID_ANY, "");
+    sizer->Add(p_connNote, wxSizerFlags().Border());
 
     reg("perlpath", p_perlPath);
     reg("qmgrpath", p_qmgrPath);
@@ -442,9 +439,8 @@ wxWindow* WxMachineRegister::createJobScriptPage(wxWindow* parent)
 {
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     ewxScrolledWindow* page = newPage(parent, sizer);
-    sizer->Add(new wxStaticText(page, wxID_ANY,
-        "The job script text for this machine can be edited in the file "
-        "for now."), wxSizerFlags().Border());
+    p_jobNote = new wxStaticText(page, wxID_ANY, "");
+    sizer->Add(p_jobNote, wxSizerFlags().Border());
     return page;
 }
 
@@ -482,29 +478,43 @@ wxWindow* WxMachineRegister::createQueuesPage(wxWindow* parent)
               wxSizerFlags().Right().Border().CentreVertical());
     grid->Add(p_queueName, wxSizerFlags(1).Expand().Border().CentreVertical());
 
+    //  Wall time is shown in hours and stored in minutes (README.Q); a
+    //  fraction is fine because minutes are the finer unit.
+    p_qMaxWall = new wxSpinCtrlDouble(page, wxID_ANY, "0", wxDefaultPosition,
+                                      wxDefaultSize, wxSP_ARROW_KEYS, 0,
+                                      100000, 0, 0.25);
+    p_qMaxWall->SetDigits(2);
+    reg("q-maxwall", p_qMaxWall);
+
     struct SpinRow { ewxSpinCtrl** spin; const char* label; const char* unit;
                      int min; const char* key; };
     SpinRow rows[] = {
         { &p_qMinProcs, "Min processors", "", 1, "q-minprocs" },
         { &p_qMaxProcs, "Max processors", "", 1, "q-maxprocs" },
-        { &p_qMaxWall, "Max wall time", "min", 0, "q-maxwall" },
+        { NULL, "Max wall time", "h", 0, "" },
         { &p_qMaxMem, "Max memory", "GB", 0, "q-maxmem" },
         { &p_qMinScratch, "Min scratch", "GB", 0, "q-minscratch" },
     };
     for (size_t i = 0; i < sizeof(rows) / sizeof(rows[0]); i++)
     {
-        *rows[i].spin = new ewxSpinCtrl(page, wxID_ANY,
-            wxString::Format("%d", rows[i].min), wxDefaultPosition,
-            wxDefaultSize, wxSP_ARROW_KEYS, rows[i].min, 100000, rows[i].min);
+        wxWindow* spin = p_qMaxWall;
+        if (rows[i].spin != NULL)
+        {
+            *rows[i].spin = new ewxSpinCtrl(page, wxID_ANY,
+                wxString::Format("%d", rows[i].min), wxDefaultPosition,
+                wxDefaultSize, wxSP_ARROW_KEYS, rows[i].min, 100000,
+                rows[i].min);
+            spin = *rows[i].spin;
+            reg(rows[i].key, spin);
+        }
         grid->Add(new ewxStaticText(page, wxID_ANY, rows[i].label),
                   wxSizerFlags().Right().Border().CentreVertical());
         wxBoxSizer* cell = new wxBoxSizer(wxHORIZONTAL);
-        cell->Add(*rows[i].spin, wxSizerFlags().Border().CentreVertical());
+        cell->Add(spin, wxSizerFlags().Border().CentreVertical());
         if (*rows[i].unit)
             cell->Add(new ewxStaticText(page, wxID_ANY, rows[i].unit),
                       wxSizerFlags().CentreVertical());
         grid->Add(cell, wxSizerFlags().CentreVertical());
-        reg(rows[i].key, *rows[i].spin);
     }
     sizer->Add(grid, wxSizerFlags().Expand());
 
@@ -1077,7 +1087,8 @@ void WxMachineRegister::showQueue(const string& name)
                               ? r.minProcs : 1);
         p_qMaxProcs->SetValue(r.maxProcs != (unsigned)INT_MAX && r.maxProcs != 0
                               ? r.maxProcs : 1);
-        p_qMaxWall->SetValue(r.maxWall != (unsigned)INT_MAX ? r.maxWall : 0);
+        p_qMaxWall->SetValue(r.maxWall != (unsigned)INT_MAX
+                             ? r.maxWall / 60.0 : 0.0);
         p_qMaxMem->SetValue(r.maxMem != (unsigned)INT_MAX
                             ? MemoryUnits::mbToGB(r.maxMem) : 0);
         p_qMinScratch->SetValue(r.minScratch != (unsigned)INT_MAX
@@ -1104,7 +1115,7 @@ MCD::QueueRow WxMachineRegister::queueFormRow() const
     r.name = strip((string)p_queueName->GetValue());
     r.minProcs = p_qMinProcs->GetValue();
     r.maxProcs = p_qMaxProcs->GetValue();
-    r.maxWall = p_qMaxWall->GetValue();
+    r.maxWall = (unsigned)(p_qMaxWall->GetValue() * 60.0 + 0.5);
     r.maxMem = MemoryUnits::gbToMB(p_qMaxMem->GetValue());
     r.minScratch = MemoryUnits::gbToMB(p_qMinScratch->GetValue());
     return r;
@@ -1299,8 +1310,64 @@ bool WxMachineRegister::hasMinimalInput()
 }
 
 
+//  The files Save writes for the visible tab and machine.
+string WxMachineRegister::editedBase() const
+{
+    return p_adminFlag ? string(Ecce::ecceHome()) + "/siteconfig" : "~/.ECCE";
+}
+
+
+void WxMachineRegister::updateFooter()
+{
+    if (p_book == NULL || p_storeNote == NULL || p_connNote == NULL)
+        return;
+
+    string base = editedBase();
+    string name = strip((string)p_refName->GetValue());
+    if (name.empty())
+        name = "<name>";
+    string config = base + "/CONFIG." + name;
+
+    string files;
+    switch (p_book->GetSelection())
+    {
+        case 0: files = base + (p_adminFlag ? "/Machines" : "/MyMachines"); break;
+        case 4: files = base + "/Queues and " + base + "/" + name + ".Q"; break;
+        default: files = config; break;
+    }
+    wxString note = "Saved in " + files;
+    if (p_storeNote->GetLabel() != note)
+        p_storeNote->SetLabel(note);
+
+    wxString conn = "Not editable here yet. The remote shell (shell), the "
+        "file to source (sourceFile) and the login host (frontendMachine, "
+        "frontendBypass) are set in " + config + ".";
+    if (p_connNote->GetLabel() != conn)
+        { p_connNote->SetLabel(conn); p_connNote->Wrap(560); }
+
+    string qm = (string)p_qmgrChoice->GetStringSelection();
+    string lq = lowerOf(qm);
+    wxString job = "Not editable here yet. The commands run before and after "
+        "the code (setup, wrapup)";
+    if (lq != "none" && lq != "shell" && !lq.empty())
+        job += " and the " + qm + " header (" + lq + ")";
+    job += " are set in " + config + ".";
+    if (p_jobNote->GetLabel() != job)
+        { p_jobNote->SetLabel(job); p_jobNote->Wrap(560); }
+
+    string a = "sbatch", b = "squeue", dir = "/opt/slurm/bin";
+    if (lq == "pbs" || lq == "sge") { a = "qsub"; b = "qstat"; dir = "/opt/pbs/bin"; }
+    else if (lq == "lsf") { a = "bsub"; b = "bjobs"; dir = "/opt/lsf/bin"; }
+    else if (lq == "moab") { a = "msub"; b = "showq"; dir = "/opt/moab/bin"; }
+    else if (lq == "htcondor") { a = "condor_submit"; b = "condor_q"; dir = "/opt/condor/bin"; }
+    p_qmgrPath->SetHint("where " + a + ", " + b + " are, e.g. " + dir +
+                        "; empty if on PATH");
+}
+
+
 void WxMachineRegister::updateDirty()
 {
+    this->updateFooter();
     if (p_inCtrlUpdate || p_draft == NULL || p_closing)
         return;
 

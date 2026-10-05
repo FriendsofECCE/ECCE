@@ -107,6 +107,8 @@ string MachRegScript::get(const string& name)
         return (string)t->GetValue();
     if (wxSpinCtrl* s = dynamic_cast<wxSpinCtrl*>(w))
         return std::to_string(s->GetValue());
+    if (wxSpinCtrlDouble* d = dynamic_cast<wxSpinCtrlDouble*>(w))
+        return (string)wxString::Format("%g", d->GetValue());
     if (wxChoice* c = dynamic_cast<wxChoice*>(w))
         return (string)c->GetStringSelection();
     if (wxCheckBox* b = dynamic_cast<wxCheckBox*>(w))
@@ -210,6 +212,8 @@ int MachRegScript::runCommand(const vector<string>& w)
             t->SetValue(value);
         else if (wxSpinCtrl* s = dynamic_cast<wxSpinCtrl*>(win))
             s->SetValue(atoi(value.c_str()));
+        else if (wxSpinCtrlDouble* d = dynamic_cast<wxSpinCtrlDouble*>(win))
+            d->SetValue(atof(value.c_str()));
         else if (wxCheckBox* b = dynamic_cast<wxCheckBox*>(win))
             b->SetValue(value == "1");
         else if (wxChoice* c = dynamic_cast<wxChoice*>(win))

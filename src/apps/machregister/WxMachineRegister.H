@@ -35,6 +35,7 @@
 #include "wxgui/ewxFrame.H"
 
 class wxPanel;
+class wxSpinCtrlDouble;
 class wxListCtrl;
 class wxListEvent;
 class wxNotebook;
@@ -146,6 +147,8 @@ class WxMachineRegister: public ewxFrame
         wxSize maxClientSizeForDisplay();
         void keepOnScreen();
         void refreshLocality();
+        void updateFooter();
+        string editedBase() const;
         void saveSettings(Preferences& prefs);
         void restoreSettings(Preferences& prefs);
 
@@ -157,12 +160,14 @@ class WxMachineRegister: public ewxFrame
         wxListCtrl          *p_list;
         wxPanel             *p_info;
         wxStaticText        *p_infoText;
-        wxStaticText        *p_storeNote;
+        wxStaticText        *p_storeNote;   // names the files Save writes
+        wxStaticText        *p_connNote, *p_jobNote;
         ewxStaticText       *p_localityText;
         ewxTextCtrl         *p_fullName, *p_refName, *p_vendor, *p_model,
                             *p_proc, *p_queueName;
         ewxSpinCtrl         *p_procs, *p_nodes, *p_qMinProcs, *p_qMaxProcs,
-                            *p_qMaxWall, *p_qMaxMem, *p_qMinScratch;
+                            *p_qMaxMem, *p_qMinScratch;
+        wxSpinCtrlDouble    *p_qMaxWall;   // hours; stored as minutes
         ewxChoice           *p_qmgrChoice, *p_queueChoice;
         ewxCheckBox         *p_allocAccts;
         ewxButton           *p_queueApply, *p_queueRemoveButton,
