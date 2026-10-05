@@ -784,7 +784,8 @@ printf("destination 0x%x\n",*c0); */
             for (int32_t ci = 0; ci < gNpoints; ci++) {
                 if (gColorPtr[ci] != first) { distinct++; }
             }
-            fprintf(stderr,
+            static const bool espDebug = getenv("ECCE_ESP_DEBUG") != 0;
+            if (espDebug) fprintf(stderr,
                 "ESP/IsoLib: %d vertices, colour values %g .. %g over a "
                 "ramp of %d spanning %g .. %g; %d clamped to an end, "
                 "%d vertices differ from the first colour (0x%08x)\n",
