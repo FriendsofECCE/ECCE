@@ -283,7 +283,7 @@ class PanelBuildGuard
 }  // namespace
 
 
-const string Builder::NAME_TOOL_CONTEXT(_("Context"));
+const string Builder::NAME_TOOL_CONTEXT(_("Open structures"));
 const string Builder::NAME_TOOL_BUILD(_("Build"));
 const string Builder::NAME_TOOL_COORDINATES(_("Coordinates"));
 const string Builder::NAME_TOOL_SELECTION(_("Selection"));
@@ -2177,9 +2177,9 @@ void Builder::OnOpenClick( wxCommandEvent& event )
     setContext(url);
 
   } else {
-    string msg = "Cannot open " + url.toString() + " as a new context (for "
-                 "viewing output properties from a calculation, you must "
-                 "use the Import Calculation menu option).";
+    string msg = "Cannot open " + url.toString() + " (to view the output "
+                 "properties of a calculation, use File > Import "
+                 "Calculation from Output File...).";
     wxLogWarning("%s", msg.c_str());
   }
 }
@@ -2195,7 +2195,7 @@ void Builder::OnImportChemsysClick(wxCommandEvent& event)
 
 
 /**
- * Import Chemical System after the file dialog; ext is the file's
+ * Add Structure from File after the file dialog; ext is the file's
  * extension (case does not matter).
  */
 void Builder::importChemicalSystem(const string& path, wxString type,
@@ -4700,7 +4700,7 @@ void Builder::updatePropertyMenus()
     }
   }
 
-  //  ECCE_TEST_IMPORT=<file>: run Import Chemical System on <file> once the
+  //  ECCE_TEST_IMPORT=<file>: run Add Structure from File on <file> once the
   //  Builder is up, as if picked in the file dialog, press OK in any prompt
   //  it raises, then exit. ECCE_TEST_IMPORT_DELAY (seconds) leaves time to
   //  attach a debugger. Inert unless set; for tests/apps/import_test.py.

@@ -55,7 +55,7 @@ bool OpenCalculationDialog::Create(wxWindow *parent)
   filter_string.erase(filter_string.end() - 1); // remove last "|"
 
   if (!ewxGenericFileDialog::Create(parent,
-          "Open in New Context",
+          "Open",
           wxEmptyString, wxEmptyString, filter_string,
           wxFD_OPEN|wxFD_FILE_MUST_EXIST)) {
     return false;

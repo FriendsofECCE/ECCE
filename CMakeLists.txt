@@ -1672,7 +1672,7 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   # Generous: 20 apps x (window wait + settle), plus broker startup.
   set_tests_properties(apps PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
-  # Builder Import Chemical System on PDB/XYZ/CAR and on missing paths,
+  # Builder Add Structure from File on PDB/XYZ/CAR and on missing paths,
   # through the installed builder's ECCE_TEST_IMPORT hook.
   add_test(NAME apps_import
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -1808,7 +1808,7 @@ if(PYTHON3_EXECUTABLE)
            COMMAND pmrun ${CMAKE_CURRENT_SOURCE_DIR}/scripts/processmachine)
   set_tests_properties(queues_pmrun PROPERTIES TIMEOUT 60)
   # tests/fragreaders: PDB/XYZ/CAR import through FragUtil::load, as the
-  # Builder's Import Chemical System does.
+  # Builder's Add Structure from File does.
   add_executable(fragreaders tests/fragreaders/fragreaders.C)
   target_link_libraries(fragreaders PRIVATE eccetdat ecceutil)
   # tests/importcode: the code Import Calculation picks for an output file.

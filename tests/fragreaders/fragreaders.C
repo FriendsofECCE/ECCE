@@ -1,5 +1,5 @@
 // Loads structure files through FragUtil::load with the Builder's
-// Import Chemical System arguments and checks atoms, residues and bonds.
+// Add Structure from File arguments and checks atoms, residues and bonds.
 // Usage: fragreaders <dir>   (dir holds the sample files)
 #include <cstdlib>
 #include <fstream>
