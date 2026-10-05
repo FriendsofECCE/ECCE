@@ -41,6 +41,7 @@ class wxListEvent;
 class wxCollapsiblePane;
 class wxBitmapButton;
 class wxRadioButton;
+class wxStaticBitmap;
 class wxNotebook;
 class wxStaticText;
 class ewxButton;
@@ -142,6 +143,7 @@ class WxMachineRegister: public ewxFrame
         wxBitmapButton* makeUndo(wxWindow* page, wxWindow*& box);
         int jobsIndex() const;
         void jobsToRadios();
+        void jobsLine();
         void jobsFromRadios();
 
         //  Dirty tracking
@@ -202,7 +204,8 @@ class WxMachineRegister: public ewxFrame
         wxStaticText        *p_jobNote;
         vector<CfgRow>       p_cfgRows;
         wxRadioButton       *p_jobsRadio[3];
-        wxStaticText        *p_jobsTag;
+        wxStaticText        *p_jobsTag, *p_jobsMode;
+        wxStaticBitmap      *p_jobsIcon;
         wxWindow            *p_jobsUndoBox;
         wxBitmapButton      *p_jobsUndo;
         wxWindow            *p_cfgPage;

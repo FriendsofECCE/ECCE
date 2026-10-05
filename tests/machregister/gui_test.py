@@ -495,6 +495,9 @@ expect field libpath ''
 expect label tag:libpath 'not set'
 expect field jobs:none 1
 expect field jobs:copy 0
+expect label jobs:mode "Don't submit, just make the files"
+expect shown jobs:icon 1
+expect advanced 1
 expect label tag:jobs '%(site)s'
 expect field checkscratch 0
 expect label tag:checkscratch '%(site)s'
@@ -535,7 +538,11 @@ expect label tag:qmgrpath '%(Y)s'
 set libpath /my/lib
 set jobs:copy 1
 expect label tag:jobs '%(Y)s'
+expect label jobs:mode 'ECCE submits the job (normal)'
+expect shown jobs:icon 0
 set jobs:user 1
+expect label jobs:mode 'Interactive submission'
+expect shown jobs:icon 1
 set singleconnect auto
 set checkscratch 1
 set xappspath /my/x
@@ -636,6 +643,9 @@ shot %(o)s/connection-site.png
 set perlpath /my/perl
 wait 500
 shot %(o)s/connection-yours.png
+set jobs:user 1
+wait 500
+shot %(o)s/connection-interactive.png
 quit
 """ % {"o": out})
     clean(p, "Connection PNGs")

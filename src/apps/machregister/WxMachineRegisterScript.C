@@ -22,6 +22,7 @@
 #include "wx/notebook.h"
 #include "wx/spinctrl.h"
 
+#include "wx/collpane.h"
 #include "wx/radiobut.h"
 #include "wx/stattext.h"
 #include "wxgui/ewxButton.H"
@@ -291,6 +292,9 @@ int MachRegScript::runCommand(const vector<string>& w)
             expectEq("banner", f->p_info->IsShown() ? "1" : "0", v);
         else if (what == "field" || what == "label")
             expectEq(what + " " + w[2], get(w[2]), n > 3 ? w[3] : "");
+        else if (what == "advanced")
+            expectEq("advanced", f->p_advanced && f->p_advanced->IsExpanded()
+                                 ? "1" : "0", v);
         else if (what == "shown" && n >= 4)
         {
             wxWindow* win = f->field(w[2]);

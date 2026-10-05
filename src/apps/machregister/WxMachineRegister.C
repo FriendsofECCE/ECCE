@@ -26,6 +26,7 @@
 #include "wx/artprov.h"
 #include "wx/bmpbuttn.h"
 #include "wx/radiobut.h"
+#include "wx/statbmp.h"
 #include "wx/utils.h"
 #include "wx/display.h"
 #include "wx/artprov.h"
@@ -129,6 +130,8 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
     p_jobsUndoBox = NULL;
     p_jobsUndo = NULL;
     p_jobsRadio[0] = p_jobsRadio[1] = p_jobsRadio[2] = NULL;
+    p_jobsMode = NULL;
+    p_jobsIcon = NULL;
     p_advanced = NULL;
     p_scripted = getenv("ECCE_MACHREG_SCRIPT") != NULL;
     p_codeNames = CodeFactory::getFullySupportedCodeNames();
@@ -521,8 +524,7 @@ wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
     addCfgRow(page, paths, "xappsPath", "X applications", CfgText,
               "Directory of X applications on the remote machine.");
 
-    //  The group's tag and undo sit on the heading line, in the columns the
-    //  other rows use.
+    //  Normal mode is one line; the exceptions are chosen under Advanced.
     wxBoxSizer* jobHead = new wxBoxSizer(wxHORIZONTAL);
     sizer->Add(jobHead, wxSizerFlags().Expand());
     wxStaticText* jobTitle = new wxStaticText(page, wxID_ANY,
@@ -530,25 +532,17 @@ wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
     wxFont jf = jobTitle->GetFont();
     jf.MakeBold();
     jobTitle->SetFont(jf);
-    jobHead->Add(jobTitle, wxSizerFlags(1).Border(wxLEFT|wxRIGHT|wxTOP));
+    jobHead->Add(jobTitle, wxSizerFlags().Border(wxLEFT|wxTOP));
+    p_jobsIcon = new wxStaticBitmap(page, wxID_ANY,
+        wxArtProvider::GetBitmapBundle(wxART_WARNING, wxART_BUTTON));
+    jobHead->Add(p_jobsIcon, wxSizerFlags().Border(wxLEFT|wxTOP)
+                                           .CentreVertical());
+    p_jobsMode = new wxStaticText(page, wxID_ANY, "");
+    jobHead->Add(p_jobsMode, wxSizerFlags().Border(wxLEFT|wxTOP)
+                                           .CentreVertical());
+    jobHead->AddStretchSpacer(1);
     addCfgRow(page, NULL, "noRemoteAccess", "", CfgCheck, "");
     addCfgRow(page, NULL, "userSubmit", "", CfgCheck, "");
-    static const char* const jobText[3] = {
-        "ECCE copies the files and submits the job",
-        "ECCE copies the files; I submit and enter the job ID",
-        "ECCE cannot log in (two-factor): it writes the files, I copy them "
-        "over, submit, and import the output" };
-    static const char* const jobName[3] = { "jobs:copy", "jobs:user",
-                                            "jobs:none" };
-    wxBoxSizer* radios = new wxBoxSizer(wxVERTICAL);
-    for (int i = 0; i < 3; i++)
-    {
-        p_jobsRadio[i] = new wxRadioButton(page, wxID_ANY, jobText[i],
-            wxDefaultPosition, wxDefaultSize, i == 0 ? wxRB_GROUP : 0);
-        radios->Add(p_jobsRadio[i], wxSizerFlags().Border(wxTOP|wxBOTTOM, 2));
-        reg(jobName[i], p_jobsRadio[i]);
-    }
-    sizer->Add(radios, wxSizerFlags().Border());
     p_jobsTag = new wxStaticText(page, wxID_ANY, "");
     p_jobsTag->SetFont(p_jobsTag->GetFont().Smaller());
     p_jobsTag->SetMinSize(wxSize(p_jobsTag->GetTextExtent("from server  ").x, -1));
@@ -560,13 +554,37 @@ wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
                                               .CentreVertical());
     reg("tag:jobs", p_jobsTag);
     reg("undo:jobs", p_jobsUndo);
+    reg("jobs:mode", p_jobsMode);
+    reg("jobs:icon", p_jobsIcon);
 
     p_advanced = new wxCollapsiblePane(page, wxID_ANY, "Advanced");
     sizer->Add(p_advanced, wxSizerFlags().Expand().Border());
     wxWindow* adv = p_advanced->GetPane();
+    wxBoxSizer* advBox = new wxBoxSizer(wxVERTICAL);
+    adv->SetSizer(advBox);
+
+    wxStaticText* subTitle = new wxStaticText(adv, wxID_ANY,
+                                              "Job submission");
+    subTitle->SetFont(jf);
+    advBox->Add(subTitle, wxSizerFlags().Border(wxLEFT|wxTOP));
+    static const char* const jobText[3] = {
+        "Normal: ECCE submits the job",
+        "Interactive submission: ECCE copies the files; you log in, submit "
+        "the job yourself and enter the job ID",
+        "Don't submit, just make the files: copy them over, submit, and "
+        "import the output yourself (e.g. two-factor login)" };
+    static const char* const jobName[3] = { "jobs:copy", "jobs:user",
+                                            "jobs:none" };
+    for (int i = 0; i < 3; i++)
+    {
+        p_jobsRadio[i] = new wxRadioButton(adv, wxID_ANY, jobText[i],
+            wxDefaultPosition, wxDefaultSize, i == 0 ? wxRB_GROUP : 0);
+        advBox->Add(p_jobsRadio[i], wxSizerFlags().Border(wxLEFT, 12));
+        reg(jobName[i], p_jobsRadio[i]);
+    }
     wxFlexGridSizer* advGrid = new wxFlexGridSizer(4, 0, 0);
     advGrid->AddGrowableCol(1);
-    adv->SetSizer(advGrid);
+    advBox->Add(advGrid, wxSizerFlags().Expand().Border(wxTOP));
     addCfgRow(adv, advGrid, "singleConnect", "One connection for everything",
               CfgTri, "yes: send commands and files over one connection. "
               "auto: yes when this computer is outside the machine's domain.");
@@ -1776,6 +1794,7 @@ void WxMachineRegister::cfgTags()
             (own || ownb) ? wxSYS_COLOUR_WINDOWTEXT : wxSYS_COLOUR_GRAYTEXT));
         if (p_jobsTag->GetToolTipText() != tip)
             p_jobsTag->SetToolTip(tip);
+        jobsLine();
         if (p_jobsUndo->IsShown() != (own || ownb))
             p_jobsUndo->Show(own || ownb);
         p_jobsUndo->SetToolTip(undoTip);
@@ -1798,7 +1817,36 @@ void WxMachineRegister::jobsToRadios()
 {
     if (p_jobsRadio[0] == NULL)
         return;
-    p_jobsRadio[jobsIndex()]->SetValue(true);
+    int idx = jobsIndex();
+    p_jobsRadio[idx]->SetValue(true);
+    //  Something other than normal: show the choice.
+    if (idx != 0 && p_advanced != NULL && !p_advanced->IsExpanded())
+    {
+        p_advanced->Expand();
+        p_cfgPage->Layout();
+        p_cfgPage->FitInside();
+    }
+    jobsLine();
+}
+
+
+//  The read-only line on the main area: the mode in words, the exceptions
+//  with a warning icon.
+void WxMachineRegister::jobsLine()
+{
+    if (p_jobsMode == NULL)
+        return;
+    int idx = jobsIndex();
+    wxString text = idx == 0 ? "ECCE submits the job (normal)"
+                  : idx == 1 ? "Interactive submission"
+                  : "Don't submit, just make the files";
+    bool layout = false;
+    if (p_jobsMode->GetLabel() != text)
+        { p_jobsMode->SetLabel(text); layout = true; }
+    if (p_jobsIcon->IsShown() != (idx != 0))
+        { p_jobsIcon->Show(idx != 0); layout = true; }
+    if (layout)
+        p_cfgPage->Layout();
 }
 
 
