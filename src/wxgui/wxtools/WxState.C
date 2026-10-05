@@ -43,34 +43,34 @@ using namespace std;
 
 // Indexed by RUNSTATE, ILLEGAL first and a LAST sentinel at the end.  The
 // shipped EcceGlobal holds the same values; tests/look/contrast.py checks
-// both against the light and dark theme backgrounds (4.5:1).
+// both against the light and dark theme backgrounds.
 static const char* LIGHT_STATE_COLOURS[] = {
   "#ff0000",  // ILLEGAL
-  "#995b7d",  // CREATED
-  "#003f63",  // READY
-  "#387597",  // SUBMITTED
-  "#634400",  // RUNNING
-  "#007e5c",  // COMPLETED
-  "#007e5c",  // LOADED
+  "#3a6ea5",  // CREATED
+  "#0000ff",  // READY
+  "#e69f00",  // SUBMITTED
+  "#007a00",  // RUNNING
+  "#007d49",  // COMPLETED
+  "#007d49",  // LOADED
   "#6b6b6b",  // KILLED
-  "#3f3c00",  // UNSUCCESSFUL
-  "#c23b22",  // FAILED
+  "#a35200",  // UNSUCCESSFUL
+  "#d00000",  // FAILED
   "#000000",  // SYSTEM
   "#000000",  // LAST
 };
 
 static const char* DARK_STATE_COLOURS[] = {
   "#ff8080",  // ILLEGAL
-  "#e6bcd4",  // CREATED
-  "#61a8cf",  // READY
-  "#a9dbf6",  // SUBMITTED
-  "#e69f00",  // RUNNING
-  "#36b290",  // COMPLETED
-  "#36b290",  // LOADED
+  "#b0e2ff",  // CREATED
+  "#9999ff",  // READY
+  "#f5d999",  // SUBMITTED
+  "#00cd00",  // RUNNING
+  "#3ddc97",  // COMPLETED
+  "#3ddc97",  // LOADED
   "#b0b0b0",  // KILLED
-  "#f0e442",  // UNSUCCESSFUL
-  "#ff8f73",  // FAILED
-  "#ffffff",  // SYSTEM
+  "#ffa500",  // UNSUCCESSFUL
+  "#ff8080",  // FAILED
+  "#e0e0e0",  // SYSTEM
   "#e0e0e0",  // LAST
 };
 
