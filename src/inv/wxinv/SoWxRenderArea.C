@@ -243,7 +243,6 @@ void SoWxRenderArea::registerDevice(SoWxDevice *device)
   
   // Tell the device to register event interest for our widget
   // Widget w = getOverlayWidget() ? getOverlayWidget() : getNormalWidget();
-  // if ((w != NULL) && (XtWindow(w) != (Window) NULL))
   device->enable(this);
 }
 
@@ -483,68 +482,6 @@ void SoWxRenderArea::setAntialiasing(SbBool smoothing, int numPasses)
   // preserve as many setting as the original visual, with just
   // the antialiasing changed.
   if (needToChangeVisual) {
-    /* @todo Work on visual stuff later.
-    
-    int n = 0;
-    int attribList[20];
-    
-    if (isRGBMode()) {
-    attribList[n++] = GLX_RGBA;
-    attribList[n++] = GLX_RED_SIZE;
-    attribList[n++] = 1;
-    attribList[n++] = GLX_GREEN_SIZE;
-    attribList[n++] = 1;
-    attribList[n++] = GLX_BLUE_SIZE;
-    attribList[n++] = 1;
-    }
-    // there is always zbuffer...
-    attribList[n++] = GLX_DEPTH_SIZE;
-    attribList[n++] = 1;
-    if (isDoubleBuffer())
-    attribList[n++] = GLX_DOUBLEBUFFER;
-    
-    // now add the antialiasing stuff
-    if (numPasses > 1) {
-    attribList[n++] = GLX_ACCUM_RED_SIZE;
-    attribList[n++] = 1;
-    attribList[n++] = GLX_ACCUM_GREEN_SIZE;
-    attribList[n++] = 1;
-    attribList[n++] = GLX_ACCUM_BLUE_SIZE;
-    attribList[n++] = 1;
-    }
-    
-    // check for stencil buffer
-    Widget w = getWidget();
-    XVisualInfo *normalVis = getNormalVisual();
-    if (normalVis) {
-    int val;
-    glXGetConfig(XtDisplay(w), normalVis, GLX_STENCIL_SIZE, &val);
-    if (val) {
-    attribList[n++] = GLX_STENCIL_SIZE;
-    attribList[n++] = val;
-    }
-    }
-    
-    attribList[n++] = (int) None;
-    
-    // create the visual
-    XVisualInfo *vis = glXChooseVisual(XtDisplay(w), 
-    XScreenNumberOfScreen(XtScreen(w)), attribList);
-    
-    if (! vis) {
-    #ifdef DEBUG
-    SoDebugError::post("SoWxRenderArea::setAntialiasing",
-    "could not create ACCUM visual");
-    #endif
-    return;
-    }
-    
-    // now set this as the current visual
-    setNormalVisual(vis);
-    
-    // GL widget made a copy - we can free this
-    XFree(vis);
-    */
   }
   else // only the number of passes changed, so just redraw
     p_sceneMgr->scheduleRedraw();
@@ -964,7 +901,6 @@ void SoWxRenderArea::redraw()
 
   // load the color map
   //  if (! isRGBMode() && colorMap != 0 && mapColorNum != 0)
-  //    XStoreColors(getDisplay(), colorMap, mapColors, mapColorNum);
 
   //  glEnable(GL_DEPTH_TEST);
 
@@ -1015,18 +951,6 @@ void SoWxRenderArea::actualRedraw()
 void SoWxRenderArea::redrawOverlay()
 {
   // @todo Need fix.
-  /*
-    if (!isVisible() || getOverlayWindow() == (Window) NULL)
-    return;
-    
-    // set the window
-    glXMakeCurrent(getDisplay(), getOverlayWindow(), getOverlayContext());
-    
-    // draw that scene! (subclasses may redefine...)
-    actualOverlayRedraw();
-    
-    glFlush();
-  */
 }
 
 
@@ -1121,17 +1045,7 @@ void SoWxRenderArea::initGraphic()
 
   //  SoGLRenderAction *ra = p_sceneMgr->getGLRenderAction();
   //  ra->setCacheContext(getDisplayListShareGroup(getNormalContext()));
-  //  ra->setRenderingIsRemote(!glXIsDirect(getDisplay(), getNormalContext()));
 
-  /*
-  SoGLRenderAction *ra = sceneMgr->getGLRenderAction();
-  ra->setCacheContext(getDisplayListShareGroup(getNormalContext()));
-  ra->setRenderingIsRemote(!glXIsDirect(getDisplay(), getNormalContext()));
-  
-  // load the color map
-  if (! isRGBMode() && colorMap != 0 && mapColorNum != 0)
-    XStoreColors(getDisplay(), colorMap, mapColors, mapColorNum);
-  */
 }
 
 
@@ -1145,18 +1059,6 @@ void SoWxRenderArea::initOverlayGraphic()
   p_overlaySceneMgr->reinitialize();
   p_overlaySceneMgr->setRGBMode(false);
 
-  /*
-    SoGLRenderAction *ra = overlaySceneMgr->getGLRenderAction();
-    ra->setCacheContext(getDisplayListShareGroup(getOverlayContext()));
-    ra->setRenderingIsRemote(!glXIsDirect(getDisplay(), getOverlayContext()));
-
-    // load the color map
-    if (overlayColorMap != 0 && overlayMapColorNum != 0)
-    XStoreColors(getDisplay(), overlayColorMap, overlayMapColors, overlayMapColorNum);
-
-    // enable the devices on the overlay window
-    reinstallDevices(getOverlayWidget());
-  */
 }
 
 
@@ -1582,56 +1484,6 @@ void SoWxRenderArea::setDoubleBuffer(SbBool flag)
   if (flag == isDoubleBuffer())
     return;
   
-  /*
-  // special case - if the user calls setDoubleBuffer(FALSE) BEFORE the
-  // this component has been realized, then we need to prevent the
-  // ginitCB routine for the old buffer to be called - so simply delete
-  // the old widget alltogether - see bug 180978
-  if (! getNormalContext())
-  destroyNormalWindows();
-  
-  // set the gl mode and update the attribute list
-  SET_BIT(glModes, SO_GLX_DOUBLE, flag);
-
-  for (int i=0; attribList[i] != None; i++) {
-  if (flag && attribList[i] == GLX_USE_GL) { // search for first no-op
-  attribList[i] = GLX_DOUBLEBUFFER;
-  break;
-  }
-  else if (! flag && attribList[i] == GLX_DOUBLEBUFFER) {
-  attribList[i] = GLX_USE_GL; // clear with a no-op
-  break;
-  }
-  }
-
-  Widget *newWidget = (flag) ? &doubleBufferWidget : &singleBufferWidget;
-  Widget *oldWidget = (flag) ? &singleBufferWidget : &doubleBufferWidget;
-  
-  // build and map the new window
-  if (*newWidget == NULL)
-  buildNormalGLXWidget();
-  else {
-  XtManageChild(*newWidget);
-    
-  // make sure overlay window is on top
-  if (overlayWidget && XtWindow(overlayWidget))
-  XRaiseWindow(XtDisplay(overlayWidget), XtWindow(overlayWidget));
-    
-  ctxNormal = flag ? ctxDouble : ctxSingle;
-    
-  // let subclasses know we changed widget
-  widgetChanged(*newWidget);
-  }
-  
-  // unmaps the old window now
-  if (*oldWidget != NULL)
-  XtUnmanageChild(*oldWidget);
-
-  // prevent a redraw a redraw from happening until we receive an
-  // expose event - this will prevent too many redraws from happening
-  // if the scene graph also changes at the same time.
-  waitForExpose = TRUE;
-  */
 }
 
 

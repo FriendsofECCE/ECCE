@@ -724,21 +724,6 @@ void SoWxExaminerViewer::createPrefSheet()
  */
 void SoWxExaminerViewer::createViewerButtons(wxWindow * parent)
 {
-  /*
-    @todo
-  // get the default buttons
-  SoXtFullViewer::createViewerButtons(parent);
-  
-  // allocate our buttons
-  buttonList[CAM_PUSH] = new SoXtBitmapButton(parent, FALSE);
-  buttonList[CAM_PUSH]->setIcon(so_xt_persp_bits, so_xt_icon_width, so_xt_icon_height);
-  Widget w = buttonList[CAM_PUSH]->getWidget();
-  XtAddCallback(w, XmNactivateCallback,
-                (XtCallbackProc) SoXtExaminerViewer::camPushCB, (XtPointer) this);
-  
-  // add this button to the list...
-  viewerButtonWidgets->append(w);
-  */
 }
 
 
