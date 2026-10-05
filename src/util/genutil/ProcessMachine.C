@@ -41,6 +41,8 @@ std::string ProcessMachine::field(const std::string& name,
 int ProcessMachine::run(const std::string& form)
 {
   std::string script = std::string(Ecce::ecceHome()) + "/scripts/processmachine";
+  if (access(script.c_str(), X_OK) != 0)
+    return -1;
 
   // The child's environment is built before fork: the GUI is multithreaded,
   // and only async-signal-safe calls are allowed between fork and exec.
