@@ -13,4 +13,5 @@ wx one (63 references became 3 in machine registration). Three are
 also missing controls added by hand since: `NModesGUI` (#109),
 `CalcEdGUI` (Verify, Use Symmetry, Regenerate Input) and
 `WxMachineRegisterGUI` (#187). Edit the generated `.C`/`.H` directly;
-when #210 reworks a dialog, delete its `.pjd` in the same commit.
+when #210 reworks a dialog, delete its `.pjd` in the same commit (done for
+`WxMachineRegisterGUI`, which is now hand-written in `WxMachineRegister.C`).
