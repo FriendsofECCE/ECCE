@@ -49,8 +49,8 @@ static const char* LIGHT_STATE_COLOURS[] = {
   "#ff0000",  // ILLEGAL
   "#56b4e9",  // CREATED
   "#0000ff",  // READY
-  "#f0e442",  // SUBMITTED
-  "#007a00",  // RUNNING
+  "#f8ef8c",  // SUBMITTED
+  "#00cd00",  // RUNNING
   "#007d49",  // COMPLETED
   "#007d49",  // LOADED
   "#6b6b6b",  // KILLED

@@ -12,9 +12,10 @@ within a shape only colour tells them apart. They are icons only, never text.
 
 Submitted and running (both circles) were once teal and green at the same
 lightness and looked alike; created and ready (triangles) were two similar
-blues. Running keeps its green and ready its blue (Andy's choice). Orange
-means failure here, so submitted is Okabe-Ito yellow (#f0e442 light,
-#f7ee8a dark) and created Okabe-Ito sky blue (#56b4e9 light; #b0e2ff dark).
+blues. Running is the light green it had up to 8.x (#00cd00, Andy's
+choice) and ready keeps its blue. Orange means failure here, so submitted
+is a pale yellow (#f8ef8c light, #f7ee8a dark): Okabe-Ito #f0e442 is only
+8.8 from #00cd00 under protanopia, a darker yellow is closer still and created Okabe-Ito sky blue (#56b4e9 light; #b0e2ff dark).
 
 Pale fills cannot reach 4.5:1 on a light background, and darkening yellow
 or sky blue to that would bring them to the lightness of green or blue and
