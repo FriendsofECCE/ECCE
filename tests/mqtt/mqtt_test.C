@@ -271,7 +271,7 @@ static int freePort()
   a.sin_family = AF_INET;
   a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
   int port = 0;
-  if (bind(fd, (struct sockaddr*)&a, sizeof a) == 0) {
+  if (::bind(fd, (struct sockaddr*)&a, sizeof a) == 0) {
     socklen_t len = sizeof a;
     getsockname(fd, (struct sockaddr*)&a, &len);
     port = ntohs(a.sin_port);

@@ -406,7 +406,7 @@ void frontEndMain(std::shared_ptr<SharedFrontEnd> fep)
         return;
       }
       int sp[2];
-      if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, sp) != 0) {
+      if (socketpairCloexec(AF_UNIX, SOCK_STREAM, 0, sp) != 0) {
         r->error = strerror(errno);
         ssh_channel_free(fw);
         return;
@@ -1581,7 +1581,7 @@ RemoteStream* SshTransport::openStream(const std::string& script, int& fd,
   }
 
   int sp[2], ctl[2];
-  if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, sp) != 0) {
+  if (socketpairCloexec(AF_UNIX, SOCK_STREAM, 0, sp) != 0) {
     error = strerror(errno);
   } else if (pipeCloexec(ctl) != 0) {
     error = strerror(errno);

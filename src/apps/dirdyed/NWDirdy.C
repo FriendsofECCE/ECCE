@@ -24,7 +24,6 @@
   using std::istrstream;
   using std::ostrstream;
 #include <unistd.h>
-#include <values.h>
 #include <signal.h>
 //#include <stdlib.h>  // abort
 

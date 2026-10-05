@@ -28,11 +28,14 @@ installed_cgi_dir="/opt/ecce/data/client/WebHelp/EcceHelp/cgi-bin"
 
 nav_scripts="toolhelp cshelp key_topics examples openindex"
 
-sed -i -e 's|^#!/msrc/apps/bin/perl|#!/usr/bin/perl|' \
+# -i.orig, not bare -i: BSD sed on macOS takes the next word as the suffix.
+sed -i.orig -e 's|^#!/msrc/apps/bin/perl|#!/usr/bin/perl|' \
        -e "s|^require 'global.pl';|require '$installed_cgi_dir/global.pl';|" \
   $(for s in $nav_scripts; do echo "$cgi_dir/$s"; done)
 
-sed -i "s|^\$help_dir = .*|\$help_dir = '/opt/ecce/data/client/WebHelp/EcceHelp';|" \
+sed -i.orig "s|^\$help_dir = .*|\$help_dir = '/opt/ecce/data/client/WebHelp/EcceHelp';|" \
   "$cgi_dir/global.pl"
+
+rm -f "$cgi_dir"/*.orig
 
 chmod +x $(for s in $nav_scripts; do echo "$cgi_dir/$s"; done)

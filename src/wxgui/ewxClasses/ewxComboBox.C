@@ -57,7 +57,7 @@ bool ewxComboBox::Create(wxWindow* parent, wxWindowID id,
   PushEventHandler(p_disabler);
 
   setStyles(this);
-  fitDropDown(this, p_explicitWidth, value);
+  fitDropDown(this, this, p_explicitWidth, value);
 
   return true;
 }
@@ -125,6 +125,6 @@ int ewxComboBox::DoInsertItems(const wxArrayStringsAdapter& items,
   int ret = wxComboBox::DoInsertItems(items, pos, clientData, type);
   // Not while the base class is still being created, which inserts the
   // initial entries before the control is ready to be measured.
-  if (p_disabler) fitDropDown(this, p_explicitWidth, GetValue());
+  if (p_disabler) fitDropDown(this, this, p_explicitWidth, GetValue());
   return ret;
 }

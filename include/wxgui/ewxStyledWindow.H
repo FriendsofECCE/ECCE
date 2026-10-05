@@ -13,8 +13,8 @@
 #define _EWXSTYLED_WINDOW_H  
 
 #include "wx/dcclient.h"
+#include "wx/ctrlsub.h"
 
-class wxControlWithItems;
 
 class Preferences;
 
@@ -45,7 +45,10 @@ class ewxStyledWindow
 
       static void drawButtonBorder(wxPaintDC & dc, bool isSunken, int width=2);
 
-      static void fitDropDown(wxControlWithItems *ctrl, int explicitWidth,
+      // Window and item list apart: wxOSX's wxComboBox is no
+      // wxControlWithItems, wxGTK's is.
+      static void fitDropDown(wxWindow *ctrl, wxItemContainerImmutable *items,
+                              int explicitWidth,
                               const wxString& value = wxEmptyString);
 
    protected:

@@ -41,7 +41,12 @@ static bool fileStamp(const string& path, long long& stamp, long long& size)
 {
    struct stat sb;
    if (stat(path.c_str(), &sb) != 0) return false;
-   stamp = (long long)sb.st_mtim.tv_sec * 1000000000LL + sb.st_mtim.tv_nsec;
+#ifdef __APPLE__
+   const struct timespec& mt = sb.st_mtimespec;
+#else
+   const struct timespec& mt = sb.st_mtim;
+#endif
+   stamp = (long long)mt.tv_sec * 1000000000LL + mt.tv_nsec;
    size = (long long)sb.st_size;
    return true;
 }

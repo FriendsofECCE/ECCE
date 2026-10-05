@@ -84,7 +84,8 @@ jobs:
         run: cmake -G Ninja -B build-cmake -DECCE_REQUIRE_LIBSSH=ON
 
       - name: Build
-        run: cmake --build build-cmake
+        # -k 0: report every failing file, not only the first few.
+        run: cmake --build build-cmake -- -k 0
 
       - name: Package
         working-directory: build-cmake
@@ -144,7 +145,8 @@ jobs:
         run: cmake -G Ninja -B build-cmake -DECCE_REQUIRE_LIBSSH=ON
 
       - name: Build
-        run: cmake --build build-cmake
+        # -k 0: report every failing file, not only the first few.
+        run: cmake --build build-cmake -- -k 0
 
       - name: Package
         working-directory: build-cmake
@@ -197,7 +199,8 @@ jobs:
 
       - name: Build
         working-directory: ${{ github.workspace }}
-        run: cmake --build build-cmake
+        # -k 0: report every failing file, not only the first few.
+        run: cmake --build build-cmake -- -k 0
 
       - name: Package
         working-directory: ${{ github.workspace }}/build-cmake
@@ -239,7 +242,8 @@ jobs:
 
       - name: Build
         working-directory: ${{ github.workspace }}
-        run: cmake --build build-cmake
+        # -k 0: report every failing file, not only the first few.
+        run: cmake --build build-cmake -- -k 0
 
       - name: Package
         working-directory: ${{ github.workspace }}/build-cmake
@@ -270,17 +274,13 @@ jobs:
       - name: Install build dependencies
         run: |
           brew install cmake ninja wxwidgets xerces-c mosquitto gcc libssh pkgconf
-          # src/comm/commxt/JobStore.C calls raw X Toolkit Intrinsics
-          # (XtAppAddSignal etc.) directly -- macOS has no native
-          # equivalent and doesn't ship X11 at all by default. XQuartz
-          # is the standard way to get real X11/Xt headers+libs on macOS.
-          brew install --cask xquartz
           # The vendored Inventor core needs GLX and pre-C++17 code that
           # Apple's compiler rejects; the Coin build (#166) skips it.
           brew install coin3d || { echo "::error::Homebrew has no coin3d formula"; exit 1; }
 
       - name: Configure
-        run: cmake -G Ninja -B build-cmake -DECCE_USE_COIN=ON -DCMAKE_PREFIX_PATH="/opt/X11;$(brew --prefix)"
+        run: cmake -G Ninja -B build-cmake -DECCE_USE_COIN=ON -DCMAKE_PREFIX_PATH="$(brew --prefix)"
 
       - name: Build
-        run: cmake --build build-cmake
+        # -k 0: report every failing file, not only the first few.
+        run: cmake --build build-cmake -- -k 0

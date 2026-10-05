@@ -40,9 +40,6 @@
 
 #include "wxgui/TreeListCtrl.H"
 
-#ifdef __WXMAC__
-    #include "wx/mac/private.h"
-#endif
 
 
 // ---------------------------------------------------------------------------
@@ -1112,7 +1109,7 @@ void wxTreeListHeaderWindow::DoDrawRect( wxDC *dc, int x, int y, int w, int h )
     dc->DrawRectangle( x, y+h, w+1, 1 );          // bottom (outer)
 
 #if defined( __WXMAC__  )
-    wxPen pen( wxColour( 0x88 , 0x88 , 0x88 ), 1, wxSOLID );
+    pen = wxPen( wxColour( 0x88 , 0x88 , 0x88 ), 1, wxSOLID );
 #endif
     dc->SetPen( pen );
     dc->DrawLine( x+w-m_corner, y, x+w-1, y+h );  // right (inner)
@@ -1729,17 +1726,6 @@ bool wxTreeListMainWindow::Create (wxTreeListCtrl *parent,
                                    long style,
                                    const wxValidator &validator,
                                    const wxString& name) {
-
-#ifdef __WXMAC__
-    if (style & wxTR_HAS_BUTTONS) style |= wxTR_MAC_BUTTONS;
-    if (style & wxTR_HAS_BUTTONS) style &= ~wxTR_HAS_BUTTONS;
-    style &= ~wxTR_LINES_AT_ROOT;
-    style |= wxTR_NO_LINES;
-
-    int major,minor;
-    wxGetOsVersion( &major, &minor );
-    if (major < 10) style |= wxTR_ROW_LINES;
-#endif
 
     wxScrolledWindow::Create (parent, id, pos, size, style|wxHSCROLL|wxVSCROLL, name);
 
@@ -3816,16 +3802,22 @@ void wxTreeListMainWindow::OnIdle (wxIdleEvent &WXUNUSED(event)) {
 }
 
 void wxTreeListMainWindow::OnScroll (wxScrollWinEvent& event) {
-    // FIXME
-    // wx3.x's wxScrolled<T>::OnScroll just forwards to HandleOnScroll() (see
-    // wx/scrolwin.h) - call that directly rather than through the removed
-    // wxScrolledWindow::OnScroll chain-up.
+#if wxCHECK_VERSION(3, 3, 0)
+    // HandleOnScroll() is private from wx 3.3. A skipped event is scrolled
+    // by the scroll helper after this handler, so the header can only be
+    // invalidated here; it repaints from the new position later.
+    event.Skip();
+    if(event.GetOrientation() == wxHORIZONTAL)
+        m_owner->GetHeaderWindow()->Refresh();
+#else
+    // Handling the event here stops wx's own scrolling, so scroll first.
     HandleOnScroll( event );
 
     if(event.GetOrientation() == wxHORIZONTAL) {
         m_owner->GetHeaderWindow()->Refresh();
         m_owner->GetHeaderWindow()->Update();
     }
+#endif
 }
 
 void wxTreeListMainWindow::CalculateSize (wxTreeListItem *item, wxDC &dc) {

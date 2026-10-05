@@ -2892,23 +2892,11 @@ void CalcMgr::getToolsMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
  */
 void CalcMgr::clearMenu(wxMenu & menu)
 {
-  // the algorithm for iterating through a list and deleting each item was
-  // modified from the wxWidgets documentation for wxList
-  //
-  // also, the documentation for wxMenu reveals that the items stored in the
-  // wxMenuItemList are actually pointers to wxMenuItems
-  wxMenuItemList items = menu.GetMenuItems();
-  wxMenuItemList::Node *node = items.GetFirst();
-  while (node) {
-    wxMenuItem * item = 0;
-    item = node->GetData();
-    if (item->GetSubMenu()) {
-      wxMenu *subMenu = item->GetSubMenu();
-      clearMenu(*subMenu);
-    }
-    menu.Delete(node->GetData());
-    delete node;
-    node = items.GetFirst();
+  // By position, not wxMenuItemList::Node, which an STL-based wx lacks.
+  while (menu.GetMenuItemCount() > 0) {
+    wxMenuItem *item = menu.FindItemByPosition(0);
+    if (item->GetSubMenu()) clearMenu(*item->GetSubMenu());
+    menu.Delete(item);
   }
 }
 
