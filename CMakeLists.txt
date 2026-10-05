@@ -1749,6 +1749,16 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/jms)
   set_tests_properties(jms PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
+  # tests/fragreaders: PDB/XYZ/CAR import through FragUtil::load, as the
+  # Builder's Import Chemical System does.
+  add_executable(fragreaders tests/fragreaders/fragreaders.C)
+  target_link_libraries(fragreaders PRIVATE eccetdat ecceutil)
+  add_test(NAME fragreaders
+           COMMAND fragreaders ${CMAKE_CURRENT_SOURCE_DIR}/tests/fragreaders/data)
+  file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/fragreaders-home)
+  set_tests_properties(fragreaders PROPERTIES ENVIRONMENT
+    "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
+
   add_test(NAME launch
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/run_tests.py
