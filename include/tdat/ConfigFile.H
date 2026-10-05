@@ -63,6 +63,9 @@ public:
   // "key: -", or "key { - }" where the key is already a block.
   void clear(const std::string& key);
 
+  // Replace the whole text (a raw edit); save() then writes it.
+  void setText(const std::string& text);
+
   bool modified() const { return p_modified; }
   std::string text() const;
   // Atomic replace (temporary file, fsync, rename); keeps the mode and
