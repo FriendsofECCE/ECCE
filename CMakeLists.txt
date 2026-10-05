@@ -1767,6 +1767,9 @@ if(PYTHON3_EXECUTABLE)
   # tests/queues/configdump: RefMachine::config() for config_test.py.
   add_executable(configdump tests/queues/configdump.C)
   target_link_libraries(configdump PRIVATE eccetdat ecceutil)
+  # tests/queues/pmform: the GUI's processmachine form encoder.
+  add_executable(pmform tests/queues/pmform.C)
+  target_link_libraries(pmform PRIVATE ecceutil)
 
   add_test(NAME launch
            COMMAND ${PYTHON3_EXECUTABLE}

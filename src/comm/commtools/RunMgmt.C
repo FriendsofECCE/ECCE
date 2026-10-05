@@ -18,6 +18,7 @@ using namespace std;
 #include "util/Ecce.H"
 #include "util/ErrMsg.H"
 #include "util/Host.H"
+#include "util/ProcessMachine.H"
 #include "util/TempStorage.H"
 #include "util/StringConverter.H"
 #include "util/StringTokenizer.H"
@@ -316,11 +317,10 @@ bool RunMgmt::registerLocalMachine(string& msg)
       if (idx != string::npos && !isAddress)
         refname = refname.substr(0, idx);
 
-      string settings = "type=accept&siteconfig=false&machine=";
-      settings += machine;
-
-      settings += "&name=";
-      settings += refname;
+      typedef ProcessMachine PM;
+      string settings = "type=accept" + PM::field("siteconfig", "false") +
+                        PM::field("machine", machine) +
+                        PM::field("name", refname);
 
       string model = "Unspecified";
       string vendor = "Unspecified";
@@ -335,7 +335,7 @@ bool RunMgmt::registerLocalMachine(string& msg)
       if (architecture == "IP32")
         model = "O2";
 
-      settings += "&vendor=" + vendor + "&model=" + model;
+      settings += PM::field("vendor", vendor) + PM::field("model", model);
       settings += "&processor=Unspecified&procs=1&nodes=1&ssh=true&sshftp=false";
 
       // Within PNNL, use the AFS installations of codes as defined in the
@@ -347,8 +347,8 @@ bool RunMgmt::registerLocalMachine(string& msg)
       if (machine.find(".pnl.gov")==machine.length()-8 &&
           RefMachine::configFile("LINUX")!="") {
         string code;
+        string codeList = "";
         string paths = "";
-        settings += "&registeredcodes=";
 
         vector <string> codes = CodeFactory::getFullySupportedCodes();
 
@@ -357,11 +357,11 @@ bool RunMgmt::registerLocalMachine(string& msg)
           if (RefMachine::exePath(code, machine.c_str(),
 				  vendor, (model=="Unspecified")? "": model.c_str()) != "") {
             emslFlag = true;
-            settings += code + ",";
-            paths += "&" + code + "=EMSL";
+            codeList += code + ",";
+            paths += PM::field(code, "EMSL");
           }
         }
-        settings += paths;
+        settings += PM::field("registeredcodes", codeList) + paths;
       } else {
         // Outside PNNL: this fork ships no vendored/bundled NWChem (the
         // old "3rdparty/nwchem/bin/nwchem" path this used to default to
@@ -378,23 +378,14 @@ bool RunMgmt::registerLocalMachine(string& msg)
         SFile nwchemBin(path);
         nwchemFlag = nwchemBin.exists();
         if (nwchemFlag)
-          settings += "&registeredcodes=NWChem,&NWChem=" + path;
+          settings += "&registeredcodes=NWChem," + PM::field("NWChem", path);
         else
           settings += "&registeredcodes=";
       }
 
       settings += "&qmgrPath=&AA=false&qmgr=None&numQueues=0";
 
-      string cmd = "echo \"";
-      cmd += settings + "\" | processmachine";
-
-      char buf[32];
-      sprintf(buf,"CONTENT_LENGTH=%zu", settings.length());
-      char *string = strdup(buf);
-      putenv(string);
-
-      int status = system(cmd.c_str());
-      status = status >> 8;
+      int status = PM::run(settings);
 
       if (status == 0) {
         msg = "The machine you are running on, ";
