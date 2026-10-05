@@ -26,6 +26,7 @@ class WxCalcImport : public ewxFileDialog
 
       void registerListener(WxCalcImportClient *l);
       void importCalc();
+      void importFile(const string& fileSpec);
 
    protected:
 

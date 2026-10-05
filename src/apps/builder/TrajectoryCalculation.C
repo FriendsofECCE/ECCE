@@ -67,8 +67,9 @@ bool TrajectoryCalculation::canOpen(const EcceURL& url)
     // get a stream pointer 
     // we need to see if this xyz trajectory has multiple steps
     Resource * resource = EDSIFactory::getResource(url);
-    istream * is = resource->getDocument();
-    if (frag.restoreXYZ(*is,1.0,false)) {
+    // A path that does not exist gives no resource.
+    istream * is = resource ? resource->getDocument() : 0;
+    if (is && frag.restoreXYZ(*is,1.0,false)) {
       string tmp;
       getline(*is,tmp);
       if (is->good() && !is->eof()) {

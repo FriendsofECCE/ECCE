@@ -85,6 +85,43 @@ void JobParser::setURL(const EcceURL& url)
 
 
 /**
+ * The code whose import verifypattern matches the output file at path, or
+ * "" with the reason in message.
+ */
+string JobParser::importCode(const string& path, string& message)
+{
+  RCommand localconn("system");
+  if (!localconn.isOpen()) {
+    message = "Unable to create local command shell for importing.";
+    return "";
+  }
+  string file = " '";
+  for (char c : path) file += (c == '\'') ? string("'\\''") : string(1, c);
+  file += "'";
+
+  vector<string> importCodes = CodeFactory::getImportCodes();
+  for (int idx=0; idx<importCodes.size(); idx++) {
+    const JCode *jcode = CodeFactory::lookup(importCodes[idx].c_str());
+    string pattern = jcode->getParseVerifyPattern();
+    if (!pattern.empty() &&
+        localconn.exec("grep -q \"" + pattern + "\"" + file)) {
+      return importCodes[idx];
+    }
+  }
+
+  // This is left over but harmless hardwired code to try to be helpful.
+  if (localconn.exec("grep -q \"Northwest Computational Chemistry Package\"" +
+                     file)) {
+    message = "Cannot import NWChem log file--"
+              "must specify ECCE formatted NWChem output file.";
+  } else {
+    message = "Unrecognized output file format--cannot import.";
+  }
+  return "";
+}
+
+
+/**
  * Import a task from an output file.
  */
 bool JobParser::importCalculation(const char* parseFile,
@@ -131,43 +168,8 @@ bool JobParser::importCalculation(const char* parseFile,
       return ret;
     }
 
-    vector<string> importCodes = CodeFactory::getImportCodes();
-    string pattern;
-    for (int idx=0; idx<importCodes.size(); idx++) {
-      const JCode *jcode = CodeFactory::lookup(importCodes[idx].c_str());
-      pattern = jcode->getParseVerifyPattern();
-      if (!pattern.empty()) {
-        cmd = "grep \"";
-        cmd.append(pattern);
-        cmd.append("\" ");
-        cmd.append(parseFileName);
-        if (localconn.exec(cmd)) {
-          code = importCodes[idx];
-          break;
-        }
-      }
-    }
-
-    // If we couldn't match to one of the parse files, make sure they
-    // aren't trying to import an NWChem output file.  This is left over
-    // but harmless hardwired code to try to be helpful to the user.
-    // 12/08/04 Not totally harmless now since it only applies to the
-    // ICalculation codes but I'll leave it anyway...
-    if (code.empty()) {
-       cmd = "grep \"Northwest Computational Chemistry Package\" ";
-       cmd.append(fullFilePath);
-       if (localconn.exec(cmd)) {
-            message = "Cannot import NWChem log file--"
-                      "must specify ECCE formatted NWChem output file.";
-            return ret;
-       }
-    }
-
-    // If we got here and still don't have a code, give up.
-    if (code.empty()) {
-       message = "Unrecognized output file format--cannot import.";
-       return ret;
-    }
+    code = importCode(fullFilePath, message);
+    if (code.empty()) return ret;
   }
 
   if (!localconn.writable(dir->path())) {

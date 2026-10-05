@@ -1,0 +1,15 @@
+HEADER    TEST
+ATOM      1  N   ALA A   1      -0.966   0.493   1.500  1.00  0.00           N
+ATOM      2  CA  ALA A   1       0.257   0.418   0.692  1.00  0.00           C
+ATOM      3  C   ALA A   1      -0.094   0.017  -0.716  1.00  0.00           C
+ATOM      4  O   ALA A   1      -1.056  -0.682  -0.923  1.00  0.00           O
+TER       5      ALA A   1
+ATOM      6  N   GLY B   1      10.966   0.493   1.500  1.00  0.00           N
+ATOM      7  CA  GLY B   1      12.257   0.418   0.692  1.00  0.00           C
+ATOM      8  C   GLY B   1      12.094   0.017  -0.716  1.00  0.00           C
+ATOM      9  O   GLY B   1      11.056  -0.682  -0.923  1.00  0.00           O
+TER      10      GLY B   1
+HETATM   11  O   HOH W   1      20.000  20.000  20.000  1.00  0.00           O
+HETATM   12 ZN    ZN Z   1      25.000  25.000  25.000  1.00  0.00          ZN
+HETATM   13  CL   CL Z   2      28.000  25.000  25.000  1.00  0.00          CL
+END

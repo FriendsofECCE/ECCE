@@ -91,10 +91,15 @@ bool XyzCalculation::getFragment(Fragment &frag)
 
 
   Resource *resource = EDSIFactory::getResource(p_url);
+  if (resource == 0) return false;
 
   // create temporary file for fragment reading
   SFile *file = TempStorage::getTempFile();
-  file = resource->getDocument(file);
+  if (resource->getDocument(file) == 0) {
+    file->remove();
+    delete file;
+    return false;
+  }
   ifstream is(file->path().c_str());
 
   ret = frag.restoreXYZ(is, mult, true);
@@ -129,8 +134,9 @@ bool XyzCalculation::canOpen(const EcceURL& url)
   if (ext == "XYZ") {
     Fragment frag;
     Resource *resource = EDSIFactory::getResource(url);
-    istream * is = resource->getDocument();
-    if (frag.restoreXYZ(*is, 1.0, false)) {
+    // A path that does not exist gives no resource.
+    istream * is = resource ? resource->getDocument() : 0;
+    if (is && frag.restoreXYZ(*is, 1.0, false)) {
       string tmp;
       getline(*is, tmp);
       if (!is->good() || is->eof()) {
