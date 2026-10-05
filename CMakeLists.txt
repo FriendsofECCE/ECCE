@@ -1767,6 +1767,15 @@ if(PYTHON3_EXECUTABLE)
   # tests/queues/configdump: RefMachine::config() for config_test.py.
   add_executable(configdump tests/queues/configdump.C)
   target_link_libraries(configdump PRIVATE eccetdat ecceutil)
+  # tests/fragreaders: PDB/XYZ/CAR import through FragUtil::load, as the
+  # Builder's Import Chemical System does.
+  add_executable(fragreaders tests/fragreaders/fragreaders.C)
+  target_link_libraries(fragreaders PRIVATE eccetdat ecceutil)
+  add_test(NAME fragreaders
+           COMMAND fragreaders ${CMAKE_CURRENT_SOURCE_DIR}/tests/fragreaders/data)
+  file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/fragreaders-home)
+  set_tests_properties(fragreaders PROPERTIES ENVIRONMENT
+    "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
 
   add_test(NAME launch
            COMMAND ${PYTHON3_EXECUTABLE}
