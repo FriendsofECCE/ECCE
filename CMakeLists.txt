@@ -60,11 +60,26 @@ find_package(OpenGL REQUIRED)
 find_package(wxWidgets 3.2 REQUIRED COMPONENTS core base gl aui net)
 include(${wxWidgets_USE_FILE})
 find_package(PkgConfig)
-find_package(X11 REQUIRED)
+# X11/GLX/EGL are the viewer's window-system layer (GlPlatform) on Linux and
+# the BSDs only; macOS and Windows use wx's own GL canvas (#232).
+if(UNIX AND NOT APPLE)
+  set(_ecce_gl_x11_default ON)
+else()
+  set(_ecce_gl_x11_default OFF)
+endif()
+option(ECCE_GL_X11 "Viewer GL through X11/GLX/EGL (GlPlatform); OFF on macOS/Windows" ${_ecce_gl_x11_default})
+if(ECCE_GL_X11)
+  find_package(X11 REQUIRED)
+  set(ECCE_X11_LIBS X11::X11)
+  add_compile_definitions(ECCE_GL_X11=1)
+else()
+  set(ECCE_X11_LIBS "")
+  add_compile_definitions(ECCE_GL_X11=0)
+endif()
 # ESP grid evaluation runs on worker threads (ComputeMoCmd).
 find_package(Threads REQUIRED)
 link_libraries(Threads::Threads)
-if(NOT X11_Xt_FOUND)
+if(ECCE_GL_X11 AND NOT X11_Xt_FOUND)
   message(FATAL_ERROR "libXt (X Toolkit Intrinsics) headers not found - included by include/inv/SoWx/SoWxViewer.H")
 endif()
 
@@ -295,7 +310,7 @@ ecce_library(eccewxinv src/inv/wxinv)
 target_compile_definitions(eccewxinv PRIVATE NDEBUG ${wxWidgets_DEFINITIONS})
 target_include_directories(eccewxinv PRIVATE ${wxWidgets_INCLUDE_DIRS})
 target_link_libraries(eccewxinv PRIVATE ${wxWidgets_LIBRARIES} OpenGL::GL OpenGL::GLU)
-if(ECCE_USE_COIN AND UNIX AND NOT APPLE)
+if(ECCE_USE_COIN AND ECCE_GL_X11)
   find_package(OpenGL REQUIRED COMPONENTS EGL)
   target_link_libraries(eccewxinv PUBLIC OpenGL::EGL)
 endif()
@@ -460,19 +475,19 @@ ecce_app(solvate src/apps/solvate WX
 ecce_app(builder src/apps/builder WX GL
   LINK eccewxguicomm eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccecommxt eccecomm eccercmd 
        eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
-       X11::X11 jpeg freetype)
+       ${ECCE_X11_LIBS} jpeg freetype)
 ecce_app(vizthumbnail src/apps/vizthumbnail WX GL
-  LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil X11::X11 jpeg freetype)
+  LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${ECCE_X11_LIBS} jpeg freetype)
 
 # Headless scene renderer for comparing the vendored and Coin viewer builds
 # (tools/coin/compare.sh); built only on request.
 ecce_app(viewer-scenes tools/coin WX GL
-  LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil X11::X11 jpeg freetype)
+  LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${ECCE_X11_LIBS} jpeg freetype)
 set_target_properties(viewer-scenes PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 # Renders .rgb files through VizRender and converts them (tests/look/imageconv.py).
 ecce_app(render-rgb tests/look/imageconv WX GL
-  LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil X11::X11 jpeg freetype)
+  LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${ECCE_X11_LIBS} jpeg freetype)
 set_target_properties(render-rgb PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 # Coin only: the EGL offscreen path with no wx and no display.
@@ -484,9 +499,12 @@ endif()
 
 # Frame-time benchmark for the molecule viewer (tools/viewer-bench); built
 # only on request, by tools/viewer-bench/run.sh.
-ecce_app(viewer-bench tools/viewer-bench WX GL
-  LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil X11::X11 jpeg freetype)
-set_target_properties(viewer-bench PROPERTIES EXCLUDE_FROM_ALL TRUE)
+# It calls glX directly, so only where the viewer's GL is X11.
+if(ECCE_GL_X11)
+  ecce_app(viewer-bench tools/viewer-bench WX GL
+    LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${ECCE_X11_LIBS} jpeg freetype)
+  set_target_properties(viewer-bench PROPERTIES EXCLUDE_FROM_ALL TRUE)
+endif()
 
 # --- src/apps/symmetry -> 5 standalone Fortran executables, no wx involvement.
 # Mirrors the old Makefile's "default:" target exactly (testnames is a
