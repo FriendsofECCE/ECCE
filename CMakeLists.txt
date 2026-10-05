@@ -484,6 +484,11 @@ ecce_app(viewer-scenes tools/coin WX GL
   LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil X11::X11 jpeg freetype)
 set_target_properties(viewer-scenes PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
+# Renders .rgb files through VizRender and converts them (tests/look/imageconv.py).
+ecce_app(render-rgb tests/look/imageconv WX GL
+  LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil X11::X11 jpeg freetype)
+set_target_properties(render-rgb PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
 # Coin only: the EGL offscreen path with no wx and no display.
 if(ECCE_USE_COIN)
   add_executable(offscreen-check EXCLUDE_FROM_ALL tools/coin/offscreen/offscreen-check.C)
@@ -1615,6 +1620,14 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME look_contrast
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/contrast.py)
+
+  # The offscreen renderer's .rgb output against ImageMagick and PIL (#231).
+  # Needs `ninja render-rgb`, Xvfb, convert and PIL; SKIPs without them.
+  add_test(NAME look_imageconv
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/imageconv.py
+                   ${CMAKE_BINARY_DIR}/render-rgb)
+  set_tests_properties(look_imageconv PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
 
   # tests/guivalues -- memory sizes saved before the GB-everywhere change
   # (Megawords, Megabytes) are converted by GUIValues::load() before a

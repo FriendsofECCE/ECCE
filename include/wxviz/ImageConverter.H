@@ -1,10 +1,12 @@
 /**
  * @file
  *
- * Converts the raw RGB dump written by RenderFileCmd (bottom-up 8-bit
- * rows, no header) into an image file using wxImage, so that no external
- * tool (ImageMagick) is needed.  It lives in wxviz rather than util
- * because util has no wx dependency.
+ * Converts the offscreen renderer's .rgb output into an image file using
+ * wxImage, so that no external tool (ImageMagick) is needed.  Coin writes
+ * an SGI image, the vendored viewer bare bottom-up RGB rows; both are
+ * accepted.  The size comes from the SGI header, so width/height only
+ * matter for the bare form.  It lives in wxviz rather than util because
+ * util has no wx dependency.
  */
 #ifndef IMAGECONVERTER
 #define IMAGECONVERTER
