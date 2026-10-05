@@ -1289,6 +1289,11 @@ ChemDisplay::GLRender(SoGLRenderAction *action)
 
 // restore rendering state
 	glPopAttrib();
+	// What the lazy element sent inside the push (the cylinders send the
+	// light model) is undone by the pop, but it still thinks it is set: in a
+	// fresh context the next shape was drawn with GL_LIGHTING off.
+	((SoGLLazyElement *)SoLazyElement::getInstance(state))->reset(
+		state, SoLazyElement::ALL_MASK);
 
 }
 
