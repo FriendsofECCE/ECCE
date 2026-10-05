@@ -97,8 +97,8 @@ ECCE recognises the code from a marker line in the output file:
 Output files of other codes are not recognised and the import ends with
 "Unrecognized output file format--cannot import." MOPAC and Quantum
 ESPRESSO outputs cannot be imported, although ECCE can run those codes.
-GAMESS-UK, Amica and MOLCAS are not recognised either. [TO CHECK: that the
-Gaussian 03 and 98 importers still work; those codes are retired.]
+GAMESS-UK, Amica and MOLCAS are not recognised either. Importers for
+Gaussian 03 and 98 exist but were not tested in this version.
 [TO CHECK: the ORCA importer reads only ORCA outputs for the keyword
 vocabulary ECCE itself generates (RHF, UHF, RKS, UKS with Opt, Freq,
 EnGrad) and recovers a basis set only when it is given by name.]
@@ -119,14 +119,18 @@ EnGrad) and recovers a basis set only when it is given by name.]
 ECCE names the new calculation after the job. For NWChem it uses the name in
 the `start` (or `restart`) line of the input echoed in the output, and for
 Gaussian the job title, with characters other than letters, digits, `.`
-and `_` replaced by `_`. Otherwise it uses the name of the file. [TO CHECK:
-the name an ORCA import gets, and what happens when the name already
-exists in the project.]
+and `_` replaced by `_`. Otherwise it uses the name of the file without its extension (importing
+`nwchem_water_optfreq.out` gives a calculation named `nwchem_water_optfreq`).
+If the project already contains a calculation with that name, ECCE appends
+`-1`.
 
 The message line shows "Calculation output currently being imported into
 <project>/<calculation>." The calculation appears in the tree. The Viewer
-can be slow to respond until the import has finished. [TO CHECK: how the
-run state of an imported calculation is shown.]
+can be slow to respond until the import has finished.
+
+Importing NWChem output prints "WARNING: Could not parse basis set from
+calculation output file (attempting import without it)." This is expected
+for NWChem output and the import still succeeds.
 
 Import needs the machine `localhost` to be registered, which it is by
 default (see [Machines](machines.md)). It does not run any code. It needs
@@ -154,9 +158,8 @@ only what ECCE found in the file.
 - **Mulliken Charges**: the atomic charges.
 - **Dipole Moment**: the dipole.
 - **MOs**: the molecular orbitals, described below.
-- **MO Diagram**: the orbitals drawn as an energy level diagram. [TO CHECK:
-  that the panel is labelled experimental; it is documented as experimental
-  in the release notes.]
+- **MO Diagram**: the orbitals drawn as an energy level diagram. The panel is
+  labelled experimental.
 - **Vibrational Frequencies**: the frequencies and normal modes, described
   below.
 
@@ -173,14 +176,13 @@ each code supplies is listed in its parse specification
 #### Orbitals
 
 1. Choose **Properties > MOs**. The panel lists the orbitals in a table, one
-   row for each. [TO CHECK: the column headings and whether the rows are
-   sorted by energy.]
+   row for each. The columns are **MO**, **E(Hartree)**, **Occ** and **#**,
+   and the rows are sorted by energy.
 2. In the choice next to **Compute**, choose **MO**, **Density** or **Spin
    Density**.
 3. Select an orbital row.
 4. Click **Compute**. ECCE calculates the orbital on a grid and draws its
    surface in the 3D view, with different colours for the two signs.
-   [TO CHECK: whether a progress window is shown.]
 5. Use the toolbar buttons of the panel to change how the surface is drawn
    (for example **Contour**), and **View Coeff...** to read the coefficients
    of the selected orbital.
@@ -211,8 +213,10 @@ tree shows them. [TO CHECK: that ECCE leaves your original structure file or out
 unchanged.]
 
 A structure opened with **Import Chemical System...** is not saved until you
-choose **File > Save** in the Builder. [TO CHECK: what **File > Save** and
-**File > Save As...** offer for a structure that belongs to no calculation.]
+choose **File > Save** in the Builder. **File > Save** is greyed out
+while the Builder shows the default (new, unnamed) context, because there
+is nowhere to save it; use **File > Save As...**. [TO CHECK: what
+**File > Save** does for a context opened from a file.]
 
 ## Next steps
 
