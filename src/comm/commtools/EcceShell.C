@@ -41,6 +41,7 @@ using std::string;
 #include "tdat/RefMachine.H"
 
 #include "comm/EcceShell.H"
+#include "util/PipeCloexec.H"
 
 // -----------------------
 // Public Member Functions
@@ -250,7 +251,7 @@ bool EcceShell::spawnDetached(const vector<string>& argv, string& error)
   av.push_back(0);
 
   int rp[2];
-  if (pipe2(rp, O_CLOEXEC) < 0) { error = strerror(errno); return false; }
+  if (pipeCloexec(rp) < 0) { error = strerror(errno); return false; }
   pid_t mid = fork();
   if (mid < 0) {
     error = strerror(errno);

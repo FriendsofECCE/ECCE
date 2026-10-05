@@ -32,6 +32,7 @@
 #include <libssh/libssh.h>
 #include <libssh/server.h>   // ssh_send_keepalive
 #include <libssh/sftp.h>
+#include "util/PipeCloexec.H"
 
 namespace {
 
@@ -530,7 +531,7 @@ bool openForward(const std::string& key, int idleSec,
       fe.reset(new SharedFrontEnd);
       fe->key = key;
       fe->idleSec = idleSec;
-      if (pipe2(fe->ctl, O_CLOEXEC) != 0) {
+      if (pipeCloexec(fe->ctl) != 0) {
         error = strerror(errno);
         return false;
       }
@@ -1582,7 +1583,7 @@ RemoteStream* SshTransport::openStream(const std::string& script, int& fd,
   int sp[2], ctl[2];
   if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, sp) != 0) {
     error = strerror(errno);
-  } else if (pipe2(ctl, O_CLOEXEC) != 0) {
+  } else if (pipeCloexec(ctl) != 0) {
     error = strerror(errno);
     close(sp[0]); close(sp[1]);
   } else {
