@@ -295,7 +295,12 @@ void BuilderApp::invokeMCB(JMSMessage& msg)
   cout << " origsenderid " << msg.getOriginalSenderId() << endl;;
   */
 
-    if (action == "") {
+    if (action == "" && urlstr.empty()) {
+
+      // "New Structure": no calculation, keep the default context
+      p_builder->Raise();
+
+    } else if (action == "") {
 
       p_builder->setContext(urlstr);
       setPollContext(urlstr);
