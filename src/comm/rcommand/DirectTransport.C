@@ -12,6 +12,7 @@
 #include <sys/syscall.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include "util/ConsumeSignal.H"
 #include "util/PipeCloexec.H"
 
 extern char** environ;
@@ -311,8 +312,7 @@ TransportResult runChild(ChildSpec& cs, const std::string& input, int inFd,
     sigset_t pend;
     sigpending(&pend);
     if (sigismember(&pend, SIGPIPE) == 1) {
-      struct timespec zero = { 0, 0 };
-      sigtimedwait(&pipeSet, 0, &zero);
+      consumePendingSignal(&pipeSet);
     }
   }
   pthread_sigmask(SIG_SETMASK, &oldMask, 0);
@@ -535,8 +535,7 @@ bool DirectTransport::writeStream(Stream& s, const std::string& data)
   if (!pendedBefore) {
     sigpending(&pend);
     if (sigismember(&pend, SIGPIPE) == 1) {
-      struct timespec zero = { 0, 0 };
-      sigtimedwait(&pipeSet, 0, &zero);
+      consumePendingSignal(&pipeSet);
     }
   }
   pthread_sigmask(SIG_SETMASK, &oldMask, 0);

@@ -17,6 +17,7 @@
 #include <unistd.h>
 
 #include "comm/DirectTransport.H"
+#include "util/PipeCloexec.H"
 
 namespace {
 
@@ -721,7 +722,7 @@ RemoteStream* OpenSshTransport::openStream(const std::string& script, int& fd,
   std::string header = oneLine("exec 2>&1\n" + envp + withDir(script));
 
   int sp[2];
-  if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, sp) != 0) {
+  if (socketpairCloexec(AF_UNIX, SOCK_STREAM, 0, sp) != 0) {
     error = strerror(errno);
     return 0;
   }
