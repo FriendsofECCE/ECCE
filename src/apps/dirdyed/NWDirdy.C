@@ -4214,21 +4214,12 @@ cout << "Starting wxPython general theory dialog with (" << cmd << ")" << endl;
       // "STARTED" message is received from the details apps will indicate that
       // there is a problem invoking them.
 
-#if 0000
-      p_theoryTimerId = XtAppAddTimeOut(tu_global_app_context, 30000,
-                                        theoryStartTimer, this);
-      while (!p_theoryInitFlag)
-        if (XtAppPending(tu_global_app_context) &
-                         (XtIMAlternateInput | XtIMTimer))
-          XtAppProcessEvent(tu_global_app_context,XtIMAlternateInput|XtIMTimer);
-#else
       // To-Do: Add wxTimer dervied class to add a timeout capability to
       // starting the details dialog.  See wxgui/wxtools/WxEditSessionMgr.C
       // and search for WxEditTimer for an example of how to do this with
       // a "helper" class.  For now, don't use a timeout and hope that
       // nothing hangs when bringing up the details dialog.
       p_generalTheoryHoldFlag = false;
-#endif
     }
   }
 #if 0000
@@ -4340,21 +4331,12 @@ cout << "Starting wxPython single point theory dialog with (" << cmd << ")" << e
       // "STARTED" message is received from the details apps will indicate that
       // there is a problem invoking them.
 
-#if 0000
-      p_theoryTimerId = XtAppAddTimeOut(tu_global_app_context, 30000,
-                                        theoryStartTimer, this);
-      while (!p_theoryInitFlag)
-        if (XtAppPending(tu_global_app_context) &
-                         (XtIMAlternateInput | XtIMTimer))
-          XtAppProcessEvent(tu_global_app_context,XtIMAlternateInput|XtIMTimer);
-#else
       // To-Do: Add wxTimer dervied class to add a timeout capability to
       // starting the details dialog.  See wxgui/wxtools/WxEditSessionMgr.C
       // and search for WxEditTimer for an example of how to do this with
       // a "helper" class.  For now, don't use a timeout and hope that
       // nothing hangs when bringing up the details dialog.
       p_singleTheoryHoldFlag = false;
-#endif
     }
   }
 #if 0000
@@ -4432,10 +4414,6 @@ cout << "**** processGeneralTheoryInput set modified" << endl;
   // getTheoryInput invocation may contain multiple messages
   char* start;
   if ((start = (char*)strstr(databuf, "#STARTED")) != NULL) {
-#if 0000
-    XtRemoveTimeOut(p_theoryTimerId);
-#endif
-
     // Grab the process id as the second argument
     start = strchr(start, ' ');
     if (start != NULL)
@@ -4498,10 +4476,6 @@ cout << "**** processSingleTheoryInput set modified" << endl;
   // getTheoryInput invocation may contain multiple messages
   char* start;
   if ((start = (char*)strstr(databuf, "#STARTED")) != NULL) {
-#if 0000
-    XtRemoveTimeOut(p_theoryTimerId);
-#endif
-
     // Grab the process id as the second argument
     start = strchr(start, ' ');
     if (start != NULL)

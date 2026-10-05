@@ -14,6 +14,12 @@ class wxTopLevelWindow;
 class Preferences;
 class ewxConfig;
 
+// Bring a shown top-level window to the front and ask for keyboard focus.
+// GTK on an X11 display uses a fresh server timestamp (Mutter drops
+// activation requests with a stale one, #120); other displays and ports use
+// the toolkit's own call. ECCE_DEBUG_RAISE=1 logs the path taken to stderr.
+void ewxRaiseWindow(wxWindow *win);
+
 
 /**
  * This class contains a set of static utility functions that can be

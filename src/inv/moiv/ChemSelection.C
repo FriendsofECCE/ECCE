@@ -63,13 +63,6 @@
 	Jamie Doornbos	2001/07/15
 	Daniel Soto	2002/02/05
 */
-#ifndef WIN32
-#include <X11/Xlib.h>
-#endif
-
-#ifdef __sgi
-#include <X11/extensions/SGIStereo.h>
-#endif
 
 #include "inv/SoDB.H"
 #include "inv/SoInput.H"
@@ -3371,28 +3364,6 @@ ChemSelection::reallyHandleEvent(SoHandleEventAction *action)
 // MPM 11/2001
 //
 			float  xResOffset = 1.0;
-#ifndef __nogl
-            // See if the viewer is set.  If so, determine if the
-            // viewer is currently using the SGI stereo extensions to X.
-            if (viewer != NULL) {
-                // See if using a stereo buffer (stereo-in-a-window)
-#ifdef __sgi
-                if (!viewer->isStereoBuffer()) {
-                    int first_event, first_error;
-                    if (XSGIStereoQueryExtension(viewer->getDisplay(),
-                        &first_event, &first_error)) {
-                        int stereoMode =
-                            XSGIQueryStereoMode(viewer->getDisplay(),
-                                viewer->getNormalWindow());
-                        if ((stereoMode == STEREO_BOTTOM) ||
-                            (stereoMode == STEREO_TOP)) {
-                            xResOffset = 2.0;
-                        }
-                    }
-                }
-#endif  // !__sgi
-            }
-#endif  // !__nogl
 
             // Set up orthoCam
             const SbViewVolume &viewVol =

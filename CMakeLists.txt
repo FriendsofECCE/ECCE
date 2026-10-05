@@ -332,12 +332,9 @@ pkg_check_modules(GLIB2 REQUIRED glib-2.0)
 target_include_directories(eccewxgui PRIVATE ${GLIB2_INCLUDE_DIRS})
 target_link_libraries(eccewxgui PRIVATE ${GLIB2_LIBRARIES})
 
-# WxDavAuth.C calls gtk_window_present_with_time()/gdk_x11_get_server_time()
-# directly (#120: Mutter's focus-stealing prevention silently drops the
-# auth dialog's window-manager activation unless it's requested with a
-# fresh, real X server timestamp) -- same gtk+-3.0 need as eccewxplotctrl
-# below, headers AND the library this time since it's a real call, not
-# just the log filter's headers-only use above.
+# ewxRaiseWindow() (ewxWindowUtils.C) calls gtk_window_present*() and, on an
+# X11 display only, gdk_x11_get_server_time() (#120); needs gtk+-3.0 headers
+# and library, same as eccewxplotctrl below.
 pkg_check_modules(GTK3 QUIET gtk+-3.0)
 if(GTK3_FOUND)
   target_include_directories(eccewxgui PRIVATE ${GTK3_INCLUDE_DIRS})
@@ -457,10 +454,6 @@ ecce_app(organizer src/apps/organizer WX
   LINK eccewxguicomm eccecommxt eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(hostkeydialog src/apps/hostkeydialog WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-if(GTK3_FOUND)
-  target_include_directories(hostkeydialog PRIVATE ${GTK3_INCLUDE_DIRS})
-  target_link_libraries(hostkeydialog PRIVATE ${GTK3_LIBRARIES})
-endif()
 ecce_app(passdialog src/apps/passdialog WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(pertable src/apps/pertable WX
