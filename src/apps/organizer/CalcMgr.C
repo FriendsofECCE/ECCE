@@ -375,31 +375,7 @@ void CalcMgr::initializeGUI()
     Append(wxID_ANY, _("Project View"), menu);
 
 
-  p_legend = new ewxPanel(this, -1, wxDefaultPosition,
-                          wxDefaultSize, wxNO_BORDER);
-  wxBoxSizer * legendVSizer = new wxBoxSizer(wxVERTICAL);
-  wxBoxSizer * legendSizer = new wxBoxSizer(wxHORIZONTAL);
-  p_legend->SetSizer(legendVSizer);
-  
-  ewxStaticText* stateLabel =
-    new ewxStaticText(p_legend, -1, "Run States: ");
-  legendSizer->Add(stateLabel, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
-  
-  WxState* stateIcon;
-  for (int state = ResourceDescriptor::STATE_CREATED;
-       state<ResourceDescriptor::NUMBER_OF_STATES; state++) {
-    stateIcon = new WxState(p_legend);
-    stateIcon->setRunState((ResourceDescriptor::RUNSTATE)state);
-    legendSizer->Add(stateIcon, 0, 
-                     wxFIXED_MINSIZE|wxALIGN_CENTER_VERTICAL|wxLEFT, 6);
-
-    stateLabel = new ewxStaticText(p_legend, -1, stateIcon->getName());
-    stateLabel->SetFont(ewxStyledWindow::getSmallLabelFont());
-    legendSizer->Add(stateLabel, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
-  }
-
-  legendVSizer->Add(legendSizer, 0, wxGROW|wxALL, 2);
-  legendVSizer->Add(new ewxStaticLine(p_legend, -1), 0, wxGROW, 0);
+  p_legend = WxState::createLegend(this);
 
   p_topSizer->Add(p_legend, 0, wxGROW|wxALL, 0);
 
