@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "util/IndexOutOfRangeException.H"
+#include "util/ThrowLog.H"
 
 
 /**
@@ -44,6 +45,9 @@ IndexOutOfRangeException::IndexOutOfRangeException(int lower,
                                : EcceException(formatMessage(lower,upper,value),
                                                file, line)
 {
+#ifndef INSTALL
+   ThrowLog::fault(*this);
+#endif
    p_lower = lower;
    p_upper = upper;
    p_value = value;
@@ -57,6 +61,9 @@ IndexOutOfRangeException::IndexOutOfRangeException(int lower,
                                : EcceException(formatMessage(lower,upper,value),
                                                file, line)
 {
+#ifndef INSTALL
+   ThrowLog::fault(*this);
+#endif
    p_lower = lower;
    p_upper = upper;
    p_value = value;

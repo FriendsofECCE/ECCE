@@ -5285,6 +5285,17 @@ void CalcMgr::importValidationComplete(TaskJob *ipc, bool status,
 
     // let the world know this calculation was created/imported
     notifyCreate(ipc->getURL().toString());
+
+    // Select the new calculation, as a calculation made with New is
+    // selected (OnNewResourceClick); otherwise the work area stays on
+    // whatever folder was selected and the import looks lost.
+    if (findNode(ipc->getURL(), true, true) != 0) {
+      if (getenv("ECCE_TEST_CALCIMPORT")) {
+        WxResourceTreeItemData *sel = p_treeCtrl->getSelection();
+        fprintf(stderr, "ECCE_TEST_CALCIMPORT: selected %s\n",
+                sel ? sel->getUrl().toString().c_str() : "-");
+      }
+    }
   }
   setContextPanel();
 }

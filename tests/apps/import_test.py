@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Builder > File > Import Chemical System, without the file dialog.
+Builder > File > Add Structure from File, without the file dialog.
 
 The Builder's ECCE_TEST_IMPORT hook runs the import on a given path, presses
 OK in any prompt it raises (units for XYZ) and exits.  Each file must load
