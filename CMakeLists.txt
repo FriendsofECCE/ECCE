@@ -1621,6 +1621,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   # Generous: 20 apps x (window wait + settle), plus broker startup.
   set_tests_properties(apps PROPERTIES TIMEOUT 1800)
+  # Builder Import Chemical System on PDB/XYZ/CAR and on missing paths,
+  # through the installed builder's ECCE_TEST_IMPORT hook.
+  add_test(NAME apps_import
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/import_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_import PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 
   # tests/shells -- does a long command's echo come back byte for byte
   # from csh, tcsh and bash (and through zsh/ksh login shells on a hop)?

@@ -2168,15 +2168,29 @@ void Builder::OnImportChemsysClick(wxCommandEvent& event)
 {
   ImportCalculationDialog dialog(this);
   if (dialog.ShowModal() == wxID_CANCEL) return;
+  importChemicalSystem(dialog.GetPath().ToStdString(), dialog.getType(),
+                       dialog.getExt());
+}
+
+
+/**
+ * Import Chemical System after the file dialog; ext is the file's
+ * extension (case does not matter).
+ */
+void Builder::importChemicalSystem(const string& path, wxString type,
+                                   wxString ext)
+{
+  ext.MakeUpper();
+
+  EcceURL url(path);
+  Resource *resource = EDSIFactory::getResource(url);
+  if (resource == 0) {
+    wxLogError("Cannot read %s", url.toString().c_str());
+    return;
+  }
 
   // create temporary file for fragment reading
   SFile *file = TempStorage::getTempFile();
-
-  string path = dialog.GetPath().ToStdString();
-  EcceURL url(path);
-  wxString type = dialog.getType();
-  wxString ext = dialog.getExt().MakeUpper();
-  Resource *resource = EDSIFactory::getResource(url);
   ChemistryTask *task;
 
   // try to open as a ChemistryTask first
@@ -2191,16 +2205,25 @@ void Builder::OnImportChemsysClick(wxCommandEvent& event)
       ext = "MVM";
     } else {
       wxLogError("Could not import %s", url.toString().c_str());
+      file->remove();
+      delete file;
       return;
     }
   } else {
-    file = resource->getDocument(file);
+    if (resource->getDocument(file) == 0) {
+      wxLogError("Cannot read %s", url.toString().c_str());
+      file->remove();
+      delete file;
+      return;
+    }
     file->move(file->pathroot() + "/" + resource->getName());
   }
 
   // now do the real work
   if (!readFragmentFromFile(file, type, ext)) {
     wxLogError("Could not import %s", url.toString().c_str());
+    file->remove();
+    delete file;
     return;
   }
 
@@ -4620,6 +4643,44 @@ void Builder::updatePropertyMenus()
                         "for this calculation\n", openPanelName);
       }
     }
+  }
+
+  //  ECCE_TEST_IMPORT=<file>: run Import Chemical System on <file> once the
+  //  Builder is up, as if picked in the file dialog, press OK in any prompt
+  //  it raises, then exit. ECCE_TEST_IMPORT_DELAY (seconds) leaves time to
+  //  attach a debugger. Inert unless set; for tests/apps/import_test.py.
+  static bool importStarted = false;
+  const char *importPath = getenv("ECCE_TEST_IMPORT");
+  if (importPath != 0 && !importStarted && p_calculation != 0) {
+    importStarted = true;
+    string path = importPath;
+    const char *delay = getenv("ECCE_TEST_IMPORT_DELAY");
+    wxTimer *okTimer = new wxTimer();   // both live until the process exits
+    okTimer->Bind(wxEVT_TIMER, [](wxTimerEvent&) {
+      for (wxWindow *w : wxTopLevelWindows) {
+        wxDialog *dlg = dynamic_cast<wxDialog*>(w);
+        if (dlg && dlg->IsModal()) {
+          fprintf(stderr, "ECCE_TEST_IMPORT: OK in \"%s\"\n",
+                  dlg->GetTitle().ToStdString().c_str());
+          dlg->EndModal(wxID_OK);
+        }
+      }
+    });
+    wxTimer *timer = new wxTimer();
+    timer->Bind(wxEVT_TIMER, [this, path, okTimer](wxTimerEvent&) {
+      // Copy errors to stderr, where the test reads them; the old target
+      // is the Builder's log panel and must survive.
+      new wxLogChain(new wxLogStderr());
+      okTimer->Start(500);
+      importChemicalSystem(path, "", wxString(path).AfterLast('.'));
+      okTimer->Stop();
+      fprintf(stderr, "ECCE_TEST_IMPORT: done, %d atoms\n",
+              getSG()->getFragment()->numAtoms());
+      // Close() would ask to save the imported system.
+      fflush(stderr);
+      _exit(0);
+    });
+    timer->StartOnce(1 + 1000 * (delay ? atoi(delay) : 0));
   }
 
   // disable menu if no property guis found

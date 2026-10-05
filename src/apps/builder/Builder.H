@@ -230,6 +230,8 @@ class Builder: public BuilderGUI,
       virtual void OnNewClick( wxCommandEvent& event );
       virtual void OnOpenClick( wxCommandEvent& event );
       virtual void OnImportChemsysClick( wxCommandEvent& event );
+      void importChemicalSystem(const string& path, wxString type,
+                                wxString ext);
       virtual void OnImportCalcClick( wxCommandEvent& event );
       virtual void OnCloseClick( wxCommandEvent& event );
       virtual void OnSaveClick( wxCommandEvent& event );
