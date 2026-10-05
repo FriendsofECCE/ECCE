@@ -38,6 +38,12 @@ public:
 
   ewxFileData& operator = (const ewxFileData& fd);
 
+  // A local directory that holds an ECCE calculation or other typed
+  // document, which a file dialog offers as a file to open.
+  static bool isLocalDocument( const wxString &path );
+  // A new entry for such a directory that lists it as a file.
+  static wxFileData *asLocalDocument( const wxFileData &dir );
+
 protected:
   Resource * p_resource;
 

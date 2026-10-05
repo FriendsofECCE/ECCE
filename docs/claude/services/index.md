@@ -30,3 +30,4 @@ Both per-user, both non-root, both started automatically by the
 - [TCP broker accounts are the data server logins](broker-accounts-are-the-data-server-logins.md)
 - [`ecce_auth_changed` carries no password](auth-changed-carries-no-password.md)
 - [Per-user service state is keyed by `$DISPLAY`, and the "is it already running?" checks were not](per-user-service-state-is-keyed-by.md)
+- [A calculation can live in any local folder, not only in a data store](calculations-in-any-local-folder.md)
