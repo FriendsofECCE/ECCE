@@ -903,10 +903,18 @@ void WxMachineRegister::fillCodeList()
     p_codeShown.clear();
     for (size_t i = 0; i < p_codeNames.size(); i++)
         if (!retired.count(p_codeNames[i]) || codeInUse(p_codeNames[i]))
-        {
             p_codeShown.push_back((int)i);
-            p_codeList->Append(p_codeNames[i]);
-        }
+    //  Codes with a program first; the order is fixed when the machine is
+    //  loaded, so a row does not jump while its path is typed.
+    std::sort(p_codeShown.begin(), p_codeShown.end(), [this](int a, int b) {
+        bool ha = !strip((string)p_codePaths[a]->GetValue()).empty();
+        bool hb = !strip((string)p_codePaths[b]->GetValue()).empty();
+        if (ha != hb)
+            return ha;
+        return lowerOf(p_codeNames[a]) < lowerOf(p_codeNames[b]);
+    });
+    for (size_t r = 0; r < p_codeShown.size(); r++)
+        p_codeList->Append(p_codeNames[p_codeShown[r]]);
     if (p_codeShown.empty())
         return;
     if (std::find(p_codeShown.begin(), p_codeShown.end(), p_codeSel) ==
@@ -1194,6 +1202,8 @@ void WxMachineRegister::addBlock(wxWindow* page, wxSizer* sizer,
     b.heading->SetFont(b.heading->GetFont().Bold());
     b.box->Add(b.heading, wxSizerFlags().Border(wxLEFT|wxRIGHT|wxTOP));
 
+    b.siteHead = new wxStaticText(page, wxID_ANY, "Site setting");
+    b.box->Add(b.siteHead, wxSizerFlags().Border(wxLEFT|wxRIGHT|wxTOP, 4));
     b.siteLabel = new wxStaticText(page, wxID_ANY, "");
     b.siteLabel->SetFont(b.siteLabel->GetFont().Smaller());
     b.siteLabel->SetForegroundColour(gray);
@@ -1206,15 +1216,17 @@ void WxMachineRegister::addBlock(wxWindow* page, wxSizer* sizer,
 
     wxBoxSizer* row = new wxBoxSizer(wxHORIZONTAL);
     b.box->Add(row, wxSizerFlags().Expand());
-    b.yoursLabel = new wxStaticText(page, wxID_ANY, "Your text instead:");
+    b.yoursLabel = new wxStaticText(page, wxID_ANY, "User setting");
     row->Add(b.yoursLabel, wxSizerFlags().Border().CentreVertical());
-    b.copy = new ewxButton(page, wxID_ANY, "Copy site text to edit");
-    b.copy->SetToolTip("Start from the site's text and change it. Your text "
-                       "replaces the site's, it is not added to it.");
+    b.copy = new ewxButton(page, wxID_ANY, "Copy site setting");
+    b.copy->SetToolTip("Start from the site setting and change it. The user "
+                       "setting replaces the site setting, it is not added "
+                       "to it.");
     row->Add(b.copy, wxSizerFlags().Border(wxTOP|wxBOTTOM|wxRIGHT)
                                    .CentreVertical());
-    b.none = new wxCheckBox(page, wxID_ANY, "Use no text");
-    b.none->SetToolTip("Ignore the site's text and put nothing here");
+    b.none = new wxCheckBox(page, wxID_ANY, "Disable");
+    b.none->SetToolTip("Writes \"key: -\", so neither the site setting nor "
+                       "a user setting is used.");
     row->Add(b.none, wxSizerFlags().Border().CentreVertical());
     row->AddStretchSpacer(1);
     b.tag = new wxStaticText(page, wxID_ANY, "");
@@ -1251,6 +1263,8 @@ void WxMachineRegister::addBlock(wxWindow* page, wxSizer* sizer,
     reg("blk:" + id, b.user);
     reg("blk:" + id + ":site", b.site);
     reg("blk:" + id + ":label", b.siteLabel);
+    reg("blk:" + id + ":head", b.siteHead);
+    reg("blk:" + id + ":yours", b.yoursLabel);
     reg("blk:" + id + ":none", b.none);
     reg("blk:" + id + ":copy", b.copy);
     reg("blk:" + id + ":csh", b.note);
@@ -3210,10 +3224,10 @@ static string blockSource(const MCD::Layer& l, bool remote)
     if (slash != string::npos)
         name = name.substr(slash + 1);
     if (remote && l.source != "user")
-        return "the ECCE server: " + name;
-    if (l.source == "site")
-        return "the site: " + name;
-    return "the site's default: " + name;
+        return "server (" + name + ")";
+    if (l.source == "submit.site")
+        return "submit.site";
+    return "siteconfig/" + name;
 }
 
 
@@ -3269,23 +3283,27 @@ void WxMachineRegister::blockToControl(BlockRow& b)
         b.heading->SetToolTip("CONFIG key: " + ks->name);
         string inh;
         bool hasInh = inheritedValue(*ks, false, inh);
-        if (hasInh)
-            b.siteLabel->SetLabel("From " + blockSource(
-                ks->inherited.back(), remoteClient()) + " (read-only)");
-        else
-            b.siteLabel->SetLabel(p_adminFlag
-                ? "Nothing from the site's defaults."
-                : "The site gives no text here.");
+        const char* what = p_adminFlag ? "Default setting" : "Site setting";
+        b.siteHead->SetLabel(hasInh ? what : string(what) + ": none");
+        b.siteLabel->SetLabel(hasInh ? "source: " + blockSource(
+            ks->inherited.back(), remoteClient()) + " (read-only)" : "");
+        b.siteLabel->Show(hasInh);
+        string mine = p_adminFlag ? "Site setting" : "User setting";
+        b.yoursLabel->SetLabel(hasInh ? mine + (p_adminFlag
+            ? " (replaces the default)" : " (replaces the site setting)")
+            : mine);
         b.site->ChangeValue(hasInh ? inh : "");
         b.site->Show(hasInh);
 
         bool cleared = ks->edit == MCD::Clear;
         b.user->ChangeValue(ks->edit == MCD::Set ? ks->value : "");
         b.user->Enable(!cleared);
-        b.user->SetHint(cleared ? "(no text)" : hasInh
+        b.user->SetHint(cleared ? "(disabled)" : hasInh
             ? "Empty: the text above is used" : "");
         b.none->SetValue(cleared);
         b.none->Show(hasInh || cleared);
+        b.none->SetToolTip("Writes \"" + ks->name + ": -\", so neither the "
+                           "site setting nor a user setting is used.");
         b.copy->Enable(hasInh && !cleared);
         b.copy->Show(hasInh);
         b.note->Show(!b.note->GetLabel().empty());

@@ -733,7 +733,8 @@ def job_script_tab(tmp, display, build, mode):
     setup_src = "the ECCE server" if remote else "the site"
     site = "from server" if remote else "from site"
     yours = "site value" if admin else "your value"
-    hdr_label = "From %s: submit.site (read-only)" % src
+    hdr_label = "source: %s (read-only)" % (
+        "server (submit.site)" if remote else "submit.site")
 
     if admin:
         setup_pre = """expect field blk:setup '%s'
@@ -750,12 +751,14 @@ set blk:setup %s
         setup_pre = """expect field blk:setup ''
 expect field blk:setup:site '%s'
 expect label tag:setup '%s'
-expect label blk:setup:label 'From %s: CONFIG.cluster (read-only)'
+expect label blk:setup:label 'source: %s (read-only)'
 click blk:setup:copy
 expect field blk:setup '%s'
 expect label tag:setup 'your value'
 set blk:setup %s
-""" % (site_setup, site, setup_src, site_setup,
+""" % (site_setup, site,
+       "server (CONFIG.cluster)" if remote else "siteconfig/CONFIG.cluster",
+       site_setup,
        esc(site_setup + "\nmodule load mine"))
     p = run(display, build, e, """
 select cluster
@@ -768,6 +771,8 @@ expect shown blk:header:site 1
 expect enabled blk:header:copy 1
 expect label tag:wrapup 'not set'
 expect shown blk:wrapup:site 0
+expect label blk:wrapup:head '%(none)s'
+expect label blk:wrapup:yours '%(mine)s'
 expect shown blk:wrapup:none 0
 expect shown condorallowtmp 0
 expect shown undo:header 0
@@ -789,7 +794,7 @@ expect field blk:header %(hdr2)s
 expect field blk:wrapup 'echo done'
 expect label blk:setup:csh ''
 quit
-""" % dict(site=site, hdr=esc(header), hdr2=esc(header + "\n#SBATCH --qos=normal"),
+""" % dict(site=site, none="Default setting: none" if admin else "Site setting: none", mine="Site setting" if admin else "User setting", hdr=esc(header), hdr2=esc(header + "\n#SBATCH --qos=normal"),
            hdrlabel=esc(hdr_label), yours=yours, setup=setup_pre),
         args=args, extra=extra)
     clean(p, "%s: copy the site text, edit three blocks, save" % mode)
@@ -1014,6 +1019,7 @@ expect shown blk:cenv:site 0
         first = """expect field blk:cenv ''
 expect field blk:cenv:site 'g16root /sitedir'
 expect enabled blk:cenv:copy 1
+expect label blk:cenv:yours 'User setting (replaces the site setting)'
 """
     p = run(display, build, e, """
 select cluster
@@ -1024,6 +1030,7 @@ expect code-listed Gaussian-03 0
 expect code-listed Gaussian-98 0
 expect code-listed GAMESS-UK 0
 expect code-listed Amica 0
+expect contains code:list 'Gaussian-16  *,NWChem  *,Gaussian-09,GROMACS,MOPAC,ORCA,Polyrate,QuantumESPRESSO'
 code Gaussian-16
 expect label code:title Gaussian-16
 expect field code:gaussian-16 /site/g16
@@ -1138,7 +1145,7 @@ quit
               'GAUSS_SCRDIR="/scratch"' not in script,
               "the job script uses the site's environment again")
 
-        # "Use no text" replaces the site's environment with nothing
+        # "Disable" replaces the site's environment with nothing
         p = run(display, build, e, """
 select cluster
 tab codes

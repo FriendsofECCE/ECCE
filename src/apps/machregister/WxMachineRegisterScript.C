@@ -20,6 +20,7 @@
 #include "wx/dcscreen.h"
 #include "wx/listctrl.h"
 #include "wx/notebook.h"
+#include "wx/listbox.h"
 #include "wx/spinctrl.h"
 
 #include "wx/collpane.h"
@@ -121,6 +122,13 @@ string MachRegScript::get(const string& name)
         return std::to_string(s->GetValue());
     if (wxSpinCtrlDouble* d = dynamic_cast<wxSpinCtrlDouble*>(w))
         return (string)wxString::Format("%g", d->GetValue());
+    if (wxListBox* lb = dynamic_cast<wxListBox*>(w))
+    {
+        string all;
+        for (unsigned i = 0; i < lb->GetCount(); i++)
+            all += (i ? "," : "") + (string)lb->GetString(i);
+        return all;
+    }
     if (wxChoice* c = dynamic_cast<wxChoice*>(w))
         return (string)c->GetStringSelection();
     if (wxCheckBox* b = dynamic_cast<wxCheckBox*>(w))

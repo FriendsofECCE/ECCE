@@ -97,7 +97,7 @@ class WxMachineRegister: public ewxFrame
         struct BlockRow {
             string id;                    // header, setup, wrapup
             string key;                   // the CONFIG key now shown
-            wxStaticText *heading, *siteLabel, *yoursLabel, *tag, *note;
+            wxStaticText *heading, *siteHead, *siteLabel, *yoursLabel, *tag, *note;
             wxTextCtrl *site, *user;
             wxCheckBox *none;
             wxButton *copy;
@@ -105,7 +105,7 @@ class WxMachineRegister: public ewxFrame
             wxBitmapButton *undo;
             wxSizer *box;
             wxWindow *scroll;             // the tab's scrolled window
-            BlockRow() : heading(NULL), siteLabel(NULL), yoursLabel(NULL),
+            BlockRow() : heading(NULL), siteHead(NULL), siteLabel(NULL), yoursLabel(NULL),
                          tag(NULL), note(NULL), site(NULL), user(NULL),
                          none(NULL), copy(NULL), undoBox(NULL), undo(NULL),
                          box(NULL), scroll(NULL) {}
