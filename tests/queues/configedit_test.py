@@ -256,6 +256,15 @@ def edits(t, tmp):
     m = os.stat(p).st_mode
     check(read(p) == "k: 2\n" and m & stat.S_IWUSR and m & stat.S_IRGRP,
           "a read-only file is rewritten and left writable, group bits kept")
+    p = os.path.join(tmp, "ed", "locksite")
+    write(p, "k: 1\n", mode=0o444)
+    t.file(p, "--site-file", "set", "k", "2")
+    check(read(p) == "k: 2\n" and not os.stat(p).st_mode & stat.S_IWUSR,
+          "a read-only site file is locked again after the write")
+    p = os.path.join(tmp, "ed", "opensite")
+    write(p, "k: 1\n", mode=0o644)
+    t.file(p, "--site-file", "set", "k", "2")
+    check(os.stat(p).st_mode & stat.S_IWUSR, "a writable site file stays writable")
     p = os.path.join(tmp, "ed", "newfile")
     t.file(p, "set", "k", "v")
     check(read(p) == "k: v\n" and stat.S_IMODE(os.stat(p).st_mode) == 0o644 &

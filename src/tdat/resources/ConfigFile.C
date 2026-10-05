@@ -32,7 +32,7 @@ static string lower(const string& s)
 }
 
 ConfigFile::ConfigFile()
-  : p_exists(false), p_modified(false), p_finalNewline(false)
+  : p_exists(false), p_modified(false), p_site(false), p_finalNewline(false)
 {
 }
 
@@ -356,8 +356,11 @@ bool ConfigFile::save(string* err)
     target = real;
   mode_t mode = 0644;
   struct stat st;
-  if (stat(target.c_str(), &st) == 0)
-    mode = (st.st_mode & 07777) | 0200;
+  if (stat(target.c_str(), &st) == 0) {
+    mode = st.st_mode & 07777;
+    if (!(p_site && !(mode & 0200)))
+      mode |= 0200;
+  }
 
   char pid[24];
   snprintf(pid, sizeof pid, ".tmp.%d", (int)getpid());
