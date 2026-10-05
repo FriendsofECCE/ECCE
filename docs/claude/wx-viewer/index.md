@@ -29,3 +29,4 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [wx3.2 AUI port dropped the custom "ewxAUI" pane-caption buttons (take focus / pin / options / open) the original app was built against](wx3-2-aui-port-dropped-the-custom.md)
 - [`SoWxRenderArea::renderCB` silently drops a redraw](sowxrenderarea-rendercb-silently-drops-a-redraw.md)
 - [RESOLVED (#81, fixed `9a3004e`, confirmed live 2026-09-21): the Vibrational Frequencies panel's Animation/Vector radio box did not deliver its click event under wx3.2/GTK3](resolved-81-fixed-9a3004e-confirmed-live-2026.md)
+- [ChemDisplay's `glPopAttrib` undoes what Coin's lazy element sent inside it; the first offscreen render drew an ESP surface unlit](chemdisplay-glpopattrib-undoes-lazy-element-sends.md)

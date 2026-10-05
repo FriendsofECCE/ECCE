@@ -1629,6 +1629,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_BINARY_DIR}/render-rgb)
   set_tests_properties(look_imageconv PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
 
+  # Thumbnail / Save As renders shade an ESP surface like the canvas.
+  # Needs `ninja viewer-scenes`, Xvfb and PIL; SKIPs without them.
+  add_test(NAME look_offscreen_shading
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/offscreen_shading.py
+                   ${CMAKE_BINARY_DIR}/viewer-scenes)
+  set_tests_properties(look_offscreen_shading PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
+
   # tests/guivalues -- memory sizes saved before the GB-everywhere change
   # (Megawords, Megabytes) are converted by GUIValues::load() before a
   # dialog or a generator reads them.  Needs g++ and libecceutil.a.
