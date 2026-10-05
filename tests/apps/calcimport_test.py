@@ -6,7 +6,8 @@ The Organizer's ECCE_TEST_CALCIMPORT hook imports a given file into a
 project "calcimport-test" in the user's home and prints the outcome.
 Outputs of codes with an importer must be imported as that code; outputs
 of codes without one (MOPAC, GROMACS, Quantum ESPRESSO) must be refused
-with "Unrecognized output file format".
+with "Unrecognized output file format".  An imported calculation must be
+selected in the tree afterwards.
 
 Same installed tree, isolation and services as run_tests.py (ECCE_TEST_HOME,
 ECCE_TEST_WRAPPERS).  Exit 77 (skip) without an install or Xvfb.
@@ -59,6 +60,12 @@ def check(display, name, expected):
     elif expected is not None and (done.group(1) != "imported" or
                                    done.group(2) != expected):
         problem = "expected %s: %s" % (expected, done.group(0))
+    elif expected is not None and not re.search(
+            r"ECCE_TEST_CALCIMPORT: selected \S*/calcimport-test/[^/\s]+\s",
+            log):
+        # The tree must move to the new calculation, not stay on the
+        # folder that was selected before.
+        problem = "imported calculation not selected in the tree"
     else:
         print("ok    %s: %s" % (name, done.group(0)))
         return
