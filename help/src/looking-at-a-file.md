@@ -219,22 +219,3 @@ choose **File > Save** in the Builder. [TO CHECK: what **File > Save** and
 
 To run a calculation yourself, continue with [Machines](machines.md) and
 [Your first calculation](first-calculation.md).
-
-<!-- sources:
-  src/apps/organizer/CalcMgr.C lines 751-754 (File > New Structure... starts the Builder with no calculation), 2556-2575 (File menu: New Structure... Ctrl+N, Import Calculation from Output File...), 5118-5195 (getContainer: nearest enclosing project, else 0), 5198-5240 (importValidationComplete messages)
-  src/apps/builder/BuilderGUI.C lines 170-182 (File menu: Import Chemical System..., Import Calculation from Output File..., Open in New Context... Ctrl+O, Save, Save As...)
-  src/apps/builder/Builder.C lines 2160-2265 (Open in New Context; Import Chemical System: dialog, MVM from a calculation, readFragmentFromFile), 4074-4136 (readFragmentFromFile: XYZ units prompt, PDB options, genBondOrders false for MVM), 5926-5982 (Builder getContainer: home folder; importValidationComplete)
-  src/apps/builder/ImportCalculationDialog.C ("Load Chemical System into Current Context"), OpenCalculationDialog.C ("All Supported Types" filter)
-  src/apps/builder/{Xyz,Pdb,Car,Mvm,Trajectory,Cube}Calculation.C inputMasks() (extensions)
-  src/tdat/chemistry/FragUtil.C lines 1218-1245 (load: XYZ, MVM, CAR, PDB only)
-  src/viz/sgcommands/SGFragment.C lines 2501-2515 (units: Bohr, Picometers, Nanometers)
-  src/wxgui/ewxClasses/ewxGenericFileDialog.C lines 738-763 (Local Filesystem entry), 120-160 (File name:, Files of type:)
-  src/wxgui/comm/WxCalcImport.C (dialog title, naming from start/restart/Gaussian title, error messages)
-  src/comm/commxt/JobParser.C lines 90-260 (importCalculation: localhost must be registered, verify pattern, "Unrecognized output file format--cannot import.")
-  src/dsm/xml/CodeFactory.C lines 85-110 (getImportCodes: <Importer> and non-empty verifypattern)
-  data/client/cap/*.edml (Importer and verifypattern per code: NWChem, Gaussian-16/09/03/98, ORCA; none for MOPAC, QuantumESPRESSO, GROMACS, Amica, GAMESS-UK, MOLCAS)
-  scripts/parsers/*.expt, ORCA.expt header (reduced scope)
-  data/client/config/PropertyPanelDescriptor.xml (panel names: Calculation Summary, Mulliken Charges, MOs, MO Diagram, Vibrational Frequencies, Dipole Moment)
-  src/apps/builder/MoGUI.C lines 120-135 (MO/Density/Spin Density choice, Compute), MoPanel.C lines 840-870 (Contour), View Coeff...
-  data/client/StructureLibrary/ (folder names)
--->

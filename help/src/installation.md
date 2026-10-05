@@ -184,16 +184,3 @@ accounts for a class, the shared broker, and building from source.
 To look at a structure or at existing results first, continue with
 [Looking at a file](looking-at-a-file.md). To run calculations, continue with
 [Machines](machines.md).
-
-<!-- sources:
-  release notes v9.0.0-alpha.4 (package names, install commands, Debian tested)
-  GETTING_STARTED.md (split packages, section "Deployment modes", sections 5 and 6, "Local data mode")
-  CMakeLists.txt lines 1485-1535 (client/server dependencies)
-  packaging/ecce.in (start command, -remote, -l, ECCE_LOCAL_DATA handling, CONFIG.localhost copy)
-  packaging/dataserver/ecce-dataserver-adduser (account creation)
-  src/wxgui/wxdialogs/WxAuthGUI.C lines 135-189 (login window: prompt, Server:, User name:, Password:, OK, Cancel, Change..., Save Passwords Between Invocations)
-  src/apps/gateway/GatewayApp.C lines 745-770 (no-account message, local-mode home users/local)
-  src/wxgui/wxdialogs/GlobalPrefs.C lines 115-135, 368-460 (Preferences tabs, Data folder tab labels)
-  src/apps/organizer/CalcMgr.C line 200, 1562 (Edit > Preferences)
-  docs/ENVIRONMENT.md (ECCE_LOCAL_DATA)
--->

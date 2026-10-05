@@ -77,8 +77,6 @@ Further variables, such as a processor-specific setting a site uses for
 Gaussian on AMD processors, go into the same block. No wrapper script is
 needed.
 
-<!-- sources: scripts/gensub gaussianScript() (GAUSS_EXEDIR, LD_LIBRARY_PATH from the path), doEnvironment() (<code>Environment blocks); checked 2026-10-05: g16 runs with only g16root, GAUSS_EXEDIR and LD_LIBRARY_PATH in an otherwise empty environment -->
-
 ## Machine Registration
 
 Machine Registration is where you add a machine, set the code paths and
@@ -178,18 +176,3 @@ script on your computer and stops.
    File...** to bring the results into ECCE (see
    [Looking at a file](looking-at-a-file.md)). [TO CHECK: the dialog that
    follows and which calculation the output is attached to.]
-
-<!-- sources:
-  siteconfig/CONFIG-Examples/CONFIG.localhost (template contents)
-  packaging/ecce.in lines 141-151 (copy at first start, not overwritten, not copied when a site file exists)
-  siteconfig/Machines (localhost and dummy definitions)
-  siteconfig/CONFIG.dummy, siteconfig/Queues (dummy and localhost queue manager)
-  GETTING_STARTED.md "Describing the queues on your own cluster", "How ECCE connects to machines", "My HPC machine needs two-factor authentication"
-  src/apps/machregister/WxMachineRegisterGUI.C lines 224-415 (field and button labels: Machine:, Name:, Vendor:, Model:, Processor:, Total # Processors:, # Nodes, ssh, Queues box, Queue Manager:, Allocation Accounts Used, Queues:, Queue Name:, Min/Max Processors:, Max Wall Time: min, Max Memory: GB, Min Scratch: MB, Add/Change Queue, Remove Queue, Clear All Queues, Add/Change, Delete Machine, Clear Form, Close, Help)
-  src/apps/machregister/WxMachineRegister.C lines 155-205 (Applications box, Misc. Paths box, Perl 5:), 855-885 (site machine message and shadow copy)
-  src/apps/organizer/CalcMgr.C lines 2688-2740 (Tools menu global tools) and data/client/config/ResourceDescriptor.xml lines 2905-2925 ("Register Machines..." label)
-  src/apps/launcher/WxLauncherGUI.C lines 216-231 (Job menu: Register Machines...), 249 (Machine:), 694 (Launch)
-  src/apps/launcher/WxLauncher.C lines 2160-2235 (message after a launch on a noRemoteAccess machine)
-  src/apps/organizer/CalcMgrGUI.pjd / CalcMgr.C lines 2560-2575 (File > Import Calculation from Output File...)
-  packaging/ecce.in lines 100-112 (ecce -machine)
--->

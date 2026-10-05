@@ -13,5 +13,3 @@ the second page.
    where a code is installed.
 4. [Your first calculation](first-calculation.md): a geometry optimisation
    of water with NWChem, from a new project to the results.
-
-<!-- sources: the four files listed above -->

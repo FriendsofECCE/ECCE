@@ -219,26 +219,3 @@ frequencies.
 
 Change the theory to `RDFT`, or the basis set to `cc-pVTZ`, and compare the
 total energy. The next chapters describe each window in more detail.
-
-<!-- sources:
-  data/client/config/ResourceDescriptor.xml: line 177 (New Project...), 241 (New NWChem Calculation...), 2859-2900 (tool labels: Electronic Structure Editor..., Builder..., Launcher..., Viewer...), 2961-3011 (Run Mgmt labels: Tail -f on Output File..., View Run Log..., View Input file..., View Output File...), 270-340 (default tools, states)
-  src/apps/organizer/CalcMgr.C: 2380-2420 and 4780-4830 (New... submenu with "New " removed; name dialog "New <Label> Name", "Please enter the name for the new <Label>:"; default Label "Project"/"Calculation"), 2480-2570 (File menu: New items, New Structure..., Import Calculation from Output File...), 2435 (Duplicate for Rerun in the New... submenu)
-  src/apps/organizer/CalcMgrGUI.C lines 279-298 and CalcMgrGUI.pjd 782-1010 (Options menu: Show Run State Legend, Invoke Default Tool at Creation, Ask for File Name at Creation checked by default; Invoke Default Tool unchecked)
-  src/apps/organizer/CalcMgrGUI.pjd 457-760 (Edit menu items, including Duplicate for Rerun; the pjd has it under Edit)
-  src/apps/builder/Builder.C: 286-313 (panel and mode names), 625-650 (Mode toolbar tooltips), 760-790 (Mode menu items and shortcuts), 1181-1210 (Add Structure behaviour), 1900-1915 (Structure Library panel shown in Add Structure mode)
-  src/apps/builder/BuilderGUI.C 171-182 (File menu: Save, Quit)
-  src/wxviz/viztools/ViewerEvtHandler.C 866-883 (Build menu: Clean, Add Hydrogen)
-  src/apps/builder/StructLibGUI.C 126-147 (Libraries, No Current Selection), StructLib.C 440-475 (folder activation)
-  data/client/StructureLibrary/SimpleStructures/Miscellaneous2/h2o.mvm (water structure)
-  src/apps/calced/CalcEdGUI.C 196-215 (File menu: Save, Quit), 221-540 (Code, Chemical System, Charge:, Spin Mult.:, Formula:, Atoms:, Electrons:, Symmetry:, Basis Set, Basis, Quick Basis Menu, Name:, Polarization:, Functions:, Primitives:, Settings, Theory:, Theory Details..., Runtype:, Runtype Details..., Verify, Final Edit..., Launch...)
-  src/apps/calced/CalcEd.C 118-122 (quick basis list, includes 6-31G* and cc-pVTZ), 528 ("<Code> Settings" box title), 2231-2290 (Theory and Runtype lists show the names from the code's .edml)
-  data/client/cap/NWChem.edml 82-165 (theories RHF, RDFT, ...; run types Energy, Gradient, Geometry, Vibration, GeoVib, Property)
-  src/apps/launcher/WxLauncherGUI.C 216-231, 249, 349-700 (Job menu, Machine:, Run Directory:, Username:, Launch)
-  src/apps/launcher/WxLauncher.C 1640-1690 (local run when Username empty or own), 2160-2235 (launch messages)
-  siteconfig/Machines (localhost options WS) and src/tdat/resources/MachineOptions.C 31-33, 50-53 (WS shows Machine, Username, Password, Priority, Run Directory, Scratch Directory)
-  data/client/config/PropertyPanelDescriptor.xml 52-80, 131-137, 186-191 (Calculation Summary, Energies, Geometry Trace, Vibrational Frequencies)
-  data/client/config/properties line 60 (Total Energy)
-  src/apps/builder/GeomTracePropertyPanel.C 178-187 (Delay:, playback control)
-  src/apps/builder/NModesGUI.C 171-247 (Animation/Vector, Graph/Table, Frequencies, Scale:, Delay:, animate normal mode, stop animation)
-  src/apps/builder/Builder.C 4598-4730 (Properties menu is filled from the panels the calculation's properties select)
--->
