@@ -658,6 +658,327 @@ quit
         print("        " + os.path.join(out, n))
 
 
+def cfg_blocks(path):
+    """key -> text of a CONFIG file, lower-cased keys; blocks keep their
+    inner lines, 'key {' ... '}' and one-line 'key { v }' alike."""
+    out, cur, body = {}, None, []
+    for line in (read(path) if os.path.exists(path) else "").splitlines():
+        if cur is not None:
+            if line.startswith("}"):
+                out[cur] = "\n".join(body).strip()
+                cur = None
+            else:
+                body.append(line)
+            continue
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        if "{" in line and ":" not in line.split("{")[0]:
+            k, _, rest = line.partition("{")
+            if rest.strip().endswith("}"):
+                out[k.strip().lower()] = rest.strip()[:-1].strip()
+            else:
+                cur, body = k.strip().lower(), [rest] if rest.strip() else []
+        else:
+            k, _, v = line.partition(":")
+            out[k.strip().lower()] = v.strip()
+    return out
+
+
+def esc(text):
+    """One word for the hook: single-quoted, a quote written as '"'"'."""
+    return "'" + text.replace("'", "'\"'\"'").replace("\n", "\\n") + "'"
+
+
+def job_script(e, user):
+    """The job script gensub makes for cluster on Slurm."""
+    out = os.path.join(e.root, "gen")
+    shutil.rmtree(out, ignore_errors=True)
+    os.makedirs(out)
+    write(os.path.join(out, "params"),
+          " -H cluster\n -Q Slurm\n -q short\n -c NWChem\n -d localhost\n"
+          " -n 4\n -N 1\n -T 1:00:00\n -m 8\n -r %s\n -i a.nw\n -o a.out\n"
+          " -f %s/submit__x\n" % (out, out))
+    env = dict(os.environ, ECCE_HOME=e.home, ECCE_REALUSERHOME=user)
+    p = subprocess.run(["perl", os.path.join(REPO, "scripts", "gensub"), "-p",
+                        os.path.join(out, "params")], env=env, cwd=out,
+                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                       text=True)
+    made = os.path.exists(os.path.join(out, "submit__x"))
+    check(p.returncode == 0 and made, "gensub made a Slurm job script" +
+          ("" if p.returncode == 0 else ": " + p.stdout[-300:]))
+    return read(os.path.join(out, "submit__x")) if made else ""
+
+
+def job_script_tab(tmp, display, build, mode):
+    admin, remote = mode == "admin", mode == "remote"
+    print("job script tab, " + mode)
+    e = Env(tmp, "job-" + mode, remote)
+    extra = {"ECCE_REMOTE_SERVER": "server.example.org"} if remote else None
+    args = ["-admin"] if admin else []
+    site_setup = "module load site"
+    write(os.path.join(e.sc, "CONFIG.cluster"),
+          read(os.path.join(e.sc, "CONFIG.cluster")) +
+          "setup {\n  %s\n}\n" % site_setup, mode=0o644)
+    edited = os.path.join(e.sc if admin else e.ue, "CONFIG.cluster")
+    userhome = os.path.join(e.root, "nouser") if admin else e.user
+    os.makedirs(userhome, exist_ok=True)
+    site_before = digest(e.sc)
+    user_before = registration(e.ue)
+
+    rows = explain(e, "cluster", admin)
+    header = rows["slurm"]["value"].strip()
+    check(rows["slurm"]["source"] == "submit.site" and "#SBATCH" in header,
+          "the Slurm header comes from submit.site")
+    src = "the ECCE server" if remote else "the site's default"
+    setup_src = "the ECCE server" if remote else "the site"
+    site = "from server" if remote else "from site"
+    yours = "site value" if admin else "your value"
+    hdr_label = "From %s: submit.site (read-only)" % src
+
+    if admin:
+        setup_pre = """expect field blk:setup '%s'
+expect label tag:setup 'site value'
+expect shown blk:setup:site 0
+undo setup
+expect field blk:setup ''
+expect label tag:setup 'not set'
+expect shown blk:setup:none 0
+set blk:setup %s
+""" % (site_setup, esc(site_setup + "\nmodule load mine"))
+    else:
+        setup_pre = """expect field blk:setup ''
+expect field blk:setup:site '%s'
+expect label tag:setup '%s'
+expect label blk:setup:label 'From %s: CONFIG.cluster (read-only)'
+click blk:setup:copy
+expect field blk:setup '%s'
+expect label tag:setup 'your value'
+set blk:setup %s
+""" % (site_setup, site, setup_src, site_setup,
+       esc(site_setup + "\nmodule load mine"))
+    p = run(display, build, e, """
+select cluster
+tab job
+expect label tag:header '%(site)s'
+expect field blk:header:site %(hdr)s
+expect field blk:header ''
+expect label blk:header:label %(hdrlabel)s
+expect shown blk:header:site 1
+expect enabled blk:header:copy 1
+expect label tag:wrapup 'not set'
+expect shown blk:wrapup:site 0
+expect shown blk:wrapup:none 0
+expect shown condorallowtmp 0
+expect shown undo:header 0
+expect dirty 0
+expect save-enabled 0
+click blk:header:copy
+expect field blk:header %(hdr)s
+expect label tag:header '%(yours)s'
+expect shown undo:header 1
+expect dirty 1
+set blk:header %(hdr2)s
+%(setup)sset blk:wrapup 'echo done'
+expect label tag:wrapup '%(yours)s'
+wait 900
+expect dirty 1
+save
+expect dirty 0
+expect field blk:header %(hdr2)s
+expect field blk:wrapup 'echo done'
+expect label blk:setup:csh ''
+quit
+""" % dict(site=site, hdr=esc(header), hdr2=esc(header + "\n#SBATCH --qos=normal"),
+           hdrlabel=esc(hdr_label), yours=yours, setup=setup_pre),
+        args=args, extra=extra)
+    clean(p, "%s: copy the site text, edit three blocks, save" % mode)
+    c = cfg_blocks(edited)
+    check(c.get("slurm") == header + "\n#SBATCH --qos=normal" and
+          c.get("setup") == site_setup + "\nmodule load mine" and
+          c.get("wrapup") == "echo done" and
+          (c.get("nwchem") == "/site/nwchem") == admin,
+          "the file holds the three blocks and the old keys: %r" % c)
+    if admin:
+        check("# the site's cluster" in read(edited), "the file's comment is kept")
+        check(registration(e.ue) == user_before, "the user's files are untouched")
+    else:
+        check(digest(e.sc) == site_before, "siteconfig is untouched")
+    rows = explain(e, "cluster", admin)
+    check(rows["slurm"]["value"].strip() == c["slurm"] and
+          rows["slurm"]["source"] == ("site" if admin else "user") and
+          rows["setup"]["value"].strip() == c["setup"],
+          "gensub explain reports the edited blocks")
+    script = job_script(e, userhome)
+    check("#SBATCH --qos=normal" in script and
+          "#SBATCH --partition=short" in script and
+          script.count("--partition") == 1,
+          "the job script has the replaced header, once")
+    check("module load site\nmodule load mine" in script and "echo done" in script,
+          "the job script has the setup and wrap-up text")
+
+    # "no value": header and setup cleared, wrap-up changed
+    clear_setup = "" if admin else "expect enabled blk:setup 0\n"
+    p = run(display, build, e, """
+select cluster
+tab job
+click blk:header:none
+expect enabled blk:header 0
+expect label tag:header 'your value'
+click blk:setup:none
+%(clear)sset blk:wrapup 'echo done2'
+save
+expect dirty 0
+expect shown undo:header 1
+quit
+""" % dict(clear=clear_setup), args=args, extra=extra)
+    clean(p, "%s: no text for the header and setup" % mode)
+    c = cfg_blocks(edited)
+    if admin:
+        check(c.get("setup") == "-" or "setup" not in c, "admin setup: %r" % c)
+        check(c.get("slurm") == "-" and c.get("wrapup") == "echo done2",
+              "admin: header cleared, wrap-up changed: %r" % c)
+    else:
+        check(c.get("slurm") == "-" and c.get("setup") == "-" and
+              c.get("wrapup") == "echo done2",
+              "'-' is written for the cleared blocks: %r" % c)
+    script = job_script(e, userhome)
+    check("#SBATCH" not in script, "no scheduler header in the script")
+    check("module load" not in script and "echo done2" in script,
+          "no setup, new wrap-up")
+    check(not [l for l in script.splitlines() if l.strip() == "-"],
+          "no sentinel line in the script")
+
+    # back to the site: undo the header; replace the setup (not add to it)
+    setup_cmds = ("set blk:setup 'module load only'\n" if admin else
+                  "undo setup\nclick blk:setup:copy\n"
+                  "set blk:setup 'module load only'\n")
+    p = run(display, build, e, """
+select cluster
+tab job
+expect field blk:header ''
+expect label tag:header 'your value'
+undo header
+expect label tag:header '%(site)s'
+expect shown undo:header 0
+expect dirty 1
+%(setup)sset blk:wrapup ''
+save
+expect dirty 0
+quit
+""" % dict(site=site, setup=setup_cmds), args=args, extra=extra)
+    clean(p, "%s: undo the header, replace the setup, empty the wrap-up" % mode)
+    c = cfg_blocks(edited)
+    check("slurm" not in c and c.get("setup") == "module load only" and
+          "wrapup" not in c, "the file: header and wrap-up lines gone: %r" % c)
+    script = job_script(e, userhome)
+    check("#SBATCH --partition=short" in script and
+          "module load only" in script and "module load site" not in script,
+          "default header is back; the setup replaces the site's")
+    return e, edited, userhome, args, extra
+
+
+def job_script_advanced(tmp, display, build, mode, ctx):
+    print("job script tab, advanced edit file, " + mode)
+    e, edited, userhome, args, extra = ctx
+    good = "# raw\nnwchem: /raw/nwchem\nsetup {\n  module load raw\n}\nfoo: bar\n"
+    p = run(display, build, e, """
+select cluster
+tab job
+set blk:wrapup 'echo unsaved'
+answer cancel
+click edit-file
+expect raw-dialog 0
+expect dirty 1
+answer no
+click edit-file
+expect raw-dialog 1
+expect dirty 0
+expect field blk:wrapup ''
+expect contains raw:text 'module load only'
+set raw:text 'setup {\\nmodule load x'
+click raw:check
+expect contains raw:report 'Error'
+click raw:save
+expect raw-dialog 1
+expect message 'not closed'
+set raw:text 'setup {\\n  setenv A 1\\n  foreach i (a b)\\n  end\\n}\\nbogus: 1\\n'
+click raw:check
+expect contains raw:report 'Line 2 is csh'
+expect contains raw:report 'bogus'
+shot-dialog %(shot)s
+click raw:cancel
+expect raw-dialog 0
+click edit-file
+set raw:text %(good)s
+click raw:save
+expect raw-dialog 0
+expect dirty 0
+expect field blk:setup 'module load raw'
+expect field code:nwchem /raw/nwchem
+quit
+""" % dict(good=esc(good), shot=os.path.join(e.root, "dialog.png")),
+        args=args, extra=extra)
+    clean(p, "%s: edit the file as text, checks, cancel, save" % mode)
+    check(read(edited) == good, "the file is the text that was saved: %r"
+          % read(edited))
+    check(os.path.exists(os.path.join(e.root, "dialog.png")) and
+          os.path.getsize(os.path.join(e.root, "dialog.png")) > 1000,
+          "the dialog was captured")
+    script = job_script(e, userhome)
+    check("module load raw" in script, "the job script follows the file")
+    p = run(display, build, e, """
+select cluster
+tab job
+set blk:wrapup 'echo form'
+answer yes
+click edit-file
+expect raw-dialog 1
+expect contains raw:text 'echo form'
+click raw:cancel
+quit
+""", args=args, extra=extra)
+    clean(p, "%s: unsaved form changes are saved before the file opens" % mode)
+    check("echo form" in read(edited), "they were saved")
+
+
+def job_script_pngs(tmp, display, build, out):
+    print("job script tab PNGs")
+    os.makedirs(out, exist_ok=True)
+    e = Env(tmp, "job-pngs")
+    write(os.path.join(e.sc, "CONFIG.cluster"),
+          read(os.path.join(e.sc, "CONFIG.cluster")) +
+          "setup {\n  module load site\n}\n", mode=0o644)
+    hdr = explain(e, "cluster")["slurm"]["value"].strip()
+    p = run(display, build, e, """
+select cluster
+tab job
+wait 1000
+shot %(o)s/job-script-site.png
+click blk:header:copy
+set blk:header %(hdr)s
+wait 1000
+shot %(o)s/job-script-copied.png
+quit
+""" % {"o": out, "hdr": esc("#SBATCH --qos=normal\n" + hdr)})
+    clean(p, "job script PNGs")
+    write(os.path.join(e.ue, "CONFIG.cluster"),
+          "# my settings\nperlPath: /my/perl\nsetup {\n  module load mine\n"
+          "  setenv A 1\n}\nbogus: 1\n")
+    p = run(display, build, e, """
+select cluster
+tab job
+click edit-file
+click raw:check
+wait 1000
+shot-dialog %(o)s/job-script-edit-file.png
+click raw:cancel
+quit
+""" % {"o": out})
+    clean(p, "edit-file PNG")
+    for n in sorted(os.listdir(out)):
+        print("        " + os.path.join(out, n))
+
+
 def delete_prompt_lists_files(tmp, display, build):
     print("delete confirmation")
     e = Env(tmp, "del")
@@ -733,6 +1054,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--build", required=True)
     ap.add_argument("--snapshots")
+    ap.add_argument("--job-pngs")
     a = ap.parse_args()
     build = os.path.abspath(a.build)
     if not os.access(os.path.join(build, "machregister"), os.X_OK):
@@ -747,7 +1069,9 @@ def main():
         return 77
     tmp = tempfile.mkdtemp(prefix="ecce-machreg-")
     try:
-        if a.snapshots:
+        if a.job_pngs:
+            job_script_pngs(tmp, disp, build, os.path.abspath(a.job_pngs))
+        elif a.snapshots:
             snapshots(tmp, disp, build, os.path.abspath(a.snapshots))
             stage3_pngs(tmp, disp, build, os.path.abspath(a.snapshots))
         else:
@@ -758,6 +1082,9 @@ def main():
             admin_mode(tmp, disp, build)
             for m in ("user", "remote", "admin"):
                 connection_tab(tmp, disp, build, m)
+            for m in ("user", "remote", "admin"):
+                ctx = job_script_tab(tmp, disp, build, m)
+                job_script_advanced(tmp, disp, build, m, ctx)
     finally:
         disp.__exit__(None, None, None)
         shutil.rmtree(tmp, ignore_errors=True)
