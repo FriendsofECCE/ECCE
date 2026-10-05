@@ -153,6 +153,22 @@ Cube::~Cube()
 }
 
 
+// The grid list is as tall as its rows (one to four, then it scrolls), so
+// a single cube title does not take a third of the window.
+static void fitGridList(StringListCtrl *list)
+{
+  int rows = wxMax(1, wxMin(4, list->GetItemCount()));
+  wxRect r;
+  int rowHeight = list->GetItemCount() > 0 && list->GetItemRect(0, r)
+                ? r.height : list->GetCharHeight() + 8;
+  list->SetMinSize(wxSize(120, rows * rowHeight + 8));
+  if (wxWindow *panel = list->GetParent()) {
+    panel->InvalidateBestSize();
+    panel->Layout();
+  }
+}
+
+
 void Cube::refresh()
 {
   if (p_propGrids) {
@@ -210,6 +226,7 @@ void Cube::refresh()
     }
     p_labelChemSys->SetLabel(p_propGrids->getFrag().generateEmpiricalFormula());
   }
+  fitGridList(p_list);
 }
 
 
@@ -262,7 +279,7 @@ void Cube::initialize()
   ewxStaticText * labelTimes1 = new ewxStaticText(this, wxID_STATIC, "*");
   ewxStaticText * labelTimes2 = new ewxStaticText(this, wxID_STATIC, "*");
 
-  wxSizer * hmainsizer = new wxBoxSizer(wxHORIZONTAL);
+  wxSizer * vmainsizer = new wxBoxSizer(wxVERTICAL);
   wxSizer * vsizerRight = new wxBoxSizer(wxVERTICAL);
   wxSizer * hsizerChemSys = new wxBoxSizer(wxHORIZONTAL);
   wxFlexGridSizer * flexsizer = new wxFlexGridSizer(4, BORDER, BORDER);
@@ -270,9 +287,9 @@ void Cube::initialize()
   wxSizerFlags flexLabelFlags;
   flexLabelFlags.Align(wxALIGN_CENTER_VERTICAL);
 
-  SetSizer(hmainsizer);
+  SetSizer(vmainsizer);
 
-  // let's layout the right side of the panel first
+  // the controls, which go below the grid list
   hsizerChemSys->Add(p_labelChemSys, 1, wxALIGN_CENTER_VERTICAL|wxALL, BORDER);
   hsizerChemSys->Add(p_slider, 0, wxALL, BORDER);
   vsizerRight->Add(hsizerChemSys, 0, wxGROW);
@@ -289,12 +306,11 @@ void Cube::initialize()
 
   vsizerRight->Add(p_button, 0, wxGROW|wxALL, BORDER);
 
-  // now the left side, and while we're at it, the whole thing
-  hmainsizer->Add(p_list, 1, wxGROW|wxALL, BORDER);
-  hmainsizer->Add(vsizerRight);
+  vmainsizer->Add(p_list, 0, wxGROW|wxALL, BORDER);
+  vmainsizer->Add(vsizerRight, 0, wxGROW);
 
-  hmainsizer->Fit(this);
-  hmainsizer->SetSizeHints(this);
+  vmainsizer->Fit(this);
+  vmainsizer->SetSizeHints(this);
 
   // actually load the CUBE data
   refresh();
@@ -596,6 +612,7 @@ void Cube::OnCompute(wxCommandEvent& event)
     // select and show in list
     p_list->Append(name);
     p_list->SetSelection(name);
+    fitGridList(p_list);
   }
 }
 
