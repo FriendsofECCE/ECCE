@@ -3,6 +3,8 @@
 
 #include "wx/statusbr.h"
 #include "wx/bmpbuttn.h"
+#include "wx/button.h"
+#include "wx/statbmp.h"
 #include "wxgui/ewxStyledWindow.H"
 #include "dsm/ResourceDescriptor.H"
 
@@ -49,7 +51,8 @@ private:
   void Init();
   wxBitmap CreateBitmapForButton(bool on = false);
 
-  wxBitmapButton * p_save;
+  wxButton * p_save;
+  wxStaticBitmap * p_lock;
   WxState * p_runstate;
   FeedbackSaveHandler * p_saveHandler;
   string p_editStatus;
