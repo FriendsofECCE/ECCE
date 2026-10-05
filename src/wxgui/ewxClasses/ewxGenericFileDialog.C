@@ -525,6 +525,36 @@ void ewxGenericFileDialog::onServerChoice( wxCommandEvent &event )
 
 
 /**
+ * Turns what the user typed into an absolute path or URL: full URLs and (for
+ * local) absolute paths are kept, "/x" on a server is taken relative to the
+ * server root, anything else is relative to the listed directory.  The list's
+ * directory is "*" before its first GoToDir, so fall back to the mount.
+ */
+wxString ewxGenericFileDialog::resolvePath(const wxString& name,
+                                           const wxString& listDir)
+{
+  wxString dir = listDir;
+  if (dir.empty() || dir == wxT("*")) {
+    int n = p_serverChoice->GetSelection();
+    dir = n != wxNOT_FOUND ? wxString(p_lastDir[n]) : wxString(wxT("/"));
+  }
+
+  if (name.Contains(wxT("://"))) return name;
+  if (name.StartsWith(wxT("/"))) {
+    if (local) return name;
+    size_t scheme = dir.Find(wxT("://"));
+    size_t slash = scheme == (size_t) wxNOT_FOUND ? 0 :
+                   dir.find(wxT('/'), scheme + 3);
+    return dir.Left(slash) + name;
+  }
+  if (name == dir) return name;
+  if (!dir.EndsWith(wxT("/"))) dir += wxT("/");
+  return dir + name;
+}
+
+
+
+/**
  *
  */
 void ewxGenericFileDialog::HandleAction( const wxString &fn )
@@ -567,10 +597,14 @@ void ewxGenericFileDialog::HandleAction( const wxString &fn )
 
     if (filename.BeforeFirst(wxT('/')) == wxT("~"))
     {
-        filename = wxString(EDSIServerCentral::getUserHome(
-                            EcceURL(m_dir.c_str()).getEcceRoot()).toString()) +
-                            filename.Remove(0, 1);
-        dir = filename;
+        wxString home;
+        if (local) {
+          home = wxGetUserHome(wxString());
+        } else {
+          home = wxString(EDSIServerCentral::getUserHome(
+                          EcceURL(dir.ToStdString()).getEcceRoot()).toString());
+        }
+        filename = home + filename.Remove(0, 1);
     }
 #endif // __UNIX__
 
@@ -591,11 +625,7 @@ void ewxGenericFileDialog::HandleAction( const wxString &fn )
         }
     }
 
-    // make sure to convert the filename into an "absolute" url
-    if (filename != dir) {
-      dir += "/" + filename;
-      filename = dir;
-    }
+    filename = resolvePath(filename, dir);
 
     if (dirExists(filename))
     {

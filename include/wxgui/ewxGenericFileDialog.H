@@ -97,6 +97,7 @@ class ewxGenericFileDialog : public wxFileDialogBase
   protected:
     void doSetServerChoice( int serverIndex );
     void goToHomeDir();
+    wxString resolvePath(const wxString& name, const wxString& listDir);
     void createControls( bool bypassGenericImpl );
 
     ewxChoice        * p_serverChoice;
