@@ -7,8 +7,6 @@
 
 #include <wx/wx.h>
 
-#include <X11/Intrinsic.h>
-
 #include "inv/SoType.H"
 #ifdef OIV_COIN
 #include <Inventor/SbLinear.h>   // Coin headers do not pull this in transitively
@@ -243,18 +241,6 @@ public:
   virtual void addFinishCallback(SoWxViewerCB *f, void *userData = NULL);
   virtual void removeStartCallback(SoWxViewerCB *f, void *userData = NULL);
   virtual void removeFinishCallback(SoWxViewerCB *f, void *userData = NULL);
-
-  // copy/paste the view. eventTime should be the time of the X event
-  // which initiated the copy or paste (e.g. if copy/paste is initiated
-  // from a keystroke, eventTime should be the time in the X keyboard event.)
-  virtual void copyView(Time eventTime);
-  virtual void pasteView(Time eventTime);
-
-  //////////////////////////////////////
-  // @todo Not sure about this one
-  // redefine this routine to also correctly set the buffering type
-  // on the viewer.
-  virtual void setNormalVisual(XVisualInfo *);
 
   // This can be used to let the viewer know that the scene graph
   // has changed so that the viewer can recompute things like speed which
@@ -497,7 +483,6 @@ protected:
   // set the zbuffer on current window to correct state
   void setZbufferState();
   SbBool isZbufferOff();
-  void arrowKeyPressed(KeySym key);
 };
 
 #endif

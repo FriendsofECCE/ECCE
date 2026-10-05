@@ -437,7 +437,7 @@ void MoPanel::fillUI()
       //  all until they pressed Compute and hit its guard.
       getFW().showMessage("This calculation has no orbital energies, so "
             "orbitals cannot be computed.", false/*warning*/);
-      p_isValid = False;
+      p_isValid = false;
       return;
    }
 
@@ -486,7 +486,7 @@ void MoPanel::fillUI()
       WxVizToolFW& fw = getFW();
       fw.showMessage("This calculation does not have any MO "
             "coefficients.", false/*warning*/);
-      p_isValid = False;
+      p_isValid = false;
    }
 }
 
@@ -1055,7 +1055,7 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
       }
        */
    } else {
-      validField = False;
+      validField = false;
       ewxMessageDialog dlg(this, 
             "The grid value for this MO is 0.  This may be \n"
             "because this MO was NOT provided by the code or it \n"
