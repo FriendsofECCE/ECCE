@@ -304,7 +304,7 @@
                 <string name="proxy-Platform">"&lt;Any platform&gt;"</string>
               </document>
               <document>
-                <string name="title">"New Context\tCtrl+n: wxID_NEW"</string>
+                <string name="title">"New\tCtrl+n: wxID_NEW"</string>
                 <string name="type">"dialog-control-document"</string>
                 <string name="filename">""</string>
                 <string name="icon-name">"menuitem"</string>
@@ -318,7 +318,7 @@
                 <string name="event-handler-0">"wxEVT_COMMAND_MENU_SELECTED|OnNewClick"</string>
                 <string name="proxy-Id name">"wxID_NEW"</string>
                 <long name="proxy-Id value">5002</long>
-                <string name="proxy-Label">"New Context\tCtrl+n"</string>
+                <string name="proxy-Label">"New\tCtrl+n"</string>
                 <string name="proxy-Kind">"Normal"</string>
                 <bool name="proxy-Checked">0</bool>
                 <bool name="proxy-Enabled">1</bool>
@@ -327,7 +327,7 @@
                 <string name="proxy-Platform">"&lt;Any platform&gt;"</string>
               </document>
               <document>
-                <string name="title">"Open in New Context...\tCtrl+o: wxID_OPEN"</string>
+                <string name="title">"Open...\tCtrl+o: wxID_OPEN"</string>
                 <string name="type">"dialog-control-document"</string>
                 <string name="filename">""</string>
                 <string name="icon-name">"menuitem"</string>
@@ -341,7 +341,7 @@
                 <string name="event-handler-0">"wxEVT_COMMAND_MENU_SELECTED|OnOpenClick"</string>
                 <string name="proxy-Id name">"wxID_OPEN"</string>
                 <long name="proxy-Id value">5000</long>
-                <string name="proxy-Label">"Open in New Context...\tCtrl+o"</string>
+                <string name="proxy-Label">"Open...\tCtrl+o"</string>
                 <string name="proxy-Kind">"Normal"</string>
                 <bool name="proxy-Checked">0</bool>
                 <bool name="proxy-Enabled">1</bool>
@@ -350,7 +350,7 @@
                 <string name="proxy-Platform">"&lt;Any platform&gt;"</string>
               </document>
               <document>
-                <string name="title">"Close Context\tCtrl+w: wxID_CLOSE"</string>
+                <string name="title">"Close\tCtrl+w: wxID_CLOSE"</string>
                 <string name="type">"dialog-control-document"</string>
                 <string name="filename">""</string>
                 <string name="icon-name">"menuitem"</string>
@@ -364,7 +364,7 @@
                 <string name="event-handler-0">"wxEVT_COMMAND_MENU_SELECTED|OnCloseClick"</string>
                 <string name="proxy-Id name">"wxID_CLOSE"</string>
                 <long name="proxy-Id value">5001</long>
-                <string name="proxy-Label">"Close Context\tCtrl+w"</string>
+                <string name="proxy-Label">"Close\tCtrl+w"</string>
                 <string name="proxy-Kind">"Normal"</string>
                 <bool name="proxy-Checked">0</bool>
                 <bool name="proxy-Enabled">1</bool>

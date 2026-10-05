@@ -170,9 +170,9 @@ void BuilderGUI::CreateControls()
     wxMenu* itemMenu3 = new wxMenu;
     itemMenu3->Append(ID_IMPORT, _("Add Structure from File..."), _T(""), wxITEM_NORMAL);
     itemMenu3->Append(ID_IMPORTCALC, _("Import Calculation from Output File..."), _T(""), wxITEM_NORMAL);
-    itemMenu3->Append(wxID_NEW, _("New Context\tCtrl+n"), _T(""), wxITEM_NORMAL);
+    itemMenu3->Append(wxID_NEW, _("New\tCtrl+n"), _T(""), wxITEM_NORMAL);
     itemMenu3->Append(wxID_OPEN, _("Open...\tCtrl+o"), _T(""), wxITEM_NORMAL);
-    itemMenu3->Append(wxID_CLOSE, _("Close Context\tCtrl+w"), _T(""), wxITEM_NORMAL);
+    itemMenu3->Append(wxID_CLOSE, _("Close\tCtrl+w"), _T(""), wxITEM_NORMAL);
     itemMenu3->AppendSeparator();
     itemMenu3->Append(wxID_SAVE, _("Save\tCtrl+s"), _T(""), wxITEM_NORMAL);
     itemMenu3->Append(wxID_SAVEAS, _("Save As...\tCtrl+e"), _T(""), wxITEM_NORMAL);
