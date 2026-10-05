@@ -295,6 +295,14 @@ def processmachine(script=None):
         post(home, user, dict(BASE, qmgrPath="/opt/slurm/bin"), script=script)
         check("qmgrPath: /opt/slurm/bin" in (read(cfg) or ""),
               "qmgrPath alone is written")
+        check(os.access(cfg, os.W_OK),
+              "a file processmachine creates stays writable for the user")
+        os.chmod(cfg, 0o444)
+        post(home, user, dict(BASE, qmgrPath="/opt/pbs/bin"), script=script)
+        check("/opt/pbs/bin" in (read(cfg) or "") and
+              os.access(cfg, os.W_OK),
+              "a read-only user file (older versions) is written and left writable")
+        os.chmod(cfg, 0o644)
 
         # 5. the .Q file keeps what the GUI does not manage
         qfile = os.path.join(ue, "testhost.Q")
