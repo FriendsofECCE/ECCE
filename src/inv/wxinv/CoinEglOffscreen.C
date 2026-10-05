@@ -1,4 +1,5 @@
-#if defined(OIV_COIN) && defined(__linux__)
+#include "inv/SoWx/GlPlatform.H"
+#if defined(OIV_COIN) && ECCE_GL_X11
 
 #define GL_GLEXT_PROTOTYPES 1   // before any GL header: the FBO entry points
 #include <cstdio>
@@ -6,7 +7,6 @@
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
-#include <GL/glx.h>
 #include <GL/gl.h>
 #include <GL/glext.h>
 
@@ -27,7 +27,7 @@ struct Ctx {
   EGLContext ctx;
   GLuint fbo, color, depth;
   // What was current when we took over, to hand back in reinstate().
-  Display *glxDpy; GLXContext glxCtx; GLXDrawable glxDraw;
+  GlPlatform::Current prev;
 };
 
 EGLDisplay s_dpy = EGL_NO_DISPLAY;
@@ -54,13 +54,6 @@ bool openDisplay()
   return true;
 }
 
-// glvnd refuses eglMakeCurrent (EGL_BAD_ACCESS) while a GLX context, such as
-// the wx canvas's, is current on the thread.
-void releaseGlx(Display *dpy, GLXContext ctx)
-{
-  if (ctx && dpy) glXMakeCurrent(dpy, None, NULL);
-}
-
 cc_glglue_offscreen_data create(unsigned int w, unsigned int h)
 {
   if (!openDisplay()) return NULL;
@@ -68,16 +61,14 @@ cc_glglue_offscreen_data create(unsigned int w, unsigned int h)
                        EGL_CONTEXT_OPENGL_PROFILE_MASK,
                        EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT, EGL_NONE};
   Ctx *c = new Ctx();   // value-initialised: coinGlxFields stays zero
-  c->glxDpy = 0; c->glxCtx = 0; c->glxDraw = 0;
+  c->prev = GlPlatform::Current{0, 0, 0};
   c->ctx = eglCreateContext(s_dpy, s_cfg, EGL_NO_CONTEXT, xa);
   if (c->ctx == EGL_NO_CONTEXT) { delete c; return NULL; }
 
   // Creating the FBO needs the context current; put back what was there.
-  Display *pd = glXGetCurrentDisplay();
-  GLXContext pc = glXGetCurrentContext();
-  GLXDrawable pw = glXGetCurrentDrawable();
+  GlPlatform::Current prev = GlPlatform::current();
   EGLContext pe = eglGetCurrentContext();
-  releaseGlx(pd, pc);
+  GlPlatform::release(prev);
   if (!eglMakeCurrent(s_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, c->ctx)) {
     eglDestroyContext(s_dpy, c->ctx); delete c; return NULL;
   }
@@ -93,7 +84,7 @@ cc_glglue_offscreen_data create(unsigned int w, unsigned int h)
   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, c->depth);
   bool ok = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
   eglMakeCurrent(s_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, pe);
-  if (pc && pd) glXMakeCurrent(pd, pw, pc);
+  GlPlatform::restore(prev);
   if (!ok) { eglDestroyContext(s_dpy, c->ctx); delete c; return NULL; }
   return c;
 }
@@ -101,10 +92,8 @@ cc_glglue_offscreen_data create(unsigned int w, unsigned int h)
 SbBool makeCurrent(cc_glglue_offscreen_data d)
 {
   Ctx *c = (Ctx *)d;
-  c->glxDpy = glXGetCurrentDisplay();
-  c->glxCtx = glXGetCurrentContext();
-  c->glxDraw = glXGetCurrentDrawable();
-  releaseGlx(c->glxDpy, c->glxCtx);
+  c->prev = GlPlatform::current();
+  GlPlatform::release(c->prev);
   if (!eglMakeCurrent(s_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, c->ctx)) return FALSE;
   glBindFramebuffer(GL_FRAMEBUFFER, c->fbo);
   return TRUE;
@@ -116,23 +105,21 @@ void reinstate(cc_glglue_offscreen_data d)
 {
   Ctx *c = (Ctx *)d;
   eglMakeCurrent(s_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-  if (c->glxCtx && c->glxDpy) glXMakeCurrent(c->glxDpy, c->glxDraw, c->glxCtx);
+  GlPlatform::restore(c->prev);
 }
 
 void destruct(cc_glglue_offscreen_data d)
 {
   Ctx *c = (Ctx *)d;
-  Display *pd = glXGetCurrentDisplay();
-  GLXContext pc = glXGetCurrentContext();
-  GLXDrawable pw = glXGetCurrentDrawable();
-  releaseGlx(pd, pc);
+  GlPlatform::Current prev = GlPlatform::current();
+  GlPlatform::release(prev);
   eglMakeCurrent(s_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, c->ctx);
   glDeleteFramebuffers(1, &c->fbo);
   glDeleteRenderbuffers(1, &c->color);
   glDeleteRenderbuffers(1, &c->depth);
   eglMakeCurrent(s_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
   eglDestroyContext(s_dpy, c->ctx);
-  if (pc && pd) glXMakeCurrent(pd, pw, pc);
+  GlPlatform::restore(prev);
   delete c;
 }
 
