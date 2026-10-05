@@ -3,9 +3,9 @@
 //
 //
 // DESIGN:
-//   This class is intended to isolate the code for creating remote shells.
-//   Currently this class supports only xterm for the shell.  ECCE colors
-//   are used for the xterm colors.
+//   Terminals for a machine's shell or a command, local or over ssh, in
+//   the terminal chosen by ECCE_TERMINAL or the Terminal preference.  ECCE
+//   colors are used when that terminal is xterm.
 //
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -118,6 +118,15 @@ static string shWord(const string& s)
   return shQuote(s);
 }
 
+// A path as one shell word, leaving a leading ~ for the shell to expand.
+// RCommand's file operations take shell syntax, so paths go through this.
+static string shPath(const string& s)
+{
+  if (s == "~") return s;
+  if (s.compare(0, 2, "~/") == 0) return "~/" + shWord(s.substr(2));
+  return shWord(s);
+}
+
 static string baseName(const string& path)
 {
   string::size_type slash = path.rfind('/');
@@ -160,7 +169,7 @@ string EcceShell::remoteCommand(const string& mshell, const string& sourceFile,
   if (sourceFile.find('!') != string::npos || dir.find('!') != string::npos ||
       cmd.find('!') != string::npos) {
     error = "A '!' in a file name or command cannot be passed safely to the "
-            "remote login shell.";
+            "machine's shell.";
     return "";
   }
   const string m = mshell == "" ? "sh" : mshell;
@@ -174,13 +183,15 @@ string EcceShell::remoteCommand(const string& mshell, const string& sourceFile,
     inner = csh ? "if (-e " + sourceFile + ") source " + sourceFile :
                   "[ -e " + sourceFile + " ] && . " + sourceFile;
   if (inner != "") inner += "; ";
-  if (dir != "") inner += "cd " + shWord(dir) + " && ";
+  if (dir != "") inner += "cd " + shPath(dir) + " && ";
   inner += cmd != "" ? cmd : "exec $SHELL";
   return "exec " + m + " -c " + shQuote(inner);
 }
 
-bool EcceShell::terminalArgv(const SshTerminal& t, vector<string>& argv,
-                             string& error)
+// The configured terminal and its own arguments, then xterm's options when
+// it is xterm; other terminals do not share them.
+static bool terminalWords(const string& title, const string& geometry,
+                          vector<string>& argv, string& base, string& error)
 {
   argv.clear();
   std::istringstream is(UserEditor::getTerminal());
@@ -193,15 +204,14 @@ bool EcceShell::terminalArgv(const SshTerminal& t, vector<string>& argv,
     error = "Could not find terminal " + words[0] + " in path.";
     return false;
   }
-  const string base = baseName(words[0]);
+  base = baseName(words[0]);
 
   argv.push_back(path);
   for (size_t i = 1; i < words.size(); i++) argv.push_back(words[i]);
 
-  // Title, colours and geometry are xterm options.
   if (base == "xterm") {
     argv.push_back("-title");
-    argv.push_back(t.title);
+    argv.push_back(title);
     if (getenv("ECCE_XTERM_FONT")) {
       argv.push_back("-fn");
       argv.push_back(getenv("ECCE_XTERM_FONT"));
@@ -211,11 +221,68 @@ bool EcceShell::terminalArgv(const SshTerminal& t, vector<string>& argv,
     argv.push_back("-fg");
     argv.push_back(string(Color::TEXT));
     argv.push_back("-sb");
-    if (t.geometry != "") {
+    if (geometry != "") {
       argv.push_back("-geom");
-      argv.push_back(t.geometry);
+      argv.push_back(geometry);
     }
   }
+  return true;
+}
+
+// The options that start a terminal in dir, or none when it has no such
+// option (xterm, x-terminal-emulator, unknown ones): then the command cd's.
+// gnome-terminal runs the command in its server, not as our child, so the
+// directory cannot simply be inherited.
+static vector<string> workdirArgs(const string& base, const string& dir)
+{
+  vector<string> a;
+  if (base == "gnome-terminal" || base == "ptyxis" || base == "mate-terminal" ||
+      base == "xfce4-terminal" || base == "foot" || base == "footclient") {
+    a.push_back("--working-directory=" + dir);
+  } else if (base == "konsole") {
+    a.push_back("--workdir");
+    a.push_back(dir);
+  } else if (base == "kitty") {
+    a.push_back("--directory");
+    a.push_back(dir);
+  }
+  return a;
+}
+
+string EcceShell::shellQuote(const string& s)
+{
+  return shQuote(s);
+}
+
+bool EcceShell::localTerminalArgv(const LocalTerminal& t, vector<string>& argv,
+                                  string& error)
+{
+  string base;
+  if (!terminalWords(t.title, t.geometry, argv, base, error)) return false;
+
+  // "~" must reach a shell to be expanded.
+  vector<string> wd;
+  if (t.dir != "" && t.dir[0] == '/') wd = workdirArgs(base, t.dir);
+  argv.insert(argv.end(), wd.begin(), wd.end());
+
+  const string line = remoteCommand(t.mshell, t.sourceFile,
+                                    wd.empty() ? t.dir : "", t.cmd, error);
+  if (line == "") return false;
+
+  const string flag = execFlag(base);
+  if (flag != "") argv.push_back(flag);
+  argv.push_back("/bin/sh");
+  argv.push_back("-c");
+  argv.push_back(line);
+  return true;
+}
+
+bool EcceShell::terminalArgv(const SshTerminal& t, vector<string>& argv,
+                             string& error)
+{
+  string base;
+  if (!terminalWords(t.title, t.geometry, argv, base, error)) return false;
+
   const string flag = execFlag(base);
   if (flag != "") argv.push_back(flag);
 
@@ -317,9 +384,9 @@ string EcceShell::sshTerminal(RefMachine* refMachine, const string& shell,
 
   string dir, run;
   if (pathBase != "" && pathFull != "") {
-    if (rcmd.cd(pathFull.c_str())) {
+    if (rcmd.cd(shPath(pathFull))) {
       dir = pathFull;
-    } else if (rcmd.cd(pathBase.c_str())) {
+    } else if (rcmd.cd(shPath(pathBase))) {
       dir = pathBase;
       ret = "The calculcation directory on " + machineName + " does not "
             "exist--starting shell in base directory.";
@@ -330,7 +397,7 @@ string EcceShell::sshTerminal(RefMachine* refMachine, const string& shell,
   } else if (cmd != "") {
     run = cmd;
     if (pathFull != "") {
-      if (!rcmd.exists(pathFull.c_str())) {
+      if (!rcmd.exists(shPath(pathFull))) {
         p_status = -1;
         return "The file " + pathFull + " on " + machineName +
                " does not exist--cannot run remote command.";
@@ -401,102 +468,56 @@ string EcceShell::remoteShell
     return rcmd.commError();
   }
 
-  string execStr = shellCmd(title);
-  string args;
+  LocalTerminal t;
+  t.title = title;
+  t.mshell = refMachine->shell();
+  t.sourceFile = refMachine->sourceFile();
 
-  // this would be a dirshell() invocation
-  if (pathBase!="" && pathFull!="") {
-    args = refMachine->shell() + " -c \"";
-    if (refMachine->sourceFile() != "")
-      args += "source " + refMachine->sourceFile() + " && ";
-    if (rcmd.cd(pathFull.c_str())) {
-      args += "cd " + pathFull + " && $SHELL\"";
-    } else if (!rcmd.cd(pathBase.c_str())) {
-      args += "$SHELL\"";
-      ret = "The calculation and base directories on " + machineName +
-            " do not exist--starting shell in home directory.";
-    } else {
-      args += "cd " + pathBase + " && $SHELL\"";
+  if (pathBase != "" && pathFull != "") {
+    if (rcmd.cd(shPath(pathFull))) {
+      t.dir = pathFull;
+    } else if (rcmd.cd(shPath(pathBase))) {
+      t.dir = pathBase;
       ret = "The calculcation directory on " + machineName + " does not "
             "exist--starting shell in base directory.";
+    } else {
+      t.dir = "~";
+      ret = "The calculation and base directories on " + machineName +
+            " do not exist--starting shell in home directory.";
     }
-    execStr.append(" -e");
-
-  // this is a cmdshell() invocation
   } else if (cmd != "") {
-    args = cmd;
-
+    t.cmd = cmd;
     if (pathFull != "") {
-      if (!rcmd.exists(pathFull.c_str())) {
+      if (!rcmd.exists(shPath(pathFull))) {
         p_status = -1;
         return "The file " + pathFull + " on " + machineName +
                " does not exist--cannot run remote command.";
-      } else if (pathFull.find("amica.out") != string::npos) {
-        // this little bit of magic checks if any line is > 80 characters
-        // and overrides the default xterm width of 80 to 132 if it is
-        // GDB 12/3/02 only do this logic for Amica at the request of evorpa
+      }
+      t.geometry = "80x40";
+      if (pathFull.find("amica.out") != string::npos) {
         string pcmd = "perl -e 'open(INFILE, \"" + pathFull + "\"); "
                       "while (<INFILE>) {exit(0) if (length() > 81); "
                       "exit(1) if ($lines_in++ > 1000);} exit(1);'";
-        if (rcmd.exec(pcmd))
-          execStr.append(" -geom 132x40");
-        else
-          execStr.append(" -geom 80x40");
-      } else
-        execStr.append(" -geom 80x40");
+        if (rcmd.exec(pcmd)) t.geometry = "132x40";
+      }
     }
-    execStr.append(" -e");
-
-  // this is a topshell() invocation
   } else {
-    args = refMachine->shell() + " -c \"";
-    if (refMachine->sourceFile() != "")
-      args += "source " + refMachine->sourceFile() + " && ";
-    args += "cd ~ && $SHELL\"";
-    execStr.append(" -e");
+    t.dir = "~";
   }
 
   const string errorMessage = "Can't display to the local X server.";
-  string cmdErr;
-
   if (!rcmd.exec("xset q", errorMessage.c_str())) {
-    ret = rcmd.commError();
     p_status = -1;
-  } else if (!RCommand::bgcommand(execStr, args, cmdErr, machineName,
-                                  shell, user, password)) {
-    ret = cmdErr + " -- " + errorMessage;
-    p_status = -1;
+    return rcmd.commError();
   }
 
+  string error;
+  vector<string> argv;
+  if (!localTerminalArgv(t, argv, error) || !spawnDetached(argv, error)) {
+    p_status = -1;
+    return error;
+  }
   return ret;
-}
-
-
-/////////////////////////////////////////////////////////////////////////////
-// Description
-//  Return xterm command string.  Note that the colors must be quoted
-//  to work properly on local commands (system(3)) if the color is
-//  an X hex color which it most likely is.  This doesn't seem to
-//  cause problems for RCommand.
-/////////////////////////////////////////////////////////////////////////////
-string EcceShell::shellCmd(const string& title)
-{
-  char xtermStr[256];
-
-  string read = Color::READONLY;
-  string fg = Color::TEXT;
-
-  if (getenv("ECCE_XTERM_FONT"))
-    sprintf(xtermStr,
-            "xterm -fn \"%s\" -title \"%s\" -bg \"%s\" -fg \"%s\" -sb",
-            getenv("ECCE_XTERM_FONT"), title.c_str(), (char*)read.c_str(),
-            (char*)fg.c_str());
-  else
-    sprintf(xtermStr,
-            "xterm -title \"%s\" -bg \"%s\" -fg \"%s\" -sb",
-            title.c_str(), (char*)read.c_str(), (char*)fg.c_str());
-
-  return xtermStr;
 }
 
 
