@@ -25,7 +25,7 @@ describe 9.0.
 
 ## How ECCE is organised
 
-![ECCE can run on its own, with a projects folder on your disk and a private broker (A), or with an ECCE server, a data server and broker for one computer or a whole group (B). In both, the client submits jobs over ssh to a compute machine, a workstation or a cluster.](docs/images/ecce-architecture.svg)
+![ECCE has a client (the windows you use, which can keep projects in a local folder), an optional ECCE server (a data server and a message broker), and compute machines where calculations run. It runs on its own, on one computer with a server, or against a central server.](docs/images/ecce-architecture.svg)
 
 The **client** (`ecce-client`) is the windows you work in. It can run **on
 its own** (A): you keep your projects in a folder on your disk
