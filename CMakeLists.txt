@@ -1767,6 +1767,9 @@ if(PYTHON3_EXECUTABLE)
   # tests/queues/configdump: RefMachine::config() for config_test.py.
   add_executable(configdump tests/queues/configdump.C)
   target_link_libraries(configdump PRIVATE eccetdat ecceutil)
+  # tests/queues/configedit: ConfigFile, MachineConfigDraft and MiniJson.
+  add_executable(configedit tests/queues/configedit.C)
+  target_link_libraries(configedit PRIVATE eccetdat ecceutil)
   # tests/queues/pmform: the GUI's processmachine form encoder.
   add_executable(pmform tests/queues/pmform.C)
   target_link_libraries(pmform PRIVATE ecceutil)
@@ -1875,6 +1878,13 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
   set_tests_properties(queues_config PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
+  add_test(NAME queues_configedit
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/configedit_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
+  set_tests_properties(queues_configedit PROPERTIES TIMEOUT 300
+                       SKIP_RETURN_CODE 77)
   add_test(NAME queues_publish
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/publish_test.py
