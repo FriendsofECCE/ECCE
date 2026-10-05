@@ -338,7 +338,8 @@ class Suite(object):
 
     def userUrl(self):
         if self.args.local:
-            return "file://%s/users/%s" % (self.localData(), self.user())
+            # Local mode's home is always users/local (#216).
+            return "file://%s/users/local" % self.localData()
         import fixture
         return "%s/users/%s" % (fixture.base().rsplit("/users/", 1)[0], self.user())
 
@@ -582,7 +583,7 @@ class Suite(object):
                if l.startswith("run directory:")]
         if not self.remote():
             want = os.path.join(self.state, "jobs", os.path.relpath(
-                calc, os.path.join(self.localData(), "users", self.user())))
+                calc, os.path.join(self.localData(), "users", "local")))
             self.check(ran and ran[-1] == want, "the run directory has the "
                        "server-mode layout: %s" % (ran[-1] if ran else None))
 
