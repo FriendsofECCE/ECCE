@@ -25,13 +25,19 @@ describe 9.0.
 
 ## How ECCE is organised
 
-![ECCE has three parts: the client (the windows you use), the ECCE server (a data server that stores your work and a message broker), and the compute machines where calculations run.](docs/images/ecce-architecture.svg)
+![Two ways to run ECCE. With an ECCE server (the default on one computer, or a central server for a lab or class): the client saves to and loads from the server, which holds the data server and message broker. On its own (optional): the client keeps its data in a local folder with its own broker, and there is no ECCE server. In both, the client's job agent submits jobs over ssh to a compute machine and follows them.](docs/images/ecce-architecture.svg)
 
-The **ECCE server** stores your projects and results; it is not where
-calculations run. Calculations run on a **compute machine**, a workstation
-or an HPC cluster: the client submits each job there over ssh and stores
-the results on the ECCE server. On a single computer all of
-this is installed and started for you.
+The **client** (`ecce-client`) is the windows you work in, plus a job agent
+that submits and follows jobs. Normally it works with an **ECCE server**
+(`ecce-server`: a data server and a message broker) that stores projects
+and results. That is the default: both packages on one computer, started
+for you. For a lab or class, one central server serves many clients. The
+client can instead run **on its own**, keeping its data in a folder on
+your disk (Edit → Preferences → Data folder, off by default); it still
+starts a private broker, which needs the `mosquitto` package, but no ECCE
+server. Neither server nor client runs calculations: they run on a
+**compute machine**, a workstation or an HPC cluster, where the client
+submits each job over ssh.
 
 ## General features
 
