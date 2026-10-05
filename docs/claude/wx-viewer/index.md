@@ -23,6 +23,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [`wxEXPAND|wxALIGN_CENTER` on the same sizer item](wxexpand-wxalign-center-on-the-same-sizer.md)
 - [`wxFIXED_MINSIZE`](wxfixed-minsize.md)
 - [Every drop-down is at least as wide as its widest entry](drop-down-min-width.md)
+- [Run-state colours: Okabe-Ito hues; same-shape states differ in lightness, checked by tests/look/contrast.py](run-state-colours.md)
 - [`std::map`/`unordered_set` iterator invalidation](std-map-unordered-set-iterator-invalidation.md)
 - [Uncontrolled format strings](uncontrolled-format-strings.md)
 - [`EcceException::what()`](ecceexception-what.md)

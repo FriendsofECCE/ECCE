@@ -10,6 +10,13 @@ logs.  Each has a light and a dark variant, and each variant must reach a
 WCAG 2 contrast ratio of 4.5:1 against every background it is drawn on,
 in the theme family it belongs to.
 
+Run states whose icons share a shape (WxState::draw: triangle, circle,
+diamond) are told apart by colour alone, so each such pair must also differ
+by a CIEDE2000 of at least 10 with normal vision and with simulated
+deuteranopia, protanopia and tritanopia (cvd.py), and by at least 10 in
+lightness (L*): the icons are about a dozen pixels across, where hue alone
+is hard to judge (submitted and running were once both L* 44).
+
 The backgrounds are Adwaita's (GTK 3.24): a view's base colour and a
 window's background colour.  The tables are read from the files the
 program itself reads, so this cannot pass while the program shows
@@ -21,6 +28,9 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import cvd  # noqa: E402
+
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 MINIMUM = 4.5
 
@@ -29,6 +39,13 @@ BACKGROUNDS = {
     "dark": {"view": "#2d2d2d", "window": "#353535"},
 }
 TEXT = {"light": "#2e3436", "dark": "#eeeeec"}
+
+# Pairs drawn with the same icon shape (LOADED shares COMPLETED's colour).
+SAME_SHAPE = [("CREATED", "READY"), ("SUBMITTED", "RUNNING"),
+              ("UNSUCCESSFUL", "FAILED"), ("UNSUCCESSFUL", "SYSTEM"),
+              ("FAILED", "SYSTEM")]
+MIN_DELTA_E = 10.0
+MIN_DELTA_L = 10.0
 
 STATES = ["CREATED", "READY", "SUBMITTED", "RUNNING", "COMPLETED", "KILLED",
           "UNSUCCESSFUL", "FAILED", "LOADED", "SYSTEM"]
@@ -95,6 +112,31 @@ def main():
                 continue
             for where, bg in BACKGROUNDS[family].items():
                 check("run state %s (%s)" % (state.lower(), family), colour, bg, where)
+
+    for family in ("light", "dark"):
+        for a, b in SAME_SHAPE:
+            ca, cb = shipped.get((a, family)), shipped.get((b, family))
+            if ca is None or cb is None:
+                continue
+            checked += 1
+            dl = abs(cvd.lab(cvd.linear(ca))[0] - cvd.lab(cvd.linear(cb))[0])
+            line = "run states %s/%s (%s) dL* %.1f" % (a.lower(), b.lower(),
+                                                      family, dl)
+            if dl < MIN_DELTA_L:
+                failures.append(line)
+                print("FAIL " + line)
+            elif "-v" in sys.argv:
+                print("ok   " + line)
+            for kind in cvd.KINDS:
+                checked += 1
+                value = cvd.delta(ca, cb, kind)
+                line = "run states %s/%s (%s) %s  dE00 %.1f" % (
+                    a.lower(), b.lower(), family, kind, value)
+                if value < MIN_DELTA_E:
+                    failures.append(line)
+                    print("FAIL " + line)
+                elif "-v" in sys.argv:
+                    print("ok   " + line)
 
     #  WxState.C's tables are indexed by RUNSTATE, which starts with
     #  ILLEGAL and ends with the LAST sentinel; the ten real states sit

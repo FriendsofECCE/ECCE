@@ -17,6 +17,7 @@ prints where each one resolves.
     tests/launch/run_tests.py [--build build-native] [--keep] [-v]
     tests/launch/run_tests.py --nwchem-restart     # #202: relaunch a finished NWChem job
     tests/launch/run_tests.py --local              # #216: data in a local folder
+    tests/launch/run_tests.py --folder             # calc in a plain folder (Save As)
     tests/launch/run_tests.py --machine sshtest --remote-user bashuser \
                               [--drop]
 
@@ -336,7 +337,14 @@ class Suite(object):
     def user(self):
         return self.env()["ECCE_REALUSER"]
 
+    def folder(self):
+        return os.path.join(self.state, "folder")
+
     def userUrl(self):
+        if self.args.folder:
+            # A plain folder, as Builder > Save As to the Local Filesystem.
+            os.makedirs(self.folder(), exist_ok=True)
+            return "file://" + self.folder()
         if self.args.local:
             # Local mode's home is always users/local (#216).
             return "file://%s/users/local" % self.localData()
@@ -547,7 +555,7 @@ class Suite(object):
         say("  properties: " + " ".join(props))
         for prop in REQUIRED_PROPS:
             self.check(prop in props, "%s present in Props/" % prop)
-        if self.args.local:
+        if self.args.local or self.args.folder:
             self.checkLocalStore(url, launchOut)
         if self.remote():
             self.checkRemoteRun(rundir, name)
@@ -561,8 +569,10 @@ class Suite(object):
         """#216: the results are files in the calculation's own folder."""
         calc = url[len("file://"):] if url.startswith("file://") else url
         calc = calc.rstrip("/")
-        self.check(calc.startswith(self.localData() + "/"),
-                   "the calculation is in the local data folder: %s" % calc)
+        base = (self.folder() if self.args.folder
+                else os.path.join(self.localData(), "users", "local"))
+        self.check(calc.startswith(base + "/"),
+                   "the calculation is in %s: %s" % (base, calc))
         outputs = os.listdir(os.path.join(calc, "Outputs"))
         say("  Outputs/: %s" % " ".join(sorted(outputs)))
         self.check("mopac.mopout" in outputs, "the output file was stored "
@@ -582,8 +592,16 @@ class Suite(object):
         ran = [l.split(":", 1)[1].strip() for l in launchOut.splitlines()
                if l.startswith("run directory:")]
         if not self.remote():
-            want = os.path.join(self.state, "jobs", os.path.relpath(
-                calc, os.path.join(self.localData(), "users", "local")))
+            # Outside the data folder, the run directory follows the path
+            # below the user's home directory.
+            home = self.env().get("HOME", "")
+            if not self.args.folder:
+                below = os.path.relpath(calc, base)
+            elif home and calc.startswith(home.rstrip("/") + "/"):
+                below = os.path.relpath(calc, home)
+            else:
+                below = calc.lstrip("/")
+            want = os.path.join(self.state, "jobs", below)
             self.check(ran and ran[-1] == want, "the run directory has the "
                        "server-mode layout: %s" % (ran[-1] if ran else None))
 
@@ -840,6 +858,9 @@ def main():
     parser.add_argument("--local", action="store_true",
                         help="#216: keep the data in a local folder "
                         "(ECCE_LOCAL_DATA) instead of a data server")
+    parser.add_argument("--folder", action="store_true",
+                        help="create the calculation in a plain local folder, "
+                        "as Builder > Save As to the Local Filesystem does")
     parser.add_argument("--keep", action="store_true",
                         help="leave the services running afterwards")
     parser.add_argument("-v", "--verbose", action="store_true")
@@ -867,6 +888,7 @@ def main():
     install = treeInstall(state, build)
     settings = isolate.apply(install, state)
     home = settings["ECCE_HOME"]
+    shutil.rmtree(os.path.join(state, "folder"), ignore_errors=True)
     if args.local:
         #  Local mode must not need it; its absence proves it is not read.
         os.unlink(os.path.join(home, "siteconfig", "DataServers"))

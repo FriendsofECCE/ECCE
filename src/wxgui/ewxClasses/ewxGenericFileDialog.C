@@ -873,7 +873,7 @@ bool ewxGenericFileDialog::fileExists(wxString filename)
 {
   bool ret = false;
   if (local) {
-    ret = wxFileExists(filename);
+    ret = wxFileExists(filename) || ewxFileData::isLocalDocument(filename);
   } else {
     Resource *resource = EDSIFactory::getResource(EcceURL(filename));
     ret = (resource && resource->isValid());
@@ -890,7 +890,7 @@ bool ewxGenericFileDialog::dirExists(wxString filename)
 {
   bool ret = false;
   if (local) {
-    ret = wxDirExists(filename);
+    ret = wxDirExists(filename) && !ewxFileData::isLocalDocument(filename);
   } else {
     Resource *resource = EDSIFactory::getResource(EcceURL(filename.c_str()));
     if (!resource) ret = false;
