@@ -20,9 +20,10 @@ Things that are easy to get wrong:
   and block bodies with `}` in column 0. A single-line value containing `{` is
   written as a block, because the readers split `key: a{b}` as a one-line block.
 - `save()` writes a temporary file beside the target, `fsync`s and renames
-  (through a symlink), always leaves the owner able to write (older versions
-  locked `~/.ECCE` files, and a 0444 site file is not re-locked as
-  `processmachine` does), and **deletes the file when only comments and blank
+  (through a symlink), leaves the owner able to write, except that a site
+  file (`setSiteFile(true)`, admin mode) that was read-only when loaded is
+  locked again, as `processmachine` does; user files stay writable. It
+  **deletes the file when only comments and blank
   lines remain after an edit**, as `processmachine` does.
 - Warnings (unclosed block, `}` not in column 0, a key with no value) are
   reported, never fatal: the readers skip them silently.

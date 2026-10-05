@@ -1933,6 +1933,15 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
   set_tests_properties(queues_configedit PROPERTIES TIMEOUT 300
                        SKIP_RETURN_CODE 77)
+  # Register Machines through its real window under Xvfb (test hook), user,
+  # -remote and -admin; SKIPs without Xvfb.
+  add_test(NAME machregister_gui
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister/gui_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister)
+  set_tests_properties(machregister_gui PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   add_test(NAME queues_publish
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/publish_test.py

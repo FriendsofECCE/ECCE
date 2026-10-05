@@ -5,187 +5,198 @@
  *  Utility to allow registration functions for calculation servers.
  *  Supports adding/editing/deleting of registered Machine instances.
  *  Usually this is invoked from the Gateway, but can be invoked from
- *  the command line via "ecce -admin".  In this mode, the use of the
- *  utility is intended for administrators, and a correspondingly more
- *  complete interface is displayed.
+ *  the command line via "ecce -admin", which edits the site files instead
+ *  of the user's own.
  *
- *
+ *  One machine at a time is edited in a tabbed frame.  What the form holds
+ *  is tracked by a MachineConfigDraft (the CONFIG.<machine> keys, the
+ *  Machines line and the queues) so that "unsaved" is a comparison with what
+ *  was loaded, not a flag.
  */
-
 
 #ifndef WXMACHINEREGISTER_HH
 #define WXMACHINEREGISTER_HH
 
-#define ID_TEXT_APPLICATIONS_ROOT 11100
-
-#include <algorithm>
-    using std::find;
+#include <deque>
+#include <map>
 #include <string>
-    using std::string;
 #include <vector>
+    using std::string;
     using std::vector;
 
 #include "wx/frame.h"
 #include "wx/msgdlg.h"
 
+#include "tdat/MachineConfigDraft.H"
 #include "tdat/RefMachine.H"
 
 #include "util/Preferences.H"
 
-//#include "wxgui/ewxWindowUtils.H"
+#include "wxgui/ewxFrame.H"
 
-#include "WxMachineRegisterGUI.H"
-
+class wxPanel;
+class wxSpinCtrlDouble;
+class wxListCtrl;
+class wxListEvent;
+class wxNotebook;
+class wxStaticText;
 class ewxButton;
 class ewxCheckBox;
 class ewxChoice;
-class ewxListBox;
 class ewxScrolledWindow;
 class ewxSpinCtrl;
 class ewxStaticText;
 class ewxTextCtrl;
+class MachRegScript;
 
-class WxMachineRegister: public WxMachineRegisterGUI
+class WxMachineRegister: public ewxFrame
 {
     public:
-        /// Constructor, Destructor
-        WxMachineRegister(      wxWindow* parent,
-                      const bool admin = false,
-                            wxWindowID id = SYMBOL_WXMACHINEREGISTERGUI_IDNAME,
-                      const wxString& caption = SYMBOL_WXMACHINEREGISTERGUI_TITLE,
-                      const wxPoint& pos = SYMBOL_WXMACHINEREGISTERGUI_POSITION,
-                      const wxSize& size = SYMBOL_WXMACHINEREGISTERGUI_SIZE,
-                       long style = SYMBOL_WXMACHINEREGISTERGUI_STYLE);
+        WxMachineRegister(wxWindow* parent, const bool admin = false);
         virtual ~WxMachineRegister();
 
-        //  Event Handlers
-        void mainWindowCloseCB(wxCloseEvent& event);
-        void machinesListBoxSelectedCB(wxCommandEvent& event);
-        void machineFullNameUpdatedCB(wxCommandEvent& event);
-        void machineRefNameUpdatedCB(wxCommandEvent& event);
-        void queueChoiceboxSelectedCB(wxCommandEvent& event);
-        void queueChangeButtonClickedCB(wxCommandEvent& event);
-        void queueRemoveButtonClickedCB(wxCommandEvent& event);
-        void queueClearButtonClickedCB(wxCommandEvent& event);
-        void machineChangeButtonClickedCB(wxCommandEvent& event);
-        void machineDeleteButtonClickedCB(wxCommandEvent& event);
-        void formClearButtonClickedCB(wxCommandEvent& event);
-        void formCloseButtonClickedCB(wxCommandEvent& event);
-        void helpButtonClickedCB(wxCommandEvent& event);
-        void machineVendorTextEnterCB(wxCommandEvent& event);
-
+        /// Select a machine in the list; asks about unsaved changes first.
         bool selectMachine(string refName);
 
-
-
-    protected:
-        //  User interface components
-        ewxTextCtrl         *p_machineFullNameText,
-                            *p_machineRefNameText,
-                            *p_machineVendorText,
-                            *p_machineModelText,
-                            *p_machineProcessorText,
-                            *p_queueNameText;
-
-        ewxSpinCtrl         *p_machineNumProcsSpin,
-                            *p_machineNumNodesSpin,
-                            *p_queueMinProcsSpin,
-                            *p_queueMaxProcsSpin,
-                            *p_queueMaxWallSpin,
-                            *p_queueMaxMemorySpin,
-                            *p_queueMinScratchSpin;
-
-        ewxChoice           *p_queueManagerChoicebox,
-                            *p_queuesChoicebox;
-
-        ewxCheckBox         *p_queueAllctnAcctsCheckbox;
-
-        ewxButton           *p_queueAcceptButton,
-                            *p_queueRemoveButton,
-                            *p_queueClearButton,
-                            *p_machineChangeButton,
-                            *p_machineDeleteButton,
-                            *p_formClearButton,
-                            *p_formCloseButton,
-                            *p_helpButton;
-
-        vector<ewxCheckBox*>    p_remshellsCheckboxes;
-        vector<ewxTextCtrl*>    p_miscPathsText;
-        vector<ewxTextCtrl*>    p_codePaths;       //  This is where the codes are being stored.
-
-        ewxListBox          *p_machinesList;
-
-        //  Where jobs for a machine naming this host run (#144).
-        ewxStaticText       *p_localityText;
-
-        //  The whole form (Machine/Name grid through Queues), as one
-        //  scrolling box below the machine list, above the button row
-        //  (#187).
-        ewxScrolledWindow   *p_formScroll;
-
+        /// Open on a tab by name (machine, connection, codes, job, queues).
+        bool showPage(const string& name);
 
     private:
-        void initialize();
-        void loadMachinesList();
-        void refreshControls();
-        void refreshLocality();
+        friend class MachRegScript;
 
-        //  #187: size the scrolled form and the frame's minimum so the
-        //  button row always fits; fitWholeForm also opens the frame at
-        //  the form's full size, capped to the display.
+        struct Row { string name, from; };
+
+        //  Construction
+        void createControls();
+        wxWindow* createMachinePage(wxWindow* parent);
+        wxWindow* createConnectionPage(wxWindow* parent);
+        wxWindow* createCodesPage(wxWindow* parent);
+        wxWindow* createJobScriptPage(wxWindow* parent);
+        wxWindow* createQueuesPage(wxWindow* parent);
+        ewxScrolledWindow* newPage(wxWindow* parent, wxSizer* sizer);
+        void loadQueueManagerList();
+
+        //  Event handlers
+        void onClose(wxCloseEvent& event);
+        void onListSelected(wxListEvent& event);
+        void onFullNameText(wxCommandEvent& event);
+        void onFieldChanged(wxCommandEvent& event);
+        void onQueueChoice(wxCommandEvent& event);
+        void onQueueApply(wxCommandEvent& event);
+        void onQueueRemove(wxCommandEvent& event);
+        void onQueueClear(wxCommandEvent& event);
+        void onSave(wxCommandEvent& event);
+        void onDelete(wxCommandEvent& event);
+        void onNew(wxCommandEvent& event);
+        void onCloseButton(wxCommandEvent& event);
+        void onHelp(wxCommandEvent& event);
+
+        //  The machine list
+        void loadMachinesList();
+        int findRow(const string& name) const;
+        bool fromSite() const;
+
+        //  Loading and showing a machine
+        void loadMachine(const string& refName);
+        void showNewMachine();
+        MachineConfigDraft* newDraft(const string& refName) const;
+        void draftToControls();
+        void clearQueues();
+        void loadQueues(const string& refName);
+        void fillQueues();
+        void showQueue(const string& name = "");
+        void showSiteBanner();
+
+        //  Dirty tracking
+        void syncDraft();
+        void syncKey(MachineConfigDraft* draft, const string& key,
+                     const string& text);
+        void syncKeys(MachineConfigDraft* draft);
+        void updateDirty();
+        bool isDirty();
+        bool hasMinimalInput();
+        bool queueFormDiffers() const;
+        MachineConfigDraft::QueueRow queueFormRow() const;
+        void updateQueueButtons();
+        int confirmUnsaved(const string& discardLabel);
+        bool resolveUnsaved(const string& discardLabel);
+
+        //  Queues
+        bool applyQueueForm();
+        void removeQueue();
+
+        //  Saving and deleting
+        bool save();
+        bool verifyInput();
+        string collectSettings() const;
+        bool writeConfig(const string& name, string& err);
+        bool deleteMachine();
+        string removalList(const string& refName) const;
+        void redo(const string& refName);
+
+        //  Dialogs; every one goes through ask()/displayMessage() so the
+        //  test hook can answer them.
+        int ask(const string& title, const string& message, const string& ext,
+                long style, const string& yes, const string& no,
+                const string& cancel);
+        void displayMessage(const string& mesg);
+        void notifyUpdate();
+
+        //  Sizing (#187) and the locality note (#144)
         void growToFitSizer(bool fitWholeForm = false);
         wxSize maxClientSizeForDisplay();
         void keepOnScreen();
-
+        void refreshLocality();
+        void updateFooter();
+        string editedBase() const;
         void saveSettings(Preferences& prefs);
         void restoreSettings(Preferences& prefs);
-        void loadQueueManagerList();
 
-        void loadConfig(string refName);
-        void loadQueues(string refName);
-        void fillQueues();
-        void showQueue(string refName = "");
-        void removeQueue();
-        vector<string> getConfigFileNames(string refName) const;
-        void acceptChanges();
-        bool verifyInput();
-        int removeMachine(const string& refName);
-        bool confirmRemove(string refName);
-        bool hasMinimalInput();
+        //  Test hook support
+        wxWindow* field(const string& name) const;
+        void reg(const string& name, wxWindow* w);
 
-        void clearForm();
-        void clearQueues();
-        string collectSettings() const;
-        void displayMessage(string mesg);
-        void redo(string refName);
-        void reset();
+        wxNotebook          *p_book;
+        wxListCtrl          *p_list;
+        wxPanel             *p_info;
+        wxStaticText        *p_infoText;
+        wxStaticText        *p_storeNote;   // names the files Save writes
+        wxStaticText        *p_connNote, *p_jobNote;
+        ewxStaticText       *p_localityText;
+        ewxTextCtrl         *p_fullName, *p_refName, *p_vendor, *p_model,
+                            *p_proc, *p_queueName;
+        ewxSpinCtrl         *p_procs, *p_nodes, *p_qMinProcs, *p_qMaxProcs,
+                            *p_qMaxMem, *p_qMinScratch;
+        wxSpinCtrlDouble    *p_qMaxWall;   // hours; stored as minutes
+        ewxChoice           *p_qmgrChoice, *p_queueChoice;
+        ewxCheckBox         *p_allocAccts;
+        ewxButton           *p_queueApply, *p_queueRemoveButton,
+                            *p_queueClearButton, *p_saveButton,
+                            *p_deleteButton, *p_newButton, *p_closeButton,
+                            *p_helpButton;
+        vector<ewxTextCtrl*> p_codePaths;
+        ewxTextCtrl         *p_perlPath, *p_qmgrPath;
+        vector<string>       p_codeNames;
+        std::map<string, wxWindow*> p_fields;
 
-        void notifyUpdate();
-        bool confirmExit();
-        bool saveRegistration();
-        int  confirmUnsavedQueues();
+        bool                 p_adminFlag;
+        bool                 p_inCtrlUpdate;
+        bool                 p_inListUpdate;
+        bool                 p_closing;
+        string               p_autoRefName;
+        string               p_loadedName;   // "" for a new machine
+        string               p_loadedFrom;   // yours, site, server
+        vector<Row>          p_rows;
+        RefMachine          *p_slctRgstn;
 
-        //  Private Variables
-        bool                    p_adminFlag;
-        //  The form holds an unshadowed site machine, so its CONFIG and
-        //  submit.site come from siteconfig (#104).
-        bool                    p_prefillFromSite;
-        bool                    p_queuesDirty;  // queue list edited, not yet written by processmachine
-        EcceMap                *p_config;
-        vector<string>          p_qnames;
-        vector<int>             p_minProcs;
-        vector<int>             p_maxProcs;
-        vector<int>             p_maxWall;
-        vector<int>             p_maxMem;
-        vector<int>             p_minScratch;
-        vector<string>          p_codeNames;
-        vector<string>          p_shellNames;
+        MachineConfigDraft  *p_draft;
+        vector<MachineConfigDraft::QueueRow> p_queues;
+        MachineConfigDraft::QueueRow p_queueFormBase;
 
-        RefMachine             *p_slctRgstn;
-        bool                    p_inCtrlUpdate;
-        string                  p_autoRefName;
-
-        string                  p_slctQueue;
+        //  Test hook only; empty otherwise.
+        std::deque<int>      p_answers;
+        bool                 p_scripted;
+        string               p_lastMessage;
 
 };
 

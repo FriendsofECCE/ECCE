@@ -77,6 +77,11 @@ public:
   // named "merged".
   void loadMerged(const std::map<std::string,std::string>& merged);
 
+  // Without gensub: the given keys from the site and edited files alone
+  // (the site file is the only inherited layer; admin has none).  For
+  // callers that manage a few keys and need no provenance beyond that.
+  void loadFiles(const std::vector<std::string>& keys);
+
   Mode mode() const { return p_mode; }
   // The file this session writes.
   const std::string& editedFile() const;

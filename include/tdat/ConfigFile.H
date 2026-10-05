@@ -69,6 +69,9 @@ public:
   // always leaves the owner able to write.  Deletes the file when only
   // comments and blank lines remain after an edit.
   bool save(std::string* err = 0);
+  // A site file that was read-only when loaded is locked again by save(),
+  // as processmachine does; user files are always left writable.
+  void setSiteFile(bool site) { p_site = site; }
 
 private:
   void index();
@@ -76,6 +79,7 @@ private:
   std::string p_path;
   bool p_exists;
   bool p_modified;
+  bool p_site;
   bool p_finalNewline;
   std::vector<std::string> p_lines;
   std::vector<Entry> p_entries;

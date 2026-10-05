@@ -74,7 +74,12 @@ static int fileCmd(int argc, char** argv)
     std::cerr << "cannot read " << argv[2] << std::endl;
     return 1;
   }
-  for (int i = 3; i < argc; ) {
+  int i = 3;
+  if (i < argc && string(argv[i]) == "--site-file") {
+    f.setSiteFile(true);
+    i++;
+  }
+  for (; i < argc; ) {
     string op = argv[i];
     string err;
     if (op == "set" && i + 2 < argc) {
@@ -190,6 +195,7 @@ static int draftCmd(int argc, char** argv)
   }
   if (write) {
     ConfigFile f;
+    f.setSiteFile(d.mode() == MachineConfigDraft::AdminMode);
     if (!f.load(d.editedFile()) || !d.applyTo(f, err) || !f.save(&err)) {
       std::cout << "WRITE FAILED " << err << std::endl;
       return 3;

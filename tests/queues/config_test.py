@@ -449,6 +449,17 @@ def processmachine(script=None, encoder=None):
         check(qt.splitlines()[0].split().count("testhost") == 1,
               "the machine is listed once")
 
+        # 7. config=external: the GUI writes CONFIG.<m> itself, so
+        # processmachine neither rewrites nor unlocks it
+        write(cfg, "NWChem: /gui/own\nShell: csh\n")
+        os.chmod(cfg, 0o444)
+        before = read(cfg)
+        post(home, user, dict(BASE, NWChem="/other", perlPath="/other/perl",
+                              config="external"), script=script)
+        check(read(cfg) == before and not os.access(cfg, os.W_OK),
+              "config=external leaves CONFIG.<m> byte-identical and locked")
+        os.chmod(cfg, 0o644)
+
         escaping(home, user, tmp, script, encoder)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

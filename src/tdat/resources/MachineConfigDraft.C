@@ -198,6 +198,37 @@ void MCD::loadMerged(const map<string,string>& merged)
   p_base.config = p_cur.config;
 }
 
+void MCD::loadFiles(const vector<string>& keys)
+{
+  ConfigFile site, edited;
+  if (p_mode != AdminMode)
+    site.load(p_siteFile);
+  edited.load(editedFile());
+  p_cur.config.clear();
+  for (size_t i = 0; i < keys.size(); i++) {
+    KeyState ks;
+    ks.name = keys[i];
+    string v;
+    bool cleared = false;
+    // get() is false for a cleared key too; cleared says which.
+    if (p_mode != AdminMode &&
+        (site.get(keys[i], v, &cleared) || cleared)) {
+      Layer l;
+      l.source = "site";
+      l.file = p_siteFile;
+      l.hasValue = !cleared;
+      l.value = cleared ? string() : v;
+      ks.inherited.push_back(l);
+    }
+    if (edited.get(keys[i], v, &cleared) || cleared) {
+      ks.edit = cleared ? Clear : Set;
+      if (!cleared) ks.value = v;
+    }
+    p_cur.config[lower(keys[i])] = ks;
+  }
+  p_base.config = p_cur.config;
+}
+
 void MCD::setValue(const string& key, const string& value)
 {
   if (value.empty()) {
