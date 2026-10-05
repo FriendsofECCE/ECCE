@@ -1566,6 +1566,12 @@ include(CPack)
 enable_testing()
 find_program(PYTHON3_EXECUTABLE NAMES python3)
 
+# tests/exceptions -- which exceptions print a "Throw Log" when thrown.
+add_executable(throwlog_test tests/exceptions/throwlog_test.C)
+target_link_libraries(throwlog_test PRIVATE ecceutil)
+add_test(NAME throwlog COMMAND throwlog_test)
+add_test(NAME throwlog-all COMMAND throwlog_test all)
+
 # tests/mqtt -- the messaging library against a private mosquitto on a Unix
 # socket; checks delivery, not just acknowledgement.  "auth" is the same on
 # a TCP broker with two accounts and the shipped access rules.  SKIPs (77)

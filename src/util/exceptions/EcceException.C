@@ -13,6 +13,23 @@ using std::endl;
 #include  <string.h>
 
 #include "util/EcceException.H"
+#include "util/ThrowLog.H"
+
+
+bool ThrowLog::all()
+{
+   static const bool on = getenv("ECCE_THROW_LOG") != 0;
+   return on;
+}
+
+
+void ThrowLog::print(const EcceException& ex)
+{
+   cerr << "\nThrow Log: " << endl;
+   cerr << "---------- " << endl;
+   ex.report();
+   cerr << endl;
+}
 
 const EcceException *EcceException::p_last = 0;
 
@@ -63,10 +80,7 @@ EcceException::EcceException(const string& message, const char *file, int line)
    p_line = line;
    saveLast();
 #ifndef INSTALL
-   cerr << "\nThrow Log: " << endl;
-   cerr << "---------- " << endl;
-   report();
-   cerr << endl;
+   if (ThrowLog::all()) ThrowLog::print(*this);
 #endif
 }
 
@@ -80,10 +94,7 @@ EcceException::EcceException(const char *message, const char *file, int line)
    p_line = line;
    saveLast();
 #ifndef INSTALL
-   cerr << "\nThrow Log: " << endl;
-   cerr << "---------- " << endl;
-   report();
-   cerr << endl;
+   if (ThrowLog::all()) ThrowLog::print(*this);
 #endif
 }
 
