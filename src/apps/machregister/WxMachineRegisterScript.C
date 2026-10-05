@@ -22,6 +22,7 @@
 #include "wx/notebook.h"
 #include "wx/spinctrl.h"
 
+#include "wx/radiobut.h"
 #include "wx/stattext.h"
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxChoice.H"
@@ -114,6 +115,8 @@ string MachRegScript::get(const string& name)
         return (string)c->GetStringSelection();
     if (wxCheckBox* b = dynamic_cast<wxCheckBox*>(w))
         return b->IsChecked() ? "1" : "0";
+    if (wxRadioButton* rb = dynamic_cast<wxRadioButton*>(w))
+        return rb->GetValue() ? "1" : "0";
     if (wxButton* b = dynamic_cast<wxButton*>(w))
         return (string)b->GetLabel();
     if (wxStaticText* t = dynamic_cast<wxStaticText*>(w))
@@ -219,6 +222,8 @@ int MachRegScript::runCommand(const vector<string>& w)
             d->SetValue(atof(value.c_str()));
         else if (wxCheckBox* b = dynamic_cast<wxCheckBox*>(win))
             b->SetValue(value == "1");
+        else if (wxRadioButton* rb = dynamic_cast<wxRadioButton*>(win))
+            rb->SetValue(value == "1");
         else if (wxChoice* c = dynamic_cast<wxChoice*>(win))
         {
             if (!c->SetStringSelection(value)) fail("no choice " + value);
@@ -227,15 +232,12 @@ int MachRegScript::runCommand(const vector<string>& w)
         //  Programmatic changes send no change event for most controls.
         f->updateDirty();
     }
-    else if (cmd == "menu" && n == 3)
+    else if (cmd == "undo" && n == 2)
     {
-        if (f->cfgRow(w[1]) == NULL) fail("no row " + w[1]);
-        else f->cfgAction(w[1], w[2]);
-    }
-    else if (cmd == "menu-shot" && n == 3)
-    {
-        if (f->cfgRow(w[1]) == NULL) fail("no row " + w[1]);
-        else f->popupCfgMenu(w[1], w[2], [this]() { finish(); });
+        wxWindow* w2 = f->field("undo:" + w[1]);
+        if (w2 == NULL) fail("no undo for " + w[1]);
+        else if (w2->IsShown()) f->cfgUndo(w[1]);
+        else fail("undo " + w[1] + " is not shown");
     }
     else if (cmd == "queue-apply") click("queue-apply");
     else if (cmd == "queue-remove") click("queue-remove");

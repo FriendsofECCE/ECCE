@@ -432,6 +432,27 @@ def oracle(rows, edited, admin, remote):
     return out
 
 
+PLAIN = {"default": "not set", "site": "from site", "server": "from server",
+         "yours": "your value", "no value": "your value",
+         "site (editing)": "site value"}
+
+
+def jobs_tag(want):
+    """The group's tag: the user's own value first, then a layer's."""
+    a, b = want["noremoteaccess"][1], want["usersubmit"][1]
+    own = ("yours", "no value", "site (editing)")
+    for t in (a, b):
+        if t in own:
+            return PLAIN[t]
+    return PLAIN[a if a != "default" else b]
+
+
+def jobs_radio(want):
+    nr = shown("noremoteaccess", want["noremoteaccess"][0]) == "1"
+    us = shown("usersubmit", want["usersubmit"][0]) == "1"
+    return "none" if nr else "user" if us else "copy"
+
+
 def shown(k, v):
     """What the control shows for an effective value (None: the default)."""
     if v is None:
@@ -454,7 +475,8 @@ def connection_tab(tmp, display, build, mode):
     extra = {"ECCE_REMOTE_SERVER": "server.example.org"} if remote else None
     args = ["-admin"] if admin else []
     write(os.path.join(e.ue, "CONFIG.cluster"), "foo: bar\n")
-    site = "site (editing)" if admin else "server" if remote else "site"
+    site = "site value" if admin else "from server" if remote else "from site"
+    Y = "site value" if admin else "your value"
     edited = os.path.join(e.sc if admin else e.ue, "CONFIG.cluster")
     if admin:
         os.chmod(edited, 0o644)
@@ -470,19 +492,18 @@ expect field sourcefile /site/modules.sh
 expect label tag:sourcefile '%(site)s'
 expect field frontendbypass .site.org
 expect field libpath ''
-expect label tag:libpath default
-expect field noremoteaccess 1
-expect label tag:noremoteaccess '%(site)s'
+expect label tag:libpath 'not set'
+expect field jobs:none 1
+expect field jobs:copy 0
+expect label tag:jobs '%(site)s'
 expect field checkscratch 0
 expect label tag:checkscratch '%(site)s'
 expect field singleconnect no
-expect label tag:singleconnect default
-expect field usersubmit 0
-expect label tag:usersubmit default
+expect label tag:singleconnect 'not set'
 expect shown xappspath 0
 expect dirty 0
 expect save-enabled 0
-""" % {"site": site}
+""" % {"site": site, "Y": Y}
     if admin:
         edits = """
 set shell sh
@@ -491,8 +512,7 @@ set frontendmachine login.example.org
 set perlpath /admin/perl
 set qmgrpath /admin/slurm
 set libpath /admin/lib
-set noremoteaccess 0
-set usersubmit 1
+set jobs:user 1
 set singleconnect auto
 set checkscratch 1
 set xappspath /admin/x
@@ -500,28 +520,27 @@ set xappspath /admin/x
     else:
         edits = """
 set shell bash
-expect label tag:shell yours
+expect label tag:shell '%(Y)s'
 set sourcefile ''
-expect label tag:sourcefile 'no value'
+expect label tag:sourcefile '%(Y)s'
 expect field sourcefile ''
 set frontendmachine login.example.org
 set perlpath /my/perl
-expect label tag:perlpath yours
-menu perlpath site
+expect label tag:perlpath '%(Y)s'
+undo perlpath
 expect field perlpath /site/perl
 expect label tag:perlpath '%(site)s'
-menu qmgrpath none
-expect label tag:qmgrpath 'no value'
+set qmgrpath ''
+expect label tag:qmgrpath '%(Y)s'
 set libpath /my/lib
-menu noremoteaccess none
-expect label tag:noremoteaccess 'no value'
-expect field noremoteaccess 0
-set usersubmit 1
+set jobs:copy 1
+expect label tag:jobs '%(Y)s'
+set jobs:user 1
 set singleconnect auto
 set checkscratch 1
 set xappspath /my/x
-expect label tag:xappspath yours
-""" % {"site": site}
+expect label tag:xappspath '%(Y)s'
+""" % {"site": site, "Y": Y}
     p = run(display, build, e, pre + edits + """
 expect dirty 1
 expect save-enabled 1
@@ -535,7 +554,7 @@ quit
     if not admin:
         check(cfg.get("foo") == "bar", "the hand-written key is kept")
         check(cfg.get("shell") == "bash" and cfg.get("sourcefile") == "-" and
-              cfg.get("qmgrpath") == "-" and cfg.get("noremoteaccess") == "-"
+              cfg.get("qmgrpath") == "-" and cfg.get("noremoteaccess") == "false"
               and cfg.get("perlpath") is None and
               cfg.get("libpath") == "/my/lib" and
               cfg.get("frontendmachine") == "login.example.org" and
@@ -569,7 +588,10 @@ quit
     for k in CPP_KEYS:
         v, tag = want[k]
         lines.append("expect field %s '%s'" % (k, shown(k, v)))
-        lines.append("expect label tag:%s '%s'" % (k, tag))
+        if k not in ("noremoteaccess", "usersubmit"):
+            lines.append("expect label tag:%s '%s'" % (k, PLAIN[tag]))
+    lines.append("expect field jobs:%s 1" % jobs_radio(want))
+    lines.append("expect label tag:jobs '%s'" % jobs_tag(want))
     lines += ["expect shown xappspath 1", "expect dirty 0", "quit"]
     p = run(display, build, e, "\n".join(lines) + "\n", args=args, extra=extra)
     clean(p, "%s: the window shows what gensub and configdump report, "
@@ -580,21 +602,23 @@ quit
     p = run(display, build, e, """
 select cluster
 tab connection
-menu shell site
-menu sourcefile site
-menu frontendbypass none
+undo shell
+undo sourcefile
+set frontendbypass ''
+set jobs:none 1
 expect label tag:shell '%(site)s'
 expect label tag:sourcefile '%(site)s'
-expect label tag:frontendbypass 'no value'
+expect label tag:frontendbypass '%(Y)s'
 save
 quit
-""" % {"site": site}, args=args, extra=extra)
-    clean(p, "%s: Use site value / Use no value, saved" % mode)
+""" % {"site": site, "Y": Y}, args=args, extra=extra)
+    clean(p, "%s: undo, emptied field and the job radios, saved" % mode)
     rows = explain(e, "cluster", admin)
     want = oracle(rows, edited, admin, remote)
     cfg = keys(edited)
     check("shell" not in cfg and "sourcefile" not in cfg and
-          cfg.get("frontendbypass") == "-" and want["shell"] == ("tcsh", site) and
+          cfg.get("frontendbypass") == "-" and "noremoteaccess" not in cfg
+          and "usersubmit" not in cfg and jobs_radio(want) == "none" and want["shell"] == ("tcsh", "server" if remote else "site") and
           want["frontendbypass"] == (None, "no value"),
           "%s: those three keys read back as site, site, no value: %r"
           % (mode, cfg))
@@ -610,10 +634,9 @@ tab connection
 wait 800
 shot %(o)s/connection-site.png
 set perlpath /my/perl
-set shell bash
 wait 500
 shot %(o)s/connection-yours.png
-menu-shot perlpath %(o)s/connection-menu.png
+quit
 """ % {"o": out})
     clean(p, "Connection PNGs")
     for n in sorted(os.listdir(out)):

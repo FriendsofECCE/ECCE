@@ -18,7 +18,6 @@
 #define WXMACHINEREGISTER_HH
 
 #include <deque>
-#include <functional>
 #include <map>
 #include <string>
 #include <vector>
@@ -40,6 +39,8 @@ class wxSpinCtrlDouble;
 class wxListCtrl;
 class wxListEvent;
 class wxCollapsiblePane;
+class wxBitmapButton;
+class wxRadioButton;
 class wxNotebook;
 class wxStaticText;
 class ewxButton;
@@ -69,16 +70,17 @@ class WxMachineRegister: public ewxFrame
         struct Row { string name, from; };
 
         //  One CONFIG key on the Connection tab: label, control, source tag
-        //  and the [...] menu.  The control is named after the key.
+        //  and an undo button for the user's own value.
         enum CfgKind { CfgText, CfgShell, CfgCheck, CfgCheckYes, CfgTri };
         struct CfgRow {
             string key, label;
             CfgKind kind;
             wxWindow *ctrl;
             wxStaticText *tag, *name;
-            ewxButton *menu;
+            wxWindow *undoBox;            // keeps the cell when undo is hidden
+            wxBitmapButton *undo;
             CfgRow() : kind(CfgText), ctrl(NULL), tag(NULL), name(NULL),
-                       menu(NULL) {}
+                       undoBox(NULL), undo(NULL) {}
         };
 
         //  Construction
@@ -133,11 +135,14 @@ class WxMachineRegister: public ewxFrame
         void cfgToControl(const CfgRow& r);
         void cfgToControls();
         void cfgTags();
-        void onCfgMenu(wxCommandEvent& event);
-        void popupCfgMenu(const string& key, const string& shot,
-                          std::function<void()> after = std::function<void()>());
-        void cfgAction(const string& key, const string& action);
-        string cfgSources(const CfgRow& r) const;
+        void onCfgUndo(wxCommandEvent& event);
+        void cfgUndo(const string& key);
+        void cfgTagInfo(const CfgRow& r, MachineConfigDraft::Tag& tag,
+                        string& tip) const;
+        wxBitmapButton* makeUndo(wxWindow* page, wxWindow*& box);
+        int jobsIndex() const;
+        void jobsToRadios();
+        void jobsFromRadios();
 
         //  Dirty tracking
         void syncDraft();
@@ -196,6 +201,10 @@ class WxMachineRegister: public ewxFrame
         wxStaticText        *p_storeNote;   // names the files Save writes
         wxStaticText        *p_jobNote;
         vector<CfgRow>       p_cfgRows;
+        wxRadioButton       *p_jobsRadio[3];
+        wxStaticText        *p_jobsTag;
+        wxWindow            *p_jobsUndoBox;
+        wxBitmapButton      *p_jobsUndo;
         wxWindow            *p_cfgPage;
         wxCollapsiblePane   *p_advanced;
         ewxStaticText       *p_localityText;
