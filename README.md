@@ -8,11 +8,20 @@ computational chemistry calculations.
 PNNL/EMSL stopped supporting ECCE around 2017, so we forked the source
 (with their blessing) and maintain it here.
 
-ECCE compiles and runs on modern Linux systems again — tested primarily
-on Debian 13, and also on Ubuntu, Fedora and Rocky Linux. That's why
-we're at version 8: reaching it took a real modernization of the build
-system and every major dependency, not just a recompile, on top of
-bringing the application itself back to life.
+ECCE compiles and runs on modern Linux systems again. Debian 13 is the
+platform it is tested on; CI also builds it on Ubuntu, Fedora and Rocky
+Linux. Getting here took a modernization of the build system and every
+major dependency, not just a recompile. `main` is the 9.0 development
+line (9.0.0-alpha previews); the installation and first steps below
+describe 9.0.
+
+> **For production use: 8.18.x** (branch `stable-8`, latest
+> [v8.18.6](https://github.com/FriendsofECCE/ECCE/releases/tag/v8.18.6)).
+> Installation differs in one respect: 8.x is a single `ecce` package
+> (`sudo apt install ./ecce_<version>_amd64.deb`) instead of `ecce-client`
+> plus `ecce-server`. 8.x and 9.x clients and servers do not interoperate.
+> Packages and notes are on the
+> [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
 ## How ECCE is organised
 
@@ -36,7 +45,8 @@ this is installed and started for you.
 * **Choose basis sets graphically**, with the code's own built-in sets
   used where they match.
 * **Submit to workstations, clusters and supercomputers**, through PBS,
-  LSF, Slurm, Moab, SGE, LoadLeveler and Maui, or directly via a shell.
+  LSF, Slurm, Moab, SGE and HTCondor, or by running directly on the
+  machine without a batch system.
 * **Watch results arrive while the job is still running** — energies,
   geometry traces and convergence are parsed live, not only at the end.
 * **Visualise molecular data in 3-D**: molecular orbitals, electron
@@ -78,34 +88,46 @@ diagram is drawn from any of the supported codes. Experimental.*
 
 Prebuilt packages for Debian/Ubuntu (`.deb`) and RHEL/Rocky/Fedora
 (`.rpm`) are on the
-[releases page](https://github.com/FriendsofECCE/ECCE/releases). To
-build your own instead, see [Building from source](#building-from-source).
+[releases page](https://github.com/FriendsofECCE/ECCE/releases), each
+built on the system it is for; the Debian packages are the ones that are
+tested. To build your own instead, see
+[Building from source](#building-from-source).
 
-### 1. Install the package
+### 1. Install the packages
 
-On Debian 13 or Ubuntu, from the directory you downloaded it to:
+9.x comes as two packages: `ecce-client` (the applications) and
+`ecce-server` (the data server and broker; it needs the client of the same
+version). Install both for a standalone machine. On Debian 13, from the
+directory you downloaded them to:
 
 ```
-sudo apt install ./ecce_<version>_amd64.deb
+sudo apt install ./ecce-client_<version>_amd64.deb ./ecce-server_<version>_amd64.deb
 ```
 
-The `./` matters: it tells apt this is a local file, and apt then pulls
-in every dependency itself (Apache, Mosquitto, wxPython, xterm).
+The `./` matters: it tells apt these are local files, and apt then pulls
+in the dependencies itself. `ecce-client` depends on `perl`, `xterm`,
+`curl`, `libmosquitto1`, wxPython (`python3-wxgtk4.0`) and Coin3D;
+`ecce-server` on Apache (`apache2`, `apache2-utils`), `mosquitto` and
+`libaprutil1`. A machine that only connects to someone else's central
+server needs only `ecce-client`; apt recommends `ecce-server` and
+`mosquitto` with it, and `--no-install-recommends` leaves them out.
 
-On RHEL, Rocky or Fedora, `sudo dnf install ./ecce-<version>.x86_64.rpm`.
-The message broker is Mosquitto (in EPEL on RHEL and Rocky) — see
+On RHEL, Rocky or Fedora, `sudo dnf install ./ecce-client-<version>.x86_64.rpm
+./ecce-server-<version>.x86_64.rpm`; on RHEL and Rocky run `sudo dnf install
+epel-release` first, since Mosquitto and Coin3D (`Coin4`) come from EPEL. The
+RPMs of 9.0.0-alpha.3 were run on RHEL 9; see
 [Deployment modes](GETTING_STARTED.md#deployment-modes).
 
 ECCE installs to `/opt/ecce` and puts `ecce` and its helper commands
 (`ecce-dataserver-adduser`, `ecce-remote-setup`, `ecce-diagnose`, …) on
 your `PATH`.
 
-**Windows**: use **WSL2** with a Debian or Ubuntu distribution inside
-it, and follow these steps as they are. A native Windows client is on
-the roadmap ([#133](https://github.com/FriendsofECCE/ECCE/issues/133),
-[#18](https://github.com/FriendsofECCE/ECCE/issues/18)).
-**macOS** is not supported yet
-([#3](https://github.com/FriendsofECCE/ECCE/issues/3)).
+**Windows and macOS**: there are no native clients yet; they are the
+goal ([#133](https://github.com/FriendsofECCE/ECCE/issues/133),
+[#232](https://github.com/FriendsofECCE/ECCE/issues/232)). The macOS CI
+build configures and compiles about 40% of the code, then stops at
+Linux-only calls in the remote-shell code. Until then, ECCE runs on
+Linux only.
 
 ### 2. Create your account
 
@@ -118,6 +140,10 @@ ecce-dataserver-adduser        # prompts for name, username and password
 ```
 
 Use your Linux username — that's what the login dialog defaults to.
+(Instead of a data server, a single-user install can keep its projects in
+a folder: Edit → Preferences → Data folder, see
+[Deployment modes](GETTING_STARTED.md#deployment-modes). Server mode is
+the default.)
 
 ### 3. Start ECCE
 
@@ -135,31 +161,47 @@ themselves. Closing the Organizer ends the session.
 Organizer → Edit → Preferences chooses the editor, terminal and web
 browser ECCE opens.
 
-### 4. Register a compute machine
+In the Builder, **File → New** starts an empty structure, **Open…**
+loads one, **Add Structure from File…** adds a file's structure to the
+current one, and **Close** closes it; an **Open structures** panel is
+part of the window. **Save As…** can store a calculation in any local
+folder as well as in the data server.
 
-A calculation runs on a registered machine — your own workstation is
-the simplest. In the Organizer, open **Tools → Register Machines…**:
+### 4. Run on a compute machine
 
-* **Machine**: the real hostname (run `hostname` to find it); **Name**:
-  anything that identifies it to you. Vendor, model and processor don't
-  matter. Set the number of processors, and nodes to 1.
-* **Each code** needs the full path to its executable, for example
-  `/usr/bin/nwchem` (Debian's NWChem), `/opt/gaussian/g16/g16`, or
-  `/opt/orca/<version>/orca`. `which` finds the rest, e.g. `which perl`.
+A calculation runs on a registered machine. **`localhost`**, this
+computer, is registered site-wide: jobs run directly on it, without ssh
+and without a batch system. The first time you start `ecce` it copies a
+template to `~/.ECCE/CONFIG.localhost` that names NWChem, Gaussian,
+ORCA, MOPAC and Quantum ESPRESSO by their bare command names (`nwchem`,
+`g16`, `orca`, `mopac`, `pw.x`), so a code that is on your `PATH` is
+found without any registration. Edit your copy to give a full path
+instead, for example `ORCA: /opt/orca/<version>/orca`. The file is never
+overwritten once it exists, and is not created if the site provides its
+own `CONFIG.localhost`.
 
-SSH has been tested and works for talking to the machine.
+For any other machine, open **Tools → Register Machines…** in the
+Organizer. It has five tabs:
 
-**Using `localhost` instead of the real hostname**: this also works, but
-needs one extra one-time step first. `localhost` resolves to both an
-IPv4 and an IPv6 address on most systems, and SSH treats each address as
-a separate host identity with its own trusted key — if you've only ever
-connected to your machine by its real hostname (or never connected to
-`localhost` at all), the very first `localhost` connection SSH tries
-might hit an address whose key isn't trusted yet, which fails silently
-(no prompt) when ECCE tries it non-interactively. Fix it once, up front,
-by running `ssh localhost` in a terminal and accepting the host key
-prompt — after that, registering `localhost` in ECCE works fine.
+* **Machine**: the machine's name as ECCE uses it, its real host name,
+  and the numbers of nodes and processors. Vendor, model and processor
+  are labels only.
+* **Connection**: how ECCE reaches the machine; exceptions to the
+  default are under *Advanced*.
+* **Codes**: where each code is installed on the machine; a code with
+  no path is not offered for it.
+* **Job script**: the job script's setup text and submit directives. A
+  value is tagged *from site*, *your value* or *not set*. The site's text
+  is read-only; **Copy site text to edit** makes your own copy,
+  **Available words…** lists the `$variables` a script may use, and
+  **Advanced: edit file…** opens the underlying `CONFIG` file. Changed
+  fields have an undo button.
+* **Queues**: the queue manager and the queues. Wall time is entered in
+  hours, memory and scratch in GB.
 
+Changes are kept until you press **Save**.
+
+ECCE's ssh to the machine is built in; no terminal session is involved.
 Queues and submit scripts for a cluster are described in
 [GETTING_STARTED.md](GETTING_STARTED.md#describing-the-queues-on-your-own-cluster).
 
@@ -170,7 +212,9 @@ shared is up to the site; the three modes are set up step by step in
 [GETTING_STARTED.md](GETTING_STARTED.md#deployment-modes).
 
 1. **Everything local** (the default). Each user's session starts their
-   own data server and broker. Nothing to configure.
+   own data server and broker; the broker listens on a Unix socket, not
+   on a network port. Nothing to configure. Optionally the data server is
+   replaced by a folder (Edit → Preferences → Data folder).
 2. **A central server** for a group or a class. One account on the
    server holds everyone's calculations and the shared libraries; users
    elsewhere connect to it. On the server, as that account:
@@ -213,6 +257,53 @@ and paths. Attach that to a
 you did and what you expected. For a job that failed, `ecce-diagnose`
 on its own gathers the run directories of your most recent jobs.
 
+## What's new in 9.0
+
+9.0.0-alpha.1 to alpha.4 are previews. 9.x does not interoperate with 8.x;
+see [Upgrading from 8.x](GETTING_STARTED.md#upgrading-from-8x).
+
+* **Two packages**, `ecce-client` and `ecce-server`
+  ([#186](https://github.com/FriendsofECCE/ECCE/issues/186)).
+* **Mosquitto replaces ActiveMQ** and the Java relay; no Java runtime is
+  needed ([#213](https://github.com/FriendsofECCE/ECCE/issues/213)). On
+  one machine each user's broker listens on a private socket in
+  `~/.ECCE`. A central server's broker listens on TCP port 8088, accepts
+  only the data server's accounts, and lets each user read and send only
+  their own messages ([#194](https://github.com/FriendsofECCE/ECCE/issues/194)).
+  The connection is not encrypted.
+* **The 3D viewer is built on Coin3D** from the distribution by default
+  ([#166](https://github.com/FriendsofECCE/ECCE/issues/166)): orbital
+  surfaces are drawn with accurate transparency (a quick mode is in
+  Edit → Preferences), and the Builder has Reset View. The vendored Open
+  Inventor core stays available with `-DECCE_USE_COIN=OFF` for one
+  release.
+* **Local data mode**: a client can keep its projects in a folder instead
+  of a data server ([#216](https://github.com/FriendsofECCE/ECCE/issues/216)).
+* **Jobs run without an interactive shell**: commands run directly on
+  this machine and over ssh elsewhere; job scripts are POSIX sh, and
+  `ecce-csh2sh` converts csh in site and user configuration
+  ([#204](https://github.com/FriendsofECCE/ECCE/issues/204)). A job is
+  shown as killed only when you cancel it from ECCE.
+* **HTCondor** as a queue manager ([#105](https://github.com/FriendsofECCE/ECCE/issues/105)).
+* **Machine configuration**: a machine's site and user `CONFIG` files are
+  merged key by key (`key: -` removes a site value), and
+  `GENSUB_EXPLAIN=1` prints where each value came from. A
+  `CONFIG.localhost` template is copied to `~/.ECCE` at the first start
+  ([#230](https://github.com/FriendsofECCE/ECCE/issues/230)).
+* **Register Machines** is a tabbed editor (Machine, Connection, Codes,
+  Job script, Queues) that shows where each value comes from and has undo.
+* **Builder**: File → New, Open…, Add Structure from File… and Close, and
+  an Open structures panel; Save As can write a calculation to any local
+  folder.
+* **Look** ([#210](https://github.com/FriendsofECCE/ECCE/issues/210)):
+  colours and controls follow the GTK theme, light or dark; editors have
+  a text Save button; the default text size is 10 point.
+* **Images without ImageMagick**: image conversion uses wxWidgets
+  ([#231](https://github.com/FriendsofECCE/ECCE/issues/231)).
+* **No X Toolkit**: the job store no longer uses Xt, and X11, Xt and EGL
+  are linked only where the viewer uses them, on Linux
+  ([#232](https://github.com/FriendsofECCE/ECCE/issues/232)).
+
 ## What's new in version 8
 
 ECCE hadn't run on a current Linux system in years. Version 8 began as a
@@ -222,7 +313,7 @@ from-scratch modernization of everything underneath the application:
 * **CMake/CPack** instead of the old `build_ecce`/recursive-make build.
 * **wxWidgets 3.2 on GTK3**, from 2.8 on GTK2; **Python 3** for the
   helper GUIs; **Xerces-C 3**; the system's current **Mesa**.
-* **Distribution-maintained servers**: Debian's Mosquitto and Apache 2.4,
+* **Distribution-maintained servers**: Debian's ActiveMQ and Apache 2.4,
   instead of 2008-era bundled builds.
 
 Since then the 8.x releases have added what the old ECCE never had:
@@ -251,6 +342,15 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      releases; drop the oldest minor when a new one is added. Everything
      older is on the releases page. -->
 
+- **v8.18.6** — the file dialog's file-type filter works and a typed path
+  is resolved correctly; Builder import reports an unreadable path instead
+  of crashing, and CAR files keep their first atom; Register Machines runs
+  no shell commands on what you type.
+- **v8.18.5** — viewer redraws after every change (#99); ESP surfaces
+  about 30 times faster (#229); Builder Symmetry panel follows the point
+  group; `ecce-remote-setup` needs `curl`.
+- **v8.18.4** — property panes in the viewer fold to their caption bar
+  (#196); a new desktop icon.
 - **v8.18.3** — passwords no longer pass through the message broker, and
   ECCE's local message link accepts only its own session (#194); a
   desktop menu entry (#211).
@@ -284,7 +384,6 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
 - **v8.16.1** — `ecce -remote` works again.
 - **v8.16.0** — the Launcher and Organizer say why a job failed.
 - **v8.15.0** — Verify: the input file is checked before submission.
-- **v8.14.0** — MO correlation diagrams (experimental); RPM packages.
 
 ## Roadmap
 
@@ -295,35 +394,35 @@ plan as a whole is on [#186](https://github.com/FriendsofECCE/ECCE/issues/186).
 
 **8.x** receives bug fixes only, as 8.18.x patch releases.
 
-**9.0** (previews: the 9.0.0-alpha releases):
-
-* **Separate client and server packages**: `ecce-client` for the machines
-  people sit at, `ecce-server` for the machine that holds the data
-  ([#186](https://github.com/FriendsofECCE/ECCE/issues/186)).
-* **Jobs launched without an interactive shell**: commands run directly
-  on this machine and over ssh elsewhere (libssh, or the `ssh` command
-  for hosts that share connections or are reached through a jump host),
-  and job scripts are POSIX sh, so csh is no longer required ([#204](https://github.com/FriendsofECCE/ECCE/issues/204)).
-* **HTCondor as a supported queue manager** ([#105](https://github.com/FriendsofECCE/ECCE/issues/105)).
-* **Mosquitto instead of ActiveMQ**, removing Java from the client
-  ([#213](https://github.com/FriendsofECCE/ECCE/issues/213)), with broker
-  authentication, so that the users of a shared server cannot act in each
-  other's name ([#194](https://github.com/FriendsofECCE/ECCE/issues/194)).
-  9.x clients and servers do not interoperate with 8.x ones; see
-  [Upgrading from 8.x](GETTING_STARTED.md#upgrading-from-8x).
+**9.0** (previews: the 9.0.0-alpha releases). Done in the previews: the
+client and server packages ([#186](https://github.com/FriendsofECCE/ECCE/issues/186)),
+jobs without an interactive shell ([#204](https://github.com/FriendsofECCE/ECCE/issues/204)),
+HTCondor ([#105](https://github.com/FriendsofECCE/ECCE/issues/105)),
+Mosquitto instead of ActiveMQ with broker authentication
+([#213](https://github.com/FriendsofECCE/ECCE/issues/213),
+[#194](https://github.com/FriendsofECCE/ECCE/issues/194)), local data mode
+([#216](https://github.com/FriendsofECCE/ECCE/issues/216)) and the Coin3D
+viewer as the default ([#166](https://github.com/FriendsofECCE/ECCE/issues/166)).
+Remaining for 9.0: the vendored Inventor core is still built with
+`-DECCE_USE_COIN=OFF` and goes after one release, and issues found in the
+previews are fixed.
 
 **After 9.0, in estimated order:**
 
-1. **A complete queue editor**: discovering a cluster's queues, job-script
-   settings, a preview of the job script and a dry-run test ([#212](https://github.com/FriendsofECCE/ECCE/issues/212)).
-2. **A modernised look**: platform-native colours and spacing, current
-   icons, consistent plots ([#210](https://github.com/FriendsofECCE/ECCE/issues/210)).
-3. **Coin3D in place of the vendored SGI Open Inventor** in the 3D viewer
-   ([#166](https://github.com/FriendsofECCE/ECCE/issues/166)), followed by an updated look for the viewer.
-4. **Groundwork for native clients**: a session identifier in place of
-   `$DISPLAY`, a job store without the X Toolkit, bundled Perl and Python
-   ([#186](https://github.com/FriendsofECCE/ECCE/issues/186)).
-5. **Native macOS and Windows clients**, macOS first ([#133](https://github.com/FriendsofECCE/ECCE/issues/133)).
+1. **A complete queue editor** ([#212](https://github.com/FriendsofECCE/ECCE/issues/212)):
+   the Job script and Queues tabs of Register Machines exist; discovering
+   a cluster's queues, a preview of the job script and a dry-run test do
+   not.
+2. **A modernised look** ([#210](https://github.com/FriendsofECCE/ECCE/issues/210)):
+   theme colours and controls are in the 9.0 previews; current icons and
+   consistent plots remain, followed by the viewer's own look.
+3. **Groundwork for native clients** ([#186](https://github.com/FriendsofECCE/ECCE/issues/186),
+   [#232](https://github.com/FriendsofECCE/ECCE/issues/232)): the job
+   store without the X Toolkit and X11 only on Linux are done. A session
+   identifier in place of `$DISPLAY` and bundled Perl and Python remain.
+4. **Native macOS and Windows clients**, macOS first ([#133](https://github.com/FriendsofECCE/ECCE/issues/133)).
+   The macOS CI build compiles about 40% of the code; the next failures are
+   two Linux-only calls in the remote-shell code.
 
 **Also planned, not yet placed in the order:**
 
@@ -350,7 +449,8 @@ sudo apt-get install -y \
   build-essential gfortran cmake ninja-build \
   libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
   libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
-  libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git libssh-dev
+  libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git dpkg-dev file libssh-dev \
+  python3 libcoin-dev libegl-dev
 
 git clone https://github.com/FriendsofECCE/ECCE.git
 cd ECCE                # main is 9.0 development; for 8.x: git checkout stable-8
@@ -363,8 +463,10 @@ cpack -G DEB
 That leaves `ecce-client_<version>_amd64.deb` and
 `ecce-server_<version>_amd64.deb` in `build-cmake/`; install both for a
 standalone machine (`-DECCE_SPLIT_PACKAGES=OFF` builds the single
-`ecce` package instead). The build needs CMake 3.16, wxWidgets 3.2 and
-libssh at least (this is a wx3.2-only port). For RPMs, install `rpm`
+`ecce` package instead). The build needs CMake 3.16, wxWidgets 3.2,
+libssh and Coin3D at least (this is a wx3.2-only port;
+`-DECCE_USE_COIN=OFF` builds the vendored Inventor core instead, in a
+separate build directory). For RPMs, install `rpm`
 and re-run `cmake .`; `cpack -G RPM` then builds them. Installing
 without root and running two builds side by side are in
 [GETTING_STARTED.md](GETTING_STARTED.md).
