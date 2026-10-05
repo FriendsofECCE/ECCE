@@ -62,6 +62,15 @@ static vector<string> words(const string& line)
 }
 
 
+//  A backslash-n is a line break, for the multi-line boxes.
+static string unescape(string v)
+{
+    for (size_t at; (at = v.find("\\n")) != string::npos; )
+        v.replace(at, 2, "\n");
+    return v;
+}
+
+
 MachRegScript::MachRegScript(WxMachineRegister* frame, const string& file)
     : p_frameRef(frame), p_frame(frame), p_timer(this), p_failures(0),
       p_loaded(false)
@@ -130,6 +139,15 @@ string MachRegScript::get(const string& name)
 //  does nothing, as for a user.
 bool MachRegScript::click(const string& name)
 {
+    if (wxCheckBox* c = dynamic_cast<wxCheckBox*>(p_frame->field(name)))
+    {
+        c->SetValue(!c->IsChecked());
+        wxCommandEvent ev(wxEVT_CHECKBOX, c->GetId());
+        ev.SetEventObject(c);
+        ev.SetInt(c->IsChecked());
+        c->GetEventHandler()->ProcessEvent(ev);
+        return true;
+    }
     wxButton* b = dynamic_cast<wxButton*>(p_frame->field(name));
     if (b == NULL)
     {
@@ -145,18 +163,21 @@ bool MachRegScript::click(const string& name)
 }
 
 
-bool MachRegScript::shot(const string& file)
+bool MachRegScript::shot(const string& file, bool dialog)
 {
-    p_frame->Raise();
+    wxWindow* win = dialog ? static_cast<wxWindow*>(p_frame->p_rawDlg)
+                           : p_frame;
+    if (win == NULL)
+        return false;
+    win->Raise();
     for (int i = 0; i < 3; i++)
     {
-        p_frame->Update();
+        win->Update();
         wxTheApp->Yield(true);
         wxMilliSleep(50);
     }
-    wxPoint tl = p_frame->ClientToScreen(wxPoint(0, 0));
-    wxSize sz = p_frame->GetClientSize();
-    wxClientDC screen(p_frame);
+    wxSize sz = win->GetClientSize();
+    wxClientDC screen(win);
     wxBitmap bmp(sz.x, sz.y);
     wxMemoryDC mem(bmp);
     mem.Blit(0, 0, sz.x, sz.y, &screen, 0, 0);
@@ -216,7 +237,9 @@ int MachRegScript::runCommand(const vector<string>& w)
         wxWindow* win = f->field(w[1]);
         if (win == NULL) { fail("no field " + w[1]); return 100; }
         if (wxTextCtrl* t = dynamic_cast<wxTextCtrl*>(win))
-            t->SetValue(value);
+        {
+            t->SetValue(unescape(value));
+        }
         else if (wxSpinCtrl* s = dynamic_cast<wxSpinCtrl*>(win))
             s->SetValue(atoi(value.c_str()));
         else if (wxSpinCtrlDouble* d = dynamic_cast<wxSpinCtrlDouble*>(win))
@@ -240,6 +263,7 @@ int MachRegScript::runCommand(const vector<string>& w)
         else if (w2->IsShown()) f->cfgUndo(w[1]);
         else fail("undo " + w[1] + " is not shown");
     }
+    else if (cmd == "click" && n == 2) click(w[1]);
     else if (cmd == "queue-apply") click("queue-apply");
     else if (cmd == "queue-remove") click("queue-remove");
     else if (cmd == "queue-clear") click("queue-clear");
@@ -271,9 +295,9 @@ int MachRegScript::runCommand(const vector<string>& w)
             p_cmds.push_front(string("tab ") + tabs[i]);
         }
     }
-    else if (cmd == "shot" && n == 2)
+    else if ((cmd == "shot" || cmd == "shot-dialog") && n == 2)
     {
-        if (!shot(w[1])) fail("could not write " + w[1]);
+        if (!shot(w[1], cmd == "shot-dialog")) fail("could not write " + w[1]);
         else fprintf(stderr, "[MACHREG] wrote %s\n", w[1].c_str());
     }
     else if (cmd == "expect" && n >= 3)
@@ -291,7 +315,19 @@ int MachRegScript::runCommand(const vector<string>& w)
         else if (what == "banner")
             expectEq("banner", f->p_info->IsShown() ? "1" : "0", v);
         else if (what == "field" || what == "label")
-            expectEq(what + " " + w[2], get(w[2]), n > 3 ? w[3] : "");
+            expectEq(what + " " + w[2], get(w[2]), unescape(n > 3 ? w[3] : ""));
+        else if (what == "contains" && n >= 4)
+        {
+            string got = get(w[2]), want = unescape(w[3]);
+            if (got.find(want) == string::npos)
+                fail("expect " + w[2] + " to contain '" + want + "', got '" +
+                     got + "'");
+            else
+                fprintf(stderr, "[MACHREG] ok %s contains '%s'\n",
+                        w[2].c_str(), want.c_str());
+        }
+        else if (what == "raw-dialog")
+            expectEq("raw-dialog", f->rawDialogOpen() ? "1" : "0", v);
         else if (what == "advanced")
             expectEq("advanced", f->p_advanced && f->p_advanced->IsExpanded()
                                  ? "1" : "0", v);

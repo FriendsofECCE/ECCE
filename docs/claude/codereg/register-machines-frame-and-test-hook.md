@@ -34,6 +34,23 @@ Things that are easy to get wrong:
   `submit.site` and vendor layers (`effective`/`tag` with `cppOnly`). `true` and
   `yes` are one value for the check/choice rows, so `syncCfg` compares them in
   canonical form: an absent `singleConnect` means "no", not "auto".
+- The Job script tab edits three text blocks (`BlockRow`): the header named
+  after the Queues tab's queue manager (`slurm`, `pbs`, ...), `setup` and
+  `wrapup`. A block's text *replaces* the inherited text (gensub never merges
+  them); the inherited text is shown read-only above, from gensub's layers
+  (`cppOnly` false, so `submit.site` counts), the box below holds only the
+  user's own. An empty box inherits; "Use no text" writes `key: -`; copy
+  fills the box with the inherited text. Switching queue manager syncs the
+  old header key first (`blocksRetarget`). csh in setup/wrapup is checked by
+  `ecce-csh2sh --check` on the box text (600 ms after typing, and on Save) and
+  only reported, as gensub reports it at submit time. `condorAllowTmp` is a
+  `CfgRow` with `gensubOnly`, shown for HTCondor only.
+- "Advanced: edit file" edits the raw edited-layer file in a dialog (Check /
+  Save; an unclosed block is an error, unknown keys and csh are warnings) and
+  saves through `ConfigFile::setText` + `save`. Unsaved form changes are saved
+  or discarded first; the form is reloaded afterwards. In the hook the dialog
+  is not modal: fields `raw:text`, `raw:report`, `raw:check`, `raw:save`,
+  `raw:cancel`; `shot-dialog FILE` captures it.
 - Widgets only reach the draft through change events that bubble to the frame;
   programmatic fills are guarded by `p_inCtrlUpdate`.
 

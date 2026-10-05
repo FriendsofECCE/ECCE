@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <fstream>
 #include <regex>
+#include <set>
 
 #include "wx/wxprec.h"
 
@@ -35,6 +36,8 @@
 #include "wx/notebook.h"
 #include "wx/spinctrl.h"
 #include "wx/statline.h"
+#include "wx/timer.h"
+#include "wx/dialog.h"
 
 #include "util/BrowserHelp.H"
 #include "util/Ecce.H"
@@ -133,6 +136,10 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
     p_jobsMode = NULL;
     p_jobsIcon = NULL;
     p_advanced = NULL;
+    p_condorGrid = NULL;
+    p_jobPage = NULL;
+    p_cshTimer = NULL;
+    p_rawDlg = NULL;
     p_scripted = getenv("ECCE_MACHREG_SCRIPT") != NULL;
     p_codeNames = CodeFactory::getFullySupportedCodeNames();
 
@@ -162,6 +169,7 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
 
 WxMachineRegister::~WxMachineRegister()
 {
+    delete p_cshTimer;
     delete p_draft;
 }
 
@@ -644,9 +652,153 @@ wxWindow* WxMachineRegister::createJobScriptPage(wxWindow* parent)
 {
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     ewxScrolledWindow* page = newPage(parent, sizer);
+    p_jobPage = page;
+
     p_jobNote = new wxStaticText(page, wxID_ANY, "");
     sizer->Add(p_jobNote, wxSizerFlags().Border());
+
+    addBlock(page, sizer, "header", "");
+
+    //  The names come from gensub's provideVariables().
+    wxStaticText* vars = new wxStaticText(page, wxID_ANY,
+        "Words starting with $ are replaced when the job is submitted: "
+        "$queue, $nodes, $totalprocs (all processors), $ppn (processors per "
+        "node), $wallTime (h:m:s), $wallHrMin, $wallSeconds, $cpuTime, "
+        "$memory (a number in the queue's memory unit, so write $memoryM "
+        "when that is MB), $mem_x_1024, $scratchSpace, $scratchDir, $runDir, "
+        "$inFile, $outFile, $submitFile (the job script's name), $account, "
+        "$host, $code, $qMgr, $mdSystemName and $mdCalcName. A request line "
+        "whose variable is empty is left out. The same words are replaced in "
+        "the two blocks below.");
+    vars->SetFont(vars->GetFont().Smaller());
+    vars->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+    vars->Wrap(620);
+    sizer->Add(vars, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+    reg("header:variables", vars);
+
+    addBlock(page, sizer, "setup", "Commands run before the calculation");
+    addBlock(page, sizer, "wrapup", "Commands run after the calculation");
+
+    //  Only HTCondor needs it.
+    wxFlexGridSizer* condor = new wxFlexGridSizer(4, 0, 0);
+    condor->AddGrowableCol(1);
+    sizer->Add(condor, wxSizerFlags().Expand().Border(wxTOP));
+    addCfgRow(page, condor, "condorAllowTmp", "Allow a run directory under "
+              "/tmp (HTCondor)", CfgCheck,
+              "HTCondor gives every job a private /tmp. Tick this only if "
+              "your pool does not, so that a run directory under /tmp or "
+              "/var/tmp works.");
+    p_cfgRows.back().gensubOnly = true;
+    p_condorGrid = condor;
+
+    ewxButton* adv = new ewxButton(page, wxID_ANY, "Advanced: edit file...");
+    adv->SetToolTip("Edit the whole settings file for this machine as text");
+    sizer->Add(adv, wxSizerFlags().Border());
+    reg("edit-file", adv);
+    adv->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { this->editFile(); });
+
+    p_cshTimer = new wxTimer(this);
+    this->Bind(wxEVT_TIMER, [this](wxTimerEvent&) { this->blocksCheckCsh(); });
     return page;
+}
+
+
+//  One block: heading, the inherited text (read-only), then the user's.
+void WxMachineRegister::addBlock(wxWindow* page, wxSizer* sizer,
+                                 const string& id, const string& title)
+{
+    BlockRow b;
+    b.id = id;
+    b.box = new wxBoxSizer(wxVERTICAL);
+    sizer->Add(b.box, wxSizerFlags().Expand());
+
+    wxFont mono(wxFontInfo().Family(wxFONTFAMILY_TELETYPE));
+    wxColour gray = wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT);
+
+    b.heading = new wxStaticText(page, wxID_ANY, title);
+    b.heading->SetFont(b.heading->GetFont().Bold());
+    b.box->Add(b.heading, wxSizerFlags().Border(wxLEFT|wxRIGHT|wxTOP));
+
+    b.siteLabel = new wxStaticText(page, wxID_ANY, "");
+    b.siteLabel->SetFont(b.siteLabel->GetFont().Smaller());
+    b.siteLabel->SetForegroundColour(gray);
+    b.box->Add(b.siteLabel, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+    b.site = new ewxTextCtrl(page, wxID_ANY, "", wxDefaultPosition,
+        wxSize(-1, 80), wxTE_MULTILINE|wxTE_READONLY|wxTE_DONTWRAP);
+    b.site->SetFont(mono);
+    b.site->SetForegroundColour(gray);
+    b.box->Add(b.site, wxSizerFlags().Expand().Border(wxLEFT|wxRIGHT));
+
+    wxBoxSizer* row = new wxBoxSizer(wxHORIZONTAL);
+    b.box->Add(row, wxSizerFlags().Expand());
+    b.yoursLabel = new wxStaticText(page, wxID_ANY, "Your text instead:");
+    row->Add(b.yoursLabel, wxSizerFlags().Border().CentreVertical());
+    b.copy = new ewxButton(page, wxID_ANY, "Copy site text to edit");
+    b.copy->SetToolTip("Start from the site's text and change it. Your text "
+                       "replaces the site's, it is not added to it.");
+    row->Add(b.copy, wxSizerFlags().Border(wxTOP|wxBOTTOM|wxRIGHT)
+                                   .CentreVertical());
+    b.none = new wxCheckBox(page, wxID_ANY, "Use no text");
+    b.none->SetToolTip("Ignore the site's text and put nothing here");
+    row->Add(b.none, wxSizerFlags().Border().CentreVertical());
+    row->AddStretchSpacer(1);
+    b.tag = new wxStaticText(page, wxID_ANY, "");
+    b.tag->SetFont(b.tag->GetFont().Smaller());
+    b.tag->SetMinSize(wxSize(b.tag->GetTextExtent("from server  ").x, -1));
+    row->Add(b.tag, wxSizerFlags().Border().CentreVertical());
+    b.undo = makeUndo(page, b.undoBox);
+    b.undo->Bind(wxEVT_BUTTON, [this, id](wxCommandEvent&) {
+        this->blockUndo(id);
+    });
+    row->Add(b.undoBox, wxSizerFlags().Border(wxRIGHT).CentreVertical());
+
+    b.user = new ewxTextCtrl(page, wxID_ANY, "", wxDefaultPosition,
+        wxSize(-1, 90), wxTE_MULTILINE|wxTE_DONTWRAP);
+    b.user->SetFont(mono);
+    b.box->Add(b.user, wxSizerFlags().Expand().Border(wxLEFT|wxRIGHT));
+
+    b.note = new wxStaticText(page, wxID_ANY, "");
+    b.note->SetFont(b.note->GetFont().Smaller());
+    b.note->SetForegroundColour(wxSystemSettings::GetColour(
+                                wxSYS_COLOUR_HOTLIGHT));
+    b.box->Add(b.note, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+
+    b.copy->Bind(wxEVT_BUTTON, [this, id](wxCommandEvent&) {
+        this->blockCopySite(id);
+    });
+    b.none->Bind(wxEVT_CHECKBOX, [this, id](wxCommandEvent& e) {
+        this->blockNone(id);
+        e.Skip();
+    });
+
+    reg("blk:" + id, b.user);
+    reg("blk:" + id + ":site", b.site);
+    reg("blk:" + id + ":label", b.siteLabel);
+    reg("blk:" + id + ":none", b.none);
+    reg("blk:" + id + ":copy", b.copy);
+    reg("blk:" + id + ":csh", b.note);
+    reg("tag:" + id, b.tag);
+    reg("undo:" + id, b.undo);
+    p_blocks.push_back(b);
+}
+
+
+WxMachineRegister::BlockRow* WxMachineRegister::block(const string& id)
+{
+    for (size_t i = 0; i < p_blocks.size(); i++)
+        if (p_blocks[i].id == id)
+            return &p_blocks[i];
+    return NULL;
+}
+
+
+//  The header is the block named after the queue manager; "" when the job
+//  runs without one.
+string WxMachineRegister::headerKey() const
+{
+    string q = (string)p_qmgrChoice->GetStringSelection();
+    string l = lowerOf(q);
+    return (l.empty() || l == "none" || l == "shell") ? "" : l;
 }
 
 
@@ -1096,12 +1248,20 @@ MCD* WxMachineRegister::newDraft(const string& refName) const
             keys.push_back(p_codeNames[i]);
         for (size_t i = 0; i < p_cfgRows.size(); i++)
             keys.push_back(p_cfgRows[i].key);
+        keys.push_back("setup");
+        keys.push_back("wrapup");
+        for (int i = 1; i < (int)p_qmgrChoice->GetCount(); i++)
+            keys.push_back((string)p_qmgrChoice->GetString(i));
         draft->loadFiles(keys);
     }
     for (size_t i = 0; i < p_codeNames.size(); i++)
         draft->ensureKey(p_codeNames[i]);
     for (size_t i = 0; i < p_cfgRows.size(); i++)
         draft->ensureKey(p_cfgRows[i].key);
+    draft->ensureKey("setup");
+    draft->ensureKey("wrapup");
+    for (int i = 1; i < (int)p_qmgrChoice->GetCount(); i++)
+        draft->ensureKey((string)p_qmgrChoice->GetString(i));
     return draft;
 }
 
@@ -1237,6 +1397,7 @@ void WxMachineRegister::draftToControls()
     }
     else
         this->clearQueues();
+    this->blocksToControls();
 
     p_deleteButton->Enable(p_slctRgstn != NULL &&
                            (p_adminFlag || p_loadedFrom == "yours"));
@@ -1627,7 +1788,7 @@ string WxMachineRegister::cfgHint(const CfgRow& r) const
 void WxMachineRegister::cfgToControl(const CfgRow& r)
 {
     string v;
-    bool has = p_draft->effective(r.key, v, true);
+    bool has = p_draft->effective(r.key, v, !r.gensubOnly);
     string show = cfgCanon(r, has ? v : cfgDefault(r));
     switch (r.kind)
     {
@@ -1701,28 +1862,29 @@ static string plainTag(MCD::Tag t)
 
 
 //  The tag and its tooltip: the file the value is in, and what it overrides.
-void WxMachineRegister::cfgTagInfo(const CfgRow& r, MCD::Tag& t,
-                                   string& tip) const
+void WxMachineRegister::cfgTagInfo(const string& key, bool cppOnly,
+                                   MCD::Tag& t, string& tip) const
 {
-    const MCD::KeyState* ks = p_draft->state(r.key);
+    const MCD::KeyState* ks = p_draft->state(key);
     t = MCD::TagDefault;
     tip = "Not set; ECCE's built-in default applies";
     if (ks == NULL)
         return;
-    t = p_draft->tag(r.key, true);
+    t = p_draft->tag(key, cppOnly);
 
     string inh, inhFile, inhTag;
-    bool hasInh = inheritedValue(*ks, true, inh);
+    bool hasInh = inheritedValue(*ks, cppOnly, inh);
     for (size_t k = ks->inherited.size(); k-- > 0 && inhTag.empty(); )
-        if (!(ks->inherited[k].source == "submit.site" ||
-              ks->inherited[k].source == "vendor"))
+        if (!cppOnly || !(ks->inherited[k].source == "submit.site" ||
+                          ks->inherited[k].source == "vendor"))
         {
             inhTag = layerTagName(ks->inherited[k], remoteClient());
             inhFile = ks->inherited[k].file;
         }
     string file = p_draft->editedFile();
-    string over = hasInh ? "\nOverrides the " + inhTag + " value \"" + inh +
-                           "\" (" + inhFile + ")" : "";
+    string shown = inh.find('\n') == string::npos ? " \"" + inh + "\"" : "";
+    string over = hasInh ? "\nOverrides the " + inhTag + " value" + shown +
+                           " (" + inhFile + ")" : "";
     switch (t)
     {
         case MCD::TagDefault: break;
@@ -1765,7 +1927,7 @@ void WxMachineRegister::cfgTags()
             continue;
         MCD::Tag t;
         string tip;
-        cfgTagInfo(r, t, tip);
+        cfgTagInfo(r.key, !r.gensubOnly, t, tip);
         wxString text = plainTag(t);
         if (r.tag->GetLabel() != text)
             r.tag->SetLabel(text);
@@ -1790,8 +1952,8 @@ void WxMachineRegister::cfgTags()
     {
         MCD::Tag ta, tb;
         string tipa, tipb;
-        cfgTagInfo(*a, ta, tipa);
-        cfgTagInfo(*b, tb, tipb);
+        cfgTagInfo(a->key, true, ta, tipa);
+        cfgTagInfo(b->key, true, tb, tipb);
         bool own = ta != MCD::TagDefault && (ta == MCD::TagYours ||
                    ta == MCD::TagNoValue || ta == MCD::TagSiteEditing);
         bool ownb = tb == MCD::TagYours || tb == MCD::TagNoValue ||
@@ -1887,6 +2049,11 @@ void WxMachineRegister::cfgUndo(const string& key)
 {
     if (p_draft == NULL)
         return;
+    if (block(key) != NULL)
+    {
+        this->blockUndo(key);
+        return;
+    }
     this->syncDraft();
     vector<string> ks;
     if (lowerOf(key) == "jobs")
@@ -1954,9 +2121,10 @@ void WxMachineRegister::syncKey(MCD* draft, const string& key,
 //  value, so they are compared in canonical form and written as chosen.
 void WxMachineRegister::syncCfg(MCD* draft, const CfgRow& r)
 {
+    bool cpp = !r.gensubOnly;
     if (r.kind == CfgText)
     {
-        syncKey(draft, r.key, cfgCtrlText(r), true);
+        syncKey(draft, r.key, cfgCtrlText(r), cpp);
         return;
     }
     const MCD::KeyState* ks = draft->state(r.key);
@@ -1964,12 +2132,12 @@ void WxMachineRegister::syncCfg(MCD* draft, const CfgRow& r)
         return;
 
     string t = cfgCtrlText(r), cur;
-    bool has = draft->effective(r.key, cur, true);
+    bool has = draft->effective(r.key, cur, cpp);
     if (t == cfgCanon(r, has ? cur : cfgDefault(r)))
         return;
 
     string inh;
-    bool hasInh = inheritedValue(*ks, true, inh);
+    bool hasInh = inheritedValue(*ks, cpp, inh);
     if (t == cfgCanon(r, hasInh ? inh : cfgDefault(r)))
         draft->useInherited(r.key);
     else
@@ -1995,6 +2163,7 @@ void WxMachineRegister::syncDraft()
     c.qmgr = (string)p_qmgrChoice->GetStringSelection();
     c.queues = p_queues;
 
+    this->blocksRetarget();
     syncKeys(p_draft);
 }
 
@@ -2007,6 +2176,7 @@ void WxMachineRegister::syncKeys(MCD* draft)
     jobsFromRadios();
     for (size_t i = 0; i < p_cfgRows.size(); i++)
         syncCfg(draft, p_cfgRows[i]);
+    this->syncBlocks(draft);
 }
 
 
@@ -2055,14 +2225,6 @@ void WxMachineRegister::updateFooter()
 
     string qm = (string)p_qmgrChoice->GetStringSelection();
     string lq = lowerOf(qm);
-    wxString job = "Not editable here yet. The commands run before and after "
-        "the code (setup, wrapup)";
-    if (lq != "none" && lq != "shell" && !lq.empty())
-        job += " and the " + qm + " header (" + lq + ")";
-    job += " are set in " + config + ".";
-    if (p_jobNote->GetLabel() != job)
-        { p_jobNote->SetLabel(job); p_jobNote->Wrap(560); }
-
     if (CfgRow* q = cfgRow("qmgrPath"))
     {
         static_cast<wxTextCtrl*>(q->ctrl)->SetHint(cfgHint(*q));
@@ -2085,6 +2247,7 @@ void WxMachineRegister::updateDirty()
 
     bool dirty = this->isDirty();
     this->cfgTags();
+    this->blocksTags();
     p_saveButton->Enable(dirty && hasMinimalInput());
     wxString title = dirty ? wxString("*") + TITLE : wxString(TITLE);
     if ((string)this->GetTitle() != (string)title)
@@ -2095,6 +2258,8 @@ void WxMachineRegister::updateDirty()
 
 void WxMachineRegister::onFieldChanged(wxCommandEvent& event)
 {
+    if (p_cshTimer != NULL && !p_inCtrlUpdate)
+        p_cshTimer->StartOnce(600);
     this->updateDirty();
     event.Skip();
 }
@@ -2240,6 +2405,18 @@ bool WxMachineRegister::verifyInput()
         return false;
     }
 
+    //  ConfigFile cannot write a block with "}" in column 0.
+    for (size_t i = 0; i < p_blocks.size(); i++)
+    {
+        string t = (string)p_blocks[i].user->GetValue();
+        if (t.compare(0, 1, "}") == 0 || t.find("\n}") != string::npos)
+        {
+            displayMessage("A line in the job script text may not start with "
+                           "\"}\"; put a space before it.");
+            return false;
+        }
+    }
+
     //  Values land on one line of CONFIG.<machine>, and "-" there means
     //  "no value".
     vector<ewxTextCtrl*> texts = p_codePaths;
@@ -2374,6 +2551,7 @@ bool WxMachineRegister::save()
     }
 
     this->syncDraft();
+    this->blocksCheckCsh();
     if (!this->verifyInput())
         return false;
 
@@ -2476,6 +2654,478 @@ bool WxMachineRegister::deleteMachine()
     this->redo(refName);
     this->notifyUpdate();
     return true;
+}
+
+
+//  ---- the Job script tab -----------------------------------------------------
+
+//  Where the inherited text comes from, in words.
+static string blockSource(const MCD::Layer& l, bool remote)
+{
+    string name = l.file;
+    size_t slash = name.rfind('/');
+    if (slash != string::npos)
+        name = name.substr(slash + 1);
+    if (remote && l.source != "user")
+        return "the ECCE server: " + name;
+    if (l.source == "site")
+        return "the site: " + name;
+    return "the site's default: " + name;
+}
+
+
+//  The header block follows the queue manager chosen on the Queues tab.
+void WxMachineRegister::blocksRetarget()
+{
+    BlockRow* h = block("header");
+    if (h == NULL || p_draft == NULL || headerKey() == h->key)
+        return;
+    syncBlock(p_draft, *h);
+    bool was = p_inCtrlUpdate;
+    p_inCtrlUpdate = true;
+    blockToControl(*h);
+    p_inCtrlUpdate = was;
+}
+
+
+void WxMachineRegister::blocksToControls()
+{
+    for (size_t i = 0; i < p_blocks.size(); i++)
+        blockToControl(p_blocks[i]);
+    blocksCheckCsh();
+}
+
+
+void WxMachineRegister::blockToControl(BlockRow& b)
+{
+    bool header = b.id == "header";
+    b.key = header ? headerKey() : b.id;
+    string qm = (string)p_qmgrChoice->GetStringSelection();
+
+    if (header)
+    {
+        b.heading->SetLabel("Request lines for " + qm);
+        p_jobNote->SetLabel(b.key.empty()
+            ? "No queue manager is set (Queues tab): the job runs directly on "
+              "the machine and needs no request lines."
+            : "Queue manager: " + qm + " (change it on the Queues tab). The "
+              "lines below go at the top of the job script and tell " + qm +
+              " what the job needs.");
+        p_jobNote->Wrap(600);
+    }
+
+    const MCD::KeyState* ks = b.key.empty() ? NULL : p_draft->state(b.key);
+    b.box->ShowItems(ks != NULL);
+    if (header)
+    {
+        wxWindow* vars = field("header:variables");
+        if (vars != NULL)
+            vars->Show(ks != NULL);
+        if (p_condorGrid != NULL)
+            p_condorGrid->ShowItems(lowerOf(qm) == "htcondor");
+    }
+    if (ks != NULL)
+    {
+        b.heading->SetToolTip("CONFIG key: " + ks->name);
+        string inh;
+        bool hasInh = inheritedValue(*ks, false, inh);
+        if (hasInh)
+            b.siteLabel->SetLabel("From " + blockSource(
+                ks->inherited.back(), remoteClient()) + " (read-only)");
+        else
+            b.siteLabel->SetLabel(p_adminFlag
+                ? "Nothing from the site's defaults."
+                : "The site gives no text here.");
+        b.site->ChangeValue(hasInh ? inh : "");
+        b.site->Show(hasInh);
+
+        bool cleared = ks->edit == MCD::Clear;
+        b.user->ChangeValue(ks->edit == MCD::Set ? ks->value : "");
+        b.user->Enable(!cleared);
+        b.user->SetHint(cleared ? "(no text)" : hasInh
+            ? "Empty: the text above is used" : "");
+        b.none->SetValue(cleared);
+        b.none->Show(hasInh || cleared);
+        b.copy->Enable(hasInh && !cleared);
+        b.copy->Show(hasInh);
+        b.note->Show(!b.note->GetLabel().empty());
+    }
+    if (p_jobPage != NULL)
+    {
+        p_jobPage->Layout();
+        static_cast<wxScrolledWindow*>(p_jobPage)->FitInside();
+    }
+}
+
+
+void WxMachineRegister::syncBlock(MCD* draft, const BlockRow& b)
+{
+    if (b.key.empty() || draft->state(b.key) == NULL)
+        return;
+    string t = strip((string)b.user->GetValue());
+    if (b.none->IsChecked() && b.none->IsShown())
+    {
+        if (!draft->clear(b.key))
+            draft->useInherited(b.key);
+    }
+    else if (t.empty())
+        draft->useInherited(b.key);
+    else
+        draft->setValue(b.key, t);
+}
+
+
+void WxMachineRegister::syncBlocks(MCD* draft)
+{
+    for (size_t i = 0; i < p_blocks.size(); i++)
+        syncBlock(draft, p_blocks[i]);
+}
+
+
+void WxMachineRegister::blocksTags()
+{
+    if (p_draft == NULL)
+        return;
+    string undoTip = p_adminFlag ? "Use the site default"
+                   : remoteClient() ? "Use the server text"
+                   : "Use the site text";
+    for (size_t i = 0; i < p_blocks.size(); i++)
+    {
+        const BlockRow& b = p_blocks[i];
+        const MCD::KeyState* ks = b.key.empty() ? NULL : p_draft->state(b.key);
+        if (ks == NULL)
+            continue;
+        MCD::Tag t;
+        string tip;
+        cfgTagInfo(b.key, false, t, tip);
+        wxString text = plainTag(t);
+        if (b.tag->GetLabel() != text)
+            b.tag->SetLabel(text);
+        b.tag->SetForegroundColour(wxSystemSettings::GetColour(
+            (t == MCD::TagYours || t == MCD::TagNoValue ||
+             t == MCD::TagSiteEditing) ? wxSYS_COLOUR_WINDOWTEXT
+                                       : wxSYS_COLOUR_GRAYTEXT));
+        tip += "\nCONFIG key: " + ks->name;
+        if (b.tag->GetToolTipText() != tip)
+            b.tag->SetToolTip(tip);
+        bool own = ks->edit != MCD::Inherit;
+        if (b.undo->IsShown() != own)
+            b.undo->Show(own);
+        b.undo->SetToolTip(undoTip);
+        b.copy->Enable(b.copy->IsShown() && !b.none->IsChecked());
+    }
+}
+
+
+//  Fills the box with the inherited text, which then replaces it.
+void WxMachineRegister::blockCopySite(const string& id)
+{
+    BlockRow* b = block(id);
+    const MCD::KeyState* ks = b && p_draft ? p_draft->state(b->key) : NULL;
+    string inh;
+    if (ks == NULL || !inheritedValue(*ks, false, inh))
+        return;
+    string mine = strip((string)b->user->GetValue());
+    if (!mine.empty() && mine != strip(inh) &&
+        this->ask("Copy Site Text", "Replace your text with the site text?",
+                  "What you typed in this box is lost.",
+                  wxYES_NO|wxICON_QUESTION, "Replace", "Keep", "") != wxID_YES)
+        return;
+    b->none->SetValue(false);
+    b->user->Enable(true);
+    b->user->SetValue(inh);
+    this->updateDirty();
+}
+
+
+void WxMachineRegister::blockUndo(const string& id)
+{
+    BlockRow* b = block(id);
+    if (b == NULL || p_draft == NULL)
+        return;
+    this->syncDraft();
+    p_draft->useInherited(b->key);
+    p_inCtrlUpdate = true;
+    blockToControl(*b);
+    p_inCtrlUpdate = false;
+    this->updateDirty();
+}
+
+
+void WxMachineRegister::blockNone(const string& id)
+{
+    BlockRow* b = block(id);
+    if (b == NULL)
+        return;
+    bool none = b->none->IsChecked();
+    if (none)
+    {
+        bool was = p_inCtrlUpdate;
+        p_inCtrlUpdate = true;
+        b->user->ChangeValue("");
+        p_inCtrlUpdate = was;
+    }
+    b->user->Enable(!none);
+    b->copy->Enable(!none);
+}
+
+
+//  csh text in a block.  gensub stops at the same lines when it makes a job
+//  script, so say so before saving.  firstLine: the file line the text
+//  starts on, so the numbers count within the block.
+static void cshNotices(const string& text, int firstLine, vector<string>& out)
+{
+    char tmpl[] = "/tmp/ecce-machreg-csh-XXXXXX";
+    int fd = mkstemp(tmpl);
+    if (fd < 0)
+        return;
+    FILE* f = fdopen(fd, "w");
+    fputs(text.c_str(), f);
+    fclose(f);
+
+    wxString cmd = "perl \"" + string(Ecce::ecceHome()) +
+                   "/scripts/ecce-csh2sh\" --check \"" + tmpl + "\"";
+    wxArrayString lines, errors;
+    wxExecute(cmd, lines, errors, wxEXEC_SYNC);
+    unlink(tmpl);
+
+    static const std::regex lineRe("^\\s+line (\\d+) \\[[^\\]]*\\]\\s+(.*)$");
+    static const std::regex wantRe("^\\s+(?:->|write:)\\s+(.*)$");
+    for (size_t i = 0; i < lines.GetCount(); i++)
+    {
+        std::smatch m;
+        string l = (string)lines[i];
+        if (std::regex_match(l, m, lineRe))
+            out.push_back("Line " + std::to_string(atoi(m[1].str().c_str()) -
+                          firstLine + 1) + " is csh: " + m[2].str());
+        else if (!out.empty() && std::regex_match(l, m, wantRe))
+            out.back() += "\n    write: " + m[1].str();
+    }
+}
+
+
+void WxMachineRegister::blocksCheckCsh()
+{
+    static const char* ids[] = { "setup", "wrapup" };
+    for (size_t k = 0; k < 2; k++)
+    {
+        BlockRow* b = block(ids[k]);
+        if (b == NULL)
+            continue;
+        string t = b->user->IsEnabled() ? strip((string)b->user->GetValue())
+                                        : string();
+        vector<string> found;
+        if (!t.empty())
+            cshNotices(b->id + " {\n" + t + "\n}\n", 2, found);
+        string msg;
+        for (size_t i = 0; i < found.size() && i < 3; i++)
+            msg += (i ? "\n" : "") + found[i];
+        if (found.size() > 3)
+            msg += "\n... and " + std::to_string(found.size() - 3) + " more";
+        if (!msg.empty())
+            msg += "\nJob scripts are POSIX sh; the job script cannot be "
+                   "made until this is fixed.";
+        if (b->note->GetLabel() != wxString(msg))
+        {
+            b->note->SetLabel(msg);
+            b->note->Show(!msg.empty());
+            if (p_jobPage != NULL)
+            {
+                p_jobPage->Layout();
+                static_cast<wxScrolledWindow*>(p_jobPage)->FitInside();
+            }
+        }
+    }
+}
+
+
+//  ---- Advanced: edit file -----------------------------------------------------
+
+string WxMachineRegister::rawFileText() const
+{
+    ConfigFile f;
+    f.load(p_draft->editedFile());
+    if (f.exists())
+        return f.text();
+    return "# Settings for " + p_loadedName + " (Register Machines)\n";
+}
+
+
+//  Problems in `text`; errors stop the save, the rest are warnings.
+string WxMachineRegister::rawFileCheck(const string& text, bool& errors) const
+{
+    errors = false;
+    ConfigFile f;
+    f.parse(text);
+    string report;
+    for (size_t i = 0; i < f.warnings().size(); i++)
+    {
+        const string& w = f.warnings()[i];
+        bool bad = w.find("not closed") != string::npos;
+        errors = errors || bad;
+        report += string(bad ? "Error: " : "Warning: ") + w + "\n";
+    }
+
+    //  A key some other layer (or this form) knows; the file's own keys do
+    //  not make themselves known.
+    std::set<string> known;
+    vector<string> dk = p_draft->keys();
+    for (size_t i = 0; i < dk.size(); i++)
+        if (!p_draft->state(dk[i])->inherited.empty())
+            known.insert(dk[i]);
+    for (size_t i = 0; i < p_cfgRows.size(); i++)
+        known.insert(lowerOf(p_cfgRows[i].key));
+    known.insert("setup");
+    known.insert("wrapup");
+    for (int i = 1; i < (int)p_qmgrChoice->GetCount(); i++)
+        known.insert(lowerOf((string)p_qmgrChoice->GetString(i)));
+    static const char* const per[] = { "", "command", "environment", "_setup",
+        "_wrapup", "_loophole", "filestoremove", "prelimfilestoremove" };
+    for (size_t i = 0; i < p_codeNames.size(); i++)
+        for (size_t j = 0; j < sizeof(per) / sizeof(per[0]); j++)
+            known.insert(lowerOf(p_codeNames[i]) + per[j]);
+    for (size_t i = 0; i < f.entries().size(); i++)
+        if (known.find(f.entries()[i].lkey) == known.end())
+            report += "Warning: line " + std::to_string(f.entries()[i].first + 1)
+                      + ": '" + f.entries()[i].key + "' is not a setting "
+                      "ECCE reads.\n";
+
+    vector<string> csh;
+    cshNotices(text, 1, csh);
+    for (size_t i = 0; i < csh.size(); i++)
+        report += "Warning: " + csh[i] + "\n";
+    if (report.empty())
+        report = "No problems found.\n";
+    return report;
+}
+
+
+bool WxMachineRegister::rawFileSave(const string& text, string& err)
+{
+    ConfigFile f;
+    f.setSiteFile(p_adminFlag);
+    if (!f.load(p_draft->editedFile()))
+    {
+        err = "Cannot read " + p_draft->editedFile();
+        return false;
+    }
+    f.setText(text);
+    return f.save(&err);
+}
+
+
+void WxMachineRegister::rawFileClosed(bool saved)
+{
+    for (std::map<string, wxWindow*>::iterator it = p_fields.begin();
+         it != p_fields.end(); )
+        if (it->first.compare(0, 4, "raw:") == 0)
+            p_fields.erase(it++);
+        else
+            ++it;
+    p_rawDlg = NULL;
+    if (saved)
+    {
+        this->redo(p_loadedName);
+        this->notifyUpdate();
+    }
+}
+
+
+//  The form and a raw edit are never merged: unsaved form changes are saved
+//  or dropped first.
+void WxMachineRegister::editFile()
+{
+    if (p_rawDlg != NULL || p_draft == NULL)
+        return;
+    if (p_loadedName.empty())
+    {
+        displayMessage("Save the machine first; then its settings file can "
+                       "be edited.");
+        return;
+    }
+    if (!this->resolveUnsaved("Discard Changes"))
+        return;
+    //  Discarded: the file, not the form, is what is edited now.
+    if (this->isDirty())
+        this->loadMachine(p_loadedName);
+
+    wxDialog* dlg = new wxDialog(this, wxID_ANY,
+        "Edit " + p_draft->editedFile(), wxDefaultPosition, wxSize(720, 560),
+        wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER);
+    wxBoxSizer* root = new wxBoxSizer(wxVERTICAL);
+    dlg->SetSizer(root);
+
+    wxStaticText* intro = new wxStaticText(dlg, wxID_ANY,
+        "The settings file for '" + p_loadedName + "', as text. Check looks "
+        "for mistakes; Save writes the file and shows the form again.");
+    intro->Wrap(680);
+    root->Add(intro, wxSizerFlags().Border());
+    wxTextCtrl* text = new wxTextCtrl(dlg, wxID_ANY, rawFileText(),
+        wxDefaultPosition, wxDefaultSize,
+        wxTE_MULTILINE|wxTE_DONTWRAP|wxHSCROLL);
+    text->SetFont(wxFont(wxFontInfo().Family(wxFONTFAMILY_TELETYPE)));
+    root->Add(text, wxSizerFlags(3).Expand().Border());
+    wxTextCtrl* report = new wxTextCtrl(dlg, wxID_ANY, "", wxDefaultPosition,
+        wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY|wxTE_DONTWRAP);
+    root->Add(report, wxSizerFlags(1).Expand().Border(wxLEFT|wxRIGHT));
+    wxBoxSizer* buttons = new wxBoxSizer(wxHORIZONTAL);
+    wxButton* check = new ewxButton(dlg, wxID_ANY, "&Check");
+    wxButton* cancel = new ewxButton(dlg, wxID_CANCEL, "Cancel");
+    wxButton* save = new ewxButton(dlg, wxID_SAVE, "&Save");
+    buttons->Add(check, wxSizerFlags().Border());
+    buttons->AddStretchSpacer(1);
+    buttons->Add(cancel, wxSizerFlags().Border());
+    buttons->Add(save, wxSizerFlags().Border());
+    root->Add(buttons, wxSizerFlags().Expand());
+    save->SetDefault();
+
+    bool modal = !p_scripted;
+    auto finish = [this, dlg, modal](bool saved) {
+        this->rawFileClosed(saved);
+        if (modal)
+            dlg->EndModal(saved ? wxID_OK : wxID_CANCEL);
+        else
+            dlg->Destroy();
+    };
+    check->Bind(wxEVT_BUTTON, [this, text, report](wxCommandEvent&) {
+        bool errors;
+        report->SetValue(this->rawFileCheck((string)text->GetValue(), errors));
+    });
+    save->Bind(wxEVT_BUTTON, [this, text, report, finish](wxCommandEvent&) {
+        bool errors;
+        string r = this->rawFileCheck((string)text->GetValue(), errors);
+        report->SetValue(r);
+        if (errors)
+        {
+            this->p_lastMessage = "not saved: " + r;
+            return;
+        }
+        string err;
+        if (!this->rawFileSave((string)text->GetValue(), err))
+        {
+            report->SetValue("Error: " + err + "\n");
+            this->p_lastMessage = err;
+            return;
+        }
+        finish(true);
+    });
+    cancel->Bind(wxEVT_BUTTON, [finish](wxCommandEvent&) { finish(false); });
+    dlg->Bind(wxEVT_CLOSE_WINDOW, [finish](wxCloseEvent&) { finish(false); });
+
+    reg("raw:text", text);
+    reg("raw:report", report);
+    reg("raw:check", check);
+    reg("raw:save", save);
+    reg("raw:cancel", cancel);
+    p_rawDlg = dlg;
+    dlg->CentreOnParent();
+    if (modal)
+    {
+        dlg->ShowModal();
+        dlg->Destroy();
+    }
+    else
+        dlg->Show();
 }
 
 

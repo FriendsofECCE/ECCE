@@ -43,6 +43,11 @@ class wxBitmapButton;
 class wxRadioButton;
 class wxStaticBitmap;
 class wxNotebook;
+class wxTimer;
+class wxDialog;
+class wxButton;
+class wxCheckBox;
+class wxTextCtrl;
 class wxStaticText;
 class ewxButton;
 class ewxCheckBox;
@@ -80,8 +85,27 @@ class WxMachineRegister: public ewxFrame
             wxStaticText *tag, *name;
             wxWindow *undoBox;            // keeps the cell when undo is hidden
             wxBitmapButton *undo;
+            bool gensubOnly;              // read by gensub, not by C++
             CfgRow() : kind(CfgText), ctrl(NULL), tag(NULL), name(NULL),
-                       undoBox(NULL), undo(NULL) {}
+                       undoBox(NULL), undo(NULL), gensubOnly(false) {}
+        };
+
+        //  A block of text on the Job script tab: the inherited text shown
+        //  read-only above, the user's own (replacing it) below.
+        struct BlockRow {
+            string id;                    // header, setup, wrapup
+            string key;                   // the CONFIG key now shown
+            wxStaticText *heading, *siteLabel, *yoursLabel, *tag, *note;
+            wxTextCtrl *site, *user;
+            wxCheckBox *none;
+            wxButton *copy;
+            wxWindow *undoBox;
+            wxBitmapButton *undo;
+            wxSizer *box;
+            BlockRow() : heading(NULL), siteLabel(NULL), yoursLabel(NULL),
+                         tag(NULL), note(NULL), site(NULL), user(NULL),
+                         none(NULL), copy(NULL), undoBox(NULL), undo(NULL),
+                         box(NULL) {}
         };
 
         //  Construction
@@ -138,8 +162,27 @@ class WxMachineRegister: public ewxFrame
         void cfgTags();
         void onCfgUndo(wxCommandEvent& event);
         void cfgUndo(const string& key);
-        void cfgTagInfo(const CfgRow& r, MachineConfigDraft::Tag& tag,
-                        string& tip) const;
+        void cfgTagInfo(const string& key, bool cppOnly,
+                        MachineConfigDraft::Tag& tag, string& tip) const;
+        void addBlock(wxWindow* page, wxSizer* sizer, const string& id,
+                      const string& title);
+        BlockRow* block(const string& id);
+        string headerKey() const;
+        void blocksToControls();
+        void blockToControl(BlockRow& b);
+        void blocksTags();
+        void syncBlocks(MachineConfigDraft* draft);
+        void syncBlock(MachineConfigDraft* draft, const BlockRow& b);
+        void blockCopySite(const string& id);
+        void blockUndo(const string& id);
+        void blockNone(const string& id);
+        void blocksRetarget();
+        void blocksCheckCsh();
+        void editFile();
+        string rawFileText() const;
+        string rawFileCheck(const string& text, bool& errors) const;
+        bool rawFileSave(const string& text, string& err);
+        void rawFileClosed(bool saved);
         wxBitmapButton* makeUndo(wxWindow* page, wxWindow*& box);
         int jobsIndex() const;
         void jobsToRadios();
@@ -194,6 +237,8 @@ class WxMachineRegister: public ewxFrame
 
         //  Test hook support
         wxWindow* field(const string& name) const;
+        //  Test hook: the Advanced dialog, which is shown without a modal loop.
+        bool rawDialogOpen() const { return p_rawDlg != NULL; }
         void reg(const string& name, wxWindow* w);
 
         wxNotebook          *p_book;
@@ -203,6 +248,11 @@ class WxMachineRegister: public ewxFrame
         wxStaticText        *p_storeNote;   // names the files Save writes
         wxStaticText        *p_jobNote;
         vector<CfgRow>       p_cfgRows;
+        vector<BlockRow>     p_blocks;
+        wxSizer             *p_condorGrid;
+        wxWindow            *p_jobPage;
+        wxTimer             *p_cshTimer;
+        wxDialog            *p_rawDlg;     // Advanced: edit file
         wxCheckBox          *p_jobsCheck[3];   // [1] interactive, [2] files only
         wxStaticText        *p_jobsTag, *p_jobsMode;
         wxStaticBitmap      *p_jobsIcon;

@@ -15,6 +15,10 @@
  *    expect dirty|save-enabled|delete-enabled|title-star|banner 0|1
  *    expect field FIELD VALUE | list NAME FROM | tab NAME | message TEXT
  *    expect label FIELD TEXT | enabled FIELD 0|1 | shown FIELD 0|1
+
+ *    click FIELD    a button or checkbox by name, e.g. blk:setup:copy, edit-file, raw:save
+ *    shot-dialog FILE | expect raw-dialog 0|1 | contains FIELD TEXT   the Advanced: edit file dialog
+ *    (set accepts \\n for a line break in the multi-line boxes)
  *    undo KEY       the undo button of a Connection row (jobs: the radios)
  *  Source tags are fields named tag:KEY, e.g. expect label tag:shell site.
  */
@@ -46,7 +50,7 @@ class MachRegScript : public wxEvtHandler
                       const std::string& want);
         std::string get(const std::string& field);
         bool click(const std::string& field);
-        bool shot(const std::string& file);
+        bool shot(const std::string& file, bool dialog = false);
         void finish();
 
         wxWeakRef<wxWindow>      p_frameRef;
