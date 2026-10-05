@@ -137,6 +137,7 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
     p_jobsMode = NULL;
     p_jobsIcon = NULL;
     p_advanced = NULL;
+    p_advBtn = NULL;
     p_condorGrid = NULL;
     p_jobPage = NULL;
     p_cshTimer = NULL;
@@ -481,6 +482,17 @@ void WxMachineRegister::addCfgRow(wxWindow* page, wxFlexGridSizer* grid,
 }
 
 
+//  Lays out inside the tab only; the frame keeps its size.
+void WxMachineRegister::setAdvanced(bool on)
+{
+    p_cfgPage->GetSizer()->Show(p_advanced, on);
+    p_advBtn->SetLabel(wxString::FromUTF8(on ? "\xe2\x96\xbe Advanced"
+                                             : "\xe2\x96\xb8 Advanced"));
+    p_cfgPage->Layout();
+    static_cast<wxScrolledWindow*>(p_cfgPage)->FitInside();
+}
+
+
 //  A small undo button in a box of fixed size, so the columns do not move
 //  when it is hidden.
 wxBitmapButton* WxMachineRegister::makeUndo(wxWindow* page, wxWindow*& box)
@@ -526,7 +538,7 @@ wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
 
     addHeading(page, sizer, "Paths on the remote machine");
     GRID(paths)
-    addCfgRow(page, paths, "perlPath", "Perl program", CfgText,
+    addCfgRow(page, paths, "perlPath", "Directory of the Perl program", CfgText,
               "Directory of the Perl 5 interpreter on the remote machine.");
     addCfgRow(page, paths, "qmgrPath", "Directory of sbatch, squeue, ...", CfgText, "");
     addCfgRow(page, paths, "libPath", "Library directory", CfgText,
@@ -567,9 +579,19 @@ wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
     reg("jobs:mode", p_jobsMode);
     reg("jobs:icon", p_jobsIcon);
 
-    p_advanced = new wxCollapsiblePane(page, wxID_ANY, "Advanced");
+    //  Not a wxCollapsiblePane: that resizes the frame when it toggles.
+    p_advBtn = new wxButton(page, wxID_ANY,
+        wxString::FromUTF8("\xe2\x96\xb8 Advanced"),
+        wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT|wxBORDER_NONE);
+    p_advBtn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        this->setAdvanced(!p_advanced->IsShown());
+    });
+    reg("advanced:toggle", p_advBtn);
+    sizer->Add(p_advBtn, wxSizerFlags().Border());
+    p_advanced = new wxPanel(page);
+    p_advanced->Hide();
     sizer->Add(p_advanced, wxSizerFlags().Expand().Border());
-    wxWindow* adv = p_advanced->GetPane();
+    wxWindow* adv = p_advanced;
     wxBoxSizer* advBox = new wxBoxSizer(wxVERTICAL);
     adv->SetSizer(advBox);
 
@@ -614,12 +636,8 @@ wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
     addCfgRow(adv, advGrid, "checkScratch", "Check the scratch directory "
               "before a job starts", CfgCheckYes,
               "Verify that the scratch directory exists and is writable.");
-    p_advanced->Bind(wxEVT_COLLAPSIBLEPANE_CHANGED,
-        [this](wxCollapsiblePaneEvent&) {
-            p_cfgPage->Layout();
-            p_cfgPage->FitInside();
-        });
     #undef GRID
+    setAdvanced(false);
     return page;
 }
 
@@ -659,8 +677,6 @@ wxWindow* WxMachineRegister::createJobScriptPage(wxWindow* parent)
     p_jobNote = new wxStaticText(page, wxID_ANY, "");
     sizer->Add(p_jobNote, wxSizerFlags().Border());
 
-    addBlock(page, sizer, "header", "");
-
     //  The words come from gensub's provideVariables().
     wxHyperlinkCtrl* vars = new wxHyperlinkCtrl(page, wxID_ANY,
         "Available words...", "");
@@ -670,6 +686,9 @@ wxWindow* WxMachineRegister::createJobScriptPage(wxWindow* parent)
     });
     sizer->Add(vars, wxSizerFlags().Border(wxLEFT|wxRIGHT));
     reg("header:variables", vars);
+
+    addBlock(page, sizer, "header", "");
+
 
     addBlock(page, sizer, "setup", "Commands run before the calculation");
     addBlock(page, sizer, "wrapup", "Commands run after the calculation");
@@ -1315,12 +1334,15 @@ void WxMachineRegister::loadMachine(const string& refName)
     if (ref == NULL || idx < 0)
         return;
 
+    bool another = refName != p_loadedName;
     p_slctRgstn = ref;
     p_loadedName = refName;
     p_loadedFrom = p_rows[idx].from;
     delete p_draft;
     p_draft = newDraft(refName);
     this->draftToControls();
+    if (another)                  // a pane opened by hand stays on a save
+        setAdvanced(jobsIndex() != 0);
 
     p_inListUpdate = true;
     p_list->SetItemState(idx, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
@@ -1904,14 +1926,48 @@ void WxMachineRegister::cfgTagInfo(const string& key, bool cppOnly,
 }
 
 
+//  What undo does for a key: 1 puts back the value as last loaded or saved
+//  (there is an unsaved change); 2 drops the user's saved value so the
+//  site's applies; 0 nothing, and no undo button.
+int WxMachineRegister::undoCase(const string& key, bool cppOnly) const
+{
+    const MCD::KeyState* ks = p_draft ? p_draft->state(key) : NULL;
+    if (ks == NULL)
+        return 0;
+    if (p_draft->changed(key))
+        return 1;
+    string inh;
+    return ks->edit != MCD::Inherit && inheritedValue(*ks, cppOnly, inh) ? 2 : 0;
+}
+
+
+string WxMachineRegister::undoTip(int undoCase, const string& what) const
+{
+    if (undoCase == 1)
+        return "Undo this change";
+    return p_adminFlag ? "Use the site default"
+         : remoteClient() ? "Use the server " + what
+         : "Use the site " + what;
+}
+
+
+void WxMachineRegister::undoKey(const string& key, bool revertOnly)
+{
+    if (revertOnly)
+    {
+        if (p_draft->changed(key))
+            p_draft->revert(key);
+    }
+    else
+        p_draft->useInherited(key);
+}
+
+
 //  Refresh each tag, tooltip and undo button from the draft.
 void WxMachineRegister::cfgTags()
 {
     if (p_draft == NULL)
         return;
-    string undoTip = p_adminFlag ? "Use the site default"
-                   : remoteClient() ? "Use the server value"
-                   : "Use the site value";
     for (size_t i = 0; i < p_cfgRows.size(); i++)
     {
         const CfgRow& r = p_cfgRows[i];
@@ -1932,10 +1988,10 @@ void WxMachineRegister::cfgTags()
                                        : wxSYS_COLOUR_GRAYTEXT));
         if (r.tag->GetToolTipText() != tip)
             r.tag->SetToolTip(tip);
-        bool own = ks->edit != MCD::Inherit;
-        if (r.undo->IsShown() != own)
-            r.undo->Show(own);
-        r.undo->SetToolTip(undoTip);
+        int uc = undoCase(r.key, !r.gensubOnly);
+        if (r.undo->IsShown() != (uc != 0))
+            r.undo->Show(uc != 0);
+        r.undo->SetToolTip(undoTip(uc, "value"));
         if (r.kind == CfgText)
             static_cast<wxTextCtrl*>(r.ctrl)->SetHint(cfgHint(r));
     }
@@ -1965,9 +2021,11 @@ void WxMachineRegister::cfgTags()
         if (p_jobsTag->GetToolTipText() != tip)
             p_jobsTag->SetToolTip(tip);
         jobsLine();
-        if (p_jobsUndo->IsShown() != (own || ownb))
-            p_jobsUndo->Show(own || ownb);
-        p_jobsUndo->SetToolTip(undoTip);
+        int ua = undoCase(a->key, true), ub = undoCase(b->key, true);
+        int uc = (ua == 1 || ub == 1) ? 1 : (ua || ub) ? 2 : 0;
+        if (p_jobsUndo->IsShown() != (uc != 0))
+            p_jobsUndo->Show(uc != 0);
+        p_jobsUndo->SetToolTip(undoTip(uc, "value"));
     }
 }
 
@@ -1993,12 +2051,8 @@ void WxMachineRegister::jobsToRadios()
     p_jobsCheck[1]->Enable(idx != 2);
     p_jobsCheck[2]->Enable(idx != 1);
     //  Something other than normal: show the choice.
-    if (idx != 0 && p_advanced != NULL && !p_advanced->IsExpanded())
-    {
-        p_advanced->Expand();
-        p_cfgPage->Layout();
-        p_cfgPage->FitInside();
-    }
+    if (idx != 0 && p_advanced != NULL && !p_advanced->IsShown())
+        setAdvanced(true);
     jobsLine();
 }
 
@@ -2058,11 +2112,14 @@ void WxMachineRegister::cfgUndo(const string& key)
     }
     else
         ks.push_back(key);
+    bool anyChanged = false;
+    for (size_t i = 0; i < ks.size(); i++)
+        anyChanged = anyChanged || p_draft->changed(ks[i]);
     p_inCtrlUpdate = true;
     for (size_t i = 0; i < ks.size(); i++)
         if (CfgRow* r = cfgRow(ks[i]))
         {
-            p_draft->useInherited(r->key);
+            undoKey(r->key, anyChanged);
             cfgToControl(*r);
         }
     jobsToRadios();
@@ -2713,9 +2770,6 @@ void WxMachineRegister::blockToControl(BlockRow& b)
     b.box->ShowItems(ks != NULL);
     if (header)
     {
-        wxWindow* vars = field("header:variables");
-        if (vars != NULL)
-            vars->Show(ks != NULL);
         if (p_condorGrid != NULL)
             p_condorGrid->ShowItems(lowerOf(qm) == "htcondor");
     }
@@ -2781,9 +2835,6 @@ void WxMachineRegister::blocksTags()
 {
     if (p_draft == NULL)
         return;
-    string undoTip = p_adminFlag ? "Use the site default"
-                   : remoteClient() ? "Use the server text"
-                   : "Use the site text";
     for (size_t i = 0; i < p_blocks.size(); i++)
     {
         const BlockRow& b = p_blocks[i];
@@ -2803,10 +2854,10 @@ void WxMachineRegister::blocksTags()
         tip += "\nCONFIG key: " + ks->name;
         if (b.tag->GetToolTipText() != tip)
             b.tag->SetToolTip(tip);
-        bool own = ks->edit != MCD::Inherit;
-        if (b.undo->IsShown() != own)
-            b.undo->Show(own);
-        b.undo->SetToolTip(undoTip);
+        int uc = undoCase(b.key, false);
+        if (b.undo->IsShown() != (uc != 0))
+            b.undo->Show(uc != 0);
+        b.undo->SetToolTip(undoTip(uc, "text"));
         b.copy->Enable(b.copy->IsShown() && !b.none->IsChecked());
     }
 }
@@ -2839,7 +2890,7 @@ void WxMachineRegister::blockUndo(const string& id)
     if (b == NULL || p_draft == NULL)
         return;
     this->syncDraft();
-    p_draft->useInherited(b->key);
+    undoKey(b->key, p_draft->changed(b->key));
     p_inCtrlUpdate = true;
     blockToControl(*b);
     p_inCtrlUpdate = false;

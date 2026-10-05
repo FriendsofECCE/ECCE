@@ -739,7 +739,8 @@ def job_script_tab(tmp, display, build, mode):
         setup_pre = """expect field blk:setup '%s'
 expect label tag:setup 'site value'
 expect shown blk:setup:site 0
-undo setup
+expect shown undo:setup 0
+set blk:setup ''
 expect field blk:setup ''
 expect label tag:setup 'not set'
 expect shown blk:setup:none 0
@@ -859,7 +860,7 @@ expect field blk:header ''
 expect label tag:header 'your value'
 undo header
 expect label tag:header '%(site)s'
-expect shown undo:header 0
+expect shown undo:header 1
 expect dirty 1
 %(setup)sset blk:wrapup ''
 save
@@ -983,6 +984,60 @@ quit
         print("        " + os.path.join(out, n))
 
 
+def fixes(tmp, display, build):
+    print("undo, Advanced, words")
+    e = Env(tmp, "fixes")
+    p = run(display, build, e, """
+select mine
+tab connection
+expect advanced 0
+mark-size
+click advanced:toggle
+expect advanced 1
+expect size-kept 1
+click advanced:toggle
+expect advanced 0
+expect size-kept 1
+expect shown undo:perlpath 0
+set perlpath /saved
+expect shown undo:perlpath 1
+save
+expect shown undo:perlpath 0
+set perlpath /changed
+expect shown undo:perlpath 1
+undo perlpath
+expect field perlpath /saved
+expect dirty 0
+expect shown undo:perlpath 0
+set jobs:user 1
+save
+set jobs:user 0
+set jobs:none 1
+expect shown undo:jobs 1
+undo jobs
+expect field jobs:user 1
+expect field jobs:none 0
+expect dirty 0
+tab job
+expect shown header:variables 1
+expect shown blk:header:site 0
+expect shown blk:setup 1
+set blk:setup 'echo a'
+save
+set blk:setup 'echo b'
+expect shown undo:setup 1
+undo setup
+expect field blk:setup 'echo a'
+expect dirty 0
+expect shown undo:setup 0
+quit
+""")
+    clean(p, "undo restores the saved value on a machine of your own; Advanced "
+          "keeps the frame size; the words link needs no queue manager")
+    cfg = keys(os.path.join(e.ue, "CONFIG.mine"))
+    check(cfg.get("perlpath") == "/saved", "the saved value is in the file")
+
+
 def delete_prompt_lists_files(tmp, display, build):
     print("delete confirmation")
     e = Env(tmp, "del")
@@ -1083,6 +1138,7 @@ def main():
             site_machine(tmp, disp, build)
             site_machine(tmp, disp, build, remote=True)
             delete_prompt_lists_files(tmp, disp, build)
+            fixes(tmp, disp, build)
             admin_mode(tmp, disp, build)
             for m in ("user", "remote", "admin"):
                 connection_tab(tmp, disp, build, m)

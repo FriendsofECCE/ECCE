@@ -73,7 +73,7 @@ static string unescape(string v)
 
 MachRegScript::MachRegScript(WxMachineRegister* frame, const string& file)
     : p_frameRef(frame), p_frame(frame), p_timer(this), p_failures(0),
-      p_loaded(false)
+      p_loaded(false), p_size(0, 0)
 {
     std::ifstream in(file.c_str());
     p_loaded = in.good();
@@ -266,6 +266,7 @@ int MachRegScript::runCommand(const vector<string>& w)
     }
     else if (cmd == "click" && n == 2) click(w[1]);
     else if (cmd == "words") f->showWords();
+    else if (cmd == "mark-size") { p_size = f->GetSize(); }
     else if (cmd == "queue-apply") click("queue-apply");
     else if (cmd == "queue-remove") click("queue-remove");
     else if (cmd == "queue-clear") click("queue-clear");
@@ -328,10 +329,13 @@ int MachRegScript::runCommand(const vector<string>& w)
                 fprintf(stderr, "[MACHREG] ok %s contains '%s'\n",
                         w[2].c_str(), want.c_str());
         }
+        else if (what == "size-kept")
+            expectEq("size-kept", f->GetSize().x >= p_size.x &&
+                     f->GetSize().y >= p_size.y ? "1" : "0", v);
         else if (what == "raw-dialog")
             expectEq("raw-dialog", f->rawDialogOpen() ? "1" : "0", v);
         else if (what == "advanced")
-            expectEq("advanced", f->p_advanced && f->p_advanced->IsExpanded()
+            expectEq("advanced", f->p_advanced && f->p_advanced->IsShown()
                                  ? "1" : "0", v);
         else if (what == "shown" && n >= 4)
         {

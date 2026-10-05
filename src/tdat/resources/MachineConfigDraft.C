@@ -326,6 +326,22 @@ MCD::Tag MCD::tag(const string& key, bool cppOnly) const
   return TagSiteDefaults;
 }
 
+bool MCD::changed(const string& key) const
+{
+  map<string,KeyState>::const_iterator c = p_cur.config.find(lower(key));
+  map<string,KeyState>::const_iterator b = p_base.config.find(lower(key));
+  if (c == p_cur.config.end() || b == p_base.config.end())
+    return c != p_cur.config.end() || b != p_base.config.end();
+  return !(c->second == b->second);
+}
+
+void MCD::revert(const string& key)
+{
+  map<string,KeyState>::const_iterator b = p_base.config.find(lower(key));
+  if (b != p_base.config.end())
+    p_cur.config[lower(key)] = b->second;
+}
+
 void MCD::ensureKey(const string& spelling)
 {
   string k = lower(spelling);
