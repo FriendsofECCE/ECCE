@@ -308,7 +308,7 @@ void AtomTable::fillTable()
   //TODO make this into a generic method on ToolboxControl
   // Is this dead code??
   char buf[128];
-  sprintf(buf, "%s (%zu)",GetName().c_str(), frag->numNonNubs());
+  sprintf(buf, "%s (%zu)",GetName().ToStdString().c_str(), frag->numNonNubs());
   WindowEvent event("ToolboxControlLabel",buf,this);
   EventDispatcher::getDispatcher().publish(event);
 }

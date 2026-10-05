@@ -3170,20 +3170,20 @@ void MDPrep::OnButtonMdprepRotateClick( wxCommandEvent& event )
    if (atom) {
       cmd.append(" atom");
       text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_MDPREP_ORNT_INIT_AT));
-      sprintf(buf," %s",text->GetBaseValue().c_str());
+      sprintf(buf," %s",text->GetBaseValue().ToStdString().c_str());
       cmd.append(buf);
       text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_MDPREP_ORNT_FNL_AT));
-      sprintf(buf," %s",text->GetBaseValue().c_str());
+      sprintf(buf," %s",text->GetBaseValue().ToStdString().c_str());
       cmd.append(buf);
    } else if (mol) {
       cmd.append(" molecule");
       text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_MDPREP_ORNT_ID));
-      sprintf(buf," %s",text->GetValue().c_str());
+      sprintf(buf," %s",text->GetValue().ToStdString().c_str());
       cmd.append(buf);
    } else if (seg) {
       cmd.append(" segment");
       text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_MDPREP_ORNT_ID));
-      sprintf(buf," %s",text->GetValue().c_str());
+      sprintf(buf," %s",text->GetValue().ToStdString().c_str());
       cmd.append(buf);
    }
    cmd.append(" ");
