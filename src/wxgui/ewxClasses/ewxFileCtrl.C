@@ -19,6 +19,7 @@
 #if wxUSE_FILEDLG
 
 #include "wx/tokenzr.h"
+#include "wx/filename.h"
 
 #include <iostream>
 using std::cerr;
@@ -86,7 +87,28 @@ void ewxFileCtrl::ShowHidden( bool show )
 void ewxFileCtrl::UpdateFiles()
 {
   // if local, do the standard filesystem implementation
-  if (local) return wxFileListCtrl::UpdateFiles();
+  if (local) {
+    wxFileListCtrl::UpdateFiles();
+    // A calculation saved to a local folder is a directory; list it as a
+    // file, so it is opened rather than entered.
+    for (long i = 0; i < GetItemCount(); i++) {
+      wxFileData *fd = (wxFileData*)GetItemData(i);
+      if (fd && fd->IsDir() && fd->GetFileName() != wxT("..") &&
+          ewxFileData::isLocalDocument(fd->GetFilePath())) {
+        wxFileData *doc = ewxFileData::asLocalDocument(*fd);
+        delete fd;
+        SetItemPtrData(i, (wxUIntPtr)doc);
+        // Not UpdateItem(): it re-reads the path and makes it a folder again.
+        SetItemImage(i, doc->GetImageId());
+        if (InReportView()) {
+          for (int f = 1; f < wxFileData::FileList_Max; f++)
+            SetItem(i, f, doc->GetEntry((wxFileData::fileListFieldType)f));
+        }
+      }
+    }
+    SortItems(m_sort_field, m_sort_forward);
+    return;
+  }
 
   // don't do anything before ShowModal() call which sets m_dirName
   if (m_dirName == wxT("*")) return;
@@ -261,7 +283,17 @@ void ewxFileCtrl::GoToHomeDir()
  */
 void ewxFileCtrl::GoToDir( const wxString &dir )
 {
-  if (local) return wxFileListCtrl::GoToDir(dir);
+  if (local) {
+    // The base class keeps its "*" placeholder when the directory is missing.
+    wxString d = dir;
+    while (d.length() > 1 && !wxDirExists(d)) {
+      d = wxFileName(d).GetPath();
+      if (d.empty()) break;
+    }
+    if (d.empty() || !wxDirExists(d)) d = wxGetUserHome(wxString());
+    if (!wxDirExists(d)) d = wxT("/");
+    return wxFileListCtrl::GoToDir(d);
+  }
 
   m_dirName = dir;
   UpdateFiles();

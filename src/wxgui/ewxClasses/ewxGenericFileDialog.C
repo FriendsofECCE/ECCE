@@ -61,6 +61,7 @@ IMPLEMENT_DYNAMIC_CLASS(ewxGenericFileDialog, wxDialog)
 
 BEGIN_EVENT_TABLE(ewxGenericFileDialog,wxDialog)
   EVT_CHOICE(ID_SERVER_CHOICE,ewxGenericFileDialog::onServerChoice)
+  EVT_CHOICE(ID_CHOICE_CTRL, ewxGenericFileDialog::onFilterChoice)
   EVT_LIST_ITEM_SELECTED(ID_LIST_CTRL, ewxGenericFileDialog::OnSelected)
   EVT_LIST_ITEM_ACTIVATED(ID_LIST_CTRL, ewxGenericFileDialog::OnActivated)
   EVT_BUTTON(ID_PARENT_DIR,ewxGenericFileDialog::OnUpDir)
@@ -106,17 +107,23 @@ void ewxGenericFileDialog::createControls( bool bypassGenericImpl )
 {
   wxBoxSizer * mainSizer = new wxBoxSizer(wxVERTICAL);
 
-  // server choice + current directory + navigation buttons
+  // server choice + navigation buttons, with the current directory on its
+  // own row so a long path can never run under the buttons
   wxBoxSizer * dirSizer = new wxBoxSizer(wxHORIZONTAL);
   p_serverChoice = new ewxChoice(this, ID_SERVER_CHOICE);
-  dirSizer->Add(p_serverChoice, 0, wxRIGHT|wxALIGN_CENTER_VERTICAL, 10);
-  m_static = new wxStaticText(this, wxID_ANY, wxEmptyString);
-  dirSizer->Add(m_static, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
+  dirSizer->Add(p_serverChoice, 1, wxRIGHT|wxALIGN_CENTER_VERTICAL, 10);
   m_upDirButton = new wxButton(this, ID_PARENT_DIR, _("Up"));
   dirSizer->Add(m_upDirButton, 0, wxLEFT, 5);
   dirSizer->Add(new wxButton(this, ID_HOME_DIR, _("Home")), 0, wxLEFT, 5);
   dirSizer->Add(new wxButton(this, ID_NEW_DIR, _("New Folder")), 0, wxLEFT, 5);
   mainSizer->Add(dirSizer, 0, wxEXPAND|wxALL, 10);
+
+  // The ellipsized label's best size is the full path; a small minimum keeps
+  // it from widening the dialog.
+  m_static = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
+                              wxDefaultSize, wxST_ELLIPSIZE_MIDDLE);
+  m_static->SetMinSize(wxSize(50, -1));
+  mainSizer->Add(m_static, 0, wxEXPAND|wxLEFT|wxRIGHT, 10);
 
   // file listing
   long style2 = ms_lastViewStyle;
@@ -131,7 +138,7 @@ void ewxGenericFileDialog::createControls( bool bypassGenericImpl )
   m_list = new ewxFileCtrl(this, ID_LIST_CTRL, wxEmptyString,
                             ms_lastShowHidden, wxDefaultPosition,
                             list_size, style2);
-  mainSizer->Add(m_list, 1, wxEXPAND|wxLEFT|wxRIGHT, 10);
+  mainSizer->Add(m_list, 1, wxEXPAND|wxALL, 10);
 
   ignoreChanges.setOtherBool(&(m_list->ignoreChanges));
   local.setOtherBool(&(m_list->local));
@@ -258,6 +265,32 @@ void ewxGenericFileDialog::SetWildcard(const wxString& wildCard)
     }
 
     SetFilterIndex( 0 );
+}
+
+
+
+/**
+ * The file list only shows what matches its wildcard, so the filter choice
+ * must be pushed into it; wxFileDialogBase just stores the index.
+ */
+void ewxGenericFileDialog::SetFilterIndex(int filterIndex)
+{
+  wxFileDialogBase::SetFilterIndex(filterIndex);
+
+  if (!m_choice || !m_list) return;
+  if (filterIndex < 0 || filterIndex >= (int) m_choice->GetCount()) return;
+
+  m_choice->SetSelection(filterIndex);
+  if (wxString * filter = (wxString *) m_choice->GetClientData(filterIndex)) {
+    m_list->SetWild(*filter);
+  }
+}
+
+
+
+void ewxGenericFileDialog::onFilterChoice( wxCommandEvent &event )
+{
+  SetFilterIndex(m_choice->GetSelection());
 }
 
 
@@ -492,6 +525,36 @@ void ewxGenericFileDialog::onServerChoice( wxCommandEvent &event )
 
 
 /**
+ * Turns what the user typed into an absolute path or URL: full URLs and (for
+ * local) absolute paths are kept, "/x" on a server is taken relative to the
+ * server root, anything else is relative to the listed directory.  The list's
+ * directory is "*" before its first GoToDir, so fall back to the mount.
+ */
+wxString ewxGenericFileDialog::resolvePath(const wxString& name,
+                                           const wxString& listDir)
+{
+  wxString dir = listDir;
+  if (dir.empty() || dir == wxT("*")) {
+    int n = p_serverChoice->GetSelection();
+    dir = n != wxNOT_FOUND ? wxString(p_lastDir[n]) : wxString(wxT("/"));
+  }
+
+  if (name.Contains(wxT("://"))) return name;
+  if (name.StartsWith(wxT("/"))) {
+    if (local) return name;
+    size_t scheme = dir.Find(wxT("://"));
+    size_t slash = scheme == (size_t) wxNOT_FOUND ? 0 :
+                   dir.find(wxT('/'), scheme + 3);
+    return dir.Left(slash) + name;
+  }
+  if (name == dir) return name;
+  if (!dir.EndsWith(wxT("/"))) dir += wxT("/");
+  return dir + name;
+}
+
+
+
+/**
  *
  */
 void ewxGenericFileDialog::HandleAction( const wxString &fn )
@@ -534,10 +597,14 @@ void ewxGenericFileDialog::HandleAction( const wxString &fn )
 
     if (filename.BeforeFirst(wxT('/')) == wxT("~"))
     {
-        filename = wxString(EDSIServerCentral::getUserHome(
-                            EcceURL(m_dir.c_str()).getEcceRoot()).toString()) +
-                            filename.Remove(0, 1);
-        dir = filename;
+        wxString home;
+        if (local) {
+          home = wxGetUserHome(wxString());
+        } else {
+          home = wxString(EDSIServerCentral::getUserHome(
+                          EcceURL(dir.ToStdString()).getEcceRoot()).toString());
+        }
+        filename = home + filename.Remove(0, 1);
     }
 #endif // __UNIX__
 
@@ -558,11 +625,7 @@ void ewxGenericFileDialog::HandleAction( const wxString &fn )
         }
     }
 
-    // make sure to convert the filename into an "absolute" url
-    if (filename != dir) {
-      dir += "/" + filename;
-      filename = dir;
-    }
+    filename = resolvePath(filename, dir);
 
     if (dirExists(filename))
     {
@@ -810,7 +873,7 @@ bool ewxGenericFileDialog::fileExists(wxString filename)
 {
   bool ret = false;
   if (local) {
-    ret = wxFileExists(filename);
+    ret = wxFileExists(filename) || ewxFileData::isLocalDocument(filename);
   } else {
     Resource *resource = EDSIFactory::getResource(EcceURL(filename));
     ret = (resource && resource->isValid());
@@ -827,13 +890,31 @@ bool ewxGenericFileDialog::dirExists(wxString filename)
 {
   bool ret = false;
   if (local) {
-    ret = wxDirExists(filename);
+    ret = wxDirExists(filename) && !ewxFileData::isLocalDocument(filename);
   } else {
     Resource *resource = EDSIFactory::getResource(EcceURL(filename.c_str()));
     if (!resource) ret = false;
     else ret = ewxFileData(resource).IsDir();
   }
   return ret;
+}
+
+
+
+/**
+ * An earlier bug saved the file list's "*" placeholder as part of the
+ * directory (a star in front of the path, or a star alone); drop it so stored
+ * settings stay usable. Returns "" for a directory that is then empty or,
+ * when local, missing.
+ */
+static string cleanStoredDir(string dir, bool local)
+{
+  while (!dir.empty() && dir[0] == '*') dir.erase(0, 1);
+  if (dir.find("://") == string::npos) {
+    while (dir.size() > 1 && dir[0] == '/' && dir[1] == '/') dir.erase(0, 1);
+  }
+  if (local && !dir.empty() && !wxDirExists(dir)) dir.clear();
+  return dir;
 }
 
 
@@ -854,9 +935,14 @@ void ewxGenericFileDialog::saveSettings()
   // this problem (running via a Windows X server--Xming).
   ewxWindowUtils::saveWindowSettings(this, config, false);
 
-  config->Write("DIR", m_dir);
+  config->Write("DIR", wxString(cleanStoredDir(m_dir.ToStdString(), false)));
   config->Write("FILENAME", m_fileName);
-  config->Write("DIRS", p_lastDir);
+  vector<string> dirs = p_lastDir;
+  for (size_t i = 0; i < dirs.size(); i++) {
+    dirs[i] = cleanStoredDir(dirs[i], false);
+    if (dirs[i].empty()) dirs[i] = p_mountDir[i];
+  }
+  config->Write("DIRS", dirs);
 
   // MOUNTS only stored to check whether our server list is the same as last
   // time.  If it is, we can use the stored most-recent-directory per mount.
@@ -900,6 +986,17 @@ void ewxGenericFileDialog::restoreSettings()
   if (p_lastDir.empty()) {
     p_lastDir = p_mountDir;
   }
+
+  for (size_t i = 0; i < p_lastDir.size(); i++) {
+    bool isLocal = EcceURL(p_mountDir[i]).isLocal();
+    p_lastDir[i] = cleanStoredDir(p_lastDir[i], isLocal);
+    if (p_lastDir[i].empty()) {
+      p_lastDir[i] = isLocal ? wxGetUserHome(wxString()).ToStdString()
+                             : p_mountDir[i];
+    }
+  }
+  m_dir = cleanStoredDir(m_dir.ToStdString(),
+                         EcceURL(m_dir.ToStdString()).isLocal());
 
   if (config->Read("FILTER", &filter)) {
     if (filter < m_choice->GetCount()) {

@@ -20,7 +20,7 @@
 #include "dsm/ResourceDescriptor.H"
 
 #include "WxMachineRegisterApp.H"
-#include "WxMachineRegisterGUI.H"
+#include "WxMachineRegisterScript.H"
 #include "WxMachineRegister.H"
 
 
@@ -47,6 +47,19 @@ bool WxMachineRegisterApp::OnInit()
 
     p_rgstrFrame->Show();
     SetTopWindow(p_rgstrFrame);
+
+    //  Test hook (see WxMachineRegisterScript.H): drive the real frame
+    //  without a broker.
+    const char* script = getenv("ECCE_MACHREG_SCRIPT");
+    if (script != NULL)
+    {
+        fprintf(stderr, "[MACHREG] binary=%s ECCE_HOME=%s admin=%d\n",
+                (const char*)wxString(this->argv[0]).c_str(),
+                Ecce::ecceHome(), (int)admin);
+        MachRegScript* run = new MachRegScript(p_rgstrFrame, script);
+        run->start();
+        return true;
+    }
 
     registerTopShell(p_rgstrFrame);
 
@@ -96,6 +109,10 @@ void WxMachineRegisterApp::invokeMCB(JMSMessage& msg)
     {
         p_rgstrFrame->selectMachine(refname);
     }
+
+    string page = msg.getProperty("initpage");
+    if (!page.empty())
+        p_rgstrFrame->showPage(page);
 
     p_rgstrFrame->Iconize(false);
     p_rgstrFrame->Raise();

@@ -59,6 +59,7 @@
 #include "util/SFile.H"
 #include "util/TempStorage.H"
 #include "wxviz/VizRender.H"
+#include "wxviz/ImageConverter.H"
 
 #include "wxviz/MotionListener.H"
 #include "wxviz/SceneScript.H"
@@ -275,6 +276,111 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     val.getParameter("Value")->setDouble(log10(0.05));   // log10 slider value
     val.getParameter("transparency")->setDouble(0.5);
     val.execute();
+  } else if (c == "esp") {
+    //  "esp [res]": the calculation's "Density (ESP)" surface, as MoPanel
+    //  computes and draws it (opaque, 0.002 isovalue, automatic range).
+    ICalculation *ic = dynamic_cast<ICalculation*>(p_calc);
+    if (!ic) return fail("esp: needs a calculation");
+    int res = w.size() > 1 ? atoi(w[1].c_str()) : 30;
+    double lo[3] = {1e9, 1e9, 1e9}, hi[3] = {-1e9, -1e9, -1e9};
+    for (int i = 0; i < frag->numAtoms(); i++) {
+      const double *x = frag->atomRef(i)->coordinates();
+      for (int k = 0; k < 3; k++) {
+        lo[k] = std::min(lo[k], x[k]);
+        hi[k] = std::max(hi[k], x[k]);
+      }
+    }
+    ComputeMoCmd mo("Compute Mo", p_sg, p_calc, 0);
+    mo.getParameter("FieldType")->setString(ESP_FIELD_TYPE);
+    mo.getParameter("CoefCutoff")->setDouble(0.0);
+    mo.getParameter("SelectedMO")->setInteger(1);
+    mo.getParameter("Type")->setString("alpha");
+    mo.getParameter("Code")->setString(ic->application()->name());
+    const char *ax[3] = {"X", "Y", "Z"};
+    for (int k = 0; k < 3; k++) {
+      mo.getParameter(string("res") + ax[k])->setInteger(res);
+      mo.getParameter(string("from") + ax[k])->setDouble(lo[k] - 3.5);
+      mo.getParameter(string("to") + ax[k])->setDouble(hi[k] + 3.5);
+    }
+    mo.execute();
+    SingleGrid *grid = p_sg->getCurrentGrid();
+    if (!grid || !grid->colorFieldData()) return fail("esp: no potential computed");
+    p_viewer->setTransparencyType(SoGLRenderAction::SORTED_OBJECT_BLEND);
+    IsoSurfaceCmd surf("Iso Surface", p_sg, p_calc);
+    surf.getParameter("transparency")->setDouble(0.0);
+    surf.execute();
+    SurfDisplayTypeCmd type("Surface Type", p_sg, p_calc);
+    type.getParameter("IsosurfStyle")->setString("Solid");
+    type.execute();
+    IsoValueCmd val("Iso Value", p_sg, p_calc);
+    val.getParameter("Value")->setDouble(log10(0.002));
+    val.getParameter("transparency")->setDouble(0.0);
+    val.execute();
+  } else if (c == "esptest") {
+    //  Synthetic potential-mapped density over benzene, through the same
+    //  commands and transparency request MoPanel uses for "Density (ESP)":
+    //  negative above and below the ring, positive at the hydrogens.
+    const int N = 48;
+    const double L = 6.0, rc = 1.397, rh = 1.397 + 1.087;
+    SingleGrid *g = new SingleGrid();
+    g->type(ESP_FIELD_TYPE);
+    g->name("synthetic ESP");
+    g->dimensions(N, N, N);
+    g->origin(-L, -L, -L);
+    g->corner(L, L, L);
+    float *f = new float[N * N * N], *p = new float[N * N * N];
+    for (int ix = 0; ix < N; ix++)
+      for (int iy = 0; iy < N; iy++)
+        for (int iz = 0; iz < N; iz++) {
+          double x = -L + 2 * L * ix / (N - 1), y = -L + 2 * L * iy / (N - 1),
+                 z = -L + 2 * L * iz / (N - 1), d = 0, v = 0;
+          for (int a = 0; a < 6; a++) {
+            double cs = cos(a * M_PI / 3), sn = sin(a * M_PI / 3);
+            double rC = (x - rc * cs) * (x - rc * cs) + (y - rc * sn) * (y - rc * sn) + z * z;
+            double rH = (x - rh * cs) * (x - rh * cs) + (y - rh * sn) * (y - rh * sn) + z * z;
+            d += 0.5 * exp(-2.8 * sqrt(rC)) + 0.2 * exp(-3.0 * sqrt(rH));
+            v += 0.05 * exp(-0.8 * rH);
+          }
+          v -= 0.04 * exp(-0.3 * (x * x + y * y)) * (z * z) / (0.5 + z * z);
+          f[(ix * N + iy) * N + iz] = (float)d;
+          p[(ix * N + iy) * N + iz] = (float)v;
+        }
+    g->setFieldData(f);
+    g->findMinMax();
+    g->setColorFieldData(p);
+    g->findColorMinMax();
+    p_sg->setCurrentGrid(g);
+    double alpha = w.size() > 1 ? atof(w[1].c_str()) : 0.0;
+    p_viewer->setTransparencyType(SoGLRenderAction::SORTED_OBJECT_BLEND);
+    IsoSurfaceCmd surf("Iso Surface", p_sg, 0);
+    surf.getParameter("transparency")->setDouble(alpha);
+    surf.execute();
+    SurfDisplayTypeCmd type("Surface Type", p_sg, 0);
+    type.getParameter("IsosurfStyle")->setString("Solid");
+    type.execute();
+    IsoValueCmd val("Iso Value", p_sg, 0);
+    val.getParameter("Value")->setDouble(log10(0.002));
+    val.getParameter("transparency")->setDouble(alpha);
+    val.execute();
+  } else if (c == "vizfile" && w.size() == 3) {
+    //  "vizfile <name> <size>": the thumbnail / Save As image path,
+    //  VizRender::file then ImageConverter, to <name>.png.
+    int sz = atoi(w[2].c_str());
+    string rgb = p_outdir + "/" + w[1] + ".rgb";
+    SFile file(rgb);
+    if (!VizRender::file(p_viewer->getTopNode(), &file, "RGB", sz, sz, 0.2, 0.3, 0.4))
+      return fail("vizfile: " + VizRender::msg());
+    try {
+      ImageConverter().convert(rgb, p_outdir + "/" + w[1] + ".png", sz, sz, 8, true);
+    } catch (EcceException& e) {
+      return fail(string("vizfile: ") + e.what());
+    }
+  } else if (c == "offscreen" && w.size() == 3) {
+    //  "offscreen <name> <size>": this script's own offscreen renderer
+    //  (480 is the canvas size, which snapshot() reads from the canvas).
+    int sz = atoi(w[2].c_str());
+    if (sz == 480) return fail("offscreen: 480 would read the canvas");
+    return snapshot(w[1], sz, 0.2f, 0.3f, 0.4f);
   } else if (c == "isolobe" && w.size() == 3) {
     //  "isolobe <both|pos|neg> <transparency>": redraw the isosurface with
     //  that transparency, optionally leaving only one lobe (the other's

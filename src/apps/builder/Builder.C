@@ -36,7 +36,7 @@ using std::vector;
 #include "util/BrowserHelp.H"
 #include "util/CancelException.H"
 #include "util/CommandWrapper.H"
-#include "util/ImageConverter.H"
+#include "wxviz/ImageConverter.H"
 #include "util/Event.H"
   using ecce::Event;
 #include "util/EventDispatcher.H"
@@ -82,6 +82,9 @@ using std::vector;
 #include "wxgui/FeedbackSaveHandler.H"
 #include "wxgui/PerTabPanel.H"
 #include "wxgui/SaveExperimentAsDialog.H"
+#include <wx/bmpcbox.h>
+#include <wx/listctrl.h>
+#include <wx/generic/filectrlg.h>
 #include "wxgui/TearableContent.H"
 #include "wxgui/TearableContentProvider.H"
 #include "wxgui/WindowEvent.H"
@@ -282,7 +285,7 @@ class PanelBuildGuard
 }  // namespace
 
 
-const string Builder::NAME_TOOL_CONTEXT(_("Context"));
+const string Builder::NAME_TOOL_CONTEXT(_("Open structures"));
 const string Builder::NAME_TOOL_BUILD(_("Build"));
 const string Builder::NAME_TOOL_COORDINATES(_("Coordinates"));
 const string Builder::NAME_TOOL_SELECTION(_("Selection"));
@@ -1039,13 +1042,11 @@ void Builder::createReadOnlyIds()
  */
 IPropCalculation* Builder::createCalculation(const string& url)
 {
-  if (url != DefaultCalculation::nextURL()
-          && EcceURL(url).isLocal()
-          // A calculation in the local data folder (ECCE_LOCAL_DATA) is a
-          // directory behind a file:// URL, not a file name.
-          && EcceURL(url).getEcceRoot().empty()
-          && !wxFileExists(url)) {
-    return NULL;
+  // A local calculation is a directory (FileEDSI) anywhere on disk, a
+  // structure a file; only a path that is neither is refused here.
+  if (url != DefaultCalculation::nextURL() && EcceURL(url).isLocal()) {
+    string path = EcceURL(url).getFile();
+    if (!wxFileExists(path) && !wxDirExists(path)) return NULL;
   }
   return CalculationFactory::open(url);
 }
@@ -2176,9 +2177,9 @@ void Builder::OnOpenClick( wxCommandEvent& event )
     setContext(url);
 
   } else {
-    string msg = "Cannot open " + url.toString() + " as a new context (for "
-                 "viewing output properties from a calculation, you must "
-                 "use the Import Calculation menu option).";
+    string msg = "Cannot open " + url.toString() + " (to view the output "
+                 "properties of a calculation, use File > Import "
+                 "Calculation from Output File...).";
     wxLogWarning("%s", msg.c_str());
   }
 }
@@ -2188,15 +2189,29 @@ void Builder::OnImportChemsysClick(wxCommandEvent& event)
 {
   ImportCalculationDialog dialog(this);
   if (dialog.ShowModal() == wxID_CANCEL) return;
+  importChemicalSystem(dialog.GetPath().ToStdString(), dialog.getType(),
+                       dialog.getExt());
+}
+
+
+/**
+ * Add Structure from File after the file dialog; ext is the file's
+ * extension (case does not matter).
+ */
+void Builder::importChemicalSystem(const string& path, wxString type,
+                                   wxString ext)
+{
+  ext.MakeUpper();
+
+  EcceURL url(path);
+  Resource *resource = EDSIFactory::getResource(url);
+  if (resource == 0) {
+    wxLogError("Cannot read %s", url.toString().c_str());
+    return;
+  }
 
   // create temporary file for fragment reading
   SFile *file = TempStorage::getTempFile();
-
-  string path = dialog.GetPath().ToStdString();
-  EcceURL url(path);
-  wxString type = dialog.getType();
-  wxString ext = dialog.getExt().MakeUpper();
-  Resource *resource = EDSIFactory::getResource(url);
   ChemistryTask *task;
 
   // try to open as a ChemistryTask first
@@ -2211,16 +2226,25 @@ void Builder::OnImportChemsysClick(wxCommandEvent& event)
       ext = "MVM";
     } else {
       wxLogError("Could not import %s", url.toString().c_str());
+      file->remove();
+      delete file;
       return;
     }
   } else {
-    file = resource->getDocument(file);
+    if (resource->getDocument(file) == 0) {
+      wxLogError("Cannot read %s", url.toString().c_str());
+      file->remove();
+      delete file;
+      return;
+    }
     file->move(file->pathroot() + "/" + resource->getName());
   }
 
   // now do the real work
   if (!readFragmentFromFile(file, type, ext)) {
     wxLogError("Could not import %s", url.toString().c_str());
+    file->remove();
+    delete file;
     return;
   }
 
@@ -3785,7 +3809,9 @@ void Builder::doSaveAs(const bool& imagesOnly)
           string lastContext = p_calculation->getURL();
           setContext(context);
           //doClose(lastContext, false);
-        } else {
+        } else if (getSG()->getFragment()->numAtoms() > 0) {
+          // An empty structure gives a file no reader accepts (an XYZ
+          // with 0 atoms); it was saved, and there is nothing to open.
           wxLogWarning("Can't open recently saved %s", context.c_str());
         }
       } else {
@@ -4674,6 +4700,168 @@ void Builder::updatePropertyMenus()
                         "for this calculation\n", openPanelName);
       }
     }
+  }
+
+  //  ECCE_TEST_IMPORT=<file>: run Add Structure from File on <file> once the
+  //  Builder is up, as if picked in the file dialog, press OK in any prompt
+  //  it raises, then exit. ECCE_TEST_IMPORT_DELAY (seconds) leaves time to
+  //  attach a debugger. Inert unless set; for tests/apps/import_test.py.
+  static bool importStarted = false;
+  const char *importPath = getenv("ECCE_TEST_IMPORT");
+  if (importPath != 0 && !importStarted && p_calculation != 0) {
+    importStarted = true;
+    string path = importPath;
+    const char *delay = getenv("ECCE_TEST_IMPORT_DELAY");
+    wxTimer *okTimer = new wxTimer();   // both live until the process exits
+    okTimer->Bind(wxEVT_TIMER, [](wxTimerEvent&) {
+      for (wxWindow *w : wxTopLevelWindows) {
+        wxDialog *dlg = dynamic_cast<wxDialog*>(w);
+        if (dlg && dlg->IsModal()) {
+          fprintf(stderr, "ECCE_TEST_IMPORT: OK in \"%s\"\n",
+                  dlg->GetTitle().ToStdString().c_str());
+          dlg->EndModal(wxID_OK);
+        }
+      }
+    });
+    wxTimer *timer = new wxTimer();
+    timer->Bind(wxEVT_TIMER, [this, path, okTimer](wxTimerEvent&) {
+      // Copy errors to stderr, where the test reads them; the old target
+      // is the Builder's log panel and must survive.
+      new wxLogChain(new wxLogStderr());
+      okTimer->Start(500);
+      importChemicalSystem(path, "", wxString(path).AfterLast('.'));
+      okTimer->Stop();
+      fprintf(stderr, "ECCE_TEST_IMPORT: done, %d atoms\n",
+              getSG()->getFragment()->numAtoms());
+      // Close() would ask to save the imported system.
+      fflush(stderr);
+      _exit(0);
+    });
+    timer->StartOnce(1 + 1000 * (delay ? atoi(delay) : 0));
+  }
+
+  //  ECCE_TEST_SAVEAS=<type>|<path>[|<structure file>]: add the structure,
+  //  if given, then open File > Save As, pick the first type whose label
+  //  starts with <type>, save to <path> on the Local Filesystem, cancel the
+  //  dialog if it stays open, report the context and exit. Inert unless
+  //  set; for tests/apps/saveas_test.py.
+  static bool saveAsStarted = false;
+  const char *saveAsSpec = getenv("ECCE_TEST_SAVEAS");
+  if (saveAsSpec != 0 && !saveAsStarted && p_calculation != 0) {
+    saveAsStarted = true;
+    wxString spec(saveAsSpec);
+    wxString type = spec.BeforeFirst('|'), path = spec.AfterFirst('|');
+    wxString structure = path.AfterFirst('|');
+    path = path.BeforeFirst('|');
+    wxTimer *driver = new wxTimer();   // both live until the process exits
+    int *step = new int(0);
+    driver->Bind(wxEVT_TIMER, [type, path, step](wxTimerEvent&) {
+      SaveExperimentAsDialog *dlg = 0;
+      for (wxWindow *w : wxTopLevelWindows) {
+        dlg = dynamic_cast<SaveExperimentAsDialog*>(w);
+        if (dlg && dlg->IsModal()) break;
+        dlg = 0;
+      }
+      if (!dlg) {
+        // A prompt on opening the result, e.g. the units of an XYZ file.
+        for (wxWindow *w : wxTopLevelWindows) {
+          wxDialog *other = dynamic_cast<wxDialog*>(w);
+          if (other && other->IsModal()) {
+            fprintf(stderr, "ECCE_TEST_SAVEAS: OK in \"%s\"\n",
+                    other->GetTitle().ToStdString().c_str());
+            other->EndModal(wxID_OK);
+          }
+        }
+        return;
+      }
+      if ((*step)++ > 0) {
+        fprintf(stderr, "ECCE_TEST_SAVEAS: dialog still open\n");
+        dlg->EndModal(wxID_CANCEL);
+        return;
+      }
+      wxBitmapComboBox *combo = 0;
+      for (wxWindow *c : dlg->GetChildren())
+        if ((combo = dynamic_cast<wxBitmapComboBox*>(c)) != 0) break;
+      for (unsigned i = 0; combo && i < combo->GetCount(); i++) {
+        if (combo->GetString(i).StartsWith(type)) {
+          dlg->setSaveAsFilterIndex(i);
+          fprintf(stderr, "ECCE_TEST_SAVEAS: type \"%s\"\n",
+                  combo->GetString(i).ToStdString().c_str());
+          break;
+        }
+      }
+      dlg->setServerChoice(0);           // Local Filesystem
+      dlg->HandleAction(path);
+    });
+    wxTimer *timer = new wxTimer();
+    timer->Bind(wxEVT_TIMER, [this, driver, structure](wxTimerEvent&) {
+      new wxLogChain(new wxLogStderr());
+      if (!structure.empty())
+        importChemicalSystem(structure.ToStdString(), "",
+                             structure.AfterLast('.'));
+      fprintf(stderr, "ECCE_TEST_SAVEAS: open\n");
+      driver->Start(1000);
+      doSaveAs(false);
+      driver->Stop();
+      fprintf(stderr, "ECCE_TEST_SAVEAS: done, context %s, %d atoms\n",
+              p_calculation->getURL().toString().c_str(),
+              getSG()->getFragment()->numAtoms());
+      fflush(stderr);
+      _exit(0);
+    });
+    timer->StartOnce(1000);
+  }
+
+  //  ECCE_TEST_OPEN=<path>: File > Open..., go to <path>'s folder on the
+  //  Local Filesystem, report how its entry is listed, activate it as a
+  //  double click does, report the context and exit. Inert unless set;
+  //  for tests/apps/saveas_test.py.
+  static bool openStarted = false;
+  const char *openSpec = getenv("ECCE_TEST_OPEN");
+  if (openSpec != 0 && !openStarted && p_calculation != 0) {
+    openStarted = true;
+    wxString path(openSpec);
+    wxTimer *driver = new wxTimer();   // both live until the process exits
+    int *step = new int(0);
+    driver->Bind(wxEVT_TIMER, [path, step](wxTimerEvent&) {
+      OpenCalculationDialog *dlg = 0;
+      for (wxWindow *w : wxTopLevelWindows) {
+        dlg = dynamic_cast<OpenCalculationDialog*>(w);
+        if (dlg && dlg->IsModal()) break;
+        dlg = 0;
+      }
+      if (!dlg) return;
+      if ((*step)++ > 0) {
+        fprintf(stderr, "ECCE_TEST_OPEN: dialog still open\n");
+        dlg->EndModal(wxID_CANCEL);
+        return;
+      }
+      dlg->setServerChoice(0);           // Local Filesystem
+      dlg->HandleAction(path.BeforeLast('/'));
+      wxString name = path.AfterLast('/');
+      wxListCtrl *list = 0;
+      for (wxWindow *c : dlg->GetChildren())
+        if ((list = dynamic_cast<wxListCtrl*>(c)) != 0) break;
+      long item = list ? list->FindItem(-1, name) : -1;
+      wxFileData *fd = item >= 0 ? (wxFileData*)list->GetItemData(item) : 0;
+      fprintf(stderr, "ECCE_TEST_OPEN: listed as %s\n",
+              !fd ? "missing" : fd->IsDir() ? "folder" : "file");
+      dlg->HandleAction(name);
+    });
+    wxTimer *timer = new wxTimer();
+    timer->Bind(wxEVT_TIMER, [this, driver](wxTimerEvent&) {
+      new wxLogChain(new wxLogStderr());
+      driver->Start(1000);
+      wxCommandEvent none;
+      OnOpenClick(none);
+      driver->Stop();
+      fprintf(stderr, "ECCE_TEST_OPEN: done, context %s, %d atoms\n",
+              p_calculation->getURL().toString().c_str(),
+              getSG()->getFragment()->numAtoms());
+      fflush(stderr);
+      _exit(0);
+    });
+    timer->StartOnce(1000);
   }
 
   //  ECCE_VIEWER_SCENE=<script> ECCE_VIEWER_SCENE_OUT=<dir>: render the

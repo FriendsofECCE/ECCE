@@ -2,13 +2,8 @@
  *  @file
  *  @author Ken Swanson
  *
- *  Utility to allow registration functions for calculation servers.
- *  Supports adding/editing/deleting of registered Machine instances.
- *  Usually this is invoked from the Gateway, but can be invoked from
- *  the command line via "ecce -admin".  In this mode, the use of the
- *  utility is intended for administrators, and a correspondingly more
- *  complete interface is displayed.
- *
+ *  Utility to allow registration functions for calculation servers; see
+ *  the header.
  */
 
 #include <limits.h>
@@ -18,7 +13,6 @@
 #include <algorithm>
 #include <fstream>
 #include <regex>
-  using std::ifstream;
 
 #include "wx/wxprec.h"
 
@@ -26,18 +20,26 @@
 #include "wx/wx.h"
 #endif
 
+#include "wx/accel.h"
+#include "wx/display.h"
+#include "wx/artprov.h"
+#include "wx/statbmp.h"
+#include "wx/listctrl.h"
+#include "wx/notebook.h"
+#include "wx/spinctrl.h"
+#include "wx/statline.h"
+
 #include "util/BrowserHelp.H"
 #include "util/Ecce.H"
-#include "util/EcceMap.H"
-#include "util/EcceSortedVector.H"
 #include "util/JMSMessage.H"
 #include "util/JMSPublisher.H"
 #include "util/KeyValueReader.H"
+#include "util/ProcessMachine.H"
 #include "util/SFile.H"
 #include "util/STLUtil.H"
 #include "util/StringConverter.H"
-#include "util/StringTokenizer.H"
 
+#include "tdat/ConfigFile.H"
 #include "tdat/Queue.H"
 #include "tdat/QueueMgr.H"
 
@@ -46,66 +48,106 @@
 #include "dsm/CodeFactory.H"
 #include "dsm/MachinePreferences.H"
 #include "dsm/ResourceDescriptor.H"
-#include "dsm/ResourceTool.H"
 
-#include "wxgui/ewxBitmap.H"
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxCheckBox.H"
 #include "wxgui/ewxChoice.H"
-#include "wxgui/ewxListBox.H"
-#include "wxgui/ewxMessageDialog.H"
+#include "wxgui/ewxNotebook.H"
 #include "wxgui/ewxPanel.H"
-#include "wxgui/ewxSpinCtrl.H"
 #include "wxgui/ewxScrolledWindow.H"
-#include "wxgui/ewxStaticBoxSizer.H"
+#include "wxgui/ewxSpinCtrl.H"
+#include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxTextCtrl.H"
 #include "wxgui/ewxWindowUtils.H"
-
-#include "wx/display.h"
 
 #include "WxMachineRegister.H"
 #include "MemoryUnits.H"
 
-#define MAXLINE 512
+typedef MachineConfigDraft MCD;
 
-WxMachineRegister::WxMachineRegister(wxWindow* parent,
-                             const bool admin,
-                             wxWindowID id,
-                             const wxString& caption,
-                             const wxPoint& pos,
-                             const wxSize& size,
-                             long style)
-    : WxMachineRegisterGUI(parent, id, caption, pos, size, style)
+static const char* const TITLE = "ECCE Machine Registration";
+
+static const int ID_NEW = wxID_HIGHEST + 301;
+static const int ID_DELETE = wxID_HIGHEST + 302;
+
+static string strip(const string& in)
 {
-    p_config = new EcceMap();
+    string s = in;
+    STLUtil::stripLeadingAndTrailingWhiteSpace(s);
+    return s;
+}
+
+static string lowerOf(const string& in)
+{
+    string s = in;
+    STLUtil::toLower(s);
+    return s;
+}
+
+static string withoutSlash(const string& path)
+{
+    string s = path;
+    while (s.size() > 1 && s[s.size() - 1] == '/')
+        s.erase(s.size() - 1);
+    return s;
+}
+
+static bool remoteClient()
+{
+    const char* r = getenv("ECCE_REMOTE_SERVER");
+    return r != NULL && *r != '\0';
+}
+
+//  The directory this session writes: siteconfig in admin mode, ~/.ECCE
+//  otherwise.
+static string editedDir(bool admin)
+{
+    return admin ? string(Ecce::ecceHome()) + "/siteconfig"
+                 : withoutSlash(Ecce::realUserPrefPath());
+}
+
+
+WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
+    : ewxFrame(parent, wxID_ANY, TITLE, wxDefaultPosition, wxDefaultSize,
+               wxCAPTION|wxRESIZE_BORDER|wxSYSTEM_MENU|wxCLOSE_BOX|
+               wxMINIMIZE_BOX|wxMAXIMIZE_BOX)
+{
     p_adminFlag = admin;
-    p_prefillFromSite = false;
-    p_queuesDirty = false;
-
+    p_inCtrlUpdate = false;
+    p_inListUpdate = false;
+    p_closing = false;
     p_slctRgstn = NULL;
-
+    p_draft = NULL;
+    p_scripted = getenv("ECCE_MACHREG_SCRIPT") != NULL;
     p_codeNames = CodeFactory::getFullySupportedCodeNames();
 
-    p_shellNames.push_back("ssh");
-
-    this->initialize();
-    this->loadMachinesList();
+    this->createControls();
     this->loadQueueManagerList();
+    this->loadMachinesList();
 
-    Preferences prefs("MachineRegister");
-    restoreSettings(prefs);
+    if (p_rows.empty())
+        this->showNewMachine();
+    else
+        this->loadMachine(p_rows[0].name);
 
-    // Get Registry
-    ResourceDescriptor rs = ResourceDescriptor::getResourceDescriptor();
+    if (!p_scripted)
+    {
+        Preferences prefs("MachineRegister");
+        restoreSettings(prefs);
+    }
 
-    // Set desktop icon
+    //  After the first machine is shown: its banner changes the size.
+    this->growToFitSizer(true);
+    this->Centre();
+    this->keepOnScreen();
+
     ewxWindowUtils::setToolIcon(this, "MachineRegister");
 }
 
 
 WxMachineRegister::~WxMachineRegister()
 {
-    delete p_config;
+    delete p_draft;
 }
 
 
@@ -118,365 +160,479 @@ void WxMachineRegister::saveSettings(Preferences& prefs)
 void WxMachineRegister::restoreSettings(Preferences& prefs)
 {
     if (prefs.isValid())
-    {
         ewxWindowUtils::restoreWindowSettings(this, MACHREGISTER, prefs, false);
-    }
 }
 
 
-//****  2005.0519
-//  Initialize the form contents.
-//  Replaces functionality of initialize(const char*) in configsvrs_cdlg.C
-//  One important difference is that the messaging service calls now appear
-//  in the WxMachineRegisterApp code.
-void WxMachineRegister::initialize()
+void WxMachineRegister::reg(const string& name, wxWindow* w)
 {
-    int i;
-    string s;
-
-        //  Found a bug in DialogBlocks.  If the member variable name is set on
-        //  a FlexGridSizer, and one or more of the columns is indicated to
-        //  grow,the DialogBlocks generates the code for adding the growable
-        //  column using the temporary identifier for the sizer, even though
-        //  the temporary identifier is no longer declared within the
-        //  CreateControls() method.  Manually correcting the identifier does
-        //  not help; when the project is saved, it regenerates using the
-        //  temporary identifier.  So, to get around this, I don't specify the
-        //  growable column within the superclass; instead do it when I get into
-        //  this method.
-
-
-        ewxPanel *panel;
-        wxFlexGridSizer *gridsizer;
-        ewxStaticBoxSizer *boxsizer;
-
-        //  Create and populate the "Applications" static box.
-        panel = (ewxPanel *)(wxWindow::FindWindowById(ID_PANEL_WXMACHINEREGISTER_APPLICATIONS, this));
-        boxsizer = new ewxStaticBoxSizer(wxHORIZONTAL, panel, _("Applications"));
-
-        gridsizer = new wxFlexGridSizer(0, 2, 4, 4);
-        gridsizer->AddGrowableCol(1);
-        boxsizer->Add(gridsizer, 1, wxALIGN_CENTER_VERTICAL|wxALL, 8);
-
-        for (i = 0; i < p_codeNames.size(); i++)
-        {
-            s = p_codeNames[i] + ":";
-
-            ewxStaticText* lbl = new ewxStaticText(panel, wxID_STATIC, (wxString)(s), wxDefaultPosition, wxDefaultSize, 0);
-            gridsizer->Add(lbl, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
-
-            ewxTextCtrl* txt = new ewxTextCtrl(panel, (ID_TEXT_APPLICATIONS_ROOT + i), _T(""), wxDefaultPosition, wxDefaultSize, 0);
-            gridsizer->Add(txt, 0, wxGROW|wxALIGN_CENTER_VERTICAL, 5);
-
-            p_codePaths.push_back(txt);
-        }
-
-        panel->SetSizer(boxsizer);
-        boxsizer->SetSizeHints(panel);
-
-        //  Create and populate the "Misc. Paths" static box
-        panel = (ewxPanel*)(wxWindow::FindWindowById(ID_PANEL_WXMACHINEREGISTER_MISCPATHS, this));
-        boxsizer = new ewxStaticBoxSizer(wxHORIZONTAL, panel, _("Misc. Paths"));
-
-        gridsizer = new wxFlexGridSizer(0, 2, 4, 4);
-        gridsizer->AddGrowableCol(1);
-        boxsizer->Add(gridsizer, 1, wxALIGN_CENTER_VERTICAL|wxALL, 8);
-
-        ewxStaticText* lbl = new ewxStaticText(panel, wxID_STATIC, _("Perl 5:"), wxDefaultPosition, wxDefaultSize, 0);
-        gridsizer->Add(lbl, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
-
-        ewxTextCtrl* txt = new ewxTextCtrl(panel, wxID_ANY, _T(""), wxDefaultPosition, wxDefaultSize, 0);
-        gridsizer->Add(txt, 0, wxGROW|wxALIGN_CENTER_VERTICAL, 5);
-
-        p_miscPathsText.push_back(txt);
-
-        if (p_adminFlag)
-        {
-            ewxStaticText* lbl  = new ewxStaticText(panel, wxID_STATIC, _("Queue Mgr:"), wxDefaultPosition, wxDefaultSize, 0);
-            gridsizer->Add(lbl, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-
-            ewxTextCtrl* txt = new ewxTextCtrl(panel, wxID_ANY, _T(""), wxDefaultPosition, wxDefaultSize, 0);
-            gridsizer->Add(txt, 0, wxGROW|wxALIGN_CENTER_VERTICAL, 5);
-
-            p_miscPathsText.push_back(txt);
-        }
-
-        panel->SetSizer(boxsizer);
-        boxsizer->SetSizeHints(panel);
-
-        //  The queues panel is shown to everyone.  It used to be gated on
-        //  the admin flag, from the era when a site administrator configured
-        //  queues once for a department; ECCE is per-user now, and that left
-        //  no in-application way to describe a queue at all (#131).
-        panel = (ewxPanel*)(this->FindWindowById(ID_PANEL_QUEUES));
-        panel->Show(true);
-
-        //  Find all other components on the form
-        p_machinesList = (ewxListBox*)(this->FindWindowById(ID_LISTBOX_MACHINES));
-        p_formScroll = (ewxScrolledWindow*)(this->FindWindowById(ID_SCROLLEDWINDOW_WXMACHINEREGISTER_FORM));
-
-        p_machineFullNameText = (ewxTextCtrl*)(this->FindWindowById(ID_TEXT_MACHINE_FULLNAME));
-        p_localityText = (ewxStaticText*)(this->FindWindowById(ID_STATIC_MACHINE_LOCALITY));
-        p_machineRefNameText = (ewxTextCtrl*)(this->FindWindowById(ID_TEXT_MACHINE_REFNAME));
-        p_machineVendorText = (ewxTextCtrl*)(this->FindWindowById(ID_TEXT_MACHINE_VENDOR));
-        p_machineModelText = (ewxTextCtrl*)(this->FindWindowById(ID_TEXT_MACHINE_MODEL));
-        p_machineProcessorText = (ewxTextCtrl*)(this->FindWindowById(ID_TEXT_MACHINE_PROC));
-        p_queueNameText = (ewxTextCtrl*)(this->FindWindowById(ID_TEXT_QUEUE_NAME));
-
-        p_machineNumProcsSpin = (ewxSpinCtrl*)(this->FindWindowById(ID_SPIN_MACHINE_NUMPROCS));
-        p_machineNumNodesSpin = (ewxSpinCtrl*)(this->FindWindowById(ID_SPIN_MACHINE_NUMNODES));
-        p_queueMinProcsSpin = (ewxSpinCtrl*)(this->FindWindowById(ID_SPIN_QUEUE_MINPROCS));
-        p_queueMaxProcsSpin = (ewxSpinCtrl*)(this->FindWindowById(ID_SPIN_QUEUE_MAXPROCS));
-        p_queueMaxWallSpin = (ewxSpinCtrl*)(this->FindWindowById(ID_SPIN_QUEUE_MAXWALL));
-        p_queueMaxMemorySpin = (ewxSpinCtrl*)(this->FindWindowById(ID_SPIN_QUEUE_MAXMEMORY));
-        p_queueMinScratchSpin = (ewxSpinCtrl*)(this->FindWindowById(ID_SPIN_QUEUE_MINSCRATCH));
-
-        p_queueManagerChoicebox = (ewxChoice*)(this->FindWindowById(ID_CHOICEBOX_QUEUE_MANAGER));
-        p_queuesChoicebox = (ewxChoice*)(this->FindWindowById(ID_CHOICEBOX_QUEUE));
-
-        ewxCheckBox *checkbox;
-
-        checkbox = (ewxCheckBox*)(this->FindWindowById(ID_CHECKBOX_REMSHELL_SSH));
-        p_remshellsCheckboxes.push_back(checkbox);
-
-        p_queueAllctnAcctsCheckbox = (ewxCheckBox*)(wxWindow::FindWindowById(ID_CHECKBOX_QUEUE_ALLOCATION));
-
-        p_queueAcceptButton = (ewxButton*)(this->FindWindowById( ID_BUTTON_QUEUE_CHANGE));
-        p_queueRemoveButton = (ewxButton*)(this->FindWindowById( ID_BUTTON_QUEUE_REMOVE));
-        p_queueClearButton = (ewxButton*)(this->FindWindowById( ID_BUTTON_QUEUE_CLEAR));
-        p_machineChangeButton = (ewxButton*)(this->FindWindowById( ID_BUTTON_MACHINE_CHANGE));
-        p_machineDeleteButton = (ewxButton*)(this->FindWindowById( ID_BUTTON_MACHINE_DELETE));
-        p_formClearButton = (ewxButton*)(this->FindWindowById( ID_BUTTON_FORM_CLEAR));
-        p_formCloseButton = (ewxButton*)(this->FindWindowById( ID_BUTTON_FORM_CLOSE));
-        p_helpButton = (ewxButton*)(this->FindWindowById( ID_BUTTON_HELP));
-
-        //  The whole form (everything above) was built inside p_formScroll
-        //  (#187) -- give it its scrollbar and its virtual (content) size
-        //  now that all of it exists.
-        if (p_formScroll != NULL)
-        {
-            p_formScroll->SetScrollRate(0, 10);
-            p_formScroll->FitInside();
-        }
-
-        this->InvalidateBestSize();
-        this->GetSizer()->SetSizeHints(this);
-        this->GetSizer()->Fit(this);
-
-        //  Open showing the whole form, capped to the display (#187).
-        this->growToFitSizer(true);
-
-        //  ewxFrame::Create()'s Centre() ran on the small, pre-content
-        //  window (Applications/Misc Paths/Queues are empty placeholders
-        //  until the loop above fills them in) -- so the position it
-        //  chose can leave a since-grown, now display-capped frame
-        //  hanging off the bottom of the screen even though its SIZE is
-        //  correct. Only done here, once, at construction: a later grow
-        //  (the locality note) must not relocate a window the user may
-        //  already have moved.
-        this->keepOnScreen();
-}
-
-void WxMachineRegister::mainWindowCloseCB(wxCloseEvent& event)
-{
-    //  Confirm exit only if admin flag is set.  Among other things,
-    //  it indicates that the app was started standalone.
-
-    //  Queue edits live only in p_qnames until Add/Change runs
-    //  processmachine; closing used to drop them without a word (#131).
-    if (event.CanVeto() && p_queuesDirty)
-    {
-        int answer = this->confirmUnsavedQueues();
-        if (answer == wxID_CANCEL || (answer == wxID_YES && !saveRegistration()))
-        {
-            event.Veto();
-            return;
-        }
-    }
-
-    if (event.CanVeto() && p_adminFlag && !this->confirmExit())
-    {
-        // Veto allowed, and exit not confirmed by user.
-        event.Veto();     //  Veto the close event.
-    }
-    else
-    {
-        Preferences prefs("MachineRegister");
-        saveSettings(prefs);
-
-        //  Either veto disallowed by forced close, or exit confirmed by
-        //  user.  Destroying window.
-        this->Destroy();
-    }
+    p_fields[name] = w;
 }
 
 
-bool WxMachineRegister::hasMinimalInput()
+wxWindow* WxMachineRegister::field(const string& name) const
 {
-    return (((p_machineFullNameText->GetValue()).Length() > 0)
-                && ((p_machineRefNameText->GetValue()).Length() > 0));
+    std::map<string, wxWindow*>::const_iterator it = p_fields.find(name);
+    return it == p_fields.end() ? NULL : it->second;
 }
 
 
-void WxMachineRegister::machinesListBoxSelectedCB(wxCommandEvent& event)
-{
-    if (event.IsSelection())
-    {
-        string refname = (string)(event.GetString());
+//  ---- construction -------------------------------------------------------
 
-        if (refname != "" && p_queuesDirty && p_slctRgstn != NULL &&
-            refname != p_slctRgstn->refname())
+ewxScrolledWindow* WxMachineRegister::newPage(wxWindow* parent, wxSizer* sizer)
+{
+    ewxScrolledWindow* page = new ewxScrolledWindow(parent, wxID_ANY,
+        wxDefaultPosition, wxDefaultSize, wxVSCROLL|wxNO_BORDER|wxTAB_TRAVERSAL);
+    page->SetScrollRate(0, 10);
+    page->SetSizer(sizer);
+    return page;
+}
+
+
+void WxMachineRegister::createControls()
+{
+    wxSizerFlags border = wxSizerFlags().Border();
+
+    ewxPanel* panel = new ewxPanel(this, wxID_ANY, wxDefaultPosition,
+                                   wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL);
+    wxBoxSizer* frameSizer = new wxBoxSizer(wxVERTICAL);
+    frameSizer->Add(panel, 1, wxEXPAND);
+    this->SetSizer(frameSizer);
+
+    wxBoxSizer* root = new wxBoxSizer(wxVERTICAL);
+    panel->SetSizer(root);
+
+    wxBoxSizer* top = new wxBoxSizer(wxHORIZONTAL);
+    root->Add(top, 1, wxEXPAND);
+
+    //  Left: the machines, yours and the site's.
+    wxBoxSizer* left = new wxBoxSizer(wxVERTICAL);
+    left->Add(new ewxStaticText(panel, wxID_ANY, "Machines"), border);
+    p_list = new wxListCtrl(panel, wxID_ANY, wxDefaultPosition,
+                            wxSize(230, -1), wxLC_REPORT|wxLC_SINGLE_SEL);
+    p_list->InsertColumn(0, "Name", wxLIST_FORMAT_LEFT, 140);
+    p_list->InsertColumn(1, "From", wxLIST_FORMAT_LEFT, 70);
+    left->Add(p_list, wxSizerFlags(1).Expand().Border(wxLEFT|wxRIGHT|wxBOTTOM));
+    top->Add(left, 0, wxEXPAND);
+
+    //  Right: one tab per kind of setting.
+    wxBoxSizer* right = new wxBoxSizer(wxVERTICAL);
+    p_book = new ewxNotebook(panel, wxID_ANY);
+    p_book->AddPage(createMachinePage(p_book), "Machine");
+    p_book->AddPage(createConnectionPage(p_book), "Connection");
+    p_book->AddPage(createCodesPage(p_book), "Codes");
+    p_book->AddPage(createJobScriptPage(p_book), "Job script");
+    p_book->AddPage(createQueuesPage(p_book), "Queues");
+    right->Add(p_book, wxSizerFlags(1).Expand().Border(wxTOP|wxRIGHT));
+
+    p_storeNote = new wxStaticText(panel, wxID_ANY, "");
+    right->Add(p_storeNote, wxSizerFlags().Border());
+    top->Add(right, 1, wxEXPAND);
+
+    root->Add(new wxStaticLine(panel), wxSizerFlags().Expand());
+
+    //  Help at the left, the affirmative button last.
+    wxBoxSizer* buttons = new wxBoxSizer(wxHORIZONTAL);
+    p_helpButton = new ewxButton(panel, wxID_HELP, "&Help");
+    p_deleteButton = new ewxButton(panel, ID_DELETE, "&Delete Machine");
+    p_newButton = new ewxButton(panel, ID_NEW, "&New Machine");
+    p_closeButton = new ewxButton(panel, wxID_CLOSE, "&Close");
+    p_saveButton = new ewxButton(panel, wxID_SAVE, "&Save");
+    buttons->Add(p_helpButton, border);
+    buttons->AddStretchSpacer(1);
+    buttons->Add(p_deleteButton, border);
+    buttons->Add(p_newButton, border);
+    buttons->AddSpacer(12);
+    buttons->Add(p_closeButton, border);
+    buttons->Add(p_saveButton, border);
+    root->Add(buttons, wxSizerFlags().Expand());
+
+    p_saveButton->SetDefault();
+    p_saveButton->Enable(false);
+    p_deleteButton->Enable(false);
+
+    reg("help", p_helpButton);
+    reg("delete", p_deleteButton);
+    reg("new", p_newButton);
+    reg("close", p_closeButton);
+    reg("save", p_saveButton);
+
+    wxAcceleratorEntry accel[1];
+    accel[0].Set(wxACCEL_CTRL, (int)'S', wxID_SAVE);
+    this->SetAcceleratorTable(wxAcceleratorTable(1, accel));
+
+    this->Bind(wxEVT_CLOSE_WINDOW, &WxMachineRegister::onClose, this);
+    p_book->Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, [this](wxBookCtrlEvent& e) {
+        this->updateFooter();
+        e.Skip();
+    });
+    p_list->Bind(wxEVT_LIST_ITEM_SELECTED, &WxMachineRegister::onListSelected, this);
+    this->Bind(wxEVT_BUTTON, &WxMachineRegister::onSave, this, wxID_SAVE);
+    this->Bind(wxEVT_BUTTON, &WxMachineRegister::onDelete, this, ID_DELETE);
+    this->Bind(wxEVT_BUTTON, &WxMachineRegister::onNew, this, ID_NEW);
+    this->Bind(wxEVT_BUTTON, &WxMachineRegister::onCloseButton, this, wxID_CLOSE);
+    this->Bind(wxEVT_BUTTON, &WxMachineRegister::onHelp, this, wxID_HELP);
+    this->Bind(wxEVT_MENU, &WxMachineRegister::onSave, this, wxID_SAVE);
+    //  Every field's change event reaches the frame; one handler keeps the
+    //  draft, the Save button and the title in step.
+    this->Bind(wxEVT_TEXT, &WxMachineRegister::onFieldChanged, this);
+    this->Bind(wxEVT_SPINCTRL, &WxMachineRegister::onFieldChanged, this);
+    this->Bind(wxEVT_CHOICE, &WxMachineRegister::onFieldChanged, this);
+    this->Bind(wxEVT_CHECKBOX, &WxMachineRegister::onFieldChanged, this);
+    p_fullName->Bind(wxEVT_TEXT, &WxMachineRegister::onFullNameText, this);
+    p_queueChoice->Bind(wxEVT_CHOICE, &WxMachineRegister::onQueueChoice, this);
+    p_queueApply->Bind(wxEVT_BUTTON, &WxMachineRegister::onQueueApply, this);
+    p_queueRemoveButton->Bind(wxEVT_BUTTON, &WxMachineRegister::onQueueRemove, this);
+    p_queueClearButton->Bind(wxEVT_BUTTON, &WxMachineRegister::onQueueClear, this);
+
+    this->InvalidateBestSize();
+    this->GetSizer()->SetSizeHints(this);
+    this->GetSizer()->Fit(this);
+    this->growToFitSizer(true);
+}
+
+
+wxWindow* WxMachineRegister::createMachinePage(wxWindow* parent)
+{
+    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+    ewxScrolledWindow* page = newPage(parent, sizer);
+    wxSizerFlags border = wxSizerFlags().Border();
+
+    //  Informational only: a message with an icon and no buttons (an
+    //  info bar's Close button reads like the window's own).
+    p_info = new wxPanel(page, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                         wxBORDER_SIMPLE);
+    wxBoxSizer* infoRow = new wxBoxSizer(wxHORIZONTAL);
+    infoRow->Add(new wxStaticBitmap(p_info, wxID_ANY,
+        wxArtProvider::GetBitmap(wxART_INFORMATION, wxART_MESSAGE_BOX)),
+        wxSizerFlags().Border().CentreVertical());
+    p_infoText = new wxStaticText(p_info, wxID_ANY, "");
+    infoRow->Add(p_infoText, wxSizerFlags(1).Border().CentreVertical());
+    p_info->SetSizer(infoRow);
+    p_info->Show(false);
+    sizer->Add(p_info, wxSizerFlags().Expand().Border(wxALL, 3));
+
+    wxFlexGridSizer* grid = new wxFlexGridSizer(2, 0, 0);
+    grid->AddGrowableCol(1);
+    sizer->Add(grid, wxSizerFlags().Expand());
+
+    p_fullName = new ewxTextCtrl(page, wxID_ANY);
+    p_fullName->SetToolTip("Required. The machine's fully-qualified name, "
+                           "e.g. \"machine.anywhere.com\".");
+    p_refName = new ewxTextCtrl(page, wxID_ANY);
+    p_refName->SetToolTip("Required. The name ECCE uses for this machine, "
+                          "e.g. \"curie-batch\".");
+    grid->Add(new ewxStaticText(page, wxID_ANY, "Machine"),
+              wxSizerFlags().Right().Border().CentreVertical());
+    grid->Add(p_fullName, wxSizerFlags(1).Expand().Border().CentreVertical());
+    grid->Add(new ewxStaticText(page, wxID_ANY, "Name"),
+              wxSizerFlags().Right().Border().CentreVertical());
+    grid->Add(p_refName, wxSizerFlags(1).Expand().Border().CentreVertical());
+
+    p_vendor = new ewxTextCtrl(page, wxID_ANY);
+    p_model = new ewxTextCtrl(page, wxID_ANY);
+    p_proc = new ewxTextCtrl(page, wxID_ANY);
+    wxBoxSizer* kind = new wxBoxSizer(wxHORIZONTAL);
+    kind->Add(p_vendor, wxSizerFlags(1).Border().CentreVertical());
+    kind->Add(new ewxStaticText(page, wxID_ANY, "Model"),
+              wxSizerFlags().Border().CentreVertical());
+    kind->Add(p_model, wxSizerFlags(1).Border().CentreVertical());
+    kind->Add(new ewxStaticText(page, wxID_ANY, "Processor"),
+              wxSizerFlags().Border().CentreVertical());
+    kind->Add(p_proc, wxSizerFlags(1).Border().CentreVertical());
+    grid->Add(new ewxStaticText(page, wxID_ANY, "Vendor"),
+              wxSizerFlags().Right().Border().CentreVertical());
+    grid->Add(kind, wxSizerFlags(1).Expand());
+
+    p_procs = new ewxSpinCtrl(page, wxID_ANY, "1", wxDefaultPosition,
+                              wxDefaultSize, wxSP_ARROW_KEYS, 1, 100000, 1);
+    p_nodes = new ewxSpinCtrl(page, wxID_ANY, "1", wxDefaultPosition,
+                              wxDefaultSize, wxSP_ARROW_KEYS, 1, 100000, 1);
+    wxBoxSizer* counts = new wxBoxSizer(wxHORIZONTAL);
+    counts->Add(p_procs, wxSizerFlags().Border().CentreVertical());
+    counts->Add(new ewxStaticText(page, wxID_ANY, "Nodes"),
+                wxSizerFlags().Border().CentreVertical());
+    counts->Add(p_nodes, wxSizerFlags().Border().CentreVertical());
+    grid->Add(new ewxStaticText(page, wxID_ANY, "Processors"),
+              wxSizerFlags().Right().Border().CentreVertical());
+    grid->Add(counts, wxSizerFlags(1));
+
+    grid->Add(new ewxStaticText(page, wxID_ANY, "Connection"),
+              wxSizerFlags().Right().Border().CentreVertical());
+    grid->Add(new ewxStaticText(page, wxID_ANY, "ssh"),
+              wxSizerFlags().Border().CentreVertical());
+
+    //  #144: where jobs for a machine that names this host will run.
+    p_localityText = new ewxStaticText(page, wxID_ANY, "");
+    p_localityText->Show(false);
+    sizer->Add(p_localityText, border);
+
+    reg("fullname", p_fullName);
+    reg("name", p_refName);
+    reg("vendor", p_vendor);
+    reg("model", p_model);
+    reg("proc", p_proc);
+    reg("procs", p_procs);
+    reg("nodes", p_nodes);
+    return page;
+}
+
+
+wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
+{
+    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+    ewxScrolledWindow* page = newPage(parent, sizer);
+
+    wxFlexGridSizer* grid = new wxFlexGridSizer(2, 0, 0);
+    grid->AddGrowableCol(1);
+    sizer->Add(grid, wxSizerFlags().Expand());
+
+    p_perlPath = new ewxTextCtrl(page, wxID_ANY);
+    p_perlPath->SetToolTip("Directory of the Perl 5 interpreter on the "
+                           "remote machine.");
+    p_qmgrPath = new ewxTextCtrl(page, wxID_ANY);
+    p_qmgrPath->SetToolTip("Directory holding the scheduler's commands on "
+                           "the remote machine.");
+    grid->Add(new ewxStaticText(page, wxID_ANY, "Perl on the remote machine"),
+              wxSizerFlags().Right().Border().CentreVertical());
+    grid->Add(p_perlPath, wxSizerFlags(1).Expand().Border().CentreVertical());
+    grid->Add(new ewxStaticText(page, wxID_ANY, "Scheduler command directory"),
+              wxSizerFlags().Right().Border().CentreVertical());
+    grid->Add(p_qmgrPath, wxSizerFlags(1).Expand().Border().CentreVertical());
+
+    p_connNote = new wxStaticText(page, wxID_ANY, "");
+    sizer->Add(p_connNote, wxSizerFlags().Border());
+
+    reg("perlpath", p_perlPath);
+    reg("qmgrpath", p_qmgrPath);
+    return page;
+}
+
+
+wxWindow* WxMachineRegister::createCodesPage(wxWindow* parent)
+{
+    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+    ewxScrolledWindow* page = newPage(parent, sizer);
+
+    sizer->Add(new wxStaticText(page, wxID_ANY,
+        "Where each code is installed on the machine. A code with no path "
+        "is not offered for this machine."), wxSizerFlags().Border());
+
+    wxFlexGridSizer* grid = new wxFlexGridSizer(2, 0, 0);
+    grid->AddGrowableCol(1);
+    sizer->Add(grid, wxSizerFlags().Expand());
+
+    for (size_t i = 0; i < p_codeNames.size(); i++)
+    {
+        ewxTextCtrl* txt = new ewxTextCtrl(page, wxID_ANY);
+        grid->Add(new ewxStaticText(page, wxID_ANY, p_codeNames[i]),
+                  wxSizerFlags().Right().Border().CentreVertical());
+        grid->Add(txt, wxSizerFlags(1).Expand().Border().CentreVertical());
+        p_codePaths.push_back(txt);
+        reg("code:" + lowerOf(p_codeNames[i]), txt);
+    }
+    return page;
+}
+
+
+wxWindow* WxMachineRegister::createJobScriptPage(wxWindow* parent)
+{
+    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+    ewxScrolledWindow* page = newPage(parent, sizer);
+    p_jobNote = new wxStaticText(page, wxID_ANY, "");
+    sizer->Add(p_jobNote, wxSizerFlags().Border());
+    return page;
+}
+
+
+wxWindow* WxMachineRegister::createQueuesPage(wxWindow* parent)
+{
+    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+    ewxScrolledWindow* page = newPage(parent, sizer);
+    wxSizerFlags border = wxSizerFlags().Border();
+
+    p_qmgrChoice = new ewxChoice(page, wxID_ANY, wxDefaultPosition,
+                                 wxSize(200, -1));
+    p_allocAccts = new ewxCheckBox(page, wxID_ANY, "Allocation accounts used",
+                                   wxDefaultPosition, wxDefaultSize, wxCHK_2STATE);
+    wxBoxSizer* row1 = new wxBoxSizer(wxHORIZONTAL);
+    row1->Add(new ewxStaticText(page, wxID_ANY, "Queue manager"),
+              wxSizerFlags().Border().CentreVertical());
+    row1->Add(p_qmgrChoice, wxSizerFlags().Border().CentreVertical());
+    row1->AddSpacer(12);
+    row1->Add(p_allocAccts, wxSizerFlags().Border().CentreVertical());
+    sizer->Add(row1);
+
+    p_queueChoice = new ewxChoice(page, wxID_ANY, wxDefaultPosition,
+                                  wxSize(200, -1));
+    wxBoxSizer* row2 = new wxBoxSizer(wxHORIZONTAL);
+    row2->Add(new ewxStaticText(page, wxID_ANY, "Queues"),
+              wxSizerFlags().Border().CentreVertical());
+    row2->Add(p_queueChoice, wxSizerFlags().Border().CentreVertical());
+    sizer->Add(row2);
+
+    wxFlexGridSizer* grid = new wxFlexGridSizer(2, 0, 0);
+    grid->AddGrowableCol(1);
+    p_queueName = new ewxTextCtrl(page, wxID_ANY);
+    grid->Add(new ewxStaticText(page, wxID_ANY, "Name"),
+              wxSizerFlags().Right().Border().CentreVertical());
+    grid->Add(p_queueName, wxSizerFlags(1).Expand().Border().CentreVertical());
+
+    //  Wall time is shown in hours and stored in minutes (README.Q); a
+    //  fraction is fine because minutes are the finer unit.
+    p_qMaxWall = new wxSpinCtrlDouble(page, wxID_ANY, "0", wxDefaultPosition,
+                                      wxDefaultSize, wxSP_ARROW_KEYS, 0,
+                                      100000, 0, 0.25);
+    p_qMaxWall->SetDigits(2);
+    reg("q-maxwall", p_qMaxWall);
+
+    struct SpinRow { ewxSpinCtrl** spin; const char* label; const char* unit;
+                     int min; const char* key; };
+    SpinRow rows[] = {
+        { &p_qMinProcs, "Min processors", "", 1, "q-minprocs" },
+        { &p_qMaxProcs, "Max processors", "", 1, "q-maxprocs" },
+        { NULL, "Max wall time", "h", 0, "" },
+        { &p_qMaxMem, "Max memory", "GB", 0, "q-maxmem" },
+        { &p_qMinScratch, "Min scratch", "GB", 0, "q-minscratch" },
+    };
+    for (size_t i = 0; i < sizeof(rows) / sizeof(rows[0]); i++)
+    {
+        wxWindow* spin = p_qMaxWall;
+        if (rows[i].spin != NULL)
         {
-            //  selectMachine() reloads p_qnames from disk, which would
-            //  silently discard the previous machine's unsaved queues.
-            string prev = p_slctRgstn->refname();
-            int answer = this->confirmUnsavedQueues();
-            if (answer == wxID_CANCEL ||
-                (answer == wxID_YES && !saveRegistration()))
+            *rows[i].spin = new ewxSpinCtrl(page, wxID_ANY,
+                wxString::Format("%d", rows[i].min), wxDefaultPosition,
+                wxDefaultSize, wxSP_ARROW_KEYS, rows[i].min, 100000,
+                rows[i].min);
+            spin = *rows[i].spin;
+            reg(rows[i].key, spin);
+        }
+        grid->Add(new ewxStaticText(page, wxID_ANY, rows[i].label),
+                  wxSizerFlags().Right().Border().CentreVertical());
+        wxBoxSizer* cell = new wxBoxSizer(wxHORIZONTAL);
+        cell->Add(spin, wxSizerFlags().Border().CentreVertical());
+        if (*rows[i].unit)
+            cell->Add(new ewxStaticText(page, wxID_ANY, rows[i].unit),
+                      wxSizerFlags().CentreVertical());
+        grid->Add(cell, wxSizerFlags().CentreVertical());
+    }
+    sizer->Add(grid, wxSizerFlags().Expand());
+
+    p_queueApply = new ewxButton(page, wxID_ANY, "Add Queue");
+    p_queueRemoveButton = new ewxButton(page, wxID_ANY, "Remove Queue");
+    p_queueClearButton = new ewxButton(page, wxID_ANY, "Remove All");
+    wxBoxSizer* qbuttons = new wxBoxSizer(wxHORIZONTAL);
+    qbuttons->Add(p_queueApply, border);
+    qbuttons->Add(p_queueRemoveButton, border);
+    qbuttons->Add(p_queueClearButton, border);
+    sizer->Add(qbuttons);
+    sizer->Add(new wxStaticText(page, wxID_ANY,
+        "Queue changes are kept in the list until you press Save."),
+        wxSizerFlags().Border());
+
+    reg("qmgr", p_qmgrChoice);
+    reg("aa", p_allocAccts);
+    reg("queue", p_queueChoice);
+    reg("q-name", p_queueName);
+    reg("queue-apply", p_queueApply);
+    reg("queue-remove", p_queueRemoveButton);
+    reg("queue-clear", p_queueClearButton);
+    return page;
+}
+
+
+//  Load up list of supported queue managers from file.
+void WxMachineRegister::loadQueueManagerList()
+{
+    bool found = false;
+
+    string path = Ecce::ecceHome();
+    path.append("/siteconfig/QueueManagers");
+
+    KeyValueReader reader(path.c_str());
+    string key, value;
+
+    p_qmgrChoice->Clear();
+    p_qmgrChoice->Append("None");
+
+    while (!found && (reader.getpair(key, value)))
+    {
+        if (key == "QueueManagers")
+        {
+            found = true;
+
+            char *tokestr = strdup(value.c_str());
+            char *tok = strtok(tokestr, " \t");
+
+            while (tok)
             {
-                p_machinesList->SetSelection(
-                    p_machinesList->FindString((wxString)prev, true));
-                return;
+                p_qmgrChoice->Append(tok);
+                tok = strtok((char*)0, " \t");
             }
-            p_queuesDirty = false;
-        }
 
-        if (refname != "")
-        {
-            this->selectMachine(refname);
-            p_machineDeleteButton->Enable(true);
-            p_formClearButton->Enable(true);
+            free(tokestr);
         }
     }
+
+    p_qmgrChoice->SetSelection(0);
 }
 
-void WxMachineRegister::machineFullNameUpdatedCB(wxCommandEvent& event)
-{
-    string refName = (string)(p_machineFullNameText->GetValue());
-    int chpos = refName.find('.');
 
-    //  Don't cut an IP address at its first '.' -- 127.0.0.1 must stay
-    //  127.0.0.1, not become "127" (matches RunMgmt::registerLocalMachine).
-    bool isAddress = refName.find_first_not_of("0123456789.") == string::npos;
-
-    if (chpos != string::npos && !isAddress)
-        refName = refName.substr(0, chpos);
-
-    //  Only when the user types a machine: loading a saved entry must keep
-    //  its own name, or Delete looks for a name that was never saved.
-    //  Follow the machine only while Name is empty or still the value
-    //  filled in here, so a name the user typed is never overwritten.
-    if (!p_inCtrlUpdate) {
-        string current = (string)(p_machineRefNameText->GetValue());
-        if (current.empty() || current == p_autoRefName) {
-            p_autoRefName = refName;
-            p_machineRefNameText->SetValue(refName);
-        }
-        p_machineChangeButton->Enable(true);
-    }
-
-    this->refreshLocality();
-}
-
+//  ---- sizing (#187) ------------------------------------------------------
 
 /**
- *  A machine registered as localhost, 127.0.0.1, ::1 or this host's own
- *  name runs jobs LOCALLY when the login name used for it is empty or
- *  your own, and over ssh to that name when it is anyone else's -- the
- *  escape hatch a port-forwarded cluster login depends on (#144). Nothing
- *  said which, so say it here, where the name is typed. The login name
- *  itself is chosen in the Launcher, not here: show the rule, and the
- *  outcome too when a login name has already been saved for the machine.
- *  Both come from RCommand::isRemote(), the function the launch uses.
- */
-void WxMachineRegister::refreshLocality()
-{
-    if (p_localityText == NULL || p_machineFullNameText == NULL)
-        return;
-
-    string machine = (string)p_machineFullNameText->GetValue();
-    string text = "";
-
-    if (!RCommand::localityNote(machine, "ssh", "").empty())
-    {
-        text = "This computer: jobs run locally when the login name is empty or ";
-        text += Ecce::realUser();
-        text += ";\nany other login name goes via ssh to " + machine +
-                " as that user.";
-
-        string refName = (string)p_machineRefNameText->GetValue();
-        MachinePreferences *prefs = refName.empty() ? NULL :
-                                    MachinePreferences::lookup(refName);
-        if (prefs != NULL && prefs->isOptionSupported("UN") &&
-            !prefs->getUsername().empty())
-        {
-            text += "\nWith the saved login name \"" + prefs->getUsername() +
-                    "\": " + RCommand::localityNote(machine,
-                                                    prefs->getRemoteShell(),
-                                                    prefs->getUsername()) + ".";
-        }
-    }
-
-    if ((string)p_localityText->GetLabel() != text)
-    {
-        p_localityText->SetLabel(text);
-        p_localityText->Show(!text.empty());
-
-        //  The note changes the form's natural size; re-measure it so the
-        //  scrolled form and the frame's minimum follow (#187).
-        this->growToFitSizer();
-    }
-}
-
-
-/**
- *  #187: keep the frame's minimum in step with the form and, with
- *  fitWholeForm, grow the frame to show all of it, capped to the display.
- *  The scrolled form is the one flexible item and its minimum is only a
- *  small floor, so the frame's minimum always includes the whole button
- *  row: any resize takes height from the form, never from the buttons.
+ *  #187: keep the frame's minimum in step with the pages and, with
+ *  fitWholeForm, grow the frame to show the largest page whole, capped to
+ *  the display.  Pages scroll vertically, so the notebook's minimum is only
+ *  a small floor; the button row is always inside the frame's minimum.
  */
 void WxMachineRegister::growToFitSizer(bool fitWholeForm)
 {
-    if (this->GetSizer() == NULL || p_formScroll == NULL
-        || p_formScroll->GetSizer() == NULL)
+    if (this->GetSizer() == NULL || p_book == NULL)
         return;
 
-    //  Smallest useful slice of the form; below this it scrolls in a
-    //  window too small to read.
     const int MIN_FORM_HEIGHT = 100;
 
     wxSize cap = this->maxClientSizeForDisplay();
     wxSize have = this->GetClientSize();
 
-    //  A scrolled window's best size is not its content's, so measure the
-    //  form's sizer. Re-measured every call: the locality note (#144)
-    //  changes it.
-    wxSize natural = p_formScroll->GetSizer()->GetMinSize();
+    wxSize natural(0, 0);
+    for (size_t i = 0; i < p_book->GetPageCount(); i++)
+    {
+        wxWindow* page = p_book->GetPage(i);
+        if (page->GetSizer() == NULL)
+            continue;
+        wxSize s = page->GetSizer()->GetMinSize();
+        natural.x = wxMax(natural.x, s.x);
+        natural.y = wxMax(natural.y, s.y);
+    }
 
-    //  The frame size that shows the whole form without scrolling.
-    p_formScroll->SetMinSize(natural);
+    //  Window best sizes are cached; the notebook's change must reach the
+    //  frame's sizer.
+    struct Invalidate {
+        static void up(wxWindow* from, wxWindow* stop)
+        {
+            for (wxWindow* w = from; w != NULL && w != stop; w = w->GetParent())
+                w->InvalidateBestSize();
+            stop->InvalidateBestSize();
+        }
+    };
+
+    p_book->SetMinSize(p_book->CalcSizeFromPage(natural));
+    Invalidate::up(p_book, this);
     wxSize full = this->GetSizer()->GetMinSize();
 
-    //  The real minimum: the width stays natural (no horizontal scroll),
-    //  the height may shrink to the floor. Applied as the frame's own
-    //  minimum too, so no resize can cut into the button row.
-    p_formScroll->SetMinSize(wxSize(natural.x,
-                                    wxMin(natural.y, MIN_FORM_HEIGHT)));
-    p_formScroll->FitInside();
+    p_book->SetMinSize(p_book->CalcSizeFromPage(
+        wxSize(natural.x, wxMin(natural.y, MIN_FORM_HEIGHT))));
+    Invalidate::up(p_book, this);
     wxSize need = this->GetSizer()->GetMinSize();
     this->SetMinClientSize(need);
 
-    //  Only at construction: later (the locality note) the form just
-    //  scrolls, so a frame the user shrank stays that size.
     wxSize target = fitWholeForm ? full : need;
     wxSize want(wxMax(target.x, have.x), wxMax(target.y, have.y));
     want.x = wxMax(need.x, wxMin(want.x, cap.x));
     want.y = wxMax(need.y, wxMin(want.y, cap.y));
 
-    //  Applied only now that the target is known, so it cannot clamp the
-    //  SetClientSize() below; it widens past the display only if `need`
-    //  itself does.
     wxSize decoration = this->GetSize() - this->GetClientSize();
     this->SetMaxSize(wxSize(wxMax(want.x, cap.x) + decoration.x,
                             wxMax(want.y, cap.y) + decoration.y));
@@ -485,27 +641,22 @@ void WxMachineRegister::growToFitSizer(bool fitWholeForm)
         this->SetClientSize(want);
 
     this->Layout();
+    for (size_t i = 0; i < p_book->GetPageCount(); i++)
+        p_book->GetPage(i)->FitInside();
 
     if (getenv("ECCE_DEBUG_MACHREGISTER_SIZE") != NULL)
     {
-        wxSize formSize = p_formScroll->GetSize();
-        wxSize formVirt = p_formScroll->GetVirtualSize();
         fprintf(stderr,
-                "[MACHREG_SIZE] cap=%dx%d need=%dx%d full=%dx%d frameClient=%dx%d "
-                "frameOuter=%dx%d formSize=%dx%d formVirtual=%dx%d\n",
+                "[MACHREG_SIZE] cap=%dx%d need=%dx%d full=%dx%d "
+                "frameClient=%dx%d frameOuter=%dx%d page=%dx%d\n",
                 cap.x, cap.y, need.x, need.y, full.x, full.y,
                 this->GetClientSize().x, this->GetClientSize().y,
-                this->GetSize().x, this->GetSize().y,
-                formSize.x, formSize.y, formVirt.x, formVirt.y);
+                this->GetSize().x, this->GetSize().y, natural.x, natural.y);
     }
 }
 
 
-/**
- *  Nudge the frame back fully onto its display (#187) -- falls back to
- *  display 0 when the frame isn't associated with one yet (e.g. before
- *  the first Show()). Only moves it, never resizes it.
- */
+//  Move the frame back fully onto its display; never resizes it.
 void WxMachineRegister::keepOnScreen()
 {
     int dpyIdx = wxDisplay::GetFromWindow(this);
@@ -530,21 +681,14 @@ void WxMachineRegister::keepOnScreen()
 }
 
 
-/**
- *  The most this frame's client area can be without the window (frame,
- *  borders and all) exceeding the usable area of the display it's on
- *  (#187) -- falls back to display 0 when the frame isn't associated
- *  with one yet (e.g. before the first Show()).
- */
+//  The most the client area can be without the frame exceeding the usable
+//  area of its display.  A pure query; growToFitSizer() applies it.
 wxSize WxMachineRegister::maxClientSizeForDisplay()
 {
     int dpyIdx = wxDisplay::GetFromWindow(this);
     wxDisplay display((unsigned)(dpyIdx == wxNOT_FOUND ? 0 : dpyIdx));
     wxRect avail = display.GetClientArea();
 
-    //  A pure query -- growToFitSizer() is the one that applies a max
-    //  size, once it knows the final target, so this can't clamp a
-    //  SetClientSize() out from under it (see the comment there).
     wxSize decoration = this->GetSize() - this->GetClientSize();
     wxSize cap(avail.width - decoration.x, avail.height - decoration.y);
     if (cap.x <= 0)
@@ -556,1155 +700,1129 @@ wxSize WxMachineRegister::maxClientSizeForDisplay()
 }
 
 
-void WxMachineRegister::machineRefNameUpdatedCB(wxCommandEvent& event)
+/**
+ *  A machine registered as localhost, 127.0.0.1, ::1 or this host's own
+ *  name runs jobs LOCALLY when the login name used for it is empty or
+ *  your own, and over ssh to that name when it is anyone else's (#144).
+ *  Shown where the name is typed, from RCommand::isRemote(), the function
+ *  the launch uses.
+ */
+void WxMachineRegister::refreshLocality()
 {
-    p_machineChangeButton->Enable(true);
-}
+    if (p_localityText == NULL || p_fullName == NULL)
+        return;
 
+    string machine = (string)p_fullName->GetValue();
+    string text = "";
 
-void WxMachineRegister::machineVendorTextEnterCB(wxCommandEvent& event)
-{
-
-    bool emslFlag = false;
-    string currPath;
-    string vendor = (string)(p_machineVendorText->GetValue());
-
-    STLUtil::toUpper(vendor);
-
-    if ((vendor.find("SGI") == 0) || (vendor.find("LINUX") == 0))
+    if (!RCommand::localityNote(machine, "ssh", "").empty())
     {
-        wxString fullname = p_machineFullNameText->GetValue();
+        //  Said in terms of launching, since that is the only thing a
+        //  machine here is for; the queue manager may be set for localhost.
+        text = "This computer. Calculations you launch on \"" + machine +
+               "\" run here, on this computer,\neither directly or through "
+               "the queue manager chosen on the Queues tab.\n"
+               "This holds while the login name is empty or " +
+               Ecce::realUser() + ";\nwith any other login name they run "
+               "via ssh to " + machine + " as that user.";
 
-        if (fullname.find('.') != string::npos &&
-            (fullname.find(".emsl.pnl.gov") == fullname.find('.') ||
-             fullname.find(".pnl.gov") == fullname.find('.')))
+        string refName = (string)p_refName->GetValue();
+        MachinePreferences *prefs = refName.empty() ? NULL :
+                                    MachinePreferences::lookup(refName);
+        if (prefs != NULL && prefs->isOptionSupported("UN") &&
+            !prefs->getUsername().empty())
         {
-            emslFlag = true;
-            string base = Ecce::ecceHome();
-            base += "/siteconfig/";
-            string path;
-
-            // ignore any model specific CONFIG files and assume
-            // vendor CONFIG files always exist for the same model
-
-            bool anyCode = false;
-
-            for (int idx = 0; idx < p_codeNames.size(); idx++)
-            {
-                if (RefMachine::exePath(p_codeNames[idx].c_str(), fullname.ToStdString(), vendor.c_str()) != "")
-                {
-                    anyCode = true;
-                    p_codePaths[idx]->SetValue(_("(EMSL default path)"));
-                    p_miscPathsText[0]->SetValue(_("(EMSL default perl path)"));
-                }
-                else
-                {
-                    currPath = (string)(p_codePaths[idx]->GetValue());
-
-                    if (currPath == "(EMSL default path)")
-                        p_codePaths[idx]->Clear();
-                }
-            }
-
-            if (!anyCode)
-            {
-                currPath = p_miscPathsText[0]->GetValue();
-
-                if (currPath == "(EMSL default perl path)")
-                {
-                    p_miscPathsText[0]->Clear();
-                }
-            }
+            text += "\nWith the saved login name \"" + prefs->getUsername() +
+                    "\": " + RCommand::localityNote(machine,
+                                                    prefs->getRemoteShell(),
+                                                    prefs->getUsername()) + ".";
         }
     }
 
-    if (!emslFlag)
+    if ((string)p_localityText->GetLabel() != text)
     {
-        for (int idx = 0; idx < p_codePaths.size(); idx++)
-        {
-            currPath = (string)(p_codePaths[idx]->GetValue());
-
-            if (currPath == "(EMSL default path)")
-            {
-                p_codePaths[idx]->Clear();
-            }
-        }
-
-        currPath = (string)(p_miscPathsText[0]->GetValue());
-
-        if (currPath == "(EMSL default perl path)")
-        {
-            p_miscPathsText[0]->Clear();
-        }
+        p_localityText->SetLabel(text);
+        p_localityText->Show(!text.empty());
+        this->growToFitSizer();
     }
 }
 
 
-void WxMachineRegister::queueChoiceboxSelectedCB(wxCommandEvent& event)
+//  ---- the machine list ---------------------------------------------------
+
+void WxMachineRegister::loadMachinesList()
 {
+    p_rows.clear();
 
-//    cout << "WxMachineRegister::queueChoiceboxSelectedCB(wxCommandEvent&)" << endl;
-
-    wxString slctQueue = p_queueNameText->GetValue();
-
-    if (event.GetString() != slctQueue)
+    //  Your machines shadow site machines of the same name.
+    vector<string> yours;
+    if (!p_adminFlag)
     {
-        this->showQueue((string)(event.GetString()));
+        vector<string> *u = RefMachine::referenceNames(RefMachine::userMachines);
+        yours = *u;
+        delete u;
     }
+    vector<string> *s = RefMachine::referenceNames(RefMachine::siteMachines);
+    vector<string> site = *s;
+    delete s;
+
+    string siteWord = remoteClient() ? "server" : "site";
+    for (size_t i = 0; i < yours.size(); i++)
+    {
+        Row r; r.name = yours[i]; r.from = "yours";
+        p_rows.push_back(r);
+    }
+    for (size_t i = 0; i < site.size(); i++)
+    {
+        if (std::find(yours.begin(), yours.end(), site[i]) != yours.end())
+            continue;
+        Row r; r.name = site[i]; r.from = siteWord;
+        p_rows.push_back(r);
+    }
+    std::sort(p_rows.begin(), p_rows.end(),
+              [](const Row& a, const Row& b) { return a.name < b.name; });
+
+    p_inListUpdate = true;
+    p_list->DeleteAllItems();
+    for (size_t i = 0; i < p_rows.size(); i++)
+    {
+        long idx = p_list->InsertItem((long)i, p_rows[i].name);
+        p_list->SetItem(idx, 1, p_rows[i].from);
+    }
+    p_inListUpdate = false;
 }
 
 
-void WxMachineRegister::queueChangeButtonClickedCB(wxCommandEvent& event)
+//  Case-sensitive: machine names are, and a case-insensitive match once
+//  selected "Tellurium" after "tellurium" was deleted.
+int WxMachineRegister::findRow(const string& name) const
 {
-    string name =(string)(p_queueNameText->GetValue());
-    STLUtil::stripLeadingAndTrailingWhiteSpace(name);
+    for (size_t i = 0; i < p_rows.size(); i++)
+        if (p_rows[i].name == name)
+            return (int)i;
+    return -1;
+}
 
-    if (name.empty())
-    {
-        displayMessage("You must supply a queue name.");
-    }
-    else if (!std::regex_match(name, std::regex("^[A-Za-z0-9_.-]+$")))
-    {
-        //  Queue names are later written into a CGI-style settings
-        //  string and read on the other end of a shell pipe by
-        //  processmachine -- keep them to a safe character set (#131).
-        displayMessage("Queue name '" + name + "' is not valid.\n"
-            "Queue names may contain only letters, digits, '_', '.' and '-'.");
-    }
-    else
-    {
-        int it;
-        for (it=0; it<p_qnames.size() && p_qnames[it]!=name; it++);
 
-        if (it < p_qnames.size())
-        {
-            // this is a modify
-            p_minProcs[it] = p_queueMinProcsSpin->GetValue();
-            p_maxProcs[it] = p_queueMaxProcsSpin->GetValue();
-            p_maxWall[it] = p_queueMaxWallSpin->GetValue();
-            p_maxMem[it] = MemoryUnits::gbToMB(p_queueMaxMemorySpin->GetValue());
-            p_minScratch[it] = p_queueMinScratchSpin->GetValue();
-        }
+//  The form holds a machine that is not yours, so saving makes your copy.
+bool WxMachineRegister::fromSite() const
+{
+    return !p_adminFlag && !p_loadedName.empty() && p_loadedFrom != "yours";
+}
+
+
+void WxMachineRegister::onListSelected(wxListEvent& event)
+{
+    if (p_inListUpdate)
+        return;
+
+    int idx = event.GetIndex();
+    if (idx < 0 || idx >= (int)p_rows.size())
+        return;
+    string name = p_rows[idx].name;
+    if (name == p_loadedName)
+        return;
+
+    if (!resolveUnsaved("Discard Changes"))
+    {
+        int prev = findRow(p_loadedName);
+        p_inListUpdate = true;
+        if (prev >= 0)
+            p_list->SetItemState(prev, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
         else
-        {
-            // this is an add
-            p_qnames.push_back(name);
-
-            p_minProcs.push_back(p_queueMinProcsSpin->GetValue());
-            p_maxProcs.push_back(p_queueMaxProcsSpin->GetValue());
-            p_maxWall.push_back(p_queueMaxWallSpin->GetValue());
-            p_maxMem.push_back(MemoryUnits::gbToMB(p_queueMaxMemorySpin->GetValue()));
-            p_minScratch.push_back(p_queueMinScratchSpin->GetValue());
-
-            p_queuesChoicebox->Append(_(name.c_str()));
-        }
-        p_queuesDirty = true;
+            p_list->SetItemState(idx, 0, wxLIST_STATE_SELECTED);
+        p_inListUpdate = false;
+        return;
     }
-}
-
-
-void WxMachineRegister::queueRemoveButtonClickedCB(wxCommandEvent& event)
-{
-    this->removeQueue();
-    p_queuesDirty = true;
-}
-
-
-void WxMachineRegister::queueClearButtonClickedCB(wxCommandEvent& event)
-{
-    this->clearQueues();
-    p_queuesDirty = true;
-}
-
-
-void WxMachineRegister::machineChangeButtonClickedCB(wxCommandEvent& event)
-{
-    saveRegistration();
-}
-
-
-bool WxMachineRegister::saveRegistration()
-{
-    bool saved = false;
-
-    if (verifyInput())
-    {
-        string settings = "type=accept";
-        settings += collectSettings();
-
-        string cmd = Ecce::ecceHome();
-        cmd += "/scripts/processmachine";
-
-        string s = "CONTENT_LENGTH=" + StringConverter::toString((int)(settings.length()));
-        char* s1 = strdup(s.c_str());
-        putenv(s1);
-
-        //  Feed settings on stdin rather than building a shell command
-        //  line out of them -- settings can contain arbitrary path/
-        //  machine-name text and the old "echo \"...\" | processmachine"
-        //  form ran that text through the shell unescaped (#131).
-        int status = -1;
-        FILE* pipe = popen(cmd.c_str(), "w");
-
-        if (pipe != NULL)
-        {
-            fwrite(settings.data(), 1, settings.length(), pipe);
-            status = pclose(pipe);
-            status = status >> 8;
-        }
-
-        if (status != 0)
-            displayMessage("Unable to save changes to machine registration!");
-        else
-        {
-            saved = true;
-            p_queuesDirty = false;
-            string refName = (string)(p_machineRefNameText->GetValue());
-            redo(refName);
-            selectMachine(refName);
-
-            this->notifyUpdate();
-        }
-    }
-
-    return saved;
-}
-
-
-//  Yes = save now, No = discard, Cancel = stay.
-int WxMachineRegister::confirmUnsavedQueues()
-{
-    string name = (string)(p_machineRefNameText->GetValue());
-    ewxMessageDialog dlg(this,
-        "The queues for '" + name + "' have been changed but not saved.\n"
-        "\"Add/Change Queue\" only edits the list; \"Add/Change\" writes it.\n\n"
-        "Save them now?",
-        "Unsaved Queue Changes",
-        wxYES_NO|wxCANCEL|wxICON_QUESTION, wxDefaultPosition);
-    return dlg.ShowModal();
-}
-
-
-void WxMachineRegister::machineDeleteButtonClickedCB(wxCommandEvent& event)
-{
-    string refName = p_slctRgstn->refname();
-
-    if (confirmRemove(refName))
-    {
-        int result = this->removeMachine();
-
-        if (result != 0)
-            displayMessage("Unable to delete registered machine!");
-        else
-        {
-            redo(refName);
-            this->clearForm();
-            p_machinesList->SetSelection(-1);
-            p_slctRgstn = NULL;
-//            p_machineChangeButton->Enable(false);
-//            p_machineDeleteButton->Enable(false);
-            this->notifyUpdate();
-
-        }
-    }
-}
-
-
-void WxMachineRegister::formClearButtonClickedCB(wxCommandEvent& event)
-{
-
-    p_machinesList->SetSelection(-1);
-    p_slctRgstn = NULL;
-
-    this->clearForm();
-    p_queuesDirty = false;   // an explicit Clear Form is a deliberate discard
-
-
-//    p_machineChangeButton->Enable(false);
-//    p_machineDeleteButton->Enable(false);
-
-}
-
-
-void WxMachineRegister::formCloseButtonClickedCB(wxCommandEvent& event)
-{
-    this->Close();
-}
-
-
-void WxMachineRegister::helpButtonClickedCB(wxCommandEvent& event)
-{
-   BrowserHelp help;
-   help.showPage(help.URL("ConfigSvrs"));
+    this->loadMachine(name);
 }
 
 
 bool WxMachineRegister::selectMachine(string refName)
 {
-    bool found;
-
-    //  Case-sensitive: wx matches list strings ignoring case, but machine
-    //  names are case-sensitive, so after deleting "tellurium" it selected
-    //  "Tellurium" while refLookup("tellurium") returned NULL.
-    int idx = p_machinesList->FindString((wxString)(refName), true);
-    found = idx != wxNOT_FOUND;
-    if (found)
-        p_machinesList->SetSelection(idx);
-    p_prefillFromSite = false;
-
-    if (found)
-    {
-        p_slctRgstn = RefMachine::refLookup(refName.c_str());
-        found = p_slctRgstn != NULL;
-        if (found)
-            this->refreshControls();
-    }
-    else if (!p_adminFlag)
-    {
-        //  A site machine (e.g. the Machine Browser's Register action on
-        //  "dummy"/"localhost") never appears in the user's own list, so
-        //  the lookup above always misses.  Fall back to the site
-        //  definition, unselected, so the form can be edited and saved as
-        //  the user's own shadowing copy (#104).
-        vector<string> *siteNames = RefMachine::referenceNames(RefMachine::siteMachines);
-        bool isSiteMachine = (find(siteNames->begin(), siteNames->end(), refName)
-                               != siteNames->end());
-        delete siteNames;
-
-        if (isSiteMachine)
-        {
-            p_machinesList->SetSelection(-1);
-            p_slctRgstn = RefMachine::refLookup(refName.c_str());
-            p_prefillFromSite = true;
-            this->refreshControls();
-            //  Nothing of the user's to delete yet.
-            p_machineDeleteButton->Enable(false);
-
-            displayMessage("'" + refName + "' is a site machine, shared by "
-                "everyone using this ECCE installation, so it can't be "
-                "changed here. The form now shows its settings: edit them "
-                "and press Add/Change to save your own copy under the same "
-                "name. Your copy is used instead of the site one; deleting "
-                "it brings the site version back.");
-
-            found = true;
-        }
-    }
-
-    return found;
+    int idx = findRow(refName);
+    if (idx < 0)
+        return false;
+    if (refName == p_loadedName)
+        return true;
+    if (!resolveUnsaved("Discard Changes"))
+        return false;
+    this->loadMachine(refName);
+    return true;
 }
 
 
-void WxMachineRegister::loadMachinesList()
+bool WxMachineRegister::showPage(const string& name)
 {
-    int i, nNames;
-    RefMachine::machineContextEnum context;
-
-    p_machinesList->Clear();
-
-
-    context = p_adminFlag ? RefMachine::siteMachines : RefMachine::userMachines;
-    vector<string> *names = RefMachine::referenceNames(context);
-    EcceSortedVector<string, less<string> > sortedNames(*names);
-
-    nNames= sortedNames.size();
-
-    for (i = 0; i < nNames; i++)
-    {
-        p_machinesList->Append((wxString)(sortedNames[i]));
-    }
-
-    if (nNames > 0)
-    {
-        p_machinesList->SetSelection(0);
-        p_prefillFromSite = false;
-        string refName = (string)(p_machinesList->GetString(0));
-        p_slctRgstn = RefMachine::refLookup(refName.c_str());
-        this->refreshControls();
-    }
-}
-
-
-//****  2005.0518
-//  Load up list of supported queue managers from file.
-//  Replaces functionality of initQueueMgrList() in configsvrs_cdlg.C
-void WxMachineRegister::loadQueueManagerList()
-{
-    bool found = false;
-
-    string path = Ecce::ecceHome();
-    path.append("/siteconfig/QueueManagers");
-
-    KeyValueReader reader(path.c_str());
-    string key, value;
-
-    p_queueManagerChoicebox->Clear();
-    p_queueManagerChoicebox->Append("None");
-
-    while (!found && (reader.getpair(key, value)))
-    {
-        if (key == "QueueManagers")
+    static const char* names[] = { "machine", "connection", "codes", "job",
+                                   "queues" };
+    for (size_t i = 0; i < p_book->GetPageCount() && i < 5; i++)
+        if (name == names[i])
         {
-            found = true;
-
-            char *tokestr = strdup(value.c_str());
-            char *tok = strtok(tokestr, " \t");
-
-            while (tok)
-            {
-                p_queueManagerChoicebox->Append(tok);
-                tok = strtok((char*)0, " \t");
-            }
-
-            free(tokestr);
+            p_book->SetSelection(i);
+            return true;
         }
-    }
-
-
-    p_queueManagerChoicebox->SetSelection(0);
+    return false;
 }
 
 
-void WxMachineRegister::refreshControls()
+//  ---- loading a machine ---------------------------------------------------
+
+MCD* WxMachineRegister::newDraft(const string& refName) const
+{
+    MCD::Mode mode = p_adminFlag ? MCD::AdminMode
+                   : remoteClient() ? MCD::RemoteMode : MCD::UserMode;
+    string site = string(Ecce::ecceHome()) + "/siteconfig/CONFIG." + refName;
+    string user = withoutSlash(Ecce::realUserPrefPath()) + "/CONFIG." + refName;
+
+    MCD* draft = new MCD(mode, site, user);
+
+    vector<string> keys;
+    for (size_t i = 0; i < p_codeNames.size(); i++)
+        keys.push_back(p_codeNames[i]);
+    keys.push_back("perlPath");
+    keys.push_back("qmgrPath");
+    draft->loadFiles(keys);
+    return draft;
+}
+
+
+void WxMachineRegister::loadMachine(const string& refName)
+{
+    RefMachine* ref = RefMachine::refLookup(refName.c_str());
+    int idx = findRow(refName);
+    if (ref == NULL || idx < 0)
+        return;
+
+    p_slctRgstn = ref;
+    p_loadedName = refName;
+    p_loadedFrom = p_rows[idx].from;
+    delete p_draft;
+    p_draft = newDraft(refName);
+    this->draftToControls();
+
+    p_inListUpdate = true;
+    p_list->SetItemState(idx, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
+    p_list->EnsureVisible(idx);
+    p_inListUpdate = false;
+}
+
+
+void WxMachineRegister::showNewMachine()
+{
+    p_slctRgstn = NULL;
+    p_loadedName = "";
+    p_loadedFrom = "";
+    p_inListUpdate = true;
+    for (long i = 0; i < p_list->GetItemCount(); i++)
+        p_list->SetItemState(i, 0, wxLIST_STATE_SELECTED);
+    p_inListUpdate = false;
+    delete p_draft;
+    p_draft = newDraft("");
+    this->draftToControls();
+}
+
+
+//  Fill every widget from the registration and the draft, then take the
+//  result as the baseline so nothing counts as changed.
+void WxMachineRegister::draftToControls()
 {
     p_inCtrlUpdate = true;
 
-    p_machineRefNameText->SetValue(p_slctRgstn->refname());
-
-    p_machineFullNameText->SetValue(p_slctRgstn->fullname());
-    p_machineVendorText->SetValue(p_slctRgstn->vendor());
-    p_machineModelText->SetValue(p_slctRgstn->model());
-    p_machineProcessorText->SetValue(p_slctRgstn->proctype());
-
-    int procs = p_slctRgstn->proccount();
-    int nodes = p_slctRgstn->nodes();
-
-
-    p_machineNumProcsSpin->SetValue(procs);
-    p_machineNumNodesSpin->SetValue((nodes > 0) ? nodes : 1);
-
-
-    int nshells;
-
-    nshells = p_shellNames.size();
-
-    for (int i = 0; i < nshells; i++)
+    if (p_slctRgstn != NULL)
     {
-        p_remshellsCheckboxes[i]->SetValue(p_slctRgstn->hasRemShell(p_shellNames[i]));
+        p_refName->SetValue(p_slctRgstn->refname());
+        p_fullName->SetValue(p_slctRgstn->fullname());
+        p_vendor->SetValue(p_slctRgstn->vendor());
+        p_model->SetValue(p_slctRgstn->model());
+        p_proc->SetValue(p_slctRgstn->proctype());
+        int nodes = p_slctRgstn->nodes();
+        p_procs->SetValue(p_slctRgstn->proccount());
+        p_nodes->SetValue((nodes > 0) ? nodes : 1);
+        p_allocAccts->SetValue(
+            p_slctRgstn->launchOptions().find("AA") != string::npos);
     }
-
-    p_queueAllctnAcctsCheckbox->SetValue(p_slctRgstn->launchOptions().find("AA") != string::npos);
-    loadConfig(p_slctRgstn->refname());
-
-    string tmp;
-    string fullName = p_slctRgstn->fullname();
-    string vendor = p_slctRgstn->vendor();
-    STLUtil::toLower(vendor);
-
-    bool emslflag = false;
-
-    if ((vendor.find("sgi") == 0 || vendor.find("linux") == 0) &&
-        fullName.find('.') != string::npos &&
-        (fullName.find(".emsl.pnl.gov") == fullName.find('.') ||
-         fullName.find(".pnl.gov") == fullName.find('.')))
+    else
     {
-        string base = Ecce::ecceHome();
-        base += "/siteconfig/";
-        string path;
-        path = base + "CONFIG.SGI";
-        SFile test1 = path;
-        path = base + "CONFIG.LINUX";
-        SFile test2 = path;
-
-        emslflag = test1.exists() && test2.exists();
+        p_refName->Clear();
+        p_fullName->Clear();
+        p_vendor->Clear();
+        p_model->Clear();
+        p_proc->Clear();
+        p_procs->SetValue(1);
+        p_nodes->SetValue(1);
+        p_allocAccts->SetValue(false);
     }
+    p_autoRefName = "";
 
-
-    string xname, lname;
-
-    for (int i = 0; i < p_codePaths.size(); i++)
+    for (size_t i = 0; i < p_codePaths.size(); i++)
     {
-        lname = xname = p_codeNames[i];
-        STLUtil::toLower(lname);
-
-        tmp = "";
-        p_config->findValue(lname.c_str(), tmp);
-
-        if ((tmp == "") && emslflag && p_slctRgstn->hasCode(xname.c_str()))
-            tmp = "(EMSL default path)";
-
-        p_codePaths[i]->SetValue((wxString)(tmp));
+        string v;
+        p_draft->effective(p_codeNames[i], v);
+        p_codePaths[i]->SetValue(v);
     }
+    string v;
+    p_draft->effective("perlPath", v);
+    p_perlPath->SetValue(v);
+    v = "";
+    p_draft->effective("qmgrPath", v);
+    p_qmgrPath->SetValue(v);
 
-    tmp = "";
-    p_config->findValue("perlpath", tmp);
-
-    if ((tmp == "") && emslflag)
+    if (p_slctRgstn != NULL)
     {
-        tmp = "(EMSL default perl path)";
+        this->loadQueues(p_slctRgstn->refname());
+        this->fillQueues();
+        this->showQueue();
     }
+    else
+        this->clearQueues();
 
-    p_miscPathsText[0]->SetValue(_(tmp.c_str()));
-
-
-    //  The queue manager PATH is genuinely admin-only -- that text
-    //  field only exists in an admin invocation, which is why the
-    //  size() guard in getSettings() is there too.
-    if (p_adminFlag)
-    {
-        tmp = "";
-        p_config->findValue("qmgrpath",tmp);
-        p_miscPathsText[1]->SetValue((wxString)(tmp));
-    }
-
-    //  The QUEUES themselves load for everyone.  They used to be inside
-    //  the admin branch above, which was harmless while the whole tab
-    //  was hidden and became data loss the moment it was shown (#131):
-    //  the tab came up empty however many queues the machine had, and
-    //  saving then wrote that empty list back over them.
-    loadQueues(p_slctRgstn->refname());
-    fillQueues();
-    showQueue();  // default to first if any exist
-
-
-    p_formClearButton->Enable(true);
-    p_machineChangeButton->Enable(true);
-    p_machineDeleteButton->Enable(true);
-
+    p_deleteButton->Enable(p_slctRgstn != NULL &&
+                           (p_adminFlag || p_loadedFrom == "yours"));
     p_inCtrlUpdate = false;
+
+    this->showSiteBanner();
+    this->refreshLocality();
+    this->syncDraft();
+    p_draft->markSaved();
+    this->updateDirty();
 }
 
 
-void WxMachineRegister::clearForm()
+void WxMachineRegister::showSiteBanner()
 {
+    if (fromSite())
+    {
+        //  The info bar does not wrap, so the line breaks are explicit.
+        string site = remoteClient() ? "server" : "site";
+        string what = remoteClient()
+            ? "'" + p_loadedName + "' is published by the ECCE server,\n"
+              "shared by everyone using it."
+            : "'" + p_loadedName + "' is a site machine, shared by everyone\n"
+              "using this installation.";
+        p_infoText->SetLabel(what + " Saving stores your own copy;\n"
+                             "deleting your copy brings the " + site +
+                             " one back.");
+        p_info->Show(true);
+        p_info->Layout();
+    }
+    else
+        p_info->Show(false);
+    this->growToFitSizer();
+}
+
+
+//  ---- queues --------------------------------------------------------------
+
+void WxMachineRegister::clearQueues()
+{
+    p_qmgrChoice->SetSelection(0);
+    p_allocAccts->SetValue(false);
+    p_queues.clear();
+    p_queueChoice->Clear();
+    p_qMinProcs->SetValue(1);
+    p_qMaxProcs->SetValue(1);
+    p_qMaxWall->SetValue(0);
+    p_qMaxMem->SetValue(0);
+    p_qMinScratch->SetValue(0);
+    p_queueName->Clear();
+    p_queueFormBase = queueFormRow();
+}
+
+
+void WxMachineRegister::loadQueues(const string& refName)
+{
+    p_queues.clear();
+    p_qmgrChoice->SetSelection(0);
+
+    RefMachine *mref = RefMachine::refLookup(refName);
+    vector<string*> *qnames = mref ? mref->queues() : NULL;
+    if (qnames == NULL)
+        return;
+
+    const QueueManager *qmgr = QueueManager::lookup(refName);
+    if (qmgr == NULL)
+        return;
+
+    p_qmgrChoice->SetStringSelection((wxString)(qmgr->queueMgrName()));
+    for (size_t idx = 0; idx < qnames->size(); idx++)
+    {
+        const Queue *queue = qmgr->queue(*(*qnames)[idx]);
+        MCD::QueueRow r;
+        r.name = *(*qnames)[idx];
+        r.minProcs = queue->minProcessors();
+        r.maxProcs = queue->maxProcessors();
+        r.maxWall = queue->runLimit();
+        r.maxMem = queue->memLimit();
+        r.minScratch = queue->scratchLimit();
+        p_queues.push_back(r);
+    }
+}
+
+
+void WxMachineRegister::fillQueues()
+{
+    p_queueChoice->Clear();
+    for (size_t idx = 0; idx < p_queues.size(); idx++)
+        p_queueChoice->Append((wxString)(p_queues[idx].name));
+    if (!p_queues.empty())
+        p_queueChoice->SetSelection(0);
+}
+
+
+//  Show the values of the named queue, or the first.
+void WxMachineRegister::showQueue(const string& name)
+{
+    bool was = p_inCtrlUpdate;
     p_inCtrlUpdate = true;
 
-    p_machineRefNameText->Clear();
-    p_machineFullNameText->Clear();
-    p_machineVendorText->Clear();
-    p_machineModelText->Clear();
-    p_machineProcessorText->Clear();
-
-    int i, n;
-
-    n = p_codePaths.size();
-
-    for (i = 0; i < n; i++)
+    p_queueName->SetValue("");
+    if (!p_queues.empty())
     {
-        p_codePaths[i]->Clear();
+        size_t pos = 0;
+        while (pos < p_queues.size() && p_queues[pos].name != name)
+            pos++;
+        if (pos >= p_queues.size())
+            pos = 0;
+        const MCD::QueueRow& r = p_queues[pos];
+
+        p_queueName->SetValue(r.name);
+        p_qMinProcs->SetValue(r.minProcs != (unsigned)INT_MAX && r.minProcs != 0
+                              ? r.minProcs : 1);
+        p_qMaxProcs->SetValue(r.maxProcs != (unsigned)INT_MAX && r.maxProcs != 0
+                              ? r.maxProcs : 1);
+        p_qMaxWall->SetValue(r.maxWall != (unsigned)INT_MAX
+                             ? r.maxWall / 60.0 : 0.0);
+        p_qMaxMem->SetValue(r.maxMem != (unsigned)INT_MAX
+                            ? MemoryUnits::mbToGB(r.maxMem) : 0);
+        p_qMinScratch->SetValue(r.minScratch != (unsigned)INT_MAX
+                                ? MemoryUnits::mbToGB(r.minScratch) : 0);
+        p_queueChoice->SetSelection((int)pos);
+    }
+    else
+    {
+        p_qmgrChoice->SetSelection(0);
+        p_qMinProcs->SetValue(1);
+        p_qMaxProcs->SetValue(1);
+        p_qMaxWall->SetValue(0);
+        p_qMaxMem->SetValue(0);
+        p_qMinScratch->SetValue(0);
+    }
+    p_queueFormBase = queueFormRow();
+    p_inCtrlUpdate = was;
+}
+
+
+MCD::QueueRow WxMachineRegister::queueFormRow() const
+{
+    MCD::QueueRow r;
+    r.name = strip((string)p_queueName->GetValue());
+    r.minProcs = p_qMinProcs->GetValue();
+    r.maxProcs = p_qMaxProcs->GetValue();
+    r.maxWall = (unsigned)(p_qMaxWall->GetValue() * 60.0 + 0.5);
+    r.maxMem = MemoryUnits::gbToMB(p_qMaxMem->GetValue());
+    r.minScratch = MemoryUnits::gbToMB(p_qMinScratch->GetValue());
+    return r;
+}
+
+
+//  An edit in the queue form that Add/Update Queue has not applied yet
+//  counts as unsaved.
+bool WxMachineRegister::queueFormDiffers() const
+{
+    return !(queueFormRow() == p_queueFormBase);
+}
+
+
+void WxMachineRegister::updateQueueButtons()
+{
+    string name = strip((string)p_queueName->GetValue());
+    bool exists = false;
+    for (size_t i = 0; i < p_queues.size(); i++)
+        if (p_queues[i].name == name)
+            exists = true;
+
+    wxString label = exists ? "Update Queue" : "Add Queue";
+    if (p_queueApply->GetLabel() != label)
+        p_queueApply->SetLabel(label);
+    p_queueApply->Enable(!name.empty() && (!exists || queueFormDiffers()));
+    p_queueRemoveButton->Enable(exists);
+    p_queueClearButton->Enable(!p_queues.empty());
+}
+
+
+bool WxMachineRegister::applyQueueForm()
+{
+    MCD::QueueRow r = queueFormRow();
+
+    if (r.name.empty())
+    {
+        displayMessage("You must supply a queue name.");
+        return false;
+    }
+    if (!std::regex_match(r.name, std::regex("^[A-Za-z0-9_.-]+$")))
+    {
+        //  <machine>.Q separates queue names with spaces and keys with
+        //  '|', so a name cannot hold either (#131); processmachine
+        //  refuses the same set.
+        displayMessage("Queue name '" + r.name + "' is not valid.\n"
+            "Queue names may contain only letters, digits, '_', '.' and '-'.");
+        return false;
     }
 
-    n = p_miscPathsText.size();
-
-    for (i = 0; i < n; i++)
+    size_t it = 0;
+    while (it < p_queues.size() && p_queues[it].name != r.name)
+        it++;
+    if (it < p_queues.size())
+        p_queues[it] = r;
+    else
     {
-        p_miscPathsText[i]->Clear();
+        p_queues.push_back(r);
+        p_queueChoice->Append((wxString)r.name);
     }
-
-    n = p_remshellsCheckboxes.size();
-
-    for (i = 0; i < n; i++)
-    {
-        p_remshellsCheckboxes[i]->SetValue(false);
-    }
-
-    p_machineNumProcsSpin->SetValue(1);
-    p_machineNumNodesSpin->SetValue(1);
-
-    this->clearQueues();
-
-    p_machineChangeButton->Enable(false);
-    p_machineDeleteButton->Enable(false);
-    p_formClearButton->Enable(false);
-
-    p_inCtrlUpdate = false;
+    p_queueChoice->SetStringSelection((wxString)r.name);
+    p_queueFormBase = queueFormRow();
+    this->updateDirty();
+    return true;
 }
 
 
 void WxMachineRegister::removeQueue()
 {
-    int k;
-
-    string name = (string)(p_queueNameText->GetValue());
-    STLUtil::stripLeadingAndTrailingWhiteSpace(name);
-
+    string name = strip((string)p_queueName->GetValue());
     if (name.empty())
     {
         displayMessage("You must supply a queue name.");
+        return;
     }
-    else
+    for (size_t pos = 0; pos < p_queues.size(); pos++)
     {
-        k = p_queuesChoicebox->GetSelection();
-        string current = (string)(p_queuesChoicebox->GetString(k));
-
-        int pos;
-        for (pos=0; pos<p_qnames.size() && p_qnames[pos]!=name; pos++);
-
-        if (pos < p_qnames.size())
+        if (p_queues[pos].name == name)
         {
-            int it;
-
-            vector<string>::iterator sit = p_qnames.begin();
-            for (it=0; it<pos; it++, sit++);
-            if (it < p_qnames.size())
-            {
-                p_qnames.erase(sit);
-            }
-
-            vector<int>::iterator iit = p_minProcs.begin();
-            for (it=0; it<pos; it++, iit++);
-            if (it < p_minProcs.size())
-            {
-                p_minProcs.erase(iit);
-            }
-
-            iit = p_maxProcs.begin();
-            for (it=0; it<pos; it++, iit++);
-            if (it < p_maxProcs.size())
-            {
-                p_maxProcs.erase(iit);
-            }
-
-            iit = p_maxWall.begin();
-            for (it=0; it<pos; it++, iit++);
-            if (it < p_maxWall.size())
-            {
-                p_maxWall.erase(iit);
-            }
-
-            iit = p_maxMem.begin();
-            for (it=0; it<pos; it++, iit++);
-            if (it < p_maxMem.size())
-            {
-                p_maxMem.erase(iit);
-            }
-
-            iit = p_minScratch.begin();
-            for (it=0; it<pos; it++, iit++);
-            if (it < p_minScratch.size())
-            {
-                p_minScratch.erase(iit);
-            }
-
-            p_queuesChoicebox->Delete(k);
-        }
-
-        if (current == name)
-        {
-            showQueue();  // first
+            p_queues.erase(p_queues.begin() + pos);
+            break;
         }
     }
+    this->fillQueues();
+    this->showQueue();
+    this->updateDirty();
 }
 
 
-void WxMachineRegister::clearQueues()
+void WxMachineRegister::onQueueChoice(wxCommandEvent& event)
 {
-    p_queueManagerChoicebox->SetSelection(0);
-    p_queueAllctnAcctsCheckbox->SetValue(false);
-
-    p_qnames.clear();
-    p_minProcs.clear();
-    p_maxProcs.clear();
-    p_maxWall.clear();
-    p_maxMem.clear();
-    p_minScratch.clear();
-
-    p_queuesChoicebox->Clear();
-    p_queueMinProcsSpin->SetValue(1);
-    p_queueMaxProcsSpin->SetValue(1);
-    p_queueMaxWallSpin->SetValue(0);
-    p_queueMaxMemorySpin->SetValue(0);
-    p_queueMinScratchSpin->SetValue(0);
-    p_queueNameText->Clear();
+    if (event.GetString() != p_queueName->GetValue())
+        this->showQueue((string)(event.GetString()));
+    this->updateDirty();
+    event.Skip(false);
 }
 
 
-void WxMachineRegister::redo(string refName)
+void WxMachineRegister::onQueueApply(wxCommandEvent&)
 {
-    this->reset();
-    this->loadMachinesList();
-    this->selectMachine(refName);
+    this->applyQueueForm();
 }
 
 
-void WxMachineRegister::reset()
+void WxMachineRegister::onQueueRemove(wxCommandEvent&)
 {
-    RefMachine::finalize();
-
-    //  Unconditional, for the same reason.  QueueManager caches its
-    //  whole extent on first use, so without dropping it here a queue
-    //  just written to disk is not visible again until the application
-    //  is restarted.  That only ever mattered in admin mode before.
-    QueueManager::finalize();
-
-    p_machinesList->Clear();
+    this->removeQueue();
 }
 
 
-vector<string> WxMachineRegister::getConfigFileNames(string refName) const
+void WxMachineRegister::onQueueClear(wxCommandEvent&)
 {
-    vector<string> ret;
-    string base;
+    this->clearQueues();
+    this->updateDirty();
+}
 
-    if (p_adminFlag)
+
+//  ---- dirty tracking ------------------------------------------------------
+
+void WxMachineRegister::syncKey(MCD* draft, const string& key, const string& text)
+{
+    string t = strip(text);
+    const MCD::KeyState* ks = draft->state(key);
+    if (ks == NULL)
+        return;
+
+    string cur;
+    bool has = draft->effective(key, cur);
+    if ((has && t == cur) || (!has && t.empty()))
+        return;
+
+    bool hasInh = !ks->inherited.empty() && ks->inherited.back().hasValue;
+    string inh = hasInh ? ks->inherited.back().value : string();
+    if (t.empty())
     {
-        base = Ecce::ecceHome();
-        base += "/siteconfig";
+        //  An emptied field overrides an inherited value with "no value".
+        if (hasInh)
+            draft->clear(key);
+        else
+            draft->useInherited(key);
     }
+    else if (hasInh && t == inh)
+        draft->useInherited(key);
     else
-    {
-        base = Ecce::realUserPrefPath();
-    }
-
-    string siteBase = Ecce::ecceHome();
-    siteBase += "/siteconfig";
-
-
-    string path;
-    SFile teste;
-
-    // The main site default file
-    path = base + "/submit.site";
-    teste = path;
-
-    if (teste.exists())
-    {
-        ret.push_back(path);
-    }
-    else if (p_prefillFromSite)
-    {
-        // Not overridden by the user -- fall back to the site copy so a
-        // site machine's settings still pre-fill the form (#104).
-        path = siteBase + "/submit.site";
-        teste = path;
-
-        if (teste.exists())
-            ret.push_back(path);
-    }
-
-    // This is like CONFIG.columbo
-    path = base + "/CONFIG." + refName;
-    teste = path;
-
-    if (teste.exists())
-    {
-        ret.push_back(path);
-    }
-    else if (p_prefillFromSite)
-    {
-        // A site machine (never a user machine) has no CONFIG.<name> in
-        // the user's own prefs -- read the site one instead (#104).
-        path = siteBase + "/CONFIG." + refName;
-        teste = path;
-
-        if (teste.exists())
-            ret.push_back(path);
-    }
-
-    return ret;
+        draft->setValue(key, t);
 }
 
-//*****  2005.0523
-//  Implements functionality of ConfigSvrs::checkForm(void)
+
+//  Push the form into the draft; what differs from the baseline is "unsaved".
+void WxMachineRegister::syncDraft()
+{
+    if (p_draft == NULL)
+        return;
+
+    MCD::Content& c = p_draft->content();
+    c.line.name = strip((string)p_refName->GetValue());
+    c.line.host = strip((string)p_fullName->GetValue());
+    c.line.vendor = strip((string)p_vendor->GetValue());
+    c.line.model = strip((string)p_model->GetValue());
+    c.line.proc = strip((string)p_proc->GetValue());
+    c.line.procs = p_procs->GetValue();
+    c.line.nodes = p_nodes->GetValue();
+    c.line.allocationAccount = p_allocAccts->IsChecked();
+    c.qmgr = (string)p_qmgrChoice->GetStringSelection();
+    c.queues = p_queues;
+
+    syncKeys(p_draft);
+}
+
+
+//  The managed CONFIG keys: each code's path, perlPath and qmgrPath.
+void WxMachineRegister::syncKeys(MCD* draft)
+{
+    for (size_t i = 0; i < p_codePaths.size(); i++)
+        syncKey(draft, p_codeNames[i], (string)p_codePaths[i]->GetValue());
+    syncKey(draft, "perlPath", (string)p_perlPath->GetValue());
+    syncKey(draft, "qmgrPath", (string)p_qmgrPath->GetValue());
+}
+
+
+bool WxMachineRegister::isDirty()
+{
+    this->syncDraft();
+    return p_draft != NULL && (p_draft->isDirty() || queueFormDiffers());
+}
+
+
+bool WxMachineRegister::hasMinimalInput()
+{
+    return !strip((string)p_fullName->GetValue()).empty()
+        && !strip((string)p_refName->GetValue()).empty();
+}
+
+
+//  The files Save writes for the visible tab and machine.
+string WxMachineRegister::editedBase() const
+{
+    return p_adminFlag ? string(Ecce::ecceHome()) + "/siteconfig" : "~/.ECCE";
+}
+
+
+void WxMachineRegister::updateFooter()
+{
+    if (p_book == NULL || p_storeNote == NULL || p_connNote == NULL)
+        return;
+
+    string base = editedBase();
+    string name = strip((string)p_refName->GetValue());
+    if (name.empty())
+        name = "<name>";
+    string config = base + "/CONFIG." + name;
+
+    string files;
+    switch (p_book->GetSelection())
+    {
+        case 0: files = base + (p_adminFlag ? "/Machines" : "/MyMachines"); break;
+        case 4: files = base + "/Queues and " + base + "/" + name + ".Q"; break;
+        default: files = config; break;
+    }
+    wxString note = "Saved in " + files;
+    if (p_storeNote->GetLabel() != note)
+        p_storeNote->SetLabel(note);
+
+    wxString conn = "Not editable here yet. The remote shell (shell), the "
+        "file to source (sourceFile) and the login host (frontendMachine, "
+        "frontendBypass) are set in " + config + ".";
+    if (p_connNote->GetLabel() != conn)
+        { p_connNote->SetLabel(conn); p_connNote->Wrap(560); }
+
+    string qm = (string)p_qmgrChoice->GetStringSelection();
+    string lq = lowerOf(qm);
+    wxString job = "Not editable here yet. The commands run before and after "
+        "the code (setup, wrapup)";
+    if (lq != "none" && lq != "shell" && !lq.empty())
+        job += " and the " + qm + " header (" + lq + ")";
+    job += " are set in " + config + ".";
+    if (p_jobNote->GetLabel() != job)
+        { p_jobNote->SetLabel(job); p_jobNote->Wrap(560); }
+
+    string a = "sbatch", b = "squeue", dir = "/opt/slurm/bin";
+    if (lq == "pbs" || lq == "sge") { a = "qsub"; b = "qstat"; dir = "/opt/pbs/bin"; }
+    else if (lq == "lsf") { a = "bsub"; b = "bjobs"; dir = "/opt/lsf/bin"; }
+    else if (lq == "moab") { a = "msub"; b = "showq"; dir = "/opt/moab/bin"; }
+    else if (lq == "htcondor") { a = "condor_submit"; b = "condor_q"; dir = "/opt/condor/bin"; }
+    p_qmgrPath->SetHint("where " + a + ", " + b + " are, e.g. " + dir +
+                        "; empty if on PATH");
+}
+
+
+void WxMachineRegister::updateDirty()
+{
+    this->updateFooter();
+    if (p_inCtrlUpdate || p_draft == NULL || p_closing)
+        return;
+
+    bool dirty = this->isDirty();
+    p_saveButton->Enable(dirty && hasMinimalInput());
+    wxString title = dirty ? wxString("*") + TITLE : wxString(TITLE);
+    if ((string)this->GetTitle() != (string)title)
+        this->SetTitle(title);
+    this->updateQueueButtons();
+}
+
+
+void WxMachineRegister::onFieldChanged(wxCommandEvent& event)
+{
+    this->updateDirty();
+    event.Skip();
+}
+
+
+void WxMachineRegister::onFullNameText(wxCommandEvent& event)
+{
+    string refName = (string)(p_fullName->GetValue());
+    size_t chpos = refName.find('.');
+
+    //  Don't cut an IP address at its first '.' -- 127.0.0.1 must stay
+    //  127.0.0.1, not become "127" (matches RunMgmt::registerLocalMachine).
+    bool isAddress = refName.find_first_not_of("0123456789.") == string::npos;
+
+    if (chpos != string::npos && !isAddress)
+        refName = refName.substr(0, chpos);
+
+    //  Follow the machine only while Name is empty or still the value
+    //  filled in here, so a name the user typed is never overwritten.
+    if (!p_inCtrlUpdate) {
+        string current = (string)(p_refName->GetValue());
+        if (current.empty() || current == p_autoRefName) {
+            p_autoRefName = refName;
+            p_refName->SetValue(refName);
+        }
+    }
+
+    this->refreshLocality();
+    event.Skip();
+}
+
+
+//  Save / discard / cancel.  Returns the dialog's id.
+int WxMachineRegister::confirmUnsaved(const string& discardLabel)
+{
+    string name = p_loadedName.empty() ? strip((string)p_refName->GetValue())
+                                       : p_loadedName;
+    string what = name.empty() ? "the new machine" : "'" + name + "'";
+    return this->ask("Unsaved Changes", "Save changes to " + what + "?",
+                     "Your changes are lost if you do not save them.",
+                     wxYES_NO|wxCANCEL|wxICON_QUESTION,
+                     "Save", discardLabel, "Cancel");
+}
+
+
+//  True when it is fine to replace what the form holds.
+bool WxMachineRegister::resolveUnsaved(const string& discardLabel)
+{
+    if (!this->isDirty())
+        return true;
+    int answer = this->confirmUnsaved(discardLabel);
+    if (answer == wxID_CANCEL)
+        return false;
+    if (answer == wxID_YES)
+        return this->save();
+    return true;
+}
+
+
+//  ---- buttons -------------------------------------------------------------
+
+void WxMachineRegister::onClose(wxCloseEvent& event)
+{
+    if (event.CanVeto() && !p_closing && !this->resolveUnsaved("Close without Saving"))
+    {
+        event.Veto();
+        return;
+    }
+
+    p_closing = true;
+    if (!p_scripted)
+    {
+        Preferences prefs("MachineRegister");
+        saveSettings(prefs);
+    }
+    this->Destroy();
+}
+
+
+void WxMachineRegister::onCloseButton(wxCommandEvent&)
+{
+    this->Close();
+}
+
+
+void WxMachineRegister::onSave(wxCommandEvent&)
+{
+    if (p_saveButton->IsEnabled())
+        this->save();
+}
+
+
+void WxMachineRegister::onNew(wxCommandEvent&)
+{
+    if (!this->resolveUnsaved("Discard Changes"))
+        return;
+    this->showNewMachine();
+}
+
+
+void WxMachineRegister::onDelete(wxCommandEvent&)
+{
+    this->deleteMachine();
+}
+
+
+void WxMachineRegister::onHelp(wxCommandEvent&)
+{
+    BrowserHelp help;
+    help.showPage(help.URL("ConfigSvrs"));
+}
+
+
+//  ---- saving --------------------------------------------------------------
+
 bool WxMachineRegister::verifyInput()
 {
-    bool result = true;
+    string refName = strip((string)p_refName->GetValue());
+    string fullName = strip((string)p_fullName->GetValue());
+    int k = p_qmgrChoice->GetSelection();
 
-    string refName = (string)(p_machineRefNameText->GetValue());
-    string fullName = (string)(p_machineFullNameText->GetValue());
-
-    STLUtil::stripLeadingAndTrailingWhiteSpace(refName);
-    STLUtil::stripLeadingAndTrailingWhiteSpace(fullName);
-
-    int k = p_queueManagerChoicebox->GetSelection();
-
-    if ((refName == "") || (fullName == ""))
+    if (refName.empty() || fullName.empty())
     {
-        result = false;
         displayMessage("Both Machine and Name must be specified.");
+        return false;
     }
-    else if (k == 0 && p_qnames.size() > 0)
+    if (refName.find_first_of("/\t\r\n") != string::npos)
     {
-        result = false;
+        //  The name is part of file names and a tab-separated line.
+        displayMessage("Name may not contain '/', tabs or line breaks.");
+        return false;
+    }
+    if (k == 0 && p_queues.size() > 0)
+    {
         displayMessage("Queues have been specified but not the Queue Manager that is used.\n"
             "Please set the Queue Manager or delete the queues.");
+        return false;
     }
-    else if (k > 0 && p_qnames.size() == 0)
+    if (k > 0 && p_queues.size() == 0)
     {
-        result = false;
         displayMessage("You have set a Queue Manager but no queues.\n"
             "Please specify one or more queues or set the Queue Manager to None.");
+        return false;
     }
-    else
+
+    //  Values land on one line of CONFIG.<machine>, and "-" there means
+    //  "no value".
+    vector<ewxTextCtrl*> texts = p_codePaths;
+    texts.push_back(p_perlPath);
+    texts.push_back(p_qmgrPath);
+    for (size_t i = 0; i < texts.size(); i++)
     {
-        bool found;
-        int i, n;
-
-        i = 0;
-        n = p_remshellsCheckboxes.size();
-        found = false;
-
-        while ((i < n) && !found)
+        string v = strip((string)texts[i]->GetValue());
+        if (v.find_first_of("\r\n") != string::npos || v == "-")
         {
-            found = p_remshellsCheckboxes[i]->IsChecked();
-            i++;
-        }
-
-        if (!found)
-        {
-            result = false;
-            displayMessage("Please specify at least one remote shell.");
+            displayMessage("A path may not contain a line break and may not "
+                           "be just \"-\".");
+            return false;
         }
     }
-
-    return result;
+    return true;
 }
 
 
-void WxMachineRegister::displayMessage(string mesg)
-{
-    ewxMessageDialog* dlgMesg = new ewxMessageDialog(this, (wxString)mesg, "Alert", wxOK);
-    dlgMesg->ShowModal();
-
-    delete dlgMesg;
-}
-
-
+//  The values processmachine writes into Machines/MyMachines and the queue
+//  files.  CONFIG.<machine> itself is written by ConfigFile (config=external).
 string WxMachineRegister::collectSettings() const
 {
-
-
-    int i, n;
+    typedef ProcessMachine PM;
     string ret;
     string tmp;
 
-    ret += "&siteconfig=" + StringConverter::toString(p_adminFlag);
-    ret += "&machine=" + p_machineFullNameText->GetValue();
-    ret += "&name=" + p_machineRefNameText->GetValue();
+    ret += PM::field("siteconfig", StringConverter::toString(p_adminFlag));
+    ret += PM::field("config", "external");
+    ret += PM::field("machine", strip((string)p_fullName->GetValue()));
+    ret += PM::field("name", strip((string)p_refName->GetValue()));
 
-    ret += "&vendor=";
-    tmp = p_machineVendorText->GetValue();
-    ret += (tmp == "") ? "Unspecified" : tmp;
+    tmp = p_vendor->GetValue();
+    ret += PM::field("vendor", (tmp == "") ? "Unspecified" : tmp);
+    tmp = p_model->GetValue();
+    ret += PM::field("model", (tmp == "") ? "Unspecified" : tmp);
+    tmp = p_proc->GetValue();
+    ret += PM::field("processor", (tmp == "") ? "Unspecified" : tmp);
 
-    ret += "&model=";
-    tmp = p_machineModelText->GetValue();
-    ret += (tmp == "") ? "Unspecified" : tmp;
+    ret += PM::field("procs", StringConverter::toString(p_procs->GetValue()));
+    ret += PM::field("nodes", StringConverter::toString(p_nodes->GetValue()));
+    ret += PM::field("ssh", "true");
 
-    ret += "&processor=";
-    tmp = p_machineProcessorText->GetValue();
-    ret += (tmp == "") ? "Unspecified" : tmp;
-
-    int nodes = p_machineNumNodesSpin->GetValue();
-    int procs = p_machineNumProcsSpin->GetValue();
-
-    ret += "&procs=" + StringConverter::toString(procs);
-    ret += "&nodes=" + StringConverter::toString(nodes);
-
-
-    ret += "&ssh=" + StringConverter::toString(p_remshellsCheckboxes[0]->IsChecked());
-
-    // Applications - first pass in list of all known codes.  Then one by
-    // one, pass in info for each code.
-    ret.append("&registeredcodes=");
-
-    for (i = 0; i < p_codePaths.size(); i++)
+    //  The list of all known codes, then each code's effective path: the
+    //  Machines line lists a code when it has one, inherited or yours.
+    tmp = "";
+    for (size_t i = 0; i < p_codePaths.size(); i++)
     {
         if (i > 0)
-        {
-            ret.append(",");
-        }
-
-        tmp = p_codeNames[i];
-
-
-        ret.append(tmp);
+            tmp += ",";
+        tmp += p_codeNames[i];
     }
+    ret += PM::field("registeredcodes", tmp);
+    for (size_t i = 0; i < p_codePaths.size(); i++)
+        ret += PM::field(p_codeNames[i], strip((string)p_codePaths[i]->GetValue()));
 
-    for (i = 0; i < p_codePaths.size(); i++)
+    ret += PM::field("AA", StringConverter::toString(p_allocAccts->IsChecked()));
+    ret += PM::field("qmgr", (string)p_qmgrChoice->GetStringSelection());
+
+    size_t n = p_queues.size();
+    ret += PM::field("numQueues", StringConverter::toString((int)n));
+    for (size_t i = 0; i < n; i++)
     {
-        ret.append("&");
-        ret.append(p_codeNames[i]);
-        ret.append("=");
-
-        tmp = p_codePaths[i]->GetValue();
-
-        if (tmp.find("EMSL default") != string::npos)
-        {
-            ret.append("EMSL");
-        }
-        else
-        {
-            ret.append(tmp);
-        }
-    }
-
-    // Other paths
-    ret += "&perlPath=";
-    tmp = (string)(p_miscPathsText[0]->GetValue());
-
-    if (tmp.find("EMSL default") != string::npos)
-    {
-        ret += "EMSL";
-    }
-    else
-    {
-        ret += tmp;
-    }
-
-    ret += "&qmgrPath=";
-
-    // Only an "-admin" invocation will have a queue manager path
-    if (p_miscPathsText.size() > 1)
-      ret += p_miscPathsText[1]->GetValue();
-
-    // Queue related stuff
-    ret += "&AA=" + StringConverter::toString(p_queueAllctnAcctsCheckbox->IsChecked());
-    ret += "&qmgr=";
-    ret += p_queueManagerChoicebox->GetStringSelection();
-
-    n = p_qnames.size();
-    ret += "&numQueues=" + StringConverter::toString(n);
-
-    for (i = 0; i < n; i++)
-    {
-        ret += "&q" + StringConverter::toString(i) + "=";
-        ret += "name|" + p_qnames[i] + ",";
-        ret += "minNodes|" + StringConverter::toString(p_minProcs[i]) + ",";
-        ret += "maxNodes|" + StringConverter::toString(p_maxProcs[i]) + ",";
-        ret += "maxCPU|" + StringConverter::toString(p_maxWall[i]) + ",";
-        ret += "maxMemory|" + StringConverter::toString(p_maxMem[i]) + ",";
-        ret += "minScratch|" + StringConverter::toString(p_minScratch[i]) + ",";
+        tmp = "name|" + p_queues[i].name + ",";
+        tmp += "minNodes|" + StringConverter::toString((int)p_queues[i].minProcs) + ",";
+        tmp += "maxNodes|" + StringConverter::toString((int)p_queues[i].maxProcs) + ",";
+        tmp += "maxCPU|" + StringConverter::toString((int)p_queues[i].maxWall) + ",";
+        tmp += "maxMemory|" + StringConverter::toString((int)p_queues[i].maxMem) + ",";
+        tmp += "minScratch|" + StringConverter::toString((int)p_queues[i].minScratch) + ",";
+        ret += PM::field("q" + StringConverter::toString((int)i), tmp);
     }
 
     return ret;
 }
 
 
-void WxMachineRegister::loadConfig(string refName)
+//  Apply the draft's edits to CONFIG.<name> in the edited layer.  A new
+//  name gets a draft of its own, since the loaded one belongs to the old.
+bool WxMachineRegister::writeConfig(const string& name, string& err)
 {
+    MCD* draft = p_draft;
+    MCD* own = NULL;
 
-
-    int i, numFiles;
-    int j, numChars;
-    string line, key, value;
-    char buf[MAXLINE];  // reading lines
-
-    p_config->clear();
-
-    vector<string> files = getConfigFileNames(refName);
-    numFiles = files.size();
-
-    for (i = 0; i < numFiles; i++)
+    if (name != p_loadedName)
     {
-        ifstream is(files[i].c_str());
-
-        while (!is.eof())
-        {
-            key = value = "";
-            is.getline(buf, MAXLINE ,'\n');
-            line = buf;
-            STLUtil::stripLeadingWhiteSpace(line);
-
-            if (!line.empty() && (line[0] != '#') && (line.find("//") != 0))
-            {
-                if (line.find(":") != string::npos)
-                {
-                    StringTokenizer tokens(line);
-                    key = tokens.next(":");
-                    value = tokens.next(": \t");
-                }
-                else if ((line.find("{") != string::npos) && (line.find("}") != string::npos))
-                {
-                    StringTokenizer tokens(line);
-                    key = tokens.next("{");
-                    STLUtil::stripLeadingAndTrailingWhiteSpace(key);
-                    value = tokens.next("{");
-                    numChars = value.length();
-
-                    for (j = 0; j < numChars; j++)
-                    {
-                        if (value[j] == '{' || value[j] == '}')
-                        {
-                            value[j] = ' ';
-                        }
-                    }
-                }
-                else if (line.find("{") != string::npos)
-                {
-                    StringTokenizer tokens(line);
-                    key = tokens.next("{ ");
-
-                    //  Two faults here, both silent.  The condition parsed
-                    //  as (!line.find("}")) != npos, which is always true, so
-                    //  this ran to end of file and swallowed the rest of the
-                    //  CONFIG; and line was never refreshed from buf, so what
-                    //  accumulated was the opening line repeated once per
-                    //  remaining line rather than the block's contents.
-                    while (is.getline(buf,MAXLINE,'\n'))
-                    {
-                        line = buf;
-                        if (line.find("}") != string::npos)
-                        {
-                            break;
-                        }
-                        value += line + "\n";
-                    }
-                }
-                else
-                {
-                    StringTokenizer tokens(line);
-                    key = tokens.next();
-                    value = tokens.next();
-                }
-
-                if (key != "")
-                {
-                    STLUtil::toLower(key);
-                    (*p_config)[key] = value;
-                }
-            }
-        }
-
-        is.close();
+        own = draft = newDraft(name);
+        syncKeys(draft);
     }
-}
 
-
-void WxMachineRegister::loadQueues(string refName)
-{
-    p_qnames.clear();
-    p_minProcs.clear();
-    p_maxProcs.clear();
-    p_maxWall.clear();
-    p_maxMem.clear();
-    p_minScratch.clear();
-
-    RefMachine *mref = RefMachine::refLookup(refName);
-    vector<string*> *qnames = mref->queues();
-
-    if (qnames != NULL)
-    {
-        const QueueManager *qmgr = QueueManager::lookup(refName);
-
-        if (qmgr)
-        {
-            p_queueManagerChoicebox->SetStringSelection((wxString)(qmgr->queueMgrName()));
-            vector<string*> *qnames = mref->queues();
-
-            for (int idx = 0; idx < qnames->size(); idx++)
-            {
-                const Queue *queue = qmgr->queue(*(*qnames)[idx]);
-
-                p_qnames.push_back(*(*qnames)[idx]);
-                p_minProcs.push_back(queue->minProcessors());
-                p_maxProcs.push_back(queue->maxProcessors());
-                p_maxWall.push_back(queue->runLimit());
-                p_maxMem.push_back(queue->memLimit());
-                p_minScratch.push_back(queue->scratchLimit());
-            }
-        }
-    }
-}
-
-
-//   Show queue values for queue of specified name.
-void WxMachineRegister::showQueue(string refName)
-{
-    //cout << "WxMachineRegister::showQueue(string)" << endl;
-
-    p_queueNameText->SetValue("");
-
-    if (p_qnames.size() > 0)
-    {
-        int pos;
-        for (pos=0; pos<p_qnames.size() && p_qnames[pos]!=refName; pos++);
-
-        if (pos >= p_qnames.size())
-        {
-            pos = 0;
-        }
-
-        p_queueNameText->SetValue(p_qnames[pos]);
-
-        if (p_minProcs[pos]!=INT_MAX && p_minProcs[pos]!=0)
-        {
-            p_queueMinProcsSpin->SetValue(p_minProcs[pos]);
-        }
-        else
-        {
-            p_queueMinProcsSpin->SetValue(1);
-        }
-
-        if (p_maxProcs[pos]!=INT_MAX && p_maxProcs[pos]!=0)
-        {
-            p_queueMaxProcsSpin->SetValue(p_maxProcs[pos]);
-        }
-        else
-        {
-            p_queueMaxProcsSpin->SetValue(1);
-        }
-
-        if (p_maxWall[pos] != INT_MAX)
-        {
-            p_queueMaxWallSpin->SetValue(p_maxWall[pos]);
-        }
-        else
-        {
-            p_queueMaxWallSpin->SetValue(0);
-        }
-
-        if (p_maxMem[pos] != INT_MAX)
-        {
-            p_queueMaxMemorySpin->SetValue(MemoryUnits::mbToGB(p_maxMem[pos]));
-        }
-        else
-        {
-            p_queueMaxMemorySpin->SetValue(0);
-        }
-
-        if (p_minScratch[pos] != INT_MAX)
-        {
-            p_queueMinScratchSpin->SetValue(p_minScratch[pos]);
-        }
-        else
-        {
-            p_queueMinScratchSpin->SetValue(0);
-        }
-    }
+    ConfigFile f;
+    f.setSiteFile(p_adminFlag);
+    bool ok = f.load(draft->editedFile());
+    if (!ok)
+        err = "Cannot read " + draft->editedFile();
     else
-    {
-        p_queueManagerChoicebox->SetSelection(0);
+        ok = draft->applyTo(f, err) && f.save(&err);
+    if (!ok)
+        err = "The machine was registered, but its settings file was not "
+              "written (" + draft->editedFile() + "): " + err;
 
-        p_queueNameText->SetValue("");
-        p_queueMinProcsSpin->SetValue(1);
-        p_queueMaxProcsSpin->SetValue(1);
-        p_queueMaxWallSpin->SetValue(0);
-        p_queueMaxMemorySpin->SetValue(0);
-        p_queueMinScratchSpin->SetValue(0);
-    }
+    delete own;
+    return ok;
 }
 
 
-int WxMachineRegister::removeMachine()
+bool WxMachineRegister::save()
 {
-    string settings = "type=delete";
-    settings += collectSettings();
-    string cmd = "echo \"";
-    cmd += settings + "\" | processmachine";
-    string s1 = "CONTENT_LENGTH=" + StringConverter::toString((int)(settings.length()));
-    char *s = strdup(s1.c_str());
-    putenv(s);
+    //  Q9: a queue form that was edited but not applied.
+    if (queueFormDiffers())
+    {
+        MCD::QueueRow r = queueFormRow();
+        if (r.name.empty())
+            this->showQueue();
+        else
+        {
+            int answer = this->ask("Queue Not Applied",
+                "Apply the queue form to '" + r.name + "' first?",
+                "The queue form has changes that were not added to the "
+                "queue list.", wxYES_NO|wxCANCEL|wxICON_QUESTION,
+                "Apply", "Discard", "Cancel");
+            if (answer == wxID_CANCEL)
+                return false;
+            if (answer == wxID_YES)
+            {
+                if (!this->applyQueueForm())
+                    return false;
+            }
+            else
+                this->showQueue((string)p_queueChoice->GetStringSelection());
+        }
+    }
 
-    int result = system(cmd.c_str());
-    result = result >> 8;
+    this->syncDraft();
+    if (!this->verifyInput())
+        return false;
 
-    return result;
+    string name = strip((string)p_refName->GetValue());
+    int status = ProcessMachine::run("type=accept" + collectSettings());
+    if (status != 0)
+    {
+        displayMessage("Unable to save changes to machine registration!");
+        return false;
+    }
+
+    string err;
+    if (!this->writeConfig(name, err))
+    {
+        displayMessage(err);
+        return false;
+    }
+
+    this->redo(name);
+    this->notifyUpdate();
+    return true;
 }
 
 
+//  Re-read everything from disk and show the machine again.
+void WxMachineRegister::redo(const string& refName)
+{
+    RefMachine::finalize();
+    //  QueueManager caches its whole extent on first use; without dropping
+    //  it a queue just written is not visible until the app restarts.
+    QueueManager::finalize();
+
+    this->loadMachinesList();
+    if (findRow(refName) >= 0)
+        this->loadMachine(refName);
+    else
+        this->showNewMachine();
+}
+
+
+//  What a delete removes, one line each, for the confirmation.
+string WxMachineRegister::removalList(const string& refName) const
+{
+    string base = editedDir(p_adminFlag);
+    string list = "  " + base + (p_adminFlag ? "/Machines" : "/MyMachines") +
+                  " (the line for '" + refName + "')\n";
+
+    SFile config(base + "/CONFIG." + refName);
+    if (config.exists())
+        list += "  " + base + "/CONFIG." + refName +
+                " (including any settings you wrote by hand)\n";
+    SFile qfile(base + "/" + refName + ".Q");
+    if (qfile.exists())
+        list += "  " + base + "/" + refName + ".Q\n";
+
+    std::ifstream queues((base + "/Queues").c_str());
+    string line;
+    bool listed = false;
+    while (std::getline(queues, line))
+        if (line.compare(0, refName.size() + 1, refName + "|") == 0)
+            listed = true;
+    if (listed)
+        list += "  " + base + "/Queues (the lines for '" + refName + "')\n";
+    return list;
+}
+
+
+bool WxMachineRegister::deleteMachine()
+{
+    if (p_loadedName.empty() || !p_deleteButton->IsEnabled())
+        return false;
+    string refName = p_loadedName;
+
+    string detail = "These are removed:\n" + removalList(refName);
+    vector<string> *siteNames = RefMachine::referenceNames(RefMachine::siteMachines);
+    bool shadowing = !p_adminFlag &&
+        std::find(siteNames->begin(), siteNames->end(), refName) != siteNames->end();
+    delete siteNames;
+    if (shadowing)
+        detail += "\nThe site version of '" + refName + "' is used again "
+                  "afterwards.";
+    detail += "\nThis cannot be undone.";
+
+    int answer = this->ask("Delete Machine",
+        "Delete the registration for '" + refName + "'?", detail,
+        wxYES_NO|wxICON_WARNING, "Delete", "Cancel", "");
+    if (answer != wxID_YES)
+        return false;
+
+    string settings = "type=delete";
+    settings += ProcessMachine::field("siteconfig",
+                                      StringConverter::toString(p_adminFlag));
+    settings += ProcessMachine::field("name", refName);
+    if (ProcessMachine::run(settings) != 0)
+    {
+        displayMessage("Unable to delete registered machine!");
+        return false;
+    }
+
+    this->redo(refName);
+    this->notifyUpdate();
+    return true;
+}
+
+
+//  ---- dialogs ---------------------------------------------------------------
+
+//  The hook answers prompts from a queue; without one a scripted run cancels,
+//  so a prompt nobody expected cannot hang a headless test.
+int WxMachineRegister::ask(const string& title, const string& message,
+                           const string& ext, long style, const string& yes,
+                           const string& no, const string& cancel)
+{
+    if (p_scripted)
+    {
+        fprintf(stderr, "[MACHREG] prompt: %s: %s\n", title.c_str(),
+                message.c_str());
+        p_lastMessage = title + ": " + message + " " + ext;
+        if (!p_answers.empty())
+        {
+            int a = p_answers.front();
+            p_answers.pop_front();
+            return a;
+        }
+        fprintf(stderr, "[MACHREG] FAIL unanswered prompt\n");
+        return wxID_CANCEL;
+    }
+
+    wxMessageDialog dlg(this, message, title, style);
+    if (!ext.empty())
+        dlg.SetExtendedMessage(ext);
+    if (style & wxCANCEL)
+        dlg.SetYesNoCancelLabels(wxString(yes), wxString(no), wxString(cancel));
+    else
+        dlg.SetYesNoLabels(wxString(yes), wxString(no));
+    return dlg.ShowModal();
+}
+
+
+void WxMachineRegister::displayMessage(const string& mesg)
+{
+    if (p_scripted)
+    {
+        fprintf(stderr, "[MACHREG] alert: %s\n", mesg.c_str());
+        p_lastMessage = mesg;
+        return;
+    }
+    wxMessageDialog dlg(this, mesg, "Machine Registration",
+                        wxOK|wxICON_INFORMATION);
+    dlg.ShowModal();
+}
+
+
+//  Tell the other apps that machine registration has been saved.
 void WxMachineRegister::notifyUpdate()
 {
-    // notify other apps that machine registration has been saved
+    if (p_scripted)
+        return;
+
     JMSPublisher *pub = new JMSPublisher("WxMachineRegister");
 
     JMSMessage *msg = pub->newMessage();
@@ -1712,48 +1830,4 @@ void WxMachineRegister::notifyUpdate()
 
     delete msg;
     delete pub;
-}
-
-
-void WxMachineRegister::fillQueues(void)
-{
-    p_queuesChoicebox->Clear();
-
-    if (p_qnames.size() > 0)
-    {
-        for (int idx = 0; idx < p_qnames.size(); idx++)
-        {
-            p_queuesChoicebox->Append((wxString)(p_qnames[idx]));
-        }
-
-        p_queuesChoicebox->SetSelection(0);
-    }
-}
-
-
-bool WxMachineRegister::confirmRemove(string refName)
-{
-    ewxMessageDialog* dlgMesg;
-    wxString prompt, title;
-    int style, result;
-
-    prompt = "Are you sure you want to delete the registration for \'" + refName + "\'?\n";
-    prompt += "This action cannot be undone.";
-    title = "Confirm Delete";
-    style = wxYES_NO | wxICON_QUESTION;
-
-    dlgMesg = new ewxMessageDialog(this, prompt, title, style);
-    result = dlgMesg->ShowModal();
-
-    return (result == wxID_YES);
-}
-
-
-bool WxMachineRegister::confirmExit()
-{
-    ewxMessageDialog dlg(this, "Do you really want to quit?",
-                         "Quit ECCE Machine Registration",
-                         wxOK|wxCANCEL|wxICON_QUESTION, wxDefaultPosition);
-
-    return (dlg.ShowModal() == wxID_OK);
 }

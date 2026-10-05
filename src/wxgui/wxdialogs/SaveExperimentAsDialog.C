@@ -76,8 +76,13 @@ bool SaveExperimentAsDialog::Create(wxWindow *parent)
 
   SetExtraStyle(wxWS_EX_VALIDATE_RECURSIVELY);
 
+  // Created with one placeholder item: wxGTK 3.2 sizes an empty combo by
+  // inserting a measuring item with gtk_combo_box_text_insert(), and a
+  // bitmap combo is no GtkComboBoxText (Gtk-CRITICAL).
+  wxString placeholder("XYZ (*.xyz)");
   p_bitmapCombo = new wxBitmapComboBox(this, ID_SAVE_AS_FILTER_CHOICE, "",
-          wxDefaultPosition, wxDefaultSize, 0, NULL, wxCB_READONLY);
+          wxDefaultPosition, wxDefaultSize, 1, &placeholder, wxCB_READONLY);
+  p_bitmapCombo->Clear();
 
   // HACK - (standalone) ebuilder sets this env var
   if (getenv("ECCE_NO_MESSAGING") == NULL) {

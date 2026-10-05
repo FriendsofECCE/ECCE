@@ -484,6 +484,11 @@ ecce_app(viewer-scenes tools/coin WX GL
   LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil X11::X11 jpeg freetype)
 set_target_properties(viewer-scenes PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
+# Renders .rgb files through VizRender and converts them (tests/look/imageconv.py).
+ecce_app(render-rgb tests/look/imageconv WX GL
+  LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil X11::X11 jpeg freetype)
+set_target_properties(render-rgb PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
 # Coin only: the EGL offscreen path with no wx and no display.
 if(ECCE_USE_COIN)
   add_executable(offscreen-check EXCLUDE_FROM_ALL tools/coin/offscreen/offscreen-check.C)
@@ -1294,10 +1299,9 @@ set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, mosq
 # out via --no-install-recommends.
 # openssh-client: RCommand drives ssh/scp/sftp for remote machines;
 # a purely local install never uses it.
-# imagemagick: optional viewer-snapshot export (ImageConverter.C).
 # www-browser: the Help menu (BrowserHelp.C).
 set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "nwchem, openssh-client")
-set(CPACK_DEBIAN_PACKAGE_SUGGESTS "imagemagick, www-browser")
+set(CPACK_DEBIAN_PACKAGE_SUGGESTS "www-browser")
 # RelWithDebInfo keeps -g everywhere (useful while porting - see the
 # CMAKE_BUILD_TYPE default above), which makes for a needlessly huge .deb;
 # strip debug symbols out of the packaged copies only, not the build tree.
@@ -1324,9 +1328,9 @@ set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 #  both package names are identical on Fedora/RHEL/Rocky.
 #
 #  nwchem is in Fedora but not in RHEL/Rocky without EPEL, so it stays a
-#  weak dependency there too, matching the Debian Recommends. ImageMagick
-#  and firefox match the Debian Suggests (ImageConverter.C's optional
-#  mogrify/convert export, and BrowserHelp.C's Help-menu fallback).
+#  weak dependency there too, matching the Debian Recommends.
+#  firefox matches the Debian Suggests (BrowserHelp.C's Help-menu
+#  fallback).
 # The Coin viewer needs EPEL 9 / Fedora Coin4 at runtime (rpmbuild would also
 # find it from the ELF, spelled out so the intent is visible).
 set(_coin_rpm "")
@@ -1340,7 +1344,7 @@ if(RPMBUILD_EXECUTABLE)
   set(CPACK_RPM_PACKAGE_GROUP "Applications/Engineering")
   set(CPACK_RPM_PACKAGE_URL "https://github.com/FriendsofECCE/ECCE")
   set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, python3-wxpython4, perl, xterm, mosquitto, apr-util${_coin_rpm}")
-  set(CPACK_RPM_PACKAGE_SUGGESTS "nwchem, openssh-clients, ImageMagick, firefox")
+  set(CPACK_RPM_PACKAGE_SUGGESTS "nwchem, openssh-clients, firefox")
   set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
   #  /opt/ecce is ours, but /opt itself is owned by filesystem(5).  Without
   #  this the package claims /opt and conflicts with it.
@@ -1447,8 +1451,8 @@ if(ECCE_SPLIT_PACKAGES)
   # confirmed live: without this, ecce-server
   # picked up "Recommends: nwchem" from CPACK_DEBIAN_PACKAGE_RECOMMENDS
   # above, which is wrong for a headless server box.
-  # CPACK_DEBIAN_PACKAGE_SUGGESTS ("imagemagick, www-browser" -- both
-  # client-only, ImageConverter.C's viewer export and the Help menu) leaks
+  # CPACK_DEBIAN_PACKAGE_SUGGESTS ("www-browser" --
+  # client-only, the Help menu) leaks
   # the same way if left unset: it showed up as a Suggests on ecce-server, found the same way as the Recommends
   # case above. Clear all three globals here so every component's
   # metadata is exactly what this block sets and nothing leaks in from
@@ -1490,7 +1494,7 @@ if(ECCE_SPLIT_PACKAGES)
   # deployment) has no use for a local data server or broker at all, so
   # this is Recommends, not Depends, matching the design brief.
   set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, mosquitto, nwchem, openssh-client")
-  set(CPACK_DEBIAN_CLIENT_PACKAGE_SUGGESTS "imagemagick, www-browser")
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_SUGGESTS "www-browser")
   # Lets dpkg upgrade a monolithic 8.x "ecce" straight into ecce-client:
   # without this, installing ecce-client while the old ecce package still
   # owns e.g. /opt/ecce/bin/organizer is a file-already-owned conflict,
@@ -1521,7 +1525,7 @@ if(ECCE_SPLIT_PACKAGES)
     set(CPACK_RPM_CLIENT_PACKAGE_REQUIRES
         "python3-wxpython4, perl, xterm, mosquitto, curl${_coin_rpm}")
     set(CPACK_RPM_CLIENT_PACKAGE_SUGGESTS
-        "ecce-server, nwchem, openssh-clients, ImageMagick, firefox")
+        "ecce-server, nwchem, openssh-clients, firefox")
     # RPM has no direct Breaks/Replaces pair; Obsoletes+Provides is the
     # idiomatic equivalent for "this package supersedes an older one
     # that owned the same paths", and Conflicts blocks the two from
@@ -1561,6 +1565,12 @@ include(CPack)
 # ---------------------------------------------------------------------------
 enable_testing()
 find_program(PYTHON3_EXECUTABLE NAMES python3)
+
+# tests/exceptions -- which exceptions print a "Throw Log" when thrown.
+add_executable(throwlog_test tests/exceptions/throwlog_test.C)
+target_link_libraries(throwlog_test PRIVATE ecceutil)
+add_test(NAME throwlog COMMAND throwlog_test)
+add_test(NAME throwlog-all COMMAND throwlog_test all)
 
 # tests/mqtt -- the messaging library against a private mosquitto on a Unix
 # socket; checks delivery, not just acknowledgement.  "auth" is the same on
@@ -1617,6 +1627,22 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/contrast.py)
 
+  # The offscreen renderer's .rgb output against ImageMagick and PIL (#231).
+  # Needs `ninja render-rgb`, Xvfb, convert and PIL; SKIPs without them.
+  add_test(NAME look_imageconv
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/imageconv.py
+                   ${CMAKE_BINARY_DIR}/render-rgb)
+  set_tests_properties(look_imageconv PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
+
+  # Thumbnail / Save As renders shade an ESP surface like the canvas.
+  # Needs `ninja viewer-scenes`, Xvfb and PIL; SKIPs without them.
+  add_test(NAME look_offscreen_shading
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/offscreen_shading.py
+                   ${CMAKE_BINARY_DIR}/viewer-scenes)
+  set_tests_properties(look_offscreen_shading PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
+
   # tests/guivalues -- memory sizes saved before the GB-everywhere change
   # (Megawords, Megabytes) are converted by GUIValues::load() before a
   # dialog or a generator reads them.  Needs g++ and libecceutil.a.
@@ -1646,6 +1672,20 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   # Generous: 20 apps x (window wait + settle), plus broker startup.
   set_tests_properties(apps PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
+  # Builder Add Structure from File on PDB/XYZ/CAR and on missing paths,
+  # through the installed builder's ECCE_TEST_IMPORT hook.
+  add_test(NAME apps_import
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/import_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_import PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # Organizer Import Calculation from Output File, ECCE_TEST_CALCIMPORT hook.
+  add_test(NAME apps_calcimport
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/calcimport_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_calcimport PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
 
   # tests/filedsi -- FileEDSI (file:// storage, no Apache, #216) against a
   # temp directory, linked from the static libraries of build-cmake.
@@ -1752,6 +1792,48 @@ if(PYTHON3_EXECUTABLE)
   target_link_libraries(launchjob PRIVATE
     eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
     eccetdat ecceutil ${XercesC_LIBRARIES})
+  # tests/queues/configdump: RefMachine::config() for config_test.py.
+  add_executable(configdump tests/queues/configdump.C)
+  target_link_libraries(configdump PRIVATE eccetdat ecceutil)
+  # tests/queues/configedit: ConfigFile, MachineConfigDraft and MiniJson.
+  add_executable(configedit tests/queues/configedit.C)
+  target_link_libraries(configedit PRIVATE eccetdat ecceutil)
+  # tests/queues/pmform: the GUI's processmachine form encoder.
+  add_executable(pmform tests/queues/pmform.C)
+  target_link_libraries(pmform PRIVATE ecceutil)
+  # tests/queues/pmrun: ProcessMachine::run against the real script.
+  add_executable(pmrun tests/queues/pmrun.C)
+  target_link_libraries(pmrun PRIVATE ecceutil)
+  add_test(NAME queues_pmrun
+           COMMAND pmrun ${CMAKE_CURRENT_SOURCE_DIR}/scripts/processmachine)
+  set_tests_properties(queues_pmrun PROPERTIES TIMEOUT 60)
+  # tests/fragreaders: PDB/XYZ/CAR import through FragUtil::load, as the
+  # Builder's Add Structure from File does.
+  add_executable(fragreaders tests/fragreaders/fragreaders.C)
+  target_link_libraries(fragreaders PRIVATE eccetdat ecceutil)
+  # tests/importcode: the code Import Calculation picks for an output file.
+  add_executable(importcode tests/importcode/importcode.C)
+  target_include_directories(importcode PRIVATE ${XercesC_INCLUDE_DIRS})
+  target_link_libraries(importcode PRIVATE
+    eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+    eccetdat ecceutil ${XercesC_LIBRARIES})
+  set(_pf ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/fixtures)
+  add_test(NAME importcode
+           COMMAND importcode -v
+                   ${_pf}/nwchem/h2o_opt_stdout.out=NWChem
+                   ${_pf}/gaussian-16/co_freq.log=Gaussian-16
+                   ${_pf}/orca/h2o_sym.out=ORCA
+                   ${_pf}/mopac/ch4_opt.out=-
+                   ${_pf}/gromacs/water_md.log=-
+                   ${_pf}/qe/h2o_gamma.pwout=-)
+  set_tests_properties(importcode PROPERTIES ENVIRONMENT
+    "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
+  add_test(NAME fragreaders
+           COMMAND fragreaders ${CMAKE_CURRENT_SOURCE_DIR}/tests/fragreaders/data)
+  file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/fragreaders-home)
+  set_tests_properties(fragreaders PROPERTIES ENVIRONMENT
+    "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
+
   add_test(NAME launch
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/run_tests.py
@@ -1811,6 +1893,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/filewait_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_filewait PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+  add_test(NAME launch_machines
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/machines_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_machines PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)
 
   # tests/teaching -- introductory chemistry teaching calculations run end
   # to end through Launch, with NWChem, and checked against known answers.
@@ -1842,6 +1930,35 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR} --suite local
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
   set_tests_properties(queues PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
+  # CONFIG precedence (C++ against gensub), processmachine's writer, and what
+  # a central server publishes to -remote clients; needs only perl and curl.
+  add_test(NAME queues_config
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/config_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
+  set_tests_properties(queues_config PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
+  add_test(NAME queues_configedit
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/configedit_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
+  set_tests_properties(queues_configedit PROPERTIES TIMEOUT 300
+                       SKIP_RETURN_CODE 77)
+  # Register Machines through its real window under Xvfb (test hook), user,
+  # -remote and -admin; SKIPs without Xvfb.
+  add_test(NAME machregister_gui
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister/gui_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister)
+  set_tests_properties(machregister_gui PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  add_test(NAME queues_publish
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/publish_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
+  set_tests_properties(queues_publish PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
   add_test(NAME queues_slurm
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/run_tests.py

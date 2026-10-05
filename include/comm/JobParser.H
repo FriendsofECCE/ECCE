@@ -39,6 +39,8 @@ class JobParser
 
       void setURL(const EcceURL& url);
 
+      static string importCode(const string& path, string& message);
+
       static bool importCalculation(const char* parseFile,
             TaskJob* task,
             const string& importName,

@@ -36,7 +36,8 @@ bool ImportCalculationDialog::Create(wxWindow *parent)
   }
 
   SetName("ImportCalculationDialog");
-  SetMessage("Load Chemical System into Current Context");
+  SetMessage("Add Structure from File");
+  SetTitle("Add Structure from File");
 
   return true;
 }

@@ -7,7 +7,7 @@
 #include <wx/tglbtn.h> // for EVT_TOGGLEBUTTON
 
 #include "util/Ecce.H"
-#include "util/ImageConverter.H"
+#include "wxviz/ImageConverter.H"
 #include "util/Event.H"
   using ecce::Event;
 #include "util/EventDispatcher.H"

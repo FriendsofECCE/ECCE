@@ -17,6 +17,8 @@
 //   launchjob props  <calcURL>                            one property per line
 //   launchjob restart <calcURL> <deckFile> <deckName>     "Reset for Restart", then
 //                                                         store the edited deck
+//   launchjob machines [code]                             the Launcher's machine list
+//                                                         for a code, one name per line
 //
 // Credentials arrive as an AuthCache pipe file named by -pipe <file>,
 // exactly as ecmd and eccejobmaster receive them.
@@ -33,6 +35,7 @@
 #include "dsm/CodeFactory.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/JCode.H"
+#include "dsm/MachinePreferences.H"
 #include "dsm/PropertyTask.H"
 #include "dsm/Resource.H"
 #include "dsm/ResourceDescriptor.H"
@@ -223,6 +226,13 @@ int main(int argc, char** argv)
   a.erase(a.begin());
   if (mode == "create") return doCreate(a);
   if (mode == "restart") return doRestart(a);
+  if (mode == "machines") {
+    vector<MachinePreferences*> items =
+        MachinePreferences::itemsForCode(a.empty() ? "" : a[0]);
+    for (size_t i = 0; i < items.size(); i++)
+      cout << items[i]->getRegisteredMachine()->refname() << endl;
+    return 0;
+  }
   if (mode == "killflag" && a.size() >= 1) {
     TaskJob* t = getTask(a[0]);
     if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }

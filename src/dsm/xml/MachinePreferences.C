@@ -529,6 +529,24 @@ int MachinePreferences::countItems()
 }
 
 
+vector<MachinePreferences *> MachinePreferences::itemsForCode(const string& code)
+{
+    vector<MachinePreferences *> result;
+    int n = MachinePreferences::countItems();
+
+    for (int i = 0; i < n; i++)
+    {
+        MachinePreferences *prefs = (*p_prefsElmts)[i];
+        RefMachine *rgstn = prefs->getRegisteredMachine();
+
+        if (rgstn != NULL && (code.empty() || rgstn->offersCode(code)))
+            result.push_back(prefs);
+    }
+
+    return result;
+}
+
+
 /**
  *  Obtain the MachinePreferences instance which corresponds to the supplied
  *  logical name.

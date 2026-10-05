@@ -100,6 +100,7 @@
   local ($CC);        # comment character(s)
   local ($ecceHome);  # since we use it often
   local (%config);    # stuff from config files
+  local (%history);   # per key: the layers that set or cleared it, in order
   local (@msgs);      # error messages
 
   # -m (memory) and -x (scratch space) USE a value -- handleOptions does
@@ -130,10 +131,23 @@
   local $logfile = "$runDir/ecce.submit.log";
   local $statusFile = "$runDir/.ecce.status";
 
+  # GENSUB_EXPLAIN=1: where each key's value came from, as JSON lines.  Runs
+  # the same readConfig as a real run, before the submit file is touched.
+  if ($ENV{'GENSUB_EXPLAIN'}) {
+    &readConfig();
+    &printExplain();
+    exit 0;
+  }
+
   open(SUBMIT,"> $submitFile") || die "Unable to open $submitFile for write";
   print SUBMIT &getHeader();
   &readConfig();
   ##&printConfig();
+  # Test hook (tests/queues/config_test.py): the merged key/value pairs.
+  if ($ENV{'GENSUB_DUMP_CONFIG'}) {
+    &printConfig();
+    exit 0;
+  }
 
   # HTCondor gives every job a private /tmp and /var/tmp (MOUNT_UNDER_SCRATCH),
   # so a run directory there does not exist for the job and it is held with
@@ -684,6 +698,7 @@ sub getVersion()
 #  key: value pairs like the old CONFIG.* files
 #  key  value pairs
 #  key {...}
+#   A value of "-" clears the key (it removes what an earlier file set).
 ##########################################################################
 sub readConfig() 
 {
@@ -707,24 +722,31 @@ sub readConfig()
            $value .= $_;
          }
         } else {
-          # one-liner - support ':' notation for old CONFIG* files
-          if (/:/) {
-            /^\s*(.*):\s*(.*)/;
-            $value = $2;
+          # one-liner: "key: value" (old CONFIG.* files) or "key value".
+          # A colon form needs the colon right after the first word, so
+          # "key value:with:colons" is a space form.
+          if (/^\s*([^\s:]+)\s*:\s*(.*)/) {
             $key = $1;
+            $value = $2;
+          } elsif (/^\s*(\S+)\s+(.*)/) {
+            $key = $1;
+            $value = $2;
           } else {
-            /^\s*(.*)\s*(.*)/;
-            $value = $2;
-            $key = $1;
+            $key = $_;
+            $value = "";
           }
-          $key =~ s/\s*$//;
         }
         $key =~ s/^\s*//;
         $key =~ s/\s*$//;
         $value =~ s/^\s*//;
         $value =~ s/\s*$//;
-        if ($value ne "") {
+        # "key: -" in a later file clears the key; it is never a value.
+        if ($value eq "-") {
+          delete $config{lc($key)};
+          push @{$::history{lc($key)}}, [$file, undef];
+        } elsif ($value ne "") {
           $config{lc($key)} = $value;
+          push @{$::history{lc($key)}}, [$file, $value];
         }
       }
       close CONFIG;
@@ -742,7 +764,48 @@ sub readConfig()
 sub printConfig()
 {
   foreach $key (sort keys %config) {
-    print "$key: $config{$key}\n";
+    ($v = $config{$key}) =~ s/\n/\\n/g;
+    print "$key: $v\n";
+  }
+}
+
+##########################################################################
+# Description
+#   Which layer a config file is: submit.site, vendor (CONFIG.VENDOR[.MODEL
+#   [.PROC]]), site (CONFIG.<host> in siteconfig) or user (~/.ECCE).
+##########################################################################
+sub sourceTag($)
+{
+  my ($f) = @_;
+  my $uh = $ENV{"ECCE_REALUSERHOME"};
+  return "user" if ($uh ne "" && index($f, "$uh/.ECCE/") == 0);
+  return "submit.site" if ($f =~ m{/submit\.site$});
+  return "site" if ($f =~ m{/CONFIG\.\Q$host\E$});
+  return "vendor";
+}
+
+##########################################################################
+# Description
+#   One JSON object per key that any layer set or cleared.  "value" is null
+#   and "source" is "cleared" when the last layer was a "key: -"; "overridden"
+#   lists the earlier layers (value null = that layer cleared).  Keys in no
+#   layer are absent: the built-in default applies.
+##########################################################################
+sub printExplain()
+{
+  require JSON::PP;
+  my $json = JSON::PP->new->canonical->ascii;
+  foreach my $key (sort keys %::history) {
+    my @h = @{$::history{$key}};
+    my $last = pop @h;
+    my $cleared = !defined($last->[1]);
+    my %o = (key => $key,
+             value => $cleared ? undef : $last->[1],
+             source => $cleared ? "cleared" : &sourceTag($last->[0]),
+             file => $last->[0],
+             overridden => [map { {source => &sourceTag($_->[0]),
+                                   file => $_->[0], value => $_->[1]} } @h]);
+    print $json->encode(\%o), "\n";
   }
 }
 

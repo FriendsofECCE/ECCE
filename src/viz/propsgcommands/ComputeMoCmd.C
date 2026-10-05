@@ -78,6 +78,11 @@
 #include "viz/SGFragment.H"
 #include "viz/SGContainer.H"
 
+// ESP progress and diagnostics, only with ECCE_ESP_DEBUG set; warnings
+// (a declined or fallen-back potential) print regardless.
+static bool espDebug() { static const bool on = getenv("ECCE_ESP_DEBUG") != 0; return on; }
+#define ESP_LOG if (!espDebug()) {} else cerr
+
 //
 // Last remaining macro 
 //
@@ -1009,7 +1014,7 @@ bool ComputeMoCmd::execute()
           //  flattened basis is checked against.
           if (wantEsp) {
             bool haveEsp = false;
-            cerr << "ESP: field type '" << fieldType << "', "
+            ESP_LOG << "ESP: field type '" << fieldType << "', "
                  << (wantEspCharges ? "point-charge" : "canonical")
                  << " path, grid " << gridRes << " points" << endl;
 
@@ -1018,7 +1023,8 @@ bool ComputeMoCmd::execute()
               const bool built = buildEspBasis(sgfrag, gbsConfig, code,
                                                angfunc, maxShell,
                                                length_shell, espBasis);
-              cerr << "ESP: basis walk " << (built ? "ok" : "FAILED")
+              if (!built || espDebug())
+                cerr << "ESP: basis walk " << (built ? "ok" : "FAILED")
                    << ", " << espBasis.size() << " functions" << endl;
               if (built) {
                 interrupted = !computeEspExact(grid, atoms, espBasis,
@@ -1302,7 +1308,7 @@ static void scaleEspToSurface(SingleGrid *grid, const float *density,
 
   grid->colorFieldMin(-extreme);
   grid->colorFieldMax(extreme);
-  cerr << "ESP: scaled to the surface shell (" << shell.size()
+  ESP_LOG << "ESP: scaled to the surface shell (" << shell.size()
        << " points), range +/- " << extreme << " Hartree/e" << endl;
 }
 
@@ -1329,7 +1335,7 @@ static void applyEspRangeOverride(SingleGrid *grid)
   }
   grid->colorFieldMin(-range);
   grid->colorFieldMax(range);
-  cerr << "ESP: colour range overridden to +/- " << range
+  ESP_LOG << "ESP: colour range overridden to +/- " << range
        << " Hartree/e by ECCE_ESP_RANGE" << endl;
 }
 
@@ -1476,7 +1482,7 @@ bool ComputeMoCmd::computeEsp(SingleGrid *grid, vector<TAtm*> *atoms,
          << endl;
     return true;
   }
-  cerr << "ESP: coloured from " << source << "; range "
+  ESP_LOG << "ESP: coloured from " << source << "; range "
        << grid->colorFieldMin() << " to " << grid->colorFieldMax()
        << " Hartree/e" << endl;
   return true;
@@ -1616,7 +1622,7 @@ bool ComputeMoCmd::computeEspExact(SingleGrid *grid, vector<TAtm*> *atoms,
 
   EspField::Pairs pairs;
   EspField::selectPairs(basis, P, 1.0e-8, pairs);
-  cerr << "ESP: " << nbas << " basis functions, " << pairs.size()
+  ESP_LOG << "ESP: " << nbas << " basis functions, " << pairs.size()
        << " significant pairs" << endl;
   if (pairs.size() == 0) {
     cerr << "ESP: no significant density matrix pairs; leaving it "
@@ -1631,7 +1637,7 @@ bool ComputeMoCmd::computeEspExact(SingleGrid *grid, vector<TAtm*> *atoms,
     for (unsigned long a = 0; a < atoms->size(); a++) {
       if ((*atoms)[a] != 0) nuclearCharge += (*atoms)[a]->atomicNumber();
     }
-    cerr << "ESP: trace(P S) = " << electrons << " electrons against "
+    ESP_LOG << "ESP: trace(P S) = " << electrons << " electrons against "
          << nuclearCharge << " nuclear charge (net "
          << (nuclearCharge - electrons) << ")" << endl;
 
@@ -1641,7 +1647,7 @@ bool ComputeMoCmd::computeEspExact(SingleGrid *grid, vector<TAtm*> *atoms,
     //  contraction's, or the odd-normalisation factor's.  Reported per
     //  total angular momentum, because that is what the three differ
     //  by; a per-function list of 58 numbers is unreadable.
-    {
+    if (espDebug()) {
       double normMin[8], normMax[8], normSum[8], popSum[8];
       int count[8];
       for (int l = 0; l < 8; l++) {
@@ -1723,7 +1729,8 @@ bool ComputeMoCmd::computeEspExact(SingleGrid *grid, vector<TAtm*> *atoms,
       if (error < 1.0e-3) agreed++;
     }
 
-    cerr << "ESP: rebuilt density agrees with the computed one at "
+    if (agreed < tested || espDebug())
+      cerr << "ESP: rebuilt density agrees with the computed one at "
          << agreed << " of " << tested << " sampled points" << endl;
     if (tested > 0 && agreed < tested) {
       //  Not an assertion: a basis this cannot represent is a reason to
@@ -1763,7 +1770,7 @@ bool ComputeMoCmd::computeEspExact(SingleGrid *grid, vector<TAtm*> *atoms,
     nuclei[a].charge = atom->atomicNumber();
   }
 
-  cerr << "ESP: " << nuclei.size() << " nuclei, allocating "
+  ESP_LOG << "ESP: " << nuclei.size() << " nuclei, allocating "
        << gridRes << " points" << endl;
 
   float *esp = new float[gridRes];
@@ -1774,7 +1781,7 @@ bool ComputeMoCmd::computeEspExact(SingleGrid *grid, vector<TAtm*> *atoms,
   //  recursion per merged shell-pair term (see EspField::prepare).
   EspField::Prepared prepared;
   EspField::prepare(basis, pairs, prepared);
-  cerr << "ESP: " << prepared.size() << " Hermite terms from "
+  ESP_LOG << "ESP: " << prepared.size() << " Hermite terms from "
        << pairs.size() << " orbital pairs" << endl;
 
   //  Planes are independent, so they are dealt out to worker threads.
@@ -1828,7 +1835,7 @@ bool ComputeMoCmd::computeEspExact(SingleGrid *grid, vector<TAtm*> *atoms,
     }
   };
 
-  cerr << "ESP: " << nThreads << " threads" << endl;
+  ESP_LOG << "ESP: " << nThreads << " threads" << endl;
   bool wasInterrupted = false;
   std::vector<std::thread> workers;
   try {
@@ -1857,7 +1864,7 @@ bool ComputeMoCmd::computeEspExact(SingleGrid *grid, vector<TAtm*> *atoms,
 
   if (wasInterrupted) {
     delete [] esp;
-    cerr << "ESP: interrupted after " << donePlanes.load() << " planes"
+    ESP_LOG << "ESP: interrupted after " << donePlanes.load() << " planes"
          << endl;
     return false;
   }
@@ -1871,7 +1878,7 @@ bool ComputeMoCmd::computeEspExact(SingleGrid *grid, vector<TAtm*> *atoms,
   grid->findColorMinMax();
   scaleEspToSurface(grid, densityField, gridRes);
   applyEspRangeOverride(grid);
-  cerr << "ESP: potential computed, range " << grid->colorFieldMin()
+  ESP_LOG << "ESP: potential computed, range " << grid->colorFieldMin()
        << " to " << grid->colorFieldMax() << " Hartree/e" << endl;
   return true;
 }

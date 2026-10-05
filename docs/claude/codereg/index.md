@@ -122,3 +122,11 @@ dialog showing the deck with the offending lines marked.
 ### Memory fields: the #77 unit-label fix
 
 - [Live-verified and closed 2026-09-22](live-verified-and-closed-2026-09-22.md)
+
+### Machine configuration (CONFIG files)
+
+- [`CONFIG.<machine>` is the site file, then the user file, merged per key (C++ and gensub alike)](config-machine-is-site-then-user-per-key.md)
+- [`GENSUB_EXPLAIN=1 gensub` prints each CONFIG key's effective value and where it came from](gensub-explain-config-provenance.md)
+- [`ConfigFile` reads and writes `CONFIG.<m>`; `MachineConfigDraft` is what Register Machines edits](configfile-writer-and-draft.md)
+- [Register Machines is a tabbed frame over a draft; `ECCE_MACHREG_SCRIPT` drives the real window](register-machines-frame-and-test-hook.md)
+- [The Launcher lists a machine for a code when its Machines line lists the code or CONFIG gives it a path](launcher-machine-list-per-code.md)

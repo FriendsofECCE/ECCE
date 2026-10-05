@@ -19,7 +19,7 @@
 #include "dsm/ChemistryTask.H"
 #include "dsm/Resource.H"
 
-#include "util/ImageConverter.H"
+#include "wxviz/ImageConverter.H"
 #include "util/TempStorage.H"
 
 #include "viz/AtomLabelsCmd.H"

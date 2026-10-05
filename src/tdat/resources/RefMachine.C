@@ -20,6 +20,7 @@
 
 #include <algorithm>
 using std::find;
+#include <regex>
 
     
 #include "util/Ecce.H"
@@ -31,6 +32,7 @@ using std::find;
 #include "util/StringTokenizer.H"
 #include "util/StringConverter.H"
 
+#include "tdat/ConfigFile.H"
 #include "tdat/RefMachine.H"
 #include "tdat/QueueMgr.H"
 #include "tdat/Queue.H"
@@ -183,6 +185,31 @@ string RefMachine::codesString(void) const
 { return p_codes; }
 
 
+map<string,string> RefMachine::config(const string& refname)
+{
+  map<string,string> merged;
+  if (refname.empty())
+    return merged;
+
+  ConfigFile::mergeFile(string(Ecce::ecceHome()) + "/siteconfig/CONFIG." + refname,
+                  merged);
+  ConfigFile::mergeFile(string(Ecce::realUserPrefPath()) + "CONFIG." + refname,
+                  merged);
+  return merged;
+}
+
+static bool findConfig(const map<string,string>& cfg, const char* key,
+                       string& value)
+{
+  string lkey;
+  StringConverter::toLower(key, lkey);
+  map<string,string>::const_iterator it = cfg.find(lkey);
+  if (it == cfg.end())
+    return false;
+  value = it->second;
+  return true;
+}
+
 string RefMachine::configFile(const string& refname)
 {
   string configName = Ecce::ecceHome();
@@ -204,32 +231,18 @@ string RefMachine::exePath(const string& code, const string& refname,
                            const string& vendor, const string& model)
 {
   string ret = "";
-  KeyValueReader reader1(RefMachine::configFile(refname));
-  string key, value;
-  while (reader1.getpair(key,value)) {
-    if (key == code) {
-      ret = value;
-      break;
-    }
-  }
+  findConfig(RefMachine::config(refname), code.c_str(), ret);
 
   if (ret=="" && vendor!="") {
     string tryAgain = vendor;
     if (model != "")
       tryAgain += "." + model;
 
-    // because of how full domain names are separated by dots the same
-    // as vendors and models of machines the same method can be used to
-    // return an config file for the vendor and model 
+    // Vendor and model files are named like machines (CONFIG.VENDOR.MODEL),
+    // so config() reads them too.
     string tryUpper;
     (void)StringConverter::toUpper(tryAgain, tryUpper);
-    KeyValueReader reader2(RefMachine::configFile(tryUpper));
-    while (reader2.getpair(key,value)) {
-      if (key == code) {
-        ret = value;
-        break;
-      }
-    }
+    findConfig(RefMachine::config(tryUpper), code.c_str(), ret);
   }
 
   return ret;
@@ -239,21 +252,18 @@ string RefMachine::shellPath(void) const
 {
   string path = "/bin:/usr/sbin:/sbin:/usr/X11R6/bin:/usr/bin/X11";
 
-  string configName = RefMachine::configFile(refname());
-
-  EcceMap *config = EcceMap::load(configName);
+  map<string,string> config = RefMachine::config(refname());
 
   string xdir, pdir, qdir;
-  if (config->findValue("xappsPath", xdir))
+  if (findConfig(config, "xappsPath", xdir))
     path.insert(0, xdir + ":");
 
-  if (config->findValue("perlPath", pdir))
+  if (findConfig(config, "perlPath", pdir))
     path.insert(0, pdir + ":");
 
-  if (config->findValue("qmgrPath", qdir))
+  if (findConfig(config, "qmgrPath", qdir))
     path.insert(0, qdir + ":");
 
-  delete config;
 
   return path;
 }
@@ -262,14 +272,11 @@ string RefMachine::libPath(void) const
 {
   string path = "";
 
-  string configName = RefMachine::configFile(refname());
-
-  EcceMap *config = EcceMap::load(configName);
+  map<string,string> config = RefMachine::config(refname());
 
   string libdir;
-  if (config->findValue("libPath", libdir))
+  if (findConfig(config, "libPath", libdir))
     path = libdir;
-  delete config;
 
   return path;
 }
@@ -278,14 +285,11 @@ string RefMachine::sourceFile(void) const
 {
   string file = "";
 
-  string configName = RefMachine::configFile(refname());
-
-  EcceMap *config = EcceMap::load(configName);
+  map<string,string> config = RefMachine::config(refname());
 
   string source;
-  if (config->findValue("sourceFile", source))
+  if (findConfig(config, "sourceFile", source))
     file = source;
-  delete config;
 
   return file;
 }
@@ -298,14 +302,11 @@ string RefMachine::shell(void) const
   // shell to run that file.
   string shell = "bash";
 
-  string configName = RefMachine::configFile(refname());
-
-  EcceMap *config = EcceMap::load(configName);
+  map<string,string> config = RefMachine::config(refname());
 
   string tmp;
-  if (config->findValue("shell", tmp))
+  if (findConfig(config, "shell", tmp))
     shell = tmp;
-  delete config;
 
   return shell;
 }
@@ -314,14 +315,11 @@ string RefMachine::frontendMachine(void) const
 {
   string machine = "";
 
-  string configName = RefMachine::configFile(refname());
-
-  EcceMap *config = EcceMap::load(configName);
+  map<string,string> config = RefMachine::config(refname());
 
   string front;
-  if (config->findValue("frontendMachine", front))
+  if (findConfig(config, "frontendMachine", front))
     machine = front;
-  delete config;
 
   return machine;
 }
@@ -330,14 +328,11 @@ string RefMachine::frontendBypass(void) const
 {
   string bypass = "";
 
-  string configName = RefMachine::configFile(refname());
-
-  EcceMap *config = EcceMap::load(configName);
+  map<string,string> config = RefMachine::config(refname());
 
   string front;
-  if (config->findValue("frontendBypass", front))
+  if (findConfig(config, "frontendBypass", front))
     bypass = front;
-  delete config;
 
   return bypass;
 }
@@ -390,11 +385,10 @@ bool RefMachine::singleConnect(void) const
 {
   bool single = false;
 
-  string configName = RefMachine::configFile(refname());
-  EcceMap *config = EcceMap::load(configName);
+  map<string,string> config = RefMachine::config(refname());
 
   string connect;
-  if (config->findValue("singleConnect", connect)) {
+  if (findConfig(config, "singleConnect", connect)) {
     if (connect=="true" || connect=="TRUE" || connect=="True" ||
         connect=="yes" || connect=="YES" || connect=="Yes")
       single = true;
@@ -405,7 +399,6 @@ bool RefMachine::singleConnect(void) const
       single = !RefMachine::isSameDomain();
     }
   }
-  delete config;
 
   return single;
 }
@@ -415,17 +408,14 @@ bool RefMachine::checkScratch(void) const
 {
   bool check = true;
 
-  string configName = RefMachine::configFile(refname());
-
-  EcceMap *config = EcceMap::load(configName);
+  map<string,string> config = RefMachine::config(refname());
 
   string scratch;
-  if (config->findValue("checkScratch", scratch)) {
+  if (findConfig(config, "checkScratch", scratch)) {
     if (scratch=="false" || scratch=="FALSE" || scratch=="False" ||
         scratch=="no" || scratch=="NO" || scratch=="No")
       check = false;
   }
-  delete config;
 
   return check;
 }
@@ -435,17 +425,14 @@ bool RefMachine::noRemoteAccess(void) const
 {
   bool noAccess = false;
 
-  string configName = RefMachine::configFile(refname());
-
-  EcceMap *config = EcceMap::load(configName);
+  map<string,string> config = RefMachine::config(refname());
 
   string value;
-  if (config->findValue("noRemoteAccess", value)) {
+  if (findConfig(config, "noRemoteAccess", value)) {
     if (value=="true" || value=="TRUE" || value=="True" ||
         value=="yes" || value=="YES" || value=="Yes")
       noAccess = true;
   }
-  delete config;
 
   return noAccess;
 }
@@ -455,17 +442,14 @@ bool RefMachine::userSubmit(void) const
 {
   bool user = false;
 
-  string configName = RefMachine::configFile(refname());
-
-  EcceMap *config = EcceMap::load(configName);
+  map<string,string> config = RefMachine::config(refname());
 
   string submit;
-  if (config->findValue("userSubmit", submit)) {
+  if (findConfig(config, "userSubmit", submit)) {
     if (submit=="true" || submit=="TRUE" || submit=="True" ||
         submit=="yes" || submit=="YES" || submit=="Yes")
       user = true;
   }
-  delete config;
 
   return user;
 }
@@ -569,6 +553,13 @@ bool RefMachine::hasCode(const string& code) const
     if (it != codies->end()) result = true;
   }
   return result;
+}
+
+bool RefMachine::offersCode(const string& code) const
+{
+  // The Machines line is a snapshot of the paths when the machine was
+  // saved; a code added to CONFIG.<refname> later is just as runnable.
+  return hasCode(code) || !RefMachine::exePath(code, refname()).empty();
 }
 
 bool RefMachine::hasQueue(const string& queue) const

@@ -23,6 +23,7 @@ using std::vector;
 class wxPen;
 class wxBrush;
 class Preferences;
+class ewxPanel;
 
 /**
  * A class that draws a symbol representing and Ecce run state
@@ -64,6 +65,8 @@ public:
   static string getPrefString(int state);
   static void draw(wxDC & dc, ResourceDescriptor::RUNSTATE currentState,
                    bool useSystemColor = false, const wxRect& rect = wxRect());
+  // The Organizer's "Run States:" strip; tests/look/statelegend renders it.
+  static ewxPanel* createLegend(wxWindow* parent);
 
 protected:
 

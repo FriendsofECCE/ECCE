@@ -33,6 +33,10 @@ using namespace std;
 
 #include "wxgui/ewxColor.H"
 #include "wxgui/ewxThemeColours.H"
+#include "wxgui/ewxPanel.H"
+#include "wxgui/ewxStaticLine.H"
+#include "wxgui/ewxStaticText.H"
+#include "wxgui/ewxStyledWindow.H"
 
 #include "wxgui/WxState.H"
 
@@ -42,41 +46,59 @@ using namespace std;
 // both against the light and dark theme backgrounds (4.5:1).
 static const char* LIGHT_STATE_COLOURS[] = {
   "#ff0000",  // ILLEGAL
-  "#3a6ea5",  // CREATED
-  "#0000ff",  // READY
-  "#1f6f8f",  // SUBMITTED
-  "#007a00",  // RUNNING
-  "#007d49",  // COMPLETED
-  "#007d49",  // LOADED
+  "#995b7d",  // CREATED
+  "#003f63",  // READY
+  "#387597",  // SUBMITTED
+  "#634400",  // RUNNING
+  "#007e5c",  // COMPLETED
+  "#007e5c",  // LOADED
   "#6b6b6b",  // KILLED
-  "#a35200",  // UNSUCCESSFUL
-  "#d00000",  // FAILED
+  "#3f3c00",  // UNSUCCESSFUL
+  "#c23b22",  // FAILED
   "#000000",  // SYSTEM
   "#000000",  // LAST
 };
 
 static const char* DARK_STATE_COLOURS[] = {
   "#ff8080",  // ILLEGAL
-  "#b0e2ff",  // CREATED
-  "#9999ff",  // READY
-  "#b4eeb4",  // SUBMITTED
-  "#00cd00",  // RUNNING
-  "#3ddc97",  // COMPLETED
-  "#3ddc97",  // LOADED
+  "#e6bcd4",  // CREATED
+  "#61a8cf",  // READY
+  "#a9dbf6",  // SUBMITTED
+  "#e69f00",  // RUNNING
+  "#36b290",  // COMPLETED
+  "#36b290",  // LOADED
   "#b0b0b0",  // KILLED
-  "#ffa500",  // UNSUCCESSFUL
-  "#ff8080",  // FAILED
-  "#e0e0e0",  // SYSTEM
+  "#f0e442",  // UNSUCCESSFUL
+  "#ff8f73",  // FAILED
+  "#ffffff",  // SYSTEM
   "#e0e0e0",  // LAST
 };
 
-// The pre-9.0 defaults.  "Reset" in Preferences used to copy them into the
-// user's own file, so a user value equal to one of these is a stale copy
-// of an old default rather than a choice, and the new default wins.
-static const char* LEGACY_STATE_COLOURS[] = {
+// Former defaults, indexed like the tables above.  "Reset" in Preferences
+// copies the defaults into the user's own file, so a user value equal to
+// one of these is a stale copy rather than a choice, and the new default
+// wins.  Pre-9.0 (light only), then 9.0.0-alpha.3/alpha.4 light and dark.
+static const char* PRE90_STATE_COLOURS[] = {
   "", "#b0e2ff", "#0000ff", "#b4eeb4", "#00cd00", "#007d49", "#007d49",
   "#757575", "#ffa500", "#ff0000", "#000000", "",
 };
+static const char* ALPHA_LIGHT_STATE_COLOURS[] = {
+  "", "#3a6ea5", "#0000ff", "#1f6f8f", "#007a00", "#007d49", "#007d49",
+  "#6b6b6b", "#a35200", "#d00000", "#000000", "",
+};
+static const char* ALPHA_DARK_STATE_COLOURS[] = {
+  "", "#b0e2ff", "#9999ff", "#b4eeb4", "#00cd00", "#3ddc97", "#3ddc97",
+  "#b0b0b0", "#ffa500", "#ff8080", "#e0e0e0", "",
+};
+
+static bool isFormerDefault(int state, const string& value, bool dark)
+{
+  wxString v(value);
+  if (dark)
+    return v.IsSameAs(ALPHA_DARK_STATE_COLOURS[state], false);
+  return v.IsSameAs(PRE90_STATE_COLOURS[state], false) ||
+         v.IsSameAs(ALPHA_LIGHT_STATE_COLOURS[state], false);
+}
 
 
 vector<string>   WxState::p_defaultColors;
@@ -375,8 +397,7 @@ void WxState::resetFromPreferences(const Preferences& sysPrefs, bool user)
   for (; i < ResourceDescriptor::NUMBER_OF_STATES; i++) {
     string value;
     if (sysPrefs.getString(getPrefString(i), value)) {
-      bool stale = user && !dark &&
-                   wxString(value).IsSameAs(LEGACY_STATE_COLOURS[i], false);
+      bool stale = user && isFormerDefault(i, value, dark);
       if (!stale) p_defaultColors[i] = value;
     }
     p_brushes[0][i]->SetColour(ewxColor(p_defaultColors[i]));
@@ -384,6 +405,36 @@ void WxState::resetFromPreferences(const Preferences& sysPrefs, bool user)
   }
 }
 
+
+
+ewxPanel* WxState::createLegend(wxWindow* parent)
+{
+  ewxPanel* legend = new ewxPanel(parent, -1, wxDefaultPosition,
+                                  wxDefaultSize, wxNO_BORDER);
+  wxBoxSizer * legendVSizer = new wxBoxSizer(wxVERTICAL);
+  wxBoxSizer * legendSizer = new wxBoxSizer(wxHORIZONTAL);
+  legend->SetSizer(legendVSizer);
+
+  ewxStaticText* stateLabel =
+    new ewxStaticText(legend, -1, "Run States: ");
+  legendSizer->Add(stateLabel, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
+
+  for (int state = ResourceDescriptor::STATE_CREATED;
+       state<ResourceDescriptor::NUMBER_OF_STATES; state++) {
+    WxState* stateIcon = new WxState(legend);
+    stateIcon->setRunState((ResourceDescriptor::RUNSTATE)state);
+    legendSizer->Add(stateIcon, 0,
+                     wxFIXED_MINSIZE|wxALIGN_CENTER_VERTICAL|wxLEFT, 6);
+
+    stateLabel = new ewxStaticText(legend, -1, stateIcon->getName());
+    stateLabel->SetFont(ewxStyledWindow::getSmallLabelFont());
+    legendSizer->Add(stateLabel, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
+  }
+
+  legendVSizer->Add(legendSizer, 0, wxGROW|wxALL, 2);
+  legendVSizer->Add(new ewxStaticLine(legend, -1), 0, wxGROW, 0);
+  return legend;
+}
 
 
 /**

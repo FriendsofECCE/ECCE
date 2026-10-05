@@ -3914,11 +3914,12 @@ bool Fragment::restoreCAR(istream& infile, double mult, bool genBonds)
      //44-53 beta in degrees
      //54-63 gamma in degrees
      //64-80 space group
-     infile.getline(buf,MAXLINE);
-     if (pbc) {
+     // With PBC=OFF there is no PBC line: line 5 is already the first atom.
+     if (pbc && infile.getline(buf,MAXLINE)) {
         double a,b,c,alpha,beta,gamma;
         StringTokenizer tokenizer(buf);
         tlist = tokenizer.tokenize(" \t");
+        if (tlist.size() < 7) return false;
         sscanf(tlist[1].c_str(),"%lf",&a);
         sscanf(tlist[2].c_str(),"%lf",&b);
         sscanf(tlist[3].c_str(),"%lf",&c);
@@ -3974,6 +3975,8 @@ bool Fragment::restoreCAR(istream& infile, double mult, bool genBonds)
         line = buf;
         StringTokenizer tokenizer(buf);
         tlist = tokenizer.tokenize(" \t");
+        // Blank or truncated lines carry no element (field 8).
+        if (tlist.size() < 8) continue;
         sym = tlist[7];
         sscanf(tlist[1].c_str(),"%lf",&x);
         sscanf(tlist[2].c_str(),"%lf",&y);
@@ -4113,6 +4116,8 @@ bool Fragment::restorePDB(istream& infile, double mult, bool genBonds,
   char resnamold[5] = "   ";
   char chainold = ' ';
   bool useChain = false;
+  // Outlives the loop: atoms after a residue's first one join it too.
+  Residue *res = 0;
 
   record[6] = '\0';
   i5[5] = '\0';
@@ -4287,7 +4292,6 @@ bool Fragment::restorePDB(istream& infile, double mult, bool genBonds,
 // Add residue to residue list. Only perform this operation if a new
 // residue has been detected.
 
-          Residue* res;
           if (strncmp(resnam,resnamold,4) != 0 ||
               chainold != chainid[0] || iresold != ires ||
               insresold != insertres[0]) {

@@ -19,6 +19,7 @@
 
 #ifndef WX_PRECOMP
 #include "wx/wx.h"
+#include <unistd.h>
 #endif
 
 #include <sstream>
@@ -281,6 +282,35 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
 
   stopDisabler();
 
+  //  ECCE_TEST_CALCIMPORT=<file>: File > Import Calculation from Output File
+  //  on <file>, into a project "calcimport-test" in the user's home, as if
+  //  picked in the file dialog; prints the outcome and exits. Inert unless
+  //  set; for tests/apps/calcimport_test.py.
+  if (const char *importPath = getenv("ECCE_TEST_CALCIMPORT")) {
+    string path = importPath;
+    wxTimer *timer = new wxTimer();   // lives until the process exits
+    timer->Bind(wxEVT_TIMER, [this, path](wxTimerEvent&) {
+      EDSIServerCentral central;
+      EcceURL home = central.getDefaultUserHome();
+      EcceURL project = home.getChild("calcimport-test");
+      if (!EDSIFactory::getResource(project)) {
+        if (Resource *homeRes = EDSIFactory::getResource(home))
+          homeRes->createChild("calcimport-test",
+                               ResourceDescriptor::RT_COLLECTION,
+                               ResourceDescriptor::CT_PROJECT,
+                               ResourceDescriptor::AT_UNDEFINED);
+      }
+      findNode(project, true, true);
+      WxCalcImport dlg(this);
+      dlg.registerListener(this);
+      dlg.importFile(path);
+      fflush(stdout);
+      fflush(stderr);
+      _exit(0);
+    });
+    timer->StartOnce(2000);
+  }
+
   return true;
 }
 
@@ -345,31 +375,7 @@ void CalcMgr::initializeGUI()
     Append(wxID_ANY, _("Project View"), menu);
 
 
-  p_legend = new ewxPanel(this, -1, wxDefaultPosition,
-                          wxDefaultSize, wxNO_BORDER);
-  wxBoxSizer * legendVSizer = new wxBoxSizer(wxVERTICAL);
-  wxBoxSizer * legendSizer = new wxBoxSizer(wxHORIZONTAL);
-  p_legend->SetSizer(legendVSizer);
-  
-  ewxStaticText* stateLabel =
-    new ewxStaticText(p_legend, -1, "Run States: ");
-  legendSizer->Add(stateLabel, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
-  
-  WxState* stateIcon;
-  for (int state = ResourceDescriptor::STATE_CREATED;
-       state<ResourceDescriptor::NUMBER_OF_STATES; state++) {
-    stateIcon = new WxState(p_legend);
-    stateIcon->setRunState((ResourceDescriptor::RUNSTATE)state);
-    legendSizer->Add(stateIcon, 0, 
-                     wxFIXED_MINSIZE|wxALIGN_CENTER_VERTICAL|wxLEFT, 6);
-
-    stateLabel = new ewxStaticText(p_legend, -1, stateIcon->getName());
-    stateLabel->SetFont(ewxStyledWindow::getSmallLabelFont());
-    legendSizer->Add(stateLabel, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
-  }
-
-  legendVSizer->Add(legendSizer, 0, wxGROW|wxALL, 2);
-  legendVSizer->Add(new ewxStaticLine(p_legend, -1), 0, wxGROW, 0);
+  p_legend = WxState::createLegend(this);
 
   p_topSizer->Add(p_legend, 0, wxGROW|wxALL, 0);
 
@@ -5198,6 +5204,13 @@ TaskJob *CalcMgr::getContainer(const string& name)
 void CalcMgr::importValidationComplete(TaskJob *ipc, bool status,
                                        string message)
 {
+  if (getenv("ECCE_TEST_CALCIMPORT")) {
+    fprintf(stderr, "ECCE_TEST_CALCIMPORT: %s, code %s: %s\n",
+            status ? "imported" : "refused",
+            (ipc && ipc->application()) ? ipc->application()->name().c_str()
+                                        : "-",
+            message.c_str());
+  }
   if (!status) {
     if (ipc != 0) {
       // Lisong, this is where the task is deleted if the import failed
@@ -5248,6 +5261,17 @@ void CalcMgr::importValidationComplete(TaskJob *ipc, bool status,
 
     // let the world know this calculation was created/imported
     notifyCreate(ipc->getURL().toString());
+
+    // Select the new calculation, as a calculation made with New is
+    // selected (OnNewResourceClick); otherwise the work area stays on
+    // whatever folder was selected and the import looks lost.
+    if (findNode(ipc->getURL(), true, true) != 0) {
+      if (getenv("ECCE_TEST_CALCIMPORT")) {
+        WxResourceTreeItemData *sel = p_treeCtrl->getSelection();
+        fprintf(stderr, "ECCE_TEST_CALCIMPORT: selected %s\n",
+                sel ? sel->getUrl().toString().c_str() : "-");
+      }
+    }
   }
   setContextPanel();
 }

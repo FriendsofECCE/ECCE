@@ -7,6 +7,8 @@ using std::vector;
 // Surface diagnostics, only with ECCE_DEBUG_ISO set.
 static bool isoDebug() { static const bool on = getenv("ECCE_DEBUG_ISO") != 0; return on; }
 #define ISO_LOG if (!isoDebug()) {} else std::cerr
+static bool espDebug() { static const bool on = getenv("ECCE_ESP_DEBUG") != 0; return on; }
+#define ESP_LOG if (!espDebug()) {} else std::cerr
   using std::cout;
   using std::endl;
 #include "inv/nodes/SoSwitch.H"
@@ -188,10 +190,8 @@ bool IsoSurfaceCmd::execute()
       float *colorField = gridStruct->colorFieldData();
       const int nDataVar = (colorField != 0) ? 2 : 1;
 
-      //  This path has never run before, so it says so: if the viewer
-      //  dies, the last line printed says whether it got this far.
       if (colorField != 0) {
-        std::cerr << "ESP: building a colour-mapped surface, "
+        ESP_LOG << "ESP: building a colour-mapped surface, "
                   << resX << "x" << resY << "x" << resZ
                   << ", range " << gridStruct->colorFieldMin()
                   << " to " << gridStruct->colorFieldMax() << std::endl;
@@ -326,7 +326,7 @@ bool IsoSurfaceCmd::execute()
          //  variable up in this ramp, stretched over minValue..maxValue.
          isosurf1->color = lattice;
          isosurf1->colorVar = 1;
-         std::cerr << "ESP: colour lattice attached" << std::endl;
+         ESP_LOG << "ESP: colour lattice attached" << std::endl;
          setPotentialRamp(isosurf1, gridStruct->colorFieldMin(),
                           gridStruct->colorFieldMax(), transparency);
       }

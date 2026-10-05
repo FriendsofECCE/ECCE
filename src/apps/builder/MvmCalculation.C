@@ -76,10 +76,15 @@ bool MvmCalculation::getFragment(Fragment &frag)
   bool ret = false;
 
   Resource *resource = EDSIFactory::getResource(p_url);
+  if (resource == 0) return false;
 
   // create temporary file for fragment reading
   SFile *file = TempStorage::getTempFile();
-  file = resource->getDocument(file);
+  if (resource->getDocument(file) == 0) {
+    file->remove();
+    delete file;
+    return false;
+  }
   ifstream is(file->path().c_str());
 
   ret = frag.restoreMVM(is);
