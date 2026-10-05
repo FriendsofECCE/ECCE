@@ -418,9 +418,8 @@ previews are fixed.
    [#232](https://github.com/FriendsofECCE/ECCE/issues/232)): the job
    store without the X Toolkit and X11 only on Linux are done. A session
    identifier in place of `$DISPLAY` and bundled Perl and Python remain.
-4. **Native macOS and Windows clients**, macOS first ([#133](https://github.com/FriendsofECCE/ECCE/issues/133)).
-   The macOS CI build compiles about 40% of the code; the next failures are
-   two Linux-only calls in the remote-shell code.
+4. **Native macOS and Windows clients**, macOS first ([#133](https://github.com/FriendsofECCE/ECCE/issues/133),
+   where the state of the macOS build is tracked).
 
 **Also planned, not yet placed in the order:**
 
