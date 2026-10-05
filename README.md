@@ -336,52 +336,21 @@ Full notes, and the packages, are on the
 [releases page](https://github.com/FriendsofECCE/ECCE/releases); older
 releases, and why each fix was made, are in `docs/HISTORY.md`.
 
-<!-- Keep the last four minor releases here, with all their patch
-     releases; drop the oldest minor when a new one is added. Everything
-     older is on the releases page. -->
+<!-- At most ten entries per column, newest first; older releases are on
+     the releases page. -->
 
-- **v8.18.6** — the file dialog's file-type filter works and a typed path
-  is resolved correctly; Builder import reports an unreadable path instead
-  of crashing, and CAR files keep their first atom; Register Machines runs
-  no shell commands on what you type.
-- **v8.18.5** — viewer redraws after every change (#99); ESP surfaces
-  about 30 times faster (#229); Builder Symmetry panel follows the point
-  group; `ecce-remote-setup` needs `curl`.
-- **v8.18.4** — property panes in the viewer fold to their caption bar
-  (#196); a new desktop icon.
-- **v8.18.3** — passwords no longer pass through the message broker, and
-  ECCE's local message link accepts only its own session (#194); a
-  desktop menu entry (#211).
-- **v8.18.2** — a job that finishes while its monitor is restarting is no
-  longer stored as killed.
-- **v8.18.1** — a fresh calculation's output file is no longer sometimes
-  named "Outputs", which lost MOPAC's energies and geometries (#207).
-- **v8.18.0** — experimental built-in ssh (Edit > Preferences): commands,
-  file copies and job monitoring without a shell session, a host-key
-  dialog (#204); telnet, Globus and rsh removed; Machine Registration
-  crash and Name-field fixes; About ECCE dialog (#168).
-- **v8.17.4** — cluster job monitoring: a monitor whose connection drops
-  exits, and a login node killing it no longer ends monitoring (#205).
-- **v8.17.3** — RHEL 9: the data server starts (#193); Tail, Final Edit and
-  Open Shell work with bash (#200). First release with native Ubuntu and
-  RHEL packages.
-- **v8.17.2** — the data server starts on RHEL (#193).
-- **v8.17.1** — an RPM built on RHEL installs there (#199).
-- **v8.17.0** — central servers for a class: the server's machine list
-  reaches each client, classes are created from a file (#188); final-
-  geometry orbitals after an NWChem optimisation (#198); MO diagram on
-  correct ORCA and Gaussian coefficients (#163, #170).
-- **v8.16.7** — Preferences is back; `ecce --bug` collects a bug report.
-- **v8.16.6** — deployment modes for teaching labs, including a shared
-  system broker (#191).
-- **v8.16.5** — closing the Organizer ends the session (#185); first-run
-  machine registration works (#188).
-- **v8.16.4** — job monitoring works on Ubuntu and with bash (#143, #69).
-- **v8.16.3** — partial fix for the Wayland login-dialog freeze (#120).
-- **v8.16.2** — fixes a gateway crash when the login dialog is closed.
-- **v8.16.1** — `ecce -remote` works again.
-- **v8.16.0** — the Launcher and Organizer say why a job failed.
-- **v8.15.0** — Verify: the input file is checked before submission.
+| 9.x (previews) | 8.x (stable) |
+|---|---|
+| **v9.0.0-alpha.4** — 3D viewer on Coin3D (#166): accurate transparency, immediate redraws, Reset View, atom labels again; ESP surfaces about 30 times faster (#229); a CONFIG.localhost for new users (#230). | **v8.18.6** — File dialog filter and typed paths work; import reports an unreadable path instead of crashing; CAR files keep their first atom; Register Machines runs no shell commands on what you type. |
+| **v9.0.0-alpha.3** — Mosquitto replaces ActiveMQ and Java (#213, #194); optional local data mode (#216); colours and controls follow the GTK theme (#210). | **v8.18.5** — Viewer redraws after every change (#99); ESP surfaces about 30 times faster (#229); Symmetry panel follows the point group; ecce-remote-setup needs curl. |
+| **v9.0.0-alpha.2** — The scripted shell session is removed: commands run directly or over ssh; csh no longer required; ssh/ftp and sshpass become plain ssh. | **v8.18.4** — Viewer property panes fold to their caption bar (#196); a new desktop icon. |
+| **v9.0.0-alpha.1** — Built-in ssh by default, shared ssh connections and a host-key dialog (#204); two packages, ecce-client and ecce-server; job scripts in POSIX sh; "killed" only for a cancel from ECCE; Moab jobs checked with checkjob (#209). | **v8.18.3** — Passwords no longer pass through the message broker; the local message link accepts only its own session (#194); a desktop menu entry (#211). |
+|  | **v8.18.2** — A job that finishes while its monitor restarts is no longer stored as killed. |
+|  | **v8.18.1** — A fresh calculation's output file is no longer named "Outputs", which lost MOPAC's energies and geometries (#207). |
+|  | **v8.18.0** — Experimental built-in ssh (#204); telnet, Globus and rsh removed; Machine Registration fixes; About ECCE (#168). |
+|  | **v8.17.4** — Cluster job monitoring survives a dropped connection or a killed monitor (#205). |
+|  | **v8.17.3** — RHEL 9: the data server starts (#193); Tail, Final Edit and Open Shell work with bash (#200); first native Ubuntu and RHEL packages. |
+|  | **v8.17.2** — The data server starts on RHEL (#193). |
 
 ## Roadmap
 
