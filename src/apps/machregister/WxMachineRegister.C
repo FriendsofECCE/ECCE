@@ -717,10 +717,14 @@ void WxMachineRegister::refreshLocality()
 
     if (!RCommand::localityNote(machine, "ssh", "").empty())
     {
-        text = "This computer: jobs run locally when the login name is empty or ";
-        text += Ecce::realUser();
-        text += ";\nany other login name goes via ssh to " + machine +
-                " as that user.";
+        //  Said in terms of launching, since that is the only thing a
+        //  machine here is for; the queue manager may be set for localhost.
+        text = "This computer. Calculations you launch on \"" + machine +
+               "\" run here, on this computer,\neither directly or through "
+               "the queue manager chosen on the Queues tab.\n"
+               "This holds while the login name is empty or " +
+               Ecce::realUser() + ";\nwith any other login name they run "
+               "via ssh to " + machine + " as that user.";
 
         string refName = (string)p_refName->GetValue();
         MachinePreferences *prefs = refName.empty() ? NULL :
