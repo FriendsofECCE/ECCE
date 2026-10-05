@@ -32,6 +32,7 @@ using std::find;
 #include "util/StringTokenizer.H"
 #include "util/StringConverter.H"
 
+#include "tdat/ConfigFile.H"
 #include "tdat/RefMachine.H"
 #include "tdat/QueueMgr.H"
 #include "tdat/Queue.H"
@@ -184,74 +185,15 @@ string RefMachine::codesString(void) const
 { return p_codes; }
 
 
-// Same line grammar as readConfig() in scripts/gensub, so both readers give
-// one answer: "key: value", "key value", "key { value }" and multi-line
-// "key {" ... "}" blocks.
-static void trimBoth(string& s)
-{
-  size_t b = s.find_first_not_of(" \t\r\n");
-  size_t e = s.find_last_not_of(" \t\r\n");
-  s = (b == string::npos) ? string() : s.substr(b, e - b + 1);
-}
-
-static void mergeConfigFile(const string& path, map<string,string>& out)
-{
-  ifstream in(path.c_str());
-  if (!in)
-    return;
-
-  static const std::regex oneBlock("^\\s*(.*)\\s*\\{(.*)\\}");
-  static const std::regex openBlock("^\\s*(.*)\\s*\\{");
-  static const std::regex colonForm("^\\s*([^\\s:]+)\\s*:\\s*(.*)");
-  static const std::regex spaceForm("^\\s*(\\S+)\\s+(.*)");
-  static const std::regex blank("^\\s*(#.*|//.*)?$");
-
-  string line;
-  while (std::getline(in, line)) {
-    std::smatch m;
-    string key, value;
-    if (std::regex_search(line, blank))
-      continue;
-    if (std::regex_search(line, m, oneBlock)) {
-      key = m[1]; value = m[2];
-    } else if (std::regex_search(line, m, openBlock)) {
-      key = m[1];
-      string body;
-      while (std::getline(in, line)) {
-        if (!line.empty() && line[0] == '}')
-          break;
-        body += line + "\n";
-      }
-      value = body;
-    } else if (std::regex_search(line, m, colonForm)) {
-      key = m[1]; value = m[2];
-    } else if (std::regex_search(line, m, spaceForm)) {
-      key = m[1]; value = m[2];
-    } else {
-      continue;   // key without a value
-    }
-    trimBoth(key);
-    trimBoth(value);
-    string lkey;
-    StringConverter::toLower(key, lkey);
-    if (lkey.empty())
-      continue;
-    if (value == "-")
-      out.erase(lkey);
-    else if (!value.empty())
-      out[lkey] = value;
-  }
-}
-
 map<string,string> RefMachine::config(const string& refname)
 {
   map<string,string> merged;
   if (refname.empty())
     return merged;
 
-  mergeConfigFile(string(Ecce::ecceHome()) + "/siteconfig/CONFIG." + refname,
+  ConfigFile::mergeFile(string(Ecce::ecceHome()) + "/siteconfig/CONFIG." + refname,
                   merged);
-  mergeConfigFile(string(Ecce::realUserPrefPath()) + "CONFIG." + refname,
+  ConfigFile::mergeFile(string(Ecce::realUserPrefPath()) + "CONFIG." + refname,
                   merged);
   return merged;
 }
