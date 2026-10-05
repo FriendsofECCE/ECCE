@@ -538,7 +538,7 @@ wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
 
     addHeading(page, sizer, "Paths on the remote machine");
     GRID(paths)
-    addCfgRow(page, paths, "perlPath", "Directory of the Perl program", CfgText,
+    addCfgRow(page, paths, "perlPath", "Perl program", CfgText,
               "Directory of the Perl 5 interpreter on the remote machine.");
     addCfgRow(page, paths, "qmgrPath", "Directory of sbatch, squeue, ...", CfgText, "");
     addCfgRow(page, paths, "libPath", "Library directory", CfgText,
@@ -1788,7 +1788,7 @@ string WxMachineRegister::cfgHint(const CfgRow& r) const
     if (k == "sourcefile") return "e.g. /etc/profile.d/modules.sh";
     if (k == "frontendmachine") return "e.g. login.example.org";
     if (k == "frontendbypass") return "e.g. .example.org";
-    if (k == "perlpath") return "e.g. /usr/bin";
+    if (k == "perlpath") return "e.g. /usr/bin/perl";
     if (k == "libpath") return "e.g. /opt/lib";
     if (k == "xappspath") return "e.g. /usr/X11R6/bin";
     if (k == "qmgrpath")
