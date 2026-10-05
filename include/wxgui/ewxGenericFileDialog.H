@@ -71,6 +71,7 @@ class ewxGenericFileDialog : public wxFileDialogBase
 
     virtual void SetPath(const wxString& path);
     virtual void SetWildcard(const wxString& wildCard);
+    virtual void SetFilterIndex(int filterIndex);
     void setServerChoice( int serverIndex );
     void setServerChoice( string dir );
 
@@ -87,6 +88,7 @@ class ewxGenericFileDialog : public wxFileDialogBase
     void OnOk( wxCommandEvent &event );
     void OnTextEnter( wxCommandEvent &event );
     void onServerChoice( wxCommandEvent &event );
+    void onFilterChoice( wxCommandEvent &event );
 
     virtual void HandleAction( const wxString &fn );
     virtual void UpdateControls();
