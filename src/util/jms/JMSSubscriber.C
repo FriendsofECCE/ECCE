@@ -4,7 +4,7 @@
 // DESIGN:
 //    One MqttEndpoint per subscriber.  libmosquitto's thread queues the
 //    messages and writes to the endpoint's self-pipe; getSocketID() is that
-//    pipe's read end, so the owner's loop (XtAppAddInput in the job store)
+//    pipe's read end, so the owner's loop (poll() in the job store)
 //    calls processMessage() on its own thread.
 ///////////////////////////////////////////////////////////////////////////////
 #include <stdlib.h>

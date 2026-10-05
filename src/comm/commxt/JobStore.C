@@ -23,6 +23,9 @@
 #include <signal.h>
 #include <unistd.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <time.h>
 
 #include <iostream>
   using std::cout;
@@ -30,8 +33,6 @@
   using std::ios;
 #include <fstream>
   using std::ofstream;
- 
-#include <X11/Intrinsic.h>
 
 #include "util/Ecce.H"
 #include "util/ErrMsg.H"
@@ -131,12 +132,14 @@ void interactFile(char* fileData);
 void interactNode(char* nodeData);
 void interactGetOutput(void);
 void interactGetFiles(void);
-void xtGetJobMonitorInput(XtPointer client_data, int* fid, XtInputId* id);
+void getJobMonitorInput(int fid);
 void restart(const char* name, const string& msg);
 void restartSystem(const char* name, const string& msg);
 void setTimeout(const unsigned long& seconds);
-void xtSignalHandler(XtPointer client_data, XtSignalId* id);
-extern "C" void signalHandler(const int signalValue);
+void handleSignal(int signalValue);
+void handleTimeout(unsigned long milliseconds);
+void dispatchSignals(void);
+extern "C" void signalHandler(int signalValue);
 void initSignals();
 
 string logModeJobStoreToString(LogModeJobStore mode);
@@ -167,7 +170,7 @@ void sendNotify(const char* op, const string& key1="", const string& name = "",
 
 // Messaging state
 static JMSSubscriber *vsubscriber = 0;
-static XtInputId vXtInputId = 0;
+static int vMsgFd = -1;     // subscriber's wake-up pipe, -1 when closed
 
 // communication protocol constants
 static const char* MSG_TYPE_E_INFO  = "info";
@@ -206,9 +209,12 @@ static bool logIsOpen = false;
 static int logNumErrors = 0;
 static string parseIn;
 static LogModeJobStore logModeJobStore;
-static XtAppContext appContext;
-static XtSignalId signalId;
-static int currentSignal = 0;
+// Self-pipe: the handler writes the signal number, the event loop reads
+// it, so handlers run outside signal context (signalfd is Linux-only).
+static int sigPipe[2] = {-1, -1};
+// One pending timeout; 0 = none.  Monotonic, so clock changes do not fire it.
+static unsigned long timeoutMilliseconds = 0;
+static struct timespec timeoutDeadline;
 static ResourceDescriptor::RUNSTATE endState=ResourceDescriptor::STATE_ILLEGAL;
 
 // The numeric gensub exit code (211/221/231/other) behind the most recent
@@ -270,20 +276,6 @@ void jobstore_main(RCommand* rconn, const string& jobId,
 
   DefaultDavAuth authhandler;
   EDSIFactory::addAuthEventListener(&authhandler);
-
-  // init X -- moved ahead of init()/initConn()/initDAV() below. Those
-  // three can each call fail()/restart()/restartSystem() on any of a
-  // long list of ordinary, expected-to-happen failures (bad config,
-  // unreachable compute server, a calc whose DAV resource fails to
-  // load) -- and every one of those functions calls initMessaging(),
-  // which calls XtAppAddInput(appContext, ...). With appContext still
-  // default-constructed (this static wasn't assigned yet), that's a
-  // segfault inside libXt itself, not a clean error report. Confirmed
-  // live via a real core dump: a deliberately-broken calc URL crashed
-  // eccejobstore inside XtAppAddInput() from calcLoad()'s fail() call,
-  // instead of reporting "resource failed to load" and exiting cleanly.
-  XtToolkitInitialize();
-  appContext = XtCreateApplicationContext();
 
   init();
 
@@ -953,11 +945,9 @@ void restartSystem(const char* name, const string& msg)
   exit(4);
 }
 
-void xtSignalHandler(XtPointer client_data, XtSignalId* id)
+void handleSignal(int signalValue)
 {
-  int* signalValue = (int*)(client_data);
-
-  switch (*signalValue)
+  switch (signalValue)
   {
     // custom signals
     case SIGCONT  :
@@ -990,21 +980,33 @@ void xtSignalHandler(XtPointer client_data, XtSignalId* id)
   }
 }
 
-extern "C" void signalHandler(const int signalValue)
+extern "C" void signalHandler(int signalValue)
 {
-  currentSignal = signalValue;
+  int savedErrno = errno;
 
   // re-establish the signal handler--only applicable to warning signals
   signal(signalValue, signalHandler);
 
-  // put signal into Xt event processing queue
-  XtNoticeSignal(signalId);
+  // queue the signal for the event loop; a full pipe drops it
+  unsigned char byte = (unsigned char)signalValue;
+  ssize_t ignored = write(sigPipe[1], &byte, 1);
+  (void)ignored;
+
+  errno = savedErrno;
 }
 
-void xtTimeoutHandler(XtPointer client_data, XtIntervalId*)
+// Handle every signal queued since the last call, in arrival order.
+void dispatchSignals(void)
 {
-  unsigned long milliseconds = (unsigned long)client_data;
+  unsigned char buf[64];
+  ssize_t n;
+  while ((n = read(sigPipe[0], buf, sizeof(buf))) > 0)
+    for (ssize_t i = 0; i < n; i++)
+      handleSignal(buf[i]);
+}
 
+void handleTimeout(unsigned long milliseconds)
+{
   if (milliseconds == READ_TIMEOUT_MILLISECONDS)
     restartSystem("eccejobstore",
                   "Read timeout--job monitor failed to send heartbeat message");
@@ -1084,7 +1086,14 @@ void authMCB(JMSMessage& msg)
 
 void initSignals()
 {
-  signalId = XtAppAddSignal(appContext, xtSignalHandler, &currentSignal);
+  // Non-blocking so a flood cannot block the handler or the drain; close-
+  // on-exec so the ssh/bash children RCommand starts do not inherit it.
+  if (pipe(sigPipe) != 0)
+    fail("System", string("Could not create signal pipe: ") + strErrno());
+  for (int i = 0; i < 2; i++) {
+    fcntl(sigPipe[i], F_SETFL, fcntl(sigPipe[i], F_GETFL) | O_NONBLOCK);
+    fcntl(sigPipe[i], F_SETFD, FD_CLOEXEC);
+  }
 
   // These should be failures/restarts
   signal(SIGINT, signalHandler); 
@@ -1601,8 +1610,8 @@ void initMessaging(void)
     status &= vsubscriber->subscribe("ecce_quit",ecceExitMCB);
     status &= vsubscriber->subscribe("ecce_ejs_kill",ejsKillMCB);
     // Subscribes at the broker (must happen AFTER all subscribe calls).
-    // The socket below is the subscriber's wake-up pipe: Xt is not thread
-    // safe, so libmosquitto's thread never calls into this loop.
+    // The socket below is the subscriber's wake-up pipe: libmosquitto's
+    // thread never calls into this loop, which polls the pipe instead.
     status &= vsubscriber->startSubscriber();
 
     if (!status)
@@ -1614,10 +1623,7 @@ void initMessaging(void)
       // Should this result in calling fail()?
       logErr("Messaging", "Subscriber socket is -1");
 
-    vXtInputId = XtAppAddInput(appContext, msgsocket, 
-                               (XtPointer)XtInputReadMask,
-                               (XtInputCallbackProc)msgDispatch,
-                               NULL);
+    vMsgFd = msgsocket;
   }
 }
 
@@ -1625,9 +1631,7 @@ void exitMessaging(void)
 {
   if (vsubscriber != (JMSSubscriber*)0) {
     // Have to remove from event loop
-    if (vXtInputId != (XtInputId)0) {
-      XtRemoveInput(vXtInputId);
-    }
+    vMsgFd = -1;
     delete vsubscriber;
     vsubscriber = (JMSSubscriber*)0;
   }
@@ -1784,16 +1788,33 @@ void initMon(void)
 }
 
 
+// Replace the pending timeout; 0 clears it.
 void setTimeout(const unsigned long& milliseconds)
 {
-  static XtIntervalId lastTimeOut = 0;
+  timeoutMilliseconds = milliseconds;
+  if (milliseconds != 0) {
+    clock_gettime(CLOCK_MONOTONIC, &timeoutDeadline);
+    timeoutDeadline.tv_sec += milliseconds / 1000;
+    timeoutDeadline.tv_nsec += (long)(milliseconds % 1000) * 1000000L;
+    if (timeoutDeadline.tv_nsec >= 1000000000L) {
+      timeoutDeadline.tv_sec++;
+      timeoutDeadline.tv_nsec -= 1000000000L;
+    }
+  }
+}
 
-  if (lastTimeOut != 0)
-    XtRemoveTimeOut(lastTimeOut);
-
-  if (milliseconds != 0)
-    lastTimeOut = XtAppAddTimeOut(appContext, milliseconds,
-                                  xtTimeoutHandler, (XtPointer)milliseconds);
+// Milliseconds until the pending timeout (0 if due), -1 if none.
+static int timeoutRemaining(void)
+{
+  if (timeoutMilliseconds == 0)
+    return -1;
+  struct timespec now;
+  clock_gettime(CLOCK_MONOTONIC, &now);
+  long long ns = (long long)(timeoutDeadline.tv_sec - now.tv_sec) * 1000000000LL +
+                 (timeoutDeadline.tv_nsec - now.tv_nsec);
+  if (ns <= 0)
+    return 0;
+  return (int)((ns + 999999) / 1000000);
 }
 
 // ------------------------------------------------------------------------- //
@@ -1805,7 +1826,7 @@ static char databuf[MAX_BLOCK_LENGTH];
 
 enum ReadState {idState, countState, dataState};
 
-void xtGetJobMonitorInput(XtPointer client_data, int* fid, XtInputId* id)
+void getJobMonitorInput(int fid)
 {
   static enum ReadState readState = idState;
   static int needRead = 1;
@@ -1815,7 +1836,7 @@ void xtGetJobMonitorInput(XtPointer client_data, int* fid, XtInputId* id)
   static char seqCode;
   static bool ignoreFlag = false;
 
-  int nbytes = read(*fid, dataptr, needRead);
+  int nbytes = read(fid, dataptr, needRead);
   
   if (nbytes == needRead) {
     readTries = 0;
@@ -1919,11 +1940,50 @@ void xtGetJobMonitorInput(XtPointer client_data, int* fid, XtInputId* id)
 }
 
 
+// Wait for and handle one round of events: queued signals first, then an
+// expired timeout, then input from the monitor and the broker.
+static void processEvents(int monFd)
+{
+  const short ready = POLLIN | POLLHUP | POLLERR | POLLNVAL;
+  for (;;) {
+    struct pollfd fds[3] = {
+      {sigPipe[0], POLLIN, 0}, {monFd, POLLIN, 0}, {vMsgFd, POLLIN, 0}};
+
+    if (poll(fds, 3, timeoutRemaining()) < 0) {
+      if (errno == EINTR)
+        continue;
+      restartSystem("eccejobstore", string("poll failed: ") + strErrno());
+    }
+
+    if (fds[0].revents & POLLIN) {
+      dispatchSignals();
+      return;
+    }
+
+    if (timeoutRemaining() == 0) {
+      unsigned long ms = timeoutMilliseconds;
+      timeoutMilliseconds = 0;
+      handleTimeout(ms);
+      return;
+    }
+
+    bool handled = false;
+    if (fds[1].revents & ready) {
+      getJobMonitorInput(monFd);
+      handled = true;
+    }
+    // vMsgFd may have been closed by a callback above.
+    if (!doneFlag && (fds[2].revents & ready) && vMsgFd == fds[2].fd) {
+      msgDispatch();
+      handled = true;
+    }
+    if (handled)
+      return;
+  }
+}
+
 void interactGetOutput(void)
 {
-  XtInputId jobMonitorId = XtAppAddInput(appContext, fdesc,
-                                         (XtPointer)XtInputReadMask,
-                                         xtGetJobMonitorInput, (XtPointer)0);
   doneFlag = false;
   setTimeout(READ_TIMEOUT_MILLISECONDS);
 
@@ -1932,10 +1992,8 @@ void interactGetOutput(void)
   time.start();
 #endif
 
-  XtInputMask mask = XtIMAlternateInput|XtIMTimer|XtIMSignal;
-
   while (!doneFlag)
-    XtAppProcessEvent(appContext, mask);
+    processEvents(fdesc);
 
 #ifdef BENCHMARK
   time.stop();
@@ -1946,8 +2004,6 @@ void interactGetOutput(void)
 
   // clear timeout
   setTimeout(0);
-
-  XtRemoveInput(jobMonitorId);
 
   if (remoteconn != (RCommand*)0)
     remoteconn->stopStream();
