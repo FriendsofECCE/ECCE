@@ -689,15 +689,15 @@ def esc(text):
     return "'" + text.replace("'", "'\"'\"'").replace("\n", "\\n") + "'"
 
 
-def job_script(e, user):
+def job_script(e, user, code="NWChem"):
     """The job script gensub makes for cluster on Slurm."""
     out = os.path.join(e.root, "gen")
     shutil.rmtree(out, ignore_errors=True)
     os.makedirs(out)
     write(os.path.join(out, "params"),
-          " -H cluster\n -Q Slurm\n -q short\n -c NWChem\n -d localhost\n"
+          " -H cluster\n -Q Slurm\n -q short\n -c %s\n -d localhost\n"
           " -n 4\n -N 1\n -T 1:00:00\n -m 8\n -r %s\n -i a.nw\n -o a.out\n"
-          " -f %s/submit__x\n" % (out, out))
+          " -f %s/submit__x\n" % (code, out, out))
     env = dict(os.environ, ECCE_HOME=e.home, ECCE_REALUSERHOME=user)
     p = subprocess.run(["perl", os.path.join(REPO, "scripts", "gensub"), "-p",
                         os.path.join(out, "params")], env=env, cwd=out,
@@ -733,7 +733,8 @@ def job_script_tab(tmp, display, build, mode):
     setup_src = "the ECCE server" if remote else "the site"
     site = "from server" if remote else "from site"
     yours = "site value" if admin else "your value"
-    hdr_label = "From %s: submit.site (read-only)" % src
+    hdr_label = "source: %s (read-only)" % (
+        "server (submit.site)" if remote else "submit.site")
 
     if admin:
         setup_pre = """expect field blk:setup '%s'
@@ -750,12 +751,14 @@ set blk:setup %s
         setup_pre = """expect field blk:setup ''
 expect field blk:setup:site '%s'
 expect label tag:setup '%s'
-expect label blk:setup:label 'From %s: CONFIG.cluster (read-only)'
+expect label blk:setup:label 'source: %s (read-only)'
 click blk:setup:copy
 expect field blk:setup '%s'
 expect label tag:setup 'your value'
 set blk:setup %s
-""" % (site_setup, site, setup_src, site_setup,
+""" % (site_setup, site,
+       "server (CONFIG.cluster)" if remote else "siteconfig/CONFIG.cluster",
+       site_setup,
        esc(site_setup + "\nmodule load mine"))
     p = run(display, build, e, """
 select cluster
@@ -768,6 +771,8 @@ expect shown blk:header:site 1
 expect enabled blk:header:copy 1
 expect label tag:wrapup 'not set'
 expect shown blk:wrapup:site 0
+expect label blk:wrapup:head '%(none)s'
+expect label blk:wrapup:yours '%(mine)s'
 expect shown blk:wrapup:none 0
 expect shown condorallowtmp 0
 expect shown undo:header 0
@@ -789,7 +794,7 @@ expect field blk:header %(hdr2)s
 expect field blk:wrapup 'echo done'
 expect label blk:setup:csh ''
 quit
-""" % dict(site=site, hdr=esc(header), hdr2=esc(header + "\n#SBATCH --qos=normal"),
+""" % dict(site=site, none="Default setting: none" if admin else "Site setting: none", mine="Site setting" if admin else "User setting", hdr=esc(header), hdr2=esc(header + "\n#SBATCH --qos=normal"),
            hdrlabel=esc(hdr_label), yours=yours, setup=setup_pre),
         args=args, extra=extra)
     clean(p, "%s: copy the site text, edit three blocks, save" % mode)
@@ -984,6 +989,280 @@ quit
         print("        " + os.path.join(out, n))
 
 
+ENV_TEXT = ("g16root /opt\nGAUSS_SCRDIR /scratch\nMYTOOLPATH /my/tools")
+
+
+def codes_tab(tmp, display, build, mode):
+    admin, remote = mode == "admin", mode == "remote"
+    print("codes tab, " + mode)
+    e = Env(tmp, "codes-" + mode, remote)
+    extra = {"ECCE_REMOTE_SERVER": "server.example.org"} if remote else None
+    args = ["-admin"] if admin else []
+    write(os.path.join(e.sc, "CONFIG.cluster"),
+          read(os.path.join(e.sc, "CONFIG.cluster")) +
+          "Gaussian-16: /site/g16\nGaussian-16Environment {\n"
+          "  g16root /sitedir\n}\n", mode=0o644)
+    edited = os.path.join(e.sc if admin else e.ue, "CONFIG.cluster")
+    userhome = os.path.join(e.root, "nouser") if admin else e.user
+    os.makedirs(userhome, exist_ok=True)
+    site_before = digest(e.sc)
+    user_before = registration(e.ue)
+    site = "from server" if remote else "from site"
+    yours = "site value" if admin else "your value"
+    cmd = "echo gaussian on $inFile"
+
+    if admin:
+        first = """expect field blk:cenv 'g16root /sitedir'
+expect shown blk:cenv:site 0
+"""
+    else:
+        first = """expect field blk:cenv ''
+expect field blk:cenv:site 'g16root /sitedir'
+expect enabled blk:cenv:copy 1
+expect label blk:cenv:yours 'User setting (replaces the site setting)'
+"""
+    p = run(display, build, e, """
+select cluster
+tab codes
+expect code-listed Gaussian-16 1
+expect code-listed ORCA 1
+expect code-listed Gaussian-03 0
+expect code-listed Gaussian-98 0
+expect code-listed GAMESS-UK 0
+expect code-listed Amica 0
+expect field code:list 'Gaussian-16  *,NWChem  *,Gaussian-09,GROMACS,MOPAC,ORCA,Polyrate,QuantumESPRESSO'
+code Gaussian-16
+expect label code:title Gaussian-16
+expect field code:gaussian-16 /site/g16
+expect label tag:code '%(csite)s'
+expect label tag:cenv '%(csite)s'
+expect shown undo:code 0
+expect shown undo:cenv 0
+%(first)sexpect label tag:ccmd 'not set'
+expect label tag:files '%(fsite)s'
+expect shown blk:ccmd:site 0
+expect label cmd:help "When this is empty, ECCE's built-in command is used."
+code ORCA
+expect label code:title ORCA
+expect field code:orca ''
+code Gaussian-16
+set blk:cenv %(env)s
+set blk:ccmd %(cmd)s
+expect label tag:cenv '%(yours)s'
+expect shown undo:cenv 1
+set code:gaussian-16 /opt/g16/g16
+expect field code:list 'Gaussian-16  *,NWChem  *,Gaussian-09,GROMACS,MOPAC,ORCA,Polyrate,QuantumESPRESSO'
+set code:gaussian-16 ''
+expect field code:list 'NWChem  *,Gaussian-09,Gaussian-16,GROMACS,MOPAC,ORCA,Polyrate,QuantumESPRESSO'
+set code:gaussian-16 /opt/g16/g16
+set code:files '*.rwf'
+set code:prelim '*.old'
+set blk:csetup 'echo before g16'
+expect label tag:code '%(yours)s'
+expect label tag:files '%(yours)s'
+code ORCA
+expect field blk:cenv ''
+expect field code:files ''
+code Gaussian-16
+expect field blk:cenv %(env)s
+expect field code:files '*.rwf'
+expect dirty 1
+save
+expect dirty 0
+quit
+""" % dict(site=site, yours=yours, first=first, env=esc(ENV_TEXT), cmd=esc(cmd),
+           fsite="from server" if remote else "from site",
+           csite=yours if admin else site),
+        args=args, extra=extra)
+    clean(p, "%s: Gaussian-16 program, environment, command, setup and file "
+          "lists; switching code keeps each code's own" % mode)
+    c = cfg_blocks(edited)
+    check(c.get("gaussian-16environment") == ENV_TEXT and
+          c.get("gaussian-16command") == cmd and
+          c.get("gaussian-16") == "/opt/g16/g16" and
+          c.get("gaussian-16_setup") == "echo before g16" and
+          c.get("gaussian-16filestoremove") == "*.rwf" and
+          c.get("gaussian-16prelimfilestoremove") == "*.old",
+          "the file has the Gaussian-16 keys: %r" % c)
+    if admin:
+        check(registration(e.ue) == user_before, "the user's files are untouched")
+    else:
+        check(digest(e.sc) == site_before, "siteconfig is untouched")
+    rows = explain(e, "cluster", admin)
+    src = "site" if admin else "user"
+    check(rows["gaussian-16environment"]["value"].strip() == ENV_TEXT and
+          rows["gaussian-16environment"]["source"] == src and
+          rows["gaussian-16command"]["value"] == cmd and
+          rows["gaussian-16filestoremove"]["value"] == "*.rwf",
+          "gensub explain reports the environment and the command")
+    script = job_script(e, userhome, "Gaussian-16")
+    check('export g16root="/opt"' in script and
+          'export GAUSS_SCRDIR="/scratch"' in script and
+          'if [ -n "${MYTOOLPATH+set}" ]; then' in script and
+          'export MYTOOLPATH="${MYTOOLPATH}:/my/tools"' in script,
+          "the Gaussian-16 job script exports the variables, appending the "
+          "PATH-like one")
+    check("echo gaussian on a.nw" in script and "echo before g16" in script
+          and "*.rwf" in script and "*.old" in script,
+          "the job script has the command (placeholder replaced), setup and "
+          "file lists")
+
+    # undo: an unsaved change goes back to the saved value; a saved own value
+    # goes back to the site's, only when there is one
+    if admin:
+        tail = "expect shown undo:cenv 0\n"
+    else:
+        tail = """undo cenv
+expect field blk:cenv ''
+expect label tag:cenv '%s'
+expect dirty 1
+""" % site
+    p = run(display, build, e, """
+select cluster
+tab codes
+code Gaussian-16
+set blk:cenv 'g16root /other'
+expect shown undo:cenv 1
+undo cenv
+expect field blk:cenv %(env)s
+expect dirty 0
+set blk:ccmd ''
+expect label tag:ccmd 'not set'
+expect shown undo:ccmd 1
+undo ccmd
+expect field blk:ccmd %(cmd)s
+%(tail)ssave
+expect dirty 0
+quit
+""" % dict(env=esc(ENV_TEXT), cmd=esc(cmd), tail=tail), args=args, extra=extra)
+    clean(p, "%s: undo goes to the saved value, then to the site's" % mode)
+    c = cfg_blocks(edited)
+    if admin:
+        check(c.get("gaussian-16environment") == ENV_TEXT,
+              "admin: the saved environment is unchanged")
+    else:
+        check("gaussian-16environment" not in c and
+              c.get("gaussian-16command") == cmd,
+              "user: the environment line is gone, the command stays: %r" % c)
+        script = job_script(e, userhome, "Gaussian-16")
+        check('export g16root="/sitedir"' in script and
+              'GAUSS_SCRDIR="/scratch"' not in script,
+              "the job script uses the site's environment again")
+
+        # "Disable" replaces the site's environment with nothing
+        p = run(display, build, e, """
+select cluster
+tab codes
+code Gaussian-16
+click blk:cenv:none
+expect enabled blk:cenv 0
+expect label tag:cenv 'your value'
+set blk:ccmd ''
+save
+expect dirty 0
+quit
+""", args=args, extra=extra)
+        clean(p, "%s: no environment, empty command" % mode)
+        c = cfg_blocks(edited)
+        check(c.get("gaussian-16environment") == "-" and
+              "gaussian-16command" not in c,
+              "'-' for the environment, the command line removed: %r" % c)
+        script = job_script(e, userhome, "Gaussian-16")
+        check("export g16root" not in script and
+              "echo gaussian on" not in script,
+              "no variables and the built-in command in the job script")
+
+    # placeholders go at the cursor of the box last typed in
+    p = run(display, build, e, """
+select cluster
+tab codes
+code Gaussian-16
+set blk:ccmd 'ab'
+focus blk:ccmd
+cursor blk:ccmd 1
+words
+wait 300
+expect enabled words:insert 1
+expect contains words:where 'Command line'
+words-pick '$queue'
+click words:insert
+expect field blk:ccmd 'a$queueb'
+words-activate '$nodes'
+expect field blk:ccmd 'a$queue$nodesb'
+click words:close
+expect dirty 1
+focus blk:cenv
+words
+words-activate '$ppn'
+expect contains blk:ccmd '$ppn'
+click words:close
+tab job
+words
+words-activate '$wallTime'
+expect contains blk:header '$wallTime'
+click words:close
+tab machine
+words
+expect enabled words:insert 0
+expect contains words:where 'Nothing to insert'
+click words:close
+quit
+""", args=args, extra=extra)
+    clean(p, "%s: a placeholder is inserted at the cursor of the last box; "
+          "never into the environment; disabled where there is no box" % mode)
+
+
+def codes_retired(tmp, display, build):
+    print("codes tab, retired codes")
+    e = Env(tmp, "codes-retired")
+    write(os.path.join(e.ue, "CONFIG.mine"), "nwchem: /opt/nwchem\n"
+          "Gaussian-03: /old/g03\n")
+    p = run(display, build, e, """
+select mine
+expect code-listed Gaussian-03 1
+expect code-listed Gaussian-98 0
+code Gaussian-03
+expect field code:gaussian-03 /old/g03
+quit
+""")
+    clean(p, "a retired code is listed when the machine has a key for it")
+
+
+def codes_pngs(tmp, display, build, out):
+    print("codes tab PNGs")
+    os.makedirs(out, exist_ok=True)
+    e = Env(tmp, "codes-pngs")
+    write(os.path.join(e.sc, "CONFIG.cluster"),
+          read(os.path.join(e.sc, "CONFIG.cluster")) +
+          "NWChemEnvironment {\n  NWCHEM_BASIS_LIBRARY /site/libraries/\n}\n"
+          "NWChemCommand {\n  mpirun -np $totalprocs $nwchem $inFile > $outFile\n}\n",
+          mode=0o644)
+    p = run(display, build, e, """
+select cluster
+tab codes
+code NWChem
+wait 1000
+shot %(o)s/codes-site.png
+code Gaussian-16
+set code:gaussian-16 /opt/g16/g16
+set blk:cenv 'g16root /opt\\nGAUSS_SCRDIR /scratch'
+wait 1000
+shot %(o)s/codes-gaussian-environment.png
+click code:advanced
+wait 800
+shot %(o)s/codes-advanced.png
+focus blk:ccmd
+words
+wait 500
+shot-dialog %(o)s/placeholders-dialog.png
+click words:close
+quit
+""" % {"o": out})
+    clean(p, "Codes PNGs")
+    for n in sorted(os.listdir(out)):
+        print("        " + os.path.join(out, n))
+
+
 def fixes(tmp, display, build):
     print("undo, Advanced, words")
     e = Env(tmp, "fixes")
@@ -1114,6 +1393,7 @@ def main():
     ap.add_argument("--build", required=True)
     ap.add_argument("--snapshots")
     ap.add_argument("--job-pngs")
+    ap.add_argument("--codes-pngs")
     a = ap.parse_args()
     build = os.path.abspath(a.build)
     if not os.access(os.path.join(build, "machregister"), os.X_OK):
@@ -1128,7 +1408,10 @@ def main():
         return 77
     tmp = tempfile.mkdtemp(prefix="ecce-machreg-")
     try:
-        if a.job_pngs:
+        if a.codes_pngs:
+            codes_pngs(tmp, disp, build, os.path.abspath(a.codes_pngs))
+            job_script_pngs(tmp, disp, build, os.path.abspath(a.codes_pngs))
+        elif a.job_pngs:
             job_script_pngs(tmp, disp, build, os.path.abspath(a.job_pngs))
         elif a.snapshots:
             snapshots(tmp, disp, build, os.path.abspath(a.snapshots))
@@ -1145,6 +1428,9 @@ def main():
             for m in ("user", "remote", "admin"):
                 ctx = job_script_tab(tmp, disp, build, m)
                 job_script_advanced(tmp, disp, build, m, ctx)
+            for m in ("user", "remote", "admin"):
+                codes_tab(tmp, disp, build, m)
+            codes_retired(tmp, disp, build)
     finally:
         disp.__exit__(None, None, None)
         shutil.rmtree(tmp, ignore_errors=True)

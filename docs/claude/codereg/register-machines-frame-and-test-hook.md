@@ -45,6 +45,20 @@ Things that are easy to get wrong:
   `ecce-csh2sh --check` on the box text (600 ms after typing, and on Save) and
   only reported, as gensub reports it at submit time. `condorAllowTmp` is a
   `CfgRow` with `gensubOnly`, shown for HTCondor only.
+- The Codes tab follows the code selected in its list (retired codes -
+  Gaussian-03, Gaussian-98, GAMESS-UK, Amica - are listed only when the
+  machine has a key for them). Per code the keys are `<Code>` (the program),
+  `<Code>Environment`, `<Code>Command`, `<code>_setup`, `<code>_wrapup`,
+  `<Code>FilesToRemove`, `<Code>PrelimFilesToRemove`; gensub lower-cases every
+  key, but `_setup`/`_wrapup` are written lower-case. The Environment, Command
+  and Advanced setup/wrap-up boxes are `BlockRow`s whose key is re-derived from
+  the selection (`blockKey`); switching code syncs the old code's boxes into
+  the draft first. gensub's `doEnvironment` keeps only the first two
+  blank-separated words of each line (a value with spaces is cut; the box
+  warns), appends to variables whose name contains PATH, and does *not* run
+  `provideVariables` over the environment, unlike header, setup, wrap-up and
+  the command. The "Placeholders" dialog inserts at the cursor of the last
+  box focused (never the Environment box).
 - "Advanced: edit file" edits the raw edited-layer file in a dialog (Check /
   Save; an unclosed block is an error, unknown keys and csh are warnings) and
   saves through `ConfigFile::setText` + `save`. Unsaved form changes are saved
