@@ -113,6 +113,7 @@ class WxFeedback : public WxFeedbackGUI
       WxFeedback::EditStatus  p_editStatus;
       WxState                *p_stateIcon;
       FeedbackSaveHandler    *p_saveHandler;
+      wxButton               *p_saveText;
       FeedbackTextEvtHandler *p_textEvtHandler;
       PropertyTask           *p_task;
       bool                    p_beepWarn;

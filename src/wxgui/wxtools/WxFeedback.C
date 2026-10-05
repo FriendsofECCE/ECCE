@@ -59,6 +59,8 @@ WxFeedback::WxFeedback( ) : WxFeedbackGUI()
 }
 
 
+static const wxWindowID ID_SAVETEXT = wxNewId();
+
 /**
  * Constructor.
  * Status is set to NA.
@@ -79,6 +81,18 @@ WxFeedback::WxFeedback( wxWindow* parent, wxWindowID id,
      p_feedback = this;
    }
    readPreferences();
+
+   // The unsaved-changes control is a real text button: the bare floppy
+   // icon did not read as something to press.  The icon button stays for
+   // the read-only lock, which is a state and not an action.
+   p_saveText = new wxButton(this, ID_SAVETEXT, _("Save"),
+                             wxDefaultPosition, wxDefaultSize,
+                             wxBU_EXACTFIT);
+   p_saveText->SetToolTip(_("Save changes (Ctrl+S)"));
+   p_saveText->Show(false);
+   p_topLineSizer->Add(p_saveText, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
+   Connect(ID_SAVETEXT, wxEVT_COMMAND_BUTTON_CLICKED,
+           wxCommandEventHandler(WxFeedback::onSaveClicked));
 
    p_textMenu = new ewxMenu;
    p_textMenu->Append(wxID_CLEAR, "Clear", "", wxITEM_NORMAL);
@@ -232,21 +246,14 @@ void WxFeedback::setEditStatus(WxFeedback::EditStatus status)
 
    FlatBitmapButton *save = (FlatBitmapButton*) FindWindow( getSaveId());
 
-   // For now using the same bitmap for disabled and normal states
+   p_saveText->Show(status == MODIFIED);
    if (status == READONLY) {
       save->SetBitmap(ewxBitmap("lock.xpm",wxBITMAP_TYPE_XPM));
       save->Show(true);
       save->showBorder(false);
-   } else if (status == MODIFIED) {
-      save->SetBitmap(ewxBitmap::saveIcon());
-      save->Show(true);
-      save->showBorder(true);
    } else {
-      // Clear it -both SAVE and LOCK states
-      //save->SetBitmap(ewxBitmap("edit_x.xpm",wxBITMAP_TYPE_XPM));
       save->Show(false);
    }
-   //save->showBorder(false);
    p_topLineSizer->Layout();
 }
 
@@ -403,6 +410,7 @@ void WxFeedback::hideEditState()
 {
    FlatBitmapButton *save = (FlatBitmapButton*) FindWindow( getSaveId());
    save->Hide();
+   p_saveText->Hide();
 }
 
 

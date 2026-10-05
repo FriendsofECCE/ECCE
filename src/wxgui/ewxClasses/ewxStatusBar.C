@@ -2,6 +2,8 @@
 
 #include "wx/dcmemory.h"
 #include "wx/statusbr.h"
+#include "wx/button.h"
+#include "wx/statbmp.h"
 #include "wxgui/ewxBitmap.H"
 #include "wxgui/WxState.H"
 #include "wxgui/ewxStatusBar.H"
@@ -41,9 +43,11 @@ bool ewxStatusBar::Create(wxWindow *parent, wxWindowID id, long style,
     return false;
   }
 
-  p_save = new wxBitmapButton(this, wxID_SAVE, ewxBitmap::saveIcon(),
-                              wxDefaultPosition, wxDefaultSize,
-                              wxNO_BORDER|wxBU_EXACTFIT);
+  // A text button reads as something to press; the lock is only a state.
+  p_save = new wxButton(this, wxID_SAVE, _("Save"), wxDefaultPosition,
+                        wxDefaultSize, wxBU_EXACTFIT);
+  p_save->SetToolTip(_("Save changes (Ctrl+S)"));
+  p_lock = new wxStaticBitmap(this, wxID_ANY, ewxBitmap("lock.xpm"));
   p_runstate = new WxState(this);
   /*
   p_runstate = new wxBitmapButton(this, wxID_RESET, ewxBitmap("lock.xpm"),
@@ -57,7 +61,9 @@ bool ewxStatusBar::Create(wxWindow *parent, wxWindowID id, long style,
   SetFieldsCount(FIELD_MAX);
   SetStatusWidths(FIELD_MAX, widths);
   SetStatusStyles(FIELD_MAX, styles);
-  SetMinHeight(BITMAP_SIZE_Y);
+  // The text button is taller than the old 20px icon field; without
+  // this its bottom edge is clipped.
+  SetMinHeight(wxMax(BITMAP_SIZE_Y, p_save->GetBestSize().y));
 
   setStyles(this);
 
@@ -71,6 +77,7 @@ bool ewxStatusBar::Create(wxWindow *parent, wxWindowID id, long style,
 void ewxStatusBar::Init()
 {
   p_save = NULL;
+  p_lock = NULL;
   p_runstate = NULL;
   p_saveHandler = NULL;
 }
@@ -106,6 +113,9 @@ void ewxStatusBar::OnSize(wxSizeEvent& event)
     GetFieldRect(FIELD_SAVE, rect);
     size = p_save->GetSize();
     p_save->Move(rect.x + (rect.width - size.x) / 2,
+                 rect.y + (rect.height - size.y) / 2);
+    size = p_lock->GetSize();
+    p_lock->Move(rect.x + (rect.width - size.x) / 2,
                  rect.y + (rect.height - size.y) / 2);
   }
   
@@ -159,27 +169,24 @@ void ewxStatusBar::setSaveHandler(FeedbackSaveHandler *handler)
 
 void ewxStatusBar::setEditStatus(string editStatus)
 {
-  p_editStatus = editStatus;
-  if (editStatus == "MODIFIED") {
-    p_save->SetBitmapLabel(ewxBitmap::saveIcon());
-    p_save->Enable(true);
-    p_save->Show(true);
-  }
-  else if (editStatus == "READONLY") {
-    p_save->SetBitmapLabel(ewxBitmap("lock.xpm"));
-    p_save->Enable(false);
-    p_save->Show(true);
-  }
-  else if (editStatus == "EDIT") {
-    // p_save->SetBitmapLabel(ewxBitmap("none.xpm"));
-    // p_save->Enable(false);
-    p_save->Show(false);
-  }
-  else {
+  if (editStatus != "MODIFIED" && editStatus != "READONLY" &&
+      editStatus != "EDIT") {
     // Should never reach here!
     wxStatusBar::SetStatusText(editStatus, FIELD_LOG);
+    return;
   }
-  
+  p_editStatus = editStatus;
+  p_save->Show(editStatus == "MODIFIED");
+  p_lock->Show(editStatus == "READONLY");
+
+  // The field is only as wide as the text button while there is one, so
+  // the log field shifts only when there is something to save.
+  int widths[FIELD_MAX] = {BITMAP_SIZE_X, -1, BITMAP_SIZE_X, -1};
+  if (editStatus == "MODIFIED") {
+    widths[FIELD_SAVE] = p_save->GetBestSize().x + 4;
+  }
+  SetStatusWidths(FIELD_MAX, widths);
+  SendSizeEvent();
 }
 
 
