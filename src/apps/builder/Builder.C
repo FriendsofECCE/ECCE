@@ -82,6 +82,7 @@ using std::vector;
 #include "wxgui/FeedbackSaveHandler.H"
 #include "wxgui/PerTabPanel.H"
 #include "wxgui/SaveExperimentAsDialog.H"
+#include <wx/bmpcbox.h>
 #include "wxgui/TearableContent.H"
 #include "wxgui/TearableContentProvider.H"
 #include "wxgui/WindowEvent.H"
@@ -4735,6 +4736,59 @@ void Builder::updatePropertyMenus()
       _exit(0);
     });
     timer->StartOnce(1 + 1000 * (delay ? atoi(delay) : 0));
+  }
+
+  //  ECCE_TEST_SAVEAS=<type>|<path>: open File > Save As, pick the first
+  //  type whose label starts with <type>, save to <path> on the Local
+  //  Filesystem, cancel the dialog if it stays open, then exit. Inert
+  //  unless set; for tests/apps/saveas_test.py.
+  static bool saveAsStarted = false;
+  const char *saveAsSpec = getenv("ECCE_TEST_SAVEAS");
+  if (saveAsSpec != 0 && !saveAsStarted && p_calculation != 0) {
+    saveAsStarted = true;
+    wxString spec(saveAsSpec);
+    wxString type = spec.BeforeFirst('|'), path = spec.AfterFirst('|');
+    wxTimer *driver = new wxTimer();   // both live until the process exits
+    int *step = new int(0);
+    driver->Bind(wxEVT_TIMER, [type, path, step](wxTimerEvent&) {
+      SaveExperimentAsDialog *dlg = 0;
+      for (wxWindow *w : wxTopLevelWindows) {
+        dlg = dynamic_cast<SaveExperimentAsDialog*>(w);
+        if (dlg && dlg->IsModal()) break;
+        dlg = 0;
+      }
+      if (!dlg) return;
+      if ((*step)++ > 0) {
+        fprintf(stderr, "ECCE_TEST_SAVEAS: dialog still open\n");
+        dlg->EndModal(wxID_CANCEL);
+        return;
+      }
+      wxBitmapComboBox *combo = 0;
+      for (wxWindow *c : dlg->GetChildren())
+        if ((combo = dynamic_cast<wxBitmapComboBox*>(c)) != 0) break;
+      for (unsigned i = 0; combo && i < combo->GetCount(); i++) {
+        if (combo->GetString(i).StartsWith(type)) {
+          dlg->setSaveAsFilterIndex(i);
+          fprintf(stderr, "ECCE_TEST_SAVEAS: type \"%s\"\n",
+                  combo->GetString(i).ToStdString().c_str());
+          break;
+        }
+      }
+      dlg->setServerChoice(0);           // Local Filesystem
+      dlg->HandleAction(path);
+    });
+    wxTimer *timer = new wxTimer();
+    timer->Bind(wxEVT_TIMER, [this, driver](wxTimerEvent&) {
+      new wxLogChain(new wxLogStderr());
+      fprintf(stderr, "ECCE_TEST_SAVEAS: open\n");
+      driver->Start(1000);
+      doSaveAs(false);
+      driver->Stop();
+      fprintf(stderr, "ECCE_TEST_SAVEAS: done\n");
+      fflush(stderr);
+      _exit(0);
+    });
+    timer->StartOnce(1000);
   }
 
   //  ECCE_VIEWER_SCENE=<script> ECCE_VIEWER_SCENE_OUT=<dir>: render the
