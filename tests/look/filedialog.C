@@ -32,7 +32,8 @@ class Dlg : public ewxGenericFileDialog
     Dlg(const wxString& wild) { Create(NULL, "Open", "", "", wild,
                                        wxFD_OPEN|wxFD_FILE_MUST_EXIST); }
 
-    void listIn(const wxString& dir, const wxSize& size, long hold)
+    void listIn(const wxString& dir, const wxSize& size, long hold,
+                int ntyped = 0, char** typed = NULL)
     {
       setServerChoice(0);
       m_list->GoToDir(dir);
@@ -71,6 +72,19 @@ class Dlg : public ewxGenericFileDialog
       printf("DIALOG w=%d h=%d min_w=%d\n", GetSize().x, GetSize().y,
              GetMinSize().x);
       fflush(stdout);
+      // Typed names, as if entered in "File name:" and OK pressed (the
+      // dialog is not modal here, so EndModal only hides it).
+      for (int i = 0; i < ntyped; i++) {
+        SetPath("");
+        wxString t = wxString::FromUTF8(typed[i]);
+        m_list->GoToDir(dir);
+        m_text->SetValue(t);
+        HandleAction(t);
+        printf("TYPED %s => %s\n", typed[i],
+               (const char*) GetPath().utf8_str());
+        Show();
+      }
+      fflush(stdout);
       wxStopWatch sw;
       while (sw.Time() < hold) { wxYield(); wxMilliSleep(20); }
     }
@@ -84,6 +98,6 @@ int main(int argc, char** argv)
   int w, h;
   if (sscanf(argv[3], "%dx%d", &w, &h) == 2) size = wxSize(w, h);
   Dlg* dlg = new Dlg(argv[2]);
-  dlg->listIn(argv[1], size, atol(argv[4]));
+  dlg->listIn(argv[1], size, atol(argv[4]), argc - 5, argv + 5);
   _exit(0);  // skip teardown, which segfaults headless
 }

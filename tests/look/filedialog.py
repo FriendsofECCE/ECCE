@@ -53,7 +53,7 @@ def got_final(lines):
             on = True
         elif not ln.startswith("  "):
             on = False
-        elif on and ln.strip() != "..":
+        elif on and ln.strip() not in ("..", "sub"):
             names.append(ln.strip())
     return names
 
@@ -96,6 +96,14 @@ def main():
 
     home = os.path.join(work, "home")
     os.makedirs(home)
+    open(os.path.join(home, "h.xyz"), "w").close()
+    os.makedirs(os.path.join(data, "sub"))
+    open(os.path.join(data, "sub", "b.xyz"), "w").close()
+    typed = {os.path.join(data, "water.xyz"): os.path.join(data, "water.xyz"),
+             "water.xyz": os.path.join(data, "water.xyz"),
+             "./water.xyz": os.path.join(data, "water.xyz"),
+             "sub/b.xyz": os.path.join(data, "sub", "b.xyz"),
+             "~/h.xyz": os.path.join(home, "h.xyz")}
     env = dict(os.environ, DISPLAY=o.display, HOME=home,
                ECCE_REALUSERHOME=home, ECCE_HOME=ROOT, ECCE_NO_MESSAGING="1")
     xvfb = subprocess.Popen(["Xvfb", o.display, "-screen", "0", "1400x900x24"],
@@ -106,9 +114,10 @@ def main():
         import time
         time.sleep(2)
         for size in ("default", "300x300"):
-            r = out([binary, data, wild, size, "50"], env=env, timeout=60)
+            r = out([binary, data, wild, size, "50"] + list(typed), env=env,
+                    timeout=60)
             lines = r.stdout.splitlines()
-            got, cur, rows, dlg = {}, None, [], None
+            got, cur, rows, dlg, ntyped = {}, None, [], None, 0
             for ln in lines:
                 if ln.startswith("FILTER "):
                     cur = int(ln.split()[1])
@@ -118,11 +127,18 @@ def main():
                     got[cur] = []
                     final_label = ln[6:]
                 elif ln.startswith("  "):
-                    if ln.strip() != "..":
+                    if ln.strip() not in ("..", "sub"):
                         got[cur].append(ln.strip())
                 elif ln.startswith("ROW "):
                     m = re.search(r"x=(\d+) y=(\d+) w=(\d+) h=(\d+)", ln)
                     rows.append(tuple(int(v) for v in m.groups()))
+                elif ln.startswith("TYPED "):
+                    name, _, path = ln[6:].partition(" => ")
+                    if os.path.normpath(path) != typed[name]:
+                        print("FAIL: typed %r gave %r, want %r"
+                              % (name, path, typed[name]))
+                        failures += 1
+                    ntyped += 1
                 elif ln.startswith("DIALOG "):
                     dlg = ln
             if got.pop("final", None) is None or final_label != labels[0]:
@@ -133,6 +149,10 @@ def main():
                     fnmatch.fnmatchcase(f, p) for p in expect[0])):
                 print("FAIL: %s: list does not match displayed %r"
                       % (size, final_label))
+                failures += 1
+            if ntyped != len(typed):
+                print("FAIL: %s: %d typed names answered, want %d"
+                      % (size, ntyped, len(typed)))
                 failures += 1
             if len(got) != len(labels):
                 print("FAIL: %s: %d filters listed, want %d\n%s" % (
