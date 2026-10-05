@@ -14,9 +14,17 @@
 
 #include "wx/confbase.h"
 
-#if !defined(WIN32) && !defined(__APPLE__)
-#include <X11/Xlib.h>
+#if defined(__WXGTK__)
+extern "C" {
+  #include <gtk/gtk.h>
+  #include <gdk/gdk.h>
+  #ifdef GDK_WINDOWING_X11
+    #include <gdk/gdkx.h>
+  #endif
+}
 #endif
+#include <cstdlib>
+#include <cstdio>
 
 #include "wxgui/ewxBitmap.H"
 #include "util/Preferences.H"
@@ -36,6 +44,36 @@
 #include "wxgui/ewxConfig.H"
 #include "wxgui/NumericValidatorBase.H"
 #include "wxgui/WxFeedback.H"
+
+
+void ewxRaiseWindow(wxWindow *win)
+{
+  if (win == NULL) return;
+  const char *how = "wxWindow::Raise";
+#if defined(__WXGTK__)
+  GtkWidget *gw = (GtkWidget*)win->GetHandle();
+  GdkWindow *gdkw = gw ? gtk_widget_get_window(gw) : NULL;
+  if (gdkw != NULL && GTK_IS_WINDOW(gw)) {
+#ifdef GDK_WINDOWING_X11
+    if (GDK_IS_X11_DISPLAY(gdk_window_get_display(gdkw))) {
+      gtk_window_present_with_time(GTK_WINDOW(gw),
+                                   gdk_x11_get_server_time(gdkw));
+      how = "gtk_window_present_with_time";
+    } else
+#endif
+    {
+      gtk_window_present(GTK_WINDOW(gw));
+      how = "gtk_window_present";
+    }
+  } else {
+    win->Raise();
+  }
+#else
+  win->Raise();
+#endif
+  if (getenv("ECCE_DEBUG_RAISE"))
+    fprintf(stderr, "ewxRaiseWindow: %s\n", how);
+}
 
 
 /**

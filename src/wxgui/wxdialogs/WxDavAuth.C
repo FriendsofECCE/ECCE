@@ -17,15 +17,7 @@
 
 #include <wx/wx.h>
 
-//  #120 fix: see the explicit gtk_window_present_with_time() call in
-//  prompt() below for why this is here.
-#if defined(__WXGTK__)
-extern "C" {
-  #include <gtk/gtk.h>
-  #include <gdk/gdkx.h>
-}
-#endif
-
+#include "wxgui/ewxWindowUtils.H"
 #include "util/NotImplementedException.H"
 #include "util/NullPointerException.H"
 #include "util/Ecce.H"
@@ -406,36 +398,12 @@ bool WxDavAuth::prompt(const string& strurl,
        ret = false;
        done = true;
 
-       //  #120: this dialog can be shown as the very first UI action in
-       //  the process's life, before wx's own MainLoop() has ever started
-       //  and before the app has processed any real, user-generated X
-       //  event. wx's default Show()/ShowModal() path asks the window
-       //  manager to activate the window using whatever timestamp GDK
-       //  happens to have cached (0/stale, this early), and Mutter's
-       //  focus-stealing prevention silently declines an activation
-       //  request with an invalid/stale timestamp -- the window is
-       //  mapped, input-accepting, and its GTK-internal focus widget is
-       //  correctly set, but it never actually receives keyboard focus,
-       //  and pointer clicks work while not one keystroke does. Confirmed
-       //  live via gdb: forcing a gtk_window_present_with_time() call
-       //  with a FRESH, server-fetched timestamp
-       //  (gdk_x11_get_server_time(), not GDK_CURRENT_TIME) is what
-       //  actually gets Mutter to grant focus -- plain
-       //  gtk_window_present()/wx's own Show() does not. Repeated on
-       //  every loop iteration, not just the first: a re-prompt after a
-       //  failed password is its own fresh Show() and can lose focus the
-       //  same way.
-#if defined(__WXGTK__)
-       {
-         authDlg.Show(true);
-         GtkWidget *gtkWidget = (GtkWidget*)authDlg.GetHandle();
-         GdkWindow *gdkWindow = gtkWidget ? gtk_widget_get_window(gtkWidget) : NULL;
-         if (gdkWindow != NULL) {
-           guint32 freshTime = gdk_x11_get_server_time(gdkWindow);
-           gtk_window_present_with_time(GTK_WINDOW(gtkWidget), freshTime);
-         }
-       }
-#endif
+       //  #120: shown as the first UI action of the process, a plain
+       //  Show() can leave the window without keyboard focus under
+       //  Mutter; raise it explicitly on every pass (a re-prompt after a
+       //  failed password is a fresh Show() and can lose focus too).
+       authDlg.Show(true);
+       ewxRaiseWindow(&authDlg);
 
        status = authDlg.ShowModal();
        if (status != wxID_OK) {

@@ -9,19 +9,13 @@
 #include <wx/dcscreen.h>
 #include <wx/dcmemory.h>
 
-#if defined(__WXGTK__)
-extern "C" {
-  #include <gtk/gtk.h>
-  #include <gdk/gdkx.h>
-}
-#endif
-
 #include "wxgui/ewxApp.H"
 #include "wxgui/ewxDialog.H"
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxTextCtrl.H"
 #include "wxgui/ewxBitmap.H"
+#include "wxgui/ewxWindowUtils.H"
 
 class HostKeyDialogApp : public ewxApp
 {
@@ -101,14 +95,8 @@ class HostKeyDialog : public ewxDialog
     // timestamp or Mutter declines to give the window keyboard focus.
     int ShowModal()
     {
-#if defined(__WXGTK__)
       Show(true);
-      GtkWidget* gw = (GtkWidget*)GetHandle();
-      GdkWindow* gdkw = gw ? gtk_widget_get_window(gw) : NULL;
-      if (gdkw && GDK_IS_X11_WINDOW(gdkw))
-        gtk_window_present_with_time(GTK_WINDOW(gw),
-                                     gdk_x11_get_server_time(gdkw));
-#endif
+      ewxRaiseWindow(this);
       return ewxDialog::ShowModal();
     }
 
