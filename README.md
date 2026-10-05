@@ -245,6 +245,9 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      releases; drop the oldest minor when a new one is added. Everything
      older is on the releases page. -->
 
+- **v8.18.6** — the file dialog's type filter and typed paths work;
+  Builder import reports an unreadable file instead of crashing, and CAR
+  and PDB files load completely; Register Machines runs no shell.
 - **v8.18.5** — vibration arrows and geometry-trace steps redraw at once;
   ESP surfaces about 30x faster; Symmetry panel buttons follow the loaded
   molecule; a central data server listening on all interfaces starts
