@@ -54,6 +54,31 @@ You can also set the path in the Machine Registration window, in the
 `localhost` is written to `~/.ECCE/CONFIG.localhost` and is used for the
 run.]
 
+### A code that needs environment variables
+
+Some codes need environment variables set before they run. Add them to the
+same file in a block named after the code with `Environment` appended. Each
+line is a variable name and its value; ECCE exports them in the job script
+before starting the code, and appends to variables whose name contains
+`PATH` instead of replacing them.
+
+For Gaussian 16, ECCE already sets `GAUSS_EXEDIR` and `LD_LIBRARY_PATH` to
+the directory of the `Gaussian-16:` path. It needs `g16root` in addition:
+
+```
+Gaussian-16: /opt/gaussian/g16/g16
+Gaussian-16Environment {
+  g16root /opt/gaussian
+  GAUSS_SCRDIR /scratch
+}
+```
+
+Further variables, such as a processor-specific setting a site uses for
+Gaussian on AMD processors, go into the same block. No wrapper script is
+needed.
+
+<!-- sources: scripts/gensub gaussianScript() (GAUSS_EXEDIR, LD_LIBRARY_PATH from the path), doEnvironment() (<code>Environment blocks); checked 2026-10-05: g16 runs with only g16root, GAUSS_EXEDIR and LD_LIBRARY_PATH in an otherwise empty environment -->
+
 ## Machine Registration
 
 Machine Registration is where you add a machine, set the code paths and
