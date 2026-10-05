@@ -894,6 +894,19 @@ bool WxMachineRegister::codeInUse(const string& name) const
 }
 
 
+//  Codes with a program first, each group alphabetical.
+void WxMachineRegister::sortCodeShown()
+{
+    std::sort(p_codeShown.begin(), p_codeShown.end(), [this](int a, int b) {
+        bool ha = !strip((string)p_codePaths[a]->GetValue()).empty();
+        bool hb = !strip((string)p_codePaths[b]->GetValue()).empty();
+        if (ha != hb)
+            return ha;
+        return lowerOf(p_codeNames[a]) < lowerOf(p_codeNames[b]);
+    });
+}
+
+
 //  Rebuild the list for the loaded machine and show the selected code.
 void WxMachineRegister::fillCodeList()
 {
@@ -904,15 +917,7 @@ void WxMachineRegister::fillCodeList()
     for (size_t i = 0; i < p_codeNames.size(); i++)
         if (!retired.count(p_codeNames[i]) || codeInUse(p_codeNames[i]))
             p_codeShown.push_back((int)i);
-    //  Codes with a program first; the order is fixed when the machine is
-    //  loaded, so a row does not jump while its path is typed.
-    std::sort(p_codeShown.begin(), p_codeShown.end(), [this](int a, int b) {
-        bool ha = !strip((string)p_codePaths[a]->GetValue()).empty();
-        bool hb = !strip((string)p_codePaths[b]->GetValue()).empty();
-        if (ha != hb)
-            return ha;
-        return lowerOf(p_codeNames[a]) < lowerOf(p_codeNames[b]);
-    });
+    sortCodeShown();
     for (size_t r = 0; r < p_codeShown.size(); r++)
         p_codeList->Append(p_codeNames[p_codeShown[r]]);
     if (p_codeShown.empty())
@@ -1037,6 +1042,18 @@ void WxMachineRegister::codeLinesTags()
         if (l.undo->IsShown() != (uc != 0))
             l.undo->Show(uc != 0);
         l.undo->SetToolTip(undoTip(uc, "value"));
+    }
+    //  A path set or cleared moves the code between the groups.
+    vector<int> before = p_codeShown;
+    sortCodeShown();
+    if (before != p_codeShown)
+    {
+        p_codeList->Clear();
+        for (size_t r = 0; r < p_codeShown.size(); r++)
+            p_codeList->Append(p_codeNames[p_codeShown[r]]);
+        for (size_t r = 0; r < p_codeShown.size(); r++)
+            if (p_codeShown[r] == p_codeSel)
+                p_codeList->SetSelection((int)r);
     }
     for (size_t r = 0; r < p_codeShown.size(); r++)
     {

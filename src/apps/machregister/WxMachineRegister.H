@@ -198,6 +198,7 @@ class WxMachineRegister: public ewxFrame
         void codeLineUndo(const string& id);
         void syncCodeLines(MachineConfigDraft* draft);
         void fillCodeList();
+        void sortCodeShown();
         void showCode();
         void selectCode(int index);
         bool selectCodeByName(const string& name);
