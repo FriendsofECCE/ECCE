@@ -2,6 +2,7 @@
   using std::ofstream;
  
 #include <wx/bmpcbox.h> // for wxBitmapComboBox
+#include <wx/msgdlg.h>
 
 #include "dsm/ChemistryTask.H"
 #include "dsm/DirDyVTSTTask.H"
@@ -13,7 +14,9 @@
 
 #include "tdat/FragUtil.H"
 
+#include "util/EcceURL.H"
 #include "util/JMSPublisher.H"
+#include "util/LocalData.H"
 #include "util/ResourceUtils.H"
 #include "util/StringTokenizer.H"
 #include "util/TempStorage.H"
@@ -76,8 +79,13 @@ bool SaveExperimentAsDialog::Create(wxWindow *parent)
 
   SetExtraStyle(wxWS_EX_VALIDATE_RECURSIVELY);
 
+  // Created with one placeholder item: wxGTK 3.2 sizes an empty combo by
+  // inserting a measuring item with gtk_combo_box_text_insert(), and a
+  // bitmap combo is no GtkComboBoxText (Gtk-CRITICAL).
+  wxString placeholder("XYZ (*.xyz)");
   p_bitmapCombo = new wxBitmapComboBox(this, ID_SAVE_AS_FILTER_CHOICE, "",
-          wxDefaultPosition, wxDefaultSize, 0, NULL, wxCB_READONLY);
+          wxDefaultPosition, wxDefaultSize, 1, &placeholder, wxCB_READONLY);
+  p_bitmapCombo->Clear();
 
   // HACK - (standalone) ebuilder sets this env var
   if (getenv("ECCE_NO_MESSAGING") == NULL) {
@@ -221,8 +229,39 @@ wxString SaveExperimentAsDialog::getExts() const
 }
 
 
+// A calculation is a typed collection that the Organizer, the job
+// launcher and re-opening all look up through the data server (or, in
+// local mode, the local data folder).  Any other local directory only
+// holds plain files: Builder::createCalculation() refuses to open one.
+static bool canHoldCalculations(const wxString& dir)
+{
+  EcceURL url(dir.ToStdString());
+  if (!url.isLocal()) return true;
+  string root = LocalData::dir();
+  if (root.empty()) return false;
+  string path = dir.ToStdString();
+  if (path.compare(0, 7, "file://") == 0) path = path.substr(7);
+  return path == root || path.compare(0, root.size() + 1, root + "/") == 0;
+}
+
+
 void SaveExperimentAsDialog::EndModal(int retCode)
 {
+  if (retCode == wxID_OK && p_bitmapCombo->GetSelection() < p_imageIndex &&
+      !canHoldCalculations(GetDirectory())) {
+    const char *msg = LocalData::dir().empty()
+        ? "Calculations can only be saved in a project on the data server. "
+          "Choose the data server as the location, or save the structure "
+          "as a file (CAR, MVM, NWChem, PDB or XYZ)."
+        : "Calculations can only be saved in a project in the local data "
+          "folder. Choose it as the location, or save the structure as a "
+          "file (CAR, MVM, NWChem, PDB or XYZ).";
+    if (getenv("ECCE_TEST_SAVEAS"))
+      fprintf(stderr, "ECCE_TEST_SAVEAS: refused: %s\n", msg);
+    else
+      wxMessageBox(msg, "Save As", wxOK | wxICON_EXCLAMATION, this);
+    return;
+  }
   if (retCode == wxID_OK) {
     saveSettings();
   }
