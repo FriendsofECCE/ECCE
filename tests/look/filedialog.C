@@ -50,7 +50,13 @@ class Dlg : public ewxGenericFileDialog
         for (int n = 0; n < m_list->GetItemCount(); n++)
           printf("  %s\n", (const char*) m_list->GetItemText(n).utf8_str());
       }
-      m_choice->SetSelection(0);
+      // Programmatic path (as WxCalcImport/CalcMgr use): the displayed choice
+      // and the list must both follow.
+      SetFilterIndex(m_choice->GetCount() - 1);
+      SetFilterIndex(0);
+      printf("FINAL %s\n", (const char*) m_choice->GetStringSelection().utf8_str());
+      for (int n = 0; n < m_list->GetItemCount(); n++)
+        printf("  %s\n", (const char*) m_list->GetItemText(n).utf8_str());
       Layout();
       int listY = m_list->GetRect().y;
       for (wxWindowList::iterator it = GetChildren().begin();
