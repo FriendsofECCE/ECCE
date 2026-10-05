@@ -37,6 +37,8 @@
 class wxPanel;
 class wxSpinCtrlDouble;
 class wxListCtrl;
+class wxListBox;
+class wxHyperlinkCtrl;
 class wxListEvent;
 class wxCollapsiblePane;
 class wxBitmapButton;
@@ -102,10 +104,23 @@ class WxMachineRegister: public ewxFrame
             wxWindow *undoBox;
             wxBitmapButton *undo;
             wxSizer *box;
+            wxWindow *scroll;             // the tab's scrolled window
             BlockRow() : heading(NULL), siteLabel(NULL), yoursLabel(NULL),
                          tag(NULL), note(NULL), site(NULL), user(NULL),
                          none(NULL), copy(NULL), undoBox(NULL), undo(NULL),
-                         box(NULL) {}
+                         box(NULL), scroll(NULL) {}
+        };
+
+        //  A one-line setting of the code selected on the Codes tab (program,
+        //  files to remove): its key is the code's name plus `suffix`.
+        struct CodeLine {
+            string id, suffix;
+            wxTextCtrl *ctrl;
+            wxStaticText *name, *tag;
+            wxWindow *undoBox;
+            wxBitmapButton *undo;
+            CodeLine() : ctrl(NULL), name(NULL), tag(NULL), undoBox(NULL),
+                         undo(NULL) {}
         };
 
         //  Construction
@@ -169,7 +184,28 @@ class WxMachineRegister: public ewxFrame
         void cfgTagInfo(const string& key, bool cppOnly,
                         MachineConfigDraft::Tag& tag, string& tip) const;
         void addBlock(wxWindow* page, wxSizer* sizer, const string& id,
-                      const string& title);
+                      const string& title, wxWindow* scroll = NULL);
+        void relayout(const BlockRow& b);
+        string blockKey(const string& id) const;
+        void addCodeLine(wxWindow* page, wxFlexGridSizer* grid,
+                         const string& id, const string& label,
+                         const string& suffix, const string& tip);
+        CodeLine* codeLine(const string& id);
+        string codeLineKey(const CodeLine& l) const;
+        void codeLineToControl(CodeLine& l);
+        void codeLinesToControls();
+        void codeLinesTags();
+        void codeLineUndo(const string& id);
+        void syncCodeLines(MachineConfigDraft* draft);
+        void fillCodeList();
+        void showCode();
+        void selectCode(int index);
+        bool selectCodeByName(const string& name);
+        bool codeInUse(const string& name) const;
+        void setCodeAdvanced(bool on);
+        void trackFocus(wxTextCtrl* t);
+        wxTextCtrl* insertTarget(string& where) const;
+        bool insertWord(const string& word);
         BlockRow* block(const string& id);
         string headerKey() const;
         void blocksToControls();
@@ -184,6 +220,7 @@ class WxMachineRegister: public ewxFrame
         void blocksCheckCsh();
         void editFile();
         void showWords();
+        wxHyperlinkCtrl* wordsLink(wxWindow* page);
         string rawFileText() const;
         string rawFileCheck(const string& text, bool& errors) const;
         bool rawFileSave(const string& text, string& err);
@@ -281,6 +318,18 @@ class WxMachineRegister: public ewxFrame
                             *p_helpButton;
         vector<ewxTextCtrl*> p_codePaths;
         vector<string>       p_codeNames;
+        vector<CodeLine>     p_codeLines;
+        vector<int>          p_codeShown;   // list row -> p_codeNames index
+        int                  p_codeSel;
+        wxListBox           *p_codeList;
+        wxStaticText        *p_codeTitle;
+        wxWindow            *p_codePage;
+        wxPanel             *p_codeAdvanced;
+        wxButton            *p_codeAdvBtn;
+        wxTextCtrl          *p_lastText;    // the box last typed in
+        wxListCtrl          *p_wordsList;
+        wxButton            *p_wordsInsert;
+        wxStaticText        *p_wordsWhere;
         std::map<string, wxWindow*> p_fields;
 
         bool                 p_adminFlag;

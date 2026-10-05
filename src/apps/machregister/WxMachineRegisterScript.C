@@ -266,6 +266,39 @@ int MachRegScript::runCommand(const vector<string>& w)
     }
     else if (cmd == "click" && n == 2) click(w[1]);
     else if (cmd == "words") f->showWords();
+    else if (cmd == "code" && n == 2)
+    {
+        if (!f->selectCodeByName(w[1])) fail("code " + w[1] + ": not listed");
+    }
+    else if (cmd == "focus" && n == 2)
+    {
+        wxTextCtrl* t = dynamic_cast<wxTextCtrl*>(f->field(w[1]));
+        if (t == NULL) fail("focus " + w[1]);
+        else { t->SetFocus(); f->p_lastText = t; }
+    }
+    else if (cmd == "cursor" && n == 3)
+    {
+        wxTextCtrl* t = dynamic_cast<wxTextCtrl*>(f->field(w[1]));
+        if (t == NULL) fail("cursor " + w[1]);
+        else t->SetInsertionPoint(atoi(w[2].c_str()));
+    }
+    else if ((cmd == "words-pick" || cmd == "words-activate") && n == 2)
+    {
+        wxListCtrl* l = f->p_wordsList;
+        long row = -1;
+        for (long i = 0; l && i < l->GetItemCount(); i++)
+            if ((string)l->GetItemText(i) == w[1]) row = i;
+        if (row < 0) fail(cmd + " " + w[1] + ": no such placeholder");
+        else if (cmd == "words-pick")
+            l->SetItemState(row, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
+        else
+        {
+            wxListEvent ev(wxEVT_LIST_ITEM_ACTIVATED, l->GetId());
+            ev.SetEventObject(l);
+            ev.m_itemIndex = row;
+            l->GetEventHandler()->ProcessEvent(ev);
+        }
+    }
     else if (cmd == "mark-size") { p_size = f->GetSize(); }
     else if (cmd == "queue-apply") click("queue-apply");
     else if (cmd == "queue-remove") click("queue-remove");
@@ -346,6 +379,13 @@ int MachRegScript::runCommand(const vector<string>& w)
         {
             wxWindow* win = f->field(w[2]);
             expectEq("enabled " + w[2], win && win->IsEnabled() ? "1" : "0", w[3]);
+        }
+        else if (what == "code-listed" && n >= 4)
+        {
+            bool listed = false;
+            for (size_t i = 0; i < f->p_codeShown.size(); i++)
+                if (f->p_codeNames[f->p_codeShown[i]] == w[2]) listed = true;
+            expectEq("code-listed " + w[2], listed ? "1" : "0", w[3]);
         }
         else if (what == "tab")
         {

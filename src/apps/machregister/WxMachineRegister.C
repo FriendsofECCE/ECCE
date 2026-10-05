@@ -15,6 +15,7 @@
 #include <regex>
 #include <set>
 
+#include <sstream>
 #include "wx/wxprec.h"
 
 #ifndef WX_PRECOMP
@@ -38,6 +39,7 @@
 #include "wx/statline.h"
 #include "wx/timer.h"
 #include "wx/hyperlink.h"
+#include "wx/listbox.h"
 #include "wx/dialog.h"
 
 #include "util/BrowserHelp.H"
@@ -75,6 +77,8 @@
 #include "MemoryUnits.H"
 
 typedef MachineConfigDraft MCD;
+
+static string plainTag(MCD::Tag t);
 
 static const char* const TITLE = "ECCE Machine Registration";
 
@@ -143,6 +147,16 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
     p_cshTimer = NULL;
     p_rawDlg = NULL;
     p_wordsDlg = NULL;
+    p_wordsList = NULL;
+    p_wordsInsert = NULL;
+    p_wordsWhere = NULL;
+    p_codeSel = 0;
+    p_codeList = NULL;
+    p_codeTitle = NULL;
+    p_codePage = NULL;
+    p_codeAdvanced = NULL;
+    p_codeAdvBtn = NULL;
+    p_lastText = NULL;
     p_scripted = getenv("ECCE_MACHREG_SCRIPT") != NULL;
     p_codeNames = CodeFactory::getFullySupportedCodeNames();
 
@@ -644,27 +658,480 @@ wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
 
 wxWindow* WxMachineRegister::createCodesPage(wxWindow* parent)
 {
+    wxBoxSizer* outer = new wxBoxSizer(wxHORIZONTAL);
+    ewxScrolledWindow* page = newPage(parent, outer);
+    p_codePage = page;
+    wxColour gray = wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT);
+
+    //  The codes, with a star on those that have a program path.
+    wxBoxSizer* left = new wxBoxSizer(wxVERTICAL);
+    outer->Add(left, wxSizerFlags().Expand().Border());
+    p_codeList = new wxListBox(page, wxID_ANY, wxDefaultPosition,
+                               wxSize(170, 230));
+    left->Add(p_codeList, wxSizerFlags(1).Expand());
+    wxStaticText* star = new wxStaticText(page, wxID_ANY,
+                                          "* has a program path");
+    star->SetFont(star->GetFont().Smaller());
+    star->SetForegroundColour(gray);
+    left->Add(star, wxSizerFlags().Border(wxTOP, 4));
+    reg("code:list", p_codeList);
+    p_codeList->Bind(wxEVT_LISTBOX, [this](wxCommandEvent& e) {
+        int row = p_codeList->GetSelection();
+        if (row != wxNOT_FOUND && row < (int)p_codeShown.size())
+            this->selectCode(p_codeShown[row]);
+        e.Skip(false);
+    });
+
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-    ewxScrolledWindow* page = newPage(parent, sizer);
+    outer->Add(sizer, wxSizerFlags(1).Expand());
 
-    sizer->Add(new wxStaticText(page, wxID_ANY,
-        "Where each code is installed on the machine. A code with no path "
-        "is not offered for this machine."), wxSizerFlags().Border());
+    p_codeTitle = new wxStaticText(page, wxID_ANY, "");
+    wxFont tf = p_codeTitle->GetFont().Bold();
+    tf.SetFractionalPointSize(tf.GetFractionalPointSize() * 1.2);
+    p_codeTitle->SetFont(tf);
+    sizer->Add(p_codeTitle, wxSizerFlags().Border(wxLEFT|wxRIGHT|wxTOP));
+    reg("code:title", p_codeTitle);
 
-    wxFlexGridSizer* grid = new wxFlexGridSizer(2, 0, 0);
+    wxFlexGridSizer* grid = new wxFlexGridSizer(4, 0, 0);
     grid->AddGrowableCol(1);
     sizer->Add(grid, wxSizerFlags().Expand());
+    addCodeLine(page, grid, "code", "Program", "",
+                "Where the program is installed on the machine. A code with "
+                "no program is not offered for this machine.");
 
-    for (size_t i = 0; i < p_codeNames.size(); i++)
-    {
-        ewxTextCtrl* txt = new ewxTextCtrl(page, wxID_ANY);
-        grid->Add(new ewxStaticText(page, wxID_ANY, p_codeNames[i]),
-                  wxSizerFlags().Right().Border().CentreVertical());
-        grid->Add(txt, wxSizerFlags(1).Expand().Border().CentreVertical());
-        p_codePaths.push_back(txt);
-        reg("code:" + lowerOf(p_codeNames[i]), txt);
-    }
+    //  Environment: gensub does not replace placeholders here.
+    addBlock(page, sizer, "cenv", "Environment variables", page);
+    wxStaticText* envHelp = new wxStaticText(page, wxID_ANY,
+        "One \"NAME value\" per line, exported in the job script before the "
+        "program starts. A name that contains PATH is added to the end of "
+        "what the variable already holds; any other name replaces it.");
+    envHelp->SetFont(envHelp->GetFont().Smaller());
+    envHelp->SetForegroundColour(gray);
+    envHelp->Wrap(560);
+    sizer->Add(envHelp, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+
+    //  Command line.
+    addBlock(page, sizer, "ccmd", "Command line", page);
+    wxBoxSizer* cmdRow = new wxBoxSizer(wxHORIZONTAL);
+    sizer->Add(cmdRow, wxSizerFlags().Expand().Border(wxLEFT|wxRIGHT));
+    wxStaticText* cmdHelp = new wxStaticText(page, wxID_ANY,
+        "When this is empty, ECCE's built-in command is used.");
+    cmdHelp->SetFont(cmdHelp->GetFont().Smaller());
+    cmdHelp->SetForegroundColour(gray);
+    cmdRow->Add(cmdHelp, wxSizerFlags(1).CentreVertical());
+    cmdRow->Add(wordsLink(page), wxSizerFlags().CentreVertical());
+    reg("cmd:help", cmdHelp);
+
+    //  Not a wxCollapsiblePane: that resizes the frame when it toggles.
+    p_codeAdvBtn = new wxButton(page, wxID_ANY,
+        wxString::FromUTF8("\xe2\x96\xb8 Advanced"),
+        wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT|wxBORDER_NONE);
+    p_codeAdvBtn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        this->setCodeAdvanced(!p_codeAdvanced->IsShown());
+    });
+    reg("code:advanced", p_codeAdvBtn);
+    sizer->Add(p_codeAdvBtn, wxSizerFlags().Border());
+    p_codeAdvanced = new wxPanel(page);
+    p_codeAdvanced->Hide();
+    sizer->Add(p_codeAdvanced, wxSizerFlags().Expand().Border());
+    wxWindow* adv = p_codeAdvanced;
+    wxBoxSizer* advBox = new wxBoxSizer(wxVERTICAL);
+    adv->SetSizer(advBox);
+
+    wxStaticText* advNote = new wxStaticText(adv, wxID_ANY,
+        "Commands here replace the ones on the Job script tab, for this "
+        "code only.");
+    advNote->SetFont(advNote->GetFont().Smaller());
+    advNote->SetForegroundColour(gray);
+    advBox->Add(advNote, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+    addBlock(adv, advBox, "csetup", "Commands run before the program", page);
+    addBlock(adv, advBox, "cwrapup", "Commands run after the program", page);
+    wxFlexGridSizer* files = new wxFlexGridSizer(4, 0, 0);
+    files->AddGrowableCol(1);
+    advBox->Add(files, wxSizerFlags().Expand().Border(wxTOP));
+    addCodeLine(adv, files, "files", "Files removed after the run",
+                "FilesToRemove",
+                "Names or patterns, separated by spaces, deleted from the "
+                "run directory when the job has finished.");
+    addCodeLine(adv, files, "prelim", "Files removed before the run",
+                "PrelimFilesToRemove",
+                "Names or patterns, separated by spaces, deleted from the "
+                "run directory before the program starts.");
+    setCodeAdvanced(false);
     return page;
+}
+
+
+//  One of the selected code's one-line settings.  The program line owns
+//  every code's path box and shows the selected one.
+void WxMachineRegister::addCodeLine(wxWindow* page, wxFlexGridSizer* grid,
+                                    const string& id, const string& label,
+                                    const string& suffix, const string& tip)
+{
+    CodeLine l;
+    l.id = id;
+    l.suffix = suffix;
+    l.name = new ewxStaticText(page, wxID_ANY, label);
+    l.name->SetMinSize(wxSize(190, -1));
+    grid->Add(l.name, wxSizerFlags().Right().Border().CentreVertical());
+
+    if (id == "code")
+    {
+        wxBoxSizer* col = new wxBoxSizer(wxVERTICAL);
+        for (size_t i = 0; i < p_codeNames.size(); i++)
+        {
+            ewxTextCtrl* txt = new ewxTextCtrl(page, wxID_ANY);
+            txt->SetToolTip(tip);
+            txt->SetHint("e.g. /opt/" + lowerOf(p_codeNames[i]) + "/bin/" +
+                         lowerOf(p_codeNames[i]));
+            txt->Hide();
+            col->Add(txt, wxSizerFlags().Expand());
+            p_codePaths.push_back(txt);
+            reg("code:" + lowerOf(p_codeNames[i]), txt);
+        }
+        grid->Add(col, wxSizerFlags(1).Expand().Border().CentreVertical());
+        l.ctrl = p_codePaths.empty() ? NULL : p_codePaths[0];
+    }
+    else
+    {
+        l.ctrl = new ewxTextCtrl(page, wxID_ANY);
+        l.ctrl->SetToolTip(tip);
+        l.ctrl->SetHint("e.g. *.tmp core");
+        grid->Add(l.ctrl, wxSizerFlags(1).Expand().Border().CentreVertical());
+        reg("code:" + id, l.ctrl);
+    }
+
+    l.tag = new wxStaticText(page, wxID_ANY, "");
+    l.tag->SetFont(l.tag->GetFont().Smaller());
+    l.tag->SetMinSize(wxSize(l.tag->GetTextExtent("from server  ").x, -1));
+    grid->Add(l.tag, wxSizerFlags().Border().CentreVertical());
+    l.undo = makeUndo(page, l.undoBox);
+    l.undo->Bind(wxEVT_BUTTON, [this, id](wxCommandEvent&) {
+        this->codeLineUndo(id);
+    });
+    grid->Add(l.undoBox, wxSizerFlags().Border().CentreVertical());
+    reg("tag:" + id, l.tag);
+    reg("undo:" + id, l.undo);
+    p_codeLines.push_back(l);
+}
+
+
+WxMachineRegister::CodeLine* WxMachineRegister::codeLine(const string& id)
+{
+    for (size_t i = 0; i < p_codeLines.size(); i++)
+        if (p_codeLines[i].id == id)
+            return &p_codeLines[i];
+    return NULL;
+}
+
+
+string WxMachineRegister::codeLineKey(const CodeLine& l) const
+{
+    return p_codeNames.empty() ? string() : p_codeNames[p_codeSel] + l.suffix;
+}
+
+
+void WxMachineRegister::codeLineToControl(CodeLine& l)
+{
+    if (p_draft == NULL || p_codeNames.empty())
+        return;
+    string v;
+    bool has = p_draft->effective(codeLineKey(l), v);
+    if (l.id == "code")
+    {
+        l.ctrl = p_codePaths[p_codeSel];
+        return;                 // the path boxes are filled with the machine
+    }
+    static_cast<wxTextCtrl*>(l.ctrl)->ChangeValue(has ? v : "");
+}
+
+
+void WxMachineRegister::codeLinesToControls()
+{
+    for (size_t i = 0; i < p_codeLines.size(); i++)
+        codeLineToControl(p_codeLines[i]);
+}
+
+
+//  A key the machine itself sets: its own file or the site's CONFIG, not the
+//  defaults every machine gets from submit.site or a vendor file.
+static bool keySet(const MCD::KeyState& ks)
+{
+    if (ks.edit != MCD::Inherit)
+        return true;
+    for (size_t i = 0; i < ks.inherited.size(); i++)
+        if (ks.inherited[i].source == "site" || ks.inherited[i].source == "user")
+            return true;
+    return false;
+}
+
+
+//  A code is listed when it is live, or when the machine already has a
+//  setting for it (a retired code that a site still configures).
+bool WxMachineRegister::codeInUse(const string& name) const
+{
+    static const char* const suffix[] = { "", "Command", "Environment",
+        "FilesToRemove", "PrelimFilesToRemove" };
+    if (p_draft == NULL)
+        return false;
+    for (size_t k = 0; k < 5; k++)
+    {
+        const MCD::KeyState* ks = p_draft->state(name + suffix[k]);
+        if (ks != NULL && keySet(*ks))
+            return true;
+    }
+    for (const char* x : { "_setup", "_wrapup" })
+    {
+        const MCD::KeyState* ks = p_draft->state(lowerOf(name) + x);
+        if (ks != NULL && keySet(*ks))
+            return true;
+    }
+    for (size_t i = 0; i < p_codeNames.size(); i++)
+        if (p_codeNames[i] == name &&
+            !strip((string)p_codePaths[i]->GetValue()).empty())
+            return true;
+    return false;
+}
+
+
+//  Rebuild the list for the loaded machine and show the selected code.
+void WxMachineRegister::fillCodeList()
+{
+    static const std::set<string> retired = { "Gaussian-03", "Gaussian-98",
+                                              "GAMESS-UK", "Amica" };
+    p_codeList->Clear();
+    p_codeShown.clear();
+    for (size_t i = 0; i < p_codeNames.size(); i++)
+        if (!retired.count(p_codeNames[i]) || codeInUse(p_codeNames[i]))
+        {
+            p_codeShown.push_back((int)i);
+            p_codeList->Append(p_codeNames[i]);
+        }
+    if (p_codeShown.empty())
+        return;
+    if (std::find(p_codeShown.begin(), p_codeShown.end(), p_codeSel) ==
+        p_codeShown.end())
+        p_codeSel = p_codeShown[0];
+    showCode();
+}
+
+
+//  Everything on the tab that depends on the selected code, except the
+//  blocks (blocksToControls does those).
+void WxMachineRegister::showCode()
+{
+    if (p_codeNames.empty())
+        return;
+    const string& name = p_codeNames[p_codeSel];
+    for (size_t i = 0; i < p_codePaths.size(); i++)
+        p_codePaths[i]->Show((int)i == p_codeSel);
+    p_codeTitle->SetLabel(name);
+    for (size_t r = 0; r < p_codeShown.size(); r++)
+        if (p_codeShown[r] == p_codeSel)
+            p_codeList->SetSelection((int)r);
+    codeLinesToControls();
+
+    //  Open Advanced when it holds something for this code.
+    bool used = false;
+    if (p_draft != NULL)
+    {
+        const char* keys[] = { "_setup", "_wrapup" };
+        for (size_t k = 0; k < 2; k++)
+        {
+            const MCD::KeyState* ks = p_draft->state(lowerOf(name) + keys[k]);
+            used = used || (ks != NULL && keySet(*ks));
+        }
+        for (size_t k = 0; k < p_codeLines.size(); k++)
+        {
+            if (p_codeLines[k].suffix.empty())
+                continue;
+            const MCD::KeyState* ks = p_draft->state(
+                codeLineKey(p_codeLines[k]));
+            used = used || (ks != NULL && keySet(*ks));
+        }
+    }
+    if (used && !p_codeAdvanced->IsShown())
+        setCodeAdvanced(true);
+    else
+    {
+        p_codePage->Layout();
+        static_cast<wxScrolledWindow*>(p_codePage)->FitInside();
+    }
+}
+
+
+void WxMachineRegister::selectCode(int index)
+{
+    if (index < 0 || index >= (int)p_codeNames.size())
+        return;
+    //  What was typed belongs to the code it was typed for.
+    if (p_draft != NULL && index != p_codeSel)
+        this->syncDraft();
+    p_codeSel = index;
+    bool was = p_inCtrlUpdate;
+    p_inCtrlUpdate = true;
+    showCode();
+    blocksToControls();
+    p_inCtrlUpdate = was;
+    updateDirty();
+}
+
+
+bool WxMachineRegister::selectCodeByName(const string& name)
+{
+    for (size_t r = 0; r < p_codeShown.size(); r++)
+        if (lowerOf(p_codeNames[p_codeShown[r]]) == lowerOf(name))
+        {
+            selectCode(p_codeShown[r]);
+            return true;
+        }
+    return false;
+}
+
+
+//  Lays out inside the tab only; the frame keeps its size.
+void WxMachineRegister::setCodeAdvanced(bool on)
+{
+    p_codePage->GetSizer()->Show(p_codeAdvanced, on, true);
+    p_codeAdvBtn->SetLabel(wxString::FromUTF8(on ? "\xe2\x96\xbe Advanced"
+                                                 : "\xe2\x96\xb8 Advanced"));
+    p_codePage->Layout();
+    static_cast<wxScrolledWindow*>(p_codePage)->FitInside();
+}
+
+
+//  Tag, tooltip and undo button of the selected code's lines, and the stars.
+void WxMachineRegister::codeLinesTags()
+{
+    if (p_draft == NULL || p_codeNames.empty())
+        return;
+    for (size_t i = 0; i < p_codeLines.size(); i++)
+    {
+        const CodeLine& l = p_codeLines[i];
+        string key = codeLineKey(l);
+        const MCD::KeyState* ks = p_draft->state(key);
+        if (ks == NULL)
+            continue;
+        MCD::Tag t;
+        string tip;
+        cfgTagInfo(key, false, t, tip);
+        wxString text = plainTag(t);
+        if (l.tag->GetLabel() != text)
+            l.tag->SetLabel(text);
+        l.tag->SetForegroundColour(wxSystemSettings::GetColour(
+            (t == MCD::TagYours || t == MCD::TagNoValue ||
+             t == MCD::TagSiteEditing) ? wxSYS_COLOUR_WINDOWTEXT
+                                       : wxSYS_COLOUR_GRAYTEXT));
+        tip += "\nCONFIG key: " + ks->name;
+        if (l.tag->GetToolTipText() != tip)
+            l.tag->SetToolTip(tip);
+        int uc = undoCase(key, false);
+        if (l.undo->IsShown() != (uc != 0))
+            l.undo->Show(uc != 0);
+        l.undo->SetToolTip(undoTip(uc, "value"));
+    }
+    for (size_t r = 0; r < p_codeShown.size(); r++)
+    {
+        int i = p_codeShown[r];
+        bool has = !strip((string)p_codePaths[i]->GetValue()).empty();
+        wxString want = p_codeNames[i] + (has ? "  *" : "");
+        if (p_codeList->GetString(r) != want)
+            p_codeList->SetString(r, want);
+    }
+}
+
+
+void WxMachineRegister::codeLineUndo(const string& id)
+{
+    CodeLine* l = codeLine(id);
+    if (l == NULL || p_draft == NULL)
+        return;
+    this->syncDraft();
+    string key = codeLineKey(*l);
+    undoKey(key, p_draft->changed(key));
+    p_inCtrlUpdate = true;
+    if (id == "code")
+    {
+        string v;
+        p_draft->effective(key, v);
+        p_codePaths[p_codeSel]->SetValue(v);
+    }
+    else
+        codeLineToControl(*l);
+    p_inCtrlUpdate = false;
+    this->updateDirty();
+}
+
+
+void WxMachineRegister::syncCodeLines(MCD* draft)
+{
+    for (size_t i = 0; i < p_codeLines.size(); i++)
+    {
+        const CodeLine& l = p_codeLines[i];
+        if (l.suffix.empty() || p_codeNames.empty())
+            continue;
+        syncKey(draft, codeLineKey(l),
+                (string)static_cast<wxTextCtrl*>(l.ctrl)->GetValue());
+    }
+}
+
+
+//  Remember the last box typed in, so a placeholder can go there.
+void WxMachineRegister::trackFocus(wxTextCtrl* t)
+{
+    t->Bind(wxEVT_SET_FOCUS, [this, t](wxFocusEvent& e) {
+        p_lastText = t;
+        e.Skip();
+    });
+}
+
+
+//  The box a placeholder is inserted into: the one last focused if it can
+//  be edited now, else the main box of the visible tab.
+wxTextCtrl* WxMachineRegister::insertTarget(string& where) const
+{
+    auto describe = [this](wxTextCtrl* t, string& name) {
+        for (size_t i = 0; i < p_blocks.size(); i++)
+            if (p_blocks[i].user == t && p_blocks[i].id != "cenv")
+            {
+                name = (string)p_blocks[i].heading->GetLabel();
+                return true;
+            }
+        return false;
+    };
+    auto usable = [](wxTextCtrl* t) {
+        return t != NULL && t->IsEnabled() && t->IsShownOnScreen();
+    };
+    wxTextCtrl* t = p_lastText;
+    if (usable(t) && describe(t, where))
+        return t;
+    const BlockRow* main = NULL;
+    for (size_t i = 0; i < p_blocks.size(); i++)
+    {
+        const string& id = p_blocks[i].id;
+        wxWindow* cur = p_book->GetCurrentPage();
+        if ((id == "header" && cur == p_jobPage) ||
+            (id == "ccmd" && cur == p_codePage))
+            main = &p_blocks[i];
+    }
+    if (main != NULL && usable(main->user))
+    {
+        where = (string)main->heading->GetLabel();
+        return main->user;
+    }
+    return NULL;
+}
+
+
+bool WxMachineRegister::insertWord(const string& word)
+{
+    string where;
+    wxTextCtrl* t = insertTarget(where);
+    if (t == NULL)
+        return false;
+    t->WriteText(word);
+    p_lastText = t;
+    return true;
 }
 
 
@@ -677,15 +1144,7 @@ wxWindow* WxMachineRegister::createJobScriptPage(wxWindow* parent)
     p_jobNote = new wxStaticText(page, wxID_ANY, "");
     sizer->Add(p_jobNote, wxSizerFlags().Border());
 
-    //  The words come from gensub's provideVariables().
-    wxHyperlinkCtrl* vars = new wxHyperlinkCtrl(page, wxID_ANY,
-        "Available words...", "");
-    vars->SetToolTip("The $words that are replaced when a job is submitted");
-    vars->Bind(wxEVT_HYPERLINK, [this](wxHyperlinkEvent&) {
-        this->showWords();
-    });
-    sizer->Add(vars, wxSizerFlags().Border(wxLEFT|wxRIGHT));
-    reg("header:variables", vars);
+    sizer->Add(wordsLink(page), wxSizerFlags().Border(wxLEFT|wxRIGHT));
 
     addBlock(page, sizer, "header", "");
 
@@ -719,10 +1178,12 @@ wxWindow* WxMachineRegister::createJobScriptPage(wxWindow* parent)
 
 //  One block: heading, the inherited text (read-only), then the user's.
 void WxMachineRegister::addBlock(wxWindow* page, wxSizer* sizer,
-                                 const string& id, const string& title)
+                                 const string& id, const string& title,
+                                 wxWindow* scroll)
 {
     BlockRow b;
     b.id = id;
+    b.scroll = scroll != NULL ? scroll : page;
     b.box = new wxBoxSizer(wxVERTICAL);
     sizer->Add(b.box, wxSizerFlags().Expand());
 
@@ -770,6 +1231,8 @@ void WxMachineRegister::addBlock(wxWindow* page, wxSizer* sizer,
         wxSize(-1, 90), wxTE_MULTILINE|wxTE_DONTWRAP);
     b.user->SetFont(mono);
     b.box->Add(b.user, wxSizerFlags().Expand().Border(wxLEFT|wxRIGHT));
+    if (id != "cenv")
+        trackFocus(b.user);
 
     b.note = new wxStaticText(page, wxID_ANY, "");
     b.note->SetFont(b.note->GetFont().Smaller());
@@ -1239,6 +1702,21 @@ bool WxMachineRegister::showPage(const string& name)
 
 //  ---- loading a machine ---------------------------------------------------
 
+//  Every CONFIG key of one code, in the spelling the readers document.
+static vector<string> codeKeys(const string& code)
+{
+    vector<string> k;
+    k.push_back(code);
+    k.push_back(code + "Command");
+    k.push_back(code + "Environment");
+    k.push_back(code + "FilesToRemove");
+    k.push_back(code + "PrelimFilesToRemove");
+    k.push_back(lowerOf(code) + "_setup");
+    k.push_back(lowerOf(code) + "_wrapup");
+    return k;
+}
+
+
 MCD* WxMachineRegister::newDraft(const string& refName) const
 {
     MCD::Mode mode = p_adminFlag ? MCD::AdminMode
@@ -1259,7 +1737,8 @@ MCD* WxMachineRegister::newDraft(const string& refName) const
                 p_scripted ? "FAIL " : "", err.c_str());
         vector<string> keys;
         for (size_t i = 0; i < p_codeNames.size(); i++)
-            keys.push_back(p_codeNames[i]);
+            for (const string& k : codeKeys(p_codeNames[i]))
+                keys.push_back(k);
         for (size_t i = 0; i < p_cfgRows.size(); i++)
             keys.push_back(p_cfgRows[i].key);
         keys.push_back("setup");
@@ -1269,7 +1748,8 @@ MCD* WxMachineRegister::newDraft(const string& refName) const
         draft->loadFiles(keys);
     }
     for (size_t i = 0; i < p_codeNames.size(); i++)
-        draft->ensureKey(p_codeNames[i]);
+        for (const string& k : codeKeys(p_codeNames[i]))
+            draft->ensureKey(k);
     for (size_t i = 0; i < p_cfgRows.size(); i++)
         draft->ensureKey(p_cfgRows[i].key);
     draft->ensureKey("setup");
@@ -1404,6 +1884,7 @@ void WxMachineRegister::draftToControls()
         p_draft->effective(p_codeNames[i], v);
         p_codePaths[i]->SetValue(v);
     }
+    this->fillCodeList();
     this->cfgToControls();
 
     if (p_slctRgstn != NULL)
@@ -2103,6 +2584,11 @@ void WxMachineRegister::cfgUndo(const string& key)
         this->blockUndo(key);
         return;
     }
+    if (codeLine(key) != NULL)
+    {
+        this->codeLineUndo(key);
+        return;
+    }
     this->syncDraft();
     vector<string> ks;
     if (lowerOf(key) == "jobs")
@@ -2228,6 +2714,7 @@ void WxMachineRegister::syncKeys(MCD* draft)
     jobsFromRadios();
     for (size_t i = 0; i < p_cfgRows.size(); i++)
         syncCfg(draft, p_cfgRows[i]);
+    this->syncCodeLines(draft);
     this->syncBlocks(draft);
 }
 
@@ -2300,6 +2787,7 @@ void WxMachineRegister::updateDirty()
     bool dirty = this->isDirty();
     this->cfgTags();
     this->blocksTags();
+    this->codeLinesTags();
     p_saveButton->Enable(dirty && hasMinimalInput());
     wxString title = dirty ? wxString("*") + TITLE : wxString(TITLE);
     if ((string)this->GetTitle() != (string)title)
@@ -2472,6 +2960,9 @@ bool WxMachineRegister::verifyInput()
     //  Values land on one line of CONFIG.<machine>, and "-" there means
     //  "no value".
     vector<ewxTextCtrl*> texts = p_codePaths;
+    for (size_t i = 0; i < p_codeLines.size(); i++)
+        if (p_codeLines[i].id != "code")
+            texts.push_back(static_cast<ewxTextCtrl*>(p_codeLines[i].ctrl));
     for (size_t i = 0; i < p_cfgRows.size(); i++)
         if (p_cfgRows[i].kind == CfgText)
             texts.push_back(static_cast<ewxTextCtrl*>(p_cfgRows[i].ctrl));
@@ -2751,7 +3242,7 @@ void WxMachineRegister::blocksToControls()
 void WxMachineRegister::blockToControl(BlockRow& b)
 {
     bool header = b.id == "header";
-    b.key = header ? headerKey() : b.id;
+    b.key = blockKey(b.id);
     string qm = (string)p_qmgrChoice->GetStringSelection();
 
     if (header)
@@ -2799,11 +3290,35 @@ void WxMachineRegister::blockToControl(BlockRow& b)
         b.copy->Show(hasInh);
         b.note->Show(!b.note->GetLabel().empty());
     }
-    if (p_jobPage != NULL)
+    relayout(b);
+}
+
+
+void WxMachineRegister::relayout(const BlockRow& b)
+{
+    if (b.scroll != NULL)
     {
-        p_jobPage->Layout();
-        static_cast<wxScrolledWindow*>(p_jobPage)->FitInside();
+        b.scroll->Layout();
+        static_cast<wxScrolledWindow*>(b.scroll)->FitInside();
     }
+}
+
+
+//  The CONFIG key a block edits.  The Codes tab's blocks follow the code
+//  selected in the list.  gensub reads <Code>Environment and <Code>Command
+//  with the code's own spelling and lower-cases the whole key, so the case
+//  does not matter; _setup and _wrapup are written in lower case.
+string WxMachineRegister::blockKey(const string& id) const
+{
+    if (id == "header")
+        return headerKey();
+    if (id[0] != 'c' || p_codeNames.empty())
+        return id;
+    const string& code = p_codeNames[p_codeSel];
+    if (id == "cenv") return code + "Environment";
+    if (id == "ccmd") return code + "Command";
+    if (id == "csetup") return lowerOf(code) + "_setup";
+    return lowerOf(code) + "_wrapup";
 }
 
 
@@ -2950,42 +3465,97 @@ static void cshNotices(const string& text, int firstLine, vector<string>& out)
 }
 
 
+//  gensub's doEnvironment() takes the first two blank-separated words of a
+//  line as NAME and value and drops the rest.
+static string envNotice(const string& text)
+{
+    string msg;
+    std::istringstream in(text);
+    string line;
+    int n = 0, found = 0;
+    while (std::getline(in, line))
+    {
+        n++;
+        string l = strip(line);
+        if (l.empty())
+            continue;
+        size_t sp = l.find(' ');
+        string rest = sp == string::npos ? "" : strip(l.substr(sp));
+        string what;
+        if (sp == string::npos)
+            what = "has no value after the name";
+        else if (rest.find(' ') != string::npos)
+            what = "has a value with spaces; only \"" +
+                   rest.substr(0, rest.find(' ')) + "\" is used";
+        if (what.empty())
+            continue;
+        if (++found <= 3)
+            msg += (msg.empty() ? "" : "\n") + string("Line ") +
+                   std::to_string(n) + " " + what + ".";
+    }
+    if (found > 3)
+        msg += "\n... and " + std::to_string(found - 3) + " more";
+    return msg;
+}
+
+
 void WxMachineRegister::blocksCheckCsh()
 {
-    static const char* ids[] = { "setup", "wrapup" };
-    for (size_t k = 0; k < 2; k++)
+    static const char* ids[] = { "setup", "wrapup", "csetup", "cwrapup",
+                                 "cenv" };
+    for (size_t k = 0; k < sizeof(ids) / sizeof(ids[0]); k++)
     {
         BlockRow* b = block(ids[k]);
         if (b == NULL)
             continue;
         string t = b->user->IsEnabled() ? strip((string)b->user->GetValue())
                                         : string();
-        vector<string> found;
-        if (!t.empty())
-            cshNotices(b->id + " {\n" + t + "\n}\n", 2, found);
         string msg;
-        for (size_t i = 0; i < found.size() && i < 3; i++)
-            msg += (i ? "\n" : "") + found[i];
-        if (found.size() > 3)
-            msg += "\n... and " + std::to_string(found.size() - 3) + " more";
-        if (!msg.empty())
-            msg += "\nJob scripts are POSIX sh; the job script cannot be "
-                   "made until this is fixed.";
+        if (b->id == "cenv")
+            msg = envNotice(t);
+        else
+        {
+            vector<string> found;
+            if (!t.empty())
+                cshNotices(b->id + " {\n" + t + "\n}\n", 2, found);
+            for (size_t i = 0; i < found.size() && i < 3; i++)
+                msg += (i ? "\n" : "") + found[i];
+            if (found.size() > 3)
+                msg += "\n... and " + std::to_string(found.size() - 3) +
+                       " more";
+            if (!msg.empty())
+                msg += "\nJob scripts are POSIX sh; the job script cannot be "
+                       "made until this is fixed.";
+        }
         if (b->note->GetLabel() != wxString(msg))
         {
             b->note->SetLabel(msg);
             b->note->Show(!msg.empty());
-            if (p_jobPage != NULL)
-            {
-                p_jobPage->Layout();
-                static_cast<wxScrolledWindow*>(p_jobPage)->FitInside();
-            }
+            relayout(*b);
         }
     }
 }
 
 
-//  What gensub's provideVariables() replaces, as a table.
+//  The link under the text boxes the placeholders work in.
+wxHyperlinkCtrl* WxMachineRegister::wordsLink(wxWindow* page)
+{
+    wxHyperlinkCtrl* link = new wxHyperlinkCtrl(page, wxID_ANY,
+        "Placeholders: $queue, $nodes, ...", "");
+    link->SetToolTip("The $words ECCE replaces when a job is submitted, "
+                     "and how to insert them");
+    link->Bind(wxEVT_HYPERLINK, [this](wxHyperlinkEvent&) {
+        this->showWords();
+    });
+    reg(p_codePage == NULL || page != p_codePage ? "header:variables"
+                                                 : "cmd:variables", link);
+    return link;
+}
+
+
+//  What gensub's provideVariables() replaces, as a table.  It is applied to
+//  the scheduler header, setup, wrap-up and the program's command line, not
+//  to the environment.
 void WxMachineRegister::showWords()
 {
     if (p_wordsDlg != NULL)
@@ -2995,7 +3565,7 @@ void WxMachineRegister::showWords()
         { "$nodes", "number of nodes" },
         { "$totalprocs", "total number of processors" },
         { "$ppn", "processors per node" },
-        { "$wallTime", "wall time as h:m:s" },
+        { "$wallTime", "wall time as h:m:s, e.g. 02:00:00" },
         { "$wallHrMin", "wall time as hours and minutes" },
         { "$wallSeconds", "wall time in seconds" },
         { "$cpuTime", "CPU time" },
@@ -3015,32 +3585,83 @@ void WxMachineRegister::showWords()
         { "$mdSystemName", "name of the molecular dynamics system" },
         { "$mdCalcName", "name of the molecular dynamics calculation" },
     };
-    wxDialog* dlg = new wxDialog(this, wxID_ANY, "Available words",
-        wxDefaultPosition, wxSize(560, 560),
+    wxDialog* dlg = new wxDialog(this, wxID_ANY, "Placeholders",
+        wxDefaultPosition, wxSize(600, 760),
         wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER);
     wxBoxSizer* root = new wxBoxSizer(wxVERTICAL);
     dlg->SetSizer(root);
+
+    wxStaticText* eg = new wxStaticText(dlg, wxID_ANY,
+        "ECCE replaces each placeholder when the job is submitted: "
+        "\"#SBATCH --time=$wallTime\" becomes \"#SBATCH --time=02:00:00\".");
+    eg->Wrap(560);
+    root->Add(eg, wxSizerFlags().Border());
+
     wxListCtrl* list = new wxListCtrl(dlg, wxID_ANY, wxDefaultPosition,
                                       wxDefaultSize, wxLC_REPORT|wxLC_SINGLE_SEL);
-    list->InsertColumn(0, "Word", wxLIST_FORMAT_LEFT, 140);
-    list->InsertColumn(1, "Meaning", wxLIST_FORMAT_LEFT, 380);
+    list->InsertColumn(0, "Placeholder", wxLIST_FORMAT_LEFT, 140);
+    list->InsertColumn(1, "What it becomes", wxLIST_FORMAT_LEFT, 400);
     for (size_t i = 0; i < sizeof(words) / sizeof(words[0]); i++)
     {
         long r = list->InsertItem(i, words[i][0]);
         list->SetItem(r, 1, words[i][1]);
     }
-    root->Add(list, wxSizerFlags(1).Expand().Border());
+    root->Add(list, wxSizerFlags(1).Expand().Border(wxLEFT|wxRIGHT));
     wxStaticText* note = new wxStaticText(dlg, wxID_ANY,
-        "A request line whose word is empty is left out. The same words "
-        "work in the two command blocks.");
-    note->Wrap(520);
-    root->Add(note, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+        "A request line whose placeholder is empty is left out. The "
+        "placeholders work in the request lines, the setup and wrap-up "
+        "commands and a command line, not in the environment variables.");
+    note->Wrap(560);
+    root->Add(note, wxSizerFlags().Border());
+
+    wxStaticText* where = new wxStaticText(dlg, wxID_ANY, "");
+    root->Add(where, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+    wxBoxSizer* buttons = new wxBoxSizer(wxHORIZONTAL);
+    wxButton* insert = new ewxButton(dlg, wxID_ANY, "&Insert");
     wxButton* close = new ewxButton(dlg, wxID_CLOSE, "&Close");
-    root->Add(close, wxSizerFlags().Right().Border());
+    buttons->Add(insert, wxSizerFlags().Border());
+    buttons->AddStretchSpacer(1);
+    buttons->Add(close, wxSizerFlags().Border());
+    root->Add(buttons, wxSizerFlags().Expand());
+
+    p_wordsList = list;
+    p_wordsInsert = insert;
+    p_wordsWhere = where;
+
+    //  Says where Insert would put the word, or why it cannot.
+    auto refresh = [this]() {
+        string name;
+        wxTextCtrl* t = insertTarget(name);
+        p_wordsInsert->Enable(t != NULL);
+        p_wordsInsert->SetToolTip(t != NULL ? wxString("Insert the selected "
+            "placeholder at the cursor") : wxString("There is no text box on "
+            "this tab to insert into. Open the Job script tab (with a queue "
+            "manager set) or the Codes tab."));
+        p_wordsWhere->SetLabel(t != NULL
+            ? "Insert goes into: " + name + " (double-click a placeholder)"
+            : "Nothing to insert into on this tab.");
+    };
+    auto doInsert = [this, refresh](long row) {
+        if (row < 0)
+            return;
+        insertWord((string)p_wordsList->GetItemText(row));
+        refresh();
+    };
+    insert->Bind(wxEVT_BUTTON, [this, doInsert](wxCommandEvent&) {
+        doInsert(p_wordsList->GetNextItem(-1, wxLIST_NEXT_ALL,
+                                          wxLIST_STATE_SELECTED));
+    });
+    list->Bind(wxEVT_LIST_ITEM_ACTIVATED, [doInsert](wxListEvent& e) {
+        doInsert(e.GetIndex());
+    });
+    refresh();
 
     bool modal = !p_scripted;
     auto finish = [this, dlg, modal]() {
         p_wordsDlg = NULL;
+        p_wordsList = NULL;
+        p_wordsInsert = NULL;
+        p_wordsWhere = NULL;
         p_fields.erase("words:dialog");
         if (modal)
             dlg->EndModal(wxID_CLOSE);
@@ -3051,6 +3672,8 @@ void WxMachineRegister::showWords()
     dlg->Bind(wxEVT_CLOSE_WINDOW, [finish](wxCloseEvent&) { finish(); });
     reg("words:dialog", dlg);
     reg("words:close", close);
+    reg("words:insert", insert);
+    reg("words:where", where);
     p_wordsDlg = dlg;
     dlg->CentreOnParent();
     if (modal)
@@ -3059,7 +3682,10 @@ void WxMachineRegister::showWords()
         dlg->Destroy();
     }
     else
+    {
         dlg->Show();
+        refresh();
+    }
 }
 
 

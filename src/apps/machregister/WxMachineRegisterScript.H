@@ -21,6 +21,9 @@
  *    shot-dialog FILE | expect raw-dialog 0|1 | contains FIELD TEXT   the Advanced: edit file dialog
  *    (set accepts \\n for a line break in the multi-line boxes)
  *    undo KEY       the undo button of a Connection row (jobs: the radios)
+ *    code NAME | expect code-listed NAME 0|1   the Codes tab's list
+ *    focus FIELD | cursor FIELD POS | words | words-pick WORD | words-activate WORD
+ *      | click words:insert   insert a placeholder at the cursor of the last box
  *  Source tags are fields named tag:KEY, e.g. expect label tag:shell site.
  */
 #ifndef WXMACHINEREGISTERSCRIPT_HH
