@@ -33,6 +33,7 @@
 #include "util/JMSMessage.H"
 #include "util/JMSPublisher.H"
 #include "util/KeyValueReader.H"
+#include "util/ProcessMachine.H"
 #include "util/SFile.H"
 #include "util/STLUtil.H"
 #include "util/StringConverter.H"
@@ -673,9 +674,9 @@ void WxMachineRegister::queueChangeButtonClickedCB(wxCommandEvent& event)
     }
     else if (!std::regex_match(name, std::regex("^[A-Za-z0-9_.-]+$")))
     {
-        //  Queue names are later written into a CGI-style settings
-        //  string and read on the other end of a shell pipe by
-        //  processmachine -- keep them to a safe character set (#131).
+        //  <machine>.Q separates queue names with spaces and keys with
+        //  '|', so a name cannot hold either (#131); processmachine
+        //  refuses the same set.
         displayMessage("Queue name '" + name + "' is not valid.\n"
             "Queue names may contain only letters, digits, '_', '.' and '-'.");
     }
@@ -740,26 +741,7 @@ bool WxMachineRegister::saveRegistration()
         string settings = "type=accept";
         settings += collectSettings();
 
-        string cmd = Ecce::ecceHome();
-        cmd += "/scripts/processmachine";
-
-        string s = "CONTENT_LENGTH=" + StringConverter::toString((int)(settings.length()));
-        char* s1 = strdup(s.c_str());
-        putenv(s1);
-
-        //  Feed settings on stdin rather than building a shell command
-        //  line out of them -- settings can contain arbitrary path/
-        //  machine-name text and the old "echo \"...\" | processmachine"
-        //  form ran that text through the shell unescaped (#131).
-        int status = -1;
-        FILE* pipe = popen(cmd.c_str(), "w");
-
-        if (pipe != NULL)
-        {
-            fwrite(settings.data(), 1, settings.length(), pipe);
-            status = pclose(pipe);
-            status = status >> 8;
-        }
+        int status = ProcessMachine::run(settings);
 
         if (status != 0)
             displayMessage("Unable to save changes to machine registration!");
@@ -799,7 +781,7 @@ void WxMachineRegister::machineDeleteButtonClickedCB(wxCommandEvent& event)
 
     if (confirmRemove(refName))
     {
-        int result = this->removeMachine();
+        int result = this->removeMachine(refName);
 
         if (result != 0)
             displayMessage("Unable to delete registered machine!");
@@ -1331,6 +1313,12 @@ bool WxMachineRegister::verifyInput()
         result = false;
         displayMessage("Both Machine and Name must be specified.");
     }
+    else if (refName.find_first_of("/\t\r\n") != string::npos)
+    {
+        //  The name is part of file names and a tab-separated line.
+        result = false;
+        displayMessage("Name may not contain '/', tabs or line breaks.");
+    }
     else if (k == 0 && p_qnames.size() > 0)
     {
         result = false;
@@ -1380,110 +1368,76 @@ void WxMachineRegister::displayMessage(string mesg)
 
 string WxMachineRegister::collectSettings() const
 {
-
-
+    typedef ProcessMachine PM;
     int i, n;
     string ret;
     string tmp;
 
-    ret += "&siteconfig=" + StringConverter::toString(p_adminFlag);
-    ret += "&machine=" + p_machineFullNameText->GetValue();
-    ret += "&name=" + p_machineRefNameText->GetValue();
+    ret += PM::field("siteconfig", StringConverter::toString(p_adminFlag));
+    ret += PM::field("machine", (string)p_machineFullNameText->GetValue());
+    ret += PM::field("name", (string)p_machineRefNameText->GetValue());
 
-    ret += "&vendor=";
     tmp = p_machineVendorText->GetValue();
-    ret += (tmp == "") ? "Unspecified" : tmp;
-
-    ret += "&model=";
+    ret += PM::field("vendor", (tmp == "") ? "Unspecified" : tmp);
     tmp = p_machineModelText->GetValue();
-    ret += (tmp == "") ? "Unspecified" : tmp;
-
-    ret += "&processor=";
+    ret += PM::field("model", (tmp == "") ? "Unspecified" : tmp);
     tmp = p_machineProcessorText->GetValue();
-    ret += (tmp == "") ? "Unspecified" : tmp;
+    ret += PM::field("processor", (tmp == "") ? "Unspecified" : tmp);
 
-    int nodes = p_machineNumNodesSpin->GetValue();
-    int procs = p_machineNumProcsSpin->GetValue();
+    ret += PM::field("procs", StringConverter::toString(p_machineNumProcsSpin->GetValue()));
+    ret += PM::field("nodes", StringConverter::toString(p_machineNumNodesSpin->GetValue()));
 
-    ret += "&procs=" + StringConverter::toString(procs);
-    ret += "&nodes=" + StringConverter::toString(nodes);
+    ret += PM::field("ssh", StringConverter::toString(p_remshellsCheckboxes[0]->IsChecked()));
+    ret += PM::field("sshftp", StringConverter::toString(p_remshellsCheckboxes[1]->IsChecked()));
+    ret += PM::field("sshpass", StringConverter::toString(p_remshellsCheckboxes[2]->IsChecked()));
 
-
-    ret += "&ssh=" + StringConverter::toString(p_remshellsCheckboxes[0]->IsChecked());
-    ret += "&sshftp=" + StringConverter::toString(p_remshellsCheckboxes[1]->IsChecked());
-    ret += "&sshpass=" + StringConverter::toString(p_remshellsCheckboxes[2]->IsChecked());
-
-    // Applications - first pass in list of all known codes.  Then one by
-    // one, pass in info for each code.
-    ret.append("&registeredcodes=");
-
+    // Applications - first the list of all known codes, then one by one
+    // the path for each code.
+    tmp = "";
     for (i = 0; i < p_codePaths.size(); i++)
     {
         if (i > 0)
-        {
-            ret.append(",");
-        }
-
-        tmp = p_codeNames[i];
-
-
-        ret.append(tmp);
+            tmp += ",";
+        tmp += p_codeNames[i];
     }
+    ret += PM::field("registeredcodes", tmp);
 
     for (i = 0; i < p_codePaths.size(); i++)
     {
-        ret.append("&");
-        ret.append(p_codeNames[i]);
-        ret.append("=");
-
         tmp = p_codePaths[i]->GetValue();
-
         if (tmp.find("EMSL default") != string::npos)
-        {
-            ret.append("EMSL");
-        }
-        else
-        {
-            ret.append(tmp);
-        }
+            tmp = "EMSL";
+        ret += PM::field(p_codeNames[i], tmp);
     }
 
     // Other paths
-    ret += "&perlPath=";
     tmp = (string)(p_miscPathsText[0]->GetValue());
-
     if (tmp.find("EMSL default") != string::npos)
-    {
-        ret += "EMSL";
-    }
-    else
-    {
-        ret += tmp;
-    }
-
-    ret += "&qmgrPath=";
+        tmp = "EMSL";
+    ret += PM::field("perlPath", tmp);
 
     // Only an "-admin" invocation will have a queue manager path
+    tmp = "";
     if (p_miscPathsText.size() > 1)
-      ret += p_miscPathsText[1]->GetValue();
+        tmp = p_miscPathsText[1]->GetValue();
+    ret += PM::field("qmgrPath", tmp);
 
     // Queue related stuff
-    ret += "&AA=" + StringConverter::toString(p_queueAllctnAcctsCheckbox->IsChecked());
-    ret += "&qmgr=";
-    ret += p_queueManagerChoicebox->GetStringSelection();
+    ret += PM::field("AA", StringConverter::toString(p_queueAllctnAcctsCheckbox->IsChecked()));
+    ret += PM::field("qmgr", (string)p_queueManagerChoicebox->GetStringSelection());
 
     n = p_qnames.size();
-    ret += "&numQueues=" + StringConverter::toString(n);
+    ret += PM::field("numQueues", StringConverter::toString(n));
 
     for (i = 0; i < n; i++)
     {
-        ret += "&q" + StringConverter::toString(i) + "=";
-        ret += "name|" + p_qnames[i] + ",";
-        ret += "minNodes|" + StringConverter::toString(p_minProcs[i]) + ",";
-        ret += "maxNodes|" + StringConverter::toString(p_maxProcs[i]) + ",";
-        ret += "maxCPU|" + StringConverter::toString(p_maxWall[i]) + ",";
-        ret += "maxMemory|" + StringConverter::toString(p_maxMem[i]) + ",";
-        ret += "minScratch|" + StringConverter::toString(p_minScratch[i]) + ",";
+        tmp = "name|" + p_qnames[i] + ",";
+        tmp += "minNodes|" + StringConverter::toString(p_minProcs[i]) + ",";
+        tmp += "maxNodes|" + StringConverter::toString(p_maxProcs[i]) + ",";
+        tmp += "maxCPU|" + StringConverter::toString(p_maxWall[i]) + ",";
+        tmp += "maxMemory|" + StringConverter::toString(p_maxMem[i]) + ",";
+        tmp += "minScratch|" + StringConverter::toString(p_minScratch[i]) + ",";
+        ret += PM::field("q" + StringConverter::toString(i), tmp);
     }
 
     return ret;
@@ -1695,20 +1649,14 @@ void WxMachineRegister::showQueue(string refName)
 }
 
 
-int WxMachineRegister::removeMachine()
+//  The selected registration is deleted, not whatever name is in the form.
+int WxMachineRegister::removeMachine(const string& refName)
 {
     string settings = "type=delete";
-    settings += collectSettings();
-    string cmd = "echo \"";
-    cmd += settings + "\" | processmachine";
-    string s1 = "CONTENT_LENGTH=" + StringConverter::toString((int)(settings.length()));
-    char *s = strdup(s1.c_str());
-    putenv(s);
-
-    int result = system(cmd.c_str());
-    result = result >> 8;
-
-    return result;
+    settings += ProcessMachine::field("siteconfig",
+                                      StringConverter::toString(p_adminFlag));
+    settings += ProcessMachine::field("name", refName);
+    return ProcessMachine::run(settings);
 }
 
 

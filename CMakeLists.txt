@@ -1758,6 +1758,9 @@ if(PYTHON3_EXECUTABLE)
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/fragreaders-home)
   set_tests_properties(fragreaders PROPERTIES ENVIRONMENT
     "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
+  # tests/queues/pmform: the GUI's processmachine form encoder.
+  add_executable(pmform tests/queues/pmform.C)
+  target_link_libraries(pmform PRIVATE ecceutil)
 
   add_test(NAME launch
            COMMAND ${PYTHON3_EXECUTABLE}
