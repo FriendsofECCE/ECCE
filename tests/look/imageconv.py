@@ -32,6 +32,8 @@ def convertVariants(binary, env, out):
     bare RGB file, all decoded by ImageConverter, against the source PNG."""
     from PIL import Image, ImageChops
     src = os.path.join(out, "ethanolamine.im.png")
+    subprocess.run(["convert", os.path.join(out, "ethanolamine.rgb"), src],
+                   check=True)
     ref = Image.open(src).convert("RGB")
     w, h = ref.size
     res = []
