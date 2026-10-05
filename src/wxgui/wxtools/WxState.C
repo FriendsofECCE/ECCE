@@ -23,6 +23,8 @@ using std::endl;
 #include "wx/wx.h"
 #endif
 #include "wx/brush.h"
+#include <wx/graphics.h>
+#include <vector>
 
 #include <iostream>
 using namespace std;
@@ -273,9 +275,9 @@ ResourceDescriptor::RUNSTATE WxState::getRunState() const
  */
 void WxState::refresh()
 {
-  wxPaintDC dc(this);
-  dc.SetBackground(GetBackgroundColour());
-  draw(dc, p_currentState, p_useSystemColor);
+  // A wxPaintDC is only valid inside a paint event; with the graphics
+  // context used by draw() it crashes elsewhere.
+  Refresh();
 }
 
 
@@ -305,67 +307,90 @@ void WxState::draw(wxDC & dc, ResourceDescriptor::RUNSTATE currentState,
   
   // Clear existing drawing within the given rectangle (or dc)
   dc.SetBrush(dc.GetBackground().GetColour());
-  dc.SetPen(dc.GetBackground().GetColour());
+  dc.SetPen(*wxTRANSPARENT_PEN);
   dc.DrawRectangle(x, y, width, height);
 
-  // Now set the brush and pen for the current state
-  dc.SetBrush( *p_brushes[useSystemColor?1:0][currentState]);
-  dc.SetPen( *p_pens[useSystemColor?1:0][currentState]);
+  if (currentState == ResourceDescriptor::STATE_ILLEGAL) {
+    dc.SetBrush( *p_brushes[useSystemColor?1:0][currentState]);
+    dc.SetPen( *p_pens[useSystemColor?1:0][currentState]);
+    // a stop sign
+    dc.DrawRoundedRectangle(0, 0, width, height, 5);
+    return;
+  }
 
+  // The 1 px stroke is centred on the path, so the path is inset by 1.5 px:
+  // the stroke then lies inside the icon, on whole pixels.  Filled-only
+  // shapes get the same inset so all icons look equally large.
+  const double inset = 1.5;
+  const double l = x + inset, t = y + inset;
+  const double r = x + width - inset, b = y + height - inset;
+  const double cx = (l + r) / 2, cy = (t + b) / 2;
+  std::vector<wxPoint2DDouble> pts;
+  bool circle = false;
   switch (currentState) {
   case ResourceDescriptor::STATE_CREATED:
   case ResourceDescriptor::STATE_READY:
-    {
-      wxPoint tri[3] = {
-              wxPoint(x, height + y), 
-			        wxPoint(width + x, height + y), 
-			        wxPoint(width/2 + x, y)
-      };
-      dc.DrawPolygon(3, tri);
-      break;
-    }
+    pts = { {cx, t}, {r, b}, {l, b} };
+    break;
   case ResourceDescriptor::STATE_SUBMITTED:
   case ResourceDescriptor::STATE_RUNNING:
-    dc.DrawCircle(width/2 + x, height/2 + y,
-                  width < height ? width/2 : height/2);
+    circle = true;
     break;
   case ResourceDescriptor::STATE_COMPLETED:
   case ResourceDescriptor::STATE_LOADED:
-    dc.DrawRectangle(x, y, width, height);
+    pts = { {l, t}, {r, t}, {r, b}, {l, b} };
     break;
   case ResourceDescriptor::STATE_UNSUCCESSFUL:
   case ResourceDescriptor::STATE_FAILED:
   case ResourceDescriptor::STATE_SYSTEM_FAILURE:
-    {
-      float offset = width*0.15;
-      wxPoint diamond[4] = {
-              wxPoint(width/2 + x, y), 
-              wxPoint((int)(width-offset/2.0) + x, height/2 + y),
-              wxPoint(width/2 + x, height-(int)(offset/2.0)+y), 
-              wxPoint((int)(offset/2.0) + x, height/2 + y)
-      };
-      dc.DrawPolygon(4, diamond);
-      break;
-    }
+    pts = { {cx, t}, {r, cy}, {cx, b}, {l, cy} };
+    break;
   case ResourceDescriptor::STATE_KILLED:
     {
-      float offset = width*0.15;
-      wxPoint coffin[6] = {
-              wxPoint(width/2 - 2 + x, y),
-              wxPoint(width/2 + 2 + x, y),
-              wxPoint((int)(width-offset/2.0) + x, (int)(height/3.0) + y),
-              wxPoint((int)(width/2.0 + 2.0) + x, height + y), 
-              wxPoint((int)(width/2.0 - 2.0) + x, height + y),
-              wxPoint((int)(offset/2.0) + x, (int)(height/3.0) + y)
-      };
-      dc.DrawPolygon(6, coffin);
+      double hw = (r - l) * 0.15; // half width of the top and bottom edges
+      pts = { {cx - hw, t}, {cx + hw, t}, {r, t + (b - t) / 3},
+              {cx + hw, b}, {cx - hw, b}, {l, t + (b - t) / 3} };
       break;
     }
-  case ResourceDescriptor::STATE_ILLEGAL:
-    // a stop sign
-    dc.DrawRoundedRectangle(0, 0, width, height, 5);
   default:
-    break;
+    return;
+  }
+
+  wxBrush brush(*p_brushes[useSystemColor?1:0][currentState]);
+  wxPen pen(*p_pens[useSystemColor?1:0][currentState]);
+  pen.SetWidth(1);
+  pen.SetJoin(wxJOIN_ROUND); // a miter would stick out past a sharp apex
+
+  // Antialiased through a graphics context when the DC allows it.
+  wxGraphicsContext* gc = wxGraphicsContext::CreateFromUnknownDC(dc);
+  if (gc) {
+    gc->SetAntialiasMode(wxANTIALIAS_DEFAULT);
+    gc->EnableOffset(false); // paths are already in exact device coordinates
+    gc->SetBrush(brush);
+    gc->SetPen(pen);
+    if (circle) {
+      gc->DrawEllipse(l, t, r - l, b - t);
+    } else {
+      wxGraphicsPath path = gc->CreatePath();
+      path.MoveToPoint(pts[0]);
+      for (size_t i = 1; i < pts.size(); i++)
+        path.AddLineToPoint(pts[i]);
+      path.CloseSubpath();
+      gc->DrawPath(path);
+    }
+    delete gc;
+    return;
+  }
+
+  dc.SetBrush(brush);
+  dc.SetPen(pen);
+  if (circle) {
+    dc.DrawEllipse(wxRound(l), wxRound(t), wxRound(r - l), wxRound(b - t));
+  } else {
+    std::vector<wxPoint> ip;
+    for (size_t i = 0; i < pts.size(); i++)
+      ip.push_back(wxPoint(wxRound(pts[i].m_x), wxRound(pts[i].m_y)));
+    dc.DrawPolygon((int)ip.size(), &ip[0]);
   }
 }
 
@@ -461,7 +486,9 @@ ewxPanel* WxState::createLegend(wxWindow* parent)
  */
 void WxState::OnPaint( wxPaintEvent& event )
 {
-  refresh();
+  wxPaintDC dc(this);
+  dc.SetBackground(GetBackgroundColour());
+  draw(dc, p_currentState, p_useSystemColor);
 }
 
 
