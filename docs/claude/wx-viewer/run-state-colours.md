@@ -1,6 +1,6 @@
 ---
 type: rule
-title: "Run-state colours: submitted is Okabe-Ito orange so it stays apart from running's green; checked by tests/look/contrast.py"
+title: "Run-state colours: submitted yellow, created sky blue, pale fills outlined in light themes; checked by tests/look/contrast.py"
 area: wx-viewer
 paths: ["data/client/config/EcceGlobal", "src/wxgui/wxtools/WxState.C", "include/wxgui/WxState.H", "tests/look/contrast.py", "tests/look/cvd.py", "tests/look/statelegend.py", "src/apps/organizer/CalcMgr.C"]
 issues: ["210"]
@@ -11,17 +11,23 @@ completed/loaded; diamond: unsuccessful/failed/system; coffin: killed), so
 within a shape only colour tells them apart. They are icons only, never text.
 
 Submitted and running (both circles) were once teal and green at the same
-lightness and looked alike. Running keeps its green (Andy's choice);
-submitted is Okabe-Ito orange, #e69f00 in light themes and #f5d999 in dark.
-Orange and green merge for deuteranopes and protanopes unless their
-lightness differs, which is why the light-theme orange is *not* darkened to
-4.5:1 against the background (it is about 2:1, the one exemption).
+lightness and looked alike; created and ready (triangles) were two similar
+blues. Running keeps its green and ready its blue (Andy's choice). Orange
+means failure here, so submitted is Okabe-Ito yellow (#f0e442 light,
+#f7ee8a dark) and created Okabe-Ito sky blue (#56b4e9 light; #b0e2ff dark).
+
+Pale fills cannot reach 4.5:1 on a light background, and darkening yellow
+or sky blue to that would bring them to the lightness of green or blue and
+merge them for colour-blind users. Instead, in a light theme `WxState`
+draws a fill brighter than relative luminance 0.27 with an outline at half
+its brightness (`outlineFor`), and the outline must reach 3:1 (WCAG
+non-text). The icons are never used as text colours.
 
 `tests/look/contrast.py` (ctest `look_contrast`) checks:
-- every other colour reaches 4.5:1 against its theme's backgrounds;
-- submitted/running differ by CIEDE2000 >= 10 with normal vision and with
-  simulated deuteranopia, protanopia and tritanopia (`tests/look/cvd.py`,
-  Machado 2009);
+- every non-outlined colour reaches 4.5:1, every outline 3:1;
+- submitted/running and created/ready differ by CIEDE2000 >= 10 with
+  normal vision and simulated deuteranopia, protanopia and tritanopia
+  (`tests/look/cvd.py`, Machado 2009);
 - `EcceGlobal` and the fallback tables in `WxState.C` are equal.
 
 Not enforced, known weak: unsuccessful/failed (both diamonds) are 2.3 apart

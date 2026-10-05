@@ -10,14 +10,13 @@ logs.  Each has a light and a dark variant, and each variant must reach a
 WCAG 2 contrast ratio of 4.5:1 against every background it is drawn on,
 in the theme family it belongs to.
 
-Exception: submitted in the light theme is Okabe-Ito orange (#e69f00) at
-about 2:1.  A darker orange has running's green's lightness and the two
-merge for deuteranopes and protanopes; the run states are drawn as icons
-only, never as text.
+Run states are drawn only as icons.  In a light theme a fill too pale to
+reach 3:1 is outlined at half its brightness (WxState.C, outlineFor); for
+those the outline must reach 3:1, the WCAG non-text minimum.
 
-Submitted and running share the circle icon, so they must also differ by a
-CIEDE2000 of at least 10 with normal vision and with simulated
-deuteranopia, protanopia and tritanopia (cvd.py).
+Pairs that share an icon shape and were confused (submitted/running,
+created/ready) must differ by a CIEDE2000 of at least 10 with normal
+vision and with simulated deuteranopia, protanopia and tritanopia (cvd.py).
 
 The backgrounds are Adwaita's (GTK 3.24): a view's base colour and a
 window's background colour.  The tables are read from the files the
@@ -43,10 +42,18 @@ BACKGROUNDS = {
 TEXT = {"light": "#2e3436", "dark": "#eeeeec"}
 
 # Same-shape pairs that must stay apart under colour-vision deficiency.
-DISTINCT = [("SUBMITTED", "RUNNING")]
+DISTINCT = [("SUBMITTED", "RUNNING"), ("CREATED", "READY")]
 MIN_DELTA_E = 10.0
-# (state, family) allowed below MINIMUM; see the docstring.
-EXEMPT = {("SUBMITTED", "light")}
+NON_TEXT = 3.0
+OUTLINE_ABOVE = 0.27     # relative luminance; must match WxState.C
+
+
+def outline(colour):
+    """The outline WxState.C draws in a light theme, or None."""
+    if luminance(colour) <= OUTLINE_ABOVE:
+        return None
+    value = colour.lstrip("#")
+    return "#" + "".join("%02x" % (int(value[i:i + 2], 16) // 2) for i in (0, 2, 4))
 
 STATES = ["CREATED", "READY", "SUBMITTED", "RUNNING", "COMPLETED", "KILLED",
           "UNSUCCESSFUL", "FAILED", "LOADED", "SYSTEM"]
@@ -93,11 +100,14 @@ def main():
     checked = 0
 
     def check(what, fg, bg, where):
+        checkAt(what, fg, bg, where, MINIMUM)
+
+    def checkAt(what, fg, bg, where, minimum):
         nonlocal checked
         checked += 1
         value = ratio(fg, bg)
         line = "%-40s %s on %s (%s)  %.2f:1" % (what, fg, bg, where, value)
-        if value < MINIMUM:
+        if value < minimum:
             failures.append(line)
             print("FAIL " + line)
         elif "-v" in sys.argv:
@@ -111,9 +121,11 @@ def main():
                 failures.append("EcceGlobal has no %s colour for %s" % (family, state))
                 print("FAIL " + failures[-1])
                 continue
-            if (state, family) in EXEMPT:
-                if "-v" in sys.argv:
-                    print("skip run state %s (%s) %s: exempt" % (state.lower(), family, colour))
+            edge = outline(colour) if family == "light" else None
+            if edge:
+                for where, bg in BACKGROUNDS[family].items():
+                    checkAt("run state %s outline %s" % (state.lower(), edge),
+                            edge, bg, where, NON_TEXT)
                 continue
             for where, bg in BACKGROUNDS[family].items():
                 check("run state %s (%s)" % (state.lower(), family), colour, bg, where)
