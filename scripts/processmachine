@@ -26,13 +26,22 @@ $debugOut = "false";
 
 # This used to be a cgi POST script.  It works fine so we keep 
 # the same input method.
+# Names and values are form-encoded (the GUI encodes every byte that is
+# not [A-Za-z0-9-_.~]) and decoded exactly once, here.
+sub formDecode {
+  my ($text) = @_;
+  $text =~ tr/+/ /;
+  $text =~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C",hex($1))/eg;
+  return $text;
+}
 read(STDIN, $buffer, $ENV{'CONTENT_LENGTH'});
 @pairs = split(/&/,$buffer);
 foreach $pair (@pairs) {
-  ($name,$value) = split(/=/,$pair);
-  $value =~ tr/+/ /;
-  $value =~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C",hex($1))/eg;
-  $contents{$name} = $value;
+  ($name,$value) = split(/=/,$pair,2);
+  $value = &formDecode($value);
+  # Every value lands on one line of a file.
+  die "line break in $name - bailing..." if ($value =~ /[\r\n]/);
+  $contents{&formDecode($name)} = $value;
 }
 
 #
@@ -91,6 +100,8 @@ $configflag = "true" if ($contents{"qmgrPath"} ne "");
 $queueflag = "true";
 
 $machine = $contents{"name"};
+# The name is part of file names and of a tab-separated Machines line.
+die "machine name may not contain a tab - bailing..." if ($machine =~ /\t/);
 
 if ($siteflag eq "true") {
   $mFile = $path . "/Machines";
@@ -122,6 +133,18 @@ if ($contents{"type"} eq "delete") {
   }
   &doDelete();
 } else { 
+  die "machine name may not contain '/' - bailing..." if ($machine =~ m{/});
+  foreach $var ("machine", "vendor", "model", "processor") {
+    die "$var may not contain a tab - bailing..." if ($contents{$var} =~ /\t/);
+  }
+  # <machine>.Q separates queue names with spaces and keys with '|'.
+  for ($idx=0; $idx<$contents{"numQueues"}; $idx++) {
+    foreach $pair (split(/,/,$contents{"q".$idx})) {
+      ($key,$value) = split(/\|/,$pair,2);
+      die "queue name '$value' is not valid - bailing..."
+        if ($key eq "name" && $value !~ /^[A-Za-z0-9_.-]+$/);
+    }
+  }
   foreach $var (@addgottahaves) {
     die "$var not specified as input - bailing..." if ($var eq "") ;
   }
@@ -167,7 +190,7 @@ sub doAccept {
   }
   open(MACHINES,">$mFile") || die("Unable to open $mFile for write");
   foreach $line (@lines) { 
-   if ($line !~ /^$machine\t/) { 
+   if ($line !~ /^\Q$machine\E\t/) { 
      print MACHINES "$line";
     }
   }
@@ -476,10 +499,11 @@ sub doDelete {
     }
   }
 
-  removeFile("$path/$cFile",$useRC);
+  # A name holding '/' (hand-written, or older versions) has no files here.
+  removeFile("$path/$cFile",$useRC) if ($machine !~ m{/});
 
   if ($queueflag eq "true") {
-    removeFile("$path/$QFile",$useRC);
+    removeFile("$path/$QFile",$useRC) if ($machine !~ m{/});
 
     #
     # Strip out machine stuff from Queues file if necessary.
@@ -504,7 +528,7 @@ sub doDelete {
   close(MACHINES);
   open(MACHINES,">$mFile") || die("Unable to open $mFile for write");
   foreach $line (@lines) {
-    if ($line !~ /^$machine\t/) { 
+    if ($line !~ /^\Q$machine\E\t/) { 
       print MACHINES "$line";
     }
   }
@@ -573,7 +597,8 @@ sub checkIn {
       `$rccmd -q commit -m$message $file`;
     }
   } elsif ($changeperms{$file}) { 
-    `chmod -w $file`;
+    my $mode = (stat($file))[2] & 07777;
+    return chmod($mode & ~0222, $file) ? 0 : 1;
   }
   return $? >> 8;
 }
@@ -602,8 +627,8 @@ sub checkOut {
       $changeperms{$file} = 0; 
     } else {
       $changeperms{$file} = ($siteflag eq "true") ? 1 : 0;
-      `chmod u+w $file`;
-      $ret = $? >> 8;
+      my $mode = (stat($file))[2] & 07777;
+      $ret = chmod($mode | 0200, $file) ? 0 : 1;
     }
   }
   return $ret;
@@ -613,7 +638,7 @@ sub checkOut {
 sub removeFile {
   local($file,$doRC) = @_;
   if (-e $file) {
-    `rm -f $file`;
+    unlink($file);
     if ($doRC eq "true") {
       `$rccmd -q remove $file`;
       `$rccmd -q commit -m"deleted with Register Compute Servers application" $file`;
