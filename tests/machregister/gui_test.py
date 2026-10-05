@@ -132,7 +132,11 @@ class Env:
               "long|runLimit: 2880\nlong|memLimit: 512000\n")
         write(os.path.join(self.sc, "CONFIG.cluster"),
               "# the site's cluster\nNWChem: /site/nwchem\nperlPath: /site/perl\n"
-              "shell: tcsh\n", mode=0o644)
+              "shell: tcsh\nsourceFile: /site/modules.sh\n"
+              "qmgrPath: /site/slurm/bin\nnoRemoteAccess: yes\n"
+              "checkScratch: no\nfrontendBypass: .site.org\n", mode=0o644)
+        # only gensub reads a vendor file; the C++ view must not show it
+        write(os.path.join(self.sc, "CONFIG.Linux"), "libPath: /vendor/lib\n")
         if remote:
             # a -remote client's published copy of the server's DataServers
             write(os.path.join(self.sc, "RemoteServer", "DataServers"),
@@ -363,6 +367,259 @@ quit
           "the delete confirmation was shown")
 
 
+CPP_KEYS = ["shell", "sourcefile", "frontendmachine", "frontendbypass",
+            "perlpath", "qmgrpath", "libpath", "xappspath", "noremoteaccess",
+            "usersubmit", "singleconnect", "checkscratch"]
+DEFAULTS = {"shell": "bash", "noremoteaccess": "false", "usersubmit": "false",
+            "singleconnect": "no", "checkscratch": "true"}
+BOOLS = {"noremoteaccess": "t", "usersubmit": "t", "checkscratch": "f"}
+
+
+def explain(e, name, admin=False):
+    """GENSUB_EXPLAIN rows for the machine, key -> row."""
+    import json
+    tmp = os.path.join(e.root, "explain")
+    os.makedirs(tmp, exist_ok=True)
+    write(os.path.join(tmp, "params"),
+          " -H %s\n -Q Shell\n -c NWChem\n -d localhost\n -n 1\n -N 1\n"
+          " -r %s\n -i a\n -o a\n -f %s/submit__x\n" % (name, tmp, tmp))
+    user = os.path.join(e.root, "nouser") if admin else e.user
+    os.makedirs(user, exist_ok=True)
+    env = dict(os.environ, ECCE_HOME=e.home, ECCE_REALUSERHOME=user,
+               GENSUB_EXPLAIN="1")
+    p = subprocess.run(["perl", os.path.join(REPO, "scripts", "gensub"), "-p",
+                        os.path.join(tmp, "params")], env=env, cwd=tmp,
+                       stdout=subprocess.PIPE, text=True)
+    check(p.returncode == 0, "gensub explain ran")
+    return {r["key"]: r for r in map(json.loads, p.stdout.splitlines())}
+
+
+def cpp_view(e, build, name, admin=False):
+    user = os.path.join(e.root, "nouser") if admin else e.user
+    env = dict(os.environ, ECCE_HOME=e.home, ECCE_REALUSERHOME=user)
+    p = subprocess.run([os.path.join(build, "configdump"), name], env=env,
+                       stdout=subprocess.PIPE, text=True)
+    out = {}
+    for line in p.stdout.splitlines():
+        k, _, v = line.partition(": ")
+        out[k.lower()] = v
+    return out
+
+
+def oracle(rows, edited, admin, remote):
+    """key -> (effective value or None, tag) as C++ sees the key: layers only
+    gensub reads (submit.site, vendor) do not count."""
+    out = {}
+    for k in CPP_KEYS:
+        r = rows.get(k)
+        layers = []
+        if r:
+            for o in r["overridden"] + [r]:
+                if o["source"] in ("submit.site", "vendor"):
+                    continue
+                layers.append((o["file"], o["value"]))
+        if not layers:
+            out[k] = (None, "default")
+            continue
+        f, v = layers[-1]
+        if v is None:
+            out[k] = (None, "no value" if f == edited else
+                      "server" if remote else "site")
+        elif f == edited:
+            out[k] = (v, "site (editing)" if admin else "yours")
+        else:
+            out[k] = (v, "server" if remote else "site")
+    return out
+
+
+def shown(k, v):
+    """What the control shows for an effective value (None: the default)."""
+    if v is None:
+        v = DEFAULTS.get(k, "")
+    low = v.lower()
+    if k in BOOLS:
+        if BOOLS[k] == "t":
+            return "1" if low in ("true", "yes") else "0"
+        return "0" if low in ("false", "no") else "1"
+    if k == "singleconnect":
+        return "yes" if low in ("true", "yes") else \
+               "no" if low in ("false", "no") else "auto"
+    return v
+
+
+def connection_tab(tmp, display, build, mode):
+    admin, remote = mode == "admin", mode == "remote"
+    print("connection tab, " + mode)
+    e = Env(tmp, "conn-" + mode, remote)
+    extra = {"ECCE_REMOTE_SERVER": "server.example.org"} if remote else None
+    args = ["-admin"] if admin else []
+    write(os.path.join(e.ue, "CONFIG.cluster"), "foo: bar\n")
+    site = "site (editing)" if admin else "server" if remote else "site"
+    edited = os.path.join(e.sc if admin else e.ue, "CONFIG.cluster")
+    if admin:
+        os.chmod(edited, 0o644)
+    site_before = digest(e.sc)
+    user_before = registration(e.ue)
+
+    pre = """
+select cluster
+tab connection
+expect field shell tcsh
+expect label tag:shell '%(site)s'
+expect field sourcefile /site/modules.sh
+expect label tag:sourcefile '%(site)s'
+expect field frontendbypass .site.org
+expect field libpath ''
+expect label tag:libpath default
+expect field noremoteaccess 1
+expect label tag:noremoteaccess '%(site)s'
+expect field checkscratch 0
+expect label tag:checkscratch '%(site)s'
+expect field singleconnect no
+expect label tag:singleconnect default
+expect field usersubmit 0
+expect label tag:usersubmit default
+expect shown xappspath 0
+expect dirty 0
+expect save-enabled 0
+""" % {"site": site}
+    if admin:
+        edits = """
+set shell sh
+set sourcefile ''
+set frontendmachine login.example.org
+set perlpath /admin/perl
+set qmgrpath /admin/slurm
+set libpath /admin/lib
+set noremoteaccess 0
+set usersubmit 1
+set singleconnect auto
+set checkscratch 1
+set xappspath /admin/x
+"""
+    else:
+        edits = """
+set shell bash
+expect label tag:shell yours
+set sourcefile ''
+expect label tag:sourcefile 'no value'
+expect field sourcefile ''
+set frontendmachine login.example.org
+set perlpath /my/perl
+expect label tag:perlpath yours
+menu perlpath site
+expect field perlpath /site/perl
+expect label tag:perlpath '%(site)s'
+menu qmgrpath none
+expect label tag:qmgrpath 'no value'
+set libpath /my/lib
+menu noremoteaccess none
+expect label tag:noremoteaccess 'no value'
+expect field noremoteaccess 0
+set usersubmit 1
+set singleconnect auto
+set checkscratch 1
+set xappspath /my/x
+expect label tag:xappspath yours
+""" % {"site": site}
+    p = run(display, build, e, pre + edits + """
+expect dirty 1
+expect save-enabled 1
+save
+expect dirty 0
+quit
+""", args=args, extra=extra)
+    clean(p, "%s: set, clear and save each Connection field" % mode)
+
+    cfg = keys(edited)
+    if not admin:
+        check(cfg.get("foo") == "bar", "the hand-written key is kept")
+        check(cfg.get("shell") == "bash" and cfg.get("sourcefile") == "-" and
+              cfg.get("qmgrpath") == "-" and cfg.get("noremoteaccess") == "-"
+              and cfg.get("perlpath") is None and
+              cfg.get("libpath") == "/my/lib" and
+              cfg.get("frontendmachine") == "login.example.org" and
+              cfg.get("usersubmit") == "true" and
+              cfg.get("singleconnect") == "auto" and
+              cfg.get("checkscratch") == "true" and
+              cfg.get("xappspath") == "/my/x",
+              "user CONFIG.cluster: %r" % cfg)
+        check(digest(e.sc) == site_before, "siteconfig is untouched")
+    else:
+        check(cfg.get("shell") == "sh" and cfg.get("nwchem") == "/site/nwchem"
+              and cfg.get("sourcefile") is None and
+              cfg.get("noremoteaccess") is None and
+              cfg.get("libpath") == "/admin/lib" and
+              cfg.get("usersubmit") == "true" and
+              cfg.get("singleconnect") == "auto" and
+              cfg.get("checkscratch") is None,   # "yes" is the default
+              "site CONFIG.cluster: %r" % cfg)
+        check(registration(e.ue) == user_before,
+              "the user's files are untouched")
+
+    # gensub (explain), the C++ merged view and the window must agree
+    rows = explain(e, "cluster", admin)
+    want = oracle(rows, edited, admin, remote)
+    cpp = cpp_view(e, build, "cluster", admin)
+    bad = [(k, want[k][0], cpp.get(k)) for k in CPP_KEYS
+           if (want[k][0] or "") != cpp.get(k, "")]
+    check(not bad, "%s: gensub explain == configdump for the Connection "
+          "keys %s" % (mode, bad))
+    lines = ["select cluster", "tab connection"]
+    for k in CPP_KEYS:
+        v, tag = want[k]
+        lines.append("expect field %s '%s'" % (k, shown(k, v)))
+        lines.append("expect label tag:%s '%s'" % (k, tag))
+    lines += ["expect shown xappspath 1", "expect dirty 0", "quit"]
+    p = run(display, build, e, "\n".join(lines) + "\n", args=args, extra=extra)
+    clean(p, "%s: the window shows what gensub and configdump report, "
+          "with their tags" % mode)
+
+    if admin:
+        return
+    p = run(display, build, e, """
+select cluster
+tab connection
+menu shell site
+menu sourcefile site
+menu frontendbypass none
+expect label tag:shell '%(site)s'
+expect label tag:sourcefile '%(site)s'
+expect label tag:frontendbypass 'no value'
+save
+quit
+""" % {"site": site}, args=args, extra=extra)
+    clean(p, "%s: Use site value / Use no value, saved" % mode)
+    rows = explain(e, "cluster", admin)
+    want = oracle(rows, edited, admin, remote)
+    cfg = keys(edited)
+    check("shell" not in cfg and "sourcefile" not in cfg and
+          cfg.get("frontendbypass") == "-" and want["shell"] == ("tcsh", site) and
+          want["frontendbypass"] == (None, "no value"),
+          "%s: those three keys read back as site, site, no value: %r"
+          % (mode, cfg))
+
+
+def stage3_pngs(tmp, display, build, out):
+    print("connection tab PNGs")
+    os.makedirs(out, exist_ok=True)
+    e = Env(tmp, "pngs")
+    p = run(display, build, e, """
+select cluster
+tab connection
+wait 800
+shot %(o)s/connection-site.png
+set perlpath /my/perl
+set shell bash
+wait 500
+shot %(o)s/connection-yours.png
+menu-shot perlpath %(o)s/connection-menu.png
+""" % {"o": out})
+    clean(p, "Connection PNGs")
+    for n in sorted(os.listdir(out)):
+        print("        " + os.path.join(out, n))
+
+
 def delete_prompt_lists_files(tmp, display, build):
     print("delete confirmation")
     e = Env(tmp, "del")
@@ -454,12 +711,15 @@ def main():
     try:
         if a.snapshots:
             snapshots(tmp, disp, build, os.path.abspath(a.snapshots))
+            stage3_pngs(tmp, disp, build, os.path.abspath(a.snapshots))
         else:
             user_mode(tmp, disp, build)
             site_machine(tmp, disp, build)
             site_machine(tmp, disp, build, remote=True)
             delete_prompt_lists_files(tmp, disp, build)
             admin_mode(tmp, disp, build)
+            for m in ("user", "remote", "admin"):
+                connection_tab(tmp, disp, build, m)
     finally:
         disp.__exit__(None, None, None)
         shutil.rmtree(tmp, ignore_errors=True)
