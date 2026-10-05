@@ -318,7 +318,7 @@ void GlobalPrefs::createProgramsPage(wxWindow* page)
   termLabels.push_back("Other");
   p_terminal = makeProgramRow(sb, grid, _("Terminal:"), termLabels, termVals,
                               PrefLabels::TERMINAL);
-  p_terminal.choice->SetToolTip(_("Used only to run terminal editors such as vi, started as: terminal -e editor file. Open Shell and Tail on a remote machine use it too."));
+  p_terminal.choice->SetToolTip(_("Runs terminal editors such as vi, and the shells and Tail windows that Organizer, Launcher and MD Prepare open, local or remote"));
 
   const char* brPresets[] = {"", "firefox", "firefox-esr", "chromium"};
   vector<string> brVals(brPresets, brPresets + 4);
@@ -335,15 +335,19 @@ void GlobalPrefs::createProgramsPage(wxWindow* page)
   outer->Add(new ewxStaticText(page, wxID_ANY,
       _("Default editor: VISUAL or EDITOR if set, otherwise vi.\n"
         "Terminal editors (vi, vim, nano, emacs -nw) run in this terminal;\n"
-        "Open Shell and Tail use this terminal on a remote machine, xterm locally.\n"
+        "Shells in a calculation directory and Tail use it too, locally and remotely.\n"
         "Choose Other to type a command; it may include arguments.")),
       0, wxLEFT|wxRIGHT|wxBOTTOM, PAD*2);
 
   // Environment variables win over the settings above.
   string note = envOverrideNote("ECCE_EDITOR", "the editor");
-  string b = envOverrideNote("ECCE_BROWSER", "the browser");
-  if (!note.empty() && !b.empty()) note += "\n";
-  note += b;
+  const char* more[][2] = {{"ECCE_TERMINAL", "the terminal"},
+                           {"ECCE_BROWSER", "the browser"}};
+  for (int i = 0; i < 2; i++) {
+    string b = envOverrideNote(more[i][0], more[i][1]);
+    if (!note.empty() && !b.empty()) note += "\n";
+    note += b;
+  }
   if (!note.empty()) {
     ewxStaticText* label = new ewxStaticText(page, wxID_ANY, note);
     outer->Add(label, 0, wxLEFT|wxRIGHT|wxBOTTOM, PAD*2);

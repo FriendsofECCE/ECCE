@@ -1847,7 +1847,7 @@ void MDPrep::urlStateMCB(JMSMessage& msg)
        } else {
           wxArrayString choices;
           choices.Add("View output file");
-          choices.Add("Get xterm in run directory");
+          choices.Add("Open shell in run directory");
           ewxSingleChoiceDialog prompt(this, 
               "NWChem detected an error.  Please choose one of the following "
               "options or Cancel.","ECCE - Debug run failure!",

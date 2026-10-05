@@ -1724,6 +1724,17 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME transport_terminal COMMAND testTerminalArgv)
   set_tests_properties(transport_terminal PROPERTIES TIMEOUT 60)
 
+  # EcceShell on a local machine: the configured terminal, its directory
+  # options and quoting, with stub terminals and no display.
+  add_executable(testLocalTerminal tests/transport/testLocalTerminal.C)
+  target_compile_definitions(testLocalTerminal PRIVATE
+    ECCE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+  target_link_libraries(testLocalTerminal PRIVATE
+    eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+    eccetdat ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME transport_local_terminal COMMAND testLocalTerminal)
+  set_tests_properties(transport_local_terminal PROPERTIES TIMEOUT 60)
+
   # OpenSshTransport against a stand-in ssh script and the real `ssh -G`:
   # process handling, file copies, streams, messages, backend choice.
   add_executable(testOpenSshTransport tests/transport/testOpenSshTransport.C)

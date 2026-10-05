@@ -3553,7 +3553,7 @@ void CalcMgr::tailOutputFile(WxResourceTreeItemData *itemData)
     if (!pathFull.empty()) {
 
       if (appName != "") {
-        setMessage("Starting xterm with tail -f.  Use the "
+        setMessage("Starting a terminal with tail -f.  Use the "
                    "window manager menu to exit.", WxFeedback::INFO);
         const JCode* code = CodeFactory::lookup(appName.c_str());
         if (code) {
@@ -3562,7 +3562,7 @@ void CalcMgr::tailOutputFile(WxResourceTreeItemData *itemData)
           appName = tfile.name();
           EcceShell eshell;
           string file = pathFull + "/" + appName;
-          string cmd = "tail -f " + file;
+          string cmd = "tail -f " + EcceShell::shellQuote(file);
           string msg = eshell.cmdshell(calcName, refMachine->fullname(), shell,
                                        user, "", cmd, file);
           if (msg != "") {

@@ -15,8 +15,8 @@ class RCommand;
 class RefMachine;
 
 /**
- * Class to create loccal and remote shells (currently xterms) to
- * display information associated with a calculation.
+ * Terminals, local or over ssh, for a machine's shell or a command such as
+ * tail, in the terminal UserEditor::getTerminal() names.
  */
 class EcceShell
 {
@@ -56,6 +56,21 @@ class EcceShell
       static string remoteCommand(const string& mshell, const string& sourceFile,
                                   const string& dir, const string& cmd,
                                   string& error);
+      // Local machine: the terminal runs the machine's shell (mshell),
+      // which sources sourceFile, then runs cmd or an interactive $SHELL in
+      // dir.
+      struct LocalTerminal {
+         string title;
+         string geometry;       // xterm only
+         string mshell, sourceFile;
+         string dir;            // "" for none; "~" is expanded by the shell
+         string cmd;            // a shell command line, "" for a shell
+      };
+      // The terminal argv; false with error set.
+      static bool localTerminalArgv(const LocalTerminal& t,
+                                    vector<string>& argv, string& error);
+      // s as one sh/csh word, for building cmd from file names.
+      static string shellQuote(const string& s);
       // Starts argv detached from this process; false with error set.
       static bool spawnDetached(const vector<string>& argv, string& error);
 
@@ -65,8 +80,6 @@ class EcceShell
             const string& user, const string& password,
             const string& pathBase, const string& pathFull,
             const string& title, const string& cmd="");
-
-      string shellCmd(const string& title);
 
       string sshTerminal(RefMachine* refMachine, const string& shell,
             const string& user, const string& password,

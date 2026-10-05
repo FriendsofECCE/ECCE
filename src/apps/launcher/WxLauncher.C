@@ -2449,7 +2449,7 @@ void WxLauncher::stageLaunch()
     this->ensureEditsApplied(true);
 
     // false parameter to launchCalc causes the job not to be submitted and
-    // an xterm shell in the run directory to be created
+    // a shell in the run directory to be opened
     this->launchCalc(false);
 }
 
