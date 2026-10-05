@@ -33,6 +33,9 @@ def main():
     ap.add_argument("--libdir", default=os.path.join(ROOT, "build-cmake"))
     ap.add_argument("--ecce-home", default=ROOT)
     ap.add_argument("--tag", default="after")
+    ap.add_argument("--wxstate-src", default=os.path.join(
+        ROOT, "src/wxgui/wxtools/WxState.C"),
+        help="WxState.C compiled in over the library's copy")
     ap.add_argument("--display", default=":183")
     o = ap.parse_args()
     os.makedirs(o.outdir, exist_ok=True)
@@ -41,7 +44,9 @@ def main():
     cxx = out(["wx-config", "--cxxflags"]).stdout.split()
     libs = out(["wx-config", "--libs", "core,base,adv,html"]).stdout.split()
     cmd = (["nice", "-n", "19", "g++", "-std=c++17", "-o", binary,
-            os.path.join(HERE, "statelegend.C"),
+            os.path.join(HERE, "statelegend.C")]
+           + [o.wxstate_src]
+           + [
             "-I" + os.path.join(ROOT, "include")] + cxx
            + ["-L" + o.libdir, "-Wl,-rpath," + o.libdir]
            + ["-l" + lib for lib in LIBS]
