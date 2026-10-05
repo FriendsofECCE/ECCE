@@ -162,6 +162,10 @@ class WxMachineRegister: public ewxFrame
         void cfgTags();
         void onCfgUndo(wxCommandEvent& event);
         void cfgUndo(const string& key);
+        int undoCase(const string& key, bool cppOnly) const;
+        string undoTip(int undoCase, const string& what) const;
+        void undoKey(const string& key, bool revertOnly);
+        void setAdvanced(bool on);
         void cfgTagInfo(const string& key, bool cppOnly,
                         MachineConfigDraft::Tag& tag, string& tip) const;
         void addBlock(wxWindow* page, wxSizer* sizer, const string& id,
@@ -261,7 +265,8 @@ class WxMachineRegister: public ewxFrame
         wxWindow            *p_jobsUndoBox;
         wxBitmapButton      *p_jobsUndo;
         wxWindow            *p_cfgPage;
-        wxCollapsiblePane   *p_advanced;
+        wxPanel             *p_advanced;
+        wxButton            *p_advBtn;
         ewxStaticText       *p_localityText;
         ewxTextCtrl         *p_fullName, *p_refName, *p_vendor, *p_model,
                             *p_proc, *p_queueName;

@@ -258,8 +258,16 @@ string RefMachine::shellPath(void) const
   if (findConfig(config, "xappsPath", xdir))
     path.insert(0, xdir + ":");
 
-  if (findConfig(config, "perlPath", pdir))
+  if (findConfig(config, "perlPath", pdir)) {
+    // Configs name either the directory or the program itself, and a
+    // directory can be called perl too: add both. The shell skips a PATH
+    // entry that is not a directory.
+    string::size_type slash = pdir.rfind('/');
+    if (slash != string::npos && slash > 0 &&
+        pdir.compare(slash + 1, 4, "perl") == 0)
+      path.insert(0, pdir.substr(0, slash) + ":");
     path.insert(0, pdir + ":");
+  }
 
   if (findConfig(config, "qmgrPath", qdir))
     path.insert(0, qdir + ":");

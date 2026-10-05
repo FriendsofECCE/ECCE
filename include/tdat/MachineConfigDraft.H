@@ -94,6 +94,11 @@ public:
 
   // Make the key editable when no layer sets it; `spelling` is how a new
   // line is written.  Changes the baseline too, so it is not an edit.
+  // Has this key been edited since load/save?  revert() puts back the value
+  // as last loaded or saved.
+  bool changed(const std::string& key) const;
+  void revert(const std::string& key);
+
   void ensureKey(const std::string& spelling);
 
   std::vector<std::string> keys() const;
