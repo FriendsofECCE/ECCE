@@ -124,10 +124,8 @@ your `PATH`.
 
 **Windows and macOS**: there are no native clients yet; they are the
 goal ([#133](https://github.com/FriendsofECCE/ECCE/issues/133),
-[#232](https://github.com/FriendsofECCE/ECCE/issues/232)). The macOS CI
-build configures and compiles about 40% of the code, then stops at
-Linux-only calls in the remote-shell code. Until then, ECCE runs on
-Linux only.
+[#232](https://github.com/FriendsofECCE/ECCE/issues/232)); the state of
+the macOS build is tracked in #133. Until then, ECCE runs on Linux only.
 
 ### 2. Create your account
 
