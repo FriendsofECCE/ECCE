@@ -203,13 +203,24 @@ The site defaults live in `/opt/ecce/siteconfig/submit.site`. To change them
 for one machine, put your own block in `~/.ECCE/CONFIG.<host>` — `gensub`
 reads that file **last**, so it wins.
 
+The same rule applies to everything in a machine's CONFIG file, for `gensub`
+and for ECCE itself (`shell`, `sourceFile`, `perlPath`, `frontendMachine`,
+`noRemoteAccess`, ...): the site file `siteconfig/CONFIG.<host>` is read
+first, then `~/.ECCE/CONFIG.<host>`, and for each key the last non-empty value
+wins. Keys are case-insensitive and a repeated key keeps its last value. Set
+only what you want to change; the rest comes from the site file. To remove a
+site value, write `key: -` in your file (an empty value is ignored). A block
+(`setup { ... }`) replaces the site block whole. On a `-remote` client the
+site file is the copy of the server's, and your file merges over it the same
+way.
+
 Jobs on this machine (`localhost`) need a `CONFIG.localhost` that names the
 codes. `ecce` copies the template `siteconfig/CONFIG-Examples/CONFIG.localhost`
 (bare names such as `nwchem`, `orca`, found through `PATH`) to
 `~/.ECCE/CONFIG.localhost` on a start where you have none, and never
 overwrites it; edit your copy to pin full paths. It is not copied when an
-admin has put a `siteconfig/CONFIG.localhost` there, since the site file takes
-precedence over yours.
+admin has put a `siteconfig/CONFIG.localhost` there; a file of yours is merged
+over the site's.
 
 Variables you can use:
 
