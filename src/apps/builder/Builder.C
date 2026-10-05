@@ -36,7 +36,7 @@ using std::vector;
 #include "util/BrowserHelp.H"
 #include "util/CancelException.H"
 #include "util/CommandWrapper.H"
-#include "util/ImageConverter.H"
+#include "wxviz/ImageConverter.H"
 #include "util/Event.H"
   using ecce::Event;
 #include "util/EventDispatcher.H"

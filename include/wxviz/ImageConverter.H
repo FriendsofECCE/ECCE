@@ -1,12 +1,14 @@
 /**
- * @file 
+ * @file
  *
- *
+ * Converts the raw RGB dump written by RenderFileCmd (bottom-up 8-bit
+ * rows, no header) into an image file using wxImage, so that no external
+ * tool (ImageMagick) is needed.  It lives in wxviz rather than util
+ * because util has no wx dependency.
  */
 #ifndef IMAGECONVERTER
 #define IMAGECONVERTER
 
-// system includes
 #include <string>
   using std::string;
 
@@ -16,33 +18,18 @@
 #include "util/EcceException.H"
 #include "util/BadValueException.H"
 
-
 class ImageConverter
 {
-
    public:
       ImageConverter();
       ~ImageConverter();
 
       vector<string> outputFormats();
 
+      /** Format comes from the extension of outFile; throws EcceException. */
       void convert(const string& inFile, const string& outFile,
                    const int& width, const int& height,
-                   const int& depth, const bool& rmInFile) 
-;
-
-
-   protected:
-      void initialize();
-
-      static bool p_initialized;
-
-      static string p_mogrifyCheck; 
-      static string p_mogrifyCommand; 
-      static string p_convertCommand; 
-      static string p_command;
-
-      static vector<string> p_formats;
+                   const int& depth, const bool& rmInFile);
 };
 
 #endif

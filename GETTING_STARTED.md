@@ -117,7 +117,7 @@ cpack -G DEB
   (every ECCE process links it); Recommends `ecce-server`, `mosquitto`
   (the broker program, needed for a local session but not for a client
   of a central server), `nwchem` and `openssh-client`; Suggests
-  `imagemagick` and `www-browser` (not Depends — a client of someone
+  `www-browser` (not Depends — a client of someone
   else's central server needs neither `ecce-server` nor `nwchem`
   locally).
 - **`ecce-server`** — the per-user or central WebDAV data server (Apache
