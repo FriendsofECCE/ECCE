@@ -3802,16 +3802,22 @@ void wxTreeListMainWindow::OnIdle (wxIdleEvent &WXUNUSED(event)) {
 }
 
 void wxTreeListMainWindow::OnScroll (wxScrollWinEvent& event) {
-    // FIXME
-    // wx3.x's wxScrolled<T>::OnScroll just forwards to HandleOnScroll() (see
-    // wx/scrolwin.h) - call that directly rather than through the removed
-    // wxScrolledWindow::OnScroll chain-up.
+#if wxCHECK_VERSION(3, 3, 0)
+    // HandleOnScroll() is private from wx 3.3. A skipped event is scrolled
+    // by the scroll helper after this handler, so the header can only be
+    // invalidated here; it repaints from the new position later.
+    event.Skip();
+    if(event.GetOrientation() == wxHORIZONTAL)
+        m_owner->GetHeaderWindow()->Refresh();
+#else
+    // Handling the event here stops wx's own scrolling, so scroll first.
     HandleOnScroll( event );
 
     if(event.GetOrientation() == wxHORIZONTAL) {
         m_owner->GetHeaderWindow()->Refresh();
         m_owner->GetHeaderWindow()->Update();
     }
+#endif
 }
 
 void wxTreeListMainWindow::CalculateSize (wxTreeListItem *item, wxDC &dc) {
