@@ -22,7 +22,8 @@
 
 #include "wx/accel.h"
 #include "wx/display.h"
-#include "wx/infobar.h"
+#include "wx/artprov.h"
+#include "wx/statbmp.h"
 #include "wx/listctrl.h"
 #include "wx/notebook.h"
 #include "wx/statline.h"
@@ -299,9 +300,19 @@ wxWindow* WxMachineRegister::createMachinePage(wxWindow* parent)
     ewxScrolledWindow* page = newPage(parent, sizer);
     wxSizerFlags border = wxSizerFlags().Border();
 
-    p_info = new wxInfoBar(page);
-    p_info->SetShowHideEffects(wxSHOW_EFFECT_NONE, wxSHOW_EFFECT_NONE);
-    sizer->Add(p_info, wxSizerFlags().Expand());
+    //  Informational only: a message with an icon and no buttons (an
+    //  info bar's Close button reads like the window's own).
+    p_info = new wxPanel(page, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                         wxBORDER_SIMPLE);
+    wxBoxSizer* infoRow = new wxBoxSizer(wxHORIZONTAL);
+    infoRow->Add(new wxStaticBitmap(p_info, wxID_ANY,
+        wxArtProvider::GetBitmap(wxART_INFORMATION, wxART_MESSAGE_BOX)),
+        wxSizerFlags().Border().CentreVertical());
+    p_infoText = new wxStaticText(p_info, wxID_ANY, "");
+    infoRow->Add(p_infoText, wxSizerFlags(1).Border().CentreVertical());
+    p_info->SetSizer(infoRow);
+    p_info->Show(false);
+    sizer->Add(p_info, wxSizerFlags().Expand().Border(wxALL, 3));
 
     wxFlexGridSizer* grid = new wxFlexGridSizer(2, 0, 0);
     grid->AddGrowableCol(1);
@@ -464,13 +475,12 @@ wxWindow* WxMachineRegister::createQueuesPage(wxWindow* parent)
     row2->Add(p_queueChoice, wxSizerFlags().Border().CentreVertical());
     sizer->Add(row2);
 
-    wxFlexGridSizer* grid = new wxFlexGridSizer(3, 0, 0);
+    wxFlexGridSizer* grid = new wxFlexGridSizer(2, 0, 0);
     grid->AddGrowableCol(1);
     p_queueName = new ewxTextCtrl(page, wxID_ANY);
     grid->Add(new ewxStaticText(page, wxID_ANY, "Name"),
               wxSizerFlags().Right().Border().CentreVertical());
     grid->Add(p_queueName, wxSizerFlags(1).Expand().Border().CentreVertical());
-    grid->AddSpacer(1);
 
     struct SpinRow { ewxSpinCtrl** spin; const char* label; const char* unit;
                      int min; const char* key; };
@@ -479,7 +489,7 @@ wxWindow* WxMachineRegister::createQueuesPage(wxWindow* parent)
         { &p_qMaxProcs, "Max processors", "", 1, "q-maxprocs" },
         { &p_qMaxWall, "Max wall time", "min", 0, "q-maxwall" },
         { &p_qMaxMem, "Max memory", "GB", 0, "q-maxmem" },
-        { &p_qMinScratch, "Min scratch", "MB", 0, "q-minscratch" },
+        { &p_qMinScratch, "Min scratch", "GB", 0, "q-minscratch" },
     };
     for (size_t i = 0; i < sizeof(rows) / sizeof(rows[0]); i++)
     {
@@ -488,9 +498,12 @@ wxWindow* WxMachineRegister::createQueuesPage(wxWindow* parent)
             wxDefaultSize, wxSP_ARROW_KEYS, rows[i].min, 100000, rows[i].min);
         grid->Add(new ewxStaticText(page, wxID_ANY, rows[i].label),
                   wxSizerFlags().Right().Border().CentreVertical());
-        grid->Add(*rows[i].spin, wxSizerFlags().Border().CentreVertical());
-        grid->Add(new ewxStaticText(page, wxID_ANY, rows[i].unit),
-                  wxSizerFlags().Border().CentreVertical());
+        wxBoxSizer* cell = new wxBoxSizer(wxHORIZONTAL);
+        cell->Add(*rows[i].spin, wxSizerFlags().Border().CentreVertical());
+        if (*rows[i].unit)
+            cell->Add(new ewxStaticText(page, wxID_ANY, rows[i].unit),
+                      wxSizerFlags().CentreVertical());
+        grid->Add(cell, wxSizerFlags().CentreVertical());
         reg(rows[i].key, *rows[i].spin);
     }
     sizer->Add(grid, wxSizerFlags().Expand());
@@ -973,12 +986,14 @@ void WxMachineRegister::showSiteBanner()
               "shared by everyone using it."
             : "'" + p_loadedName + "' is a site machine, shared by everyone\n"
               "using this installation.";
-        p_info->ShowMessage(what + " Saving stores your own copy;\n"
-                            "deleting your copy brings the " + site +
-                            " one back.", wxICON_INFORMATION);
+        p_infoText->SetLabel(what + " Saving stores your own copy;\n"
+                             "deleting your copy brings the " + site +
+                             " one back.");
+        p_info->Show(true);
+        p_info->Layout();
     }
     else
-        p_info->Dismiss();
+        p_info->Show(false);
     this->growToFitSizer();
 }
 
@@ -1066,7 +1081,7 @@ void WxMachineRegister::showQueue(const string& name)
         p_qMaxMem->SetValue(r.maxMem != (unsigned)INT_MAX
                             ? MemoryUnits::mbToGB(r.maxMem) : 0);
         p_qMinScratch->SetValue(r.minScratch != (unsigned)INT_MAX
-                                ? r.minScratch : 0);
+                                ? MemoryUnits::mbToGB(r.minScratch) : 0);
         p_queueChoice->SetSelection((int)pos);
     }
     else
@@ -1091,7 +1106,7 @@ MCD::QueueRow WxMachineRegister::queueFormRow() const
     r.maxProcs = p_qMaxProcs->GetValue();
     r.maxWall = p_qMaxWall->GetValue();
     r.maxMem = MemoryUnits::gbToMB(p_qMaxMem->GetValue());
-    r.minScratch = p_qMinScratch->GetValue();
+    r.minScratch = MemoryUnits::gbToMB(p_qMinScratch->GetValue());
     return r;
 }
 

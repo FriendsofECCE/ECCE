@@ -18,7 +18,6 @@
 
 #include "wx/dcmemory.h"
 #include "wx/dcscreen.h"
-#include "wx/infobar.h"
 #include "wx/listctrl.h"
 #include "wx/notebook.h"
 #include "wx/spinctrl.h"

@@ -34,7 +34,7 @@
 
 #include "wxgui/ewxFrame.H"
 
-class wxInfoBar;
+class wxPanel;
 class wxListCtrl;
 class wxListEvent;
 class wxNotebook;
@@ -155,7 +155,8 @@ class WxMachineRegister: public ewxFrame
 
         wxNotebook          *p_book;
         wxListCtrl          *p_list;
-        wxInfoBar           *p_info;
+        wxPanel             *p_info;
+        wxStaticText        *p_infoText;
         wxStaticText        *p_storeNote;
         ewxStaticText       *p_localityText;
         ewxTextCtrl         *p_fullName, *p_refName, *p_vendor, *p_model,
