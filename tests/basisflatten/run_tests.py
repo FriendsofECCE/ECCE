@@ -47,7 +47,7 @@ def main():
             "-o", out,
             os.path.join(HERE, "testBasisFlatten.C"),
             "-L" + BUILD]
-           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c"])
+           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c", "-lmosquitto"])
     build = subprocess.run(cmd, capture_output=True, text=True)
     if build.returncode != 0:
         print("could not build testBasisFlatten:")
@@ -89,7 +89,7 @@ def run_cro_moaoorder(env):
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(ROOT, "include"),
             "-o", out, os.path.join(HERE, "testCrOMoAoOrder.C"),
             "-L" + BUILD]
-           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c"])
+           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c", "-lmosquitto"])
     build = subprocess.run(cmd, capture_output=True, text=True)
     if build.returncode != 0:
         print("could not build testCrOMoAoOrder:")

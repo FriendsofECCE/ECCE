@@ -221,7 +221,7 @@ def dialog_smoke(verbose):
             "-I" + calced]
            + wxflags("--cxxflags")
            + ["-L" + tree] + ["-l" + lib for lib in LIBS]
-           + ["--libs=core,base,adv,html"] + ["-lxerces-c"])
+           + ["--libs=core,base,adv,html"] + ["-lxerces-c", "-lmosquitto"])
     #  wx-config --libs takes its component list as an argument, which
     #  the line above cannot express; build it properly.
     cmd = [c for c in cmd if not c.startswith("--libs=")]
