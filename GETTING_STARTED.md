@@ -2,13 +2,15 @@
 
 This covers building, installing, and running this fork of ECCE on Debian
 13 ("trixie") — from a clean checkout to a working login. It documents
-`main`'s CMake/CPack packaging, not the old `build_ecce`/recursive-make
-workflow.
+`main` (the 9.0 development line, 9.0.0-alpha previews) and its
+CMake/CPack packaging, not the old `build_ecce`/recursive-make workflow.
+For 8.x (branch `stable-8`), use that branch's copy of this file; its
+package is the single `ecce` package.
 
-CI also builds this clean on Ubuntu, Fedora, and Rocky Linux (RHEL
-family) — the steps below apply there too, adjusted for the distro's
-package manager. **On Windows, use WSL2** (not Cygwin, not a native
-build) — see the README's "Platform support" section for why.
+CI also builds on Ubuntu, Fedora, and Rocky Linux (RHEL family) — the
+steps below apply there too, adjusted for the distro's package manager.
+Debian is the tested platform. There are no native Windows or macOS
+clients yet (#133, #232); until then ECCE runs on Linux only.
 
 ## 1. Install build dependencies
 
@@ -17,7 +19,7 @@ sudo apt-get install -y \
   build-essential gfortran cmake ninja-build \
   libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
   libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
-  libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git libssh-dev \
+  libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git dpkg-dev file libssh-dev \
   python3 libcoin-dev libegl-dev
 ```
 
@@ -60,61 +62,56 @@ in-tree libraries.
 ```
 cd build-cmake
 cpack -G DEB
-sudo apt-get install -y apache2 apache2-utils mosquitto libaprutil1   # runtime dependencies
-sudo dpkg -i ecce_<version>_amd64.deb
+sudo apt install ./ecce-client_<version>_amd64.deb ./ecce-server_<version>_amd64.deb
 ```
 
-The package installs to `/opt/ecce` and drops thin wrapper scripts named
+`cpack` leaves two packages in `build-cmake/` (see "Split packages"
+below); install both for a standalone machine. `apt install ./file.deb`
+pulls in the dependencies itself.
+
+The packages install to `/opt/ecce` and drop thin wrapper scripts named
 `ecce-<app>` (e.g. `ecce-organizer`, `ecce-builder`,
 `ecce-pertable`) onto `/usr/bin`, plus `ecce` itself, which is the one
-you actually start (it launches the gateway, which then spawns the apps --
+you actually start (it starts the session, which then spawns the apps --
 running `ecce-builder` and friends directly skips that setup). No
 `ECCE_HOME` sourcing or environment setup required first.
 
-`apache2`/`apache2-utils` are real runtime dependencies (the data server
-below runs as a real Apache instance), not just build-time. `mosquitto`
-is the message broker and `libaprutil1` is used by the central broker's
-login check (see "Deployment modes"). `dpkg -i` will fail to configure
-without them if `apt-get install` wasn't run first. Neither Java nor
-ActiveMQ is used. `sudo apt install ./ecce_<version>_amd64.deb` pulls
-in the dependencies itself.
+Apache (`apache2`, `apache2-utils`) is a real runtime dependency of
+`ecce-server` (the data server below runs as a real Apache instance), not
+just build-time. `mosquitto` is the message broker and `libaprutil1` is
+used by the central broker's login check (see "Deployment modes").
+Neither Java nor ActiveMQ is used.
 
 **Debian's `mosquitto` package also starts its own system service, on
 port 1883.** ECCE neither uses nor needs it: ECCE starts its own broker
 instances (below). It can be disabled with `sudo systemctl disable --now
 mosquitto` without affecting ECCE.
 
-On RHEL, Rocky and Fedora the RPM requires `mosquitto` (in EPEL on RHEL
-and Rocky: `sudo dnf install epel-release`) and `apr-util`; the server
-RPM also requires `httpd` and `httpd-tools`. Both also require `Coin4`
-(EPEL 9 has 4.0.10, Fedora 4.0.10 and 4.0.7), so the Rocky and Fedora CI jobs
-build the default Coin viewer (not yet run in CI); the RPMs have not been installed or run on
-either distribution.
+On RHEL, Rocky and Fedora the client RPM requires `mosquitto` (in EPEL on
+RHEL and Rocky: `sudo dnf install epel-release`), `Coin4` (EPEL 9 has
+4.0.10, Fedora 4.0.10 and 4.0.7) and `curl`; the server RPM requires
+`httpd`, `httpd-tools`, `mosquitto` and `apr-util`. The Rocky 9 RPMs of
+9.0.0-alpha.3 were installed and run on RHEL 9 (local mode with only the
+client package, and server mode). The Fedora RPMs are built but not run.
 
 The site configuration under `/opt/ecce/siteconfig` (the machine list,
-queues, `DataServers`, …) is marked as configuration from 8.17.0, so an
+queues, `DataServers`, …) is marked as configuration, so an
 upgrade keeps what `sudo ecce -admin` or `ecce-remote-setup` wrote there;
 dpkg asks before replacing a file you changed.
 
 ### Split packages (client/server)
 
-By default CPack still builds one monolithic `ecce_<version>_amd64.deb`
-with everything in it, as above — nothing below changes unless you ask
-for it. Configuring with `-DECCE_SPLIT_PACKAGES=ON` instead produces two
-packages from the same build:
-
-```
-cmake -G Ninja -DECCE_SPLIT_PACKAGES=ON ..
-ninja
-cpack -G DEB
-```
+`cpack` builds two packages from the same build
+(`-DECCE_SPLIT_PACKAGES=OFF` builds the single `ecce` package of 8.x
+instead):
 
 - **`ecce-client`** — the GUI apps, input generators/parsers, codereg
   dialogs, the job-side scripts the Launcher copies to compute hosts
   (`gensub`, `eccejobmonitor`, `*.desc`), the scripts that start the
   per-user broker, `siteconfig/`, and `ecce-remote-setup`/`ecce-diagnose`.
-  Depends on `python3-wxgtk4.0`, `perl`, `xterm` and `libmosquitto1`
-  (every ECCE process links it); Recommends `ecce-server`, `mosquitto`
+  Depends on `python3-wxgtk4.0`, `perl`, `xterm`, `libmosquitto1`, `curl`
+  and Coin3D (every ECCE process links `libmosquitto`); Recommends
+  `ecce-server`, `mosquitto`
   (the broker program, needed for a local session but not for a client
   of a central server), `nwchem` and `openssh-client`; Suggests
   `www-browser` (not Depends — a client of someone
@@ -128,10 +125,11 @@ cpack -G DEB
   `ecce-client` (same version). The RPMs correspondingly require
   `mosquitto`, `apr-util`, `httpd` and `httpd-tools`.
 
-Install both on one machine for the same all-in-one behaviour as the
-monolithic package. For the teaching/central-server deployment (one data
-server + broker for a group, students as clients — see CLAUDE.md), install
-only `ecce-server` on the server box and only `ecce-client` everywhere
+Install both on one machine for the all-in-one behaviour of the single
+package. For the teaching/central-server deployment (one data
+server + broker for a group, students as clients), install
+only `ecce-server` (which pulls in `ecce-client`) on the server box and
+only `ecce-client` everywhere
 else, then run `ecce-remote-setup <server-host>` on each client and start
 sessions with `ecce -remote`.
 
@@ -143,12 +141,15 @@ to either install `ecce-server` or point at a central one.
 ### Describing the queues on your own cluster
 
 ECCE needs to know a machine's batch queues — their names, processor and
-time limits, and which queue manager (PBS, SLURM, Moab, LoadLeveler…) it
-runs. There is no GUI for this yet; it is two files.
+time limits, and which queue manager (PBS, Slurm, Moab, SGE, LSF,
+HTCondor) it runs. **Tools → Register Machines…**, tab **Queues**, edits
+these (wall time in hours, memory and scratch in GB) and writes the two
+files below; what it does not do yet is discover a cluster's queues, show
+the job script before it is submitted or test it (#212). To edit the
+files by hand instead:
 
-They used to be readable only from `$ECCE_HOME/siteconfig`, which on a
-packaged install is root-owned, so this needed `sudo`. Your own copies in
-`~/.ECCE/` now take precedence:
+Your own copies in `~/.ECCE/` take precedence over the root-owned ones
+in `$ECCE_HOME/siteconfig`, so no `sudo` is needed:
 
 1. `~/.ECCE/Queues` — the registry. Start from
    `/opt/ecce/siteconfig/Queues`:
@@ -174,7 +175,8 @@ packaged install is root-owned, so this needed `sudo`. Your own copies in
    normal|memLimit:        0
    ```
 
-   `runLimit` is in minutes; `memLimit` 0 means no limit.
+   `runLimit` is in minutes (the Queues tab shows hours); `memLimit` 0 means
+   no limit.
 
 Your entries are **added to** the site ones, not a replacement — the
 machines configured site-wide stay available, and a machine named in both
@@ -201,7 +203,14 @@ Slurm {
 
 The site defaults live in `/opt/ecce/siteconfig/submit.site`. To change them
 for one machine, put your own block in `~/.ECCE/CONFIG.<host>` — `gensub`
-reads that file **last**, so it wins.
+reads that file **last**, so it wins. The **Job script** tab of Register
+Machines does this without editing the file: the site's text is shown
+read-only, **Copy site text to edit** makes your copy, **Available words…**
+lists the variables below, and **Advanced: edit file…** opens the file.
+Each value is tagged *from site*, *your value* or *not set*, and a changed
+field has an undo button. To see where a key's value came from outside the
+GUI, run `gensub` with `GENSUB_EXPLAIN=1`: it prints each key's value, the
+layer it came from and the values it overrode.
 
 The same rule applies to everything in a machine's CONFIG file, for `gensub`
 and for ECCE itself (`shell`, `sourceFile`, `perlPath`, `frontendMachine`,
@@ -414,16 +423,15 @@ Unix socket, no port, no password) and data server. The broker stops when
 that user's last session ends, on any display. Several users on one
 machine each get their own broker; mode 3 is only needed to share one.
 
-Instead of a data server, a single-user install can keep its projects in
-a folder (local data mode, #216): set **Edit > Preferences > Data folder**
-(default `~/.ECCE-local`), or `ECCE_LOCAL_DATA=<folder>` in the
-environment, which wins over the preference. No data server is started.
-Server mode remains the default. The broker is unchanged.
+A single-user install can keep its projects in a folder instead of a data
+server; see the next section. Server mode remains the default.
 
 #### Local data mode (a data folder instead of a data server)
 
-Set `ECCE_LOCAL_DATA`, or Edit > Preferences > Data folder (default
-`~/.ECCE-local`), and no data server is started. Local mode keeps one data
+Set **Edit > Preferences > Data folder** (default `~/.ECCE-local`; it takes
+effect at the next start), or `ECCE_LOCAL_DATA=<folder>` in the environment,
+which wins over the preference, and no data server is started (#216). The
+broker is unchanged. Local mode keeps one data
 folder per computer account: users are separated by their operating-system
 accounts, and the person's home inside the folder is always `users/local`,
 whatever the account is called. On a shared generic lab account everyone
@@ -549,9 +557,16 @@ does not test a login.
 
 ### Upgrading from 8.x
 
-9.x replaces ActiveMQ and its Java relay with Mosquitto. Install
-`mosquitto` (and `libaprutil1`/`apr-util` on a server) with the new
-packages; `activemq` and a JRE are no longer needed and can be removed.
+9.x replaces ActiveMQ and its Java relay with Mosquitto, and the single
+`ecce` package with `ecce-client` and `ecce-server`, which replace it on
+installation. Before installing, run `ecce-gateway-stop` and
+`ecce-dataserver-stop` (or Quit and Stop Server), then install both new
+packages; they bring `mosquitto` (and `libaprutil1`/`apr-util` on a
+server). `activemq` and a JRE are no longer needed and can be removed.
+Job scripts are now POSIX sh: `ecce` converts csh lines in your
+`~/.ECCE/CONFIG.*` at the first start and lists what it could not; an
+administrator converts the site's files with
+`sudo ecce-csh2sh --convert --siteconfig` (see "Job scripts are POSIX sh").
 
 **Single-user install.** Nothing to configure: the next session starts a
 per-user Mosquitto in place of ActiveMQ. Calculations, preferences and
@@ -597,16 +612,18 @@ Use a `userid` matching your Unix username (`$USER`) — that's what
 
 ## 6. Log in
 
-Launch the client, e.g.:
+Launch the client:
 
 ```
 ecce
 ```
 
-This is ECCE's main entry point/toolbar. It'll show an "ECCE Authentication"
-dialog — log in with the username/password you just created. From the
-gateway toolbar you can open the other tools (Organizer, Builder, Periodic
-Table, ...).
+It shows an "ECCE Authentication" dialog; log in with the username and
+password you just created. The Organizer then opens, and the Builder,
+Periodic Table, Machine Register and the other tools are started from it.
+(The Gateway window, which used to be the entry point, is hidden; set
+`ECCE_GATEWAY_WINDOW=1` to bring it back.) In local data mode there is no
+data server to log in to.
 
 ### `ecce` command-line options
 
@@ -623,6 +640,12 @@ Table, ...).
   clients).
 - **`-l LOGIN`** — use `LOGIN` as your server login name instead of your
   Unix username, then start normally.
+- **`--bug`** — run the session with diagnostic logging and, when it ends,
+  collect the logs, the service logs and `ecce-diagnose` output into
+  `~/ecce-bug-<time>.zip` (a `.tar.gz` without `zip`) to attach to a
+  report. It holds no passwords, but does hold host names, user names and
+  paths. Same as `ECCE_BUG=1`.
+- **`--version`** / **`-V`** — print the version and exit.
 - **`--help`** / **`-h`** — print this list and exit.
 
 ### Choosing the editor
@@ -632,7 +655,7 @@ simplest way to choose one is **Edit > Preferences > External programs**
 in the Organizer, which also sets the terminal used for terminal editors
 and the web browser for Help; changes apply at once. ECCE picks the editor
 from `ECCE_EDITOR` first, then that preference, then `VISUAL`, then
-`EDITOR`, and falls back to `vi` in an `xterm`. The value may carry
+`EDITOR`, and falls back to `vi` in the terminal. The value may carry
 arguments (`ECCE_EDITOR="geany -i"`). Set the variable for one run with
 `ECCE_EDITOR=geany ecce`, or for good with `export ECCE_EDITOR=geany` in
 `~/.profile`. Every environment variable ECCE reads is listed in
@@ -640,7 +663,9 @@ arguments (`ECCE_EDITOR="geany -i"`). Set the variable for one run with
 `/opt/ecce/doc/ENVIRONMENT.md`).
 
 Terminal editors (`vi`, `vim`, `nvim`, `view`, `nano`, `pico`, `micro`,
-`emacs -nw`) are run inside an `xterm`. For `gedit`, `gnome-text-editor`,
+`emacs -nw`) are run inside a terminal: `ECCE_TERMINAL`, else the Terminal
+preference, else `xterm` (the same terminal is used for local shells and
+tails). For `gedit`, `gnome-text-editor`,
 `xed`, `geany` and `kate`, ECCE adds the "new instance" flag itself; an
 editor that hands the file to an already-running copy and exits would
 otherwise end the edit session at once.
@@ -679,28 +704,26 @@ service required.
 
 ## Known rough edges (this fork, current state)
 
-- **Manual resizing** of some dialogs (e.g. Gateway Preferences) may still
-  look slightly off — cosmetic, not a functional blocker.
-- Each user's data server is a private, single-user store (matches the
-  per-user service design above) — this isn't a shared multi-user server
-  the way PNNL's original production deployment was.
+- Open problems are on the
+  [issue tracker](https://github.com/FriendsofECCE/ECCE/issues); the
+  release notes of each 9.0.0-alpha list the known issues of that preview.
+- The data server and the broker's password are sent unencrypted (#138):
+  keep them on a trusted network (see "Deployment modes").
 - The Perl CGI self-service account flow, and the `SS_COMPRESSION`
   bandwidth filter for trajectory transfers, are intentionally not ported
-  (see `CLAUDE.md` for why) — manual `ecce-dataserver-adduser` covers
-  account creation, and file transfer just runs uncompressed.
+  — manual `ecce-dataserver-adduser` covers account creation, and file
+  transfer just runs uncompressed.
 
 ## Troubleshooting
 
-- `ecce-<app>` prints nothing and exits immediately → check
+- `ecce` prints nothing and exits immediately → check
   `ecce-gateway-status` / `ecce-dataserver-status`; if either failed to
   start, run the matching `-start` script directly in a terminal to see its
   error output.
 - Login fails with a connection error → confirm `ecce-dataserver-status`
   reports the server as up, and that you created an account with
   `ecce-dataserver-adduser` matching the username you're logging in with.
-- A GUI app crashes on some specific action → see `CLAUDE.md` for the
-  active-investigation log of fixes already made to this fork (wx3.2/GTK3
-  layout issues, missing-icon typos, etc.) before assuming it's a new bug.
+- Anything else → run `ecce --bug` and attach the archive to an issue.
 
 ### My HPC machine needs two-factor authentication
 
