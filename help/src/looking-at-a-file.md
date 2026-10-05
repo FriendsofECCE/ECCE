@@ -43,8 +43,7 @@ empty structure if you want only the file.
 What happens next depends on the format:
 
 - XYZ: ECCE asks for the units of the coordinates (the file does not
-  record them). [TO CHECK: the labels of the units window and its
-  choices; the code offers angstroms, Bohr, picometers and nanometers.]
+  record them): Ångströms, Bohr, picometers or nanometers.
 - PDB: if the file has several models, alternate locations or chains,
   ECCE asks which to use. [TO CHECK: the labels of this window.]
 - CAR and MVM: loaded without a question.
