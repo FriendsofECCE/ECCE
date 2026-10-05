@@ -53,7 +53,7 @@ subagent flags, directly.
   students connected to it as clients — this is the teaching use case
   and it is how the original PNNL deployment worked. Much of this fork's
   new work localises services *per user* (per-user Apache, per-user
-  ActiveMQ, loopback-only `Listen`, per-`$DISPLAY` state files), and
+  Mosquitto, loopback-only `Listen`, per-`$DISPLAY` state files), and
   that direction is fine only for as long as the two-machine path keeps
   working. Treat `ECCE_REMOTE_SERVER`/`-remote` and
   `siteconfig/RemoteServer/` as first-class rather than a fallback, and
@@ -101,8 +101,12 @@ paragraphs here.
 - `src/apps/*` — one directory per top-level app (`builder`, `organizer`,
   `calced`, `gateway`, `machregister`, `machbrowser`, `basistool`, ...).
 - `src/wxgui/` — shared wx widget classes/toolkit used across apps.
-- `src/wxviz/`, `src/inv/` — the 3D molecular viewer, built on Open
-  Inventor (`SoWxRenderArea`/`SoWxExaminerViewer`/scene graph).
+- `src/wxviz/`, `src/inv/` — the 3D molecular viewer, Open Inventor API
+  (`SoWxRenderArea`/`SoWxExaminerViewer`/scene graph). Since 9.0.0-alpha.4
+  it is built against the distribution's Coin3D by default; `src/inv/moiv`
+  (chemistry nodes), `wxinv` (our wx binding) and `flclient` (fonts) are
+  ours either way, the vendored SGI core only with `-DECCE_USE_COIN=OFF`
+  (#166). The broker is Mosquitto (#213), not ActiveMQ.
 - `src/tdat/` — calculation/resource data model. Notably
   `src/tdat/properties/Prop*.C` — a family of copy-pasted-from-template
   classes (`PropTable`, `PropVector`, `PropTSVecTable`, ...) holding

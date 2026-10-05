@@ -12,6 +12,7 @@
 #include <sys/syscall.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include "util/PipeCloexec.H"
 
 extern char** environ;
 
@@ -143,13 +144,13 @@ TransportResult runChild(ChildSpec& cs, const std::string& input, int inFd,
 {
   TransportResult res;
   int pin[2], pout[2] = { -1, -1 }, perr[2];
-  if (pipe2(pin, O_CLOEXEC) < 0) { res.error = strerror(errno); return res; }
-  if (outFd < 0 && pipe2(pout, O_CLOEXEC) < 0) {
+  if (pipeCloexec(pin) < 0) { res.error = strerror(errno); return res; }
+  if (outFd < 0 && pipeCloexec(pout) < 0) {
     res.error = strerror(errno);
     close(pin[0]); close(pin[1]);
     return res;
   }
-  if (pipe2(perr, O_CLOEXEC) < 0) {
+  if (pipeCloexec(perr) < 0) {
     res.error = strerror(errno);
     close(pin[0]); close(pin[1]);
     if (pout[0] >= 0) { close(pout[0]); close(pout[1]); }
@@ -425,7 +426,7 @@ long DirectTransport::spawnDetached(const std::string& script, std::string& erro
     }
   }
   int rp[2];
-  if (pipe2(rp, O_CLOEXEC) < 0) {
+  if (pipeCloexec(rp) < 0) {
     error = strerror(errno);
     close(devnull);
     if (outfd != devnull) close(outfd);
@@ -488,8 +489,8 @@ bool DirectTransport::openStream(const std::string& script, Stream& s,
   cs.argv.push_back(0);
 
   int pin[2], pout[2];
-  if (pipe2(pin, O_CLOEXEC) < 0) { error = strerror(errno); return false; }
-  if (pipe2(pout, O_CLOEXEC) < 0) {
+  if (pipeCloexec(pin) < 0) { error = strerror(errno); return false; }
+  if (pipeCloexec(pout) < 0) {
     error = strerror(errno);
     close(pin[0]); close(pin[1]);
     return false;

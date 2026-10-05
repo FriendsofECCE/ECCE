@@ -774,7 +774,7 @@ def checkShellRotation(verbose):
             os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C"),
             os.path.join(ROOT, "src/tdat/chemistry/BasisFlatten.C"),
             "-L" + build]
-           + ["-l" + l for l in libs]*3 + ["-lxerces-c"])
+           + ["-l" + l for l in libs]*3 + ["-lxerces-c", "-lmosquitto"])
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
         print("  could not build testShellRotation:")
@@ -822,7 +822,7 @@ def checkFullOrbitalIrrep(verbose):
             os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C"),
             os.path.join(ROOT, "src/tdat/chemistry/BasisFlatten.C"),
             "-L" + build]
-           + ["-l" + l for l in libs]*3 + ["-lxerces-c"])
+           + ["-l" + l for l in libs]*3 + ["-lxerces-c", "-lmosquitto"])
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
         print("  could not build testFullOrbitalIrrep:")
@@ -909,7 +909,7 @@ def checkSubgroupCrossCheck(verbose):
             os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C"),
             os.path.join(ROOT, "src/tdat/chemistry/BasisFlatten.C"),
             "-L" + build]
-           + ["-l" + l for l in libs]*3 + ["-lxerces-c"])
+           + ["-l" + l for l in libs]*3 + ["-lxerces-c", "-lmosquitto"])
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
         print("  could not build testSubgroupCrossCheck:")
@@ -980,7 +980,7 @@ def checkDiatomicComposition(verbose):
             os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C"),
             os.path.join(ROOT, "src/tdat/chemistry/BasisFlatten.C"),
             "-L" + build]
-           + ["-l" + l for l in libs]*3 + ["-lxerces-c"])
+           + ["-l" + l for l in libs]*3 + ["-lxerces-c", "-lmosquitto"])
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
         print("  could not build testDiatomicComposition:")
