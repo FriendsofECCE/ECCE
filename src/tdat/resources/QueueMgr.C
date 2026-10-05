@@ -210,12 +210,11 @@ void QueueManager::finalize(void)
 //    Locate a queue configuration file, preferring the user's own copy.
 //
 //    Queue definitions used to be read only from $ECCE_HOME/siteconfig,
-//    which on a packaged install is root-owned -- so describing the queues
-//    on your own cluster meant editing files under /opt as root, and there
-//    was nothing in the GUI to do it with. That is the same problem
-//    RefMachine::configFile() already solves for CONFIG.<machine>, and this
-//    follows it exactly: if $ECCE_REALUSERHOME/.ECCE/<name> exists it wins,
-//    otherwise the site-wide file is used.
+//    which on a packaged install is root-owned, so describing your own
+//    cluster's queues meant editing files as root.  If
+//    $ECCE_REALUSERHOME/.ECCE/<name> exists it wins, otherwise the site-wide
+//    file is used.  CONFIG.<machine> follows a different rule (a per-key
+//    merge, RefMachine::config()); these files are not CONFIG files.
 //
 //    Note this is an override, not a merge: a user copy of the "Queues"
 //    registry replaces the site one wholesale rather than adding to it.

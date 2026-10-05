@@ -14,11 +14,8 @@ noRemoteAccess: true
 # or it dies with "Path for <code> not found", which is the only reason
 # these are here at all.
 #
-# To override a path, gensub also reads ~/.ECCE/CONFIG.dummy and merges it
-# on top of this file, so adding just the one line you want there is
-# enough for the generated submit script. Note this is NOT true of the
-# C++ side: RefMachine::configFile() takes the site file if it exists and
-# never looks at the user's, so "noRemoteAccess" itself has to stay here.
+# To override a path, put just that line in ~/.ECCE/CONFIG.dummy: it is
+# merged over this file, key by key, by gensub and by ECCE itself.
 NWChem: nwchem
 Gaussian-16: g16
 Gaussian-09: g09
