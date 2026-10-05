@@ -313,21 +313,16 @@ void SoWxViewer::CreateControls()
 #else
   int gl_attrib[20] = { WX_GL_RGBA, WX_GL_MIN_RED, 1, WX_GL_MIN_GREEN, 1,
                         WX_GL_MIN_BLUE, 1, WX_GL_DEPTH_SIZE, 1,
-                        WX_GL_DOUBLEBUFFER,
-#  if defined(__WXMAC__) || defined(__WXCOCOA__)
-                        GL_NONE };
-#  else
-                        None };
-#  endif
+                        WX_GL_DOUBLEBUFFER, 0 };
 #endif
-#if defined(OIV_COIN) && !defined(__WXMSW__) && !defined(__WXMAC__) && !defined(__WXCOCOA__)
+#if defined(OIV_COIN) && !defined(__WXMSW__)
   //  Coin's depth-peeled transparency (SORTED_LAYERS_BLEND, used for the
   //  MO lobes) needs an 8-bit alpha buffer.  Without one the render area
   //  notices and draws the lobes with the screen door instead.
   {
     int with_alpha[20] = { WX_GL_RGBA, WX_GL_MIN_RED, 1, WX_GL_MIN_GREEN, 1,
                            WX_GL_MIN_BLUE, 1, WX_GL_DEPTH_SIZE, 1,
-                           WX_GL_MIN_ALPHA, 8, WX_GL_DOUBLEBUFFER, None };
+                           WX_GL_MIN_ALPHA, 8, WX_GL_DOUBLEBUFFER, 0 };
     if (wxGLCanvas::IsDisplaySupported(with_alpha))
       memcpy(gl_attrib, with_alpha, sizeof gl_attrib);
   }
@@ -1064,56 +1059,6 @@ void SoWxViewer::removeStartCallback(SoWxViewerCB *f, void * userData)
 void SoWxViewer::removeFinishCallback(SoWxViewerCB *f, void *userData)
 {
   p_finishCBList->removeCallback((SoCallbackListCB *)f, userData);
-}
-
-
-/**
- * Copy the camera onto the clipboard.
- */
-void SoWxViewer::copyView(Time eventTime)
-{
-  if (p_camera == NULL)
-    return;
-  
-  /*
-    if (p_clipboard == NULL)
-    clipboard = new SoXtClipboard(getWidget());
-    
-    p_clipboard->copy(p_camera, eventTime);
-  */
-}
-
-
-/**
- * Retrieve the selection from the X server and paste it when it
- * arrives (in our pasteDone callback).
- */
-void SoWxViewer::pasteView(Time eventTime)
-{
-  /*
-    if (p_clipboard == NULL)
-    p_clipboard = new SoXtClipboard(getWidget());
-    
-    p_clipboard->paste(eventTime, SoXtViewer::pasteDoneCB, this);
-  */
-}
-
-
-/**
- * 
- */
-void SoWxViewer::setNormalVisual(XVisualInfo * vis)
-{
-  /*
-  // call parent class
-  p_renderArea->setNormalVisual(vis);
-  
-  // now update the buffering type
-  if (isDoubleBuffer())
-  setBufferingType(BUFFER_DOUBLE);
-  else
-  setBufferingType(BUFFER_SINGLE);
-  */
 }
 
 
@@ -2301,57 +2246,6 @@ SbBool SoWxViewer::isZbufferOff()
   return (style == VIEW_LOW_RES_LINE || style == VIEW_LOW_RES_POINT 
           || style == VIEW_BBOX);
 }
-
-
-/**
- * Called by the processCommonEvent routine whenever the arrow keys
- * are pressed. Translate the camera in the viewing plane in the arrow
- * direction half a screen at a time.
- */
-void SoWxViewer::arrowKeyPressed(KeySym key)
-{
-  if (p_camera == NULL)
-    return;
-    
-  // get the camera near plane height value
-  float dist;
-  if (p_camera->isOfType(SoPerspectiveCamera::getClassTypeId())) {
-    float angle = ((SoPerspectiveCamera *)p_camera)->heightAngle.getValue();
-    float length = p_camera->nearDistance.getValue();
-    dist = length * tanf(angle);
-  }
-  else if (p_camera->isOfType(SoOrthographicCamera::getClassTypeId()))
-    dist = ((SoOrthographicCamera *)p_camera)->height.getValue();
-  dist /= 2.0;
-    
-  // get camera right/left/up/down direction
-  SbMatrix mx;
-  mx = p_camera->orientation.getValue();
-  SbVec3f dir;
-  /* @todo Fix it.
-     switch(key) {
-     case XK_Up:
-     dir.setValue(mx[1][0], mx[1][1], mx[1][2]);
-     break;
-     case XK_Down:
-     dir.setValue(-mx[1][0], -mx[1][1], -mx[1][2]); 
-     break;
-     case XK_Right:
-     dir.setValue(mx[0][0], mx[0][1], mx[0][2]);
-     dist *= camera->aspectRatio.getValue();
-     break;
-     case XK_Left:
-     dir.setValue(-mx[0][0], -mx[0][1], -mx[0][2]);
-     dist *= camera->aspectRatio.getValue();
-     break;
-     }
-  */
-  // finally reposition the camera
-  p_camera->position = p_camera->position.getValue() + dist * dir;
-}
-
-
-
 
 
 //////////////////////////////////////////
