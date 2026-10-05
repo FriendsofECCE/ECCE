@@ -1752,6 +1752,10 @@ if(PYTHON3_EXECUTABLE)
   target_link_libraries(launchjob PRIVATE
     eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
     eccetdat ecceutil ${XercesC_LIBRARIES})
+  # tests/queues/configdump: RefMachine::config() for config_test.py.
+  add_executable(configdump tests/queues/configdump.C)
+  target_link_libraries(configdump PRIVATE eccetdat ecceutil)
+
   add_test(NAME launch
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/run_tests.py
@@ -1842,6 +1846,19 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR} --suite local
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
   set_tests_properties(queues PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
+  # CONFIG precedence (C++ against gensub), processmachine's writer, and what
+  # a central server publishes to -remote clients; needs only perl and curl.
+  add_test(NAME queues_config
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/config_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
+  set_tests_properties(queues_config PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
+  add_test(NAME queues_publish
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/publish_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
+  set_tests_properties(queues_publish PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
   add_test(NAME queues_slurm
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/run_tests.py
