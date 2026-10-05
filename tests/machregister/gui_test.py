@@ -494,8 +494,9 @@ expect field frontendbypass .site.org
 expect field libpath ''
 expect label tag:libpath 'not set'
 expect field jobs:none 1
-expect field jobs:copy 0
-expect label jobs:mode "Don't submit, just make the files"
+expect field jobs:user 0
+expect enabled jobs:user 0
+expect label jobs:mode "Files only, not submitted"
 expect shown jobs:icon 1
 expect advanced 1
 expect label tag:jobs '%(site)s'
@@ -515,6 +516,7 @@ set frontendmachine login.example.org
 set perlpath /admin/perl
 set qmgrpath /admin/slurm
 set libpath /admin/lib
+set jobs:none 0
 set jobs:user 1
 set singleconnect auto
 set checkscratch 1
@@ -536,9 +538,9 @@ expect label tag:perlpath '%(site)s'
 set qmgrpath ''
 expect label tag:qmgrpath '%(Y)s'
 set libpath /my/lib
-set jobs:copy 1
+set jobs:none 0
 expect label tag:jobs '%(Y)s'
-expect label jobs:mode 'ECCE submits the job (normal)'
+expect label jobs:mode 'ECCE submits the job'
 expect shown jobs:icon 0
 set jobs:user 1
 expect label jobs:mode 'Interactive submission'
@@ -597,7 +599,8 @@ quit
         lines.append("expect field %s '%s'" % (k, shown(k, v)))
         if k not in ("noremoteaccess", "usersubmit"):
             lines.append("expect label tag:%s '%s'" % (k, PLAIN[tag]))
-    lines.append("expect field jobs:%s 1" % jobs_radio(want))
+    lines.append("expect field jobs:user %d" % (jobs_radio(want) == "user"))
+    lines.append("expect field jobs:none %d" % (jobs_radio(want) == "none"))
     lines.append("expect label tag:jobs '%s'" % jobs_tag(want))
     lines += ["expect shown xappspath 1", "expect dirty 0", "quit"]
     p = run(display, build, e, "\n".join(lines) + "\n", args=args, extra=extra)
@@ -612,6 +615,7 @@ tab connection
 undo shell
 undo sourcefile
 set frontendbypass ''
+set jobs:user 0
 set jobs:none 1
 expect label tag:shell '%(site)s'
 expect label tag:sourcefile '%(site)s'
@@ -643,6 +647,7 @@ shot %(o)s/connection-site.png
 set perlpath /my/perl
 wait 500
 shot %(o)s/connection-yours.png
+set jobs:none 0
 set jobs:user 1
 wait 500
 shot %(o)s/connection-interactive.png

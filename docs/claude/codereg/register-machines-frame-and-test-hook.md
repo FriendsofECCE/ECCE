@@ -28,8 +28,8 @@ Things that are easy to get wrong:
   loaded one belongs to the old name.
 - The Connection tab's rows (`addCfgRow`) are one key each: control, source
   tag, undo button (only on the user's own value). The noRemoteAccess/userSubmit
-  keys are edited through three radios (`jobs:copy|user|none`) that drive two
-  hidden checkboxes; noRemoteAccess wins when both keys are set. The draft comes from `GENSUB_EXPLAIN` (`explain()`), and
+  keys are edited through two exclusive checkboxes (`jobs:user`, `jobs:none`)
+  under Advanced that drive two hidden ones; neither ticked is normal; noRemoteAccess wins when both keys are set. The draft comes from `GENSUB_EXPLAIN` (`explain()`), and
   these twelve keys are read by C++ only, so their value and tag ignore
   `submit.site` and vendor layers (`effective`/`tag` with `cppOnly`). `true` and
   `yes` are one value for the check/choice rows, so `syncCfg` compares them in

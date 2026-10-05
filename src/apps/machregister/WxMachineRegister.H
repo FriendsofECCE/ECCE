@@ -203,7 +203,7 @@ class WxMachineRegister: public ewxFrame
         wxStaticText        *p_storeNote;   // names the files Save writes
         wxStaticText        *p_jobNote;
         vector<CfgRow>       p_cfgRows;
-        wxRadioButton       *p_jobsRadio[3];
+        wxCheckBox          *p_jobsCheck[3];   // [1] interactive, [2] files only
         wxStaticText        *p_jobsTag, *p_jobsMode;
         wxStaticBitmap      *p_jobsIcon;
         wxWindow            *p_jobsUndoBox;

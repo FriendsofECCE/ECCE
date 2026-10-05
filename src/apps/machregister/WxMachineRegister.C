@@ -129,7 +129,7 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
     p_jobsTag = NULL;
     p_jobsUndoBox = NULL;
     p_jobsUndo = NULL;
-    p_jobsRadio[0] = p_jobsRadio[1] = p_jobsRadio[2] = NULL;
+    p_jobsCheck[0] = p_jobsCheck[1] = p_jobsCheck[2] = NULL;
     p_jobsMode = NULL;
     p_jobsIcon = NULL;
     p_advanced = NULL;
@@ -567,20 +567,33 @@ wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
                                               "Job submission");
     subTitle->SetFont(jf);
     advBox->Add(subTitle, wxSizerFlags().Border(wxLEFT|wxTOP));
-    static const char* const jobText[3] = {
-        "Normal: ECCE submits the job",
-        "Interactive submission: ECCE copies the files; you log in, submit "
-        "the job yourself and enter the job ID",
-        "Don't submit, just make the files: copy them over, submit, and "
-        "import the output yourself (e.g. two-factor login)" };
-    static const char* const jobName[3] = { "jobs:copy", "jobs:user",
-                                            "jobs:none" };
-    for (int i = 0; i < 3; i++)
+    //  Normal is not a choice: it is what happens when neither is ticked.
+    static const char* const jobText[3] = { "",
+        "Submit jobs interactively",
+        "Don't submit; only make the files" };
+    static const char* const jobNote[3] = { "",
+        "For sites that do not allow automated submission. ECCE copies the "
+        "input and job script to the run directory; you log in, submit the "
+        "job script yourself, and type the job ID into ECCE when asked, so "
+        "it can follow the job.",
+        "For machines ECCE cannot log in to, e.g. with two-factor "
+        "authentication. ECCE writes the input and job script on this "
+        "computer; you copy them to the machine, submit, and later import "
+        "the output (Organizer > File > Import Calculation from Output "
+        "File...)." };
+    static const char* const jobName[3] = { "", "jobs:user", "jobs:none" };
+    p_jobsCheck[0] = NULL;
+    for (int i = 1; i < 3; i++)
     {
-        p_jobsRadio[i] = new wxRadioButton(adv, wxID_ANY, jobText[i],
-            wxDefaultPosition, wxDefaultSize, i == 0 ? wxRB_GROUP : 0);
-        advBox->Add(p_jobsRadio[i], wxSizerFlags().Border(wxLEFT, 12));
-        reg(jobName[i], p_jobsRadio[i]);
+        p_jobsCheck[i] = new wxCheckBox(adv, wxID_ANY, jobText[i]);
+        advBox->Add(p_jobsCheck[i], wxSizerFlags().Border(wxLEFT|wxTOP, 12));
+        wxStaticText* note = new wxStaticText(adv, wxID_ANY, jobNote[i]);
+        note->SetFont(note->GetFont().Smaller());
+        note->SetForegroundColour(wxSystemSettings::GetColour(
+                                  wxSYS_COLOUR_GRAYTEXT));
+        note->Wrap(620);
+        advBox->Add(note, wxSizerFlags().Border(wxLEFT, 36));
+        reg(jobName[i], p_jobsCheck[i]);
     }
     wxFlexGridSizer* advGrid = new wxFlexGridSizer(4, 0, 0);
     advGrid->AddGrowableCol(1);
@@ -1815,10 +1828,13 @@ int WxMachineRegister::jobsIndex() const
 
 void WxMachineRegister::jobsToRadios()
 {
-    if (p_jobsRadio[0] == NULL)
+    if (p_jobsCheck[1] == NULL)
         return;
     int idx = jobsIndex();
-    p_jobsRadio[idx]->SetValue(true);
+    p_jobsCheck[1]->SetValue(idx == 1);
+    p_jobsCheck[2]->SetValue(idx == 2);
+    p_jobsCheck[1]->Enable(idx != 2);
+    p_jobsCheck[2]->Enable(idx != 1);
     //  Something other than normal: show the choice.
     if (idx != 0 && p_advanced != NULL && !p_advanced->IsExpanded())
     {
@@ -1837,9 +1853,9 @@ void WxMachineRegister::jobsLine()
     if (p_jobsMode == NULL)
         return;
     int idx = jobsIndex();
-    wxString text = idx == 0 ? "ECCE submits the job (normal)"
+    wxString text = idx == 0 ? "ECCE submits the job"
                   : idx == 1 ? "Interactive submission"
-                  : "Don't submit, just make the files";
+                  : "Files only, not submitted";
     bool layout = false;
     if (p_jobsMode->GetLabel() != text)
         { p_jobsMode->SetLabel(text); layout = true; }
@@ -1853,12 +1869,12 @@ void WxMachineRegister::jobsLine()
 //  The radios are the editor, the two hidden checkboxes carry the keys.
 void WxMachineRegister::jobsFromRadios()
 {
-    if (p_jobsRadio[0] == NULL)
+    if (p_jobsCheck[1] == NULL)
         return;
-    int sel = 0;
-    for (int i = 0; i < 3; i++)
-        if (p_jobsRadio[i]->GetValue())
-            sel = i;
+    int sel = p_jobsCheck[2]->GetValue() ? 2 : p_jobsCheck[1]->GetValue() ? 1 : 0;
+    //  Ticking one disables the other.
+    p_jobsCheck[1]->Enable(sel != 2);
+    p_jobsCheck[2]->Enable(sel != 1);
     if (sel == jobsIndex())
         return;                 // e.g. both keys set: leave them as they are
     static_cast<wxCheckBox*>(cfgRow("noRemoteAccess")->ctrl)->SetValue(sel == 2);
