@@ -322,16 +322,23 @@ def sentinelScript(perl):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
-def post(home, user, fields, site=False, script=None):
+def post(home, user, fields, site=False, script=None, encoder=None,
+         cwd=None):
+    """encoder: build/pmform, the GUI's own encoder; urlencode otherwise."""
     fields = dict(fields)
     fields["siteconfig"] = "true" if site else "false"
-    from urllib.parse import urlencode
-    body = urlencode(fields)
+    if encoder:
+        args = [x for kv in fields.items() for x in kv]
+        body = subprocess.run([encoder] + args, stdout=subprocess.PIPE,
+                              check=True, text=True).stdout
+    else:
+        from urllib.parse import urlencode
+        body = urlencode(fields)
     env = dict(os.environ, ECCE_HOME=home, ECCE_REALUSERHOME=user,
                CONTENT_LENGTH=str(len(body)))
     return subprocess.run(["perl", script or os.path.join(REPO, "scripts",
                                                          "processmachine")],
-                          input=body, env=env, text=True,
+                          input=body, env=env, text=True, cwd=cwd,
                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
 
@@ -343,7 +350,11 @@ BASE = {"type": "accept", "machine": "testhost.example.org", "name": "testhost",
         "numQueues": "0"}
 
 
-def processmachine(script=None):
+# Characters the shell or the form encoding treat specially.
+NASTY = "+ & = % \" $ \\ ' `x` $(id)"
+
+
+def processmachine(script=None, encoder=None):
     tmp = tempfile.mkdtemp(prefix="ecce-pm-")
     try:
         home = os.path.join(tmp, "home")
@@ -437,8 +448,89 @@ def processmachine(script=None):
               "a hand-written key of the machine survives")
         check(qt.splitlines()[0].split().count("testhost") == 1,
               "the machine is listed once")
+
+        escaping(home, user, tmp, script, encoder)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+
+
+def escaping(home, user, tmp, script, encoder):
+    from urllib.parse import parse_qsl
+    ue = os.path.join(user, ".ECCE")
+    cfg = os.path.join(ue, "CONFIG.testhost")
+    machines = os.path.join(ue, "MyMachines")
+    qs = os.path.join(ue, "Queues")
+    if encoder:
+        # the GUI's encoder against an independent decoder
+        fields = [("type", "accept"), ("NWChem", NASTY), ("q0", "name|a,")]
+        out = subprocess.run([encoder] + [x for kv in fields for x in kv],
+                             stdout=subprocess.PIPE, text=True).stdout
+        check(parse_qsl(out, keep_blank_values=True) == fields,
+              "the GUI's form encoding decodes back to its fields")
+        check(out.count("&") == 2 and out.count("=") == 3,
+              "no value can split the form")
+    else:
+        print("note  no pmform: posting with urlencode, not the GUI encoder")
+
+    # 7. special characters in paths and fields survive a save unchanged
+    path = "/opt/nw chem/" + NASTY + "/bin/nwchem"
+    qmgr = "/opt/q+m&g=r%41/bin"
+    vendor = "A&B=C+D%20"
+    q = "name|q.a-1_b,minNodes|1,maxNodes|4,maxCPU|60,maxMemory|0,minScratch|0,"
+    r = post(home, user, dict(BASE, NWChem=path, qmgrPath=qmgr, vendor=vendor,
+                              qmgr="Slurm", numQueues="1", q0=q),
+             script=script, encoder=encoder, cwd=tmp)
+    text = read(cfg) or ""
+    check(r.returncode == 0, "a save with special characters runs: %s"
+          % r.stdout[-200:])
+    check(("NWChem: %s\n" % path) in text, "a code path round-trips exactly")
+    check(("qmgrPath: %s\n" % qmgr) in text, "qmgrPath round-trips exactly")
+    line = [l for l in (read(machines) or "").splitlines()
+            if l.startswith("testhost\t")]
+    check(bool(line) and line[0].split("\t")[2] == vendor,
+          "a Machines field round-trips exactly")
+    check("q.a-1_b|maxProcessors:       4" in
+          (read(os.path.join(ue, "testhost.Q")) or ""),
+          "a queue name round-trips")
+
+    # 8. a queue name the .Q format cannot hold is refused, nothing written
+    before = read(cfg)
+    bad = "name|a b&c=d+e%,minNodes|1,"
+    r = post(home, user, dict(BASE, NWChem="/changed", qmgr="Slurm",
+                              numQueues="1", q0=bad),
+             script=script, encoder=encoder, cwd=tmp)
+    check(r.returncode != 0 and read(cfg) == before,
+          "an invalid queue name is refused before any file changes")
+
+    # 9. deleting machines whose names hold quotes and command substitutions
+    marker = os.path.join(tmp, "executed")
+    slashed = 'q"$(touch %s)' % marker
+    odd = 'odd"$(touch executed)"`touch executed`'
+    write(machines, "testhost\tt\tU\tU\tU\t1\tssh\t:\tMN\n"
+                    "%s\tx\tU\tU\tU\t1\tssh\t:\tMN\n"
+                    "%s\ty\tU\tU\tU\t1\tssh\t:\tMN\n" % (slashed, odd))
+    write(os.path.join(ue, "CONFIG." + odd), "NWChem: /x\n")
+    write(os.path.join(ue, odd + ".Q"), "Queues: a\n")
+    write(qs, "Queues: testhost %s\n\n%s|queueMgrName: PBS\n"
+              "testhost|queueMgrName: Slurm\n" % (odd, odd))
+    for name in (odd, slashed):
+        r = post(home, user, {"type": "delete", "name": name},
+                 script=script, encoder=encoder, cwd=tmp)
+        check(r.returncode == 0,
+              "delete of %r runs: %s" % (name, r.stdout[-200:]))
+    check(not os.path.exists(marker), "no command in a machine name ran")
+    ml = (read(machines) or "").splitlines()
+    check(len(ml) == 1 and ml[0].startswith("testhost\t"),
+          "both lines leave MyMachines, the other machine's stays")
+    check(not os.path.exists(os.path.join(ue, "CONFIG." + odd)) and
+          not os.path.exists(os.path.join(ue, odd + ".Q")),
+          "the deleted machine's CONFIG and .Q files are removed")
+    check(os.path.exists(cfg) and
+          os.path.exists(os.path.join(ue, "testhost.Q")),
+          "the other machine's files stay")
+    qt = read(qs) or ""
+    check(odd not in qt and "testhost|queueMgrName: Slurm" in qt,
+          "the Queues entry is removed, the other machine's stays")
 
 
 def main():
@@ -457,7 +549,9 @@ def main():
         precedence(args.build, perl)
         sentinelScript(perl)
         explain(args.build, perl)
-    processmachine(args.processmachine)
+    encoder = os.path.join(args.build, "pmform")
+    processmachine(args.processmachine,
+                   encoder if os.path.exists(encoder) else None)
     print("")
     print("FAILED: %d" % len(failures) if failures else "PASSED")
     return 1 if failures else 0

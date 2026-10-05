@@ -1767,6 +1767,15 @@ if(PYTHON3_EXECUTABLE)
   # tests/queues/configdump: RefMachine::config() for config_test.py.
   add_executable(configdump tests/queues/configdump.C)
   target_link_libraries(configdump PRIVATE eccetdat ecceutil)
+  # tests/queues/pmform: the GUI's processmachine form encoder.
+  add_executable(pmform tests/queues/pmform.C)
+  target_link_libraries(pmform PRIVATE ecceutil)
+  # tests/queues/pmrun: ProcessMachine::run against the real script.
+  add_executable(pmrun tests/queues/pmrun.C)
+  target_link_libraries(pmrun PRIVATE ecceutil)
+  add_test(NAME queues_pmrun
+           COMMAND pmrun ${CMAKE_CURRENT_SOURCE_DIR}/scripts/processmachine)
+  set_tests_properties(queues_pmrun PROPERTIES TIMEOUT 60)
 
   add_test(NAME launch
            COMMAND ${PYTHON3_EXECUTABLE}

@@ -149,7 +149,7 @@ class WxMachineRegister: public WxMachineRegisterGUI
         vector<string> getConfigFileNames(string refName) const;
         void acceptChanges();
         bool verifyInput();
-        int removeMachine();
+        int removeMachine(const string& refName);
         bool confirmRemove(string refName);
         bool hasMinimalInput();
 
