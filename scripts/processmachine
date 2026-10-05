@@ -182,7 +182,8 @@ sub doAccept {
   }
 
   $sCONFIG = 0;
-  $sCONFIG = &checkOut("$path/$cFile",$useRC);
+  $sCONFIG = &checkOut("$path/$cFile",$useRC)
+    if ($contents{"config"} ne "external");
 
   if (open(MACHINES,"<$mFile")) {
     @lines = <MACHINES>; 
@@ -342,7 +343,7 @@ sub doAccept {
     }
   }
 
-  &writeConfig();
+  &writeConfig() if ($contents{"config"} ne "external");
 }
 
 #######################################################################
