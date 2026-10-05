@@ -1665,6 +1665,13 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/import_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_import PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # Organizer Import Calculation from Output File, ECCE_TEST_CALCIMPORT hook.
+  add_test(NAME apps_calcimport
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/calcimport_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_calcimport PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
 
   # tests/filedsi -- FileEDSI (file:// storage, no Apache, #216) against a
   # temp directory, linked from the static libraries of build-cmake.
@@ -1778,6 +1785,23 @@ if(PYTHON3_EXECUTABLE)
   # Builder's Import Chemical System does.
   add_executable(fragreaders tests/fragreaders/fragreaders.C)
   target_link_libraries(fragreaders PRIVATE eccetdat ecceutil)
+  # tests/importcode: the code Import Calculation picks for an output file.
+  add_executable(importcode tests/importcode/importcode.C)
+  target_include_directories(importcode PRIVATE ${XercesC_INCLUDE_DIRS})
+  target_link_libraries(importcode PRIVATE
+    eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+    eccetdat ecceutil ${XercesC_LIBRARIES})
+  set(_pf ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/fixtures)
+  add_test(NAME importcode
+           COMMAND importcode -v
+                   ${_pf}/nwchem/h2o_opt_stdout.out=NWChem
+                   ${_pf}/gaussian-16/co_freq.log=Gaussian-16
+                   ${_pf}/orca/h2o_sym.out=ORCA
+                   ${_pf}/mopac/ch4_opt.out=-
+                   ${_pf}/gromacs/water_md.log=-
+                   ${_pf}/qe/h2o_gamma.pwout=-)
+  set_tests_properties(importcode PROPERTIES ENVIRONMENT
+    "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
   add_test(NAME fragreaders
            COMMAND fragreaders ${CMAKE_CURRENT_SOURCE_DIR}/tests/fragreaders/data)
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/fragreaders-home)

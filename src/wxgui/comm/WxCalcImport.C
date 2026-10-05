@@ -84,6 +84,24 @@ void WxCalcImport::importCalc()
 
   // Display the import dialog and process selection
   if (ShowModal() == wxID_OK) {
+    importFile(GetPath().ToStdString());
+
+    // Update preferences to this directory/filter for the next invocation
+    // using the existing prefs instance created to read preferences above
+    string dir = GetDirectory().ToStdString();
+    prefs.setString("CalcImport.Directory", dir);
+    prefs.setInt("CalcImport.FilterIndex", GetFilterIndex());
+    prefs.saveFile();
+  }
+}
+
+
+/**
+ * Import the output file at fileSpec into the listener's container.
+ */
+void WxCalcImport::importFile(const string& fileSpec)
+{
+  {
     TaskJob *taskJob = 0;
 
     EE_ASSERT(p_listener, EE_FATAL, "No listener registered");
@@ -91,8 +109,6 @@ void WxCalcImport::importCalc()
     bool status = false;
 
     // Verify the file is a readable regular file
-    string fileSpec = GetPath().ToStdString();
-
     if (fileSpec == "")
       message = "No file specified for import.";
     else {
@@ -194,13 +210,6 @@ void WxCalcImport::importCalc()
         }
       }
     }
-
-    // Update preferences to this directory/filter for the next invocation
-    // using the existing prefs instance created to read preferences above
-    string dir = GetDirectory().ToStdString();
-    prefs.setString("CalcImport.Directory", dir);
-    prefs.setInt("CalcImport.FilterIndex", GetFilterIndex());
-    prefs.saveFile();
 
     p_listener->importValidationComplete(taskJob, status, message);
   }

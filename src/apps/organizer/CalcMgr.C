@@ -19,6 +19,7 @@
 
 #ifndef WX_PRECOMP
 #include "wx/wx.h"
+#include <unistd.h>
 #endif
 
 #include <sstream>
@@ -280,6 +281,35 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   refreshMachineNotice();
 
   stopDisabler();
+
+  //  ECCE_TEST_CALCIMPORT=<file>: File > Import Calculation from Output File
+  //  on <file>, into a project "calcimport-test" in the user's home, as if
+  //  picked in the file dialog; prints the outcome and exits. Inert unless
+  //  set; for tests/apps/calcimport_test.py.
+  if (const char *importPath = getenv("ECCE_TEST_CALCIMPORT")) {
+    string path = importPath;
+    wxTimer *timer = new wxTimer();   // lives until the process exits
+    timer->Bind(wxEVT_TIMER, [this, path](wxTimerEvent&) {
+      EDSIServerCentral central;
+      EcceURL home = central.getDefaultUserHome();
+      EcceURL project = home.getChild("calcimport-test");
+      if (!EDSIFactory::getResource(project)) {
+        if (Resource *homeRes = EDSIFactory::getResource(home))
+          homeRes->createChild("calcimport-test",
+                               ResourceDescriptor::RT_COLLECTION,
+                               ResourceDescriptor::CT_PROJECT,
+                               ResourceDescriptor::AT_UNDEFINED);
+      }
+      findNode(project, true, true);
+      WxCalcImport dlg(this);
+      dlg.registerListener(this);
+      dlg.importFile(path);
+      fflush(stdout);
+      fflush(stderr);
+      _exit(0);
+    });
+    timer->StartOnce(2000);
+  }
 
   return true;
 }
@@ -5198,6 +5228,13 @@ TaskJob *CalcMgr::getContainer(const string& name)
 void CalcMgr::importValidationComplete(TaskJob *ipc, bool status,
                                        string message)
 {
+  if (getenv("ECCE_TEST_CALCIMPORT")) {
+    fprintf(stderr, "ECCE_TEST_CALCIMPORT: %s, code %s: %s\n",
+            status ? "imported" : "refused",
+            (ipc && ipc->application()) ? ipc->application()->name().c_str()
+                                        : "-",
+            message.c_str());
+  }
   if (!status) {
     if (ipc != 0) {
       // Lisong, this is where the task is deleted if the import failed
