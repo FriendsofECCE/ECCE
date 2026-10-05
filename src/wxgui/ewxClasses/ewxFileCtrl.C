@@ -19,6 +19,7 @@
 #if wxUSE_FILEDLG
 
 #include "wx/tokenzr.h"
+#include "wx/filename.h"
 
 #include <iostream>
 using std::cerr;
@@ -261,7 +262,17 @@ void ewxFileCtrl::GoToHomeDir()
  */
 void ewxFileCtrl::GoToDir( const wxString &dir )
 {
-  if (local) return wxFileListCtrl::GoToDir(dir);
+  if (local) {
+    // The base class keeps its "*" placeholder when the directory is missing.
+    wxString d = dir;
+    while (d.length() > 1 && !wxDirExists(d)) {
+      d = wxFileName(d).GetPath();
+      if (d.empty()) break;
+    }
+    if (d.empty() || !wxDirExists(d)) d = wxGetUserHome(wxString());
+    if (!wxDirExists(d)) d = wxT("/");
+    return wxFileListCtrl::GoToDir(d);
+  }
 
   m_dirName = dir;
   UpdateFiles();

@@ -902,6 +902,24 @@ bool ewxGenericFileDialog::dirExists(wxString filename)
 
 
 /**
+ * An earlier bug saved the file list's "*" placeholder as part of the
+ * directory (a star in front of the path, or a star alone); drop it so stored
+ * settings stay usable. Returns "" for a directory that is then empty or,
+ * when local, missing.
+ */
+static string cleanStoredDir(string dir, bool local)
+{
+  while (!dir.empty() && dir[0] == '*') dir.erase(0, 1);
+  if (dir.find("://") == string::npos) {
+    while (dir.size() > 1 && dir[0] == '/' && dir[1] == '/') dir.erase(0, 1);
+  }
+  if (local && !dir.empty() && !wxDirExists(dir)) dir.clear();
+  return dir;
+}
+
+
+
+/**
  */
 void ewxGenericFileDialog::saveSettings()
 {
@@ -917,9 +935,14 @@ void ewxGenericFileDialog::saveSettings()
   // this problem (running via a Windows X server--Xming).
   ewxWindowUtils::saveWindowSettings(this, config, false);
 
-  config->Write("DIR", m_dir);
+  config->Write("DIR", wxString(cleanStoredDir(m_dir.ToStdString(), false)));
   config->Write("FILENAME", m_fileName);
-  config->Write("DIRS", p_lastDir);
+  vector<string> dirs = p_lastDir;
+  for (size_t i = 0; i < dirs.size(); i++) {
+    dirs[i] = cleanStoredDir(dirs[i], false);
+    if (dirs[i].empty()) dirs[i] = p_mountDir[i];
+  }
+  config->Write("DIRS", dirs);
 
   // MOUNTS only stored to check whether our server list is the same as last
   // time.  If it is, we can use the stored most-recent-directory per mount.
@@ -963,6 +986,17 @@ void ewxGenericFileDialog::restoreSettings()
   if (p_lastDir.empty()) {
     p_lastDir = p_mountDir;
   }
+
+  for (size_t i = 0; i < p_lastDir.size(); i++) {
+    bool isLocal = EcceURL(p_mountDir[i]).isLocal();
+    p_lastDir[i] = cleanStoredDir(p_lastDir[i], isLocal);
+    if (p_lastDir[i].empty()) {
+      p_lastDir[i] = isLocal ? wxGetUserHome(wxString()).ToStdString()
+                             : p_mountDir[i];
+    }
+  }
+  m_dir = cleanStoredDir(m_dir.ToStdString(),
+                         EcceURL(m_dir.ToStdString()).isLocal());
 
   if (config->Read("FILTER", &filter)) {
     if (filter < m_choice->GetCount()) {
