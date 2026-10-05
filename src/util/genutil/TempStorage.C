@@ -210,8 +210,15 @@ string TempStorage::getJobRunDirectoryPath(const EcceURL& url)
    // so a run directory has the same layout as with a data server.
    string localHome = LocalData::userHome();
    if (!localHome.empty()) localHome += "/";
+   // A calculation saved in any other local folder is placed by its path
+   // below the user's home directory, as one in a project is below the home.
+   const char *userHome = getenv("HOME");
+   string homeDir = userHome && *userHome ? string(userHome) + "/" : "";
    if (!localHome.empty() && url.isLocal() && fullFile.find(localHome) == 0)
       fullFile = fullFile.substr(localHome.length()-1);
+   else if (!homeDir.empty() && homeDir != "//" && url.isLocal()
+            && fullFile.find(homeDir) == 0)
+      fullFile = fullFile.substr(homeDir.length()-1);
    else if (fullFile.find(fluff) == 0)
       fullFile = fullFile.substr(fluff.length()-1);
    else if (fullFile.find("/Ecce/users/") == 0)
