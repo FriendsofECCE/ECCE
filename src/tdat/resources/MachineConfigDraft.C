@@ -299,7 +299,7 @@ bool MCD::effective(const string& key, string& value, bool cppOnly) const
   return false;
 }
 
-MCD::Tag MCD::tag(const string& key) const
+MCD::Tag MCD::tag(const string& key, bool cppOnly) const
 {
   const KeyState* ks = state(key);
   if (!ks)
@@ -308,17 +308,39 @@ MCD::Tag MCD::tag(const string& key) const
     return p_mode == AdminMode ? TagSiteEditing : TagYours;
   if (ks->edit == Clear)
     return TagNoValue;
-  if (ks->inherited.empty())
+  const Layer* last = 0;
+  for (size_t i = ks->inherited.size(); i-- > 0 && !last; ) {
+    const string& s = ks->inherited[i].source;
+    if (!(cppOnly && (s == "submit.site" || s == "vendor")))
+      last = &ks->inherited[i];
+  }
+  if (!last)
     return TagDefault;
-  const string& s = ks->inherited.back().source;
-  bool site = (s == "site");
+  const string& s = last->source;
   if (p_mode == RemoteMode && s != "user")
     return TagServer;
-  if (site)
+  if (s == "site")
     return TagSite;
   if (s == "user")
     return TagYours;
   return TagSiteDefaults;
+}
+
+void MCD::ensureKey(const string& spelling)
+{
+  string k = lower(spelling);
+  map<string,KeyState>::iterator it = p_cur.config.find(k);
+  if (it == p_cur.config.end()) {
+    KeyState ks;
+    ks.name = spelling;
+    p_cur.config[k] = ks;
+    p_base.config[k] = ks;
+  } else if (it->second.name == k) {
+    // explain reports lower case; keep the spelling the readers document
+    it->second.name = spelling;
+    map<string,KeyState>::iterator b = p_base.config.find(k);
+    if (b != p_base.config.end()) b->second.name = spelling;
+  }
 }
 
 const char* MCD::tagText(Tag t)

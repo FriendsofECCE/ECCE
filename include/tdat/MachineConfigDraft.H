@@ -92,13 +92,18 @@ public:
   void useInherited(const std::string& key);
   bool clear(const std::string& key);
 
+  // Make the key editable when no layer sets it; `spelling` is how a new
+  // line is written.  Changes the baseline too, so it is not an edit.
+  void ensureKey(const std::string& spelling);
+
   std::vector<std::string> keys() const;
   const KeyState* state(const std::string& key) const;
   // False when no value is in effect (built-in default applies).  cppOnly
   // ignores submit.site and vendor layers, which only gensub reads.
   bool effective(const std::string& key, std::string& value,
                  bool cppOnly = false) const;
-  Tag tag(const std::string& key) const;
+  // cppOnly: as for effective(); a layer only gensub reads is not a source.
+  Tag tag(const std::string& key, bool cppOnly = false) const;
   static const char* tagText(Tag t);
   // The keys RefMachine's accessors read.
   static const std::vector<std::string>& cppKeys();
