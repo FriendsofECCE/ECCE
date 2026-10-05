@@ -178,3 +178,55 @@ script on your computer and stops.
    File...** to bring the results into ECCE (see
    [Looking at a file](looking-at-a-file.md)). [TO CHECK: the dialog that
    follows and which calculation the output is attached to.]
+
+## Job submission settings
+
+Register Machines, Connection tab, under **Advanced > Job submission**.
+
+By default ECCE does everything itself: it logs in to the machine, copies
+the input and job script, submits the job, follows it, and copies the output
+back. The Connection tab shows this as "How jobs reach this machine: ECCE
+submits the job". Two settings change it for machines where that is not
+possible. They exclude each other: ticking one disables the other. When
+either is in effect, the line shows a warning symbol and the name of the
+mode, and Advanced opens when you select the machine.
+
+### Submit jobs interactively
+
+**Use it when** the site does not allow automated submission, for example
+because job submission must be done from an interactive login.
+
+**ECCE does:** logs in, creates the run directory, and copies the input and
+the job script into it.
+
+**You do:** log in to the machine yourself, submit the job script from the
+run directory with the scheduler's own command (for example `sbatch`), and,
+when ECCE asks, type the job ID into the dialog. ECCE then follows the job
+and copies the output back as usual.
+
+**Setting:** `userSubmit: true` in `CONFIG.<machine>`.
+
+### Don't submit; only make the files
+
+**Use it when** ECCE cannot log in to the machine at all, for example when
+the machine requires two-factor authentication.
+
+**ECCE does:** writes the input and the job script on this computer and
+stops. It never contacts the machine, and says which directory holds the
+files.
+
+**You do:** copy the files to the machine, submit the job there, and, once
+it has finished, import the output with Organizer > File > Import
+Calculation from Output File...
+
+**Setting:** `noRemoteAccess: true` in `CONFIG.<machine>`. If both keys are
+present, `noRemoteAccess` takes effect.
+
+### Where the settings are stored
+
+A change is stored in your own `~/.ECCE/CONFIG.<machine>`. A site can set
+the same keys in `siteconfig/CONFIG.<machine>`; the tag next to the line
+shows "from site" in that case. The undo button next to the tag removes
+your setting and returns to the site's. Ticking neither box removes the
+key (or, if the site sets one, writes `false` for it), which is the normal
+mode.
