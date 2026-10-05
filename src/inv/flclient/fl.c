@@ -260,11 +260,7 @@ void
 _flDestroyFont(FLfontStruct *fs)
 {
   FLfontImpl *impl = _flGetFontImpl();
-#if defined(WIN32) || defined(__APPLE__)
-  CHECK(fs, impl, destroyFont, NULL);
-#else
   CHECK(fs, impl, destroyFont, /* nothing to return */);
-#endif
 
   impl->destroyFont(fs);
 }

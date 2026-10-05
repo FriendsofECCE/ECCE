@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <iostream>
 using namespace std;
 
@@ -179,15 +180,8 @@ int SparseBits::firstFalse() const
  */
 unsigned int SparseBits::computeHashValue() const
 {
-#ifdef __x86_64
-   // GDB 2/2/12  On 64-bit systems mask off upper 4 bytes
-   // to get a 4-byte hash index
-   unsigned long addr = (unsigned long)this;
-   unsigned int ret = (unsigned int) (addr & 0x00000000FFFFFFFF);
-#else
-   unsigned int ret = (unsigned int) this;
-#endif
-   return ret;
+   // The low 4 bytes of the address are the hash index.
+   return (unsigned int)((uintptr_t)this & 0xFFFFFFFFu);
 }
 
 

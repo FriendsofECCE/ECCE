@@ -310,7 +310,7 @@ void Slice::OnButtonSliceColor1Click( wxCommandEvent& event )
    if (dlg.ShowModal() == wxID_OK) {
       wxString bgcolor = dlg.GetColor().GetAsString(wxC2S_HTML_SYNTAX);
 
-      wxColour color = btn->SetBackgroundColour(bgcolor);
+      btn->SetBackgroundColour(bgcolor);
 
       ewxConfig *config = ewxConfig::getConfig(INIFILE);
       config->Write("Slice/Color1", bgcolor);
@@ -344,7 +344,7 @@ void Slice::OnButtonSliceColor2Click( wxCommandEvent& event )
    if (dlg.ShowModal() == wxID_OK) {
       wxString bgcolor = dlg.GetColor().GetAsString(wxC2S_HTML_SYNTAX);
 
-      wxColour color = btn->SetBackgroundColour(bgcolor);
+      btn->SetBackgroundColour(bgcolor);
 
       ewxConfig *config = ewxConfig::getConfig(INIFILE);
       config->Write("Slice/Color2", bgcolor);

@@ -23,7 +23,6 @@
   using std::istrstream;
   using std::ostrstream;
 #include <unistd.h>
-#include <values.h>
 //#include <stdlib.h>  // abort
 
 #include "util/Ecce.H"

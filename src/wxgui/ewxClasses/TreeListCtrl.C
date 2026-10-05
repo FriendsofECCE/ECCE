@@ -40,9 +40,6 @@
 
 #include "wxgui/TreeListCtrl.H"
 
-#ifdef __WXMAC__
-    #include "wx/mac/private.h"
-#endif
 
 
 // ---------------------------------------------------------------------------
@@ -1112,7 +1109,7 @@ void wxTreeListHeaderWindow::DoDrawRect( wxDC *dc, int x, int y, int w, int h )
     dc->DrawRectangle( x, y+h, w+1, 1 );          // bottom (outer)
 
 #if defined( __WXMAC__  )
-    wxPen pen( wxColour( 0x88 , 0x88 , 0x88 ), 1, wxSOLID );
+    pen = wxPen( wxColour( 0x88 , 0x88 , 0x88 ), 1, wxSOLID );
 #endif
     dc->SetPen( pen );
     dc->DrawLine( x+w-m_corner, y, x+w-1, y+h );  // right (inner)
@@ -1729,17 +1726,6 @@ bool wxTreeListMainWindow::Create (wxTreeListCtrl *parent,
                                    long style,
                                    const wxValidator &validator,
                                    const wxString& name) {
-
-#ifdef __WXMAC__
-    if (style & wxTR_HAS_BUTTONS) style |= wxTR_MAC_BUTTONS;
-    if (style & wxTR_HAS_BUTTONS) style &= ~wxTR_HAS_BUTTONS;
-    style &= ~wxTR_LINES_AT_ROOT;
-    style |= wxTR_NO_LINES;
-
-    int major,minor;
-    wxGetOsVersion( &major, &minor );
-    if (major < 10) style |= wxTR_ROW_LINES;
-#endif
 
     wxScrolledWindow::Create (parent, id, pos, size, style|wxHSCROLL|wxVSCROLL, name);
 

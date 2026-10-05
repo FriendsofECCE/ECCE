@@ -83,7 +83,7 @@ bool ewxChoice::Create()
   PushEventHandler(p_disabler);
   p_editable = true;
   setStyles(this, false);
-  fitDropDown(this, p_explicitWidth);
+  fitDropDown(this, this, p_explicitWidth);
 
   /*
   // Hack fix for selection highlight missing bug.
@@ -134,6 +134,6 @@ int ewxChoice::DoInsertItems(const wxArrayStringsAdapter& items,
   int ret = wxChoice::DoInsertItems(items, pos, clientData, type);
   // Not while the base class is still being created, which inserts the
   // initial entries before the control is ready to be measured.
-  if (p_disabler) fitDropDown(this, p_explicitWidth);
+  if (p_disabler) fitDropDown(this, this, p_explicitWidth);
   return ret;
 }

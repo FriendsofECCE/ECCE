@@ -394,12 +394,13 @@ void ewxStyledWindow::setReadonlyMarker(wxWindow *win, bool readonly)
  * font, so no entry is cut off; a larger width given at construction is
  * kept.  See docs/claude/wx-viewer/drop-down-min-width.md.
  */
-void ewxStyledWindow::fitDropDown(wxControlWithItems *ctrl, int explicitWidth,
-                                  const wxString& value)
+void ewxStyledWindow::fitDropDown(wxWindow *ctrl,
+                                  wxItemContainerImmutable *items,
+                                  int explicitWidth, const wxString& value)
 {
    int widest = value.empty() ? 0 : ctrl->GetTextExtent(value).x;
-   for (unsigned int i = 0; i < ctrl->GetCount(); i++) {
-      widest = wxMax(widest, ctrl->GetTextExtent(ctrl->GetString(i)).x);
+   for (unsigned int i = 0; i < items->GetCount(); i++) {
+      widest = wxMax(widest, ctrl->GetTextExtent(items->GetString(i)).x);
    }
    if (widest == 0) return;
    // Room for the entry's padding and the drop-down arrow.  Not
