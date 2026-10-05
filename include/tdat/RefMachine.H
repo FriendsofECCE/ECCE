@@ -109,6 +109,9 @@ public:
     static string sshFamilyName(const string& shell);
     bool hasQueue(const string& queue) const;
     bool hasCode(const string& code) const;
+    // What the Launcher offers: the Machines line lists the code, or the
+    // site or user CONFIG.<refname> gives it a path.
+    bool offersCode(const string& code) const;
 
     static RefMachine* refLookup(const string& refname);
     static RefMachine* fullLookup(const string& fullname);

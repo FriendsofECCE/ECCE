@@ -69,6 +69,9 @@ class MachinePreferences
         static MachinePreferences     *lookup(string key);
         static MachinePreferences     *getItemAt(int index);
         static int                     countItems();
+        //  The registered machines the Launcher lists for a code ("" = all),
+        //  in launch-history order.
+        static vector<MachinePreferences *> itemsForCode(const string& code);
         static void                    moveItemToFront(string key);
         static void                    saveChanges();
 

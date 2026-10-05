@@ -272,39 +272,31 @@ void WxLauncher::populateMachinesList()
 
     p_machinesChoice->Clear();
 
-    int totMachs = MachinePreferences::countItems();
     p_numCfgd = 0;
     p_numIncl = 0;
 
-    //  Retrieve the user preferences for each registered machine
-    for (int i = 0; i < totMachs; i++)
+    string code;
+    if (p_taskJob != NULL)
+        code = p_taskJob->application()->getCodeName();
+
+    vector<MachinePreferences *> items = MachinePreferences::itemsForCode(code);
+
+    for (size_t i = 0; i < items.size(); i++)
     {
-        MachinePreferences *prefs = MachinePreferences::getItemAt(i);
-        RefMachine *rgstn = prefs->getRegisteredMachine();
+        MachinePreferences *prefs = items[i];
+        string refname = prefs->getRegisteredMachine()->refname();
 
-        if (rgstn != NULL)
+        if (connectAllowed(prefs))
         {
-            string refname = rgstn->refname();
-            bool include = true;
-
-            if (p_taskJob != NULL)
-                include = validateMachineWithCode(refname, p_taskJob->application()->getCodeName());
-
-            if (include)
-            {
-                if (connectAllowed(prefs))
-                {
-                    p_machinesChoice->Insert(refname, p_numCfgd, prefs);
-                    p_numCfgd++;
-                }
-                else
-                {
-                    p_machinesChoice->Append(refname, prefs);
-                }
-
-                p_numIncl++;
-            }
+            p_machinesChoice->Insert(refname, p_numCfgd, prefs);
+            p_numCfgd++;
         }
+        else
+        {
+            p_machinesChoice->Append(refname, prefs);
+        }
+
+        p_numIncl++;
     }
 
     if ((p_numCfgd > 0) && (p_numCfgd < p_numIncl))
@@ -959,7 +951,7 @@ bool WxLauncher::checkLaunchAllowed(RefMachine *machRgstn, bool cnctAllwd)
     {
         //  If this point is reached, then we know that p_taskJob is not null
         string code = p_taskJob->application()->getCodeName();
-        result = (result && machRgstn->hasCode(code));
+        result = (result && machRgstn->offersCode(code));
     }
 
     if (result && p_slctPrefs->isOptionSupported("Q"))
@@ -2544,7 +2536,7 @@ bool WxLauncher::validateMachineWithCode(const string& machineName,
 
     if (rfrnc != (RefMachine*)0)
     {
-        if (rfrnc->hasCode(code))
+        if (rfrnc->offersCode(code))
             result = true;
     }
     else
