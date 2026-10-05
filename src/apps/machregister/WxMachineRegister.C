@@ -521,8 +521,16 @@ wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
     addCfgRow(page, paths, "xappsPath", "X applications", CfgText,
               "Directory of X applications on the remote machine.");
 
-    addHeading(page, sizer, "How jobs reach this machine");
-    GRID(jobs)
+    //  The group's tag and undo sit on the heading line, in the columns the
+    //  other rows use.
+    wxBoxSizer* jobHead = new wxBoxSizer(wxHORIZONTAL);
+    sizer->Add(jobHead, wxSizerFlags().Expand());
+    wxStaticText* jobTitle = new wxStaticText(page, wxID_ANY,
+                                              "How jobs reach this machine");
+    wxFont jf = jobTitle->GetFont();
+    jf.MakeBold();
+    jobTitle->SetFont(jf);
+    jobHead->Add(jobTitle, wxSizerFlags(1).Border(wxLEFT|wxRIGHT|wxTOP));
     addCfgRow(page, NULL, "noRemoteAccess", "", CfgCheck, "");
     addCfgRow(page, NULL, "userSubmit", "", CfgCheck, "");
     static const char* const jobText[3] = {
@@ -540,15 +548,16 @@ wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
         radios->Add(p_jobsRadio[i], wxSizerFlags().Border(wxTOP|wxBOTTOM, 2));
         reg(jobName[i], p_jobsRadio[i]);
     }
-    jobs->AddSpacer(0);
-    jobs->Add(radios, wxSizerFlags(1).Expand().Border());
+    sizer->Add(radios, wxSizerFlags().Border());
     p_jobsTag = new wxStaticText(page, wxID_ANY, "");
     p_jobsTag->SetFont(p_jobsTag->GetFont().Smaller());
     p_jobsTag->SetMinSize(wxSize(p_jobsTag->GetTextExtent("from server  ").x, -1));
-    jobs->Add(p_jobsTag, wxSizerFlags().Border().CentreVertical());
+    jobHead->Add(p_jobsTag, wxSizerFlags().Border(wxTOP|wxBOTTOM|wxLEFT)
+                                          .CentreVertical());
     p_jobsUndo = makeUndo(page, p_jobsUndoBox);
     p_jobsUndo->Bind(wxEVT_BUTTON, &WxMachineRegister::onCfgUndo, this);
-    jobs->Add(p_jobsUndoBox, wxSizerFlags().Border().CentreVertical());
+    jobHead->Add(p_jobsUndoBox, wxSizerFlags().Border(wxTOP|wxRIGHT)
+                                              .CentreVertical());
     reg("tag:jobs", p_jobsTag);
     reg("undo:jobs", p_jobsUndo);
 
