@@ -918,7 +918,6 @@ void WxBasisTool::helpProgramMenuItemClickCB(wxCommandEvent& event)
 
     BrowserHelp help;
     help.showHelpPage(BASISTOOL);
-//01227   EcceHelp().showHelpPage(XtName(curWid));
 }
 
 
@@ -1576,51 +1575,6 @@ void WxBasisTool::editClearSelectionMenuItemClickCB(wxCommandEvent& evt)
 ////}
 
 
-/**
- *  Description
- *   Generate Exponents and Coefficients for the basis set config
- *   and display them in the dialog.
- *
- * Implementation
- *   To make this work, we need to first generate the ChemSys file.
- */
-/*
-void WxBasisTool::displayEC()
-{
-    DebugEnterMethod("displayEC()");
-    //  2006.1030
-    //  Placeholder for now.  Implementing code is commented out.
-
-//    if (p_lastEC)
-//  {
-//      TGBSConfig *config = p_tCalc->gbsConfig();
-//      const JCode* code = p_tCalc->application();
-
-        if (config && code)
-        {
-            string code_name = code->name();
-            char* basis_data = (char*)config->dump(code_name.c_str(), false);
-            string label = config->name() + " formatted for " + code_name;
-
-            p_lastEC->getrosTexti()->settextValue(basis_data);
-            XmString xmstr = tu_cvt_string_to_xmstring((char*)label.c_str());
-            p_lastEC->getlabeli()->setlabelString(xmstr);
-            XmStringFree(xmstr);
-        }
-        else
-        {
-            p_lastEC->getrosTexti()->settextValue("");
-            XmString xmstr = tu_cvt_string_to_xmstring("");
-            p_lastEC->getlabeli()->setlabelString(xmstr);
-            XmStringFree(xmstr);
-        }
-
-        raise_window(p_lastEC->getTextDlg());
-    }
-
-    DebugLeaveMethod();
-}
-*/
 
 /**
  *
@@ -2320,78 +2274,6 @@ void WxBasisTool::selectElements(string elmts)
 
 
 
-// Description
-//   Reset the interface to show that the user is now back in
-//   calculation mode.  This means the DFT/ECP stuff has to be
-//   set according to the calc code.  Also the Formula is a label and
-//   not a type-in.  The code name is a label and not an option menu.
-//   See intoBrowseMode.
-//
-// Implementation
-//   There should be no way of getting here if there is no calc.
-//
-//void WxBasisTool::outOfBrowseMode(bool autoOptimize)
-//{
-    //  KRS 2006.1020
-    //  This stuff shouldn't be necessary any more as we are not
-    //  going to allow Browse Mode.  The only reason to retain this,
-    //  for the moment at least, is for the functionality of updating
-    //  the dialogue components.
-    //
-    //  getplayModei()->setset(False); // browse mode toggle
-
-    //  // This "if" is just to avoid redundant work.
-    //  // Change widgets for calculation mode
-    //  if (!XtIsManaged(getchemFormulaValuei()->getlabel())) {
-    //  p_messagesFeedback->mapCalcInfo();
-    //  XtUnmanageChild(getchemFormulaInputi()->gettext());
-    //  XtManageChild(getchemFormulaValuei()->getlabel());
-    //  XtUnmanageChild(getimportFragBtni()->getmenuBtn());
-    //  XtManageChild(getsaveBtni()->getmenuBtn());
-    //  XtUnmanageChild(getcodeListOpMenu());
-    //  XtManageChild(getcodeNameLabel());
-    //  }
-
-/*
-  // Set the top table according to config type
-    Widget curTab = p_topTab;
-
-    TGBSConfig::ConfigType curtype = p_tCalc->gbsConfig()->type();
-
-    if (curtype == TGBSConfig::simple)
-        p_topTab = getsimpleForm();
-    else if(curtype == TGBSConfig::element)
-        p_topTab = getelementForm();
-    else if(curtype == TGBSConfig::atom)
-        p_topTab = getatomForm();
-
-    // Only invoke the callback if the tab is really changing
-    if (p_topTab != curTab)
-    {
-        p_newCalc = true; // this only gets set when a new calc is dropped in
-        XtVaSetValues(getconfigTab(),XmNxrtGearActivePageWidget,p_topTab,NULL);
-    }
-
-    p_contextCodeStatic->SetLabel(p_tcalc->application()->name());
-
-    TGBSConfig *cnfg = p_tcalc->gbsConfig();
-    Fragment *frag = p_tcalc->fragment();
-
-    showFormula(cnfg);      // show molecular formula
-
-    setPolarizationAndOptimize(cnfg);    // sets according to config values
-    resetCodeObjects(autoOptimize);  // may change dft, ecp, spherical,
-                                     // optimize in order
-                                     // conform to code rules
-
-    resetBSTable(cnfg, frag);     // show config data on screen
-
-    // Deactivate some widgets if calculation is in a locked state
-    indicateChemSys();
-    indicateGBSConfig();
-
- */
-//}
 
 /*void WxBasisTool::indicateChemSys()
 {
@@ -2439,7 +2321,6 @@ void WxBasisTool::indicateGBSConfig()
         p_contextBasisSetsPanel[i]->Enable(allwd);
     }
 
-//    XtSetSensitive(geteditConfigBtn(), (Boolean) writable);
 }
 
 
@@ -3019,10 +2900,6 @@ void WxBasisTool::setGbsToTable(ewxGrid* grid, int row, TGBSGroup* group)
             }
         }
 
-//        XtVaSetValues(topTable.getTable(),
-  //                          XmNxrtTblContext, XrtTblSetContext(row,XRTTBL_ALL),
-    //                        XmNxrtTblPixelHeightContext, XRTTBL_VARIABLE,
-      //                      NULL);
         //  AutoSizeColumns/Rows, NOT AutoSize.  AutoSize() also resizes the
         //  GRID WINDOW to fit its content, which overrides the minimum size
         //  set when it was created and shrinks the table to roughly 400px
@@ -3196,48 +3073,6 @@ void WxBasisTool::setGridColumnVisible(int col, bool vsbl)
     DebugLeaveMethod();
 }
 */
-
-/**
- *   The table scroll bar policy is as-needed.  However, they don't
- *   appear when they are needed.  Perhaps this is because they are
- *   inside the tab.
- *
- *   I tried sending a ConfigureNotify to various widgets but none
- *   of this worked.
- *
- *   Setting the size of the bst to its current width/height has
- *   no affect.
- *
- *   Trying to set XmNxrtTblDisplay*ScrollBar (ie the policy)
- *   doesn't work even if you turn on always then back to as needed.
- *
- *   Setting the XmNxrtTblDisplayHorizScrollBar policy to
- *   XRTTBL_DISPSB_ALWAYS and then back to XRTTBL_DISPSB_AS_NEEDED
- *   doesn't help.
- *
- *   Increasing and descrasing the num visible columns doesn't work.
- *   Arg, I give.  make it always visible.
- *
- *   Setting the bst size to width+1 and then back to width works.
- */
-//void WxBasisTool::resizeHack()/
-//{
-/*
-//  Dimension width, height, border;
-//  Position x,y;
-
-//  XtVaGetValues(wid,XmNx,&x,XmNy,&y,XmNheight,&height,XmNwidth,&width, XmNborderWidth,&border,NULL);
-//  XtVaSetValues(wid,XmNwidth,width+1,NULL);
-
-
-  // This works and is less disruptive than resizing the whole table
-  Widget w = getconfigTab();
-  int cnt=0;
-  XtVaGetValues(w,XmNrightOffset,&cnt,NULL);
-  XtVaSetValues(w,XmNrightOffset,cnt+1,NULL);
-  XtVaSetValues(w,XmNrightOffset,cnt,NULL);
-*/
-//}
 
 
 /**
@@ -3534,18 +3369,6 @@ void WxBasisTool::updateBasisSets(int index, bool slctFirst)
  //           p_elementsTable->clearContext();
  //       }
 
-        /*
-        if (selectFirst)
-        {
-            int card=0;
-            XtVaGetValues(wList, XmNitemCount,&card,NULL);
-
-            if (card > 0)
-            {
-                selectBasis(wList,(char*)(*names)[0]);
-            }
-        }
-        */
     }
     else
     {

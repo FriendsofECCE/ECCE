@@ -129,7 +129,6 @@ void CreateSysFont(SbName name, int size,
 #ifdef __GLX // linux, unix, etc.
 #include <GL/glx.h>
 #include <GL/gl.h>
-#include <X11/keysym.h>
 #include <stdlib.h>
 
 void CreateSysFont(SbName name, int size,

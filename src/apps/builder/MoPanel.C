@@ -482,20 +482,10 @@ void MoPanel::fillUI()
    if (moCoefs) {
       // If the Coeffs Table is displayed, undisplay it.
       // (Better yet, display the HOMO coefs by default)
-      //            if (XtIsManaged(getcoefsForm())) {
-      //               getcoefsTogglei()->setset(False);
-      //               coefsToggleCB(getcoefsToggle(), (XtPointer)0, (XtPointer)0);
-      //            }
-      //            XtSetSensitive(getcomputeForm(),TRUE);
    } else {
       WxVizToolFW& fw = getFW();
       fw.showMessage("This calculation does not have any MO "
             "coefficients.", false/*warning*/);
-      //            XtSetSensitive(getcomputeForm(),FALSE);
-      //            if (XtIsManaged(getcoefsForm())) {
-      //               getcoefsTogglei()->setset(False);
-      //               coefsToggleCB(getcoefsToggle(), (XtPointer)0, (XtPointer)0);
-      //            }
       p_isValid = False;
    }
 }
