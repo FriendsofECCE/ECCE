@@ -514,7 +514,9 @@ sub checkIn {
 sub checkOut {
   local($ret);
   local($file, $doRC) = @_;
-  $changeperms{$file} = 1; 
+  # Users edit their ~/.ECCE files by hand, so those are left writable
+  # (older versions locked them); a read-only site file is locked again.
+  $changeperms{$file} = 0;
   $ret = 0;  # success as with a system call
   if ($doRC eq "true") {
     if (&isControlled($file)) {
@@ -527,8 +529,8 @@ sub checkOut {
     if (-w $file) {
       $changeperms{$file} = 0; 
     } else {
-      $changeperms{$file} = 1; 
-      `chmod +w $file`;
+      $changeperms{$file} = ($siteflag eq "true") ? 1 : 0;
+      `chmod u+w $file`;
       $ret = $? >> 8;
     }
   }
