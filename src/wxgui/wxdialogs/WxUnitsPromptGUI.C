@@ -111,13 +111,13 @@ void WxUnitsPromptGUI::CreateControls()
     itemBoxSizer3->Add(itemStaticText4, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     wxString p_unitsStrings[] = {
-        _("Angstroms"),
+        wxString::FromUTF8("\xc3\x85ngstr\xc3\xb6ms"),
         _("Bohr"),
         _("Picometers"),
         _("Nanometers")
     };
     p_units = new ewxChoice( itemDialog1, ID_CHOICE_UNITS, wxDefaultPosition, wxDefaultSize, 4, p_unitsStrings, 0 );
-    p_units->SetStringSelection(_("Angstroms"));
+    p_units->SetSelection(0);
     itemBoxSizer3->Add(p_units, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     p_genBonds = new ewxCheckBox( itemDialog1, ID_CHECKBOX_GENBONDS, _("Display Bonds"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );

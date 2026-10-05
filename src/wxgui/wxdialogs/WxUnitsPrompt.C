@@ -18,7 +18,10 @@ WxUnitsPrompt::WxUnitsPrompt(wxWindow *parent, const bool& bondsPrompt)
 
 string WxUnitsPrompt::getUnits() const
 {
-  return p_units->GetStringSelection().ToStdString();
+  // The label is for display (Ångströms); callers compare these names.
+  static const char *names[] = { "Angstroms", "Bohr", "Picometers", "Nanometers" };
+  int i = p_units->GetSelection();
+  return (i >= 0 && i < 4) ? names[i] : names[0];
 }
 
 bool WxUnitsPrompt::getGenBonds() const
