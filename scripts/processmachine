@@ -70,18 +70,17 @@ if ($siteflag eq "true") {
   $path = $ENV{"ECCE_REALUSERHOME"} . "/.ECCE";
 }
 
-# Determine whether or not we'll have to edit the CONFIG file.  We only
-# need to if we have paths to specify.
+# Whether the GUI has paths to write.  When it has none, the CONFIG file is
+# still stripped of the keys the GUI owns (writeConfig), but never deleted if
+# anything else is in it.
 $configflag = "false";
-if (($contents{"perlPath"} eq "" || $contents{"perlPath"} eq "EMSL")) {
-  foreach $code (@fullyregistered) {
-    if (!($contents{"$code"} eq "" || $contents{$code} eq "EMSL")) {
-      $configflag = "true";
-    }
+foreach $code (@fullyregistered) {
+  if (!($contents{"$code"} eq "" || $contents{$code} eq "EMSL")) {
+    $configflag = "true";
   }
-} else {
-  $configflag = "true";
 }
+$configflag = "true" if (!($contents{"perlPath"} eq "" || $contents{"perlPath"} eq "EMSL"));
+$configflag = "true" if ($contents{"qmgrPath"} ne "");
 
 
 #  Queue definitions used to be written only for a site administrator
@@ -151,8 +150,7 @@ sub doAccept {
     my ($wasThere,$qline,@otherLines);
     $sQueues = 0;
     ($wasThere,$qline,@otherLines) = &readQueues($machine);
-    if (($wasThere eq true && $qmgr eq "None") ||
-        ($wasThere eq false && $qmgr ne "None")) {
+    if ($wasThere eq true || $qmgr ne "None") {
       $sQueues = &checkOut("$path/$qsFile",$useRC);
     }
 
@@ -160,13 +158,8 @@ sub doAccept {
     $sQ = &checkOut("$path/$QFile",$useRC);
   }
 
-  if ($configflag eq "true") {
-    $sCONFIG = 0;
-    $sCONFIG = &checkOut("$path/$cFile",$useRC);
-  } else {
-    # Delete that bad boy
-    removeFile("$path/$cFile",$useRC);
-  }
+  $sCONFIG = 0;
+  $sCONFIG = &checkOut("$path/$cFile",$useRC);
 
   if (open(MACHINES,"<$mFile")) {
     @lines = <MACHINES>; 
@@ -260,9 +253,12 @@ sub doAccept {
     # Now modify the Queues file.  This could mean removing stuff
     # as well as adding so just do a remove followed by add.
     my ($wasThere,$qline,@otherLines);
+    @ownLines = ();
     ($wasThere,$qline,@otherLines) = &readQueues($machine);
-    if (($wasThere eq true && $qmgr eq "None") ||
-        ($wasThere eq false && $qmgr ne "None")) {
+    #  Rewritten whenever the machine has an entry, not only when it is added
+    #  or removed, so a changed queue manager reaches <m>|queueMgrName.
+    if ($wasThere eq true || $qmgr ne "None") {
+      pop(@otherLines) while (@otherLines && $otherLines[-1] =~ /^\s*$/);
       open(QUEUES,">$path/$qsFile") 
          || die("Unable to open $path/$qsFile for write");
       print QUEUES "Queues: $qline";
@@ -274,6 +270,8 @@ sub doAccept {
         print QUEUES "$machine|queueMgrName:    $qmgr\n";
         print QUEUES "$machine|queueMgrVersion: 2.0~\n";
         print QUEUES "$machine|prefFile:        $machine.Q\n";
+        #  Keys of this machine that the GUI does not set.
+        print QUEUES @ownLines;
       }
       close(QUEUES);
       &checkIn("$path/$qsFile",$useRC,
@@ -282,7 +280,8 @@ sub doAccept {
 
 
     #####
-    # The Q file.  Wipe it out and recreate.  Or possibly just wipe it out
+    # The Q file, recreated from the GUI's queues.  Other keys of those
+    # queues and lines not tied to a queue are kept (writeQFile).
     #####
     # In this case, get rid of Q file
     my $nqueues = $contents{"numQueues"};
@@ -290,7 +289,7 @@ sub doAccept {
       removeFile("$path/$QFile",$useRC);
     } else {
       $qnames = "";
-      $qdetails = "";
+      %qdetail = ();
       for ($idx=0; $idx<$nqueues; $idx++) {
         (@parts) = split(/,/,$contents{"q".$idx});
         $name = "";
@@ -309,70 +308,150 @@ sub doAccept {
               $key = "runLimit" if ($key =~ /maxCPU/);
               $key = "memLimit" if ($key =~ /maxMemory/);
               $key = "scratchLimit" if ($key =~ /minScratch/);
-              $qdetails .= $name . "|" . $key . ":       " . $value . "\n";
+              $qdetail{$name} .= $name . "|" . $key . ":       " . $value . "\n";
             }
           }
         }
       }
-      open(QFILE,">$path/$QFile") || die("Unable to open $path/$QFile");
-      print QFILE "# Queue details for $machine \n\n";
-      print QFILE "Queues:    $qnames\n\n";
-      print QFILE "$qdetails";
-      close(QFILE);
+      &writeQFile($qnames);
       &checkIn("$path/$QFile",$useRC,
                "\"Register Compute Servers application queue settings\"");
     }
   }
 
-  # The CONFIG file... waiting to decide
-
-  if ($configflag eq "true") {
-    @lines = ();
-    if (open(CONFIG,"<$path/$cFile")) {
-      @lines = <CONFIG>;
-      close(CONFIG);
-    }
-    my ($cdx,$afterComments);
-    $afterComments=0;
-    for ($cdx=0; $cdx<$#lines+1; $cdx++) {
-      if ($afterComments==0 && $lines[$cdx] !~ /^\s*#/) {
-         $afterComments = $cdx; 
-      }
-      foreach $code (@fullyregistered) {
-        if ($lines[$cdx] =~ /^$code[: \t]+/) { $lines[$cdx] = ""; }
-      }
-      if ($lines[$cdx] =~ /^perlPath[: \t]+/) { $lines[$cdx] = ""; }
-      if ($lines[$cdx] =~ /^qmgrPath[: \t]+/) { $lines[$cdx] = ""; }
-    }
-    @donelines = ();
-    if ($afterComments > 0) {
-      my $tmp = $afterComments-1;
-      @donelines = @lines[0..$tmp];
-    }
-    foreach $code (@fullyregistered) {
-      if ($contents{$code} ne "" && $contents{$code} ne "EMSL") { 
-        push(@donelines,"$code: $contents{$code}\n");
-      }
-    }
-
-    if ($contents{"perlPath"} ne "" && $contents{"perlPath"} ne "EMSL") { 
-       push(@donelines,"perlPath: $contents{'perlPath'}\n");
-    }
-    if ($contents{"qmgrPath"} ne "") { 
-       push(@donelines,"qmgrPath: $contents{'qmgrPath'}\n");
-    }
-    push(@donelines,@lines[$afterComments..$#lines]);
-
-    open(CONFIG,">$path/$cFile") || 
-          die("Unable to open Config File $path/$cFile");
-    print CONFIG @donelines;
-    close(CONFIG);
-
-    &checkIn("$path/$cFile",$useRC,
-             "\"Register Compute Servers application configuration settings\"");
-  }
+  &writeConfig();
 }
 
+#######################################################################
+# Description
+#   Rewrite CONFIG.$machine: drop the keys the GUI owns (code paths,
+#   perlPath, qmgrPath; any case, outside blocks), write the GUI's values
+#   after the header comments, and keep every other line.  The file is
+#   deleted only when nothing but comments and blank lines is left.
+#######################################################################
+sub writeConfig {
+  my (@lines, @kept, @donelines, $line, $code, $inblock, $first);
+  my ($existed) = (-e "$path/$cFile") ? 1 : 0;
+
+  return if ($configflag ne "true" && !$existed);
+
+  if (open(CONFIG,"<$path/$cFile")) {
+    @lines = <CONFIG>;
+    close(CONFIG);
+  }
+
+  my @managed = (@fullyregistered, "perlPath", "qmgrPath");
+  $inblock = 0;
+  foreach $line (@lines) {
+    if ($inblock) {
+      $inblock = 0 if ($line =~ /^\}/);
+      push(@kept,$line);
+      next;
+    }
+    my $drop = 0;
+    foreach $code (@managed) {
+      if ($line =~ /^\s*\Q$code\E(?:\s*:|\s)/i &&
+          $line !~ /^\s*\Q$code\E\s*:?\s*\{/i) {
+        $drop = 1;
+        last;
+      }
+    }
+    next if ($drop);
+    # a block opens on a line ending in "{"
+    $inblock = 1 if ($line =~ /\{\s*$/ && $line !~ /^\s*#/);
+    push(@kept,$line);
+  }
+
+  # GUI lines go after the leading comment block
+  $first = 0;
+  $first++ while ($first < @kept && $kept[$first] =~ /^\s*#/);
+
+  @donelines = @kept[0..$first-1] if ($first > 0);
+  foreach $code (@fullyregistered) {
+    if ($contents{$code} ne "" && $contents{$code} ne "EMSL") {
+      push(@donelines,"$code: $contents{$code}\n");
+    }
+  }
+  if ($contents{"perlPath"} ne "" && $contents{"perlPath"} ne "EMSL") {
+    push(@donelines,"perlPath: $contents{'perlPath'}\n");
+  }
+  if ($contents{"qmgrPath"} ne "") {
+    push(@donelines,"qmgrPath: $contents{'qmgrPath'}\n");
+  }
+  push(@donelines,@kept[$first..$#kept]) if ($first <= $#kept);
+
+  my $content = grep(!/^\s*(#.*)?$/, @donelines);
+  if ($content == 0) {
+    removeFile("$path/$cFile",$useRC);
+    return;
+  }
+
+  open(CONFIG,">$path/$cFile") ||
+        die("Unable to open Config File $path/$cFile");
+  print CONFIG @donelines;
+  close(CONFIG);
+
+  &checkIn("$path/$cFile",$useRC,
+           "\"Register Compute Servers application configuration settings\"");
+}
+
+#######################################################################
+# Description
+#   Write $machine.Q: "Queues:" with the GUI's queue names, then for each
+#   queue the existing lines the GUI does not manage (def*, memUnits, ...)
+#   followed by the GUI's own, then any other existing line not tied to a
+#   queue.  Queues the GUI dropped lose their lines.  %qdetail holds the
+#   GUI's lines by queue name.
+#######################################################################
+sub writeQFile {
+  my ($qnames) = @_;
+  my (@header, %own, @loose, $line, $queue, $key, @prior, $skip);
+  my @guikeys = ("minprocessors","maxprocessors","runlimit","memlimit",
+                 "scratchlimit");
+
+  my @names = split(' ',$qnames);
+  my %wanted = map { $_ => 1 } @names;
+
+  if (open(QOLD,"<$path/$QFile")) {
+    @prior = <QOLD>;
+    close(QOLD);
+  }
+  my $seenQueues = 0;
+  $skip = 0;
+  foreach $line (@prior) {
+    if ($skip) {                       # continuation of the Queues: line
+      $skip = ($line =~ /\\\s*$/);
+      next;
+    }
+    if ($line =~ /^\s*Queues\s*:/) {
+      $seenQueues = 1;
+      $skip = ($line =~ /\\\s*$/);
+      next;
+    }
+    if ($line =~ /^\s*(\S+?)\|(\w+)\s*:/) {
+      ($queue,$key) = ($1,$2);
+      next if (grep { $_ eq lc($key) } @guikeys);
+      next if (!$wanted{$queue});
+      $own{$queue} .= $line;
+    } elsif ($line =~ /^\s*#/ || $line =~ /^\s*$/) {
+      if (!$seenQueues) { push(@header,$line) }
+      elsif ($line !~ /^\s*$/) { push(@loose,$line) }
+    } else {
+      push(@loose,$line);
+    }
+  }
+  @header = ("# Queue details for $machine \n","\n") if (!@header);
+
+  open(QFILE,">$path/$QFile") || die("Unable to open $path/$QFile");
+  print QFILE @header;
+  print QFILE "Queues:    $qnames\n\n";
+  foreach $queue (@names) {
+    print QFILE $own{$queue};
+    print QFILE $qdetail{$queue};
+  }
+  print QFILE @loose;
+  close(QFILE);
+}
 #######################################################################
 # Description
 #   Delete the entry in the Machines file
@@ -463,10 +542,12 @@ sub readQueues {
         $qMachines = $qMachines . $_;
       }
     } else {
-      if (! /$oldMachine\|/) {
+      if (! /^\s*\Q$oldMachine\E\|/) {
         push(@lines,$_);
       } else {
         $wasThere = true;
+        #  Keys of this machine the GUI does not manage are written back.
+        push(@ownLines,$_) if (! /^\s*\Q$oldMachine\E\|(queueMgrName|queueMgrVersion|prefFile)\s*:/);
       }
     }
   }
@@ -474,8 +555,8 @@ sub readQueues {
 
   $qMachines =~ s/\\//g;
   $qMachines =~ s/\n//g;
-  $qMachines =~ s/ $machine / /g;
-  $qMachines =~ s/ $machine$//g;
+  $qMachines =~ s/ \Q$machine\E / /g;
+  $qMachines =~ s/ \Q$machine\E$//g;
   $qMachines =~ s/\s+/ /g;
 
   return ($wasThere,$qMachines,@lines);
