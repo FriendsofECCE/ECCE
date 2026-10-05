@@ -26,13 +26,22 @@ Things that are easy to get wrong:
   emptied field with nothing inherited removes the line.
 - A changed Name is a new machine: it gets a draft of its own, because the
   loaded one belongs to the old name.
+- The Connection tab's rows (`addCfgRow`) are one key each: control, source
+  tag, `[...]` menu. The draft comes from `GENSUB_EXPLAIN` (`explain()`), and
+  these twelve keys are read by C++ only, so their value and tag ignore
+  `submit.site` and vendor layers (`effective`/`tag` with `cppOnly`). `true` and
+  `yes` are one value for the check/choice rows, so `syncCfg` compares them in
+  canonical form: an absent `singleConnect` means "no", not "auto".
 - Widgets only reach the draft through change events that bubble to the frame;
   programmatic fills are guarded by `p_inCtrlUpdate`.
 
 **Test hook.** With `ECCE_MACHREG_SCRIPT=<file>` the app runs the commands in the
 file against the real frame (one per timer tick; they call the button handlers),
 does not subscribe or publish, answers prompts from `answer yes|no|cancel`, and
-prints the binary and `$ECCE_HOME`. `snapshot <dir>` saves one PNG per tab. A
+prints the binary and `$ECCE_HOME`. `snapshot <dir>` saves one PNG per tab. Source tags are fields named
+`tag:<key>` (`expect label tag:shell site`), `menu <key> site|none|where` is the
+`[...]` menu, and `menu-shot <key> <file>` captures the open menu with
+ImageMagick `import` and ends the run (wx 3.2 cannot close a popup from code). A
 `wxScreenDC` capture goes stale after its first use under Xvfb; the hook blits
 from a `wxClientDC` of the frame instead. `tests/machregister/gui_test.py`
 (ctest `machregister_gui`) runs user, `-remote` and `-admin` scenarios and then

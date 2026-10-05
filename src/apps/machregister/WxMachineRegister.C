@@ -21,6 +21,11 @@
 #endif
 
 #include "wx/accel.h"
+#include "wx/collpane.h"
+#include "wx/filename.h"
+#include "wx/menu.h"
+#include "wx/timer.h"
+#include "wx/utils.h"
 #include "wx/display.h"
 #include "wx/artprov.h"
 #include "wx/statbmp.h"
@@ -118,6 +123,8 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
     p_closing = false;
     p_slctRgstn = NULL;
     p_draft = NULL;
+    p_cfgPage = NULL;
+    p_advanced = NULL;
     p_scripted = getenv("ECCE_MACHREG_SCRIPT") != NULL;
     p_codeNames = CodeFactory::getFullySupportedCodeNames();
 
@@ -378,33 +385,145 @@ wxWindow* WxMachineRegister::createMachinePage(wxWindow* parent)
 }
 
 
+void WxMachineRegister::addHeading(wxWindow* page, wxSizer* sizer,
+                                   const string& text)
+{
+    wxStaticText* t = new wxStaticText(page, wxID_ANY, text);
+    wxFont f = t->GetFont();
+    f.MakeBold();
+    t->SetFont(f);
+    sizer->Add(t, wxSizerFlags().Border(wxLEFT|wxRIGHT|wxTOP));
+}
+
+
+//  One key: [label] [control] [source tag] [...].  Checkboxes carry their
+//  own label.  The control is registered under the lower-case key.
+void WxMachineRegister::addCfgRow(wxWindow* page, wxFlexGridSizer* grid,
+                                  const string& key, const string& label,
+                                  CfgKind kind, const string& tip)
+{
+    CfgRow r;
+    r.key = key;
+    r.label = label;
+    r.kind = kind;
+
+    if (kind == CfgCheck || kind == CfgCheckYes)
+        r.ctrl = new ewxCheckBox(page, wxID_ANY, label, wxDefaultPosition,
+                                 wxDefaultSize, wxCHK_2STATE);
+    else if (kind == CfgText)
+        r.ctrl = new ewxTextCtrl(page, wxID_ANY);
+    else
+    {
+        wxArrayString items;
+        if (kind == CfgShell)
+        {
+            items.Add("bash"); items.Add("sh"); items.Add("csh");
+            items.Add("tcsh");
+        }
+        else
+        {
+            items.Add("auto"); items.Add("yes"); items.Add("no");
+        }
+        r.ctrl = new ewxChoice(page, wxID_ANY, wxDefaultPosition,
+                               wxSize(160, -1), items);
+    }
+    r.ctrl->SetToolTip(tip);
+
+    if (kind == CfgCheck || kind == CfgCheckYes)
+        grid->AddSpacer(0);
+    else
+    {
+        r.name = new ewxStaticText(page, wxID_ANY, label);
+        r.name->SetMinSize(wxSize(260, -1));
+        grid->Add(r.name, wxSizerFlags().Right().Border().CentreVertical());
+    }
+    grid->Add(r.ctrl, wxSizerFlags(1).Expand().Border().CentreVertical());
+
+    r.tag = new wxStaticText(page, wxID_ANY, "");
+    r.tag->SetFont(r.tag->GetFont().Smaller());
+    r.tag->SetMinSize(wxSize(r.tag->GetTextExtent("site (editing) ").x, -1));
+    grid->Add(r.tag, wxSizerFlags().Border().CentreVertical());
+
+    r.menu = new ewxButton(page, wxID_ANY, "...", wxDefaultPosition,
+                           wxDefaultSize, wxBU_EXACTFIT);
+    r.menu->SetToolTip("Use the site value, or no value");
+    r.menu->Bind(wxEVT_BUTTON, &WxMachineRegister::onCfgMenu, this);
+    grid->Add(r.menu, wxSizerFlags().Border().CentreVertical());
+
+    reg(lowerOf(key), r.ctrl);
+    reg("tag:" + lowerOf(key), r.tag);
+    reg("menu:" + lowerOf(key), r.menu);
+    p_cfgRows.push_back(r);
+}
+
+
 wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
 {
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     ewxScrolledWindow* page = newPage(parent, sizer);
+    p_cfgPage = page;
 
-    wxFlexGridSizer* grid = new wxFlexGridSizer(2, 0, 0);
-    grid->AddGrowableCol(1);
-    sizer->Add(grid, wxSizerFlags().Expand());
+    #define GRID(name) \
+        wxFlexGridSizer* name = new wxFlexGridSizer(4, 0, 0); \
+        name->AddGrowableCol(1); \
+        sizer->Add(name, wxSizerFlags().Expand());
 
-    p_perlPath = new ewxTextCtrl(page, wxID_ANY);
-    p_perlPath->SetToolTip("Directory of the Perl 5 interpreter on the "
-                           "remote machine.");
-    p_qmgrPath = new ewxTextCtrl(page, wxID_ANY);
-    p_qmgrPath->SetToolTip("Directory holding the scheduler's commands on "
-                           "the remote machine.");
-    grid->Add(new ewxStaticText(page, wxID_ANY, "Perl on the remote machine"),
-              wxSizerFlags().Right().Border().CentreVertical());
-    grid->Add(p_perlPath, wxSizerFlags(1).Expand().Border().CentreVertical());
-    grid->Add(new ewxStaticText(page, wxID_ANY, "Scheduler command directory"),
-              wxSizerFlags().Right().Border().CentreVertical());
-    grid->Add(p_qmgrPath, wxSizerFlags(1).Expand().Border().CentreVertical());
+    addHeading(page, sizer, "Remote environment");
+    GRID(env)
+    addCfgRow(page, env, "shell", "Shell", CfgShell,
+              "The shell ECCE starts on the remote machine to read the file "
+              "below. bash is right unless that file is written for csh.");
+    addCfgRow(page, env, "sourceFile", "File to source", CfgText,
+              "A file on the remote machine that sets up the environment "
+              "(module commands, paths) before a job runs.");
 
-    p_connNote = new wxStaticText(page, wxID_ANY, "");
-    sizer->Add(p_connNote, wxSizerFlags().Border());
+    addHeading(page, sizer, "Connect through a login host");
+    GRID(front)
+    addCfgRow(page, front, "frontendMachine", "Login host", CfgText,
+              "Connect to this host first, then on to the machine. "
+              "Leave empty to connect directly.");
+    addCfgRow(page, front, "frontendBypass", "Skip it when inside", CfgText,
+              "A domain, such as .example.org. When this computer is inside "
+              "it, the login host is not used.");
 
-    reg("perlpath", p_perlPath);
-    reg("qmgrpath", p_qmgrPath);
+    addHeading(page, sizer, "Paths on the remote machine");
+    GRID(paths)
+    addCfgRow(page, paths, "perlPath", "Perl", CfgText,
+              "Directory of the Perl 5 interpreter on the remote machine.");
+    addCfgRow(page, paths, "qmgrPath", "Scheduler commands", CfgText, "");
+    addCfgRow(page, paths, "libPath", "Libraries", CfgText,
+              "Directory added to LD_LIBRARY_PATH on the remote machine.");
+    addCfgRow(page, paths, "xappsPath", "X applications", CfgText,
+              "Directory of X applications on the remote machine.");
+
+    addHeading(page, sizer, "Job handling");
+    GRID(jobs)
+    addCfgRow(page, jobs, "noRemoteAccess", "ECCE does not contact this "
+              "machine (I copy jobs myself)", CfgCheck,
+              "ECCE writes the input and the job script but never connects.");
+    addCfgRow(page, jobs, "userSubmit", "I submit jobs myself; ask for the "
+              "job id", CfgCheck,
+              "ECCE copies the job over, you start it, and ECCE asks for "
+              "the job id.");
+
+    p_advanced = new wxCollapsiblePane(page, wxID_ANY, "Advanced");
+    sizer->Add(p_advanced, wxSizerFlags().Expand().Border());
+    wxWindow* adv = p_advanced->GetPane();
+    wxFlexGridSizer* advGrid = new wxFlexGridSizer(4, 0, 0);
+    advGrid->AddGrowableCol(1);
+    adv->SetSizer(advGrid);
+    addCfgRow(adv, advGrid, "singleConnect", "One connection for everything",
+              CfgTri, "yes: send commands and files over one connection. "
+              "auto: yes when this computer is outside the machine's domain.");
+    addCfgRow(adv, advGrid, "checkScratch", "Check the scratch directory "
+              "before a job starts", CfgCheckYes,
+              "Verify that the scratch directory exists and is writable.");
+    p_advanced->Bind(wxEVT_COLLAPSIBLEPANE_CHANGED,
+        [this](wxCollapsiblePaneEvent&) {
+            p_cfgPage->Layout();
+            p_cfgPage->FitInside();
+        });
+    #undef GRID
     return page;
 }
 
@@ -873,13 +992,74 @@ MCD* WxMachineRegister::newDraft(const string& refName) const
 
     MCD* draft = new MCD(mode, site, user);
 
-    vector<string> keys;
+    //  Provenance from gensub itself, so the tags are what a job gets.
+    string err;
+    string out = explain(refName, err);
+    if (err.empty())
+        draft->loadExplain(out, err);
+    if (!err.empty())
+    {
+        fprintf(stderr, "[MACHREG] %sexplain failed: %s\n",
+                p_scripted ? "FAIL " : "", err.c_str());
+        vector<string> keys;
+        for (size_t i = 0; i < p_codeNames.size(); i++)
+            keys.push_back(p_codeNames[i]);
+        for (size_t i = 0; i < p_cfgRows.size(); i++)
+            keys.push_back(p_cfgRows[i].key);
+        draft->loadFiles(keys);
+    }
     for (size_t i = 0; i < p_codeNames.size(); i++)
-        keys.push_back(p_codeNames[i]);
-    keys.push_back("perlPath");
-    keys.push_back("qmgrPath");
-    draft->loadFiles(keys);
+        draft->ensureKey(p_codeNames[i]);
+    for (size_t i = 0; i < p_cfgRows.size(); i++)
+        draft->ensureKey(p_cfgRows[i].key);
     return draft;
+}
+
+
+//  GENSUB_EXPLAIN=1 gensub: the effective value of every key and the layers
+//  under it.  In admin mode the user's own files are hidden from it.
+string WxMachineRegister::explain(const string& refName, string& err) const
+{
+    string dir = (string)wxFileName::GetTempDir() + "/ecce-machreg-XXXXXX";
+    vector<char> tmpl(dir.begin(), dir.end());
+    tmpl.push_back('\0');
+    if (mkdtemp(&tmpl[0]) == NULL)
+    {
+        err = "cannot make a temporary directory";
+        return "";
+    }
+    dir = &tmpl[0];
+
+    string params = dir + "/params";
+    {
+        std::ofstream f(params.c_str());
+        f << " -H " << (refName.empty() ? "unnamed" : refName) << "\n"
+          << " -Q Shell\n -c NWChem\n -d localhost\n -n 1\n -N 1\n"
+          << " -r " << dir << "\n -i a\n -o a\n -f " << dir << "/submit__x\n";
+    }
+    wxString cmd = "perl \"" + string(Ecce::ecceHome()) +
+                   "/scripts/gensub\" -p \"" + params + "\"";
+    wxExecuteEnv env;
+    wxGetEnvMap(&env.env);
+    env.env["GENSUB_EXPLAIN"] = "1";
+    if (p_adminFlag)
+        env.env["ECCE_REALUSERHOME"] = dir;
+
+    wxArrayString lines, errors;
+    long rc = wxExecute(cmd, lines, errors, wxEXEC_SYNC, &env);
+    string out;
+    for (size_t i = 0; i < lines.GetCount(); i++)
+        out += (string)lines[i] + "\n";
+    if (rc != 0)
+    {
+        err = "gensub exited with " + std::to_string(rc);
+        if (errors.GetCount() > 0)
+            err += ": " + (string)errors[0];
+    }
+
+    unlink(params.c_str());
+    rmdir(dir.c_str());
+    return out;
 }
 
 
@@ -957,12 +1137,7 @@ void WxMachineRegister::draftToControls()
         p_draft->effective(p_codeNames[i], v);
         p_codePaths[i]->SetValue(v);
     }
-    string v;
-    p_draft->effective("perlPath", v);
-    p_perlPath->SetValue(v);
-    v = "";
-    p_draft->effective("qmgrPath", v);
-    p_qmgrPath->SetValue(v);
+    this->cfgToControls();
 
     if (p_slctRgstn != NULL)
     {
@@ -1235,7 +1410,353 @@ void WxMachineRegister::onQueueClear(wxCommandEvent&)
 
 //  ---- dirty tracking ------------------------------------------------------
 
-void WxMachineRegister::syncKey(MCD* draft, const string& key, const string& text)
+//  The value the inherited layers give (false: none, or the last cleared it).
+static bool inheritedValue(const MCD::KeyState& ks, bool cppOnly, string& v)
+{
+    for (size_t i = ks.inherited.size(); i-- > 0; )
+    {
+        const MCD::Layer& l = ks.inherited[i];
+        if (cppOnly && (l.source == "submit.site" || l.source == "vendor"))
+            continue;
+        v = l.value;
+        return l.hasValue;
+    }
+    return false;
+}
+
+
+//  ---- the Connection tab's keys ---------------------------------------------
+
+static bool isOneOf(const string& v, const char* a, const char* b)
+{
+    string l = lowerOf(strip(v));
+    return l == a || l == b;
+}
+
+static void qmgrCommandNames(const string& lq, string& a, string& b,
+                             string& dir)
+{
+    a = "sbatch"; b = "squeue"; dir = "/opt/slurm/bin";
+    if (lq == "pbs" || lq == "sge") { a = "qsub"; b = "qstat"; dir = "/opt/pbs/bin"; }
+    else if (lq == "lsf") { a = "bsub"; b = "bjobs"; dir = "/opt/lsf/bin"; }
+    else if (lq == "moab") { a = "msub"; b = "showq"; dir = "/opt/moab/bin"; }
+    else if (lq == "htcondor") { a = "condor_submit"; b = "condor_q"; dir = "/opt/condor/bin"; }
+}
+
+static string qmgrCommands(const string& lq)
+{
+    string a, b, dir;
+    qmgrCommandNames(lq, a, b, dir);
+    return "Directory holding " + a + ", " + b + " and the other scheduler "
+           "commands";
+}
+
+
+WxMachineRegister::CfgRow* WxMachineRegister::cfgRow(const string& key)
+{
+    string k = lowerOf(key);
+    for (size_t i = 0; i < p_cfgRows.size(); i++)
+        if (lowerOf(p_cfgRows[i].key) == k)
+            return &p_cfgRows[i];
+    return NULL;
+}
+
+
+//  What applies when no layer sets the key (RefMachine's own defaults).
+string WxMachineRegister::cfgDefault(const CfgRow& r) const
+{
+    switch (r.kind)
+    {
+        case CfgShell: return "bash";
+        case CfgCheck: return "false";
+        case CfgCheckYes: return "true";
+        case CfgTri: return "no";
+        default: return "";
+    }
+}
+
+
+//  One spelling per meaning, as RefMachine reads the values.
+string WxMachineRegister::cfgCanon(const CfgRow& r, const string& raw) const
+{
+    switch (r.kind)
+    {
+        case CfgCheck:
+            return isOneOf(raw, "true", "yes") ? "true" : "false";
+        case CfgCheckYes:
+            return isOneOf(raw, "false", "no") ? "false" : "true";
+        case CfgTri:
+            return isOneOf(raw, "true", "yes") ? "yes"
+                 : isOneOf(raw, "false", "no") ? "no" : "auto";
+        default:
+            return strip(raw);
+    }
+}
+
+
+string WxMachineRegister::cfgCtrlText(const CfgRow& r) const
+{
+    switch (r.kind)
+    {
+        case CfgCheck:
+        case CfgCheckYes:
+            return static_cast<wxCheckBox*>(r.ctrl)->IsChecked() ? "true"
+                                                                 : "false";
+        case CfgShell:
+        case CfgTri:
+            return (string)static_cast<wxChoice*>(r.ctrl)->GetStringSelection();
+        default:
+            return strip((string)static_cast<wxTextCtrl*>(r.ctrl)->GetValue());
+    }
+}
+
+
+string WxMachineRegister::cfgHint(const CfgRow& r) const
+{
+    const MCD::KeyState* ks = p_draft ? p_draft->state(r.key) : NULL;
+    if (ks != NULL && ks->edit == MCD::Clear)
+        return "(no value)";
+    string k = lowerOf(r.key);
+    if (k == "sourcefile") return "e.g. /etc/profile.d/modules.sh";
+    if (k == "frontendmachine") return "e.g. login.example.org";
+    if (k == "frontendbypass") return "e.g. .example.org";
+    if (k == "perlpath") return "e.g. /usr/bin";
+    if (k == "libpath") return "e.g. /opt/lib";
+    if (k == "xappspath") return "e.g. /usr/X11R6/bin";
+    if (k == "qmgrpath")
+    {
+        string a, b, dir;
+        qmgrCommandNames(lowerOf((string)p_qmgrChoice->GetStringSelection()),
+                         a, b, dir);
+        return "e.g. " + dir;
+    }
+    return "";
+}
+
+
+void WxMachineRegister::cfgToControl(const CfgRow& r)
+{
+    string v;
+    bool has = p_draft->effective(r.key, v, true);
+    string show = cfgCanon(r, has ? v : cfgDefault(r));
+    switch (r.kind)
+    {
+        case CfgText:
+        {
+            wxTextCtrl* t = static_cast<wxTextCtrl*>(r.ctrl);
+            t->SetValue(has ? v : "");
+            t->SetHint(cfgHint(r));
+            break;
+        }
+        case CfgCheck:
+        case CfgCheckYes:
+            static_cast<wxCheckBox*>(r.ctrl)->SetValue(show == "true");
+            break;
+        default:
+        {
+            wxChoice* c = static_cast<wxChoice*>(r.ctrl);
+            if (!c->SetStringSelection(show))
+            {
+                c->Append(show);        // a shell this list does not know
+                c->SetStringSelection(show);
+            }
+        }
+    }
+}
+
+
+void WxMachineRegister::cfgToControls()
+{
+    for (size_t i = 0; i < p_cfgRows.size(); i++)
+        cfgToControl(p_cfgRows[i]);
+
+    //  Legacy: shown only when something sets it.
+    if (CfgRow* x = cfgRow("xappsPath"))
+    {
+        string v;
+        const MCD::KeyState* ks = p_draft->state(x->key);
+        bool show = p_draft->effective(x->key, v, true) ||
+                    (ks != NULL && ks->edit != MCD::Inherit);
+        x->name->Show(show);
+        x->ctrl->Show(show);
+        x->tag->Show(show);
+        x->menu->Show(show);
+        p_cfgPage->Layout();
+    }
+}
+
+
+static string layerTagName(const MCD::Layer& l, bool remote)
+{
+    if (remote && l.source != "user")
+        return "server";
+    return l.source == "site" ? "site" : "site defaults";
+}
+
+
+//  Refresh each tag from the draft; the tooltip says where the value is.
+void WxMachineRegister::cfgTags()
+{
+    if (p_draft == NULL)
+        return;
+    for (size_t i = 0; i < p_cfgRows.size(); i++)
+    {
+        const CfgRow& r = p_cfgRows[i];
+        const MCD::KeyState* ks = p_draft->state(r.key);
+        if (ks == NULL)
+            continue;
+        MCD::Tag t = p_draft->tag(r.key, true);
+        wxString text = MCD::tagText(t);
+        if (r.tag->GetLabel() != text)
+            r.tag->SetLabel(text);
+
+        bool own = t == MCD::TagYours || t == MCD::TagSiteEditing ||
+                   t == MCD::TagNoValue;
+        r.tag->SetForegroundColour(wxSystemSettings::GetColour(
+            own ? wxSYS_COLOUR_WINDOWTEXT : wxSYS_COLOUR_GRAYTEXT));
+
+        string inh;
+        bool hasInh = inheritedValue(*ks, true, inh);
+        string inhTag;
+        for (size_t k = ks->inherited.size(); k-- > 0 && inhTag.empty(); )
+            if (!(ks->inherited[k].source == "submit.site" ||
+                  ks->inherited[k].source == "vendor"))
+                inhTag = layerTagName(ks->inherited[k], remoteClient());
+        string file = p_draft->editedFile(), tip;
+        switch (t)
+        {
+            case MCD::TagDefault: tip = "ECCE's built-in default"; break;
+            case MCD::TagServer:
+                tip = "Published by the ECCE server; changes go to your own "
+                      "settings on this computer";
+                break;
+            case MCD::TagSite:
+            case MCD::TagSiteDefaults:
+                for (size_t k = ks->inherited.size(); k-- > 0 && tip.empty(); )
+                    tip = ks->inherited[k].file;
+                break;
+            case MCD::TagYours:
+                tip = "Stored in " + file + " on this computer";
+                if (hasInh)
+                    tip += " (overrides " + inhTag + ": " + inh + ")";
+                break;
+            case MCD::TagSiteEditing: tip = file; break;
+            case MCD::TagNoValue:
+                tip = "Use no value";
+                if (hasInh)
+                    tip += ": clears " + inhTag + ": " + inh;
+                break;
+        }
+        if (r.tag->GetToolTipText() != tip)
+            r.tag->SetToolTip(tip);
+        if (r.kind == CfgText)
+            static_cast<wxTextCtrl*>(r.ctrl)->SetHint(cfgHint(r));
+    }
+}
+
+
+//  One line per layer, lowest first, then this session's edit.
+string WxMachineRegister::cfgSources(const CfgRow& r) const
+{
+    string out = r.key + "\n\n";
+    const MCD::KeyState* ks = p_draft->state(r.key);
+    if (ks == NULL)
+        return out;
+    for (size_t i = 0; i < ks->inherited.size(); i++)
+    {
+        const MCD::Layer& l = ks->inherited[i];
+        out += l.source + "  " + l.file + "  " +
+               (l.hasValue ? l.value : "(no value)") + "\n";
+    }
+    if (ks->edit != MCD::Inherit)
+        out += string(MCD::tagText(p_draft->tag(r.key, true))) + "  " +
+               p_draft->editedFile() + "  " +
+               (ks->edit == MCD::Set ? ks->value : "(no value)") + "\n";
+    if (ks->inherited.empty() && ks->edit == MCD::Inherit)
+        out += "Nothing sets it; ECCE's built-in default applies.\n";
+    return out;
+}
+
+
+//  The [...] menu.  The same actions are what the test hook calls.
+void WxMachineRegister::cfgAction(const string& key, const string& action)
+{
+    CfgRow* r = cfgRow(key);
+    if (r == NULL || p_draft == NULL)
+        return;
+    this->syncDraft();
+    if (action == "where")
+    {
+        displayMessage(cfgSources(*r));
+        return;
+    }
+    if (action == "site")
+        p_draft->useInherited(r->key);
+    else if (action == "none")
+    {
+        if (!p_draft->clear(r->key))
+            return;
+    }
+    p_inCtrlUpdate = true;
+    cfgToControl(*r);
+    p_inCtrlUpdate = false;
+    this->updateDirty();
+}
+
+
+void WxMachineRegister::onCfgMenu(wxCommandEvent& event)
+{
+    for (size_t i = 0; i < p_cfgRows.size(); i++)
+        if (p_cfgRows[i].menu == event.GetEventObject())
+            popupCfgMenu(p_cfgRows[i].key, "");
+}
+
+
+//  With `shot`, the open menu is captured from the X server (a menu is a
+//  window of its own, so the frame blit does not have it), then `after`
+//  runs; wx 3.2 cannot close a popup from code, so the hook ends the run.
+void WxMachineRegister::popupCfgMenu(const string& key, const string& shot,
+                                     std::function<void()> after)
+{
+    CfgRow* r = cfgRow(key);
+    if (r == NULL || p_draft == NULL)
+        return;
+    this->syncDraft();
+    const MCD::KeyState* ks = p_draft->state(key);
+    string inh;
+    bool hasInh = ks != NULL && inheritedValue(*ks, true, inh);
+    bool anyInh = ks != NULL && !ks->inherited.empty();
+
+    wxMenu menu;
+    string site = p_adminFlag ? "Use site default"
+                : remoteClient() ? "Use server value"
+                : anyInh ? "Use site value" : "Use default value";
+    menu.Append(1000, site)->Enable(ks != NULL && ks->edit != MCD::Inherit);
+    menu.Append(1001, "Use no value")->Enable(hasInh && ks->edit != MCD::Clear);
+    menu.AppendSeparator();
+    menu.Append(1002, "Where does this come from?");
+    menu.Bind(wxEVT_MENU, [this, key](wxCommandEvent& e) {
+        cfgAction(key, e.GetId() == 1000 ? "site"
+                     : e.GetId() == 1001 ? "none" : "where");
+    });
+
+    wxTimer timer;
+    if (!shot.empty())
+    {
+        timer.Bind(wxEVT_TIMER, [after, shot](wxTimerEvent&) {
+            wxExecute("import -window root " + wxString(shot), wxEXEC_SYNC);
+            wxExecute("convert " + wxString(shot) + " -trim +repage " +
+                      wxString(shot), wxEXEC_SYNC);
+            after();
+        });
+        timer.StartOnce(700);
+    }
+    r->menu->PopupMenu(&menu, 0, r->menu->GetSize().y);
+}
+
+
+void WxMachineRegister::syncKey(MCD* draft, const string& key,
+                                const string& text, bool cppOnly)
 {
     string t = strip(text);
     const MCD::KeyState* ks = draft->state(key);
@@ -1243,12 +1764,12 @@ void WxMachineRegister::syncKey(MCD* draft, const string& key, const string& tex
         return;
 
     string cur;
-    bool has = draft->effective(key, cur);
+    bool has = draft->effective(key, cur, cppOnly);
     if ((has && t == cur) || (!has && t.empty()))
         return;
 
-    bool hasInh = !ks->inherited.empty() && ks->inherited.back().hasValue;
-    string inh = hasInh ? ks->inherited.back().value : string();
+    string inh;
+    bool hasInh = inheritedValue(*ks, cppOnly, inh);
     if (t.empty())
     {
         //  An emptied field overrides an inherited value with "no value".
@@ -1261,6 +1782,33 @@ void WxMachineRegister::syncKey(MCD* draft, const string& key, const string& tex
         draft->useInherited(key);
     else
         draft->setValue(key, t);
+}
+
+
+//  The other kinds hold a fixed set of values; "true" and "yes" are one
+//  value, so they are compared in canonical form and written as chosen.
+void WxMachineRegister::syncCfg(MCD* draft, const CfgRow& r)
+{
+    if (r.kind == CfgText)
+    {
+        syncKey(draft, r.key, cfgCtrlText(r), true);
+        return;
+    }
+    const MCD::KeyState* ks = draft->state(r.key);
+    if (ks == NULL)
+        return;
+
+    string t = cfgCtrlText(r), cur;
+    bool has = draft->effective(r.key, cur, true);
+    if (t == cfgCanon(r, has ? cur : cfgDefault(r)))
+        return;
+
+    string inh;
+    bool hasInh = inheritedValue(*ks, true, inh);
+    if (t == cfgCanon(r, hasInh ? inh : cfgDefault(r)))
+        draft->useInherited(r.key);
+    else
+        draft->setValue(r.key, t);
 }
 
 
@@ -1286,13 +1834,13 @@ void WxMachineRegister::syncDraft()
 }
 
 
-//  The managed CONFIG keys: each code's path, perlPath and qmgrPath.
+//  The managed CONFIG keys: each code's path and the Connection tab's.
 void WxMachineRegister::syncKeys(MCD* draft)
 {
     for (size_t i = 0; i < p_codePaths.size(); i++)
         syncKey(draft, p_codeNames[i], (string)p_codePaths[i]->GetValue());
-    syncKey(draft, "perlPath", (string)p_perlPath->GetValue());
-    syncKey(draft, "qmgrPath", (string)p_qmgrPath->GetValue());
+    for (size_t i = 0; i < p_cfgRows.size(); i++)
+        syncCfg(draft, p_cfgRows[i]);
 }
 
 
@@ -1319,7 +1867,7 @@ string WxMachineRegister::editedBase() const
 
 void WxMachineRegister::updateFooter()
 {
-    if (p_book == NULL || p_storeNote == NULL || p_connNote == NULL)
+    if (p_book == NULL || p_storeNote == NULL || p_cfgRows.empty())
         return;
 
     string base = editedBase();
@@ -1339,12 +1887,6 @@ void WxMachineRegister::updateFooter()
     if (p_storeNote->GetLabel() != note)
         p_storeNote->SetLabel(note);
 
-    wxString conn = "Not editable here yet. The remote shell (shell), the "
-        "file to source (sourceFile) and the login host (frontendMachine, "
-        "frontendBypass) are set in " + config + ".";
-    if (p_connNote->GetLabel() != conn)
-        { p_connNote->SetLabel(conn); p_connNote->Wrap(560); }
-
     string qm = (string)p_qmgrChoice->GetStringSelection();
     string lq = lowerOf(qm);
     wxString job = "Not editable here yet. The commands run before and after "
@@ -1355,13 +1897,12 @@ void WxMachineRegister::updateFooter()
     if (p_jobNote->GetLabel() != job)
         { p_jobNote->SetLabel(job); p_jobNote->Wrap(560); }
 
-    string a = "sbatch", b = "squeue", dir = "/opt/slurm/bin";
-    if (lq == "pbs" || lq == "sge") { a = "qsub"; b = "qstat"; dir = "/opt/pbs/bin"; }
-    else if (lq == "lsf") { a = "bsub"; b = "bjobs"; dir = "/opt/lsf/bin"; }
-    else if (lq == "moab") { a = "msub"; b = "showq"; dir = "/opt/moab/bin"; }
-    else if (lq == "htcondor") { a = "condor_submit"; b = "condor_q"; dir = "/opt/condor/bin"; }
-    p_qmgrPath->SetHint("where " + a + ", " + b + " are, e.g. " + dir +
-                        "; empty if on PATH");
+    if (CfgRow* q = cfgRow("qmgrPath"))
+    {
+        static_cast<wxTextCtrl*>(q->ctrl)->SetHint(cfgHint(*q));
+        q->ctrl->SetToolTip(qmgrCommands(lq) + " on the remote machine. "
+                            "Leave empty if they are on the default PATH.");
+    }
 }
 
 
@@ -1372,6 +1913,7 @@ void WxMachineRegister::updateDirty()
         return;
 
     bool dirty = this->isDirty();
+    this->cfgTags();
     p_saveButton->Enable(dirty && hasMinimalInput());
     wxString title = dirty ? wxString("*") + TITLE : wxString(TITLE);
     if ((string)this->GetTitle() != (string)title)
@@ -1530,8 +2072,9 @@ bool WxMachineRegister::verifyInput()
     //  Values land on one line of CONFIG.<machine>, and "-" there means
     //  "no value".
     vector<ewxTextCtrl*> texts = p_codePaths;
-    texts.push_back(p_perlPath);
-    texts.push_back(p_qmgrPath);
+    for (size_t i = 0; i < p_cfgRows.size(); i++)
+        if (p_cfgRows[i].kind == CfgText)
+            texts.push_back(static_cast<ewxTextCtrl*>(p_cfgRows[i].ctrl));
     for (size_t i = 0; i < texts.size(); i++)
     {
         string v = strip((string)texts[i]->GetValue());

@@ -22,6 +22,7 @@
 #include "wx/notebook.h"
 #include "wx/spinctrl.h"
 
+#include "wx/stattext.h"
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxSpinCtrl.H"
@@ -115,6 +116,8 @@ string MachRegScript::get(const string& name)
         return b->IsChecked() ? "1" : "0";
     if (wxButton* b = dynamic_cast<wxButton*>(w))
         return (string)b->GetLabel();
+    if (wxStaticText* t = dynamic_cast<wxStaticText*>(w))
+        return (string)t->GetLabel();
     return "<unsupported field>";
 }
 
@@ -224,6 +227,16 @@ int MachRegScript::runCommand(const vector<string>& w)
         //  Programmatic changes send no change event for most controls.
         f->updateDirty();
     }
+    else if (cmd == "menu" && n == 3)
+    {
+        if (f->cfgRow(w[1]) == NULL) fail("no row " + w[1]);
+        else f->cfgAction(w[1], w[2]);
+    }
+    else if (cmd == "menu-shot" && n == 3)
+    {
+        if (f->cfgRow(w[1]) == NULL) fail("no row " + w[1]);
+        else f->popupCfgMenu(w[1], w[2], [this]() { finish(); });
+    }
     else if (cmd == "queue-apply") click("queue-apply");
     else if (cmd == "queue-remove") click("queue-remove");
     else if (cmd == "queue-clear") click("queue-clear");
@@ -276,6 +289,11 @@ int MachRegScript::runCommand(const vector<string>& w)
             expectEq("banner", f->p_info->IsShown() ? "1" : "0", v);
         else if (what == "field" || what == "label")
             expectEq(what + " " + w[2], get(w[2]), n > 3 ? w[3] : "");
+        else if (what == "shown" && n >= 4)
+        {
+            wxWindow* win = f->field(w[2]);
+            expectEq("shown " + w[2], win && win->IsShown() ? "1" : "0", w[3]);
+        }
         else if (what == "enabled" && n >= 4)
         {
             wxWindow* win = f->field(w[2]);

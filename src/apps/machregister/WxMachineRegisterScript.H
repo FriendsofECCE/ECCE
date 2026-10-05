@@ -14,7 +14,10 @@
  *    wait MS | snapshot DIR | shot FILE | dump | quit
  *    expect dirty|save-enabled|delete-enabled|title-star|banner 0|1
  *    expect field FIELD VALUE | list NAME FROM | tab NAME | message TEXT
- *    expect label FIELD TEXT | enabled FIELD 0|1
+ *    expect label FIELD TEXT | enabled FIELD 0|1 | shown FIELD 0|1
+ *    menu KEY site|none|where     the [...] menu's items on a Connection row
+ *    menu-shot KEY FILE           open that menu, save the screen, end the run
+ *  Source tags are fields named tag:KEY, e.g. expect label tag:shell site.
  */
 #ifndef WXMACHINEREGISTERSCRIPT_HH
 #define WXMACHINEREGISTERSCRIPT_HH

@@ -18,6 +18,7 @@
 #define WXMACHINEREGISTER_HH
 
 #include <deque>
+#include <functional>
 #include <map>
 #include <string>
 #include <vector>
@@ -38,6 +39,7 @@ class wxPanel;
 class wxSpinCtrlDouble;
 class wxListCtrl;
 class wxListEvent;
+class wxCollapsiblePane;
 class wxNotebook;
 class wxStaticText;
 class ewxButton;
@@ -66,6 +68,19 @@ class WxMachineRegister: public ewxFrame
 
         struct Row { string name, from; };
 
+        //  One CONFIG key on the Connection tab: label, control, source tag
+        //  and the [...] menu.  The control is named after the key.
+        enum CfgKind { CfgText, CfgShell, CfgCheck, CfgCheckYes, CfgTri };
+        struct CfgRow {
+            string key, label;
+            CfgKind kind;
+            wxWindow *ctrl;
+            wxStaticText *tag, *name;
+            ewxButton *menu;
+            CfgRow() : kind(CfgText), ctrl(NULL), tag(NULL), name(NULL),
+                       menu(NULL) {}
+        };
+
         //  Construction
         void createControls();
         wxWindow* createMachinePage(wxWindow* parent);
@@ -75,6 +90,9 @@ class WxMachineRegister: public ewxFrame
         wxWindow* createQueuesPage(wxWindow* parent);
         ewxScrolledWindow* newPage(wxWindow* parent, wxSizer* sizer);
         void loadQueueManagerList();
+        void addCfgRow(wxWindow* page, wxFlexGridSizer* grid, const string& key,
+                       const string& label, CfgKind kind, const string& tip);
+        void addHeading(wxWindow* page, wxSizer* sizer, const string& text);
 
         //  Event handlers
         void onClose(wxCloseEvent& event);
@@ -106,11 +124,26 @@ class WxMachineRegister: public ewxFrame
         void fillQueues();
         void showQueue(const string& name = "");
         void showSiteBanner();
+        string explain(const string& refName, string& err) const;
+        CfgRow* cfgRow(const string& key);
+        string cfgDefault(const CfgRow& r) const;
+        string cfgHint(const CfgRow& r) const;
+        string cfgCanon(const CfgRow& r, const string& raw) const;
+        string cfgCtrlText(const CfgRow& r) const;
+        void cfgToControl(const CfgRow& r);
+        void cfgToControls();
+        void cfgTags();
+        void onCfgMenu(wxCommandEvent& event);
+        void popupCfgMenu(const string& key, const string& shot,
+                          std::function<void()> after = std::function<void()>());
+        void cfgAction(const string& key, const string& action);
+        string cfgSources(const CfgRow& r) const;
 
         //  Dirty tracking
         void syncDraft();
         void syncKey(MachineConfigDraft* draft, const string& key,
-                     const string& text);
+                     const string& text, bool cppOnly = false);
+        void syncCfg(MachineConfigDraft* draft, const CfgRow& r);
         void syncKeys(MachineConfigDraft* draft);
         void updateDirty();
         bool isDirty();
@@ -161,7 +194,10 @@ class WxMachineRegister: public ewxFrame
         wxPanel             *p_info;
         wxStaticText        *p_infoText;
         wxStaticText        *p_storeNote;   // names the files Save writes
-        wxStaticText        *p_connNote, *p_jobNote;
+        wxStaticText        *p_jobNote;
+        vector<CfgRow>       p_cfgRows;
+        wxWindow            *p_cfgPage;
+        wxCollapsiblePane   *p_advanced;
         ewxStaticText       *p_localityText;
         ewxTextCtrl         *p_fullName, *p_refName, *p_vendor, *p_model,
                             *p_proc, *p_queueName;
@@ -175,7 +211,6 @@ class WxMachineRegister: public ewxFrame
                             *p_deleteButton, *p_newButton, *p_closeButton,
                             *p_helpButton;
         vector<ewxTextCtrl*> p_codePaths;
-        ewxTextCtrl         *p_perlPath, *p_qmgrPath;
         vector<string>       p_codeNames;
         std::map<string, wxWindow*> p_fields;
 
