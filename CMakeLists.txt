@@ -65,7 +65,7 @@ find_package(X11 REQUIRED)
 find_package(Threads REQUIRED)
 link_libraries(Threads::Threads)
 if(NOT X11_Xt_FOUND)
-  message(FATAL_ERROR "libXt (X Toolkit Intrinsics) not found - needed by src/comm/commxt/JobStore.C")
+  message(FATAL_ERROR "libXt (X Toolkit Intrinsics) headers not found - included by include/inv/SoWx/SoWxViewer.H")
 endif()
 
 # Old build used "-I/usr/include/freetype2/freetype" as a baseline include
@@ -226,13 +226,6 @@ ecce_library(eccevizsg
 # --- src/comm -> 4 separate libraries ---
 ecce_library(eccecomm   src/comm/commtools)
 ecce_library(eccecommxt src/comm/commxt)
-# JobStore.C in this directory calls raw X Toolkit Intrinsics APIs
-# (XtAppAddSignal, XtCreateApplicationContext, etc.) directly - not part of
-# the wx port, this is the old build's async I/O/event-loop scaffolding for
-# eccejobstore. Link PUBLIC so every consumer of this static lib (jobstore,
-# launcher, mdprepare, organizer) picks up the Xt (and its X11 dependency)
-# linkage automatically without needing to list it themselves.
-target_link_libraries(eccecommxt PUBLIC X11::Xt X11::X11)
 ecce_library(eccercmd   src/comm/rcommand)
 # SshTransport needs libssh >= 0.10; without it the glob's copy is dropped
 # and nothing else changes.
