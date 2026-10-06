@@ -1229,10 +1229,15 @@ expect label tag:code '%(csite)s'
 expect label tag:cenv '%(csite)s'
 expect shown undo:code 0
 expect shown undo:cenv 0
-%(first)sexpect label tag:ccmd 'not set'
+%(first)sexpect label tag:ccmd 'default'
 expect label tag:files '%(fsite)s'
-expect shown blk:ccmd:site 0
-expect label blk:ccmd:hint 'e.g. $G16 < $inFile > $outFile'
+expect shown blk:ccmd:site 1
+expect label blk:ccmd:head 'Built-in (used when empty)'
+expect field blk:ccmd:site '$G16 < $inFile > $outFile 2>&1'
+expect label blk:ccmd:yours '%(mine)s (replaces the built-in)'
+expect shown blk:ccmd:copy 0
+expect shown blk:ccmd:none 0
+expect label blk:ccmd:hint 'e.g. srun $G16 < $inFile > $outFile'
 expect shown blk:ccmd:hint 1
 expect label blk:cenv:hint 'e.g. g16root /opt'
 expect label blk:csetup:hint 'e.g. module load gaussian-16'
@@ -1241,7 +1246,8 @@ expect dirty 0
 expect label cmd:help "When this is empty, ECCE's built-in command is used."
 code ORCA
 expect label code:title ORCA
-expect label blk:ccmd:hint 'e.g. $orca $inFile > $outFile'
+expect contains blk:ccmd:site '$orca $inFile > $outFile 2>&1'
+expect label blk:ccmd:hint 'e.g. $orca $inFile "--bind-to core" > $outFile'
 expect label blk:cenv:hint 'e.g. OMP_NUM_THREADS 1'
 expect label blk:csetup:hint 'e.g. module load orca'
 expect field code:orca ''
@@ -1272,6 +1278,7 @@ save
 expect dirty 0
 quit
 """ % dict(site=site, yours=yours, first=first, env=esc(ENV_TEXT), cmd=esc(cmd),
+           mine="Site setting" if admin else "User setting",
            fsite="from server" if remote else "from site",
            csite=yours if admin else site),
         args=args, extra=extra)
@@ -1328,7 +1335,7 @@ undo cenv
 expect field blk:cenv %(env)s
 expect dirty 0
 set blk:ccmd ''
-expect label tag:ccmd 'not set'
+expect label tag:ccmd 'default'
 expect shown undo:ccmd 1
 undo ccmd
 expect field blk:ccmd %(cmd)s
@@ -1466,18 +1473,19 @@ quit
 select cluster
 tab codes
 code Gaussian-16
-expect label tag:ccmd 'not set'
+expect label tag:ccmd 'default'
 expect field blk:ccmd ''
 expect label tag:cenv 'from site'
 expect field blk:cenv ''
 expect dirty 0
 set blk:ccmd 'echo hi'
 undo ccmd
-expect label tag:ccmd 'not set'
+expect label tag:ccmd 'default'
 expect dirty 0
 quit
 """)
-    clean(p, "an empty block reads as not set; undo returns to it")
+    clean(p, "an empty command block reads as the built-in default; undo "
+          "returns to it")
     check(read(cluster) == u, "nothing was written")
 
     # an existing file gains the skeleton on the first save, once
@@ -1562,6 +1570,8 @@ code NWChem
 wait 1000
 shot %(o)s/codes-site.png
 code Gaussian-16
+wait 800
+shot %(o)s/codes-builtin.png
 set code:gaussian-16 /opt/g16/g16
 set blk:cenv 'g16root /opt\\nGAUSS_SCRDIR /scratch'
 wait 1000
