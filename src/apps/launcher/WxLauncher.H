@@ -106,6 +106,12 @@ class WxLauncher : public WxLauncherGUI,
         void focusLostCB(wxFocusEvent& event);
 
         void machRegisterMenuitemClickCB(wxCommandEvent& event);
+
+        //  Test hook (WxLauncherScript.H); inert unless ECCE_LAUNCHER_SCRIPT is set.
+        bool selectMachine(const string& refname);
+        bool selectQueue(const string& name);
+        bool clickMachineSettings();
+        string hookGet(const string& what);
         void stageLaunchMenuItemClickCB(wxCommandEvent& event);
         void finishLaunchMenuItemClickCB(wxCommandEvent& event);
         void quitMenuItemClickCB(wxCommandEvent& event);
@@ -133,6 +139,7 @@ class WxLauncher : public WxLauncherGUI,
         void updateStatePreferences();
 
         void reloadMachinePreferences();
+        void machRegChanged();   // Register Machines saved: re-read and reload
 
         static bool connectAllowed(MachinePreferences *prefs);
 
@@ -264,9 +271,11 @@ class WxLauncher : public WxLauncherGUI,
         ewxTextCtrl         *p_scratchDrctyTextCtrl;
 
         ewxButton           *p_launchButton;
+        ewxButton           *p_machSettingsButton;
 
         ewxMenuItem         *p_jobSaveMenuItem;
         ewxMenuItem         *p_machRegisterMenuItem;
+        string               p_lastRegisterRequest;   // hook only
         ewxMenuItem         *p_configAccessMenuItem;
         ewxMenuItem         *p_savePrefsMenuItem;
         ewxMenuItem         *p_stageLaunchMenuItem;

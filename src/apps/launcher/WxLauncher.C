@@ -240,6 +240,8 @@ void WxLauncher::createControls()
     p_launchButton          =       (ewxButton *)(FindWindow(ID_BUTTON_WXLAUNCHER_LAUNCH));
     p_launchButton->Enable(false);
 
+    p_machSettingsButton    =       (ewxButton *)(FindWindow(ID_BUTTON_WXLAUNCHER_MACHSETTINGS));
+
     p_messagesFeedback = (WxFeedback *)(FindWindow(ID_FEEDBACK_WXLAUNCHER_MESSAGES));
     p_messagesFeedback->SetExtraStyle(wxWS_EX_VALIDATE_RECURSIVELY | wxWS_EX_PROCESS_UI_UPDATES);
     p_messagesFeedback->setContextLabel("");
@@ -1105,6 +1107,9 @@ void WxLauncher::setEditAllowed(bool allwd, bool shellOpenAvbl)
 
         if (shellOpenAvbl)   //  Ensure that the shell open button is still available
             p_shellOpenButton->setCustomDisabledStyle(true);
+
+        //  Changing a machine's settings does not edit this launch.
+        p_machSettingsButton->setCustomDisabledStyle(true);
     }
 }
 
@@ -2078,6 +2083,13 @@ void WxLauncher::updateStatePreferences()
 }
 
 
+void WxLauncher::machRegChanged()
+{
+    RefMachine::markUpdateUserPrefs();
+    this->reloadMachinePreferences();
+}
+
+
 void WxLauncher::reloadMachinePreferences()
 {
     if (p_prefsEdited)
@@ -2397,6 +2409,16 @@ void WxLauncher::startShell()
 
 void WxLauncher::machRegisterMenuitemClickCB(wxCommandEvent& event)
 {
+    //  Under the test hook there is no gateway: record what would be asked.
+    if (getenv("ECCE_LAUNCHER_SCRIPT") != NULL)
+    {
+        p_lastRegisterRequest = "appname=" + string(MACHREGISTER) +
+            " initmachine=" +
+            ((p_slctPrefs != NULL) ? p_slctPrefs->getItemKey() : string());
+        fprintf(stderr, "[LAUNCHER] request: %s\n", p_lastRegisterRequest.c_str());
+        return;
+    }
+
     Target trgt(GATEWAY, "");
 
     JMSMessage* mesg = newMessage();
@@ -2681,3 +2703,72 @@ void WxLauncher::calcStateNotify(const ResourceDescriptor::RUNSTATE& state)
     delete mesg;
 }
 
+
+
+//  ---- test hook -----------------------------------------------------------
+
+bool WxLauncher::selectMachine(const string& refname)
+{
+    if (p_machinesChoice->FindString(refname) < 0)
+        return false;
+    p_machinesChoice->SetStringSelection(refname);
+    wxCommandEvent ev(wxEVT_CHOICE, p_machinesChoice->GetId());
+    ev.SetEventObject(p_machinesChoice);
+    this->machinesChoiceSelectedCB(ev);
+    return true;
+}
+
+
+bool WxLauncher::clickMachineSettings()
+{
+    wxWindow* b = FindWindow(ID_BUTTON_WXLAUNCHER_MACHSETTINGS);
+    if (b == NULL || !b->IsShown() || !b->IsEnabled())
+        return false;
+    wxCommandEvent ev(wxEVT_BUTTON, b->GetId());
+    ev.SetEventObject(b);
+    this->GetEventHandler()->ProcessEvent(ev);
+    return true;
+}
+
+
+bool WxLauncher::selectQueue(const string& name)
+{
+    if (p_queueChoice->FindString(name) == wxNOT_FOUND)
+        return false;
+    p_queueChoice->SetStringSelection(name);
+    wxCommandEvent ev(wxEVT_CHOICE, p_queueChoice->GetId());
+    ev.SetEventObject(p_queueChoice);
+    this->queueChoiceSelectedCB(ev);
+    return true;
+}
+
+
+string WxLauncher::hookGet(const string& what)
+{
+    if (what == "request")
+        return p_lastRegisterRequest;
+    if (what == "machine")
+        return (string)p_machinesChoice->GetStringSelection();
+    if (what == "machines" || what == "queues")
+    {
+        ewxChoice* c = (what == "machines") ? p_machinesChoice : p_queueChoice;
+        string all;
+        for (unsigned i = 0; i < c->GetCount(); i++)
+            all += (i ? "," : "") + (string)c->GetString(i);
+        return all;
+    }
+    if (what == "queue")
+        return (string)p_queueChoice->GetStringSelection();
+    if (what == "procsmax")
+        return StringConverter::toString(p_batchProcsParamEdit->getMaximum());
+    if (what == "procs")
+        return StringConverter::toString(p_batchProcsParamEdit->getValue());
+    if (what == "memory")
+        return StringConverter::toString(p_maxMemoryParamEdit->getValue());
+    if (what == "button")
+    {
+        wxWindow* b = FindWindow(ID_BUTTON_WXLAUNCHER_MACHSETTINGS);
+        return (b != NULL && b->IsShown()) ? "1" : "0";
+    }
+    return "<unknown>";
+}

@@ -64,6 +64,7 @@ const wxWindowID WxLauncherGUI::ID_PANEL_WXLAUNCHER_QUEUE = wxNewId();
 const wxWindowID WxLauncherGUI::ID_FRAME_WXLAUNCHER = wxNewId();
 const wxWindowID WxLauncherGUI::ID_PANEL_WXLAUNCHER_SCRATCHDIR = wxNewId();
 const wxWindowID WxLauncherGUI::ID_CHOICE_WXLAUNCHER_MACHINES = wxNewId();
+const wxWindowID WxLauncherGUI::ID_BUTTON_WXLAUNCHER_MACHSETTINGS = wxNewId();
 const wxWindowID WxLauncherGUI::ID_STATIC_WXLAUNCHER_NOMACHINE = wxNewId();
 const wxWindowID WxLauncherGUI::ID_PANEL_WXLAUNCHER_ALLOCACCT = wxNewId();
 const wxWindowID WxLauncherGUI::ID_PARAMEDIT_WXLAUNCHER_BATCHPROCS = wxNewId();
@@ -147,6 +148,7 @@ BEGIN_EVENT_TABLE( WxLauncherGUI, ewxFrame )
     EVT_CHOICE( ID_CHOICE_WXLAUNCHER_REMSHELL, WxLauncherGUI::remshellChoiceSelectedCB )
 
     EVT_BUTTON( ID_BUTTON_WXLAUNCHER_SHELLOPEN, WxLauncherGUI::shellOpenButtonClickCB )
+    EVT_BUTTON( ID_BUTTON_WXLAUNCHER_MACHSETTINGS, WxLauncherGUI::machRegisterMenuitemClickCB )
 
     EVT_TEXT( ID_TEXTCTRL_WXLAUNCHER_CALCDIR, WxLauncherGUI::calculationDirectoryTextCtrlUpdateCB )
 
@@ -254,6 +256,10 @@ void WxLauncherGUI::CreateControls()
 
     ewxPanel* itemPanel9 = new ewxPanel( itemPanel5, ID_PANEL_WXLAUNCHER_MACHINE, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
     itemBoxSizer6->Add(itemPanel9, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
+
+    ewxButton* itemButtonMachSettings = new ewxButton( itemPanel5, ID_BUTTON_WXLAUNCHER_MACHSETTINGS, _("Machine settings..."), wxDefaultPosition, wxDefaultSize, 0 );
+    itemButtonMachSettings->SetToolTip(_("Open Register Machines on the selected machine"));
+    itemBoxSizer6->Add(itemButtonMachSettings, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxFlexGridSizer* itemFlexGridSizer10 = new wxFlexGridSizer(1, 2, 0, 3);
     itemFlexGridSizer10->AddGrowableCol(1);

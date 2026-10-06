@@ -184,6 +184,7 @@ public:
     static const wxWindowID ID_FRAME_WXLAUNCHER;
     static const wxWindowID ID_PANEL_WXLAUNCHER_SCRATCHDIR;
     static const wxWindowID ID_CHOICE_WXLAUNCHER_MACHINES;
+    static const wxWindowID ID_BUTTON_WXLAUNCHER_MACHSETTINGS;
     static const wxWindowID ID_STATIC_WXLAUNCHER_NOMACHINE;
     static const wxWindowID ID_PANEL_WXLAUNCHER_ALLOCACCT;
     static const wxWindowID ID_PARAMEDIT_WXLAUNCHER_BATCHPROCS;

@@ -1969,6 +1969,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister)
   set_tests_properties(machregister_gui PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # The Launcher's "Machine settings..." button and its reload after a save.
+  add_test(NAME machregister_launcher
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister/launcher_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister)
+  set_tests_properties(machregister_launcher PROPERTIES TIMEOUT 300
+                       SKIP_RETURN_CODE 77)
   add_test(NAME queues_publish
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/publish_test.py
