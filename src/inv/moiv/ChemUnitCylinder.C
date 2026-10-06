@@ -127,6 +127,9 @@ theRotation = SbRotation(matrix); \
 #ifdef OIV_COIN
 #include "inv/elements/SoComplexityElement.H"
 #include "inv/elements/SoComplexityTypeElement.H"
+#include "inv/ChemKit/BondContrast.H"
+// Every glColor3fv in this file colours a bond.
+#define glColor3fv bondContrastColor3fv
 #endif
 
 // Draws the SoCylinder.  Coin's SoCylinder::GLRender sends the material of

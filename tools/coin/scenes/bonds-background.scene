@@ -1,0 +1,30 @@
+# Bonds in the three line/stick styles on a white and on a black background
+# (#227); @SYS@ is substituted by hand for this scene.
+labels none
+background 1 1 1
+style Ball And Wireframe
+viewall
+snap warm
+snap warm
+snap @SYS@-white-ballwire
+style Wireframe
+snap warm
+snap warm
+snap @SYS@-white-wire
+style Ball And Stick
+snap warm
+snap warm
+snap @SYS@-white-ballstick
+background 0 0 0
+style Ball And Wireframe
+snap warm
+snap warm
+snap @SYS@-black-ballwire
+style Wireframe
+snap warm
+snap warm
+snap @SYS@-black-wire
+style Ball And Stick
+snap warm
+snap warm
+snap @SYS@-black-ballstick

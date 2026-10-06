@@ -83,6 +83,9 @@
 #endif
 
 #include "inv/ChemKit/ChemLOD.H"
+#include "inv/ChemKit/BondContrast.H"
+// Every glColor3fv in this file colours a bond.
+#define glColor3fv bondContrastColor3fv
 
 static int numBondLoops;
 static int bondLoop;

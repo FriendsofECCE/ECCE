@@ -120,6 +120,9 @@
 #else
 #include "inv/elements/SoGLLazyElement.H"
 #include "inv/elements/SoLazyElement.H"
+#include "inv/ChemKit/BondContrast.H"
+// Every glColor3fv in this file colours a bond.
+#define glColor3fv bondContrastColor3fv
 #endif
 
 static int numBondLoops;

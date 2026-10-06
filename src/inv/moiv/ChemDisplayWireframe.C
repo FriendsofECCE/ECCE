@@ -123,6 +123,9 @@
 
 // --> compute cylinder lod
 #include "inv/ChemKit/ChemUnitCylinder.H"
+#include "inv/ChemKit/BondContrast.H"
+// Every glColor3fv in this file colours a bond.
+#define glColor3fv bondContrastColor3fv
 // <-- compute cylinder lod
 
 static void singleBondsNormal(const SbIntList list, const SbBool renderAsPoints,
