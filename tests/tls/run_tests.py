@@ -49,6 +49,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("Connection", "close")
         self.end_headers()
 
+    def do_GET(self):
+        # Promises 100000 bytes, sends 10 and closes.
+        self.send_response(200)
+        self.send_header("Content-Length", "100000")
+        self.send_header("Connection", "close")
+        self.end_headers()
+        self.wfile.write(b"0123456789")
+        self.wfile.flush()
+        self.close_connection = True
+
     def log_message(self, *a):
         pass
 
@@ -81,8 +91,12 @@ def run(url, expect, ecce_home, extra_env=None):
     env.pop("SSL_CERT_FILE", None)
     env.pop("SSL_CERT_DIR", None)
     env.update(extra_env or {})
-    r = subprocess.run([exe, url, expect], env=env, capture_output=True,
-                       text=True, timeout=60)
+    try:
+        r = subprocess.run([exe, url, expect], env=env, capture_output=True,
+                           text=True, timeout=60)
+    except subprocess.TimeoutExpired:
+        print("FAIL", url, expect, "did not return within 60 s")
+        return False
     print(("PASS " if r.returncode == 0 else "FAIL ") + r.stdout.strip(),
           r.stderr.strip())
     return r.returncode == 0
@@ -124,5 +138,9 @@ run(a, "ok", home("pinA4", certA))
 if hosts[n:] != [f"127.0.0.1:{ports['A']}"]:
     print("FAIL https Host header", hosts[n:])
     ok = False
+
+# a body cut short ends the request instead of hanging (plain and TLS)
+ok &= run(f"http://127.0.0.1:{ports['plain']}/", "trunc", nohome)
+ok &= run(a, "trunc", home("pinA5", certA))
 
 sys.exit(0 if ok else 1)

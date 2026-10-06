@@ -282,7 +282,15 @@ CHTTPConnection::getBody(
 #endif
     for (toRead=txBufferSize, bufPtr=(char*)txBuffer; toRead>0;
          toRead-=nRead, bufPtr+=nRead)
+    {
       nRead = server_->receive((void*)bufPtr, toRead, receiveFlags);
+      // Closed before the promised length arrived: a truncated body.
+      if (nRead == 0)
+      {
+        deadConnection_ = true;
+        return 0;
+      }
+    }
 
 #if 000
       now = time(NULL);

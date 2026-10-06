@@ -9,6 +9,9 @@
 #include <openssl/pem.h>
 
 #include <arpa/inet.h>
+#include <signal.h>
+#include <pthread.h>
+#include <time.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +35,34 @@ static std::string sslErrors(void)
   }
   return s;
 }
+
+// OpenSSL writes with write(2), so a server that closed would raise SIGPIPE
+// and kill the GUI; block it for the call and discard one raised by it.
+class SigpipeGuard {
+public:
+  SigpipeGuard(void)
+  {
+    sigemptyset(&set_);
+    sigaddset(&set_, SIGPIPE);
+    sigset_t pend;
+    sigpending(&pend);
+    pendedBefore_ = sigismember(&pend, SIGPIPE) == 1;
+    pthread_sigmask(SIG_BLOCK, &set_, &old_);
+  }
+  ~SigpipeGuard(void)
+  {
+    sigset_t pend;
+    sigpending(&pend);
+    if (!pendedBefore_ && sigismember(&pend, SIGPIPE) == 1) {
+      struct timespec zero = {0, 0};
+      sigtimedwait(&set_, 0, &zero);
+    }
+    pthread_sigmask(SIG_SETMASK, &old_, 0);
+  }
+private:
+  sigset_t set_, old_;
+  bool     pendedBefore_;
+};
 
 CTLSClientSocket::string_type CTLSClientSocket::pinnedCertPath(void)
 {
@@ -91,7 +122,12 @@ CTLSClientSocket::CTLSClientSocket(const string_type& host, port_type port)
         throw CTLSError("TLS: cannot set host name to verify", false);
     }
 
-    if (SSL_connect(ssl_) != 1) {
+    int connected;
+    {
+      SigpipeGuard guard;
+      connected = SSL_connect(ssl_);
+    }
+    if (connected != 1) {
       long vr = SSL_get_verify_result(ssl_);
       if (vr != X509_V_OK)
         throw CTLSError(std::string("Server certificate rejected: ") +
@@ -121,6 +157,7 @@ CTLSClientSocket::CTLSClientSocket(const string_type& host, port_type port)
 CTLSClientSocket::~CTLSClientSocket(void)
 {
   if (ssl_) {
+    SigpipeGuard guard;
     SSL_shutdown(ssl_);
     SSL_free(ssl_);
   }
@@ -185,6 +222,7 @@ CTLSClientSocket::size_type CTLSClientSocket::send(const string_type& s)
 CTLSClientSocket::size_type CTLSClientSocket::send(
   const void * buff, size_type nbytes)
 {
+  SigpipeGuard guard;
   size_type offset = 0;
   while (offset < nbytes) {
     int n = SSL_write(ssl_, (const char *) buff + offset,
