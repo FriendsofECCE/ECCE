@@ -1,0 +1,67 @@
+#!/bin/bash
+# ecce-site-publish: copy this install's site machine list to where the data
+# server serves it to -remote clients (issue #188), which fetch it with
+# ecce-remote-setup.  ecce-dataserver-start runs it on every start;
+# ecce-site-admin runs it after an administrator's change from a client.
+#
+#   ecce-site-publish [DIR]
+#
+# DIR defaults to the path in $ECCE_HOME/siteconfig/PublishDir (for
+# administrators other than the account that runs the data server), else to
+# this account's own data server, ~/.ECCE/dataserver/htdocs/Ecce/system/siteconfig.
+#
+# DIR is updated in place, file by file, so a group-writable DIR set up for
+# administrators keeps its owner, group and mode.  /Ecce/system is served
+# without a login, so this needs no auth changes.
+
+set -u
+
+ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
+SRC="$ECCE_HOME/siteconfig"
+DEST="${1:-}"
+
+if [ -z "$DEST" ] && [ -f "$SRC/PublishDir" ]; then
+  DEST="$(sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' \
+          "$SRC/PublishDir" | sed -n '/./{p;q;}')"
+fi
+if [ -z "$DEST" ]; then
+  own="${ECCE_REALUSERHOME:-$HOME}/.ECCE/dataserver/htdocs/Ecce"
+  if [ ! -d "$own" ]; then
+    echo "ecce-site-publish: this account ($(id -un)) runs no data server ($own" >&2
+    echo "  does not exist). Put the published directory of the account that" >&2
+    echo "  does into $SRC/PublishDir (see GETTING_STARTED.md," >&2
+    echo "  \"Changing the site settings from a client\")." >&2
+    exit 1
+  fi
+  DEST="$own/system/siteconfig"
+fi
+
+mkdir -p "$DEST" || exit 1
+if [ ! -w "$DEST" ]; then
+  echo "ecce-site-publish: cannot write $DEST" >&2
+  exit 1
+fi
+
+# submit.site and QueueManagers go too, so a client's job scripts and
+# scheduler commands match the server's.
+manifest="$(mktemp "$DEST/.MANIFEST.XXXXXX")" || exit 1
+trap 'rm -f "$manifest" "${tmp:-}"' EXIT
+for f in "$SRC/Machines" "$SRC/Queues" "$SRC/submit.site" "$SRC/QueueManagers" \
+         "$SRC"/CONFIG.* "$SRC"/*.Q; do
+  [ -f "$f" ] || continue
+  name="${f##*/}"
+  tmp="$(mktemp "$DEST/.publish.XXXXXX")" || exit 1
+  cp "$f" "$tmp" && chmod 644 "$tmp" && mv -f "$tmp" "$DEST/$name" || exit 1
+  printf '%s\n' "$name" >>"$manifest"
+done
+
+# What the site no longer has is no longer published.
+for f in "$DEST"/*; do
+  [ -f "$f" ] || continue
+  name="${f##*/}"
+  [ "$name" = MANIFEST ] && continue
+  grep -qxF -- "$name" "$manifest" || rm -f -- "$f"
+done
+
+chmod 644 "$manifest" && mv -f "$manifest" "$DEST/MANIFEST" || exit 1
+exit 0

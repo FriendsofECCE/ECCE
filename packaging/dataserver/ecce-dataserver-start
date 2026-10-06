@@ -91,24 +91,12 @@ fi
 # "ecce -admin" on the server reach clients without hand copying. Placed
 # here, before the "already listening" exit below, for the same reason as
 # the basis set sync above -- it has to run on every real start, including
-# one that finds the server already up, or an admin's change never reaches
-# clients until the account restarts the data server for some other reason.
-# /Ecce/system is already served without a login (the basis set library
-# lives there too), so this needs no auth changes.
-SITECONFIG_SRC="$ECCE_HOME/siteconfig"
-SITECONFIG_DEST="$DATAROOT/Ecce/system/siteconfig"
-rm -rf "$SITECONFIG_DEST"
-mkdir -p "$SITECONFIG_DEST"
-: > "$SITECONFIG_DEST/MANIFEST"
-# submit.site and QueueManagers go too, so a client's job scripts and
-# scheduler commands match the server's.
-for f in "$SITECONFIG_SRC/Machines" "$SITECONFIG_SRC/Queues" \
-         "$SITECONFIG_SRC/submit.site" "$SITECONFIG_SRC/QueueManagers" \
-         "$SITECONFIG_SRC"/CONFIG.* "$SITECONFIG_SRC"/*.Q; do
-  [ -f "$f" ] || continue
-  cp "$f" "$SITECONFIG_DEST/"
-  basename "$f" >> "$SITECONFIG_DEST/MANIFEST"
-done
+# one that finds the server already up. ecce-site-admin runs the same step
+# after an administrator's change from a client.
+PUBLISH="$(dirname "$0")/ecce-site-publish"
+[ -x "$PUBLISH" ] || PUBLISH="$ECCE_HOME/bin/ecce-site-publish"
+"$PUBLISH" "$DATAROOT/Ecce/system/siteconfig" ||
+  echo "ecce-dataserver-start: WARNING -- the site machine list was not published to -remote clients" >&2
 
 PORT="${ECCE_DATASERVER_PORT:-8096}"
 PIDFILE="$STATEDIR/logs/httpd.pid"

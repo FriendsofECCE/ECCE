@@ -13,6 +13,15 @@
 #include <string>
 #include <vector>
 
+// One change to one key, as Register Machines makes it: set a value, write
+// "no value" ("-"), or delete the key's lines.
+struct ConfigEdit {
+  enum Op { Set, Clear, Remove };
+  Op op;
+  std::string key;
+  std::string value;   // Set only
+};
+
 class ConfigFile
 {
 public:
@@ -62,6 +71,9 @@ public:
   void remove(const std::string& key);
   // "key: -", or "key { - }" where the key is already a block.
   void clear(const std::string& key);
+
+  // set(), clear() or remove(), as the edit says.
+  bool apply(const ConfigEdit& edit, std::string* err = 0);
 
   // Replace the whole text (a raw edit); save() then writes it.
   void setText(const std::string& text);

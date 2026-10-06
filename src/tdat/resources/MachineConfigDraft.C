@@ -403,8 +403,9 @@ vector<string> MCD::compareMerged(const map<string,string>& merged,
   return bad;
 }
 
-bool MCD::applyTo(ConfigFile& file, string& err) const
+vector<ConfigEdit> MCD::edits() const
 {
+  vector<ConfigEdit> out;
   KeyState none;
   for (map<string,KeyState>::const_iterator it = p_cur.config.begin();
        it != p_cur.config.end(); ++it) {
@@ -413,16 +414,24 @@ bool MCD::applyTo(ConfigFile& file, string& err) const
     const KeyState& base = bi == p_base.config.end() ? none : bi->second;
     if (cur.edit == base.edit && (cur.edit != Set || cur.value == base.value))
       continue;
-    if (cur.edit == Set) {
-      string why;
-      if (!file.set(cur.name, cur.value, &why)) {
-        err = cur.name + ": " + why;
-        return false;
-      }
-    } else if (cur.edit == Clear) {
-      file.clear(cur.name);
-    } else {
-      file.remove(cur.name);
+    ConfigEdit e;
+    e.op = cur.edit == Set ? ConfigEdit::Set
+         : cur.edit == Clear ? ConfigEdit::Clear : ConfigEdit::Remove;
+    e.key = cur.name;
+    if (cur.edit == Set) e.value = cur.value;
+    out.push_back(e);
+  }
+  return out;
+}
+
+bool MCD::applyTo(ConfigFile& file, string& err) const
+{
+  vector<ConfigEdit> list = edits();
+  for (size_t i = 0; i < list.size(); i++) {
+    string why;
+    if (!file.apply(list[i], &why)) {
+      err = list[i].key + ": " + why;
+      return false;
     }
   }
   return true;

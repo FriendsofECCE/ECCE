@@ -5,8 +5,8 @@ takes from it.
 
     publish_test.py
 
-The publishing loop of packaging/dataserver/ecce-dataserver-start is run as
-written (cut out of the script, so Apache is not needed), then the client
+The publishing step, packaging/dataserver/ecce-site-publish (run by
+ecce-dataserver-start, so Apache is not needed here), then the client
 side, packaging/dataserver/ecce-remote-setup, runs against a plain HTTP
 server holding that output: once with a server that publishes submit.site and
 QueueManagers, once with an older server that does not, which must leave the
@@ -28,6 +28,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 START = os.path.join(REPO, "packaging", "dataserver", "ecce-dataserver-start")
 SETUP = os.path.join(REPO, "packaging", "dataserver", "ecce-remote-setup")
+PUBLISH = os.path.join(REPO, "packaging", "dataserver", "ecce-site-publish")
 
 failures = []
 
@@ -53,12 +54,8 @@ def read(path):
 
 
 def publishLoop(tmp):
-    """Run ecce-dataserver-start's siteconfig publishing; return its dir."""
-    lines = read(START).splitlines(True)
-    first = next(i for i, l in enumerate(lines) if l.startswith("SITECONFIG_SRC="))
-    last = next(i for i, l in enumerate(lines) if l.startswith("PORT="))
-    snippet = os.path.join(tmp, "publish.sh")
-    write(snippet, "".join(lines[first:last]))
+    """Run the server's publishing step (ecce-site-publish, which
+    ecce-dataserver-start runs on every start); return its directory."""
     home = os.path.join(tmp, "server-home")
     dataroot = os.path.join(tmp, "dataroot")
     for name, text in (("Machines", "m1\tm1.example.org\n"), ("Queues", "Queues: \n"),
@@ -67,11 +64,13 @@ def publishLoop(tmp):
                        ("CONFIG.m1", "NWChem: /srv/nwchem\n"), ("m1.Q", "Queues: q\n"),
                        ("DataServers", "<x/>\n")):
         write(os.path.join(home, "siteconfig", name), text)
-    r = subprocess.run(["bash", snippet],
-                       env=dict(os.environ, ECCE_HOME=home, DATAROOT=dataroot),
+    dest = os.path.join(dataroot, "Ecce", "system", "siteconfig")
+    r = subprocess.run([PUBLISH, dest], env=dict(os.environ, ECCE_HOME=home),
                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-    check(r.returncode == 0, "the publishing loop ran: %s" % r.stdout[-200:])
-    return os.path.join(dataroot, "Ecce", "system", "siteconfig")
+    check(r.returncode == 0, "the publishing step ran: %s" % r.stdout[-200:])
+    check("ecce-site-publish" in read(START),
+          "ecce-dataserver-start runs the same step")
+    return dest
 
 
 def client(tmp, published, label, manifest=None):
