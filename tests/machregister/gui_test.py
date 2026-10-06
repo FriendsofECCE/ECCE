@@ -1055,6 +1055,8 @@ expect label cmd:help "When this is empty, ECCE's built-in command is used."
 code ORCA
 expect label code:title ORCA
 expect label blk:ccmd:hint 'e.g. $orca $inFile > $outFile'
+expect label blk:cenv:hint 'e.g. OMP_NUM_THREADS 1'
+expect label blk:csetup:hint 'e.g. module load orca'
 expect field code:orca ''
 code Gaussian-16
 set blk:cenv %(env)s

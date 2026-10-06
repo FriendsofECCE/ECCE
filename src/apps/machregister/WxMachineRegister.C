@@ -3402,7 +3402,17 @@ string WxMachineRegister::blockExample(const BlockRow& b) const
 {
     string code = p_codeNames.empty() ? string() : p_codeNames[p_codeSel];
     if (b.id == "cenv")
-        return "e.g. g16root /opt";
+    {
+        if (code == "Gaussian-16") return "e.g. g16root /opt";
+        if (code == "Gaussian-09") return "e.g. g09root /opt";
+        if (code == "NWChem")
+            return "e.g. NWCHEM_BASIS_LIBRARY /usr/share/nwchem/libraries/";
+        if (code == "ORCA") return "e.g. OMP_NUM_THREADS 1";
+        if (code == "MOPAC") return "e.g. MOPAC_LICENSE /opt/mopac";
+        if (code == "QuantumESPRESSO")
+            return "e.g. ESPRESSO_PSEUDO /opt/pseudo";
+        return "e.g. OMP_NUM_THREADS 4";
+    }
     if (b.id == "ccmd")
     {
         //  Shaped like gensub's built-in command for the code.
