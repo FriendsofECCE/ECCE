@@ -52,7 +52,7 @@ cm mosquitto -DOPENSSL_ROOT_DIR="$P" -DWITH_TESTS=OFF -DWITH_WEBSOCKETS=OFF \
   -DWITH_CTRL_SHELL=OFF -DWITH_SRV=OFF
 
 fetch https://www.libssh.org/files/0.11/libssh-0.11.3.tar.xz libssh
-cm libssh -DOPENSSL_ROOT_DIR="$P" -DWITH_EXAMPLES=OFF -DWITH_SERVER=OFF \
+cm libssh -DOPENSSL_ROOT_DIR="$P" -DWITH_EXAMPLES=OFF \
   -DUNIT_TESTING=OFF -DCLIENT_TESTING=OFF -DWITH_GSSAPI=OFF
 
 fetch https://archive.apache.org/dist/xerces/c/3/sources/xerces-c-3.3.0.tar.xz xerces
@@ -61,6 +61,10 @@ cm xerces -Dnetwork=OFF
 fetch https://github.com/freetype/freetype/archive/refs/tags/VER-2-13-3.tar.gz freetype
 cm freetype -DFT_DISABLE_BZIP2=ON -DFT_DISABLE_PNG=ON -DFT_DISABLE_HARFBUZZ=ON \
   -DFT_DISABLE_BROTLI=ON
+
+# ECCE links -ljpeg itself (texture images in the viewer)
+fetch https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/3.1.2/libjpeg-turbo-3.1.2.tar.gz jpeg
+cm jpeg -DENABLE_STATIC=OFF -DWITH_TURBOJPEG=OFF -DWITH_SIMD=OFF
 
 fetch https://github.com/coin3d/coin/releases/download/v4.0.10/coin-4.0.10-src.tar.gz coin
 cm coin -DCOIN_BUILD_SHARED_LIBS=ON -DCOIN_BUILD_TESTS=OFF -DHAVE_SOUND=OFF \
