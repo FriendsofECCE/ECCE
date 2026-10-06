@@ -67,11 +67,12 @@ submits each job over ssh.
 
 Click any image for the full-size version.
 
-<a href="docs/images/organizer.png"><img src="docs/images/organizer.png" width="300" alt="The Organizer, with a calculation being set up and launched"></a>
+<a href="docs/images/organizer.png"><img src="docs/images/organizer.png" width="300" alt="The Organizer, with a completed ORCA calculation selected"></a>
 
-*The Organizer is the front door: calculations on the left, a summary of
-the selected one in the middle, and the code's own editor and the
-launcher opened from it — here an ORCA job on its way to a machine.*
+*The Organizer is the front door: projects and calculations on the left,
+each with a run-state icon, and a summary of the selected one in the
+middle, with buttons for its editor, builder, basis set tool, launcher
+and viewer — here a completed ORCA calculation on benzene.*
 
 <a href="docs/images/viewer.png"><img src="docs/images/viewer.png" width="300" alt="The viewer, showing a molecular orbital of benzene"></a>
 
