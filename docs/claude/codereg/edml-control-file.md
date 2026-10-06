@@ -4,6 +4,7 @@ title: "EDML control file"
 area: codereg
 section: "Getting a calculation set up (the \"code registration\" system)"
 paths: [".edml", "data/client/cap/*.edml", "src/dsm/xml/CodeFactory.C"]
+issues: []
 ---
 **EDML control file** (`data/client/cap/*.edml`) — one per code, an
 XML manifest naming every other piece below (`<InputGenerator>`,

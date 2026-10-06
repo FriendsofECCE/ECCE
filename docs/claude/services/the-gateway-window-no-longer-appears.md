@@ -11,7 +11,7 @@ starts the services and opens the **Organizer** directly, which is now
 the front door: the launcher entries live on its File menu (New
 Structure) and Tools menu (Register Machines, Machine Browser,
 Periodic Table). The Gateway *process* is unchanged and still owns the
-session — JMS, service startup, `ecce_get_app`, Quit-and-Stop-Server —
+session — broker messaging, service startup, `ecce_get_app`, Quit-and-Stop-Server —
 only its frame is hidden, which is one guarded `Show()` call. To get
 the old window back for a session: `ECCE_GATEWAY_WINDOW=1 ecce`. If a
 UI decision like this needs reversing, prefer that env var to a

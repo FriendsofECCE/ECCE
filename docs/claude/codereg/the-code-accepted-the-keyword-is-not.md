@@ -1,17 +1,17 @@
 ---
 type: pitfall
-title: "\"The code accepted the keyword\" is not \"the keyword works.\""
+title: "ORCA double hybrids pass the input check and need a `<basis>/C` auxiliary basis to run"
 area: codereg
 section: "Pitfalls found more than once (check for siblings)"
-paths: ["<basis>/C"]
+paths: ["scripts/codereg/orcatheory.py", "scripts/parsers/ai.orca"]
+issues: []
 ---
-**"The code accepted the keyword" is not "the keyword works."** All
-eleven ORCA correlated/double-hybrid keywords passed ORCA's input
-check; two of them then died at runtime — double hybrids route their
-correlation through RI-MP2 and need a `<basis>/C` auxiliary basis
-(`ERROR: RI-MP2 needs an AuxC basis but none was defined!`, exit 55).
-Offering them without it would have shipped decks that always fail,
-*after* reaching a queue. Run a real job, not a syntax check. The same
-discipline found that GROMACS's double-row energy blocks and QE's
-header-carried units both silently produce wrong values rather than
-none.
+"The code accepted the keyword" is not "the keyword works"
+([verify by running](verify-by-running-the-code.md)). All eleven ORCA
+correlated/double-hybrid keywords pass ORCA's input check, but double
+hybrids route their correlation through RI-MP2 and die at runtime without
+a `<basis>/C` auxiliary basis (`ERROR: RI-MP2 needs an AuxC basis but none
+was defined!`, exit 55). Offered without it, they would ship decks that
+always fail after reaching a queue. Running real jobs likewise showed that
+GROMACS's double-row energy blocks and QE's header-carried units silently
+produce wrong values rather than none.

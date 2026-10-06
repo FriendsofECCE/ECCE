@@ -2,8 +2,9 @@
 type: map
 title: "`wxGrid::CreateGrid()`/`SetTable()` synchronously fires `wxEVT_GRID_SELECT_CELL`"
 area: wx-viewer
-section: ""
+section: "wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls"
 issues: [78]
+paths: []
 ---
 **`wxGrid::CreateGrid()`/`SetTable()` synchronously fires
 `wxEVT_GRID_SELECT_CELL`** on wx3.2/GTK3 — immediately, during

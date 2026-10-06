@@ -3,6 +3,8 @@ type: checklist
 title: "Run *every* runtype's output through the simulation, not just the richest one"
 area: codereg
 section: "Added from integrating MOPAC (issue #86) — the second code through"
+paths: ["scripts/parsers/mopac.desc", "tests/parsers"]
+issues: [86]
 ---
 **Run *every* runtype's output through the simulation, not just the
 richest one.** MOPAC prints `FINAL HEAT OF FORMATION =` for an

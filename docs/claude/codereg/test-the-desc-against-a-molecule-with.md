@@ -4,6 +4,7 @@ title: "Test the `.desc` against a molecule with degenerate vibrations"
 area: codereg
 section: "Added from integrating MOPAC (issue #86) — the second code through"
 paths: [".desc"]
+issues: [86]
 ---
 **Test the `.desc` against a molecule with degenerate vibrations**
 (CH₄, benzene), never just water. MOPAC's `DESCRIPTION OF VIBRATIONS`

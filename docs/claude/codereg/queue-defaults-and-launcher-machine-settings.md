@@ -4,7 +4,7 @@ title: "Queue defaults come from the .Q file, the memory unit is MB, and the Lau
 area: codereg
 section: "Machine configuration (CONFIG files)"
 paths: ["src/apps/machregister/WxMachineRegister.C", "src/apps/launcher/WxLauncher.C", "src/apps/launcher/WxLauncherScript.C", "scripts/processmachine", "siteconfig/submit.site", "tests/machregister/launcher_test.py"]
-issues: ["234"]
+issues: [234]
 ---
 **Defaults.** The Queues tab edits, per queue, `minProcessors`, `maxProcessors`,
 `runLimit`, `memLimit`, `scratchLimit` and the four defaults the Launcher reads

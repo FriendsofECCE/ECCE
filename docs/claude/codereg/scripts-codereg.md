@@ -4,6 +4,7 @@ title: "`scripts/codereg`"
 area: codereg
 section: "Getting a calculation set up (the \"code registration\" system)"
 paths: ["*runtype.py", "*theory.py", "globals.py", "scripts/codereg", "templates.py"]
+issues: []
 ---
 **`scripts/codereg`** — one `*theory.py` + `*runtype.py` pair per code
 (the "Theory/Runtype Details" dialogs). Python 3 / wxPython Phoenix.

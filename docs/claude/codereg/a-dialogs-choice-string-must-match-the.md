@@ -3,7 +3,8 @@ type: pitfall
 title: "A dialog's choice string must match the generator's expected string EXACTLY, or selecting it silently emits nothing"
 area: codereg
 section: "Pitfalls found more than once (check for siblings)"
-paths: ["ged{03,09,16}theory.py", "scripts/codereg/*theory.py"]
+paths: ["scripts/codereg/ged03theory.py", "scripts/codereg/ged09theory.py", "scripts/codereg/ged16theory.py", "scripts/codereg/*theory.py"]
+issues: []
 ---
 **A dialog's choice string must match the generator's expected string
 EXACTLY, or selecting it silently emits nothing.** The

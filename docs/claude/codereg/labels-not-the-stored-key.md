@@ -1,9 +1,10 @@
 ---
 type: map
-title: "labels, not the stored key"
+title: "A `.desc` bracket group's names are labels, not the stored key"
 area: codereg
 section: "How a property gets from disk into the Properties menu"
 paths: [".desc", "nwchem.desc"]
+issues: []
 ---
 A `.desc` bracket group's key names are **labels, not the stored
 key** — what actually gets stored is whatever the parser script

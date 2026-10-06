@@ -3,7 +3,8 @@ type: checklist
 title: "`<DataFiles>` filenames need a distinctive extension"
 area: codereg
 section: "New-code checklist (gotchas found integrating ORCA, issue #38)"
-paths: ["$STATEDIR/httpd.conf", ".edml", ".in", "httpd.conf.ecce", "packaging/dataserver/httpd.conf.ecce"]
+paths: ["$STATEDIR/httpd.conf", ".edml", ".in", "httpd.conf.ecce", "packaging/dataserver/httpd.conf.ecce", "data/client/config/mimetypes", "src/dsm/edsiimpl/FileEDSI.C", "tests/filedsi"]
+issues: [38]
 ---
 **`<DataFiles>` filenames need a distinctive extension**, not
 something generic like `.in`/`.out` — Apache has no built-in MIME
@@ -19,3 +20,8 @@ every `ecce-dataserver-start` — but only when the dataserver isn't
 already running (early exit if the port's listening), so testing a
 `httpd.conf.ecce` change needs `ecce-dataserver-stop` first, not
 just an app relaunch.
+
+Local data mode types files without Apache, from
+`data/client/config/mimetypes` (the same table; `tests/filedsi` checks the
+two agree): add the extension there too. An extension missing from it
+gets the bare extension as its type, so the lookup fails there as well.
