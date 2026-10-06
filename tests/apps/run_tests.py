@@ -28,8 +28,10 @@ import argparse
 import atexit
 import os
 import re
+import shutil
 import signal
 import sys
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -346,6 +348,85 @@ def _openCalculation(display, results, verbose):
                          ", ".join(sorted(set(served))[:3])))
 
 
+#  Structure files the Builder opens from the command line, as `ecce-builder
+#  file.pdb` and the macOS start test do.  Such a structure is not a
+#  calculation: its getProperty() throws, and code that assumed a calculation
+#  took the Builder down with it.  No .xyz: it opens a modal units prompt
+#  first, which nothing here can answer.
+STRUCTURE_FILES = ("glycine.pdb", "benzene.car")
+
+#  An uncaught exception is reported this way before the abort.
+THROW_MARKERS = ("Throw Log", "Unhandled standard exception",
+                 "Unhandled unknown exception")
+
+#  Every panel layout: each builds its own panes for the structure.
+PANEL_MODES = ("classic", "stacked", "accordion", "detail")
+
+
+def checkStructureFiles(display, results, verbose=False):
+    """Open structure files, require their atoms on screen and no throw.
+
+    Staying up is not enough: with the argument ignored the Builder would
+    stay up too.  The ECCE_VIEWER_SCENE hook waits for the structure's
+    atoms, writes a snapshot and closes the Builder; no snapshot, or a
+    FAILED file, means the structure never loaded.
+    """
+    data = os.path.join(os.path.dirname(HERE), "fragreaders", "data")
+    base = tempfile.mkdtemp(prefix="structure-files-",
+                            dir=fixture.stateHome())
+    try:
+        _openStructureFiles(display, results, verbose, data, base)
+    finally:
+        shutil.rmtree(base, ignore_errors=True)
+
+
+def _openStructureFiles(display, results, verbose, data, base):
+    for fileName in STRUCTURE_FILES:
+        path = os.path.join(data, fileName)
+        modes = PANEL_MODES if fileName.endswith(".pdb") else ("detail",)
+        for mode in modes:
+            results.checks += 1
+            what = "builder %s (%s layout)" % (fileName, mode)
+            out = os.path.join(base, "%s-%s" % (fileName, mode))
+            os.makedirs(out)
+            script = os.path.join(out, "scene")
+            with open(script, "w") as handle:
+                handle.write("viewall\nsnap loaded\n")
+            result = apps.run(display, "builder", args=(path,),
+                              windowTimeout=CASEDEFS.TIMEOUTS.get("builder",
+                                                                  40),
+                              settle=60,
+                              env={"ECCE_PANEL_MODE": mode,
+                                   "ECCE_VIEWER_SCENE": script,
+                                   "ECCE_VIEWER_SCENE_OUT": out})
+            markers = [m for m in CRASH_MARKERS + THROW_MARKERS
+                       if m.lower() in result.log.lower()]
+            failed = os.path.join(out, "FAILED")
+            if result.crashed:
+                results.fail(what, "CRASHED (%s)\n%s"
+                             % (result.signalName or result.returncode,
+                                _tail(result.log)))
+            elif not result.sawWindow:
+                results.fail(what, "opened no window\n%s"
+                             % _tail(result.log))
+            elif markers:
+                results.fail(what, "its output contains %s:\n%s"
+                             % (", ".join(repr(m) for m in markers),
+                                _tail(result.log)))
+            elif os.path.exists(failed):
+                with open(failed) as handle:
+                    results.fail(what, "the structure did not load: %s"
+                                 % handle.read().strip())
+            elif not os.path.exists(os.path.join(out, "loaded.ppm")):
+                results.fail(what, "no snapshot of the structure; %s\n%s"
+                             % (result.note or "it was still up after 60s",
+                                _tail(result.log)))
+            elif verbose:
+                results.notes.append("%-14s %s loaded in %ss"
+                                     % ("structure", what,
+                                        result.secondsToWindow))
+
+
 def checkStale(results, tested):
     for name in CASEDEFS.XFAIL:
         if name in tested and name not in results.seenXfail:
@@ -576,6 +657,7 @@ def main():
 
         if not args.app and not stalled:
             checkCalculation(display, results, verbose=args.verbose)
+            checkStructureFiles(display, results, verbose=args.verbose)
             checkStale(results, set(swept))
     except BudgetExpired as exc:
         results.fail("run", str(exc))

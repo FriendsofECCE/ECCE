@@ -179,6 +179,7 @@ using std::vector;
 #include "Peptide.H"
 #include "PropertyIndexPanel.H"
 #include "PropertyPanel.H"
+#include "Cube.H"
 #include "MoPanel.H"
 #include "tdat/PropVector.H"
 #include "PropertyPanelFactory.H"
@@ -5132,6 +5133,25 @@ void Builder::updatePropertyMenus()
             wxMilliSleep(20);
           }
           return true;
+        }
+        //  "savethumb": the calculation thumbnail, as File > Save writes it.
+        if (w[0] == "savethumb" && w.size() == 1) {
+          doSaveThumb();
+          return true;
+        }
+        //  "cubegrid <name> <index> <log10 cutoff>": as a click on grid
+        //  <index> of the cube panel with its slider at that cutoff.
+        if (w[0] == "cubegrid" && w.size() == 4) {
+          Cube *cube = 0;
+          set<PropertyPanel*> cp =
+              PropertyPanel::getPanels(p_calculation->getURL().toString());
+          for (set<PropertyPanel*>::iterator it = cp.begin();
+               it != cp.end() && !cube; ++it)
+            cube = dynamic_cast<Cube*>(*it);
+          if (!cube) return s.fail("cubegrid: no cube panel");
+          return s.recordFrames(p_viewer, w[1], [cube, w]() {
+            cube->selectGrid(atoi(w[2].c_str()), atof(w[3].c_str()));
+          });
         }
         if ((w[0] != "mopanel" && w[0] != "motable") || w.size() != 2)
           return s.fail("unknown command: " + w[0]);

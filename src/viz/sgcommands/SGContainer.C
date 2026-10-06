@@ -1929,11 +1929,14 @@ double SGContainer::displayedSphereRadius(int idx)
    if (!style.isDisplayed()) return 0.0;
    DisplayStyle::Style s = style.getStyle();
    if (s != DisplayStyle::BALLWIRE && s != DisplayStyle::BALLSTICK &&
-       s != DisplayStyle::CPK) return 0.0;
+       s != DisplayStyle::CPK && s != DisplayStyle::STICK) return 0.0;
 
    // The same radii and scale factor the style's ChemDisplay uses.
    for (size_t k = 0; k < p_displayDescs.size() && k < p_displayParams.size(); k++) {
       if (style.getName() == p_displayDescs[k].getName()) {
+         // Stick has no ball: the atom is the rod's rounded end.
+         if (s == DisplayStyle::STICK)
+            return p_displayParams[k]->bondCylinderRadius.getValue();
          ChemRadii *radii = (s == DisplayStyle::CPK) ? p_CPK_radii : p_radii;
          int z = atm->atomicNumber();
          if (z < 0 || z >= radii->atomRadii.getNum()) return 0.0;

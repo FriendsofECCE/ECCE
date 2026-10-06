@@ -56,6 +56,10 @@ class Cube : public VizPropertyPanel
 
     virtual void refresh();
 
+    /** Scene scripts: set the slider (log10 cutoff), then pick grid idx as a
+        click on the list would. */
+    void selectGrid(int idx, double sliderValue);
+
   protected:
     virtual void receiveFocus();
     //  loseFocus, not lostFocus.  It was spelled lostFocus, which is not
