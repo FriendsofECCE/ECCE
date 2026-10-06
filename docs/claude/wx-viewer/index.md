@@ -33,3 +33,4 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [RESOLVED (#81, fixed `9a3004e`, confirmed live 2026-09-21): the Vibrational Frequencies panel's Animation/Vector radio box did not deliver its click event under wx3.2/GTK3](resolved-81-fixed-9a3004e-confirmed-live-2026.md)
 - [ChemDisplay's `glPopAttrib` undoes what Coin's lazy element sent inside it; the first offscreen render drew an ESP surface unlit](chemdisplay-glpopattrib-undoes-lazy-element-sends.md)
 - [The unit cell is drawn only while the Periodic Builder panel is open](unit-cell-drawn-only-by-the-periodic-builder.md)
+- [The Vibrational Frequencies graph is `SpectrumCanvas` over the wx-free `VibSpectrum` model (#214)](vibrational-spectrum-canvas-214.md)
