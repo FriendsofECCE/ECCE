@@ -427,3 +427,26 @@ bool MCD::applyTo(ConfigFile& file, string& err) const
   }
   return true;
 }
+
+vector<string> MCD::skeletonKeys(const string& code)
+{
+  vector<string> k;
+  k.push_back(code + "Environment");
+  k.push_back(code + "Command");
+  return k;
+}
+
+void MCD::applySkeletons(ConfigFile& file, const vector<string>& codes) const
+{
+  for (size_t i = 0; i < codes.size(); i++) {
+    string lk = lower(codes[i]);
+    map<string,KeyState>::const_iterator ci = p_cur.config.find(lk);
+    map<string,KeyState>::const_iterator bi = p_base.config.find(lk);
+    if (ci == p_cur.config.end())
+      continue;
+    if (ci->second.edit == Set)
+      file.addSkeleton(codes[i], skeletonKeys(codes[i]));
+    else if (bi != p_base.config.end() && bi->second.edit == Set)
+      file.removeSkeleton(codes[i], skeletonKeys(codes[i]));
+  }
+}

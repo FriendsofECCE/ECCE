@@ -3182,7 +3182,12 @@ bool WxMachineRegister::writeConfig(const string& name, string& err)
     if (!ok)
         err = "Cannot read " + draft->editedFile();
     else
-        ok = draft->applyTo(f, err) && f.save(&err);
+        ok = draft->applyTo(f, err);
+    if (ok)
+    {
+        draft->applySkeletons(f, p_codeNames);
+        ok = f.save(&err);
+    }
     if (!ok)
         err = "The machine was registered, but its settings file was not "
               "written (" + draft->editedFile() + "): " + err;

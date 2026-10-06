@@ -310,6 +310,67 @@ void ConfigFile::clear(const string& key)
   p_modified = true;
 }
 
+bool ConfigFile::addSkeleton(const string& title, const vector<string>& keys)
+{
+  vector<string> add;
+  for (size_t k = 0; k < keys.size(); k++) {
+    string lk = lower(keys[k]);
+    bool have = false;
+    for (size_t i = 0; i < p_entries.size(); i++)
+      if (p_entries[i].lkey == lk)
+        have = true;
+    if (!have)
+      add.push_back(keys[k]);
+  }
+  if (add.empty())
+    return false;
+  if (!p_lines.empty() && !p_lines.back().empty())
+    p_lines.push_back("");
+  p_lines.push_back("# " + title);
+  for (size_t k = 0; k < add.size(); k++) {
+    p_lines.push_back(add[k] + " {");
+    p_lines.push_back("}");
+  }
+  index();
+  p_modified = true;
+  return true;
+}
+
+void ConfigFile::removeSkeleton(const string& title,
+                                const vector<string>& keys)
+{
+  bool any = false;
+  for (size_t k = 0; k < keys.size(); k++) {
+    string lk = lower(keys[k]);
+    // Spans from the back, so earlier indices stay valid.
+    for (size_t i = p_entries.size(); i-- > 0; ) {
+      const Entry& e = p_entries[i];
+      if (e.lkey == lk && e.block && e.value.empty()) {
+        p_lines.erase(p_lines.begin() + e.first, p_lines.begin() + e.last + 1);
+        any = true;
+      }
+    }
+    index();
+  }
+  bool left = false;
+  for (size_t k = 0; k < keys.size(); k++)
+    for (size_t i = 0; i < p_entries.size(); i++)
+      if (p_entries[i].lkey == lower(keys[k]))
+        left = true;
+  if (!left) {
+    for (size_t i = p_lines.size(); i-- > 0; )
+      if (p_lines[i] == "# " + title) {
+        p_lines.erase(p_lines.begin() + i);
+        if (i > 0 && p_lines[i - 1].empty())
+          p_lines.erase(p_lines.begin() + i - 1);
+        any = true;
+      }
+    index();
+  }
+  if (any)
+    p_modified = true;
+}
+
 string ConfigFile::text() const
 {
   string out;
