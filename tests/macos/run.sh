@@ -39,7 +39,7 @@ backtrace() {
   local bin=$ECCE_HOME/bin/$1
   [ -x "$bin" ] || return
   say "   rerunning under lldb for a backtrace"
-  perl -e 'alarm 90; exec @ARGV' lldb -b -o run -o "bt 25" -o quit -- "$bin" > "$OUT/crashes/$1.lldb.txt" 2>&1
+  perl -e 'alarm 90; exec @ARGV' lldb -b -o run -k "bt 25" -k quit -- "$bin" > "$OUT/crashes/$1.lldb.txt" 2>&1
   grep -A28 -e "stop reason" "$OUT/crashes/$1.lldb.txt" | head -32 | sed 's/^/   | /' | tee -a "$SUMMARY"
 }
 
