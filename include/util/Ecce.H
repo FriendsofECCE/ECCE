@@ -60,6 +60,9 @@ class Ecce
       static string       sessionHost();
       static string       newSessionId();
       static bool         validSessionId(const string& id);
+      // Whether a dialog can be shown at all (X/Wayland on Linux, always on
+      // macOS and Windows), e.g. to ask for an ssh host key or password.
+      static bool         guiAvailable();
       static const char*  realUserHome();     // HOME
       static const char*  realUserPrefPath(); // $HOME/.ECCE* Prefs Directory
       static const char*  ecceHomeVar;        // ECCE_HOME

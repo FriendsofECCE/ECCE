@@ -46,6 +46,7 @@ using std::ostrstream;
 #include "util/KeyValueReader.H"
 #include "util/SFile.H"
 #include "util/Preferences.H"
+#include "util/SessionLease.H"
 
 
 // ECCE_VERSION must be supplied by the Makefile.
@@ -89,6 +90,28 @@ void Ecce::initialize()
    // Define a default exception handler that dumps core instead of just exit.
    EcceException::setDefaultHandler();
 
+   SessionLease::acquire();
+}
+
+// Every ECCE program of a session holds its lease from the start (#233),
+// also those that never call initialize(); acquire() runs once.
+static struct SessionLeaseAtStart {
+  SessionLeaseAtStart() { SessionLease::acquire(); }
+} s_sessionLeaseAtStart;
+
+
+// A dialog can be shown: X or Wayland on Linux and other X11 systems, the
+// native desktop on macOS and Windows. The one place DISPLAY is read in
+// C++ (tests/session/display_gate.sh).
+bool Ecce::guiAvailable()
+{
+#if defined(__APPLE__) || defined(_WIN32)
+  return true;
+#else
+  const char* x = getenv("DISPLAY");
+  const char* w = getenv("WAYLAND_DISPLAY");
+  return (x && *x) || (w && *w);
+#endif
 }
 
 

@@ -1593,6 +1593,10 @@ add_executable(session_key_test tests/session/session_key_test.C)
 target_link_libraries(session_key_test PRIVATE ecceutil)
 add_test(NAME session-key COMMAND session_key_test
          ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-session-lib.sh)
+add_executable(session_lease_test tests/session/session_lease_test.C)
+target_link_libraries(session_lease_test PRIVATE ecceutil)
+add_test(NAME session-lease COMMAND session_lease_test
+         ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-session-lib.sh)
 add_test(NAME session-display-gate COMMAND bash
          ${CMAKE_SOURCE_DIR}/tests/session/display_gate.sh ${CMAKE_SOURCE_DIR})
 set_tests_properties(session-display-gate PROPERTIES SKIP_RETURN_CODE 77)

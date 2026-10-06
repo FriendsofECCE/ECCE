@@ -48,6 +48,9 @@ windows the way a window manager does (WM_DELETE_WINDOW):
   bug         `ecce --bug`: a folder with session.log, service logs and
               ecce-diagnose output, and an archive, once the session ends
 
+ECCE_SESSION_LIVENESS=lease (or =proc) in the environment runs every case
+with that evidence of liveness alone (#233, SessionLease.H).
+
 Different Unix users cannot be run without root, so a second "user" is
 a second ECCE_REALUSERHOME of the same account; the scripts key all
 their state and liveness by it.
@@ -698,7 +701,14 @@ def caseJobstore(checks, display, logdir):
         if not checks.check(frame, "the Organizer opened"):
             return
         gw = gatewayIsTheTree(checks, session)
-        job = subprocess.Popen(["nohup", fake, "600"], env=session.env(),
+        #  `sleep` takes no session lease (SessionLease.H) as the real job
+        #  store does, so flock holds one for it.
+        lease = os.path.join(statedir(), "leases",
+                             sessionkey.key(session.sid()))
+        os.makedirs(lease, exist_ok=True)
+        job = subprocess.Popen(["nohup", "flock", os.path.join(
+                                   lease, "eccejobstore.standin"),
+                                fake, "600"], env=session.env(),
                                stdout=subprocess.DEVNULL,
                                stderr=subprocess.DEVNULL,
                                start_new_session=True)
@@ -726,7 +736,7 @@ def caseJobstore(checks, display, logdir):
         checks.check(not hadAuth or os.path.exists(afile),
                      "its session's credential kept after a sweep%s"
                      % ("" if hadAuth else " (none was stored)"))
-        job.kill()
+        os.killpg(job.pid, 9)
         job.wait()
         job = None
         said = run("ecce-gateway-reap", display.env(),
@@ -737,7 +747,7 @@ def caseJobstore(checks, display, logdir):
                      "its session's files (%s)" % said.replace("\n", " / "))
     finally:
         if job is not None:
-            job.kill()
+            os.killpg(job.pid, 9)
             job.wait()
         session.kill()
         os.unlink(fake)

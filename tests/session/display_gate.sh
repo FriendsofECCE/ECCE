@@ -10,9 +10,9 @@ if ! git rev-parse --git-dir >/dev/null 2>&1; then
   echo "SKIP: not a git checkout"
   exit 77
 fi
-# Whether a dialog can be shown at all (RCommand's host-key and askpass
-# dialogs).
-ALLOWED='^src/comm/rcommand/RCommand\.C:'
+# Ecce::guiAvailable(): whether a dialog can be shown at all (RCommand's
+# host-key and askpass dialogs).
+ALLOWED='^src/util/genutil/Ecce\.C:'
 fail=0
 found="$(git grep -n 'getenv("DISPLAY")' -- src include | grep -Ev "$ALLOWED")"
 if [ -n "$found" ]; then

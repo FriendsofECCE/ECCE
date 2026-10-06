@@ -103,18 +103,65 @@ ecce_is_ecce_exe() {
   [ "$(readlink -f "$ECCE_HOME/bin/$name" 2>/dev/null)" = "$exe" ]
 }
 
+# Which evidence says an ECCE program is alive: its session lease
+# (SessionLease.H) and, where there is a /proc, the process table.
+# ECCE_SESSION_LIVENESS=lease or =proc uses one only.
+ecce_use_lease() { [ "${ECCE_SESSION_LIVENESS:-}" != proc ]; }
+ecce_use_proc() {
+  [ "${ECCE_SESSION_LIVENESS:-}" != lease ] && [ -r /proc/self/environ ]
+}
+
+# ecce_try_lock FILE COMMAND...: runs COMMAND holding an exclusive lock on
+# FILE, without waiting; status 99 when someone else holds it.
+ecce_try_lock() {
+  if command -v flock >/dev/null 2>&1; then
+    flock -n -E 99 "$@"
+  else
+    perl -e 'use Fcntl qw(:flock); open(my $f, "<", shift) or exit 1;
+             flock($f, LOCK_EX | LOCK_NB) or exit 99; exit(system(@ARGV) >> 8)' "$@"
+  fi
+}
+
+# The live leases of this host's sessions in $STATEDIR: lines
+# "<pid> <name> <session id>". A lease whose lock can be taken is stale
+# (its program has ended) and is removed.
+ecce_session_leases() {
+  local prefix d f base sid
+  prefix="$(ecce_session_prefix)"
+  for d in "$STATEDIR/leases/$prefix"*/; do
+    [ -d "$d" ] || continue
+    sid="$(basename "$d")"
+    sid="${sid#"$prefix"}"
+    ecce_session_id_valid "$sid" || continue
+    for f in "$d"*.*; do
+      [ -e "$f" ] || continue
+      ecce_try_lock "$f" rm -f "$f"
+      if [ $? -eq 99 ]; then
+        base="${f##*/}"
+        echo "${base##*.} ${base%.*} $sid"
+      fi
+    done
+    rmdir "$d" 2>/dev/null
+  done
+}
+
 # This user's running ECCE programs: lines "<pid> <name> <session id>"
-# (the id empty for a program without one).
+# (the id empty for a program without one), each pid once.
 ecce_session_procs() {
   local pid exe
-  for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
-    [ -O "/proc/$pid" ] || continue
-    exe="$(readlink "/proc/$pid/exe" 2>/dev/null)" || continue
-    ecce_is_ecce_exe "$exe" || continue
-    [ -r "/proc/$pid/environ" ] || continue
-    exe="${exe% (deleted)}"
-    echo "$pid ${exe##*/} $(ecce_session_of_pid "$pid")"
-  done
+  {
+    if ecce_use_proc; then
+      for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
+        [ -O "/proc/$pid" ] || continue
+        exe="$(readlink "/proc/$pid/exe" 2>/dev/null)" || continue
+        ecce_is_ecce_exe "$exe" || continue
+        [ -r "/proc/$pid/environ" ] || continue
+        exe="${exe% (deleted)}"
+        echo "$pid ${exe##*/} $(ecce_session_of_pid "$pid")"
+      done
+    fi
+    if ecce_use_lease; then ecce_session_leases; fi
+  } | awk '!seen[$1]++'
 }
 
 # Is an ECCE program of this session running?

@@ -25,9 +25,11 @@
 #     user's last session, so idle per-user brokers do not pile up on a
 #     machine with many users.
 #
-# Liveness is read from the process table (/proc/<pid>/exe), not from
-# reference counts, which would have to be right on every abnormal exit
-# to avoid the very leak they are meant to prevent.
+# Liveness is read from the programs' session leases (a lock the kernel
+# drops when a program ends, SessionLease.H) and, on Linux, the process
+# table (/proc/<pid>/exe) -- not from reference counts, which would have
+# to be right on every abnormal exit to avoid the very leak they are meant
+# to prevent.
 
 set -u
 
@@ -71,8 +73,9 @@ if [ -z "${ECCE_GATEWAY_LOCKED:-}" ]; then
 fi
 
 
-# ECCE processes are identified by /proc/<pid>/exe (ecce_is_ecce_exe in
-# ecce-session-lib.sh), NOT by matching the command line. Apps launched from the gateway are spawned as
+# In /proc, ECCE processes are identified by their exe (ecce_is_ecce_exe in
+# ecce-session-lib.sh), NOT by matching the command line. Apps launched
+# from the gateway are spawned as
 # `cd $ECCE_HOME/bin && ./builder` (WxJMSMessageDispatch.C), so their
 # command line is the bare "./builder" -- a path match would miss every
 # gateway-launched app and conclude the session was idle while the user
@@ -85,6 +88,11 @@ fi
 # of the same account (another ECCE_REALUSERHOME) does not count.
 apps_for_state() {
   local pid exe home
+  # Leases live in this state directory, so they are its programs.
+  if ecce_use_lease; then
+    ecce_session_leases | head -n1
+  fi
+  ecce_use_proc || return 0
   for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
     [ -O "/proc/$pid" ] || continue
     exe="$(readlink "/proc/$pid/exe" 2>/dev/null)" || continue

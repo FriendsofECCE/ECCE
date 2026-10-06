@@ -12,6 +12,8 @@
 #pragma interface "GatewayApp.C"
 #endif
 
+#include <set>
+
 #include "wx/image.h"
 #include "wxgui/WxDavAuth.H"
 #include "wxgui/WxJMSMessageDispatch.H"
@@ -65,6 +67,8 @@ protected:
   bool checkUser();
   void reconnectJobStoreMessaging();
   int otherSessionApps() const;
+  void procSessionApps(const char *const *notApps,
+                       std::set<long>& apps) const;
 
   Gateway * p_gateway;
 
