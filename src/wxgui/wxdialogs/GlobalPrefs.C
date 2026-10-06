@@ -191,7 +191,7 @@ void GlobalPrefs::createGeneralPage(wxWindow* page)
   // No colour theme: windows take the desktop's GTK theme (#210).
   ewxChoice** choices[] = {&p_fontSize, &p_dateFormat,
                            &p_timeFormat, &p_unit};
-  const wxChar* labels[] = {_("Font Size:"),
+  const wxString labels[] = {_("Font Size:"),
                             _("Date Format:"), _("Time Format:"), _("Units:")};
   for (c = 0; c < 4; c++) {
     grid->Add(new ewxStaticText(sb, wxID_ANY, labels[c]), 0,
@@ -231,7 +231,7 @@ void GlobalPrefs::createGeneralPage(wxWindow* page)
   wxWindow* sb2 = box2->GetStaticBox();
   ewxCheckBox** checks[] = {&p_beepError, &p_beepWarn, &p_focus,
                             &p_confirmExit, &p_closeShells, &p_savePasswords};
-  const wxChar* clabels[] = {
+  const wxString clabels[] = {
     _("Beep on errors"), _("Beep on warnings"),
     _("Focus follows mouse over input fields"),
     _("Ask for confirmation on exit"),

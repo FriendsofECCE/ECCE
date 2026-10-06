@@ -111,13 +111,16 @@ bool WxResourceTreeCtrl::Create(wxWindow* parent, wxWindowID id,
   SetSpacing(8);
   SetIndent(10);
 
-  // Image list for folder expand and collapse button
+  // Image list for folder expand and collapse button (the native MSW tree
+  // draws its own and has no button list)
+#ifndef __WXMSW__
   wxImageList * butList = new wxImageList(12, 12, true);
   butList->Add(ewxBitmap("collapsed.xpm"));  // Button closed
   butList->Add(ewxBitmap("collapsed.xpm"));  // Button closed selected
   butList->Add(ewxBitmap("expanded.xpm"));  // Button expanded
   butList->Add(ewxBitmap("expanded.xpm"));  // Button expanded selected
   AssignButtonsImageList(butList);
+#endif
 
   return true;
 }

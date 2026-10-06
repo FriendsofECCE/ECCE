@@ -147,6 +147,12 @@ if(WIN32)
   # localtime_r (#133).
   add_compile_definitions(COIN_DLL CHEMKIT_NOT_DLL WIN32_LEAN_AND_MEAN NOMINMAX
                           _POSIX_THREAD_SAFE_FUNCTIONS=200112L)
+  # PosixCompat.H in every C++ file: it supplies the POSIX calls and strips
+  # the windows.h macros (ERROR, OPAQUE, ...) that wx pulls in first.
+  # win32compat/ stands in for the <sys/wait.h>-style headers MinGW lacks.
+  add_compile_options($<$<COMPILE_LANGUAGE:CXX>:SHELL:-include
+                      ${CMAKE_SOURCE_DIR}/include/util/PosixCompat.H>)
+  include_directories(${CMAKE_SOURCE_DIR}/include/win32compat)
 endif()
 
 if(APPLE)

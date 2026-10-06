@@ -772,7 +772,7 @@ void MDEdBase::OnButtonBuilderClick( wxCommandEvent& event )
          saveModelAndInputFile(task);
       }
 
-      string myname = (const char *)GetName();
+      string myname = GetName().ToStdString();
       JMSPublisher publisher(myname);
       JMSMessage *msg = publisher.newMessage();
       msg->addProperty("action","start");
@@ -877,7 +877,7 @@ void MDEdBase::OnButtonLaunchClick( wxCommandEvent& event )
          saveModelAndInputFile(task);
       }
 
-      string myname = (const char *)GetName();
+      string myname = GetName().ToStdString();
       JMSPublisher publisher(myname);
       JMSMessage *msg = publisher.newMessage();
       msg->addProperty("action","start");

@@ -45,7 +45,7 @@ void WxVizTool::connectToolKitFW(WxVizToolFW * fw)
 /**
  * Nothing to do in the generic case.
  */
-void WxVizTool::restoreSettings(wxConfig * config)
+void WxVizTool::restoreSettings(wxConfigBase * config)
 {
   
 }
@@ -53,7 +53,7 @@ void WxVizTool::restoreSettings(wxConfig * config)
 /**
  * Nothing to do in the generic case.
  */
-void WxVizTool::saveSettings(wxConfig * config)
+void WxVizTool::saveSettings(wxConfigBase * config)
 {
   
 }

@@ -192,8 +192,8 @@ bool GatewayApp::OnInit()
   string compileVersion = Ecce::ecceVersion();
   int idx;
   for (idx=0; idx<argc; idx++) {
-    if (strncmp(argv[idx],"-V",2) == 0) {
-      cmdLineVersion = argv[idx];
+    if (strncmp(argv[idx].ToStdString().c_str(),"-V",2) == 0) {
+      cmdLineVersion = argv[idx].ToStdString();
       cmdLineVersion.erase(0,2);
       break;
     }

@@ -578,7 +578,7 @@ void NWDirdy::reparentCodes(const bool& theoryFlag, const string& codeName,
     vector<string> codes = CodeFactory::getFullySupportedCodes();
     for (it = 0; it<(int)codes.size() && codes[it]!=codeName; it++);
     if (it < (int)codes.size()) {
-      unsigned long codemap = it+1;
+      uintptr_t codemap = it+1;
 
       // now, check if there's a current code calced button and whether it's
       // the same one as the new code
@@ -593,7 +593,7 @@ void NWDirdy::reparentCodes(const bool& theoryFlag, const string& codeName,
         // it and find the right one to reparent as the current code
         wxSizerItem *codeChild = codeNode->GetData();
 
-        if ((unsigned long)codeChild->GetWindow()->GetClientData() != codemap) {
+        if ((uintptr_t)codeChild->GetWindow()->GetClientData() != codemap) {
           codeSizer->Detach(codeChild->GetWindow());
           calcedSizer->Add(codeChild->GetWindow());
 
@@ -605,7 +605,7 @@ void NWDirdy::reparentCodes(const bool& theoryFlag, const string& codeName,
           wxSizerItem *calcChild;
           while (calcNode) {
             calcChild = calcNode->GetData();
-            if ((unsigned long)calcChild->GetWindow()->GetClientData() == codemap) {
+            if ((uintptr_t)calcChild->GetWindow()->GetClientData() == codemap) {
               calcedSizer->Detach(calcChild->GetWindow());
               codeSizer->Add(calcChild->GetWindow());
               // must show the button because it was hidden before
@@ -629,7 +629,7 @@ void NWDirdy::reparentCodes(const bool& theoryFlag, const string& codeName,
         wxSizerItem *calcChild;
         while (calcNode) {
           calcChild = calcNode->GetData();
-          if ((unsigned long)calcChild->GetWindow()->GetClientData() == codemap) {
+          if ((uintptr_t)calcChild->GetWindow()->GetClientData() == codemap) {
             calcedSizer->Detach(calcChild->GetWindow());
             codeSizer->Add(calcChild->GetWindow());
             // defer the layout call to the caller
@@ -2943,7 +2943,7 @@ void NWDirdy::OnButtonDirdyCalcR1Click( wxCommandEvent& event )
   // the Transition-state task as its context.
   if (r1Task != 0) {
     ewxBitmapButton *codeButton = (ewxBitmapButton*)event.GetEventObject();
-    unsigned long icode = (unsigned long)codeButton->GetClientData();
+    uintptr_t icode = (uintptr_t)codeButton->GetClientData();
     string codename = "";
     if (icode > 0) {
       vector<string> codes = CodeFactory::getFullySupportedCodes();
@@ -3131,7 +3131,7 @@ void NWDirdy::OnButtonDirdyCalcR2Click( wxCommandEvent& event )
   // the Transition-state task as its context.
   if (r2Task != 0) {
     ewxBitmapButton *codeButton = (ewxBitmapButton*)event.GetEventObject();
-    unsigned long icode = (unsigned long)codeButton->GetClientData();
+    uintptr_t icode = (uintptr_t)codeButton->GetClientData();
     string codename = "";
     if (icode > 0) {
       vector<string> codes = CodeFactory::getFullySupportedCodes();
@@ -3318,7 +3318,7 @@ void NWDirdy::OnButtonDirdyCalcTsClick( wxCommandEvent& event )
   // the Transition-state task as its context.
   if (tsTask != 0) {
     ewxBitmapButton *codeButton = (ewxBitmapButton*)event.GetEventObject();
-    unsigned long icode = (unsigned long)codeButton->GetClientData();
+    uintptr_t icode = (uintptr_t)codeButton->GetClientData();
     string codename = "";
     if (icode > 0) {
       vector<string> codes = CodeFactory::getFullySupportedCodes();
@@ -3775,7 +3775,7 @@ void NWDirdy::OnButtonDirdyCalcP1Click( wxCommandEvent& event )
   // the Transition-state task as its context.
   if (p1Task != 0) {
     ewxBitmapButton *codeButton = (ewxBitmapButton*)event.GetEventObject();
-    unsigned long icode = (unsigned long)codeButton->GetClientData();
+    uintptr_t icode = (uintptr_t)codeButton->GetClientData();
     string codename = "";
     if (icode > 0) {
       vector<string> codes = CodeFactory::getFullySupportedCodes();
@@ -3963,7 +3963,7 @@ void NWDirdy::OnButtonDirdyCalcP2Click( wxCommandEvent& event )
   // the Transition-state task as its context.
   if (p2Task != 0) {
     ewxBitmapButton *codeButton = (ewxBitmapButton*)event.GetEventObject();
-    unsigned long icode = (unsigned long)codeButton->GetClientData();
+    uintptr_t icode = (uintptr_t)codeButton->GetClientData();
     string codename = "";
     if (icode > 0) {
       vector<string> codes = CodeFactory::getFullySupportedCodes();

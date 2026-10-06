@@ -17,6 +17,16 @@
 #include <sys/utsname.h>
 #else
 #include <windows.h>
+// windows.h macros that collide with identifiers in this tree (enum values,
+// members and locals); wx and Coin include it first, so every file gets this
+// header forced in (CMakeLists.txt).
+#undef ERROR
+#undef OPAQUE
+#undef TRANSPARENT
+#undef DELETE
+#undef ABSOLUTE
+#undef near
+#undef far
 #include <direct.h>
 #include <io.h>
 #include <cerrno>
@@ -118,6 +128,49 @@ inline int uname(struct utsname *u)
                      ? "arm64" : "x86_64");
   return 0;
 }
+
+// Signals other than the console ones do not exist. kill(pid, 0) probes for
+// the process and any other signal ends it; stop/continue cannot be done.
+#ifndef SIGHUP
+#define SIGHUP 1
+#endif
+#ifndef SIGKILL
+#define SIGKILL 9
+#endif
+#ifndef SIGPIPE
+#define SIGPIPE 13
+#endif
+#ifndef SIGSTOP
+#define SIGSTOP 19
+#endif
+#ifndef SIGCONT
+#define SIGCONT 18
+#endif
+inline int kill(pid_t pid, int sig)
+{
+  if (sig == SIGSTOP || sig == SIGCONT) { errno = ENOSYS; return -1; }
+  HANDLE h = OpenProcess(sig == 0 ? PROCESS_QUERY_LIMITED_INFORMATION
+                                  : PROCESS_TERMINATE, FALSE, (DWORD)pid);
+  if (!h) { errno = ESRCH; return -1; }
+  int rc = 0;
+  if (sig != 0 && !TerminateProcess(h, 1)) { errno = EPERM; rc = -1; }
+  CloseHandle(h);
+  return rc;
+}
+
+// Not available; callers get ENOSYS and take their fallback path.
+#ifndef O_NONBLOCK
+#define O_NONBLOCK 0x4000
+#endif
+#define F_GETFL 3
+#define F_SETFL 4
+#define F_GETFD 1
+#define F_SETFD 2
+#define FD_CLOEXEC 1
+inline int fcntl(int, int, ...) { errno = ENOSYS; return -1; }
+inline int mkfifo(const char *, mode_t) { errno = ENOSYS; return -1; }
+inline int pipe(int fds[2]) { return _pipe(fds, 4096, _O_BINARY | _O_NOINHERIT); }
+inline pid_t getsid(pid_t) { return 0; }
 
 // One account per process; the name and home come from the environment.
 typedef int uid_t;
