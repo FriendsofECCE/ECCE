@@ -910,9 +910,7 @@ def main():
     if args.nwchem_restart and not shutil.which("nwchem"):
         skip("nwchem is not installed")
 
-    state = isolate.resolveStateDir(
-        os.environ.get("ECCE_TEST_STATE")
-        or isolate.defaultStateDir() + "-launch")
+    state = isolate.resolveStateDir(isolate.runState("launch", keep=args.keep))
     os.makedirs(state, exist_ok=True)
     note, _ = sweep(state)
     if note:

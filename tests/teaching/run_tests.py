@@ -278,7 +278,7 @@ def main():
         for c in chosen:
             say("=== %s\n%s" % (c.name, decks[c.name]))
 
-    s = Session(build, "teach", {"NWChem": shutil.which("nwchem")}, (8596, 8588),
+    s = Session(build, "teach", {"NWChem": shutil.which("nwchem")},
                 keep=args.keep)
     if args.queue == "slurm":
         res = subprocess.run(["sinfo", "-h", "-o", "%R"], stdout=subprocess.PIPE,

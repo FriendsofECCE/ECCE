@@ -120,7 +120,7 @@ def main():
     harness.prerequisites(build, ("mopac",))
 
     s = harness.Session(build, "cancel-local" if args.local else "cancel", {},
-                        (8697, 8689), keep=args.keep, local=args.local)
+                        keep=args.keep, local=args.local)
     wrapper = os.path.join(s.state, "slow-mopac")
     with open(wrapper, "w") as h:
         h.write("#!/bin/sh\nsleep 300\nexec /usr/bin/mopac \"$@\"\n")
