@@ -1615,6 +1615,16 @@ add_test(NAME throwlog-all COMMAND throwlog_test all)
 add_executable(vibspectrum_test tests/spectrum/vibspectrum_test.C)
 target_link_libraries(vibspectrum_test PRIVATE eccetdat ecceutil)
 add_test(NAME vibspectrum COMMAND vibspectrum_test)
+# The canvas painted onto a bitmap (tools/spectrum/render) from the numbers
+# the codes printed; needs wx, g++ and xvfb-run, SKIPs without them.
+find_program(PYTHON3_FOR_SPECTRUM NAMES python3)
+if(PYTHON3_FOR_SPECTRUM)
+  add_test(NAME spectrum_canvas
+           COMMAND ${PYTHON3_FOR_SPECTRUM}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/spectrum/run_tests.py)
+  set_tests_properties(spectrum_canvas PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+endif()
 
 # tests/session -- the session id and key (#233): shell and C++ derivations
 # agree, and both generators make well-formed, distinct ids.
