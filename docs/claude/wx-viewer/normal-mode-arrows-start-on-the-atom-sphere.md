@@ -17,13 +17,14 @@ And Stick), which is every heavy atom in an X-H stretch. So:
   own direction; the length is unchanged, so the tip moves out by the
   radius. `SGContainer::displayedSphereRadius` returns covalent radius x
   the style's sphere scale (half by default) in Ball And Wireframe and Ball
-  And Stick, the CPK radius in CPK, 0 in Wireframe, Stick and for hidden
-  atoms.
+  And Stick, the CPK radius in CPK, 0 in Wireframe and for hidden
+  atoms; in Stick the atom is the rod's rounded end, so the start radius is the
+  bond cylinder radius (0.2 A by default).
 - **Thickness.** `VRVector::fixedThickness(true)`: shaft radius 0.035 A,
   head radius 0.09 A, head length 0.18 A or half of a short arrow. Other
   users of `VRVector` (dipole, trajectory vectors) keep the old
   length-proportional shape. The POV-Ray export reads the old scale
-  convention and does not follow the fixed thickness.
+  convention and does not follow the fixed thickness (a scale mismatch: it scales the shaft and head by |d|).
 
 The start radius depends on the style, so `touchChemDisplay` (every style
 change) and `CSRadiiCmd` call `SGContainer::updateNMVecStarts`, which
