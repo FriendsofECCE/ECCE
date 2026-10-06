@@ -150,8 +150,7 @@ if(WIN32)
   # PosixCompat.H in every C++ file: it supplies the POSIX calls and strips
   # the windows.h macros (ERROR, OPAQUE, ...) that wx pulls in first.
   # win32compat/ stands in for the <sys/wait.h>-style headers MinGW lacks.
-  add_compile_options($<$<COMPILE_LANGUAGE:CXX>:SHELL:-include
-                      ${CMAKE_SOURCE_DIR}/include/util/PosixCompat.H>)
+  add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include ${CMAKE_SOURCE_DIR}/include/util/PosixCompat.H>")
   include_directories(${CMAKE_SOURCE_DIR}/include/win32compat)
 endif()
 
