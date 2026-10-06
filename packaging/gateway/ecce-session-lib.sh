@@ -113,12 +113,17 @@ ecce_use_proc() {
 
 # ecce_try_lock FILE COMMAND...: runs COMMAND holding an exclusive lock on
 # FILE, without waiting; status 99 when someone else holds it.
-ecce_try_lock() {
+ecce_try_lock() { ecce_flock -n -E 99 "$@"; }
+
+# flock(1), or ECCE's own subset of it where util-linux is absent (macOS).
+_ECCE_LIBDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
+ecce_flock() {
   if command -v flock >/dev/null 2>&1; then
-    flock -n -E 99 "$@"
+    flock "$@"
+  elif [ -x "$_ECCE_LIBDIR/ecce-flock" ]; then
+    "$_ECCE_LIBDIR/ecce-flock" "$@"
   else
-    perl -e 'use Fcntl qw(:flock); open(my $f, "<", shift) or exit 1;
-             flock($f, LOCK_EX | LOCK_NB) or exit 99; exit(system(@ARGV) >> 8)' "$@"
+    "$ECCE_HOME/bin/ecce-flock" "$@"
   fi
 }
 

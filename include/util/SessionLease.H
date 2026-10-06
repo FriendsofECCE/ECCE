@@ -8,7 +8,7 @@
 //    lock on $ECCE_REALUSERHOME/.ECCE/leases/<session key>/<name>.<pid>
 //    for as long as it runs; the kernel drops the lock however it ends. A
 //    lease whose lock can be taken is stale and is removed by whoever
-//    finds it. ecce-session-lib.sh reads the same files with flock(1).
+//    finds it. ecce-session-lib.sh reads the same files with flock(1) (ecce-flock where there is none).
 //
 //    ECCE_SESSION_LIVENESS picks the evidence: "lease", "proc", or unset
 //    for both where /proc exists (Linux) and the lease elsewhere.

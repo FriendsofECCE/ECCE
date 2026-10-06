@@ -69,7 +69,7 @@ say() { [ -n "${ECCE_REAP_QUIET:-}" ] || echo "ecce-gateway-reap: $*"; }
 # decisions and says so when it calls us.
 if [ -z "${ECCE_GATEWAY_LOCKED:-}" ]; then
   exec 9>>"$STATEDIR/.gateway.lock"
-  flock -w 90 9 || say "could not lock $STATEDIR/.gateway.lock; continuing"
+  ecce_flock -w 90 9 || say "could not lock $STATEDIR/.gateway.lock; continuing"
 fi
 
 
