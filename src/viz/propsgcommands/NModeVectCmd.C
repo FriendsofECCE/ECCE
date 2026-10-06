@@ -107,7 +107,7 @@ bool NModeVectCmd::execute()
       //  A zero mode has no motion to show, so the right amplitude is one
       //  that leaves the geometry exactly where it is.
       if ( factor == -1.0) {
-         scale = (maxnorm > 0.0) ? 1.0/maxnorm : 0.0;
+         scale = (maxnorm > 0.0) ? 0.5/maxnorm : 0.0;
       } else {
          scale = factor;
       }
