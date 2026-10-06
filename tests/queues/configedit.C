@@ -4,16 +4,18 @@
 //   configedit file  FILE (set KEY VALUE | remove KEY | clear KEY)...
 //       edit FILE in place, other lines untouched; "load, save" with no
 //       operations rewrites it unchanged.  Prints the file's warnings.
+//       also: skeleton CODE | unskeleton CODE  (empty CODEEnvironment and
+//       CODECommand blocks under "# CODE"; removal only of empty ones)
 //   configedit check FILE         print the grammar warnings for FILE
 //   configedit json               stdin: one JSON value per line; prints
 //       each as MiniJson::dump() text
 //   configedit draft --mode user|admin|remote --site F --user F
-//       --explain JSONFILE [--merged MACHINE] [--write]
+//       --explain JSONFILE [--merged MACHINE] [--codes A,B] [--write]
 //       (set KEY VALUE | remove KEY | clear KEY)...
 //       load the explain output into the draft, apply the edits to the
 //       draft, print one JSON line per key (tag, effective value, and the
 //       value C++ alone would see), and with --write apply the changed keys
-//       to the edited file.  --merged first checks the draft against
+//       to the edited file, then (--codes) the codes' empty skeleton blocks.  --merged first checks the draft against
 //       RefMachine::config(MACHINE) for the C++ keys.
 #include <fstream>
 #include <iostream>
@@ -92,6 +94,14 @@ static int fileCmd(int argc, char** argv)
       f.remove(argv[i + 1]); i += 2;
     } else if (op == "clear" && i + 1 < argc) {
       f.clear(argv[i + 1]); i += 2;
+    } else if (op == "skeleton" && i + 1 < argc) {
+      f.addSkeleton(argv[i + 1],
+                    MachineConfigDraft::skeletonKeys(argv[i + 1]));
+      i += 2;
+    } else if (op == "unskeleton" && i + 1 < argc) {
+      f.removeSkeleton(argv[i + 1],
+                       MachineConfigDraft::skeletonKeys(argv[i + 1]));
+      i += 2;
     } else {
       return usage();
     }
@@ -133,7 +143,7 @@ static int jsonCmd()
 
 static int draftCmd(int argc, char** argv)
 {
-  string mode = "user", site, user, explainFile, merged;
+  string mode = "user", site, user, explainFile, merged, codeList;
   bool write = false;
   int i = 2;
   for (; i < argc && argv[i][0] == '-'; ) {
@@ -145,6 +155,7 @@ static int draftCmd(int argc, char** argv)
     else if (a == "--user") { user = argv[i + 1]; i += 2; }
     else if (a == "--explain") { explainFile = argv[i + 1]; i += 2; }
     else if (a == "--merged") { merged = argv[i + 1]; i += 2; }
+    else if (a == "--codes") { codeList = argv[i + 1]; i += 2; }
     else return usage();
   }
   MachineConfigDraft::Mode m = mode == "admin" ? MachineConfigDraft::AdminMode
@@ -196,7 +207,17 @@ static int draftCmd(int argc, char** argv)
   if (write) {
     ConfigFile f;
     f.setSiteFile(d.mode() == MachineConfigDraft::AdminMode);
-    if (!f.load(d.editedFile()) || !d.applyTo(f, err) || !f.save(&err)) {
+    vector<string> codes;
+    for (size_t b = 0; b < codeList.size(); ) {
+      size_t e = codeList.find(',', b);
+      if (e == string::npos) e = codeList.size();
+      codes.push_back(codeList.substr(b, e - b));
+      b = e + 1;
+    }
+    bool ok = f.load(d.editedFile()) && d.applyTo(f, err);
+    if (ok)
+      d.applySkeletons(f, codes);
+    if (!ok || !f.save(&err)) {
       std::cout << "WRITE FAILED " << err << std::endl;
       return 3;
     }

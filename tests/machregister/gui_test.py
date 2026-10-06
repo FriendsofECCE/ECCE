@@ -501,9 +501,11 @@ expect field code:nwchem /site/nwchem
 quit
 """ % ("server" if remote else "site"), extra=extra)
     clean(p, "site machine: shown, saved as your own copy")
-    cfg = keys(os.path.join(e.ue, "CONFIG.cluster"))
-    check(cfg == {"orca": "/user/orca"},
-          "the user's CONFIG.cluster holds only the change: %r" % cfg)
+    cfg = cfg_blocks(os.path.join(e.ue, "CONFIG.cluster"))
+    check(cfg == {"orca": "/user/orca", "orcaenvironment": "",
+                  "orcacommand": ""},
+          "the user's CONFIG.cluster holds only the change (the path and "
+          "its empty skeleton): %r" % cfg)
     m = machines(os.path.join(e.ue, "MyMachines")).get("cluster", [])
     check(len(m) > 7 and ":NWChem" in m[7] and ":ORCA" in m[7],
           "the Machines line lists the inherited and the new code: %r" % m)
@@ -1320,9 +1322,9 @@ quit
         check(c.get("gaussian-16environment") == ENV_TEXT,
               "admin: the saved environment is unchanged")
     else:
-        check("gaussian-16environment" not in c and
+        check(not c.get("gaussian-16environment") and
               c.get("gaussian-16command") == cmd,
-              "user: the environment line is gone, the command stays: %r" % c)
+              "user: the environment has no text, the command stays: %r" % c)
         script = job_script(e, userhome, "Gaussian-16")
         check('export g16root="/sitedir"' in script and
               'GAUSS_SCRDIR="/scratch"' not in script,
@@ -1344,7 +1346,7 @@ quit
         clean(p, "%s: no environment, empty command" % mode)
         c = cfg_blocks(edited)
         check(c.get("gaussian-16environment") == "-" and
-              "gaussian-16command" not in c,
+              not c.get("gaussian-16command"),
               "'-' for the environment, the command line removed: %r" % c)
         script = job_script(e, userhome, "Gaussian-16")
         check("export g16root" not in script and
@@ -1389,6 +1391,123 @@ quit
 """, args=args, extra=extra)
     clean(p, "%s: a placeholder is inserted at the cursor of the last box; "
           "never into the environment; disabled where there is no box" % mode)
+
+
+G16_SKEL = ("# Gaussian-16\nGaussian-16Environment {\n}\n"
+            "Gaussian-16Command {\n}\n")
+
+
+def codes_skeleton(tmp, display, build):
+    """A program path adds empty Environment and Command blocks to the
+    edited CONFIG file; they change nothing and go with the path."""
+    print("codes tab, empty skeleton blocks")
+    e = Env(tmp, "codes-skel")
+    cluster = os.path.join(e.ue, "CONFIG.cluster")
+    write(os.path.join(e.sc, "CONFIG.cluster"),
+          read(os.path.join(e.sc, "CONFIG.cluster")) +
+          "Gaussian-16: /site/g16\nGaussian-16Environment {\n"
+          "  g16root /sitedir\n}\n", mode=0o644)
+    mine = os.path.join(e.ue, "CONFIG.mine")
+    mine_before = read(mine)
+
+    # opening and closing a machine rewrites nothing
+    p = run(display, build, e, "select mine\ntab codes\ncode NWChem\n"
+            "expect field code:nwchem /opt/nwchem\nexpect dirty 0\nquit\n")
+    clean(p, "open and close a machine with a path")
+    check(read(mine) == mine_before, "no skeleton is written without a save")
+
+    # a new path
+    p = run(display, build, e, """
+select cluster
+tab codes
+code Gaussian-16
+set code:gaussian-16 /opt/g16/g16
+save
+expect dirty 0
+quit
+""")
+    clean(p, "set a Gaussian-16 path and save")
+    u = read(cluster)
+    check(u == "Gaussian-16: /opt/g16/g16\n\n" + G16_SKEL,
+          "the file has the path and the skeleton: %r" % u)
+    rows = explain(e, "cluster")
+    check(rows["gaussian-16environment"]["source"] == "site" and
+          rows["gaussian-16environment"]["value"].strip() == "g16root /sitedir",
+          "the site's environment still counts: %r"
+          % rows["gaussian-16environment"])
+    check(cpp_view(e, build, "cluster").get("gaussian-16") == "/opt/g16/g16",
+          "C++ reads the path")
+    script = job_script(e, e.user, "Gaussian-16")
+    check('export g16root="/sitedir"' in script,
+          "the job script still uses the site's environment")
+
+    # the Codes tab does not call an empty block a setting
+    p = run(display, build, e, """
+select cluster
+tab codes
+code Gaussian-16
+expect label tag:ccmd 'not set'
+expect field blk:ccmd ''
+expect label tag:cenv 'from site'
+expect field blk:cenv ''
+expect dirty 0
+set blk:ccmd 'echo hi'
+undo ccmd
+expect label tag:ccmd 'not set'
+expect dirty 0
+quit
+""")
+    clean(p, "an empty block reads as not set; undo returns to it")
+    check(read(cluster) == u, "nothing was written")
+
+    # an existing file gains the skeleton on the first save, once
+    p = run(display, build, e, """
+select mine
+tab codes
+code NWChem
+set code:files '*.tmp'
+save
+expect dirty 0
+quit
+""")
+    clean(p, "save an existing machine")
+    m = read(mine)
+    check(m.count("# NWChem") == 1 and "NWChemEnvironment {\n}\n" in m
+          and "NWChemCommand {\n}\n" in m and "foo: bar" in m
+          and "# written by hand" in m, "existing file gained the skeleton: %r" % m)
+
+    # removing a path removes its empty blocks, keeps one with content
+    p = run(display, build, e, """
+select mine
+tab codes
+code NWChem
+set blk:ccmd 'echo mine'
+set code:nwchem ''
+save
+expect dirty 0
+quit
+""")
+    clean(p, "remove the path, keeping a command")
+    c = read(mine)
+    check("nwchem:" not in c.lower().replace("nwchem" + "filestoremove", "")
+          and "echo mine" in c and "NWChemEnvironment" not in c
+          and "foo: bar" in c, "empty block removed, the one with content "
+          "kept: %r" % c)
+
+    # the last path: skeletons and then the file go
+    write(mine, "nwchem: /opt/nwchem\n\n# NWChem\nNWChemEnvironment {\n}\n"
+          "NWChemCommand {\n}\n")
+    p = run(display, build, e, """
+select mine
+tab codes
+code NWChem
+set code:nwchem ''
+save
+quit
+""")
+    clean(p, "remove the last path")
+    check(not os.path.exists(mine), "last path removed: skeletons and file "
+          "gone")
 
 
 def codes_retired(tmp, display, build):
@@ -1736,6 +1855,7 @@ def main():
             for m in ("user", "remote", "admin"):
                 codes_tab(tmp, disp, build, m)
             codes_retired(tmp, disp, build)
+            codes_skeleton(tmp, disp, build)
     finally:
         disp.__exit__(None, None, None)
         shutil.rmtree(tmp, ignore_errors=True)

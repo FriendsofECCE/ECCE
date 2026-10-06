@@ -376,7 +376,7 @@ class World:
             d[k] = v.replace("\\n", "\n")
         return d
 
-    def draft(self, mode, *ops, write_=False, merged=True):
+    def draft(self, mode, *ops, write_=False, merged=True, codes=None):
         admin = mode == "admin"
         ef = os.path.join(self.tmp, "explain.json")
         write(ef, self.explain(admin))
@@ -384,6 +384,8 @@ class World:
                 self.userF, "--explain", ef]
         if merged:
             args += ["--merged", "testhost"]
+        if codes:
+            args += ["--codes", codes]
         if write_:
             args += ["--write"]
         r = subprocess.run([self.t.edit] + args + list(ops),
@@ -399,13 +401,13 @@ class World:
         return out
 
 
-def three_way(t, tmp, name, mode, ops, expect_text=None):
+def three_way(t, tmp, name, mode, ops, expect_text=None, codes=None):
     w = World(os.path.join(tmp, name.replace(" ", "_")), t)
     admin = mode == "admin"
     target = w.siteF if admin else w.userF
     other = w.userF if admin else w.siteF
     other_before = readb(other)
-    pred = w.draft(mode, *ops, write_=True)
+    pred = w.draft(mode, *ops, write_=True, codes=codes)
     ok = pred["rc"] == 0 and not [l for l in pred["lines"]
                                   if l.startswith(("MISMATCH", "REFUSED",
                                                    "WRITE"))]
@@ -444,6 +446,108 @@ def three_way(t, tmp, name, mode, ops, expect_text=None):
         l for l in again["lines"] if l.startswith("MISMATCH")],
         "%s: a draft reloaded after the write is clean" % name)
     return w
+
+
+def job_script(w, admin=False):
+    """gensub's job script for testhost (NWChem, Shell queue manager)."""
+    out = os.path.join(w.tmp, "gen")
+    shutil.rmtree(out, ignore_errors=True)
+    os.makedirs(out)
+    env = w.env(admin)
+    r = subprocess.run([w.t.perl, os.path.join(REPO, "scripts", "gensub"),
+                        "-p", w.params], env=env, cwd=out,
+                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                       text=True)
+    return read(os.path.join(w.tmp, "submit__x")) if r.returncode == 0 \
+        else "gensub failed: " + r.stdout
+
+
+SKEL = "# NWChem\nNWChemEnvironment {\n}\nNWChemCommand {\n}\n"
+
+
+def skeletons(t, tmp):
+    # ConfigFile level
+    edit_case(t, tmp, "skeleton in a new file", "", ["skeleton", "NWChem"],
+              SKEL)
+    edit_case(t, tmp, "skeleton after a path", "NWChem: /opt/nw\n",
+              ["skeleton", "NWChem"], "NWChem: /opt/nw\n\n" + SKEL)
+    edit_case(t, tmp, "skeleton twice is one", SKEL, ["skeleton", "NWChem"],
+              SKEL)
+    edit_case(t, tmp, "skeleton leaves a key that has content",
+              "nwchemenvironment: A=1\n", ["skeleton", "NWChem"],
+              "nwchemenvironment: A=1\n\n# NWChem\nNWChemCommand {\n}\n")
+    edit_case(t, tmp, "unskeleton keeps blocks with content",
+              "# NWChem\nNWChemEnvironment {\n  A=1\n}\nNWChemCommand {\n}\n",
+              ["unskeleton", "NWChem"],
+              "# NWChem\nNWChemEnvironment {\n  A=1\n}\n")
+    edit_case(t, tmp, "unskeleton removes the comment too",
+              "perlPath: /p\n\n" + SKEL, ["unskeleton", "NWChem"],
+              "perlPath: /p\n")
+    p = os.path.join(tmp, "ed", "only-skeleton")
+    write(p, "# machine\n" + SKEL)
+    t.file(p, "unskeleton", "NWChem")
+    check(read(p) is None, "a file left with only comments is removed")
+    write(p, "# machine\n" + SKEL)
+    r = t.run("check", p)
+    check(r.stdout.count("has no value") == 2,
+          "an empty skeleton block is reported as having no value (a "
+          "warning, not an error)")
+
+    # Three ways: the user adds a path to a machine whose site file has
+    # blocks for the same keys.  The user's empty blocks must not override
+    # the site's, nor be "-".
+    w = three_way(t, tmp, "path adds skeleton", "user",
+                  ["set", "NWChem", "/u/nwchem"], codes="NWChem")
+    u = read(w.userF)
+    check(u.endswith("\n" + SKEL) and "NWChem: /u/nwchem" in u,
+          "path adds the skeleton: %r" % u)
+    rows = w.rows()
+    check(rows["nwchemenvironment"]["value"].strip() == "A=1\n  B=2"
+          and rows["nwchemenvironment"]["source"] == "site",
+          "the site's NWChemEnvironment is still in effect: %r"
+          % rows["nwchemenvironment"])
+    check(w.cpp().get("nwchem") == "/u/nwchem", "C++ sees the path")
+    script = job_script(w)
+    # the site block's lines are "A=1" (gensub splits on blanks, so the
+    # whole token is the name); what matters is that they are exported
+    check('export A=1=""' in script and 'export B=2=""' in script,
+          "the job script still has the site's environment")
+    # a draft reloaded from the written file: still clean, still one set
+    again = w.draft("user", merged=True, codes="NWChem")
+    check("dirty 0" in again["lines"], "reloaded draft is clean")
+    # saving again changes nothing
+    before = read(w.userF)
+    w.draft("user", "set", "NWChem", "/u/nwchem2", write_=True,
+            codes="NWChem")
+    after = read(w.userF)
+    check(after == before.replace("/u/nwchem", "/u/nwchem2"),
+          "a second save adds no second skeleton: %r" % after)
+    # content in a block survives path removal; empty ones go
+    w.draft("user", "set", "NWChemCommand", "mynw $1", write_=True,
+            codes="NWChem")
+    w.draft("user", "remove", "NWChem", write_=True, codes="NWChem")
+    after = read(w.userF)
+    check("NWChem:" not in after and "NWChemCommand" in after
+          and "mynw $1" in after and "NWChemEnvironment" not in after
+          and "# NWChem" in after,
+          "removing the path keeps the block with content: %r" % after)
+    # an empty block is neither a value nor a clear when the site has one
+    write(w.userF, "# NWChem\nNWChemEnvironment {\n}\n")
+    rows = w.rows()
+    check(rows["nwchemenvironment"]["source"] == "site"
+          and rows["nwchemenvironment"]["value"].strip() == "A=1\n  B=2",
+          "empty block does not override the site block")
+    cl = w.cpp()
+    check("nwchemenvironment" not in cl or cl["nwchemenvironment"] != "-",
+          "empty block is not the '-' sentinel in the C++ view")
+
+    # last path removed: skeletons and then the file go
+    w = World(os.path.join(tmp, "last"), t)
+    write(w.userF, "# mine\nNWChem: /u/nwchem\n\n" + SKEL)
+    w.draft("user", "remove", "NWChem", write_=True, codes="NWChem")
+    check(read(w.userF) is None,
+          "removing the last path removes the skeletons and the file: %r"
+          % read(w.userF))
 
 
 def tags_and_modes(t, tmp):
@@ -514,6 +618,7 @@ def main():
         roundtrip(t, tmp)
         edits(t, tmp)
         tags_and_modes(t, tmp)
+        skeletons(t, tmp)
 
         three_way(t, tmp, "set existing keys", "user",
                   ["set", "shell", "zsh", "set", "sourcefile", "/u/env",

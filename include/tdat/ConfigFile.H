@@ -75,6 +75,18 @@ public:
   // set(), clear() or remove(), as the edit says.
   bool apply(const ConfigEdit& edit, std::string* err = 0);
 
+  // Empty "key {" / "}" blocks that only show which keys exist.  A block
+  // with no value overrides nothing and is not "-" (readers skip it), so
+  // these change no job.  addSkeleton() appends, under a "# title" comment,
+  // the keys the file does not mention at all (any spelling, any value);
+  // it returns true if it wrote anything.  removeSkeleton() removes those
+  // keys' blocks only where still empty, and the "# title" comment when no
+  // line of those keys is left.
+  bool addSkeleton(const std::string& title,
+                   const std::vector<std::string>& keys);
+  void removeSkeleton(const std::string& title,
+                      const std::vector<std::string>& keys);
+
   // Replace the whole text (a raw edit); save() then writes it.
   void setText(const std::string& text);
 

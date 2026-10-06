@@ -130,6 +130,15 @@ public:
   // server's site file).
   std::vector<ConfigEdit> edits() const;
 
+  // After applyTo(): for each code the edited file now gives a program path,
+  // add empty Environment/Command blocks that are missing; for each code
+  // whose path was in the file and is no longer, remove those blocks where
+  // still empty.  Empty blocks change nothing for any reader.
+  void applySkeletons(ConfigFile& file,
+                      const std::vector<std::string>& codes) const;
+  // The keys a skeleton holds, in the spelling gensub documents.
+  static std::vector<std::string> skeletonKeys(const std::string& code);
+
 private:
   static std::string normalize(const std::string& path);
   std::string sourceOf(const std::string& file) const;
