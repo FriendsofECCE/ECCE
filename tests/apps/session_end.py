@@ -986,7 +986,7 @@ def _remoteClient(checks, display, logdir, serverEnv, amq, dport, bport,
         frame = session.organizer()
         if not checks.check(frame, "the client's Organizer opened"):
             return
-        checks.check(waitWindow(cdisplay, "ECCE Organizer on localhost", 10),
+        checks.check(waitWindow(cdisplay, " on localhost", 10),
                      "the client's Organizer names its server in the title")
         with open(accessLog, errors="replace") as f:
             f.seek(logStart)

@@ -166,6 +166,9 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
 
   initializeGUI();
 
+  // The version in the title shows in every screenshot and bug report.
+  SetTitle(GetTitle() + " " + wxString::FromUTF8(Ecce::ecceVersion()));
+
   // Under -remote the calculations live on another machine; say which,
   // so a client's window cannot be mistaken for a local session's.
   if (getenv("ECCE_REMOTE_SERVER")) {
