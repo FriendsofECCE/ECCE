@@ -398,6 +398,12 @@ void EcceURL::parse(const char *xurl)
 
     // Pick off the protocol or "scheme" as defined in the URL recommendataion
     loc = strchr(url,':');
+#ifdef _WIN32
+    // "C:/dir" is a drive letter, not a scheme.
+    if (loc == url + 1 && isalpha((unsigned char)url[0]) &&
+        (loc[1] == '/' || loc[1] == '\\'))
+      loc = 0;
+#endif
     if (loc != 0) {
       for (char *it=(char*)url; it<loc; it++) {
         p_protocol.append(1,*it);
