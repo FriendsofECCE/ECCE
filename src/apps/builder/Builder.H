@@ -10,6 +10,7 @@
 
 #include <wx/spinctrl.h> // for wxSpinEvent
 #include <wx/listctrl.h> // for wxListEvent
+#include <wx/tglbtn.h>
 #include "inv/draggers/SoDragger.H"
 #include "inv/nodes/SoEventCallback.H" 
 
@@ -49,6 +50,7 @@ class Fragment;
 class IPropCalculation;
 class Job;
 class MiniPerTab;
+class PropertyIndexPanel;
 class PropertyPanel;
 class SFile;
 class SGContainer;
@@ -88,6 +90,12 @@ class Builder: public BuilderGUI,
       ID_MEASURE_TOOLBAR,
       ID_DRAGGER_TOOLBAR,
       ID_DOCK_FLOATING_PANELS,
+      ID_VIEW_TOGGLE_COLUMN,
+      ID_VIEW_RESET_LAYOUT,
+      ID_VIEW_PANELS_CLASSIC,
+      ID_VIEW_PANELS_STACKED,
+      ID_VIEW_PANELS_ACCORDION,
+      ID_VIEW_PANELS_DETAIL,
     
       ID_MODE_SELECT,
       ID_MODE_ROTATE,
@@ -142,6 +150,19 @@ class Builder: public BuilderGUI,
     const static string NAME_MODE_STRUCTLIB;
     const static string NAME_MODE_SHAPE;
     const static string s_modeText[];
+
+    const static string NAME_COLUMN_TABS;
+    const static string NAME_PROPERTY_INDEX;
+
+    //  How the side panels are organised (View > Panel layout).  Classic
+    //  is the original arrangement; the other three put everything in one
+    //  column on the right with Structure and Properties tabs.
+    enum PanelMode {
+      PANELS_CLASSIC,
+      PANELS_STACKED,
+      PANELS_ACCORDION,
+      PANELS_DETAIL
+    };
 
     const static string NAME_LAYOUT_PREFIX;
     const static string NAME_LAYOUT_DEFAULT;
@@ -357,6 +378,37 @@ class Builder: public BuilderGUI,
       bool getPDBOptions(const string& filename, string& altLoc,
                          int& model, string& chain);
 
+      //  --- one-column panel layouts ---------------------------------
+      //  Every pane stays an AUI pane in all modes.  In the one-column
+      //  modes the panes of the inactive tab are hidden by syncColumn()
+      //  and remembered in p_tabHidden, so closing a pane (the user's
+      //  choice) stays distinguishable from a tab hiding it.
+      enum PaneGroup { GROUP_NONE, GROUP_STRUCTURE, GROUP_PROPERTIES };
+      bool isColumnMode() const { return p_panelMode != PANELS_CLASSIC; }
+      PaneGroup paneGroup(const wxAuiPaneInfo& pane) const;
+      void initPanelMode();
+      void setPanelMode(PanelMode mode, bool reset=false);
+      void applyGeometry(bool resetSizes=false);
+      void refreshColumn();
+      void syncColumn(bool allowSwitch);
+      void syncMenuChecks();
+      void updatePanes(bool allowSwitch=false);
+      void setColumnTab(int tab, bool save=true);
+      void selectDetail(const string& name);
+      void setDetail(wxWindow *win);
+      void ensureDetail();
+      void accordionNormalize(wxWindow *keepOpen=0);
+      void foldPane(wxWindow *win, bool fold);
+      void updatePropertyIndex();
+      void collapseLog();
+      bool paneWanted(const wxAuiPaneInfo& pane) const;
+      string layoutPrefix() const;
+      void createViewMenu();
+      void OnViewColumnTab(wxCommandEvent& event);
+      void OnViewToggleColumn(wxCommandEvent& event);
+      void OnViewPanelMode(wxCommandEvent& event);
+      void OnViewResetLayout(wxCommandEvent& event);
+
       void savePaneLayout(const wxString& layoutName="");
       void loadPaneLayout(const wxString& layoutName, const bool& update=true);
       void loadDefaultPaneLayout(const wxString& layoutName,
@@ -489,6 +541,29 @@ class Builder: public BuilderGUI,
       //  overlay -- only a real user click or tab into a panel can.
       //  See the comment on OnChildFocus() in Builder.C (#111).
       int p_panelBuildDepth;
+
+      PanelMode p_panelMode = PANELS_DETAIL;
+      int p_columnTab = 0;               // 0 Structure, 1 Properties
+      bool p_columnTabChosen = false;    // the user (or config) picked it
+      bool p_columnHidden = false;       // F9
+      set<wxWindow*> p_tabHidden;        // open, but hidden by tab/F9
+      set<wxWindow*> p_columnSeen;       // property panes given mode defaults
+      wxWindow *p_detail = 0;            // list + detail: the shown panel
+      wxWindow *p_accordionOpen = 0;
+      map<wxWindow*, int> p_baseProportion;
+      map<string, int> p_toolIndex;
+      set<string> p_structureNames;
+      wxPanel *p_tabsPanel = 0;
+      wxToggleButton *p_tabButtons[2] = { 0, 0 };
+      PropertyIndexPanel *p_index = 0;
+      wxMenu *p_viewMenu = 0;
+      wxMenu *p_panelModeMenu = 0;
+      bool p_logAutoOpen = false;
+
+    public:
+      //  Test hooks (ECCE_PANEL_TEST): what the layout currently holds.
+      PanelMode panelMode() const { return p_panelMode; }
+      void runPanelLayoutTest();
 };
 
 #endif

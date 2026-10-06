@@ -5,6 +5,8 @@
 #include "wx/event.h"
 #include "wx/wx.h"
 
+#include <functional>
+
 class ewxLogTextCtrl: public wxLogTextCtrl, public wxEvtHandler
 {
   DECLARE_CLASS(ewxLogTextCtrl)
@@ -17,6 +19,9 @@ public:
   virtual void OnClearText(wxCommandEvent& event);
   virtual void OnShowGateway(wxCommandEvent& event);
 
+  // Called for every message that reaches the text (not status-only ones).
+  void setMessageHandler(std::function<void(wxLogLevel)> f) { p_onMessage = f; }
+
 protected:
   void FlashOn(const wxColour& bkg);
   void FlashOff(wxTimerEvent& event);
@@ -27,6 +32,7 @@ protected:
   bool p_beepError;
   bool p_beepWarn;
   wxTimer* p_timer;
+  std::function<void(wxLogLevel)> p_onMessage;
 };
 
 #endif
