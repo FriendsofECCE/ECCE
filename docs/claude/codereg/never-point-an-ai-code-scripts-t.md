@@ -4,6 +4,7 @@ title: "Never point an `ai.<code>` script's `-t` at the repo's own template"
 area: codereg
 section: "Pitfalls found more than once (check for siblings)"
 paths: [".tpl", "mopac.tpl", "scripts/parsers/<code>.tpl"]
+issues: []
 ---
 **Never point an `ai.<code>` script's `-t` at the repo's own
 template.** `cleanup()` ends with `mv -f tmpfile "$TplFILE"`, so the

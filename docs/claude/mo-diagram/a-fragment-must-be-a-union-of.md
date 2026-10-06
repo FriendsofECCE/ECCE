@@ -2,8 +2,9 @@
 type: map
 title: "A fragment must be a union of orbits"
 area: mo-diagram
-section: ""
+section: "The MO correlation diagram (#132)"
 paths: ["MoFragments.C"]
+issues: [132]
 ---
 **A fragment must be a union of orbits** — otherwise the group maps
 it outside itself and it has no symmetry orbitals at all. This is

@@ -4,6 +4,7 @@ title: "`packaging/gateway/`"
 area: services
 section: "The two background services (\"the server\")"
 paths: ["packaging/gateway/"]
+issues: [213]
 ---
 **`packaging/gateway/`** — the per-user message broker (#213). There is
 no relay process: `ecce-gateway-start` starts (or reuses) this user's

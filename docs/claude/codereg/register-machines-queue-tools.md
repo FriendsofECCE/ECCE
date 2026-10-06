@@ -4,7 +4,7 @@ title: "Register Machines asks the scheduler (discover, test) and previews the j
 area: codereg
 section: "Machine configuration (CONFIG files)"
 paths: ["src/apps/machregister/WxMachineRegisterTools.C", "src/apps/machregister/SchedulerQuery.C", "src/apps/machregister/JobPreview.C", "scripts/gensub", "tests/queues/stubsched.py", "tests/machregister/gui_test.py"]
-issues: ["212"]
+issues: [212]
 ---
 Three buttons, one file for the dialogs (`WxMachineRegisterTools.C`), two wx-free
 helpers (`SchedulerQuery`, `JobPreview`).

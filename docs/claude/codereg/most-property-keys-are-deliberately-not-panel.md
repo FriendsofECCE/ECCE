@@ -4,6 +4,7 @@ title: "Most property keys are deliberately *not* panel triggers"
 area: codereg
 section: "How a property gets from disk into the Properties menu"
 paths: ["PropertyPanelDescriptor.xml", "src/apps/builder/*.C"]
+issues: []
 ---
 **Most property keys are deliberately *not* panel triggers** — a
 panel is triggered by one key and reads its companions itself. `MO`

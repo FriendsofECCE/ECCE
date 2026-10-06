@@ -2,8 +2,9 @@
 type: rule
 title: "Every drop-down is at least as wide as its widest entry"
 area: wx-viewer
-section: ""
+section: "wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls"
 paths: ["src/wxgui/ewxClasses/ewxStyledWindow.C", "src/wxgui/ewxClasses/ewxChoice.C", "src/wxgui/ewxClasses/ewxComboBox.C", "include/wxgui/ewxStyledWindow.H", "include/wxgui/ewxChoice.H", "include/wxgui/ewxComboBox.H"]
+issues: [210]
 ---
 **Every drop-down is at least as wide as its widest entry**, in the
 current theme font (#210). The rule lives in one place,

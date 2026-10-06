@@ -4,6 +4,7 @@ title: "Gaussian ships `testrt`, its own route-card parser — use it in `tests/
 area: codereg
 section: "The input checker (`scripts/parsers/verifyinput`, #148)"
 paths: ["tests/verify"]
+issues: [148]
 ---
 **Gaussian ships `testrt`, its own route-card parser — use it in
 `tests/verify`, never in the shipped script.** ECCE submits to

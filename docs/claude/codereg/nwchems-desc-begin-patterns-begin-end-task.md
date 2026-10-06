@@ -1,9 +1,10 @@
 ---
 type: map
-title: "NWChem's `.desc` `Begin` patterns (`%begin%`/`%end%`/`task_*`) don't match raw NWChem stdout at all, and look bizarre if"
+title: "NWChem's `.desc` `Begin` patterns match the `ecce_print` trace file, not NWChem's stdout"
 area: codereg
 section: "How a property gets from disk into the Properties menu"
 paths: [".desc", "nwch.tpl", "nwchem.desc"]
+issues: []
 ---
 **NWChem's `.desc` `Begin` patterns (`%begin%`/`%end%`/`task_*`) don't
 match raw NWChem stdout at all, and look bizarre if you try** — they

@@ -1,8 +1,10 @@
 ---
 type: map
-title: "- Fragment columns may be opened out for legibility; the molecular column neve"
+title: "Fragment columns may be opened out for legibility; the molecular column never is"
 area: mo-diagram
-section: ""
+section: "The MO correlation diagram (#132)"
+paths: ["src/apps/builder/MoDiagramCanvas.H"]
+issues: [132]
 ---
 Fragment columns may be opened out for legibility; the molecular
 column never is, because its energies are the measurement. Whatever

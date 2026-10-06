@@ -4,6 +4,7 @@ title: "A `.desc` parse-type's `Begin` value is also its hash key, AND its match
 area: codereg
 section: "Added from integrating MOPAC (issue #86) — the second code through"
 paths: [".desc", "scripts/eccejobmonitor"]
+issues: [86]
 ---
 **A `.desc` parse-type's `Begin` value is also its hash key, AND its
 match priority** — `scripts/eccejobmonitor`'s `PDFileRead()` keys its

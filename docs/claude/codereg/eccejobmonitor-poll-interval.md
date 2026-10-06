@@ -4,6 +4,7 @@ title: "`eccejobmonitor` polls every 2 s for a local job without a queue manager
 area: codereg
 section: "Machine configuration (CONFIG files)"
 paths: ["src/comm/commxt/Launch.C", "scripts/eccejobmonitor", "tests/launch/run_tests.py", "tests/queues/run_tests.py"]
+issues: []
 ---
 The monitor's pauses (`timePauseFileExist`, `timePauseJobExist`,
 `timePauseReadLine`, `timePauseReadLinePartial`) default to 10 s in the

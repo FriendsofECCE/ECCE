@@ -4,6 +4,7 @@ title: "The one gotcha that has bitten this project repeatedly"
 area: codereg
 section: "How a property gets from disk into the Properties menu"
 paths: ["scripts/*", "scripts/codereg"]
+issues: []
 ---
 **The one gotcha that has bitten this project repeatedly**: every file
 under `scripts/*` needs its own `install()` rule in `CMakeLists.txt`,

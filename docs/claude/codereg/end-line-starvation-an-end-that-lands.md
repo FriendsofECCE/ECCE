@@ -4,6 +4,7 @@ title: "`End`-line starvation: an `End` that lands on another entry's `Begin` li
 area: codereg
 section: "Added from integrating MOPAC (issue #86) — the second code through"
 paths: ["PropertyPanelDescriptor.xml", "mopac.desc", "orca.desc"]
+issues: [86]
 ---
 **`End`-line starvation: an `End` that lands on another entry's
 `Begin` line makes that entry unable to EVER fire.** `eccejobmonitor`
