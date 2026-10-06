@@ -16,7 +16,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [Coin SORTED_LAYERS_BLEND is the default lobe transparency (6 passes, alpha canvas); slow scenes fall back to SCREEN_DOOR](coin-sorted-layers-blend-is-the-default-lobe-transparency.md)
 - [`GlPlatform` is the viewer's only GLX/EGL code; `tools/nonx11/check.py` compiles the viewer as a non-X11 port (#232)](glplatform-is-the-viewers-only-glx-egl-code.md)
 - [`Builder::execute()` paints after every command, so a command sequence shows each intermediate state (#226)](builder-execute-paints-after-every-command.md)
-- [Normal-mode arrows start at the atom centre and scale uniformly; small ones end inside the sphere (#228)](normal-mode-arrows-start-at-the-atom-centre.md)
+- [Normal-mode arrows start on the drawn sphere, have a fixed thickness, and the longest tip is 1 A out (#228)](normal-mode-arrows-start-on-the-atom-sphere.md)
 - [`tools/coin/compare.sh` renders a fixed scene set with both viewer builds (#166 stage 2); harness pitfalls](tools-coin-compare-sh-renders-both-viewer-builds.md)
 - [Atom labels drew nothing in 9.x: the sh wrappers dropped `FL_FONT_PATH`; flclient now defaults to `$ECCE_HOME/data/client/fonts`](atom-labels-need-the-bundled-font-fl-font-path.md)
 - [Builder Reset View (toolbar, Render menu, Home) is camera only; the old home button restored a pre-molecule camera](builder-reset-view-is-camera-only-home-key.md)
