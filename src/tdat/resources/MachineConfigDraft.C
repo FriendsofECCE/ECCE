@@ -445,6 +445,33 @@ vector<string> MCD::skeletonKeys(const string& code)
   return k;
 }
 
+vector<string> MCD::missingSkeletons(const ConfigFile& file,
+                                     const vector<string>& codes) const
+{
+  ConfigFile after(file);
+  string err;
+  vector<string> out;
+  if (!applyTo(after, err))
+    return out;
+  for (size_t i = 0; i < codes.size(); i++) {
+    map<string,KeyState>::const_iterator ci = p_cur.config.find(lower(codes[i]));
+    if (ci == p_cur.config.end() || ci->second.edit != Set)
+      continue;
+    vector<string> keys = skeletonKeys(codes[i]);
+    bool missing = false;
+    for (size_t k = 0; k < keys.size(); k++) {
+      bool have = false;
+      for (size_t e = 0; e < after.entries().size(); e++)
+        if (after.entries()[e].lkey == lower(keys[k]))
+          have = true;
+      missing = missing || !have;
+    }
+    if (missing)
+      out.push_back(codes[i]);
+  }
+  return out;
+}
+
 void MCD::applySkeletons(ConfigFile& file, const vector<string>& codes) const
 {
   for (size_t i = 0; i < codes.size(); i++) {

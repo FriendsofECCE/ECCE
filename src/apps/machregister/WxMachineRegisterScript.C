@@ -430,6 +430,18 @@ int MachRegScript::runCommand(const vector<string>& w)
         else if (what == "advanced")
             expectEq("advanced", f->p_advanced && f->p_advanced->IsShown()
                                  ? "1" : "0", v);
+        else if (what == "tooltip" && n >= 4)
+        {
+            wxWindow* win = f->field(w[2]);
+            string got = win ? (string)win->GetToolTipText() : "";
+            if (got.find(unescape(w[3])) == string::npos)
+                fail("expect tooltip of " + w[2] + " to contain '" +
+                     unescape(w[3]) + "', got '" + got + "'");
+            else
+                fprintf(stderr, "[MACHREG] ok tooltip %s\n", w[2].c_str());
+        }
+        else if (what == "help-ref" && n >= 4)
+            expectEq("help-ref " + w[2], WxMachineRegister::helpRef(w[2]), w[3]);
         else if (what == "shown" && n >= 4)
         {
             wxWindow* win = f->field(w[2]);
