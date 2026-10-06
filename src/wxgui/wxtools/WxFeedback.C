@@ -109,6 +109,18 @@ WxFeedback::WxFeedback( wxWindow* parent, wxWindowID id,
    p_textEvtHandler = new FeedbackTextEvtHandler();
    ewxTextCtrl *text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_FEEDBACK_MSG));
    if (text) {
+#ifdef __WXOSX__
+     // The fixed 60 px showed ~2 lines on macOS and cut the top one;
+     // size the pane from the font so whole lines fit.
+     int lineH = text->GetCharHeight();
+     // A whole number of lines: the view scrolls to the end, and any
+     // fraction of a line shows as a clipped line at the top.
+     text->SetMinSize(wxSize(-1, wxMax(60, 5*lineH)));
+     // WxFeedbackGUI::Create already froze this panel's min size from the
+     // 60 px text, so the larger text min size never reached the frame.
+     GetSizer()->Fit(this);
+     GetSizer()->SetSizeHints(this);
+#endif
      text->SetValidator(wxDefaultValidator);
      text->PushEventHandler(p_textEvtHandler);
    }
