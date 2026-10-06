@@ -270,7 +270,8 @@ class Session(object):
 
     def userUrl(self):
         if self.local:
-            return "file://%s/users/%s" % (self.localData(), self.user())
+            # Local mode's home is always users/local (#216).
+            return "file://%s/users/local" % self.localData()
         return "%s/users/%s" % (
             self.fixture.base().rsplit("/users/", 1)[0], self.user())
 
