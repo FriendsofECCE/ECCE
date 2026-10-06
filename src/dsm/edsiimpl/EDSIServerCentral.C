@@ -241,6 +241,14 @@ bool EDSIServerCentral::checkServerSetup()
         cerr << "  Please contact your ECCE administrator if you\n";
         cerr << "  have forgotten your data server password.\n\n";
         exit(1);
+      } else if (connection->m_msgStack.findKey("CERTIFICATE_REJECTED")) {
+        cerr << "\n\n  ERROR:  The certificate of the ECCE Server\n  '";
+        cerr << mount.getUrl();
+        cerr << "'\n  is not the one this ECCE installation was set up with,\n";
+        cerr << "  so no login was sent to it.\n\n";
+        cerr << "  Please contact your ECCE administrator for the server's\n";
+        cerr << "  current certificate (ecce-remote-setup --tls --pin).\n\n";
+        exit(1);
       } else {
         cerr << "\n\n  ERROR:  The ECCE application software cannot \n";
         cerr << "  establish a connection to the ECCE Server\n  '";
