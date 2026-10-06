@@ -4,7 +4,12 @@
 #include <wx/timer.h>
 #include <wx/validate.h>
 
+#ifdef __WXMSW__
+// wx's DECLARE_EVENT_TYPE is dllimport; these live in this static library.
+DECLARE_EXPORTED_EVENT_TYPE(, wxEVT_VALIDATION_EVENT, -1)
+#else
 DECLARE_EVENT_TYPE(wxEVT_VALIDATION_EVENT, -1)
+#endif
 
 /**
  * This validator does not perform any real validation but contains event 

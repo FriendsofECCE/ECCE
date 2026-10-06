@@ -30,6 +30,12 @@
 #define ECCE_TLC_EXPORT WXDLLEXPORT
 #endif
 
+#ifdef __WXMSW__
+// wx 3.2 has its own wxTreeListCtrl in the core DLL; a second definition of
+// the name does not link.
+#define wxTreeListCtrl EcceTreeListCtrl
+#endif
+
 class ECCE_TLC_EXPORT wxTreeListItem;
 class ECCE_TLC_EXPORT wxTreeListHeaderWindow;
 class ECCE_TLC_EXPORT wxTreeListMainWindow;
