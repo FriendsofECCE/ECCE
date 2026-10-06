@@ -26,6 +26,7 @@
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxApp.H"
 
+#ifdef __WXGTK__
 #include <glib.h>
 
 namespace {
@@ -74,6 +75,7 @@ GLogWriterOutput filterKnownBenignGtkPizzaWarnings(GLogLevelFlags logLevel,
 }
 
 }  // namespace
+#endif  // __WXGTK__
 
 
 /**
@@ -92,7 +94,9 @@ ewxApp::~ewxApp()
  */
 bool ewxApp::OnInit()
 {
+#ifdef __WXGTK__
    g_log_set_writer_func(filterKnownBenignGtkPizzaWarnings, nullptr, nullptr);
+#endif
 
    wxInitAllImageHandlers();
 
