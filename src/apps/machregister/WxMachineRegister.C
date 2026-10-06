@@ -3408,7 +3408,7 @@ string WxMachineRegister::blockExample(const BlockRow& b) const
         if (code == "NWChem")
             return "e.g. NWCHEM_BASIS_LIBRARY /usr/share/nwchem/libraries/";
         if (code == "ORCA") return "e.g. OMP_NUM_THREADS 1";
-        if (code == "MOPAC") return "e.g. MOPAC_LICENSE /opt/mopac";
+        if (code == "MOPAC") return "e.g. OMP_NUM_THREADS 4";
         if (code == "QuantumESPRESSO")
             return "e.g. ESPRESSO_PSEUDO /opt/pseudo";
         return "e.g. OMP_NUM_THREADS 4";
