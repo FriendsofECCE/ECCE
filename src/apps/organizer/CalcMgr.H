@@ -261,6 +261,9 @@ public:
   void setMessage(const string & message,
                   WxFeedback::Severity severity=WxFeedback::WARNING,
                   bool clear = false);
+  // Session start (#208): catch up calculations waiting for login.
+  void catchUpWaitingJobs();
+
   WxResourceTreeItemData * findNode(const EcceURL &targetUrl,
                                     bool openWhenFound = true,
                                     bool loadFromServer = true);

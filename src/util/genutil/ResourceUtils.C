@@ -271,6 +271,9 @@ ResourceDescriptor::RUNSTATE ResourceUtils::stringToState(const string& str)
     else if (lstr == "running") {
       state = ResourceDescriptor::STATE_RUNNING;
     }
+    else if (lstr == "waiting") {
+      state = ResourceDescriptor::STATE_WAITING;
+    }
     else if (lstr == "complete") {
       state = ResourceDescriptor::STATE_COMPLETED;
     }
@@ -318,6 +321,9 @@ string ResourceUtils::stateToString(ResourceDescriptor::RUNSTATE state)
     break;
   case ResourceDescriptor::STATE_RUNNING:
     stateStr = "Running";
+    break;
+  case ResourceDescriptor::STATE_WAITING:
+    stateStr = "Waiting";
     break;
   case ResourceDescriptor::STATE_COMPLETED:
     stateStr = "Complete";

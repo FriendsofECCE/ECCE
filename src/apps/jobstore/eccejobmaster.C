@@ -39,6 +39,7 @@
   using std::string;
 
 #include "util/Ecce.H"
+#include "util/WaitingJobs.H"
 #include "tdat/AuthCache.H"
 
 static string logFileName;
@@ -114,6 +115,10 @@ int main(int argc, char** argv)
   logFile.close();
   logEntry("eccejobmaster started");
 
+  // Tells session-start catch-up that this calculation is being watched.
+  const string calcURL = argc > 6 ? argv[6] : "";
+  const int watchFd = WaitingJobs::watch(calcURL);
+
   string ejsCmd;
   string entry;
   char buf[64];
@@ -137,7 +142,8 @@ int main(int argc, char** argv)
 
   // it numbers the runs (and their log files); tries is what maxTries limits
   int tries = 0;
-  for (it=0; tries<maxTries && status!=0 && status!=3 &&
+  // 0 done, 3 failed, 5 parked waiting for login (#208): none is retried.
+  for (it=0; tries<maxTries && status!=0 && status!=3 && status!=5 &&
        sumTimes>MAX_QUICK_TIME; it++, tries++) {
 
     ejsCmd = ejsStart;
@@ -208,9 +214,15 @@ int main(int argc, char** argv)
     entry += buf;
   }
 
+  // A store that lost the job (status 4) left the calculation waiting for
+  // login, so running out of restarts here is not a failure of the job.
+  if (status == 4)
+    logEntry("Restart budget used up; the calculation stays waiting for "
+             "login and is caught up at the next session start");
+
   logEntry(entry);
 
-
+  WaitingJobs::unwatch(calcURL, watchFd);
 
   // delete cacheDir when appropriate
   char* value;
