@@ -259,6 +259,34 @@ The run directory (`/path/to/run`) and the input and output names are
 examples. A request line whose placeholder has no value, for example `$memory`
 with **Memory (GB)** 0, is left out, as it is in a real job.
 
+## Test a submission
+
+**Test submission...** checks that the queue manager accepts the request
+lines of a queue. It copies a small script to the machine, which holds this
+machine's request lines for the queue and no calculation, and asks the
+queue manager about it. It connects to the machine, so it is never done
+unless you click **Run Test**.
+
+| Queue manager | What is run |
+|---|---|
+| Slurm | `sbatch --test-only` |
+| Grid Engine | `qsub -verify` |
+| HTCondor | `condor_submit -dry-run` |
+| PBS, LSF, Moab | no dry run exists: the script is submitted on hold (`qsub -h`, `bsub -H`, `msub -h`) and cancelled at once |
+
+1. Open the **Queues** tab and click **Test submission...**.
+2. Choose the **Queue**, and the processors, wall time and memory to ask for.
+3. For PBS, LSF and Moab, tick the box that says the script is submitted on
+   hold and cancelled. **Run Test** stays disabled until you do.
+4. Click **Run Test**.
+5. Read the result. The window shows the commands that ran, the queue
+   manager's answer exactly as it printed it, and below it whether the script was accepted.
+   A refusal gives the manager's reason, for example an unknown partition or
+   a time limit above the queue's.
+
+The test script is removed from the machine afterwards. If a held job could
+not be cancelled, the window says so and gives the command to cancel it.
+
 ## Codes or Job script?
 
 Both tabs put commands into the job script. The **Job script** tab applies

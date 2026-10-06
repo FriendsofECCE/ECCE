@@ -1483,18 +1483,26 @@ wxWindow* WxMachineRegister::createQueuesPage(wxWindow* parent)
     ewxButton* discover = new ewxButton(page, wxID_ANY, "Discover queues...");
     discover->SetToolTip("Ask the queue manager on the machine which queues it "
                          "has and fill in their limits");
+    ewxButton* test = new ewxButton(page, wxID_ANY, "Test submission...");
+    test->SetToolTip("Ask the queue manager whether it would accept a job "
+                     "script; no calculation is run");
     wxBoxSizer* tools = new wxBoxSizer(wxHORIZONTAL);
     tools->Add(discover, border);
+    tools->Add(test, border);
     sizer->Add(tools);
     wxStaticText* toolNote = new wxStaticText(page, wxID_ANY,
-        "This connects to the machine and uses the queue manager's own "
+        "These two connect to the machine and use the queue manager's own "
         "commands.");
     toolNote->SetForegroundColour(wxSystemSettings::GetColour(
                                   wxSYS_COLOUR_GRAYTEXT));
     sizer->Add(toolNote, wxSizerFlags().Border(wxLEFT|wxRIGHT));
     reg("discover", discover);
+    reg("test-submission", test);
     discover->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         this->discoverQueues();
+    });
+    test->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        this->testSubmission();
     });
 
     reg("qmgr", p_qmgrChoice);

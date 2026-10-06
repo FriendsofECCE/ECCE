@@ -53,6 +53,12 @@ namespace SchedulerQuery
             /// Runs argv (words quoted); `output` holds stdout and stderr as the
             /// command wrote them.  True when it exited with status 0.
             bool run(const vector<string>& argv, string& output, int timeoutSec = 60);
+            /// Same, with a file as the command's standard input.
+            bool runWithInput(const vector<string>& argv, const string& file,
+                              string& output, int timeoutSec = 60);
+            /// Copies a local file to `remoteDir` (absolute) under its own name.
+            bool put(const string& local, const string& remoteDir, string& err);
+            string home();
             string error() const;
 
         private:
@@ -77,6 +83,28 @@ namespace SchedulerQuery
     /// "30:00", "1-12:00:00", "infinite" -> minutes (0 for no limit).
     unsigned slurmMinutes(const string& text);
 
+    /// The queue manager's own check of a script.  `holdAndCancel` is true when
+    /// there is none and the script is submitted on hold and cancelled.
+    struct TestPlan
+    {
+        bool known;
+        bool holdAndCancel;
+        string what;            // "sbatch --test-only"
+        TestPlan() : known(false), holdAndCancel(false) {}
+    };
+    TestPlan testPlan(const string& qmgr);
+
+    struct TestResult
+    {
+        bool ran, accepted, cancelled;
+        string commands;        // what ran, one command per line
+        string answer;          // the scheduler's text, verbatim
+        TestResult() : ran(false), accepted(false), cancelled(false) {}
+    };
+    /// `script` is the text to send.  Never runs a calculation: the script is
+    /// only checked, or held and cancelled.
+    bool testSubmission(Remote& r, const string& qmgr, const string& script,
+                        TestResult& result, string& err);
 }
 
 #endif

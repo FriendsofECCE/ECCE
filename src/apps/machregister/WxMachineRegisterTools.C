@@ -720,3 +720,144 @@ void WxMachineRegister::previewJobScript(const string& wantedCode)
 }
 
 
+//  ---- test submission ----------------------------------------------------------
+
+void WxMachineRegister::testSubmission()
+{
+    string qmgr = (string)p_qmgrChoice->GetStringSelection();
+    string machine = stripped((string)p_fullName->GetValue());
+    SchedulerQuery::TestPlan plan = SchedulerQuery::testPlan(qmgr);
+    if (!plan.known)
+    {
+        displayMessage("Choose a queue manager first. The test hands a small "
+                       "script to that queue manager.");
+        return;
+    }
+    if (machine.empty())
+    {
+        displayMessage("Enter the machine's host name on the Machine tab "
+                       "first.");
+        return;
+    }
+
+    string queue = (string)p_queueChoice->GetStringSelection();
+    wxDialog* dlg = new wxDialog(this, wxID_ANY, "Test submission",
+                                 wxDefaultPosition, wxDefaultSize,
+                                 wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER);
+    wxBoxSizer* root = new wxBoxSizer(wxVERTICAL);
+    dlg->SetSizer(root);
+    wxColour gray = wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT);
+    wxFont mono(wxFontInfo().Family(wxFONTFAMILY_TELETYPE));
+
+    wxStaticText* intro = new wxStaticText(dlg, wxID_ANY,
+        "Copies a small script to " + machine + " and asks " + qmgr + " whether "
+        "it would accept it: " + plan.what + ". The script holds this "
+        "machine's request lines for the queue below and no calculation; "
+        "nothing ECCE runs for you is started. This connects to the machine.");
+    intro->SetForegroundColour(gray);
+    intro->Wrap(640);
+    root->Add(intro, wxSizerFlags().Border());
+
+    std::shared_ptr<RequestPanel> panel = std::make_shared<RequestPanel>();
+    vector<string> codes;
+    addRequestControls(this, dlg, root, *panel, codes, "", p_queues, queue,
+                       p_allocAccts->IsChecked(), "test:", false,
+                       [this](const string& n, wxWindow* w) { this->reg(n, w); });
+
+    wxCheckBox* hold = NULL;
+    if (plan.holdAndCancel)
+    {
+        hold = new wxCheckBox(dlg, wxID_ANY,
+            "This queue manager has no dry run. Submit the script on hold and "
+            "cancel it at once.");
+        root->Add(hold, wxSizerFlags().Border());
+        reg("test:hold", hold);
+    }
+
+    wxButton* run = new ewxButton(dlg, wxID_ANY, "Run Test");
+    run->Enable(hold == NULL);
+    root->Add(run, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+    reg("test:run", run);
+    if (hold != NULL)
+        hold->Bind(wxEVT_CHECKBOX, [run, hold](wxCommandEvent&) {
+            run->Enable(hold->IsChecked());
+        });
+
+    wxTextCtrl* result = new wxTextCtrl(dlg, wxID_ANY, "", wxDefaultPosition,
+        wxSize(720, 240), wxTE_MULTILINE|wxTE_READONLY|wxTE_DONTWRAP);
+    result->SetFont(mono);
+    root->Add(result, wxSizerFlags(1).Expand().Border());
+    reg("test:result", result);
+    wxStaticText* verdict = new wxStaticText(dlg, wxID_ANY, "");
+    wxFont vf = verdict->GetFont();
+    vf.MakeBold();
+    verdict->SetFont(vf);
+    root->Add(verdict, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+    reg("test:verdict", verdict);
+
+    wxButton* close = new ewxButton(dlg, wxID_CANCEL, "Close");
+    root->Add(close, wxSizerFlags().Right().Border());
+    reg("test:close", close);
+    close->Bind(wxEVT_BUTTON, [dlg](wxCommandEvent&) { dlg->Close(); });
+
+    run->Bind(wxEVT_BUTTON, [this, panel, result, verdict, qmgr, machine](wxCommandEvent&) {
+        string cfg, err;
+        vector<string> codes = this->codesWithPath();
+        //  The request lines do not depend on the code, but gensub wants a
+        //  code with a path: borrow a path for the temporary file only.
+        string code = codes.empty() ? string("NWChem") : codes[0];
+        string extra = codes.empty() ? "\n" + code + ": /bin/true\n" : "";
+        if (!this->draftConfigText(cfg, err, extra))
+        {
+            result->SetValue("Cannot build the settings file: " + err);
+            return;
+        }
+        SchedulerQuery::Connection conn = this->connection();
+        string host = stripped((string)p_refName->GetValue());
+        if (host.empty())
+            host = "unnamed";
+        JobPreview::Request req = requestFrom(*panel, p_adminFlag, host,
+                                              machine, qmgr);
+        req.code = code;
+        req.configText = cfg;
+        SchedulerQuery::TestResult tr;
+        string terr, scriptErr;
+        bool ok = false;
+        runBusy(this, "Test submission", "Asking " + machine + "...", [&]() {
+            SchedulerQuery::Remote r(conn);
+            string e;
+            if (!r.open(e)) { terr = e; return; }
+            //  The run directory must exist on the machine for HTCondor.
+            req.runDir = r.home();
+            vector<JobPreview::Line> lines;
+            if (!JobPreview::generate(req, lines, scriptErr))
+                return;
+            string script = "#!/bin/sh\n";
+            for (size_t i = 0; i < lines.size(); i++)
+                if (lines[i].part == "request")
+                    script += lines[i].text + "\n";
+            script += "exit 0\n";
+            ok = SchedulerQuery::testSubmission(r, qmgr, script, tr, terr);
+        });
+        if (!scriptErr.empty())
+        {
+            result->SetValue("No script could be made:\n" + scriptErr);
+            verdict->SetLabel("Not tested");
+            return;
+        }
+        if (!ok)
+        {
+            result->SetValue(terr);
+            verdict->SetLabel("Not tested");
+            return;
+        }
+        string text = "Command run on " + machine + ":\n" + tr.commands +
+                      "\n\nThe scheduler's answer:\n" + tr.answer + "\n";
+        result->SetValue(wxString::FromUTF8(text.c_str()));
+        verdict->SetLabel(tr.accepted ? qmgr + " accepted the script."
+                                      : qmgr + " did not accept the script.");
+    });
+
+    dlg->Fit();
+    this->showTool(dlg, "test:");
+}

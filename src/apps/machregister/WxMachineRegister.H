@@ -247,6 +247,7 @@ class WxMachineRegister: public ewxFrame
         void discoverQueues();
         void addDiscovered(const vector<SchedulerQuery::Queue>& picked);
         void previewJobScript(const string& code = "");
+        void testSubmission();
         SchedulerQuery::Connection connection();
         bool draftConfigText(string& text, string& err,
                              const string& extra = "");

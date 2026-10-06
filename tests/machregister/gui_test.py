@@ -2099,6 +2099,89 @@ quit
           "nothing was saved")
 
 
+def test_submission(tmp, display, build, pngs=None):
+    print("test submission against the stand-in schedulers")
+    bindir, spool = stub_clients(tmp)
+    e = Env(tmp, "testsub")
+    tool_machine(e)
+    write(os.path.join(e.ue, "stubm.Q"),
+          "Queues: debug nosuch\n\n"
+          "debug|minProcessors: 1\ndebug|maxProcessors: 8\ndebug|runLimit: 60\n"
+          "nosuch|minProcessors: 1\nnosuch|maxProcessors: 8\nnosuch|runLimit: 60\n")
+    write(os.path.join(e.ue, "Queues"), "Queues: stubm\n\n"
+          "stubm|queueMgrName: Slurm\nstubm|prefFile: stubm.Q\n")
+    shot = (lambda n: "wait 600\nshot-dialog %s/%s\n" % (pngs, n)) if pngs \
+        else (lambda n: "")
+    p = run(display, build, e, """
+select stubm
+tab queues
+set qmgrpath %(bin)s
+click test-submission
+expect tool-dialog 1
+set test:queue debug
+set test:procs 4
+click test:run
+expect contains test:result 'sbatch --test-only'
+expect contains test:result 'sbatch: Job 12346 to start at'
+expect contains test:result 'in partition debug'
+expect label test:verdict 'Slurm accepted the script.'
+%(shot1)sset test:queue nosuch
+click test:run
+expect contains test:result 'sbatch: error: invalid partition specified: nosuch'
+expect label test:verdict 'Slurm did not accept the script.'
+%(shot2)sclick test:close
+expect tool-dialog 0
+
+set qmgr PBS
+click test-submission
+expect enabled test:run 0
+click test:run
+expect field test:result ''
+click test:hold
+expect enabled test:run 1
+set test:queue debug
+click test:run
+expect contains test:result 'qsub -h'
+expect contains test:result 'qdel 12345.stubserver'
+expect label test:verdict 'PBS accepted the script.'
+%(shot3)sclick test:close
+
+set qmgr SGE
+click test-submission
+click test:run
+expect contains test:result 'qsub -verify'
+expect contains test:result 'verification: found suitable queue(s)'
+click test:close
+
+set qmgr HTCondor
+click test-submission
+click test:run
+expect contains test:result 'condor_submit -dry-run'
+expect contains test:result 'Submitting job(s).'
+click test:close
+quit
+""" % {"bin": bindir, "shot1": shot("test-accepted.png"),
+       "shot2": shot("test-refused.png"), "shot3": shot("test-hold.png")},
+        extra=LOCALUSER, timeout=180)
+    clean(p, "Slurm, PBS, SGE and HTCondor test submissions")
+    held = os.path.join(spool, "pbs", "12345")
+    check(os.path.exists(os.path.join(held, "held")) and
+          os.path.exists(os.path.join(held, "cancelled")) and
+          not os.path.exists(os.path.join(held, "stdout")),
+          "PBS: the script was held, then cancelled, and never started")
+    log = read(os.path.join(spool, "pbs", "commands.log"))
+    check("qsub -h " in log and "qdel 12345.stubserver" in log,
+          "PBS: the commands the scheduler saw")
+    slog = read(os.path.join(spool, "slurm", "commands.log"))
+    check(slog.count("sbatch --test-only") == 2 and
+          slog.count("sbatch") == 2,
+          "Slurm: only --test-only was ever used")
+    check(not [n for n in os.listdir(e.user) if n.startswith("ecce-testsub")],
+          "the script copied to the machine was removed again")
+    check(not os.path.exists(os.path.join(e.ue, "Queues.new")) and
+          read(os.path.join(e.ue, "CONFIG.stubm")) ==
+          "nwchem: /opt/nwchem\ncondorAllowTmp: true\n",
+          "nothing was saved by testing")
 
 
 def main():
@@ -2128,6 +2211,7 @@ def main():
             os.makedirs(out, exist_ok=True)
             discovery(tmp, disp, build, out)
             preview(tmp, disp, build, out)
+            test_submission(tmp, disp, build, out)
             for n in sorted(os.listdir(out)):
                 print("        " + os.path.join(out, n))
         elif a.queues_pngs:
@@ -2163,6 +2247,7 @@ def main():
             discovery(tmp, disp, build)
             preview(tmp, disp, build)
             preview_admin(tmp, disp, build)
+            test_submission(tmp, disp, build)
     finally:
         disp.__exit__(None, None, None)
         shutil.rmtree(tmp, ignore_errors=True)

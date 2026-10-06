@@ -201,6 +201,46 @@ bool Remote::run(const vector<string>& argv, string& output, int timeoutSec)
     return ok;
 }
 
+bool Remote::runWithInput(const vector<string>& argv, const string& file,
+                          string& output, int timeoutSec)
+{
+    string e;
+    if (!open(e))
+    {
+        output = e;
+        return false;
+    }
+    bool ok = p_rc->execout(commandLine(argv) + " < " + quote(file), output, "",
+                            timeoutSec);
+    if (!ok)
+        p_err = p_rc->commError();
+    return ok;
+}
+
+bool Remote::put(const string& local, const string& remoteDir, string& err)
+{
+    if (!open(err))
+        return false;
+    const char* files[2] = { local.c_str(), NULL };
+    if (!p_rc->shellput(files, remoteDir))
+    {
+        p_err = err = p_rc->commError();
+        return false;
+    }
+    return true;
+}
+
+string Remote::home()
+{
+    string out;
+    vector<string> argv;
+    argv.push_back("sh"); argv.push_back("-c");
+    argv.push_back("printf %s \"$HOME\"");
+    if (!run(argv, out, 30))
+        return "";
+    return trim(out);
+}
+
 string Remote::error() const
 {
     return p_err;
@@ -558,6 +598,183 @@ bool discover(Remote& r, const string& qmgr, vector<Queue>& queues,
         err = "The scheduler listed no queues.\n" + out;
         return false;
     }
+    return true;
+}
+
+//  ---- test submission ------------------------------------------------------
+
+TestPlan testPlan(const string& qmgr)
+{
+    string q = lower(qmgr);
+    TestPlan p;
+    p.known = true;
+    if (q == "slurm") p.what = "sbatch --test-only";
+    else if (q == "sge") p.what = "qsub -verify";
+    else if (q == "htcondor") p.what = "condor_submit -dry-run";
+    else if (q == "pbs") { p.what = "qsub -h, then qdel"; p.holdAndCancel = true; }
+    else if (q == "lsf") { p.what = "bsub -H, then bkill"; p.holdAndCancel = true; }
+    else if (q == "moab") { p.what = "msub -h, then mjobctl -c"; p.holdAndCancel = true; }
+    else p.known = false;
+    return p;
+}
+
+//  The digits of the job id in a submit command's answer: "12345.server",
+//  "Job <12345> is submitted ...", "\n12345\n", "Moab.12345".
+static string jobIdIn(const string& qmgr, const string& text)
+{
+    string q = lower(qmgr);
+    if (q == "lsf")
+    {
+        size_t a = text.find('<'), b = text.find('>');
+        if (a != string::npos && b != string::npos && b > a + 1)
+            return text.substr(a + 1, b - a - 1);
+        return "";
+    }
+    vector<string> ls = lines(text);
+    for (size_t i = 0; i < ls.size(); i++)
+    {
+        string l = trim(ls[i]);
+        if (l.empty())
+            continue;
+        size_t d = l.find_first_of("0123456789");
+        if (d == string::npos)
+            continue;
+        if (q == "moab" && l.compare(0, 5, "Moab.") == 0)
+            return l.substr(5);
+        return l;       // qsub's own text: the whole id ("12345.server")
+    }
+    return "";
+}
+
+bool testSubmission(Remote& r, const string& qmgr, const string& script,
+                    TestResult& res, string& err)
+{
+    TestPlan plan = testPlan(qmgr);
+    if (!plan.known)
+    {
+        err = "There is no test for the queue manager " + qmgr + ".";
+        return false;
+    }
+    if (!r.open(err))
+        return false;
+
+    char tmpl[] = "/tmp/ecce-testsub-XXXXXX";
+    int fd = mkstemp(tmpl);
+    if (fd < 0)
+    {
+        err = "Cannot make a temporary file.";
+        return false;
+    }
+    string local = tmpl;
+    string text = script;
+    ssize_t w = write(fd, text.c_str(), text.size());
+    close(fd);
+    if (w != (ssize_t)text.size())
+    {
+        unlink(local.c_str());
+        err = "Cannot write the test script.";
+        return false;
+    }
+
+    string home = r.home();
+    if (home.empty())
+        home = ".";
+    //  Our own name on the machine: ecce-testsub-<random> in the home directory.
+    string base = local.substr(local.rfind('/') + 1);
+    string remote = home + "/" + base;
+    string e;
+    bool ok = r.put(local, home, e);
+    unlink(local.c_str());
+    if (!ok)
+    {
+        err = "Cannot copy the test script to the machine: " + e;
+        return false;
+    }
+
+    string q = lower(qmgr), out;
+    vector<string> argv;
+    res.ran = true;
+
+    if (q == "slurm")
+    {
+        argv.push_back("sbatch"); argv.push_back("--test-only");
+        argv.push_back(remote);
+        res.commands = shown(argv);
+        res.accepted = r.run(argv, out);
+        res.answer = out;
+    }
+    else if (q == "sge")
+    {
+        argv.push_back("qsub"); argv.push_back("-verify"); argv.push_back(remote);
+        res.commands = shown(argv);
+        res.accepted = r.run(argv, out);
+        res.answer = out;
+    }
+    else if (q == "htcondor")
+    {
+        //  The same extraction of the #CONDOR lines as the submit command in
+        //  siteconfig/QueueManagers; the program text is fixed, the script
+        //  name is a word of its own.
+        argv.push_back("sh"); argv.push_back("-c");
+        argv.push_back("sed -n \"s/^[#]CONDOR //p\" \"$1\" | "
+                       "sed \"s|@SCRIPT@|$1|g\" > \"$1.sub\" && "
+                       "condor_submit -dry-run /dev/null \"$1.sub\"");
+        argv.push_back("sh"); argv.push_back(remote);
+        res.commands = "condor_submit -dry-run /dev/null " + remote + ".sub";
+        res.accepted = r.run(argv, out);
+        res.answer = out;
+    }
+    else
+    {
+        string idText;
+        vector<string> cancel;
+        if (q == "pbs")
+        {
+            argv.push_back("qsub"); argv.push_back("-h"); argv.push_back(remote);
+            cancel.push_back("qdel");
+        }
+        else if (q == "moab")
+        {
+            argv.push_back("msub"); argv.push_back("-h"); argv.push_back(remote);
+            cancel.push_back("mjobctl"); cancel.push_back("-c");
+        }
+        else
+        {
+            argv.push_back("bsub"); argv.push_back("-H");
+            cancel.push_back("bkill");
+        }
+        res.commands = shown(argv) + (q == "lsf" ? " < " + remote : "");
+        bool sub = q == "lsf" ? r.runWithInput(argv, remote, idText)
+                              : r.run(argv, idText);
+        res.answer = idText;
+        res.accepted = sub;
+        string id = sub ? jobIdIn(qmgr, idText) : "";
+        if (sub && id.empty())
+        {
+            //  The scheduler took it and we cannot name the job: say so rather
+            //  than leave a held job behind unnoticed.
+            res.answer += "\nECCE could not read a job id from this answer, so "
+                          "the held job was not cancelled. Cancel it by hand.";
+        }
+        else if (sub)
+        {
+            cancel.push_back(id);
+            string cout_;
+            res.commands += "\n" + shown(cancel);
+            res.cancelled = r.run(cancel, cout_);
+            res.answer += cout_.empty() ? "" : "\n" + cout_;
+            if (!res.cancelled)
+                res.answer += "\nThe job was submitted on hold but could not "
+                              "be cancelled; cancel it by hand: " + shown(cancel);
+        }
+    }
+
+    vector<string> rm;
+    rm.push_back("rm"); rm.push_back("-f"); rm.push_back(remote);
+    if (q == "htcondor")
+        rm.push_back(remote + ".sub");
+    string ignore;
+    r.run(rm, ignore, 30);
     return true;
 }
 
