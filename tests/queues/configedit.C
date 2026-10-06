@@ -15,7 +15,9 @@
 //       load the explain output into the draft, apply the edits to the
 //       draft, print one JSON line per key (tag, effective value, and the
 //       value C++ alone would see), and with --write apply the changed keys
-//       to the edited file, then (--codes) the codes' empty skeleton blocks.  --merged first checks the draft against
+//       to the edited file, then (--codes) the codes' empty skeleton blocks.
+//       With --codes it first prints "missing A,B": the codes whose blocks
+//       a save would add (MachineConfigDraft::missingSkeletons).  --merged first checks the draft against
 //       RefMachine::config(MACHINE) for the C++ keys.
 #include <fstream>
 #include <iostream>
@@ -195,6 +197,22 @@ static int draftCmd(int argc, char** argv)
     }
   }
   std::cout << "dirty " << (d.isDirty() ? 1 : 0) << std::endl;
+  vector<string> codes;
+  for (size_t b = 0; b < codeList.size(); ) {
+    size_t e = codeList.find(',', b);
+    if (e == string::npos) e = codeList.size();
+    codes.push_back(codeList.substr(b, e - b));
+    b = e + 1;
+  }
+  if (!codes.empty()) {
+    ConfigFile now;
+    now.load(d.editedFile());
+    vector<string> m = d.missingSkeletons(now, codes);
+    std::cout << "missing";
+    for (size_t k = 0; k < m.size(); k++)
+      std::cout << (k ? "," : " ") << m[k];
+    std::cout << std::endl;
+  }
   vector<string> keys = d.keys();
   for (size_t k = 0; k < keys.size(); k++) {
     string v, c;
@@ -207,13 +225,6 @@ static int draftCmd(int argc, char** argv)
   if (write) {
     ConfigFile f;
     f.setSiteFile(d.mode() == MachineConfigDraft::AdminMode);
-    vector<string> codes;
-    for (size_t b = 0; b < codeList.size(); ) {
-      size_t e = codeList.find(',', b);
-      if (e == string::npos) e = codeList.size();
-      codes.push_back(codeList.substr(b, e - b));
-      b = e + 1;
-    }
     bool ok = f.load(d.editedFile()) && d.applyTo(f, err);
     if (ok)
       d.applySkeletons(f, codes);

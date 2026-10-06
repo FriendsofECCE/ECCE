@@ -23,7 +23,7 @@ BROKERFILE="$(ecce_broker_file)" || BROKERFILE=""
 # printed ahead of this script's output.
 if [ -d "$STATEDIR" ]; then
   exec 9>>"$STATEDIR/.gateway.lock"
-  flock -w 90 9 || echo "ecce-gateway-stop: could not lock $STATEDIR/.gateway.lock; continuing" >&2
+  ecce_flock -w 90 9 || echo "ecce-gateway-stop: could not lock $STATEDIR/.gateway.lock; continuing" >&2
 fi
 
 # Stop the gateway APPLICATION first, not just the services it owns.
