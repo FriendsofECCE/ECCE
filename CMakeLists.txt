@@ -238,6 +238,9 @@ ecce_library(eccetdat
 # --- src/dsm -> 5 separate libraries, matching the old per-subdir mapping ---
 ecce_library(eccexml    src/dsm/chemistry src/dsm/xml)
 ecce_library(eccecipc   src/dsm/cipc)
+if(WIN32)
+  target_link_libraries(eccecipc PUBLIC ws2_32)
+endif()
 ecce_library(eccedav    src/dsm/dav)
 ecce_library(eccedsi    src/dsm/edsiimpl)
 ecce_library(eccefaces  src/dsm/faces)

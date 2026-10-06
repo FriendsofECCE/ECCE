@@ -11,11 +11,40 @@
 /* include files *********************************************************/
 
 #include <stdio.h>      /* for fprintf() */
-#include <sys/time.h>   /* for timeval */
-#include <sys/select.h> /* for select(), ... */
 #include <stdlib.h>     /* for free(), malloc() */
 
 #include "dsm/CIPCcsock.H"
+
+#ifdef _WIN32
+static void closeSocketFd(int fd) { closesocket((SOCKET) fd); }
+
+static int dupSocketFd(int fd)
+{
+  WSAPROTOCOL_INFOW info;
+  if (WSADuplicateSocketW((SOCKET) fd, GetCurrentProcessId(), &info) != 0)
+    return -1;
+  SOCKET s = WSASocketW(FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO,
+                        FROM_PROTOCOL_INFO, &info, 0, 0);
+  return s == INVALID_SOCKET ? -1 : (int) s;
+}
+
+/* Winsock must be initialised once per process before the first socket. */
+static void startSockets()
+{
+  static bool started = false;
+  if (!started) {
+    WSADATA data;
+    started = WSAStartup(MAKEWORD(2, 2), &data) == 0;
+  }
+}
+#else
+#include <sys/time.h>   /* for timeval */
+#include <sys/select.h> /* for select(), ... */
+
+static void closeSocketFd(int fd) { close(fd); }
+static int dupSocketFd(int fd) { return dup(fd); }
+static void startSockets() {}
+#endif
 
 /* csocket_accept ********************************************************/
 
@@ -38,7 +67,7 @@ csocket * csocket_accept(csocket * s)
     return result;
 
   /* Try to accept a connection */
-  sockfd = accept(s->sock_, (struct sockaddr *) &addr, &addr_len);
+  sockfd = (int) accept(s->sock_, (struct sockaddr *) &addr, &addr_len);
   if (sockfd == -1)
   {
 #ifdef DEBUG
@@ -72,7 +101,7 @@ int csocket_copy(csocket * dst, const csocket * src)
     return 0;
 
   /* dup() socket fd */
-  dst->sock_ = dup(src->sock_);
+  dst->sock_ = dupSocketFd(src->sock_);
   if (dst->sock_ == -1)
     return 0;
 
@@ -93,7 +122,7 @@ int csocket_close(csocket * s)
   if (!s)
     return 0;
 
-  close(s->sock_);
+  closeSocketFd(s->sock_);
 
   return 1;
 }
@@ -133,7 +162,8 @@ int csocket_open(csocket * s)
   if (!s)
     return 0;
 
-  s->sock_ = socket(AF_INET, SOCK_STREAM, 0);
+  startSockets();
+  s->sock_ = (int) socket(AF_INET, SOCK_STREAM, 0);
   if (s->sock_ == -1)
   {
 #ifdef DEBUG
@@ -348,7 +378,7 @@ long csocket_receive(
   long  rval = -1;
   if (s)
   {
-    rval = recv(s->sock_, buff, nbytes, flags);
+    rval = recv(s->sock_, (char *) buff, nbytes, flags);
 #ifdef DEBUG
     if (rval == -1)
       fprintf(stderr, "csocket_receive(): error returned from recv()\n");
@@ -392,7 +422,7 @@ long csocket_send(
     {
       rval = send(
         s->sock_,
-        (const void *) ((const char *) buff + offset),
+        (const char *) buff + offset,
         nbytes - offset,
         0);
         if (rval == -1)
