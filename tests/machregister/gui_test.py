@@ -182,7 +182,8 @@ select mine
 expect field name mine
 expect field code:nwchem /opt/nwchem
 expect dirty 0
-expect save-enabled 0
+expect save-enabled 1
+expect title-star 0
 expect delete-enabled 1
 expect list mine yours
 expect list cluster site
@@ -192,7 +193,7 @@ expect save-enabled 1
 expect title-star 1
 set code:orca ''
 expect dirty 0
-expect save-enabled 0
+expect save-enabled 1
 expect title-star 0
 set code:orca /opt/orca
 set perlpath '/p+a&t=h%x y'
@@ -687,8 +688,8 @@ expect tooltip singleconnect 'no (the default)'
 expect label tag:libpath 'not set'
 expect shown xappspath 0
 expect dirty 0
-expect save-enabled 0
-""" % {"site": site, "Y": Y}
+expect save-enabled %(pend)s
+""" % {"site": site, "Y": Y, "pend": "1" if admin else "0"}
     if admin:
         edits = """
 set shell sh
@@ -967,7 +968,7 @@ expect shown blk:wrapup:none 0
 expect shown condorallowtmp 0
 expect shown undo:header 0
 expect dirty 0
-expect save-enabled 0
+expect save-enabled %(pend)s
 click blk:header:copy
 expect field blk:header %(hdr)s
 expect shown blk:header:hint 0
@@ -985,7 +986,7 @@ expect field blk:header %(hdr2)s
 expect field blk:wrapup 'echo done'
 expect label blk:setup:csh ''
 quit
-""" % dict(site=site, none="Default setting: none" if admin else "Site setting: none", mine="Site setting" if admin else "User setting", hdr=esc(header), hdr2=esc(header + "\n#SBATCH --qos=normal"),
+""" % dict(site=site, pend="1" if admin else "0", none="Default setting: none" if admin else "Site setting: none", mine="Site setting" if admin else "User setting", hdr=esc(header), hdr2=esc(header + "\n#SBATCH --qos=normal"),
            hdrlabel=esc(hdr_label), yours=yours, setup=setup_pre),
         args=args, extra=extra)
     clean(p, "%s: copy the site text, edit three blocks, save" % mode)
@@ -1437,11 +1438,53 @@ def codes_skeleton(tmp, display, build):
     mine = os.path.join(e.ue, "CONFIG.mine")
     mine_before = read(mine)
 
-    # opening and closing a machine rewrites nothing
-    p = run(display, build, e, "select mine\ntab codes\ncode NWChem\n"
-            "expect field code:nwchem /opt/nwchem\nexpect dirty 0\nquit\n")
+    # opening and closing a machine rewrites nothing, but Save is offered
+    # and the footer says what it would add
+    p = run(display, build, e, """
+select mine
+tab codes
+code NWChem
+expect field code:nwchem /opt/nwchem
+expect dirty 0
+expect save-enabled 1
+expect title-star 0
+expect contains footer 'Saving adds empty sections for: NWChem'
+select cluster
+expect save-enabled 0
+expect label footer 'Saved in ~/.ECCE/CONFIG.cluster'
+quit
+""")
     clean(p, "open and close a machine with a path")
     check(read(mine) == mine_before, "no skeleton is written without a save")
+
+    # the raw editor shows the missing sections; cancel writes nothing
+    p = run(display, build, e, """
+select mine
+tab job
+click edit-file
+expect raw-dialog 1
+expect contains raw:text 'NWChemEnvironment {\\n}\\nNWChemCommand {\\n}'
+expect contains raw:text 'foo: bar'
+click raw:cancel
+quit
+""")
+    clean(p, "the raw editor shows the sections Save would add")
+    check(read(mine) == mine_before, "cancel in the raw editor writes nothing")
+
+    # Save with nothing else changed writes only the sections
+    p = run(display, build, e, """
+select mine
+tab codes
+save
+expect save-enabled 0
+expect label footer 'Saved in ~/.ECCE/CONFIG.mine'
+quit
+""")
+    clean(p, "Save adds the missing sections")
+    m = read(mine)
+    check(m == mine_before + "\n# NWChem\nNWChemEnvironment {\n}\n"
+          "NWChemCommand {\n}\n", "only the sections were added: %r" % m)
+    write(mine, mine_before)
 
     # a new path
     p = run(display, build, e, """
@@ -1587,6 +1630,15 @@ click words:close
 quit
 """ % {"o": out})
     clean(p, "Codes PNGs")
+    p = run(display, build, e, """
+select mine
+tab codes
+code NWChem
+wait 1000
+shot %(o)s/codes-missing-sections.png
+quit
+""" % {"o": out})
+    clean(p, "Codes PNG, missing sections")
     for n in sorted(os.listdir(out)):
         print("        " + os.path.join(out, n))
 

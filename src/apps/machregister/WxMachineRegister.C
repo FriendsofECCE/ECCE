@@ -298,6 +298,7 @@ void WxMachineRegister::createControls()
     p_deleteButton->Enable(false);
 
     reg("help", p_helpButton);
+    reg("footer", p_storeNote);
     reg("delete", p_deleteButton);
     reg("new", p_newButton);
     reg("close", p_closeButton);
@@ -2935,6 +2936,14 @@ void WxMachineRegister::updateFooter()
         default: files = config; break;
     }
     wxString note = "Saved in " + files;
+    p_pendingSkel = pendingSkeletons();
+    if (!p_pendingSkel.empty())
+    {
+        string list;
+        for (size_t i = 0; i < p_pendingSkel.size(); i++)
+            list += (i ? ", " : "") + p_pendingSkel[i];
+        note += ". Saving adds empty sections for: " + list;
+    }
     if (p_storeNote->GetLabel() != note)
         p_storeNote->SetLabel(note);
 
@@ -2954,6 +2963,20 @@ void WxMachineRegister::updateFooter()
 }
 
 
+//  Codes with a path whose empty Environment/Command blocks are not in the
+//  file yet.  Save writes them (applySkeletons); until then nothing does.
+vector<string> WxMachineRegister::pendingSkeletons() const
+{
+    vector<string> none;
+    if (p_draft == NULL || p_loadedName.empty() || remoteAdmin() ||
+        strip((string)p_refName->GetValue()) != p_loadedName)
+        return none;
+    ConfigFile f;
+    f.load(p_draft->editedFile());
+    return p_draft->missingSkeletons(f, p_codeNames);
+}
+
+
 void WxMachineRegister::updateDirty()
 {
     this->updateFooter();
@@ -2965,7 +2988,8 @@ void WxMachineRegister::updateDirty()
     this->cfgTags();
     this->blocksTags();
     this->codeLinesTags();
-    p_saveButton->Enable(dirty && hasMinimalInput());
+    p_saveButton->Enable((dirty || !p_pendingSkel.empty()) &&
+                         hasMinimalInput());
     wxString title = dirty ? wxString("*") + TITLE : wxString(TITLE);
     if ((string)this->GetTitle() != (string)title)
         this->SetTitle(title);
@@ -4138,10 +4162,15 @@ void WxMachineRegister::showWords()
 
 string WxMachineRegister::rawFileText() const
 {
+    //  The form is saved or reloaded before this, so the draft is clean and
+    //  this adds exactly the blocks a form Save would.
     ConfigFile f;
     f.load(p_draft->editedFile());
     if (f.exists())
+    {
+        p_draft->applySkeletons(f, p_codeNames);
         return f.text();
+    }
     return "# Settings for " + p_loadedName + " (Register Machines)\n";
 }
 
