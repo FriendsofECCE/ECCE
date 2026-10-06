@@ -14,8 +14,8 @@ MoPanel's Compute ran `IsoSurfaceCmd` (built at a hard-wired 0.05, 0.002
 for ESP), `SurfDisplayTypeCmd`, then `IsoValueCmd` (the slider's cutoff):
 two frames of a 0.05 surface before the requested one. `IsoSurfaceCmd` now
 takes an `isovalue` parameter (0 = the field-type default) and MoPanel
-passes the cutoff it is about to put on the slider. Cube.C still builds at
-the default and never applies its slider on grid selection.
+passes the cutoff it is about to put on the slider. Cube.C does the same
+on grid selection (`tools/coin/scenes/cube-grid.scene`).
 
 To see it headlessly: `tools/coin/scenes/calc-water-mopanel.scene`
 (`mopanel <name>`, a Builder-only scene command) presses Compute and writes
