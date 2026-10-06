@@ -7,7 +7,8 @@ project "calcimport-test" in the user's home and prints the outcome.
 Outputs of codes with an importer must be imported as that code; outputs
 of codes without one (MOPAC, GROMACS, Quantum ESPRESSO) must be refused
 with "Unrecognized output file format".  An imported calculation must be
-selected in the tree afterwards.
+selected in the tree afterwards, and Reset for Rerun on it must be refused
+(ECCE_TEST_RESETIMPORTED) with a message, leaving it imported.
 
 Same installed tree, isolation and services as run_tests.py (ECCE_TEST_HOME,
 ECCE_TEST_WRAPPERS).  Exit 77 (skip) without an install or Xvfb.
@@ -39,7 +40,20 @@ CASES = [
 failures = []
 
 
+def resetCheck(log):
+    """Run Mgmt > Reset for Rerun on the imported calculation (the hook
+    ECCE_TEST_RESETIMPORTED) must be refused with the explanation, and
+    leave the calculation Loaded.  Returns a problem string or None."""
+    if not re.search(r"ECCE_TEST_RESETIMPORTED: refused 1: Imported results "
+                     r"cannot be reset.*Duplicate for Rerun", log):
+        return "Reset for Rerun on an imported calculation gave no message"
+    if "ECCE_TEST_RESETIMPORTED: state after Loaded" not in log:
+        return "imported calculation was reset"
+    return None
+
+
 def check(display, name, expected):
+    os.environ["ECCE_TEST_RESETIMPORTED"] = "1"
     os.environ["ECCE_TEST_CALCIMPORT"] = os.path.abspath(
         os.path.join(DATA, name))
     authPath = fixture.authFile(
@@ -60,6 +74,8 @@ def check(display, name, expected):
     elif expected is not None and (done.group(1) != "imported" or
                                    done.group(2) != expected):
         problem = "expected %s: %s" % (expected, done.group(0))
+    elif expected is not None and resetCheck(log):
+        problem = resetCheck(log)
     elif expected is not None and not re.search(
             r"ECCE_TEST_CALCIMPORT: selected \S*/calcimport-test/[^/\s]+\s",
             log):
