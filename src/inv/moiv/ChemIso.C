@@ -55,6 +55,8 @@
 
 #ident "$Revision: 22147 $"
     
+#include <cstdio>
+#include <cstdlib>
 #include "inv/actions/SoCallbackAction.H"
 #include "inv/actions/SoGetBoundingBoxAction.H"
 #include "inv/actions/SoGetMatrixAction.H"
@@ -485,4 +487,10 @@ RESET_TIMER();
 
     isoLibIso(threshold.getValue());
 MARK_TIME("DONE with ISO");
+    //  ECCE_DEBUG_ISO: every surface actually generated, with its cutoff.
+    static const bool isoDebug = getenv("ECCE_DEBUG_ISO") != 0;
+    if (isoDebug) {
+        fprintf(stderr, "ISO: ChemIso %p generated at threshold %g, %d vertices\n",
+                (void *)this, threshold.getValue(), vp->vertex.getNum());
+    }
 }

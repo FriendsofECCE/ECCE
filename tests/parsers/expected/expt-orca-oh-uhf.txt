@@ -20,7 +20,8 @@ Category:	SCF
 Theory:	UHF
 RunType:	Energy
 Charge:	0
-ChemSys.Multiplicity:	2
+ES.ChemSys.Multiplicity:	2
+SphericalBasis:	TRUE
 
 === .gbs
 NameBasis

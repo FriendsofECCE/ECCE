@@ -64,6 +64,7 @@ those settings.
 | `ECCE_TMPDIR` | Where job-monitoring temporary files go, in `ecce_<user>` under it. | Path. Default `/tmp`. |
 | `ECCE_REMOTE_SERVER` | Central-server mode: read `siteconfig/RemoteServer/{DataServers,site_runtime}`, start no local broker or data server. `ecce -remote` sets it. | Set to enable. Default off. |
 | `ECCE_SITE_ADMIN_LOGIN` | The ssh login on the central server for `ecce -admin -remote` (`-l LOGIN` sets it). | Default: ssh's own (`~/.ssh/config`, else your user name). |
+| `ECCE_LOCAL` | Set by `ecce --local`: local data mode for this session in the preference's folder, whether or not the preference is ticked. `ECCE_LOCAL_DATA` wins over it. | Any value. Unset: the preference decides. |
 | `ECCE_LOCAL_DATA` | Local data mode (#216): keep projects and calculations in this folder instead of a data server; no data server is started. Wins over Edit > Preferences > Data folder. The launchers export it for the whole session, set to the preference's folder or to empty (data server). | Path. Unset: the preference (off by default; folder `~/.ECCE-local`). Empty: a data server. |
 | `ECCE_NO_MESSAGING` | Run without the message broker. Apps do not publish or subscribe. The launchers set it for `ecce -admin` and `-machine`. | Set to enable. Default off. |
 | `ECCE_NO_DATASERVER` | Launchers do not start the per-user data server. | Set to enable. Default off. |

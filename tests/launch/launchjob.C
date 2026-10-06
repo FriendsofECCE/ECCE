@@ -17,6 +17,9 @@
 //   launchjob props  <calcURL>                            one property per line
 //   launchjob restart <calcURL> <deckFile> <deckName>     "Reset for Restart", then
 //                                                         store the edited deck
+//   launchjob catchup                                     session-start catch-up of the
+//                                                         calculations waiting for login (#208)
+//   launchjob reconnect <calcURL>                         Run Management > Reconnect
 //   launchjob machines [code]                             the Launcher's machine list
 //                                                         for a code, one name per line
 //
@@ -30,6 +33,7 @@
 #include <string>
 #include <vector>
 
+#include "comm/JobCatchUp.H"
 #include "comm/Launch.H"
 #include "comm/RunMgmt.H"
 #include "dsm/CodeFactory.H"
@@ -60,6 +64,7 @@ static const char* stateName(ResourceDescriptor::RUNSTATE s)
     case ResourceDescriptor::STATE_READY: return "ready";
     case ResourceDescriptor::STATE_SUBMITTED: return "submitted";
     case ResourceDescriptor::STATE_RUNNING: return "running";
+    case ResourceDescriptor::STATE_WAITING: return "waiting";
     case ResourceDescriptor::STATE_COMPLETED: return "completed";
     case ResourceDescriptor::STATE_LOADED: return "loaded";
     case ResourceDescriptor::STATE_KILLED: return "killed";
@@ -226,6 +231,13 @@ int main(int argc, char** argv)
   a.erase(a.begin());
   if (mode == "create") return doCreate(a);
   if (mode == "restart") return doRestart(a);
+  if (mode == "catchup") {
+    vector<JobCatchUp::Result> r = JobCatchUp::run();
+    for (size_t i = 0; i < r.size(); i++)
+      cout << (r[i].ok ? "ok " : "waiting ") << r[i].url << " " << r[i].message << endl;
+    cout << "caught up: " << r.size() << endl;
+    return 0;
+  }
   if (mode == "machines") {
     vector<MachinePreferences*> items =
         MachinePreferences::itemsForCode(a.empty() ? "" : a[0]);
@@ -242,6 +254,14 @@ int main(int argc, char** argv)
   }
   if (a.size() != 1) { cerr << mode << ": needs a calculation URL" << endl; return 2; }
   if (mode == "launch") return doLaunch(a[0]);
+  if (mode == "reconnect") {
+    TaskJob* t = getTask(a[0]);
+    if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+    string msg;
+    bool ok = JobCatchUp::reconnect(t, msg);
+    cout << msg << endl;
+    return ok ? 0 : 1;
+  }
   if (mode == "kill") {
     TaskJob* t = getTask(a[0]);
     if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }

@@ -259,6 +259,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -271,6 +272,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -283,6 +285,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -294,6 +297,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -306,6 +310,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -324,6 +329,7 @@
       <Tool name="CalculationViewer">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -332,10 +338,12 @@
     <EnabledRunManagementTasks>
       <RunManagementTask name="tailOutputFile">
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="shellInRunDir">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -347,6 +355,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -358,14 +367,17 @@
       <RunManagementTask name="terminateCalc">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="checkJob">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="reconnectJob">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -375,10 +387,12 @@
       <RunManagementTask name="forceFail">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="separator">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -430,6 +444,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -441,6 +456,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -451,6 +467,7 @@
       <RunManagementTask name="separator">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -467,6 +484,7 @@
       <RunManagementTask name="viewRunLog">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -478,6 +496,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -528,6 +547,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -540,6 +560,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -552,6 +573,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -563,6 +585,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -575,6 +598,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -593,6 +617,7 @@
       <Tool name="CalculationViewer">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -601,10 +626,12 @@
     <EnabledRunManagementTasks>
       <RunManagementTask name="tailOutputFile">
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="shellInRunDir">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -614,14 +641,17 @@
       <RunManagementTask name="terminateCalc">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="checkJob">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="reconnectJob">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -631,10 +661,12 @@
       <RunManagementTask name="forceFail">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="separator">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -685,6 +717,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -696,6 +729,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -706,6 +740,7 @@
       <RunManagementTask name="separator">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -722,6 +757,7 @@
       <RunManagementTask name="viewRunLog">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -733,6 +769,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -789,6 +826,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -801,6 +839,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -813,6 +852,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -824,6 +864,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -836,6 +877,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -854,6 +896,7 @@
       <Tool name="CalculationViewer">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -862,10 +905,12 @@
     <EnabledRunManagementTasks>
       <RunManagementTask name="tailOutputFile">
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="shellInRunDir">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -875,14 +920,17 @@
       <RunManagementTask name="terminateCalc">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="checkJob">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="reconnectJob">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -892,10 +940,12 @@
       <RunManagementTask name="forceFail">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="separator">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -946,6 +996,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -957,6 +1008,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -967,6 +1019,7 @@
       <RunManagementTask name="separator">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -983,6 +1036,7 @@
       <RunManagementTask name="viewRunLog">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -994,6 +1048,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1055,6 +1110,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1067,6 +1123,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1079,6 +1136,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1090,6 +1148,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1102,6 +1161,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1120,6 +1180,7 @@
       <Tool name="CalculationViewer">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1128,10 +1189,12 @@
     <EnabledRunManagementTasks>
       <RunManagementTask name="tailOutputFile">
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="shellInRunDir">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1141,14 +1204,17 @@
       <RunManagementTask name="terminateCalc">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="checkJob">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="reconnectJob">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1158,10 +1224,12 @@
       <RunManagementTask name="forceFail">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="separator">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1212,6 +1280,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1223,6 +1292,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1233,6 +1303,7 @@
       <RunManagementTask name="separator">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1249,6 +1320,7 @@
       <RunManagementTask name="viewRunLog">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1260,6 +1332,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1332,6 +1405,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1344,6 +1418,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1356,6 +1431,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1367,6 +1443,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1379,6 +1456,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1397,6 +1475,7 @@
       <Tool name="CalculationViewer">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1405,10 +1484,12 @@
     <EnabledRunManagementTasks>
       <RunManagementTask name="tailOutputFile">
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="shellInRunDir">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1418,14 +1499,17 @@
       <RunManagementTask name="terminateCalc">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="checkJob">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="reconnectJob">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1435,10 +1519,12 @@
       <RunManagementTask name="forceFail">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="separator">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1489,6 +1575,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1500,6 +1587,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1510,6 +1598,7 @@
       <RunManagementTask name="separator">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1526,6 +1615,7 @@
       <RunManagementTask name="viewRunLog">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1537,6 +1627,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1587,6 +1678,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1599,6 +1691,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1611,6 +1704,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1622,6 +1716,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1634,6 +1729,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1652,6 +1748,7 @@
       <Tool name="CalculationViewer">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1660,10 +1757,12 @@
     <EnabledRunManagementTasks>
       <RunManagementTask name="tailOutputFile">
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="shellInRunDir">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1673,14 +1772,17 @@
       <RunManagementTask name="terminateCalc">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="checkJob">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="reconnectJob">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1690,10 +1792,12 @@
       <RunManagementTask name="forceFail">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="separator">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1744,6 +1848,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1755,6 +1860,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1765,6 +1871,7 @@
       <RunManagementTask name="separator">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1781,6 +1888,7 @@
       <RunManagementTask name="viewRunLog">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1792,6 +1900,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1883,6 +1992,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1895,6 +2005,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1906,6 +2017,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1918,6 +2030,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1936,6 +2049,7 @@
       <Tool name="CalculationViewer">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1944,10 +2058,12 @@
     <EnabledRunManagementTasks>
       <RunManagementTask name="tailOutputFile">
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="shellInRunDir">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1959,6 +2075,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -1970,14 +2087,17 @@
       <RunManagementTask name="terminateCalc">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="checkJob">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="reconnectJob">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -1987,10 +2107,12 @@
       <RunManagementTask name="forceFail">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="separator">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -2034,6 +2156,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2045,6 +2168,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2055,6 +2179,7 @@
       <RunManagementTask name="separator">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -2071,6 +2196,7 @@
       <RunManagementTask name="viewRunLog">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2082,6 +2208,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -2136,6 +2263,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2148,6 +2276,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2159,6 +2288,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2171,6 +2301,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2189,6 +2320,7 @@
       <Tool name="CalculationViewer">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -2197,10 +2329,12 @@
     <EnabledRunManagementTasks>
       <RunManagementTask name="tailOutputFile">
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="shellInRunDir">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -2212,6 +2346,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2223,14 +2358,17 @@
       <RunManagementTask name="terminateCalc">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="checkJob">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="reconnectJob">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -2240,10 +2378,12 @@
       <RunManagementTask name="forceFail">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="separator">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -2287,6 +2427,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2298,6 +2439,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2308,6 +2450,7 @@
       <RunManagementTask name="separator">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -2324,6 +2467,7 @@
       <RunManagementTask name="viewRunLog">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2335,6 +2479,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -2389,6 +2534,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2401,6 +2547,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2412,6 +2559,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2424,6 +2572,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2442,6 +2591,7 @@
       <Tool name="CalculationViewer">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -2450,10 +2600,12 @@
     <EnabledRunManagementTasks>
       <RunManagementTask name="tailOutputFile">
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="shellInRunDir">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -2465,6 +2617,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2476,14 +2629,17 @@
       <RunManagementTask name="terminateCalc">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="checkJob">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="reconnectJob">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -2493,10 +2649,12 @@
       <RunManagementTask name="forceFail">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="separator">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -2540,6 +2698,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2551,6 +2710,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2561,6 +2721,7 @@
       <RunManagementTask name="separator">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -2577,6 +2738,7 @@
       <RunManagementTask name="viewRunLog">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2588,6 +2750,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -2642,6 +2805,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2654,6 +2818,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2665,6 +2830,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2677,6 +2843,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2695,6 +2862,7 @@
       <Tool name="CalculationViewer">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -2703,10 +2871,12 @@
     <EnabledRunManagementTasks>
       <RunManagementTask name="tailOutputFile">
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="shellInRunDir">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -2718,6 +2888,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2729,14 +2900,17 @@
       <RunManagementTask name="terminateCalc">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="checkJob">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="reconnectJob">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -2746,10 +2920,12 @@
       <RunManagementTask name="forceFail">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="separator">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -2793,6 +2969,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2804,6 +2981,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2814,6 +2992,7 @@
       <RunManagementTask name="separator">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>
@@ -2830,6 +3009,7 @@
       <RunManagementTask name="viewRunLog">
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Loaded"/>
         <State name="Killed"/>
@@ -2841,6 +3021,7 @@
         <State name="Ready"/>
         <State name="Submitted"/>
         <State name="Running"/>
+        <State name="Waiting"/>
         <State name="Complete"/>
         <State name="Killed"/>
         <State name="Unsuccessful"/>

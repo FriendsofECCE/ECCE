@@ -205,7 +205,7 @@ def buildDriver(out):
                    % BUILD)
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"),
             "-o", out, os.path.join(HERE, "loadBasis.C"), "-L" + BUILD]
-           + ["-l" + l for l in LIBS] * 3 + ["-lxerces-c", "-lmosquitto"])
+           + ["-l" + l for l in LIBS] * 3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"])
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
         sys.exit("could not build loadBasis:\n" + proc.stderr[-3000:])

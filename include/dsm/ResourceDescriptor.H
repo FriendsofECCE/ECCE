@@ -153,6 +153,9 @@ class ResourceDescriptor
       STATE_READY,
       STATE_SUBMITTED,
       STATE_RUNNING,
+      // Monitoring stopped while the job may still be running or finished
+      // (client away, login lapsed); caught up at the next session (#208).
+      STATE_WAITING,
       STATE_COMPLETED,
       STATE_LOADED,    
       STATE_KILLED,

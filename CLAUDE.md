@@ -63,9 +63,10 @@ subagent flags, directly.
   "Deployment modes"): local, central server (`-remote`), and a shared
   system broker on an app server (`siteconfig/SharedBroker`, #191).
   `tests/apps/session_end.py` covers all three, but on one machine as
-  one Unix user (a second "user" is a second `ECCE_REALUSERHOME`). None
-  has been tested with real separate accounts or two machines, and
-  `ecce-broker.service` has never run under the system manager.
+  one Unix user (a second "user" is a second `ECCE_REALUSERHOME`).
+  `tests/containers/central_server_test.py` runs the central-server mode
+  with separate Unix accounts in containers and `ecce-broker.service`
+  under systemd; two physical machines remain untested.
 - **Memory settings should be entered/labeled in GB everywhere, for
   every code** — Andy's explicit UX preference (2026-09-07), not each
   code's native convention. The wire format still has to match what

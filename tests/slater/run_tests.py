@@ -48,7 +48,7 @@ def roundTrip():
             os.path.join(ROOT, "src/tdat/chemistry/SlaterBasisSet.C"),
             os.path.join(ROOT, "src/tdat/chemistry/SlaterExpansion.C"),
             "-L" + BUILD]
-           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c", "-lmosquitto"])
+           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"])
     build = subprocess.run(cmd, capture_output=True, text=True)
     if build.returncode != 0:
         print("  skipped: could not link against the build tree")

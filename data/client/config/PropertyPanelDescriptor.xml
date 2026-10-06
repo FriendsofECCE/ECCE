@@ -7,6 +7,11 @@
     <class>
       The class that will be dynamically loaded
     </class>
+    <group>
+      The heading this panel is listed under in the Builder's Properties
+      tab (one-column layouts).  Panels with the same group are listed
+      together; a missing group means "Other".
+    </group>
     <consumer>
       Whether this panel keeps later panels from also seeing the same
       properties.  For example, if the property name "TE" is consumed by 
@@ -50,6 +55,7 @@
 
   <PropertyPanel>
     <name>Calculation Summary</name>
+    <group>Summary</group>
     <class>CalcInfoPanel</class>
     <consumer>true</consumer>
     <property name="Application"/>
@@ -62,6 +68,7 @@
 
   <PropertyPanel>
     <name>Run Statistics</name>
+    <group>Summary</group>
     <class>KeyValuePropertyPanel</class>
     <consumer>true</consumer>
     <property class="Process" type="value"/>
@@ -69,6 +76,7 @@
 
   <PropertyPanel>
     <name>Energies</name>
+    <group>Energies</group>
     <class>KeyValuePropertyPanel</class>
     <consumer>true</consumer>
     <property class="Energy" type="value"/>
@@ -78,6 +86,7 @@
     <!-- Bert says these aren't energies and to put them in their 
          own panel. -->
     <name>S**2</name>
+    <group>Summary</group>
     <class>KeyValuePropertyPanel</class>
     <consumer>true</consumer>
     <property name="S2"/>
@@ -86,12 +95,14 @@
 
   <PropertyPanel>
     <name>ES Calculation Info</name>
+    <group>Summary</group>
     <class>CalcEdPropertyPanel</class>
     <consumer>true</consumer>
   </PropertyPanel>
 
   <PropertyPanel>
     <name>Point Group</name>
+    <group>Summary</group>
     <class>PntGrpPanel</class>
     <consumer>true</consumer>
     <allowPin>false</allowPin>
@@ -100,6 +111,7 @@
 
   <PropertyPanel>
     <name>Spin-Spin Indirect Coupling Tensor</name>
+    <group>Magnetic properties</group>
     <class>SpinSpin</class>
     <consumer>true</consumer>
     <property name="SPINSPIN"/>
@@ -108,18 +120,21 @@
   <!-- Tensors -->
   <PropertyPanel>
     <name>Shielding Tensor</name>
+    <group>Magnetic properties</group>
     <class>VecAtomTensor</class>
     <consumer>true</consumer>
     <property name="SHIELDTENSOR"/>
   </PropertyPanel>
   <PropertyPanel>
     <name>Spin-dipole Tensor</name>
+    <group>Magnetic properties</group>
     <class>VecAtomTensor</class>
     <consumer>true</consumer>
     <property name="DIPOLETENSOR"/>
   </PropertyPanel>
   <PropertyPanel>
     <name>Electric Field Gradient</name>
+    <group>Electric properties</group>
     <class>VecAtomTensor</class>
     <consumer>true</consumer>
     <property name="EFIELDGRAD"/>
@@ -129,6 +144,7 @@
 
   <PropertyPanel>
     <name>Geometry Trace</name>
+    <group>Geometry</group>
     <class>GeomTracePropertyPanel</class>
     <consumer>false</consumer>
     <property name="GEOMTRACE"/>
@@ -137,6 +153,7 @@
 
   <PropertyPanel>
     <name>Reaction Trace</name>
+    <group>Geometry</group>
     <class>ReactionTracePropertyPanel</class>
     <consumer>true</consumer>
     <property name="RXTRACE"/>
@@ -145,6 +162,7 @@
 
   <PropertyPanel>
     <name>Geometry Step Plots</name>
+    <group>Geometry</group>
     <class>PlotAnyPropertyPanel</class>
     <consumer>false</consumer>
     <allowMax>true</allowMax>
@@ -153,6 +171,7 @@
 
   <PropertyPanel>
     <name>Wave Step Plots</name>
+    <group>Energies</group>
     <class>PlotAnyPropertyPanel</class>
     <consumer>false</consumer>
     <allowMax>true</allowMax>
@@ -161,6 +180,7 @@
 
   <PropertyPanel>
     <name>Mulliken Charges</name>
+    <group>Charges</group>
     <class>MullikenPanel</class>
     <consumer>true</consumer>
     <allowPin>false</allowPin>
@@ -169,6 +189,7 @@
 
   <PropertyPanel>
     <name>MOs</name>
+    <group>Orbitals</group>
     <class>MoPanel</class>
     <consumer>true</consumer>
     <property name="MO"/>
@@ -176,6 +197,7 @@
 
   <PropertyPanel>
     <name>MO Diagram</name>
+    <group>Orbitals</group>
     <class>MoDiagramPanel</class>
     <consumer>true</consumer>
     <allowPin>false</allowPin>
@@ -184,6 +206,7 @@
 
   <PropertyPanel>
     <name>Vibrational Frequencies</name>
+    <group>Vibrations</group>
     <class>NModePanel</class>
     <consumer>true</consumer>
     <property name="VIB"/>
@@ -191,6 +214,7 @@
 
   <PropertyPanel>
     <name>Dipole Moment</name>
+    <group>Electric properties</group>
     <class>MomentsPanel</class>
     <consumer>true</consumer>
     <property name="DIPOLE"/>
@@ -198,6 +222,7 @@
 
   <PropertyPanel>
     <name>MP2 Dipole Moment</name>
+    <group>Electric properties</group>
     <class>MomentsPanel</class>
     <consumer>true</consumer>
     <property name="MP2DIPOLE"/>
@@ -205,6 +230,7 @@
 
   <PropertyPanel>
     <name>Quadrapole Moment</name>
+    <group>Electric properties</group>
     <class>QuadPolePanel</class>
     <consumer>true</consumer>
     <property name="QUADPOLE"/>
@@ -216,6 +242,7 @@
        made pw.x compute the tensor and nothing read it back. -->
   <PropertyPanel>
     <name>Stress Tensor</name>
+    <group>Geometry</group>
     <class>QuadPolePanel</class>
     <consumer>true</consumer>
     <property name="STRESS"/>
@@ -223,6 +250,7 @@
 
   <PropertyPanel>
     <name>Pressure</name>
+    <group>Geometry</group>
     <class>KeyValuePropertyPanel</class>
     <consumer>true</consumer>
     <property name="PRESSURE"/>
@@ -230,6 +258,7 @@
 
   <PropertyPanel>
     <name>Polarizability</name>
+    <group>Electric properties</group>
     <class>QuadPolePanel</class>
     <consumer>true</consumer>
     <property name="POLARIZ"/>
@@ -237,6 +266,7 @@
 
   <PropertyPanel>
     <name>Hyper Polarizability</name>
+    <group>Electric properties</group>
     <class>QuadPolePanel</class>
     <consumer>true</consumer>
     <property name="HYPERPOL1"/>
@@ -244,6 +274,7 @@
 
   <PropertyPanel>
     <name>Trajectory</name>
+    <group>Geometry</group>
     <class>TrajectoryPanel</class>
     <consumer>true</consumer>
     <property name="TRJ"/>
@@ -251,6 +282,7 @@
 
   <PropertyPanel>
     <name>Cube File</name>
+    <group>Geometry</group>
     <class>Cube</class>
     <consumer>true</consumer>
     <property name="CUBE"/>
@@ -260,6 +292,7 @@
   <!-- Simple Vectors displayed as two column table -->
   <PropertyPanel>
     <name>Octapole</name>
+    <group>Electric properties</group>
     <class>DefaultVecPanel</class>
     <consumer>true</consumer>
     <property name="OCTAPOLE"/>
@@ -267,6 +300,7 @@
 
   <PropertyPanel>
     <name>Hexadecapole</name>
+    <group>Electric properties</group>
     <class>DefaultVecPanel</class>
     <consumer>true</consumer>
     <property name="HEXPOLE"/>
@@ -279,6 +313,7 @@
        keys would be extracted and never displayed anywhere. -->
   <PropertyPanel>
     <name>Anharmonic Frequencies</name>
+    <group>Vibrations</group>
     <class>DefaultVecPanel</class>
     <consumer>true</consumer>
     <property name="ANHARMFREQ"/>
@@ -286,6 +321,7 @@
 
   <PropertyPanel>
     <name>Anharmonic IR Intensities</name>
+    <group>Vibrations</group>
     <class>DefaultVecPanel</class>
     <consumer>true</consumer>
     <property name="ANHARMIR"/>
@@ -294,6 +330,7 @@
 
   <PropertyPanel>
     <name>Partial Charges</name>
+    <group>Charges</group>
     <class>PartialCharges</class>
     <consumer>true</consumer>
     <allowPin>false</allowPin>
@@ -303,6 +340,7 @@
   <!-- Spectrum displays -->
   <PropertyPanel>
     <name>Magnetic Shielding Anisotropy</name>
+    <group>Magnetic properties</group>
     <class>VecAtomSpectrum</class>
     <consumer>true</consumer>
     <allowPin>false</allowPin>
@@ -311,6 +349,7 @@
 
   <PropertyPanel>
     <name>Isotropic Shielding</name>
+    <group>Magnetic properties</group>
     <class>VecAtomSpectrum</class>
     <consumer>true</consumer>
     <allowPin>false</allowPin>
@@ -319,6 +358,7 @@
 
   <PropertyPanel>
     <name>Energy Gradient Norm Vector</name>
+    <group>Energies</group>
     <class>VecAtomSpectrum</class>
     <consumer>true</consumer>
     <property name="EGRADNORMVEC"/>
@@ -326,6 +366,7 @@
 
   <PropertyPanel>
     <name>Electron Density at Nuclei</name>
+    <group>Electric properties</group>
     <class>VecAtomSpectrum</class>
     <consumer>true</consumer>
     <allowPin>false</allowPin>
@@ -334,6 +375,7 @@
 
   <PropertyPanel>
     <name>Fermi Contact</name>
+    <group>Magnetic properties</group>
     <class>VecAtomSpectrum</class>
     <consumer>true</consumer>
     <property name="FERMI"/>
@@ -341,6 +383,7 @@
 
   <PropertyPanel>
     <name>Electric Field Gradient Asymmetry</name>
+    <group>Electric properties</group>
     <class>VecAtomSpectrum</class>
     <consumer>true</consumer>
     <allowPin>false</allowPin>
@@ -350,6 +393,7 @@
   <!-- Eigenvalues -->
   <PropertyPanel>
     <name>E Field Eigenvalues</name>
+    <group>Electric properties</group>
     <class>EigenValPanel</class>
     <consumer>true</consumer>
     <property name="EFIELDEIGVAL"/>
@@ -357,6 +401,7 @@
 
   <PropertyPanel>
     <name>Shielding Tensor Eigenvalues</name>
+    <group>Magnetic properties</group>
     <class>EigenValPanel</class>
     <consumer>true</consumer>
     <property name="SHIELDEIGVAL"/>
@@ -364,6 +409,7 @@
 
   <PropertyPanel>
     <name>Spin-dipole Tensor Eigenvalues</name>
+    <group>Magnetic properties</group>
     <class>EigenValPanel</class>
     <consumer>true</consumer>
     <property name="DIPOLEEIGVAL"/>
@@ -372,6 +418,7 @@
   <!-- TableAtomCoords -->
   <PropertyPanel>
     <name>Electric Field</name>
+    <group>Electric properties</group>
     <class>TableAtomCoords</class>
     <consumer>true</consumer>
     <property name="EFIELD"/>
@@ -379,6 +426,7 @@
 
   <PropertyPanel>
     <name>Energy Gradient</name>
+    <group>Energies</group>
     <class>TableAtomCoords</class>
     <consumer>true</consumer>
     <property name="EGRADVEC"/>
@@ -388,6 +436,7 @@
   <!-- Reaction Rate Properties -->
   <PropertyPanel>
     <name>Forward Rate Constant</name>
+    <group>Kinetics</group>
     <class>TablePanel</class>
     <consumer>false</consumer>
     <property name="FORWARD_RATE"/>
@@ -395,6 +444,7 @@
 
   <PropertyPanel>
     <name>Reverse Rate Constant</name>
+    <group>Kinetics</group>
     <class>TablePanel</class>
     <consumer>false</consumer>
     <property name="REVERSE_RATE"/>
@@ -402,6 +452,7 @@
 
   <PropertyPanel>
     <name>Forward Rate Constant 1 Standard Deviation</name>
+    <group>Kinetics</group>
     <class>TablePanel</class>
     <consumer>false</consumer>
     <property name="FORWARD_RATE1"/>
@@ -409,6 +460,7 @@
 
   <PropertyPanel>
     <name>Reverse Rate Constant 1 Standard Deviation</name>
+    <group>Kinetics</group>
     <class>TablePanel</class>
     <consumer>false</consumer>
     <property name="REVERSE_RATE1"/>
@@ -416,6 +468,7 @@
 
   <PropertyPanel>
     <name>Forward Rate Constant 2 Standard Deviations</name>
+    <group>Kinetics</group>
     <class>TablePanel</class>
     <consumer>false</consumer>
     <property name="FORWARD_RATE2"/>
@@ -423,6 +476,7 @@
 
   <PropertyPanel>
     <name>Reverse Rate Constant 2 Standard Deviations</name>
+    <group>Kinetics</group>
     <class>TablePanel</class>
     <consumer>false</consumer>
     <property name="REVERSE_RATE2"/>
@@ -430,6 +484,7 @@
 
   <PropertyPanel>
     <name>Equilibrium Constant</name>
+    <group>Kinetics</group>
     <class>TablePanel</class>
     <consumer>false</consumer>
     <property name="EQUILIBRIUM_CONST"/>
@@ -437,6 +492,7 @@
 
   <PropertyPanel>
     <name>Equilibrium Constant Plot</name>
+    <group>Kinetics</group>
     <class>EquilibriumConstantPlotPropertyPanel</class>
     <consumer>false</consumer>
     <allowMax>true</allowMax>
@@ -445,6 +501,7 @@
 
   <PropertyPanel>
     <name>Forward Rate Constant Plot--TST</name>
+    <group>Kinetics</group>
     <class>ReactionErrorPlotPropertyPanel</class>
     <consumer>false</consumer>
     <allowMax>true</allowMax>
@@ -455,6 +512,7 @@
 
   <PropertyPanel>
     <name>Reverse Rate Constant Plot--TST</name>
+    <group>Kinetics</group>
     <class>ReactionErrorPlotPropertyPanel</class>
     <consumer>false</consumer>
     <allowMax>true</allowMax>
@@ -465,6 +523,7 @@
 
   <PropertyPanel>
     <name>Forward Rate Constant Plot--CVT</name>
+    <group>Kinetics</group>
     <class>ReactionErrorPlotPropertyPanel</class>
     <consumer>false</consumer>
     <allowMax>true</allowMax>
@@ -475,6 +534,7 @@
 
   <PropertyPanel>
     <name>Reverse Rate Constant Plot--CVT</name>
+    <group>Kinetics</group>
     <class>ReactionErrorPlotPropertyPanel</class>
     <consumer>false</consumer>
     <allowMax>true</allowMax>
@@ -485,6 +545,7 @@
 
   <PropertyPanel>
     <name>Forward Rate Constant Plot--TST and CVT</name>
+    <group>Kinetics</group>
     <class>ReactionConstantPlotPropertyPanel</class>
     <consumer>false</consumer>
     <allowMax>true</allowMax>
@@ -494,6 +555,7 @@
 
   <PropertyPanel>
     <name>Reverse Rate Constant Plot--TST and CVT</name>
+    <group>Kinetics</group>
     <class>ReactionConstantPlotPropertyPanel</class>
     <consumer>false</consumer>
     <allowMax>true</allowMax>
@@ -503,6 +565,7 @@
 
   <PropertyPanel>
     <name>Forward Rate Constant Plot--TST/CVT Ratio</name>
+    <group>Kinetics</group>
     <class>ReactionConstantVsPlotPropertyPanel</class>
     <consumer>false</consumer>
     <allowMax>true</allowMax>
@@ -512,6 +575,7 @@
 
   <PropertyPanel>
     <name>Reverse Rate Constant Plot--TST/CVT Ratio</name>
+    <group>Kinetics</group>
     <class>ReactionConstantVsPlotPropertyPanel</class>
     <consumer>false</consumer>
     <allowMax>true</allowMax>
@@ -521,6 +585,7 @@
 
   <PropertyPanel>
     <name>1D Metadynamics Potential</name>
+    <group>Metadynamics</group>
     <class>PlotMetaXY</class>
     <consumer>false</consumer>
     <allowMax>true</allowMax>
@@ -530,6 +595,7 @@
 
   <PropertyPanel>
     <name>2D Metadynamics Potential</name>
+    <group>Metadynamics</group>
     <class>PlotMeta3D</class>
     <consumer>false</consumer>
     <allowMax>true</allowMax>

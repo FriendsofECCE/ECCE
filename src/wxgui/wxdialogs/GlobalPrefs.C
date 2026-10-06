@@ -504,6 +504,7 @@ void GlobalPrefs::createStatesPage(wxWindow* page)
   addState(page, ResourceDescriptor::STATE_FAILED);
   addState(page, ResourceDescriptor::STATE_COMPLETED);
   addState(page, ResourceDescriptor::STATE_SYSTEM_FAILURE);
+  addState(page, ResourceDescriptor::STATE_WAITING);
 
   for (int i = ResourceDescriptor::STATE_CREATED;
        i < ResourceDescriptor::NUMBER_OF_STATES; i++) {

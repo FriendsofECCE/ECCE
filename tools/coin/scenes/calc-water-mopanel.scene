@@ -1,0 +1,4 @@
+# #226: press the MO panel's Compute (default selection, the HOMO) and record
+# every frame the Builder's canvas paints, with the isosurface thresholds in
+# the scene at that frame (mo-compute-frames.txt).
+mopanel mo-compute

@@ -1,6 +1,7 @@
 #ifndef SCENESCRIPT_H_
 #define SCENESCRIPT_H_
 
+#include <functional>
 #include <string>
 #include <vector>
 using std::string;
@@ -9,6 +10,7 @@ using std::vector;
 class IPropCalculation;
 class SGContainer;
 class SGViewer;
+class wxWindow;
 
 /**
  * Drives the viewer from a text script and writes offscreen snapshots, so
@@ -32,6 +34,11 @@ class SGViewer;
  *   viewall | clear               reset the camera / hide MO and modes
  *   snap <name>   the canvas, read back with glReadPixels -> <name>.ppm
  *   thumb <name>  64x64 black background, as the calculation thumbnail
+ *   nmcheck <name>  per normal-mode arrow: tip distance from its atom centre
+ *                   (arrow triangles) and the atom's sphere surface along
+ *                   the arrow (ray pick) -> <name>.txt
+ * Commands this class does not know go to the caller's extension, if set
+ * (the Builder adds "mopanel", which presses the MO panel's Compute).
  */
 class SceneScript
 {
@@ -43,6 +50,17 @@ class SceneScript
     bool run(const string& scriptPath);
     const string& message() const { return p_msg; }
 
+    // Unknown commands go here; return false (and set fail()) on error.
+    typedef std::function<bool(SceneScript&, const vector<string>&)> Extension;
+    void setExtension(Extension e) { p_ext = e; }
+
+    // Runs act() and records every frame the render area under canvasOwner
+    // paints meanwhile: <name>-NN.ppm plus one line per frame in
+    // <name>-frames.txt with the thresholds of the isosurfaces drawn.
+    bool recordFrames(wxWindow *canvasOwner, const string& name,
+                      std::function<void()> act);
+    bool fail(const string& m) { p_msg = m; return false; }
+
   private:
     bool exec(const vector<string>& w, const string& rest);
     bool pickAtoms(const string& name, const vector<string>& atoms);
@@ -50,13 +68,14 @@ class SceneScript
     bool countRedraws(const string& name, const vector<string>& steps);
     bool snapshot(const string& name, int size, float r, float g, float b);
     bool exportIso(const string& name);
-    bool fail(const string& m) { p_msg = m; return false; }
+    bool nmCheck(const string& name);
 
     SGViewer *p_viewer;
     SGContainer *p_sg;
     IPropCalculation *p_calc;
     string p_outdir;
     string p_msg;
+    Extension p_ext;
 };
 
 #endif

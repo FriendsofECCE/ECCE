@@ -97,6 +97,9 @@ bool CalcMgrApp::OnInit()
     }
   }
 
+  // Calculations left waiting for login when ECCE was last away (#208).
+  p_calcMgr->CallAfter([this]() { p_calcMgr->catchUpWaitingJobs(); });
+
   // Desk Top Messages
   subscribe("ecce_quit", (wxJmsCBFunc)&CalcMgrApp::quitMCB);
   subscribe("ecce_identify", (wxJmsCBFunc)&CalcMgrApp::identifyMCB);

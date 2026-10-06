@@ -1987,9 +1987,11 @@ bool DavEDSI::processListCollectionResponses(
   for (int idx=0; idx< numResponses; idx++) {
     DOMNode *response = responses->item(idx);
     if (transcode(response->getNodeName()).find(vRESPONSE) != string::npos) {
-      if (p_EcceDAVClient->url().toString().find("0") != string::npos
-          && isHrefCurrentURL(*response) )
-        continue; //break; 
+      // The collection itself is not one of its members.  This used to
+      // apply only to URLs containing a "0", so on other ports or names
+      // VDoc::removeProperties deleted Props itself.
+      if (isHrefCurrentURL(*response))
+        continue;
 
       getResponseNameSpaces(*response, nameSpaces);
       resourceResult.url = getResponseURL(*response);

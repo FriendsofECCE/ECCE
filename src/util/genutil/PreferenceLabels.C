@@ -11,6 +11,7 @@ const char *PrefLabels::stateCreated      = "RunState.Created";
 const char *PrefLabels::stateReady        = "RunState.Ready";
 const char *PrefLabels::stateSubmitted    = "RunState.Submitted";
 const char *PrefLabels::stateRunning      = "RunState.Running";
+const char *PrefLabels::stateWaiting      = "RunState.Waiting";
 const char *PrefLabels::stateCompleted    = "RunState.Completed";
 const char *PrefLabels::stateKilled       = "RunState.Killed";
 const char *PrefLabels::stateUnsuccessful = "RunState.Unsuccessful";

@@ -17,6 +17,7 @@ static const char *stateCreated     ;
 static const char *stateReady       ;
 static const char *stateSubmitted   ;
 static const char *stateRunning     ;
+static const char *stateWaiting     ;
 static const char *stateCompleted   ;
 static const char *stateKilled      ;
 static const char *stateUnsuccessful;
