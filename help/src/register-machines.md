@@ -195,6 +195,98 @@ request). The **default** fills a Launcher field only when you have not
 used a value of your own for that machine and queue before; after that
 the Launcher remembers what you used.
 
+## Find the queues of a cluster
+
+Instead of typing the queues, ask the machine's queue manager for them.
+**Discover queues...** runs the manager's own listing command on the
+machine (over ssh for a remote machine) and fills in each queue's limits.
+It works for Slurm (`sinfo`), PBS (`qstat -Qf`), Grid Engine (`qconf -sql`
+and `qconf -sq`), LSF (`bqueues -l`) and HTCondor (`condor_status`; a pool
+has no queues, so it is offered as one queue called `pool`). For other
+queue managers, enter the queues by hand.
+
+1. Open the **Queues** tab and choose the **Queue manager**. If the scheduler's
+   commands are not on the machine's default path, enter their directory on
+   the **Connection** tab, in **Directory of sbatch, squeue, ...**. Discovery
+   uses the value in the window now, saved or not.
+2. Click **Discover queues...**. ECCE connects to the machine. The window
+   **Discover queues** opens and names the command that ran.
+3. Tick the queues to add. **Select All** and **Select None** change every row.
+4. Click **Add Queues**. Each queue is added to the list, or, if it is in the
+   list already, its limits are updated and its defaults are kept.
+5. Choose a queue in **Queues** and check its fields. Enter the **default**
+   values yourself; discovery leaves them empty.
+6. Click **Save**.
+
+The scheduler reports what it knows: **Processors** is the most one job can
+use in that queue (for Slurm, all the processors of the partition), **Wall
+time** is the time limit in hours (no limit is 0), and **Memory** is the
+largest memory of one node, in GB. If the machine cannot be reached, or the
+queue manager prints nothing, the window shows the message the machine gave
+and adds nothing.
+
+## Preview the job script
+
+**Preview job script...** shows the job script ECCE would write for a code
+and a queue, built from the window as it is now, with changes you have not
+saved. Nothing is submitted and nothing is saved. Each line is labelled with
+the tab that produced it, and coloured the same way.
+
+1. Open the **Job script** tab, or the **Codes** tab with the code you are
+   interested in selected, and click **Preview job script...**. A code needs a
+   program path (**Codes > Program**) before it has a script.
+2. Choose the **Code** and the **Queue**, and set **Nodes**, **Processors
+   (total)**, **Wall time (hours)** and **Memory (GB)** to what a job would
+   ask for. Choosing a queue fills in its defaults. Click **Show Script**.
+3. Read the script. The label at the start of each line is one of:
+
+   | Label | Where the line comes from |
+   |---|---|
+   | `request` | **Job script > Request lines** |
+   | `before` | **Job script > Commands run before the calculation** (or the code's own, under **Codes > Advanced**) |
+   | `env` | **Codes > Environment variables** |
+   | `command` | **Codes > Command line**; `built-in` means the box is empty and ECCE's own command is used |
+   | `after` | **Job script > Commands run after the calculation** (or the code's own) |
+   | `ECCE` | Written by ECCE, whatever the settings |
+
+   After the label, `user` means your setting, `site` the site's (or the
+   server's), and `built-in` ECCE's own text.
+4. To change a line, edit the setting named by its label, then click **Show
+   Script** again. **Copy Script** puts the script on the clipboard without the
+   labels.
+
+The run directory (`/path/to/run`) and the input and output names are
+examples. A request line whose placeholder has no value, for example `$memory`
+with **Memory (GB)** 0, is left out, as it is in a real job.
+
+## Test a submission
+
+**Test submission...** checks that the queue manager accepts the request
+lines of a queue. It copies a small script to the machine, which holds this
+machine's request lines for the queue and no calculation, and asks the
+queue manager about it. It connects to the machine, so it is never done
+unless you click **Run Test**.
+
+| Queue manager | What is run |
+|---|---|
+| Slurm | `sbatch --test-only` |
+| Grid Engine | `qsub -verify` |
+| HTCondor | `condor_submit -dry-run` |
+| PBS, LSF, Moab | no dry run exists: the script is submitted on hold (`qsub -h`, `bsub -H`, `msub -h`) and cancelled at once |
+
+1. Open the **Queues** tab and click **Test submission...**.
+2. Choose the **Queue**, and the processors, wall time and memory to ask for.
+3. For PBS, LSF and Moab, tick the box that says the script is submitted on
+   hold and cancelled. **Run Test** stays disabled until you do.
+4. Click **Run Test**.
+5. Read the result. The window shows the commands that ran, the queue
+   manager's answer exactly as it printed it, and below it whether the script was accepted.
+   A refusal gives the manager's reason, for example an unknown partition or
+   a time limit above the queue's.
+
+The test script is removed from the machine afterwards. If a held job could
+not be cancelled, the window says so and gives the command to cancel it.
+
 ## Codes or Job script?
 
 Both tabs put commands into the job script. The **Job script** tab applies

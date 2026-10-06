@@ -9,6 +9,14 @@ queries from what it recorded.  Job state lives in ../spool/<manager>/ next
 to the directory holding the links, so it does not depend on the environment
 ECCE hands the submit command.
 
+Register Machines' queue discovery and test submission (#212) are exercised with
+the same program installed as sinfo, sbatch, qconf, bqueues and condor_status
+(fixed lists of queues in the real clients' formats, put on a machine's qmgrPath
+ahead of any real client) and by the hold flags and dry-run flags of the submit
+clients: `qsub -h`, `msub -h` and `bsub -H` record the job as held and never run
+it; `sbatch --test-only`, `qsub -verify` and `condor_submit -dry-run` only
+answer.  A queue named "nosuch" in the script is refused by the dry-run clients.
+
 Formats, from the vendors' documentation and not checked against a live
 installation (none is installed here):
   PBS   qsub prints "<seq>.<server>", e.g. "12345.pbsserver"       (PBS Pro, Torque)
@@ -32,8 +40,10 @@ FIRST_ID = 12345
 
 def mgrOf(name):
     return {"qsub": "pbs", "qdel": "pbs", "qstat": "pbs",
-            "bsub": "lsf", "bkill": "lsf", "bjobs": "lsf",
-            "msub": "moab", "mjobctl": "moab", "checkjob": "moab"}[name]
+            "bsub": "lsf", "bkill": "lsf", "bjobs": "lsf", "bqueues": "lsf",
+            "msub": "moab", "mjobctl": "moab", "checkjob": "moab",
+            "sinfo": "slurm", "sbatch": "slurm", "qconf": "sge",
+            "condor_status": "htcondor", "condor_submit": "htcondor"}[name]
 
 
 def nextSeq(mgr):
@@ -68,7 +78,7 @@ def record(mgr, text):
         h.write(text + "\n")
 
 
-def submit(mgr, script_text, queue):
+def submit(mgr, script_text, queue, held=False):
     seq = nextSeq(mgr)
     d = jobDir(mgr, seq)
     os.makedirs(d)
@@ -78,6 +88,10 @@ def submit(mgr, script_text, queue):
     os.chmod(path, 0o755)
     with open(os.path.join(d, "queue"), "w") as h:
         h.write(queue or "")
+    if held:
+        #  A held job never starts: nothing to detach, nothing to signal.
+        open(os.path.join(d, "held"), "w").close()
+        return seq
     #  No scheduler runs a job in the submitter's session, and the client
     #  must return at once: detach completely and close every inherited fd.
     cmd = path
@@ -114,11 +128,16 @@ def state(mgr, seq):
         return None
     if os.path.exists(os.path.join(d, "cancelled")):
         return "X"
+    if os.path.exists(os.path.join(d, "held")):
+        return "H"
     return "R" if alive(mgr, seq) else "C"
 
 
 def cancel(mgr, seq):
     d = jobDir(mgr, seq)
+    if os.path.exists(os.path.join(d, "held")):
+        open(os.path.join(d, "cancelled"), "w").close()
+        return
     with open(os.path.join(d, "pgid")) as h:
         pg = int(h.read())
     open(os.path.join(d, "cancelled"), "w").close()
@@ -149,6 +168,90 @@ def queueOf(text):
     return ""
 
 
+SINFO = ("debug|30:00|2|8|47000\n"
+         "normal|infinite|4|16|191000\n"
+         "normal|infinite|2|32|383000\n"
+         "long|7-00:00:00|10|16|191000\n")
+
+PBS_QUEUES = """Queue: workq
+    queue_type = Execution
+    total_jobs = 0
+    resources_max.ncpus = 128
+    resources_max.walltime = 24:00:00
+    resources_max.mem = 256gb
+    enabled = True
+
+Queue: route1
+    queue_type = Route
+    enabled = True
+
+Queue: short
+    queue_type = Execution
+    resources_max.nodect = 4
+    resources_max.walltime = 01:30:00
+    enabled = True
+"""
+
+SGE_QUEUES = {"all.q": ("4", "INFINITY", "INFINITY"),
+              "long.q": ("16", "168:00:00", "64G")}
+
+LSF_QUEUES = """QUEUE: normal
+  -- Default queue.
+
+PARAMETERS/STATISTICS
+PRIO NICE STATUS          MAX JL/U JL/P JL/H NJOBS  PEND   RUN SSUSP USUSP  RSV
+ 30    0  Open:Active       -    -    -    -     0     0     0     0     0    0
+
+RUNLIMIT
+ 720.0 min
+
+PROCLIMIT
+ 1 1 64
+
+------------------------------------------------------------
+
+QUEUE: priority
+  -- Short jobs.
+
+MEMLIMIT
+ 8 G
+
+RUNLIMIT
+ 60.0 min
+
+PROCLIMIT
+ 1 4 16
+"""
+
+
+def dryRun(name, args):
+    """sbatch --test-only, qsub -verify, condor_submit -dry-run: answer only."""
+    files = [a for a in args if not a.startswith("-")]
+    text = open(files[-1]).read() if files and os.path.exists(files[-1]) else ""
+    if "nosuch" in text:
+        if name == "sbatch":
+            print("sbatch: error: invalid partition specified: nosuch", file=sys.stderr)
+            print("sbatch: error: Batch job submission failed: Invalid partition "
+                  "name specified", file=sys.stderr)
+        elif name == "qsub":
+            print("Unable to run job: unknown queue \"nosuch\".")
+        else:
+            print("ERROR: queue nosuch is unknown")
+        return 1
+    if name == "sbatch":
+        part = "debug"
+        for line in text.splitlines():
+            if line.startswith("#SBATCH --partition="):
+                part = line.split("=", 1)[1]
+        print("sbatch: Job 12346 to start at 2026-10-06T12:00:00 using 4 "
+              "processors on nodes stub in partition %s" % part, file=sys.stderr)
+    elif name == "qsub":
+        print("verification: found suitable queue(s)")
+    else:
+        print("Submitting job(s).")
+    return 0
+
+
 def main():
     name = os.path.basename(sys.argv[0])
     args = sys.argv[1:]
@@ -156,10 +259,43 @@ def main():
     os.makedirs(os.path.join(SPOOL, mgr), exist_ok=True)
     record(mgr, " ".join([name] + args))
 
+    if name == "sinfo":
+        sys.stdout.write(SINFO)
+        return 0
+    if name == "bqueues":
+        sys.stdout.write(LSF_QUEUES)
+        return 0
+    if name == "condor_status":
+        sys.stdout.write("8 48057\n4 16000\n")
+        return 0
+    if name == "qconf":
+        if args[:1] == ["-sql"]:
+            print("\n".join(sorted(SGE_QUEUES)))
+            return 0
+        if args[:1] == ["-sq"] and len(args) > 1 and args[1] in SGE_QUEUES:
+            slots, rt, vmem = SGE_QUEUES[args[1]]
+            print("qname                 %s\nslots                 %s\n"
+                  "s_rt                  INFINITY\nh_rt                  %s\n"
+                  "h_vmem                %s" % (args[1], slots, rt, vmem))
+            return 0
+        print("denied: queue \"%s\" does not exist" % " ".join(args[1:]),
+              file=sys.stderr)
+        return 1
+    if name == "qstat" and "-Qf" in args:
+        sys.stdout.write(PBS_QUEUES)
+        return 0
+    if name in ("sbatch", "condor_submit") or (
+            name == "qsub" and "-verify" in args):
+        if name == "sbatch" and "--test-only" not in args:
+            print("sbatch: the stand-in only answers --test-only", file=sys.stderr)
+            return 1
+        return dryRun(name, args)
+
     if name in ("qsub", "bsub", "msub"):
         text = readScript(args)
         queue = queueOf(text)
-        seq = submit(mgr, text, queue)
+        held = ("-h" in args) if name in ("qsub", "msub") else ("-H" in args)
+        seq = submit(mgr, text, queue, held)
         if mgr == "pbs":
             print("%d.%s" % (seq, SERVER))
         elif mgr == "lsf":
@@ -183,7 +319,7 @@ def main():
             text, rc = msgs[mgr]
             print(text, file=sys.stderr)
             return rc
-        if state(mgr, seq) == "R":
+        if state(mgr, seq) in ("R", "H"):
             cancel(mgr, seq)
         if mgr == "lsf":
             print("Job <%d> is being terminated" % seq)
