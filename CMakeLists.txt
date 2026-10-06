@@ -1981,6 +1981,11 @@ if(PYTHON3_EXECUTABLE)
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/fragreaders-home)
   set_tests_properties(fragreaders PROPERTIES ENVIRONMENT
     "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
+  # Same under a decimal-comma locale; skipped (77) where it is not installed.
+  add_test(NAME fragreaders_de
+           COMMAND fragreaders ${CMAKE_CURRENT_SOURCE_DIR}/tests/fragreaders/data)
+  set_tests_properties(fragreaders_de PROPERTIES SKIP_RETURN_CODE 77 ENVIRONMENT
+    "LC_ALL=de_DE.utf8;ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
 
   add_test(NAME launch
            COMMAND ${PYTHON3_EXECUTABLE}

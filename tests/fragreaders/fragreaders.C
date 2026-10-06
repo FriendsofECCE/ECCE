@@ -1,6 +1,7 @@
 // Loads structure files through FragUtil::load with the Builder's
 // Add Structure from File arguments and checks atoms, residues and bonds.
 // Usage: fragreaders <dir>   (dir holds the sample files)
+#include <clocale>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -8,6 +9,7 @@
 #include <string>
 #include <vector>
 
+#include "util/Ecce.H"
 #include "tdat/FragUtil.H"
 #include "tdat/Fragment.H"
 #include "tdat/Residue.H"
@@ -57,11 +59,23 @@ int main(int argc, char **argv)
 {
   string dir = argc > 1 ? argv[1] : ".";
 
+  // The startup every ECCE program runs; under LC_ALL=de_DE.utf8 it must
+  // still read and print numbers with a '.'.
+  if (getenv("LC_ALL") && !setlocale(LC_ALL, "")) return 77;  // not installed
+  Ecce::initialize();
+  char num[32];
+  snprintf(num, sizeof num, "%.1f", 2.5);
+  check(string(num) == "2.5", string("printf of 2.5 gives ") + num);
+
   for (const char *f : {"glycine.pdb", "glycine.ent"}) {
     Fragment *frag = load(dir + "/" + f, "PDB");
     if (!frag) continue;
     string tag = f;
     check(frag->numAtoms() == 10, tag + ": 10 atoms");
+    if (frag->numAtoms() > 1) {
+      const double *c = frag->atomRef(1)->coordinates();
+      check(c[0] == 2.457 && c[2] == 0.099, tag + ": atom 2 at 2.457 -0.120 0.099");
+    }
     check(frag->numBonds() == 9, tag + ": 9 bonds (got "
           + to_string(frag->numBonds()) + ")");
     checkResidues(frag, tag, 1);

@@ -1,3 +1,4 @@
+#include <locale.h>
 #include <iostream>
   using namespace std;
 #include <cstring>
@@ -104,6 +105,9 @@ bool ewxApp::OnInit()
    Bind(wxEVT_MENU, &ewxApp::OnAbout, this, wxID_ABOUT);
 
    Color::initialize();
+
+   // The toolkit's own init may have re-read the locale from the environment.
+   setlocale(LC_NUMERIC, "C");
 
    DavDebug::setDebugContext(("/tmp/dav" + getName()).c_str());
 

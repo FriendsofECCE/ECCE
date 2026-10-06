@@ -90,6 +90,11 @@ if $local; then export ECCE_LOCAL=1; fi
 
 export ECCE_HOME=${ECCE_HOME:-$ECCE_HOME_DEFAULT}
 
+# Child programs (Perl, Python, the codes) must print and read numbers with
+# '.'; LC_ALL would override LC_NUMERIC, so demote it to LANG.
+if [ -n "${LC_ALL:-}" ]; then LANG=$LC_ALL; export LANG; unset LC_ALL; fi
+export LC_NUMERIC=C
+
 # A site admin's maintenance notice and lock, shown for every
 # invocation -- including -admin/-machine -- matching the old script's
 # placement ahead of any option handling.
