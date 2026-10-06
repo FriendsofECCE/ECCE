@@ -47,7 +47,9 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "launch"))
 
+sys.path.insert(0, os.path.join(os.path.dirname(HERE), "apps"))
 import harness  # noqa: E402
+import isolate  # noqa: E402
 from harness import REPO, say  # noqa: E402
 
 GOLDEN = os.path.join(HERE, "golden")
@@ -664,7 +666,7 @@ def realParsers(g, rep, args):
             rep.row("golden", mgr, "-", "real-parser.%s" % prof)
             name = "t-" + prof
             #  condor_submit checks that initialdir exists, and not under /tmp.
-            run = tempfile.mkdtemp(prefix="ecce-rundir-", dir=os.path.expanduser("~/.cache"))
+            run = tempfile.mkdtemp(prefix="ecce-rundir-", dir=isolate.runState("queue-stubs"))
             text = g.script(mgr, "nwchem", p, host="goldhost", name=name, rundir=run)
             path = os.path.join(g.tmp, "submit__" + name)
             if mgr == "slurm":
@@ -934,8 +936,10 @@ def stubsSuite(args, rep):
     managers = [m for m in STUB_MANAGERS if not args.manager or m in args.manager]
     if not managers:
         return
+    #  Per run (isolate.runState): a fixed directory was rmtree'd by a
+    #  second run and shared its spool.
     root = os.environ.get("ECCE_TEST_STUBS") or os.path.join(
-        os.path.expanduser("~"), ".cache", "ecce-queue-stubs")
+        isolate.runState("queue-stubs"), "stubs")
     shutil.rmtree(root, ignore_errors=True)
     bindir = os.path.join(root, "bin")
     os.makedirs(bindir)
