@@ -503,7 +503,10 @@ EcceDAVClient::execute
   EcceURL cururl = UrlEncoder::encode(this->url());
 
   string  host = cururl.getHost();
-  unsigned short port = cururl.getPort();
+  // https defaults to 443; plain http keeps its existing handling.
+  const bool secure = (cururl.getProtocol() == "https");
+  unsigned short port = (secure && cururl.getPort() <= 0)
+                          ? 443 : cururl.getPort();
   string path = cururl.getPath();
 
   bool done = false;
@@ -576,9 +579,14 @@ EcceDAVClient::execute
     {
       p_progressEvent->m_msg = "Connecting to " + host;
       notifyProgress();
-      if (!p_client.connect(host, port, "")) {
-        ret = EcceDAVStatus::UNABLE_TO_CONNECT;
-        p_status = EcceDAVStatus::text(ret)  + host ;
+      if (!p_client.connect(host, port, "", secure)) {
+        if (p_client.certificateRejected()) {
+          ret = EcceDAVStatus::CERTIFICATE_REJECTED;
+          p_status = EcceDAVStatus::text(ret) + p_client.connectError();
+        } else {
+          ret = EcceDAVStatus::UNABLE_TO_CONNECT;
+          p_status = EcceDAVStatus::text(ret)  + host ;
+        }
         break;
       }
     }
@@ -906,6 +914,9 @@ void EcceDAVClient::createRequest
   int             contentLength = 0;
 
   parse_uri(url().toString(), host, path, port);
+  const bool secure = (url().getProtocol() == "https");
+  if (secure && url().getPort() <= 0)
+    port = 443;
 
   // Using a request body?
   if (canHaveRequestBody(method) )
@@ -917,8 +928,8 @@ void EcceDAVClient::createRequest
   request.URI(uri);
 
   // Set default headers
-  // According to the spec the port should be included if its not the default port (80)
-  if (port == 80) {
+  // The port is omitted only for the scheme's default (80 http, 443 https)
+  if (port == (secure ? 443 : 80)) {
     header.header(CHTTPHeader::HOST, host);
   } else {
     char *buf  = new char[host.size() + 8];

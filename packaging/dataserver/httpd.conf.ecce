@@ -86,6 +86,9 @@ LoadModule autoindex_module     ##MODULES##/mod_autoindex.so
 # those directives back as literal, unprocessed text and the page's real
 # content (and every link in it) never appears.
 LoadModule include_module       ##MODULES##/mod_include.so
+#TLS-BEGIN
+LoadModule ssl_module           ##MODULES##/mod_ssl.so
+#TLS-END
 
 DocumentRoot "##DATAROOT##"
 
@@ -396,3 +399,17 @@ BrowserMatch "^Dreamweaver-WebDAV-SCM1" redirect-carefully
 # via a direct repro against this exact config (see CLAUDE.md "DataServers
 # / EDSI data server").
 BrowserMatch "^Mozilla/5\.25 Netscape/5\.0" redirect-carefully
+
+#TLS-BEGIN
+# Kept only when TLS is configured (ecce-remote-setup --server --tls);
+# ecce-dataserver-start deletes everything between these markers otherwise.
+# The ##LISTEN## lines then bind the plain port to loopback only and the
+# TLS port to the network, so nothing but this vhost answers outward.
+# Everything above (Directory, DAV, auth) is server-wide and applies here.
+<VirtualHost *:##TLSPORT##>
+    SSLEngine on
+    SSLCertificateFile    "##TLSDIR##/server.pem"
+    SSLCertificateKeyFile "##TLSDIR##/server.key"
+    SSLProtocol -all +TLSv1.2 +TLSv1.3
+</VirtualHost>
+#TLS-END
