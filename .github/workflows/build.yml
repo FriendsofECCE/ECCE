@@ -301,7 +301,7 @@ jobs:
 
       - name: Cache libraries built for macOS ${{ env.MACOSX_DEPLOYMENT_TARGET }}
         id: deps
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ${{ env.ECCE_DEPS }}
           key: macos-deps-${{ matrix.arch }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ hashFiles('packaging/macos/build-deps.sh') }}
@@ -309,6 +309,13 @@ jobs:
       - name: Build libraries (wxWidgets, Coin, Xerces, Mosquitto, libssh, OpenSSL)
         if: steps.deps.outputs.cache-hit != 'true'
         run: packaging/macos/build-deps.sh "$ECCE_DEPS"
+
+      - name: Save the libraries
+        if: steps.deps.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.ECCE_DEPS }}
+          key: ${{ steps.deps.outputs.cache-primary-key }}
 
       - name: Configure
         # ECCE_HOME_DIR/ECCE_WRAPPER_DESTINATION point the install at a

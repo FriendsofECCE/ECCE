@@ -66,9 +66,9 @@ fetch https://github.com/coin3d/coin/releases/download/v4.0.10/coin-4.0.10-src.t
 cm coin -DCOIN_BUILD_SHARED_LIBS=ON -DCOIN_BUILD_TESTS=OFF -DHAVE_SOUND=OFF \
   -DCOIN_HAVE_JAVASCRIPT=OFF
 
-# wxWidgets 3.2 (the version ECCE is written for); the image libraries
-# are wx's own copies, so nothing else is needed at run time.
-fetch https://github.com/wxWidgets/wxWidgets/releases/download/v3.2.8/wxWidgets-3.2.8.tar.bz2 wx
+# wxWidgets 3.3: 3.2 still links the AGL framework, gone from the macOS 26
+# SDK.  The image libraries are wx's own copies.
+fetch https://github.com/wxWidgets/wxWidgets/releases/download/v3.3.3/wxWidgets-3.3.3.tar.bz2 wx
 ( cd wx
   ./configure --prefix="$P" --enable-shared --enable-unicode --with-cocoa \
     --with-opengl --with-macosx-version-min="$MACOSX_DEPLOYMENT_TARGET" \
