@@ -32,6 +32,7 @@
 #include <io.h>
 #include <cerrno>
 #include <climits>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <iomanip>
@@ -227,7 +228,9 @@ inline int pipe(int fds[2]) { return _pipe(fds, 4096, _O_BINARY | _O_NOINHERIT);
 inline pid_t getsid(pid_t) { return 0; }
 
 // One account per process; the name and home come from the environment.
-typedef int uid_t;
+// libssh declares the same pair.
+typedef uint32_t uid_t;
+typedef uint32_t gid_t;
 inline uid_t getuid() { return 0; }
 inline uid_t geteuid() { return 0; }
 struct passwd {
