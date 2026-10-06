@@ -6,8 +6,8 @@
     ECCE_BROKER_PORT=8388 \\
         tools/screenshots/readme.py --out docs/images [--only NAME ...]
 
-Names: organizer, viewer, orbital-benzene, esp-benzene, vectors-water.
-(mo-diagram-water.png comes from the MO diagram panel, not from here.)
+Names: organizer, viewer, orbital-benzene, esp-benzene, vectors-water,
+mo-diagram-water (the Builder's MO Diagram panel on the Gaussian 16 water).
 
 Everything runs on a private Xvfb against an isolated data server (tests/apps
 isolation), in the light theme.  Nothing is clicked or typed: the Organizer
@@ -43,7 +43,7 @@ DATA = os.path.join(HERE, "data")
 WATER = os.path.join(ROOT, "tests", "apps", "fixtures", "calc-water-vib")
 PROJECT = "Examples"
 NAMES = ["organizer", "viewer", "orbital-benzene", "esp-benzene",
-         "vectors-water"]
+         "vectors-water", "mo-diagram-water"]
 
 #  (scene script, calculation, canvas size) for the viewer-only images.
 SCENES = {
@@ -174,7 +174,7 @@ def waitWindow(display, known, seconds=60, title=None):
     end = time.time() + seconds
     while time.time() < end:
         wins = [w for w in newWindows(display, known)
-                if title is None or w[1] == title]
+                if title is None or w[1].startswith(title)]
         if wins:
             return max(wins, key=lambda w: w[2] * w[3])
         time.sleep(1)
@@ -204,7 +204,7 @@ def shootOrganizer(display, auth, out):
     try:
         org = waitWindow(display, known, 60, "ECCE Organizer")
         if not org:
-            return "no Organizer window"
+            return "no Organizer window; windows: %s" % display.windows()
         wid = org[0]
         xdo(display, "windowmove", wid, "0", "0")
         xdo(display, "windowsize", wid, "1280", "800")
@@ -246,6 +246,7 @@ def renderScene(display, auth, name, calc, script, size, outdir):
                 break
             time.sleep(1)
     finally:
+        time.sleep(3)           # the snapshot is still being written
         stop(proc)
     if not os.path.exists(ppm):
         return "no snapshot for %s" % name
@@ -262,13 +263,14 @@ def shootViewer(display, auth, out, tmp):
     known = set(w for w, _ in display.windows())
     env = {"ECCE_VIEWER_SCENE": sceneFile, "ECCE_VIEWER_SCENE_OUT": tmp,
            "ECCE_VIEWER_SCENE_SIZE": "640x480",
-           "ECCE_VIEWER_SCENE_HOLD": "120", "ECCE_OPEN_PANEL": "MOs"}
+           "ECCE_VIEWER_SCENE_HOLD": "120", "ECCE_OPEN_PANEL": "MOs",
+           "ECCE_TRANSPARENCY_FALLBACK_MS": "0"}
     proc = launch(display, "ecce-builder",
                   ["-pipe", auth, "-context", calcUrl("benzene")], env)
     try:
         win = waitWindow(display, known, 90, "ECCE Viewer")
         if not win:
-            return "no Builder window"
+            return "no Builder window; windows: %s" % display.windows()
         wid = win[0]
         xdo(display, "windowmove", wid, "0", "0")
         #  The Builder restores its own size once the calculation loads, so
@@ -281,6 +283,32 @@ def shootViewer(display, auth, out, tmp):
         subprocess.run(["import", "-display", display.name, "-window", "root",
                         shots], check=True)
         png(shots, os.path.join(out, "viewer.png"), "%dx%d+0+0" % (w, h))
+    finally:
+        stop(proc)
+    return None
+
+
+def shootMoDiagram(display, auth, out, tmp):
+    """The Builder's MO Diagram panel on water, window only."""
+    known = set(w for w, _ in display.windows())
+    env = {"ECCE_OPEN_PANEL": "MO Diagram"}
+    proc = launch(display, "ecce-builder",
+                  ["-pipe", auth, "-context", calcUrl("water-vib")], env)
+    try:
+        win = waitWindow(display, known, 90, "ECCE Viewer")
+        if not win:
+            return "no Builder window; windows: %s" % display.windows()
+        wid = win[0]
+        xdo(display, "windowmove", wid, "0", "0")
+        time.sleep(30)
+        xdo(display, "windowsize", wid, "1400", "900")
+        time.sleep(25)
+        shots = os.path.join(tmp, "modiagram-full.png")
+        w, h = windowSize(display, wid)
+        subprocess.run(["import", "-display", display.name, "-window", "root",
+                        shots], check=True)
+        png(shots, os.path.join(out, "mo-diagram-water.png"),
+            "%dx%d+0+0" % (w, h - 34))   # above the panel's half-drawn controls
     finally:
         stop(proc)
     return None
@@ -327,6 +355,9 @@ def main():
                     if not err:
                         shutil.move(os.path.join(options.tmp, "organizer.png"),
                                     os.path.join(options.out, "organizer.png"))
+                elif name == "mo-diagram-water":
+                    err = shootMoDiagram(display, auth, options.out,
+                                         options.tmp)
                 elif name == "viewer":
                     err = shootViewer(display, auth, options.out, options.tmp)
                 else:
