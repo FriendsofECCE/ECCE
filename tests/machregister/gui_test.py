@@ -1697,17 +1697,25 @@ quit
     check(cfg.get("perlpath") == "/saved", "the saved value is in the file")
 
 
-def help_button(tmp, display, build):
+def help_button(tmp, display, build, pngs=None):
     print("Help button")
+    sys.path.insert(0, os.path.join(REPO, "help"))
+    import render
+    hd = os.path.join(tmp, "helpdir")
+    render.render(os.path.join(REPO, "help", "src"), hd)
     e = Env(tmp, "help")
-    version = read(os.path.join(REPO, "data", "client", "config",
-                                "Version")).strip()
-    ref = ("v" + version if re.fullmatch(
-        r"[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta)\.[0-9]+)?", version)
-        else "main")
+    shot = ("shot-help %s\n" % os.path.join(pngs, "register-machines.png")
+            if pngs else "")
     p = run(display, build, e, """
 click help
-expect message help https://github.com/FriendsofECCE/ECCE/blob/%s/help/src/register-machines.md
+expect message help register-machines.html
+wait 500
+%squit
+""" % shot, extra={"ECCE_HELP_DIR": hd})
+    clean(p, "Help opens register-machines.html in the help window")
+    p = run(display, build, e, """
+click help
+expect message help (not installed)
 expect help-ref 9.0.0-alpha.6 v9.0.0-alpha.6
 expect help-ref 9.0.0 v9.0.0
 expect help-ref 9.0.0-rc1 main
@@ -1715,9 +1723,10 @@ expect help-ref 9.0.0-rc.1 main
 expect help-ref 9.0.0-dev main
 expect help-ref '' main
 quit
-""" % ref)
-    clean(p, "Help opens the Register Machines page at the installed "
-          "version's tag, or main for an untagged version")
+""", extra={"ECCE_HELP_DIR": os.path.join(tmp, "nohelp"),
+            "ECCE_BROWSER": "true",
+            "ECCE_HELP": "http://localhost/EcceHelp/"})
+    clean(p, "without installed help the page on GitHub is opened; help-ref picks the tag")
 
 
 def delete_prompt_lists_files(tmp, display, build):
@@ -2284,6 +2293,7 @@ def main():
     ap.add_argument("--snapshots")
     ap.add_argument("--job-pngs")
     ap.add_argument("--codes-pngs")
+    ap.add_argument("--help-pngs")
     ap.add_argument("--queues-pngs")
     ap.add_argument("--tools-pngs")
     a = ap.parse_args()
@@ -2308,6 +2318,10 @@ def main():
             test_submission(tmp, disp, build, out)
             for n in sorted(os.listdir(out)):
                 print("        " + os.path.join(out, n))
+        elif a.help_pngs:
+            out = os.path.abspath(a.help_pngs)
+            os.makedirs(out, exist_ok=True)
+            help_button(tmp, disp, build, out)
         elif a.queues_pngs:
             queues_pngs(tmp, disp, build, os.path.abspath(a.queues_pngs))
         elif a.codes_pngs:

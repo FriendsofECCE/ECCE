@@ -27,6 +27,7 @@
 #include "wx/collpane.h"
 #include "wx/radiobut.h"
 #include "wx/stattext.h"
+#include "wxgui/WxHelpViewer.H"
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxSpinCtrl.H"
@@ -172,9 +173,10 @@ bool MachRegScript::click(const string& name)
 }
 
 
-bool MachRegScript::shot(const string& file, bool dialog)
+bool MachRegScript::shot(const string& file, bool dialog, bool help)
 {
-    wxWindow* win = dialog ? static_cast<wxWindow*>(p_frame->p_rawDlg ?
+    wxWindow* win = help ? static_cast<wxWindow*>(WxHelpViewer::instance()) :
+                    dialog ? static_cast<wxWindow*>(p_frame->p_rawDlg ?
                              p_frame->p_rawDlg : p_frame->p_toolDlg ?
                              p_frame->p_toolDlg : p_frame->p_wordsDlg)
                            : p_frame;
@@ -377,9 +379,10 @@ int MachRegScript::runCommand(const vector<string>& w)
             p_cmds.push_front(string("tab ") + tabs[i]);
         }
     }
-    else if ((cmd == "shot" || cmd == "shot-dialog") && n == 2)
+    else if ((cmd == "shot" || cmd == "shot-dialog" || cmd == "shot-help")
+             && n == 2)
     {
-        if (!shot(w[1], cmd == "shot-dialog")) fail("could not write " + w[1]);
+        if (!shot(w[1], cmd == "shot-dialog", cmd == "shot-help")) fail("could not write " + w[1]);
         else fprintf(stderr, "[MACHREG] wrote %s\n", w[1].c_str());
     }
     else if (cmd == "expect" && n >= 3)
