@@ -272,13 +272,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: macos-latest, arch: arm64 }
-          - { os: macos-15-intel, arch: x86_64 }
+          - { os: macos-latest, arch: arm64, target: "11.0", experimental: false }
+          # Catalina: the oldest macOS many 2012-2014 Intel Macs can run.
+          - { os: macos-15-intel, arch: x86_64, target: "10.15", experimental: true }
     env:
       # Oldest macOS the app is built for (#133).  Our code and every
       # bundled library are built to this; the minimum-macOS step fails
       # the job on any Mach-O above it.
-      MACOSX_DEPLOYMENT_TARGET: "11.0"
+      MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
       ECCE_DEPS: /Users/runner/ecce-deps
     # Bounded so a hung job cannot hold a runner slot for GitHub's
     # 6-hour default; see the concurrency note above.
@@ -290,7 +291,8 @@ jobs:
     # here to track the gap with a real, current compile log instead of
     # nothing -- it's expected to fail until #3 gets real porting work,
     # not a sign the workflow itself is broken.
-    continue-on-error: true
+    # x86_64 may fail until it is proven; arm64 must be green.
+    continue-on-error: ${{ matrix.experimental }}
     steps:
       - uses: actions/checkout@v4
 

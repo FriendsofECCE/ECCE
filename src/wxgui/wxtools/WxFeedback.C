@@ -113,6 +113,12 @@ WxFeedback::WxFeedback( wxWindow* parent, wxWindowID id,
      // size the pane from the font so 4 whole lines always fit.
      int lineH = text->GetCharHeight();
      text->SetMinSize(wxSize(-1, wxMax(60, 4*lineH + 2*lineH/3 + 12)));
+#ifdef __WXOSX__
+     // WxFeedbackGUI::Create already froze this panel's min size from the
+     // 60 px text, so the larger text min size never reached the frame.
+     GetSizer()->Fit(this);
+     GetSizer()->SetSizeHints(this);
+#endif
      text->SetValidator(wxDefaultValidator);
      text->PushEventHandler(p_textEvtHandler);
    }

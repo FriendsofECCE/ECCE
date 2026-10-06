@@ -1,6 +1,6 @@
 #!/bin/bash
 # build-deps.sh <prefix>: the libraries ECCE.app bundles, built from source
-# for MACOSX_DEPLOYMENT_TARGET (default 11.0) and the machine's own
+# for MACOSX_DEPLOYMENT_TARGET (default 11.0; CI uses 10.15 on Intel) and the machine's own
 # architecture.  Homebrew bottles carry the runner's macOS version as their
 # minimum, so they cannot give an app that runs on older systems (#133).
 # All libraries are shared and install with absolute install names, which
