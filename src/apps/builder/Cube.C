@@ -510,6 +510,15 @@ void Cube::OnMenuClick(wxCommandEvent& event)
 }
 
 
+void Cube::selectGrid(int idx, double sliderValue)
+{
+  p_slider->SetValue(sliderValue);
+  p_list->SetItemState(idx, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
+  wxListEvent ev;
+  OnListLeftClick(ev);
+}
+
+
 void Cube::OnListLeftClick(wxListEvent& event)
 {
   if (p_propGrids
@@ -534,7 +543,10 @@ void Cube::OnListLeftClick(wxListEvent& event)
       double posR, posG, posB, negR, negG, negB;
       getSurfaceColors(posR, posG, posB, negR, negG, negB);
 
+      // Build at the slider's cutoff (it is log10) rather than the default.
       Command * cmd = new IsoSurfaceCmd("Iso Surface", &sg, expt);
+      cmd->getParameter("isovalue")->setDouble(
+            pow(10.0, static_cast<double>(p_slider->GetFloatValue())));
       cmd->getParameter("transparency")->setDouble(getTransparency());
       cmd->getParameter("positiveRed")->setDouble(posR);
       cmd->getParameter("positiveGreen")->setDouble(posG);
