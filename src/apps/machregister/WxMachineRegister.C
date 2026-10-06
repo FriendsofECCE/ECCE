@@ -782,6 +782,15 @@ wxWindow* WxMachineRegister::createCodesPage(wxWindow* parent)
                 "run directory before the program starts.");
     setCodeAdvanced(false);
 
+    ewxButton* preview = new ewxButton(page, wxID_ANY, "Preview job script...");
+    preview->SetToolTip("Show the job script ECCE would write for this code, "
+                        "from the form as it is now");
+    sizer->Add(preview, wxSizerFlags().Border());
+    reg("code:preview", preview);
+    preview->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        this->previewJobScript(p_codeSel >= 0 && p_codeSel < (int)p_codeNames.size()
+                               ? p_codeNames[p_codeSel] : string());
+    });
     return page;
 }
 
@@ -1215,9 +1224,19 @@ wxWindow* WxMachineRegister::createJobScriptPage(wxWindow* parent)
     p_cfgRows.back().gensubOnly = true;
     p_condorGrid = condor;
 
+    wxBoxSizer* jobButtons = new wxBoxSizer(wxHORIZONTAL);
+    sizer->Add(jobButtons);
+    ewxButton* preview = new ewxButton(page, wxID_ANY, "Preview job script...");
+    preview->SetToolTip("Show the job script ECCE would write for a code and "
+                        "queue, from the form as it is now");
+    jobButtons->Add(preview, wxSizerFlags().Border());
+    reg("preview", preview);
+    preview->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        this->previewJobScript();
+    });
     ewxButton* adv = new ewxButton(page, wxID_ANY, "Advanced: edit file...");
     adv->SetToolTip("Edit the whole settings file for this machine as text");
-    sizer->Add(adv, wxSizerFlags().Border());
+    jobButtons->Add(adv, wxSizerFlags().Border());
     reg("edit-file", adv);
     adv->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { this->editFile(); });
 

@@ -22,6 +22,7 @@
 #endif
 
 #include "wx/checklst.h"
+#include "wx/clipbrd.h"
 #include "wx/notebook.h"
 #include "wx/progdlg.h"
 #include "wx/spinctrl.h"
@@ -37,6 +38,7 @@
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxTextCtrl.H"
 
+#include "JobPreview.H"
 #include "MemoryUnits.H"
 #include "SchedulerQuery.H"
 #include "WxMachineRegister.H"
@@ -86,6 +88,33 @@ static void runBusy(wxWindow* parent, const wxString& title,
     delete dlg;
 }
 
+//  A tint of `base` over the window colour, readable in a dark theme too.
+static wxColour tint(const wxColour& base)
+{
+    wxColour bg = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
+    const int a = 70;     // percent of the window colour kept
+    return wxColour((base.Red() * (100 - a) + bg.Red() * a) / 100,
+                    (base.Green() * (100 - a) + bg.Green() * a) / 100,
+                    (base.Blue() * (100 - a) + bg.Blue() * a) / 100);
+}
+
+static wxColour partColour(const string& part)
+{
+    if (part == "request") return tint(wxColour(230, 159, 0));
+    if (part == "before") return tint(wxColour(86, 180, 233));
+    if (part == "environment") return tint(wxColour(0, 158, 115));
+    if (part == "command") return tint(wxColour(213, 94, 0));
+    if (part == "after") return tint(wxColour(204, 121, 167));
+    return wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
+}
+
+static string partShort(const string& part)
+{
+    if (part == "environment") return "env";
+    if (part == "ecce") return "ECCE";
+    return part;
+}
+
 //  ---- shared helpers ---------------------------------------------------------
 
 SchedulerQuery::Connection WxMachineRegister::connection()
@@ -125,6 +154,46 @@ SchedulerQuery::Connection WxMachineRegister::connection()
 }
 
 
+//  The file the form would save, as text; `extra` lines are appended.
+bool WxMachineRegister::draftConfigText(string& text, string& err,
+                                        const string& extra)
+{
+    this->syncDraft();
+    string name = stripped((string)p_refName->GetValue());
+    MCD* draft = p_draft;
+    MCD* own = NULL;
+    if (name != p_loadedName)
+    {
+        own = draft = newDraft(name);
+        syncKeys(draft);
+    }
+    ConfigFile f;
+    f.setSiteFile(p_adminFlag);
+    f.load(draft->editedFile());
+    bool ok = draft->applyTo(f, err);
+    if (ok)
+        text = f.text() + extra;
+    delete own;
+    return ok;
+}
+
+
+//  Codes that have a program path in the form as it is now.
+vector<string> WxMachineRegister::codesWithPath()
+{
+    vector<string> out;
+    this->syncDraft();
+    for (size_t i = 0; i < p_codeNames.size(); i++)
+    {
+        string v;
+        if (p_draft != NULL && p_draft->effective(lowered(p_codeNames[i]), v) &&
+            !v.empty())
+            out.push_back(p_codeNames[i]);
+    }
+    return out;
+}
+
+
 void WxMachineRegister::toolClosed(const string& prefix)
 {
     for (std::map<string, wxWindow*>::iterator it = p_fields.begin();
@@ -160,6 +229,151 @@ void WxMachineRegister::showTool(wxDialog* dlg, const string& prefix)
             this->toolClosed(prefix);
         dlg->Destroy();
     }
+}
+
+
+//  ---- the job request controls the preview and the test share ---------------
+
+namespace
+{
+    struct RequestPanel
+    {
+        wxChoice *code, *queue;
+        wxSpinCtrl *nodes, *procs, *mem;
+        wxSpinCtrlDouble *wall;
+        wxTextCtrl *account;
+        RequestPanel() : code(NULL), queue(NULL), nodes(NULL), procs(NULL),
+                         mem(NULL), wall(NULL), account(NULL) {}
+    };
+}
+
+//  A queue's defaults into the request fields: the processors, wall time and
+//  memory the Launcher would start with.
+static void queueDefaults(const vector<MCD::QueueRow>& queues,
+                          const string& name, RequestPanel& p)
+{
+    for (size_t i = 0; i < queues.size(); i++)
+    {
+        if (queues[i].name != name)
+            continue;
+        const MCD::QueueRow& q = queues[i];
+        p.procs->SetValue(q.defProcs != 0 && q.defProcs != (unsigned)INT_MAX
+                          ? (int)q.defProcs : 1);
+        p.wall->SetValue(q.defWall != 0 && q.defWall != (unsigned)INT_MAX
+                         ? q.defWall / 60.0 : 1.0);
+        p.mem->SetValue(q.defMem != 0 && q.defMem != (unsigned)INT_MAX
+                        ? (int)MemoryUnits::mbToGB(q.defMem) : 0);
+        return;
+    }
+}
+
+
+static void addRequestControls(WxMachineRegister* owner, wxDialog* dlg,
+                               wxSizer* root, RequestPanel& p,
+                               const vector<string>& codes,
+                               const string& selectedCode,
+                               const vector<MCD::QueueRow>& queues,
+                               const string& selectedQueue,
+                               bool allocAccounts,
+                               const string& prefix, bool withCode,
+                               std::function<void(const string&, wxWindow*)> reg)
+{
+    wxFlexGridSizer* grid = new wxFlexGridSizer(2, 4, 8);
+    root->Add(grid, wxSizerFlags().Border());
+
+    p.code = new wxChoice(dlg, wxID_ANY);
+    for (size_t i = 0; i < codes.size(); i++)
+        p.code->Append(codes[i]);
+    if (!p.code->SetStringSelection(selectedCode) && p.code->GetCount() > 0)
+        p.code->SetSelection(0);
+    if (withCode)
+    {
+        grid->Add(new wxStaticText(dlg, wxID_ANY, "Code"),
+                  wxSizerFlags().CentreVertical());
+        grid->Add(p.code);
+    }
+    else
+        p.code->Hide();
+
+    p.queue = new wxChoice(dlg, wxID_ANY);
+    p.queue->Append("(none)");
+    for (size_t i = 0; i < queues.size(); i++)
+        p.queue->Append(queues[i].name);
+    if (!p.queue->SetStringSelection(selectedQueue))
+        p.queue->SetSelection(0);
+    grid->Add(new wxStaticText(dlg, wxID_ANY, "Queue"),
+              wxSizerFlags().CentreVertical());
+    grid->Add(p.queue);
+
+    p.nodes = new wxSpinCtrl(dlg, wxID_ANY, "1", wxDefaultPosition,
+                             wxDefaultSize, wxSP_ARROW_KEYS, 1, 10000, 1);
+    grid->Add(new wxStaticText(dlg, wxID_ANY, "Nodes"),
+              wxSizerFlags().CentreVertical());
+    grid->Add(p.nodes);
+
+    p.procs = new wxSpinCtrl(dlg, wxID_ANY, "1", wxDefaultPosition,
+                             wxDefaultSize, wxSP_ARROW_KEYS, 1, 100000, 1);
+    grid->Add(new wxStaticText(dlg, wxID_ANY, "Processors (total)"),
+              wxSizerFlags().CentreVertical());
+    grid->Add(p.procs);
+
+    p.wall = new wxSpinCtrlDouble(dlg, wxID_ANY, "1", wxDefaultPosition,
+                                  wxDefaultSize, wxSP_ARROW_KEYS, 0, 100000, 1,
+                                  0.25);
+    p.wall->SetDigits(2);
+    grid->Add(new wxStaticText(dlg, wxID_ANY, "Wall time (hours)"),
+              wxSizerFlags().CentreVertical());
+    grid->Add(p.wall);
+
+    p.mem = new wxSpinCtrl(dlg, wxID_ANY, "0", wxDefaultPosition, wxDefaultSize,
+                           wxSP_ARROW_KEYS, 0, 100000, 0);
+    p.mem->SetToolTip("0 requests no memory");
+    grid->Add(new wxStaticText(dlg, wxID_ANY, "Memory (GB)"),
+              wxSizerFlags().CentreVertical());
+    grid->Add(p.mem);
+
+    p.account = new ewxTextCtrl(dlg, wxID_ANY);
+    p.account->SetHint("e.g. proj1");
+    p.account->Enable(allocAccounts);
+    p.account->SetToolTip(allocAccounts ? "The allocation account the job is "
+        "charged to" : "Allocation accounts are not used on this machine "
+        "(Queues tab)");
+    grid->Add(new wxStaticText(dlg, wxID_ANY, "Account"),
+              wxSizerFlags().CentreVertical());
+    grid->Add(p.account, wxSizerFlags().Expand());
+
+    queueDefaults(queues, selectedQueue, p);
+
+    if (withCode)
+        reg(prefix + "code", p.code);
+    reg(prefix + "queue", p.queue);
+    reg(prefix + "nodes", p.nodes);
+    reg(prefix + "procs", p.procs);
+    reg(prefix + "wall", p.wall);
+    reg(prefix + "mem", p.mem);
+    reg(prefix + "account", p.account);
+    (void)owner;
+}
+
+static JobPreview::Request requestFrom(const RequestPanel& p, bool admin,
+                                       const string& host, const string& fullName,
+                                       const string& qmgr)
+{
+    JobPreview::Request r;
+    r.host = host;
+    r.fullName = fullName;
+    r.qmgr = qmgr;
+    r.code = (string)p.code->GetStringSelection();
+    string q = (string)p.queue->GetStringSelection();
+    r.queue = q == "(none)" ? "" : q;
+    r.account = p.account->IsEnabled() ? stripped((string)p.account->GetValue())
+                                       : "";
+    r.nodes = (unsigned)p.nodes->GetValue();
+    r.procs = (unsigned)p.procs->GetValue();
+    r.wallHours = p.wall->GetValue();
+    r.memMB = MemoryUnits::gbToMB((unsigned)p.mem->GetValue());
+    r.admin = admin;
+    return r;
 }
 
 
@@ -340,6 +554,169 @@ void WxMachineRegister::addDiscovered(const vector<SchedulerQuery::Queue>& picke
     this->showQueue(picked.front().name);
     p_queueFormBase = queueFormRow();
     this->updateDirty();
+}
+
+
+//  ---- preview --------------------------------------------------------------
+
+void WxMachineRegister::previewJobScript(const string& wantedCode)
+{
+    vector<string> codes = this->codesWithPath();
+    if (codes.empty())
+    {
+        displayMessage("No code has a program path on this machine yet. Set "
+                       "one on the Codes tab (Program) first; the job script "
+                       "needs it.");
+        return;
+    }
+    string code = wantedCode;
+    if (code.empty() && p_codeSel >= 0 && p_codeSel < (int)p_codeNames.size())
+        code = p_codeNames[p_codeSel];
+    string queue = (string)p_queueChoice->GetStringSelection();
+    string qmgr = (string)p_qmgrChoice->GetStringSelection();
+    bool accounts = p_allocAccts->IsChecked();
+
+    wxDialog* dlg = new wxDialog(this, wxID_ANY, "Preview job script",
+                                 wxDefaultPosition, wxDefaultSize,
+                                 wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER);
+    wxBoxSizer* root = new wxBoxSizer(wxVERTICAL);
+    dlg->SetSizer(root);
+    wxColour gray = wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT);
+    wxFont mono(wxFontInfo().Family(wxFONTFAMILY_TELETYPE));
+
+    wxStaticText* intro = new wxStaticText(dlg, wxID_ANY,
+        "The job script ECCE would write for this request, from the form as it "
+        "is now, saved or not. Nothing is submitted. The run directory, input "
+        "and output names are examples.");
+    intro->SetForegroundColour(gray);
+    intro->Wrap(640);
+    root->Add(intro, wxSizerFlags().Border());
+
+    std::shared_ptr<RequestPanel> panel = std::make_shared<RequestPanel>();
+    addRequestControls(this, dlg, root, *panel, codes, code, p_queues, queue,
+                       accounts, "prev:", true,
+                       [this](const string& n, wxWindow* w) { this->reg(n, w); });
+
+    wxButton* update = new ewxButton(dlg, wxID_ANY, "Show Script");
+    root->Add(update, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+    reg("prev:update", update);
+
+    //  Legend: the colour and gutter label of each part, and the tab it
+    //  comes from.
+    wxFlexGridSizer* legend = new wxFlexGridSizer(2, 2, 8);
+    static const char* const parts[] = { "request", "before", "environment",
+                                         "command", "after", "ecce" };
+    for (size_t i = 0; i < 6; i++)
+    {
+        wxStaticText* sw = new wxStaticText(dlg, wxID_ANY,
+            " " + wxString(partShort(parts[i])) + " ",
+            wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE_HORIZONTAL);
+        sw->SetBackgroundColour(partColour(parts[i]));
+        sw->SetFont(mono);
+        legend->Add(sw, wxSizerFlags().Expand());
+        legend->Add(new wxStaticText(dlg, wxID_ANY,
+                    JobPreview::partTitle(parts[i])),
+                    wxSizerFlags().CentreVertical());
+    }
+    root->Add(legend, wxSizerFlags().Border());
+    wxStaticText* layers = new wxStaticText(dlg, wxID_ANY,
+        "After the name: user = your setting, site = the site's, built-in = "
+        "ECCE's own text.");
+    layers->SetForegroundColour(gray);
+    root->Add(layers, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+
+    wxTextCtrl* text = new wxTextCtrl(dlg, wxID_ANY, "", wxDefaultPosition,
+        wxSize(720, 320),
+        wxTE_MULTILINE|wxTE_READONLY|wxTE_DONTWRAP|wxTE_RICH2);
+    text->SetFont(mono);
+    root->Add(text, wxSizerFlags(1).Expand().Border());
+    reg("prev:text", text);
+
+    wxStaticText* status = new wxStaticText(dlg, wxID_ANY, "");
+    status->SetForegroundColour(gray);
+    root->Add(status, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+    reg("prev:status", status);
+
+    wxBoxSizer* buttons = new wxBoxSizer(wxHORIZONTAL);
+    wxButton* copy = new ewxButton(dlg, wxID_ANY, "Copy Script");
+    copy->SetToolTip("Copies the script without the labels");
+    wxButton* close = new ewxButton(dlg, wxID_CANCEL, "Close");
+    buttons->Add(copy, wxSizerFlags().Border());
+    buttons->AddStretchSpacer(1);
+    buttons->Add(close, wxSizerFlags().Border());
+    root->Add(buttons, wxSizerFlags().Expand());
+    reg("prev:copy", copy);
+    reg("prev:close", close);
+
+    auto lines = std::make_shared<vector<JobPreview::Line> >();
+    auto show = [this, panel, text, status, lines, qmgr]() {
+        string cfg, err;
+        if (!this->draftConfigText(cfg, err))
+        {
+            text->SetValue("");
+            status->SetLabel("Cannot build the settings file: " + err);
+            return;
+        }
+        string host = stripped((string)p_refName->GetValue());
+        if (host.empty())
+            host = "unnamed";
+        JobPreview::Request req = requestFrom(*panel, p_adminFlag, host,
+            stripped((string)p_fullName->GetValue()), qmgr);
+        req.configText = cfg;
+        string gerr;
+        text->Clear();
+        lines->clear();
+        if (!JobPreview::generate(req, *lines, gerr))
+        {
+            text->SetValue(gerr);
+            status->SetLabel("No script could be made:");
+            return;
+        }
+        size_t width = 0;
+        vector<string> gutter;
+        for (size_t i = 0; i < lines->size(); i++)
+        {
+            const JobPreview::Line& l = (*lines)[i];
+            string g = partShort(l.part);
+            if (l.part != "ecce" && !l.layer.empty())
+                g += " (" + l.layer + ")";
+            gutter.push_back(g);
+            width = std::max(width, g.size());
+        }
+        for (size_t i = 0; i < lines->size(); i++)
+        {
+            const JobPreview::Line& l = (*lines)[i];
+            string row = gutter[i] + string(width - gutter[i].size(), ' ') +
+                         " | " + l.text + "\n";
+            long from = text->GetLastPosition();
+            text->AppendText(wxString::FromUTF8(row.c_str()));
+            if (l.part != "ecce")
+                text->SetStyle(from, text->GetLastPosition(),
+                               wxTextAttr(wxNullColour, partColour(l.part)));
+        }
+        text->ShowPosition(0);
+        status->SetLabel(std::to_string(lines->size()) + " lines.");
+    };
+    update->Bind(wxEVT_BUTTON, [show](wxCommandEvent&) { show(); });
+    panel->queue->Bind(wxEVT_CHOICE, [this, panel, show](wxCommandEvent&) {
+        string q = (string)panel->queue->GetStringSelection();
+        queueDefaults(p_queues, q, *panel);
+        show();
+    });
+    panel->code->Bind(wxEVT_CHOICE, [show](wxCommandEvent&) { show(); });
+    copy->Bind(wxEVT_BUTTON, [lines](wxCommandEvent&) {
+        if (wxTheClipboard->Open())
+        {
+            wxTheClipboard->SetData(new wxTextDataObject(
+                wxString::FromUTF8(JobPreview::plainText(*lines).c_str())));
+            wxTheClipboard->Close();
+        }
+    });
+    close->Bind(wxEVT_BUTTON, [dlg](wxCommandEvent&) { dlg->Close(); });
+
+    show();
+    dlg->Fit();
+    this->showTool(dlg, "prev:");
 }
 
 

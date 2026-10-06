@@ -246,7 +246,11 @@ class WxMachineRegister: public ewxFrame
         //  WxMachineRegisterTools.C)
         void discoverQueues();
         void addDiscovered(const vector<SchedulerQuery::Queue>& picked);
+        void previewJobScript(const string& code = "");
         SchedulerQuery::Connection connection();
+        bool draftConfigText(string& text, string& err,
+                             const string& extra = "");
+        vector<string> codesWithPath();
         void showTool(wxDialog* dlg, const string& prefix);
         void toolClosed(const string& prefix);
 

@@ -225,6 +225,40 @@ largest memory of one node, in GB. If the machine cannot be reached, or the
 queue manager prints nothing, the window shows the message the machine gave
 and adds nothing.
 
+## Preview the job script
+
+**Preview job script...** shows the job script ECCE would write for a code
+and a queue, built from the window as it is now, with changes you have not
+saved. Nothing is submitted and nothing is saved. Each line is labelled with
+the tab that produced it, and coloured the same way.
+
+1. Open the **Job script** tab, or the **Codes** tab with the code you are
+   interested in selected, and click **Preview job script...**. A code needs a
+   program path (**Codes > Program**) before it has a script.
+2. Choose the **Code** and the **Queue**, and set **Nodes**, **Processors
+   (total)**, **Wall time (hours)** and **Memory (GB)** to what a job would
+   ask for. Choosing a queue fills in its defaults. Click **Show Script**.
+3. Read the script. The label at the start of each line is one of:
+
+   | Label | Where the line comes from |
+   |---|---|
+   | `request` | **Job script > Request lines** |
+   | `before` | **Job script > Commands run before the calculation** (or the code's own, under **Codes > Advanced**) |
+   | `env` | **Codes > Environment variables** |
+   | `command` | **Codes > Command line**; `built-in` means the box is empty and ECCE's own command is used |
+   | `after` | **Job script > Commands run after the calculation** (or the code's own) |
+   | `ECCE` | Written by ECCE, whatever the settings |
+
+   After the label, `user` means your setting, `site` the site's (or the
+   server's), and `built-in` ECCE's own text.
+4. To change a line, edit the setting named by its label, then click **Show
+   Script** again. **Copy Script** puts the script on the clipboard without the
+   labels.
+
+The run directory (`/path/to/run`) and the input and output names are
+examples. A request line whose placeholder has no value, for example `$memory`
+with **Memory (GB)** 0, is left out, as it is in a real job.
+
 ## Codes or Job script?
 
 Both tabs put commands into the job script. The **Job script** tab applies

@@ -1839,6 +1839,15 @@ def tool_machine(e):
           "nwchem: /opt/nwchem\ncondorAllowTmp: true\n")
 
 
+def split_gutter(text):
+    """Preview rows 'gutter | line' -> [(gutter, line)]."""
+    out = []
+    for row in text.splitlines():
+        g, sep, line = row.partition(" | ")
+        out.append((g.strip(), line) if sep else (row.strip(), ""))
+    return out
+
+
 def discovery(tmp, display, build, pngs=None):
     print("queue discovery against the stand-in schedulers")
     bindir, spool = stub_clients(tmp)
@@ -1971,6 +1980,125 @@ quit
           "nothing was written")
 
 
+def preview(tmp, display, build, pngs=None):
+    print("job script preview from the unsaved form")
+    e = Env(tmp, "preview")
+    write(os.path.join(e.sc, "CONFIG.cluster"),
+          read(os.path.join(e.sc, "CONFIG.cluster")) +
+          "slurm {\n#SBATCH --partition=$queue\n#SBATCH --nodes=$nodes\n"
+          "#SBATCH --constraint=sitegpu\n}\nsetup {\nmodule load site-mpi\n}\n",
+          mode=0o644)
+    out = os.path.join(e.root, "preview.txt")
+    shot = ("scroll prev:text 'request (site)'\nwait 700\n"
+            "shot-dialog %s/preview-request.png\n"
+            "scroll prev:text 'env (user)'\nwait 700\n"
+            "shot-dialog %s/preview-env.png\n"
+            "scroll prev:text 'after (user)'\nwait 700\n"
+            "shot-dialog %s/preview-after.png\n" % (pngs, pngs, pngs)) \
+        if pngs else ""
+    edits = """tab codes
+code NWChem
+set blk:cenv 'OMP_NUM_THREADS 4\\nPATH /user/bin'
+tab job
+set blk:wrapup 'echo done >> $runDir/notes'
+"""
+    p = run(display, build, e, """
+select cluster
+""" + edits + """expect dirty 1
+click preview
+expect tool-dialog 1
+set prev:code NWChem
+set prev:queue short
+set prev:nodes 1
+set prev:procs 4
+set prev:wall 1
+set prev:mem 0
+click prev:update
+%(shot)ssave-field prev:text %(out)s
+click prev:close
+expect tool-dialog 0
+expect dirty 1
+quit
+""" % {"out": out, "shot": shot})
+    clean(p, "the preview opened from the Job script tab on an unsaved form")
+    rows = split_gutter(read(out)) if os.path.exists(out) else []
+
+    def section(part, layer=None):
+        return [l for g, l in rows if g.split(" (")[0] == part and
+                (layer is None or g == "%s (%s)" % (part, layer))]
+
+    check([l for l in section("request", "site") if l] ==
+          ["#SBATCH --partition=short", "#SBATCH --nodes=1",
+           "#SBATCH --constraint=sitegpu"],
+          "request lines: the site's header, placeholders filled: %r"
+          % section("request"))
+    check([l for l in section("before", "site") if l] == ["module load site-mpi"],
+          "before: the site's setup")
+    check([l for l in section("env", "user") if l] ==
+          ['export OMP_NUM_THREADS="4"',
+           'if [ -n "${PATH+set}" ]; then',
+           '  export PATH="${PATH}:/user/bin"', 'else',
+           '  export PATH="/user/bin"', 'fi'],
+          "environment: the unsaved user Environment: %r"
+          % section("env"))
+    check([l for l in section("after", "user") if l] ==
+          ["echo done >> /path/to/run/notes"],
+          "after: the unsaved user wrap-up, $runDir filled: %r" % section("after"))
+    check(any(l == "nwchem=/site/nwchem" for l in section("command", "built-in")),
+          "command: ECCE's own command line with the site's program path")
+    check(rows and rows[0][0] == "ECCE" and rows[0][1] == "#!/bin/sh",
+          "the first line is ECCE's")
+    check(not os.path.exists(os.path.join(e.ue, "CONFIG.cluster")),
+          "the preview wrote no settings file")
+
+    # the same script as the one gensub makes once the form is saved
+    p = run(display, build, e, "select cluster\n" + edits + "save\nquit\n")
+    clean(p, "the same edits saved")
+    gen = os.path.join(e.root, "gen2")
+    os.makedirs(gen)
+    write(os.path.join(gen, "params"),
+          " -H cluster\n -Q Slurm\n -q short\n -c NWChem\n -d cluster.example.org\n"
+          " -n 4\n -N 1\n -T 1:00:00\n -w 1:00\n -r /path/to/run\n -i input\n"
+          " -o output\n -f %s/submit__x\n" % gen)
+    env = dict(os.environ, ECCE_HOME=e.home, ECCE_REALUSERHOME=e.user)
+    subprocess.run(["perl", os.path.join(REPO, "scripts", "gensub"), "-p",
+                    os.path.join(gen, "params")], env=env, cwd=gen, check=True)
+    real = [l for l in read(os.path.join(gen, "submit__x")).splitlines()
+            if not l.startswith("#  Generated")]
+    shown = [l for g, l in rows if not l.startswith("#  Generated")]
+    check(shown == real,
+          "the preview is line for line the script gensub makes after Save "
+          "(%d lines)" % len(real) if shown == real else
+          "the preview differs from the saved script: %r"
+          % [x for x in zip(shown, real) if x[0] != x[1]][:3])
+
+
+def preview_admin(tmp, display, build):
+    print("job script preview under -admin")
+    e = Env(tmp, "preview-admin")
+    out = os.path.join(e.root, "preview.txt")
+    p = run(display, build, e, """
+select cluster
+tab job
+set blk:header '#SBATCH --partition=$queue\\n#SBATCH --constraint=admin'
+click preview
+set prev:queue short
+set prev:procs 2
+click prev:update
+save-field prev:text %s
+click prev:close
+quit
+""" % out, args=["-admin"])
+    clean(p, "-admin preview")
+    rows = split_gutter(read(out)) if os.path.exists(out) else []
+    check([l for g, l in rows if g == "request (site)" and l] ==
+          ["#SBATCH --partition=short", "#SBATCH --constraint=admin"],
+          "the draft site file takes the place of the saved one: %r"
+          % [x for x in rows if x[0].startswith("request")])
+    check(read(os.path.join(e.sc, "CONFIG.cluster")).count("admin") == 0,
+          "nothing was saved")
+
+
 
 
 def main():
@@ -1999,6 +2127,7 @@ def main():
             out = os.path.abspath(a.tools_pngs)
             os.makedirs(out, exist_ok=True)
             discovery(tmp, disp, build, out)
+            preview(tmp, disp, build, out)
             for n in sorted(os.listdir(out)):
                 print("        " + os.path.join(out, n))
         elif a.queues_pngs:
@@ -2032,6 +2161,8 @@ def main():
             codes_retired(tmp, disp, build)
             codes_skeleton(tmp, disp, build)
             discovery(tmp, disp, build)
+            preview(tmp, disp, build)
+            preview_admin(tmp, disp, build)
     finally:
         disp.__exit__(None, None, None)
         shutil.rmtree(tmp, ignore_errors=True)
