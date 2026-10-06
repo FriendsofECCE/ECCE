@@ -19,6 +19,9 @@ Reporting a problem:
   -admin               Edit the site-wide machine list ($ECCE_HOME/siteconfig).
                        Needs write access there (run as a user who has it,
                        e.g. with sudo). Starts no broker or data server.
+                       With -remote: edit the central server's list over
+                       ssh, as your login there (-l LOGIN for another one);
+                       you must be allowed to write its siteconfig.
   -machine, -machines  Edit your own machine registrations (~/.ECCE),
                        without starting a session.
   -remote              Use the central data server/broker (siteconfig/
@@ -89,6 +92,17 @@ if [ -e "$ECCE_HOME/siteconfig/StartMessage" ]; then
     echo ""
     exit 1
   fi
+fi
+
+# -admin -remote changes the central server's siteconfig over ssh
+# (ecce-site-admin there), so this client's own needs no write access.
+if $admin && $remote; then
+  if [ -n "$login" ]; then
+    export ECCE_SITE_ADMIN_LOGIN="$login"
+  fi
+  export ECCE_NO_MESSAGING=1
+  export ECCE_NO_DATASERVER=1
+  exec ecce-machregister -admin
 fi
 
 if $admin; then

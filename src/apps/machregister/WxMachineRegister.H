@@ -61,6 +61,8 @@ class ewxStaticText;
 class ewxTextCtrl;
 class MachRegScript;
 
+class SiteRequest;
+
 class WxMachineRegister: public ewxFrame
 {
     public:
@@ -261,6 +263,10 @@ class WxMachineRegister: public ewxFrame
         bool verifyInput();
         string collectSettings() const;
         bool writeConfig(const string& name, string& err);
+        //  -admin on a -remote client: the central server's site settings.
+        bool remoteAdmin() const;
+        bool sendToServer(const SiteRequest& request, bool tell = true);
+        string p_lastSiteReport;
         bool deleteMachine();
         string removalList(const string& refName) const;
         void redo(const string& refName);

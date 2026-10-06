@@ -129,4 +129,5 @@ dialog showing the deck with the offending lines marked.
 - [`GENSUB_EXPLAIN=1 gensub` prints each CONFIG key's effective value and where it came from](gensub-explain-config-provenance.md)
 - [`ConfigFile` reads and writes `CONFIG.<m>`; `MachineConfigDraft` is what Register Machines edits](configfile-writer-and-draft.md)
 - [Register Machines is a tabbed frame over a draft; `ECCE_MACHREG_SCRIPT` drives the real window](register-machines-frame-and-test-hook.md)
+- [`ecce -admin -remote` saves on the central server over ssh (`ecce-site-admin`), publishes, then refreshes the client's copy](site-admin-from-a-client.md)
 - [The Launcher lists a machine for a code when its Machines line lists the code or CONFIG gives it a path](launcher-machine-list-per-code.md)

@@ -475,10 +475,53 @@ sudo ecce-remote-setup <server-host>
 
 `ecce-remote-setup` also copies the server's registered site machine list
 (`sudo ecce -admin` on the server) onto the client, so students don't
-register machines by hand; re-run it on the client after the admin
-changes that list (#188). It writes only the data server's address; the
+register machines by hand; run `sudo ecce-remote-setup --refresh` on the
+client after the admin changes that list (#188). It writes only the data server's address; the
 client finds the broker on the same host, port 8088 (set `ECCE_BROKER_PORT`
 in the client's environment if the server uses another).
+
+##### Changing the site settings from a client
+
+An administrator can edit the server's site machine list from a client
+with `ecce -admin -remote`. Register Machines then saves over ssh, as the
+administrator's own login on the server (`-l LOGIN` for another one, or a
+`User` line in `~/.ssh/config`): `ecce-site-admin` on the server writes
+`siteconfig` with the same writers as `ecce -admin` there, publishes the
+files to clients, and the client fetches its copy again. The data server
+password plays no part in this; the ssh login and the right to write the
+server's `siteconfig` decide.
+
+Once, on the server, as root, let a group write `siteconfig` (non-interactive
+sudo over ssh is not used):
+
+```
+sudo groupadd ecceadmin
+sudo usermod -aG ecceadmin alice            # each administrator; log in again
+sudo chgrp -R ecceadmin /opt/ecce/siteconfig
+sudo chmod -R g+w /opt/ecce/siteconfig
+sudo chmod g+s /opt/ecce/siteconfig         # new files keep the group
+```
+
+The packages never change these permissions. An administrator checks the
+setup from the client with `ssh <server-host> ecce-site-admin check`.
+
+If administrators are not the account that runs the data server (`ecce`
+above), they also need to write where that account publishes. As root,
+add it to the group, then as `ecce` (logged in again):
+
+```
+sudo usermod -aG ecceadmin ecce
+d=~ecce/.ECCE/dataserver/htdocs/Ecce/system/siteconfig
+chgrp ecceadmin "$d" && chmod 2775 "$d"     # as ecce
+echo "$d" > /opt/ecce/siteconfig/PublishDir # as an administrator
+```
+
+Every directory above `$d` must be searchable (`x`) by the administrators,
+e.g. `chmod 711 ~ecce` if the home directory is private.
+
+The administrator's own client refreshes its copy when that user can write
+its `siteconfig` (the same group setup on the client); otherwise, and on
+every other client, `sudo ecce-remote-setup --refresh` fetches the new list.
 
 Users then run `ecce -remote`. A client quitting never stops the server's
 services, and neither does the server account's own plain quit; its
@@ -632,6 +675,8 @@ data server to log in to.
 - **`-admin`** — edit the site-wide machine list (`$ECCE_HOME/siteconfig`)
   directly in Machine Registration; no broker or data server started.
   Needs write access to `siteconfig`, so typically `sudo ecce -admin`.
+  With `-remote`, edits the central server's list over ssh instead
+  (see "Changing the site settings from a client" under Mode 2).
 - **`-machine`** / **`-machines`** — edit your own machine registrations
   (`~/.ECCE`) the same way, without starting a session.
 - **`-remote`** — use a central data server/broker

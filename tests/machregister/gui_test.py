@@ -1383,6 +1383,114 @@ close
           p.stdout, "no quit prompt")
 
 
+def remote_admin(tmp, display, build):
+    """-admin on a -remote client: saved on the central server over the
+    RCommand transport, published, and this client's copy fetched again.
+    The server is simulated on this machine (tests/queues/central_server.py);
+    the client never writes its own siteconfig except through
+    ecce-remote-setup --refresh."""
+    print("-admin on a -remote client")
+    sys.path.insert(0, os.path.join(REPO, "tests", "queues"))
+    from central_server import CentralServer, make_client
+    if not os.access(os.path.join(build, "ecce-site-admin"), os.X_OK):
+        check(False, "no ecce-site-admin in " + build)
+        return
+    e = Env(tmp, "radmin", remote=True)
+    root = os.path.join(tmp, "radmin-server")
+    os.makedirs(root)
+    s = CentralServer(root, build, siteconfig=e.sc)
+    try:
+        s.publish()
+        port = s.serve()
+        make_client(e.home, port)
+        canary = os.path.join(tmp, "PWNED")
+        extra = s.client_env({"ECCE_REMOTE_SERVER": "1",
+                              "PATH": os.environ.get("PATH", "")})
+        server_cfg = os.path.join(s.sc, "CONFIG.cluster")
+        client_cfg = os.path.join(e.sc, "CONFIG.cluster")
+        user_before = registration(e.ue)
+        orca = "/admin/orca $(touch %s)" % canary
+        src = "/x'y;z `touch %s`" % canary
+        p = run(display, build, e, """
+select cluster
+expect list cluster server
+expect list mine <absent>
+set code:orca '%s'
+tab connection
+set sourcefile "%s"
+save
+expect dirty 0
+expect field code:orca '%s'
+expect field sourcefile "%s"
+quit
+""" % (orca, src, orca, src), args=["-admin"], extra=extra)
+        clean(p, "remote admin: a save goes to the server")
+        cfg = keys(server_cfg)
+        check(cfg.get("orca") == orca and cfg.get("sourcefile") == src and
+              cfg.get("nwchem") == "/site/nwchem",
+              "the server's CONFIG.cluster has the values as typed: %r" % cfg)
+        check(not os.path.exists(canary), "no value was run by a shell")
+        m = machines(os.path.join(s.sc, "Machines")).get("cluster", [])
+        check(len(m) > 7 and ":ORCA" in m[7], "the server's Machines lists ORCA")
+        check(read(os.path.join(s.published, "CONFIG.cluster")) == read(server_cfg),
+              "the server published the new file")
+        check(read(client_cfg) == read(server_cfg),
+              "this client's copy was fetched again")
+        check(registration(e.ue) == user_before, "the user's files are untouched")
+
+        # a raw edit of the server's file
+        good = "# raw\nnwchem: /raw/nwchem\norca: /raw/orca\n"
+        p = run(display, build, e, """
+select cluster
+click edit-file
+expect raw-dialog 1
+set raw:text %s
+click raw:save
+expect raw-dialog 0
+expect field code:orca /raw/orca
+quit
+""" % esc(good), args=["-admin"], extra=extra)
+        clean(p, "remote admin: the file edited as text is saved on the server")
+        check(read(server_cfg) == good and read(client_cfg) == good,
+              "the server's file and this client's copy are the text saved")
+
+        # not allowed to write the server's siteconfig: nothing changes
+        before = (digest(s.sc), digest(s.published), digest(e.sc))
+        os.chmod(s.sc, 0o555)
+        try:
+            p = run(display, build, e, """
+select cluster
+set code:orca /not/allowed
+save
+expect message 'cannot change the site settings'
+expect dirty 1
+quit
+""", args=["-admin"], extra=extra)
+        finally:
+            os.chmod(s.sc, 0o755)
+        clean(p, "remote admin without write access: refused with a reason")
+        check((digest(s.sc), digest(s.published), digest(e.sc)) == before,
+              "nothing changed on the server or on this client")
+
+        # delete on the server
+        p = run(display, build, e, """
+select cluster
+answer yes
+delete
+expect list cluster <absent>
+quit
+""", args=["-admin"], extra=extra)
+        clean(p, "remote admin: delete a machine on the server")
+        check("cluster" not in machines(os.path.join(s.sc, "Machines")) and
+              not os.path.exists(server_cfg),
+              "the server's Machines line and CONFIG.cluster are gone")
+        check(not os.path.exists(client_cfg) and "cluster" not in
+              machines(os.path.join(e.sc, "Machines")),
+              "and this client's copies of them")
+    finally:
+        s.stop()
+
+
 def snapshots(tmp, display, build, out):
     print("snapshots")
     os.makedirs(out, exist_ok=True)
@@ -1437,6 +1545,7 @@ def main():
             delete_prompt_lists_files(tmp, disp, build)
             fixes(tmp, disp, build)
             admin_mode(tmp, disp, build)
+            remote_admin(tmp, disp, build)
             for m in ("user", "remote", "admin"):
                 connection_tab(tmp, disp, build, m)
             for m in ("user", "remote", "admin"):
