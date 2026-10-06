@@ -149,6 +149,7 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
     p_jobPage = NULL;
     p_cshTimer = NULL;
     p_rawDlg = NULL;
+    p_toolDlg = NULL;
     p_wordsDlg = NULL;
     p_wordsList = NULL;
     p_wordsInsert = NULL;
@@ -780,6 +781,7 @@ wxWindow* WxMachineRegister::createCodesPage(wxWindow* parent)
                 "Names or patterns, separated by spaces, deleted from the "
                 "run directory before the program starts.");
     setCodeAdvanced(false);
+
     return page;
 }
 
@@ -1457,6 +1459,24 @@ wxWindow* WxMachineRegister::createQueuesPage(wxWindow* parent)
     sizer->Add(new wxStaticText(page, wxID_ANY,
         "Queue changes are kept in the list until you press Save."),
         wxSizerFlags().Border());
+
+    //  Both ask the machine's scheduler, so both connect to the machine.
+    ewxButton* discover = new ewxButton(page, wxID_ANY, "Discover queues...");
+    discover->SetToolTip("Ask the queue manager on the machine which queues it "
+                         "has and fill in their limits");
+    wxBoxSizer* tools = new wxBoxSizer(wxHORIZONTAL);
+    tools->Add(discover, border);
+    sizer->Add(tools);
+    wxStaticText* toolNote = new wxStaticText(page, wxID_ANY,
+        "This connects to the machine and uses the queue manager's own "
+        "commands.");
+    toolNote->SetForegroundColour(wxSystemSettings::GetColour(
+                                  wxSYS_COLOUR_GRAYTEXT));
+    sizer->Add(toolNote, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+    reg("discover", discover);
+    discover->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        this->discoverQueues();
+    });
 
     reg("qmgr", p_qmgrChoice);
     reg("aa", p_allocAccts);

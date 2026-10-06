@@ -9,6 +9,11 @@ queries from what it recorded.  Job state lives in ../spool/<manager>/ next
 to the directory holding the links, so it does not depend on the environment
 ECCE hands the submit command.
 
+Register Machines' queue discovery (#212) are exercised with
+the same program installed as sinfo, sbatch, qconf, bqueues and condor_status
+(fixed lists of queues in the real clients' formats, put on a machine's qmgrPath
+ahead of any real client).
+
 Formats, from the vendors' documentation and not checked against a live
 installation (none is installed here):
   PBS   qsub prints "<seq>.<server>", e.g. "12345.pbsserver"       (PBS Pro, Torque)
@@ -32,8 +37,10 @@ FIRST_ID = 12345
 
 def mgrOf(name):
     return {"qsub": "pbs", "qdel": "pbs", "qstat": "pbs",
-            "bsub": "lsf", "bkill": "lsf", "bjobs": "lsf",
-            "msub": "moab", "mjobctl": "moab", "checkjob": "moab"}[name]
+            "bsub": "lsf", "bkill": "lsf", "bjobs": "lsf", "bqueues": "lsf",
+            "msub": "moab", "mjobctl": "moab", "checkjob": "moab",
+            "sinfo": "slurm", "sbatch": "slurm", "qconf": "sge",
+            "condor_status": "htcondor", "condor_submit": "htcondor"}[name]
 
 
 def nextSeq(mgr):
@@ -149,6 +156,62 @@ def queueOf(text):
     return ""
 
 
+SINFO = ("debug|30:00|2|8|47000\n"
+         "normal|infinite|4|16|191000\n"
+         "normal|infinite|2|32|383000\n"
+         "long|7-00:00:00|10|16|191000\n")
+
+PBS_QUEUES = """Queue: workq
+    queue_type = Execution
+    total_jobs = 0
+    resources_max.ncpus = 128
+    resources_max.walltime = 24:00:00
+    resources_max.mem = 256gb
+    enabled = True
+
+Queue: route1
+    queue_type = Route
+    enabled = True
+
+Queue: short
+    queue_type = Execution
+    resources_max.nodect = 4
+    resources_max.walltime = 01:30:00
+    enabled = True
+"""
+
+SGE_QUEUES = {"all.q": ("4", "INFINITY", "INFINITY"),
+              "long.q": ("16", "168:00:00", "64G")}
+
+LSF_QUEUES = """QUEUE: normal
+  -- Default queue.
+
+PARAMETERS/STATISTICS
+PRIO NICE STATUS          MAX JL/U JL/P JL/H NJOBS  PEND   RUN SSUSP USUSP  RSV
+ 30    0  Open:Active       -    -    -    -     0     0     0     0     0    0
+
+RUNLIMIT
+ 720.0 min
+
+PROCLIMIT
+ 1 1 64
+
+------------------------------------------------------------
+
+QUEUE: priority
+  -- Short jobs.
+
+MEMLIMIT
+ 8 G
+
+RUNLIMIT
+ 60.0 min
+
+PROCLIMIT
+ 1 4 16
+"""
+
+
 def main():
     name = os.path.basename(sys.argv[0])
     args = sys.argv[1:]
@@ -156,6 +219,31 @@ def main():
     os.makedirs(os.path.join(SPOOL, mgr), exist_ok=True)
     record(mgr, " ".join([name] + args))
 
+    if name == "sinfo":
+        sys.stdout.write(SINFO)
+        return 0
+    if name == "bqueues":
+        sys.stdout.write(LSF_QUEUES)
+        return 0
+    if name == "condor_status":
+        sys.stdout.write("8 48057\n4 16000\n")
+        return 0
+    if name == "qconf":
+        if args[:1] == ["-sql"]:
+            print("\n".join(sorted(SGE_QUEUES)))
+            return 0
+        if args[:1] == ["-sq"] and len(args) > 1 and args[1] in SGE_QUEUES:
+            slots, rt, vmem = SGE_QUEUES[args[1]]
+            print("qname                 %s\nslots                 %s\n"
+                  "s_rt                  INFINITY\nh_rt                  %s\n"
+                  "h_vmem                %s" % (args[1], slots, rt, vmem))
+            return 0
+        print("denied: queue \"%s\" does not exist" % " ".join(args[1:]),
+              file=sys.stderr)
+        return 1
+    if name == "qstat" and "-Qf" in args:
+        sys.stdout.write(PBS_QUEUES)
+        return 0
     if name in ("qsub", "bsub", "msub"):
         text = readScript(args)
         queue = queueOf(text)

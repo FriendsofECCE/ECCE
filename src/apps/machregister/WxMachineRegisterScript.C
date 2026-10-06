@@ -21,6 +21,7 @@
 #include "wx/listctrl.h"
 #include "wx/notebook.h"
 #include "wx/listbox.h"
+#include "wx/checklst.h"
 #include "wx/spinctrl.h"
 
 #include "wx/collpane.h"
@@ -174,7 +175,8 @@ bool MachRegScript::click(const string& name)
 bool MachRegScript::shot(const string& file, bool dialog)
 {
     wxWindow* win = dialog ? static_cast<wxWindow*>(p_frame->p_rawDlg ?
-                             p_frame->p_rawDlg : p_frame->p_wordsDlg)
+                             p_frame->p_rawDlg : p_frame->p_toolDlg ?
+                             p_frame->p_toolDlg : p_frame->p_wordsDlg)
                            : p_frame;
     if (win == NULL)
         return false;
@@ -264,6 +266,42 @@ int MachRegScript::runCommand(const vector<string>& w)
         }
         //  Programmatic changes send no change event for most controls.
         f->updateDirty();
+    }
+    else if (cmd == "pick" && n >= 2)
+    {
+        //  Ticks exactly the named items of a check list (first word of each row).
+        wxCheckListBox* l = dynamic_cast<wxCheckListBox*>(f->field(w[1]));
+        if (l == NULL) { fail("pick " + w[1]); return 100; }
+        for (unsigned i = 0; i < l->GetCount(); i++)
+        {
+            string first = (string)l->GetString(i);
+            first = first.substr(0, first.find(' '));
+            bool want = false;
+            for (size_t k = 2; k < n; k++)
+                want = want || first == w[k];
+            l->Check(i, want);
+        }
+    }
+    else if (cmd == "scroll" && n == 3)
+    {
+        //  Shows the first line of a text box that contains the text, near the top.
+        wxTextCtrl* t = dynamic_cast<wxTextCtrl*>(f->field(w[1]));
+        if (t == NULL) { fail("scroll " + w[1]); return 100; }
+        wxString all = t->GetValue();
+        int at = all.Find(w[2]);
+        if (at == wxNOT_FOUND) fail("scroll: no '" + w[2] + "' in " + w[1]);
+        else
+        {
+            long x, y;
+            t->PositionToXY(at, &x, &y);
+            t->ShowPosition(t->GetLastPosition());     // so that y ends up at the top
+            t->ShowPosition(t->XYToPosition(0, y));
+        }
+    }
+    else if (cmd == "save-field" && n == 3)
+    {
+        std::ofstream out(w[2].c_str());
+        out << get(w[1]);
     }
     else if (cmd == "undo" && n == 2)
     {
@@ -370,6 +408,20 @@ int MachRegScript::runCommand(const vector<string>& w)
                 fprintf(stderr, "[MACHREG] ok %s contains '%s'\n",
                         w[2].c_str(), want.c_str());
         }
+        else if (what == "checked" && n >= 3)
+        {
+            wxCheckListBox* l = dynamic_cast<wxCheckListBox*>(f->field(w[2]));
+            string got;
+            for (unsigned i = 0; l && i < l->GetCount(); i++)
+            {
+                if (!l->IsChecked(i)) continue;
+                string first = (string)l->GetString(i);
+                got += (got.empty() ? "" : ",") + first.substr(0, first.find(' '));
+            }
+            expectEq("checked " + w[2], got, n > 3 ? w[3] : "");
+        }
+        else if (what == "tool-dialog")
+            expectEq("tool-dialog", f->p_toolDlg != NULL ? "1" : "0", v);
         else if (what == "size-kept")
             expectEq("size-kept", f->GetSize().x >= p_size.x &&
                      f->GetSize().y >= p_size.y ? "1" : "0", v);

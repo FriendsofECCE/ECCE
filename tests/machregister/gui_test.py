@@ -1805,6 +1805,174 @@ quit
           "five PNGs written")
 
 
+# ---- #212: discover queues, preview the job script, test a submission ----
+
+#  A machine named localhost asks who "you" are (the locality note).
+LOCALUSER = {"ECCE_REALUSER": "tester"}
+
+STUB_NAMES = ("sinfo", "sbatch", "qstat", "qsub", "qdel", "qconf", "bqueues",
+              "bsub", "bkill", "msub", "mjobctl", "condor_status",
+              "condor_submit")
+
+
+def stub_clients(tmp):
+    """The stand-in schedulers of tests/queues on a directory of their own;
+    returns (bin dir, spool dir)."""
+    root = os.path.join(tmp, "stubs")
+    if not os.path.isdir(root):
+        bindir = os.path.join(root, "bin")
+        os.makedirs(bindir)
+        for n in STUB_NAMES:
+            os.symlink(os.path.join(REPO, "tests", "queues", "stubsched.py"),
+                       os.path.join(bindir, n))
+    return os.path.join(root, "bin"), os.path.join(root, "spool")
+
+
+def tool_machine(e):
+    """A machine on this computer; its scheduler clients are put on the form's
+    qmgrPath by the test, unsaved."""
+    write(os.path.join(e.ue, "MyMachines"),
+          "stubm\tlocalhost\tLinux\tx86_64\tZen4\t4:1\tssh\t:NWChem\t"
+          "MN:RD:SD:UN:PW\n")
+    #  The test home is under /tmp, which gensub refuses for HTCondor.
+    write(os.path.join(e.ue, "CONFIG.stubm"),
+          "nwchem: /opt/nwchem\ncondorAllowTmp: true\n")
+
+
+def discovery(tmp, display, build, pngs=None):
+    print("queue discovery against the stand-in schedulers")
+    bindir, spool = stub_clients(tmp)
+    e = Env(tmp, "discover")
+    tool_machine(e)
+    shot = (lambda n: "wait 600\nshot-dialog %s/%s\n" % (pngs, n)) if pngs \
+        else (lambda n: "")
+    p = run(display, build, e, """
+select stubm
+tab queues
+set qmgr Slurm
+set qmgrpath %(bin)s
+click discover
+expect tool-dialog 1
+expect checked disc:list debug,normal,long
+%(shot_slurm)spick disc:list debug long
+click disc:add
+expect tool-dialog 0
+expect dirty 1
+set queue debug
+expect field q-name debug
+expect field q-minprocs 1
+expect field q-maxprocs 16
+expect field q-maxwall 0.5
+expect field q-maxmem 47
+expect field q-defprocs 0
+expect field q-defwall 0
+expect field q-defmem 0
+set queue long
+expect field q-maxprocs 160
+expect field q-maxwall 168
+expect field q-maxmem 191
+
+set qmgr PBS
+click discover
+expect checked disc:list workq,short
+pick disc:list workq
+click disc:add
+set queue workq
+expect field q-maxprocs 128
+expect field q-maxwall 24
+expect field q-maxmem 256
+
+set qmgr SGE
+click discover
+expect checked disc:list all.q,long.q
+click disc:add
+set queue all.q
+expect field q-maxprocs 4
+expect field q-maxwall 0
+expect field q-maxmem 0
+set queue long.q
+expect field q-maxprocs 16
+expect field q-maxwall 168
+expect field q-maxmem 64
+
+set qmgr LSF
+click discover
+expect checked disc:list normal,priority
+click disc:add
+set queue normal
+expect field q-maxprocs 64
+expect field q-maxwall 12
+set queue priority
+expect field q-maxprocs 16
+expect field q-maxwall 1
+expect field q-maxmem 8
+
+set qmgr HTCondor
+click discover
+expect checked disc:list pool
+click disc:add
+set queue pool
+expect field q-maxprocs 8
+expect field q-maxmem 48
+
+set qmgr Slurm
+set queue long
+set q-defwall 4
+queue-apply
+click discover
+pick disc:list long
+expect label disc:status '3 of these are in the list already; adding them updates their limits and keeps their defaults.'
+click disc:add
+set queue long
+expect field q-defwall 4
+expect field q-maxwall 168
+save
+expect dirty 0
+quit
+""" % {"bin": bindir, "shot_slurm": shot("discover-slurm.png")},
+        extra=LOCALUSER, timeout=180)
+    clean(p, "Slurm, PBS, SGE, LSF and HTCondor queues discovered and filled in")
+    qk = keys(os.path.join(e.ue, "stubm.Q"))
+    check(qk.get("long|runlimit") == "10080" and qk.get("long|maxprocessors") == "160"
+          and qk.get("long|memlimit") == "191000" and qk.get("long|defrun") == "240",
+          "stubm.Q: the discovered limits in the .Q file's units, the default kept: %r"
+          % {k: v for k, v in qk.items() if k.startswith("long|")})
+    check(qk.get("workq|memlimit") == "256000" and qk.get("workq|runlimit") == "1440"
+          and "workq|defprocessors" not in qk,
+          "stubm.Q: PBS queue limits, no default written")
+    check("route1" not in read(os.path.join(e.ue, "stubm.Q")),
+          "a PBS route queue is not offered")
+    log = read(os.path.join(spool, "slurm", "commands.log"))
+    check("sinfo -h -o %R|%l|%D|%c|%m" in log,
+          "the scheduler was asked with sinfo's own format string")
+
+    # a scheduler that is not there: the error is shown, nothing can be added
+    e2 = Env(tmp, "discover-fail")
+    tool_machine(e2)
+    p = run(display, build, e2, """
+select stubm
+tab queues
+set qmgr LSF
+set qmgrpath /nonexistent/lsf
+click discover
+expect tool-dialog 1
+expect enabled disc:add 0
+expect contains disc:error bqueues
+%(shot)sclick disc:cancel
+expect tool-dialog 0
+expect dirty 1
+set qmgr None
+click discover
+expect message Choose a queue manager first
+quit
+""" % {"shot": shot("discover-failed.png")}, extra=LOCALUSER)
+    clean(p, "a missing scheduler is reported with its own words and adds nothing")
+    check(not os.path.exists(os.path.join(e2.ue, "stubm.Q")),
+          "nothing was written")
+
+
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--build", required=True)
@@ -1812,6 +1980,7 @@ def main():
     ap.add_argument("--job-pngs")
     ap.add_argument("--codes-pngs")
     ap.add_argument("--queues-pngs")
+    ap.add_argument("--tools-pngs")
     a = ap.parse_args()
     build = os.path.abspath(a.build)
     if not os.access(os.path.join(build, "machregister"), os.X_OK):
@@ -1826,7 +1995,13 @@ def main():
         return 77
     tmp = tempfile.mkdtemp(prefix="ecce-machreg-")
     try:
-        if a.queues_pngs:
+        if a.tools_pngs:
+            out = os.path.abspath(a.tools_pngs)
+            os.makedirs(out, exist_ok=True)
+            discovery(tmp, disp, build, out)
+            for n in sorted(os.listdir(out)):
+                print("        " + os.path.join(out, n))
+        elif a.queues_pngs:
             queues_pngs(tmp, disp, build, os.path.abspath(a.queues_pngs))
         elif a.codes_pngs:
             codes_pngs(tmp, disp, build, os.path.abspath(a.codes_pngs))
@@ -1856,6 +2031,7 @@ def main():
                 codes_tab(tmp, disp, build, m)
             codes_retired(tmp, disp, build)
             codes_skeleton(tmp, disp, build)
+            discovery(tmp, disp, build)
     finally:
         disp.__exit__(None, None, None)
         shutil.rmtree(tmp, ignore_errors=True)

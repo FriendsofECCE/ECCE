@@ -195,6 +195,36 @@ request). The **default** fills a Launcher field only when you have not
 used a value of your own for that machine and queue before; after that
 the Launcher remembers what you used.
 
+## Find the queues of a cluster
+
+Instead of typing the queues, ask the machine's queue manager for them.
+**Discover queues...** runs the manager's own listing command on the
+machine (over ssh for a remote machine) and fills in each queue's limits.
+It works for Slurm (`sinfo`), PBS (`qstat -Qf`), Grid Engine (`qconf -sql`
+and `qconf -sq`), LSF (`bqueues -l`) and HTCondor (`condor_status`; a pool
+has no queues, so it is offered as one queue called `pool`). For other
+queue managers, enter the queues by hand.
+
+1. Open the **Queues** tab and choose the **Queue manager**. If the scheduler's
+   commands are not on the machine's default path, enter their directory on
+   the **Connection** tab, in **Directory of sbatch, squeue, ...**. Discovery
+   uses the value in the window now, saved or not.
+2. Click **Discover queues...**. ECCE connects to the machine. The window
+   **Discover queues** opens and names the command that ran.
+3. Tick the queues to add. **Select All** and **Select None** change every row.
+4. Click **Add Queues**. Each queue is added to the list, or, if it is in the
+   list already, its limits are updated and its defaults are kept.
+5. Choose a queue in **Queues** and check its fields. Enter the **default**
+   values yourself; discovery leaves them empty.
+6. Click **Save**.
+
+The scheduler reports what it knows: **Processors** is the most one job can
+use in that queue (for Slurm, all the processors of the partition), **Wall
+time** is the time limit in hours (no limit is 0), and **Memory** is the
+largest memory of one node, in GB. If the machine cannot be reached, or the
+queue manager prints nothing, the window shows the message the machine gave
+and adds nothing.
+
 ## Codes or Job script?
 
 Both tabs put commands into the job script. The **Job script** tab applies

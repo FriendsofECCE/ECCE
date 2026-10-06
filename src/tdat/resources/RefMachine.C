@@ -250,9 +250,12 @@ string RefMachine::exePath(const string& code, const string& refname,
 
 string RefMachine::shellPath(void) const
 {
-  string path = "/bin:/usr/sbin:/sbin:/usr/X11R6/bin:/usr/bin/X11";
+  return shellPathFor(RefMachine::config(refname()));
+}
 
-  map<string,string> config = RefMachine::config(refname());
+string RefMachine::shellPathFor(const map<string,string>& config)
+{
+  string path = "/bin:/usr/sbin:/sbin:/usr/X11R6/bin:/usr/bin/X11";
 
   string xdir, pdir, qdir;
   if (findConfig(config, "xappsPath", xdir))
