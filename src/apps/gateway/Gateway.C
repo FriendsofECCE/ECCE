@@ -32,6 +32,7 @@
 #include "util/Preferences.H"
 #include "util/PreferenceLabels.H"
 #include "util/JMSPublisher.H"
+#include "util/SessionLease.H"
 #include "util/TempStorage.H"
 
 #include "dsm/EDSIServerCentral.H"
@@ -656,7 +657,15 @@ void Gateway::exitGateway()
       Iconize(false);
       Show(true);
     }
-    ewxMessageDialog dlg(this, "Do you really want to quit?", "Quit ECCE",
+    // Another session of this account, or a job, still uses the services
+    // (#233); the stop scripts refuse then too.
+    bool canStop = !getenv("ECCE_REMOTE_SERVER") && LocalData::dir().empty();
+    bool inUse = canStop && !SessionLease::othersUsingServices().empty();
+    string question = "Do you really want to quit?";
+    if (inUse)
+      question += "\n\nThe data server and message broker stay running: "
+                  "another ECCE session or a job of yours still uses them.";
+    ewxMessageDialog dlg(this, question, "Quit ECCE",
                          wxOK|wxCANCEL|wxICON_QUESTION,
                          wxDefaultPosition);
     // GitHub #52: plain Quit only ever closed the GUI client -- the
@@ -673,7 +682,7 @@ void Gateway::exitGateway()
     // misleading, so don't.
     // Local data mode has no data server to stop; plain Quit already ends
     // the session and the reaper stops the per-user broker.
-    if (!getenv("ECCE_REMOTE_SERVER") && LocalData::dir().empty())
+    if (canStop && !inUse)
       dlg.AddButton(ID_GATEWAY_QUIT_STOP_SERVER, "Quit and Stop Server");
     int result = dlg.ShowModal();
     if (result == wxID_OK)
@@ -695,7 +704,7 @@ void Gateway::exitGateway()
       // nothing after it runs.
       // A local-mode session started no data server; one running belongs to
       // a server-mode session elsewhere and is not ours to stop.
-      if (LocalData::dir().empty()) (void)system("ecce-dataserver-stop");
+      if (LocalData::dir().empty()) (void)system("ecce-dataserver-stop --if-unused");
       (void)system("ecce-gateway-stop");
     }
   } else {

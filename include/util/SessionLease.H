@@ -40,6 +40,14 @@ std::vector<Holder> live(const std::string& statedir,
 bool useLease();
 bool useProc();
 
+// The running ECCE programs that still use this account's data server
+// and broker, apart from this process's session: every program of another
+// session of this state directory (on any display, or with no id), and a
+// job store or job master of any session, since a job reports through
+// both. Holder::key is "" for a program without a session id. The same
+// rule as ecce_others_using_services in ecce-session-lib.sh.
+std::vector<Holder> othersUsingServices();
+
 }  // namespace SessionLease
 
 #endif

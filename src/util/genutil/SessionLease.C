@@ -1,6 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // SOURCE FILENAME: SessionLease.C   (see include/util/SessionLease.H)
 ///////////////////////////////////////////////////////////////////////////////
+#include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -10,6 +11,8 @@
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <fstream>
+#include <set>
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
 #endif
@@ -166,6 +169,80 @@ vector<Holder> live(const string& statedir, const string& key)
     rmdir(dir.c_str());                     // only succeeds when empty
   }
   return found;
+}
+
+}  // namespace SessionLease
+
+namespace {
+
+bool isJob(const string& name)
+{
+  return name == "eccejobstore" || name == "eccejobmaster";
+}
+
+// This user's processes running an ECCE program whose ECCE_REALUSERHOME
+// (else HOME) is realhome, from /proc.
+void procPrograms(const string& realhome, vector<SessionLease::Holder>& found)
+{
+#if defined(__linux__)
+  DIR* proc = opendir("/proc");
+  if (!proc) return;
+  uid_t uid = getuid();
+  while (struct dirent* e = readdir(proc)) {
+    if (!isdigit((unsigned char)e->d_name[0])) continue;
+    string dir = string("/proc/") + e->d_name;
+    struct stat st;
+    if (stat(dir.c_str(), &st) != 0 || st.st_uid != uid) continue;
+    char buf[PATH_MAX];
+    ssize_t n = readlink((dir + "/exe").c_str(), buf, sizeof(buf) - 1);
+    if (n <= 0) continue;
+    buf[n] = '\0';
+    string exe = buf;
+    static const string deleted = " (deleted)";     // rebuilt while running
+    if (exe.size() > deleted.size() &&
+        exe.compare(exe.size() - deleted.size(), deleted.size(), deleted) == 0)
+      exe.erase(exe.size() - deleted.size());
+    string name;
+    if (!isEcceProgram(exe, name)) continue;
+    std::ifstream env((dir + "/environ").c_str());
+    string var, realHome, home, id;
+    while (std::getline(env, var, '\0')) {
+      if (var.compare(0, 18, "ECCE_REALUSERHOME=") == 0) realHome = var.substr(18);
+      else if (var.compare(0, 5, "HOME=") == 0) home = var.substr(5);
+      else if (var.compare(0, 16, "ECCE_SESSION_ID=") == 0) id = var.substr(16);
+    }
+    if ((realHome.empty() ? home : realHome) != realhome) continue;
+    SessionLease::Holder h;
+    h.key = Ecce::sessionKeyFor(id);
+    h.name = name;
+    h.pid = atol(e->d_name);
+    found.push_back(h);
+  }
+  closedir(proc);
+#else
+  (void)realhome; (void)found;
+#endif
+}
+
+}  // namespace
+
+namespace SessionLease {
+
+vector<Holder> othersUsingServices()
+{
+  vector<Holder> all, others;
+  string realhome = Ecce::realUserHome();
+  string own = Ecce::sessionKey();
+  if (useLease()) all = live(realhome + "/.ECCE");
+  if (useProc()) procPrograms(realhome, all);
+  std::set<long> seen;
+  for (size_t i = 0; i < all.size(); i++) {
+    const Holder& h = all[i];
+    if (h.pid == (long)getpid() || !seen.insert(h.pid).second) continue;
+    if (!own.empty() && h.key == own && !isJob(h.name)) continue;
+    others.push_back(h);
+  }
+  return others;
 }
 
 }  // namespace SessionLease
