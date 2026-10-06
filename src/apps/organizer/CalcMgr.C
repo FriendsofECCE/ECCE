@@ -3168,11 +3168,44 @@ void CalcMgr::reconnectJob()
  */
 void CalcMgr::resetForRerun()
 {
-  bool doit = true;
+  // Imported results are often the only copy and a reset deletes them, so
+  // those calculations are skipped, with a message saying why.
+  bool single = getSelection();
+  vector<EcceURL> selections, skipped;
+  for (vector<EcceURL>::iterator itor = p_currentSelection.begin();
+       itor != p_currentSelection.end(); itor++) {
+    WxResourceTreeItemData *item = findNode(*itor, false, true);
+    TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
+    if (task && task->getState() == ResourceDescriptor::STATE_LOADED)
+      skipped.push_back(*itor);
+    else
+      selections.push_back(*itor);
+  }
 
+  if (!skipped.empty()) {
+    char buf[64];
+    string msg = "Imported results cannot be reset, because that would "
+                 "delete them. Use Run Mgmt > Duplicate for Rerun to run "
+                 "the calculation again.";
+    if (!selections.empty()) {
+      snprintf(buf, sizeof(buf), " %d imported calculation%s skipped.",
+               (int)skipped.size(), skipped.size() == 1 ? " was" : "s were");
+      msg += buf;
+    }
+    if (getenv("ECCE_TEST_RESETIMPORTED")) {
+      fprintf(stderr, "ECCE_TEST_RESETIMPORTED: refused %d: %s\n",
+              (int)skipped.size(), msg.c_str());
+    } else {
+      ewxMessageDialog dlg(this, msg, "Reset not allowed",
+                           wxOK|wxICON_INFORMATION, wxDefaultPosition);
+      dlg.ShowModal();
+    }
+  }
+  if (selections.empty()) return;
+
+  bool doit = true;
   if (GetMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
-    // get the selected tree or panel item(s), remember how many selected
-    bool single = getSelection();
+    single = selections.size() == 1;
   
     string msg = "Resetting to rerun ";
     msg += single ? "this calculation " : "these calculations ";
@@ -3195,7 +3228,6 @@ void CalcMgr::resetForRerun()
   }
 
   if (doit) {
-    vector<EcceURL> selections = p_currentSelection;
     vector<EcceURL>::iterator itor = selections.begin();
     for (; itor != selections.end(); itor++) {
       resetForRerun(findNode(*itor, false, true));
@@ -5258,6 +5290,17 @@ void CalcMgr::importValidationComplete(TaskJob *ipc, bool status,
         WxResourceTreeItemData *sel = p_treeCtrl->getSelection();
         fprintf(stderr, "ECCE_TEST_CALCIMPORT: selected %s\n",
                 sel ? sel->getUrl().toString().c_str() : "-");
+        // Reset for Rerun on the imported calculation must refuse it.
+        if (getenv("ECCE_TEST_RESETIMPORTED")) {
+          // The job monitor sets Loaded after the import; this process
+          // exits first, so set it as the monitor would.
+          ipc->setState(ResourceDescriptor::STATE_LOADED);
+          resetForRerun();
+          TaskJob *t = dynamic_cast<TaskJob*>(ipc);
+          fprintf(stderr, "ECCE_TEST_RESETIMPORTED: state after %s\n",
+                  t && t->getState() == ResourceDescriptor::STATE_LOADED
+                      ? "Loaded" : "changed");
+        }
       }
     }
   }

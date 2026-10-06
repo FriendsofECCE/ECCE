@@ -391,6 +391,7 @@
         <State name="Unsuccessful"/>
         <State name="Failed"/>
         <State name="System"/>
+        <State name="Loaded"/>
       </RunManagementTask>
       <RunManagementTask name="resetForRestart">
         <State name="Complete"/>
@@ -646,6 +647,7 @@
         <State name="Unsuccessful"/>
         <State name="Failed"/>
         <State name="System"/>
+        <State name="Loaded"/>
       </RunManagementTask>
       <RunManagementTask name="resetForRestart">
         <State name="Complete"/>
@@ -906,6 +908,7 @@
         <State name="Unsuccessful"/>
         <State name="Failed"/>
         <State name="System"/>
+        <State name="Loaded"/>
       </RunManagementTask>
       <RunManagementTask name="resetForRestart">
         <State name="Complete"/>
@@ -1171,6 +1174,7 @@
         <State name="Unsuccessful"/>
         <State name="Failed"/>
         <State name="System"/>
+        <State name="Loaded"/>
       </RunManagementTask>
       <RunManagementTask name="resetForRestart">
         <State name="Complete"/>
@@ -1447,6 +1451,7 @@
         <State name="Unsuccessful"/>
         <State name="Failed"/>
         <State name="System"/>
+        <State name="Loaded"/>
       </RunManagementTask>
       <RunManagementTask name="resetForRestart">
         <State name="Complete"/>
@@ -1701,6 +1706,7 @@
         <State name="Unsuccessful"/>
         <State name="Failed"/>
         <State name="System"/>
+        <State name="Loaded"/>
       </RunManagementTask>
       <RunManagementTask name="resetForRestart">
         <State name="Complete"/>
@@ -1997,6 +2003,7 @@
         <State name="Unsuccessful"/>
         <State name="Failed"/>
         <State name="System"/>
+        <State name="Loaded"/>
       </RunManagementTask>
       <RunManagementTask name="resetCompleted">
         <State name="Killed"/>
@@ -2249,6 +2256,7 @@
         <State name="Unsuccessful"/>
         <State name="Failed"/>
         <State name="System"/>
+        <State name="Loaded"/>
       </RunManagementTask>
       <RunManagementTask name="resetCompleted">
         <State name="Killed"/>
@@ -2501,6 +2509,7 @@
         <State name="Unsuccessful"/>
         <State name="Failed"/>
         <State name="System"/>
+        <State name="Loaded"/>
       </RunManagementTask>
       <RunManagementTask name="resetCompleted">
         <State name="Killed"/>
@@ -2753,6 +2762,7 @@
         <State name="Unsuccessful"/>
         <State name="Failed"/>
         <State name="System"/>
+        <State name="Loaded"/>
       </RunManagementTask>
       <RunManagementTask name="resetCompleted">
         <State name="Killed"/>
@@ -2982,7 +2992,8 @@
     </RunManagementTask>
     <RunManagementTask name="resetForRerun">
       <MenuItem>Reset to &amp;Rerun&#x9;Alt+R</MenuItem>
-    </RunManagementTask>
+      <State name="Loaded"/>
+      </RunManagementTask>
     <RunManagementTask name="resetForRestart">
       <MenuItem>Reset for Rest&amp;art</MenuItem>
     </RunManagementTask>
