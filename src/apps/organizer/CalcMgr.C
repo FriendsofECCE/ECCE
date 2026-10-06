@@ -70,6 +70,10 @@ static bool offerStopServer(bool& inUse);
 #include "dsm/Session.H"
 #include "dsm/VDoc.H"
 #include "dsm/ICalculation.H"
+#include "dsm/ChemistryTask.H"
+#include "dsm/TGBSConfig.H"
+#include "tdat/Fragment.H"
+#include "tdat/SpinMult.H"
 #include "dsm/DirDyVTSTTask.H"
 
 #include "comm/EcceShell.H"
@@ -5459,6 +5463,40 @@ void CalcMgr::importValidationComplete(TaskJob *ipc, bool status,
         WxResourceTreeItemData *sel = p_treeCtrl->getSelection();
         fprintf(stderr, "ECCE_TEST_CALCIMPORT: selected %s\n",
                 sel ? sel->getUrl().toString().c_str() : "-");
+        // What the finished import stored, read back after the job store
+        // has parsed the output (it sets the state to Loaded last).
+        if (getenv("ECCE_TEST_IMPORTREPORT")) {
+          for (int i = 0; i < 90 && ipc->getState() !=
+                                     ResourceDescriptor::STATE_LOADED; i++) {
+            wxMilliSleep(1000);
+            wxYield();
+          }
+          ChemistryTask *chem = dynamic_cast<ChemistryTask*>(ipc);
+          ICalculation *icalc = dynamic_cast<ICalculation*>(ipc);
+          Fragment *frag = chem ? chem->fragment() : 0;
+          TGBSConfig *cfg = icalc ? icalc->gbsConfig() : 0;
+          fprintf(stderr, "ECCE_TEST_IMPORTREPORT: state %d pointgroup %s "
+                  "multiplicity %d basis '%s' ecp '%s' spherical %s\n",
+                  (int)ipc->getState(),
+                  frag ? frag->pointGroup().c_str() : "-",
+                  icalc ? (int)icalc->spinMultiplicity() : -1,
+                  cfg ? cfg->name().c_str() : "-",
+                  cfg ? cfg->ecpName().c_str() : "-",
+                  cfg ? (cfg->coordsys() == TGaussianBasisSet::Spherical
+                         ? "yes" : "no") : "-");
+          // The numbers the viewer's Basis Set summary section shows.
+          if (frag && cfg && !cfg->empty()) {
+            TagCountMap *tc = frag->tagCountsSTL();
+            if (tc) {
+              fprintf(stderr, "ECCE_TEST_IMPORTREPORT: functions %d "
+                      "primitives %d\n", (int)cfg->num_functions(*tc),
+                      (int)cfg->num_primitives(*tc));
+              delete tc;
+            }
+          }
+          delete frag;
+          delete cfg;
+        }
         // Reset for Rerun on the imported calculation must refuse it.
         if (getenv("ECCE_TEST_RESETIMPORTED")) {
           // The job monitor sets Loaded after the import; this process

@@ -37,6 +37,12 @@ CASES = [
     ("qe/h2o_gamma.pwout", None),
 ]
 
+# Stored values read back after the job store ran (ECCE_TEST_IMPORTREPORT);
+# the expected ones come from the output text (Auto-detected point group,
+# Multiplicity, def2-SVP, no ECP), not from the importer.
+STORED = {"orca/h2o_sym.out": (r"pointgroup C2v multiplicity 1 basis "
+                               r"'def2-svp' ecp '' spherical yes")}
+
 failures = []
 
 
@@ -54,6 +60,7 @@ def resetCheck(log):
 
 def check(display, name, expected):
     os.environ["ECCE_TEST_RESETIMPORTED"] = "1"
+    os.environ["ECCE_TEST_IMPORTREPORT"] = "1"
     os.environ["ECCE_TEST_CALCIMPORT"] = os.path.abspath(
         os.path.join(DATA, name))
     authPath = fixture.authFile(
@@ -74,6 +81,10 @@ def check(display, name, expected):
     elif expected is not None and (done.group(1) != "imported" or
                                    done.group(2) != expected):
         problem = "expected %s: %s" % (expected, done.group(0))
+    elif name in STORED and not re.search(
+            r"ECCE_TEST_IMPORTREPORT: state \d+ " + STORED[name], log):
+        problem = "stored metadata wrong: " + " | ".join(
+            l for l in log.splitlines() if "IMPORTREPORT" in l)
     elif expected is not None and resetCheck(log):
         problem = resetCheck(log)
     elif expected is not None and not re.search(

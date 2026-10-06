@@ -31,3 +31,10 @@ importer plus `TaskJob::import()` in local mode, with no data server, and
 checks the stored point group, multiplicity, basis, ECP and spherical
 flag against patterns read from the output text. Add each new importer's
 fixtures there.
+
+`importmeta` does not run the job store, which parses PNTGRP after the
+real import. `tests/apps/calcimport_test.py` therefore also reads the
+stored values back through the Organizer (`ECCE_TEST_IMPORTREPORT=1`:
+CalcMgr waits for the Loaded state, then prints point group,
+multiplicity, basis, ECP, spherical flag, function and primitive counts
+over the data server) and checks them for orca/h2o_sym.out.
