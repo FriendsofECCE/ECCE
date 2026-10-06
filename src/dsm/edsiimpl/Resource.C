@@ -1470,12 +1470,14 @@ void Resource::getDeleteMessage(bool & canDelete, string & message)
     message = "Are you sure you want to delete the file \"" + getName() + "\"?";
   }
   else if (getContentType() == ResourceDescriptor::CT_PROJECT) {
-    if (getChildren()->size() == 0)
+    vector<Resource*> *children = getChildren();
+    int count = children ? (int)children->size() : 0;
+    if (count == 0)
       message = "Project \"" + getName() + "\" is empty.\n\n"
         "Are you sure you want to delete the project?";
     else
       message = "Project \"" + getName() + "\" contains "
-        + StringConverter::toString((int)(getChildren()->size())) + 
+        + StringConverter::toString(count) + 
         " items.\n\nAre you sure you want to delete the project and"
         " its contents?";
   }

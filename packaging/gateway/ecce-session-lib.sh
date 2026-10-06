@@ -164,6 +164,31 @@ ecce_session_procs() {
   } | awk '!seen[$1]++'
 }
 
+# The running ECCE programs that still use this state directory's data
+# server and broker apart from the given session (default: this
+# process's): every program of another session (or of none), and a job
+# store or job master of any session, since a job reports through both.
+# Lines "<pid> <name> <session id>". SessionLease::othersUsingServices()
+# is the C++ copy, which the Quit dialogs use to decide whether to offer
+# Quit and Stop Server.
+ecce_others_using_services() {
+  local own="${1-${ECCE_SESSION_ID:-}}" pid name sid home
+  while read -r pid name sid; do
+    case "$name" in
+      eccejobstore | eccejobmaster) ;;
+      *) [ -n "$own" ] && [ "$sid" = "$own" ] && continue ;;
+    esac
+    # A /proc entry may be another state directory's (lease entries are
+    # this one's, and their programs carry the same environment).
+    if [ -r "/proc/$pid/environ" ]; then
+      home="$(tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null |
+              sed -n 's/^ECCE_REALUSERHOME=//p' | head -n1)"
+      [ "${home:-$HOME}" = "${ECCE_REALUSERHOME:-$HOME}" ] || continue
+    fi
+    echo "$pid $name $sid"
+  done < <(ecce_session_procs)
+}
+
 # Is an ECCE program of this session running?
 ecce_session_alive() {
   local pid name sid

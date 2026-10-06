@@ -3,8 +3,8 @@ type: map
 title: "The Gateway window no longer appears"
 area: services
 section: "The Gateway window and session end"
-paths: ["~/.ECCE/mosquitto.server"]
-issues: [93, 97, 185, 191]
+paths: ["~/.ECCE/mosquitto.server", "packaging/dataserver/ecce-dataserver-stop", "packaging/gateway/ecce-gateway-reap", "src/apps/organizer/CalcMgr.C", "src/apps/gateway/Gateway.C"]
+issues: [93, 97, 185, 191, 233]
 ---
 **The Gateway window no longer appears** (#93, 2026-09-22). `ecce`
 starts the services and opens the **Organizer** directly, which is now
@@ -26,4 +26,10 @@ SharedBroker` (mode 3, a systemd service no user can stop, not even
 with Quit and Stop Server), or `~/.ECCE/mosquitto.server` (`ecce-remote-
 setup --server`; mode 2, stopped only by that account's Quit and Stop
 Server). The per-user broker is `mosquitto` on a Unix socket (#213). The data server is
-stopped only by Quit and Stop Server, in every mode (#97).
+stopped only by Quit and Stop Server, in every mode (#97). **Quit and
+Stop Server stops nothing while another session of the account (any
+display) or a job is running** (#233): the Quit dialogs do not offer it
+then (`SessionLease::othersUsingServices`), and `ecce-dataserver-stop
+--if-unused` and `ecce-gateway-reap --stop` refuse
+(`ecce_others_using_services`). Without that, the second of two `ecce`
+on one display took the first one's broker and data server down.

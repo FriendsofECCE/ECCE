@@ -104,6 +104,9 @@ public:
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_EXIT
   bool confirmAndQuit();
 
+  /// One command of the ECCE_TEST_ORGANIZER hook (see CalcMgr::Create).
+  void runTestCommand(const string& line);
+
   void OnExitClick( wxCommandEvent& event );
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_DUPLICATE
