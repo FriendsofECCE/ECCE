@@ -222,9 +222,7 @@ static bool askHostKeyDialog(const string& host, const string& fp,
                              const string& keyType, bool& ran)
 {
   ran = false;
-  const char* d1 = getenv("DISPLAY");
-  const char* d2 = getenv("WAYLAND_DISPLAY");
-  if ((!d1 || !*d1) && (!d2 || !*d2)) return false;
+  if (!Ecce::guiAvailable()) return false;
   string cmd = Ecce::ecceBinCommand("hostkeydialog") + " " + shQuote(host) +
                " " + shQuote(fp) + " " + shQuote(keyType);
   FILE* p = popen(cmd.c_str(), "r");
@@ -371,9 +369,7 @@ static string askpassProgram()
   const char* over = getenv("ECCE_ASKPASS");
   if (over && *over) return over;
   const char* home = getenv("ECCE_HOME");
-  const char* x = getenv("DISPLAY");
-  const char* w = getenv("WAYLAND_DISPLAY");
-  if (!home || !*home || !((x && *x) || (w && *w))) return "";
+  if (!home || !*home || !Ecce::guiAvailable()) return "";
   string path = string(home) + "/scripts/ecce-askpass";
   return access(path.c_str(), X_OK) == 0 ? path : "";
 }

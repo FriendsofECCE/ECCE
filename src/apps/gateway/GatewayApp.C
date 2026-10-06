@@ -11,6 +11,7 @@
 #include <iomanip>
 using std::ios;
 #include <fstream>
+#include <set>
 using std::ofstream;
 
 #if defined(__GNUG__) && !defined(__APPLE__)
@@ -44,6 +45,7 @@ using std::ofstream;
 #include "util/SDirectory.H"
 #include "util/Preferences.H"
 #include "util/MqttLink.H"
+#include "util/SessionLease.H"
 #include "util/PreferenceLabels.H"
 
 #include "dsm/EDSIFactory.H"
@@ -859,29 +861,57 @@ void GatewayApp::checkSessionEnd()
 
 /**
  * The ECCE apps of this session still running: this user's processes
- * running a binary from $ECCE_HOME/bin on this DISPLAY, the same rule
- * ecce-gateway-reap uses, so the two agree on when a session is over.
+ * running a binary from $ECCE_HOME/bin with this session's
+ * ECCE_SESSION_ID (#233), the same rule ecce-gateway-reap uses, so the
+ * two agree on when a session is over.
  *
  * A binary counts if $ECCE_HOME/bin/<name> resolves to it, so a bin/
  * of symlinks into a build tree is recognised too. Job monitoring is
  * excluded: eccejobstore/eccejobmaster outlive the session by design,
  * and ecmd is a command runner, not a window.
+ *
+ * The evidence is the programs' session leases (SessionLease.H) and, on
+ * Linux, the process table; ECCE_SESSION_LIVENESS selects one of them.
  */
 int GatewayApp::otherSessionApps() const
 {
   static const char *notApps[] =
     { "gateway", "eccejobstore", "eccejobmaster", "ecmd", NULL };
 
-  const char *d = getenv("DISPLAY");
-  string display = d ? d : "";
+  string id = Ecce::sessionId();
+  if (id.empty()) return 0;
+  pid_t self = getpid();
+  std::set<long> apps;
+
+  if (SessionLease::useLease()) {
+    std::vector<SessionLease::Holder> held =
+      SessionLease::live(string(Ecce::realUserHome()) + "/.ECCE",
+                         Ecce::sessionKey());
+    for (size_t h = 0; h < held.size(); h++) {
+      bool skip = held[h].pid == (long)self;
+      for (int i = 0; notApps[i]; i++)
+        if (held[h].name == notApps[i]) skip = true;
+      if (!skip) apps.insert(held[h].pid);
+    }
+  }
+  if (SessionLease::useProc()) procSessionApps(notApps, apps);
+  return (int)apps.size();
+}
+
+
+// The same, from /proc: this user's processes of an $ECCE_HOME/bin binary
+// with this session's id in their environment.
+void GatewayApp::procSessionApps(const char *const *notApps,
+                                 std::set<long>& apps) const
+{
+  string want = "ECCE_SESSION_ID=" + Ecce::sessionId();
   string bindir = string(Ecce::ecceHome()) + "/bin/";
   pid_t self = getpid();
   uid_t uid = getuid();
 
   DIR *proc = opendir("/proc");
-  if (proc == NULL) return 0;
+  if (proc == NULL) return;
 
-  int count = 0;
   struct dirent *entry;
   while ((entry = readdir(proc)) != NULL) {
     if (!isdigit((unsigned char)entry->d_name[0])) continue;
@@ -912,17 +942,13 @@ int GatewayApp::otherSessionApps() const
       continue;
 
     ifstream env((dir + "/environ").c_str());
-    string var, appDisplay;
-    bool found = false;
+    string var;
     while (std::getline(env, var, '\0')) {
-      if (var.compare(0, 8, "DISPLAY=") == 0) {
-        appDisplay = var.substr(8);
-        found = true;
+      if (var.compare(0, 16, "ECCE_SESSION_ID=") == 0) {
+        if (var == want) apps.insert(atol(entry->d_name));
         break;
       }
     }
-    if (found && appDisplay == display) count++;
   }
   closedir(proc);
-  return count;
 }

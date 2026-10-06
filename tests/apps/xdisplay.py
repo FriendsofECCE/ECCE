@@ -115,6 +115,11 @@ class Display(object):
     def env(self, base=None):
         environment = dict(base if base is not None else os.environ)
         environment["DISPLAY"] = self.name
+        #  One ECCE session per test display (#233), unless a caller
+        #  replaces it: what an app launched by the gateway would inherit.
+        if not hasattr(self, "sessionId"):
+            self.sessionId = os.urandom(8).hex()
+        environment["ECCE_SESSION_ID"] = self.sessionId
         #  No accessibility bus on a CI runner: every GTK app there logs
         #  "AT-SPI: Error retrieving accessibility bus address" and can
         #  stall on it at exit -- msgdialog, which returns from OnInit at

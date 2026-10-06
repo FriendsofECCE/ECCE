@@ -329,9 +329,9 @@ A per-user broker listens on a Unix socket in `$ECCE_REALUSERHOME/.ECCE`
 (mode 0700, no TCP port), so instances do not collide on it;
 `ECCE_BROKER_PORT` only matters to a central server's broker and to
 `-remote` clients. The processes find their broker through
-`$ECCE_REALUSERHOME/.ECCE/broker_<host>_<display>`, written by
+`$ECCE_REALUSERHOME/.ECCE/broker_<host>_<session id>`, written by
 `ecce-gateway-start`, so a local and a `-remote` session of one account
-on different displays do not overwrite each other.
+do not overwrite each other.
 
 One thing this does **not** move: a data server you have already registered
 in the GUI keeps whatever URL it was added with. A second instance on a
@@ -366,7 +366,8 @@ ECCE_TEST_HOME=$HOME/.local/ecce ECCE_TEST_WRAPPERS=$HOME/.local/bin \
 
 Both installs share `~/.ECCE`, so they share the data server, the gateway and
 your saved calculations. That is usually what you want, but it does mean the
-two cannot run at the same time on one display.
+two should not run at the same time: each counts only its own programs when
+deciding that the shared broker is no longer used.
 
 ## 4. Start the background services
 
@@ -420,7 +421,7 @@ guessing who is connected. The data server is only ever stopped by
 
 Nothing to set up. A user's first session starts their own broker (a
 Unix socket, no port, no password) and data server. The broker stops when
-that user's last session ends, on any display. Several users on one
+that user's last session ends. Several users on one
 machine each get their own broker; mode 3 is only needed to share one.
 
 A single-user install can keep its projects in a folder instead of a data

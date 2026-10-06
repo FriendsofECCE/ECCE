@@ -25,17 +25,21 @@
 #     user's last session, so idle per-user brokers do not pile up on a
 #     machine with many users.
 #
-# Liveness is read from the process table (/proc/<pid>/exe), not from
-# reference counts, which would have to be right on every abnormal exit
-# to avoid the very leak they are meant to prevent.
+# Liveness is read from the programs' session leases (a lock the kernel
+# drops when a program ends, SessionLease.H) and, on Linux, the process
+# table (/proc/<pid>/exe) -- not from reference counts, which would have
+# to be right on every abnormal exit to avoid the very leak they are meant
+# to prevent.
 
 set -u
 
 ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
 ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
 STATEDIR="$ECCE_REALUSERHOME/.ECCE"
-HOST="${ECCE_HOST:-${HOST:-$(hostname)}}"
 UID_="$(id -u)"
+_lib="$(dirname "$(readlink -f "$0")")/ecce-session-lib.sh"
+[ -r "$_lib" ] || _lib="$ECCE_HOME/bin/ecce-session-lib.sh"
+. "$_lib" || { echo "ecce-gateway-reap: cannot read $_lib" >&2; exit 1; }
 
 IF_IDLE=0
 EXPLICIT_STOP=0
@@ -68,67 +72,31 @@ if [ -z "${ECCE_GATEWAY_LOCKED:-}" ]; then
   flock -w 90 9 || say "could not lock $STATEDIR/.gateway.lock; continuing"
 fi
 
-# The data server credential AuthCache shares between this session's
-# processes (AuthCache::sessionFile). It holds a password, so it must go
-# when the session's services do -- same lifetime as the port file, same
-# per-display key, and sanitised the same way the C++ side sanitises it.
-brokerfile() {
-  printf '%s/broker_%s' "$STATEDIR" \
-    "$(printf '%s_%s' "$HOST" "$1" | tr -c 'A-Za-z0-9._-' '_')"
-}
-authfile() {
-  printf '%s/authcache_%s' "$STATEDIR" \
-    "$(printf '%s_%s' "$HOST" "$1" | tr -c 'A-Za-z0-9._-' '_')"
-}
 
-BINDIR="$(readlink -f "$ECCE_HOME/bin" 2>/dev/null || echo "$ECCE_HOME/bin")"
+# In /proc, ECCE processes are identified by their exe (ecce_is_ecce_exe in
+# ecce-session-lib.sh), NOT by matching the command line. Apps launched
+# from the gateway are spawned as
+# `cd $ECCE_HOME/bin && ./builder` (WxJMSMessageDispatch.C), so their
+# command line is the bare "./builder" -- a path match would miss every
+# gateway-launched app and conclude the session was idle while the user
+# had windows open. The session id and ECCE_REALUSERHOME are read back out
+# of the process's own environment; both are readable without privilege
+# for one's own processes.
 
-# Is this resolved executable one of $ECCE_HOME/bin's? Also true when
-# bin/<name> is a symlink to it, as in an overlay pointing into a build
-# tree -- the same rule the gateway applies when deciding its session is
-# over, so the two agree.
-is_ecce_exe() {
-  local exe="${1% (deleted)}" name
-  case "$exe" in "$BINDIR"/*) return 0 ;; esac
-  name="${exe##*/}"
-  [ -e "$ECCE_HOME/bin/$name" ] || return 1
-  [ "$(readlink -f "$ECCE_HOME/bin/$name" 2>/dev/null)" = "$exe" ]
-}
-
-# Pids of ECCE app binaries running for a given DISPLAY, for this user.
-#
-# Identified by /proc/<pid>/exe, NOT by matching the command line. Apps
-# launched from the gateway are spawned as `cd $ECCE_HOME/bin && ./builder`
-# (WxJMSMessageDispatch.C), so their command line is the bare "./builder"
-# -- a path match would miss every gateway-launched app and conclude the
-# session was idle while the user had windows open. /proc/<pid>/exe is the
-# resolved binary either way.
-#
-# DISPLAY is not on the command line either, so it is read back out of the
-# process's own environment; both are readable without privilege for one's
-# own processes.
-apps_for_display() {
-  local want="$1" pid exe disp
-  for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
-    [ -O "/proc/$pid" ] || continue
-    exe="$(readlink "/proc/$pid/exe" 2>/dev/null)" || continue
-    is_ecce_exe "$exe" || continue
-    [ -r "/proc/$pid/environ" ] || continue
-    disp="$(tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null |
-            sed -n 's/^DISPLAY=//p' | head -n1)"
-    if [ "$disp" = "$want" ]; then echo "$pid"; fi
-  done
-}
-
-# Is any ECCE app of this state directory running, on any display? Keyed
+# Is any ECCE app of this state directory running, in any session? Keyed
 # by ECCE_REALUSERHOME, which every wrapper exports, so a second instance
 # of the same account (another ECCE_REALUSERHOME) does not count.
 apps_for_state() {
   local pid exe home
+  # Leases live in this state directory, so they are its programs.
+  if ecce_use_lease; then
+    ecce_session_leases | head -n1
+  fi
+  ecce_use_proc || return 0
   for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
     [ -O "/proc/$pid" ] || continue
     exe="$(readlink "/proc/$pid/exe" 2>/dev/null)" || continue
-    is_ecce_exe "$exe" || continue
+    ecce_is_ecce_exe "$exe" || continue
     [ -r "/proc/$pid/environ" ] || continue
     home="$(tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null |
             sed -n 's/^ECCE_REALUSERHOME=//p' | head -n1)"
@@ -151,21 +119,18 @@ reap_pid() {
 # --- 1. Session credential files with no session left -------------------
 # The data server credential outlives its session unless swept (#120), and
 # "ecce -remote" and ECCE_NO_MESSAGING never start a local broker to tie
-# it to. A session is a live ECCE app on a display, so keep only the
-# files one of those could be using. Limited to this HOST's
-# files, since a home directory shared over NFS holds other machines'.
+# it to. A session is a live ECCE app with its id (eccejobstore included,
+# so a running job keeps its session's broker file), so keep only the
+# files one of those could be using. Limited to this HOST's files, since
+# a home directory shared over NFS holds other machines'. Files of the
+# DISPLAY-keyed 9.0.0-alpha scheme match no live id and are swept too.
 live_auth="" live_broker=""
-for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
-  [ -O "/proc/$pid" ] || continue
-  exe="$(readlink "/proc/$pid/exe" 2>/dev/null)" || continue
-  is_ecce_exe "$exe" || continue
-  [ -r "/proc/$pid/environ" ] || continue
-  d="$(tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null |
-       sed -n 's/^DISPLAY=//p' | head -n1)"
-  [ -n "$d" ] && live_auth="$live_auth $(authfile "$d")" &&
-    live_broker="$live_broker $(brokerfile "$d")"
-done
-auth_prefix="$(authfile "")"      # .../authcache_<host>_
+while read -r pid name sid; do
+  ecce_session_id_valid "$sid" || continue
+  live_auth="$live_auth $(ecce_auth_file "$sid")"
+  live_broker="$live_broker $(ecce_broker_file "$sid")"
+done < <(ecce_session_procs)
+auth_prefix="$STATEDIR/authcache_$(ecce_session_prefix)"      # .../authcache_<host>_
 for f in "$auth_prefix"*; do
   [ -e "$f" ] || continue
   base="${f%.tmp.*}"              # a stranded writer's temporary, too
@@ -178,14 +143,14 @@ done
 # The broker files of sessions with no app left. One written a minute ago
 # belongs to a session whose first app is about to start (the start script
 # writes it, then releases the lock, then the wrapper launches the app).
-broker_prefix="$(brokerfile "")"
+broker_prefix="$STATEDIR/broker_$(ecce_session_prefix)"
 for f in "$broker_prefix"*; do
   [ -e "$f" ] || continue
   case " $live_broker " in *" $f "*) continue ;; esac
   [ -n "$(find "$f" -mmin +1 2>/dev/null)" ] && rm -f "$f"
 done
 
-# --- 2. The broker, shared by every display ----------------------------
+# --- 2. The broker, shared by every session ----------------------------
 if [ -e "$ECCE_HOME/siteconfig/SharedBroker" ]; then
   [ "$EXPLICIT_STOP" = 1 ] &&
     say "the broker is the site's shared service (siteconfig/SharedBroker) -- left running"

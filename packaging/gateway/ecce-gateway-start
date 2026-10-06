@@ -4,7 +4,7 @@
 # needs messaging starts. Safe to call every time an app launches -- it
 # does nothing if the broker is already up.
 #
-# The processes find the broker through $STATEDIR/broker_<host>_<display>
+# The processes find the broker through $STATEDIR/broker_<host>_<id>
 # (MqttLink.C), one file per session: "socket=<path>" for this user's own
 # mosquitto, "host=" and "port=" for a central or shared one. Those are TCP
 # and take the data server login as their account (MqttLink, AuthCache).
@@ -19,14 +19,17 @@ export ECCE_HOME
 export ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
 export ECCE_REALUSER="${ECCE_REALUSER:-$(id -un)}"
 export HOST="${HOST:-$(hostname)}"
-export DISPLAY="${DISPLAY:-:0}"
+
+_lib="$(dirname "$(readlink -f "$0")")/ecce-session-lib.sh"
+[ -r "$_lib" ] || _lib="$ECCE_HOME/bin/ecce-session-lib.sh"
+. "$_lib" || { echo "ecce-gateway-start: cannot read $_lib" >&2; exit 1; }
+ecce_session_ensure
 
 STATEDIR="$ECCE_REALUSERHOME/.ECCE"
 mkdir -p "$STATEDIR"
 
-# Written by ecce-gateway-start, read by every ECCE process (MqttLink.C),
-# which sanitises the name the same way.
-BROKERFILE="$STATEDIR/broker_$(printf '%s_%s' "$HOST" "$DISPLAY" | tr -c 'A-Za-z0-9._-' '_')"
+# Read by every ECCE process of this session (MqttLink.C, Ecce::sessionKey).
+BROKERFILE="$(ecce_broker_file)"
 
 # The central broker's port: where a -remote client finds it on the data
 # server's host, and where a server account (ecce-remote-setup --server)
@@ -83,7 +86,7 @@ flock -w 90 9 || echo "ecce-gateway-start: could not lock $STATEDIR/.gateway.loc
 
 # --- 0. Clean up after a session that died badly -----------------------
 # Issue #102: an aborted session's leftovers were adopted by the next one.
-# The sweep only touches displays with no live ECCE app.
+# The sweep only touches sessions with no live ECCE app.
 if [ -x "$ECCE_HOME/bin/ecce-gateway-reap" ]; then
   # It would wait for the lock we hold; tell it we hold it.
   ECCE_GATEWAY_LOCKED=1 "$ECCE_HOME/bin/ecce-gateway-reap" 9>&- || true
@@ -107,10 +110,17 @@ if [ -z "$SHARED" ] && [ -e "$ECCE_HOME/siteconfig/SharedBroker" ]; then
 fi
 
 # Atomic, so a process starting now never reads half of it.
+# A session's first broker file also makes it the newest session, which an
+# app started without a session id joins (ecce_session_ensure).
 write_broker_file() {
-  local tmp="$BROKERFILE.tmp.$$"
+  local tmp="$BROKERFILE.tmp.$$" ptr new=0
+  [ -e "$BROKERFILE" ] || new=1
   { printf 'user=%s\n' "${BROKER_USER:-$ECCE_REALUSER}"; printf '%s\n' "$@"; } >"$tmp" &&
-    mv -f "$tmp" "$BROKERFILE"
+    mv -f "$tmp" "$BROKERFILE" || return
+  if [ "$new" = 1 ]; then
+    ptr="$(ecce_session_pointer)"
+    printf '%s\n' "$ECCE_SESSION_ID" >"$ptr.tmp.$$" && mv -f "$ptr.tmp.$$" "$ptr"
+  fi
 }
 
 # The socket must fit sun_path (107 bytes); a deep state directory gets a

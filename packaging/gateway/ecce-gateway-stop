@@ -1,22 +1,21 @@
 #!/bin/bash
-# ecce-gateway-stop: stop this display's gateway and, once no session of
+# ecce-gateway-stop: stop this session's gateway and, once no session of
 # this account is left, its mosquitto broker (never the site's shared one).
 
 set -u
 
 ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
 STATEDIR="$ECCE_REALUSERHOME/.ECCE"
-DISPLAY="${DISPLAY:-:0}"
-# Prefer an inherited HOST over hostname(1): that is what the wrappers
-# export and what the C++ side reads back (AuthCache::sessionFile), so deriving it differently here can name a
-# file that does not exist. Same resolution order as ecce-gateway-reap.
-HOST="${ECCE_HOST:-${HOST:-$(hostname)}}"
+ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
+_lib="$(dirname "$(readlink -f "$0")")/ecce-session-lib.sh"
+[ -r "$_lib" ] || _lib="$ECCE_HOME/bin/ecce-session-lib.sh"
+. "$_lib" || { echo "ecce-gateway-stop: cannot read $_lib" >&2; exit 1; }
 # The data server credential this session's processes share through
-# AuthCache::sessionFile(). It holds a password, so its lifetime is the
-# session's: same per-display key as the session's other state, sanitised the same
-# way the C++ side sanitises it.
-AUTHFILE="$STATEDIR/authcache_$(printf '%s_%s' "$HOST" "$DISPLAY" |
-                                tr -c 'A-Za-z0-9._-' '_')"
+# AuthCache::sessionFile(), and the broker file. The credential holds a
+# password, so its lifetime is the session's. Without a session id there
+# is no file of ours to name; the reaper below sweeps orphans.
+AUTHFILE="$(ecce_auth_file)" || AUTHFILE=""
+BROKERFILE="$(ecce_broker_file)" || BROKERFILE=""
 
 # Held until this script exits, and taken by ecce-gateway-reap in the
 # EXIT trap of the wrapper that ran the gateway: so `ecce` returns only
@@ -35,30 +34,24 @@ fi
 # i.e. a visible window that cannot do anything, which is worse than not
 # having stopped the services at all.
 #
-# Identified by /proc/<pid>/exe rather than by command line, for the same
-# reason ecce-gateway-reap does it: the gateway is spawned as a relative
-# "./gateway" from $ECCE_HOME/bin, so a path match on the command line
-# finds nothing. Only this display's gateway is touched.
-ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
-_bindir="$(readlink -f "$ECCE_HOME/bin" 2>/dev/null || echo "$ECCE_HOME/bin")"
-for _pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
-  [ -O "/proc/$_pid" ] || continue
-  _exe="$(readlink "/proc/$_pid/exe" 2>/dev/null)" || continue
-  _exe="${_exe% (deleted)}"
-  # bin/gateway may be a symlink into a build tree (an overlay).
-  [ "$_exe" = "$_bindir/gateway" ] ||
-    [ "$_exe" = "$(readlink -f "$ECCE_HOME/bin/gateway" 2>/dev/null)" ] || continue
-  [ -r "/proc/$_pid/environ" ] || continue
-  _disp="$(tr '\0' '\n' <"/proc/$_pid/environ" 2>/dev/null |
-           sed -n 's/^DISPLAY=//p' | head -n1)"
-  [ "$_disp" = "$DISPLAY" ] || continue
-  echo "ecce-gateway-stop: stopping gateway (pid $_pid)"
-  kill "$_pid" 2>/dev/null
-done
+# Identified as ecce-gateway-reap identifies ECCE programs
+# (ecce_session_procs), not by command line: the gateway is spawned as a
+# relative "./gateway" from $ECCE_HOME/bin, so a path match on the command
+# line finds nothing. Only this session's gateway (ECCE_SESSION_ID) is
+# touched.
+if [ -n "${ECCE_SESSION_ID:-}" ]; then
+  while read -r _pid _name _sid; do
+    [ "$_name" = gateway ] && [ "$_sid" = "$ECCE_SESSION_ID" ] || continue
+    echo "ecce-gateway-stop: stopping gateway (pid $_pid)"
+    kill "$_pid" 2>/dev/null
+  done < <(ecce_session_procs)
+fi
 
 # Unconditionally: the session is over either way, and the credential
 # file holds a password.
-rm -f "$AUTHFILE" "$AUTHFILE".tmp.* "$STATEDIR/broker_$(printf '%s_%s' "$HOST" "$DISPLAY" | tr -c 'A-Za-z0-9._-' '_')"
+if [ -n "$AUTHFILE" ]; then
+  rm -f "$AUTHFILE" "$AUTHFILE".tmp.* "$BROKERFILE"
+fi
 
 # The explicit "Quit and Stop Server": this account's broker goes too once
 # no ECCE app is left -- unless it is the site's shared service

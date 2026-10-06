@@ -36,6 +36,8 @@ using std::ostrstream;
 #include <stdlib.h>              // getenv
 #include <unistd.h>              // access
 #include <locale.h>
+#include <cstdint>
+#include <random>
 
 
 #include "util/EcceException.H"
@@ -44,6 +46,7 @@ using std::ostrstream;
 #include "util/KeyValueReader.H"
 #include "util/SFile.H"
 #include "util/Preferences.H"
+#include "util/SessionLease.H"
 
 
 // ECCE_VERSION must be supplied by the Makefile.
@@ -87,6 +90,28 @@ void Ecce::initialize()
    // Define a default exception handler that dumps core instead of just exit.
    EcceException::setDefaultHandler();
 
+   SessionLease::acquire();
+}
+
+// Every ECCE program of a session holds its lease from the start (#233),
+// also those that never call initialize(); acquire() runs once.
+static struct SessionLeaseAtStart {
+  SessionLeaseAtStart() { SessionLease::acquire(); }
+} s_sessionLeaseAtStart;
+
+
+// A dialog can be shown: X or Wayland on Linux and other X11 systems, the
+// native desktop on macOS and Windows. The one place DISPLAY is read in
+// C++ (tests/session/display_gate.sh).
+bool Ecce::guiAvailable()
+{
+#if defined(__APPLE__) || defined(_WIN32)
+  return true;
+#else
+  const char* x = getenv("DISPLAY");
+  const char* w = getenv("WAYLAND_DISPLAY");
+  return (x && *x) || (w && *w);
+#endif
 }
 
 
@@ -178,6 +203,79 @@ void Ecce::rememberServerUser(const string& name)
   }
   prefs.saveFile();
 }
+bool Ecce::validSessionId(const string& id)
+{
+  if (id.size() != 16) return false;
+  for (size_t i = 0; i < id.size(); i++)
+    if (!((id[i] >= '0' && id[i] <= '9') || (id[i] >= 'a' && id[i] <= 'f')))
+      return false;
+  return true;
+}
+
+string Ecce::sessionId()
+{
+  const char* id = getenv("ECCE_SESSION_ID");
+  return (id && validSessionId(id)) ? string(id) : string();
+}
+
+// ECCE_HOST, else HOST, else the host name: ecce_session_host's order.
+string Ecce::sessionHost()
+{
+  const char* host = getenv("ECCE_HOST");
+  if (!host || !*host) host = getenv("HOST");
+  if (host && *host) return host;
+  char buf[256];
+  if (gethostname(buf, sizeof(buf) - 1) != 0) return "localhost";
+  buf[sizeof(buf) - 1] = '\0';
+  return buf;
+}
+
+// tr -c 'A-Za-z0-9._-' '_' in the C locale, byte by byte.
+static string sessionSanitize(string s)
+{
+  for (size_t i = 0; i < s.size(); i++) {
+    unsigned char ch = s[i];
+    bool keep = (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
+                (ch >= '0' && ch <= '9') || ch == '.' || ch == '_' ||
+                ch == '-';
+    if (!keep) s[i] = '_';
+  }
+  return s;
+}
+
+string Ecce::sessionKeyFor(const string& id)
+{
+  if (!validSessionId(id)) return "";
+  return sessionSanitize(sessionHost() + "_" + id);
+}
+
+string Ecce::sessionKey()
+{
+  return sessionKeyFor(sessionId());
+}
+
+string Ecce::sessionPointerFile()
+{
+  const char* home = getenv("ECCE_REALUSERHOME");
+  if (!home || !*home) return "";
+  return string(home) + "/.ECCE/session_" + sessionSanitize(sessionHost());
+}
+
+string Ecce::newSessionId()
+{
+  std::random_device rd;
+  static const char hex[] = "0123456789abcdef";
+  string id;
+  for (int i = 0; i < 2; i++) {          // 2 x 32 bits = 16 hex digits
+    uint32_t word = rd();
+    for (int j = 0; j < 4; j++) {
+      id += hex[(word >> (8 * j + 4)) & 0xf];
+      id += hex[(word >> (8 * j)) & 0xf];
+    }
+  }
+  return id;
+}
+
 const char* Ecce::realUserHome(void)
 {
   static const char* userHome = getenv("ECCE_REALUSERHOME");

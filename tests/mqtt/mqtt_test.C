@@ -55,11 +55,11 @@ static int childMain(int argc, char** argv)
   if (cu) {
     string user = cu, pass = cp ? cp : "";
     MqttLink::setCredentialProvider(
-      [user, pass](const string&, const string&, string& u, string& p) {
+      [user, pass](const string&, string& u, string& p) {
         u = user; p = pass; return true; });
   } else if (getenv("MQTT_TEST_NOLOGIN")) {
     MqttLink::setCredentialProvider(
-      [](const string&, const string&, string&, string&) { return false; });
+      [](const string&, string&, string&) { return false; });
   }
   JMSPublisher pub("child");
   for (int i = 2; i < argc; i++) {
@@ -120,23 +120,33 @@ static bool waitFor(Probe& p, const string& tag, int ms = 5000)
 
 static string g_self;
 
-// Runs a second process (its own broker connection) as the given account.
-static int runChildStatus(const string& home, const string& display,
+// Two session ids (#233). Every process runs with the same DISPLAY, so
+// the sessions are told apart by id alone.
+static const char* S1 = "a1b2c3d4e5f60718";
+static const char* S2 = "0f1e2d3c4b5a6978";
+// A host name that is not file name material; its key is sanitised.
+static const char* ODDHOST = "we ird:h/st";
+
+// Runs a second process (its own broker connection) as the given account,
+// in the given session. env holds name/value pairs set last.
+static int runChildStatus(const string& home, const string& session,
                           const vector<string>& specs,
                           const vector<string>& env = vector<string>(),
                           const string& errFile = "")
 {
   pid_t pid = fork();
   if (pid == 0) {
-    for (size_t i = 0; i + 1 < env.size(); i += 2)
-      setenv(env[i].c_str(), env[i + 1].c_str(), 1);
     if (!errFile.empty()) {
       int fd = open(errFile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0600);
       if (fd >= 0) dup2(fd, 2);
     }
     setenv("ECCE_REALUSERHOME", home.c_str(), 1);
     setenv("HOST", "testhost", 1);
-    setenv("DISPLAY", display.c_str(), 1);
+    unsetenv("ECCE_HOST");
+    setenv("DISPLAY", ":7", 1);
+    setenv("ECCE_SESSION_ID", session.c_str(), 1);
+    for (size_t i = 0; i + 1 < env.size(); i += 2)
+      setenv(env[i].c_str(), env[i + 1].c_str(), 1);
     vector<char*> args;
     args.push_back((char*)g_self.c_str());
     args.push_back((char*)"child");
@@ -150,10 +160,10 @@ static int runChildStatus(const string& home, const string& display,
   return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
 }
 
-static bool runChild(const string& home, const string& display,
+static bool runChild(const string& home, const string& session,
                      const vector<string>& specs)
 {
-  return runChildStatus(home, display, specs) == 0;
+  return runChildStatus(home, session, specs) == 0;
 }
 
 static void writeBrokerFile(const string& home, const string& sock,
@@ -162,13 +172,12 @@ static void writeBrokerFile(const string& home, const string& sock,
   mkdir(home.c_str(), 0700);
   string dir = home + "/.ECCE";
   mkdir(dir.c_str(), 0700);
-  // One file per session, named like ecce-gateway-start names it; HOST is
-  // "testhost" for every process below.
-  const char* displays[] = {":7", ":8"};
-  for (int i = 0; i < 2; i++) {
-    string key = string("testhost_") + displays[i];
-    for (size_t j = 0; j < key.size(); j++)
-      if (key[j] == ':') key[j] = '_';
+  // One file per session, named like ecce-gateway-start names it
+  // (broker_<host>_<id>); HOST is "testhost" unless a case says otherwise.
+  const string keys[] = {string("testhost_") + S1, string("testhost_") + S2,
+                         string("we_ird_h_st_") + S1};
+  for (int i = 0; i < 3; i++) {
+    const string& key = keys[i];
     ofstream f((dir + "/broker_" + key).c_str());
     if (port)   // a TCP broker: the account comes from the credential
       f << "# test\nhost=127.0.0.1\nport=" << port << "\n";
@@ -361,9 +370,11 @@ static int authMain(const string& src, const string& plugin)
     setenv("ECCE_REALUSERHOME", alice.c_str(), 1);
     setenv("HOST", "testhost", 1);
     setenv("DISPLAY", ":7", 1);
+    setenv("ECCE_SESSION_ID", S1, 1);
+    unsetenv("ECCE_HOST");
     unsetenv("ECCE_NO_MESSAGING");
     MqttLink::setCredentialProvider(
-      [](const string&, const string&, string& u, string& p) {
+      [](const string&, string& u, string& p) {
         u = "alice"; p = "alicepw"; return true; });
 
     Probe pa("A");
@@ -394,7 +405,7 @@ static int authMain(const string& src, const string& plugin)
     vector<string> aenv;
     aenv.push_back("MQTT_TEST_USER"); aenv.push_back("alice");
     aenv.push_back("MQTT_TEST_PASS"); aenv.push_back("alicepw");
-    check(runChildStatus(alice, ":7", a, aenv) == 0, "another process of alice published");
+    check(runChildStatus(alice, S1, a, aenv) == 0, "another process of alice published");
     check(waitFor(pa, "a_machreg") && pa.has("a_url") && pa.has("a_kill") &&
           pa.has("a_poll"),
           "alice received her own ecce_url_created, ecce_ejs_kill and session message");
@@ -421,7 +432,7 @@ static int authMain(const string& src, const string& plugin)
     vector<string> benv;
     benv.push_back("MQTT_TEST_USER"); benv.push_back("bob");
     benv.push_back("MQTT_TEST_PASS"); benv.push_back("bobpw");
-    check(runChildStatus(bob, ":7", b, benv) == 0, "a process of bob published as bob");
+    check(runChildStatus(bob, S1, b, benv) == 0, "a process of bob published as bob");
     check(waitFor(pa, "b_machreg"), "alice receives bob's ecce_machreg_changed");
     check(!pa.has("b_url") && !pa.has("b_kill") && !pa.has("x"),
           "alice receives nothing of bob's but ecce_machreg_changed, and nothing "
@@ -439,7 +450,7 @@ static int authMain(const string& src, const string& plugin)
     wenv.push_back("MQTT_TEST_PASS"); wenv.push_back("wrong");
     vector<string> w;
     w.push_back("ecce_poll:w");
-    int st = runChildStatus(alice, ":7", w, wenv, err);
+    int st = runChildStatus(alice, S1, w, wenv, err);
     string said = slurp(err);
     check(st != 0 && said.find("refused the connection") != string::npos &&
           said.find("'alice'") != string::npos,
@@ -448,7 +459,7 @@ static int authMain(const string& src, const string& plugin)
     string err2 = tmp + "/nologin.err";
     vector<string> nenv;
     nenv.push_back("MQTT_TEST_NOLOGIN"); nenv.push_back("1");
-    st = runChildStatus(alice, ":7", w, nenv, err2);
+    st = runChildStatus(alice, S1, w, nenv, err2);
     check(st != 0 && slurp(err2).find("no data server login") != string::npos,
           "with no login yet the library says so and does not connect");
 
@@ -548,6 +559,8 @@ int main(int argc, char** argv)
     setenv("ECCE_REALUSERHOME", alice.c_str(), 1);
     setenv("HOST", "testhost", 1);
     setenv("DISPLAY", ":7", 1);
+    setenv("ECCE_SESSION_ID", S1, 1);
+    unsetenv("ECCE_HOST");
     unsetenv("ECCE_NO_MESSAGING");
 
     Probe p1("P1"), p2("P2");
@@ -571,7 +584,7 @@ int main(int argc, char** argv)
     a.push_back("ecce_url_state:n_state");
     a.push_back("ecce_poll:tgt:P2");
     a.push_back("ecce_poll:sentinel1");
-    check(runChild(alice, ":7", a), "child published as alice on :7");
+    check(runChild(alice, S1, a), "child published as alice in the same session");
     bool s1 = waitFor(p1, "sentinel1"), s2 = waitFor(p2, "sentinel1");
     check(s1 && s2, "both subscribers received the last message of the batch");
     check(p1.has("s_poll") && p2.has("s_poll"),
@@ -585,19 +598,51 @@ int main(int argc, char** argv)
     // Another session, another account.
     vector<string> o;
     o.push_back("ecce_poll:other_session");
-    check(runChild(alice, ":8", o), "child published to session :8");
+    check(runChild(alice, S2, o), "child published to another session on the same display");
     vector<string> b;
     b.push_back("ecce_preferences_misc:bob_prefs");
     b.push_back("ecce_url_state:bob_state");
     b.push_back("ecce_machreg_changed:bob_machreg");
-    check(runChild(bob, ":7", b), "child published as bob");
+    check(runChild(bob, S1, b), "child published as bob");
+    // A host name that is not file name material: the broker file is
+    // found under the sanitised key, as ecce-session-lib.sh names it.
+    vector<string> odd, oddenv;
+    odd.push_back("ecce_url_state:oddhost_state");
+    oddenv.push_back("HOST");
+    oddenv.push_back(ODDHOST);
+    check(runChildStatus(alice, S1, odd, oddenv) == 0,
+          "a process on host \"we ird:h/st\" found broker_we_ird_h_st_<id>");
+    // No session id: no messaging, and not a crash or a fatal error.
+    vector<string> none;
+    none.push_back("ecce_url_state:sessionless_state");
+    check(runChildStatus(alice, "", none) == 2,
+          "a process without a session id publishes nothing (no messaging)");
+    // Without an id, the newest session of the account on this host
+    // (~/.ECCE/session_<host>) is joined while its broker file is there.
+    string pointer = alice + "/.ECCE/session_testhost";
+    { ofstream p(pointer.c_str()); p << "0000000000000bad\n"; }
+    vector<string> stale;
+    stale.push_back("ecce_poll:stale_pointer");
+    check(runChildStatus(alice, "", stale) == 2,
+          "a pointer to a session whose broker file is gone is not joined");
+    { ofstream p(pointer.c_str()); p << S1 << "\n"; }
+    vector<string> joined;
+    joined.push_back("ecce_poll:joined_by_pointer");
+    check(runChildStatus(alice, "", joined) == 0,
+          "a process without a session id joined the newest session");
+    unlink(pointer.c_str());
     vector<string> z;
     z.push_back("ecce_url_state:sentinel2");
-    runChild(alice, ":7", z);
+    runChild(alice, S1, z);
     waitFor(p1, "sentinel2");
     waitFor(p2, "sentinel2");
     check(!p1.has("other_session") && !p2.has("other_session"),
-          "a message for another session is not delivered");
+          "a message for another session on the same display is not "
+          "delivered");
+    check(p2.has("oddhost_state") && !p2.has("sessionless_state"),
+          "the odd host's message delivered, nothing from the sessionless one");
+    check(p1.has("joined_by_pointer") && !p1.has("stale_pointer"),
+          "the session message of the process that joined is delivered");
     check(!p1.has("bob_prefs") && !p1.has("bob_state") && !p2.has("bob_state"),
           "another account's USER and NONE topics are not delivered");
     check(p1.has("bob_machreg"),
@@ -619,7 +664,7 @@ int main(int argc, char** argv)
     pump(500);
     vector<string> y;
     y.push_back("ecce_url_state:sentinel3");
-    runChild(alice, ":7", y);
+    runChild(alice, S1, y);
     waitFor(p1, "sentinel3");
     waitFor(p2, "sentinel3");
     check(p2.has("self_state") && p2.has("self_created"),
@@ -636,7 +681,7 @@ int main(int argc, char** argv)
     vector<string> h;
     h.push_back("ecce_poll:held");
     h.push_back("ecce_url_state:sentinel4");
-    runChild(alice, ":7", h);
+    runChild(alice, S1, h);
     waitFor(p2, "sentinel4");
     pump(200);
     check(p2.has("sentinel4") && !p1.has("held") && !p1.has("sentinel4"),
@@ -644,7 +689,7 @@ int main(int argc, char** argv)
     p1.resumeMessaging();
     vector<string> r;
     r.push_back("ecce_poll:resumed");
-    runChild(alice, ":7", r);
+    runChild(alice, S1, r);
     check(waitFor(p1, "resumed") && !p1.has("held"),
           "resumed subscriber receives again, held ones stay dropped");
 

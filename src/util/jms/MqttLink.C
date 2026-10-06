@@ -13,6 +13,7 @@
 #include <pwd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include <chrono>
@@ -307,29 +308,40 @@ bool MqttLink::ensureConnected()
   std::unique_lock<std::mutex> g(p_lock);
   if (p_started) return p_mosq != nullptr;
 
-  // The session this process belongs to, with the same HOST and DISPLAY
-  // defaults ecce-gateway-start applies. A job store started from a
-  // detached or ssh launch may have neither; it only needs a key that
-  // matches the session it was started by when they are set.
-  const char* host = getenv("HOST");
-  const char* display = getenv("DISPLAY");
-  char hostbuf[256] = "localhost";
-  if (!host || !*host) {
-    if (gethostname(hostbuf, sizeof(hostbuf) - 1) != 0) strcpy(hostbuf, "localhost");
-    host = hostbuf;
+  // The session this process belongs to (#233). One started outside any
+  // session (a job store launched over ssh) joins the newest session of
+  // this account on this host while its broker file is there, and passes
+  // the id on to what it starts. Otherwise there is no session to
+  // message: the process runs as with ECCE_NO_MESSAGING.
+  string key = Ecce::sessionKey();
+  if (key.empty()) {
+    std::ifstream pointer(Ecce::sessionPointerFile());
+    string id;
+    if (pointer && std::getline(pointer, id) && Ecce::validSessionId(id)) {
+      string k = Ecce::sessionKeyFor(id);
+      struct stat st;
+      if (stat((string(Ecce::realUserPrefPath()) + "broker_" + k).c_str(),
+               &st) == 0) {
+        setenv("ECCE_SESSION_ID", id.c_str(), 1);
+        key = k;
+        std::cerr << "MQTT: no ECCE_SESSION_ID; joined this account's newest "
+                  << "session " << id << std::endl;
+      }
+    }
   }
-  if (!display || !*display) display = ":0";
-  string key = string(host) + "_" + display;
+  if (key.empty()) {
+    std::cerr << "MQTT: no ECCE session (ECCE_SESSION_ID is not set), so "
+              << "no messaging in this process" << std::endl;
+    p_started = true;
+    p_sessionless = true;
+    return false;
+  }
   p_cfg.sessionKey = MqttConfig::sanitizeLevel(key);
 
   // One broker file per session, so a local and a -remote session of one
-  // account on different displays do not overwrite each other. Written by
-  // ecce-gateway-start, whose tr(1) gives the same file name; this process
-  // may be started a moment before it is complete, so retry briefly.
-  for (size_t i = 0; i < key.size(); i++) {
-    unsigned char ch = key[i];
-    if (!isalnum(ch) && ch != '.' && ch != '_' && ch != '-') key[i] = '_';
-  }
+  // account do not overwrite each other. Written by ecce-gateway-start
+  // under the same name; this process may be started a moment before it
+  // is complete, so retry briefly.
   string file = string(Ecce::realUserPrefPath()) + "broker_" + key;
   bool have = false;
   for (int i = 0; i < 50 && !(have = MqttConfig::parseFile(file, p_cfg)); i++)
@@ -345,7 +357,7 @@ bool MqttLink::ensureConnected()
   bool tcp = p_cfg.socket.empty();
   if (tcp) {
     if (!credentialProvider() ||
-        !credentialProvider()(host, display, account, password) ||
+        !credentialProvider()(key, account, password) ||
         account.empty()) {
       if (!p_warnedNoLogin) {
         p_warnedNoLogin = true;

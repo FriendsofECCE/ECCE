@@ -704,6 +704,10 @@ install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/nwchem/ecce-nwchem-datadir
         DESTINATION bin
         COMPONENT client)
+# Sourced by the scripts above, the wrappers and `ecce` (#233).
+install(FILES ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-session-lib.sh
+        DESTINATION bin
+        COMPONENT client)
 # Deployment mode 3, the site's shared broker (GETTING_STARTED.md,
 # "Deployment modes"). ecce-broker-setup writes siteconfig/SharedBroker,
 # which the clients read, so it goes with them; ecce-broker-run and the
@@ -1048,9 +1052,10 @@ endif()
 # just the messaging-using ones; the previous wrapper never set them, so
 # every app would have aborted on first touching preferences/cache paths.
 # HOST must also be exported: the broker file and the session topics are
-# keyed by HOST and DISPLAY (ecce-gateway-start, MqttLink.C) - tcsh set
-# HOST automatically for the old launcher; a plain sh/bash wrapper has to
-# do it explicitly or the two sides name different sessions.
+# keyed by HOST and ECCE_SESSION_ID (ecce-session-lib.sh, Ecce::sessionKey,
+# #233), and every program of the session must derive the same host.
+# DISPLAY is defaulted only so that X programs start under cron or ssh; it
+# is not part of the session (drop the default with #166).
 set(ECCE_MESSAGING_APPS ${ECCE_GUI_APPS} eccejobmaster eccejobstore)
 
 foreach(_app ${ECCE_GUI_APPS} ${ECCE_CLI_APPS})
@@ -1059,10 +1064,14 @@ foreach(_app ${ECCE_GUI_APPS} ${ECCE_CLI_APPS})
   if(_msg_idx GREATER -1)
     # Started under -remote too: every app needs this session's relay, and
     # ecce-gateway-start itself skips the local broker in that mode (#167).
-    # It fails only when there is no relay for this display, and every one
+    # It fails only when there is no relay for this session, and every one
     # of these apps would then abort on the missing port file
     # (JMSMessage.C), so stop here with its message instead.
-    set(_gateway_start "if [ -z \"$ECCE_NO_MESSAGING\" ]; then
+    # The session id (#233): inherited from `ecce` or the gateway that
+    # started this app, else this app is a session of its own.
+    set(_gateway_start ". \"$ECCE_HOME/bin/ecce-session-lib.sh\" || exit 1
+ecce_session_ensure
+if [ -z \"$ECCE_NO_MESSAGING\" ]; then
   \"$ECCE_HOME/bin/ecce-gateway-start\" || { _rc=$?; echo \"${_app}: not started -- no messaging relay for this session (see above)\" >&2; exit $_rc; }
 fi")
     # Same app set as messaging: apps that need the JMS gateway also need
@@ -1235,6 +1244,8 @@ if [ -z \"\${ECCE_LOCAL_DATA+x}\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ] && [ -x \"
   export ECCE_LOCAL_DATA
   if [ -n \"$ECCE_LOCAL_DATA\" ]; then export ECCE_LOCAL_DATA_FROM_PREF=1; fi
 fi
+. \"$ECCE_HOME/bin/ecce-session-lib.sh\" || exit 1
+ecce_session_ensure
 if [ -z \"$ECCE_NO_MESSAGING\" ]; then
   \"$ECCE_HOME/bin/ecce-gateway-start\" || { _rc=$?; echo \"ecce-viewer: not started -- no messaging relay for this session (see above)\" >&2; exit $_rc; }
 fi
@@ -1575,6 +1586,20 @@ add_executable(throwlog_test tests/exceptions/throwlog_test.C)
 target_link_libraries(throwlog_test PRIVATE ecceutil)
 add_test(NAME throwlog COMMAND throwlog_test)
 add_test(NAME throwlog-all COMMAND throwlog_test all)
+
+# tests/session -- the session id and key (#233): shell and C++ derivations
+# agree, and both generators make well-formed, distinct ids.
+add_executable(session_key_test tests/session/session_key_test.C)
+target_link_libraries(session_key_test PRIVATE ecceutil)
+add_test(NAME session-key COMMAND session_key_test
+         ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-session-lib.sh)
+add_executable(session_lease_test tests/session/session_lease_test.C)
+target_link_libraries(session_lease_test PRIVATE ecceutil)
+add_test(NAME session-lease COMMAND session_lease_test
+         ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-session-lib.sh)
+add_test(NAME session-display-gate COMMAND bash
+         ${CMAKE_SOURCE_DIR}/tests/session/display_gate.sh ${CMAKE_SOURCE_DIR})
+set_tests_properties(session-display-gate PROPERTIES SKIP_RETURN_CODE 77)
 
 # tests/mqtt -- the messaging library against a private mosquitto on a Unix
 # socket; checks delivery, not just acknowledgement.  "auth" is the same on
