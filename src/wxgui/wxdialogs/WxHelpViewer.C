@@ -104,6 +104,9 @@ void WxHelpViewer::testSnapshot(const std::string& app)
     fprintf(stderr, "ECCE_TEST_HELP: %s: page %s, %s\n", app.c_str(),
             v != NULL ? v->currentPage().c_str() : "(not installed)",
             saved ? "saved" : "not saved");
+    if (v != NULL)
+        fprintf(stderr, "ECCE_TEST_HELP: %s: view %s\n", app.c_str(),
+                v->viewState().c_str());
     fflush(stderr);
     _exit(saved ? 0 : 1);
 }
@@ -170,6 +173,54 @@ WxHelpViewer::WxHelpViewer(const std::string& dir)
             p_toc->Append(l.Mid(tab + 1));
         }
     CentreOnScreen();
+    p_html->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
+        e.Skip();
+        CallAfter(&WxHelpViewer::scrollToAnchor);
+    });
+}
+
+
+//  The anchor heading's y (document pixels), the scroll offset and the
+//  visible height, in one line.
+std::string WxHelpViewer::viewState() const
+{
+    wxString a = p_html->GetOpenedAnchor();
+    int ppx = 0, ppy = 0, vx = 0, vy = 0, w = 0, h = 0, ay = -1;
+    p_html->GetScrollPixelsPerUnit(&ppx, &ppy);
+    p_html->GetViewStart(&vx, &vy);
+    p_html->GetClientSize(&w, &h);
+    wxHtmlCell* root = p_html->GetInternalRepresentation();
+    if (root != NULL && !a.empty())
+    {
+        const wxHtmlCell* c = root->Find(wxHTML_COND_ISANCHOR, &a);
+        if (c != NULL)
+            ay = c->GetAbsPos().y;
+    }
+    return wxString::Format("anchor_y=%d scroll_y=%d view_h=%d view_w=%d",
+                            ay, vy * ppy, h, w).ToStdString();
+}
+
+
+//  LoadPage() scrolls to the anchor in a layout made before the window has
+//  its size (20 px high, 0 wide); the text then reflows and the offset points
+//  elsewhere.  So scroll again once the window is on screen, and on each size
+//  event until then.
+void WxHelpViewer::scrollToAnchor()
+{
+    if (!p_scrollPending)
+        return;
+    wxString a = p_html->GetOpenedAnchor();
+    wxHtmlCell* root = p_html->GetInternalRepresentation();
+    if (!a.empty() && root != NULL)
+    {
+        const wxHtmlCell* c = root->Find(wxHTML_COND_ISANCHOR, &a);
+        int ppy = 0;
+        p_html->GetScrollPixelsPerUnit(NULL, &ppy);
+        if (c != NULL && ppy > 0)
+            p_html->Scroll(-1, c->GetAbsPos().y / ppy);
+    }
+    if (p_html->IsShownOnScreen() && p_html->GetClientSize().x > 100)
+        p_scrollPending = false;
 }
 
 
@@ -187,6 +238,8 @@ std::string WxHelpViewer::currentPage() const
 void WxHelpViewer::load(const std::string& page)
 {
     p_html->LoadPage(wxString::FromUTF8((p_dir + "/" + page).c_str()));
+    p_scrollPending = true;
+    CallAfter(&WxHelpViewer::scrollToAnchor);
     wxString f = wxString::FromUTF8(page.substr(0, page.find('#')).c_str());
     int i = p_tocFiles.Index(f);
     if (i != wxNOT_FOUND)

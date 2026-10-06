@@ -53,9 +53,14 @@ public:
     // The page shown, as file[#anchor], relative to helpDir().
     std::string currentPage() const;
 
+    // "anchor_y=.. scroll_y=.. view_h=.. view_w=..": where the anchor's
+    // heading is in the document, how far the view is scrolled, the view size.
+    std::string viewState() const;
+
 private:
     WxHelpViewer(const std::string& dir);
     void load(const std::string& page);
+    void scrollToAnchor();
     void onBack(wxCommandEvent&);
     void onForward(wxCommandEvent&);
     void onBrowser(wxCommandEvent&);
@@ -64,6 +69,7 @@ private:
     void onUpdateBack(wxUpdateUIEvent& e);
     void onUpdateForward(wxUpdateUIEvent& e);
 
+    bool p_scrollPending = false;
     std::string p_dir;
     wxHtmlWindow* p_html;
     wxListBox* p_toc;
