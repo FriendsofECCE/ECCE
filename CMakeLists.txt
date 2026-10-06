@@ -438,7 +438,13 @@ function(ecce_app name dir)
   if(ECCE_APP_GL)
     target_link_libraries(${name} PRIVATE OpenGL::GL OpenGL::GLU)
   endif()
-  target_link_libraries(${name} PRIVATE ${ECCE_APP_LINK} ${XercesC_LIBRARIES})
+  if(WIN32)
+    # The static libraries reference each other in cycles; GNU ld rescans a group.
+    target_link_libraries(${name} PRIVATE
+      "$<LINK_GROUP:RESCAN,${ECCE_APP_LINK}>" ${XercesC_LIBRARIES})
+  else()
+    target_link_libraries(${name} PRIVATE ${ECCE_APP_LINK} ${XercesC_LIBRARIES})
+  endif()
 endfunction()
 
 # --- apps with no wx dependency ---
@@ -1706,10 +1712,12 @@ add_executable(session_key_test tests/session/session_key_test.C)
 target_link_libraries(session_key_test PRIVATE ecceutil)
 add_test(NAME session-key COMMAND session_key_test
          ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-session-lib.sh)
+if(NOT WIN32)   # POSIX-only test programs
 add_executable(session_lease_test tests/session/session_lease_test.C)
 target_link_libraries(session_lease_test PRIVATE ecceutil)
 add_test(NAME session-lease COMMAND session_lease_test
          ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-session-lib.sh)
+endif()
 add_test(NAME session-display-gate COMMAND bash
          ${CMAKE_SOURCE_DIR}/tests/session/display_gate.sh ${CMAKE_SOURCE_DIR})
 set_tests_properties(session-display-gate PROPERTIES SKIP_RETURN_CODE 77)
@@ -1718,6 +1726,7 @@ set_tests_properties(session-display-gate PROPERTIES SKIP_RETURN_CODE 77)
 # socket; checks delivery, not just acknowledgement.  "auth" is the same on
 # a TCP broker with two accounts and the shipped access rules.  SKIPs (77)
 # without the mosquitto binary.
+if(NOT WIN32)
 add_executable(mqtt_test tests/mqtt/mqtt_test.C)
 target_include_directories(mqtt_test PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(mqtt_test PRIVATE ecceutil ${XercesC_LIBRARIES})
@@ -1729,6 +1738,7 @@ if(TARGET ecce_users_auth)
   set_tests_properties(mqtt-auth-plugin PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
 endif()
 set_tests_properties(mqtt mqtt-auth PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+endif()
 
 # tests/tls -- https data-server client (#236): pinned certificate, CA mode
 # with host-name check, certificate rejection, no fallback to plain http.
@@ -1864,10 +1874,12 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(filedsi PROPERTIES TIMEOUT 300)
 
   # tests/transport -- DirectTransport against a real /bin/sh (#204).
-  add_executable(testTransport tests/transport/testTransport.C)
-  target_link_libraries(testTransport PRIVATE eccercmd ecceutil)
-  add_test(NAME transport COMMAND testTransport)
-  set_tests_properties(transport PROPERTIES TIMEOUT 120)
+  if(NOT WIN32)
+    add_executable(testTransport tests/transport/testTransport.C)
+    target_link_libraries(testTransport PRIVATE eccercmd ecceutil)
+    add_test(NAME transport COMMAND testTransport)
+    set_tests_properties(transport PROPERTIES TIMEOUT 120)
+  endif()
 
   # RCommand on a local machine against results recorded from the old pty
   # path (#204).
