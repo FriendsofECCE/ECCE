@@ -369,11 +369,11 @@ void NModePanel::createSpectrumPane()
    const int gap = 6;
 
    row->Add(new wxStaticText(pane, wxID_ANY,
-              wxString::FromUTF8("Width (cm\xE2\x81\xBB\xC2\xB9):")),
+              wxString::FromUTF8("Width:")),
             0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap);
    p_fwhmText = new wxTextCtrl(pane, wxID_ANY,
                   wxString::Format("%g", fwhm), wxDefaultPosition,
-                  wxSize(56, -1), wxTE_PROCESS_ENTER);
+                  wxSize(48, -1), wxTE_PROCESS_ENTER);
    p_fwhmText->SetToolTip(wxString::FromUTF8(
       "Full width at half maximum of each band, in cm\xE2\x81\xBB\xC2\xB9 "
       "(0 to 200).\nCondensed-phase bands are typically 5 to 30 wide.\n"
@@ -382,18 +382,18 @@ void NModePanel::createSpectrumPane()
       "gas-phase spectrum."));
    row->Add(p_fwhmText, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
 
-   row->Add(new wxStaticText(pane, wxID_ANY, "Frequency scale:"),
+   row->Add(new wxStaticText(pane, wxID_ANY, "Freq. scale:"),
             0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
    p_scaleText = new wxTextCtrl(pane, wxID_ANY,
                   wxString::Format("%g", scale), wxDefaultPosition,
-                  wxSize(56, -1), wxTE_PROCESS_ENTER);
+                  wxSize(48, -1), wxTE_PROCESS_ENTER);
    p_scaleText->SetToolTip(wxString::FromUTF8(
       "Multiplies every frequency. Harmonic frequencies from most "
       "methods are 3 to 5 % too high; a typical factor is 0.96."));
    row->Add(p_scaleText, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
 
    wxCheckBox *left = new wxCheckBox(pane, wxID_ANY,
-                                     "High wavenumber left");
+                                     "High on left");
    left->SetValue(reversed);
    row->Add(left, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
 
@@ -401,7 +401,7 @@ void NModePanel::createSpectrumPane()
    stk->SetValue(sticks);
    row->Add(stk, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
 
-   wxButton *reset = new wxButton(pane, wxID_ANY, "Reset zoom");
+   wxButton *reset = new wxButton(pane, wxID_ANY, "Reset");
    reset->SetToolTip("Show the whole spectrum (or double-click the plot, "
                      "or press Home).\nClick a peak to show its mode. Drag "
                      "to zoom to a band, mouse wheel to zoom, right-drag "
@@ -412,6 +412,30 @@ void NModePanel::createSpectrumPane()
                       "both panes and both axes.");
    row->Add(popout, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
    col->Add(row, 0, wxEXPAND | wxTOP | wxBOTTOM, 3);
+
+   //  The dock can give this panel less height than a plot is readable
+   //  in; then this stands in for the whole plot rather than a squashed one.
+   wxBoxSizer *noRoom = new wxBoxSizer(wxHORIZONTAL);
+   noRoom->AddStretchSpacer(1);
+   noRoom->Add(new wxStaticText(pane, wxID_ANY,
+                                "Not enough room for the spectrum"),
+               0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
+   wxButton *noRoomButton = new wxButton(pane, wxID_ANY, "Open in window");
+   noRoom->Add(noRoomButton, 0, wxALIGN_CENTER_VERTICAL);
+   noRoom->AddStretchSpacer(1);
+   col->Add(noRoom, 1, wxEXPAND);
+   col->Show(noRoom, false);
+   noRoomButton->Bind(wxEVT_BUTTON,
+                      [this](wxCommandEvent&) { openSpectrumWindow(); });
+   pane->Bind(wxEVT_SIZE, [pane, col, row, noRoom, this](wxSizeEvent& e) {
+      const bool tight = e.GetSize().y < 190;
+      if (col->IsShown(noRoom) != tight) {
+         col->Show(p_spectrum, !tight);
+         col->Show(row, !tight);
+         col->Show(noRoom, tight);
+      }
+      e.Skip();
+   });
 
    pane->SetSizer(col);
    p_gridPlotSizer->Add(pane, 1, wxGROW);

@@ -155,7 +155,7 @@ def run(case, builder, png, timeout, window=False):
         if window:
             env["ECCE_SPECTRUM_WINDOW"] = "1"
         if png:
-            env["ECCE_EXIT_AFTER_DUMP_DELAY_MS"] = "8000"
+            env["ECCE_EXIT_AFTER_DUMP_DELAY_MS"] = "14000"
         auth = os.path.join(state, "auth.pipe")
         fixture.authFile(auth, port=int(settings["ECCE_DATASERVER_PORT"]))
         proc = subprocess.Popen(
@@ -169,7 +169,7 @@ def run(case, builder, png, timeout, window=False):
             if os.path.exists(out) and os.path.getsize(out) > 0:
                 #  The binary that ran must be the one under test.
                 if png and not shot:
-                    time.sleep(3)
+                    time.sleep(float(os.environ.get("SPECTRUM_SHOT_WAIT", "3")))
                     subprocess.run(["import", "-display", display.name,
                                     "-window", "root", png], env=env,
                                    check=False)
@@ -199,6 +199,8 @@ def run(case, builder, png, timeout, window=False):
             if "[PANESIZE]" in line and "Vibrational" in line:
                 print("  " + line)
         tail = full[-3000:]
+        if os.environ.get("SPECTRUM_VERBOSE"):
+            print(full[-2500:])
         apps.stopServices(display)
         restorePrefs()
 
