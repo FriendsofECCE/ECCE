@@ -859,8 +859,9 @@ void GatewayApp::checkSessionEnd()
 
 /**
  * The ECCE apps of this session still running: this user's processes
- * running a binary from $ECCE_HOME/bin on this DISPLAY, the same rule
- * ecce-gateway-reap uses, so the two agree on when a session is over.
+ * running a binary from $ECCE_HOME/bin with this session's
+ * ECCE_SESSION_ID (#233), the same rule ecce-gateway-reap uses, so the
+ * two agree on when a session is over.
  *
  * A binary counts if $ECCE_HOME/bin/<name> resolves to it, so a bin/
  * of symlinks into a build tree is recognised too. Job monitoring is
@@ -872,8 +873,9 @@ int GatewayApp::otherSessionApps() const
   static const char *notApps[] =
     { "gateway", "eccejobstore", "eccejobmaster", "ecmd", NULL };
 
-  const char *d = getenv("DISPLAY");
-  string display = d ? d : "";
+  string id = Ecce::sessionId();
+  if (id.empty()) return 0;
+  string want = "ECCE_SESSION_ID=" + id;
   string bindir = string(Ecce::ecceHome()) + "/bin/";
   pid_t self = getpid();
   uid_t uid = getuid();
@@ -912,16 +914,13 @@ int GatewayApp::otherSessionApps() const
       continue;
 
     ifstream env((dir + "/environ").c_str());
-    string var, appDisplay;
-    bool found = false;
+    string var;
     while (std::getline(env, var, '\0')) {
-      if (var.compare(0, 8, "DISPLAY=") == 0) {
-        appDisplay = var.substr(8);
-        found = true;
+      if (var.compare(0, 16, "ECCE_SESSION_ID=") == 0) {
+        if (var == want) count++;
         break;
       }
     }
-    if (found && appDisplay == display) count++;
   }
   closedir(proc);
   return count;

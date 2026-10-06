@@ -12,7 +12,8 @@ windows the way a window manager does (WM_DELETE_WINDOW):
   builder     open a Builder first; closing the Organizer alone must not
               end the session, closing the Builder afterwards must
   jobstore    a stand-in for a running eccejobstore must not hold the
-              session open, and must survive it
+              session open, and must survive it, keeping its session's
+              broker and files until it ends (#233, decision 6)
   stop        ecce-gateway-stop (Quit and Stop Server) ends the session
               and stops the broker
   quit-stop   the Organizer's Quit and Stop Server, clicked: all the
@@ -29,6 +30,10 @@ windows the way a window manager does (WM_DELETE_WINDOW):
               no gateway left to abort
   displays    one user on two displays: the per-user broker outlives the
               first session and goes with the last
+  same-display  two `ecce` on one display are two sessions (#233): each
+              ends alone, and neither sweeps the other's files
+  display-changes  an app of the session started with another DISPLAY
+              (:N.0 for :N, as after an ssh -X reconnect) still counts
   shared      mode 3: a stand-in for ecce-broker.service, run as the unit
               runs it (ecce-broker-run --shared) from its own state
               directory, with an account from ecce-broker-setup --user, used by two
@@ -84,8 +89,8 @@ def treeHome(state, install, build):
                  "builder": os.path.join(build, "builder")}
     gwdir = os.path.join(REPO, "packaging", "gateway")
     for script in os.listdir(gwdir):
-        if script.startswith("ecce-") and os.access(
-                os.path.join(gwdir, script), os.X_OK):
+        if script.startswith("ecce-") and (script.endswith(".sh") or os.access(
+                os.path.join(gwdir, script), os.X_OK)):
             overrides[script] = os.path.join(gwdir, script)
     overrides["ecce-remote-setup"] = os.path.join(
         REPO, "packaging", "dataserver", "ecce-remote-setup")
@@ -110,6 +115,7 @@ def parse():
                         default=["organizer", "builder", "jobstore", "stop",
                                  "quit-stop",
                                  "remote", "remote-refused", "remote-down", "displays",
+                                 "same-display", "display-changes",
                                  "shared", "markers",
                                  "window", "bug"])
     parser.add_argument("--tree", help="build directory to take gateway from")
@@ -148,6 +154,7 @@ os.environ.pop("ECCE_NO_REAP", None)     # the reaper is under test
 
 import apps      # noqa: E402  (reads ECCE_TEST_HOME at import)
 import fixture   # noqa: E402
+import sessionkey  # noqa: E402
 import xdisplay  # noqa: E402
 
 try:
@@ -162,8 +169,17 @@ def say(text):
 
 # --- the process table ---------------------------------------------------
 
-def procs(displayName):
-    """{pid: exe} of this user's processes on displayName."""
+SESSION_ID = re.compile(r"^[0-9a-f]{16}$")
+
+
+def procs(where):
+    """{pid: exe} of this user's processes in a session or on a display.
+
+    where is a session id (16 lower-case hex characters, #233), which is
+    what a session's liveness is decided by, or a display name, which
+    is what clears a test display of everything on it.
+    """
+    var = "ECCE_SESSION_ID=" if SESSION_ID.match(where) else "DISPLAY="
     found = {}
     for entry in os.listdir("/proc"):
         if not entry.isdigit():
@@ -176,9 +192,32 @@ def procs(displayName):
                 env = handle.read().split(b"\0")
         except OSError:
             continue
-        if ("DISPLAY=" + displayName).encode() in env:
+        if (var + where).encode() in env:
             found[int(entry)] = exe
     return found
+
+
+def ancestry(pid):
+    """pid and its ancestors, up to init."""
+    chain = []
+    while pid > 1:
+        chain.append(pid)
+        try:
+            with open("/proc/%d/stat" % pid) as handle:
+                pid = int(handle.read().rsplit(")", 1)[1].split()[1])
+        except (OSError, ValueError, IndexError):
+            break
+    return chain
+
+
+def environOf(pid):
+    try:
+        with open("/proc/%d/environ" % pid, "rb") as handle:
+            pairs = handle.read().split(b"\0")
+    except OSError:
+        return {}
+    return dict(p.decode(errors="replace").split("=", 1)
+                for p in pairs if b"=" in p)
 
 
 def named(displayName, name):
@@ -357,6 +396,24 @@ def closeWindow(display, wid):
     conn.close()
 
 
+def windowPid(display, wid):
+    """The _NET_WM_PID GTK sets on a top-level window, or None."""
+    try:
+        conn = xlibdisplay.Display(display.name)
+    except Exception:
+        return None
+    try:
+        window = conn.create_resource_object("window", int(wid, 16))
+        prop = window.get_full_property(conn.intern_atom("_NET_WM_PID"),
+                                        X.AnyPropertyType)
+        return int(prop.value[0]) if prop is not None and len(prop.value) \
+            else None
+    except Exception:
+        return None
+    finally:
+        conn.close()
+
+
 def pressReturn(display, wid):
     env = display.env()
     subprocess.run(["xdotool", "windowfocus", str(int(wid, 16))],
@@ -415,6 +472,7 @@ class Session(object):
         self.display = display
         self.extra = extra or {}
         self.log = open(log, "w")
+        self._sid = None
         self.proc = subprocess.Popen(
             list(prefix) + [os.path.join(wrappers, "ecce")] + list(argv),
             env=self.env(),
@@ -422,10 +480,53 @@ class Session(object):
             stdout=subprocess.PIPE if pipe else self.log,
             stderr=subprocess.STDOUT, start_new_session=True)
 
+    def gateway(self):
+        """Pid of the gateway this `ecce` started, or None."""
+        for pid, exe in procs(self._sid or self.display.name).items():
+            if (os.path.basename(exe).split(" ")[0] == "gateway"
+                    and self.proc.pid in ancestry(pid)):
+                return pid
+        return None
+
+    def sid(self, timeout=60):
+        """The session id `ecce` made (#233), read from its gateway.
+
+        `ecce` always makes a fresh one, so the id passed in by the
+        display's environment is not it.
+        """
+        deadline = time.time() + timeout
+        while self._sid is None:
+            gw = self.gateway()
+            sid = environOf(gw).get("ECCE_SESSION_ID") if gw else None
+            if sid and SESSION_ID.match(sid):
+                self._sid = sid
+            elif time.time() >= deadline:
+                break
+            else:
+                time.sleep(0.3)
+        return self._sid
+
+    def mine(self, windows):
+        """Of (wid, title) pairs, those of this session's processes, so two
+        sessions on one display are told apart. Empty until the session
+        id is known."""
+        sid = self.sid(timeout=0)
+        if not sid:
+            return []
+        found = []
+        for w in windows:
+            pid = windowPid(self.display, w[0])
+            if pid is None or environOf(pid).get("ECCE_SESSION_ID") == sid:
+                found.append(w)
+        return found
+
     def env(self):
+        """The session's environment, as an app the gateway starts has it."""
         env = self.display.env()
         env.update(self.extra)
         env["PATH"] = wrappers + os.pathsep + env.get("PATH", "")
+        if self._sid:
+            env["ECCE_SESSION_ID"] = self._sid
         return env
 
     def organizer(self, title="Organizer"):
@@ -434,7 +535,7 @@ class Session(object):
         frame = None
         while time.time() < deadline and not frame:
             titles = self.display.windows()
-            frame = next((w for w in titles
+            frame = next((w for w in self.mine(titles)
                           if (title(w[1]) if callable(title)
                               else title in w[1])), None)
             auth = next((w for w in titles
@@ -486,9 +587,11 @@ class Checks(object):
         return ok
 
 
-def gatewayIsTheTree(checks, d):
-    pids = named(d, "gateway")
-    if not checks.check(len(pids) == 1, "one gateway on %s (%s)" % (d, pids)):
+def gatewayIsTheTree(checks, session):
+    sid = session.sid()
+    pids = named(sid, "gateway") if sid else []
+    if not checks.check(len(pids) == 1, "one gateway in session %s on %s (%s)"
+                        % (sid, session.display.name, pids)):
         return None
     exe = os.readlink("/proc/%d/exe" % pids[0])
     if build:
@@ -505,7 +608,7 @@ def endsCleanly(checks, session, d, gw, t0, apps=True):
         return
     time.sleep(1)
     checks.check(not alive(gw), "gateway %d gone" % gw)
-    left = sessionProcs(d)
+    left = sessionProcs(session.sid(timeout=0) or d)
     if not apps:
         #  The stop case ends the session from a script while the
         #  Organizer is still up; CalcMgr has Destroy()ed it by then.
@@ -521,7 +624,7 @@ def caseOrganizer(checks, display, logdir):
         frame = session.organizer()
         if not checks.check(frame, "the Organizer opened"):
             return
-        gw = gatewayIsTheTree(checks, d)
+        gw = gatewayIsTheTree(checks, session)
         amq = broker()
         checks.check(amq and alive(amq), "broker running (%s)" % amq)
         checks.check(os.path.exists(brokerSocket()), "on its socket")
@@ -544,7 +647,7 @@ def caseBuilder(checks, display, logdir):
         frame = session.organizer()
         if not checks.check(frame, "the Organizer opened"):
             return
-        gw = gatewayIsTheTree(checks, d)
+        gw = gatewayIsTheTree(checks, session)
         # Through the gateway, as File > New Structure does.
         builder = subprocess.Popen(
             [os.path.join(wrappers, "ecce-builder")], env=session.env(),
@@ -592,12 +695,16 @@ def caseJobstore(checks, display, logdir):
         frame = session.organizer()
         if not checks.check(frame, "the Organizer opened"):
             return
-        gw = gatewayIsTheTree(checks, d)
+        gw = gatewayIsTheTree(checks, session)
         job = subprocess.Popen(["nohup", fake, "600"], env=session.env(),
                                stdout=subprocess.DEVNULL,
                                stderr=subprocess.DEVNULL,
                                start_new_session=True)
         time.sleep(1)
+        sid = session.sid()
+        bfile = sessionkey.brokerFile(statedir(), sid)
+        afile = sessionkey.authFile(statedir(), sid)
+        hadAuth = os.path.exists(afile)
         t0 = time.time()
         quitVia(display, frame)
         returned = session.ended(30)
@@ -608,6 +715,24 @@ def caseJobstore(checks, display, logdir):
         amq = broker()
         checks.check(amq is not None and alive(amq),
                      "broker kept for the job monitor (reaper's rule)")
+        #  Decision 6 of #233: the job store keeps its session's id, so
+        #  its session's broker file and credential stay while it runs.
+        run("ecce-gateway-reap", display.env())
+        checks.check(os.path.exists(bfile),
+                     "its session's broker file kept after a sweep (%s)"
+                     % os.path.basename(bfile))
+        checks.check(not hadAuth or os.path.exists(afile),
+                     "its session's credential kept after a sweep%s"
+                     % ("" if hadAuth else " (none was stored)"))
+        job.kill()
+        job.wait()
+        job = None
+        said = run("ecce-gateway-reap", display.env(),
+                   "--if-idle").stdout.decode().strip()
+        checks.check(not alive(amq) and not os.path.exists(bfile)
+                     and not os.path.exists(afile),
+                     "the job monitor ending stops the broker and removes "
+                     "its session's files (%s)" % said.replace("\n", " / "))
     finally:
         if job is not None:
             job.kill()
@@ -629,7 +754,7 @@ def caseStop(checks, display, logdir):
         frame = session.organizer()
         if not checks.check(frame, "the Organizer opened"):
             return
-        gw = gatewayIsTheTree(checks, d)
+        gw = gatewayIsTheTree(checks, session)
         amq = broker()
         checks.check(amq and alive(amq), "broker running (%s)" % amq)
         t0 = time.time()
@@ -709,7 +834,7 @@ def caseQuitStop(checks, display, logdir):
         frame = session.organizer()
         if not checks.check(frame, "the Organizer opened"):
             return
-        gw = gatewayIsTheTree(checks, d)
+        gw = gatewayIsTheTree(checks, session)
         amq = broker()
         time.sleep(3)
         dialog = None
@@ -869,7 +994,7 @@ def _remoteClient(checks, display, logdir, serverEnv, amq, dport, bport,
         checks.check(not os.path.exists(os.path.join(client, ".ECCE",
                                                      "mosquitto.pid")),
                      "no broker of the client's own")
-        gw = gatewayIsTheTree(checks, cd)
+        gw = gatewayIsTheTree(checks, session)
         # The gateway is logged in to the server's broker: anonymous
         # clients are refused on TCP, so a connection means its account.
         checks.check(gw in connectedTo(bport),
@@ -899,7 +1024,7 @@ def _remoteClient(checks, display, logdir, serverEnv, amq, dport, bport,
                                   [os.path.join(client, ".ECCE")]),
                      "nothing left on the client's display %s"
                      % cdisplay.name)
-        stopEnv = dict(cdisplay.env(), **extra)
+        stopEnv = session.env() if session is not None else dict(cdisplay.env(), **extra)
         subprocess.run([os.path.join(install, "bin", "ecce-gateway-stop")],
                        env=stopEnv, stdout=subprocess.DEVNULL)
         cdisplay.__exit__(None, None, None)
@@ -1043,13 +1168,13 @@ def caseDisplays(checks, display, logdir):
         if not checks.check(frame1, "the Organizer opened on %s"
                             % display.name):
             return
-        gw1 = gatewayIsTheTree(checks, display.name)
+        gw1 = gatewayIsTheTree(checks, first)
         second = Session(other, os.path.join(logdir, "displays-2.log"))
         frame2 = second.organizer()
         if not checks.check(frame2, "a second Organizer opened on %s"
                             % other.name):
             return
-        gw2 = gatewayIsTheTree(checks, other.name)
+        gw2 = gatewayIsTheTree(checks, second)
         amq = broker()
         checks.check(amq and alive(amq), "one broker for both (%s)" % amq)
         t0 = time.time()
@@ -1070,6 +1195,101 @@ def caseDisplays(checks, display, logdir):
         checks.check(clearDisplay(other.name), "nothing left on %s"
                      % other.name)
         other.__exit__(None, None, None)
+
+
+def caseSameDisplay(checks, display, logdir):
+    """Two `ecce` on one display are two sessions (#233, decision 1):
+    each has its own id and files, and either ends without the other."""
+    first = second = None
+    try:
+        first = Session(display, os.path.join(logdir, "same-display-1.log"))
+        frame1 = first.organizer()
+        if not checks.check(frame1, "the first Organizer opened"):
+            return
+        gw1 = gatewayIsTheTree(checks, first)
+        second = Session(display, os.path.join(logdir, "same-display-2.log"))
+        frame2 = second.organizer()
+        if not checks.check(frame2 and frame2[0] != frame1[0],
+                            "a second Organizer opened on the same display"):
+            return
+        gw2 = gatewayIsTheTree(checks, second)
+        s1, s2 = first.sid(), second.sid()
+        checks.check(s1 and s2 and s1 != s2, "two session ids (%s, %s)"
+                     % (s1, s2))
+        files = {}
+        for sid in (s1, s2):
+            files[sid] = (sessionkey.brokerFile(statedir(), sid),
+                          sessionkey.authFile(statedir(), sid))
+            checks.check(os.path.exists(files[sid][0]),
+                         "session %s has its own broker file" % sid)
+        amq = broker()
+        checks.check(amq and alive(amq), "one broker for both (%s)" % amq)
+        t0 = time.time()
+        quitVia(display, frame1)
+        endsCleanly(checks, first, display.name, gw1 or -1, t0)
+        checks.check(alive(gw2 or -1) and not second.ended(3),
+                     "the second session is still up")
+        checks.check(display.windows() and waitWindow(
+            display, "Organizer", timeout=5), "its Organizer still open")
+        hadAuth2 = os.path.exists(files[s2][1])
+        run("ecce-gateway-reap", display.env())
+        checks.check(os.path.exists(files[s2][0])
+                     and (not hadAuth2 or os.path.exists(files[s2][1])),
+                     "the first session's end and a sweep left the second's "
+                     "files")
+        checks.check(not os.path.exists(files[s1][1]),
+                     "the first session's credential is gone")
+        checks.check(amq is not None and alive(amq),
+                     "the broker survives the first session")
+        t0 = time.time()
+        quitVia(display, frame2)
+        endsCleanly(checks, second, display.name, gw2 or -1, t0)
+        brokerStopped(checks, amq, "the user's last session ended")
+    finally:
+        for session in (first, second):
+            if session is not None:
+                session.kill()
+
+
+def caseDisplayChanges(checks, display, logdir):
+    """One session, an app whose DISPLAY differs (as after an ssh -X
+    reconnect, here :N.0 for :N): it is still the session's app, so the
+    session ends with it and not before (#233)."""
+    session = Session(display, os.path.join(logdir, "display-changes.log"))
+    builder = None
+    try:
+        frame = session.organizer()
+        if not checks.check(frame, "the Organizer opened"):
+            return
+        gw = gatewayIsTheTree(checks, session)
+        env = session.env()
+        env["DISPLAY"] = display.name + ".0"
+        builder = subprocess.Popen(
+            [os.path.join(wrappers, "ecce-builder")], env=env,
+            stdout=session.log, stderr=subprocess.STDOUT,
+            start_new_session=True)
+        bframe = waitWindow(display, "Builder", timeout=90)
+        if not checks.check(bframe, "a Builder opened with DISPLAY=%s"
+                            % env["DISPLAY"]):
+            return
+        bpid = next(iter(named(session.sid(), "builder")), None)
+        checks.check(bpid is not None, "the Builder is in the session")
+        quitVia(display, frame)
+        waitWindow(display, "Organizer", timeout=15, gone=True)
+        checks.check(not session.ended(8) and alive(gw),
+                     "closing the Organizer alone did not end the session")
+        t0 = time.time()
+        quitVia(display, bframe)
+        try:
+            builder.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            pass
+        endsCleanly(checks, session, display.name, gw, t0)
+    finally:
+        if builder is not None and builder.poll() is None:
+            os.killpg(builder.pid, 15)
+            builder.wait(timeout=20)
+        session.kill()
 
 
 def caseShared(checks, display, logdir):
@@ -1137,20 +1357,18 @@ def caseShared(checks, display, logdir):
         frame1 = first.organizer()
         if not checks.check(frame1, "user 1's Organizer opened"):
             return
-        gw1 = gatewayIsTheTree(checks, display.name)
+        gw1 = gatewayIsTheTree(checks, first)
         second = Session(other, os.path.join(logdir, "shared-2.log"),
                          extra=extra2)
         frame2 = second.organizer()
         if not checks.check(frame2, "user 2's Organizer opened"):
             return
-        gw2 = gatewayIsTheTree(checks, other.name)
+        gw2 = gatewayIsTheTree(checks, second)
         linked = connectedTo(sport)
-        for who, home, gw in (("user 1", users[0], gw1),
-                              ("user 2", user2, gw2)):
-            bfile = os.path.join(home, ".ECCE", "broker_%s" % (
-                re.sub(r"[^A-Za-z0-9._-]", "_", "%s_%s" % (
-                    os.environ.get("HOST") or socket.gethostname(),
-                    display.name if home == users[0] else other.name))))
+        for who, home, gw, session in (("user 1", users[0], gw1, first),
+                                       ("user 2", user2, gw2, second)):
+            bfile = sessionkey.brokerFile(os.path.join(home, ".ECCE"),
+                                          session.sid())
             try:
                 with open(bfile) as handle:
                     said = handle.read()
@@ -1170,7 +1388,7 @@ def caseShared(checks, display, logdir):
         endsCleanly(checks, first, display.name, gw1 or -1, t0)
         checks.check(service.poll() is None and portOpen(sport),
                      "user 1's plain quit left the shared broker running")
-        env2 = dict(other.env(), **extra2)
+        env2 = second.env()     # what its Quit and Stop Server runs with
         t0 = time.time()
         stop = ""
         for script in ("ecce-dataserver-stop", "ecce-gateway-stop"):
@@ -1275,7 +1493,7 @@ def caseWindow(checks, display, logdir):
         if not checks.check(gframe, "the Gateway window is shown (%s)"
                             % (gframe and gframe[1])):
             return
-        gw = gatewayIsTheTree(checks, d)
+        gw = gatewayIsTheTree(checks, session)
         other = subprocess.Popen(
             [os.path.join(wrappers, "ecce-organizer")], env=session.env(),
             stdout=session.log, stderr=subprocess.STDOUT,
@@ -1857,7 +2075,8 @@ def caseLocalPref(checks, display, logdir):
 CASES = {"local": caseLocal, "local-pref": caseLocalPref, "local-save": caseLocalSave, "bug": caseBug, "window": caseWindow, "stop": caseStop, "remote": caseRemote,
          "remote-down": caseRemoteDown, "remote-refused": caseRemoteRefused,
          "quit-stop": caseQuitStop,
-         "displays": caseDisplays, "shared": caseShared,
+         "displays": caseDisplays, "same-display": caseSameDisplay,
+         "display-changes": caseDisplayChanges, "shared": caseShared,
          "markers": caseMarkers,
          "organizer": caseOrganizer, "builder": caseBuilder,
          "jobstore": caseJobstore}

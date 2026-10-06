@@ -1,12 +1,11 @@
 #!/bin/bash
-# ecce-gateway-stop: stop this display's gateway and, once no session of
+# ecce-gateway-stop: stop this session's gateway and, once no session of
 # this account is left, its mosquitto broker (never the site's shared one).
 
 set -u
 
 ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
 STATEDIR="$ECCE_REALUSERHOME/.ECCE"
-DISPLAY="${DISPLAY:-:0}"
 ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
 _lib="$(dirname "$(readlink -f "$0")")/ecce-session-lib.sh"
 [ -r "$_lib" ] || _lib="$ECCE_HOME/bin/ecce-session-lib.sh"
@@ -38,7 +37,7 @@ fi
 # Identified by /proc/<pid>/exe rather than by command line, for the same
 # reason ecce-gateway-reap does it: the gateway is spawned as a relative
 # "./gateway" from $ECCE_HOME/bin, so a path match on the command line
-# finds nothing. Only this display's gateway is touched.
+# finds nothing. Only this session's gateway (ECCE_SESSION_ID) is touched.
 ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
 _bindir="$(readlink -f "$ECCE_HOME/bin" 2>/dev/null || echo "$ECCE_HOME/bin")"
 for _pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
@@ -49,9 +48,8 @@ for _pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
   [ "$_exe" = "$_bindir/gateway" ] ||
     [ "$_exe" = "$(readlink -f "$ECCE_HOME/bin/gateway" 2>/dev/null)" ] || continue
   [ -r "/proc/$_pid/environ" ] || continue
-  _disp="$(tr '\0' '\n' <"/proc/$_pid/environ" 2>/dev/null |
-           sed -n 's/^DISPLAY=//p' | head -n1)"
-  [ "$_disp" = "$DISPLAY" ] || continue
+  [ -n "${ECCE_SESSION_ID:-}" ] &&
+    [ "$(ecce_session_of_pid "$_pid")" = "$ECCE_SESSION_ID" ] || continue
   echo "ecce-gateway-stop: stopping gateway (pid $_pid)"
   kill "$_pid" 2>/dev/null
 done

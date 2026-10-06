@@ -85,32 +85,16 @@ is_ecce_exe() {
   [ "$(readlink -f "$ECCE_HOME/bin/$name" 2>/dev/null)" = "$exe" ]
 }
 
-# Pids of ECCE app binaries running for a given DISPLAY, for this user.
-#
-# Identified by /proc/<pid>/exe, NOT by matching the command line. Apps
-# launched from the gateway are spawned as `cd $ECCE_HOME/bin && ./builder`
-# (WxJMSMessageDispatch.C), so their command line is the bare "./builder"
-# -- a path match would miss every gateway-launched app and conclude the
-# session was idle while the user had windows open. /proc/<pid>/exe is the
-# resolved binary either way.
-#
-# DISPLAY is not on the command line either, so it is read back out of the
-# process's own environment; both are readable without privilege for one's
-# own processes.
-apps_for_display() {
-  local want="$1" pid exe disp
-  for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
-    [ -O "/proc/$pid" ] || continue
-    exe="$(readlink "/proc/$pid/exe" 2>/dev/null)" || continue
-    is_ecce_exe "$exe" || continue
-    [ -r "/proc/$pid/environ" ] || continue
-    disp="$(tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null |
-            sed -n 's/^DISPLAY=//p' | head -n1)"
-    if [ "$disp" = "$want" ]; then echo "$pid"; fi
-  done
-}
+# ECCE processes are identified by /proc/<pid>/exe, NOT by matching the
+# command line. Apps launched from the gateway are spawned as
+# `cd $ECCE_HOME/bin && ./builder` (WxJMSMessageDispatch.C), so their
+# command line is the bare "./builder" -- a path match would miss every
+# gateway-launched app and conclude the session was idle while the user
+# had windows open. The session id and ECCE_REALUSERHOME are read back out
+# of the process's own environment; both are readable without privilege
+# for one's own processes.
 
-# Is any ECCE app of this state directory running, on any display? Keyed
+# Is any ECCE app of this state directory running, in any session? Keyed
 # by ECCE_REALUSERHOME, which every wrapper exports, so a second instance
 # of the same account (another ECCE_REALUSERHOME) does not count.
 apps_for_state() {
@@ -177,7 +161,7 @@ for f in "$broker_prefix"*; do
   [ -n "$(find "$f" -mmin +1 2>/dev/null)" ] && rm -f "$f"
 done
 
-# --- 2. The broker, shared by every display ----------------------------
+# --- 2. The broker, shared by every session ----------------------------
 if [ -e "$ECCE_HOME/siteconfig/SharedBroker" ]; then
   [ "$EXPLICIT_STOP" = 1 ] &&
     say "the broker is the site's shared service (siteconfig/SharedBroker) -- left running"
