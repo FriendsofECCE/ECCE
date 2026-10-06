@@ -322,13 +322,29 @@ jobs:
 
       # ECCE.app in a .dmg (#133), then the start test again on a copy of
       # the app taken out of the mounted image, away from the build tree.
+      # The two steps below fail the job when they fail.  The job itself
+      # is continue-on-error (the native build is still experimental), so
+      # the workflow stays green but the job and these steps show red and
+      # the summary says FAILED.
       - name: Package ECCE.app
-        continue-on-error: true
         run: |
           packaging/macos/make-app.sh stage dist
 
+      # Oldest macOS the bundle can run on: measured only (#133).
+      - name: Minimum macOS of every Mach-O in the app
+        run: |
+          mkdir -p minos
+          app=$(mktemp -d)
+          mnt=$(mktemp -d)
+          hdiutil attach dist/ECCE-*.dmg -mountpoint "$mnt" -nobrowse -quiet
+          cp -R "$mnt/ECCE.app" "$app/"
+          hdiutil detach "$mnt" -quiet
+          python3 packaging/macos/minos.py "$app/ECCE.app" minos/minos.txt > /dev/null
+          { echo '### Minimum macOS (ECCE.app)'; echo '```';
+            sed -n '/^Mach-O files/,$p' minos/minos.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          echo "runner: $(sw_vers -productVersion) $(uname -m)" >> minos/minos.txt
+
       - name: Run the packaged app
-        continue-on-error: true
         timeout-minutes: 25
         run: |
           pkill -f "$PWD/stage" || true
@@ -343,11 +359,17 @@ jobs:
           ECCE_APP="$appdir/ECCE.app" tests/macos/run.sh "$appdir/ECCE.app/Contents/Resources" macos-app-run
           cat macos-app-run/summary.txt >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Summary on failure
+        if: failure()
+        run: echo '### macOS packaging FAILED (see the failed step above)' >> "$GITHUB_STEP_SUMMARY"
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ECCE-macos-dmg
-          path: dist/*.dmg
+          path: |
+            dist/*.dmg
+            minos/minos.txt
           if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v4

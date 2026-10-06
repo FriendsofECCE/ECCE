@@ -109,6 +109,10 @@ WxFeedback::WxFeedback( wxWindow* parent, wxWindowID id,
    p_textEvtHandler = new FeedbackTextEvtHandler();
    ewxTextCtrl *text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_FEEDBACK_MSG));
    if (text) {
+     // The fixed 60 px showed ~2 lines on macOS and cut the top one;
+     // size the pane from the font so 4 whole lines always fit.
+     int lineH = text->GetCharHeight();
+     text->SetMinSize(wxSize(-1, wxMax(60, 4*lineH + 2*lineH/3 + 12)));
      text->SetValidator(wxDefaultValidator);
      text->PushEventHandler(p_textEvtHandler);
    }
