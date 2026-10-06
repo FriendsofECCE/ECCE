@@ -46,7 +46,7 @@ def rpaths(p):
         out, lines = [], run("otool", "-l", p).splitlines()
         for i, l in enumerate(lines):
             if "cmd LC_RPATH" in l:
-                out.append(lines[i + 2].split("path ")[1].split(" (")[0])
+                out.append(lines[i + 2].split("path ", 1)[1].split(" (")[0])
         ORIG_RPATHS[p] = out
     return ORIG_RPATHS[p]
 
