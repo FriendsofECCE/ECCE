@@ -53,6 +53,10 @@ class Ecce
       // session topic level); both are "" without a well-formed id.
       static string       sessionId();
       static string       sessionKey();
+      static string       sessionKeyFor(const string& id);
+      // ~/.ECCE/session_<host>: the id of the newest session started on
+      // this host by this account; "" without ECCE_REALUSERHOME.
+      static string       sessionPointerFile();
       static string       sessionHost();
       static string       newSessionId();
       static bool         validSessionId(const string& id);

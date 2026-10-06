@@ -617,6 +617,20 @@ int main(int argc, char** argv)
     none.push_back("ecce_url_state:sessionless_state");
     check(runChildStatus(alice, "", none) == 2,
           "a process without a session id publishes nothing (no messaging)");
+    // Without an id, the newest session of the account on this host
+    // (~/.ECCE/session_<host>) is joined while its broker file is there.
+    string pointer = alice + "/.ECCE/session_testhost";
+    { ofstream p(pointer.c_str()); p << "0000000000000bad\n"; }
+    vector<string> stale;
+    stale.push_back("ecce_poll:stale_pointer");
+    check(runChildStatus(alice, "", stale) == 2,
+          "a pointer to a session whose broker file is gone is not joined");
+    { ofstream p(pointer.c_str()); p << S1 << "\n"; }
+    vector<string> joined;
+    joined.push_back("ecce_poll:joined_by_pointer");
+    check(runChildStatus(alice, "", joined) == 0,
+          "a process without a session id joined the newest session");
+    unlink(pointer.c_str());
     vector<string> z;
     z.push_back("ecce_url_state:sentinel2");
     runChild(alice, S1, z);
@@ -627,6 +641,8 @@ int main(int argc, char** argv)
           "delivered");
     check(p2.has("oddhost_state") && !p2.has("sessionless_state"),
           "the odd host's message delivered, nothing from the sessionless one");
+    check(p1.has("joined_by_pointer") && !p1.has("stale_pointer"),
+          "the session message of the process that joined is delivered");
     check(!p1.has("bob_prefs") && !p1.has("bob_state") && !p2.has("bob_state"),
           "another account's USER and NONE topics are not delivered");
     check(p1.has("bob_machreg"),

@@ -34,25 +34,18 @@ fi
 # i.e. a visible window that cannot do anything, which is worse than not
 # having stopped the services at all.
 #
-# Identified by /proc/<pid>/exe rather than by command line, for the same
-# reason ecce-gateway-reap does it: the gateway is spawned as a relative
-# "./gateway" from $ECCE_HOME/bin, so a path match on the command line
-# finds nothing. Only this session's gateway (ECCE_SESSION_ID) is touched.
-ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
-_bindir="$(readlink -f "$ECCE_HOME/bin" 2>/dev/null || echo "$ECCE_HOME/bin")"
-for _pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
-  [ -O "/proc/$_pid" ] || continue
-  _exe="$(readlink "/proc/$_pid/exe" 2>/dev/null)" || continue
-  _exe="${_exe% (deleted)}"
-  # bin/gateway may be a symlink into a build tree (an overlay).
-  [ "$_exe" = "$_bindir/gateway" ] ||
-    [ "$_exe" = "$(readlink -f "$ECCE_HOME/bin/gateway" 2>/dev/null)" ] || continue
-  [ -r "/proc/$_pid/environ" ] || continue
-  [ -n "${ECCE_SESSION_ID:-}" ] &&
-    [ "$(ecce_session_of_pid "$_pid")" = "$ECCE_SESSION_ID" ] || continue
-  echo "ecce-gateway-stop: stopping gateway (pid $_pid)"
-  kill "$_pid" 2>/dev/null
-done
+# Identified as ecce-gateway-reap identifies ECCE programs
+# (ecce_session_procs), not by command line: the gateway is spawned as a
+# relative "./gateway" from $ECCE_HOME/bin, so a path match on the command
+# line finds nothing. Only this session's gateway (ECCE_SESSION_ID) is
+# touched.
+if [ -n "${ECCE_SESSION_ID:-}" ]; then
+  while read -r _pid _name _sid; do
+    [ "$_name" = gateway ] && [ "$_sid" = "$ECCE_SESSION_ID" ] || continue
+    echo "ecce-gateway-stop: stopping gateway (pid $_pid)"
+    kill "$_pid" 2>/dev/null
+  done < <(ecce_session_procs)
+fi
 
 # Unconditionally: the session is over either way, and the credential
 # file holds a password.

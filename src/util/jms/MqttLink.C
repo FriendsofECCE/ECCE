@@ -13,6 +13,7 @@
 #include <pwd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include <chrono>
@@ -307,9 +308,27 @@ bool MqttLink::ensureConnected()
   std::unique_lock<std::mutex> g(p_lock);
   if (p_started) return p_mosq != nullptr;
 
-  // The session this process belongs to (#233). Without one there is no
-  // session to message: the process runs as with ECCE_NO_MESSAGING.
+  // The session this process belongs to (#233). One started outside any
+  // session (a job store launched over ssh) joins the newest session of
+  // this account on this host while its broker file is there, and passes
+  // the id on to what it starts. Otherwise there is no session to
+  // message: the process runs as with ECCE_NO_MESSAGING.
   string key = Ecce::sessionKey();
+  if (key.empty()) {
+    std::ifstream pointer(Ecce::sessionPointerFile());
+    string id;
+    if (pointer && std::getline(pointer, id) && Ecce::validSessionId(id)) {
+      string k = Ecce::sessionKeyFor(id);
+      struct stat st;
+      if (stat((string(Ecce::realUserPrefPath()) + "broker_" + k).c_str(),
+               &st) == 0) {
+        setenv("ECCE_SESSION_ID", id.c_str(), 1);
+        key = k;
+        std::cerr << "MQTT: no ECCE_SESSION_ID; joined this account's newest "
+                  << "session " << id << std::endl;
+      }
+    }
+  }
   if (key.empty()) {
     std::cerr << "MQTT: no ECCE session (ECCE_SESSION_ID is not set), so "
               << "no messaging in this process" << std::endl;

@@ -111,10 +111,17 @@ if [ -z "$SHARED" ] && [ -e "$ECCE_HOME/siteconfig/SharedBroker" ]; then
 fi
 
 # Atomic, so a process starting now never reads half of it.
+# A session's first broker file also makes it the newest session, which an
+# app started without a session id joins (ecce_session_ensure).
 write_broker_file() {
-  local tmp="$BROKERFILE.tmp.$$"
+  local tmp="$BROKERFILE.tmp.$$" ptr new=0
+  [ -e "$BROKERFILE" ] || new=1
   { printf 'user=%s\n' "${BROKER_USER:-$ECCE_REALUSER}"; printf '%s\n' "$@"; } >"$tmp" &&
-    mv -f "$tmp" "$BROKERFILE"
+    mv -f "$tmp" "$BROKERFILE" || return
+  if [ "$new" = 1 ]; then
+    ptr="$(ecce_session_pointer)"
+    printf '%s\n' "$ECCE_SESSION_ID" >"$ptr.tmp.$$" && mv -f "$ptr.tmp.$$" "$ptr"
+  fi
 }
 
 # The socket must fit sun_path (107 bytes); a deep state directory gets a

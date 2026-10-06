@@ -61,11 +61,26 @@ ecce_auth_file() {
   printf '%s/authcache_%s' "$STATEDIR" "$key"
 }
 
-# Keep an inherited id, else make one: an app started on its own is a
-# session of its own.
+# ~/.ECCE/session_<host>: one line, the id of the newest session started
+# on this host by this account (ecce-gateway-start writes it under
+# .gateway.lock), which an app started without an id joins while it lives.
+ecce_session_pointer() {
+  printf '%s/session_%s' "$STATEDIR" "$(ecce_session_host | ecce_session_sanitize)"
+}
+
+# Keep an inherited id (an app the gateway or `ecce` started); else join
+# the newest live session of this account on this host; else make one: an
+# app started on its own with no session alive is a session of its own.
 ecce_session_ensure() {
+  local id
   if ! ecce_session_id_valid "${ECCE_SESSION_ID:-}"; then
-    ECCE_SESSION_ID="$(ecce_new_session_id)"
+    : "${STATEDIR:=${ECCE_REALUSERHOME:-$HOME}/.ECCE}"
+    id="$(head -n1 "$(ecce_session_pointer)" 2>/dev/null)"
+    if ecce_session_id_valid "$id" && ecce_session_alive "$id"; then
+      ECCE_SESSION_ID="$id"
+    else
+      ECCE_SESSION_ID="$(ecce_new_session_id)"
+    fi
   fi
   export ECCE_SESSION_ID
 }
@@ -74,4 +89,39 @@ ecce_session_ensure() {
 ecce_session_of_pid() {
   tr '\0' '\n' <"/proc/$1/environ" 2>/dev/null |
     sed -n 's/^ECCE_SESSION_ID=//p' | head -n1
+}
+
+# Is this resolved executable one of $ECCE_HOME/bin's? Also true when
+# bin/<name> is a symlink to it, as in an overlay pointing into a build
+# tree -- the rule GatewayApp::otherSessionApps applies too.
+ecce_is_ecce_exe() {
+  local exe="${1% (deleted)}" name
+  : "${_ECCE_BINDIR:=$(readlink -f "$ECCE_HOME/bin" 2>/dev/null || echo "$ECCE_HOME/bin")}"
+  case "$exe" in "$_ECCE_BINDIR"/*) return 0 ;; esac
+  name="${exe##*/}"
+  [ -e "$ECCE_HOME/bin/$name" ] || return 1
+  [ "$(readlink -f "$ECCE_HOME/bin/$name" 2>/dev/null)" = "$exe" ]
+}
+
+# This user's running ECCE programs: lines "<pid> <name> <session id>"
+# (the id empty for a program without one).
+ecce_session_procs() {
+  local pid exe
+  for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
+    [ -O "/proc/$pid" ] || continue
+    exe="$(readlink "/proc/$pid/exe" 2>/dev/null)" || continue
+    ecce_is_ecce_exe "$exe" || continue
+    [ -r "/proc/$pid/environ" ] || continue
+    exe="${exe% (deleted)}"
+    echo "$pid ${exe##*/} $(ecce_session_of_pid "$pid")"
+  done
+}
+
+# Is an ECCE program of this session running?
+ecce_session_alive() {
+  local pid name sid
+  while read -r pid name sid; do
+    [ "$sid" = "$1" ] && return 0
+  done < <(ecce_session_procs)
+  return 1
 }

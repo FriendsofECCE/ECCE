@@ -207,20 +207,35 @@ string Ecce::sessionHost()
   return buf;
 }
 
-string Ecce::sessionKey()
+// tr -c 'A-Za-z0-9._-' '_' in the C locale, byte by byte.
+static string sessionSanitize(string s)
 {
-  string id = sessionId();
-  if (id.empty()) return "";
-  string key = sessionHost() + "_" + id;
-  // tr -c 'A-Za-z0-9._-' '_' in the C locale, byte by byte.
-  for (size_t i = 0; i < key.size(); i++) {
-    unsigned char ch = key[i];
+  for (size_t i = 0; i < s.size(); i++) {
+    unsigned char ch = s[i];
     bool keep = (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
                 (ch >= '0' && ch <= '9') || ch == '.' || ch == '_' ||
                 ch == '-';
-    if (!keep) key[i] = '_';
+    if (!keep) s[i] = '_';
   }
-  return key;
+  return s;
+}
+
+string Ecce::sessionKeyFor(const string& id)
+{
+  if (!validSessionId(id)) return "";
+  return sessionSanitize(sessionHost() + "_" + id);
+}
+
+string Ecce::sessionKey()
+{
+  return sessionKeyFor(sessionId());
+}
+
+string Ecce::sessionPointerFile()
+{
+  const char* home = getenv("ECCE_REALUSERHOME");
+  if (!home || !*home) return "";
+  return string(home) + "/.ECCE/session_" + sessionSanitize(sessionHost());
 }
 
 string Ecce::newSessionId()

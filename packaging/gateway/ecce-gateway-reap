@@ -71,22 +71,8 @@ if [ -z "${ECCE_GATEWAY_LOCKED:-}" ]; then
 fi
 
 
-BINDIR="$(readlink -f "$ECCE_HOME/bin" 2>/dev/null || echo "$ECCE_HOME/bin")"
-
-# Is this resolved executable one of $ECCE_HOME/bin's? Also true when
-# bin/<name> is a symlink to it, as in an overlay pointing into a build
-# tree -- the same rule the gateway applies when deciding its session is
-# over, so the two agree.
-is_ecce_exe() {
-  local exe="${1% (deleted)}" name
-  case "$exe" in "$BINDIR"/*) return 0 ;; esac
-  name="${exe##*/}"
-  [ -e "$ECCE_HOME/bin/$name" ] || return 1
-  [ "$(readlink -f "$ECCE_HOME/bin/$name" 2>/dev/null)" = "$exe" ]
-}
-
-# ECCE processes are identified by /proc/<pid>/exe, NOT by matching the
-# command line. Apps launched from the gateway are spawned as
+# ECCE processes are identified by /proc/<pid>/exe (ecce_is_ecce_exe in
+# ecce-session-lib.sh), NOT by matching the command line. Apps launched from the gateway are spawned as
 # `cd $ECCE_HOME/bin && ./builder` (WxJMSMessageDispatch.C), so their
 # command line is the bare "./builder" -- a path match would miss every
 # gateway-launched app and conclude the session was idle while the user
@@ -102,7 +88,7 @@ apps_for_state() {
   for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
     [ -O "/proc/$pid" ] || continue
     exe="$(readlink "/proc/$pid/exe" 2>/dev/null)" || continue
-    is_ecce_exe "$exe" || continue
+    ecce_is_ecce_exe "$exe" || continue
     [ -r "/proc/$pid/environ" ] || continue
     home="$(tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null |
             sed -n 's/^ECCE_REALUSERHOME=//p' | head -n1)"
@@ -131,16 +117,11 @@ reap_pid() {
 # a home directory shared over NFS holds other machines'. Files of the
 # DISPLAY-keyed 9.0.0-alpha scheme match no live id and are swept too.
 live_auth="" live_broker=""
-for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
-  [ -O "/proc/$pid" ] || continue
-  exe="$(readlink "/proc/$pid/exe" 2>/dev/null)" || continue
-  is_ecce_exe "$exe" || continue
-  [ -r "/proc/$pid/environ" ] || continue
-  sid="$(ecce_session_of_pid "$pid")"
+while read -r pid name sid; do
   ecce_session_id_valid "$sid" || continue
   live_auth="$live_auth $(ecce_auth_file "$sid")"
   live_broker="$live_broker $(ecce_broker_file "$sid")"
-done
+done < <(ecce_session_procs)
 auth_prefix="$STATEDIR/authcache_$(ecce_session_prefix)"      # .../authcache_<host>_
 for f in "$auth_prefix"*; do
   [ -e "$f" ] || continue

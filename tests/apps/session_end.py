@@ -32,6 +32,8 @@ windows the way a window manager does (WM_DELETE_WINDOW):
               first session and goes with the last
   same-display  two `ecce` on one display are two sessions (#233): each
               ends alone, and neither sweeps the other's files
+  join        an app started without a session id joins the newest live
+              session; with none alive it is a session of its own
   display-changes  an app of the session started with another DISPLAY
               (:N.0 for :N, as after an ssh -X reconnect) still counts
   shared      mode 3: a stand-in for ecce-broker.service, run as the unit
@@ -115,7 +117,7 @@ def parse():
                         default=["organizer", "builder", "jobstore", "stop",
                                  "quit-stop",
                                  "remote", "remote-refused", "remote-down", "displays",
-                                 "same-display", "display-changes",
+                                 "same-display", "display-changes", "join",
                                  "shared", "markers",
                                  "window", "bug"])
     parser.add_argument("--tree", help="build directory to take gateway from")
@@ -1292,6 +1294,93 @@ def caseDisplayChanges(checks, display, logdir):
         session.kill()
 
 
+def waitAppWindow(display, pattern, timeout=90):
+    """A window titled pattern, answering the login dialog on the way (a
+    session of its own has no stored data server login yet)."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        windows = display.windows()
+        match = [w for w in windows if pattern in w[1]]
+        if match:
+            return match[0]
+        auth = next((w for w in windows if w[1] == "ECCE Authentication"),
+                    None)
+        if auth:
+            env = display.env()
+            subprocess.run(["xdotool", "windowfocus", str(int(auth[0], 16))],
+                           env=env, timeout=10, stderr=subprocess.DEVNULL)
+            time.sleep(0.3)
+            subprocess.run(["xdotool", "type", "--delay", "50", "ecce"],
+                           env=env, timeout=10)
+            subprocess.run(["xdotool", "key", "Return"], env=env, timeout=10)
+            time.sleep(3)
+        time.sleep(0.5)
+    return None
+
+
+def caseJoin(checks, display, logdir):
+    """An app started outside the session, with no ECCE_SESSION_ID (from a
+    file manager, say), joins the newest live session of the account; with
+    no session alive it is a session of its own (#233, decision 2)."""
+    session = Session(display, os.path.join(logdir, "join.log"))
+    builder = lone = None
+    try:
+        frame = session.organizer()
+        if not checks.check(frame, "the Organizer opened"):
+            return
+        gw = gatewayIsTheTree(checks, session)
+        env = session.env()
+        env.pop("ECCE_SESSION_ID", None)
+        builder = subprocess.Popen(
+            [os.path.join(wrappers, "ecce-builder")], env=env,
+            stdout=session.log, stderr=subprocess.STDOUT,
+            start_new_session=True)
+        bframe = waitAppWindow(display, "Builder")
+        if not checks.check(bframe, "a Builder opened, started without an id"):
+            return
+        checks.check(named(session.sid(), "builder"),
+                     "it joined the session %s" % session.sid())
+        quitVia(display, frame)
+        waitWindow(display, "Organizer", timeout=15, gone=True)
+        checks.check(not session.ended(8) and alive(gw),
+                     "closing the Organizer alone did not end the session")
+        t0 = time.time()
+        quitVia(display, bframe)
+        try:
+            builder.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            pass
+        endsCleanly(checks, session, display.name, gw, t0)
+
+        lone = subprocess.Popen(
+            [os.path.join(wrappers, "ecce-builder")], env=env,
+            stdout=session.log, stderr=subprocess.STDOUT,
+            start_new_session=True)
+        lframe = waitAppWindow(display, "Builder")
+        if not checks.check(lframe, "with no session alive, a Builder "
+                            "started without an id opened"):
+            return
+        pids = named(display.name, "builder")
+        sid = environOf(pids[0]).get("ECCE_SESSION_ID") if pids else None
+        checks.check(sid and SESSION_ID.match(sid) and sid != session.sid(),
+                     "in a session of its own (%s)" % sid)
+        checks.check(sid and os.path.exists(
+            sessionkey.brokerFile(statedir(), sid)),
+            "with its own broker file")
+        quitVia(display, lframe)
+        try:
+            lone.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            pass
+        checks.check(lone.poll() is not None, "and it ended")
+    finally:
+        for proc in (builder, lone):
+            if proc is not None and proc.poll() is None:
+                os.killpg(proc.pid, 15)
+                proc.wait(timeout=20)
+        session.kill()
+
+
 def caseShared(checks, display, logdir):
     """Mode 3: the site's shared broker, and two users of it.
 
@@ -2076,7 +2165,8 @@ CASES = {"local": caseLocal, "local-pref": caseLocalPref, "local-save": caseLoca
          "remote-down": caseRemoteDown, "remote-refused": caseRemoteRefused,
          "quit-stop": caseQuitStop,
          "displays": caseDisplays, "same-display": caseSameDisplay,
-         "display-changes": caseDisplayChanges, "shared": caseShared,
+         "display-changes": caseDisplayChanges, "join": caseJoin,
+         "shared": caseShared,
          "markers": caseMarkers,
          "organizer": caseOrganizer, "builder": caseBuilder,
          "jobstore": caseJobstore}
