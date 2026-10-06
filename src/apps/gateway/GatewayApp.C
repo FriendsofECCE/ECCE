@@ -216,12 +216,17 @@ bool GatewayApp::OnInit()
   // A refused broker login would otherwise only reach this process's
   // stderr, which nobody sees; the other apps' refusals are the same one.
   MqttLink::setRefusalHandler(
-    [](const string& account, const string& host, int port, const string&) {
+    [](const string& account, const string& host, int port, const string& why) {
       static std::atomic<bool> shown(false);
       if (shown.exchange(true)) return;
       string msg = "The ECCE message broker";
       if (!host.empty())
         msg += " (" + host + ":" + std::to_string(port) + ")";
+      if (why.compare(0, 4, "TLS:") == 0)
+        msg += " could not be trusted: its certificate is not the one this "
+               "installation was set up with, so ECCE did not send your "
+               "login to it.\n\nAsk your ECCE administrator.";
+      else
       msg += " refused the login of '" + account + "'.\n\n"
              "Your data server login was accepted, but the message broker "
              "did not know this account or its password, so jobs cannot "

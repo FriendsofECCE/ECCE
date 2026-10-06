@@ -50,7 +50,7 @@ def main():
             "-I" + os.path.join(ROOT, "include")] + cxx
            + ["-L" + o.libdir, "-Wl,-rpath," + o.libdir]
            + ["-l" + lib for lib in LIBS]
-           + libs + ["-lxerces-c", "-lssh", "-lmosquitto"])
+           + libs + ["-lxerces-c", "-lssh", "-lmosquitto", "-lssl", "-lcrypto"])
     b = out(cmd)
     if b.returncode:
         print(b.stderr[-3000:])

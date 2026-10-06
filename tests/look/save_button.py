@@ -42,7 +42,7 @@ def main():
     cmd = (["nice", "-n", "19", "g++", "-std=c++17", "-o", binary,
             os.path.join(HERE, "save_button.C"), "-I" + o.include] + cxx
            + ["-L" + o.libdir] + ["-l" + lib for lib in LIBS]
-           + libs + ["-lxerces-c", "-lssh", "-lmosquitto"])
+           + libs + ["-lxerces-c", "-lssh", "-lmosquitto", "-lssl", "-lcrypto"])
     b = out(cmd)
     if b.returncode:
         print(b.stderr[-3000:])

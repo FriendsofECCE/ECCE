@@ -83,6 +83,12 @@ class MoPanel : public MoGUI,
       */
      bool showOrbital(int orbengIndex);
 
+     /**
+      * The table's selection and scroll state as "key value" lines, for
+      * headless checks (the Builder's "motable" scene command).
+      */
+     string tableState() const;
+
    protected:
 
      double getTransparency();
@@ -130,6 +136,12 @@ class MoPanel : public MoGUI,
       void showEspRangeControls(bool show);
       void onFieldTypeChanged(wxCommandEvent& event);
       void rebuildEspSurface();
+
+      //  Bring the selected row into the middle of the table once the
+      //  table has its real, on-screen size; see selectMo().
+      void scrollToSelection();
+      void onGridWindowSize(wxSizeEvent& event);
+      bool p_scrollPending = false;
 
       wxBoxSizer  *p_espSizer;
       ewxCheckBox *p_espAuto;

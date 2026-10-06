@@ -45,7 +45,12 @@ public :
   virtual bool connect(
     const string_type& host,
     port_type          port  =  HTTPDefPort,
-    const string_type& proxy = "");
+    const string_type& proxy = "",
+    bool               secure = false);  // true: TLS (https), never plain
+
+  // After a failed connect(): was the server certificate rejected?
+  bool certificateRejected(void) const { return certRejected_; }
+  const string_type& connectError(void) const { return connectError_; }
 
   // Did the connection to the server die?
   virtual bool deadConnection(void) const
@@ -128,6 +133,9 @@ protected :
                   proxy_;             // proxy server ("" if no proxy)
   port_type       port_;              // server port
   socket_type     *server_;           // client socket to server
+  bool            secure_;            // TLS (https)
+  bool            certRejected_;      // last connect() failed on certificate
+  string_type     connectError_;      // last connect() failure text
 
 private :
 

@@ -1,4 +1,5 @@
 #include "util/BrowserHelp.H"
+#include "wxgui/WxHelpViewer.H"
 #include "util/JMSMessage.H"
 #include "util/JMSPublisher.H"
 #include "util/StringConverter.H"
@@ -867,8 +868,7 @@ void GeomConstraints::OnCloseButtonClick( wxCommandEvent& event )
  */
 void GeomConstraints::OnHelpButtonClick( wxCommandEvent& event )
 {
-  BrowserHelp help;
-  help.showPage(help.URL("HomeFallback"));
+  WxHelpViewer::showKey("HomeFallback");
 }
 
 

@@ -121,6 +121,10 @@ bool MqttConfig::parseFile(const string& path, MqttConfig& cfg)
     else if (key == "host") cfg.host = val;
     else if (key == "port") cfg.port = atoi(val.c_str());
     else if (key == "user") cfg.user = val;
+    else if (key == "tls") cfg.tls = (val == "1");
+    else if (key == "cafile") cfg.cafile = val;
+    else if (key == "capath") cfg.capath = val;
+    else if (key == "pinned") cfg.pinned = (val == "1");
   }
   return true;
 }
@@ -390,6 +394,31 @@ bool MqttLink::ensureConnected()
   mosquitto_publish_v5_callback_set(p_mosq, onPublish);
   mosquitto_reconnect_delay_set(p_mosq, 1, 5, false);
 
+  if (tcp && p_cfg.tls) {
+    // No fallback to plain TCP: a TLS broker file means TLS or nothing.
+    const char* ca = p_cfg.cafile.empty() ? nullptr : p_cfg.cafile.c_str();
+    const char* cp = p_cfg.capath.empty() ? nullptr : p_cfg.capath.c_str();
+    int trc = (ca || cp)
+      ? mosquitto_tls_set(p_mosq, ca, cp, nullptr, nullptr, nullptr)
+      : MOSQ_ERR_INVAL;
+    if (trc == MOSQ_ERR_SUCCESS)
+      trc = mosquitto_tls_opts_set(p_mosq, 1, "tlsv1.2", nullptr);
+    // A pinned certificate is the trust anchor itself, so it is the
+    // certificate that is checked; the name in it need not match the
+    // address the server is reached by (IP address, alias).
+    if (trc == MOSQ_ERR_SUCCESS && p_cfg.pinned)
+      trc = mosquitto_tls_insecure_set(p_mosq, true);
+    if (trc != MOSQ_ERR_SUCCESS) {
+      std::cerr << "MQTT: TLS setup: " << mosquitto_strerror(trc)
+                << " (" << (ca ? ca : (cp ? cp : "no certificate source"))
+                << ")" << std::endl;
+      mosquitto_destroy(p_mosq);
+      p_mosq = nullptr;
+      return false;
+    }
+    mosquitto_log_callback_set(p_mosq, onLog);
+  }
+
   int rc = p_cfg.socket.empty()
     ? mosquitto_connect_async(p_mosq, p_cfg.host.c_str(), p_cfg.port, 30)
     : mosquitto_connect_async(p_mosq, p_cfg.socket.c_str(), 0, 30);
@@ -445,6 +474,30 @@ void MqttLink::onConnect(mosquitto*, void* obj, int rc, int,
   self->p_subscribed.clear();   // clean session: nothing survives
   self->p_connected = true;
   self->syncSubscriptions();
+}
+
+// libmosquitto reports a failed handshake only here (no CONNACK arrives).
+void MqttLink::onLog(mosquitto*, void* obj, int level, const char* str)
+{
+  if (level != MOSQ_LOG_ERR || !str) return;
+  std::string m = str;
+  if (m.find("OpenSSL") == std::string::npos &&
+      m.find("TLS") == std::string::npos) return;
+  MqttLink* self = static_cast<MqttLink*>(obj);
+  std::string why = "TLS: " + m;
+  bool fresh;
+  {
+    std::lock_guard<std::mutex> g(self->p_lock);
+    fresh = (why != self->p_lastRefusal);
+    self->p_lastRefusal = why;
+  }
+  if (!fresh) return;
+  std::cerr << "MQTT: could not set up TLS with the message broker "
+            << self->p_cfg.host << ":" << self->p_cfg.port << ": " << m
+            << ". The server's certificate is not the one this installation "
+            << "trusts; ask the administrator." << std::endl;
+  if (refusalHandler())
+    refusalHandler()(self->p_cfg.user, self->p_cfg.host, self->p_cfg.port, why);
 }
 
 void MqttLink::onDisconnect(mosquitto*, void* obj, int, const mqtt5__property*)

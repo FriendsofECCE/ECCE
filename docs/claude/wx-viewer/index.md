@@ -22,6 +22,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [Builder Reset View (toolbar, Render menu, Home) is camera only; the old home button restored a pre-molecule camera](builder-reset-view-is-camera-only-home-key.md)
 - [wx3.2/GTK3 layout reentrancy](wx3-2-gtk3-layout-reentrancy.md)
 - [`wxGrid::CreateGrid()`/`SetTable()` synchronously fires `wxEVT_GRID_SELECT_CELL`](wxgrid-creategrid-settable-synchronously-fires-wxevt-grid.md)
+- [`wxGrid::MakeCellVisible()` before the pane is laid out does nothing; the MOs table opened at the top, not the HOMO](wxgrid-makecellvisible-before-the-pane-is-laid-out.md)
 - [The `.pjd` (DialogBlocks) files are reference only; never regenerate code from them](the-pjd-dialogblocks-files-are-reference-only.md)
 - [`wxEXPAND|wxALIGN_CENTER` on the same sizer item](wxexpand-wxalign-center-on-the-same-sizer.md)
 - [`wxFIXED_MINSIZE`](wxfixed-minsize.md)

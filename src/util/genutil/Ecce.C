@@ -86,6 +86,9 @@ void Ecce::initialize()
    // which should get set in the Ecce script.  This seemed to a better idea
    // than hardwiring it in case we run across special problems.
    setlocale(LC_ALL, "");
+   // Numbers in files, input decks and parser output always use '.', whatever
+   // the user's regional settings (a decimal comma breaks every PDB read).
+   setlocale(LC_NUMERIC, "C");
 
    // Define a default exception handler that dumps core instead of just exit.
    EcceException::setDefaultHandler();
