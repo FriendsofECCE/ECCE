@@ -34,6 +34,15 @@ windows() { [ -x "$OUT/windows" ] && "$OUT/windows" 2>/dev/null; }
 screencapture -x "$OUT/shots/00-desktop.png" 2>>"$OUT/logs/screencapture.log" \
   || say "note: screencapture failed (see logs/screencapture.log)"
 
+# No ReportCrash on the runner: rerun a crashed app under lldb for the stack.
+backtrace() {
+  local bin=$ECCE_HOME/bin/$1
+  [ -x "$bin" ] || return
+  say "   rerunning under lldb for a backtrace"
+  perl -e 'alarm 90; exec @ARGV' lldb -b -o run -o "bt 25" -o quit -- "$bin" > "$OUT/crashes/$1.lldb.txt" 2>&1
+  grep -A28 -e "stop reason" "$OUT/crashes/$1.lldb.txt" | head -32 | sed 's/^/   | /' | tee -a "$SUMMARY"
+}
+
 # run_app NAME SECONDS CMD...: start, wait for a window (or SECONDS),
 # screenshot twice, end it, report how it ended.
 run_app() {
@@ -44,9 +53,11 @@ run_app() {
   pid=$!
   for i in $(seq 1 "$secs"); do
     kill -0 $pid 2>/dev/null || break
-    # A session spawns children, so any window whose owner name starts
-    # "ecce" counts, besides the process itself.
-    if windows | grep -i -q -e "^[0-9]*	ecce" -e "^$pid	"; then found=1; break; fi
+    # Window owners are the app's own name (organizer, builder, ...), so
+    # count any owner that is not part of the desktop itself.
+    if windows | grep -v -e "Window Server" -e "Control Center" -e "	Dock	" \
+         -e "	Finder	" -e "SystemUIServer" -e "Notification" -e "Spotlight" \
+         -e "TextInputMenuAgent" -e "WindowManager" | grep -q .; then found=1; break; fi
     sleep 1
   done
   if kill -0 $pid 2>/dev/null; then
@@ -68,6 +79,7 @@ run_app() {
     screencapture -x "$OUT/shots/$name-1.png" 2>>"$OUT/logs/screencapture.log"
   fi
   say "   $status"
+  case "$rc" in 132|133|134|136|138|139) backtrace "${name%-hook}" ;; esac
   tail -n 6 "$OUT/logs/$name.log" | sed 's/^/   | /' | tee -a "$SUMMARY"
   sleep 3   # let ReportCrash write
 }
