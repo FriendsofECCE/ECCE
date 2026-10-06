@@ -25,6 +25,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <strings.h>   // strcasecmp
 
 #include "util/ErrMsg.H"
 #include "util/Ecce.H"
@@ -66,6 +67,10 @@
 // + calcname.  If you change this, also change eccejobstore.C
 // cleanup code.
 static const string submitPrefix = "submit__";
+
+// eccejobmonitor's polling pause, in seconds, for a job on this computer
+// with no queue manager (its default is 10).
+static const int LOCAL_MONITOR_PAUSE = 2;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Class Statics
@@ -1214,6 +1219,22 @@ bool Launch::generateJobMonitoringFiles(void)
     char* value;
 
     monitorConfigFile << "jobQ " << p_cache->mgr->name() << endl;
+
+    //  A local job with no scheduler is checked with ps and stat, so a short
+    //  pause costs nothing and states arrive sooner.  Elsewhere every check
+    //  is a scheduler query (squeue, qstat, ...) or runs on a shared login
+    //  node, and the monitor's own 10 s stays.
+    RefMachine* monMachine = RefMachine::refLookup(p_cache->machineName);
+    if (monMachine != (RefMachine*)0 &&
+        strcasecmp(p_cache->mgr->name().c_str(), "Shell") == 0 &&
+        !RCommand::isRemote(monMachine->fullname(), p_cache->remoteShell,
+                            p_cache->userName)) {
+      static const char* const localPauses[] = {
+        "timePauseFileExist", "timePauseJobExist", "timePauseReadLine",
+        "timePauseReadLinePartial" };
+      for (const char* p : localPauses)
+        monitorConfigFile << p << " " << LOCAL_MONITOR_PAUSE << endl;
+    }
 
     monitorConfigFile << "commType stdio" << endl;
 

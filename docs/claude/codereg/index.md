@@ -132,3 +132,4 @@ dialog showing the deck with the offending lines marked.
 - [Queue defaults, the memory unit is MB, and the Launcher's Machine settings button](queue-defaults-and-launcher-machine-settings.md)
 - [`ecce -admin -remote` saves on the central server over ssh (`ecce-site-admin`), publishes, then refreshes the client's copy](site-admin-from-a-client.md)
 - [The Launcher lists a machine for a code when its Machines line lists the code or CONFIG gives it a path](launcher-machine-list-per-code.md)
+- [`eccejobmonitor` polls every 2 s for a local job without a queue manager, 10 s otherwise](eccejobmonitor-poll-interval.md)
