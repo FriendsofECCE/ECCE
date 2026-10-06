@@ -388,6 +388,7 @@ jobs:
           exit ${rc:-0}
 
       - name: Run the packaged app
+        if: always() && hashFiles('dist/*.dmg') != ''
         timeout-minutes: 25
         run: |
           pkill -f "$PWD/stage" || true

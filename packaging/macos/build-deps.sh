@@ -78,7 +78,7 @@ fetch https://github.com/wxWidgets/wxWidgets/releases/download/v3.3.3/wxWidgets-
     --with-opengl --with-macosx-version-min="$MACOSX_DEPLOYMENT_TARGET" \
     --with-libpng=builtin --with-libjpeg=builtin --with-libtiff=builtin \
     --with-zlib=builtin --with-expat=builtin --with-regex=builtin \
-    --disable-webview --disable-mediactrl --without-libcurl
+    --disable-webview --disable-mediactrl --without-libcurl --without-libwebp
   make -j "$JOBS" && make install ) > wx.log 2>&1 \
   || { tail -60 wx.log; exit 1; }
 echo "deps installed in $P"
