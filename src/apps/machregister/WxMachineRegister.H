@@ -254,6 +254,7 @@ class WxMachineRegister: public ewxFrame
 
         //  Queues
         bool applyQueueForm();
+        string queueDefaultsError(const MachineConfigDraft::QueueRow& r) const;
         void removeQueue();
 
         //  Saving and deleting
@@ -314,8 +315,9 @@ class WxMachineRegister: public ewxFrame
         ewxTextCtrl         *p_fullName, *p_refName, *p_vendor, *p_model,
                             *p_proc, *p_queueName;
         ewxSpinCtrl         *p_procs, *p_nodes, *p_qMinProcs, *p_qMaxProcs,
-                            *p_qMaxMem, *p_qMinScratch;
-        wxSpinCtrlDouble    *p_qMaxWall;   // hours; stored as minutes
+                            *p_qMaxMem, *p_qMinScratch, *p_qDefProcs,
+                            *p_qDefMem, *p_qDefScratch;
+        wxSpinCtrlDouble    *p_qMaxWall, *p_qDefWall;   // hours; stored as minutes
         ewxChoice           *p_qmgrChoice, *p_queueChoice;
         ewxCheckBox         *p_allocAccts;
         ewxButton           *p_queueApply, *p_queueRemoveButton,

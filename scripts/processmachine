@@ -314,6 +314,7 @@ sub doAccept {
     } else {
       $qnames = "";
       %qdetail = ();
+      %sent = ();
       for ($idx=0; $idx<$nqueues; $idx++) {
         (@parts) = split(/,/,$contents{"q".$idx});
         $name = "";
@@ -326,6 +327,10 @@ sub doAccept {
             $name =~ s/^\s*//;
           } else {
             ($key,$value) = split(/\|/,$pair);
+            $value = "" if (!defined($value));
+            # A key the GUI sent, even empty, replaces the file's line;
+            # older callers that send no def* keep the hand-written ones.
+            $sent{$name}{lc($key)} = 1;
             if ($value ne "") {
               $key = "minProcessors" if ($key =~ /minNodes/);
               $key = "maxProcessors" if ($key =~ /maxNodes/);
@@ -422,7 +427,7 @@ sub writeConfig {
 #######################################################################
 # Description
 #   Write $machine.Q: "Queues:" with the GUI's queue names, then for each
-#   queue the existing lines the GUI does not manage (def*, memUnits, ...)
+#   queue the existing lines the GUI does not manage (memUnits, ...)
 #   followed by the GUI's own, then any other existing line not tied to a
 #   queue.  Queues the GUI dropped lose their lines.  %qdetail holds the
 #   GUI's lines by queue name.
@@ -431,7 +436,8 @@ sub writeQFile {
   my ($qnames) = @_;
   my (@header, %own, @loose, $line, $queue, $key, @prior, $skip);
   my @guikeys = ("minprocessors","maxprocessors","runlimit","memlimit",
-                 "scratchlimit");
+                 "scratchlimit","defprocessors","defrun","defmemory",
+                 "defscratch");
 
   my @names = split(' ',$qnames);
   my %wanted = map { $_ => 1 } @names;
@@ -454,7 +460,9 @@ sub writeQFile {
     }
     if ($line =~ /^\s*(\S+?)\|(\w+)\s*:/) {
       ($queue,$key) = ($1,$2);
-      next if (grep { $_ eq lc($key) } @guikeys);
+      next if (grep { $_ eq lc($key) } @guikeys[0..4]);
+      next if ($sent{$queue}{lc($key)}
+               && grep { $_ eq lc($key) } @guikeys[5..8]);
       next if (!$wanted{$queue});
       $own{$queue} .= $line;
     } elsif ($line =~ /^\s*#/ || $line =~ /^\s*$/) {

@@ -22,6 +22,7 @@
 #include "WxLauncherApp.H"
 #include "WxLauncherGUI.H"
 #include "WxLauncher.H"
+#include "WxLauncherScript.H"
 
 IMPLEMENT_APP(WxLauncherApp)
 //IMPLEMENT_CLASS(WxLauncherApp, ewxApp);
@@ -66,6 +67,17 @@ bool WxLauncherApp::OnInit()
     p_launchFrame->Show();
     SetTopWindow(p_launchFrame);
     registerTopShell(p_launchFrame);
+
+    //  Test hook (WxLauncherScript.H): drive the real frame without a broker.
+    const char* script = getenv("ECCE_LAUNCHER_SCRIPT");
+    if (script != NULL)
+    {
+        fprintf(stderr, "[LAUNCHER] binary=%s ECCE_HOME=%s\n",
+                (const char*)wxString(this->argv[0]).c_str(), Ecce::ecceHome());
+        LauncherScript* run = new LauncherScript(p_launchFrame, script);
+        run->start();
+        return true;
+    }
 
     //  Subscribe to Messages
     subscribeMessages();
@@ -303,8 +315,7 @@ void WxLauncherApp::propertyChangeMCB(JMSMessage& msg)
 
 void WxLauncherApp::machregChangedMCB(JMSMessage& msg)
 {
-    RefMachine::markUpdateUserPrefs();
-    p_launchFrame->reloadMachinePreferences();
+    p_launchFrame->machRegChanged();
 }
 
 

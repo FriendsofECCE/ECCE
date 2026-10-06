@@ -15,9 +15,10 @@
 # <TMP>/user/.ECCE/CONFIG.goldhost
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-# The memory value carries whatever unit the machine's .Q file declares in
-# memUnits (MB for the ones shipped here), so the suffix is spelled out
-# rather than left to sbatch's default. Change it if your .Q uses GB.
+# The Launcher hands the memory limit to gensub in MB, and the M after the
+# value is literal, so the unit is MB whatever the machine's .Q file says
+# (memUnits there is not read). The suffix is spelled out rather than left
+# to sbatch's default.
 # Both of these lines are dropped entirely when the field is unset, so a
 # blank memory or account box does not emit "--mem=" and fail the submit.
 #SBATCH --output=slurm.out
