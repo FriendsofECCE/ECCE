@@ -2,7 +2,9 @@
 type: map
 title: "A complex is classified by its coordination skeleton, not the molecule"
 area: mo-diagram
-section: ""
+section: "The MO correlation diagram (#132)"
+paths: ["src/tdat/chemistry/MoFragments.C", "src/apps/builder/MoDiagramPanel.C"]
+issues: [132]
 ---
 **A complex is classified by its coordination skeleton, not the
 molecule.** Six ammonia rotors cannot all be octahedral, so a

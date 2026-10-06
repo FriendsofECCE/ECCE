@@ -4,6 +4,7 @@ title: "`<DataFiles>` filenames need a distinctive extension"
 area: codereg
 section: "New-code checklist (gotchas found integrating ORCA, issue #38)"
 paths: ["$STATEDIR/httpd.conf", ".edml", ".in", "httpd.conf.ecce", "packaging/dataserver/httpd.conf.ecce"]
+issues: [38]
 ---
 **`<DataFiles>` filenames need a distinctive extension**, not
 something generic like `.in`/`.out` — Apache has no built-in MIME

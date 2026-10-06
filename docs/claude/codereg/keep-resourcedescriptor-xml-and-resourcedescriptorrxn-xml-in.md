@@ -4,6 +4,7 @@ title: "Keep `ResourceDescriptor.xml` and `ResourceDescriptorRxn.xml` in step"
 area: codereg
 section: "Added from integrating MOPAC (issue #86) — the second code through"
 paths: ["ResourceDescriptor.C", "ResourceDescriptor.xml", "ResourceDescriptorRxn.xml", "bin/dirdyed"]
+issues: [86]
 ---
 **Keep `ResourceDescriptor.xml` and `ResourceDescriptorRxn.xml` in
 step.** `ResourceDescriptor.C` uses the `Rxn` variant whenever

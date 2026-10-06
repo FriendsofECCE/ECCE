@@ -4,7 +4,7 @@ title: "`ecce -admin -remote` saves on the central server over ssh (`ecce-site-a
 area: codereg
 section: "Machine configuration (CONFIG files)"
 paths: ["src/apps/machregister/SiteAdminClient.C", "include/tdat/SiteRequest.H", "src/tdat/resources/SiteRequest.C", "src/apps/siteadmin/ecce-site-admin.C", "packaging/dataserver/ecce-site-publish", "packaging/dataserver/ecce-remote-setup", "packaging/dataserver/ecce-dataserver-start", "tests/queues/siteadmin_test.py", "tests/queues/central_server.py"]
-issues: ["234", "188"]
+issues: [234, 188]
 ---
 On a `-remote` client, `siteconfig/` holds the server's published copy and is
 overwritten by `ecce-remote-setup`, so Register Machines in admin mode never

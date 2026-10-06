@@ -4,6 +4,7 @@ title: "A combo whose default is a bare integer opens BLANK when the list is bui
 area: codereg
 section: "Pitfalls found more than once (check for siblings)"
 paths: ["tests/dialogs"]
+issues: []
 ---
 **A combo whose default is a bare integer opens BLANK when the list is
 built conditionally.** `wx.Choice.SetSelection()` ignores an

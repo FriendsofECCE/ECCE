@@ -3,7 +3,7 @@ type: rule
 title: "Run-state colours: submitted yellow, created sky blue, pale fills outlined in light themes; checked by tests/look/contrast.py"
 area: wx-viewer
 paths: ["data/client/config/EcceGlobal", "src/wxgui/wxtools/WxState.C", "include/wxgui/WxState.H", "tests/look/contrast.py", "tests/look/cvd.py", "tests/look/statelegend.py", "src/apps/organizer/CalcMgr.C"]
-issues: ["210"]
+issues: [210]
 ---
 The run states are drawn as ~12 px icons whose shape groups them
 (triangle: created/ready; circle: submitted/running; square:

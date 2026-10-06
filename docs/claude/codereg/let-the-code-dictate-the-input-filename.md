@@ -4,9 +4,10 @@ title: "Let the *code* dictate the input filename, not the checklist"
 area: codereg
 section: "Added from integrating MOPAC (issue #86) — the second code through"
 paths: [".in"]
+issues: [86]
 ---
 **Let the *code* dictate the input filename, not the checklist.** The
-"use a distinctive extension, not `.in`/`.out`" rule above is about
+["use a distinctive extension, not `.in`/`.out`"](datafiles-filenames-need-a-distinctive-extension.md) rule is about
 Apache MIME mapping, and following it naively broke MOPAC: MOPAC
 derives its output name by stripping a known extension **by
 substring**, so `mopac.mopin` makes it write a file literally named

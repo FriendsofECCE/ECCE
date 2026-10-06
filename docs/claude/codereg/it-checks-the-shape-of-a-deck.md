@@ -3,6 +3,8 @@ type: rule
 title: "It checks the SHAPE of a deck and must never check a keyword"
 area: codereg
 section: "The input checker (`scripts/parsers/verifyinput`, #148)"
+paths: ["scripts/parsers/verifyinput", "src/apps/calced/InputVerifier.C", "src/apps/calced/CalcEd.C", "tests/verify"]
+issues: [148]
 ---
 **It checks the SHAPE of a deck and must never check a keyword.**
 Per code: section order and the blank lines between them, Link 0

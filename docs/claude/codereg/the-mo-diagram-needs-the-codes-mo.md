@@ -1,9 +1,10 @@
 ---
 type: checklist
-title: "The MO diagram needs the code's MO coefficients and basis, and their AO order verified — not any population analysis fro"
+title: "The MO diagram needs the code's MO coefficients and basis, with their AO order verified, not its population analysis"
 area: codereg
 section: "Added from integrating MOPAC (issue #86) — the second code through"
 paths: [".edml", "Props/MO"]
+issues: [86]
 ---
 **The MO diagram needs the code's MO coefficients and basis, and
 their AO order verified — not any population analysis from the

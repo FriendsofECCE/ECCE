@@ -2,7 +2,9 @@
 type: map
 title: "`wxEXPAND|wxALIGN_CENTER` on the same sizer item"
 area: wx-viewer
-section: ""
+section: "wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls"
+paths: ["src/wxgui/pertable/ElementButton.C"]
+issues: []
 ---
 **`wxEXPAND|wxALIGN_CENTER` on the same sizer item** — a documented wx
 footgun; alignment can suppress expand instead of being ignored.

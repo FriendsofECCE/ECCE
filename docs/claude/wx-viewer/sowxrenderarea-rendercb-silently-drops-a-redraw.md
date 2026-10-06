@@ -2,8 +2,9 @@
 type: map
 title: "`SoWxRenderArea::renderCB` silently drops a redraw"
 area: wx-viewer
-section: ""
+section: "wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls"
 issues: [99]
+paths: ["src/inv/wxinv/SoWxRenderArea.C"]
 ---
 **`SoWxRenderArea::renderCB` silently drops a redraw** if Inventor's
 scene-graph-touch notification fires while a paint is already in
@@ -19,7 +20,7 @@ acts on once the in-flight paint finishes.
 **UPDATE 2026-09-22: that fix is correct but was not the cause of
 #99.** The `p_redrawPending` retry path works; it simply never had a
 callback to service, because the scene manager's redraw sensor is a
-one-shot that re-arms on render and nothing re-armed it. See the
-one-shot entry in the pitfall list above. Do not re-investigate
+one-shot that re-arms on render and nothing re-armed it. See
+[the redraw-sensor entry](open-inventors-redraw-sensor-is-a-one.md). Do not re-investigate
 `p_inPaint`/`p_redrawPending` for a "viewer stops updating" symptom
 without first checking whether `renderCB` is entered at all.

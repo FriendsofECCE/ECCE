@@ -4,6 +4,7 @@ title: "A `.desc` entry's `Skip=N` counts the `Begin`-matching line itself"
 area: codereg
 section: "Added from integrating MOPAC (issue #86) — the second code through"
 paths: [".desc", "scripts/eccejobmonitor"]
+issues: [86]
 ---
 **A `.desc` entry's `Skip=N` counts the `Begin`-matching line itself**,
 not N lines *after* it (`scripts/eccejobmonitor`'s Begin/Skip/End

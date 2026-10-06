@@ -4,6 +4,7 @@ title: "Two parallel resource-graph files, not one"
 area: codereg
 section: "New-code checklist (gotchas found integrating ORCA, issue #38)"
 paths: [".edml", "ResourceDescriptorRxn.xml", "SessionContextPanel.C"]
+issues: [38]
 ---
 **Two parallel resource-graph files, not one**: `ResourceDescriptor.
 xml` *and* `ResourceDescriptorRxn.xml` (used for reaction-study

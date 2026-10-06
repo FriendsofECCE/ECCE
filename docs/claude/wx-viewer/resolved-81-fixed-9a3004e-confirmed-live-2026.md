@@ -1,9 +1,10 @@
 ---
 type: map
-title: "RESOLVED (#81, fixed `9a3004e`, confirmed live 2026-09-21): the Vibrational Frequencies panel's Animation/Vector radio b"
+title: "A static `EVT_RADIOBOX` entry never reaches an `ewxRadioBox`'s panel; Bind on the widget (#81)"
 area: wx-viewer
-section: ""
+section: "wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls"
 issues: [78, 81, 109]
+paths: ["src/wxgui/ewxClasses/ewxRadioBox.C", "src/apps/builder/NModePanel.C"]
 ---
 **RESOLVED (#81, fixed `9a3004e`, confirmed live 2026-09-21): the
 Vibrational Frequencies panel's Animation/Vector radio box did not

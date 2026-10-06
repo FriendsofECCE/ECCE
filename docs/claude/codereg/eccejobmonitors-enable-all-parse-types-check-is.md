@@ -4,6 +4,7 @@ title: "`eccejobmonitor`'s \"enable all parse types\" check is case-sensitive"
 area: codereg
 section: "Pitfalls found more than once (check for siblings)"
 paths: ["Launch.C", "scripts/eccejobmonitor"]
+issues: []
 ---
 **`eccejobmonitor`'s "enable all parse types" check is case-sensitive**
 (`scripts/eccejobmonitor`, `PDTypesEnable()`) — it only recognizes

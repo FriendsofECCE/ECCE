@@ -1,6 +1,6 @@
 ---
 type: pitfall
-title: "Live-verified and closed 2026-09-22"
+title: "The memory field's unit label comes from the dialog, never from stored GUIValues (#77)"
 area: codereg
 section: "Memory fields: the #77 unit-label fix"
 paths: ["scripts/codereg/templates.py"]

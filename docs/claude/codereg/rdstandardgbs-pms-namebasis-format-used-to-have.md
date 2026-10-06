@@ -1,9 +1,10 @@
 ---
 type: checklist
-title: "`rdStandardGBS.pm`'s \"NameBasis\" format used to have two undocumented requirements — FIXED in `78bb8d0`, don't \"re-fix\" "
+title: "`rdStandardGBS.pm` accepts indented NameBasis lines and an optional `print`; do not re-fix the `*.expt` writers"
 area: codereg
 section: "New-code checklist (gotchas found integrating ORCA, issue #38)"
-paths: ["*.expt", "/^(\\w+)\\s+library\\s+(\\\".+\\\")$/i", "rdStandardGBS.pm"]
+paths: ["*.expt", "rdStandardGBS.pm"]
+issues: [38]
 ---
 **`rdStandardGBS.pm`'s "NameBasis" format used to have two
 undocumented requirements — FIXED in `78bb8d0`, don't "re-fix" the

@@ -4,6 +4,7 @@ title: "Retired codes are not maintained, and the suite no longer checks them"
 area: codereg
 section: "Pitfalls found more than once (check for siblings)"
 paths: [".edml", "QuantumESPRESSO.edml", "tests/dialogs/cases.py"]
+issues: []
 ---
 **Retired codes are not maintained, and the suite no longer checks
 them.** `tests/dialogs/cases.py`'s `RETIRED` (Gaussian-03,

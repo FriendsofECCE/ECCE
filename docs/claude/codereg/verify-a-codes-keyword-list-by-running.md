@@ -4,6 +4,7 @@ title: "Verify a code's keyword list by running the code, not by reading its man
 area: codereg
 section: "Pitfalls found more than once (check for siblings)"
 paths: ["nedtheory.py"]
+issues: []
 ---
 **Verify a code's keyword list by running the code, not by reading its
 manual.** Sweeping all 55 functionals `nedtheory.py` offers through
@@ -17,4 +18,4 @@ lacking parameters is **fatal rather than ignored**, which is why
 `ai.nwchem` validates the pairing in the main flow. Where a support
 table like that is needed, keep it in the generator alone and let it
 report; putting a copy in the dialog recreates the
-two-hand-maintained-lists bug this file already warns about twice.
+[two-hand-maintained-lists bug](a-dialogs-choice-string-must-match-the.md).

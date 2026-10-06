@@ -3,7 +3,8 @@ type: pitfall
 title: "\"The code accepted the keyword\" is not \"the keyword works.\""
 area: codereg
 section: "Pitfalls found more than once (check for siblings)"
-paths: ["<basis>/C"]
+paths: ["scripts/codereg/orcatheory.py", "scripts/parsers/ai.orca"]
+issues: []
 ---
 **"The code accepted the keyword" is not "the keyword works."** All
 eleven ORCA correlated/double-hybrid keywords passed ORCA's input

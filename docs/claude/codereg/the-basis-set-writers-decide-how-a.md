@@ -4,6 +4,7 @@ title: "The basis-set writers decide *how* a basis reaches the deck, and every b
 area: codereg
 section: "Pitfalls found more than once (check for siblings)"
 paths: ["tests/basis", "tests/basisload/nwchem_library_check.py", "wr<Code>GBS.pm", "wrORCAGBS.pm"]
+issues: []
 ---
 **The basis-set writers decide *how* a basis reaches the deck, and every
 bug in them is silent.** `TGBSConfig::dump()` always writes a

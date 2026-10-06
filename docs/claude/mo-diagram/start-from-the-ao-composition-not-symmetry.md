@@ -2,7 +2,9 @@
 type: map
 title: "Start from the AO composition, not symmetry machinery"
 area: mo-diagram
-section: ""
+section: "The MO correlation diagram (#132)"
+paths: ["include/tdat/MoComposition.H"]
+issues: [132]
 ---
 **Start from the AO composition, not symmetry machinery** (Andy,
 2026-09-27). Every MO's share per atom and per shell is known

@@ -4,6 +4,7 @@ title: "`scripts/parsers`"
 area: codereg
 section: "Getting a calculation set up (the \"code registration\" system)"
 paths: ["*.desc", "*.expt", "data/client/config/properties", "scripts/parsers"]
+issues: [6, 7]
 ---
 **`scripts/parsers`** — Perl. `ai.<code>`/`std2<Code>` generates the
 input file before submission; `*.expt` parses full job output into the

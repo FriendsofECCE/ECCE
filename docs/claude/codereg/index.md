@@ -63,8 +63,8 @@ dialog showing the deck with the offending lines marked.
 ### How a property gets from disk into the Properties menu
 
 - [Most property keys are deliberately *not* panel triggers](most-property-keys-are-deliberately-not-panel.md)
-- [labels, not the stored key](labels-not-the-stored-key.md)
-- [NWChem's `.desc` `Begin` patterns (`%begin%`/`%end%`/`task_*`) don't match raw NWChem stdout at all, and look bizarre if you try](nwchems-desc-begin-patterns-begin-end-task.md)
+- [A `.desc` bracket group's names are labels, not the stored key](labels-not-the-stored-key.md)
+- [NWChem's `.desc` `Begin` patterns match the `ecce_print` trace file, not NWChem's stdout](nwchems-desc-begin-patterns-begin-end-task.md)
 - [The one gotcha that has bitten this project repeatedly](the-one-gotcha-that-has-bitten-this.md)
 
 ### New-code checklist (gotchas found integrating ORCA, issue #38)
@@ -73,7 +73,7 @@ dialog showing the deck with the offending lines marked.
 - [Two parallel resource-graph files, not one](two-parallel-resource-graph-files-not-one.md)
 - [`<DataFiles>` filenames need a distinctive extension](datafiles-filenames-need-a-distinctive-extension.md)
 - [`<LaunchPreprocessor>` is required, unconditionally](launchpreprocessor-is-required-unconditionally.md)
-- [`rdStandardGBS.pm`'s "NameBasis" format used to have two undocumented requirements — FIXED in `78bb8d0`, don't "re-fix" the `*.expt` writers for it](rdstandardgbs-pms-namebasis-format-used-to-have.md)
+- [`rdStandardGBS.pm` accepts indented NameBasis lines and an optional `print`; do not re-fix the `*.expt` writers](rdstandardgbs-pms-namebasis-format-used-to-have.md)
 - [No `CMakeLists.txt install()` changes needed](no-cmakelists-txt-install-changes-needed.md)
 
 ### Added from integrating MOPAC (issue #86) — the second code through
@@ -83,7 +83,7 @@ dialog showing the deck with the offending lines marked.
 - [Test the `.desc` against a molecule with degenerate vibrations](test-the-desc-against-a-molecule-with.md)
 - [Run *every* runtype's output through the simulation, not just the richest one](run-every-runtypes-output-through-the-simulation.md)
 - [XML comments may not contain `--`](xml-comments-may-not-contain.md)
-- [The MO diagram needs the code's MO coefficients and basis, and their AO order verified — not any population analysis from the code](the-mo-diagram-needs-the-codes-mo.md)
+- [The MO diagram needs the code's MO coefficients and basis, with their AO order verified, not its population analysis](the-mo-diagram-needs-the-codes-mo.md)
 - [Keep `len(TEVEC) <= len(GEOMTRACE)`](keep-lentevec-lengeomtrace.md)
 - [Keep `ResourceDescriptor.xml` and `ResourceDescriptorRxn.xml` in step](keep-resourcedescriptor-xml-and-resourcedescriptorrxn-xml-in.md)
 - [A `.desc` parse-type's `Begin` value is also its hash key, AND its match priority](a-desc-parse-types-begin-value-is.md)
@@ -99,8 +99,8 @@ dialog showing the deck with the offending lines marked.
 - [A hand edit is the case the checker most needs to see and the one it missed](a-hand-edit-is-the-case-the.md)
 - [A "row of primitives" check must be anchored](a-row-of-primitives-check-must-be.md)
 - [`execout()` returns false on that exit status](execout-returns-false-on-that-exit-status.md)
-- [blank, not green](blank-not-green.md)
-- [- Do not move the automatic run into `enableLaunch()`/`enableAllFields()` — th](do-not-move-the-automatic-run-into.md)
+- [An empty finding list leaves the checker's lamp blank, not green](blank-not-green.md)
+- [Do not move the checker's automatic run into `enableLaunch()`/`enableAllFields()`](do-not-move-the-automatic-run-into.md)
 
 ### Pitfalls found more than once (check for siblings)
 
@@ -121,7 +121,7 @@ dialog showing the deck with the offending lines marked.
 
 ### Memory fields: the #77 unit-label fix
 
-- [Live-verified and closed 2026-09-22](live-verified-and-closed-2026-09-22.md)
+- [The memory field's unit label comes from the dialog, never from stored GUIValues (#77)](live-verified-and-closed-2026-09-22.md)
 
 ### Machine configuration (CONFIG files)
 
