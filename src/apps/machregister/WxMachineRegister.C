@@ -1379,7 +1379,7 @@ wxWindow* WxMachineRegister::createQueuesPage(wxWindow* parent)
               "defMemory (stored in MB, 0 = none)" },
             { NULL, NULL, NULL, 0, "", NULL } } },
         { "Scratch", "GB",
-          { { &p_qMinScratch, NULL, "limit", 0, "q-minscratch",
+          { { &p_qMinScratch, NULL, "max", 0, "q-minscratch",
               "scratchLimit (stored in MB); the Launcher uses it as the upper "
               "bound of its scratch field" },
             { &p_qDefScratch, NULL, "default", 0, "q-defscratch",
