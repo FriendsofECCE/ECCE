@@ -17,6 +17,7 @@ SKIPs (77) without Xvfb or the machregister binary.
 import argparse
 import hashlib
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -181,7 +182,8 @@ select mine
 expect field name mine
 expect field code:nwchem /opt/nwchem
 expect dirty 0
-expect save-enabled 0
+expect save-enabled 1
+expect title-star 0
 expect delete-enabled 1
 expect list mine yours
 expect list cluster site
@@ -191,7 +193,7 @@ expect save-enabled 1
 expect title-star 1
 set code:orca ''
 expect dirty 0
-expect save-enabled 0
+expect save-enabled 1
 expect title-star 0
 set code:orca /opt/orca
 set perlpath '/p+a&t=h%x y'
@@ -604,6 +606,14 @@ PLAIN = {"default": "not set", "site": "from site", "server": "from server",
          "site (editing)": "site value"}
 
 
+def plain(k, tag):
+    """A choice or checkbox shows the built-in value: "default", not
+    "not set"."""
+    if tag == "default" and (k in BOOLS or k in ("shell", "singleconnect")):
+        return "default"
+    return PLAIN[tag]
+
+
 def jobs_tag(want):
     """The group's tag: the user's own value first, then a layer's."""
     a, b = want["noremoteaccess"][1], want["usersubmit"][1]
@@ -611,7 +621,8 @@ def jobs_tag(want):
     for t in (a, b):
         if t in own:
             return PLAIN[t]
-    return PLAIN[a if a != "default" else b]
+    t = a if a != "default" else b
+    return "default" if t == "default" else PLAIN[t]
 
 
 def jobs_radio(want):
@@ -670,11 +681,15 @@ expect label tag:jobs '%(site)s'
 expect field checkscratch 0
 expect label tag:checkscratch '%(site)s'
 expect field singleconnect no
-expect label tag:singleconnect 'not set'
+expect label tag:singleconnect 'default'
+expect label name:singleconnect 'Use a single ssh connection (for machines\\nthat only allow one login at a time)'
+expect tooltip singleconnect 'gateway host'
+expect tooltip singleconnect 'no (the default)'
+expect label tag:libpath 'not set'
 expect shown xappspath 0
 expect dirty 0
-expect save-enabled 0
-""" % {"site": site, "Y": Y}
+expect save-enabled %(pend)s
+""" % {"site": site, "Y": Y, "pend": "1" if admin else "0"}
     if admin:
         edits = """
 set shell sh
@@ -765,7 +780,7 @@ quit
         v, tag = want[k]
         lines.append("expect field %s '%s'" % (k, shown(k, v)))
         if k not in ("noremoteaccess", "usersubmit"):
-            lines.append("expect label tag:%s '%s'" % (k, PLAIN[tag]))
+            lines.append("expect label tag:%s '%s'" % (k, plain(k, tag)))
     lines.append("expect field jobs:user %d" % (jobs_radio(want) == "user"))
     lines.append("expect field jobs:none %d" % (jobs_radio(want) == "none"))
     lines.append("expect label tag:jobs '%s'" % jobs_tag(want))
@@ -818,6 +833,12 @@ set jobs:none 0
 set jobs:user 1
 wait 500
 shot %(o)s/connection-interactive.png
+answer no
+select mine
+tab connection
+click advanced:toggle
+wait 800
+shot %(o)s/connection-advanced-defaults.png
 quit
 """ % {"o": out})
     clean(p, "Connection PNGs")
@@ -947,7 +968,7 @@ expect shown blk:wrapup:none 0
 expect shown condorallowtmp 0
 expect shown undo:header 0
 expect dirty 0
-expect save-enabled 0
+expect save-enabled %(pend)s
 click blk:header:copy
 expect field blk:header %(hdr)s
 expect shown blk:header:hint 0
@@ -965,7 +986,7 @@ expect field blk:header %(hdr2)s
 expect field blk:wrapup 'echo done'
 expect label blk:setup:csh ''
 quit
-""" % dict(site=site, none="Default setting: none" if admin else "Site setting: none", mine="Site setting" if admin else "User setting", hdr=esc(header), hdr2=esc(header + "\n#SBATCH --qos=normal"),
+""" % dict(site=site, pend="1" if admin else "0", none="Default setting: none" if admin else "Site setting: none", mine="Site setting" if admin else "User setting", hdr=esc(header), hdr2=esc(header + "\n#SBATCH --qos=normal"),
            hdrlabel=esc(hdr_label), yours=yours, setup=setup_pre),
         args=args, extra=extra)
     clean(p, "%s: copy the site text, edit three blocks, save" % mode)
@@ -1209,10 +1230,15 @@ expect label tag:code '%(csite)s'
 expect label tag:cenv '%(csite)s'
 expect shown undo:code 0
 expect shown undo:cenv 0
-%(first)sexpect label tag:ccmd 'not set'
+%(first)sexpect label tag:ccmd 'default'
 expect label tag:files '%(fsite)s'
-expect shown blk:ccmd:site 0
-expect label blk:ccmd:hint 'e.g. $G16 < $inFile > $outFile'
+expect shown blk:ccmd:site 1
+expect label blk:ccmd:head 'Built-in (used when empty)'
+expect field blk:ccmd:site '$G16 < $inFile > $outFile 2>&1'
+expect label blk:ccmd:yours '%(mine)s (replaces the built-in)'
+expect shown blk:ccmd:copy 0
+expect shown blk:ccmd:none 0
+expect label blk:ccmd:hint 'e.g. srun $G16 < $inFile > $outFile'
 expect shown blk:ccmd:hint 1
 expect label blk:cenv:hint 'e.g. g16root /opt'
 expect label blk:csetup:hint 'e.g. module load gaussian-16'
@@ -1221,7 +1247,8 @@ expect dirty 0
 expect label cmd:help "When this is empty, ECCE's built-in command is used."
 code ORCA
 expect label code:title ORCA
-expect label blk:ccmd:hint 'e.g. $orca $inFile > $outFile'
+expect contains blk:ccmd:site '$orca $inFile > $outFile 2>&1'
+expect label blk:ccmd:hint 'e.g. $orca $inFile "--bind-to core" > $outFile'
 expect label blk:cenv:hint 'e.g. OMP_NUM_THREADS 1'
 expect label blk:csetup:hint 'e.g. module load orca'
 expect field code:orca ''
@@ -1252,6 +1279,7 @@ save
 expect dirty 0
 quit
 """ % dict(site=site, yours=yours, first=first, env=esc(ENV_TEXT), cmd=esc(cmd),
+           mine="Site setting" if admin else "User setting",
            fsite="from server" if remote else "from site",
            csite=yours if admin else site),
         args=args, extra=extra)
@@ -1308,7 +1336,7 @@ undo cenv
 expect field blk:cenv %(env)s
 expect dirty 0
 set blk:ccmd ''
-expect label tag:ccmd 'not set'
+expect label tag:ccmd 'default'
 expect shown undo:ccmd 1
 undo ccmd
 expect field blk:ccmd %(cmd)s
@@ -1410,11 +1438,53 @@ def codes_skeleton(tmp, display, build):
     mine = os.path.join(e.ue, "CONFIG.mine")
     mine_before = read(mine)
 
-    # opening and closing a machine rewrites nothing
-    p = run(display, build, e, "select mine\ntab codes\ncode NWChem\n"
-            "expect field code:nwchem /opt/nwchem\nexpect dirty 0\nquit\n")
+    # opening and closing a machine rewrites nothing, but Save is offered
+    # and the footer says what it would add
+    p = run(display, build, e, """
+select mine
+tab codes
+code NWChem
+expect field code:nwchem /opt/nwchem
+expect dirty 0
+expect save-enabled 1
+expect title-star 0
+expect contains footer 'Saving adds empty sections for: NWChem'
+select cluster
+expect save-enabled 0
+expect label footer 'Saved in ~/.ECCE/CONFIG.cluster'
+quit
+""")
     clean(p, "open and close a machine with a path")
     check(read(mine) == mine_before, "no skeleton is written without a save")
+
+    # the raw editor shows the missing sections; cancel writes nothing
+    p = run(display, build, e, """
+select mine
+tab job
+click edit-file
+expect raw-dialog 1
+expect contains raw:text 'NWChemEnvironment {\\n}\\nNWChemCommand {\\n}'
+expect contains raw:text 'foo: bar'
+click raw:cancel
+quit
+""")
+    clean(p, "the raw editor shows the sections Save would add")
+    check(read(mine) == mine_before, "cancel in the raw editor writes nothing")
+
+    # Save with nothing else changed writes only the sections
+    p = run(display, build, e, """
+select mine
+tab codes
+save
+expect save-enabled 0
+expect label footer 'Saved in ~/.ECCE/CONFIG.mine'
+quit
+""")
+    clean(p, "Save adds the missing sections")
+    m = read(mine)
+    check(m == mine_before + "\n# NWChem\nNWChemEnvironment {\n}\n"
+          "NWChemCommand {\n}\n", "only the sections were added: %r" % m)
+    write(mine, mine_before)
 
     # a new path
     p = run(display, build, e, """
@@ -1446,18 +1516,19 @@ quit
 select cluster
 tab codes
 code Gaussian-16
-expect label tag:ccmd 'not set'
+expect label tag:ccmd 'default'
 expect field blk:ccmd ''
 expect label tag:cenv 'from site'
 expect field blk:cenv ''
 expect dirty 0
 set blk:ccmd 'echo hi'
 undo ccmd
-expect label tag:ccmd 'not set'
+expect label tag:ccmd 'default'
 expect dirty 0
 quit
 """)
-    clean(p, "an empty block reads as not set; undo returns to it")
+    clean(p, "an empty command block reads as the built-in default; undo "
+          "returns to it")
     check(read(cluster) == u, "nothing was written")
 
     # an existing file gains the skeleton on the first save, once
@@ -1542,6 +1613,8 @@ code NWChem
 wait 1000
 shot %(o)s/codes-site.png
 code Gaussian-16
+wait 800
+shot %(o)s/codes-builtin.png
 set code:gaussian-16 /opt/g16/g16
 set blk:cenv 'g16root /opt\\nGAUSS_SCRDIR /scratch'
 wait 1000
@@ -1557,6 +1630,15 @@ click words:close
 quit
 """ % {"o": out})
     clean(p, "Codes PNGs")
+    p = run(display, build, e, """
+select mine
+tab codes
+code NWChem
+wait 1000
+shot %(o)s/codes-missing-sections.png
+quit
+""" % {"o": out})
+    clean(p, "Codes PNG, missing sections")
     for n in sorted(os.listdir(out)):
         print("        " + os.path.join(out, n))
 
@@ -1618,12 +1700,24 @@ quit
 def help_button(tmp, display, build):
     print("Help button")
     e = Env(tmp, "help")
+    version = read(os.path.join(REPO, "data", "client", "config",
+                                "Version")).strip()
+    ref = ("v" + version if re.fullmatch(
+        r"[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta)\.[0-9]+)?", version)
+        else "main")
     p = run(display, build, e, """
 click help
-expect message help https://github.com/FriendsofECCE/ECCE/blob/main/help/src/register-machines.md
+expect message help https://github.com/FriendsofECCE/ECCE/blob/%s/help/src/register-machines.md
+expect help-ref 9.0.0-alpha.6 v9.0.0-alpha.6
+expect help-ref 9.0.0 v9.0.0
+expect help-ref 9.0.0-rc1 main
+expect help-ref 9.0.0-rc.1 main
+expect help-ref 9.0.0-dev main
+expect help-ref '' main
 quit
-""")
-    clean(p, "Help requests the Register Machines page")
+""" % ref)
+    clean(p, "Help opens the Register Machines page at the installed "
+          "version's tag, or main for an untagged version")
 
 
 def delete_prompt_lists_files(tmp, display, build):
@@ -1805,6 +1899,385 @@ quit
           "five PNGs written")
 
 
+# ---- #212: discover queues, preview the job script, test a submission ----
+
+#  A machine named localhost asks who "you" are (the locality note).
+LOCALUSER = {"ECCE_REALUSER": "tester"}
+
+STUB_NAMES = ("sinfo", "sbatch", "qstat", "qsub", "qdel", "qconf", "bqueues",
+              "bsub", "bkill", "msub", "mjobctl", "condor_status",
+              "condor_submit")
+
+
+def stub_clients(tmp):
+    """The stand-in schedulers of tests/queues on a directory of their own;
+    returns (bin dir, spool dir)."""
+    root = os.path.join(tmp, "stubs")
+    if not os.path.isdir(root):
+        bindir = os.path.join(root, "bin")
+        os.makedirs(bindir)
+        for n in STUB_NAMES:
+            os.symlink(os.path.join(REPO, "tests", "queues", "stubsched.py"),
+                       os.path.join(bindir, n))
+    return os.path.join(root, "bin"), os.path.join(root, "spool")
+
+
+def tool_machine(e):
+    """A machine on this computer; its scheduler clients are put on the form's
+    qmgrPath by the test, unsaved."""
+    write(os.path.join(e.ue, "MyMachines"),
+          "stubm\tlocalhost\tLinux\tx86_64\tZen4\t4:1\tssh\t:NWChem\t"
+          "MN:RD:SD:UN:PW\n")
+    #  The test home is under /tmp, which gensub refuses for HTCondor.
+    write(os.path.join(e.ue, "CONFIG.stubm"),
+          "nwchem: /opt/nwchem\ncondorAllowTmp: true\n")
+
+
+def split_gutter(text):
+    """Preview rows 'gutter | line' -> [(gutter, line)]."""
+    out = []
+    for row in text.splitlines():
+        g, sep, line = row.partition(" | ")
+        out.append((g.strip(), line) if sep else (row.strip(), ""))
+    return out
+
+
+def discovery(tmp, display, build, pngs=None):
+    print("queue discovery against the stand-in schedulers")
+    bindir, spool = stub_clients(tmp)
+    e = Env(tmp, "discover")
+    tool_machine(e)
+    shot = (lambda n: "wait 600\nshot-dialog %s/%s\n" % (pngs, n)) if pngs \
+        else (lambda n: "")
+    p = run(display, build, e, """
+select stubm
+tab queues
+set qmgr Slurm
+set qmgrpath %(bin)s
+click discover
+expect tool-dialog 1
+expect checked disc:list debug,normal,long
+%(shot_slurm)spick disc:list debug long
+click disc:add
+expect tool-dialog 0
+expect dirty 1
+set queue debug
+expect field q-name debug
+expect field q-minprocs 1
+expect field q-maxprocs 16
+expect field q-maxwall 0.5
+expect field q-maxmem 47
+expect field q-defprocs 0
+expect field q-defwall 0
+expect field q-defmem 0
+set queue long
+expect field q-maxprocs 160
+expect field q-maxwall 168
+expect field q-maxmem 191
+
+set qmgr PBS
+click discover
+expect checked disc:list workq,short
+pick disc:list workq
+click disc:add
+set queue workq
+expect field q-maxprocs 128
+expect field q-maxwall 24
+expect field q-maxmem 256
+
+set qmgr SGE
+click discover
+expect checked disc:list all.q,long.q
+click disc:add
+set queue all.q
+expect field q-maxprocs 4
+expect field q-maxwall 0
+expect field q-maxmem 0
+set queue long.q
+expect field q-maxprocs 16
+expect field q-maxwall 168
+expect field q-maxmem 64
+
+set qmgr LSF
+click discover
+expect checked disc:list normal,priority
+click disc:add
+set queue normal
+expect field q-maxprocs 64
+expect field q-maxwall 12
+set queue priority
+expect field q-maxprocs 16
+expect field q-maxwall 1
+expect field q-maxmem 8
+
+set qmgr HTCondor
+click discover
+expect checked disc:list pool
+click disc:add
+set queue pool
+expect field q-maxprocs 8
+expect field q-maxmem 48
+
+set qmgr Slurm
+set queue long
+set q-defwall 4
+queue-apply
+click discover
+pick disc:list long
+expect label disc:status '3 of these are in the list already; adding them updates their limits and keeps their defaults.'
+click disc:add
+set queue long
+expect field q-defwall 4
+expect field q-maxwall 168
+save
+expect dirty 0
+quit
+""" % {"bin": bindir, "shot_slurm": shot("discover-slurm.png")},
+        extra=LOCALUSER, timeout=180)
+    clean(p, "Slurm, PBS, SGE, LSF and HTCondor queues discovered and filled in")
+    qk = keys(os.path.join(e.ue, "stubm.Q"))
+    check(qk.get("long|runlimit") == "10080" and qk.get("long|maxprocessors") == "160"
+          and qk.get("long|memlimit") == "191000" and qk.get("long|defrun") == "240",
+          "stubm.Q: the discovered limits in the .Q file's units, the default kept: %r"
+          % {k: v for k, v in qk.items() if k.startswith("long|")})
+    check(qk.get("workq|memlimit") == "256000" and qk.get("workq|runlimit") == "1440"
+          and "workq|defprocessors" not in qk,
+          "stubm.Q: PBS queue limits, no default written")
+    check("route1" not in read(os.path.join(e.ue, "stubm.Q")),
+          "a PBS route queue is not offered")
+    log = read(os.path.join(spool, "slurm", "commands.log"))
+    check("sinfo -h -o %R|%l|%D|%c|%m" in log,
+          "the scheduler was asked with sinfo's own format string")
+
+    # a scheduler that is not there: the error is shown, nothing can be added
+    e2 = Env(tmp, "discover-fail")
+    tool_machine(e2)
+    p = run(display, build, e2, """
+select stubm
+tab queues
+set qmgr LSF
+set qmgrpath /nonexistent/lsf
+click discover
+expect tool-dialog 1
+expect enabled disc:add 0
+expect contains disc:error bqueues
+%(shot)sclick disc:cancel
+expect tool-dialog 0
+expect dirty 1
+set qmgr None
+click discover
+expect message Choose a queue manager first
+quit
+""" % {"shot": shot("discover-failed.png")}, extra=LOCALUSER)
+    clean(p, "a missing scheduler is reported with its own words and adds nothing")
+    check(not os.path.exists(os.path.join(e2.ue, "stubm.Q")),
+          "nothing was written")
+
+
+def preview(tmp, display, build, pngs=None):
+    print("job script preview from the unsaved form")
+    e = Env(tmp, "preview")
+    write(os.path.join(e.sc, "CONFIG.cluster"),
+          read(os.path.join(e.sc, "CONFIG.cluster")) +
+          "slurm {\n#SBATCH --partition=$queue\n#SBATCH --nodes=$nodes\n"
+          "#SBATCH --constraint=sitegpu\n}\nsetup {\nmodule load site-mpi\n}\n",
+          mode=0o644)
+    out = os.path.join(e.root, "preview.txt")
+    shot = ("scroll prev:text 'request (site)'\nwait 700\n"
+            "shot-dialog %s/preview-request.png\n"
+            "scroll prev:text 'env (user)'\nwait 700\n"
+            "shot-dialog %s/preview-env.png\n"
+            "scroll prev:text 'after (user)'\nwait 700\n"
+            "shot-dialog %s/preview-after.png\n" % (pngs, pngs, pngs)) \
+        if pngs else ""
+    edits = """tab codes
+code NWChem
+set blk:cenv 'OMP_NUM_THREADS 4\\nPATH /user/bin'
+tab job
+set blk:wrapup 'echo done >> $runDir/notes'
+"""
+    p = run(display, build, e, """
+select cluster
+""" + edits + """expect dirty 1
+click preview
+expect tool-dialog 1
+set prev:code NWChem
+set prev:queue short
+set prev:nodes 1
+set prev:procs 4
+set prev:wall 1
+set prev:mem 0
+click prev:update
+%(shot)ssave-field prev:text %(out)s
+click prev:close
+expect tool-dialog 0
+expect dirty 1
+quit
+""" % {"out": out, "shot": shot})
+    clean(p, "the preview opened from the Job script tab on an unsaved form")
+    rows = split_gutter(read(out)) if os.path.exists(out) else []
+
+    def section(part, layer=None):
+        return [l for g, l in rows if g.split(" (")[0] == part and
+                (layer is None or g == "%s (%s)" % (part, layer))]
+
+    check([l for l in section("request", "site") if l] ==
+          ["#SBATCH --partition=short", "#SBATCH --nodes=1",
+           "#SBATCH --constraint=sitegpu"],
+          "request lines: the site's header, placeholders filled: %r"
+          % section("request"))
+    check([l for l in section("before", "site") if l] == ["module load site-mpi"],
+          "before: the site's setup")
+    check([l for l in section("env", "user") if l] ==
+          ['export OMP_NUM_THREADS="4"',
+           'if [ -n "${PATH+set}" ]; then',
+           '  export PATH="${PATH}:/user/bin"', 'else',
+           '  export PATH="/user/bin"', 'fi'],
+          "environment: the unsaved user Environment: %r"
+          % section("env"))
+    check([l for l in section("after", "user") if l] ==
+          ["echo done >> /path/to/run/notes"],
+          "after: the unsaved user wrap-up, $runDir filled: %r" % section("after"))
+    check(any(l == "nwchem=/site/nwchem" for l in section("command", "built-in")),
+          "command: ECCE's own command line with the site's program path")
+    check(rows and rows[0][0] == "ECCE" and rows[0][1] == "#!/bin/sh",
+          "the first line is ECCE's")
+    check(not os.path.exists(os.path.join(e.ue, "CONFIG.cluster")),
+          "the preview wrote no settings file")
+
+    # the same script as the one gensub makes once the form is saved
+    p = run(display, build, e, "select cluster\n" + edits + "save\nquit\n")
+    clean(p, "the same edits saved")
+    gen = os.path.join(e.root, "gen2")
+    os.makedirs(gen)
+    write(os.path.join(gen, "params"),
+          " -H cluster\n -Q Slurm\n -q short\n -c NWChem\n -d cluster.example.org\n"
+          " -n 4\n -N 1\n -T 1:00:00\n -w 1:00\n -r /path/to/run\n -i input\n"
+          " -o output\n -f %s/submit__x\n" % gen)
+    env = dict(os.environ, ECCE_HOME=e.home, ECCE_REALUSERHOME=e.user)
+    subprocess.run(["perl", os.path.join(REPO, "scripts", "gensub"), "-p",
+                    os.path.join(gen, "params")], env=env, cwd=gen, check=True)
+    real = [l for l in read(os.path.join(gen, "submit__x")).splitlines()
+            if not l.startswith("#  Generated")]
+    shown = [l for g, l in rows if not l.startswith("#  Generated")]
+    check(shown == real,
+          "the preview is line for line the script gensub makes after Save "
+          "(%d lines)" % len(real) if shown == real else
+          "the preview differs from the saved script: %r"
+          % [x for x in zip(shown, real) if x[0] != x[1]][:3])
+
+
+def preview_admin(tmp, display, build):
+    print("job script preview under -admin")
+    e = Env(tmp, "preview-admin")
+    out = os.path.join(e.root, "preview.txt")
+    p = run(display, build, e, """
+select cluster
+tab job
+set blk:header '#SBATCH --partition=$queue\\n#SBATCH --constraint=admin'
+click preview
+set prev:queue short
+set prev:procs 2
+click prev:update
+save-field prev:text %s
+click prev:close
+quit
+""" % out, args=["-admin"])
+    clean(p, "-admin preview")
+    rows = split_gutter(read(out)) if os.path.exists(out) else []
+    check([l for g, l in rows if g == "request (site)" and l] ==
+          ["#SBATCH --partition=short", "#SBATCH --constraint=admin"],
+          "the draft site file takes the place of the saved one: %r"
+          % [x for x in rows if x[0].startswith("request")])
+    check(read(os.path.join(e.sc, "CONFIG.cluster")).count("admin") == 0,
+          "nothing was saved")
+
+
+def test_submission(tmp, display, build, pngs=None):
+    print("test submission against the stand-in schedulers")
+    bindir, spool = stub_clients(tmp)
+    e = Env(tmp, "testsub")
+    tool_machine(e)
+    write(os.path.join(e.ue, "stubm.Q"),
+          "Queues: debug nosuch\n\n"
+          "debug|minProcessors: 1\ndebug|maxProcessors: 8\ndebug|runLimit: 60\n"
+          "nosuch|minProcessors: 1\nnosuch|maxProcessors: 8\nnosuch|runLimit: 60\n")
+    write(os.path.join(e.ue, "Queues"), "Queues: stubm\n\n"
+          "stubm|queueMgrName: Slurm\nstubm|prefFile: stubm.Q\n")
+    shot = (lambda n: "wait 600\nshot-dialog %s/%s\n" % (pngs, n)) if pngs \
+        else (lambda n: "")
+    p = run(display, build, e, """
+select stubm
+tab queues
+set qmgrpath %(bin)s
+click test-submission
+expect tool-dialog 1
+set test:queue debug
+set test:procs 4
+click test:run
+expect contains test:result 'sbatch --test-only'
+expect contains test:result 'sbatch: Job 12346 to start at'
+expect contains test:result 'in partition debug'
+expect label test:verdict 'Slurm accepted the script.'
+%(shot1)sset test:queue nosuch
+click test:run
+expect contains test:result 'sbatch: error: invalid partition specified: nosuch'
+expect label test:verdict 'Slurm did not accept the script.'
+%(shot2)sclick test:close
+expect tool-dialog 0
+
+set qmgr PBS
+click test-submission
+expect enabled test:run 0
+click test:run
+expect field test:result ''
+click test:hold
+expect enabled test:run 1
+set test:queue debug
+click test:run
+expect contains test:result 'qsub -h'
+expect contains test:result 'qdel 12345.stubserver'
+expect label test:verdict 'PBS accepted the script.'
+%(shot3)sclick test:close
+
+set qmgr SGE
+click test-submission
+click test:run
+expect contains test:result 'qsub -verify'
+expect contains test:result 'verification: found suitable queue(s)'
+click test:close
+
+set qmgr HTCondor
+click test-submission
+click test:run
+expect contains test:result 'condor_submit -dry-run'
+expect contains test:result 'Submitting job(s).'
+click test:close
+quit
+""" % {"bin": bindir, "shot1": shot("test-accepted.png"),
+       "shot2": shot("test-refused.png"), "shot3": shot("test-hold.png")},
+        extra=LOCALUSER, timeout=180)
+    clean(p, "Slurm, PBS, SGE and HTCondor test submissions")
+    held = os.path.join(spool, "pbs", "12345")
+    check(os.path.exists(os.path.join(held, "held")) and
+          os.path.exists(os.path.join(held, "cancelled")) and
+          not os.path.exists(os.path.join(held, "stdout")),
+          "PBS: the script was held, then cancelled, and never started")
+    log = read(os.path.join(spool, "pbs", "commands.log"))
+    check("qsub -h " in log and "qdel 12345.stubserver" in log,
+          "PBS: the commands the scheduler saw")
+    slog = read(os.path.join(spool, "slurm", "commands.log"))
+    check(slog.count("sbatch --test-only") == 2 and
+          slog.count("sbatch") == 2,
+          "Slurm: only --test-only was ever used")
+    check(not [n for n in os.listdir(e.user) if n.startswith("ecce-testsub")],
+          "the script copied to the machine was removed again")
+    check(not os.path.exists(os.path.join(e.ue, "Queues.new")) and
+          read(os.path.join(e.ue, "CONFIG.stubm")) ==
+          "nwchem: /opt/nwchem\ncondorAllowTmp: true\n",
+          "nothing was saved by testing")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--build", required=True)
@@ -1812,6 +2285,7 @@ def main():
     ap.add_argument("--job-pngs")
     ap.add_argument("--codes-pngs")
     ap.add_argument("--queues-pngs")
+    ap.add_argument("--tools-pngs")
     a = ap.parse_args()
     build = os.path.abspath(a.build)
     if not os.access(os.path.join(build, "machregister"), os.X_OK):
@@ -1826,7 +2300,15 @@ def main():
         return 77
     tmp = tempfile.mkdtemp(prefix="ecce-machreg-")
     try:
-        if a.queues_pngs:
+        if a.tools_pngs:
+            out = os.path.abspath(a.tools_pngs)
+            os.makedirs(out, exist_ok=True)
+            discovery(tmp, disp, build, out)
+            preview(tmp, disp, build, out)
+            test_submission(tmp, disp, build, out)
+            for n in sorted(os.listdir(out)):
+                print("        " + os.path.join(out, n))
+        elif a.queues_pngs:
             queues_pngs(tmp, disp, build, os.path.abspath(a.queues_pngs))
         elif a.codes_pngs:
             codes_pngs(tmp, disp, build, os.path.abspath(a.codes_pngs))
@@ -1856,6 +2338,10 @@ def main():
                 codes_tab(tmp, disp, build, m)
             codes_retired(tmp, disp, build)
             codes_skeleton(tmp, disp, build)
+            discovery(tmp, disp, build)
+            preview(tmp, disp, build)
+            preview_admin(tmp, disp, build)
+            test_submission(tmp, disp, build)
     finally:
         disp.__exit__(None, None, None)
         shutil.rmtree(tmp, ignore_errors=True)

@@ -47,7 +47,12 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Run just this job (debian, vendored-inventor, ubuntu, rocky, fedora, macos); empty runs all"
+        required: false
+        default: ""
 
 # One run per branch.  Without this every push starts a full run and none
 # of them cancel the older ones, so a run of quick pushes leaves a dozen
@@ -61,6 +66,7 @@ concurrency:
 
 jobs:
   debian:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'debian' }}
     name: Debian (apt, containerized)
     runs-on: ubuntu-latest
     # Bounded so a hung job cannot hold a runner slot for GitHub's
@@ -100,6 +106,7 @@ jobs:
   # (-DECCE_USE_COIN=OFF, #166) compiling for the one release it stays a
   # fallback.
   vendored-inventor:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'vendored-inventor' }}
     name: Debian, vendored Inventor viewer (build only)
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -123,6 +130,7 @@ jobs:
         run: cmake --build build-oiv
 
   ubuntu:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'ubuntu' }}
     name: Ubuntu (apt)
     runs-on: ubuntu-latest
     # Bounded so a hung job cannot hold a runner slot for GitHub's
@@ -158,6 +166,7 @@ jobs:
           path: build-cmake/*.deb
 
   rocky:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'rocky' }}
     name: Rocky Linux (dnf, RHEL family, containerized)
     runs-on: ubuntu-latest
     # Bounded so a hung job cannot hold a runner slot for GitHub's
@@ -212,6 +221,7 @@ jobs:
           path: build-cmake/*.rpm
 
   fedora:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'fedora' }}
     name: Fedora (dnf, containerized)
     runs-on: ubuntu-latest
     # Bounded so a hung job cannot hold a runner slot for GitHub's
@@ -255,6 +265,7 @@ jobs:
           path: build-cmake/*.rpm
 
   macos:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'macos' }}
     name: macOS (Homebrew)
     runs-on: macos-latest
     # Bounded so a hung job cannot hold a runner slot for GitHub's
@@ -279,8 +290,32 @@ jobs:
           brew install coin3d || { echo "::error::Homebrew has no coin3d formula"; exit 1; }
 
       - name: Configure
-        run: cmake -G Ninja -B build-cmake -DECCE_USE_COIN=ON -DCMAKE_PREFIX_PATH="$(brew --prefix)"
+        # ECCE_HOME_DIR/ECCE_WRAPPER_DESTINATION point the install at a
+        # staging tree inside the workspace for the run step below.
+        run: |
+          cmake -G Ninja -B build-cmake -DECCE_USE_COIN=ON -DCMAKE_PREFIX_PATH="$(brew --prefix)" \
+            -DECCE_HOME_DIR="$PWD/stage/ecce" -DECCE_WRAPPER_DESTINATION="$PWD/stage/bin" \
+            -DCMAKE_INSTALL_PREFIX="$PWD/stage/ecce"
 
       - name: Build
         # -k 0: report every failing file, not only the first few.
         run: cmake --build build-cmake -- -k 0
+
+      # Does it run? (#133) Starts the installed apps on the runner's
+      # logged-in desktop and screenshots them.  Allowed to fail; the
+      # verdict is in the summary and the "macos-run" artifact.
+      - name: Install to a staging prefix and run
+        continue-on-error: true
+        timeout-minutes: 25
+        run: |
+          brew install bash || true
+          cmake --install build-cmake
+          tests/macos/run.sh stage macos-run
+          cat macos-run/summary.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macos-run
+          path: macos-run/
+          if-no-files-found: ignore

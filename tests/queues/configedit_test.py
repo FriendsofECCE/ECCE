@@ -498,6 +498,11 @@ def skeletons(t, tmp):
     # the site's, nor be "-".
     w = three_way(t, tmp, "path adds skeleton", "user",
                   ["set", "NWChem", "/u/nwchem"], codes="NWChem")
+    saved = read(w.userF)
+    write(w.userF, "NWChem: /u/nwchem\n")
+    check("missing NWChem" in w.draft("user", codes="NWChem")["lines"],
+          "a path with no blocks in the file: a save would add them")
+    write(w.userF, saved)
     u = read(w.userF)
     check(u.endswith("\n" + SKEL) and "NWChem: /u/nwchem" in u,
           "path adds the skeleton: %r" % u)
@@ -515,6 +520,8 @@ def skeletons(t, tmp):
     # a draft reloaded from the written file: still clean, still one set
     again = w.draft("user", merged=True, codes="NWChem")
     check("dirty 0" in again["lines"], "reloaded draft is clean")
+    check("missing" in again["lines"] and "missing NWChem" not in
+          again["lines"], "nothing missing once the blocks are written")
     # saving again changes nothing
     before = read(w.userF)
     w.draft("user", "set", "NWChem", "/u/nwchem2", write_=True,

@@ -162,6 +162,8 @@ vector<Resource*> * Session::getChildren(bool refresh)
   vector<Resource*> *ret;
 
   ret = Resource::getChildren(refresh);
+  // Null when the listing failed, e.g. the data server is not running.
+  if (ret == 0) return 0;
 
   // Hide the linkbase.xml file if the developer flag is not set
   vector<Resource*>::iterator resItor = ret->begin();

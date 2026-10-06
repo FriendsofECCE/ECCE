@@ -1,13 +1,33 @@
 #!/bin/bash
 # ecce-dataserver-stop: stop the per-user data server started by
 # ecce-dataserver-start.
+#
+#   ecce-dataserver-stop --if-unused   as a session's Quit and Stop Server
+#       runs it: refuse (status 3) while another ECCE session of this
+#       account, on any display, or a running job still uses the server.
 
 set -u
 
+ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
 ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
 STATEDIR="$ECCE_REALUSERHOME/.ECCE/dataserver"
 CONF="$STATEDIR/httpd.conf"
 PIDFILE="$STATEDIR/logs/httpd.pid"
+
+if [ "${1:-}" = --if-unused ]; then
+  _lib="$(dirname "$(readlink -f "$0")")/ecce-session-lib.sh"
+  [ -r "$_lib" ] || _lib="$ECCE_HOME/bin/ecce-session-lib.sh"
+  if ! . "$_lib"; then
+    echo "ecce-dataserver-stop: cannot read $_lib -- data server left running" >&2
+    exit 3
+  fi
+  others="$(STATEDIR="$ECCE_REALUSERHOME/.ECCE" ecce_others_using_services |
+            awk '{ printf "%s%s %s", sep, $2, $1; sep = ", " }')"
+  if [ -n "$others" ]; then
+    echo "ecce-dataserver-stop: another ECCE session or a job of this user is still running ($others) -- data server left running"
+    exit 3
+  fi
+fi
 
 if [ ! -f "$CONF" ]; then
   echo "ecce-dataserver-stop: data server not running (no config at $CONF)"

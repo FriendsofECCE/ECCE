@@ -205,7 +205,13 @@ bool LocalData::prefEnabled()
 {
   Preferences pref(PrefLabels::GLOBALPREFFILE);
   bool on = false;
-  return pref.getBool(PrefLabels::LOCALDATA, on) && on;
+  if (pref.getBool(PrefLabels::LOCALDATA, on)) return on;
+#ifdef __APPLE__
+  // macOS has no mod_dav for a per-user data server: local by default.
+  return true;
+#else
+  return false;
+#endif
 }
 
 string LocalData::prefFolder()

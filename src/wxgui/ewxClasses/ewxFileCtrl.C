@@ -135,6 +135,7 @@ void ewxFileCtrl::UpdateFiles()
 
   vector<Resource *> * children = resource->getChildren();
   vector<Resource *>::iterator child;
+  if (children == 0) return;          // the data server could not list it
 
   // Get the directories first (not matched against wildcards)
   for (child = children->begin(); child != children->end(); child++) {

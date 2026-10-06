@@ -82,7 +82,7 @@ check_central_server() {
 # previous one ends cannot adopt a broker that is being stopped. Nothing
 # started from here may inherit the descriptor, or the lock outlives us.
 exec 9>>"$STATEDIR/.gateway.lock"
-flock -w 90 9 || echo "ecce-gateway-start: could not lock $STATEDIR/.gateway.lock; continuing" >&2
+ecce_flock -w 90 9 || echo "ecce-gateway-start: could not lock $STATEDIR/.gateway.lock; continuing" >&2
 
 # --- 0. Clean up after a session that died badly -----------------------
 # Issue #102: an aborted session's leftovers were adopted by the next one.

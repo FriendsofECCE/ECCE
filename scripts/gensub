@@ -162,7 +162,8 @@
 
   # If using a Queued system, you probably have a header to generate
   if ($metascheduler ne "true") {
-    print SUBMIT &provideVariables(&getQMgrKeys);
+    print SUBMIT &mark("request", lc($qMgr)), &provideVariables(&getQMgrKeys),
+                 &mark("ecce");
   }
 
   print SUBMIT "\n$CC Handle interrupts\n";
@@ -199,19 +200,20 @@
   # If there is a specific setup registered, add it
   if (defined($config{$lccode . "_setup"})) {
     $out = &shSnippet($lccode . "_setup", $config{$lccode . "_setup"});
-    print SUBMIT &provideVariables($out);
-    print SUBMIT "\n";
+    print SUBMIT &mark("before", $lccode . "_setup"), &provideVariables($out);
+    print SUBMIT "\n", &mark("ecce");
   } else {
     if (defined($config{"setup"})) {
       $out = &shSnippet("setup", $config{"setup"});
-      print SUBMIT &provideVariables($out);
-      print SUBMIT "\n";
+      print SUBMIT &mark("before", "setup"), &provideVariables($out);
+      print SUBMIT "\n", &mark("ecce");
     }
   }
 
   # Set environment variables per code...
   print SUBMIT "\n$CC Setting environment variables...\n";
-  print SUBMIT &doEnvironment($lccode);
+  print SUBMIT &mark("environment", $lccode . "environment"),
+               &doEnvironment($lccode), &mark("ecce");
 
   # Keep Open MPI's shared memory backing files out of /dev/shm, which
   # is RAM.
@@ -254,6 +256,7 @@
   print SUBMIT "date >> $::logfile\n";
 
   print SUBMIT "\n$CC - code/queue manager section...\n";
+  print SUBMIT &mark("command", $lccode . "_loophole", $lccode . "command");
   $fct = $lccode . "_loophole";
   # Apparently, subroutine names with '-' characters are illegal.
   $fct =~ s/-//g;
@@ -268,7 +271,7 @@
     }
   }
 
-  print SUBMIT &provideVariables($out);
+  print SUBMIT &provideVariables($out), &mark("ecce");
 
   ## NOTE##
   # There should NOT be any extra commands betweent the main body
@@ -304,11 +307,13 @@
   # If there is a specific wrapup registered, add it
   if (defined($config{$lccode . "_wrapup"})) {
     $out = &shSnippet($lccode . "_wrapup", $config{$lccode . "_wrapup"});
-    print SUBMIT &provideVariables($out);
+    print SUBMIT &mark("after", $lccode . "_wrapup"), &provideVariables($out),
+                 &mark("ecce");
   } else {
     if (defined($config{"wrapup"})) {
       $out = &shSnippet("wrapup", $config{"wrapup"});
-      print SUBMIT &provideVariables($out);
+      print SUBMIT &mark("after", "wrapup"), &provideVariables($out),
+                   &mark("ecce");
     }
   }
 
@@ -672,8 +677,14 @@ sub getConfigFileNames()
     }
   }
 
-  push(@files,"$dir/CONFIG.$host") if (-e "$dir/CONFIG.$host");
-  push(@files,"$home/.ECCE/CONFIG.$host") if (-e "$home/.ECCE/CONFIG.$host");
+  # GENSUB_SITE_CONFIG / GENSUB_USER_CONFIG: a draft file in place of the
+  # machine's site or user file (Register Machines' preview of unsaved edits).
+  my $siteFile = $ENV{'GENSUB_SITE_CONFIG'} ne "" ? $ENV{'GENSUB_SITE_CONFIG'}
+                                                   : "$dir/CONFIG.$host";
+  my $userFile = $ENV{'GENSUB_USER_CONFIG'} ne "" ? $ENV{'GENSUB_USER_CONFIG'}
+                                                   : "$home/.ECCE/CONFIG.$host";
+  push(@files,$siteFile) if (-e $siteFile);
+  push(@files,$userFile) if (-e $userFile);
 
   return @files;
 }
@@ -778,10 +789,36 @@ sub sourceTag($)
 {
   my ($f) = @_;
   my $uh = $ENV{"ECCE_REALUSERHOME"};
+  return "user" if ($ENV{"GENSUB_USER_CONFIG"} ne "" && $f eq $ENV{"GENSUB_USER_CONFIG"});
+  return "site" if ($ENV{"GENSUB_SITE_CONFIG"} ne "" && $f eq $ENV{"GENSUB_SITE_CONFIG"});
   return "user" if ($uh ne "" && index($f, "$uh/.ECCE/") == 0);
   return "submit.site" if ($f =~ m{/submit\.site$});
   return "site" if ($f =~ m{/CONFIG\.\Q$host\E$});
   return "vendor";
+}
+
+##########################################################################
+# Description
+#   GENSUB_ANNOTATE=1 (Register Machines' job script preview): a comment line
+#   "#@ecce-section <part> <layer>" where a part of the script that a CONFIG
+#   key supplies starts, and "ecce" where ECCE's own text resumes.  The layer
+#   is the file that last set the first of `keys` that has a value (user,
+#   site, vendor or submit.site), else built-in.  Without the variable the
+#   script is unchanged.
+##########################################################################
+sub mark()
+{
+  return "" unless $ENV{'GENSUB_ANNOTATE'};
+  my ($part, @keys) = @_;
+  my $layer = "built-in";
+  foreach my $k (@keys) {
+    my $h = $::history{$k};
+    next unless $h && @$h && defined($h->[-1][1]);
+    $layer = &sourceTag($h->[-1][0]);
+    last;
+  }
+  $layer = "" if ($part eq "ecce");
+  return "#\@ecce-section $part $layer\n";
 }
 
 ##########################################################################

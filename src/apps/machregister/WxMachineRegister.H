@@ -33,6 +33,8 @@
 
 #include "util/Preferences.H"
 
+#include "SchedulerQuery.H"
+
 #include "wxgui/ewxFrame.H"
 
 class wxPanel;
@@ -154,6 +156,7 @@ class WxMachineRegister: public ewxFrame
         void onNew(wxCommandEvent& event);
         void onCloseButton(wxCommandEvent& event);
         void onHelp(wxCommandEvent& event);
+        static string helpRef(const string& version);
 
         //  The machine list
         void loadMachinesList();
@@ -240,6 +243,19 @@ class WxMachineRegister: public ewxFrame
         void jobsLine();
         void jobsFromRadios();
 
+        //  Tools that ask or simulate the scheduler (#212;
+        //  WxMachineRegisterTools.C)
+        void discoverQueues();
+        void addDiscovered(const vector<SchedulerQuery::Queue>& picked);
+        void previewJobScript(const string& code = "");
+        void testSubmission();
+        SchedulerQuery::Connection connection();
+        bool draftConfigText(string& text, string& err,
+                             const string& extra = "");
+        vector<string> codesWithPath();
+        void showTool(wxDialog* dlg, const string& prefix);
+        void toolClosed(const string& prefix);
+
         //  Dirty tracking
         void syncDraft();
         void syncKey(MachineConfigDraft* draft, const string& key,
@@ -287,6 +303,7 @@ class WxMachineRegister: public ewxFrame
         void keepOnScreen();
         void refreshLocality();
         void updateFooter();
+        vector<string> pendingSkeletons() const;
         string editedBase() const;
         void saveSettings(Preferences& prefs);
         void restoreSettings(Preferences& prefs);
@@ -302,6 +319,7 @@ class WxMachineRegister: public ewxFrame
         wxPanel             *p_info;
         wxStaticText        *p_infoText;
         wxStaticText        *p_storeNote;   // names the files Save writes
+        vector<string>      p_pendingSkel;  // codes Save adds empty blocks for
         wxStaticText        *p_jobNote;
         vector<CfgRow>       p_cfgRows;
         vector<BlockRow>     p_blocks;
@@ -310,6 +328,7 @@ class WxMachineRegister: public ewxFrame
         wxTimer             *p_cshTimer;
         wxDialog            *p_wordsDlg;
         wxDialog            *p_rawDlg;     // Advanced: edit file
+        wxDialog            *p_toolDlg;    // discover / preview / test
         wxCheckBox          *p_jobsCheck[3];   // [1] interactive, [2] files only
         wxStaticText        *p_jobsTag, *p_jobsMode;
         wxStaticBitmap      *p_jobsIcon;

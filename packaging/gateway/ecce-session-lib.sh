@@ -113,12 +113,17 @@ ecce_use_proc() {
 
 # ecce_try_lock FILE COMMAND...: runs COMMAND holding an exclusive lock on
 # FILE, without waiting; status 99 when someone else holds it.
-ecce_try_lock() {
+ecce_try_lock() { ecce_flock -n -E 99 "$@"; }
+
+# flock(1), or ECCE's own subset of it where util-linux is absent (macOS).
+_ECCE_LIBDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
+ecce_flock() {
   if command -v flock >/dev/null 2>&1; then
-    flock -n -E 99 "$@"
+    flock "$@"
+  elif [ -x "$_ECCE_LIBDIR/ecce-flock" ]; then
+    "$_ECCE_LIBDIR/ecce-flock" "$@"
   else
-    perl -e 'use Fcntl qw(:flock); open(my $f, "<", shift) or exit 1;
-             flock($f, LOCK_EX | LOCK_NB) or exit 99; exit(system(@ARGV) >> 8)' "$@"
+    "$ECCE_HOME/bin/ecce-flock" "$@"
   fi
 }
 
@@ -162,6 +167,31 @@ ecce_session_procs() {
     fi
     if ecce_use_lease; then ecce_session_leases; fi
   } | awk '!seen[$1]++'
+}
+
+# The running ECCE programs that still use this state directory's data
+# server and broker apart from the given session (default: this
+# process's): every program of another session (or of none), and a job
+# store or job master of any session, since a job reports through both.
+# Lines "<pid> <name> <session id>". SessionLease::othersUsingServices()
+# is the C++ copy, which the Quit dialogs use to decide whether to offer
+# Quit and Stop Server.
+ecce_others_using_services() {
+  local own="${1-${ECCE_SESSION_ID:-}}" pid name sid home
+  while read -r pid name sid; do
+    case "$name" in
+      eccejobstore | eccejobmaster) ;;
+      *) [ -n "$own" ] && [ "$sid" = "$own" ] && continue ;;
+    esac
+    # A /proc entry may be another state directory's (lease entries are
+    # this one's, and their programs carry the same environment).
+    if [ -r "/proc/$pid/environ" ]; then
+      home="$(tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null |
+              sed -n 's/^ECCE_REALUSERHOME=//p' | head -n1)"
+      [ "${home:-$HOME}" = "${ECCE_REALUSERHOME:-$HOME}" ] || continue
+    fi
+    echo "$pid $name $sid"
+  done < <(ecce_session_procs)
 }
 
 # Is an ECCE program of this session running?

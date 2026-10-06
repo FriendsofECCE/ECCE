@@ -4349,6 +4349,7 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
       //  above: SafeSet() just copied the saved min_size.x verbatim.
       wxSize minSize = p.min_size;
       minSize.x = contentMinWidth(p.window);
+      minSize.y = std::max(minSize.y, panel->minimumHeight());
       p.MinSize(minSize);
       //  addPropertyPanel() ticked this panel's Property-menu item from
       //  the pane's visibility as it added it, which was BEFORE the line
@@ -5401,7 +5402,8 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
     //  the play button beside it visible.  createPropertyPanel() already
     //  gives every property panel SetMinSize(400, -1); honour it.
     int paneMinWidth = contentMinWidth(panel);
-    info.MinSize(wxSize(paneMinWidth, PANEL_HEIGHT_MIN));
+    info.MinSize(wxSize(paneMinWidth,
+                        std::max(PANEL_HEIGHT_MIN, panel->minimumHeight())));
     info.BestSize(wxSize(paneMinWidth, paneHeight));
     info.dock_proportion = paneHeight;
 

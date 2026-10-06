@@ -124,6 +124,11 @@ public:
     // file removes the key.  scripts/gensub applies the same rule.
     static map<string,string> config(const string& refname);
 
+    // The PATH shellPath() returns, from an effective config (lower-case
+    // keys): xappsPath, perlPath and qmgrPath in front of the system path.
+    // Register Machines uses it on its unsaved form.
+    static string shellPathFor(const map<string,string>& config);
+
     // Name with path of the first CONFIG.<refname> that exists (site, then
     // user), "" if none.  For existence checks only; read values with
     // config().

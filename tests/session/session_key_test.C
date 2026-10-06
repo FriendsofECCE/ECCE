@@ -100,7 +100,7 @@ int main(int argc, char** argv)
     {"new\nline", 0, goodId},
     {"*", 0, goodId},
     {"'quoted'\"too\"", 0, goodId},
-    {"\xc3\xbcn\xc3\xafc\xc3\xb8" "de", 0, goodId},   // UTF-8
+    {"\xc3\xbcn\xc3\xaf" "c\xc3\xb8" "de", 0, goodId},   // UTF-8
     {"other", "override", goodId},
     {"other", "", goodId},          // empty ECCE_HOST: HOST
     {"", 0, goodId},                // empty HOST: the host name

@@ -32,6 +32,12 @@ windows the way a window manager does (WM_DELETE_WINDOW):
               first session and goes with the last
   same-display  two `ecce` on one display are two sessions (#233): each
               ends alone, and neither sweeps the other's files
+  two-sessions  two sessions; the second's Quit and Stop Server is not
+              offered and its scripts refuse, the first keeps browsing,
+              opening a calculation and publishing (the alpha.6-rc2 report);
+              -server and -shared: the same in modes 2 and 3
+  services-killed  data server and broker killed under a running
+              Organizer: it says so and keeps running
   join        an app started without a session id joins the newest live
               session; with none alive it is a session of its own
   display-changes  an app of the session started with another DISPLAY
@@ -101,6 +107,8 @@ def treeHome(state, install, build):
         REPO, "packaging", "dataserver", "ecce-remote-setup")
     overrides["ecce-dataserver-start"] = os.path.join(
         REPO, "packaging", "dataserver", "ecce-dataserver-start")
+    overrides["ecce-dataserver-stop"] = os.path.join(
+        REPO, "packaging", "dataserver", "ecce-dataserver-stop")
     overrides["ecce-dataserver-adduser"] = os.path.join(
         REPO, "packaging", "dataserver", "ecce-dataserver-adduser")
     overrides["ecce-diagnose"] = os.path.join(REPO, "packaging",
@@ -120,7 +128,10 @@ def parse():
                         default=["organizer", "builder", "jobstore", "stop",
                                  "quit-stop",
                                  "remote", "remote-refused", "remote-down", "displays",
-                                 "same-display", "display-changes", "join",
+                                 "same-display", "two-sessions",
+                                 "two-sessions-server", "two-sessions-shared",
+                                 "services-killed",
+                                 "display-changes", "join",
                                  "shared", "markers",
                                  "window", "bug"])
     parser.add_argument("--tree", help="build directory to take gateway from")
@@ -1029,6 +1040,14 @@ def _remoteClient(checks, display, logdir, serverEnv, amq, dport, bport,
                      "broker running")
         checks.check(portOpen(dport) and portOpen(bport),
                      "the server's data server and broker still answer")
+        #  The client never offers Quit and Stop Server (#190); its stop
+        #  scripts, run anyway, reach only its own state directory.
+        for script in (("ecce-dataserver-stop", "--if-unused"),
+                       ("ecce-gateway-stop",)):
+            run(script[0], session.env(), *script[1:])
+        checks.check(alive(amq) and portOpen(dport) and portOpen(bport),
+                     "the client's stop scripts left the server's data "
+                     "server and broker running")
     finally:
         if session is not None:
             session.kill()
@@ -1263,6 +1282,259 @@ def caseSameDisplay(checks, display, logdir):
                 session.kill()
 
 
+HOOK = "ECCE_TEST_ORGANIZER"
+CRASH = re.compile(r"Segmentation fault|ASSERTION|ended by SIG|core dumped")
+
+
+class Probe(object):
+    """Commands to an Organizer through its ECCE_TEST_ORGANIZER hook
+    (CalcMgr::runTestCommand); the answers arrive in the session's log."""
+
+    def __init__(self, name):
+        self.path = os.path.join(state, "%s.commands" % name)
+        open(self.path, "w").close()
+        self.extra = {HOOK: self.path}
+
+    def ask(self, session, command, timeout=90, pid=None):
+        pattern = re.compile(r"%s: %s: (.*)" % (HOOK, re.escape(command)))
+        before = len(pattern.findall(self.logText(session)))
+        with open(self.path, "a") as handle:
+            handle.write(command + "\n")
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            found = pattern.findall(self.logText(session))
+            if len(found) > before:
+                return found[-1].strip()
+            if pid is not None and not alive(pid):
+                return None
+            time.sleep(0.5)
+        return None
+
+    @staticmethod
+    def logText(session):
+        session.log.flush()
+        with open(session.log.name, errors="replace") as handle:
+            return handle.read()
+
+
+def organizerPid(session):
+    sid = session.sid(timeout=0)
+    pids = named(sid, "organizer") if sid else []
+    return pids[0] if pids else None
+
+
+def twoSessions(checks, display, logdir, tag, brokerUp, stopSays):
+    """The report on 9.0.0-alpha.6-rc2 (#233): two `ecce` on one display;
+    the second ends with Quit and Stop Server; the first, still browsing,
+    must keep its broker and data server and must not crash.
+
+    brokerUp() says whether the broker the sessions use is up; stopSays is
+    what the second session's stop must print about the broker."""
+    p1, p2 = Probe(tag + "-1"), Probe(tag + "-2")
+    first = second = None
+    try:
+        first = Session(display, os.path.join(logdir, tag + "-1.log"),
+                        extra=p1.extra)
+        frame1 = first.organizer()
+        if not checks.check(frame1, "the first Organizer opened"):
+            return
+        gw1 = gatewayIsTheTree(checks, first)
+        org1 = organizerPid(first)
+        checks.check(p1.ask(first, "browse") == "ok",
+                     "the first Organizer browses the data server")
+        second = Session(display, os.path.join(logdir, tag + "-2.log"),
+                         extra=p2.extra)
+        frame2 = second.organizer()
+        if not checks.check(frame2 and frame2[0] != frame1[0],
+                            "a second, independent Organizer opened"):
+            return
+        gw2 = gatewayIsTheTree(checks, second)
+        offer = p2.ask(second, "quit-offer")
+        checks.check(offer == "stop withheld, services in use",
+                     "the second Organizer's Quit does not offer Quit and "
+                     "Stop Server while the first session runs (%s)" % offer)
+        amq = broker()
+        mark1 = len(Probe.logText(first))
+        #  What the button ran, in CalcMgr::confirmAndQuit's order, in case
+        #  it was offered before the first session started.
+        t0 = time.time()
+        said = ""
+        for script in (("ecce-dataserver-stop", "--if-unused"),
+                       ("ecce-gateway-stop",)):
+            said += run(script[0], second.env(), *script[1:]).stdout.decode()
+        endsCleanly(checks, second, display.name, gw2 or -1, t0, apps=False)
+        quitVia(display, frame2)
+        lines = " / ".join(l for l in said.splitlines() if l.strip())
+        checks.check("data server left running" in said,
+                     "its Quit and Stop Server left the data server, saying "
+                     "why (%s)" % lines)
+        checks.check(stopSays in said, "and said why the broker stays "
+                     "(%r expected)" % stopSays)
+        checks.check(brokerUp(), "the broker is still up")
+        checks.check(amq is None or alive(amq),
+                     "the per-user broker %s was not restarted" % amq)
+        checks.check(portOpen(fixture.dataserverPort()),
+                     "the data server still answers")
+        for command, want in (("browse", "ok"), ("open", "ok, state "),
+                              ("publish", "sent")):
+            answer = p1.ask(first, command, pid=org1)
+            checks.check(answer is not None and answer.startswith(want),
+                         "the first Organizer still works: %s -> %s"
+                         % (command, answer))
+        checks.check(org1 and alive(org1) and alive(gw1 or -1),
+                     "the first session's Organizer and gateway are alive")
+        log1 = Probe.logText(first)[mark1:]
+        checks.check(not CRASH.search(log1), "no crash or assertion in the "
+                     "first session's output")
+        checks.check("starting data server" not in log1
+                     and "starting mosquitto broker" not in log1,
+                     "nothing in the first session had to restart a service")
+        t0 = time.time()
+        quitVia(display, frame1)
+        endsCleanly(checks, first, display.name, gw1 or -1, t0)
+    finally:
+        for session in (first, second):
+            if session is not None:
+                session.kill()
+
+
+def caseTwoSessionsStop(checks, display, logdir):
+    """Mode 1, the per-user broker and data server."""
+    twoSessions(checks, display, logdir, "two-sessions",
+                lambda: broker() is not None and alive(broker()),
+                "broker left running")
+
+
+def caseTwoSessionsStopServer(checks, display, logdir):
+    """Mode 2, the sessions are the central server's own account's."""
+    serverEnv = display.env()
+    stopOwnBroker(serverEnv)
+    marker = os.path.join(statedir(), "mosquitto.server")
+    mark = run("ecce-remote-setup", serverEnv, "--server")
+    if not checks.check(mark.returncode == 0 and os.path.exists(marker),
+                        "the server account marked (ecce-remote-setup "
+                        "--server)"):
+        say(mark.stdout.decode())
+        return
+    bport = int(os.environ["ECCE_BROKER_PORT"])
+    try:
+        twoSessions(checks, display, logdir, "two-sessions-server",
+                    lambda: portOpen(bport), "broker left running")
+    finally:
+        try:
+            os.unlink(marker)
+        except OSError:
+            pass
+        stopOwnBroker(serverEnv)
+
+
+def caseTwoSessionsStopShared(checks, display, logdir):
+    """Mode 3, the site's shared broker: no session stops it anyway; the
+    data server is the account's own."""
+    env = display.env()
+    stopOwnBroker(env)
+    shared = startSharedService(checks, env, logdir, "two-sessions-shared")
+    if shared is None:
+        return
+    try:
+        twoSessions(checks, display, logdir, "two-sessions-shared",
+                    lambda: shared.poll() is None
+                    and portOpen(shared.port), "shared service")
+    finally:
+        stopSharedService(checks, env, shared)
+
+
+def caseServicesKilled(checks, display, logdir):
+    """The data server and the broker killed under a running Organizer:
+    it reports the outage and keeps running; nothing crashes."""
+    #  Calculations with results, made by an earlier session, so this
+    #  Organizer has only listed them, not loaded them, when the services
+    #  go -- as after a fresh start.
+    prep = Probe("services-killed-prep")
+    earlier = Session(display, os.path.join(logdir,
+                                            "services-killed-prep.log"),
+                      extra=prep.extra)
+    try:
+        if not checks.check(earlier.organizer(), "an earlier Organizer "
+                            "opened, to make calculations"):
+            return
+        checks.check(prep.ask(earlier, "open", 120).startswith("ok"),
+                     "it made a calculation")
+        for name in ("nwchem/h2o_opt_stdout.out", "orca/h2o_sym.out"):
+            prep.ask(earlier, "import " + os.path.join(
+                REPO, "tests", "parsers", "fixtures", name), 180)
+    finally:
+        earlier.kill()
+        clearDisplay(display.name)
+    probe = Probe("services-killed")
+    session = Session(display, os.path.join(logdir, "services-killed.log"),
+                      extra=probe.extra)
+    try:
+        frame = session.organizer()
+        if not checks.check(frame, "the Organizer opened"):
+            return
+        gatewayIsTheTree(checks, session)
+        org = organizerPid(session)
+        checks.check(probe.ask(session, "browse", 120) == "ok",
+                     "it lists the project")
+        #  A crash is caught with its backtrace: gdb waits on the
+        #  Organizer and prints one if it stops on a signal.
+        gdbLog = os.path.join(logdir, "services-killed-gdb.log")
+        gdb = subprocess.Popen(
+            ["gdb", "-q", "-batch", "-p", str(org), "-ex", "continue",
+             "-ex", "thread apply all bt 25"],
+            stdin=subprocess.DEVNULL, stdout=open(gdbLog, "w"),
+            stderr=subprocess.STDOUT) if org and shutil.which("gdb") else None
+        time.sleep(3)
+        amq = broker()
+        run("ecce-dataserver-stop", display.env())
+        if amq:
+            os.kill(amq, 9)
+        #  What the 9.0.0-alpha.6-rc2 reaper's stop removed with it.
+        for name in os.listdir(statedir()):
+            if name.startswith("broker_") or name in ("mosquitto.sock",
+                                                      "mosquitto.pid"):
+                os.unlink(os.path.join(statedir(), name))
+        deadline = time.time() + 30
+        while portOpen(fixture.dataserverPort()) and time.time() < deadline:
+            time.sleep(0.5)
+        checks.check(not portOpen(fixture.dataserverPort())
+                     and (amq is None or not alive(amq)),
+                     "data server and broker killed (broker %s)" % amq)
+        mark = len(Probe.logText(session))
+        for command in ("walk", "refresh", "walk", "open calc2", "browse",
+                        "publish", "publish"):
+            answer = probe.ask(session, command, 180, pid=org)
+            checks.check(answer is not None, "%s answered without the "
+                         "services: %s" % (command, answer))
+        checks.check(org and alive(org), "the Organizer is still running")
+        say("    windows now: %s" % [t for _, t in display.windows() if t])
+        text = Probe.logText(session)[mark:]
+        checks.check(not CRASH.search(text), "no crash or assertion")
+        checks.check("no connection to the message broker" in text,
+                     "the failed publish was reported")
+        checks.check("starting data server" not in text
+                     and "starting mosquitto broker" not in text,
+                     "nothing restarted the services behind its back")
+        if gdb is not None:
+            os.kill(gdb.pid, 2)
+            try:
+                gdb.wait(timeout=20)
+            except subprocess.TimeoutExpired:
+                gdb.kill()
+                gdb.wait()
+            with open(gdbLog, errors="replace") as handle:
+                trace = handle.read()
+            checks.check("received signal SIGSEGV" not in trace
+                         and "SIGABRT" not in trace,
+                         "gdb saw no crash (%s)" % gdbLog)
+    finally:
+        session.kill()
+        subprocess.run([os.path.join(install, "bin", "ecce-gateway-reap"),
+                        "--stop"], env=display.env(),
+                       stdout=subprocess.DEVNULL)
+
+
 def caseDisplayChanges(checks, display, logdir):
     """One session, an app whose DISPLAY differs (as after an ssh -X
     reconnect, here :N.0 for :N): it is still the session's app, so the
@@ -1407,50 +1679,13 @@ def caseShared(checks, display, logdir):
     users = [os.environ["ECCE_REALUSERHOME"], user2]
     checks.check(not portOpen(bport) and not brokersOf(users),
                  "no per-user broker to begin with")
-    sport = isolate._pickPort("ECCE_TEST_SHARED_BROKER_PORT", bport + 100)
-    decl = os.path.join(os.environ["ECCE_HOME"], "siteconfig",
-                        "SharedBroker")
-    setup = run("ecce-broker-setup", env, "localhost:%d" % sport)
-    if not checks.check(setup.returncode == 0 and os.path.exists(decl),
-                        "ecce-broker-setup declared localhost:%d" % sport):
-        say(setup.stdout.decode())
+    service = startSharedService(checks, env, logdir, "shared")
+    if service is None:
         return
-    account = fixture.realUser()
-    adduser = subprocess.run(
-        [os.path.join(install, "bin", "ecce-broker-setup"), "--user", account],
-        env=env, input=(fixture.passwordFor(account) + "\n").encode(),
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    accounts = os.path.join(os.environ["ECCE_HOME"], "siteconfig",
-                            "SharedBroker.passwd")
-    if not checks.check(adduser.returncode == 0 and os.path.exists(accounts)
-                        and oct(os.stat(accounts).st_mode & 0o777) == "0o600",
-                        "ecce-broker-setup --user %s wrote a private account "
-                        "list" % account):
-        say(adduser.stdout.decode())
-        return
-    with open(accounts) as handle:
-        listed = handle.read()
-    checks.check(fixture.passwordFor(account) not in listed
-                 and listed.startswith(account + ":$7$"),
-                 "the list holds a hash, not the password")
-    base = os.path.join(state, "service", "ecce-broker")
-    serviceLog = open(os.path.join(logdir, "shared-service.log"), "w")
-    service = subprocess.Popen(
-        [os.path.join(install, "bin", "ecce-broker-run"), "--shared", base],
-        env={"PATH": os.environ["PATH"],
-             "ECCE_HOME": os.environ["ECCE_HOME"]},
-        cwd="/", stdin=subprocess.DEVNULL, stdout=serviceLog,
-        stderr=subprocess.STDOUT, start_new_session=True)
+    sport = service.port
     other = xdisplay.Display().__enter__()
     first = second = None
     try:
-        deadline = time.time() + 60
-        while not portOpen(sport) and time.time() < deadline:
-            time.sleep(0.5)
-        if not checks.check(portOpen(sport) and service.poll() is None,
-                            "the stand-in service %d answers on %d"
-                            % (service.pid, sport)):
-            return
         extra2 = {"ECCE_REALUSERHOME": user2, "ECCE_NO_DATASERVER": "1"}
         first = Session(display, os.path.join(logdir, "shared-1.log"))
         frame1 = first.organizer()
@@ -1517,17 +1752,72 @@ def caseShared(checks, display, logdir):
                                   [os.path.join(user2, ".ECCE")]),
                      "nothing left on %s" % other.name)
         other.__exit__(None, None, None)
-        run("ecce-broker-setup", env, "--remove")
-        service.terminate()
-        try:
-            service.wait(timeout=30)
-        except subprocess.TimeoutExpired:
-            service.kill()
-            service.wait()
-        serviceLog.close()
-        checks.check(not os.path.exists(decl) and not portOpen(sport),
-                     "declaration withdrawn and the stand-in service "
-                     "stopped (exit %s)" % service.returncode)
+        stopSharedService(checks, env, service)
+
+
+def startSharedService(checks, env, logdir, tag):
+    """A stand-in for ecce-broker.service, declared in siteconfig/
+    SharedBroker, with this run's account; the Popen, with .port, or None."""
+    bport = brokerPort()
+    sport = isolate._pickPort("ECCE_TEST_SHARED_BROKER_PORT", bport + 100)
+    decl = os.path.join(os.environ["ECCE_HOME"], "siteconfig",
+                        "SharedBroker")
+    setup = run("ecce-broker-setup", env, "localhost:%d" % sport)
+    if not checks.check(setup.returncode == 0 and os.path.exists(decl),
+                        "ecce-broker-setup declared localhost:%d" % sport):
+        say(setup.stdout.decode())
+        return None
+    account = fixture.realUser()
+    adduser = subprocess.run(
+        [os.path.join(install, "bin", "ecce-broker-setup"), "--user", account],
+        env=env, input=(fixture.passwordFor(account) + "\n").encode(),
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    accounts = os.path.join(os.environ["ECCE_HOME"], "siteconfig",
+                            "SharedBroker.passwd")
+    if not checks.check(adduser.returncode == 0 and os.path.exists(accounts)
+                        and oct(os.stat(accounts).st_mode & 0o777) == "0o600",
+                        "ecce-broker-setup --user %s wrote a private account "
+                        "list" % account):
+        say(adduser.stdout.decode())
+        return None
+    with open(accounts) as handle:
+        listed = handle.read()
+    checks.check(fixture.passwordFor(account) not in listed
+                 and listed.startswith(account + ":$7$"),
+                 "the list holds a hash, not the password")
+    base = os.path.join(state, "service", "ecce-broker")
+    serviceLog = open(os.path.join(logdir, tag + "-service.log"), "w")
+    service = subprocess.Popen(
+        [os.path.join(install, "bin", "ecce-broker-run"), "--shared", base],
+        env={"PATH": os.environ["PATH"],
+             "ECCE_HOME": os.environ["ECCE_HOME"]},
+        cwd="/", stdin=subprocess.DEVNULL, stdout=serviceLog,
+        stderr=subprocess.STDOUT, start_new_session=True)
+    service.port, service.decl, service.log = sport, decl, serviceLog
+    deadline = time.time() + 60
+    while not portOpen(sport) and time.time() < deadline:
+        time.sleep(0.5)
+    if not checks.check(portOpen(sport) and service.poll() is None,
+                        "the stand-in service %d answers on %d"
+                        % (service.pid, sport)):
+        stopSharedService(checks, env, service)
+        return None
+    return service
+
+
+def stopSharedService(checks, env, service):
+    run("ecce-broker-setup", env, "--remove")
+    service.terminate()
+    try:
+        service.wait(timeout=30)
+    except subprocess.TimeoutExpired:
+        service.kill()
+        service.wait()
+    service.log.close()
+    checks.check(not os.path.exists(service.decl)
+                 and not portOpen(service.port),
+                 "declaration withdrawn and the stand-in service "
+                 "stopped (exit %s)" % service.returncode)
 
 
 def caseMarkers(checks, display, logdir):
@@ -2179,7 +2469,11 @@ CASES = {"local": caseLocal, "local-pref": caseLocalPref, "local-save": caseLoca
          "shared": caseShared,
          "markers": caseMarkers,
          "organizer": caseOrganizer, "builder": caseBuilder,
-         "jobstore": caseJobstore}
+         "jobstore": caseJobstore,
+         "two-sessions": caseTwoSessionsStop,
+         "two-sessions-server": caseTwoSessionsStopServer,
+         "two-sessions-shared": caseTwoSessionsStopShared,
+         "services-killed": caseServicesKilled}
 
 
 def main():

@@ -42,6 +42,8 @@
 #include "wx/listbox.h"
 #include "wx/dialog.h"
 
+#include <regex>
+
 #include "util/BrowserHelp.H"
 #include "util/Ecce.H"
 #include "util/JMSMessage.H"
@@ -82,6 +84,7 @@
 typedef MachineConfigDraft MCD;
 
 static string plainTag(MCD::Tag t);
+static string builtinCommand(const string& code);
 
 static const char* const TITLE = "ECCE Machine Registration";
 
@@ -149,6 +152,7 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
     p_jobPage = NULL;
     p_cshTimer = NULL;
     p_rawDlg = NULL;
+    p_toolDlg = NULL;
     p_wordsDlg = NULL;
     p_wordsList = NULL;
     p_wordsInsert = NULL;
@@ -295,6 +299,7 @@ void WxMachineRegister::createControls()
     p_deleteButton->Enable(false);
 
     reg("help", p_helpButton);
+    reg("footer", p_storeNote);
     reg("delete", p_deleteButton);
     reg("new", p_newButton);
     reg("close", p_closeButton);
@@ -494,6 +499,7 @@ void WxMachineRegister::addCfgRow(wxWindow* page, wxFlexGridSizer* grid,
     {
         r.name = new ewxStaticText(page, wxID_ANY, label);
         r.name->SetMinSize(wxSize(260, -1));
+        reg("name:" + lowerOf(key), r.name);
         grid->Add(r.name, wxSizerFlags().Right().Border().CentreVertical());
     }
     grid->Add(r.ctrl, wxSizerFlags(1).Expand().Border().CentreVertical());
@@ -663,9 +669,23 @@ wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
     wxFlexGridSizer* advGrid = new wxFlexGridSizer(4, 0, 0);
     advGrid->AddGrowableCol(1);
     advBox->Add(advGrid, wxSizerFlags().Expand().Border(wxTOP));
-    addCfgRow(adv, advGrid, "singleConnect", "One connection for everything",
-              CfgTri, "yes: send commands and files over one connection. "
-              "auto: yes when this computer is outside the machine's domain.");
+    addCfgRow(adv, advGrid, "singleConnect", "Use a single ssh connection "
+              "(for machines that only allow one login at a time)", CfgTri,
+              "yes: the machine is treated like one reached through a gateway "
+              "host. ECCE logs in once and sends commands and copies files "
+              "over that one login, instead of opening a separate login for "
+              "each copy; while a job runs, its monitor keeps that login "
+              "open. For machines that allow only one login at a time or ask "
+              "for a one-time code at every login.\n"
+              "auto: yes when this computer is outside the machine's domain.\n"
+              "no (the default): a separate login for file copies.");
+    if (CfgRow* sc = cfgRow("singleConnect"))
+    {
+        sc->name->Wrap(280);
+        sc->name->InvalidateBestSize();
+        sc->name->SetMinSize(wxSize(280, sc->name->GetBestSize().y));
+        sc->name->SetToolTip(sc->ctrl->GetToolTipText());
+    }
     addCfgRow(adv, advGrid, "checkScratch", "Check the scratch directory "
               "before a job starts", CfgCheckYes,
               "Verify that the scratch directory exists and is writable.");
@@ -780,6 +800,16 @@ wxWindow* WxMachineRegister::createCodesPage(wxWindow* parent)
                 "Names or patterns, separated by spaces, deleted from the "
                 "run directory before the program starts.");
     setCodeAdvanced(false);
+
+    ewxButton* preview = new ewxButton(page, wxID_ANY, "Preview job script...");
+    preview->SetToolTip("Show the job script ECCE would write for this code, "
+                        "from the form as it is now");
+    sizer->Add(preview, wxSizerFlags().Border());
+    reg("code:preview", preview);
+    preview->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        this->previewJobScript(p_codeSel >= 0 && p_codeSel < (int)p_codeNames.size()
+                               ? p_codeNames[p_codeSel] : string());
+    });
     return page;
 }
 
@@ -1213,9 +1243,19 @@ wxWindow* WxMachineRegister::createJobScriptPage(wxWindow* parent)
     p_cfgRows.back().gensubOnly = true;
     p_condorGrid = condor;
 
+    wxBoxSizer* jobButtons = new wxBoxSizer(wxHORIZONTAL);
+    sizer->Add(jobButtons);
+    ewxButton* preview = new ewxButton(page, wxID_ANY, "Preview job script...");
+    preview->SetToolTip("Show the job script ECCE would write for a code and "
+                        "queue, from the form as it is now");
+    jobButtons->Add(preview, wxSizerFlags().Border());
+    reg("preview", preview);
+    preview->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        this->previewJobScript();
+    });
     ewxButton* adv = new ewxButton(page, wxID_ANY, "Advanced: edit file...");
     adv->SetToolTip("Edit the whole settings file for this machine as text");
-    sizer->Add(adv, wxSizerFlags().Border());
+    jobButtons->Add(adv, wxSizerFlags().Border());
     reg("edit-file", adv);
     adv->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { this->editFile(); });
 
@@ -1457,6 +1497,32 @@ wxWindow* WxMachineRegister::createQueuesPage(wxWindow* parent)
     sizer->Add(new wxStaticText(page, wxID_ANY,
         "Queue changes are kept in the list until you press Save."),
         wxSizerFlags().Border());
+
+    //  Both ask the machine's scheduler, so both connect to the machine.
+    ewxButton* discover = new ewxButton(page, wxID_ANY, "Discover queues...");
+    discover->SetToolTip("Ask the queue manager on the machine which queues it "
+                         "has and fill in their limits");
+    ewxButton* test = new ewxButton(page, wxID_ANY, "Test submission...");
+    test->SetToolTip("Ask the queue manager whether it would accept a job "
+                     "script; no calculation is run");
+    wxBoxSizer* tools = new wxBoxSizer(wxHORIZONTAL);
+    tools->Add(discover, border);
+    tools->Add(test, border);
+    sizer->Add(tools);
+    wxStaticText* toolNote = new wxStaticText(page, wxID_ANY,
+        "These two connect to the machine and use the queue manager's own "
+        "commands.");
+    toolNote->SetForegroundColour(wxSystemSettings::GetColour(
+                                  wxSYS_COLOUR_GRAYTEXT));
+    sizer->Add(toolNote, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+    reg("discover", discover);
+    reg("test-submission", test);
+    discover->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        this->discoverQueues();
+    });
+    test->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        this->testSubmission();
+    });
 
     reg("qmgr", p_qmgrChoice);
     reg("aa", p_allocAccts);
@@ -2503,6 +2569,15 @@ static string plainTag(MCD::Tag t)
 }
 
 
+//  A control that shows the built-in value when nothing sets the key (a
+//  choice, a checkbox, the built-in command) is tagged "default"; "not set"
+//  is for an empty text box.
+static string plainTag(MCD::Tag t, bool showsDefault)
+{
+    return t == MCD::TagDefault && showsDefault ? "default" : plainTag(t);
+}
+
+
 //  The tag and its tooltip: the file the value is in, and what it overrides.
 void WxMachineRegister::cfgTagInfo(const string& key, bool cppOnly,
                                    MCD::Tag& t, string& tip) const
@@ -2604,7 +2679,7 @@ void WxMachineRegister::cfgTags()
         MCD::Tag t;
         string tip;
         cfgTagInfo(r.key, !r.gensubOnly, t, tip);
-        wxString text = plainTag(t);
+        wxString text = plainTag(t, r.kind != CfgText);
         if (r.tag->GetLabel() != text)
             r.tag->SetLabel(text);
         r.tag->SetForegroundColour(wxSystemSettings::GetColour(
@@ -2638,7 +2713,7 @@ void WxMachineRegister::cfgTags()
                    : ta != MCD::TagDefault ? ta : tb;
         string tip = ta == MCD::TagDefault ? tipb
                    : tb == MCD::TagDefault ? tipa : tipa + "\n" + tipb;
-        wxString text = plainTag(t);
+        wxString text = plainTag(t, true);
         if (p_jobsTag->GetLabel() != text)
             p_jobsTag->SetLabel(text);
         p_jobsTag->SetForegroundColour(wxSystemSettings::GetColour(
@@ -2908,6 +2983,14 @@ void WxMachineRegister::updateFooter()
         default: files = config; break;
     }
     wxString note = "Saved in " + files;
+    p_pendingSkel = pendingSkeletons();
+    if (!p_pendingSkel.empty())
+    {
+        string list;
+        for (size_t i = 0; i < p_pendingSkel.size(); i++)
+            list += (i ? ", " : "") + p_pendingSkel[i];
+        note += ". Saving adds empty sections for: " + list;
+    }
     if (p_storeNote->GetLabel() != note)
         p_storeNote->SetLabel(note);
 
@@ -2927,6 +3010,20 @@ void WxMachineRegister::updateFooter()
 }
 
 
+//  Codes with a path whose empty Environment/Command blocks are not in the
+//  file yet.  Save writes them (applySkeletons); until then nothing does.
+vector<string> WxMachineRegister::pendingSkeletons() const
+{
+    vector<string> none;
+    if (p_draft == NULL || p_loadedName.empty() || remoteAdmin() ||
+        strip((string)p_refName->GetValue()) != p_loadedName)
+        return none;
+    ConfigFile f;
+    f.load(p_draft->editedFile());
+    return p_draft->missingSkeletons(f, p_codeNames);
+}
+
+
 void WxMachineRegister::updateDirty()
 {
     this->updateFooter();
@@ -2938,7 +3035,8 @@ void WxMachineRegister::updateDirty()
     this->cfgTags();
     this->blocksTags();
     this->codeLinesTags();
-    p_saveButton->Enable(dirty && hasMinimalInput());
+    p_saveButton->Enable((dirty || !p_pendingSkel.empty()) &&
+                         hasMinimalInput());
     wxString title = dirty ? wxString("*") + TITLE : wxString(TITLE);
     if ((string)this->GetTitle() != (string)title)
         this->SetTitle(title);
@@ -3056,12 +3154,23 @@ void WxMachineRegister::onDelete(wxCommandEvent&)
 }
 
 
+//  The tag whose help pages match this version, or main for a version that
+//  is never tagged (a release candidate, "-dev", ...).
+string WxMachineRegister::helpRef(const string& version)
+{
+    static const std::regex tagged(
+        "[0-9]+\\.[0-9]+\\.[0-9]+(-(alpha|beta)\\.[0-9]+)?");
+    return std::regex_match(version, tagged) ? "v" + version : "main";
+}
+
+
 void WxMachineRegister::onHelp(wxCommandEvent&)
 {
     //  Stopgap until the help pages are installed and rendered (#219): the
     //  page's source on GitHub, opened through the browser preference.
-    const string url = "https://github.com/FriendsofECCE/ECCE/blob/main/"
-                       "help/src/register-machines.md";
+    const string url = "https://github.com/FriendsofECCE/ECCE/blob/" +
+                       helpRef(Ecce::ecceVersion()) +
+                       "/help/src/register-machines.md";
     if (p_scripted)
     {
         fprintf(stderr, "[MACHREG] help: %s\n", url.c_str());
@@ -3504,16 +3613,25 @@ void WxMachineRegister::blockToControl(BlockRow& b)
         string inh;
         bool hasInh = inheritedValue(*ks, false, inh);
         const char* what = p_adminFlag ? "Default setting" : "Site setting";
-        b.siteHead->SetLabel(hasInh ? what : string(what) + ": none");
+        //  With nothing inherited, a command line shows what gensub runs.
+        string builtin = (b.id == "ccmd" && !hasInh)
+            ? builtinCommand(p_codeNames.empty() ? string()
+                                                 : p_codeNames[p_codeSel])
+            : string();
+        b.siteHead->SetLabel(hasInh ? string(what)
+            : !builtin.empty() ? string("Built-in (used when empty)")
+            : string(what) + ": none");
         b.siteLabel->SetLabel(hasInh ? "source: " + blockSource(
-            ks->inherited.back(), remoteClient()) + " (read-only)" : "");
-        b.siteLabel->Show(hasInh);
+            ks->inherited.back(), remoteClient()) + " (read-only)"
+            : !builtin.empty() ? string("from ECCE's job script generator "
+                                        "(read-only)") : string());
+        b.siteLabel->Show(hasInh || !builtin.empty());
         string mine = p_adminFlag ? "Site setting" : "User setting";
         b.yoursLabel->SetLabel(hasInh ? mine + (p_adminFlag
             ? " (replaces the default)" : " (replaces the site setting)")
-            : mine);
-        b.site->ChangeValue(hasInh ? inh : "");
-        b.site->Show(hasInh);
+            : !builtin.empty() ? mine + " (replaces the built-in)" : mine);
+        b.site->ChangeValue(hasInh ? inh : builtin);
+        b.site->Show(hasInh || !builtin.empty());
 
         bool cleared = ks->edit == MCD::Clear;
         b.user->ChangeValue(ks->edit == MCD::Set ? ks->value : "");
@@ -3597,6 +3715,49 @@ void WxMachineRegister::refreshHints()
 }
 
 
+//  What gensub runs for a code that has no <Code>Command, as written in its
+//  sub for the code; empty for a code it has no command for.  Keep in step
+//  with scripts/gensub.
+static string builtinCommand(const string& code)
+{
+    const string one = "# more than one process:\n";
+    if (code == "Gaussian-16" || code == "Gaussian-09" ||
+        code == "Gaussian-03" || code == "Gaussian-98")
+        return "$G" + code.substr(code.size() - 2) +
+               " < $inFile > $outFile 2>&1";
+    if (code == "NWChem")
+        return "$nwchem $inFile > $outFile 2>&1\n" + one +
+               "mpirun -np $totalprocs $nwchem $runDir/$inFile > "
+               "$runDir/$outFile 2>&1 < /dev/null";
+    if (code == "QuantumESPRESSO")
+        return "$pw -in $inFile > $outFile 2>&1\n" + one +
+               "mpirun -np $totalprocs $pw -in $inFile > $outFile 2>&1 "
+               "< /dev/null";
+    if (code == "ORCA")
+        return "$orca $inFile > $outFile 2>&1\n" + one +
+               "the same, after \"%pal nprocs $totalprocs end\" is put at the "
+               "top of the input unless it has a %pal block";
+    if (code == "MOPAC")
+        return "$mopac $inFile >> $runDir/ecce.submit.log 2>&1\n"
+               "# before it, $outFile is linked to the .out file MOPAC "
+               "writes, so the run can be followed";
+    if (code == "GROMACS")
+        return "$gmx mdrun -deffnm <output file without extension> "
+               "-ntmpi 1 -ntomp $totalprocs >> $runDir/ecce.submit.log 2>&1";
+    if (code == "GAMESS-US")
+        return "$gamess $inFile > $outFile 2>&1\n" + one +
+               "none: a command must be set";
+    if (code == "GAMESS-UK")
+        return "$gamessuk $inFile > $outFile 2>&1\n" + one +
+               "none: a command must be set";
+    if (code == "Polyrate")
+        return "$polyrate";
+    if (code == "Amica")
+        return "amica -P $totalprocs < $inFile";
+    return "";
+}
+
+
 //  The example for a block, in the form gensub accepts for it.
 string WxMachineRegister::blockExample(const BlockRow& b) const
 {
@@ -3615,27 +3776,28 @@ string WxMachineRegister::blockExample(const BlockRow& b) const
     }
     if (b.id == "ccmd")
     {
-        //  Shaped like gensub's built-in command for the code.
+        //  Something other than the built-in command (builtinCommand), so
+        //  the example shows what a command of one's own is for.
         if (code == "NWChem")
             return "e.g. mpirun -np $totalprocs $nwchem $inFile > $outFile";
         if (code == "QuantumESPRESSO")
-            return "e.g. mpirun -np $totalprocs $pw -in $inFile > $outFile";
+            return "e.g. srun $pw -in $inFile > $outFile";
         if (code == "Gaussian-16" || code == "Gaussian-09" ||
             code == "Gaussian-03" || code == "Gaussian-98")
-            return "e.g. $G" + code.substr(code.size() - 2) +
+            return "e.g. srun $G" + code.substr(code.size() - 2) +
                    " < $inFile > $outFile";
         if (code == "ORCA")
-            return "e.g. $orca $inFile > $outFile";
+            return "e.g. $orca $inFile \"--bind-to core\" > $outFile";
         if (code == "GROMACS")
-            return "e.g. $gmx mdrun -deffnm md -ntmpi 1 -ntomp $totalprocs";
+            return "e.g. $gmx mdrun -deffnm md -ntomp $totalprocs -nb gpu";
         if (code == "MOPAC")
-            return "e.g. $mopac $inFile";
+            return "e.g. ln -sf mopac.out $outFile; nice $mopac $inFile";
         if (code == "GAMESS-US")
-            return "e.g. $gamess $inFile > $outFile";
+            return "e.g. rungms $inFile 00 $totalprocs > $outFile";
         if (code == "GAMESS-UK")
-            return "e.g. $gamessuk $inFile > $outFile";
+            return "e.g. srun $gamessuk $inFile > $outFile";
         if (code == "Polyrate")
-            return "e.g. $polyrate";
+            return "e.g. nice $polyrate";
         return "";
     }
     if (b.id == "csetup")
@@ -3713,7 +3875,7 @@ void WxMachineRegister::blocksTags()
         MCD::Tag t;
         string tip;
         cfgTagInfo(b.key, false, t, tip);
-        wxString text = plainTag(t);
+        wxString text = plainTag(t, b.id == "ccmd" && b.site->IsShown());
         if (b.tag->GetLabel() != text)
             b.tag->SetLabel(text);
         b.tag->SetForegroundColour(wxSystemSettings::GetColour(
@@ -4047,10 +4209,15 @@ void WxMachineRegister::showWords()
 
 string WxMachineRegister::rawFileText() const
 {
+    //  The form is saved or reloaded before this, so the draft is clean and
+    //  this adds exactly the blocks a form Save would.
     ConfigFile f;
     f.load(p_draft->editedFile());
     if (f.exists())
+    {
+        p_draft->applySkeletons(f, p_codeNames);
         return f.text();
+    }
     return "# Settings for " + p_loadedName + " (Register Machines)\n";
 }
 
