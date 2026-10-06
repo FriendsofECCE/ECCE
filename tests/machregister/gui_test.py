@@ -312,6 +312,171 @@ quit
           if os.path.exists(q) else True), "the discarded queue edit is not written")
 
 
+def queue_defaults(tmp, display, build):
+    print("queues tab: defaults the Launcher reads")
+    e = Env(tmp, "qdefaults")
+    p = run(display, build, e, """
+select cluster
+tab queues
+set queue short
+expect field q-defprocs 0
+set q-defprocs 4
+set q-defwall 0.5
+set q-defmem 8
+set q-defscratch 2
+expect label queue-apply 'Update Queue'
+queue-apply
+set queue long
+set q-defprocs 16
+set q-defmem 32
+queue-apply
+expect save-enabled 1
+save
+expect dirty 0
+quit
+""")
+    clean(p, "defaults of two queues entered and saved")
+    q = read(os.path.join(e.ue, "cluster.Q"))
+    qk = keys(os.path.join(e.ue, "cluster.Q"))
+    want = {"short|defprocessors": "4", "short|defrun": "30",
+            "short|defmemory": "8000", "short|defscratch": "2000",
+            "long|defprocessors": "16", "long|defmemory": "32000"}
+    check(all(qk.get(k) == v for k, v in want.items()),
+          "cluster.Q holds the defaults in the Launcher's units "
+          "(minutes, MB): %r" % {k: qk.get(k) for k in want})
+    check("long|defrun" not in qk and "long|defscratch" not in qk,
+          "an unset default (0) writes no line")
+    check(qk.get("short|runlimit") == "60" and qk.get("short|memlimit") == "128000",
+          "the limits next to them are unchanged")
+
+    # the same values come back, and nothing is changed by looking
+    before = registration(e.ue)
+    p = run(display, build, e, """
+select cluster
+tab queues
+set queue short
+expect field q-defprocs 4
+expect field q-defwall 0.5
+expect field q-defmem 8
+expect field q-defscratch 2
+set queue long
+expect field q-defprocs 16
+expect field q-defwall 0
+expect field q-defmem 32
+expect dirty 0
+quit
+""")
+    clean(p, "the defaults round trip")
+    check(registration(e.ue) == before, "reading changes no file")
+
+    # a hand-written hh:mm:ss default shows as hours and is saved in minutes;
+    # memUnits, which the form does not manage, stays
+    write(os.path.join(e.ue, "cluster.Q"),
+          "Queues: short\nshort|maxProcessors: 64\nshort|defRun: 1:00:00\n"
+          "short|memUnits: MB\n")
+    p = run(display, build, e, """
+select cluster
+tab queues
+set queue short
+expect field q-defwall 1
+set q-defprocs 2
+queue-apply
+save
+quit
+""")
+    clean(p, "a defRun written as H:MM shows as hours")
+    qk = keys(os.path.join(e.ue, "cluster.Q"))
+    check(qk.get("short|defrun") == "60" and qk.get("short|defprocessors") == "2"
+          and qk.get("short|memunits") == "MB",
+          "saved in minutes; memUnits, which the form does not manage, is kept: %r"
+          % qk)
+
+    # validation: the default lies within [min, max]
+    e = Env(tmp, "qvalidate")
+    for what, lines, text in (
+            ("above the maximum processors",
+             "set q-defprocs 100", "default number of processors"),
+            ("below the minimum processors",
+             "set q-minprocs 2\nset q-defprocs 1", "default number of processors"),
+            ("above the maximum wall time",
+             "set q-defwall 2", "default wall time"),
+            ("above the maximum memory",
+             "set q-defmem 200", "default memory")):
+        p = run(display, build, e, """
+select cluster
+tab queues
+set queue short
+%s
+queue-apply
+expect message '%s'
+expect label queue-apply 'Update Queue'
+quit
+""" % (lines, text))
+        clean(p, "a default %s is refused" % what)
+    check(not os.path.exists(os.path.join(e.ue, "cluster.Q")),
+          "a refused default changes no file")
+    # 0 means none, so it is always allowed; a limit of 0 bounds nothing
+    p = run(display, build, e, """
+select cluster
+tab queues
+set queue short
+set q-maxmem 0
+set q-defmem 500
+set q-defprocs 0
+queue-apply
+save
+quit
+""")
+    clean(p, "a default is not bounded by a limit of 0 (no limit)")
+    qk = keys(os.path.join(e.ue, "cluster.Q"))
+    check(qk.get("short|defmemory") == "500000" and qk.get("short|memlimit") == "0"
+          and "short|defprocessors" not in qk,
+          "saved: memory limit 0, default 500 GB, default processors none: %r" % qk)
+
+
+def submit_site_comment():
+    print("submit.site: the memory unit")
+    site = read(os.path.join(REPO, "siteconfig", "submit.site"))
+    check("memUnits" not in site or "(memUnits there is not read)" in site,
+          "submit.site does not say the .Q file's memUnits decides the unit")
+    check("whatever unit the machine's .Q file declares" not in site,
+          "the old claim is gone")
+    # what does decide it: -m is MB from the Launcher, the M is in the template
+    gensub = read(os.path.join(REPO, "scripts", "gensub"))
+    check("memunits" not in gensub.lower(),
+          "gensub never reads memUnits, so the claim could not hold")
+    check("$memoryM" in site, "the template spells the suffix out")
+
+
+def queues_pngs(tmp, display, build, out):
+    print("queues tab PNGs")
+    os.makedirs(out, exist_ok=True)
+    e = Env(tmp, "queues-pngs")
+    write(os.path.join(e.ue, "cluster.Q"),
+          "Queues: short long\n\n"
+          "short|minProcessors: 1\nshort|maxProcessors: 64\n"
+          "short|runLimit: 60\nshort|memLimit: 128000\n"
+          "short|defProcessors: 4\nshort|defRun: 30\nshort|defMemory: 8000\n"
+          "short|defScratch: 2000\n"
+          "long|minProcessors: 1\nlong|maxProcessors: 256\n"
+          "long|runLimit: 2880\nlong|memLimit: 512000\n")
+    p = run(display, build, e, """
+select cluster
+tab queues
+set queue short
+wait 800
+shot %(o)s/queues-defaults.png
+set q-defprocs 100
+queue-apply
+wait 500
+shot %(o)s/queues-default-refused.png
+quit
+""" % {"o": out})
+    clean(p, "Queues PNGs")
+    for n in sorted(os.listdir(out)):
+        print("        " + os.path.join(out, n))
+
+
 def site_machine(tmp, display, build, remote=False):
     label = "-remote" if remote else "user mode"
     print(label + ", site machine")
@@ -1394,6 +1559,7 @@ def main():
     ap.add_argument("--snapshots")
     ap.add_argument("--job-pngs")
     ap.add_argument("--codes-pngs")
+    ap.add_argument("--queues-pngs")
     a = ap.parse_args()
     build = os.path.abspath(a.build)
     if not os.access(os.path.join(build, "machregister"), os.X_OK):
@@ -1408,7 +1574,9 @@ def main():
         return 77
     tmp = tempfile.mkdtemp(prefix="ecce-machreg-")
     try:
-        if a.codes_pngs:
+        if a.queues_pngs:
+            queues_pngs(tmp, disp, build, os.path.abspath(a.queues_pngs))
+        elif a.codes_pngs:
             codes_pngs(tmp, disp, build, os.path.abspath(a.codes_pngs))
             job_script_pngs(tmp, disp, build, os.path.abspath(a.codes_pngs))
         elif a.job_pngs:
@@ -1422,6 +1590,8 @@ def main():
             site_machine(tmp, disp, build, remote=True)
             delete_prompt_lists_files(tmp, disp, build)
             fixes(tmp, disp, build)
+            queue_defaults(tmp, disp, build)
+            submit_site_comment()
             admin_mode(tmp, disp, build)
             for m in ("user", "remote", "admin"):
                 connection_tab(tmp, disp, build, m)

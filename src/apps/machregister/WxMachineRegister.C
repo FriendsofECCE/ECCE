@@ -1344,38 +1344,74 @@ wxWindow* WxMachineRegister::createQueuesPage(wxWindow* parent)
     grid->Add(p_queueName, wxSizerFlags(1).Expand().Border().CentreVertical());
 
     //  Wall time is shown in hours and stored in minutes (README.Q); a
-    //  fraction is fine because minutes are the finer unit.
-    p_qMaxWall = new wxSpinCtrlDouble(page, wxID_ANY, "0", wxDefaultPosition,
-                                      wxDefaultSize, wxSP_ARROW_KEYS, 0,
-                                      100000, 0, 0.25);
-    p_qMaxWall->SetDigits(2);
-    reg("q-maxwall", p_qMaxWall);
+    //  fraction is fine because minutes are the finer unit.  A default of 0
+    //  means "none": the Launcher then falls back to its own.
+    wxSpinCtrlDouble** dbl[] = { &p_qMaxWall, &p_qDefWall };
+    const char* dblKey[] = { "q-maxwall", "q-defwall" };
+    for (int i = 0; i < 2; i++)
+    {
+        *dbl[i] = new wxSpinCtrlDouble(page, wxID_ANY, "0", wxDefaultPosition,
+                                       wxDefaultSize, wxSP_ARROW_KEYS, 0,
+                                       100000, 0, 0.25);
+        (*dbl[i])->SetDigits(2);
+        reg(dblKey[i], *dbl[i]);
+    }
 
-    struct SpinRow { ewxSpinCtrl** spin; const char* label; const char* unit;
-                     int min; const char* key; };
-    SpinRow rows[] = {
-        { &p_qMinProcs, "Min processors", "", 1, "q-minprocs" },
-        { &p_qMaxProcs, "Max processors", "", 1, "q-maxprocs" },
-        { NULL, "Max wall time", "h", 0, "" },
-        { &p_qMaxMem, "Max memory", "GB", 0, "q-maxmem" },
-        { &p_qMinScratch, "Min scratch", "GB", 0, "q-minscratch" },
+    struct Cell { ewxSpinCtrl** spin; wxSpinCtrlDouble** dspin;
+                  const char* caption; int min; const char* key;
+                  const char* tip; };
+    struct Row { const char* label; const char* unit; Cell cells[3]; };
+    Row rows[] = {
+        { "Processors", "",
+          { { &p_qMinProcs, NULL, "min", 1, "q-minprocs", "minProcessors" },
+            { &p_qMaxProcs, NULL, "max", 1, "q-maxprocs", "maxProcessors" },
+            { &p_qDefProcs, NULL, "default", 0, "q-defprocs",
+              "defProcessors (0 = none)" } } },
+        { "Wall time", "h",
+          { { NULL, &p_qMaxWall, "max", 0, "", "runLimit (stored in minutes)" },
+            { NULL, &p_qDefWall, "default", 0, "",
+              "defRun (stored in minutes, 0 = none)" },
+            { NULL, NULL, NULL, 0, "", NULL } } },
+        { "Memory", "GB",
+          { { &p_qMaxMem, NULL, "max", 0, "q-maxmem",
+              "memLimit (stored in MB, 0 = no limit)" },
+            { &p_qDefMem, NULL, "default", 0, "q-defmem",
+              "defMemory (stored in MB, 0 = none)" },
+            { NULL, NULL, NULL, 0, "", NULL } } },
+        { "Scratch", "GB",
+          { { &p_qMinScratch, NULL, "limit", 0, "q-minscratch",
+              "scratchLimit (stored in MB); the Launcher uses it as the upper "
+              "bound of its scratch field" },
+            { &p_qDefScratch, NULL, "default", 0, "q-defscratch",
+              "defScratch (stored in MB, 0 = none)" },
+            { NULL, NULL, NULL, 0, "", NULL } } },
     };
     for (size_t i = 0; i < sizeof(rows) / sizeof(rows[0]); i++)
     {
-        wxWindow* spin = p_qMaxWall;
-        if (rows[i].spin != NULL)
-        {
-            *rows[i].spin = new ewxSpinCtrl(page, wxID_ANY,
-                wxString::Format("%d", rows[i].min), wxDefaultPosition,
-                wxDefaultSize, wxSP_ARROW_KEYS, rows[i].min, 100000,
-                rows[i].min);
-            spin = *rows[i].spin;
-            reg(rows[i].key, spin);
-        }
         grid->Add(new ewxStaticText(page, wxID_ANY, rows[i].label),
                   wxSizerFlags().Right().Border().CentreVertical());
         wxBoxSizer* cell = new wxBoxSizer(wxHORIZONTAL);
-        cell->Add(spin, wxSizerFlags().Border().CentreVertical());
+        for (int c = 0; c < 3; c++)
+        {
+            const Cell& ce = rows[i].cells[c];
+            if (ce.caption == NULL)
+                continue;
+            wxWindow* spin;
+            if (ce.spin != NULL)
+            {
+                *ce.spin = new ewxSpinCtrl(page, wxID_ANY,
+                    wxString::Format("%d", ce.min), wxDefaultPosition,
+                    wxDefaultSize, wxSP_ARROW_KEYS, ce.min, 100000, ce.min);
+                spin = *ce.spin;
+                reg(ce.key, spin);
+            }
+            else
+                spin = *ce.dspin;
+            spin->SetToolTip(ce.tip);
+            cell->Add(new ewxStaticText(page, wxID_ANY, ce.caption),
+                      wxSizerFlags().Border(wxLEFT).CentreVertical());
+            cell->Add(spin, wxSizerFlags().Border().CentreVertical());
+        }
         if (*rows[i].unit)
             cell->Add(new ewxStaticText(page, wxID_ANY, rows[i].unit),
                       wxSizerFlags().CentreVertical());
@@ -1976,6 +2012,10 @@ void WxMachineRegister::clearQueues()
     p_qMaxWall->SetValue(0);
     p_qMaxMem->SetValue(0);
     p_qMinScratch->SetValue(0);
+    p_qDefProcs->SetValue(0);
+    p_qDefWall->SetValue(0);
+    p_qDefMem->SetValue(0);
+    p_qDefScratch->SetValue(0);
     p_queueName->Clear();
     p_queueFormBase = queueFormRow();
 }
@@ -2006,6 +2046,10 @@ void WxMachineRegister::loadQueues(const string& refName)
         r.maxWall = queue->runLimit();
         r.maxMem = queue->memLimit();
         r.minScratch = queue->scratchLimit();
+        r.defProcs = queue->defProcessors();
+        r.defWall = queue->defRun();
+        r.defMem = queue->defMemory();
+        r.defScratch = queue->defScratch();
         p_queues.push_back(r);
     }
 }
@@ -2048,6 +2092,14 @@ void WxMachineRegister::showQueue(const string& name)
                             ? MemoryUnits::mbToGB(r.maxMem) : 0);
         p_qMinScratch->SetValue(r.minScratch != (unsigned)INT_MAX
                                 ? MemoryUnits::mbToGB(r.minScratch) : 0);
+        p_qDefProcs->SetValue(r.defProcs != (unsigned)INT_MAX
+                              ? r.defProcs : 0);
+        p_qDefWall->SetValue(r.defWall != (unsigned)INT_MAX
+                             ? r.defWall / 60.0 : 0.0);
+        p_qDefMem->SetValue(r.defMem != (unsigned)INT_MAX
+                            ? MemoryUnits::mbToGB(r.defMem) : 0);
+        p_qDefScratch->SetValue(r.defScratch != (unsigned)INT_MAX
+                                ? MemoryUnits::mbToGB(r.defScratch) : 0);
         p_queueChoice->SetSelection((int)pos);
     }
     else
@@ -2058,6 +2110,10 @@ void WxMachineRegister::showQueue(const string& name)
         p_qMaxWall->SetValue(0);
         p_qMaxMem->SetValue(0);
         p_qMinScratch->SetValue(0);
+        p_qDefProcs->SetValue(0);
+        p_qDefWall->SetValue(0);
+        p_qDefMem->SetValue(0);
+        p_qDefScratch->SetValue(0);
     }
     p_queueFormBase = queueFormRow();
     p_inCtrlUpdate = was;
@@ -2073,6 +2129,10 @@ MCD::QueueRow WxMachineRegister::queueFormRow() const
     r.maxWall = (unsigned)(p_qMaxWall->GetValue() * 60.0 + 0.5);
     r.maxMem = MemoryUnits::gbToMB(p_qMaxMem->GetValue());
     r.minScratch = MemoryUnits::gbToMB(p_qMinScratch->GetValue());
+    r.defProcs = p_qDefProcs->GetValue();
+    r.defWall = (unsigned)(p_qDefWall->GetValue() * 60.0 + 0.5);
+    r.defMem = MemoryUnits::gbToMB(p_qDefMem->GetValue());
+    r.defScratch = MemoryUnits::gbToMB(p_qDefScratch->GetValue());
     return r;
 }
 
@@ -2102,6 +2162,25 @@ void WxMachineRegister::updateQueueButtons()
 }
 
 
+//  A default of 0 is "none".  A limit of 0 is "no limit", so it bounds
+//  nothing.  The Launcher clamps to the limits, so a default outside them
+//  would never be shown as written.
+string WxMachineRegister::queueDefaultsError(const MCD::QueueRow& r) const
+{
+    string name = "Queue '" + r.name + "': ";
+    if (r.defProcs != 0 && (r.defProcs < r.minProcs || r.defProcs > r.maxProcs))
+        return name + "the default number of processors must be between the "
+               "minimum and the maximum.";
+    if (r.maxWall != 0 && r.defWall > r.maxWall)
+        return name + "the default wall time must not exceed the maximum.";
+    if (r.maxMem != 0 && r.defMem > r.maxMem)
+        return name + "the default memory must not exceed the maximum.";
+    if (r.minScratch != 0 && r.defScratch > r.minScratch)
+        return name + "the default scratch must not exceed the scratch limit.";
+    return "";
+}
+
+
 bool WxMachineRegister::applyQueueForm()
 {
     MCD::QueueRow r = queueFormRow();
@@ -2118,6 +2197,13 @@ bool WxMachineRegister::applyQueueForm()
         //  refuses the same set.
         displayMessage("Queue name '" + r.name + "' is not valid.\n"
             "Queue names may contain only letters, digits, '_', '.' and '-'.");
+        return false;
+    }
+
+    string bad = queueDefaultsError(r);
+    if (!bad.empty())
+    {
+        displayMessage(bad);
         return false;
     }
 
@@ -3061,6 +3147,12 @@ string WxMachineRegister::collectSettings() const
         tmp += "maxCPU|" + StringConverter::toString((int)p_queues[i].maxWall) + ",";
         tmp += "maxMemory|" + StringConverter::toString((int)p_queues[i].maxMem) + ",";
         tmp += "minScratch|" + StringConverter::toString((int)p_queues[i].minScratch) + ",";
+        //  An unset default (0) is left out of the .Q file.
+        const MCD::QueueRow& q = p_queues[i];
+        tmp += "defProcessors|" + (q.defProcs ? StringConverter::toString((int)q.defProcs) : string()) + ",";
+        tmp += "defRun|" + (q.defWall ? StringConverter::toString((int)q.defWall) : string()) + ",";
+        tmp += "defMemory|" + (q.defMem ? StringConverter::toString((int)q.defMem) : string()) + ",";
+        tmp += "defScratch|" + (q.defScratch ? StringConverter::toString((int)q.defScratch) : string()) + ",";
         ret += PM::field("q" + StringConverter::toString((int)i), tmp);
     }
 
