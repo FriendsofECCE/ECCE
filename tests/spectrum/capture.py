@@ -112,7 +112,7 @@ def compare(case, sticks, click, axes):
     return problems
 
 
-def run(case, builder, png, timeout):
+def run(case, builder, png, timeout, window=False):
     import apps
     import fixture
     import isolate
@@ -152,6 +152,8 @@ def run(case, builder, png, timeout):
         env["ECCE_SPECTRUM_DUMP"] = out
         env["ECCE_SPECTRUM_CLICK"] = str(CLICK[case])
         env["ECCE_EXIT_AFTER_DUMP"] = "1"
+        if window:
+            env["ECCE_SPECTRUM_WINDOW"] = "1"
         if png:
             env["ECCE_EXIT_AFTER_DUMP_DELAY_MS"] = "8000"
         auth = os.path.join(state, "auth.pipe")
@@ -192,7 +194,11 @@ def run(case, builder, png, timeout):
                     break
                 except Exception:
                     pass
-        tail = (proc.stdout.read() or b"").decode("utf-8", "replace")[-3000:]
+        full = (proc.stdout.read() or b"").decode("utf-8", "replace")
+        for line in full.splitlines():
+            if "[PANESIZE]" in line and "Vibrational" in line:
+                print("  " + line)
+        tail = full[-3000:]
         apps.stopServices(display)
         restorePrefs()
 
@@ -214,8 +220,16 @@ def main():
     ap.add_argument("--builder", default="build-cmake/builder")
     ap.add_argument("--png", metavar="DIR")
     ap.add_argument("--timeout", type=float, default=120)
+    ap.add_argument("--window", action="store_true",
+                    help="open the pop-out window and click in it")
+    ap.add_argument("--screen", default=None,
+                    help="Xvfb screen, e.g. 1280x720x24 (default 1280x1024)")
+    ap.add_argument("--tag", default="live", help="PNG name prefix")
     args = ap.parse_args()
 
+    if args.screen:
+        import xdisplay
+        xdisplay.SCREEN = args.screen
     builder = os.path.abspath(args.builder)
     if not os.access(builder, os.X_OK):
         print("no builder at %s" % builder)
@@ -231,8 +245,9 @@ def main():
     failed = 0
     for case in args.cases or sorted(CLICK):
         print(case)
-        png = os.path.join(args.png, "live-%s.png" % case) if args.png else None
-        problems = run(case, builder, png, args.timeout)
+        png = (os.path.join(args.png, "%s-%s.png" % (args.tag, case))
+               if args.png else None)
+        problems = run(case, builder, png, args.timeout, args.window)
         for p in problems:
             print("  FAIL  " + p)
         failed += bool(problems)

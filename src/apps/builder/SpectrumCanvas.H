@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
 #include <vector>
 
 #include <wx/dcbuffer.h>
@@ -77,6 +78,24 @@ struct SpectrumPalette
   }
 };
 
+class SpectrumCanvas;
+
+/**
+ * What several views of one spectrum share: the model, the zoom, the
+ * selected mode.  A canvas made with shareWith() draws and edits the same
+ * one, so the docked panel and the pop-out window cannot disagree.
+ */
+struct SpectrumShared
+{
+  VibSpectrum  spec;
+  SpectrumAxis axis;
+  bool         showSticks;
+  int          selected;
+  int          version;                  // bumped when the data is replaced
+  std::vector<SpectrumCanvas*> views;
+  SpectrumShared() : showSticks(true), selected(-1), version(0) {}
+};
+
 class SpectrumCanvas : public wxPanel
 {
   public:
@@ -85,11 +104,13 @@ class SpectrumCanvas : public wxPanel
       : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
                 wxWANTS_CHARS),
         p_owner(0), p_palette(SpectrumPalette::system()),
-        p_showSticks(true), p_selected(-1), p_hoverKind(VIB_IR),
+        p_s(new SpectrumShared), p_kindShown(VIB_IR), p_compactBelow(320),
+        p_hoverKind(VIB_IR),
         p_hoverMode(-1), p_hoverAt(0, 0), p_pressed(false),
         p_dragging(false), p_panning(false), p_band(false),
         p_bandLo(0), p_bandHi(0), p_cacheValid(false)
     {
+      p_s->views.push_back(this);
       SetBackgroundStyle(wxBG_STYLE_PAINT);
       SetMinSize(wxSize(240, 220));
       Bind(wxEVT_PAINT, &SpectrumCanvas::onPaint, this);
@@ -107,6 +128,39 @@ class SpectrumCanvas : public wxPanel
       Bind(wxEVT_MOUSE_CAPTURE_LOST, &SpectrumCanvas::onCaptureLost, this);
     }
 
+    ~SpectrumCanvas()
+    {
+      std::vector<SpectrumCanvas*>& v = p_s->views;
+      v.erase(std::remove(v.begin(), v.end(), this), v.end());
+    }
+
+    /** Draw and edit the same model, zoom and selection as `other`. */
+    void shareWith(SpectrumCanvas& other)
+    {
+      std::vector<SpectrumCanvas*>& v = p_s->views;
+      v.erase(std::remove(v.begin(), v.end(), this), v.end());
+      p_s = other.p_s;
+      p_s->views.push_back(this);
+      p_cacheValid = false;
+      Refresh();
+    }
+
+    /** Every view of the shared state repaints. */
+    virtual void Refresh(bool erase = true, const wxRect *rect = NULL)
+    {
+      wxPanel::Refresh(erase, rect);
+      for (size_t i = 0; i < p_s->views.size(); i++)
+        if (p_s->views[i] != this) p_s->views[i]->wxPanel::Refresh(erase);
+    }
+
+    /**
+     * Below this canvas height one pane is drawn, with a toggle when there
+     * are two, and no envelope axis.  0 means always the full view.
+     */
+    void setCompactBelow(int height) { p_compactBelow = height; Refresh(); }
+    /** Which pane the compact layout shows. */
+    void setCompactPane(VibKind kind) { p_kindShown = kind; Refresh(); }
+
     void setClickHandler(SpectrumClickTarget *owner) { p_owner = owner; }
 
     void setPalette(const SpectrumPalette& palette)
@@ -118,55 +172,56 @@ class SpectrumCanvas : public wxPanel
     /** Replace the data.  Keeps the current FWHM and scale. */
     void setSpectrum(const VibSpectrum& spectrum)
     {
-      const double fwhm = p_spec.fwhm(), scale = p_spec.scale();
-      const LineShape shape = p_spec.lineShape();
-      p_spec = spectrum;
-      p_spec.setFwhm(fwhm);
-      p_spec.setScale(scale);
-      p_spec.setLineShape(shape);
-      p_selected = -1;
+      const double fwhm = p_s->spec.fwhm(), scale = p_s->spec.scale();
+      const LineShape shape = p_s->spec.lineShape();
+      p_s->spec = spectrum;
+      p_s->spec.setFwhm(fwhm);
+      p_s->spec.setScale(scale);
+      p_s->spec.setLineShape(shape);
+      p_s->selected = -1;
+      p_s->version++;
       p_hoverMode = -1;
       fitRange();
     }
-    const VibSpectrum& spectrum() const { return p_spec; }
+    const VibSpectrum& spectrum() const { return p_s->spec; }
 
     void setFwhm(double fwhm)
     {
-      p_spec.setFwhm(fwhm);
-      if (!p_axis.zoomed()) fitRange();
+      p_s->spec.setFwhm(fwhm);
+      if (!p_s->axis.zoomed()) fitRange();
       p_cacheValid = false;
       Refresh();
     }
     void setScale(double scale)
     {
-      p_spec.setScale(scale);
+      p_s->spec.setScale(scale);
       fitRange();
     }
     void setLineShape(LineShape shape)
     {
-      p_spec.setLineShape(shape);
+      p_s->spec.setLineShape(shape);
       p_cacheValid = false;
       Refresh();
     }
 
     /** Whether sticks are drawn under the broadened curve. */
-    void setShowSticks(bool show) { p_showSticks = show; Refresh(); }
-    bool showSticks() const { return p_showSticks; }
+    void setShowSticks(bool show) { p_s->showSticks = show; Refresh(); }
+    bool showSticks() const { return p_s->showSticks; }
 
     /** High wavenumbers on the left (the default) or on the right. */
     void setReversed(bool reversed)
     {
-      p_axis.setReversed(reversed);
+      p_s->axis.setReversed(reversed);
       Refresh();
     }
-    bool reversed() const { return p_axis.reversed(); }
+    bool reversed() const { return p_s->axis.reversed(); }
 
-    SpectrumAxis& axis() { return p_axis; }
-    void resetZoom() { p_axis.reset(); p_cacheValid = false; Refresh(); }
+    SpectrumAxis& axis() { return p_s->axis; }
+    void resetZoom() { p_s->axis.reset(); p_cacheValid = false; Refresh(); }
 
     /** The mode (table row) drawn highlighted, or -1. */
-    void setSelected(int mode) { p_selected = mode; Refresh(); }
-    int  selected() const { return p_selected; }
+    void setSelected(int mode) { p_s->selected = mode; Refresh(); }
+    int  selected() const { return p_s->selected; }
 
     //  For the offscreen render: state that otherwise comes from the mouse.
     void setHover(VibKind kind, int mode, const wxPoint& at)
@@ -198,8 +253,8 @@ class SpectrumCanvas : public wxPanel
       dc.SetFont(*wxSMALL_FONT);
       dc.SetTextForeground(p_palette.text);
 
-      const bool haveIr = p_spec.has(VIB_IR), haveRaman = p_spec.has(VIB_RAMAN);
-      const bool any = (haveIr || haveRaman) && !p_spec.sticks(
+      const bool haveIr = p_s->spec.has(VIB_IR), haveRaman = p_s->spec.has(VIB_RAMAN);
+      const bool any = (haveIr || haveRaman) && !p_s->spec.sticks(
                          haveIr ? VIB_IR : VIB_RAMAN).empty();
       if (!any) {
         const wxString msg = wxString::FromUTF8(
@@ -214,14 +269,26 @@ class SpectrumCanvas : public wxPanel
       if (haveIr) kinds.push_back(VIB_IR);
       if (haveRaman) kinds.push_back(VIB_RAMAN);
 
-      const bool envelope = p_spec.fwhm() > 0;
+      //  A short canvas (the docked panel) shows one pane, chosen with a
+      //  toggle, and no envelope axis; the pop-out window shows it all.
+      const bool compact = p_compactBelow > 0 && size.y < p_compactBelow;
+      const bool toggle = compact && kinds.size() > 1;
+      p_toggle[0] = p_toggle[1] = wxRect();
+      if (compact && kinds.size() > 1) {
+        const VibKind keep = p_kindShown;
+        kinds.assign(1, keep == VIB_RAMAN && haveRaman ? VIB_RAMAN : VIB_IR);
+        if (kinds[0] == VIB_IR && !haveIr) kinds[0] = VIB_RAMAN;
+        p_kindShown = kinds[0];
+      }
+
+      const bool envelope = p_s->spec.fwhm() > 0;
       const int ch = dc.GetCharHeight();
       const int gap = ch + 6;
 
       //  Y scales first: the margins depend on how wide the labels are.
       std::vector<PaneScale> scales;
       for (size_t k = 0; k < kinds.size(); k++)
-        scales.push_back(scaleFor(kinds[k], envelope));
+        scales.push_back(scaleFor(kinds[k], envelope, compact));
 
       int leftLabel = 0, rightLabel = 0;
       for (size_t k = 0; k < scales.size(); k++) {
@@ -235,9 +302,12 @@ class SpectrumCanvas : public wxPanel
       dc.SetFont(*wxSMALL_FONT);
       const int left = th + 16 + leftLabel;
       const int right = scales[0].hasRight ? th + 16 + rightLabel : 14;
-      const int top = 10;
-      const bool imaginary = hasImaginary();
-      const int bottom = 2 * ch + 20 + (imaginary ? ch + 4 : 0);
+      const int top = compact ? 4 : 10;
+      const bool imaginary = hasImaginary() && !compact;
+      const bool xTitle = !compact || size.y >= 140;
+      const int bottom = compact
+          ? ch + 12 + (xTitle ? ch + 6 : 0)
+          : 2 * ch + 20 + (imaginary ? ch + 4 : 0);
 
       const int plotW = std::max(40, size.x - left - right);
       const int plotH = size.y - top - bottom;
@@ -247,8 +317,8 @@ class SpectrumCanvas : public wxPanel
       p_plotLeft = left;
       p_plotWidth = plotW;
 
-      const SpectrumTicks xt = niceTicks(p_axis.lo(), p_axis.hi(),
-                                         std::max(3, plotW / 70));
+      const SpectrumTicks xt = niceTicks(p_s->axis.lo(), p_s->axis.hi(),
+                                         std::max(3, plotW / (compact ? 110 : 70)));
 
       for (int k = 0; k < n; k++) {
         const wxRect pane(left, top + k * (paneH + gap), plotW, paneH);
@@ -259,14 +329,16 @@ class SpectrumCanvas : public wxPanel
       //  X axis title under the bottom pane.
       const wxRect last = p_panes.back();
       wxString xtitle = wxString::FromUTF8("Wavenumber (cm\xE2\x81\xBB\xC2\xB9");
-      if (std::fabs(p_spec.scale() - 1.0) > 1e-9)
-        xtitle += wxString::Format(", scaled by %g", p_spec.scale());
+      if (std::fabs(p_s->spec.scale() - 1.0) > 1e-9)
+        xtitle += wxString::Format(", scaled by %g", p_s->spec.scale());
       xtitle += ")";
       dc.SetFont(*wxNORMAL_FONT);
       dc.SetTextForeground(p_palette.text);
       wxSize te = dc.GetTextExtent(xtitle);
-      dc.DrawText(xtitle, last.x + (last.width - te.x) / 2,
-                  last.GetBottom() + ch + 10);
+      if (xTitle)
+        dc.DrawText(xtitle, last.x + (last.width - te.x) / 2,
+                    last.GetBottom() + ch + (compact ? 6 : 10));
+      if (toggle) paintToggle(dc, last, haveIr, haveRaman);
       if (imaginary) {
         dc.SetFont(*wxSMALL_FONT);
         dc.SetTextForeground(p_palette.imaginary);
@@ -319,10 +391,10 @@ class SpectrumCanvas : public wxPanel
     bool hasImaginary() const
     {
       for (int k = 0; k < 2; k++) {
-        const std::vector<VibStick> s = p_spec.sticks((VibKind)k);
+        const std::vector<VibStick> s = p_s->spec.sticks((VibKind)k);
         for (size_t i = 0; i < s.size(); i++)
-          if (s[i].imaginary && s[i].wavenumber >= p_axis.lo() &&
-              s[i].wavenumber <= p_axis.hi()) return true;
+          if (s[i].imaginary && s[i].wavenumber >= p_s->axis.lo() &&
+              s[i].wavenumber <= p_s->axis.hi()) return true;
       }
       return false;
     }
@@ -330,8 +402,8 @@ class SpectrumCanvas : public wxPanel
     void fitRange()
     {
       double lo, hi;
-      p_spec.defaultRange(&lo, &hi);
-      p_axis.setFull(lo, hi);
+      p_s->spec.defaultRange(&lo, &hi);
+      p_s->axis.setFull(lo, hi);
       p_cacheValid = false;
       p_band = false;
       Refresh();
@@ -341,31 +413,31 @@ class SpectrumCanvas : public wxPanel
     //  never a flat line next to a tall one that is off screen.  The
     //  envelope search is the expensive part; it is redone only when the
     //  window or the line changes.
-    PaneScale scaleFor(VibKind kind, bool envelope)
+    PaneScale scaleFor(VibKind kind, bool envelope, bool compact)
     {
-      const double key[7] = { p_axis.lo(), p_axis.hi(), p_spec.fwhm(),
-                              p_spec.scale(), (double)p_spec.lineShape(),
-                              (double)p_showSticks, 0 };
-      if (!p_cacheValid || !std::equal(key, key + 6, p_cacheKey)) {
-        std::copy(key, key + 6, p_cacheKey);
+      const double key[7] = { p_s->axis.lo(), p_s->axis.hi(), p_s->spec.fwhm(),
+                              p_s->spec.scale(), (double)p_s->spec.lineShape(),
+                              (double)p_s->showSticks, (double)p_s->version };
+      if (!p_cacheValid || !std::equal(key, key + 7, p_cacheKey)) {
+        std::copy(key, key + 7, p_cacheKey);
         for (int k = 0; k < 2; k++) {
-          p_maxStick[k] = p_spec.maxStick((VibKind)k, p_axis.lo(), p_axis.hi());
-          p_maxEnv[k] = p_spec.maxEnvelope((VibKind)k, p_axis.lo(), p_axis.hi());
+          p_maxStick[k] = p_s->spec.maxStick((VibKind)k, p_s->axis.lo(), p_s->axis.hi());
+          p_maxEnv[k] = p_s->spec.maxEnvelope((VibKind)k, p_s->axis.lo(), p_s->axis.hi());
         }
         p_cacheValid = true;
       }
       PaneScale s;
       const wxString name = kind == VIB_IR ? "IR" : "Raman";
-      const wxString unit = utf8(p_spec.unitLabel(kind).c_str());
+      const wxString unit = utf8(p_s->spec.unitLabel(kind).c_str());
       const wxString inv = utf8(" per cm\xE2\x81\xBB\xC2\xB9");
-      const wxString rel = p_spec.relative(kind) ? wxString("relative")
+      const wxString rel = p_s->spec.relative(kind) ? wxString("relative")
                                                  : unit;
-      s.hasRight = envelope && p_showSticks;
-      s.sticksOnLeft = !envelope || p_showSticks;
+      s.hasRight = envelope && p_s->showSticks && !compact;
+      s.sticksOnLeft = !envelope || p_s->showSticks;
       Axis sticks, env;
-      sticks.y = niceYAxis(p_maxStick[kind], 4);
-      sticks.title = utf8(p_spec.axisLabel(kind).c_str());
-      env.y = niceYAxis(p_maxEnv[kind], 4);
+      sticks.y = niceYAxis(p_maxStick[kind], compact ? 3 : 4);
+      sticks.title = utf8(p_s->spec.axisLabel(kind).c_str());
+      env.y = niceYAxis(p_maxEnv[kind], compact ? 3 : 4);
       env.title = name + " envelope (" + rel + inv + ")";
       if (s.sticksOnLeft) { s.left = sticks; s.right = env; }
       else { s.left = env; s.right = sticks; }
@@ -394,9 +466,9 @@ class SpectrumCanvas : public wxPanel
     {
       const int ch = dc.GetCharHeight();
       const wxColour series = kind == VIB_IR ? p_palette.ir : p_palette.raman;
-      const bool envelope = p_spec.fwhm() > 0;
+      const bool envelope = p_s->spec.fwhm() > 0;
       const int base = pane.GetBottom();
-      const double lo = p_axis.lo(), hi = p_axis.hi();
+      const double lo = p_s->axis.lo(), hi = p_s->axis.hi();
 
       //  Grid and frame.
       dc.SetBrush(*wxTRANSPARENT_BRUSH);
@@ -415,9 +487,9 @@ class SpectrumCanvas : public wxPanel
       const Axis& envAxis = sc.sticksOnLeft ? sc.right : sc.left;
       if (envelope) {
         for (int px = 0; px < pane.width; px++) {
-          const double wn = p_axis.fromFraction(
+          const double wn = p_s->axis.fromFraction(
               (px + 0.5) / (double)pane.width);
-          const double v = p_spec.envelope(kind, wn);
+          const double v = p_s->spec.envelope(kind, wn);
           curve.push_back(wxPoint(pane.x + px,
                                   yOf(pane, v, envAxis.y.top)));
         }
@@ -442,48 +514,45 @@ class SpectrumCanvas : public wxPanel
                          pane.height);
       }
 
-      //  Sticks.
-      const std::vector<VibStick> sticks = p_spec.sticks(kind);
+      //  Sticks are hit-tested wherever they are drawn; they are painted
+      //  after the envelope so the fill and its outline never cover them.
+      const std::vector<VibStick> sticks = p_s->spec.sticks(kind);
       const bool drawSticks = sc.sticksOnLeft;
       dc.SetClippingRegion(pane.x - 3, pane.y - 2, pane.width + 6,
                            pane.height + 4);
+      if (envelope && curve.size() > 1) {
+        dc.SetPen(wxPen(series, 2));
+        dc.DrawLines((int)curve.size(), &curve[0]);
+      }
       if (drawSticks) {
         const double top = sc.left.y.top;
+        int selX = -1, selY = 0;
         for (size_t i = 0; i < sticks.size(); i++) {
           const VibStick& s = sticks[i];
           if (s.wavenumber < lo || s.wavenumber > hi) continue;
           const int x = xOf(pane, s.wavenumber);
           const int y = yOf(pane, s.intensity, top);
-          const bool sel = s.mode == p_selected;
-          dc.SetPen(wxPen(s.imaginary ? p_palette.imaginary : series, 2));
-          dc.DrawLine(x, base, x, y);
           Hit h = { kind, s.mode, x, y, base };
           p_hits.push_back(h);
-          if (sel) paintSelection(dc, pane, x, y, s.mode);
+          if (s.mode == p_s->selected) { selX = x; selY = y; continue; }
+          dc.SetPen(wxPen(s.imaginary ? p_palette.imaginary : series, 2));
+          dc.DrawLine(x, base, x, y);
         }
+        if (selX >= 0) paintSelection(dc, pane, selX, selY, p_s->selected);
       } else {
         //  Sticks hidden: peaks are still clickable, at their centres.
         for (size_t i = 0; i < sticks.size(); i++) {
           const VibStick& s = sticks[i];
           if (s.wavenumber < lo || s.wavenumber > hi || s.imaginary) continue;
           const int x = xOf(pane, s.wavenumber);
-          const int y = yOf(pane, p_spec.envelope(kind, s.wavenumber),
+          const int y = yOf(pane, p_s->spec.envelope(kind, s.wavenumber),
                             envAxis.y.top);
           Hit h = { kind, s.mode, x, y, base };
           p_hits.push_back(h);
+          if (s.mode == p_s->selected) paintSelection(dc, pane, x, y, s.mode);
         }
       }
-      if (envelope && curve.size() > 1) {
-        dc.SetPen(wxPen(series, 2));
-        dc.DrawLines((int)curve.size(), &curve[0]);
-      }
       dc.DestroyClippingRegion();
-      if (!drawSticks) {
-        for (size_t i = 0; i < p_hits.size(); i++)
-          if (p_hits[i].kind == kind && p_hits[i].mode == p_selected)
-            paintSelection(dc, pane, p_hits[i].x, p_hits[i].top,
-                           p_selected);
-      }
 
       //  Frame, ticks and labels.
       dc.SetBrush(*wxTRANSPARENT_BRUSH);
@@ -548,7 +617,7 @@ class SpectrumCanvas : public wxPanel
     void paintSelection(wxDC& dc, const wxRect& pane, int x, int top,
                         int mode)
     {
-      dc.SetPen(wxPen(p_palette.text, 3));
+      dc.SetPen(wxPen(p_palette.text, 4));
       dc.DrawLine(x, pane.GetBottom(), x, top);
       dc.SetFont(*wxSMALL_FONT);
       dc.SetTextForeground(p_palette.text);
@@ -559,9 +628,34 @@ class SpectrumCanvas : public wxPanel
                   std::max(pane.y, top - e.y - 2));
     }
 
+    //  IR | Raman, at the top right of the plot: which pane the compact
+    //  layout shows.
+    void paintToggle(wxDC& dc, const wxRect& pane, bool haveIr, bool haveRaman)
+    {
+      (void)haveIr; (void)haveRaman;
+      dc.SetFont(*wxSMALL_FONT);
+      const wxString names[2] = { "IR", "Raman" };
+      const int pad = 6, h = dc.GetCharHeight() + 4;
+      int x = pane.GetRight() - 3;
+      for (int k = 1; k >= 0; k--) {
+        const int w = dc.GetTextExtent(names[k]).x + 2 * pad;
+        x -= w;
+        const wxRect r(x, pane.y + 3, w, h);
+        p_toggle[k] = r;
+        const wxColour c = k == VIB_IR ? p_palette.ir : p_palette.raman;
+        const bool on = p_kindShown == (VibKind)k;
+        dc.SetPen(wxPen(c, 1));
+        dc.SetBrush(wxBrush(on ? c : p_palette.background));
+        dc.DrawRectangle(r);
+        dc.SetTextForeground(on ? p_palette.background : p_palette.text);
+        dc.DrawText(names[k], r.x + pad, r.y + 2);
+      }
+      dc.SetTextForeground(p_palette.text);
+    }
+
     int xOf(const wxRect& pane, double wn) const
     {
-      return pane.x + (int)std::floor(p_axis.toFraction(wn) *
+      return pane.x + (int)std::floor(p_s->axis.toFraction(wn) *
                                       (pane.width - 1) + 0.5);
     }
 
@@ -574,7 +668,7 @@ class SpectrumCanvas : public wxPanel
     void paintReadout(wxDC& dc, const wxSize& size)
     {
       std::vector<wxString> lines;
-      const std::vector<VibStick> s = p_spec.sticks(p_hoverKind);
+      const std::vector<VibStick> s = p_s->spec.sticks(p_hoverKind);
       const VibStick *at = 0;
       for (size_t i = 0; i < s.size(); i++)
         if (s[i].mode == p_hoverMode) at = &s[i];
@@ -586,12 +680,12 @@ class SpectrumCanvas : public wxPanel
                       utf8(" cm\xE2\x81\xBB\xC2\xB9") +
                       (at->imaginary ? wxString(" (imaginary)") : wxString()));
       for (int k = 0; k < 2; k++) {
-        const std::vector<VibStick> ks = p_spec.sticks((VibKind)k);
+        const std::vector<VibStick> ks = p_s->spec.sticks((VibKind)k);
         for (size_t i = 0; i < ks.size(); i++)
           if (ks[i].mode == p_hoverMode)
             lines.push_back(wxString(k == VIB_IR ? "IR  " : "Raman  ") +
                             wxString::Format("%.2f ", ks[i].intensity) +
-                            utf8(p_spec.unitLabel((VibKind)k).c_str()));
+                            utf8(p_s->spec.unitLabel((VibKind)k).c_str()));
       }
       dc.SetFont(*wxSMALL_FONT);
       int w = 0;
@@ -655,12 +749,18 @@ class SpectrumCanvas : public wxPanel
     {
       const double f = p_plotWidth > 1
           ? (px - p_plotLeft) / (double)(p_plotWidth - 1) : 0.5;
-      return p_axis.fromFraction(std::min(1.0, std::max(0.0, f)));
+      return p_s->axis.fromFraction(std::min(1.0, std::max(0.0, f)));
     }
 
     void onLeftDown(wxMouseEvent& e)
     {
       SetFocus();
+      for (int k = 0; k < 2; k++)
+        if (p_toggle[k].Contains(e.GetPosition())) {
+          p_kindShown = (VibKind)k;
+          Refresh();
+          return;
+        }
       if (paneAt(e.GetPosition()) < 0) return;
       p_pressed = true;
       p_dragging = false;
@@ -673,7 +773,7 @@ class SpectrumCanvas : public wxPanel
       const wxPoint p = e.GetPosition();
       if (p_panning) {
         const double was = wavenumberAt(p_lastPan.x), now = wavenumberAt(p.x);
-        p_axis.pan(was - now);
+        p_s->axis.pan(was - now);
         p_lastPan = p;
         p_cacheValid = false;
         Refresh();
@@ -709,7 +809,7 @@ class SpectrumCanvas : public wxPanel
         p_dragging = false;
         p_band = false;
         if (std::abs(e.GetPosition().x - p_pressAt.x) >= 6) {
-          p_axis.zoomTo(wavenumberAt(p_pressAt.x),
+          p_s->axis.zoomTo(wavenumberAt(p_pressAt.x),
                         wavenumberAt(e.GetPosition().x));
           p_cacheValid = false;
         }
@@ -754,11 +854,11 @@ class SpectrumCanvas : public wxPanel
       const int delta = e.GetWheelDelta() > 0 ? e.GetWheelDelta() : 120;
       const double notches = e.GetWheelRotation() / (double)delta;
       if (e.ShiftDown()) {
-        p_axis.pan(-notches * 0.1 * p_axis.span() *
-                   (p_axis.reversed() ? -1 : 1));
+        p_s->axis.pan(-notches * 0.1 * p_s->axis.span() *
+                   (p_s->axis.reversed() ? -1 : 1));
       } else {
         //  About the pointer, so the band under it stays put.
-        p_axis.zoomAbout(wavenumberAt(e.GetPosition().x),
+        p_s->axis.zoomAbout(wavenumberAt(e.GetPosition().x),
                          std::pow(0.8, notches));
       }
       p_cacheValid = false;
@@ -767,16 +867,16 @@ class SpectrumCanvas : public wxPanel
 
     void onKey(wxKeyEvent& e)
     {
-      const double step = 0.1 * p_axis.span() * (p_axis.reversed() ? 1 : -1);
-      const double mid = 0.5 * (p_axis.lo() + p_axis.hi());
+      const double step = 0.1 * p_s->axis.span() * (p_s->axis.reversed() ? 1 : -1);
+      const double mid = 0.5 * (p_s->axis.lo() + p_s->axis.hi());
       switch (e.GetKeyCode()) {
         case WXK_HOME:  resetZoom(); return;
-        case WXK_LEFT:  p_axis.pan(step); break;
-        case WXK_RIGHT: p_axis.pan(-step); break;
+        case WXK_LEFT:  p_s->axis.pan(step); break;
+        case WXK_RIGHT: p_s->axis.pan(-step); break;
         case '+': case '=': case WXK_NUMPAD_ADD:
-          p_axis.zoomAbout(mid, 0.8); break;
+          p_s->axis.zoomAbout(mid, 0.8); break;
         case '-': case WXK_NUMPAD_SUBTRACT:
-          p_axis.zoomAbout(mid, 1.25); break;
+          p_s->axis.zoomAbout(mid, 1.25); break;
         default: e.Skip(); return;
       }
       p_cacheValid = false;
@@ -793,10 +893,10 @@ class SpectrumCanvas : public wxPanel
 
     SpectrumClickTarget *p_owner;
     SpectrumPalette p_palette;
-    VibSpectrum     p_spec;
-    SpectrumAxis    p_axis;
-    bool            p_showSticks;
-    int             p_selected;
+    std::shared_ptr<SpectrumShared> p_s;   // model, zoom, selection: shared
+    VibKind         p_kindShown;           // the one pane in compact layout
+    int             p_compactBelow;
+    wxRect          p_toggle[2];
     VibKind         p_hoverKind;
     int             p_hoverMode;
     wxPoint         p_hoverAt;

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Smoke test for the spectrum canvas (#214).
 
-    tests/spectrum/run_tests.py [-k]        -k keeps the PNGs (printed)
+    tests/spectrum/run_tests.py [-k] [path/to/spectrum-render]
+                                            -k keeps the PNGs (printed)
 
-Builds tools/spectrum/render, which paints the real SpectrumCanvas onto a
+Uses tools/spectrum/render (target spectrum-render), which paints the real SpectrumCanvas onto a
 bitmap, and runs it on
 
   * the numbers the codes themselves printed (tests/spectrum/oracle.py
@@ -17,7 +18,7 @@ high wavenumbers are on the left (and on the right with --forward), that
 translations/rotations are not drawn, and that every picture painted.  It
 cannot say whether a picture is good; look at the PNGs.
 
-Needs wx, g++ and xvfb-run; exits 77 (skip) without them.
+Needs `ninja spectrum-render` and xvfb-run; exits 77 (skip) without them.
 """
 import os
 import re
@@ -42,22 +43,6 @@ def check(ok, what):
     return ok
 
 
-def build(out):
-    flags = subprocess.run(["wx-config", "--cxxflags"], capture_output=True,
-                           text=True).stdout.split()
-    libs = subprocess.run(["wx-config", "--libs", "core,base"],
-                          capture_output=True, text=True).stdout.split()
-    result = subprocess.run(
-        ["g++", "-std=c++17", "-O1", "-w", "-I", os.path.join(ROOT, "include"),
-         "-I", os.path.join(ROOT, "src", "apps", "builder")] + flags +
-        ["-o", out, os.path.join(ROOT, "tools", "spectrum", "render.C"),
-         os.path.join(ROOT, "src", "tdat", "chemistry", "VibSpectrum.C")] +
-        libs, capture_output=True, text=True)
-    if result.returncode != 0:
-        print(result.stderr[-2000:])
-    return result.returncode == 0
-
-
 def run(render, spec, png, *options):
     command = ["xvfb-run", "-a", render, spec, png, "--dump"] + list(options)
     proc = subprocess.run(command, capture_output=True, text=True)
@@ -80,18 +65,19 @@ def near(a, b):
 
 
 def main():
+    args = [a for a in sys.argv[1:] if not a.startswith("-")]
     keep = "-k" in sys.argv
-    if shutil.which("wx-config") is None or shutil.which("xvfb-run") is None \
-       or shutil.which("g++") is None:
-        print("SKIP: needs wx-config, g++ and xvfb-run")
+    render = args[0] if args else os.path.join(ROOT, "build-cmake",
+                                               "spectrum-render")
+    if not os.access(render, os.X_OK) or shutil.which("xvfb-run") is None:
+        print("SKIP: needs `ninja spectrum-render` (%s) and xvfb-run" % render)
         return 77
 
-    work = tempfile.mkdtemp(prefix="spectrum-test-")
+    #  Scratch lives in the build tree, never in /tmp.
+    scratch = os.path.join(ROOT, "build-cmake", "spectrum-test")
+    os.makedirs(scratch, exist_ok=True)
+    work = tempfile.mkdtemp(prefix="run-", dir=scratch)
     try:
-        render = os.path.join(work, "render")
-        if not build(render):
-            print("FAIL: tools/spectrum/render does not build")
-            return 1
 
         fixtures = os.path.join(ROOT, "tests", "parsers", "fixtures")
         for name, reader, rel in oracle.CASES:
@@ -133,8 +119,8 @@ def main():
                       "%s: x positions not strictly decreasing with "
                       "wavenumber: %s" % (kind, xs))
             if keep:
-                shutil.copy(png, os.path.join("/tmp", name + ".png"))
-                print("  kept /tmp/%s.png" % name)
+                shutil.copy(png, os.path.join(scratch, name + ".png"))
+                print("  kept %s/%s.png" % (scratch, name))
 
         #  Axis direction toggle, zoom, themes, hover/selection all paint.
         water = os.path.join(work, "g16-h2o-optfreq.spec")
@@ -165,6 +151,21 @@ def main():
                 got = [s["wn"] for s in st if s["kind"] == "ir"]
                 check(near(got[1], 4141.5426 * 0.96), "scaling not applied")
 
+        #  A short canvas shows one pane (the IR one, or the Raman one asked
+        #  for) and every stick of it.
+        for pane, other in (("ir", "raman"), ("raman", "ir")):
+            rc, st, ink, err = run(render, water,
+                                   os.path.join(work, "c.png"), "--size",
+                                   "900", "200", "--compact-pane", pane)
+            shown = [s for s in st if s["kind"] == pane]
+            hidden = [s for s in st if s["kind"] == other]
+            check(rc == 0 and ink > 500 and len(shown) == 3 and
+                  all(s["x"] >= 0 for s in shown) and
+                  all(s["x"] < 0 for s in hidden),
+                  "compact %s pane: rc %s ink %s shown %s hidden %s"
+                  % (pane, rc, ink, [s["x"] for s in shown],
+                     [s["x"] for s in hidden]))
+
         #  Imaginary mode: kept, flagged, on the negative side of zero.
         imag = os.path.join(HERE, "data", "imaginary.spec")
         rc, st, ink, err = run(render, imag, os.path.join(work, "i.png"))
@@ -173,7 +174,8 @@ def main():
         check(rc == 0 and len(flagged) == 2 and flagged[0]["wn"] < 0,
               "imaginary mode not kept and flagged: %s %s" % (rc, flagged))
         if keep:
-            shutil.copy(os.path.join(work, "i.png"), "/tmp/imaginary.png")
+            shutil.copy(os.path.join(work, "i.png"),
+                        os.path.join(scratch, "imaginary.png"))
     finally:
         shutil.rmtree(work, ignore_errors=True)
 

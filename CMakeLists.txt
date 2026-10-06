@@ -493,6 +493,12 @@ ecce_app(render-rgb tests/look/imageconv WX GL
   LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${ECCE_X11_LIBS} jpeg freetype)
 set_target_properties(render-rgb PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
+# Paints the spectrum canvas onto a bitmap (tests/spectrum, #214); `ninja
+# spectrum-render`, needs a display (xvfb-run).
+ecce_app(spectrum-render tools/spectrum WX LINK eccetdat ecceutil)
+set_target_properties(spectrum-render PROPERTIES EXCLUDE_FROM_ALL TRUE)
+target_include_directories(spectrum-render PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/builder)
+
 # Coin only: the EGL offscreen path with no wx and no display.
 if(ECCE_USE_COIN)
   add_executable(offscreen-check EXCLUDE_FROM_ALL tools/coin/offscreen/offscreen-check.C)
@@ -1621,7 +1627,8 @@ find_program(PYTHON3_FOR_SPECTRUM NAMES python3)
 if(PYTHON3_FOR_SPECTRUM)
   add_test(NAME spectrum_canvas
            COMMAND ${PYTHON3_FOR_SPECTRUM}
-                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/spectrum/run_tests.py)
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/spectrum/run_tests.py
+                   ${CMAKE_BINARY_DIR}/spectrum-render)
   set_tests_properties(spectrum_canvas PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
 endif()

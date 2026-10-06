@@ -128,6 +128,9 @@ NModePanel::NModePanel(IPropCalculation *calculation,
 
 NModePanel::~NModePanel()
 {
+   //  The window's canvas calls back into this panel.
+   if (p_spectrumPop) p_spectrumPop->setClickHandler(0);
+   if (p_spectrumFrame) p_spectrumFrame->Destroy();
 }
 
 
@@ -404,6 +407,10 @@ void NModePanel::createSpectrumPane()
                      "to zoom to a band, mouse wheel to zoom, right-drag "
                      "to pan.");
    row->Add(reset, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, gap * 2);
+   wxButton *popout = new wxButton(pane, wxID_ANY, "Open in window");
+   popout->SetToolTip("The same spectrum in its own resizable window, with "
+                      "both panes and both axes.");
+   row->Add(popout, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
    col->Add(row, 0, wxEXPAND | wxTOP | wxBOTTOM, 3);
 
    pane->SetSizer(col);
@@ -426,8 +433,37 @@ void NModePanel::createSpectrumPane()
       p_spectrum->setShowSticks(e.IsChecked());
       ewxConfig::getConfig(INIFILE)->Write("NMode/ShowSticks", e.IsChecked());
    });
+   popout->Bind(wxEVT_BUTTON,
+                [this](wxCommandEvent&) { openSpectrumWindow(); });
    reset->Bind(wxEVT_BUTTON,
                [this](wxCommandEvent&) { p_spectrum->resetZoom(); });
+}
+
+
+/**
+ * The spectrum in a frame of its own: a second canvas on the panel's
+ * model, zoom and selection, always in the full two-pane layout.  A
+ * child of the Builder's frame, so it goes when the Builder does.
+ */
+void NModePanel::openSpectrumWindow()
+{
+   if (p_spectrumFrame) {
+      p_spectrumFrame->Raise();
+      return;
+   }
+   wxFrame *frame = new wxFrame(wxGetTopLevelParent(this), wxID_ANY,
+                                "Vibrational Frequencies: spectrum",
+                                wxDefaultPosition, wxSize(1000, 700));
+   SpectrumCanvas *canvas = new SpectrumCanvas(frame);
+   canvas->shareWith(*p_spectrum);
+   canvas->setClickHandler(this);
+   canvas->setCompactBelow(0);
+   wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
+   sizer->Add(canvas, 1, wxEXPAND);
+   frame->SetSizer(sizer);
+   p_spectrumFrame = frame;
+   p_spectrumPop = canvas;
+   frame->Show(true);
 }
 
 
@@ -591,13 +627,23 @@ void NModePanel::dumpSpectrumIfRequested()
                     at.y, st[i].imaginary ? " imaginary" : "");
          }
       }
+      //  ECCE_SPECTRUM_WINDOW=1: open the pop-out and click in IT.
+      SpectrumCanvas *clicker = p_spectrum;
+      if (getenv("ECCE_SPECTRUM_WINDOW") != 0) {
+         openSpectrumWindow();
+         clicker = p_spectrumPop;
+         wxBitmap shot(1000, 700, 24);
+         wxMemoryDC wdc(shot);
+         clicker->paintOnto(wdc, wxSize(1000, 700));
+         wdc.SelectObject(wxNullBitmap);
+      }
       const char *click = getenv("ECCE_SPECTRUM_CLICK");
       if (click != 0) {
          const int mode = atoi(click) - 1;
          wxPoint at;
          const VibKind kind = s.has(VIB_IR) ? VIB_IR : VIB_RAMAN;
-         if (p_spectrum->stickPosition(kind, mode, &at)) {
-            p_spectrum->clickAt(wxPoint(at.x, at.y + 3));
+         if (clicker->stickPosition(kind, mode, &at)) {
+            clicker->clickAt(wxPoint(at.x, at.y + 3));
             fprintf(out, "click mode %d: panel mode %d, table row %d, "
                          "canvas selection %d\n", mode + 1, p_mode + 1,
                     p_selectedRow + 1, p_spectrum->selected() + 1);

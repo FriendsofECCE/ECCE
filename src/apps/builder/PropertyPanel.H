@@ -75,6 +75,13 @@ class PropertyPanel : public ewxPanel
      */
     virtual bool prefersFloating() const;
 
+    /**
+     * Smallest height the dock may squeeze this panel to, 0 for the
+     * default floor.  For a panel whose content is a plot that is
+     * unreadable below some height.
+     */
+    virtual int minimumHeight() const { return 0; }
+
     /** Size for a panel that opens floating. */
     virtual wxSize preferredFloatingSize() const;
 

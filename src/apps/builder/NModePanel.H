@@ -6,6 +6,9 @@
 #include "NModesGUI.H"
 #include "SpectrumCanvas.H"
 
+#include <wx/frame.h>
+#include <wx/weakref.h>
+
 class wxCheckBox;
 class wxGrid;
 class wxTextCtrl;
@@ -56,6 +59,9 @@ class NModePanel : public NModesGUI,
       void showTable();
       void showGraph();
 
+      /** Room for the compact spectrum, not just a grip. */
+      virtual int minimumHeight() const { return 360; }
+
       virtual void receiveFocus();
       virtual void loseFocus();
 
@@ -68,6 +74,7 @@ class NModePanel : public NModesGUI,
       void fillTable();
       bool fillGraph();
       void createSpectrumPane();
+      void openSpectrumWindow();
       void dumpSpectrumIfRequested();
       void applySpectrumSettings();
       void updateVectors(int mode,
@@ -99,6 +106,8 @@ class NModePanel : public NModesGUI,
       /* The report oriented table showing modes */
       wxGrid *p_grid;  
       SpectrumCanvas *p_spectrum;
+      wxWeakRef<wxFrame> p_spectrumFrame;        // "Open in window"
+      wxWeakRef<SpectrumCanvas> p_spectrumPop;
       wxTextCtrl *p_fwhmText;
       wxTextCtrl *p_scaleText;
 

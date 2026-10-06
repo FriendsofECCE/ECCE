@@ -22,6 +22,7 @@
 //            --no-sticks            envelope only
 //            --select M --hover M   highlight / hover mode M (1-based)
 //            --hover-kind ir|raman  which pane the hover sits in
+//            --compact-pane raman   in a short bitmap (< 320 px), show this pane
 //            --size W H             bitmap size (default 1000 x 700)
 //            --dump                 print the sticks the canvas holds:
 //                                   stick <ir|raman> <mode> <cm-1> <intensity> <irrep> <x> <y>
@@ -89,7 +90,7 @@ int main(int argc, char** argv)
   bool lorentz = false, zoom = false;
   double fwhm = 15, scale = 1, zlo = 0, zhi = 0;
   int select = 0, hover = 0;
-  VibKind hoverKind = VIB_IR;
+  VibKind hoverKind = VIB_IR, compactPane = VIB_IR;
   for (int i = 3; i < argc; i++) {
     const std::string o = argv[i];
     if (o == "--dark") dark = true;
@@ -102,6 +103,8 @@ int main(int argc, char** argv)
     else if (o == "--scale" && i + 1 < argc) scale = atof(argv[++i]);
     else if (o == "--select" && i + 1 < argc) select = atoi(argv[++i]);
     else if (o == "--hover" && i + 1 < argc) hover = atoi(argv[++i]);
+    else if (o == "--compact-pane" && i + 1 < argc)
+      compactPane = std::string(argv[++i]) == "raman" ? VIB_RAMAN : VIB_IR;
     else if (o == "--hover-kind" && i + 1 < argc)
       hoverKind = std::string(argv[++i]) == "raman" ? VIB_RAMAN : VIB_IR;
     else if (o == "--zoom" && i + 2 < argc) {
@@ -134,6 +137,7 @@ int main(int argc, char** argv)
   canvas->setFwhm(fwhm);
   canvas->setReversed(!forward);
   canvas->setShowSticks(!noSticks);
+  canvas->setCompactPane(compactPane);
   if (zoom) canvas->axis().zoomTo(zlo, zhi);
   if (select > 0) canvas->setSelected(select - 1);
   canvas->SetSize(wxSize(width, height));
