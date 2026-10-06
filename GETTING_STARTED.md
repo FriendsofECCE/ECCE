@@ -407,10 +407,13 @@ On a TCP broker (modes 2 and 3) no anonymous client is accepted, and an
 account may publish and subscribe only below `ecce/<its name>/` (plus
 hearing that a machine registration changed). One user therefore cannot
 act in another's name, for example by cancelling that user's jobs. The
-rules are `server/mosquitto.acl`. The data server still speaks plain
-HTTP and the broker's password is sent unencrypted too (#138): keep both
-ports on a trusted network or firewall them. The accounts keep users
-apart; they are not a defence against an untrusted network.
+rules are `server/mosquitto.acl`. Unless TLS is switched on (mode 2,
+below) the data server speaks plain HTTP and the broker's password is
+sent unencrypted too (#138): keep both ports on a trusted network or
+firewall them. The accounts keep users apart; they are not a defence
+against an untrusted network, and neither is TLS here: it keeps
+passwords and data off the wire, and is no security product.
+Mode 3 has no TLS yet.
 
 A client stopping never stops a central or shared broker. Which broker a
 quit may stop is decided only by what the admin declared, never by
@@ -482,6 +485,43 @@ register machines by hand; run `sudo ecce-remote-setup --refresh` on the
 client after the admin changes that list (#188). It writes only the data server's address; the
 client finds the broker on the same host, port 8088 (set `ECCE_BROKER_PORT`
 in the client's environment if the server uses another).
+
+##### TLS for the central server (optional)
+
+Off by default. On the server, as the account that runs it:
+
+```
+ecce-remote-setup --server all --tls     # makes a 10-year self-signed certificate
+ecce-dataserver-stop; ecce-gateway-stop; ecce-dataserver-start && ecce-gateway-start
+```
+
+The data server then serves HTTPS on port 8443
+(`ECCE_DATASERVER_TLS_PORT`) and the broker TLS on port 8883
+(`ECCE_BROKER_TLS_PORT`). The plain ports (8096, 8088) accept connections
+from the server machine itself only, so open 8443 and 8883 in the
+firewall, not those. The certificate and key are in `~/.ECCE/tls/`
+(`--new-cert` replaces them, `--cert F --key F` installs your own). Give
+every client installation `~/.ECCE/tls/server.pem`, and on each client, as
+root:
+
+```
+sudo ecce-remote-setup <server-host> --tls --pin server.pem
+```
+
+That client then accepts only this exact certificate and refuses any
+other; it never falls back to plain HTTP or an unencrypted broker, and
+reports a certificate that does not match. The installed copy is
+`/opt/ecce/siteconfig/RemoteServer/server.pem`; a per-user override does
+not exist. `--fetch-pin` takes the certificate from the running server
+instead and prints its fingerprint to compare with the one the server's
+administrator reads out (`ecce-remote-setup --server` shows it).
+
+A certificate from Let's Encrypt or the university's CA works too, but is
+only documented here: pass its full chain and key as `--cert` and `--key`
+on the server (renewed certificates need the same command and a restart),
+and set the clients up with `--tls --system-ca`, which checks the host
+name against the system's CA list and installs no pin. Reach the server by
+the name in the certificate.
 
 ##### Changing the site settings from a client
 
