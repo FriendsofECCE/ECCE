@@ -981,20 +981,6 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
       double posR, posG, posB, negR, negG, negB;
       getSurfaceColors(posR, posG, posB, negR, negG, negB);
 
-      cmd = new IsoSurfaceCmd("Iso Surface", &sg, expt);
-      applyEspRange(cmd);
-      cmd->getParameter("transparency")->setDouble(getTransparency());
-      cmd->getParameter("positiveRed")->setDouble(posR);
-      cmd->getParameter("positiveGreen")->setDouble(posG);
-      cmd->getParameter("positiveBlue")->setDouble(posB);
-      cmd->getParameter("negativeRed")->setDouble(negR);
-      cmd->getParameter("negativeGreen")->setDouble(negG);
-      cmd->getParameter("negativeBlue")->setDouble(negB);
-      fw.execute(cmd);
-
-      updateSurface();
-
-
       // Determine max abs value of field for the (abs value) slider
       // Bruce says that for spin density, its better to hardwire the max
       // scale to no omre than 1.0 but probably even less.
@@ -1035,6 +1021,22 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
       if (espSurface) {
          isovalue = log10(0.002);
       }
+
+      cmd = new IsoSurfaceCmd("Iso Surface", &sg, expt);
+      applyEspRange(cmd);
+      cmd->getParameter("isovalue")->setDouble(pow(10.0, isovalue));
+      cmd->getParameter("transparency")->setDouble(getTransparency());
+      cmd->getParameter("positiveRed")->setDouble(posR);
+      cmd->getParameter("positiveGreen")->setDouble(posG);
+      cmd->getParameter("positiveBlue")->setDouble(posB);
+      cmd->getParameter("negativeRed")->setDouble(negR);
+      cmd->getParameter("negativeGreen")->setDouble(negG);
+      cmd->getParameter("negativeBlue")->setDouble(negB);
+      fw.execute(cmd);
+
+      updateSurface();
+
+
       p_slider->SetValue(isovalue);
       updateIsoValue(isovalue);
 
@@ -1614,6 +1616,8 @@ void MoPanel::rebuildEspSurface()
 
    Command *cmd = new IsoSurfaceCmd("Iso Surface", &sg, expt);
    applyEspRange(cmd);
+   cmd->getParameter("isovalue")->setDouble(
+         pow(10.0, static_cast<double>(p_slider->GetFloatValue())));
    cmd->getParameter("transparency")->setDouble(getTransparency());
    cmd->getParameter("positiveRed")->setDouble(posR);
    cmd->getParameter("positiveGreen")->setDouble(posG);
