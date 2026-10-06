@@ -13,3 +13,8 @@ the second page.
    where a code is installed.
 4. [Your first calculation](first-calculation.md): a geometry optimisation
    of water with NWChem, from a new project to the results.
+
+Reference:
+
+- [Register Machines](register-machines.md): the window's tabs, the site
+  and user layers of each setting, and examples of common changes.

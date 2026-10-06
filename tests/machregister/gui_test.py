@@ -1615,15 +1615,30 @@ quit
     check(cfg.get("perlpath") == "/saved", "the saved value is in the file")
 
 
-def help_button(tmp, display, build):
+def help_button(tmp, display, build, pngs=None):
     print("Help button")
+    sys.path.insert(0, os.path.join(REPO, "help"))
+    import render
+    hd = os.path.join(tmp, "helpdir")
+    render.render(os.path.join(REPO, "help", "src"), hd)
     e = Env(tmp, "help")
+    shot = ("shot-help %s\n" % os.path.join(pngs, "register-machines.png")
+            if pngs else "")
     p = run(display, build, e, """
 click help
-expect message help https://github.com/FriendsofECCE/ECCE/blob/main/help/src/register-machines.md
+expect message help register-machines.html
+wait 500
+%squit
+""" % shot, extra={"ECCE_HELP_DIR": hd})
+    clean(p, "Help opens register-machines.html in the help window")
+    p = run(display, build, e, """
+click help
+expect message help (not installed)
 quit
-""")
-    clean(p, "Help requests the Register Machines page")
+""", extra={"ECCE_HELP_DIR": os.path.join(tmp, "nohelp"),
+            "ECCE_BROWSER": "true",
+            "ECCE_HELP": "http://localhost/EcceHelp/"})
+    clean(p, "without installed help the stopgap browser path is used")
 
 
 def delete_prompt_lists_files(tmp, display, build):
@@ -2190,6 +2205,7 @@ def main():
     ap.add_argument("--snapshots")
     ap.add_argument("--job-pngs")
     ap.add_argument("--codes-pngs")
+    ap.add_argument("--help-pngs")
     ap.add_argument("--queues-pngs")
     ap.add_argument("--tools-pngs")
     a = ap.parse_args()
@@ -2214,6 +2230,10 @@ def main():
             test_submission(tmp, disp, build, out)
             for n in sorted(os.listdir(out)):
                 print("        " + os.path.join(out, n))
+        elif a.help_pngs:
+            out = os.path.abspath(a.help_pngs)
+            os.makedirs(out, exist_ok=True)
+            help_button(tmp, disp, build, out)
         elif a.queues_pngs:
             queues_pngs(tmp, disp, build, os.path.abspath(a.queues_pngs))
         elif a.codes_pngs:
