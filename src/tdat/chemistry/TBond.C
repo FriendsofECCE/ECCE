@@ -13,6 +13,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 // system includes
+#include <cstdint>
 #include <math.h>
 #include <limits.h>
 
@@ -158,7 +159,7 @@ bool TBond::operator==(const TBond& bond) const
 bool TBond::operator!=(const TBond& bond) const
 { return !((*this) == bond); }
 unsigned long TBond::hFun(const TBond& a)
-{ return (unsigned long)&a; }
+{ return (unsigned long)(uintptr_t)&a; }
 
 // ------------ Modifiers ------------
 ///////////////////////////////////////////////////////////////////////////////

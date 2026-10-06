@@ -4,6 +4,7 @@
  *
  */
 
+#include <cstdint>
 #include <iostream>
   using std::ostream;
   using std::endl;
@@ -122,7 +123,7 @@ bool Residue::operator!=(const Residue& rhs) const
 
 unsigned long Residue::hFun(const Residue& r)
 {
-  return (unsigned long)&r;
+  return (unsigned long)(uintptr_t)&r;
 }
 
 

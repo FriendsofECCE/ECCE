@@ -3,11 +3,8 @@
   using std::cout;
   using std::endl;
 
-#ifdef __GNUC__
-#include <ext/hash_map>
-   using __gnu_cxx::hash_map;
-   using __gnu_cxx::hash;
-#endif
+#include <cstdint>
+#include <unordered_map>
 
 #include "inv/nodes/SoMaterial.H"
 #include "inv/nodes/SoSwitch.H"
@@ -2416,19 +2413,19 @@ bool SGContainer::changeStyleSelectedResidues(const DisplayStyle& newstyle, SGFr
 
 #if 111
    // Initialize a map to 10% larger than numResidues  - just a guess
-   hash_map<unsigned long, Residue*, hash<unsigned long>, equint> mymap((int)(numResidues * 1.1));
+   std::unordered_map<uintptr_t, Residue*> mymap((int)(numResidues * 1.1));
 
    int selAtoms = atomList.size();
    for (int ai= 0; ai< selAtoms; ai++)
    {
       atmptr = frag->atomRef(atomList[ai]) ;
       Residue *res = atmptr->getResidue();
-      if (res && mymap.find((unsigned long)res) == mymap.end() ) {
+      if (res && mymap.find((uintptr_t)res) == mymap.end() ) {
          // Never got the code for indexed residues commited - use slow way now
          int num = ((Fragment*)frag)->getResidueIndex(res);
          //int num = res->index();
          selResidues[num] = true;
-         mymap[(unsigned long)res] = res;
+         mymap[(uintptr_t)res] = res;
       }
    }
 #else

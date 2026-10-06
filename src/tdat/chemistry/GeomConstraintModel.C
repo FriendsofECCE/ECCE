@@ -8,11 +8,8 @@
 using std::set;
 using std::find;
 
-#ifdef __GNUC__
-  #include <ext/hash_set>
-  using __gnu_cxx::hash_set;
-  using __gnu_cxx::hash;
-#endif
+#include <cstdint>
+#include <unordered_set>
 
 #include "tdat/Fragment.H"
 #include "tdat/GeomConstraint.H"
@@ -651,10 +648,10 @@ int GeomConstraintModel::cleanUnmatchedAtoms()
     // The number of atoms in the system could be pretty large so we probably
     // don't want nested for loops.  We use TAtm pointers for comparison.  Sets
     // (binary trees) don't scale well with addresses so use a hash.
-    hash_set<unsigned long> mymap(numAtoms);
+    std::unordered_set<uintptr_t> mymap(numAtoms);
     int idx;
     for (idx=0; idx<numAtoms; idx++) {
-      mymap.insert((unsigned long)(*validAtoms)[idx]);
+      mymap.insert((uintptr_t)(*validAtoms)[idx]);
     }
 
     //Now that we have our fast hash map, loop through all the constraints
@@ -665,7 +662,7 @@ int GeomConstraintModel::cleanUnmatchedAtoms()
       vector<TAtm*> *catoms = constraint->getAtoms();
       bool xit = false;
       for (adx=0; !xit && adx<catoms->size(); adx++) {
-        if (mymap.find((unsigned long)((*catoms)[adx])) == mymap.end()) {
+        if (mymap.find((uintptr_t)((*catoms)[adx])) == mymap.end()) {
           // Uh oh, this atom is not there
           xit = true;
         }

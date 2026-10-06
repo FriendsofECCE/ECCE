@@ -17,11 +17,8 @@
     using std::list;
   using std::find;
 
-#ifdef __GNUC__
-  #include <ext/hash_map>
-  using __gnu_cxx::hash_map;
-  using __gnu_cxx::hash;
-#endif
+#include <cstdint>
+#include <unordered_map>
 
 #include "inv/SoDB.H"
 #include "inv/nodekits/SoWrapperKit.H"
@@ -1800,9 +1797,9 @@ void SGFragment::generateProteinAttributes()
     OHbondN_B[i] = -2;
     OHbondN_T[i] = -2;
   }
-  hash_map <unsigned long, int, hash<unsigned long>, equint> resMap(nRes);
+  std::unordered_map<uintptr_t, int> resMap(nRes);
   for (i=0; i<nRes; i++) {
-    resMap[(unsigned long)resList[i]] = i;
+    resMap[(uintptr_t)resList[i]] = i;
   }
   TResTab restab;
 
@@ -1874,7 +1871,7 @@ void SGFragment::generateProteinAttributes()
           !restab.verify(atm1->getResidue()->name().c_str())
           == TResItem::AminoAcid) continue;
       if (atom1Name == " H  ") {
-        j = resMap[(unsigned long)(atm1->getResidue())];
+        j = resMap[(uintptr_t)(atm1->getResidue())];
         if (NHbond_B[j] < 0) NHbond_B[j] = -1;
         if (NHbond_T[j] < 0) NHbond_T[j] = -1;
       }
@@ -1919,8 +1916,8 @@ void SGFragment::generateProteinAttributes()
                 delete connected;
               }
               if (doit) {
-                i1 = resMap[(unsigned long)(atm1->getResidue())];
-                i2 = resMap[(unsigned long)(atm2->getResidue())];
+                i1 = resMap[(uintptr_t)(atm1->getResidue())];
+                i2 = resMap[(uintptr_t)(atm2->getResidue())];
                 if (i1 != i2 && r2 <= maxR_B) {
                   NHbond_B[i1] = i2;
                   OHbond_B[i2] = i1;
@@ -1931,8 +1928,8 @@ void SGFragment::generateProteinAttributes()
                 }
               }
             } else if (atom1Name == " N  " && r2<=maxNR) {
-              i1 = resMap[(unsigned long)(atm1->getResidue())];
-              i2 = resMap[(unsigned long)(atm2->getResidue())];
+              i1 = resMap[(uintptr_t)(atm1->getResidue())];
+              i2 = resMap[(uintptr_t)(atm2->getResidue())];
               // Consecutive residues will have an N and O atom close together.
               // Prevent this by making sure the residues are not consecutive.
               if (i1 != i2 && r2 <= maxNR_B && abs(i1-i2) > 2) {
