@@ -85,7 +85,7 @@ sleep 2
 # 2. Each app on its own with no broker and no data server, so a window
 #    (or a crash at start-up) shows even where the services cannot run.
 export ECCE_NO_MESSAGING=1 ECCE_NO_DATASERVER=1
-for app in organizer machregister machbrowser builder ptable basistool; do
+for app in organizer machregister machbrowser builder pertable basistool calced; do
   if [ -x "$STAGE/bin/ecce-$app" ]; then
     run_app "$app" 30 "$STAGE/bin/ecce-$app"
   else
