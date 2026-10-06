@@ -133,6 +133,10 @@ your `PATH`.
 goal ([#133](https://github.com/FriendsofECCE/ECCE/issues/133),
 [#232](https://github.com/FriendsofECCE/ECCE/issues/232)); the state of
 the macOS build is tracked in #133. Until then, ECCE runs on Linux only.
+CI builds an experimental `ECCE.app` in a `.dmg` (workflow artifact
+`ECCE-macos-dmg`). It is signed ad hoc only, so macOS refuses it at
+first: right-click the app and choose Open, or run
+`xattr -dr com.apple.quarantine /Applications/ECCE.app`.
 
 ### 2. Create your account
 

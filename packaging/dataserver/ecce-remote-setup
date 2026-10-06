@@ -29,9 +29,9 @@ set -u
 
 usage() {
   cat <<'USAGE'
-Usage: ecce-remote-setup <server-host> [data-port]
+Usage: ecce-remote-setup <server-host> [data-port] [--tls TRUST]
        ecce-remote-setup --refresh
-       ecce-remote-setup --server [listen]
+       ecce-remote-setup --server [listen] [--tls [--new-cert | --cert F --key F]]
 
   --server      on the SERVER, as the account running it: mark its broker
                 as a central server's. It then listens on TCP port 8088
@@ -40,6 +40,26 @@ Usage: ecce-remote-setup <server-host> [data-port]
                 running; listen (all, loopback or addresses) goes to
                 dataserver/listen and applies to the data server and the
                 broker alike
+  --tls         on the SERVER: serve the data server (port 8443,
+                ECCE_DATASERVER_TLS_PORT) and the broker (port 8883,
+                ECCE_BROKER_TLS_PORT) over TLS. The plain ports then
+                accept loopback connections only; there is no fallback
+                to plain for clients. The certificate lives in
+                ~/.ECCE/tls/: --new-cert makes a self-signed one (10
+                years; also made when there is none yet), --cert and
+                --key supply one (e.g. from Let's Encrypt). Restart the
+                services afterwards.
+                on a CLIENT: use TLS to the server (data port default
+                8443). TRUST is how the server's certificate is known,
+                and one is required:
+                  --pin FILE    the server's server.pem, as the server's
+                                administrator gave it (installed as
+                                $ECCE_HOME/siteconfig/RemoteServer/server.pem;
+                                only this exact certificate is accepted)
+                  --fetch-pin   take the certificate the server presents
+                                now, and print its fingerprint to check
+                  --system-ca   the server has a CA-signed certificate
+                                (host name checked, no pin)
   --refresh     fetch the server's machine list again, from the server
                 configured by an earlier run (ecce -admin on a -remote client
                 does this after a change)
@@ -62,24 +82,122 @@ USAGE
 #  address, because clients may reach a loopback-only server through ssh
 #  tunnels.  The optional listen value is written to dataserver/listen.
 if [ "${1:-}" = "--server" ]; then
+  shift
+  WANT_TLS=false NEW_CERT=false CERT="" KEY="" LISTEN=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --tls) WANT_TLS=true ;;
+      --new-cert) NEW_CERT=true ;;
+      --cert) CERT="${2:-}"; shift ;;
+      --key) KEY="${2:-}"; shift ;;
+      -*) echo "ecce-remote-setup: unknown option $1" >&2; exit 2 ;;
+      *) LISTEN="$1" ;;
+    esac
+    shift
+  done
+  if [ "$WANT_TLS" = false ] && { [ "$NEW_CERT" = true ] || [ -n "$CERT$KEY" ]; }; then
+    echo "ecce-remote-setup: --new-cert, --cert and --key are for --tls" >&2
+    exit 2
+  fi
+  if [ -n "$CERT$KEY" ] && { [ -z "$CERT" ] || [ -z "$KEY" ] || [ "$NEW_CERT" = true ]; }; then
+    echo "ecce-remote-setup: --cert and --key go together, and not with --new-cert" >&2
+    exit 2
+  fi
   STATEDIR="${ECCE_REALUSERHOME:-$HOME}/.ECCE"
   mkdir -p "$STATEDIR" || exit 1
+  if [ "$WANT_TLS" = true ]; then
+    TLSDIR="$STATEDIR/tls"
+    if ! command -v openssl >/dev/null 2>&1; then
+      echo "ecce-remote-setup: --tls needs the openssl command (package openssl)" >&2
+      exit 1
+    fi
+    mkdir -p "$TLSDIR" && chmod 700 "$TLSDIR" || exit 1
+    if [ -n "$CERT" ]; then
+      for f in "$CERT" "$KEY"; do
+        [ -r "$f" ] || { echo "ecce-remote-setup: cannot read $f" >&2; exit 1; }
+      done
+      a="$(openssl x509 -in "$CERT" -noout -pubkey 2>/dev/null | openssl pkey -pubin -outform der 2>/dev/null | openssl dgst -sha256)"
+      b="$(openssl pkey -in "$KEY" -pubout -outform der 2>/dev/null | openssl dgst -sha256)"
+      if [ -z "$a" ] || [ "$a" != "$b" ]; then
+        echo "ecce-remote-setup: $KEY is not the private key of $CERT" >&2
+        exit 1
+      fi
+      install -m 644 "$CERT" "$TLSDIR/server.pem" &&
+        install -m 600 "$KEY" "$TLSDIR/server.key" || exit 1
+      echo "Installed the certificate $CERT in $TLSDIR."
+    elif [ "$NEW_CERT" = true ] || [ ! -r "$TLSDIR/server.pem" ] || [ ! -r "$TLSDIR/server.key" ]; then
+      fqdn="$(hostname -f 2>/dev/null || hostname)"
+      san="DNS:$fqdn,DNS:$(hostname),DNS:localhost,IP:127.0.0.1"
+      for ip in $(hostname -I 2>/dev/null); do
+        case "$ip" in *:*) ;; *) san="$san,IP:$ip" ;; esac
+      done
+      if ! (umask 077; openssl req -x509 -newkey rsa:3072 -nodes -days 3650 \
+              -subj "/CN=$fqdn/O=ECCE central server" -addext "subjectAltName=$san" \
+              -keyout "$TLSDIR/server.key" -out "$TLSDIR/server.pem" 2>"$TLSDIR/openssl.err"); then
+        echo "ecce-remote-setup: openssl could not make a certificate:" >&2
+        cat "$TLSDIR/openssl.err" >&2
+        exit 1
+      fi
+      rm -f "$TLSDIR/openssl.err"
+      chmod 644 "$TLSDIR/server.pem"
+      echo "Made a self-signed certificate for $fqdn, valid 10 years."
+    else
+      echo "Keeping the certificate already in $TLSDIR (--new-cert replaces it;"
+      echo "clients must then be given the new server.pem)."
+    fi
+    echo "# TLS is on for this account's data server and broker (ecce-remote-setup --server --tls)" \
+      >"$TLSDIR/enabled" || exit 1
+    echo "TLS is on. Give every client installation this file:"
+    echo "    $TLSDIR/server.pem"
+    echo "and set the clients up with:"
+    echo "    ecce-remote-setup <this-host> --tls --pin server.pem"
+    echo "    (for a certificate from a CA, --tls --system-ca instead)"
+    echo "Fingerprint: $(openssl x509 -in "$TLSDIR/server.pem" -noout -fingerprint -sha256 2>/dev/null)"
+  elif [ -e "$STATEDIR/tls/enabled" ]; then
+    rm -f "$STATEDIR/tls/enabled"
+    echo "TLS is off again for this account; the data server and broker listen as before."
+  fi
   echo "# ECCE central server: plain quits leave this broker running (ecce-remote-setup --server)" \
     >"$STATEDIR/mosquitto.server" || exit 1
   echo "Marked $STATEDIR/mosquitto.server: this account's broker is a central server's."
   echo "ecce-gateway-start (run by \"ecce\") starts it on TCP port ${ECCE_BROKER_PORT:-8088}, checking"
   echo "logins against this data server's users file, and restarts a broker that"
   echo "already runs here without that listener. Existing accounts work as they are."
-  if [ -n "${2:-}" ]; then
+  if [ -n "$LISTEN" ]; then
     mkdir -p "$STATEDIR/dataserver" || exit 1
-    echo "$2" >"$STATEDIR/dataserver/listen" || exit 1
-    echo "Wrote $STATEDIR/dataserver/listen ($2): the data server and broker listen there."
+    echo "$LISTEN" >"$STATEDIR/dataserver/listen" || exit 1
+    echo "Wrote $STATEDIR/dataserver/listen ($LISTEN): the data server and broker listen there."
+  fi
+  if [ -n "$LISTEN" ] || [ "$WANT_TLS" = true ]; then
     echo "Restart them for it to take effect:"
     echo "    ecce-dataserver-stop; ecce-gateway-stop"
   fi
   echo "Remove that file to make it a per-user broker again."
   exit 0
 fi
+
+#  curl's options for an https URL: the pinned certificate when this
+#  installation has one (its public key is compared; the host name is not,
+#  as in the C++ client), the system CAs otherwise. Never "-k" alone.
+#  Plain http gets none.
+pin_hash() {
+  openssl x509 -in "$1" -noout -pubkey 2>/dev/null | openssl pkey -pubin -outform der 2>/dev/null |
+    openssl dgst -sha256 -binary | openssl enc -base64
+}
+curl_tls_args() {
+  CURL_TLS=()
+  case "$1" in https:*) ;; *) return 0 ;; esac
+  local pin="${2:-$REMOTE/server.pem}"
+  if [ -e "$pin" ]; then
+    local h
+    h="$(pin_hash "$pin")"
+    if [ -z "$h" ]; then
+      echo "ecce-remote-setup: cannot read a public key from $pin" >&2
+      return 1
+    fi
+    CURL_TLS=(--insecure --pinnedpubkey "sha256//$h")
+  fi
+}
 
 #  Site machine list (issue #188).  ecce-site-publish (run by the server's
 #  ecce-dataserver-start and ecce-site-admin) publishes the server's
@@ -101,7 +219,8 @@ fetch_machine_list() {
   fi
   FETCHDIR=$(mktemp -d) || return 1
   trap 'rm -rf "$FETCHDIR"' EXIT
-  if ! curl -sf --connect-timeout 5 "$URL/system/siteconfig/MANIFEST" \
+  curl_tls_args "$URL" || return 1
+  if ! curl "${CURL_TLS[@]}" -sf --connect-timeout 5 "$URL/system/siteconfig/MANIFEST" \
        -o "$FETCHDIR/MANIFEST" 2>/dev/null; then
     echo "WARNING: no machine list published at $URL/system/siteconfig/MANIFEST"
     echo "  (an older server, or the server is not up yet). Machines were NOT"
@@ -117,7 +236,7 @@ fetch_machine_list() {
         echo "WARNING: ignoring bad name '$name' in the server's MANIFEST" >&2
         continue ;;
     esac
-    if ! curl -sf --connect-timeout 5 \
+    if ! curl "${CURL_TLS[@]}" -sf --connect-timeout 5 \
            "$URL/system/siteconfig/$name" -o "$FETCHDIR/$name" 2>/dev/null; then
       echo "WARNING: could not fetch $name from the server -- machine list not copied." >&2
       ok=false
@@ -167,9 +286,36 @@ if [ $# -lt 1 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
 fi
 
 REFRESH=false
-[ "$1" = "--refresh" ] && REFRESH=true
-HOST="$1"
-DATA_PORT="${2:-8096}"
+WANT_TLS=false TRUST="" PINFILE=""
+POS=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --refresh) REFRESH=true ;;
+    --tls) WANT_TLS=true ;;
+    --pin) TRUST=pin; PINFILE="${2:-}"; shift ;;
+    --fetch-pin) TRUST=fetch ;;
+    --system-ca) TRUST=ca ;;
+    -*) echo "ecce-remote-setup: unknown option $1" >&2; usage; exit 2 ;;
+    *) POS+=("$1") ;;
+  esac
+  shift
+done
+HOST="${POS[0]:-}"
+if [ "$WANT_TLS" = true ]; then DATA_PORT="${POS[1]:-8443}"; else DATA_PORT="${POS[1]:-8096}"; fi
+if [ "$WANT_TLS" = false ] && [ -n "$TRUST" ]; then
+  echo "ecce-remote-setup: --pin, --fetch-pin and --system-ca are for --tls" >&2
+  exit 2
+fi
+if [ "$WANT_TLS" = true ] && [ -z "$TRUST" ]; then
+  echo "ecce-remote-setup: --tls needs to know how to trust the server: --pin FILE," >&2
+  echo "  --fetch-pin or --system-ca (see --help)" >&2
+  exit 2
+fi
+if [ "$TRUST" = pin ] && [ ! -r "$PINFILE" ]; then
+  echo "ecce-remote-setup: cannot read the certificate '$PINFILE'" >&2
+  exit 2
+fi
+if [ "$REFRESH" = false ] && [ -z "$HOST" ]; then usage; exit 2; fi
 
 : "${ECCE_HOME:=/opt/ecce}"
 SITE="$ECCE_HOME/siteconfig"
@@ -200,14 +346,58 @@ if [ "$REFRESH" = true ]; then
   exit 0
 fi
 
+SCHEME=http
+if [ "$WANT_TLS" = true ]; then
+  SCHEME=https
+  if ! command -v openssl >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
+    echo "ecce-remote-setup: --tls needs the openssl and curl commands" >&2
+    exit 1
+  fi
+  NEWPIN=""
+  case "$TRUST" in
+    pin) NEWPIN="$PINFILE" ;;
+    fetch)
+      NEWPIN="$(mktemp)" || exit 1
+      trap 'rm -f "$NEWPIN"' EXIT
+      if ! openssl s_client -connect "$HOST:$DATA_PORT" -servername "$HOST" </dev/null 2>/dev/null |
+           openssl x509 >"$NEWPIN" 2>/dev/null || [ ! -s "$NEWPIN" ]; then
+        echo "ecce-remote-setup: could not get a certificate from $HOST:$DATA_PORT -- is the server up with TLS on?" >&2
+        exit 1
+      fi
+      echo "Certificate presented by $HOST:$DATA_PORT:"
+      openssl x509 -in "$NEWPIN" -noout -subject -enddate -fingerprint -sha256 | sed 's/^/  /'
+      echo "Compare the fingerprint with the one the server's administrator gave;"
+      echo "this installation will trust only this certificate."
+      ;;
+  esac
+  if [ -n "$NEWPIN" ] && ! openssl x509 -in "$NEWPIN" -noout 2>/dev/null; then
+    echo "ecce-remote-setup: $NEWPIN is not a PEM certificate" >&2
+    exit 1
+  fi
+fi
+
 #  A quick look before writing anything.  Getting the host wrong is the
 #  likeliest mistake and the symptom is a login box that never accepts
-#  anything, which does not point at the cause.
-URL="http://$HOST:$DATA_PORT/Ecce"
+#  anything, which does not point at the cause.  With TLS a refused
+#  certificate is an error, not a warning: nothing is written.
+URL="$SCHEME://$HOST:$DATA_PORT/Ecce"
 echo "Central server: $URL"
 if command -v curl >/dev/null 2>&1; then
-  if curl -s -o /dev/null --connect-timeout 5 "http://$HOST:$DATA_PORT/" ; then
+  CURL_TLS=()
+  [ "$WANT_TLS" = true ] && [ -n "$NEWPIN" ] && { curl_tls_args "$URL" "$NEWPIN" || exit 1; }
+  curl -s -o /dev/null --connect-timeout 5 "${CURL_TLS[@]}" "$SCHEME://$HOST:$DATA_PORT/"
+  rc=$?
+  if [ $rc -eq 0 ]; then
     echo "  reachable"
+  elif [ "$WANT_TLS" = true ] && [ $rc -ne 7 ] && [ $rc -ne 28 ]; then
+    echo "ecce-remote-setup: TLS to $HOST:$DATA_PORT failed (curl exit $rc):" >&2
+    if [ $rc -eq 90 ]; then
+      echo "  the server's certificate is not the one given with --pin/--fetch-pin." >&2
+    else
+      echo "  the server does not present a certificate this installation can trust." >&2
+    fi
+    echo "  Nothing was written; ECCE does not fall back to plain HTTP." >&2
+    exit 1
   else
     echo "  WARNING: nothing answered on $HOST:$DATA_PORT."
     echo "  Writing the configuration anyway -- the server may not be up yet."
@@ -223,12 +413,20 @@ fi
 
 mkdir -p "$REMOTE" || exit 1
 
+#  The pinned certificate, or none: a pin left from an earlier run would
+#  make a CA-signed server unreachable.
+if [ "$WANT_TLS" = true ] && [ -n "$NEWPIN" ]; then
+  install -m 644 "$NEWPIN" "$REMOTE/server.pem" || exit 1
+  [ "$TRUST" = fetch ] && rm -f "$NEWPIN"
+else
+  rm -f "$REMOTE/server.pem"
+fi
+
 #  DataServers: the same file the local mode uses, with the URLs moved
 #  to the central host.  The structure library and basis set library
 #  live on that server too, which is the point of running one.
 if [ -f "$SITE/DataServers" ]; then
-  sed -e "s|http://[^:/]*:[0-9]*/Ecce|$URL|g" \
-      -e "s|http://[^:/]*:[0-9]*/Ecce/system|$URL/system|g" \
+  sed -e "s|https\{0,1\}://[^:/]*:[0-9]*/Ecce|$URL|g" \
       -e "s|<Desc>[^<]*</Desc>|<Desc>ECCE Data Server on $HOST</Desc>|" \
       "$SITE/DataServers" > "$REMOTE/DataServers"
 else
@@ -239,7 +437,7 @@ fi
 #  site_runtime: same again for the help URL, which is served by the
 #  same Apache.
 if [ -f "$SITE/site_runtime" ]; then
-  sed -e "s|http://[^:/]*:[0-9]*|http://$HOST:$DATA_PORT|g" \
+  sed -e "s|https\{0,1\}://[^:/]*:[0-9]*|$SCHEME://$HOST:$DATA_PORT|g" \
       "$SITE/site_runtime" > "$REMOTE/site_runtime"
 fi
 
@@ -254,6 +452,7 @@ echo
 echo "Wrote:"
 echo "  $REMOTE/DataServers"
 [ -f "$REMOTE/site_runtime" ] && echo "  $REMOTE/site_runtime"
+[ -f "$REMOTE/server.pem" ] && echo "  $REMOTE/server.pem  (the only certificate this installation accepts)"
 echo
 echo "Users on this machine now run:"
 echo

@@ -26,6 +26,7 @@
 
 #include "util/BadValueException.H"
 #include "util/BrowserHelp.H"
+#include "wxgui/WxHelpViewer.H"
 #include "util/CommandWrapper.H"
 #include "util/Ecce.H"
 #include "util/EcceException.H"
@@ -3815,8 +3816,7 @@ void MDPrep::OnMenuMdprepHelpClick( wxCommandEvent& event )
   while ((ind = helpkey.find(' ')) != string::npos)
     helpkey.erase(ind, 1);
 
-  BrowserHelp help;
-  help.showPage(help.URL(helpkey));
+  WxHelpViewer::showKey(helpkey);
 }
 
 

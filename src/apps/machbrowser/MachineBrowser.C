@@ -31,6 +31,7 @@
 #include "util/StringTokenizer.H"
 #include "util/JMSMessage.H"
 #include "util/BrowserHelp.H"
+#include "wxgui/WxHelpViewer.H"
 
 #include "tdat/Queue.H"
 #include "tdat/QueueMgr.H"
@@ -549,8 +550,7 @@ void MachineBrowser::exitMenuitemClickCB(wxCommandEvent& event)
 
 void MachineBrowser::helpAppMenuitemClickCB(wxCommandEvent& event)
 {
-    BrowserHelp help;
-    help.showPage(help.URL("MachineBrowser"));
+    WxHelpViewer::showKey("MachineBrowser");
 }
 
 

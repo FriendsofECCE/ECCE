@@ -29,6 +29,7 @@
 #include "util/StringConverter.H"
 #include "util/TempStorage.H"
 #include "util/BrowserHelp.H"
+#include "wxgui/WxHelpViewer.H"
 
 #include "tdat/TFormula.H"
 #include "tdat/TPerTab.H"
@@ -916,8 +917,7 @@ void WxBasisTool::helpProgramMenuItemClickCB(wxCommandEvent& event)
 {
 //    cout << "WxBasisTool::helpProgramMenuItemClickCB(wxCommandEvent& event)" << endl;
 
-    BrowserHelp help;
-    help.showHelpPage(BASISTOOL);
+    WxHelpViewer::showKey(BASISTOOL);
 }
 
 

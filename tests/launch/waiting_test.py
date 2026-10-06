@@ -332,7 +332,7 @@ def main():
     build = os.path.abspath(args.build)
     harness.prerequisites(build, ("mopac",))
 
-    s = harness.Session(build, "waiting", {}, (8699, 8691), keep=args.keep)
+    s = harness.Session(build, "waiting", {}, keep=args.keep)
     wrapper = os.path.join(s.state, "held-mopac")
     with open(wrapper, "w") as h:
         h.write("#!/bin/sh\n"

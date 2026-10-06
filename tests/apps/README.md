@@ -165,15 +165,17 @@ bugs. A suite that can do that to you is not one you will trust.
 So **isolation is the default, not an option** (`isolate.py`). Every run
 gets:
 
-* its own state directory — `$XDG_CACHE_HOME/ecce-apps-suite`, or
-  wherever `ECCE_TEST_STATE` says — exported as `ECCE_REALUSERHOME`,
-  which is the variable everything else actually reads. It is kept
-  between runs rather than thrown away, so the seeded document root and
-  the synced basis-set library are paid for once;
-* its own ports, 8296 and 8288 by default rather than the real 8096/8088,
-  or the next free ones; `ECCE_DATASERVER_PORT` / `ECCE_BROKER_PORT`
-  still pin them explicitly, and a pinned port that is busy is an error
-  rather than a silent move;
+* its own state directory — a fresh `$XDG_CACHE_HOME/ecce-apps-<random>`
+  per run, removed at exit (`ECCE_TEST_KEEP_STATE=1` or
+  `--keep-services` keeps it), or wherever `ECCE_TEST_STATE` says, which
+  is never removed — exported as `ECCE_REALUSERHOME`, which is the
+  variable everything else actually reads;
+* its own ports, chosen by the OS (bind to 0) so that concurrent runs
+  cannot collide; `ECCE_DATASERVER_PORT` / `ECCE_BROKER_PORT` still pin
+  them explicitly, and a pinned port that is busy is an error rather
+  than a silent move;
+* its own X display, chosen by `Xvfb -displayfd`
+  (`ECCE_TEST_XDISPLAYS=a-b` still restricts it to a range);
 * its own `$ECCE_HOME`: a directory of symlinks to the installed tree
   with one real `siteconfig/` of its own, with `DataServers`
   repointed at the data server's port. This is the piece that was

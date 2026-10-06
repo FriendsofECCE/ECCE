@@ -13,6 +13,7 @@ using std::cerr;
 #include "dsm/ResourceTool.H"
 
 #include "util/BrowserHelp.H"
+#include "wxgui/WxHelpViewer.H"
 #include "util/Preferences.H"
 
 #include "wxgui/ewxBitmap.H"
@@ -113,7 +114,7 @@ void PerTabFrame::OnMenuClick(wxCommandEvent& event)
     Close(TRUE);
     break;
   case wxID_HELP:
-    help.showPage(help.URL(PERTAB));
+    WxHelpViewer::showKey(PERTAB);
     break;
   case ID_ITEM_FEEDBACK:
     help.showFeedbackPage();

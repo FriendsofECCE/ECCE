@@ -11,6 +11,7 @@ UNKNOWN: %s unrecognized error.
 # Client side status codes
 CLIENT_ERROR: The application is unable to access the data server
 SERVER_NOT_FOUND: Server or server port is not available. %s 
+CERTIFICATE_REJECTED: The data server's certificate was rejected. Contact the ECCE administrator. %s
 
 # Different implementations of AuthEventListener may choose to abort
 # after a certain number of authentication attempts.

@@ -146,9 +146,7 @@ install = os.environ.get("ECCE_TEST_HOME", "/opt/ecce")
 sys.path.insert(0, HERE)
 import isolate  # noqa: E402
 
-state = isolate.resolveStateDir(
-    os.environ.get("ECCE_TEST_STATE")
-    or os.path.join(isolate.defaultStateDir() + "-session"))
+state = isolate.resolveStateDir(isolate.runState("apps-session"))
 os.makedirs(state, exist_ok=True)
 if args.tree:
     build = os.path.abspath(args.tree)
@@ -1998,7 +1996,7 @@ def makeLocalCalculation(env, home, data, mode="create"):
     driver = os.path.join(state, "resourceTest")
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"), "-o",
             driver, os.path.join(HERE, "..", "filedsi", "resourceTest.C"),
-            "-L" + build] + ["-l" + l for l in libs] * 3 + ["-lxerces-c", "-lmosquitto"])
+            "-L" + build] + ["-l" + l for l in libs] * 3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"])
     built = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     if built.returncode != 0:
         return built.stdout.decode()[-1500:]
