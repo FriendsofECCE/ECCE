@@ -3,6 +3,7 @@
 
 #include "wx/bitmap.h"
 #include "wx/bmpbndl.h"
+#include "wx/icon.h"
 #include "wxgui/ewxStyledWindow.H"
 
 /**
@@ -24,6 +25,7 @@ class ewxBitmap : public wxBitmap
       static wxBitmap themedIcon(const wxString& icon, const wxSize& size);
       static wxBitmap loadPixmap(const wxString& name, long type);
       static wxBitmap placeholder(const wxString& name);
+      static wxIcon icon(const wxString& name);
 };
 
 #endif

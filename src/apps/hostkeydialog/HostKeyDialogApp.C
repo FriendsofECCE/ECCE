@@ -35,7 +35,7 @@ class HostKeyDialog : public ewxDialog
                   const wxString& keyType)
       : ewxDialog(NULL, wxID_ANY, "Unknown host key"), p_snapped(false)
     {
-      SetIcon(wxIcon(ewxBitmap::pixmapFile("gateway64.xpm"), wxBITMAP_TYPE_XPM));
+      SetIcon(ewxBitmap::icon("gateway64.xpm"));
 
       // Fit small screens (#189): wrap to the display, not a fixed width.
       int wrap = wxGetDisplaySize().GetWidth() - 80;

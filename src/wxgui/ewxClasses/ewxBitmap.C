@@ -157,6 +157,18 @@ wxBitmap ewxBitmap::placeholder(const wxString& name)
 
 
 /**
+ * A window icon from a pixmap.  wxIcon(file, XPM) has no handler on wxOSX
+ * and logs an error dialog; going through the bitmap works everywhere.
+ */
+wxIcon ewxBitmap::icon(const wxString& name)
+{
+  wxIcon ret;
+  ret.CopyFromBitmap(ewxBitmap(name));
+  return ret;
+}
+
+
+/**
  * For a toolbar or button that should be sharp at any scale: the themed
  * icon at the pixmap's size and twice it, or the pixmap alone.
  */

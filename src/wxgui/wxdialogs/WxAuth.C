@@ -33,7 +33,7 @@ WxAuth::WxAuth() : WxAuthGUI()
 WxAuth::WxAuth( wxWindow* parent, wxWindowID id, const wxString& caption, const wxPoint& pos, const wxSize& size, long style )
     : WxAuthGUI(parent, id, caption, pos, size, style)
 {
-   SetIcon(wxIcon(ewxBitmap::pixmapFile("gateway64.xpm"), wxBITMAP_TYPE_XPM));
+   SetIcon(ewxBitmap::icon("gateway64.xpm"));
 
    setStyles(this,false);
 

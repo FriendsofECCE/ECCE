@@ -104,7 +104,7 @@ GlobalPrefs::GlobalPrefs(wxWindow* parent)
                    wxDefaultSize,
                    wxCAPTION|wxSYSTEM_MENU|wxMINIMIZE_BOX|wxCLOSE_BOX);
 
-  SetIcon(wxIcon(ewxBitmap::pixmapFile("gateway64.xpm"), wxBITMAP_TYPE_XPM));
+  SetIcon(ewxBitmap::icon("gateway64.xpm"));
   SetName("Preferences");
 
   p_publisher = new JMSPublisher("GlobalPrefs");
