@@ -25,6 +25,7 @@
 
 #include "wxgui/ewxConfig.H"
 
+#include "AbstractPropCalculation.H"
 #include "Builder.H"
 #include "DefaultCalculation.H"
 #include "PropertyIndexPanel.H"
@@ -745,7 +746,10 @@ void Builder::updatePropertyIndex()
   codeTheory += wxString::FromUTF8(theory.c_str());
 
   wxString energy;
-  TProperty *te = dynamic_cast<DefaultCalculation*>(p_calculation)
+  //  A structure file (PDB, XYZ, CAR, cube, ...) and a new structure are
+  //  AbstractPropCalculations, whose getProperty() throws: they have no
+  //  properties, so they get no energy line.
+  TProperty *te = dynamic_cast<AbstractPropCalculation*>(p_calculation)
                   ? 0 : p_calculation->getProperty("TE");
   if (te) {
     const string units = te->units() == "NA" ? "" : te->units();

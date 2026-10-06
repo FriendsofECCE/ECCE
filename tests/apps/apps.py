@@ -179,14 +179,19 @@ def stopServices(display=None):
                            stderr=subprocess.DEVNULL, timeout=120)
 
 
-def run(display, name, args=(), windowTimeout=40, settle=8):
-    """Start ecce-<name>, wait for a window, watch it, then shut it down."""
+def run(display, name, args=(), windowTimeout=40, settle=8, env=None):
+    """Start ecce-<name>, wait for a window, watch it, then shut it down.
+
+    `env` adds variables to the display's environment for this one app.
+    """
     result = Result(name)
     before = set(wid for wid, _ in display.windows())
 
     command = [os.path.join(WRAPPERS, "ecce-" + name)] + list(args)
+    environment = display.env()
+    environment.update(env or {})
     logFile = subprocess.PIPE
-    proc = subprocess.Popen(command, env=display.env(), stdout=logFile,
+    proc = subprocess.Popen(command, env=environment, stdout=logFile,
                             stderr=subprocess.STDOUT,
                             start_new_session=True)
 
