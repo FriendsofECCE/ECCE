@@ -22,16 +22,21 @@
 #include <unistd.h>
 #endif
 
+#include <fstream>
+#include <memory>
 #include <sstream>
 #include <iostream>
 using std::cerr;
 using std::endl;
+
+static bool offerStopServer(bool& inUse);
 
 #include <wx/dataobj.h>
 #include <wx/dnd.h>
 #include <wx/treectrl.h>
 
 #include "util/LocalData.H"
+#include "util/SessionLease.H"
 #include "util/Ecce.H"
 #include "util/ErrMsg.H"
 #include "util/Host.H"
@@ -314,7 +319,146 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
     timer->StartOnce(2000);
   }
 
+  //  ECCE_TEST_ORGANIZER=<file>: lines appended to <file> are run as
+  //  commands (runTestCommand), each answered on stderr with a line
+  //  "ECCE_TEST_ORGANIZER: <command>: <outcome>". Inert unless set; for
+  //  tests/apps/session_end.py, which uses it to work in one session's
+  //  Organizer while another session ends.
+  if (const char *cmdPath = getenv("ECCE_TEST_ORGANIZER")) {
+    string path = cmdPath;
+    auto done = std::make_shared<size_t>(0);
+    wxTimer *timer = new wxTimer();   // lives until the process exits
+    timer->Bind(wxEVT_TIMER, [this, path, done](wxTimerEvent&) {
+      std::ifstream in(path.c_str());
+      string line;
+      size_t n = 0;
+      while (std::getline(in, line)) {
+        if (n++ < *done) continue;
+        *done = n;
+        runTestCommand(line);
+      }
+    });
+    timer->Start(500);
+  }
+
   return true;
+}
+
+
+/**
+ * import <file>   import <file> into session-test, as File > Import
+ *                 Calculation from Output File does
+ * walk            select and expand every node below the home, as a user
+ *                 clicking through the tree does
+ * browse          load the user's home and the project "session-test"
+ *                 from the data server, as expanding them in the tree does
+ * open [name]     make (once) and select session-test/<name> (default
+ *                 calc), an NWChem calculation, as picking it does, and
+ *                 read its state
+ * refresh         reload session-test from the data server, as View >
+ *                 Refresh does
+ * publish         publish ecce_activity, as every tool start does
+ * quit-offer      whether the Quit dialog would offer Quit and Stop Server
+ */
+void CalcMgr::runTestCommand(const string& line)
+{
+  string outcome;
+  string command = line.substr(0, line.find(' '));
+  string calcName = line.size() > command.size() + 1
+                    ? line.substr(command.size() + 1) : string("calc");
+  try {
+    EDSIServerCentral central;
+    EcceURL home = central.getDefaultUserHome();
+    EcceURL project = home.getChild("session-test");
+    if (command == "import") {
+      // A calculation with results, as File > Import Calculation makes it.
+      Resource *homeRes = EDSIFactory::getResource(home);
+      if (homeRes && !EDSIFactory::getResource(project))
+        homeRes->createChild("session-test",
+            ResourceDescriptor::getResourceDescriptor().getResourceType(
+                "collection", "ecceProject", ""));
+      findNode(project, true, true);
+      WxCalcImport dlg(this);
+      dlg.registerListener(this);
+      dlg.importFile(calcName);
+      outcome = "done";
+    } else if (command == "walk") {
+      // Select and expand every node below the home as a user clicking
+      // through the tree does: the tree's own event handlers run.
+      WxResourceTreeItemData *top = findNode(home, true, false);
+      int visited = 0;
+      std::vector<wxTreeItemId> todo;
+      if (top) todo.push_back(top->GetId());
+      while (!todo.empty() && visited < 50) {
+        wxTreeItemId id = todo.back();
+        todo.pop_back();
+        p_treeCtrl->SelectItem(id);
+        p_treeCtrl->Expand(id);
+        wxYield();
+        visited++;
+        wxTreeItemIdValue cookie;
+        for (wxTreeItemId c = p_treeCtrl->GetFirstChild(id, cookie);
+             c.IsOk(); c = p_treeCtrl->GetNextChild(id, cookie))
+          todo.push_back(c);
+      }
+      outcome = top ? "ok, " + std::to_string(visited) + " nodes"
+                    : "no home in the tree";
+    } else if (command == "refresh") {
+      WxResourceTreeItemData *node = findNode(project, true, true);
+      if (node) {
+        p_treeCtrl->refresh(node);
+        onSelectionChange(true);
+        outcome = "ok, " + std::to_string(
+            p_treeCtrl->GetChildrenCount(node->GetId(), false)) + " children";
+      } else outcome = "not in the tree";
+    } else if (command == "browse" || command == "open") {
+      Resource *homeRes = EDSIFactory::getResource(home);
+      if (!homeRes) {
+        outcome = "no home " + home.toString();
+      } else {
+        ResourceDescriptor& rd = ResourceDescriptor::getResourceDescriptor();
+        Resource *projRes = EDSIFactory::getResource(project);
+        if (!projRes)
+          projRes = homeRes->createChild("session-test",
+              rd.getResourceType("collection", "ecceProject", ""));
+        Resource *calcRes = 0;
+        if (projRes && command == "open") {
+          EcceURL calc = project.getChild(calcName);
+          calcRes = EDSIFactory::getResource(calc);
+          if (!calcRes)
+            calcRes = projRes->createChild(calcName,
+                rd.getResourceType("virtual_document", "ecceCalculation",
+                                   "NWChem"));
+        }
+        WxResourceTreeItemData *node =
+          findNode(calcRes ? calcRes->getURL() : project, true, true);
+        if (!projRes || (command == "open" && !calcRes)) outcome = "not created";
+        else if (!node) outcome = "not in the tree";
+        else if (calcRes) {
+          ICalculation *icalc = dynamic_cast<ICalculation*>(calcRes);
+          outcome = string("ok, state ") +
+                    (icalc ? ResourceUtils::stateToString(icalc->getState())
+                           : string("?"));
+        } else outcome = "ok";
+      }
+    } else if (line == "publish") {
+      JMSMessage *msg = newMessage();
+      msg->addProperty("action", "start");
+      outcome = publish("ecce_activity", *msg) ? "sent" : "not sent";
+      delete msg;
+    } else if (line == "quit-offer") {
+      bool inUse = false;
+      outcome = offerStopServer(inUse) ? "stop offered"
+                : inUse ? "stop withheld, services in use" : "stop withheld";
+    } else {
+      outcome = "unknown command";
+    }
+  } catch (EcceException& ex) {
+    outcome = string("exception: ") + ex.what();
+  } catch (std::exception& ex) {
+    outcome = string("exception: ") + ex.what();
+  }
+  cerr << "ECCE_TEST_ORGANIZER: " << line << ": " << outcome << endl;
 }
 
 
@@ -780,17 +924,38 @@ void CalcMgr::OnNewStructureClick( wxCommandEvent& event )
  * but the title-bar X does, and without that a cancelled quit closed the
  * window anyway.
  */
+/**
+ * Whether the Quit dialog offers Quit and Stop Server. inUse is set when
+ * it is withheld only because another session or a job still uses the
+ * services.
+ */
+static bool offerStopServer(bool& inUse)
+{
+  bool canStop = !getenv("ECCE_REMOTE_SERVER") && LocalData::dir().empty();
+  inUse = canStop && !SessionLease::othersUsingServices().empty();
+  return canStop && !inUse;
+}
+
+
 bool CalcMgr::confirmAndQuit()
 {
-  ewxMessageDialog dlg(this, "Do you really want to quit?", "Quit ECCE",
-                       wxOK|wxCANCEL|wxICON_QUESTION, wxDefaultPosition);
   // #190: under a central server (ECCE_REMOTE_SERVER) this client's own
   // ecce-dataserver-stop/ecce-gateway-stop can't reach the server's
   // services anyway (different account) -- offering the button is just
   // misleading, so don't.
   // Local data mode has no data server to stop; plain Quit already ends
   // the session and the reaper stops the per-user broker.
-  if (!getenv("ECCE_REMOTE_SERVER") && LocalData::dir().empty())
+  // Another session of this account, or a job, still uses the services
+  // (#233); the scripts refuse then too, this only says so up front.
+  bool inUse = false;
+  bool canStop = offerStopServer(inUse);
+  string question = "Do you really want to quit?";
+  if (inUse)
+    question += "\n\nThe data server and message broker stay running: "
+                "another ECCE session or a job of yours still uses them.";
+  ewxMessageDialog dlg(this, question, "Quit ECCE",
+                       wxOK|wxCANCEL|wxICON_QUESTION, wxDefaultPosition);
+  if (canStop)
     dlg.AddButton(ID_ORGANIZER_QUIT_STOP_SERVER, "Quit and Stop Server");
   int result = dlg.ShowModal();
 
@@ -822,7 +987,7 @@ bool CalcMgr::confirmAndQuit()
     AuthCache::sessionClear();
     // A local-mode session started no data server; one running belongs to
     // a server-mode session elsewhere and is not ours to stop.
-    if (LocalData::dir().empty()) (void)system("ecce-dataserver-stop");
+    if (LocalData::dir().empty()) (void)system("ecce-dataserver-stop --if-unused");
     (void)system("ecce-gateway-stop");
   }
 
@@ -4191,7 +4356,8 @@ void CalcMgr::checkNodeJobs(WxResourceTreeItemData *node)
       p_treeCtrl->loadChildren(node);
       children = node->getResource()->getChildren();
     }
-    int numNodes = children->size();
+    // Null when the data server cannot list the collection.
+    int numNodes = children ? (int)children->size() : 0;
 
     string message;
     for (int idx = 0; idx < numNodes; idx++) {

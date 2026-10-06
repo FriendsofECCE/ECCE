@@ -100,10 +100,18 @@ bool JMSPublisher::publish(const string& topic,
   if (p_messagingEnabled) {
     ret = MqttLink::instance().publish(topic, msg);
     // No login yet (cancelled dialog) is already logged once by MqttLink and
-    // is not a failure; any other refusal to publish still asserts.
-    if (!ret && !MqttLink::instance().awaitingLogin() &&
-        !MqttLink::instance().sessionless()) {
-      EE_ASSERT(false, EE_WARNING, "publish failed!");
+    // is not a failure. A broker that has gone away (stopped, restarting)
+    // is an outage, not a bug: MqttLink reconnects by itself, so report it
+    // once per outage and let the caller see false.
+    static bool reported = false;
+    if (ret) {
+      reported = false;
+    } else if (!reported && !MqttLink::instance().awaitingLogin() &&
+               !MqttLink::instance().sessionless()) {
+      reported = true;
+      cerr << p_toolName << ": could not send \"" << topic << "\": no "
+           << "connection to the message broker (is ECCE's broker still "
+           << "running? ecce-gateway-status)" << endl;
     }
   }
   return ret;
@@ -139,11 +147,7 @@ bool JMSPublisher::invoke(JMSMessage& msg,
 
 
       // ecce_get_app is the topic we need to do an invoke
-      ret = MqttLink::instance().publish("ecce_get_app", msg);
-      if (!ret && !MqttLink::instance().awaitingLogin() &&
-        !MqttLink::instance().sessionless()) {
-         EE_ASSERT(false, EE_WARNING, "publish failed!");
-      }
+      ret = publish("ecce_get_app", msg);
    }
    return ret;
 }

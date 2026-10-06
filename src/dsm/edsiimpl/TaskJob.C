@@ -113,6 +113,8 @@ vector<Resource*> * TaskJob::getChildren(bool refresh)
   vector<Resource*> *ret;
 
   ret = Resource::getChildren(refresh);
+  // Null when the listing failed, e.g. the data server is not running.
+  if (ret == 0) return 0;
 
   if (refresh)
     p_localHideInternal = false;

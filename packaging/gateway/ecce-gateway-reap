@@ -166,6 +166,15 @@ if [ "$IF_IDLE" = 1 ]; then
   [ -z "$(apps_for_state)" ] || exit 0
   [ -e "$STATEDIR/mosquitto.server" ] && exit 0
 fi
+# But only for its own session: another session of this account, on any
+# display, or a running job still talks through this broker (#233).
+if [ "$EXPLICIT_STOP" = 1 ]; then
+  others="$(ecce_others_using_services | awk '{ printf "%s%s %s", sep, $2, $1; sep = ", " }')"
+  if [ -n "$others" ]; then
+    say "another ECCE session or a job of this user is still running ($others) -- broker left running"
+    exit 0
+  fi
+fi
 
 brokerpid=""
 if [ -f "$STATEDIR/mosquitto.pid" ]; then
@@ -186,7 +195,7 @@ fi
 
 if [ -n "${brokerpid:-}" ]; then
   if [ "$EXPLICIT_STOP" = 1 ]; then
-    say "stop requested, no ECCE session left -- stopping mosquitto broker (pid $brokerpid)"
+    say "stop requested, no other ECCE session or job left -- stopping mosquitto broker (pid $brokerpid)"
   else
     say "last ECCE session of this user ended -- stopping its mosquitto broker (pid $brokerpid)"
   fi

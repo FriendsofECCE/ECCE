@@ -25,6 +25,12 @@
  *    code NAME | expect code-listed NAME 0|1   the Codes tab's list
  *    focus FIELD | cursor FIELD POS | words | words-pick WORD | words-activate WORD
  *      | click words:insert   insert a placeholder at the cursor of the last box
+ *    pick FIELD ITEM...   tick exactly these rows of a check list (disc:list)
+ *    scroll FIELD TEXT (a text box to the first line holding TEXT)
+ *    save-field FIELD FILE | expect checked FIELD a,b | expect tool-dialog 0|1
+ *    click discover | disc:add | disc:cancel | preview | code:preview | prev:update
+ *      | prev:close | test-submission | test:run | test:close   (#212 tools; their
+ *      fields are disc:*, prev:*, test:*; the dialogs are not modal here)
  *  Source tags are fields named tag:KEY, e.g. expect label tag:shell site.
  */
 #ifndef WXMACHINEREGISTERSCRIPT_HH
