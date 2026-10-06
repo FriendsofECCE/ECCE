@@ -49,7 +49,8 @@ cm cjson -DENABLE_CJSON_TEST=OFF -DENABLE_CJSON_UNINSTALL=OFF
 fetch https://mosquitto.org/files/source/mosquitto-2.1.2.tar.gz mosquitto
 cm mosquitto -DOPENSSL_ROOT_DIR="$P" -DWITH_TESTS=OFF -DWITH_WEBSOCKETS=OFF \
   -DWITH_CLIENTS=OFF -DWITH_PLUGINS=OFF -DWITH_DOCS=OFF -DWITH_LTO=OFF \
-  -DWITH_CTRL_SHELL=OFF -DWITH_SRV=OFF
+  -DWITH_CTRL_SHELL=OFF -DWITH_SRV=OFF \
+  -DCMAKE_DISABLE_FIND_PACKAGE_argon2=ON
 
 fetch https://www.libssh.org/files/0.11/libssh-0.11.3.tar.xz libssh
 cm libssh -DOPENSSL_ROOT_DIR="$P" -DWITH_EXAMPLES=OFF \
