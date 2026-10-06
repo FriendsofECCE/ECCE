@@ -136,6 +136,7 @@ class WxMachineRegister: public ewxFrame
         void addCfgRow(wxWindow* page, wxFlexGridSizer* grid, const string& key,
                        const string& label, CfgKind kind, const string& tip);
         void addHeading(wxWindow* page, wxSizer* sizer, const string& text);
+        void addTabIntro(wxWindow* page, wxSizer* sizer, const string& text);
 
         //  Event handlers
         void onClose(wxCloseEvent& event);
