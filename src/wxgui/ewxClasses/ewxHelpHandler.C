@@ -6,6 +6,7 @@
 #endif
 
 #include "util/BrowserHelp.H"
+#include "wxgui/WxHelpViewer.H"
 #include "wxgui/ewxHelpHandler.H"
 #include "wxgui/ewxWindowUtils.H"
 
@@ -57,6 +58,5 @@ void ewxHelpHandler::showHelp() const
    }
    //   cout << p_win->GetTitle()<<endl;
    //   cout << "help key " << name << endl;
-   BrowserHelp help;
-   help.showPage(help.URL(name));
+   WxHelpViewer::showKey(name);
 }

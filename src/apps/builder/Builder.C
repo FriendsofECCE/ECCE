@@ -34,6 +34,7 @@ using std::vector;
 
 #include "util/Ecce.H"
 #include "util/BrowserHelp.H"
+#include "wxgui/WxHelpViewer.H"
 #include "util/CancelException.H"
 #include "util/CommandWrapper.H"
 #include "wxviz/ImageConverter.H"
@@ -2557,8 +2558,7 @@ void Builder::helpSupportMenuitemClick( wxCommandEvent& event )
 
 void Builder::helpBuilderMenuitemClick( wxCommandEvent& event )
 {
-   BrowserHelp help;
-   help.showPage(help.URL("WxBuilder"));
+   WxHelpViewer::showKey("WxBuilder");
 
 }
 
@@ -4739,6 +4739,20 @@ void Builder::updatePropertyMenus()
       _exit(0);
     });
     timer->StartOnce(1 + 1000 * (delay ? atoi(delay) : 0));
+  }
+
+  //  ECCE_TEST_HELP=<png>: run Help > Builder, save the help window to
+  //  <png> and exit (tests/apps/help_test.py).
+  static bool helpStarted = false;
+  if (getenv("ECCE_TEST_HELP") && !helpStarted) {
+    helpStarted = true;
+    wxTimer *timer = new wxTimer();   // lives until the process exits
+    timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+      wxCommandEvent ev;
+      helpBuilderMenuitemClick(ev);
+      WxHelpViewer::testSnapshot("builder");
+    });
+    timer->StartOnce(1000);
   }
 
   //  ECCE_TEST_SAVEAS=<type>|<path>[|<structure file>]: add the structure,

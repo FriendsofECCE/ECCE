@@ -50,6 +50,7 @@ static bool offerStopServer(bool& inUse);
 #include "util/TDateTime.H"
 #include "util/SFile.H"
 #include "util/BrowserHelp.H"
+#include "wxgui/WxHelpViewer.H"
 #include "util/EditEvent.H"
 #include "util/NullPointerException.H"
 
@@ -339,6 +340,18 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
       }
     });
     timer->Start(500);
+  }
+
+  //  ECCE_TEST_HELP=<png>: open Help > Organizer, save the help window to
+  //  <png> and exit (tests/apps/help_test.py).
+  if (getenv("ECCE_TEST_HELP")) {
+    wxTimer *timer = new wxTimer();   // lives until the process exits
+    timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+      wxCommandEvent ev;
+      OnHelpClick(ev);
+      WxHelpViewer::testSnapshot("organizer");
+    });
+    timer->StartOnce(3000);
   }
 
   return true;
@@ -848,8 +861,7 @@ void CalcMgr::OnContextMenu( wxContextMenuEvent& event )
  */
 void CalcMgr::OnHelpClick( wxCommandEvent& event )
 {
-  BrowserHelp help;
-  help.showPage(help.URL("Organizer"));
+  WxHelpViewer::showKey("Organizer");
 }
 
 

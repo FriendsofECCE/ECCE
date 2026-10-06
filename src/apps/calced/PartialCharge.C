@@ -15,6 +15,7 @@
 #include "tdat/Fragment.H"
 
 #include "util/BrowserHelp.H"
+#include "wxgui/WxHelpViewer.H"
 #include "util/JMSMessage.H"
 #include "util/JMSPublisher.H"
 #include "util/StringConverter.H"
@@ -625,8 +626,7 @@ void PartialCharge::OnCloseClick(wxCommandEvent& event)
 
 void PartialCharge::OnHelpClick(wxCommandEvent& event)
 {
-  BrowserHelp help;
-  help.showPage(help.URL("HomeFallback"));
+  WxHelpViewer::showKey("HomeFallback");
 }
 
 

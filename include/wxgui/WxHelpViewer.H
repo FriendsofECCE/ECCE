@@ -23,6 +23,23 @@ public:
     // help is not installed.  Returns the window, or NULL on that fallback.
     static WxHelpViewer* show(const std::string& page = "");
 
+    // The help for a window, by its help.urls key ("Organizer", "Launcher.menuBar",
+    // ...): show(pageForKey(key)).
+    static WxHelpViewer* showKey(const std::string& key);
+
+    // The chapter for a key; the part after the first '.' is ignored.  A
+    // window with no chapter of its own gets index.html.
+    static std::string pageForKey(const std::string& key);
+
+    // Test hook, called right after an app has run its own Help menu
+    // handler: when ECCE_TEST_HELP=<png> is set, saves the open help window
+    // to <png>, reports its page on stderr and exits.  Does nothing
+    // otherwise.
+    static void testSnapshot(const std::string& app);
+
+    // Save the window contents as a PNG.
+    bool snapshot(const std::string& png);
+
     // The open window, or NULL.
     static WxHelpViewer* instance() { return p_instance; }
 

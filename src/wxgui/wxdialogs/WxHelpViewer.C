@@ -4,6 +4,8 @@
 #include "wx/wx.h"
 #endif
 
+#include "wx/dcclient.h"
+#include "wx/dcmemory.h"
 #include "wx/filename.h"
 #include "wx/sizer.h"
 #include "wx/splitter.h"
@@ -46,6 +48,64 @@ std::string WxHelpViewer::helpRef(const std::string& version)
     static const std::regex tagged(
         "[0-9]+\\.[0-9]+\\.[0-9]+(-(alpha|beta)\\.[0-9]+)?");
     return std::regex_match(version, tagged) ? "v" + version : "main";
+}
+
+
+std::string WxHelpViewer::pageForKey(const std::string& key)
+{
+    static const struct { const char* key; const char* page; } chapters[] = {
+        {"Organizer", "first-calculation.html#1-create-a-project"},
+        {"WxBuilder", "first-calculation.html#3-build-the-molecule"},
+        {"Builder", "first-calculation.html#3-build-the-molecule"},
+        {"CalculationEditor", "first-calculation.html#4-set-up-the-calculation"},
+        {"Launcher", "first-calculation.html#5-launch"},
+        {"MachineBrowser", "machines.html"},
+    };
+    std::string k = key.substr(0, key.find('.'));
+    for (const auto& c : chapters)
+        if (k == c.key)
+            return c.page;
+    return "index.html";
+}
+
+
+WxHelpViewer* WxHelpViewer::showKey(const std::string& key)
+{
+    return show(pageForKey(key));
+}
+
+
+bool WxHelpViewer::snapshot(const std::string& png)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        Update();
+        wxTheApp->Yield(true);
+        wxMilliSleep(50);
+    }
+    wxSize sz = GetClientSize();
+    wxClientDC screen(this);
+    wxBitmap bmp(sz.x, sz.y);
+    wxMemoryDC mem(bmp);
+    mem.Blit(0, 0, sz.x, sz.y, &screen, 0, 0);
+    mem.SelectObject(wxNullBitmap);
+    return bmp.ConvertToImage().SaveFile(wxString::FromUTF8(png.c_str()),
+                                         wxBITMAP_TYPE_PNG);
+}
+
+
+void WxHelpViewer::testSnapshot(const std::string& app)
+{
+    const char* png = getenv("ECCE_TEST_HELP");
+    if (png == NULL || *png == '\0')
+        return;
+    WxHelpViewer* v = instance();
+    bool saved = v != NULL && v->snapshot(png);
+    fprintf(stderr, "ECCE_TEST_HELP: %s: page %s, %s\n", app.c_str(),
+            v != NULL ? v->currentPage().c_str() : "(not installed)",
+            saved ? "saved" : "not saved");
+    fflush(stderr);
+    _exit(saved ? 0 : 1);
 }
 
 
