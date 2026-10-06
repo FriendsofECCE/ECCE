@@ -1,0 +1,9 @@
+# Normal-mode vectors of the tests/apps fixture calc-water-vib (G16 water),
+# mode 2 (O-H stretch), in the Builder's default display style and in
+# ball-and-stick.
+viewall
+nmvect 2
+snap calc-water-vectors-base
+style Ball And Stick
+nmvect 2
+snap calc-water-vectors-ballstick

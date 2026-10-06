@@ -22,6 +22,7 @@ struct PropertyPanelDescription {
   string className;
   bool consumer;
   bool allowPin;
+  string group;   // heading in the Properties list; "Other" if none
   set<string> properties;
 };
 
@@ -35,6 +36,10 @@ class PropertyPanelFactory
     bool isRelevant(const string& key);
 
     PropertyPanel* createPropertyPanel(const string& name);
+
+    // Position in PropertyPanelDescriptor.xml (-1 if unknown) and its group.
+    int indexOf(const string& name) const;
+    string groupOf(const string& name) const;
 
   protected:
     PropertyPanelFactory();

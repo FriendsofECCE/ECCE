@@ -496,8 +496,8 @@ class Suite(object):
             if state != was:
                 say("  state %s at %.1fs after the launch"
                     % (state, time.time() - launched))
-            #  system_failure is what a lost monitor reports until
-            #  eccejobmaster has restarted eccejobstore.
+            #  A lost monitor shows "waiting" until eccejobmaster has
+            #  restarted eccejobstore (#208); system_failure is a lost job.
             if giveup:
                 if "exited with final status" in self.masterLog(name):
                     break
@@ -528,6 +528,10 @@ class Suite(object):
             self.check(state != "completed",
                        "monitoring was abandoned, the run did not reach "
                        "completed (last: %s)" % (state or "none"))
+            #  #208: a used-up restart budget is not a failure of the job.
+            self.check(state == "waiting",
+                       "the calculation was left waiting for login (last: %s)"
+                       % (state or "none"))
             self.check("TE" not in self.props(url), "no TE was stored")
             return
         self.check(state == "completed",

@@ -57,7 +57,7 @@ add_compile_options(-Wall -Wno-deprecated -Wno-sign-compare -Wno-non-virtual-dto
 
 find_package(XercesC REQUIRED)
 find_package(OpenGL REQUIRED)
-find_package(wxWidgets 3.2 REQUIRED COMPONENTS core base gl aui net)
+find_package(wxWidgets 3.2 REQUIRED COMPONENTS core base gl aui net html)
 include(${wxWidgets_USE_FILE})
 find_package(PkgConfig)
 # X11/GLX/EGL are the viewer's window-system layer (GlPlatform) on Linux and
@@ -1025,6 +1025,24 @@ install(FILES ${CMAKE_SOURCE_DIR}/LICENSE
         DESTINATION .
         COMPONENT client)
 
+# The help (#219): help/src/*.md rendered to HTML at build time by
+# help/render.py (Python 3 standard library only), opened by the Help
+# window (WxHelpViewer) from <prefix>/doc/help.
+find_program(PYTHON3_EXECUTABLE NAMES python3)
+file(GLOB _help_sources CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/help/src/*.md
+     ${CMAKE_SOURCE_DIR}/help/src/img/*)
+add_custom_command(
+  OUTPUT ${CMAKE_BINARY_DIR}/help-html/toc.txt
+  COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/help/render.py
+          ${CMAKE_SOURCE_DIR}/help/src ${CMAKE_BINARY_DIR}/help-html
+  DEPENDS ${_help_sources} ${CMAKE_SOURCE_DIR}/help/render.py
+  COMMENT "Rendering the help pages")
+add_custom_target(ecce_help_pages ALL
+  DEPENDS ${CMAKE_BINARY_DIR}/help-html/toc.txt)
+install(DIRECTORY ${CMAKE_BINARY_DIR}/help-html/
+        DESTINATION doc/help
+        COMPONENT client)
+
 # Named by `ecce --help`, so it has to be on the machine.
 install(FILES ${CMAKE_SOURCE_DIR}/docs/ENVIRONMENT.md
         DESTINATION doc
@@ -1916,6 +1934,19 @@ if(PYTHON3_EXECUTABLE)
                    ${_pf}/qe/h2o_gamma.pwout=-)
   set_tests_properties(importcode PROPERTIES ENVIRONMENT
     "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
+  # tests/importcode/importmeta: the metadata an imported calculation gets
+  # (#235), checked against values read from the output files themselves.
+  add_executable(importmeta tests/importcode/importmeta.C)
+  target_include_directories(importmeta PRIVATE ${XercesC_INCLUDE_DIRS})
+  target_link_libraries(importmeta PRIVATE
+    eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+    eccetdat ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME importmeta
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/importcode/importmeta_test.py
+                   $<TARGET_FILE:importmeta>)
+  set_tests_properties(importmeta PROPERTIES TIMEOUT 300 ENVIRONMENT
+    "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders")
   add_test(NAME fragreaders
            COMMAND fragreaders ${CMAKE_CURRENT_SOURCE_DIR}/tests/fragreaders/data)
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/fragreaders-home)
@@ -1976,6 +2007,12 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_nwchem_restart_local PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  add_test(NAME launch_waiting
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/waiting_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_waiting PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
   add_test(NAME launch_filewait
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/filewait_test.py
@@ -2043,6 +2080,11 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(machregister_gui PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # The Launcher's "Machine settings..." button and its reload after a save.
+  add_test(NAME help_pages
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/help/check.py
+                   ${CMAKE_CURRENT_SOURCE_DIR}/help/src
+                   ${CMAKE_BINARY_DIR}/help-check)
   add_test(NAME machregister_launcher
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister/launcher_test.py

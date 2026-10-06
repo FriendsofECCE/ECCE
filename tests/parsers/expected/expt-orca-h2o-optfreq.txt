@@ -8,6 +8,9 @@ title:	h2o_optfreq
 type:	molecule
 charge:	0
 num_atoms:	3
+fragment_attributes:
+  point_group: C2v
+end_fragment_attributes:
 atom_info:	symbol cart
 atom_list:
  O 0.000000 0.000000 0.123868
@@ -21,7 +24,8 @@ Category:	SCF
 Theory:	RHF
 RunType:	GeoVib
 Charge:	0
-ChemSys.Multiplicity:	1
+ES.ChemSys.Multiplicity:	1
+SphericalBasis:	TRUE
 
 === .gbs
 NameBasis

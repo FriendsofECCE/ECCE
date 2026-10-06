@@ -176,6 +176,7 @@ using std::vector;
 #include "OpenCalculationDialog.H"
 #include "ImportCalculationDialog.H"
 #include "Peptide.H"
+#include "PropertyIndexPanel.H"
 #include "PropertyPanel.H"
 #include "PropertyPanelFactory.H"
 #include "ShapeDropDown.H"
@@ -325,6 +326,10 @@ const string Builder::s_modeText[] = {
   NAME_MODE_STRUCTLIB,
   NAME_MODE_SHAPE
 };
+
+const string Builder::NAME_COLUMN_TABS("Panel Tabs");
+const string Builder::NAME_PROPERTY_INDEX("Property Index");
+const string Builder::NAME_COLUMN_TOGGLE("Column Toggle");
 
 const string Builder::NAME_LAYOUT_PREFIX("/PaneLayout/");
 const string Builder::NAME_LAYOUT_DEFAULT("Default");
@@ -525,7 +530,9 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   SGContainer::initClass();
   SGContainerManager::initClass();
 
+  initPanelMode();
   createMenus();
+  createViewMenu();
   createToolbar();
   createMainPanel();
   createToolPanels();
@@ -992,6 +999,19 @@ void Builder::createToolPanels()
   ewxLogTextCtrl *logWindow = new ewxLogTextCtrl(log, GetStatusBar());
   delete wxLog::SetActiveTarget(logWindow);
   addToolPanel(log, NAME_TOOL_LOG, false, false);
+  //  In the one-column layouts the log lives collapsed to its caption bar
+  //  and opens by itself when something is written to it.
+  logWindow->setMessageHandler([this](wxLogLevel) {
+    CallAfter([this]() {
+      if (isColumnMode()) {
+        wxAuiPaneInfo &pane = p_mgr.GetPane(NAME_TOOL_LOG);
+        if (pane.IsOk() && pane.IsShown() && p_folded.count(pane.window)) {
+          foldPane(pane.window, false);
+          updatePanes();
+        }
+      }
+    });
+  });
 
   if (getenv("ECCE_DEVELOPER")) {
     p_toolMenu->AppendCheckItem(ID_SHOW_CMD, NAME_TOOL_COMMAND_LINE, "");
@@ -1003,6 +1023,70 @@ void Builder::createToolPanels()
   pinfo.Name(NAME_TOOL_STRUCTLIB).Caption(NAME_TOOL_STRUCTLIB)
           .Show(false).CaptionVisible(true).Right().Resizable(true);
   p_mgr.AddPane(p_structLib, pinfo);
+  p_structureNames.insert(NAME_TOOL_STRUCTLIB);
+
+  //  The two tab buttons that head the one-column layouts, and the list
+  //  that heads the Properties tab in the list + detail layout.  Both are
+  //  ordinary panes, hidden unless the layout uses them.
+  p_tabsPanel = new wxPanel(this, wxID_ANY);
+  wxBoxSizer *tabRow = new wxBoxSizer(wxHORIZONTAL);
+  const char *tabNames[2] = { "Structure", "Properties" };
+  for (int t = 0; t < 2; ++t) {
+    p_tabButtons[t] = new wxToggleButton(p_tabsPanel, wxID_ANY, tabNames[t]);
+    p_tabButtons[t]->Bind(wxEVT_TOGGLEBUTTON, [this, t](wxCommandEvent&) {
+      CallAfter([this, t]() { setColumnTab(t, true); });
+    });
+    tabRow->Add(p_tabButtons[t], 1, wxEXPAND | wxALL, 2);
+  }
+  p_tabsPanel->SetSizer(tabRow);
+  p_tabsPanel->SetMinSize(wxSize(200, 34));
+  wxAuiPaneInfo tabInfo;
+  tabInfo.Name(NAME_COLUMN_TABS).CaptionVisible(false).Right().Layer(1)
+         .Position(0).Fixed().Floatable(false).Movable(false)
+         .CloseButton(false).PaneBorder(false).Gripper(false)
+         .MinSize(p_tabsPanel->GetMinSize())
+         .BestSize(p_tabsPanel->GetMinSize()).Show(false);
+  tabInfo.dock_proportion = 1;
+  p_mgr.AddPane(p_tabsPanel, tabInfo);
+
+  p_index = new PropertyIndexPanel(this);
+  p_index->setSelectHandler([this](const string& name) {
+    CallAfter([this, name]() { selectDetail(name); });
+  });
+  wxAuiPaneInfo indexInfo;
+  indexInfo.Name(NAME_PROPERTY_INDEX).Caption("Properties").CaptionVisible(true)
+           .Right().Layer(1).Position(1).Resizable(true).CloseButton(false)
+           .Floatable(false).MinSize(wxSize(200, 150))
+           .BestSize(wxSize(400, 230)).Show(false);
+  indexInfo.dock_proportion = INDEX_PROPORTION;
+  p_mgr.AddPane(p_index, indexInfo);
+
+  //  The arrow on the border between the viewer and the column: a thin
+  //  fixed pane of its own in the innermost right-hand layer, so it stays
+  //  put when the column behind it is hidden.
+  p_togglePanel = new wxPanel(this, wxID_ANY);
+  p_toggleButton = new wxBitmapButton(p_togglePanel, wxID_ANY,
+      wxArtProvider::GetBitmap(wxART_GO_FORWARD, wxART_BUTTON),
+      wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+  p_toggleButton->SetToolTip(_("Hide the side panels"));
+  p_toggleButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    CallAfter([this]() { setColumnCollapsed(!p_columnHidden); });
+  });
+  wxBoxSizer *toggleCol = new wxBoxSizer(wxVERTICAL);
+  toggleCol->AddStretchSpacer(1);
+  toggleCol->Add(p_toggleButton, 0, wxALIGN_CENTER_HORIZONTAL);
+  toggleCol->AddStretchSpacer(1);
+  p_togglePanel->SetSizer(toggleCol);
+  const wxSize toggleSize(p_toggleButton->GetBestSize().x + 2, 40);
+  p_togglePanel->SetMinSize(toggleSize);
+  wxAuiPaneInfo toggleInfo;
+  toggleInfo.Name(NAME_COLUMN_TOGGLE).CaptionVisible(false).Right().Layer(0)
+            .Position(0).Fixed().Floatable(false).Movable(false)
+            .CloseButton(false).PaneBorder(false).Gripper(false)
+            .MinSize(toggleSize).BestSize(toggleSize);
+  p_mgr.AddPane(p_togglePanel, toggleInfo);
+
+  applyGeometry();
 }
 
 
@@ -1453,7 +1537,13 @@ void Builder::setContext(const string& url, const bool& force)
       wxAuiPaneInfo &info = p_mgr.GetPane(*panels.begin());
       if (info.IsOk()) {
         info.Show();
-        p_mgr.Update(); // TODO is this needed yet or can it wait?
+        if (p_panelMode == PANELS_DETAIL &&
+            paneGroup(info) == GROUP_PROPERTIES) {
+          setDetail(info.window);
+        }
+        p_stayCollapsed = true;   // opening a calculation is not a request
+        updatePanes(true); // TODO is this needed yet or can it wait?
+        p_stayCollapsed = false;
       }
     }
   }
@@ -2017,7 +2107,10 @@ void Builder::restoreSettings()
    wxRect area = wxDisplay(displayIdx == wxNOT_FOUND ? 0 : displayIdx)
                    .GetClientArea();
    wxSize size = GetSize();
-   if (firstRun) {
+   if (getenv("ECCE_PANEL_FULLSCREEN")) {
+     SetSize(area);
+     Move(area.GetPosition());
+   } else if (firstRun) {
      size = wxSize(area.width * 8 / 10, area.height * 8 / 10);
      SetSize(size);
      CentreOnScreen();
@@ -2052,6 +2145,7 @@ void Builder::restoreSettings()
      config->DeleteEntry("/ReadOnlyPerspective");
      config->DeleteEntry("/StructLibPerspective");
      config->DeleteGroup("/PaneLayout");
+     config->DeleteGroup("/PaneLayoutColumn");
    }
 
    wxCommandEvent evt(wxEVT_COMMAND_MENU_SELECTED);
@@ -2768,7 +2862,7 @@ void Builder::updateForAnyEdit()
          panel->refresh();
       }
 
-      p_mgr.Update();
+      updatePanes();
       GetMenuBar()->Check(GetMenuBar()->FindMenuItem("Tools", "Residue Table"), true);
    }
 
@@ -3145,7 +3239,7 @@ void Builder::OnViewerChoice( wxCommandEvent& event )
           PinButton(true).MaximizeButton(true).MinimizeButton(true).
           Left().Show(true);
   p_mgr.AddPane(viewer, pinfo);
-  p_mgr.Update();
+  updatePanes();
 }
 
 
@@ -3232,16 +3326,27 @@ void Builder::OnPropertyMenuClick( wxCommandEvent& event )
 {
   wxString name = p_propertyMenu->GetLabelText(event.GetId());
   wxAuiPaneInfo &pane = p_mgr.GetPane(name);
+  if (!pane.IsOk()) {
+    return;
+  }
+  wxWindow *win = pane.window;
+  const bool docked = paneGroup(pane) == GROUP_PROPERTIES;
   if (!event.IsChecked()) {
     unfoldPane(pane);
-  }
-  pane.Show(event.IsChecked());
-  // If caption panel is toggled closed, open it by default
-  if (event.IsChecked() && !pane.IsShown()) {
+    p_tabHidden.erase(win);
+    if (p_detail == win) {
+      p_detail = 0;
+    }
+    pane.Show(false);
+  } else {
     pane.Show(true);
-    pane.Position(0);
+    if (docked && p_panelMode == PANELS_ACCORDION) {
+      accordionNormalize(win);
+    } else if (docked && p_panelMode == PANELS_DETAIL) {
+      setDetail(win);
+    }
   }
-  p_mgr.Update();
+  updatePanes(true);
 }
 
 
@@ -3329,10 +3434,8 @@ void Builder::OnToolMenuClick( wxCommandEvent& event )
 {
   wxAuiPaneInfo &pane = p_mgr.GetPane(GetMenuBar()->GetLabel(event.GetId()));
   pane.Show(event.IsChecked());
-  // If caption panel is toggled closed, open it by default
-  if (event.IsChecked() && !pane.IsShown()) {
-    pane.Show(true);
-    pane.Position(0);
+  if (!event.IsChecked()) {
+    p_tabHidden.erase(pane.window);
   }
   // If its a viz tool, call virtual refresh to force updating
   // Works around bug where we can't override show because it gets
@@ -3341,7 +3444,7 @@ void Builder::OnToolMenuClick( wxCommandEvent& event )
   if (panel && event.IsChecked()) {
     panel->refresh();
   }
-  p_mgr.Update();
+  updatePanes(true);
   debugPrintPaneSizes(p_mgr);
 
 
@@ -3365,7 +3468,7 @@ void Builder::OnDockFloatingPanels(wxCommandEvent& event)
       changed = true;
     }
   }
-  if (changed) p_mgr.Update();
+  if (changed) updatePanes();
 }
 
 
@@ -3373,7 +3476,8 @@ void Builder::OnPaneButton(wxAuiManagerEvent& event)
 {
   wxAuiPaneInfo *pane = event.GetPane();
   if (event.GetButton() != wxAUI_BUTTON_PIN || pane == 0 ||
-      dynamic_cast<PropertyPanel*>(pane->window) == 0) {
+      (dynamic_cast<PropertyPanel*>(pane->window) == 0 &&
+       pane->name != NAME_TOOL_LOG)) {
     event.Skip();
     return;
   }
@@ -3388,20 +3492,33 @@ void Builder::toggleFold(wxWindow *win)
   if (!pane.IsOk()) {
     return;
   }
-  if (p_folded.count(win)) {
+  const bool opening = p_folded.count(win) > 0;
+  foldPane(win, !opening);
+  if (opening && p_panelMode == PANELS_ACCORDION &&
+      paneGroup(pane) == GROUP_PROPERTIES) {
+    accordionNormalize(win);
+  }
+  updatePanes();
+}
+
+
+//  Folds a pane to its caption bar or opens it again.  Does not lay out:
+//  the caller does, so several panes can change in one Update().
+void Builder::foldPane(wxWindow *win, bool fold)
+{
+  wxAuiPaneInfo &pane = p_mgr.GetPane(win);
+  if (!pane.IsOk() || fold == (p_folded.count(win) > 0)) {
+    return;
+  }
+  if (!fold) {
     unfoldPane(pane);
-    win->Show();
-  } else {
-    FoldState st = { pane.best_size, pane.min_size, pane.IsResizable(),
-                     pane.dock_proportion };
-    p_folded[win] = st;
-    pane.BestSize(wxSize(st.best.x, 1)).MinSize(wxSize(st.min.x, 1)).Fixed();
-    pane.dock_proportion = 1;
+    return;
   }
-  p_mgr.Update();
-  if (p_folded.count(win)) {
-    win->Hide();
-  }
+  FoldState st = { pane.best_size, pane.min_size, pane.IsResizable(),
+                   pane.dock_proportion };
+  p_folded[win] = st;
+  pane.BestSize(wxSize(st.best.x, 1)).MinSize(wxSize(st.min.x, 1)).Fixed();
+  pane.dock_proportion = 1;
 }
 
 
@@ -3424,9 +3541,17 @@ wxString Builder::paneInfoForSave(wxAuiPaneInfo &pane)
 {
   map<wxWindow*, FoldState>::iterator it = p_folded.find(pane.window);
   if (it == p_folded.end()) {
+    if (p_tabHidden.count(pane.window)) {
+      wxAuiPaneInfo shown(pane);
+      shown.Show(true);
+      return p_mgr.SavePaneInfo(shown);
+    }
     return p_mgr.SavePaneInfo(pane);
   }
   wxAuiPaneInfo copy(pane);
+  if (p_tabHidden.count(pane.window)) {
+    copy.Show(true);
+  }
   copy.BestSize(it->second.best).MinSize(it->second.min)
       .Resizable(it->second.resizable);
   copy.dock_proportion = it->second.proportion;
@@ -3445,6 +3570,10 @@ void Builder::OnPaneClose(wxAuiManagerEvent& event)
     wxString name(event.pane->name);
     wxWindow *win = event.pane->window;
     unfoldPane(*event.pane);
+    p_tabHidden.erase(win);
+    if (p_detail == win) {
+      p_detail = 0;
+    }
     int tool_id = p_toolMenu->FindItem(name);
     int prop_id = p_propertyMenu->FindItem(name);
     if (tool_id != wxNOT_FOUND) {
@@ -4240,11 +4369,14 @@ void Builder::savePaneLayout(const wxString& layoutName_)
   }
 
   ewxConfig *config = ewxConfig::getConfig("wxbuilder.ini");
-  wxString layoutPrefix = NAME_LAYOUT_PREFIX + layoutName + '/'; 
+  wxString layoutPrefix = wxString(this->layoutPrefix()) + layoutName + '/'; 
   // iterate over all panes and save their layout info
   wxAuiPaneInfoArray &panes = p_mgr.GetAllPanes();
   for (size_t i = 0, count = panes.GetCount(); i < count; ++i) {
     wxAuiPaneInfo &pane = panes.Item(i);
+    if (pane.name == NAME_COLUMN_TOGGLE) {
+      continue;
+    }
     wxString info = paneInfoForSave(pane);
     if (dynamic_cast<PropertyPanel*>(pane.window)) {
       // prop panel layouts are save elsewhere
@@ -4276,7 +4408,7 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
   }
 
   ewxConfig *config = ewxConfig::getConfig("wxbuilder.ini");
-  wxString layoutPrefix = NAME_LAYOUT_PREFIX + layoutName; 
+  wxString layoutPrefix = wxString(this->layoutPrefix()) + layoutName; 
 
   if (!config->HasGroup(layoutPrefix)) {
     // the following also calls savePaneLayout()
@@ -4299,6 +4431,8 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
     wxAuiPaneInfo &pane = p_mgr.GetPane(*ppanelIt);
     if (pane.IsOk()) {
       p_folded.erase(pane.window);
+      p_tabHidden.erase(pane.window);
+      p_columnSeen.erase(pane.window);
       pane.window->Hide();
       p_mgr.DetachPane(*ppanelIt);
     }
@@ -4311,7 +4445,9 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
   for (size_t i = 0, count = panes.GetCount(); i < count; ++i) {
     wxAuiPaneInfo &pane = panes.Item(i);
     wxString info;
-    if (config->Read(layoutPrefix + pane.name, &info)) {
+    if (pane.name != NAME_COLUMN_TOGGLE &&
+        config->Read(layoutPrefix + pane.name, &info)) {
+      unfoldPane(pane);     // the saved info carries the unfolded sizes
       p_mgr.LoadPaneInfo(info, pane);
       //  A layout saved under an older build carries whatever flat
       //  min_size.x was in force when it was saved (e.g. the old flat
@@ -4323,7 +4459,8 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
       minSize.x = contentMinWidth(pane.window);
       //  Likewise a fixed pane's saved height, which may predate a font
       //  change.
-      if (pane.IsFixed() && !pane.IsToolbar() && pane.name != NAME_TOOL_CONTEXT) {
+      if (pane.IsFixed() && !pane.IsToolbar() && pane.name != NAME_TOOL_CONTEXT &&
+          pane.name != NAME_COLUMN_TABS) {
         minSize.y = contentFixedHeight(pane.window);
       }
       pane.MinSize(minSize);
@@ -4380,13 +4517,13 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
         panel->refresh();
      }
 
-     p_mgr.Update();
+     updatePanes();
      GetMenuBar()->Check(GetMenuBar()->FindMenuItem("Tools", "Residue Table"), true);
   } else if (frag->numResidues()==0 &&
                p_mgr.GetPane("Residue Table").IsShown()) {
      p_mgr.GetPane("Residue Table").Show(false).Show(false);
 
-     p_mgr.Update();
+     updatePanes();
      GetMenuBar()->Check(GetMenuBar()->FindMenuItem("Tools", "Residue Table"), false);
   }
 
@@ -4406,8 +4543,14 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
      symmetryShown = true;
   }
 
+  if (isColumnMode()) {
+    applyGeometry();
+    refreshColumn();
+    collapseLog();
+  }
+
   if (update || symmetryShown) {
-    p_mgr.Update();
+    updatePanes();
     debugPrintPaneSizes(p_mgr);
   }
 }
@@ -4454,6 +4597,14 @@ void Builder::loadDefaultPaneLayout(const wxString& layoutName,
     names.insert(NAME_TOOL_SYMMETRY);
 
     names.insert(NAME_TOOL_LOG);
+    if (isColumnMode()) {
+      //  One column is short: Open structures, Build, Selection, Atom
+      //  Table and Symmetry fit a 720-pixel screen; Coordinates is one
+      //  click away in the Tools menu.
+      names.erase(NAME_TOOL_COORDINATES);
+      names.insert(NAME_TOOL_SELECTION);
+      names.insert(NAME_TOOL_ATOM_TABLE);
+    }
   } else if (layoutName == NAME_LAYOUT_STRUCTLIB) {
     // All tools are hidden except Structure Library
     names.insert(NAME_TOOL_CONTEXT);
@@ -4497,7 +4648,7 @@ void Builder::loadDefaultPaneLayout(const wxString& layoutName,
   savePaneLayout(layoutName);
 
   if (update) {
-    p_mgr.Update();
+    updatePanes();
   }
 }
 
@@ -4662,8 +4813,9 @@ void Builder::updatePropertyMenus()
     }
   }
 
+  refreshColumn();
   if (needUpate) {
-    p_mgr.Update(); // TODO is this needed yet or can it wait?
+    updatePanes(); // TODO is this needed yet or can it wait?
   }
 
   //  ECCE_OPEN_PANEL=<name> (#171): headless capture needs a way to open
@@ -4685,6 +4837,13 @@ void Builder::updatePropertyMenus()
       if (pane.IsOk()) {
         openPanelDone = true;
         pane.Show(true);
+        if (p_panelMode == PANELS_DETAIL &&
+            paneGroup(pane) == GROUP_PROPERTIES) {
+          setDetail(pane.window);
+        } else if (p_panelMode == PANELS_ACCORDION &&
+                   paneGroup(pane) == GROUP_PROPERTIES) {
+          accordionNormalize(pane.window);
+        }
         for (int i = 0; i < p_propertyMenu->GetMenuItemCount(); i++) {
           wxMenuItem *item = p_propertyMenu->FindItemByPosition(i);
           if (item != 0 && item->GetItemLabelText() == openPanelName) {
@@ -4692,7 +4851,9 @@ void Builder::updatePropertyMenus()
             break;
           }
         }
-        p_mgr.Update();
+        p_stayCollapsed = getenv("ECCE_PANEL_COLLAPSED") != 0;
+        updatePanes(true);
+        p_stayCollapsed = false;
       } else if (p_propertyMenu->GetMenuItemCount() > 0) {
         // Panels exist now and still no match -- report once rather
         // than on the very first (panel-less) pass.
@@ -4701,6 +4862,46 @@ void Builder::updatePropertyMenus()
                         "for this calculation\n", openPanelName);
       }
     }
+  }
+
+  //  ECCE_PANEL_METRICS=<file>: once the layout has settled, write the
+  //  3-D viewer's width and the window's, for the layout screenshots.
+  static bool panelMetricsStarted = false;
+  const char *metricsPath = getenv("ECCE_PANEL_METRICS");
+  if (metricsPath != 0 && !panelMetricsStarted && p_calculation != 0 &&
+      p_propertyMenu->GetMenuItemCount() > 0) {
+    panelMetricsStarted = true;
+    string path = metricsPath;
+    wxTimer *timer = new wxTimer();   // lives until the process exits
+    timer->Bind(wxEVT_TIMER, [this, path](wxTimerEvent&) {
+      wxAuiPaneInfoArray &panes = p_mgr.GetAllPanes();
+      FILE *f = fopen(path.c_str(), "w");
+      if (f) {
+        static const char *modeNames[] = { "classic", "stacked", "accordion",
+                                           "detail" };
+        fprintf(f, "mode %s\n", modeNames[p_panelMode]);
+      }
+      for (size_t i = 0; f && i < panes.GetCount(); ++i) {
+        if (panes.Item(i).dock_direction == wxAUI_DOCK_CENTER) {
+          fprintf(f, "viewer %d of %d px wide, %d of %d px high\n",
+                  panes.Item(i).rect.width, GetClientSize().x,
+                  panes.Item(i).rect.height, GetClientSize().y);
+        }
+      }
+      if (f) fclose(f);
+    });
+    timer->StartOnce(12000);
+  }
+
+  //  ECCE_PANEL_TEST=<file>: run the panel-layout checks of
+  //  BuilderPanels.C once the property panels exist, then exit.
+  static bool panelTestStarted = false;
+  if (getenv("ECCE_PANEL_TEST") != 0 && !panelTestStarted &&
+      p_calculation != 0 && p_propertyMenu->GetMenuItemCount() > 0) {
+    panelTestStarted = true;
+    wxTimer *timer = new wxTimer();   // lives until the process exits
+    timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) { runPanelLayoutTest(); });
+    timer->StartOnce(5000);
   }
 
   //  ECCE_TEST_IMPORT=<file>: run Add Structure from File on <file> once the
@@ -5009,7 +5210,7 @@ void Builder::updateReadOnly(const bool& loadPaneFlag)
   if (help_menu_item) help_menu_item->SetItemLabel(menu_help);
   SetTitle(title);
   
-  p_mgr.Update();
+  updatePanes();
 }
 
 
@@ -5253,6 +5454,10 @@ void Builder::addToolPanel(wxWindow *panel, const string& name,
   if (vizTool)
     vizTool->connectToolKitFW(this);
 
+  p_toolIndex[name] = p_toolCount;
+  if (name != NAME_TOOL_LOG) {
+    p_structureNames.insert(name);
+  }
   p_toolMenu->AppendCheckItem(ID_TOOLMENU_ITEM+p_toolCount, name, "");
   if (readOnlyDisabled) {
     p_readOnlyDisabledIds.insert(ID_TOOLMENU_ITEM+p_toolCount);
@@ -5406,6 +5611,7 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
                         std::max(PANEL_HEIGHT_MIN, panel->minimumHeight())));
     info.BestSize(wxSize(paneMinWidth, paneHeight));
     info.dock_proportion = paneHeight;
+    p_baseProportion[panel] = paneHeight;
 
     // ECCE_DEBUG_PANEL_SIZE=1 prints what each panel asked for and what
     // it got, so a pane that comes out wrong can be attributed to the
@@ -5449,9 +5655,26 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
     static const set<string> defaultShown = {
       "Calculation Summary", "Energies", "MOs"
     };
-    info.Show(defaultShown.find(name) != defaultShown.end());
+    bool show = defaultShown.find(name) != defaultShown.end();
+    if (p_panelMode == PANELS_DETAIL) {
+      show = false;                     // ensureDetail() picks the one
+    } else if (p_panelMode == PANELS_ACCORDION && !floating) {
+      show = true;                      // all of them, as caption bars
+    }
+    info.Show(show);
 
     info.Position(p_propertyMenu->GetMenuItemCount());
+    if (!floating) {
+      const int order = PropertyPanelFactory::getPropertyPanelFactory()
+                          .indexOf(name);
+      if (isColumnMode()) {
+        info.Right().Layer(1).Row(0).Position(2 + (order < 0 ? 500 : order));
+        info.PinButton(p_panelMode != PANELS_DETAIL);
+        if (p_panelMode == PANELS_DETAIL) {
+          info.dock_proportion = DETAIL_PROPORTION;
+        }
+      }
+    }
     p_mgr.AddPane(panel, info);
   }
 
@@ -5523,6 +5746,11 @@ void Builder::removePropertyPanels(const string& context)
   set<PropertyPanel*>::iterator panelIt;
   for (panelIt = panels.begin(); panelIt != panels.end(); ++panelIt) {
     p_folded.erase(*panelIt);
+    p_tabHidden.erase(*panelIt);
+    p_columnSeen.erase(*panelIt);
+    p_baseProportion.erase(*panelIt);
+    if (p_detail == *panelIt) p_detail = 0;
+    if (p_accordionOpen == *panelIt) p_accordionOpen = 0;
     p_mgr.DetachPane(*panelIt);
   }
   PropertyPanel::removePanels(contextToClose);
@@ -5772,7 +6000,7 @@ void Builder::propertyChangeMCB(JMSMessage& msg)
   }
 
   if (needUpate) {
-    p_mgr.Update();
+    updatePanes();
   }
 }
 

@@ -8,6 +8,9 @@ title:	 "water opt freq test with ecce_print distinct ext"
 type:	molecule
 charge:	0
 num_atoms:	3
+fragment_attributes:
+  point_group: Cs
+end_fragment_attributes:
 atom_info:	symbol cart
 atom_list:
  O -0.15019108 -0.00009839 0.00000000
@@ -20,6 +23,7 @@ Category:	SCF
 Theory:	RHF
 RunType:	Geometry
 charge:	0
+ES.ChemSys.Multiplicity:	1
 
 
 === .gbs
