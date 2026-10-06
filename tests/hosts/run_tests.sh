@@ -96,7 +96,9 @@ PW_alice=alicepw PW_bob=bobpw PW_carol=carolpw
 pw() { local v="PW_$1"; echo "${!v}"; }
 
 # The environment of a session of USER, for the library probe.
-sess_env() { echo "ECCE_HOME=/opt/ecce ECCE_REALUSERHOME=/home/$1 HOST=$1-host DISPLAY=:9"; }
+# The id `ecce` made for USER's session (#233): the newest session on its host.
+sess_id() { A "$1" "$1" cat "/home/$1/.ECCE/session_$1-host" 2>/dev/null; }
+sess_env() { echo "ECCE_HOME=/opt/ecce ECCE_REALUSERHOME=/home/$1 HOST=$1-host ECCE_SESSION_ID=$(sess_id "$1")"; }
 
 PUB="mosquitto_pub -h server -p 8088 -V mqttv5 -q 1"
 # pub HOST ACCOUNT PASSWORD TOPIC PAYLOAD: a plain MQTT publish from HOST's
@@ -138,8 +140,8 @@ start_sessions() {
       A "$u" "$u" client-session.sh start
   done
   for u in alice bob; do
-    check "[$mode] $u: the session found the broker on the server (broker file: host=server port=8088)" \
-      A "$u" "$u" bash -c "grep -qx host=server ~/.ECCE/broker_$u-host__9 && grep -qx port=8088 ~/.ECCE/broker_$u-host__9"
+    check "[$mode] $u: the session found the broker on the server (broker_<host>_<session id>: host=server port=8088)" \
+      A "$u" "$u" bash -c "f=~/.ECCE/broker_$u-host_\$(cat ~/.ECCE/session_$u-host) && grep -qx host=server \"\$f\" && grep -qx port=8088 \"\$f\""
     check "[$mode] $u: no broker of the client's own (no mosquitto process, no pidfile)" \
       A "$u" "$u" bash -c '! pgrep -x mosquitto && [ ! -e ~/.ECCE/mosquitto.pid ]'
   done

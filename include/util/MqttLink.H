@@ -10,7 +10,7 @@
 //
 //    Topics: ecce/<user>/<topic> for FILTER BY NONE and USER,
 //    ecce/<user>/session/<host>_<id>/<topic> for the session class
-//    (FILTER BY USER:HOSTNAME:DISPLAY; the key is Ecce::sessionKey()).
+//    (FILTER BY: SESSION; the key is Ecce::sessionKey()).
 //    Sender and target travel as MQTT 5 user properties.
 ///////////////////////////////////////////////////////////////////////////////
 #ifndef MQTTLINK_HH

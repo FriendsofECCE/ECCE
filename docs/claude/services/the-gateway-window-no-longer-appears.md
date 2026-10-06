@@ -19,7 +19,7 @@ revert. With the frame hidden the gateway quits once no other app of
 its session is left (#185; job monitors don't count), ending only that
 session (there is no relay to stop; the session's credential file goes
 with the reaper's sweep). **A per-user broker stops with the user's last
-session on any display; a server's broker never does on a plain quit**
+session; a server's broker never does on a plain quit**
 (#191). "A server's" comes only from declarations, never from who is
 connected (clients may tunnel in over loopback): `siteconfig/
 SharedBroker` (mode 3, a systemd service no user can stop, not even

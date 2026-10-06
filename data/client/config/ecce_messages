@@ -1,15 +1,15 @@
-// This file defines all the JMS messages used by Ecce.
-// Our current JMS server (JORAM) requires that topics be registered
-// before they are used so they are all defined here.
-//
-// The FILTER BY section controls the type of JMS filtering done but
-// also may include local filtering.  In particular the section
-// FILTER BY: USER:HOSTNAME:DISPLAY are messages that are never routed
-// to the JMS server (local java router).
+// The message topics ECCE uses, by how far they reach (MqttTopicMap,
+// src/util/jms/MqttLink.C):
+//   FILTER BY: SESSION  one session: ecce/<user>/session/<host>_<id>/<topic>,
+//                       the key of Ecce::sessionKey() (#233)
+//   FILTER BY: NONE     every session of the user: ecce/<user>/<topic>
+//   FILTER BY: USER     the same topic level as NONE
+// Any other FILTER BY name counts as SESSION (8.x files say
+// USER:HOSTNAME:DISPLAY).
 //
 // Comments can be added by starting a line with // or #
 
-FILTER BY: USER:HOSTNAME:DISPLAY
+FILTER BY: SESSION
 
 ecce_quit
 ecce_identify

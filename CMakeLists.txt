@@ -1052,9 +1052,10 @@ endif()
 # just the messaging-using ones; the previous wrapper never set them, so
 # every app would have aborted on first touching preferences/cache paths.
 # HOST must also be exported: the broker file and the session topics are
-# keyed by HOST and DISPLAY (ecce-gateway-start, MqttLink.C) - tcsh set
-# HOST automatically for the old launcher; a plain sh/bash wrapper has to
-# do it explicitly or the two sides name different sessions.
+# keyed by HOST and ECCE_SESSION_ID (ecce-session-lib.sh, Ecce::sessionKey,
+# #233), and every program of the session must derive the same host.
+# DISPLAY is defaulted only so that X programs start under cron or ssh; it
+# is not part of the session (drop the default with #166).
 set(ECCE_MESSAGING_APPS ${ECCE_GUI_APPS} eccejobmaster eccejobstore)
 
 foreach(_app ${ECCE_GUI_APPS} ${ECCE_CLI_APPS})
@@ -1063,7 +1064,7 @@ foreach(_app ${ECCE_GUI_APPS} ${ECCE_CLI_APPS})
   if(_msg_idx GREATER -1)
     # Started under -remote too: every app needs this session's relay, and
     # ecce-gateway-start itself skips the local broker in that mode (#167).
-    # It fails only when there is no relay for this display, and every one
+    # It fails only when there is no relay for this session, and every one
     # of these apps would then abort on the missing port file
     # (JMSMessage.C), so stop here with its message instead.
     # The session id (#233): inherited from `ecce` or the gateway that
@@ -1592,6 +1593,9 @@ add_executable(session_key_test tests/session/session_key_test.C)
 target_link_libraries(session_key_test PRIVATE ecceutil)
 add_test(NAME session-key COMMAND session_key_test
          ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-session-lib.sh)
+add_test(NAME session-display-gate COMMAND bash
+         ${CMAKE_SOURCE_DIR}/tests/session/display_gate.sh ${CMAKE_SOURCE_DIR})
+set_tests_properties(session-display-gate PROPERTIES SKIP_RETURN_CODE 77)
 
 # tests/mqtt -- the messaging library against a private mosquitto on a Unix
 # socket; checks delivery, not just acknowledgement.  "auth" is the same on

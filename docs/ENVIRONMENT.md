@@ -71,7 +71,8 @@ those settings.
 | `ECCE_DATASERVER_LISTEN` | Which addresses the data server and its broker listen on. Also read from `~/.ECCE/dataserver/listen`; the variable wins. | `loopback` (default; `localhost` is the same), `all` (also `*`, `0.0.0.0`, `::`), or a list of addresses added to loopback. |
 | `ECCE_HELP` | Base URL of the help pages. Required by the help code. | URL. The launchers default it to `http://localhost:8096/`. |
 | `ECCE_NWCHEM_DATA` | Directory holding NWChem's force-field data (`amber_s/amber.par`), referred to as `$ECCE_NWCHEM_DATA` in `siteconfig/DataServers`. A setting that does not hold that file is ignored with a note. | Path. The launchers fill it in with `ecce-nwchem-datadir`, which searches the usual locations. |
-| `ECCE_HOST` | Host name that keys the per-session state files. | Default `$HOST`, else `hostname`. The launchers pass `$HOST` to the dispatcher. |
+| `ECCE_HOST` | Host name in the session key `<host>_<id>`, which names the per-session files (`~/.ECCE/broker_<key>`, `authcache_<key>`) and the session's broker topics. | Default `$HOST`, else `hostname`. |
+| `ECCE_SESSION_ID` | The session a process belongs to (#233). Every `ecce` makes a new one, so two `ecce` on one display are two sessions; every program it starts inherits it, whatever its `DISPLAY`. An `ecce-<app>` started without one joins the newest live session of this account on this host (`~/.ECCE/session_<host>`), else starts a session of its own. A program without one and with no live session has no messaging. | 16 lower-case hex characters. Set by `ecce`; not normally set by hand. |
 | `ECCE_AUTO_ACCOUNTS` | Data server creates web accounts automatically. **A key in `site_runtime`, not an environment variable.** | `yes`/`true` (any case) to enable. Users cannot override it. |
 | `ECCE_STORE_TRAJECTORIES` | Users may store molecular-dynamics trajectories on the server. **A key in `site_runtime`, not an environment variable.** | `yes`/`true` (any case). `no` forbids it for everyone. |
 
@@ -180,7 +181,8 @@ These are CMake options, not environment variables: `ECCE_HOME_DIR`
 | Variable | Effect |
 |---|---|
 | `VISUAL`, `EDITOR` | Editor when `ECCE_EDITOR` and the Preferences setting are empty. |
-| `HOST`, `DISPLAY` | The launchers default them (`hostname`, `:0`); per-session state files are keyed by both. |
+| `HOST` | The launchers default it to `hostname`; the host part of the session key (see `ECCE_HOST`). |
+| `DISPLAY` | The X display, and nothing else: it does not identify the session (#233). The Linux launchers default it to `:0`. |
 | `GDK_BACKEND` | The launchers set it to `x11` under a Wayland session unless already set, to avoid mis-sized windows. |
 
 ## Keys in `site_runtime` that nothing in this build reads

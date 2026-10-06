@@ -4,7 +4,7 @@
 # message.
 
 # A user reads and writes only below their own name, session messages
-# included (ecce/<user>/session/<host>_<display>/...).
+# included (ecce/<user>/session/<host>_<session id>/...).
 pattern readwrite ecce/%u/#
 
 # Machine registrations are site-wide: everyone may hear that one changed,

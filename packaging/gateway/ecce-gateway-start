@@ -19,7 +19,6 @@ export ECCE_HOME
 export ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
 export ECCE_REALUSER="${ECCE_REALUSER:-$(id -un)}"
 export HOST="${HOST:-$(hostname)}"
-export DISPLAY="${DISPLAY:-:0}"
 
 _lib="$(dirname "$(readlink -f "$0")")/ecce-session-lib.sh"
 [ -r "$_lib" ] || _lib="$ECCE_HOME/bin/ecce-session-lib.sh"
