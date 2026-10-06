@@ -11,6 +11,9 @@
 
 #include "inv/nodes/SoMaterial.H"
 #include "inv/nodes/SoSwitch.H"
+#include "inv/nodes/SoSeparator.H"
+#include "inv/nodes/SoCallback.H"
+#include <GL/gl.h>
 #include "inv/nodes/SoShapeHints.H"
 #include "inv/nodes/SoClipPlane.H"
 #include "inv/actions/SoGLRenderAction.H"
@@ -78,6 +81,12 @@ void SGContainer::initClass()
    //  The normal-mode scene holds PropSGFragments; registering here covers
    //  every app that builds a container scene (Coin aborts on an unknown type).
    PropSGFragment::initClass();
+}
+
+static void nmvecClearDepth(void *, SoAction *action)
+{
+   if (action->isOfType(SoGLRenderAction::getClassTypeId()))
+      glClear(GL_DEPTH_BUFFER_BIT);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -321,8 +330,17 @@ void SGContainer::constructor()
    p_mainSep->addChild(p_MOSwitch);
    initMORoot();
 
+   // Clearing the depth buffer first puts the vibration arrows on top of
+   // the atom spheres they start from, while their own faces still sort
+   // correctly (with the depth test off the far side of a cylinder was
+   // drawn over the near side).
+   SoSeparator *nmvecTop = new SoSeparator;
+   p_mainSep->addChild(nmvecTop);
+   SoCallback *clearDepth = new SoCallback;
+   clearDepth->setCallback(nmvecClearDepth, (void*)0);
+   nmvecTop->addChild(clearDepth);
    p_NMVecSwitch = new SoSwitch;
-   p_mainSep->addChild(p_NMVecSwitch);
+   nmvecTop->addChild(p_NMVecSwitch);
 
    // The NormalMode switch
    p_NMSwitch = new SoSwitch;
@@ -1675,6 +1693,38 @@ ChemRadii *SGContainer::getRadiiNode()
 ChemRadii *SGContainer::getCPKRadiiNode()
 {
    return p_CPK_radii;
+}
+
+/**
+ * Radius each atom is drawn with in its current display style (0 for a
+ * hidden atom or a wire), using the same formula as ChemDisplay.
+ */
+vector<float> SGContainer::getAtomDisplayRadii()
+{
+   SGFragment *frag = getFragment();
+   vector<float> radii(frag->numAtoms(), 0.0f);
+   for (size_t idx = 0; idx < p_displays.size() && idx < p_displayParams.size(); idx++) {
+      ChemDisplayParam *cdp = p_displayParams[idx];
+      int ds = cdp->displayStyle.getValue();
+      ChemRadii *table = (ds == ChemDisplayParam::DISPLAY_CPK) ? p_CPK_radii : p_radii;
+      float scale = cdp->atomRadiiScaleFactor.getValue();
+      if (ds == ChemDisplayParam::DISPLAY_BALLSTICK || ds == ChemDisplayParam::DISPLAY_BALLWIRE)
+         scale *= cdp->ballStickSphereScaleFactor.getValue();
+      int n = p_displays[idx]->atomIndex.getNum();
+      for (int i = 0; i < n; i++) {
+         int a = p_displays[idx]->atomIndex[i][0];
+         if (a < 0 || a >= (int)radii.size()) continue;
+         float r = 0.0f;
+         if (ds == ChemDisplayParam::DISPLAY_STICK) {
+            r = cdp->bondCylinderRadius.getValue();
+         } else if (ds != ChemDisplayParam::DISPLAY_WIREFRAME) {
+            int z = frag->atomRef(a)->atomicNumber();
+            if (z >= 0 && z < table->atomRadii.getNum()) r = table->atomRadii[z] * scale;
+         }
+         radii[a] = r;
+      }
+   }
+   return radii;
 }
 
 /**

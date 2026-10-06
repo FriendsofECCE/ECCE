@@ -197,6 +197,7 @@ public:
     void initMORoot();
 
     SoSwitch* getNMVecRoot();
+    vector<float> getAtomDisplayRadii();
     SoSwitch* getNMRoot();
 
     SoSwitch *getPropertySwitch(const string& name);

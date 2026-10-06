@@ -114,6 +114,9 @@ bool NModeVectCmd::execute()
       getParameter("Amplitude")->setDouble(scale);
 
 
+      // Arrows start on the surface of their own atom, not at its centre.
+      vector<float> radii = sg->getAtomDisplayRadii();
+
       // loop over displaced geometries
       for (j=0; j< natoms; j++) {
          cx=  (*atoms)[j]->coordinates()[0];
@@ -130,7 +133,9 @@ bool NModeVectCmd::execute()
 
          // vect mode vector
          VRVector * dip = new VRVector;
-         dip->position(cx,cy,cz); 
+         double norm = sqrt(dx*dx + dy*dy + dz*dz);
+         double off = (norm > 0.0 && j < (int)radii.size()) ? radii[j]/norm : 0.0;
+         dip->position(cx + dx*off, cy + dy*off, cz + dz*off);
          dip->direction(dx,dy,dz );
          dip->setColor(color->red(), color->green(), color->blue());
          //dip->scaleFactor(scale, scale, scale) ;
