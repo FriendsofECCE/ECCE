@@ -19,4 +19,7 @@ RUN apt-get -qq update && apt-get -qq -y install --no-install-recommends \
 # Debian's own broker and web server are not the ones under test.
 RUN systemctl disable mosquitto apache2 2>/dev/null || true
 STOPSIGNAL SIGRTMIN+3
-CMD ["sleep", "infinity"]
+# PID 1 of the plain containers: the ecce wrappers leave orphans, and a PID 1
+# that does not reap them shows up as <defunct> ECCE processes.
+RUN printf 'import os, time\nwhile True:\n    try:\n        os.wait()\n    except ChildProcessError:\n        time.sleep(0.5)\n' > /usr/local/bin/reaper.py
+CMD ["python3", "/usr/local/bin/reaper.py"]

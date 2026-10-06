@@ -141,7 +141,8 @@ def captured(pm, cont, tag):
 
 
 def pub(pm, cont, host, port, user, pw, topic, msg):
-    return pm.sh(cont, "mosquitto_pub %s -t '%s' -m '%s' -q 1 -W 5" %
+    # mosquitto_pub has no -W; -q 1 returns once the broker acknowledged.
+    return pm.sh(cont, "timeout 10 mosquitto_pub %s -t '%s' -m '%s' -q 1" %
                  (mosq(host, port, user, pw), topic, msg))
 
 
@@ -189,7 +190,7 @@ def delivery(pm, host, port, label, key="k0"):
                           ("unknown account", "mallory", "x"),
                           ("anonymous", None, None)):
         r = pub(pm, "bob", host, port, user, pw, "ecce/bob/x", "no")
-        check(r.returncode != 0, "%s: %s is refused" % (label, who),
+        check(r.returncode not in (0, 124), "%s: %s is refused" % (label, who),
               r.stdout + r.stderr)
 
 
@@ -326,7 +327,10 @@ def session_end(pm, state):
 
 
 def systemd(pm, image):
-    pm.run("sysb", image, "--systemd=always", cmd=("/sbin/init",))
+    # SYS_ADMIN: without it systemd cannot set up the unit's mount namespace
+    # (226/NAMESPACE with DynamicUser and ExecStartPre) or drop to User=.
+    pm.run("sysb", image, "--systemd=always", "--cap-add", "SYS_ADMIN",
+           cmd=("/sbin/init",))
     for _ in range(30):
         o, _ = pm.out("sysb", "systemctl is-system-running")
         if o.strip() in ("running", "degraded"):

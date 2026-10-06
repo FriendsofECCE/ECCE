@@ -27,11 +27,15 @@ restart, stop, start.
 
 Exit 0 all passed, 1 a check failed, 77 podman or the packages missing. It
 is not a ctest (a first run builds the image, several minutes; a run takes
-about 5 minutes). Run it before a release next to `tests/teaching`. The image
+about 5 minutes: 314 s measured). Run it before a release next to `tests/teaching`. The image
 is keyed to the packages and the Containerfile; apt needs the network when
 it is built. Logs (container logs, broker and data server logs, the
 clients' session logs, the journal of `ecce-broker`) go to `--logdir`
 (default `tests/containers/logs`).
+
+`sysb` is started with `--cap-add SYS_ADMIN`: without it systemd cannot build
+the unit's mount namespace in a container (226/NAMESPACE) or drop to its
+User= (217/USER). The unit file itself is used unmodified.
 
 Not covered: two machines on a real network (the container network is
 one), TLS (not implemented), `ecce -admin -remote` over ssh.
