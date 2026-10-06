@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-class ConfigFile;
+#include "tdat/ConfigFile.H"
 
 class MachineConfigDraft
 {
@@ -126,6 +126,9 @@ public:
   // Write the changed keys into the file (set, clear, remove), leaving all
   // other lines alone.  Does not save the file.
   bool applyTo(ConfigFile& file, std::string& err) const;
+  // The same changes as a list, for a file written elsewhere (a central
+  // server's site file).
+  std::vector<ConfigEdit> edits() const;
 
 private:
   static std::string normalize(const std::string& path);

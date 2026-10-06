@@ -292,6 +292,15 @@ void ConfigFile::remove(const string& key)
   }
 }
 
+bool ConfigFile::apply(const ConfigEdit& edit, string* err)
+{
+  switch (edit.op) {
+    case ConfigEdit::Set:   return set(edit.key, edit.value, err);
+    case ConfigEdit::Clear: clear(edit.key); return true;
+    default:                remove(edit.key); return true;
+  }
+}
+
 void ConfigFile::clear(const string& key)
 {
   string lk = lower(key);

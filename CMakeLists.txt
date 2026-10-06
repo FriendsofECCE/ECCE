@@ -424,6 +424,9 @@ target_link_libraries(eccejobmaster PRIVATE
 add_executable(ecce-localdata src/apps/localdata/ecce-localdata.C)
 target_include_directories(ecce-localdata PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-localdata PRIVATE ecceutil ${XercesC_LIBRARIES})
+# The server half of "ecce -admin" on a -remote client (SiteRequest).
+add_executable(ecce-site-admin src/apps/siteadmin/ecce-site-admin.C)
+target_link_libraries(ecce-site-admin PRIVATE eccetdat ecceutil)
 add_executable(eccejobstore src/apps/jobstore/eccejobstore.C)
 target_include_directories(eccejobstore PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(eccejobstore PRIVATE
@@ -783,6 +786,7 @@ install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/dataserver/ecce-dataserver-stop
           ${CMAKE_SOURCE_DIR}/packaging/dataserver/ecce-dataserver-status
           ${CMAKE_SOURCE_DIR}/packaging/dataserver/ecce-dataserver-adduser
+          ${CMAKE_SOURCE_DIR}/packaging/dataserver/ecce-site-publish
         DESTINATION bin
         COMPONENT server)
 install(FILES ${CMAKE_SOURCE_DIR}/packaging/dataserver/httpd.conf.ecce
@@ -798,6 +802,25 @@ install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/ecce-diagnose
         DESTINATION bin
         COMPONENT client)
+
+# ecce-site-publish is a server program too; ecce-site-admin ships with the
+# client (a server has both) and must be on the PATH an ssh command gets.
+set(_pub_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-site-publish)
+file(WRITE ${_pub_wrapper}
+"#!/bin/bash
+export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
+export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
+exec \"$ECCE_HOME/bin/ecce-site-publish\" \"$@\"
+")
+install(PROGRAMS ${_pub_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT server)
+set(_sadm_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-site-admin)
+file(WRITE ${_sadm_wrapper}
+"#!/bin/bash
+export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
+export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
+exec \"$ECCE_HOME/bin/ecce-site-admin\" \"$@\"
+")
+install(PROGRAMS ${_sadm_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
 
 foreach(_ds start stop status adduser)
   set(_ds_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-dataserver-${_ds})
@@ -846,7 +869,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-site-admin
   autosym getfrag genmol genmollat cleansym symops)
 
 install(TARGETS ${ECCE_GUI_APPS} ${ECCE_CLI_APPS} RUNTIME DESTINATION bin
@@ -2007,6 +2030,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/publish_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
   set_tests_properties(queues_publish PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+  # ecce -admin on a -remote client: ecce-site-admin on a simulated central
+  # server, publishing, and the client's ecce-remote-setup --refresh (#234).
+  add_test(NAME queues_siteadmin
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/siteadmin_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
+  set_tests_properties(queues_siteadmin PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
   add_test(NAME queues_slurm
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/run_tests.py

@@ -53,10 +53,13 @@
 #include "util/StringConverter.H"
 
 #include "tdat/ConfigFile.H"
+#include "tdat/SiteRequest.H"
 #include "tdat/Queue.H"
 #include "tdat/QueueMgr.H"
 
 #include "comm/RCommand.H"
+
+#include "SiteAdminClient.H"
 
 #include "dsm/CodeFactory.H"
 #include "dsm/MachinePreferences.H"
@@ -2877,6 +2880,11 @@ bool WxMachineRegister::hasMinimalInput()
 //  The files Save writes for the visible tab and machine.
 string WxMachineRegister::editedBase() const
 {
+    if (remoteAdmin())
+    {
+        string err;
+        return SiteAdminClient::serverHost(err) + ":siteconfig";
+    }
     return p_adminFlag ? string(Ecce::ecceHome()) + "/siteconfig" : "~/.ECCE";
 }
 
@@ -3208,6 +3216,18 @@ bool WxMachineRegister::writeConfig(const string& name, string& err)
         syncKeys(draft);
     }
 
+    if (remoteAdmin())
+    {
+        //  The server's file is edited there, key by key, by the same
+        //  writer; this computer's copy is only refreshed afterwards.
+        SiteRequest req;
+        req.machine = name;
+        req.form = "type=accept" + collectSettings();
+        req.edits = draft->edits();
+        delete own;
+        return sendToServer(req);
+    }
+
     ConfigFile f;
     f.setSiteFile(p_adminFlag);
     bool ok = f.load(draft->editedFile());
@@ -3257,6 +3277,15 @@ bool WxMachineRegister::save()
         return false;
 
     string name = strip((string)p_refName->GetValue());
+    if (remoteAdmin())
+    {
+        string unused;
+        if (!this->writeConfig(name, unused))
+            return false;
+        this->redo(name);
+        this->notifyUpdate();
+        return true;
+    }
     int status = ProcessMachine::run("type=accept" + collectSettings());
     if (status != 0)
     {
@@ -3273,6 +3302,39 @@ bool WxMachineRegister::save()
 
     this->redo(name);
     this->notifyUpdate();
+    return true;
+}
+
+
+bool WxMachineRegister::remoteAdmin() const
+{
+    return p_adminFlag && remoteClient();
+}
+
+
+//  Applies the request on the central server, then fetches this computer's
+//  copy of the server's files again, so the window shows what was saved.
+bool WxMachineRegister::sendToServer(const SiteRequest& request, bool tell)
+{
+    string report;
+    bool ok;
+    {
+        wxBusyCursor busy;
+        ok = SiteAdminClient::send(request, report);
+    }
+    fprintf(stderr, "[MACHREG] server: %s\n", report.c_str());
+    p_lastSiteReport = report;
+    if (!ok)
+    {
+        if (tell)
+            displayMessage("The site settings were not saved on the "
+                           "server.\n\n" + report);
+        return false;
+    }
+    string why;
+    if (!SiteAdminClient::refresh(why))
+        displayMessage("The site settings were saved on the server and "
+                       "published.\n\n" + why);
     return true;
 }
 
@@ -3296,19 +3358,20 @@ void WxMachineRegister::redo(const string& refName)
 //  What a delete removes, one line each, for the confirmation.
 string WxMachineRegister::removalList(const string& refName) const
 {
-    string base = editedDir(p_adminFlag);
+    string base = remoteAdmin() ? editedBase() : editedDir(p_adminFlag);
     string list = "  " + base + (p_adminFlag ? "/Machines" : "/MyMachines") +
                   " (the line for '" + refName + "')\n";
 
-    SFile config(base + "/CONFIG." + refName);
+    string local = editedDir(p_adminFlag);
+    SFile config(local + "/CONFIG." + refName);
     if (config.exists())
         list += "  " + base + "/CONFIG." + refName +
                 " (including any settings you wrote by hand)\n";
-    SFile qfile(base + "/" + refName + ".Q");
+    SFile qfile(local + "/" + refName + ".Q");
     if (qfile.exists())
         list += "  " + base + "/" + refName + ".Q\n";
 
-    std::ifstream queues((base + "/Queues").c_str());
+    std::ifstream queues((local + "/Queues").c_str());
     string line;
     bool listed = false;
     while (std::getline(queues, line))
@@ -3346,7 +3409,15 @@ bool WxMachineRegister::deleteMachine()
     settings += ProcessMachine::field("siteconfig",
                                       StringConverter::toString(p_adminFlag));
     settings += ProcessMachine::field("name", refName);
-    if (ProcessMachine::run(settings) != 0)
+    if (remoteAdmin())
+    {
+        SiteRequest req;
+        req.machine = refName;
+        req.form = settings;
+        if (!sendToServer(req))
+            return false;
+    }
+    else if (ProcessMachine::run(settings) != 0)
     {
         displayMessage("Unable to delete registered machine!");
         return false;
@@ -4036,6 +4107,22 @@ bool WxMachineRegister::rawFileSave(const string& text, string& err)
     {
         err = "Cannot read " + p_draft->editedFile();
         return false;
+    }
+    if (remoteAdmin())
+    {
+        //  Written on the server only if its file still reads as the copy
+        //  this text was edited from.
+        SiteRequest req;
+        req.machine = p_loadedName;
+        req.replaceText = true;
+        req.text = text;
+        req.baseText = f.text();
+        if (!sendToServer(req, false))
+        {
+            err = p_lastSiteReport;
+            return false;
+        }
+        return true;
     }
     f.setText(text);
     return f.save(&err);
