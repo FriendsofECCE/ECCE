@@ -17,6 +17,7 @@ SKIPs (77) without Xvfb or the machregister binary.
 import argparse
 import hashlib
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -1618,12 +1619,24 @@ quit
 def help_button(tmp, display, build):
     print("Help button")
     e = Env(tmp, "help")
+    version = read(os.path.join(REPO, "data", "client", "config",
+                                "Version")).strip()
+    ref = ("v" + version if re.fullmatch(
+        r"[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta)\.[0-9]+)?", version)
+        else "main")
     p = run(display, build, e, """
 click help
-expect message help https://github.com/FriendsofECCE/ECCE/blob/main/help/src/register-machines.md
+expect message help https://github.com/FriendsofECCE/ECCE/blob/%s/help/src/register-machines.md
+expect help-ref 9.0.0-alpha.6 v9.0.0-alpha.6
+expect help-ref 9.0.0 v9.0.0
+expect help-ref 9.0.0-rc1 main
+expect help-ref 9.0.0-rc.1 main
+expect help-ref 9.0.0-dev main
+expect help-ref '' main
 quit
-""")
-    clean(p, "Help requests the Register Machines page")
+""" % ref)
+    clean(p, "Help opens the Register Machines page at the installed "
+          "version's tag, or main for an untagged version")
 
 
 def delete_prompt_lists_files(tmp, display, build):

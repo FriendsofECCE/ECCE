@@ -154,6 +154,7 @@ class WxMachineRegister: public ewxFrame
         void onNew(wxCommandEvent& event);
         void onCloseButton(wxCommandEvent& event);
         void onHelp(wxCommandEvent& event);
+        static string helpRef(const string& version);
 
         //  The machine list
         void loadMachinesList();
