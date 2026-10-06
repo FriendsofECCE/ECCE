@@ -123,7 +123,7 @@ void FileEDSI::removeProgressEventListener(ProgressEventListener *l)
 #include <fcntl.h>
 #include <errno.h>
 #include <ctype.h>
-#include <sys/file.h>
+#include "util/PosixCompat.H"
 #include <sys/stat.h>
 #include <sstream>
 #include <memory>

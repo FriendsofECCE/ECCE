@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <unistd.h>
+#include "util/PosixCompat.H"
 
 #include <fstream>
 #include <regex>

@@ -5,9 +5,12 @@
 #include <string.h>
 #include <dirent.h>
 #include <unistd.h>
-#include <sys/file.h>
+#include "util/PosixCompat.H"
 #include <sys/stat.h>
 #include <sys/time.h>
+#ifdef _WIN32
+#include <sys/utime.h>
+#endif
 
 #include <map>
 #include <vector>
@@ -105,6 +108,11 @@ bool copyOne(const string& from, const string& to, const struct stat& st)
   if (n < 0) ok = false;
   close(in);
   if (close(out) != 0) ok = false;
+#if defined(_WIN32)
+  // Whole seconds only.
+  struct _utimbuf times = { st.st_atime, st.st_mtime };
+  _utime(to.c_str(), &times);
+#else
 #ifdef __APPLE__
   // macOS names the stat timestamps differently.
   struct timespec times[2] = { st.st_atimespec, st.st_mtimespec };
@@ -112,6 +120,7 @@ bool copyOne(const string& from, const string& to, const struct stat& st)
   struct timespec times[2] = { st.st_atim, st.st_mtim };
 #endif
   utimensat(AT_FDCWD, to.c_str(), times, 0);
+#endif
   return ok;
 }
 

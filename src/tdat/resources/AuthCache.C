@@ -1,4 +1,4 @@
-#include <sys/utsname.h> // uname
+#include "util/PosixCompat.H"
 #include <sys/fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>

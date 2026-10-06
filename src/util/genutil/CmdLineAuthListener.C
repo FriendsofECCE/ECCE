@@ -5,7 +5,11 @@ using std::endl;
 using std::flush;
 
 #include <unistd.h>
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <termios.h>
+#endif
 
 #include "util/InvalidException.H"
 
@@ -68,6 +72,14 @@ bool CmdLineAuthListener::getAuthorization(AuthEvent& event)
 
 
   // Turn echo off
+#ifdef _WIN32
+  HANDLE in = GetStdHandle(STD_INPUT_HANDLE);
+  DWORD oldMode = 0;
+  GetConsoleMode(in, &oldMode);
+  SetConsoleMode(in, oldMode & ~ENABLE_ECHO_INPUT);
+  cin >> password;
+  SetConsoleMode(in, oldMode);
+#else
   struct termios tty, oldtty;
   tcgetattr(1, &oldtty);
   tty = oldtty;
@@ -80,6 +92,7 @@ bool CmdLineAuthListener::getAuthorization(AuthEvent& event)
 
   // Turn echo back on
   tcsetattr(1, TCSANOW, &oldtty);
+#endif
 
   cout << endl;
 

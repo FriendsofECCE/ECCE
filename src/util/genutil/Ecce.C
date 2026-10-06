@@ -34,7 +34,7 @@ using std::ostrstream;
 
 #include <string.h>
 #include <stdlib.h>              // getenv
-#include <unistd.h>              // access
+#include "util/PosixCompat.H"      // access, gethostname, setenv
 #include <locale.h>
 #include <cstdint>
 #include <random>

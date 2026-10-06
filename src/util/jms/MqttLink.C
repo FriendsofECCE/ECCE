@@ -10,7 +10,7 @@
 #include <mqtt_protocol.h>
 
 #include <fcntl.h>
-#include <pwd.h>
+#include "util/PosixCompat.H"
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
