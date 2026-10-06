@@ -1496,6 +1496,17 @@ quit
     check(cfg.get("perlpath") == "/saved", "the saved value is in the file")
 
 
+def help_button(tmp, display, build):
+    print("Help button")
+    e = Env(tmp, "help")
+    p = run(display, build, e, """
+click help
+expect message help https://github.com/FriendsofECCE/ECCE/blob/main/help/src/register-machines.md
+quit
+""")
+    clean(p, "Help requests the Register Machines page")
+
+
 def delete_prompt_lists_files(tmp, display, build):
     print("delete confirmation")
     e = Env(tmp, "del")
@@ -1604,6 +1615,7 @@ def main():
             site_machine(tmp, disp, build, remote=True)
             delete_prompt_lists_files(tmp, disp, build)
             fixes(tmp, disp, build)
+            help_button(tmp, disp, build)
             queue_defaults(tmp, disp, build)
             submit_site_comment()
             admin_mode(tmp, disp, build)

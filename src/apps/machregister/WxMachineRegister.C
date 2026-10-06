@@ -340,6 +340,8 @@ wxWindow* WxMachineRegister::createMachinePage(wxWindow* parent)
     ewxScrolledWindow* page = newPage(parent, sizer);
     wxSizerFlags border = wxSizerFlags().Border();
 
+    addTabIntro(page, sizer, "The machine's name, host and size.");
+
     //  Informational only: a message with an icon and no buttons (an
     //  info bar's Close button reads like the window's own).
     p_info = new wxPanel(page, wxID_ANY, wxDefaultPosition, wxDefaultSize,
@@ -417,6 +419,17 @@ wxWindow* WxMachineRegister::createMachinePage(wxWindow* parent)
     reg("procs", p_procs);
     reg("nodes", p_nodes);
     return page;
+}
+
+
+//  One line at the top of a tab saying what it is for.
+void WxMachineRegister::addTabIntro(wxWindow* page, wxSizer* sizer,
+                                    const string& text)
+{
+    wxStaticText* t = new wxStaticText(page, wxID_ANY, text);
+    t->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+    t->Wrap(560);
+    sizer->Add(t, wxSizerFlags().Border(wxLEFT|wxRIGHT|wxTOP));
 }
 
 
@@ -533,6 +546,8 @@ wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
         name->AddGrowableCol(1); \
         sizer->Add(name, wxSizerFlags().Expand());
 
+    addTabIntro(page, sizer,
+                "How ECCE reaches this machine and starts jobs there.");
     addHeading(page, sizer, "Remote environment");
     GRID(env)
     addCfgRow(page, env, "shell", "Shell", CfgShell,
@@ -686,6 +701,9 @@ wxWindow* WxMachineRegister::createCodesPage(wxWindow* parent)
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     outer->Add(sizer, wxSizerFlags(1).Expand());
 
+    addTabIntro(page, sizer, "Applies to one code only. Its own commands "
+                "before and after the program (Advanced) replace the "
+                "machine-wide ones.");
     p_codeTitle = new wxStaticText(page, wxID_ANY, "");
     wxFont tf = p_codeTitle->GetFont().Bold();
     tf.SetFractionalPointSize(tf.GetFractionalPointSize() * 1.2);
@@ -1167,6 +1185,8 @@ wxWindow* WxMachineRegister::createJobScriptPage(wxWindow* parent)
     ewxScrolledWindow* page = newPage(parent, sizer);
     p_jobPage = page;
 
+    addTabIntro(page, sizer,
+                "Applies to every job on this machine, regardless of code.");
     p_jobNote = new wxStaticText(page, wxID_ANY, "");
     sizer->Add(p_jobNote, wxSizerFlags().Border());
 
@@ -1318,6 +1338,8 @@ wxWindow* WxMachineRegister::createQueuesPage(wxWindow* parent)
     ewxScrolledWindow* page = newPage(parent, sizer);
     wxSizerFlags border = wxSizerFlags().Border();
 
+    addTabIntro(page, sizer, "The queues jobs can be submitted to, with their "
+                "limits and defaults.");
     p_qmgrChoice = new ewxChoice(page, wxID_ANY, wxDefaultPosition,
                                  wxSize(200, -1));
     p_allocAccts = new ewxCheckBox(page, wxID_ANY, "Allocation accounts used",
@@ -3028,8 +3050,18 @@ void WxMachineRegister::onDelete(wxCommandEvent&)
 
 void WxMachineRegister::onHelp(wxCommandEvent&)
 {
+    //  Stopgap until the help pages are installed and rendered (#219): the
+    //  page's source on GitHub, opened through the browser preference.
+    const string url = "https://github.com/FriendsofECCE/ECCE/blob/main/"
+                       "help/src/register-machines.md";
+    if (p_scripted)
+    {
+        fprintf(stderr, "[MACHREG] help: %s\n", url.c_str());
+        p_lastMessage = "help " + url;
+        return;
+    }
     BrowserHelp help;
-    help.showPage(help.URL("ConfigSvrs"));
+    help.showPage(url);
 }
 
 
