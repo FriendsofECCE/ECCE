@@ -171,23 +171,60 @@ add_listen() {
   done
   LISTEN_LINES+=("$line")
 }
+# Loopback on the given ports.
 listen_loopback() {
-  add_listen "127.0.0.1:$PORT"
-  if has_ipv6_loopback; then add_listen "[::1]:$PORT"; fi
+  local p
+  for p in "$@"; do
+    add_listen "127.0.0.1:$p"
+    if has_ipv6_loopback; then add_listen "[::1]:$p"; fi
+  done
 }
+
+# TLS (#236, ecce-remote-setup --server --tls). Opt-in; with it on, the
+# plain port is loopback only and every non-loopback bind serves HTTPS on
+# its own port instead, so no password crosses the network in clear. There
+# is no fallback to plain HTTP if the certificate is unusable. The key
+# lives here, shared with the broker, never under the web-served root.
+TLS_DIR="$ECCE_REALUSERHOME/.ECCE/tls"
+TLS=0
+if [ "${ECCE_DATASERVER_TLS:-}" = 1 ] || [ -f "$TLS_DIR/enabled" ]; then TLS=1; fi
+TLS_PORT="${ECCE_DATASERVER_TLS_PORT:-8443}"
+NETPORT="$PORT"
+if [ "$TLS" = 1 ]; then
+  NETPORT="$TLS_PORT"
+  case "$TLS_PORT" in ''|*[!0-9]*)
+    echo "ecce-dataserver-start: ECCE_DATASERVER_TLS_PORT '$TLS_PORT' is not a port number" >&2
+    exit 1 ;;
+  esac
+  for f in server.pem server.key; do
+    if [ ! -r "$TLS_DIR/$f" ]; then
+      echo "ecce-dataserver-start: TLS is on but $TLS_DIR/$f is missing -- run ecce-remote-setup --server --tls" >&2
+      exit 1
+    fi
+  done
+  chmod 700 "$TLS_DIR" 2>/dev/null; chmod 600 "$TLS_DIR/server.key" 2>/dev/null
+fi
 
 case "$LISTEN_SETTING" in
   loopback|localhost)
-    listen_loopback
+    listen_loopback "$PORT"
+    [ "$TLS" = 1 ] && listen_loopback "$TLS_PORT"
     ;;
   all|'*'|0.0.0.0|::|'[::]')
-    # A wildcard bind already covers loopback, and adding a specific
-    # address on the same port as well would fail with "Address already
-    # in use" -- so this is the one case with a single line.
-    add_listen "$PORT"
+    if [ "$TLS" = 1 ]; then
+      # The plain port must not be a wildcard, or it would be outward too.
+      listen_loopback "$PORT"
+      add_listen "$TLS_PORT"
+    else
+      # A wildcard bind already covers loopback, and adding a specific
+      # address on the same port as well would fail with "Address already
+      # in use" -- so this is the one case with a single line.
+      add_listen "$PORT"
+    fi
     ;;
   *)
-    listen_loopback
+    listen_loopback "$PORT"
+    [ "$TLS" = 1 ] && listen_loopback "$TLS_PORT"
     set -f   # a '*' in the setting must not expand against the cwd
     for addr in $LISTEN_SETTING; do
       # This text is written into httpd.conf. Accept address material only,
@@ -202,9 +239,9 @@ case "$LISTEN_SETTING" in
           echo "ecce-dataserver-start: '$addr' cannot be combined with other addresses (from $LISTEN_FROM); use 'all' on its own" >&2
           exit 1 ;;
         loopback|localhost) continue ;;
-        \[*\]) add_listen "$addr:$PORT" ;;
-        *:*)   add_listen "[$addr]:$PORT" ;;    # bare IPv6 literal
-        *)     add_listen "$addr:$PORT" ;;
+        \[*\]) add_listen "$addr:$NETPORT" ;;
+        *:*)   add_listen "[$addr]:$NETPORT" ;;    # bare IPv6 literal
+        *)     add_listen "$addr:$NETPORT" ;;
       esac
     done
     set +f
@@ -314,10 +351,22 @@ if ! grep -q '^##LISTEN##$' "$CONF_TEMPLATE"; then
   echo "  older than this script, and would listen on every interface" >&2
   exit 1
 fi
+if [ "$TLS" = 1 ]; then
+  if ! grep -q '^#TLS-BEGIN$' "$CONF_TEMPLATE"; then
+    echo "ecce-dataserver-start: $CONF_TEMPLATE has no TLS block -- it is older than this script" >&2
+    exit 1
+  fi
+  tls_sed=(-e '/^#TLS-\(BEGIN\|END\)$/d')
+else
+  tls_sed=(-e '/^#TLS-BEGIN$/,/^#TLS-END$/d')
+fi
 # GNU sed turns "\n" in a replacement into a newline: one Listen per line.
 listen_repl="$(printf '%s\\n' "${LISTEN_LINES[@]}")"
 listen_repl="${listen_repl%\\n}"
-sed -e "s|^##LISTEN##\$|$listen_repl|" \
+sed "${tls_sed[@]}" \
+    -e "s|^##LISTEN##\$|$listen_repl|" \
+    -e "s|##TLSPORT##|$TLS_PORT|g" \
+    -e "s|##TLSDIR##|$TLS_DIR|g" \
     -e "s|##HTTPDROOT##|$STATEDIR|g" \
     -e "s|##DATAROOT##|$DATAROOT|g" \
     -e "s|##PORT##|$PORT|g" \
@@ -326,6 +375,12 @@ sed -e "s|^##LISTEN##\$|$listen_repl|" \
     -e "s|##MODULES##|$MODULES_DIR|g" \
     "$CONF_TEMPLATE" > "$STATEDIR/httpd.conf"
 
+if [ "$TLS" = 1 ]; then
+  echo "ecce-dataserver-start: TLS on: HTTPS on port $TLS_PORT for non-loopback addresses, plain HTTP on port $PORT for loopback only"
+  case "$LISTEN_SETTING" in loopback|localhost)
+    echo "ecce-dataserver-start: WARNING -- the listen setting is loopback only, so nothing serves HTTPS to other machines; set it (ecce-remote-setup --server all --tls)" >&2 ;;
+  esac
+fi
 case "$LISTEN_SETTING" in
   loopback|localhost)
     echo "ecce-dataserver-start: starting data server on port $PORT (loopback only)..." ;;

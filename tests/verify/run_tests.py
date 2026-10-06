@@ -228,7 +228,7 @@ def dialog_smoke(verbose):
     p = subprocess.run(["wx-config", "--libs", "core,base,adv,html"],
                        capture_output=True, text=True)
     #  libeccercmd's SSH transport needs libssh.
-    cmd = cmd[:-1] + p.stdout.split() + ["-lxerces-c", "-lssh"]
+    cmd = cmd[:-1] + p.stdout.split() + ["-lxerces-c", "-lssh", "-lssl", "-lcrypto"]
 
     build = subprocess.run(cmd, capture_output=True, text=True)
     if build.returncode != 0:
@@ -238,14 +238,14 @@ def dialog_smoke(verbose):
 
     #  A display of its own, and a home of its own: this must not touch
     #  the running user's ECCE state.
-    display = ":%d" % (90 + os.getpid() % 8)
-    xvfb = subprocess.Popen(["Xvfb", display, "-screen", "0",
-                             "1280x1024x24"],
-                            stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL)
+    sys.path.insert(0, os.path.join(ROOT, "apps"))
+    import xdisplay
     try:
-        import time
-        time.sleep(2)
+        xvfb = xdisplay.Display().__enter__()
+    except xdisplay.DisplayUnavailable as exc:
+        return (False, True, "no display: %s" % exc)
+    display = xvfb.name
+    try:
         home = os.path.join(work, "home")
         os.makedirs(home, exist_ok=True)
         env = dict(os.environ)
@@ -261,7 +261,7 @@ def dialog_smoke(verbose):
         return (True, run.returncode == 0,
                 "exit %d" % run.returncode)
     finally:
-        xvfb.terminate()
+        xvfb.__exit__(None, None, None)
 
 
 #  ---------------------------------------------------------------------

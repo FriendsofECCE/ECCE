@@ -10,6 +10,7 @@
 #include <wx/combo.h>
 
 #include "util/BrowserHelp.H"
+#include "wxgui/WxHelpViewer.H"
 #include "util/ErrMsg.H"
 #include "util/InvalidException.H"
 #include "util/ResourceUtils.H"
@@ -942,8 +943,7 @@ void CalcEd::OnExitClick( wxCommandEvent& event )
 
 void CalcEd::OnHelpClick( wxCommandEvent& event )
 {
-  BrowserHelp help;
-  help.showPage(help.URL("CalculationEditor"));
+  WxHelpViewer::showKey("CalculationEditor");
 }
 
 
@@ -3744,6 +3744,9 @@ void CalcEd::startTheoryApp(const bool& localInitFlag)
     // Create datagram socket, Let Wx select a port for us - (Service(0))
     wxIPV4address bindAddress;
     bindAddress.Service(0);
+    // Only the dialog on this machine may send: unbound, anyone on the
+    // network could set this editor's values.
+    bindAddress.LocalHost();
     p_theoryInSocket = new wxDatagramSocket(bindAddress);
 
     // Check state of new socket, if its OK:
@@ -3830,6 +3833,9 @@ void CalcEd::startRuntypeApp(const bool& localInitFlag)
     // Create datagram socket, Let Wx select a port for us - (Service(0))
     wxIPV4address bindAddress;
     bindAddress.Service(0);
+    // Only the dialog on this machine may send: unbound, anyone on the
+    // network could set this editor's values.
+    bindAddress.LocalHost();
     p_runtypeInSocket = new wxDatagramSocket(bindAddress);
 
     // Check state of new socket, if its OK:

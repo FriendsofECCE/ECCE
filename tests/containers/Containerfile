@@ -1,0 +1,25 @@
+# Image for the central-server test (tests/containers/central_server_test.py):
+# the two ECCE packages built from this tree on Debian trixie, plus what the
+# harness drives them with. One image plays server, clients and the systemd
+# host, so a role differs only by what the harness runs in it.
+FROM docker.io/library/debian:trixie
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Before the packages, so a rebuilt .deb does not repeat the big download.
+RUN apt-get -qq update && apt-get -qq -y install --no-install-recommends \
+      systemd systemd-sysv dbus iproute2 procps psmisc curl ca-certificates \
+      sudo apache2 apache2-utils mosquitto mosquitto-clients libaprutil1 \
+      xvfb xauth xdotool x11-utils python3 python3-xlib libgl1-mesa-dri \
+      xterm tcsh perl >/dev/null && rm -rf /var/lib/apt/lists/*
+
+COPY debs/ /debs/
+RUN apt-get -qq update && apt-get -qq -y install --no-install-recommends \
+      /debs/ecce-client_*.deb /debs/ecce-server_*.deb >/dev/null \
+    && rm -rf /var/lib/apt/lists/* /debs
+# Debian's own broker and web server are not the ones under test.
+RUN systemctl disable mosquitto apache2 2>/dev/null || true
+STOPSIGNAL SIGRTMIN+3
+# PID 1 of the plain containers: the ecce wrappers leave orphans, and a PID 1
+# that does not reap them shows up as <defunct> ECCE processes.
+RUN printf 'import os, time\nwhile True:\n    try:\n        os.wait()\n    except ChildProcessError:\n        time.sleep(0.5)\n' > /usr/local/bin/reaper.py
+CMD ["python3", "/usr/local/bin/reaper.py"]

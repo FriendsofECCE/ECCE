@@ -205,6 +205,15 @@ void PropertyPanelFactory::createPropertyPanelDescriptions()
     }
     //cout << "\t<allowPin>" << description->allowPin << "</allowPin>" << endl;
 
+    XMLString::transcode("group", tmpStr, tmpStrLength);
+    element = (DOMElement*)panel->getElementsByTagName(tmpStr)->item(0);
+    if (element && element->getFirstChild()) {
+      description->group =
+          XMLString::transcode(element->getFirstChild()->getNodeValue());
+    } else {
+      description->group = "Other";
+    }
+
     XMLString::transcode("property", tmpStr, tmpStrLength);
     properties = panel->getElementsByTagName(tmpStr);
 
@@ -336,3 +345,22 @@ void PropertyPanelFactory::createPropertyPanelDescriptions()
   }
 }
 
+
+
+int PropertyPanelFactory::indexOf(const string& name) const
+{
+  for (size_t i = 0; i < p_panels.size(); ++i) {
+    if (p_panels[i]->name == name) {
+      return (int)i;
+    }
+  }
+  return -1;
+}
+
+
+string PropertyPanelFactory::groupOf(const string& name) const
+{
+  map<string, PropertyPanelDescription*>::const_iterator it =
+      p_panelsByName.find(name);
+  return it == p_panelsByName.end() ? "Other" : it->second->group;
+}

@@ -5,7 +5,7 @@ area: wx-viewer
 paths: [CMakeLists.txt, tools/coin/gen_shim.py, include/inv/ChemKit/ChemDisplay.H, include/inv/SoWx/SoWxViewer.H, src/inv/wxinv/SoWxRenderArea.C]
 issues: [166]
 ---
-`ECCE_USE_COIN` is ON by default (stage 4); with it the build does not compile the vendored
+`ECCE_USE_COIN` is ON by default; with it the build does not compile the vendored
 Inventor core in `src/inv` (`db*`, `image`, `interaction`, `nodekits`).
 `ecceinv` shrinks to `src/inv/flclient` (our FreeType font layer) plus
 `libCoin`; `moiv`, `wxinv`, `src/viz`, `src/wxviz` and the apps build
@@ -37,8 +37,9 @@ in one tree rebuilds everything. After a change under `src/inv/moiv`,
 Packaging: the deb gets `libcoin80t64` from dpkg-shlibdeps (nothing hand
 listed); build-dep is `libcoin-dev` plus `libegl-dev` and `python3`
 (gen_shim). EPEL 9 and Fedora have `Coin4`/`Coin4-devel` (4.0.10; Fedora also
-4.0.7), so the RPM jobs use the Coin build and Requires `Coin4`; those jobs
-and the RPMs are unrun as of stage 4.
+4.0.7), so the RPM jobs (Rocky Linux 9, Fedora) use the Coin build and
+Requires `Coin4`. CI builds and packages them; it does not install or run
+the RPMs.
 
 Thumbnails (`SoOffscreenRenderer`): Coin's own GLX offscreen context fails
 under Xvfb and crashes with no `DISPLAY`. `src/inv/wxinv/CoinEglOffscreen.C`

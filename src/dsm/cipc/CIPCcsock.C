@@ -390,6 +390,13 @@ long csocket_receive(
 
 /* csocket_send **********************************************************/
 
+/* A server that closed must give EPIPE, not kill the GUI with SIGPIPE. */
+#ifdef MSG_NOSIGNAL
+#define SEND_FLAGS MSG_NOSIGNAL
+#else
+#define SEND_FLAGS 0
+#endif
+
 long csocket_send(
   csocket *    s,
   const void * buff,
@@ -424,7 +431,7 @@ long csocket_send(
         s->sock_,
         (const char *) buff + offset,
         nbytes - offset,
-        0);
+        SEND_FLAGS);
         if (rval == -1)
         {
 #ifdef DEBUG

@@ -42,7 +42,8 @@ BACKGROUNDS = {
 TEXT = {"light": "#2e3436", "dark": "#eeeeec"}
 
 # Same-shape pairs that must stay apart under colour-vision deficiency.
-DISTINCT = [("SUBMITTED", "RUNNING"), ("CREATED", "READY")]
+DISTINCT = [("SUBMITTED", "RUNNING"), ("CREATED", "READY"),
+            ("SUBMITTED", "WAITING"), ("RUNNING", "WAITING")]
 MIN_DELTA_E = 10.0
 NON_TEXT = 3.0
 OUTLINE_ABOVE = 0.27     # relative luminance; must match WxState.C
@@ -55,8 +56,8 @@ def outline(colour):
     value = colour.lstrip("#")
     return "#" + "".join("%02x" % (int(value[i:i + 2], 16) // 2) for i in (0, 2, 4))
 
-STATES = ["CREATED", "READY", "SUBMITTED", "RUNNING", "COMPLETED", "KILLED",
-          "UNSUCCESSFUL", "FAILED", "LOADED", "SYSTEM"]
+STATES = ["CREATED", "READY", "SUBMITTED", "RUNNING", "WAITING", "COMPLETED",
+          "KILLED", "UNSUCCESSFUL", "FAILED", "LOADED", "SYSTEM"]
 
 
 def luminance(colour):
@@ -147,9 +148,9 @@ def main():
                     print("ok   " + line)
 
     #  WxState.C's tables are indexed by RUNSTATE, which starts with
-    #  ILLEGAL and ends with the LAST sentinel; the ten real states sit
+    #  ILLEGAL and ends with the LAST sentinel; the real states sit
     #  between them in ResourceDescriptor order.
-    order = ["CREATED", "READY", "SUBMITTED", "RUNNING", "COMPLETED",
+    order = ["CREATED", "READY", "SUBMITTED", "RUNNING", "WAITING", "COMPLETED",
              "LOADED", "KILLED", "UNSUCCESSFUL", "FAILED", "SYSTEM"]
     for family, name in (("light", "LIGHT_STATE_COLOURS"), ("dark", "DARK_STATE_COLOURS")):
         compiled = readTable("src/wxgui/wxtools/WxState.C", name)

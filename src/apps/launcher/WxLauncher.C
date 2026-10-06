@@ -19,6 +19,7 @@
 #include "wx/wx.h"
 
 #include "util/BrowserHelp.H"
+#include "wxgui/WxHelpViewer.H"
 #include "util/Ecce.H"
 #include "util/EcceSortedVector.H"
 #include "util/ErrMsg.H"
@@ -2060,7 +2061,8 @@ void WxLauncher::updateContext(const ResourceDescriptor::RUNSTATE& state)
     static string lastShown;
     if (state == ResourceDescriptor::STATE_UNSUCCESSFUL ||
         state == ResourceDescriptor::STATE_FAILED ||
-        state == ResourceDescriptor::STATE_SYSTEM_FAILURE)
+        state == ResourceDescriptor::STATE_SYSTEM_FAILURE ||
+        state == ResourceDescriptor::STATE_WAITING)
     {
         string reason = p_taskJob->getProp(VDoc::getEcceNamespace() +
                                             ":runStatusReason");
@@ -2533,8 +2535,7 @@ void WxLauncher::quitMenuItemClickCB(wxCommandEvent& event)
 
 void WxLauncher::helpLauncherMenuitemClickCB(wxCommandEvent& event)
 {
-    BrowserHelp help;
-    help.showPage(help.URL("Launcher"));
+    WxHelpViewer::showKey("Launcher");
 }
 
 

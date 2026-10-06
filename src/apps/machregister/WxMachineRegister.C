@@ -42,9 +42,8 @@
 #include "wx/listbox.h"
 #include "wx/dialog.h"
 
-#include <regex>
-
 #include "util/BrowserHelp.H"
+#include "wxgui/WxHelpViewer.H"
 #include "util/Ecce.H"
 #include "util/JMSMessage.H"
 #include "util/JMSPublisher.H"
@@ -3154,31 +3153,21 @@ void WxMachineRegister::onDelete(wxCommandEvent&)
 }
 
 
-//  The tag whose help pages match this version, or main for a version that
-//  is never tagged (a release candidate, "-dev", ...).
 string WxMachineRegister::helpRef(const string& version)
 {
-    static const std::regex tagged(
-        "[0-9]+\\.[0-9]+\\.[0-9]+(-(alpha|beta)\\.[0-9]+)?");
-    return std::regex_match(version, tagged) ? "v" + version : "main";
+    return WxHelpViewer::helpRef(version);
 }
 
 
 void WxMachineRegister::onHelp(wxCommandEvent&)
 {
-    //  Stopgap until the help pages are installed and rendered (#219): the
-    //  page's source on GitHub, opened through the browser preference.
-    const string url = "https://github.com/FriendsofECCE/ECCE/blob/" +
-                       helpRef(Ecce::ecceVersion()) +
-                       "/help/src/register-machines.md";
+    WxHelpViewer* v = WxHelpViewer::show("register-machines.html");
     if (p_scripted)
     {
-        fprintf(stderr, "[MACHREG] help: %s\n", url.c_str());
-        p_lastMessage = "help " + url;
-        return;
+        string page = v != NULL ? v->currentPage() : "(not installed)";
+        fprintf(stderr, "[MACHREG] help: %s\n", page.c_str());
+        p_lastMessage = "help " + page;
     }
-    BrowserHelp help;
-    help.showPage(url);
 }
 
 

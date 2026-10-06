@@ -2,8 +2,9 @@
 type: map
 title: "wx3.2/GTK3 layout reentrancy"
 area: wx-viewer
-section: ""
+section: "wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls"
 paths: ["docs/HISTORY.md"]
+issues: []
 ---
 **wx3.2/GTK3 layout reentrancy**: `wxWindow::DoSetSize` → `wxEVT_SIZE`
 → `Layout()` → reposition children → another `DoSetSize`, sometimes

@@ -37,6 +37,9 @@ BROKERFILE="$(ecce_broker_file)"
 # The per-user broker has no port. Debian's own mosquitto.service is on
 # 1883 and is neither used nor disturbed.
 BROKER_PORT="${ECCE_BROKER_PORT:-8088}"
+# With TLS (#236) the network port is this one and the plain port above is
+# loopback only; a client that was set up for TLS never uses the plain one.
+BROKER_TLS_PORT="${ECCE_BROKER_TLS_PORT:-8883}"
 
 port_open_at() { (exec 3<>"/dev/tcp/$1/$2") >/dev/null 2>&1; }
 # A remote host that drops packets would hang a plain connect for minutes.
@@ -51,10 +54,10 @@ port_open_remote() {
 check_central_server() {
   local ds="$ECCE_HOME/siteconfig/RemoteServer/DataServers"
   local bhost="" bport="$BROKER_PORT" dhost="" dport="" url down="" host=""
-  RBHOST="" RBPORT=""
+  RBHOST="" RBPORT="" RBTLS=0
   url="$(sed -n 's|.*<Url>[ \t]*\(https\{0,1\}://[^/<]*\).*|\1|p' "$ds" 2>/dev/null | head -n1)"
   if [ -n "$url" ]; then
-    dport=80; case "$url" in https:*) dport=443 ;; esac
+    dport=80; case "$url" in https:*) dport=443; RBTLS=1 ;; esac
     url="${url#*://}"
     dhost="${url%%:*}"
     case "$url" in *:*) dport="${url##*:}" ;; esac
@@ -64,6 +67,9 @@ check_central_server() {
     return 1
   fi
   bhost="$dhost"
+  # The data server's URL (https) is what ecce-remote-setup --tls wrote; it
+  # decides for the broker as well, so the two cannot disagree.
+  [ "$RBTLS" = 1 ] && bport="$BROKER_TLS_PORT"
   if ! port_open_remote "$bhost" "$bport"; then down="$bhost:$bport (broker)"; fi
   if ! port_open_remote "$dhost" "$dport"; then
     down="${down:+$down and }$dhost:$dport (data server)"
@@ -156,8 +162,26 @@ if [ -n "$SHARED" ]; then
   fi
 elif [ -n "${ECCE_REMOTE_SERVER:-}" ]; then
   check_central_server || exit 2
-  echo "ecce-gateway-start: -remote -- using the central broker"
-  write_broker_file "host=$RBHOST" "port=$RBPORT"
+  if [ "$RBTLS" = 1 ]; then
+    echo "ecce-gateway-start: -remote -- using the central broker over TLS"
+    pin="$ECCE_HOME/siteconfig/RemoteServer/server.pem"
+    if [ -e "$pin" ]; then
+      trust=("cafile=$pin" "pinned=1")
+    else
+      trust=()
+      for d in /etc/ssl/certs /etc/pki/tls/certs; do
+        [ -d "$d" ] && { trust=("capath=$d"); break; }
+      done
+      if [ "${#trust[@]}" = 0 ]; then
+        echo "ecce-gateway-start: TLS to the central server, but there is neither a pinned certificate ($pin) nor a system CA directory" >&2
+        exit 2
+      fi
+    fi
+    write_broker_file "host=$RBHOST" "port=$RBPORT" "tls=1" "${trust[@]}"
+  else
+    echo "ecce-gateway-start: -remote -- using the central broker"
+    write_broker_file "host=$RBHOST" "port=$RBPORT"
+  fi
 elif ! MOSQUITTO="$("$ECCE_HOME/bin/ecce-find-mosquitto")"; then
   echo "ecce-gateway-start: no mosquitto broker installed and neither ECCE_REMOTE_SERVER nor siteconfig/SharedBroker is set." >&2
   echo "ecce-gateway-start: install mosquitto for a local broker, or point this client at a central one (ecce-remote-setup, then 'ecce -remote')." >&2
@@ -207,6 +231,12 @@ else
   # account (ecce-remote-setup --server) adds a TCP listener for its
   # clients, with the accounts of its data server (the plugin reads its users file) and the per-user rules.
   # per_listener_settings, so the socket and the TCP listener differ.
+  # With TLS (ecce-remote-setup --server --tls; $TLS_DIR/enabled) the
+  # plain TCP listener is loopback only and every other address gets the
+  # TLS port instead, so no password crosses the network in clear.
+  TLS_DIR="$STATEDIR/tls"
+  TLS=0
+  if [ "${ECCE_DATASERVER_TLS:-}" = 1 ] || [ -f "$TLS_DIR/enabled" ]; then TLS=1; fi
   make_conf() {
     echo "per_listener_settings true"
     echo "persistence false"
@@ -215,14 +245,35 @@ else
     echo "allow_anonymous true"
     [ -e "$MARKER" ] || return 0
     local b
+    local loop
     while IFS= read -r b; do
-      if [ "$b" = "*" ]; then echo "listener $BROKER_PORT"
-      else echo "listener $BROKER_PORT $b"; fi
-      echo "allow_anonymous false"
-      echo "plugin $ECCE_HOME/server/ecce_users_auth.so"
-      echo "plugin_opt_users_file $STATEDIR/dataserver/users"
-      echo "acl_file $ECCE_HOME/server/mosquitto.acl"
+      loop=0
+      case "$b" in 127.0.0.1|::1) loop=1 ;; esac
+      if [ "$TLS" = 1 ]; then
+        if [ "$b" = "*" ]; then
+          # The wildcard TLS listener does not cover the plain port.
+          broker_listener "$BROKER_TLS_PORT" "" tls
+          broker_listener "$BROKER_PORT" 127.0.0.1 plain
+          grep -q '^00000000000000000000000000000001 ' /proc/net/if_inet6 2>/dev/null &&
+            broker_listener "$BROKER_PORT" ::1 plain
+        else
+          broker_listener "$BROKER_TLS_PORT" "$b" tls
+          [ "$loop" = 1 ] && broker_listener "$BROKER_PORT" "$b" plain
+        fi
+      elif [ "$b" = "*" ]; then broker_listener "$BROKER_PORT" "" plain
+      else broker_listener "$BROKER_PORT" "$b" plain; fi
     done < <(server_binds)
+  }
+  broker_listener() {   # port address(or empty) plain|tls
+    echo "listener $1${2:+ $2}"
+    echo "allow_anonymous false"
+    echo "plugin $ECCE_HOME/server/ecce_users_auth.so"
+    echo "plugin_opt_users_file $STATEDIR/dataserver/users"
+    echo "acl_file $ECCE_HOME/server/mosquitto.acl"
+    if [ "$3" = tls ]; then
+      echo "certfile $TLS_DIR/server.pem"
+      echo "keyfile $TLS_DIR/server.key"
+    fi
   }
 
   if [ -e "$MARKER" ]; then
@@ -234,6 +285,15 @@ else
       echo "ecce-gateway-start: $ECCE_HOME/server/ecce_users_auth.so is missing -- install ecce-server; a central broker is not started without its login check" >&2
       exit 1
     fi
+  fi
+  if [ "$TLS" = 1 ] && [ -e "$MARKER" ]; then
+    for f in server.pem server.key; do
+      if [ ! -r "$TLS_DIR/$f" ]; then
+        echo "ecce-gateway-start: TLS is on but $TLS_DIR/$f is missing -- run ecce-remote-setup --server --tls; not starting the central broker without it" >&2
+        exit 1
+      fi
+    done
+    chmod 700 "$TLS_DIR" 2>/dev/null; chmod 600 "$TLS_DIR/server.key" 2>/dev/null
   fi
   NEWCONF="$(make_conf)"
 

@@ -3,6 +3,8 @@ type: checklist
 title: "`<LaunchPreprocessor>` is required, unconditionally"
 area: codereg
 section: "New-code checklist (gotchas found integrating ORCA, issue #38)"
+paths: ["src/comm/commxt/Launch.C", "src/dsm/xml/JCode.C", "scripts/parsers/nwchem.launchpp"]
+issues: [38]
 ---
 **`<LaunchPreprocessor>` is required, unconditionally** —
 `Launch::postProcessInput()` shells out to `JCode::launchPPScript()`

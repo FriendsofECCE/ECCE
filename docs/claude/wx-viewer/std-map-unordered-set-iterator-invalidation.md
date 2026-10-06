@@ -2,8 +2,9 @@
 type: map
 title: "`std::map`/`unordered_set` iterator invalidation"
 area: wx-viewer
-section: ""
+section: "wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls"
 paths: ["AuthCache.C", "DavEDSI.C", "GUIValues.C"]
+issues: []
 ---
 **`std::map`/`unordered_set` iterator invalidation**: `erase(it)`
 followed by a loop's own `it++`/`--it` touches a dangling iterator.

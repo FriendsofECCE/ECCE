@@ -11,8 +11,9 @@ tests/teaching/run_tests.py --queue slurm --case o2 --case h2se --case benzene
 
 CTest: `queues` (local), `queues_slurm`, `queues_sge` and `queues_htcondor`; each
 real one SKIPs (77) when its client commands are missing or no queue, partition or
-pool answers.  State and ports are the suite's own: `~/.cache/ecce-queue-state`,
-data server 8696, broker 8688.
+pool answers.  State and ports are the run's own: a fresh `~/.cache/ecce-queue-<random>`
+removed at exit, and OS-chosen data server and broker ports, so two runs
+can go at once (see docs/claude/services).
 
 ## What runs
 

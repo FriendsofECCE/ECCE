@@ -4,20 +4,20 @@ title: "The basis-set writers decide *how* a basis reaches the deck, and every b
 area: codereg
 section: "Pitfalls found more than once (check for siblings)"
 paths: ["tests/basis", "tests/basisload/nwchem_library_check.py", "wr<Code>GBS.pm", "wrORCAGBS.pm"]
+issues: []
 ---
 **The basis-set writers decide *how* a basis reaches the deck, and every
 bug in them is silent.** `TGBSConfig::dump()` always writes a
 `NumericalBasis` section (explicit exponents and coefficients) and
 *additionally* a `NameBasis` section when the basis can be named; each
-code's `wr<Code>GBS.pm` then chooses. Things learned the hard way
-(2026-09-23):
+code's `wr<Code>GBS.pm` then chooses. Things that are easy to get wrong:
 - **Gaussian's writer printed ECCE's own name, not the translated
   one**, so `%NameToBasis` was consulted only as a yes/no test and its
   value discarded. That works wherever the spellings coincide and
   produces a deck Gaussian *rejects* where they do not — `midi!` has
   to be `midix`, `dz (dunning)` → `d95`, `sv (dunning-hay)` → `d95v`.
   Fixed; ORCA's writer always printed the value.
-- **Name tables must be verified by RUNNING the code.** ORCA accepts
+- **Name tables must be [verified by running the code](verify-by-running-the-code.md).** ORCA accepts
   `6-31++G**` but rejects `6-31++G` and `6-31++G*`. Gaussian's
   `def2SVPP` is *not* def2-SVPP — it is def2-SV(P) (18 functions for
   water against def2SVP's 24), so a plausible-looking mapping silently

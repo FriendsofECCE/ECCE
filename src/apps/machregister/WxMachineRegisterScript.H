@@ -20,7 +20,8 @@
  *    click FIELD    a button or checkbox by name, e.g. blk:setup:copy, edit-file, raw:save
  *    shot-dialog FILE | expect raw-dialog 0|1 | contains FIELD TEXT   the Advanced: edit file dialog
  *    (set accepts \\n for a line break in the multi-line boxes)
- *    click help     the Help button; records the URL it would open (expect message)
+ *    click help     the Help button; opens the help window (expect message "help PAGE")
+ *    shot-help FILE   a PNG of the help window
  *    undo KEY      the undo button of a Connection row (jobs: the radios)
  *    code NAME | expect code-listed NAME 0|1   the Codes tab's list
  *    focus FIELD | cursor FIELD POS | words | words-pick WORD | words-activate WORD
@@ -61,7 +62,7 @@ class MachRegScript : public wxEvtHandler
                       const std::string& want);
         std::string get(const std::string& field);
         bool click(const std::string& field);
-        bool shot(const std::string& file, bool dialog = false);
+        bool shot(const std::string& file, bool dialog = false, bool help = false);
         void finish();
 
         wxWeakRef<wxWindow>      p_frameRef;

@@ -3,6 +3,8 @@ type: rule
 title: "Charge/multiplicity/electron parity is the one \"forbidden combination\" that needs no knowledge of any code"
 area: codereg
 section: "The input checker (`scripts/parsers/verifyinput`, #148)"
+paths: ["scripts/parsers/verifyinput", "src/apps/calced/InputVerifier.C", "src/apps/calced/CalcEd.C", "tests/verify"]
+issues: [148]
 ---
 **Charge/multiplicity/electron parity is the one "forbidden
 combination" that needs no knowledge of any code** — it is

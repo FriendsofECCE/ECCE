@@ -378,6 +378,10 @@ def launcherSuite():
         home = os.path.join(tmp, "ecce-home")
         os.makedirs(home + "/siteconfig")
         os.symlink(os.path.join(REPO, "scripts"), home + "/scripts")
+        # The launcher sources the session library from the install.
+        os.makedirs(home + "/bin")
+        os.symlink(os.path.join(REPO, "packaging", "gateway", "ecce-session-lib.sh"),
+                   home + "/bin/ecce-session-lib.sh")
         stubs = os.path.join(tmp, "stubs")
         write(stubs + "/ecce-gateway", "#!/bin/sh\necho started >> \"$ECCE_STUB_LOG\"\n")
         os.chmod(stubs + "/ecce-gateway", 0o755)

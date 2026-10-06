@@ -46,6 +46,7 @@
 #include "viz/AtomMeasureDist.H"
 #include "viz/SGLattice.H"
 #include "viz/SGContainer.H"
+#include "viz/VRVector.H"
 #include "viz/PropSGFragment.H"   
 #include "viz/SGFragment.H"   
 #include "viz/SGPlane.H"   
@@ -1916,6 +1917,38 @@ void SGContainer::touchLattice()
    }
 }
 
+double SGContainer::displayedSphereRadius(int idx)
+{
+   SGFragment *frag = getFragment();
+   if (!frag || idx < 0 || idx >= (int)frag->numAtoms()) return 0.0;
+   TAtm *atm = frag->atomRef(idx);
+   DisplayStyle style = atm->displayStyle();
+   if (!style.isDisplayed()) return 0.0;
+   DisplayStyle::Style s = style.getStyle();
+   if (s != DisplayStyle::BALLWIRE && s != DisplayStyle::BALLSTICK &&
+       s != DisplayStyle::CPK) return 0.0;
+
+   // The same radii and scale factor the style's ChemDisplay uses.
+   for (size_t k = 0; k < p_displayDescs.size() && k < p_displayParams.size(); k++) {
+      if (style.getName() == p_displayDescs[k].getName()) {
+         ChemRadii *radii = (s == DisplayStyle::CPK) ? p_CPK_radii : p_radii;
+         int z = atm->atomicNumber();
+         if (z < 0 || z >= radii->atomRadii.getNum()) return 0.0;
+         return radii->atomRadii[z] * p_displayParams[k]->atomRadiiScaleFactor.getValue();
+      }
+   }
+   return 0.0;
+}
+
+void SGContainer::updateNMVecStarts()
+{
+   SoSwitch *root = getNMVecRoot();
+   for (int j = 0; j < root->getNumChildren(); j++) {
+      VRVector *v = dynamic_cast<VRVector*>(root->getChild(j));
+      if (v) v->startRadius(displayedSphereRadius(j));
+   }
+}
+
 /**
  * Update mapping of atoms to ChemDisplay nodes.
  */
@@ -1933,6 +1966,7 @@ void  SGContainer::touchChemDisplay()
  */
 void  SGContainer::touchChemDisplay(SGFragment* frag)
 {
+   updateNMVecStarts();
 #ifdef timertests
   ETimer t,T;
   t.start();

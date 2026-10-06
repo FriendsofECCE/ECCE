@@ -2,8 +2,9 @@
 type: map
 title: "Look at `tools/modiagram/render`'s output before believing any layout claim"
 area: mo-diagram
-section: ""
-paths: ["draw.py", "tools/modiagram/render"]
+section: "The MO correlation diagram (#132)"
+paths: ["tools/modiagram/draw.py", "tools/modiagram/render.C"]
+issues: [132]
 ---
 **Look at `tools/modiagram/render`'s output before believing any
 layout claim.** It runs the real engine and paints the real

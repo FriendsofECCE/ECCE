@@ -434,6 +434,20 @@ void ICalcUtils::importNameBasis(istream& infile, TGBSConfig* config) {
       vector<TGaussianBasisSet*> gbsList 
         = lib.lookup(basisName.c_str(), gbsTemplate->p_type, element);
 
+      // An aggregate's ECP part comes back for every element, with no
+      // potential for one it does not cover (def2-SVP's Def2-ECP starts
+      // at Rb); kept, it would put an empty ECP on H and C.
+      for (size_t g = 0; g < gbsList.size(); ) {
+        if (gbsList[g]->p_type == TGaussianBasisSet::ecp &&
+            gbsList[g]->p_contractions.find(element) ==
+                gbsList[g]->p_contractions.end()) {
+          delete gbsList[g];
+          gbsList.erase(gbsList.begin() + g);
+        } else {
+          g++;
+        }
+      }
+
       if (gbsList.size() == 0) {
         errMsg += "Basis set: " + basisName + " not found in library!\n";
         continue;

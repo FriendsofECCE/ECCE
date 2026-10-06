@@ -4,6 +4,7 @@ title: "Codereg dialogs are never told which elements the structure contains"
 area: codereg
 section: "Pitfalls found more than once (check for siblings)"
 paths: ["globals.py"]
+issues: []
 ---
 **Codereg dialogs are never told which elements the structure
 contains.** They are standalone processes whose entire input is

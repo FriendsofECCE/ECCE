@@ -176,6 +176,11 @@ string LocalData::dir()
   const char *env = getenv("ECCE_LOCAL_DATA");
   if (env) {
     ret = *env ? trim(expand(env)) : "";
+  } else if (getenv("ECCE_LOCAL")) {
+    // `ecce --local`: the preference's folder whether or not the
+    // preference is ticked; a session started without a data server
+    // could not reach Preferences to tick it.
+    ret = prefFolder();
   } else if (getenv("ECCE_REMOTE_SERVER")) {
     ret = "";
   } else {

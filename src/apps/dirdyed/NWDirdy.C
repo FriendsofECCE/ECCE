@@ -4141,6 +4141,9 @@ void NWDirdy::startGeneralTheoryApp(const bool& initFlag)
     // Create datagram socket, Let Wx select a port for us - (Service(0))
     wxIPV4address bindAddress;
     bindAddress.Service(0);
+    // Only the dialog on this machine may send: unbound, anyone on the
+    // network could set this editor's values.
+    bindAddress.LocalHost();
     p_generalTheoryInSocket = new wxDatagramSocket(bindAddress);
 
     // Check state of new socket, if its OK:
@@ -4258,6 +4261,9 @@ void NWDirdy::startSingleTheoryApp(const bool& initFlag)
     // Create datagram socket, Let Wx select a port for us - (Service(0))
     wxIPV4address bindAddress;
     bindAddress.Service(0);
+    // Only the dialog on this machine may send: unbound, anyone on the
+    // network could set this editor's values.
+    bindAddress.LocalHost();
     p_singleTheoryInSocket = new wxDatagramSocket(bindAddress);
 
     // Check state of new socket, if its OK:

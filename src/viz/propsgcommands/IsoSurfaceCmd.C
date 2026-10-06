@@ -59,6 +59,12 @@ void IsoSurfaceCmd::init()
    addParameter(new CommandParameter("colorMin", -0.05));
    addParameter(new CommandParameter("colorMax", 0.05));
 
+   //  The cutoff to build the surface at; 0 or less means the field
+   //  type's default below.  A caller that knows the user's cutoff passes
+   //  it: building at the default first showed that surface for a frame
+   //  or two before IsoValueCmd replaced it (#226).
+   addParameter(new CommandParameter("isovalue", 0.0));
+
 }
 
 bool IsoSurfaceCmd::execute()
@@ -287,8 +293,12 @@ bool IsoSurfaceCmd::execute()
         }
       }
 
+      const double requested = getParameter("isovalue")->getDouble();
+      const float threshold = requested > 0.0 ? (float)requested : isovalue;
+      ISO_LOG << "ISO: building at threshold " << threshold << std::endl;
+
       // Since we only deal with absolute values of isovalues:
-      if (isovalue > 0.0) {
+      if (threshold > 0.0) {
          positiveLobeColor = posColor;
          negativeLobeColor = negColor;
       }
@@ -331,7 +341,7 @@ bool IsoSurfaceCmd::execute()
                           gridStruct->colorFieldMax(), transparency);
       }
 
-      isosurf1->threshold.setValue(isovalue);
+      isosurf1->threshold.setValue(threshold);
 
 #ifndef MI10
       /* Well, I guess I sort of screwed you over here, but nothing that can't be
@@ -378,7 +388,7 @@ bool IsoSurfaceCmd::execute()
 
          isosurf2->dataVar = 0;
          isosurf2->colorVar = 0;
-         isosurf2->threshold.setValue(-isovalue);
+         isosurf2->threshold.setValue(-threshold);
 
 #ifndef MI10
          childList = isosurf2->getChildren();
@@ -410,13 +420,13 @@ bool IsoSurfaceCmd::execute()
       chemMesh->kAxis.setValue(true);
       chemMesh->dataVar = 0;
 
-      chemMesh->levels.set1Value(0, isovalue);
+      chemMesh->levels.set1Value(0, threshold);
       chemMesh->orderedRGBA.set1Value(0, positiveLobeColor);
 
       // For other than Density field, we want to display both positive and
       // negative lobes (isosurfaces)
       if (!densityLike) {
-         chemMesh->levels.set1Value(1, -isovalue);
+         chemMesh->levels.set1Value(1, -threshold);
          chemMesh->orderedRGBA.set1Value(1, negativeLobeColor);
       }
 
@@ -438,7 +448,7 @@ bool IsoSurfaceCmd::execute()
       chemContour->kAxis.setValue(false);
       chemContour->dataVar = 0;
 
-      chemContour->levels.set1Value(0, isovalue);
+      chemContour->levels.set1Value(0, threshold);
       chemContour->orderedRGBA.set1Value(0, positiveLobeColor);
       //  vp = (SoVertexProperty *)chemContour->vertexProperty.getValue();
       //  vp->orderedRGBA.setValue(positiveLobeColor);
@@ -446,7 +456,7 @@ bool IsoSurfaceCmd::execute()
       // For other than Density field, we want to display both positive and
       // negative lobes (isosurfaces)
       if (!densityLike) {
-         chemContour->levels.set1Value(1, -isovalue);
+         chemContour->levels.set1Value(1, -threshold);
          chemContour->orderedRGBA.set1Value(1, negativeLobeColor);
       }
 

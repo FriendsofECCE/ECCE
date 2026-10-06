@@ -21,6 +21,7 @@
   using std::ostrstream;
 
 #include "util/BrowserHelp.H"
+#include "wxgui/WxHelpViewer.H"
 #include "util/Ecce.H"
 #include "util/JMSMessage.H"
 #include "util/JMSPublisher.H"
@@ -320,8 +321,7 @@ void MDEdBase::OnMenuHelpClick( wxCommandEvent& event )
   while ((ind = helpkey.find(' ')) != string::npos)
     helpkey.erase(ind, 1);
 
-  BrowserHelp help;
-  help.showPage(help.URL(helpkey));
+  WxHelpViewer::showKey(helpkey);
 }
 
 /**

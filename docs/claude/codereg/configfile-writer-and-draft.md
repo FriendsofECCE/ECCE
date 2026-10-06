@@ -4,7 +4,7 @@ title: "`ConfigFile` reads and writes `CONFIG.<m>`; `MachineConfigDraft` is what
 area: codereg
 section: "Machine configuration (CONFIG files)"
 paths: ["include/tdat/ConfigFile.H", "src/tdat/resources/ConfigFile.C", "include/tdat/MachineConfigDraft.H", "src/tdat/resources/MachineConfigDraft.C", "include/util/MiniJson.H", "tests/queues/configedit.C", "tests/queues/configedit_test.py"]
-issues: ["212"]
+issues: [212]
 ---
 **`ConfigFile`** is the one C++ implementation of the CONFIG line grammar:
 `RefMachine::config()` merges files through `ConfigFile::mergeFile`, and the
