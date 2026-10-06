@@ -69,13 +69,14 @@ def resolve(ref, user):
     here = os.path.dirname(user)
     cands = [r.replace("@loader_path", here).replace("@executable_path", here) + "/" + name
              for r in rpaths(user)]
-    cands += [d + "/" + name for d in search]
+    cands += [d + "/" + name for d in search + sorted(SOURCE_DIRS)]
     for c in cands:
         if os.path.exists(c):
             return os.path.realpath(c)
     sys.exit("cannot resolve %s needed by %s" % (ref, user))
 
 
+SOURCE_DIRS = set()  # where bundled libraries came from: gcc's libquadmath etc. sit beside libgfortran
 done = {}  # real source path -> name in Frameworks
 
 
@@ -89,6 +90,7 @@ def bundle(user):
         name = os.path.basename(real)
         if real not in done:
             done[real] = name
+            SOURCE_DIRS.add(os.path.dirname(real))
             dst = os.path.join(fw, name)
             shutil.copy2(real, dst)
             os.chmod(dst, 0o755)
