@@ -199,7 +199,11 @@ void VibSpectrum::setIntensities(VibKind kind, const vector<double>& values,
 {
   p_inten[kind] = values;
   p_inten[kind].resize(p_freq.size(), 0.0);
-  p_has[kind] = true;
+  //  All zeros is a code saying "not computed" (Gaussian writes zero
+  //  Raman activities without Raman=), not a spectrum with no bands.
+  p_has[kind] = false;
+  for (size_t i = 0; i < values.size(); i++)
+    if (values[i] != 0.0) p_has[kind] = true;
   p_units[kind] = units;
   p_relative[kind] = !knownIntensityUnits(kind, units);
 }

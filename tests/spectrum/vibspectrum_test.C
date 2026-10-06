@@ -263,6 +263,13 @@ static void testSticks()
   CHECK(near(r.sticks(VIB_RAMAN)[0].intensity, 1.0, 1e-12));
   CHECK(r.axisLabel(VIB_RAMAN) == "Raman intensity (relative)");
 
+  //  All-zero intensities mean the code did not compute them.
+  VibSpectrum z;
+  const double zero[] = {0.0, 0.0};
+  z.setModes(std::vector<double>(mf, mf + 2), std::vector<std::string>());
+  z.setIntensities(VIB_RAMAN, std::vector<double>(zero, zero + 2), "A^4/AMU");
+  CHECK(!z.has(VIB_RAMAN) && z.sticks(VIB_RAMAN).empty());
+
   //  Units as the codes write them.
   VibSpectrum u = water();
   CHECK(u.axisLabel(VIB_IR) == "IR intensity (km/mol)");

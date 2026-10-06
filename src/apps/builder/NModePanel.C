@@ -6,8 +6,17 @@
   using std::fill;
 #include <limits>
 
+#include <wx/checkbox.h>
+#include <wx/dcmemory.h>
 #include <wx/link.h>
 #include <wx/listctrl.h>
+#include <wx/sizer.h>
+#include <wx/textctrl.h>
+#include <wx/tooltip.h>
+#include <wx/wrapsizer.h>
+
+#include <cstdio>
+#include <cstdlib>
 
 #include "util/EventDispatcher.H"
 #include "util/InternalException.H"
@@ -22,7 +31,6 @@
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxColorDialog.H"
 #include "wxgui/ewxConfig.H"
-#include "wxgui/ewxPlotCtrl.H"
 #include "wxgui/ewxNumericValidator.H"
 #include "wxgui/ewxTextCtrl.H"
 #include "wxgui/ewxWindowUtils.H"
@@ -65,8 +73,6 @@ BEGIN_EVENT_TABLE( NModePanel, NModesGUI )
     EVT_RADIOBOX( ID_RADIOBOX_NMODE_VIZTYPE, NModePanel::OnRadioboxSelected )
     EVT_UPDATE_UI( ID_RADIOBOX_NMODE_VIZTYPE, NModePanel::OnRadioboxUpdateUI )
     EVT_TIMER(wxID_ANY, NModePanel::OnTimer)
-    EVT_PLOTCTRL_CLICKED(wxID_ANY, NModePanel::OnPlotClick)
-    EVT_PLOTCTRL_POINT_CLICKED(wxID_ANY, NModePanel::OnPointClick)
 
 END_EVENT_TABLE()
 
@@ -78,7 +84,9 @@ NModePanel::NModePanel()
   : NModesGUI(),
     TearableContentProvider(),
     p_grid(NULL),
-    p_plotCtrl(NULL),
+    p_spectrum(NULL),
+    p_fwhmText(NULL),
+    p_scaleText(NULL),
     p_timer(NULL),
     p_slider(NULL),
     p_selectedRow(0),
@@ -100,7 +108,9 @@ NModePanel::NModePanel(IPropCalculation *calculation,
   : NModesGUI(),
     TearableContentProvider(),
     p_grid(NULL),
-    p_plotCtrl(NULL),
+    p_spectrum(NULL),
+    p_fwhmText(NULL),
+    p_scaleText(NULL),
     p_timer(NULL),
     p_slider(NULL),
     p_selectedRow(0),
@@ -140,10 +150,8 @@ bool NModePanel::Create(IPropCalculation *calculation,
    p_ramanColumn = -1;
 
    p_timer = new wxTimer(this);
-   p_plotCtrl = new ewxPlotCtrl(this, wxID_ANY);
-   p_gridPlotSizer->Add(p_plotCtrl,1,wxGROW);
-
    ewxConfig *config = ewxConfig::getConfig(INIFILE);
+   createSpectrumPane();
 
    int vid = GRAPH;
    config->Read("NMode/View", &vid, GRAPH);
@@ -274,6 +282,8 @@ void NModePanel::initialize()
 
    getFW().getViewer().getSel()->deselectAll();
    getFW().getViewer().viewAll();
+
+   dumpSpectrumIfRequested();
 }
 
 /**
@@ -324,14 +334,136 @@ void NModePanel::OnTimer(wxTimerEvent& evt)
 {
    nextStep();
 }
-void NModePanel::OnPointClick(wxPlotCtrlEvent& event)
+
+/**
+ * The plot: the spectrum canvas with its controls underneath.  Item 1 of
+ * p_gridPlotSizer, which showGraph()/showTable() rely on.
+ */
+void NModePanel::createSpectrumPane()
 {
-   p_mode = event.GetCurveDataIndex()/3;
-   showMode(p_mode);
+   ewxConfig *config = ewxConfig::getConfig(INIFILE);
+   double fwhm = 15.0, scale = 1.0;
+   bool reversed = true, sticks = true;
+   config->Read("NMode/FWHM", &fwhm, 15.0);
+   config->Read("NMode/Scale", &scale, 1.0);
+   config->Read("NMode/WavenumberHighOnLeft", &reversed, true);
+   config->Read("NMode/ShowSticks", &sticks, true);
+   if (fwhm < 0 || fwhm > 200) fwhm = 15.0;
+   if (scale <= 0) scale = 1.0;
+
+   wxPanel *pane = new wxPanel(this);
+   wxBoxSizer *col = new wxBoxSizer(wxVERTICAL);
+
+   p_spectrum = new SpectrumCanvas(pane);
+   p_spectrum->setClickHandler(this);
+   p_spectrum->setFwhm(fwhm);
+   p_spectrum->setScale(scale);
+   p_spectrum->setReversed(reversed);
+   p_spectrum->setShowSticks(sticks);
+   col->Add(p_spectrum, 1, wxEXPAND);
+
+   wxWrapSizer *row = new wxWrapSizer(wxHORIZONTAL);
+   const int gap = 6;
+
+   row->Add(new wxStaticText(pane, wxID_ANY,
+              wxString::FromUTF8("Width (cm\xE2\x81\xBB\xC2\xB9):")),
+            0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap);
+   p_fwhmText = new wxTextCtrl(pane, wxID_ANY,
+                  wxString::Format("%g", fwhm), wxDefaultPosition,
+                  wxSize(56, -1), wxTE_PROCESS_ENTER);
+   p_fwhmText->SetToolTip(wxString::FromUTF8(
+      "Full width at half maximum of each band, in cm\xE2\x81\xBB\xC2\xB9 "
+      "(0 to 200).\nCondensed-phase bands are typically 5 to 30 wide.\n"
+      "0 shows sticks only.\nA narrow width gives sharp lines at the band "
+      "origins; it does not reproduce the rotational structure of a "
+      "gas-phase spectrum."));
+   row->Add(p_fwhmText, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
+
+   row->Add(new wxStaticText(pane, wxID_ANY, "Frequency scale:"),
+            0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
+   p_scaleText = new wxTextCtrl(pane, wxID_ANY,
+                  wxString::Format("%g", scale), wxDefaultPosition,
+                  wxSize(56, -1), wxTE_PROCESS_ENTER);
+   p_scaleText->SetToolTip(wxString::FromUTF8(
+      "Multiplies every frequency. Harmonic frequencies from most "
+      "methods are 3 to 5 % too high; a typical factor is 0.96."));
+   row->Add(p_scaleText, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
+
+   wxCheckBox *left = new wxCheckBox(pane, wxID_ANY,
+                                     "High wavenumber left");
+   left->SetValue(reversed);
+   row->Add(left, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
+
+   wxCheckBox *stk = new wxCheckBox(pane, wxID_ANY, "Sticks");
+   stk->SetValue(sticks);
+   row->Add(stk, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
+
+   wxButton *reset = new wxButton(pane, wxID_ANY, "Reset zoom");
+   reset->SetToolTip("Show the whole spectrum (or double-click the plot, "
+                     "or press Home).\nClick a peak to show its mode. Drag "
+                     "to zoom to a band, mouse wheel to zoom, right-drag "
+                     "to pan.");
+   row->Add(reset, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, gap * 2);
+   col->Add(row, 0, wxEXPAND | wxTOP | wxBOTTOM, 3);
+
+   pane->SetSizer(col);
+   p_gridPlotSizer->Add(pane, 1, wxGROW);
+
+   p_fwhmText->Bind(wxEVT_TEXT_ENTER,
+                    [this](wxCommandEvent&) { applySpectrumSettings(); });
+   p_fwhmText->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& e) {
+      applySpectrumSettings(); e.Skip(); });
+   p_scaleText->Bind(wxEVT_TEXT_ENTER,
+                     [this](wxCommandEvent&) { applySpectrumSettings(); });
+   p_scaleText->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& e) {
+      applySpectrumSettings(); e.Skip(); });
+   left->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
+      p_spectrum->setReversed(e.IsChecked());
+      ewxConfig::getConfig(INIFILE)->Write("NMode/WavenumberHighOnLeft",
+                                           e.IsChecked());
+   });
+   stk->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
+      p_spectrum->setShowSticks(e.IsChecked());
+      ewxConfig::getConfig(INIFILE)->Write("NMode/ShowSticks", e.IsChecked());
+   });
+   reset->Bind(wxEVT_BUTTON,
+               [this](wxCommandEvent&) { p_spectrum->resetZoom(); });
 }
 
-void NModePanel::OnPlotClick(wxPlotCtrlEvent& event)
+
+/**
+ * Width and scale from their entry fields, kept within what means
+ * something: a width of 0 to 200 cm-1 (0 is sticks only), a positive
+ * scale.  A field left unreadable goes back to what is in force.
+ */
+void NModePanel::applySpectrumSettings()
 {
+   if (p_spectrum == 0 || p_fwhmText == 0 || p_scaleText == 0) return;
+   double fwhm = p_spectrum->spectrum().fwhm();
+   double scale = p_spectrum->spectrum().scale();
+   double v;
+   if (p_fwhmText->GetValue().ToDouble(&v) && v >= 0) {
+      fwhm = v > 200 ? 200 : v;
+      if (fwhm > 0 && fwhm < 0.1) fwhm = 0.1;
+   }
+   if (p_scaleText->GetValue().ToDouble(&v) && v > 0) scale = v;
+   p_fwhmText->ChangeValue(wxString::Format("%g", fwhm));
+   p_scaleText->ChangeValue(wxString::Format("%g", scale));
+
+   const bool scaleChanged = scale != p_spectrum->spectrum().scale();
+   if (fwhm != p_spectrum->spectrum().fwhm()) p_spectrum->setFwhm(fwhm);
+   if (scaleChanged) p_spectrum->setScale(scale);
+
+   ewxConfig *config = ewxConfig::getConfig(INIFILE);
+   config->Write("NMode/FWHM", fwhm);
+   config->Write("NMode/Scale", scale);
+}
+
+
+void NModePanel::modeClicked(int mode)
+{
+   if (mode < 0 || mode >= p_grid->GetNumberRows()) return;
+   selectMode(mode);
 }
 
 void NModePanel::showAnimationMode()
@@ -389,84 +521,113 @@ bool NModePanel::fillGraph()
     return false;
   }
 
-  // Get the required properties 
   PropVector *vec =  (PropVector*) expt->getProperty("VIBFREQ");
   PropVector *ivec = (PropVector*) expt->getProperty("VIBIR");
   PropVector *rvec = (PropVector*) expt->getProperty("VIBRAM");
+  PropVecString *symvec = (PropVecString*) expt->getProperty("VIBSYM");
 
   if (vec == 0) {
     wxFAIL_MSG( wxT("No frequency data available.") );
     return false;
   }
 
+  //  A property the code did not produce gets no pane, rather than a
+  //  flat set of unit spikes standing in for it (see fillTable()).
+  vector<double> freq, ir, raman;
+  vector<string> irrep;
+  const int n = vec->rows();
+  for (int i = 0; i < n; i++) {
+    freq.push_back(vec->value(i));
+    if (ivec != 0 && i < ivec->rows()) ir.push_back(ivec->value(i));
+    if (rvec != 0 && i < rvec->rows()) raman.push_back(rvec->value(i));
+    irrep.push_back(symvec != 0 && i < symvec->rows() ? symvec->value(i)
+                                                      : string());
+  }
 
-  // clear any plot(s) that might exist
-  p_plotCtrl->DeleteCurve(-1, false); // -1 deletes all, true emits event
-
-  plotCurve(vec, ivec);
-  p_plotCtrl->SetKeyColour(*wxGREEN);
-  plotCurve(vec, rvec);
-  p_plotCtrl->SetXAxisLabel("Frequency");
+  VibSpectrum spectrum;
+  spectrum.setModes(freq, irrep);
+  if (ivec != 0) spectrum.setIntensities(VIB_IR, ir, ivec->units());
+  if (rvec != 0) spectrum.setIntensities(VIB_RAMAN, raman, rvec->units());
+  p_spectrum->setSpectrum(spectrum);
 
   return ivec != 0 || rvec != 0;
 }
 
-void NModePanel::plotCurve(PropVector *xprop, PropVector *yprop)
+
+/**
+ * ECCE_SPECTRUM_DUMP=<path> (#214): write what the canvas holds and where
+ * it drew each stick, paint the panel's own canvas to <path>.png, and
+ * click the stick of ECCE_SPECTRUM_CLICK=<mode, 1-based> through the
+ * canvas's hit test.  For headless checks against the numbers in the
+ * code's own output; ECCE_EXIT_AFTER_DUMP=1 then closes the window.
+ */
+void NModePanel::dumpSpectrumIfRequested()
 {
-  //  No property, no curve.
-  //
-  //  This used to fall through and plot a spike of height 1.0 at every
-  //  frequency -- the old "draw line at 1 like old calcviewer" the
-  //  commented-out guard below was weighing up.  For any code that
-  //  produces one activity and not the other that is a whole phantom
-  //  spectrum drawn over the real one: MOPAC computes no Raman, so its
-  //  infrared plot came with a second, green, flat set of unit spikes
-  //  on top, and the spectrum read as "all intensities are 1.0".
-  //
-  //  Same reasoning as the Raman COLUMN in fillTable(): a property the
-  //  code cannot produce should be absent, not drawn as a constant.
-  if (yprop == 0) return;
+   const char *path = getenv("ECCE_SPECTRUM_DUMP");
+   if (path == 0 || p_spectrum == 0) return;
 
-  // The times 3 is because each curve is continuous line with each spectrum
-  // represented as three points in 
-  //    x (val-1,val,val+1) and 
-  //    y (0,val,0)
-  int size = xprop->rows() * 3;
+   const wxSize size(1000, 700);
+   wxBitmap bitmap(size.x, size.y, 24);
+   wxMemoryDC dc(bitmap);
+   p_spectrum->paintOnto(dc, size);
 
+   FILE *out = fopen(path, "w");
+   if (out != 0) {
+      const VibSpectrum& s = p_spectrum->spectrum();
+      fprintf(out, "modes %d fwhm %g scale %g\n", s.modeCount(), s.fwhm(),
+              s.scale());
+      for (int k = 0; k < 2; k++) {
+         if (!s.has((VibKind)k)) continue;
+         fprintf(out, "axis %s %s\n", k == VIB_IR ? "ir" : "raman",
+                 s.axisLabel((VibKind)k).c_str());
+         const vector<VibStick> st = s.sticks((VibKind)k);
+         for (size_t i = 0; i < st.size(); i++) {
+            wxPoint at(-1, -1);
+            p_spectrum->stickPosition((VibKind)k, st[i].mode, &at);
+            fprintf(out, "stick %s %d %.8f %.10g %s %d %d%s\n",
+                    k == VIB_IR ? "ir" : "raman", st[i].mode + 1,
+                    st[i].wavenumber, st[i].intensity,
+                    st[i].irrep.empty() ? "-" : st[i].irrep.c_str(), at.x,
+                    at.y, st[i].imaginary ? " imaginary" : "");
+         }
+      }
+      const char *click = getenv("ECCE_SPECTRUM_CLICK");
+      if (click != 0) {
+         const int mode = atoi(click) - 1;
+         wxPoint at;
+         const VibKind kind = s.has(VIB_IR) ? VIB_IR : VIB_RAMAN;
+         if (p_spectrum->stickPosition(kind, mode, &at)) {
+            p_spectrum->clickAt(wxPoint(at.x, at.y + 3));
+            fprintf(out, "click mode %d: panel mode %d, table row %d, "
+                         "canvas selection %d\n", mode + 1, p_mode + 1,
+                    p_selectedRow + 1, p_spectrum->selected() + 1);
+         } else {
+            fprintf(out, "click mode %d: no stick\n", mode + 1);
+         }
+      }
+      fclose(out);
+   }
+   dc.SelectObject(wxNullBitmap);
+   bitmap.SaveFile(wxString(path) + ".png", wxBITMAP_TYPE_PNG);
 
-  // create and initialize the data arrays
-  double *x = new double[size];
-  double *y = new double[size];
-  fill(x, x+size, 0);
-  fill(y, y+size, 1.);
-
-  int sidx; // y=0, x=x-1
-  int vidx;  // y=y, x=x (the actual point)
-  int eidx;  // y=0, x=x+1
-
-  float val;
-  int cnt = xprop->rows();
-  for (int idx=0; idx<cnt; idx++) {
-     sidx = idx + idx*2;
-     vidx = idx + idx*2+1;
-     eidx = idx + idx*2+2;
-     val = xprop->value(idx);
-     
-     x[sidx] = val-1;
-     x[vidx] = val;
-     x[eidx] = val+1;
-
-     if (y) {
-        y[sidx] = 0.;
-        y[vidx] = yprop->value(idx);
-        y[eidx] = 0.;
-     }
-  }
-
-
-  wxPlotData *plotData = new wxPlotData(x, y, size);
-  p_plotCtrl->AddCurve(plotData, true, true);
-
+   if (getenv("ECCE_EXIT_AFTER_DUMP") != 0) {
+      //  Optionally later, so a screenshot of the window can be taken first.
+      const char *delay = getenv("ECCE_EXIT_AFTER_DUMP_DELAY_MS");
+      const int ms = delay != 0 ? atoi(delay) : 0;
+      if (ms > 0) {
+         wxTimer *timer = new wxTimer();   // the process ends with it
+         timer->Bind(wxEVT_TIMER, [](wxTimerEvent&) {
+            wxWindow *top = wxTheApp->GetTopWindow();
+            if (top != 0) top->Close(true);
+         });
+         timer->StartOnce(ms);
+      } else {
+         wxTheApp->CallAfter([]() {
+            wxWindow *top = wxTheApp->GetTopWindow();
+            if (top != 0) top->Close(true);
+         });
+      }
+   }
 }
 
 
@@ -593,7 +754,7 @@ void NModePanel::showMode(int index)
 
    p_currentStep = 0;
    p_mode = index;
-
+   if (p_spectrum != 0) p_spectrum->setSelected(index);
 
    // Restore to proper fragment so commands use correct coordinates
    selectFragStep(-1);

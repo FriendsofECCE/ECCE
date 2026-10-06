@@ -91,7 +91,7 @@ class SpectrumCanvas : public wxPanel
         p_bandLo(0), p_bandHi(0), p_cacheValid(false)
     {
       SetBackgroundStyle(wxBG_STYLE_PAINT);
-      SetMinSize(wxSize(240, 160));
+      SetMinSize(wxSize(240, 220));
       Bind(wxEVT_PAINT, &SpectrumCanvas::onPaint, this);
       Bind(wxEVT_LEFT_DOWN, &SpectrumCanvas::onLeftDown, this);
       Bind(wxEVT_LEFT_UP, &SpectrumCanvas::onLeftUp, this);
@@ -279,6 +279,15 @@ class SpectrumCanvas : public wxPanel
       if (p_hoverMode >= 0) paintReadout(dc, size);
     }
 
+    /** What a click at this point does: tell the owner which mode. */
+    bool clickAt(const wxPoint& p)
+    {
+      const Hit *h = hitAt(p);
+      if (h == 0 || p_owner == 0) return false;
+      p_owner->modeClicked(h->mode);
+      return true;
+    }
+
   private:
 
     //  One y axis: its top, ticks and title.
@@ -376,6 +385,7 @@ class SpectrumCanvas : public wxPanel
         e = dc.GetTextExtent(t);
       }
       (void)leftSide;
+      if (e.x > maxLength) return;       // no room: better none than overlap
       dc.DrawRotatedText(t, cx, cy + e.x / 2, 90);
     }
 
@@ -706,8 +716,7 @@ class SpectrumCanvas : public wxPanel
         Refresh();
         return;
       }
-      const Hit *h = hitAt(e.GetPosition());
-      if (h && p_owner) p_owner->modeClicked(h->mode);
+      clickAt(e.GetPosition());
     }
 
     void onDoubleClick(wxMouseEvent& e)

@@ -4,16 +4,19 @@
 #include "wxgui/TearableContentProvider.H"
 
 #include "NModesGUI.H"
+#include "SpectrumCanvas.H"
 
-class ewxPlotCtrl;
+class wxCheckBox;
 class wxGrid;
+class wxTextCtrl;
 class PropVector;
 
 /**
  * A panel for viewing normal mode animations and vectors.
  */
 class NModePanel : public NModesGUI,
-                   public TearableContentProvider
+                   public TearableContentProvider,
+                   public SpectrumClickTarget
 {
    DECLARE_DYNAMIC_CLASS(NModePanel)
    DECLARE_EVENT_TABLE()
@@ -56,12 +59,17 @@ class NModePanel : public NModesGUI,
       virtual void receiveFocus();
       virtual void loseFocus();
 
+      /** A peak in the spectrum was clicked: select and animate that mode. */
+      virtual void modeClicked(int mode);
+
    protected:
       void initialize();
       void setSlider();
       void fillTable();
       bool fillGraph();
-      void plotCurve(PropVector *x, PropVector *y);
+      void createSpectrumPane();
+      void dumpSpectrumIfRequested();
+      void applySpectrumSettings();
       void updateVectors(int mode,
                          float amplitude,
                          bool sign,
@@ -85,14 +93,14 @@ class NModePanel : public NModesGUI,
       void OnModeSelection( wxGridEvent& event );
       void OnCheckboxNmodeVecsignClick( wxCommandEvent& event );
       void OnTimer( wxTimerEvent& event );
-      void OnPointClick(wxPlotCtrlEvent& event);
-      void OnPlotClick(wxPlotCtrlEvent& event);
 
    private:
 
       /* The report oriented table showing modes */
       wxGrid *p_grid;  
-      ewxPlotCtrl *p_plotCtrl;
+      SpectrumCanvas *p_spectrum;
+      wxTextCtrl *p_fwhmText;
+      wxTextCtrl *p_scaleText;
 
       wxTimer *p_timer;
 
