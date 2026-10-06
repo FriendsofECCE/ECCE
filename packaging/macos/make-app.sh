@@ -12,6 +12,8 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 full=$(sed -n 's/^ECCE_VERSION_STRING=//p' "$STAGE/bin/ecce" | head -1 | tr -d "'\"")
 VERSION=$(echo "${full#v}" | sed 's/^\([0-9]*\.[0-9]*\.[0-9]*\).*/\1/')
 [ -n "$VERSION" ] || { echo "make-app: no version in $STAGE/bin/ecce" >&2; exit 1; }
+# Info.plist needs the numeric version; the file name keeps the full one (alpha, rc).
+FULLVER="${full#v}"
 
 APP=$OUT/ECCE.app
 RES=$APP/Contents/Resources
@@ -63,6 +65,6 @@ rm -f "$OUT"/ECCE-*.dmg
 dmgdir=$(mktemp -d)
 cp -R "$APP" "$dmgdir/"
 ln -s /Applications "$dmgdir/Applications"
-hdiutil create -volname "ECCE $VERSION" -srcfolder "$dmgdir" -ov -format UDZO "$OUT/ECCE-$VERSION-$(uname -m).dmg"
+hdiutil create -volname "ECCE $VERSION" -srcfolder "$dmgdir" -ov -format UDZO "$OUT/ECCE-$FULLVER-$(uname -m).dmg"
 rm -rf "$dmgdir"
 ls -l "$OUT"/ECCE-*.dmg

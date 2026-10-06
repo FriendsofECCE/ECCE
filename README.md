@@ -132,10 +132,14 @@ your `PATH`.
 goal ([#133](https://github.com/FriendsofECCE/ECCE/issues/133),
 [#232](https://github.com/FriendsofECCE/ECCE/issues/232)); the state of
 the macOS build is tracked in #133. Until then, ECCE runs on Linux only.
-CI builds an experimental `ECCE.app` in a `.dmg` (workflow artifact
-`ECCE-macos-dmg`). It is signed ad hoc only, so macOS refuses it at
-first: right-click the app and choose Open, or run
-`xattr -dr com.apple.quarantine /Applications/ECCE.app`.
+CI builds an experimental `ECCE.app` in a `.dmg` for Apple silicon
+(macOS 11 or later) and for Intel (macOS 10.15 or later), as workflow
+artifacts `ECCE-macos-dmg-arm64` and `ECCE-macos-dmg-x86_64`. Drag
+ECCE to Applications. The app is signed ad hoc only, so macOS refuses
+it at first. On macOS 14 and earlier, right-click the app and choose
+Open. On macOS 15 and later, open it once, then choose System Settings >
+Privacy & Security > Open Anyway. Either way, running
+`xattr -dr com.apple.quarantine /Applications/ECCE.app` also works.
 
 ### 2. Create your account
 
