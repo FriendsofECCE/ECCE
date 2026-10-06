@@ -177,7 +177,8 @@ std::string WxHelpViewer::currentPage() const
 {
     wxString f = wxFileName(p_html->GetOpenedPage()).GetFullName();
     wxString a = p_html->GetOpenedAnchor();
-    if (!a.empty())
+    // GetOpenedPage() may already carry the anchor.
+    if (!a.empty() && f.Find('#') == wxNOT_FOUND)
         f += "#" + a;
     return std::string(f.utf8_str());
 }
