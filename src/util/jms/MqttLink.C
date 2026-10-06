@@ -175,6 +175,11 @@ void MqttEndpoint::clear()
 bool MqttEndpoint::enablePipe()
 {
   if (p_pipe[0] >= 0) return true;
+#ifdef _WIN32
+  // No pollable descriptor: Windows pipes cannot be made non-blocking here,
+  // and the wx apps take their messages through `poster` instead.
+  return false;
+#endif
   if (pipe(p_pipe) != 0) {
     p_pipe[0] = p_pipe[1] = -1;
     return false;

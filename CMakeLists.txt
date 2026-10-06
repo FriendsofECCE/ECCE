@@ -446,7 +446,9 @@ add_executable(ecce-localdata src/apps/localdata/ecce-localdata.C)
 target_include_directories(ecce-localdata PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-localdata PRIVATE ecceutil ${XercesC_LIBRARIES})
 # flock(1) for the session scripts where util-linux is absent (macOS).
-add_executable(ecce-flock src/apps/flock/ecce-flock.c)
+if(NOT WIN32)   # the Windows client has no session scripts (#133)
+  add_executable(ecce-flock src/apps/flock/ecce-flock.c)
+endif()
 # The server half of "ecce -admin" on a -remote client (SiteRequest).
 add_executable(ecce-site-admin src/apps/siteadmin/ecce-site-admin.C)
 target_link_libraries(ecce-site-admin PRIVATE eccetdat ecceutil)
@@ -762,7 +764,7 @@ install(FILES ${CMAKE_BINARY_DIR}/systemd/ecce-broker.service
 # file (a central server's broker, ecce-gateway-start). Needs mosquitto's
 # plugin header and apr-util, whose apr_password_validate reads htpasswd's
 # hash formats.
-if(NOT APPLE)   # macOS runs no central server
+if(NOT APPLE AND NOT WIN32)   # macOS and Windows run no central server
   pkg_check_modules(APRUTIL REQUIRED IMPORTED_TARGET apr-util-1)
   find_path(MOSQUITTO_PLUGIN_INCLUDE_DIR mosquitto_plugin.h REQUIRED)
   add_library(ecce_users_auth MODULE src/mqttauth/ecce_users_auth.c)
@@ -898,8 +900,11 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-flock ecce-site-admin
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-site-admin
   autosym getfrag genmol genmollat cleansym symops)
+if(NOT WIN32)
+  list(APPEND ECCE_CLI_APPS ecce-flock)
+endif()
 
 install(TARGETS ${ECCE_GUI_APPS} ${ECCE_CLI_APPS} RUNTIME DESTINATION bin
         COMPONENT client)
