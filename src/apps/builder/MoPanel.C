@@ -149,6 +149,8 @@ bool MoPanel::Create(IPropCalculation *calculation,
    p_mogrid = (wxGrid*)FindWindow(ID_GRID_MO);
    p_mogrid->SetRowLabelSize(0);
    p_mogrid->SetMinSize(minSize);
+   p_mogrid->GetGridWindow()->Bind(wxEVT_SIZE, &MoPanel::onGridWindowSize,
+                                   this);
    wxSizer *sizer = p_mogrid->GetContainingSizer();
 
    // Create our two plots
@@ -741,20 +743,84 @@ void MoPanel::selectMo(int index)
    p_selectedRow = index;
    p_mogrid->SelectRow(index);
 
-   /* didn't work :(
-   // select corresponding points in plots
-   int offset = (p_mogrid->GetNumberCols() == 5) ? 1: 0;
-   double val;
-   p_mogrid->GetCellValue(p_selectedRow,offset+1).ToDouble(&val);
-   p_plotReg->SelectYRange(-1, wxRangeDouble(val,val), true);
-   p_plotSym->SelectYRange(-1, wxRangeDouble(val,val), true);
-   */
+   //  Scrolling now would be a no-op: the table is filled while the panel
+   //  is still off screen, and AutoSize() has just made the grid tall
+   //  enough to hold every row, so MakeCellVisible() finds the row already
+   //  "visible".  The pane then cuts the grid down to a few rows at scroll
+   //  position 0, which shows the highest virtuals.  Scroll once the grid
+   //  has the size it will be seen at.
+   p_scrollPending = true;
+   CallAfter(&MoPanel::scrollToSelection);
+}
 
-   // This doesn't seem to work
-   // 8/5/08 - Only works if the panel is showing so may not work
-   // due to the fact that the panel is created collapsed.
-   // Add code to receiveFocus to work around this.
-   p_mogrid->MakeCellVisible(index,0);
+
+void MoPanel::onGridWindowSize(wxSizeEvent& event)
+{
+   event.Skip();
+   if (p_scrollPending) CallAfter(&MoPanel::scrollToSelection);
+}
+
+
+void MoPanel::scrollToSelection()
+{
+   if (!p_scrollPending || p_mogrid == NULL) return;
+   const int row = p_selectedRow;
+   if (row < 0 || row >= p_mogrid->GetNumberRows()) {
+      p_scrollPending = false;
+      return;
+   }
+   //  Not laid out yet, or still the unconstrained AutoSize() height:
+   //  wait for the next size event.
+   int cw, ch;
+   p_mogrid->GetGridWindow()->GetClientSize(&cw, &ch);
+   const wxRect last = p_mogrid->CellToRect(p_mogrid->GetNumberRows() - 1, 0);
+   if (!p_mogrid->IsShownOnScreen() || ch <= 0 || ch >= last.GetBottom())
+      return;
+
+   int ux, uy;
+   p_mogrid->GetScrollPixelsPerUnit(&ux, &uy);
+   if (uy > 0) {
+      const wxRect r = p_mogrid->CellToRect(row, 0);
+      const int y = std::max(0, r.y + r.height / 2 - ch / 2);
+      p_mogrid->Scroll(-1, y / uy);
+   }
+   p_mogrid->MakeCellVisible(row, 0);
+   p_scrollPending = false;
+}
+
+
+string MoPanel::tableState() const
+{
+   wxString s;
+   wxArrayInt sel = p_mogrid->GetSelectedRows();
+   int vx, vy;
+   p_mogrid->GetViewStart(&vx, &vy);
+   int ux, uy;
+   p_mogrid->GetScrollPixelsPerUnit(&ux, &uy);
+   wxSize cs = p_mogrid->GetGridWindow()->GetClientSize();
+   const int offset = p_mogrid->GetColLabelValue(0) == "Type" ? 1 : 0;
+   s << "rows " << p_mogrid->GetNumberRows() << "\n";
+   s << "selectedRow " << p_selectedRow << "\n";
+   s << "selectedRows";
+   for (size_t i = 0; i < sel.size(); i++) s << " " << sel[i];
+   s << "\n";
+   if (p_selectedRow >= 0 && p_selectedRow < p_mogrid->GetNumberRows()) {
+      s << "selectedMo " << p_mogrid->GetCellValue(p_selectedRow, offset) << "\n";
+      s << "selectedType " << (offset ? p_mogrid->GetCellValue(p_selectedRow, 0)
+                                       : wxString("alpha")) << "\n";
+      s << "selectedVisible " << p_mogrid->IsVisible(p_selectedRow, 0, true) << "\n";
+   }
+   s << "gridWindow " << cs.x << "x" << cs.y << "\n";
+   s << "scrollY " << vy * uy << "\n";
+   int first = -1, last = -1;
+   for (int r = 0; r < p_mogrid->GetNumberRows(); r++) {
+      if (p_mogrid->IsVisible(r, 0, true)) {
+         if (first < 0) first = r;
+         last = r;
+      }
+   }
+   s << "visibleRows " << first << " " << last << "\n";
+   return s.ToStdString();
 }
 
 
