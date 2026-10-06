@@ -4,6 +4,8 @@
 # collect logs and crash reports.  Never fails the job; the verdict is in
 # the summary.  Usage: run.sh <stage-dir> <out-dir>
 #   <stage-dir>/ecce is ECCE_HOME, <stage-dir>/bin holds the wrappers.
+# With ECCE_APP=<ECCE.app> the session is started through the app's own
+# launcher, with no Homebrew on PATH (give Contents/Resources as <stage-dir>).
 STAGE=$(cd "$1" && pwd)
 mkdir -p "$2"
 OUT=$(cd "$2" && pwd)
@@ -14,7 +16,11 @@ SUMMARY=$OUT/summary.txt
 say() { echo "$@" | tee -a "$SUMMARY"; }
 
 export ECCE_HOME=$STAGE/ecce
-export PATH=$STAGE/bin:$(brew --prefix)/bin:$PATH
+if [ -n "$ECCE_APP" ]; then
+  export PATH=$STAGE/bin:/usr/bin:/bin:/usr/sbin:/sbin
+else
+  export PATH=$STAGE/bin:$(brew --prefix)/bin:$PATH
+fi
 export ECCE_REALUSERHOME=$OUT/home
 mkdir -p "$ECCE_REALUSERHOME"
 export ECCE_SESSION_LIVENESS=lease
@@ -87,7 +93,11 @@ run_app() {
 # 1. The real thing: `ecce` starts the gateway and broker; on macOS the
 #    data live in a local folder by default (#216), so no data server.
 BASH4=$(brew --prefix)/bin/bash
-run_app ecce-session 60 "$BASH4" "$STAGE/bin/ecce"
+if [ -n "$ECCE_APP" ]; then
+  run_app ecce-session 60 "$ECCE_APP/Contents/MacOS/ecce"
+else
+  run_app ecce-session 60 "$BASH4" "$STAGE/bin/ecce"
+fi
 { echo "ecce-localdata: $("$ECCE_HOME/bin/ecce-localdata")"
   find "$ECCE_REALUSERHOME/.ECCE-local" -maxdepth 4 2>&1 | head -40
   ls -la "$ECCE_REALUSERHOME/.ECCE" 2>&1; } > "$OUT/logs/localdata.txt"

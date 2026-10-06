@@ -319,3 +319,40 @@ jobs:
           name: macos-run
           path: macos-run/
           if-no-files-found: ignore
+
+      # ECCE.app in a .dmg (#133), then the start test again on a copy of
+      # the app taken out of the mounted image, away from the build tree.
+      - name: Package ECCE.app
+        continue-on-error: true
+        run: |
+          packaging/macos/make-app.sh stage dist
+
+      - name: Run the packaged app
+        continue-on-error: true
+        timeout-minutes: 25
+        run: |
+          pkill -f "$PWD/stage" || true
+          mnt=$(mktemp -d)
+          hdiutil attach dist/ECCE-*.dmg -mountpoint "$mnt" -nobrowse -quiet
+          appdir=$(mktemp -d)
+          cp -R "$mnt/ECCE.app" "$appdir/"
+          hdiutil detach "$mnt" -quiet
+          # The build tree and the staging prefix must not be needed.
+          mv build-cmake build-cmake.gone
+          mv stage stage.gone
+          ECCE_APP="$appdir/ECCE.app" tests/macos/run.sh "$appdir/ECCE.app/Contents/Resources" macos-app-run
+          cat macos-app-run/summary.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ECCE-macos-dmg
+          path: dist/*.dmg
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macos-app-run
+          path: macos-app-run/
+          if-no-files-found: ignore
