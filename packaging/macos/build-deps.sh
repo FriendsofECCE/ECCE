@@ -70,7 +70,7 @@ cm coin -DCOIN_BUILD_SHARED_LIBS=ON -DCOIN_BUILD_TESTS=OFF -DHAVE_SOUND=OFF \
 # SDK.  The image libraries are wx's own copies.
 fetch https://github.com/wxWidgets/wxWidgets/releases/download/v3.3.3/wxWidgets-3.3.3.tar.bz2 wx
 ( cd wx
-  ./configure --prefix="$P" --enable-shared --enable-unicode --with-cocoa \
+  ./configure --prefix="$P" --enable-shared --with-cocoa \
     --with-opengl --with-macosx-version-min="$MACOSX_DEPLOYMENT_TARGET" \
     --with-libpng=builtin --with-libjpeg=builtin --with-libtiff=builtin \
     --with-zlib=builtin --with-expat=builtin --with-regex=builtin \
