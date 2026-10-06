@@ -27,6 +27,7 @@
 #undef ABSOLUTE
 #undef near
 #undef far
+#include <csignal>
 #include <direct.h>
 #include <io.h>
 #include <cerrno>
@@ -146,6 +147,59 @@ inline int uname(struct utsname *u)
 #ifndef SIGCONT
 #define SIGCONT 18
 #endif
+#ifndef SIGQUIT
+#define SIGQUIT 3
+#endif
+#ifndef SIGBUS
+#define SIGBUS 7
+#endif
+#ifndef SIGUSR1
+#define SIGUSR1 10
+#endif
+#ifndef SIGUSR2
+#define SIGUSR2 12
+#endif
+#ifndef SIGALRM
+#define SIGALRM 14
+#endif
+#ifndef SIGCHLD
+#define SIGCHLD 17
+#endif
+#ifndef SIGTSTP
+#define SIGTSTP 20
+#endif
+#ifndef SIGXFSZ
+#define SIGXFSZ 25
+#endif
+#ifndef SIGSYS
+#define SIGSYS 31
+#endif
+
+// The CRT's signal() aborts the process on a signal number it does not
+// know; those handlers are simply never installed.
+inline void (*ecceSignal(int sig, void (*h)(int)))(int)
+{
+  if (sig == SIGINT || sig == SIGILL || sig == SIGFPE || sig == SIGSEGV ||
+      sig == SIGTERM || sig == SIGABRT)
+    return signal(sig, h);
+  return SIG_ERR;
+}
+#define signal(sig, h) ecceSignal((sig), (h))
+
+// Handlers for POSIX signals cannot be installed (see ecceSignal).
+struct sigaction {
+  void (*sa_handler)(int);
+  int sa_flags;
+  int sa_mask;
+};
+inline int sigaction(int, const struct sigaction *, struct sigaction *) { return 0; }
+
+// Process creation is not implemented on Windows yet (#133): every fork()
+// fails, and callers report it through their ordinary fork-failure path.
+inline pid_t fork() { errno = ENOSYS; return -1; }
+inline pid_t setsid() { errno = ENOSYS; return -1; }
+inline pid_t wait3(int *, int, void *) { errno = ECHILD; return -1; }
+
 inline int kill(pid_t pid, int sig)
 {
   if (sig == SIGSTOP || sig == SIGCONT) { errno = ENOSYS; return -1; }
@@ -180,6 +234,7 @@ struct passwd {
   char *pw_name;
   char *pw_dir;
 };
+inline struct passwd *getpwnam(const char *) { return nullptr; }
 inline struct passwd *getpwuid(uid_t)
 {
   static struct passwd pw;
