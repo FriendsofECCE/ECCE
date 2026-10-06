@@ -279,8 +279,32 @@ jobs:
           brew install coin3d || { echo "::error::Homebrew has no coin3d formula"; exit 1; }
 
       - name: Configure
-        run: cmake -G Ninja -B build-cmake -DECCE_USE_COIN=ON -DCMAKE_PREFIX_PATH="$(brew --prefix)"
+        # ECCE_HOME_DIR/ECCE_WRAPPER_DESTINATION point the install at a
+        # staging tree inside the workspace for the run step below.
+        run: |
+          cmake -G Ninja -B build-cmake -DECCE_USE_COIN=ON -DCMAKE_PREFIX_PATH="$(brew --prefix)" \
+            -DECCE_HOME_DIR="$PWD/stage/ecce" -DECCE_WRAPPER_DESTINATION="$PWD/stage/bin" \
+            -DCMAKE_INSTALL_PREFIX="$PWD/stage/ecce"
 
       - name: Build
         # -k 0: report every failing file, not only the first few.
         run: cmake --build build-cmake -- -k 0
+
+      # Does it run? (#133) Starts the installed apps on the runner's
+      # logged-in desktop and screenshots them.  Allowed to fail; the
+      # verdict is in the summary and the "macos-run" artifact.
+      - name: Install to a staging prefix and run
+        continue-on-error: true
+        timeout-minutes: 25
+        run: |
+          brew install bash || true
+          cmake --install build-cmake
+          tests/macos/run.sh stage macos-run
+          cat macos-run/summary.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macos-run
+          path: macos-run/
+          if-no-files-found: ignore
