@@ -70,6 +70,7 @@
 #include "comm/RCommand.H"
 #include "comm/JobParser.H"
 #include "comm/JobFailureReason.H"
+#include "util/WaitingJobs.H"
 
 
 //
@@ -135,6 +136,7 @@ void interactGetFiles(void);
 void getJobMonitorInput(int fid);
 void restart(const char* name, const string& msg);
 void restartSystem(const char* name, const string& msg);
+void park(const char* name, const string& msg, int exitStatus);
 void setTimeout(const unsigned long& seconds);
 void handleSignal(int signalValue);
 void handleTimeout(unsigned long milliseconds);
@@ -739,6 +741,10 @@ void cleanup(int exitStatus)
     }
   }
 
+  // Monitoring ended for good (done, or failed beyond retrying).
+  if (exitStatus == 0 || exitStatus == 3)
+    WaitingJobs::remove(cpCalcURL);
+
   if (exitStatus == 0) {
     if (remoteconn != (RCommand*)0 && remoteconn->isOpen()) {
       (void)remoteconn->exec("/bin/rm -f eccejobmonitor eccejobmonitor.conf "
@@ -894,10 +900,11 @@ void envRead(void)
 
 
 // ------------------------------------------------------------------------- //
-// Log the given message, clean up, and exit--3 variations:
+// Log the given message, clean up, and exit--4 variations:
 // fail => immediate exit with email for things to investigate
 // restart => invoke eccejobstore again with email
-// restartSystem => invoke ejs again with no email for "system" failure
+// restartSystem => the job was lost: park it, invoke ejs again
+// park => the job was lost: "waiting for login", exit 4 (retry) or 5
 // ------------------------------------------------------------------------- //
 void fail(const char* name, const string& msg)
 {
@@ -929,20 +936,35 @@ void restart(const char* name, const string& msg)
   exit(2);
 }
 
+// The job store lost the job (connection, monitor or login), which says
+// nothing about the job itself: park it rather than fail it (#208).
 void restartSystem(const char* name, const string& msg)
 {
-  logPrint(ActivityLog::FATAL, name, msg);
+  logInfo("eccejobstore", "returning to eccejobmaster for restart");
+  park(name, msg, 4);
+}
+
+// Stop monitoring with the calculation "waiting for login": recorded in
+// WaitingJobs, so that the next session start or Reconnect catches it up
+// from the job's own files.  Exit 4 lets eccejobmaster try again, 5 not.
+void park(const char* name, const string& msg, int exitStatus)
+{
+  logPrint(ActivityLog::WARNING, name, msg);
   logNumErrors++;
 
-  logInfo("eccejobstore", "returning to eccejobmaster for restart");
-
-  // initialize messaging if needed
   initMessaging();
 
-  gFailReason = msg;
-  calcUpdateState(ResourceDescriptor::STATE_SYSTEM_FAILURE);
-  cleanup(4);
-  exit(4);
+  WaitingJobs::add(cpCalcURL);
+  // An end state the monitor reported is not final until the outputs are
+  // stored, which has not happened.
+  endState = ResourceDescriptor::STATE_ILLEGAL;
+  calcUpdateState(ResourceDescriptor::STATE_WAITING);
+  if (calculation)
+    recordStatusReason("Monitoring stopped (" + msg + "); the job may still "
+                       "be running or finished.  ECCE checks it at the next "
+                       "session start, or on Run Management > Reconnect.");
+  cleanup(exitStatus);
+  exit(exitStatus);
 }
 
 void handleSignal(int signalValue)
@@ -962,8 +984,9 @@ void handleSignal(int signalValue)
       restart("Signal", "SIGSEGV: Segmentation fault received"); break;
     case SIGBUS   :
       restart("Signal", "SIGBUS: Bus error"); break;
+    // the client is shutting down or logging out; the job goes on
     case SIGTERM  :
-      restart("Signal", "SIGTERM: Software termination signal from kill");break;
+      park("Signal", "SIGTERM: the client is going away", 5); break;
 
     // warning signals
     case SIGPIPE  :
@@ -1766,7 +1789,7 @@ void initMon(void)
     if (!remoteconn->cd(cpRemoteDir)) {
       message = "Unable to cd on the compute server to calculation directory "+
                 cpRemoteDir + " " + remoteconn->commError();
-      restart("System", message);
+      restartSystem("System", message);
     }
 
     {
@@ -1776,7 +1799,7 @@ void initMon(void)
       // The monitor's stdout/stderr come back on a pipe and the framed
       // protocol is read from it as usual.
       if (!remoteconn->startStream(cmd))
-        restart("System", remoteconn->commError());
+        restartSystem("System", remoteconn->commError());
       logMessage("Job Monitor",
                  "Started job monitor (stdio comms) with command: " + cmd);
 

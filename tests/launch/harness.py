@@ -360,8 +360,8 @@ class Session(object):
             self.seen.update(seenBinaries(self.home))
             state = self.state_of(url)
             if state in want or state == "system_failure":
-                #  system_failure is what a lost monitor reports until
-                #  eccejobmaster has restarted eccejobstore; give it a moment.
+                #  system_failure (a job that vanished) may still be followed
+                #  by a later state from a restarted store; give it a moment.
                 if state != "system_failure":
                     break
                 time.sleep(2)

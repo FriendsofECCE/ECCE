@@ -32,3 +32,4 @@ Both per-user, both non-root, both started automatically by the
 - [`ecce_auth_changed` carries no password](auth-changed-carries-no-password.md)
 - [Per-session state is keyed by the session id, and the "is it already running?" checks must be too](per-user-service-state-is-keyed-by.md)
 - [A calculation can live in any local folder, not only in a data store](calculations-in-any-local-folder.md)
+- [Waiting for login: a lost monitor parks the job, session start catches it up](waiting-for-login.md)

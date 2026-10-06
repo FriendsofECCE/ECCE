@@ -53,6 +53,7 @@ static const char* LIGHT_STATE_COLOURS[] = {
   "#0000ff",  // READY
   "#f8ef8c",  // SUBMITTED
   "#00cd00",  // RUNNING
+  "#7b3fa0",  // WAITING
   "#007d49",  // COMPLETED
   "#007d49",  // LOADED
   "#6b6b6b",  // KILLED
@@ -68,6 +69,7 @@ static const char* DARK_STATE_COLOURS[] = {
   "#9999ff",  // READY
   "#f7ee8a",  // SUBMITTED
   "#00cd00",  // RUNNING
+  "#e09cf0",  // WAITING
   "#3ddc97",  // COMPLETED
   "#3ddc97",  // LOADED
   "#b0b0b0",  // KILLED
@@ -82,15 +84,15 @@ static const char* DARK_STATE_COLOURS[] = {
 // one of these is a stale copy rather than a choice, and the new default
 // wins.  Pre-9.0 (light only), then 9.0.0-alpha.3/alpha.4 light and dark.
 static const char* PRE90_STATE_COLOURS[] = {
-  "", "#b0e2ff", "#0000ff", "#b4eeb4", "#00cd00", "#007d49", "#007d49",
+  "", "#b0e2ff", "#0000ff", "#b4eeb4", "#00cd00", "", "#007d49", "#007d49",
   "#757575", "#ffa500", "#ff0000", "#000000", "",
 };
 static const char* ALPHA_LIGHT_STATE_COLOURS[] = {
-  "", "#3a6ea5", "#0000ff", "#1f6f8f", "#007a00", "#007d49", "#007d49",
+  "", "#3a6ea5", "#0000ff", "#1f6f8f", "#007a00", "", "#007d49", "#007d49",
   "#6b6b6b", "#a35200", "#d00000", "#000000", "",
 };
 static const char* ALPHA_DARK_STATE_COLOURS[] = {
-  "", "#b0e2ff", "#9999ff", "#b4eeb4", "#00cd00", "#3ddc97", "#3ddc97",
+  "", "#b0e2ff", "#9999ff", "#b4eeb4", "#00cd00", "", "#3ddc97", "#3ddc97",
   "#b0b0b0", "#ffa500", "#ff8080", "#e0e0e0", "",
 };
 
@@ -203,7 +205,8 @@ void WxState::createBrushesAndPens()
   // pens[0] using user colors and pens[1] using system colors
   for (size_t i=0; i<2; i++) {
     for (size_t idx=0; idx<p_defaultColors.size(); idx++) {
-      if (idx == ResourceDescriptor::STATE_LOADED) {
+      if (idx == ResourceDescriptor::STATE_LOADED ||
+          idx == ResourceDescriptor::STATE_WAITING) {
         p_brushes[i].push_back(new wxBrush(ewxColor(p_defaultColors[idx]),
                                                     wxTRANSPARENT));
         p_pens[i].push_back(new wxPen(outlineFor(ewxColor(p_defaultColors[idx]))));
@@ -334,6 +337,7 @@ void WxState::draw(wxDC & dc, ResourceDescriptor::RUNSTATE currentState,
     break;
   case ResourceDescriptor::STATE_SUBMITTED:
   case ResourceDescriptor::STATE_RUNNING:
+  case ResourceDescriptor::STATE_WAITING:
     circle = true;
     break;
   case ResourceDescriptor::STATE_COMPLETED:
@@ -358,7 +362,8 @@ void WxState::draw(wxDC & dc, ResourceDescriptor::RUNSTATE currentState,
 
   wxBrush brush(*p_brushes[useSystemColor?1:0][currentState]);
   wxPen pen(*p_pens[useSystemColor?1:0][currentState]);
-  pen.SetWidth(1);
+  // Waiting is an open ring, so its stroke must carry the colour.
+  pen.SetWidth(currentState == ResourceDescriptor::STATE_WAITING ? 2 : 1);
   pen.SetJoin(wxJOIN_ROUND); // a miter would stick out past a sharp apex
 
   // Antialiased through a graphics context when the DC allows it.
@@ -516,6 +521,8 @@ string WxState::getName(ResourceDescriptor::RUNSTATE state, bool capital)
     return (capital?"Submitted":"submitted");
   case ResourceDescriptor::STATE_RUNNING:
     return (capital?"Running":"running");
+  case ResourceDescriptor::STATE_WAITING:
+    return (capital?"Waiting for Login":"waiting for login");
   case ResourceDescriptor::STATE_COMPLETED:
     return (capital?"Completed":"completed");
   case ResourceDescriptor::STATE_LOADED:
@@ -562,6 +569,8 @@ string WxState::getPrefKey(int state)
     return PrefLabels::stateSubmitted;
   case ResourceDescriptor::STATE_RUNNING:
     return PrefLabels::stateRunning;
+  case ResourceDescriptor::STATE_WAITING:
+    return PrefLabels::stateWaiting;
   case ResourceDescriptor::STATE_COMPLETED:
     return PrefLabels::stateCompleted;
   case ResourceDescriptor::STATE_LOADED:

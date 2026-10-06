@@ -3,10 +3,11 @@ type: rule
 title: "Run-state colours: submitted yellow, created sky blue, pale fills outlined in light themes; checked by tests/look/contrast.py"
 area: wx-viewer
 paths: ["data/client/config/EcceGlobal", "src/wxgui/wxtools/WxState.C", "include/wxgui/WxState.H", "tests/look/contrast.py", "tests/look/cvd.py", "tests/look/statelegend.py", "src/apps/organizer/CalcMgr.C"]
-issues: ["210"]
+issues: ["210", "208"]
 ---
 The run states are drawn as ~12 px icons whose shape groups them
-(triangle: created/ready; circle: submitted/running; square:
+(triangle: created/ready; circle: submitted/running, an open ring for
+waiting for login (#208); square:
 completed/loaded; diamond: unsuccessful/failed/system; coffin: killed), so
 within a shape only colour tells them apart. They are icons only, never text.
 
@@ -26,7 +27,8 @@ non-text). The icons are never used as text colours.
 
 `tests/look/contrast.py` (ctest `look_contrast`) checks:
 - every non-outlined colour reaches 4.5:1, every outline 3:1;
-- submitted/running and created/ready differ by CIEDE2000 >= 10 with
+- submitted/running, created/ready and waiting against submitted and
+  running differ by CIEDE2000 >= 10 with
   normal vision and simulated deuteranopia, protanopia and tritanopia
   (`tests/look/cvd.py`, Machado 2009);
 - `EcceGlobal` and the fallback tables in `WxState.C` are equal.
