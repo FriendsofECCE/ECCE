@@ -11,9 +11,6 @@
 
 #include "inv/nodes/SoMaterial.H"
 #include "inv/nodes/SoSwitch.H"
-#include "inv/nodes/SoSeparator.H"
-#include "inv/nodes/SoCallback.H"
-#include <GL/gl.h>
 #include "inv/nodes/SoShapeHints.H"
 #include "inv/nodes/SoClipPlane.H"
 #include "inv/actions/SoGLRenderAction.H"
@@ -81,12 +78,6 @@ void SGContainer::initClass()
    //  The normal-mode scene holds PropSGFragments; registering here covers
    //  every app that builds a container scene (Coin aborts on an unknown type).
    PropSGFragment::initClass();
-}
-
-static void nmvecClearDepth(void *, SoAction *action)
-{
-   if (action->isOfType(SoGLRenderAction::getClassTypeId()))
-      glClear(GL_DEPTH_BUFFER_BIT);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -330,17 +321,8 @@ void SGContainer::constructor()
    p_mainSep->addChild(p_MOSwitch);
    initMORoot();
 
-   // Clearing the depth buffer first puts the vibration arrows on top of
-   // the atom spheres they start from, while their own faces still sort
-   // correctly (with the depth test off the far side of a cylinder was
-   // drawn over the near side).
-   SoSeparator *nmvecTop = new SoSeparator;
-   p_mainSep->addChild(nmvecTop);
-   SoCallback *clearDepth = new SoCallback;
-   clearDepth->setCallback(nmvecClearDepth, (void*)0);
-   nmvecTop->addChild(clearDepth);
    p_NMVecSwitch = new SoSwitch;
-   nmvecTop->addChild(p_NMVecSwitch);
+   p_mainSep->addChild(p_NMVecSwitch);
 
    // The NormalMode switch
    p_NMSwitch = new SoSwitch;

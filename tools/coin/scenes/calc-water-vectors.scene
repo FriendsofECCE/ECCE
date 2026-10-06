@@ -1,6 +1,7 @@
 # Normal-mode vectors of the tests/apps fixture calc-water-vib (G16 water),
-# mode 2 (O-H stretch), in the two styles where the arrows used to vanish
-# inside the atom spheres.  The arrows are rebuilt after each style change.
+# mode 2 (O-H stretch), in ball-and-stick and CPK.  The arrows are rebuilt
+# after each style change; "cpk" keeps the ball-and-stick camera, "cpk-whole"
+# fits the whole molecule.
 style Ball And Stick
 viewall
 nmvect 2
@@ -8,3 +9,5 @@ snap calc-water-vectors-base
 style CPK
 nmvect 2
 snap calc-water-vectors-cpk
+viewall
+snap calc-water-vectors-cpk-whole
