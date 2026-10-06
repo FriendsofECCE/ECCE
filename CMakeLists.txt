@@ -704,6 +704,10 @@ install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/nwchem/ecce-nwchem-datadir
         DESTINATION bin
         COMPONENT client)
+# Sourced by the scripts above, the wrappers and `ecce` (#233).
+install(FILES ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-session-lib.sh
+        DESTINATION bin
+        COMPONENT client)
 # Deployment mode 3, the site's shared broker (GETTING_STARTED.md,
 # "Deployment modes"). ecce-broker-setup writes siteconfig/SharedBroker,
 # which the clients read, so it goes with them; ecce-broker-run and the
@@ -1575,6 +1579,13 @@ add_executable(throwlog_test tests/exceptions/throwlog_test.C)
 target_link_libraries(throwlog_test PRIVATE ecceutil)
 add_test(NAME throwlog COMMAND throwlog_test)
 add_test(NAME throwlog-all COMMAND throwlog_test all)
+
+# tests/session -- the session id and key (#233): shell and C++ derivations
+# agree, and both generators make well-formed, distinct ids.
+add_executable(session_key_test tests/session/session_key_test.C)
+target_link_libraries(session_key_test PRIVATE ecceutil)
+add_test(NAME session-key COMMAND session_key_test
+         ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-session-lib.sh)
 
 # tests/mqtt -- the messaging library against a private mosquitto on a Unix
 # socket; checks delivery, not just acknowledgement.  "auth" is the same on
