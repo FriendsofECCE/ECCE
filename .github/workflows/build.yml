@@ -47,7 +47,12 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Run just this job (debian, vendored-inventor, ubuntu, rocky, fedora, macos); empty runs all"
+        required: false
+        default: ""
 
 # One run per branch.  Without this every push starts a full run and none
 # of them cancel the older ones, so a run of quick pushes leaves a dozen
@@ -61,6 +66,7 @@ concurrency:
 
 jobs:
   debian:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'debian' }}
     name: Debian (apt, containerized)
     runs-on: ubuntu-latest
     # Bounded so a hung job cannot hold a runner slot for GitHub's
@@ -100,6 +106,7 @@ jobs:
   # (-DECCE_USE_COIN=OFF, #166) compiling for the one release it stays a
   # fallback.
   vendored-inventor:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'vendored-inventor' }}
     name: Debian, vendored Inventor viewer (build only)
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -123,6 +130,7 @@ jobs:
         run: cmake --build build-oiv
 
   ubuntu:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'ubuntu' }}
     name: Ubuntu (apt)
     runs-on: ubuntu-latest
     # Bounded so a hung job cannot hold a runner slot for GitHub's
@@ -158,6 +166,7 @@ jobs:
           path: build-cmake/*.deb
 
   rocky:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'rocky' }}
     name: Rocky Linux (dnf, RHEL family, containerized)
     runs-on: ubuntu-latest
     # Bounded so a hung job cannot hold a runner slot for GitHub's
@@ -212,6 +221,7 @@ jobs:
           path: build-cmake/*.rpm
 
   fedora:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'fedora' }}
     name: Fedora (dnf, containerized)
     runs-on: ubuntu-latest
     # Bounded so a hung job cannot hold a runner slot for GitHub's
@@ -255,6 +265,7 @@ jobs:
           path: build-cmake/*.rpm
 
   macos:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'macos' }}
     name: macOS (Homebrew)
     runs-on: macos-latest
     # Bounded so a hung job cannot hold a runner slot for GitHub's

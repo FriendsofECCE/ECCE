@@ -424,6 +424,8 @@ target_link_libraries(eccejobmaster PRIVATE
 add_executable(ecce-localdata src/apps/localdata/ecce-localdata.C)
 target_include_directories(ecce-localdata PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-localdata PRIVATE ecceutil ${XercesC_LIBRARIES})
+# flock(1) for the session scripts where util-linux is absent (macOS).
+add_executable(ecce-flock src/apps/flock/ecce-flock.c)
 # The server half of "ecce -admin" on a -remote client (SiteRequest).
 add_executable(ecce-site-admin src/apps/siteadmin/ecce-site-admin.C)
 target_link_libraries(ecce-site-admin PRIVATE eccetdat ecceutil)
@@ -875,7 +877,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-site-admin
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-flock ecce-site-admin
   autosym getfrag genmol genmollat cleansym symops)
 
 install(TARGETS ${ECCE_GUI_APPS} ${ECCE_CLI_APPS} RUNTIME DESTINATION bin

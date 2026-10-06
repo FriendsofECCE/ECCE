@@ -22,6 +22,8 @@ class ewxBitmap : public wxBitmap
       static wxString genericIconName(const wxString& file);
       static wxBitmap saveIcon();
       static wxBitmap themedIcon(const wxString& icon, const wxSize& size);
+      static wxBitmap loadPixmap(const wxString& name, long type);
+      static wxBitmap placeholder(const wxString& name);
 };
 
 #endif

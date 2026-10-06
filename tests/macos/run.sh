@@ -84,11 +84,14 @@ run_app() {
   sleep 3   # let ReportCrash write
 }
 
-# 1. The real thing: `ecce` starts the gateway, broker and data server.
-#    macOS has no data-server package (the central server is Linux), so a
-#    failure here shows where the client stops.
+# 1. The real thing: `ecce` starts the gateway and broker; on macOS the
+#    data live in a local folder by default (#216), so no data server.
 BASH4=$(brew --prefix)/bin/bash
 run_app ecce-session 60 "$BASH4" "$STAGE/bin/ecce"
+{ echo "ecce-localdata: $("$ECCE_HOME/bin/ecce-localdata")"
+  find "$ECCE_REALUSERHOME/.ECCE-local" -maxdepth 4 2>&1 | head -40
+  ls -la "$ECCE_REALUSERHOME/.ECCE" 2>&1; } > "$OUT/logs/localdata.txt"
+say "   data folder: $(head -1 "$OUT/logs/localdata.txt")"
 "$STAGE/bin/ecce-gateway-stop" > "$OUT/logs/gateway-stop.log" 2>&1
 pkill -f "$ECCE_HOME/bin/" 2>/dev/null
 pkill -f "$OUT/home" 2>/dev/null
@@ -105,6 +108,39 @@ for app in organizer machregister machbrowser builder pertable basistool calced;
   fi
   pkill -f "$ECCE_HOME/bin/" 2>/dev/null
 done
+
+# The Builder opens a molecule (a PDB file, no data store needed) and
+# renders it through the scene hook, which writes PPMs and exits.
+mkdir -p "$OUT/shots/scene"
+printf 'style Ball And Stick\nviewall\nsnap builder-glycine\n' > "$OUT/glycine.scene"
+ECCE_VIEWER_SCENE="$OUT/glycine.scene" ECCE_VIEWER_SCENE_OUT="$OUT/shots/scene" \
+  run_app builder-scene 60 "$STAGE/bin/ecce-builder" "$HERE/../fragreaders/data/glycine.pdb"
+pkill -f "$ECCE_HOME/bin/" 2>/dev/null
+python3 - "$OUT/shots/scene" <<'PY'
+import os, struct, sys, zlib
+d = sys.argv[1]
+for f in os.listdir(d):
+    if not f.endswith(".ppm"): continue
+    raw = open(os.path.join(d, f), "rb").read()
+    parts, pos = [], 0
+    while len(parts) < 4:
+        while raw[pos:pos+1].isspace(): pos += 1
+        if raw[pos:pos+1] == b"#":
+            pos = raw.index(b"\n", pos); continue
+        end = pos
+        while not raw[end:end+1].isspace(): end += 1
+        parts.append(raw[pos:end]); pos = end
+    w, h = int(parts[1]), int(parts[2]); pos += 1
+    px = raw[pos:pos + 3*w*h]
+    rows = b"".join(b"\0" + px[y*3*w:(y+1)*3*w] for y in range(h))
+    chunk = lambda t, b: struct.pack(">I", len(b)) + t + b + struct.pack(">I", zlib.crc32(t + b))
+    png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)) \
+        + chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b"")
+    open(os.path.join(d, f[:-4] + ".png"), "wb").write(png)
+    print("scene:", f[:-4] + ".png", w, "x", h)
+PY
+[ -f "$OUT/shots/scene/FAILED" ] && say "   scene FAILED: $(cat "$OUT/shots/scene/FAILED")"
+ls "$OUT/shots/scene"/*.png >/dev/null 2>&1 && say "   scene rendered: $(cd "$OUT/shots/scene" && ls *.png)"
 
 # Register Machines driven by its test hook (no clicks).
 cat > "$OUT/machreg.script" <<SCRIPT
