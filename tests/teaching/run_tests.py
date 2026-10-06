@@ -41,6 +41,16 @@ import deckgen  # noqa: E402
 import props as P  # noqa: E402
 
 
+def loadAllowance(seconds):
+    """`seconds` doubled, and more when the machine is overloaded.
+
+    sf4_pyr needs ~1200 s of a 1500 s limit on a quiet machine; a busy one
+    pushed it over.  Still bounded, so a real hang is still reported.
+    """
+    load = os.getloadavg()[0] / (os.cpu_count() or 1)
+    return seconds * max(2.0, load)
+
+
 class Result(object):
     def __init__(self, case, mode):
         self.case, self.mode = case, mode
@@ -137,7 +147,7 @@ def run_one(s, case, mode, deck, stamp):
             r.check("#SBATCH --partition=normal" in text, "submitted through Slurm (#SBATCH in the submit script)")
             jid = s.driver("jobid", url)[1].strip().splitlines()
             r.note("slurm job", jid[-1] if jid else "?")
-        r.state = s.waitState(url, case.timeout) or "no state"
+        r.state = s.waitState(url, loadAllowance(case.timeout)) or "no state"
         if not r.check(r.state == "completed", "state completed (last: %s)" % r.state):
             return r
         pdir = propsDir(s, url)
