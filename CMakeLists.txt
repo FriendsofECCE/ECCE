@@ -336,9 +336,12 @@ target_link_libraries(eccewxgui PRIVATE ${wxWidgets_LIBRARIES})
 # ewxApp.C installs a g_log_set_writer_func() filter for a known-benign
 # wxWidgets/GTK3 backend warning (see the comment there) -- needs GLib's
 # own headers directly, which wxWidgets_INCLUDE_DIRS doesn't expose.
-pkg_check_modules(GLIB2 REQUIRED glib-2.0)
-target_include_directories(eccewxgui PRIVATE ${GLIB2_INCLUDE_DIRS})
-target_link_libraries(eccewxgui PRIVATE ${GLIB2_LIBRARIES})
+# GTK only: wx's macOS and Windows ports do not use GLib.
+if(NOT APPLE)
+  pkg_check_modules(GLIB2 REQUIRED glib-2.0)
+  target_include_directories(eccewxgui PRIVATE ${GLIB2_INCLUDE_DIRS})
+  target_link_libraries(eccewxgui PRIVATE ${GLIB2_LIBRARIES})
+endif()
 
 # ewxRaiseWindow() (ewxWindowUtils.C) calls gtk_window_present*() and, on an
 # X11 display only, gdk_x11_get_server_time() (#120); needs gtk+-3.0 headers
@@ -533,6 +536,11 @@ function(ecce_fortran_app name)
   # doesn't know that and refuses to build with a shared output).
   set_target_properties(${name} PROPERTIES
     Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${name}.mod)
+  # The Fortran runtime comes with the compiler, not the OS: link it in
+  # so the app bundles no libgfortran and its minimum macOS stays ours.
+  if(APPLE)
+    target_link_options(${name} PRIVATE -static-libgfortran -static-libgcc -static-libquadmath)
+  endif()
 endfunction()
 
 set(_sym_dir ${CMAKE_SOURCE_DIR}/src/apps/symmetry)

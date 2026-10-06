@@ -57,9 +57,15 @@ def reset_rpaths(p, new):
     run("install_name_tool", "-add_rpath", new, p)
 
 
-brew = run("brew", "--prefix").strip()
-search = [brew + "/lib"] + [os.path.join(brew, "opt", n, "lib")
-                            for n in sorted(os.listdir(brew + "/opt"))]
+# ECCE_DEPS: the prefix packaging/macos/build-deps.sh built into; without
+# it the libraries come from Homebrew.
+search = []
+if os.environ.get("ECCE_DEPS"):
+    search = [os.environ["ECCE_DEPS"] + "/lib"]
+else:
+    brew = run("brew", "--prefix").strip()
+    search = [brew + "/lib"] + [os.path.join(brew, "opt", n, "lib")
+                                for n in sorted(os.listdir(brew + "/opt"))]
 
 
 def resolve(ref, user):

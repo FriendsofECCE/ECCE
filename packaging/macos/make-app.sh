@@ -1,7 +1,8 @@
 #!/bin/bash
 # make-app.sh <stage-dir> <out-dir>: ECCE.app and ECCE-<version>.dmg from a
 # `cmake --install` into <stage-dir>/ecce (ECCE_HOME) and <stage-dir>/bin
-# (the wrappers).  macOS only; Homebrew supplies what gets bundled.
+# (the wrappers).  macOS only.  ECCE_DEPS names the prefix that
+# build-deps.sh built; without it Homebrew supplies what gets bundled.
 set -euo pipefail
 STAGE=$(cd "$1" && pwd)
 mkdir -p "$2"
@@ -23,8 +24,12 @@ cp -R "$STAGE/bin" "$RES/bin"
 # puts on PATH for ecce-find-mosquitto.
 mkdir -p "$RES/ecce/libexec"
 for t in mosquitto mosquitto_passwd; do
-  p=$(command -v "$t" || true)
-  [ -n "$p" ] || p=$(ls "$(brew --prefix)/sbin/$t" "$(brew --prefix)/bin/$t" 2>/dev/null | head -1)
+  if [ -n "${ECCE_DEPS:-}" ]; then
+    p=$(ls "$ECCE_DEPS/sbin/$t" "$ECCE_DEPS/bin/$t" 2>/dev/null | head -1 || true)
+  else
+    p=$(command -v "$t" || true)
+    [ -n "$p" ] || p=$(ls "$(brew --prefix)/sbin/$t" "$(brew --prefix)/bin/$t" 2>/dev/null | head -1)
+  fi
   [ -n "$p" ] || { echo "make-app: $t not found" >&2; exit 1; }
   cp -L "$p" "$RES/ecce/libexec/$t"
 done
@@ -43,7 +48,7 @@ find "$APP" -type f | while read -r f; do
   esac
 done > "$machos"
 echo "make-app: $(wc -l < "$machos") Mach-O files"
-if xargs otool -L < "$machos" 2>/dev/null | grep -E '/(opt/homebrew|usr/local)/'; then
+if xargs otool -L < "$machos" 2>/dev/null | grep -E "/(opt/homebrew|usr/local)/${ECCE_DEPS:+|$ECCE_DEPS/}"; then
   echo "make-app: references to Homebrew remain (above)" >&2; exit 1
 fi
 
@@ -58,6 +63,6 @@ rm -f "$OUT"/ECCE-*.dmg
 dmgdir=$(mktemp -d)
 cp -R "$APP" "$dmgdir/"
 ln -s /Applications "$dmgdir/Applications"
-hdiutil create -volname "ECCE $VERSION" -srcfolder "$dmgdir" -ov -format UDZO "$OUT/ECCE-$VERSION.dmg"
+hdiutil create -volname "ECCE $VERSION" -srcfolder "$dmgdir" -ov -format UDZO "$OUT/ECCE-$VERSION-$(uname -m).dmg"
 rm -rf "$dmgdir"
 ls -l "$OUT"/ECCE-*.dmg
