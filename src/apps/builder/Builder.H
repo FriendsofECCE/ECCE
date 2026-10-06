@@ -11,6 +11,8 @@
 #include <wx/spinctrl.h> // for wxSpinEvent
 #include <wx/listctrl.h> // for wxListEvent
 #include <wx/tglbtn.h>
+#include <wx/bmpbuttn.h>
+#include <wx/artprov.h>
 #include "inv/draggers/SoDragger.H"
 #include "inv/nodes/SoEventCallback.H" 
 
@@ -153,6 +155,13 @@ class Builder: public BuilderGUI,
 
     const static string NAME_COLUMN_TABS;
     const static string NAME_PROPERTY_INDEX;
+    const static string NAME_COLUMN_TOGGLE;
+
+    //  List + detail: dock proportions of the list and of the panel below
+    //  it.  Equal shares give the list about 8 rows at 720 pixels; the sash between
+    //  them moves it, and the saved layout keeps the result.
+    static const int INDEX_PROPORTION = 100;
+    static const int DETAIL_PROPORTION = 100;
 
     //  How the side panels are organised (View > Panel layout).  Classic
     //  is the original arrangement; the other three put everything in one
@@ -404,6 +413,7 @@ class Builder: public BuilderGUI,
       bool paneWanted(const wxAuiPaneInfo& pane) const;
       string layoutPrefix() const;
       void createViewMenu();
+      void setColumnCollapsed(bool collapsed);
       void OnViewColumnTab(wxCommandEvent& event);
       void OnViewToggleColumn(wxCommandEvent& event);
       void OnViewPanelMode(wxCommandEvent& event);
@@ -554,6 +564,9 @@ class Builder: public BuilderGUI,
       map<string, int> p_toolIndex;
       set<string> p_structureNames;
       wxPanel *p_tabsPanel = 0;
+      wxPanel *p_togglePanel = 0;
+      wxBitmapButton *p_toggleButton = 0;
+      bool p_stayCollapsed = false;      // a collapsed column stays so
       wxToggleButton *p_tabButtons[2] = { 0, 0 };
       PropertyIndexPanel *p_index = 0;
       wxMenu *p_viewMenu = 0;

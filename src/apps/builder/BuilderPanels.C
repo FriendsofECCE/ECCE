@@ -105,7 +105,8 @@ string Builder::layoutPrefix() const
  * dropped, anything else is kept as their Classic layout.
  *
  * ECCE_PANEL_MODE=classic|stacked|accordion|detail overrides it for one
- * run without saving it (headless captures and tests).
+ * run without saving it (headless captures and tests); ECCE_PANEL_COLLAPSED=1
+ * starts with the side panels collapsed.
  */
 void Builder::initPanelMode()
 {
@@ -145,6 +146,8 @@ void Builder::initPanelMode()
   }
   p_panelMode = (PanelMode)mode;
 
+  p_columnHidden = config->ReadBool("/ColumnHidden", false) ||
+                   getenv("ECCE_PANEL_COLLAPSED") != 0;
   long tab;
   if (config->Read("/ColumnTab", &tab)) {
     p_columnTab = tab ? 1 : 0;
@@ -156,8 +159,9 @@ void Builder::initPanelMode()
 void Builder::createViewMenu()
 {
   p_viewMenu = new wxMenu;
-  p_viewMenu->AppendCheckItem(ID_VIEW_TOGGLE_COLUMN, _("Side Panels\tF9"),
-      _("Show or hide the whole panel column for a larger view"))->Check(true);
+  p_viewMenu->AppendCheckItem(ID_VIEW_TOGGLE_COLUMN, _("Hide Side Panels\tF9"),
+      _("Collapse the side panels to a thin strip for a larger view"))
+      ->Check(p_columnHidden);
   p_viewMenu->AppendSeparator();
   p_panelModeMenu = new wxMenu;
   p_panelModeMenu->AppendRadioItem(ID_VIEW_PANELS_CLASSIC,
@@ -188,10 +192,17 @@ void Builder::createViewMenu()
 
 void Builder::OnViewToggleColumn(wxCommandEvent&)
 {
-  if (!isColumnMode()) {
-    return;
-  }
-  p_columnHidden = !p_columnHidden;
+  setColumnCollapsed(!p_columnHidden);
+}
+
+
+//  Collapses the side panels (the column; in Classic the right-hand
+//  tools) to the strip with the arrow, or brings them back.  Saved, so
+//  the next session starts the same way.
+void Builder::setColumnCollapsed(bool collapsed)
+{
+  p_columnHidden = collapsed;
+  ewxConfig::getConfig("wxbuilder.ini")->Write("/ColumnHidden", collapsed);
   updatePanes();
 }
 
@@ -257,9 +268,16 @@ void Builder::applyGeometry(bool resetSizes)
       continue;
     }
     const string name = pane.name.ToStdString();
+    if (name == NAME_COLUMN_TOGGLE) {
+      pane.Right().Layer(0).Row(0).Position(0);
+      continue;
+    }
     if (name == NAME_COLUMN_TABS || name == NAME_PROPERTY_INDEX) {
       if (col) {
         pane.Right().Layer(1).Row(0).Position(name == NAME_COLUMN_TABS ? 0 : 1);
+        //  AUI shares the dock's height by proportion even for a fixed
+        //  pane; the tab buttons must not take a share of it.
+        if (name == NAME_COLUMN_TABS) pane.dock_proportion = 1;
       }
       continue;
     }
@@ -275,7 +293,7 @@ void Builder::applyGeometry(bool resetSizes)
       if (resetSizes && !p_folded.count(pane.window)) {
         map<wxWindow*, int>::const_iterator base =
           p_baseProportion.find(pane.window);
-        pane.dock_proportion = detail ? 100
+        pane.dock_proportion = detail ? DETAIL_PROPORTION
           : (base == p_baseProportion.end() ? 150 : base->second);
       }
       continue;
@@ -288,7 +306,7 @@ void Builder::applyGeometry(bool resetSizes)
         }
       } else {
         const map<string, int>::const_iterator idx = p_toolIndex.find(name);
-        pane.Right().Layer(0).Row(0).Position(
+        pane.Right().Layer(1).Row(0).Position(
             idx == p_toolIndex.end() ? 0 : idx->second).PinButton(false);
         if (resetSizes && !p_folded.count(pane.window)) {
           pane.BestSize(wxDefaultSize).MinSize(wxSize(200, 150));
@@ -306,7 +324,7 @@ void Builder::applyGeometry(bool resetSizes)
                  name == NAME_TOOL_RESIDUE_TABLE) {
         pane.Left().Layer(0).Row(0).Position(at);
       } else {
-        pane.Right().Layer(0).Row(0).Position(at);
+        pane.Right().Layer(1).Row(0).Position(at);
       }
     }
   }
@@ -341,7 +359,7 @@ void Builder::refreshColumn()
         pane.Show(true);
         foldPane(pane.window, true);
       } else if (p_panelMode == PANELS_DETAIL) {
-        pane.dock_proportion = 100;
+        pane.dock_proportion = DETAIL_PROPORTION;
       }
     }
   }
@@ -368,13 +386,46 @@ void Builder::refreshColumn()
 void Builder::syncColumn(bool allowSwitch)
 {
   wxAuiPaneInfoArray &panes = p_mgr.GetAllPanes();
+  wxAuiPaneInfo &toggle = p_mgr.GetPane(NAME_COLUMN_TOGGLE);
+  if (toggle.IsOk()) toggle.Show(true);
   if (!isColumnMode()) {
-    for (set<wxWindow*>::iterator it = p_tabHidden.begin();
-         it != p_tabHidden.end(); ++it) {
-      wxAuiPaneInfo &pane = p_mgr.GetPane(*it);
-      if (pane.IsOk()) pane.Show(true);
+    //  Classic: the right-hand tools are the "column".  They sit in layer
+    //  1 or higher so the arrow's layer 0 is next to the viewer.
+    auto rightTool = [&](wxAuiPaneInfo &pane) {
+      return pane.window && !pane.IsToolbar() && !pane.IsFloating() &&
+             pane.dock_direction == wxAUI_DOCK_RIGHT &&
+             pane.name != NAME_COLUMN_TOGGLE;
+    };
+    for (size_t i = 0; i < panes.GetCount(); ++i) {
+      if (rightTool(panes.Item(i)) && panes.Item(i).dock_layer < 1) {
+        panes.Item(i).Layer(1);
+      }
     }
-    p_tabHidden.clear();
+    if (allowSwitch && p_columnHidden && !p_stayCollapsed) {
+      for (size_t i = 0; i < panes.GetCount(); ++i) {
+        if (rightTool(panes.Item(i)) && panes.Item(i).IsShown()) {
+          p_columnHidden = false;
+          ewxConfig::getConfig("wxbuilder.ini")->Write("/ColumnHidden", false);
+        }
+      }
+    }
+    for (set<wxWindow*>::iterator it = p_tabHidden.begin();
+         it != p_tabHidden.end(); ) {
+      wxAuiPaneInfo &pane = p_mgr.GetPane(*it);
+      if (pane.IsOk() && p_columnHidden && rightTool(pane)) {
+        ++it;
+        continue;
+      }
+      if (pane.IsOk()) pane.Show(true);
+      it = p_tabHidden.erase(it);
+    }
+    for (size_t i = 0; p_columnHidden && i < panes.GetCount(); ++i) {
+      wxAuiPaneInfo &pane = panes.Item(i);
+      if (rightTool(pane) && pane.IsShown()) {
+        pane.Show(false);
+        p_tabHidden.insert(pane.window);
+      }
+    }
     wxAuiPaneInfo &tabs = p_mgr.GetPane(NAME_COLUMN_TABS);
     if (tabs.IsOk()) tabs.Show(false);
     wxAuiPaneInfo &index = p_mgr.GetPane(NAME_PROPERTY_INDEX);
@@ -407,7 +458,10 @@ void Builder::syncColumn(bool allowSwitch)
     }
     if (newTab >= 0) {
       p_columnTab = newTab;
-      p_columnHidden = false;
+      if (!p_stayCollapsed && p_columnHidden) {
+        p_columnHidden = false;
+        ewxConfig::getConfig("wxbuilder.ini")->Write("/ColumnHidden", false);
+      }
     }
   }
 
@@ -456,9 +510,14 @@ void Builder::syncColumn(bool allowSwitch)
 void Builder::syncMenuChecks()
 {
   if (p_viewMenu) {
-    p_viewMenu->Check(ID_VIEW_TOGGLE_COLUMN, !p_columnHidden);
-    p_viewMenu->Enable(ID_VIEW_TOGGLE_COLUMN, isColumnMode());
+    p_viewMenu->Check(ID_VIEW_TOGGLE_COLUMN, p_columnHidden);
     p_panelModeMenu->Check(ID_VIEW_PANELS_CLASSIC + p_panelMode, true);
+  }
+  if (p_toggleButton) {
+    p_toggleButton->SetBitmap(wxArtProvider::GetBitmap(
+        p_columnHidden ? wxART_GO_BACK : wxART_GO_FORWARD, wxART_BUTTON));
+    p_toggleButton->SetToolTip(p_columnHidden ? _("Show the side panels")
+                                              : _("Hide the side panels"));
   }
   if (!p_toolMenu || !p_propertyMenu) {
     return;
@@ -771,8 +830,11 @@ void Builder::setPanelMode(PanelMode mode, bool reset)
   }
   //  Leave the old layout: bring back what a tab was hiding, open every fold.
   const PanelMode previous = p_panelMode;
+  const bool wasCollapsed = p_columnHidden;
+  p_columnHidden = false;
   p_panelMode = PANELS_CLASSIC;
   syncColumn(false);
+  p_columnHidden = wasCollapsed;
   for (map<wxWindow*, FoldState>::iterator it = p_folded.begin();
        it != p_folded.end(); ++it) {
     wxAuiPaneInfo &pane = p_mgr.GetPane(it->first);
@@ -791,6 +853,7 @@ void Builder::setPanelMode(PanelMode mode, bool reset)
     config->DeleteGroup("/PaneLayout");
     config->DeleteGroup("/PaneLayoutColumn");
     config->DeleteEntry("/ColumnTab");
+    config->DeleteEntry("/ColumnHidden");
     p_columnHidden = false;
     p_columnTabChosen = false;
     p_columnTab = 0;
@@ -1023,6 +1086,40 @@ void Builder::runPanelLayoutTest()
           fail(tag + before[i].ToStdString() + " not back after F9: " + why);
       }
       note(tag + "tabs and F9 checked");
+    } else {
+      //  Classic: collapsing hides the right-hand tools, keeps the left.
+      vector<wxString> rightShown, leftShown;
+      wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
+      for (size_t i = 0; i < all.GetCount(); ++i) {
+        wxAuiPaneInfo &pane = all.Item(i);
+        if (!pane.window || pane.IsToolbar() || pane.IsFloating() ||
+            !pane.IsShown() || pane.name == NAME_COLUMN_TOGGLE) continue;
+        if (pane.dock_direction == wxAUI_DOCK_RIGHT) rightShown.push_back(pane.name);
+        if (pane.dock_direction == wxAUI_DOCK_LEFT) leftShown.push_back(pane.name);
+      }
+      if (rightShown.empty()) fail(tag + "no right-hand tool open to collapse");
+      wxCommandEvent f9;
+      OnViewToggleColumn(f9);
+      settle();
+      for (size_t i = 0; i < rightShown.size(); ++i) {
+        if (p_mgr.GetPane(rightShown[i]).IsShown())
+          fail(tag + rightShown[i].ToStdString() + " still shown after collapse");
+      }
+      for (size_t i = 0; i < leftShown.size(); ++i) {
+        string why;
+        if (!visible(leftShown[i], why))
+          fail(tag + leftShown[i].ToStdString() + " lost by collapse: " + why);
+      }
+      if (!p_mgr.GetPane(NAME_COLUMN_TOGGLE).IsShown())
+        fail(tag + "arrow strip gone when collapsed");
+      OnViewToggleColumn(f9);
+      settle();
+      for (size_t i = 0; i < rightShown.size(); ++i) {
+        string why;
+        if (!visible(rightShown[i], why))
+          fail(tag + rightShown[i].ToStdString() + " not back after expand: " + why);
+      }
+      note(tag + "collapse checked");
     }
 
     if (m == 3) {

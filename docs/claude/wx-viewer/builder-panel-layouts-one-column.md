@@ -35,3 +35,13 @@ folded to its caption line and unfolded by `ewxLogTextCtrl::setMessageHandler`.
   under Other.
 - Hooks: `ECCE_PANEL_MODE`, `ECCE_PANEL_TEST=<file>`, `ECCE_PANEL_METRICS=<file>`,
   `ECCE_PANEL_FULLSCREEN`; driver `tests/panels/capture.py`.
+- Collapse (`/ColumnHidden`, View > Hide Side Panels, F9, the arrow): the arrow is
+  its own fixed pane "Column Toggle" at Right layer 0, the innermost right layer,
+  so it stays when the column is hidden. In Classic the right-hand tools are
+  therefore forced to layer 1 in `syncColumn`. The pane is neither saved nor
+  loaded with the layouts. Opening a calculation (`setContext`) must not
+  un-collapse: it sets `p_stayCollapsed` around its `updatePanes(true)`.
+- In list + detail the divider between the list and the panel is the AUI sash
+  between the two panes (`INDEX_PROPORTION` : `DETAIL_PROPORTION`), saved with
+  the layout as `dock_proportion`; a wxSplitterWindow would need the shown
+  detail panel re-parented into it, against "every pane stays an AUI pane".

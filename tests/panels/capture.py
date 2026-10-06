@@ -11,7 +11,8 @@ output file (default g16-h2o-optfreq: orbitals, energies, vibrations) in
 the real Builder on a private Xvfb, with the installed ECCE for everything
 but the builder binary.  No synthetic input: the Builder is driven by its
 own hooks (ECCE_PANEL_MODE, ECCE_OPEN_PANEL, ECCE_PANEL_METRICS,
-ECCE_PANEL_TEST, ECCE_PANEL_FULLSCREEN).
+ECCE_PANEL_TEST, ECCE_PANEL_FULLSCREEN; PANELS_COLLAPSED=1 in the
+environment starts the capture with the side panels collapsed).
 
 --test runs every layout in one session and checks, as a menu click
 would, that every property panel and tool opens and has a real size,
@@ -133,6 +134,8 @@ def run(case, builder, descriptor, modes, png, tag, test, timeout, open_panel,
             env["ECCE_PANEL_FULLSCREEN"] = "1"
             if open_panel:
                 env["ECCE_OPEN_PANEL"] = open_panel
+            if os.environ.get("PANELS_COLLAPSED"):
+                env["ECCE_PANEL_COLLAPSED"] = "1"
             report = os.path.join(state, "panel-%s.txt" % mode)
             metrics = os.path.join(state, "panel-%s.metrics" % mode)
             for f in (report, metrics):

@@ -329,6 +329,7 @@ const string Builder::s_modeText[] = {
 
 const string Builder::NAME_COLUMN_TABS("Panel Tabs");
 const string Builder::NAME_PROPERTY_INDEX("Property Index");
+const string Builder::NAME_COLUMN_TOGGLE("Column Toggle");
 
 const string Builder::NAME_LAYOUT_PREFIX("/PaneLayout/");
 const string Builder::NAME_LAYOUT_DEFAULT("Default");
@@ -1045,6 +1046,7 @@ void Builder::createToolPanels()
          .CloseButton(false).PaneBorder(false).Gripper(false)
          .MinSize(p_tabsPanel->GetMinSize())
          .BestSize(p_tabsPanel->GetMinSize()).Show(false);
+  tabInfo.dock_proportion = 1;
   p_mgr.AddPane(p_tabsPanel, tabInfo);
 
   p_index = new PropertyIndexPanel(this);
@@ -1056,8 +1058,33 @@ void Builder::createToolPanels()
            .Right().Layer(1).Position(1).Resizable(true).CloseButton(false)
            .Floatable(false).MinSize(wxSize(200, 150))
            .BestSize(wxSize(400, 230)).Show(false);
-  indexInfo.dock_proportion = 45;
+  indexInfo.dock_proportion = INDEX_PROPORTION;
   p_mgr.AddPane(p_index, indexInfo);
+
+  //  The arrow on the border between the viewer and the column: a thin
+  //  fixed pane of its own in the innermost right-hand layer, so it stays
+  //  put when the column behind it is hidden.
+  p_togglePanel = new wxPanel(this, wxID_ANY);
+  p_toggleButton = new wxBitmapButton(p_togglePanel, wxID_ANY,
+      wxArtProvider::GetBitmap(wxART_GO_FORWARD, wxART_BUTTON),
+      wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+  p_toggleButton->SetToolTip(_("Hide the side panels"));
+  p_toggleButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    CallAfter([this]() { setColumnCollapsed(!p_columnHidden); });
+  });
+  wxBoxSizer *toggleCol = new wxBoxSizer(wxVERTICAL);
+  toggleCol->AddStretchSpacer(1);
+  toggleCol->Add(p_toggleButton, 0, wxALIGN_CENTER_HORIZONTAL);
+  toggleCol->AddStretchSpacer(1);
+  p_togglePanel->SetSizer(toggleCol);
+  const wxSize toggleSize(p_toggleButton->GetBestSize().x + 2, 40);
+  p_togglePanel->SetMinSize(toggleSize);
+  wxAuiPaneInfo toggleInfo;
+  toggleInfo.Name(NAME_COLUMN_TOGGLE).CaptionVisible(false).Right().Layer(0)
+            .Position(0).Fixed().Floatable(false).Movable(false)
+            .CloseButton(false).PaneBorder(false).Gripper(false)
+            .MinSize(toggleSize).BestSize(toggleSize);
+  p_mgr.AddPane(p_togglePanel, toggleInfo);
 
   applyGeometry();
 }
@@ -1514,7 +1541,9 @@ void Builder::setContext(const string& url, const bool& force)
             paneGroup(info) == GROUP_PROPERTIES) {
           setDetail(info.window);
         }
+        p_stayCollapsed = true;   // opening a calculation is not a request
         updatePanes(true); // TODO is this needed yet or can it wait?
+        p_stayCollapsed = false;
       }
     }
   }
@@ -4345,6 +4374,9 @@ void Builder::savePaneLayout(const wxString& layoutName_)
   wxAuiPaneInfoArray &panes = p_mgr.GetAllPanes();
   for (size_t i = 0, count = panes.GetCount(); i < count; ++i) {
     wxAuiPaneInfo &pane = panes.Item(i);
+    if (pane.name == NAME_COLUMN_TOGGLE) {
+      continue;
+    }
     wxString info = paneInfoForSave(pane);
     if (dynamic_cast<PropertyPanel*>(pane.window)) {
       // prop panel layouts are save elsewhere
@@ -4413,7 +4445,8 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
   for (size_t i = 0, count = panes.GetCount(); i < count; ++i) {
     wxAuiPaneInfo &pane = panes.Item(i);
     wxString info;
-    if (config->Read(layoutPrefix + pane.name, &info)) {
+    if (pane.name != NAME_COLUMN_TOGGLE &&
+        config->Read(layoutPrefix + pane.name, &info)) {
       unfoldPane(pane);     // the saved info carries the unfolded sizes
       p_mgr.LoadPaneInfo(info, pane);
       //  A layout saved under an older build carries whatever flat
@@ -4818,7 +4851,9 @@ void Builder::updatePropertyMenus()
             break;
           }
         }
+        p_stayCollapsed = getenv("ECCE_PANEL_COLLAPSED") != 0;
         updatePanes(true);
+        p_stayCollapsed = false;
       } else if (p_propertyMenu->GetMenuItemCount() > 0) {
         // Panels exist now and still no match -- report once rather
         // than on the very first (panel-less) pass.
@@ -5636,7 +5671,7 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
         info.Right().Layer(1).Row(0).Position(2 + (order < 0 ? 500 : order));
         info.PinButton(p_panelMode != PANELS_DETAIL);
         if (p_panelMode == PANELS_DETAIL) {
-          info.dock_proportion = 100;
+          info.dock_proportion = DETAIL_PROPORTION;
         }
       }
     }
