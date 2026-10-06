@@ -26,6 +26,10 @@ Reporting a problem:
                        without starting a session.
   -remote              Use the central data server/broker (siteconfig/
                        RemoteServer) instead of starting your own.
+  --local, -local      Keep calculations in a local data folder (the one
+                       set in Edit > Preferences, by default ~/.ECCE-local)
+                       for this session, with no data server. For every
+                       session: tick the setting in Edit > Preferences.
   -l LOGIN             Use LOGIN as your server login name instead of
                        your own username, for this session only.
   --version, -V        Show the version and exit.
@@ -50,6 +54,7 @@ USAGE
 admin=false
 machines=false
 remote=false
+local=false
 bug=false
 login=""
 case "${ECCE_BUG:-}" in ""|0) ;; *) bug=true ;; esac
@@ -61,6 +66,7 @@ while [ $# -gt 0 ]; do
     -admin) admin=true ;;
     -machine|-machines) machines=true ;;
     -remote) remote=true ;;
+    --local|-local) local=true ;;
     -l)
       if [ $# -lt 2 ]; then
         echo "ecce: option -l needs a login name (try --help)" >&2
@@ -73,7 +79,14 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
+if $remote && $local; then
+  echo "ecce: -remote and --local exclude each other (try --help)" >&2
+  exit 2
+fi
 if $remote; then export ECCE_REMOTE_SERVER=1; fi
+# Read by every ECCE process (LocalData::dir), so the whole session uses
+# the folder from the start and never needs the data server.
+if $local; then export ECCE_LOCAL=1; fi
 
 export ECCE_HOME=${ECCE_HOME:-$ECCE_HOME_DEFAULT}
 
