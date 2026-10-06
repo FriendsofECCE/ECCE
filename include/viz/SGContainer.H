@@ -81,6 +81,12 @@ public:
     virtual void touchChemDisplay(SGFragment* frag);
     virtual void updateColorNodes();
 
+    // Radius (A) of the sphere drawn for atom idx in its display style; 0
+    // where none is drawn (wireframe, stick, hidden).
+    double displayedSphereRadius(int idx);
+    // Re-seat the normal-mode arrows on the spheres now drawn.
+    void updateNMVecStarts();
+
     DisplayStyle::Style toOurStyle(ChemDisplayParam::DisplayBinding style);
     ChemDisplayParam::DisplayBinding toChemkitStyle(DisplayStyle::Style style);
 
