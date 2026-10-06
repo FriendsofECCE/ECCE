@@ -190,6 +190,10 @@ function(ecce_library name)
   endforeach()
   add_library(${name} STATIC ${_srcs})
   target_include_directories(${name} PRIVATE ${XercesC_INCLUDE_DIRS})
+  if(WIN32)
+    # The libraries reference each other in cycles; GNU ld needs them repeated.
+    set_target_properties(${name} PROPERTIES LINK_INTERFACE_MULTIPLICITY 3)
+  endif()
 endfunction()
 
 # --- src/util -> libecceutil.a ---
@@ -206,6 +210,10 @@ target_compile_definitions(ecceutil PRIVATE ECCE_VERSION=\"${ECCE_VERSION_RAW}\"
 # Messaging (src/util/jms) is MQTT 5 on libmosquitto.
 pkg_check_modules(MOSQUITTO REQUIRED IMPORTED_TARGET libmosquitto)
 target_link_libraries(ecceutil PUBLIC PkgConfig::MOSQUITTO)
+if(WIN32)
+  # POSIX regex (libtre) and Winsock, which libssh's callers use directly.
+  target_link_libraries(ecceutil PUBLIC regex ws2_32)
+endif()
 
 # ------------------------------------------------------------------------
 # Where an installed ECCE lives, and where its ecce-<app> wrappers go.

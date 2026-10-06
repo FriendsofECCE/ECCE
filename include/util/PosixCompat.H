@@ -94,6 +94,8 @@ inline int setenv(const char *name, const char *value, int overwrite)
   return _putenv_s(name, value) == 0 ? 0 : -1;
 }
 
+inline int unsetenv(const char *name) { return _putenv_s(name, "") == 0 ? 0 : -1; }
+
 inline char *strptime(const char *s, const char *format, struct tm *tm)
 {
   std::istringstream in(s);
