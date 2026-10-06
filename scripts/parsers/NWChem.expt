@@ -63,6 +63,14 @@ require "pertab.pl";
   $guiDict   = "";
 
   &parseInputFile;
+  # A closed-shell deck names no multiplicity; the SCF module's
+  # "open shells = N" says what was run.
+  if (!defined($multiplicity)) {
+    seek(INPUT, 0, 0);
+    while (<INPUT>) {
+      $multiplicity = 1 + $1 if (/^\s*open shells\s*=\s*(\d+)/);
+    }
+  }
 
   &writeDictAndMVM($ARGV[0]);
   exit(0);
@@ -219,6 +227,19 @@ sub getFinalGeometry {
   }
 }
 
+
+# The last "Group name  Cs" NWChem printed, leaving the read position
+# where it was.
+sub getPointGroup {
+  my $pos = tell(INPUT);
+  my $group;
+  seek(INPUT, 0, 0);
+  while (<INPUT>) {
+    $group = $1 if (/^\s*Group name\s+(\S+)/);
+  }
+  seek(INPUT, $pos, 0);
+  return $group;
+}
 
 sub parseInputFile {
 
@@ -851,6 +872,11 @@ sub parseInputFile {
   $molecule .= "type:\tmolecule\n";
   $molecule .= "charge:\t$charge\n";
   $molecule .= "num_atoms:\t$centerNum\n";
+  my $pointGroup = &getPointGroup;
+  if (defined($pointGroup) && uc($pointGroup) ne "C1") {
+    $molecule .= "fragment_attributes:\n  point_group: $pointGroup\n";
+    $molecule .= "end_fragment_attributes:\n";
+  }
   $molecule .= "$latticeSection";
   $molecule .= "$atomSection";
   if ($suffixCheck == 1) {

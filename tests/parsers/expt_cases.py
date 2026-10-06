@@ -75,7 +75,7 @@ CASES = [
     dict(name="expt-orca-oh-uhf", script="ORCA.expt",
          output="orca/oh_uhf.out",
          expect=dict(natoms=2, Theory="UHF", RunType="Energy",
-                     **{"ChemSys.Multiplicity": "2"})),
+                     **{"ES.ChemSys.Multiplicity": "2"})),
     dict(name="expt-nwchem-h2o-opt", script="NWChem.expt",
          output="nwchem/h2o_opt_stdout.out",
          expect=dict(natoms=3, symbols=["O", "H", "H"], charge="0",
@@ -89,6 +89,14 @@ CASES = [
     dict(name="expt-orca-h2o-nmr", script="ORCA.expt",
          output="orca/h2o_nmr_chelpg.out",
          expect=dict(natoms=3, RunType="Magnetic")),
+    # #235: UseSym runs, whose point group is only in the symmetry setup
+    # (benzene: D6h, with orbitals labelled in the D2h subgroup).
+    dict(name="expt-orca-h2o-sym", script="ORCA.expt",
+         output="orca/h2o_sym.out",
+         expect=dict(natoms=3, **{"ES.ChemSys.Multiplicity": "1"})),
+    dict(name="expt-orca-c6h6-sym", script="ORCA.expt",
+         output="orca/c6h6_sym.out",
+         expect=dict(natoms=12, **{"ES.ChemSys.Multiplicity": "1"})),
 ]
 
 # ---------------------------------------------------------------------------

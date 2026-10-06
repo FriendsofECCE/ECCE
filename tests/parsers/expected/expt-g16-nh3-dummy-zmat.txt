@@ -7,6 +7,9 @@
 title:	NH3 with dummy
 type:	molecule
 charge:	0
+fragment_attributes:
+  point_group: C3V
+end_fragment_attributes:
 num_atoms:	4
 atom_info:	symbol cart
 atom_list:
