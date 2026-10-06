@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstdio>
 using namespace std;
 
 #include "wx/wxprec.h"
@@ -8,6 +9,8 @@ using namespace std;
 #endif
 #include "wx/artprov.h"
 #include "wx/filename.h"
+#include "wx/dcmemory.h"
+#include "wx/log.h"
 
 #include "util/Ecce.H"
 #include "wxgui/ewxBitmap.H"
@@ -112,13 +115,66 @@ wxBitmap ewxBitmap::saveIcon()
 
 
 /**
+ * The pixmap, loaded by the type its extension names.  Callers pass the
+ * XPM default for PNG files too: wxGTK sniffs the format through
+ * GdkPixbuf, wxOSX and wxMSW do not and fail.  No log dialog on failure.
+ */
+wxBitmap ewxBitmap::loadPixmap(const wxString& name, long type)
+{
+  wxString ext = wxFileName(name).GetExt().Lower();
+  wxBitmapType t = (wxBitmapType)type;
+  if (ext == "png") t = wxBITMAP_TYPE_PNG;
+  else if (ext == "xpm") t = wxBITMAP_TYPE_XPM;
+  else if (ext == "gif") t = wxBITMAP_TYPE_GIF;
+  else if (ext == "jpg" || ext == "jpeg") t = wxBITMAP_TYPE_JPEG;
+  else if (ext == "bmp") t = wxBITMAP_TYPE_BMP;
+  wxBitmap bmp;
+  wxLogNull quiet;
+  bmp.LoadFile(pixmapFile(name), t);
+  return bmp;
+}
+
+
+/**
+ * A visible stand-in for a pixmap that did not load, so a toolbar or
+ * image list never receives an invalid bitmap (wxOSX crashes on one).
+ */
+wxBitmap ewxBitmap::placeholder(const wxString& name)
+{
+  fprintf(stderr, "ECCE: pixmap %s did not load; using a placeholder\n",
+          (const char*) pixmapFile(name).utf8_str());
+  wxBitmap bmp(16, 16);
+  wxMemoryDC dc(bmp);
+  dc.SetBackground(*wxLIGHT_GREY_BRUSH);
+  dc.Clear();
+  dc.SetPen(*wxBLACK_PEN);
+  dc.SetBrush(*wxTRANSPARENT_BRUSH);
+  dc.DrawRectangle(0, 0, 16, 16);
+  dc.DrawLine(0, 0, 16, 16);
+  dc.SelectObject(wxNullBitmap);
+  return bmp;
+}
+
+
+/**
+ * A window icon from a pixmap.  wxIcon(file, XPM) has no handler on wxOSX
+ * and logs an error dialog; going through the bitmap works everywhere.
+ */
+wxIcon ewxBitmap::icon(const wxString& name)
+{
+  wxIcon ret;
+  ret.CopyFromBitmap(ewxBitmap(name));
+  return ret;
+}
+
+
+/**
  * For a toolbar or button that should be sharp at any scale: the themed
  * icon at the pixmap's size and twice it, or the pixmap alone.
  */
 wxBitmapBundle ewxBitmap::bundle(const wxString& name, long type)
 {
-  wxBitmap legacy;
-  legacy.LoadFile(pixmapFile(name), (wxBitmapType)type);
+  wxBitmap legacy = loadPixmap(name, type);
   wxString icon = genericIconName(name);
   if (!icon.empty()) {
     wxSize size = legacy.IsOk() ? legacy.GetSize() : wxSize(16, 16);
@@ -127,7 +183,7 @@ wxBitmapBundle ewxBitmap::bundle(const wxString& name, long type)
     if (one.IsOk() && two.IsOk()) return wxBitmapBundle::FromBitmaps(one, two);
     if (one.IsOk()) return wxBitmapBundle(one);
   }
-  return wxBitmapBundle(legacy);
+  return wxBitmapBundle(legacy.IsOk() ? legacy : placeholder(name));
 }
 
 
@@ -139,12 +195,13 @@ wxBitmapBundle ewxBitmap::bundle(const wxString& name, long type)
  */
 ewxBitmap::ewxBitmap(const wxString& name, long type)
 {
-  LoadFile( pixmapFile(name), (wxBitmapType)type);
+  wxBitmap::operator=(loadPixmap(name, type));
   wxString icon = genericIconName(name);
   if (!icon.empty()) {
     wxBitmap art = themedIcon(icon, IsOk() ? GetSize() : wxSize(16, 16));
     if (art.IsOk()) wxBitmap::operator=(art);
   }
+  if (!IsOk()) wxBitmap::operator=(placeholder(name));
 }
 
 ewxBitmap::ewxBitmap( )

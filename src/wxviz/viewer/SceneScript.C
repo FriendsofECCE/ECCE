@@ -830,10 +830,12 @@ bool SceneScript::snapshot(const string& name, int size, float r, float g,
     if (!area) return fail("no render area");
     Frame f;
     area->setFrameCallback(grabFrame, &f);
-    for (int i = 0; i < 20 && !f.got; i++) {
+    //  Up to ~2 s: wxOSX paints a fresh window later than wxGTK does.
+    for (int i = 0; i < 200 && !f.got; i++) {
       wxTheApp->Yield(true);
       area->Refresh(false);
       area->Update();
+      if (!f.got) wxMilliSleep(10);
     }
     area->setFrameCallback(0, 0);
     if (!f.got) return fail("canvas never painted: " + name);

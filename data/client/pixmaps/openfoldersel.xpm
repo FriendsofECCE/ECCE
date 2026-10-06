@@ -7,7 +7,7 @@ static char * opensel_xpm[] = {
 "+	c #FFFFC6",
 "....................",
 "....XXXXXX..........",
-"o..XOOOOOOX.........",
+"...XOOOOOOX.........",
 "...XOOOOOOX.........",
 "..XOOOOOOOOXX.......",
 "..XOOOOOOOOOOX......",

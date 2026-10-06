@@ -156,6 +156,7 @@ class WxMachineRegister: public ewxFrame
         void onNew(wxCommandEvent& event);
         void onCloseButton(wxCommandEvent& event);
         void onHelp(wxCommandEvent& event);
+        static string helpRef(const string& version);
 
         //  The machine list
         void loadMachinesList();
@@ -302,6 +303,7 @@ class WxMachineRegister: public ewxFrame
         void keepOnScreen();
         void refreshLocality();
         void updateFooter();
+        vector<string> pendingSkeletons() const;
         string editedBase() const;
         void saveSettings(Preferences& prefs);
         void restoreSettings(Preferences& prefs);
@@ -317,6 +319,7 @@ class WxMachineRegister: public ewxFrame
         wxPanel             *p_info;
         wxStaticText        *p_infoText;
         wxStaticText        *p_storeNote;   // names the files Save writes
+        vector<string>      p_pendingSkel;  // codes Save adds empty blocks for
         wxStaticText        *p_jobNote;
         vector<CfgRow>       p_cfgRows;
         vector<BlockRow>     p_blocks;

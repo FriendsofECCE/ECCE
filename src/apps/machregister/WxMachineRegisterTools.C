@@ -333,7 +333,10 @@ static void addRequestControls(WxMachineRegister* owner, wxDialog* dlg,
     grid->Add(p.mem);
 
     p.account = new ewxTextCtrl(dlg, wxID_ANY);
-    p.account->SetHint("e.g. proj1");
+    //  A disabled field with an example hint looked like a field that
+    //  would not take input; say why it is off instead.
+    p.account->SetHint(allocAccounts ? "e.g. proj1"
+                                     : "not used on this machine");
     p.account->Enable(allocAccounts);
     p.account->SetToolTip(allocAccounts ? "The allocation account the job is "
         "charged to" : "Allocation accounts are not used on this machine "
@@ -783,6 +786,8 @@ void WxMachineRegister::testSubmission()
             run->Enable(hold->IsChecked());
         });
 
+    root->Add(new wxStaticText(dlg, wxID_ANY, "Answer from " + qmgr),
+              wxSizerFlags().Border(wxLEFT|wxRIGHT|wxTOP));
     wxTextCtrl* result = new wxTextCtrl(dlg, wxID_ANY, "", wxDefaultPosition,
         wxSize(720, 240), wxTE_MULTILINE|wxTE_READONLY|wxTE_DONTWRAP);
     result->SetFont(mono);

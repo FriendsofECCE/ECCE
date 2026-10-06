@@ -778,6 +778,12 @@ class Live(object):
             say("\n".join("      | " + l for l in out.strip().splitlines()[-8:]))
             rep.done()
             return
+        conf = os.path.join(jobdir or "", "eccejobmonitor.conf")
+        if os.path.exists(conf):
+            #  Under a scheduler the monitor keeps its own 10 s pause, even
+            #  on this computer: each check is a scheduler query.
+            rep.check("timePause" not in open(conf).read(),
+                      "the monitor keeps its default pause under %s" % mgr)
         jobid = s.driver("jobid", url)[1].strip().splitlines()[-1]
         self.submitted.append((sched, jobid))
         rep.note("id " + jobid)

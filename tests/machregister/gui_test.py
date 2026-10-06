@@ -17,6 +17,7 @@ SKIPs (77) without Xvfb or the machregister binary.
 import argparse
 import hashlib
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -181,7 +182,8 @@ select mine
 expect field name mine
 expect field code:nwchem /opt/nwchem
 expect dirty 0
-expect save-enabled 0
+expect save-enabled 1
+expect title-star 0
 expect delete-enabled 1
 expect list mine yours
 expect list cluster site
@@ -191,7 +193,7 @@ expect save-enabled 1
 expect title-star 1
 set code:orca ''
 expect dirty 0
-expect save-enabled 0
+expect save-enabled 1
 expect title-star 0
 set code:orca /opt/orca
 set perlpath '/p+a&t=h%x y'
@@ -604,6 +606,14 @@ PLAIN = {"default": "not set", "site": "from site", "server": "from server",
          "site (editing)": "site value"}
 
 
+def plain(k, tag):
+    """A choice or checkbox shows the built-in value: "default", not
+    "not set"."""
+    if tag == "default" and (k in BOOLS or k in ("shell", "singleconnect")):
+        return "default"
+    return PLAIN[tag]
+
+
 def jobs_tag(want):
     """The group's tag: the user's own value first, then a layer's."""
     a, b = want["noremoteaccess"][1], want["usersubmit"][1]
@@ -611,7 +621,8 @@ def jobs_tag(want):
     for t in (a, b):
         if t in own:
             return PLAIN[t]
-    return PLAIN[a if a != "default" else b]
+    t = a if a != "default" else b
+    return "default" if t == "default" else PLAIN[t]
 
 
 def jobs_radio(want):
@@ -670,11 +681,15 @@ expect label tag:jobs '%(site)s'
 expect field checkscratch 0
 expect label tag:checkscratch '%(site)s'
 expect field singleconnect no
-expect label tag:singleconnect 'not set'
+expect label tag:singleconnect 'default'
+expect label name:singleconnect 'Use a single ssh connection (for machines\\nthat only allow one login at a time)'
+expect tooltip singleconnect 'gateway host'
+expect tooltip singleconnect 'no (the default)'
+expect label tag:libpath 'not set'
 expect shown xappspath 0
 expect dirty 0
-expect save-enabled 0
-""" % {"site": site, "Y": Y}
+expect save-enabled %(pend)s
+""" % {"site": site, "Y": Y, "pend": "1" if admin else "0"}
     if admin:
         edits = """
 set shell sh
@@ -765,7 +780,7 @@ quit
         v, tag = want[k]
         lines.append("expect field %s '%s'" % (k, shown(k, v)))
         if k not in ("noremoteaccess", "usersubmit"):
-            lines.append("expect label tag:%s '%s'" % (k, PLAIN[tag]))
+            lines.append("expect label tag:%s '%s'" % (k, plain(k, tag)))
     lines.append("expect field jobs:user %d" % (jobs_radio(want) == "user"))
     lines.append("expect field jobs:none %d" % (jobs_radio(want) == "none"))
     lines.append("expect label tag:jobs '%s'" % jobs_tag(want))
@@ -818,6 +833,12 @@ set jobs:none 0
 set jobs:user 1
 wait 500
 shot %(o)s/connection-interactive.png
+answer no
+select mine
+tab connection
+click advanced:toggle
+wait 800
+shot %(o)s/connection-advanced-defaults.png
 quit
 """ % {"o": out})
     clean(p, "Connection PNGs")
@@ -947,7 +968,7 @@ expect shown blk:wrapup:none 0
 expect shown condorallowtmp 0
 expect shown undo:header 0
 expect dirty 0
-expect save-enabled 0
+expect save-enabled %(pend)s
 click blk:header:copy
 expect field blk:header %(hdr)s
 expect shown blk:header:hint 0
@@ -965,7 +986,7 @@ expect field blk:header %(hdr2)s
 expect field blk:wrapup 'echo done'
 expect label blk:setup:csh ''
 quit
-""" % dict(site=site, none="Default setting: none" if admin else "Site setting: none", mine="Site setting" if admin else "User setting", hdr=esc(header), hdr2=esc(header + "\n#SBATCH --qos=normal"),
+""" % dict(site=site, pend="1" if admin else "0", none="Default setting: none" if admin else "Site setting: none", mine="Site setting" if admin else "User setting", hdr=esc(header), hdr2=esc(header + "\n#SBATCH --qos=normal"),
            hdrlabel=esc(hdr_label), yours=yours, setup=setup_pre),
         args=args, extra=extra)
     clean(p, "%s: copy the site text, edit three blocks, save" % mode)
@@ -1209,10 +1230,15 @@ expect label tag:code '%(csite)s'
 expect label tag:cenv '%(csite)s'
 expect shown undo:code 0
 expect shown undo:cenv 0
-%(first)sexpect label tag:ccmd 'not set'
+%(first)sexpect label tag:ccmd 'default'
 expect label tag:files '%(fsite)s'
-expect shown blk:ccmd:site 0
-expect label blk:ccmd:hint 'e.g. $G16 < $inFile > $outFile'
+expect shown blk:ccmd:site 1
+expect label blk:ccmd:head 'Built-in (used when empty)'
+expect field blk:ccmd:site '$G16 < $inFile > $outFile 2>&1'
+expect label blk:ccmd:yours '%(mine)s (replaces the built-in)'
+expect shown blk:ccmd:copy 0
+expect shown blk:ccmd:none 0
+expect label blk:ccmd:hint 'e.g. srun $G16 < $inFile > $outFile'
 expect shown blk:ccmd:hint 1
 expect label blk:cenv:hint 'e.g. g16root /opt'
 expect label blk:csetup:hint 'e.g. module load gaussian-16'
@@ -1221,7 +1247,8 @@ expect dirty 0
 expect label cmd:help "When this is empty, ECCE's built-in command is used."
 code ORCA
 expect label code:title ORCA
-expect label blk:ccmd:hint 'e.g. $orca $inFile > $outFile'
+expect contains blk:ccmd:site '$orca $inFile > $outFile 2>&1'
+expect label blk:ccmd:hint 'e.g. $orca $inFile "--bind-to core" > $outFile'
 expect label blk:cenv:hint 'e.g. OMP_NUM_THREADS 1'
 expect label blk:csetup:hint 'e.g. module load orca'
 expect field code:orca ''
@@ -1252,6 +1279,7 @@ save
 expect dirty 0
 quit
 """ % dict(site=site, yours=yours, first=first, env=esc(ENV_TEXT), cmd=esc(cmd),
+           mine="Site setting" if admin else "User setting",
            fsite="from server" if remote else "from site",
            csite=yours if admin else site),
         args=args, extra=extra)
@@ -1308,7 +1336,7 @@ undo cenv
 expect field blk:cenv %(env)s
 expect dirty 0
 set blk:ccmd ''
-expect label tag:ccmd 'not set'
+expect label tag:ccmd 'default'
 expect shown undo:ccmd 1
 undo ccmd
 expect field blk:ccmd %(cmd)s
@@ -1410,11 +1438,53 @@ def codes_skeleton(tmp, display, build):
     mine = os.path.join(e.ue, "CONFIG.mine")
     mine_before = read(mine)
 
-    # opening and closing a machine rewrites nothing
-    p = run(display, build, e, "select mine\ntab codes\ncode NWChem\n"
-            "expect field code:nwchem /opt/nwchem\nexpect dirty 0\nquit\n")
+    # opening and closing a machine rewrites nothing, but Save is offered
+    # and the footer says what it would add
+    p = run(display, build, e, """
+select mine
+tab codes
+code NWChem
+expect field code:nwchem /opt/nwchem
+expect dirty 0
+expect save-enabled 1
+expect title-star 0
+expect contains footer 'Saving adds empty sections for: NWChem'
+select cluster
+expect save-enabled 0
+expect label footer 'Saved in ~/.ECCE/CONFIG.cluster'
+quit
+""")
     clean(p, "open and close a machine with a path")
     check(read(mine) == mine_before, "no skeleton is written without a save")
+
+    # the raw editor shows the missing sections; cancel writes nothing
+    p = run(display, build, e, """
+select mine
+tab job
+click edit-file
+expect raw-dialog 1
+expect contains raw:text 'NWChemEnvironment {\\n}\\nNWChemCommand {\\n}'
+expect contains raw:text 'foo: bar'
+click raw:cancel
+quit
+""")
+    clean(p, "the raw editor shows the sections Save would add")
+    check(read(mine) == mine_before, "cancel in the raw editor writes nothing")
+
+    # Save with nothing else changed writes only the sections
+    p = run(display, build, e, """
+select mine
+tab codes
+save
+expect save-enabled 0
+expect label footer 'Saved in ~/.ECCE/CONFIG.mine'
+quit
+""")
+    clean(p, "Save adds the missing sections")
+    m = read(mine)
+    check(m == mine_before + "\n# NWChem\nNWChemEnvironment {\n}\n"
+          "NWChemCommand {\n}\n", "only the sections were added: %r" % m)
+    write(mine, mine_before)
 
     # a new path
     p = run(display, build, e, """
@@ -1446,18 +1516,19 @@ quit
 select cluster
 tab codes
 code Gaussian-16
-expect label tag:ccmd 'not set'
+expect label tag:ccmd 'default'
 expect field blk:ccmd ''
 expect label tag:cenv 'from site'
 expect field blk:cenv ''
 expect dirty 0
 set blk:ccmd 'echo hi'
 undo ccmd
-expect label tag:ccmd 'not set'
+expect label tag:ccmd 'default'
 expect dirty 0
 quit
 """)
-    clean(p, "an empty block reads as not set; undo returns to it")
+    clean(p, "an empty command block reads as the built-in default; undo "
+          "returns to it")
     check(read(cluster) == u, "nothing was written")
 
     # an existing file gains the skeleton on the first save, once
@@ -1542,6 +1613,8 @@ code NWChem
 wait 1000
 shot %(o)s/codes-site.png
 code Gaussian-16
+wait 800
+shot %(o)s/codes-builtin.png
 set code:gaussian-16 /opt/g16/g16
 set blk:cenv 'g16root /opt\\nGAUSS_SCRDIR /scratch'
 wait 1000
@@ -1557,6 +1630,15 @@ click words:close
 quit
 """ % {"o": out})
     clean(p, "Codes PNGs")
+    p = run(display, build, e, """
+select mine
+tab codes
+code NWChem
+wait 1000
+shot %(o)s/codes-missing-sections.png
+quit
+""" % {"o": out})
+    clean(p, "Codes PNG, missing sections")
     for n in sorted(os.listdir(out)):
         print("        " + os.path.join(out, n))
 
@@ -1618,12 +1700,24 @@ quit
 def help_button(tmp, display, build):
     print("Help button")
     e = Env(tmp, "help")
+    version = read(os.path.join(REPO, "data", "client", "config",
+                                "Version")).strip()
+    ref = ("v" + version if re.fullmatch(
+        r"[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta)\.[0-9]+)?", version)
+        else "main")
     p = run(display, build, e, """
 click help
-expect message help https://github.com/FriendsofECCE/ECCE/blob/main/help/src/register-machines.md
+expect message help https://github.com/FriendsofECCE/ECCE/blob/%s/help/src/register-machines.md
+expect help-ref 9.0.0-alpha.6 v9.0.0-alpha.6
+expect help-ref 9.0.0 v9.0.0
+expect help-ref 9.0.0-rc1 main
+expect help-ref 9.0.0-rc.1 main
+expect help-ref 9.0.0-dev main
+expect help-ref '' main
 quit
-""")
-    clean(p, "Help requests the Register Machines page")
+""" % ref)
+    clean(p, "Help opens the Register Machines page at the installed "
+          "version's tag, or main for an untagged version")
 
 
 def delete_prompt_lists_files(tmp, display, build):
