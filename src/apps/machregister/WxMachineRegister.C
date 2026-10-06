@@ -304,6 +304,7 @@ void WxMachineRegister::createControls()
     this->Bind(wxEVT_CLOSE_WINDOW, &WxMachineRegister::onClose, this);
     p_book->Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, [this](wxBookCtrlEvent& e) {
         this->updateFooter();
+        this->refreshHints();
         e.Skip();
     });
     p_list->Bind(wxEVT_LIST_ITEM_SELECTED, &WxMachineRegister::onListSelected, this);
@@ -1260,6 +1261,7 @@ void WxMachineRegister::addBlock(wxWindow* page, wxSizer* sizer,
         wxSize(-1, 90), wxTE_MULTILINE|wxTE_DONTWRAP);
     b.user->SetFont(mono);
     b.box->Add(b.user, wxSizerFlags().Expand().Border(wxLEFT|wxRIGHT));
+    reg("blk:" + id + ":hint", addBoxHint(b.user));
     if (id != "cenv")
         trackFocus(b.user);
 
@@ -2812,6 +2814,7 @@ void WxMachineRegister::updateFooter()
 void WxMachineRegister::updateDirty()
 {
     this->updateFooter();
+    this->refreshHints();
     if (p_inCtrlUpdate || p_draft == NULL || p_closing)
         return;
 
@@ -3315,8 +3318,7 @@ void WxMachineRegister::blockToControl(BlockRow& b)
         bool cleared = ks->edit == MCD::Clear;
         b.user->ChangeValue(ks->edit == MCD::Set ? ks->value : "");
         b.user->Enable(!cleared);
-        b.user->SetHint(cleared ? "(disabled)" : hasInh
-            ? "Empty: the text above is used" : "");
+        setBoxHint(b.user, cleared ? "(disabled)" : blockExample(b));
         b.none->SetValue(cleared);
         b.none->Show(hasInh || cleared);
         b.none->SetToolTip("Writes \"" + ks->name + ": -\", so neither the "
@@ -3336,6 +3338,113 @@ void WxMachineRegister::relayout(const BlockRow& b)
         b.scroll->Layout();
         static_cast<wxScrolledWindow*>(b.scroll)->FitInside();
     }
+    refreshHints();
+}
+
+
+//  wxGTK has no hint for a multi-line wxTextCtrl, so the grey example is a
+//  label laid over the box while it is empty and not focused.  It is never
+//  part of the value.
+wxStaticText* WxMachineRegister::addBoxHint(wxTextCtrl* t)
+{
+    wxStaticText* h = new wxStaticText(t->GetParent(), wxID_ANY, "",
+        wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
+    h->SetFont(t->GetFont());
+    h->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+    h->Hide();
+    p_hints.push_back(std::make_pair(t, h));
+    h->Bind(wxEVT_LEFT_DOWN, [t](wxMouseEvent&) { t->SetFocus(); });
+    auto refresh = [this](wxEvent& e) { refreshHints(); e.Skip(); };
+    t->Bind(wxEVT_TEXT, refresh);
+    t->Bind(wxEVT_SET_FOCUS, refresh);
+    t->Bind(wxEVT_KILL_FOCUS, refresh);
+    t->Bind(wxEVT_SIZE, refresh);
+    return h;
+}
+
+
+void WxMachineRegister::setBoxHint(wxTextCtrl* t, const string& text)
+{
+    for (size_t i = 0; i < p_hints.size(); i++)
+        if (p_hints[i].first == t)
+            p_hints[i].second->SetLabel(wxString::FromUTF8(text.c_str()));
+    refreshHints();
+}
+
+
+void WxMachineRegister::refreshHints()
+{
+    wxColour gray = wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT);
+    for (size_t i = 0; i < p_hints.size(); i++)
+    {
+        wxTextCtrl* t = p_hints[i].first;
+        wxStaticText* h = p_hints[i].second;
+        bool want = t->IsShown() && !h->GetLabel().empty() &&
+                    t->GetValue().empty() && !t->HasFocus();
+        if (want)
+        {
+            wxPoint at = t->GetPosition() + wxPoint(5, 3);
+            wxSize sz(std::max(10, t->GetSize().x - 14), h->GetBestSize().y);
+            if (h->GetPosition() != at || h->GetSize() != sz)
+                h->SetSize(at.x, at.y, sz.x, sz.y);
+            h->SetBackgroundColour(t->GetBackgroundColour());
+            h->SetForegroundColour(gray);
+            h->Raise();
+        }
+        if (h->IsShown() != want)
+            h->Show(want);
+    }
+}
+
+
+//  The example for a block, in the form gensub accepts for it.
+string WxMachineRegister::blockExample(const BlockRow& b) const
+{
+    string code = p_codeNames.empty() ? string() : p_codeNames[p_codeSel];
+    if (b.id == "cenv")
+        return "e.g. g16root /opt";
+    if (b.id == "ccmd")
+    {
+        //  Shaped like gensub's built-in command for the code.
+        if (code == "NWChem")
+            return "e.g. mpirun -np $totalprocs $nwchem $inFile > $outFile";
+        if (code == "QuantumESPRESSO")
+            return "e.g. mpirun -np $totalprocs $pw -in $inFile > $outFile";
+        if (code == "Gaussian-16" || code == "Gaussian-09" ||
+            code == "Gaussian-03" || code == "Gaussian-98")
+            return "e.g. $G" + code.substr(code.size() - 2) +
+                   " < $inFile > $outFile";
+        if (code == "ORCA")
+            return "e.g. $orca $inFile > $outFile";
+        if (code == "GROMACS")
+            return "e.g. $gmx mdrun -deffnm md -ntmpi 1 -ntomp $totalprocs";
+        if (code == "MOPAC")
+            return "e.g. $mopac $inFile";
+        if (code == "GAMESS-US")
+            return "e.g. $gamess $inFile > $outFile";
+        if (code == "GAMESS-UK")
+            return "e.g. $gamessuk $inFile > $outFile";
+        if (code == "Polyrate")
+            return "e.g. $polyrate";
+        return "";
+    }
+    if (b.id == "csetup")
+        return "e.g. module load " + lowerOf(code);
+    if (b.id == "setup")
+        return "e.g. module load openmpi";
+    if (b.id == "wrapup" || b.id == "cwrapup")
+        return "e.g. cp *.log $HOME/results";
+    if (b.id == "header")
+    {
+        const string& q = b.key;
+        if (q == "slurm") return "e.g. #SBATCH --qos=normal";
+        if (q == "pbs") return "e.g. #PBS -A myproject";
+        if (q == "lsf") return "e.g. #BSUB -P myproject";
+        if (q == "moab") return "e.g. #MSUB -A myproject";
+        if (q == "sge") return "e.g. #$ -P myproject";
+        if (q == "htcondor") return "e.g. request_memory = 8 GB";
+    }
+    return "";
 }
 
 

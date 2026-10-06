@@ -766,6 +766,9 @@ tab job
 expect label tag:header '%(site)s'
 expect field blk:header:site %(hdr)s
 expect field blk:header ''
+expect label blk:header:hint 'e.g. #SBATCH --qos=normal'
+expect shown blk:header:hint 1
+expect label blk:wrapup:hint 'e.g. cp *.log $HOME/results'
 expect label blk:header:label %(hdrlabel)s
 expect shown blk:header:site 1
 expect enabled blk:header:copy 1
@@ -780,6 +783,7 @@ expect dirty 0
 expect save-enabled 0
 click blk:header:copy
 expect field blk:header %(hdr)s
+expect shown blk:header:hint 0
 expect label tag:header '%(yours)s'
 expect shown undo:header 1
 expect dirty 1
@@ -1041,13 +1045,21 @@ expect shown undo:cenv 0
 %(first)sexpect label tag:ccmd 'not set'
 expect label tag:files '%(fsite)s'
 expect shown blk:ccmd:site 0
+expect label blk:ccmd:hint 'e.g. $G16 < $inFile > $outFile'
+expect shown blk:ccmd:hint 1
+expect label blk:cenv:hint 'e.g. g16root /opt'
+expect label blk:csetup:hint 'e.g. module load gaussian-16'
+expect field blk:ccmd ''
+expect dirty 0
 expect label cmd:help "When this is empty, ECCE's built-in command is used."
 code ORCA
 expect label code:title ORCA
+expect label blk:ccmd:hint 'e.g. $orca $inFile > $outFile'
 expect field code:orca ''
 code Gaussian-16
 set blk:cenv %(env)s
 set blk:ccmd %(cmd)s
+expect shown blk:ccmd:hint 0
 expect label tag:cenv '%(yours)s'
 expect shown undo:cenv 1
 set code:gaussian-16 /opt/g16/g16

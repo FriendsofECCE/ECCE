@@ -20,6 +20,7 @@
 #include <deque>
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
     using std::string;
     using std::vector;
@@ -186,6 +187,10 @@ class WxMachineRegister: public ewxFrame
         void addBlock(wxWindow* page, wxSizer* sizer, const string& id,
                       const string& title, wxWindow* scroll = NULL);
         void relayout(const BlockRow& b);
+        wxStaticText* addBoxHint(wxTextCtrl* t);
+        void setBoxHint(wxTextCtrl* t, const string& text);
+        void refreshHints();
+        string blockExample(const BlockRow& b) const;
         string blockKey(const string& id) const;
         void addCodeLine(wxWindow* page, wxFlexGridSizer* grid,
                          const string& id, const string& label,
@@ -320,6 +325,7 @@ class WxMachineRegister: public ewxFrame
         vector<ewxTextCtrl*> p_codePaths;
         vector<string>       p_codeNames;
         vector<CodeLine>     p_codeLines;
+        vector<std::pair<wxTextCtrl*, wxStaticText*> > p_hints;
         vector<int>          p_codeShown;   // list row -> p_codeNames index
         int                  p_codeSel;
         wxListBox           *p_codeList;
