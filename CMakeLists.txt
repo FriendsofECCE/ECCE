@@ -1066,7 +1066,11 @@ foreach(_app ${ECCE_GUI_APPS} ${ECCE_CLI_APPS})
     # It fails only when there is no relay for this display, and every one
     # of these apps would then abort on the missing port file
     # (JMSMessage.C), so stop here with its message instead.
-    set(_gateway_start "if [ -z \"$ECCE_NO_MESSAGING\" ]; then
+    # The session id (#233): inherited from `ecce` or the gateway that
+    # started this app, else this app is a session of its own.
+    set(_gateway_start ". \"$ECCE_HOME/bin/ecce-session-lib.sh\" || exit 1
+ecce_session_ensure
+if [ -z \"$ECCE_NO_MESSAGING\" ]; then
   \"$ECCE_HOME/bin/ecce-gateway-start\" || { _rc=$?; echo \"${_app}: not started -- no messaging relay for this session (see above)\" >&2; exit $_rc; }
 fi")
     # Same app set as messaging: apps that need the JMS gateway also need
@@ -1239,6 +1243,8 @@ if [ -z \"\${ECCE_LOCAL_DATA+x}\" ] && [ -z \"$ECCE_REMOTE_SERVER\" ] && [ -x \"
   export ECCE_LOCAL_DATA
   if [ -n \"$ECCE_LOCAL_DATA\" ]; then export ECCE_LOCAL_DATA_FROM_PREF=1; fi
 fi
+. \"$ECCE_HOME/bin/ecce-session-lib.sh\" || exit 1
+ecce_session_ensure
 if [ -z \"$ECCE_NO_MESSAGING\" ]; then
   \"$ECCE_HOME/bin/ecce-gateway-start\" || { _rc=$?; echo \"ecce-viewer: not started -- no messaging relay for this session (see above)\" >&2; exit $_rc; }
 fi

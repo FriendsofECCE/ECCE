@@ -7,16 +7,16 @@ set -u
 ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
 STATEDIR="$ECCE_REALUSERHOME/.ECCE"
 DISPLAY="${DISPLAY:-:0}"
-# Prefer an inherited HOST over hostname(1): that is what the wrappers
-# export and what the C++ side reads back (AuthCache::sessionFile), so deriving it differently here can name a
-# file that does not exist. Same resolution order as ecce-gateway-reap.
-HOST="${ECCE_HOST:-${HOST:-$(hostname)}}"
+ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
+_lib="$(dirname "$(readlink -f "$0")")/ecce-session-lib.sh"
+[ -r "$_lib" ] || _lib="$ECCE_HOME/bin/ecce-session-lib.sh"
+. "$_lib" || { echo "ecce-gateway-stop: cannot read $_lib" >&2; exit 1; }
 # The data server credential this session's processes share through
-# AuthCache::sessionFile(). It holds a password, so its lifetime is the
-# session's: same per-display key as the session's other state, sanitised the same
-# way the C++ side sanitises it.
-AUTHFILE="$STATEDIR/authcache_$(printf '%s_%s' "$HOST" "$DISPLAY" |
-                                tr -c 'A-Za-z0-9._-' '_')"
+# AuthCache::sessionFile(), and the broker file. The credential holds a
+# password, so its lifetime is the session's. Without a session id there
+# is no file of ours to name; the reaper below sweeps orphans.
+AUTHFILE="$(ecce_auth_file)" || AUTHFILE=""
+BROKERFILE="$(ecce_broker_file)" || BROKERFILE=""
 
 # Held until this script exits, and taken by ecce-gateway-reap in the
 # EXIT trap of the wrapper that ran the gateway: so `ecce` returns only
@@ -58,7 +58,9 @@ done
 
 # Unconditionally: the session is over either way, and the credential
 # file holds a password.
-rm -f "$AUTHFILE" "$AUTHFILE".tmp.* "$STATEDIR/broker_$(printf '%s_%s' "$HOST" "$DISPLAY" | tr -c 'A-Za-z0-9._-' '_')"
+if [ -n "$AUTHFILE" ]; then
+  rm -f "$AUTHFILE" "$AUTHFILE".tmp.* "$BROKERFILE"
+fi
 
 # The explicit "Quit and Stop Server": this account's broker goes too once
 # no ECCE app is left -- unless it is the site's shared service

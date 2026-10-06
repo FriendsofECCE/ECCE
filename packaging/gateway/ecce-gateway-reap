@@ -34,8 +34,10 @@ set -u
 ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
 ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
 STATEDIR="$ECCE_REALUSERHOME/.ECCE"
-HOST="${ECCE_HOST:-${HOST:-$(hostname)}}"
 UID_="$(id -u)"
+_lib="$(dirname "$(readlink -f "$0")")/ecce-session-lib.sh"
+[ -r "$_lib" ] || _lib="$ECCE_HOME/bin/ecce-session-lib.sh"
+. "$_lib" || { echo "ecce-gateway-reap: cannot read $_lib" >&2; exit 1; }
 
 IF_IDLE=0
 EXPLICIT_STOP=0
@@ -68,18 +70,6 @@ if [ -z "${ECCE_GATEWAY_LOCKED:-}" ]; then
   flock -w 90 9 || say "could not lock $STATEDIR/.gateway.lock; continuing"
 fi
 
-# The data server credential AuthCache shares between this session's
-# processes (AuthCache::sessionFile). It holds a password, so it must go
-# when the session's services do -- same lifetime as the port file, same
-# per-display key, and sanitised the same way the C++ side sanitises it.
-brokerfile() {
-  printf '%s/broker_%s' "$STATEDIR" \
-    "$(printf '%s_%s' "$HOST" "$1" | tr -c 'A-Za-z0-9._-' '_')"
-}
-authfile() {
-  printf '%s/authcache_%s' "$STATEDIR" \
-    "$(printf '%s_%s' "$HOST" "$1" | tr -c 'A-Za-z0-9._-' '_')"
-}
 
 BINDIR="$(readlink -f "$ECCE_HOME/bin" 2>/dev/null || echo "$ECCE_HOME/bin")"
 
@@ -151,21 +141,23 @@ reap_pid() {
 # --- 1. Session credential files with no session left -------------------
 # The data server credential outlives its session unless swept (#120), and
 # "ecce -remote" and ECCE_NO_MESSAGING never start a local broker to tie
-# it to. A session is a live ECCE app on a display, so keep only the
-# files one of those could be using. Limited to this HOST's
-# files, since a home directory shared over NFS holds other machines'.
+# it to. A session is a live ECCE app with its id (eccejobstore included,
+# so a running job keeps its session's broker file), so keep only the
+# files one of those could be using. Limited to this HOST's files, since
+# a home directory shared over NFS holds other machines'. Files of the
+# DISPLAY-keyed 9.0.0-alpha scheme match no live id and are swept too.
 live_auth="" live_broker=""
 for pid in $(ls /proc 2>/dev/null | grep -E '^[0-9]+$'); do
   [ -O "/proc/$pid" ] || continue
   exe="$(readlink "/proc/$pid/exe" 2>/dev/null)" || continue
   is_ecce_exe "$exe" || continue
   [ -r "/proc/$pid/environ" ] || continue
-  d="$(tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null |
-       sed -n 's/^DISPLAY=//p' | head -n1)"
-  [ -n "$d" ] && live_auth="$live_auth $(authfile "$d")" &&
-    live_broker="$live_broker $(brokerfile "$d")"
+  sid="$(ecce_session_of_pid "$pid")"
+  ecce_session_id_valid "$sid" || continue
+  live_auth="$live_auth $(ecce_auth_file "$sid")"
+  live_broker="$live_broker $(ecce_broker_file "$sid")"
 done
-auth_prefix="$(authfile "")"      # .../authcache_<host>_
+auth_prefix="$STATEDIR/authcache_$(ecce_session_prefix)"      # .../authcache_<host>_
 for f in "$auth_prefix"*; do
   [ -e "$f" ] || continue
   base="${f%.tmp.*}"              # a stranded writer's temporary, too
@@ -178,7 +170,7 @@ done
 # The broker files of sessions with no app left. One written a minute ago
 # belongs to a session whose first app is about to start (the start script
 # writes it, then releases the lock, then the wrapper launches the app).
-broker_prefix="$(brokerfile "")"
+broker_prefix="$STATEDIR/broker_$(ecce_session_prefix)"
 for f in "$broker_prefix"*; do
   [ -e "$f" ] || continue
   case " $live_broker " in *" $f "*) continue ;; esac

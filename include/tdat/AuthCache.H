@@ -60,9 +60,9 @@ class AuthCache
      * the security properties of the file.
      */
     static string sessionFile();
-    static string sessionFileFor(const string& host, const string& display);
+    static string sessionFileFor(const string& sessionKey);
     /** The data server login a TCP message broker is opened with. */
-    static bool brokerCredential(const string& host, const string& display,
+    static bool brokerCredential(const string& sessionKey,
                                  string& user, string& password);
     static void sessionClear();
     void sessionLoad();

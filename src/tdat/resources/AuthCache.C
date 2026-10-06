@@ -112,8 +112,8 @@ void AuthCache::flushCache()
 //
 // The fix is to give the credential a home that does not depend on
 // ordering: a small file in the user's own ECCE state directory, keyed by
-// host and DISPLAY exactly as the MQTT session key is (see
-// MqttConfig in util/MqttLink.H), created mode 0600, and deleted by
+// the session key (Ecce::sessionKey(), the MQTT session level too),
+// created mode 0600, and deleted by
 // ecce-gateway-stop / ecce-gateway-reap when the session's services go
 // away.  Every process loads it when its AuthCache is constructed and
 // rewrites it when it learns a credential, so sharing works in both
@@ -130,10 +130,9 @@ void AuthCache::flushCache()
 //   * It is not a new exposure of the plaintext: the "-pipe" FIFO
 //     already carries the same password in the clear through
 //     $ECCE_TMPDIR, as does the JMS broadcast.
-//   * It is keyed by $DISPLAY, so a second seat, a VNC session or an
-//     X-forwarded session does not silently inherit another session's
-//     credentials -- the same per-DISPLAY keying the JMSDispatcher
-//     pidfile turned out to need.
+//   * It is keyed by the session id (#233), so a second session -- on
+//     another seat, or a second `ecce` on the same display -- does not
+//     silently inherit another session's credentials.
 //   * It does not outlive the session: ecce-gateway-stop and
 //     ecce-gateway-reap remove it along with the port file.
 //   * Only http/https credentials are stored.  Compute-machine
@@ -145,41 +144,26 @@ void AuthCache::flushCache()
 
 /**
  * Path of the session credential store, or "" when this process has no
- * session to speak of (no ECCE_REALUSERHOME, HOST or DISPLAY in the
+ * session to speak of (no ECCE_REALUSERHOME or ECCE_SESSION_ID in the
  * environment -- a batch-side tool, say).  Checks the environment
  * directly rather than calling Ecce::realUserPrefPath(), which is fatal
  * when ECCE_REALUSERHOME is unset and this runs from a constructor.
  */
 string AuthCache::sessionFile()
 {
-  const char *host = getenv("HOST");
-  const char *display = getenv("DISPLAY");
-  if (host == (const char*)0 || display == (const char*)0) return "";
-  return sessionFileFor(host, display);
+  return sessionFileFor(Ecce::sessionKey());
 }
 
 
-string AuthCache::sessionFileFor(const string& host, const string& display)
+// The key is file name material already (Ecce::sessionKey()).
+string AuthCache::sessionFileFor(const string& sessionKey)
 {
   const char *home = getenv("ECCE_REALUSERHOME");
 
-  if (home == (const char*)0 || *home == '\0' || host.empty() ||
-      display.empty()) {
+  if (home == (const char*)0 || *home == '\0' || sessionKey.empty()) {
     return "";
   }
-
-  string key = host + "_" + display;
-  // DISPLAY is normally ":1" or "host:1.0", but nothing stops it holding
-  // a '/', which would turn this into a path.  Flatten anything that is
-  // not plainly filename material.
-  for (int idx = 0; idx < (int)key.length(); idx++) {
-    char ch = key[idx];
-    if (!isalnum((unsigned char)ch) && ch != '.' && ch != '-' && ch != '_') {
-      key[idx] = '_';
-    }
-  }
-
-  return string(home) + "/.ECCE/authcache_" + key;
+  return string(home) + "/.ECCE/authcache_" + sessionKey;
 }
 
 
@@ -189,11 +173,11 @@ string AuthCache::sessionFileFor(const string& host, const string& display)
  * account the session authenticated as (ECCE_SERVER_LOGIN) wins; else the
  * last one stored.
  */
-bool AuthCache::brokerCredential(const string& host, const string& display,
+bool AuthCache::brokerCredential(const string& sessionKey,
                                  string& user, string& password)
 {
   vector<AuthTuple> stored;
-  sessionReadFile(sessionFileFor(host, display), stored);
+  sessionReadFile(sessionFileFor(sessionKey), stored);
   if (stored.empty()) return false;
 
   const char *want = getenv("ECCE_SERVER_LOGIN");

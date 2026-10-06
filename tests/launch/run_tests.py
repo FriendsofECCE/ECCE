@@ -52,7 +52,9 @@ sys.path.insert(0, os.path.join(REPO, "tests", "apps"))
 import isolate  # noqa: E402
 
 SKIP = 77
-DISPLAY_KEY = ":83"          # only a key for per-session state, no X server
+#  One session for the run (#233). DISPLAY is unset: these jobs need no X
+#  server, and the session must not depend on one.
+SESSION_ID = os.urandom(8).hex()
 WAIT_SECONDS = 120
 
 #  Properties a MOPAC energy job must leave behind.  TE is the total
@@ -224,13 +226,14 @@ class Suite(object):
         env = dict(os.environ)
         env.update({
             "HOST": env.get("HOST") or os.uname().nodename,
-            "DISPLAY": DISPLAY_KEY,
+            "ECCE_SESSION_ID": SESSION_ID,
             "ECCE_REALUSER": os.environ.get("USER") or subprocess.check_output(
                 ["id", "-un"]).decode().strip(),
             "PATH": "%s/scripts:%s/scripts/parsers:%s" % (
                 self.home, self.home, os.environ["PATH"]),
         })
         env.pop("ECCE_NO_REAP", None)
+        env.pop("DISPLAY", None)
         env.pop("ECCE_LOCAL_DATA", None)
         if self.args.local:
             env["ECCE_LOCAL_DATA"] = self.localData()

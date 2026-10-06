@@ -9,7 +9,8 @@
 //    self-pipe for the Xt job store, wxApp::CallAfter for the GUI).
 //
 //    Topics: ecce/<user>/<topic> for FILTER BY NONE and USER,
-//    ecce/<user>/session/<host>_<display>/<topic> for USER:HOSTNAME:DISPLAY.
+//    ecce/<user>/session/<host>_<id>/<topic> for the session class
+//    (FILTER BY USER:HOSTNAME:DISPLAY; the key is Ecce::sessionKey()).
 //    Sender and target travel as MQTT 5 user properties.
 ///////////////////////////////////////////////////////////////////////////////
 #ifndef MQTTLINK_HH
@@ -57,7 +58,7 @@ struct MqttConfig {
   std::string host;        // host + port
   int port = 1883;
   std::string user;        // topic user
-  std::string sessionKey;  // <host>_<display>
+  std::string sessionKey;  // Ecce::sessionKey(): <host>_<session id>
 
   // Parses key=value lines; unknown keys are ignored.
   static bool parseFile(const std::string& path, MqttConfig& cfg);
@@ -66,9 +67,9 @@ struct MqttConfig {
 
 // Where a TCP connection (central or shared broker) gets its account: the
 // data server login of this session. Defined in tdat (AuthCache), which
-// util cannot call; host and display are the session's, as MqttLink
-// derives them. Returns false while there is no login yet.
-typedef std::function<bool(const std::string& host, const std::string& display,
+// util cannot call; sessionKey is the session's (Ecce::sessionKey()).
+// Returns false while there is no login yet.
+typedef std::function<bool(const std::string& sessionKey,
                            std::string& user, std::string& password)>
   MqttCredentialProvider;
 
@@ -152,6 +153,9 @@ public:
   // server login yet (e.g. the login dialog was cancelled): nothing can be
   // published, and that is not a publish failure.
   bool awaitingLogin();
+  // True when this process has no session id (#233): it runs without
+  // messaging, as with ECCE_NO_MESSAGING, and that is not a failure.
+  bool sessionless() const { return p_sessionless; }
 
   // Subscribes to everything the endpoint has added; also after reconnects.
   void activate(const std::shared_ptr<MqttEndpoint>& ep);
@@ -180,6 +184,7 @@ private:
   std::atomic<bool> p_connected{false};
   std::string p_lastRefusal;   // so a retry loop reports a refusal once
   bool p_warnedNoLogin = false;
+  std::atomic<bool> p_sessionless{false};
   std::atomic<int> p_inflight{0};
   bool p_started = false;
 };
