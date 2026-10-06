@@ -171,17 +171,21 @@ add_listen() {
   done
   LISTEN_LINES+=("$line")
 }
+# Loopback on the given ports.
 listen_loopback() {
-  add_listen "127.0.0.1:$PORT"
-  if has_ipv6_loopback; then add_listen "[::1]:$PORT"; fi
+  local p
+  for p in "$@"; do
+    add_listen "127.0.0.1:$p"
+    if has_ipv6_loopback; then add_listen "[::1]:$p"; fi
+  done
 }
 
 # TLS (#236, ecce-remote-setup --server --tls). Opt-in; with it on, the
 # plain port is loopback only and every non-loopback bind serves HTTPS on
 # its own port instead, so no password crosses the network in clear. There
 # is no fallback to plain HTTP if the certificate is unusable. The key
-# lives here, never under the (web-served) document root.
-TLS_DIR="$STATEDIR/tls"
+# lives here, shared with the broker, never under the web-served root.
+TLS_DIR="$ECCE_REALUSERHOME/.ECCE/tls"
 TLS=0
 if [ "${ECCE_DATASERVER_TLS:-}" = 1 ] || [ -f "$TLS_DIR/enabled" ]; then TLS=1; fi
 TLS_PORT="${ECCE_DATASERVER_TLS_PORT:-8443}"
@@ -203,22 +207,24 @@ fi
 
 case "$LISTEN_SETTING" in
   loopback|localhost)
-    listen_loopback
+    listen_loopback "$PORT"
+    [ "$TLS" = 1 ] && listen_loopback "$TLS_PORT"
     ;;
   all|'*'|0.0.0.0|::|'[::]')
     if [ "$TLS" = 1 ]; then
       # The plain port must not be a wildcard, or it would be outward too.
-      listen_loopback
+      listen_loopback "$PORT"
       add_listen "$TLS_PORT"
-      continue_all=1
+    else
+      # A wildcard bind already covers loopback, and adding a specific
+      # address on the same port as well would fail with "Address already
+      # in use" -- so this is the one case with a single line.
+      add_listen "$PORT"
     fi
-    # A wildcard bind already covers loopback, and adding a specific
-    # address on the same port as well would fail with "Address already
-    # in use" -- so this is the one case with a single line.
-    [ "${continue_all:-}" = 1 ] || add_listen "$PORT"
     ;;
   *)
-    listen_loopback
+    listen_loopback "$PORT"
+    [ "$TLS" = 1 ] && listen_loopback "$TLS_PORT"
     set -f   # a '*' in the setting must not expand against the cwd
     for addr in $LISTEN_SETTING; do
       # This text is written into httpd.conf. Accept address material only,
