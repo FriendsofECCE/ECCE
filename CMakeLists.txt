@@ -1610,6 +1610,12 @@ target_link_libraries(throwlog_test PRIVATE ecceutil)
 add_test(NAME throwlog COMMAND throwlog_test)
 add_test(NAME throwlog-all COMMAND throwlog_test all)
 
+# tests/spectrum -- the wx-free IR/Raman spectrum model (#214): ticks, axis
+# reversal and zoom, broadening, sticks.
+add_executable(vibspectrum_test tests/spectrum/vibspectrum_test.C)
+target_link_libraries(vibspectrum_test PRIVATE eccetdat ecceutil)
+add_test(NAME vibspectrum COMMAND vibspectrum_test)
+
 # tests/session -- the session id and key (#233): shell and C++ derivations
 # agree, and both generators make well-formed, distinct ids.
 add_executable(session_key_test tests/session/session_key_test.C)
