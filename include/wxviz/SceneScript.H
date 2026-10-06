@@ -37,8 +37,11 @@ class wxWindow;
  *   nmcheck <name>  per normal-mode arrow: tip distance from its atom centre
  *                   (arrow triangles) and the atom's sphere surface along
  *                   the arrow (ray pick) -> <name>.txt
- * Commands this class does not know go to the caller's extension, if set
- * (the Builder adds "mopanel", which presses the MO panel's Compute).
+ * Commands this class does not know go to the caller's extension, if set.
+ * The Builder adds "mopanel <name>" (press the MO panel's Compute),
+ * "motable <name>" (the MO table's selected row and scroll position, and
+ * the alpha HOMO from ORBOCC -> <name>.txt) and "hold <seconds>" (keep the
+ * event loop running, so the windows can be captured from outside).
  */
 class SceneScript
 {

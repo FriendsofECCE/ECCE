@@ -24,6 +24,7 @@ live desktop by accident.
 """
 
 import os
+import select
 import shutil
 import signal
 import subprocess
@@ -68,12 +69,29 @@ class Display(object):
         self.pidfile = pidfile
 
     def __enter__(self):
-        if self.number is None:
+        argv = [self.binary]
+        passFds = ()
+        reader = None
+        if self.number is None and not _displayRange():
+            #  The server picks and locks a free number itself and reports
+            #  it, so two runs cannot race for one.
+            reader, writer = os.pipe()
+            argv += ["-displayfd", str(writer)]
+            passFds = (writer,)
+        elif self.number is None:
             self.number = _freeDisplay()
+        if self.number is not None:
+            argv.append(":%d" % self.number)
+        argv += ["-screen", "0", SCREEN, "-nolisten", "tcp"]
         self.proc = subprocess.Popen(
-            [self.binary, ":%d" % self.number, "-screen", "0", SCREEN,
-             "-nolisten", "tcp"],
-            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+            argv, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+            pass_fds=passFds)
+        if reader is not None:
+            os.close(writer)
+            try:
+                self.number = self._readDisplayNumber(reader)
+            finally:
+                os.close(reader)
         if self.pidfile:
             #  Best-effort: a failure to write this only means a killed run
             #  cannot be swept up next time, not that this run cannot work.
@@ -82,7 +100,7 @@ class Display(object):
                     handle.write(str(self.proc.pid))
             except OSError:
                 pass
-        deadline = time.time() + 15
+        deadline = time.time() + _scaled(15)
         while time.time() < deadline:
             if self.proc.poll() is not None:
                 error = self.proc.stderr.read().decode("utf-8", "replace")
@@ -92,6 +110,29 @@ class Display(object):
             time.sleep(0.2)
         self.__exit__(None, None, None)
         raise DisplayUnavailable("Xvfb did not become ready")
+
+    def _readDisplayNumber(self, fd):
+        deadline = time.time() + _scaled(30)
+        data = b""
+        while b"\n" not in data and time.time() < deadline:
+            ready, _, _ = select.select([fd], [], [], 0.5)
+            if ready:
+                chunk = os.read(fd, 64)
+                if not chunk:
+                    break
+                data += chunk
+            elif self.proc.poll() is not None:
+                break
+        if b"\n" not in data:
+            error = ""
+            if self.proc.poll() is not None:
+                error = self.proc.stderr.read().decode("utf-8", "replace")
+            else:
+                self.proc.kill()
+            self.proc = None
+            raise DisplayUnavailable(
+                "Xvfb did not report a display number: %s" % error.strip())
+        return int(data.split()[0])
 
     def __exit__(self, *exc):
         if self.proc is not None:
@@ -134,7 +175,7 @@ class Display(object):
             return subprocess.run(["xdpyinfo", "-display", self.name],
                                   stdout=subprocess.DEVNULL,
                                   stderr=subprocess.DEVNULL,
-                                  timeout=15).returncode == 0
+                                  timeout=_scaled(15)).returncode == 0
         except subprocess.TimeoutExpired:
             return False
 
@@ -181,17 +222,34 @@ class Display(object):
 
         Asked after every app, because a display that has stopped
         answering makes every app after it fail identically and for a
-        reason that has nothing to do with that app.  That is how eleven
-        failures got reported for one fault in #127, and the list read
-        like eleven bugs while naming none of them.
+        reason that has nothing to do with that app (#127).  A loaded
+        machine answers slowly rather than not at all (#220), so the
+        timeout grows with the load and a miss is retried before the
+        server is called dead.  `probeNote` says how long it waited.
         """
-        try:
-            return subprocess.run(["xdpyinfo", "-display", self.name],
+        waited = 0.0
+        for attempt in range(3):
+            limit = _scaled(timeout) * (attempt + 1)
+            started = time.time()
+            try:
+                if subprocess.run(["xdpyinfo", "-display", self.name],
                                   stdout=subprocess.DEVNULL,
                                   stderr=subprocess.DEVNULL,
-                                  timeout=timeout).returncode == 0
-        except (FileNotFoundError, OSError, subprocess.TimeoutExpired):
-            return False
+                                  timeout=limit).returncode == 0:
+                    return True
+            except (FileNotFoundError, OSError):
+                return False
+            except subprocess.TimeoutExpired:
+                pass
+            waited += time.time() - started
+            if self.proc is not None and self.proc.poll() is not None:
+                break           # the process is gone: no point waiting
+            time.sleep(1)
+        self.probeNote = "waited %.0fs over %d probe(s), load average %.1f" % (
+            waited, attempt + 1, _load())
+        return False
+
+    probeNote = ""
 
     def serverState(self):
         """Whether the X server process itself is still alive.
@@ -293,12 +351,29 @@ def _removeQuietly(path):
         pass
 
 
-def _freeDisplay():
-    # ECCE_TEST_XDISPLAYS=160-169 keeps a run off other sessions' numbers.
-    first, last = 70, 99
+def _load():
+    try:
+        return os.getloadavg()[0]
+    except OSError:
+        return 0.0
+
+
+def _scaled(seconds):
+    """`seconds`, stretched when the machine is busier than it has CPUs."""
+    return seconds * max(1.0, _load() / (os.cpu_count() or 1))
+
+
+def _displayRange():
     span = os.environ.get("ECCE_TEST_XDISPLAYS", "")
     if "-" in span:
-        first, last = (int(n) for n in span.split("-", 1))
+        return tuple(int(n) for n in span.split("-", 1))
+    return None
+
+
+def _freeDisplay():
+    #  Only with ECCE_TEST_XDISPLAYS=160-169, to stay off other sessions'
+    #  numbers; otherwise Xvfb -displayfd chooses.
+    first, last = _displayRange() or (70, 99)
     for number in range(first, last + 1):
         if not os.path.exists("/tmp/.X11-unix/X%d" % number):
             return number

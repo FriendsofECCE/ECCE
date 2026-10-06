@@ -57,6 +57,7 @@ bool CSRadiiCmd::execute()
 
    ChemRadii *cpkradii = sg->getCPKRadiiNode();
    cpkradii->atomRadii.set1Value(index, cpkradius);
+   sg->updateNMVecStarts();
 
    return true;
 }

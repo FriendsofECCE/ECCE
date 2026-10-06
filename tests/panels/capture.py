@@ -80,8 +80,6 @@ def overlay(builder, where, descriptor):
 def run(case, builder, descriptor, modes, png, tag, test, timeout, open_panel,
         seed=None, expect=None):
     base = os.path.dirname(os.path.abspath(builder))
-    state = os.path.join(base, "panels-state")
-    os.environ["ECCE_TEST_STATE"] = state
     home = os.path.join(base, "panels-home")
     overlay(builder, home, descriptor)
     os.environ["ECCE_TEST_HOME"] = home

@@ -146,9 +146,7 @@ install = os.environ.get("ECCE_TEST_HOME", "/opt/ecce")
 sys.path.insert(0, HERE)
 import isolate  # noqa: E402
 
-state = isolate.resolveStateDir(
-    os.environ.get("ECCE_TEST_STATE")
-    or os.path.join(isolate.defaultStateDir() + "-session"))
+state = isolate.resolveStateDir(isolate.runState("apps-session"))
 os.makedirs(state, exist_ok=True)
 if args.tree:
     build = os.path.abspath(args.tree)

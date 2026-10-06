@@ -420,6 +420,8 @@ def main():
     xvfbPidfile = None
     state = None
     if not args.use_real_state:
+        if args.keep_services:
+            os.environ["ECCE_TEST_KEEP_STATE"] = "1"
         try:
             settings = isolate.apply(apps.INSTALL)
         except isolate.IsolationError as exc:
@@ -565,10 +567,10 @@ def main():
                     "      Everything from here would have failed "
                     "identically ('opened no window within 40s') no matter "
                     "what it is, which is one fault and not %d.\n"
-                    "      %s.  Still connected: %s"
+                    "      %s (%s).  Still connected: %s"
                     % (name, len(selected) - len(swept),
                        len(selected) - len(swept) + 1,
-                       display.serverState(),
+                       display.serverState(), display.probeNote,
                        display.clients() or "(xlsclients says nothing)"))
                 break
 

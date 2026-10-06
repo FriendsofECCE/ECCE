@@ -41,33 +41,126 @@ them needing to know about the suite.
 """
 
 import os
+import atexit
 import re
 import shutil
 import signal
 import socket
+import tempfile
 import time
 
-#  Deliberately not 8096/8088.  A suite whose default ports are the real
-#  ones is one forgotten flag away from the collision this module exists to
-#  prevent.
-DEFAULT_DATASERVER_PORT = 8296
-DEFAULT_BROKER_PORT = 8288
-
-
+#  Ports and state directories are per run, never fixed: two runs of a
+#  suite (two worktrees, or ctest beside a manual run) must not share
+#  either.  The OS hands out the ports (bind to 0); the state directory is
+#  a fresh mkdtemp under ~/.cache (not /tmp, which is RAM).
 class IsolationError(Exception):
     pass
 
 
-def defaultStateDir():
-    """Where an isolated run keeps its state when nothing says otherwise.
+_MARKER = ".ecce-test-run"
+_handedOut = set()
+_defaults = {}
 
-    A fixed path rather than a fresh temporary directory, so successive runs
-    reuse the seeded document root and the synced basis-set library instead
-    of paying for them every time.  Never `~/.ECCE`.
+
+def _cacheDir():
+    return (os.environ.get("XDG_CACHE_HOME")
+            or os.path.join(os.path.expanduser("~"), ".cache"))
+
+
+def _startTime(pid):
+    try:
+        with open("/proc/%d/stat" % pid) as handle:
+            return handle.read().rsplit(")", 1)[1].split()[19]
+    except (OSError, IndexError):
+        return None
+
+
+def _ownerAlive(state):
+    try:
+        with open(os.path.join(state, _MARKER)) as handle:
+            pid, started = handle.read().split()
+        return _startTime(int(pid)) == started
+    except (OSError, ValueError):
+        return True     # not recognisably ours or unreadable: leave alone
+
+
+def reapDead(prefix):
+    """Remove the run directories of killed runs, and what they left running.
+
+    A run that is killed (ctest timeout, SIGKILL) never reaches its
+    cleanup.  Only directories carrying this module's own marker, whose
+    recorded owner process is gone, are touched.
     """
-    cache = (os.environ.get("XDG_CACHE_HOME")
-             or os.path.join(os.path.expanduser("~"), ".cache"))
-    return os.path.join(cache, "ecce-apps-suite")
+    cache = _cacheDir()
+    try:
+        names = os.listdir(cache)
+    except OSError:
+        return
+    for name in names:
+        path = os.path.join(cache, name)
+        if (name.startswith(prefix) and os.path.isfile(
+                os.path.join(path, _MARKER)) and not _ownerAlive(path)):
+            killLeftovers(path)
+            _killXvfbOf(path)
+            shutil.rmtree(path, ignore_errors=True)
+
+
+def _killXvfbOf(state):
+    try:
+        import xdisplay
+        xdisplay.killStaleXvfb(os.path.join(state, "xvfb.pid"))
+    except Exception:
+        pass
+
+
+def keepState():
+    return bool(os.environ.get("ECCE_TEST_KEEP_STATE"))
+
+
+def runState(tag, keep=False):
+    """A state directory of this run's own, removed at exit unless kept.
+
+    `ECCE_TEST_STATE` still wins, and is never removed: it is the caller's.
+    Repeated calls with one tag in a process return the same directory.
+    """
+    explicit = os.environ.get("ECCE_TEST_STATE")
+    if explicit:
+        return os.path.abspath(os.path.expanduser(explicit))
+    if tag in _defaults:
+        return _defaults[tag]
+    cache = _cacheDir()
+    os.makedirs(cache, exist_ok=True)
+    reapDead("ecce-%s-" % tag)
+    state = tempfile.mkdtemp(prefix="ecce-%s-" % tag, dir=cache)
+    with open(os.path.join(state, _MARKER), "w") as handle:
+        handle.write("%d %s\n" % (os.getpid(), _startTime(os.getpid())))
+    _defaults[tag] = state
+
+    def cleanup():
+        if keep or keepState():
+            print("state kept: %s" % state)
+            return
+        killLeftovers(state)
+        _killXvfbOf(state)
+        shutil.rmtree(state, ignore_errors=True)
+    atexit.register(cleanup)
+    return state
+
+
+def defaultStateDir(tag="apps"):
+    return runState(tag)
+
+
+def freePort():
+    """A port the OS has just offered, not yet handed out in this process."""
+    for _ in range(50):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.bind(("127.0.0.1", 0))
+            port = sock.getsockname()[1]
+        if port not in _handedOut:
+            _handedOut.add(port)
+            return port
+    raise IsolationError("the OS offered no unused port")
 
 
 def _portFree(port):
@@ -76,12 +169,13 @@ def _portFree(port):
         return sock.connect_ex(("127.0.0.1", port)) != 0
 
 
-def _pickPort(name, preferred):
-    """A free port, starting from `preferred`.
+def _pickPort(name, preferred=None):
+    """The port named by the environment variable `name`, else a free one.
 
     An explicitly requested port is used as given: if it is busy, say so
     rather than quietly serving on a different one than the caller arranged
-    the rest of their environment for.
+    the rest of their environment for.  `preferred` is unused, kept for
+    callers written when ports were fixed.
     """
     explicit = os.environ.get(name)
     if explicit:
@@ -91,12 +185,9 @@ def _pickPort(name, preferred):
                 "%s=%d, but something is already listening there.  Stop it, "
                 "or leave %s unset and a free port will be chosen."
                 % (name, port, name))
+        _handedOut.add(port)
         return port
-    for port in range(preferred, preferred + 40):
-        if _portFree(port):
-            return port
-    raise IsolationError("no free port found near %d for %s"
-                         % (preferred, name))
+    return freePort()
 
 
 def _link(source, target):
@@ -163,13 +254,12 @@ def _rewrite(path, substitution, expect):
 
 
 def resolveStateDir(state=None):
-    """The state directory this run will use, without creating anything.
+    """The state directory this run will use (made on first use).
 
-    Split out of apply() so a caller can find it -- to sweep leftover
-    processes from a previous, abnormally-killed run -- before that run's
-    own directories and services exist.
+    Split out of apply() so a caller can find it before the run's own
+    services exist.
     """
-    state = state or os.environ.get("ECCE_TEST_STATE") or defaultStateDir()
+    state = state or runState("apps")
     return os.path.abspath(os.path.expanduser(state))
 
 
@@ -253,9 +343,8 @@ def apply(install, state=None):
             "the isolated state directory is the real home directory (%s); "
             "that is the collision this is meant to prevent" % state)
 
-    dataserverPort = _pickPort("ECCE_DATASERVER_PORT",
-                               DEFAULT_DATASERVER_PORT)
-    brokerPort = _pickPort("ECCE_BROKER_PORT", DEFAULT_BROKER_PORT)
+    dataserverPort = _pickPort("ECCE_DATASERVER_PORT")
+    brokerPort = _pickPort("ECCE_BROKER_PORT")
 
     os.makedirs(os.path.join(state, ".ECCE"), exist_ok=True)
     home = homeOverlay(install, state, dataserverPort)
