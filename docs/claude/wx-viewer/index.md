@@ -29,7 +29,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [Uncontrolled format strings](uncontrolled-format-strings.md)
 - [`EcceException::what()` returns storage that lives as long as the exception](ecceexception-what.md)
 - [The wx3.2 AUI port lost the ewxAUI caption buttons; `EVT_CHILD_FOCUS` on Builder now triggers `receiveFocus()`](wx3-2-aui-port-dropped-the-custom.md)
-- [`SoWxRenderArea::renderCB` silently drops a redraw](sowxrenderarea-rendercb-silently-drops-a-redraw.md)
+- [`SoWxRenderArea::renderCB` during a paint defers the redraw through `p_redrawPending`](sowxrenderarea-rendercb-silently-drops-a-redraw.md)
 - [A static `EVT_RADIOBOX` entry never reaches an `ewxRadioBox`'s panel; Bind on the widget (#81)](resolved-81-fixed-9a3004e-confirmed-live-2026.md)
 - [ChemDisplay's `glPopAttrib` undoes what Coin's lazy element sent inside it; the first offscreen render drew an ESP surface unlit](chemdisplay-glpopattrib-undoes-lazy-element-sends.md)
 - [The unit cell is drawn only while the Periodic Builder panel is open](unit-cell-drawn-only-by-the-periodic-builder.md)

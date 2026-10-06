@@ -6,7 +6,7 @@ section: "wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls"
 paths: ["include/util/EcceException.H", "src/util/exceptions/EcceException.C"]
 issues: []
 ---
-**`EcceException::what()`** now correctly returns a pointer with
-exception-object lifetime (fixed from a dangling-stack-string bug) —
-if you see garbled `Throw Log:` text anywhere, that fix predates it and
-something new is wrong, not a repeat.
+**`EcceException::what()` must return a pointer into the exception
+object**, never into a local string: a temporary's buffer dangles once
+`what()` returns and shows up as garbled `Throw Log:` text. Garbled text
+there now means a new fault, not this one.
