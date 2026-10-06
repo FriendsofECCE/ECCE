@@ -178,6 +178,7 @@ using std::vector;
 #include "Peptide.H"
 #include "PropertyIndexPanel.H"
 #include "PropertyPanel.H"
+#include "MoPanel.H"
 #include "PropertyPanelFactory.H"
 #include "ShapeDropDown.H"
 #include "StructLib.H"
@@ -5104,6 +5105,24 @@ void Builder::updatePropertyMenus()
       for (int i = 0; i < 30; i++) { wxTheApp->Yield(true); wxMilliSleep(10); }
       viewer->viewAll();
       SceneScript run(viewer, sg, p_calculation, outdir);
+      //  "mopanel <name>": press the MO panel's Compute, as a user would,
+      //  recording every frame the Builder's own canvas paints meanwhile.
+      run.setExtension([this](SceneScript& s, const vector<string>& w) {
+        if (w[0] != "mopanel" || w.size() != 2)
+          return s.fail("unknown command: " + w[0]);
+        MoPanel *mo = 0;
+        set<PropertyPanel*> panels =
+            PropertyPanel::getPanels(p_calculation->getURL().toString());
+        for (set<PropertyPanel*>::iterator it = panels.begin();
+             it != panels.end() && !mo; ++it)
+          mo = dynamic_cast<MoPanel*>(*it);
+        if (!mo) return s.fail("mopanel: no MO panel");
+        return s.recordFrames(p_viewer, w[1], [mo]() {
+          wxCommandEvent ev(wxEVT_BUTTON, MoGUI::ID_BUTTON_MO_COMPUTE);
+          ev.SetEventObject(mo->FindWindow(MoGUI::ID_BUTTON_MO_COMPUTE));
+          mo->GetEventHandler()->ProcessEvent(ev);
+        });
+      });
       if (!ready || !run.run(script)) {
         string msg = ready ? run.message() : "molecule never loaded";
         fprintf(stderr, "ECCE_VIEWER_SCENE: %s\n", msg.c_str());

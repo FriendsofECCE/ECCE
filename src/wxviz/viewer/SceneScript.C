@@ -21,6 +21,13 @@
 #include "inv/misc/SoChildList.H"
 #include "inv/nodes/SoSeparator.H"
 #include "inv/ChemKit/ChemIso.H"
+#include "inv/ChemKit/ChemDetail.H"
+#include "inv/actions/SoCallbackAction.H"
+#include "inv/actions/SoRayPickAction.H"
+#include "inv/SoPickedPoint.H"
+#include "inv/SoPrimitiveVertex.H"
+#include "inv/nodes/SoShape.H"
+#include "viz/VRVector.H"
 #include "inv/misc/SoChildList.H"
 
 #include "dsm/ICalculation.H"
@@ -524,6 +531,10 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     return snapshot(w[1], 480, 0.2f, 0.3f, 0.4f);
   } else if (c == "thumb" && w.size() == 2) {
     return snapshot(w[1], 64, 0.0f, 0.0f, 0.0f);
+  } else if (c == "nmcheck" && w.size() == 2) {
+    return nmCheck(w[1]);
+  } else if (p_ext) {
+    return p_ext(*this, w);
   } else {
     return fail("unknown command: " + c);
   }
@@ -865,5 +876,139 @@ bool SceneScript::snapshot(const string& name, int size, float r, float g,
     return true;
   }
   writePpm(p_outdir + "/" + name + ".ppm", size, size, rend->getBuffer());
+  return true;
+}
+
+
+namespace {
+
+struct TipData { SbVec3f centre; float maxDist; };
+
+void arrowTriangle(void *d, SoCallbackAction *a, const SoPrimitiveVertex *v1,
+                   const SoPrimitiveVertex *v2, const SoPrimitiveVertex *v3)
+{
+  TipData *t = (TipData *)d;
+  const SoPrimitiveVertex *v[3] = {v1, v2, v3};
+  for (int i = 0; i < 3; i++) {
+    SbVec3f p;
+    a->getModelMatrix().multVecMatrix(v[i]->getPoint(), p);
+    float dist = (p - t->centre).length();
+    if (dist > t->maxDist) t->maxDist = dist;
+  }
+}
+
+}  // namespace
+
+//  Two measurements from the scene as drawn, neither from NModeVectCmd's
+//  arithmetic: how far the arrow's geometry reaches from the atom centre,
+//  and where a ray along the arrow meets that atom's sphere.
+bool SceneScript::nmCheck(const string& name)
+{
+  SGFragment *frag = p_sg->getFragment();
+  SoWxRenderArea *area = findRenderArea(p_viewer);
+  if (!frag || !area) return fail("nmcheck: no fragment or render area");
+  SbViewportRegion vpr(SbVec2s(480, 480));
+  SoSearchAction sa;
+  sa.setType(VRVector::getClassTypeId(), FALSE);
+  sa.setInterest(SoSearchAction::ALL);
+  sa.apply(p_sg->getNMVecRoot());
+  FILE *o = fopen((p_outdir + "/" + name + ".txt").c_str(), "w");
+  if (!o) return fail("nmcheck: cannot write");
+  fprintf(o, "# atom elem |d|_A tip_A sphere_A tip_minus_sphere_A verdict\n");
+  for (int k = 0; k < sa.getPaths().getLength(); k++) {
+    VRVector *vec = (VRVector *)sa.getPaths()[k]->getTail();
+    const double *pos = frag->atomRef(k)->coordinates(), *dir = vec->getDirection();
+    SbVec3f c((float)pos[0], (float)pos[1], (float)pos[2]);
+    SbVec3f u((float)dir[0], (float)dir[1], (float)dir[2]);
+    float dlen = u.length();
+    TipData td = {c, 0.0f};
+    SoCallbackAction ca;
+    ca.addTriangleCallback(SoShape::getClassTypeId(), arrowTriangle, &td);
+    ca.apply(vec);
+    float sphere = -1.0f;
+    if (dlen > 0.0f) {
+      u /= dlen;
+      const float L = 6.0f;
+      SoRayPickAction rp(vpr);
+      rp.setRay(c + u * L, -u, 0.0f, L);
+      rp.setPickAll(TRUE);
+      rp.apply(p_viewer->getTopNode());
+      const SoPickedPointList& pl = rp.getPickedPointList();
+      for (int i = 0; i < pl.getLength(); i++) {
+        const ChemDetail *cd = dynamic_cast<const ChemDetail *>(pl[i]->getDetail());
+        if (!cd) continue;
+        int32_t ai = -1, bi = -1;
+        cd->getAtomBondIndex(ai, bi);
+        if (ai != k || bi >= 0) continue;
+        float r = (pl[i]->getPoint() - c).length();
+        if (r > sphere) sphere = r;
+      }
+    }
+    const char *verdict = sphere < 0.0f ? "no-sphere-hit"
+                        : (td.maxDist <= sphere ? "INSIDE" : "outside");
+    fprintf(o, "%d %s %.4f %.4f %.4f %.4f %s\n", k + 1,
+            frag->atomRef(k)->atomicSymbol().c_str(), dlen, td.maxDist, sphere,
+            td.maxDist - sphere, verdict);
+  }
+  fclose(o);
+  return true;
+}
+
+namespace {
+
+struct FrameLog {
+  SGContainer *sg;
+  string prefix;
+  FILE *log;
+  int n;
+  wxStopWatch clock;
+};
+
+void logFrame(void *d)
+{
+  FrameLog *f = (FrameLog *)d;
+  GLint vp[4];
+  glGetIntegerv(GL_VIEWPORT, vp);
+  vector<unsigned char> px((size_t)vp[2] * vp[3] * 3);
+  glFinish();
+  glPixelStorei(GL_PACK_ALIGNMENT, 1);
+  glReadPixels(vp[0], vp[1], vp[2], vp[3], GL_RGB, GL_UNSIGNED_BYTE, &px[0]);
+  char buf[32];
+  snprintf(buf, sizeof buf, "-%02d.ppm", f->n);
+  writePpm(f->prefix + buf, vp[2], vp[3], &px[0]);
+  //  The thresholds the drawn isosurfaces carry at this frame, read from
+  //  the scene graph, not from whoever set them.
+  SoSearchAction sa;
+  sa.setType(ChemIso::getClassTypeId(), FALSE);
+  sa.setInterest(SoSearchAction::ALL);
+  sa.apply(f->sg->getMORoot());
+  fprintf(f->log, "frame %02d t=%ldms %dx%d isosurfaces %d thresholds", f->n,
+          f->clock.Time(), vp[2], vp[3], sa.getPaths().getLength());
+  for (int k = 0; k < sa.getPaths().getLength(); k++)
+    fprintf(f->log, " %.6g", ((ChemIso *)sa.getPaths()[k]->getTail())->threshold.getValue());
+  fprintf(f->log, "\n");
+  fflush(f->log);
+  f->n++;
+}
+
+}  // namespace
+
+bool SceneScript::recordFrames(wxWindow *canvasOwner, const string& name,
+                               std::function<void()> act)
+{
+  SoWxRenderArea *area = findRenderArea(canvasOwner);
+  if (!area) return fail("recordframes: no render area");
+  FrameLog f;
+  f.sg = p_sg;
+  f.prefix = p_outdir + "/" + name;
+  f.log = fopen((f.prefix + "-frames.txt").c_str(), "w");
+  if (!f.log) return fail("recordframes: cannot write");
+  f.n = 0;
+  area->setFrameCallback(logFrame, &f);
+  act();
+  //  Let any deferred redraw land too (1 s of event loop).
+  for (int i = 0; i < 100; i++) { wxTheApp->Yield(true); wxMilliSleep(10); }
+  area->setFrameCallback(0, 0);
+  fclose(f.log);
   return true;
 }

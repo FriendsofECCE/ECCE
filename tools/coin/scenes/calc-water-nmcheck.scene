@@ -1,0 +1,18 @@
+# #228: normal-mode arrows against their atoms' spheres, calc-water-vib.
+# Modes are 0-based: 0 bend 1645, 1 sym. stretch 3866, 2 asym. stretch 3965.
+# nmcheck writes, per atom, the arrow tip's distance from the atom centre and
+# where a ray along the arrow meets the atom's sphere.
+viewall
+nmvect 1
+nmcheck nm1-default
+snap nm1-default
+nmvect 2
+nmcheck nm2-default
+snap nm2-default
+style Ball And Stick
+nmvect 1
+nmcheck nm1-ballstick
+snap nm1-ballstick
+nmvect 2
+nmcheck nm2-ballstick
+snap nm2-ballstick
