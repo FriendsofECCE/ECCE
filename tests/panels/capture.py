@@ -76,7 +76,8 @@ def overlay(builder, where, descriptor):
                    os.path.join(config, "PropertyPanelDescriptor.xml"))
 
 
-def run(case, builder, descriptor, modes, png, tag, test, timeout, open_panel):
+def run(case, builder, descriptor, modes, png, tag, test, timeout, open_panel,
+        seed=None, expect=None):
     base = os.path.dirname(os.path.abspath(builder))
     state = os.path.join(base, "panels-state")
     os.environ["ECCE_TEST_STATE"] = state
@@ -124,6 +125,10 @@ def run(case, builder, descriptor, modes, png, tag, test, timeout, open_panel):
                 for root, _dirs, files in os.walk(state):
                     if ini in files:
                         os.remove(os.path.join(root, ini))
+            if seed:
+                dest = os.path.join(state, ".ECCE")
+                os.makedirs(dest, exist_ok=True)
+                shutil.copy(seed, os.path.join(dest, "wxbuilder.ini"))
             env = display.env()
             env["ECCE_PANEL_FULLSCREEN"] = "1"
             if open_panel:
@@ -137,7 +142,8 @@ def run(case, builder, descriptor, modes, png, tag, test, timeout, open_panel):
                 env["ECCE_PANEL_TEST"] = report
                 env["ECCE_EXIT_AFTER_DUMP"] = "1"
             else:
-                env["ECCE_PANEL_MODE"] = mode
+                if not seed:
+                    env["ECCE_PANEL_MODE"] = mode
                 env["ECCE_PANEL_METRICS"] = metrics
             auth = os.path.join(state, "auth.pipe")
             fixture.authFile(auth, port=int(settings["ECCE_DATASERVER_PORT"]))
@@ -145,11 +151,6 @@ def run(case, builder, descriptor, modes, png, tag, test, timeout, open_panel):
                 [os.path.join(apps.WRAPPERS, "ecce-builder"), "-pipe", auth,
                  "-context", url], env=env, stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT, start_new_session=True)
-            time.sleep(8)
-            try:
-                print("exe:", os.readlink("/proc/%d/exe" % proc.pid))
-            except OSError as e:
-                print("exe?", e)
             target = report if test else metrics
             deadline = time.time() + timeout
             while time.time() < deadline:
@@ -167,7 +168,11 @@ def run(case, builder, descriptor, modes, png, tag, test, timeout, open_panel):
                 out = os.path.join(png, "%s-%s.png" % (tag, mode))
                 subprocess.run(["import", "-display", display.name,
                                 "-window", "root", out], env=env, check=False)
-                results.append((mode, out, open(target).read().strip()))
+                text = open(target).read().strip()
+                results.append((mode, out, text.replace("\n", "; ")))
+                if expect and ("mode " + expect) not in text.split("\n"):
+                    problems.append("saved layout %s: expected mode %s, got %s"
+                                    % (seed, expect, text.split("\n")[0]))
             if test:
                 try:
                     proc.wait(timeout=60)
@@ -212,6 +217,9 @@ def main():
     ap.add_argument("--png", metavar="DIR")
     ap.add_argument("--tag", default="live")
     ap.add_argument("--test", action="store_true")
+    ap.add_argument("--seed", help="a wxbuilder.ini to start from (migration)")
+    ap.add_argument("--expect-mode", choices=MODES,
+                    help="the layout the seeded preferences must give")
     ap.add_argument("--screen", default="1280x1024")
     ap.add_argument("--open-panel", default="Vibrational Frequencies")
     ap.add_argument("--timeout", type=float, default=150)
@@ -231,7 +239,7 @@ def main():
     problems, results = run(
         args.case, builder, None if args.no_descriptor else args.descriptor,
         args.mode or MODES, args.png, "%s-%s" % (args.tag, args.screen),
-        args.test, args.timeout, args.open_panel)
+        args.test, args.timeout, args.open_panel, args.seed, args.expect_mode)
     for mode, out, metrics in results:
         print("%s %s: %s -> %s" % (args.screen, mode, metrics, out))
     for p in problems:

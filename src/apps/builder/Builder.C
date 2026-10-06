@@ -4426,7 +4426,8 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
       minSize.x = contentMinWidth(pane.window);
       //  Likewise a fixed pane's saved height, which may predate a font
       //  change.
-      if (pane.IsFixed() && !pane.IsToolbar() && pane.name != NAME_TOOL_CONTEXT) {
+      if (pane.IsFixed() && !pane.IsToolbar() && pane.name != NAME_TOOL_CONTEXT &&
+          pane.name != NAME_COLUMN_TABS) {
         minSize.y = contentFixedHeight(pane.window);
       }
       pane.MinSize(minSize);
@@ -4840,6 +4841,11 @@ void Builder::updatePropertyMenus()
     timer->Bind(wxEVT_TIMER, [this, path](wxTimerEvent&) {
       wxAuiPaneInfoArray &panes = p_mgr.GetAllPanes();
       FILE *f = fopen(path.c_str(), "w");
+      if (f) {
+        static const char *modeNames[] = { "classic", "stacked", "accordion",
+                                           "detail" };
+        fprintf(f, "mode %s\n", modeNames[p_panelMode]);
+      }
       for (size_t i = 0; f && i < panes.GetCount(); ++i) {
         if (panes.Item(i).dock_direction == wxAUI_DOCK_CENTER) {
           fprintf(f, "viewer %d of %d px wide, %d of %d px high\n",
