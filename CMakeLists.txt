@@ -97,7 +97,9 @@ endif()
 # "...-NOTFOUND" rather than erroring, which only surfaces later as a
 # baffling "Found relative path while evaluating include directories"
 # CMake generate-step error. Confirmed via a real macOS CI run.
+# PATH_SUFFIXES covers prefixes such as MSYS2's /ucrt64 (#133).
 find_path(FREETYPE_UNQUALIFIED_INCLUDE_DIR ftoutln.h
+  PATH_SUFFIXES freetype2/freetype
   PATHS /usr/include/freetype2/freetype /usr/include/freetype
         /opt/homebrew/include/freetype2/freetype
         /usr/local/include/freetype2/freetype)
@@ -135,6 +137,16 @@ if(ECCE_USE_COIN)
   endif()
   add_compile_definitions(OIV_COIN)
   find_library(COIN_LIBRARY Coin REQUIRED)
+endif()
+
+if(WIN32)
+  # MSYS2's Coin is a DLL; moiv is a static library of ours. GL/gl.h pulls in
+  # <windows.h>, whose full form drags in rpcndr.h's `byte`, ambiguous with
+  # std::byte under `using namespace std`; and its min/max macros break
+  # std::min/std::max. _POSIX_THREAD_SAFE_FUNCTIONS declares gmtime_r and
+  # localtime_r (#133).
+  add_compile_definitions(COIN_DLL CHEMKIT_NOT_DLL WIN32_LEAN_AND_MEAN NOMINMAX
+                          _POSIX_THREAD_SAFE_FUNCTIONS=200112L)
 endif()
 
 if(APPLE)
@@ -266,6 +278,7 @@ endif()
 # this codebase) live one level down - both are needed.
 # Same Homebrew-path gap as FREETYPE_UNQUALIFIED_INCLUDE_DIR above.
 find_path(FREETYPE_ROOT_INCLUDE_DIR ft2build.h
+  PATH_SUFFIXES freetype2
   PATHS /usr/include/freetype2 /usr/include
         /opt/homebrew/include/freetype2
         /usr/local/include/freetype2)
