@@ -1,35 +1,27 @@
 ---
-type: map
-title: "Open Inventor's redraw sensor is a ONE-SHOT that re-arms on render, and with a render callback installed nothing re-arms"
+type: pitfall
+title: "The redraw sensor must not be drained inside `schedule()`: `SoWxEventHandler::setUpCallbacks()` only wakes idle"
 area: wx-viewer
-section: ""
-issues: [99]
+section: "wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls"
+issues: [99, 166]
+paths: ["src/inv/wxinv/SoWxEventHandler.C", "src/inv/wxinv/SoWxRenderArea.C", "src/apps/builder/GeomTracePropertyPanel.C", "src/apps/builder/NModePanel.C"]
 ---
-**Open Inventor's redraw sensor is a ONE-SHOT that re-arms on render,
-and with a render callback installed nothing re-arms it.** This was
-#99: stepping a geometry trace moved the atoms once and then never
-again. `GTStepCmd` ran every step with changing coordinates,
-`SGFragment::getAtomCoordinates()` reads `TAtm` live so the scene
-always had fresh data, `touchChemDisplay()` and `sgfrag->touch()` were
-both called — and `SoWxRenderArea::renderCB` was entered for step 0
-and then *not once* for the thirteen steps after it. The redraw was
-never requested. Fixed by calling `SGViewer::refreshRenderArea()` at
-the end of `processStep()`, which forces a wx paint and does not
-depend on that sensor; applied to `GeomTracePropertyPanel` and
-`NModePanel`. **Two plausible theories were disproved on the way and
-should not be revisited**: the render cache (disabling caching
-process-wide changed nothing) and a stranded `p_redrawPending` in
-`OnPaint` (that retry path is fine — it never had a callback to
-service). If a viewer stops updating while the data demonstrably
-changes, instrument `renderCB` first: `ECCE_DEBUG_GEOMTRACE=1` prints
-`[RENDERCB]` lines alongside the step trace, and their *absence* is
-the finding.
+**The redraw sensor must not be drained inside `schedule()`.**
+`SoWxEventHandler::setUpCallbacks()` is the sensor manager's
+changed-callback. It runs inside `SoDelayQueueSensor::schedule()` before
+that sets `scheduled`; draining the queue there synchronously
+(`ProcessEvent(wxIdleEvent)`) fired the redraw sensor and then left it
+marked scheduled for good, so no later scene change asked for a render
+(#99: a geometry trace moved the atoms once, then never again). It calls
+`wxWakeUpIdle()` instead. The scene command `redraws` (six trace steps, no
+forced paint) checks it: 6/6 renders on both viewer builds.
 
-**UPDATE 2026-10-04 (#166): the actual cause.**
-`SoWxEventHandler::setUpCallbacks()` is the sensor manager's changed-callback.
-It runs inside `SoDelayQueueSensor::schedule()` before that sets `scheduled`,
-and drained the queue synchronously (`ProcessEvent(wxIdleEvent)`), so the
-redraw sensor fired and was then marked scheduled for good. It now calls
-`wxWakeUpIdle()`. Measured with the scene command `redraws` (six trace steps,
-no forced paint): renders per change 1/6 vendored, 0/6 Coin before; 6/6 on
-both after. The `refreshRenderArea()` calls stay as a belt-and-braces.
+`SGViewer::refreshRenderArea()` at the end of `processStep()` in
+`GeomTracePropertyPanel` and `NModePanel` forces a wx paint independently
+of the sensor and stays as a second line of defence.
+
+If a viewer stops updating while the data demonstrably changes,
+instrument `renderCB` first: `ECCE_DEBUG_GEOMTRACE=1` prints `[RENDERCB]`
+lines alongside the step trace, and their *absence* is the finding. The
+render cache and the `p_redrawPending` retry in `OnPaint` are not the
+cause (both were ruled out).

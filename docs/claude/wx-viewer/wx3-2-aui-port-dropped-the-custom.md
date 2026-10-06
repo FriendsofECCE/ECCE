@@ -1,9 +1,10 @@
 ---
 type: map
-title: "wx3.2 AUI port dropped the custom \"ewxAUI\" pane-caption buttons (take focus / pin / options / open) the original app was"
+title: "The wx3.2 AUI port lost the ewxAUI caption buttons; `EVT_CHILD_FOCUS` on Builder now triggers `receiveFocus()`"
 area: wx-viewer
-section: ""
+section: "wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls"
 paths: ["src/apps/builder/EwxAuiCompat.H"]
+issues: []
 ---
 **wx3.2 AUI port dropped the custom "ewxAUI" pane-caption buttons
 (take focus / pin / options / open) the original app was built

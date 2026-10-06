@@ -4,6 +4,7 @@ title: "Don't trust `ai.<code>`'s own comments for the `.frag`/`.param`/ `.basis
 area: codereg
 section: "New-code checklist (gotchas found integrating ORCA, issue #38)"
 paths: ["ESInputController.C"]
+issues: [38]
 ---
 **Don't trust `ai.<code>`'s own comments for the `.frag`/`.param`/
 `.basis` format** — verify against the actual C++ writers instead:

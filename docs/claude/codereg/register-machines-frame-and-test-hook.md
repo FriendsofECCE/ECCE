@@ -4,7 +4,7 @@ title: "Register Machines is a tabbed frame over a draft; `ECCE_MACHREG_SCRIPT` 
 area: codereg
 section: "Machine configuration (CONFIG files)"
 paths: ["src/apps/machregister/WxMachineRegister.C", "src/apps/machregister/WxMachineRegisterScript.C", "tests/machregister/gui_test.py", "scripts/processmachine"]
-issues: ["212"]
+issues: [212]
 ---
 The frame (Machine, Connection, Codes, Job script, Queues tabs) is hand-written;
 there is no generated base class or `.pjd` any more. What the form holds is

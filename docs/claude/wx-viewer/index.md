@@ -11,7 +11,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 
 ### wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls
 
-- [Open Inventor's redraw sensor is a ONE-SHOT that re-arms on render, and with a render callback installed nothing re-arms it](open-inventors-redraw-sensor-is-a-one.md)
+- [The redraw sensor must not be drained inside `schedule()`: `SoWxEventHandler::setUpCallbacks()` only wakes idle](open-inventors-redraw-sensor-is-a-one.md)
 - [`ECCE_USE_COIN` (default ON) builds the viewer against Coin3D; `=OFF` keeps the vendored core for one release](ecce-use-coin-builds-the-viewer-against-coin3d.md)
 - [Coin SORTED_LAYERS_BLEND is the default lobe transparency (6 passes, alpha canvas); slow scenes fall back to SCREEN_DOOR](coin-sorted-layers-blend-is-the-default-lobe-transparency.md)
 - [`GlPlatform` is the viewer's only GLX/EGL code; `tools/nonx11/check.py` compiles the viewer as a non-X11 port (#232)](glplatform-is-the-viewers-only-glx-egl-code.md)
@@ -27,10 +27,10 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [Run-state colours: submitted yellow, created sky blue, pale fills outlined in light themes; checked by tests/look/contrast.py](run-state-colours.md)
 - [`std::map`/`unordered_set` iterator invalidation](std-map-unordered-set-iterator-invalidation.md)
 - [Uncontrolled format strings](uncontrolled-format-strings.md)
-- [`EcceException::what()`](ecceexception-what.md)
-- [wx3.2 AUI port dropped the custom "ewxAUI" pane-caption buttons (take focus / pin / options / open) the original app was built against](wx3-2-aui-port-dropped-the-custom.md)
-- [`SoWxRenderArea::renderCB` silently drops a redraw](sowxrenderarea-rendercb-silently-drops-a-redraw.md)
-- [RESOLVED (#81, fixed `9a3004e`, confirmed live 2026-09-21): the Vibrational Frequencies panel's Animation/Vector radio box did not deliver its click event under wx3.2/GTK3](resolved-81-fixed-9a3004e-confirmed-live-2026.md)
+- [`EcceException::what()` returns storage that lives as long as the exception](ecceexception-what.md)
+- [The wx3.2 AUI port lost the ewxAUI caption buttons; `EVT_CHILD_FOCUS` on Builder now triggers `receiveFocus()`](wx3-2-aui-port-dropped-the-custom.md)
+- [`SoWxRenderArea::renderCB` during a paint defers the redraw through `p_redrawPending`](sowxrenderarea-rendercb-silently-drops-a-redraw.md)
+- [A static `EVT_RADIOBOX` entry never reaches an `ewxRadioBox`'s panel; Bind on the widget (#81)](resolved-81-fixed-9a3004e-confirmed-live-2026.md)
 - [ChemDisplay's `glPopAttrib` undoes what Coin's lazy element sent inside it; the first offscreen render drew an ESP surface unlit](chemdisplay-glpopattrib-undoes-lazy-element-sends.md)
 - [The unit cell is drawn only while the Periodic Builder panel is open](unit-cell-drawn-only-by-the-periodic-builder.md)
 - [The Vibrational Frequencies graph is `SpectrumCanvas` over the wx-free `VibSpectrum` model (#214)](vibrational-spectrum-canvas-214.md)

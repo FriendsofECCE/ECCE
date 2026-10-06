@@ -383,7 +383,10 @@ bool WxDavAuth::prompt(const string& strurl,
                               wxMax(before.GetHeight(), after.GetHeight())));
      }
 
-     authDlg.showChangeBtn(true);
+     // No password change or account creation from here: there is no
+     // server side for them, and the request put both passwords in the
+     // URL, which the data server writes to its access log.
+     authDlg.showChangeBtn(false);
      authDlg.setServer(url.getHost());
      authDlg.setProtocol("http");
      // Prefilling the session user's own name here would invite retyping
@@ -414,43 +417,6 @@ bool WxDavAuth::prompt(const string& strurl,
          ret = true;
          user = authDlg.getUser();
          password = authDlg.getPassword();
-         string newPassword = authDlg.getNewPassword();
-
-         if (newUser) {
-           if (password.length() >= 6) {
-             ret = createNewUser(strurl, user, password);
-           } else {
-             done = false;
-             ewxMessageDialog dlg(NULL,
-                           "Unable to create new data server account.\n"
-                           "Password must be at least 6 characters.",
-                           "Create Data Server Account Failed",
-                           wxOK|wxICON_EXCLAMATION|wxSTAY_ON_TOP,
-                           wxDefaultPosition);
-             dlg.ShowModal();
-             authDlg.setPassword("");
-           }
-         } else if (newPassword != "") {
-           if (newPassword.length() >= 6) {
-             done = false;
-             ret = changePassword(strurl, user, password, newPassword);
-             if (ret) {
-               done = true;
-               // if the change succeeded, new password must be used
-               password = newPassword;
-             }
-           } else {
-             done = false;
-             ewxMessageDialog dlg(NULL,
-                           "Unable to change your data server password.\n"
-                           "New password must be at least 6 characters.",
-                           "Change Data Server Password Failed",
-                           wxOK|wxICON_EXCLAMATION|wxSTAY_ON_TOP,
-                           wxDefaultPosition);
-             dlg.ShowModal();
-             authDlg.setNewPassword("");
-           }
-         }
        }
      }
 
@@ -462,80 +428,6 @@ bool WxDavAuth::prompt(const string& strurl,
    }
 
    p_prompting = false;
-   return ret;
-}
-
-
-
-bool WxDavAuth::createNewUser(const string& strurl, const string& user,
-                              const string& password)
-{
-   bool ret = false;
-
-   string urlbase = strurl;
-   string::size_type pos = urlbase.rfind("/");
-   if (pos != string::npos)
-     urlbase.replace(pos+1, urlbase.length()-pos-1, "");
-
-   string urlcgi = urlbase + "cgi-bin/ecce_accounts?parama=create&paramu=";
-   string urlstr = urlcgi + user + "&paramr=Ecce-";
-
-   string realm = EDSIServerCentral::readRealm();
-   urlstr += realm;
-
-   urlstr += "&paramn=" + password;
-
-   EcceDAVClient edcCreate(urlstr);
-   ostrstream ostr;
-   ret = edcCreate.doPost(ostr) == 200;
-   if (ret) {
-     // just in case they already have this user,url cached even
-     // though it is a new user
-     AuthCache::getCache().changePass(urlbase, user, password);
-   } else {
-     string msg = "Unable to create new data server account.\n"
-                  "Contact your site ECCE administrator.";
-     ewxMessageDialog dlg(NULL, msg.c_str(),
-                          "Create Data Server Account Failed",
-                          wxOK|wxICON_EXCLAMATION|wxSTAY_ON_TOP,
-                          wxDefaultPosition);
-     dlg.ShowModal();
-   }
-
-   return ret;
-}
-
-
-
-bool WxDavAuth::changePassword(const string& strurl, const string& user,
-                               const string& password,const string& newPassword)
-{
-   bool ret = false;
-
-   string urlbase = strurl;
-   string::size_type pos = urlbase.rfind("/");
-   if (pos != string::npos)
-     urlbase.replace(pos+1, urlbase.length()-pos-1, "");
-
-   string urlcgi = urlbase + "cgi-bin/ecce_accounts?parama=modify&paramu=";
-   string urlstr = urlcgi + user + "&paramo=" + password;
-   urlstr += "&paramn=" + newPassword;
-
-   EcceDAVClient edcModify(urlstr);
-   ostrstream mostr;
-   ret = edcModify.doPost(mostr) == 200;
-   if (ret) {
-     AuthCache::getCache().changePass(urlbase, user, newPassword);
-   } else {
-     ewxMessageDialog dlg(NULL,
-                          "Unable to change your data server password.\n"
-                          "Current password may be incorrect.",
-                          "Change Data Server Password Failed",
-                          wxOK|wxICON_EXCLAMATION|wxSTAY_ON_TOP,
-                          wxDefaultPosition);
-     dlg.ShowModal();
-   }
-
    return ret;
 }
 

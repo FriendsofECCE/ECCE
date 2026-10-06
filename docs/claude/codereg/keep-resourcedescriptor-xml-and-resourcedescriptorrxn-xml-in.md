@@ -2,11 +2,21 @@
 type: checklist
 title: "Keep `ResourceDescriptor.xml` and `ResourceDescriptorRxn.xml` in step"
 area: codereg
-section: "Added from integrating MOPAC (issue #86) — the second code through"
-paths: ["ResourceDescriptor.C", "ResourceDescriptor.xml", "ResourceDescriptorRxn.xml", "bin/dirdyed"]
+section: "New-code checklist (gotchas found integrating ORCA, issue #38)"
+paths: ["data/client/config/ResourceDescriptor.xml", "data/client/config/ResourceDescriptorRxn.xml", "src/dsm/xml/ResourceDescriptor.C", "src/dsm/xml/CodeFactory.C", "src/apps/organizer/SessionContextPanel.C", "src/apps/organizer/CalcMgr.C"]
+issues: [38]
 ---
 **Keep `ResourceDescriptor.xml` and `ResourceDescriptorRxn.xml` in
-step.** `ResourceDescriptor.C` uses the `Rxn` variant whenever
-`bin/dirdyed` exists, so a code missing from the plain file's
-`project` `<Contains>` list is invisible on this build and vanishes
-from the New-Calculation menu only where `dirdyed` is absent.
+step.** Each needs the new code's full `<ResourceType>` block *and* a
+`<ContainsResource name="..._es"/>` entry on `project`; missing either
+makes the "New Calculation" menu (and, in the Rxn file, the CalcEd
+code-switch toolbar) silently omit the code. Only one file is read:
+`ResourceDescriptor.C` uses the `Rxn` variant whenever `bin/dirdyed`
+exists, so a code missing from one file vanishes only on installs of
+the other kind.
+
+Why the `.edml` alone is not enough: `CodeFactory::getFullySupportedCodes()`
+(CalcEd's code-switch *buttons*) discovers `.edml` files by directory
+scan, but the "New..." *menu* (`CalcMgr::getContextMenu`/
+`SessionContextPanel.C`) reads the clicked node's own
+`ResourceType::getContains()` from these files.

@@ -3,7 +3,8 @@ type: pitfall
 title: "CalcEd used to discard the input generator's error message"
 area: codereg
 section: "Pitfalls found more than once (check for siblings)"
-paths: ["/dev/null"]
+paths: ["src/apps/calced/CalcEd.C"]
+issues: []
 ---
 **CalcEd used to discard the input generator's error message.**
 `execout()` captures the generator's stdout+stderr into `message`, and

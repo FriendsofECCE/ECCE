@@ -4,6 +4,7 @@ title: "A code's theory NAME must not equal its CATEGORY"
 area: codereg
 section: "Pitfalls found more than once (check for siblings)"
 paths: [".edml"]
+issues: []
 ---
 **A code's theory NAME must not equal its CATEGORY.** `CalcEd::
 getTheoryName()` reverses `populateTheories()`'s display convention —

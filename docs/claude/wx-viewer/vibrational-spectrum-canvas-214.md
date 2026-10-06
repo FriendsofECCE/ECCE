@@ -2,7 +2,7 @@
 type: map
 title: "The Vibrational Frequencies graph is `SpectrumCanvas` over the wx-free `VibSpectrum` model (#214); look at `tools/spectrum/render` output, and mind the traps below"
 area: wx-viewer
-section: ""
+section: "wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls"
 paths: ["include/tdat/VibSpectrum.H", "src/tdat/chemistry/VibSpectrum.C", "src/apps/builder/SpectrumCanvas.H", "src/apps/builder/NModePanel.C", "tools/spectrum", "tests/spectrum"]
 issues: [214, 173]
 ---

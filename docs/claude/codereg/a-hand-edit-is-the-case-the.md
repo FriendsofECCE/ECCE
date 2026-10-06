@@ -3,6 +3,8 @@ type: rule
 title: "A hand edit is the case the checker most needs to see and the one it missed"
 area: codereg
 section: "The input checker (`scripts/parsers/verifyinput`, #148)"
+paths: ["scripts/parsers/verifyinput", "src/apps/calced/InputVerifier.C", "src/apps/calced/CalcEd.C", "tests/verify"]
+issues: [148]
 ---
 **A hand edit is the case the checker most needs to see and the one
 it missed.** `processEditCompletion()` wrote Final Edit's result

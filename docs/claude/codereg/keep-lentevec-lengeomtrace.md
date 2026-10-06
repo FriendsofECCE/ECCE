@@ -3,6 +3,8 @@ type: checklist
 title: "Keep `len(TEVEC) <= len(GEOMTRACE)`"
 area: codereg
 section: "Added from integrating MOPAC (issue #86) — the second code through"
+paths: ["src/apps/builder/GeomTracePropertyPanel.C", "src/tdat/properties/PropTSVecTable.C"]
+issues: [86]
 ---
 **Keep `len(TEVEC) <= len(GEOMTRACE)`.** `GeomTracePropertyPanel`
 plots any `PropTSVector<Geometry Step>` alongside GEOMTRACE, and

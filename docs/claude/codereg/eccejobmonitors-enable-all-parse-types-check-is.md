@@ -1,21 +1,16 @@
 ---
 type: pitfall
-title: "`eccejobmonitor`'s \"enable all parse types\" check is case-sensitive"
+title: "`eccejobmonitor`'s \"enable all parse types\" check must stay case-insensitive"
 area: codereg
 section: "Pitfalls found more than once (check for siblings)"
-paths: ["Launch.C", "scripts/eccejobmonitor"]
+paths: ["src/comm/commxt/Launch.C", "scripts/eccejobmonitor"]
+issues: []
 ---
-**`eccejobmonitor`'s "enable all parse types" check is case-sensitive**
-(`scripts/eccejobmonitor`, `PDTypesEnable()`) — it only recognizes
-lowercase `all`, but `Launch.C` hardcodes `"parseTypes ALL"`
-(uppercase) when invoking it. The mismatch makes it silently delete
-every not-yet-enabled parse descriptor from its live-monitoring match
-table, so any `Frequency=all`-style trace property (`GEOMTRACE`, and
-presumably any other code's equivalent) never gets extracted during
-a run — no error, the job completes normally, only the trace data is
-missing. Scalar single-value properties (`TE`, ...) are unaffected,
-so this looks exactly like a per-property parsing bug and not the
-systemic one it is. Fixed script-side (case-insensitive) rather than
-touching `Launch.C`, so it doesn't need a C++ rebuild — if a fresh
-build still drops a trace property with an otherwise-correct
-`Begin`/`End` match, this fix predates it and something new is wrong.
+**`PDTypesEnable()` in `scripts/eccejobmonitor` compares `all`
+case-insensitively, because `Launch.C` sends `"parseTypes ALL"`.** A
+case-sensitive check deletes every not-yet-enabled parse descriptor from
+the live match table, so `Frequency=all` trace properties (`GEOMTRACE`
+and the like) are never extracted while scalar ones (`TE`) still are: no
+error, the job completes, and it looks like a per-property parsing bug. The
+fix lives in the script so that no C++ rebuild is needed; keep the two
+sides agreeing if either changes.
