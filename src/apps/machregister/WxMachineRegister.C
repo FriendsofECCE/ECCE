@@ -496,6 +496,7 @@ void WxMachineRegister::addCfgRow(wxWindow* page, wxFlexGridSizer* grid,
     {
         r.name = new ewxStaticText(page, wxID_ANY, label);
         r.name->SetMinSize(wxSize(260, -1));
+        reg("name:" + lowerOf(key), r.name);
         grid->Add(r.name, wxSizerFlags().Right().Border().CentreVertical());
     }
     grid->Add(r.ctrl, wxSizerFlags(1).Expand().Border().CentreVertical());
@@ -665,9 +666,23 @@ wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
     wxFlexGridSizer* advGrid = new wxFlexGridSizer(4, 0, 0);
     advGrid->AddGrowableCol(1);
     advBox->Add(advGrid, wxSizerFlags().Expand().Border(wxTOP));
-    addCfgRow(adv, advGrid, "singleConnect", "One connection for everything",
-              CfgTri, "yes: send commands and files over one connection. "
-              "auto: yes when this computer is outside the machine's domain.");
+    addCfgRow(adv, advGrid, "singleConnect", "Use a single ssh connection "
+              "(for machines that only allow one login at a time)", CfgTri,
+              "yes: the machine is treated like one reached through a gateway "
+              "host. ECCE logs in once and sends commands and copies files "
+              "over that one login, instead of opening a separate login for "
+              "each copy; while a job runs, its monitor keeps that login "
+              "open. For machines that allow only one login at a time or ask "
+              "for a one-time code at every login.\n"
+              "auto: yes when this computer is outside the machine's domain.\n"
+              "no (the default): a separate login for file copies.");
+    if (CfgRow* sc = cfgRow("singleConnect"))
+    {
+        sc->name->Wrap(280);
+        sc->name->InvalidateBestSize();
+        sc->name->SetMinSize(wxSize(280, sc->name->GetBestSize().y));
+        sc->name->SetToolTip(sc->ctrl->GetToolTipText());
+    }
     addCfgRow(adv, advGrid, "checkScratch", "Check the scratch directory "
               "before a job starts", CfgCheckYes,
               "Verify that the scratch directory exists and is writable.");
@@ -2505,6 +2520,15 @@ static string plainTag(MCD::Tag t)
 }
 
 
+//  A control that shows the built-in value when nothing sets the key (a
+//  choice, a checkbox, the built-in command) is tagged "default"; "not set"
+//  is for an empty text box.
+static string plainTag(MCD::Tag t, bool showsDefault)
+{
+    return t == MCD::TagDefault && showsDefault ? "default" : plainTag(t);
+}
+
+
 //  The tag and its tooltip: the file the value is in, and what it overrides.
 void WxMachineRegister::cfgTagInfo(const string& key, bool cppOnly,
                                    MCD::Tag& t, string& tip) const
@@ -2606,7 +2630,7 @@ void WxMachineRegister::cfgTags()
         MCD::Tag t;
         string tip;
         cfgTagInfo(r.key, !r.gensubOnly, t, tip);
-        wxString text = plainTag(t);
+        wxString text = plainTag(t, r.kind != CfgText);
         if (r.tag->GetLabel() != text)
             r.tag->SetLabel(text);
         r.tag->SetForegroundColour(wxSystemSettings::GetColour(
@@ -2640,7 +2664,7 @@ void WxMachineRegister::cfgTags()
                    : ta != MCD::TagDefault ? ta : tb;
         string tip = ta == MCD::TagDefault ? tipb
                    : tb == MCD::TagDefault ? tipa : tipa + "\n" + tipb;
-        wxString text = plainTag(t);
+        wxString text = plainTag(t, true);
         if (p_jobsTag->GetLabel() != text)
             p_jobsTag->SetLabel(text);
         p_jobsTag->SetForegroundColour(wxSystemSettings::GetColour(

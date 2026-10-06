@@ -605,6 +605,14 @@ PLAIN = {"default": "not set", "site": "from site", "server": "from server",
          "site (editing)": "site value"}
 
 
+def plain(k, tag):
+    """A choice or checkbox shows the built-in value: "default", not
+    "not set"."""
+    if tag == "default" and (k in BOOLS or k in ("shell", "singleconnect")):
+        return "default"
+    return PLAIN[tag]
+
+
 def jobs_tag(want):
     """The group's tag: the user's own value first, then a layer's."""
     a, b = want["noremoteaccess"][1], want["usersubmit"][1]
@@ -612,7 +620,8 @@ def jobs_tag(want):
     for t in (a, b):
         if t in own:
             return PLAIN[t]
-    return PLAIN[a if a != "default" else b]
+    t = a if a != "default" else b
+    return "default" if t == "default" else PLAIN[t]
 
 
 def jobs_radio(want):
@@ -671,7 +680,11 @@ expect label tag:jobs '%(site)s'
 expect field checkscratch 0
 expect label tag:checkscratch '%(site)s'
 expect field singleconnect no
-expect label tag:singleconnect 'not set'
+expect label tag:singleconnect 'default'
+expect label name:singleconnect 'Use a single ssh connection (for machines\\nthat only allow one login at a time)'
+expect tooltip singleconnect 'gateway host'
+expect tooltip singleconnect 'no (the default)'
+expect label tag:libpath 'not set'
 expect shown xappspath 0
 expect dirty 0
 expect save-enabled 0
@@ -766,7 +779,7 @@ quit
         v, tag = want[k]
         lines.append("expect field %s '%s'" % (k, shown(k, v)))
         if k not in ("noremoteaccess", "usersubmit"):
-            lines.append("expect label tag:%s '%s'" % (k, PLAIN[tag]))
+            lines.append("expect label tag:%s '%s'" % (k, plain(k, tag)))
     lines.append("expect field jobs:user %d" % (jobs_radio(want) == "user"))
     lines.append("expect field jobs:none %d" % (jobs_radio(want) == "none"))
     lines.append("expect label tag:jobs '%s'" % jobs_tag(want))
@@ -819,6 +832,12 @@ set jobs:none 0
 set jobs:user 1
 wait 500
 shot %(o)s/connection-interactive.png
+answer no
+select mine
+tab connection
+click advanced:toggle
+wait 800
+shot %(o)s/connection-advanced-defaults.png
 quit
 """ % {"o": out})
     clean(p, "Connection PNGs")
