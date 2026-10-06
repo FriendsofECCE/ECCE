@@ -126,7 +126,7 @@ Gateway::Gateway( GatewayApp* app, wxWindow* parent,
   p_fixingSize = false;
   p_timer = new wxTimer(this);
 
-  SetIcon(wxIcon(ewxBitmap::pixmapFile("gateway64.xpm"), wxBITMAP_TYPE_XPM));
+  SetIcon(ewxBitmap::icon("gateway64.xpm"));
 
   restoreWindowSettings(GATEWAY, *p_preference, false);
 

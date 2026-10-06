@@ -29,6 +29,10 @@ public:
     // ECCE_HELP_DIR, else <ECCE_HOME>/doc/help.
     static std::string helpDir();
 
+    // The git tag whose help source matches a version, or main for a version
+    // that is never tagged (a release candidate, "-dev", ...).
+    static std::string helpRef(const std::string& version);
+
     // The page shown, as file[#anchor], relative to helpDir().
     std::string currentPage() const;
 

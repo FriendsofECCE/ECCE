@@ -59,6 +59,18 @@ Things that are easy to get wrong:
   `provideVariables` over the environment, unlike header, setup, wrap-up and
   the command. The "Placeholders" dialog inserts at the cursor of the last
   box focused (never the Environment box).
+- With no inherited command, the Codes tab's read-only area shows gensub's
+  built-in command (`builtinCommand()`, a copy of each code's sub in gensub:
+  keep the two in step), tagged "default"; the grey example in the box is an
+  alternative, never the built-in.
+- Tags: "default" for a control that shows a built-in value when its key is
+  unset (choices, checkboxes, the job radios, the built-in command); "not
+  set" for an empty text box.
+- A code with a path in the edited file whose empty Environment/Command
+  blocks are missing (`MCD::missingSkeletons`) enables Save without making
+  the form dirty (no `*`, no prompt on close); the footer names the codes,
+  and "Advanced: edit file" shows the blocks already added. Nothing is
+  written without a Save.
 - "Advanced: edit file" edits the raw edited-layer file in a dialog (Check /
   Save; an unclosed block is an error, unknown keys and csh are warnings) and
   saves through `ConfigFile::setText` + `save`. Unsaved form changes are saved

@@ -94,7 +94,7 @@ bool ewxWindowUtils::setToolIcon(wxTopLevelWindow *win,
   std::string icon = tool->getIcon();
   if (icon.empty()) return false;
 
-  win->SetIcon(wxIcon(ewxBitmap::pixmapFile(icon), wxBITMAP_TYPE_XPM));
+  win->SetIcon(ewxBitmap::icon(icon));
   return true;
 }
 

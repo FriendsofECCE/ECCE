@@ -425,7 +425,9 @@ that user's last session ends. Several users on one
 machine each get their own broker; mode 3 is only needed to share one.
 
 A single-user install can keep its projects in a folder instead of a data
-server; see the next section. Server mode remains the default.
+server; see the next section. Server mode remains the default on Linux;
+on macOS, which has no mod_dav for a per-user data server, the data folder
+is the default (#133).
 
 #### Local data mode (a data folder instead of a data server)
 

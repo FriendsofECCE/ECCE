@@ -414,6 +414,7 @@ class Suite(object):
         if self.args.job_comms:
             extra["ECCE_JOB_COMMS"] = self.args.job_comms
         rc, out = self.driver("launch", url, extra=extra)
+        launched = time.time()
         launchOut = out
         say("\n".join("  | " + line for line in out.strip().splitlines()))
         if not self.check(rc == 0, "Launch ran to the end"):
@@ -436,12 +437,14 @@ class Suite(object):
         killed = []             # (pid, time) of monitors killed by kills
         seenAt = {}             # pid -> first time seen
         self.monitorLog = ""
+        self.monitorConf = ""
         wait = drop or self.args.hold
         deadline = time.time() + WAIT_SECONDS * (
             4 if kills else 2 if wait else 1)
         while time.time() < deadline:
             self.seen.update(seenBinaries(self.home))
             self.readMonitorLog(name)
+            self.readMonitorConf(name)
             self.masterLog(name)
             if self.remote():
                 found = self.remoteMonitorStdin()
@@ -488,7 +491,11 @@ class Suite(object):
                     stdin = stdin or monitorStdin()
                     time.sleep(0.05)
             rc, out = self.driver("state", url)
+            was = state
             state = out.strip().splitlines()[-1] if out.strip() else ""
+            if state != was:
+                say("  state %s at %.1fs after the launch"
+                    % (state, time.time() - launched))
             #  system_failure is what a lost monitor reports until
             #  eccejobmaster has restarted eccejobstore.
             if giveup:
@@ -553,6 +560,18 @@ class Suite(object):
             say("  ---- eccejobstore.log (last run)\n" + self.monitorLog[-2500:])
             self.diagnose(url)
             return
+
+        #  A local job under Shell is polled every 2 s; a remote one keeps
+        #  the monitor's 10 s.
+        local = "timePauseJobExist 2\n" in self.monitorConf and \
+                "timePauseReadLine 2\n" in self.monitorConf
+        if not self.monitorConf:
+            self.check(False, "the monitor's configuration was seen")
+        elif self.remote():
+            self.check("timePause" not in self.monitorConf,
+                       "the monitor of a remote job keeps its default pause")
+        else:
+            self.check(local, "the monitor of a local job polls every 2 s")
 
         rc, out = self.driver("props", url)
         props = out.split()
@@ -723,6 +742,18 @@ class Suite(object):
                    "eccejobstore lost the monitor (exit 4) and was restarted")
         self.check("exited with final status value 0" in text,
                    "the restarted eccejobstore finished the job")
+
+    def readMonitorConf(self, name):
+        """The monitor's configuration, from Launch's staging directory,
+        which is gone once the test ends."""
+        import glob
+        for conf in glob.glob(os.path.join(self.state, "tmp", "*", "jobs",
+                                           name + "__*", "eccejobmonitor.conf")):
+            try:
+                with open(conf) as handle:
+                    self.monitorConf = handle.read() or self.monitorConf
+            except OSError:
+                pass
 
     def readMonitorLog(self, name):
         import glob

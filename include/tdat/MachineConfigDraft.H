@@ -136,6 +136,11 @@ public:
   // still empty.  Empty blocks change nothing for any reader.
   void applySkeletons(ConfigFile& file,
                       const std::vector<std::string>& codes) const;
+  // The codes applySkeletons() would add blocks for if the draft were saved
+  // into `file` now: those with a program path in the edited file that lack
+  // either block.  `file` itself is not changed.
+  std::vector<std::string> missingSkeletons(const ConfigFile& file,
+                              const std::vector<std::string>& codes) const;
   // The keys a skeleton holds, in the spelling gensub documents.
   static std::vector<std::string> skeletonKeys(const std::string& code);
 

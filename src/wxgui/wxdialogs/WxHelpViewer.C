@@ -9,6 +9,7 @@
 #include "wx/splitter.h"
 #include "wx/textfile.h"
 
+#include <regex>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -40,6 +41,14 @@ std::string WxHelpViewer::helpDir()
 }
 
 
+std::string WxHelpViewer::helpRef(const std::string& version)
+{
+    static const std::regex tagged(
+        "[0-9]+\\.[0-9]+\\.[0-9]+(-(alpha|beta)\\.[0-9]+)?");
+    return std::regex_match(version, tagged) ? "v" + version : "main";
+}
+
+
 WxHelpViewer* WxHelpViewer::show(const std::string& page)
 {
     std::string dir = helpDir();
@@ -52,7 +61,8 @@ WxHelpViewer* WxHelpViewer::show(const std::string& page)
         else
             f = "index.md";
         BrowserHelp().showPage(
-            "https://github.com/FriendsofECCE/ECCE/blob/main/help/src/" + f);
+            "https://github.com/FriendsofECCE/ECCE/blob/" +
+            helpRef(Ecce::ecceVersion()) + "/help/src/" + f);
         return NULL;
     }
     if (p_instance == NULL)
