@@ -20,13 +20,15 @@ using std::endl;
 #endif
 
 #include "dsm/CHTTPConnection.H"
+#include "dsm/CTLSSocket.H"
 #include <algorithm>
 
 // Constructors: CHTTPConnection *******************************************
 
 CHTTPConnection::CHTTPConnection(void)
   : deadConnection_(true), host_(""), proxy_(""),
-    port_(0), server_(0), responseStr_(""), headerStr_("")
+    port_(0), server_(0), secure_(false), certRejected_(false),
+    responseStr_(""), headerStr_("")
 // Pre:
 // Modifies:
 // Post: Create a new instance
@@ -36,13 +38,18 @@ CHTTPConnection::CHTTPConnection(void)
 CHTTPConnection::CHTTPConnection(const CHTTPConnection& other)
   : deadConnection_(other.deadConnection_), host_(other.host_),
     proxy_(other.proxy_), port_(other.port_), server_(0),
+    secure_(other.secure_), certRejected_(false),
     responseStr_(other.responseStr_), headerStr_(other.headerStr_)
 // Pre: Assigned(other)
 // Modifies:
 // Post: Create a new instance identical to <other>
 {
-  if (other.server_)
+  // A TLS session cannot be duplicated: the copy starts disconnected and
+  // reconnects (and re-verifies) on connect().
+  if (other.server_ && !other.secure_)
     server_ = new socket_type(*other.server_);
+  else
+    deadConnection_ = true;
 }
 
 // Destructor: CHTTPConnection *********************************************
@@ -69,9 +76,13 @@ CHTTPConnection::operator = (const CHTTPConnection& other)
     host_           = other.host_;
     proxy_          = other.proxy_;
     port_           = other.port_;
+    secure_         = other.secure_;
     if (server_)
       delete server_;
-    server_         = other.server_ ? new socket_type(*other.server_) : 0;
+    server_         = (other.server_ && !other.secure_)
+                        ? new socket_type(*other.server_) : 0;
+    if (other.server_ && other.secure_)
+      deadConnection_ = true;
     responseStr_    = other.responseStr_;
     headerStr_      = other.headerStr_;
   }
@@ -89,10 +100,26 @@ bool CHTTPConnection::connect(void)
     disconnect();
   try
   {
+    certRejected_ = false;
+    connectError_ = "";
     string_type h   = proxy_.length() ? proxy_ : host_;
-    server_         = new socket_type(h, port_);
+    if (secure_)
+    {
+      // No CONNECT tunnelling: never send an https request to a proxy in clear.
+      if (proxy_.length())
+        return false;
+      server_       = new ipc::CTLSClientSocket(h, port_);
+    }
+    else
+      server_       = new socket_type(h, port_);
     deadConnection_ = false;
     return true;
+  }
+  catch (ipc::CTLSError& e)
+  {
+    certRejected_ = e.certificateRejected();
+    connectError_ = e.message();
+    return false;
   }
   catch (...)
   {
@@ -103,7 +130,8 @@ bool CHTTPConnection::connect(void)
 bool CHTTPConnection::connect(
   const string_type& host,
   port_type          port,
-  const string_type& proxy)
+  const string_type& proxy,
+  bool               secure)
 // Pre: Assigned(host), Assigned(port), Assigned(proxy)
 // Modifies:
 // Post: Connect to the server
@@ -112,6 +140,7 @@ bool CHTTPConnection::connect(
   host_  = host;
   port_  = port;
   proxy_ = proxy;
+  secure_ = secure;
 
   // Try to connect
   return connect();

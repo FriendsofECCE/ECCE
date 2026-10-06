@@ -226,6 +226,8 @@ ecce_library(eccetdat
 # --- src/dsm -> 5 separate libraries, matching the old per-subdir mapping ---
 ecce_library(eccexml    src/dsm/chemistry src/dsm/xml)
 ecce_library(eccecipc   src/dsm/cipc)
+find_package(OpenSSL REQUIRED)
+target_link_libraries(eccecipc PUBLIC OpenSSL::SSL OpenSSL::Crypto)
 ecce_library(eccedav    src/dsm/dav)
 ecce_library(eccedsi    src/dsm/edsiimpl)
 ecce_library(eccefaces  src/dsm/faces)
@@ -1664,6 +1666,18 @@ if(TARGET ecce_users_auth)
   set_tests_properties(mqtt-auth-plugin PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
 endif()
 set_tests_properties(mqtt mqtt-auth PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+
+# tests/tls -- https data-server client (#236): pinned certificate, CA mode
+# with host-name check, certificate rejection, no fallback to plain http.
+# Needs python3 and the openssl command line; SKIPs (77) without them.
+add_executable(tls_client_test tests/tls/tls_client_test.C)
+target_include_directories(tls_client_test PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(tls_client_test PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${XercesC_LIBRARIES})
+add_test(NAME tls_client
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/tls/run_tests.py
+                 $<TARGET_FILE:tls_client_test> ${CMAKE_BINARY_DIR}/tls-test)
+set_tests_properties(tls_client PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
 if(PYTHON3_EXECUTABLE)
   add_test(NAME parsers
            COMMAND ${PYTHON3_EXECUTABLE}
