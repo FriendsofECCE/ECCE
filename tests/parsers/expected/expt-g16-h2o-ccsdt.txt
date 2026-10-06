@@ -7,6 +7,9 @@
 title:	water CCSD(T) - exercises MP2/CCSD energy branches
 type:	molecule
 charge:	0
+fragment_attributes:
+  point_group: C2V
+end_fragment_attributes:
 num_atoms:	3
 atom_info:	symbol cart
 atom_list:

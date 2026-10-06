@@ -945,6 +945,12 @@ sub getMolecule {
 #  Look for a geometry in "Standard orientation"
 #########################################################################
   while (<INPUT>) {
+    # The group the job store's PNTGRP (gaussian-16.symmetry) records.
+    $pointGroup = $1 if (/^\s*Full point group\s+(\S+)/);
+    # "Standard basis: 6-31G(d) (6D, 7F)": what the job used, which the
+    # route only states when it carries 5D/6D explicitly.
+    $sphericalBasis = ($1 eq "5") ? "true" : "false"
+      if (/^\s*Standard basis:.*\((\d+)D/);
     if (/Standard orientation/ ) {
       $_ = <INPUT>;  # ------------------------------------------------------
       $_ = <INPUT>;  # Center     Atomic   Atomic    Coordinates (Angstroms)
@@ -990,6 +996,7 @@ sub getMolecule {
   if ($find_geom == 0) {
     seek(INPUT, 0, 0);
     while (<INPUT>) {
+      $pointGroup = $1 if (/^\s*Full point group\s+(\S+)/);
       if (/Input orientation/ ) {
         $_ = <INPUT>;  # ------------------------------------------------------
         $_ = <INPUT>;  # Center     Atomic   Atomic    Coordinates (Angstroms)
@@ -1075,6 +1082,10 @@ sub getMolecule {
     # position just after the first geometry. Scanning to EOF
     # would silently starve it, so put the handle back.
     seek(INPUT, $resumePos, 0) if (defined($resumePos));
+  }
+  if (defined($pointGroup) && uc($pointGroup) ne "C1") {
+    $molecule .= "fragment_attributes:\n  point_group: $pointGroup\n";
+    $molecule .= "end_fragment_attributes:\n";
   }
   $molecule .= "num_atoms:\t$natoms\n$atomSection";
 }

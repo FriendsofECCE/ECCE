@@ -75,6 +75,7 @@ dialog showing the deck with the offending lines marked.
 - [`<LaunchPreprocessor>` is required, unconditionally](launchpreprocessor-is-required-unconditionally.md)
 - [`rdStandardGBS.pm`'s "NameBasis" format used to have two undocumented requirements — FIXED in `78bb8d0`, don't "re-fix" the `*.expt` writers for it](rdstandardgbs-pms-namebasis-format-used-to-have.md)
 - [No `CMakeLists.txt install()` changes needed](no-cmakelists-txt-install-changes-needed.md)
+- [An `.expt`'s `.param` keys and `.frag` attributes are read literally; a wrong key is dropped silently (#235)](expt-param-keys-are-read-literally.md)
 
 ### Added from integrating MOPAC (issue #86) — the second code through
 
