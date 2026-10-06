@@ -9,7 +9,7 @@ fourth runs ecce-broker.service under systemd, which nothing else has done.
   tests/containers/central_server_test.py [--debs DIR] [--logdir DIR]
                                           [--keep] [--only part,...]
 
-parts: setup clients isolation session-end systemd
+parts: setup clients isolation session-end systemd tls
 Exit 0: all checks passed; 1: a check failed; 77: podman or the .deb
 packages are not available (build them with `cpack -G DEB`).
 """
@@ -66,6 +66,8 @@ class Podman:
         args = ["exec", "-u", user, "-w", home, "-e", "HOME=" + home]
         if detach:
             args.append("-d")
+        if inp is not None:
+            args.append("-i")
         args += [self.tag + name, "bash", "-c",
                  "export PATH=/opt/ecce/bin:$PATH; " + script]
         return self.p(*args, check=False, timeout=timeout, inp=inp)
@@ -119,8 +121,13 @@ def build_image(pk, logdir):
 
 # ---- broker helpers (mosquitto clients are the independent oracle) --------
 
+TLS_PORT = 8883
+
+
 def mosq(host, port, user, pw):
     a = "-h %s -p %d" % (host, port)
+    if port == TLS_PORT:    # the pinned certificate; its name need not match
+        a += " --cafile /tmp/server.pem --insecure"
     if user:
         a += " -u %s -P %s" % (user, pw)
     return a
@@ -146,27 +153,27 @@ def pub(pm, cont, host, port, user, pw, topic, msg):
                  (mosq(host, port, user, pw), topic, msg))
 
 
-def delivery(pm, host, port, label, key="k0"):
+def delivery(pm, host, port, label, key="k0", ca="alice", cb="bob"):
     """Cross-user delivery between alice (in 'alice') and bob (in 'bob')."""
     bob_topics = ["#", "ecce/#", "ecce/+/#", "ecce/alice/#",
                   "ecce/+/session/#"]
-    watch(pm, "bob", host, port, "bob", PW["bob"], bob_topics, "b" + label, 40)
-    watch(pm, "alice", host, port, "alice", PW["alice"],
+    watch(pm, cb, host, port, "bob", PW["bob"], bob_topics, "b" + label, 40)
+    watch(pm, ca, host, port, "alice", PW["alice"],
           ["ecce/alice/#", "ecce/bob/#"], "a" + label, 40)
     time.sleep(2)
     A = "ecce/alice/session/%s/ecce_test" % key
-    pub(pm, "alice", host, port, "alice", PW["alice"], A, "A-session-" + label)
-    pub(pm, "alice", host, port, "alice", PW["alice"],
+    pub(pm, ca, host, port, "alice", PW["alice"], A, "A-session-" + label)
+    pub(pm, ca, host, port, "alice", PW["alice"],
         "ecce/alice/job/j1/status", "A-job-" + label)
-    pub(pm, "alice", host, port, "alice", PW["alice"],
+    pub(pm, ca, host, port, "alice", PW["alice"],
         "ecce/alice/ecce_machreg_changed", "A-machreg-" + label)
-    pub(pm, "bob", host, port, "bob", PW["bob"], A, "B-intrusion-" + label)
-    pub(pm, "bob", host, port, "bob", PW["bob"],
+    pub(pm, cb, host, port, "bob", PW["bob"], A, "B-intrusion-" + label)
+    pub(pm, cb, host, port, "bob", PW["bob"],
         "ecce/alice/ecce_machreg_changed", "B-spoof-" + label)
-    pub(pm, "bob", host, port, "bob", PW["bob"],
+    pub(pm, cb, host, port, "bob", PW["bob"],
         "ecce/bob/session/k1/ecce_test", "B-own-" + label)
     time.sleep(3)
-    b, a = captured(pm, "bob", "b" + label), captured(pm, "alice", "a" + label)
+    b, a = captured(pm, cb, "b" + label), captured(pm, ca, "a" + label)
     check("A-machreg-" + label in a and "A-session-" + label in a
           and "A-job-" + label in a,
           "%s: alice's own subscriber gets her session, job and machreg "
@@ -189,7 +196,7 @@ def delivery(pm, host, port, label, key="k0"):
     for who, user, pw in (("bob with alice's password", "bob", PW["alice"]),
                           ("unknown account", "mallory", "x"),
                           ("anonymous", None, None)):
-        r = pub(pm, "bob", host, port, user, pw, "ecce/bob/x", "no")
+        r = pub(pm, cb, host, port, user, pw, "ecce/bob/x", "no")
         check(r.returncode not in (0, 124), "%s: %s is refused" % (label, who),
               r.stdout + r.stderr)
 
@@ -197,7 +204,6 @@ def delivery(pm, host, port, label, key="k0"):
 # ---- parts -----------------------------------------------------------------
 
 def setup(pm, image):
-    pm.p("network", "create", pm.net)
     for n in ("srv", "alice", "bob"):
         pm.run(n, image)
     for c, u in (("srv", "ecce"), ("alice", "alice"), ("bob", "bob")):
@@ -386,7 +392,187 @@ def systemd(pm, image):
     sh("systemctl stop ecce-broker")
 
 
-PARTS = ("setup", "clients", "isolation", "session-end", "systemd")
+def tls(pm, image):
+    """The server over TLS (#236): its own containers, so the plain parts
+    above keep their plain server. alice pins the certificate she fetched,
+    bob the file copied from the server, eve a different one."""
+    for n in ("tsrv", "talice", "tbob", "teve"):
+        pm.run(n, image)
+    for c, u in (("tsrv", "ecce"), ("talice", "alice"), ("tbob", "bob"),
+                 ("teve", "eve")):
+        pm.sh(c, "useradd -m -s /bin/bash %s" % u)
+    o, rc = pm.out("tsrv", "ecce-remote-setup --server all --tls && "
+                   "ecce-dataserver-start && ecce-gateway-start", "ecce")
+    check(rc == 0 and "TLS is on" in o, "tls: server set up with "
+          "`ecce-remote-setup --server all --tls` (generated certificate), "
+          "data server and broker started", o)
+    for u, pw in PW.items():
+        o, rc = pm.out("tsrv", "ecce-dataserver-adduser -b %s %s %s Test" %
+                       (u, pw, u.title()), "ecce")
+        check(rc == 0, "tls: data server account %s created" % u, o)
+    fp = "openssl x509 -noout -fingerprint -sha256 -in "
+    srvfp, _ = pm.out("tsrv", fp + "~/.ECCE/tls/server.pem", "ecce")
+    pem = pm.out("tsrv", "cat ~/.ECCE/tls/server.pem", "ecce")[0]
+
+    # Plain ports are closed to the network, the TLS ports are open.
+    o, _ = pm.out("tsrv", "ss -ltnH", "ecce")
+    def lis(port, loop):
+        ls = [l.split()[3] for l in o.splitlines()
+              if l.split()[3].endswith(":%d" % port)]
+        return ls and all(a.startswith("127.0.0.1") or a.startswith("[::1]")
+                          for a in ls) == loop
+    check(lis(8096, True) and lis(8088, True),
+          "tls: on the server 8096 and 8088 listen on loopback only", o)
+    check(lis(8443, False) and lis(8883, False),
+          "tls: 8443 (https data server) and 8883 (broker) listen on the "
+          "network", o)
+    for c in ("talice", "tbob", "teve"):
+        o, rc = pm.out(c, "timeout 5 bash -c 'echo > /dev/tcp/tsrv/8096'")
+        check(rc != 0, "tls: from %s's machine plain 8096 on the server's "
+              "address is closed" % c, o)
+        o, rc = pm.out(c, "timeout 5 bash -c 'echo > /dev/tcp/tsrv/8088'")
+        check(rc != 0, "tls: from %s's machine plain 8088 is closed" % c, o)
+        o, rc = pm.out(c, "timeout 5 bash -c 'echo > /dev/tcp/tsrv/8443' && "
+                       "timeout 5 bash -c 'echo > /dev/tcp/tsrv/8883'")
+        check(rc == 0, "tls: %s's machine reaches 8443 and 8883" % c, o)
+
+    o, rc = pm.out("talice", "ecce-remote-setup tsrv --tls --fetch-pin")
+    check(rc == 0 and srvfp.split("=")[-1].strip() in o,
+          "tls: alice `ecce-remote-setup tsrv --tls --fetch-pin` prints the "
+          "server certificate's fingerprint", o + "\nserver: " + srvfp)
+    pm.sh("talice", "cp /opt/ecce/siteconfig/RemoteServer/server.pem "
+          "/tmp/server.pem")
+    a, _ = pm.out("talice", "cat /tmp/server.pem")
+    check(a == pem, "tls: alice's fetched pin is the server's certificate")
+    pm.sh("tbob", "cat > /tmp/server.pem", inp=pem)
+    o, rc = pm.out("tbob", "ecce-remote-setup tsrv --tls --pin /tmp/server.pem")
+    check(rc == 0, "tls: bob `ecce-remote-setup tsrv --tls --pin <file "
+          "copied from the server>`", o)
+    ds, _ = pm.out("talice", "cat /opt/ecce/siteconfig/RemoteServer/"
+                   "DataServers")
+    check("https://tsrv:8443" in ds, "tls: the client's DataServers names "
+          "https://tsrv:8443", ds)
+
+    watch(pm, "tbob", "tsrv", 8883, "bob", PW["bob"], ["ecce/#"], "tpb")
+    watch(pm, "talice", "tsrv", 8883, "alice", PW["alice"], ["ecce/#"], "tpa")
+    state = {}
+    for c, u in (("talice", "alice"), ("tbob", "bob")):
+        o, rc = pm.out(c, "python3 /harness/guest.py start %s %s tsrv" %
+                       (u, PW[u]), u, timeout=240)
+        try:
+            state[u] = json.loads(o.strip().splitlines()[-1])
+        except Exception:
+            state[u] = {}
+        s = state[u]
+        check(s.get("organizer") and " on tsrv" in s["organizer"],
+              "tls: %s logs in with a real `ecce -remote`: the Organizer "
+              "opens and names the server (%s)" % (u, s.get("organizer")), o)
+        check("gateway" in s.get("procs", {}) and s.get("broker", 0) >= 1,
+              "tls: %s's gateway holds a connection to the broker on 8883 "
+              "(%s)" % (u, s.get("broker")), json.dumps(s))
+    log, _ = pm.out("tsrv", "cat ~/.ECCE/dataserver/logs/access_log", "ecce")
+    for c, u in (("talice", "alice"), ("tbob", "bob")):
+        ip, _ = pm.out(c, "hostname -i")
+        ip = ip.split()[0]
+        check(any(l.startswith(ip + " ") and " %s " % u in l
+                  and "PROPFIND" in l and " 207 " in l
+                  for l in log.splitlines()),
+              "tls: the server's access log has %s's Organizer PROPFIND "
+              "answered 207 from her machine's address %s, which can only "
+              "have come in on 8443" % (u, ip))
+    check("alice" in " ".join(state.get("alice", {}).get("sessions", ["alice"])),
+          "tls: alice's session state exists")
+    # Her own data over https, then the DAV isolation checks over https.
+    B = "https://tsrv:8443/Ecce/users"
+    cu = lambda u, extra, url: "curl -s --cacert /tmp/server.pem %s -o " \
+        "/dev/null -w %%{http_code} %s" % (extra, url)
+    for c, u in (("talice", "alice"), ("tbob", "bob")):
+        pm.sh(c, "echo 'data of %s' >/tmp/f.txt" % u)
+        o, rc = pm.out(c, "curl -s --cacert /tmp/server.pem -u %s:%s -X MKCOL "
+                       "-o /dev/null -w %%{http_code} %s/%s/stage5; echo; "
+                       "curl -s --cacert /tmp/server.pem -u %s:%s -T /tmp/f.txt "
+                       "-o /dev/null -w %%{http_code} %s/%s/stage5/f.txt; echo; "
+                       "curl -s --cacert /tmp/server.pem -u %s:%s %s/%s/stage5/f.txt"
+                       % ((u, PW[u], B, u) * 3))
+        codes = o.split("\n")
+        check(codes[0] in ("201", "405") and codes[1] in ("201", "204")
+              and ("data of %s" % u) in o,
+              "tls: %s creates and reads back her own file over https (%s)"
+              % (u, codes[:2]), o)
+    o, _ = pm.out("talice", "curl -s -o /dev/null -w %%{http_code} "
+                  "-u alice:%s %s/alice/stage5/f.txt" % (PW["alice"], B))
+    check(o.strip() != "200", "tls: https without the pinned certificate "
+          "is not accepted by curl (%s)" % o.strip())
+    for me, mc, other in (("bob", "tbob", "alice"), ("alice", "talice", "bob")):
+        U = "%s/%s/stage5/f.txt" % (B, other)
+        code = lambda extra: pm.out(mc, cu(me, extra, U))[0].strip()
+        check(code("-u %s:%s" % (me, PW[me])) in ("401", "403"),
+              "tls DAV: %s cannot read %s's file with her own login" %
+              (me, other))
+        check(code("") in ("401", "403"),
+              "tls DAV: an anonymous client cannot read %s's file" % other)
+        check(code("-u %s:%s -T /tmp/f.txt" % (me, PW[me])) in
+              ("401", "403", "405"),
+              "tls DAV: %s cannot overwrite %s's file" % (me, other))
+        check(code("-u %s:wrong" % other) == "401",
+              "tls DAV: a wrong password for %s is refused" % other)
+        r = pm.out(mc, cu(me, "-u %s:%s -X MKCOL" % (me, PW[me]),
+                          "%s/%s/intruder" % (B, other)))[0].strip()
+        check(r in ("401", "403"), "tls DAV: %s cannot create under %s's "
+              "home (%s)" % (me, other, r))
+    for c in ("talice",):
+        o, rc = pm.out(c, "timeout 10 mosquitto_pub -h tsrv -p 8088 -u alice "
+                       "-P %s -t ecce/alice/x -m plain -q 1" % PW["alice"])
+        check(rc != 0, "tls: a plain MQTT client gets no answer on 8088", o)
+    o, rc = pm.out("talice", "timeout 10 mosquitto_pub -h tsrv -p 8883 -u "
+                   "alice -P %s -t ecce/alice/x -m x -q 1 --insecure" %
+                   PW["alice"])
+    check(rc != 0, "tls: MQTT on 8883 without a trusted certificate is "
+          "refused (control for the pin)", o)
+    key = (state.get("alice", {}).get("sessions") or ["broker_x_k0"])[0][7:]
+    delivery(pm, "tsrv", 8883, "tls", key, "talice", "tbob")
+
+    # eve pinned a certificate that is not the server's.
+    o, rc = pm.out("teve", "ecce-remote-setup tsrv --tls --fetch-pin")
+    check(rc == 0, "tls: eve is set up with --fetch-pin first", o)
+    pm.sh("teve", "openssl req -x509 -newkey rsa:2048 -nodes -days 3 "
+          "-subj /CN=other -keyout /tmp/o.key -out /tmp/o.pem 2>/dev/null && "
+          "cp /tmp/o.pem /opt/ecce/siteconfig/RemoteServer/server.pem")
+    r = pm.out("teve", "curl -s -o /dev/null -w %{http_code} "
+               "--cacert /opt/ecce/siteconfig/RemoteServer/server.pem "
+               "https://tsrv:8443/Ecce/system/siteconfig/MANIFEST")
+    check(r[0].strip() == "000", "tls: eve's pin is another certificate; "
+          "the server's is not accepted by it")
+    o, rc = pm.out("teve", "ecce-remote-setup tsrv --tls --pin /tmp/o.pem")
+    check(rc != 0, "tls: ecce-remote-setup with that wrong pin is refused", o)
+    o, rc = pm.out("teve", "python3 /harness/guest.py start-refused eve "
+                   "%s tsrv" % PW["alice"], "eve", timeout=240)
+    try:
+        s = json.loads(o.strip().splitlines()[-1])
+    except Exception:
+        s = {}
+    msg = (s.get("log") or "") + " " + " ".join(s.get("titles") or [])
+    check(s and not s.get("organizer"),
+          "tls: eve's `ecce -remote` does not open an Organizer", json.dumps(s))
+    check("certificate" in msg.lower(),
+          "tls: what eve sees names the certificate (titles %s)" %
+          s.get("titles"), s.get("log"))
+    log, _ = pm.out("tsrv", "cat ~/.ECCE/dataserver/logs/access_log", "ecce")
+    ip = pm.out("teve", "hostname -i")[0].split()[0]
+    check(not any(l.startswith(ip + " ") and " 207 " in l
+                  for l in log.splitlines()),
+          "tls: nothing of eve's was answered by the server")
+    for c, u in (("talice", "alice"), ("tbob", "bob")):
+        pm.out(c, "python3 /harness/guest.py close", u, timeout=120)
+    b = captured(pm, "tbob", "tpb")
+    seen = [l for l in b.splitlines() if l.startswith("ecce/alice/")
+            and "ecce_machreg_changed" not in l and "A-" not in l
+            and "B-" not in l]
+    check(not seen, "tls real traffic: of everything alice's programs "
+          "published, bob's ecce/# subscription received none", "\n".join(seen[:5]))
+
+
+PARTS = ("setup", "clients", "isolation", "session-end", "systemd", "tls")
 
 
 def main():
@@ -412,11 +598,16 @@ def main():
         image = build_image(pk, a.logdir)
         print("image", image, "from", ", ".join(map(os.path.basename,
                                                      pk.values())))
-        setup(pm, image)
+        pm.p("network", "create", pm.net)
+        plain = [x for x in only if x != "tls"]
+        if plain:
+            setup(pm, image)
         # Passive capture from before any session: whatever alice's real
         # programs publish must never reach bob.
-        watch(pm, "bob", "srv", 8088, "bob", PW["bob"], ["ecce/#"], "pb")
-        watch(pm, "alice", "srv", 8088, "alice", PW["alice"], ["ecce/#"], "pa")
+        if plain:
+            watch(pm, "bob", "srv", 8088, "bob", PW["bob"], ["ecce/#"], "pb")
+            watch(pm, "alice", "srv", 8088, "alice", PW["alice"],
+                  ["ecce/#"], "pa")
         state = {}
         if "clients" in only or "isolation" in only or "session-end" in only:
             state = clients(pm)
@@ -434,6 +625,8 @@ def main():
                   len(al.splitlines()), "\n".join(seen[:5]))
         if "systemd" in only:
             systemd(pm, image)
+        if "tls" in only:
+            tls(pm, image)
     except Exception as e:
         check(False, "harness error: %s" % e)
     finally:
@@ -444,10 +637,15 @@ def main():
         for c, f in (("srv", "~/.ECCE/mosquitto.log"),
                      ("srv", "~/.ECCE/dataserver/logs/*_log"),
                      ("alice", "~/ecce-session.log"),
-                     ("bob", "~/ecce-session.log")):
+                     ("bob", "~/ecce-session.log"),
+                     ("tsrv", "~/.ECCE/mosquitto.log"),
+                     ("tsrv", "~/.ECCE/dataserver/logs/*_log"),
+                     ("talice", "~/ecce-session.log"),
+                     ("tbob", "~/ecce-session.log"),
+                     ("teve", "~/ecce-session.log")):
             try:
                 o, _ = pm.out(c, "tail -n 200 %s" % f,
-                              "ecce" if c == "srv" else c)
+                              "ecce" if c.endswith("srv") else c.lstrip("t"))
                 open(os.path.join(a.logdir, "%s-%s.txt" % (
                     c, os.path.basename(f.replace("*", "all")))), "w").write(o)
             except Exception:

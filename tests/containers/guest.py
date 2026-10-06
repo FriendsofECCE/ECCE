@@ -2,6 +2,9 @@
 """Runs INSIDE a test container (mounted at /harness) as a client account.
 
   guest.py start <user> <password> <server>   Xvfb + `ecce -remote`, logged in
+  guest.py start-refused <user> <password> <server>
+                                              the same, expecting no Organizer;
+                                              reports what the session shows
   guest.py close                              close the Organizer like a WM
   guest.py state                              one JSON line: what is running
 
@@ -53,10 +56,11 @@ def procs():
 
 def broker_connections():
     out = subprocess.run(["ss", "-tnpH"], capture_output=True, text=True).stdout
-    return [l for l in out.splitlines() if ":8088" in l and "gateway" in l]
+    return [l for l in out.splitlines()
+            if (":8088" in l or ":8883" in l) and "gateway" in l]
 
 
-def start(user, password, server):
+def start(user, password, server, expect_login=True):
     subprocess.Popen(["Xvfb", DISPLAY, "-screen", "0", "1280x1024x24",
                       "-nolisten", "tcp"], stdout=subprocess.DEVNULL,
                      stderr=subprocess.DEVNULL, start_new_session=True)
@@ -69,11 +73,16 @@ def start(user, password, server):
         subprocess.Popen(["ecce", "-remote"], env=env(), stdout=log,
                          stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                          start_new_session=True)
-    deadline = time.time() + 150
+    deadline = time.time() + (150 if expect_login else 75)
     typed = 0
+    t0 = time.time()
     while time.time() < deadline:
         ws = windows()
         if any("Organizer" in t for _, t in ws):
+            break
+        # `ecce` has ended without a window: nothing more will appear.
+        if not expect_login and time.time() - t0 > 20 and not procs() \
+                and not ws:
             break
         auth = next((w for w, t in ws if t == "ECCE Authentication"), None)
         if auth and typed < 4:
@@ -91,6 +100,11 @@ def start(user, password, server):
     time.sleep(3)
     sessions = [f for f in os.listdir(os.path.expanduser("~/.ECCE"))
                 if f.startswith("broker_")]
+    if not expect_login:
+        print(json.dumps({"organizer": org, "titles": [t for _, t in ws if t],
+                          "log": open(LOG).read()[-3000:],
+                          "procs": procs()}))
+        return
     print(json.dumps({"organizer": org, "titles": [t for _, t in ws if t],
                       "sessions": sessions, "procs": procs(),
                       "broker": len(broker_connections())}))
@@ -136,6 +150,8 @@ if __name__ == "__main__":
     cmd = sys.argv[1]
     if cmd == "start":
         start(*sys.argv[2:5])
+    elif cmd == "start-refused":
+        start(*sys.argv[2:5], expect_login=False)
     elif cmd == "close":
         close()
     elif cmd == "state":
