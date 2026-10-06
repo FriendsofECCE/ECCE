@@ -19,6 +19,10 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "..", "apps"))
+import xdisplay  # noqa: E402
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 LIBS = ["eccewxgui", "eccewxplotctrl", "eccewxthings", "eccewxgui",
@@ -61,7 +65,8 @@ def got_final(lines):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--libdir", default=os.path.join(ROOT, "build-cmake"))
-    ap.add_argument("--display", default=":184")
+    ap.add_argument("--display", default=None,
+                    help="X display number to use (default: a free one)")
     o = ap.parse_args()
 
     per = masks()
@@ -109,11 +114,11 @@ def main():
              "./water.xyz": os.path.join(data, "water.xyz"),
              "sub/b.xyz": os.path.join(data, "sub", "b.xyz"),
              "~/h.xyz": os.path.join(home, "h.xyz")}
+    xvfb = xdisplay.Display(number=int(o.display.lstrip(":")) if o.display else None,
+                              screen="1400x900x24").__enter__()
+    o.display = xvfb.name
     env = dict(os.environ, DISPLAY=o.display, HOME=home, FD_RESTORE="1",
                ECCE_REALUSERHOME=home, ECCE_HOME=ROOT, ECCE_NO_MESSAGING="1")
-    xvfb = subprocess.Popen(["Xvfb", o.display, "-screen", "0", "1400x900x24"],
-                            stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL)
     failures = 0
     try:
         import time
@@ -196,8 +201,7 @@ def main():
                         failures += 1
             print("%s: %d filters checked; %s" % (size, len(labels), dlg))
     finally:
-        xvfb.terminate()
-        xvfb.wait()
+        xvfb.__exit__()
         shutil.rmtree(work, True)
     print("PASS" if not failures else "%d failure(s)" % failures)
     return 1 if failures else 0

@@ -56,8 +56,9 @@ def findXvfb():
 class Display(object):
     """An Xvfb instance, and the X queries the suite needs against it."""
 
-    def __init__(self, number=None, pidfile=None):
+    def __init__(self, number=None, pidfile=None, screen=None):
         self.binary = findXvfb()
+        self.screen = screen or SCREEN
         self.number = number
         self.proc = None
         #  Where this instance's own pid is recorded, so a NEXT run of the
@@ -82,7 +83,7 @@ class Display(object):
             self.number = _freeDisplay()
         if self.number is not None:
             argv.append(":%d" % self.number)
-        argv += ["-screen", "0", SCREEN, "-nolisten", "tcp"]
+        argv += ["-screen", "0", self.screen, "-nolisten", "tcp"]
         self.proc = subprocess.Popen(
             argv, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
             pass_fds=passFds)

@@ -10,6 +10,7 @@ class WxUnitsPrompt : public WxUnitsPromptGUI
 
     string getUnits() const;
     bool   getGenBonds() const;
+    virtual int ShowModal();
 };
 
 #endif // WXUNITSPROMPT_H_

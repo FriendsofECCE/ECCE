@@ -353,7 +353,7 @@ def _openCalculation(display, results, verbose):
 #  calculation: its getProperty() throws, and code that assumed a calculation
 #  took the Builder down with it.  No .xyz: it opens a modal units prompt
 #  first, which nothing here can answer.
-STRUCTURE_FILES = ("glycine.pdb", "benzene.car")
+STRUCTURE_FILES = ("glycine.pdb", "benzene.car", "benzene.xyz")
 
 #  An uncaught exception is reported this way before the abort.
 THROW_MARKERS = ("Throw Log", "Unhandled standard exception",
@@ -398,7 +398,9 @@ def _openStructureFiles(display, results, verbose, data, base):
                               settle=60,
                               env={"ECCE_PANEL_MODE": mode,
                                    "ECCE_VIEWER_SCENE": script,
-                                   "ECCE_VIEWER_SCENE_OUT": out})
+                                   "ECCE_VIEWER_SCENE_OUT": out,
+                                   #  answers the XYZ units prompt
+                                   "ECCE_TEST_XYZ_UNITS": "angstrom"})
             markers = [m for m in CRASH_MARKERS + THROW_MARKERS
                        if m.lower() in result.log.lower()]
             failed = os.path.join(out, "FAILED")

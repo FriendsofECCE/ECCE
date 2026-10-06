@@ -1,5 +1,6 @@
 
 #include "wx/wx.h"
+#include <cstdlib>
 
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxCheckBox.H"
@@ -27,4 +28,19 @@ string WxUnitsPrompt::getUnits() const
 bool WxUnitsPrompt::getGenBonds() const
 {
   return p_genBonds->IsChecked();
+}
+
+int WxUnitsPrompt::ShowModal()
+{
+  // Test hook: ECCE_TEST_XYZ_UNITS=<angstrom|bohr|picometer|nanometer> answers
+  // the prompt without showing it, for headless runs of the XYZ readers.
+  const char *units = getenv("ECCE_TEST_XYZ_UNITS");
+  if (units) {
+    wxString name = wxString(units).Lower();
+    int sel = name.StartsWith("bohr") ? 1 : name.StartsWith("pico") ? 2
+            : name.StartsWith("nano") ? 3 : 0;
+    p_units->SetSelection(sel);
+    return wxID_OK;
+  }
+  return WxUnitsPromptGUI::ShowModal();
 }
