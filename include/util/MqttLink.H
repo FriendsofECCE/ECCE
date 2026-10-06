@@ -57,6 +57,10 @@ struct MqttConfig {
   std::string socket;      // Unix-socket broker, or
   std::string host;        // host + port
   int port = 1883;
+  bool tls = false;        // tls=1: the broker speaks TLS on host:port
+  std::string cafile;      // trust anchor: the pinned server certificate, or
+  std::string capath;      // the system's CA directory (no pin)
+  bool pinned = false;     // pinned=1: the exact certificate is the anchor
   std::string user;        // topic user
   std::string sessionKey;  // Ecce::sessionKey(): <host>_<session id>
 
@@ -168,6 +172,7 @@ private:
   ~MqttLink();
   static void onConnect(mosquitto*, void*, int rc, int flags,
                         const mqtt5__property*);
+  static void onLog(mosquitto*, void*, int level, const char* str);
   static void onDisconnect(mosquitto*, void*, int rc, const mqtt5__property*);
   static void onMessage(mosquitto*, void*, const mosquitto_message*,
                         const mqtt5__property*);

@@ -226,6 +226,8 @@ ecce_library(eccetdat
 # --- src/dsm -> 5 separate libraries, matching the old per-subdir mapping ---
 ecce_library(eccexml    src/dsm/chemistry src/dsm/xml)
 ecce_library(eccecipc   src/dsm/cipc)
+find_package(OpenSSL REQUIRED)
+target_link_libraries(eccecipc PUBLIC OpenSSL::SSL OpenSSL::Crypto)
 ecce_library(eccedav    src/dsm/dav)
 ecce_library(eccedsi    src/dsm/edsiimpl)
 ecce_library(eccefaces  src/dsm/faces)
@@ -336,9 +338,12 @@ target_link_libraries(eccewxgui PRIVATE ${wxWidgets_LIBRARIES})
 # ewxApp.C installs a g_log_set_writer_func() filter for a known-benign
 # wxWidgets/GTK3 backend warning (see the comment there) -- needs GLib's
 # own headers directly, which wxWidgets_INCLUDE_DIRS doesn't expose.
-pkg_check_modules(GLIB2 REQUIRED glib-2.0)
-target_include_directories(eccewxgui PRIVATE ${GLIB2_INCLUDE_DIRS})
-target_link_libraries(eccewxgui PRIVATE ${GLIB2_LIBRARIES})
+# GTK only: wx's macOS and Windows ports do not use GLib.
+if(NOT APPLE)
+  pkg_check_modules(GLIB2 REQUIRED glib-2.0)
+  target_include_directories(eccewxgui PRIVATE ${GLIB2_INCLUDE_DIRS})
+  target_link_libraries(eccewxgui PRIVATE ${GLIB2_LIBRARIES})
+endif()
 
 # ewxRaiseWindow() (ewxWindowUtils.C) calls gtk_window_present*() and, on an
 # X11 display only, gdk_x11_get_server_time() (#120); needs gtk+-3.0 headers
@@ -533,6 +538,11 @@ function(ecce_fortran_app name)
   # doesn't know that and refuses to build with a shared output).
   set_target_properties(${name} PROPERTIES
     Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${name}.mod)
+  # The Fortran runtime comes with the compiler, not the OS: link it in
+  # so the app bundles no libgfortran and its minimum macOS stays ours.
+  if(APPLE)
+    target_link_options(${name} PRIVATE -static-libgfortran -static-libgcc -static-libquadmath)
+  endif()
 endfunction()
 
 set(_sym_dir ${CMAKE_SOURCE_DIR}/src/apps/symmetry)
@@ -1350,9 +1360,12 @@ set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 # perl: the whole job pipeline (ai.<code>, *.expt, gensub,
 # eccejobmonitor, processmachine) is Perl, and Getopt::Std and
 # Sys::Hostname are in perl-modules, which perl-base alone lacks.
+# openssl: ecce-remote-setup --tls makes and checks certificates with the
+# command line tool (#236); the libraries come from shlibdeps. Apache's
+# mod_ssl is in the apache2 package on Debian but its own package on RPM.
 # xterm: editing an input file with the default editor (vi) opens it in
 # an xterm (UserEditor.C).
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, mosquitto, libaprutil1, perl, xterm")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, mosquitto, libaprutil1, perl, xterm, openssl")
 # NWChem is a real Debian package (confirmed working: /usr/bin/nwchem,
 # symlinked to nwchem.openmpi by the package itself) and the auto-register-
 # this-machine flow (RunMgmt::registerLocalMachine()) defaults new machine
@@ -1407,7 +1420,7 @@ if(RPMBUILD_EXECUTABLE)
   set(CPACK_RPM_PACKAGE_LICENSE "ECL-2.0")
   set(CPACK_RPM_PACKAGE_GROUP "Applications/Engineering")
   set(CPACK_RPM_PACKAGE_URL "https://github.com/FriendsofECCE/ECCE")
-  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, python3-wxpython4, perl, xterm, mosquitto, apr-util${_coin_rpm}")
+  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, mod_ssl, openssl, python3-wxpython4, perl, xterm, mosquitto, apr-util${_coin_rpm}")
   set(CPACK_RPM_PACKAGE_SUGGESTS "nwchem, openssh-clients, firefox")
   set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
   #  /opt/ecce is ours, but /opt itself is owned by filesystem(5).  Without
@@ -1551,7 +1564,7 @@ if(ECCE_SPLIT_PACKAGES)
   # -remote client only needs the library, and the package's own system
   # service is of no use to it.
   set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS
-      "python3-wxgtk4.0, perl, xterm, libmosquitto1, curl")
+      "python3-wxgtk4.0, perl, xterm, libmosquitto1, curl, openssl")
   # A client on the SAME machine as a server benefits from it (the
   # default "everything on one box" case this project still ships), but
   # a client of an already-central server (#167/#138 -- the teaching
@@ -1574,7 +1587,7 @@ if(ECCE_SPLIT_PACKAGES)
   # (launchjob, eccejobmaster, eccejobstore) ship in ecce-client, and a server
   # needs them, so the server brings the client -- GUI libraries included,
   # unused on a headless box. Accepted rather than a third package.
-  set(CPACK_DEBIAN_SERVER_PACKAGE_DEPENDS "apache2, apache2-utils, mosquitto, libaprutil1, ecce-client (= ${_ecce_deb_version})")
+  set(CPACK_DEBIAN_SERVER_PACKAGE_DEPENDS "apache2, apache2-utils, mosquitto, libaprutil1, openssl, ecce-client (= ${_ecce_deb_version})")
   set(CPACK_DEBIAN_SERVER_PACKAGE_BREAKS "ecce (<< ${ECCE_MONOLITHIC_BREAK_VERSION})")
   set(CPACK_DEBIAN_SERVER_PACKAGE_REPLACES "ecce (<< ${ECCE_MONOLITHIC_BREAK_VERSION})")
 
@@ -1587,7 +1600,7 @@ if(ECCE_SPLIT_PACKAGES)
     set(CPACK_RPM_CLIENT_FILE_NAME RPM-DEFAULT)
     # mosquitto provides both the library and the broker on RPM distros.
     set(CPACK_RPM_CLIENT_PACKAGE_REQUIRES
-        "python3-wxpython4, perl, xterm, mosquitto, curl${_coin_rpm}")
+        "python3-wxpython4, perl, xterm, mosquitto, curl, openssl${_coin_rpm}")
     set(CPACK_RPM_CLIENT_PACKAGE_SUGGESTS
         "ecce-server, nwchem, openssh-clients, firefox")
     # RPM has no direct Breaks/Replaces pair; Obsoletes+Provides is the
@@ -1600,7 +1613,7 @@ if(ECCE_SPLIT_PACKAGES)
     set(CPACK_RPM_CLIENT_PACKAGE_CONFLICTS "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
     set(CPACK_RPM_SERVER_PACKAGE_NAME "ecce-server")
     set(CPACK_RPM_SERVER_FILE_NAME RPM-DEFAULT)
-    set(CPACK_RPM_SERVER_PACKAGE_REQUIRES "httpd, httpd-tools, mosquitto, apr-util, ecce-client = ${_ecce_deb_version}")
+    set(CPACK_RPM_SERVER_PACKAGE_REQUIRES "httpd, httpd-tools, mod_ssl, openssl, mosquitto, apr-util, ecce-client = ${_ecce_deb_version}")
     set(CPACK_RPM_SERVER_PACKAGE_OBSOLETES "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
     set(CPACK_RPM_SERVER_PACKAGE_CONFLICTS "ecce < ${ECCE_MONOLITHIC_BREAK_VERSION}")
     set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "/opt")
@@ -1682,6 +1695,30 @@ if(TARGET ecce_users_auth)
   set_tests_properties(mqtt-auth-plugin PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
 endif()
 set_tests_properties(mqtt mqtt-auth PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+
+# tests/tls -- https data-server client (#236): pinned certificate, CA mode
+# with host-name check, certificate rejection, no fallback to plain http.
+# Needs python3 and the openssl command line; SKIPs (77) without them.
+add_executable(tls_client_test tests/tls/tls_client_test.C)
+target_include_directories(tls_client_test PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(tls_client_test PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${XercesC_LIBRARIES})
+add_test(NAME tls_client
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/tls/run_tests.py
+                 $<TARGET_FILE:tls_client_test> ${CMAKE_BINARY_DIR}/tls-test)
+set_tests_properties(tls_client PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+
+# The central server over TLS (#236): the real data server and broker scripts
+# on loopback with a fresh certificate, then the clients with and without
+# the right pin.
+add_executable(tls_broker_test tests/tls/tls_broker_test.C)
+target_include_directories(tls_broker_test PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(tls_broker_test PRIVATE ecceutil ${XercesC_LIBRARIES})
+add_test(NAME tls_server
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/tls/server_tls.py
+                 $<TARGET_FILE:tls_client_test> $<TARGET_FILE:tls_broker_test>
+                 ${CMAKE_BINARY_DIR} ${CMAKE_BINARY_DIR}/tls-server-test)
+set_tests_properties(tls_server PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
 if(PYTHON3_EXECUTABLE)
   add_test(NAME parsers
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -1952,6 +1989,11 @@ if(PYTHON3_EXECUTABLE)
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/fragreaders-home)
   set_tests_properties(fragreaders PROPERTIES ENVIRONMENT
     "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
+  # Same under a decimal-comma locale; skipped (77) where it is not installed.
+  add_test(NAME fragreaders_de
+           COMMAND fragreaders ${CMAKE_CURRENT_SOURCE_DIR}/tests/fragreaders/data)
+  set_tests_properties(fragreaders_de PROPERTIES SKIP_RETURN_CODE 77 ENVIRONMENT
+    "LC_ALL=de_DE.utf8;ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
 
   add_test(NAME launch
            COMMAND ${PYTHON3_EXECUTABLE}

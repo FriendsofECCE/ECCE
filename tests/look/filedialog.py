@@ -89,7 +89,7 @@ def main():
     b = out(["nice", "-n", "19", "g++", "-std=c++17", "-w", "-o", binary]
             + srcs + ["-I" + os.path.join(ROOT, "include")] + cxx
             + ["-L" + o.libdir] + ["-l" + lib for lib in LIBS] + wxl
-            + ["-lxerces-c", "-lssh", "-lmosquitto"])
+            + ["-lxerces-c", "-lssh", "-lmosquitto", "-lssl", "-lcrypto"])
     if b.returncode:
         print(b.stderr[-3000:])
         return 1

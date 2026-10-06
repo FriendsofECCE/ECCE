@@ -107,7 +107,8 @@ bool NModeVectCmd::execute()
       //  A zero mode has no motion to show, so the right amplitude is one
       //  that leaves the geometry exactly where it is.
       if ( factor == -1.0) {
-         scale = (maxnorm > 0.0) ? 0.5/maxnorm : 0.0;
+         // The longest arrow's tip (1.075 |d|) lands 1 A from its atom.
+         scale = (maxnorm > 0.0) ? (1.0/1.075)/maxnorm : 0.0;
       } else {
          scale = factor;
       }
@@ -130,8 +131,11 @@ bool NModeVectCmd::execute()
 
          // vect mode vector
          VRVector * dip = new VRVector;
+         dip->fixedThickness(true);
          dip->position(cx,cy,cz); 
          dip->direction(dx,dy,dz );
+         // Start on the drawn sphere, so the arrow is not inside its atom.
+         dip->startRadius(sg->displayedSphereRadius(j));
          dip->setColor(color->red(), color->green(), color->blue());
          //dip->scaleFactor(scale, scale, scale) ;
          sg->getNMVecRoot()->addChild(dip);

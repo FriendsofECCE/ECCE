@@ -266,8 +266,21 @@ jobs:
 
   macos:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'macos' }}
-    name: macOS (Homebrew)
-    runs-on: macos-latest
+    name: macOS (${{ matrix.arch }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest, arch: arm64, target: "11.0", experimental: false }
+          # Catalina: the oldest macOS many 2012-2014 Intel Macs can run.
+          - { os: macos-15-intel, arch: x86_64, target: "10.15", experimental: true }
+    env:
+      # Oldest macOS the app is built for (#133).  Our code and every
+      # bundled library are built to this; the minimum-macOS step fails
+      # the job on any Mach-O above it.
+      MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
+      ECCE_DEPS: /Users/runner/ecce-deps
     # Bounded so a hung job cannot hold a runner slot for GitHub's
     # 6-hour default; see the concurrency note above.
     timeout-minutes: 90
@@ -278,22 +291,50 @@ jobs:
     # here to track the gap with a real, current compile log instead of
     # nothing -- it's expected to fail until #3 gets real porting work,
     # not a sign the workflow itself is broken.
-    continue-on-error: true
+    # x86_64 may fail until it is proven; arm64 must be green.
+    continue-on-error: ${{ matrix.experimental }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install build dependencies
-        run: |
-          brew install cmake ninja wxwidgets xerces-c mosquitto gcc libssh pkgconf
-          # The vendored Inventor core needs GLX and pre-C++17 code that
-          # Apple's compiler rejects; the Coin build (#166) skips it.
-          brew install coin3d || { echo "::error::Homebrew has no coin3d formula"; exit 1; }
+      - name: Install build tools
+        # Only tools: the libraries come from build-deps.sh, because
+        # Homebrew bottles are built for the runner's own macOS.
+        run: brew install cmake ninja pkgconf gcc bash
+
+      - name: Cache libraries built for macOS ${{ env.MACOSX_DEPLOYMENT_TARGET }}
+        id: deps
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.ECCE_DEPS }}
+          key: macos-deps-${{ matrix.arch }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ hashFiles('packaging/macos/build-deps.sh') }}
+
+      - name: Build libraries (wxWidgets, Coin, Xerces, Mosquitto, libssh, OpenSSL)
+        if: steps.deps.outputs.cache-hit != 'true'
+        run: packaging/macos/build-deps.sh "$ECCE_DEPS"
+
+      - name: Save the libraries
+        if: steps.deps.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.ECCE_DEPS }}
+          key: ${{ steps.deps.outputs.cache-primary-key }}
 
       - name: Configure
         # ECCE_HOME_DIR/ECCE_WRAPPER_DESTINATION point the install at a
         # staging tree inside the workspace for the run step below.
+        # Homebrew's prefixes are ignored so nothing is picked up from
+        # them by accident.
         run: |
-          cmake -G Ninja -B build-cmake -DECCE_USE_COIN=ON -DCMAKE_PREFIX_PATH="$(brew --prefix)" \
+          export PATH="$ECCE_DEPS/bin:$PATH"
+          export PKG_CONFIG_LIBDIR="$ECCE_DEPS/lib/pkgconfig"
+          cmake -G Ninja -B build-cmake -DECCE_USE_COIN=ON \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET="$MACOSX_DEPLOYMENT_TARGET" \
+            -DCMAKE_PREFIX_PATH="$ECCE_DEPS" \
+            -DCMAKE_IGNORE_PREFIX_PATH="/opt/homebrew;/usr/local" \
+            -DCMAKE_MAKE_PROGRAM="$(command -v ninja)" -DPKG_CONFIG_EXECUTABLE="$(command -v pkg-config)" \
+            -DCMAKE_Fortran_COMPILER="$(ls $(brew --prefix)/bin/gfortran-* | head -1)" \
+            -DFREETYPE_UNQUALIFIED_INCLUDE_DIR="$ECCE_DEPS/include/freetype2/freetype" \
+            -DFREETYPE_ROOT_INCLUDE_DIR="$ECCE_DEPS/include/freetype2" \
             -DECCE_HOME_DIR="$PWD/stage/ecce" -DECCE_WRAPPER_DESTINATION="$PWD/stage/bin" \
             -DCMAKE_INSTALL_PREFIX="$PWD/stage/ecce"
 
@@ -308,7 +349,7 @@ jobs:
         continue-on-error: true
         timeout-minutes: 25
         run: |
-          brew install bash || true
+          export PATH="$ECCE_DEPS/sbin:$ECCE_DEPS/bin:$PATH"
           cmake --install build-cmake
           tests/macos/run.sh stage macos-run
           cat macos-run/summary.txt >> "$GITHUB_STEP_SUMMARY"
@@ -316,6 +357,70 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: macos-run
+          name: macos-run-${{ matrix.arch }}
           path: macos-run/
+          if-no-files-found: ignore
+
+      # ECCE.app in a .dmg (#133), then the start test again on a copy of
+      # the app taken out of the mounted image, away from the build tree.
+      # The two steps below fail the job when they fail.  The job itself
+      # is continue-on-error (the native build is still experimental), so
+      # the workflow stays green but the job and these steps show red and
+      # the summary says FAILED.
+      - name: Package ECCE.app
+        run: |
+          export PATH="$ECCE_DEPS/bin:$PATH"
+          packaging/macos/make-app.sh stage dist
+
+      # Oldest macOS the bundle can run on (#133): the step fails when any
+      # Mach-O needs more than the deployment target or is not this runner's arch.
+      - name: Minimum macOS of every Mach-O in the app
+        run: |
+          mkdir -p minos
+          app=$(mktemp -d)
+          mnt=$(mktemp -d)
+          hdiutil attach dist/ECCE-*.dmg -mountpoint "$mnt" -nobrowse -quiet
+          cp -R "$mnt/ECCE.app" "$app/"
+          hdiutil detach "$mnt" -quiet
+          python3 packaging/macos/minos.py "$app/ECCE.app" minos/minos.txt \
+            --floor "$MACOSX_DEPLOYMENT_TARGET" --arch "${{ matrix.arch }}" > /dev/null || rc=$?
+          echo "runner: $(sw_vers -productVersion) $(uname -m)" >> minos/minos.txt
+          { echo '### Minimum macOS (ECCE.app)'; echo '```';
+            sed -n '/^Mach-O files/,$p' minos/minos.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit ${rc:-0}
+
+      - name: Run the packaged app
+        if: always() && hashFiles('dist/*.dmg') != ''
+        timeout-minutes: 25
+        run: |
+          pkill -f "$PWD/stage" || true
+          mnt=$(mktemp -d)
+          hdiutil attach dist/ECCE-*.dmg -mountpoint "$mnt" -nobrowse -quiet
+          appdir=$(mktemp -d)
+          cp -R "$mnt/ECCE.app" "$appdir/"
+          hdiutil detach "$mnt" -quiet
+          # The build tree and the staging prefix must not be needed.
+          mv build-cmake build-cmake.gone
+          mv stage stage.gone
+          ECCE_APP="$appdir/ECCE.app" tests/macos/run.sh "$appdir/ECCE.app/Contents/Resources" macos-app-run
+          cat macos-app-run/summary.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Summary on failure
+        if: failure()
+        run: echo '### macOS packaging FAILED (see the failed step above)' >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ECCE-macos-dmg-${{ matrix.arch }}
+          path: |
+            dist/*.dmg
+            minos/minos.txt
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macos-app-run-${{ matrix.arch }}
+          path: macos-app-run/
           if-no-files-found: ignore

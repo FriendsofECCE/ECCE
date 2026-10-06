@@ -76,7 +76,8 @@ public:
     UNABLE_TO_COMPLETE_REQUEST,
     UNABLE_TO_SEND_REQUEST,
     UNABLE_TO_GET_RESPONSE,
-    INTERRUPTED
+    INTERRUPTED,
+    CERTIFICATE_REJECTED    // https: server certificate failed verification
   };
 
   static string text(int key);

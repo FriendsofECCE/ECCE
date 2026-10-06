@@ -38,14 +38,55 @@ void VRVector::direction(double x, double y ,double z)
    p_direction[1] = y;
    p_direction[2] = z;
    float norm = sqrt( x*x + y*y + z*z);
-   transf->scaleFactor.setValue(norm,norm,norm);  
+   if (p_fixed) {
+      // Sizes in Angstrom, independent of the arrow's length; the head
+      // takes at most half of a short arrow.
+      const float tip = 1.075f*norm;
+      const float hl = (0.18f < 0.5f*tip) ? 0.18f : 0.5f*tip;
+      const float sl = tip - hl;
+      const bool none = (norm <= 0.f);
+      transf->scaleFactor.setValue(1,1,1);
+      scal->scaleFactor.setValue(1,1,1);
+      shaftTrans->translation.setValue(0, sl/2, 0);
+      shaft->height = sl;
+      shaft->radius = none ? 0.f : 0.035f;
+      headTrans->translation.setValue(0, sl/2 + hl/2, 0);
+      head->height = hl;
+      head->bottomRadius = none ? 0.f : 0.09f;
+   } else {
+      transf->scaleFactor.setValue(norm,norm,norm);
+   }
 
    SbVec3f vec((float) x,(float) y,(float) z);
    SbRotation rot( SbVec3f(0.,1.,0.), vec);
    
    transf->rotation = rot;
-  
-  
+   place();
+}
+
+/**
+ * Translation = centre + startRadius along the (unit) direction.
+ */
+void VRVector::place()
+{
+   double len = sqrt(p_direction[0]*p_direction[0] + p_direction[1]*p_direction[1]
+                     + p_direction[2]*p_direction[2]);
+   double k = (len > 0.0) ? p_startRadius/len : 0.0;
+   for (int i = 0; i < 3; i++) p_position[i] = p_center[i] + k*p_direction[i];
+   transf->translation.setValue((float)p_position[0], (float)p_position[1],
+                                (float)p_position[2]);
+}
+
+void VRVector::fixedThickness(bool on)
+{
+   p_fixed = on;
+   direction(p_direction[0], p_direction[1], p_direction[2]);
+}
+
+void VRVector::startRadius(double r)
+{
+   p_startRadius = r;
+   place();
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -54,10 +95,10 @@ void VRVector::direction(double x, double y ,double z)
 void VRVector::position(double x, double y ,double z)
 {
    
-   p_position[0] = x;
-   p_position[1] = y;
-   p_position[2] = z;
-   transf->translation.setValue( (float)  x,(float) y, (float)z);
+   p_center[0] = x;
+   p_center[1] = y;
+   p_center[2] = z;
+   place();
   
 }
 
@@ -114,6 +155,9 @@ VRVector::VRVector()
 /////////////////////////////////////////////////////////////////////////////
 void VRVector::constructor()
 {
+     p_fixed = false;
+     p_startRadius = 0.0;
+     for (int i = 0; i < 3; i++) p_direction[i] = p_center[i] = p_position[i] = 0.0;
      SoSeparator * sep = new SoSeparator;
      addChild(sep);
      
@@ -135,9 +179,11 @@ void VRVector::constructor()
      //scal->scaleFactor.setValue(ssc,1,ssc);
      SoTranslation * trans = new SoTranslation;
      sep1->addChild(trans);
+     shaftTrans = trans;
 
      trans->translation.setValue(0.,2.,0.);
      SoCylinder *  cylinder = new SoCylinder;
+     shaft = cylinder;
      sep1->addChild(cylinder);
      cylinder->height.setValue(4.);
      //cylinder->height.setValue(1.);
@@ -145,8 +191,10 @@ void VRVector::constructor()
 
      trans = new SoTranslation;
      sep1->addChild(trans);
+     headTrans = trans;
      trans->translation.setValue(0.,2.,0.);
      SoCone *  cone = new SoCone;
+     head = cone;
      cone->height = .6 ;
      cone->bottomRadius = .4 ;
      sep1->addChild(cone);

@@ -34,6 +34,7 @@ using std::vector;
 
 #include "util/Ecce.H"
 #include "util/BrowserHelp.H"
+#include "wxgui/WxHelpViewer.H"
 #include "util/CancelException.H"
 #include "util/CommandWrapper.H"
 #include "wxviz/ImageConverter.H"
@@ -179,6 +180,7 @@ using std::vector;
 #include "PropertyIndexPanel.H"
 #include "PropertyPanel.H"
 #include "MoPanel.H"
+#include "tdat/PropVector.H"
 #include "PropertyPanelFactory.H"
 #include "ShapeDropDown.H"
 #include "StructLib.H"
@@ -2652,8 +2654,7 @@ void Builder::helpSupportMenuitemClick( wxCommandEvent& event )
 
 void Builder::helpBuilderMenuitemClick( wxCommandEvent& event )
 {
-   BrowserHelp help;
-   help.showPage(help.URL("WxBuilder"));
+   WxHelpViewer::showKey("WxBuilder");
 
 }
 
@@ -4943,6 +4944,20 @@ void Builder::updatePropertyMenus()
     timer->StartOnce(1 + 1000 * (delay ? atoi(delay) : 0));
   }
 
+  //  ECCE_TEST_HELP=<png>: run Help > Builder, save the help window to
+  //  <png> and exit (tests/apps/help_test.py).
+  static bool helpStarted = false;
+  if (getenv("ECCE_TEST_HELP") && !helpStarted) {
+    helpStarted = true;
+    wxTimer *timer = new wxTimer();   // lives until the process exits
+    timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+      wxCommandEvent ev;
+      helpBuilderMenuitemClick(ev);
+      WxHelpViewer::testSnapshot("builder");
+    });
+    timer->StartOnce(1000);
+  }
+
   //  ECCE_TEST_SAVEAS=<type>|<path>[|<structure file>]: add the structure,
   //  if given, then open File > Save As, pick the first type whose label
   //  starts with <type>, save to <path> on the Local Filesystem, cancel the
@@ -5107,8 +5122,18 @@ void Builder::updatePropertyMenus()
       SceneScript run(viewer, sg, p_calculation, outdir);
       //  "mopanel <name>": press the MO panel's Compute, as a user would,
       //  recording every frame the Builder's own canvas paints meanwhile.
-      run.setExtension([this](SceneScript& s, const vector<string>& w) {
-        if (w[0] != "mopanel" || w.size() != 2)
+      run.setExtension([this, outdir](SceneScript& s, const vector<string>& w) {
+        //  "hold <seconds>": keep the event loop running, so the windows
+        //  can be captured from outside while the script waits.
+        if (w[0] == "hold" && w.size() == 2) {
+          wxLongLong end = wxGetLocalTimeMillis() + 1000 * atoi(w[1].c_str());
+          while (wxGetLocalTimeMillis() < end) {
+            wxTheApp->Yield(true);
+            wxMilliSleep(20);
+          }
+          return true;
+        }
+        if ((w[0] != "mopanel" && w[0] != "motable") || w.size() != 2)
           return s.fail("unknown command: " + w[0]);
         MoPanel *mo = 0;
         set<PropertyPanel*> panels =
@@ -5116,7 +5141,25 @@ void Builder::updatePropertyMenus()
         for (set<PropertyPanel*>::iterator it = panels.begin();
              it != panels.end() && !mo; ++it)
           mo = dynamic_cast<MoPanel*>(*it);
-        if (!mo) return s.fail("mopanel: no MO panel");
+        if (!mo) return s.fail(w[0] + ": no MO panel");
+        //  "motable <name>": the MO table's selection and scroll state, and
+        //  the alpha HOMO from the parsed occupations, -> <name>.txt.
+        if (w[0] == "motable") {
+          std::ofstream out(outdir + "/" + w[1] + ".txt");
+          out << mo->tableState();
+          PropVector *occ =
+              dynamic_cast<PropVector*>(p_calculation->getProperty("ORBOCC"));
+          if (occ) {
+            int homo = 0;
+            double sum = 0.0;
+            for (int i = 0; i < occ->rows(); i++) {
+              if (occ->value(i) > 0.0) homo = i + 1;
+              sum += occ->value(i);
+            }
+            out << "occHomo " << homo << "\n" << "occElectrons " << sum << "\n";
+          }
+          return true;
+        }
         return s.recordFrames(p_viewer, w[1], [mo]() {
           wxCommandEvent ev(wxEVT_BUTTON, MoGUI::ID_BUTTON_MO_COMPUTE);
           ev.SetEventObject(mo->FindWindow(MoGUI::ID_BUTTON_MO_COMPUTE));

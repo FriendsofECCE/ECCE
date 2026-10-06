@@ -23,7 +23,7 @@ It needs the `launchjob`, `eccejobmaster`, `eccejobstore` and `ecmd` targets.
    `nedruntype.py` run headlessly once each (tests/dialogs/harness.py), as
    CalcEd does, so a changed dialog default changes the deck.
 2. `tests/launch/harness.py` starts an isolated data server and broker
-   (own state `~/.cache/ecce-teach-state`, ports 8596/8588) and
+   (own per-run state `~/.cache/ecce-teach-<random>`, OS-chosen ports) and
    `launchjob` creates and launches each calculation on `localhost`/Shell
    through the real `Launch`; eccejobmaster/eccejobstore/eccejobmonitor run
    as in a session.

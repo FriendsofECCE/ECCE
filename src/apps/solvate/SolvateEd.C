@@ -2,6 +2,7 @@
   using std::ifstream;
 
 #include "util/BrowserHelp.H"
+#include "wxgui/WxHelpViewer.H"
 #include "util/TempStorage.H"
 #include "util/Ecce.H"
 #include "util/SDirectory.H"
@@ -429,8 +430,7 @@ void SolvateEd::OnExitClick( wxCommandEvent& event )
 
 void SolvateEd::OnHelpClick( wxCommandEvent& event )
 {
-  BrowserHelp help;
-  help.showPage(help.URL("CalculationEditor"));
+  WxHelpViewer::showKey("CalculationEditor");
 }
 
 

@@ -1,3 +1,4 @@
+#include <locale.h>
 #include <iostream>
   using namespace std;
 #include <cstring>
@@ -25,6 +26,7 @@
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxApp.H"
 
+#ifdef __WXGTK__
 #include <glib.h>
 
 namespace {
@@ -73,6 +75,7 @@ GLogWriterOutput filterKnownBenignGtkPizzaWarnings(GLogLevelFlags logLevel,
 }
 
 }  // namespace
+#endif  // __WXGTK__
 
 
 /**
@@ -91,7 +94,9 @@ ewxApp::~ewxApp()
  */
 bool ewxApp::OnInit()
 {
+#ifdef __WXGTK__
    g_log_set_writer_func(filterKnownBenignGtkPizzaWarnings, nullptr, nullptr);
+#endif
 
    wxInitAllImageHandlers();
 
@@ -104,6 +109,9 @@ bool ewxApp::OnInit()
    Bind(wxEVT_MENU, &ewxApp::OnAbout, this, wxID_ABOUT);
 
    Color::initialize();
+
+   // The toolkit's own init may have re-read the locale from the environment.
+   setlocale(LC_NUMERIC, "C");
 
    DavDebug::setDebugContext(("/tmp/dav" + getName()).c_str());
 

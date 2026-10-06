@@ -10,6 +10,7 @@
 #include <wx/combo.h>
 
 #include "util/BrowserHelp.H"
+#include "wxgui/WxHelpViewer.H"
 #include "util/ErrMsg.H"
 #include "util/InvalidException.H"
 #include "util/ResourceUtils.H"
@@ -942,8 +943,7 @@ void CalcEd::OnExitClick( wxCommandEvent& event )
 
 void CalcEd::OnHelpClick( wxCommandEvent& event )
 {
-  BrowserHelp help;
-  help.showPage(help.URL("CalculationEditor"));
+  WxHelpViewer::showKey("CalculationEditor");
 }
 
 

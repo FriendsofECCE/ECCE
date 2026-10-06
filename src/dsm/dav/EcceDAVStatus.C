@@ -169,6 +169,9 @@ string EcceDAVStatus::edsiMessage(int key)
     case INTERRUPTED:
       ret = "INTERRUPTED";
       break;
+    case CERTIFICATE_REJECTED:
+      ret = "CERTIFICATE_REJECTED";
+      break;
     default:
       ret = "UNKNOWN";
       break;
@@ -337,6 +340,10 @@ string EcceDAVStatus::text(int key)
       break;
     case INTERRUPTED:
       ret = "  Request interrupted by user.";
+      break;
+    case CERTIFICATE_REJECTED:
+      ret = "  The server's certificate was rejected; contact the "
+            "administrator.  ";
       break;
     default:
       ret = "  ECCE received status message code but is unknown to Ecce.";

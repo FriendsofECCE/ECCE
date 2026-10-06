@@ -29,6 +29,7 @@
 
 #include "util/LocalData.H"
 #include "util/BrowserHelp.H"
+#include "wxgui/WxHelpViewer.H"
 #include "util/Preferences.H"
 #include "util/PreferenceLabels.H"
 #include "util/JMSPublisher.H"
@@ -540,7 +541,7 @@ void Gateway::toolActivate(wxCommandEvent &event)
     break;
     
   case wxID_HELP:
-    BrowserHelp().showPage(BrowserHelp().URL(GATEWAY));
+    WxHelpViewer::showKey(GATEWAY);
     break;
 
   case wxID_FEEDBACK:

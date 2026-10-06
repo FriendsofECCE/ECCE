@@ -4,6 +4,8 @@
 #include "wx/wx.h"
 #endif
 
+#include "wx/dcclient.h"
+#include "wx/dcmemory.h"
 #include "wx/filename.h"
 #include "wx/sizer.h"
 #include "wx/splitter.h"
@@ -46,6 +48,67 @@ std::string WxHelpViewer::helpRef(const std::string& version)
     static const std::regex tagged(
         "[0-9]+\\.[0-9]+\\.[0-9]+(-(alpha|beta)\\.[0-9]+)?");
     return std::regex_match(version, tagged) ? "v" + version : "main";
+}
+
+
+std::string WxHelpViewer::pageForKey(const std::string& key)
+{
+    static const struct { const char* key; const char* page; } chapters[] = {
+        {"Organizer", "first-calculation.html#1-create-a-project"},
+        {"WxBuilder", "first-calculation.html#3-build-the-molecule"},
+        {"Builder", "first-calculation.html#3-build-the-molecule"},
+        {"CalculationEditor", "first-calculation.html#4-set-up-the-calculation"},
+        {"Launcher", "first-calculation.html#5-launch"},
+        {"MachineBrowser", "machines.html"},
+    };
+    std::string k = key.substr(0, key.find('.'));
+    for (const auto& c : chapters)
+        if (k == c.key)
+            return c.page;
+    return "index.html";
+}
+
+
+WxHelpViewer* WxHelpViewer::showKey(const std::string& key)
+{
+    return show(pageForKey(key));
+}
+
+
+bool WxHelpViewer::snapshot(const std::string& png)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        Update();
+        wxTheApp->Yield(true);
+        wxMilliSleep(50);
+    }
+    wxSize sz = GetClientSize();
+    wxClientDC screen(this);
+    wxBitmap bmp(sz.x, sz.y);
+    wxMemoryDC mem(bmp);
+    mem.Blit(0, 0, sz.x, sz.y, &screen, 0, 0);
+    mem.SelectObject(wxNullBitmap);
+    return bmp.ConvertToImage().SaveFile(wxString::FromUTF8(png.c_str()),
+                                         wxBITMAP_TYPE_PNG);
+}
+
+
+void WxHelpViewer::testSnapshot(const std::string& app)
+{
+    const char* png = getenv("ECCE_TEST_HELP");
+    if (png == NULL || *png == '\0')
+        return;
+    WxHelpViewer* v = instance();
+    bool saved = v != NULL && v->snapshot(png);
+    fprintf(stderr, "ECCE_TEST_HELP: %s: page %s, %s\n", app.c_str(),
+            v != NULL ? v->currentPage().c_str() : "(not installed)",
+            saved ? "saved" : "not saved");
+    if (v != NULL)
+        fprintf(stderr, "ECCE_TEST_HELP: %s: view %s\n", app.c_str(),
+                v->viewState().c_str());
+    fflush(stderr);
+    _exit(saved ? 0 : 1);
 }
 
 
@@ -110,6 +173,54 @@ WxHelpViewer::WxHelpViewer(const std::string& dir)
             p_toc->Append(l.Mid(tab + 1));
         }
     CentreOnScreen();
+    p_html->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
+        e.Skip();
+        CallAfter(&WxHelpViewer::scrollToAnchor);
+    });
+}
+
+
+//  The anchor heading's y (document pixels), the scroll offset and the
+//  visible height, in one line.
+std::string WxHelpViewer::viewState() const
+{
+    wxString a = p_html->GetOpenedAnchor();
+    int ppx = 0, ppy = 0, vx = 0, vy = 0, w = 0, h = 0, ay = -1;
+    p_html->GetScrollPixelsPerUnit(&ppx, &ppy);
+    p_html->GetViewStart(&vx, &vy);
+    p_html->GetClientSize(&w, &h);
+    wxHtmlCell* root = p_html->GetInternalRepresentation();
+    if (root != NULL && !a.empty())
+    {
+        const wxHtmlCell* c = root->Find(wxHTML_COND_ISANCHOR, &a);
+        if (c != NULL)
+            ay = c->GetAbsPos().y;
+    }
+    return wxString::Format("anchor_y=%d scroll_y=%d view_h=%d view_w=%d",
+                            ay, vy * ppy, h, w).ToStdString();
+}
+
+
+//  LoadPage() scrolls to the anchor in a layout made before the window has
+//  its size (20 px high, 0 wide); the text then reflows and the offset points
+//  elsewhere.  So scroll again once the window is on screen, and on each size
+//  event until then.
+void WxHelpViewer::scrollToAnchor()
+{
+    if (!p_scrollPending)
+        return;
+    wxString a = p_html->GetOpenedAnchor();
+    wxHtmlCell* root = p_html->GetInternalRepresentation();
+    if (!a.empty() && root != NULL)
+    {
+        const wxHtmlCell* c = root->Find(wxHTML_COND_ISANCHOR, &a);
+        int ppy = 0;
+        p_html->GetScrollPixelsPerUnit(NULL, &ppy);
+        if (c != NULL && ppy > 0)
+            p_html->Scroll(-1, c->GetAbsPos().y / ppy);
+    }
+    if (p_html->IsShownOnScreen() && p_html->GetClientSize().x > 100)
+        p_scrollPending = false;
 }
 
 
@@ -117,7 +228,8 @@ std::string WxHelpViewer::currentPage() const
 {
     wxString f = wxFileName(p_html->GetOpenedPage()).GetFullName();
     wxString a = p_html->GetOpenedAnchor();
-    if (!a.empty())
+    // GetOpenedPage() may already carry the anchor.
+    if (!a.empty() && f.Find('#') == wxNOT_FOUND)
         f += "#" + a;
     return std::string(f.utf8_str());
 }
@@ -126,6 +238,8 @@ std::string WxHelpViewer::currentPage() const
 void WxHelpViewer::load(const std::string& page)
 {
     p_html->LoadPage(wxString::FromUTF8((p_dir + "/" + page).c_str()));
+    p_scrollPending = true;
+    CallAfter(&WxHelpViewer::scrollToAnchor);
     wxString f = wxString::FromUTF8(page.substr(0, page.find('#')).c_str());
     int i = p_tocFiles.Index(f);
     if (i != wxNOT_FOUND)
