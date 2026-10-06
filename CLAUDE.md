@@ -53,7 +53,7 @@ subagent flags, directly.
   students connected to it as clients — this is the teaching use case
   and it is how the original PNNL deployment worked. Much of this fork's
   new work localises services *per user* (per-user Apache, per-user
-  Mosquitto, loopback-only `Listen`, per-`$DISPLAY` state files), and
+  Mosquitto, loopback-only `Listen`, per-session state files keyed by `ECCE_SESSION_ID` (#233)), and
   that direction is fine only for as long as the two-machine path keeps
   working. Treat `ECCE_REMOTE_SERVER`/`-remote` and
   `siteconfig/RemoteServer/` as first-class rather than a fallback, and
@@ -90,7 +90,7 @@ browse `docs/claude/<area>/index.md` for an overview.
   eccejobmonitor, how properties reach the Properties menu), the
   new-code checklist (ORCA, MOPAC), the input checker (#148).
 - `services/` — gateway, broker, per-user Apache data server, sessions
-  and session end, `$DISPLAY`-keyed state.
+  and session end, session state keyed by `ECCE_SESSION_ID` (#233; `$DISPLAY` only draws windows).
 - `mo-diagram/` — the MO correlation diagram (#132).
 - `wx-viewer/` — wx3.2/GTK3 pitfalls, the Open Inventor viewer's
   redraw, C++ pitfalls (iterator invalidation, format strings).
