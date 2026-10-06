@@ -1,0 +1,45 @@
+# expt-orca-c6h6-sym
+# ORCA.expt orca/c6h6_sym.out
+# Golden record of what the importer DOES, not of what it
+# should do -- see expt_cases.NOTES before changing one.
+
+=== .frag
+title:	c6h6_sym
+type:	molecule
+charge:	0
+num_atoms:	12
+fragment_attributes:
+  point_group: D6h
+end_fragment_attributes:
+atom_info:	symbol cart
+atom_list:
+ C 0.000000 1.396000 0.000000
+ C 1.208971 0.698000 0.000000
+ C 1.208971 -0.698000 0.000000
+ C 0.000000 -1.396000 0.000000
+ C -1.208971 -0.698000 0.000000
+ C -1.208971 0.698000 0.000000
+ H 0.000000 2.480000 0.000000
+ H 2.147743 1.240000 0.000000
+ H 2.147743 -1.240000 0.000000
+ H 0.000000 -2.480000 0.000000
+ H -2.147743 -1.240000 0.000000
+ H -2.147743 1.240000 0.000000
+
+=== .param
+title:	c6h6_sym
+version:	6.1.1
+Category:	SCF
+Theory:	RHF
+RunType:	Energy
+Charge:	0
+ES.ChemSys.Multiplicity:	1
+SphericalBasis:	TRUE
+
+=== .gbs
+NameBasis
+basis "ao basis" spherical print
+C library "def2-svp"
+H library "def2-svp"
+END
+EndNameBasis

@@ -37,6 +37,7 @@ static bool offerStopServer(bool& inUse);
 
 #include "util/LocalData.H"
 #include "util/SessionLease.H"
+#include "util/WaitingJobs.H"
 #include "util/Ecce.H"
 #include "util/ErrMsg.H"
 #include "util/Host.H"
@@ -71,13 +72,19 @@ static bool offerStopServer(bool& inUse);
 #include "dsm/Session.H"
 #include "dsm/VDoc.H"
 #include "dsm/ICalculation.H"
+#include "dsm/ChemistryTask.H"
+#include "dsm/TGBSConfig.H"
+#include "tdat/Fragment.H"
+#include "tdat/SpinMult.H"
 #include "dsm/DirDyVTSTTask.H"
 
 #include "comm/EcceShell.H"
+#include "comm/JobCatchUp.H"
 #include "comm/Launch.H"
 #include "comm/RCommand.H"
 #include "comm/RunMgmt.H"
 
+#include "wxgui/ewxProgressDialog.H"
 #include "wxgui/EcceTool.H"
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxBitmap.H"
@@ -3910,6 +3917,36 @@ void CalcMgr::checkJob(WxResourceTreeItemData *itemData)
 
 
 /**
+ * Session start (#208): catch up the calculations whose monitoring stopped
+ * while ECCE was away, once per session.
+ */
+void CalcMgr::catchUpWaitingJobs()
+{
+  if (WaitingJobs::list().empty() ||
+      !WaitingJobs::firstInSession(Ecce::sessionKey()))
+    return;
+
+  wxBusyCursor busy;
+  ewxProgressDialog* progress = 0;
+  vector<JobCatchUp::Result> results =
+    JobCatchUp::run([&](size_t done, size_t total) {
+      if (!progress)
+        progress = new ewxProgressDialog("ECCE",
+            "Checking calculations that finished or ran on while ECCE was "
+            "away...", (int)total, this, wxPD_AUTO_HIDE);
+      progress->Update((int)done);
+    });
+  delete progress;
+
+  for (size_t i = 0; i < results.size(); i++) {
+    setMessage(results[i].message,
+               results[i].ok ? WxFeedback::INFO : WxFeedback::WARNING);
+    updateUrl(EcceURL(results[i].url));
+  }
+}
+
+
+/**
  * Reconnect to the currently selected job.  I copied this from v3.x where it 
  * in turn had been copied from "Gary's original implementation."
  *
@@ -3947,92 +3984,18 @@ void CalcMgr::reconnectJob(WxResourceTreeItemData *itemData)
     delete msg;
   }
 
-  // remove properties
-  if (!calc->deleteProperties()) {
-    setMessage("Unable to delete existing output properties");
-    return;
-  }
+  string message;
+  if (JobCatchUp::reconnect(calc, message)) {
+    setMessage(message, WxFeedback::INFO);
 
-  // For debugging purposes we keep run logs for failed (monitor error) jobs
-  if (state != ResourceDescriptor::STATE_FAILED)
-    calc->removeJobLog();
-
-  calc->removeOutputFiles();
-
-  // set state to submitted
-  // we used to set it to ready but then if reconnect fails you can't
-  // just try it again because the option is disabled!
-  calc->setState(ResourceDescriptor::STATE_SUBMITTED);
-  //  notifyState(url.toString(),
-  //        ResourceUtils::stateToString(ResourceDescriptor::STATE_SUBMITTED));
-
-  Launchdata launchdata = calc->launchdata();
-
-  // Separate this out or there may be message timing problems
-  EcceMap kvargs;
-
-  // Probably should be error handling here on getting this info from the
-  // codecap file.
-  string tmp;
-  const JCode* jcode = calc->application();
-  if (jcode) {
-
-    TypedFile file;
-    calc->getDataFile(JCode::PRIMARY_OUTPUT, file);
-    kvargs["##output##"] = file.name();
-    calc->getDataFile(JCode::PARSE_OUTPUT, file);
-    kvargs["##parse##"] = file.name();
-    calc->getDataFile(JCode::PROPERTY_OUTPUT, file);
-    kvargs["##property##"] = file.name();
-    calc->getDataFile(JCode::AUXILIARY_OUTPUT, file);
-    kvargs["##auxiliary##"] = file.name();
-
-    // Add MD args, if necessary
-    MdTask *mdTask = dynamic_cast<MdTask*>(calc);
-    if (mdTask != 0) {
-      NWChemMDModel taskModel;
-      try {
-        mdTask->getTaskModel(taskModel);
-
-        // Fragment
-        kvargs["##output_frag##"] = mdTask->getOutputFragmentName();
-
-        // Restart
-        kvargs["##restart##"] = mdTask->getRestartName();
-
-        // MD Output
-        kvargs["##md_output##"] = mdTask->getMdOutputName();
-
-        // Topology
-        kvargs["##topology##"] = mdTask->getTopologyName();
-      }
-      catch (...) {
-        //cerr << "Failed to set MD job output file parameters" << endl;
-      }
-    }
-
-    Launch *launch = new Launch(calc, kvargs);
-    if (launch->validateLocalDir() &&
-        launch->validateRemoteLogin() &&
-        launch->generateJobMonitoringFiles() &&
-        launch->moveJobMonitoringFiles() &&
-        launch->startJobStore("")) {
-      string msg = "Monitoring reconnected to job " + job.jobid +
-        " on " + launchdata.machine;
-      setMessage(msg, WxFeedback::INFO);
-
-      // don't issue warning for submitted jobs because it would be silly
-      if (state != ResourceDescriptor::STATE_SUBMITTED)
-        setMessage("It may take several minutes for previous output to be "
-                   "parsed.  You may want to close any Viewers for this "
-                   "calculation and restart them later as they will be "
-                   "extremely slow to respond to input.", WxFeedback::WARNING);
-    } else {
-      setMessage(launch->message(), WxFeedback::ERROR);
-    }
-    delete launch;
+    // don't issue warning for submitted jobs because it would be silly
+    if (state != ResourceDescriptor::STATE_SUBMITTED)
+      setMessage("It may take several minutes for previous output to be "
+                 "parsed.  You may want to close any Viewers for this "
+                 "calculation and restart them later as they will be "
+                 "extremely slow to respond to input.", WxFeedback::WARNING);
   } else {
-    setMessage("No code registration data found for the selected calculation");
+    setMessage(message, WxFeedback::ERROR);
   }
 }
 
@@ -4412,14 +4375,17 @@ bool CalcMgr::checkSingleJob(Resource *resource, string& message)
 
             string msg = "Job monitoring process for ";
             msg += resource->getURL().toString();
-            msg += " is no longer running.";
+            msg += " is no longer running; the job may still be running "
+                   "or finished, and is caught up by Reconnect or at the "
+                   "next session start.";
             setMessage(msg, WxFeedback::WARNING);
 
-            // set the state to failed (which sends out JMS notification)
+            // Losing the monitor says nothing about the job itself (#208).
             TaskJob *calc = dynamic_cast<TaskJob*>(resource);
             NULLPOINTEREXCEPTION(calc,
                                  "Unable to cast from Resource to TaskJob.");
-            calc->setState(ResourceDescriptor::STATE_FAILED);
+            WaitingJobs::add(resource->getURL().toString());
+            calc->setState(ResourceDescriptor::STATE_WAITING);
             updateUrl(resource->getURL());
 
           }
@@ -5471,6 +5437,40 @@ void CalcMgr::importValidationComplete(TaskJob *ipc, bool status,
         WxResourceTreeItemData *sel = p_treeCtrl->getSelection();
         fprintf(stderr, "ECCE_TEST_CALCIMPORT: selected %s\n",
                 sel ? sel->getUrl().toString().c_str() : "-");
+        // What the finished import stored, read back after the job store
+        // has parsed the output (it sets the state to Loaded last).
+        if (getenv("ECCE_TEST_IMPORTREPORT")) {
+          for (int i = 0; i < 90 && ipc->getState() !=
+                                     ResourceDescriptor::STATE_LOADED; i++) {
+            wxMilliSleep(1000);
+            wxYield();
+          }
+          ChemistryTask *chem = dynamic_cast<ChemistryTask*>(ipc);
+          ICalculation *icalc = dynamic_cast<ICalculation*>(ipc);
+          Fragment *frag = chem ? chem->fragment() : 0;
+          TGBSConfig *cfg = icalc ? icalc->gbsConfig() : 0;
+          fprintf(stderr, "ECCE_TEST_IMPORTREPORT: state %d pointgroup %s "
+                  "multiplicity %d basis '%s' ecp '%s' spherical %s\n",
+                  (int)ipc->getState(),
+                  frag ? frag->pointGroup().c_str() : "-",
+                  icalc ? (int)icalc->spinMultiplicity() : -1,
+                  cfg ? cfg->name().c_str() : "-",
+                  cfg ? cfg->ecpName().c_str() : "-",
+                  cfg ? (cfg->coordsys() == TGaussianBasisSet::Spherical
+                         ? "yes" : "no") : "-");
+          // The numbers the viewer's Basis Set summary section shows.
+          if (frag && cfg && !cfg->empty()) {
+            TagCountMap *tc = frag->tagCountsSTL();
+            if (tc) {
+              fprintf(stderr, "ECCE_TEST_IMPORTREPORT: functions %d "
+                      "primitives %d\n", (int)cfg->num_functions(*tc),
+                      (int)cfg->num_primitives(*tc));
+              delete tc;
+            }
+          }
+          delete frag;
+          delete cfg;
+        }
         // Reset for Rerun on the imported calculation must refuse it.
         if (getenv("ECCE_TEST_RESETIMPORTED")) {
           // The job monitor sets Loaded after the import; this process
@@ -5585,7 +5585,8 @@ void CalcMgr::onSelectionChange(bool selectInTree)
                         VDoc::getEcceNamespace() + ":state"));
         if (state == ResourceDescriptor::STATE_UNSUCCESSFUL ||
             state == ResourceDescriptor::STATE_FAILED ||
-            state == ResourceDescriptor::STATE_SYSTEM_FAILURE) {
+            state == ResourceDescriptor::STATE_SYSTEM_FAILURE ||
+            state == ResourceDescriptor::STATE_WAITING) {
           string reason = itemData->getResource()->getProp(
                               VDoc::getEcceNamespace() + ":runStatusReason");
           const string key = itemData->getResource()->getURL().toString()

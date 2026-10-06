@@ -1733,10 +1733,11 @@ void TaskJob::getDeleteMessage(bool & canDelete, string & message)
 {
   ResourceDescriptor::RUNSTATE state = getState();
   if (state == ResourceDescriptor::STATE_SUBMITTED ||
-      state == ResourceDescriptor::STATE_RUNNING) {
+      state == ResourceDescriptor::STATE_RUNNING ||
+      state == ResourceDescriptor::STATE_WAITING) {
     canDelete = false;
     message = "Calculation \"" + getName() +
-      "\" is in submitted or running state and can not be deleted.";
+      "\" is in submitted, running or waiting state and can not be deleted.";
   }
   else {
     canDelete = true;
@@ -1765,9 +1766,10 @@ bool TaskJob::canChangeState(string & message) const
 {
   ResourceDescriptor::RUNSTATE state = getState();
   bool ret = (state != ResourceDescriptor::STATE_SUBMITTED &&
-              state != ResourceDescriptor::STATE_RUNNING);
-  message = ret? "" :"Changing the state of a submitted or running calculation"
-    " is not allowed.";
+              state != ResourceDescriptor::STATE_RUNNING &&
+              state != ResourceDescriptor::STATE_WAITING);
+  message = ret? "" :"Changing the state of a submitted, running or waiting"
+    " calculation is not allowed.";
   return ret;
 }
 

@@ -79,6 +79,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [`<LaunchPreprocessor>` is required, unconditionally](launchpreprocessor-is-required-unconditionally.md)
 - [`rdStandardGBS.pm` accepts indented NameBasis lines and an optional `print`; do not re-fix the `*.expt` writers](rdstandardgbs-pms-namebasis-format-used-to-have.md)
 - [No `CMakeLists.txt install()` changes needed](no-cmakelists-txt-install-changes-needed.md)
+- [An `.expt`'s `.param` keys and `.frag` attributes are read literally; a wrong key is dropped silently (#235)](expt-param-keys-are-read-literally.md)
 
 ### Added from integrating MOPAC (issue #86) — the second code through
 

@@ -83,6 +83,9 @@ sub getVersion {
 ###############################################################################
 sub getInputEcho {
   while (<INPUT>) {
+    # Printed before the echo; names the basis however it was given
+    # (keyword line or %basis block).
+    $reportedBasis = $1 if (/^Your calculation utilizes the basis:\s*(\S+)/);
     last if (/^\s*INPUT FILE\s*$/);
   }
   $_ = <INPUT>;  # ====... line
@@ -149,6 +152,9 @@ sub parseKeywordLine {
     # fix, 2026-09-06 session).
     elsif (exists($BasisToName{$ucTok})) { $basisName = $tok; }
   }
+  $basisName = $reportedBasis
+    if (!defined($basisName) && defined($reportedBasis) &&
+        exists($BasisToName{uc($reportedBasis)}));
 
   if ($sawUKS || $sawRKS) {
     $theoryCat = "DFT";
@@ -190,7 +196,18 @@ sub getChargeAndMultiplicity {
 ###############################################################################
 sub getMolecule {
   my @atoms;
+  my ($symGroup, $thermoGroup);
   while (<INPUT>) {
+    # What ORCA ran with, from its SCF settings; these win over the
+    # input echo, which "* xyzfile" or "%coords" leave without them.
+    if (/^\s*Total Charge\s+Charge\s+\.+\s+(-?\d+)/) { $charge = $1; }
+    if (/^\s*Multiplicity\s+Mult\s+\.+\s+(\d+)/) { $multiplicity = $1; }
+    # The molecule's point group: "Auto-detected point group .... D6h"
+    # with UseSym, else the thermochemistry's "Point Group:  C2v, ...".
+    # Not the "Reduced point group" (D2h for benzene): that is the abelian
+    # subgroup ORCA labels its orbitals in, not the molecule's group.
+    if (/^Auto-detected point group\s+\.+\s+(\S+)/) { $symGroup = $1; }
+    if (/^Point Group:\s*([^\s,]+)\s*,/) { $thermoGroup = $1; }
     if (/^CARTESIAN COORDINATES \(ANGSTROEM\)/) {
       $_ = <INPUT>;  # dashes
       my @thisBlock;
@@ -211,6 +228,11 @@ sub getMolecule {
   $molecule .= "type:\tmolecule\n";
   $molecule .= "charge:\t" . (defined($charge) ? $charge : 0) . "\n";
   $molecule .= "num_atoms:\t" . ($#atoms + 1) . "\n";
+  my $group = defined($symGroup) ? $symGroup : $thermoGroup;
+  if (defined($group) && uc($group) ne "C1") {
+    $molecule .= "fragment_attributes:\n  point_group: $group\n";
+    $molecule .= "end_fragment_attributes:\n";
+  }
   $molecule .= "atom_info:\tsymbol cart\n";
   $molecule .= "atom_list:\n";
   foreach my $atomRef (@atoms) {
@@ -243,10 +265,14 @@ sub writeDictAndMVM {
   print(PARAMS "Theory:\t$theory\n") if (defined($theory));
   print(PARAMS "RunType:\t$runType\n") if (defined($runType));
   print(PARAMS "Charge:\t" . (defined($charge) ? $charge : 0) . "\n");
-  print(PARAMS "ChemSys.Multiplicity:\t" .
-        (defined($multiplicity) ? $multiplicity : 1) . "\n");
+  # The key DavCalculation::processImportParameters reads.
+  print(PARAMS "ES.ChemSys.Multiplicity:\t$multiplicity\n")
+        if (defined($multiplicity));
   print(PARAMS "ES.Theory.DFT.XCFunctionals:\t$xcFunctional\n")
         if (defined($xcFunctional));
+  # ORCA has spherical basis functions only; without this key the import
+  # records the basis as Cartesian.
+  print(PARAMS "SphericalBasis:\tTRUE\n");
   close(PARAMS);
 
   open(MOL, ">$rootFile.frag");

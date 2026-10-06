@@ -107,6 +107,7 @@ void ewxLogTextCtrl::DoLogTextAtLevel(wxLogLevel level, const wxString &szString
       wxBell();
 
     FlashOn(ewxThemeColours::statusTint(ewxThemeColours::BAD));
+    if (p_onMessage) p_onMessage(level);
     break;
 
   case wxLOG_Warning:
@@ -120,6 +121,7 @@ void ewxLogTextCtrl::DoLogTextAtLevel(wxLogLevel level, const wxString &szString
       wxBell();
 
     FlashOn(ewxThemeColours::statusTint(ewxThemeColours::UNSURE));
+    if (p_onMessage) p_onMessage(level);
     break;
 
   case wxLOG_Status:
@@ -134,6 +136,7 @@ void ewxLogTextCtrl::DoLogTextAtLevel(wxLogLevel level, const wxString &szString
   case wxLOG_Message:
   default:    // log unknown log levels too
     DoLogText(szString);
+    if (p_onMessage) p_onMessage(level);
     break;
 
   case wxLOG_Trace:

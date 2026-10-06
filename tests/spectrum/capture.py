@@ -236,8 +236,6 @@ def main():
     if not os.access(builder, os.X_OK):
         print("no builder at %s" % builder)
         return 2
-    state = os.path.join(os.path.dirname(builder), "spectrum-state")
-    os.environ["ECCE_TEST_STATE"] = state
     home = os.path.join(os.path.dirname(builder), "spectrum-home")
     overlay(builder, home)
     os.environ["ECCE_TEST_HOME"] = home

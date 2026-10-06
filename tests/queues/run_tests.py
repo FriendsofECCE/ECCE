@@ -894,7 +894,7 @@ def liveSuite(args, rep, suite, managers, stubdir=None):
     harness.prerequisites(build, ("nwchem", "mopac"))
     codes = {"NWChem": shutil.which("nwchem"), "MOPAC": None}
     s = harness.Session(build, "queue", {"NWChem": shutil.which("nwchem")},
-                        (8696, 8688), keep=args.keep)
+                        keep=args.keep)
     live = Live(s, rep, args, suite, stubdir)
     codes["MOPAC"] = live.wrapper
     for m in managers:

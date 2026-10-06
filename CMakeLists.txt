@@ -1934,6 +1934,19 @@ if(PYTHON3_EXECUTABLE)
                    ${_pf}/qe/h2o_gamma.pwout=-)
   set_tests_properties(importcode PROPERTIES ENVIRONMENT
     "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
+  # tests/importcode/importmeta: the metadata an imported calculation gets
+  # (#235), checked against values read from the output files themselves.
+  add_executable(importmeta tests/importcode/importmeta.C)
+  target_include_directories(importmeta PRIVATE ${XercesC_INCLUDE_DIRS})
+  target_link_libraries(importmeta PRIVATE
+    eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+    eccetdat ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME importmeta
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/importcode/importmeta_test.py
+                   $<TARGET_FILE:importmeta>)
+  set_tests_properties(importmeta PROPERTIES TIMEOUT 300 ENVIRONMENT
+    "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders")
   add_test(NAME fragreaders
            COMMAND fragreaders ${CMAKE_CURRENT_SOURCE_DIR}/tests/fragreaders/data)
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/fragreaders-home)
@@ -1994,6 +2007,12 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_nwchem_restart_local PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  add_test(NAME launch_waiting
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/waiting_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_waiting PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
   add_test(NAME launch_filewait
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/filewait_test.py

@@ -21,7 +21,8 @@ Category:	SCF
 Theory:	RHF
 RunType:	Magnetic
 Charge:	0
-ChemSys.Multiplicity:	1
+ES.ChemSys.Multiplicity:	1
+SphericalBasis:	TRUE
 
 === .gbs
 NameBasis

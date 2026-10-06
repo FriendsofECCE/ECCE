@@ -161,7 +161,7 @@ def prerequisites(build, tools):
 class Session(object):
     """An isolated ECCE (services, $ECCE_HOME, user account) for one run."""
 
-    def __init__(self, build, tag, codes, ports, keep=False, local=False):
+    def __init__(self, build, tag, codes, ports=None, keep=False, local=False):
         self.build = os.path.abspath(build)
         self.keep = keep
         #  #216: data in a folder (ECCE_LOCAL_DATA); no data server.
@@ -171,15 +171,12 @@ class Session(object):
         self._authLock = threading.Lock()
         self._authCount = 0
 
-        #  Own state and ports per suite: the default ones belong to
-        #  tests/apps, which may be running beside this.
-        os.environ.setdefault("ECCE_DATASERVER_PORT", str(ports[0]))
-        os.environ.setdefault("ECCE_BROKER_PORT", str(ports[1]))
-        cache = (os.environ.get("XDG_CACHE_HOME")
-                 or os.path.join(os.path.expanduser("~"), ".cache"))
-        self.state = isolate.resolveStateDir(
-            os.environ.get("ECCE_TEST_STATE")
-            or os.path.join(cache, "ecce-%s-state" % tag))
+        #  State directory and ports are this run's own (isolate.runState,
+        #  isolate.apply), so concurrent runs cannot meet; `ports` is
+        #  ignored, kept for old callers.  ECCE_TEST_STATE and the port
+        #  variables still override.
+        self.state = isolate.resolveStateDir(isolate.runState(
+            "%s" % tag, keep=keep))
         os.makedirs(self.state, exist_ok=True)
         note, _ = sweep(self.state)
         if note:
@@ -361,8 +358,8 @@ class Session(object):
             self.seen.update(seenBinaries(self.home))
             state = self.state_of(url)
             if state in want or state == "system_failure":
-                #  system_failure is what a lost monitor reports until
-                #  eccejobmaster has restarted eccejobstore; give it a moment.
+                #  system_failure (a job that vanished) may still be followed
+                #  by a later state from a restarted store; give it a moment.
                 if state != "system_failure":
                     break
                 time.sleep(2)
