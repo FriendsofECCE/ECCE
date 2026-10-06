@@ -1694,6 +1694,9 @@ void MetaEd::startTheoryApp(const bool& localInitFlag)
     // Create datagram socket, Let Wx select a port for us - (Service(0))
     wxIPV4address bindAddress;
     bindAddress.Service(0);
+    // Only the dialog on this machine may send: unbound, anyone on the
+    // network could set this editor's values.
+    bindAddress.LocalHost();
     p_theoryInSocket = new wxDatagramSocket(bindAddress);
 
     // Check state of new socket, if its OK:
@@ -1781,6 +1784,9 @@ void MetaEd::startRuntypeApp(const bool& localInitFlag)
     // Create datagram socket, Let Wx select a port for us - (Service(0))
     wxIPV4address bindAddress;
     bindAddress.Service(0);
+    // Only the dialog on this machine may send: unbound, anyone on the
+    // network could set this editor's values.
+    bindAddress.LocalHost();
     p_runtypeInSocket = new wxDatagramSocket(bindAddress);
 
     // Check state of new socket, if its OK:

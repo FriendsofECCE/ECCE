@@ -60,10 +60,6 @@ class WxDavAuth : public AuthEventListener
             string& password,
             int retryCount);
 
-      bool createNewUser(const string& strulg, const string& user,
-                         const string& password);
-      bool changePassword(const string& strulg, const string& user,
-                          const string& password, const string& newPassword);
 
       // True if this session has already seen `user` accepted by `host`
       // (any URL, via authorizationAccepted()) -- so a 401 for a
