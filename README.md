@@ -413,6 +413,7 @@ previews are fixed.
   and MOPAC each still have options reachable in the code but not from
   the interface.
 * **Finishing Quantum ESPRESSO** and **registering GROMACS** ([#106](https://github.com/FriendsofECCE/ECCE/issues/106)).
+* **Supporting CP2K** ([#130](https://github.com/FriendsofECCE/ECCE/issues/130)).
 * **MO correlation diagrams for coordination complexes** ([#162](https://github.com/FriendsofECCE/ECCE/issues/162)); the
   diagrams are released as experimental.
 
