@@ -1,3 +1,5 @@
+> **Status: experimental.** GROMACS MD studies are in ECCE as an experimental feature.
+
 # GROMACS in ECCE: how it fits together
 
 This is the page for someone who will change the GROMACS support. For why

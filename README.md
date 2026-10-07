@@ -430,7 +430,7 @@ previews are fixed.
 * **Deeper coverage of the codes already supported** — ORCA, Gaussian 16
   and MOPAC each still have options reachable in the code but not from
   the interface.
-* **Finishing Quantum ESPRESSO** and **registering GROMACS** ([#106](https://github.com/FriendsofECCE/ECCE/issues/106)).
+* **Finishing Quantum ESPRESSO** and **registering GROMACS** ([#106](https://github.com/FriendsofECCE/ECCE/issues/106)); GROMACS MD studies are in as experimental.
 * **Supporting CP2K** ([#130](https://github.com/FriendsofECCE/ECCE/issues/130)).
 * **MO correlation diagrams for coordination complexes** ([#162](https://github.com/FriendsofECCE/ECCE/issues/162)); the
   diagrams are released as experimental.
