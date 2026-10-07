@@ -125,6 +125,8 @@ def script(calcs):
     (a, na), (b, nb), (c, nc) = calcs
     return "\n".join([
         "gtfocus", "gtsweep", "gtexpect %d" % na,
+        #  clicking a point of the plot shows that step's geometry
+        "gtpick 0", "gtpick mid", "gtpick last",
         "gtplay 300 1", "gtsweep", "gtstop",
         #  messages from a running job, each while the animation runs
         "gtplay 100 1", "gtupdate grow", "gtexpect %d" % (na + 1),
@@ -147,7 +149,7 @@ def script(calcs):
 
 
 def expectCount(text):
-    return len(re.findall(r"^gtexpect ", text, re.M))
+    return len(re.findall(r"^(?:gtexpect|gtpick) ", text, re.M))
 
 
 def check(display, results, verbose=False, timeout=240):

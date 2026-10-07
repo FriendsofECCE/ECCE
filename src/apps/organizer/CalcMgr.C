@@ -217,6 +217,16 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   p_find = 0;
   p_prefs = 0;
   Bind(wxEVT_MENU, &CalcMgr::OnPreferencesClick, this, wxID_PREFERENCES);
+  {
+    // Where the user's work lives (#240); the window is ecce-first-start's.
+    wxMenuBar* mb = GetMenuBar();
+    int edit = mb->FindMenu(_("&Edit"));
+    if (edit != wxNOT_FOUND)
+      mb->GetMenu(edit)->Append(ID_ORGANIZER_CHANGE_SERVER,
+                                _("Change Ser&ver..."));
+    Bind(wxEVT_MENU, &CalcMgr::OnChangeServerClick, this,
+         ID_ORGANIZER_CHANGE_SERVER);
+  }
   updateBookmarkMenu();
 
   p_nwfs = 0;
@@ -1832,6 +1842,13 @@ void CalcMgr::OnFindClick( wxCommandEvent& event )
  * Edit > Preferences.  Built on first use; closing only hides it, and the
  * frame is owned by this one.
  */
+void CalcMgr::OnChangeServerClick( wxCommandEvent& event )
+{
+  wxString cmd = wxString::FromUTF8(Ecce::ecceHome()) + "/bin/ecce-first-start --change";
+  wxExecute(cmd, wxEXEC_SYNC);
+}
+
+
 void CalcMgr::OnPreferencesClick( wxCommandEvent& event )
 {
   if (p_prefs == (GlobalPrefs*)0) {
@@ -5088,6 +5105,7 @@ void CalcMgr::createResource(ResourceType * resType,
     // logic to handle MD and condensed phase reaction study branching
     // @todo should be moved to Session::createChild
     if (newRes->getApplicationType()==ResourceDescriptor::AT_NWCHEMMD ||
+        newRes->getApplicationType()==ResourceDescriptor::AT_GROMACS ||
         parRes->getApplicationType()==ResourceDescriptor::AT_CONDENSED_REACTION_STUDY) {
       Resource *source = 0;
       vector<EcceURL> panelSelections = p_contextPanel->getSelections();

@@ -779,6 +779,7 @@ install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-status
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-reap
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-find-mosquitto
+          ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-first-start
           ${CMAKE_SOURCE_DIR}/packaging/windows/ecce-broker-win
           ${CMAKE_SOURCE_DIR}/packaging/nwchem/ecce-nwchem-datadir
         DESTINATION bin
@@ -1080,6 +1081,14 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-askpass
         DESTINATION scripts
         COMPONENT client)
 
+# scripts/ecce-macos-terminal: the default terminal on macOS (UserEditor),
+# which runs xterm's "-e command" in Terminal.app.
+if(APPLE)
+  install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-macos-terminal
+          DESTINATION scripts
+          COMPONENT client)
+endif()
+
 # scripts/ecce-csh2sh and its rules module CshToSh.pm: converts the csh snippets
 # in submit.site / CONFIG.* to the sh gensub now writes.  gensub `use`s
 # CshToSh.pm from its own directory, so it travels with it; the launcher runs
@@ -1212,6 +1221,9 @@ fi")
     # else's central server, or none yet configured) must not try to
     # spawn it -- and must say clearly why not, rather than a bare
     # "No such file or directory" swallowed by the trailing `|| true`.
+    # The user's own server choice (#240) makes this a -remote session.
+    set(_usermode ". \"$ECCE_HOME/bin/ecce-session-lib.sh\" || exit 1
+ecce_user_server_mode")
     set(_datamode "# Data mode for the whole session (#216): ECCE_LOCAL_DATA when set (empty
 # means a data server), else the LocalData preference. Exported, so every
 # app of a session uses one store and a preference change waits for the
@@ -1251,6 +1263,7 @@ if [ $_status -gt 128 ] && [ $_status -ne 143 ]; then
 fi
 exit $_status")
   else()
+    set(_usermode "")
     set(_datamode "")
     set(_gateway_start "")
     set(_dataserver_start "")
@@ -1302,6 +1315,7 @@ export PATH=\"$ECCE_HOME/scripts:$ECCE_HOME/scripts/parsers:$PATH\"
 for _arg in \"$@\"; do
   if [ \"$_arg\" = \"-remote\" ]; then export ECCE_REMOTE_SERVER=1; fi
 done
+${_usermode}
 ${_datamode}
 ${_gateway_start}
 ${_dataserver_start}
@@ -1752,6 +1766,23 @@ add_test(NAME session-display-gate COMMAND bash
          ${CMAKE_SOURCE_DIR}/tests/session/display_gate.sh ${CMAKE_SOURCE_DIR})
 set_tests_properties(session-display-gate PROPERTIES SKIP_RETURN_CODE 77)
 
+# tests/gromacs_md -- GROMACS MD study tasks.  gromacs_structure checks the
+# .gro reader of the Inputs page against gmx editconf; gromacs_md runs the
+# study's scripts (md.gmxtask, gromacs.launchpp, gensub, the monitor and
+# parsers) on real gmx, task after task.  Both SKIP without gmx.
+# See docs/GROMACS.md.
+add_executable(gromacs_groconv tests/gromacs_md/groconv.C
+               src/dsm/chemistry/GromacsStructure.C)
+add_test(NAME gromacs_structure
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/gromacs_md/groconv_test.py
+                 $<TARGET_FILE:gromacs_groconv>)
+set_tests_properties(gromacs_structure PROPERTIES SKIP_RETURN_CODE 77)
+add_test(NAME gromacs_md
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/gromacs_md/run_tests.py)
+set_tests_properties(gromacs_md PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
 # tests/mqtt -- the messaging library against a private mosquitto on a Unix
 # socket; checks delivery, not just acknowledgement.  "auth" is the same on
 # a TCP broker with two accounts and the shipped access rules.  SKIPs (77)
@@ -1781,6 +1812,15 @@ add_test(NAME tls_client
          COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/tls/run_tests.py
                  $<TARGET_FILE:tls_client_test> ${CMAKE_BINARY_DIR}/tls-test)
 set_tests_properties(tls_client PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+# The first-start window's connection step and when the question is asked (#240).
+add_test(NAME tls_first_connect
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/tls/first_connect_test.py
+                 ${CMAKE_BINARY_DIR}/tls-first-connect)
+set_tests_properties(tls_first_connect PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+add_test(NAME first_start_question
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/apps/first_start_test.py
+                 $<TARGET_FILE:ecce-localdata> ${CMAKE_BINARY_DIR}/first-start-test)
+set_tests_properties(first_start_question PROPERTIES TIMEOUT 60)
 
 # The central server over TLS (#236): the real data server and broker scripts
 # on loopback with a fresh certificate, then the clients with and without
@@ -1847,6 +1887,16 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/contrast.py)
 
+  # Text in a window that has lost focus keeps its contrast (GTK :backdrop),
+  # and disabled text still looks disabled (#210).  Compiles
+  # tests/look/backdrop.C against this build; SKIPs without Xvfb or PIL.
+  add_test(NAME look_backdrop
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/login_backdrop.py
+                   backdrop ${CMAKE_BINARY_DIR}/look-backdrop
+                   --libdir ${CMAKE_BINARY_DIR} --tag after)
+  set_tests_properties(look_backdrop PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
+
   # The offscreen renderer's .rgb output against ImageMagick and PIL (#231).
   # Needs `ninja render-rgb`, Xvfb, convert and PIL; SKIPs without them.
   add_test(NAME look_imageconv
@@ -1870,6 +1920,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/nm_sticks.py
                    ${CMAKE_BINARY_DIR}/viewer-scenes)
   set_tests_properties(look_nm_sticks PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
+
+  # At content scale 2 the viewer fills the canvas and wx clicks pick the
+  # atom aimed at (#133, Retina).  Needs `ninja viewer-scenes` and Xvfb.
+  add_test(NAME look_hidpi
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/hidpi.py
+                   ${CMAKE_BINARY_DIR}/viewer-scenes)
+  set_tests_properties(look_hidpi PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
 
   # The saved DefaultStyle moves from the old default once (#227).
   add_test(NAME look_default_style
@@ -2045,6 +2103,19 @@ if(PYTHON3_EXECUTABLE)
     eccetdat ecceutil ${XercesC_LIBRARIES})
   add_test(NAME transport_local_terminal COMMAND testLocalTerminal)
   set_tests_properties(transport_local_terminal PROPERTIES TIMEOUT 60)
+
+  # The editor command (UserEditor) per platform, and macOS open(1) waiting
+  # for its own copy; ecce-macos-terminal with a stub open (#133).
+  add_executable(testEditorCommand tests/transport/testEditorCommand.C)
+  target_link_libraries(testEditorCommand PRIVATE
+    eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+    eccetdat ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME editor_command COMMAND testEditorCommand)
+  set_tests_properties(editor_command PROPERTIES TIMEOUT 60)
+  add_test(NAME macos_terminal
+    COMMAND sh ${CMAKE_SOURCE_DIR}/tests/transport/macos_terminal_test.sh
+            ${CMAKE_SOURCE_DIR})
+  set_tests_properties(macos_terminal PROPERTIES TIMEOUT 60)
 
   # Run Management's Tail (TailSource) on a local machine; the same program
   # runs against the test sshd from tests/transport/sshd/tail_test.sh.
@@ -2235,6 +2306,7 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR} --local
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_local PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+<<<<<<< HEAD
   # ECCE-QM, the bundled engine: water and triplet O2 created, run through
   # Launch in a local data folder, energies against ORCA, MOs normalised.
   if(ECCE_BUILD_QM)
@@ -2245,6 +2317,16 @@ if(PYTHON3_EXECUTABLE)
              WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
     set_tests_properties(launch_ecceqm PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
   endif()
+=======
+  # A GROMACS MD study through the real editors (private Xvfb), launches and
+  # results; skipped (77) without gmx or Xvfb.  Needs the GUI apps built.
+  add_test(NAME launch_gromacs
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/gromacs_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_gromacs PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+>>>>>>> origin/main
   # An 8.x eccejobmaster exports ECCE_TRANSPORT=pty; it must be ignored.
   add_test(NAME launch_legacy_transport
            COMMAND ${PYTHON3_EXECUTABLE}

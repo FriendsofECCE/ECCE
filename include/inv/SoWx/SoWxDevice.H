@@ -4,6 +4,22 @@
 #include <wx/window.h>
 #include <wx/event.h>
 #include "inv/events/SoEvent.H"
+#include <cmath>
+
+
+// Framebuffer pixels per wx logical unit of the window an event came from:
+// 2 on a Retina display or under GDK_SCALE=2, 1 on Windows (wxMSW logical
+// units are pixels).  The viewport and every SoEvent position are pixels.
+inline double soWxPixelScale(const wxEvent *e)
+{
+  wxWindow *w = e ? wxDynamicCast(e->GetEventObject(), wxWindow) : 0;
+  return w ? w->GetContentScaleFactor() : 1.0;
+}
+
+inline int soWxToPixels(const wxEvent *e, int v)
+{
+  return (int)std::lround(v * soWxPixelScale(e));
+}
 
 
 class SoWxDevice {
@@ -20,8 +36,13 @@ public:
   { return winSize; }
 
 protected:
-  inline void setEventPosition(SoEvent *event, int x, int y) const
-  { event->setPosition(SbVec2s(x, (winSize[1] - 1) - y)); }
+  inline void setEventPosition(SoEvent *event, const wxEvent *src,
+                               int x, int y) const
+  {
+    x = soWxToPixels(src, x);
+    y = soWxToPixels(src, y);
+    event->setPosition(SbVec2s(x, (winSize[1] - 1) - y));
+  }
     
 private:
   // size of the window this device works in

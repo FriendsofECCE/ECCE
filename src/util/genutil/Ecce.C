@@ -41,6 +41,7 @@ using std::ostrstream;
 
 
 #include "util/EcceException.H"
+#include "util/RemoteServerDir.H"
 #include "util/Ecce.H"
 #include "util/ErrMsg.H"
 #include "util/KeyValueReader.H"
@@ -395,7 +396,7 @@ bool Ecce::ecceAutoAccounts(void)
 {
   string path;
   if (getenv("ECCE_REMOTE_SERVER")) {
-    path = "$ECCE_HOME/siteconfig/RemoteServer/site_runtime";
+    path = remoteServerDir() + "/site_runtime";
   } else {
     path = "$ECCE_HOME/siteconfig/site_runtime";
   }
@@ -416,7 +417,7 @@ bool Ecce::ecceStoreTrajectories(void)
 {
   string path;
   if (getenv("ECCE_REMOTE_SERVER")) {
-    path = "$ECCE_HOME/siteconfig/RemoteServer/site_runtime";
+    path = remoteServerDir() + "/site_runtime";
   } else {
     path = "$ECCE_HOME/siteconfig/site_runtime";
   }

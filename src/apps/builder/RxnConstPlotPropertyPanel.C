@@ -118,9 +118,9 @@ void ReactionConstantPlotPropertyPanel::refresh()
     }
     plotData = new wxPlotData(a,b,count);
     plotData->SetFilename("TST");
-    plotData->SetPen(wxPLOTPEN_NORMAL, wxPen(*wxBLUE));
-    plotData->SetPen(wxPLOTPEN_ACTIVE, wxPen(*wxBLUE));
-    plotData->SetPen(wxPLOTPEN_SELECTED, wxPen(*wxBLUE));
+    plotData->SetPen(wxPLOTPEN_NORMAL, p_plotCtrl->SeriesPen(0));
+    plotData->SetPen(wxPLOTPEN_ACTIVE, p_plotCtrl->SeriesPen(0));
+    plotData->SetPen(wxPLOTPEN_SELECTED, p_plotCtrl->SeriesPen(0));
 #if 000
     plotData->SetSymbol(wxPLOTSYMBOL_RECTANGLE, wxPLOTPEN_NORMAL);
     plotData->SetSymbol(wxPLOTSYMBOL_RECTANGLE, wxPLOTPEN_ACTIVE);
@@ -143,9 +143,9 @@ void ReactionConstantPlotPropertyPanel::refresh()
     }
     plotData = new wxPlotData(c,d,count);
     plotData->SetFilename("CVT");
-    plotData->SetPen(wxPLOTPEN_NORMAL, wxPen(*wxBLACK));
-    plotData->SetPen(wxPLOTPEN_ACTIVE, wxPen(*wxBLACK));
-    plotData->SetPen(wxPLOTPEN_SELECTED, wxPen(*wxBLACK));
+    plotData->SetPen(wxPLOTPEN_NORMAL, p_plotCtrl->SeriesPen(1));
+    plotData->SetPen(wxPLOTPEN_ACTIVE, p_plotCtrl->SeriesPen(1));
+    plotData->SetPen(wxPLOTPEN_SELECTED, p_plotCtrl->SeriesPen(1));
 #if 000
     plotData->SetSymbol(wxPLOTSYMBOL_CROSS, wxPLOTPEN_NORMAL);
     plotData->SetSymbol(wxPLOTSYMBOL_CROSS, wxPLOTPEN_ACTIVE);

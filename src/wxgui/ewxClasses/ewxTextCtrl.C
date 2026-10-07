@@ -115,7 +115,7 @@ void ewxTextCtrl::setUnitHelper(ewxUnitHelper *helper)
          delete p_unitHelper;
       }
       p_unitHelper = helper;
-      helper->setTextControl(this);
+      if (helper != 0) helper->setTextControl(this);
    }
 }
 

@@ -27,6 +27,7 @@
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/MDPanelHelper.H"
 
+#include "wxgui/GromacsProfile.H"
 #include "wxgui/FilesPanel.H"
 
 /*!
@@ -1002,4 +1003,72 @@ void FilesPanel::OnCheckboxFileSluparClick( wxCommandEvent& event )
   getFilesModel()->setSoluteBondPar(check->GetValue());
   p_helper->setSaveState(true);
   event.Skip();
+}
+
+
+void FilesPanel::applyGromacsProfile(bool g)
+{
+  bool s = !g;
+  wxNotebook *nb = (wxNotebook*)FindWindow(ID_NOTEBOOK);
+
+  // mdrun's properties and restart files are not NWChem's .prp and .rst
+  if (g) {
+    if (nb->FindPage(p_propPanel) != wxNOT_FOUND) {
+      GromacsProfile::showTab(nb, p_propPanel, _("Properties"), 1, false);
+      p_hidPropTab = true;
+    }
+    if (nb->FindPage(p_restartPanel) != wxNOT_FOUND) {
+      GromacsProfile::showTab(nb, p_restartPanel, _("Restart"), 2, false);
+      p_hidRestartTab = true;
+    }
+  } else {
+    if (p_hidPropTab) {
+      GromacsProfile::showTab(nb, p_propPanel, _("Properties"), 1, true);
+      p_hidPropTab = false;
+    }
+    if (p_hidRestartTab) {
+      GromacsProfile::showTab(nb, p_restartPanel, _("Restart"), 2, true);
+      p_hidRestartTab = false;
+    }
+  }
+
+  // Trajectory: coordinates of the whole system, as .xtc.  Where the file
+  // is stored, batches, solvent apart from solute, velocities and forces
+  // are NWChem's.
+  GromacsProfile::showRow(FindWindow(ID_CHOICE_FILE_TRJSTR), s);
+  GromacsProfile::show(FindWindow(ID_CHECKBOX_FILE_USEBTC), s);
+  GromacsProfile::showRow(FindWindow(ID_TEXTCTRL_FILE_BTCSZ), s);
+  GromacsProfile::show(FindWindow(ID_CHECKBOX_FILE_SLVCRD), s);
+  GromacsProfile::show(FindWindow(ID_TEXTCTRL_FILE_CSVFRQ), s);
+  GromacsProfile::show(FindWindow(wxID_STATIC_FILE_CSVFRQ), s);
+  GromacsProfile::show(p_velocPanel, s);
+  GromacsProfile::show(p_forcePanel, s);
+  GromacsProfile::showByLabel(this, _("Velocities in Trajectory File"), s);
+  GromacsProfile::showByLabel(this, _("Forces in Trajectory File"), s);
+
+  // Output: how often energies are written to the log
+  GromacsProfile::show(FindWindow(ID_PANEL_FILE_MDOPT), s);
+  GromacsProfile::show(FindWindow(ID_CHECKBOX_FILE_STAT), s);
+  GromacsProfile::show(FindWindow(ID_TEXTCTRL_FILE_STFREQ), s);
+  GromacsProfile::show(FindWindow(wxID_STATIC_FILE_STFREQ), s);
+  GromacsProfile::show(FindWindow(ID_CHECKBOX_FILE_SUBOND), s);
+  GromacsProfile::show(FindWindow(ID_TEXTCTRL_FILE_SEFREQ), s);
+  GromacsProfile::show(FindWindow(wxID_STATIC_FILE_SEFREQ), s);
+  GromacsProfile::show(FindWindow(ID_CHECKBOX_FILE_FRC), s);
+  GromacsProfile::show(FindWindow(ID_TEXTCTRL_FILE_SFFREQ), s);
+  GromacsProfile::show(FindWindow(wxID_STATIC_FILE_SFFREQ), s);
+  GromacsProfile::show(FindWindow(ID_CHECKBOX_FILE_PMF), s);
+  GromacsProfile::show(FindWindow(ID_TEXTCTRL_FILE_PMFFREQ), s);
+  GromacsProfile::show(FindWindow(wxID_STATIC_FILE_PMFFREQ), s);
+  GromacsProfile::show(FindWindow(ID_CHECKBOX_FILE_TOP), s);
+  GromacsProfile::show(FindWindow(ID_PANEL_FILE_TOPOPT), s);
+
+  GromacsProfile::relabel(this,
+    g ? _("Print Solute/System Coordinates") : _("Write trajectory (.xtc)"),
+    g ? _("Write trajectory (.xtc)") : _("Print Solute/System Coordinates"));
+  GromacsProfile::relabel(this,
+    g ? _("Print Molecular Dynamics Step Information")
+      : _("Write energies to the log"),
+    g ? _("Write energies to the log") : _("Print Molecular Dynamics Step Information"));
+  GromacsProfile::relayout(this);
 }

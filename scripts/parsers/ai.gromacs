@@ -70,7 +70,7 @@ sub Integrator {
   #  single-point integrator, and nsteps=0 evaluates the energy of the
   #  input configuration exactly once. Verified against real grompp and
   #  mdrun rather than assumed.
-  return "steep" if ($runtype eq "Geometry");
+  return &stringOr("ES.Runtype.MD.Minimizer", "steep") if ($runtype eq "Geometry");
   return "md";
 }
 
@@ -96,6 +96,8 @@ sub GMXRunControl {
              &numOr("ES.Runtype.MD.TimeStep", "0.002"));
     push(@l, "nsteps                   = " .
              &numOr("ES.Runtype.MD.NumberOfSteps", "5000"));
+    push(@l, "tinit                    = " .
+             &numOr("ES.Runtype.MD.InitialTime", "0"));
   }
 
   #  How often mdrun writes an energy block to the .log. This is what
@@ -132,6 +134,21 @@ sub GMXElectrostatics {
            &numOr("ES.Theory.MD.CoulombCutoff", "0.9"));
   push(@l, "rvdw                     = " .
            &numOr("ES.Theory.MD.VdwCutoff", "0.9"));
+  my $ct = &stringOr("ES.Theory.MD.Coulombtype", "PME");
+  if (lc($ct) eq "pme") {
+    push(@l, "pme-order                = " .
+             &numOr("ES.Theory.MD.PMEOrder", "4"));
+    my $g = $AbiDict{"ES.Theory.MD.FourierGrid"};
+    if (defined($g) && $g ne "") {
+      push(@l, "fourier-nx               = $g");
+      push(@l, "fourier-ny               = $g");
+      push(@l, "fourier-nz               = $g");
+    }
+  } elsif (lc($ct) eq "reaction-field") {
+    #  epsilon-rf 0 is an infinite dielectric outside the cutoff, the
+    #  usual choice and the one a plain cutoff means.
+    push(@l, "epsilon-rf               = 0");
+  }
   my $r = join("\n", @l);
   $_ = $r;
   return $r;
@@ -154,6 +171,84 @@ sub GMXTemperatureCoupling {
            &numOr("ES.Runtype.MD.CouplingTime", "0.1"));
   push(@l, "ref-t                    = " .
            &numOr("ES.Runtype.MD.Temperature", "300"));
+  #  Simulated annealing: the reference temperature moves linearly from
+  #  ref-t to the final one between the two times (ps from the start).
+  if (defined($AbiDict{"ES.Runtype.MD.AnnealTemperature"})) {
+    push(@l, "annealing                = single");
+    push(@l, "annealing-npoints        = 2");
+    push(@l, "annealing-time           = " .
+             &numOr("ES.Runtype.MD.AnnealStart", "0") . " " .
+             &numOr("ES.Runtype.MD.AnnealEnd", "100"));
+    push(@l, "annealing-temp           = " .
+             &numOr("ES.Runtype.MD.Temperature", "300") . " " .
+             $AbiDict{"ES.Runtype.MD.AnnealTemperature"});
+  }
+  my $r = join("\n", @l);
+  $_ = $r;
+  return $r;
+}
+
+#  Pressure coupling, only when the task asks for it (an NPT run).
+#  C-rescale, because Berendsen is what GROMACS itself calls wrong for
+#  anything but equilibration and C-rescale is its drop-in replacement.
+sub GMXPressureCoupling {
+  my @l = ();
+  return "" if ($AbiDict{"RunType"} ne "Dynamics");
+  return "" if (!defined($AbiDict{"ES.Runtype.MD.Pressure"}));
+  push(@l, "pcoupl                   = C-rescale");
+  push(@l, "pcoupltype               = isotropic");
+  push(@l, "tau-p                    = " .
+           &numOr("ES.Runtype.MD.PressureTime", "0.5"));
+  push(@l, "ref-p                    = " . $AbiDict{"ES.Runtype.MD.Pressure"});
+  push(@l, "compressibility          = " .
+           &numOr("ES.Runtype.MD.Compressibility", "4.5e-5"));
+  my $r = join("\n", @l);
+  $_ = $r;
+  return $r;
+}
+
+#  Where the velocities come from.  A run that resumes finds them in the
+#  structure file it starts from and carries on (continuation); any other
+#  dynamics run makes new ones at the target temperature.
+sub GMXVelocities {
+  my @l = ();
+  return "" if ($AbiDict{"RunType"} ne "Dynamics");
+  if (&numOr("ES.Runtype.MD.Resume", "0") == 1) {
+    push(@l, "gen-vel                  = no");
+    push(@l, "continuation             = yes");
+  } else {
+    push(@l, "gen-vel                  = yes");
+    push(@l, "gen-temp                 = " .
+             &numOr("ES.Runtype.MD.GenTemp", "300"));
+    push(@l, "gen-seed                 = -1");
+  }
+  my $r = join("\n", @l);
+  $_ = $r;
+  return $r;
+}
+
+sub GMXCenterOfMass {
+  my @l = ();
+  return "" if ($AbiDict{"RunType"} ne "Dynamics");
+  my $f = $AbiDict{"ES.Runtype.MD.RemoveCM"};
+  return "" if (!defined($f));
+  if ($f > 0) {
+    push(@l, "comm-mode                = Linear");
+    push(@l, "nstcomm                  = $f");
+  } else {
+    push(@l, "comm-mode                = None");
+  }
+  my $r = join("\n", @l);
+  $_ = $r;
+  return $r;
+}
+
+#  A compressed (.xtc) trajectory, when the task asks for one.
+sub GMXOutput {
+  my @l = ();
+  my $f = $AbiDict{"ES.Runtype.MD.TrajectoryInterval"};
+  return "" if (!defined($f) || $f eq "" || $f <= 0);
+  push(@l, "nstxout-compressed       = $f");
   my $r = join("\n", @l);
   $_ = $r;
   return $r;

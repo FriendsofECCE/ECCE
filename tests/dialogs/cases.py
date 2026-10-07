@@ -375,8 +375,8 @@ RESTORE_CASES = [
 # Codes ECCE no longer supports, and no longer maintains.
 #
 # Distinct from NOT_IN_MENU, which only records that a code is absent from the
-# New Calculation menu -- Polyrate is reachable by another route and GROMACS
-# is on its way in, and both are still maintained.  A code listed HERE is not
+# New Calculation menu -- Polyrate is reachable by another route and
+# is still maintained.  A code listed HERE is not
 # checked at all: its dialogs and generator stay on disk so existing
 # calculations still open, but nobody is going to fix a finding in them, so
 # reporting one is noise that hides the findings that matter.
@@ -398,16 +398,6 @@ RETIRED = {
 
 
 NOT_IN_MENU = {
-    "GROMACS": "Not yet registered, deliberately. The code-registration "
-               "file set is complete and verified end to end against real "
-               "GROMACS 2025.2 (ai.gromacs generated the .mdp, grompp built "
-               "the .tpr, mdrun ran, gromacs.desc parsed the log back), but "
-               "no ResourceDescriptor entry exists because registering it "
-               "forces the scope decision in issue #106: ECCE has no "
-               "concept of a force field or topology, and whether GROMACS "
-               "arrives import-only or with a pdb2gmx-driven force-field "
-               "picker changes how it should be wired. Remove this entry "
-               "when that is decided. See docs/GROMACS_ROADMAP.md.",
     "Amica": "Disconnected 2026-08-30 (issue #11) along with Gaussian-03, "
              "Gaussian-98 and MetaDyn.",
     "Gaussian-03": "Disconnected 2026-08-30 (issue #11).",

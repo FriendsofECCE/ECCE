@@ -30,6 +30,14 @@ class OptimizePanel: public OptimizePanelGUI
       void setOptimizeModel(OptimizeModel *model);
       OptimizeModel* getOptimizeModel();
       void refreshGUI();
+
+    /**
+     * Show only the controls that mean something for GROMACS (true), or
+     * all of them (false).  Call again after refreshGUI(), which may
+     * show things this hid.
+     */
+    void applyGromacsProfile(bool gromacs);
+
       void initializeGUI();
       void showOptimizePanel();
 

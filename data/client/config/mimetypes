@@ -27,6 +27,9 @@ chemical/x-gromacs-coordinates           .gro
 chemical/x-gromacs-tpr                   .tpr
 chemical/x-gromacs-energy                .edr
 chemical/x-gromacs-trajectory            .xtc .trr
+chemical/x-gromacs-topology              .gmxtop
+chemical/x-gromacs-include               .itp .ndx
+chemical/x-gromacs-log                   .gmxlog
 chemical/x-nwdirdy-file30                .file30
 chemical/x-polyrate-input                .fu5
 chemical/x-polyrate-output               .fu6

@@ -66,7 +66,8 @@ class SceneScript
 
   private:
     bool exec(const vector<string>& w, const string& rest);
-    bool pickAtoms(const string& name, const vector<string>& atoms);
+    bool pickAtoms(const string& name, const vector<string>& atoms,
+                   bool viaWx = false);
     bool dragAtom(const string& name, int atom, int dx, int dy);
     bool countRedraws(const string& name, const vector<string>& steps);
     bool snapshot(const string& name, int size, float r, float g, float b);

@@ -386,6 +386,22 @@ jobs:
         # -k 0: report every failing file, not only the first few.
         run: cmake --build build-cmake -- -k 0
 
+      # The GROMACS study's scripts on Homebrew's gmx (docs/GROMACS.md).
+      # They need no build, so this runs whatever the build did; it is
+      # allowed to fail until it has been seen to pass on a runner.
+      - name: GROMACS MD study suite
+        continue-on-error: true
+        timeout-minutes: 15
+        env:
+          ECCE_GROMACS_REQUIRE: '1'
+        run: |
+          brew install gromacs
+          tests/gromacs_md/run_tests.py -v
+
+      # The editor and terminal commands macOS gets by default (#133).
+      - name: Editor and terminal commands
+        run: cd build-cmake && ctest -R '^(editor_command|macos_terminal)$' --output-on-failure
+
       # Does it run? (#133) Starts the installed apps on the runner's
       # logged-in desktop and screenshots them.  Allowed to fail; the
       # verdict is in the summary and the "macos-run" artifact.

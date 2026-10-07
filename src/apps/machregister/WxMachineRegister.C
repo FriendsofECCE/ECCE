@@ -168,7 +168,7 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
     p_codeAdvBtn = NULL;
     p_lastText = NULL;
     p_scripted = getenv("ECCE_MACHREG_SCRIPT") != NULL;
-    p_codeNames = CodeFactory::getFullySupportedCodeNames();
+    p_codeNames = CodeFactory::getMachineCodeNames();
     //  A code shipped with ECCE (ECCE-QM) has no path to register.
     for (size_t i = p_codeNames.size(); i-- > 0; )
         if (RefMachine::bundledCode(p_codeNames[i], "localhost"))

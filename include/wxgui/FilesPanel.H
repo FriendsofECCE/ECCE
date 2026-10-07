@@ -31,6 +31,14 @@ public:
     FilesModel* getFilesModel() const;
     void initializeGUI();
     void refreshGUI();
+
+    /**
+     * Show only the controls that mean something for GROMACS (true), or
+     * all of them (false).  Call again after refreshGUI(), which may
+     * show things this hid.
+     */
+    void applyGromacsProfile(bool gromacs);
+
     void showFilesPanel();
     void configEnergyCalc();
     void disableBatchAndKeepOptions();
@@ -151,5 +159,10 @@ public:
     FilesModel *p_model;
     MDPanelHelper *p_helper;
     int p_dataSteps;
+
+private:
+    bool p_hidPropTab = false;       ///< this panel took the tab out
+    bool p_hidRestartTab = false;
+
 };
 #endif // _FILESPANEL_H_

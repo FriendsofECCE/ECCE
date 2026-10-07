@@ -451,6 +451,8 @@ class Builder: public BuilderGUI,
       void doSaveThumb();
       void doClose(const string& context="", const bool& autoOpen=true);
       bool traceStressCommand(SceneScript& s, const vector<string>& w);
+      bool plotShotCommand(SceneScript& s, const vector<string>& w,
+                           const string& outdir);
       bool pbcTestCommand(SceneScript& s, const vector<string>& w,
                           const string& outdir);
 
