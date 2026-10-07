@@ -74,8 +74,8 @@ def readReport(path, seen):
     lines = open(path, errors="replace").read().splitlines()
     for line in lines[seen[0]:]:
         f = line.split("\t")
-        if f[0] == "WINDOW" and len(f) >= 6:
-            windows.append((f[1], f[2], f[4], f[5]))
+        if f[0] == "WINDOW" and len(f) >= 5:
+            windows.append((f[1], f[2], f[3], f[4]))
         elif f[0] == "FINDING" and len(f) >= 6:
             findings.append((f[1], f[2], f[3], f[4], f[5]))
         elif f[0] == "DONE":
