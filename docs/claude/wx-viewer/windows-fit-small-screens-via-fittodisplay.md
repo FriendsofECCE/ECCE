@@ -2,7 +2,7 @@
 type: rule
 title: "Every ewxFrame/ewxDialog is capped to its display by `fitToScreen()`; codereg dialogs scroll in `EccePanel` (#189)"
 area: wx-viewer
-paths: ["src/wxgui/ewxClasses/ewxWindowUtils.C", "src/inv/wxinv/SoWxRenderArea.C", "scripts/codereg/templates.py", "tests/apps/smallscreen_test.py"]
+paths: ["src/wxgui/ewxClasses/ewxWindowUtils.C", "src/inv/wxinv/SoWxRenderArea.C", "tests/apps/panel_layouts_test.py", "scripts/codereg/templates.py", "tests/apps/smallscreen_test.py"]
 issues: [187, 189]
 ---
 **`ewxFrame::Show()` and `ewxDialog::Show()/ShowModal()` call
@@ -26,8 +26,13 @@ up to three items under it), or the sizer passed to `fitToScreen(row)`.
   at its virtual size, and the Builder's AUI sizer reports a minimum
   17 000 104 px tall; on macOS arm64 the GL canvas inside it aborted the
   first paint in `CGLSetSurface` (SkyLight `CGRectContainsRect` assertion).
-  GTK clips the child window, so Linux never shows it. `SoWxRenderArea`
-  also refuses to grow past its display's client area.
+  On Linux it showed too: the viewer was laid out ~6800 px tall with the
+  molecule below the window and the MOs panel off screen (1366x768: every
+  layout; 1700x1100: all but Classic). `SoWxRenderArea` also refuses to
+  grow past its display's client area. `tests/apps/panel_layouts_test.py`
+  (ctest `apps_panel_layouts`) opens the MOs panel in every layout at
+  1366x768 and fails for a pane outside the window or no longer the
+  frame's child (`ECCE_PANEL_METRICS` pane lines).
 - An app that grows the window itself (`CalcEd::update*Fields()`) calls
   `fitToScreen()` after `SetSizeHints(this)`; the hint alone sets a
   minimum above the display.
