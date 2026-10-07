@@ -3,7 +3,7 @@
 RHF/6-31G*, geometry optimisation, on `localhost`, in local data mode.
 
     tools/screenshots/make_water_opt.py --build <build dir> --out DIR \\
-        [--output-file FILE]
+        [--project-meta FILE]
 
 Needs nwchem, perl and the launch test binaries (tests/launch/harness.py).
 The calculation is made as the Calculation Editor makes it: the molecule,
@@ -11,7 +11,7 @@ basis, theory and run type go in through the same import code
 (`launchjob setup`), the theory dialogs' values come from running them once
 (tests/teaching/deckgen.py), then Launch runs NWChem and the job store fills
 Props/.  DIR receives the calculation folder, `water-opt`, as local data
-keeps it; --output-file receives NWChem's output as the run directory has it.
+keeps it; --project-meta receives the metadata file of the project folder.
 """
 
 import argparse
@@ -75,6 +75,7 @@ def tidy(root, session, rundir):
                 continue
             new = text.replace(rundir, PUBLIC_RUNDIR)
             new = re.sub(r"\b%s\b" % re.escape(session.user()), PUBLIC_USER, new)
+            new = re.sub(r"(ecce:job_clienthost\t\t).*", r"\g<1>localhost", new)
             if new != text:
                 with open(path, "w", encoding="utf-8") as handle:
                     handle.write(new)
@@ -84,7 +85,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--build", required=True)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--output-file")
+    ap.add_argument("--project-meta",
+                    help="copy the project folder's metadata file here")
     args = ap.parse_args()
 
     build = os.path.abspath(args.build)
@@ -149,14 +151,14 @@ def main():
         shutil.rmtree(dest, ignore_errors=True)
         os.makedirs(args.out, exist_ok=True)
         shutil.copytree(calc, dest, symlinks=True)
+        for dirpath, _, files in os.walk(dest):
+            for name in files:
+                if name.endswith(".lock"):
+                    os.unlink(os.path.join(dirpath, name))
         tidy(dest, s, rundir)
-        if args.output_file:
-            found = [os.path.join(d, f) for d, _, fs in os.walk(rundir)
-                     for f in fs if f in ("ecce.out", "nwch.nwout")]
-            print("run directory files:", found)
-            ecce = [f for f in found if f.endswith("ecce.out")]
-            if ecce:
-                shutil.copy(ecce[0], args.output_file)
+        if args.project_meta:
+            shutil.copy(os.path.join(os.path.dirname(calc), ".ecce-meta"),
+                        args.project_meta)
         print("wrote", dest)
         return 0
     finally:
