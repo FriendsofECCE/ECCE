@@ -96,8 +96,7 @@ Then save the structure:
 
 The editor shows what you built under **Chemical System**: **Formula:**
 `H2O`, **Atoms:** 3, **Electrons:** 10. **Charge:** is 0 and **Spin
-Mult.:** is Singlet, which is correct for water. [TO CHECK: that the
-**Formula:** field shows the formula in this form.]
+Mult.:** is Singlet, which is correct for water.
 
 Set the rest:
 
@@ -139,13 +138,19 @@ Electronic Structure Editor ask before they replace it.
    `*`, which means it is required. The field starts with the directory
    you used last for this machine. The path must start with `/` or `~`.
    ECCE creates the folder, with its parents, if it does not exist.
-4. Leave **Username:** empty. An empty user name, or your own, runs the job
-   on this computer.
+4. Leave **Username:** as it is. The field starts with your own user name,
+   which runs the job on this computer.
 5. Click **Launch**.
 
 The Launcher shows progress messages and, at the end, "Successfully
-submitted job." [TO CHECK: the processor, queue and memory fields are not
-shown for `localhost`.]
+submitted job."
+
+For `localhost` the Launcher shows **Processors:**, **Priority:**, the
+**Remote Machine Access** fields (**Username:**, **Password:**, **Remote
+Shell:**), **Run Directory:** and **Scratch Directory:**. It does not show
+**Queue:**, **Nodes:**, **Alloc. Account:**, **Wall Time Limit:**,
+**Scratch Space:** and **Memory Limit:**: those belong to machines that run
+jobs through a batch queue.
 
 ![The Launcher](img/launcher-localhost.png)
 
@@ -186,15 +191,18 @@ calculation run elsewhere: see [Looking at a file](looking-at-a-file.md).) Open 
 - **Calculation Summary** lists the theory, run type and basis set, and
   when and where the job ran.
 - **Energies** lists the energies of the calculation, including **Total
-  Energy**. [TO CHECK: the exact rows shown for an NWChem RHF geometry
-  run.]
-- **Geometry Trace** shows how the energy changed during the optimisation,
-  one point for each geometry step. Click a point on the plot to see the
+  Energy**. For an NWChem RHF geometry run the rows are **Nuclear
+  Repulsion Energy**, **One-Electron Energy**, **Total Energy** and
+  **Two-Electron Energy**, each in Hartree.
+- **Geometry Trace** plots one quantity against the geometry step, one point
+  for each step. It opens on the **Energy Gradient Magnitude**. To plot the
+  energy, right-click the panel and choose **Total Energy Vector**; the
+  picture below shows that plot. Click a point on the plot to see the
   molecule at that step, or use the playback control to step through them.
   **Delay:** sets the time between steps during playback.
 
 For a converged optimisation the energy decreases from step to step and
-levels off in the last steps.
+levels off in the last steps, and the gradient falls towards zero.
 
 ![The Viewer with the Geometry Trace panel](img/viewer-geometry-trace.png)
 
