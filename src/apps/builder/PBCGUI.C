@@ -312,16 +312,16 @@ void PBCGUI::CreateControls()
     ewxTextCtrl* itemTextCtrl36 = new ewxTextCtrl( p_latticePanel, ID_TEXTCTRL_PBC_GAMMA, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer24->Add(itemTextCtrl36, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
+    wxBoxSizer* itemBoxSizer37Rows = new wxBoxSizer(wxVERTICAL);
+    itemBoxSizer7->Add(itemBoxSizer37Rows, 0, wxALIGN_LEFT|wxALL, 0);
     wxBoxSizer* itemBoxSizer37 = new wxBoxSizer(wxHORIZONTAL);
-    itemBoxSizer7->Add(itemBoxSizer37, 0, wxALIGN_LEFT|wxALL, 0);
 
-    ewxCheckBox* itemCheckBox38 = new ewxCheckBox( p_latticePanel, ID_CHECKBOX_PBC_LOCK, _("Lock"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
+    ewxCheckBox* itemCheckBox38 = new ewxCheckBox( p_latticePanel, ID_CHECKBOX_PBC_LOCK, _("Keep atom positions"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     itemCheckBox38->SetValue(true);
     if (ShowToolTips())
-        itemCheckBox38->SetToolTip(_("Lock coordinates when editing lattice"));
-    itemBoxSizer37->Add(itemCheckBox38, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
-
-    itemBoxSizer37->Add(10, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+        itemCheckBox38->SetToolTip(_("When the cell is edited, atoms keep their Cartesian (x, y, z) positions and only the cell changes. Unticked, atoms move with the cell (fractional coordinates are kept). This does not keep a = b = c."));
+    itemBoxSizer37Rows->Add(itemCheckBox38, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
+    itemBoxSizer37Rows->Add(itemBoxSizer37, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxCheckBox* itemCheckBox40 = new ewxCheckBox( p_latticePanel, ID_CHECKBOX_PBC_CENTER, _("Center Lattice"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     itemCheckBox40->SetValue(true);
@@ -333,21 +333,21 @@ void PBCGUI::CreateControls()
     itemCheckBox42->SetValue(true);
     itemBoxSizer37->Add(itemCheckBox42, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
-    p_operationsSizer = new wxBoxSizer(wxHORIZONTAL);
+    p_operationsSizer = new wxBoxSizer(wxVERTICAL);
     itemBoxSizer7->Add(p_operationsSizer, 0, wxALIGN_LEFT|wxALL, 1);
+    wxBoxSizer* p_opsRow1 = new wxBoxSizer(wxHORIZONTAL);
+    p_operationsSizer->Add(p_opsRow1, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxButton* itemButton44 = new ewxButton( p_latticePanel, ID_BUTTON_PBC_FOLD, _("Fold"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_operationsSizer->Add(itemButton44, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+    p_opsRow1->Add(itemButton44, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
-    p_operationsSizer->Add(3, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+    p_opsRow1->Add(3, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxButton* itemButton46 = new ewxButton( p_latticePanel, ID_BUTTON_PBC_DELETE, _("Delete Lattice"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_operationsSizer->Add(itemButton46, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
-
-    p_operationsSizer->Add(3, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+    p_opsRow1->Add(itemButton46, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxButton* itemButton48 = new ewxButton( p_latticePanel, ID_BUTTON_PBC_EQUIVRECT, _("Equiv. Rectangle"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_operationsSizer->Add(itemButton48, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+    p_operationsSizer->Add(itemButton48, 0, wxALIGN_LEFT|wxTOP, 3);
 
     p_symSizer = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer7->Add(p_symSizer, 0, wxALIGN_LEFT|wxALL, 0);

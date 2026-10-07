@@ -59,6 +59,12 @@ bool PBCGenerateFragCmd::execute()
 
    SymmetryOps::generateLatticeFragment(*frag, threshold);
 
+   // The generator folds atom by atom; keep each molecule whole instead.
+   if (frag->makeMoleculesWhole(true)) {
+      frag->deleteAllBonds();
+      frag->addCovalentBonds();
+   }
+
    frag->touchNumbers();
    sg->touchChemDisplay();
 
