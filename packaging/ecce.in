@@ -228,15 +228,17 @@ jobroot="${ECCE_TMPDIR:-/tmp}/ecce_${ECCE_REALUSER:-$(id -un)}/jobs"
 # The broker log is appended to like the data server's, so
 # note where each ends now and copy only what this session added.
 bug_logs="$statedir/mosquitto.log $statedir/dataserver/logs/error_log $statedir/dataserver/logs/access_log"
-declare -A startsize
+# (bash 3.2 on macOS has no associative arrays: one variable per file.)
+file_key() { printf 'startsize_%s' "$(printf '%s' "$1" | tr -c 'A-Za-z0-9' _)"; }
 for f in $bug_logs; do
-  startsize[$f]=$(stat -c %s "$f" 2>/dev/null || echo 0)
+  eval "$(file_key "$f")=$(wc -c < "$f" 2>/dev/null | tr -d ' ' || echo 0)"
+  [ -n "$(eval "echo \${$(file_key "$f"):-}")" ] || eval "$(file_key "$f")=0"
 done
 marker="$ECCE_BUG_DIR/.session-start"
 : > "$marker"
 
 {
-  echo "ecce --bug, $(date -Is)"
+  echo "ecce --bug, $(date +%Y-%m-%dT%H:%M:%S%z)"
   echo "ECCE $ECCE_VERSION_STRING, arguments: ${*:-none}"
   echo "ECCE_REMOTE_SERVER=${ECCE_REMOTE_SERVER:-<unset>}"
   echo "ECCE_SERVER_LOGIN=${ECCE_SERVER_LOGIN:-<unset, uses remembered or Unix login>}"
@@ -265,7 +267,7 @@ bug_finish() {
       continue
     fi
     off=0
-    case "$name" in error_log|access_log|mosquitto.log) off=${startsize[$f]:-0} ;; esac
+    case "$name" in error_log|access_log|mosquitto.log) eval "off=\${$(file_key "$f"):-0}" ;; esac
     tail -c +$((off + 1)) "$f" > "$ECCE_BUG_DIR/$name" 2>/dev/null
   done
   # Job staging directories touched during the session: the logs and the
@@ -304,9 +306,19 @@ bug_finish() {
 # of it, and its output goes to a file that is also shown here: a job
 # monitor that outlives the session would hold a pipe open and keep this
 # command from returning.
-setsid ecce-gateway "${passthrough[@]}" >> "$session_log" 2>&1 < /dev/null &
+# macOS has no setsid(1) and its tail has no --pid.
+if command -v setsid >/dev/null 2>&1; then
+  setsid ecce-gateway "${passthrough[@]}" >> "$session_log" 2>&1 < /dev/null &
+else
+  perl -e 'use POSIX qw(setsid); setsid(); exec @ARGV or exit 127' ecce-gateway "${passthrough[@]}" >> "$session_log" 2>&1 < /dev/null &
+fi
 child=$!
-tail -n +1 -F --pid=$child "$session_log" 2>/dev/null &
+if tail --pid=$$ -n 0 /dev/null >/dev/null 2>&1; then
+  tail -n +1 -F --pid=$child "$session_log" 2>/dev/null &
+else
+  tail -n +1 -F "$session_log" 2>/dev/null &
+  follow_kill=true
+fi
 follower=$!
 interrupted=false
 stop_session() {
@@ -320,6 +332,7 @@ while kill -0 "$child" 2>/dev/null; do
   wait "$child"
   status=$?
 done
+if [ "${follow_kill:-}" = true ]; then sleep 1; kill "$follower" 2>/dev/null; fi
 wait "$follower" 2>/dev/null
 if $interrupted; then
   ECCE_REAP_QUIET=1 "$ECCE_HOME/bin/ecce-gateway-reap" --if-idle >/dev/null 2>&1

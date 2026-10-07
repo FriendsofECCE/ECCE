@@ -288,6 +288,7 @@ bool EcceShell::terminalArgv(const SshTerminal& t, vector<string>& argv,
 
   argv.push_back("ssh");
   argv.push_back("-t");
+  argv.insert(argv.end(), t.sshOptions.begin(), t.sshOptions.end());
   if (t.frontend != "" && t.frontendMode == "nested") {
     // ssh on the front end to the node; the node's command is quoted for
     // the front end's login shell and then for the node's.
@@ -380,6 +381,9 @@ string EcceShell::sshTerminal(RefMachine* refMachine, const string& shell,
   t.host = refMachine->fullname();
   t.user = user;
   t.frontendMode = rcmd.frontEndMode();
+  // Over libssh the terminal's ssh has to log in again; over a connection
+  // ECCE shares, it rides that login.
+  t.sshOptions = rcmd.terminalSshOptions();
   if (t.frontendMode != "") t.frontend = refMachine->frontendMachine();
 
   string dir, run;

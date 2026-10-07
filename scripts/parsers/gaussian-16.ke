@@ -26,6 +26,8 @@ $| = 1;
   /N-N=\s*(\S+).*KE=\s*(\S+)/;     # Grab next nonblank field as result
   $NNRepulsion = $1;
   $KineticEnergy = $2;
+  # a line cut before KE= leaves nothing to report
+  exit(0) unless (defined $NNRepulsion && defined $KineticEnergy);
   print "key: NNREPUL\n";
   print "size:\n1\n";
   print "values:\n$NNRepulsion\n";

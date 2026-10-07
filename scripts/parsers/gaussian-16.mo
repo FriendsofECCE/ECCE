@@ -38,6 +38,11 @@ $orbEngValues = "";
 $occValues = "";
 $values = "";
 $loopValue = 0;
+# Where the orbital being read began, so one cut short by a half-written
+# file can be dropped whole (see printThem).
+@mark = ();
+$orbTok = 0;
+$orbBad = 0;
 while (<STDIN>) {
   #  The Fortran format line -- "(5D15.8)" -- is what separates Gaussian's
   #  archive entry at the top of fort.7 from the MO data.  Matching a bare
@@ -69,6 +74,10 @@ while (<STDIN>) {
       $values = "";
       $loopValue = 0;
     }
+    @mark = (length($orbEngValues), length($occValues), length($values),
+             $loopValue);
+    $orbTok = 0;
+    $orbBad = 0;
     $norb++;
     $OrbEnergy =~ s/D/e/;  # replace D exponent with e
     $orbEngValues .= " $OrbEnergy";
@@ -91,6 +100,10 @@ while (<STDIN>) {
       s/^\s+//;  # delete lead whitespace (for correct field count)
       $temp = split;
       $nBasisFun += $temp;
+    }
+    foreach my $tok (split) {
+      $orbTok++;
+      $orbBad = 1 unless ($tok =~ /^[-+]?\d*\.?\d+([eE][-+]?\d+)?$/);
     }
     $values .= "$_\n";
   }
@@ -121,6 +134,20 @@ sub printThem {
   # corrupt one.
   if ($norb == 0) {
     return;
+  }
+
+  # A fort.7 that is still being written ends part-way through an orbital:
+  # a short row of coefficients, or a last number cut off in its exponent.
+  # Drop that orbital whole -- a ragged matrix is worse than a shorter one.
+  # (Orbital 1 sets the row length, so it cannot be judged.)
+  if ($norb > 1 && @mark && ($orbTok != $nBasisFun || $orbBad)) {
+    $orbEngValues = substr($orbEngValues, 0, $mark[0]);
+    $occValues = substr($occValues, 0, $mark[1]);
+    $values = substr($values, 0, $mark[2]);
+    $loopValue = $mark[3];
+    $norb--;
+    @mark = ();
+    if ($occupied > $norb) { $occupied = $norb; }
   }
 
   ## ORBITAL ENERGIES

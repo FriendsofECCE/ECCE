@@ -20,7 +20,7 @@ export ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
 export ECCE_REALUSER="${ECCE_REALUSER:-$(id -un)}"
 export HOST="${HOST:-$(hostname)}"
 
-_lib="$(dirname "$(readlink -f "$0")")/ecce-session-lib.sh"
+_lib="$(dirname "$0")/ecce-session-lib.sh"
 [ -r "$_lib" ] || _lib="$ECCE_HOME/bin/ecce-session-lib.sh"
 . "$_lib" || { echo "ecce-gateway-start: cannot read $_lib" >&2; exit 1; }
 ecce_session_ensure
@@ -44,7 +44,11 @@ BROKER_TLS_PORT="${ECCE_BROKER_TLS_PORT:-8883}"
 port_open_at() { (exec 3<>"/dev/tcp/$1/$2") >/dev/null 2>&1; }
 # A remote host that drops packets would hang a plain connect for minutes.
 port_open_remote() {
-  timeout 5 bash -c '(exec 3<>"/dev/tcp/$1/$2")' _ "$1" "$2" >/dev/null 2>&1
+  if command -v timeout >/dev/null 2>&1; then
+    timeout 5 bash -c '(exec 3<>"/dev/tcp/$1/$2")' _ "$1" "$2" >/dev/null 2>&1
+  else  # macOS has no timeout(1)
+    perl -e 'alarm 5; exec @ARGV' bash -c '(exec 3<>"/dev/tcp/$1/$2")' _ "$1" "$2" >/dev/null 2>&1
+  fi
 }
 
 # -remote: the central server's broker and data server, as
@@ -55,7 +59,7 @@ check_central_server() {
   local ds="$ECCE_HOME/siteconfig/RemoteServer/DataServers"
   local bhost="" bport="$BROKER_PORT" dhost="" dport="" url down="" host=""
   RBHOST="" RBPORT="" RBTLS=0
-  url="$(sed -n 's|.*<Url>[ \t]*\(https\{0,1\}://[^/<]*\).*|\1|p' "$ds" 2>/dev/null | head -n1)"
+  url="$(sed -n 's|.*<Url>[[:space:]]*\(https\{0,1\}://[^/<]*\).*|\1|p' "$ds" 2>/dev/null | head -n1)"
   if [ -n "$url" ]; then
     dport=80; case "$url" in https:*) dport=443; RBTLS=1 ;; esac
     url="${url#*://}"

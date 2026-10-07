@@ -19,6 +19,7 @@
 
 #include "WxLauncher.H"
 #include "WxLauncherScript.H"
+#include "wxgui/WindowShot.H"
 
 using std::string;
 using std::vector;
@@ -81,20 +82,7 @@ void LauncherScript::fail(const string& what)
 
 bool LauncherScript::shot(const string& file)
 {
-    p_frame->Raise();
-    for (int i = 0; i < 3; i++)
-    {
-        p_frame->Update();
-        wxTheApp->Yield(true);
-        wxMilliSleep(50);
-    }
-    wxSize sz = p_frame->GetClientSize();
-    wxClientDC screen(p_frame);
-    wxBitmap bmp(sz.x, sz.y);
-    wxMemoryDC mem(bmp);
-    mem.Blit(0, 0, sz.x, sz.y, &screen, 0, 0);
-    mem.SelectObject(wxNullBitmap);
-    return bmp.ConvertToImage().SaveFile(file, wxBITMAP_TYPE_PNG);
+    return ecceWindowShot(p_frame, file);
 }
 
 
@@ -141,6 +129,8 @@ int LauncherScript::runCommand(const vector<string>& w)
         if (!p_frame->clickMachineSettings())
             fail("the Machine settings button is missing or disabled");
     }
+    else if (cmd == "rundir" && n == 2)
+        p_frame->setRunDirectory(w[1]);
     else if (cmd == "reload")
         p_frame->machRegChanged();
     else if (cmd == "exec" && n >= 2)

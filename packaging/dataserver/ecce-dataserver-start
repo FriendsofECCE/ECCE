@@ -376,7 +376,8 @@ sed "${tls_sed[@]}" \
     "$CONF_TEMPLATE" > "$STATEDIR/httpd.conf"
 # Newer httpd (Fedora 44, 2.4.69) has no mod_dav_lock.so any more.
 if [ ! -f "$MODULES_DIR/mod_dav_lock.so" ]; then
-  sed -i '/^LoadModule dav_lock_module /d' "$STATEDIR/httpd.conf"
+  sed '/^LoadModule dav_lock_module /d' "$STATEDIR/httpd.conf" > "$STATEDIR/httpd.conf.new" &&
+    mv -f "$STATEDIR/httpd.conf.new" "$STATEDIR/httpd.conf"
 fi
 
 if [ "$TLS" = 1 ]; then

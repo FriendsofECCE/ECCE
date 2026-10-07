@@ -44,9 +44,11 @@ What happens next depends on the format:
 
 - XYZ: ECCE asks for the units of the coordinates (the file does not
   record them): Ångströms, Bohr, picometers or nanometers.
-- PDB: if the file has several models, alternate locations or chains,
-  ECCE asks which to use. [TO CHECK: the labels of this window.] A single
-  model such as glycine loads without a question.
+- PDB: if the file has several models or alternate locations, the window
+  "ECCE PDB Reader" asks which to use: **Read which model:**, **Alternate
+  location:** and **Select chain:** (`All` reads every chain). A file with
+  a single model and no alternate locations, such as glycine, loads without
+  a question.
 - CAR and MVM: loaded without a question. A CAR file such as `benzene.car`
   (12 atoms) loads directly.
 
@@ -112,9 +114,13 @@ Output files of other codes are not recognised and the import ends with
 ESPRESSO outputs cannot be imported, although ECCE can run those codes.
 GAMESS-UK, Amica and MOLCAS are not recognised either. Importers for
 Gaussian 03 and 98 exist but were not tested in this version.
-[TO CHECK: the ORCA importer reads only ORCA outputs for the keyword
-vocabulary ECCE itself generates (RHF, UHF, RKS, UKS with Opt, Freq,
-EnGrad) and recovers a basis set only when it is given by name.]
+From an ORCA output ECCE always reads the molecule. It fills in the
+theory and run type only when the keyword line of the ORCA input (the line
+starting with `!`) uses keywords ECCE knows: HF, RHF, UHF, RKS or UKS, the
+functionals B3LYP, PBE0, PBE, BP86, BLYP, TPSS, M06L and M06, and the run
+types Opt, Freq, EnGrad and NMR. Other methods, such as MP2 or coupled
+cluster, are not decoded. The basis set is recovered only when the input
+gives it by library name, not in a `%basis` block.
 
 ### Import the file
 
@@ -185,7 +191,7 @@ each code supplies is listed in its parse specification
 
 ![The Viewer on an imported calculation](img/viewer-imported.png)
 
-<!-- capture: Viewer on an imported calculation with the Properties menu open -->
+<!-- capture: Viewer on an imported calculation, Energies panel open -->
 
 #### Orbitals
 
@@ -203,9 +209,12 @@ each code supplies is listed in its parse specification
 
 Orbitals need the molecular orbital coefficients and the basis set in the
 output. If the output has no orbitals, **MOs** is missing from the menu.
-[TO CHECK: whether each code's output has them by default; NWChem
-needs the `ecce_print` output or the `movecs` file, ORCA's default output
-may not print them.]
+ECCE reads NWChem orbitals only from its own formatted output, which the
+`ecce_print` line in the input ECCE generates produces; a plain NWChem
+output file has none. An ORCA output has the coefficients only if the
+input asked for them with `Print[P_MOs] 1` in a `%output` block, which
+the input ECCE generates does; ORCA's default output lists only the
+orbital energies and occupations.
 
 #### Vibrations
 
@@ -223,8 +232,8 @@ the same steps on a calculation you ran yourself.
 Structures you save and calculations you import are stored in your projects,
 in the place ECCE keeps your data: the data server, or the local folder if
 you use local data mode (see [Installation](installation.md)). The Organizer
-tree shows them. [TO CHECK: that ECCE leaves your original output file
-unchanged.]
+tree shows them. ECCE reads your original output file when you import it
+and does not change it.
 
 A structure opened from a file with **File > Open...** can be changed, and
 then **File > Save** is enabled. It writes back into that file, in ECCE's
