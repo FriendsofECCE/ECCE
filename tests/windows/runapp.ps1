@@ -1,7 +1,7 @@
 param([string]$name, [string]$exe, [string]$arg = "", [int]$wait = 25)
 $out = "C:\Users\andy\shots"
 New-Item -ItemType Directory -Force $out | Out-Null
-$env:Path = "C:\msys64\ucrt64\bin;" + $env:Path
+$env:Path = "C:\msys64\ucrt64\bin;" + $env:Path + ";C:\msys64\usr\bin"   # perl for gensub until Perl is bundled
 $env:ECCE_HOME = "C:\Users\andy\ECCE"
 $env:ECCE_DATA = "C:\Users\andy\ECCE\data"
 $env:ECCE_REALUSERHOME = "C:\Users\andy\eccehome"
