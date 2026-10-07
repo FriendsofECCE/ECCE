@@ -2744,6 +2744,12 @@ bool WxLauncher::selectQueue(const string& name)
 }
 
 
+void WxLauncher::setRunDirectory(const string& path)
+{
+    p_calcDrctyTextCtrl->SetValue(path);
+}
+
+
 string WxLauncher::hookGet(const string& what)
 {
     if (what == "request")

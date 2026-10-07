@@ -34,6 +34,7 @@
 #include "wxgui/ewxTextCtrl.H"
 #include "WxMachineRegister.H"
 #include "WxMachineRegisterScript.H"
+#include "wxgui/WindowShot.H"
 
 using std::string;
 using std::vector;
@@ -182,20 +183,7 @@ bool MachRegScript::shot(const string& file, bool dialog, bool help)
                            : p_frame;
     if (win == NULL)
         return false;
-    win->Raise();
-    for (int i = 0; i < 3; i++)
-    {
-        win->Update();
-        wxTheApp->Yield(true);
-        wxMilliSleep(50);
-    }
-    wxSize sz = win->GetClientSize();
-    wxClientDC screen(win);
-    wxBitmap bmp(sz.x, sz.y);
-    wxMemoryDC mem(bmp);
-    mem.Blit(0, 0, sz.x, sz.y, &screen, 0, 0);
-    mem.SelectObject(wxNullBitmap);
-    return bmp.ConvertToImage().SaveFile(file, wxBITMAP_TYPE_PNG);
+    return ecceWindowShot(win, file);
 }
 
 

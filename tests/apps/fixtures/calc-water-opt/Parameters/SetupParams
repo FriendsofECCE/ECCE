@@ -1,0 +1,30 @@
+ES.Runtype.GeomOpt.Convergence|Default||1|1|menu_input
+ES.Runtype.GeomOpt.ConvergenceGradient.Value|0.0008|Hartree/Bohr|0|0|float_input
+ES.Runtype.GeomOpt.GradientMax|0.00045|Hartree/Bohr|0|1|float_input
+ES.Runtype.GeomOpt.GradientRMS|0.0003|Hartree/Bohr|0|1|float_input
+ES.Runtype.GeomOpt.MaximumStepsValue|20||1|0|integer_input
+ES.Runtype.GeomOpt.SearchAlgorithm|NWChem Driver||1|1|menu_input
+ES.Runtype.GeomOpt.SearchFor|Minimum||1|0|menu_input
+ES.Runtype.GeomOpt.StepSizeMax|0.0018|Bohr|0|1|float_input
+ES.Runtype.GeomOpt.StepSizeRMS|0.0012|Bohr|0|1|float_input
+ES.Runtype.GeomOpt.TransitionMode|1||0|0|integer_input
+ES.Theory.SCF.ConvergenceAlgorithm|Quadratic||1|0|menu_input
+ES.Theory.SCF.ConvergenceGradient.Value|0.0001|Hartree|1|0|float_input
+ES.Theory.SCF.ConvergenceIterations|20||1|0|integer_input
+ES.Theory.SCF.Dielectric|78.4|Debye|0|0|float_input
+ES.Theory.SCF.Direct|Semi-Direct||1|0|menu_input
+ES.Theory.SCF.Disk|0||1|0|toggle_input
+ES.Theory.SCF.DiskSize|64|Megawords|0|1|integer_input
+ES.Theory.SCF.InitialGuess|NWChem Atomic Guess||1|0|menu_input
+ES.Theory.SCF.LevelShift|0||1|0|toggle_input
+ES.Theory.SCF.LevelShiftSize|20|Hartree|0|1|float_input
+ES.Theory.SCF.Memory|0||1|0|toggle_input
+ES.Theory.SCF.MemorySize|2|Gigabytes / core|0|1|integer_input
+ES.Theory.SCF.NewLevelShift|0||1|0|toggle_input
+ES.Theory.SCF.NewLevelShiftCrossover|0.5|Hartree|0|1|float_input
+ES.Theory.SCF.NewLevelShiftSize|0|Hartree|0|0|float_input
+ES.Theory.SCF.Solvent|Water: 78.4 Debye||0|0|menu_input
+ES.Theory.SCF.SolventRadius|0.5|Angstroms|0|0|float_input
+ES.Theory.SCF.UseCosmo|0||1|0|toggle_input
+ES.Theory.SymmetryTol|0.01|Angstroms|0|0|float_input
+ES.Theory.UseAutoZ|1||1|0|toggle_input

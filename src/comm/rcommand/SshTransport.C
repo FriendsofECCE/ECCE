@@ -183,7 +183,7 @@ SshTransport::SshTransport(const std::string& host, int port,
   : p_host(host), p_user(user), p_port(port), p_useConfig(true),
     p_connectTimeout(15), p_passwordAttempts(1), p_jumpPort(0),
     p_feMode(FE_AUTO), p_nested(false), p_forwardWorked(false), p_authFailed(false), p_link(0),
-    p_session(0), p_sftp(0)
+    p_session(0), p_lent(false), p_sftp(0)
 {
   const char* e = getenv("ECCE_SSH_FRONTEND");
   if (e && !strcmp(e, "forward")) p_feMode = FE_FORWARD;
@@ -879,6 +879,7 @@ TransportResult SshTransport::runImpl(const std::string& script, int timeoutSec,
 {
   TransportResult res;
   if (!p_session) { res.error = "not connected"; return res; }
+  if (p_lent) { res.error = "busy: a stream is using this login"; return res; }
   std::string err;
   std::string envp = envPrefix(err);
   if (!err.empty()) { res.error = err; return res; }
@@ -1011,6 +1012,7 @@ long SshTransport::spawnDetached(const std::string& script, std::string& error,
 bool SshTransport::sftp(std::string& error)
 {
   if (!p_session) { error = "not connected"; return false; }
+  if (p_lent) { error = "busy: a stream is using this login"; return false; }
   if (p_sftp) return true;
   p_sftp = sftp_new(p_session);
   if (!p_sftp || sftp_init(p_sftp) != SSH_OK) {
@@ -1405,10 +1407,11 @@ bool SshTransport::getTree(const std::string& remotePath,
 // ---- the monitor stream ----
 
 struct SshStream : RemoteStream {
-  SshStream() : session(0), channel(0), jump(0), appFd(-1), pumpFd(-1),
-                graceMs(2000), intr(false), stop(false)
+  SshStream() : session(0), ownsSession(true), channel(0), jump(0), appFd(-1),
+                pumpFd(-1), graceMs(2000), intr(false), stop(false)
   { ctl[0] = ctl[1] = -1; }
   ssh_session session;
+  bool ownsSession;        // false: the transport's own login, lent to it
   ssh_channel channel;
   SshJump* jump;
   int appFd, pumpFd, ctl[2];
@@ -1548,9 +1551,13 @@ void pump(SshStream* st)
   st->pumpFd = -1;
   ssh_channel_close(ch);
   ssh_channel_free(ch);
-  ssh_disconnect(s);
-  ssh_free(s);
-  closeJump(st->jump);
+  if (st->ownsSession) {
+    ssh_disconnect(s);
+    ssh_free(s);
+    closeJump(st->jump);
+  } else {
+    ssh_set_blocking(s, 1);
+  }
   st->jump = 0;
   st->channel = 0;
   st->session = 0;
@@ -1609,6 +1616,53 @@ RemoteStream* SshTransport::openStream(const std::string& script, int& fd,
   return 0;
 }
 
+// A channel on p_session itself: no second login, so no second password or
+// one-time code.  libssh objects belong to one thread at a time, so the pump
+// thread has the session to itself until closeStream() joins it.
+RemoteStream* SshTransport::openStreamOnLogin(const std::string& script, int& fd,
+                                              std::string& error)
+{
+  if (!p_session) { error = "not connected"; return 0; }
+  if (p_lent) { error = "busy: a stream is using this login"; return 0; }
+  std::string err;
+  std::string envp = envPrefix(err);
+  if (!err.empty()) { error = err; return 0; }
+
+  ssh_channel ch = ssh_channel_new(p_session);
+  if (!ch || ssh_channel_open_session(ch) != SSH_OK ||
+      ssh_channel_request_exec(ch, execLine(kStreamExec).c_str()) != SSH_OK) {
+    error = std::string("cannot start command: ") + ssh_get_error(p_session);
+    if (ch) ssh_channel_free(ch);
+    return 0;
+  }
+
+  int sp[2], ctl[2];
+  if (socketpairCloexec(AF_UNIX, SOCK_STREAM, 0, sp) != 0) {
+    error = strerror(errno);
+  } else if (pipeCloexec(ctl) != 0) {
+    error = strerror(errno);
+    close(sp[0]); close(sp[1]);
+  } else {
+    SshStream* st = new SshStream;
+    st->session = p_session;
+    st->ownsSession = false;
+    st->channel = ch;
+    st->appFd = sp[0];
+    st->pumpFd = sp[1];
+    st->ctl[0] = ctl[0];
+    st->ctl[1] = ctl[1];
+    st->header = oneLine(envp + withDir(script));
+    fcntl(st->pumpFd, F_SETFL, fcntl(st->pumpFd, F_GETFL) | O_NONBLOCK);
+    p_lent = true;
+    st->thread = std::thread(pump, st);
+    fd = st->appFd;
+    return st;
+  }
+  ssh_channel_close(ch);
+  ssh_channel_free(ch);
+  return 0;
+}
+
 void SshTransport::interruptStream(RemoteStream* rs)
 {
   SshStream* st = static_cast<SshStream*>(rs);
@@ -1625,6 +1679,7 @@ void SshTransport::closeStream(RemoteStream* rs, int graceMs)
   st->stop = true;
   if (write(st->ctl[1], "s", 1) < 0) {}
   st->thread.join();
+  if (!st->ownsSession) p_lent = false;
   close(st->appFd);
   close(st->ctl[0]);
   close(st->ctl[1]);

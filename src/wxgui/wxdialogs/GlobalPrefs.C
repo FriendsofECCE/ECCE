@@ -318,7 +318,7 @@ void GlobalPrefs::createProgramsPage(wxWindow* page)
   termLabels.push_back("Other");
   p_terminal = makeProgramRow(sb, grid, _("Terminal:"), termLabels, termVals,
                               PrefLabels::TERMINAL);
-  p_terminal.choice->SetToolTip(_("Runs terminal editors such as vi, and the shells and Tail windows that Organizer, Launcher and MD Prepare open, local or remote"));
+  p_terminal.choice->SetToolTip(_("Runs terminal editors such as vi, and the shells that Organizer, Launcher and MD Prepare open, local or remote"));
 
   const char* brPresets[] = {"", "firefox", "firefox-esr", "chromium"};
   vector<string> brVals(brPresets, brPresets + 4);
@@ -335,7 +335,7 @@ void GlobalPrefs::createProgramsPage(wxWindow* page)
   outer->Add(new ewxStaticText(page, wxID_ANY,
       _("Default editor: VISUAL or EDITOR if set, otherwise vi.\n"
         "Terminal editors (vi, vim, nano, emacs -nw) run in this terminal;\n"
-        "Shells in a calculation directory and Tail use it too, locally and remotely.\n"
+        "Shells in a calculation directory use it too, locally and remotely.\n"
         "Choose Other to type a command; it may include arguments.")),
       0, wxLEFT|wxRIGHT|wxBOTTOM, PAD*2);
 

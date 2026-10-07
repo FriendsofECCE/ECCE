@@ -88,7 +88,14 @@ done
 #     candidates match.
 nw=$(command -v nwchem 2>/dev/null)
 if [ -n "$nw" ]; then
-  nw=$(readlink -f "$nw" 2>/dev/null || echo "$nw")
+  # macOS before 12.3 has no readlink -f: follow links by hand.
+  n=0
+  while [ -L "$nw" ] && [ "$n" -lt 40 ]; do
+    link=$(readlink "$nw")
+    case "$link" in /*) nw=$link ;; *) nw=$(dirname "$nw")/$link ;; esac
+    n=$((n + 1))
+  done
+  nw=$(cd "$(dirname "$nw")" 2>/dev/null && pwd -P)/$(basename "$nw")
   prefix=$(dirname "$(dirname "$nw")")
   for candidate in "$prefix/share/nwchem" "$prefix/data" "$prefix/share/nwchem/data"; do
     if qualifies "$candidate"; then
