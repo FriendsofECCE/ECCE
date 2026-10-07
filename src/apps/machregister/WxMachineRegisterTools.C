@@ -336,7 +336,7 @@ static void addRequestControls(WxMachineRegister* owner, wxDialog* dlg,
     grid->Add(p.mem);
 
     p.account = new ewxTextCtrl(dlg, wxID_ANY, wxString::FromUTF8(account.c_str()));
-    p.account->SetHint("e.g. proj1 (empty: none)");
+    p.account->SetHint("e.g. proj1");
     p.account->SetToolTip("The allocation account the job is charged to. "
         "Some machines refuse a job without one. Filled in from the Default "
         "account on the Queues tab.");

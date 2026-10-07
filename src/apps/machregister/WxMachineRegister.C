@@ -831,6 +831,8 @@ void WxMachineRegister::addCodeLine(wxWindow* page, wxFlexGridSizer* grid,
     l.suffix = suffix;
     l.name = new ewxStaticText(page, wxID_ANY, label);
     l.name->SetMinSize(wxSize(190, -1));
+    if (id == "code")
+        l.name->Wrap(190);
     grid->Add(l.name, wxSizerFlags().Right().Border().CentreVertical());
 
     if (id == "code")
@@ -1026,7 +1028,7 @@ void WxMachineRegister::showCode()
         if (!h.note.empty())
             t += ".  " + h.note;
         p_codeExample->SetLabel(wxString::FromUTF8(t.c_str()));
-        p_codeExample->Wrap(520);
+        p_codeExample->Wrap(380);
     }
     for (size_t r = 0; r < p_codeShown.size(); r++)
         if (p_codeShown[r] == p_codeSel)
