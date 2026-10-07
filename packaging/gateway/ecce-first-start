@@ -25,6 +25,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 
 HOME = os.environ.get("ECCE_REALUSERHOME") or os.path.expanduser("~")
 ECCE_HOME = os.environ.get("ECCE_HOME") or "/opt/ecce"
@@ -169,7 +170,7 @@ def build_dialog(wx, change):
     addr = wx.TextCtrl(panel, size=(280, -1), value=host)
     row.Add(addr, 1)
     box.Add(row, 0, wx.EXPAND | wx.LEFT | wx.TOP, 24)
-    box.Add(label("for example  ecce.example.edu"), 0, wx.LEFT | wx.TOP, 24)
+    box.Add(label("for example  ecce.example.edu"), 0, wx.LEFT | wx.TOP, 4)
 
     status = wx.StaticText(panel, label="")
     status.SetForegroundColour(wx.Colour(168, 32, 32))
@@ -230,16 +231,30 @@ def build_dialog(wx, change):
         dlg.EndModal(wx.ID_OK)
     go.Bind(wx.EVT_BUTTON, finish)
 
+    def picture(path):
+        w, h = dlg.GetSize()
+        bmp = wx.Bitmap(w, h)
+        mem = wx.MemoryDC(bmp)
+        mem.Blit(0, 0, w, h, wx.ScreenDC(), *dlg.GetPosition())
+        mem.SelectObject(wx.NullBitmap)
+        bmp.SaveFile(path, wx.BITMAP_TYPE_PNG)
+
+    def refused():
+        # An answered window that is still open was refused: leave, so a
+        # test never waits for a click.
+        if not dlg.IsShown():
+            return
+
+        def leave():
+            result["refused"] = status.GetLabel()
+            dlg.EndModal(wx.ID_CANCEL)
+        wx.CallLater(800, leave)
+
+    shot = os.environ.get("ECCE_FIRST_START_SHOT")
+
     def hooks():
-        shot = os.environ.get("ECCE_FIRST_START_SHOT")
         if shot:
-            wx.GetApp().Yield()
-            w, h = dlg.GetSize()
-            bmp = wx.Bitmap(w, h)
-            mem = wx.MemoryDC(bmp)
-            mem.Blit(0, 0, w, h, wx.ScreenDC(), *dlg.GetPosition())
-            mem.SelectObject(wx.NullBitmap)
-            bmp.SaveFile(shot, wx.BITMAP_TYPE_PNG)
+            picture(shot)
         ans = os.environ.get("ECCE_FIRST_START_ANSWER", "")
         if ans == "local":
             r_local.SetValue(True)
@@ -250,6 +265,8 @@ def build_dialog(wx, change):
             sync()
             addr.SetValue(ans[7:])
             finish()
+        if ans:
+            wx.CallLater(1500, refused)
     wx.CallLater(700, hooks)
     return dlg, result
 
@@ -273,6 +290,9 @@ def main(argv):
     dlg, result = build_dialog(wx, change)
     answer = dlg.ShowModal()
     dlg.Destroy()
+    if result.get("refused"):
+        sys.stderr.write("ecce-first-start: refused: %s\n" % result["refused"])
+        return 4
     if answer != wx.ID_OK:
         return 0 if change else 3
     if change and result.get("changed"):
