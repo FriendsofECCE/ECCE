@@ -311,6 +311,13 @@ class CalcEd: public CalcEdGUI,
     bool regenerateIfStructureChanged();
 
   private:
+    void runTestCommand(const string& line);
+
+    //  ECCE_TEST_CALCED: keep the generator's working files, as Shift+Save
+    //  does, and remember where they went.
+    bool   p_testKeepParams = false;
+    string p_keptGeneratorDir;
+
     WxFeedback *p_feedback;
     EcceTool   *p_builderTool;
     EcceTool   *p_basisSetTool;

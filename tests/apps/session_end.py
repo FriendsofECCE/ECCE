@@ -2459,7 +2459,175 @@ def caseLocalPref(checks, display, logdir):
                 handle.write(saved)
 
 
-CASES = {"local": caseLocal, "local-pref": caseLocalPref, "local-save": caseLocalSave, "bug": caseBug, "window": caseWindow, "stop": caseStop, "remote": caseRemote,
+def drivenEditor(checks, display, session, calcdir, script, logdir, tag):
+    """Run CalcEd on calcdir, feeding it ECCE_TEST_CALCED commands.
+
+    script is a list of commands, or ("sleep", seconds).  Returns the list of
+    (command, answer) pairs; a "save" answer is replaced by what it wrote:
+    the .param's ES.Theory.UseSymmetry line and the deck's route line.
+    """
+    cmdfile = os.path.join(state, "calced-%s.cmd" % tag)
+    open(cmdfile, "w").close()
+    logpath = os.path.join(logdir, "local-usesym-%s.log" % tag)
+    log = open(logpath, "w")
+    before = set(w for w, _ in display.windows())
+    proc = subprocess.Popen(
+        [os.path.join(wrappers, "ecce-calced"), "-context",
+         "file://" + calcdir + "/"],
+        env=dict(session.env(), ECCE_TEST_CALCED=cmdfile), stdout=log,
+        stderr=subprocess.STDOUT, start_new_session=True)
+    answers = []
+    try:
+        deadline = time.time() + 90
+        win = []
+        while time.time() < deadline and not win and proc.poll() is None:
+            win = [w for w in display.windows() if w[0] not in before
+                   and "Gaussian" in w[1]]
+            time.sleep(0.5)
+        if not checks.check(win, "%s: CalcEd opened on %s" % (tag, calcdir)):
+            return answers
+        time.sleep(8)       # the details dialogs' defaults come in first
+        for cmd in script:
+            if isinstance(cmd, tuple):
+                time.sleep(cmd[1])
+                continue
+            with open(cmdfile, "a") as handle:
+                handle.write(cmd + "\n")
+            want = "ECCE_TEST_CALCED: %s: " % cmd
+            deadline = time.time() + 90
+            answer = None
+            while answer is None and time.time() < deadline:
+                log.flush()
+                with open(logpath, errors="replace") as handle:
+                    for line in handle:
+                        if line.startswith(want):
+                            answer = line[len(want):].strip()
+                if answer is None:
+                    if proc.poll() is not None:
+                        break
+                    time.sleep(0.5)
+            if answer and cmd == "save" and answer.startswith("kept "):
+                kept = answer[5:]
+                param = os.path.join(kept, os.path.basename(calcdir) + ".param")
+                use = "(no .param)"
+                if os.path.exists(param):
+                    use = "ES.Theory.UseSymmetry absent"
+                    for line in open(param, errors="replace"):
+                        if line.startswith("ES.Theory.UseSymmetry:"):
+                            use = line.strip()
+                route = "(no deck)"
+                inputs = os.path.join(calcdir, "Inputs")
+                for name in sorted(os.listdir(inputs)) if os.path.isdir(inputs) else []:
+                    for line in open(os.path.join(inputs, name), errors="replace"):
+                        if line.startswith("#"):
+                            route = line.strip()
+                            break
+                answer = "%s | %s" % (use, route)
+                shutil.rmtree(kept, ignore_errors=True)
+            say("    %-12s -> %s" % (cmd, answer))
+            answers.append((cmd, answer))
+            if cmd == "quit":
+                break
+    finally:
+        if proc.poll() is None:
+            try:
+                os.killpg(proc.pid, 15)
+                proc.wait(timeout=20)
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+        log.close()
+    return answers
+
+
+def caseLocalUseSymmetry(checks, display, logdir):
+    """"Use symmetry" ticked never puts NoSymm in a Gaussian 16 deck.
+
+    CalcEd driven through ECCE_TEST_CALCED on Gaussian-16 calculations in
+    local mode, through the real ESInputController and ai.gauss16: ticked
+    gives no NoSymm (and PG= only for a chosen group other than C1),
+    unticked gives NoSymm -- after a theory change, after Theory Details
+    is opened and closed, and after the calculation is reopened.  SE
+    theories, which need no basis set.
+    """
+    d = display.name
+    if not checks.check(d != ":1", "own Xvfb %s, never :1" % d):
+        return
+    data = os.path.join(state, "localdata-usesym")
+    shutil.rmtree(data, ignore_errors=True)
+    home = localHome(os.environ["ECCE_HOME"])
+    user = os.path.join(data, "users", getpass.getuser())
+    os.makedirs(user)
+    problem = makeLocalCalculation(display.env(), home, data, "g16")
+    if not checks.check(problem is None, "Gaussian-16 water calculations "
+                        "created"):
+        say("    " + (problem or ""))
+        return
+    session = Session(display, os.path.join(logdir, "local-usesym.log"),
+                      extra={"ECCE_LOCAL_DATA": data, "ECCE_HOME": home})
+
+    def saves(answers):
+        return [a for c, a in answers if c == "save"]
+
+    def ticked(answer, group=None):
+        if not answer or "ES.Theory.UseSymmetry: 1" not in answer:
+            return False
+        if "NoSymm" in answer or "#" not in answer:
+            return False
+        if group:
+            return ("PG=%s," % group) in answer
+        return "PG=" not in answer
+
+    def unticked(answer):
+        return bool(answer) and "ES.Theory.UseSymmetry: 0" in answer \
+            and "NoSymm" in answer and "PG=" not in answer
+
+    try:
+        frame = session.organizer()
+        if not checks.check(frame, "the Organizer opened"):
+            return
+        c1 = os.path.join(user, "proj-g16", "w-c1")
+        c2v = os.path.join(user, "proj-g16", "w-c2v")
+        a = drivenEditor(checks, display, session, c1, [
+            "state", "theory RPM7", "state", "save",
+            "opentheory", ("sleep", 6), "closetheory", ("sleep", 2),
+            "state", "save", "theory RPM6", "save", "quit"],
+            logdir, "c1-new")
+        s = saves(a)
+        checks.check(len(s) == 3 and ticked(s[0]), "C1, ticked, theory "
+                     "chosen: no NoSymm, no PG")
+        checks.check(len(s) == 3 and ticked(s[1]), "C1, ticked, after Theory "
+                     "Details opened and closed: no NoSymm, no PG")
+        checks.check(len(s) == 3 and ticked(s[2]), "C1, ticked, after a "
+                     "second theory change: no NoSymm, no PG")
+        a = drivenEditor(checks, display, session, c1, [
+            "state", "save", "box 0", "save", "quit"], logdir, "c1-reopen")
+        s = saves(a)
+        checks.check(len(s) == 2 and ticked(s[0]), "C1, reopened, ticked: "
+                     "no NoSymm, no PG")
+        checks.check(len(s) == 2 and unticked(s[1]), "C1, unticked: NoSymm")
+        a = drivenEditor(checks, display, session, c1, [
+            "state", "theory RPM7", "save", "box 1", "save", "quit"],
+            logdir, "c1-unticked")
+        s = saves(a)
+        checks.check(len(s) == 2 and unticked(s[0]), "C1, reopened unticked, "
+                     "theory changed: still NoSymm")
+        checks.check(len(s) == 2 and ticked(s[1]), "C1, ticked again: no "
+                     "NoSymm")
+        a = drivenEditor(checks, display, session, c2v, [
+            "state", "theory RPM7", "save", "box 0", "save", "quit"],
+            logdir, "c2v")
+        s = saves(a)
+        checks.check(len(s) == 2 and ticked(s[0], "C2V"), "C2v, ticked: "
+                     "Symmetry=(PG=C2V,Loose)")
+        checks.check(len(s) == 2 and unticked(s[1]), "C2v, unticked: NoSymm")
+        quitVia(display, frame)
+        checks.check(session.ended(30), "`ecce` returned after the Organizer "
+                     "closed")
+    finally:
+        session.kill()
+
+
+CASES = {"local": caseLocal, "local-usesym": caseLocalUseSymmetry, "local-pref": caseLocalPref, "local-save": caseLocalSave, "bug": caseBug, "window": caseWindow, "stop": caseStop, "remote": caseRemote,
          "remote-down": caseRemoteDown, "remote-refused": caseRemoteRefused,
          "quit-stop": caseQuitStop,
          "displays": caseDisplays, "same-display": caseSameDisplay,
@@ -2501,7 +2669,7 @@ def main():
             #  Cases share one broker and data server, as sessions do;
             #  the stop case takes both down, the next session restarts
             #  the broker and this restarts the data server.
-            if name in ("local", "local-save", "local-pref"):   # no data server
+            if name in ("local", "local-save", "local-pref", "local-usesym"):   # no data server
                 subprocess.run([os.path.join(install, "bin",
                                              "ecce-dataserver-stop")],
                                env=display.env(), stdout=subprocess.DEVNULL,
