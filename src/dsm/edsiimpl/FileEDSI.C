@@ -707,6 +707,7 @@ static void appendVirtualMetaData(const string& dir,
     if (name.compare(0, 1, ".") == 0) continue;
     string path = dir + "/" + name;
     if (isDirectory(path)) {
+      if (kids[i].is_link()) continue;     // a link back up would not end
       MetaStore sub = loadStore(path);
       const PropMap *own = findProps(sub, ".");
       if (isVDocProps(own)) continue;
