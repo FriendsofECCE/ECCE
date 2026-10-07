@@ -68,6 +68,38 @@ def allowed():
     return out
 
 
+def grab(path):
+    """One screenshot of the display, for an app that asked for it."""
+    try:
+        from PIL import ImageGrab
+        ImageGrab.grab(xdisplay=opts["display"]).save(path)
+        return
+    except Exception:
+        pass
+    if shutil.which("import"):
+        subprocess.run(["import", "-display", opts["display"], "-window",
+                        "root", path], stderr=subprocess.DEVNULL)
+
+
+def serveShots(stop):
+    """Answer the apps' <shot>.req files with a grab and a <shot>.ack."""
+    shots = os.path.join(opts["out"], "shots") if opts["out"] else None
+    while not stop.is_set():
+        time.sleep(0.1)
+        if not shots:
+            continue
+        for name in os.listdir(shots):
+            if not name.endswith(".req"):
+                continue
+            png = os.path.join(shots, name[:-4])
+            try:
+                os.remove(os.path.join(shots, name))
+            except OSError:
+                continue
+            grab(png)
+            open(png + ".ack", "w").close()
+
+
 def readReport(path, seen):
     """Parse new lines of the audit file; returns True once DONE is seen."""
     done = False
@@ -225,6 +257,23 @@ def annotate():
 
 
 def sweep(display, results, only):
+    import threading
+    opts["display"] = display.name
+    stop = threading.Event()
+    server = threading.Thread(target=serveShots, args=(stop,), daemon=True)
+    server.start()
+    try:
+        sweepAll(display, results, only)
+    finally:
+        stop.set()
+        for name in os.listdir(os.path.join(opts["out"], "shots")) \
+                if opts["out"] else []:
+            if name.endswith(".ack"):
+                os.remove(os.path.join(opts["out"], "shots", name))
+    annotate()
+
+
+def sweepAll(display, results, only):
     report = tempfile.mktemp(prefix="ecce-clip-", suffix=".tsv")
     seen = [0]
     phase = opts["only"]
@@ -254,7 +303,6 @@ def sweep(display, results, only):
             for row in bad:
                 f.write("\t".join(row) + "\n")
         shutil.copy(report, os.path.join(opts["out"], "audit.raw"))
-        annotate()
     os.remove(report)
     print("\n%dx%d: %d windows audited, %d findings"
           % (sw, sh, len(windows), len(bad)))
