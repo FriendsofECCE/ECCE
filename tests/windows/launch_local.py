@@ -39,7 +39,9 @@ class S:
             "ECCE_TMPDIR": os.path.join(state, "tmp"),
             "ECCE_LOCAL_DATA": os.path.join(state, "localdata"),
             "ECCE_SESSION_ID": "wintest",
-            "PATH": os.pathsep.join([os.path.join(REPO, "scripts"),
+            "PATH": os.pathsep.join(([os.environ["WINTEST_PATH"]]
+                                     if "WINTEST_PATH" in os.environ else []) +
+                                    [os.path.join(REPO, "scripts"),
                                      os.path.join(REPO, "scripts", "parsers"),
                                      build, os.environ["PATH"]]),
         })
@@ -92,7 +94,7 @@ def main():
     a = ap.parse_args()
     s = S(os.path.abspath(a.build), os.path.abspath(a.state))
     st = s.state.replace("\\", "/")
-    with open(os.path.join(st, ".ECCE", "CONFIG.localhost"), "w") as h:
+    with open(os.path.join(st, ".ECCE", "CONFIG.localhost"), "w", newline="\n") as h:
         h.write("MOPAC: %s\n" % stub(st, 2 if a.case == "complete" else 300))
     url = s.userUrl = "file://%s/localdata/users/local" % st
     rc, out = s.drv("create", url, "wintest", "mopac_es", DECK, "mopac.mop",

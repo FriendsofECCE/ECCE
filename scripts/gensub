@@ -891,7 +891,7 @@ sub handleOptions()
 #open(DEBUG,">/tmp/klsgensub");
      while (<PARAM>) {
 #print DEBUG;
-      chop;
+      s/\r?\n\z//;
       $_ =~ s/^\s*//;
       ($opt,$value) = split(/ +/,$_);
 

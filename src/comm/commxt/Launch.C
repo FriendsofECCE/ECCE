@@ -1098,7 +1098,7 @@ bool Launch::generateJobMonitoringFiles(void)
   string configName = p_cache->directory;
   configName += "/eccejobstore.conf";
 
-  ofstream storeConfigFile(configName.c_str());
+  ofstream storeConfigFile(configName.c_str(), ios::out | ios::binary);
 
   // used below
   const JCode* jcode = p_taskjob->application();
@@ -1139,7 +1139,7 @@ bool Launch::generateJobMonitoringFiles(void)
   configName = p_cache->directory;
   configName += "/eccejobmonitor.conf";
 
-  ofstream monitorConfigFile(configName.c_str());
+  ofstream monitorConfigFile(configName.c_str(), ios::out | ios::binary);
 
 #if (!defined(INSTALL) && defined(DEBUG))
   cout << "launch: writing Config File \"eccejobmonitor.conf\"" << endl;
@@ -1337,7 +1337,7 @@ bool Launch::generateDescriptorFile(const string& source, const string& target)
     ifstream sourceDescFile(source.c_str());
 
     if (sourceDescFile) {
-      ofstream targetDescFile(target.c_str());
+      ofstream targetDescFile(target.c_str(), ios::out | ios::binary);
 
       if (targetDescFile) {
         static const int BUFSIZE=512;
@@ -2169,7 +2169,7 @@ bool Launch::postProcessInput(void)
 
   // generate the file of parameters for the post-processing script
   string paramf = p_cache->directory + "/postParams";
-  ofstream os(paramf.c_str(), (ios::out | ios::trunc));
+  ofstream os(paramf.c_str(), (ios::out | ios::trunc | ios::binary));
 
   if (os) {
     p_inputFile = (*p_options)["##input##"];
@@ -2252,7 +2252,7 @@ bool Launch::instanceScript(EcceMap& kv)
   
   // generate the parameter file
   string paramf = p_cache->directory + "/subParams";
-  ofstream os(paramf.c_str(), (ios::out | ios::trunc));
+  ofstream os(paramf.c_str(), (ios::out | ios::trunc | ios::binary));
   if (os) {
     string tmpVal;
     os << " -Q " + p_cache->mgr->name() << "\n";
