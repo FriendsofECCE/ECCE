@@ -127,6 +127,10 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
 #else
     return true;
 #endif
+  } else if (c == "background") {
+    //  "background r g b" (0..1), as the Background preference does.
+    if (w.size() != 4) return fail("background: r g b");
+    p_viewer->setBackgroundColor(SbColor(atof(w[1].c_str()), atof(w[2].c_str()), atof(w[3].c_str())));
   } else if (c == "style") {
     CSStyleCmd cmd("Style", p_sg);
     DisplayDescriptor dd("default", rest, "Element");
