@@ -587,6 +587,21 @@ sub setupBasisTranslation {
   $NameToBasis{"def2-tzvpp"} = "def2TZVPP";                  # nbf 59
   $NameToBasis{"def2-qzvp"} = "def2QZVP";                    # nbf 117
 
+  #  Added for #118 from tests/basisload/named_basis_check.py: same function
+  #  count and an RHF energy within 1e-5 Eh of ECCE's own primitives on
+  #  water, under Gaussian 16 (5D 7F).  6-31G(3df,3pd) was removed from
+  #  this table: Gaussian's set differs from ECCE's by 3.4e-3 Eh, so
+  #  naming it silently changed the basis.  Gaussian rejects cc-pVDZ-DK,
+  #  cc-pCV*/cc-pwCV*, d-aug-cc-p*, pc-*/pcseg-*, IGLO-* and cc-pV(X+d)Z.
+
+  $NameToBasis{"6-31++g*"} = "6-31++G*";
+  $NameToBasis{"ahlrichs tzv"} = "TZV";
+  $NameToBasis{"ahlrichs vdz"} = "SV";
+  $NameToBasis{"ahlrichs pvdz"} = "SVP";
+  $NameToBasis{"dzp (dunning)"} = "D95**";
+  $NameToBasis{"sto-6g"} = "STO-6G";
+  $NameToBasis{"ugbs"} = "UGBS";
+
   $NameToBasis{"sto-2g"} = "sto-2g";
   $NameToBasis{"sto-3g"} = "sto-3g";
   $NameToBasis{"sto-3g*"} = "sto-3g*";
@@ -601,7 +616,6 @@ sub setupBasisTranslation {
   $NameToBasis{"6-31g"} = "6-31g";
   $NameToBasis{"6-31++g"} = "6-31++g";
   $NameToBasis{"6-31++g**"} = "6-31++g**";
-  $NameToBasis{"6-31g(3df,3pd)"} = "6-31G(3df,3pd)";
   $NameToBasis{"6-311g"} = "6-311G";
   $NameToBasis{"6-311++g"} = "6-311++G";
   $NameToBasis{"6-311++g(3df,3pd)"} = "6-311++G(3df,3pd)";

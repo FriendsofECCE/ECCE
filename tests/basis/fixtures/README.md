@@ -5,6 +5,7 @@ optionally an `ECP` block.
 
 * `water_same.gbs`    every atom on one mappable basis -- the route-card case
 * `water_mixed.gbs`   O on 6-31G* (mappable), H on IGLO-II (not) -- per-element
+* `water_gencontr.gbs` / `water_mixed_orca.gbs`  general contraction (cc-pVDZ-style s); H on 6-31++G, which ORCA rejects (IGLO-II is now mappable in ORCA).
 * `water_numonly.gbs` no `NameBasis` section at all -- everything explicit
 * `water_aug_ccpvdz.gbs`, `water_aug_pwcvdz.gbs`  one shared name each, to
   exercise NWChem's name blocklist (named vs. forced explicit)
