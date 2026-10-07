@@ -159,6 +159,10 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
     p_codeSel = 0;
     p_codeList = NULL;
     p_codeTitle = NULL;
+    p_codeExample = NULL;
+    p_defAccount = NULL;
+    p_setupNote = NULL;
+    p_wrapupNote = NULL;
     p_codePage = NULL;
     p_codeAdvanced = NULL;
     p_codeAdvBtn = NULL;
@@ -560,7 +564,8 @@ wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
     GRID(env)
     addCfgRow(page, env, "shell", "Shell", CfgShell,
               "The shell ECCE starts on the remote machine to read the file "
-              "below. bash is right unless that file is written for csh.");
+              "below. There is always one: bash unless you choose another, "
+              "which is right unless that file is written for csh.");
     addCfgRow(page, env, "sourceFile", "Script run at login (e.g. module setup)", CfgText,
               "A file on the remote machine that sets up the environment "
               "(module commands, paths) before a job runs.");
@@ -592,7 +597,8 @@ wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
     wxFont jf = jobTitle->GetFont();
     jf.MakeBold();
     jobTitle->SetFont(jf);
-    jobHead->Add(jobTitle, wxSizerFlags().Border(wxLEFT|wxTOP));
+    jobHead->Add(jobTitle, wxSizerFlags().Border(wxLEFT|wxTOP)
+                                         .CentreVertical());
     p_jobsIcon = new wxStaticBitmap(page, wxID_ANY,
         wxArtProvider::GetBitmapBundle(wxART_WARNING, wxART_BUTTON));
     jobHead->Add(p_jobsIcon, wxSizerFlags().Border(wxLEFT|wxTOP)
@@ -736,9 +742,10 @@ wxWindow* WxMachineRegister::createCodesPage(wxWindow* parent)
     wxFlexGridSizer* grid = new wxFlexGridSizer(4, 0, 0);
     grid->AddGrowableCol(1);
     sizer->Add(grid, wxSizerFlags().Expand());
-    addCodeLine(page, grid, "code", "Program", "",
-                "Where the program is installed on the machine. A code with "
-                "no program is not offered for this machine.");
+    addCodeLine(page, grid, "code", "Program (full path to the executable)", "",
+                "The file ECCE's job script runs for this code, with its full "
+                "path; not the folder it is in. A code with no program is not "
+                "offered for this machine.");
 
     //  Environment: gensub does not replace placeholders here.
     addBlock(page, sizer, "cenv", "Environment variables", page);
@@ -824,22 +831,42 @@ void WxMachineRegister::addCodeLine(wxWindow* page, wxFlexGridSizer* grid,
     l.suffix = suffix;
     l.name = new ewxStaticText(page, wxID_ANY, label);
     l.name->SetMinSize(wxSize(190, -1));
+    if (id == "code")
+        l.name->Wrap(190);
     grid->Add(l.name, wxSizerFlags().Right().Border().CentreVertical());
 
     if (id == "code")
     {
         wxBoxSizer* col = new wxBoxSizer(wxVERTICAL);
+        wxBoxSizer* row = new wxBoxSizer(wxHORIZONTAL);
+        wxBoxSizer* boxes = new wxBoxSizer(wxVERTICAL);
         for (size_t i = 0; i < p_codeNames.size(); i++)
         {
             ewxTextCtrl* txt = new ewxTextCtrl(page, wxID_ANY);
             txt->SetToolTip(tip);
-            txt->SetHint("e.g. /opt/" + lowerOf(p_codeNames[i]) + "/bin/" +
-                         lowerOf(p_codeNames[i]));
+            txt->SetHint("e.g. " + SchedulerQuery::programHelp(
+                             p_codeNames[i]).examples[0]);
             txt->Hide();
-            col->Add(txt, wxSizerFlags().Expand());
+            boxes->Add(txt, wxSizerFlags().Expand());
             p_codePaths.push_back(txt);
             reg("code:" + lowerOf(p_codeNames[i]), txt);
         }
+        row->Add(boxes, wxSizerFlags(1).Expand());
+        ewxButton* find = new ewxButton(page, wxID_ANY, "Find");
+        find->SetToolTip("Look for the program on the machine, as the job "
+                         "script would (command -v), and fill in its path");
+        find->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+            this->findProgram();
+        });
+        reg("code:find", find);
+        row->Add(find, wxSizerFlags().Border(wxLEFT, 4).Top());
+        col->Add(row, wxSizerFlags().Expand());
+        p_codeExample = new wxStaticText(page, wxID_ANY, "");
+        p_codeExample->SetFont(p_codeExample->GetFont().Smaller());
+        p_codeExample->SetForegroundColour(
+            wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+        col->Add(p_codeExample, wxSizerFlags().Expand().Border(wxTOP, 2));
+        reg("code:example", p_codeExample);
         grid->Add(col, wxSizerFlags(1).Expand().Border().CentreVertical());
         l.ctrl = p_codePaths.empty() ? NULL : p_codePaths[0];
     }
@@ -966,7 +993,12 @@ void WxMachineRegister::fillCodeList()
     p_codeList->Clear();
     p_codeShown.clear();
     for (size_t i = 0; i < p_codeNames.size(); i++)
-        if (!retired.count(p_codeNames[i]) || codeInUse(p_codeNames[i]))
+        //  Listed when calculations can be created with it (a registered
+        //  resource descriptor), unless retired; a machine's own setting
+        //  for a code always shows it.
+        if (codeInUse(p_codeNames[i]) ||
+            (!retired.count(p_codeNames[i]) &&
+             CodeFactory::isRegistered(p_codeNames[i])))
             p_codeShown.push_back((int)i);
     sortCodeShown();
     for (size_t r = 0; r < p_codeShown.size(); r++)
@@ -990,6 +1022,14 @@ void WxMachineRegister::showCode()
     for (size_t i = 0; i < p_codePaths.size(); i++)
         p_codePaths[i]->Show((int)i == p_codeSel);
     p_codeTitle->SetLabel(name);
+    {
+        SchedulerQuery::ProgramHelp h = SchedulerQuery::programHelp(name);
+        string t = "Example: " + SchedulerQuery::exampleText(h);
+        if (!h.note.empty())
+            t += ".  " + h.note;
+        p_codeExample->SetLabel(wxString::FromUTF8(t.c_str()));
+        p_codeExample->Wrap(380);
+    }
     for (size_t r = 0; r < p_codeShown.size(); r++)
         if (p_codeShown[r] == p_codeSel)
             p_codeList->SetSelection((int)r);
@@ -1227,8 +1267,18 @@ wxWindow* WxMachineRegister::createJobScriptPage(wxWindow* parent)
     addBlock(page, sizer, "header", "");
 
 
+    //  A code's own commands (Codes > Advanced) run instead of these, so the
+    //  tab says for which codes that is so.
     addBlock(page, sizer, "setup", "Commands run before the calculation");
+    p_setupNote = new wxStaticText(page, wxID_ANY, "");
+    p_setupNote->SetFont(p_setupNote->GetFont().Smaller());
+    sizer->Add(p_setupNote, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+    reg("setup:codes", p_setupNote);
     addBlock(page, sizer, "wrapup", "Commands run after the calculation");
+    p_wrapupNote = new wxStaticText(page, wxID_ANY, "");
+    p_wrapupNote->SetFont(p_wrapupNote->GetFont().Smaller());
+    sizer->Add(p_wrapupNote, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+    reg("wrapup:codes", p_wrapupNote);
 
     //  Only HTCondor needs it.
     wxFlexGridSizer* condor = new wxFlexGridSizer(4, 0, 0);
@@ -1392,6 +1442,16 @@ wxWindow* WxMachineRegister::createQueuesPage(wxWindow* parent)
     row1->Add(p_qmgrChoice, wxSizerFlags().Border().CentreVertical());
     row1->AddSpacer(12);
     row1->Add(p_allocAccts, wxSizerFlags().Border().CentreVertical());
+    row1->Add(new ewxStaticText(page, wxID_ANY, "Default account"),
+              wxSizerFlags().Border().CentreVertical());
+    p_defAccount = new ewxTextCtrl(page, wxID_ANY, "", wxDefaultPosition,
+                                   wxSize(130, -1));
+    p_defAccount->SetHint("e.g. proj1");
+    p_defAccount->SetToolTip("Your allocation account on this machine. The "
+        "Launcher offers it, and Preview job script and Test submission use "
+        "it. Stored for you only, not in the site's files.");
+    row1->Add(p_defAccount, wxSizerFlags().Border().CentreVertical());
+    reg("default-account", p_defAccount);
     sizer->Add(row1);
 
     p_queueChoice = new ewxChoice(page, wxID_ANY, wxDefaultPosition,
@@ -1948,6 +2008,7 @@ void WxMachineRegister::loadMachine(const string& refName)
     bool another = refName != p_loadedName;
     p_slctRgstn = ref;
     p_loadedName = refName;
+    p_discovered.clear();
     p_loadedFrom = p_rows[idx].from;
     delete p_draft;
     p_draft = newDraft(refName);
@@ -1995,6 +2056,9 @@ void WxMachineRegister::draftToControls()
         p_nodes->SetValue((nodes > 0) ? nodes : 1);
         p_allocAccts->SetValue(
             p_slctRgstn->launchOptions().find("AA") != string::npos);
+        MachinePreferences* mp = MachinePreferences::lookup(
+                                     p_slctRgstn->refname());
+        p_accountLoaded = mp != NULL ? mp->getAllocationAccount() : string();
     }
     else
     {
@@ -2006,7 +2070,10 @@ void WxMachineRegister::draftToControls()
         p_procs->SetValue(1);
         p_nodes->SetValue(1);
         p_allocAccts->SetValue(false);
+        p_accountLoaded = "";
     }
+    p_defAccount->ChangeValue(wxString::FromUTF8(p_accountLoaded.c_str()));
+    p_defAccount->Enable(!p_adminFlag);
     p_autoRefName = "";
 
     for (size_t i = 0; i < p_codePaths.size(); i++)
@@ -2274,6 +2341,23 @@ bool WxMachineRegister::applyQueueForm()
     size_t it = 0;
     while (it < p_queues.size() && p_queues[it].name != r.name)
         it++;
+    //  After Discover queues the scheduler's own partitions are known; a
+    //  name that is not one (an account typed as a queue, say) is refused by
+    //  the scheduler at submission.
+    if (it == p_queues.size() && !p_discovered.empty() &&
+        !p_discovered.count(r.name))
+    {
+        string known;
+        for (const string& n : p_discovered)
+            known += (known.empty() ? "" : ", ") + n;
+        if (this->ask("Not a queue of " + strip((string)p_fullName->GetValue()),
+                "'" + r.name + "' is not one of the queues the scheduler "
+                "reported.", "The scheduler reported: " + known + ".\n\n"
+                "An allocation account is not a queue: enter it as the "
+                "Default account instead.", wxYES_NO|wxNO_DEFAULT|wxICON_WARNING,
+                "Add anyway", "Do not add", "") != wxID_YES)
+            return false;
+    }
     if (it < p_queues.size())
         p_queues[it] = r;
     else
@@ -2912,7 +2996,30 @@ void WxMachineRegister::syncKeys(MCD* draft)
 bool WxMachineRegister::isDirty()
 {
     this->syncDraft();
-    return p_draft != NULL && (p_draft->isDirty() || queueFormDiffers());
+    return p_draft != NULL && (p_draft->isDirty() || queueFormDiffers() ||
+                               (!p_adminFlag &&
+                                defaultAccount() != p_accountLoaded));
+}
+
+
+string WxMachineRegister::defaultAccount() const
+{
+    return p_defAccount == NULL ? string() :
+           strip((string)p_defAccount->GetValue());
+}
+
+
+//  The account is the user's own, so it goes where the Launcher keeps it.
+void WxMachineRegister::saveDefaultAccount(const string& name)
+{
+    string acct = defaultAccount();
+    if (p_adminFlag || acct == p_accountLoaded || name.empty())
+        return;
+    MachinePreferences::lookup(name);       // loads the file
+    MachinePreferences::refresh(true);      // and again, for others' changes
+    MachinePreferences* mp = MachinePreferences::create(name);
+    mp->setAllocationAccount(acct);
+    MachinePreferences::saveChanges();
 }
 
 
@@ -3017,6 +3124,10 @@ void WxMachineRegister::updateDirty()
 
 void WxMachineRegister::onFieldChanged(wxCommandEvent& event)
 {
+    //  An account is only offered in the Launcher on a machine that uses them.
+    if (event.GetEventObject() == p_defAccount && !p_inCtrlUpdate &&
+        !defaultAccount().empty() && !p_allocAccts->IsChecked())
+        p_allocAccts->SetValue(true);
     if (p_cshTimer != NULL && !p_inCtrlUpdate)
         p_cshTimer->StartOnce(600);
     this->updateDirty();
@@ -3374,6 +3485,7 @@ bool WxMachineRegister::save()
         displayMessage(err);
         return false;
     }
+    this->saveDefaultAccount(name);
 
     this->redo(name);
     this->notifyUpdate();
@@ -3823,10 +3935,44 @@ void WxMachineRegister::syncBlocks(MCD* draft)
 }
 
 
+//  Which codes have commands of their own (key `<code>_setup` or `_wrapup`)
+//  that run instead of the machine-wide ones, as a sentence.
+static string ownCommandsNote(const MCD* draft, const vector<string>& codes,
+                              const char* suffix, const char* when)
+{
+    string names;
+    int n = 0;
+    for (size_t i = 0; i < codes.size(); i++)
+    {
+        const MCD::KeyState* ks = draft->state(lowerOf(codes[i]) + suffix);
+        string v;
+        if (ks != NULL && keySet(*ks) && draft->effective(
+                lowerOf(codes[i]) + suffix, v) && !strip(v).empty())
+            names += (n++ ? ", " : "") + codes[i];
+    }
+    if (n == 0)
+        return string("These run ") + when + " for every code.";
+    return string("These run ") + when + " for every code except " + names +
+           ", which " + (n == 1 ? "has" : "have") + " its own commands "
+           "(Codes tab, Advanced) that run instead.";
+}
+
+
 void WxMachineRegister::blocksTags()
 {
     if (p_draft == NULL)
         return;
+    if (p_setupNote != NULL)
+    {
+        wxString a = wxString::FromUTF8(ownCommandsNote(p_draft, p_codeNames,
+                         "_setup", "before the calculation").c_str());
+        wxString b = wxString::FromUTF8(ownCommandsNote(p_draft, p_codeNames,
+                         "_wrapup", "after the calculation").c_str());
+        if (p_setupNote->GetLabel() != a)
+            p_setupNote->SetLabel(a);
+        if (p_wrapupNote->GetLabel() != b)
+            p_wrapupNote->SetLabel(b);
+    }
     for (size_t i = 0; i < p_blocks.size(); i++)
     {
         const BlockRow& b = p_blocks[i];

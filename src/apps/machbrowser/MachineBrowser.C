@@ -54,6 +54,8 @@
 
 
 BEGIN_EVENT_TABLE(MachineBrowser, MachineBrowserGUI)
+    EVT_BUTTON(ID_BUTTON_MACHINEBROWSER_MACHSETTINGS,
+               MachineBrowser::machSettingsButtonClickCB)
     EVT_COMMAND(ID_MACHINES_TABLEVIEW, ewxEVT_TABLE_SELECTION_CHANGED,
                     MachineBrowser::machinesTableViewSelectionChangedCB)
 END_EVENT_TABLE()
@@ -178,6 +180,8 @@ void MachineBrowser::createControls()
 
     p_machineConfigButton
         = (ewxButton *)(FindWindowById(ID_BUTTON_MACHINEBROWSER_CONFIGURE));
+    p_machSettingsButton
+        = (ewxButton *)(FindWindowById(ID_BUTTON_MACHINEBROWSER_MACHSETTINGS));
 
     ewxPanel *panMachines
         = (ewxPanel *)(FindWindowById(ID_PANEL_MACHINEBROWSER_MACHINES));
@@ -296,6 +300,47 @@ void MachineBrowser::configureButtonClickCB( wxCommandEvent& event )
         publish("ecce_machconf_changed", *mesg);
 
     }
+}
+
+
+void MachineBrowser::machSettingsButtonClickCB(wxCommandEvent& event)
+{
+    this->showRegister(p_slctElmt);
+}
+
+
+void MachineBrowser::runTestHook(const string& png)
+{
+    this->refreshList();
+    if (p_machModel->size() > 0)
+    {
+        p_slctElmt = (MachineTableElement *)(p_machModel->elementAt(0));
+        this->refreshControls();
+    }
+    wxCommandEvent ev(wxEVT_BUTTON, ID_BUTTON_MACHINEBROWSER_MACHSETTINGS);
+    ev.SetEventObject(p_machSettingsButton);
+    if (p_machSettingsButton->IsEnabled())
+        this->machSettingsButtonClickCB(ev);
+    else
+        fprintf(stderr, "[MACHBROWSER] FAIL machine settings button disabled\n");
+
+    this->Raise();
+    for (int i = 0; i < 3; i++)
+    {
+        this->Update();
+        wxTheApp->Yield(true);
+        wxMilliSleep(50);
+    }
+    wxSize sz = this->GetClientSize();
+    wxClientDC screen(this);
+    wxBitmap bmp(sz.x, sz.y);
+    wxMemoryDC mem(bmp);
+    mem.Blit(0, 0, sz.x, sz.y, &screen, 0, 0);
+    mem.SelectObject(wxNullBitmap);
+    bmp.ConvertToImage().SaveFile(png, wxBITMAP_TYPE_PNG);
+    fprintf(stderr, "[MACHBROWSER] wrote %s\n", png.c_str());
+    fflush(stderr);
+    _exit(0);
 }
 
 
@@ -501,6 +546,7 @@ void MachineBrowser::refreshControls()
 
     updateQueryButtons();
     p_machineConfigButton->Enable(p_slctElmt != NULL);
+    p_machSettingsButton->Enable(p_slctElmt != NULL);
 
     p_inCtrlUpdate = prevState;
 }
@@ -620,6 +666,14 @@ void MachineBrowser::updateListModel()
 
 void MachineBrowser::showRegister(MachineTableElement *elmt)
 {
+    //  Under the test hook there is no gateway: say what would be asked.
+    if (getenv("ECCE_MACHBROWSER_SHOT") != NULL)
+    {
+        fprintf(stderr, "[MACHBROWSER] request: appname=%s initmachine=%s\n",
+                MACHREGISTER.c_str(), elmt != NULL ?
+                elmt->getPreferences()->getItemKey().c_str() : "");
+        return;
+    }
     // Send the start app request to gateway:
     Target trgt(GATEWAY, "");
 
