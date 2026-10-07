@@ -60,7 +60,7 @@ int main()
   setenv("PATH", (bin + ":/usr/bin:/bin").c_str(), 1);
   setenv("HOME", home.c_str(), 1);
   setenv("ECCE_REALUSERHOME", home.c_str(), 1);
-  unsetenv("ECCE_HOME");
+  setenv("ECCE_HOME", tmp.c_str(), 1);
   unsetenv("ECCE_TERMINAL");
   unsetenv("VISUAL");
   unsetenv("EDITOR");
@@ -71,7 +71,8 @@ int main()
   unsetenv("ECCE_EDITOR");
 #ifdef __APPLE__
   same("default editor", UserEditor().getPreferredEditor(), "open -t");
-  same("default terminal", UserEditor::getTerminal(), "ecce-macos-terminal");
+  same("default terminal", UserEditor::getTerminal(),
+       tmp + "/scripts/ecce-macos-terminal");
   same("default command", command(f, false), "open|-t|-W|-n|" + file);
 #else
   same("default editor", UserEditor().getPreferredEditor(), "vi");

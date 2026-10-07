@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.join(ROOT, "tests", "apps"))
 SCENE = """style Ball And Stick
 viewall
 snap frame
-wxpick clicks 1 2 3
+wxpick clicks 1 2 3 4 7
 """
 
 
@@ -57,7 +57,7 @@ def run(binary, scale, display):
     env.pop("FL_FONT_PATH", None)
     env.pop("GDK_DPI_SCALE", None)
     env["ECCE_REALUSERHOME"] = tempfile.mkdtemp(prefix="hidpi-home")
-    r = subprocess.run([binary, out, scene, "water"], env=env,
+    r = subprocess.run([binary, out, scene, "benzene"], env=env,
                        capture_output=True, text=True, timeout=300)
     if r.returncode != 0:
         print("viewer-scenes (scale %d) failed:\n%s" % (scale, (r.stdout + r.stderr)[-1500:]))
@@ -76,7 +76,7 @@ def check(scale, out):
         if sel.split() != [atom]:
             print("FAIL scale %d: clicking atom %s selected [%s]" % (scale, atom, sel.strip()))
             ok = False
-    if len(got) != 3:
+    if len(got) != 5:
         print("FAIL scale %d: %d clicks recorded" % (scale, len(got)))
         ok = False
     w, h, px = readPpm(os.path.join(out, "frame.ppm"))
