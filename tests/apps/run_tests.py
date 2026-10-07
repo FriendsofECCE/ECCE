@@ -38,6 +38,7 @@ sys.path.insert(0, HERE)
 
 import apps                                                   # noqa: E402
 import cases as CASEDEFS                                      # noqa: E402
+import geomtrace_stress                                       # noqa: E402
 import fixture                                                # noqa: E402
 import isolate                                                # noqa: E402
 import xdisplay                                               # noqa: E402
@@ -660,6 +661,12 @@ def main():
         if not args.app and not stalled:
             checkCalculation(display, results, verbose=args.verbose)
             checkStructureFiles(display, results, verbose=args.verbose)
+            restorePrefs = fixture.settleUpgradeNotices()
+            try:
+                geomtrace_stress.check(display, results,
+                                       verbose=args.verbose)
+            finally:
+                restorePrefs()
             checkStale(results, set(swept))
     except BudgetExpired as exc:
         results.fail("run", str(exc))

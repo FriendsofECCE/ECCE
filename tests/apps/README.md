@@ -418,3 +418,12 @@ codereg Theory/Runtype Details dialog on an Xvfb screen of that size and fails
 for any window that, with room for a title bar, ends past the screen.
 `--out DIR` keeps a screenshot per window, `--report-only` lists offenders
 without failing. ctest runs it at 1024x768 and 1024x600 (`apps_smallscreen_*`).
+
+## The geometry trace under stress
+
+`geomtrace_stress.py` (run by the suite, or alone with `--gdb` or
+`--valgrind`) opens three water optimisations built from the parser
+fixtures and drives the Geometry Trace panel through the Builder's `gt...`
+scene commands: every step, playback, GEOMTRACE messages as a running job
+sends them (including ones that fail to parse), floating and docking, and
+switching, closing and removing panels while the animation runs (#217).

@@ -228,18 +228,8 @@ renderSoCylinder(SoCylinder *cyl, SoGLRenderAction *action)
 
 // --> roundcap optimization
 #define PRE_RENDER_CAP(ATOM,BOOLEAN) \
-BOOLEAN = true;  \
-if (cdp->displayStyle.getValue() != ChemDisplayParam::DISPLAY_STICK) \
-{ \
-int __i; \
-for (__i=0; __i<cd->atomIndex.getNum();__i++) \
-{ \
-const SbVec2i range = *cd->atomIndex.getValues(__i); \
-if (range[1] == -1) BOOLEAN  = !(ATOM >= range[0]); \
-else BOOLEAN = !(range[0]>=ATOM && ATOM<=range[1]); \
-if (!BOOLEAN) break; \
-} \
-}
+BOOLEAN = (cdp->displayStyle.getValue() == ChemDisplayParam::DISPLAY_STICK) \
+	|| cd->bondCapAtAtom(ATOM);
 // <-- roundcap optimization
 
 ////////////////////////////////////////////////////////////////////////
@@ -2555,7 +2545,6 @@ void ChemUnitCylinder::renderHalfBonded(
 // --> cap optimization
 	ChemDisplayParam* cdp = ChemDisplayParamElement::get(action->getState());
 	bool renderFrom, renderTo;
-        //KLS VERY SLOW
 	PRE_RENDER_CAP(fromTo[0],renderFrom);
 	PRE_RENDER_CAP(fromTo[1],renderTo);
 // <-- cap optimization
