@@ -149,9 +149,18 @@ def main():
         say("anonymous subscriber: rc=%d %s" % (anon.returncode, anon.stdout.decode().strip()))
         s.check(anon.returncode != 0 and b"not authori" in anon.stdout.lower(),
                 "subscription without the password is refused")
-        bad = subprocess.run(base[:-3] + ["-t", "ecce/other/#", "-W", "3", "-u", cfg["user"],
-                             "-P", cfg["password"]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        say("other user's topic with the login: %s" % bad.stdout.decode().strip())
+        # mosquitto_sub never exits on its own once subscribed: -d shows the SUBACK, the timeout ends it.
+        try:
+            bad = subprocess.run(base[:-3] + ["-t", "ecce/other/#", "-d", "-u", cfg["user"],
+                                 "-P", cfg["password"]], stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT, timeout=6).stdout
+        except subprocess.TimeoutExpired as e:
+            bad = e.stdout or b""
+        bad = bad.decode("utf-8", "replace")
+        say("another user's topic (ecce/other/#) with this login: %s" %
+            " | ".join(l for l in bad.splitlines() if "SUBACK" in l or "Subscribed" in l))
+        s.check("(128)" in bad or "Subscribed (mid: 1): 128" in bad,
+                "subscription to another user's topic is denied by the ACL")
     url = s.userUrl = "file://%s/localdata/users/local" % st
     rc, out = s.drv("create", url, "wintest", "mopac_es", DECK, "mopac.mop",
                     "localhost", st + "/jobs", "andy")
