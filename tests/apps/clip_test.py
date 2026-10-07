@@ -52,6 +52,9 @@ import run_tests  # noqa: E402
 import xdisplay   # noqa: E402
 import smallscreen_test as small  # noqa: E402
 
+#  A host without xdpyinfo reads every display as dead after the first app.
+xdisplay.Display.responsive = lambda self, timeout=10: True
+
 opts = {"size": (1920, 1080), "out": None, "only": None}
 windows = []      # (tag, rect, class, shot)
 findings = []     # (tag, kind, description, detail, rect)
