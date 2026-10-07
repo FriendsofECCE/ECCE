@@ -611,11 +611,26 @@ int MoDiagram::placeFragments(const MoColumn& centre,
 
       const int which = (levels[i].slot >= 0) ? levels[i].slot
                                                : levels[i].shell;
-      double nbSum = 0.0, nbCount = 0.0;
+      //  The lowest qualifying orbital of each irrep only.  Symmetry can
+      //  make a higher one pure in this shell too (a diffuse virtual b1
+      //  in water is all oxygen p once polarisation functions are left
+      //  out), and that one is not the lone pair.
+      map<string, size_t> lowest;
       for (size_t k = 0; k < centre.levels.size(); k++) {
         const MoLevel& mo = centre.levels[k];
         if (nonbondingShellFraction(mo, c == 0, which) <
             NONBONDING_SHELL_SHARE) continue;
+        map<string, size_t>::iterator at = lowest.find(mo.irrep);
+        if (at == lowest.end()) {
+          lowest[mo.irrep] = k;
+        } else if (mo.energy < centre.levels[at->second].energy) {
+          at->second = k;
+        }
+      }
+      double nbSum = 0.0, nbCount = 0.0;
+      for (map<string, size_t>::const_iterator it = lowest.begin();
+           it != lowest.end(); ++it) {
+        const MoLevel& mo = centre.levels[it->second];
         const double n = (mo.degeneracy > 0) ? mo.degeneracy : 1;
         nbSum += n*mo.energy;
         nbCount += n;

@@ -948,7 +948,7 @@ int main()
   //  at that orbital's energy; one whose components all mix stays at
   //  the mean.  Shares are extended Huckel water's (tools/modiagram/dump).
   printf("\n  a central atom's shell and its non-bonding orbital (#140)\n");
-  for (int variant = 0; variant < 3; variant++) {
+  for (int variant = 0; variant < 4; variant++) {
     MoColumn left, centre, right;
     left.shellKeys.push_back("O:0");
     left.shellKeys.push_back("O:1");
@@ -983,9 +983,24 @@ int main()
                        { 0.3479, 0.3268, 0.1236, 0.5497}};
     //  1: the b1 mixes a little with H s, below the threshold;
     //  2: a fifth of the molecule is outside both columns.
+    //  3: a diffuse virtual b1, also all O p once polarisation is out.
     if (variant == 1) { mo[3][2] = 0.985; mo[3][3] = 0.015; }
-    for (int i = 0; i < 6; i++) {
+    const char* moIrrep[] = {"A1", "B2", "A1", "B1", "B2", "A1", "B1"};
+    const int nmo = (variant == 3) ? 7 : 6;
+    for (int i = 0; i < nmo; i++) {
       MoLevel m;
+      m.irrep = MoDiagram::canonicalIrrep(moIrrep[i]);
+      if (i == 6) {
+        m.energy = 0.52;
+        m.degeneracy = 1;
+        m.shellLeft.push_back(0.0);
+        m.shellLeft.push_back(0.93);
+        m.shellRight.push_back(0.0);
+        m.shareLeft = 0.95;
+        m.shareRight = 0.05;
+        centre.levels.push_back(m);
+        continue;
+      }
       m.energy = mo[i][0];
       m.degeneracy = 1;
       m.occupancy = (i < 4) ? 2.0 : 0.0;
@@ -1020,9 +1035,12 @@ int main()
     } else if (variant == 1) {
       check(pinned == 0 && oneRow && !onNb,
             "1.5% H s in the b1: mixed, so the 2p row is the mean");
-    } else {
+    } else if (variant == 2) {
       check(pinned == 0 && !onNb,
             "a fifth outside both columns counts against non-bonding");
+    } else {
+      check(pinned == 1 && onNb,
+            "a higher, diffuse b1 also pure O p does not move the row");
     }
   }
 
