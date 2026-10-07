@@ -12,6 +12,7 @@
 
 #include "inv/SoOffscreenRenderer.H"
 #include "inv/SoWx/SoWxRenderArea.H"
+#include "inv/SoDB.H"
 #include "inv/nodes/SoSwitch.H"
 #include "inv/actions/SoSearchAction.H"
 #include "inv/actions/SoGetMatrixAction.H"
@@ -127,6 +128,10 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
 #else
     return true;
 #endif
+  } else if (c == "background") {
+    //  "background r g b" (0..1), as the Background preference does.
+    if (w.size() != 4) return fail("background: r g b");
+    p_viewer->setBackgroundColor(SbColor(atof(w[1].c_str()), atof(w[2].c_str()), atof(w[3].c_str())));
   } else if (c == "style") {
     CSStyleCmd cmd("Style", p_sg);
     DisplayDescriptor dd("default", rest, "Element");
@@ -532,6 +537,32 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     return snapshot(w[1], 480, 0.2f, 0.3f, 0.4f);
   } else if (c == "thumb" && w.size() == 2) {
     return snapshot(w[1], 64, 0.0f, 0.0f, 0.0f);
+  } else if (c == "nmtest") {
+    //  One short arrow per atom, without a calculation.
+    SGFragment *frag = p_sg->getFragment();
+    SoSwitch *root = p_sg->getNMVecRoot();
+    root->removeAllChildren();
+    for (int j = 0; frag && j < (int)frag->numAtoms(); j++) {
+      const double *x = frag->atomRef(j)->coordinates();
+      VRVector *v = new VRVector;
+      v->fixedThickness(true);
+      v->position(x[0], x[1], x[2]);
+      v->direction(0.3, 0.2, 0.0);
+      v->setColor(0.8f, 0.8f, 0.0f);
+      root->addChild(v);
+    }
+    root->whichChild.setValue(SO_SWITCH_ALL);
+    p_sg->updateNMVecStarts();
+    SoDB::getSensorManager()->processDelayQueue(FALSE);
+  } else if (c == "nmhide") {
+    p_sg->getNMVecRoot()->whichChild.setValue(SO_SWITCH_NONE);
+    SoDB::getSensorManager()->processDelayQueue(FALSE);
+  } else if (c == "stickradius" && w.size() == 2) {
+    //  The bond cylinder radius of the first display style.
+    FILE *o = fopen((p_outdir + "/" + w[1] + ".txt").c_str(), "w");
+    if (!o) return fail("stickradius: cannot write");
+    fprintf(o, "%.6f\n", p_sg->getChemDisplayParam(0)->bondCylinderRadius.getValue());
+    fclose(o);
   } else if (c == "nmcheck" && w.size() == 2) {
     return nmCheck(w[1]);
   } else if (p_ext) {

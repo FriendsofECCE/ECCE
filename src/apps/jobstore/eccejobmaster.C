@@ -39,6 +39,9 @@
   using std::string;
 
 #include "util/Ecce.H"
+#ifdef _WIN32
+#include "comm/DirectTransport.H"
+#endif
 #include "util/WaitingJobs.H"
 #include "tdat/AuthCache.H"
 
@@ -58,6 +61,21 @@ void logEntry(const string& entry)
     logFile.close();
   }
 }
+
+#ifdef _WIN32
+// cmd.exe has no nohup and no sh syntax: run the command in the local sh, in
+// the foreground, and return its exit status.  The program path comes from
+// ecceBinCommand with backslashes, which sh would eat.
+static int winShell(string cmd)
+{
+  if (cmd.compare(0, 6, "nohup ") == 0) cmd.erase(0, 6);
+  for (size_t i = 0; i < cmd.size(); i++)
+    if (cmd[i] == '\\') cmd[i] = '/';
+  DirectTransport t;
+  TransportResult r = t.run(cmd, -1);
+  return r.status < 0 ? 127 : r.status;
+}
+#endif
 
 int main(int argc, char** argv)
 {
@@ -169,6 +187,28 @@ int main(int argc, char** argv)
     entry = "eccejobstore invoked with system(" + ejsCmd + ")";
     logEntry(entry);
 
+#ifdef _WIN32
+    // No fork: the pipe is a plain file here, written before the store runs.
+    AuthCache::getCache().pipeOut(authPipeName);
+    pid = 1;
+    starttime = time(0);
+    status = winShell(ejsCmd);
+    runTimes[it % MAX_QUICK_TRIES] = time(0) - starttime;
+    if (status != 0 && status != 3 && runTimes[it % MAX_QUICK_TRIES] >= RESTART_RESET) {
+      sprintf(buf, "%d", (int)runTimes[it % MAX_QUICK_TRIES]);
+      entry = "eccejobstore ran for ";
+      entry += buf;
+      entry += " seconds; restart count reset";
+      logEntry(entry);
+      tries = 0;
+    }
+    entry = "eccejobstore exited with status value ";
+    sprintf(buf, "%d", status);
+    entry += buf;
+    logEntry(entry);
+    for (sumTimes=0, is=0; is<MAX_QUICK_TRIES; sumTimes+=runTimes[is], is++);
+    continue;
+#endif
     if ((pid = fork()) == 0) {
       // newly created child process
 
@@ -255,7 +295,11 @@ int main(int argc, char** argv)
     (void)chdir(setdir.c_str());
 
     string rmcmd = "/bin/rm -rf " + cacheDir;
+#ifdef _WIN32
+    (void)winShell("rm -rf " + cacheDir);
+#else
     (void)system(rmcmd.c_str());
+#endif
   }
 
   string import = argv[3];

@@ -50,7 +50,7 @@ on:
   workflow_dispatch:
     inputs:
       only:
-        description: "Run just this job (debian, vendored-inventor, ubuntu, rocky, fedora, macos); empty runs all"
+        description: "Run just this job (debian, vendored-inventor, ubuntu, rocky, fedora, macos, windows); empty runs all"
         required: false
         default: ""
 
@@ -439,3 +439,180 @@ jobs:
           name: macos-app-run-${{ matrix.arch }}
           path: macos-app-run/
           if-no-files-found: ignore
+
+  # Windows client (#133), experimental: MSYS2 UCRT64 toolchain, the same
+  # package set as tests/windows/README.md.  Never turns the workflow red.
+  windows:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'windows' }}
+    name: Windows (MSYS2 UCRT64)
+    runs-on: windows-latest
+    timeout-minutes: 120
+    continue-on-error: true
+    steps:
+      # LF in the checkout: fixtures and shell scripts must not get CRLF.
+      - run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: false
+          cache: true
+          install: >-
+            base git
+            mingw-w64-ucrt-x86_64-apr-util mingw-w64-ucrt-x86_64-ccache mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-coin mingw-w64-ucrt-x86_64-freetype
+            mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gcc-fortran
+            mingw-w64-ucrt-x86_64-glib2 mingw-w64-ucrt-x86_64-libjpeg-turbo
+            mingw-w64-ucrt-x86_64-libssh mingw-w64-ucrt-x86_64-mosquitto
+            mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-python mingw-w64-ucrt-x86_64-wxwidgets3.2-msw
+            mingw-w64-ucrt-x86_64-xerces-c
+
+      # The build is ~20 minutes cold; ccache makes a rerun after a small
+      # change a few.
+      - uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-windows-${{ github.run_id }}
+          restore-keys: ccache-windows-
+
+      - name: Configure
+        shell: msys2 {0}
+        env:
+          CCACHE_DIR: ${{ github.workspace }}/.ccache
+          CCACHE_MAXSIZE: 600M
+        run: |
+          cmake -G Ninja -B build -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DECCE_REQUIRE_LIBSSH=ON \
+            -DECCE_HOME_DIR="$PWD/stage/ecce" -DCMAKE_INSTALL_PREFIX="$PWD/stage/ecce"
+
+      - name: Build
+        shell: msys2 {0}
+        env:
+          CCACHE_DIR: ${{ github.workspace }}/.ccache
+          CCACHE_MAXSIZE: 600M
+        # -k 0: report every failing file, not only the first few.
+        run: cmake --build build -- -k 0
+
+      - name: Tests
+        id: tests
+        shell: msys2 {0}
+        continue-on-error: true
+        run: |
+          cd build
+          ctest -R 'transport_process|fragreaders|fragreaders_de|parsers' --output-on-failure --timeout 600 \
+            | tee ../ctest.log
+          exit "${PIPESTATUS[0]}"
+
+      - name: Install to a staging tree
+        shell: msys2 {0}
+        run: |
+          cmake --install build > install.log 2>&1 || { tail -30 install.log; exit 1; }
+          ls stage/ecce stage/ecce/bin
+
+      # The shell the job scripts run with, next to the apps (#133).
+      - name: Bundle the POSIX shell
+        shell: msys2 {0}
+        run: packaging/windows/bundle-shell.sh "$PWD/stage/ecce" "$(cygpath -m /)"
+
+      # MinGW runtime DLLs and the broker, then Perl and Python, so the tree
+      # runs with no MSYS2 on the machine.
+      - name: Bundle the runtime
+        shell: msys2 {0}
+        run: |
+          packaging/windows/bundle-runtime.sh "$PWD/stage/ecce"
+          cp packaging/windows/ecce.cmd packaging/windows/make-shortcuts.ps1 stage/ecce/
+
+      - name: Download cache (Strawberry Perl, Python, wxPython)
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/ecce-dl
+          key: windows-tools-${{ hashFiles('packaging/windows/bundle-tools.ps1') }}
+
+      - name: Bundle Perl and Python
+        shell: pwsh
+        run: packaging/windows/bundle-tools.ps1 -Install stage\ecce -Cache "$env:RUNNER_TEMP\ecce-dl"
+
+      - name: Zip the install tree
+        shell: pwsh
+        run: |
+          $v = (Get-Content data/client/config/Version -TotalCount 1).Trim()
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Compress-Archive -Path stage\ecce -DestinationPath "dist\ECCE-windows-$v.zip"
+          Get-ChildItem dist | Format-Table Name, Length
+          $d = "$env:RUNNER_TEMP\unpacked"
+          Remove-Item -Recurse -Force $d -ErrorAction SilentlyContinue
+          Expand-Archive "dist\ECCE-windows-$v.zip" $d
+          "unpacked: $((Get-ChildItem $d -Recurse -File | Measure-Object Length -Sum).Sum / 1MB) MB" | Tee-Object -Append $env:GITHUB_STEP_SUMMARY
+          Get-ChildItem "$d\ecce" | Format-Table Name
+          # launchjob is a test driver, not part of the package.
+          Copy-Item build\launchjob.exe "$d\ecce\bin\"
+
+      # Local job end to end from the unpacked zip, with System32 as the only
+      # PATH outside it (tests/windows/launch_local.py): no MSYS2 involved.
+      - name: Local jobs (complete, cancel)
+        id: localjobs
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $r = "$env:RUNNER_TEMP\unpacked\ecce"
+          New-Item -ItemType Directory -Force localjobs | Out-Null
+          $sys = "$env:SystemRoot\System32;$env:SystemRoot"
+          $env:Path = $sys
+          $env:WINTEST_HOME = $r
+          $env:WINTEST_BASE_PATH = "$r\bin;$r\usr\bin;$r\python;$r\strawberry\perl\site\bin;$r\strawberry\perl\bin;$r\strawberry\c\bin;$sys"
+          $env:Path = $env:WINTEST_BASE_PATH
+          & "$r\usr\bin\bash.exe" -c 'echo "$PATH"; command -v mosquitto mosquitto_sub perl python3; ls -l "$ECCE_HOME/bin/mosquitto.exe"' 2>&1 | Tee-Object localjobs\probe.log
+          $env:Path = $sys
+          $rc = 0
+          foreach ($c in "complete", "cancel") {
+            & "$r\python\python3.exe" tests/windows/launch_local.py $c --build "$r\bin" --state "$PWD\localjobs\state-$c" 2>&1 | Tee-Object "localjobs\$c.log"
+            "$c rc=$LASTEXITCODE" | Tee-Object -Append localjobs\summary.txt
+            if ($LASTEXITCODE -ne 0) { $rc = 1 }
+          }
+          Get-Content localjobs\summary.txt >> $env:GITHUB_STEP_SUMMARY
+          exit $rc
+
+      # Does it run? (#133) Starts the unpacked apps on the runner's desktop
+      # (PATH: the package and System32 only) and screenshots them.  Allowed
+      # to fail; see summary.txt.
+      - name: Start the apps
+        id: apps
+        shell: pwsh
+        continue-on-error: true
+        timeout-minutes: 20
+        run: |
+          $env:Path = "$env:SystemRoot\System32;$env:SystemRoot"
+          tests\windows\ci-run.ps1 -Stage "$env:RUNNER_TEMP\unpacked" -Out windows-run
+          Get-Content windows-run\summary.txt >> $env:GITHUB_STEP_SUMMARY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ECCE-windows-zip
+          path: dist/*.zip
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-run
+          path: |
+            windows-run/
+            localjobs/
+            ctest.log
+            install.log
+          if-no-files-found: ignore
+
+      # continue-on-error steps show green; say what really happened, and
+      # fail this (experimental) job when any of them did.
+      - name: Verdict
+        if: always()
+        shell: bash
+        run: |
+          { echo '### Windows'
+            echo "- ctest: ${{ steps.tests.outcome }}"
+            echo "- local jobs: ${{ steps.localjobs.outcome }}"
+            echo "- start the apps: ${{ steps.apps.outcome }}"; } >> "$GITHUB_STEP_SUMMARY"
+          [ "${{ steps.tests.outcome }}${{ steps.localjobs.outcome }}${{ steps.apps.outcome }}" = successsuccesssuccess ]

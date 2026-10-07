@@ -25,11 +25,8 @@
 #include <list>
     using std::list;
 
-#ifdef __GNUC__
-  #include <ext/hash_map>
-  using __gnu_cxx::hash_map;
-  using __gnu_cxx::hash;
-#endif
+#include <cstdint>
+#include <unordered_map>
 
 #include "util/ETimer.H"
 #include "util/Ecce.H"
@@ -75,7 +72,7 @@
  * This fragment has no name, atoms, residues, or constraints.
  *
  */
-Fragment::Fragment() : p_mainDisplayStyle(DisplayStyle::BALLWIRE)
+Fragment::Fragment() : p_mainDisplayStyle(DisplayStyle::BALLSTICK)
 {
    p_name = "";
    p_charge = 0;
@@ -102,7 +99,7 @@ Fragment::Fragment(const string& name,
                    const double* coordinates,
                    const int numBonds,
                    const int *bonds) 
-                   : p_mainDisplayStyle(DisplayStyle::BALLWIRE)
+                   : p_mainDisplayStyle(DisplayStyle::BALLSTICK)
 {
    p_name = name;
    p_charge = 0;
@@ -141,7 +138,7 @@ Fragment::Fragment(const string& name,
                    const double* coordinates,
                    const int numBonds,
                    const int *bonds)
-                   : p_mainDisplayStyle(DisplayStyle::BALLWIRE)
+                   : p_mainDisplayStyle(DisplayStyle::BALLSTICK)
 {
    p_name = name;
    p_charge = 0;
@@ -167,7 +164,7 @@ Fragment::Fragment(const string& name,
 
 
 Fragment::Fragment( const string& name ) 
-                   : p_mainDisplayStyle(DisplayStyle::BALLWIRE)
+                   : p_mainDisplayStyle(DisplayStyle::BALLSTICK)
 {
    p_name = name;
    p_charge = 0;
@@ -191,7 +188,7 @@ Fragment::Fragment( const string& name )
  * Copy Constructor.
  */
 Fragment::Fragment(const Fragment& frag) 
-        : p_mainDisplayStyle(DisplayStyle::BALLWIRE)
+        : p_mainDisplayStyle(DisplayStyle::BALLSTICK)
 { 
    p_constraints = 0;
    p_potentials = 0;
@@ -3200,14 +3197,14 @@ vector<TBond*>* Fragment::bonds(void) const
 
 #if 111
   // Initialize a map to 10% larger than numAtoms  - just a guess
-  hash_map<unsigned long, TBond*, hash<unsigned long>, equint> mymap((int)(cnt * 1.1));
+  std::unordered_map<uintptr_t, TBond*> mymap((int)(cnt * 1.1));
   for (int idx=0; idx<cnt; idx++) {
     const vector<TBond*>& bonds = p_atoms[idx]->bondList();
     int bcnt = bonds.size();
     for (int jdx=0; jdx<bcnt; jdx++) {
       bond = bonds[jdx];
-      if (mymap.find((unsigned long)bond) == mymap.end()) {
-        mymap[(unsigned long)bond] = bond;
+      if (mymap.find((uintptr_t)bond) == mymap.end()) {
+        mymap[(uintptr_t)bond] = bond;
         ret->push_back(bond);
       }
     }

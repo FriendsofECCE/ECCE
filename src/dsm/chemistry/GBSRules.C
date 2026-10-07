@@ -448,6 +448,9 @@ void GBSRules::autoOptimize(TGBSConfig* config, const JCode* code,
   } else {
     config->coordsys(TGaussianBasisSet::Cartesian);
   }
+  //  Most library sets carry no "spherical" flag, so the rule above
+  //  picks Cartesian for them, which a spherical-only code never uses.
+  enforceCodeCoordSys(config, code);
 
   // 2) SET OPTIMIZE
   bool preferOpt;
@@ -467,4 +470,18 @@ void GBSRules::autoOptimize(TGBSConfig* config, const JCode* code,
 }
 
 
+bool GBSRules::sphericalOnly(const JCode* code)
+{
+  bool only = false;
+  return code != 0 && code->get_bool("SphericalOnly", only) && only;
+}
 
+
+bool GBSRules::enforceCodeCoordSys(TGBSConfig* config, const JCode* code)
+{
+  if (config == 0 || !sphericalOnly(code) ||
+      config->coordsys() == TGaussianBasisSet::Spherical)
+    return false;
+  config->coordsys(TGaussianBasisSet::Spherical);
+  return true;
+}

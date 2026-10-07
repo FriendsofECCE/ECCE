@@ -32,7 +32,7 @@ using std::ostream;
 using std::string;
 
 
-#include <sys/utsname.h>
+#include "util/PosixCompat.H"
 
 
 class Host

@@ -97,7 +97,9 @@ endif()
 # "...-NOTFOUND" rather than erroring, which only surfaces later as a
 # baffling "Found relative path while evaluating include directories"
 # CMake generate-step error. Confirmed via a real macOS CI run.
+# PATH_SUFFIXES covers prefixes such as MSYS2's /ucrt64 (#133).
 find_path(FREETYPE_UNQUALIFIED_INCLUDE_DIR ftoutln.h
+  PATH_SUFFIXES freetype2/freetype
   PATHS /usr/include/freetype2/freetype /usr/include/freetype
         /opt/homebrew/include/freetype2/freetype
         /usr/local/include/freetype2/freetype)
@@ -137,6 +139,21 @@ if(ECCE_USE_COIN)
   find_library(COIN_LIBRARY Coin REQUIRED)
 endif()
 
+if(WIN32)
+  # MSYS2's Coin is a DLL; moiv is a static library of ours. GL/gl.h pulls in
+  # <windows.h>, whose full form drags in rpcndr.h's `byte`, ambiguous with
+  # std::byte under `using namespace std`; and its min/max macros break
+  # std::min/std::max. _POSIX_THREAD_SAFE_FUNCTIONS declares gmtime_r and
+  # localtime_r (#133).
+  add_compile_definitions(COIN_DLL CHEMKIT_NOT_DLL WIN32_LEAN_AND_MEAN NOMINMAX
+                          _POSIX_THREAD_SAFE_FUNCTIONS=200112L)
+  # PosixCompat.H in every C++ file: it supplies the POSIX calls and strips
+  # the windows.h macros (ERROR, OPAQUE, ...) that wx pulls in first.
+  # win32compat/ stands in for the <sys/wait.h>-style headers MinGW lacks.
+  add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include ${CMAKE_SOURCE_DIR}/include/util/PosixCompat.H>")
+  include_directories(${CMAKE_SOURCE_DIR}/include/win32compat)
+endif()
+
 if(APPLE)
   # ~90 files across the tree spell OpenGL headers the Linux/X11 way
   # ("GL/gl.h", "GL/glu.h") -- Apple's own OpenGL framework headers live
@@ -173,6 +190,10 @@ function(ecce_library name)
   endforeach()
   add_library(${name} STATIC ${_srcs})
   target_include_directories(${name} PRIVATE ${XercesC_INCLUDE_DIRS})
+  if(WIN32)
+    # The libraries reference each other in cycles; GNU ld needs them repeated.
+    set_target_properties(${name} PROPERTIES LINK_INTERFACE_MULTIPLICITY 3)
+  endif()
 endfunction()
 
 # --- src/util -> libecceutil.a ---
@@ -189,6 +210,10 @@ target_compile_definitions(ecceutil PRIVATE ECCE_VERSION=\"${ECCE_VERSION_RAW}\"
 # Messaging (src/util/jms) is MQTT 5 on libmosquitto.
 pkg_check_modules(MOSQUITTO REQUIRED IMPORTED_TARGET libmosquitto)
 target_link_libraries(ecceutil PUBLIC PkgConfig::MOSQUITTO)
+if(WIN32)
+  # POSIX regex (libtre) and Winsock, which libssh's callers use directly.
+  target_link_libraries(ecceutil PUBLIC regex ws2_32)
+endif()
 
 # ------------------------------------------------------------------------
 # Where an installed ECCE lives, and where its ecce-<app> wrappers go.
@@ -226,6 +251,9 @@ ecce_library(eccetdat
 # --- src/dsm -> 5 separate libraries, matching the old per-subdir mapping ---
 ecce_library(eccexml    src/dsm/chemistry src/dsm/xml)
 ecce_library(eccecipc   src/dsm/cipc)
+if(WIN32)
+  target_link_libraries(eccecipc PUBLIC ws2_32)
+endif()
 find_package(OpenSSL REQUIRED)
 target_link_libraries(eccecipc PUBLIC OpenSSL::SSL OpenSSL::Crypto)
 ecce_library(eccedav    src/dsm/dav)
@@ -268,6 +296,7 @@ endif()
 # this codebase) live one level down - both are needed.
 # Same Homebrew-path gap as FREETYPE_UNQUALIFIED_INCLUDE_DIR above.
 find_path(FREETYPE_ROOT_INCLUDE_DIR ft2build.h
+  PATH_SUFFIXES freetype2
   PATHS /usr/include/freetype2 /usr/include
         /opt/homebrew/include/freetype2
         /usr/local/include/freetype2)
@@ -414,7 +443,13 @@ function(ecce_app name dir)
   if(ECCE_APP_GL)
     target_link_libraries(${name} PRIVATE OpenGL::GL OpenGL::GLU)
   endif()
-  target_link_libraries(${name} PRIVATE ${ECCE_APP_LINK} ${XercesC_LIBRARIES})
+  if(WIN32)
+    # The static libraries reference each other in cycles; GNU ld rescans a group.
+    target_link_libraries(${name} PRIVATE
+      "$<LINK_GROUP:RESCAN,${ECCE_APP_LINK}>" ${XercesC_LIBRARIES})
+  else()
+    target_link_libraries(${name} PRIVATE ${ECCE_APP_LINK} ${XercesC_LIBRARIES})
+  endif()
 endfunction()
 
 # --- apps with no wx dependency ---
@@ -442,7 +477,9 @@ target_link_libraries(mocomp PRIVATE
   eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
   ${XercesC_LIBRARIES})
 # flock(1) for the session scripts where util-linux is absent (macOS).
-add_executable(ecce-flock src/apps/flock/ecce-flock.c)
+if(NOT WIN32)   # the Windows client has no session scripts (#133)
+  add_executable(ecce-flock src/apps/flock/ecce-flock.c)
+endif()
 # The server half of "ecce -admin" on a -remote client (SiteRequest).
 add_executable(ecce-site-admin src/apps/siteadmin/ecce-site-admin.C)
 target_link_libraries(ecce-site-admin PRIVATE eccetdat ecceutil)
@@ -742,6 +779,7 @@ install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-status
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-reap
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-find-mosquitto
+          ${CMAKE_SOURCE_DIR}/packaging/windows/ecce-broker-win
           ${CMAKE_SOURCE_DIR}/packaging/nwchem/ecce-nwchem-datadir
         DESTINATION bin
         COMPONENT client)
@@ -771,7 +809,7 @@ install(FILES ${CMAKE_BINARY_DIR}/systemd/ecce-broker.service
 # file (a central server's broker, ecce-gateway-start). Needs mosquitto's
 # plugin header and apr-util, whose apr_password_validate reads htpasswd's
 # hash formats.
-if(NOT APPLE)   # macOS runs no central server
+if(NOT APPLE AND NOT WIN32)   # macOS and Windows run no central server
   pkg_check_modules(APRUTIL REQUIRED IMPORTED_TARGET apr-util-1)
   find_path(MOSQUITTO_PLUGIN_INCLUDE_DIR mosquitto_plugin.h REQUIRED)
   add_library(ecce_users_auth MODULE src/mqttauth/ecce_users_auth.c)
@@ -906,8 +944,21 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-flock ecce-site-admin mocomp
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-site-admin mocomp
   autosym getfrag genmol genmollat cleansym symops)
+if(NOT WIN32)
+  list(APPEND ECCE_CLI_APPS ecce-flock)
+endif()
+
+if(WIN32)
+  # GUI subsystem: no console window opens behind the apps. The command-line
+  # programs (ECCE_CLI_APPS, the parsers) keep theirs.
+  foreach(_app ${ECCE_GUI_APPS})
+    if(TARGET ${_app})
+      set_target_properties(${_app} PROPERTIES WIN32_EXECUTABLE ON)
+    endif()
+  endforeach()
+endif()
 
 install(TARGETS ${ECCE_GUI_APPS} ${ECCE_CLI_APPS} RUNTIME DESTINATION bin
         COMPONENT client)
@@ -1691,10 +1742,12 @@ add_executable(session_key_test tests/session/session_key_test.C)
 target_link_libraries(session_key_test PRIVATE ecceutil)
 add_test(NAME session-key COMMAND session_key_test
          ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-session-lib.sh)
+if(NOT WIN32)   # POSIX-only test programs
 add_executable(session_lease_test tests/session/session_lease_test.C)
 target_link_libraries(session_lease_test PRIVATE ecceutil)
 add_test(NAME session-lease COMMAND session_lease_test
          ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-session-lib.sh)
+endif()
 add_test(NAME session-display-gate COMMAND bash
          ${CMAKE_SOURCE_DIR}/tests/session/display_gate.sh ${CMAKE_SOURCE_DIR})
 set_tests_properties(session-display-gate PROPERTIES SKIP_RETURN_CODE 77)
@@ -1720,6 +1773,7 @@ set_tests_properties(gromacs_md PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 # socket; checks delivery, not just acknowledgement.  "auth" is the same on
 # a TCP broker with two accounts and the shipped access rules.  SKIPs (77)
 # without the mosquitto binary.
+if(NOT WIN32)
 add_executable(mqtt_test tests/mqtt/mqtt_test.C)
 target_include_directories(mqtt_test PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(mqtt_test PRIVATE ecceutil ${XercesC_LIBRARIES})
@@ -1731,6 +1785,7 @@ if(TARGET ecce_users_auth)
   set_tests_properties(mqtt-auth-plugin PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
 endif()
 set_tests_properties(mqtt mqtt-auth PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+endif()
 
 # tests/tls -- https data-server client (#236): pinned certificate, CA mode
 # with host-name check, certificate rejection, no fallback to plain http.
@@ -1825,6 +1880,20 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_BINARY_DIR}/viewer-scenes)
   set_tests_properties(look_offscreen_shading PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
 
+  # Sticks are thinner while normal-mode arrows are shown, normal again
+  # when they are hidden (#227).  Needs `ninja viewer-scenes` and Xvfb.
+  add_test(NAME look_nm_sticks
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/nm_sticks.py
+                   ${CMAKE_BINARY_DIR}/viewer-scenes)
+  set_tests_properties(look_nm_sticks PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
+
+  # The saved DefaultStyle moves from the old default once (#227).
+  add_test(NAME look_default_style
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/default_style.py)
+  set_tests_properties(look_default_style PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
+
   # tests/guivalues -- memory sizes saved before the GB-everywhere change
   # (Megawords, Megabytes) are converted by GUIValues::load() before a
   # dialog or a generator reads them.  Needs g++ and libecceutil.a.
@@ -1875,6 +1944,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_calcimport PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
+  # Organizer summary panel: molecule and basis fields of a data-server
+  # and of a local-data calculation, ECCE_TEST_ORGANIZER "summary".
+  add_test(NAME apps_summary
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/summary_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_summary PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
 
   # The Builder with a calculation's MOs panel open in every panel layout,
   # on a 1366x768 screen: viewer and panel on screen and inside the window.
@@ -1883,6 +1960,15 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/panel_layouts_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_panel_layouts PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # ORCA orbitals in the MOs panel (#239): a 24-function cc-pVDZ water run
+  # draws; a 23-function one gives one plain dialog; the pane fits its rows.
+  add_test(NAME apps_orca_mo
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/orca_mo_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_orca_mo PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
 
   # Every app's main window and every codereg Theory/Runtype dialog fits a
@@ -1909,10 +1995,18 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(filedsi PROPERTIES TIMEOUT 300)
 
   # tests/transport -- DirectTransport against a real /bin/sh (#204).
-  add_executable(testTransport tests/transport/testTransport.C)
-  target_link_libraries(testTransport PRIVATE eccercmd ecceutil)
-  add_test(NAME transport COMMAND testTransport)
-  set_tests_properties(transport PROPERTIES TIMEOUT 120)
+  if(NOT WIN32)
+    add_executable(testTransport tests/transport/testTransport.C)
+    target_link_libraries(testTransport PRIVATE eccercmd ecceutil)
+    add_test(NAME transport COMMAND testTransport)
+    set_tests_properties(transport PROPERTIES TIMEOUT 120)
+  endif()
+
+  # Process launch (POSIX fork/exec and the Windows CreateProcess path, #133).
+  add_executable(testWinProcess tests/transport/testWinProcess.C)
+  target_link_libraries(testWinProcess PRIVATE eccercmd ecceutil)
+  add_test(NAME transport_process COMMAND testWinProcess)
+  set_tests_properties(transport_process PROPERTIES TIMEOUT 180)
 
   # RCommand on a local machine against results recorded from the old pty
   # path (#204).
@@ -1980,6 +2074,9 @@ if(PYTHON3_EXECUTABLE)
     eccewxguicomm eccewxgui eccecomm eccercmd eccedsi eccedav eccecipc
     eccefaces eccexml eccetdat ecceutil ${wxWidgets_LIBRARIES}
     ${XercesC_LIBRARIES})
+  if(WIN32)   # GNU ld resolves static libraries in order (#133)
+    target_link_libraries(tailwindow PRIVATE "$<LINK_GROUP:RESCAN,eccewxguicomm;eccewxgui;eccecomm;eccercmd;eccedsi;eccedav;eccecipc;eccefaces;eccexml;eccetdat;ecceutil>" ${XercesC_LIBRARIES})
+  endif()
   add_test(NAME transport_tail_window
            COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tests/transport/tail_window_test.sh
                    $<TARGET_FILE:tailwindow> ${CMAKE_CURRENT_SOURCE_DIR})
@@ -2089,6 +2186,24 @@ if(PYTHON3_EXECUTABLE)
                    $<TARGET_FILE:importmeta>)
   set_tests_properties(importmeta PROPERTIES TIMEOUT 300 ENVIRONMENT
     "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders")
+  # tests/basis/testCoordSys: the spherical/Cartesian convention recorded
+  # for a basis, per code (ORCA is spherical-only).
+  add_executable(gbscoordsys tests/basis/testCoordSys.C)
+  target_include_directories(gbscoordsys PRIVATE ${XercesC_INCLUDE_DIRS})
+  #  The data-model libraries refer to each other in a cycle that the
+  #  code under test does not happen to pull in the right order.
+  set(_gbs_libs eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc
+    eccefaces eccexml eccetdat ecceutil)
+  if(APPLE)   # ld64 rescans archives itself and rejects --start-group
+    target_link_libraries(gbscoordsys PRIVATE ${_gbs_libs} ${XercesC_LIBRARIES})
+  else()
+    target_link_libraries(gbscoordsys PRIVATE
+      "$<LINK_GROUP:RESCAN,${_gbs_libs}>" ${XercesC_LIBRARIES})
+  endif()
+  add_test(NAME gbscoordsys
+           COMMAND gbscoordsys ${CMAKE_CURRENT_SOURCE_DIR}/data/admin/basissets)
+  set_tests_properties(gbscoordsys PROPERTIES ENVIRONMENT
+    "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
   # tests/mocomp: ecce-mocomp's Mulliken and c^2 compositions against
   # checked-in Multiwfn numbers (#161); re-derives them where Multiwfn is
   # installed (MULTIWFN, or Multiwfn_noGUI on PATH).

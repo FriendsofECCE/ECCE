@@ -1142,7 +1142,8 @@ bool RCommand::execout(const string& command, string& output,
   if (getenv("ECCE_RCOM_LOGMODE"))
     cout << "Command (" << command << ") in ("
          << p_transport->dir() << ") status " << r.status
-         << (r.error.empty() ? "" : " " + r.error) << endl;
+         << (r.error.empty() ? "" : " " + r.error) << endl
+         << (r.status != 0 ? "Output: " + r.out + "\n" : "");
 
   bool status = false;
 

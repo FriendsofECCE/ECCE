@@ -9,6 +9,7 @@
 
 #include <wx/link.h>
 #include <wx/stopwatch.h>
+#include <wx/settings.h>
 #include <wx/textctrl.h>
 
 #include "util/EventDispatcher.H"
@@ -139,6 +140,16 @@ MoPanel::~MoPanel()
    delete p_aoBasis;
 }
 
+
+
+wxSize MoPanel::GetMinSize() const
+{
+   wxSize min = MoGUI::GetMinSize();
+   if (GetSizer() != 0) {
+      min.x = std::max(min.x, GetSizer()->GetMinSize().x);
+   }
+   return min;
+}
 
 
 bool MoPanel::Create(IPropCalculation *calculation,
@@ -500,6 +511,15 @@ void MoPanel::fillUI()
    //p_mogrid->SetColLabelSize(wxGRID_AUTOSIZE);
    int cursize = p_mogrid->GetColLabelSize();
    p_mogrid->SetColLabelSize((int)(cursize + cursize * .20));
+
+   //  Wide enough for every column and the vertical scroll bar, so the
+   //  table is never cut off at the right.
+   int tableWidth = p_mogrid->GetRowLabelSize() +
+      wxSystemSettings::GetMetric(wxSYS_VSCROLL_X, p_mogrid) + 4;
+   for (int c = 0; c < p_mogrid->GetNumberCols(); c++)
+      tableWidth += p_mogrid->GetColSize(c);
+   p_mogrid->SetMinSize(wxSize(std::max(200, tableWidth),
+                               p_mogrid->GetMinSize().y));
 
    // Select the alpha HOMO by default.
    selectMo(idxHOMO);
@@ -1178,6 +1198,17 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
    fw.execute(cmd);
    dlg->Show(false);  // make sure it goes away
 
+   //  Coefficients that do not fit the basis are not a zero grid, and the
+   //  grid still holds the previous orbital: say what is wrong and stop.
+   const int coefWidth = cmd->getParameter("CoefWidth")->getInteger();
+   if (coefWidth > 0) {
+      reportBasisMismatch(coefWidth,
+                          cmd->getParameter("BasisWidth")->getInteger(),
+                          cap->name());
+      event.Skip();
+      return;
+   }
+
    // Get min,max of computed field
    double fieldMin = 0.;
    double fieldMax = 0.;
@@ -1303,6 +1334,45 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
    event.Skip();
 }
 
+
+
+/**
+ * The output's MO coefficients and the basis ECCE holds for the calculation
+ * have different numbers of functions.  Said once per calculation in a
+ * dialog (ECCE_TEST_DIALOG_CLOSE logs it), then only in the status line.
+ */
+void MoPanel::reportBasisMismatch(int coefWidth, int basisWidth,
+                                  const string& code)
+{
+   WxVizToolFW& fw = getFW();
+   const string url = getCalculation()->getURL().toString();
+   const wxString shortText = wxString::Format(
+         "Orbital not drawn: the output has %d basis functions, ECCE's "
+         "basis set for this calculation has %d.", coefWidth, basisWidth);
+   if (p_mismatchReported.count(url)) {
+      fw.showMessage(shortText.ToStdString(), false);
+      return;
+   }
+   p_mismatchReported.insert(url);
+
+   wxString text = basisWidth > 0 ?
+      wxString::Format("ECCE cannot draw this orbital: the output has %d "
+            "basis functions, but the basis set ECCE has for this "
+            "calculation has %d.\n\nThe calculation probably used a "
+            "different basis set than ECCE expects.",
+            coefWidth, basisWidth) :
+      wxString::Format("ECCE cannot draw this orbital: the output has %d "
+            "basis functions, and ECCE could not build the basis set it "
+            "has for this calculation.", coefWidth);
+   if (code == "ORCA") {
+      text += "\n\nCalculations made with ORCA input from ECCE before "
+              "9.0.0-alpha.7 have this problem -- rerun them.";
+   }
+   ewxMessageDialog dlg(this, text, "ECCE Error", wxOK|wxICON_EXCLAMATION);
+   (void)dlg.ShowModal();
+   dlg.Destroy();
+   fw.showMessage(shortText.ToStdString(), false);
+}
 
 
 GridDlg *MoPanel::getGridDlg()

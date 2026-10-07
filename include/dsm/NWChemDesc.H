@@ -15,6 +15,7 @@
 #ifndef NWCHEMDESC_HH
 #define NWCHEMDESC_HH
 
+#include <cstdint>
 #include <strstream>
 using std::ostrstream;
 
@@ -75,9 +76,9 @@ public:
 	                          const int, int, int*);
        FFItem* parseNWChemCrossData( ifstream&, FFModel*, char*, const int,
 	                           int, int, int*);
-       FFItem* parseNWChemBondData( char*, FFModel*, const unsigned long,
+       FFItem* parseNWChemBondData( char*, FFModel*, const uintptr_t,
                              int, int, int*);
-       FFItem* parseNWChemAngleData( char*, FFModel*, const unsigned long,
+       FFItem* parseNWChemAngleData( char*, FFModel*, const uintptr_t,
                              int, int, int*);
        FFItem* parseNWChemTorsionData (ifstream&, FFModel*, char*, int,const int,
 	                              int, int*);

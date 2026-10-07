@@ -27,8 +27,9 @@
 
 #include "util/ErrMsg.H"
 #include "util/TDateTime.H"
+#include "util/PosixCompat.H"   // gmtime_r, strptime on Windows
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(_WIN32)
 extern time_t timezone;
 #endif
 
