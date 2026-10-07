@@ -15,6 +15,9 @@ if(NOT CMAKE_PROJECT_NAME OR CMAKE_PROJECT_NAME STREQUAL "ecce_qm")
 endif()
 
 include(FetchContent)
+# The fetched projects ask for CMake < 3.5, which CMake 4 (macOS and MSYS2
+# runners) refuses.
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 # Static dependencies built into ecce-qm; their headers and libraries are not
 # part of any package (EXCLUDE_FROM_ALL also drops their install rules).
 if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.28)
@@ -93,6 +96,13 @@ target_compile_definitions(eccems PRIVATE
 
 add_executable(ecce-qm main.cpp)
 target_link_libraries(ecce-qm PRIVATE eccems)
+# Shipped stripped on every platform (the debug info of the fetched libraries
+# makes it 150 MB otherwise).
+if(APPLE)
+  target_link_options(ecce-qm PRIVATE -Wl,-S -Wl,-x)
+else()
+  target_link_options(ecce-qm PRIVATE -s)
+endif()
 
 # --- tests (oracle numbers: tests/qm/oracle.json, see tests/qm/gen_oracle.py) ---
 set(_qm_tests ${_ecce_root}/tests/qm)

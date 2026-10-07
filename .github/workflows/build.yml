@@ -97,6 +97,16 @@ jobs:
         working-directory: build-cmake
         run: cpack -G DEB
 
+      # ecce-qm is in the client package, stripped, and gives ORCA's energies.
+      - name: ecce-qm in the package
+        run: |
+          d=$(mktemp -d)
+          dpkg-deb -x build-cmake/ecce-client*.deb "$d"
+          q=$(find "$d" -path '*/bin/ecce-qm')
+          test -n "$q"
+          file "$q"
+          python3 tests/qm/package_check.py "$q" "$(dirname "$q")/../data/admin/basissets" --max-mb 40
+
       - uses: actions/upload-artifact@v4
         with:
           name: ecce-debian-trixie-deb
@@ -160,6 +170,16 @@ jobs:
         working-directory: build-cmake
         run: cpack -G DEB
 
+      # ecce-qm is in the client package, stripped, and gives ORCA's energies.
+      - name: ecce-qm in the package
+        run: |
+          d=$(mktemp -d)
+          dpkg-deb -x build-cmake/ecce-client*.deb "$d"
+          q=$(find "$d" -path '*/bin/ecce-qm')
+          test -n "$q"
+          file "$q"
+          python3 tests/qm/package_check.py "$q" "$(dirname "$q")/../data/admin/basissets" --max-mb 40
+
       - uses: actions/upload-artifact@v4
         with:
           name: ecce-ubuntu-latest-deb
@@ -215,6 +235,15 @@ jobs:
         working-directory: ${{ github.workspace }}/build-cmake
         run: cpack -G RPM
 
+      - name: ecce-qm in the package
+        run: |
+          d=$(mktemp -d)
+          for f in ${{ github.workspace }}/build-cmake/ecce-client*.rpm; do (cd "$d" && rpm2cpio "$OLDPWD/$f" | cpio -idm 2>/dev/null); done
+          q=$(find "$d" -path '*/bin/ecce-qm')
+          test -n "$q"
+          file "$q"
+          python3 tests/qm/package_check.py "$q" "$(dirname "$q")/../data/admin/basissets" --max-mb 40
+
       - uses: actions/upload-artifact@v4
         with:
           name: ecce-rockylinux9-rpm
@@ -258,6 +287,15 @@ jobs:
       - name: Package
         working-directory: ${{ github.workspace }}/build-cmake
         run: cpack -G RPM
+
+      - name: ecce-qm in the package
+        run: |
+          d=$(mktemp -d)
+          for f in ${{ github.workspace }}/build-cmake/ecce-client*.rpm; do (cd "$d" && rpm2cpio "$OLDPWD/$f" | cpio -idm 2>/dev/null); done
+          q=$(find "$d" -path '*/bin/ecce-qm')
+          test -n "$q"
+          file "$q"
+          python3 tests/qm/package_check.py "$q" "$(dirname "$q")/../data/admin/basissets" --max-mb 40
 
       - uses: actions/upload-artifact@v4
         with:
@@ -388,6 +426,16 @@ jobs:
           echo "runner: $(sw_vers -productVersion) $(uname -m)" >> minos/minos.txt
           { echo '### Minimum macOS (ECCE.app)'; echo '```';
             sed -n '/^Mach-O files/,$p' minos/minos.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit ${rc:-0}
+
+      - name: ecce-qm in the app
+        run: |
+          mnt=$(mktemp -d)
+          hdiutil attach dist/ECCE-*.dmg -mountpoint "$mnt" -nobrowse -quiet
+          q="$mnt/ECCE.app/Contents/Resources/bin/ecce-qm"
+          test -x "$q"
+          python3 tests/qm/package_check.py "$q" "$mnt/ECCE.app/Contents/Resources/data/admin/basissets" --max-mb 40 | tee -a "$GITHUB_STEP_SUMMARY" || rc=$?
+          hdiutil detach "$mnt" -quiet
           exit ${rc:-0}
 
       - name: Run the packaged app
@@ -536,6 +584,14 @@ jobs:
           Get-ChildItem "$d\ecce" | Format-Table Name
           # launchjob is a test driver, not part of the package.
           Copy-Item build\launchjob.exe "$d\ecce\bin\"
+
+      - name: ecce-qm in the zip
+        shell: pwsh
+        run: |
+          $r = "$env:RUNNER_TEMP\unpacked\ecce"
+          $env:Path = "$env:SystemRoot\System32;$env:SystemRoot"
+          & "$r\python\python3.exe" tests/qm/package_check.py "$r\bin\ecce-qm.exe" "$r\data\admin\basissets" --max-mb 40 2>&1 | Tee-Object -Append $env:GITHUB_STEP_SUMMARY
+          exit $LASTEXITCODE
 
       # Local job end to end from the unpacked zip, with System32 as the only
       # PATH outside it (tests/windows/launch_local.py): no MSYS2 involved.
