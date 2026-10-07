@@ -15,6 +15,8 @@
 
 #include "wxgui/ewxWindowUtils.H"
 
+#include <unistd.h>
+#include "wx/timer.h"
 #include "MachineBrowserApp.H"
 #include "MachineBrowserGUI.H"
 
@@ -44,6 +46,17 @@ bool MachineBrowserApp::OnInit()
     p_brwsrFrame->Show();
     SetTopWindow(p_brwsrFrame);
     registerTopShell(p_brwsrFrame);
+
+    //  Test hook: no broker; select, click, photograph, exit.
+    if (const char* png = getenv("ECCE_MACHBROWSER_SHOT"))
+    {
+        string out = png;
+        MachineBrowser* f = p_brwsrFrame;
+        wxTimer* t = new wxTimer();
+        t->Bind(wxEVT_TIMER, [f, out](wxTimerEvent&) { f->runTestHook(out); });
+        t->StartOnce(1500);
+        return true;
+    }
 
     subscribeMessages();
     startSubscriber();

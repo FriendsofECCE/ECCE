@@ -67,6 +67,27 @@ namespace SchedulerQuery
             string p_err;
     };
 
+    /// What Register Machines knows about a code's executable: the names
+    /// gensub's job script runs it under, and a path to show as an example.
+    /// `companion`, when set, is a file that must sit next to the executable
+    /// (ORCA: orca_scf), so another program of the same name is not taken.
+    struct ProgramHelp
+    {
+        vector<string> names;       // candidates for `command -v`
+        vector<string> examples;    // "/usr/bin/nwchem"; basename is in names
+        string note;                // one sentence under the example, or ""
+        string companion;
+    };
+    ProgramHelp programHelp(const string& code);
+    /// POSIX sh text that prints one "ECCE-FOUND:<absolute path>" line for
+    /// each candidate `command -v` finds.
+    /// The examples as shown under the Program box ("a  or  b").
+    string exampleText(const ProgramHelp& h);
+    string findProgramScript(const ProgramHelp& h);
+    /// The paths in the output of that script (login-script chatter ignored),
+    /// without duplicates, in order.
+    vector<string> parseFound(const string& output);
+
     /// True when `qmgr` (as named on the Queues tab) can be asked for queues.
     bool canDiscover(const string& qmgr);
     /// The commands discovery runs, for the dialog ("sinfo -h -o ...").
@@ -99,6 +120,7 @@ namespace SchedulerQuery
         bool ran, accepted, cancelled;
         string commands;        // what ran, one command per line
         string answer;          // the scheduler's text, verbatim
+        string jobId;           // the id the scheduler named, when it did
         TestResult() : ran(false), accepted(false), cancelled(false) {}
     };
     /// `script` is the text to send.  Never runs a calculation: the script is
