@@ -1819,6 +1819,19 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_calcimport PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
 
+  # Every app's main window and every codereg Theory/Runtype dialog fits a
+  # small screen (#189): measured on private Xvfb screens, no window may
+  # extend past the screen.  Same installed tree and isolation as `apps`.
+  foreach(size 1024x768 1024x600)
+    add_test(NAME apps_smallscreen_${size}
+             COMMAND ${PYTHON3_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/smallscreen_test.py
+                     --size ${size}
+             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+    set_tests_properties(apps_smallscreen_${size} PROPERTIES TIMEOUT 1800
+                         SKIP_RETURN_CODE 77)
+  endforeach()
+
   # tests/filedsi -- FileEDSI (file:// storage, no Apache, #216) against a
   # temp directory, linked from the static libraries of build-cmake.
   #

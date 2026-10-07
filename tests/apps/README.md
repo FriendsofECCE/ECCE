@@ -410,3 +410,11 @@ it to `cases.HELPERS` (with the reason) or give it a `cases.TIMEOUTS` entry
 if it is merely slow. A reproduced crash that is not being fixed yet goes in
 `cases.XFAIL` with enough detail to act on. All three lists are checked in
 both directions, so a stale entry fails the run.
+
+## Small screens (#189)
+
+`smallscreen_test.py --size 1024x600` opens each app's main window and every
+codereg Theory/Runtype Details dialog on an Xvfb screen of that size and fails
+for any window that, with room for a title bar, ends past the screen.
+`--out DIR` keeps a screenshot per window, `--report-only` lists offenders
+without failing. ctest runs it at 1024x768 and 1024x600 (`apps_smallscreen_*`).

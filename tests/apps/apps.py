@@ -70,6 +70,7 @@ class Result(object):
         self.secondsToWindow = None
         self.exitedAfterWindow = False
         self.note = None
+        self.inspected = None
 
     @property
     def signalName(self):
@@ -179,10 +180,13 @@ def stopServices(display=None):
                            stderr=subprocess.DEVNULL, timeout=120)
 
 
-def run(display, name, args=(), windowTimeout=40, settle=8, env=None):
+def run(display, name, args=(), windowTimeout=40, settle=8, env=None,
+        inspect=None):
     """Start ecce-<name>, wait for a window, watch it, then shut it down.
 
     `env` adds variables to the display's environment for this one app.
+    `inspect(display)` runs once the settle period is over, while the app
+    is still up; its return value is left in result.inspected.
     """
     result = Result(name)
     before = set(wid for wid, _ in display.windows())
@@ -236,6 +240,8 @@ def run(display, name, args=(), windowTimeout=40, settle=8, env=None):
 
     result.windows = [(wid, title) for wid, title in display.windows()
                       if wid not in before]
+    if inspect is not None:
+        result.inspected = inspect(display)
     _terminate(proc)
     result.returncode = proc.returncode
     result.log = _drain(proc)
