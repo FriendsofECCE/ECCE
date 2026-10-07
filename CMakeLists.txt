@@ -931,6 +931,16 @@ if(NOT WIN32)
   list(APPEND ECCE_CLI_APPS ecce-flock)
 endif()
 
+if(WIN32)
+  # GUI subsystem: no console window opens behind the apps. The command-line
+  # programs (ECCE_CLI_APPS, the parsers) keep theirs.
+  foreach(_app ${ECCE_GUI_APPS})
+    if(TARGET ${_app})
+      set_target_properties(${_app} PROPERTIES WIN32_EXECUTABLE ON)
+    endif()
+  endforeach()
+endif()
+
 install(TARGETS ${ECCE_GUI_APPS} ${ECCE_CLI_APPS} RUNTIME DESTINATION bin
         COMPONENT client)
 # data/ splits cleanly along its own top-level directories: data/client

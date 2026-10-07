@@ -433,9 +433,6 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 120
     continue-on-error: true
-    env:
-      STRAWBERRY_URL: https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54051_64bit/strawberry-perl-5.40.5.1-64bit-portable.zip
-      STRAWBERRY_SHA256: 6619fe7eeef921ccddb4aac3972fb602a0c690a3074205b863ade998d7bc79a6
     steps:
       # LF in the checkout: fixtures and shell scripts must not get CRLF.
       - run: git config --global core.autocrlf false
@@ -504,66 +501,73 @@ jobs:
         shell: msys2 {0}
         run: packaging/windows/bundle-shell.sh "$PWD/stage/ecce" "$(cygpath -m /)"
 
-      - name: Strawberry Perl (portable)
-        id: perl
+      # MinGW runtime DLLs and the broker, then Perl and Python, so the tree
+      # runs with no MSYS2 on the machine.
+      - name: Bundle the runtime
+        shell: msys2 {0}
+        run: |
+          packaging/windows/bundle-runtime.sh "$PWD/stage/ecce"
+          cp packaging/windows/ecce.cmd packaging/windows/make-shortcuts.ps1 stage/ecce/
+
+      - name: Download cache (Strawberry Perl, Python, wxPython)
         uses: actions/cache@v4
         with:
-          path: ${{ runner.temp }}/strawberry
-          key: strawberry-5.40.5.1-${{ env.STRAWBERRY_SHA256 }}
+          path: ${{ runner.temp }}/ecce-dl
+          key: windows-tools-${{ hashFiles('packaging/windows/bundle-tools.ps1') }}
 
-      - name: Download Strawberry Perl
-        if: steps.perl.outputs.cache-hit != 'true'
+      - name: Bundle Perl and Python
         shell: pwsh
-        run: |
-          $zip = "$env:RUNNER_TEMP\strawberry.zip"
-          Invoke-WebRequest $env:STRAWBERRY_URL -OutFile $zip
-          $h = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
-          if ($h -ne $env:STRAWBERRY_SHA256) { throw "sha256 $h" }
-          Expand-Archive $zip "$env:RUNNER_TEMP\strawberry"
-
-      # Local job end to end with the bundled shell and a PATH that has no
-      # MSYS2 usr\bin (tests/windows/launch_local.py).
-      - name: Local jobs (complete, cancel)
-        id: localjobs
-        shell: pwsh
-        continue-on-error: true
-        run: |
-          $msys = (msys2 -c 'cygpath -m /' 2>$null)
-          if (-not $msys) { $msys = "$env:RUNNER_TEMP\msys64" }
-          $msys = $msys -replace '/', '\'
-          New-Item -ItemType Directory -Force localjobs | Out-Null
-          $sb = "$env:RUNNER_TEMP\strawberry"
-          $env:WINTEST_HOME = "$PWD\stage\ecce"
-          $env:WINTEST_BASE_PATH = "$msys\ucrt64\bin;$sb\perl\site\bin;$sb\perl\bin;$sb\c\bin;C:\Windows\System32;C:\Windows"
-          $rc = 0
-          foreach ($c in "complete", "cancel") {
-            & "$msys\ucrt64\bin\python3.exe" tests/windows/launch_local.py $c --build "$PWD\build" --state "$PWD\localjobs\state-$c" 2>&1 | Tee-Object "localjobs\$c.log"
-            "$c rc=$LASTEXITCODE" | Tee-Object -Append localjobs\summary.txt
-            if ($LASTEXITCODE -ne 0) { $rc = 1 }
-          }
-          Get-Content localjobs\summary.txt >> $env:GITHUB_STEP_SUMMARY
-          exit $rc
-
-      # Does it run? (#133) Starts the installed apps on the runner's desktop
-      # and screenshots them.  Allowed to fail; see summary.txt.
-      - name: Start the apps
-        id: apps
-        shell: pwsh
-        continue-on-error: true
-        timeout-minutes: 20
-        run: |
-          $msys = (msys2 -c 'cygpath -m /' 2>$null) -replace '/', '\'
-          tests\windows\ci-run.ps1 -Stage stage -Out windows-run -Msys $msys -Strawberry "$env:RUNNER_TEMP\strawberry"
-          Get-Content windows-run\summary.txt >> $env:GITHUB_STEP_SUMMARY
+        run: packaging/windows/bundle-tools.ps1 -Install stage\ecce -Cache "$env:RUNNER_TEMP\ecce-dl"
 
       - name: Zip the install tree
-        if: always()
         shell: pwsh
         run: |
           $v = (Get-Content data/client/config/Version -TotalCount 1).Trim()
           New-Item -ItemType Directory -Force dist | Out-Null
           Compress-Archive -Path stage\ecce -DestinationPath "dist\ECCE-windows-$v.zip"
           Get-ChildItem dist | Format-Table Name, Length
+          $d = "$env:RUNNER_TEMP\unpacked"
+          Remove-Item -Recurse -Force $d -ErrorAction SilentlyContinue
+          Expand-Archive "dist\ECCE-windows-$v.zip" $d
+          "unpacked: $((Get-ChildItem $d -Recurse -File | Measure-Object Length -Sum).Sum / 1MB) MB" | Tee-Object -Append $env:GITHUB_STEP_SUMMARY
+          Get-ChildItem "$d\ecce" | Format-Table Name
+          # launchjob is a test driver, not part of the package.
+          Copy-Item build\launchjob.exe "$d\ecce\bin\"
+
+      # Local job end to end from the unpacked zip, with System32 as the only
+      # PATH outside it (tests/windows/launch_local.py): no MSYS2 involved.
+      - name: Local jobs (complete, cancel)
+        id: localjobs
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $r = "$env:RUNNER_TEMP\unpacked\ecce"
+          New-Item -ItemType Directory -Force localjobs | Out-Null
+          $sys = "$env:SystemRoot\System32;$env:SystemRoot"
+          $env:Path = $sys
+          $env:WINTEST_HOME = $r
+          $env:WINTEST_BASE_PATH = "$r\bin;$r\usr\bin;$r\python;$r\strawberry\perl\site\bin;$r\strawberry\perl\bin;$r\strawberry\c\bin;$sys"
+          $rc = 0
+          foreach ($c in "complete", "cancel") {
+            & "$r\python\python3.exe" tests/windows/launch_local.py $c --build "$r\bin" --state "$PWD\localjobs\state-$c" 2>&1 | Tee-Object "localjobs\$c.log"
+            "$c rc=$LASTEXITCODE" | Tee-Object -Append localjobs\summary.txt
+            if ($LASTEXITCODE -ne 0) { $rc = 1 }
+          }
+          Get-Content localjobs\summary.txt >> $env:GITHUB_STEP_SUMMARY
+          exit $rc
+
+      # Does it run? (#133) Starts the unpacked apps on the runner's desktop
+      # (PATH: the package and System32 only) and screenshots them.  Allowed
+      # to fail; see summary.txt.
+      - name: Start the apps
+        id: apps
+        shell: pwsh
+        continue-on-error: true
+        timeout-minutes: 20
+        run: |
+          $env:Path = "$env:SystemRoot\System32;$env:SystemRoot"
+          tests\windows\ci-run.ps1 -Stage "$env:RUNNER_TEMP\unpacked" -Out windows-run
+          Get-Content windows-run\summary.txt >> $env:GITHUB_STEP_SUMMARY
 
       - uses: actions/upload-artifact@v4
         if: always()
