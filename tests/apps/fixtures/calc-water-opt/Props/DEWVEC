@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<tsvector name="DEWVEC" rowLabel="Wave Step" rows="1" units="NA">
+
+  <step number="1">8.32425294840970e-01</step>
+  <step number="2">4.69315493791801e-01</step>
+  <step number="3">1.93000294331356e-01</step>
+  <step number="4">1.69258979242508e-02</step>
+  <step number="5">2.20588099641853e-04</step>
+  <step number="6">9.55624601198766e-06</step>
+  <step number="7">2.48503120345000e-01</step>
+  <step number="8">1.11282788951541e-01</step>
+  <step number="9">4.35220280256055e-03</step>
+  <step number="10">1.43466246527352e-05</step>
+  <step number="11">7.57790134192010e-02</step>
+  <step number="12">5.05669970842959e-03</step>
+  <step number="13">2.30423250040463e-05</step>
+  <step number="14">3.68090679532536e-02</step>
+  <step number="15">1.05759247586899e-03</step>
+  <step number="16">2.43001296967708e-06</step>
+  <step number="17">6.68888773385467e-03</step>
+  <step number="18">1.61315765883646e-05</step>
+  <step number="19">8.18073718691157e-04</step>
+  <step number="20">2.41446398719420e-06</step>
+  <step number="21">2.41446398526511e-06</step>
+
+</tsvector>
