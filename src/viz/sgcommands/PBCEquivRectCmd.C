@@ -78,15 +78,14 @@ bool PBCEquivRectCmd::execute()
 
        lattice->assign(a,b,c);
 
+       const double *crd;
+       double f1, f2, f3;
+       TAtm *atm;
+       int i, j, k;
+       int natoms = frag->numAtoms();
+
        if (!frag->makeMoleculesWhole(true)) {
          frag->convertToFractionalCoords(false);
-      
-         const double *crd;
-         double f1, f2, f3;
-         TAtm *atm;
-         int i, j, k;
-
-         int natoms = frag->numAtoms();
 
          for (i=0; i<natoms; i++) {
            atm = frag->atomRef(i);
