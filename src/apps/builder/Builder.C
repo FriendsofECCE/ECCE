@@ -5233,6 +5233,10 @@ void Builder::updatePropertyMenus()
         }
         //  "gt...": the Geometry Trace stress commands (#217).
         if (w[0].compare(0, 2, "gt") == 0) return traceStressCommand(s, w);
+        //  "pbc...", "cmd", "fragdump": Periodic Builder editing (#243).
+        if (w[0].compare(0, 3, "pbc") == 0 || w[0] == "cmd" ||
+            w[0] == "fragdump")
+          return pbcTestCommand(s, w, outdir);
         if ((w[0] != "mopanel" && w[0] != "motable") || w.size() != 2)
           return s.fail("unknown command: " + w[0]);
         MoPanel *mo = 0;

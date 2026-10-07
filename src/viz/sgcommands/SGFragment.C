@@ -3097,6 +3097,9 @@ bool SGFragment::addAtom(const string& elem, const string& geom,
       if (selAtom->atomicSymbol() == "Nub") {
          // This is good, we know just where to add it.
          TAtm* parentAtom = nubParent(selAtom);
+         if (parentAtom == 0) {
+            throw EcceException("This nub is not attached to an atom.",WHERE);
+         }
          ret = fragutil.addToNub(parentAtom,selAtom,elem.c_str(),
                geom.c_str(),order);
       } else {
@@ -3215,15 +3218,14 @@ bool SGFragment::syncNubSelection(vector<bool>& atomsToDelete)
 
    int cnt = atomsToDelete.size();
    TAtm *parent, *atm;
-   int parentIdx;
 
    for (int idx=0; idx<cnt; idx++) {
       if (atomsToDelete[idx] == true) {
          atm = atomRef(idx);
          if (atm->atomicSymbol() == "Nub") {
             parent = nubParent(atm);
-            parentIdx = parent->index();
-            if (atomsToDelete[parentIdx] == false) {
+            // A nub without an atom is simply deleted.
+            if (parent && atomsToDelete[parent->index()] == false) {
                atomsToDelete[idx] = false;
                ret = true;
             }

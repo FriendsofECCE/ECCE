@@ -451,6 +451,8 @@ class Builder: public BuilderGUI,
       void doSaveThumb();
       void doClose(const string& context="", const bool& autoOpen=true);
       bool traceStressCommand(SceneScript& s, const vector<string>& w);
+      bool pbcTestCommand(SceneScript& s, const vector<string>& w,
+                          const string& outdir);
 
       bool isReadOnly() const;
       bool isReadOnly(IPropCalculation *calc) const;
