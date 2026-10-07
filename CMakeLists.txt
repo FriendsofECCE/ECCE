@@ -1818,6 +1818,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_BINARY_DIR}/viewer-scenes)
   set_tests_properties(look_offscreen_shading PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
 
+  # Sticks are thinner while normal-mode arrows are shown, normal again
+  # when they are hidden (#227).  Needs `ninja viewer-scenes` and Xvfb.
+  add_test(NAME look_nm_sticks
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/nm_sticks.py
+                   ${CMAKE_BINARY_DIR}/viewer-scenes)
+  set_tests_properties(look_nm_sticks PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
+
   # tests/guivalues -- memory sizes saved before the GB-everywhere change
   # (Megawords, Megabytes) are converted by GUIValues::load() before a
   # dialog or a generator reads them.  Needs g++ and libecceutil.a.

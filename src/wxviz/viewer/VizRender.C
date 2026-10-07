@@ -353,7 +353,7 @@ void VizRender::loadDisplayStyle(SGViewer *viewer, SGContainer *sg)
   };
   int styleId;
   config->Read("DefaultStyle", &styleId,
-               ViewerEvtHandler::ID_STYLE_BALL_WIREFRAME);
+               ViewerEvtHandler::ID_STYLE_BALL_STICK);
   // _T()/wxT() is only valid on string literals (it token-pastes an "L"
   // prefix in Unicode builds) - it was being misapplied here to a runtime
   // std::string expression, which happened to be silently a no-op in old
