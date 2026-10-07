@@ -5,6 +5,7 @@
 #ifdef OIV_COIN
 #include <Inventor/SbColor.h>
 #endif
+#include "inv/ChemKit/ChemDisplayParam.H"
 #include "inv/SoWx/SoWx.H"
 #include "inv/SoWx/SoWxRenderArea.H"
 #include "inv/SoWx/SoWxViewer.H"
@@ -1430,6 +1431,7 @@ void SoWxRenderArea::OnSize(wxSizeEvent& event)
   int w, h;
   GetClientSize(&w, &h);
   p_glxSize.setValue(w, h);
+  ChemDisplayParam::setLineWidthScale(GetContentScaleFactor());
 
   p_windowResized = true;
   

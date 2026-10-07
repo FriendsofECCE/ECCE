@@ -1344,6 +1344,8 @@ void SGContainer::applyStyle(const DisplayDescriptor& dd, ChemDisplayParam *cdp)
       cdp->displayStyle.setValue (toChemkitStyle(style)) ;
       cdp->residueDisplayStyle.setValue(ChemDisplayParam::DISPLAY_RESIDUES_NONE);
       cdp->bondWireframeLineWidth.setValue(dd.getLineWidth());
+      cdp->bondWireframeAntiAlias.setValue(
+         ChemDisplayParam::WIREFRAME_ANTIALIAS_WITH_DEPTH_COMPARISON);
       cdp->bondCylinderRadius.setValue(dd.getCylinderRadius() /100.0);
 
       cdp->bondCylinderComplexity.setValue(dd.getCylinderRQ() /100.0);

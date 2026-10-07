@@ -161,6 +161,115 @@ static string shown(const vector<string>& argv)
     return out;
 }
 
+//  ---- finding a code's program ---------------------------------------------
+
+ProgramHelp programHelp(const string& code)
+{
+    ProgramHelp h;
+    if (code == "NWChem" || code == "NWChemMD")
+    {
+        h.names.push_back("nwchem");
+        h.examples.push_back("/usr/bin/nwchem");
+    }
+    else if (code == "ORCA")
+    {
+        h.names.push_back("orca");
+        h.companion = "orca_scf";
+        h.examples.push_back("/opt/orca/<version>/orca");
+        h.note = "ORCA needs the full path for parallel runs.";
+    }
+    else if (code.compare(0, 9, "Gaussian-") == 0 && code.size() == 11)
+    {
+        string g = "g" + code.substr(9);
+        h.names.push_back(g);
+        h.examples.push_back("/opt/" + g + "/" + g);
+    }
+    else if (code == "QuantumESPRESSO")
+    {
+        h.names.push_back("pw.x");
+        h.examples.push_back("/usr/bin/pw.x");
+    }
+    else if (code == "MOPAC")
+    {
+        h.names.push_back("MOPAC2016.exe");
+        h.names.push_back("mopac");
+        h.examples.push_back("/opt/mopac/MOPAC2016.exe");
+        h.examples.push_back("/usr/bin/mopac");
+    }
+    else if (code == "GROMACS")
+    {
+        h.names.push_back("gmx");
+        h.names.push_back("gmx_mpi");
+        h.examples.push_back("/usr/bin/gmx");
+    }
+    else if (code == "GAMESS-US")
+    {
+        h.names.push_back("gamess.00.x");
+        h.examples.push_back("/opt/gamess/gamess.00.x");
+    }
+    else if (code == "Polyrate")
+    {
+        h.names.push_back("polyrate");
+        h.examples.push_back("/opt/polyrate/polyrate");
+    }
+    else
+    {
+        string l = code;
+        for (size_t i = 0; i < l.size(); i++)
+            l[i] = (char)tolower((unsigned char)l[i]);
+        h.names.push_back(l);
+        h.examples.push_back("/opt/" + l + "/bin/" + l);
+    }
+    return h;
+}
+
+string exampleText(const ProgramHelp& h)
+{
+    string s;
+    for (size_t i = 0; i < h.examples.size(); i++)
+        s += (i ? "  or  " : "") + h.examples[i];
+    return s;
+}
+
+string findProgramScript(const ProgramHelp& h)
+{
+    string s;
+    for (size_t i = 0; i < h.names.size(); i++)
+    {
+        const string& n = h.names[i];
+        if (h.companion.empty())
+            s += "p=$(command -v " + n + " 2>/dev/null); case $p in /*) "
+                 "echo \"ECCE-FOUND:$p\";; esac\n";
+        else
+            //  A program of the same name earlier on the PATH (ORCA's is
+            //  also the GNOME screen reader) must not hide the real one, so
+            //  every PATH entry is looked at, and the companion file must
+            //  sit next to the program, or next to what a link points to.
+            s += "oIFS=$IFS; IFS=:; for d in $PATH; do IFS=$oIFS; "
+                 "case $d in /*) p=$d/" + n + "; if [ -x \"$p\" ]; then "
+                 "r=$(readlink -f \"$p\" 2>/dev/null); [ -n \"$r\" ] || r=$p; "
+                 "if [ -x \"${r%/*}/" + h.companion + "\" ]; then "
+                 "echo \"ECCE-FOUND:$r\"; fi; fi;; esac; done; IFS=$oIFS\n";
+    }
+    return s;
+}
+
+vector<string> parseFound(const string& output)
+{
+    vector<string> out;
+    vector<string> ls = lines(output);
+    for (size_t i = 0; i < ls.size(); i++)
+    {
+        string l = trim(ls[i]);
+        if (l.compare(0, 12, "ECCE-FOUND:/") != 0)
+            continue;
+        l = l.substr(11);
+        if (std::find(out.begin(), out.end(), l) == out.end())
+            out.push_back(l);
+    }
+    return out;
+}
+
 //  ---- connection ---------------------------------------------------------
 
 Remote::Remote(const Connection& c) : p_c(c), p_rc(NULL)
@@ -694,6 +803,14 @@ bool testSubmission(Remote& r, const string& qmgr, const string& script,
     string q = lower(qmgr), out;
     vector<string> argv;
     res.ran = true;
+    //  A failed command with nothing to show would leave the dialog blank.
+    auto said = [&r](const string& text) {
+        if (!trim(text).empty())
+            return text;
+        string e = r.error();
+        return e.empty() ? string("(no output: the command timed out after "
+                                  "60 s, or could not be started)") : e;
+    };
 
     if (q == "slurm")
     {
@@ -701,14 +818,21 @@ bool testSubmission(Remote& r, const string& qmgr, const string& script,
         argv.push_back(remote);
         res.commands = shown(argv);
         res.accepted = r.run(argv, out);
-        res.answer = out;
+        res.answer = res.accepted ? out : said(out);
+        //  "sbatch: Job 12346 to start at ..."
+        size_t j = out.find("Job ");
+        if (res.accepted && j != string::npos)
+        {
+            size_t e = out.find_first_not_of("0123456789", j + 4);
+            res.jobId = out.substr(j + 4, e == string::npos ? e : e - j - 4);
+        }
     }
     else if (q == "sge")
     {
         argv.push_back("qsub"); argv.push_back("-verify"); argv.push_back(remote);
         res.commands = shown(argv);
         res.accepted = r.run(argv, out);
-        res.answer = out;
+        res.answer = res.accepted ? out : said(out);
     }
     else if (q == "htcondor")
     {
@@ -722,7 +846,7 @@ bool testSubmission(Remote& r, const string& qmgr, const string& script,
         argv.push_back("sh"); argv.push_back(remote);
         res.commands = "condor_submit -dry-run /dev/null " + remote + ".sub";
         res.accepted = r.run(argv, out);
-        res.answer = out;
+        res.answer = res.accepted ? out : said(out);
     }
     else
     {
@@ -746,9 +870,10 @@ bool testSubmission(Remote& r, const string& qmgr, const string& script,
         res.commands = shown(argv) + (q == "lsf" ? " < " + remote : "");
         bool sub = q == "lsf" ? r.runWithInput(argv, remote, idText)
                               : r.run(argv, idText);
-        res.answer = idText;
+        res.answer = sub ? idText : said(idText);
         res.accepted = sub;
         string id = sub ? jobIdIn(qmgr, idText) : "";
+        res.jobId = id;
         if (sub && id.empty())
         {
             //  The scheduler took it and we cannot name the job: say so rather

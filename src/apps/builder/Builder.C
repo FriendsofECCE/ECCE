@@ -4958,6 +4958,59 @@ void Builder::updatePropertyMenus()
     timer->StartOnce(1 + 1000 * (delay ? atoi(delay) : 0));
   }
 
+  //  ECCE_TEST_DOCK=1: float every panel docked on the side with the most
+  //  of them, so that no dock is left there, run Tools > Dock Floating
+  //  Panels, and report what returned to that side; for
+  //  tests/apps/dock_test.py.  Inert unless set.
+  static bool dockStarted = false;
+  if (getenv("ECCE_TEST_DOCK") && !dockStarted) {
+    dockStarted = true;
+    wxTimer *timer = new wxTimer();   // lives until the process exits
+    timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+      auto docked = [this](int side) {
+        std::vector<wxString> names;
+        wxAuiPaneInfoArray& all = p_mgr.GetAllPanes();
+        for (size_t i = 0; i < all.GetCount(); ++i)
+          if (all[i].IsDocked() && !all[i].IsToolbar() && all[i].IsShown() &&
+              all[i].dock_direction == side)
+            names.push_back(all[i].name);
+        return names;
+      };
+      auto floating = [this]() {
+        int n = 0;
+        wxAuiPaneInfoArray& all = p_mgr.GetAllPanes();
+        for (size_t i = 0; i < all.GetCount(); ++i)
+          if (all[i].IsShown() && !all[i].IsToolbar() && all[i].IsFloating())
+            n++;
+        return n;
+      };
+      int side = wxAUI_DOCK_LEFT;
+      for (int s : { wxAUI_DOCK_RIGHT, wxAUI_DOCK_TOP, wxAUI_DOCK_BOTTOM })
+        if (docked(s).size() > docked(side).size()) side = s;
+      std::vector<wxString> moved = docked(side);
+      for (const wxString& name : moved)
+        p_mgr.GetPane(name).Float();
+      p_mgr.Update();
+      int floated = floating(), leftBefore = (int)docked(side).size();
+      wxCommandEvent ev;
+      OnDockFloatingPanels(ev);
+      int floatedAfter = floating(), leftAfter = (int)docked(side).size();
+      bool back = true;
+      for (const wxString& name : moved) {
+        wxAuiPaneInfo& pi = p_mgr.GetPane(name);
+        if (!pi.IsOk() || !pi.IsDocked() || pi.dock_direction != side)
+          back = false;
+      }
+      fprintf(stderr, "ECCE_TEST_DOCK: moved %d, floating %d, left docked %d; "
+              "after: floating %d, left docked %d, all back %d\n",
+              (int)moved.size(), floated, leftBefore, floatedAfter, leftAfter,
+              back ? 1 : 0);
+      fflush(stderr);
+      _exit(0);
+    });
+    timer->StartOnce(3000);
+  }
+
   //  ECCE_TEST_HELP=<png>: run Help > Builder, save the help window to
   //  <png> and exit (tests/apps/help_test.py).
   static bool helpStarted = false;

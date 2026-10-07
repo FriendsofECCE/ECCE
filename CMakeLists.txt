@@ -354,6 +354,11 @@ if(GTK3_FOUND)
   target_link_libraries(eccewxgui PRIVATE ${GTK3_LIBRARIES})
 endif()
 
+# WindowShot.C reads a window back from the window server on macOS.
+if(APPLE)
+  target_link_libraries(eccewxgui PRIVATE "-framework ApplicationServices")
+endif()
+
 ecce_library(eccewxguicomm src/wxgui/comm)
 target_compile_definitions(eccewxguicomm PRIVATE ${wxWidgets_DEFINITIONS})
 target_include_directories(eccewxguicomm PRIVATE ${wxWidgets_INCLUDE_DIRS})
@@ -1849,12 +1854,27 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/import_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_import PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # Builder > Tools > Dock Floating Panels returns panels to an emptied dock
+  # (#53), through the builder's ECCE_TEST_DOCK hook.
+  add_test(NAME apps_dock
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/dock_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_dock PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
   # Organizer Import Calculation from Output File, ECCE_TEST_CALCIMPORT hook.
   add_test(NAME apps_calcimport
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/calcimport_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_calcimport PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
+  # Organizer summary panel: molecule and basis fields of a data-server
+  # and of a local-data calculation, ECCE_TEST_ORGANIZER "summary".
+  add_test(NAME apps_summary
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/summary_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_summary PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # The Builder with a calculation's MOs panel open in every panel layout,
@@ -2227,6 +2247,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister)
   set_tests_properties(machregister_launcher PROPERTIES TIMEOUT 300
+                       SKIP_RETURN_CODE 77)
+  # The Machine Browser's "Machine settings..." button (#234).
+  add_test(NAME machregister_browser
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister/browser_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister)
+  set_tests_properties(machregister_browser PROPERTIES TIMEOUT 300
                        SKIP_RETURN_CODE 77)
   add_test(NAME queues_publish
            COMMAND ${PYTHON3_EXECUTABLE}

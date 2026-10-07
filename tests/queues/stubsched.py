@@ -15,7 +15,9 @@ the same program installed as sinfo, sbatch, qconf, bqueues and condor_status
 ahead of any real client) and by the hold flags and dry-run flags of the submit
 clients: `qsub -h`, `msub -h` and `bsub -H` record the job as held and never run
 it; `sbatch --test-only`, `qsub -verify` and `condor_submit -dry-run` only
-answer.  A queue named "nosuch" in the script is refused by the dry-run clients.
+answer.  A queue named "nosuch" in the script is refused by the dry-run clients; with
+the file <spool>/slurm/require_account present, sbatch also refuses a script that
+names no account, as a site that requires -A does.
 
 Formats, from the vendors' documentation and not checked against a live
 installation (none is installed here):
@@ -238,6 +240,15 @@ def dryRun(name, args):
         else:
             print("ERROR: queue nosuch is unknown")
         return 1
+    if name == "sbatch" and os.path.exists(
+            os.path.join(SPOOL, "slurm", "require_account")):
+        #  Like a site that requires -A on every submission (HPC2N).
+        if "--account" not in text and "-A " not in text and not any(
+                a == "-A" or a.startswith("--account") for a in args):
+            print("sbatch: error: Batch job submission failed: Invalid "
+                  "account or account/partition combination specified",
+                  file=sys.stderr)
+            return 1
     if name == "sbatch":
         part = "debug"
         for line in text.splitlines():
