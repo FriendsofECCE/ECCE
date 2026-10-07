@@ -90,6 +90,8 @@ def paneProblems(st, label, want):
     if t["x"] < 0 or t["y"] < 0 or t["x"] + t["w"] > cw or t["y"] + t["h"] > ch:
         found.append("%s: pane %dx%d+%d+%d outside the %dx%d window"
                      % (label, t["w"], t["h"], t["x"], t["y"], cw, ch))
+    if t["h"] < 150:
+        found.append("%s: pane is only %d px high" % (label, t["h"]))
     if t["have"] < t["need"]:
         found.append("%s: controls need %d px, the pane gives %d"
                      % (label, t["need"], t["have"]))
