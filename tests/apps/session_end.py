@@ -2837,7 +2837,8 @@ CASES = {"first-local": caseFirstLocal, "first-server": caseFirstServer,
 
 
 def main():
-    if X is None:
+    #  local-usesym closes no window, so it runs without python3-xlib.
+    if X is None and set(args.cases) - {"local-usesym"}:
         say("SKIP: python3-xlib is needed to close a window as a WM would")
         return 0
     settings = isolate.apply(apps.INSTALL, state)
