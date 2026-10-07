@@ -25,8 +25,8 @@ Choose one of these:
   source tree.
 
 ECCE does not include a computational chemistry code. To run the example
-in this chapter you also need NWChem. [TO CHECK: whether the NWChem package
-name is the same on Rocky and Fedora.]
+in this chapter you also need NWChem. Its package is called `nwchem` on Debian, Ubuntu,
+Rocky and Fedora.
 
 ## Install on Debian or Ubuntu
 
@@ -93,8 +93,8 @@ Always start ECCE with `ecce`. Do not start `ecce-builder` or the other
 `ecce-<name>` commands directly: `ecce` first starts the services the
 windows need. The Organizer opens first. Open the other windows from it.
 
-[TO CHECK: whether the package installs a menu entry (`ecce.desktop`) that
-starts the same command.]
+The `ecce-client` package also adds an **ECCE** entry to the applications
+menu. It starts the same `ecce` command.
 
 ## What you see the first time
 
@@ -125,8 +125,8 @@ account on it:
 6. Click **OK**.
 
 If you tick **Save Passwords Between Invocations**, ECCE stores the
-password and does not ask again. [TO CHECK: the title of the login window;
-`GETTING_STARTED.md` calls it "ECCE Authentication".]
+password and does not ask again. The title of the login window is
+"ECCE Authentication".
 
 If the account does not exist, ECCE shows "There is no account for ... on
 this ECCE data server". Create the account with `ecce-dataserver-adduser`
@@ -149,8 +149,7 @@ To use it from the first start:
    ```
    ECCE_LOCAL_DATA=$HOME/.ECCE-local ecce
    ```
-2. The Organizer opens without a login window. [TO CHECK: that no login
-   window appears in local mode.]
+2. The Organizer opens without a login window.
 
 To make it permanent:
 
@@ -167,10 +166,8 @@ Changing mode copies nothing. The calculations of the other mode stay where
 they are, and the new mode starts empty. The variable `ECCE_LOCAL_DATA`
 overrides the setting in Preferences.
 
-[TO CHECK: whether the structure and basis-set libraries are available in
-local mode when only `ecce-client` is installed. They are shipped in
-`ecce-server`; until this is confirmed, install both packages on a single
-computer.]
+Local mode reads the structure and basis-set libraries from the
+`ecce-client` package. It does not need `ecce-server`.
 
 ![The Organizer after the first start](img/organizer-first-start.png)
 

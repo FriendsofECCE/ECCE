@@ -52,9 +52,8 @@ launch uses the new path. A job fails with "Path for
 <code> not found" if the code you run has no line in this file.
 
 You can also set the path in the Machine Registration window, in the
-**Applications** box (see below). [TO CHECK: that a path entered there for
-`localhost` is written to `~/.ECCE/CONFIG.localhost` and is used for the
-run.]
+**Program** field on the **Codes** tab (see below). It is saved in
+`~/.ECCE/CONFIG.<name>`, the same file as above.
 
 ### A code that needs environment variables
 
@@ -89,72 +88,67 @@ define its queues. Open it in any of these ways:
 - From a terminal, run `ecce -machine`. This opens only Machine
   Registration, without a session.
 
-The list on the left shows the machines you have registered. The machines
-supplied with ECCE, `localhost` and `dummy`, are shared by everyone who
-uses the installation and are not in your list. If you select one of them
-elsewhere and choose to register it, the form shows its settings; edit them
-and click **Add/Change** to save your own copy under the same name. Your
-copy is used instead of the shared one. **Delete Machine** removes your
-copy and brings the shared one back.
+The list on the left shows every machine ECCE knows, with a column
+**From**: `site` for the machines supplied with the installation
+(`localhost` and `dummy` among them) and `yours` for the ones you added.
+Site machines are shared by everyone who uses the installation. If you
+select one and click **Save**, ECCE stores your own copy under the same
+name, and your copy is used instead of the shared one. **Delete Machine**
+removes your copy and brings the shared one back. The window's tabs are
+described in [Register Machines](register-machines.md).
 
 ![Machine Registration](img/machine-registration.png)
 
-<!-- capture: Machine Registration window with one cluster registered, Applications and Queues boxes visible -->
+<!-- capture: Machine Registration window, Machine tab, one cluster registered -->
 
 ### Register a cluster
 
 1. Open Machine Registration.
-2. Click **Clear Form**.
-3. In **Machine:**, enter the fully qualified host name, for example
-   `login.hpc.example.edu`.
-4. In **Name:**, enter a short name for the list, for example `hpc`.
-5. Fill in **Vendor:**, **Model:** and **Processor:** as you wish.
-   [TO CHECK: whether these three fields are required.]
-6. Set **Total # Processors:** and **# Nodes**.
-7. Tick **ssh**.
-8. In the **Applications** box, enter the full path to each code on that
-   machine, for example `NWChem:` `/opt/nwchem/bin/nwchem`. Leave the codes
-   you do not use empty.
-9. In the **Misc. Paths** box, enter the path to Perl in **Perl 5:** if it
-   is not the default.
-10. Define the queues (next section).
-11. Click **Add/Change**.
-12. Click **Close**.
+2. Click **New Machine**.
+3. On the **Machine** tab, enter the fully qualified host name in
+   **Machine**, for example `login.hpc.example.edu`.
+4. In **Name**, enter a short name for the list, for example `hpc`.
+   **Machine** and **Name** are required; **Vendor**, **Model** and
+   **Processor** are optional.
+5. Set **Processors** and **Nodes**.
+6. On the **Codes** tab, select each code you use and enter the full path
+   to it on that machine in **Program**, for example
+   `/opt/nwchem/bin/nwchem`. Leave the codes you do not use empty.
+7. Define the queues (next section).
+8. Click **Save**.
+9. Click **Close**.
 
 ECCE connects to ssh machines with its own ssh library. It asks for the
 password, the verification code or an unknown host key in dialogs, so you
 do not need a terminal. If the machine needs a two-factor login that ECCE
 cannot answer, use the `dummy` machine instead (see below).
 
-Code settings that are not paths, such as `module load` lines, go in
-`~/.ECCE/CONFIG.<name>`. `GETTING_STARTED.md` describes the file and the
-variables it can use.
+Code settings that are not paths, such as `module load` lines, go on the
+**Job script** and **Codes** tabs; see [Register
+Machines](register-machines.md). `GETTING_STARTED.md` describes the file
+and the variables it can use.
 
 ### Queues
 
 A queue is a batch queue on the cluster, with limits ECCE checks before a
-job is submitted. You define queues in the **Queues** box of Machine
-Registration.
+job is submitted. You define queues on the **Queues** tab.
 
-1. In **Queue Manager:**, choose the batch system of the cluster, for
+1. In **Queue manager**, choose the batch system of the cluster, for
    example Slurm or PBS. Choose Shell if the machine has none.
-2. Tick **Allocation Accounts Used** if the cluster charges jobs to an
+2. Tick **Allocation accounts used** if the cluster charges jobs to an
    account.
-3. In **Queue Name:**, enter the name of the queue.
-4. Set **Min Processors:** and **Max Processors:**.
-5. Set **Max Wall Time:** in minutes (`min`). 0 means no limit.
-6. Set **Max Memory:** in GB. 0 means no limit.
-7. Set **Min Scratch:** in MB.
-8. Click **Add/Change Queue**.
-9. Repeat from step 3 for each further queue.
-10. Click **Add/Change** to save the machine.
+3. In **Name**, enter the name of the queue.
+4. Set **min**, **max** and **default** for **Processors**, and **max**
+   and **default** for **Wall time** (hours), **Memory** (GB) and
+   **Scratch** (GB). 0 means no limit for a **max**.
+5. Click **Add Queue**.
+6. Repeat from step 3 for each further queue.
+7. Click **Save**.
 
-To change a queue, choose it in **Queues:**, edit the fields and click
-**Add/Change Queue**. **Remove Queue** deletes the chosen queue and
-**Clear All Queues** deletes all of them.
-
-[TO CHECK: whether **Add/Change Queue** saves on its own or only when
-**Add/Change** is clicked for the machine.]
+To change a queue, choose it in **Queues**, edit the fields and click
+**Update Queue**. **Remove Queue** deletes the chosen queue and **Remove
+All** deletes all of them. Queue changes stay in the list until you click
+**Save**; nothing is written before that.
 
 Your queue definitions are stored in `~/.ECCE/Queues` and in a file per
 machine, `~/.ECCE/<name>.Q`. They are added to the queues defined for the
@@ -176,8 +170,9 @@ script on your computer and stops.
 6. When the job has finished, copy the output file back.
 7. In the Organizer, choose **File > Import Calculation from Output
    File...** to bring the results into ECCE (see
-   [Looking at a file](looking-at-a-file.md)). [TO CHECK: the dialog that
-   follows and which calculation the output is attached to.]
+   [Looking at a file](looking-at-a-file.md)). ECCE creates a new
+   calculation from the output; it is not attached to the calculation you
+   launched on `dummy`.
 
 ## Job submission settings
 

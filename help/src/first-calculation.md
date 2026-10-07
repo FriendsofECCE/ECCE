@@ -24,8 +24,7 @@ a project.
 4. Click **OK**.
 
 The project appears in the tree. Names may contain letters, digits, `.`,
-`_` and `-`. [TO CHECK: that a new user's home folder offers **New
-Project...**; the resource types allow a project only inside a project.]
+`_` and `-`.
 
 ![The Organizer with the new project](img/organizer-project.png)
 
@@ -60,10 +59,10 @@ library:
 1. In the **Mode Toolbar**, click the button with the tooltip **Import from
    Structure Library**. You can also choose **Mode > Add Structure**
    (Ctrl+7).
-2. In the **Structure Library** panel, open the folder `SimpleStructures`,
-   then the folder `Miscellaneous2`. Open a folder by double-clicking it.
-   [TO CHECK: the name the library is listed under in the **Libraries**
-   drop-down, and that folders are shown by these names.]
+2. In the **Structure Library** panel, choose `SimpleStructures` in the
+   **Libraries** drop-down, then open the folder `Miscellaneous2` by
+   double-clicking it. The button next to the drop-down goes up one
+   level.
 3. Click `h2o` in the list. A preview appears in the panel.
 4. Click in the empty 3D view. The molecule is added there.
 
@@ -76,7 +75,9 @@ If you prefer to draw the molecule yourself:
 4. Choose **Build > Add Hydrogen** (Ctrl+F) to complete the valence with
    hydrogen atoms.
 5. Choose **Build > Clean** (Ctrl+K) to tidy the geometry.
-   [TO CHECK: that **Add Hydrogen** gives two hydrogens on a bare oxygen.]
+
+The default shape of oxygen is Bent, with two open bonds, and **Add
+Hydrogen** fills each open bond with a hydrogen atom.
 
 Then save the structure:
 
@@ -116,8 +117,12 @@ options for the chosen theory and run type. The defaults are right for
 this calculation.
 
 To see the input file ECCE will send to NWChem, click **Final Edit...**.
-[TO CHECK: what **Final Edit...** opens and whether closing it is safe
-without changes.]
+The button is enabled when the setup is complete (the run state is
+**Ready**). It opens the input file in your text editor: the editor set in
+**Edit > Preferences**, otherwise the one named by the `VISUAL` or `EDITOR`
+variable. If you close the editor without saving, nothing changes. If you
+save a change, ECCE uses your edited file, and later changes in the
+Electronic Structure Editor ask before they replace it.
 
 ![The Electronic Structure Editor](img/calced-water.png)
 
@@ -131,8 +136,9 @@ without changes.]
 2. In the Launcher, choose `localhost` in **Machine:**.
 3. In **Run Directory:**, enter a folder in your home directory where the
    job may run, for example `/home/<you>/ecce-runs`. The field is marked
-   `*`, which means it is required. [TO CHECK: whether the field is
-   pre-filled and whether the folder is created if it does not exist.]
+   `*`, which means it is required. The field starts with the directory
+   you used last for this machine. The path must start with `/` or `~`.
+   ECCE creates the folder, with its parents, if it does not exist.
 4. Leave **Username:** empty. An empty user name, or your own, runs the job
    on this computer.
 5. Click **Launch**.
@@ -203,8 +209,8 @@ calculation:
    Rerun**. Or create a new calculation as in step 2.
 2. In the Electronic Structure Editor, choose `GeoVib` in **Runtype:**.
    `GeoVib` optimises the geometry and then computes the frequencies.
-   [TO CHECK: that **Duplicate for Rerun** is under **Edit** and keeps the
-   structure and settings.]
+   **Duplicate for Rerun** copies the calculation with its structure and
+   settings and resets it, ready to launch.
 3. Save and launch as before.
 4. In the Viewer, choose **Properties > Vibrational Frequencies**.
 5. Use the **Table** and **Graph** tabs to see the three frequencies.
