@@ -160,6 +160,7 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
     p_codeList = NULL;
     p_codeTitle = NULL;
     p_codeExample = NULL;
+    p_defAccount = NULL;
     p_codePage = NULL;
     p_codeAdvanced = NULL;
     p_codeAdvBtn = NULL;
@@ -561,7 +562,8 @@ wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
     GRID(env)
     addCfgRow(page, env, "shell", "Shell", CfgShell,
               "The shell ECCE starts on the remote machine to read the file "
-              "below. bash is right unless that file is written for csh.");
+              "below. There is always one: bash unless you choose another, "
+              "which is right unless that file is written for csh.");
     addCfgRow(page, env, "sourceFile", "Script run at login (e.g. module setup)", CfgText,
               "A file on the remote machine that sets up the environment "
               "(module commands, paths) before a job runs.");
@@ -593,7 +595,8 @@ wxWindow* WxMachineRegister::createConnectionPage(wxWindow* parent)
     wxFont jf = jobTitle->GetFont();
     jf.MakeBold();
     jobTitle->SetFont(jf);
-    jobHead->Add(jobTitle, wxSizerFlags().Border(wxLEFT|wxTOP));
+    jobHead->Add(jobTitle, wxSizerFlags().Border(wxLEFT|wxTOP)
+                                         .CentreVertical());
     p_jobsIcon = new wxStaticBitmap(page, wxID_ANY,
         wxArtProvider::GetBitmapBundle(wxART_WARNING, wxART_BUTTON));
     jobHead->Add(p_jobsIcon, wxSizerFlags().Border(wxLEFT|wxTOP)
@@ -1425,6 +1428,16 @@ wxWindow* WxMachineRegister::createQueuesPage(wxWindow* parent)
     row1->Add(p_qmgrChoice, wxSizerFlags().Border().CentreVertical());
     row1->AddSpacer(12);
     row1->Add(p_allocAccts, wxSizerFlags().Border().CentreVertical());
+    row1->Add(new ewxStaticText(page, wxID_ANY, "Default account"),
+              wxSizerFlags().Border().CentreVertical());
+    p_defAccount = new ewxTextCtrl(page, wxID_ANY, "", wxDefaultPosition,
+                                   wxSize(130, -1));
+    p_defAccount->SetHint("e.g. proj1");
+    p_defAccount->SetToolTip("Your allocation account on this machine. The "
+        "Launcher offers it, and Preview job script and Test submission use "
+        "it. Stored for you only, not in the site's files.");
+    row1->Add(p_defAccount, wxSizerFlags().Border().CentreVertical());
+    reg("default-account", p_defAccount);
     sizer->Add(row1);
 
     p_queueChoice = new ewxChoice(page, wxID_ANY, wxDefaultPosition,
@@ -2028,6 +2041,9 @@ void WxMachineRegister::draftToControls()
         p_nodes->SetValue((nodes > 0) ? nodes : 1);
         p_allocAccts->SetValue(
             p_slctRgstn->launchOptions().find("AA") != string::npos);
+        MachinePreferences* mp = MachinePreferences::lookup(
+                                     p_slctRgstn->refname());
+        p_accountLoaded = mp != NULL ? mp->getAllocationAccount() : string();
     }
     else
     {
@@ -2039,7 +2055,10 @@ void WxMachineRegister::draftToControls()
         p_procs->SetValue(1);
         p_nodes->SetValue(1);
         p_allocAccts->SetValue(false);
+        p_accountLoaded = "";
     }
+    p_defAccount->ChangeValue(wxString::FromUTF8(p_accountLoaded.c_str()));
+    p_defAccount->Enable(!p_adminFlag);
     p_autoRefName = "";
 
     for (size_t i = 0; i < p_codePaths.size(); i++)
@@ -2945,7 +2964,30 @@ void WxMachineRegister::syncKeys(MCD* draft)
 bool WxMachineRegister::isDirty()
 {
     this->syncDraft();
-    return p_draft != NULL && (p_draft->isDirty() || queueFormDiffers());
+    return p_draft != NULL && (p_draft->isDirty() || queueFormDiffers() ||
+                               (!p_adminFlag &&
+                                defaultAccount() != p_accountLoaded));
+}
+
+
+string WxMachineRegister::defaultAccount() const
+{
+    return p_defAccount == NULL ? string() :
+           strip((string)p_defAccount->GetValue());
+}
+
+
+//  The account is the user's own, so it goes where the Launcher keeps it.
+void WxMachineRegister::saveDefaultAccount(const string& name)
+{
+    string acct = defaultAccount();
+    if (p_adminFlag || acct == p_accountLoaded || name.empty())
+        return;
+    MachinePreferences::lookup(name);       // loads the file
+    MachinePreferences::refresh(true);      // and again, for others' changes
+    MachinePreferences* mp = MachinePreferences::create(name);
+    mp->setAllocationAccount(acct);
+    MachinePreferences::saveChanges();
 }
 
 
@@ -3050,6 +3092,10 @@ void WxMachineRegister::updateDirty()
 
 void WxMachineRegister::onFieldChanged(wxCommandEvent& event)
 {
+    //  An account is only offered in the Launcher on a machine that uses them.
+    if (event.GetEventObject() == p_defAccount && !p_inCtrlUpdate &&
+        !defaultAccount().empty() && !p_allocAccts->IsChecked())
+        p_allocAccts->SetValue(true);
     if (p_cshTimer != NULL && !p_inCtrlUpdate)
         p_cshTimer->StartOnce(600);
     this->updateDirty();
@@ -3407,6 +3453,7 @@ bool WxMachineRegister::save()
         displayMessage(err);
         return false;
     }
+    this->saveDefaultAccount(name);
 
     this->redo(name);
     this->notifyUpdate();

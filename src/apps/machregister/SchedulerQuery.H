@@ -120,6 +120,7 @@ namespace SchedulerQuery
         bool ran, accepted, cancelled;
         string commands;        // what ran, one command per line
         string answer;          // the scheduler's text, verbatim
+        string jobId;           // the id the scheduler named, when it did
         TestResult() : ran(false), accepted(false), cancelled(false) {}
     };
     /// `script` is the text to send.  Never runs a calculation: the script is

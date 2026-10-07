@@ -247,6 +247,8 @@ class WxMachineRegister: public ewxFrame
         //  WxMachineRegisterTools.C)
         void discoverQueues();
         void findProgram();
+        string defaultAccount() const;
+        void saveDefaultAccount(const string& name);
         void addDiscovered(const vector<SchedulerQuery::Queue>& picked);
         void previewJobScript(const string& code = "");
         void testSubmission();
@@ -360,6 +362,8 @@ class WxMachineRegister: public ewxFrame
         wxListBox           *p_codeList;
         wxStaticText        *p_codeTitle;
         wxStaticText        *p_codeExample;
+        ewxTextCtrl         *p_defAccount;     // per-user, in MachPrefs
+        string               p_accountLoaded;
         std::deque<int>      p_choices;   // test hook: answers to a list of paths
         wxWindow            *p_codePage;
         wxPanel             *p_codeAdvanced;

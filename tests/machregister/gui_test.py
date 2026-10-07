@@ -2313,6 +2313,94 @@ quit
           "nothing was saved")
 
 
+def account_required(tmp, display, build, pngs=None):
+    print("a site that requires an account on every submission")
+    bindir, spool = stub_clients(tmp)
+    e = Env(tmp, "account")
+    tool_machine(e)
+    write(os.path.join(e.ue, "stubm.Q"),
+          "Queues: debug\n\ndebug|minProcessors: 1\ndebug|maxProcessors: 8\n"
+          "debug|runLimit: 60\n")
+    write(os.path.join(e.ue, "Queues"), "Queues: stubm\n\n"
+          "stubm|queueMgrName: Slurm\nstubm|prefFile: stubm.Q\n")
+    os.makedirs(os.path.join(spool, "slurm"), exist_ok=True)
+    flag = os.path.join(spool, "slurm", "require_account")
+    write(flag, "")
+    shot = (lambda n: "wait 600\nshot-dialog %s/%s\n" % (pngs, n)) if pngs \
+        else (lambda n: "")
+    try:
+        #  3: the refusal is shown with the command and the site's words; the
+        #  account typed in the dialog gets the test through.
+        p = run(display, build, e, """
+select stubm
+tab queues
+set qmgrpath %(bin)s
+click test-submission
+set test:queue debug
+click test:run
+expect contains test:result 'sbatch --test-only'
+expect contains test:result 'Invalid account or account/partition combination'
+expect label test:verdict 'Slurm did not accept the script.'
+%(shot1)sset test:account proj1
+click test:run
+expect contains test:result 'sbatch: Job 12346'
+expect label test:verdict 'Slurm accepted the script; nothing was submitted (job 12346 would have started).'
+%(shot2)sclick test:close
+quit
+""" % {"bin": bindir, "shot1": shot("test-account-refused.png"),
+       "shot2": shot("test-account-accepted.png")},
+            extra=LOCALUSER, timeout=180)
+        clean(p, "a refused submission is shown with its command and the site's "
+                 "reason; with the account it passes")
+
+        #  5 and 4: the default account is saved for the user, ticks
+        #  "Allocation accounts used", and fills the Preview and the Test.
+        p = run(display, build, e, """
+select stubm
+tab queues
+set qmgr Slurm
+set qmgrpath %(bin)s
+expect field aa 0
+expect dirty 0
+set default-account proj7
+expect dirty 1
+expect field aa 1
+tab job
+click preview
+expect field prev:account proj7
+click prev:update
+expect contains prev:text '#SBATCH --account=proj7'
+%(shot)sset prev:account proj8
+click prev:update
+expect contains prev:text '#SBATCH --account=proj8'
+click prev:close
+tab queues
+click test-submission
+expect field test:account proj7
+click test:close
+save
+expect dirty 0
+quit
+""" % {"bin": bindir, "shot": shot("preview-account.png")},
+            extra=LOCALUSER, timeout=180)
+        clean(p, "the default account is editable, ticks the account box, and "
+                 "is used by Preview and Test submission")
+        prefs = read(os.path.join(e.ue, "MachPrefs"))
+        check("proj7" in prefs, "MachPrefs (where the Launcher reads it) holds "
+              "the default account: %r" % prefs[-200:])
+        p = run(display, build, e, """
+select stubm
+tab queues
+expect field default-account proj7
+expect field aa 1
+quit
+""", extra=LOCALUSER)
+        clean(p, "the saved default account is shown again")
+    finally:
+        if os.path.exists(flag):
+            os.unlink(flag)
+
+
 def test_submission(tmp, display, build, pngs=None):
     print("test submission against the stand-in schedulers")
     bindir, spool = stub_clients(tmp)
@@ -2338,7 +2426,7 @@ click test:run
 expect contains test:result 'sbatch --test-only'
 expect contains test:result 'sbatch: Job 12346 to start at'
 expect contains test:result 'in partition debug'
-expect label test:verdict 'Slurm accepted the script.'
+expect label test:verdict 'Slurm accepted the script; nothing was submitted (job 12346 would have started).'
 %(shot1)sset test:queue nosuch
 click test:run
 expect contains test:result 'sbatch: error: invalid partition specified: nosuch'
@@ -2357,7 +2445,7 @@ set test:queue debug
 click test:run
 expect contains test:result 'qsub -h'
 expect contains test:result 'qdel 12345.stubserver'
-expect label test:verdict 'PBS accepted the script.'
+expect label test:verdict 'Job 12345.stubserver was submitted on hold and cancelled.'
 %(shot3)sclick test:close
 
 set qmgr SGE
@@ -2427,6 +2515,7 @@ def main():
             discovery(tmp, disp, build, out)
             preview(tmp, disp, build, out)
             test_submission(tmp, disp, build, out)
+            account_required(tmp, disp, build, out)
             for n in sorted(os.listdir(out)):
                 print("        " + os.path.join(out, n))
         elif a.help_pngs:
@@ -2468,6 +2557,7 @@ def main():
             preview(tmp, disp, build)
             preview_admin(tmp, disp, build)
             test_submission(tmp, disp, build)
+            account_required(tmp, disp, build)
     finally:
         disp.__exit__(None, None, None)
         shutil.rmtree(tmp, ignore_errors=True)

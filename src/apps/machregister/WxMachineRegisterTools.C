@@ -69,7 +69,10 @@ static void runBusy(wxWindow* parent, const wxString& title,
                     const wxString& message, const std::function<void()>& work)
 {
     std::atomic<bool> done(false);
-    std::thread worker([&work, &done]() { work(); done = true; });
+    std::thread worker([&work, &done]() {
+        try { work(); } catch (...) {}
+        done = true;
+    });
     wxBusyCursor busy;
     wxWindowDisabler disabler;
     wxProgressDialog* dlg = NULL;
@@ -274,7 +277,7 @@ static void addRequestControls(WxMachineRegister* owner, wxDialog* dlg,
                                const string& selectedCode,
                                const vector<MCD::QueueRow>& queues,
                                const string& selectedQueue,
-                               bool allocAccounts,
+                               const string& account,
                                const string& prefix, bool withCode,
                                std::function<void(const string&, wxWindow*)> reg)
 {
@@ -332,15 +335,11 @@ static void addRequestControls(WxMachineRegister* owner, wxDialog* dlg,
               wxSizerFlags().CentreVertical());
     grid->Add(p.mem);
 
-    p.account = new ewxTextCtrl(dlg, wxID_ANY);
-    //  A disabled field with an example hint looked like a field that
-    //  would not take input; say why it is off instead.
-    p.account->SetHint(allocAccounts ? "e.g. proj1"
-                                     : "not used on this machine");
-    p.account->Enable(allocAccounts);
-    p.account->SetToolTip(allocAccounts ? "The allocation account the job is "
-        "charged to" : "Allocation accounts are not used on this machine "
-        "(Queues tab)");
+    p.account = new ewxTextCtrl(dlg, wxID_ANY, wxString::FromUTF8(account.c_str()));
+    p.account->SetHint("e.g. proj1 (empty: none)");
+    p.account->SetToolTip("The allocation account the job is charged to. "
+        "Some machines refuse a job without one. Filled in from the Default "
+        "account on the Queues tab.");
     grid->Add(new wxStaticText(dlg, wxID_ANY, "Account"),
               wxSizerFlags().CentreVertical());
     grid->Add(p.account, wxSizerFlags().Expand());
@@ -369,8 +368,7 @@ static JobPreview::Request requestFrom(const RequestPanel& p, bool admin,
     r.code = (string)p.code->GetStringSelection();
     string q = (string)p.queue->GetStringSelection();
     r.queue = q == "(none)" ? "" : q;
-    r.account = p.account->IsEnabled() ? stripped((string)p.account->GetValue())
-                                       : "";
+    r.account = stripped((string)p.account->GetValue());
     r.nodes = (unsigned)p.nodes->GetValue();
     r.procs = (unsigned)p.procs->GetValue();
     r.wallHours = p.wall->GetValue();
@@ -668,7 +666,7 @@ void WxMachineRegister::previewJobScript(const string& wantedCode)
         code = p_codeNames[p_codeSel];
     string queue = (string)p_queueChoice->GetStringSelection();
     string qmgr = (string)p_qmgrChoice->GetStringSelection();
-    bool accounts = p_allocAccts->IsChecked();
+    string accounts = this->defaultAccount();
 
     wxDialog* dlg = new wxDialog(this, wxID_ANY, "Preview job script",
                                  wxDefaultPosition, wxDefaultSize,
@@ -855,7 +853,7 @@ void WxMachineRegister::testSubmission()
     std::shared_ptr<RequestPanel> panel = std::make_shared<RequestPanel>();
     vector<string> codes;
     addRequestControls(this, dlg, root, *panel, codes, "", p_queues, queue,
-                       p_allocAccts->IsChecked(), "test:", false,
+                       this->defaultAccount(), "test:", false,
                        [this](const string& n, wxWindow* w) { this->reg(n, w); });
 
     wxCheckBox* hold = NULL;
@@ -919,10 +917,16 @@ void WxMachineRegister::testSubmission()
         SchedulerQuery::TestResult tr;
         string terr, scriptErr;
         bool ok = false;
+        result->SetValue("Asking " + machine + "...");
+        verdict->SetLabel("");
         runBusy(this, "Test submission", "Asking " + machine + "...", [&]() {
             SchedulerQuery::Remote r(conn);
             string e;
-            if (!r.open(e)) { terr = e; return; }
+            if (!r.open(e))
+            {
+                terr = "Could not log in to " + machine + ".\n" + e;
+                return;
+            }
             //  The run directory must exist on the machine for HTCondor.
             req.runDir = r.home();
             vector<JobPreview::Line> lines;
@@ -943,15 +947,30 @@ void WxMachineRegister::testSubmission()
         }
         if (!ok)
         {
-            result->SetValue(terr);
+            string text = "The test did not run.\n";
+            if (!tr.commands.empty())
+                text += "\nCommand run on " + machine + ":\n" + tr.commands +
+                        "\n";
+            text += "\n" + (terr.empty() ? string("No reason was given; the "
+                    "connection may have been refused or timed out.") : terr)
+                    + "\n";
+            result->SetValue(wxString::FromUTF8(text.c_str()));
             verdict->SetLabel("Not tested");
             return;
         }
         string text = "Command run on " + machine + ":\n" + tr.commands +
                       "\n\nThe scheduler's answer:\n" + tr.answer + "\n";
         result->SetValue(wxString::FromUTF8(text.c_str()));
-        verdict->SetLabel(tr.accepted ? qmgr + " accepted the script."
-                                      : qmgr + " did not accept the script.");
+        string v;
+        if (!tr.accepted)
+            v = qmgr + " did not accept the script.";
+        else if (tr.cancelled)
+            v = "Job " + tr.jobId + " was submitted on hold and cancelled.";
+        else
+            v = qmgr + " accepted the script; nothing was submitted" +
+                (tr.jobId.empty() ? string() : " (job " + tr.jobId +
+                 " would have started)") + ".";
+        verdict->SetLabel(wxString::FromUTF8(v.c_str()));
     });
 
     dlg->Fit();

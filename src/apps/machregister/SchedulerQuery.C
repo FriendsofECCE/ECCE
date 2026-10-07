@@ -803,6 +803,14 @@ bool testSubmission(Remote& r, const string& qmgr, const string& script,
     string q = lower(qmgr), out;
     vector<string> argv;
     res.ran = true;
+    //  A failed command with nothing to show would leave the dialog blank.
+    auto said = [&r](const string& text) {
+        if (!trim(text).empty())
+            return text;
+        string e = r.error();
+        return e.empty() ? string("(no output: the command timed out after "
+                                  "60 s, or could not be started)") : e;
+    };
 
     if (q == "slurm")
     {
@@ -810,14 +818,21 @@ bool testSubmission(Remote& r, const string& qmgr, const string& script,
         argv.push_back(remote);
         res.commands = shown(argv);
         res.accepted = r.run(argv, out);
-        res.answer = out;
+        res.answer = res.accepted ? out : said(out);
+        //  "sbatch: Job 12346 to start at ..."
+        size_t j = out.find("Job ");
+        if (res.accepted && j != string::npos)
+        {
+            size_t e = out.find_first_not_of("0123456789", j + 4);
+            res.jobId = out.substr(j + 4, e == string::npos ? e : e - j - 4);
+        }
     }
     else if (q == "sge")
     {
         argv.push_back("qsub"); argv.push_back("-verify"); argv.push_back(remote);
         res.commands = shown(argv);
         res.accepted = r.run(argv, out);
-        res.answer = out;
+        res.answer = res.accepted ? out : said(out);
     }
     else if (q == "htcondor")
     {
@@ -831,7 +846,7 @@ bool testSubmission(Remote& r, const string& qmgr, const string& script,
         argv.push_back("sh"); argv.push_back(remote);
         res.commands = "condor_submit -dry-run /dev/null " + remote + ".sub";
         res.accepted = r.run(argv, out);
-        res.answer = out;
+        res.answer = res.accepted ? out : said(out);
     }
     else
     {
@@ -855,9 +870,10 @@ bool testSubmission(Remote& r, const string& qmgr, const string& script,
         res.commands = shown(argv) + (q == "lsf" ? " < " + remote : "");
         bool sub = q == "lsf" ? r.runWithInput(argv, remote, idText)
                               : r.run(argv, idText);
-        res.answer = idText;
+        res.answer = sub ? idText : said(idText);
         res.accepted = sub;
         string id = sub ? jobIdIn(qmgr, idText) : "";
+        res.jobId = id;
         if (sub && id.empty())
         {
             //  The scheduler took it and we cannot name the job: say so rather
