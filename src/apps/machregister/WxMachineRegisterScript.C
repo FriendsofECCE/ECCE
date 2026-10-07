@@ -10,6 +10,7 @@
 #include <fstream>
 #include <sstream>
 
+#include <algorithm>
 #include "wx/wxprec.h"
 
 #ifndef WX_PRECOMP
@@ -343,6 +344,31 @@ int MachRegScript::runCommand(const vector<string>& w)
     {
         f->p_answers.push_back(w[1] == "yes" ? wxID_YES
                              : w[1] == "no" ? wxID_NO : wxID_CANCEL);
+    }
+    else if (cmd == "choose" && n == 2)
+        f->p_choices.push_back(atoi(w[1].c_str()));
+    else if (cmd == "check-program-hints")
+    {
+        //  Every suggested path ends in a name `Find` would look for.
+        for (size_t i = 0; i < f->p_codeNames.size(); i++)
+        {
+            SchedulerQuery::ProgramHelp h =
+                SchedulerQuery::programHelp(f->p_codeNames[i]);
+            for (size_t k = 0; k < h.examples.size(); k++)
+            {
+                string base = h.examples[k].substr(
+                    h.examples[k].rfind('/') + 1);
+                if (std::find(h.names.begin(), h.names.end(), base) ==
+                    h.names.end())
+                    fail(f->p_codeNames[i] + ": example " + h.examples[k] +
+                         " is not one of the names looked for");
+            }
+            wxTextCtrl* t = f->p_codePaths[i];
+            if (std::string((const char*)t->GetHint().utf8_str()) !=
+                "e.g. " + h.examples[0])
+                fail(f->p_codeNames[i] + ": hint differs from the table");
+        }
+        fprintf(stderr, "[MACHREG] ok program hints checked\n");
     }
     else if (cmd == "wait" && n == 2)
         return atoi(w[1].c_str());

@@ -80,6 +80,10 @@ class MachineBrowser: public MachineBrowserGUI,
         void processQueryButtonClickCB(wxCommandEvent& event);
         void machineRegisterMenuItemClickCB( wxCommandEvent& event );
         void configureButtonClickCB( wxCommandEvent& event );
+        void machSettingsButtonClickCB( wxCommandEvent& event );
+        /// Test hook (ECCE_MACHBROWSER_SHOT): select the first machine, click
+        /// Machine settings, save a PNG of the window, report, exit.
+        void runTestHook(const string& png);
         void machinesTableViewSelectionChangedCB(wxCommandEvent& event);
         void exitMenuitemClickCB(wxCommandEvent& event);
         void helpAppMenuitemClickCB(wxCommandEvent& event);
@@ -128,6 +132,7 @@ class MachineBrowser: public MachineBrowserGUI,
         vector<string>               p_modeDscpns;
         ewxButton                   *p_viewDetachButton;
         ewxButton                   *p_machineConfigButton;
+        ewxButton                   *p_machSettingsButton;
 
         WxMachineStatus             *p_statFrame;
         WxConfigureAccess           *p_configDialog;
