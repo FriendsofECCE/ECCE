@@ -1613,7 +1613,7 @@ expect code-listed NWChem 1
 check-program-hints
 code ORCA
 expect contains code:example '/opt/orca/<version>/orca'
-expect contains code:example 'full path for parallel runs'
+expect contains code:example 'ORCA needs the full'
 code QuantumESPRESSO
 expect contains code:example '/usr/bin/pw.x'
 quit
