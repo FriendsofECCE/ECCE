@@ -46,3 +46,4 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [A calculation can live in any local folder, not only in a data store](calculations-in-any-local-folder.md)
 - [Waiting for login: a lost monitor parks the job, session start catches it up](waiting-for-login.md)
 - [Test suites get a per-run state directory, ports and X display](test-suites-isolate-per-run.md)
+- [Windows local jobs: paths in sh scripts, the job id, Strawberry perl, the broker](windows-local-jobs-pitfalls.md)

@@ -30,11 +30,12 @@ done
 # Every msys-*.dll the copied programs load, found with ldd.
 for exe in "$dest"/*.exe; do
   ldd "$exe" 2>/dev/null | awk '/msys-.*\.dll/ {print $3}'
-done | sort -u | while read -r dll; do cp -f "$dll" "$dest/"; done
+done | sort -u | while read -r dll; do [ "$dll" -ef "$dest/${dll##*/}" ] || cp -f "$dll" "$dest/"; done
 
-# /etc/passwd-less runs read this; keeps MSYS from probing a domain.
-mkdir -p "$dest/../../etc"
-: > "$dest/../../etc/fstab"
+# Without these MSYS warns about /tmp and mounts drives at /cygdrive instead
+# of /c, which is where the job scripts expect them.
+mkdir -p "$dest/../../etc" "$dest/../../tmp"
+echo 'none / cygdrive binary,posix=0,noacl,user 0 0' > "$dest/../../etc/fstab"
 
 echo "bundled $(ls "$dest" | wc -l) files into $dest:"
 ls "$dest"

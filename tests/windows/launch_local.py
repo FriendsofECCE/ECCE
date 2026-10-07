@@ -33,18 +33,24 @@ class S:
         for d in (".ECCE", "tmp", "jobs"):
             os.makedirs(os.path.join(state, d))
         self.env = dict(os.environ)
+        # WINTEST_HOME: an install tree (packaging/windows) instead of the checkout;
+        # WINTEST_BASE_PATH: the PATH to start from, e.g. one without MSYS2's usr\bin.
+        home = os.environ.get("WINTEST_HOME", REPO).replace("\\", "/")
+        base_path = os.environ.get("WINTEST_BASE_PATH", os.environ["PATH"])
         self.env.update({
-            "ECCE_HOME": REPO, "ECCE_REALUSERHOME": state,
+            "ECCE_HOME": home, "ECCE_REALUSERHOME": state,
             "ECCE_REALUSER": "andy", "HOST": "localhost",
             "ECCE_TMPDIR": os.path.join(state, "tmp"),
             "ECCE_LOCAL_DATA": os.path.join(state, "localdata"),
             "ECCE_SESSION_ID": "wintest",
             "PATH": os.pathsep.join(([os.environ["WINTEST_PATH"]]
                                      if "WINTEST_PATH" in os.environ else []) +
-                                    [os.path.join(REPO, "scripts"),
-                                     os.path.join(REPO, "scripts", "parsers"),
-                                     build, os.environ["PATH"]]),
+                                    [os.path.join(home, "scripts"),
+                                     os.path.join(home, "scripts", "parsers"),
+                                     build, base_path]),
         })
+        for k in ("ECCE_TMPDIR", "ECCE_LOCAL_DATA"):
+            self.env[k] = self.env[k].replace("\\", "/")
         if "NO_MESSAGING" in os.environ.get("WINTEST", ""):
             self.env["ECCE_NO_MESSAGING"] = "1"
         for k in ("ECCE_TRANSPORT", "DISPLAY"):
@@ -92,7 +98,9 @@ def main():
     ap.add_argument("--build", default=os.path.join(REPO, "build"))
     ap.add_argument("--state", default=os.path.expanduser("~/launchtest"))
     a = ap.parse_args()
-    s = S(os.path.abspath(a.build), os.path.abspath(a.state))
+    # Forward slashes: paths reach sh scripts, where a backslash is an escape.
+    s = S(os.path.abspath(a.build).replace("\\", "/"),
+          os.path.abspath(a.state).replace("\\", "/"))
     st = s.state.replace("\\", "/")
     with open(os.path.join(st, ".ECCE", "CONFIG.localhost"), "w", newline="\n") as h:
         h.write("MOPAC: %s\n" % stub(st, 2 if a.case == "complete" else 300))
