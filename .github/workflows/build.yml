@@ -101,7 +101,8 @@ jobs:
       - name: ecce-qm in the package
         run: |
           d=$(mktemp -d)
-          dpkg-deb -x build-cmake/ecce-client*.deb "$d"
+          ls -l build-cmake/*.deb
+          dpkg-deb -x build-cmake/ecce_*.deb "$d"
           q=$(find "$d" -path '*/bin/ecce-qm')
           test -n "$q"
           file "$q" || true
@@ -174,7 +175,8 @@ jobs:
       - name: ecce-qm in the package
         run: |
           d=$(mktemp -d)
-          dpkg-deb -x build-cmake/ecce-client*.deb "$d"
+          ls -l build-cmake/*.deb
+          dpkg-deb -x build-cmake/ecce_*.deb "$d"
           q=$(find "$d" -path '*/bin/ecce-qm')
           test -n "$q"
           file "$q" || true
