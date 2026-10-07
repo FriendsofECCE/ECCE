@@ -1,11 +1,11 @@
 .	http://purl.oclc.org/NET/cmcs/schema/:hasConfigurations		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Parameters/chemsys.mvm" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/BasisSet.ecce_basisset" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/SetupParams" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
 .	http://www.emsl.pnl.gov/ecce:application		NWChem
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Wed, 07 Oct 2026 09:16:45 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Wed, 07 Oct 2026 09:26:32 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.0.0-alpha.6
-.	http://www.emsl.pnl.gov/ecce:creationdate		Wed, 07 Oct 2026 09:16:39 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Wed, 07 Oct 2026 09:26:25 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.0.0-alpha.6
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -14,7 +14,7 @@
 .	http://www.emsl.pnl.gov/ecce:inputCollection		Inputs
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		localhost
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
-.	http://www.emsl.pnl.gov/ecce:job_jobid		167
+.	http://www.emsl.pnl.gov/ecce:job_jobid		168
 .	http://www.emsl.pnl.gov/ecce:job_path		/home/user/ecce-runs/water-opt-project/water-opt
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_machine		localhost
@@ -45,7 +45,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Geometry
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Wed, 07 Oct 2026 09:16:41 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Wed, 07 Oct 2026 09:26:27 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Complete
 .	http://www.emsl.pnl.gov/ecce:theory		SCF/RHF
 .	http://www.emsl.pnl.gov/ecce:version		Mon_May_12_21:20:53_2025 Version 7.2.3

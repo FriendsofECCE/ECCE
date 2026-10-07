@@ -190,14 +190,15 @@ def shootWindow(display, tmp, out, name, wrapper, args, env, title=None,
 
 
 def shootBuilder(display, tmp, out, name, context, panel=None, size=(1400, 900),
-                 env=None, dest=None):
+                 env=None, dest=None, turn=0):
     """The Builder on `context`, one panel open, the molecule fitted to the
     final window size.  The scene script waits (`hold`) for the resize and
     then fits the view; the marker snapshot says it has."""
     scene = os.path.join(tmp, name + ".scene")
     with open(scene, "w") as handle:
-        handle.write("style Ball And Stick\nhold 25\nviewall\nsnap %s-ready\n"
-                     "hold 120\n" % name)
+        handle.write("style Ball And Stick\nhold 25\nviewall\n%ssnap %s-ready\n"
+                     "hold 120\n" % ("rotatex %d\n" % turn if turn else "",
+                                     name))
     marker = os.path.join(tmp, name + "-ready.ppm")
     if os.path.exists(marker):
         os.unlink(marker)
@@ -373,7 +374,7 @@ def main():
                             display, options.tmp, options.out, name,
                             data.url("tutorial", "water-opt"), panel,
                             dest=options.out if name == NAMES[5]
-                            else options.tmp)
+                            else options.tmp, turn=90)
                     finally:
                         os.unlink(ini)
                 elif name in ("viewer-imported", "import-unchanged"):
@@ -386,7 +387,7 @@ def main():
                         err = shootBuilder(
                             display, options.tmp, options.out, name,
                             data.url("calcimport-test", "water-opt"),
-                            "Calculation Summary")
+                            "Calculation Summary", turn=90)
                 if err:
                     print("  %s: %s" % (name, err))
                     failed += 1

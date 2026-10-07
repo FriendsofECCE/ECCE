@@ -9,8 +9,8 @@ charge 0
 
 geometry autosym units angstrom
  O     0.000000     0.000000     0.000000
- H     0.766044     0.000000     0.642788
- H     -0.766044     0.000000     0.642788
+ H     0.766044     0.642788     0.000000
+ H     -0.766044     0.642788     0.000000
 end
 
 ecce_print /home/user/ecce-runs/water-opt-project/water-opt/ecce.out
