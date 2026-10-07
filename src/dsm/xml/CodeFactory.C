@@ -182,7 +182,7 @@ bool CodeFactory::isRegistered(const string& codeName)
   static bool loaded = false;
   if (!loaded) {
     loaded = true;
-    string dir = Ecce::ecceDataPath() + "/client/config/";
+    string dir = string(Ecce::ecceDataPath()) + "/client/config/";
     for (const char* f : { "ResourceDescriptor.xml",
                            "ResourceDescriptorRxn.xml" }) {
       std::ifstream in((dir + f).c_str());
