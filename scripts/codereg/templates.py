@@ -314,7 +314,6 @@ class EcceSubPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent, id = -1, style = wx.TAB_TRAVERSAL)
         self.SetFont(EcceGlobals.FontDefault)
-        self.SetBackgroundColour(EcceGlobals.BackgroundColour)
         self.Settings = parent.Settings
         self.CheckButtonEnables = parent.CheckButtonEnables
         self.OnChanges = parent.OnChanges
@@ -340,7 +339,6 @@ class EccePanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.panelSizer = EccePanelSizer()
         self.SetSizer(self.panelSizer)
         self.SetFont(EcceGlobals.FontDefault)
-        self.SetBackgroundColour(EcceGlobals.BackgroundColour)
         self.Settings = []
 
         parent.Bind(wx.EVT_CLOSE, self.OnClose)
@@ -358,7 +356,6 @@ class EccePanel(wx.lib.scrolledpanel.ScrolledPanel):
         # The footer is the frame's, not this panel's, so it does not scroll.
         self.footer = wx.Panel(self.GetParent(), style = wx.TAB_TRAVERSAL)
         self.footer.SetFont(EcceGlobals.FontDefault)
-        self.footer.SetBackgroundColour(EcceGlobals.BackgroundColour)
         self.footerSizer = EccePanelSizer()
         self.footer.SetSizer(self.footerSizer)
         frameSizer = wx.BoxSizer(wx.VERTICAL)
@@ -1481,7 +1478,6 @@ class EcceTabPanel(wx.Panel):
                                            EcceGlobals.BorderDefault)
         self.SetSizer(self.panelSizer)
         self.SetFont(EcceGlobals.FontDefault)
-        self.SetBackgroundColour(EcceGlobals.BackgroundColour)
         self.Settings = rootPanel.Settings
         self.CheckButtonEnables = rootPanel.CheckButtonEnables
         self.OnChanges = rootPanel.OnChanges

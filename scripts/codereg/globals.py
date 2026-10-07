@@ -29,9 +29,11 @@ class Globals:
     MaxFloatDefault = 1e100
     MinIntDefault = -1000000
     MaxIntDefault = 1000000
-    BackgroundColour = wx.Colour(224, 225, 225) # #e0e1e1
-    InputColour = wx.Colour(249, 221, 153) #f9dd99
-    ReadonlyColour = wx.Colour(183, 184, 186) #b7b8ba
+    # The theme draws everything except read-only fields, as the C++
+    # windows do (ewxStyledWindow, #210); wx.NullColour hands a widget
+    # back to the theme.
+    InputColour = wx.NullColour
+    ReadonlyColour = wx.SystemSettings.GetColour(wx.SYS_COLOUR_BTNFACE)
     
     FdIn = "restore.in"
     PortOut = 0
@@ -79,18 +81,47 @@ class Globals:
     # to wait after a key click event before performing validation
     TimerLength = 2000
 
+    @staticmethod
+    def ThemeFont(size):
+        font = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+        font.SetPointSize(size)
+        return font
+
+    @staticmethod
+    def FontSizes():
+        """(base point size, step) from the shared EcceGlobal preferences."""
+        prefs = {}
+        home = os.environ.get("ECCE_REALUSERHOME", os.path.expanduser("~"))
+        try:
+            with open(os.path.join(home, ".ECCE", "EcceGlobal")) as f:
+                for line in f:
+                    key, sep, value = line.partition(":")
+                    if sep:
+                        prefs[key.strip().lower()] = value.strip()
+        except OSError:
+            pass
+        base = 10
+        if prefs.get("usesystemfont", "false").lower() in ("true", "1"):
+            base = wx.SystemSettings.GetFont(
+                wx.SYS_DEFAULT_GUI_FONT).GetPointSize()
+        try:
+            step = {0: -1, 2: 2, 3: 4}.get(int(prefs.get("fontsize", 1)), 0)
+        except ValueError:
+            step = 0
+        return base, step
+
     def __init__(self, values):
-        self.ErrorColour = wx.Colour(255, 75, 85)
-        self.WarningColour = wx.Colour(255, 255, 198)
-        # wxPython Classic's wx.Font(pointSize=.., family=.., style=..,
-        # weight=.., face=..) keyword form doesn't match any Phoenix
-        # overload (the keyword is "faceName", not "face", and mixing
-        # legacy keyword names trips up Phoenix's overload resolution
-        # entirely -- confirmed via a live TypeError listing all 7
-        # candidate overloads rejecting it). wx.FontInfo is the modern,
-        # non-deprecated, unambiguous way to build a wx.Font in Phoenix.
-        self.FontDefault = wx.Font(wx.FontInfo(8).FaceName("Helvetica").Bold())
-        self.ScriptFontDefault = wx.Font(wx.FontInfo(8).FaceName("Helvetica"))
+        # Same tints as ewxThemeColours::statusTint (BAD, UNSURE), light and
+        # dark; the message box keeps the theme's text colour.
+        dark = wx.SystemSettings.GetAppearance().IsDark()
+        self.ErrorColour = wx.Colour("#5c1f1f" if dark else "#ffdddd")
+        self.WarningColour = wx.Colour("#4d3a10" if dark else "#fff1cc")
+
+        # The theme's font at ECCE's 10 pt, moved by the Font Size
+        # preference, as ewxStyledWindow::applyFont does.
+        base, step = self.FontSizes()
+        self.FontDefault = self.ThemeFont(base + step)
+        self.ScriptFontDefault = self.ThemeFont(base + step - 1)
 
         # PARAMETER INITIALIZED CONSTANTS
         try:
