@@ -938,27 +938,25 @@ void Builder::makeRoomFor(const wxString& name)
     }
     if (!moved) {
       moved = true;
-      int top = now.rect.y, bottom = now.rect.y;
-      bool above = false;
+      vector<wxAuiPaneInfo*> column;
       wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
       for (size_t i = 0; i < all.GetCount(); ++i) {
-        const wxAuiPaneInfo &o = all.Item(i);
-        if (!o.IsShown() || o.IsFloating() || o.IsToolbar() || !o.window ||
-            o.name == now.name || o.dock_direction != now.dock_direction ||
-            o.dock_layer != now.dock_layer || o.rect.width == 0) {
-          continue;
-        }
-        top = std::min(top, o.rect.y);
-        if (o.rect.y + o.rect.height <= now.rect.y + 1) {
-          bottom = std::max(bottom, o.rect.y + o.rect.height);
-          above = true;
+        wxAuiPaneInfo &o = all.Item(i);
+        if (o.IsShown() && !o.IsFloating() && !o.IsToolbar() && o.window &&
+            o.dock_direction == now.dock_direction &&
+            o.dock_layer == now.dock_layer) {
+          column.push_back(&o);
         }
       }
-      if (above) {
-        now.Position(std::max(bottom - top, 0));
-        updatePanes();
-        continue;
+      std::sort(column.begin(), column.end(),
+                [](wxAuiPaneInfo *x, wxAuiPaneInfo *y) {
+                  return x->rect.y < y->rect.y;
+                });
+      for (size_t i = 0; i < column.size(); ++i) {
+        column[i]->Position((int)i);
       }
+      updatePanes();
+      continue;
     }
     if (v == sizeof(victims) / sizeof(victims[0])) {
       return;
