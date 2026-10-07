@@ -252,7 +252,7 @@ def sweep(display, results, only):
 def main():
     argv = sys.argv[1:]
     rest = []
-    reportOnly = False
+    reportOnly = anyVersion = False
     i = 0
     while i < len(argv):
         a = argv[i]
@@ -267,6 +267,8 @@ def main():
         elif a == "--only":
             i += 1
             opts["only"] = argv[i]
+        elif a == "--any-version":
+            anyVersion = True
         elif a == "--report-only":
             reportOnly = True
         else:
@@ -280,7 +282,8 @@ def main():
     run_tests.checkApp = checkApp
     run_tests.checkCalculation = lambda *a, **k: None
     run_tests.checkStructureFiles = lambda *a, **k: None
-    sys.argv = [sys.argv[0], "--app", "organizer"]
+    sys.argv = [sys.argv[0], "--app", "organizer"] + (
+        ["--any-version"] if anyVersion else [])
     code = run_tests.main()
     return 0 if reportOnly else code
 
