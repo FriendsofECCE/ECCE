@@ -5,6 +5,7 @@
   using std::map;
 
 #include "wxgui/PlotCtrl.H"
+#include "wxgui/PlotStyle.H"
 
 class wxMenu;
 
@@ -68,6 +69,17 @@ class ewxPlotCtrl : public wxPlotCtrl
     bool GetShowPointLabel() const { return p_showPointLabel; }
     void SetShowPointLabel(bool show);
 
+    /**
+     * The look shared with the vibrational spectrum (PlotStyle.H): the
+     * window's own colours, Okabe-Ito curves, small tick labels, a readout
+     * for the point under the pointer.  Applied when the control is made;
+     * call again to switch palette.
+     */
+    void ApplyStyle(const PlotPalette& palette);
+    const PlotPalette& GetPalette() const { return p_palette; }
+    /** The i-th curve colour, as a pen for a curve's normal/active pen. */
+    wxGenericPen SeriesPen(size_t i, int width = 2) const;
+
     AxisMap GetXValueMap() const { return p_xValueMap; }
     void SetXValueMap(const AxisMap& axisMap);
     AxisMap GetYValueMap() const { return p_yValueMap; }
@@ -101,6 +113,9 @@ class ewxPlotCtrl : public wxPlotCtrl
     void UpdateUIShowTitle( wxUpdateUIEvent &event );
     void UpdateUIShowKey( wxUpdateUIEvent &event );
 
+    virtual void StyleNewCurve( wxPlotCurve *curve, int index );
+    virtual void DrawAreaOverlay( wxDC *dc );
+
     virtual void ProcessAreaEVT_MOUSE_EVENTS( wxMouseEvent &event );
     virtual void ProcessAxisEVT_MOUSE_EVENTS( wxMouseEvent &event );
 
@@ -109,13 +124,22 @@ class ewxPlotCtrl : public wxPlotCtrl
     DECLARE_CLASS(ewxPlotCtrl)
     DECLARE_EVENT_TABLE()
 
+    void UpdateHover(const wxPoint& at, bool inside);
+    wxString FormatValue(const AxisMap& map, const wxPoint2DDouble& pt,
+                         bool x) const;
+
     wxMenu *p_menu;
+
 
     bool p_showPointLabel;
     wxPlotMarker p_pointMarker;
 
     AxisMap p_xValueMap;
     AxisMap p_yValueMap;
+
+    PlotPalette p_palette;
+    int p_hoverCurve, p_hoverIndex;
+    wxPoint p_hoverAt;
 };
 
 #endif // EWXPLOTCTRL_H_

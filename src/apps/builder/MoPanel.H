@@ -30,6 +30,8 @@ class MoPanel : public MoGUI,
   DECLARE_DYNAMIC_CLASS(MoPanel)
   DECLARE_EVENT_TABLE()
 
+   friend class Builder;   // plotshot switches the table/plot view
+
    enum MenuIds {SOLID=9780, MESH, CONTOUR,
                  REDGREEN, REDBLUE, BLUEYELLOW, LIGHTDARK,
                  DEFINEGRID, HIDE, 

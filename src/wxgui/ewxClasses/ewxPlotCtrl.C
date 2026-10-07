@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <vector>
+
 #include <wx/dcmemory.h>
 #include <wx/menu.h>
 #include <wx/scrolbar.h>
@@ -74,6 +77,9 @@ ewxPlotCtrl::ewxPlotCtrl()
   , p_pointMarker()
   , p_xValueMap()
   , p_yValueMap()
+  , p_palette(PlotPalette::system())
+  , p_hoverCurve(-1)
+  , p_hoverIndex(-1)
 {
   Init();
 }
@@ -109,6 +115,7 @@ bool ewxPlotCtrl::Create( wxWindow *parent, wxWindowID id, const wxPoint &pos,
   }
 
   SetMinSize(wxSize(300,200));
+  ApplyStyle(PlotPalette::system());
 
   // get rid of "active" bitmap
   m_activeBitmap = wxNullBitmap;
@@ -162,9 +169,67 @@ bool ewxPlotCtrl::Create( wxWindow *parent, wxWindowID id, const wxPoint &pos,
 }
 
 
+void ewxPlotCtrl::ApplyStyle(const PlotPalette& palette)
+{
+  p_palette = palette;
+  BeginBatch();
+  SetBackgroundColour(palette.background);
+  SetGridColour(palette.grid);
+  SetBorderColour(palette.axis);
+  SetAxisColour(palette.text);
+  SetAxisTickColour(palette.axis);
+  SetAxisLabelColour(palette.text);
+  SetPlotTitleColour(palette.text);
+  SetKeyColour(palette.text);
+  SetAxisFont(*wxSMALL_FONT);
+  wxFont title(*wxNORMAL_FONT);
+  title.SetWeight(wxFONTWEIGHT_BOLD);
+  SetPlotTitleFont(title);
+  SetAxisLabelFont(*wxNORMAL_FONT);
+  SetKeyFont(*wxSMALL_FONT);
+  SetCursorColour(palette.text);
+  SetCursorSize(8);
+  //  Drag a rectangle to zoom, wheel zooms about the plot centre, double
+  //  click on empty plot shows everything again.
+  //  Ticks go where they fall; the library's "correction" moved the view
+  //  to put them on round numbers and cut data off after a resize.
+  SetCorrectTicks(false);
+  SetAreaMouseFunction(wxPLOTCTRL_MOUSE_ZOOM, false);
+  SetAreaMouseMarker(wxPLOTCTRL_MARKER_RECT);
+  EndBatch();
+  for (int i = 0; i < GetCurveCount(); i++)
+    StyleNewCurve(GetCurve(i), i);
+  Redraw(wxPLOTCTRL_REDRAW_EVERYTHING);
+}
+
+
+wxGenericPen ewxPlotCtrl::SeriesPen(size_t i, int width) const
+{
+  return wxGenericPen(wxGenericColour(p_palette.series(i)), width,
+                      wxPENSTYLE_SOLID);
+}
+
+
+void ewxPlotCtrl::StyleNewCurve(wxPlotCurve *curve, int index)
+{
+  //  A curve whose caller chose its pens keeps them.
+  const wxGenericPen normal = curve->GetPen(wxPLOTPEN_NORMAL);
+  const wxGenericPen standard = wxPlotCurve::GetDefaultPen(wxPLOTPEN_NORMAL);
+  if (!(normal.GetColour() == standard.GetColour() &&
+        normal.GetWidth() == standard.GetWidth()))
+    return;
+  curve->SetPen(wxPLOTPEN_NORMAL, SeriesPen(index));
+  curve->SetPen(wxPLOTPEN_ACTIVE, SeriesPen(index));
+  curve->SetPen(wxPLOTPEN_SELECTED,
+                wxGenericPen(wxGenericColour(p_palette.imaginary), 2,
+                             wxPENSTYLE_SOLID));
+}
+
+
 ewxPlotCtrl * ewxPlotCtrl::Clone(wxWindow * parent)
 {
   ewxPlotCtrl * clone = new ewxPlotCtrl(parent);
+  clone->ApplyStyle(p_palette);
 
   // copy data (curves)
   for (int i = 0; i < GetCurveCount(); ++i) {
@@ -275,8 +340,8 @@ void ewxPlotCtrl::CalcBoundingPlotRect()
     m_curveBoundingRect = rect;
 
     // add some padding so the edge points can be seen
-    double w = (!zeroWidth)  ? rect.m_width/50.0  : 0.0;
-    double h = (!zeroHeight) ? rect.m_height/50.0 : 0.0;
+    double w = (!zeroWidth)  ? rect.m_width/25.0  : 0.0;
+    double h = (!zeroHeight) ? rect.m_height/25.0 : 0.0;
     m_curveBoundingRect.Inset(-w, -h, -w, -h);
   }
   else
@@ -564,9 +629,101 @@ void ewxPlotCtrl::ProcessAreaEVT_MOUSE_EVENTS( wxMouseEvent &event )
 {
   if (event.RightDown()) {
     OnRightClick(event);
-  } else {
-    wxPlotCtrl::ProcessAreaEVT_MOUSE_EVENTS(event);
+    return;
   }
+  if (event.Leaving()) {
+    UpdateHover(event.GetPosition(), false);
+  } else if (event.Moving()) {
+    UpdateHover(event.GetPosition(), true);
+  } else if (event.LeftDClick() && GetPlotDataIndexes().GetCount() > 0) {
+    //  Double click on empty plot shows everything, as on the spectrum;
+    //  on a point it still selects the point.
+    UpdateHover(event.GetPosition(), true);
+    if (p_hoverIndex < 0) {
+      MakeCurveVisible(-1);
+      return;
+    }
+  }
+  wxPlotCtrl::ProcessAreaEVT_MOUSE_EVENTS(event);
+}
+
+
+//  The data point nearest the pointer, if within a few pixels of it.
+void ewxPlotCtrl::UpdateHover(const wxPoint& at, bool inside)
+{
+  int bestCurve = -1, bestIndex = -1;
+  double bestD = 10.0 * 10.0;
+  if (inside) {
+    const wxArrayInt curves = GetPlotDataIndexes();
+    for (size_t c = 0; c < curves.GetCount(); c++) {
+      wxPlotData *data = GetDataCurve(curves[c]);
+      if (!data) continue;
+      const int n = data->GetCount();
+      for (int i = 0; i < n; i++) {
+        const wxPoint2DDouble pt = data->GetPoint(i);
+        const double dx = GetClientCoordFromPlotX(pt.m_x) - at.x;
+        const double dy = GetClientCoordFromPlotY(pt.m_y) - at.y;
+        const double d = dx * dx + dy * dy;
+        if (d < bestD) { bestD = d; bestCurve = curves[c]; bestIndex = i; }
+      }
+    }
+  }
+  const bool changed = bestCurve != p_hoverCurve || bestIndex != p_hoverIndex;
+  p_hoverCurve = bestCurve;
+  p_hoverIndex = bestIndex;
+  p_hoverAt = at;
+  if (changed) Redraw(wxPLOTCTRL_REDRAW_PLOT);
+}
+
+
+wxString ewxPlotCtrl::FormatValue(const AxisMap& map, const wxPoint2DDouble& pt,
+                                  bool x) const
+{
+  AxisMap::const_iterator it = map.find(pt);
+  if (it != map.end()) return it->second;
+  return wxString::Format("%.6g", x ? pt.m_x : pt.m_y);
+}
+
+
+//  The readout of the spectrum: a small box by the pointer naming the point.
+void ewxPlotCtrl::DrawAreaOverlay( wxDC *dc )
+{
+  if (p_hoverCurve < 0) return;
+  wxPlotData *data = GetDataCurve(p_hoverCurve);
+  if (!data || p_hoverIndex >= data->GetCount()) return;
+  const wxPoint2DDouble pt = data->GetPoint(p_hoverIndex);
+  const wxPoint at(GetClientCoordFromPlotX(pt.m_x),
+                   GetClientCoordFromPlotY(pt.m_y));
+
+  std::vector<wxString> lines;
+  const wxString xs = FormatValue(p_xValueMap, pt, true);
+  const wxString ys = FormatValue(p_yValueMap, pt, false);
+  const wxString xl = GetXAxisLabel(), yl = GetYAxisLabel();
+  lines.push_back(xl.empty() || !GetShowXAxisLabel() ? xs : xl + ": " + xs);
+  lines.push_back(yl.empty() || !GetShowYAxisLabel() ? ys : yl + ": " + ys);
+
+  dc->SetPen(wxPen(p_palette.text, 2));
+  dc->SetBrush(*wxTRANSPARENT_BRUSH);
+  dc->DrawCircle(at, 5);
+
+  dc->SetFont(*wxSMALL_FONT);
+  int w = 0;
+  const int ch = dc->GetCharHeight();
+  for (size_t i = 0; i < lines.size(); i++)
+    w = std::max(w, dc->GetTextExtent(lines[i]).x);
+  const wxSize area = GetPlotAreaRect().GetSize();
+  const int bw = w + 12, bh = (int)lines.size() * (ch + 1) + 8;
+  int x = p_hoverAt.x + 14, y = p_hoverAt.y + 14;
+  if (x + bw > area.GetWidth() - 2) x = p_hoverAt.x - bw - 10;
+  if (y + bh > area.GetHeight() - 2) y = p_hoverAt.y - bh - 10;
+  x = std::max(2, x);
+  y = std::max(2, y);
+  dc->SetPen(wxPen(p_palette.axis, 1));
+  dc->SetBrush(wxBrush(p_palette.box));
+  dc->DrawRectangle(x, y, bw, bh);
+  dc->SetTextForeground(p_palette.text);
+  for (size_t i = 0; i < lines.size(); i++)
+    dc->DrawText(lines[i], x + 6, y + 4 + (int)i * (ch + 1));
 }
 
 

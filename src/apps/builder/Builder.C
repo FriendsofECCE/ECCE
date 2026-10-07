@@ -5165,6 +5165,9 @@ void Builder::updatePropertyMenus()
             cube->selectGrid(atoi(w[2].c_str()), atof(w[3].c_str()));
           });
         }
+        //  "plotshot <name> <w> <h> <panel name>": show that panel floating
+        //  at w x h and save what is on the screen there to <name>.png.
+        if (w[0] == "plotshot") return plotShotCommand(s, w, outdir);
         //  "gt...": the Geometry Trace stress commands (#217).
         if (w[0].compare(0, 2, "gt") == 0) return traceStressCommand(s, w);
         if ((w[0] != "mopanel" && w[0] != "motable") || w.size() != 2)

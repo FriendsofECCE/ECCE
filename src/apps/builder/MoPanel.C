@@ -630,8 +630,16 @@ void MoPanel::fillGraph(bool haveTypes)
    // of the occupation numbers.
    double occs[] = {0, 1, 2};
    string names[] = {"Unoccupied", "Singly Occupied", "Doubly Occupied"};
-   wxBrush brushes[] = {*wxBLACK_BRUSH, *wxRED_BRUSH, *wxCYAN_BRUSH};
-   wxPen pens[] = {*wxBLACK_PEN, *wxRED_PEN, *wxCYAN_PEN};
+   //  Unoccupied levels in the axis grey, then the first two series colours.
+   const PlotPalette& palette = p_plotReg->GetPalette();
+   const wxColour levelColours[] = {palette.axis, palette.series(1),
+                                    palette.series(0)};
+   wxBrush brushes[] = {wxBrush(levelColours[0]), wxBrush(levelColours[1]),
+                        wxBrush(levelColours[2])};
+   wxGenericPen pens[] = {
+     wxGenericPen(wxGenericColour(levelColours[0]), 2, wxPENSTYLE_SOLID),
+     wxGenericPen(wxGenericColour(levelColours[1]), 2, wxPENSTYLE_SOLID),
+     wxGenericPen(wxGenericColour(levelColours[2]), 2, wxPENSTYLE_SOLID)};
    //wxColor colors[] = {*wxBLACK, *wxRED, *wxCYAN}; // unused
    // create bitmaps to use for markers
    int width=13, height=1; // odd numbers recommended so that they center
