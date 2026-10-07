@@ -50,7 +50,7 @@ on:
   workflow_dispatch:
     inputs:
       only:
-        description: "Run just this job (debian, vendored-inventor, ubuntu, rocky, fedora, macos); empty runs all"
+        description: "Run just this job (debian, vendored-inventor, ubuntu, rocky, fedora, macos, windows); empty runs all"
         required: false
         default: ""
 
@@ -424,3 +424,58 @@ jobs:
           name: macos-app-run-${{ matrix.arch }}
           path: macos-app-run/
           if-no-files-found: ignore
+
+  # Windows client (#133), experimental: MSYS2 UCRT64 toolchain, the same
+  # package set as tests/windows/README.md.  Never turns the workflow red.
+  windows:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'windows' }}
+    name: Windows (MSYS2 UCRT64)
+    runs-on: windows-latest
+    timeout-minutes: 120
+    continue-on-error: true
+    env:
+      STRAWBERRY_URL: https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54051_64bit/strawberry-perl-5.40.5.1-64bit-portable.zip
+      STRAWBERRY_SHA256: 6619fe7eeef921ccddb4aac3972fb602a0c690a3074205b863ade998d7bc79a6
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: false
+          cache: true
+          install: >-
+            base git
+            mingw-w64-ucrt-x86_64-apr-util mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-coin mingw-w64-ucrt-x86_64-freetype
+            mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gcc-fortran
+            mingw-w64-ucrt-x86_64-glib2 mingw-w64-ucrt-x86_64-libjpeg-turbo
+            mingw-w64-ucrt-x86_64-libssh mingw-w64-ucrt-x86_64-mosquitto
+            mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-python mingw-w64-ucrt-x86_64-wxwidgets3.2-msw
+            mingw-w64-ucrt-x86_64-xerces-c
+
+      - name: Configure
+        shell: msys2 {0}
+        run: |
+          cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DECCE_REQUIRE_LIBSSH=ON \
+            -DECCE_HOME_DIR="$PWD/stage/ecce" -DCMAKE_INSTALL_PREFIX="$PWD/stage/ecce"
+
+      - name: Build
+        shell: msys2 {0}
+        # -k 0: report every failing file, not only the first few.
+        run: cmake --build build -- -k 0
+
+      - name: Tests
+        shell: msys2 {0}
+        run: |
+          cd build
+          ctest -R 'transport_process|fragreaders|fragreaders_de|parsers' --output-on-failure --timeout 600 \
+            | tee ../ctest.log
+          exit "${PIPESTATUS[0]}"
+
+      - name: Install to a staging tree
+        shell: msys2 {0}
+        run: |
+          cmake --install build
+          find stage | head -80
