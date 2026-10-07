@@ -19,6 +19,11 @@ $ids = @{}; $nid = 0
 $sb = New-Object System.Text.StringBuilder
 function Esc($s) { [Security.SecurityElement]::Escape($s) }
 function Emit($dir, $indent) {
+  # Empty directories (the shell's tmp) are not installed unless something creates them.
+  if (-not (Get-ChildItem -LiteralPath $dir -Force)) {
+    $script:nid++
+    [void]$sb.AppendLine("$indent<Component Id=`"c$nid`"><CreateFolder /></Component>")
+  }
   foreach ($f in Get-ChildItem -LiteralPath $dir -File) {
     $script:nid++
     [void]$sb.AppendLine("$indent<Component Id=`"c$nid`"><File Id=`"f$nid`" Source=`"$(Esc $f.FullName)`" KeyPath=`"yes`" /></Component>")

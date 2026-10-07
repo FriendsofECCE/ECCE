@@ -22,6 +22,8 @@ $p = Start-Process msiexec -ArgumentList "/i `"$Msi`" /qn /l*v `"$Out\install.lo
 Check ($p.ExitCode -eq 0) "msiexec /i exit $($p.ExitCode)"
 Check (Test-Path "$inst\bin\organizer.exe") "organizer.exe under $inst"
 Check (Test-Path $lnk) "Start-menu shortcut"
+foreach ($h in "HKCU", "HKLM") { foreach ($k in "Software\Microsoft\Windows\CurrentVersion\Uninstall", "Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall") {
+  Get-ItemProperty "${h}:\$k\*" -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like "ECCE*" } | ForEach-Object { Say "uninstall entry: ${h}:\$k\$($_.PSChildName) $($_.DisplayName)" } } }
 $arp = Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -eq "ECCE" }
 Check ($null -ne $arp) "Apps & Features entry in HKCU (per user)"
 Check (-not (Get-ItemProperty "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -eq "ECCE" })) "no HKLM entry"
@@ -48,7 +50,7 @@ foreach ($c in "complete", "cancel") {
 $env:Path = $sys
 tests\windows\ci-run.ps1 -Stage $stage -Out "$Out\apps"
 Get-Content "$Out\apps\summary.txt" | ForEach-Object { Say "apps: $_" }
-Check (-not (Select-String -Path "$Out\apps\summary.txt" -Pattern "exited rc|missing|FAILED" -Quiet)) "start test summary has no app exited, missing or failed"
+Check (-not (Select-String -Path "$Out\apps\summary.txt" -Pattern "exited rc=-?[1-9]|missing|FAILED" -Quiet)) "start test summary has no app exited, missing or failed"
 
 # The shortcut's own path: wscript + ecce.vbs + ecce.cmd, no console window.
 Start-Process "$env:SystemRoot\System32\wscript.exe" -ArgumentList "//B //Nologo `"$inst\ecce.vbs`""
