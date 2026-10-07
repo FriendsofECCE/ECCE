@@ -278,7 +278,7 @@ def main():
             os.makedirs(os.path.join(opts["out"], "shots"), exist_ok=True)
         elif a == "--only":
             i += 1
-            opts["only"] = argv[i]
+            opts["only"] = None if argv[i] == "all" else argv[i]
         elif a == "--any-version":
             anyVersion = True
         elif a == "--report-only":
