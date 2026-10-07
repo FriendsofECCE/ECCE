@@ -336,6 +336,7 @@
   print SUBMIT "exit 0\n";
 
   close(SUBMIT);
+  &addModulePrologue($submitFile) if (!@shErrors);
   if (@shErrors) {
     unlink($submitFile);
     die &shErrorReport();
@@ -1028,6 +1029,51 @@ sub shSnippet()
                               $key, $iss->{line}, $iss->{text}, $iss->{want});
   }
   return $res->{text};
+}
+
+# `module` and `ml` are shell functions that Lmod and Environment Modules
+# define for interactive and bash shells only, so under /bin/sh (dash) a
+# site's "module load" is "not found".  When the script uses either as a
+# command, define the module command once, before the first use.  Lmod's
+# prefix is found from the environment, then from the LMOD_PKG= line of the
+# distribution's profile.d file (grepped, not sourced: those are bash).
+sub modulePrologue()
+{
+  return <<'EOT';
+# Make the module command available (job scripts are sh, not bash)
+if ! command -v module >/dev/null 2>&1; then
+  _ecce_p=$(sed -n 's/^[[:space:]]*\(export[[:space:]]\{1,\}\)\{0,1\}LMOD_PKG=["'"'"']\{0,1\}\([^"'"'"'; ]*\).*/\2/p' /etc/profile.d/*lmod*.sh 2>/dev/null | head -n 1)
+  case $_ecce_p in *'$'*) _ecce_p= ;; esac
+  for _ecce_m in "${LMOD_PKG:+$LMOD_PKG/init/sh}" "${MODULESHOME:+$MODULESHOME/init/sh}" "${LMOD_CMD:+${LMOD_CMD%/libexec/*}/init/sh}" "${_ecce_p:+$_ecce_p/init/sh}" /etc/profile.d/lmod.sh /usr/share/lmod/lmod/init/sh /etc/profile.d/modules.sh /usr/share/Modules/init/sh /etc/profile.d/z00_lmod.sh; do
+    [ -n "$_ecce_m" ] && [ -r "$_ecce_m" ] && . "$_ecce_m" && break
+  done
+fi
+if ! command -v module >/dev/null 2>&1; then
+  echo "module command not available in sh; 'module load' will fail (no Lmod or Environment Modules init file found)" >&2
+  echo "module command not available in sh; 'module load' will fail (no Lmod or Environment Modules init file found)" >> LOGFILE
+fi
+EOT
+}
+
+sub addModulePrologue()
+{
+  my ($file) = @_;
+  open(my $in, "<", $file) || return;
+  my @lines = <$in>;
+  close($in);
+  my $cmd = qr/(?:^|[;&|(`{]|\b(?:then|do|else|elif|if|while|until)\b)\s*(?:module|ml)(?:\s|;|$)/;
+  my $at;
+  for (my $i = 0; $i < @lines; $i++) {
+    next if $lines[$i] =~ /^\s*#/;
+    if ($lines[$i] =~ $cmd) { $at = $i; last; }
+  }
+  return if !defined($at);
+  my $pro = &modulePrologue();
+  $pro =~ s/LOGFILE/$logfile/;
+  splice(@lines, $at, 0, $pro, "\n");
+  open(my $out, ">", $file) || return;
+  print $out @lines;
+  close($out);
 }
 
 sub shErrorReport()
