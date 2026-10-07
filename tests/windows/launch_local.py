@@ -149,9 +149,9 @@ def main():
         say("anonymous subscriber: rc=%d %s" % (anon.returncode, anon.stdout.decode().strip()))
         s.check(anon.returncode != 0 and b"not authori" in anon.stdout.lower(),
                 "subscription without the password is refused")
-        # mosquitto_sub never exits on its own once subscribed: -d shows the SUBACK, the timeout ends it.
+        # -d shows the SUBACK, -E ends mosquitto_sub once it has it.
         try:
-            bad = subprocess.run(base[:-3] + ["-t", "ecce/other/#", "-d", "-u", cfg["user"],
+            bad = subprocess.run(base[:-3] + ["-t", "ecce/other/#", "-d", "-E", "-u", cfg["user"],
                                  "-P", cfg["password"]], stdout=subprocess.PIPE,
                                  stderr=subprocess.STDOUT, timeout=6).stdout
         except subprocess.TimeoutExpired as e:
