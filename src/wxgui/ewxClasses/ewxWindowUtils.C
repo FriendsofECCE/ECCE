@@ -920,19 +920,16 @@ void auditWindow(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
     }
   }
 
-  //  Controls whose best size is the size of what they show.
+  //  Controls whose best size is the size of what they show.  Choices,
+  //  combo boxes and spin controls are sized by the app on purpose; what
+  //  they hold is checked below.
   const bool fixedContent =
       w->IsKindOf(wxCLASSINFO(wxStaticText)) ||
       w->IsKindOf(wxCLASSINFO(wxButton)) ||
       w->IsKindOf(wxCLASSINFO(wxToggleButton)) ||
       w->IsKindOf(wxCLASSINFO(wxCheckBox)) ||
       w->IsKindOf(wxCLASSINFO(wxRadioButton)) ||
-      w->IsKindOf(wxCLASSINFO(wxRadioBox)) ||
-      w->IsKindOf(wxCLASSINFO(wxChoice)) ||
-      w->IsKindOf(wxCLASSINFO(wxComboBox)) ||
-      w->IsKindOf(wxCLASSINFO(wxComboCtrl)) ||
-      w->IsKindOf(wxCLASSINFO(wxSpinCtrl)) ||
-      w->IsKindOf(wxCLASSINFO(wxSpinCtrlDouble));
+      w->IsKindOf(wxCLASSINFO(wxRadioBox));
   wxStaticText *st = wxDynamicCast(w, wxStaticText);
   const bool ellipsized = st && (st->GetWindowStyleFlag() & wxST_ELLIPSIZE_MASK);
   if (fixedContent && !ellipsized && size.x > 0 && size.y > 0) {
