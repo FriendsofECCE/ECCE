@@ -467,13 +467,23 @@ std::wstring cmdLine(const std::vector<std::string>& args)
   return c;
 }
 
+// The directory sh's `pwd` reports ("/c/Users/x") as a Windows path.
+std::wstring nativeDir(const std::string& dir)
+{
+  std::wstring w = widen(dir);
+  if (w.size() >= 2 && w[0] == L'/' && iswalpha(w[1]) &&
+      (w.size() == 2 || w[2] == L'/'))
+    w = std::wstring(1, w[1]) + L":" + (w.size() == 2 ? L"/" : w.substr(2));
+  return w;
+}
+
 // "sh <script>" in `dir`; empty error on success.
 bool shellSpawn(const DirectTransport& t, const std::wstring& shell,
                 const std::wstring& scriptArgs, const std::map<std::string, std::string>& set,
                 const std::map<std::string, bool>& unset, const std::string& dir,
                 Spawn& sp, std::wstring& envStore, TransportResult& res)
 {
-  if (!dir.empty() && !isDir(widen(dir))) {
+  if (!dir.empty() && !isDir(nativeDir(dir))) {
     res.status = 97;
     res.err = "sh: cd: " + dir + ": No such file or directory\n";
     return false;
@@ -481,7 +491,7 @@ bool shellSpawn(const DirectTransport& t, const std::wstring& shell,
   envStore = envBlock(set, unset, dirOf(shell));
   sp.exe = shell;
   sp.cmd = quoteArg(shell) + L" " + scriptArgs;
-  sp.cwd = widen(dir);
+  sp.cwd = nativeDir(dir);
   sp.env = &envStore;
   sp.flags = CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP;
   (void)t;
