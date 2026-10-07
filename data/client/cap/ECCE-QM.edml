@@ -33,6 +33,7 @@
   <MaxPrimitives>100 100 100 100 100 100</MaxPrimitives>
   <MaxSharedExponent>      1 </MaxSharedExponent>
   <SphericalCoordinates>	True </SphericalCoordinates>
+  <SphericalOnly>True</SphericalOnly>
   <DFTFitting>		False</DFTFitting>
   <RecommendDFTCharge>	False </RecommendDFTCharge>
   <RequireFullDFT>         False </RequireFullDFT>
