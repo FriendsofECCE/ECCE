@@ -161,8 +161,8 @@ public:
 
   virtual void eventMCB(const Event& event);
 
-  virtual void saveSettings(wxConfig * config);
-  virtual void restoreSettings(wxConfig * config);
+  virtual void saveSettings(wxConfigBase * config);
+  virtual void restoreSettings(wxConfigBase * config);
 
   virtual void setBackground(float r, float g, float b);
 

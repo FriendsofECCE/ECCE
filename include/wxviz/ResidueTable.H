@@ -20,7 +20,7 @@
 
 
 class GridAtomElement;
-class wxConfig;
+class wxConfigBase;
 
 /**
  * Residue table view.
@@ -63,8 +63,8 @@ class ResidueTable : public MoleculeDataTable,
     // Listener virtual
     void eventMCB(const Event& event);
 
-    virtual void restoreSettings(wxConfig * config);
-    virtual void saveSettings(wxConfig * config);
+    virtual void restoreSettings(wxConfigBase * config);
+    virtual void saveSettings(wxConfigBase * config);
 
   protected:
 

@@ -5,7 +5,8 @@
 
 #include "comm/Transport.H"
 
-// Runs scripts on this machine with fork/exec of /bin/sh.
+// Runs scripts on this machine with fork/exec of /bin/sh; on Windows with
+// CreateProcess, scripts running under an sh.exe found at run time.
 class DirectTransport : public Transport {
 public:
   virtual TransportResult run(const std::string& script, int timeoutSec = -1);
@@ -42,6 +43,13 @@ public:
   // Closes both pipes and reaps the script, giving it graceMs to exit after
   // EOF on stdin before SIGTERM, then SIGKILL.  Returns its exit status.
   int closeStream(Stream& s, int graceMs = 2000);
+
+#ifdef _WIN32
+  // Ends the process and everything it started (found through the parent
+  // links), the cancel path for a pid returned by spawnDetached().  Windows
+  // has no process-group signal.  True if anything was terminated.
+  static bool killTree(long pid, unsigned exitCode = 143);
+#endif
 };
 
 #endif

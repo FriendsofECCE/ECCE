@@ -1,5 +1,8 @@
 #include "comm/DirectTransport.H"
 
+// The Windows implementation is in DirectTransportWin.C.
+#ifndef _WIN32
+
 #include <cerrno>
 #include <chrono>
 #include <csignal>
@@ -572,3 +575,4 @@ int DirectTransport::closeStream(Stream& s, int graceMs)
   }
   return decode(st);
 }
+#endif  // _WIN32

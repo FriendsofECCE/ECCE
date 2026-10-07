@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <fstream>
   using std::flush;
   using std::ofstream;
@@ -330,7 +331,7 @@ void CalcEd::createCodeButtons()
 void CalcEd::OnButtonCalcedCodeClick(wxCommandEvent &event)
 {
   wxCustomButton *eventButton = (wxCustomButton*)event.GetEventObject();
-  unsigned long icode = (unsigned long)eventButton->GetClientData();
+  unsigned long icode = (uintptr_t)eventButton->GetClientData();
 
   wxSizerItemList children = p_codeSizer->GetChildren();
   wxSizerItemList::compatibility_iterator node = children.GetFirst();
@@ -372,7 +373,7 @@ void CalcEd::setCurrentCodeButton(const string& currentCode)
     while (node) {
       child = node->GetData();
       codeButton = (wxCustomButton*)child->GetWindow();
-      if ((unsigned long)codeButton->GetClientData() == icode) {
+      if ((uintptr_t)codeButton->GetClientData() == icode) {
         codeButton->SetValue(true);
       } else {
         codeButton->SetValue(false);

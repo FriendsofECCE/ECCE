@@ -892,7 +892,7 @@ sub handleOptions()
 #open(DEBUG,">/tmp/klsgensub");
      while (<PARAM>) {
 #print DEBUG;
-      chop;
+      s/\r?\n\z//;
       $_ =~ s/^\s*//;
       ($opt,$value) = split(/ +/,$_);
 
@@ -1462,7 +1462,7 @@ sub mopac()
     $retval .= "$::CC - declared output name so live monitoring can follow it.\n";
     $retval .= "if [ \"$base.out\" != \"$::outFile\" ]; then\n";
     $retval .= "  rm -f $::outFile\n";
-    $retval .= "  ln -s $base.out $::outFile\n";
+    $retval .= "  ln -s $base.out $::outFile 2>/dev/null || :\n";
     $retval .= "fi\n";
     $retval .= "\$mopac $::inFile >> $::logfile 2>&1\n";
     $retval .= "\n$::CC - Now the run is finished, replace that symlink with a\n";
@@ -1473,7 +1473,7 @@ sub mopac()
     $retval .= "$::CC - job's Outputs/ collection came back with only\n";
     $retval .= "$::CC - eccejobstorelog in it while every regular file (the\n";
     $retval .= "$::CC - input) and all 12 parsed properties uploaded fine.\n";
-    $retval .= "if [ -h $::outFile ]; then\n";
+    $retval .= "if [ \"$base.out\" != \"$::outFile\" ] && [ -e $base.out ]; then\n";
     $retval .= "  rm -f $::outFile\n";
     $retval .= "  cp $base.out $::outFile\n";
     $retval .= "fi\n";

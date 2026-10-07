@@ -61,7 +61,7 @@ enum drawChoices {
   NO_TXT,
   LOW_RES,
   LINE,
-  POINT,
+  POINT_DRAW,
   BBOX,
 
   MOVE_SAME_AS,

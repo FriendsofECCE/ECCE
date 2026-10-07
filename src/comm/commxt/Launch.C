@@ -932,6 +932,12 @@ bool Launch::validateScratchDir(void)
 bool Launch::checkRemoteDir(const string& remoteDir, const bool& rerunCheck)
 {
   bool ret = remoteDir[0]=='/' || remoteDir[0]=='~';
+#ifdef _WIN32
+  // A local run directory is a drive path, "C:/..." or "C:\...".
+  if (remoteDir.size() > 2 && isalpha((unsigned char)remoteDir[0]) &&
+      remoteDir[1]==':' && (remoteDir[2]=='/' || remoteDir[2]=='\\'))
+    ret = true;
+#endif
 
   // First see if it already exists
   if (ret) {
@@ -1098,7 +1104,7 @@ bool Launch::generateJobMonitoringFiles(void)
   string configName = p_cache->directory;
   configName += "/eccejobstore.conf";
 
-  ofstream storeConfigFile(configName.c_str());
+  ofstream storeConfigFile(configName.c_str(), ios::out | ios::binary);
 
   // used below
   const JCode* jcode = p_taskjob->application();
@@ -1139,7 +1145,7 @@ bool Launch::generateJobMonitoringFiles(void)
   configName = p_cache->directory;
   configName += "/eccejobmonitor.conf";
 
-  ofstream monitorConfigFile(configName.c_str());
+  ofstream monitorConfigFile(configName.c_str(), ios::out | ios::binary);
 
 #if (!defined(INSTALL) && defined(DEBUG))
   cout << "launch: writing Config File \"eccejobmonitor.conf\"" << endl;
@@ -1337,7 +1343,7 @@ bool Launch::generateDescriptorFile(const string& source, const string& target)
     ifstream sourceDescFile(source.c_str());
 
     if (sourceDescFile) {
-      ofstream targetDescFile(target.c_str());
+      ofstream targetDescFile(target.c_str(), ios::out | ios::binary);
 
       if (targetDescFile) {
         static const int BUFSIZE=512;
@@ -2097,7 +2103,23 @@ bool Launch::startJobStore(const string& importDir)
     cout << "Start eccejobmaster with system(" << clientCmd << ")" << endl;
 #endif
 
+#ifdef _WIN32
+    // system() would run this through cmd.exe, which has neither nohup nor a
+    // trailing &; hand it to the local sh as a detached command instead.
+    // The program path is for sh: forward slashes.
+    int status = 0;
+    {
+      string cmd = clientCmd.substr(strlen("nohup "));
+      cmd = cmd.substr(0, cmd.size() - 2);               // the trailing " &"
+      for (size_t i = 0; i < cmd.size(); i++)
+        if (cmd[i] == '\\') cmd[i] = '/';
+      string out;
+      if (!p_localconn || !p_localconn->execbg(cmd, out, ""))
+        status = 1;
+    }
+#else
     int status = system((char*)clientCmd.c_str());
+#endif
     if (status<<8 != 0) {
       ret = false;
       p_lastMessage = "Unable to start eccejobmaster with: " + clientCmd;
@@ -2169,7 +2191,7 @@ bool Launch::postProcessInput(void)
 
   // generate the file of parameters for the post-processing script
   string paramf = p_cache->directory + "/postParams";
-  ofstream os(paramf.c_str(), (ios::out | ios::trunc));
+  ofstream os(paramf.c_str(), (ios::out | ios::trunc | ios::binary));
 
   if (os) {
     p_inputFile = (*p_options)["##input##"];
@@ -2252,7 +2274,7 @@ bool Launch::instanceScript(EcceMap& kv)
   
   // generate the parameter file
   string paramf = p_cache->directory + "/subParams";
-  ofstream os(paramf.c_str(), (ios::out | ios::trunc));
+  ofstream os(paramf.c_str(), (ios::out | ios::trunc | ios::binary));
   if (os) {
     string tmpVal;
     os << " -Q " + p_cache->mgr->name() << "\n";

@@ -47,5 +47,6 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Waiting for login: a lost monitor parks the job, session start catches it up](waiting-for-login.md)
 - [Test suites get a per-run state directory, ports and X display](test-suites-isolate-per-run.md)
 - [Full builds and long suites go to radium/tellurium via tools/offload](long-suites-go-to-offload-hosts.md)
+- [Windows local jobs: paths in sh scripts, the job id, Strawberry perl, the broker](windows-local-jobs-pitfalls.md)
 - [A remote view rides ECCE's own login, not an ssh of its own (Tail)](remote-views-use-ecces-own-login.md)
 - [A calculation's molecule and basis properties are stored below it](calculation-properties-live-below-it.md)

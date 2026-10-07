@@ -1010,7 +1010,7 @@ void ViewerEvtHandler::eventMCB(const Event& event)
 }
 
 
-void ViewerEvtHandler::saveSettings(wxConfig * config)
+void ViewerEvtHandler::saveSettings(wxConfigBase * config)
 {
   WxVizToolFW& fw = getFW();
   SGContainer& sg = fw.getSceneGraph();
@@ -1032,7 +1032,7 @@ void ViewerEvtHandler::saveSettings(wxConfig * config)
 }
 
 
-void ViewerEvtHandler::restoreSettings(wxConfig * config)
+void ViewerEvtHandler::restoreSettings(wxConfigBase * config)
 {
   WxVizToolFW& fw = getFW();
   SGContainer& sg = fw.getSceneGraph();
