@@ -314,7 +314,7 @@ target_include_directories(eccewxinv PRIVATE ${wxWidgets_INCLUDE_DIRS})
 target_link_libraries(eccewxinv PRIVATE ${wxWidgets_LIBRARIES} OpenGL::GL OpenGL::GLU)
 if(ECCE_USE_COIN AND ECCE_GL_X11)
   find_package(OpenGL REQUIRED COMPONENTS EGL)
-  target_link_libraries(eccewxinv PUBLIC OpenGL::EGL)
+  target_link_libraries(eccewxinv PUBLIC OpenGL::EGL ${CMAKE_DL_LIBS})
 endif()
 
 # --- src/wxviz -> libeccewxviz.a ---
@@ -518,6 +518,14 @@ if(ECCE_USE_COIN)
   add_executable(offscreen-check EXCLUDE_FROM_ALL tools/coin/offscreen/offscreen-check.C)
   target_link_libraries(offscreen-check PRIVATE eccewxinv ${COIN_LIBRARY} ${wxWidgets_LIBRARIES} OpenGL::GL)
   target_include_directories(offscreen-check PRIVATE ${wxWidgets_INCLUDE_DIRS})
+endif()
+# Coin's glue display is the offscreen one, not an EGL X11 display (#237);
+# ctest coin_egl_display. Exports eglglue_display, as an EGL-only Coin does.
+if(ECCE_USE_COIN AND ECCE_GL_X11)
+  add_executable(egl-display-check tools/coin/offscreen/egl-display-check.C)
+  target_link_libraries(egl-display-check PRIVATE eccewxinv ${COIN_LIBRARY} ${wxWidgets_LIBRARIES} OpenGL::GL)
+  target_include_directories(egl-display-check PRIVATE ${wxWidgets_INCLUDE_DIRS})
+  set_target_properties(egl-display-check PROPERTIES ENABLE_EXPORTS ON)
 endif()
 
 # Frame-time benchmark for the molecule viewer (tools/viewer-bench); built
@@ -1756,6 +1764,12 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/verify/run_tests.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/verify)
+
+  # An EGL-only Coin gets the surfaceless display, not an EGL X11 one (#237).
+  if(ECCE_USE_COIN AND ECCE_GL_X11)
+    add_test(NAME coin_egl_display COMMAND egl-display-check)
+    set_tests_properties(coin_egl_display PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+  endif()
 
   # tests/look -- the colours that carry meaning (run states, checker
   # status) reach 4.5:1 against light and dark theme backgrounds (#210).

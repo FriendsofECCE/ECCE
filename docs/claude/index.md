@@ -10,6 +10,6 @@ One file per fact, YAML frontmatter (`type`, `title`, `area`, `section`,
 holds its overview and lists its entries.
 
 - [Code registration](codereg/index.md) — 58 entries
-- [Services](services/index.md) — 9 entries
+- [Services](services/index.md) — 10 entries
 - [MO correlation diagram](mo-diagram/index.md) — 8 entries
 - [wx, viewer and C++](wx-viewer/index.md) — 23 entries
