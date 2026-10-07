@@ -6,6 +6,7 @@ gaussian 3-21G*                       3-21g*                 3-21g*             
 gaussian 3-21GSP                      -                      -                      no keyword matches
 gaussian 4-22GSP                      -                      -                      no keyword matches
 gaussian 4-31G                        4-31g                  4-31g                  match
+gaussian 6-21G                        6-21G                  6-21G                  match  [H2O: match nbf 13/13 dE 1e-10; HCl: match nbf 15/15 dE -1e-09]
 gaussian 6-31++G                      6-31++g                6-31++g                match
 gaussian 6-31++G*                     6-31++G*               6-31++G*               match
 gaussian 6-31++G**                    6-31++g**              6-31++g**              match
@@ -27,13 +28,20 @@ gaussian ANO-RCC                      -                      -                  
 gaussian AQZP                         -                      -                      no keyword matches
 gaussian ATZP                         -                      -                      no keyword matches
 gaussian Ahlrichs TZV                 TZV                    TZV                    match
+gaussian Ahlrichs TZVP                TZVP                   TZVP                   match  [H2O: match nbf 31/31 dE -1e-10; HCl: match nbf 28/28 dE 0]
 gaussian Ahlrichs VDZ                 SV                     SV                     match
 gaussian Ahlrichs VTZ                 -                      -                      no keyword matches
 gaussian Ahlrichs pVDZ                SVP                    SVP                    match
+gaussian CBSB7                        CBSB7                  CBSB7                  match  [H2O: match nbf 30/30 dE 0; HCl: match nbf 37/37 dE 0]
+gaussian CEP-121G                     CEP-121G               CEP-121G               match  [HI: match nbf 11/11 dE -3e-10; Zn: match nbf 31/31 dE 0; Hg: match nbf 31/31 dE -1e-09; H2O: match nbf 18/18 dE 1e-10; HCl: match nbf 15/15 dE -1e-10; HI writer deck: match dE -1e-10]
+gaussian CEP-31G                      CEP-31G                CEP-31G                match  [HI: match nbf 10/10 dE -2e-10; Zn: match nbf 31/31 dE 0; Hg: match nbf 31/31 dE -1e-09; H2O: match nbf 12/12 dE 3e-10; HCl: match nbf 10/10 dE 0; HI writer deck: match dE 0]
+gaussian CEP-4G                       CEP-4G                 CEP-4G                 match  [HI: match nbf 9/9 dE -9e-10; Zn: match nbf 31/31 dE 0; Hg: match nbf 31/31 dE -1e-09; H2O: match nbf 6/6 dE -3.3e-09; HCl: match nbf 5/5 dE -5e-10; HI writer deck: match dE -7e-10]
 gaussian DZ (Dunning)                 d95                    d95                    match
 gaussian DZP (Dunning)                D95**                  D95**                  match
-gaussian DZVP (DFT Orbital)           -                      -                      no keyword matches
-gaussian DZVP2 (DFT Orbital)          -                      -                      no keyword matches
+gaussian DZVP (DFT Orbital)           DGDZVP                 -                      match  [H2O: match nbf 18/18 dE -5.2e-08; HCl: match nbf 20/20 dE 3.1e-07]
+gaussian DZVP2 (DFT Orbital)          DGDZVP2                -                      match  [H2O: match nbf 24/24 dE 4.2e-08; HCl: match nbf 23/23 dE -1e-08]
+gaussian EPR-II                       EPR-II                 EPR-II                 match  [H2O: match nbf 31/31 dE 5e-10]
+gaussian EPR-III                      EPR-III                EPR-III                match  [H2O: match nbf 62/62 dE -1e-09]
 gaussian IGLO-II                      -                      -                      no keyword matches
 gaussian IGLO-III                     -                      -                      no keyword matches
 gaussian J-DZP                        -                      -                      no keyword matches
@@ -42,10 +50,12 @@ gaussian J-QZP                        -                      -                  
 gaussian J-QZP-DKH                    -                      -                      no keyword matches
 gaussian J-TZP                        -                      -                      no keyword matches
 gaussian J-TZP-DKH                    -                      -                      no keyword matches
+gaussian LanL2MB                      LanL2MB                LanL2MB                match  [HI: match nbf 5/5 dE -8e-10; Zn: match nbf 9/9 dE 0; Hg: match nbf 9/9 dE 0; H2O: match nbf 7/7 dE -1.6e-08; HCl: match nbf 5/5 dE -2e-10; HI writer deck: match dE -1.1e-09]
 gaussian MIDI (Huzinaga)              -                      -                      no keyword matches
 gaussian MIDI!                        midix                  midix                  match
 gaussian MINI (Huzinaga)              -                      -                      no keyword matches
 gaussian MINI (Scaled)                -                      -                      no keyword matches
+gaussian SDD                          SDD                    SDD                    match  [HI: match nbf 13/13 dE 2e-10; Zn: match nbf 36/36 dE 0; Hg: match nbf 36/36 dE 1e-09; H2O: match nbf 14/14 dE -1.8e-09; HCl: match nbf 20/20 dE 1.8e-08; HI writer deck: match dE 0]
 gaussian STO-2G                       sto-2g                 sto-2g                 match
 gaussian STO-3G                       sto-3g                 sto-3g                 match
 gaussian STO-3G*                      sto-3g*                sto-3g*                match
@@ -54,7 +64,7 @@ gaussian SV (Dunning-Hay)             d95v                   d95v               
 gaussian SVP (Dunning-Hay)            -                      -                      no keyword matches
 gaussian Sadlej pVTZ                  -                      -                      no keyword matches
 gaussian TZ (Dunning)                 -                      -                      no keyword matches
-gaussian TZVP (DFT Orbital)           -                      -                      no keyword matches
+gaussian TZVP (DFT Orbital)           DGTZVP                 -                      match  [H2O: match nbf 30/30 dE 5.7e-08; HCl: match nbf 28/28 dE -3.3e-08]
 gaussian UGBS                         UGBS                   UGBS                   match
 gaussian WTBS                         -                      -                      no keyword matches
 gaussian Wachters+f                   -                      -                      not run (no small test molecule for its elements)
@@ -109,6 +119,9 @@ gaussian cc-pwCVTZ-DK                 -                      -                  
 gaussian d-aug-cc-pVDZ                -                      -                      no keyword matches
 gaussian d-aug-cc-pVQZ                -                      -                      no keyword matches
 gaussian d-aug-cc-pVTZ                -                      -                      no keyword matches
+gaussian def2-QZV                     def2QZV                def2QZV                match  [HI: match nbf 49/49 dE 0; Zn: match nbf 54/54 dE 1e-08; Hg: match nbf 42/42 dE 0; H2O: match nbf 27/27 dE -1e-10; HCl: match nbf 31/31 dE 0; HI writer deck: match dE 0]
+gaussian def2-SV                      def2SV                 def2SV                 match  [HI: match nbf 28/28 dE 0; Zn: match nbf 24/24 dE 0; Hg: match nbf 25/25 dE 0; H2O: match nbf 18/18 dE -1.8e-09; HCl: match nbf 20/20 dE 0; HI writer deck: match dE 0]
+gaussian def2-TZV                     def2TZV                def2TZV                match  [HI: match nbf 53/53 dE 0; Zn: match nbf 30/30 dE 0; Hg: match nbf 36/36 dE 0; H2O: match nbf 20/20 dE -2e-10; HCl: match nbf 23/23 dE 0; HI writer deck: match dE 0]
 gaussian pc-1                         -                      -                      no keyword matches
 gaussian pc-2                         -                      -                      no keyword matches
 gaussian pc-3                         -                      -                      no keyword matches

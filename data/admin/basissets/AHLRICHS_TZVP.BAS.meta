@@ -1,0 +1,8 @@
+references
+A. Schaefer, C. Huber and R. Ahlrichs, J. Chem. Phys. 100, 5829 (1994).
+
+references
+info
+Ahlrichs TZVP: triple zeta valence plus polarization (Gaussian keyword TZVP).
+Primitives and coefficients as printed by Gaussian 16 (gfinput) for this keyword, converted by tools/basissets/g16_basis_dump.py; coefficients are in Gaussian's overlap normalization.
+info

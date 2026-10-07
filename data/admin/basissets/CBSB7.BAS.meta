@@ -1,0 +1,8 @@
+references
+J. A. Montgomery Jr., M. J. Frisch, J. W. Ochterski and G. A. Petersson, J. Chem. Phys. 110, 2822 (1999).
+
+references
+info
+The 6-311G(2d,d,p)-based basis of the CBS-QB3 model chemistry (Gaussian keyword CBSB7).
+Primitives and coefficients as printed by Gaussian 16 (gfinput) for this keyword, converted by tools/basissets/g16_basis_dump.py; coefficients are in Gaussian's overlap normalization.
+info

@@ -602,6 +602,23 @@ sub setupBasisTranslation {
   $NameToBasis{"sto-6g"} = "STO-6G";
   $NameToBasis{"ugbs"} = "UGBS";
 
+  #  Library entries added for #154; each judged by energy against ECCE's own
+  #  primitives (tests/basisload/named_basis_check.results.txt).  The ECP sets
+  #  are named only for elements that carry no ECP (see below).
+  $NameToBasis{"sdd"} = "SDD";
+  $NameToBasis{"cbsb7"} = "CBSB7";
+  $NameToBasis{"def2-sv"} = "def2SV";
+  $NameToBasis{"def2-tzv"} = "def2TZV";
+  $NameToBasis{"def2-qzv"} = "def2QZV";
+  $NameToBasis{"lanl2mb"} = "LanL2MB";
+  $NameToBasis{"cep-4g"} = "CEP-4G";
+  $NameToBasis{"cep-31g"} = "CEP-31G";
+  $NameToBasis{"cep-121g"} = "CEP-121G";
+  $NameToBasis{"epr-ii"} = "EPR-II";
+  $NameToBasis{"epr-iii"} = "EPR-III";
+  $NameToBasis{"ahlrichs tzvp"} = "TZVP";
+  $NameToBasis{"6-21g"} = "6-21G";
+
   $NameToBasis{"sto-2g"} = "sto-2g";
   $NameToBasis{"sto-3g"} = "sto-3g";
   $NameToBasis{"sto-3g*"} = "sto-3g*";

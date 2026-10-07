@@ -394,7 +394,12 @@ def name_tables():
             "cc-pvdz": "cc-pvdz", "def2-svp": "def2SVP",
             "def2-svp(p)": "def2SVPP", "midi!": "midix",
             "dz (dunning)": "d95", "ahlrichs vdz": "SV",
-            "dzp (dunning)": "D95**", "sto-6g": "STO-6G"},
+            "dzp (dunning)": "D95**", "sto-6g": "STO-6G",
+            "sdd": "SDD", "cbsb7": "CBSB7", "def2-sv": "def2SV",
+            "def2-tzv": "def2TZV", "def2-qzv": "def2QZV",
+            "lanl2mb": "LanL2MB", "cep-4g": "CEP-4G", "cep-31g": "CEP-31G",
+            "cep-121g": "CEP-121G", "epr-ii": "EPR-II", "epr-iii": "EPR-III",
+            "ahlrichs tzvp": "TZVP", "6-21g": "6-21G"},
     }
     #  Rejected by the code or a different basis from ECCE's under the
     #  same name: naming any of these must stay impossible.
@@ -403,7 +408,11 @@ def name_tables():
                          "6-31++g*", "d-aug-cc-pvdz", "cc-pv(d+d)z",
                          "dz (dunning)"],
         "wrGaussian16GBS.pm": ["6-31g(3df,3pd)", "cc-pvdz-dk", "cc-pcvdz",
-                               "d-aug-cc-pvdz", "pc-2", "iglo-ii"],
+                               "d-aug-cc-pvdz", "pc-2", "iglo-ii",
+                               #  same basis as DGDZVP*, but they carry DFT
+                               #  fitting sets a route-card name would drop
+                               "dzvp (dft orbital)", "dzvp2 (dft orbital)",
+                               "tzvp (dft orbital)"],
     }
     problems = []
     for path in must:

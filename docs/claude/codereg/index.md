@@ -118,6 +118,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [Codereg dialogs are never told which elements the structure contains](codereg-dialogs-are-never-told-which-elements.md)
 - [A dialog's choice string must match the generator's expected string EXACTLY, or selecting it silently emits nothing](a-dialogs-choice-string-must-match-the.md)
 - [The basis-set writers decide *how* a basis reaches the deck, and every bug in them is silent](the-basis-set-writers-decide-how-a.md)
+- [A Gaussian basis keyword is selectable only if the library has an entry; tools/basissets/g16_basis_dump.py makes one from the keyword](a-gaussian-basis-keyword-needs-a-library-entry.md)
 - [A combo whose default is a bare integer opens BLANK when the list is built conditionally](a-combo-whose-default-is-a-bare.md)
 - [NWChem aborts on three offered functionals and rejects its documented dispersion spellings](verify-a-codes-keyword-list-by-running.md)
 - [Retired codes are not maintained, and the suite no longer checks them](retired-codes-are-not-maintained-and-the.md)
