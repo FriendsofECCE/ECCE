@@ -5885,7 +5885,7 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
         info.Right().Layer(1).Row(0).Position(2 + (order < 0 ? 500 : order));
         info.PinButton(p_panelMode != PANELS_DETAIL);
         if (p_panelMode == PANELS_DETAIL) {
-          info.dock_proportion = DETAIL_PROPORTION;
+          info.dock_proportion = detailProportion();
         }
       }
     }

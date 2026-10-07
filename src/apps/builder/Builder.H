@@ -163,6 +163,10 @@ class Builder: public BuilderGUI,
     //  them moves it, and the saved layout keeps the result.
     static const int INDEX_PROPORTION = 100;
     static const int DETAIL_PROPORTION = 100;
+    //  A short screen gives the open panel (a table needs rows) more of the
+    //  column than the list, which scrolls.
+    static int detailProportion()
+    { return wxGetDisplaySize().y < 900 ? 220 : DETAIL_PROPORTION; }
 
     //  How the side panels are organised (View > Panel layout).  Classic
     //  is the original arrangement; the other three put everything in one

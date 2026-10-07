@@ -299,7 +299,7 @@ void Builder::applyGeometry(bool resetSizes)
       if (resetSizes && !p_folded.count(pane.window)) {
         map<wxWindow*, int>::const_iterator base =
           p_baseProportion.find(pane.window);
-        pane.dock_proportion = detail ? DETAIL_PROPORTION
+        pane.dock_proportion = detail ? detailProportion()
           : (base == p_baseProportion.end() ? 150 : base->second);
       }
       continue;
@@ -365,7 +365,7 @@ void Builder::refreshColumn()
         pane.Show(true);
         foldPane(pane.window, true);
       } else if (p_panelMode == PANELS_DETAIL) {
-        pane.dock_proportion = DETAIL_PROPORTION;
+        pane.dock_proportion = detailProportion();
       }
     }
   }
