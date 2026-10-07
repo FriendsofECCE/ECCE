@@ -7,6 +7,12 @@
 //                    [queue=Q] [nodes=N] [procs=P] [wall="D H:M"] [mem=MB]
 //                                 batch settings, as the launcher's queue controls set them;
 //                                 LAUNCHJOB_ACCOUNT in the environment sets the account at launch
+//   launchjob setup  <calcURL> <dir> <name.out> [SetupParams]
+//                                 what the Calculation Editor stores: the molecule,
+//                                 basis, theory and run type from <dir>/<name>.frag,
+//                                 .gbs and .param (as an import reads them), and the
+//                                 theory dialogs' values from the SetupParams file;
+//                                 leaves the calculation ready
 //   launchjob launch <calcURL>                            exit 0 when submitted
 //   launchjob kill   <calcURL>                            RunMgmt::terminate, as the Organizer's Kill
 //   launchjob killflag <calcURL> [set|clear]              prints whether a kill request is recorded
@@ -48,6 +54,8 @@
 #include "dsm/VDoc.H"
 #include "tdat/AuthCache.H"
 #include "tdat/DefaultDavAuth.H"
+#include "tdat/GUIValues.H"
+#include "dsm/ICalculation.H"
 #include "util/Ecce.H"
 #include "util/EcceMap.H"
 #include "util/EcceURL.H"
@@ -197,6 +205,31 @@ static int doLaunch(const string& url)
   return 0;
 }
 
+static int doSetup(const vector<string>& a)
+{
+  if (a.size() < 3) { cerr << "setup: <calcURL> <dir> <name.out> [SetupParams]" << endl; return 2; }
+  TaskJob* task = getTask(a[0]);
+  if (!task) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+  try {
+    string message = task->import(a[1], a[2]);
+    if (!message.empty()) cout << message << endl;
+  } catch (EcceException& ex) {
+    cerr << "setup failed: " << ex.what() << endl;
+    return 1;
+  }
+  if (a.size() > 3) {
+    ifstream in(a[3].c_str());
+    GUIValues values;
+    ICalculation* calc = dynamic_cast<ICalculation*>(task);
+    if (!in || values.load(in) == 0 || !calc || !calc->guiparams(&values)) {
+      cerr << "setup: cannot store the values in " << a[3] << endl;
+      return 1;
+    }
+  }
+  task->setState(ResourceDescriptor::STATE_READY);
+  return 0;
+}
+
 // What CalcMgr::resetForRestart() does, then the user's edited input deck.
 static int doRestart(const vector<string>& a)
 {
@@ -231,6 +264,7 @@ int main(int argc, char** argv)
   a.erase(a.begin());
   if (mode == "create") return doCreate(a);
   if (mode == "restart") return doRestart(a);
+  if (mode == "setup") return doSetup(a);
   if (mode == "catchup") {
     vector<JobCatchUp::Result> r = JobCatchUp::run();
     for (size_t i = 0; i < r.size(); i++)

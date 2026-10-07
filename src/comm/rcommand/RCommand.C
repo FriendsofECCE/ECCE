@@ -463,6 +463,13 @@ string RCommand::sshBackend() const
   return dynamic_cast<const OpenSshTransport*>(p_transport) ? "openssh" : "libssh";
 }
 
+vector<string> RCommand::terminalSshOptions() const
+{
+  const OpenSshTransport* t = p_ssh ?
+    dynamic_cast<const OpenSshTransport*>(p_transport) : 0;
+  return t ? t->controlArgs() : vector<string>();
+}
+
 string RCommand::frontEndMode() const
 {
   if (p_ssh && p_transport) {
@@ -1163,14 +1170,16 @@ bool RCommand::execout(const string& command, string& output,
   return status;
 }
 
-bool RCommand::startStream(const string& command)
+bool RCommand::startStream(const string& command, bool onThisLogin)
 {
   if (!p_transport || !p_connected || p_stream.rfd >= 0) return false;
   string error;
   if (p_ssh) {
     int fd = -1;
-    p_sshStream = static_cast<RemoteTransport*>(p_transport)->openStream(
-                    p_scriptPrefix + command, fd, error);
+    RemoteTransport* t = static_cast<RemoteTransport*>(p_transport);
+    p_sshStream = onThisLogin
+      ? t->openStreamOnLogin(p_scriptPrefix + command, fd, error)
+      : t->openStream(p_scriptPrefix + command, fd, error);
     if (!p_sshStream) {
       p_errMessage = "Could not start " + command + ": " + error;
       return false;
@@ -1178,7 +1187,8 @@ bool RCommand::startStream(const string& command)
     p_stream.rfd = p_stream.wfd = fd;
     if (getenv("ECCE_RCOM_LOGMODE"))
       cout << "ssh stream (" << command << ") in (" << p_transport->dir()
-           << ") on its own session" << endl;
+           << ") " << (onThisLogin ? "on this connection's login"
+                                   : "on its own session") << endl;
     return true;
   }
   if (!static_cast<DirectTransport*>(p_transport)->openStream(

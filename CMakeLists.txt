@@ -1852,6 +1852,15 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_calcimport PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
 
+  # The Builder with a calculation's MOs panel open in every panel layout,
+  # on a 1366x768 screen: viewer and panel on screen and inside the window.
+  add_test(NAME apps_panel_layouts
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/panel_layouts_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_panel_layouts PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # Every app's main window and every codereg Theory/Runtype dialog fits a
   # small screen (#189): measured on private Xvfb screens, no window may
   # extend past the screen.  Same installed tree and isolation as `apps`.
@@ -1926,6 +1935,32 @@ if(PYTHON3_EXECUTABLE)
     eccetdat ecceutil ${XercesC_LIBRARIES})
   add_test(NAME transport_local_terminal COMMAND testLocalTerminal)
   set_tests_properties(transport_local_terminal PROPERTIES TIMEOUT 60)
+
+  # Run Management's Tail (TailSource) on a local machine; the same program
+  # runs against the test sshd from tests/transport/sshd/tail_test.sh.
+  add_executable(testTail tests/transport/testTail.C)
+  target_compile_definitions(testTail PRIVATE
+    ECCE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+  target_link_libraries(testTail PRIVATE
+    eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+    eccetdat ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME transport_tail COMMAND testTail)
+  set_tests_properties(transport_tail PROPERTIES TIMEOUT 120)
+
+  # The Tail window itself on Xvfb, local machine (tail_window_test.sh).
+  add_executable(tailwindow tests/transport/tailwindow.C)
+  target_compile_definitions(tailwindow PRIVATE ${wxWidgets_DEFINITIONS})
+  target_include_directories(tailwindow PRIVATE ${wxWidgets_INCLUDE_DIRS}
+    ${XercesC_INCLUDE_DIRS})
+  target_link_libraries(tailwindow PRIVATE
+    eccewxguicomm eccewxgui eccecomm eccercmd eccedsi eccedav eccecipc
+    eccefaces eccexml eccetdat ecceutil ${wxWidgets_LIBRARIES}
+    ${XercesC_LIBRARIES})
+  add_test(NAME transport_tail_window
+           COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tests/transport/tail_window_test.sh
+                   $<TARGET_FILE:tailwindow> ${CMAKE_CURRENT_SOURCE_DIR})
+  set_tests_properties(transport_tail_window PROPERTIES TIMEOUT 120
+                       SKIP_RETURN_CODE 77)
 
   # OpenSshTransport against a stand-in ssh script and the real `ssh -G`:
   # process handling, file copies, streams, messages, backend choice.
