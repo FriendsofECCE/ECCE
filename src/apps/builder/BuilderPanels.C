@@ -969,6 +969,8 @@ void Builder::makeRoomFor(const wxString& name)
       for (size_t i = 0; i < column.size(); ++i) {
         column[i]->Position((int)i);
       }
+      //  Share the column's spare height in favour of the new pane.
+      now.dock_proportion = 300000;
       updatePanes();
       continue;
     }
