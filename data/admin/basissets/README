@@ -1,7 +1,7 @@
 Gaussian basis set library
 ==========================
 
-377 basis sets (*.BAS, with *.BAS.meta descriptors), served by the ECCE
+390 basis sets (*.BAS, with *.BAS.meta descriptors), served by the ECCE
 data server as Ecce/system/GaussianBasisSetLibrary and loaded through
 EDSIGaussianBasisSetLibrary.
 

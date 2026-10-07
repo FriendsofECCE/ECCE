@@ -6,6 +6,7 @@
 #include "wxgui/ewxStyledWindow.H"
 
 class ewxConfig;
+class wxSizer;
 
 /**
  * Subclass wxFrame to provide style changes.
@@ -29,6 +30,11 @@ class ewxFrame : public wxFrame, public ewxStyledWindow
       virtual ~ewxFrame();
 
       virtual bool Show(bool show = true);
+
+      // Cap to the display and scroll what does not fit; see
+      // ewxWindowUtils::fitToDisplay().  Show() does it for every frame;
+      // call it earlier to name the row of buttons that stays in view.
+      virtual void fitToScreen(wxSizer* fixedRow = NULL);
 
       virtual void saveWindowSettings(ewxConfig * config, bool saveSize);
       virtual void restoreWindowSettings(ewxConfig * config, bool restoreSize);

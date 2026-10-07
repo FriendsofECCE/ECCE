@@ -58,6 +58,7 @@ class SFile;
 class SGContainer;
 class SGContainerManager;
 class SGViewer;
+class SceneScript;
 class StructLib;
 class ViewerEvtHandler;
 class wxToolBarToolBase;
@@ -449,6 +450,7 @@ class Builder: public BuilderGUI,
       void doSaveAs(const bool& imagesOnly=false);
       void doSaveThumb();
       void doClose(const string& context="", const bool& autoOpen=true);
+      bool traceStressCommand(SceneScript& s, const vector<string>& w);
 
       bool isReadOnly() const;
       bool isReadOnly(IPropCalculation *calc) const;

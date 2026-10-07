@@ -5107,17 +5107,29 @@ void Builder::updatePropertyMenus()
       //  The Builder's own canvas is as large as the pane layout leaves it
       //  (181 px wide in the headless layout), so draw in a second viewer of
       //  fixed size on the same scene graph.
-      wxFrame *frame = new wxFrame(NULL, wxID_ANY, "scene capture");
-      SGViewer *viewer = new SGViewer(frame, wxID_ANY);
-      viewer->setText("", "", "", "");
-      viewer->setSceneGraph(p_sgMgr);
-      viewer->setViewing(false);
-      viewer->setDecoration(false);
-      wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
-      viewer->SetMinSize(wxSize(480, 480));
-      sizer->Add(viewer, 1, wxEXPAND);
-      frame->SetSizerAndFit(sizer);
-      frame->Show(true);
+      //  ECCE_VIEWER_SCENE_SIZE=<w>x<h> sizes the capture canvas.
+      //  ECCE_VIEWER_SCENE_HOLD=<seconds> instead draws in the Builder's
+      //  own canvas and keeps the window open that long, so the whole
+      //  window can be photographed with the scene on screen
+      //  (tools/screenshots/readme.py).
+      const char *hold = getenv("ECCE_VIEWER_SCENE_HOLD");
+      int capW = 480, capH = 480;
+      if (const char *sz = getenv("ECCE_VIEWER_SCENE_SIZE"))
+        sscanf(sz, "%dx%d", &capW, &capH);
+      SGViewer *viewer = p_viewer;
+      if (!hold) {
+        wxFrame *frame = new wxFrame(NULL, wxID_ANY, "scene capture");
+        viewer = new SGViewer(frame, wxID_ANY);
+        viewer->setText("", "", "", "");
+        viewer->setSceneGraph(p_sgMgr);
+        viewer->setViewing(false);
+        viewer->setDecoration(false);
+        wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
+        viewer->SetMinSize(wxSize(capW, capH));
+        sizer->Add(viewer, 1, wxEXPAND);
+        frame->SetSizerAndFit(sizer);
+        frame->Show(true);
+      }
       for (int i = 0; i < 30; i++) { wxTheApp->Yield(true); wxMilliSleep(10); }
       viewer->viewAll();
       SceneScript run(viewer, sg, p_calculation, outdir);
@@ -5153,6 +5165,8 @@ void Builder::updatePropertyMenus()
             cube->selectGrid(atoi(w[2].c_str()), atof(w[3].c_str()));
           });
         }
+        //  "gt...": the Geometry Trace stress commands (#217).
+        if (w[0].compare(0, 2, "gt") == 0) return traceStressCommand(s, w);
         if ((w[0] != "mopanel" && w[0] != "motable") || w.size() != 2)
           return s.fail("unknown command: " + w[0]);
         MoPanel *mo = 0;
@@ -5190,6 +5204,12 @@ void Builder::updatePropertyMenus()
         string msg = ready ? run.message() : "molecule never loaded";
         fprintf(stderr, "ECCE_VIEWER_SCENE: %s\n", msg.c_str());
         std::ofstream(outdir + "/FAILED") << msg << "\n";
+      }
+      if (hold) {
+        wxTimer *closer = new wxTimer();   // lives until the process exits
+        closer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) { Close(true); });
+        closer->StartOnce(1000 * atoi(hold));
+        return;
       }
       Close(true);
     });

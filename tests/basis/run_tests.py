@@ -78,7 +78,7 @@ CASES = [
     ),
     dict(
         name="orca-mixed-per-element",
-        fixture="water_mixed.gbs",
+        fixture="water_mixed_orca.gbs",
         exporter="std2ORCA",
         expect=[("no route card", lambda t: "useRouteCard" not in t),
                 ("O named via NewGTO",
@@ -94,6 +94,18 @@ CASES = [
         expect=[("H named", lambda t: "6-31G*" in t),
                 ("Pt explicit", lambda t: "2.63000000" in t),
                 ("ECP still written", lambda t: "PT-ECP" in t)],
+    ),
+    dict(
+        name="orca-general-contraction",
+        fixture="water_gencontr.gbs",
+        exporter="std2ORCA",
+        #  cc-pVDZ oxygen s is 8 primitives and TWO contractions.  The ORCA
+        #  writer once wrote only the first, so water had 23 functions
+        #  instead of 24 and the energy was 0.3 Eh off.
+        expect=[("both contractions of the 8-primitive s shell are written",
+                 lambda t: t.count(" S 8") == 2),
+                ("the second column's coefficients are there",
+                 lambda t: "-0.00016000" in t and "0.55736800" in t)],
     ),
     dict(
         name="orca-ecp-per-element",
@@ -355,6 +367,68 @@ def orca_ecp_rows_shape_ok(text):
     return True
 
 
+def name_tables():
+    """%NameToBasis in the ORCA and Gaussian 16 writers.
+
+    Every entry was run against the real code (tests/basisload/
+    named_basis_check.py) and judged by energy against ECCE's own
+    primitives.  This pins a representative set -- a name that silently
+    maps to a different basis, or a verified name that goes missing --
+    without needing either code.  ECCE name -> keyword, exactly.
+    """
+    def table(path):
+        text = open(os.path.join(PARSERS, path)).read()
+        return dict(re.findall(r'\$NameToBasis\{"([^"]+)"\}\s*=\s*"([^"]+)"',
+                               text))
+
+    must = {
+        "wrORCAGBS.pm": {
+            "6-31g*": "6-31G*", "cc-pvdz": "cc-pVDZ",
+            "aug-cc-pvtz": "aug-cc-pVTZ", "cc-pvtz-dk": "cc-pVTZ-DK",
+            "cc-pwcvtz": "cc-pwCVTZ", "aug-cc-pcvdz": "aug-cc-pCVDZ",
+            "pc-2": "pc-2", "pcseg-2": "pcseg-2", "iglo-ii": "IGLO-II",
+            "def2-svp(p)": "def2-SV(P)", "ahlrichs vdz": "SV",
+            "3-21gsp": "3-21GSP", "def2-tzvp": "def2-TZVP"},
+        "wrGaussian16GBS.pm": {
+            "6-31g*": "6-31G*", "6-31++g*": "6-31++G*",
+            "cc-pvdz": "cc-pvdz", "def2-svp": "def2SVP",
+            "def2-svp(p)": "def2SVPP", "midi!": "midix",
+            "dz (dunning)": "d95", "ahlrichs vdz": "SV",
+            "dzp (dunning)": "D95**", "sto-6g": "STO-6G",
+            "sdd": "SDD", "cbsb7": "CBSB7", "def2-sv": "def2SV",
+            "def2-tzv": "def2TZV", "def2-qzv": "def2QZV",
+            "lanl2mb": "LanL2MB", "cep-4g": "CEP-4G", "cep-31g": "CEP-31G",
+            "cep-121g": "CEP-121G", "epr-ii": "EPR-II", "epr-iii": "EPR-III",
+            "ahlrichs tzvp": "TZVP", "6-21g": "6-21G"},
+    }
+    #  Rejected by the code or a different basis from ECCE's under the
+    #  same name: naming any of these must stay impossible.
+    never = {
+        "wrORCAGBS.pm": ["pcseg-0", "3-21g*", "4-31g", "6-31++g",
+                         "6-31++g*", "d-aug-cc-pvdz", "cc-pv(d+d)z",
+                         "dz (dunning)"],
+        "wrGaussian16GBS.pm": ["6-31g(3df,3pd)", "cc-pvdz-dk", "cc-pcvdz",
+                               "d-aug-cc-pvdz", "pc-2", "iglo-ii",
+                               #  same basis as DGDZVP*, but they carry DFT
+                               #  fitting sets a route-card name would drop
+                               "dzvp (dft orbital)", "dzvp2 (dft orbital)",
+                               "tzvp (dft orbital)"],
+    }
+    problems = []
+    for path in must:
+        got = table(path)
+        for name, kw in must[path].items():
+            if got.get(name) != kw:
+                problems.append("%s: %r should map to %r, maps to %r"
+                                % (path, name, kw, got.get(name)))
+        for name in never[path]:
+            if name in got:
+                problems.append("%s: %r is in the table but the code "
+                                "rejects it or its set differs from ECCE's"
+                                % (path, name))
+    return problems
+
+
 def run(case):
     path = os.path.join(PARSERS, case["exporter"])
     with open(os.path.join(FIXTURES, case["fixture"])) as handle:
@@ -421,6 +495,10 @@ def main():
     checks += 1
     for finding in mo_ordering_matches_the_code():
         failures.append("MO ordering: " + finding)
+
+    checks += 1
+    for finding in name_tables():
+        failures.append("name tables: " + finding)
 
     checks += 1
     for finding in basis_name_rules(args.verbose):

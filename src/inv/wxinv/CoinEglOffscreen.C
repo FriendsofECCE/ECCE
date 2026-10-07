@@ -4,6 +4,7 @@
 #define GL_GLEXT_PROTOTYPES 1   // before any GL header: the FBO entry points
 #include <cstdio>
 #include <cstdlib>
+#include <dlfcn.h>
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -125,6 +126,19 @@ void destruct(cc_glglue_offscreen_data d)
 
 cc_glglue_offscreen_cb_functions s_funcs = {create, makeCurrent, reinstate, destruct};
 
+// A Coin built for EGL only (EPEL's and Fedora's Coin4) sets up the glue of
+// every context, the wx canvas's GLX one included, on its own
+// eglGetDisplay(EGL_DEFAULT_DISPLAY): an EGL X11 display beside the canvas,
+// which on an X server without a usable DRI3 device (FastX, VNC, Xvfb) goes
+// through Mesa's DRI3-failure fallbacks; the viewer aborted there (#237).
+// Coin only queries that display, so it gets ours, surfaceless where Mesa
+// offers it. A GLX Coin has no such symbol.
+void shareDisplayWithCoin()
+{
+  EGLDisplay *coinDpy = (EGLDisplay *)dlsym(RTLD_DEFAULT, "eglglue_display");
+  if (coinDpy && *coinDpy == EGL_NO_DISPLAY) *coinDpy = s_dpy;
+}
+
 }  // namespace
 
 bool CoinEglOffscreen::install()
@@ -138,6 +152,7 @@ bool CoinEglOffscreen::install()
     return false;
   }
   cc_glglue_context_set_offscreen_cb_functions(&s_funcs);
+  shareDisplayWithCoin();
   return true;
 }
 

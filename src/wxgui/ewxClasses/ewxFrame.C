@@ -66,8 +66,16 @@ ewxFrame::~ewxFrame()
 bool ewxFrame::Show(bool show)
 {
    setStyles(this, false);
+   if (show)
+      fitToScreen();
    
    return (wxFrame::Show(show));
+}
+
+
+void ewxFrame::fitToScreen(wxSizer* fixedRow)
+{
+   ewxWindowUtils::fitToDisplay(this, fixedRow);
 }
 
 

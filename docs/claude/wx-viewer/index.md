@@ -15,6 +15,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [`ECCE_USE_COIN` (default ON) builds the viewer against Coin3D; `=OFF` keeps the vendored core for one release](ecce-use-coin-builds-the-viewer-against-coin3d.md)
 - [Coin SORTED_LAYERS_BLEND is the default lobe transparency (6 passes, alpha canvas); slow scenes fall back to SCREEN_DOOR](coin-sorted-layers-blend-is-the-default-lobe-transparency.md)
 - [`GlPlatform` is the viewer's only GLX/EGL code; `tools/nonx11/check.py` compiles the viewer as a non-X11 port (#232)](glplatform-is-the-viewers-only-glx-egl-code.md)
+- [EPEL's and Fedora's Coin4 are EGL-only: Coin opens an EGL X11 display beside the GLX canvas unless handed ours (#237)](epel-fedora-coin4-is-egl-only.md)
 - [`Builder::execute()` paints after every command, so a command sequence shows each intermediate state (#226)](builder-execute-paints-after-every-command.md)
 - [Normal-mode arrows start on the drawn sphere, have a fixed thickness, and the longest tip is 1 A out (#228)](normal-mode-arrows-start-on-the-atom-sphere.md)
 - [`tools/coin/compare.sh` renders a fixed scene set with both viewer builds (#166 stage 2); harness pitfalls](tools-coin-compare-sh-renders-both-viewer-builds.md)
@@ -40,3 +41,6 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [The Vibrational Frequencies graph is `SpectrumCanvas` over the wx-free `VibSpectrum` model (#214)](vibrational-spectrum-canvas-214.md)
 - [Builder panel layouts (View > Panel layout): every pane stays an AUI pane; the one-column modes hide the inactive tab's panes](builder-panel-layouts-one-column.md)
 - [A structure opened from a file is not a calculation: `AbstractPropCalculation::getProperty()` throws](structure-file-calculations-throw-on-getproperty.md)
+- [Every `ewxFrame`/`ewxDialog` is capped to its display and scrolls what does not fit (`fitToScreen()`); codereg dialogs scroll in `EccePanel` (#189)](windows-fit-small-screens-via-fittodisplay.md)
+
+- [A failed live property update must not free the cached property; a panel's timer must die with the panel (#217)](property-cache-and-panel-timers-outlive-their-objects.md)

@@ -38,6 +38,7 @@
  * --dump and --complete are described where they are defined.
  */
 #include <string.h>
+#include <stdlib.h>
 #include <iostream>
 #include <strstream>
 #include <string>
@@ -212,7 +213,11 @@ static int dumpOne(int argc, char** argv)
   TGBSGroup* group = new TGBSGroup();
   group->insertOrbitalGBS(argv[3], list, true);
   config.insertGBSGroup(argv[5], group);
-  const char* text = config.dump("NWChem", string(argv[6]) == "named");
+  //  LOADBASIS_CODE picks the code whose GBSExport script formats the
+  //  text (default NWChem), so a deck can be built for ORCA or Gaussian.
+  const char* codeName = getenv("LOADBASIS_CODE");
+  const char* text = config.dump(codeName ? codeName : "NWChem",
+                                 string(argv[6]) == "named");
   cout << text << endl;
   delete [] text;
   return 0;
