@@ -354,6 +354,11 @@ if(GTK3_FOUND)
   target_link_libraries(eccewxgui PRIVATE ${GTK3_LIBRARIES})
 endif()
 
+# WindowShot.C reads a window back from the window server on macOS.
+if(APPLE)
+  target_link_libraries(eccewxgui PRIVATE "-framework ApplicationServices")
+endif()
+
 ecce_library(eccewxguicomm src/wxgui/comm)
 target_compile_definitions(eccewxguicomm PRIVATE ${wxWidgets_DEFINITIONS})
 target_include_directories(eccewxguicomm PRIVATE ${wxWidgets_INCLUDE_DIRS})

@@ -37,7 +37,7 @@ ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
 ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
 STATEDIR="$ECCE_REALUSERHOME/.ECCE"
 UID_="$(id -u)"
-_lib="$(dirname "$(readlink -f "$0")")/ecce-session-lib.sh"
+_lib="$(dirname "$0")/ecce-session-lib.sh"
 [ -r "$_lib" ] || _lib="$ECCE_HOME/bin/ecce-session-lib.sh"
 . "$_lib" || { echo "ecce-gateway-reap: cannot read $_lib" >&2; exit 1; }
 

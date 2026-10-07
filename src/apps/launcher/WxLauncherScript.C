@@ -19,6 +19,7 @@
 
 #include "WxLauncher.H"
 #include "WxLauncherScript.H"
+#include "wxgui/WindowShot.H"
 
 using std::string;
 using std::vector;
@@ -81,20 +82,7 @@ void LauncherScript::fail(const string& what)
 
 bool LauncherScript::shot(const string& file)
 {
-    p_frame->Raise();
-    for (int i = 0; i < 3; i++)
-    {
-        p_frame->Update();
-        wxTheApp->Yield(true);
-        wxMilliSleep(50);
-    }
-    wxSize sz = p_frame->GetClientSize();
-    wxClientDC screen(p_frame);
-    wxBitmap bmp(sz.x, sz.y);
-    wxMemoryDC mem(bmp);
-    mem.Blit(0, 0, sz.x, sz.y, &screen, 0, 0);
-    mem.SelectObject(wxNullBitmap);
-    return bmp.ConvertToImage().SaveFile(file, wxBITMAP_TYPE_PNG);
+    return ecceWindowShot(p_frame, file);
 }
 
 

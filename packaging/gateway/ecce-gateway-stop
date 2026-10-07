@@ -7,7 +7,7 @@ set -u
 ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
 STATEDIR="$ECCE_REALUSERHOME/.ECCE"
 ECCE_HOME="${ECCE_HOME:-/opt/ecce}"
-_lib="$(dirname "$(readlink -f "$0")")/ecce-session-lib.sh"
+_lib="$(dirname "$0")/ecce-session-lib.sh"
 [ -r "$_lib" ] || _lib="$ECCE_HOME/bin/ecce-session-lib.sh"
 . "$_lib" || { echo "ecce-gateway-stop: cannot read $_lib" >&2; exit 1; }
 # The data server credential this session's processes share through
