@@ -1,8 +1,9 @@
 #!/bin/bash
 # First answer to "does ECCE run on macOS?" (#133), for CI: start the
 # installed apps on the runner's logged-in desktop, take screenshots, and
-# collect logs and crash reports.  Never fails the job; the verdict is in
-# the summary.  Usage: run.sh <stage-dir> <out-dir>
+# collect logs and crash reports.  The verdict is in the summary; exits 1
+# when an app was ended by a signal (rc >= 128).
+# Usage: run.sh <stage-dir> <out-dir>
 #   <stage-dir>/ecce is ECCE_HOME, <stage-dir>/bin holds the wrappers.
 # With ECCE_APP=<ECCE.app> the session is started through the app's own
 # launcher, with no Homebrew on PATH (give Contents/Resources as <stage-dir>).
@@ -14,6 +15,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 SUMMARY=$OUT/summary.txt
 : > "$SUMMARY"
 say() { echo "$@" | tee -a "$SUMMARY"; }
+CRASHED=
 
 export ECCE_HOME=$STAGE/ecce
 if [ -n "$ECCE_APP" ]; then
@@ -85,6 +87,7 @@ run_app() {
     screencapture -x "$OUT/shots/$name-1.png" 2>>"$OUT/logs/screencapture.log"
   fi
   say "   $status"
+  if [ -n "$rc" ] && [ "$rc" -ge 128 ]; then CRASHED="$CRASHED $name"; fi
   case "$rc" in 132|133|134|136|138|139) backtrace "${name%-hook}" ;; esac
   tail -n 6 "$OUT/logs/$name.log" | sed 's/^/   | /' | tee -a "$SUMMARY"
   sleep 3   # let ReportCrash write
@@ -176,4 +179,9 @@ fi
 cp -R "$ECCE_REALUSERHOME/.ECCE" "$OUT/dot-ECCE" 2>/dev/null
 find "$OUT/dot-ECCE" -name 'authcache*' -delete 2>/dev/null
 rm -f "$OUT/windows" "$BEFORE" "$OUT/.new"
+if [ -n "$CRASHED" ]; then
+  say ""
+  say "FAILED: ended by a signal:$CRASHED"
+  exit 1
+fi
 exit 0

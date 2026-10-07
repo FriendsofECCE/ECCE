@@ -351,8 +351,9 @@ jobs:
         run: |
           export PATH="$ECCE_DEPS/sbin:$ECCE_DEPS/bin:$PATH"
           cmake --install build-cmake
-          tests/macos/run.sh stage macos-run
+          rc=0; tests/macos/run.sh stage macos-run || rc=$?
           cat macos-run/summary.txt >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -402,8 +403,10 @@ jobs:
           # The build tree and the staging prefix must not be needed.
           mv build-cmake build-cmake.gone
           mv stage stage.gone
-          ECCE_APP="$appdir/ECCE.app" tests/macos/run.sh "$appdir/ECCE.app/Contents/Resources" macos-app-run
+          rc=0
+          ECCE_APP="$appdir/ECCE.app" tests/macos/run.sh "$appdir/ECCE.app/Contents/Resources" macos-app-run || rc=$?
           cat macos-app-run/summary.txt >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
 
       - name: Summary on failure
         if: failure()
