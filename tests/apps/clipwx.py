@@ -148,6 +148,44 @@ def walk(w, top, out):
         walk(c, top, out)
 
 
+def collect_buttons(w, top, out):
+    if not w.IsShown():
+        return
+    if isinstance(w, wx.TopLevelWindow) and w is not top:
+        return
+    if isinstance(w, wx.Button) and w.IsShownOnScreen() and w.GetLabel():
+        out.append(w)
+    if scrolls(w):
+        return
+    for c in w.GetChildren():
+        collect_buttons(c, top, out)
+
+
+def button_rows(top, out):
+    buttons = []
+    collect_buttons(top, top, buttons)
+    for i, a in enumerate(buttons):
+        ra = screen_rect(a)
+        std = wx.Button.GetDefaultSize(a)
+        if 0 < ra.height and ra.height + 2 < std.y:
+            out.append("button-height\t%s\tis %d px high, a standard button "
+                       "is %d\t%d,%d,%d,%d" % (describe(a), ra.height, std.y,
+                                                ra.x, ra.y, ra.width, ra.height))
+        for b in buttons[i + 1:]:
+            if a.GetParent() is not b.GetParent():
+                continue
+            rb = screen_rect(b)
+            overlap = min(ra.GetBottom(), rb.GetBottom()) - max(ra.y, rb.y)
+            if overlap * 2 < min(ra.height, rb.height):
+                continue
+            if abs(ra.height - rb.height) > 2:
+                out.append("row-height-differs\t%s\t%d px high beside %d px: "
+                           "%s\t%d,%d,%d,%d" % (describe(a), ra.height,
+                                                 rb.height, describe(b),
+                                                 ra.x, ra.y, ra.width,
+                                                 ra.height))
+
+
 def report():
     path = os.environ["ECCE_CLIP_AUDIT"]
     tag = os.environ.get("ECCE_CLIP_TAG", "dialog")
@@ -156,6 +194,7 @@ def report():
             continue
         out = []
         walk(top, top, out)
+        button_rows(top, out)
         shot = ""
         d = os.environ.get("ECCE_CLIP_SHOTS")
         if d:

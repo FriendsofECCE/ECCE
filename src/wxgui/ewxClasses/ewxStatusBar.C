@@ -44,8 +44,15 @@ bool ewxStatusBar::Create(wxWindow *parent, wxWindowID id, long style,
   }
 
   // A text button reads as something to press; the lock is only a state.
-  p_save = new wxButton(this, wxID_SAVE, _("Save"), wxDefaultPosition,
-                        wxDefaultSize, wxBU_EXACTFIT);
+  //  Same height and minimum width as every other button (no EXACTFIT).
+  p_save = new wxButton(this, wxID_SAVE, _("Save"));
+  {
+    wxSize standard = wxButton::GetDefaultSize(this);
+    wxSize best = p_save->GetBestSize();
+    p_save->SetMinSize(wxSize(wxMax(standard.x, best.x),
+                              wxMax(standard.y, best.y)));
+    p_save->SetSize(p_save->GetMinSize());
+  }
   p_save->SetToolTip(_("Save changes (Ctrl+S)"));
   p_lock = new wxStaticBitmap(this, wxID_ANY, ewxBitmap("lock.xpm"));
   p_runstate = new WxState(this);
@@ -55,7 +62,8 @@ bool ewxStatusBar::Create(wxWindow *parent, wxWindowID id, long style,
                                   wxNO_BORDER|wxBU_EXACTFIT);
   */
 
-  static const int widths[FIELD_MAX] = {BITMAP_SIZE_X, -1, BITMAP_SIZE_X, -1};
+  const int saveWidth = wxMax(BITMAP_SIZE_X, p_save->GetMinSize().x + 8);
+  const int widths[FIELD_MAX] = {saveWidth, -1, BITMAP_SIZE_X, -1};
   static const int styles[FIELD_MAX] = {wxSB_FLAT, wxSB_NORMAL,
                                         wxSB_FLAT, wxSB_FLAT};
   SetFieldsCount(FIELD_MAX);
@@ -63,7 +71,7 @@ bool ewxStatusBar::Create(wxWindow *parent, wxWindowID id, long style,
   SetStatusStyles(FIELD_MAX, styles);
   // The text button is taller than the old 20px icon field; without
   // this its bottom edge is clipped.
-  SetMinHeight(wxMax(BITMAP_SIZE_Y, p_save->GetBestSize().y));
+  SetMinHeight(wxMax(BITMAP_SIZE_Y, p_save->GetMinSize().y + 2));
 
   setStyles(this);
 

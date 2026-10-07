@@ -13,6 +13,8 @@ control is checked for:
   empty-button            a button with neither label nor bitmap
   blank-bitmap            a button whose bitmap draws nothing
   text-wider-than-field   a text field narrower than the value it holds
+  button-height           a labelled button shorter than a standard button
+  row-height-differs      buttons side by side that are not equally tall
 
 The walk is in the apps (ewxWindowUtils::clipFindings, switched on by
 ECCE_CLIP_AUDIT=<file>; Builder.runClipAudit for the panels) and in

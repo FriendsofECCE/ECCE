@@ -580,6 +580,7 @@ class Builder: public BuilderGUI,
       PanelMode panelMode() const { return p_panelMode; }
       void runPanelLayoutTest();
       void runClipAudit();
+      std::string p_clipTag;
 };
 
 #endif
