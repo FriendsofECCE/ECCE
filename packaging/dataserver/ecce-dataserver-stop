@@ -15,7 +15,7 @@ CONF="$STATEDIR/httpd.conf"
 PIDFILE="$STATEDIR/logs/httpd.pid"
 
 if [ "${1:-}" = --if-unused ]; then
-  _lib="$(dirname "$(readlink -f "$0")")/ecce-session-lib.sh"
+  _lib="$(dirname "$0")/ecce-session-lib.sh"
   [ -r "$_lib" ] || _lib="$ECCE_HOME/bin/ecce-session-lib.sh"
   if ! . "$_lib"; then
     echo "ecce-dataserver-stop: cannot read $_lib -- data server left running" >&2

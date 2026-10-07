@@ -190,10 +190,19 @@ bool MachRegScript::shot(const string& file, bool dialog, bool help)
         wxMilliSleep(50);
     }
     wxSize sz = win->GetClientSize();
-    wxClientDC screen(win);
     wxBitmap bmp(sz.x, sz.y);
     wxMemoryDC mem(bmp);
+#ifdef __WXOSX__
+    // Cocoa draws labels, tab pages and panel backgrounds in native views
+    // that a wxClientDC does not see (black, unlabelled shots); the
+    // composited screen has them. The window is raised above.
+    wxScreenDC screen;
+    wxPoint origin = win->ClientToScreen(wxPoint(0, 0));
+    mem.Blit(0, 0, sz.x, sz.y, &screen, origin.x, origin.y);
+#else
+    wxClientDC screen(win);
     mem.Blit(0, 0, sz.x, sz.y, &screen, 0, 0);
+#endif
     mem.SelectObject(wxNullBitmap);
     return bmp.ConvertToImage().SaveFile(file, wxBITMAP_TYPE_PNG);
 }

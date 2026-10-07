@@ -7,6 +7,8 @@
 #   <stage-dir>/ecce is ECCE_HOME, <stage-dir>/bin holds the wrappers.
 # With ECCE_APP=<ECCE.app> the session is started through the app's own
 # launcher, with no Homebrew on PATH (give Contents/Resources as <stage-dir>).
+# Runs on a bare Mac as well as on CI: nothing here needs Homebrew, Xcode,
+# python3 or lldb, and each is used only when it is present.
 STAGE=$(cd "$1" && pwd)
 mkdir -p "$2"
 OUT=$(cd "$2" && pwd)
@@ -18,10 +20,12 @@ say() { echo "$@" | tee -a "$SUMMARY"; }
 CRASHED=
 
 export ECCE_HOME=$STAGE/ecce
-if [ -n "$ECCE_APP" ]; then
+BREW=
+command -v brew >/dev/null 2>&1 && BREW=$(brew --prefix 2>/dev/null)
+if [ -n "$ECCE_APP" ] || [ -z "$BREW" ]; then
   export PATH=$STAGE/bin:/usr/bin:/bin:/usr/sbin:/sbin
 else
-  export PATH=$STAGE/bin:$(brew --prefix)/bin:$PATH
+  export PATH=$STAGE/bin:$BREW/bin:$PATH
 fi
 export ECCE_REALUSERHOME=$OUT/home
 mkdir -p "$ECCE_REALUSERHOME"
@@ -35,9 +39,8 @@ ls "$DIAG" 2>/dev/null | sort > "$BEFORE"
 { sw_vers; uname -a; system_profiler SPDisplaysDataType; bash --version | head -1
   ls -l "$STAGE/bin" "$ECCE_HOME/bin"; } > "$OUT/system.txt" 2>&1
 
-swiftc -O "$HERE/windows.swift" -o "$OUT/windows" > "$OUT/logs/swiftc.log" 2>&1 \
-  || say "note: swiftc failed, window detection falls back to screenshots only"
-windows() { [ -x "$OUT/windows" ] && "$OUT/windows" 2>/dev/null; }
+# Windows are listed through JavaScript for Automation (no Xcode needed).
+windows() { osascript -l JavaScript "$HERE/windows.js" 2>/dev/null; }
 
 screencapture -x "$OUT/shots/00-desktop.png" 2>>"$OUT/logs/screencapture.log" \
   || say "note: screencapture failed (see logs/screencapture.log)"
@@ -46,9 +49,18 @@ screencapture -x "$OUT/shots/00-desktop.png" 2>>"$OUT/logs/screencapture.log" \
 backtrace() {
   local bin=$ECCE_HOME/bin/$1
   [ -x "$bin" ] || return
+  command -v lldb >/dev/null 2>&1 || { say "   no lldb here, no backtrace"; return; }
   say "   rerunning under lldb for a backtrace"
   perl -e 'alarm 90; exec @ARGV' lldb -b -o run -k "bt 25" -k quit -- "$bin" > "$OUT/crashes/$1.lldb.txt" 2>&1
   grep -A28 -e "stop reason" "$OUT/crashes/$1.lldb.txt" | head -32 | sed 's/^/   | /' | tee -a "$SUMMARY"
+}
+
+# Ends everything this run started. Apps started by the gateway run as
+# `./organizer` from $ECCE_HOME/bin, which "$ECCE_HOME/bin/" does not match.
+kill_ecce() {
+  pkill -f "$ECCE_HOME/bin/" 2>/dev/null
+  pkill -f "^\./(organizer|builder|calced|basistool|machregister|machbrowser|pertable|launcher|gateway|viewer)( |\$)" 2>/dev/null
+  pkill -f "$ECCE_REALUSERHOME" 2>/dev/null
 }
 
 # run_app NAME SECONDS CMD...: start, wait for a window (or SECONDS),
@@ -64,7 +76,7 @@ run_app() {
     # Window owners are the app's own name (organizer, builder, ...), so
     # count any owner that is not part of the desktop itself.
     if windows | grep -v -e "Window Server" -e "Control Center" -e "	Dock	" \
-         -e "	Finder	" -e "SystemUIServer" -e "Notification" -e "Spotlight" \
+         -e "	Finder	" -e "loginwindow" -e "SystemUIServer" -e "Notification" -e "Spotlight" \
          -e "TextInputMenuAgent" -e "WindowManager" | grep -q .; then found=1; break; fi
     sleep 1
   done
@@ -95,7 +107,8 @@ run_app() {
 
 # 1. The real thing: `ecce` starts the gateway and broker; on macOS the
 #    data live in a local folder by default (#216), so no data server.
-BASH4=$(brew --prefix)/bin/bash
+BASH4=/bin/bash
+[ -n "$BREW" ] && [ -x "$BREW/bin/bash" ] && BASH4=$BREW/bin/bash
 if [ -n "$ECCE_APP" ]; then
   run_app ecce-session 60 "$ECCE_APP/Contents/MacOS/ecce"
 else
@@ -106,20 +119,19 @@ fi
   ls -la "$ECCE_REALUSERHOME/.ECCE" 2>&1; } > "$OUT/logs/localdata.txt"
 say "   data folder: $(head -1 "$OUT/logs/localdata.txt")"
 "$STAGE/bin/ecce-gateway-stop" > "$OUT/logs/gateway-stop.log" 2>&1
-pkill -f "$ECCE_HOME/bin/" 2>/dev/null
-pkill -f "$OUT/home" 2>/dev/null
+kill_ecce
 sleep 2
 
 # 2. Each app on its own with no broker and no data server, so a window
 #    (or a crash at start-up) shows even where the services cannot run.
 export ECCE_NO_MESSAGING=1 ECCE_NO_DATASERVER=1
-for app in organizer machregister machbrowser builder pertable basistool calced; do
+for app in organizer machregister machbrowser builder pertable basistool calced launcher; do
   if [ -x "$STAGE/bin/ecce-$app" ]; then
     run_app "$app" 30 "$STAGE/bin/ecce-$app"
   else
     say "== $app: no wrapper ecce-$app"
   fi
-  pkill -f "$ECCE_HOME/bin/" 2>/dev/null
+  kill_ecce
 done
 
 # The Builder opens a molecule (a PDB file, no data store needed) and
@@ -128,7 +140,8 @@ mkdir -p "$OUT/shots/scene"
 printf 'style Ball And Stick\nviewall\nsnap builder-glycine\n' > "$OUT/glycine.scene"
 ECCE_VIEWER_SCENE="$OUT/glycine.scene" ECCE_VIEWER_SCENE_OUT="$OUT/shots/scene" \
   run_app builder-scene 60 "$STAGE/bin/ecce-builder" "$HERE/../fragreaders/data/glycine.pdb"
-pkill -f "$ECCE_HOME/bin/" 2>/dev/null
+kill_ecce
+if command -v python3 >/dev/null 2>&1; then
 python3 - "$OUT/shots/scene" <<'PY'
 import os, struct, sys, zlib
 d = sys.argv[1]
@@ -152,8 +165,9 @@ for f in os.listdir(d):
     open(os.path.join(d, f[:-4] + ".png"), "wb").write(png)
     print("scene:", f[:-4] + ".png", w, "x", h)
 PY
+fi
 [ -f "$OUT/shots/scene/FAILED" ] && say "   scene FAILED: $(cat "$OUT/shots/scene/FAILED")"
-ls "$OUT/shots/scene"/*.png >/dev/null 2>&1 && say "   scene rendered: $(cd "$OUT/shots/scene" && ls *.png)"
+ls "$OUT/shots/scene"/*.ppm >/dev/null 2>&1 && say "   scene rendered: $(cd "$OUT/shots/scene" && ls *.png *.ppm 2>/dev/null | tr '\n' ' ')"
 
 # Register Machines driven by its test hook (no clicks).
 cat > "$OUT/machreg.script" <<SCRIPT
@@ -170,7 +184,11 @@ if [ -s "$OUT/.new" ]; then
   say ""
   say "== crash reports"
   while read -r f; do cp "$DIAG/$f" "$OUT/crashes/"; done < "$OUT/.new"
-  python3 "$HERE/crashframes.py" $(sed "s|^|$OUT/crashes/|" "$OUT/.new") | tee -a "$SUMMARY"
+  if command -v python3 >/dev/null 2>&1; then
+    python3 "$HERE/crashframes.py" $(sed "s|^|$OUT/crashes/|" "$OUT/.new") | tee -a "$SUMMARY"
+  else
+    tee -a "$SUMMARY" < "$OUT/.new"
+  fi
 else
   say ""
   say "== no crash reports for ECCE processes"
@@ -178,7 +196,7 @@ fi
 
 cp -R "$ECCE_REALUSERHOME/.ECCE" "$OUT/dot-ECCE" 2>/dev/null
 find "$OUT/dot-ECCE" -name 'authcache*' -delete 2>/dev/null
-rm -f "$OUT/windows" "$BEFORE" "$OUT/.new"
+rm -f "$BEFORE" "$OUT/.new"
 if [ -n "$CRASHED" ]; then
   say ""
   say "FAILED: ended by a signal:$CRASHED"
