@@ -438,17 +438,29 @@ int BenchApp::OnRun()
     {"water box", "Ball And Stick", false}, {"water box", "CPK", false},
   };
 
+  //  BENCH_STYLES="CPK,Stick,...": only the water box, in those styles,
+  //  caching AUTO (for profiling one style at a time).
+  vector<Config> todo(configs, configs + sizeof configs / sizeof configs[0]);
+  const char *only = getenv("BENCH_STYLES");
+  if (only) {
+    todo.clear();
+    std::istringstream ss(only);
+    string st;
+    while (std::getline(ss, st, ','))
+      if (!st.empty()) todo.push_back(Config{"water box", st, false});
+  }
+
   vector<Result> results;
-  for (size_t i = 0; i < sizeof configs / sizeof configs[0]; i++) {
+  for (size_t i = 0; i < todo.size(); i++) {
     string err;
-    if (!loadScene(configs[i], err)) {
-      fprintf(stderr, "skipping %s: %s\n", configs[i].system.c_str(),
+    if (!loadScene(todo[i], err)) {
+      fprintf(stderr, "skipping %s: %s\n", todo[i].system.c_str(),
               err.c_str());
       continue;
     }
-    for (int cache = 1; cache >= 0; cache--) {
+    for (int cache = 1; cache >= (only ? 1 : 0); cache--) {
       Result r;
-      if (measure(configs[i], cache != 0, warm, frames, budget, r))
+      if (measure(todo[i], cache != 0, warm, frames, budget, r))
         results.push_back(r);
       Yield(true);
     }

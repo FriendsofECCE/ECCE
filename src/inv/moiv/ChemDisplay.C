@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <iostream>
 using namespace std;
 /*
@@ -384,6 +385,8 @@ ChemDisplay::ChemDisplay()
 	octreenode = new ChemOctreeNode();
   // duplicates
   renderedBonds = NULL;
+  capRestStart = INT32_MAX;
+  capLowMax = INT32_MIN;
   renderedResidues = NULL;
 // <-- octree culling
 // --> improving ribbon speed
@@ -816,6 +819,7 @@ ChemDisplay::GLRender(SoGLRenderAction *action)
 	if (!action->isRenderingDelayedPaths()) {
 		generateIndices(action);
 	}
+	summarizeAtomIndexForCaps();
 
 // --> EGB && SGB
 	lodSelector->resetAtoms(chemData->getNumberOfAtoms());
@@ -6512,3 +6516,34 @@ void ChemDisplay::eachBBoxResiduesAsCylinders(SoState *state, ChemDisplayParam *
 #undef ATOMLOOP_END
 #undef BONDLOOP_START
 #undef BONDLOOP_END
+
+
+////////////////////////////////////////////////////////////////////////
+//
+// Description:
+//    Reduces atomIndex to two bounds so that bondCapAtAtom is O(1).
+//    The cylinder code asked this per bond end by scanning every
+//    atomIndex entry (one per atom in the Builder), O(atoms x bonds) per
+//    frame. The result is exactly the old scan's: a cap is drawn unless
+//    some entry matches, where an entry matches if count == -1 and
+//    atom >= start, or else if atom <= start and atom <= count. (That is
+//    not the start/count range test; changing it would change the image.)
+//
+// Use: private
+
+void
+ChemDisplay::summarizeAtomIndexForCaps()
+{
+	capRestStart = INT32_MAX;
+	capLowMax = INT32_MIN;
+	const SbVec2i *ranges = atomIndex.getValues(0);
+	for (int i = 0, n = atomIndex.getNum(); i < n; i++) {
+		int32_t start = ranges[i][0], count = ranges[i][1];
+		if (count == -1) {
+			if (start < capRestStart) capRestStart = start;
+		} else {
+			int32_t low = (start < count) ? start : count;
+			if (low > capLowMax) capLowMax = low;
+		}
+	}
+}
