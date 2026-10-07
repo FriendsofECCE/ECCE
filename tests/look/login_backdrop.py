@@ -180,6 +180,9 @@ def main():
     ap.add_argument("--libdir", default=os.path.join(ROOT, "build-cmake"))
     ap.add_argument("--tag", default="after", choices=["before", "after"])
     o = ap.parse_args()
+    if not shutil.which("import"):
+        print("SKIP: ImageMagick import not installed")
+        return 77
     os.makedirs(o.outdir, exist_ok=True)
     work = tempfile.mkdtemp(prefix="login-backdrop")
     try:
