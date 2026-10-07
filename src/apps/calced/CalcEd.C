@@ -3199,7 +3199,7 @@ void CalcEd::showBasisSetFields()
     //  A code with a fixed list of basis sets (ECCE-QM) is chosen from the
     //  menu alone; the Basis Set Tool would offer what it cannot use.
     if (p_basisSetTool) p_basisSetTool->Show(!toolHidden);
-    ((ewxButton*)FindWindow(ID_BUTTON_CALCED_BASIS_QUICK))->SetLabel(
+    FindWindow(ID_BUTTON_CALCED_BASIS_QUICK)->SetLabel(
         toolHidden ? wxString("Basis Set ▼") : wxString("Quick Basis Menu ▼"));
   }
 
