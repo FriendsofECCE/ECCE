@@ -24,7 +24,7 @@ rc=$?
 check "exit status" "$rc" 0
 check "ran before return" "$(test -e "$tmp/out.ran" && echo yes)" yes
 check "arguments" "$(tail -1 "$tmp/out.run" | cut -d"$(printf '\007')" -f2)" "a b|c'd|"
-check "title" "$(head -c 7 "$tmp/out.run" | od -An -c | tr -s ' ')" " 033 ] 0 ; C a l"
+check "title" "$(head -c 7 "$tmp/out.run" | od -An -c | tr -d ' \n')" '033]0;Cal'
 check "temp files removed" "$(ls -d "$tmp"/ecce-term.* 2>/dev/null)" ""
 
 out=$(ECCE_TERMINAL_DRYRUN=1 TMPDIR=$tmp sh "$src/scripts/ecce-macos-terminal" -e vi -R "/x y/f")
