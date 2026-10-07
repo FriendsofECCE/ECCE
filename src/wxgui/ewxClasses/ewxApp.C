@@ -79,6 +79,23 @@ GLogWriterOutput filterKnownBenignGtkPizzaWarnings(GLogLevelFlags logLevel,
   return g_log_writer_default(logLevel, fields, nFields, userData);
 }
 
+#ifdef __WXGTK3__
+// ECCE_TEST_BACKDROP=1: a headless display has no window manager, so no
+// window ever loses focus; this holds every top-level window of the process
+// in the :backdrop state, for the screenshots in tests/look.
+class BackdropHold : public wxTimer
+{
+  public:
+    virtual void Notify()
+    {
+      for (wxWindowList::iterator it = wxTopLevelWindows.begin();
+           it != wxTopLevelWindows.end(); ++it)
+        if ((*it)->GetHandle())
+          gtk_widget_set_state_flags((*it)->GetHandle(), GTK_STATE_FLAG_BACKDROP, FALSE);
+    }
+};
+#endif
+
 }  // namespace
 #endif  // __WXGTK__
 
@@ -92,6 +109,7 @@ GLogWriterOutput filterKnownBenignGtkPizzaWarnings(GLogLevelFlags logLevel,
 void ewxApp::applyBackdropStyle()
 {
 #ifdef __WXGTK3__
+   if (getenv("ECCE_TEST_BACKDROP")) (new BackdropHold)->Start(200);
    const char *mode = getenv("ECCE_BACKDROP");
    if (mode && strcmp(mode, "theme") == 0) return;
    GdkScreen *screen = gdk_screen_get_default();
