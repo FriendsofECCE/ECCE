@@ -14,8 +14,11 @@ ECCE_HOME="${ECCE_HOME:?ECCE_HOME is not set}"
 ECCE_REALUSERHOME="${ECCE_REALUSERHOME:?ECCE_REALUSERHOME is not set}"
 export ECCE_HOME ECCE_REALUSERHOME
 export HOST="${HOST:-$(hostname)}"
-_lib="$(dirname "$0")/ecce-session-lib.sh"
-[ -r "$_lib" ] || _lib="$ECCE_HOME/bin/ecce-session-lib.sh"
+# Installed, the helpers are beside this script; in a source tree they are
+# in packaging/gateway.
+_here="$(dirname "$0")"
+[ -r "$_here/ecce-session-lib.sh" ] || _here="$_here/../gateway"
+_lib="$_here/ecce-session-lib.sh"
 . "$_lib" || { echo "ecce-broker-win: cannot read $_lib" >&2; exit 1; }
 
 STATEDIR="$ECCE_REALUSERHOME/.ECCE"
@@ -53,7 +56,7 @@ if [ -r "$BROKERFILE" ]; then
   stop
 fi
 
-MOSQUITTO="$("$ECCE_HOME/bin/ecce-find-mosquitto" 2>/dev/null)" ||
+MOSQUITTO="$("$_here/ecce-find-mosquitto" 2>/dev/null)" ||
   MOSQUITTO="$(command -v mosquitto 2>/dev/null)" || {
     echo "ecce-broker-win: mosquitto is not installed" >&2; exit 1; }
 PASSWD="$(dirname "$MOSQUITTO")/mosquitto_passwd"
