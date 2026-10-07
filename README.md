@@ -129,18 +129,22 @@ ECCE installs to `/opt/ecce` and puts `ecce` and its helper commands
 (`ecce-dataserver-adduser`, `ecce-remote-setup`, `ecce-diagnose`, …) on
 your `PATH`.
 
-**Windows and macOS**: there are no native clients yet; they are the
-goal ([#133](https://github.com/FriendsofECCE/ECCE/issues/133),
-[#232](https://github.com/FriendsofECCE/ECCE/issues/232)); the state of
-the macOS build is tracked in #133. Until then, ECCE runs on Linux only.
-CI builds an experimental `ECCE.app` in a `.dmg` for Apple silicon
-(macOS 11 or later) and for Intel (macOS 10.15 or later), as workflow
-artifacts `ECCE-macos-dmg-arm64` and `ECCE-macos-dmg-x86_64`. Drag
-ECCE to Applications. The app is signed ad hoc only, so macOS refuses
-it at first. On macOS 14 and earlier, right-click the app and choose
-Open. On macOS 15 and later, open it once, then choose System Settings >
-Privacy & Security > Open Anyway. Either way, running
-`xattr -dr com.apple.quarantine /Applications/ECCE.app` also works.
+**macOS and Windows** (experimental): native clients are in preview
+([#133](https://github.com/FriendsofECCE/ECCE/issues/133)).
+
+* **macOS:** since 9.0.0-alpha.7 each release has an `ECCE.app` in a
+  `.dmg` for Apple silicon (macOS 11 or later) and for Intel (macOS 10.15
+  or later); CI also builds them as workflow artifacts
+  `ECCE-macos-dmg-arm64` and `ECCE-macos-dmg-x86_64`. Drag ECCE to
+  Applications. The app is signed ad hoc only, so macOS refuses it at
+  first. On macOS 14 and earlier, right-click the app and choose Open. On
+  macOS 15 and later, open it once, then choose System Settings > Privacy
+  & Security > Open Anyway. Either way, running
+  `xattr -dr com.apple.quarantine /Applications/ECCE.app` also works.
+* **Windows:** CI builds a self-contained zip (workflow artifact
+  `ECCE-windows-zip`); unpack it and run `ecce.cmd`. An installer is
+  planned. Windows shows a SmartScreen warning at first, because the
+  client is not signed: choose More info > Run anyway.
 
 ### 2. Create your account
 
@@ -400,12 +404,9 @@ previews are fixed.
 2. **A modernised look** ([#210](https://github.com/FriendsofECCE/ECCE/issues/210)):
    theme colours and controls are in the 9.0 previews; current icons and
    consistent plots remain, followed by the viewer's own look.
-3. **Groundwork for native clients** ([#186](https://github.com/FriendsofECCE/ECCE/issues/186),
-   [#232](https://github.com/FriendsofECCE/ECCE/issues/232)): the job
-   store without the X Toolkit and X11 only on Linux are done. A session
-   identifier in place of `$DISPLAY` and bundled Perl and Python remain.
-4. **Native macOS and Windows clients**, macOS first ([#133](https://github.com/FriendsofECCE/ECCE/issues/133),
-   where the state of the macOS build is tracked).
+3. **Native macOS and Windows clients** ([#133](https://github.com/FriendsofECCE/ECCE/issues/133)):
+   both build and run as previews; a Windows installer and fixes from
+   testing on real machines remain.
 
 **Also planned, not yet placed in the order:**
 
