@@ -481,7 +481,7 @@ def run_parser(script_dir, entry, block, parse_args=DEFAULT_PARSE_ARGS,
     if not os.path.exists(path):
         raise FileNotFoundError(path)
     argv = [path] + list(parse_args)
-    if not os.access(path, os.X_OK):
+    if os.name == 'nt' or not os.access(path, os.X_OK):
         argv = ['perl'] + argv
 
     # Several parser scripts do

@@ -207,9 +207,12 @@ int main(int argc, char** argv)
     for (int i = 0; i < 50 && slurp(pidf).empty(); i++) sleepMs(100);
     check("tree: root and child running", pid > 0 && alive(pid) && !slurp(pidf).empty(), err);
     // cygwin's $! is not a Windows pid; count live sleep.exe descendants instead
-    bool killed = DirectTransport::killTree(pid);
+    // the cancel of the app: the job is its own process group
+    TransportResult kr = t.run("kill -TERM -- -" + std::to_string(pid));
+    bool killed = kr.status == 0;
     for (int i = 0; i < 50 && alive(pid); i++) sleepMs(100);
     check("cancel kills the root", killed && !alive(pid));
+    sleepMs(500);
     TransportResult r = t.run("ps -W 2>/dev/null | grep -c 'sleep.exe' ; true");
     check("cancel leaves no sleep", trim(r.out) == "0" || trim(r.out).empty(), r.out + r.err);
   }
