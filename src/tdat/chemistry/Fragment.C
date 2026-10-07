@@ -72,7 +72,7 @@
  * This fragment has no name, atoms, residues, or constraints.
  *
  */
-Fragment::Fragment() : p_mainDisplayStyle(DisplayStyle::BALLWIRE)
+Fragment::Fragment() : p_mainDisplayStyle(DisplayStyle::BALLSTICK)
 {
    p_name = "";
    p_charge = 0;
@@ -99,7 +99,7 @@ Fragment::Fragment(const string& name,
                    const double* coordinates,
                    const int numBonds,
                    const int *bonds) 
-                   : p_mainDisplayStyle(DisplayStyle::BALLWIRE)
+                   : p_mainDisplayStyle(DisplayStyle::BALLSTICK)
 {
    p_name = name;
    p_charge = 0;
@@ -138,7 +138,7 @@ Fragment::Fragment(const string& name,
                    const double* coordinates,
                    const int numBonds,
                    const int *bonds)
-                   : p_mainDisplayStyle(DisplayStyle::BALLWIRE)
+                   : p_mainDisplayStyle(DisplayStyle::BALLSTICK)
 {
    p_name = name;
    p_charge = 0;
@@ -164,7 +164,7 @@ Fragment::Fragment(const string& name,
 
 
 Fragment::Fragment( const string& name ) 
-                   : p_mainDisplayStyle(DisplayStyle::BALLWIRE)
+                   : p_mainDisplayStyle(DisplayStyle::BALLSTICK)
 {
    p_name = name;
    p_charge = 0;
@@ -188,7 +188,7 @@ Fragment::Fragment( const string& name )
  * Copy Constructor.
  */
 Fragment::Fragment(const Fragment& frag) 
-        : p_mainDisplayStyle(DisplayStyle::BALLWIRE)
+        : p_mainDisplayStyle(DisplayStyle::BALLSTICK)
 { 
    p_constraints = 0;
    p_potentials = 0;

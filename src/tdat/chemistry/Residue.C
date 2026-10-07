@@ -37,7 +37,7 @@ static int vnumStatus = sizeof(vstatusMap)/sizeof(char*);
 //
 ///////////////////////////////////////////////////////////////////////////////
 Residue::Residue(const char *cname, const int& number)
-      : p_displayStyle(DisplayStyle::BALLWIRE)
+      : p_displayStyle(DisplayStyle::BALLSTICK)
 {
 
   name(cname);

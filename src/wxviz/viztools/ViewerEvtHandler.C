@@ -1043,7 +1043,7 @@ void ViewerEvtHandler::restoreSettings(wxConfigBase * config)
   ewxColor bcol(buffer);
   setBackground(bcol.Red()/255.0, bcol.Green()/255.0, bcol.Blue()/255.0);
 
-  wxString style = config->Read("DefaultStyle", "Ball And Wireframe");
+  wxString style = config->Read("DefaultStyle", "Ball And Stick");
   doStyleChange(style);
 
   // Now override foreground only if set
