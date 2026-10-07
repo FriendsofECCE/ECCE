@@ -204,7 +204,6 @@ public:
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_MENU_HELP
   void OnHelpClick( wxCommandEvent& event );
-  void OnChangeServerClick( wxCommandEvent& event );
   void OnPreferencesClick( wxCommandEvent& event );
   void OnChangeServerClick( wxCommandEvent& event );
 
