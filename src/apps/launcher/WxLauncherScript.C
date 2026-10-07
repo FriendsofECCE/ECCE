@@ -141,6 +141,8 @@ int LauncherScript::runCommand(const vector<string>& w)
         if (!p_frame->clickMachineSettings())
             fail("the Machine settings button is missing or disabled");
     }
+    else if (cmd == "rundir" && n == 2)
+        p_frame->setRunDirectory(w[1]);
     else if (cmd == "reload")
         p_frame->machRegChanged();
     else if (cmd == "exec" && n >= 2)
