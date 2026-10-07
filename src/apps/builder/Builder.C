@@ -4868,7 +4868,7 @@ void Builder::updatePropertyMenus()
   }
 
   //  ECCE_PANEL_METRICS=<file>: once the layout has settled, write the
-  //  3-D viewer's width and the window's, for the layout screenshots.
+  //  3-D viewer's width and the window's, and every shown pane's place.
   static bool panelMetricsStarted = false;
   const char *metricsPath = getenv("ECCE_PANEL_METRICS");
   if (metricsPath != 0 && !panelMetricsStarted && p_calculation != 0 &&
@@ -4891,6 +4891,19 @@ void Builder::updatePropertyMenus()
                   panes.Item(i).rect.height, GetClientSize().y);
         }
       }
+      //  One line per shown pane: where AUI put it, and whether its window
+      //  is still the frame's own child (tests/apps/panel_layouts_test.py).
+      for (size_t i = 0; f && i < panes.GetCount(); ++i) {
+        const wxAuiPaneInfo &p = panes.Item(i);
+        if (!p.IsShown() || p.IsToolbar() || !p.window) continue;
+        fprintf(f, "pane \"%s\" %d %d %d %d %s %s\n",
+                p.name.ToStdString().c_str(), p.rect.x, p.rect.y,
+                p.rect.width, p.rect.height,
+                p.window->IsShownOnScreen() ? "onscreen" : "hidden",
+                p.window->GetParent() == this ? "docked" : "reparented");
+      }
+      if (f) fprintf(f, "client %d %d\n", GetClientSize().x,
+                     GetClientSize().y);
       if (f) fclose(f);
     });
     timer->StartOnce(12000);
