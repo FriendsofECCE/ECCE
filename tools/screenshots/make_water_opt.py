@@ -91,8 +91,10 @@ def main():
 
     build = os.path.abspath(args.build)
     harness.prerequisites(build, ("nwchem", "perl"))
-    case = C.case(NAME, "H2O", G.bent("O", "H", 1.0, 100.0), "B", "RHF",
-                  "6-31G*")
+    #  In the xy plane, so the viewer's default view looks at the bend.
+    atoms = [("O", 0.0, 0.0, 0.0), ("H", 0.766044, 0.642788, 0.0),
+             ("H", -0.766044, 0.642788, 0.0)]
+    case = C.case(NAME, "H2O", atoms, "B", "RHF", "6-31G*")
     s = harness.Session(build, "waterfix", {"NWChem": shutil.which("nwchem")},
                         keep=False, local=True)
     work = tempfile.mkdtemp(prefix="water-opt-setup-")

@@ -20,7 +20,6 @@ Also checks that an import leaves the original output file unchanged
 """
 
 import argparse
-import getpass
 import hashlib
 import os
 import re
@@ -42,7 +41,8 @@ OUTPUT = os.path.join(FIXTURE, "Outputs", "ecce.out")
 PROJECT_META = os.path.join(HERE, "data", "project.ecce-meta")
 NAMES = ["organizer-first-start", "organizer-project", "builder-water",
          "calced-water", "launcher-localhost", "viewer-geometry-trace",
-         "viewer-imported", "import-unchanged"]
+         "viewer-imported", "import-unchanged", "check-energies",
+         "check-summary"]
 RUNDIR = "/home/user/ecce-runs"
 
 
@@ -134,7 +134,7 @@ class Data(object):
         return path
 
     def calc(self, state, props=True, setup=True, project="tutorial",
-             name="water-opt"):
+             name="water-opt", user=None):
         """Copy the fixture into the project as <name>, in run state `state`."""
         path = os.path.join(self.home, project, name)
         shutil.rmtree(path, ignore_errors=True)
@@ -155,6 +155,9 @@ class Data(object):
                 text = open(meta, encoding="utf-8").read()
                 text = re.sub(r"(ecce:state\t[^\t\n]*\t)[^\t\n]*",
                               r"\g<1>" + state, text, count=1)
+                if user is not None:
+                    text = re.sub(r"(ecce:launch_user\t[^\t\n]*\t)[^\t\n]*",
+                                  r"\g<1>" + user, text, count=1)
                 open(meta, "w", encoding="utf-8").write(text)
         return path
 
@@ -180,6 +183,53 @@ def shootWindow(display, tmp, out, name, wrapper, args, env, title=None,
         subprocess.run(["import", "-display", display.name, "-window", wid,
                         full], check=True)
         png(full, os.path.join(out, name + ".png"), crop)
+        print("  %-24s %s %s" % (name, win[1], windowSize(display, wid)))
+    finally:
+        stop(proc)
+    return None
+
+
+def shootBuilder(display, tmp, out, name, context, panel=None, size=(1400, 900),
+                 env=None, dest=None):
+    """The Builder on `context`, one panel open, the molecule fitted to the
+    final window size.  The scene script waits (`hold`) for the resize and
+    then fits the view; the marker snapshot says it has."""
+    scene = os.path.join(tmp, name + ".scene")
+    with open(scene, "w") as handle:
+        handle.write("style Ball And Stick\nhold 25\nviewall\nsnap %s-ready\n"
+                     "hold 120\n" % name)
+    marker = os.path.join(tmp, name + "-ready.ppm")
+    if os.path.exists(marker):
+        os.unlink(marker)
+    environment = {"ECCE_TRANSPARENCY_FALLBACK_MS": "0",
+                   "ECCE_VIEWER_SCENE": scene, "ECCE_VIEWER_SCENE_OUT": tmp,
+                   "ECCE_VIEWER_SCENE_SIZE": "640x480",
+                   "ECCE_VIEWER_SCENE_HOLD": "130"}
+    if panel:
+        environment["ECCE_OPEN_PANEL"] = panel
+    environment.update(env or {})
+    known = set(w for w, _ in display.windows())
+    proc = launch(display, "ecce-builder", ["-context", context], environment,
+                  log=os.path.join(tmp, name + ".log"))
+    try:
+        win = waitWindow(display, known, 90, "ECCE")
+        if not win:
+            return "no Builder window; windows: %s" % display.windows()
+        wid = win[0]
+        xdo(display, "windowmove", wid, "0", "0")
+        time.sleep(20)
+        xdo(display, "windowsize", wid, str(size[0]), str(size[1]))
+        for _ in range(120):
+            if os.path.exists(marker) or proc.poll() is not None:
+                break
+            time.sleep(1)
+        time.sleep(6)
+        if not os.path.exists(marker):
+            return "the scene never reached its marker"
+        full = os.path.join(tmp, name + "-full.png")
+        subprocess.run(["import", "-display", display.name, "-window", wid,
+                        full], check=True)
+        png(full, os.path.join(dest or out, name + ".png"))
         print("  %-24s %s %s" % (name, win[1], windowSize(display, wid)))
     finally:
         stop(proc)
@@ -258,9 +308,10 @@ def main():
     print(isolate.describe(settings))
     os.environ["ECCE_NO_REAP"] = "1"
     os.environ["GTK_THEME"] = "Adwaita"
-    os.environ["ECCE_REALUSER"] = getpass.getuser()
+    os.environ["ECCE_REALUSER"] = "student"
     xdisplay.SCREEN = "1700x1100x24"
-    data = Data(os.path.join(settings["ECCE_REALUSERHOME"], "localdata"))
+    #  A short path: the Builder lists the calculation's URL.
+    data = Data("/tmp/ecce-help")
     os.environ["ECCE_LOCAL_DATA"] = data.folder
     env = {"ECCE_TRANSPARENCY_FALLBACK_MS": "0"}
 
@@ -269,6 +320,10 @@ def main():
         gateway = os.path.join(apps.INSTALL, "bin", "ecce-gateway-start")
         subprocess.run([gateway], env=display.env(), timeout=180)
         try:
+            #  The first start registers this machine and says so in the
+            #  Organizer's message pane, with the build host's name in it.
+            data.reset()
+            apps.run(display, "organizer", windowTimeout=60, settle=20)
             for name in want:
                 err = None
                 data.reset()
@@ -286,18 +341,8 @@ def main():
                 elif name == "builder-water":
                     data.project()
                     data.calc("Created", props=False, setup=False)
-                    scene = os.path.join(options.tmp, name + ".scene")
-                    with open(scene, "w") as handle:
-                        handle.write("style Ball And Stick\nviewall\n")
-                    err = shootWindow(
-                        display, options.tmp, options.out, name,
-                        "ecce-builder",
-                        ["-context", data.url("tutorial", "water-opt")],
-                        dict(env, ECCE_VIEWER_SCENE=scene,
-                             ECCE_VIEWER_SCENE_OUT=options.tmp,
-                             ECCE_VIEWER_SCENE_SIZE="640x480",
-                             ECCE_VIEWER_SCENE_HOLD="120"),
-                        title="ECCE", size=(1200, 800), settle=60)
+                    err = shootBuilder(display, options.tmp, options.out, name,
+                                       data.url("tutorial", "water-opt"))
                 elif name == "calced-water":
                     data.project()
                     data.calc("Ready", props=False)
@@ -308,17 +353,29 @@ def main():
                         env, settle=30)
                 elif name == "launcher-localhost":
                     data.project()
-                    data.calc("Ready", props=False)
+                    data.calc("Ready", props=False, user="")
                     err = shootLauncher(display, options.tmp, options.out, data)
-                elif name == "viewer-geometry-trace":
+                elif name in ("viewer-geometry-trace", "check-energies",
+                              "check-summary"):
                     data.project()
                     data.calc("Complete")
-                    err = shootWindow(
-                        display, options.tmp, options.out, name,
-                        "ecce-builder",
-                        ["-context", data.url("tutorial", "water-opt")],
-                        dict(env, ECCE_OPEN_PANEL="Geometry Trace"),
-                        title="ECCE", size=(1400, 900), settle=60)
+                    panel = {"viewer-geometry-trace": "Geometry Trace",
+                             "check-energies": "Energies",
+                             "check-summary": "Calculation Summary"}[name]
+                    #  The plot opens on the energy gradient; the energy is
+                    #  the panel's own menu choice, set here as it saves it.
+                    ini = os.path.join(settings["ECCE_REALUSERHOME"], ".ECCE",
+                                       "wxbuilder.ini")
+                    with open(ini, "w") as handle:
+                        handle.write("[GeomTrace]\nProp=TEVEC\n")
+                    try:
+                        err = shootBuilder(
+                            display, options.tmp, options.out, name,
+                            data.url("tutorial", "water-opt"), panel,
+                            dest=options.out if name == NAMES[5]
+                            else options.tmp)
+                    finally:
+                        os.unlink(ini)
                 elif name in ("viewer-imported", "import-unchanged"):
                     before, after, tail = importOutput(display, options.tmp,
                                                        data)
@@ -326,13 +383,10 @@ def main():
                           % (before[:16], after[:16],
                              "unchanged" if before == after else "CHANGED"))
                     if name == "viewer-imported":
-                        err = shootWindow(
+                        err = shootBuilder(
                             display, options.tmp, options.out, name,
-                            "ecce-builder",
-                            ["-context", data.url("calcimport-test",
-                                                  "water-opt")],
-                            dict(env, ECCE_OPEN_PANEL="Geometry Trace"),
-                            title="ECCE", size=(1400, 900), settle=60)
+                            data.url("calcimport-test", "water-opt"),
+                            "Calculation Summary")
                 if err:
                     print("  %s: %s" % (name, err))
                     failed += 1
