@@ -484,6 +484,7 @@ jobs:
         run: cmake --build build -- -k 0
 
       - name: Tests
+        id: tests
         shell: msys2 {0}
         continue-on-error: true
         run: |
@@ -523,6 +524,7 @@ jobs:
       # Local job end to end with the bundled shell and a PATH that has no
       # MSYS2 usr\bin (tests/windows/launch_local.py).
       - name: Local jobs (complete, cancel)
+        id: localjobs
         shell: pwsh
         continue-on-error: true
         run: |
@@ -535,7 +537,7 @@ jobs:
           $env:WINTEST_BASE_PATH = "$msys\ucrt64\bin;$sb\perl\site\bin;$sb\perl\bin;$sb\c\bin;C:\Windows\System32;C:\Windows"
           $rc = 0
           foreach ($c in "complete", "cancel") {
-            & "$msys\ucrt64\bin\python3.exe" tests/windows/launch_local.py $c --build "$PWD\stage\ecce\bin" --state "$PWD\localjobs\state-$c" 2>&1 | Tee-Object "localjobs\$c.log"
+            & "$msys\ucrt64\bin\python3.exe" tests/windows/launch_local.py $c --build "$PWD\build" --state "$PWD\localjobs\state-$c" 2>&1 | Tee-Object "localjobs\$c.log"
             "$c rc=$LASTEXITCODE" | Tee-Object -Append localjobs\summary.txt
             if ($LASTEXITCODE -ne 0) { $rc = 1 }
           }
@@ -545,6 +547,7 @@ jobs:
       # Does it run? (#133) Starts the installed apps on the runner's desktop
       # and screenshots them.  Allowed to fail; see summary.txt.
       - name: Start the apps
+        id: apps
         shell: pwsh
         continue-on-error: true
         timeout-minutes: 20
@@ -579,3 +582,15 @@ jobs:
             ctest.log
             install.log
           if-no-files-found: ignore
+
+      # continue-on-error steps show green; say what really happened, and
+      # fail this (experimental) job when any of them did.
+      - name: Verdict
+        if: always()
+        shell: bash
+        run: |
+          { echo '### Windows'
+            echo "- ctest: ${{ steps.tests.outcome }}"
+            echo "- local jobs: ${{ steps.localjobs.outcome }}"
+            echo "- start the apps: ${{ steps.apps.outcome }}"; } >> "$GITHUB_STEP_SUMMARY"
+          [ "${{ steps.tests.outcome }}${{ steps.localjobs.outcome }}${{ steps.apps.outcome }}" = successsuccesssuccess ]
