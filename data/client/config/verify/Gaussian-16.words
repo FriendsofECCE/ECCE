@@ -105,7 +105,9 @@ $wrote
 3pd
 4-31g
 5d
+6-21g
 6-31++g
+6-31++g*
 6-31++g**
 6-31+g*
 6-311++g
@@ -141,6 +143,7 @@ activeelectrons
 activeorbitals
 activities\
 additional
+ahlrichs
 ai.gauss09
 ai.gauss09\n
 ai.gauss16
@@ -246,6 +249,7 @@ cartesian
 cas
 casscf
 category
+cbsb7
 cc
 cc-pv5z
 cc-pv6z
@@ -255,6 +259,9 @@ cc-pvtz
 cc.convergenceenergy.value
 cc.convergenceiterations
 cd-demon\n
+cep-121g
+cep-31g
+cep-4g
 cerium
 cesium
 charge
@@ -311,14 +318,21 @@ d6d
 d6h
 d8h
 d95
+d95**
 d95v
+def2-qzv
 def2-qzvp
+def2-sv
 def2-svp
+def2-tzv
 def2-tzvp
 def2-tzvpp
+def2qzv
 def2qzvp
+def2sv
 def2svp
 def2svpp
+def2tzv
 def2tzvp
 def2tzvpp
 density
@@ -331,6 +345,7 @@ dftxcfitting
 dictionary
 dielectric
 difference
+differs
 diis
 direct
 directly
@@ -345,6 +360,7 @@ dunning
 dunning-hay
 dysprosium
 dz
+dzp
 e
 ecce
 ecce_ai_debug
@@ -355,6 +371,8 @@ empiricaldispersion
 end\n
 energy
 enonly
+epr-ii
+epr-iii
 erbium
 error
 error:
@@ -495,6 +513,7 @@ job
 kcis
 krypton
 lanl2dz
+lanl2mb
 lanthanum
 lawrencium
 lc-whpbe
@@ -649,6 +668,7 @@ promethium
 protactinium
 pseudo
 punch
+pvdz
 pw6b95
 pw6b95d3
 pw91
@@ -709,6 +729,7 @@ scf.levelshiftsize
 scrf
 scripts
 sd
+sdd
 sdq
 se
 seaborgium
@@ -741,6 +762,7 @@ stepsize
 sto-2g
 sto-3g
 sto-3g*
+sto-6g
 strontium
 sub
 subroutine
@@ -750,6 +772,7 @@ sulfur
 super
 superfine
 sv
+svp
 svwn
 svwn5
 symmetry
@@ -794,9 +817,12 @@ true
 ts
 tungsten
 type:
+tzv
+tzvp
 u
 uccd
 udft
+ugbs
 uhf
 ultra
 ultrafine
@@ -816,6 +842,7 @@ user
 useroutecard
 usesymmetry
 vanadium
+vdz
 version\n
 very
 verytight
