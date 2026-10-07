@@ -407,8 +407,7 @@ bool GatewayApp::OnInit()
 
   // if they are a new user, show the new user message, if any
   if (newUserFlag) {
-    string userFileName = Ecce::ecceHome();
-    userFileName += "/siteconfig/NewUserMessage";
+    string userFileName = Ecce::siteConfigFile("NewUserMessage");
     ifstream newUserFile(userFileName.c_str());
     if (newUserFile) {
       string userMsg = ""; 
@@ -428,8 +427,7 @@ bool GatewayApp::OnInit()
   }
 
   // show the startup message, if any
-  string startFileName = Ecce::ecceHome();
-  startFileName += "/siteconfig/StartupMessage";
+  string startFileName = Ecce::siteConfigFile("StartupMessage");
   ifstream startFile(startFileName.c_str());
   if (startFile) {
     string startMsg = ""; 

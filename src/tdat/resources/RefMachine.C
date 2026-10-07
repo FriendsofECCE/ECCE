@@ -185,16 +185,43 @@ string RefMachine::codesString(void) const
 { return p_codes; }
 
 
+// True when a Machines file lists `refname` as a machine.
+static bool machinesListName(const string& file, const string& refname)
+{
+  ifstream in(file.c_str());
+  string line;
+  while (getline(in, line)) {
+    if (line.empty() || line[0] == '#') continue;
+    if (line.substr(0, line.find('\t')) == refname) return true;
+  }
+  return false;
+}
+
+// The site CONFIG.<refname>: the file of the layer whose Machines defines the
+// machine, never merged with another layer's; for a machine no site layer
+// defines, the first site layer that has the file.
+static string siteConfigPath(const string& refname)
+{
+  std::vector<Ecce::SiteLayer> layers = Ecce::siteConfigLayers(refname);
+  for (size_t i = 0; i < layers.size(); i++) {
+    if (!layers[i].user &&
+        machinesListName(layers[i].dir + "Machines", refname))
+      return layers[i].dir + "CONFIG." + refname;
+  }
+  return Ecce::siteConfigFile("CONFIG." + refname, refname);
+}
+
 map<string,string> RefMachine::config(const string& refname)
 {
   map<string,string> merged;
   if (refname.empty())
     return merged;
 
-  ConfigFile::mergeFile(string(Ecce::ecceHome()) + "/siteconfig/CONFIG." + refname,
-                  merged);
-  ConfigFile::mergeFile(string(Ecce::realUserPrefPath()) + "CONFIG." + refname,
-                  merged);
+  string site = siteConfigPath(refname);
+  if (!site.empty())
+    ConfigFile::mergeFile(site, merged);
+  ConfigFile::mergeFile(
+      Ecce::siteConfigLayers(refname)[0].dir + "CONFIG." + refname, merged);
   return merged;
 }
 
@@ -212,13 +239,10 @@ static bool findConfig(const map<string,string>& cfg, const char* key,
 
 string RefMachine::configFile(const string& refname)
 {
-  string configName = Ecce::ecceHome();
-  configName += "/siteconfig/CONFIG." + refname;
-
+  string configName = siteConfigPath(refname);
   SFile testfile1(configName.c_str());
-  if (!testfile1.exists()) {
-    configName = Ecce::realUserPrefPath();
-    configName += "CONFIG." + refname;
+  if (configName.empty() || !testfile1.exists()) {
+    configName = Ecce::siteConfigLayers(refname)[0].dir + "CONFIG." + refname;
 
     SFile testfile2(configName.c_str());
     if (!testfile2.exists())
@@ -739,7 +763,7 @@ vector<string>* RefMachine::referenceNames(const machineContextEnum& context)
 // Private Member Functions
 // ------------------------
 
-void RefMachine::parseFile(ifstream& inFile)
+void RefMachine::parseFile(ifstream& inFile, bool skipLocalhost)
 {
   LineReader reader(inFile);
   string rwline, token;
@@ -752,6 +776,8 @@ void RefMachine::parseFile(ifstream& inFile)
     // Name
     token = next.next();
     EE_RT_ASSERT(!token.empty(),EE_FATAL,rwline);
+    // localhost is the client, whatever a server publishes (#192)
+    if (skipLocalhost && token == "localhost") continue;
     found = false;
     if (s_refname_list != (vector<string>*)0) {
       vector<string>::iterator it;
@@ -863,26 +889,23 @@ bool RefMachine::initialize(const machineContextEnum& context)
   s_codes_list = new vector<string>();
   s_options_list = new vector<string>();
 
-  string fullFileName;
-  if (context != RefMachine::siteMachines) {
-    fullFileName = string(Ecce::realUserPrefPath()) + "MyMachines";
-    ifstream userFile(fullFileName.c_str());
-
-    if (userFile) {
-      ret = true;
-      parseFile(userFile);
-    }
+  // Highest layer first, so the first entry with a name wins and a machine
+  // comes whole from one layer.
+  bool haveSite = false;
+  std::vector<Ecce::SiteLayer> layers = Ecce::siteConfigLayers();
+  for (size_t i = 0; i < layers.size(); i++) {
+    const Ecce::SiteLayer& layer = layers[i];
+    if (layer.user ? context == RefMachine::siteMachines
+                   : context == RefMachine::userMachines)
+      continue;
+    ifstream file((layer.dir + (layer.user ? "MyMachines" : "Machines")).c_str());
+    if (!file) continue;
+    ret = true;
+    if (!layer.user) haveSite = true;
+    parseFile(file, layer.fromServer);
   }
-
   if (context != RefMachine::userMachines) {
-    fullFileName = string(Ecce::ecceHome()) + "/siteconfig/Machines";
-    ifstream siteFile(fullFileName.c_str());
-    EE_RT_ASSERT(siteFile, EE_FATAL, "Unable to load Machine information");
-
-    if (siteFile) {
-      ret = true;
-      parseFile(siteFile);
-    }
+    EE_RT_ASSERT(haveSite, EE_FATAL, "Unable to load Machine information");
   }
 
   return ret;

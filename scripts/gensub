@@ -640,52 +640,82 @@ sub getHeader()
 ##########################################################################
 sub getConfigFileNames() 
 {
-  my (@files,$dir);
+  my (@files,@dirs,@siteDirs,$dir);
   my (@machines,$junk1,$junk2,$vendor,$mode,$processor);
 
-  $dir = "$ecceHome/siteconfig";
-
-  push(@files,"$dir/submit.site") if (-e "$dir/submit.site");
-
-  # Use the platform info in the Machines file to figure out the
-  # hardware architecture config file.
-  open(MACHINES,"<$dir/Machines") || die "Unable to open Machines file";
-  @machines = <MACHINES>;
-  close(MACHINES);
-  ($line) = grep(/$host	/,@machines);
-
+  # ECCE_SITECONFIG_DIRS (set by ECCE's own launcher, from
+  # Ecce::siteConfigLayers): the directories the configuration is read from,
+  # highest priority first, the user's first and the install's last.
   $home = $ENV{"ECCE_REALUSERHOME"};
+  if ($ENV{"ECCE_SITECONFIG_DIRS"} ne "") {
+    @dirs = split(/:/, $ENV{"ECCE_SITECONFIG_DIRS"});
+    s{/+$}{} for @dirs;
+  } else {
+    @dirs = ("$home/.ECCE", "$ecceHome/siteconfig");
+  }
+  $userConfigDir = shift(@dirs);
+  @siteDirs = @dirs;
 
-  if ($line eq "") {
-    if (open(MACHINES,"<$home/.ECCE/MyMachines")) {
+  # The first site directory that has a file; the whole file, never merged.
+  my $siteFile = sub {
+    my ($name) = @_;
+    foreach $dir (@siteDirs) {
+      return "$dir/$name" if (-e "$dir/$name");
+    }
+    return "";
+  };
+
+  my $f = &$siteFile("submit.site");
+  push(@files,$f) if ($f ne "");
+
+  # Use the platform info in the Machines files to figure out the
+  # hardware architecture config file: the user's machine list first, as
+  # the C++ side does, then the site's in order.
+  my ($line,$machineDir) = ("","");
+  foreach $dir ($userConfigDir, @siteDirs) {
+    my $list = ($dir eq $userConfigDir) ? "MyMachines" : "Machines";
+    if (open(MACHINES,"<$dir/$list")) {
       @machines = <MACHINES>;
       close(MACHINES);
       ($line) = grep(/$host	/,@machines);
+      if ($line ne "") {
+        $machineDir = $dir if ($dir ne $userConfigDir);
+        last;
+      }
     }
   }
+  die "Unable to open Machines file" if (!grep(-e "$_/Machines", @siteDirs));
 
   ($junk1,$junk2,$vendor,$model,$processor)= split(/\t+/,$line);
   $vendor = uc($vendor);
   if ($vendor ne "" && $vendor ne "UNSPECIFIED") {
-    push(@files,"$dir/CONFIG.$vendor") if (-e "$dir/CONFIG.$vendor");
+    $f = &$siteFile("CONFIG.$vendor");
+    push(@files,$f) if ($f ne "");
 
     $model = uc($model);
     if ($model ne "" && $model ne "UNSPECIFIED") {
-      push(@files,"$dir/CONFIG.$vendor.$model") if (-e "$dir/CONFIG.$vendor.$model");
+      $f = &$siteFile("CONFIG.$vendor.$model");
+      push(@files,$f) if ($f ne "");
 
       $processor = uc($processor);
-      push(@files,"$dir/CONFIG.$vendor.$model.$processor") if ($processor ne "" && $processor ne "UNSPECIFIED" && -e "$dir/CONFIG.$vendor.$model.$processor");
+      if ($processor ne "" && $processor ne "UNSPECIFIED") {
+        $f = &$siteFile("CONFIG.$vendor.$model.$processor");
+        push(@files,$f) if ($f ne "");
+      }
     }
   }
 
+  # CONFIG.<host>: the site file of the layer whose Machines defines the
+  # machine, else the first layer that has one.
   # GENSUB_SITE_CONFIG / GENSUB_USER_CONFIG: a draft file in place of the
   # machine's site or user file (Register Machines' preview of unsaved edits).
-  my $siteFile = $ENV{'GENSUB_SITE_CONFIG'} ne "" ? $ENV{'GENSUB_SITE_CONFIG'}
-                                                   : "$dir/CONFIG.$host";
-  my $userFile = $ENV{'GENSUB_USER_CONFIG'} ne "" ? $ENV{'GENSUB_USER_CONFIG'}
-                                                   : "$home/.ECCE/CONFIG.$host";
-  push(@files,$siteFile) if (-e $siteFile);
-  push(@files,$userFile) if (-e $userFile);
+  my $siteConfig = $ENV{'GENSUB_SITE_CONFIG'} ne "" ? $ENV{'GENSUB_SITE_CONFIG'}
+                 : $machineDir ne "" ? "$machineDir/CONFIG.$host"
+                 : &$siteFile("CONFIG.$host");
+  my $userConfig = $ENV{'GENSUB_USER_CONFIG'} ne "" ? $ENV{'GENSUB_USER_CONFIG'}
+                                                    : "$userConfigDir/CONFIG.$host";
+  push(@files,$siteConfig) if ($siteConfig ne "" && -e $siteConfig);
+  push(@files,$userConfig) if (-e $userConfig);
 
   return @files;
 }
@@ -792,6 +822,7 @@ sub sourceTag($)
   my $uh = $ENV{"ECCE_REALUSERHOME"};
   return "user" if ($ENV{"GENSUB_USER_CONFIG"} ne "" && $f eq $ENV{"GENSUB_USER_CONFIG"});
   return "site" if ($ENV{"GENSUB_SITE_CONFIG"} ne "" && $f eq $ENV{"GENSUB_SITE_CONFIG"});
+  return "user" if ($userConfigDir ne "" && index($f, "$userConfigDir/") == 0);
   return "user" if ($uh ne "" && index($f, "$uh/.ECCE/") == 0);
   return "submit.site" if ($f =~ m{/submit\.site$});
   return "site" if ($f =~ m{/CONFIG\.\Q$host\E$});

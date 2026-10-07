@@ -2346,6 +2346,8 @@ bool Launch::instanceScript(EcceMap& kv)
     os.close();
 
     // Now run gensub and return the results
+    setenv("ECCE_SITECONFIG_DIRS",
+           Ecce::siteConfigDirs(p_cache->machineName).c_str(), 1);
     string cmd = "gensub -v ";
     cmd += " -p subParams";
     string output;

@@ -2194,6 +2194,13 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
   set_tests_properties(queues_config PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
+  # Which layer a machine comes from (user, server, install) and localhost.
+  add_test(NAME queues_layers
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/layers_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
+  set_tests_properties(queues_layers PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
   add_test(NAME queues_configedit
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/configedit_test.py

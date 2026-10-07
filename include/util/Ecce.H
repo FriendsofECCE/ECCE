@@ -20,6 +20,7 @@
 
 #include <cstdlib>
 #include <string>
+#include <vector>
 #include <unistd.h>
 using std::string;
 
@@ -65,6 +66,33 @@ class Ecce
       static bool         guiAvailable();
       static const char*  realUserHome();     // HOME
       static const char*  realUserPrefPath(); // $HOME/.ECCE* Prefs Directory
+      // Where configuration files are looked up, highest priority first
+      // (#192).  Local mode: [~/.ECCE, install siteconfig].  -remote with a
+      // cache of the server's files: [the user's server copy, the server's
+      // site copy, install siteconfig]; a cache that does not exist is left
+      // out, so with none this is the local list.  A layer from the server
+      // has fromServer set.  Every dir ends in '/'.
+      //
+      // "localhost" is always the client: for machine == "localhost" the
+      // server layers are dropped and the user layer is ~/.ECCE.
+      struct SiteLayer {
+        string dir;
+        bool user;         // registrations of the user, not of the site
+        bool fromServer;   // a cache of what the server publishes
+      };
+      static std::vector<SiteLayer> siteConfigLayers(const string& machine = "");
+      // Path of `name` in the first site layer (not the user's) that has
+      // it, else "".
+      static string       siteConfigFile(const string& name,
+                                         const string& machine = "");
+      // The layer directories joined with ':', for gensub's
+      // ECCE_SITECONFIG_DIRS.
+      static string       siteConfigDirs(const string& machine = "");
+      // Where the user's own registrations (MyMachines, Queues, <m>.Q,
+      // CONFIG.<m>, MachPrefs) are read and written; trailing '/'.
+      static string       userRegistrationDir();
+      // "<host>_<port>" of the -remote data server; "" in local mode.
+      static string       siteCacheKey();
       static const char*  ecceHomeVar;        // ECCE_HOME
       static const char*  ecceHome();         // Accessor with Default
       static const char*  ecceDataPathVar;    // ECCE_DATA - Data Directory
