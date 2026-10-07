@@ -58,6 +58,7 @@ xdisplay.Display.responsive = lambda self, timeout=10: True
 opts = {"size": (1920, 1080), "out": None, "only": None}
 windows = []      # (tag, rect, class, shot)
 findings = []     # (tag, kind, description, detail, rect)
+buttons = []      # (tag, description, rect)
 
 
 def allowed():
@@ -115,6 +116,8 @@ def readReport(path, seen):
             windows.append((f[1], f[2], f[3], f[4]))
         elif f[0] == "FINDING" and len(f) >= 6:
             findings.append((f[1], f[2], f[3], f[4], f[5]))
+        elif f[0] == "BUTTON" and len(f) >= 4:
+            buttons.append((f[1], f[2], f[3]))
         elif f[0] == "DONE":
             done = True
     seen[0] = len(lines)
@@ -276,6 +279,35 @@ def sweep(display, results, only):
     annotate()
 
 
+def pixelChecks():
+    """An unlabelled button must show something: its picture, not a flat
+    patch, in the screenshot (the model says a bitmap is there; only the
+    pixels say it is drawn)."""
+    try:
+        from PIL import Image, ImageStat
+    except ImportError:
+        return
+    shots = {w[0]: w[3] for w in windows if w[3]}
+    done = set()
+    for tag, desc, rect in buttons:
+        if '"' in desc or tag not in shots or not os.path.exists(shots[tag]):
+            continue
+        try:
+            x, y, w, h = [int(v) for v in rect.split(",")]
+        except ValueError:
+            continue
+        if w < 8 or h < 8 or (tag, desc, rect) in done:
+            continue
+        done.add((tag, desc, rect))
+        image = Image.open(shots[tag]).convert("L")
+        crop = image.crop((x + 4, y + 4, x + w - 4, y + h - 4))
+        low, high = crop.getextrema()
+        if high - low < 24:
+            findings.append((tag, "blank-rendered", desc,
+                             "button shows nothing in the screenshot",
+                             rect))
+
+
 def sweepAll(display, results, only):
     report = tempfile.mktemp(prefix="ecce-clip-", suffix=".tsv")
     seen = [0]
@@ -288,6 +320,7 @@ def sweepAll(display, results, only):
     if phase in (None, "dialogs") and not only:
         dialogsPhase(display, report, seen, results)
     readReport(report, seen)
+    pixelChecks()
     sw, sh = opts["size"]
     allow = allowed()
     bad = []

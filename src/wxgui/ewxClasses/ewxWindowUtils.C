@@ -986,7 +986,9 @@ void auditWindow(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
     if (!value.empty()) {
       wxSize need = tc->GetSizeFromTextSize(
           tc->GetTextExtent(value).x);
-      pad = need.x - tc->GetTextExtent(value).x;
+      //  GTK's entry keeps more room for its frame and padding than
+      //  GetSizeFromTextSize reports: "20" in a 30 px field showed "2(".
+      pad = wxMax(need.x - tc->GetTextExtent(value).x, 24);
     }
   }
   wxComboBox *cb = wxDynamicCast(w, wxComboBox);
@@ -1030,18 +1032,19 @@ void walk(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
     walk(n->GetData(), top, out);
 }
 
-void collectButtons(wxWindow *w, wxWindow *top, std::vector<wxButton*>& out)
+void collectButtons(wxWindow *w, wxWindow *top, std::vector<wxButton*>& out,
+                    bool all = false)
 {
   if (!w->IsShown()) return;
   if (w->IsKindOf(wxCLASSINFO(wxTopLevelWindow)) && w != top) return;
   wxButton *b = wxDynamicCast(w, wxButton);
-  if (b && b->IsShownOnScreen() && !b->GetLabel().empty())
+  if (b && b->IsShownOnScreen() && (all || !b->GetLabel().empty()))
     out.push_back(b);
   if (isOpaque(w)) return;
   const wxWindowList& kids = w->GetChildren();
   for (wxWindowList::compatibility_iterator n = kids.GetFirst(); n;
        n = n->GetNext())
-    collectButtons(n->GetData(), top, out);
+    collectButtons(n->GetData(), top, out, all);
 }
 
 //  Labelled buttons: none shorter than the standard button, and those side
@@ -1128,6 +1131,14 @@ void ewxWindowUtils::clipAuditReport(wxWindow *top, const std::string& tag)
           shot.c_str());
   for (size_t i = 0; i < found.size(); ++i)
     fprintf(f, "FINDING\t%s\t%s\n", tag.c_str(), found[i].c_str());
+  //  Every button, for the harness to check against the pixels.
+  std::vector<wxButton*> buttons;
+  collectButtons(top, top, buttons, true);
+  for (size_t i = 0; i < buttons.size(); ++i) {
+    wxRect b = screenRect(buttons[i]);
+    fprintf(f, "BUTTON\t%s\t%s\t%d,%d,%d,%d\n", tag.c_str(),
+            describeWindow(buttons[i]).c_str(), b.x, b.y, b.width, b.height);
+  }
   fclose(f);
 }
 

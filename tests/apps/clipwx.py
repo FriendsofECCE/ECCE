@@ -124,7 +124,7 @@ def audit(w, top, out):
         value = w.GetValue()
         if value:
             ext = w.GetTextExtent(value).x
-            pad = w.GetSizeFromTextSize(ext, -1).x - ext
+            pad = max(w.GetSizeFromTextSize(ext, -1).x - ext, 24)
     elif isinstance(w, (wx.ComboBox, wx.ComboCtrl)):
         value, pad = w.GetValue(), 36
     elif isinstance(w, wx.Choice) and w.GetSelection() != wx.NOT_FOUND:
