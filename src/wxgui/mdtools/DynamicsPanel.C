@@ -30,6 +30,7 @@
 #include "wxgui/MDPanelHelper.H"
 #include "wxgui/WxFeedback.H"
 
+#include "wxgui/GromacsProfile.H"
 #include "wxgui/DynamicsPanel.H"
 
 /**
@@ -203,7 +204,8 @@ void DynamicsPanel::checkResume()
   string url = getDynamicsModel()->getURL();
   TaskJob *taskJob = dynamic_cast<TaskJob*>(EDSIFactory::getResource(EcceURL(url)));
   if (taskJob != (TaskJob*)0 &&
-      taskJob->getInputProviderType() != ResourceDescriptor::CT_MDDYNAMICS) {
+      taskJob->getInputProviderType() != ResourceDescriptor::CT_MDDYNAMICS &&
+      taskJob->getInputProviderType() != ResourceDescriptor::CT_MDEQUILIBRATE) {
     check->Disable();
   } else {
     check->Enable(true);
@@ -372,7 +374,10 @@ void DynamicsPanel::OnCheckboxDynmcResumClick( wxCommandEvent& event )
     ewxCheckBox *check = ((ewxCheckBox*)FindWindow(ID_CHECKBOX_DYNMC_RESUM));
     ewxPanel *panel = ((ewxPanel*)FindWindow(ID_PANEL_DYNMC_ALL));
     getDynamicsModel()->setResumeOpt(check->GetValue());
-    if (check->GetValue()) {
+    // NWChem's resume takes every setting of the previous task, so the
+    // rest of the panel is locked; a GROMACS run that continues may still
+    // change its thermostat, barostat and length
+    if (check->GetValue() && !p_gromacs) {
       panel->Disable();
       ewxTextCtrl *text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_DYNMC_EQSTP));
       text->setValueAsInt(0);
@@ -765,4 +770,41 @@ void DynamicsPanel::OnChoiceDynmcRthoptSelected( wxCommandEvent& event )
     getDynamicsModel()->setRethermOpts(choice->GetSelection());
     p_helper->setSaveState(true);
     event.Skip();
+}
+
+
+void DynamicsPanel::applyGromacsProfile(bool g)
+{
+  bool s = !g;
+  p_gromacs = g;
+
+  // integrator is md; leap-frog is what NWChem's menu has no name for
+  GromacsProfile::showRow(FindWindow(ID_CHOICE_DYNMC_INTALG), s);
+  // recentering is NWChem's; the centre of mass motion option is kept
+  GromacsProfile::show(FindWindow(ID_CHECKBOX_DYNMC_CNTSYS), s);
+  GromacsProfile::show(FindWindow(ID_PANEL_DYNMC_RCNTR), s);
+  // one thermostat group, one barostat style
+  GromacsProfile::showRow(FindWindow(ID_RADIOBUTTON_DYNMC_SNGLRX), s);
+  GromacsProfile::show(FindWindow(ID_PANEL_DYNMC_SLUTIM), s);
+  GromacsProfile::showRow(FindWindow(ID_CHOICE_DYNMC_VOLALG), s);
+
+  wxNotebook *nb = (wxNotebook*)FindWindow(ID_NOTEBOOK_DYNMC);
+  wxWindow *rethrm = FindWindow(ID_PANEL_DYNMC_RETHRM);
+  if (g && nb != 0 && nb->FindPage(rethrm) != wxNOT_FOUND) {
+    GromacsProfile::showTab(nb, rethrm, _("Rethermalization"), 3, false);
+    p_hidRethermTab = true;
+  } else if (!g && p_hidRethermTab) {
+    GromacsProfile::showTab(nb, rethrm, _("Rethermalization"), 3, true);
+    p_hidRethermTab = false;
+  }
+
+  GromacsProfile::relabel(this,
+    g ? _("Resume Calculation from Previous Dynamics Task")
+      : _("Continue from the previous task's structure and velocities"),
+    g ? _("Continue from the previous task's structure and velocities")
+      : _("Resume Calculation from Previous Dynamics Task"));
+  GromacsProfile::relabel(this,
+    g ? _("Solvent/System Relaxation Time:") : _("Relaxation time (tau-t):"),
+    g ? _("Relaxation time (tau-t):") : _("Solvent/System Relaxation Time:"));
+  GromacsProfile::relayout(this);
 }

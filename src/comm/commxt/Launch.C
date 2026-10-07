@@ -144,6 +144,7 @@ public:
   bool   frontendFlag;
   bool   checkScratchFlag;
   bool   isMd;
+  bool   isGromacs;
   string mdSystemName;
   string mdCalcName;
   int    mdStoreTrj;
@@ -151,6 +152,34 @@ public:
   bool   mdPMFOutput;
   const  RefQueueManager* mgr;
 };
+
+// Names a task's inputs get in the run directory.  A GROMACS task is given
+// fixed names because it is handed its topology and coordinates rather than
+// producing them, and grompp is told them by name.
+static string stagedRestartName(const CalcInfo *c)
+{
+  return c->isGromacs ? string("conf.gro")
+                      : c->mdSystemName + "_" + c->mdCalcName + ".rst";
+}
+
+static string stagedTopologyName(const CalcInfo *c)
+{
+  return c->isGromacs ? string("topol.top") : c->mdSystemName + ".top";
+}
+
+// Copies a stored file to the run directory.  GROMACS files go across
+// whole: the legacy loop below breaks lines at 255 characters and always
+// ends the file with a newline, neither of which a topology survives.
+static void copyStoredFile(istream *is, ofstream &ofs, bool whole)
+{
+  if (whole) {
+    if (is->peek() != EOF) ofs << is->rdbuf();
+  } else {
+    char buf[256];
+    while (is->getline(buf, 255))
+      ofs << buf << endl;
+  }
+}
 
 // -----------------------
 // Public Member Functions
@@ -189,6 +218,16 @@ Launch::Launch(TaskJob* task,
     p_restartProvider = 0;
     TaskJob *searchTask = dynamic_cast<TaskJob*>(EDSIFactory::getResource(task->getURL()));
     bool finishedSearch = false;
+
+    // A GROMACS study has no Prepare task: the user attaches the starting
+    // structure and topology to the task itself or to an earlier one, so
+    // the task is searched first.
+    const bool gromacs =
+      (task->getApplicationType() == ResourceDescriptor::AT_GROMACS);
+    if (gromacs && task->getDataFiles(JCode::RESTART_OUTPUT).size() > 0) {
+      p_restartProvider = task;
+      finishedSearch = true;
+    }
     while (!finishedSearch && searchTask != 0) {
       p_restartProvider = dynamic_cast<TaskJob*>(searchTask->getInputProvider(session));
       if (p_restartProvider == 0) {
@@ -212,6 +251,10 @@ Launch::Launch(TaskJob* task,
     p_topologyProvider = 0;
     searchTask = dynamic_cast<TaskJob*>(EDSIFactory::getResource(task->getURL()));
     finishedSearch = false;
+    if (gromacs && task->getDataFiles(JCode::TOPOLOGY_OUTPUT).size() > 0) {
+      p_topologyProvider = task;
+      finishedSearch = true;
+    }
     while (!finishedSearch && searchTask != 0) {
       p_topologyProvider = dynamic_cast<TaskJob*>(searchTask->getInputProvider(session));
       if (p_topologyProvider == 0) {
@@ -494,6 +537,7 @@ void Launch::cacheCalcInfo(const string& importDir, const string& importName)
   MdTask *mdTask = 0;
 
   p_cache->isMd = false;
+  p_cache->isGromacs = false;
   p_cache->mdSystemName = "";
   p_cache->mdCalcName = "";
   p_cache->mdStoreTrj = 0;
@@ -505,6 +549,8 @@ void Launch::cacheCalcInfo(const string& importDir, const string& importName)
 
     if (mdTask != 0) {
       p_cache->isMd = true;
+      p_cache->isGromacs =
+        (mdTask->getApplicationType() == ResourceDescriptor::AT_GROMACS);
       p_cache->mdSystemName = mdTask->getSystemName();
       p_cache->mdCalcName = mdTask->getCalcName();
 
@@ -522,7 +568,8 @@ void Launch::cacheCalcInfo(const string& importDir, const string& importName)
           FilesModel *fmodel = taskModel.getFilesModel();
           if (fmodel) {
             p_cache->mdStoreTrj = fmodel->getTrajectoryStorage();
-            p_cache->mdBatchOutput = fmodel->getUseBatches();
+            p_cache->mdBatchOutput = fmodel->getUseBatches() &&
+                                     !p_cache->isGromacs;
           }
           ThermodynamicsModel *tmodel = taskModel.getThermodynamicsModel();
           if (tmodel) {
@@ -681,15 +728,14 @@ bool Launch::validateCalculation(void)
           ret = true;
 
           // process any auxiliary basis set files (Amica)
-          vector<EcceURL> basvec = p_taskjob->getDataFiles(JCode::AUXILIARY_INPUT);
+          vector<EcceURL> basvec = auxInputUrls();
           for (int ib=0; ib<basvec.size(); ib++) {
             is = p_taskjob->getAnyFile(basvec[ib]);
             if (is) {
               inputFilePath = p_cache->directory + "/" + basvec[ib].getFilePathTail();
               ofs.open(inputFilePath.c_str());
               if (ofs) {
-                while (is->getline(buf, 255))
-                  ofs << buf << endl;
+                copyStoredFile(is, ofs, p_cache->isGromacs);
 
                 ofs.close();
               } else {
@@ -716,12 +762,10 @@ bool Launch::validateCalculation(void)
               is = p_restartProvider->getDataFile(JCode::RESTART_OUTPUT);
               if (is) {
                 inputFilePath = p_cache->directory + "/" +
-                     p_cache->mdSystemName + "_" + p_cache->mdCalcName + ".rst";
+                                stagedRestartName(p_cache);
                 ofs.open(inputFilePath.c_str());
                 if (ofs) {
-                  while (is->getline(buf, 255)) {
-                    ofs << buf << endl;
-                  }
+                  copyStoredFile(is, ofs, p_cache->isGromacs);
                   ofs.close();
                 }
                 delete is;
@@ -729,7 +773,11 @@ bool Launch::validateCalculation(void)
               }
             }
           } else if (p_cache->isMd && !p_isPrepareTask) {
-            p_lastMessage = "Unable to find restart file from previous MD Study task";
+            p_lastMessage = p_cache->isGromacs ?
+              "No starting structure (.gro) is attached to this task or an "
+              "earlier one in the study. Attach one on the Inputs tab of the "
+              "task editor." :
+              "Unable to find restart file from previous MD Study task";
             return false;
           }
 
@@ -741,12 +789,10 @@ bool Launch::validateCalculation(void)
               is = p_topologyProvider->getDataFile(JCode::TOPOLOGY_OUTPUT);
               if (is) {
                 inputFilePath = p_cache->directory + "/" +
-                                         p_cache->mdSystemName + ".top";
+                                stagedTopologyName(p_cache);
                 ofs.open(inputFilePath.c_str());
                 if (ofs) {
-                  while (is->getline(buf, 255)) {
-                    ofs << buf << endl;
-                  }
+                  copyStoredFile(is, ofs, p_cache->isGromacs);
                   ofs.close();
                 }
                 delete is;
@@ -754,7 +800,11 @@ bool Launch::validateCalculation(void)
               }
             }
           } else if (p_cache->isMd && !p_isPrepareTask) {
-            p_lastMessage = "Unable to find topology file from previous MD Study task";
+            p_lastMessage = p_cache->isGromacs ?
+              "No topology (.top) is attached to this task or an earlier "
+              "one in the study. Attach one on the Inputs tab of the task "
+              "editor." :
+              "Unable to find topology file from previous MD Study task";
             return false;
           }
 
@@ -932,6 +982,12 @@ bool Launch::validateScratchDir(void)
 bool Launch::checkRemoteDir(const string& remoteDir, const bool& rerunCheck)
 {
   bool ret = remoteDir[0]=='/' || remoteDir[0]=='~';
+#ifdef _WIN32
+  // A local run directory is a drive path, "C:/..." or "C:\...".
+  if (remoteDir.size() > 2 && isalpha((unsigned char)remoteDir[0]) &&
+      remoteDir[1]==':' && (remoteDir[2]=='/' || remoteDir[2]=='\\'))
+    ret = true;
+#endif
 
   // First see if it already exists
   if (ret) {
@@ -1098,7 +1154,7 @@ bool Launch::generateJobMonitoringFiles(void)
   string configName = p_cache->directory;
   configName += "/eccejobstore.conf";
 
-  ofstream storeConfigFile(configName.c_str());
+  ofstream storeConfigFile(configName.c_str(), ios::out | ios::binary);
 
   // used below
   const JCode* jcode = p_taskjob->application();
@@ -1139,7 +1195,7 @@ bool Launch::generateJobMonitoringFiles(void)
   configName = p_cache->directory;
   configName += "/eccejobmonitor.conf";
 
-  ofstream monitorConfigFile(configName.c_str());
+  ofstream monitorConfigFile(configName.c_str(), ios::out | ios::binary);
 
 #if (!defined(INSTALL) && defined(DEBUG))
   cout << "launch: writing Config File \"eccejobmonitor.conf\"" << endl;
@@ -1337,7 +1393,7 @@ bool Launch::generateDescriptorFile(const string& source, const string& target)
     ifstream sourceDescFile(source.c_str());
 
     if (sourceDescFile) {
-      ofstream targetDescFile(target.c_str());
+      ofstream targetDescFile(target.c_str(), ios::out | ios::binary);
 
       if (targetDescFile) {
         static const int BUFSIZE=512;
@@ -1403,6 +1459,37 @@ bool Launch::generateDescriptorFile(const string& source, const string& target)
 }
 
 
+///////////////////////////////////////////////////////////////////////////
+// The task's auxiliary input files.  For a GROMACS task these are the
+// include files (.itp, .ndx) its topology refers to; they are attached once,
+// to any task of the study, and every later task needs them too, so the
+// earlier tasks are searched as well and the nearest file of a name wins.
+///////////////////////////////////////////////////////////////////////////
+vector<EcceURL> Launch::auxInputUrls() const
+{
+  vector<EcceURL> urls = p_taskjob->getDataFiles(JCode::AUXILIARY_INPUT);
+
+  if (p_taskjob->getApplicationType() == ResourceDescriptor::AT_GROMACS) {
+    Session *session = p_taskjob->getSession();
+    TaskJob *t = p_taskjob;
+    while (session != 0 && t != 0) {
+      t = dynamic_cast<TaskJob*>(t->getInputProvider(session));
+      if (t == 0) break;
+      vector<EcceURL> more = t->getDataFiles(JCode::AUXILIARY_INPUT);
+      for (size_t i = 0; i < more.size(); i++) {
+        bool have = false;
+        for (size_t j = 0; j < urls.size(); j++) {
+          if (urls[j].getFilePathTail() == more[i].getFilePathTail())
+            have = true;
+        }
+        if (!have) urls.push_back(more[i]);
+      }
+    }
+  }
+  return urls;
+}
+
+
 void Launch::substituteRealFileName(string& fileName)
 {
   int pos;
@@ -1456,7 +1543,12 @@ bool Launch::moveFiles(void)
 
     // allocate array for all files to move
     vector<string> prvec = p_taskjob->getDataFileNames(JCode::PRIMARY_INPUT);
-    vector<string> auxvec = p_taskjob->getDataFileNames(JCode::AUXILIARY_INPUT);
+    vector<string> auxvec;
+    {
+      vector<EcceURL> auxurls = auxInputUrls();
+      for (size_t a = 0; a < auxurls.size(); a++)
+        auxvec.push_back(auxurls[a].getFilePathTail());
+    }
     vector<string> invec;
     if (prvec.size() > 0) {
       invec.push_back(prvec[0]);
@@ -1544,13 +1636,15 @@ bool Launch::moveFiles(void)
                                                       JCode::RESTART_OUTPUT);
       if (restartFile.size() > 0) { 
         //restartFileName = restartFile[0];
-        restartFileName = p_cache->mdSystemName + "_" +
-                          p_cache->mdCalcName + ".rst";
+        restartFileName = stagedRestartName(p_cache);
         incount++;
         restartIdx = incount - 1;
       }
     } else if (p_cache->isMd && !p_isPrepareTask) {
-      p_lastMessage = "Unable to find restart file from previous MD Study task";
+      p_lastMessage = p_cache->isGromacs ?
+        "No starting structure (.gro) is attached to this task or an "
+        "earlier one in the study." :
+        "Unable to find restart file from previous MD Study task";
       return false;
     }
 
@@ -1560,12 +1654,15 @@ bool Launch::moveFiles(void)
                                                         JCode::TOPOLOGY_OUTPUT);
       if (topologyFile.size() > 0) { 
         //topologyFileName = topologyFile[0];
-        topologyFileName = p_cache->mdSystemName + ".top";
+        topologyFileName = stagedTopologyName(p_cache);
         incount++;
         topologyIdx = incount -1;
       }
     } else if (p_cache->isMd && !p_isPrepareTask) {
-      p_lastMessage = "Unable to find topology file from previous MD Study task";
+      p_lastMessage = p_cache->isGromacs ?
+        "No topology (.top) is attached to this task or an earlier one in "
+        "the study." :
+        "Unable to find topology file from previous MD Study task";
       return false;
     }
 
@@ -2097,7 +2194,23 @@ bool Launch::startJobStore(const string& importDir)
     cout << "Start eccejobmaster with system(" << clientCmd << ")" << endl;
 #endif
 
+#ifdef _WIN32
+    // system() would run this through cmd.exe, which has neither nohup nor a
+    // trailing &; hand it to the local sh as a detached command instead.
+    // The program path is for sh: forward slashes.
+    int status = 0;
+    {
+      string cmd = clientCmd.substr(strlen("nohup "));
+      cmd = cmd.substr(0, cmd.size() - 2);               // the trailing " &"
+      for (size_t i = 0; i < cmd.size(); i++)
+        if (cmd[i] == '\\') cmd[i] = '/';
+      string out;
+      if (!p_localconn || !p_localconn->execbg(cmd, out, ""))
+        status = 1;
+    }
+#else
     int status = system((char*)clientCmd.c_str());
+#endif
     if (status<<8 != 0) {
       ret = false;
       p_lastMessage = "Unable to start eccejobmaster with: " + clientCmd;
@@ -2169,7 +2282,7 @@ bool Launch::postProcessInput(void)
 
   // generate the file of parameters for the post-processing script
   string paramf = p_cache->directory + "/postParams";
-  ofstream os(paramf.c_str(), (ios::out | ios::trunc));
+  ofstream os(paramf.c_str(), (ios::out | ios::trunc | ios::binary));
 
   if (os) {
     p_inputFile = (*p_options)["##input##"];
@@ -2252,7 +2365,7 @@ bool Launch::instanceScript(EcceMap& kv)
   
   // generate the parameter file
   string paramf = p_cache->directory + "/subParams";
-  ofstream os(paramf.c_str(), (ios::out | ios::trunc));
+  ofstream os(paramf.c_str(), (ios::out | ios::trunc | ios::binary));
   if (os) {
     string tmpVal;
     os << " -Q " + p_cache->mgr->name() << "\n";

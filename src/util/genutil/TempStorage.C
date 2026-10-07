@@ -141,12 +141,12 @@ SDirectory* TempStorage::getTempDirectory(const char *prefix)
 
    } else {
 
-      // delete the file (mkstemp creates the file, not just a name)
+      // delete the file (mkstemp creates the file, not just a name);
+      // closed first because Windows will not unlink an open file
+      close(fd);
       if (unlink(unique)) {
          perror("unlink error: ");
       }
-
-      close(fd);
 
       ret = new SDirectory(unique, 0755);
    }
@@ -176,12 +176,12 @@ SDirectory *TempStorage::getTempJobDirectory(const char *prefix)
 
    } else {
 
-      // delete the file (mkstemp creates the file, not just a name)
+      // delete the file (mkstemp creates the file, not just a name);
+      // closed first because Windows will not unlink an open file
+      close(fd);
       if (unlink(unique)) {
          perror("unlink error: ");
       }
-
-      close(fd);
 
       ret = new SDirectory(unique, 0755);
    }

@@ -107,6 +107,7 @@ void DropDownPopup::StopTimer()
 
 void DropDownPopup::PushPopupHandler(wxWindow* child)
 {
+#ifndef __WXMSW__   // m_handlerPopup exists only in wx's generic popup
     if (child && m_handlerPopup && m_popped_handler)
     {
         m_popped_handler = false;
@@ -118,9 +119,11 @@ void DropDownPopup::PushPopupHandler(wxWindow* child)
 
         child->SetFocus();
     }
+#endif
 }
 void DropDownPopup::PopPopupHandler(wxWindow* child)
 {
+#ifndef __WXMSW__   // m_handlerPopup exists only in wx's generic popup
     if (child && m_handlerPopup && !m_popped_handler)
     {
         m_popped_handler = true;
@@ -132,6 +135,7 @@ void DropDownPopup::PopPopupHandler(wxWindow* child)
 
         child->SetFocus();
     }
+#endif
 }
 
 void DropDownPopup::OnTimer( wxTimerEvent &WXUNUSED(event) )

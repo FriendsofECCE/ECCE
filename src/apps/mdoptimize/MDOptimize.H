@@ -42,6 +42,8 @@ class MDOptimize: public MDEdBase, public WxJMSListener
    protected:
 
       void initializeModel();
+      virtual void bindModels();
+      virtual void applyCodeProfile(bool gromacs);
       virtual void createPanels();
       virtual void refreshGUI();
       virtual void constructor();

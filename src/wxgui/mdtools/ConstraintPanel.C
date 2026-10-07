@@ -35,6 +35,7 @@
 #include "tdat/ConstraintModel.H"
 #include "tdat/FragmentSummary.H"
 
+#include "wxgui/GromacsProfile.H"
 #include "wxgui/ConstraintPanel.H"
 
 static const wxString ATOMREGEXP = "[0-9]+:_[a-z,A-Z]+";
@@ -504,4 +505,17 @@ void ConstraintPanel::OnButtonConstClearClick( wxCommandEvent& event )
     text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_CONST_ATCENT));
     text->Clear();
     event.Skip();
+}
+
+
+void ConstraintPanel::applyGromacsProfile(bool g)
+{
+  // Only the switch is kept: it becomes constraints = h-bonds.  The
+  // iteration counts, tolerances and fixed atoms are NWChem's SHAKE and
+  // its atom selection, and fixing atoms would need an index file.
+  wxWindow *keep = FindWindow(ID_CHECKBOX_CONST_USESHK);
+  GromacsProfile::showAllBut(this, keep, !g);
+  GromacsProfile::label(keep, g ? _("Constrain bonds to hydrogen atoms (h-bonds)")
+                                : _("Use SHAKE Constraints:"));
+  GromacsProfile::relayout(this);
 }

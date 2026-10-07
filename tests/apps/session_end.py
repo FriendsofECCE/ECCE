@@ -48,6 +48,10 @@ windows the way a window manager does (WM_DELETE_WINDOW):
               "users" (two state directories) through siteconfig/
               SharedBroker; no quit, reap or Quit and Stop Server stops it,
               and no per-user broker is ever started
+  first-local the first-start window (#240): a fresh client-only user answers
+              "Work on this computer"; later starts do not ask
+  first-server  the same answering "Connect to a server" (this run's data server),
+              then Edit > Change Server back to this computer
   markers     the reaper alone: a broker under a server marker survives
               --if-idle; a per-user one does not
   window      ECCE_GATEWAY_WINDOW=1 keeps the Gateway window's behaviour
@@ -1984,7 +1988,7 @@ def apacheProcs():
     return found
 
 
-def makeLocalCalculation(env, home, data, mode="create"):
+def makeLocalCalculation(env, home, data, mode="create", user=None):
     """A project and an NWChem calculation made through the real classes
     (Resource::createChild, as the Organizer's New menu does), by
     tests/filedsi/resourceTest, into the user's folder of the local data.
@@ -2000,7 +2004,7 @@ def makeLocalCalculation(env, home, data, mode="create"):
     built = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     if built.returncode != 0:
         return built.stdout.decode()[-1500:]
-    user = os.path.join(data, "users", getpass.getuser())
+    user = user or os.path.join(data, "users", getpass.getuser())
     run_env = dict(env, ECCE_HOME=home, ECCE_LOCAL_DATA=data,
                    ECCE_REALUSER=getpass.getuser(),
                    ECCE_NO_MESSAGING="1")     # no session to tell
@@ -2459,7 +2463,365 @@ def caseLocalPref(checks, display, logdir):
                 handle.write(saved)
 
 
-CASES = {"local": caseLocal, "local-pref": caseLocalPref, "local-save": caseLocalSave, "bug": caseBug, "window": caseWindow, "stop": caseStop, "remote": caseRemote,
+def drivenEditor(checks, display, session, calcdir, script, logdir, tag):
+    """Run CalcEd on calcdir, feeding it ECCE_TEST_CALCED commands.
+
+    script is a list of commands, or ("sleep", seconds).  Returns the list of
+    (command, answer) pairs; a "save" answer is replaced by what it wrote:
+    the .param's ES.Theory.UseSymmetry line and the deck's route line.
+    """
+    cmdfile = os.path.join(state, "calced-%s.cmd" % tag)
+    open(cmdfile, "w").close()
+    logpath = os.path.join(logdir, "local-usesym-%s.log" % tag)
+    log = open(logpath, "w")
+    before = set(w for w, _ in display.windows())
+    proc = subprocess.Popen(
+        [os.path.join(wrappers, "ecce-calced"), "-context",
+         "file://" + calcdir + "/"],
+        env=dict(session.env(), ECCE_TEST_CALCED=cmdfile), stdout=log,
+        stderr=subprocess.STDOUT, start_new_session=True)
+    answers = []
+    asked = {}
+    try:
+        deadline = time.time() + 90
+        win = []
+        while time.time() < deadline and not win and proc.poll() is None:
+            win = [w for w in display.windows() if w[0] not in before
+                   and "Gaussian" in w[1]]
+            time.sleep(0.5)
+        if not checks.check(win, "%s: CalcEd opened on %s" % (tag, calcdir)):
+            return answers
+        time.sleep(8)       # the details dialogs' defaults come in first
+        for cmd in script:
+            if isinstance(cmd, tuple):
+                time.sleep(cmd[1])
+                continue
+            with open(cmdfile, "a") as handle:
+                handle.write(cmd + "\n")
+            want = "ECCE_TEST_CALCED: %s: " % cmd
+            asked[cmd] = asked.get(cmd, 0) + 1
+            deadline = time.time() + 90
+            answer = None
+            while answer is None and time.time() < deadline:
+                log.flush()
+                seen = 0
+                with open(logpath, errors="replace") as handle:
+                    for line in handle:
+                        if line.startswith(want):
+                            seen += 1
+                            if seen == asked[cmd]:     # this asking's answer
+                                answer = line[len(want):].strip()
+                if answer is None:
+                    if proc.poll() is not None:
+                        break
+                    time.sleep(0.5)
+            if answer and cmd == "save" and answer.startswith("kept "):
+                kept = answer[5:]
+                param = os.path.join(kept, os.path.basename(calcdir) + ".param")
+                use = "(no .param)"
+                if os.path.exists(param):
+                    use = "ES.Theory.UseSymmetry absent"
+                    for line in open(param, errors="replace"):
+                        if line.startswith("ES.Theory.UseSymmetry:"):
+                            use = line.strip()
+                route = "(no deck)"
+                inputs = os.path.join(calcdir, "Inputs")
+                for name in sorted(os.listdir(inputs)) if os.path.isdir(inputs) else []:
+                    for line in open(os.path.join(inputs, name), errors="replace"):
+                        if line.startswith("#"):
+                            route = line.strip()
+                            break
+                answer = "%s | %s" % (use, route)
+                shutil.rmtree(kept, ignore_errors=True)
+            say("    %-12s -> %s" % (cmd, answer))
+            answers.append((cmd, answer))
+            if cmd == "quit":
+                break
+    finally:
+        if proc.poll() is None:
+            try:
+                os.killpg(proc.pid, 15)
+                proc.wait(timeout=20)
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+        log.close()
+    return answers
+
+
+def caseLocalUseSymmetry(checks, display, logdir):
+    """"Use symmetry" ticked never puts NoSymm in a Gaussian 16 deck.
+
+    CalcEd driven through ECCE_TEST_CALCED on Gaussian-16 calculations in
+    local mode, through the real ESInputController and ai.gauss16: ticked
+    gives no NoSymm (and PG= only for a chosen group other than C1),
+    unticked gives NoSymm -- after a theory change, after Theory Details
+    is opened and closed, and after the calculation is reopened.  SE
+    theories, which need no basis set.
+    """
+    d = display.name
+    if not checks.check(d != ":1", "own Xvfb %s, never :1" % d):
+        return
+    data = os.path.join(state, "localdata-usesym")
+    shutil.rmtree(data, ignore_errors=True)
+    home = localHome(os.environ["ECCE_HOME"])
+    #  LocalData::userHome(): a fixed folder name, not the account's.
+    user = os.path.join(data, "users", "local")
+    os.makedirs(user)
+    problem = makeLocalCalculation(display.env(), home, data, "g16", user)
+    if not checks.check(problem is None, "Gaussian-16 water calculations "
+                        "created"):
+        say("    " + (problem or ""))
+        return
+    session = Session(display, os.path.join(logdir, "local-usesym.log"),
+                      extra={"ECCE_LOCAL_DATA": data, "ECCE_HOME": home})
+
+    def saves(answers):
+        return [a for c, a in answers if c == "save"]
+
+    def ticked(answer, group=None):
+        if not answer or "ES.Theory.UseSymmetry: 1" not in answer:
+            return False
+        if "NoSymm" in answer or "#" not in answer:
+            return False
+        if group:
+            return ("PG=%s," % group) in answer
+        return "PG=" not in answer
+
+    def unticked(answer):
+        return bool(answer) and "ES.Theory.UseSymmetry: 0" in answer \
+            and "NoSymm" in answer and "PG=" not in answer
+
+    try:
+        #  The editors need the session, not the Organizer's window.
+        frame = session.organizer()
+        if not frame:
+            say("    (no Organizer window; going on without it)")
+        c1 = os.path.join(user, "proj-g16", "w-c1")
+        c2v = os.path.join(user, "proj-g16", "w-c2v")
+        a = drivenEditor(checks, display, session, c1, [
+            "state", "theory RPM7", "state", "save",
+            "opentheory", ("sleep", 6), "closetheory", ("sleep", 2),
+            "state", "save", "theory RPM6", "save", "quit"],
+            logdir, "c1-new")
+        s = saves(a)
+        checks.check(len(s) == 3 and ticked(s[0]), "C1, ticked, theory "
+                     "chosen: no NoSymm, no PG")
+        checks.check(len(s) == 3 and ticked(s[1]), "C1, ticked, after Theory "
+                     "Details opened and closed: no NoSymm, no PG")
+        checks.check(len(s) == 3 and ticked(s[2]), "C1, ticked, after a "
+                     "second theory change: no NoSymm, no PG")
+        a = drivenEditor(checks, display, session, c1, [
+            "state", "save", "box 0", "save", "quit"], logdir, "c1-reopen")
+        s = saves(a)
+        checks.check(len(s) == 2 and ticked(s[0]), "C1, reopened, ticked: "
+                     "no NoSymm, no PG")
+        checks.check(len(s) == 2 and unticked(s[1]), "C1, unticked: NoSymm")
+        a = drivenEditor(checks, display, session, c1, [
+            "state", "theory RPM7", "save", "box 1", "save", "quit"],
+            logdir, "c1-unticked")
+        s = saves(a)
+        checks.check(len(s) == 2 and unticked(s[0]), "C1, reopened unticked, "
+                     "theory changed: still NoSymm")
+        checks.check(len(s) == 2 and ticked(s[1]), "C1, ticked again: no "
+                     "NoSymm")
+        a = drivenEditor(checks, display, session, c2v, [
+            "state", "theory RPM7", "save", "box 0", "save", "quit"],
+            logdir, "c2v")
+        s = saves(a)
+        checks.check(len(s) == 2 and ticked(s[0], "C2V"), "C2v, ticked: "
+                     "Symmetry=(PG=C2V,Loose)")
+        checks.check(len(s) == 2 and unticked(s[1]), "C2v, unticked: NoSymm")
+    finally:
+        session.kill()
+
+
+# --- the first-start question (#240) ------------------------------------
+
+def clientOnlyHome(name):
+    """An $ECCE_HOME like a client-only install's: no ecce-dataserver-start."""
+    base = os.environ["ECCE_HOME"]
+    home = os.path.join(state, "ecce-home-" + name)
+    shutil.rmtree(home, ignore_errors=True)
+    os.makedirs(os.path.join(home, "bin"))
+    for entry in os.listdir(base):
+        if entry != "bin":
+            os.symlink(os.path.join(base, entry), os.path.join(home, entry))
+    for entry in os.listdir(os.path.join(base, "bin")):
+        if entry != "ecce-dataserver-start":
+            os.symlink(os.path.realpath(os.path.join(base, "bin", entry)),
+                       os.path.join(home, "bin", entry))
+    return home
+
+
+def firstStartUser(name):
+    user = os.path.join(state, "first-" + name + "-user")
+    shutil.rmtree(user, ignore_errors=True)
+    os.makedirs(os.path.join(user, ".ECCE"))
+    return user
+
+
+def firstStartRun(checks, display, logdir, tag, extra, shot):
+    """One `ecce` start; returns (session, frame) with the Organizer up."""
+    if shot and os.path.exists(shot):
+        os.unlink(shot)
+    env = dict(extra)
+    if shot:
+        env["ECCE_FIRST_START_SHOT"] = shot
+    session = Session(display, os.path.join(logdir, "first-%s.log" % tag), extra=env)
+    return session, session.organizer()
+
+
+def firstStartEnd(checks, display, session, frame):
+    gw = session.gateway() or -1
+    t0 = time.time()
+    quitVia(display, frame)
+    endsCleanly(checks, session, display.name, gw, t0)
+
+
+def caseFirstLocal(checks, display, logdir):
+    """#240: a fresh client answers "Work on this computer", then is not asked."""
+    home = clientOnlyHome("local")
+    user = firstStartUser("local")
+    pngdir = os.environ.get("ECCE_FIRST_START_PNGS", logdir)
+    os.makedirs(pngdir, exist_ok=True)
+    shot = os.path.join(pngdir, "first-start-welcome.png")
+    extra = {"ECCE_REALUSERHOME": user, "ECCE_HOME": home,
+             "ECCE_FIRST_START_ANSWER": "local"}
+    session, frame = firstStartRun(checks, display, logdir, "local", extra, shot)
+    try:
+        if not checks.check(frame, "the Organizer opened after the answer"):
+            return
+        checks.check(os.path.exists(shot), "the question was drawn (%s)" % shot)
+        checks.check(os.path.isdir(os.path.join(user, ".ECCE-local")),
+                     "~/.ECCE-local was made")
+        env = dict(display.env(), **extra)
+        pref = run("ecce-localdata", env, "pref-state").stdout.decode().strip()
+        checks.check(pref == "on", "the preference is on (%s)" % pref)
+        checks.check(not os.path.exists(os.path.join(user, ".ECCE", "RemoteServer")),
+                     "no server chosen")
+        checks.check(not os.path.exists(os.path.join(user, ".ECCE", "dataserver")),
+                     "no data server was started")
+        orgs = named(display.name, "organizer")
+        got = procEnv(orgs[0]).get("ECCE_LOCAL_DATA") if orgs else None
+        checks.check(got == os.path.join(user, ".ECCE-local"),
+                     "the Organizer works in the local data folder (%s)" % got)
+        firstStartEnd(checks, display, session, frame)
+    finally:
+        session.kill()
+    # The choice is remembered: a second start shows no window.
+    again = {k: v for k, v in extra.items() if k != "ECCE_FIRST_START_ANSWER"}
+    session, frame = firstStartRun(checks, display, logdir, "local2", again, shot)
+    try:
+        checks.check(frame, "the second start opened the Organizer")
+        checks.check(not os.path.exists(shot), "the second start did not ask")
+        orgs = named(display.name, "organizer")
+        got = procEnv(orgs[0]).get("ECCE_LOCAL_DATA") if orgs else None
+        checks.check(got == os.path.join(user, ".ECCE-local"),
+                     "the second start is in local mode too")
+        if frame:
+            firstStartEnd(checks, display, session, frame)
+    finally:
+        session.kill()
+
+
+def caseFirstServer(checks, display, logdir):
+    """#240: "Connect to a server" with this run's data server, then Change Server."""
+    serverEnv = display.env()
+    stopOwnBroker(serverEnv)
+    marker = os.path.join(statedir(), "mosquitto.server")
+    mark = run("ecce-remote-setup", serverEnv, "--server")
+    if not checks.check(mark.returncode == 0 and os.path.exists(marker),
+                        "the server account marked"):
+        return
+    run("ecce-gateway-start", serverEnv)
+    amq = broker()
+    dport = fixture.dataserverPort()
+    bport = int(os.environ["ECCE_BROKER_PORT"])
+    if not checks.check(amq and alive(amq) and portOpen(bport),
+                        "the server's broker answers on TCP port %d" % bport):
+        return
+    home = clientOnlyHome("server")
+    user = firstStartUser("server")
+    pngdir = os.environ.get("ECCE_FIRST_START_PNGS", logdir)
+    os.makedirs(pngdir, exist_ok=True)
+    shot = os.path.join(pngdir, "first-start-server.png")
+    extra = {"ECCE_REALUSERHOME": user, "ECCE_HOME": home,
+             "ECCE_FIRST_START_ANSWER": "server:localhost:%d" % dport}
+    accessLog = os.path.join(statedir(), "dataserver", "logs", "access_log")
+    logStart = os.path.getsize(accessLog) if os.path.exists(accessLog) else 0
+    session, frame = firstStartRun(checks, display, logdir, "server", extra, shot)
+    try:
+        if not checks.check(frame, "the Organizer opened after the server was typed"):
+            return
+        ds = os.path.join(user, ".ECCE", "RemoteServer", "DataServers")
+        try:
+            text = open(ds).read()
+        except OSError:
+            text = ""
+        checks.check("http://localhost:%d/Ecce" % dport in text,
+                     "~/.ECCE/RemoteServer/DataServers names the server")
+        checks.check(waitWindow(display, " on localhost", 10),
+                     "the Organizer names its server in the title")
+        with open(accessLog, errors="replace") as f:
+            f.seek(logStart)
+            served = [l for l in f if "PROPFIND" in l and " 207 " in l]
+        checks.check(served, "the server answered this client (%d PROPFIND 207)"
+                     % len(served))
+        checks.check(not os.path.exists(os.path.join(user, ".ECCE", "mosquitto.pid")),
+                     "no broker of the client's own")
+        gw = session.gateway()
+        checks.check(gw in connectedTo(bport),
+                     "the client's gateway is logged in to the server's broker")
+        orgs = named(display.name, "organizer")
+        env = procEnv(orgs[0]) if orgs else {}
+        checks.check(env.get("ECCE_REMOTE_SERVER") and env.get("ECCE_REMOTE_DIR")
+                     == os.path.join(user, ".ECCE", "RemoteServer"),
+                     "the session is a -remote one using the user's own server file")
+        firstStartEnd(checks, display, session, frame)
+        checks.check(alive(amq) and portOpen(dport) and portOpen(bport),
+                     "the server's services are still up")
+    finally:
+        session.kill()
+    # Remembered: no window the next time, and still the server.
+    again = {k: v for k, v in extra.items() if k != "ECCE_FIRST_START_ANSWER"}
+    session, frame = firstStartRun(checks, display, logdir, "server2", again, shot)
+    try:
+        checks.check(frame, "the second start opened the Organizer")
+        checks.check(not os.path.exists(shot), "the second start did not ask")
+        orgs = named(display.name, "organizer")
+        env = procEnv(orgs[0]) if orgs else {}
+        checks.check(env.get("ECCE_REMOTE_SERVER") == "1",
+                     "the second start is a server session too")
+        if frame:
+            firstStartEnd(checks, display, session, frame)
+    finally:
+        session.kill()
+    # Edit > Change Server...: the same window, switching to this computer.
+    change = dict(display.env(), **extra)
+    change["ECCE_FIRST_START_ANSWER"] = "local"
+    shot2 = os.path.join(pngdir, "first-start-change.png")
+    change["ECCE_FIRST_START_SHOT"] = shot2
+    if os.path.exists(shot2):
+        os.unlink(shot2)
+    r = subprocess.run([os.path.join(home, "bin", "ecce-first-start"), "--change"],
+                       env=change, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                       timeout=90)
+    checks.check(r.returncode == 0 and os.path.exists(shot2),
+                 "Change Server drew its window and finished")
+    checks.check(not os.path.exists(os.path.join(user, ".ECCE", "RemoteServer"))
+                 and os.path.exists(os.path.join(user, ".ECCE", "RemoteServer.off")),
+                 "changing to this computer set the server aside")
+    pref = run("ecce-localdata", change, "pref-state").stdout.decode().strip()
+    checks.check(pref == "on", "and turned local data on (%s)" % pref)
+    try:
+        os.unlink(marker)
+    except OSError:
+        pass
+    stopOwnBroker(serverEnv)
+
+
+CASES = {"first-local": caseFirstLocal, "first-server": caseFirstServer,
+         "local": caseLocal, "local-usesym": caseLocalUseSymmetry, "local-pref": caseLocalPref, "local-save": caseLocalSave, "bug": caseBug, "window": caseWindow, "stop": caseStop, "remote": caseRemote,
          "remote-down": caseRemoteDown, "remote-refused": caseRemoteRefused,
          "quit-stop": caseQuitStop,
          "displays": caseDisplays, "same-display": caseSameDisplay,
@@ -2475,7 +2837,8 @@ CASES = {"local": caseLocal, "local-pref": caseLocalPref, "local-save": caseLoca
 
 
 def main():
-    if X is None:
+    #  local-usesym closes no window, so it runs without python3-xlib.
+    if X is None and set(args.cases) - {"local-usesym"}:
         say("SKIP: python3-xlib is needed to close a window as a WM would")
         return 0
     settings = isolate.apply(apps.INSTALL, state)
@@ -2501,7 +2864,7 @@ def main():
             #  Cases share one broker and data server, as sessions do;
             #  the stop case takes both down, the next session restarts
             #  the broker and this restarts the data server.
-            if name in ("local", "local-save", "local-pref"):   # no data server
+            if name in ("local", "local-save", "local-pref", "first-local", "local-usesym"):   # no data server
                 subprocess.run([os.path.join(install, "bin",
                                              "ecce-dataserver-stop")],
                                env=display.env(), stdout=subprocess.DEVNULL,

@@ -427,3 +427,14 @@ fixtures and drives the Geometry Trace panel through the Builder's `gt...`
 scene commands: every step, playback, GEOMTRACE messages as a running job
 sends them (including ones that fail to parse), floating and docking, and
 switching, closing and removing panels while the animation runs (#217).
+
+## Editing a periodic structure
+
+`pbc_edit_test.py` (run by the suite, or alone with `--gdb` or `--only RE`)
+presses the Periodic Builder's buttons and the Builder's editing commands
+through the `pbc...`, `cmd` and `fragdump` scene commands: a carbon with
+four nubs, Create lattice, Generate, then Add Hydrogens (#243), and the
+same with Add Hydrogens first, after a 2x2x2 supercell, after Fold, with a
+selection, and on water with its hydrogens removed. It checks that no nub
+is left without its parent atom and that every hydrogen ends up next to a
+lattice image of its parent.

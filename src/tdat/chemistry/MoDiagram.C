@@ -317,11 +317,54 @@ bool MoDiagram::groupByIrrep(const vector<double>& energies,
 static bool equivalentColumns(const vector<MoLevel>& a,
                               const vector<MoLevel>& b);
 
-void MoDiagram::placeFragments(const MoColumn& centre,
-                               MoColumn& left, MoColumn& right,
-                               const vector<MoConnection>& connections)
+double MoDiagram::drawnShare(const MoLevel& level, bool onLeft)
 {
-  if (centre.levels.empty()) return;
+  const vector<double>& shells = onLeft ? level.shellLeft : level.shellRight;
+  if (shells.empty()) return onLeft ? level.shareLeft : level.shareRight;
+  double sum = 0.0;
+  for (size_t k = 0; k < shells.size(); k++) sum += shells[k];
+  return sum;
+}
+
+
+double MoDiagram::nonbondingShellFraction(const MoLevel& mo, bool onLeft,
+                                          int slot)
+{
+  const vector<double>& mine = onLeft ? mo.shellLeft : mo.shellRight;
+  if (slot < 0 || (size_t)slot >= mine.size()) return -1.0;
+
+  //  A column with no per-shell split counts with its whole atom share.
+  double drawn = 0.0;
+  const vector<double>* shells[2] = { &mo.shellLeft, &mo.shellRight };
+  const double whole[2] = { mo.shareLeft, mo.shareRight };
+  for (int side = 0; side < 2; side++) {
+    if (shells[side]->empty()) {
+      if (whole[side] > 0.0) drawn += whole[side];
+      continue;
+    }
+    for (size_t k = 0; k < shells[side]->size(); k++) {
+      drawn += (*shells[side])[k];
+    }
+  }
+
+  //  Atoms in neither column (a skeleton's outer ligand atoms) are
+  //  orbital the diagram does not account for, so they count against.
+  if (mo.shareLeft >= 0.0 && mo.shareRight >= 0.0) {
+    const double outside = 1.0 - mo.shareLeft - mo.shareRight;
+    if (outside > 0.0) drawn += outside;
+  }
+
+  if (drawn <= 0.0) return -1.0;
+  return mine[slot]/drawn;
+}
+
+
+int MoDiagram::placeFragments(const MoColumn& centre,
+                              MoColumn& left, MoColumn& right,
+                              const vector<MoConnection>& connections)
+{
+  int pinnedShells = 0;
+  if (centre.levels.empty()) return pinnedShells;
 
   //  A FRAGMENT LEVEL SITS AT THE MEAN OF THE ORBITALS IT BECAME.
   //
@@ -410,7 +453,7 @@ void MoDiagram::placeFragments(const MoColumn& centre,
           level.energy = bottom + scale*(level.energy - lowTab);
         }
       }
-      return;
+      return pinnedShells;
     }
   }
 
@@ -517,6 +560,16 @@ void MoDiagram::placeFragments(const MoColumn& centre,
   //  which is the shell's own tabulated value and identical across
   //  its components -- so this needs nothing the levels do not
   //  already carry.
+  //
+  //  A shell with a non-bonding orbital is drawn at that orbital's
+  //  energy, not at the mean (#140): the mean includes the components
+  //  that mixed and so lies off the one orbital that did not, which
+  //  must sit level with its parent.  Decided from composition, so it
+  //  holds for a calculation's orbitals and extended Huckel's alike.
+  vector<bool> pinned[2];
+  for (c = 0; c < 2; c++) {
+    pinned[c].assign(cols[c]->levels.size(), false);
+  }
   for (c = 0; c < 2; c++) {
     vector<MoLevel>& levels = cols[c]->levels;
     if (levels.size() < 2) continue;
@@ -564,7 +617,40 @@ void MoDiagram::placeFragments(const MoColumn& centre,
       }
       if (count == 0) continue;
 
-      const double common = sum/count;
+      double common = sum/count;
+
+      const int which = (levels[i].slot >= 0) ? levels[i].slot
+                                               : levels[i].shell;
+      //  The lowest qualifying orbital of each irrep only.  Symmetry can
+      //  make a higher one pure in this shell too (a diffuse virtual b1
+      //  in water is all oxygen p once polarisation functions are left
+      //  out), and that one is not the lone pair.
+      map<string, size_t> lowest;
+      for (size_t k = 0; k < centre.levels.size(); k++) {
+        const MoLevel& mo = centre.levels[k];
+        if (nonbondingShellFraction(mo, c == 0, which) <
+            NONBONDING_SHELL_SHARE) continue;
+        map<string, size_t>::iterator at = lowest.find(mo.irrep);
+        if (at == lowest.end()) {
+          lowest[mo.irrep] = k;
+        } else if (mo.energy < centre.levels[at->second].energy) {
+          at->second = k;
+        }
+      }
+      double nbSum = 0.0, nbCount = 0.0;
+      for (map<string, size_t>::const_iterator it = lowest.begin();
+           it != lowest.end(); ++it) {
+        const MoLevel& mo = centre.levels[it->second];
+        const double n = (mo.degeneracy > 0) ? mo.degeneracy : 1;
+        nbSum += n*mo.energy;
+        nbCount += n;
+      }
+      const bool pin = (nbCount > 0.0);
+      if (pin) {
+        common = nbSum/nbCount;
+        pinnedShells++;
+      }
+
       for (size_t j = i; j < levels.size(); j++) {
         if (done[j]) continue;
         if (!levels[j].phases.empty()) continue;
@@ -572,6 +658,7 @@ void MoDiagram::placeFragments(const MoColumn& centre,
         if (levels[j].shell != levels[i].shell) continue;
         levels[j].energy = common;
         placed[c][j] = true;
+        pinned[c][j] = pin;
         done[j] = true;
       }
     }
@@ -672,7 +759,7 @@ void MoDiagram::placeFragments(const MoColumn& centre,
           }
         }
       }
-      return;
+      return pinnedShells;
     }
   }
 
@@ -794,10 +881,32 @@ void MoDiagram::placeFragments(const MoColumn& centre,
 
           if (havePrev && lo < prevHigh + minGap) {
             const double shift = (prevHigh + minGap) - lo;
+
+            //  A shell drawn at its non-bonding orbital stays there
+            //  (#140); the earlier shells move down below it instead,
+            //  unless one of them is held as well.
+            bool here = false, before = false;
             for (size_t k = 0; k < idx.size(); k++) {
-              levels[idx[k]].energy += shift;
+              if (pinned[c][idx[k]]) here = true;
             }
-            hi += shift;
+            for (size_t g2 = 0; g2 < g; g2++) {
+              for (size_t k = 0; k < groups[g2].second.size(); k++) {
+                if (pinned[c][groups[g2].second[k]]) before = true;
+              }
+            }
+
+            if (here && !before) {
+              for (size_t g2 = 0; g2 < g; g2++) {
+                for (size_t k = 0; k < groups[g2].second.size(); k++) {
+                  levels[groups[g2].second[k]].energy -= shift;
+                }
+              }
+            } else {
+              for (size_t k = 0; k < idx.size(); k++) {
+                levels[idx[k]].energy += shift;
+              }
+              hi += shift;
+            }
           }
           prevHigh = hi;
           havePrev = true;
@@ -805,6 +914,7 @@ void MoDiagram::placeFragments(const MoColumn& centre,
       }
     }
   }
+  return pinnedShells;
 }
 
 
@@ -1735,6 +1845,24 @@ void MoDiagram::classify(const vector<MoLevel>& left,
     nextPair += pairs;
   }
 
+  //  NON-BONDING ONLY IF IT IS ON ONE SIDE (#140).  The count leaves
+  //  the middle a1 of water and ammonia over, and localisation catches
+  //  ammonia's, but both carry a real share of the ligand a1 set: the
+  //  three-orbital s/p/a1 interaction.  Composition decides; without it
+  //  the count stands.
+  if (overlapPopulation.size() != centre.size()) {
+    for (size_t c = 0; c < centre.size(); c++) {
+      if (centre[c].character != MoLevel::NONBONDING) continue;
+      if (countOf(left, centre[c].irrep) < 1 ||
+          countOf(right, centre[c].irrep) < 1) continue;
+      if (drawnShare(centre[c], true)  >= LINK_SHARE &&
+          drawnShare(centre[c], false) >= LINK_SHARE) {
+        centre[c].character = MoLevel::MIXED;
+        centre[c].pairing = -1;
+      }
+    }
+  }
+
   //  The asterisk on an antibonding level and "nb" on a non-bonding
   //  one, which is how they are written and how they are read.
   for (size_t c = 0; c < centre.size(); c++) {
@@ -1997,25 +2125,13 @@ void MoDiagram::connect(const vector<MoLevel>& left,
     //  nothing.
     const bool knowShare = (centre[c].shareLeft >= 0.0 ||
                             centre[c].shareRight >= 0.0);
-    bool onLeft  = !knowShare || centre[c].shareLeft  >= cutoff;
-    bool onRight = !knowShare || centre[c].shareRight >= cutoff;
+    //  On the shells the column draws, so a polarisation function that
+    //  has no level in the column does not earn a line to it.
+    bool onLeft  = !knowShare || drawnShare(centre[c], true)  >= cutoff;
+    bool onRight = !knowShare || drawnShare(centre[c], false) >= cutoff;
 
-    //  A NON-BONDING LEVEL GETS ONE LINE, TO THE FRAGMENT IT IS ON.
-    //
-    //  The cutoff alone does not thin a small molecule's diagram,
-    //  because a small molecule's orbitals really are spread over both
-    //  fragments: every level of nitrite clears five per cent on both
-    //  sides, and rightly.  What is not true is that a non-bonding
-    //  level is interacting with both -- it exists because one
-    //  fragment had an orbital the other could not match -- so it is
-    //  drawn to whichever side carries it, which is the honest line
-    //  and half the lines.
-    //
-    //  Which side that is comes from the composition where there is
-    //  one, and from the counting where there is not.  The two agree
-    //  where both are available: nitrite's a2 is the one the counting
-    //  calls non-bonding for want of a partner, and the coefficients
-    //  put it at 100% on the oxygens.
+    //  Without a composition, a non-bonding level gets one line, to the
+    //  side the count says has the unmatched orbital.
     //  A SKELETON'S REAL METAL-LIGAND INTERACTIONS ARE NOT THINNED THIS
     //  WAY (#183, bothSidesQualify).  The one-side restriction exists
     //  because a non-bonding level is on the fragment side that HAS a
@@ -2024,15 +2140,13 @@ void MoDiagram::connect(const vector<MoLevel>& left,
     //  metal-centred HOMO) still carries real, measured shares of BOTH
     //  the metal and the CO pi* it mixes with -- that mixing is the
     //  whole point of the pi-acceptor picture -- so both lines belong.
-    if (nonBonding && !bothSidesQualify) {
-      if (knowShare) {
-        const bool leftWins = centre[c].shareLeft > centre[c].shareRight;
-        onLeft  = onLeft  && leftWins;
-        onRight = onRight && !leftWins;
-      } else {
-        onLeft  = onLeft  && excessLeft;
-        onRight = onRight && !excessLeft;
-      }
+    //  WITH A COMPOSITION, THE CUTOFF ALONE DECIDES (#140): a line is
+    //  drawn exactly where the level has share to draw, and choosing
+    //  the larger side dropped water 3a1's real 8% on the H a1 set.
+    //  Only without one does the count pick the side.
+    if (nonBonding && !bothSidesQualify && !knowShare) {
+      onLeft  = onLeft  && excessLeft;
+      onRight = onRight && !excessLeft;
     }
 
     //  AT MOST TWO LINES A SIDE, THE NEAREST IN ENERGY.

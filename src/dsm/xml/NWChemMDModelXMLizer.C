@@ -23,12 +23,13 @@
 using std::string;
 
 #include "util/EcceMap.H"
+#include "util/ResourceUtils.H"
 #include "util/StringTokenizer.H"
 
 #include "tdat/TAtm.H"
 #include "tdat/Fragment.H"
 
-#include "dsm/NWChemMDModel.H"
+#include "dsm/MDCompositeModel.H"
 #include "dsm/BasicDOMParser.H"
 #include "dsm/NWChemMDModelXMLizer.H"
 #include "dsm/Resource.H"
@@ -58,7 +59,7 @@ void NWChemMDModelXMLizer::deserialize(const string& data,
                        Serializable& object, EcceMap& properties)
 {
    // NOTE: For now at least, we aren't interested in any properties.
-   NWChemMDModel *dobject = dynamic_cast<NWChemMDModel*>(&object);
+   MDCompositeModel *dobject = dynamic_cast<MDCompositeModel*>(&object);
 
    if (dobject) {
 
@@ -760,7 +761,7 @@ void NWChemMDModelXMLizer::deserialize(const string& data,
       
       doc->release();
    } else {
-      cerr << "Dynamic cast to NWChemMDModel failed" << endl;
+      cerr << "Dynamic cast to MDCompositeModel failed" << endl;
    }
 }
 
@@ -769,7 +770,7 @@ void NWChemMDModelXMLizer::serialize(const Serializable& object,
 {
    data = "";
 
-   const NWChemMDModel *dobject = dynamic_cast<const NWChemMDModel*>(&object);
+   const MDCompositeModel *dobject = dynamic_cast<const MDCompositeModel*>(&object);
    MdTask *mdTask = 0;
 
    if (dobject) {
@@ -823,6 +824,25 @@ void NWChemMDModelXMLizer::serialize(const Serializable& object,
         mdTask = 0;
       }
 
+      // A GROMACS task says so, and which kind: the .mdp generator picks
+      // the integrator from the task type, not from which panels exist.
+      bool isGromacs = false;
+      try {
+        mdTask = dynamic_cast<MdTask*>(EDSIFactory::getResource(dobject->getUrl()));
+        if (mdTask != 0 &&
+            mdTask->getApplicationType() == ResourceDescriptor::AT_GROMACS) {
+          isGromacs = true;
+          os << "<Code>GROMACS</Code>" << endl;
+          os << "<TaskType>"
+             << ResourceUtils::contentTypeToString(mdTask->getContentType())
+             << "</TaskType>" << endl;
+        }
+        mdTask = 0;
+      }
+      catch (...) {
+        mdTask = 0;
+      }
+
       if (dobject->getInteractionModel()) {
         os << "  <Interaction>" << endl;
         dumpInteraction(dobject->getInteractionModel(), os);
@@ -835,7 +855,7 @@ void NWChemMDModelXMLizer::serialize(const Serializable& object,
       }
       if (dobject->getOptimizeModel()) {
         os << "  <Optimize>" << endl;
-        dumpOptimize(dobject->getOptimizeModel(), os);
+        dumpOptimize(dobject->getOptimizeModel(), os, isGromacs);
         os << "  </Optimize>" << endl;
       }
       if (dobject->getControlModel()) {
@@ -863,7 +883,7 @@ void NWChemMDModelXMLizer::serialize(const Serializable& object,
 
       data = os.str();
    } else {
-      cerr << "Dynamic cast to NWChemMDModel failed" << endl;
+      cerr << "Dynamic cast to MDCompositeModel failed" << endl;
    }
 }
 
@@ -1000,17 +1020,18 @@ void NWChemMDModelXMLizer::dumpConstraint(ConstraintModel *model, ostream &os)
   }
 }
 
-void NWChemMDModelXMLizer::dumpOptimize(OptimizeModel *model, ostream &os)
+void NWChemMDModelXMLizer::dumpOptimize(OptimizeModel *model, ostream &os,
+                                        bool all)
 {
   os << "    <UseSD>" << (int)model->getUseSD()
      << "</UseSD>" << endl;
   os << "    <SDMaxIterations>" << model->getSDMaxIterations()
      << "</SDMaxIterations>" << endl;
-  if (model->getSDInitialStepSize() != model->SDISTEPSIZE) {
+  if (all || model->getSDInitialStepSize() != model->SDISTEPSIZE) {
     os << "    <SDInitialStepSize>" << model->getSDInitialStepSize()
        << "</SDInitialStepSize>" << endl;
   }
-  if (model->getSDTolerance() != model->SDTOLERANCE) {
+  if (all || model->getSDTolerance() != model->SDTOLERANCE) {
     os << "    <SDTolerance>" << model->getSDTolerance()
        << "</SDTolerance>" << endl;
   }

@@ -728,7 +728,10 @@ EcceURL* EDSIFactory::createResource(EDSI* interface,
           ret = createCalculation(interface, name, resourceType->getApplicationType());
           break;
         case ResourceDescriptor::RC_MD_SESSION:
-          ret = createSession(interface, name);
+          ret = createSession(interface, name,
+                              at == ResourceDescriptor::AT_GROMACS ?
+                              ResourceDescriptor::AT_GROMACS :
+                              ResourceDescriptor::AT_MDSTUDY);
           break;
         case ResourceDescriptor::RC_REACTION_SESSION:
           ret = createSession(interface, name, 

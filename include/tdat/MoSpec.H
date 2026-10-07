@@ -341,9 +341,19 @@ static bool buildModel(const char* tables, const char* molecule,
     MoDiagram::classify(left.levels, centre.levels, right.levels,
                         left.fromHalves);
     MoDiagram::connect(left.levels, centre.levels, right.levels, links);
-    MoDiagram::placeFragments(centre, left, right, links);
+    const int pinnedShells =
+        MoDiagram::placeFragments(centre, left, right, links);
     MoDiagram::classifyByEnergy(left.levels, centre.levels,
                                 right.levels, links);
+    //  Same sentence as MoDiagramPanel::build(), kept in step.
+    if (pinnedShells > 0) {
+      char text[200];
+      snprintf(text, sizeof(text), "A shell with a non-bonding orbital "
+               "(one that is at least %d%% that shell, of the orbitals "
+               "drawn) is drawn at that orbital's energy instead.",
+               (int)lround(100.0*MoDiagram::NONBONDING_SHELL_SHARE));
+      note = note.empty() ? string(text) : (note + " " + text);
+    }
   }
 
 

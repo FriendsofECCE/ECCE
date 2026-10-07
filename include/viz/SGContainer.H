@@ -4,6 +4,7 @@
 class ChemColor;
 class ChemRadii;
 class SoSeparator;
+class SoFieldSensor;
 class SoSwitch;
 class ChemDisplay;
 class ChemDisplayParam;
@@ -86,6 +87,8 @@ public:
     double displayedSphereRadius(int idx);
     // Re-seat the normal-mode arrows on the spheres now drawn.
     void updateNMVecStarts();
+    // Bond cylinders are drawn thinner while normal-mode arrows are shown.
+    void applyNMStickScale();
 
     DisplayStyle::Style toOurStyle(ChemDisplayParam::DisplayBinding style);
     ChemDisplayParam::DisplayBinding toChemkitStyle(DisplayStyle::Style style);
@@ -278,6 +281,8 @@ SoINTERNAL public:
    // ---------------------- Property Stuff ----------------------------
    SoSwitch*                 p_MOSwitch;
    SoSwitch*                 p_NMVecSwitch;
+   float                     p_nmStickScale;
+   SoFieldSensor*            p_nmSwitchSensor;
    SoSwitch*                 p_NMSwitch;
 
    // ---------------------- Grid Property Stuff ----------------------------

@@ -595,7 +595,7 @@ ChemDisplay::highlightWireframeOverall(const ChemBaseData *chemData,
 		glBegin(GL_POINTS);
 	}
 	else {
-		glLineWidth(cdp->bondWireframeLineWidth.getValue());
+		glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 		glBegin(GL_LINES);
 	}
 
@@ -809,7 +809,7 @@ ChemDisplay::highlightWireframeOverall(const ChemBaseData *chemData,
 				glEnable(GL_LINE_STIPPLE);
 				glLineStipple(cdp->resonanceBondStippleFactor.getValue(),
 					cdp->resonanceBondStipplePattern.getValue());
-				glLineWidth(cdp->bondWireframeLineWidth.getValue());
+				glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 				glBegin(GL_LINES);
 				for (i = 0; i < listLen; i++) {
 					listIndex = resonanceHighlight[i];
@@ -979,7 +979,7 @@ ChemDisplay::highlightWireframeOverall(const ChemBaseData *chemData,
 			glEnable(GL_LINE_STIPPLE);
 			glLineStipple(cdp->hydrogenBondStippleFactor.getValue(),
 				cdp->hydrogenBondStipplePattern.getValue());
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 
 			listLen = hbondHighlight.getLength();
@@ -1038,7 +1038,7 @@ ChemDisplay::normalSixRing(SoState *state, const ChemColor *chemColor,
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINE_STRIP);
 		}
 		for (j = 0; j < lastAromaticRingNumSides; j++) {
@@ -1294,7 +1294,7 @@ hydrogenBondsNormal
 			glEnable(GL_LINE_STIPPLE);
 			glLineStipple(cdp->hydrogenBondStippleFactor.getValue(),
 				cdp->hydrogenBondStipplePattern.getValue());
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -1328,7 +1328,7 @@ hydrogenBondsNormal
 			glEnable(GL_LINE_STIPPLE);
 			glLineStipple(cdp->hydrogenBondStippleFactor.getValue(),
 				cdp->hydrogenBondStipplePattern.getValue());
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -1364,7 +1364,7 @@ hydrogenBondsNormal
 			glEnable(GL_LINE_STIPPLE);
 			glLineStipple(cdp->hydrogenBondStippleFactor.getValue(),
 				cdp->hydrogenBondStipplePattern.getValue());
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -1404,7 +1404,7 @@ hydrogenBondsNormal
 				glEnable(GL_LINE_STIPPLE);
 				glLineStipple(cdp->hydrogenBondStippleFactor.getValue(),
 					cdp->hydrogenBondStipplePattern.getValue());
-				glLineWidth(cdp->bondWireframeLineWidth.getValue());
+				glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 				glBegin(GL_LINES);
 			}
 
@@ -1440,7 +1440,7 @@ hydrogenBondsNormal
 				glEnable(GL_LINE_STIPPLE);
 				glLineStipple(cdp->hydrogenBondStippleFactor.getValue(),
 					cdp->hydrogenBondStipplePattern.getValue());
-				glLineWidth(cdp->bondWireframeLineWidth.getValue());
+				glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 				glBegin(GL_LINES);
 			}
 
@@ -1536,7 +1536,7 @@ hydrogenBondsNormal
 				glEnable(GL_LINE_STIPPLE);
 				glLineStipple(cdp->hydrogenBondStippleFactor.getValue(),
 					cdp->hydrogenBondStipplePattern.getValue());
-				glLineWidth(cdp->bondWireframeLineWidth.getValue());
+				glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 				glBegin(GL_LINES);
 			}
 
@@ -1653,7 +1653,7 @@ hydrogenBondsNormal
 				glEnable(GL_LINE_STIPPLE);
 				glLineStipple(cdp->hydrogenBondStippleFactor.getValue(),
 					cdp->hydrogenBondStipplePattern.getValue());
-				glLineWidth(cdp->bondWireframeLineWidth.getValue());
+				glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 				glBegin(GL_LINES);
 			}
 
@@ -1690,7 +1690,7 @@ hydrogenBondsNormal
 				glEnable(GL_LINE_STIPPLE);
 				glLineStipple(cdp->hydrogenBondStippleFactor.getValue(),
 					cdp->hydrogenBondStipplePattern.getValue());
-				glLineWidth(cdp->bondWireframeLineWidth.getValue());
+				glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 				glBegin(GL_LINES);
 			}
 
@@ -1781,7 +1781,7 @@ hydrogenBondsHighlighted
 				glLineStipple(cdp->hydrogenBondStippleFactor.getValue(),
 					cdp->hydrogenBondStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -1822,7 +1822,7 @@ hydrogenBondsHighlighted
 				glLineStipple(cdp->hydrogenBondStippleFactor.getValue(),
 					cdp->hydrogenBondStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -1872,7 +1872,7 @@ hydrogenBondsHighlighted
 				glLineStipple(cdp->hydrogenBondStippleFactor.getValue(),
 					cdp->hydrogenBondStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -1940,7 +1940,7 @@ hydrogenBondsHighlighted
 					glLineStipple(cdp->hydrogenBondStippleFactor.getValue(),
 						cdp->hydrogenBondStipplePattern.getValue());
 				}
-				glLineWidth(cdp->bondWireframeLineWidth.getValue());
+				glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 				glBegin(GL_LINES);
 			}
 
@@ -1982,7 +1982,7 @@ hydrogenBondsHighlighted
 					glLineStipple(cdp->hydrogenBondStippleFactor.getValue(),
 						cdp->hydrogenBondStipplePattern.getValue());
 				}
-				glLineWidth(cdp->bondWireframeLineWidth.getValue());
+				glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 				glBegin(GL_LINES);
 			}
 
@@ -2113,7 +2113,7 @@ hydrogenBondsHighlighted
 					glLineStipple(cdp->hydrogenBondStippleFactor.getValue(),
 						cdp->hydrogenBondStipplePattern.getValue());
 				}
-				glLineWidth(cdp->bondWireframeLineWidth.getValue());
+				glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 				glBegin(GL_LINES);
 			}
 
@@ -2264,7 +2264,7 @@ hydrogenBondsHighlighted
 					glLineStipple(cdp->hydrogenBondStippleFactor.getValue(),
 						cdp->hydrogenBondStipplePattern.getValue());
 				}
-				glLineWidth(cdp->bondWireframeLineWidth.getValue());
+				glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 				glBegin(GL_LINES);
 			}
 
@@ -2316,7 +2316,7 @@ hydrogenBondsHighlighted
 					glLineStipple(cdp->hydrogenBondStippleFactor.getValue(),
 						cdp->hydrogenBondStipplePattern.getValue());
 				}
-				glLineWidth(cdp->bondWireframeLineWidth.getValue());
+				glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 				glBegin(GL_LINES);
 			}
 
@@ -2393,7 +2393,7 @@ singleBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -2425,7 +2425,7 @@ singleBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -2515,7 +2515,7 @@ singleBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -2626,7 +2626,7 @@ singleBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -2659,7 +2659,7 @@ singleBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -2727,7 +2727,7 @@ doubleBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -2779,7 +2779,7 @@ doubleBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -2947,7 +2947,7 @@ doubleBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -3188,7 +3188,7 @@ doubleBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -3241,7 +3241,7 @@ doubleBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -3329,7 +3329,7 @@ tripleBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -3374,7 +3374,7 @@ tripleBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -3509,7 +3509,7 @@ tripleBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -3701,7 +3701,7 @@ tripleBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -3747,7 +3747,7 @@ tripleBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -3828,7 +3828,7 @@ quadrupleBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -3880,7 +3880,7 @@ quadrupleBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -4048,7 +4048,7 @@ quadrupleBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -4305,7 +4305,7 @@ quadrupleBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -4358,7 +4358,7 @@ quadrupleBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -4447,7 +4447,7 @@ resonanceBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -4483,7 +4483,7 @@ resonanceBondsNormal
 			glEnable(GL_LINE_STIPPLE);
 			glLineStipple(cdp->resonanceBondStippleFactor.getValue(),
 				cdp->resonanceBondStipplePattern.getValue());
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 		for (i = 0; i < listLen; i++) {
@@ -4526,7 +4526,7 @@ resonanceBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -4566,7 +4566,7 @@ resonanceBondsNormal
 				glEnable(GL_LINE_STIPPLE);
 				glLineStipple(cdp->resonanceBondStippleFactor.getValue(),
 					cdp->resonanceBondStipplePattern.getValue());
-				glLineWidth(cdp->bondWireframeLineWidth.getValue());
+				glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 				glBegin(GL_LINES);
 			}
 			for (i = 0; i < listLen; i++) {
@@ -4641,7 +4641,7 @@ resonanceBondsNormal
 				glEnable(GL_LINE_STIPPLE);
 				glLineStipple(cdp->resonanceBondStippleFactor.getValue(),
 					cdp->resonanceBondStipplePattern.getValue());
-				glLineWidth(cdp->bondWireframeLineWidth.getValue());
+				glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 				glBegin(GL_LINES);
 			}
 			for (i = 0; i < listLen; i++) {
@@ -4726,7 +4726,7 @@ resonanceBondsNormal
 				glEnable(GL_LINE_STIPPLE);
 				glLineStipple(cdp->resonanceBondStippleFactor.getValue(),
 					cdp->resonanceBondStipplePattern.getValue());
-				glLineWidth(cdp->bondWireframeLineWidth.getValue());
+				glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 				glBegin(GL_LINES);
 			}
 			for (i = 0; i < listLen; i++) {
@@ -4779,7 +4779,7 @@ resonanceBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -4819,7 +4819,7 @@ resonanceBondsNormal
 				glEnable(GL_LINE_STIPPLE);
 				glLineStipple(cdp->resonanceBondStippleFactor.getValue(),
 					cdp->resonanceBondStipplePattern.getValue());
-				glLineWidth(cdp->bondWireframeLineWidth.getValue());
+				glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 				glBegin(GL_LINES);
 			}
 			for (i = 0; i < listLen; i++) {
@@ -4921,7 +4921,7 @@ resonanceBondsNormal
 				glEnable(GL_LINE_STIPPLE);
 				glLineStipple(cdp->resonanceBondStippleFactor.getValue(),
 					cdp->resonanceBondStipplePattern.getValue());
-				glLineWidth(cdp->bondWireframeLineWidth.getValue());
+				glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 				glBegin(GL_LINES);
 			}
 			for (i = 0; i < listLen; i++) {
@@ -5064,7 +5064,7 @@ resonanceBondsNormal
 				glEnable(GL_LINE_STIPPLE);
 				glLineStipple(cdp->resonanceBondStippleFactor.getValue(),
 					cdp->resonanceBondStipplePattern.getValue());
-				glLineWidth(cdp->bondWireframeLineWidth.getValue());
+				glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 				glBegin(GL_LINES);
 			}
 			for (i = 0; i < listLen; i++) {
@@ -5147,7 +5147,7 @@ resonanceBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -5186,7 +5186,7 @@ resonanceBondsNormal
 			glEnable(GL_LINE_STIPPLE);
 			glLineStipple(cdp->resonanceBondStippleFactor.getValue(),
 				cdp->resonanceBondStipplePattern.getValue());
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 		for (i = 0; i < listLen; i++) {
@@ -5230,7 +5230,7 @@ resonanceBondsNormal
 			glBegin(GL_POINTS);
 		}
 		else {
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -5269,7 +5269,7 @@ resonanceBondsNormal
 			glEnable(GL_LINE_STIPPLE);
 			glLineStipple(cdp->resonanceBondStippleFactor.getValue(),
 				cdp->resonanceBondStipplePattern.getValue());
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 		for (i = 0; i < listLen; i++) {
@@ -5366,7 +5366,7 @@ singleBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -5409,7 +5409,7 @@ singleBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -5551,7 +5551,7 @@ singleBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -5713,7 +5713,7 @@ singleBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -5766,7 +5766,7 @@ singleBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -5868,7 +5868,7 @@ doubleBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -5931,7 +5931,7 @@ doubleBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -6151,7 +6151,7 @@ doubleBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -6443,7 +6443,7 @@ doubleBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -6516,7 +6516,7 @@ doubleBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -6638,7 +6638,7 @@ tripleBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -6694,7 +6694,7 @@ tripleBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -6881,7 +6881,7 @@ tripleBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -7124,7 +7124,7 @@ tripleBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -7190,7 +7190,7 @@ tripleBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -7305,7 +7305,7 @@ quadrupleBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -7368,7 +7368,7 @@ quadrupleBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -7588,7 +7588,7 @@ quadrupleBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -7896,7 +7896,7 @@ quadrupleBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -7969,7 +7969,7 @@ quadrupleBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -8091,7 +8091,7 @@ resonanceBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -8160,7 +8160,7 @@ resonanceBondsHighlighted
 				glEnable(GL_LINE_STIPPLE);
 				glLineStipple(cdp->resonanceBondStippleFactor.getValue(),
 					cdp->resonanceBondStipplePattern.getValue());
-				glLineWidth(cdp->bondWireframeLineWidth.getValue());
+				glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 				glBegin(GL_LINES);
 			}
 			for (i = 0; i < listLen; i++) {
@@ -8208,7 +8208,7 @@ resonanceBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -8288,7 +8288,7 @@ resonanceBondsHighlighted
 					glEnable(GL_LINE_STIPPLE);
 					glLineStipple(cdp->resonanceBondStippleFactor.getValue(),
 						cdp->resonanceBondStipplePattern.getValue());
-					glLineWidth(cdp->bondWireframeLineWidth.getValue());
+					glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 					glBegin(GL_LINES);
 				}
 				for (i = 0; i < listLen; i++) {
@@ -8418,7 +8418,7 @@ resonanceBondsHighlighted
 					glEnable(GL_LINE_STIPPLE);
 					glLineStipple(cdp->resonanceBondStippleFactor.getValue(),
 						cdp->resonanceBondStipplePattern.getValue());
-					glLineWidth(cdp->bondWireframeLineWidth.getValue());
+					glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 					glBegin(GL_LINES);
 				}
 				for (i = 0; i < listLen; i++) {
@@ -8571,7 +8571,7 @@ resonanceBondsHighlighted
 					glEnable(GL_LINE_STIPPLE);
 					glLineStipple(cdp->resonanceBondStippleFactor.getValue(),
 						cdp->resonanceBondStipplePattern.getValue());
-					glLineWidth(cdp->bondWireframeLineWidth.getValue());
+					glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 					glBegin(GL_LINES);
 				}
 				for (i = 0; i < listLen; i++) {
@@ -8642,7 +8642,7 @@ resonanceBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -8722,7 +8722,7 @@ resonanceBondsHighlighted
 					glEnable(GL_LINE_STIPPLE);
 					glLineStipple(cdp->resonanceBondStippleFactor.getValue(),
 						cdp->resonanceBondStipplePattern.getValue());
-					glLineWidth(cdp->bondWireframeLineWidth.getValue());
+					glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 					glBegin(GL_LINES);
 				}
 				for (i = 0; i < listLen; i++) {
@@ -8916,7 +8916,7 @@ resonanceBondsHighlighted
 					glEnable(GL_LINE_STIPPLE);
 					glLineStipple(cdp->resonanceBondStippleFactor.getValue(),
 						cdp->resonanceBondStipplePattern.getValue());
-					glLineWidth(cdp->bondWireframeLineWidth.getValue());
+					glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 					glBegin(GL_LINES);
 				}
 				for (i = 0; i < listLen; i++) {
@@ -9161,7 +9161,7 @@ resonanceBondsHighlighted
 					glEnable(GL_LINE_STIPPLE);
 					glLineStipple(cdp->resonanceBondStippleFactor.getValue(),
 						cdp->resonanceBondStipplePattern.getValue());
-					glLineWidth(cdp->bondWireframeLineWidth.getValue());
+					glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 					glBegin(GL_LINES);
 				}
 				for (i = 0; i < listLen; i++) {
@@ -9261,7 +9261,7 @@ resonanceBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -9341,7 +9341,7 @@ resonanceBondsHighlighted
 				glEnable(GL_LINE_STIPPLE);
 				glLineStipple(cdp->resonanceBondStippleFactor.getValue(),
 					cdp->resonanceBondStipplePattern.getValue());
-				glLineWidth(cdp->bondWireframeLineWidth.getValue());
+				glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 				glBegin(GL_LINES);
 			}
 			for (i = 0; i < listLen; i++) {
@@ -9399,7 +9399,7 @@ resonanceBondsHighlighted
 				glLineStipple(cdp->highlightStippleFactor.getValue(),
 					cdp->highlightStipplePattern.getValue());
 			}
-			glLineWidth(cdp->bondWireframeLineWidth.getValue());
+			glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 			glBegin(GL_LINES);
 		}
 
@@ -9479,7 +9479,7 @@ resonanceBondsHighlighted
 				glEnable(GL_LINE_STIPPLE);
 				glLineStipple(cdp->resonanceBondStippleFactor.getValue(),
 					cdp->resonanceBondStipplePattern.getValue());
-				glLineWidth(cdp->bondWireframeLineWidth.getValue());
+				glLineWidth(cdp->bondWireframeLineWidth.getValue() * ChemDisplayParam::lineWidthScale());
 				glBegin(GL_LINES);
 			}
 			for (i = 0; i < listLen; i++) {

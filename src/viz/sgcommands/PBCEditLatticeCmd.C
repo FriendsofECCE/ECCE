@@ -72,7 +72,11 @@ bool PBCEditLatticeCmd::execute()
            sg->touchChemDisplay();
            EventDispatcher::getDispatcher().publish(Event("GeomChange"));
          } else {
+           // Atoms keep their Cartesian positions, so a molecule that was
+           // folded across a cell face must be made whole first.
+           frag->makeMoleculesWhole(false);
            lattice->assign(a, b, c, alpha, beta, gamma);
+           sg->touchChemDisplay();
            EventDispatcher::getDispatcher().publish(Event("LatticeChange"));
          }
          sg->touchLattice();

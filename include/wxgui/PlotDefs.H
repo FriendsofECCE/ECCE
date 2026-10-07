@@ -38,13 +38,11 @@
 // DLLIMPEXP macros
 // ----------------------------------------------------------------------------
 
-// These are our DLL macros (see the contrib libs like wxPlot)
+// Our own DLL macros. They are never imports: these are static libraries even
+// when wx itself is a DLL (WXUSINGDLL, MSYS2).
 #ifdef WXMAKINGDLL_PLOTCTRL
     #define WXDLLIMPEXP_PLOTCTRL WXEXPORT
     #define WXDLLIMPEXP_DATA_PLOTCTRL(type) WXEXPORT type
-#elif defined(WXUSINGDLL)
-    #define WXDLLIMPEXP_PLOTCTRL WXIMPORT
-    #define WXDLLIMPEXP_DATA_PLOTCTRL(type) WXIMPORT type
 #else // not making nor using DLL
     #define WXDLLIMPEXP_PLOTCTRL
     #define WXDLLIMPEXP_DATA_PLOTCTRL(type) type
@@ -92,10 +90,10 @@ inline void PRINT_WXRECT2DDOUBLE(const wxString& str, const wxRect2DDouble& r) {
 // modern Debian/Ubuntu is always built against GTK3) - it's not just a
 // missing-header issue, the drawing model it depends on is gone. Force it
 // off under wx3.x/GTK so PlotDraw.C falls back to the portable wxDC-based
-// path (slower, but correct); leave the MSW fast path alone since that one
-// isn't affected.
+// path (slower, but correct); the same on MSW, whose fast path needs
+// wx/msw/private.h, which fails to compile with the MSYS2 build flags (#133).
 #ifndef wxPLOTCTRL_FAST_GRAPHICS
-    #if defined(__WXGTK__) && wxCHECK_VERSION(3, 0, 0)
+    #if (defined(__WXGTK__) || defined(__WXMSW__)) && wxCHECK_VERSION(3, 0, 0)
         #define wxPLOTCTRL_FAST_GRAPHICS 0
     #else
         #define wxPLOTCTRL_FAST_GRAPHICS 1

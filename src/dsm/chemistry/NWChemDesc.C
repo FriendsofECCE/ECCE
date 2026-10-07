@@ -7,6 +7,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <cstdint>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -979,7 +980,7 @@ void NWChemDesc::loadCategories(FFModel *model, vector<string>& sources)
    const int BUFSIZE = 256;  // TODO confirm this covers all possibilities
    char buffer[BUFSIZE];
    char *tok, *ptr;
-   unsigned long lineEnd = 0;
+   uintptr_t lineEnd = 0;
    bool postCommentFlag;
 
    for ( int sid=0;sid<sourceCount;sid++)  {
@@ -995,7 +996,7 @@ void NWChemDesc::loadCategories(FFModel *model, vector<string>& sources)
          while ( sfile.getline( buffer, BUFSIZE))  {
 
             ptr = buffer;
-            lineEnd = (unsigned long)buffer + strlen( buffer);
+            lineEnd = (uintptr_t)buffer + strlen( buffer);
             fftypeID = FFType::INVALID_ID;
 
             // grab first non-blank character string
@@ -1222,7 +1223,7 @@ FFItem* NWChemDesc::parseNWChemAtomData( ifstream& sfile, FFModel *model,
       //------------------------------------------------
       if ( sfile.getline( buffer, BUFSIZE)) {
 
-         unsigned long lineEnd = (unsigned long)buffer + strlen( buffer);//remember the last address
+         uintptr_t lineEnd = (uintptr_t)buffer + strlen( buffer);//remember the last address
          if (( tok = strtok( buffer, " ")) != 0) {
 
             // Check to see if first atom is supposed to be a quantum atom.
@@ -1260,7 +1261,7 @@ FFItem* NWChemDesc::parseNWChemAtomData( ifstream& sfile, FFModel *model,
             //------------------------------------------------
             if ((tok=strtok(0," ")) != 0)  {
                // replace the null with a blank if the annotation has > one word
-               if ( ((unsigned long)tok + strlen(tok)) < lineEnd)
+               if ( ((uintptr_t)tok + strlen(tok)) < lineEnd)
                   tok[strlen(tok)] = ' ';
                item->setAnnotation( tok);
             }
@@ -1314,7 +1315,7 @@ FFItem* NWChemDesc::parseNWChemCrossData( ifstream& sfile, FFModel *model,
 
          item = new FFItem( sid);
 
-         unsigned long lineEnd = (unsigned long)buffer + strlen( buffer);//remember the last address
+         uintptr_t lineEnd = (uintptr_t)buffer + strlen( buffer);//remember the last address
          string name = model->getCategory(catID)->getName();
          int max = model->getDesc().getCategoryByName(name).getNumParams();
 
@@ -1331,7 +1332,7 @@ FFItem* NWChemDesc::parseNWChemCrossData( ifstream& sfile, FFModel *model,
                      //   embedded blanks.
                // Replace the inserted null with a blank if the annotation 
                //    has > one word (the null could be the actual end of string)
-               if ( ((unsigned long)tok + strlen(tok)) < lineEnd)
+               if ( ((uintptr_t)tok + strlen(tok)) < lineEnd)
                   tok[strlen(tok)] = ' ';
                item->setAnnotation( tok);
                break;
@@ -1347,7 +1348,7 @@ FFItem* NWChemDesc::parseNWChemCrossData( ifstream& sfile, FFModel *model,
 //
 ////////////////////////////////////////////////////////////////////////////////
 FFItem* NWChemDesc::parseNWChemBondData( char* tok, FFModel *model,
-                                         const unsigned long lineEnd, 
+                                         const uintptr_t lineEnd, 
                                          int sid, int catID, int* typeID)
 {
    FFItem *item = (FFItem*)0;
@@ -1378,7 +1379,7 @@ FFItem* NWChemDesc::parseNWChemBondData( char* tok, FFModel *model,
          }
          //else, found annotation, capture it - from tok + to end of line
          else {
-            if ( ((unsigned long)tok + strlen(tok)) < lineEnd)  {
+            if ( ((uintptr_t)tok + strlen(tok)) < lineEnd)  {
                tok[strlen(tok)] = ' ';
                item->setAnnotation( tok);
                break;
@@ -1399,7 +1400,7 @@ FFItem* NWChemDesc::parseNWChemBondData( char* tok, FFModel *model,
 //
 ////////////////////////////////////////////////////////////////////////////////
 FFItem* NWChemDesc::parseNWChemAngleData( char* tok, FFModel *model,
-                                          unsigned long lineEnd,
+                                          uintptr_t lineEnd,
                                           int sid, int catID, int* typeID)
 {
    FFItem *item = (FFItem*)0;
@@ -1432,7 +1433,7 @@ FFItem* NWChemDesc::parseNWChemAngleData( char* tok, FFModel *model,
             }
             //else, found annotation, capture it - from tok + to end of line
             else {
-               if ( ((unsigned long)tok + strlen(tok)) < lineEnd)  {
+               if ( ((uintptr_t)tok + strlen(tok)) < lineEnd)  {
                   tok[strlen(tok)] = ' ';
                   item->setAnnotation( tok);
                   break;

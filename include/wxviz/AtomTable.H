@@ -23,7 +23,7 @@
 
 class GridAtomElement;
 class Tearable;
-class wxConfig;
+class wxConfigBase;
 
 /**
  * Atom table view.  Displays a view of the
@@ -64,8 +64,8 @@ class AtomTable : public MoleculeDataTable,
     // Listener virtual
     void eventMCB(const Event& event);
 
-    virtual void restoreSettings(wxConfig * config);
-    virtual void saveSettings(wxConfig * config);
+    virtual void restoreSettings(wxConfigBase * config);
+    virtual void saveSettings(wxConfigBase * config);
 
   protected:
 

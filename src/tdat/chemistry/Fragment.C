@@ -25,11 +25,8 @@
 #include <list>
     using std::list;
 
-#ifdef __GNUC__
-  #include <ext/hash_map>
-  using __gnu_cxx::hash_map;
-  using __gnu_cxx::hash;
-#endif
+#include <cstdint>
+#include <unordered_map>
 
 #include "util/ETimer.H"
 #include "util/Ecce.H"
@@ -75,7 +72,7 @@
  * This fragment has no name, atoms, residues, or constraints.
  *
  */
-Fragment::Fragment() : p_mainDisplayStyle(DisplayStyle::BALLWIRE)
+Fragment::Fragment() : p_mainDisplayStyle(DisplayStyle::BALLSTICK)
 {
    p_name = "";
    p_charge = 0;
@@ -102,7 +99,7 @@ Fragment::Fragment(const string& name,
                    const double* coordinates,
                    const int numBonds,
                    const int *bonds) 
-                   : p_mainDisplayStyle(DisplayStyle::BALLWIRE)
+                   : p_mainDisplayStyle(DisplayStyle::BALLSTICK)
 {
    p_name = name;
    p_charge = 0;
@@ -141,7 +138,7 @@ Fragment::Fragment(const string& name,
                    const double* coordinates,
                    const int numBonds,
                    const int *bonds)
-                   : p_mainDisplayStyle(DisplayStyle::BALLWIRE)
+                   : p_mainDisplayStyle(DisplayStyle::BALLSTICK)
 {
    p_name = name;
    p_charge = 0;
@@ -167,7 +164,7 @@ Fragment::Fragment(const string& name,
 
 
 Fragment::Fragment( const string& name ) 
-                   : p_mainDisplayStyle(DisplayStyle::BALLWIRE)
+                   : p_mainDisplayStyle(DisplayStyle::BALLSTICK)
 {
    p_name = name;
    p_charge = 0;
@@ -191,7 +188,7 @@ Fragment::Fragment( const string& name )
  * Copy Constructor.
  */
 Fragment::Fragment(const Fragment& frag) 
-        : p_mainDisplayStyle(DisplayStyle::BALLWIRE)
+        : p_mainDisplayStyle(DisplayStyle::BALLSTICK)
 { 
    p_constraints = 0;
    p_potentials = 0;
@@ -1526,6 +1523,200 @@ bool Fragment::getConnected(vector<bool>& vatoms, vector<bool>& vbonds,
   return foundCycle;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Description:
+//   Bonds each unbonded nub to the nearest non-nub, non-ghost atom.  The
+//   distance rules never bond a nub, and every nub operation assumes a
+//   parent.  With a lattice the nearest atom is the minimum image (ties go
+//   to the untranslated atom, for replicas) and the nub is moved next to it,
+//   since lattice Generate puts every centre into the cell.
+////////////////////////////////////////////////////////////////////////////////
+static void bondLooseNubs(Fragment& frag)
+{
+  TPerTab tpt;
+  int nub = tpt.nubAtom();
+  int ghost = 0;
+  int nAtoms = frag.numAtoms();
+
+  vector<TAtm*> loose;
+  for (int i = 0; i < nAtoms; i++) {
+    TAtm *a = frag.atomRef(i);
+    if (a->atomicNumber() == nub && a->bondList().empty()) loose.push_back(a);
+  }
+  if (loose.empty()) return;
+
+  // Fractional coordinate k of r is r . inv[k].
+  LatticeDef *lattice = frag.getLattice();
+  MPoint inv[3], basis[3];
+  bool periodic = false;
+  if (lattice) {
+    vector<MPoint> *vecs = lattice->toVectors();
+    for (int k = 0; k < 3; k++) basis[k].xyz((*vecs)[k]);
+    delete vecs;
+    double volume = (basis[0].crossProduct1(basis[1])).dotProduct(basis[2]);
+    if (fabs(volume) > 1.e-8) {
+      inv[0] = basis[1].crossProduct1(basis[2]);
+      inv[1] = basis[2].crossProduct1(basis[0]);
+      inv[2] = basis[0].crossProduct1(basis[1]);
+      for (int k = 0; k < 3; k++) inv[k].scale(1.0 / volume);
+      periodic = true;
+    }
+  }
+
+  for (size_t n = 0; n < loose.size(); n++) {
+    TAtm *nubAtm = loose[n];
+    TAtm *best = 0;
+    double bestDist = 0.;
+    bool bestShifted = false;
+    MPoint bestShift(0., 0., 0.);
+    for (int j = 0; j < nAtoms; j++) {
+      TAtm *cand = frag.atomRef(j);
+      int tag = cand->atomicNumber();
+      if (tag == nub || tag == ghost) continue;
+      MPoint dr, pj;
+      dr.xyz(nubAtm->coordinates());
+      pj.xyz(cand->coordinates());
+      dr.subtract(pj);
+      MPoint shift(0., 0., 0.);
+      bool shifted = false;
+      if (periodic) {
+        for (int k = 0; k < 3; k++) {
+          double f = floor(dr.dotProduct(inv[k]) + 0.5);
+          if (f != 0.) {
+            MPoint t = basis[k];
+            t.scale(f);
+            shift.add(t);
+            shifted = true;
+          }
+        }
+        dr.subtract(shift);
+      }
+      double dist = dr.length();
+      // A nub sits inside its parent's drawn radius, at most the van der
+      // Waals radius (CPK); further away it cannot be this atom's.
+      if (dist > tpt.vwr(tag) + 0.5) continue;
+      bool better = best == 0 || dist < bestDist - 1.e-4 ||
+                    (dist < bestDist + 1.e-4 && bestShifted && !shifted);
+      if (better) {
+        best = cand;
+        bestDist = dist;
+        bestShift = shift;
+        bestShifted = shifted;
+      }
+    }
+    if (best == 0) continue;
+    if (bestShifted) {
+      MPoint pn;
+      pn.xyz(nubAtm->coordinates());
+      pn.subtract(bestShift);
+      nubAtm->coordinates(pn.x(), pn.y(), pn.z());
+    }
+    new TBond(best, nubAtm, TBond::Single);
+  }
+}
+
+
+/**
+ * Makes every molecule contiguous in Cartesian space under the periodic
+ * lattice: atoms are connected by existing bonds or by the covalent-radius
+ * test taken at the minimum image, and each connected set is rebuilt around
+ * its first atom.  With foldIntoCell each molecule is then moved, as a unit,
+ * by whole lattice vectors until its centroid lies in the cell, so a
+ * molecule is never split across the cell faces.  Bonds are not changed.
+ * Returns false (nothing done) without a lattice or for very large systems.
+ */
+bool Fragment::makeMoleculesWhole(bool foldIntoCell)
+{
+  LatticeDef *lattice = getLattice();
+  const int n = numAtoms();
+  if (!lattice || n == 0 || n > 6000) return false;
+
+  vector<MPoint> *vecs = lattice->toVectors();
+  MPoint basis[3], inv[3];
+  for (int k = 0; k < 3; k++) basis[k].xyz((*vecs)[k]);
+  delete vecs;
+  double volume = (basis[0].crossProduct1(basis[1])).dotProduct(basis[2]);
+  if (fabs(volume) < 1.e-8) return false;
+  inv[0] = basis[1].crossProduct1(basis[2]);
+  inv[1] = basis[2].crossProduct1(basis[0]);
+  inv[2] = basis[0].crossProduct1(basis[1]);
+  for (int k = 0; k < 3; k++) inv[k].scale(1.0 / volume);
+  MPoint origin = lattice->getLatticeCorner();
+
+  TPerTab tpt;
+  const int nub = tpt.nubAtom();
+  vector<double> rad(n);
+  vector<MPoint> pos(n);
+  for (int i = 0; i < n; i++) {
+    int num = tpt.atomicNumber(p_atoms[i]->atomicSymbol());
+    rad[i] = tpt.covalentRadius(num) * tpt.covalentRadiusTolerance(num);
+    pos[i].xyz(p_atoms[i]->coordinates());
+  }
+
+  // d reduced to its minimum image
+  auto reduce = [&](MPoint d) {
+    for (int k = 0; k < 3; k++) {
+      double f = floor(d.dotProduct(inv[k]) + 0.5);
+      if (f != 0.) { MPoint t = basis[k]; t.scale(f); d.subtract(t); }
+    }
+    return d;
+  };
+
+  vector<int> mol(n, -1);
+  int nmol = 0;
+  for (int s = 0; s < n; s++) {
+    if (mol[s] >= 0) continue;
+    vector<int> members(1, s);
+    mol[s] = nmol;
+    for (size_t h = 0; h < members.size(); h++) {
+      const int i = members[h];
+      const int ti = p_atoms[i]->atomicNumber();
+      for (int j = 0; j < n; j++) {
+        if (mol[j] >= 0) continue;
+        bool linked = false;
+        const vector<TBond*>& bl = p_atoms[i]->bondList();
+        for (size_t b = 0; b < bl.size() && !linked; b++) {
+          linked = bl[b]->atom1() == p_atoms[j] || bl[b]->atom2() == p_atoms[j];
+        }
+        MPoint d = pos[j];
+        d.subtract(pos[i]);
+        d = reduce(d);
+        if (!linked) {
+          const int tj = p_atoms[j]->atomicNumber();
+          if (ti == 0 || tj == 0 || ti == nub || tj == nub ||
+              (ti == 1 && tj == 1)) continue;
+          double cut = rad[i] + rad[j];
+          linked = d.lengthSqr() <= cut * cut;
+        }
+        if (!linked) continue;
+        pos[j] = pos[i];
+        pos[j].add(d);
+        mol[j] = nmol;
+        members.push_back(j);
+      }
+    }
+    if (foldIntoCell) {
+      MPoint c(0., 0., 0.);
+      for (size_t m = 0; m < members.size(); m++) c.add(pos[members[m]]);
+      c.scale(1.0 / members.size());
+      c.subtract(origin);
+      MPoint shift(0., 0., 0.);
+      for (int k = 0; k < 3; k++) {
+        MPoint t = basis[k];
+        t.scale(floor(c.dotProduct(inv[k])));
+        shift.add(t);
+      }
+      for (size_t m = 0; m < members.size(); m++) pos[members[m]].subtract(shift);
+    }
+    nmol++;
+  }
+  for (int i = 0; i < n; i++) {
+    p_atoms[i]->coordinates(pos[i].x(), pos[i].y(), pos[i].z());
+  }
+  return true;
+}
+
+
 /**
  * Simply check distance between atoms to see if less than
  * some scale of the sum of the two atom's radii.
@@ -1743,6 +1934,7 @@ void Fragment::addCovalentBonds(bool overrideIsDisplayed)
   }
 //cout << "bond generation done " << timer.elapsedTime() << endl;
 //cout << "total number of bonds computed " << bondcheck << endl;
+  bondLooseNubs(*this);
   generateShapes();
   generateBondOrders();
 }
@@ -3200,14 +3392,14 @@ vector<TBond*>* Fragment::bonds(void) const
 
 #if 111
   // Initialize a map to 10% larger than numAtoms  - just a guess
-  hash_map<unsigned long, TBond*, hash<unsigned long>, equint> mymap((int)(cnt * 1.1));
+  std::unordered_map<uintptr_t, TBond*> mymap((int)(cnt * 1.1));
   for (int idx=0; idx<cnt; idx++) {
     const vector<TBond*>& bonds = p_atoms[idx]->bondList();
     int bcnt = bonds.size();
     for (int jdx=0; jdx<bcnt; jdx++) {
       bond = bonds[jdx];
-      if (mymap.find((unsigned long)bond) == mymap.end()) {
-        mymap[(unsigned long)bond] = bond;
+      if (mymap.find((uintptr_t)bond) == mymap.end()) {
+        mymap[(uintptr_t)bond] = bond;
         ret->push_back(bond);
       }
     }

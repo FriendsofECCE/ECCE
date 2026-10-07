@@ -82,6 +82,8 @@ bool PBCEditVectorsCmd::execute()
            sg->touchChemDisplay();
            EventDispatcher::getDispatcher().publish(Event("GeomChange"));
          } else {
+           // Cartesian positions are kept: make folded molecules whole first.
+           frag->makeMoleculesWhole(false);
            lattice->assign(MPoint(a1x,a1y,a1z), MPoint(a2x,a2y,a2z), MPoint(a3x,a3y,a3z));
          }
 

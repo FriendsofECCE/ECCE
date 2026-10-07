@@ -29,6 +29,7 @@
 
 #include "dsm/EDSIServerCentral.H"
 #include "dsm/EcceDAVClient.H"
+#include "dsm/CTLSSocket.H"
 
 #include "wxgui/WxDavAuth.H"
 #include "wxgui/WxAuth.H"
@@ -359,23 +360,37 @@ bool WxDavAuth::prompt(const string& strurl,
        authDlg.setPrompt("You do not have an existing data server account!\nPlease enter a new data server password to create one:");
        authDlg.setPasswordLabel("  New\nPassword:");
      } else if (retryCount > 1) {
-       string promptStr;
+       // A prior prompt's password was refused by the server -- say
+       // so on the error line, rather than silently repeating the dialog.
        if (noAccess) {
-         promptStr = user + " has no access to this folder.\n"
-               "Enter its owner's name and password to open it:";
+         authDlg.setPrompt("Enter its owner's name and password to open it:");
+         authDlg.setStatus(user + " has no access to this folder.");
        } else {
-         // A prior prompt's password was refused by the server -- say
-         // so, rather than silently repeating the same dialog.
-         promptStr = "The user name or password was not accepted.\n"
-               "Please try again:";
+         authDlg.setPrompt("Please try again:");
+         authDlg.setStatus("The user name or password was not accepted.");
        }
-       authDlg.setPrompt(promptStr);
+     }
 
-       // Fit() sizes the dialog to the new prompt text's best size,
-       // which can come out NARROWER than the dialog's first
-       // appearance -- seen live truncating the title bar to "ECCE
-       // Authenti...".  Never let the retry dialog end up smaller than
-       // it was already showing.
+     // No password change or account creation from here: there is no
+     // server side for them, and the request put both passwords in the
+     // URL, which the data server writes to its access log.
+     authDlg.showChangeBtn(false);
+     {
+       string where = url.getProtocol() + "://" + url.getHost();
+       const bool secure = (url.getProtocol() == "https");
+       if (url.getPort() > 0 && url.getPort() != (secure ? 443 : 80))
+         where += ":" + std::to_string(url.getPort());
+       authDlg.setServer(where);
+       if (secure) {
+         authDlg.setEncryption(ipc::CTLSClientSocket::pinnedCertPath().empty()
+           ? "Encrypted connection (TLS), certificate checked by the system"
+           : "Encrypted connection (TLS), server certificate pinned");
+       }
+     }
+     // Fit() sizes the dialog to the new prompt text's best size, which
+     // can come out narrower than the first appearance (the title bar was
+     // once truncated); never let it end up smaller than it was.
+     {
        wxSize before = authDlg.GetSize();
        authDlg.Layout();
        authDlg.Fit();
@@ -384,11 +399,6 @@ bool WxDavAuth::prompt(const string& strurl,
                               wxMax(before.GetHeight(), after.GetHeight())));
      }
 
-     // No password change or account creation from here: there is no
-     // server side for them, and the request put both passwords in the
-     // URL, which the data server writes to its access log.
-     authDlg.showChangeBtn(false);
-     authDlg.setServer(url.getHost());
      authDlg.setProtocol("http");
      // Prefilling the session user's own name here would invite retyping
      // the same password that already failed for lack of access -- leave

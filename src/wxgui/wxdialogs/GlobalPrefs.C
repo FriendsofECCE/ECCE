@@ -191,7 +191,7 @@ void GlobalPrefs::createGeneralPage(wxWindow* page)
   // No colour theme: windows take the desktop's GTK theme (#210).
   ewxChoice** choices[] = {&p_fontSize, &p_dateFormat,
                            &p_timeFormat, &p_unit};
-  const wxChar* labels[] = {_("Font Size:"),
+  const wxString labels[] = {_("Font Size:"),
                             _("Date Format:"), _("Time Format:"), _("Units:")};
   for (c = 0; c < 4; c++) {
     grid->Add(new ewxStaticText(sb, wxID_ANY, labels[c]), 0,
@@ -231,7 +231,7 @@ void GlobalPrefs::createGeneralPage(wxWindow* page)
   wxWindow* sb2 = box2->GetStaticBox();
   ewxCheckBox** checks[] = {&p_beepError, &p_beepWarn, &p_focus,
                             &p_confirmExit, &p_closeShells, &p_savePasswords};
-  const wxChar* clabels[] = {
+  const wxString clabels[] = {
     _("Beep on errors"), _("Beep on warnings"),
     _("Focus follows mouse over input fields"),
     _("Ask for confirmation on exit"),
@@ -299,22 +299,37 @@ void GlobalPrefs::createProgramsPage(wxWindow* page)
   grid->AddGrowableCol(1);
   box->Add(grid, 0, wxGROW|wxALL, PAD);
 
+#ifdef __APPLE__
+  const char* edPresets[] = {"", "open -e", "vi", "vim", "nano", "emacs -nw"};
+  const char* edDefault = "Default (open -t)";
+  const char* termPresets[] = {"", "xterm"};
+  const char* termDefault = "Default (Terminal)";
+#else
   const char* edPresets[] = {"", "vi", "vim", "nano", "emacs", "gedit",
                              "geany", "kate"};
-  vector<string> edVals(edPresets, edPresets + 8);
+  const char* edDefault = "Default (vi)";
+  const char* termPresets[] = {"", "xterm", "x-terminal-emulator", "konsole"};
+  const char* termDefault = "Default (xterm)";
+#endif
+  const int nEd = sizeof(edPresets)/sizeof(edPresets[0]);
+  vector<string> edVals(edPresets, edPresets + nEd);
   vector<string> edLabels;
-  edLabels.push_back("Default (vi)");
-  for (int i = 1; i < 8; i++) edLabels.push_back(edPresets[i]);
+  edLabels.push_back(edDefault);
+  for (int i = 1; i < nEd; i++) edLabels.push_back(edPresets[i]);
   edLabels.push_back("Other");
   p_editor = makeProgramRow(sb, grid, _("Editor:"), edLabels, edVals,
                             PrefLabels::EDITOR);
+#ifdef __APPLE__
+  p_editor.choice->SetToolTip(_("Default uses VISUAL or EDITOR when set, otherwise open -t"));
+#else
   p_editor.choice->SetToolTip(_("Default uses VISUAL or EDITOR when set, otherwise vi"));
+#endif
 
-  const char* termPresets[] = {"", "xterm", "x-terminal-emulator", "konsole"};
-  vector<string> termVals(termPresets, termPresets + 4);
+  const int nTerm = sizeof(termPresets)/sizeof(termPresets[0]);
+  vector<string> termVals(termPresets, termPresets + nTerm);
   vector<string> termLabels;
-  termLabels.push_back("Default (xterm)");
-  for (int i = 1; i < 4; i++) termLabels.push_back(termPresets[i]);
+  termLabels.push_back(termDefault);
+  for (int i = 1; i < nTerm; i++) termLabels.push_back(termPresets[i]);
   termLabels.push_back("Other");
   p_terminal = makeProgramRow(sb, grid, _("Terminal:"), termLabels, termVals,
                               PrefLabels::TERMINAL);
@@ -333,7 +348,11 @@ void GlobalPrefs::createProgramsPage(wxWindow* page)
   outer->Add(box, 0, wxGROW|wxALL, PAD);
 
   outer->Add(new ewxStaticText(page, wxID_ANY,
+#ifdef __APPLE__
+      _("Default editor: VISUAL or EDITOR if set, otherwise open -t.\n"
+#else
       _("Default editor: VISUAL or EDITOR if set, otherwise vi.\n"
+#endif
         "Terminal editors (vi, vim, nano, emacs -nw) run in this terminal;\n"
         "Shells in a calculation directory use it too, locally and remotely.\n"
         "Choose Other to type a command; it may include arguments.")),
@@ -475,7 +494,11 @@ void GlobalPrefs::OnChangeDataFolder(wxCommandEvent& event)
 void GlobalPrefs::OnOpenDataFolder(wxCommandEvent& event)
 {
   string folder = LocalData::prefFolder();
+#ifdef __APPLE__
+  const char* argv[] = { "open", folder.c_str(), NULL };
+#else
   const char* argv[] = { "xdg-open", folder.c_str(), NULL };
+#endif
   wxExecute(const_cast<char**>(argv), wxEXEC_ASYNC);
 }
 

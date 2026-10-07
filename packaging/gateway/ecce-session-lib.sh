@@ -227,3 +227,20 @@ ecce_session_alive() {
   done < <(ecce_session_procs)
   return 1
 }
+
+# A user's own choice of a server (ecce-first-start, #240) is the folder
+# ~/.ECCE/RemoteServer, laid out like siteconfig/RemoteServer. It makes a
+# plain `ecce` a -remote session, unless the session was told otherwise
+# (ECCE_LOCAL_DATA set, --local) or the installation has a server
+# configured of its own, which then wins.
+ecce_user_server_mode() {
+  local site="${ECCE_HOME:-/opt/ecce}/siteconfig/RemoteServer"
+  local mine="${ECCE_REALUSERHOME:-$HOME}/.ECCE/RemoteServer"
+  [ -r "$mine/DataServers" ] || return 0
+  [ -r "$site/DataServers" ] && return 0
+  if [ -z "${ECCE_REMOTE_SERVER:-}" ]; then
+    [ -z "${ECCE_LOCAL_DATA+x}" ] && [ -z "${ECCE_LOCAL:-}" ] || return 0
+    export ECCE_REMOTE_SERVER=1
+  fi
+  export ECCE_REMOTE_DIR="$mine"
+}
