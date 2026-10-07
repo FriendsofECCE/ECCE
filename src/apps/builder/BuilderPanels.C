@@ -374,12 +374,8 @@ void Builder::refreshColumn()
   } else if (p_panelMode == PANELS_DETAIL) {
     ensureDetail();
   }
-  //  A calculation without results has an empty Properties tab, whatever
-  //  tab was last chosen: it opens on the building tools.
-  if (!anyProperties) {
-    p_columnTab = 0;
-  } else if (!p_columnTabChosen) {
-    p_columnTab = 1;
+  if (!p_columnTabChosen) {
+    p_columnTab = anyProperties ? 1 : 0;
   }
   updatePropertyIndex();
   syncColumn(false);
@@ -914,93 +910,6 @@ void Builder::setPanelMode(PanelMode mode, bool reset)
 }
 
 
-/**
- * A tool pane's contents changed size (the Periodic Builder grows once a
- * lattice exists): make sure it still has room.
- */
-void Builder::toolPaneResized(const string& name)
-{
-  wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(name));
-  if (pane.IsOk() && pane.IsShown()) {
-    makeRoomFor(wxString(name));
-  }
-}
-
-
-/**
- * A tool pane opened from the Tools menu gets the height its controls need.
- * The right-hand column holds a fixed number of panes at their minimum
- * height; one more used to be laid out with no height at all, its window
- * left floating over the viewer.  Panes of the same dock that were opened
- * for convenience (tables, Selection, Symmetry, ...) are closed, least
- * wanted first, until the new one fits; they come back from the Tools menu.
- */
-void Builder::makeRoomFor(const wxString& name)
-{
-  wxAuiPaneInfo &pane = p_mgr.GetPane(name);
-  if (!pane.IsOk() || !pane.IsShown() || pane.IsFloating() || !pane.window ||
-      p_columnHidden) {
-    return;
-  }
-  //  The Periodic Builder scrolls, but is useless if it shows one row.
-  const int need = name == NAME_TOOL_PBC ? 200 : 150;
-  const string victims[] = {
-    NAME_TOOL_ATOM_TABLE, NAME_TOOL_RESIDUE_TABLE, NAME_TOOL_SELECTION,
-    NAME_TOOL_SYMMETRY, NAME_TOOL_COORDINATES, NAME_TOOL_DNA_BUILDER,
-    NAME_TOOL_PEPTIDE_BUILDER, NAME_TOOL_SLICER, NAME_TOOL_BUILD
-  };
-  //  AUI keeps a docked pane's position as a pixel offset from the top of
-  //  its dock and leaves the gap before it empty: put this pane directly
-  //  under the ones above it before closing anything.
-  bool moved = false;
-  for (size_t v = 0; ; ) {
-    wxAuiPaneInfo &now = p_mgr.GetPane(name);
-    if (now.rect.height >= need) {
-      return;
-    }
-    if (!moved) {
-      moved = true;
-      vector<wxAuiPaneInfo*> column;
-      wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
-      for (size_t i = 0; i < all.GetCount(); ++i) {
-        wxAuiPaneInfo &o = all.Item(i);
-        if (o.IsShown() && !o.IsFloating() && !o.IsToolbar() && o.window &&
-            o.dock_direction == now.dock_direction &&
-            o.dock_layer == now.dock_layer) {
-          column.push_back(&o);
-        }
-      }
-      std::sort(column.begin(), column.end(),
-                [](wxAuiPaneInfo *x, wxAuiPaneInfo *y) {
-                  return x->rect.y < y->rect.y;
-                });
-      for (size_t i = 0; i < column.size(); ++i) {
-        column[i]->Position((int)i);
-      }
-      //  Share the column's spare height in favour of the new pane.
-      now.dock_proportion = 300000;
-      updatePanes();
-      continue;
-    }
-    if (v == sizeof(victims) / sizeof(victims[0])) {
-      return;
-    }
-    wxAuiPaneInfo &other = p_mgr.GetPane(wxString(victims[v++]));
-    if (!other.IsOk() || !other.IsShown() || other.IsFloating() ||
-        other.name == name || other.dock_direction != now.dock_direction) {
-      continue;
-    }
-    other.Show(false);
-    p_tabHidden.erase(other.window);
-    const int id = p_toolMenu->FindItem(other.name);
-    if (id != wxNOT_FOUND) {
-      p_toolMenu->Check(id, false);
-    }
-    updatePanes();
-  }
-}
-
-
 //  ---- test hook ------------------------------------------------------
 
 /**
@@ -1354,7 +1263,7 @@ void Builder::runClipAudit()
         for (size_t k = 0; k < now.GetCount(); ++k) {
           wxAuiPaneInfo &other = now.Item(k);
           if (dynamic_cast<PropertyPanel*>(other.window) &&
-              other.name != name && !other.IsFloating()) {
+              other.name != name) {
             other.Show(false);
             p_tabHidden.erase(other.window);
           }
@@ -1425,7 +1334,7 @@ void Builder::runClipAudit()
               oi->GetItemLabelText() == NAME_TOOL_CONTEXT ||
               oi->GetItemLabelText() == NAME_TOOL_LOG) continue;
           wxAuiPaneInfo &other = p_mgr.GetPane(oi->GetItemLabelText());
-          if (other.IsOk() && !other.IsFloating()) {
+          if (other.IsOk()) {
             other.Show(false);
             p_tabHidden.erase(other.window);
           }
