@@ -96,6 +96,9 @@ class Teardown(object):
         except Exception:
             pass                              # teardown must never itself
         try:                                   # be what crashes the run
+            if os.environ.get("ECCE_APPS_TRACE"):
+                print("Xvfb stderr: %s" % (self.display.serverLog(300)
+                                           or "empty"), flush=True)
             self.display.__exit__(None, None, None)
         except Exception:
             pass
@@ -656,7 +659,9 @@ def main():
                     % (name, len(selected) - len(swept),
                        len(selected) - len(swept) + 1,
                        display.serverState(), display.probeNote,
-                       display.clients() or "(xlsclients says nothing)"))
+                       display.clients() or "(xlsclients says nothing)")
+                    + ("\n      Xvfb stderr: %s" % display.serverLog(500)
+                       if display.serverLog() else ""))
                 break
 
         if not args.app and not stalled:
