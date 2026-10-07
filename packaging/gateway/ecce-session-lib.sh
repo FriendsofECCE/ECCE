@@ -91,16 +91,41 @@ ecce_session_of_pid() {
     sed -n 's/^ECCE_SESSION_ID=//p' | head -n1
 }
 
+# ecce_realpath PATH: PATH with symlinks resolved, like GNU `readlink -f`
+# (absent on macOS before 12.3). Prints nothing and fails if PATH does not
+# exist. Plain POSIX: cd -P for the directory, readlink (no -f) per link.
+ecce_realpath() {
+  local p="$1" dir base n=0 link
+  [ -e "$p" ] || return 1
+  while :; do
+    if [ -d "$p" ]; then
+      (cd -P "$p" 2>/dev/null && pwd -P) || return 1
+      return 0
+    fi
+    dir="$(dirname "$p")"
+    base="$(basename "$p")"
+    dir="$(cd -P "$dir" 2>/dev/null && pwd -P)" || return 1
+    if [ -L "$dir/$base" ] && [ "$n" -lt 40 ]; then
+      link="$(readlink "$dir/$base")" || return 1
+      case "$link" in /*) p="$link" ;; *) p="$dir/$link" ;; esac
+      n=$((n + 1))
+    else
+      printf '%s\n' "$dir/$base"
+      return 0
+    fi
+  done
+}
+
 # Is this resolved executable one of $ECCE_HOME/bin's? Also true when
 # bin/<name> is a symlink to it, as in an overlay pointing into a build
 # tree -- the rule GatewayApp::otherSessionApps applies too.
 ecce_is_ecce_exe() {
   local exe="${1% (deleted)}" name
-  : "${_ECCE_BINDIR:=$(readlink -f "$ECCE_HOME/bin" 2>/dev/null || echo "$ECCE_HOME/bin")}"
+  : "${_ECCE_BINDIR:=$(ecce_realpath "$ECCE_HOME/bin" 2>/dev/null || echo "$ECCE_HOME/bin")}"
   case "$exe" in "$_ECCE_BINDIR"/*) return 0 ;; esac
   name="${exe##*/}"
   [ -e "$ECCE_HOME/bin/$name" ] || return 1
-  [ "$(readlink -f "$ECCE_HOME/bin/$name" 2>/dev/null)" = "$exe" ]
+  [ "$(ecce_realpath "$ECCE_HOME/bin/$name" 2>/dev/null)" = "$exe" ]
 }
 
 # Which evidence says an ECCE program is alive: its session lease

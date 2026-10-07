@@ -17,7 +17,7 @@
 $| = 1;
 
 while(<STDIN>) {
-  last if (/end/) ;
+  last if (/end/ || /^task/) ;
   $_ =~ s/^\s*//;
   $_ =~ s/\s*$//;
   @tmp = ();
@@ -27,6 +27,9 @@ while(<STDIN>) {
 ##############################################################################
 #  scale values from atomic units to buckinghams
 ##############################################################################
+# a block cut short by a half-written file is absent, not a short vector
+exit(0) if (@values != 6);
+
 $size = @values;
 for ($i=0;$i<$size;$i++){
   $values[$i] = 1.344911 * $values[$i];

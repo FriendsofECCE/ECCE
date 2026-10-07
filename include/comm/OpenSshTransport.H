@@ -112,6 +112,11 @@ public:
                                     const std::string& err,
                                     bool sharedConnection = false);
 
+  // The Control* options ECCE adds for this host, so that another ssh (a
+  // terminal) rides the connection already logged in to; empty when the
+  // user's own configuration does the sharing or nothing is shared.
+  std::vector<std::string> controlArgs() const;
+
 private:
   OpenSshTransport(const OpenSshTransport&);
   OpenSshTransport& operator=(const OpenSshTransport&);

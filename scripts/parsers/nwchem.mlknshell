@@ -26,7 +26,7 @@ $nvalues = $1;
 @result = ();
 
 while (<STDIN>) {
-  last if (/end/);
+  last if (/end/ || /^task/);
   chomp;
   push(@result,split(/ +/,$_));
 }

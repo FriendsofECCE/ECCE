@@ -354,6 +354,11 @@ if(GTK3_FOUND)
   target_link_libraries(eccewxgui PRIVATE ${GTK3_LIBRARIES})
 endif()
 
+# WindowShot.C reads a window back from the window server on macOS.
+if(APPLE)
+  target_link_libraries(eccewxgui PRIVATE "-framework ApplicationServices")
+endif()
+
 ecce_library(eccewxguicomm src/wxgui/comm)
 target_compile_definitions(eccewxguicomm PRIVATE ${wxWidgets_DEFINITIONS})
 target_include_directories(eccewxguicomm PRIVATE ${wxWidgets_INCLUDE_DIRS})
@@ -1739,6 +1744,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/run_tests.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
+  # The same fixtures cut off part-way, through the real eccejobmonitor and
+  # parser scripts (#107 part B).
+  add_test(NAME parsers_partial
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/partial_replay.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+  set_tests_properties(parsers_partial PROPERTIES TIMEOUT 600)
+
   # tests/dialogs -- the GUI-side sibling of the above: runs the real
   # scripts/codereg dialogs headlessly (broadwayd, GTK3's displayless
   # backend; falls back to xvfb; SKIPs cleanly with neither) and diffs what
@@ -1831,12 +1844,28 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/import_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_import PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # Builder > Tools > Dock Floating Panels returns panels to an emptied dock
+  # (#53), through the builder's ECCE_TEST_DOCK hook.
+  add_test(NAME apps_dock
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/dock_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_dock PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
   # Organizer Import Calculation from Output File, ECCE_TEST_CALCIMPORT hook.
   add_test(NAME apps_calcimport
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/calcimport_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_calcimport PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
+
+  # The Builder with a calculation's MOs panel open in every panel layout,
+  # on a 1366x768 screen: viewer and panel on screen and inside the window.
+  add_test(NAME apps_panel_layouts
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/panel_layouts_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_panel_layouts PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # Every app's main window and every codereg Theory/Runtype dialog fits a
@@ -1926,6 +1955,32 @@ if(PYTHON3_EXECUTABLE)
     eccetdat ecceutil ${XercesC_LIBRARIES})
   add_test(NAME transport_local_terminal COMMAND testLocalTerminal)
   set_tests_properties(transport_local_terminal PROPERTIES TIMEOUT 60)
+
+  # Run Management's Tail (TailSource) on a local machine; the same program
+  # runs against the test sshd from tests/transport/sshd/tail_test.sh.
+  add_executable(testTail tests/transport/testTail.C)
+  target_compile_definitions(testTail PRIVATE
+    ECCE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+  target_link_libraries(testTail PRIVATE
+    eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+    eccetdat ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME transport_tail COMMAND testTail)
+  set_tests_properties(transport_tail PROPERTIES TIMEOUT 120)
+
+  # The Tail window itself on Xvfb, local machine (tail_window_test.sh).
+  add_executable(tailwindow tests/transport/tailwindow.C)
+  target_compile_definitions(tailwindow PRIVATE ${wxWidgets_DEFINITIONS})
+  target_include_directories(tailwindow PRIVATE ${wxWidgets_INCLUDE_DIRS}
+    ${XercesC_INCLUDE_DIRS})
+  target_link_libraries(tailwindow PRIVATE
+    eccewxguicomm eccewxgui eccecomm eccercmd eccedsi eccedav eccecipc
+    eccefaces eccexml eccetdat ecceutil ${wxWidgets_LIBRARIES}
+    ${XercesC_LIBRARIES})
+  add_test(NAME transport_tail_window
+           COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tests/transport/tail_window_test.sh
+                   $<TARGET_FILE:tailwindow> ${CMAKE_CURRENT_SOURCE_DIR})
+  set_tests_properties(transport_tail_window PROPERTIES TIMEOUT 120
+                       SKIP_RETURN_CODE 77)
 
   # OpenSshTransport against a stand-in ssh script and the real `ssh -G`:
   # process handling, file copies, streams, messages, backend choice.
@@ -2187,6 +2242,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister)
   set_tests_properties(machregister_launcher PROPERTIES TIMEOUT 300
+                       SKIP_RETURN_CODE 77)
+  # The Machine Browser's "Machine settings..." button (#234).
+  add_test(NAME machregister_browser
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister/browser_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister)
+  set_tests_properties(machregister_browser PROPERTIES TIMEOUT 300
                        SKIP_RETURN_CODE 77)
   add_test(NAME queues_publish
            COMMAND ${PYTHON3_EXECUTABLE}

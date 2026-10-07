@@ -54,6 +54,12 @@ open(INPUT, $ARGV[0]) || die "Can't locate log file $ARGV[0]";
 &parseKeywordLine;
 &getChargeAndMultiplicity;
 &getMolecule;
+if (!defined($molecule)) {
+  # Same refusal as Gaussian-16.expt: an empty .frag would only turn into
+  # an opaque "Unable to import chemical system" on the client.
+  print "No molecular geometry found in $ARGV[0]\n";
+  exit(1);
+}
 &writeDictAndMVM($ARGV[0]);
 exit(0);
 
@@ -211,14 +217,18 @@ sub getMolecule {
     if (/^CARTESIAN COORDINATES \(ANGSTROEM\)/) {
       $_ = <INPUT>;  # dashes
       my @thisBlock;
+      my $blockClosed = 0;
       while (<INPUT>) {
         if (/^\s*([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)/) {
           push(@thisBlock, [$1, $2, $3, $4]);
         } else {
+          $blockClosed = 1;
           last;
         }
       }
-      @atoms = @thisBlock if (@thisBlock);
+      # A block cut off by the end of a still-growing file never reaches
+      # its closing line; keep the previous complete one instead.
+      @atoms = @thisBlock if (@thisBlock && $blockClosed);
     }
   }
   return if (!@atoms);

@@ -7,6 +7,8 @@
 #ifndef _CALCMGR_H_
 #define _CALCMGR_H_
 
+#include <wx/weakref.h>
+#include "wxgui/WxTailWindow.H"
 #include <wx/frame.h>
 #include <wx/toolbar.h>
 #include <wx/splitter.h>
@@ -386,6 +388,8 @@ protected:
   // This also allows the functions to be called as regular functions rather 
   // than always being in the context of the tree.
   void tailOutputFile(  WxResourceTreeItemData*);
+  string openTail(const string& calcName, const string& machine,
+                  const string& shell, const string& user, const string& file);
   void shellInRunDir(   WxResourceTreeItemData*);
   void manageFiles(     WxResourceTreeItemData*);
   void terminateCalc(   WxResourceTreeItemData*);
@@ -487,6 +491,8 @@ protected:
 
   static const char     * vMsgNoMoving;
 
+  // The Tail window the ECCE_TEST_ORGANIZER hook opened.
+  wxWeakRef<WxTailWindow> p_testTail;
 };
 
 

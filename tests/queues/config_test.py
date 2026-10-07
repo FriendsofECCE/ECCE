@@ -19,6 +19,7 @@ Exit status 77 (CTest SKIP) without perl or configdump.
 
 import argparse
 import json
+import glob
 import os
 import shutil
 import subprocess
@@ -322,6 +323,104 @@ def sentinelScript(perl):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def moduleScript(perl):
+    """A before-command using `module` gets one sh prologue that defines it."""
+    tmp = tempfile.mkdtemp(prefix="ecce-module-")
+    try:
+        home = os.path.join(tmp, "home")
+        user = os.path.join(tmp, "user")
+        os.makedirs(os.path.join(user, ".ECCE"))
+        os.makedirs(os.path.join(home, "data"))
+        os.symlink(os.path.join(REPO, "scripts"), os.path.join(home, "scripts"))
+        os.symlink(os.path.join(REPO, "data", "client"),
+                   os.path.join(home, "data", "client"))
+        os.makedirs(os.path.join(home, "siteconfig"))
+        for name in ("QueueManagers", "submit.site"):
+            shutil.copy(os.path.join(REPO, "siteconfig", name),
+                        os.path.join(home, "siteconfig", name))
+        write(os.path.join(home, "siteconfig", "Machines"), MACHINES)
+        env = dict(os.environ, ECCE_HOME=home, ECCE_REALUSERHOME=user)
+        params = os.path.join(tmp, "params")
+        out = os.path.join(tmp, "submit__x")
+
+        def gen(config):
+            write(os.path.join(home, "siteconfig", "CONFIG.testhost"), config)
+            write(params, " -H testhost\n -Q Shell\n -c NWChem\n -d localhost\n"
+                          " -n 1\n -N 1\n -r %s\n -i a.nw\n -o a.out\n -f %s\n"
+                          % (tmp, out))
+            subprocess.run(
+                [perl, os.path.join(REPO, "scripts", "gensub"), "-p", params],
+                env=env, cwd=tmp, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, text=True)
+            return read(out)
+
+        plain = gen("NWChem: /opt/nwchem\nsetup: echo hello\n")
+        check(plain is not None and "command -v module" not in plain,
+              "no module prologue when the script does not use module")
+
+        script = gen("NWChem: /opt/nwchem\nsetup: module load x\n"
+                     "wrapup: module unload x\n")
+        check(script is not None, "gensub generated a script using module")
+        if script is None:
+            return
+        pro = "command -v module"
+        i = script.find(pro)
+        j = script.find("module load x")
+        check(script.count("# Make the module command available") == 1,
+              "the module prologue appears once")
+        check(0 <= i < j, "the prologue comes before the first module use")
+        dash = shutil.which("dash")
+        if not dash:
+            print("SKIP  dash not installed: module checks not run")
+            return
+        r = subprocess.run([dash, "-n", out], capture_output=True, text=True)
+        check(r.returncode == 0, "the script with the prologue passes dash -n: "
+              + r.stderr)
+
+        # Run the prologue and the module line under dash against fake inits.
+        start = script.find("# Make the module command available")
+        end = script.find("module load x")
+        frag = script[start:end] + "module load x\n"
+        frag = frag.replace(os.path.join(tmp, "ecce.submit.log"),
+                            os.path.join(tmp, "frag.log"))
+        init = 'module() { echo "MODULE-CALLED $*"; }\n'
+        for label, layout, var in (
+                ("LMOD_PKG", "hpc2n/eb/software/lmod/lmod", "LMOD_PKG"),
+                ("MODULESHOME", "usr/share/Modules", "MODULESHOME")):
+            pkg = os.path.join(tmp, layout)
+            write(os.path.join(pkg, "init", "sh"), init)
+            e = {k: v for k, v in os.environ.items()
+                 if k not in ("LMOD_PKG", "MODULESHOME", "LMOD_CMD")}
+            e[var] = pkg
+            r = subprocess.run([dash, "-c", frag], env=e, capture_output=True,
+                               text=True)
+            check(r.stdout.strip() == "MODULE-CALLED load x",
+                  "module load works under dash via %s: %r %r"
+                  % (label, r.stdout, r.stderr))
+        pkg = os.path.join(tmp, "lmodcmd", "lmod")
+        write(os.path.join(pkg, "init", "sh"), init)
+        e = {k: v for k, v in os.environ.items()
+             if k not in ("LMOD_PKG", "MODULESHOME")}
+        e["LMOD_CMD"] = os.path.join(pkg, "libexec", "lmod")
+        r = subprocess.run([dash, "-c", frag], env=e, capture_output=True,
+                           text=True)
+        check(r.stdout.strip() == "MODULE-CALLED load x",
+              "module load works under dash via LMOD_CMD: %r" % r.stdout)
+        if not (glob.glob("/etc/profile.d/*lmod*") or
+                glob.glob("/etc/profile.d/modules.sh") or
+                glob.glob("/usr/share/*mod*/*/init/sh")):
+            e = {k: v for k, v in os.environ.items()
+                 if k not in ("LMOD_PKG", "MODULESHOME", "LMOD_CMD")}
+            r = subprocess.run([dash, "-c", frag], env=e, capture_output=True,
+                               text=True)
+            check("module command not available in sh" in r.stderr
+                  and "module command not available in sh" in
+                  (read(os.path.join(tmp, "frag.log")) or ""),
+                  "a missing module system is reported, not silent")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def post(home, user, fields, site=False, script=None, encoder=None,
          cwd=None):
     """encoder: build/pmform, the GUI's own encoder; urlencode otherwise."""
@@ -559,6 +658,7 @@ def main():
     if not args.processmachine:
         precedence(args.build, perl)
         sentinelScript(perl)
+        moduleScript(perl)
         explain(args.build, perl)
     encoder = os.path.join(args.build, "pmform")
     processmachine(args.processmachine,

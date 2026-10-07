@@ -34,6 +34,9 @@ if ($runtype =~ /Geo/i) {
     }
   }
 
+  # a line cut before the value leaves nothing to report
+  exit(0) unless defined $deltae;
+
   print "key: DELTAE\n";
   print "size: \n1\n";
   print "values: \n$deltae\n";

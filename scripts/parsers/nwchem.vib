@@ -26,7 +26,7 @@ $| = 1;
   $natoms = $nrowsXncolumns/3;
 
   while (<STDIN>) {
-    last if (/proj/);
+    last if (/proj/ || /^task/);
     chomp;
     push(@values,split(/ +/,$_));
   }

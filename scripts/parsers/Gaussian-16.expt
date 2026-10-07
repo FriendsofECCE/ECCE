@@ -937,6 +937,7 @@ sub getMolecule {
   # past this sub returning so main can check whether any atoms were found.
   my $resumePos;
   $find_geom = 0;
+  $natoms = 0;
   # Center number => element symbol.  A GEN basis specification refers to
   # atoms by center number ("Centers:  1  5  8 ..."), so getGeneralBasis
   # needs this to work out which element each basis group applies to.
@@ -956,6 +957,10 @@ sub getMolecule {
       $_ = <INPUT>;  # Center     Atomic   Atomic    Coordinates (Angstroms)
       $_ = <INPUT>;  # Number     Number    Type    X           Y           Z
       $_ = <INPUT>;  # ------------------------------------------------------
+      # A table cut off by the end of a still-growing file has no closing
+      # dashes; it is dropped whole, not kept as a short atom list.
+      my @prevGeom = ($molecule, $atomSection, $natoms);
+      my $tableClosed = 0;
       $molecule = "title:\t$title\n";
       $molecule .= "type:\tmolecule\n";
       $molecule .= "charge:\t$charge\n";
@@ -963,7 +968,7 @@ sub getMolecule {
       $atomSection .= "atom_list:\n";
       $natoms = 0;
       while (<INPUT>) {
-        last if /^ --/;
+        if (/^ --/) { $tableClosed = 1; last; }
 	s/^\s*//; 
         ($centerNum,$atomNum,$atomType,$x,$y,$z) = split;
         if ($atomNum > 0) {
@@ -976,6 +981,10 @@ sub getMolecule {
           }
         }
       }
+    unless ($tableClosed) {
+      ($molecule, $atomSection, $natoms) = @prevGeom;
+      last;
+    }
     $find_geom = 1;
     # Remember where the FIRST block ended and carry on
     # scanning: a geometry optimisation prints one of these
@@ -1002,6 +1011,10 @@ sub getMolecule {
         $_ = <INPUT>;  # Center     Atomic   Atomic    Coordinates (Angstroms)
         $_ = <INPUT>;  # Number     Number    Type    X           Y           Z
         $_ = <INPUT>;  # ------------------------------------------------------
+        # A table cut off by the end of a still-growing file has no closing
+        # dashes; it is dropped whole, not kept as a short atom list.
+        my @prevGeom = ($molecule, $atomSection, $natoms);
+        my $tableClosed = 0;
         $molecule = "title:\t$title\n";
         $molecule .= "type:\tmolecule\n";
         $molecule .= "charge:\t$charge\n";
@@ -1009,7 +1022,7 @@ sub getMolecule {
         $atomSection .= "atom_list:\n";
         $natoms = 0;
         while (<INPUT>) {
-          last if /^ --/;
+          if (/^ --/) { $tableClosed = 1; last; }
           s/^\s*//;
           ($centerNum,$atomNum,$atomType,$x,$y,$z) = split;
           if ($atomNum > 0) {
@@ -1022,6 +1035,10 @@ sub getMolecule {
             }
           }
         }
+      unless ($tableClosed) {
+        ($molecule, $atomSection, $natoms) = @prevGeom;
+        last;
+      }
       $find_geom = 1;
       # Remember where the FIRST block ended and carry on
       # scanning: a geometry optimisation prints one of these
@@ -1048,6 +1065,10 @@ sub getMolecule {
         $_ = <INPUT>;  # Center     Atomic   Atomic    Coordinates (Angstroms)
         $_ = <INPUT>;  # Number     Number    Type    X           Y           Z
         $_ = <INPUT>;  # ------------------------------------------------------
+        # A table cut off by the end of a still-growing file has no closing
+        # dashes; it is dropped whole, not kept as a short atom list.
+        my @prevGeom = ($molecule, $atomSection, $natoms);
+        my $tableClosed = 0;
         $molecule = "title:\t$title\n";
         $molecule .= "type:\tmolecule\n";
         $molecule .= "charge:\t$charge\n";
@@ -1055,7 +1076,7 @@ sub getMolecule {
         $atomSection .= "atom_list:\n";
         $natoms = 0;
         while (<INPUT>) {
-          last if /^ --/;
+          if (/^ --/) { $tableClosed = 1; last; }
           s/^\s*//;
           ($centerNum,$atomNum,$atomType,$x,$y,$z) = split;
           if ($atomNum > 0) {
@@ -1068,6 +1089,10 @@ sub getMolecule {
             }
           }
         }
+      unless ($tableClosed) {
+        ($molecule, $atomSection, $natoms) = @prevGeom;
+        last;
+      }
       $find_geom = 1;
       # Remember where the FIRST block ended and carry on
       # scanning: a geometry optimisation prints one of these

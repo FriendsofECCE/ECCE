@@ -477,12 +477,13 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     //  The Builder's Reset View: camera only.
     p_viewer->resetToHomePosition();
     p_viewer->viewAll();
-  } else if (c == "rotate" && w.size() == 2) {
-    //  Orbit the camera about the world y axis through the origin, by
-    //  degrees, relative to where it is now.
+  } else if ((c == "rotate" || c == "rotatex") && w.size() == 2) {
+    //  Orbit the camera about the world y axis (rotatex: x axis) through
+    //  the origin, by degrees, relative to where it is now.
     SoCamera *cam = p_viewer->getCamera();
-    if (!cam) return fail("rotate: no camera");
-    SbRotation r(SbVec3f(0, 1, 0), (float)(atof(w[1].c_str()) * M_PI / 180.0));
+    if (!cam) return fail(c + ": no camera");
+    SbRotation r(c == "rotate" ? SbVec3f(0, 1, 0) : SbVec3f(1, 0, 0),
+                 (float)(atof(w[1].c_str()) * M_PI / 180.0));
     SbVec3f pos = cam->position.getValue(), np;
     r.multVec(pos, np);
     cam->position.setValue(np);

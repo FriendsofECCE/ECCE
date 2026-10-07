@@ -14,7 +14,7 @@ shared=""
 
 # The broker file is what the processes actually use: this session's, or
 # failing that any one of this account's.
-_lib="$(dirname "$(readlink -f "$0")")/ecce-session-lib.sh"
+_lib="$(dirname "$0")/ecce-session-lib.sh"
 [ -r "$_lib" ] || _lib="$ECCE_HOME/bin/ecce-session-lib.sh"
 . "$_lib" || { echo "ecce-gateway-status: cannot read $_lib" >&2; exit 1; }
 bfile="$(ecce_broker_file)" || bfile=""
