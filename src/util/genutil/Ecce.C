@@ -353,7 +353,9 @@ std::vector<Ecce::SiteLayer> Ecce::siteConfigLayers(const string& machine)
   std::vector<SiteLayer> layers;
   string userDir, siteDir;
   if (machine != "localhost" && !Ecce::siteCacheKey().empty()) {
-    userDir = serverCacheDir(string("user-") + Ecce::serverUser());
+    // serverUser() insists on ECCE_REALUSER, which a bare tool may lack
+    if (getenv("ECCE_SERVER_LOGIN") || getenv(Ecce::realUserVar))
+      userDir = serverCacheDir(string("user-") + Ecce::serverUser());
     siteDir = serverCacheDir("site");
   }
   SiteLayer l;
