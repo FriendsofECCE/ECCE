@@ -38,7 +38,13 @@ alive() { [ -n "${1:-}" ] && ps -p "$1" 2>/dev/null | grep -q "^[ I]*$1 "; }
 stop() {
   local pid
   pid="$(cat "$PIDFILE" 2>/dev/null)"
-  alive "$pid" && kill "$pid" 2>/dev/null
+  if alive "$pid"; then
+    kill "$pid" 2>/dev/null
+    # Windows will not delete the log of a process that has not quite gone.
+    local i=0
+    while [ $i -lt 20 ] && alive "$pid"; do i=$((i + 1)); sleep 0.25; done
+    sleep 0.5
+  fi
   rm -rf "$DIR" "$BROKERFILE"
 }
 
