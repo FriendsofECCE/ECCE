@@ -359,7 +359,7 @@ void AuthCache::sessionSave() const
   }
   close(fd);
 
-  if (!ok || rename(tmpPath.c_str(), path.c_str()) != 0) {
+  if (!ok || renameReplace(tmpPath.c_str(), path.c_str()) != 0) {
     unlink(tmpPath.c_str());
   }
 }

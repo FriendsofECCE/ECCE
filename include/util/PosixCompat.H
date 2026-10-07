@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <cstdio>
 #include <ctime>
 
 #ifndef _WIN32
@@ -246,6 +247,20 @@ inline struct passwd *getpwuid(uid_t)
   pw.pw_name = getenv("USERNAME");
   pw.pw_dir = getenv("USERPROFILE");
   return pw.pw_name ? &pw : nullptr;
+}
+
+// rename() that replaces an existing target; the Windows CRT's refuses.
+inline int renameReplace(const char *from, const char *to)
+{
+  if (MoveFileExA(from, to, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+    return 0;
+  errno = EACCES;
+  return -1;
+}
+#else
+inline int renameReplace(const char *from, const char *to)
+{
+  return rename(from, to);
 }
 #endif
 
