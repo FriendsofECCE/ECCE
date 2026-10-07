@@ -34,6 +34,7 @@ def fresh(name, server_install=False):
     os.makedirs(ehome + "/siteconfig")
     os.makedirs(user + "/.ECCE")
     os.symlink(os.path.abspath(localdata), ehome + "/bin/ecce-localdata")
+    os.symlink(os.path.join(REPO, "data"), ehome + "/data")
     if server_install:
         open(ehome + "/bin/ecce-dataserver-start", "w").close()
     env = {k: v for k, v in os.environ.items()
