@@ -2020,7 +2020,7 @@ if(PYTHON3_EXECUTABLE)
     eccefaces eccexml eccetdat ecceutil ${wxWidgets_LIBRARIES}
     ${XercesC_LIBRARIES})
   if(WIN32)   # GNU ld resolves static libraries in order (#133)
-    target_link_libraries(tailwindow PRIVATE eccetdat eccedsi eccexml ecceutil)
+    target_link_libraries(tailwindow PRIVATE "$<LINK_GROUP:RESCAN,eccewxguicomm;eccewxgui;eccecomm;eccercmd;eccedsi;eccedav;eccecipc;eccefaces;eccexml;eccetdat;ecceutil>")
   endif()
   add_test(NAME transport_tail_window
            COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tests/transport/tail_window_test.sh
