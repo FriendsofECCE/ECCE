@@ -19,6 +19,7 @@
 
 #include "WxLauncher.H"
 #include "WxLauncherScript.H"
+#include "wxgui/WindowShot.H"
 
 using std::string;
 using std::vector;
@@ -81,29 +82,7 @@ void LauncherScript::fail(const string& what)
 
 bool LauncherScript::shot(const string& file)
 {
-    p_frame->Raise();
-    for (int i = 0; i < 3; i++)
-    {
-        p_frame->Update();
-        wxTheApp->Yield(true);
-        wxMilliSleep(50);
-    }
-    wxSize sz = p_frame->GetClientSize();
-    wxBitmap bmp(sz.x, sz.y);
-    wxMemoryDC mem(bmp);
-#ifdef __WXOSX__
-    // Cocoa draws labels, tab pages and panel backgrounds in native views
-    // that a wxClientDC does not see (black, unlabelled shots); the
-    // composited screen has them. The window is raised above.
-    wxScreenDC screen;
-    wxPoint origin = p_frame->ClientToScreen(wxPoint(0, 0));
-    mem.Blit(0, 0, sz.x, sz.y, &screen, origin.x, origin.y);
-#else
-    wxClientDC screen(p_frame);
-    mem.Blit(0, 0, sz.x, sz.y, &screen, 0, 0);
-#endif
-    mem.SelectObject(wxNullBitmap);
-    return bmp.ConvertToImage().SaveFile(file, wxBITMAP_TYPE_PNG);
+    return ecceWindowShot(p_frame, file);
 }
 
 
