@@ -29,6 +29,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [`wxFIXED_MINSIZE`](wxfixed-minsize.md)
 - [Every drop-down is at least as wide as its widest entry](drop-down-min-width.md)
 - [Run-state colours: submitted yellow, created sky blue, pale fills outlined in light themes; checked by tests/look/contrast.py](run-state-colours.md)
+- [GTK :backdrop fades every label to ~2.8:1; `ewxApp::applyBackdropStyle()` undoes it; headless runs need `ECCE_TEST_BACKDROP` (#210)](gtk-backdrop-fades-labels-and-has-no-headless-trigger.md)
 - [`std::map`/`unordered_set` iterator invalidation](std-map-unordered-set-iterator-invalidation.md)
 - [Uncontrolled format strings](uncontrolled-format-strings.md)
 - [`EcceException::what()` returns storage that lives as long as the exception](ecceexception-what.md)
