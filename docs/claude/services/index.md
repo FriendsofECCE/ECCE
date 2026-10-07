@@ -34,6 +34,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 ### The Gateway window and session end
 
 - [The Gateway window no longer appears](the-gateway-window-no-longer-appears.md)
+- [The first-start question: where a user keeps their work](first-start-question.md)
 - [The session id (`ECCE_SESSION_ID`) and session liveness](the-session-id.md)
 
 ### Pitfalls
