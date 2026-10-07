@@ -1093,18 +1093,18 @@ void ewxWindowUtils::clipAuditReport(wxWindow *top, const std::string& tag)
       if (!isalnum((unsigned char)safe[i]) && safe[i] != '.' && safe[i] != '-')
         safe[i] = '_';
     shot = std::string(dir) + "/" + safe + ".png";
-    //  The screen itself, not the window (a dialog's parent shows too).
-    //  No external tool: a bare host has no ImageMagick.
-    int w = 0, h = 0;
-    wxDisplaySize(&w, &h);
-    wxBitmap bmp(w, h, 24);
-    {
-      wxScreenDC screen;
-      wxMemoryDC mem(bmp);
-      mem.Blit(0, 0, w, h, &screen, 0, 0);
+    //  The test harness grabs the screen from outside (a grab from inside
+    //  returned a stale root window): ask by creating <shot>.req, give the
+    //  window a moment to paint, and wait for <shot>.ack.
+    const std::string req = shot + ".req", ack = shot + ".ack";
+    if (FILE *r = fopen(req.c_str(), "w")) fclose(r);
+    bool got = false;
+    for (int i = 0; i < 200 && !got; ++i) {
+      wxTheApp->Yield(true);
+      wxMilliSleep(50);
+      if (FILE *a = fopen(ack.c_str(), "r")) { fclose(a); got = true; }
     }
-    if (!bmp.SaveFile(wxString::FromUTF8(shot.c_str()), wxBITMAP_TYPE_PNG))
-      shot.clear();
+    if (!got) shot.clear();
   }
   FILE *f = fopen(path, "a");
   if (!f) return;
