@@ -102,7 +102,10 @@ def authArgs():
 
 def builderPhase(display, report, seen, results):
     """Every layout, every panel, in the real Builder with a real calculation."""
+    #  makecalc wants the parsers' `cases`, not this directory's.
+    ours = sys.modules.pop("cases")
     import makecalc
+    sys.modules["cases"] = ours
     case = "g16-h2o-optfreq"
     calc = os.path.join(fixture.stateHome(), "calc-" + case)
     makecalc.make(case, calc)
@@ -159,6 +162,7 @@ def dialogsPhase(display, report, seen, results):
                 code, os.path.splitext(script)[0], cat,
                 theory if "runtype" not in script and "rtyp" not in script
                 else runtype)
+            print("    " + label, flush=True)
             restore = os.path.join(scratch, "restore.in")
             open(restore, "w").write("END_GUIValues\n")
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

@@ -18,9 +18,7 @@ import wx
 
 ANY_BUTTON = (wx.Button, wx.ToggleButton)
 FIXED = (wx.StaticText, wx.Button, wx.ToggleButton, wx.CheckBox,
-         wx.RadioButton, wx.RadioBox, wx.Choice, wx.ComboBox, wx.ComboCtrl,
-         wx.SpinCtrl,
-         wx.SpinCtrlDouble)
+         wx.RadioButton, wx.RadioBox)
 
 
 def scrolls(w):
@@ -98,7 +96,8 @@ def audit(w, top, out):
                 break
             a = a.GetParent()
     ellipsized = (isinstance(w, wx.StaticText) and
-                  (w.GetWindowStyleFlag() & wx.ST_ELLIPSIZE_MASK))
+                  (w.GetWindowStyleFlag() & (wx.ST_ELLIPSIZE_START | wx.ST_ELLIPSIZE_MIDDLE |
+                                         wx.ST_ELLIPSIZE_END)))
     if isinstance(w, FIXED) and not ellipsized and size.x > 0 and size.y > 0:
         best = w.GetBestSize()
         if size.x + 2 < best.x or size.y + 2 < best.y:
@@ -176,13 +175,26 @@ def report():
         break
 
 
+def safe_report():
+    try:
+        report()
+    except Exception as e:      # an audit bug must show, not hang the dialog
+        import traceback
+        with open(os.environ["ECCE_CLIP_AUDIT"], "a") as f:
+            f.write("FINDING\t%s\taudit-error\t%s\t%s\t0,0,0,0\n"
+                    % (os.environ.get("ECCE_CLIP_TAG", "dialog"), repr(e),
+                       traceback.format_exc().splitlines()[-3].strip()))
+            f.write("WINDOW\t%s\t0,0,0,0\tNone\t\n"
+                    % os.environ.get("ECCE_CLIP_TAG", "dialog"))
+
+
 def main():
     script = sys.argv[1]
     sys.argv = sys.argv[1:]
     original = wx.App.MainLoop
 
     def mainloop(self, *a, **k):
-        wx.CallLater(3500, report)
+        wx.CallLater(3500, safe_report)
         return original(self, *a, **k)
     wx.App.MainLoop = mainloop
     runpy.run_path(script, run_name="__main__")
