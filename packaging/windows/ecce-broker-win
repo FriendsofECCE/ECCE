@@ -30,7 +30,9 @@ PIDFILE="$DIR/mosquitto.pid"
 
 # mosquitto is a native program: it needs C:/... paths, not /c/...
 native() { if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1"; else printf '%s' "$1"; fi; }
-port_open() { (exec 3<>"/dev/tcp/127.0.0.1/$1") >/dev/null 2>&1; }
+# netstat, not /dev/tcp: connecting to a closed loopback port on Windows does
+# not fail but sits in SYN_SENT, so the probe would hang.
+port_open() { netstat -an 2>/dev/null | grep -Eq "[:.]$1 +[^ ]+ +LISTENING"; }
 alive() { [ -n "${1:-}" ] && ps -p "$1" 2>/dev/null | grep -q "^[ I]*$1 "; }
 
 stop() {
