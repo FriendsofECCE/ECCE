@@ -149,9 +149,10 @@ def main():
         say("anonymous subscriber: rc=%d %s" % (anon.returncode, anon.stdout.decode().strip()))
         s.check(anon.returncode != 0 and b"not authori" in anon.stdout.lower(),
                 "subscription without the password is refused")
-        # -d shows the SUBACK, -E ends mosquitto_sub once it has it.
+        # -d shows the SUBACK, -E ends mosquitto_sub once it has it; only MQTT 5 reports a denial
+        # (3.1.1 says granted and drops the messages).
         try:
-            bad = subprocess.run(base[:-3] + ["-t", "ecce/other/#", "-d", "-E", "-u", cfg["user"],
+            bad = subprocess.run(base[:-3] + ["-t", "ecce/other/#", "-d", "-E", "-V", "5", "-u", cfg["user"],
                                  "-P", cfg["password"]], stdout=subprocess.PIPE,
                                  stderr=subprocess.STDOUT, timeout=6).stdout
         except subprocess.TimeoutExpired as e:
