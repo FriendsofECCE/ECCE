@@ -453,7 +453,10 @@ has the `ecce-server` package** (the server itself, and remote desktop
 sessions such as FastX on it). So modes 2 and 3, the server machine and the
 all-in-one install behave exactly as before; only a client-only install of
 a user with nothing yet is asked. `ECCE_NO_FIRST_START=1` never asks (tests
-and scripts set it), and without a display or wxPython nothing is asked.
+and scripts set it), and without a display or wxPython nothing is asked. macOS and Windows,
+whose launchers already work in a data folder, never ask; **Edit > Change
+Server...** is there if they want a server (Windows: not yet, the window is
+a Linux/macOS script).
 
 #### Mode 1: everything local (the default)
 
