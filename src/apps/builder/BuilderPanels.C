@@ -1263,7 +1263,7 @@ void Builder::runClipAudit()
         for (size_t k = 0; k < now.GetCount(); ++k) {
           wxAuiPaneInfo &other = now.Item(k);
           if (dynamic_cast<PropertyPanel*>(other.window) &&
-              other.name != name && !other.IsFloating()) {
+              other.name != name) {
             other.Show(false);
             p_tabHidden.erase(other.window);
           }
@@ -1334,7 +1334,7 @@ void Builder::runClipAudit()
               oi->GetItemLabelText() == NAME_TOOL_CONTEXT ||
               oi->GetItemLabelText() == NAME_TOOL_LOG) continue;
           wxAuiPaneInfo &other = p_mgr.GetPane(oi->GetItemLabelText());
-          if (other.IsOk() && !other.IsFloating()) {
+          if (other.IsOk()) {
             other.Show(false);
             p_tabHidden.erase(other.window);
           }
