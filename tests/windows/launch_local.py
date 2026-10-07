@@ -101,6 +101,11 @@ def procs():
     return rows
 
 
+def which(s, prog):
+    """prog on the PATH the job gets (s.env), not on this script's own."""
+    return shutil.which(prog, path=s.env["PATH"]) or prog
+
+
 def broker(s, what):
     """ecce-broker-win start|stop for this session; the parsed broker file."""
     home = s.env["ECCE_HOME"]
@@ -155,7 +160,7 @@ def main():
         cfg = broker(s, "start")
         if not s.check(cfg.get("port") and cfg.get("password"), "broker started, login in broker file"):
             return 1
-        base = ["mosquitto_sub", "-h", cfg["host"], "-p", cfg["port"], "-t", "ecce/#", "-v"]
+        base = [which(s, "mosquitto_sub"), "-h", cfg["host"], "-p", cfg["port"], "-t", "ecce/#", "-v"]
         s.sublog = os.path.join(st, "sub.log")
         sub = subprocess.Popen(base + ["-u", cfg["user"], "-P", cfg["password"]],
                                stdout=open(s.sublog, "w"), stderr=subprocess.STDOUT)
@@ -166,7 +171,7 @@ def main():
                 "subscription without the password is refused")
         # A publish to another user's topic: only QoS 1 and MQTT 5 report the denial (PUBACK 135).
         def pub(topic):
-            r = subprocess.run(["mosquitto_pub", "-h", cfg["host"], "-p", cfg["port"], "-u", cfg["user"],
+            r = subprocess.run([which(s, "mosquitto_pub"), "-h", cfg["host"], "-p", cfg["port"], "-u", cfg["user"],
                                 "-P", cfg["password"], "-V", "5", "-q", "1", "-d", "-t", topic, "-m", "x"],
                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=20)
             return [l for l in r.stdout.decode("utf-8", "replace").splitlines() if "PUBACK" in l]

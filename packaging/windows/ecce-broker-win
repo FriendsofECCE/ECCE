@@ -64,7 +64,10 @@ if [ -r "$BROKERFILE" ]; then
   stop
 fi
 
-MOSQUITTO="$("$_here/ecce-find-mosquitto" 2>/dev/null)" ||
+# Beside this script first: with the bundled shell the install's own bin is
+# not a usable PATH entry (MSYS reads <install>\bin as /bin, which is usr\bin).
+if [ -x "$_here/mosquitto.exe" ]; then MOSQUITTO="$_here/mosquitto.exe"
+else MOSQUITTO="$("$_here/ecce-find-mosquitto" 2>/dev/null)"; fi ||
   MOSQUITTO="$(command -v mosquitto 2>/dev/null)" || {
     echo "ecce-broker-win: mosquitto is not installed" >&2; exit 1; }
 PASSWD="$(dirname "$MOSQUITTO")/mosquitto_passwd"

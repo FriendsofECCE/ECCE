@@ -2,7 +2,9 @@
 # the runner's desktop, screenshots it, records how it ended.  Never fails
 # the job; the verdict is in <Out>\summary.txt.
 #   ci-run.ps1 -Stage <dir with ecce\bin> -Out <dir> [-Msys D:\a\_temp\msys64] [-Strawberry <dir>]
-param([string]$Stage, [string]$Out, [string]$Msys = "C:\msys64", [string]$Strawberry = "")
+# Without -Msys the PATH is the package's own (ecce.cmd's) and System32 only:
+# the run from an unpacked ECCE-windows zip, with no MSYS2 anywhere.
+param([string]$Stage, [string]$Out, [string]$Msys = "", [string]$Strawberry = "")
 $ErrorActionPreference = "Continue"
 $Stage = (Resolve-Path $Stage).Path
 New-Item -ItemType Directory -Force "$Out\shots", "$Out\logs", "$Out\home", "$Out\local" | Out-Null
@@ -11,11 +13,14 @@ $summary = "$Out\summary.txt"
 function Say($t) { Write-Host $t; Add-Content $summary $t }
 
 $perl = ""
-if ($Strawberry -ne "" -and (Test-Path "$Strawberry\perl\bin\perl.exe")) {
+if ($Msys -eq "") {
+  $r = "$Stage\ecce"
+  $env:Path = "$r\bin;$r\usr\bin;$r\python;$r\strawberry\perl\site\bin;$r\strawberry\perl\bin;$r\strawberry\c\bin;$env:SystemRoot\System32;$env:SystemRoot"
+} elseif ($Strawberry -ne "" -and (Test-Path "$Strawberry\perl\bin\perl.exe")) {
   $perl = "$Strawberry\perl\site\bin;$Strawberry\perl\bin;$Strawberry\c\bin;"
 }
 # ucrt64 first: Strawberry's c\bin has its own libstdc++/libgcc that crash our exes.
-$env:Path = "$Msys\ucrt64\bin;" + $perl + $env:Path + ";$Msys\usr\bin"
+if ($Msys -ne "") { $env:Path = "$Msys\ucrt64\bin;" + $perl + $env:Path + ";$Msys\usr\bin" }
 $env:ECCE_HOME = ("$Stage\ecce" -replace "\\", "/")
 $env:ECCE_REALUSER = $env:USERNAME
 $env:ECCE_REALUSERHOME = ("$Out\home" -replace "\\", "/")
@@ -65,6 +70,12 @@ Say "Windows $([System.Environment]::OSVersion.Version)"
 Get-CimInstance Win32_VideoController | ForEach-Object { Say "video: $($_.Name)" }
 Say ("screen: " + [System.Windows.Forms.SystemInformation]::VirtualScreen)
 Shot "$Out\shots\00-desktop.png"
+if ($Msys -eq "") {
+  Say ("path: " + $env:Path)
+  Say ("python wx: " + (& "$Stage\ecce\python\python3.exe" -c "import wx; print(wx.version())" 2>&1))
+  Say ("perl: " + ((& "$Stage\ecce\strawberry\perl\bin\perl.exe" -e 'print qq($^V $^O)') 2>&1))
+  Say ("sh: " + ((& "$Stage\ecce\usr\bin\sh.exe" -c "echo ok") 2>&1))
+}
 
 $bin = "$Stage\ecce\bin"
 Get-ChildItem $bin -Filter *.exe | ForEach-Object { $_.Name } | Out-File "$Out\logs\bin.txt"

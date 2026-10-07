@@ -32,11 +32,24 @@ sha256 6619fe7eeef921ccddb4aac3972fb602a0c690a3074205b863ade998d7bc79a6;
 the `portable` entry of strawberryperl.com/releases.json lists the msi URL
 with this zip's hash and size).
 
+## The self-contained package
+`ECCE-windows-<version>.zip` runs on a Windows 10/11 with nothing installed.
+Pieces, all from `packaging/windows/`:
+- `bundle-shell.sh` - sh and coreutils (MSYS2 `usr\bin`).
+- `bundle-runtime.sh` - the UCRT64 DLLs (`ldd`, only from `/ucrt64/bin`), `mosquitto` and `mosquitto_passwd` into `bin`.
+- `bundle-tools.ps1` - Strawberry Perl portable (pinned above; only `perl\` and the `c\bin` DLLs kept) and Python 3.13.5 embeddable
+  (https://www.python.org/ftp/python/3.13.5/python-3.13.5-embed-amd64.zip, sha256
+  7d2650fd9d1b9d002d4a315d5f354247fd6a44f30517c7ef577b08f57a0fb6d9) with the wxPython 4.3.1 cp313 win_amd64 wheel
+  (sha256 0ae85e266dbb99fe46bc26920aa87b22fa3f83dc51b321bcd9afa51fa68340e7) unpacked into its `Lib\site-packages`.
+  `python3.exe` is a copy of `python.exe`, because the scripts call `python3`.
+- `ecce.cmd` starts the Organizer with the package's own PATH; `make-shortcuts.ps1` adds the Start menu entry.
+
 ## CI
 `build.yml`, job "Windows (MSYS2 UCRT64)" (experimental, `continue-on-error`):
 same packages, ccache, build, ctest (transport_process, fragreaders,
 fragreaders_de, parsers), install to `stage/ecce`, `bundle-shell.sh`,
-`launch_local.py complete|cancel` against the bundled shell, `ci-run.ps1`
-(starts each app on the runner desktop, screenshots), then the install tree as
-`ECCE-windows-<version>.zip` and the `windows-run` artifact (shots, logs).
+the three bundle steps, the zip, then, from the unpacked zip with only
+System32 on PATH, `launch_local.py complete|cancel` and `ci-run.ps1` (starts
+each app on the runner desktop, screenshots; without `-Msys` it is that
+clean-PATH mode), and the `windows-run` artifact (shots, logs).
 Run it with `gh workflow run build.yml --ref <branch> -f only=windows`.
