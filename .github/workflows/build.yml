@@ -50,7 +50,7 @@ on:
   workflow_dispatch:
     inputs:
       only:
-        description: "Run just this job (debian, vendored-inventor, ubuntu, rocky, fedora, macos); empty runs all"
+        description: "Run just this job (debian, vendored-inventor, ubuntu, rocky, fedora, macos, windows); empty runs all"
         required: false
         default: ""
 
@@ -427,3 +427,173 @@ jobs:
           name: macos-app-run-${{ matrix.arch }}
           path: macos-app-run/
           if-no-files-found: ignore
+
+  # Windows client (#133), experimental: MSYS2 UCRT64 toolchain, the same
+  # package set as tests/windows/README.md.  Never turns the workflow red.
+  windows:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'windows' }}
+    name: Windows (MSYS2 UCRT64)
+    runs-on: windows-latest
+    timeout-minutes: 120
+    continue-on-error: true
+    env:
+      STRAWBERRY_URL: https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54051_64bit/strawberry-perl-5.40.5.1-64bit-portable.zip
+      STRAWBERRY_SHA256: 6619fe7eeef921ccddb4aac3972fb602a0c690a3074205b863ade998d7bc79a6
+    steps:
+      # LF in the checkout: fixtures and shell scripts must not get CRLF.
+      - run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: false
+          cache: true
+          install: >-
+            base git
+            mingw-w64-ucrt-x86_64-apr-util mingw-w64-ucrt-x86_64-ccache mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-coin mingw-w64-ucrt-x86_64-freetype
+            mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gcc-fortran
+            mingw-w64-ucrt-x86_64-glib2 mingw-w64-ucrt-x86_64-libjpeg-turbo
+            mingw-w64-ucrt-x86_64-libssh mingw-w64-ucrt-x86_64-mosquitto
+            mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-python mingw-w64-ucrt-x86_64-wxwidgets3.2-msw
+            mingw-w64-ucrt-x86_64-xerces-c
+
+      # The build is ~20 minutes cold; ccache makes a rerun after a small
+      # change a few.
+      - uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-windows-${{ github.run_id }}
+          restore-keys: ccache-windows-
+
+      - name: Configure
+        shell: msys2 {0}
+        env:
+          CCACHE_DIR: ${{ github.workspace }}/.ccache
+          CCACHE_MAXSIZE: 600M
+        run: |
+          cmake -G Ninja -B build -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DECCE_REQUIRE_LIBSSH=ON \
+            -DECCE_HOME_DIR="$PWD/stage/ecce" -DCMAKE_INSTALL_PREFIX="$PWD/stage/ecce"
+
+      - name: Build
+        shell: msys2 {0}
+        env:
+          CCACHE_DIR: ${{ github.workspace }}/.ccache
+          CCACHE_MAXSIZE: 600M
+        # -k 0: report every failing file, not only the first few.
+        run: cmake --build build -- -k 0
+
+      - name: Tests
+        id: tests
+        shell: msys2 {0}
+        continue-on-error: true
+        run: |
+          cd build
+          ctest -R 'transport_process|fragreaders|fragreaders_de|parsers' --output-on-failure --timeout 600 \
+            | tee ../ctest.log
+          exit "${PIPESTATUS[0]}"
+
+      - name: Install to a staging tree
+        shell: msys2 {0}
+        run: |
+          cmake --install build > install.log 2>&1 || { tail -30 install.log; exit 1; }
+          ls stage/ecce stage/ecce/bin
+
+      # The shell the job scripts run with, next to the apps (#133).
+      - name: Bundle the POSIX shell
+        shell: msys2 {0}
+        run: packaging/windows/bundle-shell.sh "$PWD/stage/ecce" "$(cygpath -m /)"
+
+      - name: Strawberry Perl (portable)
+        id: perl
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/strawberry
+          key: strawberry-5.40.5.1-${{ env.STRAWBERRY_SHA256 }}
+
+      - name: Download Strawberry Perl
+        if: steps.perl.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $zip = "$env:RUNNER_TEMP\strawberry.zip"
+          Invoke-WebRequest $env:STRAWBERRY_URL -OutFile $zip
+          $h = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          if ($h -ne $env:STRAWBERRY_SHA256) { throw "sha256 $h" }
+          Expand-Archive $zip "$env:RUNNER_TEMP\strawberry"
+
+      # Local job end to end with the bundled shell and a PATH that has no
+      # MSYS2 usr\bin (tests/windows/launch_local.py).
+      - name: Local jobs (complete, cancel)
+        id: localjobs
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $msys = (msys2 -c 'cygpath -m /' 2>$null)
+          if (-not $msys) { $msys = "$env:RUNNER_TEMP\msys64" }
+          $msys = $msys -replace '/', '\'
+          New-Item -ItemType Directory -Force localjobs | Out-Null
+          $sb = "$env:RUNNER_TEMP\strawberry"
+          $env:WINTEST_HOME = "$PWD\stage\ecce"
+          $env:WINTEST_BASE_PATH = "$msys\ucrt64\bin;$sb\perl\site\bin;$sb\perl\bin;$sb\c\bin;C:\Windows\System32;C:\Windows"
+          $rc = 0
+          foreach ($c in "complete", "cancel") {
+            & "$msys\ucrt64\bin\python3.exe" tests/windows/launch_local.py $c --build "$PWD\build" --state "$PWD\localjobs\state-$c" 2>&1 | Tee-Object "localjobs\$c.log"
+            "$c rc=$LASTEXITCODE" | Tee-Object -Append localjobs\summary.txt
+            if ($LASTEXITCODE -ne 0) { $rc = 1 }
+          }
+          Get-Content localjobs\summary.txt >> $env:GITHUB_STEP_SUMMARY
+          exit $rc
+
+      # Does it run? (#133) Starts the installed apps on the runner's desktop
+      # and screenshots them.  Allowed to fail; see summary.txt.
+      - name: Start the apps
+        id: apps
+        shell: pwsh
+        continue-on-error: true
+        timeout-minutes: 20
+        run: |
+          $msys = (msys2 -c 'cygpath -m /' 2>$null) -replace '/', '\'
+          tests\windows\ci-run.ps1 -Stage stage -Out windows-run -Msys $msys -Strawberry "$env:RUNNER_TEMP\strawberry"
+          Get-Content windows-run\summary.txt >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Zip the install tree
+        if: always()
+        shell: pwsh
+        run: |
+          $v = (Get-Content data/client/config/Version -TotalCount 1).Trim()
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Compress-Archive -Path stage\ecce -DestinationPath "dist\ECCE-windows-$v.zip"
+          Get-ChildItem dist | Format-Table Name, Length
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ECCE-windows-zip
+          path: dist/*.zip
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-run
+          path: |
+            windows-run/
+            localjobs/
+            ctest.log
+            install.log
+          if-no-files-found: ignore
+
+      # continue-on-error steps show green; say what really happened, and
+      # fail this (experimental) job when any of them did.
+      - name: Verdict
+        if: always()
+        shell: bash
+        run: |
+          { echo '### Windows'
+            echo "- ctest: ${{ steps.tests.outcome }}"
+            echo "- local jobs: ${{ steps.localjobs.outcome }}"
+            echo "- start the apps: ${{ steps.apps.outcome }}"; } >> "$GITHUB_STEP_SUMMARY"
+          [ "${{ steps.tests.outcome }}${{ steps.localjobs.outcome }}${{ steps.apps.outcome }}" = successsuccesssuccess ]

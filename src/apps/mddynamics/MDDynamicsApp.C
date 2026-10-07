@@ -45,7 +45,7 @@ bool MDDynamicsApp::OnInit()
 {
    ewxApp::OnInit();
 
-   if (argc>2 && strcmp(argv[1],"-pipe")==0) {
+   if (argc>2 && strcmp(argv[1].ToStdString().c_str(),"-pipe")==0) {
      AuthCache::getCache().pipeIn(argv[2].ToStdString());
    }
 

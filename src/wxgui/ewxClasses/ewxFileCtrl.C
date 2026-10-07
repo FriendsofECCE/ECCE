@@ -231,7 +231,7 @@ void ewxFileCtrl::MakeDir()
 
     if (id != -1) {
       SortItems(m_sort_field, m_sort_forward);
-      id = FindItem(0, (long)fd);
+      id = FindItem(0, (wxUIntPtr)fd);
       EnsureVisible(id);
     } else {
       delete fd;

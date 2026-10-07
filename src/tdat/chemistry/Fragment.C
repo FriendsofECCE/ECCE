@@ -25,11 +25,8 @@
 #include <list>
     using std::list;
 
-#ifdef __GNUC__
-  #include <ext/hash_map>
-  using __gnu_cxx::hash_map;
-  using __gnu_cxx::hash;
-#endif
+#include <cstdint>
+#include <unordered_map>
 
 #include "util/ETimer.H"
 #include "util/Ecce.H"
@@ -3200,14 +3197,14 @@ vector<TBond*>* Fragment::bonds(void) const
 
 #if 111
   // Initialize a map to 10% larger than numAtoms  - just a guess
-  hash_map<unsigned long, TBond*, hash<unsigned long>, equint> mymap((int)(cnt * 1.1));
+  std::unordered_map<uintptr_t, TBond*> mymap((int)(cnt * 1.1));
   for (int idx=0; idx<cnt; idx++) {
     const vector<TBond*>& bonds = p_atoms[idx]->bondList();
     int bcnt = bonds.size();
     for (int jdx=0; jdx<bcnt; jdx++) {
       bond = bonds[jdx];
-      if (mymap.find((unsigned long)bond) == mymap.end()) {
-        mymap[(unsigned long)bond] = bond;
+      if (mymap.find((uintptr_t)bond) == mymap.end()) {
+        mymap[(uintptr_t)bond] = bond;
         ret->push_back(bond);
       }
     }

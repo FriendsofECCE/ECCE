@@ -481,7 +481,7 @@ def run_parser(script_dir, entry, block, parse_args=DEFAULT_PARSE_ARGS,
     if not os.path.exists(path):
         raise FileNotFoundError(path)
     argv = [path] + list(parse_args)
-    if not os.access(path, os.X_OK):
+    if os.name == 'nt' or not os.access(path, os.X_OK):
         argv = ['perl'] + argv
 
     # Several parser scripts do
@@ -504,9 +504,12 @@ def run_parser(script_dir, entry, block, parse_args=DEFAULT_PARSE_ARGS,
         #  Ours to clean up; a caller's own workdir is not.
         cwd = tempfile.mkdtemp(prefix='ecce-parsertest-')
         atexit.register(shutil.rmtree, cwd, True)
-    proc = subprocess.run(argv, input=block.text, capture_output=True,
-                          text=True, timeout=timeout, cwd=cwd, env=env)
-    return proc.stdout, proc.stderr, proc.returncode
+    # Bytes in and out: text=True would write CRLF to the script on Windows.
+    proc = subprocess.run(argv, input=block.text.encode('utf-8'), capture_output=True,
+                          timeout=timeout, cwd=cwd, env=env)
+    return (proc.stdout.decode('utf-8', 'replace').replace('\r\n', '\n'),
+            proc.stderr.decode('utf-8', 'replace').replace('\r\n', '\n'),
+            proc.returncode)
 
 
 PROP_KEY_RE = re.compile(r'^\s*key:\s*(\S+)\s*$')

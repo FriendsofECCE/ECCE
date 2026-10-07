@@ -37,9 +37,9 @@ bool WxMachineRegisterApp::OnInit()
 {
     ewxApp::OnInit();
 
-    bool admin = ((this->argc > 1) && (strcmp(this->argv[1], "-admin") == 0));
+    bool admin = ((this->argc > 1) && (strcmp(this->argv[1].ToStdString().c_str(), "-admin") == 0));
 
-    if (!admin && this->argc>2 && strcmp(this->argv[1],"-pipe")==0) {
+    if (!admin && this->argc>2 && strcmp(this->argv[1].ToStdString().c_str(),"-pipe")==0) {
       AuthCache::pipeClean(argv[2].ToStdString());
     }
 
