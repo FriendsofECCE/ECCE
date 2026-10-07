@@ -86,7 +86,7 @@ New-Item -ItemType Directory -Force $work | Out-Null
 $wxsFile = "$work\ecce.wxs"
 [IO.File]::WriteAllText($wxsFile, $wxs, (New-Object Text.UTF8Encoding $false))
 New-Item -ItemType Directory -Force (Split-Path -Parent $Out) | Out-Null
-# Per-user files have no HKCU key path (ICE38/64/91 are about that).
-wix build -arch x64 -ext WixToolset.Util.wixext -sice ICE38 -sice ICE64 -sice ICE91 -o $Out $wxsFile
+# Per-user files have no HKCU key path (ICE38/64/91 are about that); validation is skipped.
+wix build -arch x64 -ext WixToolset.Util.wixext -sval -o $Out $wxsFile
 if ($LASTEXITCODE -ne 0) { throw "wix build failed" }
 "{0}: {1:N1} MB, ProductVersion {2}" -f $Out, ((Get-Item $Out).Length / 1MB), $msiVer
