@@ -1652,44 +1652,16 @@ void WxMachineRegister::growToFitSizer(bool fitWholeForm)
 //  Move the frame back fully onto its display; never resizes it.
 void WxMachineRegister::keepOnScreen()
 {
-    int dpyIdx = wxDisplay::GetFromWindow(this);
-    wxDisplay display((unsigned)(dpyIdx == wxNOT_FOUND ? 0 : dpyIdx));
-    wxRect avail = display.GetClientArea();
-
-    wxPoint pos = this->GetPosition();
-    wxSize size = this->GetSize();
-
-    int x = pos.x, y = pos.y;
-    if (x + size.x > avail.x + avail.width)
-        x = avail.x + avail.width - size.x;
-    if (y + size.y > avail.y + avail.height)
-        y = avail.y + avail.height - size.y;
-    if (x < avail.x)
-        x = avail.x;
-    if (y < avail.y)
-        y = avail.y;
-
-    if (x != pos.x || y != pos.y)
-        this->SetPosition(wxPoint(x, y));
+    ewxWindowUtils::keepOnDisplay(this);
 }
 
 
-//  The most the client area can be without the frame exceeding the usable
-//  area of its display.  A pure query; growToFitSizer() applies it.
+//  The most the client area can be without the frame, title bar included,
+//  exceeding the usable area of its display (the cap every window shares,
+//  #189).  A pure query; growToFitSizer() applies it.
 wxSize WxMachineRegister::maxClientSizeForDisplay()
 {
-    int dpyIdx = wxDisplay::GetFromWindow(this);
-    wxDisplay display((unsigned)(dpyIdx == wxNOT_FOUND ? 0 : dpyIdx));
-    wxRect avail = display.GetClientArea();
-
-    wxSize decoration = this->GetSize() - this->GetClientSize();
-    wxSize cap(avail.width - decoration.x, avail.height - decoration.y);
-    if (cap.x <= 0)
-        cap.x = avail.width;
-    if (cap.y <= 0)
-        cap.y = avail.height;
-
-    return cap;
+    return ewxWindowUtils::clientCapForDisplay(this);
 }
 
 

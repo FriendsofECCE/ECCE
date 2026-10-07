@@ -38,6 +38,11 @@ static std::string sslErrors(void)
 
 // OpenSSL writes with write(2), so a server that closed would raise SIGPIPE
 // and kill the GUI; block it for the call and discard one raised by it.
+// macOS has no sigtimedwait; there the socket carries SO_NOSIGPIPE instead
+// (csocket_open), so the guard has nothing to do.
+#ifdef __APPLE__
+class SigpipeGuard {};
+#else
 class SigpipeGuard {
 public:
   SigpipeGuard(void)
@@ -63,6 +68,7 @@ private:
   sigset_t set_, old_;
   bool     pendedBefore_;
 };
+#endif
 
 CTLSClientSocket::string_type CTLSClientSocket::pinnedCertPath(void)
 {

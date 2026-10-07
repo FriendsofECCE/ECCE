@@ -1,0 +1,1068 @@
+atom=Li ncore=2 lmax=1
+ecp_potential%l=1%shell=p potential%num_exponents=1
+1 1.3430600 -0.73063000
+ecp_potential%l=0%shell=s-p potential%num_exponents=2
+0 0.6128400 1.80131000
+2 1.6488100 3.54971000
+atom=Be ncore=2 lmax=1
+ecp_potential%l=1%shell=p potential%num_exponents=1
+1 2.7934700 -0.78970000
+ecp_potential%l=0%shell=s-p potential%num_exponents=2
+0 1.1987400 1.84229000
+2 3.2073800 6.81169000
+atom=B ncore=2 lmax=1
+ecp_potential%l=1%shell=p potential%num_exponents=1
+1 5.6462200 -0.88355000
+ecp_potential%l=0%shell=s-p potential%num_exponents=2
+0 1.9206100 1.89572000
+2 5.5517700 10.97543000
+atom=C ncore=2 lmax=1
+ecp_potential%l=1%shell=p potential%num_exponents=1
+1 8.5646800 -0.89371000
+ecp_potential%l=0%shell=s-p potential%num_exponents=2
+0 2.8149700 1.92926000
+2 8.1129600 14.88199000
+atom=N ncore=2 lmax=1
+ecp_potential%l=1%shell=p potential%num_exponents=1
+1 11.9968600 -0.91212000
+ecp_potential%l=0%shell=s-p potential%num_exponents=2
+0 3.8389500 1.93565000
+2 11.7324700 21.73355000
+atom=O ncore=2 lmax=1
+ecp_potential%l=1%shell=p potential%num_exponents=1
+1 16.1171800 -0.92550000
+ecp_potential%l=0%shell=s-p potential%num_exponents=2
+0 5.0534800 1.96069000
+2 15.9533300 29.13442000
+atom=F ncore=2 lmax=1
+ecp_potential%l=1%shell=p potential%num_exponents=1
+1 20.7395900 -0.93258000
+ecp_potential%l=0%shell=s-p potential%num_exponents=2
+0 6.6048800 2.03649000
+2 18.2409200 27.86279000
+atom=Ne ncore=2 lmax=1
+ecp_potential%l=1%shell=p potential%num_exponents=1
+1 26.0166600 -0.94098000
+ecp_potential%l=0%shell=s-p potential%num_exponents=2
+0 8.2804700 2.09952000
+2 22.4410200 31.46718000
+atom=Na ncore=10 lmax=2
+ecp_potential%l=2%shell=d potential%num_exponents=1
+1 0.9000900 -2.38446000
+ecp_potential%l=0%shell=s-d potential%num_exponents=2
+0 5.3723200 6.23415000
+2 1.1195900 9.08374000
+ecp_potential%l=1%shell=p-d potential%num_exponents=2
+0 1.2915800 3.23971000
+2 0.6579100 2.53514000
+atom=Mg ncore=10 lmax=2
+ecp_potential%l=2%shell=d potential%num_exponents=1
+1 1.3922000 -2.77296000
+ecp_potential%l=0%shell=s-d potential%num_exponents=2
+0 6.9629100 6.41029000
+2 1.5545800 14.12727000
+ecp_potential%l=1%shell=p-d potential%num_exponents=2
+0 1.8917700 3.24762000
+2 0.9823500 4.33012000
+atom=Al ncore=10 lmax=2
+ecp_potential%l=2%shell=d potential%num_exponents=1
+1 1.9555900 -3.03055000
+ecp_potential%l=0%shell=s-d potential%num_exponents=2
+0 7.7885800 6.04650000
+2 1.9902500 18.87509000
+ecp_potential%l=1%shell=p-d potential%num_exponents=2
+0 2.8314600 3.29465000
+2 1.3847900 6.87029000
+atom=Si ncore=10 lmax=2
+ecp_potential%l=2%shell=d potential%num_exponents=1
+1 2.4627200 -2.98240000
+ecp_potential%l=0%shell=s-d potential%num_exponents=2
+0 9.4633800 6.00558000
+2 2.4440800 23.77642000
+ecp_potential%l=1%shell=p-d potential%num_exponents=2
+0 3.8258500 3.20345000
+2 1.8302600 9.86438000
+atom=P ncore=10 lmax=2
+ecp_potential%l=2%shell=d potential%num_exponents=1
+1 3.1894500 -3.16361000
+ecp_potential%l=0%shell=s-d potential%num_exponents=2
+0 11.7932800 6.20760000
+2 2.9533000 29.40024000
+ecp_potential%l=1%shell=p-d potential%num_exponents=2
+0 4.9636800 3.24084000
+2 2.3186500 13.10778000
+atom=S ncore=10 lmax=2
+ecp_potential%l=2%shell=d potential%num_exponents=1
+1 3.9893000 -3.29839000
+ecp_potential%l=0%shell=s-d potential%num_exponents=2
+0 15.5806400 6.44496000
+2 3.5017600 35.62708000
+ecp_potential%l=1%shell=p-d potential%num_exponents=2
+0 6.8854000 3.35704000
+2 2.9069000 17.54237000
+atom=Cl ncore=10 lmax=2
+ecp_potential%l=2%shell=d potential%num_exponents=1
+1 4.8748300 -3.40738000
+ecp_potential%l=0%shell=s-d potential%num_exponents=2
+0 17.0036700 6.50966000
+2 4.1038000 42.27785000
+ecp_potential%l=1%shell=p-d potential%num_exponents=2
+0 8.9002900 3.42860000
+2 3.5264800 22.15256000
+atom=Ar ncore=10 lmax=2
+ecp_potential%l=2%shell=d potential%num_exponents=1
+1 5.8230300 -3.48806000
+ecp_potential%l=0%shell=s-d potential%num_exponents=2
+0 25.9384100 7.67855000
+2 4.7378000 49.92637000
+ecp_potential%l=1%shell=p-d potential%num_exponents=2
+0 11.4117800 3.52500000
+2 4.2047600 27.41686000
+atom=K ncore=18 lmax=2
+ecp_potential%l=2%shell=d potential%num_exponents=1
+1 0.4965200 -4.30002000
+ecp_potential%l=0%shell=s-d potential%num_exponents=2
+0 2.4873100 6.71530000
+2 0.6019000 8.46683000
+ecp_potential%l=1%shell=p-d potential%num_exponents=2
+0 0.9417000 7.06252000
+2 0.3362300 2.69868000
+atom=Ca ncore=18 lmax=2
+ecp_potential%l=2%shell=d potential%num_exponents=2
+1 2.3804500 -5.81970000
+1 0.4063900 -2.16548000
+ecp_potential%l=0%shell=s-d potential%num_exponents=2
+0 2.1054300 8.00522000
+2 0.6686500 8.94751000
+ecp_potential%l=1%shell=p-d potential%num_exponents=2
+0 1.7941300 8.66222000
+2 0.4932300 5.57218000
+atom=Sc ncore=10 lmax=2
+ecp_potential%l=2%shell=d potential%num_exponents=1
+1 9.9571200 -3.66956000
+ecp_potential%l=0%shell=s-d potential%num_exponents=3
+0 1.4640900 3.71885000
+2 3.5921700 178.26066000
+2 3.3258300 -161.78394000
+ecp_potential%l=1%shell=p-d potential%num_exponents=2
+0 23.5384900 3.93048000
+2 6.5841500 45.69140000
+atom=Ti ncore=10 lmax=2
+ecp_potential%l=2%shell=d potential%num_exponents=1
+1 11.2097100 -3.66581000
+ecp_potential%l=0%shell=s-d potential%num_exponents=3
+0 1.6117200 3.88067000
+2 4.0096000 172.25051000
+2 3.6640600 -155.08356000
+ecp_potential%l=1%shell=p-d potential%num_exponents=2
+0 31.6778200 4.04433000
+2 7.4579300 53.00048000
+atom=V ncore=10 lmax=2
+ecp_potential%l=2%shell=d potential%num_exponents=1
+1 12.7965900 -3.79146000
+ecp_potential%l=0%shell=s-d potential%num_exponents=3
+0 1.5043900 3.43258000
+2 4.2732100 178.03957000
+2 3.8412100 -156.30605000
+ecp_potential%l=1%shell=p-d potential%num_exponents=2
+0 30.8372000 3.76481000
+2 8.3445400 58.96503000
+atom=Cr ncore=10 lmax=2
+ecp_potential%l=2%shell=d potential%num_exponents=1
+1 13.9330700 -3.64362000
+ecp_potential%l=0%shell=s-d potential%num_exponents=3
+0 1.7213600 3.59679000
+2 4.7568100 184.07663000
+2 4.2534800 -161.41996000
+ecp_potential%l=1%shell=p-d potential%num_exponents=2
+0 32.2822300 3.68862000
+2 9.2813700 65.48046000
+atom=Mn ncore=10 lmax=2
+ecp_potential%l=2%shell=d potential%num_exponents=1
+1 15.8859200 -3.85254000
+ecp_potential%l=0%shell=s-d potential%num_exponents=3
+0 2.0598100 3.71264000
+2 5.4324800 181.67442000
+2 4.7988700 -156.33704000
+ecp_potential%l=1%shell=p-d potential%num_exponents=2
+0 49.7676500 4.36804000
+2 10.3662300 75.53242000
+atom=Fe ncore=10 lmax=2
+ecp_potential%l=2%shell=d potential%num_exponents=1
+1 17.6191000 -3.89423000
+ecp_potential%l=0%shell=s-d potential%num_exponents=3
+0 2.3315000 3.81706000
+2 6.0836500 172.05349000
+2 5.2665900 -144.70056000
+ecp_potential%l=1%shell=p-d potential%num_exponents=2
+0 49.4045600 4.13737000
+2 11.4018300 82.73696000
+atom=Co ncore=10 lmax=2
+ecp_potential%l=2%shell=d potential%num_exponents=1
+1 19.4455900 -3.94746000
+ecp_potential%l=0%shell=s-d potential%num_exponents=3
+0 2.2593500 3.07705000
+2 6.6666500 215.48382000
+2 5.7681800 -174.11816000
+ecp_potential%l=1%shell=p-d potential%num_exponents=2
+0 50.2814600 3.95321000
+2 12.5261000 90.90043000
+atom=Ni ncore=10 lmax=2
+ecp_potential%l=2%shell=d potential%num_exponents=1
+1 21.3637300 -3.99337000
+ecp_potential%l=0%shell=s-d potential%num_exponents=3
+0 2.2181700 3.42572000
+2 6.7158500 218.54146000
+2 5.8085600 -184.10961000
+ecp_potential%l=1%shell=p-d potential%num_exponents=2
+0 56.4535300 3.87540000
+2 13.6653400 99.68289000
+atom=Cu ncore=10 lmax=2
+ecp_potential%l=2%shell=d potential%num_exponents=1
+1 23.2906000 -4.00276000
+ecp_potential%l=0%shell=s-d potential%num_exponents=3
+0 2.6205900 3.32465000
+2 7.8108200 224.32330000
+2 6.6332400 -180.30470000
+ecp_potential%l=1%shell=p-d potential%num_exponents=2
+0 51.1573400 3.42130000
+2 14.7340600 105.70126000
+atom=Zn ncore=10 lmax=2
+ecp_potential%l=2%shell=d potential%num_exponents=1
+1 24.8870500 -3.91648000
+ecp_potential%l=0%shell=s-d potential%num_exponents=3
+0 2.7915900 3.43082000
+2 8.3267600 244.31634000
+2 7.0965100 -199.42711000
+ecp_potential%l=1%shell=p-d potential%num_exponents=2
+0 75.7060300 4.11473000
+2 16.0762700 118.29936000
+atom=Ga ncore=10 lmax=2
+ecp_potential%l=2%shell=d potential%num_exponents=1
+1 26.7430200 -3.87363000
+ecp_potential%l=0%shell=s-d potential%num_exponents=3
+0 3.4653000 4.12472000
+2 9.1113000 260.73263000
+2 7.8932900 -223.96003000
+ecp_potential%l=1%shell=p-d potential%num_exponents=2
+0 79.9935300 4.20033000
+2 17.3911400 127.99139000
+atom=Ge ncore=28 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=1
+1 0.8275100 -1.26859000
+ecp_potential%l=0%shell=s-f potential%num_exponents=2
+0 12.2483900 6.77027000
+2 2.4129100 27.21907000
+ecp_potential%l=1%shell=p-f potential%num_exponents=2
+0 15.5555600 8.31253000
+2 1.8203100 15.53292000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+0 3.0697000 1.62360000
+2 0.8052500 3.20660000
+atom=As ncore=28 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=1
+1 1.6458300 -4.77028000
+ecp_potential%l=0%shell=s-f potential%num_exponents=2
+0 20.7616000 13.03398000
+2 2.8008400 43.12429000
+ecp_potential%l=1%shell=p-f potential%num_exponents=2
+0 16.0583400 6.44063000
+2 2.2943200 28.12117000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+0 1.1208600 2.23508000
+2 1.1214000 4.60721000
+atom=Se ncore=28 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=1
+1 2.0935600 -5.58498000
+ecp_potential%l=0%shell=s-f potential%num_exponents=2
+0 20.5564400 13.28081000
+2 3.1549000 51.00011000
+ecp_potential%l=1%shell=p-f potential%num_exponents=2
+0 2.5849500 1.79640000
+2 2.5852600 30.43787000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+0 1.3829000 2.40001000
+2 1.4267100 6.59948000
+atom=Br ncore=28 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=1
+1 2.1211600 -4.78206000
+ecp_potential%l=0%shell=s-f potential%num_exponents=2
+0 3.2153800 2.60190000
+2 3.2163900 44.15165000
+ecp_potential%l=1%shell=p-f potential%num_exponents=2
+0 2.7270400 2.09478000
+2 2.7276200 30.59546000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+0 1.7316800 1.79375000
+2 1.7324600 10.04660000
+atom=Kr ncore=28 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=1
+1 2.6429500 -5.61220000
+ecp_potential%l=0%shell=s-f potential%num_exponents=2
+0 3.5927600 2.36066000
+2 3.5793300 51.88629000
+ecp_potential%l=1%shell=p-f potential%num_exponents=2
+0 3.0713200 2.34982000
+2 3.0723800 35.67029000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+0 7.0867700 2.85459000
+2 2.1505800 16.29386000
+atom=Rb ncore=36 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=1
+1 0.3639500 -3.23942000
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+2 0.2104800 -2.49855000
+0 0.1869300 26.37428000
+0 0.4003100 -21.20813000
+ecp_potential%l=1%shell=p-f potential%num_exponents=2
+2 0.2653900 2.48839000
+0 0.6985000 5.46002000
+ecp_potential%l=2%shell=d-f potential%num_exponents=3
+2 0.1350700 -4.38861000
+0 0.0827200 28.32654000
+0 0.2636500 -26.59458000
+atom=Sr ncore=36 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=1
+1 0.5167600 -4.13596000
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+2 0.2323100 -3.79121000
+0 0.1802900 24.16768000
+0 0.5217000 -17.38542000
+ecp_potential%l=1%shell=p-f potential%num_exponents=2
+2 0.4022700 5.46439000
+0 1.3007400 10.49841000
+ecp_potential%l=2%shell=d-f potential%num_exponents=3
+2 0.2694900 -1.73727000
+0 0.2555000 37.43956000
+0 0.2886800 -36.00393000
+atom=Y ncore=28 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=1
+1 3.1332300 -3.70827000
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+0 0.7473400 3.52458000
+2 2.1104600 -115.67795000
+2 2.3743100 141.66551000
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 0.8292400 3.45319000
+2 1.9297300 -67.46192000
+2 2.2037900 85.09453000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+0 9.3677000 2.29590000
+2 2.8303800 20.62182000
+atom=Zr ncore=28 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=1
+1 4.3144100 -6.11923000
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+0 0.9303500 4.57031000
+2 2.3300300 -112.55854000
+2 2.6663200 139.02972000
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 0.9775300 4.04524000
+2 2.1499800 -66.64768000
+2 2.5089200 86.37034000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+0 16.5759800 5.64085000
+2 3.3207900 26.66093000
+atom=Nb ncore=28 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=1
+1 4.6419800 -5.81695000
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+0 1.0733900 4.99937000
+2 2.5117400 -100.17856000
+2 2.9394000 127.21570000
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 0.9962600 3.64794000
+2 2.2802000 -62.17437000
+2 2.7336000 85.80845000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+0 10.4880300 2.77206000
+2 3.6426600 29.05246000
+atom=Mo ncore=28 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=1
+1 5.6250700 -7.23009000
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+0 1.0190700 3.83695000
+2 2.6838600 -90.19151000
+2 3.2794500 129.35214000
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 1.1095700 3.83295000
+2 2.4970800 -62.98231000
+2 3.0474000 89.77478000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+0 9.7040000 2.73486000
+2 4.0309800 32.53231000
+atom=Tc ncore=28 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=1
+1 6.2606700 -7.54356000
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+0 1.1773100 4.31377000
+2 2.8641800 -80.61847000
+2 3.6143200 120.82547000
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 1.0844900 3.38952000
+2 2.5990700 -57.06568000
+2 3.3045200 89.03016000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+0 11.6209200 2.86365000
+2 4.4590000 37.18014000
+atom=Ru ncore=28 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=1
+1 6.9830400 -7.98448000
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+0 1.2939300 4.82384000
+2 3.0487100 -81.31936000
+2 3.8716300 124.36917000
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 1.2027300 3.86590000
+2 2.8230300 -72.15048000
+2 3.4839100 103.67006000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+0 14.3374300 3.21083000
+2 4.9000300 42.07321000
+atom=Rh ncore=28 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=1
+1 7.6496800 -8.13225000
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+0 1.3377700 5.20773000
+2 2.9530800 -50.06846000
+2 4.3913100 90.36859000
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 1.1946800 3.85874000
+2 2.9243400 -72.74348000
+2 3.6750300 106.11615000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+0 17.8924800 3.34825000
+2 5.3487400 47.13883000
+atom=Pd ncore=28 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=1
+1 8.3432700 -8.33466000
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+0 1.2131500 3.97809000
+2 4.0330100 218.99250000
+2 3.4577200 -168.44404000
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 1.4560700 4.14021000
+2 4.0551000 108.32601000
+2 3.2161600 -72.83147000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+0 19.5447700 3.30611000
+2 5.8466400 52.78802000
+atom=Ag ncore=28 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=1
+1 9.0169600 -8.44669000
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+0 1.5174000 6.20634000
+2 3.2308800 -56.82624000
+2 4.8274700 92.40173000
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 1.2169900 3.75637000
+2 3.1861500 -80.95335000
+2 4.0534900 118.86801000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+0 22.9402000 3.40895000
+2 6.2662700 57.10513000
+atom=Cd ncore=28 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=1
+1 9.8132500 -8.69864000
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+0 1.6047600 6.56934000
+2 3.3772700 -59.36395000
+2 5.0887600 93.59610000
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 1.2517100 3.67863000
+2 3.4259200 -104.50694000
+2 4.2141500 145.67316000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+0 22.3533700 3.33094000
+2 6.7540800 62.06616000
+atom=In ncore=28 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=1
+1 10.5898700 -8.84031000
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+0 1.7388300 6.90124000
+2 3.6280600 -68.48319000
+2 5.3027000 101.77272000
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 1.4304500 3.98554000
+2 3.7444700 -129.78594000
+2 4.4767900 171.90487000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+0 29.1607200 3.49244000
+2 7.2656600 68.27816000
+atom=Sn ncore=46 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=1
+1 0.8205000 -5.60682000
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+0 2.6050400 7.18487000
+2 0.9578000 -73.06581000
+2 1.0135600 91.84771000
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 0.6794700 5.07311000
+2 0.7427600 -87.03674000
+2 0.7629200 95.37048000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+0 1.6543000 5.10243000
+2 0.6030100 5.27466000
+atom=Sb ncore=46 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=2
+1 0.7549000 -2.90951000
+1 2.8307200 -12.44921000
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+0 5.8681900 7.55592000
+2 1.1003600 -53.01395000
+2 1.2179000 79.99053000
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 3.5143000 8.30360000
+2 0.8646100 -29.04708000
+2 0.9602900 45.56610000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+0 2.4598100 9.22182000
+2 0.7641500 7.92129000
+atom=Te ncore=46 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=2
+1 0.9484700 -3.95984000
+1 3.9468200 -13.42871000
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+0 3.4940000 12.95665000
+2 1.2147700 -47.45882000
+2 1.3353000 72.77514000
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 1.3739400 8.47921000
+2 1.2776100 -39.40684000
+2 1.2842500 51.93673000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+0 3.6661800 11.54663000
+2 0.9318900 11.23776000
+atom=I ncore=46 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=2
+1 0.9762800 -3.69639000
+1 4.3334300 -14.00305000
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+0 4.1307100 12.11123000
+2 1.3337500 -41.09206000
+2 1.4912100 70.73761000
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 3.0469200 10.59271000
+2 1.0633900 -46.02273000
+2 1.1440500 65.05047000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+0 3.9306300 9.73089000
+2 1.0692000 13.98880000
+atom=Xe ncore=46 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=2
+1 1.2706800 -5.10538000
+1 5.9046900 -14.39873000
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+0 7.1574400 13.44278000
+2 1.4521700 -45.48918000
+2 1.6547800 83.21627000
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 4.3614400 12.73758000
+2 1.2545500 -49.60137000
+2 1.3643900 75.57733000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+0 5.8989700 17.79041000
+2 1.2348500 17.25358000
+atom=Cs ncore=54 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=1
+1 0.3135600 -5.01874000
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+0 0.4009300 6.79629000
+2 0.6520300 -12.27571000
+2 0.4538400 13.72442000
+ecp_potential%l=1%shell=p-f potential%num_exponents=2
+0 0.6728700 12.30018000
+2 0.2229000 2.95222000
+ecp_potential%l=2%shell=d-f potential%num_exponents=3
+0 0.4083500 1.96793000
+2 0.2015400 -0.80500000
+1 0.2441300 2.47096000
+atom=Ba ncore=54 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=2
+1 0.3786600 -4.89584000
+1 3.1742300 -17.47201000
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+0 0.4068700 13.46017000
+2 0.9426600 -14.33523000
+2 0.4660500 8.12634000
+ecp_potential%l=1%shell=p-f potential%num_exponents=2
+0 1.1772700 17.03588000
+2 0.2898100 4.74706000
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+1 1.0045000 12.78807000
+1 0.1439400 -0.28677000
+atom=La ncore=46 lmax=4
+ecp_potential%l=4%shell=g potential%num_exponents=1
+1 1.4234500 -2.85665000
+ecp_potential%l=0%shell=s-g potential%num_exponents=3
+0 22.2973900 8.85347000
+2 1.6432000 -68.41778000
+2 1.8512200 110.12463000
+ecp_potential%l=1%shell=p-g potential%num_exponents=3
+0 1.7763500 2.98675000
+2 3.9894100 -35.51815000
+2 2.4752400 53.65423000
+ecp_potential%l=2%shell=d-g potential%num_exponents=2
+0 1.5216900 1.67298000
+2 1.5218200 18.46625000
+ecp_potential%l=3%shell=f-g potential%num_exponents=2
+1 2.6776200 -4.64430000
+1 10.0660800 -14.43101000
+atom=Ce ncore=46 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=2
+1 9.2074793 -15.34875610
+1 1.8673012 -5.84323953
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+2 1.8937013 -255.56238300
+2 1.9791486 307.31392800
+0 10.7429697 10.66990170
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 7.7559298 12.22921090
+2 1.8156413 124.94246600
+2 1.6716472 -84.59998680
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+2 1.7064205 24.94467550
+0 6.4893374 10.28614470
+atom=Pr ncore=46 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=2
+1 9.8297286 -15.44352190
+1 1.9807008 -5.89611285
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+2 2.1295558 -223.64398200
+2 2.2274655 278.13451500
+0 7.2837196 12.62107180
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 7.8092804 12.52563900
+2 1.9297786 121.95278200
+2 1.7647892 -79.40475120
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+2 1.7979743 26.19266520
+0 6.5480515 9.87391206
+atom=Nd ncore=46 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=2
+1 10.4297884 -15.48300440
+1 2.0922913 -5.94833367
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+2 2.2247856 -219.47084000
+2 2.3445959 280.52892800
+0 11.8579830 11.76232500
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 9.4430645 11.43612170
+2 1.9894908 120.33535600
+2 1.7980545 -75.78196430
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+2 1.8885505 27.38307130
+0 6.6436655 9.61741049
+atom=Pm ncore=46 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=2
+1 11.1067084 -15.58675570
+1 2.2104479 -6.01203457
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+2 2.2736531 -215.58178700
+2 2.4050295 277.53404200
+0 10.7647310 11.55980120
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 9.8539770 10.33666460
+2 2.0762689 121.46769300
+2 1.8649349 -74.87664400
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+2 1.9779822 28.48611040
+0 6.6732942 9.28090576
+atom=Sm ncore=46 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=2
+1 11.7581239 -15.65862010
+1 2.3280830 -6.05376496
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+2 2.3777661 -206.06726600
+2 2.5247159 270.34259800
+0 10.2643898 11.44490440
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 10.0054236 10.69510070
+2 2.2012412 121.87722800
+2 1.9680928 -72.78839030
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+2 2.0672044 29.52394000
+0 6.7128890 9.03717701
+atom=Eu ncore=46 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=2
+1 12.4183539 -15.72447990
+1 2.4475585 -6.09107368
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+2 2.5038284 -196.63773800
+2 2.6692641 264.10344900
+0 10.3673824 11.80698020
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 10.1341831 10.93806010
+2 2.3243994 128.16026900
+2 2.0833749 -76.51532760
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+2 2.1543894 30.46732640
+0 6.6937973 8.74122693
+atom=Gd ncore=46 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=2
+1 13.0950908 -15.78672600
+1 2.5697386 -6.12777814
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+2 2.7022652 -137.90212500
+2 2.9334774 208.96454000
+0 9.8508096 16.85869360
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 10.2562012 11.13083430
+2 2.4527321 131.65132100
+2 2.1969343 -77.44430080
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+2 2.2471692 31.46641180
+0 6.4306437 8.34507286
+atom=Tb ncore=46 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=2
+1 13.7849880 -15.84080810
+1 2.6938669 -6.16678475
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+2 2.6181735 -140.10322400
+2 2.8904180 215.28993500
+0 17.0489713 11.68123370
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 10.1253314 11.12162130
+2 2.5657038 139.65713100
+2 2.3083484 -83.30982210
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+2 2.3260333 32.12176790
+0 6.5931180 8.22336256
+atom=Dy ncore=46 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=2
+1 14.4905817 -15.89723700
+1 2.8210513 -6.19939399
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+2 2.7390810 -130.00434800
+2 3.0493471 208.63602400
+0 16.5747330 11.48546660
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 10.6943601 11.62238130
+2 2.7405583 125.41578200
+2 2.4112346 -65.82038280
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+2 2.4096137 32.79772690
+0 6.4958825 7.98023135
+atom=Ho ncore=46 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=2
+1 15.2141408 -15.95165880
+1 2.9512492 -6.23162568
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+2 2.8474568 -110.58301100
+2 3.2242160 192.70173300
+0 16.1561881 11.35468650
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 9.9260833 10.84274330
+2 2.8623072 116.52006000
+2 2.4724492 -55.66109800
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+2 2.4911551 33.34249060
+0 6.3510091 7.73004915
+atom=Er ncore=46 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=2
+1 15.9596531 -16.00435820
+1 3.0850582 -6.26509474
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+2 3.0361853 -150.36700200
+2 3.3525348 236.19775600
+0 16.0392400 11.41646110
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 11.0463463 11.89253580
+2 3.0179911 130.54350100
+2 2.6472718 -65.69229880
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+2 2.5700876 33.73180760
+0 6.1656407 7.48868913
+atom=Tm ncore=46 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=2
+1 16.7243554 -16.05536170
+1 3.2221620 -6.29832935
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+2 3.1833830 -143.24595300
+2 3.5353147 233.19553800
+0 16.1601392 11.61094440
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 2.4637824 7.39619033
+2 2.7219436 119.57242900
+2 2.4955288 -84.01744530
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+2 2.6436164 33.84116700
+0 5.8942635 7.23350094
+atom=Yb ncore=46 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=2
+1 17.5123190 -16.10497510
+1 3.3631306 -6.33277963
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+2 3.2998844 -106.50639900
+2 3.7717709 201.14955200
+0 16.6344917 12.01001670
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 2.6554420 7.59659144
+2 2.8385458 119.64934700
+2 2.5988023 -82.70469640
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+2 2.7102650 34.17132690
+0 6.2642419 7.27486233
+atom=Lu ncore=46 lmax=3
+ecp_potential%l=3%shell=f potential%num_exponents=2
+1 18.3204365 -16.15200380
+1 3.5079785 -6.36766816
+ecp_potential%l=0%shell=s-f potential%num_exponents=3
+2 3.3422480 -71.31717050
+2 4.0050941 169.40139300
+0 16.1809521 11.88611540
+ecp_potential%l=1%shell=p-f potential%num_exponents=3
+0 2.7211067 7.71934058
+2 2.9820045 116.10736300
+2 2.7148008 -78.17862840
+ecp_potential%l=2%shell=d-f potential%num_exponents=2
+2 2.7757117 33.91192520
+0 5.8938013 7.01871005
+atom=Hf ncore=60 lmax=4
+ecp_potential%l=4%shell=g potential%num_exponents=1
+1 1.1409000 -2.59020000
+ecp_potential%l=0%shell=s-g potential%num_exponents=3
+0 18.9821000 5.08602000
+2 3.9241300 -76.34646000
+2 4.3200200 154.12616000
+ecp_potential%l=1%shell=p-g potential%num_exponents=3
+0 1.1100800 3.80263000
+2 2.3892000 -133.12772000
+2 2.5817100 159.39488000
+ecp_potential%l=2%shell=d-g potential%num_exponents=2
+0 21.0000000 5.23486000
+2 2.8048700 30.09851000
+ecp_potential%l=3%shell=f-g potential%num_exponents=1
+0 1.1137700 11.03700000
+atom=Ta ncore=60 lmax=4
+ecp_potential%l=4%shell=g potential%num_exponents=1
+1 1.6526200 -4.33440000
+ecp_potential%l=0%shell=s-g potential%num_exponents=3
+0 3.7845000 4.24022000
+2 3.1783800 -30.38231000
+2 3.9505800 89.32811000
+ecp_potential%l=1%shell=p-g potential%num_exponents=3
+0 1.0058000 3.33868000
+2 2.3539000 -138.02173000
+2 2.5819100 171.53349000
+ecp_potential%l=2%shell=d-g potential%num_exponents=2
+0 24.2912900 3.04913000
+2 3.1860400 41.20515000
+ecp_potential%l=3%shell=f-g potential%num_exponents=1
+0 1.1301100 7.84634000
+atom=W ncore=60 lmax=4
+ecp_potential%l=4%shell=g potential%num_exponents=1
+1 2.0382800 -5.26480000
+ecp_potential%l=0%shell=s-g potential%num_exponents=3
+0 0.9651400 2.47299000
+2 2.6550200 -52.07178000
+2 3.6271300 113.46745000
+ecp_potential%l=1%shell=p-g potential%num_exponents=3
+0 1.2390200 3.91085000
+2 2.5412200 -135.31607000
+2 2.8079700 172.36976000
+ecp_potential%l=2%shell=d-g potential%num_exponents=2
+0 27.5593500 3.87349000
+2 3.5197300 49.52511000
+ecp_potential%l=3%shell=f-g potential%num_exponents=1
+0 1.2056100 6.99471000
+atom=Re ncore=60 lmax=4
+ecp_potential%l=4%shell=g potential%num_exponents=1
+1 2.5173100 -6.62225000
+ecp_potential%l=0%shell=s-g potential%num_exponents=3
+0 1.0060300 3.32067000
+2 2.5206500 -39.91860000
+2 3.8655000 101.83236000
+ecp_potential%l=1%shell=p-g potential%num_exponents=3
+0 1.2288400 3.83735000
+2 2.6503300 -121.99416000
+2 3.0168600 166.17144000
+ecp_potential%l=2%shell=d-g potential%num_exponents=2
+0 29.2349900 4.57819000
+2 3.8642200 58.72776000
+ecp_potential%l=3%shell=f-g potential%num_exponents=1
+0 1.2745600 6.44315000
+atom=Os ncore=60 lmax=4
+ecp_potential%l=4%shell=g potential%num_exponents=1
+1 3.0108400 -7.96753000
+ecp_potential%l=0%shell=s-g potential%num_exponents=3
+0 1.1700600 4.03478000
+2 2.9343500 -84.75261000
+2 3.8266300 148.94410000
+ecp_potential%l=1%shell=p-g potential%num_exponents=3
+0 1.0217800 3.10454000
+2 2.6601300 -120.70117000
+2 3.1043500 172.77128000
+ecp_potential%l=2%shell=d-g potential%num_exponents=2
+0 31.0000000 6.63507000
+2 4.1795300 66.85726000
+ecp_potential%l=3%shell=f-g potential%num_exponents=1
+0 1.3874200 6.33120000
+atom=Ir ncore=60 lmax=4
+ecp_potential%l=4%shell=g potential%num_exponents=1
+1 3.4685900 -8.98208000
+ecp_potential%l=0%shell=s-g potential%num_exponents=3
+0 1.2740300 4.83629000
+2 3.0797000 -98.47624000
+2 3.9715300 162.58173000
+ecp_potential%l=1%shell=p-g potential%num_exponents=3
+0 1.0834200 3.80021000
+2 2.7943200 -151.65910000
+2 3.2100800 203.96216000
+ecp_potential%l=2%shell=d-g potential%num_exponents=2
+0 33.0000000 7.96874000
+2 4.4718800 73.97844000
+ecp_potential%l=3%shell=f-g potential%num_exponents=1
+0 1.4852400 6.28559000
+atom=Pt ncore=60 lmax=4
+ecp_potential%l=4%shell=g potential%num_exponents=1
+1 3.9081300 -9.79854000
+ecp_potential%l=0%shell=s-g potential%num_exponents=3
+0 1.3627900 5.79843000
+2 3.3422700 -187.51594000
+2 3.9113600 247.96906000
+ecp_potential%l=1%shell=p-g potential%num_exponents=3
+0 1.0758600 3.67055000
+2 2.8044300 -93.02055000
+2 3.5249100 151.55915000
+ecp_potential%l=2%shell=d-g potential%num_exponents=2
+0 42.6311600 13.09353000
+2 4.7446830 80.29385000
+ecp_potential%l=3%shell=f-g potential%num_exponents=1
+0 1.5898800 6.13870000
+atom=Au ncore=60 lmax=4
+ecp_potential%l=4%shell=g potential%num_exponents=1
+1 4.3876300 -10.72358000
+ecp_potential%l=0%shell=s-g potential%num_exponents=3
+0 1.5563600 6.35612000
+2 3.7159300 -364.44039000
+2 4.0679200 428.19753000
+ecp_potential%l=1%shell=p-g potential%num_exponents=3
+0 1.1879800 4.41518000
+2 3.0155100 -136.57550000
+2 3.5958800 194.20535000
+ecp_potential%l=2%shell=d-g potential%num_exponents=2
+0 35.2500000 8.88198000
+2 5.0230700 86.76612000
+ecp_potential%l=3%shell=f-g potential%num_exponents=1
+0 1.6888100 6.21603000
+atom=Hg ncore=60 lmax=4
+ecp_potential%l=4%shell=g potential%num_exponents=1
+1 4.8576400 -11.51618000
+ecp_potential%l=0%shell=s-g potential%num_exponents=3
+0 1.1735700 4.09547000
+2 3.7096600 -310.08898000
+2 4.1879300 394.68735000
+ecp_potential%l=1%shell=p-g potential%num_exponents=3
+0 0.9591300 3.61202000
+2 2.9926800 -148.42850000
+2 3.5835300 211.83161000
+ecp_potential%l=2%shell=d-g potential%num_exponents=2
+0 35.5466500 8.27074000
+2 5.2931800 92.85678000
+ecp_potential%l=3%shell=f-g potential%num_exponents=1
+0 1.8097800 6.28302000
+atom=Tl ncore=60 lmax=4
+ecp_potential%l=4%shell=g potential%num_exponents=1
+1 5.3129400 -12.13787000
+ecp_potential%l=0%shell=s-g potential%num_exponents=3
+0 1.2956600 4.77833000
+2 3.8066500 -253.19592000
+2 4.4323300 337.05349000
+ecp_potential%l=1%shell=p-g potential%num_exponents=3
+0 0.9478200 3.45912000
+2 3.1437800 -168.94091000
+2 3.7356200 238.10901000
+ecp_potential%l=2%shell=d-g potential%num_exponents=2
+0 33.4308000 7.41137000
+2 5.5517400 98.49883000
+ecp_potential%l=3%shell=f-g potential%num_exponents=1
+0 1.9138500 6.27606000
+atom=Pb ncore=78 lmax=4
+ecp_potential%l=4%shell=g potential%num_exponents=1
+1 0.5175600 -2.76464000
+ecp_potential%l=0%shell=s-g potential%num_exponents=3
+0 2.4436300 6.94774000
+2 0.8202200 -17.72106000
+2 0.9766200 32.39564000
+ecp_potential%l=1%shell=p-g potential%num_exponents=3
+0 1.4904100 4.94619000
+2 0.5986100 -17.16033000
+2 0.6691600 26.06040000
+ecp_potential%l=2%shell=d-g potential%num_exponents=2
+0 2.1920300 4.99762000
+2 0.4693700 4.52730000
+ecp_potential%l=3%shell=f-g potential%num_exponents=3
+0 0.6908100 4.95827000
+2 0.2068000 -124.15758000
+2 0.2077300 125.32798000
+atom=Bi ncore=78 lmax=4
+ecp_potential%l=4%shell=g potential%num_exponents=1
+1 0.7794100 -5.34991000
+ecp_potential%l=0%shell=s-g potential%num_exponents=3
+0 0.5808200 5.91224000
+2 0.8648000 -46.52354000
+2 0.9568200 58.30673000
+ecp_potential%l=1%shell=p-g potential%num_exponents=3
+0 2.4186000 7.58772000
+2 0.5122900 -1.55133000
+2 0.9842900 17.65062000
+ecp_potential%l=2%shell=d-g potential%num_exponents=2
+0 4.1021200 8.20935000
+2 0.6305200 8.38970000
+ecp_potential%l=3%shell=f-g potential%num_exponents=3
+0 0.5710800 -31.22481000
+0 1.1764300 31.99918000
+2 0.7883200 16.82287000
+atom=Po ncore=78 lmax=4
+ecp_potential%l=4%shell=g potential%num_exponents=1
+1 0.9823600 -6.91426000
+ecp_potential%l=0%shell=s-g potential%num_exponents=3
+0 0.3938800 5.38765000
+2 0.8440500 -41.35987000
+2 0.9960100 55.71735000
+ecp_potential%l=1%shell=p-g potential%num_exponents=3
+0 4.8787700 11.84449000
+2 0.8434700 -2.29848000
+2 1.2654400 27.85431000
+ecp_potential%l=2%shell=d-g potential%num_exponents=2
+0 2.5280300 9.51261000
+2 0.7586400 11.38029000
+ecp_potential%l=3%shell=f-g potential%num_exponents=3
+0 0.4492300 -32.32727000
+0 0.7131700 33.57540000
+2 0.5624900 7.89213000
+atom=At ncore=78 lmax=4
+ecp_potential%l=4%shell=g potential%num_exponents=1
+1 1.1814200 -8.22821000
+ecp_potential%l=0%shell=s-g potential%num_exponents=3
+0 0.4927600 6.65302000
+2 0.8542100 -15.98654000
+2 1.2755500 33.10060000
+ecp_potential%l=1%shell=p-g potential%num_exponents=3
+0 3.3738100 10.73147000
+2 0.9372800 -128.82729000
+2 0.9748800 150.80821000
+ecp_potential%l=2%shell=d-g potential%num_exponents=2
+0 3.8863800 15.83166000
+2 0.8767900 14.55150000
+ecp_potential%l=3%shell=f-g potential%num_exponents=2
+0 1.1228400 4.27097000
+2 1.1553000 -3.39500000
+atom=Rn ncore=78 lmax=4
+ecp_potential%l=4%shell=g potential%num_exponents=1
+1 1.3792000 -9.36991000
+ecp_potential%l=0%shell=s-g potential%num_exponents=3
+0 0.4716900 5.25644000
+2 1.0126800 -39.27598000
+2 1.2695200 62.19287000
+ecp_potential%l=1%shell=p-g potential%num_exponents=3
+0 3.3253400 7.38631000
+2 0.9995000 -45.67830000
+2 1.1162000 71.81385000
+ecp_potential%l=2%shell=d-g potential%num_exponents=2
+0 0.9221400 4.90484000
+2 0.9222100 12.61598000
+ecp_potential%l=3%shell=f-g potential%num_exponents=2
+0 1.6173500 2.96924000
+2 0.3215000 -0.17844000

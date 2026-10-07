@@ -63,6 +63,27 @@ ewxDialog::~ewxDialog()
 
 
 
+bool ewxDialog::Show(bool show)
+{
+  if (show)
+    fitToScreen();
+  return wxDialog::Show(show);
+}
+
+
+int ewxDialog::ShowModal()
+{
+  fitToScreen();
+  return wxDialog::ShowModal();
+}
+
+
+void ewxDialog::fitToScreen(wxSizer* fixedRow)
+{
+  ewxWindowUtils::fitToDisplay(this, fixedRow);
+}
+
+
 /**
  * Common part of all ctors.
  */

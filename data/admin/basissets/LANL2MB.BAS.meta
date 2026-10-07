@@ -1,0 +1,9 @@
+references
+P. J. Hay and W. R. Wadt, J. Chem. Phys. 82, 270 (1985); 82, 284 (1985); 82, 299 (1985).
+W. J. Hehre, R. F. Stewart and J. A. Pople, J. Chem. Phys. 51, 2657 (1969).
+
+references
+info
+Los Alamos minimal basis; STO-3G for H - Ne, Hay-Wadt MB with ECPs from Na.
+Primitives and coefficients as printed by Gaussian 16 (gfinput) for this keyword, converted by tools/basissets/g16_basis_dump.py; coefficients are in Gaussian's overlap normalization.
+info

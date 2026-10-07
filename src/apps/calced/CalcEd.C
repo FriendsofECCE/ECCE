@@ -2392,6 +2392,7 @@ void CalcEd::populateSummaryField(const string& summaryType)
   p_runtypeDetailsSizer->Layout();
   p_detailsBox->GetContainingSizer()->Layout();
   GetSizer()->SetSizeHints(this);
+  fitToScreen();
 }
 
 
@@ -2701,6 +2702,7 @@ void CalcEd::updateAllFields()
   showAllFields();
   GetSizer()->Layout();
   GetSizer()->SetSizeHints(this);
+  fitToScreen();
 }
 
 
@@ -2711,6 +2713,7 @@ void CalcEd::updateChemSysFields()
   showChemSysFields();
   GetSizer()->Layout();
   GetSizer()->SetSizeHints(this);
+  fitToScreen();
 }
 
 
@@ -2721,6 +2724,7 @@ void CalcEd::updateBasisSetFields()
   showBasisSetFields();
   GetSizer()->Layout();
   GetSizer()->SetSizeHints(this);
+  fitToScreen();
 }
 
 
@@ -2731,6 +2735,7 @@ void CalcEd::updateDetailsFields()
   showDetailsFields();
   GetSizer()->Layout();
   GetSizer()->SetSizeHints(this);
+  fitToScreen();
 }
 
 
@@ -3142,6 +3147,7 @@ void CalcEd::showGeomEditor()
   } 
   GetSizer()->Layout();
   GetSizer()->SetSizeHints(this);
+  fitToScreen();
 }
 
 
