@@ -1851,6 +1851,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_calcimport PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
+  # Organizer summary panel: molecule and basis fields of a data-server
+  # and of a local-data calculation, ECCE_TEST_ORGANIZER "summary".
+  add_test(NAME apps_summary
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/summary_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_summary PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
 
   # The Builder with a calculation's MOs panel open in every panel layout,
   # on a 1366x768 screen: viewer and panel on screen and inside the window.
