@@ -1,6 +1,7 @@
 // CTLSSocket.C -- TLS client socket (OpenSSL); see CTLSSocket.H.
 
 #include "dsm/CTLSSocket.H"
+#include "util/RemoteServerDir.H"
 
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
@@ -73,8 +74,9 @@ private:
 CTLSClientSocket::string_type CTLSClientSocket::pinnedCertPath(void)
 {
   const char * home = getenv("ECCE_HOME");
-  if (!home || !*home) return "";
-  std::string p = std::string(home) + "/siteconfig/RemoteServer/server.pem";
+  const char * rdir = getenv("ECCE_REMOTE_DIR");
+  if ((!home || !*home) && (!rdir || !*rdir)) return "";
+  std::string p = remoteServerDir() + "/server.pem";
   return access(p.c_str(), F_OK) == 0 ? p : std::string();
 }
 

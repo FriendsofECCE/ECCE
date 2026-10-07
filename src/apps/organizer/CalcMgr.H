@@ -47,6 +47,7 @@ class WxConfigureNwfsArchive;
 //  apps have no common header and the value only has to be unique within
 //  the dialog it is used in.
 #define ID_ORGANIZER_QUIT_STOP_SERVER 10104
+#define ID_ORGANIZER_CHANGE_SERVER 10105
 
 class CalcMgr: public CalcMgrGUI
              , public EditListener
@@ -203,7 +204,9 @@ public:
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_MENU_HELP
   void OnHelpClick( wxCommandEvent& event );
+  void OnChangeServerClick( wxCommandEvent& event );
   void OnPreferencesClick( wxCommandEvent& event );
+  void OnChangeServerClick( wxCommandEvent& event );
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_MENU_SUPPORT
   void OnMenuSupportClick( wxCommandEvent& event );

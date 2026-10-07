@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "util/Ecce.H"
+#include "util/RemoteServerDir.H"
 #include "tdat/SiteRequest.H"
 #include "comm/DirectTransport.H"
 #include "comm/RCommand.H"
@@ -45,7 +46,7 @@ static string lastLines(const string& text, size_t n)
 
 string SiteAdminClient::serverHost(string& err)
 {
-    string path = string(Ecce::ecceHome()) + "/siteconfig/RemoteServer/DataServers";
+    string path = remoteServerDir() + "/DataServers";
     std::ifstream in(path.c_str());
     std::stringstream ss;
     ss << in.rdbuf();
