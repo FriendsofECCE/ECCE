@@ -152,7 +152,7 @@ bool BondEditCmd::execute()
             parent2 = atm2;
             nub2 = frag->childNub(parent2);
           }
-          if (nub1 == 0 || nub2 == 0) {
+          if (nub1 == 0 || nub2 == 0 || parent1 == 0 || parent2 == 0) {
              throw EcceException("You must have nubs to create this type of bond.  Try changing the shape to add more nubs first.",WHERE);
           }
 
