@@ -11,6 +11,11 @@
 
 #include "inv/nodes/SoMaterial.H"
 #include "inv/nodes/SoSwitch.H"
+#include "inv/nodes/SoSphere.H"
+#include "inv/nodes/SoTranslation.H"
+#include "inv/nodes/SoCallback.H"
+#include "inv/sensors/SoFieldSensor.H"
+#include <GL/gl.h>
 #include "inv/nodes/SoShapeHints.H"
 #include "inv/nodes/SoClipPlane.H"
 #include "inv/actions/SoGLRenderAction.H"
@@ -107,6 +112,8 @@ string SGContainer::commandObjectType() const
 /////////////////////////////////////////////////////////////////////////////
 void SGContainer::constructor()
 {
+   p_nmStickScale = 1.0f;
+   p_nmSwitchSensor = 0;
    // For gridded data in the viewer
    setCurrentGrid(0);  // No need to have one to start is there
 
@@ -323,7 +330,33 @@ void SGContainer::constructor()
    initMORoot();
 
    p_NMVecSwitch = new SoSwitch;
+   // Option A: before the arrows, clear the depth buffer and put the atom
+   // spheres back into it (no colour), so only atoms occlude the arrows.
+   p_NMOccSwitch = new SoSwitch;
+   p_mainSep->addChild(p_NMOccSwitch);
+   {
+      SoCallback *pre = new SoCallback;
+      pre->setCallback([](void*, SoAction *a) {
+         if (a->isOfType(SoGLRenderAction::getClassTypeId())) {
+            glClear(GL_DEPTH_BUFFER_BIT);
+            glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+         }
+      });
+      SoCallback *post = new SoCallback;
+      post->setCallback([](void*, SoAction *a) {
+         if (a->isOfType(SoGLRenderAction::getClassTypeId()))
+            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+      });
+      p_NMOcc = new SoSeparator;
+      p_NMOccSwitch->addChild(pre);
+      p_NMOccSwitch->addChild(p_NMOcc);
+      p_NMOccSwitch->addChild(post);
+      p_NMOccSwitch->whichChild.connectFrom(&p_NMVecSwitch->whichChild);
+   }
    p_mainSep->addChild(p_NMVecSwitch);
+   p_nmSwitchSensor = new SoFieldSensor(
+      [](void *d, SoSensor*) { ((SGContainer*)d)->applyNMStickScale(); }, this);
+   p_nmSwitchSensor->attach(&p_NMVecSwitch->whichChild);
 
    // The NormalMode switch
    p_NMSwitch = new SoSwitch;
@@ -1346,7 +1379,7 @@ void SGContainer::applyStyle(const DisplayDescriptor& dd, ChemDisplayParam *cdp)
       cdp->bondWireframeLineWidth.setValue(dd.getLineWidth());
       cdp->bondWireframeAntiAlias.setValue(
          ChemDisplayParam::WIREFRAME_ANTIALIAS_WITH_DEPTH_COMPARISON);
-      cdp->bondCylinderRadius.setValue(dd.getCylinderRadius() /100.0);
+      cdp->bondCylinderRadius.setValue(dd.getCylinderRadius() /100.0 * p_nmStickScale);
 
       cdp->bondCylinderComplexity.setValue(dd.getCylinderRQ() /100.0);
       cdp->bondCylinderDisplayStyle.setValue(dd.getBondCylinderOpt());
@@ -1954,6 +1987,47 @@ void SGContainer::updateNMVecStarts()
    for (int j = 0; j < root->getNumChildren(); j++) {
       VRVector *v = dynamic_cast<VRVector*>(root->getChild(j));
       if (v) v->startRadius(displayedSphereRadius(j));
+   }
+   updateNMOccluders();
+   applyNMStickScale();
+}
+
+void SGContainer::updateNMOccluders()
+{
+   const char *m = getenv("ECCE_NMVEC_MODE");
+   p_NMOcc->removeAllChildren();
+   SGFragment *frag = getFragment();
+   if (!(m && *m == 'A') || !frag || p_NMVecSwitch->getNumChildren() == 0) return;
+   for (int j = 0; j < (int)frag->numAtoms(); j++) {
+      double r = displayedSphereRadius(j);
+      if (r <= 0) continue;
+      const double *c = frag->atomRef(j)->coordinates();
+      SoSeparator *sep = new SoSeparator;
+      SoTranslation *t = new SoTranslation;
+      t->translation.setValue(c[0], c[1], c[2]);
+      SoSphere *sp = new SoSphere;
+      sp->radius.setValue(r);
+      sep->addChild(t);
+      sep->addChild(sp);
+      p_NMOcc->addChild(sep);
+   }
+}
+
+void SGContainer::applyNMStickScale()
+{
+   const char *m = getenv("ECCE_NMVEC_MODE");
+   float want = 1.0f;
+   if (m && *m == 'B' && p_NMVecSwitch->whichChild.getValue() != SO_SWITCH_NONE
+       && p_NMVecSwitch->getNumChildren() > 0) {
+      const char *k = getenv("ECCE_NMVEC_STICK");
+      want = k ? atof(k) : 0.4f;
+   }
+   if (want == p_nmStickScale) return;
+   float ratio = want / p_nmStickScale;
+   p_nmStickScale = want;
+   for (int i = 0; i < getNumDisplayStyles(); i++) {
+      ChemDisplayParam *cdp = getChemDisplayParam(i);
+      cdp->bondCylinderRadius.setValue(cdp->bondCylinderRadius.getValue() * ratio);
    }
 }
 
