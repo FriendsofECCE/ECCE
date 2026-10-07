@@ -1,0 +1,2 @@
+# Findings accepted as they are: a regular expression per line, matched
+# against "tag<TAB>kind<TAB>description" (see clip_test.py).
