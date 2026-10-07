@@ -1,0 +1,10 @@
+references
+T. H. Dunning Jr. and P. J. Hay, in Methods of Electronic Structure Theory, Vol. 2, H. F. Schaefer III, ed., Plenum Press (1977).
+M. Dolg, U. Wedig, H. Stoll and H. Preuss, J. Chem. Phys. 86, 866 (1987).
+D. Andrae, U. Haeussermann, M. Dolg, H. Stoll and H. Preuss, Theor. Chim. Acta 77, 123 (1990).
+
+references
+info
+Stuttgart/Dresden: D95V (Dunning-Hay) for H - Ar and Stuttgart energy-adjusted ECPs for K and heavier.
+Primitives and coefficients as printed by Gaussian 16 (gfinput) for this keyword, converted by tools/basissets/g16_basis_dump.py; coefficients are in Gaussian's overlap normalization.
+info

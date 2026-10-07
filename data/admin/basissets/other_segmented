@@ -215,3 +215,14 @@ name= Sadlej pVTZ
 files= SADLEJ.BAS
 atoms= H Li Be C N O F Na Mg Si P S Cl K Ca Br Rb Sr I
 
+name= EPR-II
+files= EPR-II.BAS
+atoms= H B C N O F
+
+name= EPR-III
+files= EPR-III.BAS
+atoms= H Li Be B C N O F
+
+name= Ahlrichs TZVP
+files= AHLRICHS_TZVP.BAS
+atoms= H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr

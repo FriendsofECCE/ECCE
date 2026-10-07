@@ -1,0 +1,10 @@
+references
+W. J. Stevens, H. Basch and M. Krauss, J. Chem. Phys. 81, 6026 (1984).
+W. J. Stevens, M. Krauss, H. Basch and P. G. Jasien, Can. J. Chem. 70, 612 (1992).
+T. R. Cundari and W. J. Stevens, J. Chem. Phys. 98, 5555 (1993).
+
+references
+info
+Stevens-Basch-Krauss compact effective potentials, split valence basis (CEP-31G).
+Primitives and coefficients as printed by Gaussian 16 (gfinput) for this keyword, converted by tools/basissets/g16_basis_dump.py; coefficients are in Gaussian's overlap normalization.
+info

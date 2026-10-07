@@ -48,6 +48,10 @@ import nwchem_library_check as N  # noqa: E402
 REPO = R.REPO
 PARSERS = os.path.join(REPO, "scripts", "parsers")
 ORBITAL_TYPES = [t for t in N.ORBITAL_TYPES if t != "ECPOrbital"]
+#  --ecp (Gaussian only): sets with an ECP are checked on a molecule that
+#  carries one, the explicit deck holding the library's ECP block and the
+#  keyword deck leaving Gaussian to apply its own.
+ECP_TYPE = "ECPOrbital"
 
 #  Smallest closed-shell system for the elements a set covers; the first
 #  whose elements are all covered is used, and a second-row one besides.
@@ -58,6 +62,12 @@ MOLS = [
     ("F2", ["F"], [("F", 0, 0, 0), ("F", 0, 0, 1.412)]),
     ("Ne", ["Ne"], [("Ne", 0, 0, 0)]),
     ("He", ["He"], [("He", 0, 0, 0)]),
+]
+MOLS_ECP = [
+    ("HI", ["H", "I"], [("I", 0, 0, 0), ("H", 0, 0, 1.609)]),
+    #  closed-shell atoms: a 3d and a 5d core of different ECP shape
+    ("Zn", ["Zn"], [("Zn", 0, 0, 0)]),
+    ("Hg", ["Hg"], [("Hg", 0, 0, 0)]),
 ]
 MOLS2 = [
     ("HCl", ["H", "Cl"], [("Cl", 0, 0, 0), ("H", 0, 0, 1.275)]),
@@ -78,6 +88,10 @@ ALIASES = {
     "tz (dunning)": ["TZ"],
     "cc-pv(d+d)z": ["cc-pV(D+d)Z"],
     "def2-svp(p)": ["def2SVPP", "def2-SV(P)"],
+    "dzvp (dft orbital)": ["DGDZVP"],
+    "dzvp2 (dft orbital)": ["DGDZVP2"],
+    "tzvp (dft orbital)": ["DGTZVP"],
+    "ahlrichs tzvp": ["TZVP"],
 }
 
 
@@ -111,10 +125,12 @@ def orcaDeck(atoms, keyword, block):
 
 
 def gaussDeck(atoms, keyword, block):
-    return ("%%nprocshared=1\n%%mem=2GB\n#p HF/%s 5D 7F nosymm scf=tight\n\n"
+    #  an explicit deck carries its ECP, if the set has one, after the basis
+    pseudo = " pseudo=read" if block and "\n\n" in block.strip() else ""
+    return ("%%nprocshared=1\n%%mem=2GB\n#p HF/%s%s 5D 7F nosymm scf=tight\n\n"
             "t\n\n0 1\n%s\n\n%s\n" % (
-                keyword or "gen", geometry(atoms),
-                "" if keyword else block + "\n"))
+                keyword or "gen", pseudo if not keyword else "",
+                geometry(atoms), "" if keyword else block + "\n"))
 
 
 def run(code, text, workdir, timeout):
@@ -160,9 +176,11 @@ SKIP = re.compile(r"\(pt/|\(fi/|\(old\)|Core Set|Partridge|Rydberg|Feller|NASA|"
                   r"Diffuse|Blaudeau|seg-opt|-NR$|Binning|Huzinaga \(S", re.I)
 
 
-def pick(atoms):
+def pick(atoms, gtype=None):
     have = set(atoms)
     chosen = []
+    if gtype == ECP_TYPE:
+        chosen += [m for m in MOLS_ECP if set(m[1]) <= have]
     for group in ((MOLS, MOLS2) if SECOND else (MOLS,)):
         for m in group:
             if set(m[1]) <= have:
@@ -171,10 +189,10 @@ def pick(atoms):
     return chosen
 
 
-def explicitDeck(code, driver, e, base, name, gtype, mol):
+def explicitDeck(code, driver, e, base, name, gtype, mol, mode="explicit"):
     tag = " ".join(sorted(set(a[0] for a in mol[2])))
     env = dict(e, LOADBASIS_CODE="ORCA" if code == "orca" else "Gaussian-16")
-    p = subprocess.run([driver, base, "--dump", name, gtype, tag, "explicit"],
+    p = subprocess.run([driver, base, "--dump", name, gtype, tag, mode],
                        env=env, capture_output=True, text=True)
     if p.returncode != 0 or not p.stdout.strip():
         return None
@@ -193,7 +211,7 @@ def runName(args, code, name, gtype, atoms, scratch, driver, e, base, table):
     deck = orcaDeck if code == "orca" else gaussDeck
     res = {"basis": name, "code": code, "in_table": table.get(name.lower()),
            "mols": [], "keyword": None, "status": None, "tried": {}}
-    mols = pick(atoms)
+    mols = pick(atoms, gtype)
     if not mols:
         res["status"] = "not run (no small test molecule for its elements)"
         return res
@@ -232,7 +250,29 @@ def runName(args, code, name, gtype, atoms, scratch, driver, e, base, table):
             if not ok:
                 break
             res["mols"].append("%s nbf %s" % (mol[0], r["nbf"]))
-        res["tried"][kw] = verdicts
+        extra = []
+        if gtype == ECP_TYPE and all(": match" in v for v in verdicts):
+            #  What the writer really emits for the molecule (named where it
+            #  may, explicit with its ECP where it must) against the
+            #  explicit deck; "useRouteCard" means the whole thing is named.
+            for mol in mols:
+                if mol[0] != "HI":
+                    continue
+                text = explicitDeck(code, driver, e, base, name, gtype, mol,
+                                    "named")
+                if text is None or text.startswith("useRouteCard"):
+                    continue
+                got = run(code, deck(mol[2], None, text),
+                          "%s/wr_%s" % (work, mol[0]), args.timeout)
+                dE = got.get("energy", 0) - ref[mol[0]]["energy"]
+                ok = got["status"] == "ok" and abs(dE) < TOL and \
+                    got["nbf"] == ref[mol[0]]["nbf"]
+                extra.append("%s writer deck: %s dE %.2g" % (
+                    mol[0], "match" if ok else "DIFFERS", dE))
+        res["tried"][kw] = verdicts + extra
+        if any("DIFFERS" in v for v in extra):
+            res["status"] = "keyword matches, writer deck DIFFERS"
+            break
         if verdicts and all(": match" in v for v in verdicts) and \
                 len(verdicts) == len(mols):
             res["keyword"] = kw
@@ -253,6 +293,8 @@ def main():
                     help="also a second-row molecule per set (twice the runs)")
     ap.add_argument("--all", action="store_true",
                     help="include sets no code is expected to ship")
+    ap.add_argument("--ecp", action="store_true",
+                    help="also the ECP-bearing sets (Gaussian only)")
     ap.add_argument("--big", action="store_true",
                     help="include 5Z and larger sets")
     ap.add_argument("-j", "--jobs", type=int, default=3)
@@ -301,7 +343,7 @@ def main():
         base = "http://127.0.0.1:%d%s" % (port, R.LIBPATH)
 
         sets = []
-        for gtype in ORBITAL_TYPES:
+        for gtype in ORBITAL_TYPES + ([ECP_TYPE] if args.ecp else []):
             for ent in N.parseIndex(os.path.join(N.INDEXDIR, gtype)):
                 if args.only and ent["name"] not in args.only:
                     continue
@@ -313,7 +355,8 @@ def main():
                 sets.append((ent["name"], gtype, ent["atoms"]))
         tables = dict((c, tableValues(c)) for c in codes)
         jobs = [(c,) + s for c in codes for s in sets
-                if caseKey(c, s[0]) not in done]
+                if caseKey(c, s[0]) not in done
+                and not (c == "orca" and s[1] == ECP_TYPE)]
         print("%d cases to run" % len(jobs), flush=True)
 
         def one(job):
@@ -334,14 +377,25 @@ def main():
         if not args.keep:
             shutil.rmtree(scratch, ignore_errors=True)
 
+    #  A run covering a subset (--only) updates its own lines of the file
+    #  and leaves the rest as they were.
+    lines = {}
+    if os.path.exists(args.out):
+        for ln in open(args.out).read().splitlines()[1:]:
+            lines[caseKey(ln[:8].strip(), ln[9:37].strip())] = ln
+    for k in done:
+        r = done[k]
+        detail = ""
+        if r["keyword"]:
+            detail = "  [%s]" % "; ".join(r["tried"][r["keyword"]])
+        lines[k] = "%-8s %-28s %-22s %-22s %s%s" % (
+            r["code"], r["basis"], r["keyword"] or "-",
+            r["in_table"] or "-", r["status"], detail)
     with open(args.out, "w") as h:
         h.write("%-8s %-28s %-22s %-22s %s\n" % (
             "code", "ECCE name", "keyword (verified)", "in table now", "result"))
-        for k in sorted(done):
-            r = done[k]
-            h.write("%-8s %-28s %-22s %-22s %s\n" % (
-                r["code"], r["basis"], r["keyword"] or "-",
-                r["in_table"] or "-", r["status"]))
+        for k in sorted(lines):
+            h.write(lines[k] + "\n")
     print("table in", args.out)
     return 0
 

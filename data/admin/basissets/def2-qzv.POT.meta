@@ -1,0 +1,8 @@
+references
+F. Weigend and R. Ahlrichs, Phys. Chem. Chem. Phys. 7, 3297 (2005).
+
+references
+info
+def2-QZV: quadruple zeta valence, no polarization functions (Gaussian keyword def2QZV).
+Primitives and coefficients as printed by Gaussian 16 (gfinput) for this keyword, converted by tools/basissets/g16_basis_dump.py; coefficients are in Gaussian's overlap normalization.
+info

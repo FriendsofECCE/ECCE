@@ -1,0 +1,2674 @@
+atom=H
+contraction shell=S num_primitives=3 num_coefficients=1
+34.061341 0.0254393072
+5.1235746 0.1900859489
+1.1646626 0.8524411301
+contraction shell=S num_primitives=1 num_coefficients=1
+0.32723041 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.10307241 1.0000000000
+atom=He
+contraction shell=S num_primitives=3 num_coefficients=1
+98.07832162 0.0287621048
+14.76440425 0.2081131921
+3.318583147 0.8375725883
+contraction shell=S num_primitives=1 num_coefficients=1
+0.8741386955 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.2445989721 1.0000000000
+atom=Li
+contraction shell=S num_primitives=6 num_coefficients=1
+6269.262801 0.0005180789
+940.3161243 0.0040144315
+214.2210753 0.0209012107
+60.75984018 0.0853916575
+19.91515203 0.2800426456
+7.31715098 0.6923211339
+contraction shell=S num_primitives=2 num_coefficients=1
+2.972467422 0.4501105088
+1.263985231 0.5820262933
+contraction shell=S num_primitives=1 num_coefficients=1
+0.5142748995 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.0770308859 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.02893889643 1.0000000000
+atom=Be
+contraction shell=S num_primitives=6 num_coefficients=1
+4700.236563 0.0006918640
+704.8284562 0.0053519392
+160.4311048 0.0275656037
+45.42534734 0.1082748198
+14.79833413 0.3196873144
+5.351245254 0.6364164777
+contraction shell=S num_primitives=2 num_coefficients=1
+2.154204482 0.7001401713
+0.933637444 0.3268750721
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1879143299 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.07464826795 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.0326504846 1.0000000000
+atom=B
+contraction shell=S num_primitives=6 num_coefficients=1
+8564.866069 0.0006375463
+1284.151626 0.0049364467
+292.278716 0.0255181243
+82.77546918 0.1014577835
+27.01793927 0.3088586856
+9.814961966 0.6523463970
+contraction shell=S num_primitives=2 num_coefficients=1
+3.931855906 0.6715277955
+1.659559971 0.3585034506
+contraction shell=S num_primitives=1 num_coefficients=1
+0.3576296524 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.142462775 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.06056059477 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+22.4538758 0.0111890364
+5.104505833 0.0730161447
+1.498608134 0.2927442869
+0.5092783132 0.7389636283
+contraction shell=P num_primitives=1 num_coefficients=1
+0.181470778 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.0646218939 1.0000000000
+atom=C
+contraction shell=S num_primitives=6 num_coefficients=1
+13575.34968 0.0006064550
+2035.233368 0.0046979089
+463.2256236 0.0243324776
+131.200196 0.0973999683
+42.85301589 0.3019558425
+15.58418577 0.6623360914
+contraction shell=S num_primitives=2 num_coefficients=1
+6.206713851 0.6559530854
+2.576489653 0.3758563329
+contraction shell=S num_primitives=1 num_coefficients=1
+0.5769633942 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.2297283136 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.09516444003 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+34.69723224 0.0113272200
+7.958262283 0.0761696592
+2.378082688 0.3019225220
+0.8143320818 0.7278502735
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2888754725 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.1005682367 1.0000000000
+atom=N
+contraction shell=S num_primitives=6 num_coefficients=1
+19730.80065 0.0005862640
+2957.895874 0.0045428821
+673.221336 0.0235584134
+190.6824949 0.0947091933
+62.2954419 0.2971978491
+22.65416118 0.6691624690
+contraction shell=S num_primitives=2 num_coefficients=1
+8.979147743 0.6459668363
+3.686300237 0.3870057439
+contraction shell=S num_primitives=1 num_coefficients=1
+0.846600768 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.3364713377 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1364765367 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+49.20038051 0.0114488251
+11.34679054 0.0784223380
+3.427397241 0.3081809474
+1.178552513 0.7202719637
+contraction shell=P num_primitives=1 num_coefficients=1
+0.4164220497 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.1426082601 1.0000000000
+atom=O
+contraction shell=S num_primitives=6 num_coefficients=1
+27032.38263 0.0005722734
+4052.387139 0.0044353233
+922.3272271 0.0230201077
+261.2407099 0.0928224907
+85.35464135 0.2937850001
+31.03503524 0.6740160450
+contraction shell=S num_primitives=2 num_coefficients=1
+12.26086073 0.6383993703
+4.998707601 0.3953458713
+contraction shell=S num_primitives=1 num_coefficients=1
+1.170310816 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.4647474099 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1850453636 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+63.2749548 0.0120183322
+14.62704938 0.0830054218
+4.450122346 0.3199174393
+1.527579965 0.7071554292
+contraction shell=P num_primitives=1 num_coefficients=1
+0.5293511794 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.1747842127 1.0000000000
+atom=F
+contraction shell=S num_primitives=6 num_coefficients=1
+35479.10044 0.0005618499
+5318.472898 0.0043551974
+1210.481098 0.0226182471
+342.8551814 0.0914030551
+112.0194318 0.2911687069
+40.71474025 0.6777270856
+contraction shell=S num_primitives=2 num_coefficients=1
+16.03967811 0.6329641788
+6.503818674 0.4013647573
+contraction shell=S num_primitives=1 num_coefficients=1
+1.544047751 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.6122345286 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.240279797 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+80.23390048 0.0123213451
+18.59401074 0.0857133953
+5.686790265 0.3263310550
+1.951100629 0.6997111464
+contraction shell=P num_primitives=1 num_coefficients=1
+0.669702113 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2165130041 1.0000000000
+atom=Ne
+contraction shell=S num_primitives=6 num_coefficients=1
+45069.46402 0.0005538000
+6755.976866 0.0042932753
+1537.650286 0.0223071136
+435.5169767 0.0902980026
+142.2865564 0.2891046794
+51.6921538 0.6806492372
+contraction shell=S num_primitives=2 num_coefficients=1
+20.31587049 0.6288529548
+8.202194265 0.4059306294
+contraction shell=S num_primitives=1 num_coefficients=1
+1.968127628 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.77904756 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.3022950204 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+99.78299603 0.0124940364
+23.1761241 0.0874383333
+7.116394587 0.3302428999
+2.441871143 0.6950261427
+contraction shell=P num_primitives=1 num_coefficients=1
+0.8338960577 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.266073113 1.0000000000
+atom=Na
+contraction shell=S num_primitives=7 num_coefficients=1
+26041.10993 0.0005873112
+3906.126855 0.0045372836
+888.9745499 0.0232540775
+251.4549796 0.0900407679
+81.65014351 0.2553068408
+28.9041584 0.4554090679
+10.62578293 0.3159428240
+contraction shell=S num_primitives=3 num_coefficients=1
+53.76941018 0.0547786842
+16.30824302 0.2598937839
+2.373038413 -1.1203491610
+contraction shell=S num_primitives=2 num_coefficients=1
+0.957307726 0.7649778586
+0.4080646096 0.2593259043
+contraction shell=S num_primitives=1 num_coefficients=1
+0.04996758233 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.01926861625 1.0000000000
+contraction shell=P num_primitives=5 num_coefficients=1
+138.0797999 0.0067213523
+32.23270039 0.0482725174
+9.981607536 0.1888402538
+3.482203393 0.4176703885
+1.229913462 0.5202815618
+contraction shell=P num_primitives=1 num_coefficients=1
+0.4174395942 1.0000000000
+atom=Mg
+contraction shell=S num_primitives=7 num_coefficients=1
+31438.34956 0.0005783028
+4715.515335 0.0044684748
+1073.162925 0.0229146002
+303.5723877 0.0888915364
+98.62625104 0.2529847442
+34.94380842 0.4546775216
+12.8597852 0.3199341937
+contraction shell=S num_primitives=3 num_coefficients=1
+64.876913 0.0543209347
+19.72552078 0.2574707209
+2.895180434 -1.1204591080
+contraction shell=S num_primitives=2 num_coefficients=1
+1.196045471 0.7787271519
+0.5432945116 0.2412921385
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1009910409 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.03686572809 1.0000000000
+contraction shell=P num_primitives=5 num_coefficients=1
+179.8718961 0.0062132488
+42.12006938 0.0454079281
+13.12050303 0.1817809685
+4.625750361 0.4148255405
+1.669521102 0.5258598287
+contraction shell=P num_primitives=1 num_coefficients=1
+0.585510121 1.0000000000
+atom=Al
+contraction shell=S num_primitives=7 num_coefficients=1
+37792.55077 0.0005622003
+5668.068216 0.0043453157
+1289.858284 0.0223025562
+364.8659603 0.0867482527
+118.5763151 0.2485766572
+42.0248676 0.4529358679
+15.49950163 0.3279497114
+contraction shell=S num_primitives=3 num_coefficients=1
+75.2080266 0.0640930202
+23.03140897 0.2926776499
+3.634879765 -1.1402134300
+contraction shell=S num_primitives=2 num_coefficients=1
+1.606504996 0.7368424747
+0.7610339458 0.2832545867
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1655670885 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.06004157711 1.0000000000
+contraction shell=P num_primitives=5 num_coefficients=1
+452.5230319 0.0028804173
+107.0819505 0.0231430364
+34.13102126 0.1087020023
+12.58703743 0.3352944821
+4.98119197 0.6497016403
+contraction shell=P num_primitives=1 num_coefficients=1
+2.00703509 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.8008371437 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2017892747 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.05789555039 1.0000000000
+atom=Si
+contraction shell=S num_primitives=7 num_coefficients=1
+44773.35808 0.0005480036
+6717.19921 0.0042344927
+1528.896033 0.0217448992
+432.5474658 0.0847654854
+140.6150523 0.2444282819
+49.85763672 0.4510005706
+18.43497488 0.3356761629
+contraction shell=S num_primitives=3 num_coefficients=1
+86.53388611 0.0759858951
+26.62460685 0.3377478829
+4.495305716 -1.1635534030
+contraction shell=S num_primitives=2 num_coefficients=1
+2.103504571 0.7007360525
+1.010609492 0.3201036203
+contraction shell=S num_primitives=1 num_coefficients=1
+0.2370175149 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.08570340536 1.0000000000
+contraction shell=P num_primitives=5 num_coefficients=1
+394.4750363 0.0037737913
+93.1376831 0.0295122612
+29.51960874 0.1321836728
+10.78166379 0.3670450264
+4.162657478 0.6045904458
+contraction shell=P num_primitives=1 num_coefficients=1
+1.624797299 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.5430666049 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2058207396 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.07005348731 1.0000000000
+atom=P
+contraction shell=S num_primitives=7 num_coefficients=1
+52426.99923 0.0005350795
+7863.266055 0.0041364994
+1789.522733 0.0212565005
+506.2730017 0.0830304260
+164.6069855 0.2407611725
+58.39191872 0.4491055900
+21.6436632 0.3426250636
+contraction shell=S num_primitives=3 num_coefficients=1
+99.01383762 0.0882042670
+30.55043982 0.3853170872
+5.453708766 -1.1865319180
+contraction shell=S num_primitives=2 num_coefficients=1
+2.650336256 0.6822575618
+1.272668887 0.3392684095
+contraction shell=S num_primitives=1 num_coefficients=1
+0.316450052 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1141746694 1.0000000000
+contraction shell=P num_primitives=5 num_coefficients=1
+472.2721925 0.0036440007
+111.5888276 0.0287010161
+35.44593642 0.1297985651
+12.99077687 0.3649504286
+5.048622166 0.6075015660
+contraction shell=P num_primitives=1 num_coefficients=1
+1.993404957 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.6652728443 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2551683213 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.09035776225 1.0000000000
+atom=S
+contraction shell=S num_primitives=7 num_coefficients=1
+60700.9281 0.0005238007
+9102.610685 0.0040506327
+2071.416601 0.0208270042
+586.0247682 0.0814968503
+190.5539502 0.2374911384
+67.63038426 0.4472617151
+25.12730691 0.3489191844
+contraction shell=S num_primitives=3 num_coefficients=1
+112.5746301 0.1004556989
+34.79555422 0.4339117295
+6.511555622 -1.2084330590
+contraction shell=S num_primitives=2 num_coefficients=1
+3.239903226 0.6749812942
+1.547716088 0.3470879576
+contraction shell=S num_primitives=1 num_coefficients=1
+0.4054103011 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1455065106 1.0000000000
+contraction shell=P num_primitives=5 num_coefficients=1
+564.3671603 0.0034886924
+133.4262438 0.0276851268
+42.46827119 0.1265940018
+15.61652758 0.3616592567
+6.109398847 0.6122203444
+contraction shell=P num_primitives=1 num_coefficients=1
+2.44041602 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.838822013 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.312887469 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.10770109 1.0000000000
+atom=Cl
+contraction shell=S num_primitives=7 num_coefficients=1
+69507.99094 0.0005145739
+10426.15688 0.0039781345
+2373.233406 0.0204561787
+671.5642007 0.0801481029
+218.4199979 0.2345477032
+77.57224971 0.4454336858
+28.88881528 0.3546684250
+contraction shell=S num_primitives=3 num_coefficients=1
+127.1052718 0.1129368805
+39.33958296 0.4837351421
+7.674067999 -1.2292297390
+contraction shell=S num_primitives=2 num_coefficients=1
+3.874562763 0.6729682164
+1.838583257 0.3495605141
+contraction shell=S num_primitives=1 num_coefficients=1
+0.5022905754 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1796272342 1.0000000000
+contraction shell=P num_primitives=5 num_coefficients=1
+666.5042328 0.0033502508
+157.6424169 0.0267639704
+50.26252098 0.1236268236
+18.53607811 0.3584578792
+7.294053278 0.6167729635
+contraction shell=P num_primitives=1 num_coefficients=1
+2.943324899 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+1.040497082 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.3845641508 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.1306964273 1.0000000000
+atom=Ar
+contraction shell=S num_primitives=7 num_coefficients=1
+79111.423 0.0005049164
+11864.74601 0.0039047223
+2700.164297 0.0200931026
+763.9594348 0.0788521294
+248.4515056 0.2317384571
+88.283581 0.4436144477
+32.94860707 0.3602454230
+contraction shell=S num_primitives=3 num_coefficients=1
+142.55358 0.1259085593
+44.16368801 0.5356737519
+8.9524995 -1.2491376490
+contraction shell=S num_primitives=2 num_coefficients=1
+4.554692094 0.6744110313
+2.1444079 0.3485376674
+contraction shell=S num_primitives=1 num_coefficients=1
+0.60708777 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.21651432 1.0000000000
+contraction shell=P num_primitives=5 num_coefficients=1
+776.77542 0.0032356380
+183.8010702 0.0259905340
+58.69400317 0.1210812451
+21.7015917 0.3555746043
+8.582148963 0.6207987312
+contraction shell=P num_primitives=1 num_coefficients=1
+3.492267916 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+1.2637427 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.4660787001 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.15766003 1.0000000000
+atom=K
+contraction shell=S num_primitives=8 num_coefficients=1
+153976.1833 0.0002527144
+23082.49767 0.0019590047
+5253.234475 0.0101790597
+1486.955013 0.0412653942
+484.0633373 0.1332932366
+173.5665398 0.3126950193
+67.11638146 0.4339605246
+26.33950205 0.2144224599
+contraction shell=S num_primitives=4 num_coefficients=1
+172.8769357 -0.0229418295
+53.05864906 -0.1095200876
+7.921275396 0.5446623887
+3.210888047 0.5405637370
+contraction shell=S num_primitives=2 num_coefficients=1
+4.566207089 -0.3448266077
+0.7020990728 1.1515949600
+contraction shell=S num_primitives=1 num_coefficients=1
+0.2825894264 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.03580582462 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.01581921325 1.0000000000
+contraction shell=P num_primitives=6 num_coefficients=1
+728.1844987 0.0031616142
+172.1326506 0.0249943863
+54.82984708 0.1126854246
+20.16626649 0.3075270946
+7.861072881 0.4730947641
+3.110521313 0.2717991096
+contraction shell=P num_primitives=3 num_coefficients=1
+11.75733749 -0.0165654765
+1.513961741 0.3686137267
+0.5832859179 0.6939415324
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2157047808 1.0000000000
+atom=Ca
+contraction shell=S num_primitives=8 num_coefficients=1
+172517.3269 0.0002494651
+25861.51927 0.0019339385
+5885.661867 0.0100506956
+1665.973003 0.0407707414
+542.3671815 0.1319268731
+194.5780349 0.3103078340
+75.30359764 0.4342265364
+29.57406259 0.2182348599
+contraction shell=S num_primitives=4 num_coefficients=1
+191.2007466 -0.0234423141
+58.84029988 -0.1108483649
+8.964254085 0.5410085893
+3.685696054 0.5443977360
+contraction shell=S num_primitives=2 num_coefficients=1
+5.246428973 -0.3661861608
+0.8486262153 1.1651242350
+contraction shell=S num_primitives=1 num_coefficients=1
+0.3674330054 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.06682158261 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.02675973045 1.0000000000
+contraction shell=P num_primitives=6 num_coefficients=1
+836.9726206 0.0030348905
+197.9304014 0.0241227191
+63.13555805 0.1097041607
+23.28268717 0.3033530783
+9.117644493 0.4737229489
+3.633612014 0.2764930145
+contraction shell=P num_primitives=3 num_coefficients=1
+13.49416312 -0.0177843754
+1.813925979 0.3697704424
+0.7198182601 0.6900705578
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2762957699 1.0000000000
+atom=Sc
+contraction shell=S num_primitives=8 num_coefficients=1
+191612.9187 0.0002473919
+28723.85036 0.0019179371
+6537.011649 0.0099690584
+1850.309717 0.0404586555
+602.3885516 0.1310814387
+216.1732477 0.3089099881
+83.71251788 0.4343692974
+32.90870719 0.2204785091
+contraction shell=S num_primitives=4 num_coefficients=1
+211.3439323 -0.0237611808
+65.12892014 -0.1120844402
+10.03431154 0.5424472084
+4.15968846 0.5433431137
+contraction shell=S num_primitives=2 num_coefficients=1
+6.000904161 -0.3708971635
+0.9825578415 1.1683490140
+contraction shell=S num_primitives=1 num_coefficients=1
+0.4248319277 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.0771854621 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.0301472197 1.0000000000
+contraction shell=P num_primitives=6 num_coefficients=1
+947.3412282 0.0029592041
+224.0969973 0.0236176478
+71.56033488 0.1080903026
+26.44482449 0.3014757455
+10.39379829 0.4746210789
+4.160630456 0.2776346217
+contraction shell=P num_primitives=3 num_coefficients=1
+15.56573713 -0.0184304045
+2.112154487 0.3743853510
+0.8418470902 0.6855084716
+contraction shell=P num_primitives=1 num_coefficients=1
+0.3229754265 1.0000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+30.98939099 0.0205955930
+8.690546507 0.1170655738
+2.952025634 0.3691189677
+1.076191075 0.6642844393
+contraction shell=D num_primitives=1 num_coefficients=1
+0.3833891509 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.1253468611 1.0000000000
+atom=Ti
+contraction shell=S num_primitives=8 num_coefficients=1
+211575.6903 0.0002457308
+31714.94506 0.0019052697
+7217.547654 0.0099042324
+2042.939425 0.0402103648
+665.1289621 0.1304073723
+238.7494226 0.3078048598
+92.508691 0.4344552934
+36.40391921 0.2222557650
+contraction shell=S num_primitives=4 num_coefficients=1
+232.7262461 -0.0240147944
+71.79120971 -0.1131974123
+11.15853462 0.5445058129
+4.654813542 0.5416895786
+contraction shell=S num_primitives=2 num_coefficients=1
+6.803462917 -0.3733792730
+1.12010764 1.1699334070
+contraction shell=S num_primitives=1 num_coefficients=1
+0.4808011884 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.08515727498 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.03265747705 1.0000000000
+contraction shell=P num_primitives=6 num_coefficients=1
+1063.147473 0.0028992230
+251.5650706 0.0232180600
+80.40855485 0.1068389919
+29.76819327 0.3001269061
+11.73683056 0.4754304274
+4.714237523 0.2782103017
+contraction shell=P num_primitives=3 num_coefficients=1
+17.7968037 -0.0189188930
+2.427269868 0.3778053478
+0.9682344554 0.6823788203
+contraction shell=P num_primitives=1 num_coefficients=1
+0.3705669416 1.0000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+37.71338472 0.0196729083
+10.69293118 0.1148992625
+3.672844699 0.3670860722
+1.35885903 0.6645022810
+contraction shell=D num_primitives=1 num_coefficients=1
+0.4921329525 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.1633052065 1.0000000000
+atom=V
+contraction shell=S num_primitives=8 num_coefficients=1
+232340.6506 0.0002444740
+34828.84117 0.0018954219
+7926.544869 0.0098534345
+2243.773305 0.0400118445
+730.5932294 0.1298629630
+262.3221963 0.3068957895
+101.704038 0.4344836383
+40.06478462 0.2237186908
+contraction shell=S num_primitives=4 num_coefficients=1
+255.2401497 -0.0242307145
+78.80464696 -0.1142003000
+12.34059895 0.5466175660
+5.174201922 0.5399776708
+contraction shell=S num_primitives=2 num_coefficients=1
+7.651389447 -0.3751925577
+1.26397599 1.1710048860
+contraction shell=S num_primitives=1 num_coefficients=1
+0.5386176172 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.09271929612 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.03499805518 1.0000000000
+contraction shell=P num_primitives=6 num_coefficients=1
+1184.236915 0.0028520015
+280.2307519 0.0229135210
+89.64362714 0.1059120127
+33.24241125 0.2992087855
+13.14451445 0.4760997522
+5.294853414 0.2783244050
+contraction shell=P num_primitives=3 num_coefficients=1
+20.17558685 -0.0193360436
+2.76058652 0.3805017430
+1.10089009 0.6800116991
+contraction shell=P num_primitives=1 num_coefficients=1
+0.4201331074 1.0000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+43.86113486 0.0193712082
+12.51602189 0.1150874709
+4.331385496 0.3682578989
+1.613885577 0.6618052130
+contraction shell=D num_primitives=1 num_coefficients=1
+0.5874957396 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.1951572301 1.0000000000
+atom=Cr
+contraction shell=S num_primitives=8 num_coefficients=1
+254477.807 0.0002429048
+38131.79705 0.0018843524
+8675.293061 0.0098009584
+2455.009985 0.0398250087
+799.1621779 0.1294054373
+286.9002149 0.3062900181
+111.2541323 0.4346283498
+43.86415264 0.2246956287
+contraction shell=S num_primitives=4 num_coefficients=1
+279.3266917 -0.0243633579
+86.27473238 -0.1151149539
+13.55575611 0.5509226628
+5.697811275 0.5361135469
+contraction shell=S num_primitives=2 num_coefficients=1
+8.563658262 -0.3712301769
+1.398829677 1.1681169460
+contraction shell=S num_primitives=1 num_coefficients=1
+0.5728817112 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.09009617132 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.03412588513 1.0000000000
+contraction shell=P num_primitives=6 num_coefficients=1
+1306.439886 0.0028292801
+309.2531144 0.0227766292
+98.99627396 0.1056456190
+36.75691645 0.2994994492
+14.56665708 0.4770624536
+5.873993743 0.2765423438
+contraction shell=P num_primitives=3 num_coefficients=1
+22.8909997 -0.0194121061
+3.085500182 0.3861887582
+1.213232912 0.6762390890
+contraction shell=P num_primitives=1 num_coefficients=1
+0.449316807 1.0000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+43.72007448 0.0220932593
+12.39124265 0.1280143877
+4.263944201 0.3865291028
+1.552522179 0.6410330144
+contraction shell=D num_primitives=1 num_coefficients=1
+0.5376192949 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.1649317307 1.0000000000
+atom=Mn
+contraction shell=S num_primitives=8 num_coefficients=1
+277185.0015 0.0002418655
+41550.76989 0.0018752946
+9455.970015 0.0097512595
+2676.520648 0.0396246642
+871.4668753 0.1288296214
+312.9830642 0.3052591758
+121.4445405 0.4346431672
+47.92259883 0.2263400216
+contraction shell=S num_primitives=4 num_coefficients=1
+303.6672316 -0.0245709141
+93.88140319 -0.1159363731
+14.87942121 0.5506944896
+6.286520075 0.5366603595
+contraction shell=S num_primitives=2 num_coefficients=1
+9.485859134 -0.3767154210
+1.569870616 1.1717588000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.6590321361 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1068629237 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.03926743543 1.0000000000
+contraction shell=P num_primitives=6 num_coefficients=1
+1444.797818 0.0027745622
+342.065512 0.0223976771
+109.5840089 0.1043445351
+40.74798817 0.2977077474
+16.18862657 0.4772528898
+6.548450596 0.2785381470
+contraction shell=P num_primitives=3 num_coefficients=1
+25.35708644 -0.0199847358
+3.483016878 0.3843357437
+1.385880091 0.6768530881
+contraction shell=P num_primitives=1 num_coefficients=1
+0.5255509489 1.0000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+56.56318912 0.0190854801
+16.27873471 0.1162330242
+5.696427391 0.3711986780
+2.141114794 0.6564462984
+contraction shell=D num_primitives=1 num_coefficients=1
+0.7829180194 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.2595231121 1.0000000000
+atom=Fe
+contraction shell=S num_primitives=8 num_coefficients=1
+300784.8464 0.0002410331
+45088.97056 0.0018687382
+10262.51632 0.0097155135
+2905.289729 0.0394799670
+946.1148714 0.1284216283
+339.8783289 0.3045786075
+131.9442559 0.4346555378
+52.11149408 0.2274238238
+contraction shell=S num_primitives=4 num_coefficients=1
+329.4883927 -0.0247166458
+101.9233274 -0.1166959982
+16.24046274 0.5522977944
+6.88406758 0.5353975204
+contraction shell=S num_primitives=2 num_coefficients=1
+10.47069378 -0.3774586977
+1.736003965 1.1722622910
+contraction shell=S num_primitives=1 num_coefficients=1
+0.7257728898 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.115955282 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.04196822775 1.0000000000
+contraction shell=P num_primitives=6 num_coefficients=1
+1585.395997 0.0027395642
+375.380065 0.0221674965
+120.318165 0.1036484034
+44.78874903 0.2970323067
+17.82927858 0.4777337438
+7.224715379 0.2787174988
+contraction shell=P num_primitives=3 num_coefficients=1
+28.14321976 -0.0202687424
+3.874324141 0.3860338154
+1.541075228 0.6753824729
+contraction shell=P num_primitives=1 num_coefficients=1
+0.5828561525 1.0000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+61.99667503 0.0194973340
+17.87373255 0.1192286810
+6.274478293 0.3762527479
+2.355233717 0.6499784308
+contraction shell=D num_primitives=1 num_coefficients=1
+0.854322399 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.2786925441 1.0000000000
+atom=Co
+contraction shell=S num_primitives=8 num_coefficients=1
+325817.0155 0.0002398354
+48839.63645 0.0018596633
+11114.93731 0.0096709153
+3146.160364 0.0393159718
+1024.437846 0.1279946149
+368.0250882 0.3039191049
+142.912292 0.4347331805
+56.48264921 0.2284823372
+contraction shell=S num_primitives=4 num_coefficients=1
+356.4029832 -0.0248446821
+110.3116522 -0.1173881479
+17.65963483 0.5538857308
+7.505903048 0.5341375801
+contraction shell=S num_primitives=2 num_coefficients=1
+11.50180718 -0.3779118726
+1.908199461 1.1725032130
+contraction shell=S num_primitives=1 num_coefficients=1
+0.7939669689 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1244444883 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.04444464538 1.0000000000
+contraction shell=P num_primitives=6 num_coefficients=1
+1731.136914 0.0027113690
+409.9175044 0.0219840107
+131.4564858 0.1031040788
+48.98743971 0.2965531289
+19.53707899 0.4781436098
+7.928728163 0.2786911284
+contraction shell=P num_primitives=3 num_coefficients=1
+31.07601758 -0.0205092959
+4.28351807 0.3874697446
+1.702292156 0.6742050642
+contraction shell=P num_primitives=1 num_coefficients=1
+0.642029086 1.0000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+68.14074524 0.0196973363
+19.68524102 0.1211187158
+6.932212883 0.3794464793
+2.602512569 0.6456460421
+contraction shell=D num_primitives=1 num_coefficients=1
+0.940168373 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.3038145779 1.0000000000
+atom=Ni
+contraction shell=S num_primitives=8 num_coefficients=1
+351535.7293 0.0002390012
+52695.80928 0.0018531441
+11992.46829 0.0096377483
+3394.577669 0.0391882956
+1105.359459 0.1276492018
+397.1467777 0.3033659496
+154.2754297 0.4347650706
+61.01872378 0.2293608492
+contraction shell=S num_primitives=4 num_coefficients=1
+384.4555974 -0.0249560572
+119.048792 -0.1180264609
+19.13701222 0.5554244348
+8.152671856 0.5329087040
+contraction shell=S num_primitives=2 num_coefficients=1
+12.57940864 -0.3780852353
+2.087086608 1.1725666800
+contraction shell=S num_primitives=1 num_coefficients=1
+0.8643256856 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1328316922 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.04684532773 1.0000000000
+contraction shell=P num_primitives=6 num_coefficients=1
+1883.090749 0.0026859082
+445.9515532 0.0218162153
+143.0843081 0.1026015413
+53.37292072 0.2961096120
+21.32191936 0.4785129591
+8.664356199 0.2786954155
+contraction shell=P num_primitives=3 num_coefficients=1
+34.14425521 -0.0207367023
+4.712245592 0.3886189664
+1.870923185 0.6732936700
+contraction shell=P num_primitives=1 num_coefficients=1
+0.7037001627 1.0000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+74.59160347 0.0198591423
+21.59063275 0.1227271845
+7.624614258 0.3820858311
+2.863220676 0.6419842552
+contraction shell=D num_primitives=1 num_coefficients=1
+1.031106339 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.3306076069 1.0000000000
+atom=Cu
+contraction shell=S num_primitives=8 num_coefficients=1
+377518.7992 0.0002387915
+56589.98431 0.0018515678
+12878.71171 0.0096297932
+3645.375214 0.0391615179
+1187.007294 0.1276025095
+426.464219 0.3034008839
+165.7066016 0.4347519283
+65.59894271 0.2293079503
+contraction shell=S num_primitives=4 num_coefficients=1
+414.4126581 -0.0249866525
+128.3205604 -0.1186119709
+20.62208975 0.5598271484
+8.782122604 0.5288643080
+contraction shell=S num_primitives=2 num_coefficients=1
+13.74137201 -0.3699327832
+2.243124683 1.1676087390
+contraction shell=S num_primitives=1 num_coefficients=1
+0.8937054908 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1083669953 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.03880617806 1.0000000000
+contraction shell=P num_primitives=6 num_coefficients=1
+2034.759669 0.0026776187
+481.9046811 0.0217785896
+154.6748296 0.1026336485
+57.74057697 0.2966548980
+23.09905281 0.4791122399
+9.388247859 0.2770928296
+contraction shell=P num_primitives=3 num_coefficients=1
+37.59617121 -0.0207301506
+5.124069081 0.3927002052
+2.011999609 0.6706714234
+contraction shell=P num_primitives=1 num_coefficients=1
+0.73860686 1.0000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+74.12946064 0.0222258533
+21.35984259 0.1340497188
+7.499524054 0.3966245361
+2.760139417 0.6247541952
+contraction shell=D num_primitives=1 num_coefficients=1
+0.9536206124 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.2842086252 1.0000000000
+atom=Zn
+contraction shell=S num_primitives=8 num_coefficients=1
+405924.3103 0.0002374973
+60846.95574 0.0018416121
+13847.34309 0.0095787628
+3919.615855 0.0389627190
+1276.359417 0.1270438301
+458.6725444 0.3024120860
+178.2872525 0.4348166313
+70.61219284 0.2308825526
+contraction shell=S num_primitives=4 num_coefficients=1
+443.8807795 -0.0251407026
+137.5587527 -0.1191579509
+22.26808348 0.5582569734
+9.521731061 0.5306464309
+contraction shell=S num_primitives=2 num_coefficients=1
+14.87411407 -0.3778888324
+2.464751761 1.1723226220
+contraction shell=S num_primitives=1 num_coefficients=1
+1.011327224 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1491985209 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.05144187298 1.0000000000
+contraction shell=P num_primitives=6 num_coefficients=1
+2205.350853 0.0026426514
+522.353007 0.0215327285
+167.7305554 0.1017808117
+62.67004537 0.2954594215
+25.10974946 0.4791532518
+10.22514268 0.2785518568
+contraction shell=P num_primitives=3 num_coefficients=1
+40.71344252 -0.0211061847
+5.62470907 0.3906075857
+2.227994912 0.6717858333
+contraction shell=P num_primitives=1 num_coefficients=1
+0.8335474169 1.0000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+88.55431531 0.0200564488
+25.72152556 0.1251061006
+9.127836762 0.3859255892
+3.431236406 0.6364548271
+contraction shell=D num_primitives=1 num_coefficients=1
+1.230892065 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.3903184511 1.0000000000
+atom=Ga
+contraction shell=S num_primitives=8 num_coefficients=1
+435548.6625 0.0002361681
+65289.58903 0.0018312381
+14858.78426 0.0095252796
+4205.973473 0.0387549681
+1369.641643 0.1264579740
+492.303489 0.3013763775
+191.4192323 0.4348957155
+75.84055867 0.2325329678
+contraction shell=S num_primitives=4 num_coefficients=1
+474.3081061 -0.0252908475
+147.1029756 -0.1196718926
+23.98259944 0.5564382635
+10.29823009 0.5326443769
+contraction shell=S num_primitives=2 num_coefficients=1
+16.05038143 -0.3870677413
+2.698846878 1.1774449220
+contraction shell=S num_primitives=1 num_coefficients=1
+1.142858874 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.2021765225 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.07198015203 1.0000000000
+contraction shell=P num_primitives=6 num_coefficients=1
+2432.017107 0.0025249345
+576.1204958 0.0206440589
+185.1158435 0.0982325341
+69.24657256 0.2890809418
+27.81810778 0.4771900291
+11.42022994 0.2892663293
+contraction shell=P num_primitives=3 num_coefficients=1
+42.81966153 -0.0228881167
+6.3885901 0.3738953627
+2.669899333 0.6823591755
+contraction shell=P num_primitives=1 num_coefficients=1
+1.078178383 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2279655937 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.06283623483 1.0000000000
+contraction shell=D num_primitives=5 num_coefficients=1
+103.9233183 0.0126579672
+30.37109439 0.0812894638
+10.8720781 0.2595175797
+4.154913795 0.4451532958
+1.534565914 0.4507420306
+contraction shell=D num_primitives=1 num_coefficients=1
+0.5111426383 1.0000000000
+atom=Ge
+contraction shell=S num_primitives=8 num_coefficients=1
+466115.0059 0.0002349913
+69875.42076 0.0018219971
+15903.27672 0.0094772339
+4501.823345 0.0385668468
+1466.057092 0.1259239094
+527.0784173 0.3004224821
+205.0039507 0.4349520711
+81.25159607 0.2340568458
+contraction shell=S num_primitives=4 num_coefficients=1
+505.7466128 -0.0254310169
+156.9659374 -0.1201534951
+25.76144818 0.5546757536
+11.10665469 0.5345727026
+contraction shell=S num_primitives=2 num_coefficients=1
+17.2720591 -0.3951048240
+2.943828905 1.1821014230
+contraction shell=S num_primitives=1 num_coefficients=1
+1.283916492 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.2587333744 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.09352491318 1.0000000000
+contraction shell=P num_primitives=6 num_coefficients=1
+2633.934624 0.0024749656
+624.0016163 0.0202755836
+200.585284 0.0968264085
+75.09708152 0.2866720430
+30.21438847 0.4767835559
+12.44008757 0.2928360818
+contraction shell=P num_primitives=3 num_coefficients=1
+45.981316 -0.0235365877
+6.994565442 0.3707818719
+2.968600133 0.6839264210
+contraction shell=P num_primitives=1 num_coefficients=1
+1.23209885 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2898161497 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.08556460645 1.0000000000
+contraction shell=D num_primitives=5 num_coefficients=1
+119.4488758 0.0116707352
+35.06291529 0.0767292968
+12.63692453 0.2514275250
+4.888867292 0.4442838562
+1.845319539 0.4553496465
+contraction shell=D num_primitives=1 num_coefficients=1
+0.6357115889 1.0000000000
+atom=As
+contraction shell=S num_primitives=8 num_coefficients=1
+498032.4216 0.0002337196
+74656.86874 0.0018122691
+16990.96 0.0094276425
+4809.620032 0.0383751474
+1566.288706 0.1253846314
+563.213605 0.2994697150
+219.1117998 0.4350226048
+86.86606103 0.2355826748
+contraction shell=S num_primitives=4 num_coefficients=1
+538.1951248 -0.0255615629
+167.1485022 -0.1206048265
+27.60551716 0.5529337235
+11.94785852 0.5364659564
+contraction shell=S num_primitives=2 num_coefficients=1
+18.53802313 -0.4028268070
+3.201898574 1.1866825680
+contraction shell=S num_primitives=1 num_coefficients=1
+1.435652208 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.318378052 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1162263219 1.0000000000
+contraction shell=P num_primitives=6 num_coefficients=1
+2678.942155 0.0026774443
+634.6176584 0.0218638850
+203.9396761 0.1036003166
+76.32389037 0.3004686085
+30.66412494 0.4805971553
+12.50505673 0.2692241493
+contraction shell=P num_primitives=4 num_coefficients=1
+49.25622955 -0.0192149718
+7.727489147 0.2757095725
+3.541049348 0.4785602835
+1.69855855 0.3372578496
+contraction shell=P num_primitives=1 num_coefficients=1
+0.7684807104 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.3005082326 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.09819063944 1.0000000000
+contraction shell=D num_primitives=5 num_coefficients=1
+135.332893 0.0109284764
+39.86021274 0.0732689751
+14.44642836 0.2451781687
+5.643290036 0.4436633422
+2.166818862 0.4586590727
+contraction shell=D num_primitives=1 num_coefficients=1
+0.7651497057 1.0000000000
+atom=Se
+contraction shell=S num_primitives=8 num_coefficients=1
+531071.667 0.0002325001
+79603.04412 0.0018030311
+18115.84424 0.0093806002
+5127.892319 0.0381937449
+1669.913084 0.1248751051
+600.5753453 0.2985640773
+233.7002125 0.4350837479
+92.67244393 0.2370347635
+contraction shell=S num_primitives=4 num_coefficients=1
+571.5751367 -0.0256898187
+177.6368638 -0.1210287608
+29.51776705 0.5511202387
+12.82439979 0.5384172580
+contraction shell=S num_primitives=2 num_coefficients=1
+19.84823584 -0.4107035811
+3.474401849 1.1913902900
+contraction shell=S num_primitives=1 num_coefficients=1
+1.598891085 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.3833346939 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1404974246 1.0000000000
+contraction shell=P num_primitives=6 num_coefficients=1
+2815.350057 0.0027376046
+666.925583 0.0223492401
+214.3421319 0.1057525365
+80.24668794 0.3048398715
+32.25108129 0.4818408679
+13.10643256 0.2614162966
+contraction shell=P num_primitives=4 num_coefficients=1
+53.36610852 -0.0189823502
+8.18277772 0.2875936061
+3.623994567 0.5084085630
+1.63415914 0.3020251892
+contraction shell=P num_primitives=1 num_coefficients=1
+0.5841832023 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2396626928 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.0887851348 1.0000000000
+contraction shell=D num_primitives=5 num_coefficients=1
+151.8291028 0.0103293113
+44.83999252 0.0704445565
+16.32899951 0.2400042312
+6.430505761 0.4431443907
+2.504802517 0.4613000704
+contraction shell=D num_primitives=1 num_coefficients=1
+0.9027114843 1.0000000000
+atom=Br
+contraction shell=S num_primitives=8 num_coefficients=1
+565073.2526 0.0002313997
+84701.72318 0.0017944809
+19276.2719 0.0093366328
+5456.428458 0.0380221412
+1776.95035 0.1243860819
+639.1939828 0.2976826547
+248.7882396 0.4351247869
+98.67830549 0.2384543263
+contraction shell=S num_primitives=4 num_coefficients=1
+606.0782457 -0.0258029981
+188.4559848 -0.1214377016
+31.49714451 0.5492715414
+13.73600832 0.5403867432
+contraction shell=S num_primitives=2 num_coefficients=1
+21.20321277 -0.4189765707
+3.761642018 1.1962922020
+contraction shell=S num_primitives=1 num_coefficients=1
+1.773593396 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.4519741366 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.166133771 1.0000000000
+contraction shell=P num_primitives=6 num_coefficients=1
+3019.695572 0.0026978967
+715.3548113 0.0220611770
+229.9832875 0.1046886297
+86.16784462 0.3030971016
+34.6678708 0.4819318191
+14.11387031 0.2637288336
+contraction shell=P num_primitives=4 num_coefficients=1
+57.08565308 -0.0192881876
+8.819384584 0.2886445949
+3.934030287 0.5105806350
+1.799883038 0.2962687446
+contraction shell=P num_primitives=1 num_coefficients=1
+0.6689941051 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2713623823 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.1008379024 1.0000000000
+contraction shell=D num_primitives=5 num_coefficients=1
+168.8537026 0.0098428277
+49.97794992 0.0681283771
+18.27491334 0.2357380148
+7.245569463 0.4427795439
+2.856231503 0.4633455553
+contraction shell=D num_primitives=1 num_coefficients=1
+1.045962114 1.0000000000
+atom=Kr
+contraction shell=S num_primitives=8 num_coefficients=1
+600250.9757 0.0002303108
+89976.65078 0.0017860014
+20476.81422 0.0092932540
+5796.155408 0.0378544410
+1887.59132 0.1239090979
+679.1145852 0.2968208360
+264.3824451 0.4351681987
+104.8836857 0.2398406273
+contraction shell=S num_primitives=4 num_coefficients=1
+641.4737076 -0.0259177186
+199.5752482 -0.1218214277
+33.54546295 0.5473599809
+14.68395514 0.5424083787
+contraction shell=S num_primitives=2 num_coefficients=1
+22.60310186 -0.4282069390
+4.065068299 1.2016130960
+contraction shell=S num_primitives=1 num_coefficients=1
+1.961102706 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.5246514798 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1933239951 1.0000000000
+contraction shell=P num_primitives=6 num_coefficients=1
+3232.958961 0.0026585748
+765.9644269 0.0217712648
+246.3394081 0.1036024971
+92.36528304 0.3012653197
+37.19950955 0.4819851635
+15.17216653 0.2661942546
+contraction shell=P num_primitives=4 num_coefficients=1
+60.9313217 -0.0195749698
+9.479260065 0.2898996173
+4.256468633 0.5131304268
+1.972931376 0.2901210161
+contraction shell=P num_primitives=1 num_coefficients=1
+0.7633710872 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.3094362553 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.1156970446 1.0000000000
+contraction shell=D num_primitives=5 num_coefficients=1
+186.417609 0.0094413920
+55.27412434 0.0662105646
+20.28321912 0.2322115621
+8.088453698 0.4425368578
+3.221403385 0.4648638045
+contraction shell=D num_primitives=1 num_coefficients=1
+1.19521701 1.0000000000
+atom=Rb
+contraction shell=S num_primitives=2 num_coefficients=1
+7.474461804 1.7106146110
+6.729618059 -2.7010364460
+contraction shell=S num_primitives=1 num_coefficients=1
+2.781664 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.5345217515 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.2236879303 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.03241040705 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.01417104742 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+5.672064319 0.0525368698
+3.332018396 -0.2018427940
+0.8015005491 0.4674711930
+0.3630222023 0.6406638595
+contraction shell=P num_primitives=1 num_coefficients=1
+0.1573392439 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.04 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.016 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.2590786696 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.04250743804 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.01190927684 1.0000000000
+atom=Sr
+contraction shell=S num_primitives=2 num_coefficients=1
+10.0 -1.1848404960
+8.5 2.1720592280
+contraction shell=S num_primitives=1 num_coefficients=1
+3.005704886 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.6116128765 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.2739384122 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.05743556456 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.02333819867 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+7.588307787 0.0336810436
+3.673130739 -0.2049237031
+0.9049661845 0.4913608597
+0.4331025641 0.6201204803
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2022216896 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.072 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.025 1.0000000000
+contraction shell=D num_primitives=3 num_coefficients=1
+3.618081 -0.0208510059
+0.996656 0.3004868732
+0.390735 0.7742753212
+contraction shell=D num_primitives=1 num_coefficients=1
+0.12277 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.036655 1.0000000000
+atom=Y
+contraction shell=S num_primitives=2 num_coefficients=1
+10.0 -1.0384252280
+8.5 2.0279787220
+contraction shell=S num_primitives=1 num_coefficients=1
+3.365390545 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.6886067939 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.3119150294 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.07032604257 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.02773385933 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+8.055409362 0.0370452675
+4.016345875 -0.2123617808
+1.02329154 0.4980977153
+0.4984356164 0.6166781935
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2330766184 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.08 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.027 1.0000000000
+contraction shell=D num_primitives=3 num_coefficients=1
+3.903083306 -0.0177028307
+1.13632343 0.3457949947
+0.4561704388 0.7317964493
+contraction shell=D num_primitives=1 num_coefficients=1
+0.1747095075 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.06197879664 1.0000000000
+atom=Zr
+contraction shell=S num_primitives=2 num_coefficients=1
+11.0 -1.2721917990
+9.5 2.2605685150
+contraction shell=S num_primitives=1 num_coefficients=1
+3.638366776 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.768220267 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.3403682404 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.07526129808 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.0301314047 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+8.606630554 0.0424669011
+4.440097996 -0.2226938137
+1.128102695 0.5167410683
+0.5434607631 0.6022871253
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2502240605 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.085 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.029 1.0000000000
+contraction shell=D num_primitives=3 num_coefficients=1
+4.556795779 -0.0166279255
+1.29049398 0.3555819111
+0.5164698722 0.7231156938
+contraction shell=D num_primitives=1 num_coefficients=1
+0.1934979779 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.06730980997 1.0000000000
+atom=Nb
+contraction shell=S num_primitives=2 num_coefficients=1
+12.0 -1.4879777370
+10.5 2.4756156220
+contraction shell=S num_primitives=1 num_coefficients=1
+3.927606285 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.8597654326 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.390740875 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.08638725988 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.03290620033 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+9.205628565 0.0476946738
+4.867963213 -0.2343873000
+1.244215579 0.5292589459
+0.6039059031 0.5932483841
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2796767555 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.09 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.03 1.0000000000
+contraction shell=D num_primitives=3 num_coefficients=1
+4.617097587 -0.0229688909
+1.566343848 0.3447464798
+0.6695242583 0.7275446499
+contraction shell=D num_primitives=1 num_coefficients=1
+0.2714094687 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.1005442659 1.0000000000
+atom=Mo
+contraction shell=S num_primitives=2 num_coefficients=1
+14.0 -2.0770233730
+12.5 3.0616178400
+contraction shell=S num_primitives=1 num_coefficients=1
+4.09215018 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.9705360259 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.4421762017 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.09291502433 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.03501631439 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+8.893111792 0.0830010811
+5.468911227 -0.2792276027
+1.354847301 0.5492197283
+0.6549486746 0.5789213489
+contraction shell=P num_primitives=1 num_coefficients=1
+0.3042819747 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.1 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.033 1.0000000000
+contraction shell=D num_primitives=3 num_coefficients=1
+5.00444455 -0.0359172346
+1.773682332 0.3487122377
+0.769505917 0.7275979769
+contraction shell=D num_primitives=1 num_coefficients=1
+0.3153087894 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.1175437439 1.0000000000
+atom=Tc
+contraction shell=S num_primitives=2 num_coefficients=1
+15.0 -1.4299187870
+12.91058169 2.4152852860
+contraction shell=S num_primitives=1 num_coefficients=1
+4.449332116 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+1.054840945 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.4790967725 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.09912416299 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.03688279979 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+10.02713801 0.0705872683
+5.846341974 -0.2709608962
+1.496834549 0.5481792483
+0.7293463207 0.5824508330
+contraction shell=P num_primitives=1 num_coefficients=1
+0.3391355888 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.11 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.035 1.0000000000
+contraction shell=D num_primitives=3 num_coefficients=1
+5.09062687 -0.0531431781
+2.015617851 0.3514778810
+0.8811388724 0.7333737058
+contraction shell=D num_primitives=1 num_coefficients=1
+0.3642709483 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.136784023 1.0000000000
+atom=Ru
+contraction shell=S num_primitives=2 num_coefficients=1
+16.0 -1.5737642270
+13.91058169 2.5589062340
+contraction shell=S num_primitives=1 num_coefficients=1
+4.796797141 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+1.155542559 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.5245574118 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1073457265 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.03943276019 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+11.18720867 0.0614129072
+6.247768873 -0.2622856795
+1.627947286 0.5523344774
+0.7932649354 0.5793783366
+contraction shell=P num_primitives=1 num_coefficients=1
+0.3670727686 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.115 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.037 1.0000000000
+contraction shell=D num_primitives=3 num_coefficients=1
+5.734184662 -0.0576319014
+2.248368629 0.3562966266
+0.9837697836 0.7306439888
+contraction shell=D num_primitives=1 num_coefficients=1
+0.4037944558 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.1497861817 1.0000000000
+atom=Rh
+contraction shell=S num_primitives=2 num_coefficients=1
+17.0 -0.9383793178
+13.91058169 1.9247376670
+contraction shell=S num_primitives=1 num_coefficients=1
+5.248126529 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+1.226257593 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.5393021635 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1013073038 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.03712413901 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+11.76710363 0.0676935579
+6.748513308 -0.2700677651
+1.750267983 0.5577445140
+0.8432116613 0.5760017292
+contraction shell=P num_primitives=1 num_coefficients=1
+0.3829554476 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.115 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.037 1.0000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+19.85783014 0.0068204289
+10.06137814 -0.0223899551
+2.261954648 0.3862288429
+0.9709884504 0.6853960058
+contraction shell=D num_primitives=1 num_coefficients=1
+0.383911953 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.135370269 1.0000000000
+atom=Pd
+contraction shell=S num_primitives=2 num_coefficients=1
+18.0 -0.8955869476
+14.66213431 1.8822771920
+contraction shell=S num_primitives=1 num_coefficients=1
+5.638870927 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+1.319895325 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.5781790851 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1035216624 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.03754844267 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+12.5528993 0.0701895210
+7.244449638 -0.2749252830
+1.890594108 0.5623121361
+0.9073716876 0.5736959368
+contraction shell=P num_primitives=1 num_coefficients=1
+0.4087721081 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.115 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.037 1.0000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+22.35745758 0.0063445038
+10.68252638 -0.0225156052
+2.485823255 0.3884291799
+1.07353339 0.6828976806
+contraction shell=D num_primitives=1 num_coefficients=1
+0.4261384285 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.1504635538 1.0000000000
+atom=Ag
+contraction shell=S num_primitives=2 num_coefficients=1
+19.0 -0.8594685539
+15.42819993 1.8465563920
+contraction shell=S num_primitives=1 num_coefficients=1
+6.055350727 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+1.416236894 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.6175863586 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1047419743 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.03768510626 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+13.18818018 0.0769824523
+7.795278914 -0.2845084432
+2.035157191 0.5653800140
+0.9809391484 0.5721355592
+contraction shell=P num_primitives=1 num_coefficients=1
+0.4445117996 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.13 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.0412 1.0000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+25.78439735 0.0057358549
+11.39663675 -0.0208937342
+2.734558136 0.3879491828
+1.18735836 0.6824815392
+contraction shell=D num_primitives=1 num_coefficients=1
+0.4731691057 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.1674601799 1.0000000000
+atom=Cd
+contraction shell=S num_primitives=2 num_coefficients=1
+20.0 -0.8705577274
+16.30905166 1.8579264270
+contraction shell=S num_primitives=1 num_coefficients=1
+6.45127099 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+1.535004739 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.6898363152 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1347572098 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.04741687453 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+14.0006814 0.0799187426
+8.309401987 -0.2930121128
+2.202005812 0.5671292057
+1.077924614 0.5729057138
+contraction shell=P num_primitives=1 num_coefficients=1
+0.5011187985 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.16 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.0516 1.0000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+30.38078979 0.0049711478
+11.47455158 -0.0217084209
+3.05073949 0.3812816358
+1.362202852 0.6859170380
+contraction shell=D num_primitives=1 num_coefficients=1
+0.5639940989 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.2091668654 1.0000000000
+atom=In
+contraction shell=S num_primitives=4 num_coefficients=1
+847.7927677 0.0001991321
+72.04105482 0.0037802215
+41.06131652 -0.0137092240
+12.40760971 1.0083428730
+contraction shell=S num_primitives=2 num_coefficients=1
+11.64031694 0.7070046123
+6.369564273 0.3069946789
+contraction shell=S num_primitives=1 num_coefficients=1
+1.706323635 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.7866696794 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1696519687 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.06207485867 1.0000000000
+contraction shell=P num_primitives=3 num_coefficients=1
+268.2813668 0.0005395929
+14.78155378 0.3636176017
+8.804147619 -1.3245278980
+contraction shell=P num_primitives=3 num_coefficients=1
+2.371727723 0.4522459931
+1.192706542 0.4560012447
+0.5835281204 0.1590437855
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2328096831 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.08867406521 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.03359882827 1.0000000000
+contraction shell=D num_primitives=6 num_coefficients=1
+94.28257506 0.0004827846
+19.7164311 0.7069200083
+19.60010682 -0.7151524082
+3.564318674 0.2343275366
+1.70178014 0.4659361930
+0.7645661553 0.4248916295
+contraction shell=D num_primitives=1 num_coefficients=1
+0.3182676558 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.1 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+0.26415991 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+0.9 1.0000000000
+atom=Sn
+contraction shell=S num_primitives=4 num_coefficients=1
+1577.071593 0.0003218418
+235.2660108 0.0015384537
+38.20633065 -0.0073758372
+13.09703177 1.0055154360
+contraction shell=S num_primitives=2 num_coefficients=1
+11.68149276 0.6809914776
+5.964760436 0.3371650694
+contraction shell=S num_primitives=1 num_coefficients=1
+1.889107074 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.8851408063 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.2050010515 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.07674855103 1.0000000000
+contraction shell=P num_primitives=3 num_coefficients=1
+221.557675 0.0012361684
+21.08402143 0.1235490030
+8.760013852 -1.0950328660
+contraction shell=P num_primitives=3 num_coefficients=1
+2.591290972 0.4264068280
+1.342680116 0.4614253825
+0.6773273583 0.1761114632
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2941875675 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.1186376205 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.04621575063 1.0000000000
+contraction shell=D num_primitives=6 num_coefficients=1
+108.3321015 0.0005147458
+23.70393663 0.0597673518
+22.33984391 -0.0651463262
+4.087483403 0.2165527796
+1.973735415 0.4676504978
+0.9015825769 0.4339425891
+contraction shell=D num_primitives=1 num_coefficients=1
+0.3823715365 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.12 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+0.293928485 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+1.0 1.0000000000
+atom=Sb
+contraction shell=S num_primitives=4 num_coefficients=1
+1612.419993 0.0007372999
+238.844521 0.0034600911
+23.99811881 -0.1275872305
+15.19312421 1.1209761020
+contraction shell=S num_primitives=2 num_coefficients=1
+11.73640973 0.5460510418
+6.525977479 0.4696473608
+contraction shell=S num_primitives=1 num_coefficients=1
+2.024745187 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.9711341859 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.24254334 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.09220660818 1.0000000000
+contraction shell=P num_primitives=3 num_coefficients=1
+215.6839335 0.0012613512
+16.37447909 0.3569688834
+9.721628335 -1.3183963640
+contraction shell=P num_primitives=3 num_coefficients=1
+2.798264315 0.4267498157
+1.471104503 0.4624851697
+0.751653853 0.1717797266
+contraction shell=P num_primitives=1 num_coefficients=1
+0.3316869985 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.1393160637 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.05639930753 1.0000000000
+contraction shell=D num_primitives=6 num_coefficients=1
+115.9031225 0.0005820965
+30.47423372 0.0065077946
+18.22841824 -0.0115713039
+4.329145665 0.2228904538
+2.12948185 0.4682584302
+0.9968263669 0.4221557564
+contraction shell=D num_primitives=1 num_coefficients=1
+0.4334723986 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.14 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+0.32369706 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+1.1 1.0000000000
+atom=Te
+contraction shell=S num_primitives=5 num_coefficients=1
+6213.200165 0.0001923680
+920.8964002 0.0013199349
+199.2804271 0.0040102177
+24.7742331 -0.0661328816
+14.83819917 1.0611959990
+contraction shell=S num_primitives=2 num_coefficients=1
+12.27876195 0.6939918986
+6.380784553 0.3228749242
+contraction shell=S num_primitives=1 num_coefficients=1
+2.222840521 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+1.077604344 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.2813664902 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1078157334 1.0000000000
+contraction shell=P num_primitives=3 num_coefficients=1
+204.2940085 0.0018228731
+18.20875936 0.2705010305
+9.92110243 -1.2341664050
+contraction shell=P num_primitives=3 num_coefficients=1
+3.144152868 0.3724115709
+1.722088403 0.4781095923
+0.8909894571 0.2078652439
+contraction shell=P num_primitives=1 num_coefficients=1
+0.3980471957 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.1653878524 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.06508269559 1.0000000000
+contraction shell=D num_primitives=6 num_coefficients=1
+121.5105525 0.0006945614
+32.9687944 0.0067619716
+19.24986245 -0.0097285571
+4.719840725 0.2205408478
+2.342806142 0.4701403007
+1.113537941 0.4184078361
+contraction shell=D num_primitives=1 num_coefficients=1
+0.4920006151 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.16 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+0.38255757 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+1.85 1.0000000000
+atom=I
+contraction shell=S num_primitives=5 num_coefficients=1
+5899.579153 0.0002610056
+898.5423877 0.0016697400
+200.3723791 0.0046223298
+31.41805384 -0.0425342684
+15.64598784 1.0368318420
+contraction shell=S num_primitives=2 num_coefficients=1
+11.81574186 0.6510798928
+6.461445829 0.3642365936
+contraction shell=S num_primitives=1 num_coefficients=1
+2.383806758 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+1.171208966 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.3211587576 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1238791936 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+12.9843169 -0.0386816591
+3.619950301 0.3065970959
+2.023227309 0.5169312450
+1.036749056 0.2505722415
+contraction shell=P num_primitives=3 num_coefficients=1
+197.3003055 0.0031927742
+20.06141135 0.2856760153
+9.763146048 -1.2328204990
+contraction shell=P num_primitives=1 num_coefficients=1
+0.45937816 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.1911653293 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.07487881302 1.0000000000
+contraction shell=D num_primitives=6 num_coefficients=1
+119.1267175 0.0008836387
+33.40424013 0.0073152611
+17.8059182 -0.0110279962
+4.899051035 0.2425357632
+2.451675311 0.4726529041
+1.182069343 0.3934356931
+contraction shell=D num_primitives=1 num_coefficients=1
+0.5292311007 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.17 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+0.44141808 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+2.18 1.0000000000
+atom=Xe
+contraction shell=S num_primitives=5 num_coefficients=1
+6420.248166 0.0005803744
+983.5453066 0.0037590265
+219.4388136 0.0106482437
+23.01258781 -0.3399766589
+18.04832449 1.3305328820
+contraction shell=S num_primitives=2 num_coefficients=1
+11.75255016 0.6426392401
+6.23909172 0.3743679621
+contraction shell=S num_primitives=1 num_coefficients=1
+2.625721132 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+1.290504294 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.3620418506 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1406988809 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+13.96068383 -0.0377633548
+4.09289471 0.2717857050
+2.254681546 0.5382425559
+1.154659618 0.2635338256
+contraction shell=P num_primitives=3 num_coefficients=1
+193.8143255 0.0040702353
+21.72522809 0.2448817434
+9.889160564 -1.1935854570
+contraction shell=P num_primitives=1 num_coefficients=1
+0.5232192313 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.219455698 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.08615899684 1.0000000000
+contraction shell=D num_primitives=6 num_coefficients=1
+135.6030004 0.0008766391
+38.72706269 0.0065204534
+15.37732809 -0.0099344899
+5.260253769 0.2450969609
+2.659062742 0.4757695225
+1.293820512 0.3857760473
+contraction shell=D num_primitives=1 num_coefficients=1
+0.5805083014 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.18 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+0.49652793 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+2.5 1.0000000000
+atom=Cs
+contraction shell=S num_primitives=3 num_coefficients=1
+5.877811344 0.2532294621
+4.363153829 -0.6819588198
+1.804847516 1.3770221240
+contraction shell=S num_primitives=1 num_coefficients=1
+0.3748523714 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1638485878 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.02723046205 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.01199153321 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+4.275185615 0.0454150689
+1.965666336 -0.2485141952
+0.4768919521 0.5528590081
+0.2152974959 0.5782637465
+contraction shell=P num_primitives=1 num_coefficients=1
+0.0914508503 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.01759207847 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.2794147155 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.06241980974 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.01598787016 1.0000000000
+atom=Ba
+contraction shell=S num_primitives=2 num_coefficients=1
+6.0 -1.3541492380
+4.982208223 2.3335596780
+contraction shell=S num_primitives=1 num_coefficients=1
+2.145194391 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.414861741 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1921475702 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.04846589034 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.02013829895 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+5.5 -0.7557615693
+4.901793834 1.1484911920
+2.614268506 -0.7799032232
+0.4790339498 1.1653421900
+contraction shell=P num_primitives=1 num_coefficients=1
+0.1941513875 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.03491762203 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.01632006567 1.0000000000
+contraction shell=D num_primitives=3 num_coefficients=1
+0.966315 -2.3704711670
+0.893828 2.4703611330
+0.273195 0.8399107888
+contraction shell=D num_primitives=1 num_coefficients=1
+0.103891 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.035578 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+0.6576 1.0000000000
+atom=La
+contraction shell=S num_primitives=2 num_coefficients=1
+5.087399 -1.0479303430
+4.270978 2.0356668810
+contraction shell=S num_primitives=1 num_coefficients=1
+2.182365605 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.4896653378 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.2330167535 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.05571952305 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.02285470881 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+6.0 -0.0332796859
+3.680819162 0.4284807406
+2.326546208 -1.0389154470
+0.6434262963 1.3382857900
+contraction shell=P num_primitives=1 num_coefficients=1
+0.3358428196 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.1651905192 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.0354 1.0000000000
+contraction shell=D num_primitives=3 num_coefficients=1
+1.267528802 -0.3307279351
+0.8939534028 0.4732395193
+0.3309576734 0.8396218524
+contraction shell=D num_primitives=1 num_coefficients=1
+0.134613775 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.05144162984 1.0000000000
+atom=Hf
+contraction shell=S num_primitives=4 num_coefficients=1
+24.0 1.7983267380
+16.0 -32.5552184100
+14.4 39.9993612600
+10.30450467 -8.4530085030
+contraction shell=S num_primitives=1 num_coefficients=1
+3.842651082 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.9329602905 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.4261532094 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.0933665602 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.03553289514 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+17.0 -0.0706222768
+11.7380721 0.2361945504
+4.920396716 -0.6575695888
+1.125172614 1.2120857930
+contraction shell=P num_primitives=1 num_coefficients=1
+0.5422011406 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2565944788 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.065 1.0000000000
+contraction shell=D num_primitives=3 num_coefficients=1
+3.982062323 -0.0775724507
+1.307798777 0.3364388824
+0.532723103 0.7581507287
+contraction shell=D num_primitives=1 num_coefficients=1
+0.2056495449 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.07309985879 1.0000000000
+atom=Ta
+contraction shell=S num_primitives=4 num_coefficients=1
+24.47365094 2.2386323920
+18.72137255 -8.1183993930
+11.5 37.0432560800
+10.35 -30.6331089600
+contraction shell=S num_primitives=1 num_coefficients=1
+3.843618009 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+1.020226602 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.4677478187 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1032318667 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.0386744612 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+17.0 -0.0771704058
+12.00818654 0.2448500498
+5.027876058 -0.6757474914
+1.193712418 1.2268252800
+contraction shell=P num_primitives=1 num_coefficients=1
+0.5788970705 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.272251988 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.065 1.0000000000
+contraction shell=D num_primitives=3 num_coefficients=1
+3.973879628 -0.0943566000
+1.452888481 0.3316520432
+0.6104290854 0.7677130412
+contraction shell=D num_primitives=1 num_coefficients=1
+0.2421627651 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.08790931834 1.0000000000
+atom=W
+contraction shell=S num_primitives=3 num_coefficients=1
+30.0 1.1087519450
+27.0 -1.6054504410
+13.07804568 1.4681670490
+contraction shell=S num_primitives=1 num_coefficients=1
+4.810044972 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.9849780426 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.4491048534 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1144835292 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.04172042196 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+17.0 -0.0915365248
+12.43197343 0.2639678451
+5.158621766 -0.7116151540
+1.280145481 1.2480085240
+contraction shell=P num_primitives=1 num_coefficients=1
+0.628567909 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2938042355 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.065 1.0000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+7.406473732 0.0625854177
+5.90262686 -0.1271042649
+1.298475675 0.3967305737
+0.5715350854 0.6857074962
+contraction shell=D num_primitives=1 num_coefficients=1
+0.2384552661 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.09114426733 1.0000000000
+atom=Re
+contraction shell=S num_primitives=3 num_coefficients=1
+30.0 0.9973027957
+27.0 -1.4589639640
+13.07804568 1.4348422080
+contraction shell=S num_primitives=1 num_coefficients=1
+5.035271286 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+1.048270644 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.4770877341 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1222585725 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.04400740061 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+18.0 -0.0654422410
+12.31860625 0.2426593672
+5.37192345 -0.7127910950
+1.350664675 1.2524914710
+contraction shell=P num_primitives=1 num_coefficients=1
+0.6621281681 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.3107138519 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.07 1.0000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+7.735287767 0.0616881430
+6.094944361 -0.1303015252
+1.38711055 0.4061349964
+0.6232402785 0.6762765945
+contraction shell=D num_primitives=1 num_coefficients=1
+0.2651732855 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.1032109685 1.0000000000
+atom=Os
+contraction shell=S num_primitives=3 num_coefficients=1
+30.0 0.9881517203
+27.0 -1.4700619920
+13.52473001 1.4560441450
+contraction shell=S num_primitives=1 num_coefficients=1
+5.240288347 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+1.130666125 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.5168996692 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1322295354 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.0472203188 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+15.5 0.3696785165
+14.0 -0.5355179505
+5.545829042 0.6871857810
+1.413950221 -1.2522275440
+contraction shell=P num_primitives=1 num_coefficients=1
+0.6813668676 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.3091145265 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.052 1.0000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+8.294505949 0.0525688853
+6.306039743 -0.1241172847
+1.489010911 0.4162938627
+0.6731539061 0.6676861931
+contraction shell=D num_primitives=1 num_coefficients=1
+0.2859080522 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.1105801205 1.0000000000
+atom=Ir
+contraction shell=S num_primitives=3 num_coefficients=1
+30.0 0.9616390283
+27.0 -1.4589919580
+13.96197391 1.4725632750
+contraction shell=S num_primitives=1 num_coefficients=1
+5.39569778 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+1.214912872 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.5588574376 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1409797431 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.05002192499 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+15.90266414 -0.3696129600
+14.4158307 0.5328002574
+5.759760899 -0.6875844228
+1.500891311 1.2595095550
+contraction shell=P num_primitives=1 num_coefficients=1
+0.7234803596 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.3278598033 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.056 1.0000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+8.63216925 0.0580379198
+6.58981923 -0.1340826234
+1.580837966 0.4261153634
+0.718278349 0.6598797561
+contraction shell=D num_primitives=1 num_coefficients=1
+0.30571852 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.1182707188 1.0000000000
+atom=Pt
+contraction shell=S num_primitives=3 num_coefficients=1
+30.0 0.9054938286
+27.0 -1.4084167450
+14.40831856 1.4796209020
+contraction shell=S num_primitives=1 num_coefficients=1
+5.533578801 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+1.298643822 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.5875939311 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1384558726 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.04920445989 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+15.5 -0.3478541841
+14.0 0.5294237528
+6.116121234 -0.6889598465
+1.571558638 1.2534233820
+contraction shell=P num_primitives=1 num_coefficients=1
+0.7513251078 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.3330646681 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.057 1.0000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+8.320793761 0.1635155572
+7.420722652 -0.2345009785
+1.657041064 0.4367423536
+0.7394356996 0.6506097943
+contraction shell=D num_primitives=1 num_coefficients=1
+0.3051085601 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.1135040527 1.0000000000
+atom=Au
+contraction shell=S num_primitives=3 num_coefficients=1
+30.0 0.7878815861
+27.0 -1.2632352720
+14.74682433 1.4544194340
+contraction shell=S num_primitives=1 num_coefficients=1
+5.601724894 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+1.387416244 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.6292303196 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1402751761 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.04937941376 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+15.5 0.3283807140
+14.0 -0.5168081731
+6.42273682 0.6886210803
+1.659560168 -1.2538261790
+contraction shell=P num_primitives=1 num_coefficients=1
+0.7940291399 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.351251554 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.045 1.0000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+9.552409866 0.0556208267
+7.269888694 -0.1298067767
+1.774649679 0.4398380516
+0.7996054106 0.6483375307
+contraction shell=D num_primitives=1 num_coefficients=1
+0.3325227937 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.1244513311 1.0000000000
+atom=Hg
+contraction shell=S num_primitives=3 num_coefficients=1
+48.01378699 0.0289798219
+21.23987509 -0.8656835518
+15.87610088 1.8193112090
+contraction shell=S num_primitives=1 num_coefficients=1
+5.518053182 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+1.509914548 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.7068348216 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1626626558 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.05696058911 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+17.5 -0.2060509578
+15.25259485 0.3652916201
+6.440471517 -0.7215344055
+1.818015992 1.2955770590
+contraction shell=P num_primitives=1 num_coefficients=1
+0.900679818 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.4130454012 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.1184570265 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.03608761935 1.0000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+10.0281977 0.0565424472
+7.592066149 -0.1342297360
+1.914425612 0.4413812283
+0.886415521 0.6453713071
+contraction shell=D num_primitives=1 num_coefficients=1
+0.3815423532 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.1488074009 1.0000000000
+atom=Tl
+contraction shell=S num_primitives=4 num_coefficients=1
+729.6503815 0.0006142718
+46.66554871 0.0271550952
+20.97044873 -0.8995204904
+14.14958868 1.8330747970
+contraction shell=S num_primitives=2 num_coefficients=1
+20.73013428 -0.0775732710
+6.152763131 1.0585195430
+contraction shell=S num_primitives=1 num_coefficients=1
+1.575732448 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.7498016946 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1953681619 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.0708787673 1.0000000000
+contraction shell=P num_primitives=3 num_coefficients=1
+15.38385262 2.0084242420
+14.81492954 -2.3709837420
+6.726125366 1.3159389280
+contraction shell=P num_primitives=3 num_coefficients=1
+1.962618215 0.4740914507
+1.033185785 0.4309501158
+0.53837446 0.1538728384
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2444661168 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.09078537726 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.0334013215 1.0000000000
+contraction shell=D num_primitives=6 num_coefficients=1
+57.60681993 0.0002503588
+9.736886667 0.0381375716
+6.925620168 -0.1090251232
+2.139623073 0.3040248906
+1.083618711 0.4636351316
+0.5235629821 0.3700255523
+contraction shell=D num_primitives=1 num_coefficients=1
+0.2384230938 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.095 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+0.28435 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+0.95 1.0000000000
+atom=Pb
+contraction shell=S num_primitives=4 num_coefficients=1
+591.6112437 0.0010793044
+46.75723256 0.0277853403
+20.7464627 -1.0426004420
+14.61079642 1.9756678240
+contraction shell=S num_primitives=2 num_coefficients=1
+20.22263761 -0.0913815030
+6.476732487 1.0709890840
+contraction shell=S num_primitives=1 num_coefficients=1
+1.660060093 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.80431655 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.2262703902 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.08401453067 1.0000000000
+contraction shell=P num_primitives=3 num_coefficients=1
+15.18910212 2.1791721890
+14.69314442 -2.5501345300
+6.870589005 1.3253942260
+contraction shell=P num_primitives=3 num_coefficients=1
+2.202142612 0.4021965022
+1.220912512 0.4608490467
+0.6336755981 0.1937891348
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2820283706 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.1133337567 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.04394870743 1.0000000000
+contraction shell=D num_primitives=6 num_coefficients=1
+61.31536963 0.0003542833
+12.37219584 0.0144227498
+6.925494498 -0.0794734929
+2.331953994 0.2940658279
+1.210873 0.4651965076
+0.6009047851 0.3695136323
+contraction shell=D num_primitives=1 num_coefficients=1
+0.2813586981 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.115 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+0.28962 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+1.0 1.0000000000
+atom=Bi
+contraction shell=S num_primitives=4 num_coefficients=1
+716.4143531 0.0016093802
+83.80605905 0.0090755345
+21.11696285 -1.1282637960
+15.49144819 2.0808980190
+contraction shell=S num_primitives=2 num_coefficients=1
+23.23985503 -0.0735378540
+6.6474255 1.0546329000
+contraction shell=S num_primitives=1 num_coefficients=1
+1.761774401 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.87252866 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.25618896 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.09707391301 1.0000000000
+contraction shell=P num_primitives=3 num_coefficients=1
+15.24964467 2.4477011960
+14.84617605 -2.8094143350
+7.063682678 1.3180348280
+contraction shell=P num_primitives=3 num_coefficients=1
+2.588125562 0.2841971176
+1.50202085 0.5115554397
+0.7673272439 0.2585305412
+contraction shell=P num_primitives=1 num_coefficients=1
+0.3279764898 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.1382033599 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.05513733097 1.0000000000
+contraction shell=D num_primitives=6 num_coefficients=1
+66.40448195 0.0004179810
+13.85842696 0.0117883142
+7.0654519 -0.0789251288
+2.525214404 0.2873646035
+1.3419585 0.4672558838
+0.68340941 0.3694664323
+contraction shell=D num_primitives=1 num_coefficients=1
+0.3293475542 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.14 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+0.31271 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+1.05 1.0000000000
+atom=Po
+contraction shell=S num_primitives=5 num_coefficients=1
+6744.821176 0.0002667130
+744.4189253 0.0024726497
+131.0402931 0.0076510921
+19.66202103 -2.2326123860
+16.62302561 3.1910959570
+contraction shell=S num_primitives=2 num_coefficients=1
+23.09400297 -0.0760848893
+6.970739838 1.0578437560
+contraction shell=S num_primitives=1 num_coefficients=1
+1.849737759 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.9308299926 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.2867302646 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1097921217 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+8.902739541 -0.1226383198
+5.741466747 0.2337889888
+1.989632982 0.5886127764
+0.9470321082 0.3514926779
+contraction shell=P num_primitives=3 num_coefficients=1
+253.990245 0.0003988865
+9.871271875 1.1685916540
+7.44898935 -2.1066457850
+contraction shell=P num_primitives=1 num_coefficients=1
+0.3707113628 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.1555470609 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.06117372082 1.0000000000
+contraction shell=D num_primitives=6 num_coefficients=1
+67.94307705 0.0005410405
+14.91421989 0.0112336718
+7.297394831 -0.0773565344
+2.68267844 0.2902640400
+1.437414301 0.4722837553
+0.7390379742 0.3594736157
+contraction shell=D num_primitives=1 num_coefficients=1
+0.3583815328 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.15 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+0.33275 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+1.4 1.0000000000
+atom=At
+contraction shell=S num_primitives=5 num_coefficients=1
+3635.980936 0.0005061665
+537.6412982 0.0030580202
+91.60003076 0.0103842564
+20.2000058 -2.2052996430
+16.89387382 3.1573342080
+contraction shell=S num_primitives=2 num_coefficients=1
+18.17721694 -0.1521964110
+7.231785208 1.1274071820
+contraction shell=S num_primitives=1 num_coefficients=1
+1.949619974 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.9922669524 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.3195717888 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1234253981 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+8.948415647 -0.1382094842
+5.969459246 0.2490056158
+2.109908821 0.5861582250
+1.023637037 0.3503576874
+contraction shell=P num_primitives=3 num_coefficients=1
+216.8151893 0.0006470484
+10.59229812 0.8646381042
+7.459658543 -1.8043415390
+contraction shell=P num_primitives=1 num_coefficients=1
+0.4218635656 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.1775713227 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.06967088694 1.0000000000
+contraction shell=D num_primitives=6 num_coefficients=1
+70.61963339 0.0006803065
+16.21209648 0.0105999036
+7.360740148 -0.0802524179
+2.930905259 0.2726643102
+1.608541482 0.4746214276
+0.8419416271 0.3724323255
+contraction shell=D num_primitives=1 num_coefficients=1
+0.4133567796 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.174 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+0.37408 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+1.8 1.0000000000
+atom=Rn
+contraction shell=S num_primitives=5 num_coefficients=1
+5187.744247 0.0006597858
+768.1449121 0.0043071109
+159.3518207 0.0112206544
+21.86343272 -2.2562235300
+18.38868998 3.2102392910
+contraction shell=S num_primitives=2 num_coefficients=1
+24.81622645 -0.0801828033
+7.292330168 1.0601788380
+contraction shell=S num_primitives=1 num_coefficients=1
+2.085043717 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+1.091524595 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.3491570843 1.0000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1364842295 1.0000000000
+contraction shell=P num_primitives=4 num_coefficients=1
+9.08450003 -0.1595946907
+6.263148972 0.2746830724
+2.254519373 0.5737709751
+1.118066692 0.3556720969
+contraction shell=P num_primitives=3 num_coefficients=1
+194.6891872 0.0009489127
+11.21001353 0.7208226436
+7.529831649 -1.6616559490
+contraction shell=P num_primitives=1 num_coefficients=1
+0.4744449259 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.2017235462 1.0000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.07950314439 1.0000000000
+contraction shell=D num_primitives=6 num_coefficients=1
+75.30272367 0.0008066168
+17.96591383 0.0098090195
+7.374129803 -0.0840063276
+3.229625858 0.2518316113
+1.793784051 0.4821873364
+0.9463331973 0.3864754706
+contraction shell=D num_primitives=1 num_coefficients=1
+0.4686048222 1.0000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.2 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+0.41806 1.0000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+2.1 1.0000000000
