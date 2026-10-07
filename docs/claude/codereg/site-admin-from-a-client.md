@@ -23,8 +23,9 @@ text it was edited from) and `SiteAdminClient::send` runs it on the server:
    write bit and membership are the authorisation, the data-server password is
    not involved - runs processmachine, writes `CONFIG.<m>` through
    `ConfigFile`, and runs `$ECCE_HOME/bin/ecce-site-publish`.
-4. The client runs `ecce-remote-setup --refresh` when it can write its
-   `siteconfig`; otherwise it says to run it with sudo. Then `redo()` reloads.
+4. The client's `SiteAdminClient::refresh` still runs `ecce-remote-setup
+   --refresh`, which since #192 only prints a note and exits 0 (the machine
+   list is no longer copied to the client). Then `redo()` reloads.
 
 Things that are easy to get wrong:
 
@@ -40,9 +41,12 @@ Things that are easy to get wrong:
 - A raw edit is refused when the server's file no longer reads as the
   client's copy (someone else changed it); per-key edits merge like
   processmachine does.
-- `--refresh` removes a `CONFIG.*`/`*.Q` that its previous fetch brought and
-  the server no longer publishes (it keeps the last MANIFEST in
-  `siteconfig/RemoteServer/MANIFEST`), so a deleted machine disappears.
+- `ecce-site-publish` also writes `INDEX` (sha256sum format, last, and
+  unchanged when no file changed) and publishes `StartupMessage` and
+  `NewUserMessage`. `httpd.conf.ecce` makes the folder readable by any
+  data-server login only (`Require valid-user` + `Require method GET HEAD
+  OPTIONS PROPFIND` under `AuthMerging Off`; the `<Limit>` sections of
+  `/Ecce` do not carry over, hence the method list).
 - Tests run the "server" on this machine with no ssh: host `127.0.0.1` and no
   login make `RCommand` use `DirectTransport`, and an `ecce-site-admin`
   wrapper on PATH switches to the server's `ECCE_HOME`/`ECCE_REALUSERHOME`.

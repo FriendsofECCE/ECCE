@@ -11,8 +11,12 @@
 # this account's own data server, ~/.ECCE/dataserver/htdocs/Ecce/system/siteconfig.
 #
 # DIR is updated in place, file by file, so a group-writable DIR set up for
-# administrators keeps its owner, group and mode.  /Ecce/system is served
-# without a login, so this needs no auth changes.
+# administrators keeps its owner, group and mode.  httpd.conf.ecce lets any
+# data-server login read DIR, and nobody else.
+#
+# INDEX (sha256sum format) is written last: a client compares it with its
+# cache and checks every file it downloads against it, so a publish still in
+# progress is never taken for a finished one.
 
 set -u
 
@@ -43,13 +47,20 @@ if [ ! -w "$DEST" ]; then
 fi
 
 # submit.site and QueueManagers go too, so a client's job scripts and
-# scheduler commands match the server's.
+# scheduler commands match the server's; so do the start-up messages.
 manifest="$(mktemp "$DEST/.MANIFEST.XXXXXX")" || exit 1
 trap 'rm -f "$manifest" "${tmp:-}"' EXIT
 for f in "$SRC/Machines" "$SRC/Queues" "$SRC/submit.site" "$SRC/QueueManagers" \
+         "$SRC/StartupMessage" "$SRC/NewUserMessage" \
          "$SRC"/CONFIG.* "$SRC"/*.Q; do
   [ -f "$f" ] || continue
   name="${f##*/}"
+  # clients accept only plain names
+  case "$name" in
+    [A-Za-z0-9]*) ;;
+    *) continue ;;
+  esac
+  case "$name" in *[!A-Za-z0-9._+-]*) continue ;; esac
   tmp="$(mktemp "$DEST/.publish.XXXXXX")" || exit 1
   cp "$f" "$tmp" && chmod 644 "$tmp" && mv -f "$tmp" "$DEST/$name" || exit 1
   printf '%s\n' "$name" >>"$manifest"
@@ -59,9 +70,37 @@ done
 for f in "$DEST"/*; do
   [ -f "$f" ] || continue
   name="${f##*/}"
-  [ "$name" = MANIFEST ] && continue
+  [ "$name" = MANIFEST ] || [ "$name" = INDEX ] && continue
   grep -qxF -- "$name" "$manifest" || rm -f -- "$f"
 done
 
+# INDEX: one "sha256  name" line per published file.  The header carries the
+# date, so an unchanged file set keeps the INDEX it has, and clients see no
+# change.
+if command -v sha256sum >/dev/null 2>&1; then
+  hashof() { sha256sum "$1"; }
+else
+  hashof() { shasum -a 256 "$1"; }
+fi
+index="$(mktemp "$DEST/.INDEX.XXXXXX")" || exit 1
+trap 'rm -f "$manifest" "${tmp:-}" "$index"' EXIT
+body="$(while IFS= read -r name; do
+          h="$(hashof "$DEST/$name")" || exit 1
+          printf '%s  %s\n' "${h%% *}" "$name"
+        done <"$manifest" | LC_ALL=C sort -k2)" || exit 1
+if [ -f "$DEST/INDEX" ] && [ "$(grep -v '^#' "$DEST/INDEX")" = "$body" ]; then
+  rm -f "$index"
+else
+  {
+    echo "# ECCE site configuration"
+    echo "# published $(date -u +%Y-%m-%dT%H:%M:%SZ) by ecce on $(hostname -f 2>/dev/null || hostname)"
+    [ -n "$body" ] && printf '%s\n' "$body"
+  } >"$index" || exit 1
+fi
+
+# MANIFEST first, INDEX last: INDEX is what says the set is complete.
 chmod 644 "$manifest" && mv -f "$manifest" "$DEST/MANIFEST" || exit 1
+if [ -f "$index" ]; then
+  chmod 644 "$index" && mv -f "$index" "$DEST/INDEX" || exit 1
+fi
 exit 0

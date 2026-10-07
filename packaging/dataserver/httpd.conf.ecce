@@ -287,6 +287,17 @@ AddType  chemical/x-qe-output .pwout
   Require valid-user
 </Directory>
 
+# The site configuration ecce-site-publish writes (issue #192): readable by
+# any data-server login, not anonymously, and never writable over DAV.
+# The Require lines here replace those of /Ecce, Limit sections included.
+<Directory "##DATAROOT##/Ecce/system/siteconfig">
+  AuthMerging Off
+  <RequireAll>
+    Require valid-user
+    Require method GET HEAD OPTIONS PROPFIND
+  </RequireAll>
+</Directory>
+
 # The share directory needs to be modified to allow users to create
 # collections of their own.
 <Directory "##DATAROOT##/Ecce/share">

@@ -2,7 +2,7 @@
 """
 The server half of "ecce -admin" on a -remote client (#234): ecce-site-admin
 applies a request to a central server's siteconfig and publishes it, and
-"ecce-remote-setup --refresh" brings the client's copy up to date.
+the INDEX follows it.  "ecce-remote-setup --refresh" is a no-op (#192).
 
     siteadmin_test.py --build <build dir>
 
@@ -36,6 +36,20 @@ def check(ok, what):
     print("%s  %s" % ("ok  " if ok else "FAIL", what))
     if not ok:
         failures.append(what)
+
+
+def sha(text):
+    import hashlib
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def index(published):
+    out = {}
+    for line in (read(os.path.join(published, "INDEX")) or "").splitlines():
+        if line and not line.startswith("#"):
+            h, name = line.split(None, 1)
+            out[name] = h
+    return out
 
 
 def read(path):
@@ -125,9 +139,11 @@ def main():
                             "--refresh"], env=dict(os.environ, ECCE_HOME=client),
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                            text=True)
-        check(r.returncode == 0 and read(os.path.join(csc, "CONFIG.gone")) ==
-              "NWChem: /old\n", "--refresh copies the server's list: " +
-              r.stdout[-300:])
+        check(r.returncode == 0 and "nothing to do" in r.stdout and
+              not os.path.exists(os.path.join(csc, "CONFIG.gone")),
+              "--refresh copies nothing and says so: " + r.stdout[-300:])
+        check(index(s.published).get("CONFIG.gone") == sha("NWChem: /old\n"),
+              "the INDEX lists CONFIG.gone with its hash")
 
         # -- an administrator's save, with values a shell would act on
         values = hostile(canary)
@@ -167,10 +183,11 @@ def main():
                             "--refresh"], env=dict(os.environ, ECCE_HOME=client),
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                            text=True)
-        check(r.returncode == 0 and read(os.path.join(csc, "CONFIG.cluster")) == cfg,
-              "--refresh brings the client's copy up to date")
-        check(not os.path.exists(os.path.join(csc, "CONFIG.gone")),
-              "--refresh removes a CONFIG the server no longer publishes")
+        check(r.returncode == 0 and not os.path.exists(os.path.join(csc, "CONFIG.cluster")),
+              "--refresh still copies nothing")
+        idx = index(s.published)
+        check(idx.get("CONFIG.cluster") == sha(cfg) and "CONFIG.gone" not in idx,
+              "the INDEX follows the admin's save and the removal")
 
         # -- a raw edit: applied only if the server's file is the base
         r = apply(s, request("cluster", text="NWChem: /raw\n", base="stale\n"), env)

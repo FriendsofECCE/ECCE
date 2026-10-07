@@ -259,8 +259,8 @@ conf_listeners() {
   [ "$(R server grep -c '^listener 8088' $c)" = 1 ] && R server grep -qx 'listener 8088' $c ||
     { R server grep '^listener 8088' $c | head -3; return 1; }
 }
-copied() { R "$1" ecce-remote-setup server | grep -q "Copied the server's machine list"; }
-no_curl_warning() { local o; o="$(R alice ecce-remote-setup server 2>&1)"; ! grep -q 'curl not found' <<<"$o" || { echo "$o" | grep -A1 curl; return 1; }; }
+# #192: setup writes RemoteServer/ only; the machine list comes from the server.
+setup_ok() { local o; o="$(R "$1" ecce-remote-setup server 2>&1)" || { echo "$o"; return 1; }; ! grep -q "Copied the server's machine list" <<<"$o"; }
 
 mode2() {
   note "=== mode 2: central server (ecce-remote-setup --server; the account's data server and broker) ==="
@@ -285,9 +285,8 @@ mode2() {
   check "[mode2] the data server answers on 8096 from bob's host" wait_for R bob nc -z server 8096
 
   # Clients, as the docs say: root, ecce-remote-setup <server>.
-  check "[mode2] ecce-remote-setup <server> copies the server's machine list on a stock client (needs curl)" no_curl_warning
   for u in alice bob; do
-    check "[mode2] $u's host: ecce-remote-setup server (with curl installed)" copied "$u"
+    check "[mode2] $u's host: ecce-remote-setup server (writes RemoteServer/ only)" setup_ok "$u"
   done
   start_sessions mode2
   isolation mode2

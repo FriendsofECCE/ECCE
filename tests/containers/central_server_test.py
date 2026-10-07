@@ -223,8 +223,13 @@ def setup(pm, image):
     for c in ("alice", "bob"):
         o, rc = pm.out(c, "curl -s -o /dev/null -w %{http_code} "
                        "http://srv:8096/Ecce/system/siteconfig/MANIFEST")
-        check(o.strip() == "200", "%s's machine reaches the data server over "
-              "the network (MANIFEST %s)" % (c, o.strip()))
+        check(o.strip() == "401", "%s's machine reaches the data server, "
+              "which wants a login for the site files (MANIFEST %s)"
+              % (c, o.strip()))
+        o, rc = pm.out(c, "curl -s -o /dev/null -w %%{http_code} -u %s:%s "
+                       "http://srv:8096/Ecce/system/siteconfig/INDEX" % (c, PW[c]))
+        check(o.strip() == "200", "%s reads the site files with her login "
+              "(INDEX %s)" % (c, o.strip()))
         o, rc = pm.out(c, "timeout 5 bash -c 'echo > /dev/tcp/srv/8088'")
         check(rc == 0, "%s's machine reaches the broker port 8088" % c, o)
         o, rc = pm.out(c, "ecce-remote-setup srv")
@@ -544,7 +549,7 @@ def tls(pm, image):
           "cp /tmp/o.pem /opt/ecce/siteconfig/RemoteServer/server.pem")
     r = pm.out("teve", "curl -s -o /dev/null -w %{http_code} "
                "--cacert /opt/ecce/siteconfig/RemoteServer/server.pem "
-               "https://tsrv:8443/Ecce/system/siteconfig/MANIFEST")
+               "https://tsrv:8443/Ecce/system/siteconfig/INDEX")
     check(r[0].strip() == "000", "tls: eve's pin is another certificate; "
           "the server's is not accepted by it")
     o, rc = pm.out("teve", "ecce-remote-setup tsrv --tls --pin /tmp/o.pem")

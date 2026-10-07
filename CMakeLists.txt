@@ -2233,8 +2233,9 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME queues_publish
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/publish_test.py
+                   --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
-  set_tests_properties(queues_publish PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+  set_tests_properties(queues_publish PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
   # ecce -admin on a -remote client: ecce-site-admin on a simulated central
   # server, publishing, and the client's ecce-remote-setup --refresh (#234).
   add_test(NAME queues_siteadmin

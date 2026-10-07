@@ -936,15 +936,10 @@ def _remoteClient(checks, display, logdir, serverEnv, amq, dport, bport,
     os.makedirs(os.path.join(client, ".ECCE"), exist_ok=True)
     chome = isolate.homeOverlay(apps.INSTALL, client, dport)
     extra = {"ECCE_REALUSERHOME": client, "ECCE_HOME": chome}
-    # homeOverlay copies (not symlinks) siteconfig, so this is safe to
-    # edit: make the client's machine list differ from the server's, so a
-    # successful copy by ecce-remote-setup (#188) is visible below rather
-    # than the two starting out identical by construction.
     clientMachines = os.path.join(chome, "siteconfig", "Machines")
-    with open(clientMachines, "w"):
-        pass
-    # An install that was itself once made a client carries its backup,
-    # which ecce-remote-setup keeps rather than overwrites.
+    with open(clientMachines) as f:
+        before = f.read()
+    # An install that was itself once made a client carries a backup.
     shutil.rmtree(os.path.join(chome, "siteconfig", "local-machines.orig"),
                   ignore_errors=True)
     setup = subprocess.run(
@@ -954,30 +949,13 @@ def _remoteClient(checks, display, logdir, serverEnv, amq, dport, bport,
     if not checks.check(setup.returncode == 0, "ecce-remote-setup ran"):
         say(setup.stdout.decode())
         return
-    setupOut = setup.stdout.decode()
-    servedMachines = os.path.join(statedir(), "dataserver", "htdocs", "Ecce",
-                                  "system", "siteconfig", "Machines")
-    try:
-        with open(servedMachines) as f:
-            servedContent = f.read()
-    except OSError:
-        servedContent = None
+    # #192: it writes RemoteServer/ and copies no machine list.
     with open(clientMachines) as f:
         clientContent = f.read()
-    checks.check(servedContent is not None and clientContent == servedContent,
-                 "ecce-remote-setup copied the server's Machines (#188)")
-    backupMachines = os.path.join(chome, "siteconfig", "local-machines.orig",
-                                  "Machines")
-    try:
-        with open(backupMachines) as f:
-            backupContent = f.read()
-    except OSError:
-        backupContent = None
-    checks.check(backupContent == "",
-                 "the client's original (truncated) Machines was backed up "
-                 "to local-machines.orig")
-    checks.check("Copied the server's machine list" in setupOut,
-                 "ecce-remote-setup reported the copy")
+    checks.check(clientContent == before and "Copied the server's machine list"
+                 not in setup.stdout.decode() and not os.path.exists(
+                     os.path.join(chome, "siteconfig", "local-machines.orig")),
+                 "ecce-remote-setup copied no machine list (#192)")
     # A new student account: nothing registered, no Queues file (#188).
     myMachines = os.path.join(client, ".ECCE", "MyMachines")
     for leftover in ("MyMachines", "Queues"):
