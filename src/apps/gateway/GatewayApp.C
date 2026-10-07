@@ -10,6 +10,9 @@
 
 #include <iomanip>
 using std::ios;
+#include <iostream>
+using std::cerr;
+using std::endl;
 #include <fstream>
 #include <set>
 using std::ofstream;
@@ -295,6 +298,7 @@ bool GatewayApp::OnInit()
       return false;
     }
   } catch (RetryException& rex) {
+    cerr << "\n  ERROR:  " << rex.what() << endl;
     ewxMessageDialog * dlg =
       new ewxMessageDialog(dialogParent(), rex.what(), "Retries exceeded!",
                            wxOK|wxICON_EXCLAMATION, wxDefaultPosition);
@@ -304,6 +308,7 @@ bool GatewayApp::OnInit()
     return false;
   } catch (EcceException& ex) {
     string msg = ex.what();
+    cerr << "\n  ERROR:  " << msg << endl;
     msg += "Please contact your ECCE Administrator.";
     ewxMessageDialog * dlg =
       new ewxMessageDialog(dialogParent(),  msg.c_str(), "ECCE Server Failure",

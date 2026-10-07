@@ -122,7 +122,7 @@ BasicAuth *WxDavAuth::getAuthorization(const string& url, const string& user)
     whereami = _uname.nodename;
 
    if (username!=Ecce::serverUser() ||
-       eurl.getProtocol()=="http" ||
+       eurl.getProtocol()=="http" || eurl.getProtocol()=="https" ||
        eurl.getHost()!=whereami) {
      // Try for the first match in the cache
      ba = AuthCache::getCache().getAuthentication(url, username, "", 1);
@@ -282,15 +282,16 @@ bool WxDavAuth::prompt(const string& strurl,
       string& password,
       int retryCount)
 {
-   // false for anything but http: getAuthorization() retries without limit
-   // while this returns true, so an unset value could loop with no dialog.
+   // false for anything but http(s): getAuthorization() retries without
+   // limit while this returns true, so an unset value could loop with no
+   // dialog.
    bool ret = false;
 
    EcceURL url(strurl);
 
    // Only prompt for data server passwords because the underlying RCommand
    // code will prompt for any machine passwords it needs
-   if (url.getProtocol() == "http") {
+   if (url.getProtocol() == "http" || url.getProtocol() == "https") {
      //  Refuse to stack a second dialog. ShowModal() below runs a nested
      //  event loop, so a DAV authentication event arriving while the first
      //  dialog is up is dispatched straight back into here. The caller

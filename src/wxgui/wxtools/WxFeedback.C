@@ -308,6 +308,12 @@ void WxFeedback::setMessage(const string& message,
    ewxTextCtrl *text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_FEEDBACK_MSG));
    // SetValue doesn't work. operator<< sortof works
    //text->SetValue(message.c_str());
+   // The separator goes before the next message, not after this one: a
+   // trailing newline leaves a blank last row under the scrolled-to-end view.
+   if (text->GetLastPosition() != 0) {
+      (*text) << "\n";
+   }
+
    if (severity == WxFeedback::ERROR) 
      (*text) << "ERROR: ";
    else if (severity == WxFeedback::WARNING) 
@@ -316,10 +322,6 @@ void WxFeedback::setMessage(const string& message,
      (*text) << "SYSTEM: ";
 
    (*text) << message.c_str();
-
-   if (text->GetLastPosition() != 0) {
-      (*text) << "\n";
-   }
 
    if ((p_beepWarn && (severity == WxFeedback::WARNING)) ||
        (p_beepError && (severity==ERROR || severity==SYSTEM))) {

@@ -19,7 +19,8 @@ The list + detail header's total-energy line did exactly that and killed
 `ecce-builder glycine.pdb` in alpha.6 (only in list + detail, the default
 for a fresh install, so a developer with a saved Classic layout never saw it).
 
-`tests/apps` (`checkStructureFiles`) opens a PDB in every layout and a CAR in
-list + detail through the `ECCE_VIEWER_SCENE` hook, and fails on a crash, a
-throw log, or no snapshot of the loaded atoms. Not an XYZ: it raises a modal
-units prompt before the context is set, which no hook answers.
+`tests/apps` (`checkStructureFiles`) opens a PDB in every layout and a CAR and
+an XYZ in list + detail through the `ECCE_VIEWER_SCENE` hook, and fails on a
+crash, a throw log, or no snapshot of the loaded atoms. An XYZ raises a modal
+units prompt before the context is set; `ECCE_TEST_XYZ_UNITS=angstrom` makes
+`WxUnitsPrompt::ShowModal` answer it without showing it.

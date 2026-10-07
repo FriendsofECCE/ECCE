@@ -377,6 +377,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  *                 read its state
  * refresh         reload session-test from the data server, as View >
  *                 Refresh does
+ * message <text> show <text> in the message pane, as any status message does
  * publish         publish ecce_activity, as every tool start does
  * quit-offer      whether the Quit dialog would offer Quit and Stop Server
  */
@@ -423,6 +424,9 @@ void CalcMgr::runTestCommand(const string& line)
       }
       outcome = top ? "ok, " + std::to_string(visited) + " nodes"
                     : "no home in the tree";
+    } else if (command == "message") {
+      setMessage(calcName, WxFeedback::INFO);
+      outcome = "ok";
     } else if (command == "refresh") {
       WxResourceTreeItemData *node = findNode(project, true, true);
       if (node) {
