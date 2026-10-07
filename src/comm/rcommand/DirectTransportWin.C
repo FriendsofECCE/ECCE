@@ -543,7 +543,7 @@ TransportResult DirectTransport::run(const std::string& script, int timeoutSec)
   std::wstring env;
   if (shellSpawn(*this, shell, quoteArg(file), p_env, p_unset, p_dir, sp, env, res))
     res = runProc(sp, "", -1, -1, timeoutSec);
-  DeleteFileW(file.c_str());
+  if (!getenv("ECCE_KEEP_SCRIPTS")) DeleteFileW(file.c_str());
   return res;
 }
 
