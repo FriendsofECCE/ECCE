@@ -133,10 +133,12 @@ def builderPhase(display, report, seen, results):
                           args=authArgs() + ("-context", url),
                           windowTimeout=60, settle=5, env=env, inspect=inspect)
         if result.crashed:
-            results.fail("builder", "crashed (%s) during the audit"
-                         % result.signalName)
+            results.fail("builder", "crashed (%s) during the audit\n%s"
+                         % (result.signalName, (result.log or "")[-1500:]))
         elif not state["done"]:
-            results.fail("builder", "the panel audit did not finish")
+            results.fail("builder", "the panel audit did not finish; windows: "
+                         "%s\n%s" % ([w[1] for w in result.windows],
+                                     (result.log or "")[-1500:]))
     finally:
         restore()
 
@@ -197,23 +199,27 @@ def dialogsPhase(display, report, seen, results):
 def annotate():
     """Copy each screenshot that has findings with the controls boxed."""
     out = opts["out"]
-    if not out or shutil.which("convert") is None:
+    if not out:
+        return
+    try:
+        from PIL import Image, ImageDraw
+    except ImportError:
         return
     os.makedirs(os.path.join(out, "annotated"), exist_ok=True)
     for tag, rect, cls, shot in windows:
         mine = [f for f in findings if f[0] == tag]
         if not mine or not shot or not os.path.exists(shot):
             continue
-        cmd = ["convert", shot, "-fill", "none", "-stroke", "red",
-               "-strokewidth", "2"]
+        image = Image.open(shot).convert("RGB")
+        draw = ImageDraw.Draw(image)
         for f in mine:
             try:
                 x, y, w, h = [int(v) for v in f[4].split(",")]
             except ValueError:
                 continue
-            cmd += ["-draw", "rectangle %d,%d %d,%d" % (x, y, x + w, y + h)]
-        cmd.append(os.path.join(out, "annotated", os.path.basename(shot)))
-        subprocess.run(cmd, stderr=subprocess.DEVNULL)
+            draw.rectangle([x - 1, y - 1, x + w, y + h], outline=(255, 0, 0),
+                           width=2)
+        image.save(os.path.join(out, "annotated", os.path.basename(shot)))
 
 
 def sweep(display, results, only):
@@ -288,7 +294,7 @@ def main():
     run_tests.checkApp = checkApp
     run_tests.checkCalculation = lambda *a, **k: None
     run_tests.checkStructureFiles = lambda *a, **k: None
-    sys.argv = [sys.argv[0], "--app", "organizer"] + (
+    sys.argv = [sys.argv[0], "--app", "organizer", "--budget", "6000"] + (
         ["--any-version"] if anyVersion else [])
     code = run_tests.main()
     return 0 if reportOnly else code

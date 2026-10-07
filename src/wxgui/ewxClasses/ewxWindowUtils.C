@@ -806,6 +806,8 @@ void ewxWindowUtils::fitToDisplay(wxTopLevelWindow *win, wxSizer *fixedRow)
 #include "wx/weakref.h"
 #include "wx/timer.h"
 #include "wx/image.h"
+#include "wx/dcscreen.h"
+#include "wx/dcmemory.h"
 #include <set>
 
 namespace {
@@ -1038,10 +1040,18 @@ void ewxWindowUtils::clipAuditReport(wxWindow *top, const std::string& tag)
       if (!isalnum((unsigned char)safe[i]) && safe[i] != '.' && safe[i] != '-')
         safe[i] = '_';
     shot = std::string(dir) + "/" + safe + ".png";
-    //  Cheap and works on every Xvfb: the screen itself, not the window.
-    wxString cmd;
-    cmd << "import -window root '" << shot << "' 2>/dev/null";
-    if (system(cmd.mb_str()) != 0) shot.clear();
+    //  The screen itself, not the window (a dialog's parent shows too).
+    //  No external tool: a bare host has no ImageMagick.
+    int w = 0, h = 0;
+    wxDisplaySize(&w, &h);
+    wxBitmap bmp(w, h, 24);
+    {
+      wxScreenDC screen;
+      wxMemoryDC mem(bmp);
+      mem.Blit(0, 0, w, h, &screen, 0, 0);
+    }
+    if (!bmp.SaveFile(wxString::FromUTF8(shot.c_str()), wxBITMAP_TYPE_PNG))
+      shot.clear();
   }
   FILE *f = fopen(path, "a");
   if (!f) return;

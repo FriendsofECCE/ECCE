@@ -11,7 +11,6 @@ $ECCE_CLIP_TAG names the window; $ECCE_CLIP_SHOTS gets a screenshot.
 """
 import os
 import runpy
-import subprocess
 import sys
 
 import wx
@@ -162,8 +161,13 @@ def report():
         if d:
             safe = "".join(c if c.isalnum() or c in ".-" else "_" for c in tag)
             shot = os.path.join(d, safe + ".png")
-            if subprocess.call(["import", "-window", "root", shot],
-                               stderr=subprocess.DEVNULL) != 0:
+            dc = wx.ScreenDC()
+            w, h = wx.GetDisplaySize()
+            bmp = wx.Bitmap(w, h, 24)
+            mem = wx.MemoryDC(bmp)
+            mem.Blit(0, 0, w, h, dc, 0, 0)
+            mem.SelectObject(wx.NullBitmap)
+            if not bmp.SaveFile(shot, wx.BITMAP_TYPE_PNG):
                 shot = ""
         r = screen_rect(top)
         with open(path, "a") as f:
