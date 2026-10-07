@@ -100,26 +100,6 @@ def authArgs():
     return ("-pipe", authPath)
 
 
-def authForCalculation():
-    """Credentials for the app's own account and for the fixture's owner."""
-    base = os.path.join(fixture.stateHome(), ".ECCE")
-    mine = fixture.authFile(os.path.join(base, "auth.pipe"),
-                            user=fixture.realUser())
-    if fixture.realUser() == fixture.USER:
-        return ("-pipe", mine)
-    other = fixture.authFile(os.path.join(base, "auth-owner.pipe"),
-                             user=fixture.USER)
-    keep = open(mine).read().splitlines()[1:]
-    extra = [l for l in open(other).read().splitlines()[1:]
-             if not l.startswith("http://localhost:%d/|" % fixture.dataserverPort())]
-    os.remove(other)
-    with open(mine, "w") as handle:
-        handle.write("%d\n" % (len(extra) + len(keep)))
-        for line in extra + keep:
-            handle.write(line + "\n")
-    return ("-pipe", mine)
-
-
 def builderPhase(display, report, seen, results):
     """Every layout, every panel, in the real Builder with a real calculation."""
     #  makecalc wants the parsers' `cases`, not this directory's.
@@ -150,7 +130,7 @@ def builderPhase(display, report, seen, results):
             return True
 
         result = apps.run(display, "builder",
-                          args=authForCalculation() + ("-context", url),
+                          args=authArgs() + ("-context", url),
                           windowTimeout=60, settle=5, env=env, inspect=inspect)
         if result.crashed:
             results.fail("builder", "crashed (%s) during the audit\n%s"
@@ -307,6 +287,9 @@ def main():
             rest.append(a)
         i += 1
     xdisplay.SCREEN = "%dx%dx24" % opts["size"]
+    #  The apps run as the fixture's account, which owns the calculation the
+    #  Builder opens.
+    os.environ["ECCE_REALUSER"] = fixture.USER
     only = [rest[j + 1] for j in range(len(rest) - 1) if rest[j] == "--app"]
 
     def checkApp(display, name, results, verbose=False):
