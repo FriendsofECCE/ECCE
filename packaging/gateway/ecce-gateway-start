@@ -20,7 +20,13 @@ export ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
 export ECCE_REALUSER="${ECCE_REALUSER:-$(id -un)}"
 export HOST="${HOST:-$(hostname)}"
 
+# Beside the script, else beside its symlink target (plain readlink: no -f
+# on macOS 10.15), else in $ECCE_HOME/bin.
 _lib="$(dirname "$0")/ecce-session-lib.sh"
+if [ ! -r "$_lib" ] && _t=$(readlink "$0" 2>/dev/null); then
+  case $_t in /*) ;; *) _t="$(dirname "$0")/$_t" ;; esac
+  _lib="$(dirname "$_t")/ecce-session-lib.sh"
+fi
 [ -r "$_lib" ] || _lib="$ECCE_HOME/bin/ecce-session-lib.sh"
 . "$_lib" || { echo "ecce-gateway-start: cannot read $_lib" >&2; exit 1; }
 ecce_session_ensure
