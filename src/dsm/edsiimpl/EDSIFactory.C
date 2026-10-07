@@ -802,10 +802,8 @@ EDSIFactory::createCalculation(EDSI* interface,
 
   // Create Virtual Document
   ret = interface->makeCollection(name);
-  fprintf(stderr,"DBG makeCollection %s -> %p\n", name.c_str(), (void*)ret);
   if (ret) {
     VDoc *virtualDoc = createVdoc(*ret); 
-    fprintf(stderr,"DBG vdoc %p\n",(void*)virtualDoc);
     if (virtualDoc == 0) {
       interface->m_msgStack.add("UNABLE_TO_COMPLETE_REQUEST", 
                                 "Virtual Document could not be created");
@@ -1169,9 +1167,7 @@ VDoc* EDSIFactory::createVdoc(const EcceURL& url)
   try {
     ret = new VDoc(url, true);
   }
-  catch (std::exception& e) { fprintf(stderr,"DBG vdoc exc %s\n", e.what()); ret = 0; }
   catch (...) {
-    fprintf(stderr,"DBG vdoc exc\n");
     ret = 0;
   }
 
