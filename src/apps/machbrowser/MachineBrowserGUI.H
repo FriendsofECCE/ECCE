@@ -130,6 +130,7 @@ public:
     static const wxWindowID ID_PANEL_MACHINEBROWSER_MAIN;
     static const wxWindowID ID_BUTTON_MACHINEBROWSER_QUERYMACHINE;
     static const wxWindowID ID_BUTTON_MACHINEBROWSER_CONFIGURE;
+    static const wxWindowID ID_BUTTON_MACHINEBROWSER_MACHSETTINGS;
 ////@end MachineBrowserGUI member variables
 };
 
