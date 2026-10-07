@@ -10,7 +10,9 @@
 using std::string;
 
 class wxWindow;
+class wxSizer;
 class wxTopLevelWindow;
+#include <wx/gdicmn.h>
 class Preferences;
 class ewxConfig;
 
@@ -70,6 +72,21 @@ public:
   static bool confirmExit(wxWindow *owner);
 
   static void setCustomDisabledStyle(wxWindow *win, bool enabled);
+
+  // Small screens (#189).  The most client area a top-level window may use
+  // so that its frame, including a title bar, stays inside the usable area
+  // of its display.
+  static wxSize clientCapForDisplay(wxTopLevelWindow *win);
+
+  // Move the window back fully onto its display; never resizes it.
+  static void keepOnDisplay(wxTopLevelWindow *win);
+
+  // Cap the window to its display and keep it on screen.  Content whose
+  // natural size exceeds the cap is moved into a scrolled window inside
+  // the window's own sizer; fixedRow, a sizer inside that sizer (or NULL
+  // to take a trailing row of buttons), stays below it and always visible.
+  // Safe to call again after the content changes.
+  static void fitToDisplay(wxTopLevelWindow *win, wxSizer *fixedRow = NULL);
 };
 
 #endif

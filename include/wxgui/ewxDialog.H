@@ -6,6 +6,7 @@
 #include "wxgui/ewxStyledWindow.H"
 
 class ewxConfig;
+class wxSizer;
 
 /**
  * An ecce stylized dialog.
@@ -31,6 +32,14 @@ class ewxDialog : public wxDialog, public ewxStyledWindow
              long style = wxDEFAULT_DIALOG_STYLE,
              const wxString& name = "dialogBox");
       virtual ~ewxDialog();
+
+      virtual bool Show(bool show = true);
+      virtual int ShowModal();
+
+      // Cap to the display and scroll what does not fit; see
+      // ewxWindowUtils::fitToDisplay().  Show() does it for every dialog;
+      // call it earlier to name the row of buttons that stays in view.
+      virtual void fitToScreen(wxSizer* fixedRow = NULL);
 
       /*
       virtual void setContents(wxWindow *panel, bool allowClose=true);

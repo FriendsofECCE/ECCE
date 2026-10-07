@@ -6,6 +6,7 @@ Also defines some helper functions dealing with ranges.
 
 
 import wx
+import wx.lib.scrolledpanel
 import string
 import webbrowser
 import os
@@ -320,11 +321,21 @@ class EcceSubPanel(wx.Panel):
         self.SetStatusText = parent.SetStatusText
 
 
-class EccePanel(wx.Panel):
-    """Ecce styled top-level wxPanel."""
+class EccePanel(wx.lib.scrolledpanel.ScrolledPanel):
+    """Ecce styled top-level wxPanel.
+
+    Scrolls its settings when they are taller than the display allows; the
+    message box and the buttons sit in a footer that always stays in view
+    (#189).
+    """
+
+    # What a window manager adds above the client area; a bare X server
+    # shows none, so it cannot be measured before the window is mapped.
+    TitleReserve = 36
 
     def __init__(self, parent, helpURL=""):
-        wx.Panel.__init__(self, parent, id = -1, style = wx.TAB_TRAVERSAL)
+        wx.lib.scrolledpanel.ScrolledPanel.__init__(
+            self, parent, id = -1, style = wx.TAB_TRAVERSAL)
         self.helpURL = helpURL
         self.panelSizer = EccePanelSizer()
         self.SetSizer(self.panelSizer)
@@ -344,8 +355,19 @@ class EccePanel(wx.Panel):
 
 
     def AddButtons(self):
+        # The footer is the frame's, not this panel's, so it does not scroll.
+        self.footer = wx.Panel(self.GetParent(), style = wx.TAB_TRAVERSAL)
+        self.footer.SetFont(EcceGlobals.FontDefault)
+        self.footer.SetBackgroundColour(EcceGlobals.BackgroundColour)
+        self.footerSizer = EccePanelSizer()
+        self.footer.SetSizer(self.footerSizer)
+        frameSizer = wx.BoxSizer(wx.VERTICAL)
+        frameSizer.Add(self, 1, wx.EXPAND)
+        frameSizer.Add(self.footer, 0, wx.EXPAND)
+        self.GetParent().SetSizer(frameSizer)
+
         # message box
-        self.msg = wx.TextCtrl(self, size=wx.Size(-1, 65),
+        self.msg = wx.TextCtrl(self.footer, size=wx.Size(-1, 65),
                                style = wx.TE_MULTILINE|wx.TE_WORDWRAP|
                                wx.TE_READONLY)
         self.msg.SetBackgroundColour(EcceGlobals.ReadonlyColour)
@@ -353,7 +375,7 @@ class EccePanel(wx.Panel):
         self.messageTimer = wx.Timer(self.msg, 2)
         self.msg.Bind(wx.EVT_TIMER, self.OnColorTimer, self.colorTimer, 1)
         self.msg.Bind(wx.EVT_TIMER, self.OnMessageTimer, self.messageTimer, 2)
-        self.panelSizer.Add(self.msg)
+        self.footerSizer.Add(self.msg)
         
         # buttons
         buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -361,9 +383,9 @@ class EccePanel(wx.Panel):
         buttonSizer.Add((0,0), proportion =EcceGlobals.ProportionDefault,
                         flag = EcceGlobals.FlagDefault, border = 0)
 
-        self.closeButton = wx.Button(self, label = "Close")
+        self.closeButton = wx.Button(self.footer, label = "Close")
         self.closeButton.SetToolTip(wx.ToolTip("close window"))
-        self.Bind(wx.EVT_BUTTON, self.OnClose, self.closeButton)
+        self.closeButton.Bind(wx.EVT_BUTTON, self.OnClose)
 
         if wx.Platform == '__WXMSW__':
             buttonSizer.Add(self.closeButton, proportion = 0,
@@ -374,9 +396,9 @@ class EccePanel(wx.Panel):
             buttonSizer.Add((0,0), proportion = EcceGlobals.ProportionDefault,
                             flag = EcceGlobals.FlagDefault, border = 0)
 
-        self.resetButton = wx.Button(self, label = "Reset")
+        self.resetButton = wx.Button(self.footer, label = "Reset")
         self.resetButton.SetToolTip(wx.ToolTip("Restore default settings"))
-        self.Bind(wx.EVT_BUTTON, self.OnResetButton, self.resetButton)
+        self.resetButton.Bind(wx.EVT_BUTTON, self.OnResetButton)
 
         if wx.Platform == '__WXMSW__':
             buttonSizer.Add(self.resetButton, proportion = 0, flag = wx.ALL,
@@ -388,8 +410,8 @@ class EccePanel(wx.Panel):
                             flag = EcceGlobals.FlagDefault, border = 0)
         
         if self.helpURL:
-            self.helpButton = wx.Button(self, label = "Help")
-            self.Bind(wx.EVT_BUTTON, self.OnHelpButton, self.helpButton)
+            self.helpButton = wx.Button(self.footer, label = "Help")
+            self.helpButton.Bind(wx.EVT_BUTTON, self.OnHelpButton)
             if wx.Platform == '__WXMSW__':
                 buttonSizer.Add(self.helpButton, proportion = 0, flag = wx.ALL,
                                 border = EcceGlobals.BorderDefault)
@@ -400,8 +422,42 @@ class EccePanel(wx.Panel):
                                 proportion = EcceGlobals.ProportionDefault,
                                 flag = EcceGlobals.FlagDefault, border = 0)
             
-        self.panelSizer.Add(buttonSizer, border = 0)
+        self.footerSizer.Add(buttonSizer, border = 0)
         self.FinalizeSetting()
+
+
+    def FitToScreen(self):
+        """Size the settings area to its content, but to no more than the
+        display leaves above the footer; scroll the rest."""
+        frame = self.GetParent()
+        index = wx.Display.GetFromWindow(frame)
+        area = wx.Display(index if index != wx.NOT_FOUND else 0).GetClientArea()
+        footer = self.footer.GetSizer().GetMinSize()
+        # A scrolled window's natural size is its sizer's, not its own.
+        natural = self.panelSizer.GetMinSize()
+
+        capHeight = area.height - self.TitleReserve - footer.y
+        bar = wx.SystemSettings.GetMetric(wx.SYS_VSCROLL_X)
+        width, height = natural.x, natural.y
+        if height > capHeight:
+            height = capHeight
+            width += bar
+        width = min(max(width, footer.x), area.width)
+        self.SetMinSize(wx.Size(width, height))
+        self.SetupScrolling(scroll_x = False, scroll_y = True,
+                            rate_y = 10, scrollToTop = False)
+        frame.Layout()
+
+
+    def Fit(self):
+        # The panel's size follows the frame's here; asking the frame
+        # to refit is what a change in content needs.
+        if hasattr(self, "footer"):
+            self.FitToScreen()
+            self.GetParent().Fit()
+            self.GetParent().SendSizeEvent()
+        else:
+            wx.lib.scrolledpanel.ScrolledPanel.Fit(self)
 
 
     def OnChanges(self, event):

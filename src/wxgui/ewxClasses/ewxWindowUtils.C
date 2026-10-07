@@ -36,6 +36,12 @@ extern "C" {
 #include "dsm/ResourceTool.H"
 
 #include "wxgui/ewxWindowUtils.H"
+#include "wxgui/ewxScrolledWindow.H"
+#include "wx/display.h"
+#include "wx/statline.h"
+#include <vector>
+#include <map>
+#include <algorithm>
 #include "wxgui/ewxTextCtrl.H"
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxUnitHelper.H"
@@ -407,3 +413,352 @@ void ewxWindowUtils::setCustomDisabledStyle(wxWindow *win, bool enabled)
 
 }
 
+
+
+
+//  ---- small screens (#189) ------------------------------------------------
+
+namespace {
+
+//  What a window manager adds above the client area and a panel may take
+//  below it.  The decoration cannot be told from the menu bar in
+//  GetSize() - GetClientSize(), nor measured before the window is mapped, so
+//  this is always reserved on top of what is measured.
+const int TITLE_RESERVE = 36;
+
+wxRect displayArea(wxWindow *win)
+{
+  int idx = wxDisplay::GetFromWindow(win);
+  return wxDisplay((unsigned)(idx == wxNOT_FOUND ? 0 : idx)).GetClientArea();
+}
+
+
+void collectWindows(wxSizer *sizer, std::vector<wxWindow*>& out)
+{
+  for (wxSizerItemList::compatibility_iterator n =
+         sizer->GetChildren().GetFirst(); n; n = n->GetNext()) {
+    wxSizerItem *item = n->GetData();
+    if (item->IsWindow()) {
+      out.push_back(item->GetWindow());
+    } else if (item->IsSizer()) {
+      wxSizer *child = item->GetSizer();
+      wxStaticBoxSizer *box = dynamic_cast<wxStaticBoxSizer*>(child);
+      if (box != NULL)
+        out.push_back(box->GetStaticBox());
+      collectWindows(child, out);
+    }
+  }
+}
+
+
+bool isButtonRow(wxSizerItem *item)
+{
+  std::vector<wxWindow*> windows;
+  if (item->IsWindow())
+    windows.push_back(item->GetWindow());
+  else if (item->IsSizer())
+    collectWindows(item->GetSizer(), windows);
+
+  bool buttons = false;
+  for (size_t i = 0; i < windows.size(); i++) {
+    if (dynamic_cast<wxAnyButton*>(windows[i]) != NULL)
+      buttons = true;
+    else if (dynamic_cast<wxStaticLine*>(windows[i]) == NULL &&
+             dynamic_cast<wxStaticText*>(windows[i]) == NULL)
+      return false;
+  }
+  return buttons;
+}
+
+
+//  A vertical sizer's closing row of buttons, with the few things the app
+//  puts under it (a rule, a status line), as a sizer of their own.  NULL
+//  when there is no such row; the content is then scrolled whole.
+wxSizer *detachButtonTail(wxSizer *sizer)
+{
+  wxBoxSizer *box = dynamic_cast<wxBoxSizer*>(sizer);
+  if (box == NULL || box->GetOrientation() != wxVERTICAL)
+    return NULL;
+
+  std::vector<wxSizerItem*> items;
+  for (wxSizerItemList::compatibility_iterator n =
+         box->GetChildren().GetFirst(); n; n = n->GetNext())
+    items.push_back(n->GetData());
+
+  const size_t TAIL = 4;
+  size_t first = items.size();
+  for (size_t i = items.size(); i-- > 0 && items.size() - i <= TAIL; ) {
+    if (isButtonRow(items[i])) {
+      first = i;
+      break;
+    }
+  }
+  //  Never the whole content: something has to scroll.
+  if (first >= items.size() || first == 0)
+    return NULL;
+
+  wxBoxSizer *tail = new wxBoxSizer(wxVERTICAL);
+  for (size_t i = first; i < items.size(); i++) {
+    wxSizerItem *it = items[i];
+    if (it->IsWindow()) {
+      wxWindow *w = it->GetWindow();
+      int prop = it->GetProportion(), flag = it->GetFlag(), border = it->GetBorder();
+      box->Detach(w);
+      tail->Add(w, prop, flag, border);
+    } else if (it->IsSizer()) {
+      wxSizer *c = it->GetSizer();
+      int prop = it->GetProportion(), flag = it->GetFlag(), border = it->GetBorder();
+      box->Detach(c);
+      tail->Add(c, prop, flag, border);
+    } else {
+      wxSize sz = it->GetSize();
+      box->Detach((int)first);
+      tail->Add(sz.x, sz.y);
+    }
+  }
+  return tail;
+}
+
+
+//  Scrolls the window's content.  Its natural size is read from the content
+//  sizer (a scrolled window's own best size is the size it was created
+//  with) and clamped to what is left of the display above the fixed row.
+class FitScroller : public ewxScrolledWindow
+{
+public:
+  FitScroller(wxTopLevelWindow *top)
+    : ewxScrolledWindow(top, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                        wxHSCROLL|wxVSCROLL|wxNO_BORDER|wxTAB_TRAVERSAL),
+      p_top(top), p_row(NULL)
+  {
+    SetScrollRate(10, 10);
+  }
+
+  void setRow(wxSizer *row) { p_row = row; }
+
+protected:
+  virtual wxSize DoGetBestSize() const
+  {
+    wxSize want = GetSizer() ? GetSizer()->GetMinSize() : wxSize(0, 0);
+    wxSize cap = ewxWindowUtils::clientCapForDisplay(p_top);
+    cap.y -= p_row ? p_row->GetMinSize().y : 0;
+
+    const int bar = wxSystemSettings::GetMetric(wxSYS_VSCROLL_X);
+    wxSize best = want;
+    if (want.y > cap.y) {
+      best.y = cap.y;
+      best.x += bar;
+    }
+    if (best.x > cap.x) {
+      best.x = cap.x;
+      if (want.y <= cap.y)
+        best.y = wxMin(want.y + bar, cap.y);
+    }
+    return best;
+  }
+
+private:
+  wxTopLevelWindow *p_top;
+  wxSizer *p_row;
+};
+
+
+FitScroller *findScroller(wxWindow *win)
+{
+  wxWindowList& kids = win->GetChildren();
+  for (wxWindowList::compatibility_iterator n = kids.GetFirst(); n;
+       n = n->GetNext()) {
+    FitScroller *s = dynamic_cast<FitScroller*>(n->GetData());
+    if (s != NULL)
+      return s;
+  }
+  return NULL;
+}
+
+
+//  Move the window's content, and the windows its sizer manages, into a
+//  scroller; the fixed row's windows stay in the window.
+FitScroller *wrapContent(wxTopLevelWindow *win, wxSizer *content,
+                         wxSizer *fixedRow)
+{
+  std::vector<wxWindow*> keep;
+  if (fixedRow != NULL)
+    collectWindows(fixedRow, keep);
+
+  std::vector<wxWindow*> move;
+  collectWindows(content, move);
+
+  FitScroller *scroller = new FitScroller(win);
+  scroller->setRow(fixedRow);
+  win->SetSizer(NULL, false);
+
+  for (size_t i = 0; i < move.size(); i++) {
+    if (move[i]->GetParent() == win &&
+        std::find(keep.begin(), keep.end(), move[i]) == keep.end())
+      move[i]->Reparent(scroller);
+  }
+  scroller->SetSizer(content);
+
+  wxBoxSizer *outer = new wxBoxSizer(wxVERTICAL);
+  //  Proportion 1 for the part that may shrink: a proportion-0 item would
+  //  keep its whole natural height whatever the window offers (#187).
+  outer->Add(scroller, 1, wxEXPAND);
+  if (fixedRow != NULL)
+    outer->Add(fixedRow, 0, wxEXPAND);
+  win->SetSizer(outer);
+  return scroller;
+}
+
+
+//  A window can leave the display after it is shown: its content is loaded,
+//  the toolkit places it, a preference restores a size.  Every size change
+//  is checked, once the event is over, and put right.
+struct Watch
+{
+  bool pending;
+  int tries;
+  Watch() : pending(false), tries(0) {}
+};
+
+std::map<wxTopLevelWindow*, Watch> g_watched;
+
+bool outsideDisplay(wxTopLevelWindow *win)
+{
+  if (!win->IsShown() || win->IsMaximized() || win->IsFullScreen())
+    return false;
+
+  wxSize cap = ewxWindowUtils::clientCapForDisplay(win);
+  wxSize client = win->GetClientSize();
+  if (client.x > cap.x || client.y > cap.y)
+    return true;
+
+  wxRect area = displayArea(win);
+  wxPoint pos = win->GetPosition();
+  wxSize size = win->GetSize();
+  return pos.x < area.x || pos.y < area.y ||
+         pos.x + size.x > area.x + area.width ||
+         pos.y + size.y + TITLE_RESERVE > area.y + area.height;
+}
+
+
+void watch(wxTopLevelWindow *win)
+{
+  if (g_watched.find(win) != g_watched.end())
+    return;
+  g_watched[win] = Watch();
+
+  win->Bind(wxEVT_DESTROY, [win](wxWindowDestroyEvent& e) {
+    if (e.GetEventObject() == win)
+      g_watched.erase(win);
+    e.Skip();
+  });
+  win->Bind(wxEVT_SIZE, [win](wxSizeEvent& e) {
+    e.Skip();
+    std::map<wxTopLevelWindow*, Watch>::iterator it = g_watched.find(win);
+    if (it == g_watched.end() || it->second.pending)
+      return;
+    if (!outsideDisplay(win)) {
+      it->second.tries = 0;
+      return;
+    }
+    //  A window that will not obey (a minimum size larger than the display)
+    //  must not be chased for ever.
+    if (it->second.tries >= 3)
+      return;
+    it->second.pending = true;
+    it->second.tries++;
+    win->CallAfter([win]() {
+      std::map<wxTopLevelWindow*, Watch>::iterator w = g_watched.find(win);
+      if (w == g_watched.end())
+        return;
+      w->second.pending = false;
+      ewxWindowUtils::fitToDisplay(win);
+    });
+  });
+}
+
+} // namespace
+
+
+wxSize ewxWindowUtils::clientCapForDisplay(wxTopLevelWindow *win)
+{
+  wxRect area = displayArea(win);
+  wxSize frame = win->GetSize() - win->GetClientSize();
+  wxSize cap(area.width - frame.x,
+             area.height - frame.y - TITLE_RESERVE);
+  if (cap.x <= 0)
+    cap.x = area.width;
+  if (cap.y <= 0)
+    cap.y = area.height;
+  return cap;
+}
+
+
+void ewxWindowUtils::keepOnDisplay(wxTopLevelWindow *win)
+{
+  wxRect area = displayArea(win);
+  wxPoint pos = win->GetPosition();
+  wxSize size = win->GetSize();
+  size.y += TITLE_RESERVE;
+
+  int x = wxMax(area.x, wxMin(pos.x, area.x + area.width - size.x));
+  int y = wxMax(area.y, wxMin(pos.y, area.y + area.height - size.y));
+  if (x != pos.x || y != pos.y)
+    win->Move(x, y);
+}
+
+
+void ewxWindowUtils::fitToDisplay(wxTopLevelWindow *win, wxSizer *fixedRow)
+{
+  if (win == NULL)
+    return;
+
+  watch(win);
+  wxSize cap = clientCapForDisplay(win);
+  FitScroller *scroller = findScroller(win);
+  wxSizer *sizer = win->GetSizer();
+
+  //  A minimum size the app set for a roomier screen is the content's
+  //  natural size, and would keep the window off the display whatever is
+  //  asked of it.
+  wxSize least = win->GetMinClientSize();
+
+  if (scroller == NULL && sizer != NULL) {
+    wxSize natural = sizer->GetMinSize();
+    natural.x = wxMax(natural.x, least.x);
+    natural.y = wxMax(natural.y, least.y);
+    if (natural.x > cap.x || natural.y > cap.y) {
+      //  The content sizer is detached from the window here, so what it
+      //  holds is split before it is wrapped.
+      if (fixedRow == NULL)
+        fixedRow = detachButtonTail(sizer);
+      else
+        sizer->Detach(fixedRow);
+      sizer->SetMinSize(wxSize(
+        least.x, wxMax(0, least.y - (fixedRow ? fixedRow->GetMinSize().y : 0))));
+      scroller = wrapContent(win, sizer, fixedRow);
+    }
+  }
+
+  if (least.x > cap.x || least.y > cap.y)
+    win->SetMinClientSize(wxSize(least.x > cap.x ? cap.x : least.x,
+                                 least.y > cap.y ? cap.y : least.y));
+
+  wxSize client = win->GetClientSize();
+  wxSize target(wxMin(client.x, cap.x), wxMin(client.y, cap.y));
+  if (scroller != NULL) {
+    scroller->InvalidateBestSize();
+    win->GetSizer()->Layout();
+    wxSize fit = win->GetSizer()->GetMinSize();
+    win->SetMinClientSize(fit);
+    target = wxSize(wxMin(wxMax(client.x, fit.x), cap.x),
+                    wxMin(wxMax(client.y, fit.y), cap.y));
+  }
+  if (target != client)
+    win->SetClientSize(target);
+
+  win->Layout();
+  if (scroller != NULL)
+    scroller->FitInside();
+  keepOnDisplay(win);
+}
