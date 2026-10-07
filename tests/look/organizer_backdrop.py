@@ -31,6 +31,13 @@ def launch(display, wrapper, args, extra):
                             stderr=subprocess.DEVNULL, start_new_session=True)
 
 
+def find(display, part):
+    for wid, title in display.windows():
+        if part in (title or ""):
+            return wid
+    return None
+
+
 def grab(display, path):
     if subprocess.run(["import", "-display", display.name, "-window", "root",
                        path], stderr=subprocess.DEVNULL).returncode == 0:
@@ -60,25 +67,26 @@ def main():
             time.sleep(12)
             capture.dismissAuth(display)
             time.sleep(10)
-            wid = capture.windowId(display, "ECCE Organizer")
+            wid = find(display, "Organizer")
             if wid:
                 xdo(display, "windowmove", wid, "0", "0")
                 xdo(display, "windowsize", wid, "1000", "700")
             other = launch(display, "ecce-pertable", [], {})
             time.sleep(8)
-            pid = capture.windowId(display, "Periodic Table") or \
-                capture.windowId(display, "ECCE Periodic Table")
+            pid = find(display, "Periodic")
             if pid:
                 xdo(display, "windowmove", pid, "1020", "0")
                 xdo(display, "windowfocus", pid)
             time.sleep(3)
+            print([t for _, t in display.windows()])
             print(name, grab(display, os.path.join(out, name + ".png")),
                   "organizer" if wid else "NO ORGANIZER",
                   "pertable" if pid else "no pertable")
             for p in (other, org):
                 p.terminate()
             time.sleep(3)
-        os.unlink(auth)
+        if os.path.exists(auth):
+            os.unlink(auth)
         apps.stopServices(display)
     return 0
 
