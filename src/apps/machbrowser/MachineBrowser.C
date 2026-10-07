@@ -50,6 +50,7 @@
 #include "wxgui/ewxPanel.H"
 #include "wxgui/ewxTextCtrl.H"
 
+#include <wx/timer.h>
 #include "MachineBrowser.H"
 
 
@@ -211,6 +212,18 @@ void MachineBrowser::createControls()
 
     this->Fit();
     this->SetAutoLayout(true);
+
+    //  tests/apps/clip_test.py: show the labels a selected, not set up
+    //  machine gives them, before the window is audited.
+    if (getenv("ECCE_CLIP_AUDIT") != 0) {
+        wxTimer *timer = new wxTimer();   // lives until the process exits
+        timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+            p_machRgstnLabel->SetLabel("mine.example.net");
+            p_modeDscpnLabel->SetLabel("(Not Setup for Access)");
+            Layout();
+        });
+        timer->StartOnce(2000);
+    }
 }
 
 
