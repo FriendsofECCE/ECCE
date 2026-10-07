@@ -5153,6 +5153,8 @@ void Builder::updatePropertyMenus()
             cube->selectGrid(atoi(w[2].c_str()), atof(w[3].c_str()));
           });
         }
+        //  "gt...": the Geometry Trace stress commands (#217).
+        if (w[0].compare(0, 2, "gt") == 0) return traceStressCommand(s, w);
         if ((w[0] != "mopanel" && w[0] != "motable") || w.size() != 2)
           return s.fail("unknown command: " + w[0]);
         MoPanel *mo = 0;
