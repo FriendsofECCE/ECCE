@@ -98,7 +98,9 @@ int main(int argc, char **argv)
     for (auto& c : calcs) {
       Resource *calc = proj && calcType ? proj->createChild(c.name, calcType) : 0;
       ICalculation *icalc = dynamic_cast<ICalculation*>(calc);
-      check(icalc != 0, string("Gaussian-16 calculation ") + c.name + " created");
+      check(icalc != 0, string("Gaussian-16 calculation ") + c.name + " created",
+            !top ? "no top" : !projType ? "no project type" : !proj ? "no project"
+            : !calcType ? "no Gaussian-16 type" : "createChild failed");
       if (!icalc) return 1;
       Fragment frag(c.name, tags, c.xyz, 2, bonds);
       frag.pointGroup(c.group);

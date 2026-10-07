@@ -1984,7 +1984,7 @@ def apacheProcs():
     return found
 
 
-def makeLocalCalculation(env, home, data, mode="create"):
+def makeLocalCalculation(env, home, data, mode="create", user=None):
     """A project and an NWChem calculation made through the real classes
     (Resource::createChild, as the Organizer's New menu does), by
     tests/filedsi/resourceTest, into the user's folder of the local data.
@@ -2000,7 +2000,7 @@ def makeLocalCalculation(env, home, data, mode="create"):
     built = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     if built.returncode != 0:
         return built.stdout.decode()[-1500:]
-    user = os.path.join(data, "users", getpass.getuser())
+    user = user or os.path.join(data, "users", getpass.getuser())
     run_env = dict(env, ECCE_HOME=home, ECCE_LOCAL_DATA=data,
                    ECCE_REALUSER=getpass.getuser(),
                    ECCE_NO_MESSAGING="1")     # no session to tell
@@ -2555,9 +2555,10 @@ def caseLocalUseSymmetry(checks, display, logdir):
     data = os.path.join(state, "localdata-usesym")
     shutil.rmtree(data, ignore_errors=True)
     home = localHome(os.environ["ECCE_HOME"])
-    user = os.path.join(data, "users", getpass.getuser())
+    #  LocalData::userHome(): a fixed folder name, not the account's.
+    user = os.path.join(data, "users", "local")
     os.makedirs(user)
-    problem = makeLocalCalculation(display.env(), home, data, "g16")
+    problem = makeLocalCalculation(display.env(), home, data, "g16", user)
     if not checks.check(problem is None, "Gaussian-16 water calculations "
                         "created"):
         say("    " + (problem or ""))
