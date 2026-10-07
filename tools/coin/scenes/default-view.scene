@@ -1,0 +1,12 @@
+# The default view of a molecule (#227): Ball And Wireframe, element colours,
+# the viewer's own background unless @BG@ is white.  @SYS@, @STYLE@, @ROT@, @BG@
+# are substituted by hand.
+labels none
+@BG@
+style @STYLE@
+viewall
+rotate @ROT@
+viewall
+snap warm
+snap warm
+snap @SYS@-@TAG@
