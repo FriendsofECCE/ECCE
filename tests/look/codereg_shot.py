@@ -28,6 +28,8 @@ CASES = {
     "mopac": ("mopactheory.py", "mopacruntype.py", "SE", "RPM7", "Energy"),
     "qe": ("qetheory.py", "qeruntype.py", "PW", "PW", "Energy"),
     "gromacs": ("gromacstheory.py", "gromacsruntype.py", "MD", "MD", "Energy"),
+    # ECCE-QM has no runtype dialog
+    "ecceqm": ("ecceqmtheory.py", None, "DFT", "DFT", "Energy"),
 }
 
 INNER = r'''
@@ -97,6 +99,8 @@ def main():
             for code in o.codes.split(","):
                 th, rt, cat, theory, run = CASES[code]
                 for kind, script in (("theory", th), ("runtype", rt)):
+                    if script is None:
+                        continue
                     png = os.path.join(o.outdir, "%s-%s-%s-%s.png"
                                        % (o.tag, code, kind, theme))
                     restore = os.path.join(work, "restore.in")

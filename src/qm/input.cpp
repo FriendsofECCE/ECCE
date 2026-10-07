@@ -19,6 +19,8 @@ Input parse_input(std::istream& in) {
   std::string method = "hf";
   int lineno = 0;
   std::vector<std::string> geom_lines;
+  bool in_basis = false;
+  ShellDef* cur_shell = nullptr;
   while (std::getline(in, line)) {
     ++lineno;
     auto h = line.find('#');
@@ -33,6 +35,28 @@ Input parse_input(std::istream& in) {
       geom_lines.push_back(line);
       continue;
     }
+    if (in_basis) {
+      if (k == "end") { in_basis = false; cur_shell = nullptr; continue; }
+      if (k == "shell") {
+        std::string el, letter;
+        if (!(ss >> el >> letter) || letter.size() != 1) throw bad("shell needs an element and one angular momentum letter");
+        const std::string ls = "spdfghi";
+        auto l = ls.find(static_cast<char>(std::tolower(static_cast<unsigned char>(letter[0]))));
+        if (l == std::string::npos) throw bad("unknown shell type '" + letter + "'");
+        auto& v = r.explicit_basis[atomic_number(el)];
+        v.emplace_back();
+        cur_shell = &v.back();
+        cur_shell->l = static_cast<int>(l);
+        continue;
+      }
+      double e, c;
+      std::stringstream row(line);
+      if (!cur_shell || !(row >> e >> c)) throw bad("expected 'shell <El> <L>' or an 'exponent coefficient' row");
+      cur_shell->exps.push_back(e);
+      cur_shell->coefs.push_back(c);
+      continue;
+    }
+    if (k == "basis_data") { in_basis = true; continue; }
     if (k == "geometry") { in_geom = true; continue; }
     std::string rest;
     std::getline(ss, rest);

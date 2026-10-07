@@ -29,6 +29,12 @@ for mol, ref in (("c2", "r"), ("o2", "ro"), ("he2", "r"), ("hf", "r"), ("co", "r
 CASES += [("o2", "def2-SVP", "hf", "ro"), ("o2", "def2-SVP", "hf", "u"), ("o2", "def2-SVP", "b3lyp", "u"),
           ("h2o", "def2-SVP", "svwn", "r"), ("h2o", "def2-SVP", "pbe0", "r")]
 
+# The fixed basis list of the ECCE-QM code also has 3-21G and cc-pVDZ.
+for mol in ("h2o", "co"):
+    for basis in ("3-21G", "cc-pVDZ"):
+        for method in ("hf", "b3lyp"):
+            CASES.append((mol, basis, method, "r"))
+
 def case_name(c):
     return "%s_%s_%s_%s" % (c[0], c[1].replace("*", "s").lower(), c[2], c[3])
 

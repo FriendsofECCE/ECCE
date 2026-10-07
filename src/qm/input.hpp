@@ -12,10 +12,16 @@
 //   grid <nradial> <nangular>    DFT grid, default 99 590
 //   units <angstrom|bohr>        geometry units, default angstrom
 //   maxiter <n>, conv_energy <x>, conv_grad <x>
+//   basis_data ... end           explicit basis, replaces the library file:
+//                                "shell <El> <S|P|D|F|G|H|I>" then one
+//                                "exponent coefficient" row per primitive
 //   geometry ... end             one atom per line: symbol x y z
 #pragma once
 #include <iosfwd>
+#include <map>
 #include <string>
+#include <vector>
+#include "basislib.hpp"
 #include "molecule.hpp"
 #include "scf.hpp"
 
@@ -28,6 +34,8 @@ struct Input {
   int spherical = 1;     // 1 spherical, 0 Cartesian
   ScfOptions scf;
   bool molden = false;
+  // Z -> shells from a basis_data block (empty: use the library).
+  std::map<int, std::vector<ShellDef>> explicit_basis;
 };
 
 Input parse_input(std::istream& in);

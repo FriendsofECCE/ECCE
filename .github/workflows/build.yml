@@ -82,7 +82,7 @@ jobs:
             libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
             libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
             libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git dpkg-dev file libssh-dev libssl-dev \
-            python3 libcoin-dev libegl-dev
+            python3 libcoin-dev libegl-dev libxc-dev libeigen3-dev
 
       - uses: actions/checkout@v4
 
@@ -147,7 +147,7 @@ jobs:
             libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
             libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
             libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git dpkg-dev libssh-dev libssl-dev \
-            python3 libcoin-dev libegl-dev
+            python3 libcoin-dev libegl-dev libxc-dev libeigen3-dev
 
       - name: Configure
         run: cmake -G Ninja -B build-cmake -DECCE_REQUIRE_LIBSSH=ON
@@ -237,7 +237,7 @@ jobs:
             mesa-libGL-devel mesa-libGLU-devel \
             gtk3-devel libX11-devel libICE-devel libXt-devel libjpeg-turbo-devel \
             mosquitto-devel apr-util-devel mosquitto libssh-devel openssl-devel \
-            Coin4-devel mesa-libEGL-devel python3
+            Coin4-devel mesa-libEGL-devel python3 libxc-devel eigen3-devel
 
       - name: Check out source
         run: |

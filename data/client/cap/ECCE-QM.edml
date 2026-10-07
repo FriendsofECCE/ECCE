@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+   ECCE-QM: the small HF/DFT engine bundled with ECCE (src/qm, program
+   ecce-qm), for teaching-size molecules.  Runs on the machine ECCE runs
+   on; there is nothing to install or register.
+
+   Kept deliberately small, because it is for students: HF and DFT
+   (SVWN, PBE, B3LYP, PBE0), Energy only so far (to add Opt, add its
+   runtype to the theories below, teach ai.ecceqm's RunType() and the
+   input format a gradient step), and a fixed list of basis sets chosen
+   from the Calculation Editor's quick-pick menu.  The Basis Set Tool is
+   not used.
+
+   The code's name, ECCE-QM, appears here (the file name), in
+   ResourceDescriptor*.xml, the machine lists (siteconfig/Machines),
+   RefMachine.C's bundledCode(), scripts/gensub and the mimetypes.
+
+   Orbitals come from ecce-qm's own output (scripts/parsers/ecceqm.parse),
+   columns in ECCE's order (atoms, then shells sorted by angular momentum);
+   MOOrdering below gives the order within a shell, taken from libcint's
+   real harmonics by fitting each function to monomials, and checked by
+   trace(P S) equal to the electron count.
+-->
+
+<appdescriptor>
+
+<GaussianBasisSetRules>
+  <MaxLValue>4</MaxLValue>
+  <ECPS>False</ECPS>
+  <GeneralContractions>False</GeneralContractions>
+  <PreferOptimization>	True</PreferOptimization>
+  <MaxPrimitives>100 100 100 100 100 100</MaxPrimitives>
+  <MaxSharedExponent>      1 </MaxSharedExponent>
+  <SphericalCoordinates>	True </SphericalCoordinates>
+  <DFTFitting>		False</DFTFitting>
+  <RecommendDFTCharge>	False </RecommendDFTCharge>
+  <RequireFullDFT>         False </RequireFullDFT>
+  <MaxTotalFunctions>	500</MaxTotalFunctions>
+  <MaxTotalPrimitives>	7500</MaxTotalPrimitives>
+  <MultipleOrbitals>	false</MultipleOrbitals>
+  <LibraryNames>	False</LibraryNames>
+  <AllowMultipleOrbitals>False</AllowMultipleOrbitals>
+</GaussianBasisSetRules>
+
+<SupportsConstraints>false</SupportsConstraints>
+
+<!-- Per-code switch for the MO correlation diagram.  The students of the
+     course this engine was written for are meant to construct the diagram
+     themselves, so it is not offered; the MO list, energies, occupations
+     and orbital pictures are.  Delete the line (or say true) to lift it. -->
+<SupportsMODiagram>false</SupportsMODiagram>
+
+<!-- Cartesian orbitals are not offered (the engine takes spherical
+     d and f), so this table is never read. -->
+<MOOrdering type="cartesian" >
+   <lshell lval="0" a1="1"></lshell>
+   <lshell lval="1" a1="x" a2="y" a3="z"></lshell>
+   <lshell lval="2" a1="xx" a2="yy" a3="zz" a4="xy" a5="xz"
+    a6="yz"></lshell>
+   <lshell lval="3" a1="xxx" a2="yyy" a3="zzz" a4="xyy" a5="xxy" a6="xxz"
+    a7="xzz" a8="yzz" a9="yyz" a10="xyz"></lshell>
+   <lshell lval="4" a1="zzzz" a2="yzzz" a3="yyzz" a4="yyyz" a5="yyyy"
+    a6="xzzz" a7="xyzz" a8="xyyz" a9="xyyy" a10="xxzz"
+    a11="xxyz" a12="xxyy" a13="xxxz" a14="xxxy"
+    a15="xxxx"></lshell>
+</MOOrdering>
+
+<!-- libcint's real solid harmonics, m = -l .. +l.  p is x y z; d is
+     xy yz z2 xz x2-y2; f is y(3x2-y2) xyz y(4z2-x2-y2) z(2z2-3x2-3y2)
+     x(4z2-x2-y2) z(x2-y2) x(x2-3y2).  Each function's own scale is
+     irrelevant, its signs and ratios are not. -->
+<MOOrdering type="spherical" >
+   <lshell lval="0" a1="1"></lshell>
+   <lshell lval="1" a1="x" a2="y" a3="z"></lshell>
+   <lshell lval="2" a1="xy" a2="yz" a3="-xx/2-yy/2+zz" a4="xz"
+    a5="xx/2-yy/2"></lshell>
+   <lshell lval="3" a1="3xxy/2-yyy/2" a2="xyz" a3="-xxy/2-yyy/2+2yzz"
+    a4="-3xxz/2-3yyz/2+zzz" a5="-xxx/2-xyy/2+2xzz" a6="xxz/2-yyz/2"
+    a7="xxx/2-3xyy/2"></lshell>
+</MOOrdering>
+
+<!-- The basis sets the Calculation Editor offers (its quick-pick menu,
+     in this order), and the one a new calculation starts with.  The Basis
+     Set Tool is hidden for this code.  One list, here. -->
+<Editor theorydialog="ecceqmtheory.py"
+        basisSetPicks="STO-3G,3-21G,6-31G*,cc-pVDZ,def2-SVP"
+        basisSetDefault="6-31G*"
+        basisSetToolHidden="true">
+  <!-- DFT first: a new calculation starts as B3LYP. -->
+  <Theory category="DFT" name="DFT">
+    <runtype>Energy</runtype>
+  </Theory>
+  <Theory category="SCF" name="HF">
+    <runtype>Energy</runtype>
+  </Theory>
+
+  <TheorySummary>
+    <item key="ES.Theory.DFT.XCFunctionals" label="DFT Functional"></item>
+  </TheorySummary>
+</Editor>
+
+<DataFiles>
+  <Input   type="primary" mimetype="chemical/x-ecceqm-input" comment="true" commentstring="#">ecceqm.qmin</Input>
+  <Output type="primary" mimetype="chemical/x-ecceqm-output">ecceqm.qmout</Output>
+  <Output type="parse" verifypattern="program ecce-qm" mimetype="chemical/x-ecceqm-output">ecceqm.qmout</Output>
+</DataFiles>
+
+<IntegrationFiles>
+  <Template>ecceqm.tpl</Template>
+  <InputGenerator>ai.ecceqm</InputGenerator>
+  <Importer>ECCE-QM.expt</Importer>
+  <ParseSpecification>ecceqm.desc</ParseSpecification>
+  <BasisTranslationScript>std2ECCEQM</BasisTranslationScript>
+  <LaunchPreprocessor>ecceqm.launchpp</LaunchPreprocessor>
+</IntegrationFiles>
+
+</appdescriptor>

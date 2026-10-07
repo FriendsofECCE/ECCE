@@ -112,6 +112,8 @@ public:
     // What the Launcher offers: the Machines line lists the code, or the
     // site or user CONFIG.<refname> gives it a path.
     bool offersCode(const string& code) const;
+    /// True for a code ECCE ships (ECCE-QM) on the machine named localhost.
+    static bool bundledCode(const string& code, const string& refname);
 
     static RefMachine* refLookup(const string& refname);
     static RefMachine* fullLookup(const string& fullname);

@@ -31,6 +31,7 @@ int main(int argc, char** argv) {
     qm::Input in = qm::parse_input_file(inp);
     in.scf.verbose = verbose;
     qm::BasisLibrary lib(bdir);
+    for (auto& kv : in.explicit_basis) lib.set_explicit(kv.first, kv.second);
     qm::Basis basis(in.mol, lib, in.basis, in.spherical);
     auto t0 = std::chrono::steady_clock::now();
     qm::ScfResult r = qm::run_scf(basis, in.mol, in.scf);

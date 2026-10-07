@@ -1876,6 +1876,15 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_panel_layouts PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # The Builder on an ECCE-QM calculation (fixture from the bundled engine):
+  # MOs panel present, MO Diagram not offered; an ORCA calculation as control.
+  add_test(NAME apps_ecceqm_builder
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/ecceqm_builder_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_ecceqm_builder PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # Every app's main window and every codereg Theory/Runtype dialog fits a
   # small screen (#189): measured on private Xvfb screens, no window may
   # extend past the screen.  Same installed tree and isolation as `apps`.
@@ -2119,6 +2128,16 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR} --local
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_local PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # ECCE-QM, the bundled engine: water and triplet O2 created, run through
+  # Launch in a local data folder, energies against ORCA, MOs normalised.
+  if(ECCE_BUILD_QM)
+    add_test(NAME launch_ecceqm
+             COMMAND ${PYTHON3_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/ecceqm_test.py
+                     --build ${CMAKE_BINARY_DIR}
+             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+    set_tests_properties(launch_ecceqm PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  endif()
   # An 8.x eccejobmaster exports ECCE_TRANSPORT=pty; it must be ignored.
   add_test(NAME launch_legacy_transport
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -2275,10 +2294,13 @@ if(PYTHON3_EXECUTABLE)
   endforeach()
 endif()
 
-# ecce-qm: the small built-in HF/DFT engine (src/qm).  Off by default: it
-# downloads libcint, libxc (unless the system has it) and Eigen at configure
-# time.  See docs/qm/README.md.
-option(ECCE_BUILD_QM "Build ecce-qm, the built-in HF/DFT engine" OFF)
+# ecce-qm: the small built-in HF/DFT engine (src/qm), registered as the code
+# "ECCE-QM" (data/client/cap/ECCE-QM.edml).  On by default, in every package.
+# It fetches libcint (always), and libxc and Eigen unless the system has them
+# (Debian: libxc-dev libeigen3-dev as build dependencies), at configure time.
+# See docs/qm/README.md.
+option(ECCE_BUILD_QM "Build ecce-qm, the built-in HF/DFT engine" ON)
 if(ECCE_BUILD_QM)
   add_subdirectory(src/qm)
+  install(TARGETS ecce-qm RUNTIME DESTINATION bin COMPONENT client)
 endif()

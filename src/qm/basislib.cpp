@@ -28,7 +28,9 @@ BasisLibrary::BasisLibrary(const std::string& dir) : dir_(dir) {
   cand.push_back(ECCE_QM_DEFAULT_BASIS_DIR);
   for (const auto& c : cand)
     if (!c.empty() && is_dir(c)) { dir_ = c; return; }
-  throw Error("basis library directory not found; set ECCE_BASIS_DIR or pass --basis-dir");
+  // Not an error yet: an input that carries its own basis (ECCE writes one)
+  // needs no library.  find_file() complains when one is asked for.
+  dir_.clear();
 }
 
 std::vector<std::string> BasisLibrary::expand_name(const std::string& name) {
@@ -60,6 +62,7 @@ static std::string norm_key(const std::string& s) {
 }
 
 std::string BasisLibrary::find_file(const std::string& base) const {
+  if (dir_.empty()) throw Error("basis library directory not found; set ECCE_BASIS_DIR or pass --basis-dir");
   std::string exact = dir_ + "/" + base + ".BAS";
   struct stat st;
   if (stat(exact.c_str(), &st) == 0) return exact;
@@ -132,10 +135,29 @@ const BasisLibrary::Table& BasisLibrary::load_file(const std::string& base) {
 std::vector<ShellDef> BasisLibrary::shells(const std::string& name, int Z) {
   std::vector<ShellDef> out;
   bool any = false;
+  if (!explicit_.empty()) {
+    auto e = explicit_.find(Z);
+    if (e == explicit_.end())
+      throw Error("basis '" + name + "' has no functions for element " + element_symbol(Z));
+    return e->second;
+  }
   auto files = expand_name(name);
   for (size_t i = 0; i < files.size(); ++i) {
     // Polarisation files omit light elements; the first file must cover Z.
     const Table& t = load_file(files[i]);
+    // A .POT file next to the .BAS lists the elements that come with an
+    // effective core potential (def2 beyond Kr); ecce-qm has none.
+    {
+      std::string pot = find_file(files[i]);
+      pot.replace(pot.size() - 3, 3, "POT");
+      std::ifstream pf(pot);
+      std::string pl, want = std::string("atom=") + element_symbol(Z);
+      while (pf && std::getline(pf, pl)) {
+        if (pl.compare(0, want.size(), want) == 0 && (pl.size() == want.size() || pl[want.size()] == ' '))
+          throw Error("basis '" + name + "' needs an effective core potential for " +
+                      element_symbol(Z) + ", which ecce-qm does not support");
+      }
+    }
     auto it = t.find(Z);
     if (it == t.end()) continue;
     any = true;

@@ -30,6 +30,12 @@ class BasisLibrary {
   // Shells of all files for element Z, in file order (s first within a file).
   std::vector<ShellDef> shells(const std::string& name, int Z);
 
+  // Explicit shells for element Z, used instead of a library file whenever
+  // shells() is asked for that element (ECCE writes the basis it has stored
+  // into the input, so a user-edited set is honoured).
+  void set_explicit(int Z, std::vector<ShellDef> shells) { explicit_[Z] = std::move(shells); }
+  bool has_explicit() const { return !explicit_.empty(); }
+
   const std::string& dir() const { return dir_; }
 
   // Files a name expands to ("6-31G*" -> {"6-31G", "6-31GS"}).
@@ -41,6 +47,7 @@ class BasisLibrary {
   std::string find_file(const std::string& base) const;
 
   std::string dir_;
+  std::map<int, std::vector<ShellDef>> explicit_;
   std::map<std::string, Table> cache_;
 };
 

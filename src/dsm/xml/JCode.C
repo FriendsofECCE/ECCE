@@ -698,6 +698,62 @@ bool JCode::getIrreducibleFragmentSupported(void) const
   return supportedFlag;
 }
 
+string JCode::getEditorAttribute(const string& name) const
+{
+  string result;
+  XMLCh *tmpStr = XMLString::transcode("Editor");
+  DOMNodeList *editorNodes = p_doc->getElementsByTagName(tmpStr);
+  delete [] tmpStr;
+  if (editorNodes == 0 || editorNodes->getLength() == 0) return result;
+
+  DOMElement *editorElem = (DOMElement *) editorNodes->item(0);
+  tmpStr = XMLString::transcode(name.c_str());
+  const XMLCh *value = editorElem->getAttribute(tmpStr);
+  delete [] tmpStr;
+  if (value != 0) {
+    char *cptr = XMLString::transcode(value);
+    result = cptr;
+    delete [] cptr;
+  }
+  return result;
+}
+
+vector<string> JCode::getBasisSetPicks(void) const
+{
+  vector<string> picks;
+  string list = getEditorAttribute("basisSetPicks");
+  string::size_type start = 0;
+  while (start <= list.size() && !list.empty()) {
+    string::size_type comma = list.find(',', start);
+    string item = list.substr(start, comma == string::npos ? string::npos
+                                                          : comma - start);
+    string::size_type b = item.find_first_not_of(" \t");
+    string::size_type e = item.find_last_not_of(" \t");
+    if (b != string::npos) picks.push_back(item.substr(b, e - b + 1));
+    if (comma == string::npos) break;
+    start = comma + 1;
+  }
+  return picks;
+}
+
+string JCode::getBasisSetDefault(void) const
+{
+  return getEditorAttribute("basisSetDefault");
+}
+
+bool JCode::getBasisSetToolHidden(void) const
+{
+  string v = getEditorAttribute("basisSetToolHidden");
+  return v == "true" || v == "TRUE" || v == "True";
+}
+
+bool JCode::supportsMODiagram(void) const
+{
+  bool supported = true;
+  get_bool("SupportsMODiagram", supported);
+  return supported;
+}
+
 bool JCode::getBasisSetQuickListSupported(void) const
 {
   bool supportedFlag = true;

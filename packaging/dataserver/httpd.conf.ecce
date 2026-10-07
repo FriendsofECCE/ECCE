@@ -234,6 +234,10 @@ AddType  chemical/x-gamessuk-output .gko
 AddType  chemical/x-orca-input  .orcain
 AddType  chemical/x-orca-output .orcaout
 
+# ECCE-QM, the bundled engine: distinctive extensions, as for ORCA above.
+AddType  chemical/x-ecceqm-input  .qmin
+AddType  chemical/x-ecceqm-output .qmout
+
 # MOPAC. Same reasoning as ORCA above, with one MOPAC-specific twist:
 # the input file has to be named ".mop" and nothing else, because MOPAC
 # derives its output file name by stripping a known extension out of the

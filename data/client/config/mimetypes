@@ -47,6 +47,8 @@ chemical/x-gamessuk-input                .gki
 chemical/x-gamessuk-output               .gko
 chemical/x-orca-input                    .orcain
 chemical/x-orca-output                   .orcaout
+chemical/x-ecceqm-input                  .qmin
+chemical/x-ecceqm-output                 .qmout
 chemical/x-mopac-input                   .mop
 chemical/x-mopac-output                  .mopout
 chemical/x-qe-input                      .pwin

@@ -101,6 +101,20 @@ class JCode
   bool getTheoryRunTypeEditorNames(string& theory, string& runtype) const;
   bool getIrreducibleFragmentSupported(void) const;
   bool getBasisSetQuickListSupported(void) const;
+
+  /// An attribute of the <Editor> element, "" when absent.
+  string getEditorAttribute(const string& name) const;
+  /// Basis sets the Calculation Editor offers in its quick-pick menu, from
+  /// the Editor attribute basisSetPicks (comma separated); empty = the
+  /// editor's built-in list.
+  vector<string> getBasisSetPicks(void) const;
+  /// Editor attribute basisSetDefault: the basis a new calculation starts with.
+  string getBasisSetDefault(void) const;
+  /// Editor attribute basisSetToolHidden="true": the code is not used with
+  /// the Basis Set Tool, only with the quick picks.
+  bool getBasisSetToolHidden(void) const;
+  /// Element SupportsMODiagram; true unless the code says false.
+  bool supportsMODiagram(void) const;
   bool theoryNeedsBasis(const TTheory& theory) const;
   bool theoryCategoryNeedsBasis(const string& theorycat) const;
 

@@ -387,6 +387,13 @@ class CalcEd: public CalcEdGUI,
     bool   p_hasInputFile;
 
     const static char* p_BASIS_QUICK_PICKS[];
+    /// The quick menu's entries for the current code (see CalcEd.C).
+    vector<string> quickPicks() const;
+    /// A code with a basisSetDefault (ECCE-QM) starts with that basis.
+    void applyDefaultBasis();
+    /// Message naming the elements the chosen basis does not cover, for a
+    /// code that only uses the quick picks; empty when it covers everything.
+    string uncoveredElementsMessage() const;
 
     // wxPython IPC for theory dialog
     int               p_theoryPid;

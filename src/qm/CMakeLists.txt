@@ -15,6 +15,9 @@ if(NOT CMAKE_PROJECT_NAME OR CMAKE_PROJECT_NAME STREQUAL "ecce_qm")
 endif()
 
 include(FetchContent)
+# Static dependencies built into ecce-qm; their headers and libraries are not
+# part of any package.
+set(CMAKE_SKIP_INSTALL_RULES ON)
 find_package(OpenMP COMPONENTS CXX)
 
 # --- Eigen (header only, MPL-2.0) ------------------------------------------
@@ -69,6 +72,8 @@ set(ENABLE_STATIC ON)
 set(WITH_RANGE_COULOMB OFF)
 set(BUILD_MARCH_NATIVE OFF)
 FetchContent_MakeAvailable(libcint)
+
+unset(CMAKE_SKIP_INSTALL_RULES)
 
 # --- the library and the command line tool ---------------------------------
 add_library(eccems STATIC

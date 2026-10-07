@@ -1,10 +1,10 @@
 # ecce-qm: the built-in HF/DFT engine (stage 1)
 
 A small quantum chemistry engine for teaching-size molecules (tens of atoms
-at most), meant to ship with ECCE so that a calculation needs no external
-code. Stage 1 (this directory tree) is single-point energies and orbitals.
-Planned: analytic gradients and geometry optimisation (stage 2), numerical
-Hessian, frequencies and IR (stage 3), ECCE registration as a code (stage 4).
+at most), shipped with ECCE so that a calculation needs no external code.
+Stage 1 is single-point energies and orbitals; stage 4 (below) registers it in
+ECCE as the code ECCE-QM. Planned: analytic gradients and geometry
+optimisation (stage 2), numerical Hessian, frequencies and IR (stage 3).
 
 Source `src/qm/` (library `eccems`, no wx; command line `ecce-qm`), tests
 `tests/qm/`.
@@ -15,7 +15,8 @@ Source `src/qm/` (library `eccems`, no wx; command line `ecce-qm`), tests
     cmake --build build-qm -j2
     ctest --test-dir build-qm             # qm_unit, qm_scf_quick, qm_scf
 
-or inside the ECCE build with `-DECCE_BUILD_QM=ON` (not yet exercised there).
+or inside the ECCE build, where `ECCE_BUILD_QM` is ON by default and
+`ecce-qm` is installed in the client package (`bin/ecce-qm`).
 
 | dependency | how | licence |
 |---|---|---|
@@ -122,3 +123,38 @@ agrees to 2e-8, Gaussian 16 C.01 (ultrafine grid) gives -76.271983, ORCA -76.272
 to ORCA grows with the number of electrons (1.4e-5 for water, 5.5e-5 for
 benzene); the tests therefore hold ORCA's PBE and PBE0 to 1e-4 and NWChem's to
 1e-6.
+
+## In ECCE: the code ECCE-QM
+
+The engine is registered as the code **ECCE-QM** (`data/client/cap/
+ECCE-QM.edml`; the wiring is listed in `docs/claude/codereg/
+ecce-qm-is-a-bundled-code.md`). A student chooses New ECCE-QM Calculation in the
+Organizer; the Calculation Editor offers
+
+* theory: DFT (the default) or HF, and for DFT the functional SVWN, PBE,
+  B3LYP (default) or PBE0 in Theory Details, which also has one tick for
+  unrestricted orbitals (UHF/UKS; open shells are otherwise restricted
+  open-shell, ROHF/ROKS);
+* run type: Energy;
+* basis set: STO-3G, 3-21G, 6-31G* (default), cc-pVDZ or def2-SVP from the
+  Basis Set menu (the Basis Set Tool is not used); an element a basis does not
+  cover, or that would need a core potential (def2 beyond Kr), is named before
+  launch;
+* charge and multiplicity as for any code.
+
+The job runs on `localhost` with no registration, no server and no queue, in
+local-data mode and with a data server alike; `ecce-qm` is `$ECCE_HOME/bin/
+ecce-qm` (`ECCE_ECCEQM` or an `ecce-qm:` line in CONFIG.<machine> replaces it).
+The deck is written by `scripts/parsers/ai.ecceqm`; the basis set is always
+written out in a `basis_data` block (`shell <El> <S|P|D|F|G>` then one
+`exponent coefficient` row per primitive) so the run needs no library. The
+output is parsed by `ecceqm.desc`/`ecceqm.parse`: total and component energies,
+orbital energies and occupations, MO coefficients, Mulliken charges, dipole,
+S**2. The MO correlation diagram is not offered for this code
+(`<SupportsMODiagram>false</SupportsMODiagram>`, a flag any code can set);
+orbital lists, energies and orbital pictures are.
+
+Tests: `tests/parsers` (fixtures and goldens), `tests/basis`, `tests/dialogs`,
+`ctest -R launch_ecceqm` (water and triplet O2 through Launch in a local data
+folder, energies against `tests/qm/oracle.json`, every orbital's c.S.c = 1 from
+ECCE's own stored basis, so trace(P S) is the electron count).
