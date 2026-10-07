@@ -3449,6 +3449,9 @@ void Builder::OnToolMenuClick( wxCommandEvent& event )
     panel->refresh();
   }
   updatePanes(true);
+  if (event.IsChecked()) {
+    makeRoomFor(pane.name);
+  }
   debugPrintPaneSizes(p_mgr);
 
 

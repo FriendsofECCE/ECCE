@@ -905,6 +905,54 @@ void Builder::setPanelMode(PanelMode mode, bool reset)
 }
 
 
+/**
+ * A tool pane opened from the Tools menu gets the height its controls need.
+ * The right-hand column holds a fixed number of panes at their minimum
+ * height; one more used to be laid out with no height at all, its window
+ * left floating over the viewer.  Panes of the same dock that were opened
+ * for convenience (tables, Selection, Symmetry, ...) are closed, least
+ * wanted first, until the new one fits; they come back from the Tools menu.
+ */
+void Builder::makeRoomFor(const wxString& name)
+{
+  wxAuiPaneInfo &pane = p_mgr.GetPane(name);
+  if (!pane.IsOk() || !pane.IsShown() || pane.IsFloating() || !pane.window ||
+      p_columnHidden) {
+    return;
+  }
+  int need = 150;
+  if (wxSizer *content = pane.window->GetSizer()) {
+    need = std::min(std::max(need, content->GetMinSize().y), 400);
+  }
+  const string victims[] = {
+    NAME_TOOL_ATOM_TABLE, NAME_TOOL_RESIDUE_TABLE, NAME_TOOL_SELECTION,
+    NAME_TOOL_SYMMETRY, NAME_TOOL_COORDINATES, NAME_TOOL_DNA_BUILDER,
+    NAME_TOOL_PEPTIDE_BUILDER, NAME_TOOL_SLICER, NAME_TOOL_BUILD
+  };
+  for (size_t v = 0; v <= sizeof(victims) / sizeof(victims[0]); ++v) {
+    wxAuiPaneInfo &now = p_mgr.GetPane(name);
+    if (now.rect.height >= need) {
+      return;
+    }
+    if (v == sizeof(victims) / sizeof(victims[0])) {
+      return;
+    }
+    wxAuiPaneInfo &other = p_mgr.GetPane(wxString(victims[v]));
+    if (!other.IsOk() || !other.IsShown() || other.IsFloating() ||
+        other.name == name || other.dock_direction != now.dock_direction) {
+      continue;
+    }
+    other.Show(false);
+    p_tabHidden.erase(other.window);
+    const int id = p_toolMenu->FindItem(other.name);
+    if (id != wxNOT_FOUND) {
+      p_toolMenu->Check(id, false);
+    }
+    updatePanes();
+  }
+}
+
+
 //  ---- test hook ------------------------------------------------------
 
 /**
