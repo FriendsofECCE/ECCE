@@ -437,6 +437,9 @@ jobs:
       STRAWBERRY_URL: https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54051_64bit/strawberry-perl-5.40.5.1-64bit-portable.zip
       STRAWBERRY_SHA256: 6619fe7eeef921ccddb4aac3972fb602a0c690a3074205b863ade998d7bc79a6
     steps:
+      # LF in the checkout: fixtures and shell scripts must not get CRLF.
+      - run: git config --global core.autocrlf false
+
       - uses: actions/checkout@v4
 
       - uses: msys2/setup-msys2@v2

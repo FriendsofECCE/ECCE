@@ -56,7 +56,7 @@ function RunApp($name, $exe, $arg = "", $wait = 25) {
     Say "   alive, window=$found"
     Stop-Process -Id $p.Id -Force
   } else {
-    Say ("   exited rc={0} (0xC0000005 = access violation), window={1}" -f $p.ExitCode, $found)
+    Say ("   exited rc={0} (-1073741819 = access violation), window={1}" -f $p.ExitCode, $found)
   }
   Get-Content "$Out\logs\$name.err.txt" -Tail 6 -ErrorAction SilentlyContinue | ForEach-Object { Say "   | $_" }
 }

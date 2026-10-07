@@ -99,8 +99,16 @@ def procs():
 
 def broker(s, what):
     """ecce-broker-win start|stop for this session; the parsed broker file."""
-    bash = os.path.join(s.env["ECCE_HOME"], "packaging", "windows", "ecce-broker-win")
-    r = subprocess.run(["bash", bash, what], env=dict(s.env, ECCE_NO_MESSAGING=""),
+    home = s.env["ECCE_HOME"]
+    # An install tree has the script in bin\ and the shell in usr\bin; a checkout
+    # has it under packaging and uses the bash on PATH (never WSL's).
+    script = os.path.join(home, "bin", "ecce-broker-win")
+    if not os.path.exists(script):
+        script = os.path.join(home, "packaging", "windows", "ecce-broker-win")
+    shell = os.path.join(home, "usr", "bin", "bash.exe")
+    if not os.path.exists(shell):
+        shell = "bash"
+    r = subprocess.run([shell, script, what], env=dict(s.env, ECCE_NO_MESSAGING=""),
                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     say(r.stdout.decode("utf-8", "replace").strip())
     cfg = {}
