@@ -11,6 +11,7 @@
 #include <wx/app.h>
 #include <wx/spinctrl.h>
 #include <wx/utils.h>
+#include <wx/aui/aui.h>
 
 #include "tdat/LatticeDef.H"
 #include "tdat/TAtm.H"
@@ -89,6 +90,106 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     ev.SetEventObject(btn);
     btn->ProcessWindowEvent(ev);
     settle(200);
+    return true;
+  }
+
+  //  "xshot <file>": the whole screen -> <file> (ImageMagick import).
+  if (c == "xshot" && w.size() == 2) {
+    settle(500);
+    wxString cmd = wxString("import -window root ") + wxString(w[1]);
+    wxExecute(cmd, wxEXEC_SYNC);
+    return true;
+  }
+
+  //  "panelmode <classic|stacked|accordion|detail>": View > Panel layout.
+  if (c == "panelmode" && w.size() == 2) {
+    static const char *names[] = {"classic", "stacked", "accordion", "detail"};
+    for (int m = 0; m < 4; m++) {
+      if (w[1] == names[m]) {
+        setPanelMode((PanelMode)m);
+        settle(300);
+        return true;
+      }
+    }
+    return s.fail("panelmode: unknown layout " + w[1]);
+  }
+
+  //  "toolmenu <tool> <on|off>" and "paneclose <tool>": the Tools menu
+  //  item and the pane's close button.  "_" in <tool> stands for a space.
+  if ((c == "toolmenu" && w.size() == 3) || (c == "paneclose" && w.size() == 2)) {
+    string name = w[1];
+    for (char& ch : name) if (ch == '_') ch = ' ';
+    wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(name));
+    if (!pane.IsOk()) return s.fail(c + ": no pane " + name);
+    if (c == "toolmenu") {
+      const int id = p_toolMenu->FindItem(wxString(name));
+      if (id == wxNOT_FOUND) return s.fail("toolmenu: no menu item " + name);
+      const bool on = w[2] == "on";
+      p_toolMenu->Check(id, on);
+      wxCommandEvent ev(wxEVT_MENU, id);
+      ev.SetInt(on ? 1 : 0);
+      OnToolMenuClick(ev);
+    } else {
+      wxAuiManagerEvent ev(wxEVT_AUI_PANE_CLOSE);
+      ev.SetManager(&p_mgr);
+      ev.SetPane(&pane);
+      OnPaneClose(ev);
+      p_mgr.ClosePane(pane);
+      updatePanes(true);
+    }
+    settle(400);
+    return true;
+  }
+
+  //  "panestate <name> <tool>..." -> <outdir>/<name>.txt: one line per tool:
+  //  shown, floating, close button, window child of the frame, menu ticked,
+  //  rectangle; then the client size and every shown pane's name.
+  if (c == "panestate" && w.size() >= 2) {
+    std::ofstream out(outdir + "/" + w[1] + ".txt");
+    for (size_t i = 2; i < w.size(); i++) {
+      string name = w[i];
+      for (char& ch : name) if (ch == '_') ch = ' ';
+      wxAuiPaneInfo &p = p_mgr.GetPane(wxString(name));
+      const int id = p_toolMenu->FindItem(wxString(name));
+      out << "tool \"" << name << "\" "
+          << (p.IsOk() ? 1 : 0) << " shown " << (p.IsOk() && p.IsShown())
+          << " floating " << (p.IsOk() && p.IsFloating())
+          << " close " << (p.IsOk() && p.HasCloseButton())
+          << " child " << (p.IsOk() && p.window && p.window->GetParent() == this)
+          << " ticked " << (id != wxNOT_FOUND && p_toolMenu->IsChecked(id))
+          << " rect " << p.rect.x << " " << p.rect.y << " " << p.rect.width
+          << " " << p.rect.height << "\n";
+    }
+    out << "client " << GetClientSize().x << " " << GetClientSize().y << "\n";
+    wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
+    for (size_t i = 0; i < all.GetCount(); i++) {
+      if (all.Item(i).IsShown() && !all.Item(i).IsToolbar())
+        out << "shown \"" << all.Item(i).name.ToStdString() << "\"\n";
+    }
+    out << "readonly " << (p_calculation ? isReadOnly() : -1) << "\n";
+    return true;
+  }
+
+  //  "pbcset <field> <value>": type <value> into a Periodic Builder text
+  //  field (a b c alpha beta gamma) and press Enter in it.
+  if (c == "pbcset" && w.size() == 3) {
+    if (!pbc) return s.fail("pbcset: no Periodic Builder panel");
+    wxWindowID id = wxID_NONE;
+    if (w[1] == "a") id = PBCGUI::ID_TEXTCTRL_PBC_A;
+    else if (w[1] == "b") id = PBCGUI::ID_TEXTCTRL_PBC_B;
+    else if (w[1] == "c") id = PBCGUI::ID_TEXTCTRL_PBC_C;
+    else if (w[1] == "alpha") id = PBCGUI::ID_TEXTCTRL_PBC_ALPHA;
+    else if (w[1] == "beta") id = PBCGUI::ID_TEXTCTRL_PBC_BETA;
+    else if (w[1] == "gamma") id = PBCGUI::ID_TEXTCTRL_PBC_GAMMA;
+    else return s.fail("pbcset: unknown field " + w[1]);
+    wxTextCtrl *t = dynamic_cast<wxTextCtrl*>(pbc->FindWindow(id));
+    if (!t) return s.fail("pbcset: no field " + w[1]);
+    t->SetValue(wxString(w[2]));
+    wxCommandEvent ev(wxEVT_TEXT_ENTER, id);
+    ev.SetEventObject(t);
+    ev.SetString(wxString(w[2]));
+    t->ProcessWindowEvent(ev);
+    settle(300);
     return true;
   }
 
