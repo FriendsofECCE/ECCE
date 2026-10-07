@@ -18,6 +18,7 @@
 #define WXMACHINEREGISTER_HH
 
 #include <deque>
+#include <set>
 #include <map>
 #include <string>
 #include <utility>
@@ -362,6 +363,8 @@ class WxMachineRegister: public ewxFrame
         wxListBox           *p_codeList;
         wxStaticText        *p_codeTitle;
         wxStaticText        *p_codeExample;
+        wxStaticText        *p_setupNote, *p_wrapupNote;
+        std::set<string>     p_discovered;   // the scheduler's queues, last Discover
         ewxTextCtrl         *p_defAccount;     // per-user, in MachPrefs
         string               p_accountLoaded;
         std::deque<int>      p_choices;   // test hook: answers to a list of paths

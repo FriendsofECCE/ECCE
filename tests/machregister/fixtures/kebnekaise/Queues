@@ -1,0 +1,4 @@
+Queues: kebnekaise
+
+kebnekaise|queueMgrName: Slurm
+kebnekaise|prefFile: kebnekaise.Q

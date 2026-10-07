@@ -505,6 +505,12 @@ void WxMachineRegister::discoverQueues()
             if (!r.open(e)) { err = e; return; }
             ok = SchedulerQuery::discover(r, qmgr, found, commands, err);
         });
+    if (ok && !found.empty())
+    {
+        p_discovered.clear();
+        for (size_t i = 0; i < found.size(); i++)
+            p_discovered.insert(found[i].name);
+    }
 
     wxDialog* dlg = new wxDialog(this, wxID_ANY, "Discover queues",
                                  wxDefaultPosition, wxDefaultSize,

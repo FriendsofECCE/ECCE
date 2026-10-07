@@ -161,6 +161,8 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
     p_codeTitle = NULL;
     p_codeExample = NULL;
     p_defAccount = NULL;
+    p_setupNote = NULL;
+    p_wrapupNote = NULL;
     p_codePage = NULL;
     p_codeAdvanced = NULL;
     p_codeAdvBtn = NULL;
@@ -1263,8 +1265,18 @@ wxWindow* WxMachineRegister::createJobScriptPage(wxWindow* parent)
     addBlock(page, sizer, "header", "");
 
 
+    //  A code's own commands (Codes > Advanced) run instead of these, so the
+    //  tab says for which codes that is so.
     addBlock(page, sizer, "setup", "Commands run before the calculation");
+    p_setupNote = new wxStaticText(page, wxID_ANY, "");
+    p_setupNote->SetFont(p_setupNote->GetFont().Smaller());
+    sizer->Add(p_setupNote, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+    reg("setup:codes", p_setupNote);
     addBlock(page, sizer, "wrapup", "Commands run after the calculation");
+    p_wrapupNote = new wxStaticText(page, wxID_ANY, "");
+    p_wrapupNote->SetFont(p_wrapupNote->GetFont().Smaller());
+    sizer->Add(p_wrapupNote, wxSizerFlags().Border(wxLEFT|wxRIGHT));
+    reg("wrapup:codes", p_wrapupNote);
 
     //  Only HTCondor needs it.
     wxFlexGridSizer* condor = new wxFlexGridSizer(4, 0, 0);
@@ -1994,6 +2006,7 @@ void WxMachineRegister::loadMachine(const string& refName)
     bool another = refName != p_loadedName;
     p_slctRgstn = ref;
     p_loadedName = refName;
+    p_discovered.clear();
     p_loadedFrom = p_rows[idx].from;
     delete p_draft;
     p_draft = newDraft(refName);
@@ -2326,6 +2339,23 @@ bool WxMachineRegister::applyQueueForm()
     size_t it = 0;
     while (it < p_queues.size() && p_queues[it].name != r.name)
         it++;
+    //  After Discover queues the scheduler's own partitions are known; a
+    //  name that is not one (an account typed as a queue, say) is refused by
+    //  the scheduler at submission.
+    if (it == p_queues.size() && !p_discovered.empty() &&
+        !p_discovered.count(r.name))
+    {
+        string known;
+        for (const string& n : p_discovered)
+            known += (known.empty() ? "" : ", ") + n;
+        if (this->ask("Not a queue of " + strip((string)p_fullName->GetValue()),
+                "'" + r.name + "' is not one of the queues the scheduler "
+                "reported.", "The scheduler reported: " + known + ".\n\n"
+                "An allocation account is not a queue: enter it as the "
+                "Default account instead.", wxYES_NO|wxNO_DEFAULT|wxICON_WARNING,
+                "Add anyway", "Do not add", "") != wxID_YES)
+            return false;
+    }
     if (it < p_queues.size())
         p_queues[it] = r;
     else
@@ -3903,10 +3933,44 @@ void WxMachineRegister::syncBlocks(MCD* draft)
 }
 
 
+//  Which codes have commands of their own (key `<code>_setup` or `_wrapup`)
+//  that run instead of the machine-wide ones, as a sentence.
+static string ownCommandsNote(const MCD* draft, const vector<string>& codes,
+                              const char* suffix, const char* when)
+{
+    string names;
+    int n = 0;
+    for (size_t i = 0; i < codes.size(); i++)
+    {
+        const MCD::KeyState* ks = draft->state(lowerOf(codes[i]) + suffix);
+        string v;
+        if (ks != NULL && keySet(*ks) && draft->effective(
+                lowerOf(codes[i]) + suffix, v) && !strip(v).empty())
+            names += (n++ ? ", " : "") + codes[i];
+    }
+    if (n == 0)
+        return string("These run ") + when + " for every code.";
+    return string("These run ") + when + " for every code except " + names +
+           ", which " + (n == 1 ? "has" : "have") + " its own commands "
+           "(Codes tab, Advanced) that run instead.";
+}
+
+
 void WxMachineRegister::blocksTags()
 {
     if (p_draft == NULL)
         return;
+    if (p_setupNote != NULL)
+    {
+        wxString a = wxString::FromUTF8(ownCommandsNote(p_draft, p_codeNames,
+                         "_setup", "before the calculation").c_str());
+        wxString b = wxString::FromUTF8(ownCommandsNote(p_draft, p_codeNames,
+                         "_wrapup", "after the calculation").c_str());
+        if (p_setupNote->GetLabel() != a)
+            p_setupNote->SetLabel(a);
+        if (p_wrapupNote->GetLabel() != b)
+            p_wrapupNote->SetLabel(b);
+    }
     for (size_t i = 0; i < p_blocks.size(); i++)
     {
         const BlockRow& b = p_blocks[i];

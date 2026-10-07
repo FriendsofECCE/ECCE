@@ -15,6 +15,7 @@ SKIPs (77) without Xvfb or the machregister binary.
 """
 
 import argparse
+import difflib
 import hashlib
 import os
 import re
@@ -2313,6 +2314,62 @@ quit
           "nothing was saved")
 
 
+def kebnekaise_roundtrip(tmp, display, build):
+    print("a real Slurm machine, saved by an earlier release, round trip")
+    fx = os.path.join(HERE, "fixtures", "kebnekaise")
+    e = Env(tmp, "kebnekaise")
+    names = ["CONFIG.kebnekaise", "kebnekaise.Q", "MyMachines", "Queues"]
+    for n in names:
+        shutil.copy(os.path.join(fx, n), os.path.join(e.ue, n))
+    #  Only the default account is edited (it is kept in MachPrefs): the
+    #  settings files must come back as they were read.
+    p = run(display, build, e, """
+select kebnekaise
+tab job
+expect contains setup:codes 'before the calculation for every code except Gaussian-16'
+expect contains wrapup:codes 'after the calculation for every code.'
+tab codes
+code Gaussian-16
+expect field code:gaussian-16 /hpc2n/eb/software/gaussian/16.C.02-AVX2/g16/g16
+tab queues
+expect field default-account
+set default-account proj1
+save
+expect dirty 0
+quit
+""", extra=LOCALUSER, timeout=180)
+    clean(p, "the Job script tab says Gaussian-16 has its own commands; save")
+    for n in names:
+        a, b = read(os.path.join(fx, n)), read(os.path.join(e.ue, n))
+        check(a == b, "%s is unchanged by a save%s" % (n, "" if a == b else
+              ":\n" + "".join(difflib.unified_diff(
+                  a.splitlines(True), b.splitlines(True), "read", "saved"))[:1500]))
+    check("proj1" in read(os.path.join(e.ue, "MachPrefs")),
+          "the default account went to MachPrefs")
+    #  An account typed as a queue, after Discover queues, is questioned.
+    bindir, spool = stub_clients(tmp)
+    e = Env(tmp, "discwarn")
+    tool_machine(e)
+    write(os.path.join(e.ue, "Queues"), "Queues: stubm\n\n"
+          "stubm|queueMgrName: Slurm\nstubm|prefFile: stubm.Q\n")
+    write(os.path.join(e.ue, "stubm.Q"), "Queues: x\n\nx|minProcessors: 1\n"
+          "x|maxProcessors: 8\nx|runLimit: 60\n")
+    p = run(display, build, e, """
+select stubm
+tab queues
+set qmgrpath %(bin)s
+click discover
+click disc:add
+set q-name proj1
+set q-maxprocs 4
+answer no
+queue-apply
+expect message 'is not one of the queues the scheduler reported'
+quit
+""" % {"bin": bindir}, extra=LOCALUSER, timeout=180)
+    clean(p, "a name that is not one of the scheduler's queues is questioned")
+
+
 def account_required(tmp, display, build, pngs=None):
     print("a site that requires an account on every submission")
     bindir, spool = stub_clients(tmp)
@@ -2558,6 +2615,7 @@ def main():
             preview_admin(tmp, disp, build)
             test_submission(tmp, disp, build)
             account_required(tmp, disp, build)
+            kebnekaise_roundtrip(tmp, disp, build)
     finally:
         disp.__exit__(None, None, None)
         shutil.rmtree(tmp, ignore_errors=True)
