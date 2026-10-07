@@ -26,6 +26,11 @@ def scrolls(w):
                                  "wxHtmlWindow", "wxDataViewCtrl"))
 
 
+def opaque(w):
+    return w.GetClassName() in ("wxGrid", "wxListCtrl", "wxTreeCtrl",
+                                "wxHtmlWindow", "wxDataViewCtrl")
+
+
 def screen_rect(w):
     return wx.Rect(w.GetScreenPosition(), w.GetSize())
 
@@ -141,7 +146,7 @@ def walk(w, top, out):
         return
     if w.IsShownOnScreen():
         audit(w, top, out)
-    if scrolls(w) or isinstance(w, (wx.ComboBox, wx.ComboCtrl, wx.SpinCtrl,
+    if opaque(w) or isinstance(w, (wx.ComboBox, wx.ComboCtrl, wx.SpinCtrl,
                                     wx.SpinCtrlDouble, wx.RadioBox)):
         return
     for c in w.GetChildren():
@@ -155,7 +160,7 @@ def collect_buttons(w, top, out):
         return
     if isinstance(w, wx.Button) and w.IsShownOnScreen() and w.GetLabel():
         out.append(w)
-    if scrolls(w):
+    if opaque(w):
         return
     for c in w.GetChildren():
         collect_buttons(c, top, out)

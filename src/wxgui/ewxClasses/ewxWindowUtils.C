@@ -827,6 +827,21 @@ bool scrollsOrIsCustom(wxWindow *w)
           w->GetClassInfo()->GetClassName() == wxString("wxDataViewCtrl"));
 }
 
+//  Windows whose insides are drawn by the window itself: their children
+//  (if any) are not controls to audit.
+bool isOpaque(wxWindow *w)
+{
+  return w->IsKindOf(wxCLASSINFO(wxGLCanvas)) ||
+         (w->IsKindOf(wxCLASSINFO(wxScrolledCanvas)) &&
+          !w->IsKindOf(wxCLASSINFO(wxScrolledWindow))) ||
+         w->GetClassInfo()->GetClassName() == wxString("wxGrid") ||
+         w->GetClassInfo()->GetClassName() == wxString("wxListCtrl") ||
+         w->GetClassInfo()->GetClassName() == wxString("wxTreeCtrl") ||
+         w->GetClassInfo()->GetClassName() == wxString("wxHtmlWindow") ||
+         w->GetClassInfo()->GetClassName() == wxString("wxGenericTreeCtrl") ||
+         w->GetClassInfo()->GetClassName() == wxString("wxDataViewCtrl");
+}
+
 wxRect screenRect(wxWindow *w)
 {
   return wxRect(w->GetScreenPosition(), w->GetSize());
@@ -1001,7 +1016,7 @@ void walk(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
   if (!w->IsShown()) return;
   if (w->IsKindOf(wxCLASSINFO(wxTopLevelWindow)) && w != top) return;
   if (w->IsShownOnScreen()) auditWindow(w, top, out);
-  if (scrollsOrIsCustom(w)) return;
+  if (isOpaque(w)) return;
   //  A combo box's or spin control's inner text field is not a control of
   //  ours.
   if (w->IsKindOf(wxCLASSINFO(wxComboBox)) ||
@@ -1022,7 +1037,7 @@ void collectButtons(wxWindow *w, wxWindow *top, std::vector<wxButton*>& out)
   wxButton *b = wxDynamicCast(w, wxButton);
   if (b && b->IsShownOnScreen() && !b->GetLabel().empty())
     out.push_back(b);
-  if (scrollsOrIsCustom(w)) return;
+  if (isOpaque(w)) return;
   const wxWindowList& kids = w->GetChildren();
   for (wxWindowList::compatibility_iterator n = kids.GetFirst(); n;
        n = n->GetNext())
