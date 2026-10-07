@@ -43,7 +43,7 @@ def build(src, work, o):
     binary = os.path.join(work, os.path.splitext(src)[0])
     cxx = (out(["wx-config", "--cxxflags"]).stdout.split()
            + out(["pkg-config", "--cflags", "gtk+-3.0"]).stdout.split())
-    libs = out(["wx-config", "--libs", "core,base,adv,html"]).stdout.split()
+    libs = out(["wx-config", "--libs", "core,base,adv,html,gl,aui"]).stdout.split()
     cmd = (["nice", "-n", "19", "g++", "-std=c++17", "-o", binary,
             os.path.join(HERE, src), "-I" + o.include]
            + (["-DHAVE_NEW"] if o.tag == "after" else []) + cxx
