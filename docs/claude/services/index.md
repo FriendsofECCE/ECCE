@@ -50,3 +50,5 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Windows local jobs: paths in sh scripts, the job id, Strawberry perl, the broker](windows-local-jobs-pitfalls.md)
 - [A remote view rides ECCE's own login, not an ssh of its own (Tail)](remote-views-use-ecces-own-login.md)
 - [A calculation's molecule and basis properties are stored below it](calculation-properties-live-below-it.md)
+- [Xvfb's stderr must not go to a pipe nobody reads (CI display wedge, #127)](xvfb-stderr-must-not-be-a-pipe.md)
+- [macOS: Terminal.app takes no command, and open(1) returns at once (#133)](macos-terminal-and-editor.md)

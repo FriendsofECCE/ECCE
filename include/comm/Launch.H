@@ -26,6 +26,10 @@
 
 #include <string>
   using std::string;
+#include <vector>
+  using std::vector;
+
+#include "util/EcceURL.H"
 
 class Launch;
 class RCommand;
@@ -118,6 +122,7 @@ private:
         void instanceCommand(string& command,
                              EcceMap& kv);
         void substituteRealFileName(string& fileName);
+        vector<EcceURL> auxInputUrls() const;
 
   // The Operations
         bool validateCalculation(void);

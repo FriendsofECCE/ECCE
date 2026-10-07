@@ -1,0 +1,164 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Purpose:
+#   Writes the GROMACS .mdp run-control file for an MD study task.
+#
+#   Reads the task model that MDEdBase serializes (the same XML md.nwtask
+#   reads for NWChem) on stdin and writes the .mdp on stdout.  Only the
+#   mapping from model values to .mdp keys is here; the .mdp text itself is
+#   written by ai.gromacs from gromacs.tpl, so there is one place that knows
+#   .mdp syntax.  See docs/GROMACS.md for the table of what maps to what.
+#
+#   A value the model omits (the serializer leaves out values equal to the
+#   model's default) takes the default listed below, which must match
+#   src/tdat/nwmdtask/*Model.C and GromacsMDModel.C.
+#
+# Units: the model holds nm, ps, K, kJ/mol, Pa and 1/Pa; the .mdp wants bar
+# and 1/bar, which is the only conversion done here.
+#
+###############################################################################
+
+use strict;
+use FindBin qw($Bin);
+use File::Temp qw(tempdir);
+use File::Copy qw(copy);
+
+$| = 1;
+
+my %D;       # section -> key -> value ("Top" holds the keys outside a section)
+my $sect = "Top";
+while (<STDIN>) {
+  if (/^\s*<(Interaction|Constraints|Optimize|Control|Dynamics|Thermodynamics|Files)>\s*$/) {
+    $sect = $1;
+  } elsif (/^\s*<\/(Interaction|Constraints|Optimize|Control|Dynamics|Thermodynamics|Files)>\s*$/) {
+    $sect = "Top";
+  } elsif (/^\s*<([A-Za-z0-9_]+)>\s*([^<]*?)\s*<\/[A-Za-z0-9_]+>\s*$/) {
+    $D{$sect}{$1} = $2;
+  }
+}
+
+sub get {
+  my ($s, $k, $def) = @_;
+  return (defined($D{$s}) && defined($D{$s}{$k}) && $D{$s}{$k} ne "")
+         ? $D{$s}{$k} : $def;
+}
+
+my $task = get("Top", "TaskType", "");
+my %runtype = ("ecceMdEnergy" => "Energy", "ecceMdOptimize" => "Geometry",
+               "ecceMdEquilibrate" => "Dynamics", "ecceMdDynamics" => "Dynamics");
+die "md.gmxtask: the model names no GROMACS task type (TaskType is '$task').\n"
+  if (!defined($runtype{$task}));
+
+my %p;       # the .param dictionary ai.gromacs reads
+$p{"RunType"} = $runtype{$task};
+
+# ---- Interaction: electrostatics, cutoffs, neighbour list ----
+my $cut = get("Interaction", "ShortRangeCutoff", 0.9);
+$p{"ES.Theory.MD.CoulombCutoff"} = $cut;
+$p{"ES.Theory.MD.VdwCutoff"}     = $cut;
+if (get("Interaction", "InteractionOption", 1) == 0) {
+  $p{"ES.Theory.MD.Coulombtype"} = "PME";
+  $p{"ES.Theory.MD.PMEOrder"}    = get("Interaction", "BSplineOrder", 4);
+  my $grid = get("Interaction", "GridDimensions", 8);
+  # A grid of the default 8 is NWChem's, not a choice; let grompp pick the
+  # spacing unless the user asked for something else.
+  $p{"ES.Theory.MD.FourierGrid"} = $grid if ($grid != 8);
+} else {
+  $p{"ES.Theory.MD.Coulombtype"} = "Reaction-Field";
+}
+$p{"ES.Runtype.MD.NeighbourListInterval"} =
+    get("Interaction", "ShortListUpdateFrequency", 10)
+  if (defined($D{"Interaction"}{"ShortListUpdateFrequency"}));
+
+# ---- Constraints ----
+$p{"ES.Runtype.MD.Constraints"} =
+    (get("Constraints", "UseSHAKE", 1) == 1) ? "h-bonds" : "none";
+
+# ---- Output ----
+# The energies in the log are what the plots are made from, so there are
+# always some: every PrintMDFreq steps if the user asked, else about a
+# hundred over the run.
+my $nsteps = 0;
+if ($task eq "ecceMdOptimize") {
+  $nsteps = get("Optimize", "SDMaxIterations", 100);
+} elsif ($runtype{$task} eq "Dynamics") {
+  $nsteps = get("Dynamics", "EquilibrationSteps", 0) +
+            get("Dynamics", "DataSteps", 0);
+}
+my $logfreq = (get("Files", "PrintMD", 0) == 1) ? get("Files", "PrintMDFreq", 10)
+            : ($nsteps > 100 ? int($nsteps / 100) : 1);
+$p{"ES.Runtype.MD.LogInterval"}    = $logfreq;
+$p{"ES.Runtype.MD.EnergyInterval"} = $logfreq;
+if (get("Files", "WriteTrajectory", 0) == 1) {
+  $p{"ES.Runtype.MD.TrajectoryInterval"} =
+      get("Files", "CoordinatesSoluteFreq", 100);
+}
+
+if ($task eq "ecceMdOptimize") {
+  # steep only: cg cannot be used with constraints, and steep is what a
+  # first minimisation wants.  The model's CG settings have no effect.
+  $p{"ES.Runtype.MD.MaxSteps"}      = get("Optimize", "SDMaxIterations", 100);
+  $p{"ES.Runtype.MD.MinimizerStep"} = get("Optimize", "SDInitialStepSize", 0.001);
+  $p{"ES.Runtype.MD.EnergyTolerance"} = get("Optimize", "SDTolerance", 0.0001);
+}
+
+if ($runtype{$task} eq "Dynamics") {
+  my $eq   = get("Dynamics", "EquilibrationSteps", 0);
+  my $data = get("Dynamics", "DataSteps", 0);
+  $p{"ES.Runtype.MD.NumberOfSteps"} = $eq + $data;
+  $p{"ES.Runtype.MD.TimeStep"}      = get("Dynamics", "TimeStep", 0.001);
+  $p{"ES.Runtype.MD.InitialTime"}   = get("Dynamics", "InitialTime", 0);
+
+  my $nvt = get("Dynamics", "UseNVT", 0) == 1;
+  my $npt = get("Dynamics", "UseNPT", 0) == 1;
+  my $temp = get("Dynamics", "NVTTemperature", 298.15);
+  if ($nvt) {
+    $p{"ES.Runtype.MD.Thermostat"}   = "v-rescale";
+    $p{"ES.Runtype.MD.Temperature"}  = $temp;
+    $p{"ES.Runtype.MD.CouplingTime"} = get("Dynamics", "SolventRxTime", 0.1);
+    if (get("Dynamics", "UseAnnealing", 0) == 1) {
+      $p{"ES.Runtype.MD.AnnealTemperature"} =
+          get("Dynamics", "FinalAnnealTemp", 298.15);
+      $p{"ES.Runtype.MD.AnnealStart"} = get("Dynamics", "InitAnnealTime", 0);
+      $p{"ES.Runtype.MD.AnnealEnd"}   = get("Dynamics", "FinalAnnealTime", 100);
+    }
+  } else {
+    $p{"ES.Runtype.MD.Thermostat"} = "none";
+  }
+  if ($npt) {
+    # Pa -> bar, 1/Pa -> 1/bar
+    $p{"ES.Runtype.MD.Pressure"} = get("Dynamics", "NPTPressure", 1.01325e5) / 1.0e5;
+    $p{"ES.Runtype.MD.PressureTime"} = get("Dynamics", "NPTRxTime", 0.5);
+    $p{"ES.Runtype.MD.Compressibility"} =
+        get("Dynamics", "Compressibility", 4.53e-10) * 1.0e5;
+  }
+  $p{"ES.Runtype.MD.RemoveCM"} =
+      (get("Dynamics", "RemoveCM", 0) == 1) ?
+      get("Dynamics", "RemoveCMFreq", 10) : 0;
+
+  # Starting velocities: a run that resumes carries them in the structure
+  # file; any other starts from new ones at the target temperature.
+  if (get("Dynamics", "ResumeOpt", 0) == 1) {
+    $p{"ES.Runtype.MD.Resume"} = 1;
+  } else {
+    $p{"ES.Runtype.MD.Resume"}   = 0;
+    $p{"ES.Runtype.MD.GenTemp"}  = $temp;
+  }
+}
+
+# ---- write the .param file and let ai.gromacs fill the template ----
+my $dir = tempdir("gmxtask.XXXXXX", TMPDIR => 1, CLEANUP => 1);
+copy("$Bin/gromacs.tpl", "$dir/mdp.tpl")
+  or die "md.gmxtask: cannot read $Bin/gromacs.tpl: $!\n";
+open(my $pf, ">", "$dir/mdp.param") or die "md.gmxtask: $!\n";
+foreach my $k (sort keys %p) { print $pf "$k: $p{$k}\n"; }
+close($pf);
+
+my $rc = system("cd '$dir' && '$^X' '$Bin/ai.gromacs' -n mdp -t mdp.tpl 1>&2");
+die "md.gmxtask: ai.gromacs failed\n" if ($rc != 0);
+
+open(my $in, "<", "$dir/mdp.tpl") or die "md.gmxtask: no .mdp produced\n";
+print while (<$in>);
+close($in);
+exit(0);

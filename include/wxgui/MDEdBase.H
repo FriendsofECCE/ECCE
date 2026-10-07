@@ -13,6 +13,8 @@
 #include "tdat/TaskApp.H"
 #include "tdat/FragmentSummary.H"
 
+#include "dsm/MDCompositeModel.H"
+
 #include "wxgui/WxDavAuth.H"
 #include "wxgui/CalcDropHandler.H"
 
@@ -24,7 +26,8 @@ class JMSMessage;
 class WxJMSMessageDispatch;
 class WxFragmentImport;
 
-class NWChemMDModel;
+class MDCompositeModel;
+class GromacsInputsPanel;
 class MdTask;
 class InteractionPanel;
 class ConstraintPanel;
@@ -89,6 +92,16 @@ class MDEdBase: public MDEdBaseGUI,
       virtual void resetPanel();
       void enableLaunch(bool flag);
 
+      /** The GROMACS inputs (topology, structure) changed: recheck Launch. */
+      void gromacsInputsChanged();
+
+      /**
+       * ECCE_TEST_MDED=<dir>: commands appended to <dir>/<tool>.cmd are run
+       * as a person would (attach a file, save, switch tab...) and answered
+       * in <dir>/<tool>.out.  Inert unless set; see runTestCommand().
+       */
+      void startTestHook();
+
    protected:
       // Callbacks
       virtual void doSaveButtonClick(wxCommandEvent &event);
@@ -131,7 +144,48 @@ class MDEdBase: public MDEdBaseGUI,
       virtual void constructor();
       virtual void refreshGUI();
 
-      virtual NWChemMDModel& getNWChemMDModel() const;
+      /** The task model, whichever MD code the task belongs to. */
+      virtual MDCompositeModel& getMDModel() const;
+
+      /**
+       * Make the editor's model, and the panels bound to it, those of the
+       * given code (an editor window is reused for tasks of either code).
+       */
+      void selectCode(bool gromacs);
+
+      /** Point every panel at the sub-models of the current model. */
+      string runTestCommand(const string& line);
+
+      virtual void bindModels();
+
+      /** Hide the controls that mean nothing for GROMACS, or show them. */
+      virtual void applyCodeProfile(bool gromacs);
+
+      /** "GROMACS" or "NWChem": the first word of the editor's title. */
+      string codeTitle() const;
+
+      /**
+       * Notebook pages come and go with the code of the task (the Control
+       * page is NWChem's, the Inputs page GROMACS's), so the pages are
+       * kept in one list in their canonical order and shown or hidden by
+       * identity rather than by index.
+       */
+      void registerPages();
+      void setPageShown(wxWindow *page, bool show);
+
+      struct PageEntry {
+        wxWindow *win;
+        wxString  title;
+        bool      shown;
+      };
+      vector<PageEntry> p_pages;
+      GromacsInputsPanel *p_gmxInputs;
+      bool p_launchWanted;
+
+      /** The panels the current model carries, set by initializeModel(). */
+      vector<MDCompositeModel::GUIPanel> p_panelSet;
+
+      bool p_isGromacs;
 
       /** Used to ignore events generated during initialization */
       bool p_ignoreCodeEventsFlag;

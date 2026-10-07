@@ -32,6 +32,7 @@ class CodeFactory
   static vector<string> getImportCodes();
   static vector<string> getFullySupportedCodes();
   static vector<string> getFullySupportedCodeNames();
+  static vector<string> getMachineCodeNames();
   // True when a resource descriptor names the code as an applicationType,
   // i.e. calculations can be created with it.  A code with only an .edml and
   // a job-script sub (groundwork) is not registered.

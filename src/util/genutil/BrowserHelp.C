@@ -230,6 +230,9 @@ string BrowserHelp::browserCommand()
 string BrowserHelp::findBrowserOnPath()
 {
   static const char* candidates[] = {
+#ifdef __APPLE__
+    "open",
+#endif
     "xdg-open", "x-www-browser", "sensible-browser",
     "firefox", "firefox-esr"
   };
@@ -263,7 +266,7 @@ bool BrowserHelp::supportsNewWindowFlag(const string& cmd)
   size_t slash = base.find_last_of('/');
   if (slash != string::npos)
     base = base.substr(slash+1);
-  return base != "xdg-open" && base != "x-www-browser" &&
+  return base != "open" && base != "xdg-open" && base != "x-www-browser" &&
          base != "sensible-browser";
 }
 

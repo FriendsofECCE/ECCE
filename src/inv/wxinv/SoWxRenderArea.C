@@ -17,6 +17,7 @@
 #include "wx/display.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 using std::cerr;
@@ -1428,10 +1429,14 @@ void SoWxRenderArea::OnSize(wxSizeEvent& event)
     return;
   }
 
+  // The viewport is in framebuffer pixels, the client size in logical
+  // units; on a Retina display a viewport of the client size filled only
+  // the lower-left quarter.  Mouse positions are scaled to match.
   int w, h;
   GetClientSize(&w, &h);
-  p_glxSize.setValue(w, h);
-  ChemDisplayParam::setLineWidthScale(GetContentScaleFactor());
+  const double scale = GetContentScaleFactor();
+  p_glxSize.setValue((short)std::lround(w * scale), (short)std::lround(h * scale));
+  ChemDisplayParam::setLineWidthScale(scale);
 
   p_windowResized = true;
   

@@ -26,6 +26,7 @@
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/MDPanelHelper.H"
 
+#include "wxgui/GromacsProfile.H"
 #include "wxgui/InteractionPanel.H"
 
 /**
@@ -518,4 +519,30 @@ void InteractionPanel::OnTextctrlIntrctLfreqEnter( wxCommandEvent& event )
     getInteractionModel()->setLongListUpdateFreq(ival);
     p_helper->setSaveState(true);
     event.Skip();
+}
+
+
+void InteractionPanel::applyGromacsProfile(bool g)
+{
+  bool s = !g;
+  // grompp chooses the PME grid from the box; the rest of the Ewald
+  // settings and the polarization model are NWChem's
+  GromacsProfile::showRow(FindWindow(ID_TEXTCTRL_INTRCT_GRID), s);
+  GromacsProfile::showRow(FindWindow(ID_TEXTCTRL_INTRCT_EWTOL), s);
+  GromacsProfile::show(FindWindow(ID_CHECKBOX_INTRCT_QGRID), s);
+  GromacsProfile::show(FindWindow(ID_TOGGLE_INTRCT_ADVFFT), s);
+  GromacsProfile::show(FindWindow(ID_PANEL_INTRCT_FFTOPT), s);
+  // one cutoff for van der Waals and Coulomb: no dual range
+  GromacsProfile::showRow(FindWindow(ID_RADIOBUTTON_INTRCT_SROPT), s);
+  GromacsProfile::show(FindWindow(ID_PANEL_INTRCT_LCUT), s);
+
+  GromacsProfile::relabel(this, g ? _("Short-Ranged Cutoff:") : _("Cutoff radius:"),
+                          g ? _("Cutoff radius:") : _("Short-Ranged Cutoff:"));
+  GromacsProfile::label(FindWindow(wxID_STATIC_INTRCT_SFREQ),
+                        g ? _("Pair list update interval (steps):") :
+                        _("Frequency to Update Short-Ranged Pair List:"));
+  GromacsProfile::label(FindWindow(wxID_STATIC_INTRCT_ESPLINE),
+                        g ? _("PME interpolation order:") :
+                        _("Cardinal B-Spline Order:"));
+  GromacsProfile::relayout(this);
 }
