@@ -51,7 +51,7 @@ if ($runtype eq "Geometry" || $runtype eq "GeoVib" || $runtype eq "Gradient") {
 unless ( $forgetIt ) {
 
   while (<STDIN>) {
-    last if (/cart/ || /total gradient/);
+    last if (/cart/ || /total gradient/ || /^task/);
     chomp;
     s/^ *//;
     s/ *$//;

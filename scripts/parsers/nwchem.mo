@@ -50,7 +50,7 @@ foreach $i (1 .. $nbas) {
 print "\nvalues:\n";
 
 while (<STDIN>) {
-  last if (/end/);
+  last if (/end/ || /^task/);
   if ( /\*/ ) {
     chop;
     s/^ +//g;

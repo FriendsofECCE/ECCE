@@ -227,6 +227,31 @@ stdout), `GAMESS-UK.expt` and `Gaussian-03/09/94/98.expt` (no fixture output
 yet), and the basis-set import path (`rdStandardGBS.pm` and friends; issue
 \#29 is live work there).
 
+## Partially-written output (`partial_replay.py`, ctest `parsers_partial`)
+
+`eccejobmonitor` reads files that are still growing, which a replay of
+finished files cannot model.  `partial_replay.py` cuts 11 NWChem, Gaussian-16,
+ORCA and MOPAC fixtures after each geometry step, in the middle of SCF and
+gradient blocks, in the middle of the line that closes each parse type's
+block, at the header and one line short of the end, and runs each cut through
+the **real** `scripts/eccejobmonitor` (`-commType stdio -monitoringMode post`,
+the `tests/e2e/pipeline.py` harness) and then the real parser scripts.  It
+also cuts the `File=` auxiliary files and the `.expt` importers' inputs.
+
+For every cut: the monitor and every script exit cleanly, every property is
+well formed (a `size:` that matches the values, no NaN, no empty value), the
+blocks delivered are exactly the complete ones (checked against the
+simulator on the same bytes) and are identical to the same blocks of the
+full run, and the full file reproduces the plain run.  A block still open at
+EOF makes the post-mode monitor `Die`; the replay drops it, as a live
+monitor would simply not have delivered it yet.
+
+Post mode hands over a final line with no newline (a live monitor holds it
+back); that is the only way half a line reaches a script, and it is why the
+mid-line cuts exist.  Run time is about 45 s.
+
+    tests/parsers/partial_replay.py [-v] [--case NAME]
+
 ## What is deliberately NOT covered
 * The `File=`-rule parse types (`fort.7`, `grid.dat`): `PDMatchListCreate`
   excludes them from line matching, and they are fed whole auxiliary files
