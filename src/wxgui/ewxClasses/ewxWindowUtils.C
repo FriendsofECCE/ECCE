@@ -1015,13 +1015,66 @@ void walk(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
     walk(n->GetData(), top, out);
 }
 
+void collectButtons(wxWindow *w, wxWindow *top, std::vector<wxButton*>& out)
+{
+  if (!w->IsShown()) return;
+  if (w->IsKindOf(wxCLASSINFO(wxTopLevelWindow)) && w != top) return;
+  wxButton *b = wxDynamicCast(w, wxButton);
+  if (b && b->IsShownOnScreen() && !b->GetLabel().empty())
+    out.push_back(b);
+  if (scrollsOrIsCustom(w)) return;
+  const wxWindowList& kids = w->GetChildren();
+  for (wxWindowList::compatibility_iterator n = kids.GetFirst(); n;
+       n = n->GetNext())
+    collectButtons(n->GetData(), top, out);
+}
+
+//  Labelled buttons: none shorter than the standard button, and those side
+//  by side in one parent are as tall as each other.
+void buttonRows(wxWindow *top, std::vector<std::string>& out)
+{
+  std::vector<wxButton*> buttons;
+  collectButtons(top, top, buttons);
+  for (size_t i = 0; i < buttons.size(); ++i) {
+    wxButton *a = buttons[i];
+    const wxSize standard = wxButton::GetDefaultSize(a);
+    wxRect ra = screenRect(a);
+    if (ra.height + 2 < standard.y && ra.height > 0) {
+      out.push_back(std::string("button-height\t") + describeWindow(a) +
+          "\t" + wxString::Format("is %d px high, a standard button is %d",
+                                   ra.height, standard.y).ToStdString() +
+          "\t" + wxString::Format("%d,%d,%d,%d", ra.x, ra.y, ra.width,
+                                   ra.height).ToStdString());
+    }
+    for (size_t j = i + 1; j < buttons.size(); ++j) {
+      wxButton *b = buttons[j];
+      if (a->GetParent() != b->GetParent()) continue;
+      wxRect rb = screenRect(b);
+      const int overlap = wxMin(ra.GetBottom(), rb.GetBottom()) -
+                          wxMax(ra.y, rb.y);
+      if (overlap * 2 < wxMin(ra.height, rb.height)) continue;
+      if (abs(ra.height - rb.height) > 2) {
+        out.push_back(std::string("row-height-differs\t") + describeWindow(a) +
+            "\t" + wxString::Format("%d px high beside %d px: ",
+                                     ra.height, rb.height).ToStdString() +
+            describeWindow(b) + "\t" +
+            wxString::Format("%d,%d,%d,%d", ra.x, ra.y, ra.width,
+                             ra.height).ToStdString());
+      }
+    }
+  }
+}
+
 }  // namespace
 
 
 std::vector<std::string> ewxWindowUtils::clipFindings(wxWindow *top)
 {
   std::vector<std::string> out;
-  if (top) walk(top, top, out);
+  if (top) {
+    walk(top, top, out);
+    buttonRows(top, out);
+  }
   return out;
 }
 
