@@ -1939,6 +1939,15 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_panel_layouts PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # ORCA orbitals in the MOs panel (#239): a 24-function cc-pVDZ water run
+  # draws; a 23-function one gives one plain dialog; the pane fits its rows.
+  add_test(NAME apps_orca_mo
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/orca_mo_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_orca_mo PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
+
   # Every app's main window and every codereg Theory/Runtype dialog fits a
   # small screen (#189): measured on private Xvfb screens, no window may
   # extend past the screen.  Same installed tree and isolation as `apps`.
@@ -2154,6 +2163,19 @@ if(PYTHON3_EXECUTABLE)
                    $<TARGET_FILE:importmeta>)
   set_tests_properties(importmeta PROPERTIES TIMEOUT 300 ENVIRONMENT
     "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders")
+  # tests/basis/testCoordSys: the spherical/Cartesian convention recorded
+  # for a basis, per code (ORCA is spherical-only).
+  add_executable(gbscoordsys tests/basis/testCoordSys.C)
+  target_include_directories(gbscoordsys PRIVATE ${XercesC_INCLUDE_DIRS})
+  #  The data-model libraries refer to each other in a cycle that the
+  #  code under test does not happen to pull in the right order.
+  target_link_libraries(gbscoordsys PRIVATE -Wl,--start-group
+    eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+    eccetdat ecceutil -Wl,--end-group ${XercesC_LIBRARIES})
+  add_test(NAME gbscoordsys
+           COMMAND gbscoordsys ${CMAKE_CURRENT_SOURCE_DIR}/data/admin/basissets)
+  set_tests_properties(gbscoordsys PROPERTIES ENVIRONMENT
+    "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
   # tests/mocomp: ecce-mocomp's Mulliken and c^2 compositions against
   # checked-in Multiwfn numbers (#161); re-derives them where Multiwfn is
   # installed (MULTIWFN, or Multiwfn_noGUI on PATH).
