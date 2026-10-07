@@ -23,6 +23,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [`tools/coin/compare.sh` renders a fixed scene set with both viewer builds (#166 stage 2); harness pitfalls](tools-coin-compare-sh-renders-both-viewer-builds.md)
 - [Atom labels drew nothing in 9.x: the sh wrappers dropped `FL_FONT_PATH`; flclient now defaults to `$ECCE_HOME/data/client/fonts`](atom-labels-need-the-bundled-font-fl-font-path.md)
 - [Builder Reset View (toolbar, Render menu, Home) is camera only; the old home button restored a pre-molecule camera](builder-reset-view-is-camera-only-home-key.md)
+- [`addCovalentBonds` never bonds nubs; lattice Generate/Replicate/Fold left every nub parentless (#243)](nubs-need-a-parent-after-lattice-commands.md)
 - [wx3.2/GTK3 layout reentrancy](wx3-2-gtk3-layout-reentrancy.md)
 - [`wxGrid::CreateGrid()`/`SetTable()` synchronously fires `wxEVT_GRID_SELECT_CELL`](wxgrid-creategrid-settable-synchronously-fires-wxevt-grid.md)
 - [`wxGrid::MakeCellVisible()` before the pane is laid out does nothing; the MOs table opened at the top, not the HOMO](wxgrid-makecellvisible-before-the-pane-is-laid-out.md)

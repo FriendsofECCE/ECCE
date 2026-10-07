@@ -453,6 +453,8 @@ class Builder: public BuilderGUI,
       bool traceStressCommand(SceneScript& s, const vector<string>& w);
       bool plotShotCommand(SceneScript& s, const vector<string>& w,
                            const string& outdir);
+      bool pbcTestCommand(SceneScript& s, const vector<string>& w,
+                          const string& outdir);
 
       bool isReadOnly() const;
       bool isReadOnly(IPropCalculation *calc) const;
