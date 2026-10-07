@@ -612,12 +612,14 @@ long DirectTransport::spawnDetached(const std::string& script, std::string& erro
   HANDLE log = 0;
   if (!logFile.empty()) {
     SECURITY_ATTRIBUTES sa = inheritSa();
-    log = CreateFileW(widen(logFile).c_str(), FILE_APPEND_DATA | SYNCHRONIZE | FILE_READ_ATTRIBUTES,
+    log = CreateFileW(widen(logFile).c_str(), GENERIC_WRITE,
                       FILE_SHARE_READ | FILE_SHARE_WRITE, &sa, OPEN_ALWAYS, 0, 0);
     if (log == INVALID_HANDLE_VALUE) {
       error = "cannot open " + logFile + ": " + lastError("CreateFile");
       return -1;
     }
+    // msys programs lose output written through an append-only handle.
+    SetFilePointer(log, 0, 0, FILE_END);
     sp.out = sp.err = log;
   }
   PROCESS_INFORMATION pi;
