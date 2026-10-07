@@ -933,6 +933,7 @@ void Builder::makeRoomFor(const wxString& name)
   bool moved = false;
   for (size_t v = 0; ; ) {
     wxAuiPaneInfo &now = p_mgr.GetPane(name);
+    fprintf(stderr, "MAKEROOM %s h=%d y=%d pos=%d v=%d moved=%d\n", name.ToStdString().c_str(), now.rect.height, now.rect.y, now.dock_pos, (int)v, (int)moved);
     if (now.rect.height >= need) {
       return;
     }
