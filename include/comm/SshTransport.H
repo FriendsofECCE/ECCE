@@ -105,6 +105,8 @@ public:
   virtual RemoteStream* openStream(const std::string& script, int& fd,
                                    std::string& error);
   // SIGINT to the script's shell (the session has no tty for ^C).
+  virtual RemoteStream* openStreamOnLogin(const std::string& script, int& fd,
+                                          std::string& error);
   virtual void interruptStream(RemoteStream* s);
   // Sends EOF, gives the script graceMs to finish, closes everything and
   // joins the thread.  Frees s.
@@ -155,6 +157,7 @@ private:
   bool p_nested, p_forwardWorked, p_authFailed;
   SshJump* p_link;
   ssh_session_struct* p_session;
+  bool p_lent;   // p_session belongs to an openStreamOnLogin() stream
   sftp_session_struct* p_sftp;
 };
 

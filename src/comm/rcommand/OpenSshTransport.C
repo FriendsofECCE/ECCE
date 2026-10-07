@@ -324,6 +324,14 @@ std::vector<std::string> OpenSshTransport::targetArgs() const
     a.push_back("-J");
     a.push_back(j);
   }
+  std::vector<std::string> c = controlArgs();
+  a.insert(a.end(), c.begin(), c.end());
+  return a;
+}
+
+std::vector<std::string> OpenSshTransport::controlArgs() const
+{
+  std::vector<std::string> a;
   if (ownsControl()) {
     // Short, so that %C (a hash) keeps the socket under the 108-byte limit.
     const char* h = getenv("ECCE_REALUSERHOME");
