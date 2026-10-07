@@ -25,6 +25,8 @@ build-cmake/viewer-bench-<host>-<date>.txt
 Send that file. Leave the window uncovered while it runs. Optional:
 `BENCH_FRAMES=360 BENCH_SECONDS=8 tools/viewer-bench/run.sh` (frames per run,
 time cap per run; defaults 180 and 4 s, 10 warm-up frames not counted).
+`BENCH_STYLES="CPK,Ball And Stick,Stick,Wireframe,Ball And Wireframe"` times
+only the water box, in those styles, with caching AUTO.
 
 ## What is timed
 

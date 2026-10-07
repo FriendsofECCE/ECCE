@@ -215,6 +215,11 @@ class CHEMKIT_DLL_API ChemDisplay : public SoNonIndexedShape {
     const SbMatrix   &getCurrentMVPMatrix() const
         { return currentMVP; }
 
+    // Whether a bond cylinder draws its end cap at this atom (not for
+    // DISPLAY_STICK, which always does). Valid during GLRender only.
+    SbBool           bondCapAtAtom(int32_t atom) const
+        { return !(atom >= capRestStart || atom <= capLowMax); }
+
   protected:
     virtual void    generatePrimitives(SoAction *action);
     virtual void    computeBBox(SoAction *action, SbBox3f &box,
@@ -1550,6 +1555,10 @@ private:
 	MFVec2i vnormalBondLabelIndex,vhighlightBondLabelIndex;
 	MFVec2i vnormalResidueLabelIndex,vhighlightResidueLabelIndex;
 	friend class ChemOctreeNode;
+
+  // atomIndex reduced for bondCapAtAtom, once per GLRender
+  int32_t capRestStart, capLowMax;
+  void summarizeAtomIndexForCaps();
 
   // duplicates
   bool* renderedBonds;

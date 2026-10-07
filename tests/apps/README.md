@@ -410,3 +410,12 @@ it to `cases.HELPERS` (with the reason) or give it a `cases.TIMEOUTS` entry
 if it is merely slow. A reproduced crash that is not being fixed yet goes in
 `cases.XFAIL` with enough detail to act on. All three lists are checked in
 both directions, so a stale entry fails the run.
+
+## The geometry trace under stress
+
+`geomtrace_stress.py` (run by the suite, or alone with `--gdb` or
+`--valgrind`) opens three water optimisations built from the parser
+fixtures and drives the Geometry Trace panel through the Builder's `gt...`
+scene commands: every step, playback, GEOMTRACE messages as a running job
+sends them (including ones that fail to parse), floating and docking, and
+switching, closing and removing panels while the animation runs (#217).

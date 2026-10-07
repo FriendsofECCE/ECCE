@@ -233,6 +233,7 @@ wxWindow * GeomTracePropertyPanel::GetTearableContent()
 
 void GeomTracePropertyPanel::refresh()
 {
+  if (!p_playback) return;   // not initialized yet
   p_playback->SetStopIndex(numSteps()-1);
   fillPlot();
 }
@@ -369,6 +370,13 @@ void GeomTracePropertyPanel::OnValidation(wxCommandEvent& event)
 // we don't want/need undo
 void GeomTracePropertyPanel::processStep(int step)
 {
+  // The playback position can outlive the trace it was set for (a reload
+  // after a message from a running job), and a trace can be empty.
+  int steps = numSteps();
+  if (steps == 0) return;
+  if (step < 0) step = 0;
+  if (step >= steps) step = steps - 1;
+
   WxVizToolFW& fw = getFW();
   IPropCalculation *expt = getCalculation();
   SGContainer& sg = fw.getSceneGraph();
@@ -435,7 +443,12 @@ void GeomTracePropertyPanel::processStep(int step)
      }
   }
 
-  p_plotCtrl->SetCursorDataIndex(0, step);
+  // The plotted series (TEVEC, ...) may have fewer points than the trace.
+  wxPlotData *curve = p_plotCtrl->CurveIndexOk(0) ?
+          p_plotCtrl->GetDataCurve(0) : NULL;
+  if (curve && step < curve->GetCount()) {
+    p_plotCtrl->SetCursorDataIndex(0, step);
+  }
 
   // Issue #99: drive the repaint directly instead of relying on Open
   // Inventor's change notification, which stops firing after the first
@@ -493,7 +506,7 @@ string GeomTracePropertyPanel::getTracePropKey() const
   for (name = names.begin(); name != names.end(); ++name) {
     string key = *name;
     const Property_Ref *propref = PropFactory::getPropRef(key);
-    if (propref->classType == TProperty::PROPTSVECTABLE) {
+    if (propref && propref->classType == TProperty::PROPTSVECTABLE) {
       return key;
     }
   }
