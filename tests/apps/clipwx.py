@@ -18,7 +18,8 @@ import wx
 
 ANY_BUTTON = (wx.Button, wx.ToggleButton)
 FIXED = (wx.StaticText, wx.Button, wx.ToggleButton, wx.CheckBox,
-         wx.RadioButton, wx.RadioBox, wx.Choice, wx.ComboBox, wx.SpinCtrl,
+         wx.RadioButton, wx.RadioBox, wx.Choice, wx.ComboBox, wx.ComboCtrl,
+         wx.SpinCtrl,
          wx.SpinCtrlDouble)
 
 
@@ -121,7 +122,7 @@ def audit(w, top, out):
         if value:
             ext = w.GetTextExtent(value).x
             pad = w.GetSizeFromTextSize(ext, -1).x - ext
-    elif isinstance(w, wx.ComboBox):
+    elif isinstance(w, (wx.ComboBox, wx.ComboCtrl)):
         value, pad = w.GetValue(), 36
     elif isinstance(w, wx.Choice) and w.GetSelection() != wx.NOT_FOUND:
         value, pad = w.GetStringSelection(), 36
@@ -142,7 +143,7 @@ def walk(w, top, out):
         return
     if w.IsShownOnScreen():
         audit(w, top, out)
-    if scrolls(w) or isinstance(w, (wx.ComboBox, wx.SpinCtrl,
+    if scrolls(w) or isinstance(w, (wx.ComboBox, wx.ComboCtrl, wx.SpinCtrl,
                                     wx.SpinCtrlDouble, wx.RadioBox)):
         return
     for c in w.GetChildren():

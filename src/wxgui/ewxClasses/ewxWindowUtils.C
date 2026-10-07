@@ -796,6 +796,7 @@ void ewxWindowUtils::fitToDisplay(wxTopLevelWindow *win, wxSizer *fixedRow)
 #include "wx/tglbtn.h"
 #include "wx/spinctrl.h"
 #include "wx/combobox.h"
+#include "wx/combo.h"
 #include "wx/choice.h"
 #include "wx/radiobox.h"
 #include "wx/statbox.h"
@@ -911,7 +912,7 @@ void auditWindow(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
         add("outside-parent",
             wxString::Format("%dx%d, %d px outside %s's %dx%d client area",
                              size.x, size.y, over,
-                             (const char*) a->GetClassInfo()->GetClassName().utf8_str(),
+                             (const char*) wxString(a->GetClassInfo()->GetClassName()).utf8_str(),
                              area.width, area.height).ToStdString());
         break;
       }
@@ -929,6 +930,7 @@ void auditWindow(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
       w->IsKindOf(wxCLASSINFO(wxRadioBox)) ||
       w->IsKindOf(wxCLASSINFO(wxChoice)) ||
       w->IsKindOf(wxCLASSINFO(wxComboBox)) ||
+      w->IsKindOf(wxCLASSINFO(wxComboCtrl)) ||
       w->IsKindOf(wxCLASSINFO(wxSpinCtrl)) ||
       w->IsKindOf(wxCLASSINFO(wxSpinCtrlDouble));
   wxStaticText *st = wxDynamicCast(w, wxStaticText);
@@ -975,6 +977,8 @@ void auditWindow(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
   }
   wxComboBox *cb = wxDynamicCast(w, wxComboBox);
   if (cb) { value = cb->GetValue(); pad = 36; }
+  wxComboCtrl *cc = wxDynamicCast(w, wxComboCtrl);
+  if (cc) { value = cc->GetValue(); pad = 36; }
   wxChoice *ch = wxDynamicCast(w, wxChoice);
   if (ch && ch->GetSelection() != wxNOT_FOUND) {
     value = ch->GetStringSelection(); pad = 36;
@@ -1002,6 +1006,7 @@ void walk(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
   //  A combo box's or spin control's inner text field is not a control of
   //  ours.
   if (w->IsKindOf(wxCLASSINFO(wxComboBox)) ||
+      w->IsKindOf(wxCLASSINFO(wxComboCtrl)) ||
       w->IsKindOf(wxCLASSINFO(wxSpinCtrl)) ||
       w->IsKindOf(wxCLASSINFO(wxSpinCtrlDouble)) ||
       w->IsKindOf(wxCLASSINFO(wxRadioBox))) return;
@@ -1044,7 +1049,7 @@ void ewxWindowUtils::clipAuditReport(wxWindow *top, const std::string& tag)
   FILE *f = fopen(path, "a");
   if (!f) return;
   fprintf(f, "WINDOW\t%s\t%d,%d,%d,%d\t%s\t%s\n", tag.c_str(), r.x, r.y,
-          r.width, r.height, (const char*) top->GetClassInfo()->GetClassName().utf8_str(),
+          r.width, r.height, (const char*) wxString(top->GetClassInfo()->GetClassName()).utf8_str(),
           shot.c_str());
   for (size_t i = 0; i < found.size(); ++i)
     fprintf(f, "FINDING\t%s\t%s\n", tag.c_str(), found[i].c_str());
