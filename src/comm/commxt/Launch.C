@@ -2103,7 +2103,23 @@ bool Launch::startJobStore(const string& importDir)
     cout << "Start eccejobmaster with system(" << clientCmd << ")" << endl;
 #endif
 
+#ifdef _WIN32
+    // system() would run this through cmd.exe, which has neither nohup nor a
+    // trailing &; hand it to the local sh as a detached command instead.
+    // The program path is for sh: forward slashes.
+    int status = 0;
+    {
+      string cmd = clientCmd.substr(strlen("nohup "));
+      cmd = cmd.substr(0, cmd.size() - 2);               // the trailing " &"
+      for (size_t i = 0; i < cmd.size(); i++)
+        if (cmd[i] == '\\') cmd[i] = '/';
+      string out;
+      if (!p_localconn || !p_localconn->execbg(cmd, out, ""))
+        status = 1;
+    }
+#else
     int status = system((char*)clientCmd.c_str());
+#endif
     if (status<<8 != 0) {
       ret = false;
       p_lastMessage = "Unable to start eccejobmaster with: " + clientCmd;
