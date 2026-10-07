@@ -7,6 +7,10 @@
  * from disk alone ("reopen"), so nothing can come from a cache.  Prints "PASS name" / "FAIL name: why"; exit 1 on any FAIL.
  * "mopac" makes proj-mopac/ch4, a MOPAC calculation holding only a methane
  * molecule, which is what the Builder leaves for CalcEd to set up and save.
+ * "summary" reads <scratch-dir>/proj-sum/water-opt (a copy of
+ * tests/apps/fixtures/calc-water-opt): the molecule and basis properties,
+ * stored on its Parameters documents, must be the calculation's, as the
+ * Organizer's summary panel reads them.
  */
 #include <iostream>
 #include <string>
@@ -55,6 +59,27 @@ int main(int argc, char **argv)
           calc->getProp(ns + ":state"));
     check(calc->getProp(ns + ":application") == "NWChem", "application",
           calc->getProp(ns + ":application"));
+    cout << (failures ? "FAILED " : "ALL OK ") << failures << " failure(s)" << endl;
+    return failures ? 1 : 0;
+  }
+
+  if (mode == "summary") {
+    Resource *calc = EDSIFactory::getResource(
+        EcceURL("file://" + root + "/proj-sum/water-opt"));
+    check(calc != 0, "open water-opt");
+    if (!calc) return 1;
+    const char *want[][2] = {
+      {"empiricalFormula", "H2O"}, {"numAtoms", "3"}, {"numElectrons", "10"},
+      {"symmetrygroup", "C2v"}, {"name", "6-31G*"}, {"coordsys", "N"},
+      {"numFunctions", "19"}, {"numPrimitives", "36"},
+      {"theory", "SCF/RHF"}, {"state", "Complete"}};
+    for (auto& w : want)
+      check(calc->getProp(ns + ":" + w[0]) == w[1],
+            string("calculation summary ") + w[0], calc->getProp(ns + ":" + w[0]));
+    Resource *proj = EDSIFactory::getResource(
+        EcceURL("file://" + root + "/proj-sum"));
+    check(proj != 0 && proj->getProp(ns + ":empiricalFormula").empty(),
+          "a project does not take its calculations' properties");
     cout << (failures ? "FAILED " : "ALL OK ") << failures << " failure(s)" << endl;
     return failures ? 1 : 0;
   }
