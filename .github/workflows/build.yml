@@ -102,7 +102,7 @@ jobs:
         run: |
           d=$(mktemp -d)
           ls -l build-cmake/*.deb
-          dpkg-deb -x build-cmake/ecce_*.deb "$d"
+          dpkg-deb -x build-cmake/ecce-client_*.deb "$d"
           q=$(find "$d" -path '*/bin/ecce-qm')
           test -n "$q"
           file "$q" || true
@@ -176,7 +176,7 @@ jobs:
         run: |
           d=$(mktemp -d)
           ls -l build-cmake/*.deb
-          dpkg-deb -x build-cmake/ecce_*.deb "$d"
+          dpkg-deb -x build-cmake/ecce-client_*.deb "$d"
           q=$(find "$d" -path '*/bin/ecce-qm')
           test -n "$q"
           file "$q" || true
