@@ -1816,6 +1816,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_BINARY_DIR}/viewer-scenes)
   set_tests_properties(look_nm_sticks PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
 
+  # The saved DefaultStyle moves from the old default once (#227).
+  add_test(NAME look_default_style
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/default_style.py)
+  set_tests_properties(look_default_style PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
+
   # tests/guivalues -- memory sizes saved before the GB-everywhere change
   # (Megawords, Megabytes) are converted by GUIValues::load() before a
   # dialog or a generator reads them.  Needs g++ and libecceutil.a.
