@@ -141,6 +141,13 @@ int csocket_open(csocket * s)
 #endif
     return 0;
   }
+#ifdef SO_NOSIGPIPE
+  {
+    /* No MSG_NOSIGNAL on macOS: the socket itself must not raise SIGPIPE. */
+    int one = 1;
+    setsockopt(s->sock_, SOL_SOCKET, SO_NOSIGPIPE, &one, sizeof(one));
+  }
+#endif
   memset(&(s->addr_), 0, sizeof(s->addr_));
 
   return 1;
