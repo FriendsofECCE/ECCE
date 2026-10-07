@@ -165,7 +165,10 @@ in the panel next to the tree.
 To read the files while the job runs, select the calculation and use the
 **Run Mgmt** menu:
 
-- **Tail -f on Output File...** follows the output as it grows.
+- **Tail -f on Output File...** follows the output as it grows, in a
+  window of its own over the login ECCE already has for the machine, so
+  it does not ask for the password again. **Pause** holds the view while
+  new lines keep arriving; **Resume** shows them.
 - **View Output File...** and **View Input file...** open the files.
 - **View Run Log...** shows ECCE's log of the job.
 
