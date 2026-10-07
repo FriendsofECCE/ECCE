@@ -1236,8 +1236,19 @@ void Builder::runClipAudit()
   }
   const PanelMode modes[] = { PANELS_CLASSIC, PANELS_STACKED,
                               PANELS_ACCORDION, PANELS_DETAIL };
-  auto report = [this](const string& tag) {
-    return [this, tag]() { ewxWindowUtils::clipAuditReport(this, tag); };
+  //  What is shown, so a report that does not match the screenshot is
+  //  visible in the file.
+  auto note = [this, path](const string& tag) {
+    FILE *f = fopen(path, "a");
+    if (!f) return;
+    fprintf(f, "NOTE\t%s\tmode %s;", tag.c_str(), MODE_NAMES[p_panelMode]);
+    wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
+    for (size_t i = 0; i < all.GetCount(); ++i)
+      if (all.Item(i).IsShown())
+        fprintf(f, " [%s %d,%d]", (const char*) all.Item(i).name.utf8_str(),
+                all.Item(i).rect.width, all.Item(i).rect.height);
+    fprintf(f, "\n");
+    fclose(f);
   };
   for (int m = 0; m < 4; ++m) {
     const PanelMode mode = modes[m];
@@ -1265,7 +1276,8 @@ void Builder::runClipAudit()
         OnPropertyMenuClick(on);
         if (mode == PANELS_DETAIL) selectDetail(name);
       });
-      steps->push_back([this, name, tag, steps]() {
+      steps->push_back([this, name, tag, steps, note]() {
+        note(tag + name);
         ewxWindowUtils::clipAuditReport(this, tag + name);
         wxAuiPaneInfo &pane = p_mgr.GetPane(name);
         if (!pane.IsOk() || !pane.window) return;
