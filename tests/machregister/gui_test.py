@@ -2248,8 +2248,9 @@ quit
            "#SBATCH --constraint=sitegpu"],
           "request lines: the site's header, placeholders filled: %r"
           % section("request"))
-    check([l for l in section("before", "site") if l] == ["module load site-mpi"],
-          "before: the site's setup: %r" % section("before"))
+    #  gensub puts its own module-command preamble ahead of the site's text.
+    check("module load site-mpi" in section("before", "site"),
+          "before: the site's setup: %r" % section("before")[-3:])
     check([l for l in section("env", "user") if l] ==
           ['export OMP_NUM_THREADS="4"',
            'if [ -n "${PATH+set}" ]; then',
