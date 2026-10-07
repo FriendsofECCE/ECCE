@@ -1603,12 +1603,11 @@ def codes_find(tmp, display, build):
     print("codes tab: unavailable codes hidden, Program examples, Find")
     e = Env(tmp, "codes-find")
     tool_machine(e)
-    #  GROMACS has groundwork only: no resource descriptor, so it is not
-    #  offered unless the machine already has a setting for it.
+    #  GROMACS is registered (a GROMACS MD study), so it is listed.
     p = run(display, build, e, """
 select stubm
 tab codes
-expect code-listed GROMACS 0
+expect code-listed GROMACS 1
 expect code-listed NWChem 1
 check-program-hints
 code ORCA
@@ -1618,7 +1617,7 @@ code QuantumESPRESSO
 expect contains code:example '/usr/bin/pw.x'
 quit
 """, extra=LOCALUSER)
-    clean(p, "GROMACS is not listed; every example ends in a name Find looks for")
+    clean(p, "GROMACS is listed; every example ends in a name Find looks for")
     write(os.path.join(e.ue, "CONFIG.stubm"),
           "nwchem: /opt/nwchem\ngromacs: /opt/gromacs/bin/gmx\n"
           "condorAllowTmp: true\n")
