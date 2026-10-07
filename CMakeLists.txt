@@ -1779,6 +1779,16 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/contrast.py)
 
+  # Text in a window that has lost focus keeps its contrast (GTK :backdrop),
+  # and disabled text still looks disabled (#210).  Compiles
+  # tests/look/backdrop.C against this build; SKIPs without Xvfb or PIL.
+  add_test(NAME look_backdrop
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/login_backdrop.py
+                   backdrop ${CMAKE_BINARY_DIR}/look-backdrop
+                   --libdir ${CMAKE_BINARY_DIR} --tag after)
+  set_tests_properties(look_backdrop PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
+
   # The offscreen renderer's .rgb output against ImageMagick and PIL (#231).
   # Needs `ninja render-rgb`, Xvfb, convert and PIL; SKIPs without them.
   add_test(NAME look_imageconv

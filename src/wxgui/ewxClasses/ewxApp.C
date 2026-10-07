@@ -28,6 +28,11 @@
 
 #ifdef __WXGTK__
 #include <glib.h>
+#ifdef __WXGTK3__
+extern "C" {
+  #include <gtk/gtk.h>
+}
+#endif
 
 namespace {
 
@@ -79,6 +84,48 @@ GLogWriterOutput filterKnownBenignGtkPizzaWarnings(GLogLevelFlags logLevel,
 
 
 /**
+ * Text keeps its normal colour when the window is unfocused; disabled
+ * text keeps looking disabled.  Adwaita fades every label in :backdrop to
+ * a mix of text and background, which makes any ECCE window that is not
+ * the focused one look inactive, and ECCE runs several side by side.
+ */
+void ewxApp::applyBackdropStyle()
+{
+#ifdef __WXGTK3__
+   const char *mode = getenv("ECCE_BACKDROP");
+   if (mode && strcmp(mode, "theme") == 0) return;
+   GdkScreen *screen = gdk_screen_get_default();
+   if (!screen) return;
+
+   // The theme's own named colours; a theme without them rejects the
+   // sheet, and the colours wx reads from the same theme stand in.
+   const char *named =
+      "label:backdrop, entry:backdrop, .view:backdrop,\n"
+      "treeview.view:backdrop { color: @theme_fg_color; }\n"
+      "entry:backdrop, .view:backdrop { color: @theme_text_color; }\n"
+      "label:backdrop:disabled, entry:backdrop:disabled,\n"
+      "treeview.view:backdrop:disabled { color: @insensitive_fg_color; }\n";
+   GtkCssProvider *provider = gtk_css_provider_new();
+   GError *error = NULL;
+   if (!gtk_css_provider_load_from_data(provider, named, -1, &error)) {
+      g_clear_error(&error);
+      wxColour fg = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
+      wxColour dim = wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT);
+      wxString css;
+      css.Printf("label:backdrop, entry:backdrop, .view:backdrop { color: %s; }\n"
+                 "label:backdrop:disabled, entry:backdrop:disabled,\n"
+                 ".view:backdrop:disabled { color: %s; }\n",
+                 fg.GetAsString(wxC2S_HTML_SYNTAX), dim.GetAsString(wxC2S_HTML_SYNTAX));
+      gtk_css_provider_load_from_data(provider, css.utf8_str(), -1, NULL);
+   }
+   gtk_style_context_add_provider_for_screen(screen,
+      GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+   g_object_unref(provider);
+#endif
+}
+
+
+/**
  * Destructor.
  */
 ewxApp::~ewxApp()
@@ -97,6 +144,8 @@ bool ewxApp::OnInit()
 #ifdef __WXGTK__
    g_log_set_writer_func(filterKnownBenignGtkPizzaWarnings, nullptr, nullptr);
 #endif
+
+   applyBackdropStyle();
 
    wxInitAllImageHandlers();
 
