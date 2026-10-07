@@ -18,11 +18,17 @@ $msiVer = "$($Matches[1]).$($Matches[2]).$($Matches[3]).$n"
 $ids = @{}; $nid = 0
 $sb = New-Object System.Text.StringBuilder
 function Esc($s) { [Security.SecurityElement]::Escape($s) }
+# Stable per path, so upgrades see the same component.
+function DirGuid($d) {
+  $rel = $d.Substring($Tree.Length).ToLowerInvariant()
+  $h = [Security.Cryptography.MD5]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes("ecce-dir:$rel"))
+  (New-Object Guid (,$h)).ToString().ToUpper()
+}
 function Emit($dir, $indent) {
   # Empty directories (the shell's tmp) are not installed unless something creates them.
   if (-not (Get-ChildItem -LiteralPath $dir -Force)) {
     $script:nid++
-    [void]$sb.AppendLine("$indent<Component Id=`"c$nid`"><CreateFolder /></Component>")
+    [void]$sb.AppendLine("$indent<Component Id=`"c$nid`" Guid=`"$(DirGuid $dir)`"><CreateFolder /></Component>")
   }
   foreach ($f in Get-ChildItem -LiteralPath $dir -File) {
     $script:nid++
