@@ -2,6 +2,7 @@
 """Runs INSIDE a test container (mounted at /harness) as a client account.
 
   guest.py start <user> <password> <server>   Xvfb + `ecce -remote`, logged in
+                                              (server "local": plain `ecce`)
   guest.py start-refused <user> <password> <server>
                                               the same, expecting no Organizer;
                                               reports what the session shows
@@ -100,7 +101,8 @@ def start(user, password, server, expect_login=True):
         e["ECCE_TEST_DIALOG_CLOSE"] = "25"
     seen = []
     with open(LOG, "w") as log:
-        subprocess.Popen(["ecce", "-remote"], env=e, stdout=log,
+        subprocess.Popen(["ecce"] + ([] if server == "local" else ["-remote"]),
+                         env=e, stdout=log,
                          stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                          start_new_session=True)
     deadline = time.time() + (150 if expect_login else 75)

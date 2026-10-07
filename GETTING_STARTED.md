@@ -19,12 +19,13 @@ sudo apt-get install -y \
   build-essential gfortran cmake ninja-build \
   libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
   libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
-  libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git dpkg-dev file libssh-dev \
+  libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git dpkg-dev file libssh-dev libssl-dev \
   python3 libcoin-dev libegl-dev
 ```
 
 On Rocky 9 (with EPEL and CRB enabled) and Fedora the Coin3D packages are
-`Coin4-devel` (runtime `Coin4`) and `mesa-libEGL-devel`.
+`Coin4-devel` (runtime `Coin4`) and `mesa-libEGL-devel`; OpenSSL is
+`openssl-devel` (`libssl-dev` on Debian).
 
 ## 2. Build
 
@@ -87,9 +88,12 @@ port 1883.** ECCE neither uses nor needs it: ECCE starts its own broker
 instances (below). It can be disabled with `sudo systemctl disable --now
 mosquitto` without affecting ECCE.
 
-On RHEL, Rocky and Fedora the client RPM requires `mosquitto` (in EPEL on
-RHEL and Rocky: `sudo dnf install epel-release`), `Coin4` (EPEL 9 has
-4.0.10, Fedora 4.0.10 and 4.0.7) and `curl`; the server RPM requires
+On RHEL, Rocky and Fedora the client RPM requires `mosquitto`, `Coin4` (EPEL 9
+has 4.0.10, Fedora 4.0.10 and 4.0.7), `python3-wxpython4`, the wxGTK 3.2 and
+xerces-c libraries and `curl`. On RHEL and Rocky all of these except `curl`
+are in EPEL, so run `sudo dnf install epel-release` before installing the
+RPMs (without it dnf stops with `nothing provides Coin4`, `mosquitto`,
+`python3-wxpython4`, ...); the server RPM requires
 `httpd`, `httpd-tools`, `mosquitto` and `apr-util`. The Rocky 9 RPMs of
 9.0.0-alpha.3 were installed and run on RHEL 9 (local mode with only the
 client package, and server mode). The Fedora RPMs are built but not run.
