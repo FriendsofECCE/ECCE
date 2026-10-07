@@ -223,6 +223,26 @@ def check(display, results, png=None, only=None):
                 results.fail("pbc ux layout", p)
             if problems:
                 results.notes.append("\n".join(log.splitlines()[-15:]))
+    #  A user who once clicked the Properties tab (saved) opens the next
+    #  calculation without results on the Structure tab all the same.
+    if not only or re.search(only, "switch tab"):
+        results.checks += 1
+        args = ("-pipe", fixture.authFile(
+            os.path.join(state, ".ECCE", "auth.pipe"), user=fixture.USER),
+            "-context", url)
+        runScene(display, "tab-seed", ["columntab 1"], url, args,
+                 env={"ECCE_PANEL_MODE": "detail"})
+        args = args[:-1] + (unrun,)
+        work, problems, log = runScene(
+            display, "tab-unrun", ["panestate state " + " ".join(TOOLS)],
+            unrun, args, env={"ECCE_PANEL_MODE": "detail"})
+        st = readState(os.path.join(work, "state.txt"))
+        if st is None or "Build" not in st["shown"]:
+            problems.append("Properties tab saved, calculation without "
+                            "results: Build not shown (%s)"
+                            % ", ".join((st or {}).get("shown", [])))
+        for p in problems:
+            results.fail("pbc ux layout", p)
     #  Switching a running Builder between a calculation with results and
     #  one without, both ways, in the default layout and in classic.
     for mode in ("detail", "classic"):

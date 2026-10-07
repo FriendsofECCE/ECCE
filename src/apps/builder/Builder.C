@@ -5261,7 +5261,7 @@ void Builder::updatePropertyMenus()
             w[0] == "fragdump" || w[0] == "panelmode" ||
             w[0] == "toolmenu" || w[0] == "paneclose" ||
             w[0] == "panestate" || w[0] == "xshot" ||
-            w[0] == "setcontext")
+            w[0] == "setcontext" || w[0] == "columntab")
           return pbcTestCommand(s, w, outdir);
         if ((w[0] != "mopanel" && w[0] != "motable") || w.size() != 2)
           return s.fail("unknown command: " + w[0]);

@@ -100,6 +100,13 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     return true;
   }
 
+  //  "columntab <0|1>": click the Structure (0) or Properties (1) tab.
+  if (c == "columntab" && w.size() == 2) {
+    setColumnTab(atoi(w[1].c_str()) ? 1 : 0, true);
+    settle(300);
+    return true;
+  }
+
   //  "xshot <file>": the whole screen -> <file> (ImageMagick import).
   if (c == "xshot" && w.size() == 2) {
     settle(500);
