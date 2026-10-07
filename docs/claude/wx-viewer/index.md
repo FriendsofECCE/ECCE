@@ -46,3 +46,4 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [Every `ewxFrame`/`ewxDialog` is capped to its display and scrolls what does not fit (`fitToScreen()`); codereg dialogs scroll in `EccePanel` (#189)](windows-fit-small-screens-via-fittodisplay.md)
 
 - [A failed live property update must not free the cached property; a panel's timer must die with the panel (#217)](property-cache-and-panel-timers-outlive-their-objects.md)
+- [The Inventor viewer works in framebuffer pixels; wx sizes and mouse positions are logical units (#133)](viewer-sizes-are-framebuffer-pixels.md)

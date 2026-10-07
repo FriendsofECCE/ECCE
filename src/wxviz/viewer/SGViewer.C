@@ -18,6 +18,7 @@
 #include "wxgui/ewxCursor.H"
 
 #include "inv/SoWx/SoWxExaminerViewer.H"
+#include "inv/SoWx/SoWxDevice.H"
 #include "inv/SoWx/SoWxRenderArea.H"
 
 #include "viz/freeglut_font_data.H"
@@ -739,8 +740,8 @@ SbBool SGViewer::processCommonEvents(wxEvent * event)
        }
     }
 
-    int x = mouseEvent->GetX();
-    int y = mouseEvent->GetY();
+    int x = soWxToPixels(mouseEvent, mouseEvent->GetX());
+    int y = soWxToPixels(mouseEvent, mouseEvent->GetY());
     SbVec2s raSize = getGlxSize();
       
     if ((mouseEvent->ButtonDown() || mouseEvent->ButtonDClick())
@@ -896,8 +897,8 @@ void SGViewer::processEvent( wxEvent * event )
 
   wxMouseEvent * mouseEvent = dynamic_cast<wxMouseEvent *>(event);
   if (mouseEvent != 0) {
-    int x = mouseEvent->GetX();
-    int y = mouseEvent->GetY();
+    int x = soWxToPixels(mouseEvent, mouseEvent->GetX());
+    int y = soWxToPixels(mouseEvent, mouseEvent->GetY());
     int timeStamp = mouseEvent->GetTimestamp();
 
     if (mouseEvent->ButtonDown() || mouseEvent->ButtonUp()) {
