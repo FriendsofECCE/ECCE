@@ -31,6 +31,9 @@ $result =~ s/\s*Full point group\s*//;
 @store = split(/\s+/,$result);
 $result = $store[0];
 
+# a line cut before the group name leaves nothing to report
+exit(0) if ($result eq '');
+
 print "key: PNTGRP\n";
 print "size: \n1\n";
 print "values: \n$result\n";

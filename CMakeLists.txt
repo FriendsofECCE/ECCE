@@ -1739,6 +1739,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/run_tests.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
+  # The same fixtures cut off part-way, through the real eccejobmonitor and
+  # parser scripts (#107 part B).
+  add_test(NAME parsers_partial
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/partial_replay.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+  set_tests_properties(parsers_partial PROPERTIES TIMEOUT 600)
+
   # tests/dialogs -- the GUI-side sibling of the above: runs the real
   # scripts/codereg dialogs headlessly (broadwayd, GTK3's displayless
   # backend; falls back to xvfb; SKIPs cleanly with neither) and diffs what

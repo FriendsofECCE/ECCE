@@ -27,6 +27,9 @@ chop($result);
 $result =~ s/^\s*//;
 $result =~ s/\s*$//;
 
+# a line cut before the group name leaves nothing to report
+exit(0) if ($result eq '');
+
 print "key: PNTGRP\n";
 print "size: \n1\n";
 print "values: \n$result\n";
