@@ -417,13 +417,22 @@ void EcceURL::parse(const char *xurl)
     if (!p_protocol.empty() && 
         *loc == '/' && (*(loc+1) != '\0' && *(loc+1) == '/')) {
       loc+=2;
+#ifdef _WIN32
+      // file://C:/dir -- the "C:" is a drive, not host:port.
+      bool drivePath = isalpha((unsigned char)loc[0]) && loc[1] == ':' &&
+                       (loc[2] == '/' || loc[2] == '\\');
+#else
+      const bool drivePath = false;
+#endif
       char *endhost = strchr(loc,'/');
       if (endhost == 0) {
         endhost = (char*)&loc[strlen(loc)-1];
       }
 
       char *portloc = strchr(loc,':');
-      if (portloc != 0) {
+      if (drivePath) {
+        // no host: the whole remainder is the path
+      } else if (portloc != 0) {
         // We have a port.  First get the internet domain name
         for (char *it=loc; it<portloc; it++) {
           p_host.append(1,*it);
