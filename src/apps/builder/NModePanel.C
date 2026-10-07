@@ -128,6 +128,8 @@ NModePanel::NModePanel(IPropCalculation *calculation,
 
 NModePanel::~NModePanel()
 {
+   //  The animation timer must not fire into a destroyed panel.
+   delete p_timer;
    //  The window's canvas calls back into this panel.
    if (p_spectrumPop) p_spectrumPop->setClickHandler(0);
    if (p_spectrumFrame) p_spectrumFrame->Destroy();

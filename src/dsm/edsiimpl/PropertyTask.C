@@ -268,10 +268,12 @@ TProperty* PropertyTask::updateProperty(const string& name, const string& value)
   //If property is not on DAV server then return null because this property is 
   //probably a time - series property that is being cached.
   // uhhhh what???
+  //  From here on `property` is the cached object (getProperty() caches
+  //  whatever it returns), so a failed update must leave it alone: deleting
+  //  it left p_properties pointing at freed memory, and the next reader of
+  //  the property -- a geometry step, the trace panel -- crashed (#217).
   if (localValue.empty()) {
-    delete property;
-    property = NULL;
-    return property;
+    return 0;
   }
 
 
@@ -336,11 +338,15 @@ TProperty* PropertyTask::updateProperty(const string& name, const string& value)
   // This may change, but for now, PROPERTY_OUTPUT files are not parsed
   PropertyDoc doc;
   if (!isOutputFile) {
-    doc.parse(localValue.c_str(), false);
+    try {
+      doc.parse(localValue.c_str(), false);
+    } catch (...) {
+      // A step the data server could not deliver leaves the URL here.
+      return 0;
+    }
   }
 
-  if ( (doc.empty() && !isOutputFile) || !property ) {
-    delete property;
+  if (doc.empty() && !isOutputFile) {
     property = NULL;
   } 
   else {
@@ -373,7 +379,6 @@ TProperty* PropertyTask::updateProperty(const string& name, const string& value)
       default: ok = false; break;
     };
     if (!ok) {
-      delete property;
       property = NULL;
     } 
     else {

@@ -106,6 +106,14 @@ PlaybackControl::PlaybackControl(wxWindow* parent, wxWindowID id,
 
 PlaybackControl::~PlaybackControl()
 {
+  // A one-shot is pending for as long as playback runs; one that fired
+  // after the panel was destroyed would deliver its tick to freed memory.
+  delete p_timer;
+  if (p_delayInternal) delete p_delay;
+  if (p_startIndexInternal) delete p_startIndex;
+  if (p_stopIndexInternal) delete p_stopIndex;
+  if (p_stepSizeInternal) delete p_stepSize;
+  if (p_currentStepInternal) delete p_currentStep;
 }
 
 
