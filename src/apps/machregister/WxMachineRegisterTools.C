@@ -69,7 +69,10 @@ static void runBusy(wxWindow* parent, const wxString& title,
                     const wxString& message, const std::function<void()>& work)
 {
     std::atomic<bool> done(false);
-    std::thread worker([&work, &done]() { work(); done = true; });
+    std::thread worker([&work, &done]() {
+        try { work(); } catch (...) {}
+        done = true;
+    });
     wxBusyCursor busy;
     wxWindowDisabler disabler;
     wxProgressDialog* dlg = NULL;
@@ -274,7 +277,7 @@ static void addRequestControls(WxMachineRegister* owner, wxDialog* dlg,
                                const string& selectedCode,
                                const vector<MCD::QueueRow>& queues,
                                const string& selectedQueue,
-                               bool allocAccounts,
+                               const string& account,
                                const string& prefix, bool withCode,
                                std::function<void(const string&, wxWindow*)> reg)
 {
@@ -332,15 +335,11 @@ static void addRequestControls(WxMachineRegister* owner, wxDialog* dlg,
               wxSizerFlags().CentreVertical());
     grid->Add(p.mem);
 
-    p.account = new ewxTextCtrl(dlg, wxID_ANY);
-    //  A disabled field with an example hint looked like a field that
-    //  would not take input; say why it is off instead.
-    p.account->SetHint(allocAccounts ? "e.g. proj1"
-                                     : "not used on this machine");
-    p.account->Enable(allocAccounts);
-    p.account->SetToolTip(allocAccounts ? "The allocation account the job is "
-        "charged to" : "Allocation accounts are not used on this machine "
-        "(Queues tab)");
+    p.account = new ewxTextCtrl(dlg, wxID_ANY, wxString::FromUTF8(account.c_str()));
+    p.account->SetHint("e.g. proj1");
+    p.account->SetToolTip("The allocation account the job is charged to. "
+        "Some machines refuse a job without one. Filled in from the Default "
+        "account on the Queues tab.");
     grid->Add(new wxStaticText(dlg, wxID_ANY, "Account"),
               wxSizerFlags().CentreVertical());
     grid->Add(p.account, wxSizerFlags().Expand());
@@ -369,8 +368,7 @@ static JobPreview::Request requestFrom(const RequestPanel& p, bool admin,
     r.code = (string)p.code->GetStringSelection();
     string q = (string)p.queue->GetStringSelection();
     r.queue = q == "(none)" ? "" : q;
-    r.account = p.account->IsEnabled() ? stripped((string)p.account->GetValue())
-                                       : "";
+    r.account = stripped((string)p.account->GetValue());
     r.nodes = (unsigned)p.nodes->GetValue();
     r.procs = (unsigned)p.procs->GetValue();
     r.wallHours = p.wall->GetValue();
@@ -381,6 +379,97 @@ static JobPreview::Request requestFrom(const RequestPanel& p, bool admin,
 
 
 //  ---- discovery ------------------------------------------------------------
+
+//  Fills in the selected code's program by asking the machine, over the
+//  connection the other checks use, where its executable is.  The login
+//  setup (Connection tab) runs first, so a module-loaded code is found.
+void WxMachineRegister::findProgram()
+{
+    if (p_codeNames.empty())
+        return;
+    const string code = p_codeNames[p_codeSel];
+    ewxTextCtrl* field = p_codePaths[p_codeSel];
+    string machine = stripped((string)p_fullName->GetValue());
+    if (machine.empty())
+    {
+        displayMessage("Enter the machine's host name on the Machine tab "
+                       "first.");
+        return;
+    }
+    SchedulerQuery::ProgramHelp h = SchedulerQuery::programHelp(code);
+    SchedulerQuery::Connection conn = this->connection();
+    string output, err;
+    bool ran = false;
+    runBusy(this, "Find program", "Looking for " + code + " on " + machine +
+            "...", [&]() {
+        SchedulerQuery::Remote r(conn);
+        string e;
+        if (!r.open(e)) { err = e; return; }
+        vector<string> argv;
+        argv.push_back("sh");
+        argv.push_back("-c");
+        argv.push_back(SchedulerQuery::findProgramScript(h) + "exit 0\n");
+        ran = r.run(argv, output, 60);
+        if (!ran)
+            err = output;
+    });
+    vector<string> found = SchedulerQuery::parseFound(output);
+    if (!ran && found.empty())
+    {
+        displayMessage("Could not look on " + machine + ":\n" + err);
+        return;
+    }
+    string names;
+    for (size_t i = 0; i < h.names.size(); i++)
+        names += (i ? ", " : "") + h.names[i];
+    if (found.empty())
+    {
+        displayMessage("No " + names + " was found on " + machine + ". The "
+            "program was left as it was. If " + code + " is loaded with "
+            "'module load', put that command in the login setup on the "
+            "Connection tab; otherwise enter the path by hand.");
+        return;
+    }
+    string pick = found[0];
+    if (found.size() > 1)
+    {
+        int at = 0;
+        if (p_scripted)
+        {
+            fprintf(stderr, "[MACHREG] choose: %s\n",
+                    SchedulerQuery::commandLine(found).c_str());
+            p_lastMessage = "choose: " + SchedulerQuery::commandLine(found);
+            if (p_choices.empty())
+            {
+                fprintf(stderr, "[MACHREG] FAIL unanswered choice\n");
+                return;
+            }
+            at = p_choices.front();
+            p_choices.pop_front();
+            if (at < 0 || at >= (int)found.size())
+                return;                         // cancelled
+        }
+        else
+        {
+            wxArrayString items;
+            for (size_t i = 0; i < found.size(); i++)
+                items.Add(wxString::FromUTF8(found[i].c_str()));
+            at = wxGetSingleChoiceIndex("Several programs were found on " +
+                     machine + ". Which one is " + code + "?",
+                     "Find program", items, 0, this);
+            if (at < 0)
+                return;
+        }
+        pick = found[at];
+    }
+    string now = stripped((string)field->GetValue());
+    if (!now.empty() && now != pick &&
+        ask("Find program", "Replace " + now + " with " + pick + "?", "",
+            wxYES_NO|wxNO_DEFAULT|wxICON_QUESTION, "Replace", "Keep", "") != wxID_YES)
+        return;
+    field->SetValue(wxString::FromUTF8(pick.c_str()));
+}
+
 
 void WxMachineRegister::discoverQueues()
 {
@@ -416,6 +505,12 @@ void WxMachineRegister::discoverQueues()
             if (!r.open(e)) { err = e; return; }
             ok = SchedulerQuery::discover(r, qmgr, found, commands, err);
         });
+    if (ok && !found.empty())
+    {
+        p_discovered.clear();
+        for (size_t i = 0; i < found.size(); i++)
+            p_discovered.insert(found[i].name);
+    }
 
     wxDialog* dlg = new wxDialog(this, wxID_ANY, "Discover queues",
                                  wxDefaultPosition, wxDefaultSize,
@@ -577,7 +672,7 @@ void WxMachineRegister::previewJobScript(const string& wantedCode)
         code = p_codeNames[p_codeSel];
     string queue = (string)p_queueChoice->GetStringSelection();
     string qmgr = (string)p_qmgrChoice->GetStringSelection();
-    bool accounts = p_allocAccts->IsChecked();
+    string accounts = this->defaultAccount();
 
     wxDialog* dlg = new wxDialog(this, wxID_ANY, "Preview job script",
                                  wxDefaultPosition, wxDefaultSize,
@@ -764,7 +859,7 @@ void WxMachineRegister::testSubmission()
     std::shared_ptr<RequestPanel> panel = std::make_shared<RequestPanel>();
     vector<string> codes;
     addRequestControls(this, dlg, root, *panel, codes, "", p_queues, queue,
-                       p_allocAccts->IsChecked(), "test:", false,
+                       this->defaultAccount(), "test:", false,
                        [this](const string& n, wxWindow* w) { this->reg(n, w); });
 
     wxCheckBox* hold = NULL;
@@ -828,10 +923,16 @@ void WxMachineRegister::testSubmission()
         SchedulerQuery::TestResult tr;
         string terr, scriptErr;
         bool ok = false;
+        result->SetValue("Asking " + machine + "...");
+        verdict->SetLabel("");
         runBusy(this, "Test submission", "Asking " + machine + "...", [&]() {
             SchedulerQuery::Remote r(conn);
             string e;
-            if (!r.open(e)) { terr = e; return; }
+            if (!r.open(e))
+            {
+                terr = "Could not log in to " + machine + ".\n" + e;
+                return;
+            }
             //  The run directory must exist on the machine for HTCondor.
             req.runDir = r.home();
             vector<JobPreview::Line> lines;
@@ -852,15 +953,30 @@ void WxMachineRegister::testSubmission()
         }
         if (!ok)
         {
-            result->SetValue(terr);
+            string text = "The test did not run.\n";
+            if (!tr.commands.empty())
+                text += "\nCommand run on " + machine + ":\n" + tr.commands +
+                        "\n";
+            text += "\n" + (terr.empty() ? string("No reason was given; the "
+                    "connection may have been refused or timed out.") : terr)
+                    + "\n";
+            result->SetValue(wxString::FromUTF8(text.c_str()));
             verdict->SetLabel("Not tested");
             return;
         }
         string text = "Command run on " + machine + ":\n" + tr.commands +
                       "\n\nThe scheduler's answer:\n" + tr.answer + "\n";
         result->SetValue(wxString::FromUTF8(text.c_str()));
-        verdict->SetLabel(tr.accepted ? qmgr + " accepted the script."
-                                      : qmgr + " did not accept the script.");
+        string v;
+        if (!tr.accepted)
+            v = qmgr + " did not accept the script.";
+        else if (tr.cancelled)
+            v = "Job " + tr.jobId + " was submitted on hold and cancelled.";
+        else
+            v = qmgr + " accepted the script; nothing was submitted" +
+                (tr.jobId.empty() ? string() : " (job " + tr.jobId +
+                 " would have started)") + ".";
+        verdict->SetLabel(wxString::FromUTF8(v.c_str()));
     });
 
     dlg->Fit();
