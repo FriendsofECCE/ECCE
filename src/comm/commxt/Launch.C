@@ -932,6 +932,12 @@ bool Launch::validateScratchDir(void)
 bool Launch::checkRemoteDir(const string& remoteDir, const bool& rerunCheck)
 {
   bool ret = remoteDir[0]=='/' || remoteDir[0]=='~';
+#ifdef _WIN32
+  // A local run directory is a drive path, "C:/..." or "C:\...".
+  if (remoteDir.size() > 2 && isalpha((unsigned char)remoteDir[0]) &&
+      remoteDir[1]==':' && (remoteDir[2]=='/' || remoteDir[2]=='\\'))
+    ret = true;
+#endif
 
   // First see if it already exists
   if (ret) {
