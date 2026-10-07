@@ -79,7 +79,7 @@ class NWChemMDModelXMLizer : public XMLSerializer
        */
       void dumpInteraction(InteractionModel *model, ostream &os);
       void dumpConstraint(ConstraintModel *model, ostream &os);
-      void dumpOptimize(OptimizeModel *model, ostream &os);
+      void dumpOptimize(OptimizeModel *model, ostream &os, bool all=false);
       void dumpControl(ControlModel *model, ostream &os);
       void dumpDynamics(DynamicsModel *model, ostream &os);
       void dumpThermodynamics(ThermodynamicsModel *model, ostream &os);

@@ -162,7 +162,8 @@ vector<string> MdTask::propertyNames()
   if (state >= ResourceDescriptor::STATE_RUNNING) {
     ResourceDescriptor::CONTENTTYPE type = getContentType();
     if (type == ResourceDescriptor::CT_MDOPTIMIZE ||
-        type == ResourceDescriptor::CT_MDDYNAMICS) {
+        type == ResourceDescriptor::CT_MDDYNAMICS ||
+        type == ResourceDescriptor::CT_MDEQUILIBRATE) {
       // The logic to populate the model correctly is pretty tricky
       // Panels that are to be referenced must be "pushed" so the
       // model fields are populated.
@@ -835,6 +836,11 @@ string MdTask::getRestartName() const
 {
   string restartName = getSystemName() + "_" + getCalcName();
 
+  // mdrun writes the final structure as a .gro; the next task starts there
+  if (getApplicationType() == ResourceDescriptor::AT_GROMACS) {
+    return restartName + ".gro";
+  }
+
   ResourceDescriptor::CONTENTTYPE ct = getContentType();
   if (ct == ResourceDescriptor::CT_MDOPTIMIZE) {
     restartName += ".qrs";
@@ -860,6 +866,10 @@ string MdTask::getRestartName() const
  */
 string MdTask::getTopologyName() const
 {
+  // A GROMACS task is given its topology; it never produces one.
+  if (getApplicationType() == ResourceDescriptor::AT_GROMACS) {
+    return "";
+  }
   return getSystemName() + ".top";
 }
 
@@ -873,6 +883,10 @@ string MdTask::getTopologyName() const
  */
 string MdTask::getMdOutputName() const
 {
+  // The GROMACS run log is the task's primary output already.
+  if (getApplicationType() == ResourceDescriptor::AT_GROMACS) {
+    return "";
+  }
   return (getSystemName() + "_" + getCalcName() + ".out");
 }
 

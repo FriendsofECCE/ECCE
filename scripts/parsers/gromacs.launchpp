@@ -2,85 +2,84 @@
 ###############################################################################
 #
 # Purpose:
-#   Launch-time preprocessing for a GROMACS calculation: rewrite the
-#   generated .mdp with values only known at launch, and run grompp to
-#   produce the .tpr that mdrun actually executes.
+#   Launch-time check of a GROMACS task's inputs, on the launching machine,
+#   so that a mistake is reported at launch and not found in the job log.
 #
-#   STATUS: groundwork. No GROMACS.edml exists yet, so this is not
-#   invoked by anything -- see docs/GROMACS_ROADMAP.md.
+#   Launch has staged gromacs.mdp (the input file), topol.top, conf.gro and
+#   any .itp/.ndx includes in the current directory.  This checks the three
+#   that grompp needs are there, and, if gmx is on this machine, runs grompp
+#   on them into a scratch .tpr.  grompp's diagnostics are good -- a
+#   topology that does not match the structure is the first thing a new user
+#   hits -- and are printed as they are.  A non-zero exit stops the launch;
+#   Launch shows what was printed.
 #
-# Why this step exists at all:
-#   GROMACS is not one binary reading one text deck. grompp consumes
-#   .mdp + .top + .gro and emits a BINARY .tpr, which mdrun then runs.
-#   ECCE's model is "generate a text input, submit it, tail the output",
-#   so the .mdp is the file ECCE generates and the user edits, and the
-#   .tpr is a build artefact that must be produced before submission.
-#   <LaunchPreprocessor> is exactly the hook for that -- and it is
-#   required unconditionally anyway, because Launch::postProcessInput()
-#   shells out to it with no empty-string check.
+#   The job script runs grompp again on the machine that runs the job (that
+#   is where the .tpr that mdrun reads is built, and that machine may be a
+#   different one with its own gmx), so nothing built here is shipped.  When
+#   there is no gmx here the check is skipped and the job script reports a
+#   failure in the output file instead.
 #
-#   grompp failure is the COMMON CASE for a new user: a topology that
-#   does not match the coordinates, a missing molecule type, wrong atom
-#   counts. Its diagnostics are good and must reach the user rather than
-#   being discarded -- the same lesson as the eccejobmaster.log fix and
-#   as CalcEd throwing away input-generator errors. This script prints
-#   grompp's output and exits non-zero on failure so the launch stops
-#   here, with the reason, instead of submitting a job that cannot run.
-#
-#   Idempotent by design, like nwchem.launchpp: re-running it on an
-#   already-processed directory simply regenerates the .tpr.
+#   Idempotent: it changes nothing in the directory.
 #
 ##############################################################################
+use strict;
 use Getopt::Std;
+use File::Temp qw(tempdir);
 
-&getopts('p:v');
+our($opt_p, $opt_v);
+getopts('p:v');
 
 if ($opt_v) {
-  print "gromacs.launchpp 1.0\n";
+  print "gromacs.launchpp 2.0\n";
   exit 0;
 }
 
-open(PARAMDICT, "<$opt_p") || die "gromacs.launchpp: parameter file does not exist!\n";
-my %params = ();
-while (<PARAMDICT>) {
-  chomp;
+open(my $pd, "<", $opt_p) || die "gromacs.launchpp: parameter file does not exist!\n";
+my %params;
+while (<$pd>) {
   s/\s*!.*$//;
-  next if (/^\s*$/);
-  if (/^\s*(\S+)\s+(.*)$/) {
-    my ($k, $v) = ($1, $2);
-    $v =~ s/\s+$//;
-    $params{$k} = $v;
-  }
+  if (/^\s*([^:\s]+)\s*:\s*(.*?)\s*$/) { $params{$1} = $2; }
 }
-close(PARAMDICT);
+close($pd);
 
-my $mdp   = $params{"inputFile"};
-my $top   = $params{"topologyFile"} || "topol.top";
-my $coord = $params{"coordinateFile"} || "conf.gro";
-my $tpr   = $params{"tprFile"} || "topol.tpr";
+my $mdp = $params{"inputFile"} || "gromacs.mdp";
 
-die "gromacs.launchpp: no input .mdp named in $opt_p\n" if (!defined($mdp));
+my @missing;
+push(@missing, "the run-control file $mdp") if (! -s $mdp);
+push(@missing, "the topology (topol.top)")  if (! -s "topol.top");
+push(@missing, "the starting structure (conf.gro)") if (! -s "conf.gro");
+if (@missing) {
+  print STDERR "GROMACS needs " . join(", ", @missing) . " and it is not here.\n";
+  print STDERR "Attach the topology and the structure on the Files tab of the task editor.\n";
+  exit 1;
+}
 
-#  Thread and rank counts are launch-time knowledge the input generator
-#  cannot have, which is the other reason this hook exists. They go on
-#  mdrun's command line rather than into the .mdp, so they are recorded
-#  here for gensub rather than written into the file.
-my $procs = $params{"totalprocs"} || 1;
+# gmx on this machine?  Not an error if it is not: the job's machine has it.
+my $gmx = "";
+foreach my $dir (split(/:/, $ENV{"PATH"} || "")) {
+  if (-x "$dir/gmx") { $gmx = "$dir/gmx"; last; }
+}
+if ($gmx eq "") {
+  print "gmx is not on this machine, so the inputs are not checked here; grompp runs on the job's machine.\n";
+  exit 0;
+}
 
-#  "gmx" is the wrapper binary; a cluster build is often "gmx_mpi". Take
-#  whichever the site configured, defaulting to the plain one.
-my $gmx = $params{"gmxCommand"} || "gmx";
-
-my $cmd = "$gmx grompp -f \"$mdp\" -c \"$coord\" -p \"$top\" -o \"$tpr\" -maxwarn 0";
-my $output = `$cmd 2>&1`;
+my $tmp = tempdir("gromacs.launchpp.XXXXXX", TMPDIR => 1, CLEANUP => 1);
+my @cmd = ($gmx, "grompp", "-f", $mdp, "-c", "conf.gro", "-p", "topol.top",
+           "-o", "$tmp/check.tpr", "-po", "$tmp/mdout.mdp", "-maxwarn", "0");
+my $out = `@cmd 2>&1`;
 my $status = $? >> 8;
-
 if ($status != 0) {
-  print STDERR "gromacs.launchpp: grompp failed, so there is nothing to submit.\n";
-  print STDERR "  command: $cmd\n\n";
-  print STDERR $output;
+  print STDERR "grompp rejected the inputs, so the job was not submitted.\n";
+  print STDERR "  command: @cmd\n\n";
+  # the useful part of grompp's output starts at its first ERROR/WARNING
+  my @lines = split(/\n/, $out);
+  my $first = 0;
+  for (my $i = 0; $i < scalar(@lines); $i++) {
+    if ($lines[$i] =~ /^(ERROR|WARNING|Fatal error)/) { $first = $i; last; }
+  }
+  print STDERR join("\n", @lines[$first .. $#lines]) . "\n";
   exit($status);
 }
-
-print $output;
-exit(0);
+print "grompp accepted the inputs.\n";
+exit 0;

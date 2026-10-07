@@ -5048,6 +5048,7 @@ void CalcMgr::createResource(ResourceType * resType,
     // logic to handle MD and condensed phase reaction study branching
     // @todo should be moved to Session::createChild
     if (newRes->getApplicationType()==ResourceDescriptor::AT_NWCHEMMD ||
+        newRes->getApplicationType()==ResourceDescriptor::AT_GROMACS ||
         parRes->getApplicationType()==ResourceDescriptor::AT_CONDENSED_REACTION_STUDY) {
       Resource *source = 0;
       vector<EcceURL> panelSelections = p_contextPanel->getSelections();

@@ -14,6 +14,7 @@
   using std::endl;
   using std::ends;
 #include <fstream>
+#include <memory>
   using std::ofstream;
   using std::ifstream;
 #include <strstream>
@@ -36,6 +37,7 @@
 #include "tdat/AuthCache.H"
 
 #include "dsm/NWChemMDModel.H"
+#include "dsm/GromacsMDModel.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/EDSIServerCentral.H"
 #include "dsm/MdTask.H"
@@ -51,6 +53,8 @@
 #include "wxgui/WxFeedback.H"
 #include "wxgui/WxJMSMessageDispatch.H"
 
+#include "wxgui/GromacsInputsPanel.H"
+#include "wxgui/WindowShot.H"
 #include "wxgui/MDEdBase.H"
 
 /**
@@ -61,6 +65,9 @@
 MDEdBase::MDEdBase( )
         : TaskApp("MD Base", 1000), WxDavAuth(0)
 {
+   p_isGromacs = false;
+   p_gmxInputs = 0;
+   p_launchWanted = true;
 }
 
 
@@ -74,6 +81,9 @@ MDEdBase::MDEdBase( wxWindow* parent, wxWindowID id, const wxString& caption,
                   : MDEdBaseGUI(parent, id, caption, pos, size, style),
                     TaskApp("MD Base", 1000)
 {
+   p_isGromacs = false;
+   p_gmxInputs = 0;
+   p_launchWanted = true;
 }
 
 
@@ -93,6 +103,12 @@ void MDEdBase::constructor()
 
    createPanels();
 
+   registerPages();
+   p_gmxInputs = new GromacsInputsPanel(this, p_notebook);
+   p_gmxInputs->Hide();
+   PageEntry inputs = { p_gmxInputs, _("Inputs"), false };
+   p_pages.insert(p_pages.begin(), inputs);
+
    Fit();
 
    p_ignoreCodeEventsFlag = false;
@@ -104,6 +120,120 @@ void MDEdBase::constructor()
    // Get Registry and set destop icon
    ResourceDescriptor rs = ResourceDescriptor::getResourceDescriptor();
    ewxWindowUtils::setToolIcon(this, getAppName());
+
+   startTestHook();
+}
+
+
+void MDEdBase::startTestHook()
+{
+   const char *dir = getenv("ECCE_TEST_MDED");
+   if (dir == 0) return;
+   string base = string(dir) + "/" + getAppName();
+   string cmdPath = base + ".cmd";
+   string outPath = base + ".out";
+   std::shared_ptr<size_t> done(new size_t(0));
+   wxTimer *timer = new wxTimer();   // lives until the process exits
+   timer->Bind(wxEVT_TIMER, [this, cmdPath, outPath, done](wxTimerEvent&) {
+      ifstream in(cmdPath.c_str());
+      string line;
+      size_t n = 0;
+      while (std::getline(in, line)) {
+         if (n++ < *done) continue;
+         *done = n;
+         string outcome;
+         try {
+            outcome = runTestCommand(line);
+         } catch (std::exception& ex) {
+            outcome = string("exception: ") + ex.what();
+         } catch (...) {
+            outcome = "exception";
+         }
+         ofstream out(outPath.c_str(), std::ios::app);
+         out << line << ": " << outcome << std::endl;
+      }
+   });
+   timer->Start(500);
+}
+
+
+/**
+ * open <url>          show the task at url, as the invoke message does
+ * attach-top|attach-gro|attach-inc <path>   as the Inputs page's buttons
+ * set-steps <n>        data steps (dynamics) or maximum steps (optimize)
+ * save                 as Save does, generating the input file
+ * tab <title>          select a notebook page
+ * tabs                 the notebook pages, in order
+ * inputs               what the Inputs page shows
+ * launch               whether the Launch button is enabled
+ * title                the window's title
+ * snap <png>           the window as a PNG
+ * quit                 close without asking
+ */
+string MDEdBase::runTestCommand(const string& line)
+{
+   string cmd = line.substr(0, line.find(' '));
+   string arg = line.size() > cmd.size() + 1 ? line.substr(cmd.size() + 1) : "";
+   for (int i = 0; i < 4; i++) { wxYield(); }
+
+   if (cmd == "open") {
+      setContext(arg);
+      Raise();
+      for (int i = 0; i < 4; i++) { wxYield(); }
+      return "ok";
+   } else if (cmd == "attach-top" || cmd == "attach-gro" || cmd == "attach-inc") {
+      if (p_gmxInputs == 0 || !p_isGromacs) return "not a GROMACS task";
+      string message;
+      GromacsInputsPanel::Kind kind =
+         cmd == "attach-top" ? GromacsInputsPanel::TOPOLOGY_FILE :
+         cmd == "attach-gro" ? GromacsInputsPanel::STRUCTURE_FILE :
+                               GromacsInputsPanel::INCLUDE_FILE;
+      bool ok = p_gmxInputs->attachFile(kind, arg, message);
+      return string(ok ? "ok: " : "refused: ") + message;
+   } else if (cmd == "set-steps") {
+      int n = atoi(arg.c_str());
+      MDCompositeModel& m = getMDModel();
+      if (m.getDynamicsModel()) m.getDynamicsModel()->setDataSteps(n);
+      else if (m.getOptimizeModel()) m.getOptimizeModel()->setSDMaxIterations(n);
+      else return "no steps to set";
+      refreshGUI();
+      if (p_isGromacs) applyCodeProfile(true);
+      setSaveState(true);
+      return "ok";
+   } else if (cmd == "save") {
+      MdTask *task = dynamic_cast<MdTask*>(EDSIFactory::getResource(p_model->getUrl()));
+      saveModelAndInputFile(task);
+      return "ok";
+   } else if (cmd == "tab") {
+      for (size_t i = 0; i < p_notebook->GetPageCount(); i++) {
+         if (p_notebook->GetPageText(i) == wxString::FromUTF8(arg.c_str())) {
+            p_notebook->SetSelection(i);
+            for (int k = 0; k < 4; k++) { wxYield(); }
+            return "ok";
+         }
+      }
+      return "no such page";
+   } else if (cmd == "tabs") {
+      string out;
+      for (size_t i = 0; i < p_notebook->GetPageCount(); i++) {
+         out += (i ? "|" : "") + string(p_notebook->GetPageText(i).ToUTF8());
+      }
+      return out;
+   } else if (cmd == "inputs") {
+      return p_gmxInputs ? p_gmxInputs->summary() : "no inputs page";
+   } else if (cmd == "launch") {
+      ewxButton* launch = ((ewxButton*)FindWindow(ID_BUTTON_LAUNCH));
+      return launch->IsEnabled() ? "enabled" : "disabled";
+   } else if (cmd == "title") {
+      return string(GetTitle().ToUTF8());
+   } else if (cmd == "snap") {
+      return ecceWindowShot(this, wxString::FromUTF8(arg.c_str())) ? "saved"
+                                                                  : "not saved";
+   } else if (cmd == "quit") {
+      Close(true);
+      return "ok";
+   }
+   return "unknown command";
 }
 
 
@@ -129,6 +259,10 @@ void MDEdBase::updateDisabledState(ResourceDescriptor::RUNSTATE state, bool forc
 {
    static ResourceDescriptor::RUNSTATE lastState =
                                        ResourceDescriptor::STATE_READY;
+
+   if (p_gmxInputs != 0) {
+      p_gmxInputs->setEditable(state < ResourceDescriptor::STATE_SUBMITTED);
+   }
 
    if (state >= ResourceDescriptor::STATE_SUBMITTED) {
       setFrameCustomDisabledStyle(false);
@@ -193,7 +327,7 @@ void MDEdBase::doSaveButtonClick(wxCommandEvent &event)
 void MDEdBase::saveModelAndInputFile(MdTask *task)
 {
    if (task) {
-      NWChemMDModel& model = getNWChemMDModel();
+      MDCompositeModel& model = getMDModel();
 
       // can throw an exception
       task->setTaskModel(&model);
@@ -214,6 +348,20 @@ void MDEdBase::saveModelAndInputFile(MdTask *task)
  */
 void MDEdBase::enableLaunch(bool flag)
 {
+  p_launchWanted = flag;
+
+  // A GROMACS task cannot run without its topology and structure; say so
+  // here, where the user is looking, rather than at the failed launch.
+  if (flag && p_isGromacs && p_gmxInputs != 0) {
+    string why;
+    if (!p_gmxInputs->inputsReady(why)) {
+      flag = false;
+      p_feedback->setMessage("Launch is not possible yet: " + why +
+                             " Attach them on the Inputs tab.",
+                             WxFeedback::WARNING);
+    }
+  }
+
   ewxButton* finalEdit = ((ewxButton*)FindWindow(ID_BUTTON_FINALEDIT));
   ewxButton* launch = ((ewxButton*)FindWindow(ID_BUTTON_LAUNCH));
   if (flag) {
@@ -225,6 +373,44 @@ void MDEdBase::enableLaunch(bool flag)
   }
 }
 
+void MDEdBase::gromacsInputsChanged()
+{
+  enableLaunch(p_launchWanted);
+}
+
+
+void MDEdBase::registerPages()
+{
+   p_pages.clear();
+   for (size_t i = 0; i < p_notebook->GetPageCount(); i++) {
+      PageEntry e = { p_notebook->GetPage(i), p_notebook->GetPageText(i), true };
+      p_pages.push_back(e);
+   }
+}
+
+
+void MDEdBase::setPageShown(wxWindow *page, bool show)
+{
+   int pos = 0;
+   for (size_t i = 0; i < p_pages.size(); i++) {
+      if (p_pages[i].win != page) {
+         if (p_pages[i].shown) pos++;
+         continue;
+      }
+      if (p_pages[i].shown == show) return;
+      p_pages[i].shown = show;
+      if (show) {
+         p_notebook->InsertPage(pos, page, p_pages[i].title);
+         page->Show();
+      } else {
+         p_notebook->RemovePage(pos);
+         page->Hide();
+      }
+      return;
+   }
+}
+
+
 /**
  * Re-generate the input file from the model and upload it to the data server.
  * @throw IOException if the input file generation failed for some reason or
@@ -232,7 +418,7 @@ void MDEdBase::enableLaunch(bool flag)
  */
 void MDEdBase::generateInputFile(MdTask *task)
 {
-   NWChemMDModel& model = getNWChemMDModel();
+   MDCompositeModel& model = getMDModel();
 
    const JCode *codecap = task->application();
    if (codecap == 0) {
@@ -342,16 +528,23 @@ void MDEdBase::setContext(const string& urlstr)
     if (urlstr == p_model->getUrl())
       return;
 
+    // Get task model from db (deserialize)
+    MdTask *mdTask =  dynamic_cast<MdTask*>(EDSIFactory::getResource(EcceURL(urlstr)));
+
+    // The task decides which code's model and controls the window shows
+    if (mdTask != 0) {
+      selectCode(mdTask->getApplicationType() ==
+                 ResourceDescriptor::AT_GROMACS);
+    }
+
     // Set model's url
     p_model->setUrl(urlstr);
 
-    // Get task model from db (deserialize)
-    MdTask *mdTask =  dynamic_cast<MdTask*>(EDSIFactory::getResource(EcceURL(urlstr)));
     if (mdTask != 0) {
       try {
         FragmentSummary fragSum;
         mdTask->getFragmentSummary(fragSum);
-        getNWChemMDModel().getInteractionModel()->setDefaultGrid(fragSum);
+        getMDModel().getInteractionModel()->setDefaultGrid(fragSum);
 
         state = mdTask->getState();
         p_feedback->setRunState(state);
@@ -371,7 +564,7 @@ void MDEdBase::setContext(const string& urlstr)
            if (mdTask->getContentType() != ResourceDescriptor::CT_MDDYNAMICS) {
              generateInputFile(mdTask);
            } else {
-             NWChemMDModel& mdModel = getNWChemMDModel();
+             MDCompositeModel& mdModel = getMDModel();
              DynamicsModel *dynModel = mdModel.getDynamicsModel();
              if (dynModel) {
                 // only generate an input file if the number of data
@@ -383,6 +576,11 @@ void MDEdBase::setContext(const string& urlstr)
         }
 
         p_msgDispatcher->setPollContext(urlstr);
+
+        if (p_isGromacs && p_gmxInputs != 0) {
+          p_gmxInputs->setContext(urlstr);
+          gromacsInputsChanged();
+        }
       }
       catch (...) {
         mdTask = 0;
@@ -393,6 +591,11 @@ void MDEdBase::setContext(const string& urlstr)
 
     //Refresh GUI with model
     refreshGUI();
+
+    // refreshing shows controls again that have no meaning for GROMACS
+    if (p_isGromacs) {
+      applyCodeProfile(true);
+    }
 
 
   }
@@ -671,15 +874,57 @@ void MDEdBase::_authMCB(JMSMessage& msg, const string& callerID)
 
 void MDEdBase::initializeModel()
 {
-   vector<NWChemMDModel::GUIPanel> panels;
-   p_model = new NWChemMDModel(panels);
+   p_isGromacs = false;
+   p_model = new NWChemMDModel(p_panelSet);
 }
 
 
 
-NWChemMDModel& MDEdBase::getNWChemMDModel() const
+MDCompositeModel& MDEdBase::getMDModel() const
 {
-   return (NWChemMDModel&)*p_model;
+   return (MDCompositeModel&)*p_model;
+}
+
+
+string MDEdBase::codeTitle() const
+{
+   return p_isGromacs ? "GROMACS" : "NWChem";
+}
+
+
+void MDEdBase::bindModels()
+{
+}
+
+
+void MDEdBase::applyCodeProfile(bool gromacs)
+{
+}
+
+
+void MDEdBase::selectCode(bool gromacs)
+{
+   if (gromacs == p_isGromacs && p_model != 0) return;
+
+   MDCompositeModel *old = (MDCompositeModel*)p_model;
+   if (gromacs) {
+      p_model = new GromacsMDModel(p_panelSet);
+   } else {
+      p_model = new NWChemMDModel(p_panelSet);
+   }
+   if (old) {
+      p_model->setUrl(old->getUrl());
+   }
+   p_isGromacs = gromacs;
+   bindModels();
+   applyCodeProfile(gromacs);
+   if (p_gmxInputs != 0) {
+      setPageShown(p_gmxInputs, gromacs);
+      if (gromacs) p_notebook->SetSelection(0);
+   }
+   delete old;
+
+   SetTitle(wxString::FromUTF8(("ECCE " + getTitle()).c_str()));
 }
 
 void MDEdBase::taskAppShow()
@@ -763,7 +1008,7 @@ void MDEdBase::OnButtonBuilderClick( wxCommandEvent& event )
 {
    try {
 
-      NWChemMDModel& model = getNWChemMDModel();
+      MDCompositeModel& model = getMDModel();
       MdTask *task = 
          dynamic_cast<MdTask*>(EDSIFactory::getResource(model.getUrl()));
 
@@ -794,7 +1039,7 @@ void MDEdBase::OnButtonFinaleditClick( wxCommandEvent& event )
 {
    try {
 
-     NWChemMDModel& model = getNWChemMDModel();
+     MDCompositeModel& model = getMDModel();
      MdTask *task = dynamic_cast<MdTask*>(EDSIFactory::getResource(model.getUrl()));
 
      // Save if needed
@@ -847,7 +1092,7 @@ void MDEdBase::processEditCompletion(const EditEvent& ee)
    string infile;
    TypedFile tinfile;
    MdTask *task = 
-       dynamic_cast<MdTask*>(EDSIFactory::getResource(getNWChemMDModel().getUrl()));
+       dynamic_cast<MdTask*>(EDSIFactory::getResource(getMDModel().getUrl()));
    task->getDataFile(JCode::PRIMARY_INPUT, tinfile);
    infile = tinfile.name();
 
@@ -868,7 +1113,7 @@ void MDEdBase::OnButtonLaunchClick( wxCommandEvent& event )
 {
    try {
 
-      NWChemMDModel& model = getNWChemMDModel();
+      MDCompositeModel& model = getMDModel();
       MdTask *task = 
          dynamic_cast<MdTask*>(EDSIFactory::getResource(model.getUrl()));
 
@@ -903,7 +1148,7 @@ void MDEdBase::OnButtonResetaClick( wxCommandEvent& event )
       "ECCE Reset All",wxYES_NO);
   int status = prompt.ShowModal();
   if (status == wxID_YES) {
-    getNWChemMDModel().reset();
+    getMDModel().reset();
     refreshGUI();
   }
 }

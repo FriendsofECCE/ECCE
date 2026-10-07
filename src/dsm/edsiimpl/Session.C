@@ -1303,7 +1303,8 @@ void Session::addMemberAsTarget(Resource * target, Resource * source)
   // MD only logic:
   // Try to initialize model from previous task in study, if there is one.
   // Don't attempt if current task or input task is a prepare task.
-  if (target->getApplicationType()==ResourceDescriptor::AT_MDSTUDY &&
+  if ((target->getApplicationType()==ResourceDescriptor::AT_MDSTUDY ||
+       target->getApplicationType()==ResourceDescriptor::AT_GROMACS) &&
       target->getContentType()!=ResourceDescriptor::CT_MDPREPARE) {
     MdTask *currentTask = dynamic_cast<MdTask*>(target);
     if (currentTask) {

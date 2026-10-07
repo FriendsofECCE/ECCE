@@ -1699,6 +1699,23 @@ add_test(NAME session-display-gate COMMAND bash
          ${CMAKE_SOURCE_DIR}/tests/session/display_gate.sh ${CMAKE_SOURCE_DIR})
 set_tests_properties(session-display-gate PROPERTIES SKIP_RETURN_CODE 77)
 
+# tests/gromacs_md -- GROMACS MD study tasks.  gromacs_structure checks the
+# .gro reader of the Inputs page against gmx editconf; gromacs_md runs the
+# study's scripts (md.gmxtask, gromacs.launchpp, gensub, the monitor and
+# parsers) on real gmx, task after task.  Both SKIP without gmx.
+# See docs/GROMACS.md.
+add_executable(gromacs_groconv tests/gromacs_md/groconv.C
+               src/dsm/chemistry/GromacsStructure.C)
+add_test(NAME gromacs_structure
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/gromacs_md/groconv_test.py
+                 $<TARGET_FILE:gromacs_groconv>)
+set_tests_properties(gromacs_structure PROPERTIES SKIP_RETURN_CODE 77)
+add_test(NAME gromacs_md
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/gromacs_md/run_tests.py)
+set_tests_properties(gromacs_md PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
 # tests/mqtt -- the messaging library against a private mosquitto on a Unix
 # socket; checks delivery, not just acknowledgement.  "auth" is the same on
 # a TCP broker with two accounts and the shipped access rules.  SKIPs (77)

@@ -30,6 +30,14 @@ public:
     void setDynamicsModel(DynamicsModel *model);
     DynamicsModel* getDynamicsModel();
     void refreshGUI();
+
+    /**
+     * Show only the controls that mean something for GROMACS (true), or
+     * all of them (false).  Call again after refreshGUI(), which may
+     * show things this hid.
+     */
+    void applyGromacsProfile(bool gromacs);
+
     void initializeGUI();
     void showDynamicsPanel();
     void checkResume();
@@ -156,6 +164,11 @@ public:
   protected:
     DynamicsModel *p_model;
     MDPanelHelper *p_helper;
+
+
+private:
+    bool p_gromacs = false;          ///< GROMACS controls in force
+    bool p_hidRethermTab = false;    ///< this panel took the tab out
 
 };
 
