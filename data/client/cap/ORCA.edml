@@ -28,6 +28,10 @@
   <MaxPrimitives>100 100 100 100 100 100</MaxPrimitives>
   <MaxSharedExponent>      1 </MaxSharedExponent>
   <SphericalCoordinates>	True </SphericalCoordinates>
+  <!-- ORCA has no Cartesian d/f functions: the basis is recorded as
+       spherical whatever the library says, or the MO code expects six
+       d functions where ORCA wrote five (GBSRules::sphericalOnly). -->
+  <SphericalOnly>True</SphericalOnly>
   <DFTFitting>		False</DFTFitting>
   <RecommendDFTCharge>	False </RecommendDFTCharge>
   <RequireFullDFT>         False </RequireFullDFT>
