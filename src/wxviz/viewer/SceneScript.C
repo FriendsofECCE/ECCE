@@ -455,6 +455,8 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
 #endif
   } else if (c == "pick" && w.size() >= 3) {
     return pickAtoms(w[1], vector<string>(w.begin() + 2, w.end()));
+  } else if (c == "wxpick" && w.size() >= 3) {
+    return pickAtoms(w[1], vector<string>(w.begin() + 2, w.end()), true);
   } else if (c == "drag" && w.size() == 5) {
     return dragAtom(w[1], atoi(w[2].c_str()), atoi(w[3].c_str()), atoi(w[4].c_str()));
   } else if (c == "vizthumb" && w.size() == 4) {
@@ -687,7 +689,10 @@ class DragListener : public MotionListener
 //  scene manager, the path a wx mouse event takes once translated to an
 //  SoEvent (SoHandleEventAction -> SGSelection::handleEvent -> its own
 //  SoRayPickAction).  Writes the selection after each click.
-bool SceneScript::pickAtoms(const string& name, const vector<string>& atoms)
+//  "wxpick": the same as wx mouse events on the canvas, in its logical
+//  units, so the conversion to framebuffer pixels is tested too.
+bool SceneScript::pickAtoms(const string& name, const vector<string>& atoms,
+                            bool viaWx)
 {
   SoWxRenderArea *area = findRenderArea(p_viewer);
   SGFragment *frag = p_sg->getFragment();
@@ -705,8 +710,24 @@ bool SceneScript::pickAtoms(const string& name, const vector<string>& atoms)
     int a = atoi(atoms[i].c_str()) - 1;
     SbVec2s pos = atomPixel(p_viewer, frag, a);
     frag->m_atomHighLight.clear();
-    sendMouse(area->getSceneManager(), true, pos, t);
-    sendMouse(area->getSceneManager(), false, pos, t + 0.05);
+    if (viaWx) {
+      const double s = area->GetContentScaleFactor();
+      const int lx = (int)std::lround(pos[0] / s);
+      const int ly = (int)std::lround((area->getGlxSize()[1] - 1 - pos[1]) / s);
+      for (int k = 0; k < 2; k++) {
+        wxMouseEvent e(k == 0 ? wxEVT_LEFT_DOWN : wxEVT_LEFT_UP);
+        e.m_x = lx;
+        e.m_y = ly;
+        e.m_leftDown = (k == 0);
+        e.SetEventObject(area);
+        e.SetTimestamp((long)((t + 0.05 * k) * 1000));
+        area->GetEventHandler()->ProcessEvent(e);
+      }
+      fprintf(o, "scale %g logical (%d,%d) ", s, lx, ly);
+    } else {
+      sendMouse(area->getSceneManager(), true, pos, t);
+      sendMouse(area->getSceneManager(), false, pos, t + 0.05);
+    }
     t += 1.0;
     fprintf(o, "click atom %d at (%d,%d): selected", a + 1, pos[0], pos[1]);
     for (size_t k = 0; k < frag->m_atomHighLight.size(); k++)

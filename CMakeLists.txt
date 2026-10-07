@@ -1080,6 +1080,14 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-askpass
         DESTINATION scripts
         COMPONENT client)
 
+# scripts/ecce-macos-terminal: the default terminal on macOS (UserEditor),
+# which runs xterm's "-e command" in Terminal.app.
+if(APPLE)
+  install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-macos-terminal
+          DESTINATION scripts
+          COMPONENT client)
+endif()
+
 # scripts/ecce-csh2sh and its rules module CshToSh.pm: converts the csh snippets
 # in submit.site / CONFIG.* to the sh gensub now writes.  gensub `use`s
 # CshToSh.pm from its own directory, so it travels with it; the launcher runs
@@ -1871,6 +1879,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_BINARY_DIR}/viewer-scenes)
   set_tests_properties(look_nm_sticks PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
 
+  # At content scale 2 the viewer fills the canvas and wx clicks pick the
+  # atom aimed at (#133, Retina).  Needs `ninja viewer-scenes` and Xvfb.
+  add_test(NAME look_hidpi
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/hidpi.py
+                   ${CMAKE_BINARY_DIR}/viewer-scenes)
+  set_tests_properties(look_hidpi PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
+
   # The saved DefaultStyle moves from the old default once (#227).
   add_test(NAME look_default_style
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -2036,6 +2052,19 @@ if(PYTHON3_EXECUTABLE)
     eccetdat ecceutil ${XercesC_LIBRARIES})
   add_test(NAME transport_local_terminal COMMAND testLocalTerminal)
   set_tests_properties(transport_local_terminal PROPERTIES TIMEOUT 60)
+
+  # The editor command (UserEditor) per platform, and macOS open(1) waiting
+  # for its own copy; ecce-macos-terminal with a stub open (#133).
+  add_executable(testEditorCommand tests/transport/testEditorCommand.C)
+  target_link_libraries(testEditorCommand PRIVATE
+    eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+    eccetdat ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME editor_command COMMAND testEditorCommand)
+  set_tests_properties(editor_command PROPERTIES TIMEOUT 60)
+  add_test(NAME macos_terminal
+    COMMAND sh ${CMAKE_SOURCE_DIR}/tests/transport/macos_terminal_test.sh
+            ${CMAKE_SOURCE_DIR})
+  set_tests_properties(macos_terminal PROPERTIES TIMEOUT 60)
 
   # Run Management's Tail (TailSource) on a local machine; the same program
   # runs against the test sshd from tests/transport/sshd/tail_test.sh.

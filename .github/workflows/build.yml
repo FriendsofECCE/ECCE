@@ -342,6 +342,10 @@ jobs:
         # -k 0: report every failing file, not only the first few.
         run: cmake --build build-cmake -- -k 0
 
+      # The editor and terminal commands macOS gets by default (#133).
+      - name: Editor and terminal commands
+        run: cd build-cmake && ctest -R '^(editor_command|macos_terminal)$' --output-on-failure
+
       # Does it run? (#133) Starts the installed apps on the runner's
       # logged-in desktop and screenshots them.  Allowed to fail; the
       # verdict is in the summary and the "macos-run" artifact.

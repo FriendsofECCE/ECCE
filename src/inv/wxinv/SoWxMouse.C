@@ -69,7 +69,7 @@ SoMouseButtonEvent * SoWxMouse::translateButtonEvent(wxMouseEvent * event,
   else 
     button = SoMouseButtonEvent::ANY;
   
-  setEventPosition(p_buttonEvent, event->GetX(), event->GetY());
+  setEventPosition(p_buttonEvent, event, event->GetX(), event->GetY());
 
   //cerr << "\nButton Time stamp: " << event->GetTimestamp() << "\n";
   //cerr << "\nButton State: " << state << "\n";
@@ -89,7 +89,7 @@ SoMouseButtonEvent * SoWxMouse::translateButtonEvent(wxMouseEvent * event,
 
 SoLocation2Event * SoWxMouse::translateMotionEvent(wxMouseEvent * event)
 {
-  setEventPosition(p_loc2Event, event->GetX(), event->GetY());
+  setEventPosition(p_loc2Event, event, event->GetX(), event->GetY());
 
   //  cerr << "Mouse Move Time stamp: " << event->GetTimestamp() << "\n";
   SbTime stamp;
