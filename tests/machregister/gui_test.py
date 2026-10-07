@@ -2416,8 +2416,6 @@ quit
         p = run(display, build, e, """
 select stubm
 tab queues
-set qmgr Slurm
-set qmgrpath %(bin)s
 expect field aa 0
 expect dirty 0
 set default-account proj7
@@ -2437,10 +2435,9 @@ click test-submission
 expect field test:account proj7
 click test:close
 save
-dump
 expect dirty 0
 quit
-""" % {"bin": bindir, "shot": shot("preview-account.png")},
+""" % {"shot": shot("preview-account.png")},
             extra=LOCALUSER, timeout=180)
         clean(p, "the default account is editable, ticks the account box, and "
                  "is used by Preview and Test submission")
