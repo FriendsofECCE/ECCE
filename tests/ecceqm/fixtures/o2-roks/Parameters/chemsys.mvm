@@ -1,0 +1,16 @@
+title: /home/andy/.cache/ecce-ecceqm-6kceaz07/work/o2-triplet-roks/o2-triplet-roks
+type: molecule
+num_atoms: 2
+atom_info: symbol cart
+atom_list: 
+O 0.00000 0.00000 0.00000
+O 0.00000 0.00000 1.20750
+attr_list:
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+atom_type_list:
+        1   1
+        1   1
+num_bonds: 1
+bond_list: 
+1 2 1.00000 1

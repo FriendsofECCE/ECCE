@@ -320,7 +320,7 @@ def main():
 
 
 def runCase(suite, env, build, state, oracle, name, mol, key, mult, tol, qm,
-                        opts.export):
+            export=None):
     say("--- %s" % name)
     work = os.path.join(state, "work", name)
     os.makedirs(work)

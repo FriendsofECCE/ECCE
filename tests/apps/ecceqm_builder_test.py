@@ -70,9 +70,9 @@ def installLocal(folder, calcs):
     return urls
 
 
-def openBuilder(display, url, label, expectDiagram):
+def openBuilder(display, url, label, expectDiagram, panel="MOs"):
     metrics = tempfile.mktemp(prefix="ecce-ecceqm-", suffix=".txt")
-    env = {"ECCE_OPEN_PANEL": "MOs", "ECCE_PANEL_METRICS": metrics}
+    env = {"ECCE_OPEN_PANEL": panel, "ECCE_PANEL_METRICS": metrics}
     result = apps.run(display, "builder", args=("-context", url),
                       windowTimeout=60, settle=40, env=env)
     panes = readPanes(metrics)
@@ -88,7 +88,7 @@ def openBuilder(display, url, label, expectDiagram):
         problem = "no window"
     elif not panes:
         problem = "no panel metrics written"
-    elif "MOs" not in panes:
+    elif panel == "MOs" and "MOs" not in panes:
         problem = "no MOs panel (%s)" % ", ".join(sorted(panes))
     elif ("MO Diagram" in panes) != expectDiagram:
         problem = ("MO Diagram %s, expected %s (panes: %s)"
@@ -119,9 +119,13 @@ def main():
         os.environ["ECCE_LOCAL_DATA"] = folder
         restorePrefs = fixture.settleUpgradeNotices()
         try:
-            openBuilder(display, urls["o2"], "ECCE-QM O2: MOs, no MO Diagram", False)
+            openBuilder(display, urls["o2"], "ECCE-QM O2: MOs panel opens", False)
+            #  Asked for by name, the diagram opens only where it is offered.
+            openBuilder(display, urls["o2"], "ECCE-QM O2: MO Diagram not offered",
+                        False, panel="MO Diagram")
             openBuilder(display, urls["water-orca"],
-                        "control (ORCA water): MOs and MO Diagram", True)
+                        "control (ORCA water): MO Diagram offered", True,
+                        panel="MO Diagram")
         finally:
             restorePrefs()
             os.environ.pop("ECCE_LOCAL_DATA", None)

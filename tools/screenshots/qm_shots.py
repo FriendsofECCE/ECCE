@@ -101,7 +101,7 @@ def main():
                         env, settle=30)
                 elif name == "builder-mo":
                     data.calc("Complete")
-                    scene = "mo %d 0.04 50" % MO
+                    scene = "mo %d 0.04 50\nviewall" % MO
                     err = help_shots.shootBuilder(
                         display, options.tmp, options.out, name,
                         data.url("tutorial", "o2-triplet"), "MOs",

@@ -16,8 +16,12 @@ endif()
 
 include(FetchContent)
 # Static dependencies built into ecce-qm; their headers and libraries are not
-# part of any package.
-set(CMAKE_SKIP_INSTALL_RULES ON)
+# part of any package (EXCLUDE_FROM_ALL also drops their install rules).
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.28)
+  set(_qm_fc_exclude EXCLUDE_FROM_ALL)
+else()
+  set(_qm_fc_exclude)
+endif()
 find_package(OpenMP COMPONENTS CXX)
 
 # --- Eigen (header only, MPL-2.0) ------------------------------------------
@@ -25,7 +29,7 @@ find_package(Eigen3 3.3 CONFIG QUIET)
 if(NOT TARGET Eigen3::Eigen)
   FetchContent_Declare(eigen
     GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-    GIT_TAG 3.4.0 GIT_SHALLOW ON)
+    GIT_TAG 3.4.0 GIT_SHALLOW ON ${_qm_fc_exclude})
   set(EIGEN_BUILD_DOC OFF)
   set(BUILD_TESTING OFF)
   set(EIGEN_BUILD_PKGCONFIG OFF)
@@ -49,7 +53,7 @@ if(NOT _have_xc)
   message(STATUS "ecce-qm: system libxc not found, vendoring libxc 7.0.0")
   FetchContent_Declare(libxc
     GIT_REPOSITORY https://gitlab.com/libxc/libxc.git
-    GIT_TAG 7.0.0 GIT_SHALLOW ON)
+    GIT_TAG 7.0.0 GIT_SHALLOW ON ${_qm_fc_exclude})
   set(BUILD_SHARED_LIBS OFF)
   set(BUILD_TESTING OFF)
   set(ENABLE_FORTRAN OFF)
@@ -67,13 +71,11 @@ endif()
 # --- libcint (Apache-2.0): not packaged in Debian, always vendored ---------
 FetchContent_Declare(libcint
   GIT_REPOSITORY https://github.com/sunqm/libcint.git
-  GIT_TAG v6.1.3 GIT_SHALLOW ON)
+  GIT_TAG v6.1.3 GIT_SHALLOW ON ${_qm_fc_exclude})
 set(ENABLE_STATIC ON)
 set(WITH_RANGE_COULOMB OFF)
 set(BUILD_MARCH_NATIVE OFF)
 FetchContent_MakeAvailable(libcint)
-
-unset(CMAKE_SKIP_INSTALL_RULES)
 
 # --- the library and the command line tool ---------------------------------
 add_library(eccems STATIC
