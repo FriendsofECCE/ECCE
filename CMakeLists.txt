@@ -2251,3 +2251,11 @@ if(PYTHON3_EXECUTABLE)
     set_tests_properties(queues_${qm} PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
   endforeach()
 endif()
+
+# ecce-qm: the small built-in HF/DFT engine (src/qm).  Off by default: it
+# downloads libcint, libxc (unless the system has it) and Eigen at configure
+# time.  See docs/qm/README.md.
+option(ECCE_BUILD_QM "Build ecce-qm, the built-in HF/DFT engine" OFF)
+if(ECCE_BUILD_QM)
+  add_subdirectory(src/qm)
+endif()
