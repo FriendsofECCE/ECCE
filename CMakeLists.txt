@@ -1902,6 +1902,15 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_calcimport PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
 
+  # The Builder with a calculation's MOs panel open in every panel layout,
+  # on a 1366x768 screen: viewer and panel on screen and inside the window.
+  add_test(NAME apps_panel_layouts
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/panel_layouts_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_panel_layouts PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # Every app's main window and every codereg Theory/Runtype dialog fits a
   # small screen (#189): measured on private Xvfb screens, no window may
   # extend past the screen.  Same installed tree and isolation as `apps`.
