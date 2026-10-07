@@ -28,6 +28,7 @@
 #include "wxgui/ewxProgressDialog.H"
 #include "wxgui/ewxStaticText.H"
 
+#include "tdat/MoAoBasis.H"
 #include "tdat/MoComposition.H"
 #include "tdat/MoFragments.H"
 #include "tdat/MoLigandField.H"
@@ -132,46 +133,12 @@ MoDiagramPanel::~MoDiagramPanel()
 //   wrong levels, so both are tried and the caller is told when
 //   neither matches.
 /////////////////////////////////////////////////////////////////////////////
-static bool countFunctions(TGBSConfig *config, const vector<TAtm*>& atoms,
-                           bool cartesian, vector<int>& counts,
-                           vector<int>& shellOf)
+//  The walk itself lives in MoAoBasis (tdat), shared with the MO
+//  composition display; these only unpack the scene-graph fragment.
+static bool fragmentSymbols(SGFragment *sgfrag, vector<string>& symbols,
+                            vector<double>& coords)
 {
-  counts.clear();
-  shellOf.clear();
-
-  bool ok = true;
-  for (size_t a = 0; a < atoms.size(); a++) {
-    const string symbol = atoms[a]->atomicSymbol();
-    int here = 0;
-
-    vector<const TGaussianBasisSet*> list = config->getGBSList(symbol);
-    for (size_t g = 0; g < list.size(); g++) {
-      const TGaussianBasisSet *gbs = list[g];
-      if (gbs == 0) continue;
-      const int sets = gbs->num_contracted_sets(symbol.c_str());
-      for (int ics = 0; ics < sets; ics++) {
-        vector<TGaussianBasisSet::AngularMomentum> types =
-            gbs->func_types(symbol.c_str(), ics);
-        for (size_t t = 0; t < types.size(); t++) {
-          const int l = (int)types[t];
-          //  (l+1)(l+2)/2 Cartesian functions in a shell, 2l+1
-          //  spherical ones -- six Cartesian d against five spherical.
-          const int inShell = cartesian ? ((l+1)*(l+2))/2 : (2*l + 1);
-          here += inShell;
-          //  The angular momentum of each function, in the order the
-          //  coefficients are stored.  A diatomic can be connected by
-          //  nothing else: both its atoms carry exactly half of every
-          //  orbital, so which SHELL a sigma-g came from is the only
-          //  question with an answer.
-          for (int f = 0; f < inShell; f++) shellOf.push_back(l);
-        }
-      }
-    }
-    if (here == 0) ok = false;
-    counts.push_back(here);
-  }
-
-  return ok && !counts.empty();
+  return MoAoBasis::fragmentGeometry(sgfrag, symbols, coords);
 }
 
 static bool functionsPerAtom(IPropCalculation *expt, SGFragment *sgfrag,
@@ -179,173 +146,37 @@ static bool functionsPerAtom(IPropCalculation *expt, SGFragment *sgfrag,
                              vector<int>& counts, vector<int>& shellOf,
                              bool *semiempirical = 0)
 {
-  counts.clear();
-  shellOf.clear();
-  if (semiempirical != 0) *semiempirical = false;
-
-  ICalculation *escalc = dynamic_cast<ICalculation*>(expt);
-  if (escalc == 0 || sgfrag == 0) return false;
-
-  TGBSConfig *config = escalc->gbsConfig();
-
-  //  A semiempirical code writes no basis set; rebuild one from the
-  //  Slater exponents it did report, as MoPanel and ComputeMoCmd both
-  //  do.  Each fetches the config independently.
-  if (config == 0 || config->empty()) {
-    TGBSConfig *slater = ICalcUtils::slaterBasisConfig(expt);
-    if (slater != 0) {
-      delete config;
-      config = slater;
-      //  NDDO coefficients are already in an orthonormal basis (S=I):
-      //  a caller composing Lowdin shares from this basis must use
-      //  plain c^2 rather than transforming through a REAL Slater
-      //  overlap, which the method itself never sees (#175).
-      if (semiempirical != 0) *semiempirical = true;
-    }
+  vector<string> symbols;
+  vector<double> coords;
+  if (!fragmentSymbols(sgfrag, symbols, coords)) {
+    counts.clear(); shellOf.clear();
+    if (semiempirical != 0) *semiempirical = false;
+    return false;
   }
-  if (config == 0 || config->empty()) { delete config; return false; }
-
-  const JCode *cap = escalc->application();
-  TGBSAngFunc *angfunc = (cap == 0) ? 0 : cap->getAngFunc(config->coordsys());
-  const bool recordedCartesian =
-      (angfunc != 0 && angfunc->basisType() == TGBSAngFunc::Cartesian);
-  delete angfunc;
-
-  vector<TAtm*> *atoms = sgfrag->atoms();
-  if (atoms == 0) { delete config; return false; }
-
-  //  THE RECORDED SYSTEM FIRST, the other only if it does not
-  //  reproduce the coefficient table's width -- same rule
-  //  computeFullGroupLabels() uses, and for the same reason: the
-  //  recorded convention is right far more often, so it is not worth
-  //  silently preferring whichever happens to match when both do.
-  bool ok = false;
-  const bool tries[2] = { recordedCartesian, !recordedCartesian };
-  for (int t = 0; t < 2 && !ok; t++) {
-    vector<int> trialCounts, trialShellOf;
-    if (!countFunctions(config, *atoms, tries[t], trialCounts, trialShellOf))
-      continue;
-    int total = 0;
-    for (size_t i = 0; i < trialCounts.size(); i++) total += trialCounts[i];
-    if (coefficientWidth > 0 && total != coefficientWidth) continue;
-    counts.swap(trialCounts);
-    shellOf.swap(trialShellOf);
-    ok = true;
-  }
-
-  delete atoms;
-  delete config;
-  return ok;
+  return MoAoBasis::functionCounts(expt, symbols, coefficientWidth, counts,
+                                   shellOf, semiempirical);
 }
 
 
 /**
  * The real overlap matrix and per-atom function counts, for the
  * localisation and overlap-population checks classify() runs before
- * any construction-specific bonding rule (#132, 2026-09-27).
- *
- * functionsPerAtom() above gives perAtom/shellOf cheaply, but with no
- * overlap matrix at all -- fine for composeLevels()'s Lowdin
- * (sum-of-squares) composition, useless for an overlap population,
- * which is entirely a cross-atom S element. So this rebuilds the
- * basis the heavier way computeFullGroupLabels() does (BasisFlatten +
- * EspField::overlapOf), in the STORED frame the coefficients are
- * actually in -- same reasoning as that function's header comment --
- * but stops once S exists, since nothing here needs a character table.
+ * any construction-specific bonding rule (#132, 2026-09-27), in the
+ * STORED frame the coefficients are in.
  */
 static bool buildBasisOverlap(IPropCalculation *expt, SGFragment *sgfrag,
                               int coefficientWidth,
                               vector<int>& perAtom, vector<double>& Sflat,
                               std::function<void(double)> onRow = nullptr)
 {
-  perAtom.clear();
-  Sflat.clear();
-
-  ICalculation *escalc = dynamic_cast<ICalculation*>(expt);
-  if (escalc == 0 || sgfrag == 0) return false;
-
-  TGBSConfig *config = escalc->gbsConfig();
-  if (config == 0 || config->empty()) {
-    TGBSConfig *slater = ICalcUtils::slaterBasisConfig(expt);
-    if (slater != 0) { delete config; config = slater; }
-  }
-  if (config == 0 || config->empty()) { delete config; return false; }
-
-  const JCode *code = escalc->application();
-  if (code == 0) { delete config; return false; }
-
-  vector<TAtm*> *atoms = sgfrag->atoms();
-  double *xyz = sgfrag->coordinates();
-  const unsigned long natoms = sgfrag->numAtoms();
-  if (atoms == 0 || xyz == 0 || natoms == 0 || atoms->size() != natoms) {
-    delete atoms;
-    delete config;
+  vector<string> symbols;
+  vector<double> coords;
+  if (!fragmentSymbols(sgfrag, symbols, coords)) {
+    perAtom.clear(); Sflat.clear();
     return false;
   }
-  vector<string> storedElements(natoms);
-  vector<double> storedCoords(natoms*3);
-  for (unsigned long a = 0; a < natoms; a++) {
-    storedElements[a] = (*atoms)[a]->atomicSymbol();
-    for (int k = 0; k < 3; k++) storedCoords[a*3+k] = xyz[a*3+k];
-  }
-  delete atoms;
-
-  //  THE RECORDED SYSTEM FIRST -- same two-try rule as
-  //  computeFullGroupLabels() and functionsPerAtom(), for the same
-  //  reason: the coefficient table's width alone decides Cartesian vs
-  //  spherical, and the recorded convention is right far more often.
-  vector<EspBasisFunction> basis;
-  {
-    int lengthShellCart[7] = { 1, 3, 6, 10, 15, 21, 28 };
-    int lengthShellSph[7]  = { 1, 3, 5, 7, 9, 11, 13 };
-    const TGaussianBasisSet::CoordinateSystem recorded = config->coordsys();
-    const TGaussianBasisSet::CoordinateSystem other =
-        (recorded == TGaussianBasisSet::Spherical)
-          ? TGaussianBasisSet::Cartesian : TGaussianBasisSet::Spherical;
-    const TGaussianBasisSet::CoordinateSystem tries[2] = { recorded, other };
-    for (int t = 0; t < 2 && basis.empty(); t++) {
-      TGBSAngFunc *candidate = code->getAngFunc(tries[t]);
-      if (candidate == 0) continue;
-      const bool sph = (tries[t] == TGaussianBasisSet::Spherical);
-      vector<EspBasisFunction> trial;
-      if (BasisFlatten::flatten(storedElements, storedCoords, config, code,
-                                candidate, candidate->maxShells(),
-                                sph ? lengthShellSph : lengthShellCart,
-                                trial) &&
-          (int)trial.size() == coefficientWidth) {
-        basis.swap(trial);
-      }
-      delete candidate;
-    }
-  }
-  delete config;
-  if (basis.empty()) return false;
-  for (size_t i = 0; i < basis.size(); i++) if (basis[i].empty()) return false;
-
-  perAtom.clear();
-  {
-    size_t i = 0;
-    while (i < basis.size()) {
-      size_t j = i;
-      while (j < basis.size() &&
-             fabs(basis[j].center[0]-basis[i].center[0]) < 1.0e-9 &&
-             fabs(basis[j].center[1]-basis[i].center[1]) < 1.0e-9 &&
-             fabs(basis[j].center[2]-basis[i].center[2]) < 1.0e-9) j++;
-      perAtom.push_back((int)(j - i));
-      i = j;
-    }
-  }
-  if (perAtom.size() != natoms) { perAtom.clear(); return false; }
-
-  const size_t nbasis = basis.size();
-  Sflat.assign(nbasis*nbasis, 0.0);
-  for (size_t i = 0; i < nbasis; i++) {
-    for (size_t j = 0; j < nbasis; j++)
-      Sflat[i*nbasis + j] = EspField::overlapOf(basis[i], basis[j]);
-    if (onRow) onRow((i+1.0)/nbasis);
-  }
-
-  return true;
+  return MoAoBasis::overlapMatrix(expt, symbols, coords, coefficientWidth,
+                                  perAtom, Sflat, onRow);
 }
 
 
