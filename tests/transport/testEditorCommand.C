@@ -70,11 +70,11 @@ int main()
 
   unsetenv("ECCE_EDITOR");
 #ifdef __APPLE__
-  same("default editor", UserEditor::getPreferredEditor(), "open -t");
+  same("default editor", UserEditor().getPreferredEditor(), "open -t");
   same("default terminal", UserEditor::getTerminal(), "ecce-macos-terminal");
   same("default command", command(f, false), "open|-t|-W|-n|" + file);
 #else
-  same("default editor", UserEditor::getPreferredEditor(), "vi");
+  same("default editor", UserEditor().getPreferredEditor(), "vi");
   same("default terminal", UserEditor::getTerminal(), "xterm");
 #endif
 
