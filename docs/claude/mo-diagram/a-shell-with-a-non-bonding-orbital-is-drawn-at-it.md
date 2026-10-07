@@ -23,7 +23,11 @@ irrep pins the row.
 A lone pair from s/p mixing (water 3a1, NH3 3a1) is not single-shell
 (f = 0.76 and 0.86 in ORCA def2-SVP; 0.93 and 0.94 in extended Huckel)
 and is drawn in the usual way, connected to s, p and the ligand set, as
-in Albright-Burdett-Whangbo (2013) Figs. 7.2 and 9.4.
+in Albright-Burdett-Whangbo (2013) Figs. 7.2 and 9.4. classify() tags it
+MIXED, not nb, when its irrep is on both sides and it holds at least
+`LINK_SHARE` (0.05) of each column's drawn shells; with a composition,
+connect() draws every side at or above `LINK_SHARE`, nb or not. Before
+this, water 3a1 was tagged nb by the count and drawn to O only.
 
 The panel prints the fraction per level and shell as `[MOSHELL]` under
 `ECCE_DEBUG_MOSYM`. The canvas opens the molecular column out too (it
