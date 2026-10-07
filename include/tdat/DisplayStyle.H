@@ -17,7 +17,7 @@ class DisplayStyle
       enum Style { STICK, BALLSTICK, BALLWIRE, WIRE, DNONE, CPK,
          CAWIRE, CYLINDER, LINE, FLAT, SOLID, CARTOON, INVALIDSTYLE };
 
-      DisplayStyle(DisplayStyle::Style style = DisplayStyle::BALLWIRE);
+      DisplayStyle(DisplayStyle::Style style = DisplayStyle::BALLSTICK);
       virtual ~DisplayStyle();
 
       void setName(const string& name);
