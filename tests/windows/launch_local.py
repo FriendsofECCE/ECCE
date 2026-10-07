@@ -81,7 +81,7 @@ def stub(state, delay):
     path = os.path.join(state, "stubmopac")
     with open(path, "w", newline="\n") as h:
         h.write("#!/bin/sh\necho \"stub args: $*\" >> %s/stub.log\nsleep %d\n"
-                "cat %s\n" % (state.replace("\\", "/"), delay,
+                "cat %s > mopac.out\n" % (state.replace("\\", "/"), delay,
                               OUT.replace("\\", "/")))
     return path.replace("\\", "/")
 
