@@ -547,6 +547,9 @@ jobs:
           $env:Path = $sys
           $env:WINTEST_HOME = $r
           $env:WINTEST_BASE_PATH = "$r\bin;$r\usr\bin;$r\python;$r\strawberry\perl\site\bin;$r\strawberry\perl\bin;$r\strawberry\c\bin;$sys"
+          $env:Path = $env:WINTEST_BASE_PATH
+          & "$r\usr\bin\bash.exe" -c 'echo "$PATH"; command -v mosquitto mosquitto_sub perl python3; ls -l "$ECCE_HOME/bin/mosquitto.exe"' 2>&1 | Tee-Object localjobs\probe.log
+          $env:Path = $sys
           $rc = 0
           foreach ($c in "complete", "cancel") {
             & "$r\python\python3.exe" tests/windows/launch_local.py $c --build "$r\bin" --state "$PWD\localjobs\state-$c" 2>&1 | Tee-Object "localjobs\$c.log"
