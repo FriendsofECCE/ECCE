@@ -382,6 +382,97 @@ static JobPreview::Request requestFrom(const RequestPanel& p, bool admin,
 
 //  ---- discovery ------------------------------------------------------------
 
+//  Fills in the selected code's program by asking the machine, over the
+//  connection the other checks use, where its executable is.  The login
+//  setup (Connection tab) runs first, so a module-loaded code is found.
+void WxMachineRegister::findProgram()
+{
+    if (p_codeNames.empty())
+        return;
+    const string code = p_codeNames[p_codeSel];
+    ewxTextCtrl* field = p_codePaths[p_codeSel];
+    string machine = stripped((string)p_fullName->GetValue());
+    if (machine.empty())
+    {
+        displayMessage("Enter the machine's host name on the Machine tab "
+                       "first.");
+        return;
+    }
+    SchedulerQuery::ProgramHelp h = SchedulerQuery::programHelp(code);
+    SchedulerQuery::Connection conn = this->connection();
+    string output, err;
+    bool ran = false;
+    runBusy(this, "Find program", "Looking for " + code + " on " + machine +
+            "...", [&]() {
+        SchedulerQuery::Remote r(conn);
+        string e;
+        if (!r.open(e)) { err = e; return; }
+        vector<string> argv;
+        argv.push_back("sh");
+        argv.push_back("-c");
+        argv.push_back(SchedulerQuery::findProgramScript(h) + "exit 0\n");
+        ran = r.run(argv, output, 60);
+        if (!ran)
+            err = output;
+    });
+    vector<string> found = SchedulerQuery::parseFound(output);
+    if (!ran && found.empty())
+    {
+        displayMessage("Could not look on " + machine + ":\n" + err);
+        return;
+    }
+    string names;
+    for (size_t i = 0; i < h.names.size(); i++)
+        names += (i ? ", " : "") + h.names[i];
+    if (found.empty())
+    {
+        displayMessage("No " + names + " was found on " + machine + ". The "
+            "program was left as it was. If " + code + " is loaded with "
+            "'module load', put that command in the login setup on the "
+            "Connection tab; otherwise enter the path by hand.");
+        return;
+    }
+    string pick = found[0];
+    if (found.size() > 1)
+    {
+        int at = 0;
+        if (p_scripted)
+        {
+            fprintf(stderr, "[MACHREG] choose: %s\n",
+                    SchedulerQuery::commandLine(found).c_str());
+            p_lastMessage = "choose: " + SchedulerQuery::commandLine(found);
+            if (p_choices.empty())
+            {
+                fprintf(stderr, "[MACHREG] FAIL unanswered choice\n");
+                return;
+            }
+            at = p_choices.front();
+            p_choices.pop_front();
+            if (at < 0 || at >= (int)found.size())
+                return;                         // cancelled
+        }
+        else
+        {
+            wxArrayString items;
+            for (size_t i = 0; i < found.size(); i++)
+                items.Add(wxString::FromUTF8(found[i].c_str()));
+            at = wxGetSingleChoiceIndex("Several programs were found on " +
+                     machine + ". Which one is " + code + "?",
+                     "Find program", items, 0, this);
+            if (at < 0)
+                return;
+        }
+        pick = found[at];
+    }
+    string now = stripped((string)field->GetValue());
+    if (!now.empty() && now != pick &&
+        ask("Find program", "Replace " + now + " with " + pick + "?", "",
+            wxYES_NO|wxNO_DEFAULT|wxICON_QUESTION, "Replace", "Keep", "") != wxID_YES)
+        return;
+    field->SetValue(wxString::FromUTF8(pick.c_str()));
+}
+
+
 void WxMachineRegister::discoverQueues()
 {
     string qmgr = (string)p_qmgrChoice->GetStringSelection();

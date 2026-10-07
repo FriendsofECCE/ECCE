@@ -246,6 +246,7 @@ class WxMachineRegister: public ewxFrame
         //  Tools that ask or simulate the scheduler (#212;
         //  WxMachineRegisterTools.C)
         void discoverQueues();
+        void findProgram();
         void addDiscovered(const vector<SchedulerQuery::Queue>& picked);
         void previewJobScript(const string& code = "");
         void testSubmission();
@@ -358,6 +359,8 @@ class WxMachineRegister: public ewxFrame
         int                  p_codeSel;
         wxListBox           *p_codeList;
         wxStaticText        *p_codeTitle;
+        wxStaticText        *p_codeExample;
+        std::deque<int>      p_choices;   // test hook: answers to a list of paths
         wxWindow            *p_codePage;
         wxPanel             *p_codeAdvanced;
         wxButton            *p_codeAdvBtn;

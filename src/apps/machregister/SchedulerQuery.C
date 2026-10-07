@@ -161,6 +161,111 @@ static string shown(const vector<string>& argv)
     return out;
 }
 
+//  ---- finding a code's program ---------------------------------------------
+
+ProgramHelp programHelp(const string& code)
+{
+    ProgramHelp h;
+    if (code == "NWChem" || code == "NWChemMD")
+    {
+        h.names.push_back("nwchem");
+        h.examples.push_back("/usr/bin/nwchem");
+    }
+    else if (code == "ORCA")
+    {
+        h.names.push_back("orca");
+        h.companion = "orca_scf";
+        h.examples.push_back("/opt/orca/<version>/orca");
+        h.note = "ORCA needs the full path for parallel runs.";
+    }
+    else if (code.compare(0, 9, "Gaussian-") == 0 && code.size() == 11)
+    {
+        string g = "g" + code.substr(9);
+        h.names.push_back(g);
+        h.examples.push_back("/opt/" + g + "/" + g);
+    }
+    else if (code == "QuantumESPRESSO")
+    {
+        h.names.push_back("pw.x");
+        h.examples.push_back("/usr/bin/pw.x");
+    }
+    else if (code == "MOPAC")
+    {
+        h.names.push_back("MOPAC2016.exe");
+        h.names.push_back("mopac");
+        h.examples.push_back("/opt/mopac/MOPAC2016.exe");
+        h.examples.push_back("/usr/bin/mopac");
+    }
+    else if (code == "GROMACS")
+    {
+        h.names.push_back("gmx");
+        h.names.push_back("gmx_mpi");
+        h.examples.push_back("/usr/bin/gmx");
+    }
+    else if (code == "GAMESS-US")
+    {
+        h.names.push_back("gamess.00.x");
+        h.examples.push_back("/opt/gamess/gamess.00.x");
+    }
+    else if (code == "Polyrate")
+    {
+        h.names.push_back("polyrate");
+        h.examples.push_back("/opt/polyrate/polyrate");
+    }
+    else
+    {
+        string l = code;
+        for (size_t i = 0; i < l.size(); i++)
+            l[i] = (char)tolower((unsigned char)l[i]);
+        h.names.push_back(l);
+        h.examples.push_back("/opt/" + l + "/bin/" + l);
+    }
+    return h;
+}
+
+string exampleText(const ProgramHelp& h)
+{
+    string s;
+    for (size_t i = 0; i < h.examples.size(); i++)
+        s += (i ? "  or  " : "") + h.examples[i];
+    return s;
+}
+
+string findProgramScript(const ProgramHelp& h)
+{
+    string s;
+    for (size_t i = 0; i < h.names.size(); i++)
+    {
+        s += "p=$(command -v " + h.names[i] + " 2>/dev/null); "
+             "case $p in /*) ";
+        if (h.companion.empty())
+            s += "echo \"ECCE-FOUND:$p\";; esac\n";
+        else
+            s += "if [ -x \"${p%/*}/" + h.companion + "\" ]; then "
+                 "echo \"ECCE-FOUND:$p\"; else r=$(readlink -f \"$p\" "
+                 "2>/dev/null); if [ -n \"$r\" ] && [ -x \"${r%/*}/" +
+                 h.companion + "\" ]; then echo \"ECCE-FOUND:$r\"; fi; fi;; "
+                 "esac\n";
+    }
+    return s;
+}
+
+vector<string> parseFound(const string& output)
+{
+    vector<string> out;
+    vector<string> ls = lines(output);
+    for (size_t i = 0; i < ls.size(); i++)
+    {
+        string l = trim(ls[i]);
+        if (l.compare(0, 12, "ECCE-FOUND:/") != 0)
+            continue;
+        l = l.substr(11);
+        if (std::find(out.begin(), out.end(), l) == out.end())
+            out.push_back(l);
+    }
+    return out;
+}
+
 //  ---- connection ---------------------------------------------------------
 
 Remote::Remote(const Connection& c) : p_c(c), p_rc(NULL)

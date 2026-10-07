@@ -1222,7 +1222,7 @@ expect code-listed Gaussian-03 0
 expect code-listed Gaussian-98 0
 expect code-listed GAMESS-UK 0
 expect code-listed Amica 0
-expect field code:list 'Gaussian-16  *,NWChem  *,Gaussian-09,GROMACS,MOPAC,ORCA,Polyrate,QuantumESPRESSO'
+expect field code:list 'Gaussian-16  *,NWChem  *,Gaussian-09,MOPAC,ORCA,Polyrate,QuantumESPRESSO'
 code Gaussian-16
 expect label code:title Gaussian-16
 expect field code:gaussian-16 /site/g16
@@ -1259,9 +1259,9 @@ expect shown blk:ccmd:hint 0
 expect label tag:cenv '%(yours)s'
 expect shown undo:cenv 1
 set code:gaussian-16 /opt/g16/g16
-expect field code:list 'Gaussian-16  *,NWChem  *,Gaussian-09,GROMACS,MOPAC,ORCA,Polyrate,QuantumESPRESSO'
+expect field code:list 'Gaussian-16  *,NWChem  *,Gaussian-09,MOPAC,ORCA,Polyrate,QuantumESPRESSO'
 set code:gaussian-16 ''
-expect field code:list 'NWChem  *,Gaussian-09,Gaussian-16,GROMACS,MOPAC,ORCA,Polyrate,QuantumESPRESSO'
+expect field code:list 'NWChem  *,Gaussian-09,Gaussian-16,MOPAC,ORCA,Polyrate,QuantumESPRESSO'
 set code:gaussian-16 /opt/g16/g16
 set code:files '*.rwf'
 set code:prelim '*.old'
@@ -1597,6 +1597,100 @@ quit
     clean(p, "a retired code is listed when the machine has a key for it")
 
 
+def codes_find(tmp, display, build):
+    print("codes tab: unavailable codes hidden, Program examples, Find")
+    e = Env(tmp, "codes-find")
+    tool_machine(e)
+    #  GROMACS has groundwork only: no resource descriptor, so it is not
+    #  offered unless the machine already has a setting for it.
+    p = run(display, build, e, """
+select stubm
+tab codes
+expect code-listed GROMACS 0
+expect code-listed NWChem 1
+check-program-hints
+code ORCA
+expect contains code:example '/opt/orca/<version>/orca'
+expect contains code:example 'full path for parallel runs'
+code QuantumESPRESSO
+expect contains code:example '/usr/bin/pw.x'
+quit
+""", extra=LOCALUSER)
+    clean(p, "GROMACS is not listed; every example ends in a name Find looks for")
+    write(os.path.join(e.ue, "CONFIG.stubm"),
+          "nwchem: /opt/nwchem\ngromacs: /opt/gromacs/bin/gmx\n"
+          "condorAllowTmp: true\n")
+    p = run(display, build, e, """
+select stubm
+expect code-listed GROMACS 1
+quit
+""", extra=LOCALUSER)
+    clean(p, "a machine's own GROMACS setting still lists it")
+    write(os.path.join(e.ue, "CONFIG.stubm"),
+          "nwchem: /opt/nwchem\ncondorAllowTmp: true\n")
+
+    root = os.path.join(tmp, "find-bins")
+    dirs = {n: os.path.join(root, n) for n in ("a", "b", "c", "d")}
+    for d in dirs.values():
+        os.makedirs(d)
+
+    def exe(path):
+        write(path, "#!/bin/sh\nexit 0\n", mode=0o755)
+    exe(os.path.join(dirs["a"], "nwchem"))
+    exe(os.path.join(dirs["a"], "orca"))          # the screen reader
+    exe(os.path.join(dirs["b"], "orca"))
+    exe(os.path.join(dirs["b"], "orca_scf"))
+    exe(os.path.join(dirs["a"], "MOPAC2016.exe"))
+    exe(os.path.join(dirs["b"], "mopac"))
+    exe(os.path.join(dirs["d"], "pw.x"))
+    path = os.pathsep.join([dirs["a"], dirs["b"], os.environ.get("PATH", "")])
+    extra = dict(LOCALUSER, PATH=path)
+    pw = os.path.join(dirs["d"], "pw.x")
+    p = run(display, build, e, """
+select stubm
+tab codes
+code NWChem
+expect field code:nwchem /opt/nwchem
+answer no
+click code:find
+expect field code:nwchem /opt/nwchem
+answer yes
+click code:find
+expect field code:nwchem %(a)s/nwchem
+expect dirty 1
+code ORCA
+expect field code:orca
+click code:find
+expect field code:orca %(b)s/orca
+code MOPAC
+choose 1
+click code:find
+expect field code:mopac %(b)s/mopac
+code QuantumESPRESSO
+click code:find
+expect message 'No pw.x was found'
+expect field code:quantumespresso
+quit
+""" % {"a": dirs["a"], "b": dirs["b"]}, extra=extra)
+    clean(p, "Find: asks before replacing, skips a same-named program without "
+             "its companion, offers a choice, says plainly when none is found")
+
+    #  The login setup runs first: a path it adds is searched.
+    write(os.path.join(tmp, "setup.sh"), "PATH=$PATH:%s; export PATH\n" % dirs["d"])
+    write(os.path.join(e.ue, "CONFIG.stubm"),
+          "nwchem: /opt/nwchem\ncondorAllowTmp: true\nsourceFile: %s\n"
+          % os.path.join(tmp, "setup.sh"))
+    p = run(display, build, e, """
+select stubm
+tab codes
+code QuantumESPRESSO
+click code:find
+expect field code:quantumespresso %(pw)s
+quit
+""" % {"pw": pw}, extra=dict(LOCALUSER, PATH=os.environ.get("PATH", "")))
+    clean(p, "Find runs the machine's login setup first")
+
+
 def codes_pngs(tmp, display, build, out):
     print("codes tab PNGs")
     os.makedirs(out, exist_ok=True)
@@ -1639,6 +1733,18 @@ shot %(o)s/codes-missing-sections.png
 quit
 """ % {"o": out})
     clean(p, "Codes PNG, missing sections")
+    p = run(display, build, e, """
+select mine
+tab codes
+code NWChem
+wait 1000
+shot %(o)s/codes-program-nwchem.png
+code ORCA
+wait 800
+shot %(o)s/codes-program-orca.png
+quit
+""" % {"o": out})
+    clean(p, "Codes PNGs, Program field")
     for n in sorted(os.listdir(out)):
         print("        " + os.path.join(out, n))
 
@@ -2352,6 +2458,7 @@ def main():
                 codes_tab(tmp, disp, build, m)
             codes_retired(tmp, disp, build)
             codes_skeleton(tmp, disp, build)
+            codes_find(tmp, disp, build)
             discovery(tmp, disp, build)
             preview(tmp, disp, build)
             preview_admin(tmp, disp, build)

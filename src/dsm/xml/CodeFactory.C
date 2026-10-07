@@ -1,7 +1,9 @@
 #include <xercesc/dom/DOMDocument.hpp>
 using namespace xercesc;
 
+#include <fstream>
 #include <iostream>
+#include <sstream>
   using std::cout;
   using std::endl;
 
@@ -172,6 +174,24 @@ vector<string> CodeFactory::getFullySupportedCodeNames()
   delete caps;
 
   return ret;
+}
+
+bool CodeFactory::isRegistered(const string& codeName)
+{
+  static string text;
+  static bool loaded = false;
+  if (!loaded) {
+    loaded = true;
+    string dir = Ecce::ecceDataPath() + "/client/config/";
+    for (const char* f : { "ResourceDescriptor.xml",
+                           "ResourceDescriptorRxn.xml" }) {
+      std::ifstream in((dir + f).c_str());
+      std::ostringstream buf;
+      buf << in.rdbuf();
+      text += buf.str();
+    }
+  }
+  return text.find("applicationType=\"" + codeName + "\"") != string::npos;
 }
 
 vector<const JCode*> *CodeFactory::getBasisCodes()

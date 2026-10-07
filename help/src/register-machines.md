@@ -9,7 +9,7 @@ queues exist. For the basics of adding a machine, see
 layers of settings work, and examples of common changes.
 
 Open it in the Organizer with **Tools > Register Machines...**, in the
-Launcher with **Job > Register Machines...**, or from a terminal with
+Launcher with **Job > Register Machines...**, with **Machine settings...** in the Launcher or the Machine Browser (which opens it on the selected machine), or from a terminal with
 `ecce -machine`. The machine list is on the left. The tabs on the right
 are:
 
@@ -17,7 +17,7 @@ are:
 |---|---|
 | **Machine** | **Machine** (the host name), **Name**, vendor, model, processor, number of processors and nodes. |
 | **Connection** | The remote environment (**Shell**, the script run at login), the login host, paths on the remote machine, and **How jobs reach this machine**. |
-| **Codes** | One entry per code: **Program** (its path), **Environment variables**, **Command line**, and under **Advanced** commands run before and after the program and files to remove. |
+| **Codes** | One entry per code: **Program** (the full path to the executable), **Environment variables**, **Command line**, and under **Advanced** commands run before and after the program and files to remove. |
 | **Job script** | The request lines for the queue manager, and the commands run before and after the calculation. |
 | **Queues** | **Queue manager**, **Allocation accounts used**, and each queue with its limits and defaults. |
 
@@ -137,6 +137,23 @@ You can also type a placeholder yourself. Frequently used ones are
 `$queue`, `$nodes`, `$totalprocs`, `$ppn`, `$wallTime`, `$memory` and
 `$scratchDir`; the window lists all of them with what each becomes.
 
+## Program: the executable's full path
+
+**Program** is the path of the file the job script runs, not the folder
+that holds it. The line under the box shows an example for the selected
+code: `/usr/bin/nwchem` for NWChem, `/opt/orca/<version>/orca` for ORCA,
+`/opt/g16/g16` for Gaussian 16, `/usr/bin/pw.x` for Quantum ESPRESSO and
+`MOPAC2016.exe` or `mopac` for MOPAC. ORCA needs the full path to run in
+parallel.
+
+**Find** asks the machine where the program is, in the way a shell does
+(`command -v`): on this computer for `localhost`, over the machine's
+connection for any other. A remote search runs the login setup from the
+**Connection** tab first, so a program that needs `module load` is found
+only if that command is in the setup. If several are found you choose one;
+if none is found the box is left as it was. A path already in the box is
+replaced only after you confirm.
+
 ## Set the environment for Gaussian 16
 
 Gaussian 16 needs `g16root` and a scratch directory before it starts. Set
@@ -145,8 +162,9 @@ them for this machine on the **Codes** tab.
 1. Select the machine and open the **Codes** tab.
 2. In the list, select **Gaussian-16**. Codes with a program path are
    marked with `*` and listed first.
-3. In **Program**, enter the path of the program, for example
-   `/opt/g16/g16`, if it is not set already.
+3. In **Program**, enter the full path to the executable, for example
+   `/opt/g16/g16`, if it is not set already. **Find** looks for it on the
+   machine.
 4. In **Environment variables**, click in the **User setting** box and
    enter one variable per line, as the name, a space and the value:
 

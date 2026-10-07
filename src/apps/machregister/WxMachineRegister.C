@@ -159,6 +159,7 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
     p_codeSel = 0;
     p_codeList = NULL;
     p_codeTitle = NULL;
+    p_codeExample = NULL;
     p_codePage = NULL;
     p_codeAdvanced = NULL;
     p_codeAdvBtn = NULL;
@@ -736,9 +737,10 @@ wxWindow* WxMachineRegister::createCodesPage(wxWindow* parent)
     wxFlexGridSizer* grid = new wxFlexGridSizer(4, 0, 0);
     grid->AddGrowableCol(1);
     sizer->Add(grid, wxSizerFlags().Expand());
-    addCodeLine(page, grid, "code", "Program", "",
-                "Where the program is installed on the machine. A code with "
-                "no program is not offered for this machine.");
+    addCodeLine(page, grid, "code", "Program (full path to the executable)", "",
+                "The file ECCE's job script runs for this code, with its full "
+                "path; not the folder it is in. A code with no program is not "
+                "offered for this machine.");
 
     //  Environment: gensub does not replace placeholders here.
     addBlock(page, sizer, "cenv", "Environment variables", page);
@@ -829,17 +831,35 @@ void WxMachineRegister::addCodeLine(wxWindow* page, wxFlexGridSizer* grid,
     if (id == "code")
     {
         wxBoxSizer* col = new wxBoxSizer(wxVERTICAL);
+        wxBoxSizer* row = new wxBoxSizer(wxHORIZONTAL);
+        wxBoxSizer* boxes = new wxBoxSizer(wxVERTICAL);
         for (size_t i = 0; i < p_codeNames.size(); i++)
         {
             ewxTextCtrl* txt = new ewxTextCtrl(page, wxID_ANY);
             txt->SetToolTip(tip);
-            txt->SetHint("e.g. /opt/" + lowerOf(p_codeNames[i]) + "/bin/" +
-                         lowerOf(p_codeNames[i]));
+            txt->SetHint("e.g. " + SchedulerQuery::programHelp(
+                             p_codeNames[i]).examples[0]);
             txt->Hide();
-            col->Add(txt, wxSizerFlags().Expand());
+            boxes->Add(txt, wxSizerFlags().Expand());
             p_codePaths.push_back(txt);
             reg("code:" + lowerOf(p_codeNames[i]), txt);
         }
+        row->Add(boxes, wxSizerFlags(1).Expand());
+        ewxButton* find = new ewxButton(page, wxID_ANY, "Find");
+        find->SetToolTip("Look for the program on the machine, as the job "
+                         "script would (command -v), and fill in its path");
+        find->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+            this->findProgram();
+        });
+        reg("code:find", find);
+        row->Add(find, wxSizerFlags().Border(wxLEFT, 4).Top());
+        col->Add(row, wxSizerFlags().Expand());
+        p_codeExample = new wxStaticText(page, wxID_ANY, "");
+        p_codeExample->SetFont(p_codeExample->GetFont().Smaller());
+        p_codeExample->SetForegroundColour(
+            wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+        col->Add(p_codeExample, wxSizerFlags().Expand().Border(wxTOP, 2));
+        reg("code:example", p_codeExample);
         grid->Add(col, wxSizerFlags(1).Expand().Border().CentreVertical());
         l.ctrl = p_codePaths.empty() ? NULL : p_codePaths[0];
     }
@@ -966,7 +986,12 @@ void WxMachineRegister::fillCodeList()
     p_codeList->Clear();
     p_codeShown.clear();
     for (size_t i = 0; i < p_codeNames.size(); i++)
-        if (!retired.count(p_codeNames[i]) || codeInUse(p_codeNames[i]))
+        //  Listed when calculations can be created with it (a registered
+        //  resource descriptor), unless retired; a machine's own setting
+        //  for a code always shows it.
+        if (codeInUse(p_codeNames[i]) ||
+            (!retired.count(p_codeNames[i]) &&
+             CodeFactory::isRegistered(p_codeNames[i])))
             p_codeShown.push_back((int)i);
     sortCodeShown();
     for (size_t r = 0; r < p_codeShown.size(); r++)
@@ -990,6 +1015,14 @@ void WxMachineRegister::showCode()
     for (size_t i = 0; i < p_codePaths.size(); i++)
         p_codePaths[i]->Show((int)i == p_codeSel);
     p_codeTitle->SetLabel(name);
+    {
+        SchedulerQuery::ProgramHelp h = SchedulerQuery::programHelp(name);
+        string t = "Example: " + SchedulerQuery::exampleText(h);
+        if (!h.note.empty())
+            t += ".  " + h.note;
+        p_codeExample->SetLabel(wxString::FromUTF8(t.c_str()));
+        p_codeExample->Wrap(520);
+    }
     for (size_t r = 0; r < p_codeShown.size(); r++)
         if (p_codeShown[r] == p_codeSel)
             p_codeList->SetSelection((int)r);
