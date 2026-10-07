@@ -390,12 +390,48 @@ class MoDiagram
      *
      * The tabulated energy is kept as the annotation, where it belongs.
      *
+     * Exception (#140): an atom's shell that has a non-bonding orbital
+     * in the molecular column (nonbondingShellFraction() at least
+     * NONBONDING_SHELL_SHARE) is drawn at that orbital's energy, so the
+     * orbital lies level with its parent.
+     *
      * @param connections  from connect(), which must therefore be
      *                     called first
+     * @return the number of shells drawn at a non-bonding orbital
      */
-    static void placeFragments(const MoColumn& centre,
-                               MoColumn& left, MoColumn& right,
-                               const vector<MoConnection>& connections);
+    static int placeFragments(const MoColumn& centre,
+                              MoColumn& left, MoColumn& right,
+                              const vector<MoConnection>& connections);
+
+    /**
+     * A molecular orbital whose nonbondingShellFraction() for one atom
+     * shell is at least this is that shell's non-bonding orbital (#140).
+     *
+     * Where symmetry forbids mixing (water's out-of-plane 2p) the
+     * fraction is 1 up to the precision of the stored coefficients;
+     * the largest departure seen was below 1e-3.  Allowed mixing, even
+     * when slight, left 0.05 or more of the orbital elsewhere (extended
+     * Huckel water 2a1: 0.07, ammonia 2a1: 0.055; SCF water 3a1 and
+     * ammonia 3a1 more).  0.99 sits between the two by a factor of five
+     * or more on either side.
+     */
+    static constexpr double NONBONDING_SHELL_SHARE = 0.99;
+
+    /**
+     * How much of a molecular orbital is one atom shell, as a fraction
+     * of the part of it the diagram draws.
+     *
+     * The denominator is every shell of both columns plus any atom in
+     * neither column; shells of a column atom the diagram does not draw
+     * (polarisation functions: oxygen d, hydrogen p) are left out,
+     * since the diagram cannot show mixing with them.  -1 when the
+     * level carries no per-shell composition.
+     *
+     * @param onLeft  the shell is in the left column, else the right
+     * @param slot    index into that column's shellKeys
+     */
+    static double nonbondingShellFraction(const MoLevel& mo, bool onLeft,
+                                          int slot);
 
     /**
      * Fold levels below a cutoff into the column's hidden band.

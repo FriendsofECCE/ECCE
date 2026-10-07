@@ -317,11 +317,44 @@ bool MoDiagram::groupByIrrep(const vector<double>& energies,
 static bool equivalentColumns(const vector<MoLevel>& a,
                               const vector<MoLevel>& b);
 
-void MoDiagram::placeFragments(const MoColumn& centre,
-                               MoColumn& left, MoColumn& right,
-                               const vector<MoConnection>& connections)
+double MoDiagram::nonbondingShellFraction(const MoLevel& mo, bool onLeft,
+                                          int slot)
 {
-  if (centre.levels.empty()) return;
+  const vector<double>& mine = onLeft ? mo.shellLeft : mo.shellRight;
+  if (slot < 0 || (size_t)slot >= mine.size()) return -1.0;
+
+  //  A column with no per-shell split counts with its whole atom share.
+  double drawn = 0.0;
+  const vector<double>* shells[2] = { &mo.shellLeft, &mo.shellRight };
+  const double whole[2] = { mo.shareLeft, mo.shareRight };
+  for (int side = 0; side < 2; side++) {
+    if (shells[side]->empty()) {
+      if (whole[side] > 0.0) drawn += whole[side];
+      continue;
+    }
+    for (size_t k = 0; k < shells[side]->size(); k++) {
+      drawn += (*shells[side])[k];
+    }
+  }
+
+  //  Atoms in neither column (a skeleton's outer ligand atoms) are
+  //  orbital the diagram does not account for, so they count against.
+  if (mo.shareLeft >= 0.0 && mo.shareRight >= 0.0) {
+    const double outside = 1.0 - mo.shareLeft - mo.shareRight;
+    if (outside > 0.0) drawn += outside;
+  }
+
+  if (drawn <= 0.0) return -1.0;
+  return mine[slot]/drawn;
+}
+
+
+int MoDiagram::placeFragments(const MoColumn& centre,
+                              MoColumn& left, MoColumn& right,
+                              const vector<MoConnection>& connections)
+{
+  int pinnedShells = 0;
+  if (centre.levels.empty()) return pinnedShells;
 
   //  A FRAGMENT LEVEL SITS AT THE MEAN OF THE ORBITALS IT BECAME.
   //
@@ -410,7 +443,7 @@ void MoDiagram::placeFragments(const MoColumn& centre,
           level.energy = bottom + scale*(level.energy - lowTab);
         }
       }
-      return;
+      return pinnedShells;
     }
   }
 
@@ -517,6 +550,16 @@ void MoDiagram::placeFragments(const MoColumn& centre,
   //  which is the shell's own tabulated value and identical across
   //  its components -- so this needs nothing the levels do not
   //  already carry.
+  //
+  //  A shell with a non-bonding orbital is drawn at that orbital's
+  //  energy, not at the mean (#140): the mean includes the components
+  //  that mixed and so lies off the one orbital that did not, which
+  //  must sit level with its parent.  Decided from composition, so it
+  //  holds for a calculation's orbitals and extended Huckel's alike.
+  vector<bool> pinned[2];
+  for (c = 0; c < 2; c++) {
+    pinned[c].assign(cols[c]->levels.size(), false);
+  }
   for (c = 0; c < 2; c++) {
     vector<MoLevel>& levels = cols[c]->levels;
     if (levels.size() < 2) continue;
@@ -564,7 +607,25 @@ void MoDiagram::placeFragments(const MoColumn& centre,
       }
       if (count == 0) continue;
 
-      const double common = sum/count;
+      double common = sum/count;
+
+      const int which = (levels[i].slot >= 0) ? levels[i].slot
+                                               : levels[i].shell;
+      double nbSum = 0.0, nbCount = 0.0;
+      for (size_t k = 0; k < centre.levels.size(); k++) {
+        const MoLevel& mo = centre.levels[k];
+        if (nonbondingShellFraction(mo, c == 0, which) <
+            NONBONDING_SHELL_SHARE) continue;
+        const double n = (mo.degeneracy > 0) ? mo.degeneracy : 1;
+        nbSum += n*mo.energy;
+        nbCount += n;
+      }
+      const bool pin = (nbCount > 0.0);
+      if (pin) {
+        common = nbSum/nbCount;
+        pinnedShells++;
+      }
+
       for (size_t j = i; j < levels.size(); j++) {
         if (done[j]) continue;
         if (!levels[j].phases.empty()) continue;
@@ -572,6 +633,7 @@ void MoDiagram::placeFragments(const MoColumn& centre,
         if (levels[j].shell != levels[i].shell) continue;
         levels[j].energy = common;
         placed[c][j] = true;
+        pinned[c][j] = pin;
         done[j] = true;
       }
     }
@@ -672,7 +734,7 @@ void MoDiagram::placeFragments(const MoColumn& centre,
           }
         }
       }
-      return;
+      return pinnedShells;
     }
   }
 
@@ -794,10 +856,32 @@ void MoDiagram::placeFragments(const MoColumn& centre,
 
           if (havePrev && lo < prevHigh + minGap) {
             const double shift = (prevHigh + minGap) - lo;
+
+            //  A shell drawn at its non-bonding orbital stays there
+            //  (#140); the earlier shells move down below it instead,
+            //  unless one of them is held as well.
+            bool here = false, before = false;
             for (size_t k = 0; k < idx.size(); k++) {
-              levels[idx[k]].energy += shift;
+              if (pinned[c][idx[k]]) here = true;
             }
-            hi += shift;
+            for (size_t g2 = 0; g2 < g; g2++) {
+              for (size_t k = 0; k < groups[g2].second.size(); k++) {
+                if (pinned[c][groups[g2].second[k]]) before = true;
+              }
+            }
+
+            if (here && !before) {
+              for (size_t g2 = 0; g2 < g; g2++) {
+                for (size_t k = 0; k < groups[g2].second.size(); k++) {
+                  levels[groups[g2].second[k]].energy -= shift;
+                }
+              }
+            } else {
+              for (size_t k = 0; k < idx.size(); k++) {
+                levels[idx[k]].energy += shift;
+              }
+              hi += shift;
+            }
           }
           prevHigh = hi;
           havePrev = true;
@@ -805,6 +889,7 @@ void MoDiagram::placeFragments(const MoColumn& centre,
       }
     }
   }
+  return pinnedShells;
 }
 
 

@@ -2596,7 +2596,24 @@ void MoDiagramPanel::buildOnce()
       trimUnconnectedFragment(right, links, false);
     }
 
-    MoDiagram::placeFragments(centre, left, right, links);
+    const int pinnedShells =
+        MoDiagram::placeFragments(centre, left, right, links);
+    //  The fraction placeFragments() tests against
+    //  NONBONDING_SHELL_SHARE, per molecular level and shell (#140).
+    if (mosymDebug()) {
+      for (size_t i = 0; i < centre.levels.size(); i++) {
+        const MoLevel& mo = centre.levels[i];
+        mosymPrintf("[MOSHELL] %s E=%.6f", mo.label.c_str(), mo.energy);
+        for (int side = 0; side < 2; side++) {
+          const MoColumn& col = (side == 0) ? left : right;
+          for (size_t k = 0; k < col.shellKeys.size(); k++) {
+            mosymPrintf(" %s=%.6f", col.shellKeys[k].c_str(),
+                MoDiagram::nonbondingShellFraction(mo, side == 0, (int)k));
+          }
+        }
+        mosymPrintf("\n");
+      }
+    }
     MoDiagram::classifyByEnergy(left.levels, centre.levels,
                                 right.levels, links);
 
@@ -2689,6 +2706,12 @@ void MoDiagramPanel::buildOnce()
             "molecular orbitals it became, weighted by its share of "
             "them, kept in the atom's own shell order; its free-atom "
             "energy is given beside it.";
+    if (pinnedShells > 0) {
+      note << " A shell with a non-bonding orbital (one that is at "
+              "least " << (int)lround(100.0*MoDiagram::NONBONDING_SHELL_SHARE)
+           << "% that shell, of the orbitals drawn) is drawn at that "
+              "orbital's energy instead.";
+    }
   }
 
   if (!why.empty()) note << "  " << why;

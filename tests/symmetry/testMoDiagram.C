@@ -944,6 +944,88 @@ int main()
           "has real share on, unlike the ordinary one-sided rule");
   }
 
+  //  #140: a central atom's shell with a non-bonding orbital is drawn
+  //  at that orbital's energy; one whose components all mix stays at
+  //  the mean.  Shares are extended Huckel water's (tools/modiagram/dump).
+  printf("\n  a central atom's shell and its non-bonding orbital (#140)\n");
+  for (int variant = 0; variant < 3; variant++) {
+    MoColumn left, centre, right;
+    left.shellKeys.push_back("O:0");
+    left.shellKeys.push_back("O:1");
+    right.shellKeys.push_back("H:0");
+
+    const char* fragIrrep[] = {"A1", "A1", "B1", "B2"};
+    for (int i = 0; i < 4; i++) {
+      MoLevel f;
+      f.irrep = MoDiagram::canonicalIrrep(fragIrrep[i]);
+      f.degeneracy = 1;
+      f.shell = f.slot = (i == 0) ? 0 : 1;
+      f.energy = (i == 0) ? -32.4 : -15.9;
+      left.levels.push_back(f);
+    }
+    for (int i = 0; i < 2; i++) {
+      MoLevel f;
+      f.irrep = MoDiagram::canonicalIrrep(i == 0 ? "A1" : "B2");
+      f.degeneracy = 1;
+      f.shell = f.slot = 0;
+      f.energy = -13.6;
+      f.phases.push_back(1.0);
+      f.phases.push_back(i == 0 ? 1.0 : -1.0);
+      right.levels.push_back(f);
+    }
+
+    //  energy, O s, O p, H s
+    double mo[6][4] = {{-1.2251, 0.9574, 0.0009, 0.0417},
+                       {-0.6609, 0.0,    0.7323, 0.2677},
+                       {-0.6071, 0.0334, 0.9311, 0.0355},
+                       {-0.5843, 0.0,    1.0,    0.0},
+                       {-0.0057, 0.0,    0.3396, 0.6604},
+                       { 0.3479, 0.3268, 0.1236, 0.5497}};
+    //  1: the b1 mixes a little with H s, below the threshold;
+    //  2: a fifth of the molecule is outside both columns.
+    if (variant == 1) { mo[3][2] = 0.985; mo[3][3] = 0.015; }
+    for (int i = 0; i < 6; i++) {
+      MoLevel m;
+      m.energy = mo[i][0];
+      m.degeneracy = 1;
+      m.occupancy = (i < 4) ? 2.0 : 0.0;
+      const double scale = (variant == 2) ? 0.8 : 1.0;
+      m.shellLeft.push_back(scale*mo[i][1]);
+      m.shellLeft.push_back(scale*mo[i][2]);
+      m.shellRight.push_back(scale*mo[i][3]);
+      m.shareLeft  = scale*(mo[i][1] + mo[i][2]);
+      m.shareRight = scale*mo[i][3];
+      centre.levels.push_back(m);
+    }
+
+    const int links[][3] = {{0,0,-1},{0,2,-1},{0,5,-1},{1,0,-1},{1,2,-1},
+                            {1,5,-1},{2,3,-1},{3,1,-1},{3,4,-1},
+                            {-1,0,0},{-1,5,0},{-1,1,1},{-1,4,1}};
+    vector<MoConnection> connections;
+    for (size_t k = 0; k < sizeof(links)/sizeof(links[0]); k++) {
+      MoConnection c = { links[k][0], links[k][1], links[k][2] };
+      connections.push_back(c);
+    }
+
+    const int pinned = MoDiagram::placeFragments(centre, left, right,
+                                                 connections);
+    const bool oneRow = left.levels[1].energy == left.levels[2].energy &&
+                        left.levels[2].energy == left.levels[3].energy;
+    const bool onNb = fabs(left.levels[2].energy - (-0.5843)) < 1e-9;
+    if (variant == 0) {
+      check(pinned == 1 && oneRow && onNb,
+            "water: O 2p is one row, level with the 1b1 lone pair");
+      check(left.levels[0].energy < left.levels[2].energy,
+            "and O 2s stays below it");
+    } else if (variant == 1) {
+      check(pinned == 0 && oneRow && !onNb,
+            "1.5% H s in the b1: mixed, so the 2p row is the mean");
+    } else {
+      check(pinned == 0 && !onNb,
+            "a fifth outside both columns counts against non-bonding");
+    }
+  }
+
   printf("\n  %s\n", bad ? "FAIL" : "PASS");
   return bad ? 1 : 0;
 }
