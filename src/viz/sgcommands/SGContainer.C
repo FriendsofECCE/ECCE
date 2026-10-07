@@ -2719,11 +2719,13 @@ bool SGContainer::addHydrogens(SGFragment *frag, bool all,
 //
 // Nub is selected, change it to hydrogen
 //
+      if (atm == 0) continue;
       if (atm->atomicSymbol() == "Nub") {
         parent = frag->nubParent(atm);
+        if (parent == 0) continue;  // a nub without an atom has no H site
         radii = crH +
            tpt.covalentRadius(tpt.atomicNumber(parent->atomicSymbol()));
-        changeTo(atm,frag->nubParent(atm),"H",radii);
+        changeTo(atm,parent,"H",radii);
         atm->atomName(atm->getHydrogenName().c_str());
         ret = true;
 //
@@ -2735,10 +2737,10 @@ bool SGContainer::addHydrogens(SGFragment *frag, bool all,
         for (int ic=0; ic < isize; ic++) {
           catm = (*list)[ic];
           if (catm->atomicSymbol() == "Nub") {
-            parent = frag->nubParent(catm);
+            parent = atm;
             radii = crH +
                tpt.covalentRadius(tpt.atomicNumber(parent->atomicSymbol()));
-            changeTo(catm,frag->nubParent(catm),"H",radii);
+            changeTo(catm,parent,"H",radii);
             catm->atomName(catm->getHydrogenName().c_str());
             ret = true;
           }
@@ -2767,9 +2769,10 @@ bool SGContainer::addHydrogens(SGFragment *frag, bool all,
       }
       if (atm->atomicSymbol() == "Nub" && addH) {
         parent = frag->nubParent(atm);
+        if (parent == 0) continue;  // a nub without an atom has no H site
         radii = crH +
            tpt.covalentRadius(tpt.atomicNumber(parent->atomicSymbol()));
-        changeTo(atm,frag->nubParent(atm),"H",radii);
+        changeTo(atm,parent,"H",radii);
         atm->atomName(atm->getHydrogenName().c_str());
         ret = true;
       }
