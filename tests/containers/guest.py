@@ -60,6 +60,31 @@ def broker_connections():
             if (":8088" in l or ":8883" in l) and "gateway" in l]
 
 
+def shot(path):
+    """PNG of the whole screen (Xlib and zlib only: no screenshot tool in
+    the image)."""
+    import struct
+    import zlib
+    from Xlib import X, display
+    d = display.Display(DISPLAY)
+    g = d.screen().root.get_geometry()
+    raw = d.screen().root.get_image(0, 0, g.width, g.height, X.ZPixmap,
+                                    0xffffffff).data
+    d.close()
+    rows = b"".join(b"\0" + b"".join(
+        raw[i + 2:i + 3] + raw[i + 1:i + 2] + raw[i:i + 1]
+        for i in range(r * g.width * 4, (r + 1) * g.width * 4, 4))
+        for r in range(g.height))
+
+    def chunk(t, b):
+        c = struct.pack(">I", len(b)) + t + b
+        return c + struct.pack(">I", zlib.crc32(t + b))
+    with open(path, "wb") as f:
+        f.write(b"\x89PNG\r\n\x1a\n" + chunk(
+            b"IHDR", struct.pack(">IIBBBBB", g.width, g.height, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b""))
+
+
 def start(user, password, server, expect_login=True):
     subprocess.Popen(["Xvfb", DISPLAY, "-screen", "0", "1280x1024x24",
                       "-nolisten", "tcp"], stdout=subprocess.DEVNULL,
@@ -69,8 +94,13 @@ def start(user, password, server, expect_login=True):
                           capture_output=True).returncode == 0:
             break
         time.sleep(0.2)
+    e = env()
+    if not expect_login:
+        # The refusal dialog logs itself and dismisses itself after 25 s.
+        e["ECCE_TEST_DIALOG_CLOSE"] = "25"
+    seen = []
     with open(LOG, "w") as log:
-        subprocess.Popen(["ecce", "-remote"], env=env(), stdout=log,
+        subprocess.Popen(["ecce", "-remote"], env=e, stdout=log,
                          stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                          start_new_session=True)
     deadline = time.time() + (150 if expect_login else 75)
@@ -80,6 +110,12 @@ def start(user, password, server, expect_login=True):
         ws = windows()
         if any("Organizer" in t for _, t in ws):
             break
+        for _, t in ws:
+            if t and t not in seen:
+                seen.append(t)
+                if not expect_login and t == "ECCE Server Failure":
+                    time.sleep(1)
+                    shot("/tmp/dialog.png")
         # `ecce` has ended without a window: nothing more will appear.
         if not expect_login and time.time() - t0 > 20 and not procs() \
                 and not ws:
@@ -101,7 +137,7 @@ def start(user, password, server, expect_login=True):
     sessions = [f for f in os.listdir(os.path.expanduser("~/.ECCE"))
                 if f.startswith("broker_")]
     if not expect_login:
-        print(json.dumps({"organizer": org, "titles": [t for _, t in ws if t],
+        print(json.dumps({"organizer": org, "titles": seen,
                           "log": open(LOG).read()[-3000:],
                           "procs": procs()}))
         return

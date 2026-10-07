@@ -10,6 +10,9 @@
 #include "wxgui/ewxBitmap.H"
 #include "wxgui/ewxMessageDialog.H"
 
+#include <stdio.h>
+#include <stdlib.h>
+
 
 /**
  * Constructor.
@@ -117,8 +120,19 @@ void ewxMessageDialog::OnButtonClick( wxCommandEvent& event )
 }
 
 
-// int ewxMessageDialog::ShowModal()
-// {
-//   CaptureMouse();
-//   return ewxDialog::ShowModal();
-// }
+// ECCE_TEST_DIALOG_CLOSE=<seconds>: log the dialog to stderr, then dismiss it
+// after that long, so a headless run can see it and still end cleanly.
+int ewxMessageDialog::ShowModal()
+{
+  const char * secs = getenv("ECCE_TEST_DIALOG_CLOSE");
+  if (!secs)
+    return ewxDialog::ShowModal();
+  fprintf(stderr, "ECCE_TEST_DIALOG: [%s] %s\n",
+          (const char *)GetTitle().mb_str(),
+          (const char *)p_label->GetLabel().mb_str());
+  fflush(stderr);
+  wxTimer timer(this);
+  Bind(wxEVT_TIMER, [this](wxTimerEvent&) { EndModal(wxID_OK); });
+  timer.StartOnce(atoi(secs) * 1000);
+  return ewxDialog::ShowModal();
+}

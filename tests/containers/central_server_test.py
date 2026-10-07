@@ -14,6 +14,7 @@ Exit 0: all checks passed; 1: a check failed; 77: podman or the .deb
 packages are not available (build them with `cpack -G DEB`).
 """
 import argparse
+import base64
 import glob
 import hashlib
 import json
@@ -29,6 +30,9 @@ PW = {"alice": "alicepw1", "bob": "bobpw2"}
 BASE = "http://srv:8096/Ecce/users"
 
 results = []
+
+
+LOGDIR = "."
 
 
 def check(ok, what, detail=""):
@@ -557,6 +561,19 @@ def tls(pm, image):
     check("certificate" in msg.lower(),
           "tls: what eve sees names the certificate (titles %s)" %
           s.get("titles"), s.get("log"))
+    log = s.get("log") or ""
+    check("ECCE Server Failure" in (s.get("titles") or []),
+          "tls: eve gets a message window, not a silent exit", json.dumps(s))
+    check("ECCE_TEST_DIALOG: [ECCE Server Failure]" in log
+          and "certificate of the ECCE Server" in log,
+          "tls: that window carries the certificate text", log)
+    check(s and not s.get("procs"),
+          "tls: eve's session ends cleanly after the dialog is dismissed",
+          json.dumps(s))
+    b64, _ = pm.out("teve", "base64 -w0 /tmp/dialog.png", "eve")
+    if b64.strip():
+        with open(os.path.join(LOGDIR, "tls-cert-dialog.png"), "wb") as f:
+            f.write(base64.b64decode(b64))
     log, _ = pm.out("tsrv", "cat ~/.ECCE/dataserver/logs/access_log", "ecce")
     ip = pm.out("teve", "hostname -i")[0].split()[0]
     check(not any(l.startswith(ip + " ") and " 207 " in l
@@ -593,6 +610,8 @@ def main():
         return 77
     only = a.only.split(",")
     os.makedirs(a.logdir, exist_ok=True)
+    global LOGDIR
+    LOGDIR = a.logdir
     pm = Podman(str(os.getpid()) + "-")
     try:
         image = build_image(pk, a.logdir)

@@ -236,43 +236,36 @@ bool EDSIServerCentral::checkServerSetup()
         exit(0);
       else if (connection->m_msgStack.messages() &&
             connection->m_msgStack.getMessage().find("You have exceeded")==0) {
-        cerr << "\n\n  ERROR:  You have exceeded the number of allowable\n";
-        cerr << "  attempts at data server authentication.\n\n";
-        cerr << "  Please contact your ECCE administrator if you\n";
-        cerr << "  have forgotten your data server password.\n\n";
-        exit(1);
+        throw RetryException(
+          "You have exceeded the number of allowable attempts at data "
+          "server authentication.\n\nPlease contact your ECCE "
+          "administrator if you have forgotten your data server "
+          "password.\n", WHERE);
       } else if (connection->m_msgStack.findKey("CERTIFICATE_REJECTED")) {
-        cerr << "\n\n  ERROR:  The certificate of the ECCE Server\n  '";
-        cerr << mount.getUrl();
-        cerr << "'\n  is not the one this ECCE installation was set up with,\n";
-        cerr << "  so no login was sent to it.\n\n";
-        cerr << "  Please contact your ECCE administrator for the server's\n";
-        cerr << "  current certificate (ecce-remote-setup --tls --pin).\n\n";
-        exit(1);
+        throw EcceException(
+          "The certificate of the ECCE Server\n'" + mount.getUrl() +
+          "'\nis not the one this ECCE installation was set up with, so no "
+          "login was sent to it.\n\nThe administrator can give you the "
+          "server's current certificate (ecce-remote-setup --tls --pin).\n",
+          WHERE);
       } else {
-        cerr << "\n\n  ERROR:  The ECCE application software cannot \n";
-        cerr << "  establish a connection to the ECCE Server\n  '";
-        cerr << mount.getUrl();
-        cerr << "'\n  at this time.\n\n";
-        cerr << "  Please contact your ECCE administrator to check\n";
-        cerr << "  that the ECCE Server is running and that\n";
-        cerr << "  the ECCE application software configuration file\n  '";
-        cerr << p_mountFile; 
-        cerr << "'\n  contains the correct URL for your ECCE Server.\n\n";
-        exit(1);
+        throw EcceException(
+          "The ECCE application software cannot establish a connection to "
+          "the ECCE Server\n'" + mount.getUrl() + "'\nat this time.\n\n"
+          "Check that the ECCE Server is running and that the ECCE "
+          "configuration file\n'" + p_mountFile + "'\ncontains the correct "
+          "URL for your ECCE Server.\n", WHERE);
       }
     }
 
     // Possible things to check...
     
     if (!connection->checkServer()) {
-      cerr << "\n\n  ERROR:  The ECCE application software cannot \n";
-      cerr << "  establish a connection to the ECCE Server\n  '";
-      cerr << mount.getUrl();
-      cerr << "'\n  because it is not a WebDAV server.\n\n";
-      cerr << "  Please contact your ECCE administrator to check\n";
-      cerr << "  that the ECCE Server is properly installed.\n\n";
-      exit(1);
+      throw EcceException(
+        "The ECCE application software cannot establish a connection to "
+        "the ECCE Server\n'" + mount.getUrl() + "'\nbecause it is not a "
+        "WebDAV server.\n\nCheck that the ECCE Server is properly "
+        "installed.\n", WHERE);
     }
 
     string failure = "";

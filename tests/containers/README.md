@@ -24,8 +24,10 @@ TLS part (`--only tls`, #236): real `ecce -remote` logins over https (8443)
 and MQTT over TLS (8883); the server's plain 8096/8088 closed to the network
 (from a client container); alice's PROPFIND in the access log from her own
 address; the DAV and broker isolation-by-delivery checks again over TLS;
-eve, whose pinned certificate is not the server's, gets no Organizer and a
-message naming the certificate in her session log.
+eve, whose pinned certificate is not the server's, gets no Organizer but a
+"ECCE Server Failure" window naming the certificate (the test hook
+`ECCE_TEST_DIALOG_CLOSE=<s>` logs a message dialog and dismisses it after
+that long; a screenshot goes to `--logdir`), and her session then ends.
 
 ## Run
 

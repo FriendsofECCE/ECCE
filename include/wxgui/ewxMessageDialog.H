@@ -36,7 +36,7 @@ public:
 
   ~ewxMessageDialog();
 
-  //  virtual int ShowModal();
+  virtual int ShowModal();
   wxButton * AddButton(int id, wxString label);
 
 protected:
