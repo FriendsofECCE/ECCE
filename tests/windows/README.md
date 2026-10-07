@@ -23,7 +23,7 @@ wxwidgets3.2-msw,xerces-c}`.
   scheduled task (`schtasks /create /tn ecceshot /sc once /st 00:00
   /it /tr "...\go.bat"` then `schtasks /run /tn ecceshot`) because ssh
   sessions have no desktop.
-- `launch_local.py complete|cancel [--state DIR]` - local job end to end, no GUI (`WINTEST=NO_MESSAGING`; `WINTEST_HOME` runs it against an install tree made by `packaging/windows/bundle-shell.sh`, `WINTEST_BASE_PATH` sets the PATH).
+- `launch_local.py complete|cancel [--state DIR]` - local job end to end, no GUI (by default with the per-session broker of `packaging/windows/ecce-broker-win`, checking that state messages arrive and the ACL holds; `cancel` lists the job's process group before and after; `WINTEST=NO_MESSAGING` skips the broker; `WINTEST_HOME` runs it against an install tree made by `packaging/windows/bundle-shell.sh`, `WINTEST_BASE_PATH` sets the PATH).
 
 ## Strawberry Perl
 Portable 5.40.5.1 unpacked to `%USERPROFILE%\strawberry` (from
