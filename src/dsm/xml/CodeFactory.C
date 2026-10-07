@@ -1,7 +1,10 @@
+#include <algorithm>
 #include <xercesc/dom/DOMDocument.hpp>
 using namespace xercesc;
 
+#include <fstream>
 #include <iostream>
+#include <sstream>
   using std::cout;
   using std::endl;
 
@@ -172,6 +175,44 @@ vector<string> CodeFactory::getFullySupportedCodeNames()
   delete caps;
 
   return ret;
+}
+
+// The codes a machine can be given a program for: those CalcEd runs and
+// those only an MD study runs (GROMACS has a TaskInputGenerator and no
+// InputGenerator, so it is not "fully supported" in the CalcEd sense).
+vector<string> CodeFactory::getMachineCodeNames()
+{
+  vector<string> ret = getFullySupportedCodeNames();
+  vector<const JCode*> *caps = CodeFactory::getCodes();
+  for (size_t i = 0; i < caps->size(); i++) {
+    string task, tmpl;
+    (*caps)[i]->get_string("TaskInputGenerator", task);
+    (*caps)[i]->get_string("Template", tmpl);
+    string name = (*caps)[i]->getCodeName();
+    if (!task.empty() && !tmpl.empty() &&
+        std::find(ret.begin(), ret.end(), name) == ret.end())
+      ret.push_back(name);
+  }
+  delete caps;
+  return ret;
+}
+
+bool CodeFactory::isRegistered(const string& codeName)
+{
+  static string text;
+  static bool loaded = false;
+  if (!loaded) {
+    loaded = true;
+    string dir = string(Ecce::ecceDataPath()) + "/client/config/";
+    for (const char* f : { "ResourceDescriptor.xml",
+                           "ResourceDescriptorRxn.xml" }) {
+      std::ifstream in((dir + f).c_str());
+      std::ostringstream buf;
+      buf << in.rdbuf();
+      text += buf.str();
+    }
+  }
+  return text.find("applicationType=\"" + codeName + "\"") != string::npos;
 }
 
 vector<const JCode*> *CodeFactory::getBasisCodes()

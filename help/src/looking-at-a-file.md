@@ -191,7 +191,7 @@ each code supplies is listed in its parse specification
 
 ![The Viewer on an imported calculation](img/viewer-imported.png)
 
-<!-- capture: Viewer on an imported calculation with the Properties menu open -->
+<!-- capture: Viewer on an imported calculation, Energies panel open -->
 
 #### Orbitals
 
@@ -232,8 +232,8 @@ the same steps on a calculation you ran yourself.
 Structures you save and calculations you import are stored in your projects,
 in the place ECCE keeps your data: the data server, or the local folder if
 you use local data mode (see [Installation](installation.md)). The Organizer
-tree shows them. [TO CHECK: that ECCE leaves your original output file
-unchanged.]
+tree shows them. ECCE reads your original output file when you import it
+and does not change it.
 
 A structure opened from a file with **File > Open...** can be changed, and
 then **File > Save** is enabled. It writes back into that file, in ECCE's

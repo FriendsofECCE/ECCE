@@ -55,7 +55,7 @@ const SoEvent * SoWxKeyboard::translateEvent(wxEvent * evt)
 SoKeyboardEvent * SoWxKeyboard::translateKeyboardEvent(wxKeyEvent * event,
                                                        SoButtonEvent::State state)
 {
-  setEventPosition(p_keyEvent, event->GetX(), event->GetY());
+  setEventPosition(p_keyEvent, event, event->GetX(), event->GetY());
 
   p_keyEvent->setKey(convert(event->GetKeyCode()));
 

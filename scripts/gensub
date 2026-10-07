@@ -336,6 +336,7 @@
   print SUBMIT "exit 0\n";
 
   close(SUBMIT);
+  &addModulePrologue($submitFile) if (!@shErrors);
   if (@shErrors) {
     unlink($submitFile);
     die &shErrorReport();
@@ -891,7 +892,7 @@ sub handleOptions()
 #open(DEBUG,">/tmp/klsgensub");
      while (<PARAM>) {
 #print DEBUG;
-      chop;
+      s/\r?\n\z//;
       $_ =~ s/^\s*//;
       ($opt,$value) = split(/ +/,$_);
 
@@ -1028,6 +1029,51 @@ sub shSnippet()
                               $key, $iss->{line}, $iss->{text}, $iss->{want});
   }
   return $res->{text};
+}
+
+# `module` and `ml` are shell functions that Lmod and Environment Modules
+# define for interactive and bash shells only, so under /bin/sh (dash) a
+# site's "module load" is "not found".  When the script uses either as a
+# command, define the module command once, before the first use.  Lmod's
+# prefix is found from the environment, then from the LMOD_PKG= line of the
+# distribution's profile.d file (grepped, not sourced: those are bash).
+sub modulePrologue()
+{
+  return <<'EOT';
+# Make the module command available (job scripts are sh, not bash)
+if ! command -v module >/dev/null 2>&1; then
+  _ecce_p=$(sed -n 's/^[[:space:]]*\(export[[:space:]]\{1,\}\)\{0,1\}LMOD_PKG=["'"'"']\{0,1\}\([^"'"'"'; ]*\).*/\2/p' /etc/profile.d/*lmod*.sh 2>/dev/null | head -n 1)
+  case $_ecce_p in *'$'*) _ecce_p= ;; esac
+  for _ecce_m in "${LMOD_PKG:+$LMOD_PKG/init/sh}" "${MODULESHOME:+$MODULESHOME/init/sh}" "${LMOD_CMD:+${LMOD_CMD%/libexec/*}/init/sh}" "${_ecce_p:+$_ecce_p/init/sh}" /etc/profile.d/lmod.sh /usr/share/lmod/lmod/init/sh /etc/profile.d/modules.sh /usr/share/Modules/init/sh /etc/profile.d/z00_lmod.sh; do
+    [ -n "$_ecce_m" ] && [ -r "$_ecce_m" ] && . "$_ecce_m" && break
+  done
+fi
+if ! command -v module >/dev/null 2>&1; then
+  echo "module command not available in sh; 'module load' will fail (no Lmod or Environment Modules init file found)" >&2
+  echo "module command not available in sh; 'module load' will fail (no Lmod or Environment Modules init file found)" >> LOGFILE
+fi
+EOT
+}
+
+sub addModulePrologue()
+{
+  my ($file) = @_;
+  open(my $in, "<", $file) || return;
+  my @lines = <$in>;
+  close($in);
+  my $cmd = qr/(?:^|[;&|(`{]|\b(?:then|do|else|elif|if|while|until)\b)\s*(?:module|ml)(?:\s|;|$)/;
+  my $at;
+  for (my $i = 0; $i < @lines; $i++) {
+    next if $lines[$i] =~ /^\s*#/;
+    if ($lines[$i] =~ $cmd) { $at = $i; last; }
+  }
+  return if !defined($at);
+  my $pro = &modulePrologue();
+  $pro =~ s/LOGFILE/$logfile/;
+  splice(@lines, $at, 0, $pro, "\n");
+  open(my $out, ">", $file) || return;
+  print $out @lines;
+  close($out);
 }
 
 sub shErrorReport()
@@ -1351,27 +1397,33 @@ sub orca()
 # injected into the input file's keyword line by mopac.launchpp
 # (<LaunchPreprocessor>) before this script ever runs.
 ###########################################################################
-# GROMACS. Not reachable yet -- there is no GROMACS.edml registered in
-# either ResourceDescriptor file, so no calculation of this type can be
-# created. It is here because the new-code checklist records that a
-# missing "sub <lccode>()" means the job simply cannot be launched
-# ($fct = $lccode is a bare dispatch on the lowercased application
-# type), and because it is not in the per-code file set, so it is the
-# item most easily forgotten. See docs/GROMACS_ROADMAP.md.
+# GROMACS, run as a task of a GROMACS MD study (docs/GROMACS.md).
 #
-# GROMACS is not one binary reading one deck: grompp turns
-# .mdp + .top + .gro into a binary .tpr, and mdrun runs the .tpr.
-# gromacs.launchpp does the grompp step at launch time, so by the time
-# this script runs the .tpr already exists and only mdrun is needed.
+# GROMACS is not one binary reading one deck: grompp turns the .mdp (written
+# by md.gmxtask), the topology and the starting structure into a binary .tpr,
+# and mdrun runs the .tpr.  Both steps run here, on the machine that runs
+# the job, because that is where gmx is known to exist; gromacs.launchpp
+# has already tried grompp on the launching machine when it could, so
+# a mistake in the inputs normally never gets this far.
 #
-# -deffnm makes mdrun derive every output name from one base, which is
-# what lets the declared output file be predicted; -ntmpi/-ntomp carry
-# the processor count, which is launch-time knowledge and therefore
-# belongs here rather than in the .mdp.
+# Launch stages the inputs under fixed names: gromacs.mdp (the declared
+# input), topol.top, conf.gro, and any .itp/.ndx files the topology
+# includes.  The final structure is written under the name the MD task
+# code looks it up by (<system>_<calc>.gro, MdTask::getRestartName) and as
+# chemsys.pdb (the output fragment name, which is VDoc's constant) for the
+# Builder.
+#
+# If grompp fails its output is copied into the declared output file, so
+# the reason is in the output the user opens, not only in the job log.
+#
+# The processor count goes on mdrun's command line, not into the .mdp:
+# -ntmpi 1 -ntomp N for gmx, whose thread-MPI would otherwise try a domain
+# decomposition a small box cannot have.  A program called gmx_mpi is an
+# MPI build and is started with mpirun instead.
 sub gromacs()
 {
   use strict vars;
-  my ($retval,$gmx,$cmd,$base);
+  my ($retval,$gmx,$cmd,$restart,$run,$mpi,$log);
   $retval = "";
   $gmx = $::config{$::lccode};
   if ($gmx eq "") { die "Path for GROMACS not found"; }
@@ -1383,13 +1435,45 @@ sub gromacs()
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } else {
-    $base = $::outFile;
-    $base =~ s/\.[^.]*$//;
-    $retval .= "\n$::CC - mdrun runs the .tpr that gromacs.launchpp built\n";
-    $retval .= "$::CC - from the .mdp, .top and .gro. -deffnm gives every\n";
-    $retval .= "$::CC - output file the same base name so the declared\n";
-    $retval .= "$::CC - output can be predicted and followed live.\n";
-    $retval .= "\$gmx mdrun -deffnm $base -ntmpi 1 -ntomp $::totalprocs >> $::logfile 2>&1\n";
+    $restart = $::mdSystemName . "_" . $::mdCalcName . ".gro";
+    $mpi = ($gmx =~ /gmx_mpi[^\/]*$/) ? 1 : 0;
+
+    #  What follows is one if/else so that the status the script goes on
+    #  to read as "the code's exit status" is grompp's when it failed and
+    #  mdrun's when it ran, not that of the editconf after it.
+    $retval .= "\n$::CC - grompp builds the .tpr; its complaints, which are\n";
+    $retval .= "$::CC - mostly about the topology, go where the user will look.\n";
+    $retval .= "\$gmx grompp -f $::inFile -c conf.gro -p topol.top -o topol.tpr -maxwarn 0 > grompp.out 2>&1\n";
+    $retval .= "if [ \$? -ne 0 ]; then\n";
+    $retval .= "  cat grompp.out >> $::logfile\n";
+    $retval .= "  cp grompp.out $::outFile\n";
+    $retval .= "  echo \"grompp failed; see $::outFile\" >> $::logfile\n";
+    $retval .= "  false\n";
+    $retval .= "else\n";
+
+    #  mdrun insists on a .log name for its log (given another extension
+    #  it adds .log), so it writes <base>.log and the declared output name
+    #  is a symlink to it for the length of the run, so that the monitor
+    #  can follow it live; afterwards the symlink is replaced by a copy,
+    #  because a symlink does not survive being uploaded.
+    $log = $::outFile;
+    $log =~ s/\.[^.]*$//;
+    $log .= ".log";
+    $retval .= "  rm -f $::outFile\n";
+    $retval .= "  ln -s $log $::outFile\n";
+    $run = "mdrun -s topol.tpr -g $log -c $restart -e ener.edr -x traj.xtc";
+    if ($mpi) {
+      $retval .= "  mpirun -np $::totalprocs \$gmx $run -ntomp 1 >> $::logfile 2>&1\n";
+    } else {
+      $retval .= "  \$gmx $run -ntmpi 1 -ntomp $::totalprocs >> $::logfile 2>&1\n";
+    }
+    $retval .= "  mdrunStatus=\$?\n";
+    $retval .= "  rm -f $::outFile\n";
+    $retval .= "  cp $log $::outFile\n";
+    $retval .= "  $::CC - The final structure as PDB: what the Builder shows.\n";
+    $retval .= "  \$gmx editconf -f $restart -o chemsys.pdb >> $::logfile 2>&1\n";
+    $retval .= "  ( exit \$mdrunStatus )\n";
+    $retval .= "fi\n";
   }
   return $retval;
   nouse strict vars;
@@ -1416,7 +1500,7 @@ sub mopac()
     $retval .= "$::CC - declared output name so live monitoring can follow it.\n";
     $retval .= "if [ \"$base.out\" != \"$::outFile\" ]; then\n";
     $retval .= "  rm -f $::outFile\n";
-    $retval .= "  ln -s $base.out $::outFile\n";
+    $retval .= "  ln -s $base.out $::outFile 2>/dev/null || :\n";
     $retval .= "fi\n";
     $retval .= "\$mopac $::inFile >> $::logfile 2>&1\n";
     $retval .= "\n$::CC - Now the run is finished, replace that symlink with a\n";
@@ -1427,7 +1511,7 @@ sub mopac()
     $retval .= "$::CC - job's Outputs/ collection came back with only\n";
     $retval .= "$::CC - eccejobstorelog in it while every regular file (the\n";
     $retval .= "$::CC - input) and all 12 parsed properties uploaded fine.\n";
-    $retval .= "if [ -h $::outFile ]; then\n";
+    $retval .= "if [ \"$base.out\" != \"$::outFile\" ] && [ -e $base.out ]; then\n";
     $retval .= "  rm -f $::outFile\n";
     $retval .= "  cp $base.out $::outFile\n";
     $retval .= "fi\n";

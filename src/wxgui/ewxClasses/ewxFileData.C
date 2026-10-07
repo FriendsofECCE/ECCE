@@ -78,7 +78,7 @@ void ewxFileData::ReadData()
   m_fileName    = p_resource->getName();
   m_filePath    = p_resource->getURL().toString();
   m_size        = p_resource->getSize();
-  m_dateTime    = wxDateTime(p_resource->getModifiedDate()->toSeconds());
+  m_dateTime    = wxDateTime((time_t)p_resource->getModifiedDate()->toSeconds());
   m_permissions = wxT("");
   m_image       = WxResourceImageList::getImageIndex(p_resource);
 

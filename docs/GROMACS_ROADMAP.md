@@ -1,6 +1,6 @@
 # Adding GROMACS to ECCE — implementation roadmap
 
-Status: **design document, nothing implemented.** Written 2026-09-22
+Status: **step 1 (import-only, via the MD path) is built: see `docs/GROMACS.md`.** The text below is the original design record (2026-09-22) and still says "nothing implemented". Written 2026-09-22
 against `main` at `71d8879`. GROMACS is **not installed on this
 machine**, so every statement about GROMACS itself here comes from its
 published documentation, not from a binary — unlike the statements about

@@ -80,6 +80,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [`rdStandardGBS.pm` accepts indented NameBasis lines and an optional `print`; do not re-fix the `*.expt` writers](rdstandardgbs-pms-namebasis-format-used-to-have.md)
 - [No `CMakeLists.txt install()` changes needed](no-cmakelists-txt-install-changes-needed.md)
 - [An `.expt`'s `.param` keys and `.frag` attributes are read literally; a wrong key is dropped silently (#235)](expt-param-keys-are-read-literally.md)
+- [A spherical-only code must say `<SphericalOnly>` in its EDML, or its basis is recorded Cartesian (#239)](spherical-only-code-must-say-so-in-edml.md)
 
 ### Added from integrating MOPAC (issue #86) — the second code through
 

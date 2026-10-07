@@ -1,0 +1,17 @@
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:chargeFittingName		
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:coordsys		N
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:ecpName		
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:exchangeFittingName		
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:gbs-type		element
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:name		6-31G*
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:numFunctions		19
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:numPrimitives		36
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:optimize		true
+BasisSet.ecce_basisset	http://www.emsl.pnl.gov/ecce:useExpCoef		N
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:charge		0
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:empiricalFormula		H2O
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:fragmentName		water-opt
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numAtoms		3
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numElectrons		10
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:symmetrygroup		C2v
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:useSymmetry		false

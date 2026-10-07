@@ -68,7 +68,7 @@ echo "Using MOPAC path: $mopac" >> /qtest/run/ecce.submit.log
 #  - declared output name so live monitoring can follow it.
 if [ "mopac.out" != "mopac.mopout" ]; then
   rm -f mopac.mopout
-  ln -s mopac.out mopac.mopout
+  ln -s mopac.out mopac.mopout 2>/dev/null || :
 fi
 $mopac mopac.mop >> /qtest/run/ecce.submit.log 2>&1
 
@@ -80,7 +80,7 @@ $mopac mopac.mop >> /qtest/run/ecce.submit.log 2>&1
 #  - job's Outputs/ collection came back with only
 #  - eccejobstorelog in it while every regular file (the
 #  - input) and all 12 parsed properties uploaded fine.
-if [ -h mopac.mopout ]; then
+if [ "mopac.out" != "mopac.mopout" ] && [ -e mopac.out ]; then
   rm -f mopac.mopout
   cp mopac.out mopac.mopout
 fi

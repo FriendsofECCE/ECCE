@@ -4,6 +4,7 @@
  *
  */
 
+#include <cstdint>
 #include <iostream>
   using std::ostream;
   using std::endl;
@@ -36,7 +37,7 @@ static int vnumStatus = sizeof(vstatusMap)/sizeof(char*);
 //
 ///////////////////////////////////////////////////////////////////////////////
 Residue::Residue(const char *cname, const int& number)
-      : p_displayStyle(DisplayStyle::BALLWIRE)
+      : p_displayStyle(DisplayStyle::BALLSTICK)
 {
 
   name(cname);
@@ -122,7 +123,7 @@ bool Residue::operator!=(const Residue& rhs) const
 
 unsigned long Residue::hFun(const Residue& r)
 {
-  return (unsigned long)&r;
+  return (unsigned long)(uintptr_t)&r;
 }
 
 

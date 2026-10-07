@@ -12,6 +12,7 @@
 
 #include "inv/SoOffscreenRenderer.H"
 #include "inv/SoWx/SoWxRenderArea.H"
+#include "inv/SoDB.H"
 #include "inv/nodes/SoSwitch.H"
 #include "inv/actions/SoSearchAction.H"
 #include "inv/actions/SoGetMatrixAction.H"
@@ -127,6 +128,10 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
 #else
     return true;
 #endif
+  } else if (c == "background") {
+    //  "background r g b" (0..1), as the Background preference does.
+    if (w.size() != 4) return fail("background: r g b");
+    p_viewer->setBackgroundColor(SbColor(atof(w[1].c_str()), atof(w[2].c_str()), atof(w[3].c_str())));
   } else if (c == "style") {
     CSStyleCmd cmd("Style", p_sg);
     DisplayDescriptor dd("default", rest, "Element");
@@ -450,6 +455,8 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
 #endif
   } else if (c == "pick" && w.size() >= 3) {
     return pickAtoms(w[1], vector<string>(w.begin() + 2, w.end()));
+  } else if (c == "wxpick" && w.size() >= 3) {
+    return pickAtoms(w[1], vector<string>(w.begin() + 2, w.end()), true);
   } else if (c == "drag" && w.size() == 5) {
     return dragAtom(w[1], atoi(w[2].c_str()), atoi(w[3].c_str()), atoi(w[4].c_str()));
   } else if (c == "vizthumb" && w.size() == 4) {
@@ -477,12 +484,13 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     //  The Builder's Reset View: camera only.
     p_viewer->resetToHomePosition();
     p_viewer->viewAll();
-  } else if (c == "rotate" && w.size() == 2) {
-    //  Orbit the camera about the world y axis through the origin, by
-    //  degrees, relative to where it is now.
+  } else if ((c == "rotate" || c == "rotatex") && w.size() == 2) {
+    //  Orbit the camera about the world y axis (rotatex: x axis) through
+    //  the origin, by degrees, relative to where it is now.
     SoCamera *cam = p_viewer->getCamera();
-    if (!cam) return fail("rotate: no camera");
-    SbRotation r(SbVec3f(0, 1, 0), (float)(atof(w[1].c_str()) * M_PI / 180.0));
+    if (!cam) return fail(c + ": no camera");
+    SbRotation r(c == "rotate" ? SbVec3f(0, 1, 0) : SbVec3f(1, 0, 0),
+                 (float)(atof(w[1].c_str()) * M_PI / 180.0));
     SbVec3f pos = cam->position.getValue(), np;
     r.multVec(pos, np);
     cam->position.setValue(np);
@@ -531,6 +539,32 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     return snapshot(w[1], 480, 0.2f, 0.3f, 0.4f);
   } else if (c == "thumb" && w.size() == 2) {
     return snapshot(w[1], 64, 0.0f, 0.0f, 0.0f);
+  } else if (c == "nmtest") {
+    //  One short arrow per atom, without a calculation.
+    SGFragment *frag = p_sg->getFragment();
+    SoSwitch *root = p_sg->getNMVecRoot();
+    root->removeAllChildren();
+    for (int j = 0; frag && j < (int)frag->numAtoms(); j++) {
+      const double *x = frag->atomRef(j)->coordinates();
+      VRVector *v = new VRVector;
+      v->fixedThickness(true);
+      v->position(x[0], x[1], x[2]);
+      v->direction(0.3, 0.2, 0.0);
+      v->setColor(0.8f, 0.8f, 0.0f);
+      root->addChild(v);
+    }
+    root->whichChild.setValue(SO_SWITCH_ALL);
+    p_sg->updateNMVecStarts();
+    SoDB::getSensorManager()->processDelayQueue(FALSE);
+  } else if (c == "nmhide") {
+    p_sg->getNMVecRoot()->whichChild.setValue(SO_SWITCH_NONE);
+    SoDB::getSensorManager()->processDelayQueue(FALSE);
+  } else if (c == "stickradius" && w.size() == 2) {
+    //  The bond cylinder radius of the first display style.
+    FILE *o = fopen((p_outdir + "/" + w[1] + ".txt").c_str(), "w");
+    if (!o) return fail("stickradius: cannot write");
+    fprintf(o, "%.6f\n", p_sg->getChemDisplayParam(0)->bondCylinderRadius.getValue());
+    fclose(o);
   } else if (c == "nmcheck" && w.size() == 2) {
     return nmCheck(w[1]);
   } else if (p_ext) {
@@ -655,7 +689,10 @@ class DragListener : public MotionListener
 //  scene manager, the path a wx mouse event takes once translated to an
 //  SoEvent (SoHandleEventAction -> SGSelection::handleEvent -> its own
 //  SoRayPickAction).  Writes the selection after each click.
-bool SceneScript::pickAtoms(const string& name, const vector<string>& atoms)
+//  "wxpick": the same as wx mouse events on the canvas, in its logical
+//  units, so the conversion to framebuffer pixels is tested too.
+bool SceneScript::pickAtoms(const string& name, const vector<string>& atoms,
+                            bool viaWx)
 {
   SoWxRenderArea *area = findRenderArea(p_viewer);
   SGFragment *frag = p_sg->getFragment();
@@ -673,8 +710,24 @@ bool SceneScript::pickAtoms(const string& name, const vector<string>& atoms)
     int a = atoi(atoms[i].c_str()) - 1;
     SbVec2s pos = atomPixel(p_viewer, frag, a);
     frag->m_atomHighLight.clear();
-    sendMouse(area->getSceneManager(), true, pos, t);
-    sendMouse(area->getSceneManager(), false, pos, t + 0.05);
+    if (viaWx) {
+      const double s = area->GetContentScaleFactor();
+      const int lx = (int)std::lround(pos[0] / s);
+      const int ly = (int)std::lround((area->getGlxSize()[1] - 1 - pos[1]) / s);
+      for (int k = 0; k < 2; k++) {
+        wxMouseEvent e(k == 0 ? wxEVT_LEFT_DOWN : wxEVT_LEFT_UP);
+        e.m_x = lx;
+        e.m_y = ly;
+        e.m_leftDown = (k == 0);
+        e.SetEventObject(area);
+        e.SetTimestamp((long)((t + 0.05 * k) * 1000));
+        area->GetEventHandler()->ProcessEvent(e);
+      }
+      fprintf(o, "scale %g logical (%d,%d) ", s, lx, ly);
+    } else {
+      sendMouse(area->getSceneManager(), true, pos, t);
+      sendMouse(area->getSceneManager(), false, pos, t + 0.05);
+    }
     t += 1.0;
     fprintf(o, "click atom %d at (%d,%d): selected", a + 1, pos[0], pos[1]);
     for (size_t k = 0; k < frag->m_atomHighLight.size(); k++)

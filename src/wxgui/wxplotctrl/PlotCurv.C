@@ -282,7 +282,11 @@ int wxPlotCurve::GetOptionInt(const wxString& name) const
 wxArrayString wxPlotCurve::GetOptionNames() const
 {
     wxCHECK_MSG(M_PLOTCURVEDATA, wxArrayString(), wxT("invalid plotcurve"));
-    return M_PLOTCURVEDATA->m_optionNames;
+    // wxSortedArrayString is not a wxArrayString in wx's STL builds
+    wxArrayString names;
+    for (size_t i = 0; i < M_PLOTCURVEDATA->m_optionNames.GetCount(); ++i)
+      names.Add(M_PLOTCURVEDATA->m_optionNames[i]);
+    return names;
 }
 wxArrayString wxPlotCurve::GetOptionValues() const
 {

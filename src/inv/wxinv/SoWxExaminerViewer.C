@@ -18,6 +18,7 @@
 #include "inv/actions/SoSearchAction.H"
 
 #include "inv/SoWx/SoWxExaminerViewer.H"
+#include "inv/SoWx/SoWxDevice.H"
 #include "inv/SoWx/SoWx.H"
 #include "inv/SoWx/SoWxRenderArea.H"
 
@@ -470,8 +471,8 @@ void SoWxExaminerViewer::processEvent( wxEvent * event )
 
   wxMouseEvent * mouseEvent = dynamic_cast<wxMouseEvent *>(event);
   if (mouseEvent != 0) {
-    int x = mouseEvent->GetX();
-    int y = mouseEvent->GetY();
+    int x = soWxToPixels(mouseEvent, mouseEvent->GetX());
+    int y = soWxToPixels(mouseEvent, mouseEvent->GetY());
     int timeStamp = mouseEvent->GetTimestamp();
 
     if (mouseEvent->ButtonDown() || mouseEvent->ButtonUp()) {

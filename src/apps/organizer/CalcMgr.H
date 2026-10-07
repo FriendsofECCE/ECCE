@@ -7,6 +7,8 @@
 #ifndef _CALCMGR_H_
 #define _CALCMGR_H_
 
+#include <wx/weakref.h>
+#include "wxgui/WxTailWindow.H"
 #include <wx/frame.h>
 #include <wx/toolbar.h>
 #include <wx/splitter.h>
@@ -45,6 +47,7 @@ class WxConfigureNwfsArchive;
 //  apps have no common header and the value only has to be unique within
 //  the dialog it is used in.
 #define ID_ORGANIZER_QUIT_STOP_SERVER 10104
+#define ID_ORGANIZER_CHANGE_SERVER 10105
 
 class CalcMgr: public CalcMgrGUI
              , public EditListener
@@ -202,6 +205,7 @@ public:
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_MENU_HELP
   void OnHelpClick( wxCommandEvent& event );
   void OnPreferencesClick( wxCommandEvent& event );
+  void OnChangeServerClick( wxCommandEvent& event );
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_MENU_SUPPORT
   void OnMenuSupportClick( wxCommandEvent& event );
@@ -386,6 +390,8 @@ protected:
   // This also allows the functions to be called as regular functions rather 
   // than always being in the context of the tree.
   void tailOutputFile(  WxResourceTreeItemData*);
+  string openTail(const string& calcName, const string& machine,
+                  const string& shell, const string& user, const string& file);
   void shellInRunDir(   WxResourceTreeItemData*);
   void manageFiles(     WxResourceTreeItemData*);
   void terminateCalc(   WxResourceTreeItemData*);
@@ -487,6 +493,8 @@ protected:
 
   static const char     * vMsgNoMoving;
 
+  // The Tail window the ECCE_TEST_ORGANIZER hook opened.
+  wxWeakRef<WxTailWindow> p_testTail;
 };
 
 

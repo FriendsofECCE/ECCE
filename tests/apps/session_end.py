@@ -48,6 +48,10 @@ windows the way a window manager does (WM_DELETE_WINDOW):
               "users" (two state directories) through siteconfig/
               SharedBroker; no quit, reap or Quit and Stop Server stops it,
               and no per-user broker is ever started
+  first-local the first-start window (#240): a fresh client-only user answers
+              "Work on this computer"; later starts do not ask
+  first-server  the same answering "Connect to a server" (this run's data server),
+              then Edit > Change Server back to this computer
   markers     the reaper alone: a broker under a server marker survives
               --if-idle; a per-user one does not
   window      ECCE_GATEWAY_WINDOW=1 keeps the Gateway window's behaviour
@@ -2631,7 +2635,193 @@ def caseLocalUseSymmetry(checks, display, logdir):
         session.kill()
 
 
-CASES = {"local": caseLocal, "local-usesym": caseLocalUseSymmetry, "local-pref": caseLocalPref, "local-save": caseLocalSave, "bug": caseBug, "window": caseWindow, "stop": caseStop, "remote": caseRemote,
+# --- the first-start question (#240) ------------------------------------
+
+def clientOnlyHome(name):
+    """An $ECCE_HOME like a client-only install's: no ecce-dataserver-start."""
+    base = os.environ["ECCE_HOME"]
+    home = os.path.join(state, "ecce-home-" + name)
+    shutil.rmtree(home, ignore_errors=True)
+    os.makedirs(os.path.join(home, "bin"))
+    for entry in os.listdir(base):
+        if entry != "bin":
+            os.symlink(os.path.join(base, entry), os.path.join(home, entry))
+    for entry in os.listdir(os.path.join(base, "bin")):
+        if entry != "ecce-dataserver-start":
+            os.symlink(os.path.realpath(os.path.join(base, "bin", entry)),
+                       os.path.join(home, "bin", entry))
+    return home
+
+
+def firstStartUser(name):
+    user = os.path.join(state, "first-" + name + "-user")
+    shutil.rmtree(user, ignore_errors=True)
+    os.makedirs(os.path.join(user, ".ECCE"))
+    return user
+
+
+def firstStartRun(checks, display, logdir, tag, extra, shot):
+    """One `ecce` start; returns (session, frame) with the Organizer up."""
+    if shot and os.path.exists(shot):
+        os.unlink(shot)
+    env = dict(extra)
+    if shot:
+        env["ECCE_FIRST_START_SHOT"] = shot
+    session = Session(display, os.path.join(logdir, "first-%s.log" % tag), extra=env)
+    return session, session.organizer()
+
+
+def firstStartEnd(checks, display, session, frame):
+    gw = session.gateway() or -1
+    t0 = time.time()
+    quitVia(display, frame)
+    endsCleanly(checks, session, display.name, gw, t0)
+
+
+def caseFirstLocal(checks, display, logdir):
+    """#240: a fresh client answers "Work on this computer", then is not asked."""
+    home = clientOnlyHome("local")
+    user = firstStartUser("local")
+    pngdir = os.environ.get("ECCE_FIRST_START_PNGS", logdir)
+    os.makedirs(pngdir, exist_ok=True)
+    shot = os.path.join(pngdir, "first-start-welcome.png")
+    extra = {"ECCE_REALUSERHOME": user, "ECCE_HOME": home,
+             "ECCE_FIRST_START_ANSWER": "local"}
+    session, frame = firstStartRun(checks, display, logdir, "local", extra, shot)
+    try:
+        if not checks.check(frame, "the Organizer opened after the answer"):
+            return
+        checks.check(os.path.exists(shot), "the question was drawn (%s)" % shot)
+        checks.check(os.path.isdir(os.path.join(user, ".ECCE-local")),
+                     "~/.ECCE-local was made")
+        env = dict(display.env(), **extra)
+        pref = run("ecce-localdata", env, "pref-state").stdout.decode().strip()
+        checks.check(pref == "on", "the preference is on (%s)" % pref)
+        checks.check(not os.path.exists(os.path.join(user, ".ECCE", "RemoteServer")),
+                     "no server chosen")
+        checks.check(not os.path.exists(os.path.join(user, ".ECCE", "dataserver")),
+                     "no data server was started")
+        orgs = named(display.name, "organizer")
+        got = procEnv(orgs[0]).get("ECCE_LOCAL_DATA") if orgs else None
+        checks.check(got == os.path.join(user, ".ECCE-local"),
+                     "the Organizer works in the local data folder (%s)" % got)
+        firstStartEnd(checks, display, session, frame)
+    finally:
+        session.kill()
+    # The choice is remembered: a second start shows no window.
+    again = {k: v for k, v in extra.items() if k != "ECCE_FIRST_START_ANSWER"}
+    session, frame = firstStartRun(checks, display, logdir, "local2", again, shot)
+    try:
+        checks.check(frame, "the second start opened the Organizer")
+        checks.check(not os.path.exists(shot), "the second start did not ask")
+        orgs = named(display.name, "organizer")
+        got = procEnv(orgs[0]).get("ECCE_LOCAL_DATA") if orgs else None
+        checks.check(got == os.path.join(user, ".ECCE-local"),
+                     "the second start is in local mode too")
+        if frame:
+            firstStartEnd(checks, display, session, frame)
+    finally:
+        session.kill()
+
+
+def caseFirstServer(checks, display, logdir):
+    """#240: "Connect to a server" with this run's data server, then Change Server."""
+    serverEnv = display.env()
+    stopOwnBroker(serverEnv)
+    marker = os.path.join(statedir(), "mosquitto.server")
+    mark = run("ecce-remote-setup", serverEnv, "--server")
+    if not checks.check(mark.returncode == 0 and os.path.exists(marker),
+                        "the server account marked"):
+        return
+    run("ecce-gateway-start", serverEnv)
+    amq = broker()
+    dport = fixture.dataserverPort()
+    bport = int(os.environ["ECCE_BROKER_PORT"])
+    if not checks.check(amq and alive(amq) and portOpen(bport),
+                        "the server's broker answers on TCP port %d" % bport):
+        return
+    home = clientOnlyHome("server")
+    user = firstStartUser("server")
+    pngdir = os.environ.get("ECCE_FIRST_START_PNGS", logdir)
+    os.makedirs(pngdir, exist_ok=True)
+    shot = os.path.join(pngdir, "first-start-server.png")
+    extra = {"ECCE_REALUSERHOME": user, "ECCE_HOME": home,
+             "ECCE_FIRST_START_ANSWER": "server:localhost:%d" % dport}
+    accessLog = os.path.join(statedir(), "dataserver", "logs", "access_log")
+    logStart = os.path.getsize(accessLog) if os.path.exists(accessLog) else 0
+    session, frame = firstStartRun(checks, display, logdir, "server", extra, shot)
+    try:
+        if not checks.check(frame, "the Organizer opened after the server was typed"):
+            return
+        ds = os.path.join(user, ".ECCE", "RemoteServer", "DataServers")
+        try:
+            text = open(ds).read()
+        except OSError:
+            text = ""
+        checks.check("http://localhost:%d/Ecce" % dport in text,
+                     "~/.ECCE/RemoteServer/DataServers names the server")
+        checks.check(waitWindow(display, " on localhost", 10),
+                     "the Organizer names its server in the title")
+        with open(accessLog, errors="replace") as f:
+            f.seek(logStart)
+            served = [l for l in f if "PROPFIND" in l and " 207 " in l]
+        checks.check(served, "the server answered this client (%d PROPFIND 207)"
+                     % len(served))
+        checks.check(not os.path.exists(os.path.join(user, ".ECCE", "mosquitto.pid")),
+                     "no broker of the client's own")
+        gw = session.gateway()
+        checks.check(gw in connectedTo(bport),
+                     "the client's gateway is logged in to the server's broker")
+        orgs = named(display.name, "organizer")
+        env = procEnv(orgs[0]) if orgs else {}
+        checks.check(env.get("ECCE_REMOTE_SERVER") and env.get("ECCE_REMOTE_DIR")
+                     == os.path.join(user, ".ECCE", "RemoteServer"),
+                     "the session is a -remote one using the user's own server file")
+        firstStartEnd(checks, display, session, frame)
+        checks.check(alive(amq) and portOpen(dport) and portOpen(bport),
+                     "the server's services are still up")
+    finally:
+        session.kill()
+    # Remembered: no window the next time, and still the server.
+    again = {k: v for k, v in extra.items() if k != "ECCE_FIRST_START_ANSWER"}
+    session, frame = firstStartRun(checks, display, logdir, "server2", again, shot)
+    try:
+        checks.check(frame, "the second start opened the Organizer")
+        checks.check(not os.path.exists(shot), "the second start did not ask")
+        orgs = named(display.name, "organizer")
+        env = procEnv(orgs[0]) if orgs else {}
+        checks.check(env.get("ECCE_REMOTE_SERVER") == "1",
+                     "the second start is a server session too")
+        if frame:
+            firstStartEnd(checks, display, session, frame)
+    finally:
+        session.kill()
+    # Edit > Change Server...: the same window, switching to this computer.
+    change = dict(display.env(), **extra)
+    change["ECCE_FIRST_START_ANSWER"] = "local"
+    shot2 = os.path.join(pngdir, "first-start-change.png")
+    change["ECCE_FIRST_START_SHOT"] = shot2
+    if os.path.exists(shot2):
+        os.unlink(shot2)
+    r = subprocess.run([os.path.join(home, "bin", "ecce-first-start"), "--change"],
+                       env=change, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                       timeout=90)
+    checks.check(r.returncode == 0 and os.path.exists(shot2),
+                 "Change Server drew its window and finished")
+    checks.check(not os.path.exists(os.path.join(user, ".ECCE", "RemoteServer"))
+                 and os.path.exists(os.path.join(user, ".ECCE", "RemoteServer.off")),
+                 "changing to this computer set the server aside")
+    pref = run("ecce-localdata", change, "pref-state").stdout.decode().strip()
+    checks.check(pref == "on", "and turned local data on (%s)" % pref)
+    try:
+        os.unlink(marker)
+    except OSError:
+        pass
+    stopOwnBroker(serverEnv)
+
+
+CASES = {"first-local": caseFirstLocal, "first-server": caseFirstServer,
+         "local": caseLocal, "local-usesym": caseLocalUseSymmetry, "local-pref": caseLocalPref, "local-save": caseLocalSave, "bug": caseBug, "window": caseWindow, "stop": caseStop, "remote": caseRemote,
          "remote-down": caseRemoteDown, "remote-refused": caseRemoteRefused,
          "quit-stop": caseQuitStop,
          "displays": caseDisplays, "same-display": caseSameDisplay,
@@ -2673,7 +2863,7 @@ def main():
             #  Cases share one broker and data server, as sessions do;
             #  the stop case takes both down, the next session restarts
             #  the broker and this restarts the data server.
-            if name in ("local", "local-save", "local-pref", "local-usesym"):   # no data server
+            if name in ("local", "local-save", "local-pref", "first-local", "local-usesym"):   # no data server
                 subprocess.run([os.path.join(install, "bin",
                                              "ecce-dataserver-stop")],
                                env=display.env(), stdout=subprocess.DEVNULL,

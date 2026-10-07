@@ -46,6 +46,7 @@ class EcceShell
          string frontendMode;   // "forward" (-J) or "nested"; see RCommand::frontEndMode
          string geometry;       // xterm only, e.g. "80x40"
          string remoteCommand;  // as built by remoteCommand()
+         vector<string> sshOptions;  // e.g. ECCE's ControlPath for the host
       };
       // The local argv (terminal, its options, ssh); false with error set.
       static bool terminalArgv(const SshTerminal& t, vector<string>& argv,

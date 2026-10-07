@@ -51,6 +51,13 @@ public:
   // with the env set.  Reading EOF means the script or the connection ended.
   virtual RemoteStream* openStream(const std::string& script, int& fd,
                                    std::string& error) = 0;
+  // The same, on the login this connection already made, so that nothing
+  // asks for credentials again.  Until closeStream() the connection serves
+  // only this stream.  A transport whose streams already share its login
+  // (the OpenSSH client on a shared connection) needs nothing more.
+  virtual RemoteStream* openStreamOnLogin(const std::string& script, int& fd,
+                                          std::string& error)
+  { return openStream(script, fd, error); }
   // Asks the script to stop, as ^C would.
   virtual void interruptStream(RemoteStream* s) = 0;
   // Sends EOF, gives the script graceMs to finish, then ends it and frees s.

@@ -46,6 +46,7 @@ static bool offerStopServer(bool& inUse);
 #include "util/JMSMessage.H"
 #include "util/JMSPublisher.H"
 #include "util/Preferences.H"
+#include "util/PreferenceLabels.H"
 #include "util/ResourceUtils.H"
 #include "util/StringConverter.H"
 #include "util/TDateTime.H"
@@ -103,6 +104,7 @@ static bool offerStopServer(bool& inUse);
 #include "wxgui/WxResourceImageList.H"
 #include "wxgui/WxResourceTreeCtrl.H"
 #include "wxgui/WxResourceTreeItemData.H"
+#include "wxgui/WxTailWindow.H"
 #include "wxgui/WxResourceStateImageList.H"
 #include "wxgui/WxState.H"
 #include "wxgui/WxStateImageList.H"
@@ -215,6 +217,16 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   p_find = 0;
   p_prefs = 0;
   Bind(wxEVT_MENU, &CalcMgr::OnPreferencesClick, this, wxID_PREFERENCES);
+  {
+    // Where the user's work lives (#240); the window is ecce-first-start's.
+    wxMenuBar* mb = GetMenuBar();
+    int edit = mb->FindMenu(_("&Edit"));
+    if (edit != wxNOT_FOUND)
+      mb->GetMenu(edit)->Append(ID_ORGANIZER_CHANGE_SERVER,
+                                _("Change Ser&ver..."));
+    Bind(wxEVT_MENU, &CalcMgr::OnChangeServerClick, this,
+         ID_ORGANIZER_CHANGE_SERVER);
+  }
   updateBookmarkMenu();
 
   p_nwfs = 0;
@@ -380,6 +392,15 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * message <text> show <text> in the message pane, as any status message does
  * publish         publish ecce_activity, as every tool start does
  * quit-offer      whether the Quit dialog would offer Quit and Stop Server
+ * tail <machine> <user> <file>
+ *                 Run Mgmt's Tail on <file> of a registered machine, as
+ *                 openTail() does for a job (user "-" for none)
+ * tail-wait <text> wait up to 60 s for <text> in that Tail window
+ * tail-snap <png> save that window as a PNG
+ * tail-close      close it, as its Close button does
+ * summary <url>   select <url> in the tree and print the summary panel's
+ *                 molecule, basis and setup fields, as label=value
+ * snap <png>      save the Organizer window as a PNG
  */
 void CalcMgr::runTestCommand(const string& line)
 {
@@ -470,6 +491,68 @@ void CalcMgr::runTestCommand(const string& line)
       msg->addProperty("action", "start");
       outcome = publish("ecce_activity", *msg) ? "sent" : "not sent";
       delete msg;
+    } else if (command == "tail") {
+      std::istringstream words(calcName);
+      string machine, user, file;
+      words >> machine >> user >> file;
+      if (user == "-") user = "";
+      string error;
+      p_testTail = WxTailWindow::open(this, "test", machine, "", user, file,
+                                      error);
+      outcome = p_testTail ? "ok, " + p_testTail->backend()
+                           : "error: " + error;
+    } else if (command == "tail-wait") {
+      bool seen = false;
+      for (int i = 0; i < 600 && p_testTail && !seen; i++) {
+        seen = p_testTail->text().find(calcName) != string::npos;
+        if (!seen) { wxYield(); wxMilliSleep(100); }
+      }
+      outcome = !p_testTail ? "no tail window"
+                : seen ? "ok, " + std::to_string(p_testTail->lineCount()) +
+                         " lines" : "timeout";
+    } else if (command == "tail-snap") {
+      outcome = p_testTail && p_testTail->snapshot(calcName) ? "saved"
+                                                             : "not saved";
+    } else if (command == "summary") {
+      WxResourceTreeItemData *node = findNode(EcceURL(calcName), true, true);
+      if (!node) {
+        outcome = "not in the tree";
+      } else {
+        p_treeCtrl->SelectItem(node->GetId());
+        for (int i = 0; i < 5; i++) wxYield();
+        wxWindow *panel = p_contextPanel ? p_contextPanel->getWidget() : 0;
+        static const char *fields[][2] = {
+          {"Formula", "empiricalFormula"}, {"Atoms", "numAtoms"},
+          {"Electrons", "numElectrons"}, {"Symmetry", "symmetrygroup"},
+          {"Basis", "name"}, {"Polarization", "coordsys"},
+          {"Functions", "numFunctions"}, {"Primitives", "numPrimitives"},
+          {"Theory", "theory"}, {"Runtype", "runtype"}};
+        outcome = panel ? "ok" : "no context panel";
+        for (auto& f : fields) {
+          wxWindow *w = panel ? panel->FindWindow(f[1]) : 0;
+          wxStaticText *t = dynamic_cast<wxStaticText*>(w);
+          outcome += string(" ") + f[0] + "=" +
+                     (t ? string(t->GetLabel().ToUTF8()) : string("<none>"));
+        }
+      }
+    } else if (command == "snap") {
+      for (int i = 0; i < 3; i++) {
+        Update();
+        wxTheApp->Yield(true);
+        wxMilliSleep(50);
+      }
+      wxSize sz = GetClientSize();
+      wxClientDC screen(this);
+      wxBitmap bmp(sz.x, sz.y);
+      wxMemoryDC mem(bmp);
+      mem.Blit(0, 0, sz.x, sz.y, &screen, 0, 0);
+      mem.SelectObject(wxNullBitmap);
+      outcome = bmp.ConvertToImage().SaveFile(
+          wxString::FromUTF8(calcName.c_str()), wxBITMAP_TYPE_PNG)
+          ? "saved" : "not saved";
+    } else if (command == "tail-close") {
+      if (p_testTail) p_testTail->Close();
+      outcome = "ok";
     } else if (line == "quit-offer") {
       bool inUse = false;
       outcome = offerStopServer(inUse) ? "stop offered"
@@ -1759,6 +1842,13 @@ void CalcMgr::OnFindClick( wxCommandEvent& event )
  * Edit > Preferences.  Built on first use; closing only hides it, and the
  * frame is owned by this one.
  */
+void CalcMgr::OnChangeServerClick( wxCommandEvent& event )
+{
+  wxString cmd = wxString::FromUTF8(Ecce::ecceHome()) + "/bin/ecce-first-start --change";
+  wxExecute(cmd, wxEXEC_SYNC);
+}
+
+
 void CalcMgr::OnPreferencesClick( wxCommandEvent& event )
 {
   if (p_prefs == (GlobalPrefs*)0) {
@@ -3722,77 +3812,86 @@ void CalcMgr::viewInputFile()
 //##############################################################################
 
 /**
- * Opens a shell in the calculation run directory and uses the tail -f command
- * to display part of the output file.
+ * Follows the calculation's primary output file in a Tail window, over the
+ * login ECCE already uses for the machine.  The TailInTerminal preference
+ * (or ECCE_TAIL_TERMINAL=1) runs tail -f in the Terminal instead.
  *
  * @param itemData  the tree node containing the calculation to work on
  */
 void CalcMgr::tailOutputFile(WxResourceTreeItemData *itemData)
 {
-  string appName, calcName, user, shell, pathFull;
-
-  // Get URL
-  EcceURL url = itemData->getUrl();
-
   // Get TaskJob
   TaskJob *calc = dynamic_cast<TaskJob*>(itemData->getResource());
   NULLPOINTEREXCEPTION(calc,"Could not cast Resource to TaskJob.");
 
   const JCode *code = calc->application();
-  if (code) {
-    appName = code->name();
-
-    calcName = calc->getName();
-    const Launchdata& launch = calc->launchdata();
-
-    shell = launch.remoteShell;
-    user = launch.user;
-
-    RefMachine* refMachine = RefMachine::refLookup(launch.machine);
-    if (!refMachine) {
-      // A job's persisted launch.machine can legitimately no longer match
-      // any currently-registered machine (e.g. after a machine rename) --
-      // refLookup() returns null by design in that case, not as a bug.
-      // See RunMgmt::terminate() for the same pattern.
-      setMessage("No job information available--machine \"" + launch.machine +
-                 "\" is not currently registered.");
-      return;
-    }
-
-    Jobdata job = calc->jobdata();
-    pathFull = job.jobpath;
-    if (!pathFull.empty()) {
-
-      if (appName != "") {
-        setMessage("Starting a terminal with tail -f.  Use the "
-                   "window manager menu to exit.", WxFeedback::INFO);
-        const JCode* code = CodeFactory::lookup(appName.c_str());
-        if (code) {
-          TypedFile tfile;
-          calc->getDataFile(JCode::PRIMARY_OUTPUT, tfile);
-          appName = tfile.name();
-          EcceShell eshell;
-          string file = pathFull + "/" + appName;
-          string cmd = "tail -f " + EcceShell::shellQuote(file);
-          string msg = eshell.cmdshell(calcName, refMachine->fullname(), shell,
-                                       user, "", cmd, file);
-          if (msg != "") {
-            setMessage(msg,
-                       (eshell.lastStatus()==-1) ?
-                       WxFeedback::ERROR : WxFeedback::WARNING);
-          }
-        } else {
-          string msg = "No information about " + appName;
-          setMessage(msg);
-
-        }
-      }
-    } else {
-      setMessage("No job information available.");
-    }
-  } else {
+  if (!code || code->name() == "") {
     setMessage("No code information available.");
+    return;
   }
+
+  const Launchdata& launch = calc->launchdata();
+  RefMachine* refMachine = RefMachine::refLookup(launch.machine);
+  if (!refMachine) {
+    // A job's persisted launch.machine can legitimately no longer match
+    // any currently-registered machine (e.g. after a machine rename) --
+    // refLookup() returns null by design in that case, not as a bug.
+    // See RunMgmt::terminate() for the same pattern.
+    setMessage("No job information available--machine \"" + launch.machine +
+               "\" is not currently registered.");
+    return;
+  }
+
+  Jobdata job = calc->jobdata();
+  if (job.jobpath.empty()) {
+    setMessage("No job information available.");
+    return;
+  }
+
+  TypedFile tfile;
+  calc->getDataFile(JCode::PRIMARY_OUTPUT, tfile);
+  const string file = job.jobpath + "/" + tfile.name();
+  string msg = openTail(calc->getName(), refMachine->fullname(),
+                        launch.remoteShell, launch.user, file);
+  if (msg != "") setMessage(msg, WxFeedback::ERROR);
+}
+
+
+/**
+ * The Tail window for file on machine, or the Terminal when so configured.
+ * Returns an error message, "" on success.
+ */
+string CalcMgr::openTail(const string& calcName, const string& machine,
+                         const string& shell, const string& user,
+                         const string& file)
+{
+  bool inTerminal = false;
+  const char *env = getenv("ECCE_TAIL_TERMINAL");
+  if (env && *env) {
+    inTerminal = string(env) != "0";
+  } else {
+    Preferences pref(PrefLabels::GLOBALPREFFILE);
+    pref.getBool(PrefLabels::TAILINTERMINAL, inTerminal);
+  }
+
+  if (inTerminal) {
+    setMessage("Starting a terminal with tail -f.  Use the "
+               "window manager menu to exit.", WxFeedback::INFO);
+    EcceShell eshell;
+    string cmd = "tail -f " + EcceShell::shellQuote(file);
+    string msg = eshell.cmdshell(calcName, machine, shell, user, "", cmd, file);
+    if (msg != "" && eshell.lastStatus() != -1) {
+      setMessage(msg, WxFeedback::WARNING);
+      return "";
+    }
+    return msg;
+  }
+
+  string error;
+  wxBusyCursor busy;
+  WxTailWindow *w = WxTailWindow::open(this, calcName, machine, shell, user,
+                                       file, error);
+  return w ? string("") : error;
 }
 
 
@@ -5006,6 +5105,7 @@ void CalcMgr::createResource(ResourceType * resType,
     // logic to handle MD and condensed phase reaction study branching
     // @todo should be moved to Session::createChild
     if (newRes->getApplicationType()==ResourceDescriptor::AT_NWCHEMMD ||
+        newRes->getApplicationType()==ResourceDescriptor::AT_GROMACS ||
         parRes->getApplicationType()==ResourceDescriptor::AT_CONDENSED_REACTION_STUDY) {
       Resource *source = 0;
       vector<EcceURL> panelSelections = p_contextPanel->getSelections();

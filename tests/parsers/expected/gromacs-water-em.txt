@@ -21,6 +21,10 @@ args:    '.' 'Energy' 'MD' 'OPLS' '0'
       size: 1
       values: 4.93577e+04
       units: Bar
+    key: PRESSVEC
+      size: 1
+      values: 4.93577e+04
+      units: Bar
   block 2: begin-line=435 fed=4 rc=0 first-fed='   Energies (kJ/mol)'
     key: TE
       size: 1
@@ -31,6 +35,10 @@ args:    '.' 'Energy' 'MD' 'OPLS' '0'
       values: -5.73156e+03
       units: kJoule/Mole
     key: PRESSURE
+      size: 1
+      values: 1.72969e+04
+      units: Bar
+    key: PRESSVEC
       size: 1
       values: 1.72969e+04
       units: Bar
@@ -47,6 +55,10 @@ args:    '.' 'Energy' 'MD' 'OPLS' '0'
       size: 1
       values: 5.66364e+03
       units: Bar
+    key: PRESSVEC
+      size: 1
+      values: 5.66364e+03
+      units: Bar
   block 4: begin-line=449 fed=4 rc=0 first-fed='   Energies (kJ/mol)'
     key: TE
       size: 1
@@ -60,6 +72,10 @@ args:    '.' 'Energy' 'MD' 'OPLS' '0'
       size: 1
       values: 1.82489e+03
       units: Bar
+    key: PRESSVEC
+      size: 1
+      values: 1.82489e+03
+      units: Bar
   block 5: begin-line=456 fed=4 rc=0 first-fed='   Energies (kJ/mol)'
     key: TE
       size: 1
@@ -70,6 +86,10 @@ args:    '.' 'Energy' 'MD' 'OPLS' '0'
       values: -8.19803e+03
       units: kJoule/Mole
     key: PRESSURE
+      size: 1
+      values: -1.66600e+03
+      units: Bar
+    key: PRESSVEC
       size: 1
       values: -1.66600e+03
       units: Bar

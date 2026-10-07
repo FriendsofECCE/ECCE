@@ -52,6 +52,7 @@ const wxWindowID MachineBrowserGUI::ID_BUTTON_MACHINEBROWSER_QUERYDISK = wxNewId
 const wxWindowID MachineBrowserGUI::ID_PANEL_MACHINEBROWSER_MAIN = wxNewId();
 const wxWindowID MachineBrowserGUI::ID_BUTTON_MACHINEBROWSER_QUERYMACHINE = wxNewId();
 const wxWindowID MachineBrowserGUI::ID_BUTTON_MACHINEBROWSER_CONFIGURE = wxNewId();
+const wxWindowID MachineBrowserGUI::ID_BUTTON_MACHINEBROWSER_MACHSETTINGS = wxNewId();
 
 /*!
  * MachineBrowserGUI type definition
@@ -205,6 +206,11 @@ void MachineBrowserGUI::CreateControls()
     ewxButton* itemButton22 = new ewxButton( itemPanel3, ID_BUTTON_MACHINEBROWSER_CONFIGURE, _("Setup Remote Access..."), wxDefaultPosition, wxDefaultSize, 0 );
     itemButton22->Enable(false);
     itemBoxSizer17->Add(itemButton22, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
+
+    ewxButton* itemButtonMachSettings = new ewxButton( itemPanel3, ID_BUTTON_MACHINEBROWSER_MACHSETTINGS, _("Machine settings..."), wxDefaultPosition, wxDefaultSize, 0 );
+    itemButtonMachSettings->SetToolTip(_("Open Register Machines on the selected machine"));
+    itemButtonMachSettings->Enable(false);
+    itemBoxSizer17->Add(itemButtonMachSettings, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxButton* itemButton23 = new ewxButton( itemPanel3, ID_BUTTON_MACHINEBROWSER_VIEWDETACH, _("Show in Child Window..."), wxDefaultPosition, wxDefaultSize, 0 );
     itemButton23->Enable(false);

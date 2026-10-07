@@ -34,6 +34,7 @@
 #include <wx/textctrl.h>
 #include <wx/imaglist.h>
 #include <wx/settings.h>
+#include <wx/dcmemory.h>
 #include <wx/dcclient.h>
 #include <wx/dcscreen.h>
 #include <wx/scrolwin.h>

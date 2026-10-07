@@ -1,0 +1,13 @@
+gaussian-16_setup {
+. /hpc2n/eb/software/lmod/lmod/init/sh
+module load gaussian/16.C.02-AVX2
+g16.set-cpu+gpu-list $inFile
+}
+setup: module add gaussian/16.A.03-AVX2
+Gaussian-16: /hpc2n/eb/software/gaussian/16.C.02-AVX2/g16/g16
+
+# Gaussian-16
+Gaussian-16Environment {
+}
+Gaussian-16Command {
+}

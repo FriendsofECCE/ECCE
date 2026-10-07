@@ -24,6 +24,7 @@
 #include <wx/settings.h>
 
 #include "tdat/VibSpectrum.H"
+#include "wxgui/PlotStyle.H"
 
 /** Told when a stick is clicked. */
 class SpectrumClickTarget
@@ -32,50 +33,6 @@ class SpectrumClickTarget
     virtual ~SpectrumClickTarget() {}
     /** `mode` is the zero-based row of the frequency table. */
     virtual void modeClicked(int mode) = 0;
-};
-
-/** Colours for one theme; the series colours are Okabe-Ito. */
-struct SpectrumPalette
-{
-  wxColour background, text, axis, grid, ir, raman, imaginary, box;
-
-  static SpectrumPalette make(bool dark, const wxColour& bg,
-                              const wxColour& fg)
-  {
-    SpectrumPalette p;
-    p.background = bg;
-    p.text = fg;
-    p.axis = mix(fg, bg, 0.25);
-    p.grid = mix(fg, bg, 0.88);
-    p.box = mix(fg, bg, 0.94);
-    p.ir = dark ? wxColour(86, 180, 233) : wxColour(0, 114, 178);
-    p.raman = dark ? wxColour(64, 208, 160) : wxColour(0, 128, 96);
-    p.imaginary = dark ? wxColour(255, 138, 80) : wxColour(200, 80, 0);
-    return p;
-  }
-  static SpectrumPalette light()
-  {
-    return make(false, wxColour(255, 255, 255), wxColour(30, 30, 30));
-  }
-  static SpectrumPalette dark()
-  {
-    return make(true, wxColour(36, 36, 36), wxColour(228, 228, 228));
-  }
-  /** The window's own colours, so the plot matches the GTK theme. */
-  static SpectrumPalette system()
-  {
-    const wxColour bg = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
-    const wxColour fg = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
-    return make(bg.Red() + bg.Green() + bg.Blue() < 3 * 128, bg, fg);
-  }
-
-  /** `t` of the way from a to b. */
-  static wxColour mix(const wxColour& a, const wxColour& b, double t)
-  {
-    return wxColour((unsigned char)(a.Red() + t * (b.Red() - a.Red())),
-                    (unsigned char)(a.Green() + t * (b.Green() - a.Green())),
-                    (unsigned char)(a.Blue() + t * (b.Blue() - a.Blue())));
-  }
 };
 
 class SpectrumCanvas;
