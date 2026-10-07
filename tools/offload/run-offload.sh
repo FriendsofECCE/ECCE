@@ -37,19 +37,25 @@ tellurium_free() {
     [ "$hm" -ge $((17 * 60)) ] && [ "$hm" -le $((20 * 60)) ] && return 0
     [ "$day" -ge 6 ] && [ "$hm" -ge $((7 * 60)) ] && [ "$hm" -le $((11 * 60)) ]
 }
-if [ "$host" = tellurium ] && ! tellurium_free; then
-    echo "offload: tellurium is not available now (owner's hours); use radium" >&2
+# radium is in use on evenings 18-21: start nothing from 17:00 to 21:00.
+radium_free() {
+    local hm=$((10#$(date +%H) * 60 + 10#$(date +%M)))
+    [ "$hm" -lt $((17 * 60)) ] || [ "$hm" -ge $((21 * 60)) ]
+}
+host_free() { case $1 in tellurium) tellurium_free ;; radium) radium_free ;; *) true ;; esac; }
+if [ "$host" != auto ] && ! host_free "$host"; then
+    echo "offload: $host is not available now (owner's hours)" >&2
     exit 3
 fi
 if [ "$host" = auto ]; then
     # Builds prefer tellurium, test suites radium.  A host that does not
-    # answer, or tellurium outside its hours, is skipped; if every reachable host
+    # answer, or is outside its owner's hours, is skipped; if every reachable host
     # is full the job queues on the first reachable one.
     case $2 in build|ctest) order="tellurium radium" ;; *) order="radium tellurium" ;; esac
     host= queue=
     for h in $order; do
-        if [ "$h" = tellurium ] && ! tellurium_free; then
-            echo "offload: tellurium outside its hours, skipped" >&2; continue
+        if ! host_free "$h"; then
+            echo "offload: $h outside its hours, skipped" >&2; continue
         fi
         n=$(free "$h")
         [ "$n" -ge 0 ] || { echo "offload: $h unreachable, skipped" >&2; continue; }
