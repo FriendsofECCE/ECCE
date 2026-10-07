@@ -369,8 +369,12 @@ void Builder::refreshColumn()
   } else if (p_panelMode == PANELS_DETAIL) {
     ensureDetail();
   }
-  if (!p_columnTabChosen) {
-    p_columnTab = anyProperties ? 1 : 0;
+  //  A calculation without results has an empty Properties tab, whatever
+  //  tab was last chosen: it opens on the building tools.
+  if (!anyProperties) {
+    p_columnTab = 0;
+  } else if (!p_columnTabChosen) {
+    p_columnTab = 1;
   }
   updatePropertyIndex();
   syncColumn(false);
