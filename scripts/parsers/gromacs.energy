@@ -210,5 +210,24 @@ if (defined($term{"Pressure (bar)"})) {
   print "values:\n" . $term{"Pressure (bar)"} . "\n";
   print "units:\nBar\n";
   print "END\n";
+
+  #  And the per-step trace, so a run's pressure can be plotted against
+  #  step.  It is a trace of an MD run, with no GEOMTRACE alongside, so it
+  #  is shown by "Geometry Step Plots" (which plots any step vector on its
+  #  own) and not by the geometry trace panel the note above is about.
+  print "key: PRESSVEC\n";
+  print "size:\n1\n";
+  print "values:\n" . $term{"Pressure (bar)"} . "\n";
+  print "units:\nBar\n";
+  print "END\n";
+}
+
+#  Temperature, likewise a trace.  Only dynamics prints it.
+if (defined($term{"Temperature"})) {
+  print "key: TEMPVEC\n";
+  print "size:\n1\n";
+  print "values:\n" . $term{"Temperature"} . "\n";
+  print "units:\nKelvin\n";
+  print "END\n";
 }
 exit(0);

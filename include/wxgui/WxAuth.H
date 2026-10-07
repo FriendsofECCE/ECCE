@@ -50,6 +50,11 @@ public:
   void setProtocol(const string& protocol);
   void showChangeBtn(const bool& show);
 
+  /** A line under the fields saying the connection is encrypted; "" hides it. */
+  void setEncryption(const string& note);
+  /** An error line under the fields (e.g. the last password was refused); "" hides it. */
+  void setStatus(const string& message);
+
   string getUser();
   string getPassword();
   string getNewPassword();

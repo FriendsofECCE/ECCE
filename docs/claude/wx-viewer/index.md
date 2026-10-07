@@ -11,6 +11,8 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 
 ### wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls
 
+- [Every plot is an `ewxPlotCtrl` styled by `PlotStyle.H`, the palette the vibrational spectrum canvas uses; `tests/plots/capture.py` pictures them before and after a change](plots-share-the-spectrum-style.md)
+- [`ComputeMoCmd` caches a grid before computing it; a failed Compute must remove it (#239)](mo-grid-cache-keeps-a-failed-compute.md)
 - [The redraw sensor must not be drained inside `schedule()`: `SoWxEventHandler::setUpCallbacks()` only wakes idle](open-inventors-redraw-sensor-is-a-one.md)
 - [`ECCE_USE_COIN` (default ON) builds the viewer against Coin3D; `=OFF` keeps the vendored core for one release](ecce-use-coin-builds-the-viewer-against-coin3d.md)
 - [Coin SORTED_LAYERS_BLEND is the default lobe transparency (6 passes, alpha canvas); slow scenes fall back to SCREEN_DOOR](coin-sorted-layers-blend-is-the-default-lobe-transparency.md)
@@ -21,6 +23,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [`tools/coin/compare.sh` renders a fixed scene set with both viewer builds (#166 stage 2); harness pitfalls](tools-coin-compare-sh-renders-both-viewer-builds.md)
 - [Atom labels drew nothing in 9.x: the sh wrappers dropped `FL_FONT_PATH`; flclient now defaults to `$ECCE_HOME/data/client/fonts`](atom-labels-need-the-bundled-font-fl-font-path.md)
 - [Builder Reset View (toolbar, Render menu, Home) is camera only; the old home button restored a pre-molecule camera](builder-reset-view-is-camera-only-home-key.md)
+- [`addCovalentBonds` never bonds nubs; lattice Generate/Replicate/Fold left every nub parentless (#243)](nubs-need-a-parent-after-lattice-commands.md)
 - [wx3.2/GTK3 layout reentrancy](wx3-2-gtk3-layout-reentrancy.md)
 - [`wxGrid::CreateGrid()`/`SetTable()` synchronously fires `wxEVT_GRID_SELECT_CELL`](wxgrid-creategrid-settable-synchronously-fires-wxevt-grid.md)
 - [`wxGrid::MakeCellVisible()` before the pane is laid out does nothing; the MOs table opened at the top, not the HOMO](wxgrid-makecellvisible-before-the-pane-is-laid-out.md)
@@ -29,6 +32,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [`wxFIXED_MINSIZE`](wxfixed-minsize.md)
 - [Every drop-down is at least as wide as its widest entry](drop-down-min-width.md)
 - [Run-state colours: submitted yellow, created sky blue, pale fills outlined in light themes; checked by tests/look/contrast.py](run-state-colours.md)
+- [GTK :backdrop fades every label to ~2.8:1; `ewxApp::applyBackdropStyle()` undoes it; headless runs need `ECCE_TEST_BACKDROP` (#210)](gtk-backdrop-fades-labels-and-has-no-headless-trigger.md)
 - [`std::map`/`unordered_set` iterator invalidation](std-map-unordered-set-iterator-invalidation.md)
 - [Uncontrolled format strings](uncontrolled-format-strings.md)
 - [`EcceException::what()` returns storage that lives as long as the exception](ecceexception-what.md)
@@ -44,3 +48,4 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [Every `ewxFrame`/`ewxDialog` is capped to its display and scrolls what does not fit (`fitToScreen()`); codereg dialogs scroll in `EccePanel` (#189)](windows-fit-small-screens-via-fittodisplay.md)
 
 - [A failed live property update must not free the cached property; a panel's timer must die with the panel (#217)](property-cache-and-panel-timers-outlive-their-objects.md)
+- [The Inventor viewer works in framebuffer pixels; wx sizes and mouse positions are logical units (#133)](viewer-sizes-are-framebuffer-pixels.md)

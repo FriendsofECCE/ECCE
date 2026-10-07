@@ -28,6 +28,7 @@ import select
 import shutil
 import signal
 import subprocess
+import tempfile
 import time
 
 SCREEN = "1280x1024x24"
@@ -84,8 +85,13 @@ class Display(object):
         if self.number is not None:
             argv.append(":%d" % self.number)
         argv += ["-screen", "0", self.screen, "-nolisten", "tcp"]
+        #  A file, never a pipe nobody reads: Xvfb logs xkbcomp warnings
+        #  for every keymap a client loads, and once 64 KiB of that has
+        #  filled a pipe its write() blocks and the whole server stops
+        #  answering -- the CI-only display wedge of #127.
+        self.log = tempfile.TemporaryFile()
         self.proc = subprocess.Popen(
-            argv, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+            argv, stdout=subprocess.DEVNULL, stderr=self.log,
             pass_fds=passFds)
         if reader is not None:
             os.close(writer)
@@ -104,7 +110,7 @@ class Display(object):
         deadline = time.time() + _scaled(15)
         while time.time() < deadline:
             if self.proc.poll() is not None:
-                error = self.proc.stderr.read().decode("utf-8", "replace")
+                error = self.serverLog()
                 raise DisplayUnavailable("Xvfb exited: %s" % error.strip())
             if self._ready():
                 return self
@@ -127,7 +133,7 @@ class Display(object):
         if b"\n" not in data:
             error = ""
             if self.proc.poll() is not None:
-                error = self.proc.stderr.read().decode("utf-8", "replace")
+                error = self.serverLog()
             else:
                 self.proc.kill()
             self.proc = None
@@ -143,12 +149,29 @@ class Display(object):
             except subprocess.TimeoutExpired:
                 self.proc.kill()
             self.proc = None
+        if getattr(self, "log", None) is not None:
+            self.log.close()
+            self.log = None
         if self.pidfile:
             try:
                 os.remove(self.pidfile)
             except OSError:
                 pass
         return False
+
+    def serverLog(self, limit=2000):
+        """The tail of what Xvfb has written to stderr, and its size."""
+        log = getattr(self, "log", None)
+        if log is None:
+            return ""
+        try:
+            size = os.fstat(log.fileno()).st_size
+            with open(log.fileno(), "rb", closefd=False) as handle:
+                handle.seek(max(0, size - limit))
+                tail = handle.read().decode("utf-8", "replace")
+        except OSError:
+            return ""
+        return "%d bytes; ends: %s" % (size, tail.strip()) if size else ""
 
     @property
     def name(self):

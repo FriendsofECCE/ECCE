@@ -217,6 +217,16 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   p_find = 0;
   p_prefs = 0;
   Bind(wxEVT_MENU, &CalcMgr::OnPreferencesClick, this, wxID_PREFERENCES);
+  {
+    // Where the user's work lives (#240); the window is ecce-first-start's.
+    wxMenuBar* mb = GetMenuBar();
+    int edit = mb->FindMenu(_("&Edit"));
+    if (edit != wxNOT_FOUND)
+      mb->GetMenu(edit)->Append(ID_ORGANIZER_CHANGE_SERVER,
+                                _("Change Ser&ver..."));
+    Bind(wxEVT_MENU, &CalcMgr::OnChangeServerClick, this,
+         ID_ORGANIZER_CHANGE_SERVER);
+  }
   updateBookmarkMenu();
 
   p_nwfs = 0;
@@ -388,6 +398,9 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * tail-wait <text> wait up to 60 s for <text> in that Tail window
  * tail-snap <png> save that window as a PNG
  * tail-close      close it, as its Close button does
+ * summary <url>   select <url> in the tree and print the summary panel's
+ *                 molecule, basis and setup fields, as label=value
+ * snap <png>      save the Organizer window as a PNG
  */
 void CalcMgr::runTestCommand(const string& line)
 {
@@ -500,6 +513,43 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "tail-snap") {
       outcome = p_testTail && p_testTail->snapshot(calcName) ? "saved"
                                                              : "not saved";
+    } else if (command == "summary") {
+      WxResourceTreeItemData *node = findNode(EcceURL(calcName), true, true);
+      if (!node) {
+        outcome = "not in the tree";
+      } else {
+        p_treeCtrl->SelectItem(node->GetId());
+        for (int i = 0; i < 5; i++) wxYield();
+        wxWindow *panel = p_contextPanel ? p_contextPanel->getWidget() : 0;
+        static const char *fields[][2] = {
+          {"Formula", "empiricalFormula"}, {"Atoms", "numAtoms"},
+          {"Electrons", "numElectrons"}, {"Symmetry", "symmetrygroup"},
+          {"Basis", "name"}, {"Polarization", "coordsys"},
+          {"Functions", "numFunctions"}, {"Primitives", "numPrimitives"},
+          {"Theory", "theory"}, {"Runtype", "runtype"}};
+        outcome = panel ? "ok" : "no context panel";
+        for (auto& f : fields) {
+          wxWindow *w = panel ? panel->FindWindow(f[1]) : 0;
+          wxStaticText *t = dynamic_cast<wxStaticText*>(w);
+          outcome += string(" ") + f[0] + "=" +
+                     (t ? string(t->GetLabel().ToUTF8()) : string("<none>"));
+        }
+      }
+    } else if (command == "snap") {
+      for (int i = 0; i < 3; i++) {
+        Update();
+        wxTheApp->Yield(true);
+        wxMilliSleep(50);
+      }
+      wxSize sz = GetClientSize();
+      wxClientDC screen(this);
+      wxBitmap bmp(sz.x, sz.y);
+      wxMemoryDC mem(bmp);
+      mem.Blit(0, 0, sz.x, sz.y, &screen, 0, 0);
+      mem.SelectObject(wxNullBitmap);
+      outcome = bmp.ConvertToImage().SaveFile(
+          wxString::FromUTF8(calcName.c_str()), wxBITMAP_TYPE_PNG)
+          ? "saved" : "not saved";
     } else if (command == "tail-close") {
       if (p_testTail) p_testTail->Close();
       outcome = "ok";
@@ -1792,6 +1842,13 @@ void CalcMgr::OnFindClick( wxCommandEvent& event )
  * Edit > Preferences.  Built on first use; closing only hides it, and the
  * frame is owned by this one.
  */
+void CalcMgr::OnChangeServerClick( wxCommandEvent& event )
+{
+  wxString cmd = wxString::FromUTF8(Ecce::ecceHome()) + "/bin/ecce-first-start --change";
+  wxExecute(cmd, wxEXEC_SYNC);
+}
+
+
 void CalcMgr::OnPreferencesClick( wxCommandEvent& event )
 {
   if (p_prefs == (GlobalPrefs*)0) {
@@ -5048,6 +5105,7 @@ void CalcMgr::createResource(ResourceType * resType,
     // logic to handle MD and condensed phase reaction study branching
     // @todo should be moved to Session::createChild
     if (newRes->getApplicationType()==ResourceDescriptor::AT_NWCHEMMD ||
+        newRes->getApplicationType()==ResourceDescriptor::AT_GROMACS ||
         parRes->getApplicationType()==ResourceDescriptor::AT_CONDENSED_REACTION_STUDY) {
       Resource *source = 0;
       vector<EcceURL> panelSelections = p_contextPanel->getSelections();

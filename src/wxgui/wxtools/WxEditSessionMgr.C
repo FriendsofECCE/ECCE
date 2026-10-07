@@ -43,6 +43,8 @@ static bool fileStamp(const string& path, long long& stamp, long long& size)
    if (stat(path.c_str(), &sb) != 0) return false;
 #ifdef __APPLE__
    const struct timespec& mt = sb.st_mtimespec;
+#elif defined(_WIN32)
+   const struct timespec mt = { sb.st_mtime, 0 };  // whole seconds
 #else
    const struct timespec& mt = sb.st_mtim;
 #endif

@@ -9,6 +9,7 @@
 
 #include <wx/link.h>
 #include <wx/stopwatch.h>
+#include <wx/settings.h>
 #include <wx/textctrl.h>
 
 #include "util/EventDispatcher.H"
@@ -139,6 +140,16 @@ MoPanel::~MoPanel()
    delete p_aoBasis;
 }
 
+
+
+wxSize MoPanel::GetMinSize() const
+{
+   wxSize min = MoGUI::GetMinSize();
+   if (GetSizer() != 0) {
+      min.x = std::max(min.x, GetSizer()->GetMinSize().x);
+   }
+   return min;
+}
 
 
 bool MoPanel::Create(IPropCalculation *calculation,
@@ -501,6 +512,15 @@ void MoPanel::fillUI()
    int cursize = p_mogrid->GetColLabelSize();
    p_mogrid->SetColLabelSize((int)(cursize + cursize * .20));
 
+   //  Wide enough for every column and the vertical scroll bar, so the
+   //  table is never cut off at the right.
+   int tableWidth = p_mogrid->GetRowLabelSize() +
+      wxSystemSettings::GetMetric(wxSYS_VSCROLL_X, p_mogrid) + 4;
+   for (int c = 0; c < p_mogrid->GetNumberCols(); c++)
+      tableWidth += p_mogrid->GetColSize(c);
+   p_mogrid->SetMinSize(wxSize(std::max(200, tableWidth),
+                               p_mogrid->GetMinSize().y));
+
    // Select the alpha HOMO by default.
    selectMo(idxHOMO);
 
@@ -655,8 +675,16 @@ void MoPanel::fillGraph(bool haveTypes)
    // of the occupation numbers.
    double occs[] = {0, 1, 2};
    string names[] = {"Unoccupied", "Singly Occupied", "Doubly Occupied"};
-   wxBrush brushes[] = {*wxBLACK_BRUSH, *wxRED_BRUSH, *wxCYAN_BRUSH};
-   wxPen pens[] = {*wxBLACK_PEN, *wxRED_PEN, *wxCYAN_PEN};
+   //  Unoccupied levels in the axis grey, then the first two series colours.
+   const PlotPalette& palette = p_plotReg->GetPalette();
+   const wxColour levelColours[] = {palette.axis, palette.series(1),
+                                    palette.series(0)};
+   wxBrush brushes[] = {wxBrush(levelColours[0]), wxBrush(levelColours[1]),
+                        wxBrush(levelColours[2])};
+   wxGenericPen pens[] = {
+     wxGenericPen(wxGenericColour(levelColours[0]), 2, wxPENSTYLE_SOLID),
+     wxGenericPen(wxGenericColour(levelColours[1]), 2, wxPENSTYLE_SOLID),
+     wxGenericPen(wxGenericColour(levelColours[2]), 2, wxPENSTYLE_SOLID)};
    //wxColor colors[] = {*wxBLACK, *wxRED, *wxCYAN}; // unused
    // create bitmaps to use for markers
    int width=13, height=1; // odd numbers recommended so that they center
@@ -1178,6 +1206,17 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
    fw.execute(cmd);
    dlg->Show(false);  // make sure it goes away
 
+   //  Coefficients that do not fit the basis are not a zero grid, and the
+   //  grid still holds the previous orbital: say what is wrong and stop.
+   const int coefWidth = cmd->getParameter("CoefWidth")->getInteger();
+   if (coefWidth > 0) {
+      reportBasisMismatch(coefWidth,
+                          cmd->getParameter("BasisWidth")->getInteger(),
+                          cap->name());
+      event.Skip();
+      return;
+   }
+
    // Get min,max of computed field
    double fieldMin = 0.;
    double fieldMax = 0.;
@@ -1303,6 +1342,45 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
    event.Skip();
 }
 
+
+
+/**
+ * The output's MO coefficients and the basis ECCE holds for the calculation
+ * have different numbers of functions.  Said once per calculation in a
+ * dialog (ECCE_TEST_DIALOG_CLOSE logs it), then only in the status line.
+ */
+void MoPanel::reportBasisMismatch(int coefWidth, int basisWidth,
+                                  const string& code)
+{
+   WxVizToolFW& fw = getFW();
+   const string url = getCalculation()->getURL().toString();
+   const wxString shortText = wxString::Format(
+         "Orbital not drawn: the output has %d basis functions, ECCE's "
+         "basis set for this calculation has %d.", coefWidth, basisWidth);
+   if (p_mismatchReported.count(url)) {
+      fw.showMessage(shortText.ToStdString(), false);
+      return;
+   }
+   p_mismatchReported.insert(url);
+
+   wxString text = basisWidth > 0 ?
+      wxString::Format("ECCE cannot draw this orbital: the output has %d "
+            "basis functions, but the basis set ECCE has for this "
+            "calculation has %d.\n\nThe calculation probably used a "
+            "different basis set than ECCE expects.",
+            coefWidth, basisWidth) :
+      wxString::Format("ECCE cannot draw this orbital: the output has %d "
+            "basis functions, and ECCE could not build the basis set it "
+            "has for this calculation.", coefWidth);
+   if (code == "ORCA") {
+      text += "\n\nCalculations made with ORCA input from ECCE before "
+              "9.0.0-alpha.7 have this problem -- rerun them.";
+   }
+   ewxMessageDialog dlg(this, text, "ECCE Error", wxOK|wxICON_EXCLAMATION);
+   (void)dlg.ShowModal();
+   dlg.Destroy();
+   fw.showMessage(shortText.ToStdString(), false);
+}
 
 
 GridDlg *MoPanel::getGridDlg()

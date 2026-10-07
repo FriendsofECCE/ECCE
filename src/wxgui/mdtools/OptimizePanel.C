@@ -13,12 +13,14 @@
 #include "tdat/OptimizeModel.H"
 
 #include "wxgui/ewxCheckBox.H"
+#include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxNumericValidator.H"
 #include "wxgui/ewxTextCtrl.H"
 #include "wxgui/ewxUnitHelper.H"
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/MDPanelHelper.H"
 
+#include "wxgui/GromacsProfile.H"
 #include "wxgui/OptimizePanel.H"
 
 /*!
@@ -235,7 +237,7 @@ void OptimizePanel::OnTextctrlOptTolEnter( wxCommandEvent& event )
 {
     ewxTextCtrl *text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_OPT_TOL));
     double rval = atof(text->GetBaseValue().c_str());
-    getOptimizeModel()->setSDInitialStepSize(rval);
+    getOptimizeModel()->setSDTolerance(rval);
     p_helper->setSaveState(true);
     event.Skip();
 }
@@ -307,4 +309,35 @@ void OptimizePanel::OnTextctrlOptRefreshEnter( wxCommandEvent& event )
     getOptimizeModel()->setCGRefreshCycle(ival);
     p_helper->setSaveState(true);
     event.Skip();
+}
+
+
+void OptimizePanel::applyGromacsProfile(bool g)
+{
+  bool s = !g;
+  // Steepest descent only: conjugate gradient cannot be used with
+  // constrained bonds, and a first minimisation wants steep.
+  GromacsProfile::show(FindWindow(ID_CHECKBOX_OPT_USESD), s);
+  GromacsProfile::show(FindWindow(ID_CHECKBOX_OPT_USECG), s);
+  GromacsProfile::show(FindWindow(ID_PANEL_OPT_CGPAR), s);
+  GromacsProfile::showRow(FindWindow(ID_TEXTCTRL_OPT_MAXSZ), s);
+  if (g) {
+    GromacsProfile::show(FindWindow(ID_PANEL_OPT_SDPAR), true);
+  }
+  GromacsProfile::relabel(this, g ? _("Convergence Tolerance:") : _("Maximum force (emtol):"),
+                          g ? _("Maximum force (emtol):") : _("Convergence Tolerance:"));
+  GromacsProfile::relabel(this, g ? _("Initial Step Size:") : _("Initial step size (emstep):"),
+                          g ? _("Initial step size (emstep):") : _("Initial Step Size:"));
+
+  // The tolerance is a force for grompp (kJ/mol/nm), not the length the
+  // NWChem field is, so it carries no length unit conversion.
+  ewxTextCtrl *tol = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_OPT_TOL);
+  ewxStaticText *tolUnits = (ewxStaticText*)FindWindow(wxID_STATIC_OPT_TOL);
+  if (g && tol->getUnitHelper() != 0) {
+    tol->setUnitHelper(0);
+    tolUnits->SetLabel(_("kJ/mol/nm"));
+  } else if (!g && tol->getUnitHelper() == 0) {
+    tol->setUnitHelper(new ewxUnitHelper(DEFAULT_UNIT_FAMILY, "Length", tolUnits));
+  }
+  GromacsProfile::relayout(this);
 }

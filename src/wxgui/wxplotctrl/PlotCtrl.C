@@ -841,6 +841,13 @@ bool wxPlotCtrl::SetAreaBackgroundColour( const wxColour &colour )
     Redraw(wxPLOTCTRL_REDRAW_EVERYTHING);
     return true;
 }
+void wxPlotCtrl::SetAxisTickColour( const wxColour &colour )
+{
+    wxCHECK_RET(colour.Ok(), wxT("invalid colour"));
+    if (m_xAxisDrawer) m_xAxisDrawer->SetTickPen(wxGenericPen(wxGenericColour(colour), 1, wxPENSTYLE_SOLID));
+    if (m_yAxisDrawer) m_yAxisDrawer->SetTickPen(wxGenericPen(wxGenericColour(colour), 1, wxPENSTYLE_SOLID));
+    Redraw(wxPLOTCTRL_REDRAW_XAXIS|wxPLOTCTRL_REDRAW_YAXIS);
+}
 void wxPlotCtrl::SetGridColour( const wxColour &colour )
 {
     wxCHECK_RET(colour.Ok(), wxT("invalid colour"));
@@ -1085,6 +1092,7 @@ bool wxPlotCtrl::AddCurve( wxPlotCurve *curve, bool select, bool send_event )
     }
 
     m_curves.Add( curve );
+    StyleNewCurve(curve, (int)m_curves.GetCount()-1);
     m_curveSelections.Add(new wxRangeDoubleSelection());
     m_dataSelections.Add(new wxRangeIntSelection());
 
@@ -2271,20 +2279,22 @@ void wxPlotCtrl::DoSize(const wxRect &boundingRect, bool set_window_sizes)
     if (area_width  < 1) area_width  = 1;
     if (area_height < 1) area_height = 1;
 
+    // The y axis window runs right up to the plot frame so its ticks can
+    // reach it; the area is still area_border inside the window's top.
     m_yAxisRect = wxRect(yLabelRect.GetRight(),
                          titleRect.GetBottom(),
-                         yaxis_width,
+                         yaxis_width + area_border,
                          area_height + 2*area_border);
 
-    m_xAxisRect = wxRect(m_yAxisRect.GetRight(),
-                         m_yAxisRect.GetBottom() - area_border + 1,
-                         area_width + 2*area_border,
-                         xaxis_height);
-
-    m_areaRect = wxRect(m_yAxisRect.GetRight() + area_border,
+    m_areaRect = wxRect(m_yAxisRect.GetRight() + 1,
                         m_yAxisRect.GetTop() + area_border,
                         area_width,
                         area_height);
+
+    m_xAxisRect = wxRect(m_areaRect.x - area_border,
+                         m_yAxisRect.GetBottom() - area_border + 1,
+                         area_width + 2*area_border,
+                         xaxis_height);
 
     // scrollbar to right and bottom
     if (set_window_sizes)
@@ -2500,6 +2510,8 @@ void wxPlotCtrl::DrawAreaWindow( wxDC *dc, const wxRect &rect )
     dc->SetBrush( *wxTRANSPARENT_BRUSH );
     dc->SetPen( wxPen(GetBorderColour(), m_area_border_width, wxSOLID) );
     dc->DrawRectangle(clientRect);
+
+    DrawAreaOverlay( dc );
 
     dc->SetPen( wxNullPen );
     dc->SetBrush( wxNullBrush );
@@ -3022,6 +3034,7 @@ void wxPlotCtrl::CalcXAxisTickPositions()
     for (i = 0; i < m_xAxisTick_count; i++)
     {
         if (!IsFinite(current, wxT("axis label is not finite"))) return;
+        if (fabs(current) < 1e-9*m_xAxisTick_step) current = 0.0;  // not "-0"
 
         x = GetClientCoordFromPlotX( current );
 
@@ -3044,6 +3057,7 @@ void wxPlotCtrl::CalcYAxisTickPositions()
     {
         if (!IsFinite(current, wxT("axis label is not finite")))
             return;
+        if (fabs(current) < 1e-9*m_yAxisTick_step) current = 0.0;  // not "-0"
 
         y = GetClientCoordFromPlotY( current );
 
@@ -3055,6 +3069,31 @@ void wxPlotCtrl::CalcYAxisTickPositions()
 
         current += m_yAxisTick_step;
     }
+
+    // The window is as wide as the labels it holds, as on the spectrum; a
+    // fixed guess at the widest label wasted a quarter of a small plot.
+    if (m_yAxisDrawer && m_yAxisTickLabels.GetCount() > 0)
+    {
+        int widest = 0, h = 0;
+        wxFont font = m_yAxisDrawer->m_tickFont;
+        for (size_t k = 0; k < m_yAxisTickLabels.GetCount(); k++)
+        {
+            int lw = 0;
+            GetTextExtent(m_yAxisTickLabels[k], &lw, &h, NULL, NULL, &font);
+            widest = wxMax(widest, lw);
+        }
+        const int wanted = wxMax(10, widest + 11 - m_axisFontSize.y/2);
+        if (abs(wanted - m_y_axis_text_width) > 1)
+        {
+            m_y_axis_text_width = wanted;
+            CallAfter(&wxPlotCtrl::DoSizeIfShown);
+        }
+    }
+}
+
+void wxPlotCtrl::DoSizeIfShown()
+{
+    if (m_yAxisScrollbar) DoSize();
 }
 
 // ----------------------------------------------------------------------------

@@ -13,6 +13,7 @@
 #include "wxgui/ewxBitmap.H"
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxCheckBox.H"
+#include "wxgui/ewxThemeColours.H"
 
 #include "wxgui/WxAuth.H"
 
@@ -55,6 +56,11 @@ WxAuth::WxAuth( wxWindow* parent, wxWindowID id, const wxString& caption, const 
    ewxTextCtrl * passInput = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_AUTH_PASSWORD));
    passInput->setLeaveAsEnter(false);
    passInput->SetFocus();
+
+   // The new-password row was hidden after the first sizing.
+   Layout();
+   GetSizer()->SetSizeHints(this);
+   Centre();
 }
 
 
@@ -258,3 +264,37 @@ string WxAuth::getNewPassword()
    return t->GetValue().ToStdString();
 }
 
+
+
+
+/**
+ * Shows or hides one of the dialog's note lines and fits the dialog to it.
+ */
+static void setNote(WxAuth* dlg, wxWindowID id, const string& text,
+                    const wxColour& colour)
+{
+  wxWindow *w = dlg->FindWindow(id);
+  if (!w) return;
+  w->SetLabel(wxString::FromUTF8(text.c_str()));
+  if (colour.IsOk()) w->SetForegroundColour(colour);
+  w->Show(!text.empty());
+  dlg->Layout();
+  wxSize before = dlg->GetSize();
+  dlg->GetSizer()->SetSizeHints(dlg);
+  wxSize after = dlg->GetSize();
+  // Never shrink a dialog that is already showing.
+  dlg->SetSize(wxSize(wxMax(before.x, after.x), wxMax(before.y, after.y)));
+}
+
+
+void WxAuth::setEncryption(const string& note)
+{
+  setNote(this, wxID_STATIC_AUTH_SECURITY, note, wxNullColour);
+}
+
+
+void WxAuth::setStatus(const string& message)
+{
+  setNote(this, wxID_STATIC_AUTH_STATUS, message,
+          ewxThemeColours::statusText(ewxThemeColours::BAD));
+}

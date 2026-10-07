@@ -1,0 +1,45 @@
+#!/bin/sh
+# ECCE's default terminal on macOS.  Terminal.app takes no command on its
+# command line, so this takes xterm's form, [options] -e command [args],
+# writes the command to a .command file, opens that in Terminal and waits
+# until it has ended: an editor session must last as long as the editor.
+# -title/-T sets the window title; other options before -e are ignored.
+# ECCE_TERMINAL_DRYRUN=1 prints the file and the open command instead.
+
+q() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
+
+title=
+while [ $# -gt 0 ] && [ "$1" != -e ]; do
+  case $1 in
+    -title|-T) [ $# -gt 1 ] && { title=$2; shift; } ;;
+  esac
+  shift
+done
+[ "${1:-}" = -e ] && shift
+[ $# -gt 0 ] || set -- "${SHELL:-/bin/sh}" -l
+
+dir=$(mktemp -d "${TMPDIR:-/tmp}/ecce-term.XXXXXX") || exit 1
+script=$dir/run.command
+done=$dir/done
+
+line=
+for a in "$@"; do line="$line $(q "$a")"; done
+{
+  printf '%s\n' '#!/bin/sh'
+  printf '%s\n' "trap \"touch $(q "$done")\" EXIT HUP INT TERM"
+  [ -z "$title" ] || printf '%s\n' "printf '\\033]0;%s\\007' $(q "$title")"
+  printf '%s\n' "cd $(q "$PWD") 2>/dev/null"
+  printf '%s\n' "$line"
+} > "$script"
+chmod 700 "$script"
+
+if [ -n "${ECCE_TERMINAL_DRYRUN:-}" ]; then
+  cat "$script"
+  echo "open -a Terminal $script"
+  rm -rf "$dir"
+  exit 0
+fi
+
+open -a Terminal "$script" || { rm -rf "$dir"; exit 1; }
+while [ ! -e "$done" ]; do sleep 1; done
+rm -rf "$dir"

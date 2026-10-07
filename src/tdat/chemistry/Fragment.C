@@ -25,11 +25,8 @@
 #include <list>
     using std::list;
 
-#ifdef __GNUC__
-  #include <ext/hash_map>
-  using __gnu_cxx::hash_map;
-  using __gnu_cxx::hash;
-#endif
+#include <cstdint>
+#include <unordered_map>
 
 #include "util/ETimer.H"
 #include "util/Ecce.H"
@@ -75,7 +72,7 @@
  * This fragment has no name, atoms, residues, or constraints.
  *
  */
-Fragment::Fragment() : p_mainDisplayStyle(DisplayStyle::BALLWIRE)
+Fragment::Fragment() : p_mainDisplayStyle(DisplayStyle::BALLSTICK)
 {
    p_name = "";
    p_charge = 0;
@@ -102,7 +99,7 @@ Fragment::Fragment(const string& name,
                    const double* coordinates,
                    const int numBonds,
                    const int *bonds) 
-                   : p_mainDisplayStyle(DisplayStyle::BALLWIRE)
+                   : p_mainDisplayStyle(DisplayStyle::BALLSTICK)
 {
    p_name = name;
    p_charge = 0;
@@ -141,7 +138,7 @@ Fragment::Fragment(const string& name,
                    const double* coordinates,
                    const int numBonds,
                    const int *bonds)
-                   : p_mainDisplayStyle(DisplayStyle::BALLWIRE)
+                   : p_mainDisplayStyle(DisplayStyle::BALLSTICK)
 {
    p_name = name;
    p_charge = 0;
@@ -167,7 +164,7 @@ Fragment::Fragment(const string& name,
 
 
 Fragment::Fragment( const string& name ) 
-                   : p_mainDisplayStyle(DisplayStyle::BALLWIRE)
+                   : p_mainDisplayStyle(DisplayStyle::BALLSTICK)
 {
    p_name = name;
    p_charge = 0;
@@ -191,7 +188,7 @@ Fragment::Fragment( const string& name )
  * Copy Constructor.
  */
 Fragment::Fragment(const Fragment& frag) 
-        : p_mainDisplayStyle(DisplayStyle::BALLWIRE)
+        : p_mainDisplayStyle(DisplayStyle::BALLSTICK)
 { 
    p_constraints = 0;
    p_potentials = 0;
@@ -1526,6 +1523,99 @@ bool Fragment::getConnected(vector<bool>& vatoms, vector<bool>& vbonds,
   return foundCycle;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Description:
+//   Bonds each unbonded nub to the nearest non-nub, non-ghost atom.  The
+//   distance rules never bond a nub, and every nub operation assumes a
+//   parent.  With a lattice the nearest atom is the minimum image (ties go
+//   to the untranslated atom, for replicas) and the nub is moved next to it,
+//   since lattice Generate puts every centre into the cell.
+////////////////////////////////////////////////////////////////////////////////
+static void bondLooseNubs(Fragment& frag)
+{
+  TPerTab tpt;
+  int nub = tpt.nubAtom();
+  int ghost = 0;
+  int nAtoms = frag.numAtoms();
+
+  vector<TAtm*> loose;
+  for (int i = 0; i < nAtoms; i++) {
+    TAtm *a = frag.atomRef(i);
+    if (a->atomicNumber() == nub && a->bondList().empty()) loose.push_back(a);
+  }
+  if (loose.empty()) return;
+
+  // Fractional coordinate k of r is r . inv[k].
+  LatticeDef *lattice = frag.getLattice();
+  MPoint inv[3], basis[3];
+  bool periodic = false;
+  if (lattice) {
+    vector<MPoint> *vecs = lattice->toVectors();
+    for (int k = 0; k < 3; k++) basis[k].xyz((*vecs)[k]);
+    delete vecs;
+    double volume = (basis[0].crossProduct1(basis[1])).dotProduct(basis[2]);
+    if (fabs(volume) > 1.e-8) {
+      inv[0] = basis[1].crossProduct1(basis[2]);
+      inv[1] = basis[2].crossProduct1(basis[0]);
+      inv[2] = basis[0].crossProduct1(basis[1]);
+      for (int k = 0; k < 3; k++) inv[k].scale(1.0 / volume);
+      periodic = true;
+    }
+  }
+
+  for (size_t n = 0; n < loose.size(); n++) {
+    TAtm *nubAtm = loose[n];
+    TAtm *best = 0;
+    double bestDist = 0.;
+    bool bestShifted = false;
+    MPoint bestShift(0., 0., 0.);
+    for (int j = 0; j < nAtoms; j++) {
+      TAtm *cand = frag.atomRef(j);
+      int tag = cand->atomicNumber();
+      if (tag == nub || tag == ghost) continue;
+      MPoint dr, pj;
+      dr.xyz(nubAtm->coordinates());
+      pj.xyz(cand->coordinates());
+      dr.subtract(pj);
+      MPoint shift(0., 0., 0.);
+      bool shifted = false;
+      if (periodic) {
+        for (int k = 0; k < 3; k++) {
+          double f = floor(dr.dotProduct(inv[k]) + 0.5);
+          if (f != 0.) {
+            MPoint t = basis[k];
+            t.scale(f);
+            shift.add(t);
+            shifted = true;
+          }
+        }
+        dr.subtract(shift);
+      }
+      double dist = dr.length();
+      // A nub sits inside its parent's drawn radius, at most the van der
+      // Waals radius (CPK); further away it cannot be this atom's.
+      if (dist > tpt.vwr(tag) + 0.5) continue;
+      bool better = best == 0 || dist < bestDist - 1.e-4 ||
+                    (dist < bestDist + 1.e-4 && bestShifted && !shifted);
+      if (better) {
+        best = cand;
+        bestDist = dist;
+        bestShift = shift;
+        bestShifted = shifted;
+      }
+    }
+    if (best == 0) continue;
+    if (bestShifted) {
+      MPoint pn;
+      pn.xyz(nubAtm->coordinates());
+      pn.subtract(bestShift);
+      nubAtm->coordinates(pn.x(), pn.y(), pn.z());
+    }
+    new TBond(best, nubAtm, TBond::Single);
+  }
+}
+
+
 /**
  * Simply check distance between atoms to see if less than
  * some scale of the sum of the two atom's radii.
@@ -1743,6 +1833,7 @@ void Fragment::addCovalentBonds(bool overrideIsDisplayed)
   }
 //cout << "bond generation done " << timer.elapsedTime() << endl;
 //cout << "total number of bonds computed " << bondcheck << endl;
+  bondLooseNubs(*this);
   generateShapes();
   generateBondOrders();
 }
@@ -3200,14 +3291,14 @@ vector<TBond*>* Fragment::bonds(void) const
 
 #if 111
   // Initialize a map to 10% larger than numAtoms  - just a guess
-  hash_map<unsigned long, TBond*, hash<unsigned long>, equint> mymap((int)(cnt * 1.1));
+  std::unordered_map<uintptr_t, TBond*> mymap((int)(cnt * 1.1));
   for (int idx=0; idx<cnt; idx++) {
     const vector<TBond*>& bonds = p_atoms[idx]->bondList();
     int bcnt = bonds.size();
     for (int jdx=0; jdx<bcnt; jdx++) {
       bond = bonds[jdx];
-      if (mymap.find((unsigned long)bond) == mymap.end()) {
-        mymap[(unsigned long)bond] = bond;
+      if (mymap.find((uintptr_t)bond) == mymap.end()) {
+        mymap[(uintptr_t)bond] = bond;
         ret->push_back(bond);
       }
     }

@@ -227,6 +227,18 @@ bool ResourceDescriptor::isEcceMdDynamics(const string& contentType)
 
 
 /**
+ * Determines if the indicated content type is a GROMACS MD Equilibrate.
+ */
+bool ResourceDescriptor::isEcceMdEquilibrate(const string& contentType)
+{
+  CONTENTTYPE ct =
+    ResourceUtils::stringToContentType(contentType);
+
+  return (ct == CT_MDEQUILIBRATE);
+}
+
+
+/**
  * Returns string value for a resource type.
  */
 string ResourceDescriptor::getRtName(const RESOURCETYPE& rt)

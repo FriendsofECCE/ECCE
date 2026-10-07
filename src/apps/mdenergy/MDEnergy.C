@@ -83,23 +83,23 @@ void MDEnergy::createPanels()
       // Only create these the first time through
       p_interaction = new InteractionPanel(this, p_notebook);
       p_notebook->AddPage(p_interaction, _("Interactions"));
-      p_interaction->setInteractionModel(getNWChemMDModel().getInteractionModel());
+      p_interaction->setInteractionModel(getMDModel().getInteractionModel());
       p_interaction->initializeGUI();
 
       p_constraint = new ConstraintPanel(this, p_notebook);
       p_notebook->AddPage(p_constraint, _("Constraints"));
-      p_constraint->setConstraintModel(getNWChemMDModel().getConstraintModel());
+      p_constraint->setConstraintModel(getMDModel().getConstraintModel());
       p_constraint->initializeGUI();
       p_constraint->setFragmentSummary(&p_fragSummary);
 
       p_control = new ControlPanel(this, p_notebook);
       p_notebook->AddPage(p_control, _("Control"));
-      p_control->setControlModel(getNWChemMDModel().getControlModel());
+      p_control->setControlModel(getMDModel().getControlModel());
       p_control->initializeGUI();
 
       p_files = new FilesPanel(this, p_notebook);
       p_notebook->AddPage(p_files, _("Files"));
-      p_files->setFilesModel(getNWChemMDModel().getFilesModel());
+      p_files->setFilesModel(getMDModel().getFilesModel());
       p_files->initializeGUI();
       p_files->configEnergyCalc();
 
@@ -113,12 +113,32 @@ void MDEnergy::createPanels()
 
 void MDEnergy::initializeModel()
 {
-   vector<NWChemMDModel::GUIPanel> panels;
-   panels.push_back(NWChemMDModel::INTERACTION);
-   panels.push_back(NWChemMDModel::CONSTRAINT);
-   panels.push_back(NWChemMDModel::CONTROL);
-   panels.push_back(NWChemMDModel::FILES);
-   p_model = new NWChemMDModel(panels);
+   p_panelSet.clear();
+   p_panelSet.push_back(NWChemMDModel::INTERACTION);
+   p_panelSet.push_back(NWChemMDModel::CONSTRAINT);
+   p_panelSet.push_back(NWChemMDModel::CONTROL);
+   p_panelSet.push_back(NWChemMDModel::FILES);
+   MDEdBase::initializeModel();
+}
+
+
+void MDEnergy::bindModels()
+{
+   p_interaction->setInteractionModel(getMDModel().getInteractionModel());
+   p_constraint->setConstraintModel(getMDModel().getConstraintModel());
+   p_control->setControlModel(getMDModel().getControlModel());
+   p_files->setFilesModel(getMDModel().getFilesModel());
+}
+
+void MDEnergy::applyCodeProfile(bool gromacs)
+{
+   p_interaction->applyGromacsProfile(gromacs);
+   p_constraint->applyGromacsProfile(gromacs);
+   p_files->applyGromacsProfile(gromacs);
+   // the Control page is NWChem's parallel setup (load balancing,
+   // processor and cell layout); a GROMACS job is told its processors
+   // when it is launched
+   setPageShown(p_control, !gromacs);
 }
 
 
@@ -137,7 +157,7 @@ void MDEnergy::setContext(const string& url)
 
 string MDEnergy::getTitle() const
 {
-   return "NWChem MD Energy";
+   return codeTitle() + " MD Energy";
 }
 
 

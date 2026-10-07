@@ -53,7 +53,8 @@ def treeInstall(state, build):
         scripts = os.path.join(REPO, "packaging", sub)
         for name in os.listdir(scripts):
             path = os.path.join(scripts, name)
-            if name.startswith("ecce-") and os.access(path, os.X_OK):
+            if name.startswith("ecce-") and (os.access(path, os.X_OK)
+                                             or name.endswith("-lib.sh")):
                 link(path, os.path.join(home, "bin", name))
     nwdir = os.path.join(REPO, "packaging", "nwchem", "ecce-nwchem-datadir")
     if os.path.exists(nwdir):

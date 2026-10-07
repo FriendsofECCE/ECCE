@@ -154,6 +154,15 @@ jobs:
           ECCE_E2E_REQUIRE: mopac,nwchem,qe,gromacs
         run: tests/e2e/run_tests.py -v
 
+      # The GROMACS study's scripts (md.gmxtask, gromacs.launchpp, gensub,
+      # the monitor and parsers) on real gmx, task after task.  gromacs is
+      # installed above; ECCE_GROMACS_REQUIRE turns a missing gmx from a
+      # skip into a failure, so this cannot go green by testing nothing.
+      - name: GROMACS MD study suite
+        env:
+          ECCE_GROMACS_REQUIRE: '1'
+        run: tests/gromacs_md/run_tests.py -v
+
   apps:
     name: GUI apps (build, install, Xvfb)
     runs-on: ubuntu-latest

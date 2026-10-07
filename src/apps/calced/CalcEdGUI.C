@@ -374,7 +374,7 @@ void CalcEdGUI::CreateControls()
     // (U+25BC) in the label instead renders with the system font/theme,
     // like every other piece of text in the app, instead of a hand-drawn
     // raster asset.
-    ewxButton* itemButton47 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_BASIS_QUICK, _("Quick Basis Menu ▼"), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxButton* itemButton47 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_BASIS_QUICK, wxString::FromUTF8("Quick Basis Menu \xe2\x96\xbc"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer46->Add(itemButton47, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxCheckBox* itemCheckBox48 = new ewxCheckBox( itemFrame1, ID_CHECKBOX_CALCED_USE_EXPONENTS, _("Use Exponents\n&& Coefficients"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );

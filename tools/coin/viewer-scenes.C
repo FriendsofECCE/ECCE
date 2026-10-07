@@ -1,7 +1,7 @@
 //  Renders a SceneScript on a built-in XYZ system through the Builder's own
 //  scene code (SGContainerManager/SGContainer/SGFragment in an SGViewer), so
 //  the vendored-Inventor build and the Coin build can be compared.
-//  Usage: viewer-scenes <outdir> <script> <water|benzene|crco6>
+//  Usage: viewer-scenes <outdir> <script> <water|benzene|crco6|glycine|ethanol>
 //  Driven by tools/coin/compare.sh; calculation-backed scenes (MO, normal
 //  modes, geometry trace) run inside the Builder instead (ECCE_VIEWER_SCENE).
 #include <cmath>
@@ -43,6 +43,15 @@ string xyzFor(const string& sys)
   std::ostringstream o;
   if (sys == "water") {
     o << "3\nwater\nO 0 0 0.1173\nH 0 0.7572 -0.4692\nH 0 -0.7572 -0.4692\n";
+  } else if (sys == "glycine") {
+    o << "10\nglycine\nN -1.0852 0.9767 0\nC 0 0 0\nC 1.3861 -0.6238 0\n"
+         "O 2.3679 0.0836 0\nO 1.5219 -1.9669 0\nH -0.3438 -0.5272 -0.8899\n"
+         "H -0.3438 -0.5272 0.8899\nH -0.7923 1.8007 0.5053\n"
+         "H -0.7923 1.8007 -0.5053\nH 2.2109 -2.6496 0\n";
+  } else if (sys == "ethanol") {
+    o << "9\nethanol\nC 0 0 0\nC 1.52 0 0\nO 1.9973 1.348 0\n"
+         "H -0.3638 -1.0275 0\nH -0.3638 0.5137 -0.8898\nH -0.3638 0.5137 0.8898\n"
+         "H 1.8838 0 -1.0275\nH 1.8838 0 1.0275\nH 2.1043 1.6501 -0.9049\n";
   } else if (sys == "benzene") {
     o << "12\nbenzene\n";
     const double rc = 1.397, rh = 1.397 + 1.087;

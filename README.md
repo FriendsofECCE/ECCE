@@ -13,10 +13,11 @@ platform it is tested on; CI also builds it on Ubuntu, Fedora and Rocky
 Linux. Getting here took a modernization of the build system and every
 major dependency, not just a recompile. `main` is the 9.0 development
 line (9.0.0-alpha previews); the installation and first steps below
-describe 9.0.
+describe 9.0. Native macOS and Windows clients are in preview (see
+[Installation](#installation)).
 
 > **For production use: 8.18.x** (branch `stable-8`, latest
-> [v8.18.6](https://github.com/FriendsofECCE/ECCE/releases/tag/v8.18.6)).
+> [v8.18.8](https://github.com/FriendsofECCE/ECCE/releases/tag/v8.18.8)).
 > Installation differs in one respect: 8.x is a single `ecce` package
 > (`sudo apt install ./ecce_<version>_amd64.deb`) instead of `ecce-client`
 > plus `ecce-server`. 8.x and 9.x clients and servers do not interoperate.
@@ -33,7 +34,8 @@ that submits and follows jobs. Normally it works with an **ECCE server**
 and results. That is the default: both packages on one computer, started
 for you. For a lab or class, one central server serves many clients. The
 client can instead run **on its own**, keeping its data in a folder on
-your disk (Edit → Preferences → Data folder, off by default); it still
+your disk (Edit → Preferences → Data folder; off by default on Linux,
+the default on macOS and Windows); it still
 starts a private broker, which needs the `mosquitto` package, but no ECCE
 server. Neither server nor client runs calculations: they run on a
 **compute machine**, a workstation or an HPC cluster, where the client
@@ -129,23 +131,34 @@ ECCE installs to `/opt/ecce` and puts `ecce` and its helper commands
 (`ecce-dataserver-adduser`, `ecce-remote-setup`, `ecce-diagnose`, …) on
 your `PATH`.
 
-**Windows and macOS**: there are no native clients yet; they are the
-goal ([#133](https://github.com/FriendsofECCE/ECCE/issues/133),
-[#232](https://github.com/FriendsofECCE/ECCE/issues/232)); the state of
-the macOS build is tracked in #133. Until then, ECCE runs on Linux only.
-CI builds an experimental `ECCE.app` in a `.dmg` for Apple silicon
-(macOS 11 or later) and for Intel (macOS 10.15 or later), as workflow
-artifacts `ECCE-macos-dmg-arm64` and `ECCE-macos-dmg-x86_64`. Drag
-ECCE to Applications. The app is signed ad hoc only, so macOS refuses
-it at first. On macOS 14 and earlier, right-click the app and choose
-Open. On macOS 15 and later, open it once, then choose System Settings >
-Privacy & Security > Open Anyway. Either way, running
-`xattr -dr com.apple.quarantine /Applications/ECCE.app` also works.
+**macOS and Windows** (experimental): native clients are in preview
+([#133](https://github.com/FriendsofECCE/ECCE/issues/133)).
 
-### 2. Create your account
+* **macOS:** since 9.0.0-alpha.7 each release has an `ECCE.app` in a
+  `.dmg` for Apple silicon (macOS 11 or later) and for Intel (macOS 10.15
+  or later); CI also builds them as workflow artifacts
+  `ECCE-macos-dmg-arm64` and `ECCE-macos-dmg-x86_64`. Drag ECCE to
+  Applications. The app is signed ad hoc only, so macOS refuses it at
+  first. On macOS 14 and earlier, right-click the app and choose Open. On
+  macOS 15 and later, open it once, then choose System Settings > Privacy
+  & Security > Open Anyway. Either way, running
+  `xattr -dr com.apple.quarantine /Applications/ECCE.app` also works.
+* **Windows:** CI builds a self-contained zip (workflow artifact
+  `ECCE-windows-zip`); unpack it and run `ecce.cmd`. An installer is
+  planned. Windows shows a SmartScreen warning at first, because the
+  client is not signed: choose More info > Run anyway.
 
-ECCE keeps calculations in a data server, which runs as your own user
-on a workstation. Create a login on it once:
+### 2. Choose where your data lives
+
+**In a folder on your computer** — the default on macOS and Windows,
+optional on Linux. There is nothing to set up: no account and no login.
+On Linux, choose Edit → Preferences → Data folder (default
+`~/.ECCE-local`; it takes effect at the next start), or start ECCE with
+`ECCE_LOCAL_DATA=<folder>` set. See
+[Deployment modes](GETTING_STARTED.md#deployment-modes).
+
+**In a data server on this computer** — the default on Linux. The data
+server runs as your own user. Create a login on it once:
 
 ```
 ecce-dataserver-start
@@ -153,10 +166,9 @@ ecce-dataserver-adduser        # prompts for name, username and password
 ```
 
 Use your Linux username — that's what the login dialog defaults to.
-(Instead of a data server, a single-user install can keep its projects in
-a folder: Edit → Preferences → Data folder, see
-[Deployment modes](GETTING_STARTED.md#deployment-modes). Server mode is
-the default.)
+
+**On a central server** for a group or a class: the server's
+administrator creates your account; see [Deployment modes](#deployment-modes).
 
 ### 3. Start ECCE
 
@@ -164,10 +176,11 @@ the default.)
 ecce
 ```
 
-Log in, and the **Organizer** opens: your calculations on the left, the
+On macOS open ECCE from Applications; on Windows run `ecce.cmd`.
+With a data server, log in; the **Organizer** then opens: your calculations on the left, the
 selected one in the middle, and the Builder, editors, Launcher and
-viewer opened from it. The data server and message broker start by
-themselves. Closing the Organizer ends the session.
+viewer opened from it. The data server (if used) and the message broker
+start by themselves. Closing the Organizer ends the session.
 
 `ecce --help` lists the options; they are described in
 [GETTING_STARTED.md](GETTING_STARTED.md#ecce-command-line-options).
@@ -226,8 +239,9 @@ shared is up to the site; the three modes are set up step by step in
 
 1. **Everything local** (the default). Each user's session starts their
    own data server and broker; the broker listens on a Unix socket, not
-   on a network port. Nothing to configure. Optionally the data server is
-   replaced by a folder (Edit → Preferences → Data folder).
+   on a network port. Nothing to configure. The data server can be
+   replaced by a folder (Edit → Preferences → Data folder), which is the
+   default on macOS and Windows.
 2. **A central server** for a group or a class. One account on the
    server holds everyone's calculations and the shared libraries; users
    elsewhere connect to it. On the server, as that account:
@@ -248,10 +262,12 @@ shared is up to the site; the three modes are set up step by step in
 **Before putting a server on a network**: a central or shared broker
 takes the data server login as its account and lets a user touch only
 that user's own topics, but the broker's and the data server's passwords
-(HTTP Basic over plain HTTP) cross the network unencrypted. That
-keeps users' data apart on a trusted network, and is not fine across an
-untrusted one — keep the ports on loopback and use ssh tunnels, or
-firewall them (#138).
+(HTTP Basic) cross the network unencrypted unless TLS is set up. Since
+9.0.0-alpha.7, `ecce-remote-setup --tls` on the server and the clients
+encrypts both: the data server on port 8443 (HTTPS) and the broker on
+port 8883 (MQTT over TLS), with the plain ports on loopback only
+([#236](https://github.com/FriendsofECCE/ECCE/issues/236)). Without TLS,
+keep the ports on loopback and use ssh tunnels, or firewall them (#138).
 
 ## Reporting a problem
 
@@ -283,7 +299,12 @@ see [Upgrading from 8.x](GETTING_STARTED.md#upgrading-from-8x).
   `~/.ECCE`. A central server's broker listens on TCP port 8088, accepts
   only the data server's accounts, and lets each user read and send only
   their own messages ([#194](https://github.com/FriendsofECCE/ECCE/issues/194)).
-  The connection is not encrypted.
+* **TLS for a central server**: HTTPS for the data server and MQTT over
+  TLS for the broker, set up with `ecce-remote-setup --tls`
+  ([#236](https://github.com/FriendsofECCE/ECCE/issues/236)).
+* **Native macOS and Windows clients**, as previews: a `.dmg` for Apple
+  silicon and Intel Macs, and a Windows build from CI
+  ([#133](https://github.com/FriendsofECCE/ECCE/issues/133)).
 * **The 3D viewer is built on Coin3D** from the distribution by default
   ([#166](https://github.com/FriendsofECCE/ECCE/issues/166)): orbital
   surfaces are drawn with accurate transparency (a quick mode is in
@@ -400,19 +421,17 @@ previews are fixed.
 2. **A modernised look** ([#210](https://github.com/FriendsofECCE/ECCE/issues/210)):
    theme colours and controls are in the 9.0 previews; current icons and
    consistent plots remain, followed by the viewer's own look.
-3. **Groundwork for native clients** ([#186](https://github.com/FriendsofECCE/ECCE/issues/186),
-   [#232](https://github.com/FriendsofECCE/ECCE/issues/232)): the job
-   store without the X Toolkit and X11 only on Linux are done. A session
-   identifier in place of `$DISPLAY` and bundled Perl and Python remain.
-4. **Native macOS and Windows clients**, macOS first ([#133](https://github.com/FriendsofECCE/ECCE/issues/133),
-   where the state of the macOS build is tracked).
+3. **Native macOS and Windows clients** ([#133](https://github.com/FriendsofECCE/ECCE/issues/133)):
+   both build and run as previews; a Windows installer and fixes from
+   testing on real machines remain.
 
 **Also planned, not yet placed in the order:**
 
 * **Deeper coverage of the codes already supported** — ORCA, Gaussian 16
   and MOPAC each still have options reachable in the code but not from
   the interface.
-* **Finishing Quantum ESPRESSO** and **registering GROMACS** ([#106](https://github.com/FriendsofECCE/ECCE/issues/106)).
+* **Finishing Quantum ESPRESSO** and **registering GROMACS** ([#106](https://github.com/FriendsofECCE/ECCE/issues/106)); GROMACS MD studies are in as experimental.
+* **Supporting CP2K** ([#130](https://github.com/FriendsofECCE/ECCE/issues/130)).
 * **MO correlation diagrams for coordination complexes** ([#162](https://github.com/FriendsofECCE/ECCE/issues/162)); the
   diagrams are released as experimental.
 
@@ -433,7 +452,7 @@ sudo apt-get install -y \
   libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
   libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
   libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git dpkg-dev file libssh-dev \
-  python3 libcoin-dev libegl-dev
+  libssl-dev python3 libcoin-dev libegl-dev
 
 git clone https://github.com/FriendsofECCE/ECCE.git
 cd ECCE                # main is 9.0 development; for 8.x: git checkout stable-8
@@ -447,7 +466,7 @@ That leaves `ecce-client_<version>_amd64.deb` and
 `ecce-server_<version>_amd64.deb` in `build-cmake/`; install both for a
 standalone machine (`-DECCE_SPLIT_PACKAGES=OFF` builds the single
 `ecce` package instead). The build needs CMake 3.16, wxWidgets 3.2,
-libssh and Coin3D at least (this is a wx3.2-only port;
+libssh, OpenSSL and Coin3D at least (this is a wx3.2-only port;
 `-DECCE_USE_COIN=OFF` builds the vendored Inventor core instead, in a
 separate build directory). For RPMs, install `rpm`
 and re-run `cmake .`; `cpack -G RPM` then builds them. Installing

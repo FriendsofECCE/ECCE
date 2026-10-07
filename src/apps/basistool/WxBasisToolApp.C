@@ -48,7 +48,7 @@ bool WxBasisToolApp::OnInit()
 
     ewxApp::OnInit();
 
-    if (argc>2 && strcmp(argv[1],"-pipe")==0) {
+    if (argc>2 && strcmp(argv[1].ToStdString().c_str(),"-pipe")==0) {
       AuthCache::getCache().pipeIn(argv[2].ToStdString());
     }
 
@@ -60,7 +60,7 @@ bool WxBasisToolApp::OnInit()
     p_basisToolFrame->openLibraryAccess(central.getDefaultBasisSetLibrary());
     p_basisToolFrame->loadSettings("BasisTool");
 
-    if ((argc == 3) && (strcmp(argv[1], "-context") == 0))
+    if ((argc == 3) && (strcmp(argv[1].ToStdString().c_str(), "-context") == 0))
     {
         //  Allows for 'stand-alone' invocation for debug purposes; with calculation
         //      context relative to the user's home directory supplied as an option.

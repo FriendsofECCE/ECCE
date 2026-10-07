@@ -190,13 +190,19 @@ def run_script(entry, args, block_text, workdir):
         return _PARSER_CACHE[key]
     script = os.path.join(SCRIPTS, entry.script)
     argv = [script] + list(args)
+    if os.name == 'nt' or not os.access(script, os.X_OK):
+        argv = ['perl'] + argv
     env = dict(os.environ)
     env['ECCE_HOME'] = REPO
     env['PATH'] = SCRIPTS + os.pathsep + env.get('PATH', '')
     env.pop('PERL5LIB', None)
-    proc = subprocess.run(argv, input=block_text, capture_output=True,
-                          text=True, timeout=120, cwd=workdir, env=env)
-    out = (proc.stdout, proc.stderr, proc.returncode)
+    # Bytes in and out: text=True would write CRLF to the script on Windows.
+    proc = subprocess.run(argv, input=block_text.encode('utf-8'),
+                          capture_output=True, timeout=120, cwd=workdir,
+                          env=env)
+    out = (proc.stdout.decode('utf-8', 'replace').replace('\r\n', '\n'),
+           proc.stderr.decode('utf-8', 'replace').replace('\r\n', '\n'),
+           proc.returncode)
     _PARSER_CACHE[key] = out
     return out
 

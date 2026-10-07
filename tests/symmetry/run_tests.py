@@ -324,6 +324,76 @@ def checkLinearGeneratorGroups(verbose):
     return 1 if failures else 0
 
 
+def checkUseSymmetryRule(verbose):
+    """"Use symmetry" ticked lets the code use symmetry; unticked forbids it.
+
+    Runs the real generators over a water .param as CalcEd writes it.
+    Ticked: no NoSymm/noautosym, and Gaussian names the group (PG=..,Loose)
+    only when it is not C1.  Unticked: NoSymm (Gaussian), noautosym
+    (NWChem), no UseSym (ORCA).  The editor must always write the key; what
+    the generators do without it is not this rule.
+    """
+    import shutil
+    parsers = os.path.join(ROOT, "scripts", "parsers")
+    gauss = "useRouteCard sto-3g false\n"
+    nwbasis = ('basis "ao basis" cartesian print\n  H library "sto-3g"\n'
+               '  O library "sto-3g"\nEND\n')
+    gens = {"ai.gauss16": ("g16.tpl", gauss), "ai.gauss09": ("g09.tpl", gauss),
+            "ai.nwchem": ("nwch.tpl", nwbasis), "ai.orca": ("orca.tpl", "")}
+
+    def expect(gen, use, group):
+        if gen.startswith("ai.gauss"):
+            if use == "0":
+                return lambda t: "NoSymm" in t and "PG=" not in t
+            if group == "C1":
+                return lambda t: "NoSymm" not in t and "PG=" not in t
+            return lambda t: "NoSymm" not in t and "PG=C2V,Loose" in t
+        if gen == "ai.nwchem":
+            want = " noautosym " if use == "0" else " autosym "
+            return lambda t: re.search(r"^geometry.*%s" % want, t, re.M)
+        return lambda t: ("UseSym" in t) == (use == "1")
+
+    failures = 0
+    for gen, (tpl, basis) in sorted(gens.items()):
+        for use, group in (("1", "C1"), ("1", "C2v"), ("0", "C1"),
+                           ("0", "C2v")):
+            work = tempfile.mkdtemp(prefix="usesym-")
+            try:
+                with open(os.path.join(work, "w.param"), "w") as f:
+                    f.write("Category: SCF\nTheory: RHF\nRunType: Energy\n"
+                            "Charge: 0\nSymmetry: %s\nNumElectrons: 10\n"
+                            "ChemSys.Multiplicity: 1\n"
+                            "ES.Theory.UseSymmetry: %s\n" % (group, use))
+                with open(os.path.join(work, "w.frag"), "w") as f:
+                    f.write("title: w\ntype: molecule\nnum_atoms: 3\n"
+                            "atom_info: symbol cart\natom_list:\n"
+                            "O 0 0 0.117\nH 0 0.757 -0.469\n"
+                            "H 0 -0.757 -0.469\n")
+                with open(os.path.join(work, "w.basis"), "w") as f:
+                    f.write(basis)
+                deck = os.path.join(work, "deck")
+                shutil.copy(os.path.join(parsers, tpl), deck)
+                env = dict(os.environ, ECCE_HOME=ROOT)
+                subprocess.run(["perl", os.path.join(parsers, gen), "-n", "w",
+                                "-p", "-f", "-b", "-t", deck], cwd=work,
+                               env=env, capture_output=True, text=True,
+                               timeout=60)
+                text = open(deck).read()
+            finally:
+                shutil.rmtree(work, ignore_errors=True)
+            line = [l for l in text.splitlines()
+                    if re.match(r"\s*(#|geometry|!)", l)]
+            ok = bool(expect(gen, use, group)(text))
+            if not ok or verbose:
+                print("  %s %-10s use=%s %-4s -> %s"
+                      % ("ok  " if ok else "FAIL", gen, use, group,
+                         " / ".join(l.strip() for l in line)))
+            failures += 0 if ok else 1
+    print("  Use symmetry in generated decks: %s"
+          % ("FAIL" if failures else "PASS"))
+    return 1 if failures else 0
+
+
 def checkLoader(tablePath, verbose):
     """Does the C++ loader read the same file faithfully?
 
@@ -1371,6 +1441,10 @@ def main():
     if standalone("testLinearPointGroup", []) != 0 or \
             checkLinearGeneratorGroups(args.verbose) != 0:
         print("FAILED  linear point groups")
+        return 1
+
+    if checkUseSymmetryRule(args.verbose) != 0:
+        print("FAILED  the Use symmetry rule in generated decks")
         return 1
 
     print("PASSED")

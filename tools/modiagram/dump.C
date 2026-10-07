@@ -49,6 +49,18 @@ static void printColumn(const char* side, const MoColumn& col)
       printf("\t%.10g", l.energies[k]);
     }
     printf("\n");
+    //  The per-shell composition the placement rules read (#140).
+    if (!l.shellLeft.empty() || !l.shellRight.empty()) {
+      printf("shares\t%s\t%zu\tleft", side, i);
+      for (size_t k = 0; k < l.shellLeft.size(); k++) {
+        printf(",%.4f", l.shellLeft[k]);
+      }
+      printf("\tright");
+      for (size_t k = 0; k < l.shellRight.size(); k++) {
+        printf(",%.4f", l.shellRight[k]);
+      }
+      printf("\n");
+    }
   }
 }
 
