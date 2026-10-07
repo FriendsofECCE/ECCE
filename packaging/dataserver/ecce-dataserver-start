@@ -374,6 +374,10 @@ sed "${tls_sed[@]}" \
     -e "s|##SERVER##|localhost|g" \
     -e "s|##MODULES##|$MODULES_DIR|g" \
     "$CONF_TEMPLATE" > "$STATEDIR/httpd.conf"
+# Newer httpd (Fedora 44, 2.4.69) has no mod_dav_lock.so any more.
+if [ ! -f "$MODULES_DIR/mod_dav_lock.so" ]; then
+  sed -i '/^LoadModule dav_lock_module /d' "$STATEDIR/httpd.conf"
+fi
 
 if [ "$TLS" = 1 ]; then
   echo "ecce-dataserver-start: TLS on: HTTPS on port $TLS_PORT for non-loopback addresses, plain HTTP on port $PORT for loopback only"
