@@ -186,6 +186,8 @@ def dialogsPhase(display, report, seen, results):
             finally:
                 apps._terminate(proc)
                 sock.close()
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
 
 
 def annotate():

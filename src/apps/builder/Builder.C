@@ -1071,7 +1071,11 @@ void Builder::createToolPanels()
   p_togglePanel = new wxPanel(this, wxID_ANY);
   p_toggleButton = new wxBitmapButton(p_togglePanel, wxID_ANY,
       wxArtProvider::GetBitmap(wxART_GO_FORWARD, wxART_BUTTON),
-      wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+      wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT | wxBORDER_NONE);
+  //  The arrow is its own bitmap plus a margin: the theme's button padding
+  //  made the strip beside the viewer wider than a sash.
+  const wxSize arrow = p_toggleButton->GetBitmap().GetSize();
+  p_toggleButton->SetMinSize(wxSize(arrow.x + 4, arrow.y + 8));
   p_toggleButton->SetToolTip(_("Hide the side panels"));
   p_toggleButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
     CallAfter([this]() { setColumnCollapsed(!p_columnHidden); });
@@ -1081,7 +1085,7 @@ void Builder::createToolPanels()
   toggleCol->Add(p_toggleButton, 0, wxALIGN_CENTER_HORIZONTAL);
   toggleCol->AddStretchSpacer(1);
   p_togglePanel->SetSizer(toggleCol);
-  const wxSize toggleSize(p_toggleButton->GetBestSize().x + 2, 40);
+  const wxSize toggleSize(arrow.x + 4, 40);
   p_togglePanel->SetMinSize(toggleSize);
   wxAuiPaneInfo toggleInfo;
   toggleInfo.Name(NAME_COLUMN_TOGGLE).CaptionVisible(false).Right().Layer(0)
