@@ -104,7 +104,7 @@ jobs:
           dpkg-deb -x build-cmake/ecce-client*.deb "$d"
           q=$(find "$d" -path '*/bin/ecce-qm')
           test -n "$q"
-          file "$q"
+          file "$q" || true
           python3 tests/qm/package_check.py "$q" "$(dirname "$q")/../data/admin/basissets" --max-mb 40
 
       - uses: actions/upload-artifact@v4
@@ -177,7 +177,7 @@ jobs:
           dpkg-deb -x build-cmake/ecce-client*.deb "$d"
           q=$(find "$d" -path '*/bin/ecce-qm')
           test -n "$q"
-          file "$q"
+          file "$q" || true
           python3 tests/qm/package_check.py "$q" "$(dirname "$q")/../data/admin/basissets" --max-mb 40
 
       - uses: actions/upload-artifact@v4
@@ -237,11 +237,12 @@ jobs:
 
       - name: ecce-qm in the package
         run: |
+          w=$PWD
           d=$(mktemp -d)
-          for f in ${{ github.workspace }}/build-cmake/ecce-client*.rpm; do (cd "$d" && rpm2cpio "$OLDPWD/$f" | cpio -idm 2>/dev/null); done
+          for f in "$w"/build-cmake/ecce-client*.rpm; do (cd "$d" && rpm2cpio "$f" | cpio -idm 2>/dev/null); done
           q=$(find "$d" -path '*/bin/ecce-qm')
           test -n "$q"
-          file "$q"
+          ls -l "$q"
           python3 tests/qm/package_check.py "$q" "$(dirname "$q")/../data/admin/basissets" --max-mb 40
 
       - uses: actions/upload-artifact@v4
@@ -290,11 +291,12 @@ jobs:
 
       - name: ecce-qm in the package
         run: |
+          w=$PWD
           d=$(mktemp -d)
-          for f in ${{ github.workspace }}/build-cmake/ecce-client*.rpm; do (cd "$d" && rpm2cpio "$OLDPWD/$f" | cpio -idm 2>/dev/null); done
+          for f in "$w"/build-cmake/ecce-client*.rpm; do (cd "$d" && rpm2cpio "$f" | cpio -idm 2>/dev/null); done
           q=$(find "$d" -path '*/bin/ecce-qm')
           test -n "$q"
-          file "$q"
+          ls -l "$q"
           python3 tests/qm/package_check.py "$q" "$(dirname "$q")/../data/admin/basissets" --max-mb 40
 
       - uses: actions/upload-artifact@v4
@@ -432,9 +434,9 @@ jobs:
         run: |
           mnt=$(mktemp -d)
           hdiutil attach dist/ECCE-*.dmg -mountpoint "$mnt" -nobrowse -quiet
-          q="$mnt/ECCE.app/Contents/Resources/bin/ecce-qm"
+          q="$mnt/ECCE.app/Contents/Resources/ecce/bin/ecce-qm"
           test -x "$q"
-          python3 tests/qm/package_check.py "$q" "$mnt/ECCE.app/Contents/Resources/data/admin/basissets" --max-mb 40 | tee -a "$GITHUB_STEP_SUMMARY" || rc=$?
+          python3 tests/qm/package_check.py "$q" "$mnt/ECCE.app/Contents/Resources/ecce/data/admin/basissets" --max-mb 40 | tee -a "$GITHUB_STEP_SUMMARY" || rc=$?
           hdiutil detach "$mnt" -quiet
           exit ${rc:-0}
 
