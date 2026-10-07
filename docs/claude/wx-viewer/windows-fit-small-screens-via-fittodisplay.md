@@ -2,7 +2,7 @@
 type: rule
 title: "Every ewxFrame/ewxDialog is capped to its display by `fitToScreen()`; codereg dialogs scroll in `EccePanel` (#189)"
 area: wx-viewer
-paths: ["src/wxgui/ewxClasses/ewxWindowUtils.C", "scripts/codereg/templates.py", "tests/apps/smallscreen_test.py"]
+paths: ["src/wxgui/ewxClasses/ewxWindowUtils.C", "src/inv/wxinv/SoWxRenderArea.C", "scripts/codereg/templates.py", "tests/apps/smallscreen_test.py"]
 issues: [187, 189]
 ---
 **`ewxFrame::Show()` and `ewxDialog::Show()/ShowModal()` call
@@ -21,6 +21,13 @@ up to three items under it), or the sizer passed to `fitToScreen(row)`.
 - A window can leave the display after it is shown (size restored, content
   loaded), so a `wxEVT_SIZE` handler re-runs the fit, at most three times
   per episode so a window that cannot obey is not chased.
+- A window holding a `wxGLCanvas`, or managed by a `wxAuiManager` (the
+  Builder), is never wrapped, only capped. A scroller lays its content out
+  at its virtual size, and the Builder's AUI sizer reports a minimum
+  17 000 104 px tall; on macOS arm64 the GL canvas inside it aborted the
+  first paint in `CGLSetSurface` (SkyLight `CGRectContainsRect` assertion).
+  GTK clips the child window, so Linux never shows it. `SoWxRenderArea`
+  also refuses to grow past its display's client area.
 - An app that grows the window itself (`CalcEd::update*Fields()`) calls
   `fitToScreen()` after `SetSizeHints(this)`; the hint alone sets a
   minimum above the display.
