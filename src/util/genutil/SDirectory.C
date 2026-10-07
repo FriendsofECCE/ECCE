@@ -10,7 +10,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <sys/stat.h>		// mkdir
+#include "util/PosixCompat.H"	// mkdir
 #include <errno.h>
 #include <unistd.h>		// rmdir
 #include <dirent.h>		// access to directory files

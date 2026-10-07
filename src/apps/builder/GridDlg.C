@@ -168,11 +168,11 @@ void GridDlg::setResolution(int x, int y, int z, bool uniform)
 void GridDlg::getResolution(int& x, int&y, int& z, bool& uniform) const
 {
    ewxTextCtrl *txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_GRID_XRES);
-   x = atoi(txt->GetValue());
+   x = atoi(txt->GetValue().ToStdString().c_str());
    txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_GRID_YRES);
-   y = atoi(txt->GetValue());
+   y = atoi(txt->GetValue().ToStdString().c_str());
    txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_GRID_ZRES);
-   z = atoi(txt->GetValue());
+   z = atoi(txt->GetValue().ToStdString().c_str());
 
    ewxCheckBox *box = (ewxCheckBox*)FindWindow(ID_CHECKBOX_GRID_UNIFORM);
    uniform = box->IsChecked();
@@ -208,18 +208,18 @@ void GridDlg::getExtent(float& fromx, float& tox,
 {
    ewxTextCtrl *txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_GRID_XRES);
    txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRLGRID_FROMX);
-   fromx = atof(txt->GetValue());
+   fromx = atof(txt->GetValue().ToStdString().c_str());
    txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_GRID_FROMY);
-   fromy = atof(txt->GetValue());
+   fromy = atof(txt->GetValue().ToStdString().c_str());
    txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_GRID_FROMZ);
-   fromz = atof(txt->GetValue());
+   fromz = atof(txt->GetValue().ToStdString().c_str());
 
    txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_GRID_TOX);
-   tox = atof(txt->GetValue());
+   tox = atof(txt->GetValue().ToStdString().c_str());
    txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_GRID_TOY);
-   toy = atof(txt->GetValue());
+   toy = atof(txt->GetValue().ToStdString().c_str());
    txt = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_GRID_TOZ);
-   toz = atof(txt->GetValue());
+   toz = atof(txt->GetValue().ToStdString().c_str());
 }
 
 

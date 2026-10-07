@@ -11,6 +11,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 // system includes
+#include <cstdint>
 #include <float.h>
 #include <math.h>           // angle calculations
 #include <stdio.h>
@@ -303,7 +304,7 @@ TAtm::BehaviorType TAtm::stringToBehaviorType(const string& type)
 
 unsigned long TAtm::hFun(const TAtm& a)
 {
-   return (unsigned long)&a;
+   return (unsigned long)(uintptr_t)&a;
 }
 
 /**

@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <fstream>
   using std::flush;
   using std::ofstream;
@@ -330,7 +331,7 @@ void CalcEd::createCodeButtons()
 void CalcEd::OnButtonCalcedCodeClick(wxCommandEvent &event)
 {
   wxCustomButton *eventButton = (wxCustomButton*)event.GetEventObject();
-  unsigned long icode = (unsigned long)eventButton->GetClientData();
+  unsigned long icode = (uintptr_t)eventButton->GetClientData();
 
   wxSizerItemList children = p_codeSizer->GetChildren();
   wxSizerItemList::compatibility_iterator node = children.GetFirst();
@@ -372,7 +373,7 @@ void CalcEd::setCurrentCodeButton(const string& currentCode)
     while (node) {
       child = node->GetData();
       codeButton = (wxCustomButton*)child->GetWindow();
-      if ((unsigned long)codeButton->GetClientData() == icode) {
+      if ((uintptr_t)codeButton->GetClientData() == icode) {
         codeButton->SetValue(true);
       } else {
         codeButton->SetValue(false);
@@ -3170,7 +3171,7 @@ void CalcEd::showPartialEditor()
 
 void CalcEd::makeRuntypeNoSphericalConsistent()
 {
-  if (getRuntypeNoSpherical()
+  if (getRuntypeNoSpherical() && !GBSRules::sphericalOnly(p_code)
           && p_basis && p_basis->coordsys() == TGaussianBasisSet::Spherical) {
     p_basis->coordsys(TGaussianBasisSet::Cartesian);
   }
@@ -3392,6 +3393,9 @@ void CalcEd::doSave()
 
     // save basis
     bool saveBasis = false;
+    //  A basis chosen before the code was, or by an older client, can
+    //  carry Cartesian for a code that has no Cartesian functions.
+    GBSRules::enforceCodeCoordSys(p_basis, p_code);
     TGBSConfig *currentBasis = p_iCalc->gbsConfig();
     if ((p_basis && (!currentBasis || !currentBasis->isEqual(p_basis)))
             || !p_basis) {

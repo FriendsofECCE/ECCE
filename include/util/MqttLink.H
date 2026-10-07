@@ -62,6 +62,8 @@ struct MqttConfig {
   std::string capath;      // the system's CA directory (no pin)
   bool pinned = false;     // pinned=1: the exact certificate is the anchor
   std::string user;        // topic user
+  std::string password;    // with host: this session's own login (Windows
+                           // local broker), not the data server's
   std::string sessionKey;  // Ecce::sessionKey(): <host>_<session id>
 
   // Parses key=value lines; unknown keys are ignored.

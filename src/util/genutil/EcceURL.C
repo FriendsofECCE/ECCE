@@ -398,6 +398,12 @@ void EcceURL::parse(const char *xurl)
 
     // Pick off the protocol or "scheme" as defined in the URL recommendataion
     loc = strchr(url,':');
+#ifdef _WIN32
+    // "C:/dir" is a drive letter, not a scheme.
+    if (loc == url + 1 && isalpha((unsigned char)url[0]) &&
+        (loc[1] == '/' || loc[1] == '\\'))
+      loc = 0;
+#endif
     if (loc != 0) {
       for (char *it=(char*)url; it<loc; it++) {
         p_protocol.append(1,*it);
@@ -411,13 +417,22 @@ void EcceURL::parse(const char *xurl)
     if (!p_protocol.empty() && 
         *loc == '/' && (*(loc+1) != '\0' && *(loc+1) == '/')) {
       loc+=2;
+#ifdef _WIN32
+      // file://C:/dir -- the "C:" is a drive, not host:port.
+      bool drivePath = isalpha((unsigned char)loc[0]) && loc[1] == ':' &&
+                       (loc[2] == '/' || loc[2] == '\\');
+#else
+      const bool drivePath = false;
+#endif
       char *endhost = strchr(loc,'/');
       if (endhost == 0) {
         endhost = (char*)&loc[strlen(loc)-1];
       }
 
       char *portloc = strchr(loc,':');
-      if (portloc != 0) {
+      if (drivePath) {
+        // no host: the whole remainder is the path
+      } else if (portloc != 0) {
         // We have a port.  First get the internet domain name
         for (char *it=loc; it<portloc; it++) {
           p_host.append(1,*it);

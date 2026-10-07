@@ -30,7 +30,7 @@ bool MetaEdApp::OnInit()
 {
   ewxApp::OnInit();
 
-  if (argc>2 && strcmp(argv[1],"-pipe")==0) {
+  if (argc>2 && strcmp(argv[1].ToStdString().c_str(),"-pipe")==0) {
     AuthCache::getCache().pipeIn(argv[2].ToStdString());
   }
 
@@ -38,7 +38,7 @@ bool MetaEdApp::OnInit()
 
   string context("");
 
-  if ((this->argc > 1) && (strcmp(this->argv[1], "-context") == 0))
+  if ((this->argc > 1) && (strcmp(this->argv[1].ToStdString().c_str(), "-context") == 0))
       context = this->argv[2];
 
   if (!context.empty())
