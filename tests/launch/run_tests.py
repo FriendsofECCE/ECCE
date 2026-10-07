@@ -222,6 +222,7 @@ class Suite(object):
         self.home = home
         self.failures = []
         self.seen = {}
+        self.loginCounts = []
 
     def env(self, extra=None):
         env = dict(os.environ)
@@ -287,8 +288,8 @@ class Suite(object):
         The script goes on stdin, since the login shell may be csh.
         """
         result = subprocess.run(
-            ["ssh", "-o", "BatchMode=yes", "%s@%s" % (self.args.remote_user,
-                                                      self.args.machine),
+            ["ssh", "-o", "BatchMode=yes", "%s@%s" % (
+                self.args.remote_user, self.args.helper_host or self.args.machine),
              "/bin/sh -s"], input=command.encode(), stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, timeout=60)
         return result.returncode, result.stdout.decode("utf-8", "replace")
@@ -413,6 +414,7 @@ class Suite(object):
         extra.update(env or {})
         if self.args.job_comms:
             extra["ECCE_JOB_COMMS"] = self.args.job_comms
+        loginsBefore = self.sshdLogins()
         rc, out = self.driver("launch", url, extra=extra)
         launched = time.time()
         launchOut = out
@@ -549,6 +551,8 @@ class Suite(object):
                        "(%d)" % (kills, len(killed)))
             self.check("restart count reset" in self.masterLog(name),
                        "eccejobmaster reset the restart count")
+        if self.args.sshd_log:
+            self.checkLogins(name, loginsBefore, launchOut)
         if state == "completed" and (drop or kills):
             #  Nothing may be left once the job is done: neither the
             #  dropped monitor nor a replaced one.
@@ -591,6 +595,54 @@ class Suite(object):
             if self.args.expect_keepalive:
                 self.check("ssh keepalive: nothing heard" in self.storeLogs(),
                            "the ssh keepalive declared the stream dead")
+
+    def sshdLogins(self):
+        """Password logins of --remote-user in the sshd's log (--sshd-log).
+
+        Only ECCE logs in by password; sshRun uses a key.
+        """
+        if not self.args.sshd_log:
+            return 0
+        pat = re.compile(r"Accepted (password|keyboard-interactive/pam) for "
+                         + re.escape(self.args.remote_user) + " ")
+        try:
+            with open(self.args.sshd_log, errors="replace") as handle:
+                return sum(1 for line in handle if pat.search(line))
+        except OSError:
+            return 0
+
+    def checkLogins(self, name, before, launchOut):
+        """#204: eccejobstore logs in once per run of it, for the monitor
+        stream and the copy of the output files alike."""
+        #  Until the job's eccejobmaster and eccejobstore are gone, so that
+        #  the copy at the end is counted.
+        needle = os.fsencode(name + "__")
+        for _ in range(60):
+            busy = False
+            for entry in os.listdir("/proc"):
+                if not entry.isdigit():
+                    continue
+                try:
+                    with open("/proc/%s/cmdline" % entry, "rb") as handle:
+                        cmd = handle.read()
+                except OSError:
+                    continue
+                if needle in cmd and b"eccejob" in cmd:
+                    busy = True
+                    break
+            if not busy:
+                break
+            time.sleep(1)
+        total = self.sshdLogins() - before
+        launch = sum(1 for l in launchOut.splitlines() if l.startswith("ssh login:"))
+        runs = self.masterLog(name).count("eccejobstore invoked with")
+        store = total - launch
+        say("  sshd logins: %d (Launch %d, eccejobstore %d over %d run(s) of it)"
+            % (total, launch, store, runs))
+        self.loginCounts.append((name, launch, store, runs))
+        self.check(launch == 1, "Launch logged in once (%d)" % launch)
+        self.check(runs >= 1 and store == runs, "eccejobstore logged in once per "
+                   "run (%d logins, %d runs)" % (store, runs))
 
     def checkLocalStore(self, url, launchOut):
         """#216: the results are files in the calculation's own folder."""
@@ -900,6 +952,18 @@ def main():
     parser.add_argument("--folder", action="store_true",
                         help="create the calculation in a plain local folder, "
                         "as Builder > Save As to the Local Filesystem does")
+    parser.add_argument("--helper-host", metavar="HOST",
+                        help="host alias the test's own ssh commands use "
+                        "(default --machine), e.g. one that logs in by key "
+                        "while ECCE has to log in by password")
+    parser.add_argument("--password", metavar="PW",
+                        help="answer ECCE's password dialog with PW (a stub "
+                        "passdialog that logs each question to ask.log)")
+    parser.add_argument("--sshd-log", metavar="FILE",
+                        help="#204: the sshd's log; count ECCE's password "
+                        "logins per job from it")
+    parser.add_argument("--jobs", type=int, default=1, metavar="N",
+                        help="run N jobs one after another (default 1)")
     parser.add_argument("--keep", action="store_true",
                         help="leave the services running afterwards")
     parser.add_argument("-v", "--verbose", action="store_true")
@@ -958,8 +1022,18 @@ def main():
                 == os.path.join(REPO, "scripts", "gensub"),
                 "gensub on PATH -> %s" % found)
 
+    if args.password:
+        if os.path.exists(os.path.join(state, "ask.log")):
+            os.unlink(os.path.join(state, "ask.log"))
+        stub = os.path.join(home, "bin", "passdialog")
+        with open(stub, "w") as handle:
+            handle.write("#!/bin/sh\necho \"passdialog $*\" >> %s\necho %s\n"
+                         % (os.path.join(state, "ask.log"), args.password))
+        os.chmod(stub, 0o755)
+
     label = "ssh" if args.machine != "localhost" else "local"
-    modes = [(label, False)]
+    modes = [(label, False)] if args.jobs <= 1 else [
+        ("%s-%d" % (label, i + 1), False) for i in range(args.jobs)]
     if args.drop and args.machine != "localhost":
         modes.append((label + "-drop", True))
     try:
@@ -998,6 +1072,16 @@ def main():
             if left:
                 suite.failures.append("processes left running: %r" % left)
 
+    if suite.loginCounts:
+        asks = 0
+        try:
+            with open(os.path.join(state, "ask.log")) as handle:
+                asks = sum(1 for _ in handle)
+        except OSError:
+            pass
+        say("logins: %s; password dialog asked %d time(s)" % (", ".join(
+            "%s: Launch %d + eccejobstore %d/%d run(s)" % c
+            for c in suite.loginCounts), asks))
     say("")
     if suite.failures:
         say("FAILED (%d): %s" % (len(suite.failures), "; ".join(suite.failures)))
