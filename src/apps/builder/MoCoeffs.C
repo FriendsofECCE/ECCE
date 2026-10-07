@@ -143,6 +143,9 @@ void MoCoeffs::initialize()
 
    p_grid->InsertCols(3,1);
    p_grid->SetColLabelValue(3,"Coef");
+
+   p_grid->InsertCols(4,1);
+   p_grid->SetColLabelValue(4,"%");
 }
 
 
@@ -152,7 +155,8 @@ void MoCoeffs::initialize()
  * Fill the table and initialize the UI.
  * This code copied from motool_cdlg but the graph code is currently excluded.
  */
-void MoCoeffs::showCoeffs(ICalculation *expt, int moNum)
+void MoCoeffs::showCoeffs(ICalculation *expt, int moNum,
+                          const std::vector<double> *percent)
 {
    SetTitle( wxString::Format (_T("ECCE MO Coefficients: %d"), moNum));
 
@@ -406,6 +410,13 @@ void MoCoeffs::showCoeffs(ICalculation *expt, int moNum)
       }  // end for gbscurs
    } // end for idxAtom
 
+
+   //  Mulliken share of the orbital on each function, from MoAoBasis.
+   if (percent != 0 && (int)percent->size() == rows) {
+      for (int r = 0; r < rows; r++)
+         p_grid->SetCellValue(r, 4,
+               wxString::Format("%.2f", 100.0*(*percent)[r]));
+   }
 
    p_grid->EndBatch();
 

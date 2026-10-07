@@ -43,7 +43,8 @@ DATA = os.path.join(HERE, "data")
 WATER = os.path.join(ROOT, "tests", "apps", "fixtures", "calc-water-vib")
 PROJECT = "Examples"
 NAMES = ["organizer", "viewer", "orbital-benzene", "esp-benzene",
-         "vectors-water", "mo-diagram-water"]
+         "vectors-water", "mo-diagram-water", "mo-composition-benzene",
+         "mo-composition-water"]
 
 #  (scene script, calculation, canvas size) for the viewer-only images.
 SCENES = {
@@ -314,6 +315,42 @@ def shootMoDiagram(display, auth, out, tmp):
     return None
 
 
+def shootMoComposition(display, auth, out, tmp, calc, homo, name):
+    """The Builder with the MOs panel open on `calc`; the panel's
+    composition text (#161) describes the selected orbital, the HOMO."""
+    sceneFile = os.path.join(tmp, name + ".scene")
+    with open(sceneFile, "w") as handle:
+        handle.write("style Ball And Stick\nviewall\nmo %d 0.04 50\n"
+                     "rotate 35\n" % homo)
+    known = set(w for w, _ in display.windows())
+    env = {"ECCE_VIEWER_SCENE": sceneFile, "ECCE_VIEWER_SCENE_OUT": tmp,
+           "ECCE_VIEWER_SCENE_SIZE": "640x480",
+           "ECCE_VIEWER_SCENE_HOLD": "120", "ECCE_OPEN_PANEL": "MOs",
+           "ECCE_TRANSPARENCY_FALLBACK_MS": "0",
+           "ECCE_PANEL_MODE": "classic"}
+    proc = launch(display, "ecce-builder",
+                  ["-pipe", auth, "-context", calcUrl(calc)], env,
+                  log=os.path.join(tmp, name + ".log"))
+    try:
+        win = waitWindow(display, known, 90, "ECCE Viewer")
+        if not win:
+            return "no Builder window; windows: %s" % display.windows()
+        wid = win[0]
+        xdo(display, "windowmove", wid, "0", "0")
+        #  The Builder restores its own size once the calculation loads, so
+        #  size it again after that, then give the canvas time to repaint.
+        time.sleep(40)
+        xdo(display, "windowsize", wid, "1400", "900")
+        time.sleep(20)
+        shots = os.path.join(tmp, name + "-full.png")
+        subprocess.run(["import", "-display", display.name, "-window", wid,
+                        shots], check=True)
+        png(shots, os.path.join(out, name + ".png"))
+    finally:
+        stop(proc)
+    return None
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", default=os.path.join(ROOT, "docs", "images"))
@@ -358,6 +395,11 @@ def main():
                 elif name == "mo-diagram-water":
                     err = shootMoDiagram(display, auth, options.out,
                                          options.tmp)
+                elif name.startswith("mo-composition-"):
+                    err = shootMoComposition(
+                        display, auth, options.out, options.tmp,
+                        "benzene" if name.endswith("benzene") else "water-vib",
+                        21 if name.endswith("benzene") else 5, name)
                 elif name == "viewer":
                     err = shootViewer(display, auth, options.out, options.tmp)
                 else:
