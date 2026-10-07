@@ -1044,6 +1044,91 @@ int main()
     }
   }
 
+  //  #140: water's 3a1 is the middle of the s/pz/H-a1 three-orbital
+  //  interaction and is drawn to all three; only 1b1 is non-bonding.
+  //  Shares are the Builder's for the gaussian-water fixture ([MOSHELL]).
+  printf("\n  water 3a1 links to every a1 fragment orbital (#140)\n");
+  {
+    MoColumn left, centre, right;
+    const char* li[] = {"A1", "A1", "B1", "B2"};
+    for (int i = 0; i < 4; i++) {
+      MoLevel f;
+      f.irrep = MoDiagram::canonicalIrrep(li[i]);
+      f.degeneracy = 1;
+      f.shell = f.slot = (i == 0) ? 0 : 1;
+      f.energy = (i == 0) ? -32.4 : -15.9;
+      left.levels.push_back(f);
+    }
+    const char* ri[] = {"A1", "B2"};
+    for (int i = 0; i < 2; i++) {
+      MoLevel f;
+      f.irrep = MoDiagram::canonicalIrrep(ri[i]);
+      f.degeneracy = 1;
+      f.shell = f.slot = 0;
+      f.energy = -13.6;
+      f.phases.push_back(1.0);
+      f.phases.push_back(i == 0 ? 1.0 : -1.0);
+      right.levels.push_back(f);
+    }
+    //  irrep, energy, O s, O p, H s, whole H share (with H p)
+    struct { const char* irrep; double e, os, op, hs, h; } mo[] = {
+      {"A1", -1.0072, 0.6397, 0.0244, 0.3359, 0.3864},
+      {"B2", -0.5262, 0.0,    0.6357, 0.3643, 0.3748},
+      {"A1", -0.3828, 0.1325, 0.7839, 0.0837, 0.1070},
+      {"B1", -0.3054, 0.0,    1.0,    0.0,    0.0553},
+      {"A1",  0.0638, 0.0903, 0.0697, 0.8400, 0.8579},
+      {"B2",  0.1427, 0.0,    0.1798, 0.8202, 0.8380}};
+    for (int i = 0; i < 6; i++) {
+      MoLevel m;
+      m.irrep = MoDiagram::canonicalIrrep(mo[i].irrep);
+      m.energy = mo[i].e;
+      m.degeneracy = 1;
+      m.shellLeft.push_back(mo[i].os);
+      m.shellLeft.push_back(mo[i].op);
+      m.shellRight.push_back(mo[i].hs);
+      m.shareLeft = 1.0 - mo[i].h;
+      m.shareRight = mo[i].h;
+      centre.levels.push_back(m);
+    }
+    MoDiagram::classify(left.levels, centre.levels, right.levels);
+    vector<MoConnection> links;
+    MoDiagram::connect(left.levels, centre.levels, right.levels, links);
+
+    bool reach[6][6];
+    for (int i = 0; i < 6; i++) for (int j = 0; j < 6; j++) reach[i][j] = false;
+    for (size_t k = 0; k < links.size(); k++) {
+      const int c = links[k].centreLevel;
+      if (links[k].leftLevel >= 0)  reach[c][links[k].leftLevel] = true;
+      if (links[k].rightLevel >= 0) reach[c][4 + links[k].rightLevel] = true;
+    }
+    check(reach[2][0] && reach[2][1] && reach[2][4],
+          "3a1 links to O 2s, O 2pz and the H a1 TASO");
+    check(centre.levels[2].character == MoLevel::MIXED &&
+          centre.levels[2].label.find("nb") == string::npos,
+          "and is not called non-bonding");
+    check(centre.levels[3].character == MoLevel::NONBONDING &&
+          reach[3][2] && !reach[3][4] && !reach[3][5],
+          "1b1 is non-bonding, linked to O 2p only");
+
+    //  Every link is a drawn share of at least LINK_SHARE, and every
+    //  such share of a matching irrep is linked.
+    bool exact = true;
+    for (int c = 0; c < 6; c++) {
+      for (int f = 0; f < 6; f++) {
+        const bool isLeft = (f < 4);
+        const MoLevel& frag = isLeft ? left.levels[f] : right.levels[f - 4];
+        if (frag.irrep != centre.levels[c].irrep) {
+          if (reach[c][f]) exact = false;
+          continue;
+        }
+        const bool want = MoDiagram::drawnShare(centre.levels[c], isLeft)
+                          >= MoDiagram::LINK_SHARE;
+        if (want != reach[c][f]) exact = false;
+      }
+    }
+    check(exact, "links are exactly the drawn shares above LINK_SHARE");
+  }
+
   printf("\n  %s\n", bad ? "FAIL" : "PASS");
   return bad ? 1 : 0;
 }

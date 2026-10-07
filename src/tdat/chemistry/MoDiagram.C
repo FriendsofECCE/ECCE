@@ -317,6 +317,16 @@ bool MoDiagram::groupByIrrep(const vector<double>& energies,
 static bool equivalentColumns(const vector<MoLevel>& a,
                               const vector<MoLevel>& b);
 
+double MoDiagram::drawnShare(const MoLevel& level, bool onLeft)
+{
+  const vector<double>& shells = onLeft ? level.shellLeft : level.shellRight;
+  if (shells.empty()) return onLeft ? level.shareLeft : level.shareRight;
+  double sum = 0.0;
+  for (size_t k = 0; k < shells.size(); k++) sum += shells[k];
+  return sum;
+}
+
+
 double MoDiagram::nonbondingShellFraction(const MoLevel& mo, bool onLeft,
                                           int slot)
 {
@@ -1835,6 +1845,24 @@ void MoDiagram::classify(const vector<MoLevel>& left,
     nextPair += pairs;
   }
 
+  //  NON-BONDING ONLY IF IT IS ON ONE SIDE (#140).  The count leaves
+  //  the middle a1 of water and ammonia over, and localisation catches
+  //  ammonia's, but both carry a real share of the ligand a1 set: the
+  //  three-orbital s/p/a1 interaction.  Composition decides; without it
+  //  the count stands.
+  if (overlapPopulation.size() != centre.size()) {
+    for (size_t c = 0; c < centre.size(); c++) {
+      if (centre[c].character != MoLevel::NONBONDING) continue;
+      if (countOf(left, centre[c].irrep) < 1 ||
+          countOf(right, centre[c].irrep) < 1) continue;
+      if (drawnShare(centre[c], true)  >= LINK_SHARE &&
+          drawnShare(centre[c], false) >= LINK_SHARE) {
+        centre[c].character = MoLevel::MIXED;
+        centre[c].pairing = -1;
+      }
+    }
+  }
+
   //  The asterisk on an antibonding level and "nb" on a non-bonding
   //  one, which is how they are written and how they are read.
   for (size_t c = 0; c < centre.size(); c++) {
@@ -2097,25 +2125,13 @@ void MoDiagram::connect(const vector<MoLevel>& left,
     //  nothing.
     const bool knowShare = (centre[c].shareLeft >= 0.0 ||
                             centre[c].shareRight >= 0.0);
-    bool onLeft  = !knowShare || centre[c].shareLeft  >= cutoff;
-    bool onRight = !knowShare || centre[c].shareRight >= cutoff;
+    //  On the shells the column draws, so a polarisation function that
+    //  has no level in the column does not earn a line to it.
+    bool onLeft  = !knowShare || drawnShare(centre[c], true)  >= cutoff;
+    bool onRight = !knowShare || drawnShare(centre[c], false) >= cutoff;
 
-    //  A NON-BONDING LEVEL GETS ONE LINE, TO THE FRAGMENT IT IS ON.
-    //
-    //  The cutoff alone does not thin a small molecule's diagram,
-    //  because a small molecule's orbitals really are spread over both
-    //  fragments: every level of nitrite clears five per cent on both
-    //  sides, and rightly.  What is not true is that a non-bonding
-    //  level is interacting with both -- it exists because one
-    //  fragment had an orbital the other could not match -- so it is
-    //  drawn to whichever side carries it, which is the honest line
-    //  and half the lines.
-    //
-    //  Which side that is comes from the composition where there is
-    //  one, and from the counting where there is not.  The two agree
-    //  where both are available: nitrite's a2 is the one the counting
-    //  calls non-bonding for want of a partner, and the coefficients
-    //  put it at 100% on the oxygens.
+    //  Without a composition, a non-bonding level gets one line, to the
+    //  side the count says has the unmatched orbital.
     //  A SKELETON'S REAL METAL-LIGAND INTERACTIONS ARE NOT THINNED THIS
     //  WAY (#183, bothSidesQualify).  The one-side restriction exists
     //  because a non-bonding level is on the fragment side that HAS a
@@ -2124,15 +2140,13 @@ void MoDiagram::connect(const vector<MoLevel>& left,
     //  metal-centred HOMO) still carries real, measured shares of BOTH
     //  the metal and the CO pi* it mixes with -- that mixing is the
     //  whole point of the pi-acceptor picture -- so both lines belong.
-    if (nonBonding && !bothSidesQualify) {
-      if (knowShare) {
-        const bool leftWins = centre[c].shareLeft > centre[c].shareRight;
-        onLeft  = onLeft  && leftWins;
-        onRight = onRight && !leftWins;
-      } else {
-        onLeft  = onLeft  && excessLeft;
-        onRight = onRight && !excessLeft;
-      }
+    //  WITH A COMPOSITION, THE CUTOFF ALONE DECIDES (#140): a line is
+    //  drawn exactly where the level has share to draw, and choosing
+    //  the larger side dropped water 3a1's real 8% on the H a1 set.
+    //  Only without one does the count pick the side.
+    if (nonBonding && !bothSidesQualify && !knowShare) {
+      onLeft  = onLeft  && excessLeft;
+      onRight = onRight && !excessLeft;
     }
 
     //  AT MOST TWO LINES A SIDE, THE NEAREST IN ENERGY.

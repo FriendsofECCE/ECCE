@@ -1218,6 +1218,7 @@ const char* levelCharacterName(MoLevel::Character c)
     case MoLevel::BONDING:     return "BONDING";
     case MoLevel::NONBONDING:  return "NONBONDING";
     case MoLevel::ANTIBONDING: return "ANTIBONDING";
+    case MoLevel::MIXED:       return "MIXED";
     default:                   return "UNKNOWN";
   }
 }
@@ -2586,7 +2587,8 @@ void MoDiagramPanel::buildOnce()
                         useMetalLigand ? metalShare : vector<double>(),
                         useMetalLigand ? metalLigandOP : vector<double>());
     MoDiagram::connect(left.levels, centre.levels, right.levels, links,
-                       useMetalLigand ? 0.10 : 0.05, useMetalLigand);
+                       useMetalLigand ? 0.10 : MoDiagram::LINK_SHARE,
+                       useMetalLigand);
 
     //  PI-ONLY: THE FRAGMENT COLUMNS MUST DROP TOO, not just the
     //  molecular one -- see the trimming block right after connect()

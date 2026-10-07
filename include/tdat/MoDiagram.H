@@ -136,8 +136,13 @@ struct MoLevel
     */
    double         tabulated;
 
-   /** What the level is: see MoDiagram::classify(). */
-   enum Character { UNKNOWN, BONDING, NONBONDING, ANTIBONDING };
+   /**
+    * What the level is: see MoDiagram::classify().  MIXED is the middle
+    * orbital of a three-orbital interaction (water and ammonia 3a1):
+    * neither bonding nor antibonding by count, but with a real share on
+    * both sides, so it is drawn to both and not called non-bonding.
+    */
+   enum Character { UNKNOWN, BONDING, NONBONDING, ANTIBONDING, MIXED };
    Character      character;
 
    /**
@@ -741,8 +746,22 @@ class MoDiagram
                         const vector<MoLevel>& centre,
                         const vector<MoLevel>& right,
                         vector<MoConnection>& connections,
-                        double cutoff = 0.05,
+                        double cutoff = LINK_SHARE,
                         bool bothSidesQualify = false);
+
+    /**
+     * The least share of a molecular orbital, on the shells a column
+     * draws, for which connect() draws a line to that column; classify()
+     * uses the same number to decide that a level touches both sides.
+     */
+    static constexpr double LINK_SHARE = 0.05;
+
+    /**
+     * A level's share on the shells one column draws: the sum of its
+     * per-shell shares, or the column's whole share where there is no
+     * per-shell split, -1 where neither was computed.
+     */
+    static double drawnShare(const MoLevel& level, bool onLeft);
 
     /**
      * Fold levels ABOVE a cutoff, except ones a caller has protected.
