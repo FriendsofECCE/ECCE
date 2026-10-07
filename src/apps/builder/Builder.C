@@ -4945,45 +4945,48 @@ void Builder::updatePropertyMenus()
     timer->StartOnce(1 + 1000 * (delay ? atoi(delay) : 0));
   }
 
-  //  ECCE_TEST_DOCK=1: float every docked panel on the left, check that no
-  //  left dock is left, run Tools > Dock Floating Panels, and report what
-  //  returned to the left; for tests/apps/dock_test.py.  Inert unless set.
+  //  ECCE_TEST_DOCK=1: float every panel docked on the side with the most
+  //  of them, so that no dock is left there, run Tools > Dock Floating
+  //  Panels, and report what returned to that side; for
+  //  tests/apps/dock_test.py.  Inert unless set.
   static bool dockStarted = false;
   if (getenv("ECCE_TEST_DOCK") && !dockStarted) {
     dockStarted = true;
     wxTimer *timer = new wxTimer();   // lives until the process exits
     timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
-      wxAuiPaneInfoArray& panes = p_mgr.GetAllPanes();
-      std::vector<wxString> moved;
-      for (size_t i = 0; i < panes.GetCount(); ++i) {
-        wxAuiPaneInfo& pi = panes[i];
-        if (pi.IsDocked() && !pi.IsToolbar() && pi.IsShown() &&
-            pi.dock_direction == wxAUI_DOCK_LEFT) {
-          moved.push_back(pi.name);
-          pi.Float();
-        }
-      }
-      p_mgr.Update();
-      auto count = [this](bool floating) {
+      auto docked = [this](int side) {
+        std::vector<wxString> names;
+        wxAuiPaneInfoArray& all = p_mgr.GetAllPanes();
+        for (size_t i = 0; i < all.GetCount(); ++i)
+          if (all[i].IsDocked() && !all[i].IsToolbar() && all[i].IsShown() &&
+              all[i].dock_direction == side)
+            names.push_back(all[i].name);
+        return names;
+      };
+      auto floating = [this]() {
         int n = 0;
         wxAuiPaneInfoArray& all = p_mgr.GetAllPanes();
         for (size_t i = 0; i < all.GetCount(); ++i)
-          if (all[i].IsShown() && !all[i].IsToolbar() &&
-              ((floating && all[i].IsFloating()) ||
-               (!floating && all[i].IsDocked() &&
-                all[i].dock_direction == wxAUI_DOCK_LEFT)))
+          if (all[i].IsShown() && !all[i].IsToolbar() && all[i].IsFloating())
             n++;
         return n;
       };
-      int floated = count(true), leftBefore = count(false);
+      int side = wxAUI_DOCK_LEFT;
+      for (int s : { wxAUI_DOCK_RIGHT, wxAUI_DOCK_TOP, wxAUI_DOCK_BOTTOM })
+        if (docked(s).size() > docked(side).size()) side = s;
+      std::vector<wxString> moved = docked(side);
+      for (const wxString& name : moved)
+        p_mgr.GetPane(name).Float();
+      p_mgr.Update();
+      int floated = floating(), leftBefore = (int)docked(side).size();
       wxCommandEvent ev;
       OnDockFloatingPanels(ev);
-      int floatedAfter = count(true), leftAfter = count(false);
+      int floatedAfter = floating(), leftAfter = (int)docked(side).size();
       bool back = true;
       for (const wxString& name : moved) {
         wxAuiPaneInfo& pi = p_mgr.GetPane(name);
-        if (!pi.IsOk() || !pi.IsDocked() ||
-            pi.dock_direction != wxAUI_DOCK_LEFT) back = false;
+        if (!pi.IsOk() || !pi.IsDocked() || pi.dock_direction != side)
+          back = false;
       }
       fprintf(stderr, "ECCE_TEST_DOCK: moved %d, floating %d, left docked %d; "
               "after: floating %d, left docked %d, all back %d\n",

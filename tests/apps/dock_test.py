@@ -5,7 +5,7 @@ Builder > Tools > Dock Floating Panels (#53), without a drag.
 The Builder's ECCE_TEST_DOCK hook floats every panel docked on the left, so
 that no left dock is left, runs the real menu handler and prints how many
 panels were floating and docked on the left before and after.  The command
-must return every one of them to the left, which has to recreate the dock
+must return every one of them to that side, which has to recreate the dock
 that emptied.
 
 Same installed tree, isolation and services as run_tests.py (ECCE_TEST_HOME,
@@ -47,9 +47,9 @@ def checkDock(display):
     else:
         moved, fl, left, fl2, left2, back = map(int, m.groups())
         if moved < 2:
-            problem = "only %d panels were docked on the left" % moved
+            problem = "only %d panels were docked on the busiest side" % moved
         elif left != 0 or fl != moved:
-            problem = ("before: %d floating, %d still docked on the left; "
+            problem = ("before: %d floating, %d still docked on that side; "
                        "expected %d and 0" % (fl, left, moved))
         elif fl2 != 0 or left2 != moved or not back:
             problem = ("after Dock Floating Panels: %d floating, %d docked "
@@ -58,7 +58,7 @@ def checkDock(display):
         else:
             problem = None
             print("ok    Dock Floating Panels returned %d panels to an "
-                  "emptied left dock" % moved)
+                  "emptied dock" % moved)
     if problem:
         failures.append(problem)
         print("FAIL  Dock Floating Panels: %s\n%s"
