@@ -1,7 +1,7 @@
 #!/bin/bash
 # Copies the MinGW/UCRT64 runtime DLLs every installed program needs, and
-# mosquitto and mosquitto_passwd (the session broker, ecce-broker-win), from
-# an MSYS2 UCRT64 install into <ECCE install>/bin, so that the install runs
+# mosquitto, mosquitto_passwd (the session broker, ecce-broker-win) and the
+# mosquitto_sub/pub clients (the tests use them), from
 # on a machine without MSYS2.
 #
 #   packaging/windows/bundle-runtime.sh <install-dir> [ucrt64-bin]
@@ -13,7 +13,7 @@ dest="${1:?usage: bundle-runtime.sh <install-dir> [ucrt64-bin]}/bin"
 src="${2:-/ucrt64/bin}"
 src="$(cd "$src" && pwd)"
 
-for p in mosquitto mosquitto_passwd; do
+for p in mosquitto mosquitto_passwd mosquitto_sub mosquitto_pub; do
   [ -f "$src/$p.exe" ] || { echo "bundle-runtime: $src/$p.exe is missing" >&2; exit 1; }
   cp -f "$src/$p.exe" "$dest/"
 done
