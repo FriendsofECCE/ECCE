@@ -170,6 +170,7 @@ public:
     wxStaticBox* p_detailsBox;
     wxFlexGridSizer* p_theoryDetailsSizer;
     wxFlexGridSizer* p_runtypeDetailsSizer;
+    wxBoxSizer* p_buttonRow;
     static const wxWindowID ID_BUTTON_CALCED_LAUNCH;
     static const wxWindowID ID_STATICTEXT_CALCED_ECP;
     static const wxWindowID ID_BUTTON_CALCED_RUNTYPE;

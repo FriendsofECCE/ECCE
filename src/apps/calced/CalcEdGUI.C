@@ -172,6 +172,7 @@ bool CalcEdGUI::Create( wxWindow* parent, wxWindowID id, const wxString& caption
     p_detailsBox = NULL;
     p_theoryDetailsSizer = NULL;
     p_runtypeDetailsSizer = NULL;
+    p_buttonRow = NULL;
 ////@end CalcEdGUI member initialisation
 
 ////@begin CalcEdGUI creation
@@ -485,6 +486,7 @@ void CalcEdGUI::CreateControls()
     itemBoxSizer76->Add(p_runtypeDetailsSizer, 0, wxALIGN_LEFT|wxLEFT, 5);
 
     wxBoxSizer* itemBoxSizer83 = new wxBoxSizer(wxHORIZONTAL);
+    p_buttonRow = itemBoxSizer83;
     itemBoxSizer11->Add(itemBoxSizer83, 0, wxGROW|wxRIGHT|wxBOTTOM, 5);
 
     ewxButton* itemButton84 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_PARTIAL, _("Partial Charge Editor..."), wxDefaultPosition, wxDefaultSize, 0 );

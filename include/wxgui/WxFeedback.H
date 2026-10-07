@@ -75,6 +75,11 @@ class WxFeedback : public WxFeedbackGUI
       int getSaveId() const;
 
       void setEditStatus(WxFeedback::EditStatus status);
+
+      // A standard labelled Save button for the host window to put in its
+      // own button row; it replaces the one in this pane and is enabled
+      // exactly while the status is MODIFIED.  The host owns its placement.
+      wxButton* adoptSaveButton(wxWindow *parent);
       WxFeedback::EditStatus getEditStatus() const;
       void setSaveHandler(wxObjectEventFunction function);
 
@@ -114,6 +119,7 @@ class WxFeedback : public WxFeedbackGUI
       WxState                *p_stateIcon;
       FeedbackSaveHandler    *p_saveHandler;
       wxButton               *p_saveText;
+      wxButton               *p_hostSave;
       FeedbackTextEvtHandler *p_textEvtHandler;
       PropertyTask           *p_task;
       bool                    p_beepWarn;

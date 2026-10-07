@@ -1671,6 +1671,11 @@ void CalcEd::CreateControls()
   p_feedback->setSaveHandler(this);
   GetSizer()->Add(p_feedback, 0, wxEXPAND, 0);
 
+  //  Save sits in the button row, a standard button just before Launch.
+  wxButton *save = p_feedback->adoptSaveButton(this);
+  p_buttonRow->Insert(p_buttonRow->GetItemCount() - 1, save, 0,
+                      wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
+
   replaceBuilderButton();
   replaceBasisSetButton();
 
