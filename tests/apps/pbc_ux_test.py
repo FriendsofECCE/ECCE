@@ -54,7 +54,7 @@ def readState(path):
                 ticked=g[5], x=g[6], y=g[7], w=g[8], h=g[9], need=g[10],
                 have=g[11])
         elif line.startswith("shown "):
-            out["shown"].append(line.split('"')[1])
+            out["shown"].append(line.split('"')[1]); out.setdefault("raw", []).append(line.strip())
         elif line.startswith("client "):
             out["client"] = tuple(int(v) for v in line.split()[1:3])
         elif line.startswith("readonly "):
@@ -181,6 +181,8 @@ def check(display, results, png=None, only=None):
         for p in problems:
             results.fail("pbc ux pane", p)
         if problems:
+            st = readState(os.path.join(work, "open.txt"))
+            results.notes.append("\n".join((st or {}).get("raw", [])))
             results.notes.append("\n".join(log.splitlines()[-15:]))
 
     unrun, error = install("pbc-ux-unrun", notRun)

@@ -167,7 +167,13 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
     for (size_t i = 0; i < all.GetCount(); i++) {
       if (all.Item(i).IsShown() && !all.Item(i).IsToolbar())
-        out << "shown \"" << all.Item(i).name.ToStdString() << "\"\n";
+        out << "shown \"" << all.Item(i).name.ToStdString() << "\" rect "
+            << all.Item(i).rect.x << " " << all.Item(i).rect.y << " "
+            << all.Item(i).rect.width << " " << all.Item(i).rect.height
+            << " prop " << all.Item(i).dock_proportion << " pos "
+            << all.Item(i).dock_pos << " layer " << all.Item(i).dock_layer
+            << " min " << all.Item(i).min_size.y << " best "
+            << all.Item(i).best_size.y << "\n";
     }
     out << "readonly " << (p_calculation ? isReadOnly() : -1) << "\n";
     return true;
