@@ -1,0 +1,318 @@
+#!/usr/bin/env python3
+"""ecce-first-start: where does this user keep their work? (#240)
+
+    ecce-first-start             ask once, at the first start, if nothing is set up
+    ecce-first-start --check     print "ask" or "skip: <why>"; exit 0 to ask, 1 not
+    ecce-first-start --change    the Edit > Change Server... window
+
+Exit status of the plain form: 0 go on, 3 the user chose Quit.  Anything
+else (no wxPython, no display) goes on with what ECCE would have done.
+
+The question is for a client with nothing configured; every setup that
+already exists skips it, see skip_reason().  The choice is kept as the state
+ECCE already reads, so there is no file of its own to get out of step:
+
+  Work on this computer   the LocalData preference on (ecce-localdata pref
+                          on), the folder ~/.ECCE-local made
+  Connect to a server     ~/.ECCE/RemoteServer/ (ecce-remote-setup --user
+                          --auto), the preference off
+
+Test hooks: ECCE_NO_FIRST_START=1 never asks; ECCE_FIRST_START_ANSWER=local
+or server:<host[:port]> answers the window as if its button was pressed;
+ECCE_FIRST_START_SHOT=<file.png> saves a picture of the window first.
+"""
+import os
+import shutil
+import subprocess
+import sys
+import time
+
+HOME = os.environ.get("ECCE_REALUSERHOME") or os.path.expanduser("~")
+ECCE_HOME = os.environ.get("ECCE_HOME") or "/opt/ecce"
+STATE = os.path.join(HOME, ".ECCE")
+MINE = os.path.join(STATE, "RemoteServer")
+LOCAL_DEFAULT = os.path.join(HOME, ".ECCE-local")
+
+
+def tool(name):
+    p = os.path.join(ECCE_HOME, "bin", name)
+    return p if os.path.exists(p) else (shutil.which(name) or p)
+
+
+def run(cmd, timeout=30):
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        return r.returncode, r.stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return 127, ""
+
+
+def pref_state():
+    rc, out = run([tool("ecce-localdata"), "pref-state"])
+    return out if rc == 0 else "unset"
+
+
+def skip_reason():
+    """Why the question is not asked, or None to ask."""
+    env = os.environ
+    if env.get("ECCE_NO_FIRST_START"):
+        return "ECCE_NO_FIRST_START is set"
+    if env.get("ECCE_REMOTE_SERVER"):
+        return "a -remote session (ECCE_REMOTE_SERVER)"
+    if "ECCE_LOCAL_DATA" in env or env.get("ECCE_LOCAL"):
+        return "the data folder is given (ECCE_LOCAL_DATA or --local)"
+    if sys.platform == "darwin" and not env.get("ECCE_FIRST_START_ASK_ON_MAC"):
+        return "macOS keeps its data in a folder by default (Edit > Change Server... to use a server)"
+    if not (env.get("DISPLAY") or env.get("WAYLAND_DISPLAY")):
+        return "no display"
+    if os.path.exists(os.path.join(ECCE_HOME, "siteconfig", "RemoteServer", "DataServers")):
+        return "the installation has a server configured (siteconfig/RemoteServer)"
+    if os.path.exists(os.path.join(ECCE_HOME, "siteconfig", "SharedBroker")):
+        return "a shared broker is declared (siteconfig/SharedBroker)"
+    if os.path.exists(os.path.join(STATE, "mosquitto.server")):
+        return "this account runs a central server"
+    if os.path.exists(os.path.join(ECCE_HOME, "bin", "ecce-dataserver-start")):
+        return "the server package is installed here"
+    if os.path.exists(os.path.join(MINE, "DataServers")):
+        return "a server is already chosen"
+    if os.path.isdir(LOCAL_DEFAULT):
+        return "local data exists (~/.ECCE-local)"
+    if os.path.isdir(os.path.join(STATE, "dataserver")):
+        return "server-mode data exists (~/.ECCE/dataserver)"
+    if pref_state() != "unset":
+        return "the data folder preference is set"
+    return None
+
+
+def current_state():
+    """(mode, text) for the Change Server window."""
+    if os.path.exists(os.path.join(MINE, "DataServers")):
+        host = ""
+        try:
+            t = open(os.path.join(MINE, "DataServers")).read()
+            host = t.split("<Url>", 1)[1].split("</Url>", 1)[0].split("://", 1)[1].split("/", 1)[0]
+        except (OSError, IndexError):
+            pass
+        return "server", ("ECCE is connected to the server %s.\n"
+                          "Your calculations are kept on that server." % host), host
+    rc, folder = run([tool("ecce-localdata")])
+    if pref_state() == "on" or os.environ.get("ECCE_LOCAL_DATA") or folder:
+        folder = folder or LOCAL_DEFAULT
+        return "local", ("ECCE is working on this computer.\n"
+                         "Your calculations are in the folder\n%s" % folder), ""
+    return "here", ("ECCE is using the data server on this computer.\n"
+                    "Your calculations are in %s" % os.path.join(STATE, "dataserver")), ""
+
+
+def choose_local():
+    os.makedirs(LOCAL_DEFAULT, mode=0o700, exist_ok=True)
+    if os.path.exists(MINE):
+        old = MINE + ".off"
+        shutil.rmtree(old, ignore_errors=True)
+        os.rename(MINE, old)
+    rc, _ = run([tool("ecce-localdata"), "pref", "on"])
+    return rc == 0
+
+
+def choose_server(address):
+    """None when connected, else a sentence for the user."""
+    address = address.strip()
+    if not address or any(c.isspace() for c in address) or "/" in address:
+        return "Type the address of the server, for example ecce.example.edu"
+    if address.startswith(("http:", "https:")):
+        return "Type only the name of the server, without http://"
+    rc, out = run([tool("ecce-remote-setup"), address, "--user", "--auto"], timeout=90)
+    if rc != 0:
+        return ("ECCE could not connect to \"%s\".\n"
+                "Check the address and your network connection, then try again."
+                % address)
+    run([tool("ecce-localdata"), "pref", "off"])
+    return None
+
+
+def build_dialog(wx, change):
+    mode, text, host = current_state() if change else ("", "", "")
+
+    dlg = wx.Dialog(None, title="Change server" if change else "Welcome to ECCE")
+    panel = wx.Panel(dlg)
+    top = wx.BoxSizer(wx.VERTICAL)
+    box = wx.BoxSizer(wx.VERTICAL)
+    panel.SetSizer(box)
+
+    def label(s, bold=False, size=0):
+        t = wx.StaticText(panel, label=s)
+        f = t.GetFont()
+        if bold:
+            f.SetWeight(wx.FONTWEIGHT_BOLD)
+        if size:
+            f.SetPointSize(f.GetPointSize() + size)
+        t.SetFont(f)
+        return t
+
+    if change:
+        box.Add(label(text), 0, wx.BOTTOM, 16)
+    box.Add(label("Where do you want to work?", True, 3), 0, wx.BOTTOM, 12)
+
+    r_local = wx.RadioButton(panel, label="Work on this computer", style=wx.RB_GROUP)
+    r_server = wx.RadioButton(panel, label="Connect to a server")
+    for r in (r_local, r_server):
+        f = r.GetFont()
+        f.SetWeight(wx.FONTWEIGHT_BOLD)
+        r.SetFont(f)
+    box.Add(r_local, 0)
+    box.Add(label("Your calculations are saved in a folder on this computer."),
+            0, wx.LEFT | wx.BOTTOM, 24)
+    box.Add(r_server, 0, wx.TOP, 8)
+    box.Add(label("Use a server that your teacher or institution runs.\n"
+                  "You need its address and your login."),
+            0, wx.LEFT, 24)
+    row = wx.BoxSizer(wx.HORIZONTAL)
+    row.Add(wx.StaticText(panel, label="Server address:"), 0,
+            wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+    addr = wx.TextCtrl(panel, size=(280, -1), value=host)
+    row.Add(addr, 1)
+    box.Add(row, 0, wx.EXPAND | wx.LEFT | wx.TOP, 24)
+    box.Add(label("for example  ecce.example.edu"), 0, wx.LEFT | wx.TOP, 4)
+
+    status = wx.StaticText(panel, label="")
+    status.SetForegroundColour(wx.Colour(168, 32, 32))
+    box.Add(status, 0, wx.TOP, 12)
+
+    r_server.SetValue(mode == "server")
+    r_local.SetValue(mode != "server")
+
+    def sync(_evt=None):
+        addr.Enable(r_server.GetValue())
+        status.SetLabel("")
+        panel.Layout()
+    r_local.Bind(wx.EVT_RADIOBUTTON, sync)
+    r_server.Bind(wx.EVT_RADIOBUTTON, sync)
+    sync()
+
+    btns = wx.BoxSizer(wx.HORIZONTAL)
+    btns.AddStretchSpacer()
+    cancel = wx.Button(dlg, wx.ID_CANCEL, "Cancel" if change else "Quit")
+    go = wx.Button(dlg, wx.ID_OK, "Continue")
+    go.SetDefault()
+    btns.Add(cancel, 0, wx.RIGHT, 8)
+    btns.Add(go, 0)
+
+    top.Add(panel, 1, wx.EXPAND | wx.ALL, 20)
+    top.Add(btns, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 20)
+    dlg.SetSizerAndFit(top)
+    dlg.CentreOnScreen()
+
+    result = {}
+
+    def finish(_evt=None):
+        status.SetLabel("")
+        if r_local.GetValue():
+            if change and mode == "local":
+                result["changed"] = False
+            elif not choose_local():
+                status.SetLabel("ECCE could not save this choice.")
+                panel.Layout()
+                return
+            else:
+                result["changed"] = True
+        else:
+            go.Disable()
+            cancel.Disable()
+            status.SetLabel("Connecting to %s ..." % addr.GetValue().strip())
+            panel.Layout()
+            wx.GetApp().Yield()
+            err = choose_server(addr.GetValue())
+            go.Enable()
+            cancel.Enable()
+            if err:
+                status.SetLabel(err)
+                panel.Layout()
+                dlg.Fit()
+                return
+            result["changed"] = True
+        dlg.EndModal(wx.ID_OK)
+    go.Bind(wx.EVT_BUTTON, finish)
+
+    def picture(path):
+        w, h = dlg.GetSize()
+        bmp = wx.Bitmap(w, h)
+        mem = wx.MemoryDC(bmp)
+        mem.Blit(0, 0, w, h, wx.ScreenDC(), *dlg.GetPosition())
+        mem.SelectObject(wx.NullBitmap)
+        bmp.SaveFile(path, wx.BITMAP_TYPE_PNG)
+
+    def refused():
+        # An answered window that is still open was refused: leave, so a
+        # test never waits for a click.
+        if not dlg.IsShown():
+            return
+
+        def leave():
+            result["refused"] = status.GetLabel()
+            dlg.EndModal(wx.ID_CANCEL)
+        wx.CallLater(800, leave)
+
+    shot = os.environ.get("ECCE_FIRST_START_SHOT")
+
+    def hooks():
+        if shot:
+            picture(shot)
+        ans = os.environ.get("ECCE_FIRST_START_ANSWER", "")
+        if ans == "local":
+            r_local.SetValue(True)
+            sync()
+            finish()
+        elif ans.startswith("server:"):
+            r_server.SetValue(True)
+            sync()
+            addr.SetValue(ans[7:])
+            finish()
+        if ans:
+            wx.CallLater(1500, refused)
+    wx.CallLater(700, hooks)
+    return dlg, result
+
+
+def main(argv):
+    change = "--change" in argv
+    why = None if change else skip_reason()
+    if "--check" in argv:
+        print("ask" if why is None else "skip: " + why)
+        return 0 if why is None else 1
+    if why is not None:
+        return 0
+    try:
+        import wx
+    except ImportError:
+        sys.stderr.write("ecce-first-start: wxPython is not installed; not asking.\n")
+        return 0
+    app = wx.App(False)
+    if not wx.GetDisplaySize()[0]:
+        return 0
+    dlg, result = build_dialog(wx, change)
+    answer = dlg.ShowModal()
+    dlg.Destroy()
+    if result.get("refused"):
+        sys.stderr.write("ecce-first-start: refused: %s\n" % result["refused"])
+        return 4
+    if answer != wx.ID_OK:
+        return 0 if change else 3
+    if change and result.get("changed"):
+        m = wx.MessageDialog(None,
+                             "The change takes effect the next time you start ECCE.\n"
+                             "Close all ECCE windows, then start ECCE again.",
+                             "Change server", wx.OK | wx.ICON_INFORMATION)
+        if not os.environ.get("ECCE_FIRST_START_ANSWER"):
+            m.ShowModal()
+        m.Destroy()
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except SystemExit:
+        raise
+    except Exception as e:  # never keep ECCE from starting over this window
+        sys.stderr.write("ecce-first-start: %s; going on without asking.\n" % e)
+        sys.exit(0)

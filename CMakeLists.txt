@@ -779,6 +779,7 @@ install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-status
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-reap
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-find-mosquitto
+          ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-first-start
           ${CMAKE_SOURCE_DIR}/packaging/windows/ecce-broker-win
           ${CMAKE_SOURCE_DIR}/packaging/nwchem/ecce-nwchem-datadir
         DESTINATION bin
@@ -1220,6 +1221,9 @@ fi")
     # else's central server, or none yet configured) must not try to
     # spawn it -- and must say clearly why not, rather than a bare
     # "No such file or directory" swallowed by the trailing `|| true`.
+    # The user's own server choice (#240) makes this a -remote session.
+    set(_usermode ". \"$ECCE_HOME/bin/ecce-session-lib.sh\" || exit 1
+ecce_user_server_mode")
     set(_datamode "# Data mode for the whole session (#216): ECCE_LOCAL_DATA when set (empty
 # means a data server), else the LocalData preference. Exported, so every
 # app of a session uses one store and a preference change waits for the
@@ -1259,6 +1263,7 @@ if [ $_status -gt 128 ] && [ $_status -ne 143 ]; then
 fi
 exit $_status")
   else()
+    set(_usermode "")
     set(_datamode "")
     set(_gateway_start "")
     set(_dataserver_start "")
@@ -1310,6 +1315,7 @@ export PATH=\"$ECCE_HOME/scripts:$ECCE_HOME/scripts/parsers:$PATH\"
 for _arg in \"$@\"; do
   if [ \"$_arg\" = \"-remote\" ]; then export ECCE_REMOTE_SERVER=1; fi
 done
+${_usermode}
 ${_datamode}
 ${_gateway_start}
 ${_dataserver_start}
@@ -1806,6 +1812,15 @@ add_test(NAME tls_client
          COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/tls/run_tests.py
                  $<TARGET_FILE:tls_client_test> ${CMAKE_BINARY_DIR}/tls-test)
 set_tests_properties(tls_client PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+# The first-start window's connection step and when the question is asked (#240).
+add_test(NAME tls_first_connect
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/tls/first_connect_test.py
+                 ${CMAKE_BINARY_DIR}/tls-first-connect)
+set_tests_properties(tls_first_connect PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+add_test(NAME first_start_question
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/apps/first_start_test.py
+                 $<TARGET_FILE:ecce-localdata> ${CMAKE_BINARY_DIR}/first-start-test)
+set_tests_properties(first_start_question PROPERTIES TIMEOUT 60)
 
 # The central server over TLS (#236): the real data server and broker scripts
 # on loopback with a fresh certificate, then the clients with and without

@@ -181,12 +181,22 @@ if [ -f "$c2s_tpl" ] \
   mkdir -p "$c2s_dir" 2>/dev/null && cp "$c2s_tpl" "$c2s_dir/CONFIG.localhost" 2>/dev/null || true
 fi
 
+# A client with nothing set up asks once where the user keeps their work
+# (#240); every existing setup skips the window. 3 is "Quit" in it; any
+# other failure goes on as if it had not been there.
+if [ -x "$ECCE_HOME/bin/ecce-first-start" ]; then
+  "$ECCE_HOME/bin/ecce-first-start"
+  if [ $? -eq 3 ]; then exit 0; fi
+fi
+
 # Every `ecce` is a session of its own (#233), even when started from a
 # shell that inherited another session's id; every process it starts
 # inherits this one.
 . "$ECCE_HOME/bin/ecce-session-lib.sh" || exit 1
 ECCE_SESSION_ID="$(ecce_new_session_id)"
 export ECCE_SESSION_ID
+# The user's own server choice makes this a -remote session.
+ecce_user_server_mode
 
 # Only -remote reaches ecce-gateway; it has no use for the rest.
 passthrough=()
