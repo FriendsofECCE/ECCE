@@ -122,6 +122,18 @@ CASES = [
                  lambda t: "-0.00016000" in t and "0.55736800" in t)],
     ),
     dict(
+        name="orca-ccpvdz-water-24",
+        fixture="water_ccpvdz_explicit.gbs",
+        exporter="std2ORCA",
+        #  The whole cc-pVDZ water deck as written for a calculation that
+        #  asks for exponents and coefficients.  ORCA 6.1.1 runs it to the
+        #  same 24 functions and energy as its own "cc-pVDZ" keyword; before
+        #  #239 it had 23 and the MO panel could not draw it.
+        expect=[("24 spherical functions for H2O (O 14, H 5 each)",
+                 lambda t: orca_spherical_functions(t, {"O": 1, "H": 2})
+                 == 24)],
+    ),
+    dict(
         name="orca-ecp-per-element",
         fixture="pth_ecp.gbs",
         exporter="std2ORCA",
@@ -189,6 +201,24 @@ CASES = [
                 ("primitives written", lambda t: "18.73113700" in t)],
     ),
 ]
+
+
+def orca_spherical_functions(text, atoms):
+    """Spherical basis functions an ORCA %basis block gives the molecule;
+    atoms maps element to count."""
+    per = {}
+    element = None
+    for line in text.splitlines():
+        words = line.split()
+        if len(words) >= 2 and words[0] == "NewGTO":
+            element = words[1]
+            per[element] = 0
+        elif element and len(words) == 2 and words[0] in "SPDFGHI" \
+                and words[1].isdigit():
+            per[element] += 2 * "SPDFGHI".index(words[0]) + 1
+        elif words == ["end"]:
+            element = None
+    return sum(per.get(e, 0) * n for e, n in atoms.items())
 
 
 def fortran_d_notation():

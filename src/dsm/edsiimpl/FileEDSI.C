@@ -123,7 +123,7 @@ void FileEDSI::removeProgressEventListener(ProgressEventListener *l)
 #include <fcntl.h>
 #include <errno.h>
 #include <ctype.h>
-#include <sys/file.h>
+#include "util/PosixCompat.H"
 #include <sys/stat.h>
 #include <sstream>
 #include <memory>
@@ -311,7 +311,7 @@ bool saveStore(const string& dir, const MetaStore& store)
     out.close();
     if (!out) { unlink(tmp.c_str()); return false; }
   }
-  if (rename(tmp.c_str(), path.c_str()) != 0) {
+  if (renameReplace(tmp.c_str(), path.c_str()) != 0) {
     unlink(tmp.c_str());
     return false;
   }

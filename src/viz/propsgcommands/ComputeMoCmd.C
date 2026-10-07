@@ -161,6 +161,11 @@ void ComputeMoCmd::init(void)
    addParameter(new CommandParameter("Type", "MO"));
    addParameter(new CommandParameter("Code", "unknown"));
 
+   //  Outputs: set when the coefficients do not fit the calculation's
+   //  basis, so the panel can say that instead of "the grid is 0".
+   addParameter(new CommandParameter("CoefWidth", 0));
+   addParameter(new CommandParameter("BasisWidth", 0));
+
 }
 
 
@@ -579,10 +584,12 @@ bool ComputeMoCmd::execute()
       //  computeFullGroupLabels() already chooses by width the same way.
       if (moCoefs != 0 && gbsConfig != 0) {
         vector<EspBasisFunction> probe;
-        const bool asRecorded =
+        const bool built =
           buildEspBasis(sgfrag, gbsConfig, code, angfunc, maxShell,
-                        length_shell, probe) &&
-          (int)probe.size() == moCoefs->columns();
+                        length_shell, probe);
+        const int recordedWidth = built ? (int)probe.size() : 0;
+        const bool asRecorded =
+          built && recordedWidth == moCoefs->columns();
         if (!asRecorded) {
           const bool wasCart =
             (gbsConfig->coordsys() == TGaussianBasisSet::Cartesian);
@@ -610,6 +617,11 @@ bool ComputeMoCmd::execute()
             cerr << "MO: coefficient width " << moCoefs->columns()
                  << " matches neither basis convention -- not drawing"
                  << endl;
+            getParameter("CoefWidth")->setInteger(moCoefs->columns());
+            getParameter("BasisWidth")->setInteger(recordedWidth);
+            //  Not cached: an empty grid under this key would be "found"
+            //  by the next Compute and reported as a zero orbital.
+            cvsg->removeMOGrid(key);
             delete angfunc;
             return false;
           }
@@ -619,6 +631,7 @@ bool ComputeMoCmd::execute()
         cerr << "MO: orbital " << endMO+1 << " requested, "
              << (moCoefs ? moCoefs->rows() : 0) << " stored -- not drawing"
              << endl;
+        cvsg->removeMOGrid(key);
         delete angfunc;
         return false;
       }

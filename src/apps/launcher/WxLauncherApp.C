@@ -50,14 +50,14 @@ bool WxLauncherApp::OnInit()
 
     ewxApp::OnInit();
 
-   if (argc>2 && strcmp(argv[1],"-pipe")==0) {
+   if (argc>2 && strcmp(argv[1].ToStdString().c_str(),"-pipe")==0) {
      AuthCache::getCache().pipeIn(argv[2].ToStdString());
    }
 
     p_launchFrame = new WxLauncher(NULL);
     EDSIFactory::addAuthEventListener(p_launchFrame);
 
-    if ((this->argc > 1) && (strcmp(this->argv[1], "-context") == 0))
+    if ((this->argc > 1) && (strcmp(this->argv[1].ToStdString().c_str(), "-context") == 0))
         cntxt = this->argv[2];
 
     p_launchFrame->setContext(cntxt);

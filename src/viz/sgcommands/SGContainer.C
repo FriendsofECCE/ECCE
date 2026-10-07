@@ -3,14 +3,12 @@
   using std::cout;
   using std::endl;
 
-#ifdef __GNUC__
-#include <ext/hash_map>
-   using __gnu_cxx::hash_map;
-   using __gnu_cxx::hash;
-#endif
+#include <cstdint>
+#include <unordered_map>
 
 #include "inv/nodes/SoMaterial.H"
 #include "inv/nodes/SoSwitch.H"
+#include "inv/sensors/SoFieldSensor.H"
 #include "inv/nodes/SoShapeHints.H"
 #include "inv/nodes/SoClipPlane.H"
 #include "inv/actions/SoGLRenderAction.H"
@@ -107,6 +105,8 @@ string SGContainer::commandObjectType() const
 /////////////////////////////////////////////////////////////////////////////
 void SGContainer::constructor()
 {
+   p_nmStickScale = 1.0f;
+   p_nmSwitchSensor = 0;
    // For gridded data in the viewer
    setCurrentGrid(0);  // No need to have one to start is there
 
@@ -314,7 +314,7 @@ void SGContainer::constructor()
    p_display->addChild(p_dynamicStyles);
 
    createStyle(DisplayDescriptor("default", 
-      DisplayStyle::fromStyle(DisplayStyle::BALLWIRE), "Element"));
+      DisplayStyle::fromStyle(DisplayStyle::BALLSTICK), "Element"));
 
    // ---------------------Property Nodes --------------------------
    // The MO switch
@@ -324,6 +324,9 @@ void SGContainer::constructor()
 
    p_NMVecSwitch = new SoSwitch;
    p_mainSep->addChild(p_NMVecSwitch);
+   p_nmSwitchSensor = new SoFieldSensor(
+      [](void *d, SoSensor*) { ((SGContainer*)d)->applyNMStickScale(); }, this);
+   p_nmSwitchSensor->attach(&p_NMVecSwitch->whichChild);
 
    // The NormalMode switch
    p_NMSwitch = new SoSwitch;
@@ -334,7 +337,7 @@ void SGContainer::constructor()
    // Since Fragment is allowed to have no atoms now-a-days,  just add it
    // right away.
    SGFragment *frag = new SGFragment();
-   frag->setMainDisplayStyle( DisplayStyle::BALLWIRE ) ;
+   frag->setMainDisplayStyle( DisplayStyle::BALLSTICK ) ;
    insertFragment(frag);
    p_chemSysTop->addChild(p_display);
 
@@ -1346,7 +1349,7 @@ void SGContainer::applyStyle(const DisplayDescriptor& dd, ChemDisplayParam *cdp)
       cdp->bondWireframeLineWidth.setValue(dd.getLineWidth());
       cdp->bondWireframeAntiAlias.setValue(
          ChemDisplayParam::WIREFRAME_ANTIALIAS_WITH_DEPTH_COMPARISON);
-      cdp->bondCylinderRadius.setValue(dd.getCylinderRadius() /100.0);
+      cdp->bondCylinderRadius.setValue(dd.getCylinderRadius() /100.0 * p_nmStickScale);
 
       cdp->bondCylinderComplexity.setValue(dd.getCylinderRQ() /100.0);
       cdp->bondCylinderDisplayStyle.setValue(dd.getBondCylinderOpt());
@@ -1617,7 +1620,7 @@ ChemDisplayParam::DisplayBinding SGContainer::toChemkitStyle(DisplayStyle::Style
 
 DisplayStyle::Style SGContainer::toOurStyle(ChemDisplayParam::DisplayBinding style)
 {
-   DisplayStyle::Style ret = DisplayStyle::BALLWIRE;
+   DisplayStyle::Style ret = DisplayStyle::BALLSTICK;
    switch (style) {
       case ChemDisplayParam::DISPLAY_STICK:
         ret = DisplayStyle::STICK;
@@ -1954,6 +1957,28 @@ void SGContainer::updateNMVecStarts()
    for (int j = 0; j < root->getNumChildren(); j++) {
       VRVector *v = dynamic_cast<VRVector*>(root->getChild(j));
       if (v) v->startRadius(displayedSphereRadius(j));
+   }
+   applyNMStickScale();
+}
+
+// 0.15 erases the bond, 0.4 leaves the arrow shaft half inside the stick.
+static const float NM_STICK_FACTOR = 0.25f;
+
+void SGContainer::applyNMStickScale()
+{
+   // Thin sticks leave the arrows along bonds visible; normal size again
+   // once the arrows are hidden.
+   float want = 1.0f;
+   if (p_NMVecSwitch->whichChild.getValue() != SO_SWITCH_NONE &&
+       p_NMVecSwitch->getNumChildren() > 0) {
+      want = NM_STICK_FACTOR;
+   }
+   if (want == p_nmStickScale) return;
+   float ratio = want / p_nmStickScale;
+   p_nmStickScale = want;
+   for (int i = 0; i < getNumDisplayStyles(); i++) {
+      ChemDisplayParam *cdp = getChemDisplayParam(i);
+      cdp->bondCylinderRadius.setValue(cdp->bondCylinderRadius.getValue() * ratio);
    }
 }
 
@@ -2455,19 +2480,19 @@ bool SGContainer::changeStyleSelectedResidues(const DisplayStyle& newstyle, SGFr
 
 #if 111
    // Initialize a map to 10% larger than numResidues  - just a guess
-   hash_map<unsigned long, Residue*, hash<unsigned long>, equint> mymap((int)(numResidues * 1.1));
+   std::unordered_map<uintptr_t, Residue*> mymap((int)(numResidues * 1.1));
 
    int selAtoms = atomList.size();
    for (int ai= 0; ai< selAtoms; ai++)
    {
       atmptr = frag->atomRef(atomList[ai]) ;
       Residue *res = atmptr->getResidue();
-      if (res && mymap.find((unsigned long)res) == mymap.end() ) {
+      if (res && mymap.find((uintptr_t)res) == mymap.end() ) {
          // Never got the code for indexed residues commited - use slow way now
          int num = ((Fragment*)frag)->getResidueIndex(res);
          //int num = res->index();
          selResidues[num] = true;
-         mymap[(unsigned long)res] = res;
+         mymap[(uintptr_t)res] = res;
       }
    }
 #else

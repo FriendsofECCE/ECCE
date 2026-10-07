@@ -821,7 +821,7 @@ void ResidueTable::eventMCB(const Event& event)
    }
 }
 
-void ResidueTable::restoreSettings(wxConfig * config)
+void ResidueTable::restoreSettings(wxConfigBase * config)
 {
    ResourceDescriptor rd = ResourceDescriptor::getResourceDescriptor();
    int view = -1;
@@ -848,7 +848,7 @@ void ResidueTable::restoreSettings(wxConfig * config)
   p_fragdir = config->Read("/ResidueTable/FragDir", "");
 }
 
-void ResidueTable::saveSettings(wxConfig * config)
+void ResidueTable::saveSettings(wxConfigBase * config)
 {
    config->Write("/ResidueTable/View", p_viewId);
    config->Write("/ResidueTable/SortCol", p_table->getSortCol());

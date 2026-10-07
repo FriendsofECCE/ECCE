@@ -19,14 +19,13 @@ using std::ifstream;
 
 #include <string.h>
 
+#ifndef _WIN32
 #include <netdb.h>        // gethostbyname
+#endif
 
 #include "util/ErrMsg.H"
 #include "util/Host.H"
 #include "util/StringTokenizer.H"
-
-// uname is not properly prototyped
-extern "C" int uname(struct utsname *name);
 
 // -----------------------
 // Public Member Functions
@@ -93,6 +92,12 @@ string Host::fullyQualifiedName() const
 {
   // cout << "fully QName" << endl;
   string ret = host_name();
+#ifdef _WIN32
+  char fqdn[256];
+  DWORD n = sizeof(fqdn);
+  if (GetComputerNameExA(ComputerNameDnsFullyQualified, fqdn, &n))
+    ret = fqdn;
+#else
   // cout << "host " << ret << endl;
   struct hostent* host = gethostbyname(ret.c_str());
   if (host != NULL) {
@@ -105,6 +110,7 @@ string Host::fullyQualifiedName() const
       ret.append("." + domain);
     }
   }
+#endif
   return ret;
 }
 

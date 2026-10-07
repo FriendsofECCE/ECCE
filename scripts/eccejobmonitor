@@ -133,7 +133,8 @@ my $gMsgBlockBuffering;
 my $gMsgBlockBufParseType;
 my $gMsgBlockCurrent;
 my $gMsgDest = undef;
-my $gParentPid = getppid();	# parent at start; it changes when the client's shell dies
+# Native Windows perl (Strawberry) has no getppid; there the lost-client check is skipped.
+my $gParentPid = ($^O eq 'MSWin32') ? 0 : getppid();	# parent at start; it changes when the client's shell dies
 my $gPidFile = undef;
 my %gPdCount;
 my @gPdMatchList;
@@ -160,7 +161,7 @@ my $gSocketDead = 0;
 my $gWaitFileStatus = 1;
 my $gUpCount = 0;
 my $gUpFreq = 6;
-my $gUser = getpwuid($<);
+my $gUser = ($^O eq 'MSWin32') ? ($ENV{USERNAME} || $ENV{ECCE_REALUSER} || "") : getpwuid($<);
 
 # configuration parameters
 my %gConfig = (
@@ -1055,7 +1056,7 @@ sub Die
 
 sub ConnCheck
 {
-    return if ($gConfig{'commType'} ne 'stdio');
+    return if ($gConfig{'commType'} ne 'stdio' || $^O eq 'MSWin32');
 
     my $why;
     if (getppid() != $gParentPid)
@@ -1078,6 +1079,8 @@ sub PidIsMonitor
 {
     my($pid) = @_;
     my $args = '';
+
+    return 0 if ($^O eq 'MSWin32');    # no /proc, and `ps` is not a Windows pid lister
 
     if (open(my $fh, '<', "/proc/$pid/cmdline"))
     {
@@ -1720,14 +1723,18 @@ sub JobCheck
 
     if ($q eq 'shell')
     {
+        # Under MSYS the id is the MSYS pid the job's sh reported, which is
+        # what MSYS ps lists too (its rows may start with a status letter).
+        my $pidField = 0;
         $cmd = "ps -p $id 2>&1";
         if (open(QUERY, "$cmd |"))
         {
             my $found = 0;
             while (<QUERY>)
             {
-                # PID is field 0 (0-based)
-                if ((split)[0] eq $id)
+                my @f = split;
+                shift @f if (@f && $f[0] !~ /^\d+$/ && $f[0] ne 'PID');
+                if (($f[$pidField] // '') eq $id)
                 {
                     &MsgSendUp("Shell job pid '$id'");
 
