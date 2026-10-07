@@ -1,6 +1,8 @@
 #ifndef MOCOEFFS__H
 #define MOCOEFFS__H
 
+#include <vector>
+
 #include "wxgui/ewxDialog.H"
 
 #include "VizPropertyPanel.H"
@@ -27,7 +29,10 @@ class MoCoeffs : public ewxDialog
     MoCoeffs();
     MoCoeffs(wxWindow *parent, wxWindowID id=wxID_ANY, const wxString& title="ECCE MO Coefficients", const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize, long style = wxDEFAULT_DIALOG_STYLE, const wxString& name = "coeffs");
     virtual ~MoCoeffs();
-    virtual void showCoeffs(ICalculation *expt, int mo);
+    //  `percent`, if given, is the orbital's share on each function (a
+    //  fraction, one per row) and fills the "%" column.
+    virtual void showCoeffs(ICalculation *expt, int mo,
+                            const std::vector<double> *percent = 0);
 
    protected:
      void initialize();

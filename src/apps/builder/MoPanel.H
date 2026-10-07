@@ -19,7 +19,9 @@ class Command;
 class ewxPlotCtrl;
 class GridDlg;
 class MoCoeffs;
+class MoAoBasis;
 class wxGrid;
+class wxTextCtrl;
 
 
 /**
@@ -89,6 +91,9 @@ class MoPanel : public MoGUI,
       */
      string tableState() const;
 
+     /** The text shown under the table: the selected MO's composition. */
+     string compositionText() const { return p_compSummary; }
+
    protected:
 
      double getTransparency();
@@ -99,6 +104,8 @@ class MoPanel : public MoGUI,
      void updateUIOptions();
      void fillUI();
      void selectMo(int index);
+     void showComposition();
+     bool ensureAoBasis();
      GridDlg *getGridDlg();
      void updateGridDlg();
      void showGridDlg();
@@ -148,6 +155,16 @@ class MoPanel : public MoGUI,
       ewxTextCtrl *p_espMin;
       ewxTextCtrl *p_espMax;
 
+
+      //  The selected MO's atomic-orbital composition (#161), from the
+      //  same MoAoBasis as ecce-mocomp.  The basis and its overlap matrix
+      //  cost something, so they are built on the first selection.
+      wxTextCtrl      *p_compText = nullptr;
+      MoAoBasis       *p_aoBasis = nullptr;
+      bool             p_aoTried = false;
+      string           p_aoWhy;
+      vector< vector<double> > p_aoRows[2];     // alpha, beta
+      string           p_compSummary;
 
       /* The report oriented table showing MO energies */
       wxGrid *p_mogrid;  

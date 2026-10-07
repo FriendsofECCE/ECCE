@@ -39,6 +39,8 @@ extern "C" {
 #include "wxgui/ewxScrolledWindow.H"
 #include "wx/display.h"
 #include "wx/statline.h"
+#include "wx/glcanvas.h"
+#include "wx/aui/framemanager.h"
 #include <vector>
 #include <map>
 #include <algorithm>
@@ -576,6 +578,31 @@ FitScroller *findScroller(wxWindow *win)
 }
 
 
+bool holdsGLCanvas(wxWindow *win)
+{
+  if (dynamic_cast<wxGLCanvas*>(win) != NULL)
+    return true;
+  wxWindowList& kids = win->GetChildren();
+  for (wxWindowList::compatibility_iterator n = kids.GetFirst(); n;
+       n = n->GetNext()) {
+    if (!n->GetData()->IsTopLevel() && holdsGLCanvas(n->GetData()))
+      return true;
+  }
+  return false;
+}
+
+
+//  A GL canvas must not be scrolled: macOS aborts when a GL surface lies
+//  outside what the window allows, and a scroller sizes its content to its
+//  virtual size.  An AUI frame's sizer is AUI's own, rebuilt on every
+//  Update(), and its minimum size is no natural size.  Such a window is
+//  only capped, and its sizer shrinks the canvas.
+bool mustNotScroll(wxTopLevelWindow *win)
+{
+  return wxAuiManager::GetManager(win) != NULL || holdsGLCanvas(win);
+}
+
+
 //  Move the window's content, and the windows its sizer manages, into a
 //  scroller; the fixed row's windows stay in the window.
 FitScroller *wrapContent(wxTopLevelWindow *win, wxSizer *content,
@@ -723,7 +750,7 @@ void ewxWindowUtils::fitToDisplay(wxTopLevelWindow *win, wxSizer *fixedRow)
   //  asked of it.
   wxSize least = win->GetMinClientSize();
 
-  if (scroller == NULL && sizer != NULL) {
+  if (scroller == NULL && sizer != NULL && !mustNotScroll(win)) {
     wxSize natural = sizer->GetMinSize();
     natural.x = wxMax(natural.x, least.x);
     natural.y = wxMax(natural.y, least.y);

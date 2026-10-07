@@ -1,11 +1,15 @@
 #include <algorithm>
    using std::fill;
    using std::reverse;
+#include <cmath>
+#include <cstdio>
 #include <limits>
 #include <utility>
   using std::make_pair;
 
 #include <wx/link.h>
+#include <wx/stopwatch.h>
+#include <wx/textctrl.h>
 
 #include "util/EventDispatcher.H"
 #include "util/InternalException.H"
@@ -13,6 +17,7 @@
 #include "util/NullPointerException.H"
 
 #include "dsm/ICalcUtils.H"
+#include "tdat/MoAoBasis.H"
 #include "tdat/PropTable.H"
 #include "tdat/PropVector.H"
 #include "tdat/PropVecString.H"
@@ -131,6 +136,7 @@ MoPanel::MoPanel(IPropCalculation *calculation,
 
 MoPanel::~MoPanel()
 {
+   delete p_aoBasis;
 }
 
 
@@ -180,6 +186,17 @@ bool MoPanel::Create(IPropCalculation *calculation,
    p_plotReg->Show(which == PLOT);
    p_plotSym->Show(which == PLOTSYM);
    sizer->Layout();
+
+   //  The composition of the selected MO, under the table or plot.  Three
+   //  lines high: it is a summary, and the full per-function list is in
+   //  View Coeff.
+   p_compText = new wxTextCtrl(this, wxID_ANY, wxEmptyString,
+         wxDefaultPosition, wxSize(-1, 4*GetTextExtent("M").y + 6),
+         wxTE_MULTILINE|wxTE_READONLY|wxTE_WORDWRAP|wxBORDER_NONE);
+   p_compText->SetBackgroundColour(GetBackgroundColour());
+   p_compText->SetToolTip(_("Which atoms and shells the selected orbital "
+         "is made of, as a percentage of the orbital (Mulliken population)."));
+   sizer->Insert(3, p_compText, 0, wxGROW|wxLEFT|wxRIGHT, 5);
 
    wxTextCtrl *txt = (wxTextCtrl*)FindWindow(ID_TEXTCTRL_MO_CUTOFF);
    ewxNumericValidator validator(0.,100.,0.001);
@@ -409,6 +426,14 @@ void MoPanel::fillUI()
    //static char *shells[] = {"s","p","d","f","g","h","i"};
 
    IPropCalculation *expt = getCalculation();
+
+   //  New data, so the basis and coefficients behind the composition
+   //  are rebuilt on the next selection.
+   delete p_aoBasis;
+   p_aoBasis = nullptr;
+   p_aoTried = false;
+   p_aoRows[0].clear();
+   p_aoRows[1].clear();
 
    // Clear table
    p_mogrid->ClearGrid();
@@ -751,6 +776,8 @@ void MoPanel::selectMo(int index)
    //  has the size it will be seen at.
    p_scrollPending = true;
    CallAfter(&MoPanel::scrollToSelection);
+
+   showComposition();
 }
 
 
@@ -810,6 +837,7 @@ string MoPanel::tableState() const
                                        : wxString("alpha")) << "\n";
       s << "selectedVisible " << p_mogrid->IsVisible(p_selectedRow, 0, true) << "\n";
    }
+   s << "composition " << p_compSummary << "\n";
    s << "gridWindow " << cs.x << "x" << cs.y << "\n";
    s << "scrollY " << vy * uy << "\n";
    int first = -1, last = -1;
@@ -946,9 +974,139 @@ void MoPanel::showCoeffs(bool force)
       p_coeffsDlg = new MoCoeffs(this);
    }
    if (force) p_coeffsDlg->Show();
-   if (p_coeffsDlg->IsShownOnScreen())
+   if (p_coeffsDlg->IsShownOnScreen()) {
+      //  The per-function percentages are the alpha ones; the dialog
+      //  itself only reads the alpha coefficients.
+      MoAoBasis::Composition comp;
+      const MoAoBasis::Composition *shown = 0;
+      const int mo = getSelectedMo();
+      if (getSelectedType() == "alpha" && ensureAoBasis() && mo >= 1 &&
+          mo <= (int)p_aoRows[0].size() &&
+          p_aoBasis->analyse(p_aoRows[0][mo-1], MoAoBasis::MULLIKEN, comp))
+         shown = &comp;
       p_coeffsDlg->showCoeffs(
-            dynamic_cast<ICalculation*>(getCalculation()), getSelectedMo());
+            dynamic_cast<ICalculation*>(getCalculation()), mo,
+            shown ? &comp.perFunction : 0);
+   }
+}
+
+
+namespace {
+//  Shown only if building the basis takes noticeable time (Cr(CO)6 does).
+class CompositionProgress
+{
+  public:
+    explicit CompositionProgress(wxWindow *parent) : p_parent(parent), p_dlg(0) {}
+    ~CompositionProgress() { if (p_dlg) p_dlg->Destroy(); }
+    void progress(double frac)
+    {
+      if (p_dlg == 0) {
+        if (p_watch.Time() < 300) return;
+        p_dlg = new ewxProgressDialog(_("MO composition"),
+            _("Computing overlap integrals"), 100, p_parent,
+            wxPD_AUTO_HIDE|wxPD_APP_MODAL|wxPD_SMOOTH);
+        p_dlg->Show();
+      }
+      p_dlg->Update((int)(frac*100));
+    }
+  private:
+    wxWindow *p_parent;
+    ewxProgressDialog *p_dlg;
+    wxStopWatch p_watch;
+};
+}
+
+
+bool MoPanel::ensureAoBasis()
+{
+   if (p_aoTried) return p_aoBasis != nullptr;
+   p_aoTried = true;
+   p_aoWhy = "no basis set or MO coefficients";
+
+   IPropCalculation *calc = getCalculation();
+   SGFragment *frag = getFW().getSceneGraph().getFragment();
+   vector<string> symbols;
+   vector<double> coords;
+   if (calc == 0 || !MoAoBasis::fragmentGeometry(frag, symbols, coords))
+      return false;
+   if (!MoAoBasis::coefficients(calc, symbols, false, p_aoRows[0]))
+      return false;
+   if (calc->getProperty("MOBETA") != 0)
+      MoAoBasis::coefficients(calc, symbols, true, p_aoRows[1]);
+
+   CompositionProgress progress(wxGetTopLevelParent(this));
+   MoAoBasis *basis = new MoAoBasis();
+   if (!basis->build(calc, symbols, coords, (int)p_aoRows[0][0].size(),
+                     [&](double frac) { progress.progress(frac); })) {
+      p_aoWhy = basis->complaint;
+      delete basis;
+      return false;
+   }
+   p_aoBasis = basis;
+   return true;
+}
+
+
+/**
+ * The selected orbital's composition by atom and shell type, largest
+ * first.  Mulliken, as the MO diagram uses; it is not bounded, so a
+ * part can be negative or the largest can exceed 100%.
+ */
+void MoPanel::showComposition()
+{
+   if (p_compText == 0) return;
+   p_compSummary.clear();
+
+   const int mo = getSelectedMo();
+   const string type = getSelectedType();
+   wxString text;
+
+   if (!p_isValid && p_mogrid->GetNumberRows() == 0) {
+      // Nothing selected yet.
+   } else if (!ensureAoBasis()) {
+      text = wxString::Format(_("Composition not available: %s."), p_aoWhy);
+   } else {
+      const vector< vector<double> >& rows = p_aoRows[type == "beta" ? 1 : 0];
+      MoAoBasis::Composition comp;
+      if (mo < 1 || mo > (int)rows.size() ||
+          !p_aoBasis->analyse(rows[mo-1], MoAoBasis::MULLIKEN, comp)) {
+         text = _("Composition not available for this orbital.");
+      } else {
+         vector<MoAoBasis::Share> parts = comp.types;
+         std::stable_sort(parts.begin(), parts.end(),
+             [](const MoAoBasis::Share& a, const MoAoBasis::Share& b) {
+               return a.share > b.share; });
+
+         string list;
+         double other = 0.0;
+         int hidden = 0, shown = 0;
+         for (size_t k = 0; k < parts.size(); k++) {
+            if (shown >= 10 || fabs(parts[k].share) < 0.005) {
+               other += parts[k].share;
+               hidden++;
+               continue;
+            }
+            char buf[64];
+            snprintf(buf, sizeof buf, "%s %.1f%%", parts[k].label.c_str(),
+                     100.0*parts[k].share);
+            list += (shown++ ? "   " : "") + string(buf);
+         }
+         if (hidden > 0) {
+            char buf[64];
+            snprintf(buf, sizeof buf, "   other (%d) %.1f%%", hidden,
+                     100.0*other);
+            list += buf;
+         }
+         p_compSummary = list;
+         text = wxString::Format(_("MO %d%s, composition (%s population):\n"),
+                  mo, type == "beta" ? " beta" : "",
+                  MoAoBasis::methodName(MoAoBasis::MULLIKEN)) + list;
+         if (fabs(comp.norm - 1.0) > 0.02)
+            text += wxString::Format(_("\nOrbital norm %.3f, not 1: the "
+                  "coefficients may not match the basis."), comp.norm);
+      }
+   }
+   p_compText->ChangeValue(text);
 }
 
 void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
@@ -1227,6 +1385,7 @@ void MoPanel::OnGridOkButton(wxCommandEvent& evt)
 void MoPanel::OnMoSelection(wxGridEvent& event)
 {
    p_selectedRow = event.GetRow();
+   showComposition();
    showCoeffs(false);
    event.Skip();
 }

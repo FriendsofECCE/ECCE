@@ -13,10 +13,31 @@
 #include "inv/SoWx/SoWxKeyboard.H"
 
 
+#include "wx/display.h"
+
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>
 using std::cerr;
+
+
+//  The largest a canvas may be: the client area of the display it is on.
+//  macOS aborts the process (a SkyLight assertion in CGLSetSurface) when a
+//  GL context is attached to a view outside the bounds it allows.
+static wxSize canvasCap(const wxWindow *w)
+{
+  int idx = wxDisplay::GetFromWindow(w);
+  return wxDisplay(idx == wxNOT_FOUND ? 0u : (unsigned)idx)
+           .GetClientArea().GetSize();
+}
+
+
+static bool exceedsCap(const wxWindow *w, wxSize *capped)
+{
+  wxSize cap = canvasCap(w), size = w->GetSize();
+  *capped = wxSize(wxMin(size.x, cap.x), wxMin(size.y, cap.y));
+  return cap.x > 0 && cap.y > 0 && *capped != size;
+}
 
 
 BEGIN_EVENT_TABLE(SoWxRenderArea, wxGLCanvas)
@@ -789,6 +810,12 @@ void SoWxRenderArea::redraw()
   if (!p_glContext) return;
 #endif
 
+  //  Never attach the context to a canvas larger than the screen; OnSize()
+  //  shrinks it and the size change brings another paint.
+  wxSize capped;
+  if (exceedsCap(this, &capped))
+    return;
+
   SetCurrent(*p_glContext);
 
   //  ECCE_DEBUG_GL_VISUAL=1 reports, once, what visual this canvas
@@ -1393,6 +1420,12 @@ void SoWxRenderArea::OnSize(wxSizeEvent& event)
   // such handler (context validity is handled differently now - see
   // p_glContext / SetCurrent() above), so there's nothing to chain to.
   event.Skip();
+
+  wxSize capped;
+  if (exceedsCap(this, &capped)) {
+    SetSize(capped);
+    return;
+  }
 
   int w, h;
   GetClientSize(&w, &h);

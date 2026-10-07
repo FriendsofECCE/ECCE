@@ -429,6 +429,13 @@ target_link_libraries(eccejobmaster PRIVATE
 add_executable(ecce-localdata src/apps/localdata/ecce-localdata.C)
 target_include_directories(ecce-localdata PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-localdata PRIVATE ecceutil ${XercesC_LIBRARIES})
+# An MO's atomic-orbital composition from a calculation folder (#161).
+# Installed as bin/mocomp; its wrapper is ecce-mocomp like every CLI app's.
+add_executable(mocomp src/apps/mocomp/mocomp.C)
+target_include_directories(mocomp PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(mocomp PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
+  ${XercesC_LIBRARIES})
 # flock(1) for the session scripts where util-linux is absent (macOS).
 add_executable(ecce-flock src/apps/flock/ecce-flock.c)
 # The server half of "ecce -admin" on a -remote client (SiteRequest).
@@ -847,7 +854,6 @@ export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 exec \"$ECCE_HOME/bin/ecce-site-admin\" \"$@\"
 ")
 install(PROGRAMS ${_sadm_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
-
 foreach(_ds start stop status adduser)
   set(_ds_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-dataserver-${_ds})
   file(WRITE ${_ds_wrapper}
@@ -895,7 +901,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-flock ecce-site-admin
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-flock ecce-site-admin mocomp
   autosym getfrag genmol genmollat cleansym symops)
 
 install(TARGETS ${ECCE_GUI_APPS} ${ECCE_CLI_APPS} RUNTIME DESTINATION bin
@@ -2011,6 +2017,14 @@ if(PYTHON3_EXECUTABLE)
                    $<TARGET_FILE:importmeta>)
   set_tests_properties(importmeta PROPERTIES TIMEOUT 300 ENVIRONMENT
     "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders")
+  # tests/mocomp: ecce-mocomp's Mulliken and c^2 compositions against
+  # checked-in Multiwfn numbers (#161); re-derives them where Multiwfn is
+  # installed (MULTIWFN, or Multiwfn_noGUI on PATH).
+  add_test(NAME mocomp
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/mocomp/run_tests.py
+                   ${CMAKE_BINARY_DIR})
+  set_tests_properties(mocomp PROPERTIES TIMEOUT 300)
   add_test(NAME fragreaders
            COMMAND fragreaders ${CMAKE_CURRENT_SOURCE_DIR}/tests/fragreaders/data)
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/fragreaders-home)

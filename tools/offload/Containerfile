@@ -1,0 +1,18 @@
+# Build and test environment for tools/offload/run-on-radium.sh.
+# Package list = the CI "Debian (apt, containerized)" job plus what
+# tests/teaching, tests/launch, tests/apps and tests/tls need at run time.
+FROM docker.io/library/debian:trixie
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      build-essential gfortran cmake ninja-build \
+      libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
+      libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
+      libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git dpkg-dev \
+      file libssh-dev python3 libcoin-dev libegl-dev \
+      ca-certificates perl tcsh csh procps openssh-client openssl curl \
+      nwchem nwchem-openmpi mopac \
+      apache2 apache2-utils xvfb xauth x11-utils x11-apps libgl1-mesa-dri \
+      mesa-utils python3-wxgtk4.0 libgtk-3-bin imagemagick xdotool \
+      strace rpm \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /work
