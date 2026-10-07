@@ -245,6 +245,9 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      releases; drop the oldest minor when a new one is added. Everything
      older is on the releases page. -->
 
+- **v8.18.8** — ORCA input: generally contracted basis sets (cc-pV*Z,
+  ANO) are written with all their contractions; before, explicit ORCA
+  basis input lost functions and gave wrong energies (#239).
 - **v8.18.7** — MD Prepare's Orient panel and toolbox labels no longer
   print garbage.
 - **v8.18.6** — the file dialog's type filter and typed paths work;
