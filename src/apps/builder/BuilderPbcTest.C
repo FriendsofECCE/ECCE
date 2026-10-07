@@ -158,7 +158,10 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
           << " child " << (p.IsOk() && p.window && p.window->GetParent() == this)
           << " ticked " << (id != wxNOT_FOUND && p_toolMenu->IsChecked(id))
           << " rect " << p.rect.x << " " << p.rect.y << " " << p.rect.width
-          << " " << p.rect.height << "\n";
+          << " " << p.rect.height;
+      wxSizer *content = p.IsOk() && p.window ? p.window->GetSizer() : 0;
+      out << " need " << (content ? content->GetMinSize().x : 0) << " have "
+          << (p.IsOk() && p.window ? p.window->GetClientSize().x : 0) << "\n";
     }
     out << "client " << GetClientSize().x << " " << GetClientSize().y << "\n";
     wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
