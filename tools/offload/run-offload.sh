@@ -24,13 +24,33 @@ free() {
     ssh -o BatchMode=yes -o ConnectTimeout=5 "$1" "$(conf "$1"); n=0; mkdir -p \$OFF/locks;
       for i in \$(seq 1 \$SLOTS); do ( exec 9>\$OFF/locks/slot\$i; flock -n 9 ) && n=\$((n+1)); done; echo \$n" 2>/dev/null || echo -1
 }
+# tellurium is someone's gaming computer: use it only in the hours its
+# owner allows, and start a job only when an hour of the window is left.
+# Until 2026-10-08 14:00 any time before 20:30; after that weekday and
+# weekend evenings 17-21 and weekend mornings 07-12.
+tellurium_free() {
+    local now day hm
+    now=$(date +%s); day=$(date +%u); hm=$((10#$(date +%H) * 60 + 10#$(date +%M)))
+    if [ "$now" -lt "$(date -d '2026-10-08 13:00' +%s)" ]; then
+        [ "$hm" -le $((19 * 60 + 30)) ]; return
+    fi
+    [ "$hm" -ge $((17 * 60)) ] && [ "$hm" -le $((20 * 60)) ] && return 0
+    [ "$day" -ge 6 ] && [ "$hm" -ge $((7 * 60)) ] && [ "$hm" -le $((11 * 60)) ]
+}
+if [ "$host" = tellurium ] && ! tellurium_free; then
+    echo "offload: tellurium is not available now (owner's hours); use radium" >&2
+    exit 3
+fi
 if [ "$host" = auto ]; then
     # Builds prefer tellurium, test suites radium.  A host that does not
-    # answer (tellurium is off at night) is skipped; if every reachable host
+    # answer, or tellurium outside its hours, is skipped; if every reachable host
     # is full the job queues on the first reachable one.
     case $2 in build|ctest) order="tellurium radium" ;; *) order="radium tellurium" ;; esac
     host= queue=
     for h in $order; do
+        if [ "$h" = tellurium ] && ! tellurium_free; then
+            echo "offload: tellurium outside its hours, skipped" >&2; continue
+        fi
         n=$(free "$h")
         [ "$n" -ge 0 ] || { echo "offload: $h unreachable, skipped" >&2; continue; }
         [ -n "$queue" ] || queue=$h

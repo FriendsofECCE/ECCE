@@ -37,8 +37,8 @@ exit status is the command's (77 is SKIP). Examples:
 
 `--host auto` (the default) prefers tellurium for `build`/`ctest` and radium
 for `teaching`/`apps`, takes the other if the first has no free slot, and
-queues on the first reachable host if both are full. **tellurium is off at
-night (after 20:30)**: a host that does not answer within 5 s is skipped. If
+queues on the first reachable host if both are full. **tellurium is someone's gaming computer and is used only in its owner's hours** (until 2026-10-08 14:00, then evenings 17-21 and weekend mornings 07-12; a job starts only with an hour left, see `tellurium_free` in the script). A host that does not answer within 5 s
+is skipped. If
 no host is reachable the script exits 3 and says so; run the command locally
 then. Slots are `flock` files in `<work root>/locks`, so waiting jobs queue
 instead of failing. One job per ref at a time (the build dir is per ref).
