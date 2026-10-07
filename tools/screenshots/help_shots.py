@@ -343,7 +343,8 @@ def main():
                     data.project()
                     data.calc("Created", props=False, setup=False)
                     err = shootBuilder(display, options.tmp, options.out, name,
-                                       data.url("tutorial", "water-opt"))
+                                       data.url("tutorial", "water-opt"),
+                                       size=(1500, 1090))
                 elif name == "calced-water":
                     data.project()
                     data.calc("Ready", props=False)
@@ -387,7 +388,7 @@ def main():
                         err = shootBuilder(
                             display, options.tmp, options.out, name,
                             data.url("calcimport-test", "water-opt"),
-                            "Calculation Summary", turn=90)
+                            "Energies", turn=90)
                 if err:
                     print("  %s: %s" % (name, err))
                     failed += 1
