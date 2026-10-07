@@ -1,0 +1,249 @@
+code     ECCE name                    keyword (verified)     in table now           result
+gaussian 3-21++G                      -                      -                      no keyword matches
+gaussian 3-21++G*                     -                      -                      no keyword matches
+gaussian 3-21G                        3-21g                  3-21g                  match
+gaussian 3-21G*                       3-21g*                 3-21g*                 match
+gaussian 3-21GSP                      -                      -                      no keyword matches
+gaussian 4-22GSP                      -                      -                      no keyword matches
+gaussian 4-31G                        4-31g                  4-31g                  match
+gaussian 6-31++G                      6-31++g                6-31++g                match
+gaussian 6-31++G*                     6-31++G*               6-31++G*               match
+gaussian 6-31++G**                    6-31++g**              6-31++g**              match
+gaussian 6-31+G*                      6-31+G*                6-31+G*                match
+gaussian 6-311++G(2d,2p)              6-311++G(2d,2p)        6-311++G(2d,2p)        match
+gaussian 6-311++G(3df,3pd)            6-311++G(3df,3pd)      6-311++G(3df,3pd)      match
+gaussian 6-311++G**                   6-311++G**             6-311++G**             match
+gaussian 6-311+G*                     6-311+G*               6-311+G*               match
+gaussian 6-311G                       6-311G                 6-311G                 match
+gaussian 6-311G(2df,2pd)              6-311G(2df,2pd)        6-311G(2df,2pd)        match
+gaussian 6-311G*                      6-311G*                6-311G*                match
+gaussian 6-311G**                     6-311G**               6-311G**               match
+gaussian 6-31G                        6-31g                  6-31g                  match
+gaussian 6-31G(3df,3pd)               -                      -                      no keyword matches
+gaussian 6-31G*                       6-31G*                 6-31G*                 match
+gaussian 6-31G**                      6-31G**                6-31G**                match
+gaussian ADZP                         -                      -                      no keyword matches
+gaussian ANO-RCC                      -                      -                      no keyword matches
+gaussian AQZP                         -                      -                      no keyword matches
+gaussian ATZP                         -                      -                      no keyword matches
+gaussian Ahlrichs TZV                 TZV                    TZV                    match
+gaussian Ahlrichs VDZ                 SV                     SV                     match
+gaussian Ahlrichs VTZ                 -                      -                      no keyword matches
+gaussian Ahlrichs pVDZ                SVP                    SVP                    match
+gaussian DZ (Dunning)                 d95                    d95                    match
+gaussian DZP (Dunning)                D95**                  D95**                  match
+gaussian DZVP (DFT Orbital)           -                      -                      no keyword matches
+gaussian DZVP2 (DFT Orbital)          -                      -                      no keyword matches
+gaussian IGLO-II                      -                      -                      no keyword matches
+gaussian IGLO-III                     -                      -                      no keyword matches
+gaussian J-DZP                        -                      -                      no keyword matches
+gaussian J-DZP-DKH                    -                      -                      no keyword matches
+gaussian J-QZP                        -                      -                      no keyword matches
+gaussian J-QZP-DKH                    -                      -                      no keyword matches
+gaussian J-TZP                        -                      -                      no keyword matches
+gaussian J-TZP-DKH                    -                      -                      no keyword matches
+gaussian MIDI (Huzinaga)              -                      -                      no keyword matches
+gaussian MIDI!                        midix                  midix                  match
+gaussian MINI (Huzinaga)              -                      -                      no keyword matches
+gaussian MINI (Scaled)                -                      -                      no keyword matches
+gaussian STO-2G                       sto-2g                 sto-2g                 match
+gaussian STO-3G                       sto-3g                 sto-3g                 match
+gaussian STO-3G*                      sto-3g*                sto-3g*                match
+gaussian STO-6G                       STO-6G                 STO-6G                 match
+gaussian SV (Dunning-Hay)             d95v                   d95v                   match
+gaussian SVP (Dunning-Hay)            -                      -                      no keyword matches
+gaussian Sadlej pVTZ                  -                      -                      no keyword matches
+gaussian TZ (Dunning)                 -                      -                      no keyword matches
+gaussian TZVP (DFT Orbital)           -                      -                      no keyword matches
+gaussian UGBS                         UGBS                   UGBS                   match
+gaussian WTBS                         -                      -                      no keyword matches
+gaussian Wachters+f                   -                      -                      not run (no small test molecule for its elements)
+gaussian aug-cc-pCVDZ                 -                      -                      no keyword matches
+gaussian aug-cc-pCVQZ                 -                      -                      no keyword matches
+gaussian aug-cc-pCVTZ                 -                      -                      no keyword matches
+gaussian aug-cc-pV(D+d)Z              -                      -                      not run (no small test molecule for its elements)
+gaussian aug-cc-pV(Q+d)Z              -                      -                      not run (no small test molecule for its elements)
+gaussian aug-cc-pV(T+d)Z              -                      -                      not run (no small test molecule for its elements)
+gaussian aug-cc-pVDZ                  aug-cc-pvdz            aug-cc-pvdz            match
+gaussian aug-cc-pVQZ                  aug-cc-pvqz            aug-cc-pvqz            match
+gaussian aug-cc-pVQZ-DK               -                      -                      not run (no small test molecule for its elements)
+gaussian aug-cc-pVTZ                  aug-cc-pvtz            aug-cc-pvtz            match
+gaussian aug-cc-pVTZ-DK               -                      -                      not run (no small test molecule for its elements)
+gaussian aug-cc-pwCVDZ                -                      -                      no keyword matches
+gaussian aug-cc-pwCVQZ                -                      -                      no keyword matches
+gaussian aug-cc-pwCVQZ-DK             -                      -                      not run (no small test molecule for its elements)
+gaussian aug-cc-pwCVTZ                -                      -                      no keyword matches
+gaussian aug-cc-pwCVTZ-DK             -                      -                      not run (no small test molecule for its elements)
+gaussian aug-pc-0                     -                      -                      no keyword matches
+gaussian aug-pc-1                     -                      -                      no keyword matches
+gaussian aug-pc-2                     -                      -                      no keyword matches
+gaussian aug-pc-3                     -                      -                      no keyword matches
+gaussian aug-pc-4                     -                      -                      error: explicit deck: {'status': 'timeout'}
+gaussian aug-pcSseg-0                 -                      -                      no keyword matches
+gaussian aug-pcSseg-1                 -                      -                      no keyword matches
+gaussian aug-pcSseg-2                 -                      -                      no keyword matches
+gaussian aug-pcSseg-3                 -                      -                      no keyword matches
+gaussian aug-pcSseg-4                 -                      -                      error: explicit deck: {'status': 'timeout'}
+gaussian aug-pcseg-0                  -                      -                      no keyword matches
+gaussian aug-pcseg-1                  -                      -                      no keyword matches
+gaussian aug-pcseg-2                  -                      -                      no keyword matches
+gaussian aug-pcseg-3                  -                      -                      no keyword matches
+gaussian aug-pcseg-4                  -                      -                      error: explicit deck: {'status': 'timeout'}
+gaussian cc-pCVDZ                     -                      -                      no keyword matches
+gaussian cc-pCVQZ                     -                      -                      no keyword matches
+gaussian cc-pCVTZ                     -                      -                      no keyword matches
+gaussian cc-pV(D+d)Z                  -                      -                      no keyword matches
+gaussian cc-pV(Q+d)Z                  -                      -                      not run (no small test molecule for its elements)
+gaussian cc-pV(T+d)Z                  -                      -                      not run (no small test molecule for its elements)
+gaussian cc-pVDZ                      cc-pvdz                cc-pvdz                match
+gaussian cc-pVDZ-DK                   -                      -                      no keyword matches
+gaussian cc-pVQZ                      cc-pvqz                cc-pvqz                match
+gaussian cc-pVQZ-DK                   -                      -                      no keyword matches
+gaussian cc-pVTZ                      cc-pvtz                cc-pvtz                match
+gaussian cc-pVTZ-DK                   -                      -                      no keyword matches
+gaussian cc-pwCVDZ                    -                      -                      no keyword matches
+gaussian cc-pwCVQZ                    -                      -                      no keyword matches
+gaussian cc-pwCVQZ-DK                 -                      -                      not run (no small test molecule for its elements)
+gaussian cc-pwCVTZ                    -                      -                      no keyword matches
+gaussian cc-pwCVTZ-DK                 -                      -                      not run (no small test molecule for its elements)
+gaussian d-aug-cc-pVDZ                -                      -                      no keyword matches
+gaussian d-aug-cc-pVQZ                -                      -                      no keyword matches
+gaussian d-aug-cc-pVTZ                -                      -                      no keyword matches
+gaussian pc-1                         -                      -                      no keyword matches
+gaussian pc-2                         -                      -                      no keyword matches
+gaussian pc-3                         -                      -                      no keyword matches
+gaussian pc-4                         -                      -                      no keyword matches
+gaussian pcSseg-0                     -                      -                      no keyword matches
+gaussian pcSseg-1                     -                      -                      no keyword matches
+gaussian pcSseg-2                     -                      -                      no keyword matches
+gaussian pcSseg-3                     -                      -                      no keyword matches
+gaussian pcSseg-4                     -                      -                      no keyword matches
+gaussian pcseg-0                      -                      -                      no keyword matches
+gaussian pcseg-1                      -                      -                      no keyword matches
+gaussian pcseg-2                      -                      -                      no keyword matches
+gaussian pcseg-3                      -                      -                      no keyword matches
+gaussian pcseg-4                      -                      -                      no keyword matches
+orca     3-21++G                      -                      -                      no keyword matches
+orca     3-21++G*                     -                      -                      no keyword matches
+orca     3-21G                        3-21G                  3-21G                  match
+orca     3-21G*                       -                      -                      no keyword matches
+orca     3-21GSP                      3-21GSP                3-21GSP                match
+orca     4-22GSP                      4-22GSP                4-22GSP                match
+orca     4-31G                        -                      -                      no keyword matches
+orca     6-31++G                      -                      -                      no keyword matches
+orca     6-31++G*                     -                      -                      no keyword matches
+orca     6-31++G**                    6-31++G**              6-31++G**              match
+orca     6-31+G*                      6-31+G*                6-31+G*                match
+orca     6-311++G(2d,2p)              6-311++G(2d,2p)        6-311++G(2d,2p)        match
+orca     6-311++G(3df,3pd)            6-311++G(3df,3pd)      6-311++G(3df,3pd)      match
+orca     6-311++G**                   6-311++G**             6-311++G**             match
+orca     6-311+G*                     6-311+G*               6-311+G*               match
+orca     6-311G                       6-311G                 6-311G                 match
+orca     6-311G(2df,2pd)              6-311G(2df,2pd)        6-311G(2df,2pd)        match
+orca     6-311G*                      6-311G*                6-311G*                match
+orca     6-311G**                     6-311G**               6-311G**               match
+orca     6-31G                        6-31G                  6-31G                  match
+orca     6-31G(3df,3pd)               -                      -                      no keyword matches
+orca     6-31G*                       6-31G*                 6-31G*                 match
+orca     6-31G**                      6-31G**                6-31G**                match
+orca     ADZP                         -                      -                      no keyword matches
+orca     ANO-RCC                      -                      -                      no keyword matches
+orca     AQZP                         -                      -                      no keyword matches
+orca     ATZP                         -                      -                      no keyword matches
+orca     Ahlrichs TZV                 TZV                    TZV                    match
+orca     Ahlrichs VDZ                 SV                     SV                     match
+orca     Ahlrichs VTZ                 -                      -                      no keyword matches
+orca     Ahlrichs pVDZ                SVP                    SVP                    match
+orca     DZ (Dunning)                 -                      -                      no keyword matches
+orca     DZP (Dunning)                -                      -                      no keyword matches
+orca     DZVP (DFT Orbital)           -                      -                      no keyword matches
+orca     DZVP2 (DFT Orbital)          -                      -                      no keyword matches
+orca     IGLO-II                      IGLO-II                IGLO-II                match
+orca     IGLO-III                     IGLO-III               IGLO-III               match
+orca     J-DZP                        -                      -                      no keyword matches
+orca     J-DZP-DKH                    -                      -                      no keyword matches
+orca     J-QZP                        -                      -                      no keyword matches
+orca     J-QZP-DKH                    -                      -                      no keyword matches
+orca     J-TZP                        -                      -                      no keyword matches
+orca     J-TZP-DKH                    -                      -                      no keyword matches
+orca     MIDI (Huzinaga)              MIDI                   MIDI                   match
+orca     MIDI!                        -                      -                      no keyword matches
+orca     MINI (Huzinaga)              MINI                   MINI                   match
+orca     MINI (Scaled)                -                      -                      no keyword matches
+orca     STO-2G                       -                      -                      no keyword matches
+orca     STO-3G                       STO-3G                 STO-3G                 match
+orca     STO-3G*                      -                      -                      no keyword matches
+orca     STO-6G                       -                      -                      no keyword matches
+orca     SV (Dunning-Hay)             -                      -                      no keyword matches
+orca     SVP (Dunning-Hay)            -                      -                      no keyword matches
+orca     Sadlej pVTZ                  -                      -                      no keyword matches
+orca     TZ (Dunning)                 -                      -                      no keyword matches
+orca     TZVP (DFT Orbital)           -                      -                      no keyword matches
+orca     UGBS                         UGBS                   UGBS                   match
+orca     WTBS                         -                      -                      no keyword matches
+orca     Wachters+f                   -                      -                      not run (no small test molecule for its elements)
+orca     aug-cc-pCVDZ                 aug-cc-pCVDZ           aug-cc-pCVDZ           match
+orca     aug-cc-pCVQZ                 -                      aug-cc-pCVQZ           error: explicit deck: {'status': 'timeout'}
+orca     aug-cc-pCVTZ                 aug-cc-pCVTZ           aug-cc-pCVTZ           match
+orca     aug-cc-pV(D+d)Z              -                      -                      not run (no small test molecule for its elements)
+orca     aug-cc-pV(Q+d)Z              -                      -                      not run (no small test molecule for its elements)
+orca     aug-cc-pV(T+d)Z              -                      -                      not run (no small test molecule for its elements)
+orca     aug-cc-pVDZ                  aug-cc-pVDZ            aug-cc-pVDZ            match
+orca     aug-cc-pVQZ                  aug-cc-pVQZ            aug-cc-pVQZ            match
+orca     aug-cc-pVQZ-DK               -                      -                      not run (no small test molecule for its elements)
+orca     aug-cc-pVTZ                  aug-cc-pVTZ            aug-cc-pVTZ            match
+orca     aug-cc-pVTZ-DK               -                      -                      not run (no small test molecule for its elements)
+orca     aug-cc-pwCVDZ                aug-cc-pwCVDZ          aug-cc-pwCVDZ          match
+orca     aug-cc-pwCVQZ                aug-cc-pwCVQZ          aug-cc-pwCVQZ          match
+orca     aug-cc-pwCVQZ-DK             -                      -                      not run (no small test molecule for its elements)
+orca     aug-cc-pwCVTZ                aug-cc-pwCVTZ          aug-cc-pwCVTZ          match
+orca     aug-cc-pwCVTZ-DK             -                      -                      not run (no small test molecule for its elements)
+orca     aug-pc-0                     aug-pc-0               aug-pc-0               match
+orca     aug-pc-1                     aug-pc-1               aug-pc-1               match
+orca     aug-pc-2                     aug-pc-2               aug-pc-2               match
+orca     aug-pc-3                     aug-pc-3               aug-pc-3               match
+orca     aug-pc-4                     -                      -                      error: explicit deck: {'status': 'timeout'}
+orca     aug-pcSseg-0                 aug-pcSseg-0           aug-pcSseg-0           match
+orca     aug-pcSseg-1                 aug-pcSseg-1           aug-pcSseg-1           match
+orca     aug-pcSseg-2                 aug-pcSseg-2           aug-pcSseg-2           match
+orca     aug-pcSseg-3                 aug-pcSseg-3           aug-pcSseg-3           match
+orca     aug-pcSseg-4                 -                      -                      error: explicit deck: {'status': 'timeout'}
+orca     aug-pcseg-0                  aug-pcseg-0            aug-pcseg-0            match
+orca     aug-pcseg-1                  aug-pcseg-1            aug-pcseg-1            match
+orca     aug-pcseg-2                  aug-pcseg-2            aug-pcseg-2            match
+orca     aug-pcseg-3                  aug-pcseg-3            aug-pcseg-3            match
+orca     aug-pcseg-4                  -                      -                      error: explicit deck: {'status': 'timeout'}
+orca     cc-pCVDZ                     cc-pCVDZ               cc-pCVDZ               match
+orca     cc-pCVQZ                     cc-pCVQZ               cc-pCVQZ               match
+orca     cc-pCVTZ                     cc-pCVTZ               cc-pCVTZ               match
+orca     cc-pV(D+d)Z                  -                      -                      no keyword matches
+orca     cc-pV(Q+d)Z                  -                      -                      not run (no small test molecule for its elements)
+orca     cc-pV(T+d)Z                  -                      -                      not run (no small test molecule for its elements)
+orca     cc-pVDZ                      cc-pVDZ                cc-pVDZ                match
+orca     cc-pVDZ-DK                   cc-pVDZ-DK             cc-pVDZ-DK             match
+orca     cc-pVQZ                      cc-pVQZ                cc-pVQZ                match
+orca     cc-pVQZ-DK                   cc-pVQZ-DK             cc-pVQZ-DK             match
+orca     cc-pVTZ                      cc-pVTZ                cc-pVTZ                match
+orca     cc-pVTZ-DK                   cc-pVTZ-DK             cc-pVTZ-DK             match
+orca     cc-pwCVDZ                    cc-pwCVDZ              cc-pwCVDZ              match
+orca     cc-pwCVQZ                    cc-pwCVQZ              cc-pwCVQZ              match
+orca     cc-pwCVQZ-DK                 -                      -                      not run (no small test molecule for its elements)
+orca     cc-pwCVTZ                    cc-pwCVTZ              cc-pwCVTZ              match
+orca     cc-pwCVTZ-DK                 -                      -                      not run (no small test molecule for its elements)
+orca     d-aug-cc-pVDZ                -                      -                      no keyword matches
+orca     d-aug-cc-pVQZ                -                      -                      no keyword matches
+orca     d-aug-cc-pVTZ                -                      -                      no keyword matches
+orca     pc-1                         pc-1                   pc-1                   match
+orca     pc-2                         pc-2                   pc-2                   match
+orca     pc-3                         pc-3                   pc-3                   match
+orca     pc-4                         -                      pc-4                   no keyword matches
+orca     pcSseg-0                     pcSseg-0               pcSseg-0               match
+orca     pcSseg-1                     pcSseg-1               pcSseg-1               match
+orca     pcSseg-2                     pcSseg-2               pcSseg-2               match
+orca     pcSseg-3                     pcSseg-3               pcSseg-3               match
+orca     pcSseg-4                     -                      pcSseg-4               no keyword matches
+orca     pcseg-0                      -                      -                      no keyword matches
+orca     pcseg-1                      pcseg-1                pcseg-1                match
+orca     pcseg-2                      pcseg-2                pcseg-2                match
+orca     pcseg-3                      pcseg-3                pcseg-3                match
+orca     pcseg-4                      -                      pcseg-4                no keyword matches
