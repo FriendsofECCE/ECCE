@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <fstream>
+#include <memory>
   using std::flush;
   using std::ofstream;
 #include <signal.h>
@@ -231,6 +232,91 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
   Create(parent, id, caption, pos, size, style);
 
   restoreSettings();
+
+  //  ECCE_TEST_CALCED=<file>: lines appended to <file> are run as commands
+  //  (runTestCommand), each answered on stderr as
+  //  "ECCE_TEST_CALCED: <command>: <outcome>".  Inert unless set; for
+  //  tests/apps/session_end.py, which drives an editor with no clicks.
+  if (const char *cmdPath = getenv("ECCE_TEST_CALCED")) {
+    string path = cmdPath;
+    auto done = std::make_shared<size_t>(0);
+    wxTimer *timer = new wxTimer();   // lives until the process exits
+    timer->Bind(wxEVT_TIMER, [this, path, done](wxTimerEvent&) {
+      std::ifstream in(path.c_str());
+      string line;
+      size_t n = 0;
+      while (std::getline(in, line)) {
+        if (n++ < *done) continue;
+        *done = n;
+        runTestCommand(line);
+      }
+    });
+    timer->Start(500);
+  }
+}
+
+
+/**
+ * One command of the ECCE_TEST_CALCED hook:
+ *   state             the stored ES.Theory.UseSymmetry, the box, the theory
+ *   theory <label>    choose a theory as the Theory menu does
+ *   box 0|1           untick/tick "Use symmetry" as a click does
+ *   opentheory        Theory Details..., closetheory closes it
+ *   save              Save, keeping the generator's files (as Shift+Save)
+ *   quit              exit without asking
+ */
+void CalcEd::runTestCommand(const string& line)
+{
+  string outcome;
+  if (line == "state") {
+    GUIValue *v = p_GUIValues ? p_GUIValues->get("ES.Theory.UseSymmetry") : 0;
+    wxWindow *box = FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY);
+    outcome = "stored=" + (v ? v->getValueAsString() : string("absent")) +
+        " box=" + (box && ((ewxCheckBox*)box)->IsChecked() ? "1" : "0") +
+        " theory=" + getTheoryCategory().ToStdString() + "/" +
+        getTheoryName().ToStdString() +
+        " keys=" + StringConverter::toString(
+                       p_GUIValues ? (int)p_GUIValues->size() : -1);
+  } else if (line.compare(0, 7, "theory ") == 0) {
+    ewxChoice *choice = (ewxChoice*)FindWindow(ID_CHOICE_CALCED_THEORY);
+    if (!choice->SetStringSelection(line.substr(7))) {
+      outcome = "no such theory";
+    } else {
+      wxCommandEvent event(wxEVT_COMMAND_CHOICE_SELECTED,
+                           ID_CHOICE_CALCED_THEORY);
+      OnChoiceCalcedTheorySelected(event);
+      outcome = "ok";
+    }
+  } else if (line == "box 0" || line == "box 1") {
+    ((ewxCheckBox*)FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY))
+        ->SetValue(line == "box 1");
+    wxCommandEvent event(wxEVT_COMMAND_CHECKBOX_CLICKED,
+                         ID_CHECKBOX_CALCED_USE_SYMMETRY);
+    OnCheckboxCalcedUseSymmetryClick(event);
+    outcome = "ok";
+  } else if (line == "opentheory") {
+    startTheoryApp(false);
+    outcome = "ok";
+  } else if (line == "closetheory") {
+    closeTheoryApp(true);
+    outcome = "ok";
+  } else if (line == "save") {
+    p_keptGeneratorDir = "";
+    p_testKeepParams = true;
+    enableSave();
+    doSave();
+    p_testKeepParams = false;
+    outcome = p_keptGeneratorDir.empty() ? "no input generated"
+                                         : "kept " + p_keptGeneratorDir;
+  } else if (line == "quit") {
+    cerr << "ECCE_TEST_CALCED: quit: ok" << endl;
+    closeTheoryApp(true);
+    closeRuntypeApp(true);
+    _exit(0);
+  } else {
+    outcome = "unknown command";
+  }
+  cerr << "ECCE_TEST_CALCED: " << line << ": " << outcome << endl;
 }
 
 
@@ -625,7 +711,7 @@ void CalcEd::doSetContext(const string& codeName)
 
   updateAllFields();
 
-  if (isDetailsReady() && p_GUIValues->size() == 0) {
+  if (isDetailsReady() && !hasDetailsValues()) {
     startTheoryApp(true);
     startRuntypeApp(true);
   }
@@ -1663,7 +1749,7 @@ void CalcEd::subjectMCB(wxCommandEvent& event)
 
   updateAllFields();
 
-  if (isDetailsReady() && p_GUIValues->size() == 0) {
+  if (isDetailsReady() && !hasDetailsValues()) {
     startTheoryApp(true);
     startRuntypeApp(true);
   }
@@ -2164,6 +2250,29 @@ void CalcEd::storeUseSymmetry(const bool& value)
 }
 
 
+bool CalcEd::useSymmetryBox() const
+{
+  wxWindow *box = FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY);
+  return box != 0 ? ((ewxCheckBox*)box)->IsChecked() : getUseSymmetry();
+}
+
+
+//  Whether the details dialogs have supplied values under prefix.  The
+//  "Use symmetry" key is this page's own and is stored whenever a molecule
+//  is shown, so it does not count.
+bool CalcEd::hasDetailsValues(const string& prefix) const
+{
+  if (p_GUIValues == (GUIValues*)0) return false;
+  for (GUIValues::const_iterator it = p_GUIValues->begin();
+       it != p_GUIValues->end(); ++it) {
+    if (it->first != "ES.Theory.UseSymmetry" &&
+        it->first.compare(0, prefix.size(), prefix) == 0)
+      return true;
+  }
+  return false;
+}
+
+
 void CalcEd::OnCheckboxCalcedUseSymmetryClick( wxCommandEvent& event )
 {
   wxWindow *box = FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY);
@@ -2427,10 +2536,15 @@ void CalcEd::populateSummaryField(const string& summaryType)
  */
 void CalcEd::resetTheoryDetails()
 {
+  //  The details dialogs go back to their defaults; the "Use symmetry"
+  //  tick on this page does not.  Without its key the generators read
+  //  "off" and write NoSymm/noautosym under a ticked box.
+  bool useSymmetry = useSymmetryBox();
   if (p_GUIValues) {
     delete p_GUIValues;
   }
   p_GUIValues = new GUIValues();
+  storeUseSymmetry(useSymmetry);
 
   if (!p_startUp) {
     startTheoryApp(true);
@@ -2898,8 +3012,10 @@ void CalcEd::refreshChemSysFields()
     }
 
     if (p_GUIValues) {
+      bool useSymmetry = useSymmetryBox();
       delete p_GUIValues;
       p_GUIValues = new GUIValues();
+      storeUseSymmetry(useSymmetry);
       updateDetailsFields();
     }
 
@@ -3081,7 +3197,7 @@ void CalcEd::enableDetailsFields()
 
   p_detailsBox->Enable(hasFragment);
   FindWindow(ID_BUTTON_CALCED_THEORY)->Enable(isDetailsReady()
-          && p_GUIValues->containsKeyPrefix("ES.Theory"));
+          && hasDetailsValues("ES.Theory"));
   FindWindow(ID_BUTTON_CALCED_RUNTYPE)->Enable(isDetailsReady()
           && p_GUIValues->containsKeyPrefix("ES.Runtype"));
 }
@@ -3539,12 +3655,13 @@ void CalcEd::doSave()
       saveRuntype = true;
     }
 
-    // save GUIValues
+    // save GUIValues; the input is generated from what the box shows
+    storeUseSymmetry(useSymmetryBox());
     p_iCalc->guiparams(p_GUIValues);
 
     // determine whether to save intermediate files for debugging
     // save if shift key is held down
-    bool save_param = ::wxGetKeyState(WXK_SHIFT);
+    bool save_param = ::wxGetKeyState(WXK_SHIFT) || p_testKeepParams;
 
     // input file
     // must generate a valid input file before changing state so that

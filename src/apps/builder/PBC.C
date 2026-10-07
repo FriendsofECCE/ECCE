@@ -214,10 +214,7 @@ bool PBC::Create( wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxS
   ewxButton *btn = (ewxButton*)FindWindow(ID_BUTTON_PBC_CREATE);
   btn->Enable(false);
 
-  GetSizer()->Layout();
-  GetSizer()->Fit(this);
-  GetSizer()->SetSizeHints(this);
-  Centre();
+  refit();
 
   return true;
 }
@@ -442,10 +439,10 @@ void PBC::indicateHaveLattice()
  */
 void PBC::indicateHaveLattice(bool haveLattice)
 {
-   GetSizer()->Show((size_t)0,!haveLattice);
+   p_mainSizer->Show((size_t)0,!haveLattice);
    //p_latticePanel->Show(haveLattice);
    p_latticePanel->GetSizer()->Show((size_t)4,haveLattice);
-   Layout();
+   refit();
    Enable(haveLattice);
 }
 
@@ -640,8 +637,7 @@ void PBC::OnChoicePbcTypeSelected( wxCommandEvent& event )
          cerr << "Choice Not implemented: " << value << endl;
       }
    }
-   Layout();
-   Fit();
+   refit();
    event.Skip();
 }
 

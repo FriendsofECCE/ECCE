@@ -53,32 +53,36 @@ bool PBCFoldCmd::execute()
      if (lattice) {
        ret = true;
 
-       frag->convertToFractionalCoords(false);
+       // By molecule, so a bonded group is moved as a unit and never split
+       // across a cell face; per atom only when that is not possible.
+       if (!frag->makeMoleculesWhole(true)) {
+         frag->convertToFractionalCoords(false);
 
-       int natoms = frag->numAtoms();
-       int i;
-       TAtm* atm;
-       double f1, f2, f3;
-       const double *crd;
+         int natoms = frag->numAtoms();
+         int i;
+         TAtm* atm;
+         double f1, f2, f3;
+         const double *crd;
 
-       for (i=0; i<natoms; i++) {
-         atm = frag->atomRef(i);
-         crd = atm->coordinates();
-         f1 = crd[0];
-         f2 = crd[1];
-         f3 = crd[2];
+         for (i=0; i<natoms; i++) {
+           atm = frag->atomRef(i);
+           crd = atm->coordinates();
+           f1 = crd[0];
+           f2 = crd[1];
+           f3 = crd[2];
 
-         f1 = f1-(double)(int)f1;
-         if (f1<0.0) f1 += 1.0;
-         f2 = f2-(double)(int)f2;
-         if (f2<0.0) f2 += 1.0;
-         f3 = f3-(double)(int)f3;
-         if (f3<0.0) f3 += 1.0;
+           f1 = f1-(double)(int)f1;
+           if (f1<0.0) f1 += 1.0;
+           f2 = f2-(double)(int)f2;
+           if (f2<0.0) f2 += 1.0;
+           f3 = f3-(double)(int)f3;
+           if (f3<0.0) f3 += 1.0;
 
-         atm->coordinates(f1,f2,f3);
+           atm->coordinates(f1,f2,f3);
+         }
+
+         frag->convertFromFractionalCoords();
        }
-
-       frag->convertFromFractionalCoords();
 
        frag->deleteAllBonds();
        frag->addCovalentBonds();

@@ -118,6 +118,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [`ai.<code>`'s template engine silently swallows `die()`](ai-code-s-template-engine-silently-swallows.md)
 - [Never point an `ai.<code>` script's `-t` at the repo's own template](never-point-an-ai-code-scripts-t.md)
 - [Codereg dialogs are never told which elements the structure contains](codereg-dialogs-are-never-told-which-elements.md)
+- [CalcEd's own ES.Theory.UseSymmetry key is lost whenever p_GUIValues is replaced](calced-owns-use-symmetry-key.md)
 - [A dialog's choice string must match the generator's expected string EXACTLY, or selecting it silently emits nothing](a-dialogs-choice-string-must-match-the.md)
 - [The basis-set writers decide *how* a basis reaches the deck, and every bug in them is silent](the-basis-set-writers-decide-how-a.md)
 - [A Gaussian basis keyword is selectable only if the library has an entry; tools/basissets/g16_basis_dump.py makes one from the keyword](a-gaussian-basis-keyword-needs-a-library-entry.md)

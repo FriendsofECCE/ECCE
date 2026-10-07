@@ -53,6 +53,16 @@ CASES = (
     #  Generate rebuilds the atoms and drops the selection: no stale indices.
     ("selection-generate", CARBON + ["select 2", "pbcpress generate",
                                      "cmd addh"], {"C": 1, "H": 4}, "C"),
+    #  Methane in a 5 A cell, Generate, then a bigger cell with "keep atom
+    #  positions" ticked: the molecule must still be whole afterwards.
+    ("resize-methane", ["cmd clear", "cmd add", "cmd addh", "pbcopen",
+                        "pbcpress create", "pbcpress generate",
+                        "fragdump generated", "pbcset a 12", "pbcset b 10",
+                        "pbcset c 10"], {"C": 1, "H": 4}, "C"),
+    ("fold-methane", ["cmd clear", "cmd add", "cmd addh", "pbcopen",
+                      "pbcpress create", "pbcpress generate", "pbcset a 12",
+                      "pbcset b 10", "pbcset c 10", "pbcpress fold"],
+     {"C": 1, "H": 4}, "C"),
     ("molecule", ["cmd removeh", "pbcopen", "pbcpress create",
                   "pbcpress generate", "fragdump generated", "cmd addh"],
      {"O": 1, "H": 2}, "O"),
@@ -115,6 +125,11 @@ def problems(work, case):
     if have.get("Nub", 0) != expected.get("Nub", 0):
         found.append("final: %d nub(s) left after Add Hydrogens"
                      % have.get("Nub", 0))
+    if name.endswith("-methane"):
+        lengths = sorted(round(math.dist([0, 0, 0], v), 2)
+                         for v in final["vectors"])
+        if lengths != [10.0, 10.0, 12.0]:
+            found.append("final: cell edges %s, expected 10 10 12" % lengths)
     parents = [xyz for sym, xyz, _nb, _f in final["atoms"] if sym == heavy]
     #  Generate puts every atom into the cell, so a hydrogen can sit at the
     #  far face from its parent: a periodic image, drawn without its bond.
@@ -124,6 +139,9 @@ def problems(work, case):
         direct = min(math.dist(xyz, p) for p in parents) if parents else 99
         d = min(imageDistance(xyz, p, final["vectors"]) for p in parents) \
             if parents else 99
+        if name.endswith("-methane") and not 1.0 <= direct <= 1.2:
+            found.append("final: H at %s is %.2f A from C: molecule split"
+                         % (xyz, direct))
         if not 0.9 <= d <= 1.2 or (direct <= 1.2 and nb != 1):
             found.append("final: H at %s has %d bond(s), %.2f A from the "
                          "nearest %s image" % (xyz, nb, d, heavy))

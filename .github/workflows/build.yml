@@ -580,7 +580,7 @@ jobs:
         shell: msys2 {0}
         run: |
           packaging/windows/bundle-runtime.sh "$PWD/stage/ecce"
-          cp packaging/windows/ecce.cmd packaging/windows/make-shortcuts.ps1 stage/ecce/
+          cp packaging/windows/ecce.cmd packaging/windows/ecce.vbs packaging/windows/make-shortcuts.ps1 stage/ecce/
 
       - name: Download cache (Strawberry Perl, Python, wxPython)
         uses: actions/cache@v4
@@ -653,6 +653,35 @@ jobs:
           tests\windows\ci-run.ps1 -Stage "$env:RUNNER_TEMP\unpacked" -Out windows-run
           Get-Content windows-run\summary.txt >> $env:GITHUB_STEP_SUMMARY
 
+      # Per-user MSI (no admin) from the same tree, installed and tested.
+      - name: Build the MSI
+        id: msi
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          dotnet tool install --global wix --version 5.0.2
+          wix extension add -g WixToolset.Util.wixext/5.0.2
+          $v = (Get-Content data/client/config/Version -TotalCount 1).Trim()
+          packaging/windows/make-msi.ps1 -Tree stage\ecce -Version $v -Out "dist\ECCE-windows-$v.msi" | Tee-Object -Append $env:GITHUB_STEP_SUMMARY
+
+      - name: Test the MSI (install, run, uninstall)
+        id: msitest
+        if: steps.msi.outcome == 'success'
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          tests\windows\msi-test.ps1 -Msi (Get-ChildItem dist\*.msi).FullName -Launchjob build\launchjob.exe -Out msi-run
+          $e = $LASTEXITCODE
+          Get-Content msi-run\summary.txt >> $env:GITHUB_STEP_SUMMARY
+          exit $e
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ECCE-windows-msi
+          path: dist/*.msi
+          if-no-files-found: ignore
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -667,6 +696,7 @@ jobs:
           path: |
             windows-run/
             localjobs/
+            msi-run/
             ctest.log
             install.log
           if-no-files-found: ignore
@@ -680,5 +710,6 @@ jobs:
           { echo '### Windows'
             echo "- ctest: ${{ steps.tests.outcome }}"
             echo "- local jobs: ${{ steps.localjobs.outcome }}"
-            echo "- start the apps: ${{ steps.apps.outcome }}"; } >> "$GITHUB_STEP_SUMMARY"
-          [ "${{ steps.tests.outcome }}${{ steps.localjobs.outcome }}${{ steps.apps.outcome }}" = successsuccesssuccess ]
+            echo "- start the apps: ${{ steps.apps.outcome }}"
+            echo "- msi build: ${{ steps.msi.outcome }}, msi test: ${{ steps.msitest.outcome }}"; } >> "$GITHUB_STEP_SUMMARY"
+          [ "${{ steps.tests.outcome }}${{ steps.localjobs.outcome }}${{ steps.apps.outcome }}" = successsuccesssuccess ] && [ "${{ steps.msi.outcome }}${{ steps.msitest.outcome }}" = successsuccess ]

@@ -1,4 +1,6 @@
 #include <fstream>
+#include <iostream>
+  using std::cerr;
   using std::endl;
   using std::ends;
   using std::ifstream;
@@ -539,6 +541,10 @@ bool CalcEd::input_controller(const bool& saveParamFlag,
 
   if (!saveParamFlag)
     dir->remove();
+  else {
+    p_keptGeneratorDir = dir->path();
+    cerr << "CalcEd: generator files kept in " << p_keptGeneratorDir << endl;
+  }
 
   return status;
 }

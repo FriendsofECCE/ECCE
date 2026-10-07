@@ -3449,6 +3449,9 @@ void Builder::OnToolMenuClick( wxCommandEvent& event )
     panel->refresh();
   }
   updatePanes(true);
+  if (event.IsChecked()) {
+    makeRoomFor(pane.name);
+  }
   debugPrintPaneSizes(p_mgr);
 
 
@@ -5255,7 +5258,10 @@ void Builder::updatePropertyMenus()
         }
         //  "pbc...", "cmd", "fragdump": Periodic Builder editing (#243).
         if (w[0].compare(0, 3, "pbc") == 0 || w[0] == "cmd" ||
-            w[0] == "fragdump")
+            w[0] == "fragdump" || w[0] == "panelmode" ||
+            w[0] == "toolmenu" || w[0] == "paneclose" ||
+            w[0] == "panestate" || w[0] == "xshot" ||
+            w[0] == "setcontext" || w[0] == "columntab")
           return pbcTestCommand(s, w, outdir);
         if ((w[0] != "mopanel" && w[0] != "motable") || w.size() != 2)
           return s.fail("unknown command: " + w[0]);

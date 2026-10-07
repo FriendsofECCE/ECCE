@@ -1617,6 +1617,107 @@ static void bondLooseNubs(Fragment& frag)
 
 
 /**
+ * Makes every molecule contiguous in Cartesian space under the periodic
+ * lattice: atoms are connected by existing bonds or by the covalent-radius
+ * test taken at the minimum image, and each connected set is rebuilt around
+ * its first atom.  With foldIntoCell each molecule is then moved, as a unit,
+ * by whole lattice vectors until its centroid lies in the cell, so a
+ * molecule is never split across the cell faces.  Bonds are not changed.
+ * Returns false (nothing done) without a lattice or for very large systems.
+ */
+bool Fragment::makeMoleculesWhole(bool foldIntoCell)
+{
+  LatticeDef *lattice = getLattice();
+  const int n = numAtoms();
+  if (!lattice || n == 0 || n > 6000) return false;
+
+  vector<MPoint> *vecs = lattice->toVectors();
+  MPoint basis[3], inv[3];
+  for (int k = 0; k < 3; k++) basis[k].xyz((*vecs)[k]);
+  delete vecs;
+  double volume = (basis[0].crossProduct1(basis[1])).dotProduct(basis[2]);
+  if (fabs(volume) < 1.e-8) return false;
+  inv[0] = basis[1].crossProduct1(basis[2]);
+  inv[1] = basis[2].crossProduct1(basis[0]);
+  inv[2] = basis[0].crossProduct1(basis[1]);
+  for (int k = 0; k < 3; k++) inv[k].scale(1.0 / volume);
+  MPoint origin = lattice->getLatticeCorner();
+
+  TPerTab tpt;
+  const int nub = tpt.nubAtom();
+  vector<double> rad(n);
+  vector<MPoint> pos(n);
+  for (int i = 0; i < n; i++) {
+    int num = tpt.atomicNumber(p_atoms[i]->atomicSymbol());
+    rad[i] = tpt.covalentRadius(num) * tpt.covalentRadiusTolerance(num);
+    pos[i].xyz(p_atoms[i]->coordinates());
+  }
+
+  // d reduced to its minimum image
+  auto reduce = [&](MPoint d) {
+    for (int k = 0; k < 3; k++) {
+      double f = floor(d.dotProduct(inv[k]) + 0.5);
+      if (f != 0.) { MPoint t = basis[k]; t.scale(f); d.subtract(t); }
+    }
+    return d;
+  };
+
+  vector<int> mol(n, -1);
+  int nmol = 0;
+  for (int s = 0; s < n; s++) {
+    if (mol[s] >= 0) continue;
+    vector<int> members(1, s);
+    mol[s] = nmol;
+    for (size_t h = 0; h < members.size(); h++) {
+      const int i = members[h];
+      const int ti = p_atoms[i]->atomicNumber();
+      for (int j = 0; j < n; j++) {
+        if (mol[j] >= 0) continue;
+        bool linked = false;
+        const vector<TBond*>& bl = p_atoms[i]->bondList();
+        for (size_t b = 0; b < bl.size() && !linked; b++) {
+          linked = bl[b]->atom1() == p_atoms[j] || bl[b]->atom2() == p_atoms[j];
+        }
+        MPoint d = pos[j];
+        d.subtract(pos[i]);
+        d = reduce(d);
+        if (!linked) {
+          const int tj = p_atoms[j]->atomicNumber();
+          if (ti == 0 || tj == 0 || ti == nub || tj == nub ||
+              (ti == 1 && tj == 1)) continue;
+          double cut = rad[i] + rad[j];
+          linked = d.lengthSqr() <= cut * cut;
+        }
+        if (!linked) continue;
+        pos[j] = pos[i];
+        pos[j].add(d);
+        mol[j] = nmol;
+        members.push_back(j);
+      }
+    }
+    if (foldIntoCell) {
+      MPoint c(0., 0., 0.);
+      for (size_t m = 0; m < members.size(); m++) c.add(pos[members[m]]);
+      c.scale(1.0 / members.size());
+      c.subtract(origin);
+      MPoint shift(0., 0., 0.);
+      for (int k = 0; k < 3; k++) {
+        MPoint t = basis[k];
+        t.scale(floor(c.dotProduct(inv[k])));
+        shift.add(t);
+      }
+      for (size_t m = 0; m < members.size(); m++) pos[members[m]].subtract(shift);
+    }
+    nmol++;
+  }
+  for (int i = 0; i < n; i++) {
+    p_atoms[i]->coordinates(pos[i].x(), pos[i].y(), pos[i].z());
+  }
+  return true;
+}
+
+
+/**
  * Simply check distance between atoms to see if less than
  * some scale of the sum of the two atom's radii.
  *   1. sum covalent radii of two atoms

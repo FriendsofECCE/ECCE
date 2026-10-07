@@ -78,33 +78,34 @@ bool PBCEquivRectCmd::execute()
 
        lattice->assign(a,b,c);
 
-       frag->convertToFractionalCoords(false);
-      
        const double *crd;
        double f1, f2, f3;
        TAtm *atm;
        int i, j, k;
-
        int natoms = frag->numAtoms();
 
-       for (i=0; i<natoms; i++) {
-         atm = frag->atomRef(i);
-         crd = atm->coordinates();
+       if (!frag->makeMoleculesWhole(true)) {
+         frag->convertToFractionalCoords(false);
 
-         f1 = crd[0];
-         f2 = crd[1];
-         f3 = crd[2];
+         for (i=0; i<natoms; i++) {
+           atm = frag->atomRef(i);
+           crd = atm->coordinates();
 
-         f1 = f1-(double)(int)f1;
-         if (f1<0.0) f1 += 1.0;
-         f2 = f2-(double)(int)f2;
-         if (f2<0.0) f2 += 1.0;
-         f3 = f3-(double)(int)f3;
-         if (f3<0.0) f3 += 1.0;
+           f1 = crd[0];
+           f2 = crd[1];
+           f3 = crd[2];
 
-         atm->coordinates(f1,f2,f3);
+           f1 = f1-(double)(int)f1;
+           if (f1<0.0) f1 += 1.0;
+           f2 = f2-(double)(int)f2;
+           if (f2<0.0) f2 += 1.0;
+           f3 = f3-(double)(int)f3;
+           if (f3<0.0) f3 += 1.0;
+
+           atm->coordinates(f1,f2,f3);
+         }
+         frag->convertFromFractionalCoords();
        }
-       frag->convertFromFractionalCoords();
 
        // Construct a rotation such that the c axis in the transformed
        // unit cell is parallel to the z axis and the lattice
