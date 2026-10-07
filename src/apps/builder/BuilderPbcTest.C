@@ -93,6 +93,13 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     return true;
   }
 
+  //  "setcontext <url>": switch this Builder to another calculation.
+  if (c == "setcontext" && w.size() == 2) {
+    setContext(w[1]);
+    settle(1500);
+    return true;
+  }
+
   //  "xshot <file>": the whole screen -> <file> (ImageMagick import).
   if (c == "xshot" && w.size() == 2) {
     settle(500);

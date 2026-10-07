@@ -223,6 +223,39 @@ def check(display, results, png=None, only=None):
                 results.fail("pbc ux layout", p)
             if problems:
                 results.notes.append("\n".join(log.splitlines()[-15:]))
+    #  Switching a running Builder between a calculation with results and
+    #  one without, both ways, in the default layout and in classic.
+    for mode in ("detail", "classic"):
+        for first, second, building in (("run", "unrun", True),
+                                        ("unrun", "run", False)):
+            if only and not re.search(only, "switch %s %s" % (mode, first)):
+                continue
+            results.checks += 1
+            calcs = {"run": url, "unrun": unrun}
+            args = ("-pipe", fixture.authFile(
+                os.path.join(state, ".ECCE", "auth.pipe"), user=fixture.USER),
+                "-context", calcs[first])
+            work, problems, log = runScene(
+                display, "switch-%s-%s" % (first, mode),
+                ["setcontext " + calcs[second],
+                 "panestate state " + " ".join(TOOLS)], calcs[second], args,
+                env={"ECCE_PANEL_MODE": mode})
+            st = readState(os.path.join(work, "state.txt"))
+            label = "%s then %s calculation, %s layout" % (first, second, mode)
+            if st is None:
+                problems.append(label + ": no state written")
+            elif building and (st["readonly"] != 0 or
+                               "Build" not in st["shown"]):
+                problems.append(label + ": not the building layout (%s)"
+                                % ", ".join(st["shown"]))
+            elif not building and (st["readonly"] != 1 or
+                                   "Build" in st["shown"]):
+                problems.append(label + ": not the viewing layout (%s)"
+                                % ", ".join(st["shown"]))
+            for p in problems:
+                results.fail("pbc ux layout", p)
+            if problems:
+                results.notes.append("\n".join(log.splitlines()[-15:]))
     fixture.remove("pbc-ux-run")
     fixture.remove("pbc-ux-unrun")
 
