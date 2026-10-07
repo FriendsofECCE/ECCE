@@ -9,6 +9,7 @@
  *
  *  Commands, one per line ('#' starts a comment, values may be quoted):
  *    machine NAME | queue NAME    choose, as the drop-downs do
+ *    rundir PATH           fill the Run Directory field
  *    click machine-settings   the "Machine settings..." button
  *    reload                what a saved Register Machines causes
  *    exec COMMAND          run a shell command (for example a Register

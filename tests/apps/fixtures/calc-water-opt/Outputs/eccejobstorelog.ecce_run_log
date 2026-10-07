@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<eccejobstore>
+     <event  type="Message"  name="Job log started for calculation"  date="Wed, 07 Oct 2026 09:26:27 UTC" >file:///work/home/.cache/ecce-waterfix-rx4uczgk/localdata/users/local/water-opt-project/water-opt     </event>
+     <event  type="Message"  name="eccejobstore running on client"  date="Wed, 07 Oct 2026 09:26:27 UTC" >669680fbcc64     </event>
+     <event  type="Message"  name="Cache"  date="Wed, 07 Oct 2026 09:26:27 UTC" >Successfully started property parsing cache     </event>
+     <event  type="Message"  name="Local cache directory"  date="Wed, 07 Oct 2026 09:26:27 UTC" >/work/home/.cache/ecce-waterfix-rx4uczgk/tmp/ecce_andy/jobs/water-opt__YFFt7z     </event>
+     <event  type="Message"  name="Job Monitor"  date="Wed, 07 Oct 2026 09:26:27 UTC" >Started job monitor (stdio comms) with command: perl eccejobmonitor -configFile eccejobmonitor.conf -jobId 168 -bookmark 0; echo eccejobmonitor_went_bye_bye     </event>
+     <event  type="Message"  name="System"  date="Wed, 07 Oct 2026 09:26:27 UTC" >Started local RCommand connection     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Wed, 07 Oct 2026 09:26:27 UTC" >Receiving calculation output from eccejobmonitor     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Wed, 07 Oct 2026 09:26:27 UTC" >Running     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Wed, 07 Oct 2026 09:26:32 UTC" >ECCE JOB MONITOR INFO: MsgSendFile: file 'water-opt.q' does not exist     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Wed, 07 Oct 2026 09:26:32 UTC" >File marked to copy from compute host: ecce.out     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Wed, 07 Oct 2026 09:26:32 UTC" >File marked to copy from compute host: nwch.nwout     </event>
+     <event  type="Message"  name="Benchmark"  date="Wed, 07 Oct 2026 09:26:32 UTC" >Before file copy of output files     </event>
+     <event  type="Message"  name="Benchmark"  date="Wed, 07 Oct 2026 09:26:32 UTC" >After file copy of output files     </event>
+     <event  type="Message"  name="File Copy"  date="Wed, 07 Oct 2026 09:26:32 UTC" >Successfully copied files from server--
+RCommand::get(localhost, ssh, user, <elided>, {/home/user/ecce-runs/water-opt-project/water-opt/nwch.nwout,/home/user/ecce-runs/water-opt-project/water-opt/ecce.out,/home/user/ecce-runs/water-opt-project/water-opt/*.cub,/home/user/ecce-runs/water-opt-project/water-opt/*.cube,/home/user/ecce-runs/water-opt-project/water-opt/*.file30}, /work/home/.cache/ecce-waterfix-rx4uczgk/tmp/ecce_andy/jobs/water-opt__YFFt7z) succeeded     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Wed, 07 Oct 2026 09:26:32 UTC" >Complete     </event>
+     <event  type="Message"  name="eccejobstore exit"  date="Wed, 07 Oct 2026 09:26:32 UTC" >eccejobstore terminating normally, exit status 0     </event>
+</eccejobstore>

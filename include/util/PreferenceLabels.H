@@ -60,6 +60,7 @@ static const char *LOCALDATA        ;   // Boolean: local data folder, not a ser
 static const char *LOCALDATAFOLDER  ;   // String: that folder; empty is ~/.ECCE-local
 static const char *LOCALDATAMOVETO  ;   // String: move it here at the next start
 static const char *BUILTINSSH       ;   // Boolean: unused; old preference files still carry it
+static const char *TAILINTERMINAL   ;   // Boolean: Tail in the Terminal, not ECCE's own window
 
 
 /*

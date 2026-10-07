@@ -1938,6 +1938,32 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME transport_local_terminal COMMAND testLocalTerminal)
   set_tests_properties(transport_local_terminal PROPERTIES TIMEOUT 60)
 
+  # Run Management's Tail (TailSource) on a local machine; the same program
+  # runs against the test sshd from tests/transport/sshd/tail_test.sh.
+  add_executable(testTail tests/transport/testTail.C)
+  target_compile_definitions(testTail PRIVATE
+    ECCE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+  target_link_libraries(testTail PRIVATE
+    eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+    eccetdat ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME transport_tail COMMAND testTail)
+  set_tests_properties(transport_tail PROPERTIES TIMEOUT 120)
+
+  # The Tail window itself on Xvfb, local machine (tail_window_test.sh).
+  add_executable(tailwindow tests/transport/tailwindow.C)
+  target_compile_definitions(tailwindow PRIVATE ${wxWidgets_DEFINITIONS})
+  target_include_directories(tailwindow PRIVATE ${wxWidgets_INCLUDE_DIRS}
+    ${XercesC_INCLUDE_DIRS})
+  target_link_libraries(tailwindow PRIVATE
+    eccewxguicomm eccewxgui eccecomm eccercmd eccedsi eccedav eccecipc
+    eccefaces eccexml eccetdat ecceutil ${wxWidgets_LIBRARIES}
+    ${XercesC_LIBRARIES})
+  add_test(NAME transport_tail_window
+           COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tests/transport/tail_window_test.sh
+                   $<TARGET_FILE:tailwindow> ${CMAKE_CURRENT_SOURCE_DIR})
+  set_tests_properties(transport_tail_window PROPERTIES TIMEOUT 120
+                       SKIP_RETURN_CODE 77)
+
   # OpenSshTransport against a stand-in ssh script and the real `ssh -G`:
   # process handling, file copies, streams, messages, backend choice.
   add_executable(testOpenSshTransport tests/transport/testOpenSshTransport.C)

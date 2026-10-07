@@ -83,6 +83,9 @@ public:
     // "libssh" or "openssh" when an ssh transport serves this connection
     // (OpenSSH for hosts whose ssh config shares connections), else "".
     string sshBackend() const;
+    // ssh options that let another OpenSSH client (a terminal) reuse this
+    // connection's shared login; empty when there is none to add.
+    vector<string> terminalSshOptions() const;
 
     bool hop(const string& hopMachine, const string& locShell="bash",
              const string& userName="", const string& password="",
@@ -92,8 +95,11 @@ public:
     // The monitor stream.  startStream() runs the command on pipes (over
     // ssh, on a session and thread of its own); streamFd()/streamWrite() then
     // address it, and \003 sent through exec() becomes SIGINT to its process
-    // group.  streamFd() is -1 when no stream is open.
-    bool startStream(const string& command);
+    // group.  streamFd() is -1 when no stream is open.  onThisLogin runs an
+    // ssh stream on this connection's own login instead (no second password
+    // or one-time code); the connection then runs nothing else until
+    // stopStream().
+    bool startStream(const string& command, bool onThisLogin=false);
     void stopStream(int graceMs=2000);
 
     bool streamWrite(const string& command);

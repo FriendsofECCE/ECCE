@@ -339,6 +339,10 @@ Put a command on the **Job script** tab if every code needs it, for
 example `module load openmpi`. Put it on the **Codes** tab if only one
 code does, for example the environment of Gaussian 16.
 
+Commands such as `module load` work in job scripts. Job scripts run under
+`sh`, where the module system is not set up on its own, so ECCE sets it up
+(Lmod or Environment Modules) before the first `module` or `ml` command.
+
 ## Advanced: edit file
 
 On the **Job script** tab, **Advanced: edit file...** opens the machine's
