@@ -61,6 +61,8 @@ def skip_reason():
         return "a -remote session (ECCE_REMOTE_SERVER)"
     if "ECCE_LOCAL_DATA" in env or env.get("ECCE_LOCAL"):
         return "the data folder is given (ECCE_LOCAL_DATA or --local)"
+    if sys.platform == "darwin" and not env.get("ECCE_FIRST_START_ASK_ON_MAC"):
+        return "macOS keeps its data in a folder by default (Edit > Change Server... to use a server)"
     if not (env.get("DISPLAY") or env.get("WAYLAND_DISPLAY")):
         return "no display"
     if os.path.exists(os.path.join(ECCE_HOME, "siteconfig", "RemoteServer", "DataServers")):

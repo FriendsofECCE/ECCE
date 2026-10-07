@@ -20,7 +20,13 @@ export ECCE_REALUSERHOME="${ECCE_REALUSERHOME:-$HOME}"
 export ECCE_REALUSER="${ECCE_REALUSER:-$(id -un)}"
 export HOST="${HOST:-$(hostname)}"
 
+# Beside the script, else beside its symlink target (plain readlink: no -f
+# on macOS 10.15), else in $ECCE_HOME/bin.
 _lib="$(dirname "$0")/ecce-session-lib.sh"
+if [ ! -r "$_lib" ] && _t=$(readlink "$0" 2>/dev/null); then
+  case $_t in /*) ;; *) _t="$(dirname "$0")/$_t" ;; esac
+  _lib="$(dirname "$_t")/ecce-session-lib.sh"
+fi
 [ -r "$_lib" ] || _lib="$ECCE_HOME/bin/ecce-session-lib.sh"
 . "$_lib" || { echo "ecce-gateway-start: cannot read $_lib" >&2; exit 1; }
 ecce_session_ensure
@@ -30,6 +36,18 @@ mkdir -p "$STATEDIR"
 
 # Read by every ECCE process of this session (MqttLink.C, Ecce::sessionKey).
 BROKERFILE="$(ecce_broker_file)"
+
+# Windows (MSYS2 or the bundled bash): a local session's broker is TCP on
+# loopback with a generated login; there is no Unix-socket mosquitto, and
+# no flock or /proc for the rest of this script. Only the local case is
+# handed over.
+case "$(uname -s)" in
+  MSYS*|MINGW*|CYGWIN*)
+    if [ -z "${ECCE_REMOTE_SERVER:-}" ] && [ ! -e "$ECCE_HOME/siteconfig/SharedBroker" ]; then
+      exec "$(dirname "$(readlink -f "$0")")/ecce-broker-win" start
+    fi
+    ;;
+esac
 
 # The central broker's port: where a -remote client finds it on the data
 # server's host, and where a server account (ecce-remote-setup --server)

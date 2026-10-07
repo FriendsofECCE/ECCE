@@ -68,6 +68,8 @@ class MDDynamics: public MDEdBase, public WxJMSListener
       virtual void constructor();
       virtual void createPanels();
       virtual void initializeModel();
+      virtual void bindModels();
+      virtual void applyCodeProfile(bool gromacs);
       virtual void refreshGUI();
       virtual string getAppName() const;
 
@@ -77,6 +79,9 @@ class MDDynamics: public MDEdBase, public WxJMSListener
       ConstraintPanel *p_constraint;
       ControlPanel *p_control;
       FilesPanel *p_files;
+
+      /** The task shown is a GROMACS Equilibrate rather than Dynamics. */
+      bool p_equilibrate;
 
 
 };

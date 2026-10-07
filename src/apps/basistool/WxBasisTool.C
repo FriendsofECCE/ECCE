@@ -2624,6 +2624,20 @@ void WxBasisTool::resetCodeObjects(bool autoOptimize)
     // Desensitize cartesian if calculation is locked:
     p_polarizationRadioButton[TGaussianBasisSet::Cartesian]->Enable(writable);
 
+    //  A spherical-only code (ORCA) has no Cartesian functions to offer.
+    if (GBSRules::sphericalOnly(cap))
+    {
+        if (writable && GBSRules::enforceCodeCoordSys(config, cap))
+        {
+            showContextChanged(true);
+        }
+        p_polarizationRadioButton[TGaussianBasisSet::Spherical]->SetValue(
+            config->coordsys() == TGaussianBasisSet::Spherical);
+        p_polarizationRadioButton[TGaussianBasisSet::Cartesian]->SetValue(
+            config->coordsys() != TGaussianBasisSet::Spherical);
+        p_polarizationRadioButton[TGaussianBasisSet::Cartesian]->Enable(false);
+    }
+
     // 2) SET OPTIMIZE TOGGLE
     bool preferOpt;
     bool hasGC = config->hasGeneralContractions();

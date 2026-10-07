@@ -34,6 +34,8 @@ class MDEnergy: public MDEdBase, public WxJMSListener
    protected:
 
       virtual void initializeModel();
+      virtual void bindModels();
+      virtual void applyCodeProfile(bool gromacs);
       virtual void constructor();
 
       void initializeMessaging();

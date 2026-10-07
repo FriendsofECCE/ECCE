@@ -1,10 +1,8 @@
 # Parse descriptor for GROMACS mdrun output (the .log file).
 #
-# STATUS: groundwork. There is no GROMACS.edml yet, so no calculation can
-# be created for this code and nothing here is reachable from the GUI.
-# It exists because the monitoring half of a GROMACS integration can be
-# built and verified independently of the topology/force-field question
-# that dominates the rest of it -- see docs/GROMACS_ROADMAP.md.
+# Used by the GROMACS MD study tasks (data/client/cap/GROMACS.edml).  The
+# monitoring half of the integration does not depend on how the inputs are
+# made, so it was built and verified first -- see docs/GROMACS.md.
 #
 # Verified against real GROMACS 2025.2 output: a steepest-descents
 # minimisation and a 500-step NVT run, both checked in under

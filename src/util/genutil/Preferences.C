@@ -69,7 +69,13 @@ Preferences::Preferences(
   p_caseSensitive = false;
 
   if (dataPrefFlag) {
-    if (pref_file[0] != '/') {
+#ifdef _WIN32
+    const bool absolute = pref_file[0] == '/' ||
+                          (pref_file.size() > 1 && pref_file[1] == ':');
+#else
+    const bool absolute = pref_file[0] == '/';
+#endif
+    if (!absolute) {
       pref_dir = Ecce::ecceDataPrefPath();
       pref_name = pref_file;
     }

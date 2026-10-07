@@ -142,7 +142,7 @@ void MoGUI::CreateControls()
     wxBoxSizer* itemBoxSizer9 = new wxBoxSizer(wxHORIZONTAL);
     itemPanel8->SetSizer(itemBoxSizer9);
 
-    ewxStaticText* itemStaticText10 = new ewxStaticText( itemPanel8, wxID_STATIC, _("Cuttoff Abs >"), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxStaticText* itemStaticText10 = new ewxStaticText( itemPanel8, wxID_STATIC, _("Cutoff Abs >"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer9->Add(itemStaticText10, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     ewxTextCtrl* itemTextCtrl11 = new ewxTextCtrl( itemPanel8, ID_TEXTCTRL_MO_CUTOFF, _("0.001"), wxDefaultPosition, wxDefaultSize, 0 );

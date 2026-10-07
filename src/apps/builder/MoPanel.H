@@ -11,6 +11,8 @@
 #include "wxgui/SliderCombo.H"
 
 #include "MoGUI.H"
+#include <set>
+#include <string>
 
 class ewxCheckBox;
 class ewxTextCtrl;
@@ -63,6 +65,10 @@ class MoPanel : public MoGUI,
 
     void OnButtonMoComputeClick( wxCommandEvent& event );
     void OnButtonMoViewcoefClick( wxCommandEvent& event );
+
+    //  Never narrower than its own rows: the Builder gives every property
+    //  panel a flat minimum, and the dock is sized from this.
+    virtual wxSize GetMinSize() const override;
 
    protected:
      void initialize(bool resetgrids=true);
@@ -146,6 +152,11 @@ class MoPanel : public MoGUI,
 
       //  Bring the selected row into the middle of the table once the
       //  table has its real, on-screen size; see selectMo().
+      //  Coefficients and basis disagree in size; see MoPanel.C.
+      void reportBasisMismatch(int coefWidth, int basisWidth,
+                               const string& code);
+      std::set<string> p_mismatchReported;   // calculation URLs told
+
       void scrollToSelection();
       void onGridWindowSize(wxSizeEvent& event);
       bool p_scrollPending = false;

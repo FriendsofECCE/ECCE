@@ -9,18 +9,23 @@
 #include <openssl/err.h>
 #include <openssl/pem.h>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <arpa/inet.h>
 #include <signal.h>
 #include <pthread.h>
-#include <time.h>
 #include <fcntl.h>
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#endif
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/select.h>
-#include <sys/socket.h>
 #include <sys/time.h>
-#include <unistd.h>
 
 namespace ipc {
 
@@ -40,8 +45,8 @@ static std::string sslErrors(void)
 // OpenSSL writes with write(2), so a server that closed would raise SIGPIPE
 // and kill the GUI; block it for the call and discard one raised by it.
 // macOS has no sigtimedwait; there the socket carries SO_NOSIGPIPE instead
-// (csocket_open), so the guard has nothing to do.
-#ifdef __APPLE__
+// (csocket_open), so the guard has nothing to do. Windows has no SIGPIPE.
+#if defined(__APPLE__) || defined(_WIN32)
 class SigpipeGuard {};
 #else
 class SigpipeGuard {
@@ -193,13 +198,23 @@ bool CTLSClientSocket::poll(size_type seconds, size_type microseconds)
     if (!CSocket::poll(left / 1000000L, left % 1000000L))
       return false;
 
+#ifdef _WIN32
+    u_long nb = 1;
+    ioctlsocket((SOCKET) fd(), FIONBIO, &nb);
+#else
     const int fl = fcntl(fd(), F_GETFL, 0);
     fcntl(fd(), F_SETFL, fl | O_NONBLOCK);
+#endif
     char c;
     int n = SSL_peek(ssl_, &c, 1);
     int e = n > 0 ? SSL_ERROR_NONE : SSL_get_error(ssl_, n);
     ERR_clear_error();
+#ifdef _WIN32
+    nb = 0;
+    ioctlsocket((SOCKET) fd(), FIONBIO, &nb);
+#else
     fcntl(fd(), F_SETFL, fl);
+#endif
 
     if (n > 0 || (e != SSL_ERROR_WANT_READ && e != SSL_ERROR_WANT_WRITE))
       return true;       // data, or EOF/error that receive() will report

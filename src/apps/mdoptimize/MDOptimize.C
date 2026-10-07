@@ -68,34 +68,34 @@ void MDOptimize::createPanels()
 
       p_interaction = new InteractionPanel(this, p_notebook);
       p_notebook->AddPage(p_interaction, _("Interactions"));
-      p_interaction->setInteractionModel(getNWChemMDModel().getInteractionModel());
+      p_interaction->setInteractionModel(getMDModel().getInteractionModel());
       p_interaction->initializeGUI();
 
       p_constraint = new ConstraintPanel(this, p_notebook);
       p_notebook->AddPage(p_constraint, _("Constraints"));
-      p_constraint->setConstraintModel(getNWChemMDModel().getConstraintModel());
+      p_constraint->setConstraintModel(getMDModel().getConstraintModel());
       p_constraint->initializeGUI();
       p_constraint->setFragmentSummary(&p_fragSummary);
 
       p_optimize = new OptimizePanel(this, p_notebook);
       p_notebook->AddPage(p_optimize, _("Optimize"));
-      p_optimize->setOptimizeModel(getNWChemMDModel().getOptimizeModel());
+      p_optimize->setOptimizeModel(getMDModel().getOptimizeModel());
       p_optimize->initializeGUI();
 
       p_thermo = new ThermodynamicsPanel(this, p_notebook);
       p_notebook->AddPage(p_thermo, _("Thermodynamics"));
-      p_thermo->setThermodynamicsModel(getNWChemMDModel().getThermodynamicsModel());
+      p_thermo->setThermodynamicsModel(getMDModel().getThermodynamicsModel());
       p_thermo->initializeGUI();
       p_thermo->configOptimizeCalc();
 
       p_control = new ControlPanel(this, p_notebook);
       p_notebook->AddPage(p_control, _("Control"));
-      p_control->setControlModel(getNWChemMDModel().getControlModel());
+      p_control->setControlModel(getMDModel().getControlModel());
       p_control->initializeGUI();
 
       p_files = new FilesPanel(this, p_notebook);
       p_notebook->AddPage(p_files, _("Files"));
-      p_files->setFilesModel(getNWChemMDModel().getFilesModel());
+      p_files->setFilesModel(getMDModel().getFilesModel());
       p_files->initializeGUI();
 
       p_notebook->Refresh();
@@ -107,14 +107,37 @@ void MDOptimize::createPanels()
 
 void MDOptimize::initializeModel()
 {
-   vector<NWChemMDModel::GUIPanel> panels;
-   panels.push_back(NWChemMDModel::INTERACTION);
-   panels.push_back(NWChemMDModel::CONSTRAINT);
-   panels.push_back(NWChemMDModel::OPTIMIZE);
-   panels.push_back(NWChemMDModel::THERMODYNAMICS);
-   panels.push_back(NWChemMDModel::CONTROL);
-   panels.push_back(NWChemMDModel::FILES);
-   p_model = new NWChemMDModel(panels);
+   p_panelSet.clear();
+   p_panelSet.push_back(NWChemMDModel::INTERACTION);
+   p_panelSet.push_back(NWChemMDModel::CONSTRAINT);
+   p_panelSet.push_back(NWChemMDModel::OPTIMIZE);
+   p_panelSet.push_back(NWChemMDModel::THERMODYNAMICS);
+   p_panelSet.push_back(NWChemMDModel::CONTROL);
+   p_panelSet.push_back(NWChemMDModel::FILES);
+   MDEdBase::initializeModel();
+}
+
+
+void MDOptimize::bindModels()
+{
+   p_interaction->setInteractionModel(getMDModel().getInteractionModel());
+   p_constraint->setConstraintModel(getMDModel().getConstraintModel());
+   p_optimize->setOptimizeModel(getMDModel().getOptimizeModel());
+   p_thermo->setThermodynamicsModel(getMDModel().getThermodynamicsModel());
+   p_control->setControlModel(getMDModel().getControlModel());
+   p_files->setFilesModel(getMDModel().getFilesModel());
+}
+
+void MDOptimize::applyCodeProfile(bool gromacs)
+{
+   p_interaction->applyGromacsProfile(gromacs);
+   p_constraint->applyGromacsProfile(gromacs);
+   p_optimize->applyGromacsProfile(gromacs);
+   p_files->applyGromacsProfile(gromacs);
+   // the Control page is NWChem's parallel setup (load balancing,
+   // processor and cell layout); a GROMACS job is told its processors
+   // when it is launched
+   setPageShown(p_control, !gromacs);
 }
 
 
@@ -124,22 +147,17 @@ void MDOptimize::setContext(const string& url)
    MDEdBase::setContext(url);
    p_constraint->getConstraintModel()->setURL(url);
 
-  // the thermo gui always exists, but we hide it from user if this isn't pmf
+  // the thermo gui always exists, but is shown only for tasks it means
+  // something for
   MdTask * task = dynamic_cast<MdTask*>(EDSIFactory::getResource(url));
-  if (task && task->hasPmf()) {
-    if (p_notebook->GetPageCount() == 6) // thermo page exists, remove it
-      p_notebook->RemovePage(3); // zero-indexed
-  } else {
-    if (p_notebook->GetPageCount() != 6) // thermo page gone, add it
-      p_notebook->InsertPage(3, p_thermo, _("Thermodynamics")); // zero-indexed
-  }
+  setPageShown(p_thermo, !(p_isGromacs || (task && task->hasPmf())));
 }
 
 
 
 string MDOptimize::getTitle() const
 {
-   return "NWChem MD Optimize";
+   return codeTitle() + " MD Optimize";
 }
 
 
@@ -168,23 +186,23 @@ void MDOptimize::resetPanel()
       "ECCE Reset Panel",wxYES_NO);
   int status = prompt.ShowModal();
   if (status == wxID_YES) {
-    int isel = p_notebook->GetSelection();
-    if (isel == 0) {
+    wxWindow *cur = p_notebook->GetCurrentPage();
+    if (cur == p_interaction) {
       p_interaction->getInteractionModel()->reset();
       p_interaction->refreshGUI();
-    } else if (isel == 1) {
+    } else if (cur == p_constraint) {
       p_constraint->getConstraintModel()->reset();
       p_constraint->refreshGUI();
-    } else if (isel == 2) {
+    } else if (cur == p_optimize) {
       p_optimize->getOptimizeModel()->reset();
       p_optimize->refreshGUI();
-    } else if (isel == 3) {
+    } else if (cur == p_thermo) {
       p_thermo->getThermodynamicsModel()->reset();
       p_thermo->refreshGUI();
-    } else if (isel == 4) {
+    } else if (cur == p_control) {
       p_control->getControlModel()->reset();
       p_control->refreshGUI();
-    } else if (isel == 5) {
+    } else if (cur == p_files) {
       p_files->getFilesModel()->reset();
       p_files->refreshGUI();
     }

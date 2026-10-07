@@ -7,8 +7,18 @@
 #include "wxgui/ThingToggle.H"
 
 
+#ifdef __WXMSW__
+// wx's DECLARE_EVENT_TYPE is dllimport; these live in this static library.
+DECLARE_EXPORTED_EVENT_TYPE(, wxEVT_PLAYBACK_TICK_EVENT, -1)
+#else
 DECLARE_EVENT_TYPE(wxEVT_PLAYBACK_TICK_EVENT, -1)
+#endif
+#ifdef __WXMSW__
+// wx's DECLARE_EVENT_TYPE is dllimport; these live in this static library.
+DECLARE_EXPORTED_EVENT_TYPE(, wxEVT_PLAYBACK_LOOP_EVENT, -1)
+#else
 DECLARE_EVENT_TYPE(wxEVT_PLAYBACK_LOOP_EVENT, -1)
+#endif
 
 
 class PlaybackControl : public ewxPanel

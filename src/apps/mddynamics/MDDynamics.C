@@ -50,6 +50,7 @@ string MDDynamics::getAppName() const
 
 void MDDynamics::constructor()
 {
+   p_equilibrate = false;
    initializeMessaging();
    MDEdBase::constructor();
 }
@@ -65,33 +66,33 @@ void MDDynamics::createPanels()
 
       p_interaction = new InteractionPanel(this, p_notebook);
       p_notebook->AddPage(p_interaction, _("Interactions"));
-      p_interaction->setInteractionModel(getNWChemMDModel().getInteractionModel());
+      p_interaction->setInteractionModel(getMDModel().getInteractionModel());
       p_interaction->initializeGUI();
 
       p_constraint = new ConstraintPanel(this, p_notebook);
       p_notebook->AddPage(p_constraint, _("Constraints"));
-      p_constraint->setConstraintModel(getNWChemMDModel().getConstraintModel());
+      p_constraint->setConstraintModel(getMDModel().getConstraintModel());
       p_constraint->initializeGUI();
       p_constraint->setFragmentSummary(&p_fragSummary);
 
       p_dynamics = new DynamicsPanel(this, p_notebook);
       p_notebook->AddPage(p_dynamics, _("Dynamics"));
-      p_dynamics->setDynamicsModel(getNWChemMDModel().getDynamicsModel());
+      p_dynamics->setDynamicsModel(getMDModel().getDynamicsModel());
       p_dynamics->initializeGUI();
 
       p_thermo = new ThermodynamicsPanel(this, p_notebook);
       p_notebook->AddPage(p_thermo, _("Thermodynamics"));
-      p_thermo->setThermodynamicsModel(getNWChemMDModel().getThermodynamicsModel());
+      p_thermo->setThermodynamicsModel(getMDModel().getThermodynamicsModel());
       p_thermo->initializeGUI();
 
       p_control = new ControlPanel(this, p_notebook);
       p_notebook->AddPage(p_control, _("Control"));
-      p_control->setControlModel(getNWChemMDModel().getControlModel());
+      p_control->setControlModel(getMDModel().getControlModel());
       p_control->initializeGUI();
 
       p_files = new FilesPanel(this, p_notebook);
       p_notebook->AddPage(p_files, _("Files"));
-      p_files->setFilesModel(getNWChemMDModel().getFilesModel());
+      p_files->setFilesModel(getMDModel().getFilesModel());
       p_files->initializeGUI();
 
       p_notebook->Refresh();
@@ -104,14 +105,37 @@ void MDDynamics::createPanels()
 
 void MDDynamics::initializeModel()
 {
-   vector<NWChemMDModel::GUIPanel> panels;
-   panels.push_back(NWChemMDModel::INTERACTION);
-   panels.push_back(NWChemMDModel::CONSTRAINT);
-   panels.push_back(NWChemMDModel::DYNAMICS);
-   panels.push_back(NWChemMDModel::THERMODYNAMICS);
-   panels.push_back(NWChemMDModel::CONTROL);
-   panels.push_back(NWChemMDModel::FILES);
-   p_model = new NWChemMDModel(panels);
+   p_panelSet.clear();
+   p_panelSet.push_back(NWChemMDModel::INTERACTION);
+   p_panelSet.push_back(NWChemMDModel::CONSTRAINT);
+   p_panelSet.push_back(NWChemMDModel::DYNAMICS);
+   p_panelSet.push_back(NWChemMDModel::THERMODYNAMICS);
+   p_panelSet.push_back(NWChemMDModel::CONTROL);
+   p_panelSet.push_back(NWChemMDModel::FILES);
+   MDEdBase::initializeModel();
+}
+
+
+void MDDynamics::bindModels()
+{
+   p_interaction->setInteractionModel(getMDModel().getInteractionModel());
+   p_constraint->setConstraintModel(getMDModel().getConstraintModel());
+   p_dynamics->setDynamicsModel(getMDModel().getDynamicsModel());
+   p_thermo->setThermodynamicsModel(getMDModel().getThermodynamicsModel());
+   p_control->setControlModel(getMDModel().getControlModel());
+   p_files->setFilesModel(getMDModel().getFilesModel());
+}
+
+void MDDynamics::applyCodeProfile(bool gromacs)
+{
+   p_interaction->applyGromacsProfile(gromacs);
+   p_constraint->applyGromacsProfile(gromacs);
+   p_dynamics->applyGromacsProfile(gromacs);
+   p_files->applyGromacsProfile(gromacs);
+   // the Control page is NWChem's parallel setup (load balancing,
+   // processor and cell layout); a GROMACS job is told its processors
+   // when it is launched
+   setPageShown(p_control, !gromacs);
 }
 
 
@@ -122,26 +146,32 @@ void MDDynamics::setContext(const string& url)
   p_constraint->getConstraintModel()->setURL(url);
   p_dynamics->getDynamicsModel()->setURL(url);
 
+  // One editor serves both GROMACS Equilibrate and Dynamics tasks
+  {
+    MdTask *eqTask = dynamic_cast<MdTask*>(EDSIFactory::getResource(url));
+    bool eq = (eqTask != 0 &&
+               eqTask->getContentType() == ResourceDescriptor::CT_MDEQUILIBRATE);
+    if (eq != p_equilibrate) {
+      p_equilibrate = eq;
+      SetTitle(wxString::FromUTF8(("ECCE " + getTitle()).c_str()));
+    }
+  }
+
   // enable/disable the resume simulation checkbox depending on whether
   // the preceeding task was a dynamics task or not
   p_dynamics->checkResume();
 
-  // the thermo gui always exists, but we hide it from user if this isn't pmf
+  // the thermo gui always exists, but is shown only for tasks it means
+  // something for
   MdTask * task = dynamic_cast<MdTask*>(EDSIFactory::getResource(url));
-  if (task && task->hasPmf()) {
-    if (p_notebook->GetPageCount() == 6) // thermo page exists, remove it
-      p_notebook->RemovePage(3);
-  } else {
-    if (p_notebook->GetPageCount() != 6) // thermo page gone, add it
-      p_notebook->InsertPage(3, p_thermo, _("Thermodynamics"));
-  }
+  setPageShown(p_thermo, !(p_isGromacs || (task && task->hasPmf())));
 }
 
 
 
 string MDDynamics::getTitle() const
 {
-   return "NWChem MD Dynamics";
+   return codeTitle() + (p_equilibrate ? " MD Equilibrate" : " MD Dynamics");
 }
 
 

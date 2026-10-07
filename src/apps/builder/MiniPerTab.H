@@ -16,7 +16,7 @@ class wxBoxSizer;
 class wxGridBagSizer;
 class wxToggleButton;
 class ImageDropDown;
-class wxConfig;
+class wxConfigBase;
 
 /*!
  * Control identifiers
@@ -66,8 +66,8 @@ protected:
   /// Creation
   bool Create( wxWindow* parent, wxWindowID id = -1, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize, long style = wxSUNKEN_BORDER );
   /* common interface for initializing and saving preferences.  */
-  virtual void restoreSettings(wxConfig * config);
-  virtual void saveSettings(wxConfig * config);
+  virtual void restoreSettings(wxConfigBase * config);
+  virtual void saveSettings(wxConfigBase * config);
 
   void OnAddhClick(wxCommandEvent &event);
   void OnRemovehClick(wxCommandEvent &event);

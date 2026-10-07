@@ -101,6 +101,7 @@ using std::vector;
 
 #include "inv/SoWx/SoWx.H"
 
+#include "tdat/SingleGrid.H"
 #include "viz/AtomMeasureAngle.H"
 #include "viz/AtomMeasureDist.H"
 #include "viz/AtomMeasureTorsion.H"
@@ -4896,11 +4897,15 @@ void Builder::updatePropertyMenus()
       for (size_t i = 0; f && i < panes.GetCount(); ++i) {
         const wxAuiPaneInfo &p = panes.Item(i);
         if (!p.IsShown() || p.IsToolbar() || !p.window) continue;
-        fprintf(f, "pane \"%s\" %d %d %d %d %s %s\n",
+        //  "need": the width the pane's own controls take at this font.
+        wxSizer *content = p.window->GetSizer();
+        fprintf(f, "pane \"%s\" %d %d %d %d %s %s need %d have %d\n",
                 p.name.ToStdString().c_str(), p.rect.x, p.rect.y,
                 p.rect.width, p.rect.height,
                 p.window->IsShownOnScreen() ? "onscreen" : "hidden",
-                p.window->GetParent() == this ? "docked" : "reparented");
+                p.window->GetParent() == this ? "docked" : "reparented",
+                content ? content->GetMinSize().x : 0,
+                p.window->GetClientSize().x);
       }
       if (f) fprintf(f, "client %d %d\n", GetClientSize().x,
                      GetClientSize().y);
@@ -5233,6 +5238,22 @@ void Builder::updatePropertyMenus()
         }
         //  "gt...": the Geometry Trace stress commands (#217).
         if (w[0].compare(0, 2, "gt") == 0) return traceStressCommand(s, w);
+        //  "mogrid <name>": the range of the grid last computed (an MO
+        //  Compute), "none" without one -> <name>.txt.
+        if (w[0] == "mogrid" && w.size() == 2) {
+          std::ofstream out(outdir + "/" + w[1] + ".txt");
+          SingleGrid *grid = getSG() ? getSG()->getCurrentGrid() : 0;
+          if (grid)
+            out << "fieldMin " << grid->fieldMin() << "\n"
+                << "fieldMax " << grid->fieldMax() << "\n";
+          else
+            out << "none\n";
+          return true;
+        }
+        //  "pbc...", "cmd", "fragdump": Periodic Builder editing (#243).
+        if (w[0].compare(0, 3, "pbc") == 0 || w[0] == "cmd" ||
+            w[0] == "fragdump")
+          return pbcTestCommand(s, w, outdir);
         if ((w[0] != "mopanel" && w[0] != "motable") || w.size() != 2)
           return s.fail("unknown command: " + w[0]);
         MoPanel *mo = 0;

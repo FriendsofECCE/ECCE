@@ -34,7 +34,7 @@ using std::ostrstream;
 
 #include <string.h>
 #include <stdlib.h>              // getenv
-#include <unistd.h>              // access
+#include "util/PosixCompat.H"      // access, gethostname, setenv
 #include <locale.h>
 #include <cstdint>
 #include <random>
@@ -96,6 +96,23 @@ void Ecce::initialize()
 
    SessionLease::acquire();
 }
+
+#ifdef _WIN32
+// These reach sh scripts, where a backslash is an escape ("C:\Users" breaks
+// test -d and cp), so make them forward-slash paths whatever the user exported.
+static struct WindowsEnvSlashes {
+  WindowsEnvSlashes() {
+    static const char* const vars[] = { "ECCE_HOME", "ECCE_TMPDIR", "ECCE_LOCAL_DATA" };
+    for (const char* v : vars) {
+      const char* e = getenv(v);
+      if (!e || !strchr(e, '\\')) continue;
+      std::string s = e;
+      for (char& c : s) if (c == '\\') c = '/';
+      _putenv_s(v, s.c_str());
+    }
+  }
+} s_windowsEnvSlashes;
+#endif
 
 // Every ECCE program of a session holds its lease from the start (#233),
 // also those that never call initialize(); acquire() runs once.
