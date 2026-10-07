@@ -906,6 +906,19 @@ void Builder::setPanelMode(PanelMode mode, bool reset)
 
 
 /**
+ * A tool pane's contents changed size (the Periodic Builder grows once a
+ * lattice exists): make sure it still has room.
+ */
+void Builder::toolPaneResized(const string& name)
+{
+  wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(name));
+  if (pane.IsOk() && pane.IsShown()) {
+    makeRoomFor(wxString(name));
+  }
+}
+
+
+/**
  * A tool pane opened from the Tools menu gets the height its controls need.
  * The right-hand column holds a fixed number of panes at their minimum
  * height; one more used to be laid out with no height at all, its window
@@ -921,7 +934,7 @@ void Builder::makeRoomFor(const wxString& name)
     return;
   }
   //  The Periodic Builder scrolls, but is useless if it shows one row.
-  const int need = name == NAME_TOOL_PBC ? 320 : 150;
+  const int need = name == NAME_TOOL_PBC ? 200 : 150;
   const string victims[] = {
     NAME_TOOL_ATOM_TABLE, NAME_TOOL_RESIDUE_TABLE, NAME_TOOL_SELECTION,
     NAME_TOOL_SYMMETRY, NAME_TOOL_COORDINATES, NAME_TOOL_DNA_BUILDER,
@@ -933,7 +946,7 @@ void Builder::makeRoomFor(const wxString& name)
   bool moved = false;
   for (size_t v = 0; ; ) {
     wxAuiPaneInfo &now = p_mgr.GetPane(name);
-    fprintf(stderr, "MAKEROOM %s h=%d y=%d pos=%d v=%d moved=%d\n", name.ToStdString().c_str(), now.rect.height, now.rect.y, now.dock_pos, (int)v, (int)moved);
+    //fprintf(stderr, "MAKEROOM %s h=%d y=%d pos=%d v=%d moved=%d\n", name.ToStdString().c_str(), now.rect.height, now.rect.y, now.dock_pos, (int)v, (int)moved);
     if (now.rect.height >= need) {
       return;
     }

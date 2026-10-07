@@ -34,6 +34,7 @@
 
 #include <wx/settings.h>
 #include "PBCGUI.H"
+#include "Builder.H"
 
 ////@begin XPM images
 
@@ -208,6 +209,14 @@ void PBCGUI::refit()
     p_scroll->FitInside();
     InvalidateBestSize();
     Layout();
+    if (IsShownOnScreen()) {
+        Builder* builder = dynamic_cast<Builder*>(wxGetTopLevelParent(this));
+        if (builder) {
+            builder->CallAfter([builder]() {
+                builder->toolPaneResized(Builder::NAME_TOOL_PBC);
+            });
+        }
+    }
 }
 
 

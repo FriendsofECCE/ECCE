@@ -581,6 +581,7 @@ class Builder: public BuilderGUI,
       bool p_logAutoOpen = false;
 
     public:
+      void toolPaneResized(const string& name);
       //  Test hooks (ECCE_PANEL_TEST): what the layout currently holds.
       PanelMode panelMode() const { return p_panelMode; }
       void runPanelLayoutTest();
