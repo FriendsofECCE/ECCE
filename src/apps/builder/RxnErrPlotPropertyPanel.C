@@ -157,9 +157,9 @@ void ReactionErrorPlotPropertyPanel::refresh()
     }
     plotData = new wxPlotData(x,y,count);
     plotData->SetFilename(isTST ? "TST" : "CVT");
-    plotData->SetPen(wxPLOTPEN_NORMAL, wxPen(*wxBLUE));
-    plotData->SetPen(wxPLOTPEN_ACTIVE, wxPen(*wxBLUE));
-    plotData->SetPen(wxPLOTPEN_SELECTED, wxPen(*wxBLUE));
+    plotData->SetPen(wxPLOTPEN_NORMAL, p_plotCtrl->SeriesPen(0));
+    plotData->SetPen(wxPLOTPEN_ACTIVE, p_plotCtrl->SeriesPen(0));
+    plotData->SetPen(wxPLOTPEN_SELECTED, p_plotCtrl->SeriesPen(0));
     p_plotCtrl->AddCurve(plotData, true, true);
 
     p_plotCtrl->SetXAxisLabel("1000/(T[K])");
@@ -180,9 +180,9 @@ void ReactionErrorPlotPropertyPanel::refresh()
       }
       plotData = new wxPlotData(a,b,count);
       plotData->SetFilename(isTST? "TST_lower": "CVT_lower");
-      plotData->SetPen(wxPLOTPEN_NORMAL, wxPen(*wxRED));
-      plotData->SetPen(wxPLOTPEN_ACTIVE, wxPen(*wxRED));
-      plotData->SetPen(wxPLOTPEN_SELECTED, wxPen(*wxRED));
+      plotData->SetPen(wxPLOTPEN_NORMAL, p_plotCtrl->SeriesPen(1));
+      plotData->SetPen(wxPLOTPEN_ACTIVE, p_plotCtrl->SeriesPen(1));
+      plotData->SetPen(wxPLOTPEN_SELECTED, p_plotCtrl->SeriesPen(1));
       p_plotCtrl->AddCurve(plotData, true, true);
       col_data = isTST ? 4 : 7;
       for (int i=0; i<count; ++i) {
@@ -191,9 +191,9 @@ void ReactionErrorPlotPropertyPanel::refresh()
       }
       plotData = new wxPlotData(c,d,count);
       plotData->SetFilename(isTST? "TST_upper": "CVT_upper");
-      plotData->SetPen(wxPLOTPEN_NORMAL, wxPen(*wxBLACK));
-      plotData->SetPen(wxPLOTPEN_ACTIVE, wxPen(*wxBLACK));
-      plotData->SetPen(wxPLOTPEN_SELECTED, wxPen(*wxBLACK));
+      plotData->SetPen(wxPLOTPEN_NORMAL, p_plotCtrl->SeriesPen(2));
+      plotData->SetPen(wxPLOTPEN_ACTIVE, p_plotCtrl->SeriesPen(2));
+      plotData->SetPen(wxPLOTPEN_SELECTED, p_plotCtrl->SeriesPen(2));
       p_plotCtrl->AddCurve(plotData, true, true);
     }
   } else {

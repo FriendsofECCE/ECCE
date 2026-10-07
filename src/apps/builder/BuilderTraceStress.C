@@ -49,6 +49,17 @@ GeomTracePropertyPanel *tracePanel(IPropCalculation *calc)
 }
 
 
+ewxPlotCtrl *plotOf(wxWindow *w)
+{
+  if (!w) return 0;
+  ewxPlotCtrl *p = dynamic_cast<ewxPlotCtrl*>(w);
+  if (p) return p;
+  for (wxWindow *c : w->GetChildren())
+    if ((p = plotOf(c)) != 0) return p;
+  return 0;
+}
+
+
 PlaybackControl *playback(wxWindow *w)
 {
   if (!w) return 0;
@@ -200,6 +211,52 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
     }
     fprintf(stderr, "GTSTRESS: %d steps, %lu atoms\n", want,
             (unsigned long)frag->numAtoms());
+    return true;
+  }
+
+  //  "gtpick <step|mid|last>": click the plot where that step's point is
+  //  drawn (zero-based; mid and last of the plotted points), as a user does; the molecule on screen must then be the
+  //  one the trace holds for that step.
+  if (c == "gtpick" && w.size() == 2) {
+    ewxPlotCtrl *plot = plotOf(gt);
+    PropTSVecTable *trace =
+        dynamic_cast<PropTSVecTable*>(p_calculation->getProperty("GEOMTRACE"));
+    if (!plot || !trace) return s.fail("gtpick: no plot or no trace");
+    wxPlotData *data = plot->GetDataCurve(plot->GetActiveIndex());
+    int step = atoi(w[1].c_str());
+    if (data && w[1] == "mid") step = data->GetCount() / 2;
+    if (data && w[1] == "last") step = data->GetCount() - 1;
+    if (!data || step < 0 || step >= data->GetCount() ||
+        step >= trace->tables())
+      return s.fail("gtpick: step out of range");
+    const wxPoint2DDouble pt = data->GetPoint(step);
+    const wxPoint at(plot->GetClientCoordFromPlotX(pt.m_x),
+                     plot->GetClientCoordFromPlotY(pt.m_y));
+    wxWindow *area = plot->GetPlotArea();
+    wxMouseEvent down(wxEVT_LEFT_DOWN), up(wxEVT_LEFT_UP);
+    down.SetEventObject(area);
+    up.SetEventObject(area);
+    down.SetPosition(at);
+    up.SetPosition(at);
+    down.SetLeftDown(true);
+    area->GetEventHandler()->ProcessEvent(down);
+    area->GetEventHandler()->ProcessEvent(up);
+    spin(50);
+    SGFragment *frag = getSG()->getFragment();
+    for (size_t i = 0; i < frag->numAtoms() && (int)i < trace->rows(); i++) {
+      const double *xyz = frag->atomRef(i)->coordinates();
+      for (int k = 0; k < 3; k++) {
+        const double want = trace->value(step, i, k);
+        if (std::fabs(xyz[k] - want) > 1e-3 * (1 + std::fabs(want))) {
+          char buf[160];
+          snprintf(buf, sizeof buf, "gtpick %d: atom %lu coordinate %d is "
+                   "%g, the trace has %g", step, (unsigned long)i, k, xyz[k],
+                   want);
+          return s.fail(buf);
+        }
+      }
+    }
+    fprintf(stderr, "GTSTRESS: picked step %d\n", step);
     return true;
   }
 
