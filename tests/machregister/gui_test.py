@@ -2437,6 +2437,7 @@ click test-submission
 expect field test:account proj7
 click test:close
 save
+dump
 expect dirty 0
 quit
 """ % {"bin": bindir, "shot": shot("preview-account.png")},
@@ -2553,6 +2554,7 @@ def main():
     ap.add_argument("--help-pngs")
     ap.add_argument("--queues-pngs")
     ap.add_argument("--tools-pngs")
+    ap.add_argument("--only", help="run just this scenario function")
     a = ap.parse_args()
     build = os.path.abspath(a.build)
     if not os.access(os.path.join(build, "machregister"), os.X_OK):
@@ -2567,7 +2569,9 @@ def main():
         return 77
     tmp = tempfile.mkdtemp(prefix="ecce-machreg-")
     try:
-        if a.tools_pngs:
+        if a.only:
+            globals()[a.only](tmp, disp, build)
+        elif a.tools_pngs:
             out = os.path.abspath(a.tools_pngs)
             os.makedirs(out, exist_ok=True)
             discovery(tmp, disp, build, out)
