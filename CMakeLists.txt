@@ -2175,9 +2175,14 @@ if(PYTHON3_EXECUTABLE)
   target_include_directories(gbscoordsys PRIVATE ${XercesC_INCLUDE_DIRS})
   #  The data-model libraries refer to each other in a cycle that the
   #  code under test does not happen to pull in the right order.
-  target_link_libraries(gbscoordsys PRIVATE -Wl,--start-group
-    eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
-    eccetdat ecceutil -Wl,--end-group ${XercesC_LIBRARIES})
+  set(_gbs_libs eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc
+    eccefaces eccexml eccetdat ecceutil)
+  if(APPLE)   # ld64 rescans archives itself and rejects --start-group
+    target_link_libraries(gbscoordsys PRIVATE ${_gbs_libs} ${XercesC_LIBRARIES})
+  else()
+    target_link_libraries(gbscoordsys PRIVATE
+      "$<LINK_GROUP:RESCAN,${_gbs_libs}>" ${XercesC_LIBRARIES})
+  endif()
   add_test(NAME gbscoordsys
            COMMAND gbscoordsys ${CMAKE_CURRENT_SOURCE_DIR}/data/admin/basissets)
   set_tests_properties(gbscoordsys PROPERTIES ENVIRONMENT
