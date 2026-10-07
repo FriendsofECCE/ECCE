@@ -96,6 +96,18 @@ CASES = [
                 ("ECP still written", lambda t: "PT-ECP" in t)],
     ),
     dict(
+        name="orca-general-contraction",
+        fixture="water_gencontr.gbs",
+        exporter="std2ORCA",
+        #  cc-pVDZ oxygen s is 8 primitives and TWO contractions.  The ORCA
+        #  writer once wrote only the first, so water had 23 functions
+        #  instead of 24 and the energy was 0.3 Eh off.
+        expect=[("both contractions of the 8-primitive s shell are written",
+                 lambda t: t.count(" S 8") == 2),
+                ("the second column's coefficients are there",
+                 lambda t: "-0.00016000" in t and "0.55736800" in t)],
+    ),
+    dict(
         name="orca-ecp-per-element",
         fixture="pth_ecp.gbs",
         exporter="std2ORCA",

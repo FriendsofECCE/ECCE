@@ -248,63 +248,6 @@ sub setupBasisTranslation {
   $NameToBasis{"def2-tzvpp"} = "def2-TZVPP";                 # nbf 59
   $NameToBasis{"def2-qzvpp"} = "def2-QZVPP";                 # nbf 117
 
-  #  Added for #118 from tests/basisload/named_basis_check.py: each keyword
-  #  gave the same function count and an RHF energy within 1e-5 Eh of
-  #  ECCE's own primitives on water (or N2/Ne/F2 for sets without
-  #  hydrogen) under ORCA 6.1.1.  Run again after any change here.
-  #  Checked and NOT added because ORCA's set differs from ECCE's:
-  #  pcseg-0 (0.034 Eh) and Ahlrichs VTZ vs TZV (one function fewer).
-  #  ORCA rejects 3-21G*, 4-31G, 6-31++G, 6-31++G*, STO-2G/6G, STO-3G*,
-  #  cc-pV(D+d)Z, d-aug-cc-p*, DZ/SV (Dunning), MIDI! and 6-31G(3df,3pd).
-
-  $NameToBasis{"3-21gsp"} = "3-21GSP";
-  $NameToBasis{"4-22gsp"} = "4-22GSP";
-  $NameToBasis{"ahlrichs tzv"} = "TZV";
-  $NameToBasis{"ahlrichs vdz"} = "SV";
-  $NameToBasis{"ahlrichs pvdz"} = "SVP";
-  $NameToBasis{"iglo-ii"} = "IGLO-II";
-  $NameToBasis{"iglo-iii"} = "IGLO-III";
-  $NameToBasis{"midi (huzinaga)"} = "MIDI";
-  $NameToBasis{"mini (huzinaga)"} = "MINI";
-  $NameToBasis{"ugbs"} = "UGBS";
-  $NameToBasis{"aug-cc-pcvdz"} = "aug-cc-pCVDZ";
-  $NameToBasis{"aug-cc-pcvqz"} = "aug-cc-pCVQZ";
-  $NameToBasis{"aug-cc-pcvtz"} = "aug-cc-pCVTZ";
-  $NameToBasis{"aug-cc-pwcvdz"} = "aug-cc-pwCVDZ";
-  $NameToBasis{"aug-cc-pwcvqz"} = "aug-cc-pwCVQZ";
-  $NameToBasis{"aug-cc-pwcvtz"} = "aug-cc-pwCVTZ";
-  $NameToBasis{"aug-pc-0"} = "aug-pc-0";
-  $NameToBasis{"aug-pc-2"} = "aug-pc-2";
-  $NameToBasis{"aug-pc-3"} = "aug-pc-3";
-  $NameToBasis{"aug-pcsseg-0"} = "aug-pcSseg-0";
-  $NameToBasis{"aug-pcsseg-1"} = "aug-pcSseg-1";
-  $NameToBasis{"aug-pcsseg-2"} = "aug-pcSseg-2";
-  $NameToBasis{"aug-pcsseg-3"} = "aug-pcSseg-3";
-  $NameToBasis{"aug-pcseg-0"} = "aug-pcseg-0";
-  $NameToBasis{"aug-pcseg-1"} = "aug-pcseg-1";
-  $NameToBasis{"aug-pcseg-2"} = "aug-pcseg-2";
-  $NameToBasis{"aug-pcseg-3"} = "aug-pcseg-3";
-  $NameToBasis{"cc-pcvdz"} = "cc-pCVDZ";
-  $NameToBasis{"cc-pcvqz"} = "cc-pCVQZ";
-  $NameToBasis{"cc-pcvtz"} = "cc-pCVTZ";
-  $NameToBasis{"cc-pvqz-dk"} = "cc-pVQZ-DK";
-  $NameToBasis{"cc-pvtz-dk"} = "cc-pVTZ-DK";
-  $NameToBasis{"cc-pwcvdz"} = "cc-pwCVDZ";
-  $NameToBasis{"cc-pwcvqz"} = "cc-pwCVQZ";
-  $NameToBasis{"cc-pwcvtz"} = "cc-pwCVTZ";
-  $NameToBasis{"pc-2"} = "pc-2";
-  $NameToBasis{"pc-3"} = "pc-3";
-  $NameToBasis{"pc-4"} = "pc-4";
-  $NameToBasis{"pcsseg-0"} = "pcSseg-0";
-  $NameToBasis{"pcsseg-1"} = "pcSseg-1";
-  $NameToBasis{"pcsseg-2"} = "pcSseg-2";
-  $NameToBasis{"pcsseg-3"} = "pcSseg-3";
-  $NameToBasis{"pcsseg-4"} = "pcSseg-4";
-  $NameToBasis{"pcseg-1"} = "pcseg-1";
-  $NameToBasis{"pcseg-2"} = "pcseg-2";
-  $NameToBasis{"pcseg-3"} = "pcseg-3";
-  $NameToBasis{"pcseg-4"} = "pcseg-4";
-
   $NameToBasis{"sto-3g"} = "STO-3G";
   $NameToBasis{"3-21g"} = "3-21G";
   $NameToBasis{"6-31g"} = "6-31G";
