@@ -1720,14 +1720,22 @@ sub JobCheck
 
     if ($q eq 'shell')
     {
+        # Under MSYS the id is a Windows pid (what the transport started), so
+        # list the Windows pids and compare the WINPID column (field 3).
+        my $pidField = 0;
         $cmd = "ps -p $id 2>&1";
+        if ($^O eq 'msys' || $^O eq 'cygwin')
+        {
+            $cmd = "ps -W 2>&1";
+            $pidField = 3;
+        }
         if (open(QUERY, "$cmd |"))
         {
             my $found = 0;
             while (<QUERY>)
             {
-                # PID is field 0 (0-based)
-                if ((split)[0] eq $id)
+                # PID is field 0 (0-based), WINPID field 3 under MSYS
+                if (((split)[$pidField] // '') eq $id)
                 {
                     &MsgSendUp("Shell job pid '$id'");
 
