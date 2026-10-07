@@ -108,7 +108,10 @@ def broker(s, what):
     shell = os.path.join(home, "usr", "bin", "bash.exe")
     if not os.path.exists(shell):
         shell = "bash"
-    r = subprocess.run([shell, script, what], env=dict(s.env, ECCE_NO_MESSAGING=""),
+    env = dict(s.env, ECCE_NO_MESSAGING="")
+    if os.path.exists(shell):
+        env["PATH"] = os.path.dirname(shell) + os.pathsep + env["PATH"]
+    r = subprocess.run([shell, script, what], env=env,
                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     say(r.stdout.decode("utf-8", "replace").strip())
     cfg = {}
