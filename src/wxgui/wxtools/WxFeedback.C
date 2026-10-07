@@ -56,6 +56,8 @@ WxFeedback* WxFeedback::p_feedback = (WxFeedback*)0;
  */
 WxFeedback::WxFeedback( ) : WxFeedbackGUI()
 {
+   p_timer = 0;
+   p_textMenu = 0;
 }
 
 
@@ -137,6 +139,11 @@ WxFeedback::WxFeedback( wxWindow* parent, wxWindowID id,
  */
 WxFeedback::~WxFeedback()
 {
+  // A pending one-shot tick would otherwise be delivered to a freed handler.
+  if (p_timer) {
+    p_timer->Stop();
+    delete p_timer;
+  }
   delete p_textMenu;
 }
 
