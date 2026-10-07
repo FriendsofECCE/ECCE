@@ -1881,6 +1881,12 @@ if(PYTHON3_EXECUTABLE)
     set_tests_properties(transport PROPERTIES TIMEOUT 120)
   endif()
 
+  # Process launch (POSIX fork/exec and the Windows CreateProcess path, #133).
+  add_executable(testWinProcess tests/transport/testWinProcess.C)
+  target_link_libraries(testWinProcess PRIVATE eccercmd ecceutil)
+  add_test(NAME transport_process COMMAND testWinProcess)
+  set_tests_properties(transport_process PROPERTIES TIMEOUT 180)
+
   # RCommand on a local machine against results recorded from the old pty
   # path (#204).
   add_executable(testRCommandDirect tests/transport/testRCommandDirect.C)

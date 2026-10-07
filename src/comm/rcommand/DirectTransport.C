@@ -1,45 +1,7 @@
 #include "comm/DirectTransport.H"
 
-#ifdef _WIN32
-// Process creation is not implemented on Windows yet (#133): every call
-// reports that, and nothing is started.
-static const char* const kNoWindows =
-    "Starting processes is not available on Windows yet";
-
-TransportResult DirectTransport::run(const std::string&, int)
-{
-  TransportResult r;
-  r.error = kNoWindows;
-  return r;
-}
-TransportResult DirectTransport::runProcess(const std::vector<std::string>&,
-                                            const std::string&, int, int, int)
-{
-  TransportResult r;
-  r.error = kNoWindows;
-  return r;
-}
-long DirectTransport::spawnDetached(const std::string&, std::string& error,
-                                    const std::string&)
-{
-  error = kNoWindows;
-  return -1;
-}
-long DirectTransport::spawnProcess(const std::vector<std::string>&, int, int,
-                                   int, std::string& error)
-{
-  error = kNoWindows;
-  return -1;
-}
-bool DirectTransport::openStream(const std::string&, Stream&, std::string& error)
-{
-  error = kNoWindows;
-  return false;
-}
-bool DirectTransport::writeStream(Stream&, const std::string&) { return false; }
-void DirectTransport::interruptStream(Stream&) {}
-int DirectTransport::closeStream(Stream&, int) { return -1; }
-#else
+// The Windows implementation is in DirectTransportWin.C.
+#ifndef _WIN32
 
 #include <cerrno>
 #include <chrono>

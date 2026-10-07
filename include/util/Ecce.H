@@ -84,6 +84,13 @@ class Ecce
       // link against -- an out-of-line definition here put the whole
       // of Ecce.C, and everything it drags in, on that test's link
       // line.  It is getenv and access; there is nothing to hide.
+#ifdef _WIN32
+      // A path with a space is quoted so cmd.exe and sh read it as one word.
+      static string winQuote(const string& p)
+      {
+        return p.find(' ') == string::npos ? p : "\"" + p + "\"";
+      }
+#endif
       static string ecceBinCommand(const string& name)
       {
         const char* home = getenv("ECCE_HOME");
@@ -96,7 +103,7 @@ class Ecce
         string exe = path + ".exe";
         if (access(exe.c_str(), 0) == 0) {
           for (size_t i = 0; i < exe.size(); i++) if (exe[i] == '/') exe[i] = '\\';
-          return exe;   // cmd.exe reads "/" in a command as a switch
+          return winQuote(exe);   // cmd.exe reads "/" in a command as a switch
         }
         char self[MAX_PATH];
         DWORD n = GetModuleFileNameA(NULL, self, MAX_PATH);
@@ -105,7 +112,7 @@ class Ecce
           size_t slash = dir.find_last_of("\\/");
           if (slash != string::npos) {
             string beside = dir.substr(0, slash + 1) + name + ".exe";
-            if (access(beside.c_str(), 0) == 0) return beside;
+            if (access(beside.c_str(), 0) == 0) return winQuote(beside);
           }
         }
         return name;
