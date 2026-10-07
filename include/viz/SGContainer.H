@@ -87,9 +87,7 @@ public:
     double displayedSphereRadius(int idx);
     // Re-seat the normal-mode arrows on the spheres now drawn.
     void updateNMVecStarts();
-    // Prototype (#227): ECCE_NMVEC_MODE=A hides arrows only behind atoms,
-    // =B draws sticks thinner while the arrows are shown.
-    void updateNMOccluders();
+    // Bond cylinders are drawn thinner while normal-mode arrows are shown.
     void applyNMStickScale();
 
     DisplayStyle::Style toOurStyle(ChemDisplayParam::DisplayBinding style);
@@ -283,8 +281,6 @@ SoINTERNAL public:
    // ---------------------- Property Stuff ----------------------------
    SoSwitch*                 p_MOSwitch;
    SoSwitch*                 p_NMVecSwitch;
-   SoSwitch*                 p_NMOccSwitch;
-   SoSeparator*              p_NMOcc;
    float                     p_nmStickScale;
    SoFieldSensor*            p_nmSwitchSensor;
    SoSwitch*                 p_NMSwitch;

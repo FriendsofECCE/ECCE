@@ -11,11 +11,7 @@
 
 #include "inv/nodes/SoMaterial.H"
 #include "inv/nodes/SoSwitch.H"
-#include "inv/nodes/SoSphere.H"
-#include "inv/nodes/SoTranslation.H"
-#include "inv/nodes/SoCallback.H"
 #include "inv/sensors/SoFieldSensor.H"
-#include <GL/gl.h>
 #include "inv/nodes/SoShapeHints.H"
 #include "inv/nodes/SoClipPlane.H"
 #include "inv/actions/SoGLRenderAction.H"
@@ -321,7 +317,7 @@ void SGContainer::constructor()
    p_display->addChild(p_dynamicStyles);
 
    createStyle(DisplayDescriptor("default", 
-      DisplayStyle::fromStyle(DisplayStyle::BALLWIRE), "Element"));
+      DisplayStyle::fromStyle(DisplayStyle::BALLSTICK), "Element"));
 
    // ---------------------Property Nodes --------------------------
    // The MO switch
@@ -330,29 +326,6 @@ void SGContainer::constructor()
    initMORoot();
 
    p_NMVecSwitch = new SoSwitch;
-   // Option A: before the arrows, clear the depth buffer and put the atom
-   // spheres back into it (no colour), so only atoms occlude the arrows.
-   p_NMOccSwitch = new SoSwitch;
-   p_mainSep->addChild(p_NMOccSwitch);
-   {
-      SoCallback *pre = new SoCallback;
-      pre->setCallback([](void*, SoAction *a) {
-         if (a->isOfType(SoGLRenderAction::getClassTypeId())) {
-            glClear(GL_DEPTH_BUFFER_BIT);
-            glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-         }
-      });
-      SoCallback *post = new SoCallback;
-      post->setCallback([](void*, SoAction *a) {
-         if (a->isOfType(SoGLRenderAction::getClassTypeId()))
-            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-      });
-      p_NMOcc = new SoSeparator;
-      p_NMOccSwitch->addChild(pre);
-      p_NMOccSwitch->addChild(p_NMOcc);
-      p_NMOccSwitch->addChild(post);
-      p_NMOccSwitch->whichChild.connectFrom(&p_NMVecSwitch->whichChild);
-   }
    p_mainSep->addChild(p_NMVecSwitch);
    p_nmSwitchSensor = new SoFieldSensor(
       [](void *d, SoSensor*) { ((SGContainer*)d)->applyNMStickScale(); }, this);
@@ -367,7 +340,7 @@ void SGContainer::constructor()
    // Since Fragment is allowed to have no atoms now-a-days,  just add it
    // right away.
    SGFragment *frag = new SGFragment();
-   frag->setMainDisplayStyle( DisplayStyle::BALLWIRE ) ;
+   frag->setMainDisplayStyle( DisplayStyle::BALLSTICK ) ;
    insertFragment(frag);
    p_chemSysTop->addChild(p_display);
 
@@ -1650,7 +1623,7 @@ ChemDisplayParam::DisplayBinding SGContainer::toChemkitStyle(DisplayStyle::Style
 
 DisplayStyle::Style SGContainer::toOurStyle(ChemDisplayParam::DisplayBinding style)
 {
-   DisplayStyle::Style ret = DisplayStyle::BALLWIRE;
+   DisplayStyle::Style ret = DisplayStyle::BALLSTICK;
    switch (style) {
       case ChemDisplayParam::DISPLAY_STICK:
         ret = DisplayStyle::STICK;
@@ -1988,39 +1961,20 @@ void SGContainer::updateNMVecStarts()
       VRVector *v = dynamic_cast<VRVector*>(root->getChild(j));
       if (v) v->startRadius(displayedSphereRadius(j));
    }
-   updateNMOccluders();
    applyNMStickScale();
 }
 
-void SGContainer::updateNMOccluders()
-{
-   const char *m = getenv("ECCE_NMVEC_MODE");
-   p_NMOcc->removeAllChildren();
-   SGFragment *frag = getFragment();
-   if (!(m && *m == 'A') || !frag || p_NMVecSwitch->getNumChildren() == 0) return;
-   for (int j = 0; j < (int)frag->numAtoms(); j++) {
-      double r = displayedSphereRadius(j);
-      if (r <= 0) continue;
-      const double *c = frag->atomRef(j)->coordinates();
-      SoSeparator *sep = new SoSeparator;
-      SoTranslation *t = new SoTranslation;
-      t->translation.setValue(c[0], c[1], c[2]);
-      SoSphere *sp = new SoSphere;
-      sp->radius.setValue(r);
-      sep->addChild(t);
-      sep->addChild(sp);
-      p_NMOcc->addChild(sep);
-   }
-}
+// 0.15 erases the bond, 0.4 leaves the arrow shaft half inside the stick.
+static const float NM_STICK_FACTOR = 0.25f;
 
 void SGContainer::applyNMStickScale()
 {
-   const char *m = getenv("ECCE_NMVEC_MODE");
+   // Thin sticks leave the arrows along bonds visible; normal size again
+   // once the arrows are hidden.
    float want = 1.0f;
-   if (m && *m == 'B' && p_NMVecSwitch->whichChild.getValue() != SO_SWITCH_NONE
-       && p_NMVecSwitch->getNumChildren() > 0) {
-      const char *k = getenv("ECCE_NMVEC_STICK");
-      want = k ? atof(k) : 0.4f;
+   if (p_NMVecSwitch->whichChild.getValue() != SO_SWITCH_NONE &&
+       p_NMVecSwitch->getNumChildren() > 0) {
+      want = NM_STICK_FACTOR;
    }
    if (want == p_nmStickScale) return;
    float ratio = want / p_nmStickScale;
