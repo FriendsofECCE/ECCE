@@ -2477,6 +2477,7 @@ def drivenEditor(checks, display, session, calcdir, script, logdir, tag):
         env=dict(session.env(), ECCE_TEST_CALCED=cmdfile), stdout=log,
         stderr=subprocess.STDOUT, start_new_session=True)
     answers = []
+    asked = {}
     try:
         deadline = time.time() + 90
         win = []
@@ -2494,14 +2495,18 @@ def drivenEditor(checks, display, session, calcdir, script, logdir, tag):
             with open(cmdfile, "a") as handle:
                 handle.write(cmd + "\n")
             want = "ECCE_TEST_CALCED: %s: " % cmd
+            asked[cmd] = asked.get(cmd, 0) + 1
             deadline = time.time() + 90
             answer = None
             while answer is None and time.time() < deadline:
                 log.flush()
+                seen = 0
                 with open(logpath, errors="replace") as handle:
                     for line in handle:
                         if line.startswith(want):
-                            answer = line[len(want):].strip()
+                            seen += 1
+                            if seen == asked[cmd]:     # this asking's answer
+                                answer = line[len(want):].strip()
                 if answer is None:
                     if proc.poll() is not None:
                         break
