@@ -1929,6 +1929,7 @@ def remote_admin(tmp, display, build):
         server_cfg = os.path.join(s.sc, "CONFIG.cluster")
         client_cfg = os.path.join(e.sc, "CONFIG.cluster")
         user_before = registration(e.ue)
+        client_before = read(client_cfg)
         orca = "/admin/orca $(touch %s)" % canary
         src = "/x'y;z `touch %s`" % canary
         p = run(display, build, e, """
@@ -1952,7 +1953,7 @@ quit
         check(len(m) > 7 and ":ORCA" in m[7], "the server's Machines lists ORCA")
         check(read(os.path.join(s.published, "CONFIG.cluster")) == read(server_cfg),
               "the server published the new file")
-        check(not os.path.exists(client_cfg),
+        check(read(client_cfg) == client_before,
               "ecce-remote-setup --refresh copies nothing to this client (#192)")
         sync()
         check(registration(e.ue) == user_before, "the user's files are untouched")
