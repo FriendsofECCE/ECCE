@@ -998,6 +998,20 @@ vector<EcceURL> TaskJob::getDataFiles(JCode::CodeFileType type) const
       }
     }
   }
+  // A GROMACS task can hold two structures of one type: the one attached
+  // as its start (an input) and the one the run ended with (an output).  The
+  // result comes first, so that the next task starts from it.
+  if (getApplicationType() == ResourceDescriptor::AT_GROMACS) {
+    vector<EcceURL> results, rest;
+    for (size_t i = 0; i < dataFiles.size(); i++) {
+      if (dataFiles[i].toString().find("/Outputs/") != string::npos)
+        results.push_back(dataFiles[i]);
+      else
+        rest.push_back(dataFiles[i]);
+    }
+    dataFiles = results;
+    dataFiles.insert(dataFiles.end(), rest.begin(), rest.end());
+  }
   return dataFiles; 
 }
 
@@ -1158,6 +1172,18 @@ istream *TaskJob::getDataFile(JCode::CodeFileType type) const
        (!dataFile.type().empty())
      ) {
     EcceURL dataFileUrl = getDataFileUrl(type, dataFile.name());
+    // A file of this type may sit in the other collection (a GROMACS
+    // topology the user attached is stored with the task's inputs, though
+    // its type is declared as an output): use where it was found.
+    {
+      vector<EcceURL> found = getDataFiles(type);
+      for (size_t i = 0; i < found.size(); i++) {
+        if (found[i].getFilePathTail() == dataFile.name()) {
+          dataFileUrl = found[i];
+          break;
+        }
+      }
+    }
     getEDSI()->setURL(dataFileUrl);
     ret = getEDSI()->getDataSet();
   }
@@ -1191,6 +1217,18 @@ SFile *TaskJob::getDataFile(JCode::CodeFileType type, const SFile *dest) const
      ) {
 
     EcceURL dataFileUrl = getDataFileUrl(type, dataFile.name());
+    // A file of this type may sit in the other collection (a GROMACS
+    // topology the user attached is stored with the task's inputs, though
+    // its type is declared as an output): use where it was found.
+    {
+      vector<EcceURL> found = getDataFiles(type);
+      for (size_t i = 0; i < found.size(); i++) {
+        if (found[i].getFilePathTail() == dataFile.name()) {
+          dataFileUrl = found[i];
+          break;
+        }
+      }
+    }
     getEDSI()->setURL(dataFileUrl);
     ofstream ofs( sfile->path().c_str() );
     if (! getEDSI()->getDataSet( ofs ) ) sfile = 0;

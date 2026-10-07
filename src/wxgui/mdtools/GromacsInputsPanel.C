@@ -411,10 +411,12 @@ void GromacsInputsPanel::OnAttachInclude(wxCommandEvent&)
 
 string GromacsInputsPanel::summary()
 {
+  string why;
+  bool ready = inputsReady(why);
   string out = "topology: " + string(p_topology->GetLabel().ToUTF8()) +
                "; structure: " + string(p_structure->GetLabel().ToUTF8()) +
                "; includes: " + std::to_string(p_includes->GetCount()) +
-               "; " + string(p_status->GetLabel().ToUTF8());
+               "; " + (ready ? string("Ready") : "Not ready: " + why);
   return out;
 }
 

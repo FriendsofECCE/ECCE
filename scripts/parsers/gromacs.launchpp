@@ -50,7 +50,7 @@ push(@missing, "the topology (topol.top)")  if (! -s "topol.top");
 push(@missing, "the starting structure (conf.gro)") if (! -s "conf.gro");
 if (@missing) {
   print STDERR "GROMACS needs " . join(", ", @missing) . " and it is not here.\n";
-  print STDERR "Attach the topology and the structure on the Files tab of the task editor.\n";
+  print STDERR "Attach the topology and the structure on the Inputs tab of the task editor.\n";
   exit 1;
 }
 

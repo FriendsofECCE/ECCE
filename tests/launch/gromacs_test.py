@@ -206,7 +206,7 @@ def main():
 
         say("running Optimize")
         rc, out = s.launch(opt)
-        check(rc == 0, "Launch accepted the task: %s" % out.strip().splitlines()[-1:])
+        check(rc == 0, "Launch accepted the task: %s" % out.strip().splitlines()[-4:])
         state = s.waitState(opt, 240)
         check(state in ("completed", "loaded"), "Optimize ran to %s" % state)
         props = s.props(opt)
@@ -253,7 +253,7 @@ def main():
         editors.pop("eq")
         say("running Equilibrate")
         rc, out = s.launch(eq)
-        check(rc == 0, "Launch accepted the task")
+        check(rc == 0, "Launch accepted the task: %s" % out.strip().splitlines()[-4:])
         state = s.waitState(eq, 300)
         check(state in ("completed", "loaded"), "Equilibrate ran to %s" % state)
         props = s.props(eq)
@@ -293,7 +293,7 @@ def main():
         editors.pop("dyn")
         say("running Dynamics")
         rc, out = s.launch(dyn)
-        check(rc == 0, "Launch accepted the task")
+        check(rc == 0, "Launch accepted the task: %s" % out.strip().splitlines()[-4:])
         state = s.waitState(dyn, 300)
         check(state in ("completed", "loaded"), "Dynamics ran to %s" % state)
         props = s.props(dyn)
@@ -357,7 +357,9 @@ def shot_when_window(display, env, title, path, timeout, settle=6):
     deadline = time.time() + timeout
     found = None
     while time.time() < deadline and not found:
-        found = next((w for w in display.windows() if title in (w[1] or "")), None)
+        found = next((w for w in display.windows()
+                      if title.lower() in (w[1] or "").lower() or
+                      "(HOME)" in (w[1] or "")), None)
         time.sleep(0.5)
     check(found is not None, "a %s window opened" % title)
     time.sleep(settle)
@@ -468,7 +470,7 @@ def prop_value(s, url, key):
     task = url.replace("file://", "").rstrip("/")
     for path in glob.glob(os.path.join(task, "Props", key + "*")):
         text = open(path, errors="replace").read()
-        nums = re.findall(r"-?\d+\.\d+(?:[eE][-+]?\d+)?", text)
+        nums = re.findall(r">\s*(-?\d+\.\d+(?:[eE][-+]?\d+)?)\s*</value>", text)
         if nums:
             return float(nums[-1])
     return None

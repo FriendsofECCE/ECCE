@@ -11,14 +11,14 @@
 
    SCOPE: the user brings the topology (.top, with any .itp it includes)
    and the starting structure (.gro) from pdb2gmx or elsewhere and attaches
-   them on the task's Files tab.  grompp turns .mdp + .top + .gro into the
+   them on the task's Inputs tab.  grompp turns .mdp + .top + .gro into the
    binary .tpr that mdrun runs; the .tpr is a build artefact and is not
    declared here.
 
    FILE TYPES.  A GROMACS topology is stored as ".gmxtop", not ".top": ".top"
    is NWChem's topology type in the data server's configuration, and giving
    it a second meaning would change what NWChem MD files resolve to.  The
-   Files tab renames on attach; the job script writes it back as topol.top.
+   Inputs tab renames on attach; the job script writes it back as topol.top.
    Include files (.itp, .ndx) and the run log (.gmxlog) have their own types
    too, because a file the server cannot type is stored as text/plain and a
    lookup by type then cannot find it.

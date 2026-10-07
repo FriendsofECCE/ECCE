@@ -2243,6 +2243,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR} --local
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_local PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # A GROMACS MD study through the real editors (private Xvfb), launches and
+  # results; skipped (77) without gmx or Xvfb.  Needs the GUI apps built.
+  add_test(NAME launch_gromacs
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/gromacs_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_gromacs PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
   # An 8.x eccejobmaster exports ECCE_TRANSPORT=pty; it must be ignored.
   add_test(NAME launch_legacy_transport
            COMMAND ${PYTHON3_EXECUTABLE}

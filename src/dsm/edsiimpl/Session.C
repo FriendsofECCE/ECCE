@@ -28,6 +28,7 @@ using std::pair;
 #include "util/EcceMap.H"
 
 #include "dsm/NWChemMDModel.H"
+#include "dsm/GromacsMDModel.H"
 #include "dsm/Resource.H"
 #include "dsm/MdTask.H"
 #include "dsm/ResourceType.H"
@@ -1312,9 +1313,17 @@ void Session::addMemberAsTarget(Resource * target, Resource * source)
       MdTask *inputTask = dynamic_cast<MdTask*>(currentTask->getInputProvider(this));
       if (inputTask) {
         if (inputTask->getContentType() != ResourceDescriptor::CT_MDPREPARE) {
-          NWChemMDModel inputModel(currentTask->getContentType());
-          inputTask->getTaskModel(inputModel);
-          currentTask->setTaskModel(&inputModel);
+          // The new task starts from the earlier one's values, and from its
+          // own code's defaults for what the earlier one does not have.
+          if (target->getApplicationType() == ResourceDescriptor::AT_GROMACS) {
+            GromacsMDModel inputModel(currentTask->getContentType());
+            inputTask->getTaskModel(inputModel);
+            currentTask->setTaskModel(&inputModel);
+          } else {
+            NWChemMDModel inputModel(currentTask->getContentType());
+            inputTask->getTaskModel(inputModel);
+            currentTask->setTaskModel(&inputModel);
+          }
         }
       }
     }

@@ -173,7 +173,9 @@ vector<string> MdTask::propertyNames()
       try {
          getTaskModel(taskModel);
          FilesModel *fmodel = taskModel.getFilesModel();
-         if (fmodel && fmodel->getWriteTrajectory()) {
+         // GROMACS's trajectory is not one ECCE reads yet (docs/GROMACS.md)
+         if (fmodel && fmodel->getWriteTrajectory() &&
+             getApplicationType() != ResourceDescriptor::AT_GROMACS) {
            ret.push_back("TRJ");
          }
       } catch (...) {

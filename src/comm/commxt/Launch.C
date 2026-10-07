@@ -775,7 +775,7 @@ bool Launch::validateCalculation(void)
           } else if (p_cache->isMd && !p_isPrepareTask) {
             p_lastMessage = p_cache->isGromacs ?
               "No starting structure (.gro) is attached to this task or an "
-              "earlier one in the study. Attach one on the Files tab of the "
+              "earlier one in the study. Attach one on the Inputs tab of the "
               "task editor." :
               "Unable to find restart file from previous MD Study task";
             return false;
@@ -802,7 +802,7 @@ bool Launch::validateCalculation(void)
           } else if (p_cache->isMd && !p_isPrepareTask) {
             p_lastMessage = p_cache->isGromacs ?
               "No topology (.top) is attached to this task or an earlier "
-              "one in the study. Attach one on the Files tab of the task "
+              "one in the study. Attach one on the Inputs tab of the task "
               "editor." :
               "Unable to find topology file from previous MD Study task";
             return false;
