@@ -707,7 +707,7 @@ void CalcEd::doSetContext(const string& codeName)
 
   updateAllFields();
 
-  if (isDetailsReady() && p_GUIValues->size() == 0) {
+  if (isDetailsReady() && !hasDetailsValues()) {
     startTheoryApp(true);
     startRuntypeApp(true);
   }
@@ -1723,7 +1723,7 @@ void CalcEd::subjectMCB(wxCommandEvent& event)
 
   updateAllFields();
 
-  if (isDetailsReady() && p_GUIValues->size() == 0) {
+  if (isDetailsReady() && !hasDetailsValues()) {
     startTheoryApp(true);
     startRuntypeApp(true);
   }
@@ -2224,6 +2224,29 @@ void CalcEd::storeUseSymmetry(const bool& value)
 }
 
 
+bool CalcEd::useSymmetryBox() const
+{
+  wxWindow *box = FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY);
+  return box != 0 ? ((ewxCheckBox*)box)->IsChecked() : getUseSymmetry();
+}
+
+
+//  Whether the details dialogs have supplied values under prefix.  The
+//  "Use symmetry" key is this page's own and is stored whenever a molecule
+//  is shown, so it does not count.
+bool CalcEd::hasDetailsValues(const string& prefix) const
+{
+  if (p_GUIValues == (GUIValues*)0) return false;
+  for (GUIValues::const_iterator it = p_GUIValues->begin();
+       it != p_GUIValues->end(); ++it) {
+    if (it->first != "ES.Theory.UseSymmetry" &&
+        it->first.compare(0, prefix.size(), prefix) == 0)
+      return true;
+  }
+  return false;
+}
+
+
 void CalcEd::OnCheckboxCalcedUseSymmetryClick( wxCommandEvent& event )
 {
   wxWindow *box = FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY);
@@ -2487,10 +2510,15 @@ void CalcEd::populateSummaryField(const string& summaryType)
  */
 void CalcEd::resetTheoryDetails()
 {
+  //  The details dialogs go back to their defaults; the "Use symmetry"
+  //  tick on this page does not.  Without its key the generators read
+  //  "off" and write NoSymm/noautosym under a ticked box.
+  bool useSymmetry = useSymmetryBox();
   if (p_GUIValues) {
     delete p_GUIValues;
   }
   p_GUIValues = new GUIValues();
+  storeUseSymmetry(useSymmetry);
 
   if (!p_startUp) {
     startTheoryApp(true);
@@ -2880,8 +2908,10 @@ void CalcEd::refreshChemSysFields()
     }
 
     if (p_GUIValues) {
+      bool useSymmetry = useSymmetryBox();
       delete p_GUIValues;
       p_GUIValues = new GUIValues();
+      storeUseSymmetry(useSymmetry);
       updateDetailsFields();
     }
 
@@ -3061,7 +3091,7 @@ void CalcEd::enableDetailsFields()
 
   p_detailsBox->Enable(hasFragment);
   FindWindow(ID_BUTTON_CALCED_THEORY)->Enable(isDetailsReady()
-          && p_GUIValues->containsKeyPrefix("ES.Theory"));
+          && hasDetailsValues("ES.Theory"));
   FindWindow(ID_BUTTON_CALCED_RUNTYPE)->Enable(isDetailsReady()
           && p_GUIValues->containsKeyPrefix("ES.Runtype"));
 }
@@ -3510,7 +3540,8 @@ void CalcEd::doSave()
       saveRuntype = true;
     }
 
-    // save GUIValues
+    // save GUIValues; the input is generated from what the box shows
+    storeUseSymmetry(useSymmetryBox());
     p_iCalc->guiparams(p_GUIValues);
 
     // determine whether to save intermediate files for debugging

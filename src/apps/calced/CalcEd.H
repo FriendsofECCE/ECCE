@@ -106,6 +106,8 @@ class CalcEd: public CalcEdGUI,
     bool getUseSymmetry() const;
     void setUseSymmetry(const bool& value);
     void storeUseSymmetry(const bool& value);
+    bool useSymmetryBox() const;
+    bool hasDetailsValues(const string& prefix = "ES.") const;
     virtual void OnButtonCalcedBasisQuickClick( wxCommandEvent& event );
     virtual void OnChoiceCalcedTheorySelected( wxCommandEvent& event );
     virtual void OnChoiceCalcedRuntypeSelected( wxCommandEvent& event );
