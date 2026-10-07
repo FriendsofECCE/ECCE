@@ -38,6 +38,7 @@
 #include "wxviz/SGViewer.H"
 #include "wxviz/ViewerEvtHandler.H"
 #include "wxviz/VizRender.H"
+#include "wxviz/DefaultStyle.H"
 
 SbViewportRegion    * VizRender::p_viewport  = NULL;
 SoOffscreenRenderer * VizRender::p_renderer  = NULL;
@@ -351,9 +352,15 @@ void VizRender::loadDisplayStyle(SGViewer *viewer, SGContainer *sg)
     "Cartoon\tALT+9",
     "Custom Style...\tALT+0"
   };
-  int styleId;
-  config->Read("DefaultStyle", &styleId,
-               ViewerEvtHandler::ID_STYLE_BALL_STICK);
+  // The viewer saves the style's name; an unknown one means the default.
+  wxString saved = savedDefaultStyle(config);
+  int styleIdx = 1;   // Ball And Stick
+  for (int i = 0; i < 12; i++) {
+    if (wxStripMenuCodes(styleNames[i]) == saved) {
+      styleIdx = i;
+      break;
+    }
+  }
   // _T()/wxT() is only valid on string literals (it token-pastes an "L"
   // prefix in Unicode builds) - it was being misapplied here to a runtime
   // std::string expression, which happened to be silently a no-op in old
@@ -361,7 +368,7 @@ void VizRender::loadDisplayStyle(SGViewer *viewer, SGContainer *sg)
   // is Unicode-only. wxStripMenuCodes() takes the std::string directly (via
   // its implicit wxString conversion) instead.
   string style = wxStripMenuCodes(
-          styleNames[styleId-ViewerEvtHandler::ID_STYLE_BALL_WIREFRAME]
+          styleNames[styleIdx]
           ).ToStdString();
   string scheme = "Element";
   ewxConfig *styleconfig = ewxConfig::getConfig("vizstyles.ini");

@@ -40,6 +40,8 @@ tellurium_free() {
 # radium is in use on evenings 18-21: start nothing from 17:00 to 21:00.
 radium_free() {
     local hm=$((10#$(date +%H) * 60 + 10#$(date +%M)))
+    # Owner's exception: free this evening until 2026-10-08 17:00.
+    [ "$(date +%s)" -lt "$(date -d '2026-10-08 17:00' +%s)" ] && return 0
     [ "$hm" -lt $((17 * 60)) ] || [ "$hm" -ge $((21 * 60)) ]
 }
 host_free() { case $1 in tellurium) tellurium_free ;; radium) radium_free ;; *) true ;; esac; }

@@ -1881,6 +1881,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_BINARY_DIR}/viewer-scenes)
   set_tests_properties(look_nm_sticks PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
 
+  # The saved DefaultStyle moves from the old default once (#227).
+  add_test(NAME look_default_style
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/default_style.py)
+  set_tests_properties(look_default_style PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
+
   # tests/guivalues -- memory sizes saved before the GB-everywhere change
   # (Megawords, Megabytes) are converted by GUIValues::load() before a
   # dialog or a generator reads them.  Needs g++ and libecceutil.a.
@@ -2179,9 +2185,14 @@ if(PYTHON3_EXECUTABLE)
   target_include_directories(gbscoordsys PRIVATE ${XercesC_INCLUDE_DIRS})
   #  The data-model libraries refer to each other in a cycle that the
   #  code under test does not happen to pull in the right order.
-  target_link_libraries(gbscoordsys PRIVATE -Wl,--start-group
-    eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
-    eccetdat ecceutil -Wl,--end-group ${XercesC_LIBRARIES})
+  set(_gbs_libs eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc
+    eccefaces eccexml eccetdat ecceutil)
+  if(APPLE)   # ld64 rescans archives itself and rejects --start-group
+    target_link_libraries(gbscoordsys PRIVATE ${_gbs_libs} ${XercesC_LIBRARIES})
+  else()
+    target_link_libraries(gbscoordsys PRIVATE
+      "$<LINK_GROUP:RESCAN,${_gbs_libs}>" ${XercesC_LIBRARIES})
+  endif()
   add_test(NAME gbscoordsys
            COMMAND gbscoordsys ${CMAKE_CURRENT_SOURCE_DIR}/data/admin/basissets)
   set_tests_properties(gbscoordsys PROPERTIES ENVIRONMENT

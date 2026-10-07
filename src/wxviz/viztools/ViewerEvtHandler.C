@@ -58,6 +58,7 @@
 #include "wxviz/BackgroundCmd.H"
 #include "wxviz/CenterViewCmd.H"
 #include "wxviz/ViewerEvtHandler.H"
+#include "wxviz/DefaultStyle.H"
 #include "wxviz/WxVizToolFW.H"
 #include "wxviz/VizStyleChooser.H"
 
@@ -1043,7 +1044,7 @@ void ViewerEvtHandler::restoreSettings(wxConfigBase * config)
   ewxColor bcol(buffer);
   setBackground(bcol.Red()/255.0, bcol.Green()/255.0, bcol.Blue()/255.0);
 
-  wxString style = config->Read("DefaultStyle", "Ball And Stick");
+  wxString style = savedDefaultStyle(config);
   doStyleChange(style);
 
   // Now override foreground only if set
