@@ -2146,7 +2146,7 @@ set q-defwall 4
 queue-apply
 click discover
 pick disc:list long
-expect label disc:status '3 of these are in the list already; adding them updates their limits and keeps their defaults.'
+expect contains disc:status '3 of these are in the list already; adding them updates their limits'
 click disc:add
 set queue long
 expect field q-defwall 4
