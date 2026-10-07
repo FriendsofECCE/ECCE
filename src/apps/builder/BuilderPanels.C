@@ -927,15 +927,43 @@ void Builder::makeRoomFor(const wxString& name)
     NAME_TOOL_SYMMETRY, NAME_TOOL_COORDINATES, NAME_TOOL_DNA_BUILDER,
     NAME_TOOL_PEPTIDE_BUILDER, NAME_TOOL_SLICER, NAME_TOOL_BUILD
   };
-  for (size_t v = 0; v <= sizeof(victims) / sizeof(victims[0]); ++v) {
+  //  AUI keeps a docked pane's position as a pixel offset from the top of
+  //  its dock and leaves the gap before it empty: put this pane directly
+  //  under the ones above it before closing anything.
+  bool moved = false;
+  for (size_t v = 0; ; ) {
     wxAuiPaneInfo &now = p_mgr.GetPane(name);
     if (now.rect.height >= need) {
       return;
     }
+    if (!moved) {
+      moved = true;
+      int top = now.rect.y, bottom = now.rect.y;
+      bool above = false;
+      wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
+      for (size_t i = 0; i < all.GetCount(); ++i) {
+        const wxAuiPaneInfo &o = all.Item(i);
+        if (!o.IsShown() || o.IsFloating() || o.IsToolbar() || !o.window ||
+            o.name == now.name || o.dock_direction != now.dock_direction ||
+            o.dock_layer != now.dock_layer || o.rect.width == 0) {
+          continue;
+        }
+        top = std::min(top, o.rect.y);
+        if (o.rect.y + o.rect.height <= now.rect.y + 1) {
+          bottom = std::max(bottom, o.rect.y + o.rect.height);
+          above = true;
+        }
+      }
+      if (above) {
+        now.Position(std::max(bottom - top, 0));
+        updatePanes();
+        continue;
+      }
+    }
     if (v == sizeof(victims) / sizeof(victims[0])) {
       return;
     }
-    wxAuiPaneInfo &other = p_mgr.GetPane(wxString(victims[v]));
+    wxAuiPaneInfo &other = p_mgr.GetPane(wxString(victims[v++]));
     if (!other.IsOk() || !other.IsShown() || other.IsFloating() ||
         other.name == name || other.dock_direction != now.dock_direction) {
       continue;
