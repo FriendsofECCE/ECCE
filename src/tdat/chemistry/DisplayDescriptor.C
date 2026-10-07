@@ -17,7 +17,7 @@
 #include "tdat/DisplayDescriptor.H"
 
 //Default values
-const string DisplayDescriptor::DISPLAY = "Ball And Wireframe";
+const string DisplayDescriptor::DISPLAY = "Ball And Stick";
 const string DisplayDescriptor::COLORSCHEME = "Element";
 const int DisplayDescriptor::LINEWDTH = 3;
 const bool DisplayDescriptor::ANTIALIAS = false;

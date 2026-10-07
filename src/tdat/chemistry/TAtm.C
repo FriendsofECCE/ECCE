@@ -51,7 +51,7 @@ using std::find;
 //
 ///////////////////////////////////////////////////////////////////////////////
 TAtm::TAtm() 
-      : p_displayStyle(DisplayStyle::BALLWIRE)
+      : p_displayStyle(DisplayStyle::BALLSTICK)
 {
   TPerTab tpt;
   strcpy(p_atomName,"");
@@ -96,7 +96,7 @@ TAtm::TAtm()
 //
 ///////////////////////////////////////////////////////////////////////////////
 TAtm::TAtm(const char *tagString, const double* coord, const string& suffix)
-          : p_displayStyle(DisplayStyle::BALLWIRE)
+          : p_displayStyle(DisplayStyle::BALLSTICK)
 {
   TPerTab tpt;
   p_atomicNumber = tpt.atomicNumber(tagString);
@@ -141,7 +141,7 @@ TAtm::TAtm(const char *tagString, const double* coord, const string& suffix)
 //
 ///////////////////////////////////////////////////////////////////////////////
 TAtm::TAtm(short atomicNumber, const double* coord, const string& suffix) 
-      : p_displayStyle(DisplayStyle::BALLWIRE)
+      : p_displayStyle(DisplayStyle::BALLSTICK)
 {
   TPerTab tpt;
   string tagString = tpt.atomicSymbol(atomicNumber);
@@ -181,7 +181,7 @@ TAtm::TAtm(short atomicNumber, const double* coord, const string& suffix)
  * Copy constructor.
  */
    TAtm::TAtm(const TAtm& atom)
-: p_displayStyle(DisplayStyle::BALLWIRE)
+: p_displayStyle(DisplayStyle::BALLSTICK)
 { 
    *this = atom; 
 }
