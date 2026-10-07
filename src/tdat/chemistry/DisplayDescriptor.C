@@ -19,7 +19,7 @@
 //Default values
 const string DisplayDescriptor::DISPLAY = "Ball And Wireframe";
 const string DisplayDescriptor::COLORSCHEME = "Element";
-const int DisplayDescriptor::LINEWDTH = 1;
+const int DisplayDescriptor::LINEWDTH = 3;
 const bool DisplayDescriptor::ANTIALIAS = false;
 const int DisplayDescriptor::CYLRQ = 56;
 const int DisplayDescriptor::CYLRAD = 14;

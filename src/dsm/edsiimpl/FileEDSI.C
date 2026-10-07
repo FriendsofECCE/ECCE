@@ -665,6 +665,61 @@ static const PropMap *findProps(const MetaStore& store, const string& key)
   return it == store.end() ? 0 : &it->second;
 }
 
+static bool isVDocProps(const PropMap *props)
+{
+  if (!props) return false;
+  PropMap::const_iterator it =
+    props->find(VDoc::getEcceNamespace() + ":resourcetype");
+  return it != props->end() &&
+         ResourceUtils::stringToResourceType(it->second.value) ==
+         ResourceDescriptor::RT_VIRTUAL_DOCUMENT;
+}
+
+static void appendWanted(const PropMap& props,
+                         const vector<MetaDataRequest>& requests,
+                         vector<MetaDataResult>& out)
+{
+  string ns = VDoc::getEcceNamespace();
+  for (PropMap::const_iterator p = props.begin(); p != props.end(); ++p) {
+    if (p->first.find(ns) == string::npos) continue;
+    bool wanted = requests.empty();
+    for (size_t q = 0; q < requests.size() && !wanted; q++)
+      wanted = (requests[q].name == p->first);
+    if (wanted) out.push_back(p->second);
+  }
+}
+
+// A calculation's molecule and basis properties are stored on its
+// Parameters documents, not on the calculation, and the summary reads them
+// from the calculation: what DavEDSI::getVirtualMetaData gathers with a
+// depth-infinity PROPFIND.  The ecce properties of everything below dir,
+// nested virtual documents excepted, are appended (later ones win in
+// Resource::cacheProps, as there).
+static void appendVirtualMetaData(const string& dir,
+                                  const vector<MetaDataRequest>& requests,
+                                  vector<MetaDataResult>& out)
+{
+  MetaStore store = loadStore(dir);
+  SDirectory sdir(dir);
+  vector<SFile> kids = sdir.get_files(false);
+  for (size_t i = 0; i < kids.size(); i++) {
+    string name = kids[i].filename();
+    if (name.compare(0, 1, ".") == 0) continue;
+    string path = dir + "/" + name;
+    if (isDirectory(path)) {
+      if (kids[i].is_link()) continue;     // a link back up would not end
+      MetaStore sub = loadStore(path);
+      const PropMap *own = findProps(sub, ".");
+      if (isVDocProps(own)) continue;
+      if (own) appendWanted(*own, requests, out);
+      appendVirtualMetaData(path, requests, out);
+    } else {
+      const PropMap *props = findProps(store, name);
+      if (props) appendWanted(*props, requests, out);
+    }
+  }
+}
+
 bool FileEDSI::exists(const bool& newUser)
 {
   SFile test(getURL().getPath());
@@ -915,7 +970,8 @@ bool FileEDSI::getMetaData(const vector<MetaDataRequest>& requests,
   MetaStore store = loadStore(dir);
 
   vector<MetaDataResult> tmp;
-  if (!describePath(path, findProps(store, key), tmp)) {
+  const PropMap *own = findProps(store, key);
+  if (!describePath(path, own, tmp)) {
     m_msgStack.add("RESOURCE_NOT_FOUND",path.c_str());
     return false;
   }
@@ -928,6 +984,8 @@ bool FileEDSI::getMetaData(const vector<MetaDataRequest>& requests,
       }
     }
   }
+  if (getVDocMetaData && key == "." && isVDocProps(own))
+    appendVirtualMetaData(dir, requests, results);
   return true;
 }
 
@@ -950,6 +1008,11 @@ bool FileEDSI::getMetaData(const vector<MetaDataRequest>& requests,
     results.metaData.push_back(tmp[i]);
   }
   applyStoredTypes(results, tmp);
+  if (getVDocMetaData && file.is_dir()) {
+    string dir = trimSlash(file.path());
+    if (isVDocProps(findProps(loadStore(dir), ".")))
+      appendVirtualMetaData(dir, requests, results.metaData);
+  }
   return true;
 }
 
