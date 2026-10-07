@@ -920,10 +920,8 @@ void Builder::makeRoomFor(const wxString& name)
       p_columnHidden) {
     return;
   }
-  int need = 150;
-  if (wxSizer *content = pane.window->GetSizer()) {
-    need = std::min(std::max(need, content->GetMinSize().y), 400);
-  }
+  //  The Periodic Builder scrolls, but is useless if it shows one row.
+  const int need = name == NAME_TOOL_PBC ? 320 : 150;
   const string victims[] = {
     NAME_TOOL_ATOM_TABLE, NAME_TOOL_RESIDUE_TABLE, NAME_TOOL_SELECTION,
     NAME_TOOL_SYMMETRY, NAME_TOOL_COORDINATES, NAME_TOOL_DNA_BUILDER,

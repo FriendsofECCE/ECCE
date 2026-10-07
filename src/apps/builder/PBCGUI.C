@@ -32,6 +32,7 @@
 #include "wxgui/ewxTextCtrl.H"
 ////@end includes
 
+#include <wx/settings.h>
 #include "PBCGUI.H"
 
 ////@begin XPM images
@@ -175,15 +176,24 @@ bool PBCGUI::Create( wxWindow* parent, wxWindowID id, const wxPoint& pos, const 
     p_latticePanel = NULL;
     p_operationsSizer = NULL;
     p_symSizer = NULL;
+    p_scroll = NULL;
+    p_mainSizer = NULL;
 ////@end PBCGUI member initialisation
 
 ////@begin PBCGUI creation
     ewxPanel::Create( parent, id, pos, size, style );
 
+    //  The controls scroll when the pane is shorter than they are: the
+    //  Builder's right-hand column can only spare so much height.
+    p_scroll = new wxScrolledWindow( this, wxID_ANY, wxDefaultPosition,
+                                     wxDefaultSize, wxVSCROLL|wxTAB_TRAVERSAL );
+    p_scroll->SetScrollRate(0, 10);
+    wxBoxSizer* outer = new wxBoxSizer(wxVERTICAL);
+    outer->Add(p_scroll, 1, wxGROW, 0);
+    SetSizer(outer);
+
     CreateControls();
-    GetSizer()->Fit(this);
-    GetSizer()->SetSizeHints(this);
-    Centre();
+    refit();
 ////@end PBCGUI creation
     return true;
 }
@@ -192,12 +202,31 @@ bool PBCGUI::Create( wxWindow* parent, wxWindowID id, const wxPoint& pos, const 
  * Control creation for PBCGUI
  */
 
+/**
+ * Re-measures the controls after a section was shown or hidden: the
+ * scrolled area is as large as they need, the pane's minimum width is
+ * that plus the scroll bar, and the height is left to the pane.
+ */
+void PBCGUI::refit()
+{
+    if (!p_scroll || !p_mainSizer) return;
+    p_mainSizer->Layout();
+    wxSize need = p_mainSizer->GetMinSize();
+    p_scroll->SetVirtualSize(need);
+    p_scroll->SetMinSize(wxSize(need.x + wxSystemSettings::GetMetric(wxSYS_VSCROLL_X) + 2, 120));
+    p_scroll->FitInside();
+    InvalidateBestSize();
+    Layout();
+}
+
+
 void PBCGUI::CreateControls()
 {    
 ////@begin PBCGUI content construction
-    PBCGUI* itemPanel1 = this;
+    wxWindow* itemPanel1 = p_scroll;
 
     wxBoxSizer* itemBoxSizer2 = new wxBoxSizer(wxVERTICAL);
+    p_mainSizer = itemBoxSizer2;
     itemPanel1->SetSizer(itemBoxSizer2);
 
     wxBoxSizer* itemBoxSizer3 = new wxBoxSizer(wxHORIZONTAL);
