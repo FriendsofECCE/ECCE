@@ -612,7 +612,7 @@ long DirectTransport::spawnDetached(const std::string& script, std::string& erro
   HANDLE log = 0;
   if (!logFile.empty()) {
     SECURITY_ATTRIBUTES sa = inheritSa();
-    log = CreateFileW(widen(logFile).c_str(), FILE_APPEND_DATA,
+    log = CreateFileW(widen(logFile).c_str(), FILE_APPEND_DATA | SYNCHRONIZE | FILE_READ_ATTRIBUTES,
                       FILE_SHARE_READ | FILE_SHARE_WRITE, &sa, OPEN_ALWAYS, 0, 0);
     if (log == INVALID_HANDLE_VALUE) {
       error = "cannot open " + logFile + ": " + lastError("CreateFile");
