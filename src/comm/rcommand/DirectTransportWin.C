@@ -600,45 +600,62 @@ long DirectTransport::spawnProcess(const std::vector<std::string>& args, int in,
   return (long)pi.dwProcessId;
 }
 
+// The job runs under its own MSYS session, started by `setsid ... &` inside
+// a short-lived sh, and the id returned is the MSYS pid (`$!`) of that
+// process: it is its own process group leader, so the Linux cancel
+// (`kill -TERM -- -pgid`) and `ps -p` work on it unchanged.  A Windows pid
+// would name a wrapper that is gone by the time the job script runs.
 long DirectTransport::spawnDetached(const std::string& script, std::string& error,
                                     const std::string& logFile)
 {
   std::wstring shell = findShell();
   if (shell.empty()) { error = kNoShell; return -1; }
-  // The script is one command-line argument; CreateProcess caps that near
-  // 32 KiB.
+  // The script travels in the environment (about 32 KiB for the block).
   if (script.size() > 30000) {
     error = "script too long to spawn detached";
     return -1;
   }
+  std::string log = logFile.empty() ? "/dev/null" : logFile;
+  for (size_t i = 0; i < log.size(); i++) if (log[i] == '\\') log[i] = '/';
+  std::map<std::string, std::string> env = p_env;
+  env["ECCE_DETACH_SCRIPT"] = script;
+  env["ECCE_DETACH_LOG"] = log;
   TransportResult tr;
   Spawn sp;
-  std::wstring env;
-  if (!shellSpawn(*this, shell, L"-c " + quoteArg(widen(script)), p_env, p_unset,
-                  p_dir, sp, env, tr)) {
+  std::wstring envStr;
+  if (!shellSpawn(*this, shell,
+                  L"-c " + quoteArg(L"setsid sh -c \"$ECCE_DETACH_SCRIPT\" "
+                                    L"</dev/null >>\"$ECCE_DETACH_LOG\" 2>&1 & echo $!"),
+                  env, p_unset, p_dir, sp, envStr, tr)) {
     error = tr.err;
     return -1;
   }
-  HANDLE log = 0;
-  if (!logFile.empty()) {
-    SECURITY_ATTRIBUTES sa = inheritSa();
-    log = CreateFileW(widen(logFile).c_str(), GENERIC_WRITE,
-                      FILE_SHARE_READ | FILE_SHARE_WRITE, &sa, OPEN_ALWAYS, 0, 0);
-    if (log == INVALID_HANDLE_VALUE) {
-      error = "cannot open " + logFile + ": " + lastError("CreateFile");
-      return -1;
-    }
-    // msys programs lose output written through an append-only handle.
-    SetFilePointer(log, 0, 0, FILE_END);
-    sp.out = sp.err = log;
-  }
+  HANDLE outP = 0, outC = 0;
+  if (!makePipe(false, outP, outC)) { error = lastError("pipe"); return -1; }
+  sp.out = sp.err = outC;
   PROCESS_INFORMATION pi;
   memset(&pi, 0, sizeof pi);
   bool ok = startProc(sp, pi, error);
-  closeH(log);
-  if (!ok) return -1;
+  closeH(outC);
+  if (!ok) { closeH(outP); return -1; }
+
+  // The pid line; the pipe closes when the short-lived sh exits.
+  std::string got;
+  bool dummy = false;
+  ULONGLONG end = tick() + 60000;
+  while (outP && tick() < end) {
+    drain(outP, got, dummy);
+    if (outP) WaitForSingleObject(pi.hProcess, 10);
+  }
+  closeH(outP);
+  WaitForSingleObject(pi.hProcess, 5000);
   CloseHandle(pi.hProcess);
-  return (long)pi.dwProcessId;
+  long pid = atol(got.c_str());
+  if (pid <= 0) {
+    error = "no job pid from the shell: " + got;
+    return -1;
+  }
+  return pid;
 }
 
 bool DirectTransport::openStream(const std::string& script, Stream& s,

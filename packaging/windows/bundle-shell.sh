@@ -16,7 +16,7 @@ src="$root/usr/bin"
 
 PROGRAMS="sh bash cat cp mv rm ln mkdir rmdir ls chmod touch date sleep
   grep egrep sed awk gawk tr cut head tail wc sort uniq tee basename dirname
-  expr env nohup id uname hostname uptime df du ps kill pwd printf test
+  expr env nohup setsid od id uname hostname uptime df du ps kill pwd printf test
   readlink realpath cmp diff find xargs stat true false echo"
 
 mkdir -p "$dest"

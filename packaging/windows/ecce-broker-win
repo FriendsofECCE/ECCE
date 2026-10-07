@@ -1,0 +1,109 @@
+#!/bin/bash
+# ecce-broker-win start|stop: this session's message broker on Windows (#133).
+#
+# Windows mosquitto has no Unix-socket listener, so a local session gets a
+# TCP broker on 127.0.0.1 at a free port, with a login made up for the
+# session (the #213 D3 design) in a password file under the user's ECCE
+# folder. The login is written to the session's broker file, which every
+# ECCE process of the session reads (MqttLink); the data server login is not
+# involved. Run from MSYS2/bundled bash with ECCE_HOME, ECCE_REALUSERHOME
+# and ECCE_SESSION_ID set; ecce-gateway-start calls it on Windows.
+set -u
+
+ECCE_HOME="${ECCE_HOME:?ECCE_HOME is not set}"
+ECCE_REALUSERHOME="${ECCE_REALUSERHOME:?ECCE_REALUSERHOME is not set}"
+export ECCE_HOME ECCE_REALUSERHOME
+export HOST="${HOST:-$(hostname)}"
+_lib="$(dirname "$0")/ecce-session-lib.sh"
+[ -r "$_lib" ] || _lib="$ECCE_HOME/bin/ecce-session-lib.sh"
+. "$_lib" || { echo "ecce-broker-win: cannot read $_lib" >&2; exit 1; }
+
+STATEDIR="$ECCE_REALUSERHOME/.ECCE"
+mkdir -p "$STATEDIR"
+BROKERFILE="$(ecce_broker_file)" || { echo "ecce-broker-win: no valid ECCE_SESSION_ID" >&2; exit 1; }
+KEY="$(ecce_session_key)"
+DIR="$STATEDIR/broker_$KEY.d"
+PIDFILE="$DIR/mosquitto.pid"
+
+# mosquitto is a native program: it needs C:/... paths, not /c/...
+native() { if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1"; else printf '%s' "$1"; fi; }
+port_open() { (exec 3<>"/dev/tcp/127.0.0.1/$1") >/dev/null 2>&1; }
+alive() { [ -n "${1:-}" ] && ps -p "$1" 2>/dev/null | grep -q "^[ I]*$1 "; }
+
+stop() {
+  local pid
+  pid="$(cat "$PIDFILE" 2>/dev/null)"
+  alive "$pid" && kill "$pid" 2>/dev/null
+  rm -rf "$DIR" "$BROKERFILE"
+}
+
+case "${1:-start}" in
+  stop) stop; exit 0 ;;
+  start) ;;
+  *) echo "usage: ecce-broker-win start|stop" >&2; exit 2 ;;
+esac
+
+# Already up for this session: keep it (the file has the login).
+if [ -r "$BROKERFILE" ]; then
+  p="$(sed -n 's/^port=//p' "$BROKERFILE" | head -n1 | tr -d '\r')"
+  if [ -n "$p" ] && port_open "$p" && alive "$(cat "$PIDFILE" 2>/dev/null)"; then
+    echo "ecce-broker-win: broker already running on 127.0.0.1:$p"
+    exit 0
+  fi
+  stop
+fi
+
+MOSQUITTO="$("$ECCE_HOME/bin/ecce-find-mosquitto" 2>/dev/null)" ||
+  MOSQUITTO="$(command -v mosquitto 2>/dev/null)" || {
+    echo "ecce-broker-win: mosquitto is not installed" >&2; exit 1; }
+PASSWD="$(dirname "$MOSQUITTO")/mosquitto_passwd"
+[ -x "$PASSWD" ] || [ -x "$PASSWD.exe" ] || PASSWD="$(command -v mosquitto_passwd)" || {
+  echo "ecce-broker-win: mosquitto_passwd is not installed" >&2; exit 1; }
+
+mkdir -p "$DIR"
+rand() { LC_ALL=C od -An -N"$1" -tx1 /dev/urandom | LC_ALL=C tr -d ' \n'; }
+BUSER="s$(rand 4)"
+BPASS="$(rand 16)"
+port=""
+for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+  c=$((20000 + $(od -An -N2 -tu2 /dev/urandom | tr -d ' ') % 40000))
+  port_open "$c" || { port="$c"; break; }
+done
+[ -n "$port" ] || { echo "ecce-broker-win: no free port found" >&2; exit 1; }
+
+"$PASSWD" -b -c "$(native "$DIR/passwd")" "$BUSER" "$BPASS" >/dev/null 2>&1 ||
+  { echo "ecce-broker-win: mosquitto_passwd failed" >&2; exit 1; }
+# The same rules as a central broker (packaging/gateway/ecce-mosquitto.acl).
+cat > "$DIR/acl" <<ACL
+pattern readwrite ecce/%u/#
+pattern read ecce/+/ecce_machreg_changed
+ACL
+cat > "$DIR/mosquitto.conf" <<CONF
+per_listener_settings true
+persistence false
+log_dest file $(native "$DIR/mosquitto.log")
+listener $port 127.0.0.1
+allow_anonymous false
+password_file $(native "$DIR/passwd")
+acl_file $(native "$DIR/acl")
+CONF
+
+setsid nohup "$MOSQUITTO" -c "$(native "$DIR/mosquitto.conf")" \
+  </dev/null >"$DIR/mosquitto.out" 2>&1 &
+echo $! > "$PIDFILE"
+i=0
+while [ $i -lt 40 ] && ! port_open "$port"; do i=$((i + 1)); sleep 0.25; done
+if ! port_open "$port"; then
+  echo "ecce-broker-win: broker did not come up within 10s -- see $DIR/mosquitto.log and mosquitto.out" >&2
+  stop
+  exit 1
+fi
+
+# Atomic, so a process starting now never reads half of it; it is also what
+# makes this the newest session (ecce_session_ensure).
+tmp="$BROKERFILE.tmp.$$"
+printf 'user=%s\npassword=%s\nhost=127.0.0.1\nport=%s\n' "$BUSER" "$BPASS" "$port" > "$tmp" &&
+  mv -f "$tmp" "$BROKERFILE" || exit 1
+ptr="$(ecce_session_pointer)"
+printf '%s\n' "$ECCE_SESSION_ID" > "$ptr.tmp.$$" && mv -f "$ptr.tmp.$$" "$ptr"
+echo "ecce-broker-win: broker started on 127.0.0.1:$port"

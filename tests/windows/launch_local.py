@@ -8,6 +8,7 @@ Run from MSYS2 UCRT64 python (b.bat) on the VM:
     python3 tests/windows/launch_local.py complete|cancel [--build DIR]
 """
 import argparse
+import glob
 import os
 import shutil
 import subprocess
@@ -42,7 +43,7 @@ class S:
             "ECCE_REALUSER": "andy", "HOST": "localhost",
             "ECCE_TMPDIR": os.path.join(state, "tmp"),
             "ECCE_LOCAL_DATA": os.path.join(state, "localdata"),
-            "ECCE_SESSION_ID": "wintest",
+            "ECCE_SESSION_ID": "00c0ffee0000beef",
             "PATH": os.pathsep.join(([os.environ["WINTEST_PATH"]]
                                      if "WINTEST_PATH" in os.environ else []) +
                                     [os.path.join(home, "scripts"),
@@ -83,6 +84,35 @@ class S:
         return st
 
 
+def procs():
+    """MSYS process table rows (pid, ppid, pgid, winpid, command) from `ps -W -l`."""
+    out = subprocess.run(["ps", "-W", "-l"], stdout=subprocess.PIPE).stdout
+    rows = []
+    for line in out.decode("utf-8", "replace").splitlines()[1:]:
+        f = line.split()
+        if f and not f[0].isdigit():
+            f = f[1:]
+        if len(f) >= 8 and f[0].isdigit():
+            rows.append((f[0], f[1], f[2], f[3], " ".join(f[7:])))
+    return rows
+
+
+def broker(s, what):
+    """ecce-broker-win start|stop for this session; the parsed broker file."""
+    bash = os.path.join(s.env["ECCE_HOME"], "packaging", "windows", "ecce-broker-win")
+    r = subprocess.run(["bash", bash, what], env=dict(s.env, ECCE_NO_MESSAGING=""),
+                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    say(r.stdout.decode("utf-8", "replace").strip())
+    cfg = {}
+    f = os.path.join(s.state, ".ECCE", "broker_%s_%s" % (s.env["HOST"], s.env["ECCE_SESSION_ID"]))
+    if os.path.exists(f):
+        for line in open(f):
+            if "=" in line:
+                k, v = line.strip().split("=", 1)
+                cfg[k] = v
+    return cfg
+
+
 def stub(state, delay):
     path = os.path.join(state, "stubmopac")
     with open(path, "w", newline="\n") as h:
@@ -104,6 +134,24 @@ def main():
     st = s.state.replace("\\", "/")
     with open(os.path.join(st, ".ECCE", "CONFIG.localhost"), "w", newline="\n") as h:
         h.write("MOPAC: %s\n" % stub(st, 2 if a.case == "complete" else 300))
+    cfg = {}
+    sub = None
+    if "NO_MESSAGING" not in os.environ.get("WINTEST", ""):
+        cfg = broker(s, "start")
+        if not s.check(cfg.get("port") and cfg.get("password"), "broker started, login in broker file"):
+            return 1
+        base = ["mosquitto_sub", "-h", cfg["host"], "-p", cfg["port"], "-t", "ecce/#", "-v"]
+        s.sublog = os.path.join(st, "sub.log")
+        sub = subprocess.Popen(base + ["-u", cfg["user"], "-P", cfg["password"]],
+                               stdout=open(s.sublog, "w"), stderr=subprocess.STDOUT)
+        anon = subprocess.run(base + ["-W", "5"], stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT)
+        say("anonymous subscriber: rc=%d %s" % (anon.returncode, anon.stdout.decode().strip()))
+        s.check(anon.returncode != 0 and b"not authori" in anon.stdout.lower(),
+                "subscription without the password is refused")
+        bad = subprocess.run(base[:-3] + ["-t", "ecce/other/#", "-W", "3", "-u", cfg["user"],
+                             "-P", cfg["password"]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        say("other user's topic with the login: %s" % bad.stdout.decode().strip())
     url = s.userUrl = "file://%s/localdata/users/local" % st
     rc, out = s.drv("create", url, "wintest", "mopac_es", DECK, "mopac.mop",
                     "localhost", st + "/jobs", "andy")
@@ -122,10 +170,37 @@ def main():
         s.check("TE" in s.drv("props", calc)[1].split(), "TE property parsed")
     else:
         time.sleep(10)
+        grp = [p for p in procs() if p[2] == jobid]
+        say("process group %s before cancel:" % jobid)
+        for p in grp:
+            say("  pid %s ppid %s pgid %s winpid %s %s" % p)
+        s.check(len(grp) >= 2, "job's process group has its processes (%d)" % len(grp))
         rc, out = s.drv("kill", calc)
         say(out)
         state = s.wait(calc, 120)
         s.check(state == "killed", "state killed (%s)" % state)
+        time.sleep(3)
+        left = [p for p in procs() if p[2] == jobid or p[0] == jobid]
+        say("process group %s after cancel: %d processes" % (jobid, len(left)))
+        for p in left:
+            say("  pid %s ppid %s pgid %s winpid %s %s" % p)
+        s.check(not left, "no process of the job left")
+        say("all sleep/stub processes now: %s" % [p for p in procs() if "sleep" in p[4] or "stub" in p[4]])
+        for f in glob.glob(os.path.join(st, "jobs", "**", ".ecce.status"), recursive=True):
+            code = open(f).read().strip()
+            say("%s: %s" % (f, code))
+            s.check(code == "302", ".ecce.status is 302")
+    if sub:
+        time.sleep(2)
+        sub.terminate()
+        sub.wait()
+        seen = open(s.sublog).read()
+        lines = [l for l in seen.splitlines() if l.startswith("ecce/")]
+        say("broker messages seen by the subscriber: %d" % len(lines))
+        for l in lines[:12]:
+            say("  " + l[:150])
+        s.check(any("state" in l for l in lines), "state messages arrived via the broker")
+        broker(s, "stop")
     say("")
     say("FAILED: " + "; ".join(s.fail) if s.fail else "PASSED")
     return 1 if s.fail else 0

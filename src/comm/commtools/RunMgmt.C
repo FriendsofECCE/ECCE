@@ -103,10 +103,16 @@ string RunMgmt::terminate(const TaskJob *calc)
 
       if (rqMgr) command = rqMgr->cancelCommand();
 #ifdef _WIN32
-      // The job id is a Windows pid and there are no process groups: end the
-      // job's whole process tree instead of signalling its group.
-      if (command.find("pgid") != string::npos)
-        command = "taskkill //T //F //PID ##id##";
+      // MSYS ps has no -o, but the job id is its own process group leader
+      // (spawnDetached runs it under setsid), so the group id is the id.
+      {
+        size_t pg = command.find("-`ps ");
+        if (pg != string::npos) {
+          size_t end = command.find("`;", pg);
+          if (end != string::npos)
+            command.replace(pg, end + 1 - pg, "-##id##");
+        }
+      }
 #endif
 
       // Now if you have a command, do id substitutions. 

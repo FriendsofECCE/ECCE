@@ -759,6 +759,7 @@ install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-status
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-reap
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-find-mosquitto
+          ${CMAKE_SOURCE_DIR}/packaging/windows/ecce-broker-win
           ${CMAKE_SOURCE_DIR}/packaging/nwchem/ecce-nwchem-datadir
         DESTINATION bin
         COMPONENT client)
