@@ -408,12 +408,11 @@ class MoDiagram
      * shell is at least this is that shell's non-bonding orbital (#140).
      *
      * Where symmetry forbids mixing (water's out-of-plane 2p) the
-     * fraction is 1 up to the precision of the stored coefficients;
-     * the largest departure seen was below 1e-3.  Allowed mixing, even
-     * when slight, left 0.05 or more of the orbital elsewhere (extended
-     * Huckel water 2a1: 0.07, ammonia 2a1: 0.055; SCF water 3a1 and
-     * ammonia 3a1 more).  0.99 sits between the two by a factor of five
-     * or more on either side.
+     * fraction is 1 to the six decimals printed, in every basis tried.
+     * Allowed mixing, even when slight, left 0.055 or more elsewhere
+     * (extended Huckel NH3 and water 2a1: 0.055, 0.07; SCF water and
+     * NH3 3a1: 0.24, 0.14; nothing in CO or Cr(CO)6 above 0.88).  0.99
+     * keeps a factor of five from the nearest mixed orbital.
      */
     static constexpr double NONBONDING_SHELL_SHARE = 0.99;
 
