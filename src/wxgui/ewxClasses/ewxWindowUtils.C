@@ -789,3 +789,282 @@ void ewxWindowUtils::fitToDisplay(wxTopLevelWindow *win, wxSizer *fixedRow)
     scroller->FitInside();
   keepOnDisplay(win);
 }
+
+
+//  ---- clipping audit -------------------------------------------------
+
+#include "wx/tglbtn.h"
+#include "wx/spinctrl.h"
+#include "wx/combobox.h"
+#include "wx/choice.h"
+#include "wx/radiobox.h"
+#include "wx/statbox.h"
+#include "wx/scrolwin.h"
+#include "wx/textctrl.h"
+#include "wx/button.h"
+#include "wx/weakref.h"
+#include "wx/timer.h"
+#include "wx/image.h"
+#include <set>
+
+namespace {
+
+//  Windows whose children are laid out by the window itself, or that
+//  scroll: what lies outside them is not a clipped control.
+bool scrollsOrIsCustom(wxWindow *w)
+{
+  return w->IsKindOf(wxCLASSINFO(wxScrolledWindow)) ||
+         w->IsKindOf(wxCLASSINFO(wxScrolledCanvas)) ||
+         w->IsKindOf(wxCLASSINFO(wxGLCanvas)) ||
+         (w->GetClassInfo()->GetClassName() == wxString("wxGrid") ||
+          w->GetClassInfo()->GetClassName() == wxString("wxListCtrl") ||
+          w->GetClassInfo()->GetClassName() == wxString("wxTreeCtrl") ||
+          w->GetClassInfo()->GetClassName() == wxString("wxHtmlWindow") ||
+          w->GetClassInfo()->GetClassName() == wxString("wxGenericTreeCtrl") ||
+          w->GetClassInfo()->GetClassName() == wxString("wxDataViewCtrl"));
+}
+
+wxRect screenRect(wxWindow *w)
+{
+  return wxRect(w->GetScreenPosition(), w->GetSize());
+}
+
+wxRect clientScreenRect(wxWindow *w)
+{
+  return wxRect(w->ClientToScreen(wxPoint(0, 0)), w->GetClientSize());
+}
+
+std::string describeWindow(wxWindow *w)
+{
+  wxString text = w->GetLabel();
+  if (text.empty()) {
+    wxTextCtrl *t = wxDynamicCast(w, wxTextCtrl);
+    if (t) text = t->GetValue();
+  }
+  if (text.empty()) text = w->GetToolTipText();
+  if (text.length() > 40) text = text.Left(40) + "...";
+  text.Replace("\t", " ");
+  text.Replace("\n", " ");
+  wxString out = w->GetClassInfo()->GetClassName();
+  if (!text.empty()) out << " \"" << text << "\"";
+  wxWindow *p = w->GetParent();
+  //  The nearest ancestor with something to call it by.
+  for (int up = 0; p && up < 4; ++up, p = p->GetParent()) {
+    wxString name = p->GetLabel();
+    if (name.empty()) name = p->GetName();
+    if (!name.empty() && name != "panel" && name != "frame" &&
+        name != "dialog") {
+      if (name.length() > 30) name = name.Left(30);
+      name.Replace("\t", " ");
+      name.Replace("\n", " ");
+      out << " in " << p->GetClassInfo()->GetClassName() << " \"" << name
+          << "\"";
+      break;
+    }
+  }
+  return out.ToStdString();
+}
+
+//  True if the bitmap draws something: any pixel with alpha, or, without
+//  an alpha channel, any pixel unlike the corner.
+bool bitmapShowsAnything(const wxBitmap& bmp)
+{
+  if (!bmp.IsOk()) return false;
+  wxImage img = bmp.ConvertToImage();
+  if (!img.IsOk()) return false;
+  const int w = img.GetWidth(), h = img.GetHeight();
+  const unsigned char *rgb = img.GetData();
+  if (img.HasAlpha()) {
+    const unsigned char *a = img.GetAlpha();
+    for (int i = 0; i < w*h; ++i) if (a[i] > 32) return true;
+    return false;
+  }
+  for (int i = 1; i < w*h; ++i) {
+    if (abs(rgb[3*i] - rgb[0]) + abs(rgb[3*i+1] - rgb[1]) +
+        abs(rgb[3*i+2] - rgb[2]) > 40) return true;
+  }
+  return false;
+}
+
+void auditWindow(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
+{
+  auto add = [&](const char *kind, const std::string& detail) {
+    wxRect r = screenRect(w);
+    out.push_back(std::string(kind) + "\t" + describeWindow(w) + "\t" +
+                  detail + "\t" +
+                  wxString::Format("%d,%d,%d,%d", r.x, r.y, r.width,
+                                   r.height).ToStdString());
+  };
+
+  const wxSize size = w->GetSize();
+  if (w != top && size.x > 0 && size.y > 0) {
+    //  A control that sticks out of any ancestor's client area is cut.
+    wxRect me = screenRect(w);
+    for (wxWindow *a = w->GetParent(); a; a = a->GetParent()) {
+      if (scrollsOrIsCustom(a)) break;
+      wxRect area = clientScreenRect(a);
+      if (me.x < area.x - 1 || me.y < area.y - 1 ||
+          me.GetRight() > area.GetRight() + 1 ||
+          me.GetBottom() > area.GetBottom() + 1) {
+        const int over = wxMax(wxMax(area.x - me.x, me.GetRight() - area.GetRight()),
+                               wxMax(area.y - me.y, me.GetBottom() - area.GetBottom()));
+        add("outside-parent",
+            wxString::Format("%dx%d, %d px outside %s's %dx%d client area",
+                             size.x, size.y, over,
+                             (const char*) a->GetClassInfo()->GetClassName().utf8_str(),
+                             area.width, area.height).ToStdString());
+        break;
+      }
+      if (a == top) break;
+    }
+  }
+
+  //  Controls whose best size is the size of what they show.
+  const bool fixedContent =
+      w->IsKindOf(wxCLASSINFO(wxStaticText)) ||
+      w->IsKindOf(wxCLASSINFO(wxButton)) ||
+      w->IsKindOf(wxCLASSINFO(wxToggleButton)) ||
+      w->IsKindOf(wxCLASSINFO(wxCheckBox)) ||
+      w->IsKindOf(wxCLASSINFO(wxRadioButton)) ||
+      w->IsKindOf(wxCLASSINFO(wxRadioBox)) ||
+      w->IsKindOf(wxCLASSINFO(wxChoice)) ||
+      w->IsKindOf(wxCLASSINFO(wxComboBox)) ||
+      w->IsKindOf(wxCLASSINFO(wxSpinCtrl)) ||
+      w->IsKindOf(wxCLASSINFO(wxSpinCtrlDouble));
+  wxStaticText *st = wxDynamicCast(w, wxStaticText);
+  const bool ellipsized = st && (st->GetWindowStyleFlag() & wxST_ELLIPSIZE_MASK);
+  if (fixedContent && !ellipsized && size.x > 0 && size.y > 0) {
+    wxSize best = w->GetBestSize();
+    if (size.x + 2 < best.x || size.y + 2 < best.y) {
+      //  A wrapped label's best size is what it needs at the width it has,
+      //  so a short one is cut, not wrapped.
+      add("smaller-than-best",
+          wxString::Format("is %dx%d, needs %dx%d", size.x, size.y, best.x,
+                           best.y).ToStdString());
+    }
+  }
+
+  wxAnyButton *btn = wxDynamicCast(w, wxAnyButton);
+  if (btn) {
+    wxBitmap bmp = btn->GetBitmap();
+    const bool hasLabel = !btn->GetLabel().empty();
+    const bool hasBitmap = bmp.IsOk();
+    //  An empty button that is a colour swatch has its own background.
+    const bool swatch = !hasLabel && !hasBitmap && w->GetParent() &&
+        w->GetBackgroundColour() != w->GetParent()->GetBackgroundColour();
+    if (!hasLabel && !hasBitmap && !swatch) {
+      add("empty-button", "no label and no bitmap");
+    } else if (!hasLabel && hasBitmap && !bitmapShowsAnything(bmp)) {
+      add("blank-bitmap",
+          wxString::Format("bitmap %dx%d draws nothing", bmp.GetWidth(),
+                           bmp.GetHeight()).ToStdString());
+    }
+  }
+
+  //  A single-line field narrower than what it holds.
+  wxString value;
+  int pad = 0;
+  wxTextCtrl *tc = wxDynamicCast(w, wxTextCtrl);
+  if (tc && !tc->IsMultiLine() && !(tc->GetWindowStyleFlag() & wxTE_PASSWORD)) {
+    value = tc->GetValue();
+    if (!value.empty()) {
+      wxSize need = tc->GetSizeFromTextSize(
+          tc->GetTextExtent(value).x);
+      pad = need.x - tc->GetTextExtent(value).x;
+    }
+  }
+  wxComboBox *cb = wxDynamicCast(w, wxComboBox);
+  if (cb) { value = cb->GetValue(); pad = 36; }
+  wxChoice *ch = wxDynamicCast(w, wxChoice);
+  if (ch && ch->GetSelection() != wxNOT_FOUND) {
+    value = ch->GetStringSelection(); pad = 36;
+  }
+  wxSpinCtrl *sp = wxDynamicCast(w, wxSpinCtrl);
+  if (sp) { value = wxString::Format("%d", sp->GetValue()); pad = 36; }
+  if (!value.empty()) {
+    const int need = w->GetTextExtent(value).x + pad;
+    if (size.x < need) {
+      std::string v = value.ToStdString();
+      if (v.size() > 30) v = v.substr(0, 30) + "...";
+      add("text-wider-than-field",
+          wxString::Format("field is %d px wide, value \"%s\" needs %d",
+                           size.x, v.c_str(), need).ToStdString());
+    }
+  }
+}
+
+void walk(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
+{
+  if (!w->IsShown()) return;
+  if (w->IsKindOf(wxCLASSINFO(wxTopLevelWindow)) && w != top) return;
+  if (w->IsShownOnScreen()) auditWindow(w, top, out);
+  if (scrollsOrIsCustom(w)) return;
+  //  A combo box's or spin control's inner text field is not a control of
+  //  ours.
+  if (w->IsKindOf(wxCLASSINFO(wxComboBox)) ||
+      w->IsKindOf(wxCLASSINFO(wxSpinCtrl)) ||
+      w->IsKindOf(wxCLASSINFO(wxSpinCtrlDouble)) ||
+      w->IsKindOf(wxCLASSINFO(wxRadioBox))) return;
+  const wxWindowList& kids = w->GetChildren();
+  for (wxWindowList::compatibility_iterator n = kids.GetFirst(); n;
+       n = n->GetNext())
+    walk(n->GetData(), top, out);
+}
+
+}  // namespace
+
+
+std::vector<std::string> ewxWindowUtils::clipFindings(wxWindow *top)
+{
+  std::vector<std::string> out;
+  if (top) walk(top, top, out);
+  return out;
+}
+
+
+void ewxWindowUtils::clipAuditReport(wxWindow *top, const std::string& tag)
+{
+  const char *path = getenv("ECCE_CLIP_AUDIT");
+  if (!path || !top) return;
+  std::vector<std::string> found = clipFindings(top);
+  wxRect r = screenRect(top);
+  std::string shot;
+  const char *dir = getenv("ECCE_CLIP_SHOTS");
+  if (dir) {
+    std::string safe = tag;
+    for (size_t i = 0; i < safe.size(); ++i)
+      if (!isalnum((unsigned char)safe[i]) && safe[i] != '.' && safe[i] != '-')
+        safe[i] = '_';
+    shot = std::string(dir) + "/" + safe + ".png";
+    //  Cheap and works on every Xvfb: the screen itself, not the window.
+    wxString cmd;
+    cmd << "import -window root '" << shot << "' 2>/dev/null";
+    if (system(cmd.mb_str()) != 0) shot.clear();
+  }
+  FILE *f = fopen(path, "a");
+  if (!f) return;
+  fprintf(f, "WINDOW\t%s\t%d,%d,%d,%d\t%s\t%s\n", tag.c_str(), r.x, r.y,
+          r.width, r.height, (const char*) top->GetClassInfo()->GetClassName().utf8_str(),
+          shot.c_str());
+  for (size_t i = 0; i < found.size(); ++i)
+    fprintf(f, "FINDING\t%s\t%s\n", tag.c_str(), found[i].c_str());
+  fclose(f);
+}
+
+
+void ewxWindowUtils::scheduleClipAudit(wxTopLevelWindow *win)
+{
+  if (!getenv("ECCE_CLIP_AUDIT") || !win) return;
+  static std::set<wxWindow*> seen;
+  if (!seen.insert(win).second) return;
+  wxWeakRef<wxTopLevelWindow> ref(win);
+  wxTimer *timer = new wxTimer();   // lives until the process exits
+  timer->Bind(wxEVT_TIMER, [ref](wxTimerEvent&) {
+    if (!ref) return;
+    wxString title = ref->GetTitle();
+    if (title.empty()) title = ref->GetClassInfo()->GetClassName();
+    ewxWindowUtils::clipAuditReport(
+        ref.get(), (wxTheApp->GetAppName() + ":" + title).ToStdString());
+  });
+  timer->StartOnce(5000);
+}

@@ -14,6 +14,7 @@
 #include <wx/menu.h>
 #include <wx/menuitem.h>
 #include <wx/timer.h>
+#include <wx/radiobox.h>
 
 #include "dsm/ICalculation.H"
 #include "dsm/IPropCalculation.H"
@@ -24,6 +25,7 @@
 #include "tdat/TTheory.H"
 
 #include "wxgui/ewxConfig.H"
+#include "wxgui/ewxWindowUtils.H"
 
 #include "AbstractPropCalculation.H"
 #include "Builder.H"
@@ -1204,4 +1206,124 @@ void Builder::runPanelLayoutTest()
   if (getenv("ECCE_EXIT_AFTER_DUMP")) {
     _exit(fails ? 1 : 0);
   }
+}
+
+
+/**
+ * ECCE_CLIP_AUDIT=<file> with ECCE_CLIP_BUILDER=1: in each panel layout open
+ * every property panel and tool alone, and every choice of the radio boxes
+ * in it, and report the clipped controls of the Builder window each time
+ * (ewxWindowUtils::clipAuditReport).  Ends with a "DONE" line.
+ */
+void Builder::runClipAudit()
+{
+  const char *path = getenv("ECCE_CLIP_AUDIT");
+  if (!path || !p_calculation) return;
+  auto settle = [&]() {
+    for (int i = 0; i < 20; ++i) {
+      wxTheApp->Yield(true);
+      wxMilliSleep(30);
+    }
+  };
+  vector<string> names;
+  set<PropertyPanel*> panels =
+      PropertyPanel::getPanels(p_calculation->getURL().toString());
+  for (set<PropertyPanel*>::iterator it = panels.begin(); it != panels.end();
+       ++it) {
+    names.push_back((*it)->getName());
+  }
+  const PanelMode modes[] = { PANELS_CLASSIC, PANELS_STACKED,
+                              PANELS_ACCORDION, PANELS_DETAIL };
+  auto radioBoxes = [](wxWindow *root) {
+    vector<wxRadioBox*> found;
+    vector<wxWindow*> todo(1, root);
+    while (!todo.empty()) {
+      wxWindow *w = todo.back();
+      todo.pop_back();
+      if (wxRadioBox *rb = wxDynamicCast(w, wxRadioBox)) {
+        found.push_back(rb);
+        continue;
+      }
+      for (wxWindowList::compatibility_iterator n = w->GetChildren().GetFirst();
+           n; n = n->GetNext())
+        todo.push_back(n->GetData());
+    }
+    return found;
+  };
+  for (int m = 0; m < 4; ++m) {
+    setPanelMode(modes[m]);
+    settle();
+    const string tag = string(MODE_NAMES[modes[m]]) + "-";
+    for (size_t i = 0; i < names.size(); ++i) {
+      const int id = p_propertyMenu->FindItem(names[i]);
+      if (id == wxNOT_FOUND) continue;
+      wxAuiPaneInfoArray &now = p_mgr.GetAllPanes();
+      for (size_t k = 0; k < now.GetCount(); ++k) {
+        wxAuiPaneInfo &other = now.Item(k);
+        if (dynamic_cast<PropertyPanel*>(other.window) &&
+            other.name != names[i] && !other.IsFloating()) {
+          other.Show(false);
+          p_tabHidden.erase(other.window);
+        }
+      }
+      wxCommandEvent off(wxEVT_MENU, id);
+      off.SetInt(0);
+      OnPropertyMenuClick(off);
+      settle();
+      wxCommandEvent on(wxEVT_MENU, id);
+      on.SetInt(1);
+      OnPropertyMenuClick(on);
+      settle();
+      ewxWindowUtils::clipAuditReport(this, tag + names[i]);
+      wxAuiPaneInfo &pane = p_mgr.GetPane(names[i]);
+      if (!pane.IsOk() || !pane.window) continue;
+      vector<wxRadioBox*> boxes = radioBoxes(pane.window);
+      for (size_t b = 0; b < boxes.size(); ++b) {
+        const int keep = boxes[b]->GetSelection();
+        for (int s = 0; s < (int)boxes[b]->GetCount(); ++s) {
+          if (s == keep) continue;
+          boxes[b]->SetSelection(s);
+          wxCommandEvent ev(wxEVT_RADIOBOX, boxes[b]->GetId());
+          ev.SetInt(s);
+          ev.SetEventObject(boxes[b]);
+          boxes[b]->GetEventHandler()->ProcessEvent(ev);
+          settle();
+          ewxWindowUtils::clipAuditReport(
+              this, tag + names[i] + "-" +
+              boxes[b]->GetString(s).ToStdString());
+        }
+        boxes[b]->SetSelection(keep);
+        wxCommandEvent ev(wxEVT_RADIOBOX, boxes[b]->GetId());
+        ev.SetInt(keep);
+        ev.SetEventObject(boxes[b]);
+        boxes[b]->GetEventHandler()->ProcessEvent(ev);
+        settle();
+      }
+    }
+    for (int i = 0; i < p_toolCount; ++i) {
+      wxMenuItem *item = p_toolMenu->FindItem(ID_TOOLMENU_ITEM + i);
+      if (!item || !item->IsEnabled()) continue;
+      const wxString label = item->GetItemLabelText();
+      if (label == NAME_TOOL_CONTEXT || label == NAME_TOOL_LOG) continue;
+      for (int k = 0; k < p_toolCount; ++k) {
+        wxMenuItem *oi = p_toolMenu->FindItem(ID_TOOLMENU_ITEM + k);
+        if (!oi || oi->GetItemLabelText() == label ||
+            oi->GetItemLabelText() == NAME_TOOL_CONTEXT ||
+            oi->GetItemLabelText() == NAME_TOOL_LOG) continue;
+        wxAuiPaneInfo &other = p_mgr.GetPane(oi->GetItemLabelText());
+        if (other.IsOk() && !other.IsFloating()) {
+          other.Show(false);
+          p_tabHidden.erase(other.window);
+        }
+      }
+      wxCommandEvent on(wxEVT_MENU, ID_TOOLMENU_ITEM + i);
+      on.SetInt(1);
+      OnToolMenuClick(on);
+      settle();
+      ewxWindowUtils::clipAuditReport(this, tag + "tool-" +
+                                      label.ToStdString());
+    }
+  }
+  FILE *f = fopen(path, "a");
+  if (f) { fprintf(f, "DONE\n"); fclose(f); }
 }

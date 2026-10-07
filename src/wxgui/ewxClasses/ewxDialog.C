@@ -67,13 +67,17 @@ bool ewxDialog::Show(bool show)
 {
   if (show)
     fitToScreen();
-  return wxDialog::Show(show);
+  bool ret = wxDialog::Show(show);
+  if (show)
+    ewxWindowUtils::scheduleClipAudit(this);
+  return ret;
 }
 
 
 int ewxDialog::ShowModal()
 {
   fitToScreen();
+  ewxWindowUtils::scheduleClipAudit(this);
   return wxDialog::ShowModal();
 }
 

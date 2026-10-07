@@ -579,6 +579,7 @@ class Builder: public BuilderGUI,
       //  Test hooks (ECCE_PANEL_TEST): what the layout currently holds.
       PanelMode panelMode() const { return p_panelMode; }
       void runPanelLayoutTest();
+      void runClipAudit();
 };
 
 #endif

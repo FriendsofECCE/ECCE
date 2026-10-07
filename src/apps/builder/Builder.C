@@ -4907,6 +4907,18 @@ void Builder::updatePropertyMenus()
     timer->StartOnce(5000);
   }
 
+  //  ECCE_CLIP_AUDIT=<file>: audit the window for clipped controls in every
+  //  panel layout, one panel open at a time (tests/apps/clip_test.py).
+  static bool clipAuditStarted = false;
+  if (getenv("ECCE_CLIP_AUDIT") != 0 && getenv("ECCE_CLIP_BUILDER") != 0 &&
+      !clipAuditStarted && p_calculation != 0 &&
+      p_propertyMenu->GetMenuItemCount() > 0) {
+    clipAuditStarted = true;
+    wxTimer *timer = new wxTimer();   // lives until the process exits
+    timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) { runClipAudit(); });
+    timer->StartOnce(6000);
+  }
+
   //  ECCE_TEST_IMPORT=<file>: run Add Structure from File on <file> once the
   //  Builder is up, as if picked in the file dialog, press OK in any prompt
   //  it raises, then exit. ECCE_TEST_IMPORT_DELAY (seconds) leaves time to
