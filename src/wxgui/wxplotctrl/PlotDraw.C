@@ -551,23 +551,17 @@ void wxPlotDrawerXAxis::Draw(wxDC *dc, bool refresh)
     dc->SetTextForeground( m_tickColour.GetColour() );
     dc->SetFont( tickFont );
 
-    wxString label;
-
-    // center the text in the window
-    int x, y;
-    dc->GetTextExtent(wxT("5"), &x, &y);
-    int y_pos = (GetDCRect().height - y)/2 + 2; // FIXME I want to center this
-    // double current = ceil(m_viewRect.GetLeft() / m_xAxisTick_step) * m_xAxisTick_step;
+    // The area sits half a text height inside the window on either side.
+    const int border = (dcRect.width - m_owner->GetPlotAreaRect().width) / 2;
+    const int tickLen = 4;
+    dc->SetPen(m_tickPen.GetPen());
     size_t i, count = m_tickPositions.GetCount();
     for (i = 0; i < count; i++)
     {
-        dc->DrawText(m_tickLabels[i], m_tickPositions[i], y_pos);
-
-//        if (!IsFinite(current, wxT("axis label is not finite")))
-//            break;
-//        label.Printf( m_xAxisTickFormat.c_str(), current );
-//        dc->DrawText(label, m_xAxisTicks[i], y_pos);
-//        current += m_xAxisTick_step;
+        const int x = m_tickPositions[i] + border;
+        dc->DrawLine(x, 0, x, tickLen);
+        const wxSize e = dc->GetTextExtent(m_tickLabels[i]);
+        dc->DrawText(m_tickLabels[i], x - e.x/2, tickLen + 2);
     }
 
 #ifdef DRAW_BORDERS
@@ -604,18 +598,19 @@ void wxPlotDrawerYAxis::Draw(wxDC *dc, bool refresh)
     dc->SetTextForeground( m_tickColour.GetColour() );
     dc->SetFont( tickFont );
 
-    wxString label;
-    // double current = ceil(m_viewRect.GetTop() / m_yAxisTick_step) * m_yAxisTick_step;
+    // Labels right-aligned against short ticks that end at the plot frame,
+    // which is where this window ends.
+    const int border = (dcRect.height - m_owner->GetPlotAreaRect().height) / 2;
+    const int tickLen = 4;
+    dc->SetPen(m_tickPen.GetPen());
     size_t i, count = m_tickLabels.GetCount();
     for (i = 0; i < count; i++)
     {
-        dc->DrawText( m_tickLabels[i], 2, m_tickPositions[i] );
-
-//        if (!IsFinite(current, wxT("axis label is not finite")))
-//            break;
-//        label.Printf( m_yAxisTickFormat.c_str(), current);
-//        dc->DrawText( label, 2, m_yAxisTicks[i] );
-//        current += m_yAxisTick_step;
+        const int y = m_tickPositions[i] + border;
+        dc->DrawLine(dcRect.width - tickLen - 1, y, dcRect.width, y);
+        const wxSize e = dc->GetTextExtent(m_tickLabels[i]);
+        dc->DrawText(m_tickLabels[i], dcRect.width - tickLen - 4 - e.x,
+                     y - e.y/2);
     }
 
 #ifdef DRAW_BORDERS

@@ -30,6 +30,10 @@ from the raw fixtures by `oracle.py` (no ECCE parser involved);
 - **The envelope is area-normalised**, so its y values are
   intensity per cm-1 and sit on a second, right-hand axis next to the
   stick axis; they are not comparable with the stick heights.
+- **The palette is shared.** `SpectrumPalette` is a typedef of
+  `PlotPalette` in `include/wxgui/PlotStyle.H`, which every other plot
+  uses too (see the plots entry); the spectrum paints byte-identically
+  with it.
 - **Hooks:** `ECCE_SPECTRUM_DUMP=<path>` (with `ECCE_SPECTRUM_CLICK=<mode>`
   and `ECCE_EXIT_AFTER_DUMP=1`) writes what the panel's canvas holds and
   paints it to `<path>.png`.

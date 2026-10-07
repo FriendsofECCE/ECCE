@@ -46,6 +46,8 @@ const wxWindowID WxAuthGUI::wxID_CHANGE = wxNewId();
 const wxWindowID WxAuthGUI::wxID_STATIC_AUTH_SERVER_LABEL = wxNewId();
 const wxWindowID WxAuthGUI::wxID_STATIC_AUTH_SERVER_VALUE = wxNewId();
 const wxWindowID WxAuthGUI::wxID_STATIC_AUTH_USER_LABEL = wxNewId();
+const wxWindowID WxAuthGUI::wxID_STATIC_AUTH_SECURITY = wxNewId();
+const wxWindowID WxAuthGUI::wxID_STATIC_AUTH_STATUS = wxNewId();
 const wxWindowID WxAuthGUI::ID_CHECKBOX_AUTH_SAVEPASSWORDS = wxNewId();
 const wxWindowID WxAuthGUI::ID_TEXTCTRL_AUTH_PASSWORD = wxNewId();
 
@@ -120,76 +122,93 @@ void WxAuthGUI::CreateControls()
 ////@begin WxAuthGUI content construction
     WxAuthGUI* itemDialog1 = this;
 
-    // Logo beside the fields, not painted under them (unreadable text).
-    wxBoxSizer* outerSizer = new wxBoxSizer(wxHORIZONTAL);
-    itemDialog1->SetSizer(outerSizer);
+    // GNOME HIG: labels right-aligned beside their fields, one border unit
+    // between related items and two around groups, the buttons in the
+    // platform's own order (wxStdDialogButtonSizer).
+    const int gap = wxSizerFlags::GetDefaultBorder();
+
+    wxBoxSizer* topSizer = new wxBoxSizer(wxVERTICAL);
+    itemDialog1->SetSizer(topSizer);
+
+    wxBoxSizer* mainRow = new wxBoxSizer(wxHORIZONTAL);
+    topSizer->Add(mainRow, wxSizerFlags(1).Expand().DoubleBorder(wxLEFT|wxRIGHT|wxTOP));
 
     wxImage logoImage(itemDialog1->GetBitmapResource(wxT("passprompt.xpm")).ConvertToImage());
     logoImage.Rescale(114, 64, wxIMAGE_QUALITY_HIGH);
     wxStaticBitmap* logo = new wxStaticBitmap( itemDialog1, wxID_STATIC, wxBitmap(logoImage), wxDefaultPosition, wxDefaultSize, 0 );
-    outerSizer->Add(logo, 0, wxALIGN_TOP|wxALL, 10);
+    mainRow->Add(logo, wxSizerFlags().Top().Border(wxRIGHT, 3*gap));
 
-    wxBoxSizer* itemBoxSizer3 = new wxBoxSizer(wxVERTICAL);
-    outerSizer->Add(itemBoxSizer3, 1, wxEXPAND|wxALL, 5);
+    wxBoxSizer* column = new wxBoxSizer(wxVERTICAL);
+    mainRow->Add(column, 1, wxEXPAND, 0);
 
     ewxStaticText* itemStaticText4 = new ewxStaticText( itemDialog1, wxID_STATIC_AUTH_PROMPT_LABEL, _("Please enter your data server\nuser name and password:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer3->Add(itemStaticText4, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
+    column->Add(itemStaticText4, wxSizerFlags().Left().Border(wxBOTTOM, 2*gap));
 
-    wxBoxSizer* itemBoxSizer5 = new wxBoxSizer(wxHORIZONTAL);
-    itemBoxSizer3->Add(itemBoxSizer5, 0, wxALIGN_RIGHT|wxALL, 2);
+    // Every row's spacing sits on its items, not in the grid, so a hidden
+    // row (New Password) leaves no gap behind.
+    wxFlexGridSizer* grid = new wxFlexGridSizer(2, 0, gap);
+    grid->AddGrowableCol(1);
+    column->Add(grid, wxSizerFlags().Expand());
+    const wxSizerFlags lab = wxSizerFlags().Right().CenterVertical().Border(wxBOTTOM, gap);
+    const wxSizerFlags fld = wxSizerFlags(1).Expand().CenterVertical().Border(wxBOTTOM, gap);
+    const wxSize fieldSize = FromDIP(wxSize(240, -1));
 
     ewxStaticText* itemStaticText6 = new ewxStaticText( itemDialog1, wxID_STATIC_AUTH_SERVER_LABEL, _("Server:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer5->Add(itemStaticText6, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 2);
+    grid->Add(itemStaticText6, lab);
 
     ewxStaticText* itemStaticText7 = new ewxStaticText( itemDialog1, wxID_STATIC_AUTH_SERVER_VALUE, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer5->Add(itemStaticText7, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 2);
-
-    wxBoxSizer* itemBoxSizer8 = new wxBoxSizer(wxHORIZONTAL);
-    itemBoxSizer3->Add(itemBoxSizer8, 0, wxALIGN_RIGHT|wxLEFT|wxRIGHT|wxBOTTOM, 2);
+    itemStaticText7->SetFont(itemStaticText7->GetFont().Bold());
+    grid->Add(itemStaticText7, wxSizerFlags().Left().CenterVertical().Border(wxBOTTOM, gap));
 
     ewxStaticText* itemStaticText9 = new ewxStaticText( itemDialog1, wxID_STATIC_AUTH_USER_LABEL, _("User name:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer8->Add(itemStaticText9, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 2);
+    grid->Add(itemStaticText9, lab);
 
-    ewxTextCtrl* itemTextCtrl10 = new ewxTextCtrl( itemDialog1, ID_TEXTCTRL_AUTH_USER, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer8->Add(itemTextCtrl10, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 2);
-
-    wxBoxSizer* itemBoxSizer11 = new wxBoxSizer(wxHORIZONTAL);
-    itemBoxSizer3->Add(itemBoxSizer11, 0, wxALIGN_RIGHT|wxLEFT|wxRIGHT, 2);
+    ewxTextCtrl* itemTextCtrl10 = new ewxTextCtrl( itemDialog1, ID_TEXTCTRL_AUTH_USER, _T(""), wxDefaultPosition, fieldSize, 0 );
+    grid->Add(itemTextCtrl10, fld);
 
     ewxStaticText* itemStaticText12 = new ewxStaticText( itemDialog1, wxID_STATIC_AUTH_PASSWD, _("Password:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer11->Add(itemStaticText12, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 2);
+    grid->Add(itemStaticText12, lab);
 
-    ewxTextCtrl* itemTextCtrl13 = new ewxTextCtrl( itemDialog1, ID_TEXTCTRL_AUTH_PASSWORD, _T(""), wxDefaultPosition, wxDefaultSize, wxTE_PASSWORD );
-    itemBoxSizer11->Add(itemTextCtrl13, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 2);
+    ewxTextCtrl* itemTextCtrl13 = new ewxTextCtrl( itemDialog1, ID_TEXTCTRL_AUTH_PASSWORD, _T(""), wxDefaultPosition, fieldSize, wxTE_PASSWORD );
+    grid->Add(itemTextCtrl13, fld);
 
     ewxStaticText* itemStaticText14 = new ewxStaticText( itemDialog1, wxID_STATIC_AUTH_NEWPASSWD, _("New Password:"), wxDefaultPosition, wxDefaultSize, 0 );
-    itemBoxSizer11->Add(itemStaticText14, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 2);
+    grid->Add(itemStaticText14, lab);
 
-    ewxTextCtrl* itemTextCtrl15 = new ewxTextCtrl( itemDialog1, ID_TEXTCTRL_AUTH_NEWPASSWORD, _T(""), wxDefaultPosition, wxDefaultSize, wxTE_PASSWORD );
-    itemBoxSizer11->Add(itemTextCtrl15, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM, 2);
+    ewxTextCtrl* itemTextCtrl15 = new ewxTextCtrl( itemDialog1, ID_TEXTCTRL_AUTH_NEWPASSWORD, _T(""), wxDefaultPosition, fieldSize, wxTE_PASSWORD );
+    grid->Add(itemTextCtrl15, fld);
 
-    itemBoxSizer3->Add(1, 60, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
+    // Both lines are empty and hidden until a caller sets them.
+    ewxStaticText* security = new ewxStaticText( itemDialog1, wxID_STATIC_AUTH_SECURITY, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
+    security->Show(false);
+    column->Add(security, wxSizerFlags().Left().Border(wxTOP, gap));
 
-    wxBoxSizer* itemBoxSizer17 = new wxBoxSizer(wxHORIZONTAL);
-    itemBoxSizer3->Add(itemBoxSizer17, 0, wxGROW|wxLEFT|wxRIGHT, 2);
-
-    ewxButton* itemButton18 = new ewxButton( itemDialog1, wxID_OK, _("&OK"), wxDefaultPosition, wxSize(60, -1), 0 );
-    itemButton18->SetDefault();
-    itemBoxSizer17->Add(itemButton18, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
-
-    itemBoxSizer17->Add(5, 5, 1, wxALIGN_CENTER_VERTICAL|wxALL, 5);
-
-    ewxButton* itemButton20 = new ewxButton( itemDialog1, wxID_CHANGE, _("Change..."), wxDefaultPosition, wxSize(75, -1), 0 );
-    itemButton20->Show(false);
-    itemBoxSizer17->Add(itemButton20, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
-
-    ewxButton* itemButton21 = new ewxButton( itemDialog1, wxID_CANCEL, _("&Cancel"), wxDefaultPosition, wxSize(70, -1), 0 );
-    itemBoxSizer17->Add(itemButton21, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+    ewxStaticText* status = new ewxStaticText( itemDialog1, wxID_STATIC_AUTH_STATUS, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
+    status->Show(false);
+    column->Add(status, wxSizerFlags().Left().Border(wxTOP, gap));
 
     ewxCheckBox* itemCheckBox22 = new ewxCheckBox( itemDialog1, ID_CHECKBOX_AUTH_SAVEPASSWORDS, _("Save Passwords Between Invocations"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     itemCheckBox22->SetValue(false);
     itemCheckBox22->Show(false);
-    itemBoxSizer3->Add(itemCheckBox22, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxBOTTOM, 5);
+    column->Add(itemCheckBox22, wxSizerFlags().Left().Border(wxTOP, gap));
+
+    wxBoxSizer* buttonRow = new wxBoxSizer(wxHORIZONTAL);
+    topSizer->Add(buttonRow, wxSizerFlags().Expand().DoubleBorder());
+
+    // Not a standard button, so it stays outside the wxStdDialogButtonSizer.
+    ewxButton* itemButton20 = new ewxButton( itemDialog1, wxID_CHANGE, _("Change..."), wxDefaultPosition, wxDefaultSize, 0 );
+    itemButton20->Show(false);
+    buttonRow->Add(itemButton20, wxSizerFlags().CenterVertical());
+    buttonRow->AddStretchSpacer(1);
+
+    wxStdDialogButtonSizer* buttons = new wxStdDialogButtonSizer();
+    ewxButton* itemButton18 = new ewxButton( itemDialog1, wxID_OK, _("&OK"), wxDefaultPosition, wxDefaultSize, 0 );
+    itemButton18->SetDefault();
+    buttons->AddButton(itemButton18);
+    ewxButton* itemButton21 = new ewxButton( itemDialog1, wxID_CANCEL, _("&Cancel"), wxDefaultPosition, wxDefaultSize, 0 );
+    buttons->AddButton(itemButton21);
+    buttons->Realize();
+    buttonRow->Add(buttons, wxSizerFlags().CenterVertical());
 
 ////@end WxAuthGUI content construction
 }

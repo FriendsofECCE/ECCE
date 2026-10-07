@@ -32,6 +32,12 @@ class ewxApp : public wxApp
       // events propagate from the frame to wxTheApp.
       void OnAbout(wxCommandEvent& event);
 
+      // GTK3: keep text at normal contrast in a window that has lost
+      // focus (the theme's :backdrop state fades it), except where the
+      // widget is disabled.  Called from OnInit; ECCE_BACKDROP=theme keeps
+      // the theme's fading.  No-op elsewhere.
+      static void applyBackdropStyle();
+
 
 };
 
