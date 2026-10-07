@@ -24,9 +24,9 @@ Check (Test-Path "$inst\bin\organizer.exe") "organizer.exe under $inst"
 Check (Test-Path $lnk) "Start-menu shortcut"
 foreach ($h in "HKCU", "HKLM") { foreach ($k in "Software\Microsoft\Windows\CurrentVersion\Uninstall", "Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall") {
   Get-ItemProperty "${h}:\$k\*" -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like "ECCE*" } | ForEach-Object { Say "uninstall entry: ${h}:\$k\$($_.PSChildName) $($_.DisplayName)" } } }
-$arp = Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -eq "ECCE" }
-Check ($null -ne $arp) "Apps & Features entry in HKCU (per user)"
-Check (-not (Get-ItemProperty "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -eq "ECCE" })) "no HKLM entry"
+# Elevated (as on the runner) Windows Installer files a per-user package's entry under HKLM; unelevated it is HKCU.
+$arp = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*", "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -eq "ECCE" })
+Check ($null -ne $arp) "Apps & Features entry present"
 Say ("installed: {0:N0} MB, {1} files" -f ((Get-ChildItem $inst -Recurse -File | Measure-Object Length -Sum).Sum / 1MB), (Get-ChildItem $inst -Recurse -File).Count)
 $t = New-Object -ComObject WScript.Shell
 Say ("shortcut: " + $t.CreateShortcut($lnk).TargetPath + " " + $t.CreateShortcut($lnk).Arguments)
