@@ -248,8 +248,10 @@ inline struct passwd *getpwuid(uid_t)
   pw.pw_dir = getenv("USERPROFILE");
   return pw.pw_name ? &pw : nullptr;
 }
+#endif
 
 // rename() that replaces an existing target; the Windows CRT's refuses.
+#ifdef _WIN32
 inline int renameReplace(const char *from, const char *to)
 {
   if (MoveFileExA(from, to, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
