@@ -236,16 +236,20 @@ string findProgramScript(const ProgramHelp& h)
     string s;
     for (size_t i = 0; i < h.names.size(); i++)
     {
-        s += "p=$(command -v " + h.names[i] + " 2>/dev/null); "
-             "case $p in /*) ";
+        const string& n = h.names[i];
         if (h.companion.empty())
-            s += "echo \"ECCE-FOUND:$p\";; esac\n";
+            s += "p=$(command -v " + n + " 2>/dev/null); case $p in /*) "
+                 "echo \"ECCE-FOUND:$p\";; esac\n";
         else
-            s += "if [ -x \"${p%/*}/" + h.companion + "\" ]; then "
-                 "echo \"ECCE-FOUND:$p\"; else r=$(readlink -f \"$p\" "
-                 "2>/dev/null); if [ -n \"$r\" ] && [ -x \"${r%/*}/" +
-                 h.companion + "\" ]; then echo \"ECCE-FOUND:$r\"; fi; fi;; "
-                 "esac\n";
+            //  A program of the same name earlier on the PATH (ORCA's is
+            //  also the GNOME screen reader) must not hide the real one, so
+            //  every PATH entry is looked at, and the companion file must
+            //  sit next to the program, or next to what a link points to.
+            s += "oIFS=$IFS; IFS=:; for d in $PATH; do IFS=$oIFS; "
+                 "case $d in /*) p=$d/" + n + "; if [ -x \"$p\" ]; then "
+                 "r=$(readlink -f \"$p\" 2>/dev/null); [ -n \"$r\" ] || r=$p; "
+                 "if [ -x \"${r%/*}/" + h.companion + "\" ]; then "
+                 "echo \"ECCE-FOUND:$r\"; fi; fi;; esac; done; IFS=$oIFS\n";
     }
     return s;
 }
