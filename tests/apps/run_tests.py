@@ -40,6 +40,7 @@ import apps                                                   # noqa: E402
 import cases as CASEDEFS                                      # noqa: E402
 import geomtrace_stress                                       # noqa: E402
 import pbc_edit_test                                          # noqa: E402
+import pbc_ux_test                                            # noqa: E402
 import fixture                                                # noqa: E402
 import isolate                                                # noqa: E402
 import xdisplay                                               # noqa: E402
@@ -672,6 +673,7 @@ def main():
                 geomtrace_stress.check(display, results,
                                        verbose=args.verbose)
                 pbc_edit_test.check(display, results, verbose=args.verbose)
+                pbc_ux_test.check(display, results)
             finally:
                 restorePrefs()
             checkStale(results, set(swept))

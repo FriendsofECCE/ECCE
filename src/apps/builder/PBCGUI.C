@@ -32,7 +32,9 @@
 #include "wxgui/ewxTextCtrl.H"
 ////@end includes
 
+#include <wx/settings.h>
 #include "PBCGUI.H"
+#include "Builder.H"
 
 ////@begin XPM images
 
@@ -175,15 +177,15 @@ bool PBCGUI::Create( wxWindow* parent, wxWindowID id, const wxPoint& pos, const 
     p_latticePanel = NULL;
     p_operationsSizer = NULL;
     p_symSizer = NULL;
+    p_scroll = NULL;
+    p_mainSizer = NULL;
 ////@end PBCGUI member initialisation
 
 ////@begin PBCGUI creation
     ewxPanel::Create( parent, id, pos, size, style );
 
     CreateControls();
-    GetSizer()->Fit(this);
-    GetSizer()->SetSizeHints(this);
-    Centre();
+    refit();
 ////@end PBCGUI creation
     return true;
 }
@@ -192,12 +194,49 @@ bool PBCGUI::Create( wxWindow* parent, wxWindowID id, const wxPoint& pos, const 
  * Control creation for PBCGUI
  */
 
+/**
+ * Re-measures the controls after a section was shown or hidden: the
+ * scrolled area is as large as they need, the pane's minimum width is
+ * that plus the scroll bar, and the height is left to the pane.
+ */
+void PBCGUI::refit()
+{
+    if (!p_scroll || !p_mainSizer) return;
+    p_mainSizer->Layout();
+    wxSize need = p_mainSizer->GetMinSize();
+    p_scroll->SetVirtualSize(need);
+    p_scroll->SetMinSize(wxSize(need.x + wxSystemSettings::GetMetric(wxSYS_VSCROLL_X) + 2, 120));
+    p_scroll->FitInside();
+    InvalidateBestSize();
+    Layout();
+    if (IsShownOnScreen()) {
+        Builder* builder = dynamic_cast<Builder*>(wxGetTopLevelParent(this));
+        if (builder) {
+            builder->CallAfter([builder]() {
+                builder->toolPaneResized(Builder::NAME_TOOL_PBC);
+            });
+        }
+    }
+}
+
+
 void PBCGUI::CreateControls()
 {    
 ////@begin PBCGUI content construction
-    PBCGUI* itemPanel1 = this;
+    //  (PBC::Create calls this directly, not PBCGUI::Create.)
+    //  The controls scroll when the pane is shorter than they are: the
+    //  Builder's right-hand column can only spare so much height.
+    p_scroll = new wxScrolledWindow( this, wxID_ANY, wxDefaultPosition,
+                                     wxDefaultSize, wxVSCROLL|wxTAB_TRAVERSAL );
+    p_scroll->SetScrollRate(0, 10);
+    wxBoxSizer* outer = new wxBoxSizer(wxVERTICAL);
+    outer->Add(p_scroll, 1, wxGROW, 0);
+    SetSizer(outer);
+
+    wxWindow* itemPanel1 = p_scroll;
 
     wxBoxSizer* itemBoxSizer2 = new wxBoxSizer(wxVERTICAL);
+    p_mainSizer = itemBoxSizer2;
     itemPanel1->SetSizer(itemBoxSizer2);
 
     wxBoxSizer* itemBoxSizer3 = new wxBoxSizer(wxHORIZONTAL);
@@ -312,16 +351,16 @@ void PBCGUI::CreateControls()
     ewxTextCtrl* itemTextCtrl36 = new ewxTextCtrl( p_latticePanel, ID_TEXTCTRL_PBC_GAMMA, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer24->Add(itemTextCtrl36, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
+    wxBoxSizer* itemBoxSizer37Rows = new wxBoxSizer(wxVERTICAL);
+    itemBoxSizer7->Add(itemBoxSizer37Rows, 0, wxALIGN_LEFT|wxALL, 0);
     wxBoxSizer* itemBoxSizer37 = new wxBoxSizer(wxHORIZONTAL);
-    itemBoxSizer7->Add(itemBoxSizer37, 0, wxALIGN_LEFT|wxALL, 0);
 
-    ewxCheckBox* itemCheckBox38 = new ewxCheckBox( p_latticePanel, ID_CHECKBOX_PBC_LOCK, _("Lock"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
+    ewxCheckBox* itemCheckBox38 = new ewxCheckBox( p_latticePanel, ID_CHECKBOX_PBC_LOCK, _("Keep atom positions"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     itemCheckBox38->SetValue(true);
     if (ShowToolTips())
-        itemCheckBox38->SetToolTip(_("Lock coordinates when editing lattice"));
-    itemBoxSizer37->Add(itemCheckBox38, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
-
-    itemBoxSizer37->Add(10, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+        itemCheckBox38->SetToolTip(_("When the cell is edited, atoms keep their Cartesian (x, y, z) positions and only the cell changes. Unticked, atoms move with the cell (fractional coordinates are kept). This does not keep a = b = c."));
+    itemBoxSizer37Rows->Add(itemCheckBox38, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
+    itemBoxSizer37Rows->Add(itemBoxSizer37, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxCheckBox* itemCheckBox40 = new ewxCheckBox( p_latticePanel, ID_CHECKBOX_PBC_CENTER, _("Center Lattice"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     itemCheckBox40->SetValue(true);
@@ -333,21 +372,21 @@ void PBCGUI::CreateControls()
     itemCheckBox42->SetValue(true);
     itemBoxSizer37->Add(itemCheckBox42, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
-    p_operationsSizer = new wxBoxSizer(wxHORIZONTAL);
+    p_operationsSizer = new wxBoxSizer(wxVERTICAL);
     itemBoxSizer7->Add(p_operationsSizer, 0, wxALIGN_LEFT|wxALL, 1);
+    wxBoxSizer* p_opsRow1 = new wxBoxSizer(wxHORIZONTAL);
+    p_operationsSizer->Add(p_opsRow1, 0, wxALIGN_LEFT|wxALL, 0);
 
     ewxButton* itemButton44 = new ewxButton( p_latticePanel, ID_BUTTON_PBC_FOLD, _("Fold"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_operationsSizer->Add(itemButton44, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+    p_opsRow1->Add(itemButton44, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
-    p_operationsSizer->Add(3, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+    p_opsRow1->Add(3, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxButton* itemButton46 = new ewxButton( p_latticePanel, ID_BUTTON_PBC_DELETE, _("Delete Lattice"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_operationsSizer->Add(itemButton46, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
-
-    p_operationsSizer->Add(3, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+    p_opsRow1->Add(itemButton46, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxButton* itemButton48 = new ewxButton( p_latticePanel, ID_BUTTON_PBC_EQUIVRECT, _("Equiv. Rectangle"), wxDefaultPosition, wxDefaultSize, 0 );
-    p_operationsSizer->Add(itemButton48, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+    p_operationsSizer->Add(itemButton48, 0, wxALIGN_LEFT|wxTOP, 3);
 
     p_symSizer = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer7->Add(p_symSizer, 0, wxALIGN_LEFT|wxALL, 0);

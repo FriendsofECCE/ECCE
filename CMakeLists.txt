@@ -2012,6 +2012,15 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_orca_mo PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
 
+  # The Periodic Builder pane (docked, closable, reopenable in every panel
+  # layout) and the layout choice for run and not-yet-run calculations.
+  add_test(NAME apps_pbc_ux
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/pbc_ux_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_pbc_ux PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # Every app's main window and every codereg Theory/Runtype dialog fits a
   # small screen (#189): measured on private Xvfb screens, no window may
   # extend past the screen.  Same installed tree and isolation as `apps`.
