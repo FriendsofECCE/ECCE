@@ -237,12 +237,12 @@ jobs:
         working-directory: ${{ github.workspace }}/build-cmake
         run: cpack -G RPM
 
-      - name: ecce-qm in the client install
+      - name: ecce-qm in the client rpm
         run: |
-          # cpack -G RPM here writes only the source rpm, so check what the
-          # client component installs (the files an rpm of it would hold).
+          w=$PWD
           d=$(mktemp -d)
-          cmake --install build-cmake --prefix "$d" --component client > /dev/null
+          ls -l "$w"/build-cmake/*.rpm
+          (cd "$d" && rpm2cpio "$w"/build-cmake/ecce-client-*.x86_64.rpm | cpio -idm 2>/dev/null)
           q=$(find "$d" -path '*/bin/ecce-qm')
           test -n "$q"
           ls -l "$q"
@@ -292,12 +292,12 @@ jobs:
         working-directory: ${{ github.workspace }}/build-cmake
         run: cpack -G RPM
 
-      - name: ecce-qm in the client install
+      - name: ecce-qm in the client rpm
         run: |
-          # cpack -G RPM here writes only the source rpm, so check what the
-          # client component installs (the files an rpm of it would hold).
+          w=$PWD
           d=$(mktemp -d)
-          cmake --install build-cmake --prefix "$d" --component client > /dev/null
+          ls -l "$w"/build-cmake/*.rpm
+          (cd "$d" && rpm2cpio "$w"/build-cmake/ecce-client-*.x86_64.rpm | cpio -idm 2>/dev/null)
           q=$(find "$d" -path '*/bin/ecce-qm')
           test -n "$q"
           ls -l "$q"
