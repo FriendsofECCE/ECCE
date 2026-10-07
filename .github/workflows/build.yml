@@ -188,7 +188,7 @@ jobs:
             wxGTK-devel xerces-c-devel \
             mesa-libGL-devel mesa-libGLU-devel \
             gtk3-devel libX11-devel libICE-devel libXt-devel libjpeg-turbo-devel \
-            mosquitto-devel apr-util-devel mosquitto libssh-devel \
+            mosquitto-devel apr-util-devel mosquitto libssh-devel openssl-devel \
             Coin4-devel mesa-libEGL-devel python3
 
       # actions/checkout doesn't work reliably inside an arbitrary
@@ -236,7 +236,7 @@ jobs:
             wxGTK-devel xerces-c-devel \
             mesa-libGL-devel mesa-libGLU-devel \
             gtk3-devel libX11-devel libICE-devel libXt-devel libjpeg-turbo-devel \
-            mosquitto-devel apr-util-devel mosquitto libssh-devel \
+            mosquitto-devel apr-util-devel mosquitto libssh-devel openssl-devel \
             Coin4-devel mesa-libEGL-devel python3
 
       - name: Check out source
