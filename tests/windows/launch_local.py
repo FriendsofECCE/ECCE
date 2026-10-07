@@ -86,7 +86,11 @@ class S:
 
 def procs():
     """MSYS process table rows (pid, ppid, pgid, winpid, command) from `ps -W -l`."""
-    out = subprocess.run(["ps", "-W", "-l"], stdout=subprocess.PIPE).stdout
+    # An MSYS install sees only its own processes: with a bundled shell, use its ps.
+    ps = os.path.join(os.environ.get("WINTEST_HOME", ""), "usr", "bin", "ps.exe")
+    if not os.path.exists(ps):
+        ps = "ps"
+    out = subprocess.run([ps, "-W", "-l"], stdout=subprocess.PIPE).stdout
     rows = []
     for line in out.decode("utf-8", "replace").splitlines()[1:]:
         f = line.split()
