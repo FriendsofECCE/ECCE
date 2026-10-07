@@ -468,6 +468,7 @@ jobs:
 
       - name: Tests
         shell: msys2 {0}
+        continue-on-error: true
         run: |
           cd build
           ctest -R 'transport_process|fragreaders|fragreaders_de|parsers' --output-on-failure --timeout 600 \

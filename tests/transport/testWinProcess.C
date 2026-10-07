@@ -55,12 +55,13 @@ static std::string slurp(const std::string& f)
 static bool alive(long pid)
 {
 #ifdef _WIN32
-  HANDLE h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, (DWORD)pid);
-  if (!h) return false;
-  DWORD code = 0;
-  bool a = GetExitCodeProcess(h, &code) && code == STILL_ACTIVE;
-  CloseHandle(h);
-  return a;
+  // The job id is an MSYS pid, not a Windows one: ask the bundled ps.
+  std::vector<std::string> a;
+  a.push_back("ps");
+  a.push_back("-p");
+  a.push_back(std::to_string(pid));
+  TransportResult r = DirectTransport::runProcess(a, "", -1, -1, 30);
+  return r.status == 0;
 #else
   return kill((pid_t)pid, 0) == 0;
 #endif

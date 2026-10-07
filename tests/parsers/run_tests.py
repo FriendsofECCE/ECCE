@@ -750,7 +750,7 @@ def run_mofile_cases(res, args):
             text = fh.read()
 
         argv = [path] + list(case['parse_args'])
-        if not os.access(path, os.X_OK):
+        if os.name == 'nt' or not os.access(path, os.X_OK):
             argv = ['perl'] + argv
         env = dict(os.environ)
         env['ECCE_HOME'] = REPO
