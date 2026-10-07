@@ -183,15 +183,6 @@ bool PBCGUI::Create( wxWindow* parent, wxWindowID id, const wxPoint& pos, const 
 ////@begin PBCGUI creation
     ewxPanel::Create( parent, id, pos, size, style );
 
-    //  The controls scroll when the pane is shorter than they are: the
-    //  Builder's right-hand column can only spare so much height.
-    p_scroll = new wxScrolledWindow( this, wxID_ANY, wxDefaultPosition,
-                                     wxDefaultSize, wxVSCROLL|wxTAB_TRAVERSAL );
-    p_scroll->SetScrollRate(0, 10);
-    wxBoxSizer* outer = new wxBoxSizer(wxVERTICAL);
-    outer->Add(p_scroll, 1, wxGROW, 0);
-    SetSizer(outer);
-
     CreateControls();
     refit();
 ////@end PBCGUI creation
@@ -223,6 +214,16 @@ void PBCGUI::refit()
 void PBCGUI::CreateControls()
 {    
 ////@begin PBCGUI content construction
+    //  (PBC::Create calls this directly, not PBCGUI::Create.)
+    //  The controls scroll when the pane is shorter than they are: the
+    //  Builder's right-hand column can only spare so much height.
+    p_scroll = new wxScrolledWindow( this, wxID_ANY, wxDefaultPosition,
+                                     wxDefaultSize, wxVSCROLL|wxTAB_TRAVERSAL );
+    p_scroll->SetScrollRate(0, 10);
+    wxBoxSizer* outer = new wxBoxSizer(wxVERTICAL);
+    outer->Add(p_scroll, 1, wxGROW, 0);
+    SetSizer(outer);
+
     wxWindow* itemPanel1 = p_scroll;
 
     wxBoxSizer* itemBoxSizer2 = new wxBoxSizer(wxVERTICAL);
