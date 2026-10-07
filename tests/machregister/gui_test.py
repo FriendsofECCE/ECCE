@@ -153,6 +153,7 @@ class Env:
                  HOME=self.user, ECCE_MACHREG_SCRIPT=os.path.join(
                      self.root, "script"))
         e.pop("ECCE_REMOTE_SERVER", None)
+        e.setdefault("ECCE_REALUSER", "tester")   # the wrappers always set it
         e.update(extra or {})
         return e
 
