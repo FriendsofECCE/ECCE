@@ -74,7 +74,8 @@ endif()
 # --- libcint (Apache-2.0): not packaged in Debian, always vendored ---------
 FetchContent_Declare(libcint
   GIT_REPOSITORY https://github.com/sunqm/libcint.git
-  GIT_TAG v6.1.3 GIT_SHALLOW ON ${_qm_fc_exclude})
+  GIT_TAG v6.1.3 GIT_SHALLOW ON ${_qm_fc_exclude}
+  PATCH_COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_SOURCE_DIR}/patch_libcint.cmake)
 set(ENABLE_STATIC ON)
 set(WITH_RANGE_COULOMB OFF)
 set(BUILD_MARCH_NATIVE OFF)
