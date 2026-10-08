@@ -5,6 +5,7 @@
 //    wait MS                  pause
 //    ready                    wait until both details dialogs have started
 //    theory NAME | runtype NAME   Theory: / Runtype: choices
+//    basis NAME               the quick-pick basis set menu entry NAME
 //    gui KEY VALUE            what the Details dialog sends when that field
 //                             changes (the same message over the same path)
 //    details theory|runtype   the "Theory Details..." / "Runtype Details..."
@@ -21,6 +22,7 @@
 #include <cstdio>
 #include <fstream>
 #include <sstream>
+#include <strings.h>
 #include <sys/stat.h>
 
 #include <wx/app.h>
@@ -136,6 +138,18 @@ void CalcEd::runCalcEdScript(const string& file)
             processRuntypeInput(msg.c_str());
           else
             processTheoryInput(msg.c_str());
+        }
+      } else if (w[0] == "basis" && w.size() >= 2) {
+        std::vector<std::string> picks = quickPicks();
+        std::string want = rest(1);
+        size_t at = picks.size();
+        for (size_t i = 0; i < picks.size(); i++)
+          if (strcasecmp(picks[i].c_str(), want.c_str()) == 0) at = i;
+        if (at == picks.size()) {
+          outcome = "FAIL: no such basis set";
+        } else {
+          wxCommandEvent ev(wxEVT_MENU, 100000 + (int)at);
+          OnMenuCalcedBasisSetSelected(ev);
         }
       } else if (w[0] == "details" && w.size() == 2) {
         if (!clickButton(w[1] == "theory" ? ID_BUTTON_CALCED_THEORY
