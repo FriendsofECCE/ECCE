@@ -9,22 +9,13 @@ nothing extra.
 The calculations run on your own Mac: the machine to choose in the Launcher
 is `localhost`.
 
-## What ECCE itself needs: Python with wxPython
+## Python for ECCE's own windows
 
 The detail windows of the Calculation Editor (**Theory Details...** and
-**Runtype Details...**) are Python programs. They need `python3` with
-wxPython on your `PATH`. The `python3` that macOS ships does not have
-wxPython. The easiest source is the Miniforge you install for NWChem below:
-
-1. Install Miniforge (see *NWChem*).
-2. In a terminal: `~/miniforge3/bin/conda install wxpython`.
-3. Start ECCE from a terminal with that Python first on the `PATH`:
-
-   ```
-   PATH=$HOME/miniforge3/bin:$PATH /Applications/ECCE.app/Contents/MacOS/ecce
-   ```
-
-   Starting ECCE from the Finder does not pass your `PATH` on.
+**Runtype Details...**) and the first-start window are Python programs.
+ECCE.app contains its own Python with wxPython and uses it before any
+Python of yours, so nothing needs to be installed for them, however ECCE is
+started. Miniforge below is only for NWChem.
 
 ## MOPAC
 

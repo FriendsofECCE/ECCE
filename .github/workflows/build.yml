@@ -481,6 +481,23 @@ jobs:
           hdiutil detach "$mnt" -quiet
           exit ${rc:-0}
 
+      # The Python in the app (#133): the first-start window and a Theory
+      # Details dialog on the bundled Python and wxPython alone.
+      - name: Python and wxPython in the app
+        if: always() && hashFiles('dist/*.dmg') != ''
+        timeout-minutes: 10
+        run: |
+          mnt=$(mktemp -d)
+          hdiutil attach dist/ECCE-*.dmg -mountpoint "$mnt" -nobrowse -quiet
+          appdir=$(mktemp -d)
+          cp -R "$mnt/ECCE.app" "$appdir/"
+          hdiutil detach "$mnt" -quiet
+          rc=0
+          tests/macos/python-check.sh "$appdir/ECCE.app" python-check || rc=$?
+          { echo '### Python in ECCE.app'; echo '```'; cat python-check/summary.txt; echo '```';
+            echo "dmg: $(ls -l dist/*.dmg | awk '{print $5}') bytes"; } >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
+
       - name: Run the packaged app
         if: always() && hashFiles('dist/*.dmg') != ''
         timeout-minutes: 25
@@ -518,7 +535,9 @@ jobs:
         if: always()
         with:
           name: macos-app-run-${{ matrix.arch }}
-          path: macos-app-run/
+          path: |
+            macos-app-run/
+            python-check/
           if-no-files-found: ignore
 
   # Windows client (#133), experimental: MSYS2 UCRT64 toolchain, the same

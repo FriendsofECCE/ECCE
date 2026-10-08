@@ -10,15 +10,11 @@
 # Needs ~/mopac, ~/orca/orca_6_1_1_macosx_intel_openmpi411 and ~/miniforge3
 # (conda-forge nwchem, wxpython) as in docs "Running codes on macOS".
 # Everything lands in $E2E (default ~/e2e); no python3 on this Mac is needed
-# except the wxPython one the Theory dialogs use (E2E_PYBIN/python3).
+# (ECCE.app has its own, with wxPython).
 E2E=${E2E:-$HOME/e2e}
 export E2E
 HERE=$(cd "$(dirname "$0")" && pwd)
 [ -f "$E2E/env.sh" ] || { mkdir -p "$E2E"; cp "$HERE/e2e-env.sh" "$E2E/env.sh"; }
-export E2E_PYBIN=${E2E_PYBIN:-$E2E/pybin}
-if [ ! -x "$E2E_PYBIN/python3" ]; then
-  mkdir -p "$E2E_PYBIN"; ln -sf "$HOME/miniforge3/bin/python3" "$E2E_PYBIN/python3"
-fi
 . "$E2E/env.sh"
 MOPAC=$HOME/mopac/bin/mopac
 ORCADIR=$HOME/orca/orca_6_1_1_macosx_intel_openmpi411

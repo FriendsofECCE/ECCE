@@ -13,3 +13,9 @@ if [ -z "${ECCE_HOME:-}" ]; then
   unset _ew _el
 fi
 export ECCE_HOME
+# A Python bundled beside ECCE_HOME (ECCE.app) is the one the dialogs use.
+if [ -x "$ECCE_HOME/../python/bin/python3" ]; then
+  ECCE_PYTHON=$(cd "$ECCE_HOME/../python/bin" && pwd)/python3
+  export ECCE_PYTHON
+  case ":$PATH:" in *":${ECCE_PYTHON%/python3}:"*) ;; *) PATH=${ECCE_PYTHON%/python3}:$PATH; export PATH ;; esac
+fi

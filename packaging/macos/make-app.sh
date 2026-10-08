@@ -40,6 +40,9 @@ sed "s/@VERSION@/$VERSION/" "$HERE/Info.plist.in" > "$APP/Contents/Info.plist"
 install -m 755 "$HERE/launcher.sh" "$APP/Contents/MacOS/ecce"
 "$HERE/make-icns.sh" "$RES/ecce.icns"
 
+# The Python the Details dialogs and the first-start window run on.
+"$HERE/bundle-python.sh" "$RES/python"
+
 python3 "$HERE/bundle_libs.py" "$APP/Contents/Frameworks" "$RES/ecce"
 
 # Every Mach-O in the bundle, for the Homebrew check and for signing.
