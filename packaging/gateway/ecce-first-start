@@ -50,9 +50,15 @@ def tool(name):
 
 
 # pythonw has no standard streams, and its children need no console window.
-for _n in ("stdout", "stderr"):
-    if getattr(sys, _n) is None:
-        setattr(sys, _n, open(os.devnull, "w"))
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w")
+if sys.stderr is None:
+    # What went wrong is then in ~/.ECCE/first-start.log.
+    try:
+        os.makedirs(STATE, exist_ok=True)
+        sys.stderr = open(os.path.join(STATE, "first-start.log"), "a")
+    except OSError:
+        sys.stderr = open(os.devnull, "w")
 
 
 def run(cmd, timeout=30):
@@ -88,7 +94,9 @@ def skip_reason():
         return "a shared broker is declared (siteconfig/SharedBroker)"
     if os.path.exists(os.path.join(STATE, "mosquitto.server")):
         return "this account runs a central server"
-    if os.path.exists(os.path.join(ECCE_HOME, "bin", "ecce-dataserver-start")):
+    # The Windows and macOS packages carry the script but run no server.
+    if (sys.platform.startswith("linux") and
+            os.path.exists(os.path.join(ECCE_HOME, "bin", "ecce-dataserver-start"))):
         return "the server package is installed here"
     if os.path.exists(os.path.join(MINE, "DataServers")):
         return "a server is already chosen"
@@ -393,6 +401,8 @@ def main(argv):
     if "--check" in argv:
         print("ask" if why is None else "skip: " + why)
         return 0 if why is None else 1
+    if os.environ.get("ECCE_FIRST_START_ANSWER"):
+        sys.stderr.write("ecce-first-start: %s\n" % ("asking" if why is None else "not asking: " + why))
     if why is not None:
         return 0
     try:
