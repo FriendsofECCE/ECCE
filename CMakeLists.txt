@@ -992,6 +992,10 @@ if(WIN32)
   enable_language(RC)
   set_property(SOURCE ${CMAKE_SOURCE_DIR}/packaging/windows/ecce.rc APPEND PROPERTY
                COMPILE_OPTIONS "-I${CMAKE_SOURCE_DIR}/packaging/windows")
+  foreach(_dir ${wxWidgets_INCLUDE_DIRS})
+    set_property(SOURCE ${CMAKE_SOURCE_DIR}/packaging/windows/ecce.rc APPEND
+                 PROPERTY COMPILE_OPTIONS "-I${_dir}")
+  endforeach()
   foreach(_app ${ECCE_GUI_APPS})
     if(TARGET ${_app})
       set_target_properties(${_app} PROPERTIES WIN32_EXECUTABLE ON)

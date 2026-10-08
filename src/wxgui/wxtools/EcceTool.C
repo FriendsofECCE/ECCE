@@ -197,8 +197,13 @@ void EcceTool::OnPaint( wxPaintEvent& event )
   int flags = 0;
   if (p_isSunken) flags |= wxCONTROL_PRESSED;
   else if (p_isHover) flags |= wxCONTROL_CURRENT;
+#ifdef __WXMSW__
+  // Windows buttons are raised at rest; a flat one reads as a picture.
+  wxRendererNative::Get().DrawPushButton(this, dc, rect, flags);
+#else
   if (flags)
     wxRendererNative::Get().DrawPushButton(this, dc, rect, flags);
+#endif
 
   if (p_bundle.IsOk()) {
     wxBitmap bmp = p_bundle.GetBitmapFor(this);

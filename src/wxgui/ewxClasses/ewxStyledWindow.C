@@ -339,6 +339,14 @@ void ewxStyledWindow::setStyles(wxWindow *win, bool recursive)
 
    } else if (dynamic_cast<wxFrame*>(win)) {
       applyFont(win);
+#ifdef __WXMSW__
+      // wxMSW gives a frame the APPWORKSPACE grey; the editors place their
+      // controls directly on the frame (no wxPanel), so it shows.
+      if (win->GetBackgroundColour() ==
+          wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE))
+         win->SetBackgroundColour(
+               wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE));
+#endif
 
    } else if (dynamic_cast<wxNotebook*>(win)) {
       applyFont(win);

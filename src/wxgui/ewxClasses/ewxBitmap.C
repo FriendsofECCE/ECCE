@@ -44,6 +44,7 @@ static const struct { const char* file; const char* icon; } GENERIC_ICONS[] = {
   {"save",            "document-save"},
   {"filesaveas",      "document-save-as"},
   {"undo",            "edit-undo"},
+  {"calcreset",       "edit-undo"},
   {"redo",            "edit-redo"},
   {"msg_information", "dialog-information"},
   {"msg_question",    "dialog-question"},
