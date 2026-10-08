@@ -59,15 +59,33 @@ BROKER_PORT="${ECCE_BROKER_PORT:-8088}"
 # loopback only; a client that was set up for TLS never uses the plain one.
 BROKER_TLS_PORT="${ECCE_BROKER_TLS_PORT:-8883}"
 
-port_open_at() { (exec 3<>"/dev/tcp/$1/$2") >/dev/null 2>&1; }
-# A remote host that drops packets would hang a plain connect for minutes.
+# Whether host:port takes a TCP connection within 5 s; if not, PORT_WHY
+# says why ("Connection refused", "No route to host", a failed name
+# lookup). Perl, because macOS has no timeout(1) and a remote host that
+# drops packets would hang a plain connect for minutes.
+PORT_WHY=""
 port_open_remote() {
+  PORT_WHY=$(perl -MIO::Socket::IP -e '
+    my ($h, $p) = @ARGV;
+    $SIG{ALRM} = sub { print "no answer within 10 s"; exit 1 };
+    alarm 10;   # the name lookup, which Timeout does not cover
+    my $s = IO::Socket::IP->new(PeerHost => $h, PeerPort => $p,
+                                Proto => "tcp", Timeout => 5);
+    exit 0 if $s;
+    my $e = $@ || "$!";
+    $e =~ s/^IO::Socket::IP: (connect: )?//;
+    $e =~ s/\s+$//;
+    print $e; exit 1;' "$1" "$2" 2>/dev/null)
+  case $? in 0) return 0 ;; 1) return 1 ;; esac
+  # No perl or no IO::Socket::IP: bash's /dev/tcp.
+  PORT_WHY="no connection"
   if command -v timeout >/dev/null 2>&1; then
     timeout 5 bash -c '(exec 3<>"/dev/tcp/$1/$2")' _ "$1" "$2" >/dev/null 2>&1
-  else  # macOS has no timeout(1)
-    perl -e 'alarm 5; exec @ARGV' bash -c '(exec 3<>"/dev/tcp/$1/$2")' _ "$1" "$2" >/dev/null 2>&1
+  else
+    bash -c '(exec 3<>"/dev/tcp/$1/$2")' _ "$1" "$2" >/dev/null 2>&1
   fi
 }
+port_open_at() { port_open_remote "$@"; }
 
 # -remote: the central server's broker and data server, as
 # ecce-remote-setup wrote the data server's address. Checked first so that a server that is down
@@ -92,15 +110,25 @@ check_central_server() {
   # The data server's URL (https) is what ecce-remote-setup --tls wrote; it
   # decides for the broker as well, so the two cannot disagree.
   [ "$RBTLS" = 1 ] && bport="$BROKER_TLS_PORT"
-  if ! port_open_remote "$bhost" "$bport"; then down="$bhost:$bport (broker)"; fi
+  local why="" hint=""
+  if ! port_open_remote "$bhost" "$bport"; then
+    down="$bhost:$bport (broker)"; why="broker $bhost:$bport: $PORT_WHY"
+  fi
   if ! port_open_remote "$dhost" "$dport"; then
     down="${down:+$down and }$dhost:$dport (data server)"
+    why="${why:+$why; }data server $dhost:$dport: $PORT_WHY"
   fi
   RBHOST="$bhost"; RBPORT="$bport"
   [ -z "$down" ] && return 0
   host="$bhost"
   [ "$bhost" = "$dhost" ] || host="$bhost / $dhost"
-  echo "ecce-gateway-start: the central ECCE server $host is not answering on $down -- is it running? (on the server: ecce-dataserver-status, ecce-gateway-status)" >&2
+  # macOS refuses connections into the local network to a program that has
+  # not been allowed to make them; the error is then "No route to host".
+  case "$(uname -s):$why" in
+    Darwin:*"No route to host"*)
+      hint=" On macOS this can also mean that ECCE, or the terminal it was started from, is not allowed under System Settings > Privacy & Security > Local Network." ;;
+  esac
+  echo "ecce-gateway-start: the central ECCE server $host is not answering -- $why. Is it running? (on the server: ecce-dataserver-status, ecce-gateway-status)$hint" >&2
   return 1
 }
 
@@ -178,7 +206,7 @@ if [ -n "$SHARED" ]; then
     if port_open_at "$1" "$2"; then
       echo "ecce-gateway-start: using the site's shared broker $1:$2 (siteconfig/SharedBroker)"
     else
-      echo "ecce-gateway-start: the site's shared broker $1:$2 (siteconfig/SharedBroker) is not answering -- ask the administrator to check 'systemctl status ecce-broker'" >&2
+      echo "ecce-gateway-start: the site's shared broker $1:$2 (siteconfig/SharedBroker) is not answering ($PORT_WHY) -- ask the administrator to check 'systemctl status ecce-broker'" >&2
     fi
     write_broker_file "host=$1" "port=$2"
   fi
