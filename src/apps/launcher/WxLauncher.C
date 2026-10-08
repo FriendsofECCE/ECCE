@@ -1685,8 +1685,9 @@ void WxLauncher::refreshLocality()
 
     string label = machRgstn->fullname();
     string note = RCommand::localityNote(machRgstn->fullname(), shell, user);
+    // On a line of its own: beside the name it set the window's width.
     if (!note.empty())
-        label += "  (" + note + ")";
+        label += "\n(" + note + ")";
 
     if ((string)p_machineNameStaticText->GetLabel() != label)
     {
