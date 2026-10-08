@@ -55,6 +55,8 @@ public:
   void OnMouseEnterWindow( wxMouseEvent& event );
   void OnMouseLeaveWindow( wxMouseEvent& event );
   void OnPaint( wxPaintEvent& event );
+  void OnFocus( wxFocusEvent& event );
+  void OnKeyDown( wxKeyEvent& event );
   //  void OnMenuClick( wxCommandEvent& event );
 
   void toolActivate(bool forceNew);
@@ -65,8 +67,9 @@ protected:
   InvokeParam * p_invokeParam;
   wxPaintDC * p_dc;
   wxBitmap p_bitmap;
-  wxBitmapBundle p_mock;   // MOCK-UP ONLY (wip/org-icons)
-  wxString p_mockLabel;
+  wxBitmapBundle p_bundle;   // the SVG icon, sharp at any scale
+  wxString p_label;          // drawn under the icon as text
+  bool p_isHover;
   //  wxMenu * p_newMenu;
   bool p_isSunken;
 };

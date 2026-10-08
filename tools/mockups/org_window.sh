@@ -18,7 +18,6 @@ cp $here/tools/screenshots/data/project.ecce-meta $proj/.ecce-meta
 cp -r $here/tests/apps/fixtures/calc-water-opt $proj/water-opt
 printf 'summary file://%s\nsnap %s\n' $proj/water-opt $out > $w/cmds
 export GTK_THEME=Adwaita; [ "$theme" = dark ] && export GTK_THEME=Adwaita:dark
-[ "$mode" = new ] && export ECCE_MOCK_SVG_ICONS=1
 Xvfb :78 -screen 0 1400x900x24 >/dev/null 2>&1 & xp=$!; sleep 2
 cd $w
 DISPLAY=:78 ECCE_HOME=$H ECCE_LOCAL_DATA=$data ECCE_TEST_ORGANIZER=$w/cmds ECCE_ORGANIZER_OPEN=file://$proj/water-opt \
