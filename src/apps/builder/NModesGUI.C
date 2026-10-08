@@ -33,6 +33,9 @@
 #include "wxgui/ewxTextCtrl.H"
 ////@end includes
 
+#include <wx/wrapsizer.h>
+#include <cmath>
+#include <wx/bmpbndl.h>
 #include "NModesGUI.H"
 
 ////@begin XPM images
@@ -128,6 +131,46 @@ bool NModesGUI::Create( IPropCalculation* calculation, wxWindow* parent, wxWindo
 }
 
 /*!
+ * A play triangle or a stop square, drawn in the button's text colour at one
+ * and two times 12 px: it needs no icon theme and no image file.
+ */
+static wxBitmapBundle playGlyph(bool stop)
+{
+    const wxColour ink = wxSystemSettings::GetColour(wxSYS_COLOUR_BTNTEXT);
+    wxVector<wxBitmap> sizes;
+    for (int scale = 1; scale <= 2; ++scale) {
+        const int n = 12 * scale;
+        wxImage img(n, n);
+        img.InitAlpha();
+        unsigned char *rgb = img.GetData();
+        unsigned char *alpha = img.GetAlpha();
+        for (int y = 0; y < n; ++y) {
+            for (int x = 0; x < n; ++x) {
+                int covered = 0;
+                for (int sy = 0; sy < 4; ++sy) {
+                    for (int sx = 0; sx < 4; ++sx) {
+                        const double px = (x + (sx + 0.5)/4)/n;
+                        const double py = (y + (sy + 0.5)/4)/n;
+                        const bool in = stop
+                            ? (px >= 0.1 && px <= 0.9 && py >= 0.1 && py <= 0.9)
+                            : (px >= 0.2 && px <= 0.92 &&
+                               fabs(py - 0.5) <= 0.45*(0.92 - px)/0.72);
+                        if (in) ++covered;
+                    }
+                }
+                const int i = y*n + x;
+                rgb[3*i] = ink.Red();
+                rgb[3*i+1] = ink.Green();
+                rgb[3*i+2] = ink.Blue();
+                alpha[i] = (unsigned char)(covered*255/16);
+            }
+        }
+        sizes.push_back(wxBitmap(img));
+    }
+    return wxBitmapBundle::FromBitmaps(sizes);
+}
+
+/*!
  * Control creation for NModesGUI
  */
 
@@ -162,10 +205,12 @@ void NModesGUI::CreateControls()
     p_gridPlotSizer->Add(itemGrid4, 1, wxGROW|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer5 = new wxBoxSizer(wxVERTICAL);
-    itemBoxSizer2->Add(itemBoxSizer5, 0, wxALIGN_LEFT|wxALL, 0);
+    itemBoxSizer2->Add(itemBoxSizer5, 0, wxEXPAND|wxALL, 0);
 
-    p_ = new wxBoxSizer(wxHORIZONTAL);
-    itemBoxSizer5->Add(p_, 0, wxALIGN_LEFT|wxALL, 0);
+    //  Wraps: the two radio boxes and the scale do not fit a docked
+    //  panel's width side by side.
+    p_ = new wxWrapSizer(wxHORIZONTAL);
+    itemBoxSizer5->Add(p_, 0, wxEXPAND|wxALL, 0);
 
     wxString itemRadioBox7Strings[] = {
         _("&Animation"),
@@ -208,38 +253,41 @@ void NModesGUI::CreateControls()
     p_sliderSizer->Add(itemStaticText9, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
     p_styleSizer = new wxBoxSizer(wxVERTICAL);
-    itemBoxSizer5->Add(p_styleSizer, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 0);
+    itemBoxSizer5->Add(p_styleSizer, 0, wxEXPAND|wxALL, 0);
 
-    p_animateSizer = new wxBoxSizer(wxHORIZONTAL);
-    p_styleSizer->Add(p_animateSizer, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 0);
+    p_animateSizer = new wxWrapSizer(wxHORIZONTAL);
+    p_styleSizer->Add(p_animateSizer, 0, wxEXPAND|wxALL, 0);
 
     ewxStaticText* itemStaticText12 = new ewxStaticText( itemVizPropertyPanel1, wxID_STATIC, _("Delay: "), wxDefaultPosition, wxDefaultSize, 0 );
     p_animateSizer->Add(itemStaticText12, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    ewxTextCtrl* itemTextCtrl13 = new ewxTextCtrl( itemVizPropertyPanel1, ID_TEXTCTRL_NMODE_DELAY, _T(""), wxDefaultPosition, wxSize(30, -1), wxTE_PROCESS_ENTER );
+    ewxTextCtrl* itemTextCtrl13 = new ewxTextCtrl( itemVizPropertyPanel1, ID_TEXTCTRL_NMODE_DELAY, _T(""), wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER );
+    //  Room for the largest delay, 5000, from the font in use.
+    itemTextCtrl13->SetMinSize(wxSize(
+        itemTextCtrl13->GetSizeFromTextSize(
+            itemTextCtrl13->GetTextExtent(_T("50000")).x).x, -1));
     p_animateSizer->Add(itemTextCtrl13, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     ewxStaticText* itemStaticText14 = new ewxStaticText( itemVizPropertyPanel1, wxID_STATIC, _("50-5000 ms "), wxDefaultPosition, wxDefaultSize, 0 );
     p_animateSizer->Add(itemStaticText14, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
-    p_animateSizer->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
-
-    wxBitmap itemBitmapButton16Bitmap(itemVizPropertyPanel1->GetBitmapResource(wxT("player_play.png")));
-    ewxBitmapButton* itemBitmapButton16 = new ewxBitmapButton( itemVizPropertyPanel1, ID_BITMAPBUTTON_START, itemBitmapButton16Bitmap, wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW|wxBU_EXACTFIT );
+    //  Start and Stop carry a drawn glyph and a label: a theme without the
+    //  media icons (or one that draws them in an unreadable colour) leaves
+    //  a blank button, and a button must never be blank.
+    ewxButton* itemBitmapButton16 = new ewxButton( itemVizPropertyPanel1, ID_BITMAPBUTTON_START, _("Start"), wxDefaultPosition, wxDefaultSize, 0 );
+    itemBitmapButton16->SetBitmap(playGlyph(false));
     if (ShowToolTips())
-        itemBitmapButton16->SetToolTip(_("animate normal mode"));
-    p_animateSizer->Add(itemBitmapButton16, 0, wxALIGN_CENTER_VERTICAL, 0);
+        itemBitmapButton16->SetToolTip(_("Start the animation of this normal mode"));
+    p_animateSizer->Add(itemBitmapButton16, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 6);
 
-    p_animateSizer->Add(5, 5, 0, wxALIGN_CENTER_VERTICAL|wxTOP|wxBOTTOM, 5);
-
-    wxBitmap itemBitmapButton18Bitmap(itemVizPropertyPanel1->GetBitmapResource(wxT("player_stop.png")));
-    ewxBitmapButton* itemBitmapButton18 = new ewxBitmapButton( itemVizPropertyPanel1, ID_BITMAPBUTTON_STOP, itemBitmapButton18Bitmap, wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW|wxBU_EXACTFIT );
+    ewxButton* itemBitmapButton18 = new ewxButton( itemVizPropertyPanel1, ID_BITMAPBUTTON_STOP, _("Stop"), wxDefaultPosition, wxDefaultSize, 0 );
+    itemBitmapButton18->SetBitmap(playGlyph(true));
     if (ShowToolTips())
-        itemBitmapButton18->SetToolTip(_("stop animation"));
-    p_animateSizer->Add(itemBitmapButton18, 0, wxALIGN_CENTER_VERTICAL, 0);
+        itemBitmapButton18->SetToolTip(_("Stop the animation"));
+    p_animateSizer->Add(itemBitmapButton18, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 3);
 
-    p_vectorSizer = new wxBoxSizer(wxHORIZONTAL);
-    p_styleSizer->Add(p_vectorSizer, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 0);
+    p_vectorSizer = new wxWrapSizer(wxHORIZONTAL);
+    p_styleSizer->Add(p_vectorSizer, 0, wxEXPAND|wxALL, 0);
 
     ewxButton* itemButton20 = new ewxButton( itemVizPropertyPanel1, ID_BUTTON_NMODE_VECCOLOR, _T(""), wxDefaultPosition, wxSize(24, 24), wxBU_EXACTFIT );
     p_vectorSizer->Add(itemButton20, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);

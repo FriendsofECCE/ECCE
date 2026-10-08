@@ -53,6 +53,7 @@
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxTextCtrl.H"
 #include "wxgui/WxEditSessionMgr.H"
+#include <wx/timer.h>
 #include "wxgui/WxFeedback.H"
 
 #include "CalcEd.H"
@@ -1764,8 +1765,23 @@ void CalcEd::CreateControls()
   p_feedback->setSaveHandler(this);
   GetSizer()->Add(p_feedback, 0, wxEXPAND, 0);
 
+  //  Save sits in the button row, a standard button just before Launch.
+  wxButton *save = p_feedback->adoptSaveButton(this);
+  p_buttonRow->Insert(p_buttonRow->GetItemCount() - 1, save, 0,
+                      wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
+
   replaceBuilderButton();
   replaceBasisSetButton();
+
+  //  tests/apps/clip_test.py: show Save, which appears with unsaved edits.
+  if (getenv("ECCE_CLIP_AUDIT") != 0) {
+    wxTimer *timer = new wxTimer();   // lives until the process exits
+    timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+      p_feedback->setEditStatus(WxFeedback::MODIFIED);
+      Layout();
+    });
+    timer->StartOnce(2000);
+  }
 
   Connect( 100000, 100000 + BASIS_QUICK_COUNT - 1, wxEVT_COMMAND_MENU_SELECTED,
            wxCommandEventHandler( CalcEd::OnMenuCalcedBasisSetSelected ) );

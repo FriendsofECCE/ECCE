@@ -33,6 +33,7 @@
 #include "wxgui/ewxTextCtrl.H"
 ////@end includes
 
+#include <wx/wrapsizer.h>
 #include "MachineBrowserGUI.H"
 
 ////@begin XPM images
@@ -193,28 +194,31 @@ void MachineBrowserGUI::CreateControls()
     wxBoxSizer* itemBoxSizer17 = new wxBoxSizer(wxHORIZONTAL);
     itemBoxSizer4->Add(itemBoxSizer17, 0, wxGROW, 3);
 
-    ewxStaticText* itemStaticText18 = new ewxStaticText( itemPanel3, ID_STATICTEXT_MACHINEBROWSER_MACHINENAME, _("(machine full name)"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
+    ewxStaticText* itemStaticText18 = new ewxStaticText( itemPanel3, ID_STATICTEXT_MACHINEBROWSER_MACHINENAME, _("(machine full name)"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT|wxST_ELLIPSIZE_END );
     itemBoxSizer17->Add(itemStaticText18, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     itemBoxSizer17->Add(0, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    ewxStaticText* itemStaticText20 = new ewxStaticText( itemPanel3, ID_STATIC_MACHINEBROWSER_MODE, _("(Mode)"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
+    ewxStaticText* itemStaticText20 = new ewxStaticText( itemPanel3, ID_STATIC_MACHINEBROWSER_MODE, _("(Mode)"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT|wxST_ELLIPSIZE_END );
     itemBoxSizer17->Add(itemStaticText20, 1, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
-    itemBoxSizer17->Add(15, 5, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
+    //  The buttons get a row of their own, wrapping when the window is
+    //  narrow, so the two labels above are never run over by them.
+    wxWrapSizer* itemButtonRow = new wxWrapSizer(wxHORIZONTAL);
+    itemBoxSizer4->Add(itemButtonRow, 0, wxGROW, 3);
 
     ewxButton* itemButton22 = new ewxButton( itemPanel3, ID_BUTTON_MACHINEBROWSER_CONFIGURE, _("Setup Remote Access..."), wxDefaultPosition, wxDefaultSize, 0 );
     itemButton22->Enable(false);
-    itemBoxSizer17->Add(itemButton22, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
+    itemButtonRow->Add(itemButton22, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxButton* itemButtonMachSettings = new ewxButton( itemPanel3, ID_BUTTON_MACHINEBROWSER_MACHSETTINGS, _("Machine settings..."), wxDefaultPosition, wxDefaultSize, 0 );
     itemButtonMachSettings->SetToolTip(_("Open Register Machines on the selected machine"));
     itemButtonMachSettings->Enable(false);
-    itemBoxSizer17->Add(itemButtonMachSettings, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
+    itemButtonRow->Add(itemButtonMachSettings, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     ewxButton* itemButton23 = new ewxButton( itemPanel3, ID_BUTTON_MACHINEBROWSER_VIEWDETACH, _("Show in Child Window..."), wxDefaultPosition, wxDefaultSize, 0 );
     itemButton23->Enable(false);
-    itemBoxSizer17->Add(itemButton23, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 3);
+    itemButtonRow->Add(itemButton23, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 3);
 
     wxBoxSizer* itemBoxSizer24 = new wxBoxSizer(wxVERTICAL);
     itemBoxSizer4->Add(itemBoxSizer24, 3, wxGROW|wxALL, 3);

@@ -7,6 +7,7 @@
 #define _EWXWINDOWUTILS_H  
 
 #include <string>
+#include <vector>
 using std::string;
 
 class wxWindow;
@@ -87,6 +88,22 @@ public:
   // to take a trailing row of buttons), stays below it and always visible.
   // Safe to call again after the content changes.
   static void fitToDisplay(wxTopLevelWindow *win, wxSizer *fixedRow = NULL);
+
+  // Clipping audit (tests/apps/clip_test.py).  Walks the controls under
+  // `top` and returns one line per control that is cut off: smaller than its
+  // best size, outside an ancestor's client area, a button with nothing
+  // visible on it, a text field narrower than its value.  Lines are
+  // "kind<TAB>description<TAB>detail<TAB>x,y,w,h" (screen coordinates).
+  static std::vector<std::string> clipFindings(wxWindow *top);
+
+  // With ECCE_CLIP_AUDIT=<file> set: append clipFindings(top) under `tag`
+  // to the file, and save a screenshot (and the window rectangle) in
+  // ECCE_CLIP_SHOTS if that is set.  Inert otherwise.
+  static void clipAuditReport(wxWindow *top, const std::string& tag);
+
+  // Audit a window once, a few seconds after it is shown (inert unless
+  // ECCE_CLIP_AUDIT is set).
+  static void scheduleClipAudit(wxTopLevelWindow *win);
 };
 
 #endif
