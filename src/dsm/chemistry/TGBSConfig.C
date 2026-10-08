@@ -2277,8 +2277,16 @@ const char* TGBSConfig::dump(const char* code_name, bool useNames)
   sourceFS.close();
 
   // Exec the script:
+#ifdef _WIN32
+  // system() is cmd.exe here, which cannot run an extensionless perl script
+  // found on PATH: name perl and the script.
+  string command = "perl \"" + string(Ecce::ecceDataControllersPath()) + "/" +
+    codeName + "\" < \"" + sourceFile->path() + "\" > \"" +
+    resultsFile->path() + "\"";
+#else
   string command = codeName + " < " + sourceFile->path() + " > " +
     resultsFile->path();
+#endif
 
   // system()'s return value is a raw wait-status, not an errno-style
   // negative-on-failure code -- it's only < 0 if fork/exec/waitpid itself

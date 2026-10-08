@@ -110,7 +110,7 @@ for c, key in (("mopac", "MOPAC:"), ("orca", "ORCA:")):
     if c in cases:
         check(key in cfgtext, "Register Machines' Find filled %s" % key)
 
-TYPES = {"mopac": ("MOPAC", None, None), "ecceqm": ("ECCE-QM", None, None),
+TYPES = {"mopac": ("MOPAC", None, None), "ecceqm": ("ECCE-QM", None, "6-31G*"),
          "orca": ("ORCA", "RHF", "def2-svp")}
 for c in cases:
     ctype, theory, basis = TYPES[c]
