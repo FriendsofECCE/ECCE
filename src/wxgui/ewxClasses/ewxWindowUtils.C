@@ -904,8 +904,27 @@ bool bitmapShowsAnything(const wxBitmap& bmp)
   return false;
 }
 
+//  What is being looked at, written before it is touched, so a crash in
+//  the walk names its window.
+void traceWindow(wxWindow *w)
+{
+  static FILE *trace = NULL;
+  static bool tried = false;
+  if (!tried) {
+    tried = true;
+    const char *dir = getenv("ECCE_CLIP_SHOTS");
+    if (dir) trace = fopen((std::string(dir) + "/trace.txt").c_str(), "a");
+  }
+  if (!trace) return;
+  fprintf(trace, "%p %s %d,%d\n", (void*)w,
+          (const char*) wxString(w->GetClassInfo()->GetClassName()).utf8_str(),
+          w->GetSize().x, w->GetSize().y);
+  fflush(trace);
+}
+
 void auditWindow(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
 {
+  traceWindow(w);
   auto add = [&](const char *kind, const std::string& detail) {
     wxRect r = screenRect(w);
     out.push_back(std::string(kind) + "\t" + describeWindow(w) + "\t" +
