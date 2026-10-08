@@ -8,7 +8,7 @@ rem Forward slashes: ECCE_HOME ends up in sh scripts, where a backslash is an es
 set "ECCE_HOME=%ECCE_ROOT:\=/%"
 rem The user's own PATH last: codes installed on it (MOPAC adds itself) are
 rem found by Register Machines' Find and by the job scripts.
-set "PATH=%ECCE_ROOT%\bin;%ECCE_ROOT%\usr\bin;%ECCE_ROOT%\python;%ECCE_ROOT%\strawberry\perl\site\bin;%ECCE_ROOT%\strawberry\perl\bin;%ECCE_ROOT%\strawberry\c\bin;%SystemRoot%\System32;%SystemRoot%;%PATH%"
+set "PATH=%ECCE_ROOT%\bin;%ECCE_ROOT%\scripts;%ECCE_ROOT%\scripts\parsers;%ECCE_ROOT%\usr\bin;%ECCE_ROOT%\python;%ECCE_ROOT%\strawberry\perl\site\bin;%ECCE_ROOT%\strawberry\perl\bin;%ECCE_ROOT%\strawberry\c\bin;%SystemRoot%\System32;%SystemRoot%;%PATH%"
 set "ECCE_REALUSER=%USERNAME%"
 set "HOST=%COMPUTERNAME%"
 set "UH=%USERPROFILE:\=/%"

@@ -22,6 +22,7 @@ cases = sys.argv[3:] or ["mopac", "ecceqm"]
 BIN = tree + "/bin"
 failures = []
 summary = []
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 
 def say(t):
@@ -50,7 +51,7 @@ env.update({
     "ECCE_NO_DATASERVER": "1", "ECCE_SESSION_LIVENESS": "lease",
     "ECCE_SESSION_ID": os.urandom(8).hex(),
     # as ecce.cmd: the package first, then the user's own PATH
-    "PATH": os.pathsep.join([BIN, tree + "/usr/bin", tree + "/python",
+    "PATH": os.pathsep.join([BIN, tree + "/scripts", tree + "/scripts/parsers", tree + "/usr/bin", tree + "/python",
                              tree + "/strawberry/perl/site/bin", tree + "/strawberry/perl/bin",
                              tree + "/strawberry/c/bin", sysdir + r"\System32", sysdir, userpath]),
 })
