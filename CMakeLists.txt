@@ -1731,6 +1731,8 @@ if(PYTHON3_EXECUTABLE)
   target_link_libraries(testAuthCacheLastUrl PRIVATE
     eccetdat eccefaces eccexml ecceutil ${XercesC_LIBRARIES})
   add_test(NAME authcache_last_url COMMAND testAuthCacheLastUrl)
+  set_tests_properties(authcache_last_url PROPERTIES ENVIRONMENT
+    "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=authcachetest;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}")
 
   # tests/launch -- submit real jobs on localhost/Shell through the real
   # Launch class and assert they reach "completed".  launchjob is a test
