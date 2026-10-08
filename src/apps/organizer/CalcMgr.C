@@ -1875,7 +1875,14 @@ void CalcMgr::OnFindClick( wxCommandEvent& event )
  */
 void CalcMgr::OnChangeServerClick( wxCommandEvent& event )
 {
-  wxString cmd = wxString::FromUTF8(Ecce::ecceHome()) + "/bin/ecce-first-start --change";
+  wxString home = wxString::FromUTF8(Ecce::ecceHome());
+#ifdef __WXMSW__
+  // A script with no extension: run it with the package's own Python.
+  wxString cmd = "\"" + home + "/python/python3w.exe\" \"" + home +
+                 "/bin/ecce-first-start\" --change";
+#else
+  wxString cmd = home + "/bin/ecce-first-start --change";
+#endif
   wxExecute(cmd, wxEXEC_SYNC);
 }
 

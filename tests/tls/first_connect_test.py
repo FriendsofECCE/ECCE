@@ -3,9 +3,9 @@
 
     first_connect_test.py <scratch dir>
 
-`ecce-remote-setup HOST:PORT --user --auto` against throwaway loopback https
+`ecce-first-start --apply server:HOST:PORT` (the window's own connection step) against throwaway loopback https
 servers: a certificate the system trusts (a private CA, given to curl as
-CURL_CA_BUNDLE) writes no pin; a self-signed one is pinned as first presented;
+SSL_CERT_FILE) writes no pin; a self-signed one is pinned as first presented;
 a different certificate later is not accepted by that pin, and connecting
 again pins the new one; plain http is the last resort; nothing answering
 fails and writes nothing.  Exit 77 without openssl or curl.
@@ -20,7 +20,7 @@ import sys
 import threading
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SETUP = os.path.join(REPO, "packaging", "dataserver", "ecce-remote-setup")
+SETUP = os.path.join(REPO, "packaging", "gateway", "ecce-first-start")
 scratch = sys.argv[1]
 if not shutil.which("openssl") or not shutil.which("curl"):
     sys.exit(77)
@@ -101,8 +101,10 @@ def connect(name, port, **extra):
     user = f"{scratch}/{name}"
     os.makedirs(user, exist_ok=True)
     env = dict(os.environ, ECCE_HOME=ehome, ECCE_REALUSERHOME=user, **extra)
-    env.pop("CURL_CA_BUNDLE", None) if "CURL_CA_BUNDLE" not in extra else None
-    r = sh(SETUP, f"localhost:{port}", "--user", "--auto", env=env)
+    for v in ("SSL_CERT_FILE", "SSL_CERT_DIR"):
+        if v not in extra:
+            env.pop(v, None)
+    r = sh(sys.executable, SETUP, "--apply", f"server:localhost:{port}", env=env)
     return r, user + "/.ECCE/RemoteServer"
 
 
@@ -112,7 +114,7 @@ sh("openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "3",
 
 p = free_port()
 good = serve(p, *cert("signed", ca=scratch + "/ca"))
-r, d = connect("trusted", p, CURL_CA_BUNDLE=scratch + "/ca.pem")
+r, d = connect("trusted", p, SSL_CERT_FILE=scratch + "/ca.pem")
 check(r.returncode == 0 and r.stdout.strip() == "trusted", "CA-signed: " + r.stdout + r.stderr)
 check("https://localhost:%d/Ecce" % p in open(d + "/DataServers").read(),
       "CA-signed: DataServers names the https URL")

@@ -20,6 +20,8 @@ say() { echo "$@" | tee -a "$SUMMARY"; }
 CRASHED=
 
 export ECCE_HOME=$STAGE/ecce
+# A fresh user would be asked where to keep their work (#240); nobody answers here.
+export ECCE_NO_FIRST_START=1
 BREW=
 command -v brew >/dev/null 2>&1 && BREW=$(brew --prefix 2>/dev/null)
 if [ -n "$ECCE_APP" ] || [ -z "$BREW" ]; then
