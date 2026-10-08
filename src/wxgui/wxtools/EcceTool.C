@@ -29,7 +29,7 @@ static const struct { const char* pixmap; const char* svg; } TOOL_SVG[] = {
   {"gwcalcmgr2.xpm", "organizer"},
 };
 
-static const int ICON_SIZE = 48;
+static const int ICON_SIZE = 40;   // keeps a button about as tall as the old 68 px one
 static const int BUTTON_WIDTH = 68;
 
 static wxBitmapBundle toolBundle(const wxString& pixmap)
@@ -113,7 +113,7 @@ void EcceTool::Create(wxWindow * parent, wxWindowID id, const wxString& name)
   p_isHover = false;
   int height = 68;
   if (p_bundle.IsOk())
-    height = ICON_SIZE + 16 + parent->GetCharHeight();
+    height = ICON_SIZE + 10 + parent->GetCharHeight();
   ewxPanel::Create(parent, id, wxDefaultPosition,
                    wxSize(BUTTON_WIDTH, height),
                    wxNO_BORDER|wxTAB_TRAVERSAL, name);
@@ -208,7 +208,7 @@ void EcceTool::OnPaint( wxPaintEvent& event )
     dc.SetTextForeground(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNTEXT));
     wxSize ts = dc.GetTextExtent(p_label);
     dc.DrawText(p_label, wxMax(0, (rect.width - ts.x) / 2),
-                4 + ICON_SIZE + 4);
+                4 + ICON_SIZE + 2);
   } else {
     dc.DrawBitmap(p_bitmap, 2, 2, true);
   }
