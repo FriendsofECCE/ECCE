@@ -164,9 +164,8 @@ try:
     cenv = env_for(good_home, os.path.join(scratch, "client-user"))
     os.makedirs(cenv["ECCE_REALUSERHOME"])
     host = lan or "127.0.0.1"
-    cenv["ECCE_SETUP_PASSWORD"] = "tlspw"
     r = run([good_home + "/bin/ecce-remote-setup", host, ports["ECCE_DATASERVER_TLS_PORT"],
-             "--tls", "--pin", tlsdir + "/server.pem", "--login", "tlsuser"], cenv)
+             "--tls", "--pin", tlsdir + "/server.pem"], cenv)
     check(r.returncode == 0, "client ecce-remote-setup --tls --pin: " + r.stderr[-300:])
     pin = good_home + "/siteconfig/RemoteServer/server.pem"
     check(os.path.exists(pin) and open(pin).read() == open(tlsdir + "/server.pem").read(),
@@ -174,14 +173,14 @@ try:
     check("https://" in open(good_home + "/siteconfig/RemoteServer/DataServers").read(),
           "DataServers names the https URL")
     check(os.path.exists(good_home + "/siteconfig/RemoteServer/MANIFEST"),
-          "the machine list was fetched over TLS with the pin and a login")
-    # the published site files are behind the data-server login, over TLS too
+          "the machine list was fetched over TLS with the pin")
+    # the published site files are readable without a login, over TLS too
     pinhash = subprocess.run(
         "openssl x509 -in %s -noout -pubkey | openssl pkey -pubin -outform der | "
         "openssl dgst -sha256 -binary | openssl enc -base64" % (tlsdir + "/server.pem"),
         shell=True, capture_output=True, text=True).stdout.strip()
     siteurl = "https://%s:%s/Ecce/system/siteconfig/INDEX" % (lan or "127.0.0.1", tport_s)
-    for creds, want in (([], "401"), (["-u", "tlsuser:tlspw"], "200")):
+    for creds, want in (([], "200"), (["-u", "tlsuser:tlspw"], "200")):
         r = subprocess.run(["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}",
                             "--insecure", "--pinnedpubkey", "sha256//" + pinhash]
                            + creds + [siteurl], capture_output=True, text=True)

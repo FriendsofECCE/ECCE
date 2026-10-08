@@ -11,8 +11,8 @@
 # this account's own data server, ~/.ECCE/dataserver/htdocs/Ecce/system/siteconfig.
 #
 # DIR is updated in place, file by file, so a group-writable DIR set up for
-# administrators keeps its owner, group and mode.  httpd.conf.ecce lets any
-# data-server login read DIR, and nobody else.
+# administrators keeps its owner, group and mode.  httpd.conf.ecce serves DIR
+# read-only, without a login.
 #
 # INDEX (sha256sum format) is written last: a client compares it with its
 # cache and checks every file it downloads against it, so a publish still in

@@ -951,13 +951,9 @@ def _remoteClient(checks, display, logdir, serverEnv, amq, dport, bport,
     # which ecce-remote-setup keeps rather than overwrites.
     shutil.rmtree(os.path.join(chome, "siteconfig", "local-machines.orig"),
                   ignore_errors=True)
-    # the published site files need a login of the data server (#192)
-    login = getpass.getuser()
     setup = subprocess.run(
         [os.path.join(install, "bin", "ecce-remote-setup"), "localhost",
-         str(dport), "--login", login],
-        env=dict(os.environ, ECCE_SETUP_PASSWORD=fixture.passwordFor(login),
-                 **extra),
+         str(dport)], env=dict(os.environ, **extra),
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     if not checks.check(setup.returncode == 0, "ecce-remote-setup ran"):
         say(setup.stdout.decode())

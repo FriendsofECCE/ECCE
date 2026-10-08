@@ -43,9 +43,9 @@ Things that are easy to get wrong:
   processmachine does.
 - `ecce-site-publish` also writes `INDEX` (sha256sum format, last, and
   unchanged when no file changed) and publishes `StartupMessage` and
-  `NewUserMessage`. `httpd.conf.ecce` makes the folder readable by any
-  data-server login only (`Require valid-user` + `Require method GET HEAD
-  OPTIONS PROPFIND` under `AuthMerging Off`; the `<Limit>` sections of
+  `NewUserMessage`. `httpd.conf.ecce` serves the folder read-only
+  without a login (`Require all granted` + `Require method GET HEAD OPTIONS
+  PROPFIND` under `AuthMerging Off`; a login requirement waits for #192 stage 3; the `<Limit>` sections of
   `/Ecce` do not carry over, hence the method list).
 - Tests run the "server" on this machine with no ssh: host `127.0.0.1` and no
   login make `RCommand` use `DirectTransport`, and an `ecce-site-admin`

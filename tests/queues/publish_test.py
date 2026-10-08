@@ -8,8 +8,7 @@ The publishing step, packaging/dataserver/ecce-site-publish (run by
 ecce-dataserver-start): the files, the MANIFEST, and the INDEX of sha256
 sums that is written last and checked here against hashes made with hashlib.
 Then, with the real Apache that ecce-dataserver-start starts: the folder is
-refused without a login (401), readable with one (200), and not writable
-over DAV.  The Apache half needs apache2 or httpd, htpasswd, curl and
+readable without a login (200) and not writable over DAV (403).  The Apache half needs apache2 or httpd, htpasswd, curl and
 <build dir>/ecce-flock, and is skipped with a note without them.
 
 Exit status 77 (CTest SKIP) without bash.
@@ -184,39 +183,40 @@ def apache(tmp, build):
         check(os.path.exists(acct + "/.ECCE/dataserver/htdocs/Ecce/system/siteconfig/INDEX"),
               "ecce-dataserver-start published")
         for name in ("INDEX", "MANIFEST", "Machines"):
-            check(curl(name) == "401", "%s without a login: 401" % name)
+            check(curl(name) == "200", "%s without a login: 200" % name)
             check(curl(name, "-u", "pubuser:pubpw") == "200", "%s with a login: 200" % name)
-        check(curl("INDEX", "-u", "pubuser:wrong") == "401", "a wrong password: 401")
         out = subprocess.run(["curl", "-s", "-u", "pubuser:pubpw", base + "INDEX"],
                              capture_output=True, text=True).stdout
         check(out == read(acct + "/.ECCE/dataserver/htdocs/Ecce/system/siteconfig/INDEX"),
               "the INDEX served is the INDEX published")
-        code = curl("evil", "-u", "pubuser:pubpw", "-X", "PUT", "--data", "x")
-        check(code in ("403", "405"), "a login cannot write there over DAV (%s)" % code)
+        for who in ([], ["-u", "pubuser:pubpw"]):
+            code = curl("evil", *who, "-X", "PUT", "--data", "x")
+            check(code in ("401", "403", "405"), "no PUT there over DAV (%s)" % code)
         check(not os.path.exists(acct + "/.ECCE/dataserver/htdocs/Ecce/system/siteconfig/evil"),
               "and no file appeared")
-        code = curl("Machines", "-u", "pubuser:pubpw", "-X", "DELETE")
-        check(code in ("403", "405"), "nor delete (%s)" % code)
+        code = curl("Machines", "-X", "DELETE")
+        check(code in ("401", "403", "405"), "nor delete (%s)" % code)
         anon = subprocess.run(["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}",
                                "http://127.0.0.1:%d/Ecce/system/" % port],
                               capture_output=True, text=True).stdout.strip()
-        # the client's copy (ecce-remote-setup) needs a login
+        # the client's copy (ecce-remote-setup), without a login and with one
         chome = os.path.join(tmp, "client-home")
         write(os.path.join(chome, "siteconfig", "DataServers"), "http://x:1/Ecce/system\n")
         write(os.path.join(chome, "siteconfig", "Machines"), "")
         cenv = dict(os.environ, ECCE_HOME=chome)
         r = subprocess.run(["bash", os.path.join(PK, "dataserver", "ecce-remote-setup"),
                             "127.0.0.1", str(port)], env=cenv, capture_output=True, text=True)
-        check(not os.path.exists(os.path.join(chome, "siteconfig", "RemoteServer", "MANIFEST")),
-              "ecce-remote-setup without a login copies nothing")
+        want = read(acct + "/.ECCE/dataserver/htdocs/Ecce/system/siteconfig/Machines")
+        check(r.returncode == 0 and read(os.path.join(chome, "siteconfig", "Machines")) == want,
+              "ecce-remote-setup without a login copies the server's Machines")
+        write(os.path.join(chome, "siteconfig", "Machines"), "")
         cenv.update(ECCE_SETUP_PASSWORD="pubpw")
         r = subprocess.run(["bash", os.path.join(PK, "dataserver", "ecce-remote-setup"),
                             "127.0.0.1", str(port), "--login", "pubuser"], env=cenv,
                            capture_output=True, text=True)
-        want = read(acct + "/.ECCE/dataserver/htdocs/Ecce/system/siteconfig/Machines")
         check(r.returncode == 0 and want and
               read(os.path.join(chome, "siteconfig", "Machines")) == want,
-              "with --login it copies the server's Machines: " + r.stdout[-200:])
+              "with --login too it copies the server's Machines: " + r.stdout[-200:])
         check(anon in ("200", "301", "404"), "the rest of /Ecce/system is not behind a login "
               "(%s)" % anon)
     finally:

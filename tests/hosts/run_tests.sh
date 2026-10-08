@@ -259,9 +259,8 @@ conf_listeners() {
   [ "$(R server grep -c '^listener 8088' $c)" = 1 ] && R server grep -qx 'listener 8088' $c ||
     { R server grep '^listener 8088' $c | head -3; return 1; }
 }
-# the published site files need a login of the data server (#192)
-copied() { R "$1" env ECCE_SETUP_PASSWORD="${1}pw" ecce-remote-setup server --login "$1" | grep -q "Copied the server's machine list"; }
-no_curl_warning() { local o; o="$(R alice env ECCE_SETUP_PASSWORD=alicepw ecce-remote-setup server --login alice 2>&1)"; ! grep -q 'curl not found' <<<"$o" || { echo "$o" | grep -A1 curl; return 1; }; }
+copied() { R "$1" ecce-remote-setup server | grep -q "Copied the server's machine list"; }
+no_curl_warning() { local o; o="$(R alice ecce-remote-setup server 2>&1)"; ! grep -q 'curl not found' <<<"$o" || { echo "$o" | grep -A1 curl; return 1; }; }
 
 mode2() {
   note "=== mode 2: central server (ecce-remote-setup --server; the account's data server and broker) ==="

@@ -223,20 +223,16 @@ def setup(pm, image):
     for c in ("alice", "bob"):
         o, rc = pm.out(c, "curl -s -o /dev/null -w %{http_code} "
                        "http://srv:8096/Ecce/system/siteconfig/MANIFEST")
-        check(o.strip() == "401", "%s's machine reaches the data server, "
-              "which wants a login for the site files (MANIFEST %s)"
-              % (c, o.strip()))
-        o, rc = pm.out(c, "curl -s -o /dev/null -w %%{http_code} -u %s:%s "
-                       "http://srv:8096/Ecce/system/siteconfig/INDEX" % (c, PW[c]))
-        check(o.strip() == "200", "%s reads the site files with her login "
-              "(INDEX %s)" % (c, o.strip()))
+        check(o.strip() == "200", "%s's machine reaches the data server over "
+              "the network (MANIFEST %s)" % (c, o.strip()))
+        o, rc = pm.out(c, "curl -s -o /dev/null -w %{http_code} "
+                       "http://srv:8096/Ecce/system/siteconfig/INDEX")
+        check(o.strip() == "200", "%s reads the INDEX (%s)" % (c, o.strip()))
         o, rc = pm.out(c, "timeout 5 bash -c 'echo > /dev/tcp/srv/8088'")
         check(rc == 0, "%s's machine reaches the broker port 8088" % c, o)
-        o, rc = pm.out(c, "ECCE_SETUP_PASSWORD=%s ecce-remote-setup srv --login %s"
-                       % (PW[c], c))
+        o, rc = pm.out(c, "ecce-remote-setup srv")
         check(rc == 0 and "Copied the server's machine list" in o,
-              "%s: ecce-remote-setup srv --login copies the server's machine "
-              "list" % c, o)
+              "%s: ecce-remote-setup srv copies the server's machine list" % c, o)
         o, rc = pm.out(c, "grep -c . /opt/ecce/siteconfig/RemoteServer/MANIFEST")
         check(rc == 0 and int(o.strip() or 0) > 0,
               "%s: the MANIFEST of the copy is there" % c, o)

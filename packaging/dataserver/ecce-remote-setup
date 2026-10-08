@@ -71,16 +71,16 @@ Usage: ecce-remote-setup <server-host> [data-port] [--tls TRUST]
   --refresh     fetch the server's machine list again, from the server
                 configured by an earlier run (ecce -admin on a -remote client
                 does this after a change)
-  --login NAME  an account of the server, to read its published machine list
-                (it needs a login since #192); the password is asked for, or
-                taken from ECCE_SETUP_PASSWORD. ECCE_SETUP_LOGIN does the same
-                as --login; ~/.netrc is tried without either
+  --login NAME  an account of the server, for a server that asks for a login
+                to read its published machine list (not needed otherwise);
+                the password is asked for, or taken from ECCE_SETUP_PASSWORD.
+                ECCE_SETUP_LOGIN does the same; ~/.netrc is tried without either
   server-host   host name of the central ECCE server
   data-port     data server port      (default 8096)
 
 Writes $ECCE_HOME/siteconfig/RemoteServer/ and copies the server's registered
 site machine list (Machines, Queues, CONFIG.*, *.Q, submit.site, QueueManagers)
-into siteconfig/, with a login of the server (--login). Re-run after the admin
+into siteconfig/. Re-run after the admin
 changes that list on the server.
 Run "ecce -remote" afterwards.
 USAGE
@@ -236,10 +236,10 @@ curl_auth_args() {
 #  Site machine list (issue #188).  ecce-site-publish (run by the server's
 #  ecce-dataserver-start and ecce-site-admin) publishes the server's
 #  siteconfig/{Machines,Queues,submit.site,QueueManagers,CONFIG.*,*.Q} under
-#  Ecce/system/siteconfig, which since #192 needs a data-server login (any
-#  account of that server): --login NAME (password asked for, or in
-#  ECCE_SETUP_PASSWORD), ECCE_SETUP_LOGIN/ECCE_SETUP_PASSWORD, or ~/.netrc.
-#  This copy stays until clients fetch the files themselves (#192 stage 3).  All-or-nothing: a
+#  Ecce/system/siteconfig, served without a login.  A login is used when
+#  given (--login NAME, with the password asked for or in ECCE_SETUP_PASSWORD;
+#  ECCE_SETUP_LOGIN; ~/.netrc), for a server that asks for one.  This copy
+#  stays until clients fetch the files themselves (#192 stage 3).  All-or-nothing: a
 #  partial copy would leave CONFIG.* files with no matching Machines entry, or
 #  vice versa, which is worse than not copying at all.  The client fetches
 #  what the MANIFEST lists, so a server too old to list submit.site and
@@ -260,9 +260,9 @@ fetch_machine_list() {
   if ! curl "${CURL_TLS[@]}" "${CURL_AUTH[@]}" -sf --connect-timeout 5 "$URL/system/siteconfig/MANIFEST" \
        -o "$FETCHDIR/MANIFEST" 2>/dev/null; then
     echo "WARNING: could not read the machine list at $URL/system/siteconfig/MANIFEST"
-    echo "  (the server is not up yet, or it needs a login: give one of its accounts"
-    echo "  with --login NAME, or ECCE_SETUP_LOGIN and ECCE_SETUP_PASSWORD). Machines"
-    echo "  were NOT copied -- re-run ecce-remote-setup with a login."
+    echo "  (the server is not up yet, or it asks for a login: --login NAME, or"
+    echo "  ECCE_SETUP_LOGIN and ECCE_SETUP_PASSWORD). Machines were NOT copied --"
+    echo "  re-run ecce-remote-setup once the server is running."
     return 1
   fi
   names="" ok=true

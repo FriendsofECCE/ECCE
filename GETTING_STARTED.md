@@ -519,12 +519,11 @@ sudo ecce-remote-setup <server-host>
 
 `ecce-remote-setup` also copies the server's registered site machine list
 onto the client, so students don't register machines by hand. The published
-files need a login of the server (any account): give one with
-`--login NAME` (the password is asked for, or taken from
-`ECCE_SETUP_PASSWORD`). Run `sudo ecce-remote-setup --refresh --login NAME`
+files are readable without a login; `--login NAME` (password asked for, or in
+`ECCE_SETUP_PASSWORD`) is used if given. Run `sudo ecce-remote-setup --refresh`
 after the admin changes the list (`sudo ecce -admin` on the server publishes
-it, #188, #192). Without a login the address is written and the list is not
-copied. This copy stays until clients fetch the files themselves (#192).
+it, #188, #192). This copy stays until clients fetch the files themselves
+(#192 stage 3), which is also when the folder starts to need a login.
 The client finds the broker on the same host, port 8088 (set `ECCE_BROKER_PORT`
 in the client's environment if the server uses another).
 
@@ -604,7 +603,7 @@ echo "$d" > /opt/ecce/siteconfig/PublishDir # as an administrator
 Every directory above `$d` must be searchable (`x`) by the administrators,
 e.g. `chmod 711 ~ecce` if the home directory is private.
 
-On the administrator's own client, and on every other, `sudo ecce-remote-setup --refresh --login NAME` fetches the new list.
+On the administrator's own client, and on every other, `sudo ecce-remote-setup --refresh` fetches the new list.
 
 Users then run `ecce -remote`. A client quitting never stops the server's
 services, and neither does the server account's own plain quit; its
@@ -712,8 +711,8 @@ the data server's contents are untouched.
 - **Clients must be 9.x as well.** An 8.x client cannot talk to a 9.x
   broker, nor a 9.x client to an 8.x server. Upgrade the server and every
   client together. The data server's `httpd.conf` is regenerated at each
-  start, so restart it once after upgrading: the published site files then
-  need a data-server login to read.
+  start, so restart it once after upgrading to pick up the read-only rule on
+  the published site files.
 
 **Shared system broker (mode 3).** Add an account per user with
 `sudo ecce-broker-setup --user NAME` (the 8.x broker had no accounts),
