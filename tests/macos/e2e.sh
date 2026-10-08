@@ -150,7 +150,6 @@ runcase() {
   ECCE_OPEN_PANEL=MOs ECCE_PANEL_METRICS=$metrics \
     limit 60 ecce-builder -context "$url" > "$OUT/$c.mos.log" 2>&1 &
   local bp=$!
-  sleep 35; screencapture -x "$OUT/shots/$c-mos.png" 2>/dev/null
   pkill -f "$ECCE_HOME/bin/builder" 2>/dev/null; wait $bp 2>/dev/null
   say "Builder MOs pane: $(grep '"MOs"' "$metrics" 2>/dev/null || echo 'not listed')"
 }
