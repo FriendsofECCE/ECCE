@@ -4,18 +4,23 @@
     first_start_test.py <ecce-localdata binary> <scratch dir>
 
 Runs `ecce-first-start --check` (no window) against a private $ECCE_HOME and
-user home.  The one fresh client asks; every setup that already exists, in
-any of the three deployment modes, does not.  Needs no display and no
-services.
+user home.  The one fresh client asks, on every platform (the platform's
+default data folder is not a choice); every setup that already exists, in
+any of the three deployment modes, does not.  Then `--apply` makes each
+answer without a window, against a stub server (an HTTP listener).  Needs no
+display and no services; runs on Linux, macOS and Windows.
 """
+import http.server
 import os
 import shutil
+import socket
 import subprocess
 import sys
+import threading
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SCRIPT = os.path.join(REPO, "packaging", "gateway", "ecce-first-start")
-localdata, scratch = sys.argv[1], sys.argv[2]
+localdata, scratch = sys.argv[1], sys.argv[2].replace("\\", "/")
 failures = []
 
 
@@ -33,13 +38,18 @@ def fresh(name, server_install=False):
     os.makedirs(ehome + "/bin")
     os.makedirs(ehome + "/siteconfig")
     os.makedirs(user + "/.ECCE")
-    os.symlink(os.path.abspath(localdata), ehome + "/bin/ecce-localdata")
-    os.symlink(os.path.join(REPO, "data"), ehome + "/data")
+    env_path = os.environ.get("PATH", "")
+    if os.name == "nt":
+        # A copy would lose the DLLs beside the program: find it on PATH.
+        env_path = os.path.dirname(os.path.abspath(localdata)) + os.pathsep + env_path
+    else:
+        os.symlink(os.path.abspath(localdata), ehome + "/bin/ecce-localdata")
+        os.symlink(os.path.join(REPO, "data"), ehome + "/data")
     if server_install:
         open(ehome + "/bin/ecce-dataserver-start", "w").close()
     env = {k: v for k, v in os.environ.items()
            if not k.startswith("ECCE_") and k not in ("DISPLAY", "WAYLAND_DISPLAY")}
-    env.update(ECCE_HOME=ehome, ECCE_REALUSERHOME=user, DISPLAY=":99")
+    env.update(ECCE_HOME=ehome, ECCE_REALUSERHOME=user, DISPLAY=":99", PATH=env_path)
     return env, user, ehome
 
 
@@ -89,8 +99,12 @@ case("chosen", "a server was chosen before (~/.ECCE/RemoteServer)",
                       open(u + "/.ECCE/RemoteServer/DataServers", "w").close()))
 case("pref", "the data folder preference was set",
      lambda e, u, h: subprocess.run([localdata, "pref", "off"], env=e, check=True))
-case("nodisplay", "there is no display",
-     lambda e, u, h: e.pop("DISPLAY"))
+if sys.platform.startswith("linux"):   # macOS and Windows always have a screen
+    case("nodisplay", "there is no display",
+         lambda e, u, h: e.pop("DISPLAY"))
+if sys.platform == "win32":
+    case("winlocal", "~/ecce-local exists (what ecce.cmd made before)",
+         lambda e, u, h: os.makedirs(u + "/ecce-local"))
 case("switch", "ECCE_NO_FIRST_START is set (tests, scripts)",
      lambda e, u, h: e.update(ECCE_NO_FIRST_START="1"))
 
@@ -106,4 +120,62 @@ env, user, ehome = fresh("pref-unset")
 r = subprocess.run([localdata, "pref-state"], env=env, capture_output=True, text=True)
 check(r.stdout.strip() == "unset", "preference starts unset")
 
+# --- the two answers, without a window ----------------------------------
+class Stub(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+
+    def log_message(self, *a):
+        pass
+
+
+httpd = http.server.HTTPServer(("127.0.0.1", 0), Stub)
+threading.Thread(target=httpd.serve_forever, daemon=True).start()
+port = httpd.server_address[1]
+
+
+def apply(env, answer):
+    r = subprocess.run([sys.executable, SCRIPT, "--apply", answer], env=env,
+                       capture_output=True, text=True, timeout=120)
+    return r.returncode, (r.stdout + r.stderr).strip()
+
+
+def prefstate(env):
+    r = subprocess.run([localdata, "pref-state"], env=env, capture_output=True, text=True)
+    return r.stdout.strip()
+
+
+env, user, ehome = fresh("apply")
+with open(ehome + "/siteconfig/DataServers", "w") as f:
+    f.write("<DataServers><Server><Url>http://localhost:8096/Ecce</Url>"
+            "<Desc>local</Desc></Server></DataServers>\n")
+rc, out = apply(env, "local")
+local_dir = user + ("/ecce-local" if sys.platform == "win32" else "/.ECCE-local")
+check(rc == 0 and os.path.isdir(local_dir) and prefstate(env) == "on",
+      "local: the data folder exists and the preference is on (%s)" % out)
+rc, out = verdict(env)
+check(rc == 1, "local chosen: not asked again (%s)" % out)
+
+rc, out = apply(env, "server:127.0.0.1:%d" % port)
+ds = user + "/.ECCE/RemoteServer/DataServers"
+text = open(ds).read() if os.path.exists(ds) else ""
+check(rc == 0 and ("http://127.0.0.1:%d/Ecce" % port) in text and
+      "ECCE Data Server on 127.0.0.1" in text and prefstate(env) == "off",
+      "server: RemoteServer/DataServers names the server, preference off (%s)" % out)
+rc, out = verdict(env)
+check(rc == 1 and "already chosen" in out, "server chosen: not asked again (%s)" % out)
+
+rc, out = apply(env, "local")
+check(rc == 0 and not os.path.exists(ds) and os.path.exists(user + "/.ECCE/RemoteServer.off/DataServers")
+      and prefstate(env) == "on", "back to local: the server choice is set aside (%s)" % out)
+
+s0 = socket.socket()
+s0.bind(("127.0.0.1", 0))
+dead = s0.getsockname()[1]
+s0.close()
+rc, out = apply(env, "server:127.0.0.1:%d" % dead)
+check(rc != 0 and not os.path.exists(ds), "an unreachable server writes nothing (%s)" % out)
+
+httpd.shutdown()
 sys.exit(1 if failures else 0)

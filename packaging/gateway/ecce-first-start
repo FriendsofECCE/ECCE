@@ -4,6 +4,8 @@
     ecce-first-start             ask once, at the first start, if nothing is set up
     ecce-first-start --check     print "ask" or "skip: <why>"; exit 0 to ask, 1 not
     ecce-first-start --change    the Edit > Change Server... window
+    ecce-first-start --apply local|server:<host[:port]>
+                                 make the choice with no window (tests)
 
 Exit status of the plain form: 0 go on, 3 the user chose Quit.  Anything
 else (no wxPython, no display) goes on with what ECCE would have done.
@@ -21,27 +23,43 @@ Test hooks: ECCE_NO_FIRST_START=1 never asks; ECCE_FIRST_START_ANSWER=local
 or server:<host[:port]> answers the window as if its button was pressed;
 ECCE_FIRST_START_SHOT=<file.png> saves a picture of the window first.
 """
+import http.client
 import os
+import re
 import shutil
+import socket
+import ssl
 import subprocess
 import sys
-import time
 
 HOME = os.environ.get("ECCE_REALUSERHOME") or os.path.expanduser("~")
 ECCE_HOME = os.environ.get("ECCE_HOME") or "/opt/ecce"
 STATE = os.path.join(HOME, ".ECCE")
 MINE = os.path.join(STATE, "RemoteServer")
-LOCAL_DEFAULT = os.path.join(HOME, ".ECCE-local")
+WINDOWS = sys.platform == "win32"
+# The folder the Windows start script (ecce.cmd) already uses.
+LOCAL_DEFAULT = os.path.join(HOME, "ecce-local" if WINDOWS else ".ECCE-local")
 
 
 def tool(name):
-    p = os.path.join(ECCE_HOME, "bin", name)
-    return p if os.path.exists(p) else (shutil.which(name) or p)
+    for n in (name, name + ".exe"):
+        p = os.path.join(ECCE_HOME, "bin", n)
+        if os.path.exists(p):
+            return p
+    return shutil.which(name) or os.path.join(ECCE_HOME, "bin", name)
+
+
+# pythonw has no standard streams, and its children need no console window.
+for _n in ("stdout", "stderr"):
+    if getattr(sys, _n) is None:
+        setattr(sys, _n, open(os.devnull, "w"))
 
 
 def run(cmd, timeout=30):
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout,
+                           stdin=subprocess.DEVNULL,
+                           creationflags=0x08000000 if WINDOWS else 0)
         return r.returncode, r.stdout.strip()
     except (OSError, subprocess.SubprocessError):
         return 127, ""
@@ -61,9 +79,8 @@ def skip_reason():
         return "a -remote session (ECCE_REMOTE_SERVER)"
     if "ECCE_LOCAL_DATA" in env or env.get("ECCE_LOCAL"):
         return "the data folder is given (ECCE_LOCAL_DATA or --local)"
-    if sys.platform == "darwin" and not env.get("ECCE_FIRST_START_ASK_ON_MAC"):
-        return "macOS keeps its data in a folder by default (Edit > Change Server... to use a server)"
-    if not (env.get("DISPLAY") or env.get("WAYLAND_DISPLAY")):
+    if not (WINDOWS or sys.platform == "darwin" or
+            env.get("DISPLAY") or env.get("WAYLAND_DISPLAY")):
         return "no display"
     if os.path.exists(os.path.join(ECCE_HOME, "siteconfig", "RemoteServer", "DataServers")):
         return "the installation has a server configured (siteconfig/RemoteServer)"
@@ -114,6 +131,86 @@ def choose_local():
     return rc == 0
 
 
+def _reachable(host, port, https, context):
+    """The first HTTP(S) answer's peer certificate (DER) or b"", else None."""
+    try:
+        if https:
+            c = http.client.HTTPSConnection(host, port, timeout=5, context=context)
+        else:
+            c = http.client.HTTPConnection(host, port, timeout=5)
+        c.request("GET", "/")
+        c.getresponse().read(1)
+        der = c.sock.getpeercert(True) if https else b""
+        c.close()
+        return der or b""
+    except (OSError, ssl.SSLError, http.client.HTTPException):
+        return None
+
+
+def remote_setup(host, port):
+    """~/.ECCE/RemoteServer for HOST, as `ecce-remote-setup HOST --user --auto`
+    writes it: TLS with a certificate the system trusts, else TLS pinned to
+    the certificate the server presents now, else plain http; the first that
+    answers.  Returns which one, or None with nothing written."""
+    pem = None
+    way, scheme, dport = None, "http", port or 8096
+    tport = port or 8443
+    ctx = ssl.create_default_context()
+    # As lenient as curl was about certificate extensions; the chain and the
+    # host name are still checked.
+    ctx.verify_flags &= ~getattr(ssl, "VERIFY_X509_STRICT", 0)
+    if _reachable(host, tport, True, ctx) is not None:
+        way, scheme, dport = "trusted", "https", tport
+    else:
+        try:
+            pem = ssl.get_server_certificate((host, tport), timeout=5)
+            pinned = ssl.PEM_cert_to_DER_cert(pem)
+            loose = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+            loose.check_hostname = False
+            loose.verify_mode = ssl.CERT_NONE
+            if _reachable(host, tport, True, loose) == pinned:
+                way, scheme, dport = "pinned", "https", tport
+        except (OSError, ssl.SSLError, ValueError):
+            pass
+    if way is None:
+        pem = None
+        if _reachable(host, dport, False, None) is None:
+            return None
+        way = "plain"
+
+    site = os.path.join(ECCE_HOME, "siteconfig")
+    try:
+        base = open(os.path.join(site, "DataServers"), "rb").read()
+    except OSError:
+        return None
+    url = ("%s://%s:%d/Ecce" % (scheme, host, dport)).encode()
+    lines = []
+    for ln in base.splitlines(True):
+        ln = re.sub(rb"https?://[^:/]*:[0-9]*/Ecce", lambda m: url, ln)
+        ln = re.sub(rb"<Desc>[^<]*</Desc>",
+                    lambda m: b"<Desc>ECCE Data Server on " + host.encode() + b"</Desc>",
+                    ln, count=1)
+        lines.append(ln)
+    os.makedirs(MINE, mode=0o700, exist_ok=True)
+    pin = os.path.join(MINE, "server.pem")
+    if pem:
+        with open(pin, "w", newline="\n") as f:
+            f.write(pem)
+    elif os.path.exists(pin):
+        os.remove(pin)
+    try:
+        rt = open(os.path.join(site, "site_runtime"), "rb").read()
+        rt = re.sub(rb"https?://[^:/]*:[0-9]*",
+                    lambda m: ("%s://%s:%d" % (scheme, host, dport)).encode(), rt)
+        with open(os.path.join(MINE, "site_runtime"), "wb") as f:
+            f.write(rt)
+    except OSError:
+        pass
+    with open(os.path.join(MINE, "DataServers"), "wb") as f:
+        f.write(b"".join(lines))
+    return way
+
+
 def choose_server(address):
     """None when connected, else a sentence for the user."""
     address = address.strip()
@@ -121,8 +218,13 @@ def choose_server(address):
         return "Type the address of the server, for example ecce.example.edu"
     if address.startswith(("http:", "https:")):
         return "Type only the name of the server, without http://"
-    rc, out = run([tool("ecce-remote-setup"), address, "--user", "--auto"], timeout=90)
-    if rc != 0:
+    host, _, port = address.partition(":")
+    if not host or (port and not port.isdigit()):
+        return "Type the address of the server, for example ecce.example.edu"
+    way = remote_setup(host, int(port) if port else None)
+    if way:
+        print(way)
+    else:
         return ("ECCE could not connect to \"%s\".\n"
                 "Check the address and your network connection, then try again."
                 % address)
@@ -275,6 +377,16 @@ def build_dialog(wx, change):
 
 def main(argv):
     change = "--change" in argv
+    if "--apply" in argv:
+        ans = argv[argv.index("--apply") + 1] if argv.index("--apply") + 1 < len(argv) else ""
+        if ans == "local":
+            return 0 if choose_local() else 1
+        if ans.startswith("server:"):
+            err = choose_server(ans[7:])
+            if err:
+                sys.stderr.write("ecce-first-start: " + err + "\n")
+            return 1 if err else 0
+        return 2
     why = None if change else skip_reason()
     if "--check" in argv:
         print("ask" if why is None else "skip: " + why)

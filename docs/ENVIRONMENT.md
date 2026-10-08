@@ -157,7 +157,7 @@ started `ecce`; use the variables that take a file where there is one.
 | `ECCE_NWDIRDY_DEBUG` | The reaction-rate editor prints its general theory data. | Set to enable. |
 | `ECCE_BUG` | Same as `ecce --bug`: see above. | Set and not `0`. |
 | `ECCE_BUG_DIR` | Set by bug mode to the folder collecting the report. | Do not set. |
-| `ECCE_NO_FIRST_START` | `ecce` never shows the first-start window (where do you keep your work: this computer or a server). Test suites and scripts set it. | Set to skip. |
+| `ECCE_NO_FIRST_START` | `ecce` never shows the first-start window (where do you keep your work: this computer or a server). Test suites and scripts set it; on Windows `ecce.cmd` then also shows no message box when the server cannot be reached. | Set to skip. |
 | `ECCE_REMOTE_DIR` | The folder holding the central server's client settings (`DataServers`, `server.pem`); set by the wrappers to `~/.ECCE/RemoteServer` for a user's own choice of server, otherwise `siteconfig/RemoteServer`. | Set by ECCE. |
 | `ECCE_NO_REAP` | `ecce-gateway-reap` does nothing; whoever sets it stops the services itself. Used by the test suite. | Set to enable. |
 | `ECCE_REAP_QUIET` | `ecce-gateway-reap` prints nothing. The launchers set it on exit. | Set to enable. |

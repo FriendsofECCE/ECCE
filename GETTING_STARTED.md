@@ -434,11 +434,18 @@ A client with nothing configured asks once, in a window "Welcome to ECCE":
 **Work on this computer** (local data mode, data in `~/.ECCE-local`) or
 **Connect to a server** (one box for the server's address, then the login
 window). The default does not change; the question only replaces having to
-know the environment variables. The choice is kept per user (the local data
+know the environment variables. It is asked on Linux, macOS and Windows alike:
+a student's own laptop connects to the instructor's server the same way on
+all three. The choice is kept per user (the local data
 preference, or `~/.ECCE/RemoteServer/`, which `ecce-remote-setup <host>
 --user --auto` writes without root) and changes from **Edit > Change
 Server...** in the Organizer, which shows the current mode and data folder.
 The change applies at the next start; nothing is copied between modes.
+On Windows `ecce.cmd` runs the window with the package's own Python and, for
+a server, starts the session the same way `ecce -remote` does (the broker
+file, then the Organizer). On macOS the window needs wxPython, which
+ECCE.app does not carry yet; without it nothing is asked and macOS works in
+its data folder, as before.
 
 Trust follows #236: the server's certificate is accepted if the system's CA
 list vouches for it (`https`, port 8443); otherwise the certificate shown at
@@ -457,10 +464,10 @@ has the `ecce-server` package** (the server itself, and remote desktop
 sessions such as FastX on it). So modes 2 and 3, the server machine and the
 all-in-one install behave exactly as before; only a client-only install of
 a user with nothing yet is asked. `ECCE_NO_FIRST_START=1` never asks (tests
-and scripts set it), and without a display or wxPython nothing is asked. macOS and Windows,
-whose launchers already work in a data folder, never ask; **Edit > Change
-Server...** is there if they want a server (Windows: not yet, the window is
-a Linux/macOS script).
+and scripts set it), and without a display or wxPython nothing is asked. On
+macOS and Windows the platform's own data folder is not a choice made: a
+user with nothing yet is asked once, and a Windows user who already has
+`ecce-local` in their profile is not.
 
 #### Mode 1: everything local (the default)
 
