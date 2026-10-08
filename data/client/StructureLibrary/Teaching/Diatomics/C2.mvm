@@ -1,0 +1,15 @@
+# Experimental equilibrium bond length r_e: NIST Chemistry WebBook, Constants of
+# Diatomic Molecules (Huber & Herzberg 1979), rounded to 0.001 Angstrom.
+# X 1Sigma_g+ ground state
+title:          C2
+type:           molecule
+cell_units:     angstroms
+num_atoms:      2
+atom_info:      symbol cart
+atom_list:
+  C  -0.6215   0.000   0.000
+  C   0.6215   0.000   0.000
+num_bonds:      1
+bond_info:     order
+bond_list:
+ 1  2  2.00000

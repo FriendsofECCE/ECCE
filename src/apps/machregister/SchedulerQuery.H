@@ -70,7 +70,7 @@ namespace SchedulerQuery
     /// What Register Machines knows about a code's executable: the names
     /// gensub's job script runs it under, and a path to show as an example.
     /// `companion`, when set, is a file that must sit next to the executable
-    /// (ORCA: orca_scf), so another program of the same name is not taken.
+    /// (ORCA: orca_2mkl; ORCA 6 has no orca_scf), so another program of the same name is not taken.
     struct ProgramHelp
     {
         vector<string> names;       // candidates for `command -v`
