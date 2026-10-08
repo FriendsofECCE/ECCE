@@ -16,6 +16,7 @@
 #include "wx/wx.h"
 #endif
 
+#include "wx/bmpbndl.h"
 #include "wxgui/ewxPanel.H"
 #define ID_ECCETOOL_NEW 102300
 
@@ -64,6 +65,8 @@ protected:
   InvokeParam * p_invokeParam;
   wxPaintDC * p_dc;
   wxBitmap p_bitmap;
+  wxBitmapBundle p_mock;   // MOCK-UP ONLY (wip/org-icons)
+  wxString p_mockLabel;
   //  wxMenu * p_newMenu;
   bool p_isSunken;
 };
