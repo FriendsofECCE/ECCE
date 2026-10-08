@@ -245,6 +245,9 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      releases; drop the oldest minor when a new one is added. Everything
      older is on the releases page. -->
 
+- **v8.18.9** — a compute machine's login password is no longer sent to
+  the data server, and jobs launched to such a machine are monitored
+  again (#204, #138).
 - **v8.18.8** — ORCA input: generally contracted basis sets (cc-pV*Z,
   ANO) are written with all their contractions; before, explicit ORCA
   basis input lost functions and gave wrong energies (#239).
