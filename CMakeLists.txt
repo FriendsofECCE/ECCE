@@ -968,9 +968,14 @@ endif()
 if(WIN32)
   # GUI subsystem: no console window opens behind the apps. The command-line
   # programs (ECCE_CLI_APPS, the parsers) keep theirs.
+  # The icon Explorer, the Start menu shortcut and the MSI show.
+  enable_language(RC)
+  set_property(SOURCE ${CMAKE_SOURCE_DIR}/packaging/windows/ecce.rc APPEND PROPERTY
+               COMPILE_OPTIONS "-I${CMAKE_SOURCE_DIR}/packaging/windows")
   foreach(_app ${ECCE_GUI_APPS})
     if(TARGET ${_app})
       set_target_properties(${_app} PROPERTIES WIN32_EXECUTABLE ON)
+      target_sources(${_app} PRIVATE ${CMAKE_SOURCE_DIR}/packaging/windows/ecce.rc)
     endif()
   endforeach()
 endif()

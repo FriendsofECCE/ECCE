@@ -52,6 +52,10 @@ tests\windows\ci-run.ps1 -Stage $stage -Out "$Out\apps"
 Get-Content "$Out\apps\summary.txt" | ForEach-Object { Say "apps: $_" }
 Check (-not (Select-String -Path "$Out\apps\summary.txt" -Pattern "exited rc=-?[1-9]|missing|FAILED" -Quiet)) "start test summary has no app exited, missing or failed"
 
+& tests\windows\organizer-probe.ps1 -Ecce $inst -Out "$Out\probe"
+Check ($LASTEXITCODE -eq 0) "organizer probe from the installed copy"
+$env:Path = $sys
+
 # The shortcut's own path: wscript + ecce.vbs + ecce.cmd, no console window.
 Start-Process "$env:SystemRoot\System32\wscript.exe" -ArgumentList "//B //Nologo `"$inst\ecce.vbs`""
 Start-Sleep 20

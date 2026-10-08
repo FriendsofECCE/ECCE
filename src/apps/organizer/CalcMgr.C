@@ -30,6 +30,8 @@ using std::cerr;
 using std::endl;
 
 static bool offerStopServer(bool& inUse);
+// The outcome of the local machine registration at startup, for "probe".
+static std::string s_registerMessage;
 
 #include <wx/dataobj.h>
 #include <wx/dnd.h>
@@ -300,6 +302,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   // ever running the Job Launcher
   string msg = "";
   RunMgmt::registerLocalMachine(msg);
+  s_registerMessage = msg;
   if (msg != "") {
     setMessage(msg, WxFeedback::INFO);
   }
@@ -355,6 +358,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
       while (std::getline(in, line)) {
         if (n++ < *done) continue;
         *done = n;
+        if (!line.empty() && line.back() == '\r')   // written on Windows
+          line.pop_back();
         runTestCommand(line);
       }
     });
@@ -584,6 +589,21 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "tail-close") {
       if (p_testTail) p_testTail->Close();
       outcome = "ok";
+    } else if (command == "probe") {
+      // What a user sees first: the registration notice, whether the home
+      // is in the tree, and the selection the tree's focus handler settles
+      // on when nothing was selected yet (wxMSW).
+      bool selected = p_treeCtrl->GetSelection().IsOk();
+      WxResourceTreeItemData *homeNode = findNode(home, false, false);
+      onSelectionChange(true);
+      WxResourceTreeItemData *sel = p_treeCtrl->getSelection();
+      outcome = "home=" + home.toString() +
+                " homenode=" + (homeNode ? "yes" : "no") +
+                " selected-before=" + (selected ? "yes" : "no") +
+                " selection=" + (sel ? sel->getUrl().toString() : "none") +
+                " register=" + (s_registerMessage.empty() ? "known"
+                    : s_registerMessage.find("has just been added") !=
+                      string::npos ? "added" : "failed");
     } else if (line == "quit-offer") {
       bool inUse = false;
       outcome = offerStopServer(inUse) ? "stop offered"

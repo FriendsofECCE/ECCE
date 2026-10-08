@@ -676,6 +676,20 @@ jobs:
           tests\windows\ci-run.ps1 -Stage "$env:RUNNER_TEMP\unpacked" -Out windows-run
           Get-Content windows-run\summary.txt >> $env:GITHUB_STEP_SUMMARY
 
+      # The Organizer as a user meets it: registration under the computer's
+      # name, the tree's first selection, a project in Local data, the icon.
+      - name: Organizer probe
+        id: probe
+        shell: pwsh
+        continue-on-error: true
+        timeout-minutes: 10
+        run: |
+          $env:Path = "$env:SystemRoot\System32;$env:SystemRoot"
+          tests\windows\organizer-probe.ps1 -Ecce "$env:RUNNER_TEMP\unpacked\ecce" -Out windows-run\probe
+          $e = $LASTEXITCODE
+          Get-Content windows-run\probe\summary.txt >> $env:GITHUB_STEP_SUMMARY
+          exit $e
+
       # Per-user MSI (no admin) from the same tree, installed and tested.
       - name: Build the MSI
         id: msi

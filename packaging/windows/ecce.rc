@@ -1,0 +1,3 @@
+// The application icon of the GUI programs (Explorer, shortcuts, the MSI).
+// Named so it sorts first: Windows shows the first icon group of an .exe.
+aaaa ICON "ecce.ico"
