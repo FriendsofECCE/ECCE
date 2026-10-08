@@ -41,6 +41,8 @@
 #include "JobPreview.H"
 #include "MemoryUnits.H"
 #include "SchedulerQuery.H"
+#include <wx/filedlg.h>
+#include <wx/filename.h>
 #include "WxMachineRegister.H"
 
 using std::string;
@@ -400,6 +402,25 @@ void WxMachineRegister::findProgram()
     SchedulerQuery::Connection conn = this->connection();
     string output, err;
     bool ran = false;
+    string extra;
+#ifdef _WIN32
+    //  Windows installers put programs in folders not on PATH.  The roots
+    //  are this computer's; on another machine they match nothing.
+    {
+        vector<string> roots;
+        const char* vars[] = { "USERPROFILE", "LOCALAPPDATA", "ProgramFiles" };
+        for (const char* v : vars)
+        {
+            const char* val = getenv(v);
+            if (val && *val)
+                roots.push_back(SchedulerQuery::localProgramPath(val));
+        }
+        if (getenv("LOCALAPPDATA"))
+            roots.push_back(SchedulerQuery::localProgramPath(
+                                getenv("LOCALAPPDATA")) + "/Programs");
+        extra = SchedulerQuery::findInstallDirsScript(h, code, roots);
+    }
+#endif
     runBusy(this, "Find program", "Looking for " + code + " on " + machine +
             "...", [&]() {
         SchedulerQuery::Remote r(conn);
@@ -408,7 +429,8 @@ void WxMachineRegister::findProgram()
         vector<string> argv;
         argv.push_back("sh");
         argv.push_back("-c");
-        argv.push_back(SchedulerQuery::findProgramScript(h) + "exit 0\n");
+        argv.push_back(SchedulerQuery::findProgramScript(h) + extra +
+                       "exit 0\n");
         ran = r.run(argv, output, 60);
         if (!ran)
             err = output;
@@ -467,6 +489,38 @@ void WxMachineRegister::findProgram()
         ask("Find program", "Replace " + now + " with " + pick + "?", "",
             wxYES_NO|wxNO_DEFAULT|wxICON_QUESTION, "Replace", "Keep", "") != wxID_YES)
         return;
+    field->SetValue(wxString::FromUTF8(pick.c_str()));
+}
+
+
+//  Browse...: the program picked in a file dialog on this computer.
+void WxMachineRegister::browseProgram()
+{
+    if (p_codeNames.empty())
+        return;
+    ewxTextCtrl* field = p_codePaths[p_codeSel];
+    string now = stripped((string)field->GetValue());
+    wxString dir;
+#ifdef _WIN32
+    if (now.size() > 2 && now[0] == '/' && now[2] == '/')
+        dir = wxString::Format("%c:%s", toupper(now[1]),
+                               wxString::FromUTF8(now.substr(2).c_str()));
+#else
+    dir = wxString::FromUTF8(now.c_str());
+#endif
+    if (!dir.empty())
+        dir = wxFileName(dir).GetPath();
+    wxFileDialog dlg(this, "Program for " + p_codeNames[p_codeSel], dir, "",
+#ifdef _WIN32
+                     "Programs (*.exe)|*.exe|All files (*.*)|*.*",
+#else
+                     wxFileSelectorDefaultWildcardStr,
+#endif
+                     wxFD_OPEN|wxFD_FILE_MUST_EXIST);
+    if (dlg.ShowModal() != wxID_OK)
+        return;
+    string pick = SchedulerQuery::localProgramPath(
+                      string(dlg.GetPath().ToUTF8()));
     field->SetValue(wxString::FromUTF8(pick.c_str()));
 }
 

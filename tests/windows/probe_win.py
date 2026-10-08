@@ -112,8 +112,11 @@ try:
     check(ask("newcalc p w ECCE-QM").startswith("ok"), "calculation made")
     text = app("builder", "ECCE_BUILDER_SCRIPT",
                "wait 4000\nadd O Bent 0 0 0\nwait 1500\ncmd addh\nwait 1500\n"
-               "expect atoms 3\nsave\nwait 4000\nquit\n", ("-context", url))
+               "expect atoms 3\nsymmetry\nsave\nwait 4000\nquit\n", ("-context", url))
     check("expect atoms 3: ok" in text, "the Builder drew water")
+    pg = [l for l in text.splitlines() if l.startswith("BUILDER: pointgroup=")]
+    check(bool(pg) and pg[-1].upper().endswith("C2V"),
+          "Symmetry > Find (autosym) says C2v: %s" % (pg[-1] if pg else "nothing"))
     thumb = d + "/Parameters/Thumbnail.jpeg"
     data = open(thumb, "rb").read() if os.path.exists(thumb) else b""
     check(len(data) > 200 and data[:2] == b"\xff\xd8" and data.rstrip(b"\0")[-2:] == b"\xff\xd9",
@@ -140,6 +143,18 @@ try:
     check(bool(en) and "charge-label=on" in en[0], "Charge enabled for a fresh calculation")
     inputs = os.listdir(d + "/Inputs") if os.path.isdir(d + "/Inputs") else []
     check(any(f.endswith(".orcain") for f in inputs), "ORCA input stored after switching: %s" % inputs)
+    # Register Machines' Find, with the program in a folder under the user
+    # profile and not on PATH (as ORCA's Windows installer leaves it)
+    prof = os.environ.get("USERPROFILE", "")
+    orcas = [d for d in os.listdir(prof) if d.lower().startswith("orca") and
+             os.path.exists(os.path.join(prof, d, "orca_2mkl.exe"))] if prof else []
+    if orcas:
+        text = app("machregister", "ECCE_MACHREG_SCRIPT",
+                   "wait 3000\nselect localhost\ntab codes\ncode ORCA\nclick code:find\n"
+                   "expect contains code:orca /%s/orca\nquit\n" % orcas[0],
+                   extra={"ECCE_NO_MESSAGING": "1"})
+        check("[MACHREG] ok code:orca contains" in text,
+              "Find locates ORCA in %s outside PATH" % orcas[0])
 finally:
     org.kill()
     subprocess.run([tree + "/usr/bin/bash.exe", tree + "/bin/ecce-broker-win", "stop"], env=env,

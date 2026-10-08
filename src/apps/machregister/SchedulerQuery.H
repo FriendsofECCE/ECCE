@@ -84,6 +84,15 @@ namespace SchedulerQuery
     /// The examples as shown under the Program box ("a  or  b").
     string exampleText(const ProgramHelp& h);
     string findProgramScript(const ProgramHelp& h);
+    /// More of that script: the program in a folder named after the code
+    /// (any case of its first letter, version suffixes allowed) under each
+    /// of `roots`, or in that folder's bin; for programs installed outside
+    /// PATH, as Windows installers do.  Paths are as sh writes them.
+    string findInstallDirsScript(const ProgramHelp& h, const string& code,
+                                 const vector<string>& roots);
+    /// A path from this computer's file dialog in the form the job script
+    /// (sh) runs: C:\a\b.exe -> /c/a/b on Windows; unchanged elsewhere.
+    string localProgramPath(const string& chosen);
     /// The paths in the output of that script (login-script chatter ignored),
     /// without duplicates, in order.
     vector<string> parseFound(const string& output);

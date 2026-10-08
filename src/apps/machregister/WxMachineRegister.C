@@ -865,6 +865,13 @@ void WxMachineRegister::addCodeLine(wxWindow* page, wxFlexGridSizer* grid,
         });
         reg("code:find", find);
         row->Add(find, wxSizerFlags().Border(wxLEFT, 4).Top());
+        ewxButton* browse = new ewxButton(page, wxID_ANY, "Browse...");
+        browse->SetToolTip("Choose the program file on this computer");
+        browse->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+            this->browseProgram();
+        });
+        reg("code:browse", browse);
+        row->Add(browse, wxSizerFlags().Border(wxLEFT, 4).Top());
         col->Add(row, wxSizerFlags().Expand());
         p_codeExample = new wxStaticText(page, wxID_ANY, "");
         p_codeExample->SetFont(p_codeExample->GetFont().Smaller());
