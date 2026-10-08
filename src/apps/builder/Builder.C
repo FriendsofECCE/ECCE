@@ -1435,6 +1435,10 @@ void Builder::setContext(const string& url, const bool& force)
     }
   }
 
+  //  Each calculation opens on the tab its state calls for (refreshColumn):
+  //  Properties with results, Structure without.
+  p_columnTabChosen = false;
+
   // We don't allow struct lib mode across context switches
   if (p_currentMode == ID_MODE_STRUCTLIB) {
     setMode(ID_MODE_SELECT);
@@ -3346,6 +3350,7 @@ void Builder::OnPropertyMenuClick( wxCommandEvent& event )
       p_detail = 0;
     }
     pane.Show(false);
+    unfocusPanel(win);
   } else {
     pane.Show(true);
     if (docked && p_panelMode == PANELS_ACCORDION) {
@@ -3360,16 +3365,26 @@ void Builder::OnPropertyMenuClick( wxCommandEvent& event )
 
 
 /**
- * A property pane the user opened takes viz focus, so its overlay (vectors,
- * charge colours) is drawn at once.  It used to wait for keyboard focus to
- * land in the pane (OnChildFocus), which GTK may move there on showing and
- * wxMSW does not, so on Windows nothing was drawn until a click in it.
+ * A property pane the user opens (Properties menu, the Properties list, an
+ * accordion caption) takes viz focus, so its overlay is drawn at once and
+ * the overlay of the panel that had the viewer goes.  Keyboard focus does
+ * not follow a shown pane on either toolkit, so OnChildFocus alone left
+ * nothing drawn until a click inside the pane.
  */
 void Builder::focusShownPanel(wxWindow *win)
 {
   VizPropertyPanel *panel = dynamic_cast<VizPropertyPanel*>(win);
   if (panel && panel->drawsInViewer() && !panel->hasFocus())
     panel->setFocus(true);
+}
+
+
+//  A pane that is closed, folded or replaced takes its overlay with it.
+void Builder::unfocusPanel(wxWindow *win)
+{
+  VizPropertyPanel *panel = dynamic_cast<VizPropertyPanel*>(win);
+  if (panel && panel->hasFocus())
+    panel->setFocus(false);
 }
 
 
@@ -3525,6 +3540,7 @@ void Builder::toggleFold(wxWindow *win)
     accordionNormalize(win);
   }
   updatePanes();
+  if (opening) focusShownPanel(win);
 }
 
 
@@ -3543,6 +3559,7 @@ void Builder::foldPane(wxWindow *win, bool fold)
   FoldState st = { pane.best_size, pane.min_size, pane.IsResizable(),
                    pane.dock_proportion };
   p_folded[win] = st;
+  unfocusPanel(win);
   pane.BestSize(wxSize(st.best.x, 1)).MinSize(wxSize(st.min.x, 1)).Fixed();
   pane.dock_proportion = 1;
 }
@@ -3664,7 +3681,10 @@ void Builder::OnChildFocus(wxChildFocusEvent& event)
   while (win && !(panel = dynamic_cast<VizPropertyPanel*>(win))) {
     win = win->GetParent();
   }
-  if (panel && panel->drawsInViewer() && !panel->hasFocus()) {
+  //  The panel's own "Show in viewer" box decides for itself; taking focus
+  //  here first would make the click that ticks it untick it.
+  if (panel && panel->drawsInViewer() && !panel->hasFocus() &&
+      event.GetWindow() != panel->viewerToggle()) {
     wxAuiPaneInfo &pinfo = p_mgr.GetPane(panel);
     if (pinfo.IsOk() && pinfo.IsShown()) {
       panel->setFocus(true);

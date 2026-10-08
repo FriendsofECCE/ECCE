@@ -2410,6 +2410,16 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_gromacs PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+  # Builder overlays, the Organizer thumbnail and New of MD studies, through
+  # the controls' own event paths (private Xvfb); skipped (77) without Xvfb,
+  # ImageMagick's import or python3-pil.
+  add_test(NAME apps_builder_overlay
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_overlay_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_overlay PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
   # An 8.x eccejobmaster exports ECCE_TRANSPORT=pty; it must be ignored.
   add_test(NAME launch_legacy_transport
            COMMAND ${PYTHON3_EXECUTABLE}

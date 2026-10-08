@@ -32,11 +32,16 @@ class PropertyIndexPanel : public wxPanel
     void setSelectHandler(std::function<void(const std::string&)> f)
     { p_onSelect = f; }
 
+    // Test hook: a user's click on the entry: the tree's own selection
+    // event, keyboard focus in the list.  False if it is not listed.
+    bool click(const std::string& name);
+
     // Test hook: what the list holds, one "group/name" line per panel.
     std::vector<std::string> listing() const;
 
   private:
     void OnSelChanged(wxTreeEvent& event);
+    bool selectEntry(const std::string& name, bool quiet);
 
     wxStaticText *p_title;
     wxStaticText *p_codeTheory;

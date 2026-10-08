@@ -154,11 +154,9 @@ void Builder::initPanelMode()
 
   p_columnHidden = config->ReadBool("/ColumnHidden", false) ||
                    getenv("ECCE_PANEL_COLLAPSED") != 0;
-  long tab;
-  if (config->Read("/ColumnTab", &tab)) {
-    p_columnTab = tab ? 1 : 0;
-    p_columnTabChosen = true;
-  }
+  //  The first tab follows the calculation (refreshColumn), not the tab
+  //  last chosen: a finished calculation opens on its Properties.
+  config->DeleteEntry("/ColumnTab");
 }
 
 
@@ -595,9 +593,7 @@ void Builder::setColumnTab(int tab, bool save)
   p_columnTab = tab ? 1 : 0;
   p_columnHidden = false;
   if (save) {
-    p_columnTabChosen = true;
-    ewxConfig::getConfig("wxbuilder.ini")->Write("/ColumnTab",
-                                                 (long)p_columnTab);
+    p_columnTabChosen = true;   // for this calculation, see setContext()
   }
   updatePanes();
 }
@@ -609,6 +605,7 @@ void Builder::setDetail(wxWindow *win)
   if (p_detail && p_detail != win) {
     wxAuiPaneInfo &old = p_mgr.GetPane(p_detail);
     if (old.IsOk()) old.Show(false);
+    unfocusPanel(p_detail);
   }
   p_detail = win;
 }
@@ -628,6 +625,7 @@ void Builder::selectDetail(const string& name)
     pane.frame->Raise();
   }
   updatePanes(true);
+  focusShownPanel(pane.window);
   if (p_index) p_index->setSelected(name);
 }
 

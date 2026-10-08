@@ -495,6 +495,9 @@ protected:
 
   // The Tail window the ECCE_TEST_ORGANIZER hook opened.
   wxWeakRef<WxTailWindow> p_testTail;
+  //  Set by the "new" test command: createResource reports its error
+  //  here instead of in a modal dialog.
+  string *p_testCreateError = 0;
 };
 
 

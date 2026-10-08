@@ -406,6 +406,9 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * summary <url>   select <url> in the tree and print the summary panel's
  *                 molecule, basis and setup fields, as label=value
  * snap <png>      save the Organizer window as a PNG
+ * new <parent url> <type>
+ *                 File > New with resource type <type> (gromacs_md_study,
+ *                 gromacs_md_energy) in <parent>, as the New menu makes it
  * contextmenu <url> right-click <url> in the tree; the New submenu's items
  */
 void CalcMgr::runTestCommand(const string& line)
@@ -453,6 +456,30 @@ void CalcMgr::runTestCommand(const string& line)
         if (parentNode) p_treeCtrl->refresh(parentNode);
         if (made) findNode(made->getURL(), true, true);
         outcome = made ? "ok " + made->getURL().toString() : "not created";
+      }
+    } else if (command == "new") {
+      // "new PARENT-URL TYPE": File > New with TYPE, the resource type's
+      // name in ResourceDescriptor.xml (gromacs_md_study), made in PARENT
+      // as the New menu does it, named by the type's label.  The tool the
+      // Organizer opens for a new resource, if any, starts as after New.
+      std::istringstream args(calcName);
+      string parentUrl, typeName;
+      args >> parentUrl >> typeName;
+      ResourceDescriptor& rd = ResourceDescriptor::getResourceDescriptor();
+      ResourceType *rt = 0;
+      vector<ResourceType*> types = rd.getResourceTypes();
+      for (size_t i = 0; i < types.size() && !rt; i++)
+        if (types[i]->getName() == typeName) rt = types[i];
+      WxResourceTreeItemData *parentNode = findNode(EcceURL(parentUrl),
+                                                    true, true);
+      if (!rt || !parentNode) {
+        outcome = !rt ? "no resource type " + typeName : "no parent node";
+      } else {
+        string error;
+        p_testCreateError = &error;
+        createResource(rt, parentNode, true);
+        p_testCreateError = 0;
+        outcome = error.empty() ? "ok" : "error: " + error;
       }
     } else if (command == "state") {
       Resource *res = EDSIFactory::getResource(EcceURL(calcName));
@@ -5207,8 +5234,13 @@ void CalcMgr::createResource(ResourceType * resType,
 
     // logic to handle MD and condensed phase reaction study branching
     // @todo should be moved to Session::createChild
+    //  A GROMACS study has the application type of its tasks (an NWChem MD
+    //  study has its own, MDStudy), so the study itself must not be linked
+    //  into a session: only a task is.
+    const bool isSession = dynamic_cast<Session*>(newRes) != 0;
     if (newRes->getApplicationType()==ResourceDescriptor::AT_NWCHEMMD ||
-        newRes->getApplicationType()==ResourceDescriptor::AT_GROMACS ||
+        (newRes->getApplicationType()==ResourceDescriptor::AT_GROMACS &&
+         !isSession) ||
         parRes->getApplicationType()==ResourceDescriptor::AT_CONDENSED_REACTION_STUDY) {
       Resource *source = 0;
       vector<EcceURL> panelSelections = p_contextPanel->getSelections();
@@ -5297,6 +5329,10 @@ void CalcMgr::createResource(ResourceType * resType,
     }
   }
   catch (InvalidException& ex) {
+    if (p_testCreateError) {
+      *p_testCreateError = ex.what();
+      return;
+    }
     ewxMessageDialog dlg(this, ex.what(),
                          "Unable to create " + name + " object!",
                          wxOK|wxICON_EXCLAMATION, wxDefaultPosition);

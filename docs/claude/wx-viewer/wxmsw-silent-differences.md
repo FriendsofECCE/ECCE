@@ -23,8 +23,9 @@ Each of these worked on GTK and failed silently on Windows:
   on the frame need the button face (`ewxStyledWindow::setStyles`).
 - **The default GL pixel format has no alpha**, so Coin's depth peeling
   fell back to the screen door; ask for `WX_GL_MIN_ALPHA 8` on MSW too.
-- **Keyboard focus does not follow a shown pane**, so viz focus taken only
-  in `OnChildFocus` never came; opening a property pane gives it focus.
+- **Keyboard focus does not follow a shown pane** (on GTK either), so viz
+  focus taken only in `OnChildFocus` never came; see the
+  property-overlay entry.
 - **system() is cmd.exe** (no sh syntax, no extensionless scripts, exit
   code not wait status, a console window flashes): `Ecce::runCommand`,
   `Ecce::scriptCommand`.

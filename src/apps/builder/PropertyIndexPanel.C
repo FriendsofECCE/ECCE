@@ -125,7 +125,20 @@ void PropertyIndexPanel::setEntries(const std::vector<Entry>& entries)
 
 void PropertyIndexPanel::setSelected(const std::string& name)
 {
-  p_quiet = true;
+  selectEntry(name, true);
+}
+
+
+bool PropertyIndexPanel::click(const std::string& name)
+{
+  p_tree->SetFocus();
+  return selectEntry(name, false);
+}
+
+
+bool PropertyIndexPanel::selectEntry(const std::string& name, bool quiet)
+{
+  p_quiet = quiet;
   wxTreeItemId root = p_tree->GetRootItem();
   bool found = false;
   wxTreeItemIdValue c1;
@@ -150,10 +163,11 @@ void PropertyIndexPanel::setSelected(const std::string& name)
       }
     }
   }
-  if (!found) {
+  if (!found && quiet) {
     p_tree->UnselectAll();
   }
   p_quiet = false;
+  return found;
 }
 
 
