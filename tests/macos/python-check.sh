@@ -66,4 +66,5 @@ kill $lis 2>/dev/null
 n=$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["widgets"]))' "$OUT/inventory.json" 2>/dev/null)
 say "Theory Details dialog (mopactheory.py): exit $r, widgets: ${n:-none}"
 [ "${n:-0}" -gt 0 ] && [ "$r" = 0 ] || { fail "Theory Details dialog"; tail -15 "$OUT/theory.log" | tee -a "$SUMMARY"; }
+rm -rf "$FH"   # symlinks into the app would be uploaded with the artifact
 exit $rc
