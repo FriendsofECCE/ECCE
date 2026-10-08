@@ -1,0 +1,37 @@
+     Threshold (ethr) on eigenvalues was too large:
+     Diagonalizing with lowered threshold
+
+     Davidson diagonalization with overlap
+     ethr =  6.86E-04,  avg # of iterations =  1.5
+
+     total cpu time spent up to now is        5.8 secs
+
+     total energy              =     -22.82308918 Ry
+     estimated scf accuracy    <       0.05973090 Ry
+
+     iteration #  2     ecut=    30.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  7.47E-04,  avg # of iterations =  1.0
+
+     total cpu time spent up to now is        8.2 secs
+
+     total energy              =     -22.82497246 Ry
+     estimated scf accuracy    <       0.00315445 Ry
+
+     iteration #  3     ecut=    30.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  3.94E-05,  avg # of iterations =  2.8
+
+     total cpu time spent up to now is       10.8 secs
+
+     total energy              =     -22.82569150 Ry
+     estimated scf accuracy    <       0.00010524 Ry
+
+     End of self-consistent calculation
+
+     convergence NOT achieved after   3 iterations: stopping
+
+     Writing output data file ./o2/si2.save/
+
+     init_run     :      7.50s CPU      2.71s WALL (       1 calls)
+     electrons    :     22.38s CPU      7.82s WALL (       1 calls)
