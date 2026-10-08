@@ -288,6 +288,11 @@ bool GeomTracePropertyPanel::isRelevant(IPropCalculation *propCalc) const
 
 void GeomTracePropertyPanel::fillPlot()
 {
+  //  A code that stores a trace but no per-step series (Quantum ESPRESSO)
+  //  leaves nothing to plot.  Asking for a property named "" fetches the
+  //  whole Props folder, and the answer crashed the parser.
+  if (p_currentProp.empty()) return;
+
   PropVector *prop = dynamic_cast<PropVector*>(
           getCalculation()->getProperty(p_currentProp));
 

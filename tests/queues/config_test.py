@@ -186,6 +186,88 @@ def precedence(build, perl):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def threeLayers(build, perl):
+    """-remote with the server's files cached (#192): [the user's copy of
+    their server registrations, the server's site files, the install's].  The
+    site CONFIG.<m> comes whole from one layer, the user's merges over it, and
+    localhost is the client's alone.  C++ and gensub must agree."""
+    tmp = tempfile.mkdtemp(prefix="ecce-config-")
+    try:
+        home = os.path.join(tmp, "home")
+        user = os.path.join(tmp, "user")
+        key = "srv.example.org_8096"
+        cache = os.path.join(user, ".ECCE", "server", key)
+        srv = os.path.join(cache, "site")
+        mine = os.path.join(cache, "user-alice")
+        os.makedirs(os.path.join(home, "data"))
+        os.symlink(os.path.join(REPO, "scripts"), os.path.join(home, "scripts"))
+        os.symlink(os.path.join(REPO, "data", "client"),
+                   os.path.join(home, "data", "client"))
+        local = MACHINES + MACHINES.replace("testhost\ttesthost.example.org",
+                                            "localhost\tlocalhost")
+        write(os.path.join(home, "siteconfig", "RemoteServer", "DataServers"),
+              "<EcceData><EcceServer><Url>http://srv.example.org:8096/Ecce"
+              "</Url></EcceServer></EcceData>\n")
+        write(os.path.join(home, "siteconfig", "Machines"), local)
+        write(os.path.join(home, "siteconfig", "CONFIG.testhost"),
+              "shell: inst\ninstkey: i\n")
+        write(os.path.join(home, "siteconfig", "CONFIG.localhost"),
+              "shell: instlocal\n")
+        write(os.path.join(srv, "Machines"), local)
+        write(os.path.join(srv, "CONFIG.testhost"), "shell: srv\nsrvkey: s\n")
+        write(os.path.join(srv, "CONFIG.localhost"),
+              "shell: srvlocal\nsrvlocalkey: x\n")
+        write(os.path.join(mine, "CONFIG.testhost"), "shell: usr\n")
+        write(os.path.join(user, ".ECCE", "CONFIG.localhost"), "useronly: l\n")
+        env = dict(os.environ, ECCE_HOME=home, ECCE_REALUSERHOME=user,
+                   ECCE_REMOTE_SERVER="1", ECCE_SERVER_LOGIN="alice")
+
+        def cpp(m):
+            return parseDump(subprocess.run(
+                [os.path.join(build, "configdump"), m], env=env,
+                stdout=subprocess.PIPE, text=True).stdout)
+
+        def dirs(m):
+            return subprocess.run(
+                [os.path.join(build, "configdump"), "-dirs", m], env=env,
+                stdout=subprocess.PIPE, text=True).stdout.strip()
+
+        def gensub(m, dirList):
+            params = os.path.join(tmp, "params")
+            write(params, " -H %s\n -Q Shell\n -c NWChem\n -d localhost\n"
+                          " -n 1\n -N 1\n -r %s\n -i a.nw\n -o a.out\n"
+                          " -f %s\n" % (m, tmp, os.path.join(tmp, "submit__x")))
+            return parseDump(subprocess.run(
+                [perl, os.path.join(REPO, "scripts", "gensub"), "-p", params],
+                env=dict(env, GENSUB_DUMP_CONFIG="1",
+                         ECCE_SITECONFIG_DIRS=dirList),
+                cwd=tmp, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                text=True).stdout)
+
+        inst = os.path.join(home, "siteconfig") + "/"
+        want = ":".join([mine + "/", srv + "/", inst])
+        check(dirs("testhost") == want, "layers for a machine: user, server, "
+              "install" + ("" if dirs("testhost") == want else
+                           "\n  got %r\n  want %r" % (dirs("testhost"), want)))
+        wantLocal = ":".join([os.path.join(user, ".ECCE") + "/", inst])
+        check(dirs("localhost") == wantLocal,
+              "layers for localhost: ~/.ECCE and the install only")
+
+        t = cpp("testhost")
+        check(t == {"shell": "usr", "srvkey": "s"},
+              "testhost: server file, never merged with the install's, "
+              "user key on top: %r" % t)
+        check(gensub("testhost", dirs("testhost")) == t,
+              "testhost: gensub agrees with C++")
+        l = cpp("localhost")
+        check(l == {"shell": "instlocal", "useronly": "l"},
+              "localhost: install and ~/.ECCE only: %r" % l)
+        check(gensub("localhost", dirs("localhost")) == l,
+              "localhost: gensub agrees with C++")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def explain(build, perl):
     """GENSUB_EXPLAIN agrees with GENSUB_DUMP_CONFIG and configdump, and its
     provenance matches layers built here, independently of gensub."""
@@ -657,6 +739,7 @@ def main():
 
     if not args.processmachine:
         precedence(args.build, perl)
+        threeLayers(args.build, perl)
         sentinelScript(perl)
         moduleScript(perl)
         explain(args.build, perl)

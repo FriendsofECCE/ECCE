@@ -13,6 +13,9 @@ the second page.
    where a code is installed.
 4. [Your first calculation](first-calculation.md): a geometry optimisation
    of water with NWChem, from a new project to the results.
+5. [Your first Quantum ESPRESSO calculation](qe-first-calculation.md): bulk
+   silicon and a water molecule in a box, with a periodic cell, plane waves
+   and pseudopotentials.
 
 Reference:
 

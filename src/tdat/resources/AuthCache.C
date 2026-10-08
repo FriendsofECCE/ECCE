@@ -621,9 +621,15 @@ BasicAuth *AuthCache::getAuthentication
       pass = findBest(key, user, retryCount);
     }
 
+    // The newest credential of the same kind: a compute machine's password
+    // (ssh://, cached by RCommand) must never be sent to a data server.
     if (pass=="" && p_URLPolicy==LAST_URL) {
-      if (p_memcache.size() > 0) {
-        pass = p_memcache[0]->pass;
+      const bool http = sessionWorthy(key);
+      for (size_t i = 0; i < p_memcache.size(); i++) {
+        if (sessionWorthy(p_memcache[i]->url) == http) {
+          pass = p_memcache[i]->pass;
+          break;
+        }
       }
     }
   }

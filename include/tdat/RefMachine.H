@@ -142,7 +142,7 @@ protected:
 
   // Derived Class Accessors
     static bool initialize(const machineContextEnum& context = allMachines);
-    static void parseFile(ifstream& inFile);
+    static void parseFile(ifstream& inFile, bool skipLocalhost = false);
     bool validate_and_assign(const string& refname);
 
 private:
