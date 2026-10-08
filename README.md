@@ -17,7 +17,7 @@ describe 9.0. Native macOS and Windows clients are in preview (see
 [Installation](#installation)).
 
 > **For production use: 8.18.x** (branch `stable-8`, latest
-> [v8.18.8](https://github.com/FriendsofECCE/ECCE/releases/tag/v8.18.8)).
+> [v8.18.9](https://github.com/FriendsofECCE/ECCE/releases/tag/v8.18.9)).
 > Installation differs in one respect: 8.x is a single `ecce` package
 > (`sudo apt install ./ecce_<version>_amd64.deb`) instead of `ecce-client`
 > plus `ecce-server`. 8.x and 9.x clients and servers do not interoperate.
@@ -377,18 +377,16 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
 
 | 9.x (previews) | 8.x (stable) |
 |---|---|
-| **v9.0.0-alpha.7** — Builder no longer crashes opening structure files (#238); viewer works on FastX with the Fedora/RHEL packages (#237); ORCA explicit basis sets fixed (#239); MO composition (#161); TLS for the central server (#236); windows fit small screens (#189); first macOS packages (#133) | **v8.18.8** — ORCA with an explicitly written Dunning or ANO basis set lost functions and gave wrong energies (#239). |
-| **v9.0.0-alpha.6** — Builder panels in one column with a choice of layout and a collapse button; jobs followed after logout (#208); spectrum viewer (#214); Register Machines as a tabbed editor with queue discovery and job-script preview (#234, #212); help window (#219); session id (#233); `ecce --local`. | **v8.18.7** — MD Prepare's Orient panel and toolbox labels no longer show garbage. |
-| **v9.0.0-alpha.4** — 3D viewer on Coin3D (#166): accurate transparency, immediate redraws, Reset View, atom labels again; ESP surfaces about 30 times faster (#229); a CONFIG.localhost for new users (#230). | **v8.18.6** — File dialog filter and typed paths work; import reports an unreadable path instead of crashing; CAR files keep their first atom; Register Machines runs no shell commands on what you type. |
-| **v9.0.0-alpha.3** — Mosquitto replaces ActiveMQ and Java (#213, #194); optional local data mode (#216); colours and controls follow the GTK theme (#210). | **v8.18.5** — Viewer redraws after every change (#99); ESP surfaces about 30 times faster (#229); Symmetry panel follows the point group; ecce-remote-setup needs curl. |
-| **v9.0.0-alpha.2** — The scripted shell session is removed: commands run directly or over ssh; csh no longer required; ssh/ftp and sshpass become plain ssh. | **v8.18.4** — Viewer property panes fold to their caption bar (#196); a new desktop icon. |
-| **v9.0.0-alpha.1** — Built-in ssh by default, shared ssh connections and a host-key dialog (#204); two packages, ecce-client and ecce-server; job scripts in POSIX sh. | **v8.18.3** — Passwords no longer pass through the message broker; the local message link accepts only its own session (#194); a desktop menu entry (#211). |
+| **v9.0.0-alpha.7** — Builder no longer crashes opening structure files (#238); viewer works on FastX with the Fedora/RHEL packages (#237); ORCA explicit basis sets fixed (#239); MO composition (#161); TLS for the central server (#236); windows fit small screens (#189); first macOS packages (#133) | **v8.18.9** — A compute machine's password was sent to the data server, and jobs on machines with password login were not monitored. |
+| **v9.0.0-alpha.6** — Builder panels in one column with a choice of layout and a collapse button; jobs followed after logout (#208); spectrum viewer (#214); Register Machines as a tabbed editor with queue discovery and job-script preview (#234, #212); help window (#219); session id (#233); `ecce --local`. | **v8.18.8** — ORCA with an explicitly written Dunning or ANO basis set lost functions and gave wrong energies (#239). |
+| **v9.0.0-alpha.4** — 3D viewer on Coin3D (#166): accurate transparency, immediate redraws, Reset View, atom labels again; ESP surfaces about 30 times faster (#229); a CONFIG.localhost for new users (#230). | **v8.18.7** — MD Prepare's Orient panel and toolbox labels no longer show garbage. |
+| **v9.0.0-alpha.3** — Mosquitto replaces ActiveMQ and Java (#213, #194); optional local data mode (#216); colours and controls follow the GTK theme (#210). | **v8.18.6** — File dialog filter and typed paths work; import reports an unreadable path instead of crashing; CAR files keep their first atom; Register Machines runs no shell commands on what you type. |
+| **v9.0.0-alpha.2** — The scripted shell session is removed: commands run directly or over ssh; csh no longer required; ssh/ftp and sshpass become plain ssh. | **v8.18.5** — Viewer redraws after every change (#99); ESP surfaces about 30 times faster (#229); Symmetry panel follows the point group; ecce-remote-setup needs curl. |
+| **v9.0.0-alpha.1** — Built-in ssh by default, shared ssh connections and a host-key dialog (#204); two packages, ecce-client and ecce-server; job scripts in POSIX sh. | **v8.18.4** — Viewer property panes fold to their caption bar (#196); a new desktop icon. |
+|  | **v8.18.3** — Passwords no longer pass through the message broker; the local message link accepts only its own session (#194); a desktop menu entry (#211). |
 |  | **v8.18.2** — A job that finishes while its monitor restarts is no longer stored as killed. |
-| | **v8.18.1** — A fresh calculation's output file is no longer named "Outputs", which lost MOPAC's energies and geometries (#207). |
-| | **v8.18.0** — Experimental built-in ssh (#204); telnet, Globus and rsh removed; Machine Registration fixes; About ECCE (#168). |
-| | **v8.17.4** — Cluster job monitoring survives a dropped connection or a killed monitor (#205). |
-| | **v8.17.3** — RHEL 9: the data server starts (#193); Tail, Final Edit and Open Shell work with bash (#200); first native Ubuntu and RHEL packages. |
-| | **v8.17.2** — The data server starts on RHEL (#193). |
+|  | **v8.18.1** — A fresh calculation's output file is no longer named "Outputs", which lost MOPAC's energies and geometries (#207). |
+|  | **v8.18.0** — Experimental built-in ssh (#204); telnet, Globus and rsh removed; Machine Registration fixes; About ECCE (#168). |
 
 ## Roadmap
 
