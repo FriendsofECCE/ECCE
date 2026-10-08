@@ -906,7 +906,7 @@ bool bitmapShowsAnything(const wxBitmap& bmp)
 
 //  What is being looked at, written before it is touched, so a crash in
 //  the walk names its window.
-void traceWindow(wxWindow *w)
+void traceWindow(wxWindow *w, const char *stage = "")
 {
   static FILE *trace = NULL;
   static bool tried = false;
@@ -916,7 +916,7 @@ void traceWindow(wxWindow *w)
     if (dir) trace = fopen((std::string(dir) + "/trace.txt").c_str(), "a");
   }
   if (!trace) return;
-  fprintf(trace, "%p %s %d,%d\n", (void*)w,
+  fprintf(trace, "%s %p %s %d,%d\n", stage, (void*)w,
           (const char*) wxString(w->GetClassInfo()->GetClassName()).utf8_str(),
           w->GetSize().x, w->GetSize().y);
   fflush(trace);
@@ -934,6 +934,7 @@ void auditWindow(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
   };
 
   const wxSize size = w->GetSize();
+  traceWindow(w, " outside");
   if (w != top && size.x > 0 && size.y > 0) {
     //  A control that sticks out of any ancestor's client area is cut.
     wxRect me = screenRect(w);
@@ -956,6 +957,7 @@ void auditWindow(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
     }
   }
 
+  traceWindow(w, " best");
   //  Controls whose best size is the size of what they show.  Choices,
   //  combo boxes and spin controls are sized by the app on purpose; what
   //  they hold is checked below.
@@ -979,6 +981,7 @@ void auditWindow(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
     }
   }
 
+  traceWindow(w, " button");
   wxAnyButton *btn = wxDynamicCast(w, wxAnyButton);
   if (btn) {
     wxBitmap bmp = btn->GetBitmap();
@@ -996,6 +999,7 @@ void auditWindow(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
     }
   }
 
+  traceWindow(w, " text");
   //  A single-line field narrower than what it holds.
   wxString value;
   int pad = 0;
@@ -1037,6 +1041,7 @@ void walk(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
   if (!w->IsShown()) return;
   if (w->IsKindOf(wxCLASSINFO(wxTopLevelWindow)) && w != top) return;
   if (w->IsShownOnScreen()) auditWindow(w, top, out);
+  traceWindow(w, " kids");
   if (isOpaque(w)) return;
   //  A combo box's or spin control's inner text field is not a control of
   //  ours.
