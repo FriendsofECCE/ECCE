@@ -18,6 +18,7 @@
 #ifndef ECCE_HH
 #define ECCE_HH
 
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
@@ -159,6 +160,29 @@ class Ecce
         return rc;
 #else
         return rc == -1 ? -1 : (rc >> 8) & 0xff;
+#endif
+      }
+
+      // A script to run by path in a command line.  cmd.exe cannot run an
+      // extensionless script, so on Windows its #! line names the
+      // interpreter (perl or python3) and the path is quoted.
+      static string scriptCommand(const string& path)
+      {
+#ifdef _WIN32
+        string first;
+        if (FILE* f = fopen(path.c_str(), "r")) {
+          char buf[256];
+          if (fgets(buf, sizeof buf, f)) first = buf;
+          fclose(f);
+        }
+        string quoted = "\"" + path + "\"";
+        if (first.compare(0, 2, "#!") == 0) {
+          if (first.find("perl") != string::npos) return "perl " + quoted;
+          if (first.find("python") != string::npos) return "python3 " + quoted;
+        }
+        return quoted;
+#else
+        return path;
 #endif
       }
 

@@ -434,19 +434,15 @@ void MDEdBase::generateInputFile(MdTask *task)
 
    // Run the conversion script
    SFile *tmpInput = TempStorage::getTempFile();
-   string cmd = Ecce::ecceDataControllersPath();
-   cmd += "/";
    string inputGenFile;
    codecap->get_string("TaskInputGenerator", inputGenFile);
    if (inputGenFile.empty()) {
      throw IOException("Could not find input generator file name", WHERE);
    }
-   cmd += inputGenFile + " < ";
-   cmd += tmpModel->path();
-   cmd += " > ";
-   cmd += tmpInput->path();
-   int istatus = system(cmd.c_str());
-   istatus = istatus >> 8;
+   string cmd = Ecce::scriptCommand(string(Ecce::ecceDataControllersPath()) +
+                                    "/" + inputGenFile) +
+                " < \"" + tmpModel->path() + "\" > \"" + tmpInput->path() + "\"";
+   int istatus = Ecce::runCommand(cmd);
    if (istatus != 0) {
       throw IOException("Input file generation failed.", WHERE);
    }
