@@ -13,7 +13,8 @@
 //    close-details            close the dialogs, as OK does
 //    button save|verify|finaledit|launch
 //    dismiss                  close a modal dialog (OK)
-//    info                     the current choices and GUI values, on stderr
+//    info                     the current choices, GUI values and the
+//                             Verify lamp ("verify="), on stderr
 //    shot NAME                writes NAME.ready next to the script and waits
 //                             for NAME.go while the test photographs
 //    quit
@@ -184,6 +185,13 @@ void CalcEd::runCalcEdScript(const string& file)
                 getTheoryName().ToStdString().c_str(),
                 getRuntypeName().ToStdString().c_str(),
                 launch && launch->IsEnabled() ? "enabled" : "disabled");
+        //  The Verify lamp: empty (not checked), else its tooltip.
+        wxWindow *lamp = FindWindow(ID_STATICTEXT_CALCED_VERIFY_LIGHT);
+        wxString lampText = !lamp || lamp->GetLabel().IsEmpty()
+            ? wxString("unchecked")
+            : lamp->GetLabel() + " " + lamp->GetToolTipText();
+        lampText.Replace("\n", " | ");
+        fprintf(stderr, "CALCED: verify=%s\n", lampText.utf8_str().data());
         for (GUIValues::const_iterator it = p_GUIValues->begin();
              it != p_GUIValues->end(); ++it)
           fprintf(stderr, "CALCED: %s=%s\n", it->first.c_str(),
