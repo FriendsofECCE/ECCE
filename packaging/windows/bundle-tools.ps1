@@ -74,7 +74,10 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 Get-ChildItem $site -Recurse -Include *.pyi -File | Remove-Item -Force
 # site-packages on sys.path, and `import site` on (the embeddable default is off).
 $pth = Get-ChildItem $py -Filter "python*._pth" | Select-Object -First 1
-Set-Content -Encoding ascii $pth.FullName @("python313.zip", ".", "Lib\site-packages", "import site")
+# ..\scripts\codereg: the Theory/Runtype dialogs import their shared
+# modules (templates.py) from there, and a ._pth file replaces the usual
+# "script's own directory first" (and PYTHONPATH).
+Set-Content -Encoding ascii $pth.FullName @("python313.zip", ".", "Lib\site-packages", "..\scripts\codereg", "import site")
 Copy-Item "$py\python.exe" "$py\python3.exe"
 Copy-Item "$py\pythonw.exe" "$py\python3w.exe"
 "python bundled: $(Size $py)"

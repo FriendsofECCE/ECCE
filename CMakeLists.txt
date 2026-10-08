@@ -781,9 +781,14 @@ if(WIN32 OR APPLE)
   string(REGEX REPLACE "# A machine ECCE never contacts[^\n]*\n(#[^\n]*\n)*dummy\t[^\n]*\n" ""
          _machines "${_machines}")
   file(WRITE ${CMAKE_BINARY_DIR}/siteconfig-local/Machines "${_machines}")
+  file(READ ${CMAKE_SOURCE_DIR}/siteconfig/Queues _queues)
+  string(REPLACE "Queues: localhost dummy" "Queues: localhost" _queues "${_queues}")
+  string(REGEX REPLACE "\ndummy\\|[^\n]*" "" _queues "${_queues}")
+  file(WRITE ${CMAKE_BINARY_DIR}/siteconfig-local/Queues "${_queues}")
   install(FILES ${CMAKE_BINARY_DIR}/siteconfig-local/Machines
+                ${CMAKE_BINARY_DIR}/siteconfig-local/Queues
           DESTINATION siteconfig COMPONENT client)
-  set(_siteconfig_excludes PATTERN "Machines" EXCLUDE
+  set(_siteconfig_excludes PATTERN "Machines" EXCLUDE PATTERN "Queues" EXCLUDE
       PATTERN "CONFIG.dummy" EXCLUDE PATTERN "dummy.Q" EXCLUDE)
 endif()
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/siteconfig/ DESTINATION siteconfig
