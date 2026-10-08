@@ -200,21 +200,39 @@ bool RCommand::importSourceFile(const string& sourceFile, const string& locShell
 }
 
 #ifdef ECCE_HAVE_LIBSSH
+// The dialog programs' arguments: no shell on Windows (no console window,
+// nothing in a host or user name that cmd.exe would expand).
+static string dialogCommand(const string& program,
+                            const std::vector<string>& args)
+{
+  string cmd = Ecce::ecceBinCommand(program);
+  for (size_t i = 0; i < args.size(); i++)
+#ifdef _WIN32
+    cmd += " " + Ecce::winArg(args[i]);
+#else
+    cmd += " " + shQuote(args[i]);
+#endif
+  return cmd;
+}
+
+static int runDialog(const string& program, const std::vector<string>& args,
+                     string& out)
+{
+#ifdef _WIN32
+  return Ecce::readCommand(dialogCommand(program, args), out, false);
+#else
+  return Ecce::readCommand(dialogCommand(program, args), out);
+#endif
+}
+
 // One line from passdialog; false if it was cancelled or could not run.
 static bool askPassdialog(const char* type, const string& machine,
                           const string& user, string& answer)
 {
-  string cmd = Ecce::ecceBinCommand("passdialog") + " " + type + " " +
-               machine + " " + user;
-  FILE* p = popen(cmd.c_str(), "r");
-  if (!p) return false;
-  char buf[MAXLINE];
-  bool ok = fgets(buf, sizeof(buf), p) != NULL;
-  pclose(p);
-  if (!ok) return false;
-  answer = buf;
-  while (!answer.empty() && (answer[answer.size()-1]=='\n' ||
-                             answer[answer.size()-1]=='\r'))
+  string out;
+  if (runDialog("passdialog", {type, machine, user}, out) < 0) return false;
+  answer = out.substr(0, out.find('\n'));
+  while (!answer.empty() && answer[answer.size()-1]=='\r')
     answer.erase(answer.size()-1);
   return !answer.empty();
 }
@@ -226,19 +244,12 @@ static bool askHostKeyDialog(const string& host, const string& fp,
 {
   ran = false;
   if (!Ecce::guiAvailable()) return false;
-  string cmd = Ecce::ecceBinCommand("hostkeydialog") + " " + shQuote(host) +
-               " " + shQuote(fp) + " " + shQuote(keyType);
-  FILE* p = popen(cmd.c_str(), "r");
-  if (!p) return false;
-  char buf[MAXLINE];
   string out;
-  while (fgets(buf, sizeof(buf), p)) out += buf;
-  int st = pclose(p);
+  int st = runDialog("hostkeydialog", {host, fp, keyType}, out);
   // 126/127: the shell could not run the program at all.
-  if (WIFEXITED(st) && (WEXITSTATUS(st) == 126 || WEXITSTATUS(st) == 127))
-    return false;
+  if (st < 0 || st == 126 || st == 127) return false;
   ran = true;
-  return WIFEXITED(st) && WEXITSTATUS(st) == 0 && out.find("accept") == 0;
+  return st == 0 && out.find("accept") == 0;
 }
 
 static bool looksLikeCode(const string& prompt)

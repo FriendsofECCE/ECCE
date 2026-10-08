@@ -1931,29 +1931,36 @@ bool Launch::doLaunch(void)
         //  their working directory set to bin, so the bare "./msgdialog"
         //  this used to be found nothing and the prompt never appeared
         //  (#134).
-        string jobCmd = Ecce::ecceBinCommand("msgdialog") +
-                        " prompt 'Enter Job ID' 'After submitting the job, enter the job ID that was returned:'";
-        FILE* jobPtr;
-        char jobBuf[MAXLINE];
+        const char* title = "Enter Job ID";
+        const char* text = "After submitting the job, enter the job ID that was returned:";
+#ifdef _WIN32
+        string jobCmd = Ecce::ecceBinCommand("msgdialog") + " prompt " +
+                        Ecce::winArg(title) + " " + Ecce::winArg(text);
+        const bool shell = false;   // no cmd.exe console behind the dialog
+#else
+        string jobCmd = Ecce::ecceBinCommand("msgdialog") + " prompt '" +
+                        title + "' '" + text + "'";
+        const bool shell = true;
+#endif
+        string jobOut;
 
         ret = false;
-        if ((jobPtr = popen(jobCmd.c_str(), "r")) != NULL) {
-          if (fgets(jobBuf, sizeof(jobBuf), jobPtr) != NULL) {
-            // strip off the trailing newline
-            jobBuf[strlen(jobBuf)-1] = '\0';
-            // handle job id dialog cancel button
-            if (strcmp(jobBuf, "") != 0) {
-              // update Jobdata structure with the id given by the user
-              p_cache->jobId = jobBuf;
+        if (Ecce::readCommand(jobCmd, jobOut, shell) >= 0) {
+          string jobId = jobOut.substr(0, jobOut.find('\n'));
+          if (!jobId.empty() && jobId[jobId.size()-1] == '\r')
+            jobId.erase(jobId.size()-1);
+          // handle job id dialog cancel button
+          if (!jobId.empty()) {
+            // update Jobdata structure with the id given by the user
+            p_cache->jobId = jobId;
 
-              p_infoMessage = "Job id is " + p_cache->jobId;
+            p_infoMessage = "Job id is " + p_cache->jobId;
 
-              Jobdata jobdata = p_taskjob->jobdata();
-              jobdata.jobid = p_cache->jobId;
-              p_taskjob->jobdata(jobdata);
+            Jobdata jobdata = p_taskjob->jobdata();
+            jobdata.jobid = p_cache->jobId;
+            p_taskjob->jobdata(jobdata);
 
-              ret = true;
-            }
+            ret = true;
           }
         }
         if (!ret) {

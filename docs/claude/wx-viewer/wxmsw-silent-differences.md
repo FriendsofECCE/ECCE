@@ -1,8 +1,8 @@
 ---
 type: pitfall
-title: "wxMSW: 16-bit menu ids, no right-click selection, no manifest, text-mode 0x1A, a grey frame, no alpha by default"
+title: "wxMSW: 16-bit menu ids, no right-click selection, no manifest, text-mode 0x1A, a grey frame, no alpha by default, console windows from system()/popen()"
 area: wx-viewer
-paths: ["packaging/windows/ecce.rc", "src/apps/calced/CalcEd.C", "src/apps/organizer/CalcMgr.C", "src/dsm/edsiimpl/ChemistryTask.C", "src/dsm/edsiimpl/Resource.C", "src/wxgui/ewxClasses/ewxStyledWindow.C", "src/inv/wxinv/SoWxViewer.C", "src/apps/builder/Builder.C", "src/apps/builder/VizPropertyPanel.C", "include/util/Ecce.H", "tests/windows/probe_win.py"]
+paths: ["packaging/windows/ecce.rc", "src/apps/calced/CalcEd.C", "src/apps/organizer/CalcMgr.C", "src/dsm/edsiimpl/ChemistryTask.C", "src/dsm/edsiimpl/Resource.C", "src/wxgui/ewxClasses/ewxStyledWindow.C", "src/inv/wxinv/SoWxViewer.C", "src/apps/builder/Builder.C", "src/apps/builder/VizPropertyPanel.C", "include/util/Ecce.H", "src/tdat/chemistry/MoFragments.C", "src/comm/rcommand/RCommand.C", "src/comm/commxt/Launch.C", "src/util/command/CommandWrapper.C", "tests/windows/probe_win.py"]
 issues: [133]
 ---
 Each of these worked on GTK and failed silently on Windows:
@@ -29,6 +29,12 @@ Each of these worked on GTK and failed silently on Windows:
 - **system() is cmd.exe** (no sh syntax, no extensionless scripts, exit
   code not wait status, a console window flashes): `Ecce::runCommand`,
   `Ecce::scriptCommand`.
+- **popen() is cmd.exe in a new console**: a window per call. The MO
+  diagram's five `symops` calls flashed five at every open of a calculation
+  (and slowed the build past the progress dialog's 300 ms, so "Building MO
+  Diagram" flashed too). `Ecce::readCommand` reads a command's output with
+  no window; `shell=false` with `Ecce::winArg` skips cmd.exe for the
+  dialog programs (passdialog, hostkeydialog, msgdialog).
 
 `tests/windows/probe_win.py` checks the first, second and fourth through
 the apps' hooks; `tests/windows/winshot.ps1` photographs windows, which

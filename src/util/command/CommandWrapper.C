@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "util/CommandWrapper.H"
+#include "util/Ecce.H"
 
 CommandWrapper::CommandWrapper()
 {
@@ -28,8 +29,9 @@ void CommandWrapper::setCommand(const string& cmd)
 void CommandWrapper::execute()
 {
    string cmd = getCommand();
-   int istatus = system(cmd.c_str());
-   istatus = ( istatus >> 8 ) ;
+   // No console window on Windows, and the exit code rather than a
+   // wait status there.
+   int istatus = Ecce::runCommand(cmd);
 
    if (istatus != 0) 
       throw SystemCommandException(istatus, 

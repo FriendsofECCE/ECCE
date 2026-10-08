@@ -209,6 +209,15 @@ bool MoFragments::symmetryOperations(const string& group, vector<SymOp>& ops)
       upper[i] = toupper(upper[i]);
    }
 
+   //  A group's operations never change, and one diagram asks for the
+   //  same group several times: each call was a process start.
+   static map<string, vector<SymOp> > known;
+   map<string, vector<SymOp> >::const_iterator hit = known.find(upper);
+   if (hit != known.end()) {
+      ops = hit->second;
+      return true;
+   }
+
    //  Resolved against $ECCE_HOME/bin, like the other Fortran helpers:
    //  the applications no longer run with their working directory set
    //  to the bin directory, so a bare "./symops" finds nothing.
@@ -220,19 +229,20 @@ bool MoFragments::symmetryOperations(const string& group, vector<SymOp>& ops)
    command = "echo " + upper + " | " + command + " 2>/dev/null";
 #endif
 
-   FILE *pipe = popen(command.c_str(), "r");
-   if (pipe == 0) return false;
+   string output;
+   const int status = Ecce::readCommand(command, output);
+   if (status < 0) return false;
+   std::istringstream pipe(output);
 
    int count = 0;
-   bool ok = (fscanf(pipe, "%d", &count) == 1) && count > 0 && count <= 192;
+   bool ok = (pipe >> count) && count > 0 && count <= 192;
 
    for (int o = 0; ok && o < count; o++) {
       SymOp op;
       for (int row = 0; row < 3; row++) {
          double translation;
-         if (fscanf(pipe, "%lf %lf %lf %lf",
-                    &op.m[row][0], &op.m[row][1], &op.m[row][2],
-                    &translation) != 4) {
+         if (!(pipe >> op.m[row][0] >> op.m[row][1] >> op.m[row][2]
+                    >> translation)) {
             ok = false;
             break;
          }
@@ -243,9 +253,10 @@ bool MoFragments::symmetryOperations(const string& group, vector<SymOp>& ops)
    //  A non-zero exit means the group name was not one of the 46 the
    //  generator knows.  Checked, because a partial read looks the same
    //  as an unknown group otherwise.
-   if (pclose(pipe) != 0) ok = false;
+   if (status != 0) ok = false;
 
    if (!ok) ops.clear();
+   else known[upper] = ops;
    return ok;
 }
 

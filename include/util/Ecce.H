@@ -214,6 +214,118 @@ class Ecce
 #endif
       }
 
+#ifdef _WIN32
+      // One argument for a Windows command line, quoted the way the C
+      // runtime splits it again (backslashes before a quote doubled).
+      static string winArg(const string& s)
+      {
+        string r = "\"";
+        size_t bs = 0;
+        for (size_t i = 0; i < s.size(); i++) {
+          if (s[i] == '\\') { bs++; continue; }
+          r.append(s[i] == '"' ? 2*bs + 1 : bs, '\\');
+          r += s[i];
+          bs = 0;
+        }
+        r.append(2*bs, '\\');
+        return r + "\"";
+      }
+#endif
+
+      // popen(cmd, "r") read to its end; returns the exit status, -1 if
+      // it did not start.  On Windows popen() is cmd.exe in a new console,
+      // which flashes up a window from a GUI program; here cmd.exe runs
+      // with no window, standard input NUL, and only the pipe and standard
+      // error inherited (another thread's child cannot pick up the pipe).
+      // shell=false (Windows) runs cmd as a program and winArg()-quoted
+      // arguments, with no cmd.exe to expand %, quotes or & in them.
+      static int readCommand(const string& cmd, string& out,
+                             bool shell = true)
+      {
+        out.clear();
+#ifdef _WIN32
+        SECURITY_ATTRIBUTES sa = { sizeof(sa), NULL, TRUE };
+        HANDLE rd = 0, wr = 0;
+        if (!CreatePipe(&rd, &wr, &sa, 0)) return -1;
+        SetHandleInformation(rd, HANDLE_FLAG_INHERIT, 0);
+        HANDLE nul = CreateFileA("NUL", GENERIC_READ | GENERIC_WRITE,
+                                 FILE_SHARE_READ | FILE_SHARE_WRITE, &sa,
+                                 OPEN_EXISTING, 0, NULL);
+        HANDLE err = INVALID_HANDLE_VALUE;
+        HANDLE se = GetStdHandle(STD_ERROR_HANDLE);
+        if (se != NULL && se != INVALID_HANDLE_VALUE &&
+            !DuplicateHandle(GetCurrentProcess(), se, GetCurrentProcess(),
+                             &err, 0, TRUE, DUPLICATE_SAME_ACCESS))
+          err = INVALID_HANDLE_VALUE;
+        if (err == INVALID_HANDLE_VALUE) err = nul;
+        HANDLE list[3];
+        DWORD n = 0;
+        list[n++] = wr;
+        if (nul != INVALID_HANDLE_VALUE) list[n++] = nul;
+        if (err != nul) list[n++] = err;
+
+        SIZE_T sz = 0;
+        InitializeProcThreadAttributeList(NULL, 1, 0, &sz);
+        std::vector<char> attr(sz);
+        LPPROC_THREAD_ATTRIBUTE_LIST al =
+            (LPPROC_THREAD_ATTRIBUTE_LIST)&attr[0];
+        bool ok = InitializeProcThreadAttributeList(al, 1, 0, &sz) &&
+                  UpdateProcThreadAttribute(al, 0,
+                      PROC_THREAD_ATTRIBUTE_HANDLE_LIST, list,
+                      n * sizeof(HANDLE), NULL, NULL);
+        PROCESS_INFORMATION pi;
+        if (ok) {
+          STARTUPINFOEXA si;
+          memset(&si, 0, sizeof(si));
+          si.StartupInfo.cb = sizeof(si);
+          si.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
+          si.StartupInfo.hStdInput = nul;
+          si.StartupInfo.hStdOutput = wr;
+          si.StartupInfo.hStdError = err;
+          si.lpAttributeList = al;
+          string line = cmd;
+          if (shell) {
+            const char* comspec = getenv("COMSPEC");
+            line = "\"" + string(comspec && *comspec ? comspec : "cmd.exe") +
+                   "\" /d /s /c \"" + cmd + "\"";
+          }
+          ok = CreateProcessA(NULL, &line[0], 0, 0, TRUE,
+                              CREATE_NO_WINDOW | EXTENDED_STARTUPINFO_PRESENT,
+                              0, 0, &si.StartupInfo, &pi) != 0;
+          DeleteProcThreadAttributeList(al);
+        }
+        CloseHandle(wr);
+        if (err != nul) CloseHandle(err);
+        if (nul != INVALID_HANDLE_VALUE) CloseHandle(nul);
+        if (!ok) {
+          CloseHandle(rd);
+          return -1;
+        }
+        char buf[4096];
+        DWORD got = 0;
+        while (ReadFile(rd, buf, sizeof(buf), &got, NULL) && got > 0)
+          out.append(buf, got);
+        CloseHandle(rd);
+        WaitForSingleObject(pi.hProcess, INFINITE);
+        DWORD code = 1;
+        GetExitCodeProcess(pi.hProcess, &code);
+        CloseHandle(pi.hThread);
+        CloseHandle(pi.hProcess);
+        return (int)code;
+#else
+        (void)shell;
+        FILE* p = popen(cmd.c_str(), "r");
+        if (!p) return -1;
+        char buf[4096];
+        size_t got;
+        while ((got = fread(buf, 1, sizeof(buf), p)) > 0) out.append(buf, got);
+        int st = pclose(p);
+        if (st == -1) return -1;
+        // A child killed by a signal is a failure, not exit status 0.
+        return (st & 0x7f) ? 128 + (st & 0x7f) : (st >> 8) & 0xff;
+#endif
+      }
+
       // site_runtime settings that can't be overriden
       static bool   ecceAutoAccounts();
       static bool   ecceStoreTrajectories();
