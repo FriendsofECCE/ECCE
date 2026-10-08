@@ -940,7 +940,9 @@ void auditWindow(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
     wxRect me = screenRect(w);
     for (wxWindow *a = w->GetParent(); a; a = a->GetParent()) {
       if (scrollsOrIsCustom(a)) break;
-      wxRect area = clientScreenRect(a);
+      //  A frame's status bar and toolbars lie outside its client area.
+      wxRect area = a->IsKindOf(wxCLASSINFO(wxTopLevelWindow))
+                    ? screenRect(a) : clientScreenRect(a);
       if (me.x < area.x - 1 || me.y < area.y - 1 ||
           me.GetRight() > area.GetRight() + 1 ||
           me.GetBottom() > area.GetBottom() + 1) {
@@ -972,6 +974,15 @@ void auditWindow(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
   const bool ellipsized = st && (st->GetWindowStyleFlag() & wxST_ELLIPSIZE_MASK);
   if (fixedContent && !ellipsized && size.x > 0 && size.y > 0) {
     wxSize best = w->GetBestSize();
+    //  Buttons are as high as their row makes them and a button without a
+    //  label is an icon of the app's own size: only the width of a labelled
+    //  button can truncate it.
+    const bool isButton = w->IsKindOf(wxCLASSINFO(wxButton)) ||
+                          w->IsKindOf(wxCLASSINFO(wxToggleButton));
+    if (isButton) {
+      best.y = size.y;
+      if (w->GetLabel().empty()) best.x = size.x;
+    }
     if (size.x + 2 < best.x || size.y + 2 < best.y) {
       //  A wrapped label's best size is what it needs at the width it has,
       //  so a short one is cut, not wrapped.

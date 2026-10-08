@@ -86,7 +86,8 @@ def audit(w, top, out):
         while a:
             if scrolls(a):
                 break
-            area = client_rect(a)
+            area = (screen_rect(a) if isinstance(a, wx.TopLevelWindow)
+                    else client_rect(a))
             if (me.x < area.x - 1 or me.y < area.y - 1 or
                     me.GetRight() > area.GetRight() + 1 or
                     me.GetBottom() > area.GetBottom() + 1):
@@ -104,6 +105,8 @@ def audit(w, top, out):
                                          wx.ST_ELLIPSIZE_END)))
     if isinstance(w, FIXED) and not ellipsized and size.x > 0 and size.y > 0:
         best = w.GetBestSize()
+        if isinstance(w, (wx.Button, wx.ToggleButton)):
+            best = wx.Size(best.x if w.GetLabel() else size.x, size.y)
         if size.x + 2 < best.x or size.y + 2 < best.y:
             add("smaller-than-best", "is %dx%d, needs %dx%d"
                 % (size.x, size.y, best.x, best.y))
