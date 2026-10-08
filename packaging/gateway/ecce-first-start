@@ -94,7 +94,9 @@ def skip_reason():
         return "a shared broker is declared (siteconfig/SharedBroker)"
     if os.path.exists(os.path.join(STATE, "mosquitto.server")):
         return "this account runs a central server"
-    if os.path.exists(os.path.join(ECCE_HOME, "bin", "ecce-dataserver-start")):
+    # The Windows and macOS packages carry the script but run no server.
+    if (sys.platform.startswith("linux") and
+            os.path.exists(os.path.join(ECCE_HOME, "bin", "ecce-dataserver-start"))):
         return "the server package is installed here"
     if os.path.exists(os.path.join(MINE, "DataServers")):
         return "a server is already chosen"

@@ -76,8 +76,9 @@ def case(name, what, setup, server_install=False):
 case("siteremote", "siteconfig/RemoteServer is present (admin or ecce-remote-setup)",
      lambda e, u, h: (os.makedirs(h + "/siteconfig/RemoteServer"),
                       open(h + "/siteconfig/RemoteServer/DataServers", "w").close()))
-case("serverpkg", "the server package is installed (central server, FastX on it)",
-     lambda e, u, h: None, True)
+if sys.platform.startswith("linux"):   # the other packages carry the script but run no server
+    case("serverpkg", "the server package is installed (central server, FastX on it)",
+         lambda e, u, h: None, True)
 case("serveraccount", "this account runs a central server (~/.ECCE/mosquitto.server)",
      lambda e, u, h: open(u + "/.ECCE/mosquitto.server", "w").close())
 case("sharedbroker", "a shared broker is declared (siteconfig/SharedBroker)",
