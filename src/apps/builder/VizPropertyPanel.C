@@ -1,3 +1,4 @@
+#include <wx/checkbox.h>
 #include "dsm/IPropCalculation.H"
 #include "dsm/ICalculation.H"
 
@@ -17,7 +18,8 @@ VizPropertyPanel::VizPropertyPanel()
   : PropertyPanel(),
     WxVizTool(),
     p_hasFocus(false),
-    p_isPinned(false)
+    p_isPinned(false),
+    p_viewerToggle(0)
 {
 }
 
@@ -28,7 +30,8 @@ VizPropertyPanel::VizPropertyPanel(IPropCalculation *calculation,
   : PropertyPanel(),
     WxVizTool(),
     p_hasFocus(false),
-    p_isPinned(false)
+    p_isPinned(false),
+    p_viewerToggle(0)
 {
   Create(calculation, parent, id, pos, size, style, name);
 }
@@ -58,6 +61,35 @@ VizPropertyPanel::~VizPropertyPanel()
     p_vizPropertyPanels[getCalculation()->getURL()].erase(this);
     p_allVizPropertyPanels.erase(this);
   }
+}
+
+
+bool VizPropertyPanel::Show(bool show)
+{
+  bool ret = PropertyPanel::Show(show);
+  if (show) addViewerToggle();
+  return ret;
+}
+
+
+/**
+ * A "Show in viewer" box under the panel: ticked while the panel's overlay
+ * (vector, charge colours, surface, animation) is in the viewer.  Unticking
+ * it is the way to get the plain molecule back without opening another
+ * panel; ticking it gives the panel the viewer again.
+ */
+void VizPropertyPanel::addViewerToggle()
+{
+  if (p_viewerToggle || !drawsInViewer() || !GetSizer()) return;
+  p_viewerToggle = new wxCheckBox(this, wxID_ANY, "Show in viewer");
+  p_viewerToggle->SetToolTip("Draw this property in the 3-D view; untick "
+                             "it to show the molecule alone");
+  p_viewerToggle->SetValue(p_hasFocus);
+  p_viewerToggle->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& event) {
+    if (event.IsChecked() != p_hasFocus) setFocus(event.IsChecked());
+  });
+  GetSizer()->Add(p_viewerToggle, 0, wxLEFT|wxRIGHT|wxBOTTOM, 5);
+  Layout();
 }
 
 
@@ -143,9 +175,13 @@ void VizPropertyPanel::doFocus(const bool& value)
     // Builder::quit() unfocuses every panel of every context, and a
     // panel's loseFocus() loads its own calc's geometry step into the
     // shared scene graph -- the wrong molecule for any context not shown.
-    if (p_hasFocus) loseFocus();
+    if (p_hasFocus) {
+      loseFocus();
+      getFW().getViewer().refreshRenderArea();
+    }
   }
   p_hasFocus = value;
+  if (p_viewerToggle) p_viewerToggle->SetValue(value);
 }
 
 
@@ -170,8 +206,10 @@ void VizPropertyPanel::doPin(const bool& value)
   } else {
     p_hasFocus = false;
     loseFocus();
+    getFW().getViewer().refreshRenderArea();
   }
   p_isPinned = value;
+  if (p_viewerToggle) p_viewerToggle->SetValue(p_hasFocus);
 }
 
 /**
