@@ -1623,6 +1623,85 @@ CASES = [
                 'VIBFREQ': {'units': 'cm-1'}}),
         },
     ),
+
+    # -----------------------------------------------------------------
+    # ECCE-QM (the bundled engine, src/qm).  Real output of ecce-qm, the
+    # input decks are beside the fixtures.
+    # -----------------------------------------------------------------
+    dict(
+        name='ecceqm-h2o-hf',
+        desc='ecceqm.desc',
+        fixture='ecceqm/h2o_hf.qmout',
+        parse_args=('.', 'Energy', 'SCF', 'HF', '0'),
+        expect={
+            'TE': dict(keys={'TE': {'values': '-74.963023138467',
+                                    'units': 'Hartree'}}),
+            'NNREPUL': dict(keys={'NNREPUL': {}}),
+            'ONEELEC': dict(keys={'ONEELEC': {}}),
+            'COULOMB': dict(keys={'COULOMB': {}}),
+            'EXCHANGE': dict(keys={'EXCHANGE': {}}),
+            'DIPOLE': dict(keys={'DIPOLE': {'rowlabels': 'X Y Z',
+                                            'units': 'Debye'}}),
+            'MULLIKEN': dict(keys={'MULLIKEN': {'size': '3', 'units': 'e'}}),
+            'ORBENG][ORBOCC': dict(keys={
+                'ORBENG': {'size': '7', 'units': 'Hartree'},
+                'ORBOCC': {'values': '2.000000000000 2.000000000000 '
+                                     '2.000000000000 2.000000000000 '
+                                     '2.000000000000 0.000000000000 '
+                                     '0.000000000000',
+                           'units': 'electrons'}}),
+            'MO][MOAOORDER': dict(keys={
+                'MO': {'size': '7 7'},
+                #  ecce-qm's columns are already in ECCE's canonical order.
+                'MOAOORDER': {'values': 'angular-momentum'}}),
+            'ETIME': dict(keys={'ETIME': {}}),
+        },
+    ),
+    dict(
+        # Restricted open-shell Kohn-Sham triplet: one orbital set with
+        # occupations 2, 1, 0 (the case the Builder draws as an open shell).
+        name='ecceqm-o2-roks',
+        desc='ecceqm.desc',
+        fixture='ecceqm/o2_roks.qmout',
+        parse_args=('.', 'Energy', 'DFT', 'DFT', '2'),
+        expect={
+            'TE': dict(keys={'TE': {'values': '-148.209302635988'}}),
+            'EXCORR': dict(keys={'EXCORR': {'units': 'Hartree'}}),
+            'S2': dict(keys={'S2': {'values': '2.000000000000'}}),
+            'ORBENG][ORBOCC': dict(keys={
+                'ORBOCC': {'values': '2.000000000000 2.000000000000 '
+                                     '2.000000000000 2.000000000000 '
+                                     '2.000000000000 2.000000000000 '
+                                     '2.000000000000 1.000000000000 '
+                                     '1.000000000000 0.000000000000'}}),
+            'MO][MOAOORDER': dict(keys={'MO': {'size': '10 10'}}),
+        },
+    ),
+    dict(
+        # Unrestricted: alpha and beta sets, MOBETA/ORBENGBETA/ORBOCCBETA.
+        name='ecceqm-o2-uks',
+        desc='ecceqm.desc',
+        fixture='ecceqm/o2_uks.qmout',
+        parse_args=('.', 'Energy', 'DFT', 'DFT', '2'),
+        expect={
+            'TE': dict(keys={'TE': {'values': '-148.209647776897'}}),
+            'ORBENG][ORBOCC': dict(keys={
+                'ORBOCC': {'values': '1.000000000000 1.000000000000 '
+                                     '1.000000000000 1.000000000000 '
+                                     '1.000000000000 1.000000000000 '
+                                     '1.000000000000 1.000000000000 '
+                                     '1.000000000000 0.000000000000'}}),
+            'ORBENGBETA][ORBOCCBETA': dict(keys={
+                'ORBENGBETA': {'size': '10'},
+                'ORBOCCBETA': {'values': '1.000000000000 1.000000000000 '
+                                         '1.000000000000 1.000000000000 '
+                                         '1.000000000000 1.000000000000 '
+                                         '1.000000000000 0.000000000000 '
+                                         '0.000000000000 0.000000000000'}}),
+            'MO][MOAOORDER': dict(keys={'MO': {'size': '10 10'}}),
+            'MOBETA': dict(keys={'MOBETA': {'size': '10 10'}}),
+        },
+    ),
 ]
 
 

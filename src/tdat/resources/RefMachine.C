@@ -599,8 +599,16 @@ bool RefMachine::hasCode(const string& code) const
   return result;
 }
 
+// Codes shipped with ECCE itself run on the machine ECCE runs on without any
+// registration.  The one name of that code lives here.
+bool RefMachine::bundledCode(const string& code, const string& refname)
+{
+  return code == "ECCE-QM" && refname == "localhost";
+}
+
 bool RefMachine::offersCode(const string& code) const
 {
+  if (bundledCode(code, refname())) return true;
   // The Machines line is a snapshot of the paths when the machine was
   // saved; a code added to CONFIG.<refname> later is just as runnable.
   return hasCode(code) || !RefMachine::exePath(code, refname()).empty();

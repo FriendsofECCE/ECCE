@@ -1,0 +1,124 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    ecceqm-h2o-hf
+desc:    ecceqm.desc
+fixture: ecceqm/h2o_hf.qmout (58 lines)
+args:    '.' 'Energy' 'SCF' 'HF' '0'
+
+[TE]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_total\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=16 fed=1 rc=0 first-fed='energy_total -74.963023138467'
+    key: TE
+      size: 1
+      values: -74.963023138467
+      units: Hartree
+
+[NNREPUL]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_nuclear\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=17 fed=1 rc=0 first-fed='energy_nuclear 9.189533762640'
+    key: NNREPUL
+      size: 1
+      values: 9.189533762640
+      units: Hartree
+
+[ONEELEC]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_one_electron\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=18 fed=1 rc=0 first-fed='energy_one_electron -122.361417904522'
+    key: ONEELEC
+      size: 1
+      values: -122.361417904522
+      units: Hartree
+
+[COULOMB]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_coulomb\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=19 fed=1 rc=0 first-fed='energy_coulomb 47.313111346365'
+    key: COULOMB
+      size: 1
+      values: 47.313111346365
+      units: Hartree
+
+[EXCHANGE]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_exchange_hf\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=20 fed=1 rc=0 first-fed='energy_exchange_hf -9.104250342950'
+    key: EXCHANGE
+      size: 1
+      values: -9.104250342950
+      units: Hartree
+
+[EXCORR]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_xc\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=21 fed=1 rc=0 first-fed='energy_xc 0.000000000000'
+    key: EXCORR
+      size: 1
+      values: 0.000000000000
+      units: Hartree
+
+[S2]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^s_squared\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=22 fed=1 rc=0 first-fed='s_squared 0.000000000000'
+    key: S2
+      size: 1
+      values: 0.000000000000
+
+[ETIME]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^wall_seconds\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=25 fed=1 rc=0 first-fed='wall_seconds 0.55'
+    key: ETIME
+      size: 1
+      values: 0.55
+
+[DIPOLE]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^dipole_debye\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=24 fed=1 rc=0 first-fed='dipole_debye 0.000000000000 -0.000000000000 -1.725305137712 1.725305137712'
+    key: DIPOLE
+      size: 3
+      rowlabels: X Y Z
+      values: 0.000000000000 -0.000000000000 -1.725305137712
+      units: Debye
+
+[MULLIKEN]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin atoms\b
+  End=^end atoms
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=26 fed=5 rc=0 first-fed='begin atoms  # index symbol Z x y z (angstrom) mulliken_net_charge'
+    key: MULLIKEN
+      size: 3
+      values: -0.365748682799 0.182874341399 0.182874341399
+      units: e
+
+[ORBENG][ORBOCC]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin orbitals (restricted|alpha)
+  End=^end orbitals
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=40 fed=9 rc=0 first-fed='begin orbitals restricted  # index energy(hartree) occupation'
+    key: ORBENG
+      size: 7
+      values: -20.241863044950 -1.268161902828 -0.617564542662 -0.453021688188 -0.391236770217 0.605171883395 0.741597532764
+      units: Hartree
+    key: ORBOCC
+      size: 7
+      values: 2.000000000000 2.000000000000 2.000000000000 2.000000000000 2.000000000000 0.000000000000 0.000000000000
+      units: electrons
+
+[MO][MOAOORDER]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin mo_coefficients (restricted|alpha)
+  End=^end mo_coefficients
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=49 fed=9 rc=0 first-fed='begin mo_coefficients restricted  # one line per MO: index then nbf coefficients'
+    key: MO
+      size: 7 7
+      rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6 MO-7
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 BasFun-7
+      values: -0.9941309484 -0.0265495914 -0.0000000000 0.0000000000 0.0043420442 0.0059653003 0.0059653003 -0.2328048921 0.8336938872 -0.0000000000 -0.0000000000 -0.1294414595 0.1586754791 0.1586754791 0.0000000000 -0.0000000000 0.0000000000 0.6064782202 0.0000000000 0.4450629515 -0.4450629515 0.1031719806 -0.5367981849 -0.0000000000 -0.0000000000 -0.7764912512 0.2781030419 0.2781030419 0.0000000000 -0.0000000 ...[662 chars]
+    key: MOAOORDER
+      size: 1
+      values: angular-momentum
+

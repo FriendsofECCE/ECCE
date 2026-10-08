@@ -643,3 +643,16 @@ It exists for `NWChem.expt`, the post-hoc importer, which reads stdout and
 not the trace file. That importer had no coverage at all before, and the
 first thing this fixture showed was that it could not read an externally
 run job whatsoever -- see `expt_cases.NOTES`.
+
+---
+
+## ecceqm/
+
+`ecce-qm 0.1` (the built-in engine, `src/qm`), captured on **niobium** on
+**2026-10-07**; each `.qmout` has its input deck `.qmin` beside it
+(`ecce-qm <deck> > <out>`, ECCE basis library from `data/admin/basissets`).
+
+* `h2o_hf` — water, HF/STO-3G, restricted.
+* `o2_roks` — O2 triplet, B3LYP/STO-3G, restricted open-shell (one orbital set,
+  occupations 2, 1, 0).
+* `o2_uks` — the same unrestricted (alpha and beta sets).

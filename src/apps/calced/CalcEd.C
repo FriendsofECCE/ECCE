@@ -26,6 +26,9 @@
 
 #include "dsm/GBSRules.H"
 #include "dsm/TGBSConfig.H"
+#include "dsm/TGBSGroup.H"
+#include "dsm/TGaussianBasisSet.H"
+#include <set>
 #include "dsm/EDSIFactory.H"
 #include "dsm/TaskJob.H"
 #include "dsm/EDSIGaussianBasisSetLibrary.H"
@@ -1134,14 +1137,30 @@ void CalcEd::OnCheckboxCalcedIrreducibleClick( wxCommandEvent& event )
 }
 
 
+/**
+ * The basis sets the quick menu offers: the code's own short list when its
+ * .edml gives one (ECCE-QM), otherwise the built-in list.  "-" is a separator.
+ */
+vector<string> CalcEd::quickPicks() const
+{
+  vector<string> picks;
+  if (p_code) picks = p_code->getBasisSetPicks();
+  if (picks.empty()) {
+    for (int i = 0; i < BASIS_QUICK_COUNT; i++) picks.push_back(p_BASIS_QUICK_PICKS[i]);
+  }
+  return picks;
+}
+
+
 void CalcEd::OnButtonCalcedBasisQuickClick( wxCommandEvent& event )
 {
   wxMenu menu;
-  for (int i = 0; i < BASIS_QUICK_COUNT; i++) {
-    if (strcmp(p_BASIS_QUICK_PICKS[i], "-") == 0) {
+  vector<string> picks = quickPicks();
+  for (size_t i = 0; i < picks.size(); i++) {
+    if (picks[i] == "-") {
       menu.AppendSeparator();
     } else {
-      menu.Append(100000 + i, p_BASIS_QUICK_PICKS[i]);
+      menu.Append(100000 + (int)i, picks[i]);
     }
   }
   PopupMenu(&menu, FindWindow(event.GetId())->GetPosition());
@@ -1185,10 +1204,16 @@ void CalcEd::OnMenuCalcedBasisSetSelected( wxCommandEvent& event )
   EDSIGaussianBasisSetLibrary *gbsFactory = new EDSIGaussianBasisSetLibrary(
           central.getDefaultBasisSetLibrary());
 
+  vector<string> picks = quickPicks();
+  size_t pick = event.GetId() - 100000;
+  if (pick >= picks.size()) {
+    delete gbsFactory;
+    return;
+  }
   if (p_basis) {
     delete p_basis;
   }
-  p_basis = gbsFactory->simpleLookup(p_BASIS_QUICK_PICKS[event.GetId()-100000],
+  p_basis = gbsFactory->simpleLookup(picks[pick].c_str(),
                                      p_frag->uniqueTagStr().c_str());
 
   TTheory theory = getTheory();
@@ -1783,7 +1808,8 @@ void CalcEd::CreateControls()
     timer->StartOnce(2000);
   }
 
-  Connect( 100000, 100000 + BASIS_QUICK_COUNT - 1, wxEVT_COMMAND_MENU_SELECTED,
+  //  Up to 256 ids: a code may give its own quick-pick list (ECCE-QM).
+  Connect( 100000, 100000 + 255, wxEVT_COMMAND_MENU_SELECTED,
            wxCommandEventHandler( CalcEd::OnMenuCalcedBasisSetSelected ) );
 }
 
@@ -2795,6 +2821,80 @@ bool CalcEd::isReady() const
 }
 
 
+/**
+ * A code with a basisSetDefault in its .edml starts every calculation with
+ * that basis set, so a student has nothing to choose to get a working setup.
+ */
+void CalcEd::applyDefaultBasis()
+{
+  if (p_basis || !p_code || !p_frag || !p_iCalc || !theoryNeedsBasis()) return;
+  if (p_iCalc->getState() >= ResourceDescriptor::STATE_SUBMITTED) return;
+  string name = p_code->getBasisSetDefault();
+  if (name.empty()) return;
+
+  EDSIServerCentral central;
+  EDSIGaussianBasisSetLibrary gbsFactory(central.getDefaultBasisSetLibrary());
+  p_basis = gbsFactory.simpleLookup(name.c_str(), p_frag->uniqueTagStr().c_str());
+  TTheory theory = getTheory();
+  GBSRules::autoOptimize(p_basis, p_code, &theory);
+  makeRuntypeNoSphericalConsistent();
+  enableSave();
+}
+
+
+/**
+ * For a code that only offers its quick-pick basis sets (ECCE-QM): which
+ * elements of the molecule the chosen basis has no functions for, or needs a
+ * core potential for, in words a student can act on.
+ */
+string CalcEd::uncoveredElementsMessage() const
+{
+  if (!p_basis || !p_code || p_code->getBasisSetPicks().empty()) return "";
+
+  set<string> missing, ecp;
+  for (TGBSConfig::iterator it = p_basis->begin(); it != p_basis->end(); ++it) {
+    const TGBSGroup *group = it->second;
+    if (group == NULL) continue;
+    TGBSConfigTags tags(it->first.c_str());
+    vector<const TGaussianBasisSet*> *sets = group->getOrbitalGBSList();
+    const TGaussianBasisSet *ecpSet = group->ecp();
+    for (size_t i = 0; i < tags.size(); i++) {
+      if (ecpSet && ecpSet->p_contractions.find(tags[i]) != ecpSet->p_contractions.end()) {
+        ecp.insert(tags[i]);
+        continue;
+      }
+      bool covered = (sets != 0 && !sets->empty());
+      if (sets) {
+        for (size_t j = 0; j < sets->size(); j++) {
+          if ((*sets)[j]->p_contractions.find(tags[i]) == (*sets)[j]->p_contractions.end()) {
+            covered = false;
+          }
+        }
+      }
+      if (!covered) missing.insert(tags[i]);
+    }
+    delete sets;
+  }
+
+  string msg;
+  string name = p_basis->name();
+  if (!missing.empty()) {
+    msg = "The basis set " + name + " has no functions for ";
+    for (set<string>::const_iterator e = missing.begin(); e != missing.end(); ++e)
+      msg += (e == missing.begin() ? "" : ", ") + *e;
+    msg += ", which is in this molecule.  Choose another basis set from the "
+           "Basis Set menu, or another molecule.";
+  } else if (!ecp.empty()) {
+    msg = "The basis set " + name + " uses a core potential for ";
+    for (set<string>::const_iterator e = ecp.begin(); e != ecp.end(); ++e)
+      msg += (e == ecp.begin() ? "" : ", ") + *e;
+    msg += ", which ECCE-QM does not support.  Choose another basis set from "
+           "the Basis Set menu, or another molecule.";
+  }
+  return msg;
+}
+
+
 bool CalcEd::isGbsValid()
 {
   bool ret = true;
@@ -2813,7 +2913,11 @@ bool CalcEd::isGbsValid()
     }
     errors.flush();
 
-    if (!GBSRules::isComplete(p_frag, p_basis, p_code, &theory)) {
+    string uncovered = uncoveredElementsMessage();
+    if (!uncovered.empty()) {
+      p_feedback->setMessage(uncovered, WxFeedback::ERROR);
+      ret = false;
+    } else if (!GBSRules::isComplete(p_frag, p_basis, p_code, &theory)) {
       p_feedback->setMessage("The selected configuration doesn't cover all "
               "elements in the chemical system.  Use the Basis Set Tool to "
               "complete the coverage.", WxFeedback::ERROR);
@@ -2986,6 +3090,8 @@ void CalcEd::refreshBasisSetFields()
 {
   bool hasFullFragment(p_fullFrag);
   bool hasCalc(p_iCalc);
+
+  applyDefaultBasis();
 
   if (!theoryNeedsBasis() && p_basis) {
     delete p_basis;
@@ -3227,8 +3333,14 @@ void CalcEd::showBasisSetFields()
     bool libraryNames = true;
     p_code->get_bool("LibraryNames", libraryNames);
     FindWindow(ID_CHECKBOX_CALCED_USE_EXPONENTS)->Show(libraryNames);
+    bool toolHidden = p_code->getBasisSetToolHidden();
     FindWindow(ID_BUTTON_CALCED_BASIS_QUICK)
-            ->Show(p_code->getBasisSetQuickListSupported());
+            ->Show(p_code->getBasisSetQuickListSupported() || toolHidden);
+    //  A code with a fixed list of basis sets (ECCE-QM) is chosen from the
+    //  menu alone; the Basis Set Tool would offer what it cannot use.
+    if (p_basisSetTool) p_basisSetTool->Show(!toolHidden);
+    FindWindow(ID_BUTTON_CALCED_BASIS_QUICK)->SetLabel(
+        toolHidden ? wxString("Basis Set ▼") : wxString("Quick Basis Menu ▼"));
   }
 
   int ids[] = { ID_STATICTEXT_CALCED_ECP, ID_LABEL_CALCED_ECP,

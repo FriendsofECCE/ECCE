@@ -85,9 +85,11 @@ PROFILES = {
                  mem=None, account=None),
 }
 GOLDEN_CASES = [(m, "nwchem", p) for m in MANAGERS for p in PROFILES] + \
-               [(m, "mopac", "basic") for m in MANAGERS]
+               [(m, "mopac", "basic") for m in MANAGERS] + \
+               [(m, "ecceqm", "basic") for m in MANAGERS]
 CODES = {"nwchem": ("NWChem", "nwch.nw", "nwch.nwout"),
-         "mopac": ("MOPAC", "mopac.mop", "mopac.mopout")}
+         "mopac": ("MOPAC", "mopac.mop", "mopac.mopout"),
+         "ecceqm": ("ECCE-QM", "ecceqm.qmin", "ecceqm.qmout")}
 
 
 def wallSeconds(wall):

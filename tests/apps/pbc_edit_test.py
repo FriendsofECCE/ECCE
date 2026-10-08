@@ -29,8 +29,8 @@ import apps                                                   # noqa: E402
 import fixture                                                # noqa: E402
 
 FIXTURE = "pbc-edit-water"
-#  The water calculation without its properties: a property panel (normal
-#  modes) would step the edited structure with water's three atoms.
+#  The water calculation without its properties: the Normal Modes panel on
+#  an edited structure is nmode_edit_test.py's.
 BASE = os.path.join(HERE, "fixtures", "calc-water-vib")
 MARKERS = ("ended by SIG", "Segmentation fault", "double free or corruption",
            "terminate called", "Unhandled standard exception",

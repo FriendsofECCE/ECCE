@@ -10,6 +10,7 @@
 
 #include <wx/aui/aui.h>
 #include <wx/app.h>
+#include <wx/radiobox.h>
 #include <wx/utils.h>
 
 #include "util/EventDispatcher.H"
@@ -31,6 +32,8 @@
 
 #include "Builder.H"
 #include "GeomTracePropertyPanel.H"
+#include "wxgui/SliderCombo.H"
+#include "NModePanel.H"
 #include "PropertyPanel.H"
 
 
@@ -304,5 +307,71 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
     return true;
   }
 
+  return s.fail("unknown command: " + c);
+}
+
+
+//  Scene-script commands that drive the Normal Modes panel as a user does,
+//  after the structure may have been edited away from the calculation's.
+//  Used only through ECCE_VIEWER_SCENE (tests/apps/nmode_edit_test.py).
+bool Builder::nmodeTestCommand(SceneScript& s, const vector<string>& w)
+{
+  const string& c = w[0];
+  NModePanel *nm = 0;
+  if (p_calculation)
+    for (PropertyPanel *p :
+         PropertyPanel::getPanels(p_calculation->getURL().toString()))
+      if ((nm = dynamic_cast<NModePanel*>(p)) != 0) break;
+  if (!nm) return s.fail(c + ": no Normal Modes panel");
+  fprintf(stderr, "VIBTEST: %s\n", c.c_str());
+
+  //  "vibfocus" / "vibunfocus": the panel takes or gives up the viewer.
+  if (c == "vibfocus" || c == "vibunfocus") {
+    nm->setFocus(c == "vibfocus");
+    spin(50);
+    return true;
+  }
+  //  "vibmode <i>": a click on row i of the mode table.
+  if (c == "vibmode" && w.size() == 2) {
+    nm->selectMode(atoi(w[1].c_str()));
+    spin(50);
+    return true;
+  }
+  //  "vibanim" / "vibvector": the Animation/Vector radio box.
+  if (c == "vibanim" || c == "vibvector") {
+    wxRadioBox *box = dynamic_cast<wxRadioBox*>(
+        nm->FindWindow(NModesGUI::ID_RADIOBOX_NMODE_VIZTYPE));
+    if (!box) return s.fail(c + ": no Animation/Vector control");
+    box->SetSelection(c == "vibanim" ? 0 : 1);
+    wxCommandEvent ev(wxEVT_RADIOBOX, box->GetId());
+    ev.SetEventObject(box);
+    ev.SetInt(box->GetSelection());
+    box->GetEventHandler()->ProcessEvent(ev);
+    spin(50);
+    return true;
+  }
+  //  "vibplay <ms>": Play for that long, then Stop.
+  if (c == "vibplay" && w.size() == 2) {
+    nm->start();
+    spin(atoi(w[1].c_str()));
+    nm->stop();
+    return true;
+  }
+  //  "vibstep <n>": n animation steps, as the timer makes them.
+  if (c == "vibstep" && w.size() == 2) {
+    for (int i = 0; i < atoi(w[1].c_str()); i++) {
+      nm->nextStep();
+      spin(5);
+    }
+    return true;
+  }
+  //  "vibstate": what the panel and the viewer show, for the test to read.
+  if (c == "vibstate") {
+    SGContainer *sg = getSG();
+    fprintf(stderr, "VIBSTATE: atoms=%lu arrows=%d enabled=%d\n",
+            (unsigned long)sg->getFragment()->numAtoms(),
+            sg->getNMVecRoot()->getNumChildren(), nm->modesApply() ? 1 : 0);
+    return true;
+  }
   return s.fail("unknown command: " + c);
 }

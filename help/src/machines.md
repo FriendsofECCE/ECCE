@@ -32,6 +32,13 @@ ECCE does not overwrite this file once it exists. If your administrator
 has put a `CONFIG.localhost` in the site configuration
 (`/opt/ecce/siteconfig`), ECCE uses that one and does not create yours.
 
+### ECCE-QM needs nothing
+
+ECCE-QM is the small Hartree-Fock and DFT program that comes with ECCE, for
+molecules the size of the ones in a first chemistry course. It is always
+offered on `localhost`: there is no line for it in `CONFIG.localhost` and
+nothing to install.
+
 ### A code that is not on the `PATH`
 
 If a code is installed in its own directory, replace the plain name with

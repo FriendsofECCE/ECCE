@@ -1,0 +1,10 @@
+title h2o
+charge 0
+multiplicity 1
+method hf
+basis STO-3G
+geometry
+O 0 0 0.1173
+H 0 0.7572 -0.4692
+H 0 -0.7572 -0.4692
+end

@@ -1,0 +1,14 @@
+COULOMB	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+DIPOLE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+ETIME	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+EXCHANGE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+EXCORR	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+MO	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+MOAOORDER	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+MULLIKEN	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+NNREPUL	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+ONEELEC	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+ORBENG	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+ORBOCC	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+S2	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+TE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml

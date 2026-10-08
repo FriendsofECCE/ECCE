@@ -49,6 +49,20 @@ EXPECTED = os.path.join(HERE, "expected")
 #  Each assertion is (description, predicate over the emitted text).
 CASES = [
     dict(
+        name="ecceqm-explicit-shells",
+        fixture="water_same.gbs",
+        exporter="std2ECCEQM",
+        #  ecce-qm always gets every shell, never a library name, so a basis
+        #  edited in ECCE is the one that runs; SP shells become S and P.
+        expect=[("labels the set with the library name",
+                 lambda t: t.startswith("basis 6-31G*\nbasis_data\n")),
+                ("writes the oxygen s shells",
+                 lambda t: "shell O S\n  5484.6717 0.0018311\n" in t),
+                ("splits SP into S and P",
+                 lambda t: "shell O P\n  15.539616 0.0708743\n" in t),
+                ("ends the block", lambda t: t.rstrip().endswith("end"))],
+    ),
+    dict(
         name="g16-single-named",
         fixture="water_same.gbs",
         exporter="std2Gaussian-16",
@@ -304,6 +318,10 @@ MO_ORDERING = {
     "NWChem": (("x", "y", "z"),
                "NWChem DFT Final Molecular Orbital Analysis, cc-pVDZ water: "
                "Bfn 4 = '1 O px', Bfn 6 = '1 O pz', so a p shell runs x y z"),
+    "ECCE-QM": (("x", "y", "z"),
+                "ecce-qm's own ao_labels block lists 1px 1py 1pz (libcint order); "
+                "d and f were fitted to monomials, and ecce-mocomp gives "
+                "c.S.c = 1 for every orbital (tests/launch/ecceqm_test.py)"),
     "MOPAC": (("x", "y", "z"),
               "MOPAC GRAPHF basis order, verified by numerical integration "
               "in tools/mopac/verify_slater_basis.py"),

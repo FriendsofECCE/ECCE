@@ -1,0 +1,111 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+#   Turns one piece of ecce-qm's output into ECCE properties.  Every piece
+#   identifies itself on its first line (ecceqm.desc feeds it from the Begin
+#   line on), so this one script serves all the parse types.  The output
+#   format is described in docs/qm/README.md.
+#
+#   MO columns arrive in ECCE's canonical order (atoms in input order, shells
+#   of one atom stably sorted by angular momentum), which is what MOAOORDER
+#   "angular-momentum" tells ECCE; the m-order within a shell is ECCE-QM.edml's
+#   MOOrdering.
+#
+################################################################################
+
+$| = 1;
+
+my @lines = <STDIN>;
+chomp(@lines);
+my $first = shift(@lines);
+exit(0) if (!defined($first));
+
+sub scalarProp {
+  my ($key, $value, $units) = @_;
+  print "key: $key\nsize:\n1\nvalues:\n$value\n";
+  print "units:\n$units\n" if (defined($units));
+  print "END\n";
+}
+
+sub vectorProp {
+  my ($key, $vals, $units) = @_;
+  print "key: $key\nsize:\n", scalar(@$vals), "\nvalues:\n", join(" ", @$vals), "\n";
+  print "units:\n$units\n" if (defined($units));
+  print "END\n";
+}
+
+my %energyKey = (
+  energy_total          => 'TE',
+  energy_nuclear        => 'NNREPUL',
+  energy_one_electron   => 'ONEELEC',
+  energy_coulomb        => 'COULOMB',
+  energy_exchange_hf    => 'EXCHANGE',
+  energy_xc             => 'EXCORR',
+);
+
+if ($first =~ /^(energy_\w+)\s+(\S+)/ && exists($energyKey{$1})) {
+  &scalarProp($energyKey{$1}, $2, "Hartree");
+} elsif ($first =~ /^s_squared\s+(\S+)/) {
+  &scalarProp("S2", $1);
+} elsif ($first =~ /^wall_seconds\s+(\S+)/) {
+  &scalarProp("ETIME", $1);
+} elsif ($first =~ /^dipole_debye\s+(\S+)\s+(\S+)\s+(\S+)/) {
+  print "key: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n$1 $2 $3\nunits:\nDebye\nEND\n";
+} elsif ($first =~ /^begin atoms\b/) {
+  # index symbol Z x y z mulliken_net_charge
+  my @q;
+  foreach my $l (@lines) {
+    last if ($l =~ /^end\b/);
+    my @f = split(' ', $l);
+    push(@q, $f[6]) if (@f >= 7);
+  }
+  &vectorProp("MULLIKEN", \@q, "e") if (@q);
+} elsif ($first =~ /^begin orbitals\s+(\w+)/) {
+  my $spin = $1;
+  my (@en, @occ);
+  foreach my $l (@lines) {
+    last if ($l =~ /^end\b/);
+    my @f = split(' ', $l);
+    next if (@f < 3);
+    push(@en, $f[1]);
+    push(@occ, $f[2]);
+  }
+  my ($e, $o) = ($spin eq 'beta') ? ('ORBENGBETA', 'ORBOCCBETA') : ('ORBENG', 'ORBOCC');
+  if (@en) {
+    &vectorProp($e, \@en, "Hartree");
+    &vectorProp($o, \@occ, "electrons");
+  }
+} elsif ($first =~ /^begin mo_coefficients\s+(\w+)/) {
+  my $spin = $1;
+  my @rows;
+  foreach my $l (@lines) {
+    last if ($l =~ /^end\b/);
+    my @f = split(' ', $l);
+    shift(@f);
+    push(@rows, [@f]) if (@f);
+  }
+  exit(0) if (!@rows);
+  my $nmo = scalar(@rows);
+  my $nbas = scalar(@{$rows[0]});
+  my $key = ($spin eq 'beta') ? 'MOBETA' : 'MO';
+  print "key: $key\nsize:\n$nmo $nbas\nrowlabels:\n";
+  for my $m (1 .. $nmo) {
+    print "MO-$m ";
+    print "\n" if (($m % 8) == 0);
+  }
+  print "\ncolumnlabels:\n";
+  for my $b (1 .. $nbas) {
+    print "BasFun-$b ";
+    print "\n" if (($b % 6) == 0);
+  }
+  print "\nvalues:\n";
+  foreach my $r (@rows) {
+    print join(" ", @$r), "\n";
+  }
+  print "END\n";
+  if ($spin ne 'beta') {
+    print "key: MOAOORDER\nsize:\n1\nvalues:\nangular-momentum\nEND\n";
+  }
+}
+exit(0);

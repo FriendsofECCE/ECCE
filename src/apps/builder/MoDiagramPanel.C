@@ -526,6 +526,13 @@ wxSize MoDiagramPanel::preferredFloatingSize() const
 bool MoDiagramPanel::isRelevant(IPropCalculation *propCalc) const
 {
   if (propCalc == 0) return false;
+  //  A code can opt out in its .edml (SupportsMODiagram false); the
+  //  orbital list, energies and pictures are unaffected.
+  ICalculation *esCalc = dynamic_cast<ICalculation*>(propCalc);
+  if (esCalc != 0) {
+    const JCode *app = esCalc->application();
+    if (app != 0 && !app->supportsMODiagram()) return false;
+  }
   //  Energies are the one thing without which there is nothing to draw.
   //  Symmetry labels and fragment analysis are both optional: without
   //  them this degrades to a labelled level diagram, which is still

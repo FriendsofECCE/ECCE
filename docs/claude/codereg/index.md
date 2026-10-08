@@ -77,6 +77,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [Keep `ResourceDescriptor.xml` and `ResourceDescriptorRxn.xml` in step](keep-resourcedescriptor-xml-and-resourcedescriptorrxn-xml-in.md)
 - [`<DataFiles>` filenames need a distinctive extension](datafiles-filenames-need-a-distinctive-extension.md)
 - [`<LaunchPreprocessor>` is required, unconditionally](launchpreprocessor-is-required-unconditionally.md)
+- [ECCE-QM is a bundled code: where it is wired, and the per-code flags it introduced](ecce-qm-is-a-bundled-code.md)
 - [`rdStandardGBS.pm` accepts indented NameBasis lines and an optional `print`; do not re-fix the `*.expt` writers](rdstandardgbs-pms-namebasis-format-used-to-have.md)
 - [No `CMakeLists.txt install()` changes needed](no-cmakelists-txt-install-changes-needed.md)
 - [An `.expt`'s `.param` keys and `.frag` attributes are read literally; a wrong key is dropped silently (#235)](expt-param-keys-are-read-literally.md)
