@@ -2122,6 +2122,12 @@ void CalcMgr::OnTreectrlSelChanged( wxTreeEvent& event )
 
   onSelectionChange(true);
 
+#ifdef __WXMSW__
+  // Rows of the old and new selection were seen left unpainted on
+  // Windows after a click; repaint the tree once the click is done.
+  CallAfter([this]() { p_treeCtrl->Refresh(); });
+#endif
+
   //  cerr << "Leave SelChanged event\n";
   event.Skip();
 }
