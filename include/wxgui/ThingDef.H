@@ -36,13 +36,11 @@
 // DLLIMPEXP macros
 // ----------------------------------------------------------------------------
 
-// These are our DLL macros (see the contrib libs like wxPlot)
+// Our own DLL macros. They are never imports: these are static libraries even
+// when wx itself is a DLL (WXUSINGDLL, MSYS2).
 #ifdef WXMAKINGDLL_THINGS
     #define WXDLLIMPEXP_THINGS WXEXPORT
     #define WXDLLIMPEXP_DATA_THINGS(type) WXEXPORT type
-#elif defined(WXUSINGDLL)
-    #define WXDLLIMPEXP_THINGS WXIMPORT
-    #define WXDLLIMPEXP_DATA_THINGS(type) WXIMPORT type
 #else // not making nor using DLL
     #define WXDLLIMPEXP_THINGS
     #define WXDLLIMPEXP_DATA_THINGS(type) type

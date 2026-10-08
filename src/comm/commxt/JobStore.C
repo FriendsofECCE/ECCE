@@ -1980,6 +1980,39 @@ void getJobMonitorInput(int fid)
 }
 
 
+#ifdef _WIN32
+// poll() for CRT pipe descriptors, which WSAPoll cannot watch: a pipe is ready
+// when it holds data or its writer has gone; anything else is a socket.
+static int winPoll(struct pollfd* fds, int n, int timeoutMs)
+{
+  ULONGLONG start = GetTickCount64();
+  for (;;) {
+    int ready = 0;
+    for (int i = 0; i < n; i++) {
+      fds[i].revents = 0;
+      if (fds[i].fd < 0) continue;
+      HANDLE h = (HANDLE)_get_osfhandle(fds[i].fd);
+      DWORD avail = 0;
+      if (h != INVALID_HANDLE_VALUE && GetFileType(h) == FILE_TYPE_PIPE) {
+        if (PeekNamedPipe(h, 0, 0, 0, &avail, 0))
+          fds[i].revents = avail > 0 ? POLLIN : 0;
+        else
+          fds[i].revents = POLLHUP;
+      } else {
+        struct pollfd one = fds[i];
+        if (poll(&one, 1, 0) > 0) fds[i].revents = one.revents;
+      }
+      if (fds[i].revents) ready++;
+    }
+    if (ready > 0 || timeoutMs == 0) return ready;
+    if (timeoutMs > 0 && GetTickCount64() - start >= (ULONGLONG)timeoutMs)
+      return 0;
+    Sleep(10);
+  }
+}
+#define poll winPoll
+#endif
+
 // Wait for and handle one round of events: queued signals first, then an
 // expired timeout, then input from the monitor and the broker.
 static void processEvents(int monFd)

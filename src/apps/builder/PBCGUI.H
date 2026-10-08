@@ -19,6 +19,7 @@
  */
 
 ////@begin includes
+#include <wx/scrolwin.h>
 #include "wx/spinctrl.h"
 #include "wxgui/ewxPanel.H"
 ////@end includes
@@ -69,6 +70,7 @@ public:
     PBCGUI( wxWindow* parent, wxWindowID id = SYMBOL_PBCGUI_IDNAME, const wxPoint& pos = SYMBOL_PBCGUI_POSITION, const wxSize& size = SYMBOL_PBCGUI_SIZE, long style = SYMBOL_PBCGUI_STYLE );
 
     /// Creation
+    void refit();
     bool Create( wxWindow* parent, wxWindowID id = SYMBOL_PBCGUI_IDNAME, const wxPoint& pos = SYMBOL_PBCGUI_POSITION, const wxSize& size = SYMBOL_PBCGUI_SIZE, long style = SYMBOL_PBCGUI_STYLE );
 
     /// Creates the controls and sizers
@@ -192,6 +194,8 @@ public:
     wxPanel* p_latticePanel;
     wxBoxSizer* p_operationsSizer;
     wxBoxSizer* p_symSizer;
+    wxScrolledWindow* p_scroll;
+    wxBoxSizer* p_mainSizer;
     static const wxWindowID ID_TEXTCTRL_PBC_A3Y;
     static const wxWindowID ID_SPINCTRL_PBC_ZREP;
     static const wxWindowID ID_CHOICE_PBC_TYPE;

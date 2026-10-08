@@ -58,7 +58,7 @@ DEFINE_EVENT_TYPE(ewxEVT_TABLE_ELEMENT_ACTIVATED)
 /**
  *  Callback function for the underlying wxListCtrl.
  */
-int wxCALLBACK compareElements(long k1, long k2, long sortData)
+int wxCALLBACK compareElements(wxIntPtr k1, wxIntPtr k2, wxIntPtr sortData)
 {
     TableElement *elmnt1, *elmnt2;
     DefaultTableModel* mdl;
@@ -526,7 +526,7 @@ void WxTableView::refresh()
     bool sortDesc;
     int slctRow;
 
-    p_listView->SortItems(compareElements, reinterpret_cast<long>(p_dataModel));
+    p_listView->SortItems(compareElements, reinterpret_cast<wxIntPtr>(p_dataModel));
 
     sortClmn = p_dataModel->getSortColumn();
     sortDesc = p_dataModel->getSortDescending();

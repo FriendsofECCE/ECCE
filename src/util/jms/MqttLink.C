@@ -10,7 +10,7 @@
 #include <mqtt_protocol.h>
 
 #include <fcntl.h>
-#include <pwd.h>
+#include "util/PosixCompat.H"
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -121,6 +121,7 @@ bool MqttConfig::parseFile(const string& path, MqttConfig& cfg)
     else if (key == "host") cfg.host = val;
     else if (key == "port") cfg.port = atoi(val.c_str());
     else if (key == "user") cfg.user = val;
+    else if (key == "password") cfg.password = val;
     else if (key == "tls") cfg.tls = (val == "1");
     else if (key == "cafile") cfg.cafile = val;
     else if (key == "capath") cfg.capath = val;
@@ -179,6 +180,11 @@ void MqttEndpoint::clear()
 bool MqttEndpoint::enablePipe()
 {
   if (p_pipe[0] >= 0) return true;
+#ifdef _WIN32
+  // No pollable descriptor: Windows pipes cannot be made non-blocking here,
+  // and the wx apps take their messages through `poster` instead.
+  return false;
+#endif
   if (pipe(p_pipe) != 0) {
     p_pipe[0] = p_pipe[1] = -1;
     return false;
@@ -359,7 +365,12 @@ bool MqttLink::ensureConnected()
   // The Unix-socket broker is private to the account and takes anyone.
   string account, password;
   bool tcp = p_cfg.socket.empty();
-  if (tcp) {
+  if (tcp && !p_cfg.password.empty() && !p_cfg.user.empty()) {
+    // A broker started for this session alone (Windows local mode): the
+    // broker file carries its generated login.
+    account = p_cfg.user;
+    password = p_cfg.password;
+  } else if (tcp) {
     if (!credentialProvider() ||
         !credentialProvider()(key, account, password) ||
         account.empty()) {

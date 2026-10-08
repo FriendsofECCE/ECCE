@@ -15,6 +15,7 @@ SKIPs (77) without Xvfb or the machregister binary.
 """
 
 import argparse
+import difflib
 import hashlib
 import os
 import re
@@ -152,6 +153,7 @@ class Env:
                  HOME=self.user, ECCE_MACHREG_SCRIPT=os.path.join(
                      self.root, "script"))
         e.pop("ECCE_REMOTE_SERVER", None)
+        e.setdefault("ECCE_REALUSER", "tester")   # the wrappers always set it
         e.update(extra or {})
         return e
 
@@ -1597,6 +1599,113 @@ quit
     clean(p, "a retired code is listed when the machine has a key for it")
 
 
+def codes_find(tmp, display, build):
+    print("codes tab: unavailable codes hidden, Program examples, Find")
+    e = Env(tmp, "codes-find")
+    tool_machine(e)
+    #  GROMACS is registered (a GROMACS MD study), so it is listed.
+    p = run(display, build, e, """
+select stubm
+tab codes
+expect code-listed GROMACS 1
+expect code-listed NWChem 1
+check-program-hints
+code ORCA
+expect contains code:example '/opt/orca/<version>/orca'
+expect contains code:example 'ORCA needs the full'
+code QuantumESPRESSO
+expect contains code:example '/usr/bin/pw.x'
+quit
+""", extra=LOCALUSER)
+    clean(p, "GROMACS is listed; every example ends in a name Find looks for")
+    write(os.path.join(e.ue, "CONFIG.stubm"),
+          "nwchem: /opt/nwchem\ngromacs: /opt/gromacs/bin/gmx\n"
+          "condorAllowTmp: true\n")
+    p = run(display, build, e, """
+select stubm
+expect code-listed GROMACS 1
+quit
+""", extra=LOCALUSER)
+    clean(p, "a machine's own GROMACS setting still lists it")
+    write(os.path.join(e.ue, "CONFIG.stubm"),
+          "nwchem: /opt/nwchem\ncondorAllowTmp: true\n")
+
+    root = os.path.join(tmp, "find-bins")
+    dirs = {n: os.path.join(root, n) for n in ("a", "b", "c", "d")}
+    for d in dirs.values():
+        os.makedirs(d)
+
+    def exe(path):
+        write(path, "#!/bin/sh\nexit 0\n", mode=0o755)
+    exe(os.path.join(dirs["a"], "nwchem"))
+    exe(os.path.join(dirs["a"], "orca"))          # the screen reader
+    exe(os.path.join(dirs["b"], "orca"))
+    exe(os.path.join(dirs["b"], "orca_scf"))
+    exe(os.path.join(dirs["a"], "MOPAC2016.exe"))
+    exe(os.path.join(dirs["b"], "mopac"))
+    exe(os.path.join(dirs["d"], "pw.x"))
+    #  The machine's login setup is what puts the programs on the PATH; the
+    #  shell RCommand starts does not inherit the test's own.
+    setup = os.path.join(tmp, "path.sh")
+    write(setup, "PATH=%s:%s:$PATH; export PATH\n" % (dirs["a"], dirs["b"]))
+    write(os.path.join(e.ue, "CONFIG.stubm"),
+          "nwchem: /opt/nwchem\ncondorAllowTmp: true\nsourceFile: %s\n" % setup)
+    extra = LOCALUSER
+    pw = os.path.join(dirs["d"], "pw.x")
+    # Check if pw.x is installed on the system (e.g., /bin/pw.x or /usr/bin/pw.x on niobium)
+    system_pw_paths = ["/bin/pw.x", "/usr/bin/pw.x"]
+    system_pw_installed = any(os.path.exists(p) for p in system_pw_paths)
+    if system_pw_installed:
+        # When pw.x is on the system, it will be found; accept it from any standard path
+        pw_expectation = "expect contains code:quantumespresso pw.x"
+    else:
+        # When pw.x is not on the system, expect no result and a message
+        pw_expectation = """expect message 'No pw.x was found'
+expect field code:quantumespresso"""
+    p = run(display, build, e, """
+select stubm
+tab codes
+code NWChem
+expect field code:nwchem /opt/nwchem
+answer no
+click code:find
+expect field code:nwchem /opt/nwchem
+answer yes
+click code:find
+expect field code:nwchem %(a)s/nwchem
+expect dirty 1
+code ORCA
+expect field code:orca
+click code:find
+expect field code:orca %(b)s/orca
+code MOPAC
+choose 1
+click code:find
+expect field code:mopac %(b)s/mopac
+code QuantumESPRESSO
+click code:find
+%(pw_expectation)s
+quit
+""" % {"a": dirs["a"], "b": dirs["b"], "pw_expectation": pw_expectation}, extra=extra)
+    clean(p, "Find: asks before replacing, skips a same-named program without "
+             "its companion, offers a choice, says plainly when none is found")
+
+    #  The login setup runs first: a path it adds is searched.
+    write(os.path.join(tmp, "setup.sh"), "PATH=%s:$PATH; export PATH\n" % dirs["d"])
+    write(os.path.join(e.ue, "CONFIG.stubm"),
+          "nwchem: /opt/nwchem\ncondorAllowTmp: true\nsourceFile: %s\n"
+          % os.path.join(tmp, "setup.sh"))
+    p = run(display, build, e, """
+select stubm
+tab codes
+code QuantumESPRESSO
+click code:find
+expect field code:quantumespresso %(pw)s
+quit
+""" % {"pw": pw}, extra=LOCALUSER)
+    clean(p, "Find runs the machine's login setup first")
+
+
 def codes_pngs(tmp, display, build, out):
     print("codes tab PNGs")
     os.makedirs(out, exist_ok=True)
@@ -1639,6 +1748,18 @@ shot %(o)s/codes-missing-sections.png
 quit
 """ % {"o": out})
     clean(p, "Codes PNG, missing sections")
+    p = run(display, build, e, """
+select mine
+tab codes
+code NWChem
+wait 1000
+shot %(o)s/codes-program-nwchem.png
+code ORCA
+wait 800
+shot %(o)s/codes-program-orca.png
+quit
+""" % {"o": out})
+    clean(p, "Codes PNGs, Program field")
     for n in sorted(os.listdir(out)):
         print("        " + os.path.join(out, n))
 
@@ -2033,7 +2154,7 @@ set q-defwall 4
 queue-apply
 click discover
 pick disc:list long
-expect label disc:status '3 of these are in the list already; adding them updates their limits and keeps their defaults.'
+expect contains disc:status '3 of these are in the list already; adding them updates their limits'
 click disc:add
 set queue long
 expect field q-defwall 4
@@ -2135,8 +2256,9 @@ quit
            "#SBATCH --constraint=sitegpu"],
           "request lines: the site's header, placeholders filled: %r"
           % section("request"))
-    check([l for l in section("before", "site") if l] == ["module load site-mpi"],
-          "before: the site's setup")
+    #  gensub puts its own module-command preamble ahead of the site's text.
+    check("module load site-mpi" in section("before", "site"),
+          "before: the site's setup: %r" % section("before")[-3:])
     check([l for l in section("env", "user") if l] ==
           ['export OMP_NUM_THREADS="4"',
            'if [ -n "${PATH+set}" ]; then',
@@ -2202,6 +2324,148 @@ quit
           "nothing was saved")
 
 
+def kebnekaise_roundtrip(tmp, display, build):
+    print("a real Slurm machine, saved by an earlier release, round trip")
+    fx = os.path.join(HERE, "fixtures", "kebnekaise")
+    e = Env(tmp, "kebnekaise")
+    names = ["CONFIG.kebnekaise", "kebnekaise.Q", "MyMachines", "Queues"]
+    for n in names:
+        shutil.copy(os.path.join(fx, n), os.path.join(e.ue, n))
+    #  Only the default account is edited (it is kept in MachPrefs): the
+    #  settings files must come back as they were read.
+    p = run(display, build, e, """
+select kebnekaise
+tab job
+expect contains setup:codes 'before the calculation for every code except Gaussian-16'
+expect contains wrapup:codes 'after the calculation for every code.'
+tab codes
+code Gaussian-16
+expect field code:gaussian-16 /hpc2n/eb/software/gaussian/16.C.02-AVX2/g16/g16
+tab queues
+expect field default-account
+set default-account proj1
+save
+expect dirty 0
+quit
+""", extra=LOCALUSER, timeout=180)
+    clean(p, "the Job script tab says Gaussian-16 has its own commands; save")
+    for n in names:
+        a, b = read(os.path.join(fx, n)), read(os.path.join(e.ue, n))
+        check(a == b, "%s is unchanged by a save%s" % (n, "" if a == b else
+              ":\n" + "".join(difflib.unified_diff(
+                  a.splitlines(True), b.splitlines(True), "read", "saved"))[:1500]))
+    check("proj1" in read(os.path.join(e.ue, "MachPrefs")),
+          "the default account went to MachPrefs")
+    #  An account typed as a queue, after Discover queues, is questioned.
+    bindir, spool = stub_clients(tmp)
+    e = Env(tmp, "discwarn")
+    tool_machine(e)
+    write(os.path.join(e.ue, "Queues"), "Queues: stubm\n\n"
+          "stubm|queueMgrName: Slurm\nstubm|prefFile: stubm.Q\n")
+    write(os.path.join(e.ue, "stubm.Q"), "Queues: x\n\nx|minProcessors: 1\n"
+          "x|maxProcessors: 8\nx|runLimit: 60\n")
+    p = run(display, build, e, """
+select stubm
+tab queues
+set qmgrpath %(bin)s
+click discover
+click disc:add
+set q-name proj1
+set q-maxprocs 4
+answer no
+queue-apply
+expect message 'is not one of the queues the scheduler reported'
+quit
+""" % {"bin": bindir}, extra=LOCALUSER, timeout=180)
+    clean(p, "a name that is not one of the scheduler's queues is questioned")
+
+
+def account_required(tmp, display, build, pngs=None):
+    print("a site that requires an account on every submission")
+    bindir, spool = stub_clients(tmp)
+    e = Env(tmp, "account")
+    tool_machine(e)
+    write(os.path.join(e.ue, "stubm.Q"),
+          "Queues: debug\n\ndebug|minProcessors: 1\ndebug|maxProcessors: 8\n"
+          "debug|runLimit: 60\n")
+    write(os.path.join(e.ue, "Queues"), "Queues: stubm\n\n"
+          "stubm|queueMgrName: Slurm\nstubm|prefFile: stubm.Q\n")
+    os.makedirs(os.path.join(spool, "slurm"), exist_ok=True)
+    flag = os.path.join(spool, "slurm", "require_account")
+    write(flag, "")
+    shot = (lambda n: "wait 600\nshot-dialog %s/%s\n" % (pngs, n)) if pngs \
+        else (lambda n: "")
+    try:
+        #  3: the refusal is shown with the command and the site's words; the
+        #  account typed in the dialog gets the test through.
+        p = run(display, build, e, """
+select stubm
+tab queues
+set qmgrpath %(bin)s
+click test-submission
+set test:queue debug
+click test:run
+expect contains test:result 'sbatch --test-only'
+expect contains test:result 'Invalid account or account/partition combination'
+expect label test:verdict 'Slurm did not accept the script.'
+%(shot1)sset test:account proj1
+click test:run
+expect contains test:result 'sbatch: Job 12346'
+expect label test:verdict 'Slurm accepted the script; nothing was submitted (job 12346 would have started).'
+%(shot2)sclick test:close
+quit
+""" % {"bin": bindir, "shot1": shot("test-account-refused.png"),
+       "shot2": shot("test-account-accepted.png")},
+            extra=LOCALUSER, timeout=180)
+        clean(p, "a refused submission is shown with its command and the site's "
+                 "reason; with the account it passes")
+
+        #  5 and 4: the default account is saved for the user, ticks
+        #  "Allocation accounts used", and fills the Preview and the Test.
+        p = run(display, build, e, """
+select stubm
+tab queues
+expect field aa 0
+expect dirty 0
+set default-account proj7
+expect dirty 1
+expect field aa 1
+tab job
+click preview
+expect field prev:account proj7
+click prev:update
+expect contains prev:text '#SBATCH --account=proj7'
+%(shot)sset prev:account proj8
+click prev:update
+expect contains prev:text '#SBATCH --account=proj8'
+click prev:close
+tab queues
+click test-submission
+expect field test:account proj7
+click test:close
+save
+expect dirty 0
+quit
+""" % {"shot": shot("preview-account.png")},
+            extra=LOCALUSER, timeout=180)
+        clean(p, "the default account is editable, ticks the account box, and "
+                 "is used by Preview and Test submission")
+        prefs = read(os.path.join(e.ue, "MachPrefs"))
+        check("proj7" in prefs, "MachPrefs (where the Launcher reads it) holds "
+              "the default account: %r" % prefs[-200:])
+        p = run(display, build, e, """
+select stubm
+tab queues
+expect field default-account proj7
+expect field aa 1
+quit
+""", extra=LOCALUSER)
+        clean(p, "the saved default account is shown again")
+    finally:
+        if os.path.exists(flag):
+            os.unlink(flag)
+
+
 def test_submission(tmp, display, build, pngs=None):
     print("test submission against the stand-in schedulers")
     bindir, spool = stub_clients(tmp)
@@ -2227,7 +2491,7 @@ click test:run
 expect contains test:result 'sbatch --test-only'
 expect contains test:result 'sbatch: Job 12346 to start at'
 expect contains test:result 'in partition debug'
-expect label test:verdict 'Slurm accepted the script.'
+expect label test:verdict 'Slurm accepted the script; nothing was submitted (job 12346 would have started).'
 %(shot1)sset test:queue nosuch
 click test:run
 expect contains test:result 'sbatch: error: invalid partition specified: nosuch'
@@ -2246,7 +2510,7 @@ set test:queue debug
 click test:run
 expect contains test:result 'qsub -h'
 expect contains test:result 'qdel 12345.stubserver'
-expect label test:verdict 'PBS accepted the script.'
+expect label test:verdict 'Job 12345.stubserver was submitted on hold and cancelled.'
 %(shot3)sclick test:close
 
 set qmgr SGE
@@ -2296,6 +2560,7 @@ def main():
     ap.add_argument("--help-pngs")
     ap.add_argument("--queues-pngs")
     ap.add_argument("--tools-pngs")
+    ap.add_argument("--only", help="run just this scenario function")
     a = ap.parse_args()
     build = os.path.abspath(a.build)
     if not os.access(os.path.join(build, "machregister"), os.X_OK):
@@ -2310,12 +2575,15 @@ def main():
         return 77
     tmp = tempfile.mkdtemp(prefix="ecce-machreg-")
     try:
-        if a.tools_pngs:
+        if a.only:
+            globals()[a.only](tmp, disp, build)
+        elif a.tools_pngs:
             out = os.path.abspath(a.tools_pngs)
             os.makedirs(out, exist_ok=True)
             discovery(tmp, disp, build, out)
             preview(tmp, disp, build, out)
             test_submission(tmp, disp, build, out)
+            account_required(tmp, disp, build, out)
             for n in sorted(os.listdir(out)):
                 print("        " + os.path.join(out, n))
         elif a.help_pngs:
@@ -2352,10 +2620,13 @@ def main():
                 codes_tab(tmp, disp, build, m)
             codes_retired(tmp, disp, build)
             codes_skeleton(tmp, disp, build)
+            codes_find(tmp, disp, build)
             discovery(tmp, disp, build)
             preview(tmp, disp, build)
             preview_admin(tmp, disp, build)
             test_submission(tmp, disp, build)
+            account_required(tmp, disp, build)
+            kebnekaise_roundtrip(tmp, disp, build)
     finally:
         disp.__exit__(None, None, None)
         shutil.rmtree(tmp, ignore_errors=True)

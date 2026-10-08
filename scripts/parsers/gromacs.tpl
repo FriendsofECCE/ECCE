@@ -2,4 +2,8 @@
 ##GMXNeighbourSearching##
 ##GMXElectrostatics##
 ##GMXTemperatureCoupling##
+##GMXPressureCoupling##
+##GMXVelocities##
+##GMXCenterOfMass##
 ##GMXConstraints##
+##GMXOutput##

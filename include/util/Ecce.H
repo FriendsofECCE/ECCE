@@ -21,6 +21,9 @@
 #include <cstdlib>
 #include <string>
 #include <unistd.h>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 using std::string;
 
 
@@ -81,12 +84,39 @@ class Ecce
       // link against -- an out-of-line definition here put the whole
       // of Ecce.C, and everything it drags in, on that test's link
       // line.  It is getenv and access; there is nothing to hide.
+#ifdef _WIN32
+      // A path with a space is quoted so cmd.exe and sh read it as one word.
+      static string winQuote(const string& p)
+      {
+        return p.find(' ') == string::npos ? p : "\"" + p + "\"";
+      }
+#endif
       static string ecceBinCommand(const string& name)
       {
         const char* home = getenv("ECCE_HOME");
         if (home == (const char*)0 || *home == '\0') return name;
 
         string path = string(home) + "/bin/" + name;
+#ifdef _WIN32
+        // Windows programs carry .exe, and a build tree keeps them
+        // beside the running program rather than under $ECCE_HOME/bin.
+        string exe = path + ".exe";
+        if (access(exe.c_str(), 0) == 0) {
+          for (size_t i = 0; i < exe.size(); i++) if (exe[i] == '/') exe[i] = '\\';
+          return winQuote(exe);   // cmd.exe reads "/" in a command as a switch
+        }
+        char self[MAX_PATH];
+        DWORD n = GetModuleFileNameA(NULL, self, MAX_PATH);
+        if (n > 0 && n < MAX_PATH) {
+          string dir(self, n);
+          size_t slash = dir.find_last_of("\\/");
+          if (slash != string::npos) {
+            string beside = dir.substr(0, slash + 1) + name + ".exe";
+            if (access(beside.c_str(), 0) == 0) return winQuote(beside);
+          }
+        }
+        return name;
+#endif
         if (access(path.c_str(), X_OK) == 0) return path;
         return name;
       }

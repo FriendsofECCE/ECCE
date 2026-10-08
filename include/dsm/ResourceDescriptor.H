@@ -126,6 +126,7 @@ class ResourceDescriptor
       CT_MDOPTIMIZE,
       CT_MDENERGY,
       CT_MDDYNAMICS,
+      CT_MDEQUILIBRATE,
       CT_CHEMICAL_MVM,
       CT_CHEMICAL_PDB,
       CT_UNDEFINED,
@@ -136,6 +137,7 @@ class ResourceDescriptor
     {
       AT_MDSTUDY,
       AT_NWCHEMMD,
+      AT_GROMACS,
       AT_REACTION_STUDY,
       AT_CONDENSED_REACTION_STUDY,
       AT_DRDVTST,
@@ -200,6 +202,7 @@ class ResourceDescriptor
     bool isEcceMdOptimize(const string& contentType);
     bool isEcceMdEnergy(const string& contentType);
     bool isEcceMdDynamics(const string& contentType);
+    bool isEcceMdEquilibrate(const string& contentType);
 
     string getRtName(const RESOURCETYPE& rt);
     string getCtName(const CONTENTTYPE& ct);

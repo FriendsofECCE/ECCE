@@ -98,7 +98,44 @@ menu. It starts the same `ecce` command.
 
 ## What you see the first time
 
-ECCE keeps your projects and calculations in one of two places.
+### The first question
+
+If nothing on your computer tells ECCE where your work goes, ECCE asks
+once, in a window called "Welcome to ECCE":
+
+![The first question](img/first-start.png)
+
+- **Work on this computer** keeps your calculations in a folder on this
+  computer, `~/.ECCE-local`. Choose this if you work alone.
+- **Connect to a server** uses a server that your teacher or institution
+  runs. Type its address, for example `ecce.example.edu`, and click
+  **Continue**. ECCE then shows the login window; use the user name and
+  password you were given.
+
+Click **Continue** to confirm. ECCE remembers your choice and does not ask
+again. **Quit** closes ECCE without choosing anything.
+
+ECCE does not ask if it is already set up: on a computer that has a server
+configured by its administrator, on a server itself, or when you have used
+ECCE here before.
+
+If ECCE cannot connect, it tells you in the same window. Check the address
+and your network connection, then click **Continue** again.
+
+If the server proves who it is with a certificate that your computer already
+trusts, ECCE connects without further questions. Otherwise ECCE remembers
+the certificate the server shows the first time you connect. If that
+certificate ever changes, ECCE does not log you in and says so; ask the
+server's administrator, then choose **Edit > Change Server...** and connect
+again.
+
+To change your mind later, choose **Edit > Change Server...** in the
+Organizer. The window says where ECCE works now, and which folder holds your
+calculations if it is this computer. The change applies the next time you
+start ECCE. Your calculations are not copied from one place to the other.
+
+If you did not choose a server, ECCE keeps your projects and calculations in
+one of two places on this computer.
 
 ### On a data server (the default)
 

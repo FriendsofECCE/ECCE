@@ -10,6 +10,7 @@
 #include <fstream>
 
 #include "util/Ecce.H"
+#include "util/PosixCompat.H"
 #include "util/WaitingJobs.H"
 
 using std::string;
@@ -70,7 +71,7 @@ bool WaitingJobs::add(const string& url)
     if (!out)
       return false;
   }
-  return rename(tmp.c_str(), target.c_str()) == 0;
+  return renameReplace(tmp.c_str(), target.c_str()) == 0;
 }
 
 

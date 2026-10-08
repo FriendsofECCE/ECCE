@@ -562,7 +562,7 @@
                   <long name="proxy-Id value">5105</long>
                   <string name="proxy-Class">"wxStaticText"</string>
                   <string name="proxy-Member variable name">""</string>
-                  <string name="proxy-Label">"Cuttoff Abs &gt;"</string>
+                  <string name="proxy-Label">"Cutoff Abs &gt;"</string>
                   <string name="proxy-Help text">""</string>
                   <string name="proxy-Tooltip text">""</string>
                   <string name="proxy-Background colour">""</string>

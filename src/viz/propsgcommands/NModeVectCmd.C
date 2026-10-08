@@ -144,6 +144,7 @@ bool NModeVectCmd::execute()
 
    }
    delete color;
+   sg->updateNMVecStarts();
 
    return ret;
 }

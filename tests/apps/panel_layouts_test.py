@@ -6,7 +6,9 @@ The Builder on a calculation with its MOs panel open, in every panel layout
 For each layout the Builder opens the water fixture with ECCE_PANEL_MODE,
 ECCE_OPEN_PANEL=MOs and ECCE_PANEL_METRICS, and the metrics must show the
 viewer and the MOs pane on screen, inside the window, at a usable size, and
-every pane still a child of the frame.  "default" sets no ECCE_PANEL_MODE,
+every pane still a child of the frame, and the MOs pane at least as wide
+as its own controls (the MO list and the Compute and Cutoff rows were cut
+off at the right).  "default" sets no ECCE_PANEL_MODE,
 so it is the layout a new install gets (list + detail).
 
 The case this was written for: fitting the window to the screen (#189)
@@ -50,13 +52,16 @@ def readMetrics(path):
         return out
     with open(path) as handle:
         for line in handle:
-            m = re.match(r'pane "([^"]+)" (-?\d+) (-?\d+) (\d+) (\d+) (\w+) (\w+)',
-                         line)
+            m = re.match(r'pane "([^"]+)" (-?\d+) (-?\d+) (\d+) (\d+) (\w+) (\w+)'
+                         r'(?: need (\d+) have (\d+))?', line)
             if m:
                 out["panes"][m.group(1)] = (
                     int(m.group(2)), int(m.group(3)), int(m.group(4)),
                     int(m.group(5)), m.group(6) == "onscreen",
                     m.group(7) == "docked")
+                if m.group(8):
+                    out.setdefault("width", {})[m.group(1)] = (
+                        int(m.group(8)), int(m.group(9)))
             elif line.startswith("client "):
                 out["client"] = tuple(int(v) for v in line.split()[1:3])
             elif line.startswith("mode "):
@@ -79,6 +84,17 @@ def paneProblem(metrics, name, minW, minH):
                 % (name, w, h, x, y, cw, ch))
     if w < minW or h < minH:
         return "%s pane is only %dx%d" % (name, w, h)
+    return None
+
+
+def clipProblem(metrics, name):
+    """The pane narrower than its own controls: the ends of rows are cut."""
+    need, have = metrics.get("width", {}).get(name, (0, 0))
+    if need == 0:
+        return "%s pane: no content width reported" % name
+    if have < need:
+        return ("%s pane is %d px wide but its controls need %d: the right "
+                "end of its rows is clipped" % (name, have, need))
     return None
 
 
@@ -128,9 +144,11 @@ def check(display, url, label, mode, expected):
         problem = ("panes moved out of the frame: " + ", ".join(moved)
                    if moved else
                    paneProblem(metrics, "Viewer", MIN_VIEWER, MIN_VIEWER) or
-                   paneProblem(metrics, PANEL, 1, MIN_PANEL))
+                   paneProblem(metrics, PANEL, 1, MIN_PANEL) or
+                   clipProblem(metrics, PANEL))
     if problem is None:
-        print("ok    %s" % label)
+        need, have = metrics.get("width", {}).get(PANEL, (0, 0))
+        print("ok    %s (%d px, controls need %d)" % (label, have, need))
         return
     failures.append(label)
     print("FAIL  %s: %s\n%s" % (label, problem, run_tests._tail(log, 15)))

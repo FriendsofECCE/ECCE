@@ -101,6 +101,7 @@ using std::vector;
 
 #include "inv/SoWx/SoWx.H"
 
+#include "tdat/SingleGrid.H"
 #include "viz/AtomMeasureAngle.H"
 #include "viz/AtomMeasureDist.H"
 #include "viz/AtomMeasureTorsion.H"
@@ -3448,6 +3449,9 @@ void Builder::OnToolMenuClick( wxCommandEvent& event )
     panel->refresh();
   }
   updatePanes(true);
+  if (event.IsChecked()) {
+    makeRoomFor(pane.name);
+  }
   debugPrintPaneSizes(p_mgr);
 
 
@@ -4896,11 +4900,15 @@ void Builder::updatePropertyMenus()
       for (size_t i = 0; f && i < panes.GetCount(); ++i) {
         const wxAuiPaneInfo &p = panes.Item(i);
         if (!p.IsShown() || p.IsToolbar() || !p.window) continue;
-        fprintf(f, "pane \"%s\" %d %d %d %d %s %s\n",
+        //  "need": the width the pane's own controls take at this font.
+        wxSizer *content = p.window->GetSizer();
+        fprintf(f, "pane \"%s\" %d %d %d %d %s %s need %d have %d\n",
                 p.name.ToStdString().c_str(), p.rect.x, p.rect.y,
                 p.rect.width, p.rect.height,
                 p.window->IsShownOnScreen() ? "onscreen" : "hidden",
-                p.window->GetParent() == this ? "docked" : "reparented");
+                p.window->GetParent() == this ? "docked" : "reparented",
+                content ? content->GetMinSize().x : 0,
+                p.window->GetClientSize().x);
       }
       if (f) fprintf(f, "client %d %d\n", GetClientSize().x,
                      GetClientSize().y);
@@ -4956,6 +4964,59 @@ void Builder::updatePropertyMenus()
       _exit(0);
     });
     timer->StartOnce(1 + 1000 * (delay ? atoi(delay) : 0));
+  }
+
+  //  ECCE_TEST_DOCK=1: float every panel docked on the side with the most
+  //  of them, so that no dock is left there, run Tools > Dock Floating
+  //  Panels, and report what returned to that side; for
+  //  tests/apps/dock_test.py.  Inert unless set.
+  static bool dockStarted = false;
+  if (getenv("ECCE_TEST_DOCK") && !dockStarted) {
+    dockStarted = true;
+    wxTimer *timer = new wxTimer();   // lives until the process exits
+    timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+      auto docked = [this](int side) {
+        std::vector<wxString> names;
+        wxAuiPaneInfoArray& all = p_mgr.GetAllPanes();
+        for (size_t i = 0; i < all.GetCount(); ++i)
+          if (all[i].IsDocked() && !all[i].IsToolbar() && all[i].IsShown() &&
+              all[i].dock_direction == side)
+            names.push_back(all[i].name);
+        return names;
+      };
+      auto floating = [this]() {
+        int n = 0;
+        wxAuiPaneInfoArray& all = p_mgr.GetAllPanes();
+        for (size_t i = 0; i < all.GetCount(); ++i)
+          if (all[i].IsShown() && !all[i].IsToolbar() && all[i].IsFloating())
+            n++;
+        return n;
+      };
+      int side = wxAUI_DOCK_LEFT;
+      for (int s : { wxAUI_DOCK_RIGHT, wxAUI_DOCK_TOP, wxAUI_DOCK_BOTTOM })
+        if (docked(s).size() > docked(side).size()) side = s;
+      std::vector<wxString> moved = docked(side);
+      for (const wxString& name : moved)
+        p_mgr.GetPane(name).Float();
+      p_mgr.Update();
+      int floated = floating(), leftBefore = (int)docked(side).size();
+      wxCommandEvent ev;
+      OnDockFloatingPanels(ev);
+      int floatedAfter = floating(), leftAfter = (int)docked(side).size();
+      bool back = true;
+      for (const wxString& name : moved) {
+        wxAuiPaneInfo& pi = p_mgr.GetPane(name);
+        if (!pi.IsOk() || !pi.IsDocked() || pi.dock_direction != side)
+          back = false;
+      }
+      fprintf(stderr, "ECCE_TEST_DOCK: moved %d, floating %d, left docked %d; "
+              "after: floating %d, left docked %d, all back %d\n",
+              (int)moved.size(), floated, leftBefore, floatedAfter, leftAfter,
+              back ? 1 : 0);
+      fflush(stderr);
+      _exit(0);
+    });
+    timer->StartOnce(3000);
   }
 
   //  ECCE_TEST_HELP=<png>: run Help > Builder, save the help window to
@@ -5178,8 +5239,30 @@ void Builder::updatePropertyMenus()
             cube->selectGrid(atoi(w[2].c_str()), atof(w[3].c_str()));
           });
         }
+        //  "plotshot <name> <w> <h> <panel name>": show that panel floating
+        //  at w x h and save what is on the screen there to <name>.png.
+        if (w[0] == "plotshot") return plotShotCommand(s, w, outdir);
         //  "gt...": the Geometry Trace stress commands (#217).
         if (w[0].compare(0, 2, "gt") == 0) return traceStressCommand(s, w);
+        //  "mogrid <name>": the range of the grid last computed (an MO
+        //  Compute), "none" without one -> <name>.txt.
+        if (w[0] == "mogrid" && w.size() == 2) {
+          std::ofstream out(outdir + "/" + w[1] + ".txt");
+          SingleGrid *grid = getSG() ? getSG()->getCurrentGrid() : 0;
+          if (grid)
+            out << "fieldMin " << grid->fieldMin() << "\n"
+                << "fieldMax " << grid->fieldMax() << "\n";
+          else
+            out << "none\n";
+          return true;
+        }
+        //  "pbc...", "cmd", "fragdump": Periodic Builder editing (#243).
+        if (w[0].compare(0, 3, "pbc") == 0 || w[0] == "cmd" ||
+            w[0] == "fragdump" || w[0] == "panelmode" ||
+            w[0] == "toolmenu" || w[0] == "paneclose" ||
+            w[0] == "panestate" || w[0] == "xshot" ||
+            w[0] == "setcontext" || w[0] == "columntab")
+          return pbcTestCommand(s, w, outdir);
         if ((w[0] != "mopanel" && w[0] != "motable") || w.size() != 2)
           return s.fail("unknown command: " + w[0]);
         MoPanel *mo = 0;

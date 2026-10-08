@@ -236,7 +236,8 @@ def main():
         rc = 0
         # resourceTest runs twice: create, then re-open in a new process.
         for name, args in (("filedsiTest", []), ("resourceTest", ["create"]),
-                           ("resourceTest", ["reopen"]), ("lockTest", []),
+                           ("resourceTest", ["reopen"]),
+                           ("resourceTest", ["summary"]), ("lockTest", []),
                            ("opsTest", []), ("homeTest", [])):
             driver = os.path.join(state, name)
             if not os.path.exists(driver):
@@ -252,6 +253,15 @@ def main():
             scratch = os.path.join(state, name + ".store")
             if not os.path.isdir(scratch):
                 os.mkdir(scratch)
+            if args == ["summary"]:
+                calc = os.path.join(scratch, "proj-sum", "water-opt")
+                shutil.rmtree(os.path.join(scratch, "proj-sum"),
+                              ignore_errors=True)
+                shutil.copytree(os.path.join(REPO, "tests", "apps", "fixtures",
+                                             "calc-water-opt"), calc)
+                shutil.copy(os.path.join(REPO, "tools", "screenshots", "data",
+                                         "project.ecce-meta"),
+                            os.path.join(scratch, "proj-sum", ".ecce-meta"))
             run_env = dict(env)
             if name == "homeTest":      # local mode: writes only in the home
                 run_env["ECCE_LOCAL_DATA"] = scratch

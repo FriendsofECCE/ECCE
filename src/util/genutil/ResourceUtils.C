@@ -101,6 +101,9 @@ ResourceDescriptor::CONTENTTYPE ResourceUtils::stringToContentType(const string&
     else if (lstr == "eccemddynamics") {
       ct = ResourceDescriptor::CT_MDDYNAMICS;
     }
+    else if (lstr == "eccemdequilibrate") {
+      ct = ResourceDescriptor::CT_MDEQUILIBRATE;
+    }
     else if (lstr == "chemical/x-ecce-mvm") {
       ct = ResourceDescriptor::CT_CHEMICAL_MVM;
     }
@@ -146,6 +149,9 @@ string ResourceUtils::contentTypeToString(ResourceDescriptor::CONTENTTYPE conten
   case ResourceDescriptor::CT_MDDYNAMICS:
     ctStr = "ecceMdDynamics";
     break;
+  case ResourceDescriptor::CT_MDEQUILIBRATE:
+    ctStr = "ecceMdEquilibrate";
+    break;
   case ResourceDescriptor::CT_CHEMICAL_MVM:
     ctStr = "chemical/x-ecce-mvm";
     break;
@@ -178,6 +184,9 @@ ResourceDescriptor::APPLICATIONTYPE ResourceUtils::stringToApplicationType(const
     }
     else if (lstr == "nwchemmd") {
       at = ResourceDescriptor::AT_NWCHEMMD;
+    }
+    else if (lstr == "gromacs") {
+      at = ResourceDescriptor::AT_GROMACS;
     }
     else if (lstr == "reactionstudy") {
       at = ResourceDescriptor::AT_REACTION_STUDY;
@@ -219,6 +228,9 @@ string ResourceUtils::applicationTypeToString(ResourceDescriptor::APPLICATIONTYP
     break;
   case ResourceDescriptor::AT_NWCHEMMD:
     atStr = "NWChemMD";
+    break;
+  case ResourceDescriptor::AT_GROMACS:
+    atStr = "GROMACS";
     break;
   case ResourceDescriptor::AT_REACTION_STUDY:
     atStr = "ReactionStudy";

@@ -381,7 +381,13 @@ class CHEMKIT_DLL_API ChemDisplayParam : public SoNode {
   SoINTERNAL public:
     static void     initClass();
 
+    // GL line widths are in device pixels; the canvas sets this to its
+    // content scale factor so wireframe bonds keep their size on HiDPI.
+    static void     setLineWidthScale(float s) { s_lineWidthScale() = s > 0 ? s : 1; }
+    static float    lineWidthScale() { return s_lineWidthScale(); }
+
   protected:
+    static float&   s_lineWidthScale() { static float v = 1; return v; }
     virtual ~ChemDisplayParam();
     SbBool  mShowRings;
 

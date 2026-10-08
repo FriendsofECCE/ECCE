@@ -100,6 +100,7 @@ class Fragment
             const double* orders = (const double*)0,
             const DisplayStyle *styles = (const DisplayStyle*)0);
       virtual void addCovalentBonds(bool overrideIsDisplayed=false);
+      bool makeMoleculesWhole(bool foldIntoCell);
       virtual void addHydrogenBonds(void);
       virtual bool changeBond(TAtm *atm1, TAtm *atm2, float order);
       virtual void bondAtoms(TAtm *atm1, TAtm *atm2, float order,

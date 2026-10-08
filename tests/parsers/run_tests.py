@@ -750,7 +750,7 @@ def run_mofile_cases(res, args):
             text = fh.read()
 
         argv = [path] + list(case['parse_args'])
-        if not os.access(path, os.X_OK):
+        if os.name == 'nt' or not os.access(path, os.X_OK):
             argv = ['perl'] + argv
         env = dict(os.environ)
         env['ECCE_HOME'] = REPO
@@ -758,8 +758,11 @@ def run_mofile_cases(res, args):
         env.pop('PERL5LIB', None)
         workdir = tempfile.mkdtemp(prefix='ecce-mofiletest-%s-' % name)
         atexit.register(shutil.rmtree, workdir, True)
-        proc = subprocess.run(argv, input=text, capture_output=True,
-                              text=True, timeout=60, cwd=workdir, env=env)
+        # Bytes in and out: text=True would write CRLF to the script on Windows.
+        proc = subprocess.run(argv, input=text.encode('utf-8'), capture_output=True,
+                              timeout=60, cwd=workdir, env=env)
+        proc.stdout = proc.stdout.decode('utf-8', 'replace').replace('\r\n', '\n')
+        proc.stderr = proc.stderr.decode('utf-8', 'replace').replace('\r\n', '\n')
         res.check(proc.returncode == 0, name,
                   '%s exited %d\n%s'
                   % (case['script'], proc.returncode, proc.stderr.strip()))

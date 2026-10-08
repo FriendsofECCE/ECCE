@@ -1067,7 +1067,7 @@ int AtomTable::rowToAtomIndex(int row)
    return ret-1; // table counts from 0
 }
 
-void AtomTable::restoreSettings(wxConfig * config)
+void AtomTable::restoreSettings(wxConfigBase * config)
 {
    int view = -1;
    if (config->Read("/AtomTable/View", &view)) {
@@ -1092,7 +1092,7 @@ void AtomTable::restoreSettings(wxConfig * config)
   }
 }
 
-void AtomTable::saveSettings(wxConfig * config)
+void AtomTable::saveSettings(wxConfigBase * config)
 {
    config->Write("/AtomTable/View", p_viewId);
    config->Write("/AtomTable/SortCol", p_table->getSortCol());

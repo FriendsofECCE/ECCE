@@ -230,7 +230,7 @@ void MiniPerTab::CreateControls()
 }
 
 
-void MiniPerTab::restoreSettings(wxConfig * config)
+void MiniPerTab::restoreSettings(wxConfigBase * config)
 {
   for (int i=8; i<12; ++i) {
     wxString elt;
@@ -242,7 +242,7 @@ void MiniPerTab::restoreSettings(wxConfig * config)
 }
 
 
-void MiniPerTab::saveSettings(wxConfig * config)
+void MiniPerTab::saveSettings(wxConfigBase * config)
 {
   for (int i=8; i<12; ++i) {
     config->Write("/MiniPerTab/"+StringConverter::toString(i), wxString(p_elements[i]));

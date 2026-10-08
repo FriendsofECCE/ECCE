@@ -38,8 +38,8 @@ class WxVizTool
       WxVizToolFW& getFW() const;
 
       /* common interface for initializing and saving preferences.  */
-      virtual void restoreSettings(wxConfig * config);
-      virtual void saveSettings(wxConfig * config);
+      virtual void restoreSettings(wxConfigBase * config);
+      virtual void saveSettings(wxConfigBase * config);
 
       /* executes select which then propagates selection to the viewer
          and all toolkits. */

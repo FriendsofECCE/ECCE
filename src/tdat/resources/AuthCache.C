@@ -1,4 +1,4 @@
-#include <sys/utsname.h> // uname
+#include "util/PosixCompat.H"
 #include <sys/fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -359,7 +359,7 @@ void AuthCache::sessionSave() const
   }
   close(fd);
 
-  if (!ok || rename(tmpPath.c_str(), path.c_str()) != 0) {
+  if (!ok || renameReplace(tmpPath.c_str(), path.c_str()) != 0) {
     unlink(tmpPath.c_str());
   }
 }
@@ -407,6 +407,26 @@ string AuthCache::pipeName()
 void AuthCache::pipeOut(const string& pipeName)
 {
   // pipeName will be a unique name per invocation
+#ifdef _WIN32
+  // No FIFOs here: a plain file, written whole and renamed into place, which
+  // pipeIn() polls for and removes after reading.
+  {
+    string tmp = pipeName + ".tmp";
+    FILE *fp = fopen(tmp.c_str(), "wb");
+    if (fp) {
+      fprintf(fp, "%d\n", (int)p_memcache.size());
+      for (size_t idx = 0; idx < p_memcache.size(); idx++) {
+        AuthTuple *cur = p_memcache[idx];
+        fprintf(fp, "%s|%s|%s\n", cur->url.c_str(), cur->user.c_str(),
+                cur->pass.c_str());
+      }
+      fclose(fp);
+      if (renameReplace(tmp.c_str(), pipeName.c_str()) != 0)
+        unlink(tmp.c_str());
+    }
+  }
+  return;
+#endif
   if (mkfifo(pipeName.c_str(), S_IRUSR|S_IWUSR) == 0) {
     // A plain O_WRONLY open() blocks until a reader opens the pipe too --
     // if the child app never starts properly, the caller (e.g. gateway)

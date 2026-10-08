@@ -9,17 +9,17 @@ queues exist. For the basics of adding a machine, see
 layers of settings work, and examples of common changes.
 
 Open it in the Organizer with **Tools > Register Machines...**, in the
-Launcher with **Job > Register Machines...**, or from a terminal with
+Launcher with **Job > Register Machines...**, with **Machine settings...** in the Launcher or the Machine Browser (which opens it on the selected machine), or from a terminal with
 `ecce -machine`. The machine list is on the left. The tabs on the right
 are:
 
 | Tab | What it holds |
 |---|---|
 | **Machine** | **Machine** (the host name), **Name**, vendor, model, processor, number of processors and nodes. |
-| **Connection** | The remote environment (**Shell**, the script run at login), the login host, paths on the remote machine, and **How jobs reach this machine**. |
-| **Codes** | One entry per code: **Program** (its path), **Environment variables**, **Command line**, and under **Advanced** commands run before and after the program and files to remove. |
+| **Connection** | The remote environment (**Shell**, which is bash unless you choose another, and the script run at login), the login host, paths on the remote machine, and **How jobs reach this machine**. |
+| **Codes** | One entry per code: **Program** (the full path to the executable), **Environment variables**, **Command line**, and under **Advanced** commands run before and after the program and files to remove. |
 | **Job script** | The request lines for the queue manager, and the commands run before and after the calculation. |
-| **Queues** | **Queue manager**, **Allocation accounts used**, and each queue with its limits and defaults. |
+| **Queues** | **Queue manager**, **Allocation accounts used**, **Default account**, and each queue with its limits and defaults. |
 
 The buttons at the bottom are **Help**, **Delete Machine**, **New
 Machine**, **Close** and **Save**. A line below the tabs, "Saved in ...",
@@ -137,6 +137,23 @@ You can also type a placeholder yourself. Frequently used ones are
 `$queue`, `$nodes`, `$totalprocs`, `$ppn`, `$wallTime`, `$memory` and
 `$scratchDir`; the window lists all of them with what each becomes.
 
+## Program: the executable's full path
+
+**Program** is the path of the file the job script runs, not the folder
+that holds it. The line under the box shows an example for the selected
+code: `/usr/bin/nwchem` for NWChem, `/opt/orca/<version>/orca` for ORCA,
+`/opt/g16/g16` for Gaussian 16, `/usr/bin/pw.x` for Quantum ESPRESSO and
+`MOPAC2016.exe` or `mopac` for MOPAC. ORCA needs the full path to run in
+parallel.
+
+**Find** asks the machine where the program is, in the way a shell does
+(`command -v`): on this computer for `localhost`, over the machine's
+connection for any other. A remote search runs the login setup from the
+**Connection** tab first, so a program that needs `module load` is found
+only if that command is in the setup. If several are found you choose one;
+if none is found the box is left as it was. A path already in the box is
+replaced only after you confirm.
+
 ## Set the environment for Gaussian 16
 
 Gaussian 16 needs `g16root` and a scratch directory before it starts. Set
@@ -145,8 +162,9 @@ them for this machine on the **Codes** tab.
 1. Select the machine and open the **Codes** tab.
 2. In the list, select **Gaussian-16**. Codes with a program path are
    marked with `*` and listed first.
-3. In **Program**, enter the path of the program, for example
-   `/opt/g16/g16`, if it is not set already.
+3. In **Program**, enter the full path to the executable, for example
+   `/opt/g16/g16`, if it is not set already. **Find** looks for it on the
+   machine.
 4. In **Environment variables**, click in the **User setting** box and
    enter one variable per line, as the name, a space and the value:
 
@@ -169,7 +187,10 @@ sent.
 
 1. Open the **Queues** tab.
 2. In **Queue manager**, choose the batch system, for example Slurm.
-   Tick **Allocation accounts used** if jobs are charged to an account.
+   Tick **Allocation accounts used** if jobs are charged to an account, and
+   enter your **Default account** if you have one. It is kept for you only; the
+   Launcher offers it, and **Preview job script...** and **Test submission...**
+   use it. Some machines refuse a job that names no account.
 3. Choose a queue in **Queues**, or type a new **Name**.
 4. For each row, enter the limit in the field marked **max** (and
    **min** for **Processors**), and the value the Launcher should start
@@ -237,7 +258,10 @@ the tab that produced it, and coloured the same way.
    program path (**Codes > Program**) before it has a script.
 2. Choose the **Code** and the **Queue**, and set **Nodes**, **Processors
    (total)**, **Wall time (hours)** and **Memory (GB)** to what a job would
-   ask for. Choosing a queue fills in its defaults. Click **Show Script**.
+   ask for. Choosing a queue fills in its defaults. **Account** starts as the
+   **Default account** and can be changed here; a line that uses it, such as
+   `#SBATCH --account=proj1`, shows in the script before anything is
+   submitted. Click **Show Script**.
 3. Read the script. The label at the start of each line is one of:
 
    | Label | Where the line comes from |
@@ -276,13 +300,18 @@ unless you click **Run Test**.
 
 1. Open the **Queues** tab and click **Test submission...**.
 2. Choose the **Queue**, and the processors, wall time and memory to ask for.
+   **Account** starts as the **Default account**; enter the account here if
+   the machine refuses jobs without one.
 3. For PBS, LSF and Moab, tick the box that says the script is submitted on
    hold and cancelled. **Run Test** stays disabled until you do.
 4. Click **Run Test**.
 5. Read the result. The window shows the commands that ran, the queue
    manager's answer exactly as it printed it, and below it whether the script was accepted.
    A refusal gives the manager's reason, for example an unknown partition or
-   a time limit above the queue's.
+   a time limit above the queue's, or a missing account. If the test could
+   not run at all, for example because the login failed, the window says so
+   and shows what was tried. When the script is accepted the verdict says so;
+   for PBS, LSF and Moab it gives the job number that was held and cancelled.
 
 The test script is removed from the machine afterwards. If a held job could
 not be cancelled, the window says so and gives the command to cancel it.

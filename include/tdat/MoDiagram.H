@@ -136,8 +136,13 @@ struct MoLevel
     */
    double         tabulated;
 
-   /** What the level is: see MoDiagram::classify(). */
-   enum Character { UNKNOWN, BONDING, NONBONDING, ANTIBONDING };
+   /**
+    * What the level is: see MoDiagram::classify().  MIXED is the middle
+    * orbital of a three-orbital interaction (water and ammonia 3a1):
+    * neither bonding nor antibonding by count, but with a real share on
+    * both sides, so it is drawn to both and not called non-bonding.
+    */
+   enum Character { UNKNOWN, BONDING, NONBONDING, ANTIBONDING, MIXED };
    Character      character;
 
    /**
@@ -390,12 +395,47 @@ class MoDiagram
      *
      * The tabulated energy is kept as the annotation, where it belongs.
      *
+     * Exception (#140): an atom's shell that has a non-bonding orbital
+     * in the molecular column (nonbondingShellFraction() at least
+     * NONBONDING_SHELL_SHARE) is drawn at that orbital's energy, so the
+     * orbital lies level with its parent.
+     *
      * @param connections  from connect(), which must therefore be
      *                     called first
+     * @return the number of shells drawn at a non-bonding orbital
      */
-    static void placeFragments(const MoColumn& centre,
-                               MoColumn& left, MoColumn& right,
-                               const vector<MoConnection>& connections);
+    static int placeFragments(const MoColumn& centre,
+                              MoColumn& left, MoColumn& right,
+                              const vector<MoConnection>& connections);
+
+    /**
+     * A molecular orbital whose nonbondingShellFraction() for one atom
+     * shell is at least this is that shell's non-bonding orbital (#140).
+     *
+     * Where symmetry forbids mixing (water's out-of-plane 2p) the
+     * fraction is 1 to the six decimals printed, in every basis tried.
+     * Allowed mixing, even when slight, left 0.055 or more elsewhere
+     * (extended Huckel NH3 and water 2a1: 0.055, 0.07; SCF water and
+     * NH3 3a1: 0.24, 0.14; nothing in CO or Cr(CO)6 above 0.88).  0.99
+     * keeps a factor of five from the nearest mixed orbital.
+     */
+    static constexpr double NONBONDING_SHELL_SHARE = 0.99;
+
+    /**
+     * How much of a molecular orbital is one atom shell, as a fraction
+     * of the part of it the diagram draws.
+     *
+     * The denominator is every shell of both columns plus any atom in
+     * neither column; shells of a column atom the diagram does not draw
+     * (polarisation functions: oxygen d, hydrogen p) are left out,
+     * since the diagram cannot show mixing with them.  -1 when the
+     * level carries no per-shell composition.
+     *
+     * @param onLeft  the shell is in the left column, else the right
+     * @param slot    index into that column's shellKeys
+     */
+    static double nonbondingShellFraction(const MoLevel& mo, bool onLeft,
+                                          int slot);
 
     /**
      * Fold levels below a cutoff into the column's hidden band.
@@ -706,8 +746,22 @@ class MoDiagram
                         const vector<MoLevel>& centre,
                         const vector<MoLevel>& right,
                         vector<MoConnection>& connections,
-                        double cutoff = 0.05,
+                        double cutoff = LINK_SHARE,
                         bool bothSidesQualify = false);
+
+    /**
+     * The least share of a molecular orbital, on the shells a column
+     * draws, for which connect() draws a line to that column; classify()
+     * uses the same number to decide that a level touches both sides.
+     */
+    static constexpr double LINK_SHARE = 0.05;
+
+    /**
+     * A level's share on the shells one column draws: the sum of its
+     * per-shell shares, or the column's whole share where there is no
+     * per-shell split, -1 where neither was computed.
+     */
+    static double drawnShare(const MoLevel& level, bool onLeft);
 
     /**
      * Fold levels ABOVE a cutoff, except ones a caller has protected.
