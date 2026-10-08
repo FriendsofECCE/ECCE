@@ -119,6 +119,21 @@ wxString ewxBitmap::genericIconName(const wxString& file)
 }
 
 
+#ifdef __WXMSW__
+//  wxMSW toolbars and buttons ignore a bitmap's alpha channel (transparent
+//  pixels show their colour, mostly black), but honour a mask.
+static wxBitmap alphaToMask(const wxBitmap& bmp)
+{
+  if (!bmp.IsOk() || !bmp.HasAlpha()) return bmp;
+  wxImage image = bmp.ConvertToImage();
+  image.ConvertAlphaToMask();
+  return wxBitmap(image);
+}
+#else
+static const wxBitmap& alphaToMask(const wxBitmap& bmp) { return bmp; }
+#endif
+
+
 /**
  * The bundled Lucide icon drawn in the text colour (its stroke is
  * currentColor), for platforms with no icon theme.
@@ -138,7 +153,7 @@ static wxBitmap lucideIcon(const wxString& icon, const wxSize& size,
     wxCharBuffer data(utf8.length());
     memcpy(data.data(), utf8.data(), utf8.length());
     wxBitmapBundle b = wxBitmapBundle::FromSVG(data.data(), size);
-    return b.IsOk() ? b.GetBitmap(size) : wxBitmap();
+    return b.IsOk() ? alphaToMask(b.GetBitmap(size)) : wxBitmap();
   }
   return wxBitmap();
 }
@@ -206,7 +221,7 @@ wxBitmap ewxBitmap::loadPixmap(const wxString& name, long type)
   wxBitmap bmp;
   wxLogNull quiet;
   bmp.LoadFile(pixmapFile(name), t);
-  return bmp;
+  return alphaToMask(bmp);
 }
 
 
