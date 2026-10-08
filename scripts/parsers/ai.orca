@@ -791,7 +791,7 @@ sub verifyGBSFile {
 }
 
 sub cleanup {
-  system("/bin/mv -f tmpfile '$inputFile'");
+  rename("tmpfile", $inputFile);   # perl itself: Windows perl has no /bin/mv
   close(ABIDICT);
 }
 

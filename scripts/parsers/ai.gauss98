@@ -1668,7 +1668,7 @@ sub verifyGBSFile {
 ## Close input file and exit nicely.
 sub cleanup {
   close(NEWFILE);
-  system("/bin/mv -f tmpfile \'$inputFile\'");
+  rename("tmpfile", $inputFile);   # perl itself: Windows perl has no /bin/mv
   close(ABIDICT);
 }
 

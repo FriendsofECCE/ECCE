@@ -46,6 +46,8 @@ static void usage()
 static string absolute(const string& path)
 {
   if (!path.empty() && path[0] == '/') return path;
+  if (path.size() > 2 && path[1] == ':' && (path[2] == '/' || path[2] == '\\'))
+    return path;   // C:/... on Windows
   char buf[4096];
   if (!getcwd(buf, sizeof buf)) return path;
   return string(buf) + "/" + path;

@@ -334,5 +334,5 @@ sub readDict {
 }
 
 sub cleanup {
-  system("/bin/mv -f tmpfile '$TplFILE'");
+  rename("tmpfile", $TplFILE);   # perl itself: Windows perl has no /bin/mv
 }
