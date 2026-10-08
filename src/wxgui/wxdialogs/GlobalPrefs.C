@@ -494,6 +494,13 @@ void GlobalPrefs::OnChangeDataFolder(wxCommandEvent& event)
 void GlobalPrefs::OnOpenDataFolder(wxCommandEvent& event)
 {
   string folder = LocalData::prefFolder();
+#ifdef __WXMSW__
+  // There is no xdg-open; Explorer opens it (no console window either).
+  wxString path = wxString::FromUTF8(folder.c_str());
+  path.Replace("/", "\\");
+  wxLaunchDefaultApplication(path);
+  return;
+#endif
 #ifdef __APPLE__
   const char* argv[] = { "open", folder.c_str(), NULL };
 #else

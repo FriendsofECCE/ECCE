@@ -574,7 +574,21 @@ WxResourceTreeCtrl::findNode(const EcceURL & targetUrl,
   }
   // When currentUrl equals EcceURL(), it means the node is the hidden root
   // of the tree
-  else if (targetUrl.isChildOf(currentUrl) || currentUrl == EcceURL()) {
+  else if (currentUrl == EcceURL()) {
+    // The hidden root.  Its item data's id is not the root's id on wxMSW
+    // (no child is found under it there), so walk GetRootItem() itself.
+    wxTreeItemIdValue cookie;
+    wxTreeItemId rootId = GetRootItem();
+    for (wxTreeItemId childId = GetFirstChild(rootId, cookie);
+         childId.IsOk(); childId = GetNextChild(rootId, cookie)) {
+      WxResourceTreeItemData * childNode =
+        dynamic_cast<WxResourceTreeItemData *>(GetItemData(childId));
+      result = findNode(targetUrl, childNode, openWhenFound, loadFromServer);
+      if (result)
+        break;
+    }
+  }
+  else if (targetUrl.isChildOf(currentUrl)) {
     if (loadFromServer)
       loadChildren(current, false);
     if (openWhenFound)
@@ -628,8 +642,17 @@ WxResourceTreeItemData * WxResourceTreeCtrl::getServerRoot(WxResourceTreeItemDat
   else {
     currentId = child->GetId();
   }
+  // wxMSW starts with nothing selected; the parent of an invalid item is
+  // invalid, so the walk below would never reach the root.  Take the first
+  // server root instead.
+  if (!currentId.IsOk()) {
+    wxTreeItemIdValue cookie;
+    currentId = GetFirstChild(GetRootItem(), cookie);
+    if (!currentId.IsOk())
+      return 0;
+  }
   wxTreeItemId parentId = GetItemParent(currentId);
-  while (parentId != GetRootItem()) {
+  while (parentId.IsOk() && parentId != GetRootItem()) {
     currentId = parentId;
     parentId = GetItemParent(currentId);
   }
@@ -684,11 +707,13 @@ WxResourceTreeItemData * WxResourceTreeCtrl::openHome(bool useDefaultServer)
     homeNode = findNode(url, true);
   }
   else {
-    if (p_homeAsRoot) {
-      homeNode = findNode(getServerRoot()->getUrl(), true);
+    WxResourceTreeItemData * root = getServerRoot();
+    homeNode = 0;
+    if (root && p_homeAsRoot) {
+      homeNode = findNode(root->getUrl(), true);
     }
-    else {
-      homeNode = findNode(servers.getUserHome(getServerRoot()->getUrl()),true);
+    else if (root) {
+      homeNode = findNode(servers.getUserHome(root->getUrl()),true);
     }
 
     // If can't find user home dir on this server, load home on default server
@@ -700,6 +725,8 @@ WxResourceTreeItemData * WxResourceTreeCtrl::openHome(bool useDefaultServer)
   if (!homeNode) {
     homeNode = getServerRoot();
   }
+  if (!homeNode)
+    return 0;
 
   loadChildren(homeNode, false);
 

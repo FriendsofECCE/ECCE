@@ -341,7 +341,10 @@ void WxLauncher::refreshControls()
     p_inCtrlUpdate = true;
 
     RefMachine *machRgstn = p_slctPrefs->getRegisteredMachine();
-    p_machineNameStaticText->SetLabel(machRgstn->fullname());
+    // The host name and where the job runs are in the choice's tooltip;
+    // the label beside it is only for "None registered".
+    p_machineNameStaticText->SetLabel("");
+    p_machineNameStaticText->Hide();
 
     bool isBatch = p_slctPrefs->isOptionSupported("Q");
 
@@ -1596,6 +1599,15 @@ void WxLauncher::refreshCalcDirectory()
 
     if (supported)
         p_calcDrctyTextCtrl->SetValue(p_slctPrefs->getRemoteDirectory());
+#ifdef _WIN32
+    // This computer, no run directory saved yet: one in the user's home.
+    RefMachine *machRgstn = p_slctPrefs->getRegisteredMachine();
+    if (supported && machRgstn &&
+        STLUtil::trim((string)p_calcDrctyTextCtrl->GetValue()).empty() &&
+        !RCommand::isRemote(machRgstn->fullname(),
+                            (string)p_remShellChoice->GetStringSelection(), ""))
+        p_calcDrctyTextCtrl->SetValue(string(Ecce::realUserHome()) + "/ecce-runs");
+#endif
 
     p_calcDrctyPanel->Show(supported);
 }
@@ -1663,22 +1675,27 @@ void WxLauncher::refreshLocality()
         user = (string)p_usernameTextCtrl->GetValue();
     string shell = (string)p_remShellChoice->GetStringSelection();
 
-    string label = machRgstn->fullname();
-    string note = RCommand::localityNote(machRgstn->fullname(), shell, user);
-    if (!note.empty())
-        label += "  (" + note + ")";
+#ifdef _WIN32
+    // On Windows a job for this computer runs here directly: no login, no
+    // remote shell, and a run folder in the user's home unless one is set.
+    bool local = !RCommand::isRemote(machRgstn->fullname(), shell, user);
+    if (wxWindow *shellPanel = FindWindow(ID_PANEL_WXLAUNCHER_REMSHELL))
+        shellPanel->Show(!local);
+    p_shellOpenButton->Show(!local);
+    if (local)
+        p_password1Panel->Show(false);
+#endif
 
-    if ((string)p_machineNameStaticText->GetLabel() != label)
-    {
-        p_machineNameStaticText->SetLabel(label);
-        p_machineNameStaticText->SetToolTip(note.empty() ? wxString("") :
-            wxString("This machine names the computer ECCE is running on. "
-                     "Jobs for it run locally when the Username is empty or "
-                     "your own, and over the remote shell to it as that user "
-                     "otherwise -- e.g. through a port forward to a cluster."));
-        if (!p_inCtrlUpdate)
-            this->Layout();
-    }
+    string note = RCommand::localityNote(machRgstn->fullname(), shell, user);
+    string tip = machRgstn->fullname();
+    if (!user.empty() && note.empty())
+        tip += ", as " + user;
+    if (!note.empty())
+        tip += " (" + note + ")\n\nThis machine names the computer ECCE is "
+               "running on. Jobs for it run locally when the Username is "
+               "empty or your own, and over the remote shell to it as that "
+               "user otherwise -- e.g. through a port forward to a cluster.";
+    p_machinesChoice->SetToolTip(tip);
 }
 
 
@@ -1847,6 +1864,7 @@ void WxLauncher::setContext(string cntxt)
 
         p_machinesChoice->Show(false);
         p_machineNameStaticText->SetLabel("(" + mesg + ".)");
+        p_machineNameStaticText->Show();
     }
 
     this->Layout();

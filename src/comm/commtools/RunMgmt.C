@@ -18,6 +18,7 @@ using namespace std;
 #include "util/Ecce.H"
 #include "util/ErrMsg.H"
 #include "util/Host.H"
+#include <thread>
 #include "util/ProcessMachine.H"
 #include "util/TempStorage.H"
 #include "util/StringConverter.H"
@@ -301,6 +302,12 @@ bool RunMgmt::registerLocalMachine(string& msg)
   string whereami = myhost.host_name();
   string fullwhereami = myhost.fullyQualifiedName();
   string architecture = myhost.machine();
+#ifdef _WIN32
+  // The Windows client runs its jobs here, never over ssh to itself: the
+  // machine is "localhost" (siteconfig/Machines ships it), with this
+  // computer's processor count if it has to be added.
+  whereami = fullwhereami = "localhost";
+#endif
 
   RefMachine* refMachine = (RefMachine*)0;
 
@@ -348,7 +355,14 @@ bool RunMgmt::registerLocalMachine(string& msg)
         model = "O2";
 
       settings += PM::field("vendor", vendor) + PM::field("model", model);
-      settings += "&processor=Unspecified&procs=1&nodes=1&ssh=true&sshftp=false";
+#ifdef _WIN32
+      unsigned cores = std::thread::hardware_concurrency();
+      string procs = std::to_string(cores > 0 ? cores : 1);
+#else
+      string procs = "1";
+#endif
+      settings += "&processor=Unspecified&procs=" + procs +
+                  "&nodes=1&ssh=true&sshftp=false";
 
       // Within PNNL, use the AFS installations of codes as defined in the
       // CONFIG.<vendor> files.
@@ -402,8 +416,14 @@ bool RunMgmt::registerLocalMachine(string& msg)
       if (status == 0) {
         msg = "The machine you are running on, ";
         msg += machine;
+#ifdef _WIN32
+        msg += ", has just been added to your list of registered machines; "
+            "calculations run on it directly, with up to " + procs +
+            " processors.  ";
+#else
         msg += ", has just been added to your list of registered machines as a "
             "single processor " + vendor + " workstation using ssh.  ";
+#endif
         if (emslFlag)
           msg += "Paths to codes have been set based on EMSL defaults.  ";
         else if (nwchemFlag)

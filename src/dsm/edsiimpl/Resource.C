@@ -304,7 +304,7 @@ bool Resource::copy(EcceURL& target)
         edsi->setURL(target);
       }
 
-      ifstream is(p_url.getPath().c_str());
+      ifstream is(p_url.getPath().c_str(), std::ios::binary);
       ret = edsi->putDataSet(is);
       is.close();
     }
@@ -375,7 +375,7 @@ bool Resource::move(EcceURL& target)
         edsi->setURL(target);
       }
 
-      ifstream is(p_url.getPath().c_str());
+      ifstream is(p_url.getPath().c_str(), std::ios::binary);
       ret = edsi->putDataSet(is);
       is.close();
     }
@@ -1048,7 +1048,7 @@ Resource *Resource::createChild(string name, SFile * file)
     edsi->setURL(url);
   }
 
-  ifstream ifs(file->path().c_str());
+  ifstream ifs(file->path().c_str(), std::ios::binary);
   if (! edsi->putDataSet(ifs))
   {
     p_msgStack->add(edsi->m_msgStack);
@@ -1092,7 +1092,7 @@ SFile *Resource::getDocument(const SFile *dest)
   }
 
   getEDSI()->setURL(p_url);
-  ofstream ofs(sfile->path().c_str() );
+  ofstream ofs(sfile->path().c_str(), std::ios::binary);
   if (!getEDSI()->getDataSet(ofs)) {
     sfile = 0;
   }

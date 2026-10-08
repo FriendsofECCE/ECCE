@@ -327,6 +327,8 @@ class Builder: public BuilderGUI,
               void OnContextListClick( wxListEvent& event );
 
       // Property menu events
+      void focusShownPanel(wxWindow *win);
+      void unfocusPanel(wxWindow *win);
               void OnPropertyMenuClick( wxCommandEvent& event );
 
       // Help menu events
@@ -568,7 +570,7 @@ class Builder: public BuilderGUI,
 
       PanelMode p_panelMode = PANELS_DETAIL;
       int p_columnTab = 0;               // 0 Structure, 1 Properties
-      bool p_columnTabChosen = false;    // the user (or config) picked it
+      bool p_columnTabChosen = false;    // the user picked it, this calc
       bool p_columnHidden = false;       // F9
       set<wxWindow*> p_tabHidden;        // open, but hidden by tab/F9
       set<wxWindow*> p_columnSeen;       // property panes given mode defaults

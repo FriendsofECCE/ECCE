@@ -13,7 +13,11 @@
 //    close-details            close the dialogs, as OK does
 //    button save|verify|finaledit|launch
 //    dismiss                  close a modal dialog (OK)
-//    info                     the current choices and GUI values, on stderr
+//    code NAME                a click on that code's button in the Code row
+//    wmcommand ID             (Windows) the message a menu item click sends
+//    enabled                  which main controls are enabled, and the state
+//    info                     the current choices, GUI values and the
+//                             Verify lamp ("verify="), on stderr
 //    shot NAME                writes NAME.ready next to the script and waits
 //                             for NAME.go while the test photographs
 //    quit
@@ -32,6 +36,8 @@
 #include <wx/utils.h>
 
 #include "tdat/GUIValues.H"
+#include "util/ResourceUtils.H"
+#include "dsm/ICalculation.H"
 #include "wxgui/ewxChoice.H"
 
 #include "CalcEd.H"
@@ -146,11 +152,54 @@ void CalcEd::runCalcEdScript(const string& file)
         for (size_t i = 0; i < picks.size(); i++)
           if (strcasecmp(picks[i].c_str(), want.c_str()) == 0) at = i;
         if (at == picks.size()) {
-          outcome = "FAIL: no such basis set";
+          outcome = "FAIL: no such basis set; the menu has:";
+          for (size_t i = 0; i < picks.size(); i++) outcome += " " + picks[i];
         } else {
-          wxCommandEvent ev(wxEVT_MENU, 100000 + (int)at);
+          wxCommandEvent ev(wxEVT_MENU, ID_BASIS_PICK0 + (int)at);
           OnMenuCalcedBasisSetSelected(ev);
         }
+      } else if (w[0] == "code" && w.size() >= 2) {
+        // a click on the code's button in the Code row
+        std::string want = rest(1);
+        wxWindow *hit = 0;
+        wxSizerItemList kids = p_codeSizer->GetChildren();
+        for (wxSizerItemList::compatibility_iterator n = kids.GetFirst();
+             n && !hit; n = n->GetNext()) {
+          wxWindow *b = n->GetData()->GetWindow();
+          if (b && b->GetToolTipText() == want) hit = b;
+        }
+        if (!hit) {
+          outcome = "FAIL: no such code";
+        } else {
+          wxCommandEvent ev(wxEVT_BUTTON, ID_BUTTON_CALCED_CODE);
+          ev.SetEventObject(hit);
+          OnButtonCalcedCodeClick(ev);
+        }
+      } else if (w[0] == "enabled") {
+        // which of the main controls are enabled, as a user sees them
+        const struct { const char *name; wxWindowID id; } ctl[] = {
+          {"charge-label", ID_STATIC_CALCED_CHARGE},
+          {"charge", ID_COMBOBOX_CALCED_CHARGE},
+          {"spin-label", ID_STATIC_CALCED_SPIN_MULT},
+          {"theory", ID_CHOICE_CALCED_THEORY},
+          {"basis-quick", ID_BUTTON_CALCED_BASIS_QUICK},
+          {"verify", ID_BUTTON_CALCED_VERIFY},
+          {"finaledit", ID_BUTTON_CALCED_FINAL_EDIT},
+          {"launch", ID_BUTTON_CALCED_LAUNCH}};
+        outcome = "ok";
+        for (auto& c : ctl) {
+          wxWindow *x = FindWindow(c.id);
+          outcome += std::string(" ") + c.name + "=" +
+                     (!x ? "none" : x->IsEnabled() ? "on" : "off");
+        }
+        outcome += std::string(" state=") + (p_iCalc ?
+            ResourceUtils::stateToString(p_iCalc->getState()) : "none");
+#ifdef __WXMSW__
+      } else if (w[0] == "wmcommand" && w.size() == 2) {
+        // the WM_COMMAND a click on a popup menu item with that id sends
+        int id = atoi(w[1].c_str());
+        ::SendMessage((HWND)GetHWND(), WM_COMMAND, MAKEWPARAM(id, 0), 0);
+#endif
       } else if (w[0] == "details" && w.size() == 2) {
         if (!clickButton(w[1] == "theory" ? ID_BUTTON_CALCED_THEORY
                                           : ID_BUTTON_CALCED_RUNTYPE))
@@ -184,6 +233,13 @@ void CalcEd::runCalcEdScript(const string& file)
                 getTheoryName().ToStdString().c_str(),
                 getRuntypeName().ToStdString().c_str(),
                 launch && launch->IsEnabled() ? "enabled" : "disabled");
+        //  The Verify lamp: empty (not checked), else its tooltip.
+        wxWindow *lamp = FindWindow(ID_STATICTEXT_CALCED_VERIFY_LIGHT);
+        wxString lampText = !lamp || lamp->GetLabel().IsEmpty()
+            ? wxString("unchecked")
+            : lamp->GetLabel() + " " + lamp->GetToolTipText();
+        lampText.Replace("\n", " | ");
+        fprintf(stderr, "CALCED: verify=%s\n", lampText.utf8_str().data());
         for (GUIValues::const_iterator it = p_GUIValues->begin();
              it != p_GUIValues->end(); ++it)
           fprintf(stderr, "CALCED: %s=%s\n", it->first.c_str(),

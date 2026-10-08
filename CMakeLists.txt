@@ -772,11 +772,31 @@ endif()
 # any of it -- the data server and broker are configured from
 # packaging/dataserver and packaging/gateway instead. So it goes whole
 # into the client component with no split needed.
+# The Windows and macOS clients do not ship the example "dummy" machine
+# (manual submission to an unreachable cluster): a desktop install starts
+# with localhost alone.
+set(_siteconfig_excludes)
+if(WIN32 OR APPLE)
+  file(READ ${CMAKE_SOURCE_DIR}/siteconfig/Machines _machines)
+  string(REGEX REPLACE "# A machine ECCE never contacts[^\n]*\n(#[^\n]*\n)*dummy\t[^\n]*\n" ""
+         _machines "${_machines}")
+  file(WRITE ${CMAKE_BINARY_DIR}/siteconfig-local/Machines "${_machines}")
+  file(READ ${CMAKE_SOURCE_DIR}/siteconfig/Queues _queues)
+  string(REPLACE "Queues: localhost dummy" "Queues: localhost" _queues "${_queues}")
+  string(REGEX REPLACE "\ndummy\\|[^\n]*" "" _queues "${_queues}")
+  file(WRITE ${CMAKE_BINARY_DIR}/siteconfig-local/Queues "${_queues}")
+  install(FILES ${CMAKE_BINARY_DIR}/siteconfig-local/Machines
+                ${CMAKE_BINARY_DIR}/siteconfig-local/Queues
+          DESTINATION siteconfig COMPONENT client)
+  set(_siteconfig_excludes PATTERN "Machines" EXCLUDE PATTERN "Queues" EXCLUDE
+      PATTERN "CONFIG.dummy" EXCLUDE PATTERN "dummy.Q" EXCLUDE)
+endif()
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/siteconfig/ DESTINATION siteconfig
         COMPONENT client
         PATTERN "RemoteServer" EXCLUDE
         PATTERN "DataServers" EXCLUDE
-        PATTERN "site_runtime" EXCLUDE)
+        PATTERN "site_runtime" EXCLUDE
+        ${_siteconfig_excludes})
 install(FILES ${CMAKE_BINARY_DIR}/siteconfig-local/DataServers
               ${CMAKE_BINARY_DIR}/siteconfig-local/site_runtime
         DESTINATION siteconfig
@@ -968,9 +988,18 @@ endif()
 if(WIN32)
   # GUI subsystem: no console window opens behind the apps. The command-line
   # programs (ECCE_CLI_APPS, the parsers) keep theirs.
+  # The icon Explorer, the Start menu shortcut and the MSI show.
+  enable_language(RC)
+  set_property(SOURCE ${CMAKE_SOURCE_DIR}/packaging/windows/ecce.rc APPEND PROPERTY
+               COMPILE_OPTIONS "-I${CMAKE_SOURCE_DIR}/packaging/windows")
+  foreach(_dir ${wxWidgets_INCLUDE_DIRS})
+    set_property(SOURCE ${CMAKE_SOURCE_DIR}/packaging/windows/ecce.rc APPEND
+                 PROPERTY COMPILE_OPTIONS "-I${_dir}")
+  endforeach()
   foreach(_app ${ECCE_GUI_APPS})
     if(TARGET ${_app})
       set_target_properties(${_app} PROPERTIES WIN32_EXECUTABLE ON)
+      target_sources(${_app} PRIVATE ${CMAKE_SOURCE_DIR}/packaging/windows/ecce.rc)
     endif()
   endforeach()
 endif()
@@ -2381,6 +2410,16 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_gromacs PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+  # Builder overlays, the Organizer thumbnail and New of MD studies, through
+  # the controls' own event paths (private Xvfb); skipped (77) without Xvfb,
+  # ImageMagick's import or python3-pil.
+  add_test(NAME apps_builder_overlay
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_overlay_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_overlay PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
   # An 8.x eccejobmaster exports ECCE_TRANSPORT=pty; it must be ignored.
   add_test(NAME launch_legacy_transport
            COMMAND ${PYTHON3_EXECUTABLE}

@@ -3396,13 +3396,13 @@ void MDPrep::generateInputFile(MdTask *task)
      throw IOException("Could not find prepare input generator file name", WHERE);
    }
    SFile *tmpInput = TempStorage::getTempFile();
-   string cmd = Ecce::ecceDataControllersPath();
-   cmd += "/" + inputGenFile + " < ";
-   cmd += tmpModel->path();
-   cmd += " > ";
-   cmd += tmpInput->path();
-   CommandWrapper syscmd(cmd);
-   syscmd.execute();
+   string cmd = Ecce::scriptCommand(string(Ecce::ecceDataControllersPath()) +
+                                    "/" + inputGenFile) +
+                " < \"" + tmpModel->path() + "\" > \"" + tmpInput->path() + "\"";
+   int status = Ecce::runCommand(cmd);
+   if (status != 0)
+     throw SystemCommandException(status, ("Error executing: " + cmd).c_str(),
+                                  WHERE);
 
    // copy input file to web server
    ifstream ifs(tmpInput->path().c_str());

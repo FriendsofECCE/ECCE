@@ -7,6 +7,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #include <iostream>
 using namespace std;
@@ -18,13 +21,33 @@ using namespace std;
 #include "util/SFile.H"
 
 /**
+ * The system's temporary directory: /tmp, or on Windows the user's temp
+ * folder (GetTempPath) with forward slashes.
+ */
+string TempStorage::systemTempDir()
+{
+#ifdef _WIN32
+   char buf[MAX_PATH + 1];
+   DWORD n = GetTempPathA(sizeof buf, buf);
+   if (n > 0 && n < sizeof buf) {
+      string dir(buf, n);
+      for (char& c : dir) if (c == '\\') c = '/';
+      while (dir.size() > 3 && dir.back() == '/') dir.pop_back();
+      return dir;
+   }
+#endif
+   return "/tmp";
+}
+
+
+/**
  * Get path to default ecce temp directory.
  * This method takes into account the username as well as the ECCE_TMPDIR
  * variable.
  */
 string TempStorage::getTempRootPath()
 {
-   string path = getenv("ECCE_TMPDIR")? getenv("ECCE_TMPDIR"): "/tmp";
+   string path = getenv("ECCE_TMPDIR")? getenv("ECCE_TMPDIR"): systemTempDir();
    path += "/ecce_";
    path += Ecce::realUser();
 

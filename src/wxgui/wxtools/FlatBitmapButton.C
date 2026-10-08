@@ -2,6 +2,7 @@
 #include <wx/statbmp.h>
 
 #include "wxgui/ewxBitmap.H"
+#include "wx/renderer.h"
 #include "wxgui/FlatBitmapButton.H"
 #include "wxgui/ForwardMouseEventHandler.H"
 
@@ -193,7 +194,15 @@ void FlatBitmapButton::OnPaint( wxPaintEvent& event )
   if (p_showBorder) {
     wxPaintDC dc(this);
     PrepareDC(dc);
+#ifdef __WXMSW__
+    // The hand-drawn 3D bevel is black and white on Windows; the theme's
+    // own button looks like the buttons around it.
+    wxRendererNative::Get().DrawPushButton(this, dc,
+        wxRect(wxPoint(0, 0), GetClientSize()),
+        p_isArmed ? wxCONTROL_PRESSED : 0);
+#else
     drawButtonBorder(dc, p_isArmed);
+#endif
   }
   event.Skip();
 }

@@ -44,6 +44,7 @@ static const struct { const char* file; const char* icon; } GENERIC_ICONS[] = {
   {"save",            "document-save"},
   {"filesaveas",      "document-save-as"},
   {"undo",            "edit-undo"},
+  {"calcreset",       "edit-undo"},
   {"redo",            "edit-redo"},
   {"msg_information", "dialog-information"},
   {"msg_question",    "dialog-question"},
@@ -119,6 +120,40 @@ wxString ewxBitmap::genericIconName(const wxString& file)
 }
 
 
+#ifdef __WXMSW__
+//  wxMSW toolbars and buttons ignore a bitmap's alpha channel (transparent
+//  pixels show their colour, mostly black), but honour a mask.  Edge pixels
+//  are blended onto the button face colour first, so the outline stays
+//  smooth where a plain alpha threshold would leave it jagged.
+static wxBitmap alphaToMask(const wxBitmap& bmp)
+{
+  if (!bmp.IsOk() || !bmp.HasAlpha()) return bmp;
+  wxImage image = bmp.ConvertToImage();
+  if (!image.HasAlpha()) return bmp;
+  wxColour face = wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE);
+  const unsigned char mr = 1, mg = 2, mb = 3;   // the mask colour
+  unsigned char* rgb = image.GetData();
+  unsigned char* a = image.GetAlpha();
+  for (int i = 0, n = image.GetWidth() * image.GetHeight(); i < n; i++) {
+    unsigned char* p = rgb + 3 * i;
+    if (a[i] < 24) {
+      p[0] = mr; p[1] = mg; p[2] = mb;
+    } else if (a[i] < 255) {
+      int w = a[i];
+      p[0] = (p[0] * w + face.Red() * (255 - w)) / 255;
+      p[1] = (p[1] * w + face.Green() * (255 - w)) / 255;
+      p[2] = (p[2] * w + face.Blue() * (255 - w)) / 255;
+    }
+  }
+  image.ClearAlpha();
+  image.SetMaskColour(mr, mg, mb);
+  return wxBitmap(image);
+}
+#else
+static const wxBitmap& alphaToMask(const wxBitmap& bmp) { return bmp; }
+#endif
+
+
 /**
  * The bundled Lucide icon drawn in the text colour (its stroke is
  * currentColor), for platforms with no icon theme.
@@ -138,7 +173,7 @@ static wxBitmap lucideIcon(const wxString& icon, const wxSize& size,
     wxCharBuffer data(utf8.length());
     memcpy(data.data(), utf8.data(), utf8.length());
     wxBitmapBundle b = wxBitmapBundle::FromSVG(data.data(), size);
-    return b.IsOk() ? b.GetBitmap(size) : wxBitmap();
+    return b.IsOk() ? alphaToMask(b.GetBitmap(size)) : wxBitmap();
   }
   return wxBitmap();
 }
@@ -206,7 +241,7 @@ wxBitmap ewxBitmap::loadPixmap(const wxString& name, long type)
   wxBitmap bmp;
   wxLogNull quiet;
   bmp.LoadFile(pixmapFile(name), t);
-  return bmp;
+  return alphaToMask(bmp);
 }
 
 

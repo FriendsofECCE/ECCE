@@ -11,6 +11,10 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <stdio.h>
+#ifdef _WIN32
+#include <windows.h>
+#include <vector>
+#endif
 
 //#define debug
 
@@ -353,6 +357,11 @@ void WxJMSMessageDispatch::raiseAllWindows()
 void WxJMSMessageDispatch::registerMyselfAsAppExecer() 
 {
    setTheDispatcher(this);
+#ifdef _WIN32
+   // Tools address their start requests to the gateway, which Windows does
+   // not run; the app that registers here (the Organizer) takes them.
+   answerAs(GATEWAY, "ecce_get_app");
+#endif
    subscribe("ecce_get_app",
          (wxJmsCBFunc)&WxJMSMessageDispatch::getAppMCB, 
          false);
@@ -601,6 +610,103 @@ void WxJMSMessageDispatch::appReadyMCB(JMSMessage& msg)
  * another timeout method to give the startee time to get set up,
  * and send its ready message back to the caller.
  */
+// waitpid(pid, WNOHANG) for a tool this process started.  Windows has no
+// child status: a tool that has exited (or never existed) counts as ended.
+static int childEnded(int pid, int *status)
+{
+#ifdef _WIN32
+  *status = 0;
+  HANDLE h = OpenProcess(SYNCHRONIZE, FALSE, (DWORD)pid);
+  if (!h) return pid;
+  bool ended = WaitForSingleObject(h, 0) == WAIT_OBJECT_0;
+  CloseHandle(h);
+  return ended ? pid : 0;
+#else
+  return waitpid(pid, status, WNOHANG);
+#endif
+}
+
+
+#ifdef _WIN32
+// Starts a tool's .exe from the install's bin, with no shell: the tool name
+// comes from ResourceDescriptor, and the only argument is the handle of an
+// anonymous pipe that carries the login cache.  That pipe end is the one
+// handle the tool inherits; the cache is never on a command line, in the
+// environment or in a file.  Returns the Windows pid, or -1.
+long WxJMSMessageDispatch::startToolWin(const string& app, string& error)
+{
+  ResourceTool *tool = ResourceDescriptor::getResourceDescriptor().getTool(app);
+  if (tool == (ResourceTool*)0) {
+    error = "no <Tool> registered for \"" + app + "\"; cannot launch it.";
+    return -1;
+  }
+  string name = tool->getInvokeArg();
+  if (name.compare(0, 2, "./") == 0) name = name.substr(2);
+  // The ecce-viewer wrapper runs builder with these two set.
+  bool viewer = name == "ecce-viewer";
+  if (viewer) name = "builder";
+  if (name.empty() || name.find_first_of("/\\:\" ") != string::npos) {
+    error = "unexpected InvokeArg \"" + tool->getInvokeArg() + "\" for " + app;
+    return -1;
+  }
+  string bin = string(Ecce::ecceHome()) + "/bin";
+  for (char& c : bin) if (c == '/') c = '\\';
+  string exe = bin + "\\" + name + ".exe";
+
+  SECURITY_ATTRIBUTES sa = { sizeof(sa), 0, TRUE };
+  HANDLE rd, wr;
+  if (!CreatePipe(&rd, &wr, &sa, 65536)) {
+    error = "CreatePipe failed";
+    return -1;
+  }
+  SetHandleInformation(wr, HANDLE_FLAG_INHERIT, 0);
+
+  SIZE_T sz = 0;
+  InitializeProcThreadAttributeList(0, 1, 0, &sz);
+  std::vector<char> attrBuf(sz);
+  LPPROC_THREAD_ATTRIBUTE_LIST al = (LPPROC_THREAD_ATTRIBUTE_LIST)&attrBuf[0];
+  bool ok = InitializeProcThreadAttributeList(al, 1, 0, &sz) &&
+            UpdateProcThreadAttribute(al, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
+                                      &rd, sizeof(rd), 0, 0);
+  PROCESS_INFORMATION pi;
+  if (ok) {
+    STARTUPINFOEXA si;
+    memset(&si, 0, sizeof(si));
+    si.StartupInfo.cb = sizeof(si);
+    si.lpAttributeList = al;
+    string cmd = "\"" + exe + "\" -pipe handle:" +
+                 std::to_string((unsigned long long)(uintptr_t)rd);
+    if (viewer) {
+      _putenv_s("ECCE_INVOKE_VIEWER", "1");
+      _putenv_s("ECCE_INVOKE_FROMECCE", "1");
+    }
+    ok = CreateProcessA(exe.c_str(), &cmd[0], 0, 0, TRUE,
+                        EXTENDED_STARTUPINFO_PRESENT, 0, bin.c_str(),
+                        &si.StartupInfo, &pi) != 0;
+    if (viewer) {
+      _putenv_s("ECCE_INVOKE_VIEWER", "");
+      _putenv_s("ECCE_INVOKE_FROMECCE", "");
+    }
+    if (!ok)
+      error = "could not start " + exe + " (error " +
+              std::to_string(GetLastError()) + ")";
+    DeleteProcThreadAttributeList(al);
+  } else {
+    error = "could not set up the handle list";
+  }
+  CloseHandle(rd);
+  if (!ok) {
+    CloseHandle(wr);
+    return -1;
+  }
+  CloseHandle(pi.hThread);
+  CloseHandle(pi.hProcess);
+  AuthCache::getCache().pipeOutHandle(wr);
+  return (long)pi.dwProcessId;
+}
+#endif
+
+
 void WxJMSMessageDispatch::appExec()
 {
   ensureTimers();
@@ -612,6 +718,23 @@ void WxJMSMessageDispatch::appExec()
     }
     p_startups[i].execStarted = true;
 
+#ifdef _WIN32
+    if (p_startups[i].appID == "") {
+      string error;
+      long pid = startToolWin(p_startups[i].appName, error);
+      if (pid <= 0) {
+        cerr << "WxJMSMessageDispatch: " << error << endl;
+        sendFailedStatusMessage(0);
+      } else {
+        p_startups[i].pidToWatch = pid;
+        p_toAppInvoke->Start(100, true);
+      }
+    } else {
+      sscanf(p_startups[i].appID.c_str(), "%d", &(p_startups[i].pidToWatch));
+      appInvoke();
+    }
+    break;
+#endif
     string authPipeName = AuthCache::pipeName();
 
     // If no app replied, exec a new one
@@ -725,7 +848,7 @@ void WxJMSMessageDispatch::appInvoke()
         int child;
 
         // child terminated
-        if((child=waitpid(p_startups[i].pidToWatch, &status, WNOHANG)) > 0)  { 
+        if((child=childEnded(p_startups[i].pidToWatch, &status)) > 0)  { 
 
           // Send a failed message to ecce_invoke_status, so caller can handle
           // the failure
@@ -793,7 +916,7 @@ void WxJMSMessageDispatch::invokeStatusCheck()
     }
 
     int status, pid;
-    pid = waitpid((*it).pidToWatch, &status, WNOHANG);
+    pid = childEnded((*it).pidToWatch, &status);
 
     if(pid > 0)  {  // my child terminated
 

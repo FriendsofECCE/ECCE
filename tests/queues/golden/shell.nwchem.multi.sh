@@ -63,7 +63,7 @@ mpibindir=${nwchem%/*}/../../system/bin
 if [ -d $mpibindir ]; then
   PATH="$mpibindir:$PATH"; export PATH
 fi
-mpirun -np 8 $nwchem /qtest/run/nwch.nw > /qtest/run/nwch.nwout 2>&1 < /dev/null
+mpirun -np 8 "$nwchem" /qtest/run/nwch.nw > /qtest/run/nwch.nwout 2>&1 < /dev/null
 
 
 #  - determine state...

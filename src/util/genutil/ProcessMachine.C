@@ -7,6 +7,9 @@
 
 #include <sys/wait.h>
 #include <unistd.h>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #include "util/Ecce.H"
 #include "util/ProcessMachine.H"
@@ -37,6 +40,60 @@ std::string ProcessMachine::field(const std::string& name,
   return "&" + encode(name) + "=" + encode(value);
 }
 
+
+#ifdef _WIN32
+// No fork on Windows, and a perl script is not executable by itself: perl
+// (the bundled Strawberry one, on PATH) runs it with the form on stdin.
+int ProcessMachine::run(const std::string& form)
+{
+  std::string script = std::string(Ecce::ecceHome()) + "/scripts/processmachine";
+  if (access(script.c_str(), 0) != 0)
+    return -1;
+
+  SECURITY_ATTRIBUTES sa = { sizeof(sa), nullptr, TRUE };
+  HANDLE rd, wr;
+  if (!CreatePipe(&rd, &wr, &sa, 0))
+    return -1;
+  SetHandleInformation(wr, HANDLE_FLAG_INHERIT, 0);
+
+  STARTUPINFOA si;
+  memset(&si, 0, sizeof(si));
+  si.cb = sizeof(si);
+  si.dwFlags = STARTF_USESTDHANDLES;
+  si.hStdInput = rd;
+  si.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+  si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+  PROCESS_INFORMATION pi;
+  std::string cmd = "perl \"" + script + "\"";
+  _putenv_s("CONTENT_LENGTH", std::to_string(form.size()).c_str());
+  BOOL ok = CreateProcessA(nullptr, &cmd[0], nullptr, nullptr, TRUE,
+                           CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi);
+  _putenv_s("CONTENT_LENGTH", "");
+  CloseHandle(rd);
+  if (!ok) {
+    CloseHandle(wr);
+    return -1;
+  }
+  CloseHandle(pi.hThread);
+
+  size_t done = 0;
+  while (done < form.size()) {
+    DWORD n = 0;
+    if (!WriteFile(wr, form.data() + done, (DWORD)(form.size() - done), &n,
+                   nullptr) || n == 0)
+      break;
+    done += n;
+  }
+  CloseHandle(wr);
+
+  DWORD code = (DWORD)-1;
+  WaitForSingleObject(pi.hProcess, INFINITE);
+  GetExitCodeProcess(pi.hProcess, &code);
+  CloseHandle(pi.hProcess);
+  return code == 0 ? 0 : (code < 256 ? (int)code : -1);
+}
+
+#else
 
 int ProcessMachine::run(const std::string& form)
 {
@@ -99,3 +156,4 @@ int ProcessMachine::run(const std::string& form)
   }
   return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
 }
+#endif

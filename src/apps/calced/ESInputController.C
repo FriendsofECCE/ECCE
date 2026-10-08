@@ -477,7 +477,10 @@ bool CalcEd::input_controller(const bool& saveParamFlag,
               }
             }
 
-            string pretty_cmd = "prettyInput <" + orig_input_file +
+            //  By full path, as the generator above: only the Linux
+            //  wrappers put scripts/parsers on PATH.
+            string pretty_cmd = string(Ecce::ecceDataControllersPath()) +
+                                "/prettyInput <" + orig_input_file +
                                 " >" + input_file;
 
             if (!localconn.exec(pretty_cmd))

@@ -79,7 +79,7 @@ local_dir = "ecce-local" if WIN else ".ECCE-local"
 env, user = fresh("local")
 r = window(env, "local")
 check(r.returncode == 0 and os.path.isdir(os.path.join(user, local_dir)) and pref(env) == "on",
-      "window, Work on this computer: the folder and the preference (rc=%d %s)"
+      "window, Store data on this computer: the folder and the preference (rc=%d %s)"
       % (r.returncode, r.stderr.strip()))
 
 env, user = fresh("server")

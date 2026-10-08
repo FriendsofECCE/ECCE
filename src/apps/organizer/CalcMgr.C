@@ -30,6 +30,8 @@ using std::cerr;
 using std::endl;
 
 static bool offerStopServer(bool& inUse);
+// The outcome of the local machine registration at startup, for "probe".
+static std::string s_registerMessage;
 
 #include <wx/dataobj.h>
 #include <wx/dnd.h>
@@ -300,6 +302,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   // ever running the Job Launcher
   string msg = "";
   RunMgmt::registerLocalMachine(msg);
+  s_registerMessage = msg;
   if (msg != "") {
     setMessage(msg, WxFeedback::INFO);
   }
@@ -355,6 +358,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
       while (std::getline(in, line)) {
         if (n++ < *done) continue;
         *done = n;
+        if (!line.empty() && line.back() == '\r')   // written on Windows
+          line.pop_back();
         runTestCommand(line);
       }
     });
@@ -401,6 +406,10 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * summary <url>   select <url> in the tree and print the summary panel's
  *                 molecule, basis and setup fields, as label=value
  * snap <png>      save the Organizer window as a PNG
+ * new <parent url> <type>
+ *                 File > New with resource type <type> (gromacs_md_study,
+ *                 gromacs_md_energy) in <parent>, as the New menu makes it
+ * contextmenu <url> right-click <url> in the tree; the New submenu's items
  */
 void CalcMgr::runTestCommand(const string& line)
 {
@@ -447,6 +456,30 @@ void CalcMgr::runTestCommand(const string& line)
         if (parentNode) p_treeCtrl->refresh(parentNode);
         if (made) findNode(made->getURL(), true, true);
         outcome = made ? "ok " + made->getURL().toString() : "not created";
+      }
+    } else if (command == "new") {
+      // "new PARENT-URL TYPE": File > New with TYPE, the resource type's
+      // name in ResourceDescriptor.xml (gromacs_md_study), made in PARENT
+      // as the New menu does it, named by the type's label.  The tool the
+      // Organizer opens for a new resource, if any, starts as after New.
+      std::istringstream args(calcName);
+      string parentUrl, typeName;
+      args >> parentUrl >> typeName;
+      ResourceDescriptor& rd = ResourceDescriptor::getResourceDescriptor();
+      ResourceType *rt = 0;
+      vector<ResourceType*> types = rd.getResourceTypes();
+      for (size_t i = 0; i < types.size() && !rt; i++)
+        if (types[i]->getName() == typeName) rt = types[i];
+      WxResourceTreeItemData *parentNode = findNode(EcceURL(parentUrl),
+                                                    true, true);
+      if (!rt || !parentNode) {
+        outcome = !rt ? "no resource type " + typeName : "no parent node";
+      } else {
+        string error;
+        p_testCreateError = &error;
+        createResource(rt, parentNode, true);
+        p_testCreateError = 0;
+        outcome = error.empty() ? "ok" : "error: " + error;
       }
     } else if (command == "state") {
       Resource *res = EDSIFactory::getResource(EcceURL(calcName));
@@ -566,6 +599,35 @@ void CalcMgr::runTestCommand(const string& line)
                      (t ? string(t->GetLabel().ToUTF8()) : string("<none>"));
         }
       }
+    } else if (command == "contextmenu") {
+      // "contextmenu <url>": the tree's item-menu event for <url>, as a
+      // right click sends it, then the labels of the menu's New submenu.
+      WxResourceTreeItemData *node = findNode(EcceURL(calcName), false, false);
+      if (!node) {
+        outcome = "not in the tree";
+      } else {
+        auto newItems = [this]() {
+          wxMenu menu;
+          getContextMenu(menu);
+          wxMenuItem *newItem = menu.FindItem(wxID_NEW);
+          wxMenu *sub = newItem ? newItem->GetSubMenu() : 0;
+          string items;
+          for (size_t i = 0; sub && i < sub->GetMenuItemCount(); i++) {
+            wxMenuItem *it = sub->FindItemByPosition(i);
+            if (!it->IsSeparator())
+              items += string(it->GetItemLabelText().ToUTF8()) + "|";
+          }
+          return items;
+        };
+        outcome = "before=" + newItems();
+        wxTreeEvent ev(wxEVT_TREE_ITEM_MENU, p_treeCtrl, node->GetId());
+        p_treeCtrl->GetEventHandler()->ProcessEvent(ev);
+        for (int i = 0; i < 5; i++) wxYield();
+        WxResourceTreeItemData *sel = p_treeCtrl->getSelection();
+        outcome += " selection=" +
+                   (sel ? sel->getUrl().toString() : string("none")) +
+                   " new=" + newItems();
+      }
     } else if (command == "snap") {
       for (int i = 0; i < 3; i++) {
         Update();
@@ -584,6 +646,29 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "tail-close") {
       if (p_testTail) p_testTail->Close();
       outcome = "ok";
+    } else if (command == "start") {
+      // "start TOOL [URL]": what a tool button does (startApp), e.g.
+      // "start CalculationEditor <calc url>".
+      std::istringstream args(calcName);
+      string tool, url;
+      args >> tool >> url;
+      startApp(tool, 0, url);
+      outcome = "requested";
+    } else if (command == "probe") {
+      // What a user sees first: the registration notice, whether the home
+      // is in the tree, and the selection the tree's focus handler settles
+      // on when nothing was selected yet (wxMSW).
+      bool selected = p_treeCtrl->GetSelection().IsOk();
+      WxResourceTreeItemData *homeNode = findNode(home, false, false);
+      onSelectionChange(true);
+      WxResourceTreeItemData *sel = p_treeCtrl->getSelection();
+      outcome = "home=" + home.toString() +
+                " homenode=" + (homeNode ? "yes" : "no") +
+                " selected-before=" + (selected ? "yes" : "no") +
+                " selection=" + (sel ? sel->getUrl().toString() : "none") +
+                " register=" + (s_registerMessage.empty() ? "known"
+                    : s_registerMessage.find("has just been added") !=
+                      string::npos ? "added" : "failed");
     } else if (line == "quit-offer") {
       bool inUse = false;
       outcome = offerStopServer(inUse) ? "stop offered"
@@ -1124,8 +1209,12 @@ bool CalcMgr::confirmAndQuit()
     AuthCache::sessionClear();
     // A local-mode session started no data server; one running belongs to
     // a server-mode session elsewhere and is not ours to stop.
+#ifndef _WIN32
+    // On Windows "ecce-broker-win watch" (ecce.cmd) stops the session's
+    // broker after the last window; these sh scripts cannot run in cmd.exe.
     if (LocalData::dir().empty()) (void)system("ecce-dataserver-stop --if-unused");
     (void)system("ecce-gateway-stop");
+#endif
   }
 
   return true;
@@ -2033,6 +2122,12 @@ void CalcMgr::OnTreectrlSelChanged( wxTreeEvent& event )
 
   onSelectionChange(true);
 
+#ifdef __WXMSW__
+  // Rows of the old and new selection were seen left unpainted on
+  // Windows after a click; repaint the tree once the click is done.
+  CallAfter([this]() { p_treeCtrl->Refresh(); });
+#endif
+
   //  cerr << "Leave SelChanged event\n";
   event.Skip();
 }
@@ -2354,9 +2449,12 @@ void CalcMgr::OnTreectrlKeyDown( wxTreeEvent& event )
  */
 void CalcMgr::OnTreectrlItemMenu( wxTreeEvent& event )
 {
-  //  cerr << "\nEnter ItemMenu event\n";
-
-  //  cerr << "Leave ItemMenu event\n";
+  //  The menu is built for the selection (getContextMenu).  The generic
+  //  tree (GTK) selects the item under a right click; the native wxMSW one
+  //  does not, so the menu was the previously selected item's.
+  wxTreeItemId item = event.GetItem();
+  if (item.IsOk() && !p_treeCtrl->IsSelected(item))
+    p_treeCtrl->SelectItem(item);
   event.Skip();
 }
 
@@ -5142,8 +5240,13 @@ void CalcMgr::createResource(ResourceType * resType,
 
     // logic to handle MD and condensed phase reaction study branching
     // @todo should be moved to Session::createChild
+    //  A GROMACS study has the application type of its tasks (an NWChem MD
+    //  study has its own, MDStudy), so the study itself must not be linked
+    //  into a session: only a task is.
+    const bool isSession = dynamic_cast<Session*>(newRes) != 0;
     if (newRes->getApplicationType()==ResourceDescriptor::AT_NWCHEMMD ||
-        newRes->getApplicationType()==ResourceDescriptor::AT_GROMACS ||
+        (newRes->getApplicationType()==ResourceDescriptor::AT_GROMACS &&
+         !isSession) ||
         parRes->getApplicationType()==ResourceDescriptor::AT_CONDENSED_REACTION_STUDY) {
       Resource *source = 0;
       vector<EcceURL> panelSelections = p_contextPanel->getSelections();
@@ -5232,6 +5335,10 @@ void CalcMgr::createResource(ResourceType * resType,
     }
   }
   catch (InvalidException& ex) {
+    if (p_testCreateError) {
+      *p_testCreateError = ex.what();
+      return;
+    }
     ewxMessageDialog dlg(this, ex.what(),
                          "Unable to create " + name + " object!",
                          wxOK|wxICON_EXCLAMATION, wxDefaultPosition);

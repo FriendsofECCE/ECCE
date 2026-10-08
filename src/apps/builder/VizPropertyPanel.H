@@ -12,6 +12,7 @@
 
 
 class wxCustomButton;
+class wxCheckBox;
 
 
 class VizPropertyPanel : public PropertyPanel,
@@ -37,6 +38,8 @@ class VizPropertyPanel : public PropertyPanel,
 
     virtual ~VizPropertyPanel();
 
+    virtual bool Show(bool show=true);
+
   // getters
     bool hasFocus() const;
     bool isPinned() const;
@@ -46,6 +49,9 @@ class VizPropertyPanel : public PropertyPanel,
     //  it calls loseFocus() on whichever panel DOES own the viewer, and
     //  for the MOs panel that switches the orbital just shown off again.
     virtual bool drawsInViewer() const { return true; }
+
+    //  The panel's "Show in viewer" box (0 until the panel is shown).
+    wxCheckBox *viewerToggle() const { return p_viewerToggle; }
 
     static set<VizPropertyPanel*> getPanels(const string& url="",
                                             const string& name="");
@@ -62,6 +68,7 @@ class VizPropertyPanel : public PropertyPanel,
     void doPin(const bool& value);
 
     void selectFragStep(int index);
+    void addViewerToggle();
     bool isRelevent(IPropCalculation *propCalc,
                     const string& code, 
                     const string& runtype,
@@ -74,6 +81,7 @@ class VizPropertyPanel : public PropertyPanel,
 
     bool p_hasFocus;
     bool p_isPinned;
+    wxCheckBox *p_viewerToggle;
 };
 
 #endif // VIZPROPERTYPANEL_H_

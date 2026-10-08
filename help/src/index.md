@@ -25,5 +25,8 @@ the second page.
 
 Reference:
 
+- [ECCE-QM input and output files](ecce-qm-files.md): every keyword of the
+  built-in engine's input, and what its output file contains.
+
 - [Register Machines](register-machines.md): the window's tabs, the site
   and user layers of each setting, and examples of common changes.

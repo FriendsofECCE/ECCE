@@ -72,6 +72,12 @@ class AuthCache
 
     void pipeOut(const string& pipeName);
     void pipeIn(const string& pipeName);
+#ifdef _WIN32
+    // The cache for a child process through an inherited anonymous pipe:
+    // the child is given "-pipe handle:<n>" (a handle number, no secret)
+    // and pipeIn() reads that handle.  writeHandle is closed here.
+    void pipeOutHandle(void *writeHandle);
+#endif
     void msgIn(const JMSMessage& msg, const string& callerID);
     static void pipeClean(const string& pipeName);
 

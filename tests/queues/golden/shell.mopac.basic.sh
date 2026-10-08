@@ -62,7 +62,7 @@ if [ "mopac.out" != "mopac.mopout" ]; then
   rm -f mopac.mopout
   ln -s mopac.out mopac.mopout 2>/dev/null || :
 fi
-$mopac mopac.mop >> /qtest/run/ecce.submit.log 2>&1
+"$mopac" mopac.mop >> /qtest/run/ecce.submit.log 2>&1
 
 #  - Now the run is finished, replace that symlink with a
 #  - real copy. The symlink is only needed DURING the run,

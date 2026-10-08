@@ -112,6 +112,10 @@ public:
 
   void hold(bool h) { p_held = h; }
   const std::string& name() const { return p_name; }
+  // Also take messages on topic addressed to the tool name `alias` (the
+  // Windows Organizer starts tools, so it takes ecce_get_app sent to the
+  // gateway).
+  void answerAs(const std::string& alias, const std::string& topic);
 
   // Self-pipe for event loops that watch a file descriptor.
   bool enablePipe();
@@ -130,6 +134,7 @@ private:
   std::string p_name;
   mutable std::mutex p_lock;
   std::map<std::string, bool> p_topics;   // topic -> filterSelf
+  std::map<std::string, std::string> p_aliases;   // topic -> tool name
   std::atomic<bool> p_held{false};
   std::atomic<bool> p_alive{true};
   int p_pipe[2];

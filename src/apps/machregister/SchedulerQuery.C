@@ -4,6 +4,7 @@
  *  See SchedulerQuery.H.
  */
 
+#include "util/TempStorage.H"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -252,6 +253,66 @@ string findProgramScript(const ProgramHelp& h)
                  "echo \"ECCE-FOUND:$r\"; fi; fi;; esac; done; IFS=$oIFS\n";
     }
     return s;
+}
+
+string findInstallDirsScript(const ProgramHelp& h, const string& code,
+                             const vector<string>& roots)
+{
+    string lower = code, upper = code, cap = code;
+    for (size_t i = 0; i < code.size(); i++)
+    {
+        lower[i] = (char)tolower((unsigned char)code[i]);
+        upper[i] = (char)toupper((unsigned char)code[i]);
+    }
+    cap = lower;
+    if (!cap.empty())
+        cap[0] = (char)toupper((unsigned char)cap[0]);
+    string dirs;
+    for (size_t r = 0; r < roots.size(); r++)
+    {
+        const char* forms[] = { lower.c_str(), upper.c_str(), cap.c_str() };
+        for (int f = 0; f < 3; f++)
+            if (f == 0 || string(forms[f]) != forms[f - 1])
+                dirs += " " + quote(roots[r]) + "/" + forms[f] + "*";
+    }
+    if (dirs.empty())
+        return "";
+    string s;
+    for (size_t i = 0; i < h.names.size(); i++)
+    {
+        string n = h.names[i];
+        bool exe = n.size() > 4 && n.compare(n.size() - 4, 4, ".exe") == 0;
+        string test = exe ? "$p" : "$p.exe";
+        string comp = h.companion.empty() ? "" :
+            " && [ -f \"${p%/*}/" + h.companion + ".exe\" ]";
+        s += "for d in" + dirs + "; do for p in \"$d/" + n + "\" \"$d/bin/" +
+             n + "\"; do if [ -f \"" + test + "\" ]" + comp +
+             "; then echo \"ECCE-FOUND:$p\"; fi; done; done\n";
+    }
+    return s;
+}
+
+string localProgramPath(const string& chosen)
+{
+#ifdef _WIN32
+    string p = chosen;
+    for (size_t i = 0; i < p.size(); i++)
+        if (p[i] == '\\')
+            p[i] = '/';
+    if (p.size() > 2 && p[1] == ':' && p[2] == '/')
+        p = "/" + string(1, (char)tolower((unsigned char)p[0])) + p.substr(2);
+    if (p.size() > 4)
+    {
+        string ext = p.substr(p.size() - 4);
+        for (size_t i = 0; i < ext.size(); i++)
+            ext[i] = (char)tolower((unsigned char)ext[i]);
+        if (ext == ".exe")
+            p = p.substr(0, p.size() - 4);
+    }
+    return p;
+#else
+    return chosen;
+#endif
 }
 
 vector<string> parseFound(const string& output)
@@ -767,8 +828,8 @@ bool testSubmission(Remote& r, const string& qmgr, const string& script,
     if (!r.open(err))
         return false;
 
-    char tmpl[] = "/tmp/ecce-testsub-XXXXXX";
-    int fd = mkstemp(tmpl);
+    string tmpl = TempStorage::systemTempDir() + "/ecce-testsub-XXXXXX";
+    int fd = mkstemp(&tmpl[0]);
     if (fd < 0)
     {
         err = "Cannot make a temporary file.";

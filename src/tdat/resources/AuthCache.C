@@ -1,4 +1,9 @@
 #include "util/PosixCompat.H"
+#ifdef _WIN32
+#include <windows.h>
+#include <io.h>
+#include <fcntl.h>
+#endif
 #include <sys/fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -454,13 +459,44 @@ void AuthCache::pipeOut(const string& pipeName)
 }
 
 
+#ifdef _WIN32
+void AuthCache::pipeOutHandle(void *writeHandle)
+{
+  string data = StringConverter::toString(p_memcache.size()) + "\n";
+  for (size_t idx = 0; idx < p_memcache.size(); idx++) {
+    AuthTuple *cur = p_memcache[idx];
+    data += cur->url + "|" + cur->user + "|" + cur->pass + "\n";
+  }
+  HANDLE h = (HANDLE)writeHandle;
+  size_t done = 0;
+  while (done < data.size()) {
+    DWORD n = 0;
+    if (!WriteFile(h, data.data() + done, (DWORD)(data.size() - done), &n, 0) ||
+        n == 0)
+      break;
+    done += n;
+  }
+  CloseHandle(h);
+}
+#endif
+
+
 void AuthCache::pipeIn(const string& pipeName)
 {
-  FILE *fp;
+  FILE *fp = NULL;
   int it=0;
+#ifdef _WIN32
+  if (pipeName.compare(0, 7, "handle:") == 0) {
+    HANDLE h = (HANDLE)(uintptr_t)strtoull(pipeName.c_str() + 7, NULL, 10);
+    int fd = _open_osfhandle((intptr_t)h, _O_RDONLY | _O_TEXT);
+    fp = fd >= 0 ? _fdopen(fd, "r") : NULL;
+    it = 10;   // nothing to wait for or remove
+  }
+#endif
   // Wait up to 10 seconds for the pipe to exist just in case the
   // child process is invoked first (e.g. launcher - > eccejobmaster)
-  while ((fp = fopen(pipeName.c_str(), "r"))==NULL && it++<10) {
+  while (fp == NULL && it < 10 && (fp = fopen(pipeName.c_str(), "r"))==NULL) {
+    it++;
     sleep(1);
   }
   if (fp != NULL) {
@@ -503,7 +539,8 @@ void AuthCache::pipeIn(const string& pipeName)
 
     fclose(fp);
   }
-  unlink(pipeName.c_str());
+  if (pipeName.compare(0, 7, "handle:") != 0)
+    unlink(pipeName.c_str());
 }
 
 

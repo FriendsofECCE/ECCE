@@ -15,6 +15,9 @@
 #include <unistd.h>               // access()
 
 #include "util/Ecce.H"
+#ifdef _WIN32
+#include <shellapi.h>
+#endif
 #include "util/Preferences.H"
 #include "util/PreferenceLabels.H"
 #include "util/StringTokenizer.H"
@@ -307,6 +310,12 @@ void BrowserHelp::displayURL(const string& url, bool new_window)
    // old exit-status-based fallback below never triggered. Pass the URL
    // as a plain argument instead, which every modern browser (including
    // Firefox) supports directly.
+#ifdef _WIN32
+   // cmd.exe has no '...' quoting, no /dev/null and no "&"; the shell
+   // opens the URL in the user's default browser.
+   ShellExecuteA(NULL, "open", noQuoteUrl.c_str(), NULL, NULL, SW_SHOWNORMAL);
+   return;
+#endif
    string cmd = browserCommand();
    if (new_window && supportsNewWindowFlag(cmd)) cmd += " --new-window";
    cmd += " '" + noQuoteUrl + "' 2> /dev/null &";

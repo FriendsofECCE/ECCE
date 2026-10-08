@@ -910,6 +910,7 @@ void SolvateEd::refreshChemSysThumb()
   if (p_iCalc) {
     SFile *thumbnail = TempStorage::getTempFile();
     if (p_iCalc->getThumbnail(thumbnail)) {
+      wxLogNull quiet;   // an unreadable thumbnail is shown as the plain icon
       wxBitmap bitmap(thumbnail->path(), wxBITMAP_TYPE_JPEG);
       if (bitmap.Ok()) 
         p_builderTool->setBitMap(bitmap);

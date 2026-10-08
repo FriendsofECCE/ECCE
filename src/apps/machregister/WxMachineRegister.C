@@ -6,6 +6,7 @@
  *  the header.
  */
 
+#include "util/TempStorage.H"
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -864,6 +865,13 @@ void WxMachineRegister::addCodeLine(wxWindow* page, wxFlexGridSizer* grid,
         });
         reg("code:find", find);
         row->Add(find, wxSizerFlags().Border(wxLEFT, 4).Top());
+        ewxButton* browse = new ewxButton(page, wxID_ANY, "Browse...");
+        browse->SetToolTip("Choose the program file on this computer");
+        browse->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+            this->browseProgram();
+        });
+        reg("code:browse", browse);
+        row->Add(browse, wxSizerFlags().Border(wxLEFT, 4).Top());
         col->Add(row, wxSizerFlags().Expand());
         p_codeExample = new wxStaticText(page, wxID_ANY, "");
         p_codeExample->SetFont(p_codeExample->GetFont().Smaller());
@@ -4063,8 +4071,8 @@ void WxMachineRegister::blockNone(const string& id)
 //  starts on, so the numbers count within the block.
 static void cshNotices(const string& text, int firstLine, vector<string>& out)
 {
-    char tmpl[] = "/tmp/ecce-machreg-csh-XXXXXX";
-    int fd = mkstemp(tmpl);
+    string tmpl = TempStorage::systemTempDir() + "/ecce-machreg-csh-XXXXXX";
+    int fd = mkstemp(&tmpl[0]);
     if (fd < 0)
         return;
     FILE* f = fdopen(fd, "w");
@@ -4075,7 +4083,7 @@ static void cshNotices(const string& text, int firstLine, vector<string>& out)
                    "/scripts/ecce-csh2sh\" --check \"" + tmpl + "\"";
     wxArrayString lines, errors;
     wxExecute(cmd, lines, errors, wxEXEC_SYNC);
-    unlink(tmpl);
+    unlink(tmpl.c_str());
 
     static const std::regex lineRe("^\\s+line (\\d+) \\[[^\\]]*\\]\\s+(.*)$");
     static const std::regex wantRe("^\\s+(?:->|write:)\\s+(.*)$");

@@ -15,6 +15,13 @@
 //    shot NAME                   writes NAME.ready next to the script and
 //                                waits for NAME.go: the test photographs the
 //                                window meanwhile
+//    symmetry                    Symmetry > Find, then the point group
+//    progress N                  the MO Compute progress dialog, N seconds
+//    property NAME               a click on Properties > NAME (toggles it)
+//    list NAME                   a click on NAME in the Properties list
+//    viewer NAME                 a click on NAME's "Show in viewer" box
+//    overlay                     the column's tab (1 = Properties), and for
+//                                each viewer panel: shown, viz focus
 //    quit
 //  Each command is answered on stderr: "ECCE_BUILDER_SCRIPT: <line>: ok".
 
@@ -25,6 +32,7 @@
 
 #include <wx/aui/aui.h>
 #include <wx/app.h>
+#include <wx/checkbox.h>
 #include <wx/menu.h>
 #include <wx/timer.h>
 #include <wx/utils.h>
@@ -33,9 +41,14 @@
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
 
+#include "viz/FindSymmetryCmd.H"
+#include "wxgui/ewxProgressDialog.H"
 #include "Builder.H"
 #include "PBC.H"
+#include "dsm/IPropCalculation.H"
+#include "PropertyIndexPanel.H"
 #include "StructLib.H"
+#include "VizPropertyPanel.H"
 
 namespace {
 
@@ -141,6 +154,78 @@ void Builder::runBuilderScript(const std::string& file)
         std::ofstream(base + ".ready") << "ready\n";
         st->waitingFor = base + ".go";
         st->waitUntil = wxGetLocalTimeMillis() + 90000;
+      } else if (w[0] == "symmetry") {
+        //  The Symmetry panel's Find (autosym), then the point group found.
+        Command *cmd = new FindSymmetryCmd("Find Symmetry", getSG());
+        cmd->getParameter("threshold")->setDouble(0.01);
+        execute(cmd);
+        fprintf(stderr, "BUILDER: pointgroup=%s\n",
+                frag ? frag->pointGroup().c_str() : "?");
+      } else if (w[0] == "progress" && w.size() == 2) {
+        //  The dialog MO/density/ESP Compute shows, made as MoPanel makes
+        //  it, held up for N seconds at 30% so the test can photograph it.
+        ewxProgressDialog *dlg = new ewxProgressDialog("ECCE Compute MOs",
+            "Initializing...", 100, 0,
+            wxPD_AUTO_HIDE|wxPD_CAN_ABORT|wxPD_ELAPSED_TIME|wxPD_SMOOTH);
+        wxPoint pos = GetScreenPosition() + wxPoint(60, 60);
+        dlg->SetSize(pos.x, pos.y, -1, -1);
+        dlg->Show();
+        wxLongLong end = wxGetLocalTimeMillis() + 1000 * atoi(w[1].c_str());
+        while (wxGetLocalTimeMillis() < end) {
+          dlg->isInterrupted("Computing grid points", 30);
+          wxMilliSleep(50);
+        }
+        dlg->Destroy();
+      } else if ((w[0] == "property" || w[0] == "list" || w[0] == "viewer")
+                 && w.size() >= 2) {
+        std::string name = line.substr(line.find(w[0]) + w[0].size() + 1);
+        while (!name.empty() && isspace((unsigned char)name[0]))
+          name.erase(0, 1);
+        if (w[0] == "property") {
+          //  As GTK and MSW deliver a click on a check item: the item is
+          //  toggled first, the event carries its new state.
+          int id = p_propertyMenu->FindItem(name);
+          if (id == wxNOT_FOUND) {
+            outcome = "no Properties menu item " + name;
+          } else {
+            bool on = !p_propertyMenu->IsChecked(id);
+            p_propertyMenu->Check(id, on);
+            wxCommandEvent ev(wxEVT_MENU, id);
+            ev.SetInt(on ? 1 : 0);
+            GetEventHandler()->ProcessEvent(ev);
+          }
+        } else if (w[0] == "list") {
+          if (!p_index || !p_index->click(name))
+            outcome = "not in the Properties list: " + name;
+        } else {
+          VizPropertyPanel *panel = dynamic_cast<VizPropertyPanel*>(
+              p_mgr.GetPane(wxString(name)).window);
+          wxCheckBox *box = panel ? panel->viewerToggle() : 0;
+          if (!box) {
+            outcome = "no Show in viewer box on " + name;
+          } else {
+            box->SetFocus();
+            box->SetValue(!box->GetValue());
+            wxCommandEvent ev(wxEVT_CHECKBOX, box->GetId());
+            ev.SetEventObject(box);
+            ev.SetInt(box->GetValue() ? 1 : 0);
+            box->GetEventHandler()->ProcessEvent(ev);
+          }
+        }
+      } else if (w[0] == "overlay") {
+        std::string list;
+        set<VizPropertyPanel*> panels =
+            VizPropertyPanel::getPanels(p_calculation->getURL().toString());
+        for (VizPropertyPanel *panel : panels) {
+          wxAuiPaneInfo &pane = p_mgr.GetPane(panel);
+          wxCheckBox *box = panel->viewerToggle();
+          list += " [" + panel->getName() + " shown=" +
+                  (pane.IsOk() && pane.IsShown() ? "1" : "0") + " focus=" +
+                  (panel->hasFocus() ? "1" : "0") + " box=" +
+                  (box ? (box->GetValue() ? "1" : "0") : "-") + "]";
+        }
+        fprintf(stderr, "BUILDER: overlay tab=%d%s\n", p_columnTab,
+                list.c_str());
       } else if (w[0] == "quit") {
         fprintf(stderr, "ECCE_BUILDER_SCRIPT: quit\n");
         Close(true);

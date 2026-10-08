@@ -31,6 +31,8 @@ class TempStorage
       static    SDirectory* getTempDirectory(const char* prefix = "ECCE");
 
       static    string getTempRootPath();
+      // /tmp, or the Windows temp folder with forward slashes.
+      static    string systemTempDir();
 
       static    string getJobDirectoryRoot();
 

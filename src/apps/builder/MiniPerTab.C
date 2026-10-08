@@ -1,3 +1,4 @@
+#include <cmath>
 #include <iostream>
   using std::cout;
   using std::endl;
@@ -30,6 +31,51 @@
 #include "wxviz/ViewerEvtHandler.H"
 
 #include "MiniPerTab.H"
+
+
+// Jmol's element colours: a small chip next to the symbol keeps the colour
+// as an identifier while the button itself stays the theme's own.
+static const struct { const char* sym; unsigned rgb; } JMOL[] = {
+  {"H",0xFFFFFF},{"Li",0xCC80FF},{"B",0xFFB5B5},{"C",0x909090},
+  {"N",0x3050F8},{"O",0xFF0D0D},{"F",0x90E050},{"Na",0xAB5CF2},
+  {"Mg",0x8AFF00},{"Al",0xBFA6A6},{"Si",0xF0C8A0},{"P",0xFF8000},
+  {"S",0xFFFF30},{"Cl",0x1FF01F},{"K",0x8F40D4},{"Ca",0x3DFF00},
+  {"Ti",0xBFC2C7},{"Cr",0x8A99C7},{"Mn",0x9C7AC7},{"Fe",0xE06633},
+  {"Co",0xF090A0},{"Ni",0x50D050},{"Cu",0xC88033},{"Zn",0x7D80B0},
+  {"Br",0xA62929},{"Ag",0xC0C0C0},{"I",0x940094},{"Pt",0xD0D0E0},
+  {"Au",0xFFD123},
+};
+
+static wxBitmap elementChip(const wxString& sym, const wxColour& fallback,
+                            double scale)
+{
+  wxColour c = fallback;
+  for (size_t i = 0; i < WXSIZEOF(JMOL); i++)
+    if (sym == JMOL[i].sym)
+      c = wxColour((JMOL[i].rgb >> 16) & 255, (JMOL[i].rgb >> 8) & 255,
+                   JMOL[i].rgb & 255);
+  const int n = wxMax(8, int(12 * scale + 0.5));
+  const double r = n / 2.0;
+  wxImage img(n, n);
+  img.InitAlpha();
+  // A darker rim of the same hue so white and yellow chips stay visible.
+  const int rr = c.Red() * 6 / 10, rg = c.Green() * 6 / 10,
+            rb = c.Blue() * 6 / 10;
+  for (int y = 0; y < n; y++)
+    for (int x = 0; x < n; x++) {
+      double dx = x + 0.5 - r, dy = y + 0.5 - r;
+      double d = sqrt(dx * dx + dy * dy);
+      double a = wxMax(0.0, wxMin(1.0, r - d + 0.5));
+      double rim = wxMax(0.0, wxMin(1.0, d - (r - 1.2 * scale)));
+      img.SetRGB(x, y, int(c.Red() * (1 - rim) + rr * rim),
+                 int(c.Green() * (1 - rim) + rg * rim),
+                 int(c.Blue() * (1 - rim) + rb * rim));
+      img.SetAlpha(x, y, (unsigned char)(a * 255));
+    }
+  wxBitmap bmp(img);
+  bmp.SetScaleFactor(scale);
+  return bmp;
+}
 
 IMPLEMENT_DYNAMIC_CLASS( MiniPerTab, ewxPanel )
 
@@ -280,8 +326,9 @@ void MiniPerTab::setElements()
       col = ewxColor(color);
     else
       col = ewxColor(pertab.color(pertab.atomicNumber(p_elements[index])));
-    p_eltBtns[index]->SetBackgroundColour(col);
-    p_eltBtns[index]->SetFont(ewxStyledWindow::getBoldFont());
+    p_eltBtns[index]->SetBitmap(elementChip(p_elements[index], col,
+                                            GetContentScaleFactor()));
+    p_eltBtns[index]->SetBitmapPosition(wxLEFT);
   }
 
   wxSize uniform(0, 0);
@@ -479,7 +526,8 @@ void MiniPerTab::onElementChanged(string elt)
     p_eltBtns[p_replaceIndex]->SetLabel(elt);
     TPerTab pertab;
     Color col = pertab.color(pertab.atomicNumber(elt));
-    p_eltBtns[p_replaceIndex]->SetBackgroundColour(ewxColor(col));
+    p_eltBtns[p_replaceIndex]->SetBitmap(
+        elementChip(elt, ewxColor(col), GetContentScaleFactor()));
     p_eltBtns[p_replaceIndex]->SetValue(true);
     p_eltBtns[p_replaceIndex]->SetFocus();
     ++p_replaceIndex;

@@ -79,6 +79,8 @@ string UserEditor::getPreferredEditor()
   }
 #ifdef __APPLE__
   return "open -t";
+#elif defined(_WIN32)
+  return "notepad";
 #else
   return "vi";
 #endif
@@ -360,6 +362,31 @@ string UserEditor::getPath(const string& app) const
 
   struct stat statbuf;
   string path = app;
+
+#ifdef _WIN32
+  // PATH is ';'-separated, programs carry .exe, and C:\ is absolute.
+  if (path.empty()) return "";
+  bool absolute = path[0] == '/' || path[0] == '\\' ||
+                  (path.size() > 1 && path[1] == ':');
+  if (absolute) return stat(path.c_str(), &statbuf) == 0 ? path : "";
+  const char *pv = getenv("PATH");
+  string dirs = pv ? pv : "";
+  size_t start = 0;
+  while (start <= dirs.size()) {
+    size_t end = dirs.find(';', start);
+    if (end == string::npos) end = dirs.size();
+    string dir = dirs.substr(start, end - start);
+    start = end + 1;
+    if (dir.empty()) continue;
+    const char *exts[] = { "", ".exe", ".cmd", ".bat" };
+    for (const char *ext : exts) {
+      string tryPath = dir + "\\" + app + ext;
+      if (stat(tryPath.c_str(), &statbuf) == 0 && S_ISREG(statbuf.st_mode))
+        return tryPath;
+    }
+  }
+  return "";
+#endif
 
   if (path[0] != '/') {
     // WARNING:  must copy PATH because otherwise strtok corrupts it

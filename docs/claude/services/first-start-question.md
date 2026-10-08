@@ -7,10 +7,16 @@ paths: ["packaging/gateway/ecce-first-start", "packaging/ecce.in", "packaging/ga
 issues: [240, 216]
 ---
 `ecce` runs `ecce-first-start` before it makes the session id (#240). It
-asks once ("Work on this computer" / "Connect to a server") only when
-`skip_reason()` finds nothing set up; every existing setup, and every
-deployment mode, skips it. The skip list is the contract: add a new kind
-of configuration there, and to `tests/apps/first_start_test.py`.
+asks once per user ("Store data on this computer" / "Connect to a server"); the
+answer goes to `~/.ECCE/first-start-answer`. Only that answer and explicit
+configuration skip it (`skip_reason()`: siteconfig/RemoteServer,
+SharedBroker, `-remote`, `--local`/ECCE_LOCAL_DATA, a central-server account,
+the server package on Linux, no display, ECCE_NO_FIRST_START). Existing data
+(a local folder, ~/.ECCE/dataserver, a server chosen, the preference) only
+preselects the window, which then shows the current setup; keeping a
+per-user data server records the answer without switching the preference.
+The skip list is the contract: add a new kind of configuration there, and
+to `tests/apps/first_start_test.py`.
 
 - The choice is stored as state ECCE already reads: local = the LocalData
   preference (`ecce-localdata pref on`) plus `~/.ECCE-local`; server =
@@ -20,7 +26,8 @@ of configuration there, and to `tests/apps/first_start_test.py`.
   --auto`, whose own TLS pin/CA tests are `tests/tls/first_connect_test.py`,
   now run against the Python code). Choosing local moves
   that folder to `RemoteServer.off`; choosing a server turns the preference
-  off. There is no file of its own.
+  off. `~/.ECCE/first-start-answer` only records that the question was
+  answered.
 - `ecce_user_server_mode` (ecce-session-lib.sh; `ecce` and every wrapper)
   turns the folder into a `-remote` session by exporting
   `ECCE_REMOTE_SERVER=1` and `ECCE_REMOTE_DIR`. An installation's own
@@ -33,14 +40,15 @@ of configuration there, and to `tests/apps/first_start_test.py`.
   plain http, and takes the first that answers; nothing answering writes
   nothing. `--apply local|server:HOST[:PORT]` does the same with no window
   (tests; macOS CI, which has no wxPython to open it).
-- All platforms ask (no darwin skip). On Windows "set up already" also means
-  `~/ecce-local` (what `ecce.cmd` made before the question), which is also
-  the local folder it chooses; `ecce.cmd` runs the window with
+- All platforms ask (no darwin skip). On Windows the local folder is
+  `~/ecce-local` (which `ecce.cmd` made unasked before the question);
+  `ecce.cmd` runs the window with
   `python\python3w.exe` and exit 3 quits. A server (installation's
   `siteconfig/RemoteServer`, else `~/.ECCE/RemoteServer`) makes `ecce.cmd`
   export `ECCE_REMOTE_SERVER`, a session id and run `ecce-gateway-start`
   under the bundled bash, which skips its flock/reap on MSYS (neither
-  exists there); the local choice keeps the old no-broker settings.
+  exists there); a local session gets its own loopback broker
+  (windows-session-and-tool-start.md).
   Edit > Change Server... starts the script with `python3w.exe` on Windows.
 - macOS: ECCE.app bundles no Python or wxPython, so the window is skipped
   silently (ImportError) until it does; local data stays the default there.

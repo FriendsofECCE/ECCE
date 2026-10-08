@@ -141,6 +141,7 @@ void CalculationContextPanel::refresh()
       if (window) {
         EcceTool *button = dynamic_cast<EcceTool*>(window);
         if (button) {
+          wxLogNull quiet;   // an unreadable thumbnail is shown as the plain icon
           wxBitmap bitmap(thumbnail->path(), 
                           wxBITMAP_TYPE_JPEG);
           if (bitmap.Ok()) { // bitmap data found

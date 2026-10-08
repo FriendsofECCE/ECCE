@@ -131,6 +131,22 @@ CASES = [
     ("g16-stray-character.g16in",   "Gaussian-16",  0, [("BAD", "geometry")]),
     ("orca-stray-character.orcain", "ORCA",         0, [("BAD", "geometry")]),
 
+    #  --- ECCE-QM: decks written by ai.ecceqm, and what ecce-qm refuses ---
+    ("ecceqm-water.qmin",        "ECCE-QM",        3, [("GOOD", "keywords"),
+                                                      ("GOOD", "method"),
+                                                      ("GOOD", "geometry"),
+                                                      ("GOOD", "basis"),
+                                                      ("GOOD", "electrons")]),
+    ("ecceqm-o2-triplet.qmin",   "ECCE-QM",        2, [("GOOD", "method"),
+                                                      ("GOOD", "electrons")]),
+    ("ecceqm-bad-method.qmin",   "ECCE-QM",        3, [("BAD", "method")]),
+    ("ecceqm-unknown-keyword.qmin", "ECCE-QM",     3, [("BAD", "keywords")]),
+    ("ecceqm-parity.qmin",       "ECCE-QM",        3, [("BAD", "electrons")]),
+    ("ecceqm-no-geometry.qmin",  "ECCE-QM",        0, [("BAD", "geometry")]),
+    ("ecceqm-stray-character.qmin", "ECCE-QM",     0, [("BAD", "geometry")]),
+    ("ecceqm-basis-unclosed.qmin", "ECCE-QM",      3, [("BAD", "basis")]),
+    ("ecceqm-bad-shell.qmin",    "ECCE-QM",        3, [("BAD", "basis")]),
+
     #  --- the other things that make a deck unrunnable ----------------
     ("g16-no-geometry.g16in",   "Gaussian-16",    0, [("BAD", "geometry")]),
     ("g16-no-route.g16in",      "Gaussian-16",    3, [("BAD", "route")]),
@@ -437,6 +453,17 @@ CODE_RUNNERS = {
                                r"index number expected|exceeds lmax)",
                                re.I),
         "timeout":  90,
+    },
+    #  Our own engine: its parser is the oracle for the ECCE-QM rules.  It
+    #  prints "ecce-qm: <reason>" on stderr and exits 2 on an input it
+    #  refuses; the build tree's binary is used when none is installed.
+    "ECCE-QM": {
+        "binaries": ["ecce-qm",
+                     os.path.join(os.path.dirname(os.path.dirname(HERE)),
+                                  "build-cmake", "src", "qm", "ecce-qm")],
+        "suffix":   ".qmin",
+        "rejected": re.compile(r"^ecce-qm: ", re.M),
+        "timeout":  120,
     },
     "Gaussian-16": {
         "binaries": ["/opt/gaussian/g16/g16"],

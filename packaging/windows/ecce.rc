@@ -1,0 +1,9 @@
+// The application icon of the GUI programs (Explorer, shortcuts, the MSI).
+// Named so it sorts first: Windows shows the first icon group of an .exe.
+aaaa ICON "ecce.ico"
+
+// wxWidgets' own resources, with the manifest that selects common controls
+// v6: without it Windows draws every control in the classic (Windows 95)
+// style, disabled labels embossed, and progress dialogs are wx's generic one.
+#define wxUSE_RC_MANIFEST 1
+#include "wx/msw/wx.rc"

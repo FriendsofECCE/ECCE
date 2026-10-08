@@ -405,8 +405,13 @@ string Ecce::siteConfigDirs(const string& machine)
 {
   std::vector<SiteLayer> layers = siteConfigLayers(machine);
   string dirs;
+#ifdef _WIN32
+  const char *sep = ";";   // "C:/..." has a colon of its own
+#else
+  const char *sep = ":";
+#endif
   for (size_t i = 0; i < layers.size(); i++) {
-    if (i) dirs += ":";
+    if (i) dirs += sep;
     dirs += layers[i].dir;
   }
   return dirs;

@@ -143,6 +143,12 @@ MqttEndpoint::~MqttEndpoint()
   if (p_pipe[1] >= 0) close(p_pipe[1]);
 }
 
+void MqttEndpoint::answerAs(const string& alias, const string& topic)
+{
+  std::lock_guard<std::mutex> g(p_lock);
+  p_aliases[topic] = alias;
+}
+
 void MqttEndpoint::add(const string& topic, bool filterSelf)
 {
   std::lock_guard<std::mutex> g(p_lock);
@@ -208,7 +214,11 @@ void MqttEndpoint::receive(const MqttInbound& in)
   };
   string tid = get("targetid"), tname = get("targetname");
   if (!tid.empty() && tid != std::to_string(getpid())) return;
-  if (!tname.empty() && tname != p_name) return;
+  if (!tname.empty() && tname != p_name) {
+    std::lock_guard<std::mutex> g(p_lock);
+    auto a = p_aliases.find(in.topic);
+    if (a == p_aliases.end() || a->second != tname) return;
+  }
 
   // No Local drops this connection's own messages at the broker, but only
   // when every subscriber of the topic asked for it.

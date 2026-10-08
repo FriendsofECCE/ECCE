@@ -4,6 +4,7 @@
  *
  */
 
+#include <cstdio>
 #include <fstream>
   using std::ifstream;
 
@@ -808,7 +809,7 @@ bool ChemistryTask::setThumbnail(SFile* file)
   EcceURL thumbnailUrl;
 
   if (file != 0) {
-    ifstream ifs(file->path().c_str());
+    ifstream ifs(file->path().c_str(), std::ios::binary);
     if (ifs.is_open()) {
       try {
         getVDoc()->addConfiguration(thumbnailName, &ifs);
@@ -946,12 +947,9 @@ string ChemistryTask::import( const string& dir, const string& parseFileName)
    // Subclasses may have other stuff in the parameter file.
    processImportParameters(param);
 
-   /* remove temparay files .param .frag files */
-   string cmd = "/bin/rm -f ";
-   cmd += paramFileName;
-   cmd += " ";
-   cmd += fragFileName;
-   system(cmd.c_str());
+   // remove the temporary .param and .frag files
+   (void)std::remove(paramFileName.c_str());
+   (void)std::remove(fragFileName.c_str());
 
    return message;
 }

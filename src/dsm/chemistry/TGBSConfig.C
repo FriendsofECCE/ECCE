@@ -2277,8 +2277,16 @@ const char* TGBSConfig::dump(const char* code_name, bool useNames)
   sourceFS.close();
 
   // Exec the script:
+#ifdef _WIN32
+  // system() is cmd.exe here, which cannot run an extensionless perl script
+  // found on PATH: name perl and the script.
+  string command = "perl \"" + string(Ecce::ecceDataControllersPath()) + "/" +
+    codeName + "\" < \"" + sourceFile->path() + "\" > \"" +
+    resultsFile->path() + "\"";
+#else
   string command = codeName + " < " + sourceFile->path() + " > " +
     resultsFile->path();
+#endif
 
   // system()'s return value is a raw wait-status, not an errno-style
   // negative-on-failure code -- it's only < 0 if fork/exec/waitpid itself
@@ -2288,7 +2296,7 @@ const char* TGBSConfig::dump(const char* code_name, bool useNames)
   // read back an empty resultsFile, which is exactly what
   // ESInputController::write_gbsconfig()'s generic "failed writing basis
   // set" was masking.
-  if(system(command.c_str()) != 0) {
+  if(Ecce::runCommand(command) != 0) {
     EE_ASSERT(0, EE_WARNING, "Cannot execute script: " + codeName);
     sourceFile->remove();
     resultsFile->remove();

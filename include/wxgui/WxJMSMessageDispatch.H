@@ -111,6 +111,9 @@ protected:
 
   void raiseAllWindows();
   void registerMyselfAsAppExecer();
+#ifdef _WIN32
+  long startToolWin(const string& app, string& error);
+#endif
   static void appQuit(int arg);
 
 private:

@@ -697,6 +697,37 @@ jobs:
           tests\windows\ci-run.ps1 -Stage "$env:RUNNER_TEMP\unpacked" -Out windows-run
           Get-Content windows-run\summary.txt >> $env:GITHUB_STEP_SUMMARY
 
+      # The Organizer as a user meets it: registration under the computer's
+      # name, the tree's first selection, a project in Local data, the icon.
+      - name: Organizer probe
+        id: probe
+        shell: pwsh
+        continue-on-error: true
+        timeout-minutes: 10
+        run: |
+          $env:Path = "$env:SystemRoot\System32;$env:SystemRoot"
+          tests\windows\organizer-probe.ps1 -Ecce "$env:RUNNER_TEMP\unpacked\ecce" -Out windows-run\probe
+          $e = $LASTEXITCODE
+          Get-Content windows-run\probe\summary.txt >> $env:GITHUB_STEP_SUMMARY
+          exit $e
+
+      # ECCE-QM water and O2 (ROKS) end to end from the unpacked zip: deck,
+      # Launch on localhost over the session broker, energies against the
+      # ORCA oracle, orbitals, and the Builder drawing one.
+      - name: ECCE-QM acceptance
+        id: ecceqm
+        shell: pwsh
+        continue-on-error: true
+        timeout-minutes: 20
+        run: |
+          $r = "$env:RUNNER_TEMP\unpacked\ecce"
+          Copy-Item build\launchjob.exe "$r\bin\"
+          $env:Path = "$env:SystemRoot\System32;$env:SystemRoot"
+          & "$r\python\python3.exe" tests\windows\ecceqm_win.py $r "$env:RUNNER_TEMP\ecceqm" 2>&1 | Tee-Object ecceqm.log
+          $e = $LASTEXITCODE
+          Get-Content ecceqm.log | Select-String "FAIL|PASSED|energy" >> $env:GITHUB_STEP_SUMMARY
+          exit $e
+
       # The first-start question (#240) from the unpacked zip, with the
       # package's own Python and PATH: when it is asked, the window answered
       # by its test hook (this computer / a stub server), then ecce.cmd's two

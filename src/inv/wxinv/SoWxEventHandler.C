@@ -6,6 +6,8 @@
 
 #include "inv/SoWx/SoWxEventHandler.H"
 
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 using std::cerr;
 
@@ -70,6 +72,11 @@ void SoWxEventHandler::setUpCallbacks() {
   }
   */
 
+  static const bool trace = getenv("ECCE_DEBUG_SENSOR") != 0;
+  if (trace)
+    fprintf(stderr, "[SENSOR] changed: delay=%d timer=%d\n",
+            (int)SoDB::getSensorManager()->isDelaySensorPending(),
+            (int)SoDB::getSensorManager()->isTimerSensorPending(nextEvent));
   if (SoDB::getSensorManager()->isDelaySensorPending()) {
     // This runs inside SoSensorManager::insertDelaySensor(), before the
     // sensor's own "scheduled" flag is set. Draining the queue here fires
@@ -90,6 +97,9 @@ void SoWxEventHandler::OnTimer(wxTimerEvent& WXUNUSED(event)) {
 
 
 void SoWxEventHandler::OnIdle(wxIdleEvent & event) {
+  if (getenv("ECCE_DEBUG_SENSOR") &&
+      SoDB::getSensorManager()->isDelaySensorPending())
+    fprintf(stderr, "[SENSOR] idle: processing the delay queue\n");
   // process the idle queue
   SoDB::getSensorManager()->processDelayQueue(true);
 

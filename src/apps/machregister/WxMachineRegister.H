@@ -248,6 +248,7 @@ class WxMachineRegister: public ewxFrame
         //  WxMachineRegisterTools.C)
         void discoverQueues();
         void findProgram();
+        void browseProgram();
         string defaultAccount() const;
         void saveDefaultAccount(const string& name);
         void addDiscovered(const vector<SchedulerQuery::Queue>& picked);

@@ -314,6 +314,10 @@ void WxFeedback::setMessage(const string& message,
       const WxFeedback::Severity& severity,
       const bool& clear, const bool& flush)
 {
+   //  ECCE_FEEDBACK_STDERR: the message area on stderr too, for tests
+   //  that drive a window through its script hook.
+   if (getenv("ECCE_FEEDBACK_STDERR"))
+      fprintf(stderr, "FEEDBACK: %s\n", message.c_str());
    // Magic function that flushes the wxWidgets event queue
    // This is needed in certain instances when the message area is updated,
    // but control is not returned to the event loop.

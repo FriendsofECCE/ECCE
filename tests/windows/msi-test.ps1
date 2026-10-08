@@ -52,6 +52,10 @@ tests\windows\ci-run.ps1 -Stage $stage -Out "$Out\apps"
 Get-Content "$Out\apps\summary.txt" | ForEach-Object { Say "apps: $_" }
 Check (-not (Select-String -Path "$Out\apps\summary.txt" -Pattern "exited rc=-?[1-9]|missing|FAILED" -Quiet)) "start test summary has no app exited, missing or failed"
 
+& tests\windows\organizer-probe.ps1 -Ecce $inst -Out "$Out\probe"
+Check ($LASTEXITCODE -eq 0) "organizer probe from the installed copy"
+$env:Path = $sys
+
 # The shortcut's own path: wscript + ecce.vbs + ecce.cmd, no console window.
 Start-Process "$env:SystemRoot\System32\wscript.exe" -ArgumentList "//B //Nologo `"$inst\ecce.vbs`""
 Start-Sleep 20
@@ -59,6 +63,17 @@ $o = Get-Process organizer -ErrorAction SilentlyContinue
 Check ($null -ne $o) "organizer running after the shortcut's command"
 if ($o) { Check ($o[0].MainWindowHandle -ne 0) "organizer has a window"; $o | Stop-Process -Force }
 Check (-not (Get-Process cmd -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 })) "no console window left"
+# With the last window gone, ecce.cmd's watcher stops the session broker.
+# (An editor the probe above opened may still be up: close every window.)
+Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$inst\bin\*" -and $_.ProcessName -notin @("mosquitto", "eccejobmaster", "eccejobstore") } | Stop-Process -Force
+$left = $null
+for ($i = 0; $i -lt 30; $i++) {
+  Start-Sleep 1
+  $left = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$inst\*" })
+  if ($left.Count -eq 0) { break }
+}
+Check ($left.Count -eq 0) "the session broker stopped with the last window ($($left.ProcessName -join ' '))"
+$left | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep 3
 
 # Uninstall.  The test driver is not ours; other files the run wrote are removed by the MSI.

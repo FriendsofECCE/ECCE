@@ -328,7 +328,11 @@ int main(int argc, char** argv)
 
   if (!importDir.empty() && importDir.length()>5 && deleteFlag) {
     string rmcmd = "/bin/rm -rf " + importDir;
+#ifdef _WIN32
+    (void)winShell("rm -rf " + importDir);
+#else
     (void)system(rmcmd.c_str());
+#endif
   }
 
   return status;

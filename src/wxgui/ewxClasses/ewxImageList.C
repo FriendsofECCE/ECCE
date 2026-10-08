@@ -7,6 +7,9 @@
 #include "wxgui/ewxDialog.H"
 #include "wxgui/ewxScrolledWindow.H"
 
+#include <wx/bitmap.h>
+#include <wx/image.h>
+
 #include "wxgui/ewxImageList.H"
 
 ewxImageList::ewxImageList()
@@ -40,6 +43,31 @@ ewxImageList::~ewxImageList()
 {
 
 }
+
+
+#ifdef __WXMSW__
+static wxBitmap withAlpha(wxImage image)
+{
+  image.InitAlpha();   // the mask colour becomes alpha 0
+  return wxBitmap(image, 32);
+}
+
+int ewxImageList::Add(const wxBitmap& bitmap, const wxBitmap& mask)
+{
+  if (mask.IsOk() || !bitmap.GetMask() || bitmap.HasAlpha())
+    return wxImageList::Add(bitmap, mask);
+  return wxImageList::Add(withAlpha(bitmap.ConvertToImage()));
+}
+
+int ewxImageList::Add(const wxBitmap& bitmap, const wxColour& maskColour)
+{
+  wxImage image = bitmap.ConvertToImage();
+  if (!image.HasAlpha())
+    image.SetMaskColour(maskColour.Red(), maskColour.Green(),
+                        maskColour.Blue());
+  return wxImageList::Add(withAlpha(image));
+}
+#endif
 
 
 bool ewxImageList::readPixmap(const string& file, string& decLine, 

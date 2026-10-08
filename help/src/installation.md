@@ -100,12 +100,14 @@ menu. It starts the same `ecce` command.
 
 ### The first question
 
-If nothing on your computer tells ECCE where your work goes, ECCE asks
-once, in a window called "Welcome to ECCE":
+The first time you start ECCE it asks, once, in a window called "Welcome to
+ECCE", where your work goes. If you used ECCE before, the window shows how
+it is set up now and has that choice selected; click **Continue** to keep
+it:
 
 ![The first question](img/first-start.png)
 
-- **Work on this computer** keeps your calculations in a folder on this
+- **Store data on this computer** keeps your calculations in a folder on this
   computer (`~/.ECCE-local`; on Windows the folder `ecce-local` in your
   user folder). Choose this if you work alone.
 - **Connect to a server** uses a server that your teacher or institution

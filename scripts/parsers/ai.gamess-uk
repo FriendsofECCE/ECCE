@@ -1153,8 +1153,8 @@ sub verifyGBSFile {
 ## Close input file and exit nicely.
 sub cleanup {
   close(NEWFILE);
-  system("/bin/mv -f tmpfile \'$inputFile\'");
-  system("/bin/rm -f tmpfile2");
+  rename("tmpfile", $inputFile);   # perl itself: Windows perl has no /bin/mv
+  unlink("tmpfile2");
   close(ABIDICT);
   close(CHEMSYS);
   close(GBS);
@@ -1514,7 +1514,7 @@ sub removeUnusedSections {
 #  print "remove the headers: \@toRemove\n";
 
   close(NEWFILE);
-  system("/bin/mv -f tmpfile tmpfile2");
+  rename("tmpfile", "tmpfile2");
   open(NEWFILE2,"tmpfile2");
   open(NEWFILE,">tmpfile");
 
