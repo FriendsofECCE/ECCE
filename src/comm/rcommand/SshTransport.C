@@ -711,6 +711,11 @@ ssh_session SshTransport::rawSession(const std::string& host, int port,
     return 0;
   }
   setTcpKeepalive(s, keepaliveSec());
+  // Tests count logins per process against the server's log.
+  if (getenv("ECCE_RCOM_LOGMODE")) {
+    fprintf(stderr, "ssh login: %s@%s\n", user.c_str(), host.c_str());
+    fflush(stderr);
+  }
   return s;
 }
 

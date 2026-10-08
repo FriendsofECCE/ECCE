@@ -1224,7 +1224,7 @@ expect code-listed Gaussian-03 0
 expect code-listed Gaussian-98 0
 expect code-listed GAMESS-UK 0
 expect code-listed Amica 0
-expect field code:list 'Gaussian-16  *,NWChem  *,Gaussian-09,MOPAC,ORCA,Polyrate,QuantumESPRESSO'
+expect field code:list 'Gaussian-16  *,NWChem  *,Gaussian-09,GROMACS,MOPAC,ORCA,Polyrate,QuantumESPRESSO'
 code Gaussian-16
 expect label code:title Gaussian-16
 expect field code:gaussian-16 /site/g16
@@ -1261,9 +1261,9 @@ expect shown blk:ccmd:hint 0
 expect label tag:cenv '%(yours)s'
 expect shown undo:cenv 1
 set code:gaussian-16 /opt/g16/g16
-expect field code:list 'Gaussian-16  *,NWChem  *,Gaussian-09,MOPAC,ORCA,Polyrate,QuantumESPRESSO'
+expect field code:list 'Gaussian-16  *,NWChem  *,Gaussian-09,GROMACS,MOPAC,ORCA,Polyrate,QuantumESPRESSO'
 set code:gaussian-16 ''
-expect field code:list 'NWChem  *,Gaussian-09,Gaussian-16,MOPAC,ORCA,Polyrate,QuantumESPRESSO'
+expect field code:list 'NWChem  *,Gaussian-09,Gaussian-16,GROMACS,MOPAC,ORCA,Polyrate,QuantumESPRESSO'
 set code:gaussian-16 /opt/g16/g16
 set code:files '*.rwf'
 set code:prelim '*.old'
@@ -1603,12 +1603,11 @@ def codes_find(tmp, display, build):
     print("codes tab: unavailable codes hidden, Program examples, Find")
     e = Env(tmp, "codes-find")
     tool_machine(e)
-    #  GROMACS has groundwork only: no resource descriptor, so it is not
-    #  offered unless the machine already has a setting for it.
+    #  GROMACS is registered (a GROMACS MD study), so it is listed.
     p = run(display, build, e, """
 select stubm
 tab codes
-expect code-listed GROMACS 0
+expect code-listed GROMACS 1
 expect code-listed NWChem 1
 check-program-hints
 code ORCA
@@ -1618,7 +1617,7 @@ code QuantumESPRESSO
 expect contains code:example '/usr/bin/pw.x'
 quit
 """, extra=LOCALUSER)
-    clean(p, "GROMACS is not listed; every example ends in a name Find looks for")
+    clean(p, "GROMACS is listed; every example ends in a name Find looks for")
     write(os.path.join(e.ue, "CONFIG.stubm"),
           "nwchem: /opt/nwchem\ngromacs: /opt/gromacs/bin/gmx\n"
           "condorAllowTmp: true\n")
@@ -1653,6 +1652,16 @@ quit
           "nwchem: /opt/nwchem\ncondorAllowTmp: true\nsourceFile: %s\n" % setup)
     extra = LOCALUSER
     pw = os.path.join(dirs["d"], "pw.x")
+    # Check if pw.x is installed on the system (e.g., /bin/pw.x or /usr/bin/pw.x on niobium)
+    system_pw_paths = ["/bin/pw.x", "/usr/bin/pw.x"]
+    system_pw_installed = any(os.path.exists(p) for p in system_pw_paths)
+    if system_pw_installed:
+        # When pw.x is on the system, it will be found; accept it from any standard path
+        pw_expectation = "expect contains code:quantumespresso pw.x"
+    else:
+        # When pw.x is not on the system, expect no result and a message
+        pw_expectation = """expect message 'No pw.x was found'
+expect field code:quantumespresso"""
     p = run(display, build, e, """
 select stubm
 tab codes
@@ -1675,10 +1684,9 @@ click code:find
 expect field code:mopac %(b)s/mopac
 code QuantumESPRESSO
 click code:find
-expect message 'No pw.x was found'
-expect field code:quantumespresso
+%(pw_expectation)s
 quit
-""" % {"a": dirs["a"], "b": dirs["b"]}, extra=extra)
+""" % {"a": dirs["a"], "b": dirs["b"], "pw_expectation": pw_expectation}, extra=extra)
     clean(p, "Find: asks before replacing, skips a same-named program without "
              "its companion, offers a choice, says plainly when none is found")
 

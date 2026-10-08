@@ -7,7 +7,7 @@ DisplayStyle::DisplayStyle(DisplayStyle::Style style )
    p_displayFlag = true;
    if (style == DisplayStyle::DNONE) {
       p_displayFlag = false;
-      p_style = DisplayStyle::BALLWIRE;
+      p_style = DisplayStyle::BALLSTICK;
    }
    p_style = style;
 }

@@ -16,12 +16,19 @@
 /* include files *********************************************************/
 
 #include <string.h>
-#include <unistd.h>
 #include <sys/types.h>
+#ifdef _WIN32
+/* Winsock (#133); a SOCKET handle is kept in the int sock_ below, which
+ * Windows guarantees to fit, and INVALID_SOCKET reads back as -1. */
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#endif
 
 extern "C" {
 

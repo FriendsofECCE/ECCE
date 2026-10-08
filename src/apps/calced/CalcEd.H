@@ -106,6 +106,8 @@ class CalcEd: public CalcEdGUI,
     bool getUseSymmetry() const;
     void setUseSymmetry(const bool& value);
     void storeUseSymmetry(const bool& value);
+    bool useSymmetryBox() const;
+    bool hasDetailsValues(const string& prefix = "ES.") const;
     virtual void OnButtonCalcedBasisQuickClick( wxCommandEvent& event );
     virtual void OnChoiceCalcedTheorySelected( wxCommandEvent& event );
     virtual void OnChoiceCalcedRuntypeSelected( wxCommandEvent& event );
@@ -311,6 +313,13 @@ class CalcEd: public CalcEdGUI,
     bool regenerateIfStructureChanged();
 
   private:
+    void runTestCommand(const string& line);
+
+    //  ECCE_TEST_CALCED: keep the generator's working files, as Shift+Save
+    //  does, and remember where they went.
+    bool   p_testKeepParams = false;
+    string p_keptGeneratorDir;
+
     WxFeedback *p_feedback;
     EcceTool   *p_builderTool;
     EcceTool   *p_basisSetTool;

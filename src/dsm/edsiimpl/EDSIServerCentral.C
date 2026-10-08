@@ -28,6 +28,7 @@ using namespace xercesc;
 #include "dsm/EDSIGaussianBasisSetLibrary.H"
 #include "dsm/EDSI.H"
 #include "util/LocalData.H"
+#include "util/RemoteServerDir.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/EcceDAVClient.H"
 #include "dsm/BasicDOMParser.H"
@@ -78,7 +79,7 @@ EDSIServerCentral::EDSIServerCentral()
 
   p_mountFile = Ecce::ecceHome();
   if (getenv("ECCE_REMOTE_SERVER")) {
-    p_mountFile += "/siteconfig/RemoteServer/DataServers";
+    p_mountFile = remoteServerDir() + "/DataServers";
   } else {
     p_mountFile += "/siteconfig/DataServers";
   }
@@ -245,8 +246,13 @@ bool EDSIServerCentral::checkServerSetup()
         throw EcceException(
           "The certificate of the ECCE Server\n'" + mount.getUrl() +
           "'\nis not the one this ECCE installation was set up with, so no "
-          "login was sent to it.\n\nThe administrator can give you the "
-          "server's current certificate (ecce-remote-setup --tls --pin).\n",
+          "login was sent to it.\n\n" +
+          string(getenv("ECCE_REMOTE_DIR") ?
+            "The server's certificate has changed since you first connected. "
+            "If you expected that, ask the server's administrator, then "
+            "choose Edit > Change Server... and connect again.\n" :
+            "The administrator can give you the "
+            "server's current certificate (ecce-remote-setup --tls --pin).\n"),
           WHERE);
       } else {
         throw EcceException(

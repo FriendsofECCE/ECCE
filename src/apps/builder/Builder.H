@@ -403,6 +403,7 @@ class Builder: public BuilderGUI,
       void syncColumn(bool allowSwitch);
       void syncMenuChecks();
       void updatePanes(bool allowSwitch=false);
+      void makeRoomFor(const wxString& name);
       void setColumnTab(int tab, bool save=true);
       void selectDetail(const string& name);
       void setDetail(wxWindow *win);
@@ -451,6 +452,10 @@ class Builder: public BuilderGUI,
       void doSaveThumb();
       void doClose(const string& context="", const bool& autoOpen=true);
       bool traceStressCommand(SceneScript& s, const vector<string>& w);
+      bool plotShotCommand(SceneScript& s, const vector<string>& w,
+                           const string& outdir);
+      bool pbcTestCommand(SceneScript& s, const vector<string>& w,
+                          const string& outdir);
 
       bool isReadOnly() const;
       bool isReadOnly(IPropCalculation *calc) const;
@@ -576,6 +581,7 @@ class Builder: public BuilderGUI,
       bool p_logAutoOpen = false;
 
     public:
+      void toolPaneResized(const string& name);
       //  Test hooks (ECCE_PANEL_TEST): what the layout currently holds.
       PanelMode panelMode() const { return p_panelMode; }
       void runPanelLayoutTest();

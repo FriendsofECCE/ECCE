@@ -30,5 +30,6 @@ MOPAC → spec) is the bridge it would reuse.
 - [Look at `tools/modiagram/render`'s output before believing any layout claim](look-at-tools-modiagram-renders-output-before.md)
 - [Without `symops` every fragment column is empty and no line is drawn](empty-and-no-line-is-drawn.md)
 - [A fragment column is not sorted by energy](not-sorted-by-energy.md)
-- [Fragment columns may be opened out for legibility; the molecular column never is](fragment-columns-may-be-opened-out-for.md)
+- [Fragment columns may be opened out for legibility, and so is the molecular column](fragment-columns-may-be-opened-out-for.md)
 - [MO composition: MoAoBasis, Mulliken by default (#161)](mo-composition-is-moaobasis-mulliken-by-default.md)
+- [An atom's shell with a non-bonding orbital is drawn at that orbital (#140)](a-shell-with-a-non-bonding-orbital-is-drawn-at-it.md)

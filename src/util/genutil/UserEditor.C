@@ -57,7 +57,8 @@ UserEditor::~UserEditor()
 
 /**
  * The editor command, which may carry arguments ("emacs -nw").  Order:
- * ECCE_EDITOR, then Edit > Preferences, then VISUAL and EDITOR, then vi.
+ * ECCE_EDITOR, then Edit > Preferences, then VISUAL and EDITOR, then vi
+ * (on macOS "open -t", the default text editor).
  * Read on every call so a preference change needs no restart.
  */
 string UserEditor::getPreferredEditor()
@@ -76,13 +77,18 @@ string UserEditor::getPreferredEditor()
     tmp = getenv(vars[i]);
     if (tmp != (const char*)0 && *tmp != '\0') return tmp;
   }
+#ifdef __APPLE__
+  return "open -t";
+#else
   return "vi";
+#endif
 }
 
 
 /**
  * The terminal command used for editors and remote shells; ECCE_TERMINAL,
- * then the preference, else xterm.  May carry arguments.
+ * then the preference, else xterm, or on macOS ecce-macos-terminal, which
+ * runs "-e command" in Terminal.app.  May carry arguments.
  */
 string UserEditor::getTerminal()
 {
@@ -92,7 +98,15 @@ string UserEditor::getTerminal()
   Preferences pref(PrefLabels::GLOBALPREFFILE);
   string term;
   if (pref.getString(PrefLabels::TERMINAL, term) && !term.empty()) return term;
+#ifdef __APPLE__
+  const char *home = getenv("ECCE_HOME");
+  if (home != (const char*)0 && *home != '\0' && !strchr(home, ' ')) {
+    return string(home) + "/scripts/ecce-macos-terminal";
+  }
+  return "ecce-macos-terminal";
+#else
   return "xterm";
+#endif
 }
 
 
@@ -241,7 +255,16 @@ void UserEditor::getEditCommand(const SFile& file,
          // A single-instance editor hands the file to the running copy and
          // exits at once, which would end the session before any edit.
          const char *flag = NULL, *alt = NULL;
-         if (base=="gedit" || base=="gnome-text-editor" || base=="xed") {
+         if (base=="open") {
+            // macOS open(1) returns at once; -W waits for the application
+            // and -n starts a copy of its own, which ends with the session.
+            if (!hasAny(words, "-W", "--wait-apps")) {
+               addArg(args,curArg, maxArgs, "-W");
+            }
+            if (!hasAny(words, "-n", "--new")) {
+               addArg(args,curArg, maxArgs, "-n");
+            }
+         } else if (base=="gedit" || base=="gnome-text-editor" || base=="xed") {
             flag = "--standalone"; alt = "-s";
          } else if (base=="geany") {
             flag = "-i"; alt = "--new-instance";

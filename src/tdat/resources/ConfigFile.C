@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <unistd.h>
+#include "util/PosixCompat.H"
 
 #include <fstream>
 #include <regex>
@@ -464,7 +464,7 @@ bool ConfigFile::save(string* err)
   int saved = errno;
   ok = (close(fd) == 0) && ok;
   if (ok)
-    ok = rename(tmp.c_str(), target.c_str()) == 0;
+    ok = renameReplace(tmp.c_str(), target.c_str()) == 0;
   if (!ok) {
     if (errno == 0) errno = saved;
     if (err) *err = target + ": " + strerror(errno ? errno : saved);

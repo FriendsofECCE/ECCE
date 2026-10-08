@@ -1142,7 +1142,8 @@ bool RCommand::execout(const string& command, string& output,
   if (getenv("ECCE_RCOM_LOGMODE"))
     cout << "Command (" << command << ") in ("
          << p_transport->dir() << ") status " << r.status
-         << (r.error.empty() ? "" : " " + r.error) << endl;
+         << (r.error.empty() ? "" : " " + r.error) << endl
+         << (r.status != 0 ? "Output: " + r.out + "\n" : "");
 
   bool status = false;
 
@@ -1347,7 +1348,35 @@ bool RCommand::sshCopy(bool putFlag, const string& machine,
     errMessage = rc.commError();
     return false;
   }
-  RemoteTransport* t = static_cast<RemoteTransport*>(rc.p_transport);
+  return transportCopy(static_cast<RemoteTransport*>(rc.p_transport), putFlag,
+                       files, toFile, errMessage);
+}
+
+bool RCommand::copyOnLogin(bool putFlag, const vector<string>& files,
+                           const string& toFile, string& errMessage)
+{
+  if (!p_ssh || !p_transport || !p_connected) {
+    errMessage = "no ssh connection";
+    return false;
+  }
+  if (p_sshStream) {
+    errMessage = "busy: a stream is using this login";
+    return false;
+  }
+  // Paths mean what they mean on a fresh login: relative to the home
+  // directory, not to the directory cd() set.
+  RemoteTransport* t = static_cast<RemoteTransport*>(p_transport);
+  const string dir = t->dir();
+  t->setDir("");
+  bool ok = transportCopy(t, putFlag, files, toFile, errMessage);
+  t->setDir(dir);
+  return ok;
+}
+
+bool RCommand::transportCopy(RemoteTransport* t, bool putFlag,
+                             const vector<string>& files,
+                             const string& toFile, string& errMessage)
+{
   string err;
   vector<string> src;
 

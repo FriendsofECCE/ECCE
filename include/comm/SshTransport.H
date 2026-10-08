@@ -96,9 +96,9 @@ public:
   virtual bool remoteGlob(const std::string& pattern, std::vector<std::string>& out,
                   std::string& error);
 
-  // A long-running script on its own ssh session, for a reader that needs
-  // a file descriptor.  fd is one end of a socketpair: read the script's
-  // stdout and stderr from it, write what the script should get on stdin.
+  // A long-running script on a new ssh session (a login of its own), for a
+  // reader that needs a file descriptor.  fd is one end of a socketpair: read
+  // the script's stdout and stderr from it, write what it gets on stdin.
   // A private thread owns the session and shuttles between the channel and
   // the socket; when the channel or the connection ends, it closes its end
   // so the reader sees EOF.  The script runs in dir() with the env set.

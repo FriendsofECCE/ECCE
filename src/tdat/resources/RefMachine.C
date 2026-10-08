@@ -14,8 +14,10 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <unistd.h>    // access
-#include <sys/utsname.h> // uname
+#include "util/PosixCompat.H"
+#ifndef _WIN32
 #include <netdb.h>    // gethostbyname
+#endif
 #include <string.h>
 
 #include <algorithm>
@@ -382,9 +384,16 @@ bool RefMachine::isSameDomain(void) const
   if (uname(&_uname) != -1)
     whereami = _uname.nodename;
 
+#ifdef _WIN32
+  char fqdn[256];
+  DWORD fqdnLen = sizeof(fqdn);
+  if (GetComputerNameExA(ComputerNameDnsFullyQualified, fqdn, &fqdnLen)) {
+    string mymachine = fqdn;
+#else
   struct hostent* host = gethostbyname(whereami.c_str());
   if (host != NULL) {
     string mymachine = host->h_name;
+#endif
 
     char* mymachinestr = strdup((char*)mymachine.c_str());
     char* machinestr = strdup((char*)fullname().c_str());

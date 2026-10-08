@@ -28,6 +28,7 @@
 #include "comm/DirectTransport.H"
 
 class Transport;
+class RemoteTransport;
 struct RemoteStream;
 
 static const long RC_CONNECT_TIMEOUT = 60;  // Connect timeout seconds
@@ -100,6 +101,11 @@ public:
     // or one-time code); the connection then runs nothing else until
     // stopStream().
     bool startStream(const string& command, bool onThisLogin=false);
+    // get()/put() (putFlag) over this connection's login instead of a new
+    // one.  Paths are relative to the remote home, as there.  Fails while a
+    // stream is open.
+    bool copyOnLogin(bool putFlag, const vector<string>& files,
+                     const string& toFile, string& errMessage);
     void stopStream(int graceMs=2000);
 
     bool streamWrite(const string& command);
@@ -233,6 +239,9 @@ private:
                         const string& remShell, const string& userName,
                         const string& password, const vector<string>& files,
                         const string& toFile, string& errMessage);
+    static bool transportCopy(RemoteTransport* t, bool putFlag,
+                              const vector<string>& files,
+                              const string& toFile, string& errMessage);
 
 }; // RCommand
 

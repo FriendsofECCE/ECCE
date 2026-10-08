@@ -22,9 +22,23 @@
 #include <wx/pen.h>
 #include <wx/listctrl.h> // for wxListEvent
 
-class WXDLLEXPORT wxTreeListItem;
-class WXDLLEXPORT wxTreeListHeaderWindow;
-class WXDLLEXPORT wxTreeListMainWindow;
+// wx declares WXDLLEXPORT as dllimport under WXUSINGDLL, which cannot be
+// applied to classes defined in this static library.
+#ifdef __WXMSW__
+#define ECCE_TLC_EXPORT
+#else
+#define ECCE_TLC_EXPORT WXDLLEXPORT
+#endif
+
+#ifdef __WXMSW__
+// wx 3.2 has its own wxTreeListCtrl in the core DLL; a second definition of
+// the name does not link.
+#define wxTreeListCtrl EcceTreeListCtrl
+#endif
+
+class ECCE_TLC_EXPORT wxTreeListItem;
+class ECCE_TLC_EXPORT wxTreeListHeaderWindow;
+class ECCE_TLC_EXPORT wxTreeListMainWindow;
 
 #define wxTR_VIRTUAL    0x1000    // The application provides items text on demand.
 
@@ -45,7 +59,7 @@ enum {
     DEFAULT_COL_WIDTH = 100
 };
 
-class WXDLLEXPORT wxTreeListColumnInfo: public wxObject {
+class ECCE_TLC_EXPORT wxTreeListColumnInfo: public wxObject {
 
 public:
     wxTreeListColumnInfo (const wxString &text = wxEmptyString,
@@ -125,10 +139,10 @@ const int wxTL_MODE_FIND_NOCASE  = 0x0020;
 
 // additional flag for HitTest
 const int wxTREE_HITTEST_ONITEMCOLUMN = 0x2000;
-extern WXDLLEXPORT const wxChar* wxTreeListCtrlNameStr;
+extern ECCE_TLC_EXPORT const wxChar* wxTreeListCtrlNameStr;
 
 
-class WXDLLEXPORT wxTreeListCtrl : public wxControl
+class ECCE_TLC_EXPORT wxTreeListCtrl : public wxControl
 {
 public:
     // creation

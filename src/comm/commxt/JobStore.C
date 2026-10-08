@@ -747,6 +747,8 @@ void cleanup(int exitStatus)
 
   if (exitStatus == 0) {
     if (remoteconn != (RCommand*)0 && remoteconn->isOpen()) {
+      // The monitor stream may still hold the login (a kill message).
+      remoteconn->stopStream();
       (void)remoteconn->exec("/bin/rm -f eccejobmonitor eccejobmonitor.conf "
                              "eccejobmonitor.propbuf *.desc");
       delete remoteconn;
@@ -1333,8 +1335,21 @@ void interactGetFiles(void)
   } else {
     // copy files from server
     logMessage("Benchmark", "Before file copy of output files");
-    status = RCommand::get(copyErrMessage, cpServerName, cpRemoteShell,
-                           cpUserName, "", (const char**)fileStrs, calcdir);
+    // Over the monitor's own login when there is one: a new login would ask
+    // a two-factor site for another code.
+    status = false;
+    if (remoteconn != (RCommand*)0 && remoteconn->isOpen() &&
+        remoteconn->sshBackend() != "") {
+      vector<string> fs;
+      for (int n = 0; fileStrs[n] != NULL; n++) fs.push_back(fileStrs[n]);
+      status = remoteconn->copyOnLogin(false, fs, calcdir, copyErrMessage);
+      if (!status)
+        logMessage("File System", "Copy over the monitor's login failed (" +
+                   copyErrMessage + "); logging in again to copy");
+    }
+    if (!status)
+      status = RCommand::get(copyErrMessage, cpServerName, cpRemoteShell,
+                             cpUserName, "", (const char**)fileStrs, calcdir);
     logMessage("Benchmark", "After file copy of output files");
   }
 
@@ -1798,7 +1813,9 @@ void initMon(void)
 
       // The monitor's stdout/stderr come back on a pipe and the framed
       // protocol is read from it as usual.
-      if (!remoteconn->startStream(cmd))
+      // On the login initConn() made: a second login would cost a
+      // two-factor site another code for every monitored job.
+      if (!remoteconn->startStream(cmd, true))
         restartSystem("System", remoteconn->commError());
       logMessage("Job Monitor",
                  "Started job monitor (stdio comms) with command: " + cmd);
@@ -1962,6 +1979,39 @@ void getJobMonitorInput(int fid)
   setTimeout(READ_TIMEOUT_MILLISECONDS);
 }
 
+
+#ifdef _WIN32
+// poll() for CRT pipe descriptors, which WSAPoll cannot watch: a pipe is ready
+// when it holds data or its writer has gone; anything else is a socket.
+static int winPoll(struct pollfd* fds, int n, int timeoutMs)
+{
+  ULONGLONG start = GetTickCount64();
+  for (;;) {
+    int ready = 0;
+    for (int i = 0; i < n; i++) {
+      fds[i].revents = 0;
+      if (fds[i].fd < 0) continue;
+      HANDLE h = (HANDLE)_get_osfhandle(fds[i].fd);
+      DWORD avail = 0;
+      if (h != INVALID_HANDLE_VALUE && GetFileType(h) == FILE_TYPE_PIPE) {
+        if (PeekNamedPipe(h, 0, 0, 0, &avail, 0))
+          fds[i].revents = avail > 0 ? POLLIN : 0;
+        else
+          fds[i].revents = POLLHUP;
+      } else {
+        struct pollfd one = fds[i];
+        if (poll(&one, 1, 0) > 0) fds[i].revents = one.revents;
+      }
+      if (fds[i].revents) ready++;
+    }
+    if (ready > 0 || timeoutMs == 0) return ready;
+    if (timeoutMs > 0 && GetTickCount64() - start >= (ULONGLONG)timeoutMs)
+      return 0;
+    Sleep(10);
+  }
+}
+#define poll winPoll
+#endif
 
 // Wait for and handle one round of events: queued signals first, then an
 // expired timeout, then input from the monitor and the broker.

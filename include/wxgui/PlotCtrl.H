@@ -585,6 +585,8 @@ public:
 
     //Set the background colour for the plot area (i. e. limited by axes)
     virtual bool SetAreaBackgroundColour( const wxColour &colour );
+    // Colour of the short ticks beside the axis labels
+    void SetAxisTickColour( const wxColour &colour );
 
     // Get/Set the colour of the grid lines in the plot area, default grey
     wxColour GetGridColour() const { return m_area->GetForegroundColour(); }
@@ -733,6 +735,10 @@ public:
     virtual void DrawCurve( wxDC *dc, wxPlotCurve *curve, int curve_index, const wxRect &rect );
     // Draw the key
     virtual void DrawKey( wxDC *dc );
+    // Called last when the area is drawn, for anything that lies on top
+    virtual void DrawAreaOverlay( wxDC *dc ) {}
+    // Called for each curve as it is added; the place to restyle its pens
+    virtual void StyleNewCurve( wxPlotCurve *curve, int index ) {}
     // Draw the left click drag marker, type is wxPlotCtrl_Marker_Type
     virtual void DrawMouseMarker( wxDC *dc, int type, const wxRect &rect );
     // Draw a crosshair cursor at the point (mouse cursor)
@@ -766,6 +772,8 @@ public:
     void AutoCalcXAxisTicks() { DoAutoCalcTicks(true); }
     void AutoCalcYAxisTicks() { DoAutoCalcTicks(false); }
     virtual void DoAutoCalcTicks(bool x_axis);
+    // Re-lay out after the y labels changed width
+    void DoSizeIfShown();
     // slightly correct the Zoom and origin to exactly match tick marks
     //  otherwise when the mouse is over '1' you may get 0.99999 or 1.000001
     void CorrectTicks() { CorrectXAxisTicks(); CorrectYAxisTicks(); }

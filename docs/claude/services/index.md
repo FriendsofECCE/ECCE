@@ -34,6 +34,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 ### The Gateway window and session end
 
 - [The Gateway window no longer appears](the-gateway-window-no-longer-appears.md)
+- [The first-start question: where a user keeps their work](first-start-question.md)
 - [The session id (`ECCE_SESSION_ID`) and session liveness](the-session-id.md)
 
 ### Pitfalls
@@ -47,5 +48,8 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Waiting for login: a lost monitor parks the job, session start catches it up](waiting-for-login.md)
 - [Test suites get a per-run state directory, ports and X display](test-suites-isolate-per-run.md)
 - [Full builds and long suites go to radium/tellurium via tools/offload](long-suites-go-to-offload-hosts.md)
+- [Windows local jobs: paths in sh scripts, the job id, Strawberry perl, the broker](windows-local-jobs-pitfalls.md)
 - [A remote view rides ECCE's own login, not an ssh of its own (Tail)](remote-views-use-ecces-own-login.md)
 - [A calculation's molecule and basis properties are stored below it](calculation-properties-live-below-it.md)
+- [Xvfb's stderr must not go to a pipe nobody reads (CI display wedge, #127)](xvfb-stderr-must-not-be-a-pipe.md)
+- [macOS: Terminal.app takes no command, and open(1) returns at once (#133)](macos-terminal-and-editor.md)

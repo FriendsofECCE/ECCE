@@ -42,6 +42,13 @@ class GBSRules
 	   		      const JCode* code,
 			      const TTheory* theory);
 
+     //  The code has spherical functions only (<SphericalOnly> in its
+     //  EDML), so the recorded convention may not be Cartesian.
+     static bool sphericalOnly(const JCode* code);
+
+     //  Sets Spherical on a spherical-only code's config; true if changed.
+     static bool enforceCodeCoordSys(TGBSConfig* config, const JCode* code);
+
 };
 #endif
 

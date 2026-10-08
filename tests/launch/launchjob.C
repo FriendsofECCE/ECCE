@@ -7,6 +7,13 @@
 //                    [queue=Q] [nodes=N] [procs=P] [wall="D H:M"] [mem=MB]
 //                                 batch settings, as the launcher's queue controls set them;
 //                                 LAUNCHJOB_ACCOUNT in the environment sets the account at launch
+//   launchjob gromacsstudy <parentURL> <name>
+//                                 a project <name>-project holding a GROMACS MD study <name> with an Optimize, an Equilibrate and a
+//                                 Dynamics task chained as the Organizer's New menu chains
+//                                 them; prints the study's and the tasks' URLs, one a line
+//   launchjob mdsetup <taskURL> <machine> <runDir> <user> [procs=P]
+//                                 launch settings for an MD study task made some other
+//                                 way (the Organizer's New menu), as the Launcher saves them
 //   launchjob setup  <calcURL> <dir> <name.out> [SetupParams]
 //                                 what the Calculation Editor stores: the molecule,
 //                                 basis, theory and run type from <dir>/<name>.frag,
@@ -45,11 +52,13 @@
 #include "dsm/CodeFactory.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/JCode.H"
+#include "dsm/MdTask.H"
 #include "dsm/MachinePreferences.H"
 #include "dsm/PropertyTask.H"
 #include "dsm/Resource.H"
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/ResourceType.H"
+#include "dsm/Session.H"
 #include "dsm/TaskJob.H"
 #include "dsm/VDoc.H"
 #include "tdat/AuthCache.H"
@@ -149,6 +158,71 @@ static int doCreate(const vector<string>& a)
   return 0;
 }
 
+static ResourceType* typeNamed(const string& name)
+{
+  vector<ResourceType*> types = ResourceDescriptor::getResourceDescriptor().getResourceTypes();
+  for (size_t i = 0; i < types.size(); i++)
+    if (types[i]->getName() == name) return types[i];
+  return 0;
+}
+
+static int doGromacsStudy(const vector<string>& a)
+{
+  if (a.size() < 2) { cerr << "gromacsstudy: wrong argument count" << endl; return 2; }
+  Resource* parent = EDSIFactory::getResource(EcceURL(a[0]));
+  if (!parent) { cerr << "no such parent: " << a[0] << endl; return 1; }
+  ResourceType* studyType = typeNamed("gromacs_md_study");
+  if (!studyType || studyType->getApplicationType() != "GROMACS") {
+    cerr << "gromacs_md_study is not registered" << endl;
+    return 1;
+  }
+  ResourceType* projType = typeNamed("project");
+  Resource* project = projType ? parent->createChild(a[1] + "-project", projType) : 0;
+  if (!project) { cerr << "could not create the project" << endl; return 1; }
+  Resource* study = project->createChild(a[1], studyType);
+  Session* session = dynamic_cast<Session*>(study);
+  if (!session) { cerr << "could not create the study" << endl; return 1; }
+  cout << study->getURL().toString() << endl;
+  const char* names[] = { "optimize", "equilibrate", "dynamics" };
+  const char* types[] = { "gromacs_md_optimize", "gromacs_md_equilibrate",
+                          "gromacs_md_dynamics" };
+  for (int i = 0; i < 3; i++) {
+    ResourceType* tt = typeNamed(types[i]);
+    Resource* task = tt ? study->createChild(names[i], tt) : 0;
+    if (!task) { cerr << "could not create " << names[i] << endl; return 1; }
+    //  as CalcMgr does after createChild: the new task follows the last
+    session->addMemberAsTarget(task, 0);
+    cout << task->getURL().toString() << endl;
+  }
+  return 0;
+}
+
+static int doMdSetup(const vector<string>& a)
+{
+  if (a.size() < 4) { cerr << "mdsetup: wrong argument count" << endl; return 2; }
+  TaskJob* task = getTask(a[0]);
+  if (!task) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+  Launchdata ldat;
+  ldat.machine = a[1];
+  ldat.nodes = 1;
+  ldat.totalprocs = 1;
+  ldat.rundir = a[2];
+  ldat.user = a[3];
+  ldat.remoteShell = "ssh";
+  ldat.maxwall = "0 0:0";
+  for (size_t i = 4; i < a.size(); i++) {
+    if (a[i].compare(0, 6, "procs=") == 0)
+      ldat.totalprocs = strtoul(a[i].c_str() + 6, 0, 10);
+  }
+  Jobdata jdata;
+  jdata.jobpath = a[2] + TempStorage::getJobRunDirectoryPath(task->getURL());
+  if (!task->launchdata(ldat) || !task->jobdata(jdata)) {
+    cerr << "could not save launch settings" << endl;
+    return 1;
+  }
+  return 0;
+}
+
 static void buildArgs(TaskJob* task, EcceMap& kv)
 {
   TypedFile f;
@@ -158,6 +232,14 @@ static void buildArgs(TaskJob* task, EcceMap& kv)
   task->getDataFile(JCode::PROPERTY_OUTPUT, f);    kv["##property##"] = f.name();
   task->getDataFile(JCode::AUXILIARY_OUTPUT, f);   kv["##auxiliary##"] = f.name();
   kv["##title##"] = task->getName();
+  //  The names of an MD task's output files, as WxLauncher::buildArgs gives them
+  MdTask* md = dynamic_cast<MdTask*>(task);
+  if (md != 0) {
+    kv["##output_frag##"] = md->getOutputFragmentName();
+    kv["##restart##"] = md->getRestartName();
+    kv["##md_output##"] = md->getMdOutputName();
+    kv["##topology##"] = md->getTopologyName();
+  }
   Launchdata ldat = task->launchdata();
   kv["##numProcs##"] = StringConverter::toString((int)ldat.totalprocs);
   kv["##numNodes##"] = StringConverter::toString((int)ldat.nodes);
@@ -279,6 +361,8 @@ int main(int argc, char** argv)
       cout << items[i]->getRegisteredMachine()->refname() << endl;
     return 0;
   }
+  if (mode == "mdsetup") return doMdSetup(a);
+  if (mode == "gromacsstudy") return doGromacsStudy(a);
   if (mode == "killflag" && a.size() >= 1) {
     TaskJob* t = getTask(a[0]);
     if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }

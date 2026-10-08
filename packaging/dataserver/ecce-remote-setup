@@ -31,6 +31,7 @@ usage() {
   cat <<'USAGE'
 Usage: ecce-remote-setup <server-host> [data-port] [--tls TRUST]
        ecce-remote-setup --refresh
+       ecce-remote-setup <server-host[:port]> --user [--auto] [--tls TRUST]
        ecce-remote-setup --server [listen] [--tls [--new-cert | --cert F --key F]]
 
   --server      on the SERVER, as the account running it: mark its broker
@@ -60,6 +61,13 @@ Usage: ecce-remote-setup <server-host> [data-port] [--tls TRUST]
                                 now, and print its fingerprint to check
                   --system-ca   the server has a CA-signed certificate
                                 (host name checked, no pin)
+  --user        write the user's own ~/.ECCE/RemoteServer instead of the
+                installation's (no root needed; what ECCE's first-start
+                window uses). Fails unless the server answers. ECCE_REMOTE_DIR
+                names that folder to the programs of a session
+  --auto        with --user: try a certificate the system trusts, then
+                pin the server's certificate as first presented, then
+                plain http; the first that works is written
   --refresh     no longer needed: a -remote client takes the server's
                 site configuration itself (issue #192); prints a note
   server-host   host name of the central ECCE server
@@ -203,11 +211,14 @@ if [ $# -lt 1 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
 fi
 
 REFRESH=false
+USER_MODE=false AUTO=false
 WANT_TLS=false TRUST="" PINFILE=""
 POS=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --refresh) REFRESH=true ;;
+    --user) USER_MODE=true ;;
+    --auto) AUTO=true ;;
     --tls) WANT_TLS=true ;;
     --pin) TRUST=pin; PINFILE="${2:-}"; shift ;;
     --fetch-pin) TRUST=fetch ;;
@@ -218,6 +229,34 @@ while [ $# -gt 0 ]; do
   shift
 done
 HOST="${POS[0]:-}"
+HPORT=""
+case "$HOST" in
+  *:*) HPORT="${HOST##*:}"; HOST="${HOST%:*}" ;;
+esac
+if [ -n "$HPORT" ] && [ -z "${POS[1]:-}" ]; then POS[1]="$HPORT"; fi
+if [ "$AUTO" = true ]; then
+  if [ "$USER_MODE" = false ] || [ "$REFRESH" = true ] || [ -z "$HOST" ]; then
+    echo "ecce-remote-setup: --auto needs a server host and --user" >&2
+    exit 2
+  fi
+  #  No port given: each way uses its own default. A port given is tried in each way.
+  PORTARG=()
+  [ -n "${POS[1]:-}" ] && PORTARG=("${POS[1]}")
+  self="$0"
+  for way in "--tls --system-ca" "--tls --fetch-pin" ""; do
+    # shellcheck disable=SC2086
+    if "$self" "$HOST" "${PORTARG[@]}" --user $way >/dev/null 2>&1; then
+      case "$way" in
+        *system-ca*) echo "trusted" ;;
+        *fetch-pin*) echo "pinned" ;;
+        *) echo "plain" ;;
+      esac
+      exit 0
+    fi
+  done
+  echo "ecce-remote-setup: nothing answered at $HOST" >&2
+  exit 1
+fi
 if [ "$WANT_TLS" = true ]; then DATA_PORT="${POS[1]:-8443}"; else DATA_PORT="${POS[1]:-8096}"; fi
 if [ "$WANT_TLS" = false ] && [ -n "$TRUST" ]; then
   echo "ecce-remote-setup: --pin, --fetch-pin and --system-ca are for --tls" >&2
@@ -237,6 +276,9 @@ if [ "$REFRESH" = false ] && [ -z "$HOST" ]; then usage; exit 2; fi
 : "${ECCE_HOME:=/opt/ecce}"
 SITE="$ECCE_HOME/siteconfig"
 REMOTE="$SITE/RemoteServer"
+if [ "$USER_MODE" = true ]; then
+  REMOTE="${ECCE_REALUSERHOME:-$HOME}/.ECCE/RemoteServer"
+fi
 
 #  --refresh: the machine list is not copied any more (issue #192).  A copy
 #  left by an earlier version stays in siteconfig/ as the lowest layer;
@@ -256,7 +298,7 @@ if [ ! -d "$SITE" ]; then
   exit 1
 fi
 
-if [ ! -w "$SITE" ]; then
+if [ "$USER_MODE" = false ] && [ ! -w "$SITE" ]; then
   echo "ecce-remote-setup: cannot write $SITE" >&2
   echo "  Run this as the owner of the installation (usually root)." >&2
   exit 1
@@ -305,6 +347,9 @@ if command -v curl >/dev/null 2>&1; then
   rc=$?
   if [ $rc -eq 0 ]; then
     echo "  reachable"
+  elif [ "$USER_MODE" = true ]; then
+    echo "ecce-remote-setup: cannot connect to $HOST:$DATA_PORT (curl exit $rc)." >&2
+    exit 1
   elif [ "$WANT_TLS" = true ] && [ $rc -ne 7 ] && [ $rc -ne 28 ]; then
     echo "ecce-remote-setup: TLS to $HOST:$DATA_PORT failed (curl exit $rc):" >&2
     if [ $rc -eq 90 ]; then
@@ -328,6 +373,7 @@ if command -v curl >/dev/null 2>&1; then
 fi
 
 mkdir -p "$REMOTE" || exit 1
+[ "$USER_MODE" = true ] && chmod 700 "$REMOTE"
 
 #  The pinned certificate, or none: a pin left from an earlier run would
 #  make a CA-signed server unreachable.
@@ -366,6 +412,10 @@ echo "Wrote:"
 echo "  $REMOTE/DataServers"
 [ -f "$REMOTE/site_runtime" ] && echo "  $REMOTE/site_runtime"
 [ -f "$REMOTE/server.pem" ] && echo "  $REMOTE/server.pem  (the only certificate this installation accepts)"
+if [ "$USER_MODE" = true ]; then
+  echo "This is your own setting; ECCE uses it at its next start."
+  exit 0
+fi
 echo
 echo "Users on this machine now run:"
 echo

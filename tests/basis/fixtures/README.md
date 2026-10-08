@@ -7,6 +7,8 @@ optionally an `ECP` block.
 * `water_mixed.gbs`   O on 6-31G* (mappable), H on IGLO-II (not) -- per-element
 * `water_gencontr.gbs` / `water_mixed_orca.gbs`  general contraction (cc-pVDZ-style s); H on 6-31++G, which ORCA rejects (IGLO-II is now mappable in ORCA).
 * `water_numonly.gbs` no `NameBasis` section at all -- everything explicit
+* `water_ccpvdz_explicit.gbs` the whole cc-pVDZ for water, explicit only: the
+  function count ORCA gets (24) is checked, the one fixture not trimmed
 * `water_aug_ccpvdz.gbs`, `water_aug_pwcvdz.gbs`  one shared name each, to
   exercise NWChem's name blocklist (named vs. forced explicit)
 * `pth_ecp.gbs`       Pt carrying an ECP beside a plain H
