@@ -120,8 +120,11 @@ bool RCommand::importSourceFile(const string& sourceFile, const string& locShell
   const string srcLine = csh ?
     "if (-e " + sourceFile + ") source " + sourceFile :
     "[ -e " + sourceFile + " ] && source " + sourceFile;
-  const string inner = string("env -0; printf 'ECCE_SRC_A\\n'; ") + srcLine +
-    "; printf 'ECCE_SRC_B\\n'; env -0; printf 'ECCE_SRC_E\\n'";
+  // BSD env (macOS) has no -0, so perl prints the same NUL-separated list.
+  const string dumpEnv =
+    "env -0 || perl -e 'print map {qq($_=$ENV{$_}\\0)} keys %ENV'";
+  const string inner = dumpEnv + "; printf 'ECCE_SRC_A\\n'; " + srcLine +
+    "; printf 'ECCE_SRC_B\\n'; " + dumpEnv + "; printf 'ECCE_SRC_E\\n'";
   string script = p_scriptPrefix + shQuote(shell) +
     (csh ? " -f -c " : " --norc --noprofile -c ") + shQuote(inner) + "\n";
 
