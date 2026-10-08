@@ -148,8 +148,7 @@ void SymmetryOps::findIrreducible(Fragment& frag, double threshold, const string
    // create command line
    string cmd = getIFrag + " < " + inFile.path() + " >" + outFile->path();
 
-   int istatus = system((char*)cmd.c_str()) ;  // execute command
-   istatus = ( istatus >> 8 ) ;
+   int istatus = Ecce::runCommand(cmd);
    inFile.remove();
 
    if (istatus == 0) {
@@ -213,8 +212,7 @@ void SymmetryOps::generateLatticeFragment(Fragment& frag, double threshold)
    string cmd = genLatticeFrag + " < " + inFile.path() + " >" + outFile->path();
    //cout << "cmd " << cmd << endl;
 
-   int istatus = system((char*)cmd.c_str()) ;  // execute command
-   istatus = ( istatus >> 8 ) ;
+   int istatus = Ecce::runCommand(cmd);
    inFile.remove();
 
    if (istatus == 0) {
@@ -293,8 +291,7 @@ void SymmetryOps::generateFragment(Fragment& frag, double threshold)
    string cmd = genFrag + " < " + inFile.path() + " >" + outFile->path();
    //cout << "cmd " << cmd << endl;
 
-   int istatus = system((char*)cmd.c_str()) ;  // execute command
-   istatus = ( istatus >> 8 ) ;
+   int istatus = Ecce::runCommand(cmd);
    inFile.remove();
 
    if (istatus == 0) {
@@ -378,8 +375,7 @@ void SymmetryOps::clean(Fragment& frag, double threshold, const string& group)
    string cmd = cleanCmd + " < " + inFile.path() + " >" + outFile->path();
 
 //   cout << "executing " << cmd << endl;
-   int istatus = system((char*)cmd.c_str()) ;  // execute command
-   istatus = ( istatus >> 8 ) ;
+   int istatus = Ecce::runCommand(cmd);
    inFile.remove();
 
    if (istatus == 0) {
@@ -433,8 +429,7 @@ string SymmetryOps::find(Fragment& frag, double threshold)
    // create command line
    string cmd = autosymCmd + " < " + inFile.path() + " >" + outFile->path();
 
-   int istatus = system((char*)cmd.c_str()) ;  // execute command
-   istatus = ( istatus >> 8 ) ;
+   int istatus = Ecce::runCommand(cmd);
    inFile.remove();
 
    if (istatus == 0) {

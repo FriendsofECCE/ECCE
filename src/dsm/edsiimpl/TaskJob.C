@@ -4,6 +4,7 @@
 *
 */
 
+#include <cstdio>
 #include <iostream>
   using std::cout;
   using std::cerr;
@@ -1418,10 +1419,8 @@ string TaskJob::import( const string& dir, const string& parseFileName)
    // Subclasses may have other stuff in the parameter file.
    processImportParameters(param);
 
-   /* remove temparay files .param .frag files */
-   string cmd = "/bin/rm -f ";
-   cmd += paramFileName;
-   system(cmd.c_str());
+   // remove the temporary .param file
+   (void)std::remove(paramFileName.c_str());
 
    return message;
 }

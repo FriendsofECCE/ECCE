@@ -6112,8 +6112,7 @@ bool Fragment::generateFullMolecule(void)
       // the applications no longer run from there (#134)
       string cmd = Ecce::ecceBinCommand("genmol") + " <" + inFile->path() +
                    " >" + outFile->path();
-      int istatus = system((char*)cmd.c_str()) ;  // execute command
-      istatus = istatus >> 8;
+      int istatus = Ecce::runCommand(cmd);
       inFile->remove();
 
       if (istatus == 0) {
@@ -6193,8 +6192,7 @@ void Fragment::generateIrreducibleFragment(void)
     // the applications no longer run from there (#134)
     string cmd = Ecce::ecceBinCommand("getfrag") + " <" + inFile->path() +
                  " >" + outFile->path();
-    int istatus = system((char*)cmd.c_str()) ;  // execute command
-    istatus = istatus >> 8;
+    int istatus = Ecce::runCommand(cmd);
     inFile->remove();
 
     if (istatus == 0) {

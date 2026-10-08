@@ -19,6 +19,7 @@
 #define ECCE_HH
 
 #include <cstdlib>
+#include <cstring>
 #include <string>
 #include <vector>
 #include <unistd.h>
@@ -147,6 +148,46 @@ class Ecce
 #endif
         if (access(path.c_str(), X_OK) == 0) return path;
         return name;
+      }
+
+      // The exit status of a system() call.  POSIX returns a wait status
+      // (status << 8); Windows returns the exit code itself, which ">> 8"
+      // would turn into 0 for every code below 256.
+      static int systemExitStatus(int rc)
+      {
+#ifdef _WIN32
+        return rc;
+#else
+        return rc == -1 ? -1 : (rc >> 8) & 0xff;
+#endif
+      }
+
+      // system() for a command line of quoted words and redirections;
+      // returns the exit status.  On Windows it is cmd.exe /s /c "line"
+      // (/s keeps the line's own quotes), with no console window, which a
+      // GUI program's system() would flash up, and no inherited handles.
+      static int runCommand(const string& cmd)
+      {
+#ifdef _WIN32
+        const char* comspec = getenv("COMSPEC");
+        string shell = comspec && *comspec ? comspec : "cmd.exe";
+        string line = "\"" + shell + "\" /d /s /c \"" + cmd + "\"";
+        STARTUPINFOA si;
+        PROCESS_INFORMATION pi;
+        memset(&si, 0, sizeof(si));
+        si.cb = sizeof(si);
+        if (!CreateProcessA(NULL, &line[0], 0, 0, FALSE, CREATE_NO_WINDOW,
+                            0, 0, &si, &pi))
+          return -1;
+        WaitForSingleObject(pi.hProcess, INFINITE);
+        DWORD code = 1;
+        GetExitCodeProcess(pi.hProcess, &code);
+        CloseHandle(pi.hThread);
+        CloseHandle(pi.hProcess);
+        return (int)code;
+#else
+        return systemExitStatus(system(cmd.c_str()));
+#endif
       }
 
       // site_runtime settings that can't be overriden

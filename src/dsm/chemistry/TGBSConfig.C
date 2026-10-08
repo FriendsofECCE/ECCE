@@ -2296,7 +2296,7 @@ const char* TGBSConfig::dump(const char* code_name, bool useNames)
   // read back an empty resultsFile, which is exactly what
   // ESInputController::write_gbsconfig()'s generic "failed writing basis
   // set" was masking.
-  if(system(command.c_str()) != 0) {
+  if(Ecce::runCommand(command) != 0) {
     EE_ASSERT(0, EE_WARNING, "Cannot execute script: " + codeName);
     sourceFile->remove();
     resultsFile->remove();

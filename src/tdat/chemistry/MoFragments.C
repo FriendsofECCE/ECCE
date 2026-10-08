@@ -214,7 +214,11 @@ bool MoFragments::symmetryOperations(const string& group, vector<SymOp>& ops)
    //  to the bin directory, so a bare "./symops" finds nothing.
    string command = Ecce::ecceBinCommand("symops");
 
+#ifdef _WIN32
+   command = "echo " + upper + "| " + command + " 2>NUL";
+#else
    command = "echo " + upper + " | " + command + " 2>/dev/null";
+#endif
 
    FILE *pipe = popen(command.c_str(), "r");
    if (pipe == 0) return false;
