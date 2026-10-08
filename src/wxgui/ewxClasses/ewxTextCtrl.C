@@ -76,6 +76,13 @@ bool ewxTextCtrl::Create(wxWindow* parent, wxWindowID id,
    p_unitHelper = 0;
    p_disabler = 0;
 
+   //  A narrow fixed width must still show four digits; GTK keeps about
+   //  24 px of an entry for its frame and padding.
+   if ((style & wxTE_MULTILINE) == 0 && size.x > 0 && size.x < 80) {
+     const int need = GetTextExtent("0000").x + 24;
+     if (size.x < need) SetMinSize(wxSize(need, size.y));
+   }
+
    // MultiLine doesn't support auto event handling
    // Note: isSingleLine() etc didn't work
    if (((style & wxTE_MULTILINE) == 0)  && ((style & wxTE_READONLY) == 0)) {

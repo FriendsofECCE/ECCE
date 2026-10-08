@@ -58,6 +58,16 @@ bool ewxSpinCtrl::Create(wxWindow* parent, wxWindowID id,
 
    setStyles(this, true);
 
+   //  A fixed width that cannot show its largest value (and the arrows)
+   //  clips it.
+   if (size.x > 0) {
+     wxString widest = wxString::Format("%d", min);
+     wxString top = wxString::Format("%d", max);
+     if (top.length() > widest.length()) widest = top;
+     const int need = GetTextExtent(widest).x + 36;
+     if (size.x < need) SetMinSize(wxSize(need, size.y));
+   }
+
    return true;
 }
 
