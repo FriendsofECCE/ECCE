@@ -69,6 +69,7 @@ protected:
   wxBitmap p_bitmap;
   wxBitmapBundle p_bundle;   // the SVG icon, sharp at any scale
   wxString p_label;          // drawn under the icon as text
+  wxBitmap p_thumbnail;      // setBitMap's picture, in the icon's place
   bool p_isHover;
   //  wxMenu * p_newMenu;
   bool p_isSunken;

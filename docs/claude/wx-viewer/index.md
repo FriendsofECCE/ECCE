@@ -11,6 +11,8 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 
 ### wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls
 
+- [A property panel's overlay follows the panel: opened = drawn, closed/replaced/folded = removed; "Show in viewer" turns it off](property-overlay-follows-the-shown-panel.md)
+- [Organizer tool buttons paint their SVG icon; setBitMap (the calculation thumbnail) must replace it there](organizer-tool-button-draws-its-svg-not-setbitmap.md)
 - [Every plot is an `ewxPlotCtrl` styled by `PlotStyle.H`, the palette the vibrational spectrum canvas uses; `tests/plots/capture.py` pictures them before and after a change](plots-share-the-spectrum-style.md)
 - [`ComputeMoCmd` caches a grid before computing it; a failed Compute must remove it (#239)](mo-grid-cache-keeps-a-failed-compute.md)
 - [The redraw sensor must not be drained inside `schedule()`: `SoWxEventHandler::setUpCallbacks()` only wakes idle](open-inventors-redraw-sensor-is-a-one.md)

@@ -206,8 +206,10 @@ void EcceTool::OnPaint( wxPaintEvent& event )
 #endif
 
   if (p_bundle.IsOk()) {
-    wxBitmap bmp = p_bundle.GetBitmapFor(this);
-    wxSize sz = p_bundle.GetPreferredLogicalSizeFor(this);
+    wxBitmap bmp = p_thumbnail.IsOk() ? p_thumbnail
+                                      : p_bundle.GetBitmapFor(this);
+    wxSize sz = p_thumbnail.IsOk() ? wxSize(ICON_SIZE, ICON_SIZE)
+                                   : p_bundle.GetPreferredLogicalSizeFor(this);
     dc.DrawBitmap(bmp, (rect.width - sz.x) / 2, 4, true);
     dc.SetFont(GetFont());
     dc.SetTextForeground(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNTEXT));
@@ -258,8 +260,20 @@ void EcceTool::toolActivate(bool shiftDown)
 }
 
 
+/**
+ * A picture in place of the icon (the calculation's thumbnail on the
+ * Builder button).  With the SVG icon the paint draws the bundle, not
+ * p_bitmap, so the picture is kept scaled to the icon's size instead.
+ */
 void EcceTool::setBitMap(wxBitmap bitmap)
 {
   p_bitmap = bitmap;
+  if (p_bundle.IsOk() && bitmap.IsOk()) {
+    const double scale = GetContentScaleFactor();
+    const int px = (int)(ICON_SIZE * scale + 0.5);
+    wxImage image = bitmap.ConvertToImage();
+    image.Rescale(px, px, wxIMAGE_QUALITY_HIGH);
+    p_thumbnail = wxBitmap(image, -1, scale);
+  }
   Refresh();
 }
