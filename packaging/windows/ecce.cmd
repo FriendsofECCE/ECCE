@@ -6,7 +6,9 @@ set "ECCE_ROOT=%~dp0"
 if "%ECCE_ROOT:~-1%"=="\" set "ECCE_ROOT=%ECCE_ROOT:~0,-1%"
 rem Forward slashes: ECCE_HOME ends up in sh scripts, where a backslash is an escape.
 set "ECCE_HOME=%ECCE_ROOT:\=/%"
-set "PATH=%ECCE_ROOT%\bin;%ECCE_ROOT%\usr\bin;%ECCE_ROOT%\python;%ECCE_ROOT%\strawberry\perl\site\bin;%ECCE_ROOT%\strawberry\perl\bin;%ECCE_ROOT%\strawberry\c\bin;%SystemRoot%\System32;%SystemRoot%"
+rem The user's own PATH last: codes installed on it (MOPAC adds itself) are
+rem found by Register Machines' Find and by the job scripts.
+set "PATH=%ECCE_ROOT%\bin;%ECCE_ROOT%\usr\bin;%ECCE_ROOT%\python;%ECCE_ROOT%\strawberry\perl\site\bin;%ECCE_ROOT%\strawberry\perl\bin;%ECCE_ROOT%\strawberry\c\bin;%SystemRoot%\System32;%SystemRoot%;%PATH%"
 set "ECCE_REALUSER=%USERNAME%"
 set "HOST=%COMPUTERNAME%"
 set "UH=%USERPROFILE:\=/%"

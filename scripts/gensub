@@ -649,7 +649,9 @@ sub getConfigFileNames()
   # highest priority first, the user's first and the install's last.
   $home = $ENV{"ECCE_REALUSERHOME"};
   if ($ENV{"ECCE_SITECONFIG_DIRS"} ne "") {
-    @dirs = split(/:/, $ENV{"ECCE_SITECONFIG_DIRS"});
+    # ";" on Windows, where a directory starts with "C:".
+    my $sep = ($^O eq "MSWin32" || $ENV{"ECCE_SITECONFIG_DIRS"} =~ /;/) ? ";" : ":";
+    @dirs = split(/\Q$sep\E/, $ENV{"ECCE_SITECONFIG_DIRS"});
     s{/+$}{} for @dirs;
   } else {
     @dirs = ("$home/.ECCE", "$ecceHome/siteconfig");
@@ -1035,6 +1037,8 @@ sub usage()
 sub pathVar()
 {
   my ($var, $path, $envVar) = @_;
+  # Quoted when it needs it: "C:/Program Files/..." on Windows.
+  if ($path =~ m{[^\w/.,:+@%=-]}) { (my $q = $path) =~ s/'/'\\''/g; $path = "'$q'"; }
   return "$var=$path\n" .
          "if [ -n \"\${$envVar+set}\" ]; then\n  $var=\$$envVar\nfi\n";
 }
@@ -1169,7 +1173,7 @@ sub gaussianScript()
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } else {
-    $retval .= "\$$tag < $::inFile > $::outFile 2>&1\n";
+    $retval .= "\"\$$tag\" < $::inFile > $::outFile 2>&1\n";
   }
   return $retval;
 }
@@ -1236,7 +1240,7 @@ sub nwchem()
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } elsif ($::totalprocs <= 1) {
-    $retval .= "\$nwchem $::inFile > $::outFile 2>&1\n";
+    $retval .= "\"\$nwchem\" $::inFile > $::outFile 2>&1\n";
   } elsif ($::totalprocs > 1) {
     $retval .= "\n$::CC - Generating submit file for NWChem built with MPI\n";
     $retval .= "\n$::CC - Path to mpirun if running an ECCE deployed NWChem\n";
@@ -1244,7 +1248,7 @@ sub nwchem()
     $retval .= "if [ -d \$mpibindir ]; then\n";
     $retval .= "  PATH=\"\$mpibindir:\$PATH\"; export PATH\n";
     $retval .= "fi\n";
-    $retval .= "mpirun -np $::totalprocs \$nwchem $::runDir/$::inFile > $::runDir/$::outFile 2>&1 < /dev/null\n";
+    $retval .= "mpirun -np $::totalprocs \"\$nwchem\" $::runDir/$::inFile > $::runDir/$::outFile 2>&1 < /dev/null\n";
   }
   return $retval;
   nouse strict vars;
@@ -1280,7 +1284,7 @@ sub nwchemmd()
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } elsif ($::totalprocs <= 1) {
-    $retval .= "\$nwchem $::inFile > $::outFile 2>&1\n";
+    $retval .= "\"\$nwchem\" $::inFile > $::outFile 2>&1\n";
   } elsif ($::totalprocs > 1) {
     # parallel is assumed to be in the same location as nwchem itself.
     $retval .= "\n$::CC - Generating setup file for use with Parallel\n";
@@ -1289,7 +1293,7 @@ sub nwchemmd()
     $retval .= "cp \$ECCE_NWCHEM_P nwchem.p\n";
     $retval .= "else\n";
     $retval .= "cat << EOCAT > nwchem.p\n";
-    $retval .= "\$USER `hostname` $::totalprocs \$nwchem $::runDir\n";
+    $retval .= "\$USER `hostname` $::totalprocs \"\$nwchem\" $::runDir\n";
     $retval .= "EOCAT\n";
     $retval .= "fi\n";
     $retval .= "loc=\${nwchem%/*}\n";
@@ -1393,7 +1397,7 @@ sub orca()
       $retval .= "cat $::inFile.orig >> $::inFile.tmp\n";
       $retval .= "mv $::inFile.tmp $::inFile\n";
     }
-    $retval .= "\$orca $::inFile > $::outFile 2>&1\n";
+    $retval .= "\"\$orca\" $::inFile > $::outFile 2>&1\n";
   }
   return $retval;
   nouse strict vars;
@@ -1423,7 +1427,7 @@ sub ecceqm()
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } else {
-    $retval .= "\$ecceqm $::inFile > $::outFile 2>&1\n";
+    $retval .= "\"\$ecceqm\" $::inFile > $::outFile 2>&1\n";
   }
   return $retval;
   nouse strict vars;
@@ -1505,7 +1509,7 @@ sub gromacs()
     #  mdrun's when it ran, not that of the editconf after it.
     $retval .= "\n$::CC - grompp builds the .tpr; its complaints, which are\n";
     $retval .= "$::CC - mostly about the topology, go where the user will look.\n";
-    $retval .= "\$gmx grompp -f $::inFile -c conf.gro -p topol.top -o topol.tpr -maxwarn 0 > grompp.out 2>&1\n";
+    $retval .= "\"\$gmx\" grompp -f $::inFile -c conf.gro -p topol.top -o topol.tpr -maxwarn 0 > grompp.out 2>&1\n";
     $retval .= "if [ \$? -ne 0 ]; then\n";
     $retval .= "  cat grompp.out >> $::logfile\n";
     $retval .= "  cp grompp.out $::outFile\n";
@@ -1525,15 +1529,15 @@ sub gromacs()
     $retval .= "  ln -s $log $::outFile\n";
     $run = "mdrun -s topol.tpr -g $log -c $restart -e ener.edr -x traj.xtc";
     if ($mpi) {
-      $retval .= "  mpirun -np $::totalprocs \$gmx $run -ntomp 1 >> $::logfile 2>&1\n";
+      $retval .= "  mpirun -np $::totalprocs \"\$gmx\" $run -ntomp 1 >> $::logfile 2>&1\n";
     } else {
-      $retval .= "  \$gmx $run -ntmpi 1 -ntomp $::totalprocs >> $::logfile 2>&1\n";
+      $retval .= "  \"\$gmx\" $run -ntmpi 1 -ntomp $::totalprocs >> $::logfile 2>&1\n";
     }
     $retval .= "  mdrunStatus=\$?\n";
     $retval .= "  rm -f $::outFile\n";
     $retval .= "  cp $log $::outFile\n";
     $retval .= "  $::CC - The final structure as PDB: what the Builder shows.\n";
-    $retval .= "  \$gmx editconf -f $restart -o chemsys.pdb >> $::logfile 2>&1\n";
+    $retval .= "  \"\$gmx\" editconf -f $restart -o chemsys.pdb >> $::logfile 2>&1\n";
     $retval .= "  ( exit \$mdrunStatus )\n";
     $retval .= "fi\n";
   }
@@ -1564,7 +1568,7 @@ sub mopac()
     $retval .= "  rm -f $::outFile\n";
     $retval .= "  ln -s $base.out $::outFile 2>/dev/null || :\n";
     $retval .= "fi\n";
-    $retval .= "\$mopac $::inFile >> $::logfile 2>&1\n";
+    $retval .= "\"\$mopac\" $::inFile >> $::logfile 2>&1\n";
     $retval .= "\n$::CC - Now the run is finished, replace that symlink with a\n";
     $retval .= "$::CC - real copy. The symlink is only needed DURING the run,\n";
     $retval .= "$::CC - so live monitoring has the declared name to follow;\n";
@@ -1628,10 +1632,10 @@ sub quantumespresso()
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } elsif ($::totalprocs <= 1) {
-    $retval .= "\$pw -in $::inFile > $::outFile 2>&1\n";
+    $retval .= "\"\$pw\" -in $::inFile > $::outFile 2>&1\n";
   } else {
     $retval .= "\n$::CC - pw.x is a plain MPI program; mpirun wraps it.\n";
-    $retval .= "mpirun -np $::totalprocs \$pw -in $::inFile > $::outFile 2>&1 < /dev/null\n";
+    $retval .= "mpirun -np $::totalprocs \"\$pw\" -in $::inFile > $::outFile 2>&1 < /dev/null\n";
   }
   return $retval;
   nouse strict vars;
@@ -1653,7 +1657,7 @@ sub gamessuk()
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } elsif ($::totalprocs <= 1) {
-    $retval .= "\$gamessuk $::inFile > $::outFile 2>&1\n";
+    $retval .= "\"\$gamessuk\" $::inFile > $::outFile 2>&1\n";
   }
   return $retval;
   nouse strict vars;
@@ -1679,7 +1683,7 @@ sub gamessus()
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } elsif ($::totalprocs <= 1) {
-    $retval .= "\$gamess $::inFile > $::outFile 2>&1\n";
+    $retval .= "\"\$gamess\" $::inFile > $::outFile 2>&1\n";
   }
   return $retval;
   nouse strict vars;
@@ -1705,7 +1709,7 @@ sub polyrate()
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } else {
-    $retval .= "\$polyrate\n";
+    $retval .= "\"\$polyrate\"\n";
   }
   return $retval;
   nouse strict vars;

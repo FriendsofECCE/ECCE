@@ -118,7 +118,8 @@ password_file $(native "$DIR/passwd")
 acl_file $(native "$DIR/acl")
 CONF
 
-setsid nohup "$MOSQUITTO" -c "$(native "$DIR/mosquitto.conf")" \
+# No setsid: on Windows it opens a console window of its own.
+nohup "$MOSQUITTO" -c "$(native "$DIR/mosquitto.conf")" \
   </dev/null >"$DIR/mosquitto.out" 2>&1 &
 echo $! > "$PIDFILE"
 i=0

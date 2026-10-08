@@ -66,7 +66,7 @@ nwchem=/opt/codes/nwchem
 if [ -n "${ECCE_NWCHEM+set}" ]; then
   nwchem=$ECCE_NWCHEM
 fi
-$nwchem nwch.nw > nwch.nwout 2>&1
+"$nwchem" nwch.nw > nwch.nwout 2>&1
 
 
 #  - determine state...

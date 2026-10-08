@@ -6,6 +6,7 @@ eccejobmaster/eccejobstore/eccejobmonitor -> state on the local data folder.
 Run from MSYS2 UCRT64 python (b.bat) on the VM:
 
     python3 tests/windows/launch_local.py complete|cancel [--build DIR]
+        [--mopac C:/path/to/mopac.exe --deck water.mop]
 """
 import argparse
 import glob
@@ -147,13 +148,17 @@ def main():
     ap.add_argument("case", choices=("complete", "cancel"))
     ap.add_argument("--build", default=os.path.join(REPO, "build"))
     ap.add_argument("--state", default=os.path.expanduser("~/launchtest"))
+    # A real MOPAC instead of the stub, and its input deck (acceptance runs).
+    ap.add_argument("--mopac")
+    ap.add_argument("--deck", default=DECK)
     a = ap.parse_args()
     # Forward slashes: paths reach sh scripts, where a backslash is an escape.
     s = S(os.path.abspath(a.build).replace("\\", "/"),
           os.path.abspath(a.state).replace("\\", "/"))
     st = s.state.replace("\\", "/")
     with open(os.path.join(st, ".ECCE", "CONFIG.localhost"), "w", newline="\n") as h:
-        h.write("MOPAC: %s\n" % stub(st, 2 if a.case == "complete" else 300))
+        h.write("MOPAC: %s\n" % (a.mopac.replace("\\", "/") if a.mopac else
+                                  stub(st, 2 if a.case == "complete" else 300)))
     cfg = {}
     sub = None
     if "NO_MESSAGING" not in os.environ.get("WINTEST", ""):
@@ -181,7 +186,7 @@ def main():
                 "publish below the user's own topic is accepted")
         s.check(other and "135" in other[0], "publish to another user's topic is denied by the ACL (PUBACK 135)")
     url = s.userUrl = "file://%s/localdata/users/local" % st
-    rc, out = s.drv("create", url, "wintest", "mopac_es", DECK, "mopac.mop",
+    rc, out = s.drv("create", url, "wintest", "mopac_es", a.deck, "mopac.mop",
                     "localhost", st + "/jobs", "andy")
     say(out)
     if not s.check(rc == 0, "calculation created"):

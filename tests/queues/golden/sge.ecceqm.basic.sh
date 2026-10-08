@@ -70,7 +70,7 @@ OMP_NUM_THREADS=1
 export OMP_NUM_THREADS
 ECCE_BASIS_DIR="<ECCE_HOME>/data/admin/basissets"
 export ECCE_BASIS_DIR
-$ecceqm ecceqm.qmin > ecceqm.qmout 2>&1
+"$ecceqm" ecceqm.qmin > ecceqm.qmout 2>&1
 
 
 #  - determine state...

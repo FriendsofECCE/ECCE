@@ -894,7 +894,9 @@ bool FileEDSI::putDataSet(const char *putStream)
   if (forbidden(p_url.getPath())) return false;
 
   SFile file(p_url.getPath().c_str());
-  ofstream ofs(file.path().c_str());
+  // Binary: text mode on Windows turns each \n into \r\n, and a stream
+  // that already had \r\n into \r\r\n (MOPAC then sees no atoms).
+  ofstream ofs(file.path().c_str(), std::ios::binary);
   if (ofs) {
     ofs << putStream;
     ofs.close();
@@ -912,7 +914,9 @@ bool FileEDSI::putDataSet(istream& putStream)
   if (forbidden(p_url.getPath())) return false;
 
   SFile file(p_url.getPath().c_str());
-  ofstream ofs(file.path().c_str());
+  // Binary: text mode on Windows turns each \n into \r\n, and a stream
+  // that already had \r\n into \r\r\n (MOPAC then sees no atoms).
+  ofstream ofs(file.path().c_str(), std::ios::binary);
   if (ofs) {
     const int bsz = 1024;
     char      buff[bsz];
