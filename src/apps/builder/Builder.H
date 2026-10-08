@@ -163,6 +163,10 @@ class Builder: public BuilderGUI,
     //  them moves it, and the saved layout keeps the result.
     static const int INDEX_PROPORTION = 100;
     static const int DETAIL_PROPORTION = 100;
+    //  A short screen gives the open panel (a table needs rows) more of the
+    //  column than the list, which scrolls.
+    static int detailProportion()
+    { return wxGetDisplaySize().y < 900 ? 220 : DETAIL_PROPORTION; }
 
     //  How the side panels are organised (View > Panel layout).  Classic
     //  is the original arrangement; the other three put everything in one
@@ -448,6 +452,8 @@ class Builder: public BuilderGUI,
 
       void setUnsavedState(bool changed);
       void doSave();
+      /// Test hook: ECCE_BUILDER_SCRIPT (BuilderScript.C).
+      void runBuilderScript(const std::string& file);
       void doSaveAs(const bool& imagesOnly=false);
       void doSaveThumb();
       void doClose(const string& context="", const bool& autoOpen=true);
@@ -585,6 +591,8 @@ class Builder: public BuilderGUI,
       //  Test hooks (ECCE_PANEL_TEST): what the layout currently holds.
       PanelMode panelMode() const { return p_panelMode; }
       void runPanelLayoutTest();
+      void runClipAudit();
+      std::string p_clipTag;
 };
 
 #endif

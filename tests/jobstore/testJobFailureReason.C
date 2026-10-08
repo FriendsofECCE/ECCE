@@ -132,6 +132,20 @@ int main(int argc, char** argv)
     expectShortSingleLine("nwchem input error reason is short", reason);
   }
 
+  // Quantum ESPRESSO: SCF not converged, and a boxed error.
+  {
+    vector<string> files;
+    files.push_back(fx + "/synthetic/qe-noconverge.pwout");
+    string reason = JobFailureReason::extractReason(files);
+    expectContains("qe no convergence", reason, "did not converge in 3");
+    expectShortSingleLine("qe no convergence is short", reason);
+    files.clear();
+    files.push_back(fx + "/synthetic/qe-routine-error.pwout");
+    reason = JobFailureReason::extractReason(files);
+    expectContains("qe routine error", reason, "read_namelists");
+    expectContains("qe routine error text", reason, "bad line in namelist");
+  }
+
   // No files, or a file with nothing recognizable: no match, not a
   // guess.
   {

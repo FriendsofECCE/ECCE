@@ -57,8 +57,13 @@ bool WxLauncherApp::OnInit()
     p_launchFrame = new WxLauncher(NULL);
     EDSIFactory::addAuthEventListener(p_launchFrame);
 
-    if ((this->argc > 1) && (strcmp(this->argv[1].ToStdString().c_str(), "-context") == 0))
-        cntxt = this->argv[2];
+    //  "-context URL" may follow "-pipe FILE" (tests/apps/qe_walkthrough_test.py).
+  for (int a = 1; a + 1 < this->argc; a++) {
+    if (strcmp(this->argv[a].ToStdString().c_str(), "-context") == 0) {
+      cntxt = this->argv[a + 1];
+      break;
+    }
+  }
 
     p_launchFrame->setContext(cntxt);
     p_launchFrame->loadSettings("Launcher");

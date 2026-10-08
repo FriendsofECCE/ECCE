@@ -129,6 +129,11 @@ int LauncherScript::runCommand(const vector<string>& w)
         if (!p_frame->clickMachineSettings())
             fail("the Machine settings button is missing or disabled");
     }
+    else if (cmd == "launch" && n == 1)
+    {
+        if (!p_frame->clickLaunch())
+            fail("the Launch button is missing or disabled");
+    }
     else if (cmd == "rundir" && n == 2)
         p_frame->setRunDirectory(w[1]);
     else if (cmd == "reload")

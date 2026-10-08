@@ -104,7 +104,8 @@ public:
     // $ECCE_REALUSERHOME/.ECCE over the root-owned site one -- the same
     // fallback RefMachine::configFile() uses for CONFIG.<machine>. Public so
     // it can be exercised without standing up a whole QueueManager.
-    static string queueConfigFile(const string& name);
+    static string queueConfigFile(const string& name,
+                                  const string& machine = "");
 
   // Queues Access
     const ESQHDict* queues(void) const;

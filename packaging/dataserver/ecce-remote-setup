@@ -71,13 +71,17 @@ Usage: ecce-remote-setup <server-host> [data-port] [--tls TRUST]
   --refresh     fetch the server's machine list again, from the server
                 configured by an earlier run (ecce -admin on a -remote client
                 does this after a change)
+  --login NAME  an account of the server, for a server that asks for a login
+                to read its published machine list (not needed otherwise);
+                the password is asked for, or taken from ECCE_SETUP_PASSWORD.
+                ECCE_SETUP_LOGIN does the same; ~/.netrc is tried without either
   server-host   host name of the central ECCE server
   data-port     data server port      (default 8096)
 
-Writes $ECCE_HOME/siteconfig/RemoteServer/ and copies the server's registered site machine list (Machines, Queues,
-CONFIG.*, *.Q) and, from a server that publishes them, submit.site and
-QueueManagers into siteconfig/. Re-run after
-the admin changes that list on the server.
+Writes $ECCE_HOME/siteconfig/RemoteServer/ and copies the server's registered
+site machine list (Machines, Queues, CONFIG.*, *.Q, submit.site, QueueManagers)
+into siteconfig/. Re-run after the admin
+changes that list on the server.
 Run "ecce -remote" afterwards.
 USAGE
 }
@@ -207,11 +211,35 @@ curl_tls_args() {
   fi
 }
 
+#  Credentials for the published site files: a curl config in DIR (so the
+#  password is not on a command line), from --login / ECCE_SETUP_LOGIN, else
+#  ~/.netrc if there is one.
+curl_auth_args() {
+  CURL_AUTH=()
+  local login="${SETUP_LOGIN:-${ECCE_SETUP_LOGIN:-}}" pw="${ECCE_SETUP_PASSWORD:-}"
+  if [ -z "$login" ]; then
+    CURL_AUTH=(--netrc-optional)
+    return 0
+  fi
+  if [ -z "$pw" ]; then
+    if [ -t 0 ]; then
+      read -r -s -p "Password of $login on the server: " pw </dev/tty; echo >&2
+    else
+      echo "ecce-remote-setup: no password for $login (set ECCE_SETUP_PASSWORD)" >&2
+      return 1
+    fi
+  fi
+  ( umask 077; printf 'user = "%s:%s"\n' "$login" "$pw" >"$1/curl.auth" ) || return 1
+  CURL_AUTH=(-K "$1/curl.auth")
+}
+
 #  Site machine list (issue #188).  ecce-site-publish (run by the server's
 #  ecce-dataserver-start and ecce-site-admin) publishes the server's
 #  siteconfig/{Machines,Queues,submit.site,QueueManagers,CONFIG.*,*.Q} under
-#  Ecce/system, which is served without a login -- same tree the basis set
-#  library comes from -- so this needs no credentials.  All-or-nothing: a
+#  Ecce/system/siteconfig, served without a login.  A login is used when
+#  given (--login NAME, with the password asked for or in ECCE_SETUP_PASSWORD;
+#  ECCE_SETUP_LOGIN; ~/.netrc), for a server that asks for one.  This copy
+#  stays until clients fetch the files themselves (#192 stage 3).  All-or-nothing: a
 #  partial copy would leave CONFIG.* files with no matching Machines entry, or
 #  vice versa, which is worse than not copying at all.  The client fetches
 #  what the MANIFEST lists, so a server too old to list submit.site and
@@ -228,12 +256,13 @@ fetch_machine_list() {
   FETCHDIR=$(mktemp -d) || return 1
   trap 'rm -rf "$FETCHDIR"' EXIT
   curl_tls_args "$URL" || return 1
-  if ! curl "${CURL_TLS[@]}" -sf --connect-timeout 5 "$URL/system/siteconfig/MANIFEST" \
+  curl_auth_args "$FETCHDIR" || return 1
+  if ! curl "${CURL_TLS[@]}" "${CURL_AUTH[@]}" -sf --connect-timeout 5 "$URL/system/siteconfig/MANIFEST" \
        -o "$FETCHDIR/MANIFEST" 2>/dev/null; then
-    echo "WARNING: no machine list published at $URL/system/siteconfig/MANIFEST"
-    echo "  (an older server, or the server is not up yet). Machines were NOT"
-    echo "  copied -- register them by hand, or re-run ecce-remote-setup once"
-    echo "  the server is running 8.17.0 or later."
+    echo "WARNING: could not read the machine list at $URL/system/siteconfig/MANIFEST"
+    echo "  (the server is not up yet, or it asks for a login: --login NAME, or"
+    echo "  ECCE_SETUP_LOGIN and ECCE_SETUP_PASSWORD). Machines were NOT copied --"
+    echo "  re-run ecce-remote-setup once the server is running."
     return 1
   fi
   names="" ok=true
@@ -244,7 +273,7 @@ fetch_machine_list() {
         echo "WARNING: ignoring bad name '$name' in the server's MANIFEST" >&2
         continue ;;
     esac
-    if ! curl "${CURL_TLS[@]}" -sf --connect-timeout 5 \
+    if ! curl "${CURL_TLS[@]}" "${CURL_AUTH[@]}" -sf --connect-timeout 5 \
            "$URL/system/siteconfig/$name" -o "$FETCHDIR/$name" 2>/dev/null; then
       echo "WARNING: could not fetch $name from the server -- machine list not copied." >&2
       ok=false
@@ -294,12 +323,14 @@ if [ $# -lt 1 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
 fi
 
 REFRESH=false
+SETUP_LOGIN=""
 USER_MODE=false AUTO=false
 WANT_TLS=false TRUST="" PINFILE=""
 POS=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --refresh) REFRESH=true ;;
+    --login) SETUP_LOGIN="${2:-}"; shift ;;
     --user) USER_MODE=true ;;
     --auto) AUTO=true ;;
     --tls) WANT_TLS=true ;;

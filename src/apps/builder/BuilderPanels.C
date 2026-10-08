@@ -14,6 +14,10 @@
 #include <wx/menu.h>
 #include <wx/menuitem.h>
 #include <wx/timer.h>
+#include <wx/radiobox.h>
+#include <deque>
+#include <functional>
+#include <memory>
 
 #include "dsm/ICalculation.H"
 #include "dsm/IPropCalculation.H"
@@ -24,6 +28,7 @@
 #include "tdat/TTheory.H"
 
 #include "wxgui/ewxConfig.H"
+#include "wxgui/ewxWindowUtils.H"
 
 #include "AbstractPropCalculation.H"
 #include "Builder.H"
@@ -294,7 +299,7 @@ void Builder::applyGeometry(bool resetSizes)
       if (resetSizes && !p_folded.count(pane.window)) {
         map<wxWindow*, int>::const_iterator base =
           p_baseProportion.find(pane.window);
-        pane.dock_proportion = detail ? DETAIL_PROPORTION
+        pane.dock_proportion = detail ? detailProportion()
           : (base == p_baseProportion.end() ? 150 : base->second);
       }
       continue;
@@ -360,7 +365,7 @@ void Builder::refreshColumn()
         pane.Show(true);
         foldPane(pane.window, true);
       } else if (p_panelMode == PANELS_DETAIL) {
-        pane.dock_proportion = DETAIL_PROPORTION;
+        pane.dock_proportion = detailProportion();
       }
     }
   }
@@ -1295,4 +1300,159 @@ void Builder::runPanelLayoutTest()
   if (getenv("ECCE_EXIT_AFTER_DUMP")) {
     _exit(fails ? 1 : 0);
   }
+}
+
+
+/**
+ * ECCE_CLIP_AUDIT=<file> with ECCE_CLIP_BUILDER=1: in each panel layout open
+ * every property panel and tool alone, and every choice of the radio boxes
+ * in it, and report the clipped controls of the Builder window each time
+ * (ewxWindowUtils::clipAuditReport).  Ends with a "DONE" line.
+ *
+ * One step per timer tick, so the window is laid out and painted between
+ * the steps (a nested event loop inside one handler never paints).
+ */
+void Builder::runClipAudit()
+{
+  const char *path = getenv("ECCE_CLIP_AUDIT");
+  if (!path || !p_calculation) return;
+  typedef std::function<void()> Step;
+  std::shared_ptr<std::deque<Step> > steps(new std::deque<Step>());
+  vector<string> names;
+  set<PropertyPanel*> panels =
+      PropertyPanel::getPanels(p_calculation->getURL().toString());
+  for (set<PropertyPanel*>::iterator it = panels.begin(); it != panels.end();
+       ++it) {
+    names.push_back((*it)->getName());
+  }
+  const PanelMode modes[] = { PANELS_CLASSIC, PANELS_STACKED,
+                              PANELS_ACCORDION, PANELS_DETAIL };
+  //  What is shown, so a report that does not match the screenshot is
+  //  visible in the file.
+  auto note = [this, path](const string& tag) {
+    FILE *f = fopen(path, "a");
+    if (!f) return;
+    fprintf(f, "NOTE\t%s\tmode %s;", tag.c_str(), MODE_NAMES[p_panelMode]);
+    wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
+    for (size_t i = 0; i < all.GetCount(); ++i)
+      if (all.Item(i).IsShown())
+        fprintf(f, " [%s %d,%d]", (const char*) all.Item(i).name.utf8_str(),
+                all.Item(i).rect.width, all.Item(i).rect.height);
+    fprintf(f, "\n");
+    fclose(f);
+  };
+  for (int m = 0; m < 4; ++m) {
+    const PanelMode mode = modes[m];
+    const string tag = string(MODE_NAMES[mode]) + "-";
+    steps->push_back([this, mode]() { setPanelMode(mode); });
+    for (size_t i = 0; i < names.size(); ++i) {
+      const string name = names[i];
+      steps->push_back([this, name, mode]() {
+        const int id = p_propertyMenu->FindItem(name);
+        if (id == wxNOT_FOUND) return;
+        wxAuiPaneInfoArray &now = p_mgr.GetAllPanes();
+        for (size_t k = 0; k < now.GetCount(); ++k) {
+          wxAuiPaneInfo &other = now.Item(k);
+          if (dynamic_cast<PropertyPanel*>(other.window) &&
+              other.name != name) {
+            other.Show(false);
+            p_tabHidden.erase(other.window);
+          }
+        }
+        wxCommandEvent off(wxEVT_MENU, id);
+        off.SetInt(0);
+        OnPropertyMenuClick(off);
+        wxCommandEvent on(wxEVT_MENU, id);
+        on.SetInt(1);
+        OnPropertyMenuClick(on);
+        if (mode == PANELS_DETAIL) selectDetail(name);
+      });
+      steps->push_back([this, name, tag, steps, note]() {
+        note(tag + name);
+        ewxWindowUtils::clipAuditReport(this, tag + name);
+        wxAuiPaneInfo &pane = p_mgr.GetPane(name);
+        if (!pane.IsOk() || !pane.window) return;
+        //  Every other choice of each radio box in the panel.
+        vector<wxRadioBox*> boxes;
+        vector<wxWindow*> todo(1, pane.window);
+        while (!todo.empty()) {
+          wxWindow *w = todo.back();
+          todo.pop_back();
+          if (wxRadioBox *rb = wxDynamicCast(w, wxRadioBox)) {
+            boxes.push_back(rb);
+            continue;
+          }
+          for (wxWindowList::compatibility_iterator n =
+                   w->GetChildren().GetFirst(); n; n = n->GetNext())
+            todo.push_back(n->GetData());
+        }
+        std::deque<Step> add;
+        for (size_t b = 0; b < boxes.size(); ++b) {
+          wxRadioBox *rb = boxes[b];
+          const int keep = rb->GetSelection();
+          auto choose = [rb](int sel) {
+            rb->SetSelection(sel);
+            wxCommandEvent ev(wxEVT_RADIOBOX, rb->GetId());
+            ev.SetInt(sel);
+            ev.SetEventObject(rb);
+            rb->GetEventHandler()->ProcessEvent(ev);
+          };
+          for (int sel = 0; sel < (int)rb->GetCount(); ++sel) {
+            if (sel == keep) continue;
+            const string label = rb->GetString(sel).ToStdString();
+            add.push_back([choose, sel]() { choose(sel); });
+            add.push_back([this, tag, name, label]() {
+              string clean;
+              for (size_t c = 0; c < label.size(); ++c)
+                if (label[c] != '&') clean += label[c];
+              ewxWindowUtils::clipAuditReport(this, tag + name + "-" + clean);
+            });
+          }
+          add.push_back([choose, keep]() { choose(keep); });
+        }
+        steps->insert(steps->begin(), add.begin(), add.end());
+      });
+    }
+    for (int i = 0; i < p_toolCount; ++i) {
+      steps->push_back([this, i, tag]() {
+        wxMenuItem *item = p_toolMenu->FindItem(ID_TOOLMENU_ITEM + i);
+        if (!item || !item->IsEnabled()) return;
+        const wxString label = item->GetItemLabelText();
+        if (label == NAME_TOOL_CONTEXT || label == NAME_TOOL_LOG) return;
+        for (int k = 0; k < p_toolCount; ++k) {
+          wxMenuItem *oi = p_toolMenu->FindItem(ID_TOOLMENU_ITEM + k);
+          if (!oi || oi->GetItemLabelText() == label ||
+              oi->GetItemLabelText() == NAME_TOOL_CONTEXT ||
+              oi->GetItemLabelText() == NAME_TOOL_LOG) continue;
+          wxAuiPaneInfo &other = p_mgr.GetPane(oi->GetItemLabelText());
+          if (other.IsOk()) {
+            other.Show(false);
+            p_tabHidden.erase(other.window);
+          }
+        }
+        wxCommandEvent on(wxEVT_MENU, ID_TOOLMENU_ITEM + i);
+        on.SetInt(1);
+        OnToolMenuClick(on);
+        //  Reported by the step after.
+        p_clipTag = tag + "tool-" + label.ToStdString();
+      });
+      steps->push_back([this]() {
+        if (p_clipTag.empty()) return;
+        ewxWindowUtils::clipAuditReport(this, p_clipTag);
+        p_clipTag.clear();
+      });
+    }
+  }
+  steps->push_back([path]() {
+    FILE *f = fopen(path, "a");
+    if (f) { fprintf(f, "DONE\n"); fclose(f); }
+  });
+  wxTimer *timer = new wxTimer();   // lives until the process exits
+  timer->Bind(wxEVT_TIMER, [steps, timer](wxTimerEvent&) {
+    if (steps->empty()) { timer->Stop(); return; }
+    Step step = steps->front();
+    steps->pop_front();
+    step();
+  });
+  timer->Start(1200);
 }

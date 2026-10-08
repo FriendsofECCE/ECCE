@@ -7,6 +7,8 @@
 #include <iostream>
 
 #include "tdat/RefMachine.H"
+#include "tdat/QueueMgr.H"
+#include "util/Ecce.H"
 
 static std::string oneLine(const std::string& v)
 {
@@ -22,6 +24,34 @@ static std::string oneLine(const std::string& v)
 
 int main(int argc, char** argv)
 {
+  // -dirs <machine>: Ecce::siteConfigDirs, for gensub's ECCE_SITECONFIG_DIRS.
+  // -qfile <name> <machine>: QueueManager::queueConfigFile.
+  // -machines: every registered machine and its full name.
+  // -queues: every registered machine's queue manager and queue file.
+  if (argc == 3 && strcmp(argv[1], "-dirs") == 0) {
+    std::cout << Ecce::siteConfigDirs(argv[2]) << std::endl;
+    return 0;
+  }
+  if (argc == 4 && strcmp(argv[1], "-qfile") == 0) {
+    std::cout << QueueManager::queueConfigFile(argv[2], argv[3]) << std::endl;
+    return 0;
+  }
+  if (argc == 2 && strcmp(argv[1], "-machines") == 0) {
+    vector<string>* names = RefMachine::referenceNames();
+    for (size_t i = 0; i < names->size(); i++)
+      std::cout << (*names)[i] << ": "
+                << RefMachine::refLookup((*names)[i])->fullname() << std::endl;
+    return 0;
+  }
+  if (argc == 2 && strcmp(argv[1], "-queues") == 0) {
+    vector<string>* names = RefMachine::referenceNames();
+    for (size_t i = 0; i < names->size(); i++) {
+      const QueueManager* q = QueueManager::lookup((*names)[i]);
+      std::cout << (*names)[i] << ": "
+                << (q ? q->queueMgrName() : string("-")) << std::endl;
+    }
+    return 0;
+  }
   bool accessors = (argc == 3 && strcmp(argv[1], "-accessors") == 0);
   if (argc != 2 && !accessors) {
     std::cerr << "usage: configdump [-accessors] <refname>" << std::endl;

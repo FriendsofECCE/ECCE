@@ -130,7 +130,21 @@ if $admin; then
   fi
   export ECCE_NO_MESSAGING=1
   export ECCE_NO_DATASERVER=1
-  exec ecce-machregister -admin
+  ecce-machregister -admin
+  rc=$?
+  # Put the change where the data server serves it to -remote clients (#192):
+  # the PublishDir of an administrator who is not the data-server account, or
+  # that account's own server.  Elsewhere it goes out at the next data-server
+  # start.
+  if [ -x "$ECCE_HOME/bin/ecce-site-publish" ] && {
+       [ -f "$ECCE_HOME/siteconfig/PublishDir" ] ||
+       [ -d "${ECCE_REALUSERHOME:-$HOME}/.ECCE/dataserver/htdocs/Ecce" ]; }; then
+    "$ECCE_HOME/bin/ecce-site-publish" ||
+      echo "ecce -admin: the change was not published to -remote clients" >&2
+  else
+    echo "ecce -admin: -remote clients see the change after the next data-server start." >&2
+  fi
+  exit $rc
 fi
 
 if $machines; then

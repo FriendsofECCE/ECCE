@@ -646,7 +646,7 @@ void MachinePreferences::loadSettings()
 
     p_prefsElmts = new vector<MachinePreferences *>;
 
-    string prefsDrcty(Ecce::realUserPrefPath());
+    string prefsDrcty(Ecce::userRegistrationDir());
 
     //  The Version 4.x prefs file contains all information needed for
     //  specifying user preferences per machine.  The ordering of the
@@ -691,7 +691,7 @@ void MachinePreferences::loadSettings()
 
 void MachinePreferences::saveChanges()
 {
-    string fpathPrefs((char *)Ecce::realUserPrefPath());
+    string fpathPrefs(Ecce::userRegistrationDir());
     fpathPrefs += VRSN4X_PREFS_FNAME;
 
     ofstream *osPrefs = new ofstream(fpathPrefs.c_str(), ios::out);

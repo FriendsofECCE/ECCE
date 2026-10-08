@@ -40,8 +40,13 @@ bool CalcEdApp::OnInit()
 
   string context("");
 
-  if ((this->argc > 1) && (strcmp(this->argv[1].ToStdString().c_str(), "-context") == 0))
-      context = this->argv[2];
+  //  "-context URL" may follow "-pipe FILE" (tests/apps/qe_walkthrough_test.py).
+  for (int a = 1; a + 1 < this->argc; a++) {
+    if (strcmp(this->argv[a].ToStdString().c_str(), "-context") == 0) {
+      context = this->argv[a + 1];
+      break;
+    }
+  }
 
   if (!context.empty())
       p_calced->setContext(context);

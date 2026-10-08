@@ -38,6 +38,8 @@ using std::ostrstream;
 #include <locale.h>
 #include <cstdint>
 #include <random>
+#include <fstream>
+#include <sys/stat.h>
 
 
 #include "util/EcceException.H"
@@ -322,6 +324,99 @@ const char* Ecce::realUserPrefPath(void)
   }
   return result.c_str();
 }
+static bool isDir(const string& path)
+{
+  struct stat st;
+  return stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
+}
+
+string Ecce::siteCacheKey()
+{
+  if (!getenv("ECCE_REMOTE_SERVER"))
+    return "";
+  std::ifstream in((remoteServerDir() + "/DataServers").c_str());
+  string line, url;
+  while (url.empty() && std::getline(in, line)) {
+    string::size_type b = line.find("<Url>");
+    if (b == string::npos) continue;
+    b += 5;
+    string::size_type e = line.find("</Url>", b);
+    url = line.substr(b, e == string::npos ? string::npos : e - b);
+  }
+  string::size_type s = url.find("://");
+  if (s != string::npos) url = url.substr(s + 3);
+  url = url.substr(0, url.find('/'));
+  string key;
+  for (size_t i = 0; i < url.size(); i++) {
+    char c = url[i];
+    bool ok = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+              (c >= '0' && c <= '9') || c == '.' || c == '-' || c == '_';
+    key += ok ? c : '_';
+  }
+  return key;
+}
+
+// The caches the fetch code (#192) writes; absent until it has run.
+static string serverCacheDir(const string& what)
+{
+  string key = Ecce::siteCacheKey();
+  if (key.empty()) return "";
+  string dir = string(Ecce::realUserPrefPath()) + "server/" + key + "/" + what;
+  return isDir(dir) ? dir + "/" : "";
+}
+
+std::vector<Ecce::SiteLayer> Ecce::siteConfigLayers(const string& machine)
+{
+  std::vector<SiteLayer> layers;
+  string userDir, siteDir;
+  if (machine != "localhost" && !Ecce::siteCacheKey().empty()) {
+    // serverUser() insists on ECCE_REALUSER, which a bare tool may lack
+    if (getenv("ECCE_SERVER_LOGIN") || getenv(Ecce::realUserVar))
+      userDir = serverCacheDir(string("user-") + Ecce::serverUser());
+    siteDir = serverCacheDir("site");
+  }
+  SiteLayer l;
+  l.user = true;
+  l.fromServer = !userDir.empty();
+  l.dir = l.fromServer ? userDir : string(Ecce::realUserPrefPath());
+  layers.push_back(l);
+  if (!siteDir.empty()) {
+    l.dir = siteDir; l.user = false; l.fromServer = true;
+    layers.push_back(l);
+  }
+  l.dir = string(Ecce::ecceHome()) + "/siteconfig/";
+  l.user = false; l.fromServer = false;
+  layers.push_back(l);
+  return layers;
+}
+
+string Ecce::siteConfigFile(const string& name, const string& machine)
+{
+  std::vector<SiteLayer> layers = siteConfigLayers(machine);
+  for (size_t i = 0; i < layers.size(); i++) {
+    if (layers[i].user) continue;
+    string path = layers[i].dir + name;
+    if (access(path.c_str(), F_OK) == 0) return path;
+  }
+  return "";
+}
+
+string Ecce::siteConfigDirs(const string& machine)
+{
+  std::vector<SiteLayer> layers = siteConfigLayers(machine);
+  string dirs;
+  for (size_t i = 0; i < layers.size(); i++) {
+    if (i) dirs += ":";
+    dirs += layers[i].dir;
+  }
+  return dirs;
+}
+
+string Ecce::userRegistrationDir()
+{
+  return siteConfigLayers()[0].dir;
+}
+
 const char* Ecce::ecceDataPath(void)
 {
   static const char* environment = getenv(Ecce::ecceDataPathVar);

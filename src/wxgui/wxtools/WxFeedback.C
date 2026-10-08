@@ -87,9 +87,8 @@ WxFeedback::WxFeedback( wxWindow* parent, wxWindowID id,
    // The unsaved-changes control is a real text button: the bare floppy
    // icon did not read as something to press.  The icon button stays for
    // the read-only lock, which is a state and not an action.
-   p_saveText = new wxButton(this, ID_SAVETEXT, _("Save"),
-                             wxDefaultPosition, wxDefaultSize,
-                             wxBU_EXACTFIT);
+   p_hostSave = 0;
+   p_saveText = new wxButton(this, ID_SAVETEXT, _("Save"));
    p_saveText->SetToolTip(_("Save changes (Ctrl+S)"));
    p_saveText->Show(false);
    p_topLineSizer->Add(p_saveText, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
@@ -265,7 +264,8 @@ void WxFeedback::setEditStatus(WxFeedback::EditStatus status)
 
    FlatBitmapButton *save = (FlatBitmapButton*) FindWindow( getSaveId());
 
-   p_saveText->Show(status == MODIFIED);
+   p_saveText->Show(status == MODIFIED && p_hostSave == 0);
+   if (p_hostSave) p_hostSave->Enable(status == MODIFIED);
    if (status == READONLY) {
       save->SetBitmap(ewxBitmap("lock.xpm",wxBITMAP_TYPE_XPM));
       save->Show(true);
@@ -274,6 +274,22 @@ void WxFeedback::setEditStatus(WxFeedback::EditStatus status)
       save->Show(false);
    }
    p_topLineSizer->Layout();
+}
+
+
+wxButton* WxFeedback::adoptSaveButton(wxWindow *parent)
+{
+   if (p_hostSave == 0) {
+      p_hostSave = new wxButton(parent, ID_SAVETEXT + 1, _("Save"));
+      p_hostSave->SetToolTip(_("Save changes (Ctrl+S)"));
+      p_hostSave->Enable(p_editStatus == MODIFIED);
+      p_hostSave->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) {
+         onSaveClicked(e);
+      });
+      p_saveText->Hide();
+      p_topLineSizer->Layout();
+   }
+   return p_hostSave;
 }
 
 

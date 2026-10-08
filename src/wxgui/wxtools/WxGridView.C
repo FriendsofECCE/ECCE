@@ -81,6 +81,11 @@ WxGridView::WxGridView(wxWindow* parent,
     p_ascSort = true;
     p_grid->GetGridWindow()->SetDropTarget(new GridDropTarget(this));
 
+    //  The grid's best size is its whole table; without a minimum the
+    //  window is as wide as the table and the right of it is cut off
+    //  instead of scrolled.
+    p_grid->SetMinSize(wxSize(100, 60));
+
     // Add grid to window 
     wxBoxSizer *sizer = new wxBoxSizer(wxHORIZONTAL);
     sizer->Add(p_grid, 1, wxGROW, 0);

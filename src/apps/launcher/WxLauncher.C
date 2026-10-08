@@ -2732,6 +2732,18 @@ bool WxLauncher::clickMachineSettings()
 }
 
 
+bool WxLauncher::clickLaunch()
+{
+    wxWindow* b = FindWindow(ID_BUTTON_WXLAUNCHER_LAUNCH);
+    if (b == NULL || !b->IsEnabled())
+        return false;
+    wxCommandEvent ev(wxEVT_BUTTON, b->GetId());
+    ev.SetEventObject(b);
+    this->GetEventHandler()->ProcessEvent(ev);
+    return true;
+}
+
+
 bool WxLauncher::selectQueue(const string& name)
 {
     if (p_queueChoice->FindString(name) == wxNOT_FOUND)
