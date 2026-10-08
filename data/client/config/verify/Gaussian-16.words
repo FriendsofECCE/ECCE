@@ -29,7 +29,6 @@ $fragfile\n
 $geo_zcoords[$i]
 $group
 $i
-$inputfile\
 $iter
 $itmp
 $key\n
@@ -75,7 +74,6 @@ $wrote
 ****\n
 -$firstshell
 -75.2990044687
--f
 -h
 -v
 .0
@@ -129,7 +127,6 @@ $wrote
 >tmpfile
 [ecce-ai]
 [freq
-\'$inputfile\'
 \'$result\'
 \n
 \niop
@@ -205,7 +202,6 @@ berkelium
 beryllium
 bhandh
 bhandhlyp
-bin
 bismuth
 bj
 blyp
@@ -582,7 +578,6 @@ mpw1pw91
 mpw3pbe
 mpwpw91
 multiplicity
-mv
 n12
 n12sx
 name_gbs

@@ -7,7 +7,6 @@ $abifile\n
 $env{ecce_home}/scripts/parsers
 $fragfile\n
 $gnorm
-$inputfile
 $maxiter
 $message\n
 $nprocs
@@ -31,7 +30,6 @@ $wrote
 &$sub
 &$subname
 &$subname;
-'$inputfile'
 '$value'
 '%s'
 -f
@@ -41,7 +39,6 @@ $wrote
 -t
 -v
 .param
-/bin/mv
 1scf
 :n:t:pfbcqeshv
 <basename>
