@@ -555,9 +555,30 @@ void Builder::syncMenuChecks()
 //  the folded panes' windows hidden again after (Update() re-shows them).
 void Builder::updatePanes(bool allowSwitch)
 {
+  //  wxAuiManager::Update() lays the frame out, and a size event handled on
+  //  the way can ask for another Update(), which frees the sizer items the
+  //  outer one is still walking (a crash opening a calculation with MOs on
+  //  macOS).  A nested request is run once the outer one is done.
+  static bool updating = false, again = false, againSwitch = false;
+  if (updating) {
+    again = true;
+    againSwitch = againSwitch || allowSwitch;
+    if (getenv("ECCE_DEBUG_PANELS"))
+      fprintf(stderr, "[PANELS] updatePanes nested, deferred\n");
+    return;
+  }
+  updating = true;
   PanelGuard guard(p_panelBuildDepth);
   syncColumn(allowSwitch);
   p_mgr.Update();
+  updating = false;
+  if (again) {
+    again = false;
+    const bool sw = againSwitch;
+    againSwitch = false;
+    updatePanes(sw);
+    return;
+  }
   for (map<wxWindow*, FoldState>::iterator it = p_folded.begin();
        it != p_folded.end(); ++it) {
     wxAuiPaneInfo &pane = p_mgr.GetPane(it->first);

@@ -1640,7 +1640,7 @@ quit
     exe(os.path.join(dirs["a"], "nwchem"))
     exe(os.path.join(dirs["a"], "orca"))          # the screen reader
     exe(os.path.join(dirs["b"], "orca"))
-    exe(os.path.join(dirs["b"], "orca_scf"))
+    exe(os.path.join(dirs["b"], "orca_2mkl"))
     exe(os.path.join(dirs["a"], "MOPAC2016.exe"))
     exe(os.path.join(dirs["b"], "mopac"))
     exe(os.path.join(dirs["d"], "pw.x"))
