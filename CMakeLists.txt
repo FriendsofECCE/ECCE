@@ -1994,6 +1994,16 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_summary PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # The Quantum ESPRESSO tutorial (help/src/qe-first-calculation.md) replayed
+  # in the real apps: silicon scf and a water relax, run by pw.x through the
+  # Launcher and the job monitor, checked against pw.x on a hand-written deck.
+  add_test(NAME apps_qe_walkthrough
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/qe_walkthrough_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_qe_walkthrough PROPERTIES TIMEOUT 3000
+                       SKIP_RETURN_CODE 77)
+
   # The Builder with a calculation's MOs panel open in every panel layout,
   # on a 1366x768 screen: viewer and panel on screen and inside the window.
   add_test(NAME apps_panel_layouts
@@ -2417,6 +2427,13 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
   set_tests_properties(queues_config PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
+  # Which layer a machine comes from (user, server, install) and localhost.
+  add_test(NAME queues_layers
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/layers_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
+  set_tests_properties(queues_layers PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
   add_test(NAME queues_configedit
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/configedit_test.py
@@ -2457,8 +2474,9 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME queues_publish
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues/publish_test.py
+                   --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
-  set_tests_properties(queues_publish PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+  set_tests_properties(queues_publish PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
   # ecce -admin on a -remote client: ecce-site-admin on a simulated central
   # server, publishing, and the client's ecce-remote-setup --refresh (#234).
   add_test(NAME queues_siteadmin

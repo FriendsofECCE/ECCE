@@ -4875,6 +4875,17 @@ void Builder::updatePropertyMenus()
     }
   }
 
+  //  ECCE_BUILDER_SCRIPT=<file>: the steps of a tutorial, done through the
+  //  controls' own handlers (BuilderScript.C).  Inert unless set.
+  static bool builderScriptStarted = false;
+  if (const char *bscript = getenv("ECCE_BUILDER_SCRIPT")) {
+    if (!builderScriptStarted && p_calculation != 0 && getSG() != 0 &&
+        p_mgr.GetPane(NAME_TOOL_PBC).IsOk()) {
+      builderScriptStarted = true;
+      runBuilderScript(bscript);
+    }
+  }
+
   //  ECCE_PANEL_METRICS=<file>: once the layout has settled, write the
   //  3-D viewer's width and the window's, and every shown pane's place.
   static bool panelMetricsStarted = false;

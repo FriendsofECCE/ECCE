@@ -145,6 +145,7 @@ try:
     check(r.returncode == 0, "ecce-gateway-start (central broker, TLS): " + r.stderr[-300:])
 
     dport, tport = int(ports["ECCE_DATASERVER_PORT"]), int(ports["ECCE_DATASERVER_TLS_PORT"])
+    tport_s = str(tport)
     bport, btport = int(ports["ECCE_BROKER_PORT"]), int(ports["ECCE_BROKER_TLS_PORT"])
     check(listening("127.0.0.1", tport) and listening("127.0.0.1", btport),
           "TLS ports answer on loopback")
@@ -173,6 +174,18 @@ try:
           "DataServers names the https URL")
     check(os.path.exists(good_home + "/siteconfig/RemoteServer/MANIFEST"),
           "the machine list was fetched over TLS with the pin")
+    # the published site files are readable without a login, over TLS too
+    pinhash = subprocess.run(
+        "openssl x509 -in %s -noout -pubkey | openssl pkey -pubin -outform der | "
+        "openssl dgst -sha256 -binary | openssl enc -base64" % (tlsdir + "/server.pem"),
+        shell=True, capture_output=True, text=True).stdout.strip()
+    siteurl = "https://%s:%s/Ecce/system/siteconfig/INDEX" % (lan or "127.0.0.1", tport_s)
+    for creds, want in (([], "200"), (["-u", "tlsuser:tlspw"], "200")):
+        r = subprocess.run(["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}",
+                            "--insecure", "--pinnedpubkey", "sha256//" + pinhash]
+                           + creds + [siteurl], capture_output=True, text=True)
+        check(r.stdout.strip() == want, "site INDEX over TLS %s: %s"
+              % ("with a login" if creds else "without one", r.stdout.strip()))
 
     # ---- a wrong pin: another certificate
     other = os.path.join(scratch, "other")
@@ -191,7 +204,7 @@ try:
     shutil.copy(other + "/o.pem", bad_home + "/siteconfig/RemoteServer/server.pem")
 
     # ---- the C++ clients
-    url = "https://%s:%s/Ecce/system/siteconfig/MANIFEST" % (host, tport)
+    url = "https://%s:%s/Ecce/system/" % (host, tport)
     r = run([exe_client, url, "ok"], cenv)
     check(r.returncode == 0, "https DAV request with the right pin: " + r.stdout.strip())
     r = run([exe_client, url, "cert"], benv)

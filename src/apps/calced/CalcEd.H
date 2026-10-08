@@ -255,6 +255,8 @@ class CalcEd: public CalcEdGUI,
     void processTheoryInput(const char* databuf);
     void processRuntypeInput(const char* databuf);
     void closeTheoryApp(const bool& sendTerm);
+    /// Test hook ECCE_CALCED_SCRIPT (CalcEdScript.C).
+    void runCalcEdScript(const string& file);
     void closeRuntypeApp(const bool& sendTerm);
 
     // input file generation, aka InputController

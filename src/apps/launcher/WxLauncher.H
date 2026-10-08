@@ -111,6 +111,7 @@ class WxLauncher : public WxLauncherGUI,
         bool selectMachine(const string& refname);
         bool selectQueue(const string& name);
         bool clickMachineSettings();
+        bool clickLaunch();
         void setRunDirectory(const string& path);
         string hookGet(const string& what);
         void stageLaunchMenuItemClickCB(wxCommandEvent& event);

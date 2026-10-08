@@ -32,10 +32,17 @@ form only when the first word is followed by `:`; otherwise `key value:with:colo
 is space form. No trailing `# comment` stripping any more (the C++ reader
 used to strip it, gensub never did). Blocks are replaced whole, never appended.
 
-**`-remote`:** the site files are the copies `ecce-remote-setup` fetched into
-the client's `siteconfig/`; the user file merges over them exactly as in local
-mode. `ecce-dataserver-start` publishes `submit.site` and `QueueManagers` too;
-a client of an older server simply keeps its own.
+**Layers (#192):** the readers do not build `$ECCE_HOME/siteconfig/<name>`
+themselves but ask `Ecce::siteConfigLayers(machine)` (`siteConfigFile`,
+`userRegistrationDir`, `siteConfigDirs`): `[user, server site, install]` when
+`-remote` has a cache under `~/.ECCE/server/<host>_<port>/` (`site/`,
+`user-<login>/`), else `[~/.ECCE, install]`. A machine comes whole from one
+site layer (the highest whose `Machines` lists it; its `CONFIG.<m>` is never
+merged with a lower layer's), the user's `CONFIG.<m>` merges per key on top.
+`localhost` is always the client's: server layers are dropped for it.
+gensub gets the same list as `ECCE_SITECONFIG_DIRS` (set by `Launch.C`).
+Tests: `queues_config` (three layers, C++ against gensub), `queues_layers`.
+Before a cache exists (stage 3 of #192 writes it) nothing differs from local mode.
 
 **The invariant is tested**: `tests/queues/config_test.py` runs
 `build/configdump` (C++) and `GENSUB_DUMP_CONFIG=1 gensub` on one site+user

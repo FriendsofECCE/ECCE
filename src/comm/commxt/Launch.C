@@ -68,6 +68,19 @@
 // cleanup code.
 static const string submitPrefix = "submit__";
 
+// Over the login Launch already made: a new one would ask a two-factor site
+// for another code.  False means the caller logs in again to copy.
+static bool putOnLogin(RCommand* conn, const vector<string>& files,
+                       const string& toFile)
+{
+  if (!conn || !conn->isOpen() || conn->sshBackend() == "") return false;
+  string err;
+  if (conn->copyOnLogin(true, files, toFile, err)) return true;
+  if (getenv("ECCE_RCOM_LOGMODE"))
+    cout << "copy over the existing login failed (" << err << ")" << endl;
+  return false;
+}
+
 // eccejobmonitor's polling pause, in seconds, for a job on this computer
 // with no queue manager (its default is 10).
 static const int LOCAL_MONITOR_PAUSE = 2;
@@ -1741,7 +1754,10 @@ bool Launch::moveFiles(void)
     string errMessage = "";
     if (p_cache->remoteShell.find("shellcp")==string::npos &&
         !p_cache->frontendFlag) {
-      ret = RCommand::put(errMessage, p_cache->fullMachineName,
+      vector<string> fs;
+      for (int n = 0; fromFiles[n] != NULL; n++) fs.push_back(fromFiles[n]);
+      ret = putOnLogin(p_connection, fs, toFile) ||
+            RCommand::put(errMessage, p_cache->fullMachineName,
                           p_cache->remoteShell, p_cache->userName,
                           password, (const char**)fromFiles, toFile);
     } else {
@@ -1815,7 +1831,12 @@ bool Launch::moveJobMonitoringFiles(void)
     string errMessage = "";
     if (p_cache->remoteShell.find("shellcp")==string::npos &&
         !p_cache->frontendFlag) {
-      ret = RCommand::put(errMessage, p_cache->fullMachineName,
+      vector<string> fs;
+      fs.push_back(config);
+      fs.push_back(desc);
+      fs.push_back(monitor);
+      ret = putOnLogin(p_connection, fs, p_cache->remoteDir) ||
+            RCommand::put(errMessage, p_cache->fullMachineName,
                           p_cache->remoteShell, p_cache->userName,
                           password, 4, (char*)config.c_str(),
                           (char*)desc.c_str(), (char*)monitor.c_str(),
@@ -2459,6 +2480,8 @@ bool Launch::instanceScript(EcceMap& kv)
     os.close();
 
     // Now run gensub and return the results
+    setenv("ECCE_SITECONFIG_DIRS",
+           Ecce::siteConfigDirs(p_cache->machineName).c_str(), 1);
     string cmd = "gensub -v ";
     cmd += " -p subParams";
     string output;

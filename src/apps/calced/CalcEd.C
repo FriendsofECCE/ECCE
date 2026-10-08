@@ -721,6 +721,12 @@ void CalcEd::doSetContext(const string& codeName)
 
   updateESPModel();
   p_partialCharge = new PartialCharge(this);
+
+  static bool scriptStarted = false;
+  if (!scriptStarted && getenv("ECCE_CALCED_SCRIPT")) {
+    scriptStarted = true;
+    runCalcEdScript(getenv("ECCE_CALCED_SCRIPT"));
+  }
 }
 
 

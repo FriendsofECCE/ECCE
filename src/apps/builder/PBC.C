@@ -1103,3 +1103,75 @@ void PBC::OnButtonPbcEquivrectClick( wxCommandEvent& event )
 
    event.Skip();
 }
+
+
+/**
+ * ECCE_BUILDER_SCRIPT commands for this panel, each doing what the user's
+ * click or Enter in the same control does:
+ *   create | delete | fold | generate | unitcell   the buttons
+ *   type Lattice|"Lattice Vectors"                 Cell Type:
+ *   cell a b c alpha beta gamma                    the fields, each Enter
+ *   spacegroup NAME                                Sym. Group
+ *   info                                           what the panel shows
+ */
+string PBC::scriptCommand(const vector<string>& w)
+{
+   const string &what = w[0];
+   wxCommandEvent btn(wxEVT_BUTTON);
+   wxWindowID buttonId = 0;
+   if (what == "create") buttonId = ID_BUTTON_PBC_CREATE;
+   else if (what == "delete") buttonId = ID_BUTTON_PBC_DELETE;
+   else if (what == "fold") buttonId = ID_BUTTON_PBC_FOLD;
+   else if (what == "generate") buttonId = ID_PBC_GENERATE;
+   else if (what == "unitcell") buttonId = ID_BUTTON_PBC_RESTORE;
+   if (buttonId) {
+      wxWindow *b = FindWindow(buttonId);
+      if (!b || !b->IsEnabled()) return what + ": button missing or disabled";
+      btn.SetId(buttonId);
+      btn.SetEventObject(b);
+      GetEventHandler()->ProcessEvent(btn);
+      return "";
+   }
+   if (what == "type" && w.size() >= 2) {
+      ewxChoice *choice = (ewxChoice*)FindWindow(ID_CHOICE_PBC_TYPE);
+      string value = w[1];
+      for (size_t i = 2; i < w.size(); i++) value += " " + w[i];
+      if (!choice->SetStringSelection(value)) return "no cell type " + value;
+      wxCommandEvent ev(wxEVT_CHOICE, ID_CHOICE_PBC_TYPE);
+      ev.SetEventObject(choice);
+      GetEventHandler()->ProcessEvent(ev);
+      return "";
+   }
+   if (what == "cell" && w.size() == 7) {
+      static const wxWindowID ids[6] = { ID_TEXTCTRL_PBC_A, ID_TEXTCTRL_PBC_B,
+         ID_TEXTCTRL_PBC_C, ID_TEXTCTRL_PBC_ALPHA, ID_TEXTCTRL_PBC_BETA,
+         ID_TEXTCTRL_PBC_GAMMA };
+      for (int i = 0; i < 6; i++) {
+         ewxTextCtrl *t = (ewxTextCtrl*)FindWindow(ids[i]);
+         t->SetValue(w[i + 1]);
+      }
+      for (int i = 0; i < 6; i++) {
+         wxCommandEvent ev(wxEVT_TEXT_ENTER, ids[i]);
+         ev.SetEventObject(FindWindow(ids[i]));
+         GetEventHandler()->ProcessEvent(ev);
+      }
+      return "";
+   }
+   if (what == "spacegroup" && w.size() == 2) {
+      wxComboCtrl *cc = (wxComboCtrl*)FindWindow(ID_COMBO_SPACE_GROUP);
+      cc->SetValue(w[1]);
+      return "";
+   }
+   if (what == "info") {
+      SGFragment *frag = getFW().getSceneGraph().getFragment();
+      LatticeDef *lattice = frag ? frag->getLattice() : 0;
+      wxComboCtrl *cc = (wxComboCtrl*)FindWindow(ID_COMBO_SPACE_GROUP);
+      ewxTextCtrl *a = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_PBC_A);
+      fprintf(stderr, "PBC: lattice=%d atoms=%d a=%s spacegroup=%s\n",
+              lattice != 0, frag ? (int)frag->numAtoms() : -1,
+              a->GetValue().ToStdString().c_str(),
+              cc->GetValue().ToStdString().c_str());
+      return "";
+   }
+   return "unknown or malformed pbc command";
+}

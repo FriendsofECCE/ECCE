@@ -127,9 +127,12 @@ void RefQueueManager::initialize(void)
 {
   if (p_extent == 0) {
     p_extent = new vector<RefQueueManager*>();
-    string path = Ecce::ecceHome();
-    path.append("/siteconfig/");
-    path.append(RefQueueManager::refQMgrLoadFile);
+    string path = Ecce::siteConfigFile(RefQueueManager::refQMgrLoadFile);
+    if (path.empty()) {
+      path = Ecce::ecceHome();
+      path.append("/siteconfig/");
+      path.append(RefQueueManager::refQMgrLoadFile);
+    }
     Preferences prefs(path, true);
     EE_RT_ASSERT(prefs.isValid(), EE_FATAL,
 	         "Error!  Must Have a Queue Manager Reference File!");

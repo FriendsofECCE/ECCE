@@ -518,10 +518,13 @@ sudo ecce-remote-setup <server-host>
 ```
 
 `ecce-remote-setup` also copies the server's registered site machine list
-(`sudo ecce -admin` on the server) onto the client, so students don't
-register machines by hand; run `sudo ecce-remote-setup --refresh` on the
-client after the admin changes that list (#188). It writes only the data server's address; the
-client finds the broker on the same host, port 8088 (set `ECCE_BROKER_PORT`
+onto the client, so students don't register machines by hand. The published
+files are readable without a login; `--login NAME` (password asked for, or in
+`ECCE_SETUP_PASSWORD`) is used if given. Run `sudo ecce-remote-setup --refresh`
+after the admin changes the list (`sudo ecce -admin` on the server publishes
+it, #188, #192). This copy stays until clients fetch the files themselves
+(#192 stage 3), which is also when the folder starts to need a login.
+The client finds the broker on the same host, port 8088 (set `ECCE_BROKER_PORT`
 in the client's environment if the server uses another).
 
 ##### TLS for the central server (optional)
@@ -567,8 +570,8 @@ An administrator can edit the server's site machine list from a client
 with `ecce -admin -remote`. Register Machines then saves over ssh, as the
 administrator's own login on the server (`-l LOGIN` for another one, or a
 `User` line in `~/.ssh/config`): `ecce-site-admin` on the server writes
-`siteconfig` with the same writers as `ecce -admin` there, publishes the
-files to clients, and the client fetches its copy again. The data server
+`siteconfig` with the same writers as `ecce -admin` there and publishes the
+files to clients. The data server
 password plays no part in this; the ssh login and the right to write the
 server's `siteconfig` decide.
 
@@ -600,9 +603,7 @@ echo "$d" > /opt/ecce/siteconfig/PublishDir # as an administrator
 Every directory above `$d` must be searchable (`x`) by the administrators,
 e.g. `chmod 711 ~ecce` if the home directory is private.
 
-The administrator's own client refreshes its copy when that user can write
-its `siteconfig` (the same group setup on the client); otherwise, and on
-every other client, `sudo ecce-remote-setup --refresh` fetches the new list.
+On the administrator's own client, and on every other, `sudo ecce-remote-setup --refresh` fetches the new list.
 
 Users then run `ecce -remote`. A client quitting never stops the server's
 services, and neither does the server account's own plain quit; its
@@ -709,8 +710,9 @@ the data server's contents are untouched.
   OpenWire).
 - **Clients must be 9.x as well.** An 8.x client cannot talk to a 9.x
   broker, nor a 9.x client to an 8.x server. Upgrade the server and every
-  client together, then re-run `sudo ecce-remote-setup <server-host>` on
-  each client only if the server's machine list changed.
+  client together. The data server's `httpd.conf` is regenerated at each
+  start, so restart it once after upgrading to pick up the read-only rule on
+  the published site files.
 
 **Shared system broker (mode 3).** Add an account per user with
 `sudo ecce-broker-setup --user NAME` (the 8.x broker had no accounts),

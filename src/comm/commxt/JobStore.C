@@ -747,6 +747,8 @@ void cleanup(int exitStatus)
 
   if (exitStatus == 0) {
     if (remoteconn != (RCommand*)0 && remoteconn->isOpen()) {
+      // The monitor stream may still hold the login (a kill message).
+      remoteconn->stopStream();
       (void)remoteconn->exec("/bin/rm -f eccejobmonitor eccejobmonitor.conf "
                              "eccejobmonitor.propbuf *.desc");
       delete remoteconn;
@@ -1333,8 +1335,21 @@ void interactGetFiles(void)
   } else {
     // copy files from server
     logMessage("Benchmark", "Before file copy of output files");
-    status = RCommand::get(copyErrMessage, cpServerName, cpRemoteShell,
-                           cpUserName, "", (const char**)fileStrs, calcdir);
+    // Over the monitor's own login when there is one: a new login would ask
+    // a two-factor site for another code.
+    status = false;
+    if (remoteconn != (RCommand*)0 && remoteconn->isOpen() &&
+        remoteconn->sshBackend() != "") {
+      vector<string> fs;
+      for (int n = 0; fileStrs[n] != NULL; n++) fs.push_back(fileStrs[n]);
+      status = remoteconn->copyOnLogin(false, fs, calcdir, copyErrMessage);
+      if (!status)
+        logMessage("File System", "Copy over the monitor's login failed (" +
+                   copyErrMessage + "); logging in again to copy");
+    }
+    if (!status)
+      status = RCommand::get(copyErrMessage, cpServerName, cpRemoteShell,
+                             cpUserName, "", (const char**)fileStrs, calcdir);
     logMessage("Benchmark", "After file copy of output files");
   }
 
@@ -1798,7 +1813,9 @@ void initMon(void)
 
       // The monitor's stdout/stderr come back on a pipe and the framed
       // protocol is read from it as usual.
-      if (!remoteconn->startStream(cmd))
+      // On the login initConn() made: a second login would cost a
+      // two-factor site another code for every monitored job.
+      if (!remoteconn->startStream(cmd, true))
         restartSystem("System", remoteconn->commError());
       logMessage("Job Monitor",
                  "Started job monitor (stdio comms) with command: " + cmd);

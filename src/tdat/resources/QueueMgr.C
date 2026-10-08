@@ -222,64 +222,93 @@ void QueueManager::finalize(void)
 //    additive merge are a separate piece of work.
 //
 ///////////////////////////////////////////////////////////////////////////////
-string QueueManager::queueConfigFile(const string& name)
+string QueueManager::queueConfigFile(const string& name,
+                                     const string& machine)
 {
-  string userCopy = Ecce::realUserPrefPath();
-  userCopy += name;
-
-  SFile userFile(userCopy.c_str());
-  if (userFile.exists())
-    return userCopy;
-
-  string siteCopy = Ecce::ecceHome();
-  siteCopy += "/siteconfig/";
-  siteCopy += name;
-  return siteCopy;
+  std::vector<Ecce::SiteLayer> layers = Ecce::siteConfigLayers(machine);
+  for (size_t i = 0; i < layers.size(); i++) {
+    string path = layers[i].dir + name;
+    SFile file(path.c_str());
+    if (file.exists())
+      return path;
+  }
+  return layers.back().dir + name;     // the install's, which may not exist
 }
 
+
+// The Queues registries of the configuration layers, highest priority first.
+struct QLayers {
+  std::vector<Ecce::SiteLayer> layers;
+  std::vector<Preferences*> prefs;         // 0: no such file
+  std::vector<std::vector<string> > lists;  // the machines each lists
+
+  void load(const string& machine, const string& regFile)
+  {
+    layers = Ecce::siteConfigLayers(machine);
+    for (size_t i = 0; i < layers.size(); i++) {
+      string path = layers[i].dir + regFile;
+      SFile file(path.c_str());
+      Preferences* p = 0;
+      if (file.exists()) {
+        p = new Preferences(path, true, 0);
+        if (!p->isValid()) { delete p; p = 0; }
+      }
+      prefs.push_back(p);
+      lists.push_back(std::vector<string>());
+      if (p)
+        p->getStringList(regFile, lists.back());
+    }
+  }
+  ~QLayers()
+  {
+    for (size_t i = 0; i < prefs.size(); i++) delete prefs[i];
+  }
+  bool anyValid() const
+  {
+    for (size_t i = 0; i < prefs.size(); i++) if (prefs[i]) return true;
+    return false;
+  }
+  bool get(const string& machine, const string& key, string& value) const
+  {
+    bool site = false;
+    for (size_t i = 0; i < layers.size(); i++) {
+      if (!prefs[i]) continue;
+      if (!layers[i].user) {
+        // one site layer supplies the machine: the first that lists it
+        if (site) continue;
+        if (find(lists[i].begin(), lists[i].end(), machine) == lists[i].end())
+          continue;
+        site = true;
+      }
+      if (prefs[i]->getString(machine + "|" + key, value)) return true;
+    }
+    return false;
+  }
+};
 
 void QueueManager::initialize(void)
 {
   if (p_extent == (vector<QueueManager*> *)0) {
     p_extent = new vector<QueueManager*>();
-    // Site registry first, then the user's own, with the user's entries
-    // ADDED to the site ones rather than replacing them.
-    //
-    // queueConfigFile() originally returned whichever file existed, user
-    // first -- which meant that describing one machine of your own hid
-    // every machine the site had configured, and the only way to keep them
-    // was to copy the whole site file. Merging is what people actually
-    // want: add my cluster, keep the rest.
-    //
-    // A machine named in both wins from the user's file, since the later
-    // Preferences is consulted first below.
-    string siteFile = Ecce::ecceHome();
-    siteFile += "/siteconfig/";
-    siteFile += QueueManager::queueMgrLoadFile;
+    // The registry of every layer (user, server site, install), with the
+    // machines of all of them listed.  For one machine the user's entries win
+    // per key, so a site machine can be adjusted without copying it across;
+    // the site keys all come from the one site layer that lists the machine.
+    // localhost has its own layers: the client's alone (#192).
+    QLayers normal, client;
+    normal.load("", QueueManager::queueMgrLoadFile);
+    client.load("localhost", QueueManager::queueMgrLoadFile);
 
-    string userFile = Ecce::realUserPrefPath();
-    userFile += QueueManager::queueMgrLoadFile;
-
-    Preferences sitePrefs(siteFile, true, 0 /*must exist*/);
-    SFile userQueues(userFile.c_str());
-    bool haveUser = userQueues.exists();
-    Preferences userPrefs(haveUser ? userFile : siteFile, true, 0);
-
-    EE_RT_ASSERT(sitePrefs.isValid() || (haveUser && userPrefs.isValid()),
-                 EE_FATAL, "Error!  Must Have a Queues File!");
+    EE_RT_ASSERT(normal.anyValid(), EE_FATAL,
+                 "Error!  Must Have a Queues File!");
 
     vector<string> machines;
-    if (sitePrefs.isValid()) {
-      sitePrefs.getStringList(QueueManager::queueMgrLoadFile, machines);
-    }
-    if (haveUser && userPrefs.isValid()) {
-      vector<string> userMachines;
-      userPrefs.getStringList(QueueManager::queueMgrLoadFile, userMachines);
-      for (unsigned int u = 0; u < userMachines.size(); u++) {
-        if (find(machines.begin(), machines.end(), userMachines[u]) ==
-            machines.end()) {
-          machines.push_back(userMachines[u]);
-        }
+    for (int i = (int)normal.layers.size() - 1; i >= 0; i--) {
+      for (unsigned int u = 0; u < normal.lists[i].size(); u++) {
+        const string& m = normal.lists[i][u];
+        if (m == "localhost" && normal.layers[i].fromServer) continue;
+        if (find(machines.begin(), machines.end(), m) == machines.end())
+          machines.push_back(m);
       }
     }
 
@@ -289,13 +318,8 @@ void QueueManager::initialize(void)
       string& name = machines[index];
       // User file wins per key, so a site machine can be adjusted without
       // copying it across.
-      bool found = false;
-      if (haveUser && userPrefs.isValid()) {
-        found = userPrefs.getString(name + "|queueMgrName", queueMgrName);
-      }
-      if (!found) {
-        found = sitePrefs.getString(name + "|queueMgrName", queueMgrName);
-      }
+      QLayers& q = (name == "localhost") ? client : normal;
+      bool found = q.get(name, "queueMgrName", queueMgrName);
       EE_RT_ASSERT(found, EE_FATAL, name + "|queueMgrName: not found!");
 #ifdef DEBUG
       cout << name << ", " << queueMgrName << endl;
@@ -304,17 +328,11 @@ void QueueManager::initialize(void)
       if (queueMgrName != "Shell") {
         // Fetch and Fill Attributes
         string prefFile;
-        bool gotPref = false;
-        if (haveUser && userPrefs.isValid()) {
-          gotPref = userPrefs.getString(name + "|prefFile", prefFile);
-        }
-        if (!gotPref) {
-          gotPref = sitePrefs.getString(name + "|prefFile", prefFile);
-        }
+        bool gotPref = q.get(name, "prefFile", prefFile);
         EE_RT_ASSERT(gotPref, EE_FATAL,
                      "No Queue Preferences File Specified!");
         newObject->fillQueuesFrom(
-            QueueManager::queueConfigFile(prefFile));
+            QueueManager::queueConfigFile(prefFile, name));
       }
 #ifdef DEBUG
       cout << *newObject << endl;

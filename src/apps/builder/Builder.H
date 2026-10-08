@@ -452,6 +452,8 @@ class Builder: public BuilderGUI,
 
       void setUnsavedState(bool changed);
       void doSave();
+      /// Test hook: ECCE_BUILDER_SCRIPT (BuilderScript.C).
+      void runBuilderScript(const std::string& file);
       void doSaveAs(const bool& imagesOnly=false);
       void doSaveThumb();
       void doClose(const string& context="", const bool& autoOpen=true);
