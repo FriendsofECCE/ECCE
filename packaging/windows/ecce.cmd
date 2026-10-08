@@ -11,10 +11,42 @@ set "ECCE_REALUSER=%USERNAME%"
 set "HOST=%COMPUTERNAME%"
 set "UH=%USERPROFILE:\=/%"
 set "ECCE_REALUSERHOME=%UH%"
-set "ECCE_LOCAL_DATA=%UH%/ecce-local"
+set ECCE_SESSION_LIVENESS=lease
+rem Where the user keeps their work is asked once, at the first start (#240):
+rem the exit status 3 is "Quit" in that window; any other failure goes on.
+if not defined ECCE_NO_FIRST_START if exist "%ECCE_ROOT%\python\python3w.exe" (
+  start /wait "" "%ECCE_ROOT%\python\python3w.exe" "%ECCE_ROOT%\bin\ecce-first-start"
+  if errorlevel 3 if not errorlevel 4 exit /b 0
+)
+rem A server given by the installation, or chosen in that window, makes this a
+rem -remote session (what ecce-session-lib.sh does on the other systems).
+set "ECCE_SERVER_SESSION="
+if defined ECCE_LOCAL_DATA goto local
+if defined ECCE_REMOTE_SERVER set "ECCE_SERVER_SESSION=1"
+if exist "%ECCE_ROOT%\siteconfig\RemoteServer\DataServers" set "ECCE_SERVER_SESSION=1"
+if not defined ECCE_SERVER_SESSION if exist "%USERPROFILE%\.ECCE\RemoteServer\DataServers" (
+  set "ECCE_SERVER_SESSION=1"
+  set "ECCE_REMOTE_DIR=%UH%/.ECCE/RemoteServer"
+)
+if defined ECCE_SERVER_SESSION goto server
+:local
+if not defined ECCE_LOCAL_DATA set "ECCE_LOCAL_DATA=%UH%/ecce-local"
 if not exist "%USERPROFILE%\ecce-local" mkdir "%USERPROFILE%\ecce-local"
 rem Local mode without messaging and without a data server, as tested in CI.
 set ECCE_NO_MESSAGING=1
 set ECCE_NO_DATASERVER=1
-set ECCE_SESSION_LIVENESS=lease
+goto run
+:server
+rem The central server's broker and data server: a session of its own, and the
+rem broker file the apps read (ecce-gateway-start).
+set ECCE_REMOTE_SERVER=1
+for /f %%i in ('python3.exe -c "import os;print(os.urandom(8).hex())"') do set "ECCE_SESSION_ID=%%i"
+bash.exe "%ECCE_HOME%/bin/ecce-gateway-start"
+if errorlevel 1 (
+  echo ECCE could not reach its server. 1>&2
+  rem Scripts and tests (ECCE_NO_FIRST_START) get no message box.
+  if not defined ECCE_NO_FIRST_START mshta "javascript:alert('ECCE could not reach its server. Check that the server is running and your network connection, then start ECCE again.');close()"
+  exit /b 2
+)
+:run
 start "" "%ECCE_ROOT%\bin\organizer.exe" %*

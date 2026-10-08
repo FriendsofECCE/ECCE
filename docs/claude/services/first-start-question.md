@@ -3,7 +3,7 @@ type: map
 title: "The first-start question: where a user keeps their work"
 area: services
 section: "The Gateway window and session end"
-paths: ["packaging/gateway/ecce-first-start", "packaging/ecce.in", "packaging/gateway/ecce-session-lib.sh", "packaging/dataserver/ecce-remote-setup", "include/util/RemoteServerDir.H", "src/apps/organizer/CalcMgr.C", "tests/apps/first_start_test.py", "tests/tls/first_connect_test.py"]
+paths: ["packaging/gateway/ecce-first-start", "packaging/ecce.in", "packaging/gateway/ecce-session-lib.sh", "packaging/dataserver/ecce-remote-setup", "include/util/RemoteServerDir.H", "packaging/windows/ecce.cmd", "packaging/macos/launcher.sh", "tests/apps/first_start_window_test.py", "tests/windows/ecce_cmd_test.py", "src/apps/organizer/CalcMgr.C", "tests/apps/first_start_test.py", "tests/tls/first_connect_test.py"]
 issues: [240, 216]
 ---
 `ecce` runs `ecce-first-start` before it makes the session id (#240). It
@@ -15,7 +15,10 @@ of configuration there, and to `tests/apps/first_start_test.py`.
 - The choice is stored as state ECCE already reads: local = the LocalData
   preference (`ecce-localdata pref on`) plus `~/.ECCE-local`; server =
   `~/.ECCE/RemoteServer/` (same layout as `siteconfig/RemoteServer`),
-  written by `ecce-remote-setup HOST --user --auto`. Choosing local moves
+  written by `remote_setup()` in `ecce-first-start` (Python, so Windows and
+  macOS need no curl/openssl; same result as `ecce-remote-setup HOST --user
+  --auto`, whose own TLS pin/CA tests are `tests/tls/first_connect_test.py`,
+  now run against the Python code). Choosing local moves
   that folder to `RemoteServer.off`; choosing a server turns the preference
   off. There is no file of its own.
 - `ecce_user_server_mode` (ecce-session-lib.sh; `ecce` and every wrapper)
@@ -25,9 +28,22 @@ of configuration there, and to `tests/apps/first_start_test.py`.
   both. Everything that read `siteconfig/RemoteServer/*` now goes through
   `remoteServerDir()` (RemoteServerDir.H) or `${ECCE_REMOTE_DIR:-...}`: a
   new reader of those files must too, or it ignores a user's own server.
-- `--auto` tries `--tls --system-ca`, then `--tls --fetch-pin`, then plain
-  http, and takes the first that connects. `--user` makes an unreachable
-  server an error instead of the "writing anyway" warning.
+- It tries https with a certificate the system trusts, then https pinned to
+  the certificate presented now (whole-certificate pin, `server.pem`), then
+  plain http, and takes the first that answers; nothing answering writes
+  nothing. `--apply local|server:HOST[:PORT]` does the same with no window
+  (tests; macOS CI, which has no wxPython to open it).
+- All platforms ask (no darwin skip). On Windows "set up already" also means
+  `~/ecce-local` (what `ecce.cmd` made before the question), which is also
+  the local folder it chooses; `ecce.cmd` runs the window with
+  `python\python3w.exe` and exit 3 quits. A server (installation's
+  `siteconfig/RemoteServer`, else `~/.ECCE/RemoteServer`) makes `ecce.cmd`
+  export `ECCE_REMOTE_SERVER`, a session id and run `ecce-gateway-start`
+  under the bundled bash, which skips its flock/reap on MSYS (neither
+  exists there); the local choice keeps the old no-broker settings.
+  Edit > Change Server... starts the script with `python3w.exe` on Windows.
+- macOS: ECCE.app bundles no Python or wxPython, so the window is skipped
+  silently (ImportError) until it does; local data stays the default there.
 - Tests set `ECCE_FIRST_START_ANSWER` (`local`, `server:host[:port]`) and
   `ECCE_FIRST_START_SHOT`; never synthetic input. `tests/apps/session_end.py
   first-local first-server` drive it through the real `ecce`.

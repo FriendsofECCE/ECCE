@@ -137,6 +137,10 @@ check_central_server() {
 # lock across the decision and the start, so a session starting as the
 # previous one ends cannot adopt a broker that is being stopped. Nothing
 # started from here may inherit the descriptor, or the lock outlives us.
+# Windows has neither flock nor /proc, and a -remote session there starts no
+# broker of its own to guard, so it goes without the lock and the sweep.
+case "$(uname -s)" in MSYS*|MINGW*|CYGWIN*) ON_WINDOWS=1 ;; *) ON_WINDOWS=0 ;; esac
+if [ "$ON_WINDOWS" = 0 ]; then
 exec 9>>"$STATEDIR/.gateway.lock"
 ecce_flock -w 90 9 || echo "ecce-gateway-start: could not lock $STATEDIR/.gateway.lock; continuing" >&2
 
@@ -146,6 +150,7 @@ ecce_flock -w 90 9 || echo "ecce-gateway-start: could not lock $STATEDIR/.gatewa
 if [ -x "$ECCE_HOME/bin/ecce-gateway-reap" ]; then
   # It would wait for the lock we hold; tell it we hold it.
   ECCE_GATEWAY_LOCKED=1 "$ECCE_HOME/bin/ecce-gateway-reap" 9>&- || true
+fi
 fi
 
 # --- 1. Which broker ----------------------------------------------------

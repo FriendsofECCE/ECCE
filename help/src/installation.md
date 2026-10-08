@@ -106,7 +106,8 @@ once, in a window called "Welcome to ECCE":
 ![The first question](img/first-start.png)
 
 - **Work on this computer** keeps your calculations in a folder on this
-  computer, `~/.ECCE-local`. Choose this if you work alone.
+  computer (`~/.ECCE-local`; on Windows the folder `ecce-local` in your
+  user folder). Choose this if you work alone.
 - **Connect to a server** uses a server that your teacher or institution
   runs. Type its address, for example `ecce.example.edu`, and click
   **Continue**. ECCE then shows the login window; use the user name and
@@ -115,9 +116,10 @@ once, in a window called "Welcome to ECCE":
 Click **Continue** to confirm. ECCE remembers your choice and does not ask
 again. **Quit** closes ECCE without choosing anything.
 
-ECCE does not ask if it is already set up: on a computer that has a server
-configured by its administrator, on a server itself, or when you have used
-ECCE here before.
+ECCE asks on Linux, macOS and Windows alike: on your own laptop you can
+connect to your teacher's server in the same way. It does not ask if it is
+already set up: on a computer that has a server configured by its
+administrator, on a server itself, or when you have used ECCE here before.
 
 If ECCE cannot connect, it tells you in the same window. Check the address
 and your network connection, then click **Continue** again.
@@ -132,7 +134,9 @@ again.
 To change your mind later, choose **Edit > Change Server...** in the
 Organizer. The window says where ECCE works now, and which folder holds your
 calculations if it is this computer. The change applies the next time you
-start ECCE. Your calculations are not copied from one place to the other.
+start ECCE: close all ECCE windows, then start ECCE again. Your
+calculations are not copied from one place to the other. This works the same
+on Linux, macOS and Windows.
 
 If you did not choose a server, ECCE keeps your projects and calculations in
 one of two places on this computer.

@@ -414,9 +414,11 @@ jobs:
           brew install gromacs
           tests/gromacs_md/run_tests.py -v
 
-      # The editor and terminal commands macOS gets by default (#133).
-      - name: Editor and terminal commands
-        run: cd build-cmake && ctest -R '^(editor_command|macos_terminal)$' --output-on-failure
+      # The editor and terminal commands macOS gets by default (#133), and
+      # when the first-start question is asked and what each answer writes
+      # (#240; its window needs wxPython, which the app does not bundle yet).
+      - name: Editor and terminal commands, first-start answers
+        run: cd build-cmake && ctest -R '^(editor_command|macos_terminal|first_start_question)$' --output-on-failure
 
       # Does it run? (#133) Starts the installed apps on the runner's
       # logged-in desktop and screenshots them.  Allowed to fail; the
@@ -690,6 +692,28 @@ jobs:
           Get-Content windows-run\probe\summary.txt >> $env:GITHUB_STEP_SUMMARY
           exit $e
 
+      # The first-start question (#240) from the unpacked zip, with the
+      # package's own Python and PATH: when it is asked, the window answered
+      # by its test hook (this computer / a stub server), then ecce.cmd's two
+      # kinds of session.
+      - name: First-start question and ecce.cmd sessions
+        id: firststart
+        shell: pwsh
+        continue-on-error: true
+        timeout-minutes: 15
+        run: |
+          $r = "$env:RUNNER_TEMP\unpacked\ecce"
+          $env:Path = "$r\bin;$r\usr\bin;$r\python;$r\strawberry\perl\site\bin;$r\strawberry\perl\bin;$env:SystemRoot\System32;$env:SystemRoot"
+          $py = "$r\python\python3.exe"
+          $rc = 0
+          & $py tests\apps\first_start_test.py "$r\bin\ecce-localdata.exe" "$env:RUNNER_TEMP\fs-matrix" 2>&1 | Tee-Object -Append firststart.log
+          if ($LASTEXITCODE -ne 0) { $rc = 1 }
+          & $py tests\apps\first_start_window_test.py "$r\bin\ecce-localdata.exe" "$env:RUNNER_TEMP\fs-window" "$r\bin\ecce-first-start" 2>&1 | Tee-Object -Append firststart.log
+          if ($LASTEXITCODE -ne 0) { $rc = 1 }
+          & $py tests\windows\ecce_cmd_test.py $r "$env:RUNNER_TEMP\fs-cmd" 2>&1 | Tee-Object -Append firststart.log
+          if ($LASTEXITCODE -ne 0) { $rc = 1 }
+          exit $rc
+
       # Per-user MSI (no admin) from the same tree, installed and tested.
       - name: Build the MSI
         id: msi
@@ -734,6 +758,7 @@ jobs:
             windows-run/
             localjobs/
             msi-run/
+            firststart.log
             ctest.log
             install.log
           if-no-files-found: ignore
@@ -748,5 +773,6 @@ jobs:
             echo "- ctest: ${{ steps.tests.outcome }}"
             echo "- local jobs: ${{ steps.localjobs.outcome }}"
             echo "- start the apps: ${{ steps.apps.outcome }}"
+            echo "- first-start question: ${{ steps.firststart.outcome }}"
             echo "- msi build: ${{ steps.msi.outcome }}, msi test: ${{ steps.msitest.outcome }}"; } >> "$GITHUB_STEP_SUMMARY"
-          [ "${{ steps.tests.outcome }}${{ steps.localjobs.outcome }}${{ steps.apps.outcome }}" = successsuccesssuccess ] && [ "${{ steps.msi.outcome }}${{ steps.msitest.outcome }}" = successsuccess ]
+          [ "${{ steps.tests.outcome }}${{ steps.localjobs.outcome }}${{ steps.apps.outcome }}${{ steps.firststart.outcome }}" = successsuccesssuccesssuccess ] && [ "${{ steps.msi.outcome }}${{ steps.msitest.outcome }}" = successsuccess ]
