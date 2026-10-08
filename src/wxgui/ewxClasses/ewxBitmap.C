@@ -11,6 +11,10 @@ using namespace std;
 #include "wx/filename.h"
 #include "wx/dcmemory.h"
 #include "wx/log.h"
+#include "wx/ffile.h"
+#include "wx/bmpbndl.h"
+#include <cstdlib>
+#include <cstring>
 
 #include "util/Ecce.H"
 #include "wxgui/ewxBitmap.H"
@@ -56,6 +60,42 @@ static const struct { const char* file; const char* icon; } GENERIC_ICONS[] = {
 };
 
 
+//  The bundled Lucide icon (data/client/pixmaps/lucide) for each of those
+//  freedesktop names, for platforms whose theme has none.
+static const struct { const char* icon; const char* lucide; } LUCIDE_ICONS[] = {
+  {"go-home", "house"},
+  {"go-up", "arrow-up"},
+  {"go-down", "arrow-down"},
+  {"go-previous", "arrow-left"},
+  {"go-next", "arrow-right"},
+  {"edit-cut", "scissors"},
+  {"edit-copy", "copy"},
+  {"edit-paste", "clipboard-paste"},
+  {"edit-delete", "trash"},
+  {"document-edit", "pencil"},
+  {"document-send", "upload"},
+  {"folder-download", "download"},
+  {"edit-find", "search"},
+  {"view-refresh", "refresh-cw"},
+  {"dialog-information", "info"},
+  {"document-new", "file-plus"},
+  {"document-open", "folder-open"},
+  {"document-save", "save"},
+  {"document-save-as", "file-down"},
+  {"edit-undo", "undo-2"},
+  {"edit-redo", "redo-2"},
+  {"dialog-question", "circle-question-mark"},
+  {"dialog-warning", "triangle-alert"},
+  {"dialog-error", "circle-x"},
+  {"media-playback-start", "play"},
+  {"media-playback-stop", "square"},
+  {"zoom-fit-best", "scan"},
+  {"zoom-original", "maximize"},
+  {"zoom-in", "zoom-in"},
+  {"zoom-out", "zoom-out"},
+};
+
+
 /**
  * Helper method to construct proper string for use in calling
  * superclasses constructor.
@@ -80,25 +120,60 @@ wxString ewxBitmap::genericIconName(const wxString& file)
 
 
 /**
+ * The bundled Lucide icon drawn in the text colour (its stroke is
+ * currentColor), for platforms with no icon theme.
+ */
+static wxBitmap lucideIcon(const wxString& icon, const wxSize& size,
+                           const wxColour& ink)
+{
+  for (size_t i = 0; i < WXSIZEOF(LUCIDE_ICONS); i++) {
+    if (icon != LUCIDE_ICONS[i].icon) continue;
+    wxFileName file(ewxBitmap::pixmapFile(
+        wxString("lucide/") + LUCIDE_ICONS[i].lucide + ".svg"));
+    wxFFile in(file.GetFullPath());
+    wxString svg;
+    if (!in.IsOpened() || !in.ReadAll(&svg)) return wxBitmap();
+    svg.Replace("currentColor", ink.GetAsString(wxC2S_HTML_SYNTAX));
+    wxScopedCharBuffer utf8 = svg.utf8_str();
+    wxCharBuffer data(utf8.length());
+    memcpy(data.data(), utf8.data(), utf8.length());
+    wxBitmapBundle b = wxBitmapBundle::FromSVG(data.data(), size);
+    return b.IsOk() ? b.GetBitmap(size) : wxBitmap();
+  }
+  return wxBitmap();
+}
+
+
+/**
  * The theme's symbolic icon, drawn in the theme's text colour.
  * GTK hands symbolic icons back in a fixed dark grey, which vanishes on a
  * dark theme, so the colour is applied here; the alpha is the shape.
+ * Without a theme icon (always on Windows and macOS, or with
+ * ECCE_FORCE_ICON_BUNDLE set, for tests) the bundled Lucide icon is used.
  */
 wxBitmap ewxBitmap::themedIcon(const wxString& icon, const wxSize& size)
 {
-  wxBitmap art = wxArtProvider::GetBitmap(icon + "-symbolic", wxART_OTHER,
-                                          size);
-  if (!art.IsOk()) return art;
-  wxImage image = art.ConvertToImage();
-  if (!image.HasAlpha()) return art;
   wxColour ink = wxSystemSettings::GetColour(wxSYS_COLOUR_BTNTEXT);
-  unsigned char* rgb = image.GetData();
-  for (int i = 0, n = image.GetWidth()*image.GetHeight(); i < n; i++) {
-    rgb[3*i] = ink.Red();
-    rgb[3*i+1] = ink.Green();
-    rgb[3*i+2] = ink.Blue();
+#ifdef __WXGTK__
+  if (!getenv("ECCE_FORCE_ICON_BUNDLE")) {
+    wxBitmap art = wxArtProvider::GetBitmap(icon + "-symbolic", wxART_OTHER,
+                                            size);
+    if (art.IsOk()) {
+      wxImage image = art.ConvertToImage();
+      if (image.HasAlpha()) {
+        unsigned char* rgb = image.GetData();
+        for (int i = 0, n = image.GetWidth()*image.GetHeight(); i < n; i++) {
+          rgb[3*i] = ink.Red();
+          rgb[3*i+1] = ink.Green();
+          rgb[3*i+2] = ink.Blue();
+        }
+        return wxBitmap(image);
+      }
+      return art;
+    }
   }
-  return wxBitmap(image);
+#endif
+  return lucideIcon(icon, size, ink);
 }
 
 
