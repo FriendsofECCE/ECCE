@@ -982,7 +982,7 @@ void auditWindow(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
   }
 
   traceWindow(w, " button");
-  wxAnyButton *btn = wxDynamicCast(w, wxAnyButton);
+  wxButton *btn = wxDynamicCast(w, wxButton);
   if (btn) {
     wxBitmap bmp = btn->GetBitmap();
     const bool hasLabel = !btn->GetLabel().empty();
