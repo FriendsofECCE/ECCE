@@ -2,7 +2,7 @@
 # The `ecce` command: option handling, then the Organizer session.
 # Everything is parsed first; nothing starts a broker or data server
 # until the plain session start at the end.
-ECCE_HOME_DEFAULT=@ECCE_HOME_DIR@
+@ECCE_HOME_SH@
 ECCE_VERSION_STRING=@ECCE_VERSION_RAW@
 
 usage() {
@@ -48,7 +48,7 @@ Environment (set before ecce; the first two win over Edit > Preferences):
 The editor, terminal and browser can also be set in the Organizer, under
 Edit > Preferences. All variables ECCE reads are listed in:
 USAGE
-  echo "  ${ECCE_HOME:-$ECCE_HOME_DEFAULT}/doc/ENVIRONMENT.md"
+  echo "  $ECCE_HOME/doc/ENVIRONMENT.md"
 }
 
 admin=false
@@ -88,7 +88,6 @@ if $remote; then export ECCE_REMOTE_SERVER=1; fi
 # the folder from the start and never needs the data server.
 if $local; then export ECCE_LOCAL=1; fi
 
-export ECCE_HOME=${ECCE_HOME:-$ECCE_HOME_DEFAULT}
 
 # Child programs (Perl, Python, the codes) must print and read numbers with
 # '.'; LC_ALL would override LC_NUMERIC, so demote it to LANG.
@@ -308,7 +307,11 @@ bug_finish() {
   local diag="$ECCE_HOME/bin/ecce-diagnose"
   [ -x "$diag" ] || diag=$(command -v ecce-diagnose)
   if [ -n "$diag" ]; then
-    timeout 300 "$diag" -o "$ECCE_BUG_DIR" > "$ECCE_BUG_DIR/diagnose-stdout.txt" 2>&1
+    if command -v timeout >/dev/null 2>&1; then
+      timeout 300 "$diag" -o "$ECCE_BUG_DIR"
+    else  # macOS has no timeout(1)
+      perl -e 'alarm 300; exec @ARGV' "$diag" -o "$ECCE_BUG_DIR"
+    fi > "$ECCE_BUG_DIR/diagnose-stdout.txt" 2>&1
   else
     echo "ecce-diagnose not found" > "$ECCE_BUG_DIR/diagnose-stdout.txt"
   fi

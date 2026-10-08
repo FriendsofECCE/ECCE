@@ -97,6 +97,9 @@ jobs:
         working-directory: build-cmake
         run: cpack -G DEB
 
+      - name: No build paths in the packages
+        run: tests/packaging/no-build-paths.sh "$GITHUB_WORKSPACE" build-cmake/*.deb
+
       - uses: actions/upload-artifact@v4
         with:
           name: ecce-debian-trixie-deb
@@ -160,6 +163,9 @@ jobs:
         working-directory: build-cmake
         run: cpack -G DEB
 
+      - name: No build paths in the packages
+        run: tests/packaging/no-build-paths.sh "$GITHUB_WORKSPACE" build-cmake/*.deb
+
       - uses: actions/upload-artifact@v4
         with:
           name: ecce-ubuntu-latest-deb
@@ -215,6 +221,11 @@ jobs:
         working-directory: ${{ github.workspace }}/build-cmake
         run: cpack -G RPM
 
+      - name: No build paths in the packages
+        run: |
+          command -v cpio >/dev/null || dnf install -y cpio
+          tests/packaging/no-build-paths.sh "$GITHUB_WORKSPACE" build-cmake/*.rpm
+
       - uses: actions/upload-artifact@v4
         with:
           name: ecce-rockylinux9-rpm
@@ -258,6 +269,11 @@ jobs:
       - name: Package
         working-directory: ${{ github.workspace }}/build-cmake
         run: cpack -G RPM
+
+      - name: No build paths in the packages
+        run: |
+          command -v cpio >/dev/null || dnf install -y cpio
+          tests/packaging/no-build-paths.sh "$GITHUB_WORKSPACE" build-cmake/*.rpm
 
       - uses: actions/upload-artifact@v4
         with:
@@ -389,6 +405,11 @@ jobs:
           export PATH="$ECCE_DEPS/bin:$PATH"
           packaging/macos/make-app.sh stage dist
 
+      # ECCE.app runs from wherever it is put (#133): no installed script
+      # may name the runner's build tree or library prefix.
+      - name: No build paths in ECCE.app
+        run: tests/packaging/no-build-paths.sh /Users/runner dist/ECCE.app
+
       # Oldest macOS the bundle can run on (#133): the step fails when any
       # Mach-O needs more than the deployment target or is not this runner's arch.
       - name: Minimum macOS of every Mach-O in the app
@@ -420,6 +441,8 @@ jobs:
           mv build-cmake build-cmake.gone
           mv stage stage.gone
           rc=0
+          # -remote against stand-in server ports, ECCE_HOME found by the wrappers.
+          tests/macos/remote-reach.sh "$appdir/ECCE.app/Contents/Resources" || rc=1
           ECCE_APP="$appdir/ECCE.app" tests/macos/run.sh "$appdir/ECCE.app/Contents/Resources" macos-app-run || rc=$?
           cat macos-app-run/summary.txt >> "$GITHUB_STEP_SUMMARY"
           exit $rc
