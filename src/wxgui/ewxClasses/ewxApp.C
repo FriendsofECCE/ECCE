@@ -220,6 +220,8 @@ void ewxApp::OnAbout(wxCommandEvent& WXUNUSED(event))
    info.SetWebSite("https://github.com/FriendsofECCE/ECCE");
    info.AddDeveloper("CA Ohlin");
    info.AddDeveloper("Matthew Asplund");
+   info.AddArtist(_("Icons: Lucide contributors (ISC licence), "
+                    "https://lucide.dev"));
    info.AddDeveloper(_("The original ECCE team at EMSL, Pacific Northwest "
                        "National Laboratory"));
 
