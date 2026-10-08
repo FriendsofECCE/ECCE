@@ -68,14 +68,20 @@ Usage: ecce-remote-setup <server-host> [data-port] [--tls TRUST]
   --auto        with --user: try a certificate the system trusts, then
                 pin the server's certificate as first presented, then
                 plain http; the first that works is written
-  --refresh     no longer needed: a -remote client takes the server's
-                site configuration itself (issue #192); prints a note
+  --refresh     fetch the server's machine list again, from the server
+                configured by an earlier run (ecce -admin on a -remote client
+                does this after a change)
+  --login NAME  an account of the server, to read its published machine list
+                (it needs a login since #192); the password is asked for, or
+                taken from ECCE_SETUP_PASSWORD. ECCE_SETUP_LOGIN does the same
+                as --login; ~/.netrc is tried without either
   server-host   host name of the central ECCE server
   data-port     data server port      (default 8096)
 
-Writes $ECCE_HOME/siteconfig/RemoteServer/ (the server's address and, with
---tls, its certificate pin), and nothing else: the server's machine list is
-no longer copied into siteconfig/ (issue #192).
+Writes $ECCE_HOME/siteconfig/RemoteServer/ and copies the server's registered
+site machine list (Machines, Queues, CONFIG.*, *.Q, submit.site, QueueManagers)
+into siteconfig/, with a login of the server (--login). Re-run after the admin
+changes that list on the server.
 Run "ecce -remote" afterwards.
 USAGE
 }
@@ -205,18 +211,126 @@ curl_tls_args() {
   fi
 }
 
+#  Credentials for the published site files: a curl config in DIR (so the
+#  password is not on a command line), from --login / ECCE_SETUP_LOGIN, else
+#  ~/.netrc if there is one.
+curl_auth_args() {
+  CURL_AUTH=()
+  local login="${SETUP_LOGIN:-${ECCE_SETUP_LOGIN:-}}" pw="${ECCE_SETUP_PASSWORD:-}"
+  if [ -z "$login" ]; then
+    CURL_AUTH=(--netrc-optional)
+    return 0
+  fi
+  if [ -z "$pw" ]; then
+    if [ -t 0 ]; then
+      read -r -s -p "Password of $login on the server: " pw </dev/tty; echo >&2
+    else
+      echo "ecce-remote-setup: no password for $login (set ECCE_SETUP_PASSWORD)" >&2
+      return 1
+    fi
+  fi
+  ( umask 077; printf 'user = "%s:%s"\n' "$login" "$pw" >"$1/curl.auth" ) || return 1
+  CURL_AUTH=(-K "$1/curl.auth")
+}
+
+#  Site machine list (issue #188).  ecce-site-publish (run by the server's
+#  ecce-dataserver-start and ecce-site-admin) publishes the server's
+#  siteconfig/{Machines,Queues,submit.site,QueueManagers,CONFIG.*,*.Q} under
+#  Ecce/system/siteconfig, which since #192 needs a data-server login (any
+#  account of that server): --login NAME (password asked for, or in
+#  ECCE_SETUP_PASSWORD), ECCE_SETUP_LOGIN/ECCE_SETUP_PASSWORD, or ~/.netrc.
+#  This copy stays until clients fetch the files themselves (#192 stage 3).  All-or-nothing: a
+#  partial copy would leave CONFIG.* files with no matching Machines entry, or
+#  vice versa, which is worse than not copying at all.  The client fetches
+#  what the MANIFEST lists, so a server too old to list submit.site and
+#  QueueManagers leaves the client's own copies in place.  A CONFIG.* or *.Q
+#  the previous fetch brought and the server no longer publishes is removed.
+fetch_machine_list() {
+  local URL="$1" names ok name count old
+  MACHINES_MSG=""
+  if ! command -v curl >/dev/null 2>&1; then
+    echo "WARNING: curl not found -- cannot copy the server's machine list;" >&2
+    echo "  register machines by hand, or install curl and re-run this script." >&2
+    return 1
+  fi
+  FETCHDIR=$(mktemp -d) || return 1
+  trap 'rm -rf "$FETCHDIR"' EXIT
+  curl_tls_args "$URL" || return 1
+  curl_auth_args "$FETCHDIR" || return 1
+  if ! curl "${CURL_TLS[@]}" "${CURL_AUTH[@]}" -sf --connect-timeout 5 "$URL/system/siteconfig/MANIFEST" \
+       -o "$FETCHDIR/MANIFEST" 2>/dev/null; then
+    echo "WARNING: could not read the machine list at $URL/system/siteconfig/MANIFEST"
+    echo "  (the server is not up yet, or it needs a login: give one of its accounts"
+    echo "  with --login NAME, or ECCE_SETUP_LOGIN and ECCE_SETUP_PASSWORD). Machines"
+    echo "  were NOT copied -- re-run ecce-remote-setup with a login."
+    return 1
+  fi
+  names="" ok=true
+  while IFS= read -r name || [ -n "$name" ]; do
+    [ -n "$name" ] || continue
+    case "$name" in
+      */*|.*|*[[:space:]]*)
+        echo "WARNING: ignoring bad name '$name' in the server's MANIFEST" >&2
+        continue ;;
+    esac
+    if ! curl "${CURL_TLS[@]}" "${CURL_AUTH[@]}" -sf --connect-timeout 5 \
+           "$URL/system/siteconfig/$name" -o "$FETCHDIR/$name" 2>/dev/null; then
+      echo "WARNING: could not fetch $name from the server -- machine list not copied." >&2
+      ok=false
+      break
+    fi
+    names="$names $name"
+  done <"$FETCHDIR/MANIFEST"
+  names="${names# }"
+  [ "$ok" = true ] && [ -n "$names" ] || return 1
+  #  Back up the client's own machine files once, so a re-run keeps the
+  #  pristine pre-server-copy original rather than overwriting it again.
+  BACKUP="$SITE/local-machines.orig"
+  if [ ! -d "$BACKUP" ]; then
+    mkdir -p "$BACKUP"
+    for f in "$SITE/Machines" "$SITE/Queues" "$SITE/submit.site" \
+             "$SITE/QueueManagers" "$SITE"/CONFIG.* "$SITE"/*.Q; do
+      [ -f "$f" ] && cp -p "$f" "$BACKUP/"
+    done
+  fi
+  for name in $names; do
+    install -m 644 "$FETCHDIR/$name" "$SITE/$name" || return 1
+  done
+  if [ -f "$REMOTE/MANIFEST" ]; then
+    while IFS= read -r old || [ -n "$old" ]; do
+      case "$old" in
+        */*|.*|*[[:space:]]*) continue ;;
+        CONFIG.*|*.Q) ;;
+        *) continue ;;
+      esac
+      case " $names " in *" $old "*) continue ;; esac
+      rm -f -- "$SITE/$old"
+    done <"$REMOTE/MANIFEST"
+  fi
+  printf '%s\n' $names >"$REMOTE/MANIFEST"
+  count=0
+  if [ -f "$SITE/Machines" ]; then
+    count=$(grep -cve '^[[:space:]]*#' -e '^[[:space:]]*$' "$SITE/Machines")
+  fi
+  MACHINES_MSG="Copied the server's machine list: $count machine(s) ($(echo "$names" | tr -s ' ' ','))"
+  echo "$MACHINES_MSG"
+  return 0
+}
+
 if [ $# -lt 1 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
   usage
   exit 2
 fi
 
 REFRESH=false
+SETUP_LOGIN=""
 USER_MODE=false AUTO=false
 WANT_TLS=false TRUST="" PINFILE=""
 POS=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --refresh) REFRESH=true ;;
+    --login) SETUP_LOGIN="${2:-}"; shift ;;
     --user) USER_MODE=true ;;
     --auto) AUTO=true ;;
     --tls) WANT_TLS=true ;;
@@ -280,18 +394,6 @@ if [ "$USER_MODE" = true ]; then
   REMOTE="${ECCE_REALUSERHOME:-$HOME}/.ECCE/RemoteServer"
 fi
 
-#  --refresh: the machine list is not copied any more (issue #192).  A copy
-#  left by an earlier version stays in siteconfig/ as the lowest layer;
-#  local-machines.orig, if present, holds what the install had before it.
-if [ "$REFRESH" = true ]; then
-  echo "ecce-remote-setup --refresh: nothing to do. The server's machine list is"
-  echo "  not copied into $SITE any more; it is read from the server."
-  echo "  A copy from an earlier ecce-remote-setup is still in $SITE;"
-  echo "  the original files are in $SITE/local-machines.orig, if that exists."
-  exit 0
-fi
-
-
 if [ ! -d "$SITE" ]; then
   echo "ecce-remote-setup: no siteconfig at $SITE" >&2
   echo "  Set ECCE_HOME to the installation you want to configure." >&2
@@ -302,6 +404,19 @@ if [ "$USER_MODE" = false ] && [ ! -w "$SITE" ]; then
   echo "ecce-remote-setup: cannot write $SITE" >&2
   echo "  Run this as the owner of the installation (usually root)." >&2
   exit 1
+fi
+
+#  --refresh: the server configured by an earlier run, machine list only.
+if [ "$REFRESH" = true ]; then
+  URL="$(sed -n 's|.*<Url>[ \t]*\(https\{0,1\}://[^/<]*\).*|\1|p' \
+         "$REMOTE/DataServers" 2>/dev/null | head -n1)"
+  if [ -z "$URL" ]; then
+    echo "ecce-remote-setup: no central server configured ($REMOTE/DataServers);" >&2
+    echo "  run ecce-remote-setup <server-host> first." >&2
+    exit 1
+  fi
+  fetch_machine_list "$URL/Ecce" || exit 1
+  exit 0
 fi
 
 SCHEME=http
@@ -406,6 +521,9 @@ fi
 #  The broker needs no file of its own: under -remote it is on the data
 #  server's host (ecce-gateway-start), at ECCE_BROKER_PORT (default 8088),
 #  and takes the data server login as its account.
+
+MACHINES_MSG=""
+[ "$USER_MODE" = true ] || fetch_machine_list "$URL"
 
 echo
 echo "Wrote:"
