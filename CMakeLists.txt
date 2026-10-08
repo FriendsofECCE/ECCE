@@ -772,11 +772,26 @@ endif()
 # any of it -- the data server and broker are configured from
 # packaging/dataserver and packaging/gateway instead. So it goes whole
 # into the client component with no split needed.
+# The Windows and macOS clients do not ship the example "dummy" machine
+# (manual submission to an unreachable cluster): a desktop install starts
+# with localhost alone.
+set(_siteconfig_excludes)
+if(WIN32 OR APPLE)
+  file(READ ${CMAKE_SOURCE_DIR}/siteconfig/Machines _machines)
+  string(REGEX REPLACE "# A machine ECCE never contacts[^\n]*\n(#[^\n]*\n)*dummy\t[^\n]*\n" ""
+         _machines "${_machines}")
+  file(WRITE ${CMAKE_BINARY_DIR}/siteconfig-local/Machines "${_machines}")
+  install(FILES ${CMAKE_BINARY_DIR}/siteconfig-local/Machines
+          DESTINATION siteconfig COMPONENT client)
+  set(_siteconfig_excludes PATTERN "Machines" EXCLUDE
+      PATTERN "CONFIG.dummy" EXCLUDE PATTERN "dummy.Q" EXCLUDE)
+endif()
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/siteconfig/ DESTINATION siteconfig
         COMPONENT client
         PATTERN "RemoteServer" EXCLUDE
         PATTERN "DataServers" EXCLUDE
-        PATTERN "site_runtime" EXCLUDE)
+        PATTERN "site_runtime" EXCLUDE
+        ${_siteconfig_excludes})
 install(FILES ${CMAKE_BINARY_DIR}/siteconfig-local/DataServers
               ${CMAKE_BINARY_DIR}/siteconfig-local/site_runtime
         DESTINATION siteconfig

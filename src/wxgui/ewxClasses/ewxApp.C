@@ -1,3 +1,4 @@
+#include <wx/sysopt.h>
 #include <locale.h>
 #include <iostream>
   using namespace std;
@@ -166,6 +167,11 @@ bool ewxApp::OnInit()
    applyBackdropStyle();
 
    wxInitAllImageHandlers();
+#ifdef __WXMSW__
+   // Toolbar bitmaps keep their alpha: the default (1) remaps them to the
+   // 16 system colours, and transparent pixels come out black.
+   wxSystemOptions::SetOption("msw.remap", 2);
+#endif
 
    SetVendorName("EMSL");
    SetAppName("ECCE");

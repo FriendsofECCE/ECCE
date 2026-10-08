@@ -1663,6 +1663,19 @@ void WxLauncher::refreshLocality()
         user = (string)p_usernameTextCtrl->GetValue();
     string shell = (string)p_remShellChoice->GetStringSelection();
 
+#ifdef _WIN32
+    // On Windows a job for this computer runs here directly: no login, no
+    // remote shell, and a run folder in the user's home unless one is set.
+    bool local = !RCommand::isRemote(machRgstn->fullname(), shell, user);
+    if (wxWindow *shellPanel = FindWindow(ID_PANEL_WXLAUNCHER_REMSHELL))
+        shellPanel->Show(!local);
+    if (local)
+        p_password1Panel->Show(false);
+    if (local && p_calcDrctyPanel->IsShown() &&
+        STLUtil::trim((string)p_calcDrctyTextCtrl->GetValue()).empty())
+        p_calcDrctyTextCtrl->SetValue(string(Ecce::realUserHome()) + "/ecce-runs");
+#endif
+
     string label = machRgstn->fullname();
     string note = RCommand::localityNote(machRgstn->fullname(), shell, user);
     if (!note.empty())
