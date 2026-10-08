@@ -69,6 +69,10 @@ bool NModeVectCmd::execute()
 
    // Get the property 
    PropVecTable* vecTable = (PropVecTable*)calc->getProperty("VIB");
+   // One vector per atom, or none at all.
+   if (vecTable && vecTable->rows() != (int)sgfrag->numAtoms()) {
+      vecTable = 0;
+   }
    if (vecTable) {
       ret = true;
       vector<TAtm*>* atoms = sgfrag->atoms();
