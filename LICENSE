@@ -45,5 +45,5 @@ Third-party icons
 
 The toolbar and dialog icons ECCE draws where the platform's icon theme has
 none (Windows, macOS) are from Lucide (https://lucide.dev), ISC License,
-Copyright (c) Lucide Contributors 2022 and Cole Bemis 2013-2022 (Feather,
-MIT). The full licence text is in data/client/pixmaps/lucide/LICENSE.
+Copyright (c) 2026 Lucide Icons and Contributors; icons derived from Feather
+are MIT, Copyright (c) 2013-present Cole Bemis. The full licence text is in data/client/pixmaps/lucide/LICENSE.
