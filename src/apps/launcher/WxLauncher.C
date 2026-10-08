@@ -341,7 +341,10 @@ void WxLauncher::refreshControls()
     p_inCtrlUpdate = true;
 
     RefMachine *machRgstn = p_slctPrefs->getRegisteredMachine();
-    p_machineNameStaticText->SetLabel(machRgstn->fullname());
+    // The host name and where the job runs are in the choice's tooltip;
+    // the label beside it is only for "None registered".
+    p_machineNameStaticText->SetLabel("");
+    p_machineNameStaticText->Hide();
 
     bool isBatch = p_slctPrefs->isOptionSupported("Q");
 
@@ -1683,23 +1686,16 @@ void WxLauncher::refreshLocality()
         p_password1Panel->Show(false);
 #endif
 
-    string label = machRgstn->fullname();
     string note = RCommand::localityNote(machRgstn->fullname(), shell, user);
-    // On a line of its own: beside the name it set the window's width.
+    string tip = machRgstn->fullname();
+    if (!user.empty() && note.empty())
+        tip += ", as " + user;
     if (!note.empty())
-        label += "\n(" + note + ")";
-
-    if ((string)p_machineNameStaticText->GetLabel() != label)
-    {
-        p_machineNameStaticText->SetLabel(label);
-        p_machineNameStaticText->SetToolTip(note.empty() ? wxString("") :
-            wxString("This machine names the computer ECCE is running on. "
-                     "Jobs for it run locally when the Username is empty or "
-                     "your own, and over the remote shell to it as that user "
-                     "otherwise -- e.g. through a port forward to a cluster."));
-        if (!p_inCtrlUpdate)
-            this->Layout();
-    }
+        tip += " (" + note + ")\n\nThis machine names the computer ECCE is "
+               "running on. Jobs for it run locally when the Username is "
+               "empty or your own, and over the remote shell to it as that "
+               "user otherwise -- e.g. through a port forward to a cluster.";
+    p_machinesChoice->SetToolTip(tip);
 }
 
 
@@ -1868,6 +1864,7 @@ void WxLauncher::setContext(string cntxt)
 
         p_machinesChoice->Show(false);
         p_machineNameStaticText->SetLabel("(" + mesg + ".)");
+        p_machineNameStaticText->Show();
     }
 
     this->Layout();
