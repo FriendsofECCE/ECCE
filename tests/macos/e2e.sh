@@ -75,24 +75,14 @@ quit
 M
 ECCE_MACHREG_SCRIPT=$E2E/m.script limit 120 ecce-machregister > "$OUT/machreg.log" 2>&1
 grep -e 'MACHREG\] alert' -e 'script done' -e FAIL "$OUT/machreg.log" | tee -a "$SUMMARY"
-if ! grep -q '^MOPAC:' "$ECCE_REALUSERHOME/.ECCE/CONFIG.localhost" 2>/dev/null; then
-  say "Find did not fill the paths; entering them by hand"
-  cat > "$E2E/m2.script" <<M
-wait 3000
-select localhost
-tab codes
-code MOPAC
-set code:mopac $MOPAC
-code NWChem
-set code:nwchem $NWCHEM
-code ORCA
-set code:orca $ORCADIR/orca
-save
-wait 2000
-quit
-M
-  ECCE_MACHREG_SCRIPT=$E2E/m2.script limit 120 ecce-machregister > "$OUT/machreg2.log" 2>&1
-fi
+# What Find could not fill is entered by hand, as a user would.
+CFG=$ECCE_REALUSERHOME/.ECCE/CONFIG.localhost
+{ echo 'wait 3000'; echo 'select localhost'; echo 'tab codes'
+  grep -q '^MOPAC:' "$CFG" 2>/dev/null || { say "Find found no MOPAC; entering it"; echo 'code MOPAC'; echo "set code:mopac $MOPAC"; }
+  grep -q '^NWChem:' "$CFG" 2>/dev/null || { say "Find found no NWChem; entering it"; echo 'code NWChem'; echo "set code:nwchem $NWCHEM"; }
+  grep -q '^ORCA:' "$CFG" 2>/dev/null || { say "Find found no ORCA; entering it"; echo 'code ORCA'; echo "set code:orca $ORCADIR/orca"; }
+  echo save; echo 'wait 2000'; echo quit; } > "$E2E/m2.script"
+ECCE_MACHREG_SCRIPT=$E2E/m2.script limit 120 ecce-machregister > "$OUT/machreg2.log" 2>&1
 # NWChem finds its basis library through the environment conda activation sets.
 grep -q NWCHEM_BASIS_LIBRARY "$ECCE_REALUSERHOME/.ECCE/CONFIG.localhost" || cat > "$E2E/m3.script" <<M
 wait 3000
@@ -124,7 +114,8 @@ runcase() {
   printf 'wait 4000\nadd O Bent 0 0 0\nwait 1500\ncmd addh\nwait 1500\ninfo\nexpect atoms 3\nsave\nwait 4000\nquit\n' > "$E2E/b.script"
   ECCE_BUILDER_SCRIPT=$E2E/b.script limit 150 ecce-builder -context "$url" > "$OUT/$c.builder.log" 2>&1
   say "builder: $(grep -c ': ok$' "$OUT/$c.builder.log") steps ok, $(grep BUILDER: "$OUT/$c.builder.log" | head -1)"
-  { echo 'wait 3000'; echo ready
+  # ECCE-QM has no Runtype dialog, so `ready` would wait for ever.
+  { echo 'wait 3000'; if [ "$c" = ecceqm ]; then echo 'wait 6000'; else echo ready; fi
     [ -n "$theory" ] && echo "theory $theory"
     [ -n "$basis" ] && echo "basis $basis"
     echo 'wait 1500'; echo info; echo 'button save'; echo 'wait 5000'; echo info; echo quit; } > "$E2E/c.script"
@@ -150,9 +141,9 @@ runcase() {
   ( cd "$d"
     case $c in
       mopac) "$MOPAC" mopac.mop >/dev/null 2>&1; grep -m1 'FINAL HEAT' mopac.out ;;
-      nwchem) NWCHEM_BASIS_LIBRARY=$NWLIB "$NWCHEM" nwchem.nw > nwchem.out 2>&1; grep 'Total SCF energy' nwchem.out | tail -1 ;;
-      orca) PATH=$ORCADIR:$PATH "$ORCADIR/orca" orca.inp > orca.out 2>&1; grep 'FINAL SINGLE' orca.out; tail -2 orca.out ;;
-      ecceqm) f=$(ls *.qmin 2>/dev/null | head -1); say "direct input: $f"; "$ECCE_HOME/bin/ecce-qm" "$f" > ecceqm.out 2>&1; tail -3 ecceqm.out ;;
+      nwchem) f=$(ls *.nw | head -1); NWCHEM_BASIS_LIBRARY=$NWLIB "$NWCHEM" "$f" > direct.out 2>&1; grep 'Total SCF energy' direct.out | tail -1 ;;
+      orca) f=$(ls *.orcain | head -1); PATH=$ORCADIR:$PATH "$ORCADIR/orca" "$f" > direct.out 2>&1; grep 'FINAL SINGLE' direct.out; tail -2 direct.out ;;
+      ecceqm) f=$(ls *.qmin 2>/dev/null | head -1); echo "input $f"; ECCE_BASIS_DIR="$ECCE_HOME/data/admin/basissets" OMP_NUM_THREADS=1 "$ECCE_HOME/bin/ecce-qm" "$f" > direct.out 2>&1; tail -3 direct.out ;;
     esac ) 2>&1 | sed 's/^/direct: /' | tee -a "$SUMMARY"
   # the Builder shows the MOs
   local metrics=$OUT/$c.panes.txt; rm -f "$metrics"

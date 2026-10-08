@@ -17,6 +17,9 @@ the second page.
    silicon and a water molecule in a box, with a periodic cell, plane waves
    and pseudopotentials.
 
+6. [Running codes on macOS](running-codes-on-macos.md): MOPAC, ORCA and NWChem
+   on a Mac, without administrator rights.
+
 Reference:
 
 - [Register Machines](register-machines.md): the window's tabs, the site
