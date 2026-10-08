@@ -171,6 +171,79 @@ script, `grompp.out` and the log.
 Writing a failing test first is easiest by copying a stage in
 `STAGES`: a stage is only a model and the structure it starts from.
 
+## MINFF mineral topologies (#241, step 1)
+
+`scripts/minff_topology.py` builds a GROMACS system for a mineral with the
+[MINFF](https://github.com/mholmboe/minff) force field. It has no wx
+dependency; the windows will only collect its options and show its summary.
+
+```
+minff_topology.py build CELL -o OUTDIR [--replicate NA NB NC]
+    [--substitute FROM TO COUNT]... [--min-distance 5.5] [--seed N]
+    [--variant gminff|tminff] [--mineral NAME] [--angle-k 0|250|500|1500]
+    [--water opc3|opc|spce|tip3p|tip3p-fb|tip4p-fb|tip4pew]
+minff_topology.py minerals [--angle-k K]     # the tailored (TMINFF) minerals
+minff_topology.py fetch                       # download min.ff, print where
+```
+
+`CELL` is a `.pdb`, `.gro` or `.cif` unit cell (anything atomipy's
+`import_auto` reads). `--substitute Al Mgo 4` replaces 4 atoms of type (or
+element) `Al` by type `Mgo`, at least `--min-distance` angstrom apart;
+`--seed` makes it repeatable. OUTDIR gets `min.itp` (the mineral molecule,
+`MIN`), `conf.gro` (with the box), `topol.top`, `minff.json` (atoms, counts
+per type, total charge, `untyped_atoms`, `types_missing_from_ff`, variant),
+and a copy of `min.ff/` so the directory runs on any machine. For
+`--variant tminff` also `min_bonded.itp`.
+
+**Pieces.** atomipy assigns types by nearest neighbours and computes the
+oxygen charges for the particular structure (so an Al-to-Mg substitution
+changes the oxygens around it); its `write_itp` writes the bonds and
+angles, with the angle constant `--angle-k` written into every O-M-O
+angle. `topol.top` then selects the parameters the way min.ff expects:
+
+* GMINFF: `#define GMINFF_k<k>` and `#include "min.ff/forcefield.itp"`.
+* TMINFF: `#define <Mineral>_k<k>` and the tailored
+  `min.ff/ffnonbonded_tminff_k<k>.itp` in place of the general file that
+  `forcefield.itp` includes. `ffbonded.itp` lists bond and angle types a
+  single mineral block does not define, which `grompp` rejects, so
+  `min_bonded.itp` is `ffbonded.itp` restricted to the types of the block.
+* both: the water model's `-D` name (`OPC3`) and its ion set
+  (`OPC3_HFE_LM`), then `ions.itp` and the water `.itp`.
+
+These are `#define`s in the topology, not `define =` in the `.mdp`, so the
+`.mdp` need not know the variant. **The `.mdp` does need
+`periodic-molecules = yes`**: the mineral is one molecule bonded across the
+box, and without it `mdrun` stops with "inconsistent shifts" / a domain
+decomposition error.
+
+**min.ff** is not in this repository (the minff repository has no licence
+yet). It is fetched at a pinned commit (`MINFF_COMMIT` in the script) into
+`~/.cache/ecce/minff/<commit>` (`$XDG_CACHE_HOME` is honoured);
+`ECCE_MINFF_DIR` points at an existing checkout instead.
+
+**atomipy** is found through `ECCE_ATOMIPY_PYTHON` (a python that has it),
+else `python3`; without it the script says `pip install atomipy`.
+
+**Tests**: `tests/minff/run_tests.py` (ctest `minff`; exit 77 = skipped
+without atomipy, `gmx` or network for min.ff). It builds kaolinite (GMINFF,
+k=500), the montmorillonite layer of the authors' hydrated example
+`Systems/conf/preem27.gro` (TMINFF; `UC_conf` has none) and pyrophyllite
+with 4 Al-to-Mg substitutions. Types, charges and total charge are compared
+with atomipy's own pipeline run directly (`oracle.py`), the montmorillonite
+also with the authors' MATLAB-made `Systems/itp/min27.itp`; each system
+then goes through `grompp` and 200 steepest-descent steps, and the
+potential energy must be finite and lower at the end. Charged systems
+(montmorillonite -48, substituted pyrophyllite -4) give grompp's net-charge
+warning, which the test allows (counter-ions are a later step).
+
+* **Linux:** `pip install atomipy` (a venv is fine; point
+  `ECCE_ATOMIPY_PYTHON` at its `python`), `apt install gromacs`, then
+  `python3 tests/minff/run_tests.py` or `ctest -R minff` from a build.
+* **macOS:** `brew install gromacs`, `python3 -m pip install atomipy`
+  (use a venv if the system Python refuses; set `ECCE_ATOMIPY_PYTHON`),
+  then the same command. The test needs only the standard library of the
+  python that runs it.
+
 ## Step 2 (not built): Prepare
 
 Everything above takes a system as given. A Prepare task would build one

@@ -1783,6 +1783,14 @@ add_test(NAME gromacs_md
                  ${CMAKE_SOURCE_DIR}/tests/gromacs_md/run_tests.py)
 set_tests_properties(gromacs_md PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 
+# tests/minff -- MINFF topology builder (scripts/minff_topology.py, #241)
+# against atomipy run directly, then grompp + a short EM.  SKIPs (77)
+# without atomipy, gmx, or network access to fetch min.ff.
+add_test(NAME minff
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/minff/run_tests.py)
+set_tests_properties(minff PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+
 # tests/mqtt -- the messaging library against a private mosquitto on a Unix
 # socket; checks delivery, not just acknowledgement.  "auth" is the same on
 # a TCP broker with two accounts and the shipped access rules.  SKIPs (77)
