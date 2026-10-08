@@ -1727,6 +1727,11 @@ if(PYTHON3_EXECUTABLE)
       ecceutil ${XercesC_LIBRARIES})
   endif()
 
+  add_executable(testAuthCacheLastUrl tests/auth/testAuthCacheLastUrl.C)
+  target_link_libraries(testAuthCacheLastUrl PRIVATE
+    eccetdat eccefaces eccexml ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME authcache_last_url COMMAND testAuthCacheLastUrl)
+
   # tests/launch -- submit real jobs on localhost/Shell through the real
   # Launch class and assert they reach "completed".  launchjob is a test
   # driver and is not installed.  The suites SKIP (77) when a prerequisite
