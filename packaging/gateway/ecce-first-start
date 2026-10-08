@@ -50,9 +50,15 @@ def tool(name):
 
 
 # pythonw has no standard streams, and its children need no console window.
-for _n in ("stdout", "stderr"):
-    if getattr(sys, _n) is None:
-        setattr(sys, _n, open(os.devnull, "w"))
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w")
+if sys.stderr is None:
+    # What went wrong is then in ~/.ECCE/first-start.log.
+    try:
+        os.makedirs(STATE, exist_ok=True)
+        sys.stderr = open(os.path.join(STATE, "first-start.log"), "a")
+    except OSError:
+        sys.stderr = open(os.devnull, "w")
 
 
 def run(cmd, timeout=30):

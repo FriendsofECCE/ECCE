@@ -81,6 +81,10 @@ def run(name, answer, **extra):
         time.sleep(1)
     subprocess.run(["taskkill", "/F", "/IM", "organizer.exe"], capture_output=True)
     time.sleep(2)
+    for f in (profile + "/.ECCE/first-start.log",):
+        if os.path.exists(f):
+            text += "\n" + f + ":\n" + open(f, errors="replace").read()
+    text += "\nsiteconfig: %s\n" % sorted(os.listdir(os.path.join(root, "siteconfig")))
     print("%s: rc=%d organizer=%s\n%s" % (name, rc, up, text))
     return rc, profile, up
 
