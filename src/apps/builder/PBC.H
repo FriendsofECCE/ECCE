@@ -43,6 +43,9 @@ class PBC : public PBCGUI,
       void replicate(int a, int b, int c);
       void execute(PBCCmd *cmd);
       void makeSuperLattice();
+      /// Test hook (ECCE_BUILDER_SCRIPT): one panel action, as a user's click
+      /// or Enter; returns "" or what went wrong.
+      std::string scriptCommand(const std::vector<std::string>& w);
 
 
       virtual    void OnChoicePbcTypeSelected( wxCommandEvent& event );
