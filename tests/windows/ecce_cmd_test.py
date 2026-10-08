@@ -84,6 +84,7 @@ def run(name, answer, **extra):
     for f in (profile + "/.ECCE/first-start.log",):
         if os.path.exists(f):
             text += "\n" + f + ":\n" + open(f, errors="replace").read()
+    text += "\npython dir: %s\n" % sorted(os.listdir(os.path.join(root, "python")))[:12]
     text += "\nsiteconfig: %s\n" % sorted(os.listdir(os.path.join(root, "siteconfig")))
     print("%s: rc=%d organizer=%s\n%s" % (name, rc, up, text))
     return rc, profile, up
