@@ -11,6 +11,7 @@
 #include <wx/link.h>
 #include <wx/listctrl.h>
 #include <wx/sizer.h>
+#include <wx/stattext.h>
 #include <wx/textctrl.h>
 #include <wx/tooltip.h>
 #include <wx/wrapsizer.h>
@@ -22,7 +23,10 @@
 #include "util/InternalException.H"
 #include "util/PreferenceLabels.H"
 
+#include "tdat/Fragment.H"
+#include "tdat/PropVecTable.H"
 #include "tdat/PropVector.H"
+#include "tdat/TAtm.H"
 #include "tdat/PropVecString.H"
 
 #include "dsm/ICalculation.H"
@@ -40,6 +44,8 @@
 #include "viz/NModeStepCmd.H"
 #include "viz/NModeTraceCmd.H"
 #include "viz/NModeVectCmd.H"
+#include "viz/SGContainer.H"
+#include "viz/SGFragment.H"
 
 #include "wxviz/SGSelection.H"
 #include "wxviz/WxVizToolFW.H"
@@ -95,7 +101,9 @@ NModePanel::NModePanel()
     p_mode(0),
     p_numAnimations(0),
     p_isValid(false),
-    p_lastRadioSel(-1)
+    p_lastRadioSel(-1),
+    p_structureOk(true),
+    p_staleNote(NULL)
 {
    p_vecAmplitude = 1.0;
    p_aniAmplitude = 1.0;
@@ -119,7 +127,9 @@ NModePanel::NModePanel(IPropCalculation *calculation,
     p_mode(0),
     p_numAnimations(0),
     p_isValid(false),
-    p_lastRadioSel(-1)
+    p_lastRadioSel(-1),
+    p_structureOk(true),
+    p_staleNote(NULL)
 {
    Create(calculation, parent, id, pos, size, style, name);
    p_vecAmplitude = 1.0;
@@ -238,6 +248,19 @@ bool NModePanel::Create(IPropCalculation *calculation,
    // OnModeSelection()/showMode() touch via FindWindow() actually
    // exists, so it's safe to stop ignoring premature grid selection
    // events (see the guards in OnModeSelection() and showMode()).
+   Fragment calcFrag;
+   if (calculation && calculation->getFragment(calcFrag)) {
+      for (size_t i = 0; i < calcFrag.numAtoms(); i++)
+         p_calcElements.push_back(calcFrag.atomRef(i)->atomicNumber());
+   }
+   p_staleNote = new wxStaticText(this, wxID_ANY,
+         "The structure has been changed since this calculation ran. "
+         "Its normal modes belong to the calculated structure and are "
+         "not shown.");
+   p_staleNote->Wrap(300);
+   p_staleNote->Hide();
+   GetSizer()->Insert(0, p_staleNote, 0, wxEXPAND|wxALL, 5);
+
    p_isValid = true;
 
    initialize();
@@ -337,7 +360,48 @@ bool NModePanel::isGraphShown()
 
 void NModePanel::OnTimer(wxTimerEvent& evt)
 {
-   nextStep();
+   if (checkStructure()) nextStep();
+}
+
+
+bool NModePanel::modesApply()
+{
+   SGFragment *frag = getFW().getSceneGraph().getFragment();
+   PropVecTable *vib =
+         dynamic_cast<PropVecTable*>(getCalculation()->getProperty("VIB"));
+   if (!frag || !vib) return false;
+   const size_t n = frag->numAtoms();
+   if ((int)n != vib->rows() || n != p_calcElements.size()) return false;
+   for (size_t i = 0; i < n; i++)
+      if (frag->atomRef(i)->atomicNumber() != p_calcElements[i]) return false;
+   return true;
+}
+
+
+/**
+ * Enables the panel while the viewer holds the calculation's structure and
+ * disables it, with a note, once that has been edited: the modes have one
+ * vector per atom of the calculated structure and mean nothing for another.
+ */
+bool NModePanel::checkStructure()
+{
+   const bool ok = modesApply();
+   if (ok == p_structureOk) return ok;
+   p_structureOk = ok;
+   for (wxWindow *child : GetChildren())
+      if (child != p_staleNote) child->Enable(ok);
+   p_staleNote->Show(!ok);
+   if (!ok) {
+      p_timer->Stop();
+      SGContainer& sg = getFW().getSceneGraph();
+      sg.getNMRoot()->whichChild.setValue(SO_SWITCH_NONE);
+      sg.getNMVecRoot()->removeAllChildren();
+      sg.getNMVecRoot()->whichChild.setValue(SO_SWITCH_NONE);
+      sg.getcsSwitch()->whichChild.setValue(SO_SWITCH_ALL);
+      sg.updateNMVecStarts();
+   }
+   Layout();
+   return ok;
 }
 
 /**
@@ -823,6 +887,7 @@ void NModePanel::showMode(int index)
    if (!p_isValid) {
       return;
    }
+   if (!checkStructure()) return;
 
    p_currentStep = 0;
    p_mode = index;
@@ -894,6 +959,7 @@ void NModePanel::setSlider()
 
 void NModePanel::processStep(int step)
 {
+   if (!checkStructure()) return;
    p_currentStep = step;
 
    WxVizToolFW& fw = getFW();
@@ -947,6 +1013,7 @@ void NModePanel::previousStep()
 
 void NModePanel::start()
 {
+   if (!checkStructure()) return;
    if (!p_timer->IsRunning()) {
       ewxTextCtrl *text = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_NMODE_DELAY);
       p_timer->Start(text->getValueAsInt());
@@ -1026,6 +1093,10 @@ void NModePanel::OnTextctrlNmodeDelayEnter( wxCommandEvent& event )
 
 void NModePanel::OnEndSliderMotion(wxScrollEvent& event)
 {
+   if (!checkStructure()) {
+      event.Skip();
+      return;
+   }
    double value = static_cast<double>(p_slider->GetFloatValue());
 
    WxVizToolFW& fw = getFW();
@@ -1072,6 +1143,7 @@ void NModePanel::OnSliderTextEnter(wxCommandEvent& event)
 
 void NModePanel::receiveFocus()
 {
+   if (!checkStructure()) return;
    wxRadioBox *radbox = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
    p_lastRadioSel = radbox->GetSelection();
    if (p_lastRadioSel == 0) {
@@ -1089,7 +1161,8 @@ void NModePanel::loseFocus()
    sg.getNMRoot()->whichChild.setValue(SO_SWITCH_NONE);
    sg.getcsSwitch()->whichChild.setValue(SO_SWITCH_ALL);
    p_timer->Stop();
-   selectFragStep(-1); // restore in case we messed it up with animation
+   // Restore after the animation, never over an edited structure.
+   if (checkStructure()) selectFragStep(-1);
 }
 
 void NModePanel::OnBitmapbuttonStartClick( wxCommandEvent& event )
@@ -1190,6 +1263,12 @@ void NModePanel::OnRadioboxSelected( wxCommandEvent& event )
 void NModePanel::OnRadioboxUpdateUI( wxUpdateUIEvent& event )
 {
    wxRadioBox *radbox = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
+   //  An edit while the panel has the viewer: disable it, or show the
+   //  modes again once the structure is the calculation's again (undo).
+   if (hasFocus() && p_structureOk != modesApply()) {
+      if (checkStructure()) receiveFocus();
+      return;
+   }
    int sel = radbox->GetSelection();
    if (sel != p_lastRadioSel) {
       p_lastRadioSel = sel;
@@ -1233,6 +1312,7 @@ void NModePanel::OnModeSelection( wxGridEvent& event )
 
 void NModePanel::updateVectors()
 {
+   if (!checkStructure()) return;
    wxCheckBox *tgl = (wxCheckBox*)FindWindow(ID_CHECKBOX_NMODE_VECSIGN);
    bool sign = tgl->IsChecked();
 

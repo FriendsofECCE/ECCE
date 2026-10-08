@@ -62,6 +62,11 @@ bool NModeStepCmd::execute()
    }
 
 
+   // No animation built, or it was built for a different structure.
+   if (propSGFrag == 0 || baseFrag == 0 ||
+       propSGFrag->numAtoms() != baseFrag->numAtoms()) {
+      return false;
+   }
    int natoms = propSGFrag->numAtoms() ;
 
    // get the table that contains all the step coordinates

@@ -5271,6 +5271,8 @@ void Builder::updatePropertyMenus()
         if (w[0] == "plotshot") return plotShotCommand(s, w, outdir);
         //  "gt...": the Geometry Trace stress commands (#217).
         if (w[0].compare(0, 2, "gt") == 0) return traceStressCommand(s, w);
+        //  "vib...": the Normal Modes panel on an edited structure.
+        if (w[0].compare(0, 3, "vib") == 0) return nmodeTestCommand(s, w);
         //  "mogrid <name>": the range of the grid last computed (an MO
         //  Compute), "none" without one -> <name>.txt.
         if (w[0] == "mogrid" && w.size() == 2) {

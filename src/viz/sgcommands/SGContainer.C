@@ -1954,6 +1954,14 @@ double SGContainer::displayedSphereRadius(int idx)
 void SGContainer::updateNMVecStarts()
 {
    SoSwitch *root = getNMVecRoot();
+   // Arrows belong to atoms by index: after an edit that changed the atom
+   // count they point from the wrong atoms, so drop them.
+   SGFragment *frag = getFragment();
+   if (root->getNumChildren() > 0 &&
+       (!frag || root->getNumChildren() != (int)frag->numAtoms())) {
+      root->removeAllChildren();
+      root->whichChild.setValue(SO_SWITCH_NONE);
+   }
    for (int j = 0; j < root->getNumChildren(); j++) {
       VRVector *v = dynamic_cast<VRVector*>(root->getChild(j));
       if (v) v->startRadius(displayedSphereRadius(j));

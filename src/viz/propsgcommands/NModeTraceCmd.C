@@ -99,6 +99,12 @@ bool NModeTraceCmd::execute()
   // Get the property 
   PropVecTable* nmodes = dynamic_cast<PropVecTable*>(calc->getProperty("VIB"));
   
+  //  One vector per atom: an edited structure is not the one these modes
+  //  belong to, and must not be replaced by the calculation's.
+  if (nmodes && sgfrag->numAtoms() != (size_t)nmodes->rows()) {
+    nmodes = 0;
+  }
+
   if (nmodes && animationTable) {
     ret = true ;
 
@@ -112,6 +118,9 @@ bool NModeTraceCmd::execute()
     sgfrag->clear();
     calc->getFragment(*sgfrag);
     calc->getFragmentStep(sgfrag, -1); // hardwired to last step 
+    // Rebuild the bond index the displays read; it still described the
+    // structure before the reload.
+    sgfrag->touchNumbers();
     PropSGFragment* propSGFrag = new PropSGFragment(*sgfrag);
     propSGFrag->setName("HiddenNMFrag");
 
