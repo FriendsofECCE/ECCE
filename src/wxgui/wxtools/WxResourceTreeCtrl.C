@@ -574,7 +574,21 @@ WxResourceTreeCtrl::findNode(const EcceURL & targetUrl,
   }
   // When currentUrl equals EcceURL(), it means the node is the hidden root
   // of the tree
-  else if (targetUrl.isChildOf(currentUrl) || currentUrl == EcceURL()) {
+  else if (currentUrl == EcceURL()) {
+    // The hidden root.  Its item data's id is not the root's id on wxMSW
+    // (no child is found under it there), so walk GetRootItem() itself.
+    wxTreeItemIdValue cookie;
+    wxTreeItemId rootId = GetRootItem();
+    for (wxTreeItemId childId = GetFirstChild(rootId, cookie);
+         childId.IsOk(); childId = GetNextChild(rootId, cookie)) {
+      WxResourceTreeItemData * childNode =
+        dynamic_cast<WxResourceTreeItemData *>(GetItemData(childId));
+      result = findNode(targetUrl, childNode, openWhenFound, loadFromServer);
+      if (result)
+        break;
+    }
+  }
+  else if (targetUrl.isChildOf(currentUrl)) {
     if (loadFromServer)
       loadChildren(current, false);
     if (openWhenFound)

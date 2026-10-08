@@ -1,10 +1,12 @@
 # What a user meets first on a Windows desktop, checked without clicking:
-# the local machine is registered under the computer's real name, the tree's
-# focus handler settles on a selection when nothing is selected (it looped
-# forever on wxMSW), a project can be made in Local data, and the GUI
-# programs carry the application icon.  Exit 1 on any failure.
+# the local machine is registered under the computer's real name, the home
+# is open and selected at start, the focus handler settles on a selection
+# (it looped forever on wxMSW when nothing was selected), a project can be
+# made in Local data, and the GUI programs carry the application icon.
+# Exit 1 on any failure.
 #   organizer-probe.ps1 -Ecce <install root with bin\organizer.exe> -Out <dir>
-param([string]$Ecce, [string]$Out)
+#     [-Exe <a build's organizer.exe>] [-PathPrefix <its DLL dirs>]
+param([string]$Ecce, [string]$Out, [string]$Exe = "", [string]$PathPrefix = "")
 $ErrorActionPreference = "Continue"
 $Ecce = (Resolve-Path $Ecce).Path
 New-Item -ItemType Directory -Force "$Out\home", "$Out\local" | Out-Null
@@ -39,7 +41,8 @@ foreach ($a in "organizer", "builder", "calced", "basistool", "machregister", "l
 
 # The environment ecce.cmd gives, with HOST the real computer name as there.
 $sys = "$env:SystemRoot\System32;$env:SystemRoot"
-$env:Path = "$Ecce\bin;$Ecce\usr\bin;$Ecce\python;$Ecce\strawberry\perl\site\bin;$Ecce\strawberry\perl\bin;$Ecce\strawberry\c\bin;$sys"
+if ($Exe -eq "") { $Exe = "$Ecce\bin\organizer.exe" }
+$env:Path = "$PathPrefix$Ecce\bin;$Ecce\usr\bin;$Ecce\python;$Ecce\strawberry\perl\site\bin;$Ecce\strawberry\perl\bin;$Ecce\strawberry\c\bin;$sys"
 $env:ECCE_HOME = $Ecce -replace "\\", "/"
 $env:ECCE_REALUSER = $env:USERNAME
 $env:HOST = $env:COMPUTERNAME
@@ -54,7 +57,7 @@ $env:ECCE_TEST_ORGANIZER = $cmds
 Say "HOST=$env:HOST"
 
 $err = "$Out\organizer.err.txt"
-$p = Start-Process "$Ecce\bin\organizer.exe" -PassThru -RedirectStandardError $err -RedirectStandardOutput "$Out\organizer.out.txt"
+$p = Start-Process $Exe -PassThru -RedirectStandardError $err -RedirectStandardOutput "$Out\organizer.out.txt"
 function Ask($cmd, $wait = 60) {
   Add-Content $cmds $cmd
   for ($i = 0; $i -lt $wait; $i++) {
@@ -68,6 +71,7 @@ function Ask($cmd, $wait = 60) {
 $probe = Ask "probe"
 Say "probe: $probe"
 Check ($probe -match "register=(added|known)") "local machine registered"
+Check ($probe -match "homenode=yes selected-before=yes") "the home is open and selected at start"
 Check ($probe -match "selection=\S" -and $probe -notmatch "selection=none") "the tree settles on a selection"
 $m = Get-Content "$Out\home\.ECCE\MyMachines" -ErrorAction SilentlyContinue
 Check ([bool]($m | Select-String -SimpleMatch "$env:COMPUTERNAME")) "MyMachines lists $env:COMPUTERNAME"
