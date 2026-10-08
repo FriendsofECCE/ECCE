@@ -915,6 +915,9 @@ void CalcMgr::setContextPanel()
   p_splitterWindow->SetAutoLayout(true);
 
   Layout();
+  // wxMSW does not size a window put in with ReplaceWindow until the
+  // splitter itself is resized: the panel stayed at its creation size.
+  p_splitterWindow->UpdateSize();
 
   //  cerr << "\nLeave setContextPanel of: " << p_panelNode->getName() << endl;
 

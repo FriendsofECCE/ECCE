@@ -94,9 +94,11 @@ Say "walk: $walk"
 Check ($walk -like "ok*") "the tree walks from the home"
 
 # Tools started from the Organizer (its tool buttons), and CalcEd's Builder.
-function Windows($name) {
-  @(Get-Process $name -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 })
+# Only this tree's programs: another ECCE may be open on the same desktop.
+function Mine($name) {
+  @(Get-Process $name -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$Ecce\bin\*" })
 }
+function Windows($name) { @(Mine $name | Where-Object { $_.MainWindowHandle -ne 0 }) }
 function WaitWindow($name, $count = 1, $wait = 60) {
   for ($i = 0; $i -lt $wait; $i++) { if ((Windows $name).Count -ge $count) { return $true }; Start-Sleep 1 }
   return $false
@@ -111,7 +113,7 @@ Add-Content $calcedCmds "builder"
 Check (WaitWindow "builder") "the Builder opens from the Calculation Editor"
 Say ("start Builder: " + (Ask "start Builder $calc"))
 Start-Sleep 10
-Check (@(Get-Process builder -ErrorAction SilentlyContinue).Count -eq 1) "the open Builder is reused, not started again"
+Check ((Mine builder).Count -eq 1) "the open Builder is reused, not started again"
 foreach ($t in @(@("Basistool", "basistool"), @("Launcher", "launcher"), @("MachineRegister", "machregister"))) {
   Say ("start $($t[0]): " + (Ask "start $($t[0]) $calc"))
   Check (WaitWindow $t[1]) "$($t[0]) opens from the Organizer"
@@ -122,7 +124,7 @@ Check (WaitWindow "builder" 2) "the Viewer opens from the Organizer"
 $p.Refresh()
 Check ((-not $p.HasExited) -and $p.Responding) "organizer alive and responding"
 if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }
-foreach ($n in "calced", "builder", "basistool", "launcher", "machregister") { Get-Process $n -ErrorAction SilentlyContinue | Stop-Process -Force }
+foreach ($n in "calced", "builder", "basistool", "launcher", "machregister") { Mine $n | Stop-Process -Force }
 & "$Ecce\usr\bin\bash.exe" "$Ecce/bin/ecce-broker-win" stop 2>&1 | Out-Null
 Check (-not (Get-ChildItem "$Out\home\.ECCE" -Filter "broker_*_$env:ECCE_SESSION_ID" -ErrorAction SilentlyContinue)) "the broker file is gone after stop"
 Get-Content $err -Tail 15 -ErrorAction SilentlyContinue | ForEach-Object { Say "  | $_" }
