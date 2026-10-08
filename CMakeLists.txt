@@ -2270,6 +2270,11 @@ if(PYTHON3_EXECUTABLE)
   # Builder's Add Structure from File does.
   add_executable(fragreaders tests/fragreaders/fragreaders.C)
   target_link_libraries(fragreaders PRIVATE eccetdat ecceutil)
+  # tests/structlib: every Teaching > Diatomics entry of the Structure Library
+  # loads with its stored bond length (and the library agrees with
+  # tests/qm/diatomic_order_test.py).
+  add_executable(structlib_diatomics tests/structlib/diatomics.C)
+  target_link_libraries(structlib_diatomics PRIVATE eccetdat ecceutil)
   # tests/importcode: the code Import Calculation picks for an output file.
   add_executable(importcode tests/importcode/importcode.C)
   target_include_directories(importcode PRIVATE ${XercesC_INCLUDE_DIRS})
@@ -2330,6 +2335,11 @@ if(PYTHON3_EXECUTABLE)
            COMMAND fragreaders ${CMAKE_CURRENT_SOURCE_DIR}/tests/fragreaders/data)
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/fragreaders-home)
   set_tests_properties(fragreaders PROPERTIES ENVIRONMENT
+    "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
+  add_test(NAME structlib_diatomics
+           COMMAND structlib_diatomics
+                   ${CMAKE_CURRENT_SOURCE_DIR}/data/client/StructureLibrary/Teaching/Diatomics)
+  set_tests_properties(structlib_diatomics PROPERTIES ENVIRONMENT
     "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
   # Same under a decimal-comma locale; skipped (77) where it is not installed.
   add_test(NAME fragreaders_de

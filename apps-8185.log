@@ -1,0 +1,32 @@
+isolated: state /home/andy/.cache/ecce-apps-suite, data server :8296, broker :8288
+display: :70 (GL: yes)
+  ecce-dataserver-start: ecce-dataserver-start: starting data server on port 8296 (loopback only)...
+  ecce-gateway-start: ecce-gateway-start: starting ActiveMQ broker... | ecce-gateway-start: starting JMSDispatcher...
+  basistool       done
+  builder         done
+  calced          done
+  dirdyed         done
+  gateway         done
+  hostkeydialog   done
+  launcher        done
+  machbrowser     done
+  machregister    done
+  mddynamics      done
+  mdenergy        done
+  mdoptimize      done
+  mdprepare       done
+  metadyn         done
+  msgdialog       done
+  organizer       done
+  passdialog      done
+  pertable        done
+  polyed          done
+  solvate         done
+  vizthumbnail    done
+
+--- FAILURES --------------------------------------------------------
+  * calculation: builder started but the data server served it nothing from http://localhost:8296/Ecce/users/eccetest/calc-water-vib.
+      The -context argument was ignored, so this check would pass without ever loading a calculation.
+
+
+FAIL  22 apps checked, 1 failures, 0 known bugs

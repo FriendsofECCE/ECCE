@@ -7,6 +7,8 @@
 //    panel NAME                  Tools > NAME (shows the panel)
 //    cmd TEXT                    a Builder command line (addh, center, ...)
 //    pbc ...                     Periodic Builder, see PBC::scriptCommand
+//    library PATH [ENTRY]        the Structure Library pane: open the folder
+//                                PATH (Teaching/Diatomics), select ENTRY
 //    save                        File > Save
 //    info                        atoms and lattice, on stderr
 //    expect atoms N | expect lattice yes|no
@@ -33,6 +35,7 @@
 
 #include "Builder.H"
 #include "PBC.H"
+#include "StructLib.H"
 
 namespace {
 
@@ -113,6 +116,13 @@ void Builder::runBuilderScript(const std::string& file)
         std::vector<std::string> rest(w.begin() + 1, w.end());
         std::string err = pbc->scriptCommand(rest);
         if (!err.empty()) outcome = err;
+      } else if (w[0] == "library" && w.size() >= 2) {
+        //  Mode > Add Structure shows the library pane.
+        p_modeMenu->Check(ID_MODE_STRUCTLIB, true);
+        wxCommandEvent modeEv(wxEVT_MENU, ID_MODE_STRUCTLIB);
+        GetEventHandler()->ProcessEvent(modeEv);
+        if (!p_structLib->openFolder(w[1], w.size() > 2 ? w[2] : ""))
+          outcome = "FAIL: not found in the Structure Library";
       } else if (w[0] == "save") {
         doSave();
       } else if (w[0] == "info") {

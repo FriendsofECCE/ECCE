@@ -114,6 +114,11 @@ find_program(QM_PYTHON3 NAMES python3)
 if(QM_PYTHON3)
   add_test(NAME qm_scf_quick COMMAND ${QM_PYTHON3} ${_qm_tests}/run_tests.py $<TARGET_FILE:ecce-qm> --quick)
   add_test(NAME qm_scf COMMAND ${QM_PYTHON3} ${_qm_tests}/run_tests.py $<TARGET_FILE:ecce-qm>)
+  # Valence orbital order of the lab diatomics at the Structure Library's
+  # bond lengths; exits 77 (skip) without ecce-qm.
+  add_test(NAME qm_diatomic_order COMMAND ${QM_PYTHON3} ${_qm_tests}/diatomic_order_test.py
+           $<TARGET_FILE:ecce-qm> ${_ecce_root}/data/admin/basissets)
+  set_tests_properties(qm_diatomic_order PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
   set_tests_properties(qm_scf_quick PROPERTIES TIMEOUT 3600)
   set_tests_properties(qm_scf PROPERTIES TIMEOUT 7200)
 endif()

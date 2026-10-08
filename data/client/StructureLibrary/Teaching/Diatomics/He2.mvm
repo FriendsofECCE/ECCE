@@ -1,0 +1,12 @@
+# Experimental equilibrium bond length r_e: NIST Chemistry WebBook, Constants of
+# Diatomic Molecules (Huber & Herzberg 1979), rounded to 0.001 Angstrom.
+# convention for two non-bonded atoms, not a bond length
+title:          He2
+type:           molecule
+cell_units:     angstroms
+num_atoms:      2
+atom_info:      symbol cart
+atom_list:
+  He -1.5000   0.000   0.000
+  He  1.5000   0.000   0.000
+num_bonds:      0

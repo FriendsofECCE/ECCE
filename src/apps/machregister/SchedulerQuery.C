@@ -174,7 +174,7 @@ ProgramHelp programHelp(const string& code)
     else if (code == "ORCA")
     {
         h.names.push_back("orca");
-        h.companion = "orca_scf";
+        h.companion = "orca_2mkl";
         h.examples.push_back("/opt/orca/<version>/orca");
         h.note = "ORCA needs the full path for parallel runs.";
     }

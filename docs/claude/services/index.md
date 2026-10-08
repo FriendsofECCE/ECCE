@@ -55,3 +55,6 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Xvfb's stderr must not go to a pipe nobody reads (CI display wedge, #127)](xvfb-stderr-must-not-be-a-pipe.md)
 - [macOS: Terminal.app takes no command, and open(1) returns at once (#133)](macos-terminal-and-editor.md)
 - [macOS: wrappers must not bake ECCE_HOME, and there is no timeout(1) (#133)](macos-relocatable-and-no-timeout.md)
+- [macOS: the Theory/Runtype dialogs need a python3 with wxPython on the PATH (#133)](macos-theory-dialogs-need-python3-with-wxpython.md)
+- [macOS: BSD env has no -0, so a machine's login file was silently ignored (#133)](macos-env-has-no-dash-zero.md)
+- [tests/macos/e2e.sh: water single points on a Mac with real codes](macos-end-to-end-run.md)

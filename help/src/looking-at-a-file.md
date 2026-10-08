@@ -75,9 +75,9 @@ the table. [TO CHECK: what **File > Open...** shows for a trajectory.]
 ### Build from the structure library
 
 The Structure Library holds ready-made molecules and fragments. It has the
-folders `SimpleStructures` (organised by compound class, for example
-`Alicycles`, `Amines`, `Sugars`, `Vitamins`), `Amino_Acids`, `DNA_Bases` and
-`RNA_Bases`. Use it as in step 3 of
+libraries `SimpleStructures` (organised by compound class, for example
+`Alicycles`, `Amines`, `Sugars`, `Vitamins`), `Amino_Acids`, `DNA_Bases`,
+`RNA_Bases` and `Teaching` (see [Molecules for teaching](molecules-for-teaching.md)). Use it as in step 3 of
 [Your first calculation](first-calculation.md#3-build-the-molecule):
 
 1. Choose **Mode > Add Structure** (Ctrl+7).
