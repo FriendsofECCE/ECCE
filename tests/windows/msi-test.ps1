@@ -64,6 +64,8 @@ Check ($null -ne $o) "organizer running after the shortcut's command"
 if ($o) { Check ($o[0].MainWindowHandle -ne 0) "organizer has a window"; $o | Stop-Process -Force }
 Check (-not (Get-Process cmd -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 })) "no console window left"
 # With the last window gone, ecce.cmd's watcher stops the session broker.
+# (An editor the probe above opened may still be up: close every window.)
+Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$inst\bin\*" -and $_.MainWindowHandle -ne 0 } | Stop-Process -Force
 $left = $null
 for ($i = 0; $i -lt 30; $i++) {
   Start-Sleep 1
