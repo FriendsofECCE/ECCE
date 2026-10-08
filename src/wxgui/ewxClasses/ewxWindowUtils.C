@@ -816,8 +816,8 @@ namespace {
 //  scroll: what lies outside them is not a clipped control.
 bool scrollsOrIsCustom(wxWindow *w)
 {
-  return w->IsKindOf(wxCLASSINFO(wxScrolledWindow)) ||
-         w->IsKindOf(wxCLASSINFO(wxScrolledCanvas)) ||
+  //  (wxCLASSINFO(wxScrolledWindow) is wxPanel's: the template has none.)
+  return dynamic_cast<wxScrollHelper*>(w) != NULL ||
          w->IsKindOf(wxCLASSINFO(wxGLCanvas)) ||
          (w->GetClassInfo()->GetClassName() == wxString("wxGrid") ||
           w->GetClassInfo()->GetClassName() == wxString("wxListCtrl") ||
@@ -832,8 +832,8 @@ bool scrollsOrIsCustom(wxWindow *w)
 bool isOpaque(wxWindow *w)
 {
   return w->IsKindOf(wxCLASSINFO(wxGLCanvas)) ||
-         (w->IsKindOf(wxCLASSINFO(wxScrolledCanvas)) &&
-          !w->IsKindOf(wxCLASSINFO(wxScrolledWindow))) ||
+         (dynamic_cast<wxScrollHelper*>(w) != NULL &&
+          dynamic_cast<wxPanel*>(w) == NULL) ||
          w->GetClassInfo()->GetClassName() == wxString("wxGrid") ||
          w->GetClassInfo()->GetClassName() == wxString("wxListCtrl") ||
          w->GetClassInfo()->GetClassName() == wxString("wxTreeCtrl") ||
