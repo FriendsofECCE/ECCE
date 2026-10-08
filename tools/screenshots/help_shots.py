@@ -190,14 +190,15 @@ def shootWindow(display, tmp, out, name, wrapper, args, env, title=None,
 
 
 def shootBuilder(display, tmp, out, name, context, panel=None, size=(1400, 900),
-                 env=None, dest=None, turn=0):
+                 env=None, dest=None, turn=0, extra=""):
     """The Builder on `context`, one panel open, the molecule fitted to the
     final window size.  The scene script waits (`hold`) for the resize and
     then fits the view; the marker snapshot says it has."""
     scene = os.path.join(tmp, name + ".scene")
     with open(scene, "w") as handle:
-        handle.write("style Ball And Stick\nhold 25\nviewall\n%ssnap %s-ready\n"
-                     "hold 120\n" % ("rotatex %d\n" % turn if turn else "",
+        handle.write("style Ball And Stick\nhold 25\nviewall\n%s%ssnap %s-ready\n"
+                     "hold 120\n" % (extra + "\n" if extra else "",
+                                     "rotatex %d\n" % turn if turn else "",
                                      name))
     marker = os.path.join(tmp, name + "-ready.ppm")
     if os.path.exists(marker):

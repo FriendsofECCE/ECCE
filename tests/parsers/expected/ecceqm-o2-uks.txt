@@ -1,0 +1,149 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    ecceqm-o2-uks
+desc:    ecceqm.desc
+fixture: ecceqm/o2_uks.qmout (92 lines)
+args:    '.' 'Energy' 'DFT' 'DFT' '2'
+
+[TE]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_total\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=17 fed=1 rc=0 first-fed='energy_total -148.209647776897'
+    key: TE
+      size: 1
+      values: -148.209647776897
+      units: Hartree
+
+[NNREPUL]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_nuclear\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=18 fed=1 rc=0 first-fed='energy_nuclear 28.047487782851'
+    key: NNREPUL
+      size: 1
+      values: 28.047487782851
+      units: Hartree
+
+[ONEELEC]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_one_electron\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=19 fed=1 rc=0 first-fed='energy_one_electron -260.306063203081'
+    key: ONEELEC
+      size: 1
+      values: -260.306063203081
+      units: Hartree
+
+[COULOMB]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_coulomb\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=20 fed=1 rc=0 first-fed='energy_coulomb 101.119222930724'
+    key: COULOMB
+      size: 1
+      values: 101.119222930724
+      units: Hartree
+
+[EXCHANGE]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_exchange_hf\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=21 fed=1 rc=0 first-fed='energy_exchange_hf -3.298570165071'
+    key: EXCHANGE
+      size: 1
+      values: -3.298570165071
+      units: Hartree
+
+[EXCORR]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_xc\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=22 fed=1 rc=0 first-fed='energy_xc -13.771725122319'
+    key: EXCORR
+      size: 1
+      values: -13.771725122319
+      units: Hartree
+
+[S2]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^s_squared\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=24 fed=1 rc=0 first-fed='s_squared 2.000747700180'
+    key: S2
+      size: 1
+      values: 2.000747700180
+
+[ETIME]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^wall_seconds\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=27 fed=1 rc=0 first-fed='wall_seconds 1.00'
+    key: ETIME
+      size: 1
+      values: 1.00
+
+[DIPOLE]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^dipole_debye\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=26 fed=1 rc=0 first-fed='dipole_debye -0.000000000000 -0.000000000000 -0.000000000001 0.000000000001'
+    key: DIPOLE
+      size: 3
+      rowlabels: X Y Z
+      values: -0.000000000000 -0.000000000000 -0.000000000001
+      units: Debye
+
+[MULLIKEN]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin atoms\b
+  End=^end atoms
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=28 fed=4 rc=0 first-fed='begin atoms  # index symbol Z x y z (angstrom) mulliken_net_charge'
+    key: MULLIKEN
+      size: 2
+      values: 0.000000000000 -0.000000000000
+      units: e
+
+[ORBENG][ORBOCC]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin orbitals (restricted|alpha)
+  End=^end orbitals
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=44 fed=12 rc=0 first-fed='begin orbitals alpha  # index energy(hartree) occupation'
+    key: ORBENG
+      size: 10
+      values: -19.016332165757 -19.014562505246 -1.219456036341 -0.726680405848 -0.431686127317 -0.431686127317 -0.398398012300 -0.159137631124 -0.159137631124 0.404233625487
+      units: Hartree
+    key: ORBOCC
+      size: 10
+      values: 1.000000000000 1.000000000000 1.000000000000 1.000000000000 1.000000000000 1.000000000000 1.000000000000 1.000000000000 1.000000000000 0.000000000000
+      units: electrons
+
+[ORBENGBETA][ORBOCCBETA]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin orbitals beta
+  End=^end orbitals
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=68 fed=12 rc=0 first-fed='begin orbitals beta  # index energy(hartree) occupation'
+    key: ORBENGBETA
+      size: 10
+      values: -18.998344056611 -18.996881892994 -1.158529719078 -0.638223646748 -0.359622522367 -0.319948880114 -0.319948880114 0.044806543893 0.044806543893 0.455143868787
+      units: Hartree
+    key: ORBOCCBETA
+      size: 10
+      values: 1.000000000000 1.000000000000 1.000000000000 1.000000000000 1.000000000000 1.000000000000 1.000000000000 0.000000000000 0.000000000000 0.000000000000
+      units: electrons
+
+[MO][MOAOORDER]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin mo_coefficients (restricted|alpha)
+  End=^end mo_coefficients
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=56 fed=12 rc=0 first-fed='begin mo_coefficients alpha  # one line per MO: index then nbf coefficients'
+    key: MO
+      size: 10 10
+      rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6 MO-7 MO-8 MO-9 MO-10
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 BasFun-7 BasFun-8 BasFun-9 BasFun-10
+      values: -0.7022329114 -0.0230581577 -0.0000000000 0.0000000000 -0.0067980664 0.7022329114 0.0230581577 -0.0000000000 -0.0000000000 -0.0067980664 -0.7031879515 -0.0144580900 0.0000000000 -0.0000000000 0.0003060456 -0.7031879515 -0.0144580900 0.0000000000 0.0000000000 -0.0003060456 0.1681355835 -0.5610013112 0.0000000000 -0.0000000000 -0.1947755012 0.1681355835 -0.5610013112 0.0000000000 0.0000000000 0.1947 ...[1349 chars]
+    key: MOAOORDER
+      size: 1
+      values: angular-momentum
+
+[MOBETA]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin mo_coefficients beta
+  End=^end mo_coefficients
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=80 fed=12 rc=0 first-fed='begin mo_coefficients beta  # one line per MO: index then nbf coefficients'
+    key: MOBETA
+      size: 10 10
+      rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6 MO-7 MO-8 MO-9 MO-10
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 BasFun-7 BasFun-8 BasFun-9 BasFun-10
+      values: 0.7024352941 0.0221373578 0.0000000000 -0.0000000000 0.0065229799 -0.7024352941 -0.0221373578 0.0000000000 -0.0000000000 0.0065229799 0.7033302017 0.0139478796 -0.0000000000 0.0000000000 -0.0002480842 0.7033302017 0.0139478796 -0.0000000000 0.0000000000 0.0002480842 -0.1655683335 0.5510990076 -0.0000000000 -0.0000000000 0.2114627949 -0.1655683335 0.5510990076 0.0000000000 -0.0000000000 -0.21146279 ...[1350 chars]
+

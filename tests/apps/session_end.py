@@ -1174,11 +1174,12 @@ def caseRemoteDown(checks, display, logdir):
                      "with a non-zero exit (%s)" % session.proc.returncode)
         with open(log, errors="replace") as handle:
             said = handle.read()
-        want = ("the central ECCE server localhost is not answering on "
-                "localhost:%d (broker) and localhost:%d (data server)"
+        want = ("the central ECCE server localhost is not answering -- "
+                "broker localhost:%d: Connection refused; "
+                "data server localhost:%d: Connection refused"
                 % (bport, dport))
         checks.check(want in said and "ecce-dataserver-status" in said,
-                     "it named the server, both ports and what to check")
+                     "it named the server, both ports, why and what to check")
         checks.check("ASSERTION" not in said and "core dumped" not in said
                      and "did not report ready" not in said,
                      "no assertion or core dump")

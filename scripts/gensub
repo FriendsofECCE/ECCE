@@ -563,6 +563,7 @@ sub determineStatus()
   # only on success, require it.
   my %normalTermination = (
     'orca' => 'ORCA TERMINATED NORMALLY',
+    'ecce-qm' => 'end_of_output',
   );
   if (defined $normalTermination{$lccode}) {
     my $marker = $normalTermination{$lccode};
@@ -1393,6 +1394,36 @@ sub orca()
       $retval .= "mv $::inFile.tmp $::inFile\n";
     }
     $retval .= "\$orca $::inFile > $::outFile 2>&1\n";
+  }
+  return $retval;
+  nouse strict vars;
+}
+
+#############################################################################
+# ECCE-QM, the engine bundled with ECCE (src/qm).  It is not installed
+# anywhere a CONFIG file would name, so with no path configured the copy next
+# to ECCE's own programs is used; ECCE_ECCEQM in the environment, or an
+# "ecce-qm:" line in CONFIG.<machine>, replaces it.  The report goes to the
+# declared output file on stdout, errors after it, and the job's thread count
+# is the processor count asked for.
+#############################################################################
+sub ecceqm()
+{
+  use strict vars;
+  my ($retval,$exe,$cmd);
+  $retval = "";
+  $exe = $::config{$::lccode};
+  $exe = "$::ecceHome/bin/ecce-qm" if (!defined($exe) || $exe eq "");
+  $cmd = &userCmd("ecce-qmcommand");
+
+  $retval .= &pathVar("ecceqm", "$exe", "ECCE_ECCEQM");
+  $retval .= "echo \"Using ecce-qm path: \$ecceqm\" >> $::logfile\n";
+  $retval .= "OMP_NUM_THREADS=$::totalprocs\nexport OMP_NUM_THREADS\n";
+  $retval .= "ECCE_BASIS_DIR=\"$::ecceHome/data/admin/basissets\"\nexport ECCE_BASIS_DIR\n";
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } else {
+    $retval .= "\$ecceqm $::inFile > $::outFile 2>&1\n";
   }
   return $retval;
   nouse strict vars;

@@ -18,3 +18,4 @@ install-tree/
 verify-logs/
 dg-state/
 tests/containers/logs/
+/build-qm/

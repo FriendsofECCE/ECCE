@@ -1,0 +1,120 @@
+# Parse descriptor for ecce-qm output (the built-in engine, code ECCE-QM).
+# Every piece of the output starts with a line that names it, so one script,
+# ecceqm.parse, serves all entries; each entry's Begin matches exactly one
+# kind of line (no two Begins may match the same line, see mopac.desc).
+# Skip=0 feeds the Begin line itself, which is how the script tells the
+# pieces apart.  Block pieces end on their own "end <name>" line.  Format:
+# docs/qm/README.md.
+
+[TE]
+Script=ecceqm.parse
+Begin=^energy_total\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[NNREPUL]
+Script=ecceqm.parse
+Begin=^energy_nuclear\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[ONEELEC]
+Script=ecceqm.parse
+Begin=^energy_one_electron\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[COULOMB]
+Script=ecceqm.parse
+Begin=^energy_coulomb\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[EXCHANGE]
+Script=ecceqm.parse
+Begin=^energy_exchange_hf\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[EXCORR]
+Script=ecceqm.parse
+Begin=^energy_xc\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[S2]
+Script=ecceqm.parse
+Begin=^s_squared\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[ETIME]
+Script=ecceqm.parse
+Begin=^wall_seconds\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[DIPOLE]
+Script=ecceqm.parse
+Begin=^dipole_debye\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[MULLIKEN]
+Script=ecceqm.parse
+Begin=^begin atoms\b
+Frequency=last
+Skip=0
+End=^end atoms
+[END]
+
+[ORBENG][ORBOCC]
+Script=ecceqm.parse
+Begin=^begin orbitals (restricted|alpha)
+Frequency=last
+Skip=0
+End=^end orbitals
+[END]
+
+[ORBENGBETA][ORBOCCBETA]
+Script=ecceqm.parse
+Begin=^begin orbitals beta
+Frequency=last
+Skip=0
+End=^end orbitals
+[END]
+
+[MO][MOAOORDER]
+Script=ecceqm.parse
+Begin=^begin mo_coefficients (restricted|alpha)
+Frequency=last
+Skip=0
+End=^end mo_coefficients
+[END]
+
+[MOBETA]
+Script=ecceqm.parse
+Begin=^begin mo_coefficients beta
+Frequency=last
+Skip=0
+End=^end mo_coefficients
+[END]
+

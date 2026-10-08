@@ -54,6 +54,7 @@ Energy		Coulomb Energy				COULOMB		Energy		PropValue
 Energy		Van der Waals Energy			VDW		Energy		PropValue
 Energy		Potential Energy			PE		Energy		PropValue
 Energy		Exchange Energy				EXCHANGE	Energy		PropValue
+Energy		Exchange-Correlation Energy		EXCORR		Energy		PropValue
 Energy		Kinetic Energy				KE		Energy		PropValue
 Energy		Atomic Energy				AE		Energy		PropTable<Basis Set,Theory>
 # 

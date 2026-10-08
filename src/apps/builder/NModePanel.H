@@ -1,6 +1,7 @@
 #ifndef NMODEPANEL__H
 #define NMODEPANEL__H
 
+#include <vector>
 #include "wxgui/TearableContentProvider.H"
 
 #include "NModesGUI.H"
@@ -68,7 +69,12 @@ class NModePanel : public NModesGUI,
       /** A peak in the spectrum was clicked: select and animate that mode. */
       virtual void modeClicked(int mode);
 
+      /** The structure in the viewer is the one these modes belong to:
+          as many atoms as the modes, of the calculation's elements. */
+      bool modesApply();
+
    protected:
+      bool checkStructure();
       void initialize();
       void setSlider();
       void fillTable();
@@ -132,6 +138,10 @@ class NModePanel : public NModesGUI,
       int         p_lastRadioSel;
       float       p_vecAmplitude; // varies for vector vs animation
       float       p_aniAmplitude; // varies for vector vs animation
+      //  Atomic numbers of the calculation's structure, in atom order.
+      vector<int> p_calcElements;
+      bool        p_structureOk;
+      wxStaticText *p_staleNote;
 
 };
 

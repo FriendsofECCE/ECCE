@@ -1,0 +1,15 @@
+# ECCE_HOME beside this wrapper (relocatable install: ECCE.app can be
+# anywhere). Plain readlink in a loop: macOS 10.15 has no readlink -f.
+if [ -z "${ECCE_HOME:-}" ]; then
+  _ew=$0
+  while [ -L "$_ew" ]; do
+    _el=$(readlink "$_ew")
+    case $_el in /*) _ew=$_el ;; *) _ew=$(dirname "$_ew")/$_el ;; esac
+  done
+  ECCE_HOME=$(cd "$(dirname "$_ew")/@ECCE_HOME_REL@" 2>/dev/null && pwd) || {
+    echo "$(basename "$0"): no ECCE installation at $(dirname "$_ew")/@ECCE_HOME_REL@; set ECCE_HOME" >&2
+    exit 1
+  }
+  unset _ew _el
+fi
+export ECCE_HOME

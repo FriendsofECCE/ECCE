@@ -20,8 +20,12 @@ sudo apt-get install -y \
   libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
   libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
   libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git dpkg-dev file libssh-dev libssl-dev \
-  python3 libcoin-dev libegl-dev
+  python3 libcoin-dev libegl-dev libxc-dev libeigen3-dev
 ```
+
+`libxc-dev` and `libeigen3-dev` are for ecce-qm, the engine ECCE bundles (code
+ECCE-QM); without them the build downloads libxc and Eigen at configure time,
+as it always does for libcint. `-DECCE_BUILD_QM=OFF` leaves the engine out.
 
 On Rocky 9 (with EPEL and CRB enabled) and Fedora the Coin3D packages are
 `Coin4-devel` (runtime `Coin4`) and `mesa-libEGL-devel`; OpenSSL is

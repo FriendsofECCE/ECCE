@@ -235,6 +235,18 @@ set(ECCE_HOME_DIR "/opt/ecce" CACHE PATH
     "Directory an installed ECCE runs from; wrappers export it as ECCE_HOME")
 set(ECCE_WRAPPER_DESTINATION "/usr/bin" CACHE PATH
     "Where the ecce-<app> wrapper scripts are installed")
+# A relocatable install (ECCE.app, which can be put anywhere) has wrappers
+# that find ECCE_HOME relative to themselves; nothing from the build
+# machine's paths may end up in it. Linux packages keep the fixed path.
+option(ECCE_RELOCATABLE "Wrappers find ECCE_HOME relative to their own location" ${APPLE})
+if(ECCE_RELOCATABLE)
+  file(RELATIVE_PATH ECCE_HOME_REL "${ECCE_WRAPPER_DESTINATION}" "${ECCE_HOME_DIR}")
+  file(READ ${CMAKE_SOURCE_DIR}/packaging/ecce-home.sh.in ECCE_HOME_SH)
+  string(REPLACE "@ECCE_HOME_REL@" "${ECCE_HOME_REL}" ECCE_HOME_SH "${ECCE_HOME_SH}")
+  string(STRIP "${ECCE_HOME_SH}" ECCE_HOME_SH)
+else()
+  set(ECCE_HOME_SH "export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}")
+endif()
 
 
 # --- src/tdat -> libeccetdat.a ---
@@ -801,11 +813,13 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-broker-setup
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-broker-run
         DESTINATION bin
         COMPONENT server)
-configure_file(${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-broker.service.in
-               ${CMAKE_BINARY_DIR}/systemd/ecce-broker.service @ONLY)
-install(FILES ${CMAKE_BINARY_DIR}/systemd/ecce-broker.service
-        DESTINATION server/systemd
-        COMPONENT server)
+if(NOT APPLE AND NOT WIN32)   # no systemd there
+  configure_file(${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-broker.service.in
+                 ${CMAKE_BINARY_DIR}/systemd/ecce-broker.service @ONLY)
+  install(FILES ${CMAKE_BINARY_DIR}/systemd/ecce-broker.service
+          DESTINATION server/systemd
+          COMPONENT server)
+endif()
 # The broker plugin that checks logins against the data server's users
 # file (a central server's broker, ecce-gateway-start). Needs mosquitto's
 # plugin header and apr-util, whose apr_password_validate reads htpasswd's
@@ -827,7 +841,7 @@ install(FILES ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-mosquitto.acl
 set(_bs_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-broker-setup)
 file(WRITE ${_bs_wrapper}
 "#!/bin/bash
-export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
+${ECCE_HOME_SH}
 exec \"$ECCE_HOME/bin/ecce-broker-setup\" \"$@\"
 ")
 install(PROGRAMS ${_bs_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
@@ -838,7 +852,7 @@ foreach(_gw start stop status reap)
   set(_gw_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-gateway-${_gw})
   file(WRITE ${_gw_wrapper}
 "#!/bin/bash
-export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
+${ECCE_HOME_SH}
 export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 exec \"$ECCE_HOME/bin/ecce-gateway-${_gw}\" \"$@\"
 ")
@@ -885,7 +899,7 @@ install(PROGRAMS
 set(_pub_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-site-publish)
 file(WRITE ${_pub_wrapper}
 "#!/bin/bash
-export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
+${ECCE_HOME_SH}
 export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 exec \"$ECCE_HOME/bin/ecce-site-publish\" \"$@\"
 ")
@@ -893,7 +907,7 @@ install(PROGRAMS ${_pub_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONE
 set(_sadm_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-site-admin)
 file(WRITE ${_sadm_wrapper}
 "#!/bin/bash
-export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
+${ECCE_HOME_SH}
 export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 exec \"$ECCE_HOME/bin/ecce-site-admin\" \"$@\"
 ")
@@ -902,7 +916,7 @@ foreach(_ds start stop status adduser)
   set(_ds_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-dataserver-${_ds})
   file(WRITE ${_ds_wrapper}
 "#!/bin/bash
-export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
+${ECCE_HOME_SH}
 export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 export ECCE_REALUSER=\${ECCE_REALUSER:-\$(id -un)}
 exec \"$ECCE_HOME/bin/ecce-dataserver-${_ds}\" \"$@\"
@@ -919,7 +933,7 @@ endforeach()
 set(_diag_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-diagnose)
 file(WRITE ${_diag_wrapper}
 "#!/bin/bash
-export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
+${ECCE_HOME_SH}
 exec \"$ECCE_HOME/bin/ecce-diagnose\" \"$@\"
 ")
 install(PROGRAMS ${_diag_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
@@ -927,7 +941,7 @@ install(PROGRAMS ${_diag_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPON
 set(_remote_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-remote-setup)
 file(WRITE ${_remote_wrapper}
 "#!/bin/bash
-export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
+${ECCE_HOME_SH}
 exec \"$ECCE_HOME/bin/ecce-remote-setup\" \"$@\"
 ")
 install(PROGRAMS ${_remote_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
@@ -1104,7 +1118,7 @@ install(FILES ${CMAKE_SOURCE_DIR}/scripts/CshToSh.pm
 set(_c2s_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-csh2sh)
 file(WRITE ${_c2s_wrapper}
 "#!/bin/bash
-export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
+${ECCE_HOME_SH}
 exec \"$ECCE_HOME/scripts/ecce-csh2sh\" \"$@\"
 ")
 install(PROGRAMS ${_c2s_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMPONENT client)
@@ -1271,7 +1285,7 @@ exit $_status")
   endif()
   file(WRITE ${_wrapper}
 "#!/bin/bash
-export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
+${ECCE_HOME_SH}
 export ECCE_REALUSER=\${ECCE_REALUSER:-$(id -un)}
 export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 export HOST=\${HOST:-$(hostname)}
@@ -1366,7 +1380,7 @@ install(FILES ${CMAKE_SOURCE_DIR}/packaging/desktop/ecce.svg
 set(_viewer_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-viewer)
 file(WRITE ${_viewer_wrapper}
 "#!/bin/bash
-export ECCE_HOME=\${ECCE_HOME:-${ECCE_HOME_DIR}}
+${ECCE_HOME_SH}
 export ECCE_REALUSER=\${ECCE_REALUSER:-$(id -un)}
 export ECCE_REALUSERHOME=\${ECCE_REALUSERHOME:-$HOME}
 export HOST=\${HOST:-$(hostname)}
@@ -2013,6 +2027,15 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_panel_layouts PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # The Builder on an ECCE-QM calculation (fixture from the bundled engine):
+  # MOs panel present, MO Diagram not offered; an ORCA calculation as control.
+  add_test(NAME apps_ecceqm_builder
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/ecceqm_builder_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_ecceqm_builder PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # ORCA orbitals in the MOs panel (#239): a 24-function cc-pVDZ water run
   # draws; a 23-function one gives one plain dialog; the pane fits its rows.
   add_test(NAME apps_orca_mo
@@ -2329,6 +2352,17 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR} --local
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_local PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # ECCE-QM, the bundled engine: water and triplet O2 created, run through
+  # Launch in a local data folder, energies against ORCA, MOs normalised.
+  if(ECCE_BUILD_QM)
+    add_test(NAME launch_ecceqm
+             COMMAND ${PYTHON3_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/ecceqm_test.py
+                     --build ${CMAKE_BINARY_DIR}
+             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+    set_tests_properties(launch_ecceqm PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  endif()
+
   # A GROMACS MD study through the real editors (private Xvfb), launches and
   # results; skipped (77) without gmx or Xvfb.  Needs the GUI apps built.
   add_test(NAME launch_gromacs
@@ -2499,4 +2533,15 @@ if(PYTHON3_EXECUTABLE)
              WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
     set_tests_properties(queues_${qm} PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
   endforeach()
+endif()
+
+# ecce-qm: the small built-in HF/DFT engine (src/qm), registered as the code
+# "ECCE-QM" (data/client/cap/ECCE-QM.edml).  On by default, in every package.
+# It fetches libcint (always), and libxc and Eigen unless the system has them
+# (Debian: libxc-dev libeigen3-dev as build dependencies), at configure time.
+# See docs/qm/README.md.
+option(ECCE_BUILD_QM "Build ecce-qm, the built-in HF/DFT engine" ON)
+if(ECCE_BUILD_QM)
+  add_subdirectory(src/qm)
+  install(TARGETS ecce-qm RUNTIME DESTINATION bin COMPONENT client)
 endif()

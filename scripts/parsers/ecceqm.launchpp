@@ -1,0 +1,12 @@
+#!/usr/bin/env perl
+################################################################################
+# Required of every code (Launch::postProcessInput() runs it unconditionally);
+# ecce-qm has nothing to add at launch time: the number of threads is set in
+# the job script (gensub's ecceqm()), not in the input file.
+################################################################################
+use Getopt::Std;
+&getopts('p:v');
+if ($opt_v) {
+  print "Revision: 1.0\n";
+}
+exit(0);

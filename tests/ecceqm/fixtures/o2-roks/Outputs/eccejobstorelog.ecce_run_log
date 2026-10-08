@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<eccejobstore>
+     <event  type="Message"  name="Job log started for calculation"  date="Wed, 07 Oct 2026 18:56:06 CEST" >file:///home/andy/.cache/ecce-ecceqm-6kceaz07/localdata/users/local/ecceqm-o2-triplet-roks-1791392164-project/ecceqm-o2-triplet-roks-1791392164     </event>
+     <event  type="Message"  name="eccejobstore running on client"  date="Wed, 07 Oct 2026 18:56:06 CEST" >niobium     </event>
+     <event  type="Message"  name="Cache"  date="Wed, 07 Oct 2026 18:56:06 CEST" >Successfully started property parsing cache     </event>
+     <event  type="Message"  name="Local cache directory"  date="Wed, 07 Oct 2026 18:56:06 CEST" >/home/andy/.cache/ecce-ecceqm-6kceaz07/tmp/ecce_andy/jobs/ecceqm-o2-triplet-roks-1791392164__NBMEIa     </event>
+     <event  type="Message"  name="Job Monitor"  date="Wed, 07 Oct 2026 18:56:06 CEST" >Started job monitor (stdio comms) with command: perl eccejobmonitor -configFile eccejobmonitor.conf -jobId 1670790 -bookmark 0; echo eccejobmonitor_went_bye_bye     </event>
+     <event  type="Message"  name="System"  date="Wed, 07 Oct 2026 18:56:06 CEST" >Started local RCommand connection     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Wed, 07 Oct 2026 18:56:06 CEST" >Receiving calculation output from eccejobmonitor     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Wed, 07 Oct 2026 18:56:06 CEST" >Running     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Wed, 07 Oct 2026 18:56:06 CEST" >File marked to copy from compute host: ecceqm.qmout     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Wed, 07 Oct 2026 18:56:06 CEST" >File marked to copy from compute host: ecceqm.qmout     </event>
+     <event  type="Message"  name="Benchmark"  date="Wed, 07 Oct 2026 18:56:06 CEST" >Before file copy of output files     </event>
+     <event  type="Message"  name="Benchmark"  date="Wed, 07 Oct 2026 18:56:06 CEST" >After file copy of output files     </event>
+     <event  type="Message"  name="File Copy"  date="Wed, 07 Oct 2026 18:56:06 CEST" >Successfully copied files from server--
+RCommand::get(localhost, ssh, andy, <elided>, {/home/andy/.cache/ecce-ecceqm-6kceaz07/jobs/ecceqm-o2-triplet-roks-1791392164-project/ecceqm-o2-triplet-roks-1791392164/ecceqm.qmout,/home/andy/.cache/ecce-ecceqm-6kceaz07/jobs/ecceqm-o2-triplet-roks-1791392164-project/ecceqm-o2-triplet-roks-1791392164/*.cub,/home/andy/.cache/ecce-ecceqm-6kceaz07/jobs/ecceqm-o2-triplet-roks-1791392164-project/ecceqm-o2-triplet-roks-1791392164/*.cube,/home/andy/.cache/ecce-ecceqm-6kceaz07/jobs/ecceqm-o2-triplet-roks-1791392164-project/ecceqm-o2-triplet-roks-1791392164/*.file30}, /home/andy/.cache/ecce-ecceqm-6kceaz07/tmp/ecce_andy/jobs/ecceqm-o2-triplet-roks-1791392164__NBMEIa) succeeded     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Wed, 07 Oct 2026 18:56:06 CEST" >Complete     </event>
+     <event  type="Message"  name="eccejobstore exit"  date="Wed, 07 Oct 2026 18:56:06 CEST" >eccejobstore terminating normally, exit status 0     </event>
+</eccejobstore>

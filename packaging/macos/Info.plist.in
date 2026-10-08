@@ -12,6 +12,7 @@
   <key>CFBundleVersion</key><string>@VERSION@</string>
   <key>LSMinimumSystemVersion</key><string>12.0</string>
   <key>NSHighResolutionCapable</key><true/>
+  <key>NSLocalNetworkUsageDescription</key><string>ECCE connects to the central ECCE server (data server and message broker) and to compute hosts on your network.</string>
   <key>LSApplicationCategoryType</key><string>public.app-category.education</string>
 </dict>
 </plist>
