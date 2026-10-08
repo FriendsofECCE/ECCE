@@ -285,6 +285,43 @@ inline bool matchOrcaError(const std::vector<std::string>& lines,
 }
 
 // ------------------------------------------------------------------------
+// Quantum ESPRESSO (pw.x).  Without convergence it prints "convergence NOT
+// achieved after N iterations: stopping" and exits with status 2, which
+// would otherwise be shown as "job exited with status 2".  Its other
+// failures are boxed: "Error in routine <name> (<code>):" and the message.
+// ------------------------------------------------------------------------
+inline bool matchQuantumEspressoError(const std::vector<std::string>& lines,
+                                       std::string& reason)
+{
+  static const std::regex noConv(
+      "convergence NOT achieved after\\s+([0-9]+) iterations");
+  static const std::regex routine("Error in routine\\s+(\\S+)");
+
+  for (size_t i = 0; i < lines.size(); i++) {
+    std::smatch m;
+    if (std::regex_search(lines[i], m, noConv)) {
+      reason = "The self-consistent field did not converge in " + m[1].str() +
+               " iterations -- check the structure, lower the mixing factor "
+               "or raise the iteration limit in Theory Details.";
+      return true;
+    }
+    if (std::regex_search(lines[i], m, routine)) {
+      std::string detail;
+      for (size_t j = i + 1; j < lines.size(); j++) {
+        std::string t = trimmed(lines[j]);
+        if (t.empty()) continue;
+        detail = t;
+        break;
+      }
+      reason = "pw.x stopped in " + m[1].str() + ": \"" +
+               truncate(detail, 90) + "\"";
+      return true;
+    }
+  }
+  return false;
+}
+
+// ------------------------------------------------------------------------
 // Try every known pattern, in priority order (most specific/actionable
 // first), across the primary output file and then any auxiliary files
 // (stderr, etc) already available locally.  Returns "" if nothing
@@ -300,6 +337,7 @@ inline std::string extractReason(const std::vector<std::string>& filePaths)
     matchSlurmCancellation,
     matchGaussianError,
     matchNWChemInputError,
+    matchQuantumEspressoError,
     matchOrcaError,
   };
 

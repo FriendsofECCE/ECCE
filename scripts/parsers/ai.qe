@@ -562,7 +562,7 @@ sub QEControl {
 # makes modifyInputFile drop the line.
 sub QECell {
   my $calc = &QECalculationType;
-  return "" if ($calc ne "vc-relax");
+  if ($calc ne "vc-relax") { $_ = ""; return ""; }
 
   my @l = ();
   push(@l, "&CELL");
@@ -579,7 +579,7 @@ sub QECell {
 
 sub QEIons {
   my $calc = &QECalculationType;
-  return "" if ($calc ne "relax" && $calc ne "vc-relax");
+  if ($calc ne "relax" && $calc ne "vc-relax") { $_ = ""; return ""; }
 
   my @l = ();
   push(@l, "&IONS");
@@ -629,6 +629,17 @@ sub QESystem {
   if ($AbiDict{"ES.Theory.PW.UseEcutRho"} eq "1") {
     my $ecutrho = &numOr("ES.Theory.PW.EcutRho", "");
     push(@l, "  ecutrho = $ecutrho") if ($ecutrho ne "");
+  } else {
+    #  pw.x's own default, 4 x ecutwfc, is too small for ultrasoft and PAW
+    #  pseudopotentials (the SSSP set uses 8 x), and the energy then
+    #  depends on it.  Say 8 x when one of them is in use.
+    foreach my $sym (@species) {
+      my $type = &pseudoType($pseudoFile{$sym});
+      if ($type eq "US" || $type eq "PAW") {
+        push(@l, "  ecutrho = " . (8 * $ecutwfc));
+        last;
+      }
+    }
   }
 
   # nosym.  QE uses the crystal symmetry it finds unless told not to,

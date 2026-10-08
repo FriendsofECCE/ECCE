@@ -424,6 +424,35 @@ void CalcMgr::runTestCommand(const string& line)
       dlg.registerListener(this);
       dlg.importFile(calcName);
       outcome = "done";
+    } else if (command == "newproject" || command == "newcalc") {
+      // File > New Project / New <code> Calculation, without the name
+      // prompt: "newproject NAME" in the home, "newcalc PROJECT NAME TYPE"
+      // with the code's applicationType (QuantumESPRESSO).
+      std::istringstream args(calcName);
+      string a, b, type;
+      args >> a >> b >> type;
+      ResourceDescriptor& rd = ResourceDescriptor::getResourceDescriptor();
+      Resource *parentRes = EDSIFactory::getResource(
+          command == "newproject" ? home : home.getChild(a));
+      ResourceType *rt = command == "newproject"
+          ? rd.getResourceType("collection", "ecceProject", "")
+          : rd.getResourceType("virtual_document", "ecceCalculation", type);
+      string name = command == "newproject" ? a : b;
+      if (!parentRes || !rt) {
+        outcome = "no parent or type";
+      } else {
+        Resource *made = parentRes->createChild(name, rt);
+        WxResourceTreeItemData *parentNode =
+            findNode(parentRes->getURL(), true, true);
+        if (parentNode) p_treeCtrl->refresh(parentNode);
+        if (made) findNode(made->getURL(), true, true);
+        outcome = made ? "ok " + made->getURL().toString() : "not created";
+      }
+    } else if (command == "state") {
+      Resource *res = EDSIFactory::getResource(EcceURL(calcName));
+      ICalculation *icalc = dynamic_cast<ICalculation*>(res);
+      outcome = icalc ? ResourceUtils::stateToString(icalc->getState())
+                      : "no such calculation";
     } else if (command == "walk") {
       // Select and expand every node below the home as a user clicking
       // through the tree does: the tree's own event handlers run.
@@ -526,7 +555,9 @@ void CalcMgr::runTestCommand(const string& line)
           {"Electrons", "numElectrons"}, {"Symmetry", "symmetrygroup"},
           {"Basis", "name"}, {"Polarization", "coordsys"},
           {"Functions", "numFunctions"}, {"Primitives", "numPrimitives"},
-          {"Theory", "theory"}, {"Runtype", "runtype"}};
+          {"Theory", "theory"}, {"Runtype", "runtype"},
+          {"Charge", "charge"}, {"SpinMult", "spinmultiplicity"},
+          {"OpenShells", "openshells"}};
         outcome = panel ? "ok" : "no context panel";
         for (auto& f : fields) {
           wxWindow *w = panel ? panel->FindWindow(f[1]) : 0;
