@@ -36,10 +36,10 @@ for f in "$RES"/ecce/bin/*; do
 done
 ln -s "$RES/ecce/data" "$FH/data"
 shot=$OUT/first-start.png
-fs() { ECCE_FIRST_START_ASK_ON_MAC=1 ECCE_FIRST_START_ANSWER=local ECCE_FIRST_START_SHOT=$shot \
+fs() { ECCE_FIRST_START_ANSWER=local ECCE_FIRST_START_SHOT=$shot \
   ECCE_APP_RUN=1 "$APP/Contents/MacOS/ecce" env ECCE_HOME="$FH" "$FH/bin/ecce-first-start" "$@"; }
 say "first-start --check: $(fs --check 2>&1)"
-ECCE_FIRST_START_ASK_ON_MAC=1 ECCE_FIRST_START_ANSWER=local ECCE_FIRST_START_SHOT=$shot ECCE_APP_RUN=1 \
+ECCE_FIRST_START_ANSWER=local ECCE_FIRST_START_SHOT=$shot ECCE_APP_RUN=1 \
   limit 90 "$APP/Contents/MacOS/ecce" env ECCE_HOME="$FH" "$FH/bin/ecce-first-start" > "$OUT/first-start.log" 2>&1
 r=$?
 say "first-start window: exit $r, picture $( [ -s "$shot" ] && echo saved || echo MISSING )"
