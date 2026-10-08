@@ -249,6 +249,8 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
       while (std::getline(in, line)) {
         if (n++ < *done) continue;
         *done = n;
+        if (!line.empty() && line.back() == '\r')   // written on Windows
+          line.pop_back();
         runTestCommand(line);
       }
     });
@@ -265,6 +267,7 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
  *   opentheory        Theory Details..., closetheory closes it
  *   save              Save, keeping the generator's files (as Shift+Save)
  *   quit              exit without asking
+ *   builder           the Builder button (startApp of the Builder)
  */
 void CalcEd::runTestCommand(const string& line)
 {
@@ -309,6 +312,9 @@ void CalcEd::runTestCommand(const string& line)
     p_testKeepParams = false;
     outcome = p_keptGeneratorDir.empty() ? "no input generated"
                                          : "kept " + p_keptGeneratorDir;
+  } else if (line == "builder") {
+    startApp("Builder", 0, p_context);
+    outcome = "requested";
   } else if (line == "quit") {
     cerr << "ECCE_TEST_CALCED: quit: ok" << endl;
     closeTheoryApp(true);

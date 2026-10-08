@@ -86,6 +86,12 @@ bool WxJMSSubscriber::holdMessages() {
 /**
  * Resumes normal handling of incoming messages.
  */
+void WxJMSSubscriber::answerAs(const string& alias, const string& topic)
+{
+  if (p_ep) p_ep->answerAs(alias, topic);
+}
+
+
 bool WxJMSSubscriber::resumeMessaging() {
   if (!p_ep) return false;
   p_ep->hold(false);

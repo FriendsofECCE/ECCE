@@ -589,6 +589,14 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "tail-close") {
       if (p_testTail) p_testTail->Close();
       outcome = "ok";
+    } else if (command == "start") {
+      // "start TOOL [URL]": what a tool button does (startApp), e.g.
+      // "start CalculationEditor <calc url>".
+      std::istringstream args(calcName);
+      string tool, url;
+      args >> tool >> url;
+      startApp(tool, 0, url);
+      outcome = "requested";
     } else if (command == "probe") {
       // What a user sees first: the registration notice, whether the home
       // is in the tree, and the selection the tree's focus handler settles

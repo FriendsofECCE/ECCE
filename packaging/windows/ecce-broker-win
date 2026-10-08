@@ -48,10 +48,26 @@ stop() {
   rm -rf "$DIR" "$BROKERFILE"
 }
 
+# The windows of an ECCE session (ecce.cmd starts the Organizer, which starts
+# the rest); job monitors are not among them.
+gui_running() {
+  tasklist //FO CSV //NH 2>/dev/null | tr -d '\r' | grep -Eiq \
+    '^"(organizer|builder|calced|basistool|launcher|machregister|machbrowser|pertable|vizthumbnail|mdprepare|mdoptimize|mdenergy|mddynamics|dirdyed|polyed|solvate|metadyn)\.exe"'
+}
+
+# watch: stop this session's broker once its windows are all closed.
+watch() {
+  local i=0
+  while [ $i -lt 60 ] && ! gui_running; do i=$((i + 1)); sleep 1; done
+  while gui_running; do sleep 5; done
+  stop
+}
+
 case "${1:-start}" in
   stop) stop; exit 0 ;;
+  watch) watch; exit 0 ;;
   start) ;;
-  *) echo "usage: ecce-broker-win start|stop" >&2; exit 2 ;;
+  *) echo "usage: ecce-broker-win start|stop|watch" >&2; exit 2 ;;
 esac
 
 # Already up for this session: keep it (the file has the login).

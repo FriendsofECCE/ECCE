@@ -58,6 +58,8 @@ class WxJMSSubscriber : public wxEvtHandler {
 
     bool holdMessages();
     bool resumeMessaging();
+    // See MqttEndpoint::answerAs.
+    void answerAs(const string& alias, const string& topic);
 
   private:
 

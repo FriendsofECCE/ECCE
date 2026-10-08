@@ -135,6 +135,10 @@ bool CalcMgrApp::OnInit()
   // Now tell the gateway that we are ready to start the subscriber
   // connection for these subscriptions 
   // (must happen AFTER all subscribe calls):
+#ifdef _WIN32
+  // Windows runs no gateway process: the Organizer starts the other tools.
+  registerMyselfAsAppExecer();
+#endif
   startSubscriber();
   notifyReady();
 

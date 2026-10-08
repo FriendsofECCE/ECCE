@@ -32,21 +32,29 @@ if defined ECCE_SERVER_SESSION goto server
 :local
 if not defined ECCE_LOCAL_DATA set "ECCE_LOCAL_DATA=%UH%/ecce-local"
 if not exist "%USERPROFILE%\ecce-local" mkdir "%USERPROFILE%\ecce-local"
-rem Local mode without messaging and without a data server, as tested in CI.
-set ECCE_NO_MESSAGING=1
+rem No data server; the session's own broker (ecce-broker-win, loopback only,
+rem a login made up for the session) carries the messages between the tools.
 set ECCE_NO_DATASERVER=1
-goto run
+set "ECCE_LOCAL_BROKER=1"
+goto broker
 :server
 rem The central server's broker and data server: a session of its own, and the
 rem broker file the apps read (ecce-gateway-start).
 set ECCE_REMOTE_SERVER=1
+:broker
 for /f %%i in ('python3.exe -c "import os;print(os.urandom(8).hex())"') do set "ECCE_SESSION_ID=%%i"
 bash.exe "%ECCE_HOME%/bin/ecce-gateway-start"
 if errorlevel 1 (
+  if defined ECCE_LOCAL_BROKER (
+    echo ECCE could not start its message broker. 1>&2
+    if not defined ECCE_NO_FIRST_START mshta "javascript:alert('ECCE could not start its message broker. See the files in your .ECCE folder.');close()"
+    exit /b 2
+  )
   echo ECCE could not reach its server. 1>&2
   rem Scripts and tests (ECCE_NO_FIRST_START) get no message box.
   if not defined ECCE_NO_FIRST_START mshta "javascript:alert('ECCE could not reach its server. Check that the server is running and your network connection, then start ECCE again.');close()"
   exit /b 2
 )
-:run
 start "" "%ECCE_ROOT%\bin\organizer.exe" %*
+rem The local broker ends with the session: when no ECCE window is left.
+if defined ECCE_LOCAL_BROKER start "" /b bash.exe "%ECCE_HOME%/bin/ecce-broker-win" watch
