@@ -164,16 +164,17 @@ try:
     cenv = env_for(good_home, os.path.join(scratch, "client-user"))
     os.makedirs(cenv["ECCE_REALUSERHOME"])
     host = lan or "127.0.0.1"
+    cenv["ECCE_SETUP_PASSWORD"] = "tlspw"
     r = run([good_home + "/bin/ecce-remote-setup", host, ports["ECCE_DATASERVER_TLS_PORT"],
-             "--tls", "--pin", tlsdir + "/server.pem"], cenv)
+             "--tls", "--pin", tlsdir + "/server.pem", "--login", "tlsuser"], cenv)
     check(r.returncode == 0, "client ecce-remote-setup --tls --pin: " + r.stderr[-300:])
     pin = good_home + "/siteconfig/RemoteServer/server.pem"
     check(os.path.exists(pin) and open(pin).read() == open(tlsdir + "/server.pem").read(),
           "the pin is installed")
     check("https://" in open(good_home + "/siteconfig/RemoteServer/DataServers").read(),
           "DataServers names the https URL")
-    check(not os.path.exists(good_home + "/siteconfig/RemoteServer/MANIFEST"),
-          "setup copies no machine list (the server's site files need a login, #192)")
+    check(os.path.exists(good_home + "/siteconfig/RemoteServer/MANIFEST"),
+          "the machine list was fetched over TLS with the pin and a login")
     # the published site files are behind the data-server login, over TLS too
     pinhash = subprocess.run(
         "openssl x509 -in %s -noout -pubkey | openssl pkey -pubin -outform der | "

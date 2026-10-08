@@ -2,7 +2,7 @@
 """
 The server half of "ecce -admin" on a -remote client (#234): ecce-site-admin
 applies a request to a central server's siteconfig and publishes it, and
-the INDEX follows it.  "ecce-remote-setup --refresh" is a no-op (#192).
+the INDEX follows it, and "ecce-remote-setup --refresh" brings the client's copy up to date.
 
     siteadmin_test.py --build <build dir>
 
@@ -139,9 +139,9 @@ def main():
                             "--refresh"], env=dict(os.environ, ECCE_HOME=client),
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                            text=True)
-        check(r.returncode == 0 and "nothing to do" in r.stdout and
-              not os.path.exists(os.path.join(csc, "CONFIG.gone")),
-              "--refresh copies nothing and says so: " + r.stdout[-300:])
+        check(r.returncode == 0 and read(os.path.join(csc, "CONFIG.gone")) ==
+              "NWChem: /old\n", "--refresh copies the server's list: " +
+              r.stdout[-300:])
         check(index(s.published).get("CONFIG.gone") == sha("NWChem: /old\n"),
               "the INDEX lists CONFIG.gone with its hash")
 
@@ -183,8 +183,10 @@ def main():
                             "--refresh"], env=dict(os.environ, ECCE_HOME=client),
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                            text=True)
-        check(r.returncode == 0 and not os.path.exists(os.path.join(csc, "CONFIG.cluster")),
-              "--refresh still copies nothing")
+        check(r.returncode == 0 and read(os.path.join(csc, "CONFIG.cluster")) == cfg,
+              "--refresh brings the client's copy up to date")
+        check(not os.path.exists(os.path.join(csc, "CONFIG.gone")),
+              "--refresh removes a CONFIG the server no longer publishes")
         idx = index(s.published)
         check(idx.get("CONFIG.cluster") == sha(cfg) and "CONFIG.gone" not in idx,
               "the INDEX follows the admin's save and the removal")
