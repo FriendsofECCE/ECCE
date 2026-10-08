@@ -431,7 +431,7 @@ guessing who is connected. The data server is only ever stopped by
 #### The first-start question (#240)
 
 A client with nothing configured asks once, in a window "Welcome to ECCE":
-**Work on this computer** (local data mode, data in `~/.ECCE-local`) or
+**Store data on this computer** (local data mode, data in `~/.ECCE-local`) or
 **Connect to a server** (one box for the server's address, then the login
 window). The default does not change; the question only replaces having to
 know the environment variables. It is asked on Linux, macOS and Windows alike:

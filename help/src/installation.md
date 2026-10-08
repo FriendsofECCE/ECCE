@@ -107,7 +107,7 @@ it:
 
 ![The first question](img/first-start.png)
 
-- **Work on this computer** keeps your calculations in a folder on this
+- **Store data on this computer** keeps your calculations in a folder on this
   computer (`~/.ECCE-local`; on Windows the folder `ecce-local` in your
   user folder). Choose this if you work alone.
 - **Connect to a server** uses a server that your teacher or institution

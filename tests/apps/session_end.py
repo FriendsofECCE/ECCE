@@ -49,7 +49,7 @@ windows the way a window manager does (WM_DELETE_WINDOW):
               SharedBroker; no quit, reap or Quit and Stop Server stops it,
               and no per-user broker is ever started
   first-local the first-start window (#240): a fresh client-only user answers
-              "Work on this computer"; later starts do not ask
+              "Store data on this computer"; later starts do not ask
   first-server  the same answering "Connect to a server" (this run's data server),
               then Edit > Change Server back to this computer
   markers     the reaper alone: a broker under a server marker survives
@@ -2680,7 +2680,7 @@ def firstStartEnd(checks, display, session, frame):
 
 
 def caseFirstLocal(checks, display, logdir):
-    """#240: a fresh client answers "Work on this computer", then is not asked."""
+    """#240: a fresh client answers "Store data on this computer", then is not asked."""
     home = clientOnlyHome("local")
     user = firstStartUser("local")
     pngdir = os.environ.get("ECCE_FIRST_START_PNGS", logdir)

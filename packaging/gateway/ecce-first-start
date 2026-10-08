@@ -16,10 +16,10 @@ The question is asked once per user: an answer is recorded in
 server already chosen, ~/.ECCE/dataserver) only preselects the matching
 choice.  The choice itself is kept as the state ECCE already reads:
 
-  Work on this computer   the LocalData preference on (ecce-localdata pref
-                          on), the folder ~/.ECCE-local made
-  Connect to a server     ~/.ECCE/RemoteServer/ (ecce-remote-setup --user
-                          --auto), the preference off
+  Store data on this computer  the LocalData preference on (ecce-localdata
+                               pref on), the folder ~/.ECCE-local made
+  Connect to a server          ~/.ECCE/RemoteServer/ (ecce-remote-setup
+                               --user --auto), the preference off
 
 Test hooks: ECCE_NO_FIRST_START=1 never asks; ECCE_FIRST_START_ANSWER=local
 or server:<host[:port]> answers the window as if its button was pressed;
@@ -286,7 +286,7 @@ def build_dialog(wx, change):
         box.Add(label(text), 0, wx.BOTTOM, 16)
     box.Add(label("Where do you want to work?", True, 3), 0, wx.BOTTOM, 12)
 
-    r_local = wx.RadioButton(panel, label="Work on this computer", style=wx.RB_GROUP)
+    r_local = wx.RadioButton(panel, label="Store data on this computer", style=wx.RB_GROUP)
     r_server = wx.RadioButton(panel, label="Connect to a server")
     for r in (r_local, r_server):
         f = r.GetFont()

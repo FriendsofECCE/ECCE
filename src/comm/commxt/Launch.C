@@ -15,6 +15,9 @@
 #include <iomanip>
   using std::ios;
 #include <fstream>
+#ifdef _WIN32
+#include <filesystem>
+#endif
   using std::ofstream;
 
 #include <iostream>
@@ -997,9 +1000,13 @@ bool Launch::checkRemoteDir(const string& remoteDir, const bool& rerunCheck)
   bool ret = remoteDir[0]=='/' || remoteDir[0]=='~';
 #ifdef _WIN32
   // A local run directory is a drive path, "C:/..." or "C:\...".
+  // Create it here: the "mkdir -p" below has no shell to run in.
   if (remoteDir.size() > 2 && isalpha((unsigned char)remoteDir[0]) &&
-      remoteDir[1]==':' && (remoteDir[2]=='/' || remoteDir[2]=='\\'))
+      remoteDir[1]==':' && (remoteDir[2]=='/' || remoteDir[2]=='\\')) {
     ret = true;
+    std::error_code ec;
+    std::filesystem::create_directories(remoteDir, ec);
+  }
 #endif
 
   // First see if it already exists

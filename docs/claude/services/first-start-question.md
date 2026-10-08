@@ -7,7 +7,7 @@ paths: ["packaging/gateway/ecce-first-start", "packaging/ecce.in", "packaging/ga
 issues: [240, 216]
 ---
 `ecce` runs `ecce-first-start` before it makes the session id (#240). It
-asks once per user ("Work on this computer" / "Connect to a server"); the
+asks once per user ("Store data on this computer" / "Connect to a server"); the
 answer goes to `~/.ECCE/first-start-answer`. Only that answer and explicit
 configuration skip it (`skip_reason()`: siteconfig/RemoteServer,
 SharedBroker, `-remote`, `--local`/ECCE_LOCAL_DATA, a central-server account,
