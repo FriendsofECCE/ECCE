@@ -2053,6 +2053,19 @@ if(PYTHON3_EXECUTABLE)
                          SKIP_RETURN_CODE 77)
   endforeach()
 
+  # No control is cut off (tests/apps/clip_test.py): every app window, every
+  # Builder panel in every layout and every codereg dialog, at the default
+  # and at a small screen.  Same installed tree as `apps`.
+  foreach(size 1920x1080 1366x768 1024x600)
+    add_test(NAME apps_clip_${size}
+             COMMAND ${PYTHON3_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/clip_test.py
+                     --size ${size}
+             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+    set_tests_properties(apps_clip_${size} PROPERTIES TIMEOUT 3000
+                         SKIP_RETURN_CODE 77)
+  endforeach()
+
   # tests/filedsi -- FileEDSI (file:// storage, no Apache, #216) against a
   # temp directory, linked from the static libraries of build-cmake.
   #

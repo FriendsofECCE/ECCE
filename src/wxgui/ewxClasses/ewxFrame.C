@@ -69,7 +69,10 @@ bool ewxFrame::Show(bool show)
    if (show)
       fitToScreen();
    
-   return (wxFrame::Show(show));
+   bool ret = wxFrame::Show(show);
+   if (show)
+      ewxWindowUtils::scheduleClipAudit(this);
+   return ret;
 }
 
 

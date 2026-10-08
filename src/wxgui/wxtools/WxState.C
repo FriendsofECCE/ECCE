@@ -14,6 +14,7 @@ using std::endl;
 
 // For compilers that support precompilation, includes "wx/wx.h".
 #include "wx/wxprec.h"
+#include <wx/wrapsizer.h>
 
 #ifdef __BORLANDC__
 #pragma hdrstop
@@ -461,7 +462,8 @@ ewxPanel* WxState::createLegend(wxWindow* parent)
   ewxPanel* legend = new ewxPanel(parent, -1, wxDefaultPosition,
                                   wxDefaultSize, wxNO_BORDER);
   wxBoxSizer * legendVSizer = new wxBoxSizer(wxVERTICAL);
-  wxBoxSizer * legendSizer = new wxBoxSizer(wxHORIZONTAL);
+  //  Wraps, so the last states are not cut off in a narrow window.
+  wxWrapSizer * legendSizer = new wxWrapSizer(wxHORIZONTAL);
   legend->SetSizer(legendVSizer);
 
   ewxStaticText* stateLabel =
@@ -472,12 +474,13 @@ ewxPanel* WxState::createLegend(wxWindow* parent)
        state<ResourceDescriptor::NUMBER_OF_STATES; state++) {
     WxState* stateIcon = new WxState(legend);
     stateIcon->setRunState((ResourceDescriptor::RUNSTATE)state);
-    legendSizer->Add(stateIcon, 0,
-                     wxFIXED_MINSIZE|wxALIGN_CENTER_VERTICAL|wxLEFT, 6);
+    wxBoxSizer *pair = new wxBoxSizer(wxHORIZONTAL);
+    pair->Add(stateIcon, 0, wxFIXED_MINSIZE|wxALIGN_CENTER_VERTICAL|wxLEFT, 6);
 
     stateLabel = new ewxStaticText(legend, -1, stateIcon->getName());
     stateLabel->SetFont(ewxStyledWindow::getSmallLabelFont());
-    legendSizer->Add(stateLabel, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
+    pair->Add(stateLabel, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
+    legendSizer->Add(pair, 0, wxALIGN_CENTER_VERTICAL);
   }
 
   legendVSizer->Add(legendSizer, 0, wxGROW|wxALL, 2);
