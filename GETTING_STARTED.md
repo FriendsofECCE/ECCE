@@ -453,21 +453,22 @@ the first connection is pinned (as `--fetch-pin` does) and a later change
 is refused with a message, never with a question about fingerprints; a
 server that answers only plain http on 8096 is used as it is.
 
-What each deployment mode sees: **nothing is asked** wherever something is
-configured already: `siteconfig/RemoteServer` present (an administrator or
-`ecce-remote-setup` as root), `ecce -remote` or `ECCE_REMOTE_SERVER`,
-`ECCE_LOCAL_DATA` or `ecce --local`, `~/.ECCE-local` or `~/.ECCE/dataserver`
-already there, the data folder preference set, a server chosen before, a
-shared broker declared (`siteconfig/SharedBroker`), an account marked as a
-central server (`~/.ECCE/mosquitto.server`), and **any installation that
-has the `ecce-server` package** (the server itself, and remote desktop
-sessions such as FastX on it). So modes 2 and 3, the server machine and the
-all-in-one install behave exactly as before; only a client-only install of
-a user with nothing yet is asked. `ECCE_NO_FIRST_START=1` never asks (tests
-and scripts set it), and without a display or wxPython nothing is asked. On
-macOS and Windows the platform's own data folder is not a choice made: a
-user with nothing yet is asked once, and a Windows user who already has
-`ecce-local` in their profile is not.
+What each deployment mode sees: the question is asked **once per user**;
+the answer is recorded in `~/.ECCE/first-start-answer`. Data from before
+the question (`~/.ECCE-local`, `ecce-local` on Windows, `~/.ECCE/dataserver`,
+a server chosen before, the data folder preference) does not skip it: the
+window shows the current setup and preselects it, so an existing user
+clicks Continue once (keeping a per-user data server as it is). **Nothing is
+asked** where an administrator or the command line decides:
+`siteconfig/RemoteServer` present (an administrator or `ecce-remote-setup` as
+root), `ecce -remote` or `ECCE_REMOTE_SERVER`, `ECCE_LOCAL_DATA` or `ecce
+--local`, a shared broker declared (`siteconfig/SharedBroker`), an account
+marked as a central server (`~/.ECCE/mosquitto.server`), and on Linux **any
+installation that has the `ecce-server` package** (the server itself, and
+remote desktop sessions such as FastX on it). So modes 2 and 3, the server
+machine and the all-in-one install behave exactly as before.
+`ECCE_NO_FIRST_START=1` never asks (tests and scripts set it), and without a
+display or wxPython nothing is asked.
 
 #### Mode 1: everything local (the default)
 

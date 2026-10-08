@@ -10,9 +10,11 @@
 Exit status of the plain form: 0 go on, 3 the user chose Quit.  Anything
 else (no wxPython, no display) goes on with what ECCE would have done.
 
-The question is for a client with nothing configured; every setup that
-already exists skips it, see skip_reason().  The choice is kept as the state
-ECCE already reads, so there is no file of its own to get out of step:
+The question is asked once per user: an answer is recorded in
+~/.ECCE/first-start-answer, and only that or explicit configuration skips it
+(see skip_reason()).  Data from before the question (a local folder, a
+server already chosen, ~/.ECCE/dataserver) only preselects the matching
+choice.  The choice itself is kept as the state ECCE already reads:
 
   Work on this computer   the LocalData preference on (ecce-localdata pref
                           on), the folder ~/.ECCE-local made
@@ -36,6 +38,7 @@ HOME = os.environ.get("ECCE_REALUSERHOME") or os.path.expanduser("~")
 ECCE_HOME = os.environ.get("ECCE_HOME") or "/opt/ecce"
 STATE = os.path.join(HOME, ".ECCE")
 MINE = os.path.join(STATE, "RemoteServer")
+ANSWER = os.path.join(STATE, "first-start-answer")
 WINDOWS = sys.platform == "win32"
 # The folder the Windows start script (ecce.cmd) already uses.
 LOCAL_DEFAULT = os.path.join(HOME, "ecce-local" if WINDOWS else ".ECCE-local")
@@ -98,17 +101,29 @@ def skip_reason():
     if (sys.platform.startswith("linux") and
             os.path.exists(os.path.join(ECCE_HOME, "bin", "ecce-dataserver-start"))):
         return "the server package is installed here"
-    if os.path.exists(os.path.join(MINE, "DataServers")):
-        return "a server is already chosen"
-    # Windows packages before this question made ~/ecce-local unasked, so
-    # there only the recorded answer (the preference, below) counts.
-    if os.path.isdir(LOCAL_DEFAULT) and not WINDOWS:
-        return "local data exists (~/.ECCE-local)"
-    if os.path.isdir(os.path.join(STATE, "dataserver")):
-        return "server-mode data exists (~/.ECCE/dataserver)"
-    if pref_state() != "unset":
-        return "the data folder preference is set"
+    # Existing data says how ECCE was used, not that the user never wants
+    # the other way: it only preselects the window's choice.
+    if os.path.exists(ANSWER):
+        return "already answered (~/.ECCE/first-start-answer)"
     return None
+
+
+def record(answer):
+    """The answer, so the question is not asked again."""
+    try:
+        os.makedirs(STATE, exist_ok=True)
+        with open(ANSWER, "w", newline="\n") as f:
+            f.write(answer + "\n")
+    except OSError:
+        pass
+
+
+def existing_setup():
+    """Whether this user has used ECCE before the question existed."""
+    return (os.path.exists(os.path.join(MINE, "DataServers")) or
+            os.path.isdir(LOCAL_DEFAULT) or
+            os.path.isdir(os.path.join(STATE, "dataserver")) or
+            pref_state() != "unset")
 
 
 def current_state():
@@ -138,6 +153,8 @@ def choose_local():
         shutil.rmtree(old, ignore_errors=True)
         os.rename(MINE, old)
     rc, _ = run([tool("ecce-localdata"), "pref", "on"])
+    if rc == 0:
+        record("local")
     return rc == 0
 
 
@@ -239,11 +256,15 @@ def choose_server(address):
                 "Check the address and your network connection, then try again."
                 % address)
     run([tool("ecce-localdata"), "pref", "off"])
+    record("server " + address)
     return None
 
 
 def build_dialog(wx, change):
-    mode, text, host = current_state() if change else ("", "", "")
+    # The first time too: what is set up already is preselected.
+    mode, text, host = current_state()
+    if not change and not existing_setup():
+        mode, text = "", ""
 
     dlg = wx.Dialog(None, title="Change server" if change else "Welcome to ECCE")
     panel = wx.Panel(dlg)
@@ -261,7 +282,7 @@ def build_dialog(wx, change):
         t.SetFont(f)
         return t
 
-    if change:
+    if text:
         box.Add(label(text), 0, wx.BOTTOM, 16)
     box.Add(label("Where do you want to work?", True, 3), 0, wx.BOTTOM, 12)
 
@@ -320,6 +341,11 @@ def build_dialog(wx, change):
         status.SetLabel("")
         if r_local.GetValue():
             if change and mode == "local":
+                result["changed"] = False
+            elif mode == "here" and os.path.isdir(os.path.join(STATE, "dataserver")):
+                # The per-user data server is on this computer too: keep
+                # it, rather than switch to a folder its data is not in.
+                record("local")
                 result["changed"] = False
             elif not choose_local():
                 status.SetLabel("ECCE could not save this choice.")

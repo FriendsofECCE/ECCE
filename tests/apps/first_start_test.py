@@ -66,12 +66,21 @@ env, user, ehome = fresh("fresh")
 rc, out = verdict(env)
 check(rc == 0 and out == "ask", "a fresh client-only user is asked (%s)" % out)
 
-if sys.platform == "win32":
-    # Earlier Windows packages made ~/ecce-local without asking.
-    env, user, ehome = fresh("oldlocal")
-    os.makedirs(user + "/ecce-local")
+# Data from before the question only preselects a choice: still asked once.
+asked = [("localdir", "the local data folder exists",
+          lambda e, u, h: os.makedirs(u + ("/ecce-local" if sys.platform == "win32" else "/.ECCE-local"))),
+         ("serverdata", "~/.ECCE/dataserver exists",
+          lambda e, u, h: os.makedirs(u + "/.ECCE/dataserver")),
+         ("chosen", "a server was chosen before (~/.ECCE/RemoteServer)",
+          lambda e, u, h: (os.makedirs(u + "/.ECCE/RemoteServer"),
+                           open(u + "/.ECCE/RemoteServer/DataServers", "w").close())),
+         ("pref", "the data folder preference was set",
+          lambda e, u, h: subprocess.run([localdata, "pref", "off"], env=e, check=True))]
+for name, what, setup in asked:
+    env, user, ehome = fresh(name)
+    setup(env, user, ehome)
     rc, out = verdict(env)
-    check(rc == 0 and out == "ask", "Windows: an unasked ~/ecce-local is still asked (%s)" % out)
+    check(rc == 0 and out == "ask", "asked once although " + what + " (%s)" % out)
 
 cases = []
 
@@ -98,16 +107,8 @@ case("localenv-empty", "ECCE_LOCAL_DATA is set and empty (a data server)",
      lambda e, u, h: e.update(ECCE_LOCAL_DATA=""))
 case("localflag", "ecce --local",
      lambda e, u, h: e.update(ECCE_LOCAL="1"))
-if sys.platform != "win32":
-    case("localdir", "the local data folder exists",
-         lambda e, u, h: os.makedirs(u + "/.ECCE-local"))
-case("serverdata", "~/.ECCE/dataserver exists",
-     lambda e, u, h: os.makedirs(u + "/.ECCE/dataserver"))
-case("chosen", "a server was chosen before (~/.ECCE/RemoteServer)",
-     lambda e, u, h: (os.makedirs(u + "/.ECCE/RemoteServer"),
-                      open(u + "/.ECCE/RemoteServer/DataServers", "w").close()))
-case("pref", "the data folder preference was set",
-     lambda e, u, h: subprocess.run([localdata, "pref", "off"], env=e, check=True))
+case("answered", "the question was answered before (~/.ECCE/first-start-answer)",
+     lambda e, u, h: open(u + "/.ECCE/first-start-answer", "w").write("local\n"))
 if sys.platform.startswith("linux"):   # macOS and Windows always have a screen
     case("nodisplay", "there is no display",
          lambda e, u, h: e.pop("DISPLAY"))
@@ -170,7 +171,7 @@ check(rc == 0 and ("http://127.0.0.1:%d/Ecce" % port) in text and
       "ECCE Data Server on 127.0.0.1" in text and prefstate(env) == "off",
       "server: RemoteServer/DataServers names the server, preference off (%s)" % out)
 rc, out = verdict(env)
-check(rc == 1 and "already chosen" in out, "server chosen: not asked again (%s)" % out)
+check(rc == 1 and "already answered" in out, "server chosen: not asked again (%s)" % out)
 
 rc, out = apply(env, "local")
 check(rc == 0 and not os.path.exists(ds) and os.path.exists(user + "/.ECCE/RemoteServer.off/DataServers")
