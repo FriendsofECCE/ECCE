@@ -604,7 +604,9 @@ Builder::~Builder()
 
 bool Builder::Show(bool show)
 {
-   return BuilderGUI::Show(show);
+   const bool ret = BuilderGUI::Show(show);
+   if (show) initShownPanels();
+   return ret;
 }
 
 

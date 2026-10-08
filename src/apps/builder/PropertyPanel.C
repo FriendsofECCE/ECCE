@@ -69,8 +69,14 @@ PropertyPanel::~PropertyPanel()
 
 bool PropertyPanel::Show(bool show)
 {
+  //  wxAUI Show()s the window of a hidden pane inside its not yet shown
+  //  floating frame; building then is wasted work, so wait until it is
+  //  on screen (Builder::initShownPanels() catches up after Update()).
   if (show) {
-    ensureInitialized();
+    wxWindow *top = wxGetTopLevelParent(this);
+    if (!top || top->IsShown()) {
+      ensureInitialized();
+    }
   }
   return ewxPanel::Show(show);
 }

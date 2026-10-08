@@ -585,6 +585,24 @@ void Builder::updatePanes(bool allowSwitch)
     }
   }
   syncMenuChecks();
+  initShownPanels();
+}
+
+
+//  Builds the property panels that are really on screen; PropertyPanel::
+//  Show() skips those wxAUI shows while their frame is still hidden.
+void Builder::initShownPanels()
+{
+  wxAuiPaneInfoArray &panes = p_mgr.GetAllPanes();
+  for (size_t i = 0; i < panes.GetCount(); ++i) {
+    wxAuiPaneInfo &pane = panes.Item(i);
+    if (!pane.IsShown() || pane.IsToolbar() || !pane.window ||
+        !pane.window->IsShownOnScreen()) {
+      continue;
+    }
+    PropertyPanel *pp = dynamic_cast<PropertyPanel*>(pane.window);
+    if (pp) pp->ensureInitialized();
+  }
 }
 
 

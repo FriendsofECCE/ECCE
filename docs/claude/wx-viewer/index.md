@@ -15,7 +15,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [Organizer tool buttons paint their SVG icon; setBitMap (the calculation thumbnail) must replace it there](organizer-tool-button-draws-its-svg-not-setbitmap.md)
 - [Every plot is an `ewxPlotCtrl` styled by `PlotStyle.H`, the palette the vibrational spectrum canvas uses; `tests/plots/capture.py` pictures them before and after a change](plots-share-the-spectrum-style.md)
 - [`ComputeMoCmd` caches a grid before computing it; a failed Compute must remove it (#239)](mo-grid-cache-keeps-a-failed-compute.md)
-- [The MO Diagram is built when a calculation opens, not when its pane is shown](mo-diagram-builds-when-a-calculation-opens.md)
+- [A property panel is built when it is on screen, not when wxAUI Show()s it in a hidden floating frame](mo-diagram-builds-when-a-calculation-opens.md)
 - [The redraw sensor must not be drained inside `schedule()`: `SoWxEventHandler::setUpCallbacks()` only wakes idle](open-inventors-redraw-sensor-is-a-one.md)
 - [`ECCE_USE_COIN` (default ON) builds the viewer against Coin3D; `=OFF` keeps the vendored core for one release](ecce-use-coin-builds-the-viewer-against-coin3d.md)
 - [Coin SORTED_LAYERS_BLEND is the default lobe transparency (6 passes, alpha canvas); slow scenes fall back to SCREEN_DOOR](coin-sorted-layers-blend-is-the-default-lobe-transparency.md)

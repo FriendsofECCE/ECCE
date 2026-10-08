@@ -154,9 +154,10 @@ void VizPropertyPanel::loseFocus()
 
 void VizPropertyPanel::doFocus(const bool& value)
 {
-  ensureInitialized();
-
   if (value) {
+    //  Taking focus needs the widgets; losing it (also Builder::quit()
+    //  unfocusing every panel) must not build a panel nobody opened.
+    ensureInitialized();
     // since this panel is "taking focus", make all other panels lose theirs
     // only if they currently have focus (saves from spurious loseFocus calls)
     set<VizPropertyPanel*> panels =

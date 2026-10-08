@@ -100,9 +100,10 @@ class PropertyPanel : public ewxPanel
     // setters
     void setDescription(PropertyPanelDescription *description);
 
+    void ensureInitialized();
+
   protected:
     virtual void initialize();
-    void ensureInitialized();
 
   private:
     PropertyPanelDescription *p_description;

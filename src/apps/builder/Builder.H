@@ -409,6 +409,7 @@ class Builder: public BuilderGUI,
       void syncColumn(bool allowSwitch);
       void syncMenuChecks();
       void updatePanes(bool allowSwitch=false);
+      void initShownPanels();
       void makeRoomFor(const wxString& name);
       void setColumnTab(int tab, bool save=true);
       void selectDetail(const string& name);
