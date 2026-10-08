@@ -1904,11 +1904,10 @@ close
 
 def remote_admin(tmp, display, build):
     """-admin on a -remote client: saved on the central server over the
-    RCommand transport and published.  The server is simulated on this
-    machine (tests/queues/central_server.py).  ecce-remote-setup no longer
-    copies the server's files (#192), so until the client reads them itself
-    sync() stands in for that at each session start, and what a session shows
-    after its own save is not checked."""
+    RCommand transport, published, and this client's copy fetched again.
+    The server is simulated on this machine (tests/queues/central_server.py);
+    the client never writes its own siteconfig except through
+    ecce-remote-setup --refresh."""
     print("-admin on a -remote client")
     sys.path.insert(0, os.path.join(REPO, "tests", "queues"))
     from central_server import CentralServer, make_client
@@ -1919,14 +1918,6 @@ def remote_admin(tmp, display, build):
     root = os.path.join(tmp, "radmin-server")
     os.makedirs(root)
     s = CentralServer(root, build, siteconfig=e.sc)
-
-    def sync():
-        for name in os.listdir(e.sc):
-            if name.startswith(("CONFIG.", "Machines")) and name != "CONFIG.dummy":
-                os.remove(os.path.join(e.sc, name))
-        for name in os.listdir(s.published):
-            if name not in ("MANIFEST", "INDEX"):
-                shutil.copy(os.path.join(s.published, name), os.path.join(e.sc, name))
     try:
         s.publish()
         port = s.serve()
@@ -1937,7 +1928,6 @@ def remote_admin(tmp, display, build):
         server_cfg = os.path.join(s.sc, "CONFIG.cluster")
         client_cfg = os.path.join(e.sc, "CONFIG.cluster")
         user_before = registration(e.ue)
-        client_before = read(client_cfg)
         orca = "/admin/orca $(touch %s)" % canary
         src = "/x'y;z `touch %s`" % canary
         p = run(display, build, e, """
@@ -1949,8 +1939,10 @@ tab connection
 set sourcefile "%s"
 save
 expect dirty 0
+expect field code:orca '%s'
+expect field sourcefile "%s"
 quit
-""" % (orca, src), args=["-admin"], extra=extra)
+""" % (orca, src, orca, src), args=["-admin"], extra=extra)
         clean(p, "remote admin: a save goes to the server")
         cfg = keys(server_cfg)
         check(cfg.get("orca") == orca and cfg.get("sourcefile") == src and
@@ -1961,9 +1953,8 @@ quit
         check(len(m) > 7 and ":ORCA" in m[7], "the server's Machines lists ORCA")
         check(read(os.path.join(s.published, "CONFIG.cluster")) == read(server_cfg),
               "the server published the new file")
-        check(read(client_cfg) == client_before,
-              "ecce-remote-setup --refresh copies nothing to this client (#192)")
-        sync()
+        check(read(client_cfg) == read(server_cfg),
+              "this client's copy was fetched again")
         check(registration(e.ue) == user_before, "the user's files are untouched")
 
         # a raw edit of the server's file
@@ -1975,12 +1966,12 @@ expect raw-dialog 1
 set raw:text %s
 click raw:save
 expect raw-dialog 0
+expect field code:orca /raw/orca
 quit
 """ % esc(good), args=["-admin"], extra=extra)
         clean(p, "remote admin: the file edited as text is saved on the server")
-        check(read(server_cfg) == good,
-              "the server's file is the text saved")
-        sync()
+        check(read(server_cfg) == good and read(client_cfg) == good,
+              "the server's file and this client's copy are the text saved")
 
         # not allowed to write the server's siteconfig: nothing changes
         before = (digest(s.sc), digest(s.published), digest(e.sc))
@@ -2005,16 +1996,16 @@ quit
 select cluster
 answer yes
 delete
+expect list cluster <absent>
 quit
 """, args=["-admin"], extra=extra)
         clean(p, "remote admin: delete a machine on the server")
         check("cluster" not in machines(os.path.join(s.sc, "Machines")) and
               not os.path.exists(server_cfg),
               "the server's Machines line and CONFIG.cluster are gone")
-        sync()
         check(not os.path.exists(client_cfg) and "cluster" not in
               machines(os.path.join(e.sc, "Machines")),
-              "and so are the copies a client takes from the published files")
+              "and this client's copies of them")
     finally:
         s.stop()
 

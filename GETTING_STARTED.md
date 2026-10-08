@@ -517,11 +517,14 @@ server through ssh tunnels. On each client machine, as root:
 sudo ecce-remote-setup <server-host>
 ```
 
-`ecce-remote-setup` writes only the data server's address (and, with
-`--tls`, its certificate); it no longer copies the server's machine list onto
-the client (#192). The server publishes it, behind the data-server login, in
-`Ecce/system/siteconfig` with an `INDEX` of sha256 sums; `sudo ecce -admin` on
-the server publishes after a save. `ecce-remote-setup --refresh` does nothing now.
+`ecce-remote-setup` also copies the server's registered site machine list
+onto the client, so students don't register machines by hand. The published
+files need a login of the server (any account): give one with
+`--login NAME` (the password is asked for, or taken from
+`ECCE_SETUP_PASSWORD`). Run `sudo ecce-remote-setup --refresh --login NAME`
+after the admin changes the list (`sudo ecce -admin` on the server publishes
+it, #188, #192). Without a login the address is written and the list is not
+copied. This copy stays until clients fetch the files themselves (#192).
 The client finds the broker on the same host, port 8088 (set `ECCE_BROKER_PORT`
 in the client's environment if the server uses another).
 
@@ -601,7 +604,7 @@ echo "$d" > /opt/ecce/siteconfig/PublishDir # as an administrator
 Every directory above `$d` must be searchable (`x`) by the administrators,
 e.g. `chmod 711 ~ecce` if the home directory is private.
 
-Clients no longer need a refresh step (#192).
+On the administrator's own client, and on every other, `sudo ecce-remote-setup --refresh --login NAME` fetches the new list.
 
 Users then run `ecce -remote`. A client quitting never stops the server's
 services, and neither does the server account's own plain quit; its

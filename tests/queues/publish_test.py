@@ -200,6 +200,23 @@ def apache(tmp, build):
         anon = subprocess.run(["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}",
                                "http://127.0.0.1:%d/Ecce/system/" % port],
                               capture_output=True, text=True).stdout.strip()
+        # the client's copy (ecce-remote-setup) needs a login
+        chome = os.path.join(tmp, "client-home")
+        write(os.path.join(chome, "siteconfig", "DataServers"), "http://x:1/Ecce/system\n")
+        write(os.path.join(chome, "siteconfig", "Machines"), "")
+        cenv = dict(os.environ, ECCE_HOME=chome)
+        r = subprocess.run(["bash", os.path.join(PK, "dataserver", "ecce-remote-setup"),
+                            "127.0.0.1", str(port)], env=cenv, capture_output=True, text=True)
+        check(not os.path.exists(os.path.join(chome, "siteconfig", "RemoteServer", "MANIFEST")),
+              "ecce-remote-setup without a login copies nothing")
+        cenv.update(ECCE_SETUP_PASSWORD="pubpw")
+        r = subprocess.run(["bash", os.path.join(PK, "dataserver", "ecce-remote-setup"),
+                            "127.0.0.1", str(port), "--login", "pubuser"], env=cenv,
+                           capture_output=True, text=True)
+        want = read(acct + "/.ECCE/dataserver/htdocs/Ecce/system/siteconfig/Machines")
+        check(r.returncode == 0 and want and
+              read(os.path.join(chome, "siteconfig", "Machines")) == want,
+              "with --login it copies the server's Machines: " + r.stdout[-200:])
         check(anon in ("200", "301", "404"), "the rest of /Ecce/system is not behind a login "
               "(%s)" % anon)
     finally:

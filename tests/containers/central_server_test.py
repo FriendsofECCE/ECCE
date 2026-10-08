@@ -232,8 +232,14 @@ def setup(pm, image):
               "(INDEX %s)" % (c, o.strip()))
         o, rc = pm.out(c, "timeout 5 bash -c 'echo > /dev/tcp/srv/8088'")
         check(rc == 0, "%s's machine reaches the broker port 8088" % c, o)
-        o, rc = pm.out(c, "ecce-remote-setup srv")
-        check(rc == 0, "%s: ecce-remote-setup srv" % c, o)
+        o, rc = pm.out(c, "ECCE_SETUP_PASSWORD=%s ecce-remote-setup srv --login %s"
+                       % (PW[c], c))
+        check(rc == 0 and "Copied the server's machine list" in o,
+              "%s: ecce-remote-setup srv --login copies the server's machine "
+              "list" % c, o)
+        o, rc = pm.out(c, "grep -c . /opt/ecce/siteconfig/RemoteServer/MANIFEST")
+        check(rc == 0 and int(o.strip() or 0) > 0,
+              "%s: the MANIFEST of the copy is there" % c, o)
 
 
 def clients(pm):
