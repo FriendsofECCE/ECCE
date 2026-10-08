@@ -406,6 +406,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * summary <url>   select <url> in the tree and print the summary panel's
  *                 molecule, basis and setup fields, as label=value
  * snap <png>      save the Organizer window as a PNG
+ * contextmenu <url> right-click <url> in the tree; the New submenu's items
  */
 void CalcMgr::runTestCommand(const string& line)
 {
@@ -570,6 +571,35 @@ void CalcMgr::runTestCommand(const string& line)
           outcome += string(" ") + f[0] + "=" +
                      (t ? string(t->GetLabel().ToUTF8()) : string("<none>"));
         }
+      }
+    } else if (command == "contextmenu") {
+      // "contextmenu <url>": the tree's item-menu event for <url>, as a
+      // right click sends it, then the labels of the menu's New submenu.
+      WxResourceTreeItemData *node = findNode(EcceURL(calcName), false, false);
+      if (!node) {
+        outcome = "not in the tree";
+      } else {
+        auto newItems = [this]() {
+          wxMenu menu;
+          getContextMenu(menu);
+          wxMenuItem *newItem = menu.FindItem(wxID_NEW);
+          wxMenu *sub = newItem ? newItem->GetSubMenu() : 0;
+          string items;
+          for (size_t i = 0; sub && i < sub->GetMenuItemCount(); i++) {
+            wxMenuItem *it = sub->FindItemByPosition(i);
+            if (!it->IsSeparator())
+              items += string(it->GetItemLabelText().ToUTF8()) + "|";
+          }
+          return items;
+        };
+        outcome = "before=" + newItems();
+        wxTreeEvent ev(wxEVT_TREE_ITEM_MENU, p_treeCtrl, node->GetId());
+        p_treeCtrl->GetEventHandler()->ProcessEvent(ev);
+        for (int i = 0; i < 5; i++) wxYield();
+        WxResourceTreeItemData *sel = p_treeCtrl->getSelection();
+        outcome += " selection=" +
+                   (sel ? sel->getUrl().toString() : string("none")) +
+                   " new=" + newItems();
       }
     } else if (command == "snap") {
       for (int i = 0; i < 3; i++) {
@@ -1152,8 +1182,12 @@ bool CalcMgr::confirmAndQuit()
     AuthCache::sessionClear();
     // A local-mode session started no data server; one running belongs to
     // a server-mode session elsewhere and is not ours to stop.
+#ifndef _WIN32
+    // On Windows "ecce-broker-win watch" (ecce.cmd) stops the session's
+    // broker after the last window; these sh scripts cannot run in cmd.exe.
     if (LocalData::dir().empty()) (void)system("ecce-dataserver-stop --if-unused");
     (void)system("ecce-gateway-stop");
+#endif
   }
 
   return true;
@@ -2382,9 +2416,12 @@ void CalcMgr::OnTreectrlKeyDown( wxTreeEvent& event )
  */
 void CalcMgr::OnTreectrlItemMenu( wxTreeEvent& event )
 {
-  //  cerr << "\nEnter ItemMenu event\n";
-
-  //  cerr << "Leave ItemMenu event\n";
+  //  The menu is built for the selection (getContextMenu).  The generic
+  //  tree (GTK) selects the item under a right click; the native wxMSW one
+  //  does not, so the menu was the previously selected item's.
+  wxTreeItemId item = event.GetItem();
+  if (item.IsOk() && !p_treeCtrl->IsSelected(item))
+    p_treeCtrl->SelectItem(item);
   event.Skip();
 }
 

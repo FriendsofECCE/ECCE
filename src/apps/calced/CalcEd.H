@@ -53,6 +53,10 @@ class CalcEd: public CalcEdGUI,
   DECLARE_EVENT_TABLE()
 
   public:
+    //  The quick-pick basis menu's item ids.  wxMSW carries a menu id in
+    //  16 bits, so ids above 32767 never reach their handler there.
+    static const int ID_BASIS_PICK0 = 30000;
+
     CalcEd( );
     CalcEd( wxWindow* parent, wxWindowID id = SYMBOL_CALCEDGUI_IDNAME,
             const wxString& caption = SYMBOL_CALCEDGUI_TITLE,

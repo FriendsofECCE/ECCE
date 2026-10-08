@@ -1170,7 +1170,7 @@ void CalcEd::OnButtonCalcedBasisQuickClick( wxCommandEvent& event )
     if (picks[i] == "-") {
       menu.AppendSeparator();
     } else {
-      menu.Append(100000 + (int)i, picks[i]);
+      menu.Append(ID_BASIS_PICK0 + (int)i, picks[i]);
     }
   }
   PopupMenu(&menu, FindWindow(event.GetId())->GetPosition());
@@ -1215,7 +1215,7 @@ void CalcEd::OnMenuCalcedBasisSetSelected( wxCommandEvent& event )
           central.getDefaultBasisSetLibrary());
 
   vector<string> picks = quickPicks();
-  size_t pick = event.GetId() - 100000;
+  size_t pick = event.GetId() - ID_BASIS_PICK0;
   if (pick >= picks.size()) {
     delete gbsFactory;
     return;
@@ -1819,7 +1819,7 @@ void CalcEd::CreateControls()
   }
 
   //  Up to 256 ids: a code may give its own quick-pick list (ECCE-QM).
-  Connect( 100000, 100000 + 255, wxEVT_COMMAND_MENU_SELECTED,
+  Connect( ID_BASIS_PICK0, ID_BASIS_PICK0 + 255, wxEVT_COMMAND_MENU_SELECTED,
            wxCommandEventHandler( CalcEd::OnMenuCalcedBasisSetSelected ) );
 }
 
