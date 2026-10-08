@@ -151,10 +151,17 @@ try:
     if orcas:
         text = app("machregister", "ECCE_MACHREG_SCRIPT",
                    "wait 3000\nselect localhost\ntab codes\ncode ORCA\nclick code:find\n"
-                   "expect contains code:orca /%s/orca\nquit\n" % orcas[0],
+                   "expect contains code:orca /%s/orca\nsave\nwait 2000\nquit\n" % orcas[0],
                    extra={"ECCE_NO_MESSAGING": "1"})
         check("[MACHREG] ok code:orca contains" in text,
               "Find locates ORCA in %s outside PATH" % orcas[0])
+    # the Launcher makes a run directory that does not exist yet
+    run = state + "/runs/not/yet"
+    text = app("launcher", "ECCE_LAUNCHER_SCRIPT",
+               "wait 3000\nmachine localhost\nrundir %s\nwait 1500\nlaunch\nwait 5000\nquit\n" % run,
+               ("-context", url))
+    check("FAIL" not in text and "cd' to run directory" not in text and os.path.isdir(run),
+          "Launch made the run directory %s" % run)
 finally:
     org.kill()
     subprocess.run([tree + "/usr/bin/bash.exe", tree + "/bin/ecce-broker-win", "stop"], env=env,
