@@ -159,6 +159,14 @@ def main():
         check(qf == os.path.join(inst, "localhost.Q"),
               "localhost.Q is never taken from the server: %s" % qf)
 
+        # a user's own server folder (#240) names the cache
+        own = os.path.join(user, ".ECCE", "RemoteServer")
+        shutil.move(os.path.join(inst, "RemoteServer"), own)
+        m = parse(dump(dict(remote, ECCE_REMOTE_DIR=own), "-machines"))
+        check(m.get("shared") == "shared.srv",
+              "the cache is found through ECCE_REMOTE_DIR: %r" % m.get("shared"))
+        shutil.move(own, os.path.join(inst, "RemoteServer"))
+
         # no cache: nothing changes from local mode
         shutil.rmtree(cache)
         m = parse(dump(remote, "-machines"))
