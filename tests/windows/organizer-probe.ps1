@@ -1,5 +1,5 @@
 # What a user meets first on a Windows desktop, checked without clicking:
-# the local machine is registered under the computer's real name, the home
+# the local machine is localhost even with HOST the computer's name, the home
 # is open and selected at start, the focus handler settles on a selection
 # (it looped forever on wxMSW when nothing was selected), a project can be
 # made in Local data, and the GUI programs carry the application icon.
@@ -74,7 +74,7 @@ Check ($probe -match "register=(added|known)") "local machine registered"
 Check ($probe -match "homenode=yes selected-before=yes") "the home is open and selected at start"
 Check ($probe -match "selection=\S" -and $probe -notmatch "selection=none") "the tree settles on a selection"
 $m = Get-Content "$Out\home\.ECCE\MyMachines" -ErrorAction SilentlyContinue
-Check ([bool]($m | Select-String -SimpleMatch "$env:COMPUTERNAME")) "MyMachines lists $env:COMPUTERNAME"
+Check (-not ($m | Select-String -SimpleMatch "$env:COMPUTERNAME")) "no machine registered under $env:COMPUTERNAME (it is localhost)"
 $np = Ask "newproject probeproj"
 Say "newproject: $np"
 Check ($np -like "ok *") "a project made in Local data"
