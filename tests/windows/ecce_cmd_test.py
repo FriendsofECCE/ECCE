@@ -56,14 +56,23 @@ def organizer_running():
     return "organizer.exe" in r.stdout
 
 
+def cmd(env, cwd, log):
+    """ecce.cmd to a log file: the Organizer it starts keeps a pipe open for as long as it lives."""
+    with open(log, "w") as out:
+        r = subprocess.run(["cmd", "/c", os.path.join(root, "ecce.cmd")], env=env,
+                           stdout=out, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+                           timeout=180, cwd=cwd)
+    return r.returncode, open(log, errors="replace").read()
+
+
 def run(name, answer, **extra):
     profile = os.path.join(scratch, name)
     shutil.rmtree(profile, ignore_errors=True)
     os.makedirs(profile)
+    os.makedirs(scratch, exist_ok=True)
     env = {k: v for k, v in os.environ.items() if not k.startswith("ECCE_")}
     env.update(USERPROFILE=profile, ECCE_FIRST_START_ANSWER=answer, **extra)
-    r = subprocess.run(["cmd", "/c", os.path.join(root, "ecce.cmd")], env=env,
-                       capture_output=True, text=True, timeout=180, cwd=profile)
+    rc, text = cmd(env, profile, os.path.join(scratch, name + ".log"))
     up = False
     for _ in range(30):
         if organizer_running():
@@ -72,12 +81,12 @@ def run(name, answer, **extra):
         time.sleep(1)
     subprocess.run(["taskkill", "/F", "/IM", "organizer.exe"], capture_output=True)
     time.sleep(2)
-    print("%s: rc=%d organizer=%s\n%s%s" % (name, r.returncode, up, r.stdout, r.stderr))
-    return r, profile, up
+    print("%s: rc=%d organizer=%s\n%s" % (name, rc, up, text))
+    return rc, profile, up
 
 
 r, profile, up = run("local", "local")
-check(r.returncode == 0 and up, "local: ecce.cmd starts the Organizer")
+check(r == 0 and up, "local: ecce.cmd starts the Organizer")
 check(os.path.isdir(profile + "/ecce-local"), "local: the data folder is made")
 check(not os.path.exists(profile + "/.ECCE/RemoteServer/DataServers"), "local: no server is chosen")
 
@@ -99,10 +108,8 @@ env.update(USERPROFILE=profile, ECCE_FIRST_START_ANSWER="", ECCE_NO_FIRST_START=
            ECCE_BROKER_PORT=str(bport))
 for f in glob.glob(profile + "/.ECCE/broker_*"):
     os.remove(f)
-r = subprocess.run(["cmd", "/c", os.path.join(root, "ecce.cmd")], env=env,
-                   capture_output=True, text=True, timeout=180, cwd=profile,
-                   stdin=subprocess.DEVNULL)
-print("down: rc=%d\n%s%s" % (r.returncode, r.stdout, r.stderr))
-check(r.returncode != 0 and not organizer_running(), "server down: ecce.cmd stops with an error")
+rc, text = cmd(env, profile, os.path.join(scratch, "down.log"))
+print("down: rc=%d\n%s" % (rc, text))
+check(rc != 0 and not organizer_running(), "server down: ecce.cmd stops with an error")
 subprocess.run(["taskkill", "/F", "/IM", "organizer.exe"], capture_output=True)
 sys.exit(1 if failures else 0)

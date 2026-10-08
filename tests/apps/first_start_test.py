@@ -90,8 +90,8 @@ case("localenv-empty", "ECCE_LOCAL_DATA is set and empty (a data server)",
      lambda e, u, h: e.update(ECCE_LOCAL_DATA=""))
 case("localflag", "ecce --local",
      lambda e, u, h: e.update(ECCE_LOCAL="1"))
-case("localdir", "~/.ECCE-local exists",
-     lambda e, u, h: os.makedirs(u + "/.ECCE-local"))
+case("localdir", "the local data folder exists",
+     lambda e, u, h: os.makedirs(u + ("/ecce-local" if sys.platform == "win32" else "/.ECCE-local")))
 case("serverdata", "~/.ECCE/dataserver exists",
      lambda e, u, h: os.makedirs(u + "/.ECCE/dataserver"))
 case("chosen", "a server was chosen before (~/.ECCE/RemoteServer)",
@@ -102,9 +102,6 @@ case("pref", "the data folder preference was set",
 if sys.platform.startswith("linux"):   # macOS and Windows always have a screen
     case("nodisplay", "there is no display",
          lambda e, u, h: e.pop("DISPLAY"))
-if sys.platform == "win32":
-    case("winlocal", "~/ecce-local exists (what ecce.cmd made before)",
-         lambda e, u, h: os.makedirs(u + "/ecce-local"))
 case("switch", "ECCE_NO_FIRST_START is set (tests, scripts)",
      lambda e, u, h: e.update(ECCE_NO_FIRST_START="1"))
 
