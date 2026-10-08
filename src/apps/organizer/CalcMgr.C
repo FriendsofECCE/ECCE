@@ -915,10 +915,6 @@ void CalcMgr::setContextPanel()
   p_splitterWindow->SetAutoLayout(true);
 
   Layout();
-  // wxMSW sends no size event to a panel put in with ReplaceWindow, so its
-  // sizer never ran: the project list stayed at its 100x60 minimum.
-  p_splitterWindow->UpdateSize();
-  p_contextPanel->getWidget()->Layout();
 
   //  cerr << "\nLeave setContextPanel of: " << p_panelNode->getName() << endl;
 

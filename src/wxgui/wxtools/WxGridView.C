@@ -571,8 +571,9 @@ void WxGridView::enableMultiSelect(bool multiSelect)
 
 void WxGridView::windowResizeCB(wxSizeEvent& event)
 {
+  // No Fit(): the parent's sizer gives this view its size, and fitting to
+  // the grid's 100x60 minimum shrank the Organizer's project list on MSW.
   this->Layout();
-  this->Fit();
 }
 
 
