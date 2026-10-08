@@ -191,19 +191,13 @@ void EcceTool::OnPaint( wxPaintEvent& event )
   wxPaintDC dc(this);
   PrepareDC(dc);
 
-  //  The theme's own flat-button look: no frame at rest, the theme's
-  //  button on hover and press, its focus ring on keyboard focus.
+  //  Always the theme's raised push button: a flat icon gives no sign
+  //  it can be clicked until the mouse is over it.
   wxRect rect(wxPoint(0, 0), GetClientSize());
   int flags = 0;
   if (p_isSunken) flags |= wxCONTROL_PRESSED;
   else if (p_isHover) flags |= wxCONTROL_CURRENT;
-#ifdef __WXMSW__
-  // Windows buttons are raised at rest; a flat one reads as a picture.
   wxRendererNative::Get().DrawPushButton(this, dc, rect, flags);
-#else
-  if (flags)
-    wxRendererNative::Get().DrawPushButton(this, dc, rect, flags);
-#endif
 
   if (p_bundle.IsOk()) {
     wxBitmap bmp = p_bundle.GetBitmapFor(this);

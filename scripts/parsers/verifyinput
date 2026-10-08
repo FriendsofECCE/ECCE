@@ -1305,12 +1305,235 @@ sub espresso
 }
 
 
+#  ====================================================================
+#  ECCE-QM
+#
+#  The input of the engine bundled with ECCE (src/qm, `ecce-qm`): one
+#  keyword per line, `geometry` ... `end` and `basis_data` ... `end`
+#  blocks.  Unlike the codes above, the engine is part of this tree, so
+#  its parser is not somebody's manual: anything it throws on is BAD
+#  here, and tests/verify runs ecce-qm over the fixtures to keep the two
+#  from drifting.  What the engine would accept but cannot compute (a
+#  basis the library lacks) is UNSURE, because the library is not
+#  visible from here.
+#  ====================================================================
+sub ecceqm
+{
+  my @L = @stripped;
+
+  my %keyword = map { $_ => 1 }
+    qw(title charge multiplicity method basis spherical grid units
+       maxiter conv_energy conv_grad molden);
+  my %functional = map { $_ => 1 } qw(hf svwn lda pbe b3lyp pbe0);
+  my $INT = qr/[-+]?\d+/;
+
+  my ($charge, $mult, $method) = (0, 1, "hf");
+  my $multGiven = 0;
+  my ($geomOpen, $geomClose, $basisOpen, $basisClose) = (0, 0, 0, 0);
+  my ($inGeom, $inBasis, $shells, $primitives, $curShell) = (0, 0, 0, 0, 0);
+  my %covered;
+  my ($bad, $geomAtoms, $basisName) = (0, 0, "");
+  my $badKeyword = 0;
+
+  for my $i (0 .. $#L) {
+    my $line = $L[$i];
+    $line =~ s/#.*//;
+    next unless ($line =~ /\S/);
+    my ($key, $rest) = ($line =~ /^\s*(\S+)\s*(.*?)\s*$/);
+    my $k = lc($key);
+    my $n = $i + 1;
+
+    if ($inGeom) {
+      if ($k eq "end") { $inGeom = 0; $geomClose = $n; next; }
+      if ($line =~ /^\s*([A-Za-z]+)\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
+        if (!exists($Z{ucfirst(lc($1))})) {
+          finding("BAD", $n, "geometry",
+                  "\"$1\" is not an element symbol ecce-qm knows.");
+          $bad++;
+        }
+        $geomAtoms++;
+      } else {
+        my $shown = $line; $shown =~ s/^\s+//; $shown =~ s/\s+$//;
+        $shown = substr($shown, 0, 40) . "..." if (length($shown) > 43);
+        finding("BAD", $n, "geometry",
+                "This line is inside the geometry block but is not an " .
+                "atom (element and three coordinates): \"$shown\". " .
+                "ecce-qm stops on it.");
+        $bad++;
+      }
+      next;
+    }
+
+    if ($inBasis && $k eq "geometry") {
+      finding("BAD", $basisOpen, "basis",
+              "The basis_data block is never closed by an 'end'; ecce-qm " .
+              "reads the geometry keyword as part of it and stops.");
+      $bad++;
+      $inBasis = 0;
+      $basisClose = -1;
+    }
+    if ($inBasis) {
+      if ($k eq "end") { $inBasis = 0; $basisClose = $n; $curShell = 0; next; }
+      if ($k eq "shell") {
+        my ($el, $letter) = ($rest =~ /^([A-Za-z]+)\s+([A-Za-z])(?:\s|$)/);
+        if (defined($el) && lc($letter) =~ /^[spdfghi]$/ &&
+            exists($Z{ucfirst(lc($el))})) {
+          $covered{ucfirst(lc($el))} = 1;
+          $shells++;
+          $curShell = $n;
+        } else {
+          finding("BAD", $n, "basis",
+                  "A shell line needs an element and one angular " .
+                  "momentum letter (S, P, D, F, G, H or I): " .
+                  "\"shell $rest\".");
+          $bad++;
+        }
+        next;
+      }
+      if ($curShell && $line =~ /^\s*$NUM\s+$NUM(\s|$)/) {
+        $primitives++;
+        next;
+      }
+      finding("BAD", $n, "basis",
+              "Inside basis_data only 'shell <element> <letter>' lines " .
+              "and 'exponent coefficient' rows are allowed, and this is " .
+              "neither. ecce-qm stops on it.");
+      $bad++;
+      next;
+    }
+
+    if ($k eq "geometry")   { $inGeom = 1; $geomOpen = $n; next; }
+    if ($k eq "basis_data") { $inBasis = 1; $basisOpen = $n; next; }
+
+    if (!$keyword{$k}) {
+      finding("BAD", $n, "keywords",
+              "\"$key\" is not an ecce-qm keyword; ecce-qm stops with " .
+              "'unknown keyword' on it.");
+      $bad++;
+      $badKeyword++;
+      next;
+    }
+    if ($k eq "charge" || $k eq "multiplicity" || $k eq "maxiter") {
+      if ($rest !~ /^$INT\b/) {
+        finding("BAD", $n, $k eq "maxiter" ? "keywords" : "charge",
+                "'$k' needs a whole number, and this reads \"$rest\".");
+        $bad++;
+        next;
+      }
+      ($charge) = ($rest =~ /^($INT)/) if ($k eq "charge");
+      if ($k eq "multiplicity") { ($mult) = ($rest =~ /^($INT)/); $multGiven = 1; }
+      $charge += 0; $mult += 0;
+    } elsif ($k eq "method") {
+      $method = lc($rest);
+    } elsif ($k eq "basis") {
+      $basisName = $rest;
+    } elsif ($k eq "grid") {
+      if ($rest !~ /^\d+\s+\d+(\s|$)/) {
+        finding("BAD", $n, "keywords",
+                "'grid' needs two whole numbers (radial and angular " .
+                "points), and this reads \"$rest\".");
+        $bad++;
+      }
+    } elsif ($k eq "conv_energy" || $k eq "conv_grad") {
+      if ($rest !~ /^$NUM(\s|$)/) {
+        finding("BAD", $n, "keywords", "'$k' needs a number, and this " .
+                "reads \"$rest\".");
+        $bad++;
+      }
+    }
+  }
+
+  finding("GOOD", 0, "keywords", "Every keyword is one ecce-qm reads.")
+    if (!$badKeyword);
+
+  #  The method: optional prefix r, u or ro, then the functional.
+  {
+    my $m = $method;
+    $m =~ s/^(ro|r|u)(?=.)//;
+    if ($functional{$m}) {
+      my $ref = ($method =~ /^u./ && $method ne $m)  ? "unrestricted"
+              : ($method =~ /^ro./ && $method ne $m) ? "restricted open-shell"
+              : ($method =~ /^r./ && $method ne $m)  ? "restricted"
+              : ($mult == 1 ? "restricted" : "restricted open-shell");
+      finding("GOOD", 0, "method",
+              ($m eq "hf" ? "Hartree-Fock" : uc($m)) . ", $ref" .
+              ($method eq $m ? " (taken from the multiplicity)" : "") . ".");
+      if ($method =~ /^r./ && $method ne $m && $method !~ /^ro/ &&
+          $mult != 1) {
+        finding("UNSURE", 0, "method",
+                "A closed-shell (restricted) reference was asked for with " .
+                "multiplicity $mult; use an open-shell reference (u or " .
+                "ro) for that.");
+      }
+    } else {
+      finding("BAD", 0, "method",
+              "\"$method\" is not a method ecce-qm has. It takes hf, " .
+              "svwn, pbe, b3lyp or pbe0, optionally with r, u or ro in " .
+              "front.");
+    }
+  }
+
+  #  Geometry.
+  if (!$geomOpen) {
+    finding("BAD", 0, "geometry",
+            "There is no geometry block, so ecce-qm stops with 'no " .
+            "geometry given'.");
+  } elsif (!$geomClose) {
+    finding("BAD", $geomOpen, "geometry",
+            "The geometry block is never closed by an 'end'; everything " .
+            "after it is read as atoms.");
+  } elsif (!$geomAtoms) {
+    finding("BAD", $geomOpen, "geometry", "The geometry block is empty.");
+  } else {
+    finding("GOOD", ($geomOpen + 1) . "-" . ($geomClose - 1), "geometry",
+            "$geomAtoms atoms in the geometry block.")
+      unless (grep { /^BAD\|\d+\|geometry\|/ } @findings);
+  }
+
+  #  Basis: ECCE always writes it out, so its absence is a hand edit.
+  if ($basisOpen && !$basisClose) {
+    finding("BAD", $basisOpen, "basis",
+            "The basis_data block is never closed by an 'end'.");
+  } elsif ($basisClose < 0) {
+    #  Already reported where the geometry keyword turned up.
+  } elsif ($basisOpen) {
+    my @missing = grep { !$covered{$_} } @elements;
+    if (!$shells || !$primitives) {
+      finding("BAD", $basisOpen, "basis",
+              "The basis_data block holds no shells.");
+    } elsif (@missing) {
+      finding("UNSURE", $basisOpen . "-" . $basisClose, "basis",
+              "basis_data gives no shell for " . join(", ", @missing) .
+              ". ecce-qm then looks for " .
+              ($basisName ne "" ? "\"$basisName\"" : "its default basis") .
+              " in its basis library, which cannot be seen from here.");
+    } else {
+      finding("GOOD", $basisOpen . "-" . $basisClose, "basis",
+              "$shells shells cover every element in the geometry (" .
+              join(", ", @elements) . ").")
+        unless (grep { /^BAD\|\d+(-\d+)?\|basis\|/ } @findings);
+    }
+  } else {
+    finding("UNSURE", 0, "basis",
+            "There is no basis_data block, so ecce-qm reads " .
+            ($basisName ne "" ? "\"$basisName\"" : "its default (STO-3G)") .
+            " from its basis library; whether the library has it for " .
+            "every element cannot be judged here.");
+  }
+
+  finding("GOOD", 0, "charge", "Charge $charge, multiplicity $mult" .
+          ($multGiven ? "" : " (assumed: the deck does not say)") . ".");
+  electronCount($charge, $mult, \@atomSymbols, !$multGiven);
+}
+
+
 #  ------------------------------------------------------- which code
 if    ($code =~ /^Gaussian/)          { gaussian();  }
 elsif ($code eq "ORCA")               { orca();      }
 elsif ($code eq "NWChem")             { nwchem();    }
 elsif ($code eq "MOPAC")              { mopac();     }
 elsif ($code eq "QuantumESPRESSO")    { espresso();  }
+elsif ($code eq "ECCE-QM")            { ecceqm();    }
 elsif ($code ne "") {
   finding("UNSURE", 0, "code",
           "There are no structural checks for $code yet, so only the " .
