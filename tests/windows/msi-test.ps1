@@ -63,6 +63,15 @@ $o = Get-Process organizer -ErrorAction SilentlyContinue
 Check ($null -ne $o) "organizer running after the shortcut's command"
 if ($o) { Check ($o[0].MainWindowHandle -ne 0) "organizer has a window"; $o | Stop-Process -Force }
 Check (-not (Get-Process cmd -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 })) "no console window left"
+# With the last window gone, ecce.cmd's watcher stops the session broker.
+$left = $null
+for ($i = 0; $i -lt 30; $i++) {
+  Start-Sleep 1
+  $left = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$inst\*" })
+  if ($left.Count -eq 0) { break }
+}
+Check ($left.Count -eq 0) "the session broker stopped with the last window ($($left.ProcessName -join ' '))"
+$left | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep 3
 
 # Uninstall.  The test driver is not ours; other files the run wrote are removed by the MSI.
