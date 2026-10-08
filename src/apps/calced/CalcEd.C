@@ -14,6 +14,7 @@
 
 #include <wx/combo.h>
 
+#include "util/Ecce.H"
 #include "util/BrowserHelp.H"
 #include "wxgui/WxHelpViewer.H"
 #include "util/ErrMsg.H"
