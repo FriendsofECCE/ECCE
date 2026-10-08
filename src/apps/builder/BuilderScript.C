@@ -15,6 +15,8 @@
 //    shot NAME                   writes NAME.ready next to the script and
 //                                waits for NAME.go: the test photographs the
 //                                window meanwhile
+//    symmetry                    Symmetry > Find, then the point group
+//    progress N                  the MO Compute progress dialog, N seconds
 //    quit
 //  Each command is answered on stderr: "ECCE_BUILDER_SCRIPT: <line>: ok".
 
@@ -33,6 +35,8 @@
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
 
+#include "viz/FindSymmetryCmd.H"
+#include "wxgui/ewxProgressDialog.H"
 #include "Builder.H"
 #include "PBC.H"
 #include "StructLib.H"
@@ -141,6 +145,28 @@ void Builder::runBuilderScript(const std::string& file)
         std::ofstream(base + ".ready") << "ready\n";
         st->waitingFor = base + ".go";
         st->waitUntil = wxGetLocalTimeMillis() + 90000;
+      } else if (w[0] == "symmetry") {
+        //  The Symmetry panel's Find (autosym), then the point group found.
+        Command *cmd = new FindSymmetryCmd("Find Symmetry", getSG());
+        cmd->getParameter("threshold")->setDouble(0.01);
+        execute(cmd);
+        fprintf(stderr, "BUILDER: pointgroup=%s\n",
+                frag ? frag->pointGroup().c_str() : "?");
+      } else if (w[0] == "progress" && w.size() == 2) {
+        //  The dialog MO/density/ESP Compute shows, made as MoPanel makes
+        //  it, held up for N seconds at 30% so the test can photograph it.
+        ewxProgressDialog *dlg = new ewxProgressDialog("ECCE Compute MOs",
+            "Initializing...", 100, 0,
+            wxPD_AUTO_HIDE|wxPD_CAN_ABORT|wxPD_ELAPSED_TIME|wxPD_SMOOTH);
+        wxPoint pos = GetScreenPosition() + wxPoint(60, 60);
+        dlg->SetSize(pos.x, pos.y, -1, -1);
+        dlg->Show();
+        wxLongLong end = wxGetLocalTimeMillis() + 1000 * atoi(w[1].c_str());
+        while (wxGetLocalTimeMillis() < end) {
+          dlg->isInterrupted("Computing grid points", 30);
+          wxMilliSleep(50);
+        }
+        dlg->Destroy();
       } else if (w[0] == "quit") {
         fprintf(stderr, "ECCE_BUILDER_SCRIPT: quit\n");
         Close(true);

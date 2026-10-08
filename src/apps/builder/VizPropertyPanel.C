@@ -135,6 +135,9 @@ void VizPropertyPanel::doFocus(const bool& value)
         (*panelIt)->setFocus(false);
     }
     receiveFocus();
+    // A receiveFocus() may end with a plain field change (a switch), which
+    // only the sensor queue would draw; paint now.
+    getFW().getViewer().refreshRenderArea();
   } else {
     p_isPinned = false;
     // Builder::quit() unfocuses every panel of every context, and a
@@ -163,6 +166,7 @@ void VizPropertyPanel::doPin(const bool& value)
     }
     p_hasFocus = true;
     receiveFocus();
+    getFW().getViewer().refreshRenderArea();
   } else {
     p_hasFocus = false;
     loseFocus();

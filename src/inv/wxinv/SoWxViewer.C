@@ -309,13 +309,16 @@ void SoWxViewer::CreateControls()
 
   // @todo Should consider buildnow flag here?
 #ifdef __WXMSW__
+  //  wxMSW's default pixel format has no alpha; the platform default is
+  //  kept unless the alpha format below is available.
+  int msw_attrib[20] = { 0 };
   int *gl_attrib = NULL;
 #else
   int gl_attrib[20] = { WX_GL_RGBA, WX_GL_MIN_RED, 1, WX_GL_MIN_GREEN, 1,
                         WX_GL_MIN_BLUE, 1, WX_GL_DEPTH_SIZE, 1,
                         WX_GL_DOUBLEBUFFER, 0 };
 #endif
-#if defined(OIV_COIN) && !defined(__WXMSW__)
+#if defined(OIV_COIN)
   //  Coin's depth-peeled transparency (SORTED_LAYERS_BLEND, used for the
   //  MO lobes) needs an 8-bit alpha buffer.  Without one the render area
   //  notices and draws the lobes with the screen door instead.
@@ -323,8 +326,16 @@ void SoWxViewer::CreateControls()
     int with_alpha[20] = { WX_GL_RGBA, WX_GL_MIN_RED, 1, WX_GL_MIN_GREEN, 1,
                            WX_GL_MIN_BLUE, 1, WX_GL_DEPTH_SIZE, 1,
                            WX_GL_MIN_ALPHA, 8, WX_GL_DOUBLEBUFFER, 0 };
+#ifdef __WXMSW__
+    with_alpha[8] = 24;   // the depth the MSW default format had
+    if (wxGLCanvas::IsDisplaySupported(with_alpha)) {
+      memcpy(msw_attrib, with_alpha, sizeof msw_attrib);
+      gl_attrib = msw_attrib;
+    }
+#else
     if (wxGLCanvas::IsDisplaySupported(with_alpha))
       memcpy(gl_attrib, with_alpha, sizeof gl_attrib);
+#endif
   }
 #endif
   p_renderArea = new SoWxRenderArea(this , wxID_ANY, wxDefaultPosition,

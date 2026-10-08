@@ -3355,6 +3355,21 @@ void Builder::OnPropertyMenuClick( wxCommandEvent& event )
     }
   }
   updatePanes(true);
+  if (event.IsChecked()) focusShownPanel(win);
+}
+
+
+/**
+ * A property pane the user opened takes viz focus, so its overlay (vectors,
+ * charge colours) is drawn at once.  It used to wait for keyboard focus to
+ * land in the pane (OnChildFocus), which GTK may move there on showing and
+ * wxMSW does not, so on Windows nothing was drawn until a click in it.
+ */
+void Builder::focusShownPanel(wxWindow *win)
+{
+  VizPropertyPanel *panel = dynamic_cast<VizPropertyPanel*>(win);
+  if (panel && panel->drawsInViewer() && !panel->hasFocus())
+    panel->setFocus(true);
 }
 
 
@@ -4865,6 +4880,7 @@ void Builder::updatePropertyMenus()
         p_stayCollapsed = getenv("ECCE_PANEL_COLLAPSED") != 0;
         updatePanes(true);
         p_stayCollapsed = false;
+        focusShownPanel(pane.window);
       } else if (p_propertyMenu->GetMenuItemCount() > 0) {
         // Panels exist now and still no match -- report once rather
         // than on the very first (panel-less) pass.
