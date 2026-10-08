@@ -28,7 +28,7 @@ layout gives it at this screen size.
 --out keeps a screenshot per window and, for windows with findings, a copy
 with the findings boxed in red, plus findings.tsv.  Allowed findings are
 listed in clip_allow.txt (a regular expression per line, matched against
-"tag<TAB>kind<TAB>description").  Same installed tree and isolation as
+"WxH<TAB>tag<TAB>kind<TAB>description").  Same installed tree and isolation as
 run_tests.py.  Exit 77 without an install or Xvfb.
 """
 
@@ -330,7 +330,8 @@ def sweepAll(display, results, only):
         if key in seenKeys:
             continue
         seenKeys.add(key)
-        text = "%s\t%s\t%s" % (tag, kind, desc)
+        text = "%dx%d\t%s\t%s\t%s" % (opts["size"][0], opts["size"][1], tag,
+                                       kind, desc)
         if any(a.search(text) for a in allow):
             continue
         bad.append((tag, kind, desc, detail, rect))

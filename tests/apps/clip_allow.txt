@@ -1,2 +1,7 @@
 # Findings accepted as they are: a regular expression per line, matched
-# against "tag<TAB>kind<TAB>description" (see clip_test.py).
+# against "WxH<TAB>tag<TAB>kind<TAB>description" (see clip_test.py).
+#
+# The classic layout stacks every tool pane in the right column; on a 600 px
+# screen AUI squeezes the panes below their content (the Atom Table to 26 px,
+# a spin control to 19 px).  The default layout (detail) is clean at that size.
+^1024x600\tclassic-
