@@ -60,7 +60,7 @@ def app(name, script_var, script, args=(), log=None, timeout=200, extra=None):
     path = os.path.join(state, name + ".script")
     with open(path, "w", newline="\n") as h:
         h.write(script)
-    e = dict(env, **(extra or {}))
+    e = dict(env, ECCE_FEEDBACK_STDERR="1", **(extra or {}))
     if script_var:
         e[script_var] = path
     log = log or os.path.join(out, name + ".log")
@@ -70,7 +70,7 @@ def app(name, script_var, script, args=(), log=None, timeout=200, extra=None):
                                 stderr=subprocess.STDOUT, timeout=timeout).returncode
         except subprocess.TimeoutExpired:
             rc = "timeout"
-    return rc, open(log, errors="replace").read()
+    return rc, open(log, encoding="utf-8", errors="replace").read()
 
 
 rc = subprocess.run([tree + "/usr/bin/bash.exe", tree + "/bin/ecce-gateway-start"], env=env,
@@ -130,7 +130,7 @@ for c in cases:
         steps.append("theory " + theory)
     if basis:
         steps.append("basis " + basis)
-    steps += ["wait 1500", "button verify", "wait 3000", "info", "button save", "wait 5000",
+    steps += ["wait 1500", "button save", "wait 5000", "button verify", "wait 3000",
               "info", "quit"]
     rc, text = app("calced", "ECCE_CALCED_SCRIPT", "\n".join(steps) + "\n", ("-context", url),
                    log=os.path.join(out, c + ".calced.log"))
@@ -138,6 +138,9 @@ for c in cases:
         check("ready: ok" in text, "the Theory and Runtype dialogs started (ready)")
     lamp = [l for l in text.splitlines() if l.startswith("CALCED: verify=")]
     say("  verify lamp: " + (lamp[-1] if lamp else "none"))
+    for l in text.splitlines():
+        if l.startswith("FEEDBACK: ") and l.strip() != "FEEDBACK:":
+            say("  " + l)
     check(bool(lamp) and "unchecked" not in lamp[-1] and "\u2715" not in lamp[-1],
           "Verify ran and found no error")
     inputs = os.listdir(d + "/Inputs") if os.path.isdir(d + "/Inputs") else []
