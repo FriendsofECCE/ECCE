@@ -66,6 +66,13 @@ env, user, ehome = fresh("fresh")
 rc, out = verdict(env)
 check(rc == 0 and out == "ask", "a fresh client-only user is asked (%s)" % out)
 
+if sys.platform == "win32":
+    # Earlier Windows packages made ~/ecce-local without asking.
+    env, user, ehome = fresh("oldlocal")
+    os.makedirs(user + "/ecce-local")
+    rc, out = verdict(env)
+    check(rc == 0 and out == "ask", "Windows: an unasked ~/ecce-local is still asked (%s)" % out)
+
 cases = []
 
 
@@ -90,8 +97,9 @@ case("localenv-empty", "ECCE_LOCAL_DATA is set and empty (a data server)",
      lambda e, u, h: e.update(ECCE_LOCAL_DATA=""))
 case("localflag", "ecce --local",
      lambda e, u, h: e.update(ECCE_LOCAL="1"))
-case("localdir", "the local data folder exists",
-     lambda e, u, h: os.makedirs(u + ("/ecce-local" if sys.platform == "win32" else "/.ECCE-local")))
+if sys.platform != "win32":
+    case("localdir", "the local data folder exists",
+         lambda e, u, h: os.makedirs(u + "/.ECCE-local"))
 case("serverdata", "~/.ECCE/dataserver exists",
      lambda e, u, h: os.makedirs(u + "/.ECCE/dataserver"))
 case("chosen", "a server was chosen before (~/.ECCE/RemoteServer)",

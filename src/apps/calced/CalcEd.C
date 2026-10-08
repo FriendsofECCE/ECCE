@@ -1,3 +1,6 @@
+#ifdef _WIN32
+#include <windows.h>
+#endif
 #include <cstdint>
 #include <fstream>
 #include <memory>
@@ -3069,6 +3072,7 @@ void CalcEd::refreshChemSysThumb()
   if (p_iCalc) {
     SFile *thumbnail = TempStorage::getTempFile();
     if (p_iCalc->getThumbnail(thumbnail)) {
+      wxLogNull quiet;   // an unreadable thumbnail is shown as the plain icon
       wxBitmap bitmap(thumbnail->path(), wxBITMAP_TYPE_JPEG);
       if (bitmap.Ok()) 
         p_builderTool->setBitMap(bitmap);
@@ -3346,7 +3350,7 @@ void CalcEd::showBasisSetFields()
     //  menu alone; the Basis Set Tool would offer what it cannot use.
     if (p_basisSetTool) p_basisSetTool->Show(!toolHidden);
     FindWindow(ID_BUTTON_CALCED_BASIS_QUICK)->SetLabel(
-        toolHidden ? wxString("Basis Set ▼") : wxString("Quick Basis Menu ▼"));
+        toolHidden ? wxString::FromUTF8("Basis Set ▼") : wxString::FromUTF8("Quick Basis Menu ▼"));
   }
 
   int ids[] = { ID_STATICTEXT_CALCED_ECP, ID_LABEL_CALCED_ECP,
@@ -3932,6 +3936,26 @@ unsigned long CalcEd::getCoreElectrons(const unsigned long atomicNumber) const
  */
 bool CalcEd::launchDetachedApp(const string& cmd)
 {
+#ifdef _WIN32
+  // No fork or sh here: run the dialog with the package's pythonw (no
+  // console window).  The arguments are already double-quoted where needed.
+  string line = cmd;
+  if (line.compare(0, 8, "python3 ") == 0) {
+    string py = string(Ecce::ecceHome()) + "/python/pythonw.exe";
+    if (access(py.c_str(), 0) != 0) py = "pythonw.exe";
+    line = "\"" + py + "\" " + line.substr(8);
+  }
+  STARTUPINFOA si;
+  memset(&si, 0, sizeof(si));
+  si.cb = sizeof(si);
+  PROCESS_INFORMATION pi;
+  if (!CreateProcessA(NULL, &line[0], NULL, NULL, FALSE, 0, NULL, NULL,
+                      &si, &pi))
+    return false;
+  CloseHandle(pi.hThread);
+  CloseHandle(pi.hProcess);
+  return true;
+#endif
   pid_t pid = fork();
 
   if (pid < 0) {

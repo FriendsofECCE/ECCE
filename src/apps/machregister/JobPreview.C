@@ -4,6 +4,7 @@
  *  See JobPreview.H.
  */
 
+#include "util/TempStorage.H"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -80,8 +81,8 @@ static int runProgram(const vector<string>& argv,
 bool generate(const Request& r, vector<Line>& lines, string& err)
 {
     lines.clear();
-    char tmpl[] = "/tmp/ecce-preview-XXXXXX";
-    if (mkdtemp(tmpl) == NULL)
+    string tmpl = TempStorage::systemTempDir() + "/ecce-preview-XXXXXX";
+    if (mkdtemp(&tmpl[0]) == NULL)
     {
         err = "Cannot make a temporary directory.";
         return false;

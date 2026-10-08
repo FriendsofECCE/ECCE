@@ -4,6 +4,7 @@
  *  See SchedulerQuery.H.
  */
 
+#include "util/TempStorage.H"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -767,8 +768,8 @@ bool testSubmission(Remote& r, const string& qmgr, const string& script,
     if (!r.open(err))
         return false;
 
-    char tmpl[] = "/tmp/ecce-testsub-XXXXXX";
-    int fd = mkstemp(tmpl);
+    string tmpl = TempStorage::systemTempDir() + "/ecce-testsub-XXXXXX";
+    int fd = mkstemp(&tmpl[0]);
     if (fd < 0)
     {
         err = "Cannot make a temporary file.";

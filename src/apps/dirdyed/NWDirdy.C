@@ -392,6 +392,7 @@ void NWDirdy::refreshGUI()
         bitmap->Enable();
         thumbFile = TempStorage::getTempFile();
         if (calc->getThumbnail(thumbFile)) {
+          wxLogNull quiet;   // an unreadable thumbnail is shown as the plain icon
           wxBitmap thumb(thumbFile->path(), wxBITMAP_TYPE_JPEG);
           if (thumb.Ok()) { // bitmap data found
             bitmap->SetBitmapLabel(thumb);

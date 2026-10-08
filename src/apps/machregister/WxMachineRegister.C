@@ -6,6 +6,7 @@
  *  the header.
  */
 
+#include "util/TempStorage.H"
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -4063,8 +4064,8 @@ void WxMachineRegister::blockNone(const string& id)
 //  starts on, so the numbers count within the block.
 static void cshNotices(const string& text, int firstLine, vector<string>& out)
 {
-    char tmpl[] = "/tmp/ecce-machreg-csh-XXXXXX";
-    int fd = mkstemp(tmpl);
+    string tmpl = TempStorage::systemTempDir() + "/ecce-machreg-csh-XXXXXX";
+    int fd = mkstemp(&tmpl[0]);
     if (fd < 0)
         return;
     FILE* f = fdopen(fd, "w");
@@ -4075,7 +4076,7 @@ static void cshNotices(const string& text, int firstLine, vector<string>& out)
                    "/scripts/ecce-csh2sh\" --check \"" + tmpl + "\"";
     wxArrayString lines, errors;
     wxExecute(cmd, lines, errors, wxEXEC_SYNC);
-    unlink(tmpl);
+    unlink(tmpl.c_str());
 
     static const std::regex lineRe("^\\s+line (\\d+) \\[[^\\]]*\\]\\s+(.*)$");
     static const std::regex wantRe("^\\s+(?:->|write:)\\s+(.*)$");

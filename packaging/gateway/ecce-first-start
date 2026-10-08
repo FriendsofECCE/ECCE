@@ -92,7 +92,9 @@ def skip_reason():
         return "the server package is installed here"
     if os.path.exists(os.path.join(MINE, "DataServers")):
         return "a server is already chosen"
-    if os.path.isdir(LOCAL_DEFAULT):
+    # Windows packages before this question made ~/ecce-local unasked, so
+    # there only the recorded answer (the preference, below) counts.
+    if os.path.isdir(LOCAL_DEFAULT) and not WINDOWS:
         return "local data exists (~/.ECCE-local)"
     if os.path.isdir(os.path.join(STATE, "dataserver")):
         return "server-mode data exists (~/.ECCE/dataserver)"

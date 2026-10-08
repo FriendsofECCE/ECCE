@@ -13,6 +13,8 @@ set "ECCE_REALUSER=%USERNAME%"
 set "HOST=%COMPUTERNAME%"
 set "UH=%USERPROFILE:\=/%"
 set "ECCE_REALUSERHOME=%UH%"
+rem Temporary files in the user's temp folder (there is no /tmp outside sh).
+if not defined ECCE_TMPDIR set "ECCE_TMPDIR=%TEMP:\=/%"
 set ECCE_SESSION_LIVENESS=lease
 rem Where the user keeps their work is asked once, at the first start (#240):
 rem the exit status 3 is "Quit" in that window; any other failure goes on.
