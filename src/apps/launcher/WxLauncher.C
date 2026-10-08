@@ -1596,6 +1596,15 @@ void WxLauncher::refreshCalcDirectory()
 
     if (supported)
         p_calcDrctyTextCtrl->SetValue(p_slctPrefs->getRemoteDirectory());
+#ifdef _WIN32
+    // This computer, no run directory saved yet: one in the user's home.
+    RefMachine *machRgstn = p_slctPrefs->getRegisteredMachine();
+    if (supported && machRgstn &&
+        STLUtil::trim((string)p_calcDrctyTextCtrl->GetValue()).empty() &&
+        !RCommand::isRemote(machRgstn->fullname(),
+                            (string)p_remShellChoice->GetStringSelection(), ""))
+        p_calcDrctyTextCtrl->SetValue(string(Ecce::realUserHome()) + "/ecce-runs");
+#endif
 
     p_calcDrctyPanel->Show(supported);
 }
@@ -1669,11 +1678,9 @@ void WxLauncher::refreshLocality()
     bool local = !RCommand::isRemote(machRgstn->fullname(), shell, user);
     if (wxWindow *shellPanel = FindWindow(ID_PANEL_WXLAUNCHER_REMSHELL))
         shellPanel->Show(!local);
+    p_shellOpenButton->Show(!local);
     if (local)
         p_password1Panel->Show(false);
-    if (local && p_calcDrctyPanel->IsShown() &&
-        STLUtil::trim((string)p_calcDrctyTextCtrl->GetValue()).empty())
-        p_calcDrctyTextCtrl->SetValue(string(Ecce::realUserHome()) + "/ecce-runs");
 #endif
 
     string label = machRgstn->fullname();
