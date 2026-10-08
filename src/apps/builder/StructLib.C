@@ -465,6 +465,51 @@ void StructLib::structuresListItemActivatedCB(wxListEvent& event)
 }
 
 
+// Chooses the library `path` starts with in the Libraries drop-down
+// ("Teaching/Diatomics"), opens the folders after it and selects the entry
+// `select`, as the clicks would; false if a name is not found.  For
+// BuilderScript.
+bool StructLib::openFolder(const std::string& path, const std::string& select)
+{
+    size_t pos = path.find('/');
+    string library = path.substr(0, pos);
+    int idx = p_bookmarksChoice->FindString(library);
+    if (idx == wxNOT_FOUND) return false;
+    p_bookmarksChoice->SetSelection(idx);
+    Resource *base = (Resource *)(p_bookmarksChoice->GetClientData(idx));
+    p_urlSelectionBase = base->getURL();
+    p_urlSelectionFolder = p_urlSelectionBase;
+    p_upOneLevelButton->Enable(false);
+    refreshStructures();
+    pos = pos == string::npos ? path.size() : pos + 1;
+    while (pos < path.size()) {
+        size_t slash = path.find('/', pos);
+        string name = path.substr(pos, slash == string::npos ? slash : slash - pos);
+        pos = slash == string::npos ? path.size() : slash + 1;
+        bool found = false;
+        for (int i = 0; i < p_structuresListCtrl->GetItemCount() && !found; i++) {
+            Resource *rsrc = (Resource *)p_structuresListCtrl->GetItemData(i);
+            if (rsrc->getResourceType() == ResourceDescriptor::RT_COLLECTION &&
+                rsrc->getName() == name) {
+                p_urlSelectionFolder = rsrc->getURL();
+                refreshStructures();
+                p_upOneLevelButton->Enable(true);
+                found = true;
+            }
+        }
+        if (!found) return false;
+    }
+    if (select.empty()) return true;
+    for (int i = 0; i < p_structuresListCtrl->GetItemCount(); i++) {
+        if (p_structuresListCtrl->GetItemText(i) == select) {
+            p_structuresListCtrl->SetItemState(i, wxLIST_STATE_SELECTED,
+                                               wxLIST_STATE_SELECTED);
+            return true;
+        }
+    }
+    return false;
+}
+
 void StructLib::upOneLevelButtonClickCB( wxCommandEvent& event )
 {
     p_urlSelectionFolder = p_urlSelectionFolder.getParent();

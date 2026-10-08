@@ -16,6 +16,9 @@ the second page.
 5. [Your first Quantum ESPRESSO calculation](qe-first-calculation.md): bulk
    silicon and a water molecule in a box, with a periodic cell, plane waves
    and pseudopotentials.
+6. [Molecules for teaching](molecules-for-teaching.md): the small molecules
+   of a first laboratory, ready in the Structure Library at their measured
+   bond lengths.
 
 Reference:
 

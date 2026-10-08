@@ -58,6 +58,7 @@ class StructLib: public StructLibGUI, public WxVizTool
         Fragment *getSelectedFragment() const;
         int  getSelectedAtom() const;
         void configure();
+        bool openFolder(const std::string& path, const std::string& select);
 
     private:
         void connectResource(const EcceURL& url,
