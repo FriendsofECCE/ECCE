@@ -211,7 +211,7 @@ bool VizRender::file(SoNode *root, SFile *file, string type,
 
     if (p_renderer->render(root)) {
       // Generate RGB and write it to the given file
-      myFile = fopen(file->path().c_str(), "w");
+      myFile = fopen(file->path().c_str(), "wb");
       if (myFile) {
         if (type.find("RGB") == 0) {
           p_renderer->writeToRGB(myFile);
