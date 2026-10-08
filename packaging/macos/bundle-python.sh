@@ -47,6 +47,8 @@ rm -rf "$DEST/include" "$DEST/share" "$DEST/lib/pkgconfig" \
   "$P"/site-packages/pip "$P"/site-packages/pip-* "$P"/site-packages/setuptools* \
   "$P"/site-packages/wx/*.pyi "$P"/site-packages/wx/include "$P"/site-packages/wx/py \
   "$P"/site-packages/wxPython*/direct_url.json
+# wxPython's console scripts carry the build machine's path in their #! line.
+find "$DEST/bin" -type f ! -name 'python*' -delete
 find "$DEST" -name __pycache__ -type d -prune -exec rm -rf {} +
 
 # What the dialogs need, in the state they will run in.
