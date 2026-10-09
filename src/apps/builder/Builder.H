@@ -411,6 +411,7 @@ class Builder: public BuilderGUI,
       void updatePanes(bool allowSwitch=false);
       void initShownPanels();
       void makeRoomFor(const wxString& name);
+      bool fitToolColumn();
       void setColumnTab(int tab, bool save=true);
       void selectDetail(const string& name);
       void setDetail(wxWindow *win);
@@ -558,6 +559,10 @@ class Builder: public BuilderGUI,
       // Property panes folded to their caption bar, with what to restore.
       struct FoldState { wxSize best; wxSize min; bool resizable; int proportion; };
       map<wxWindow*, FoldState> p_folded;
+      //  Each tool pane's own height floor; fitToolColumn() lowers the
+      //  pane's min_size below it while the column is too short.
+      map<wxWindow*, int> p_paneFloor;
+      bool p_fitPending = false;
       void toggleFold(wxWindow *win);
       void unfoldPane(wxAuiPaneInfo &pane);
       wxString paneInfoForSave(wxAuiPaneInfo &pane);
