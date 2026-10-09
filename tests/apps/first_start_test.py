@@ -66,6 +66,11 @@ env, user, ehome = fresh("fresh")
 rc, out = verdict(env)
 check(rc == 0 and out == "ask", "a fresh client-only user is asked (%s)" % out)
 
+# An installed server package is not configuration: its users are asked too.
+env, user, ehome = fresh("serverpkg", server_install=True)
+rc, out = verdict(env)
+check(rc == 0 and out == "ask", "a fresh user with the server package installed is asked (%s)" % out)
+
 # Data from before the question only preselects a choice: still asked once.
 asked = [("localdir", "the local data folder exists",
           lambda e, u, h: os.makedirs(u + ("/ecce-local" if sys.platform == "win32" else "/.ECCE-local"))),
@@ -92,9 +97,6 @@ def case(name, what, setup, server_install=False):
 case("siteremote", "siteconfig/RemoteServer is present (admin or ecce-remote-setup)",
      lambda e, u, h: (os.makedirs(h + "/siteconfig/RemoteServer"),
                       open(h + "/siteconfig/RemoteServer/DataServers", "w").close()))
-if sys.platform.startswith("linux"):   # the other packages carry the script but run no server
-    case("serverpkg", "the server package is installed (central server, FastX on it)",
-         lambda e, u, h: None, True)
 case("serveraccount", "this account runs a central server (~/.ECCE/mosquitto.server)",
      lambda e, u, h: open(u + "/.ECCE/mosquitto.server", "w").close())
 case("sharedbroker", "a shared broker is declared (siteconfig/SharedBroker)",

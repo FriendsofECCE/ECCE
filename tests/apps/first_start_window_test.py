@@ -98,6 +98,23 @@ r = window(env, "server:127.0.0.1:%d" % port, "--change")
 check(r.returncode == 0 and os.path.exists(ds) and pref(env) == "off",
       "Change Server, to the server (rc=%d %s)" % (r.returncode, r.stderr.strip()))
 
+# A Linux user who already works on the per-user data server, with the
+# server package installed: asked once, "this computer" preselected, and
+# Continue keeps that data server (no local folder, preference untouched).
+env, user = fresh("perusersrv")
+os.makedirs(os.path.join(user, ".ECCE", "dataserver"))
+open(os.path.join(env["ECCE_HOME"], "bin", "ecce-dataserver-start"), "w").close()
+r = subprocess.run([sys.executable, SCRIPT, "--check"], env=env, capture_output=True,
+                   text=True, timeout=60)
+check(r.stdout.strip() == "ask", "per-user data server user is asked (%s)" % r.stdout.strip())
+r = window(env, "continue")
+ans = os.path.join(user, ".ECCE", "first-start-answer")
+check(r.returncode == 0 and "preselected local" in r.stderr
+      and not os.path.isdir(os.path.join(user, local_dir)) and pref(env) == "unset"
+      and os.path.exists(ans),
+      "per-user data server: this computer preselected, Continue keeps the data "
+      "server (rc=%d %s)" % (r.returncode, r.stderr.strip()))
+
 env, user = fresh("refused")
 r = window(env, "server:127.0.0.1:1")
 check(r.returncode == 4 and not os.path.exists(os.path.join(user, ".ECCE", "RemoteServer", "DataServers")),

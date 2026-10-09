@@ -119,7 +119,6 @@ static string shWord(const string& s)
 }
 
 // A path as one shell word, leaving a leading ~ for the shell to expand.
-// RCommand's file operations take shell syntax, so paths go through this.
 static string shPath(const string& s)
 {
   if (s == "~") return s;
@@ -388,9 +387,9 @@ string EcceShell::sshTerminal(RefMachine* refMachine, const string& shell,
 
   string dir, run;
   if (pathBase != "" && pathFull != "") {
-    if (rcmd.cd(shPath(pathFull))) {
+    if (rcmd.cd(pathFull)) {
       dir = pathFull;
-    } else if (rcmd.cd(shPath(pathBase))) {
+    } else if (rcmd.cd(pathBase)) {
       dir = pathBase;
       ret = "The calculcation directory on " + machineName + " does not "
             "exist--starting shell in base directory.";
@@ -401,7 +400,7 @@ string EcceShell::sshTerminal(RefMachine* refMachine, const string& shell,
   } else if (cmd != "") {
     run = cmd;
     if (pathFull != "") {
-      if (!rcmd.exists(shPath(pathFull))) {
+      if (!rcmd.exists(pathFull)) {
         p_status = -1;
         return "The file " + pathFull + " on " + machineName +
                " does not exist--cannot run remote command.";
@@ -478,9 +477,9 @@ string EcceShell::remoteShell
   t.sourceFile = refMachine->sourceFile();
 
   if (pathBase != "" && pathFull != "") {
-    if (rcmd.cd(shPath(pathFull))) {
+    if (rcmd.cd(pathFull)) {
       t.dir = pathFull;
-    } else if (rcmd.cd(shPath(pathBase))) {
+    } else if (rcmd.cd(pathBase)) {
       t.dir = pathBase;
       ret = "The calculcation directory on " + machineName + " does not "
             "exist--starting shell in base directory.";
@@ -492,7 +491,7 @@ string EcceShell::remoteShell
   } else if (cmd != "") {
     t.cmd = cmd;
     if (pathFull != "") {
-      if (!rcmd.exists(shPath(pathFull))) {
+      if (!rcmd.exists(pathFull)) {
         p_status = -1;
         return "The file " + pathFull + " on " + machineName +
                " does not exist--cannot run remote command.";

@@ -146,7 +146,7 @@ void SymmetryOps::findIrreducible(Fragment& frag, double threshold, const string
    SFile* outFile = TempStorage::getTempFile();
 
    // create command line
-   string cmd = getIFrag + " < " + inFile.path() + " >" + outFile->path();
+   string cmd = getIFrag + " < \"" + inFile.path() + "\" >\"" + outFile->path() + "\"";
 
    int istatus = Ecce::runCommand(cmd);
    inFile.remove();
@@ -209,7 +209,7 @@ void SymmetryOps::generateLatticeFragment(Fragment& frag, double threshold)
    SFile* outFile = TempStorage::getTempFile();
 
    // create command line
-   string cmd = genLatticeFrag + " < " + inFile.path() + " >" + outFile->path();
+   string cmd = genLatticeFrag + " < \"" + inFile.path() + "\" >\"" + outFile->path() + "\"";
    //cout << "cmd " << cmd << endl;
 
    int istatus = Ecce::runCommand(cmd);
@@ -288,7 +288,7 @@ void SymmetryOps::generateFragment(Fragment& frag, double threshold)
    SFile* outFile = TempStorage::getTempFile();
 
    // create command line
-   string cmd = genFrag + " < " + inFile.path() + " >" + outFile->path();
+   string cmd = genFrag + " < \"" + inFile.path() + "\" >\"" + outFile->path() + "\"";
    //cout << "cmd " << cmd << endl;
 
    int istatus = Ecce::runCommand(cmd);
@@ -372,7 +372,7 @@ void SymmetryOps::clean(Fragment& frag, double threshold, const string& group)
    SFile* outFile = TempStorage::getTempFile();
 
    // create command line
-   string cmd = cleanCmd + " < " + inFile.path() + " >" + outFile->path();
+   string cmd = cleanCmd + " < \"" + inFile.path() + "\" >\"" + outFile->path() + "\"";
 
 //   cout << "executing " << cmd << endl;
    int istatus = Ecce::runCommand(cmd);
@@ -427,7 +427,7 @@ string SymmetryOps::find(Fragment& frag, double threshold)
    SFile* outFile = TempStorage::getTempFile();
 
    // create command line
-   string cmd = autosymCmd + " < " + inFile.path() + " >" + outFile->path();
+   string cmd = autosymCmd + " < \"" + inFile.path() + "\" >\"" + outFile->path() + "\"";
 
    int istatus = Ecce::runCommand(cmd);
    inFile.remove();

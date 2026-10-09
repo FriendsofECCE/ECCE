@@ -58,3 +58,5 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [macOS: ECCE.app carries its own Python with wxPython; every python3 ECCE runs must find it first (#133)](macos-theory-dialogs-need-python3-with-wxpython.md)
 - [macOS: BSD env has no -0, so a machine's login file was silently ignored (#133)](macos-env-has-no-dash-zero.md)
 - [tests/macos/e2e.sh: water single points on a Mac with real codes](macos-end-to-end-run.md)
+- [Windows: the user's folder can hold a space, and every path ECCE builds sits below it (#247)](windows-paths-hold-spaces.md)
+- [Windows: a text-mode stream's tellg() is not the length of what it reads; DAV PUT 400 (#247)](windows-dav-put-text-mode.md)

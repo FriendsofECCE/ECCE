@@ -1,6 +1,7 @@
 #include <stdio.h> // sprintf
 
 #include <iostream>
+#include <limits>
   using std::cout;
   using std::cerr;
   using std::ends;
@@ -1179,8 +1180,19 @@ int EcceDAVClient::getStreamSize(istream *data)
 {
   int ret  = 0;
   if (data) {
+#ifdef _WIN32
+    // A text-mode file stream drops the CR of each CRLF as it is read, so
+    // tellg() (bytes on disk) overstates what will be sent, and the server
+    // rejects the PUT for a short body.  Count what reading yields.
+    data->clear();
+    data->seekg(0);
+    data->ignore(std::numeric_limits<std::streamsize>::max());
+    ret = (int)data->gcount();
+    data->clear();
+#else
     data->seekg(0,ios::end);
     ret = data->tellg();
+#endif
     data->seekg(0);
   }
   return ret;

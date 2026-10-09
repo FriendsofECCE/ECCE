@@ -11,7 +11,8 @@ asks once per user ("Store data on this computer" / "Connect to a server"); the
 answer goes to `~/.ECCE/first-start-answer`. Only that answer and explicit
 configuration skip it (`skip_reason()`: siteconfig/RemoteServer,
 SharedBroker, `-remote`, `--local`/ECCE_LOCAL_DATA, a central-server account,
-the server package on Linux, no display, ECCE_NO_FIRST_START). Existing data
+no display, ECCE_NO_FIRST_START). An installed server package is not
+configuration and does not skip it (Andy, 2026-10-09). Existing data
 (a local folder, ~/.ECCE/dataserver, a server chosen, the preference) only
 preselects the window, which then shows the current setup; keeping a
 per-user data server records the answer without switching the preference.
@@ -52,6 +53,17 @@ to `tests/apps/first_start_test.py`.
   Edit > Change Server... starts the script with `python3w.exe` on Windows.
 - macOS: ECCE.app bundles no Python or wxPython, so the window is skipped
   silently (ImportError) until it does; local data stays the default there.
-- Tests set `ECCE_FIRST_START_ANSWER` (`local`, `server:host[:port]`) and
-  `ECCE_FIRST_START_SHOT`; never synthetic input. `tests/apps/session_end.py
+- The data server login window (WxAuth, shown by `WxDavAuth::prompt` in
+  a data-server session) has "Use this computer instead...": it runs
+  `ecce-first-start --apply local`, says the change applies at the next
+  start, and ends this one (the gateway skips its "Authentication
+  Failure" message, other apps leave their main loop). Restart rather
+  than switch in place: the session's broker and -remote state are
+  already set up. Test hook `ECCE_TEST_AUTH_ANSWER=uselocal[:s]`;
+  `tests/apps/session_end.py auth-uselocal`.
+- Tests set `ECCE_FIRST_START_ANSWER` (`local`, `server:host[:port]`,
+  `continue` = Continue on what is preselected; the window logs
+  "preselected local|server") and `ECCE_FIRST_START_SHOT`; never synthetic
+  input. The suite's isolated user (`tests/apps/isolate.py`) has a recorded
+  answer, so the other cases are not asked. `tests/apps/session_end.py
   first-local first-server` drive it through the real `ecce`.

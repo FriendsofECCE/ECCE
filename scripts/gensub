@@ -128,8 +128,11 @@
   # $logFile is temporary - the output is concatenated to the actual
   # output file after the job is run.  You cannot just write to the
   # output file from the beginning since the code may overwrite it.
-  local $logfile = "$runDir/ecce.submit.log";
-  local $statusFile = "$runDir/.ecce.status";
+  # The run directory as one shell word for the lines written below: a
+  # Windows run directory is under the user's folder, which can hold a space.
+  local $qRunDir = &shWord($runDir);
+  local $logfile = "$qRunDir/ecce.submit.log";
+  local $statusFile = "$qRunDir/.ecce.status";
 
   # GENSUB_EXPLAIN=1: where each key's value came from, as JSON lines.  Runs
   # the same readConfig as a real run, before the submit file is touched.
@@ -175,7 +178,7 @@
 
   # Always run from the run directory.
   print SUBMIT "\n$CC Change to the run directory\n";
-  print SUBMIT "cd $runDir || exit 1\n";
+  print SUBMIT "cd $qRunDir || exit 1\n";
 
   print SUBMIT "\n$CC Remove any left-over ecce files from previous runs\n";
   print SUBMIT "rm -f $statusFile core\n";
@@ -233,7 +236,7 @@
   #
   # Harmless where there is no MPI: an unused environment variable.
   print SUBMIT "\n$CC Keep Open MPI shared memory files with the job, not in /dev/shm\n";
-  print SUBMIT "export OMPI_MCA_btl_sm_backing_directory=$runDir\n";
+  print SUBMIT "export OMPI_MCA_btl_sm_backing_directory=$qRunDir\n";
 
 
   # For loadleveler...
@@ -326,10 +329,10 @@
 
   # Concatenate log info to output file and remove log file
   print SUBMIT "\n$CC Adding ecce log info to output file for debugging...";
-  print SUBMIT "\nif [ ! -e $::outFile ]; then touch $::runDir/$::outFile; fi\n";
-  print SUBMIT "echo \"\" >> $::runDir/$::outFile \n";
-  print SUBMIT "echo \"-----ECCE Log Information-----\" >> $runDir/$::outFile \n";
-  print SUBMIT "cat $logfile >> $runDir/$::outFile \n";
+  print SUBMIT "\nif [ ! -e $::outFile ]; then touch $::qRunDir/$::outFile; fi\n";
+  print SUBMIT "echo \"\" >> $::qRunDir/$::outFile \n";
+  print SUBMIT "echo \"-----ECCE Log Information-----\" >> $qRunDir/$::outFile \n";
+  print SUBMIT "cat $logfile >> $qRunDir/$::outFile \n";
   print SUBMIT "rm -f $logfile\n\n";
 
   # Probably need to have exit status values here
@@ -346,6 +349,18 @@
 
 ##########################################################################
 ##########################################################################
+# A path as one sh word; a leading ~ or ~/ stays bare so the shell expands it,
+# and a plain path is left as it is.
+sub shWord($)
+{
+  my ($p) = @_;
+  my $pre = "";
+  return $p if $p !~ m{[^A-Za-z0-9_./~+\@%:=,-]};
+  $pre = "~/", $p = substr($p, 2) if substr($p, 0, 2) eq "~/";
+  $p =~ s/'/'\\''/g;
+  return "$pre'$p'";
+}
+
 sub defineStatusSymbols() 
 {
   use strict vars;
@@ -551,7 +566,7 @@ sub determineStatus()
 
   # If the output file doesn't even exist, something bad happened.
   $retval .= "\n";
-  $retval .= "if [ ! -e $runDir/$outFile ]; then\n";
+  $retval .= "if [ ! -e $qRunDir/$outFile ]; then\n";
   $retval .= "  echo \"Output file $outFile does not exist - setting status to failed\" >> $logfile\n";
   $retval .= "  exitStatus=\$X_FILE_EXIST\n";
 
@@ -568,7 +583,7 @@ sub determineStatus()
   if (defined $normalTermination{$lccode}) {
     my $marker = $normalTermination{$lccode};
     $retval .= "\nif [ \"\$exitStatus\" = 0 ]; then\n";
-    $retval .= "  if ! grep -q \"$marker\" $runDir/$outFile; then\n";
+    $retval .= "  if ! grep -q \"$marker\" $qRunDir/$outFile; then\n";
     $retval .= "    echo \"No '$marker' in $outFile - setting status to failed\" >> $logfile\n";
     $retval .= "    exitStatus=\$X_NOT_NORMAL\n";
     $retval .= "  fi\n";
@@ -928,7 +943,9 @@ sub handleOptions()
 #print DEBUG;
       s/\r?\n\z//;
       $_ =~ s/^\s*//;
-      ($opt,$value) = split(/ +/,$_);
+      # The value is the rest of the line: a path can hold a space.
+      ($opt,$value) = split(/ +/,$_,2);
+      $value =~ s/\s+\z// if defined($value);
 
       $host = $value if ($opt =~ /-H/);
       $hostFull = $value if ($opt =~ /-d/);
@@ -1248,7 +1265,7 @@ sub nwchem()
     $retval .= "if [ -d \$mpibindir ]; then\n";
     $retval .= "  PATH=\"\$mpibindir:\$PATH\"; export PATH\n";
     $retval .= "fi\n";
-    $retval .= "mpirun -np $::totalprocs \"\$nwchem\" $::runDir/$::inFile > $::runDir/$::outFile 2>&1 < /dev/null\n";
+    $retval .= "mpirun -np $::totalprocs \"\$nwchem\" $::qRunDir/$::inFile > $::qRunDir/$::outFile 2>&1 < /dev/null\n";
   }
   return $retval;
   nouse strict vars;
@@ -1293,11 +1310,11 @@ sub nwchemmd()
     $retval .= "cp \$ECCE_NWCHEM_P nwchem.p\n";
     $retval .= "else\n";
     $retval .= "cat << EOCAT > nwchem.p\n";
-    $retval .= "\$USER `hostname` $::totalprocs \"\$nwchem\" $::runDir\n";
+    $retval .= "\$USER `hostname` $::totalprocs \"\$nwchem\" $::qRunDir\n";
     $retval .= "EOCAT\n";
     $retval .= "fi\n";
     $retval .= "loc=\${nwchem%/*}\n";
-    $retval .= "\$loc/parallel nwchem $::runDir/$::inFile > $::runDir/$::outFile 2>&1\n";
+    $retval .= "\$loc/parallel nwchem $::qRunDir/$::inFile > $::qRunDir/$::outFile 2>&1\n";
   }
   return $retval;
   nouse strict vars;

@@ -51,8 +51,14 @@ class WxDavAuth : public AuthEventListener
       // methods for stand alone usage
       BasicAuth *getAuthorization(const string& url, const string& user);
 
+      // The user chose "Use this computer instead" in the login window and
+      // the switch was made: the start ends without an error message.
+      static bool switchedToLocal() { return s_switchedToLocal; }
+
    protected:
       WxDavAuth(const WxDavAuth& rhs);
+
+      static bool s_switchedToLocal;
 
       bool prompt(const string& strurl,
             const bool& newUser,

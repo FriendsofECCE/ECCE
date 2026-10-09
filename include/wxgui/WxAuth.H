@@ -49,6 +49,9 @@ public:
   void setPasswordLabel(const string& passwordLabel);
   void setProtocol(const string& protocol);
   void showChangeBtn(const bool& show);
+  /** The "Use this computer instead" button; it ends the dialog with
+      ID_BUTTON_AUTH_USE_LOCAL. */
+  void showUseLocal(const bool& show);
 
   /** A line under the fields saying the connection is encrypted; "" hides it. */
   void setEncryption(const string& note);

@@ -650,7 +650,12 @@ long DirectTransport::spawnDetached(const std::string& script, std::string& erro
   closeH(outP);
   WaitForSingleObject(pi.hProcess, 5000);
   CloseHandle(pi.hProcess);
-  long pid = atol(got.c_str());
+  // The pid is the last line: the shell may warn first (stderr is merged).
+  std::string last = got;
+  while (!last.empty() && isspace((unsigned char)last.back())) last.pop_back();
+  size_t nl = last.find_last_of("\r\n");
+  if (nl != std::string::npos) last = last.substr(nl + 1);
+  long pid = atol(last.c_str());
   if (pid <= 0) {
     error = "no job pid from the shell: " + got;
     return -1;

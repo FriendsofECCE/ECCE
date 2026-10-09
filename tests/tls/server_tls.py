@@ -226,6 +226,22 @@ try:
     r = run([exe_broker, "tlsuser", "tlspw"], benv)
     check(r.returncode == 3, "MQTT with a wrong pin is refused as a TLS failure (rc %d): %s"
           % (r.returncode, r.stdout.strip()))
+
+    # ---- a user's own choice (the first-start answer): the pin is in
+    # ~/.ECCE/RemoteServer, and the broker must be trusted through it too
+    user_home = make_home("user-home")
+    uenv = env_for(user_home, os.path.join(scratch, "own-user"))
+    os.makedirs(uenv["ECCE_REALUSERHOME"])
+    mine = uenv["ECCE_REALUSERHOME"] + "/.ECCE/RemoteServer"
+    r = run([sys.executable, user_home + "/bin/ecce-first-start", "--apply",
+             "server:%s:%s" % (host, tport)], uenv)
+    check(r.returncode == 0 and os.path.exists(mine + "/server.pem"),
+          "first-start answer pins the server in ~/.ECCE/RemoteServer: " + r.stderr[-200:])
+    uenv.update(ECCE_REMOTE_SERVER="1", ECCE_REMOTE_DIR=mine, ECCE_NO_REAP="1")
+    r = run([user_home + "/bin/ecce-gateway-start"], uenv)
+    check(r.returncode == 0, "client gateway start with the user's own pin: " + r.stderr[-200:])
+    r = run([exe_broker, "tlsuser", "tlspw"], uenv)
+    check(r.returncode == 0, "MQTT over TLS with the user's own pin: " + r.stdout.strip())
 finally:
     stop_everything()
 

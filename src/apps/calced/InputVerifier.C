@@ -52,7 +52,8 @@ bool InputVerifier::run(const string& text,
     out << text;
   }
 
-  string command = checker + " -f " + deck->path();
+  string command = RCommand::quotePath(checker) + " -f " +
+                    RCommand::quotePath(deck->path());
   if (!codeName.empty())
     command += " -c \"" + codeName + "\"";
   if (atoms > 0) {

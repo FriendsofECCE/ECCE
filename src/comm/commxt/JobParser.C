@@ -161,7 +161,7 @@ bool JobParser::importCalculation(const char* parseFile,
   SDirectory* dir = TempStorage::getTempJobDirectory(
                                 task->getURL().getFilePathTail().c_str());
   if (localconn.cd(dir->path())) {
-    cmd = "ln -s " + fullFilePath + " " + parseFileName;
+    cmd = "ln -s " + RCommand::quotePath(fullFilePath) + " " + RCommand::quotePath(parseFileName);
     if (!localconn.exec(cmd)) {
       message = "Cannot create symbolic link to " + fullFilePath +
                 " to perform import.";

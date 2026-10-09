@@ -53,6 +53,9 @@ WxAuth::WxAuth( wxWindow* parent, wxWindowID id, const wxString& caption, const 
    c->SetValue(boolBuf);
 #endif
 
+   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(ID_BUTTON_AUTH_USE_LOCAL); },
+        ID_BUTTON_AUTH_USE_LOCAL);
+
    ewxTextCtrl * passInput = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_AUTH_PASSWORD));
    passInput->setLeaveAsEnter(false);
    passInput->SetFocus();
@@ -232,6 +235,13 @@ void WxAuth::showChangeBtn(const bool& show)
 {
   ewxButton *b = ((ewxButton*)FindWindow(wxID_CHANGE));
   b->Show(show);
+}
+
+
+void WxAuth::showUseLocal(const bool& show)
+{
+  wxWindow *b = FindWindow(ID_BUTTON_AUTH_USE_LOCAL);
+  if (b) b->Show(show);
 }
 
 

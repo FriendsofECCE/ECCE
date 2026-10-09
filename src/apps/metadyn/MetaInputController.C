@@ -245,10 +245,10 @@ bool MetaEd::write_template(RCommand& localconn, const string& templateFile,
       string templatePathname(Ecce::ecceDataControllersPath());
       templatePathname += "/" + templateFile;
       if (localconn.exists(templatePathname)) {
-        string command = "/bin/cp " + templatePathname + " " + outputFile;
+        string command = "/bin/cp " + RCommand::quotePath(templatePathname) + " " + RCommand::quotePath(outputFile);
         status = localconn.exec(command);
         if (status) {
-          command = "chmod 666 " + outputFile;
+          command = "chmod 666 " + RCommand::quotePath(outputFile);
           status = localconn.exec(command);
         }
       }
@@ -357,14 +357,14 @@ bool MetaEd::input_controller(const bool& saveParamFlag,
           if (inputTask)
             chained = inputTask->getApplicationType() == ResourceDescriptor::AT_METADYNAMICS;
 
-          parser += " -n " + tempFileName + " -p -f";
+          parser += " -n " + RCommand::quotePath(tempFileName) + " -p -f";
           if (meta_file_flag)
             parser += " -m";
           if (qmmm_file_flag)
             parser += " -q";
           if (chained)
             parser += " -c";
-          parser += " > " + input_file;
+          parser += " > " + RCommand::quotePath(input_file);
 
           string warning; 
           if (!localconn.execout(parser, message))

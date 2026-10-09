@@ -906,21 +906,21 @@ bool Launch::validateRemoteDir(void)
     string cmd;
     string file = p_cache->remoteDir + "/" + outputFileName;
     if (p_connection->exists(file)) {
-      cmd = "touch " + file + ".old";
+      cmd = "touch " + RCommand::quotePath(file + ".old");
       (void)p_connection->exec(cmd);
-      cmd = "cat " + file + " >> " + file + ".old";
+      cmd = "cat " + RCommand::quotePath(file) + " >> " + RCommand::quotePath(file + ".old");
       (void)p_connection->exec(cmd);
-      cmd = "rm -f " + file;
+      cmd = "rm -f " + RCommand::quotePath(file);
       (void)p_connection->exec(cmd);
     }
     if (parseFileName!="" && outputFileName!=parseFileName) {
       file = p_cache->remoteDir + "/" + parseFileName;
       if (p_connection->exists(file)) {
-        cmd = "touch " + file + ".old";
+        cmd = "touch " + RCommand::quotePath(file + ".old");
         (void)p_connection->exec(cmd);
-        cmd = "cat " + file + " >> " + file + ".old";
+        cmd = "cat " + RCommand::quotePath(file) + " >> " + RCommand::quotePath(file + ".old");
         (void)p_connection->exec(cmd);
-        cmd = "rm -f " + file;
+        cmd = "rm -f " + RCommand::quotePath(file);
         (void)p_connection->exec(cmd);
       } else {
         // special logic to remove batch sequenced parse files
@@ -931,13 +931,13 @@ bool Launch::validateRemoteDir(void)
         if (pos != string::npos) {
           wildfile.insert(pos, "001");
           if (p_connection->exists(wildfile)) {
-            cmd = "touch " + file + ".old";
+            cmd = "touch " + RCommand::quotePath(file + ".old");
             (void)p_connection->exec(cmd);
             wildfile = file;
             wildfile.insert(pos, "*");
-            cmd = "cat " + wildfile + " >> " + file + ".old";
+            cmd = "cat " + RCommand::quoteGlob(wildfile) + " >> " + RCommand::quotePath(file + ".old");
             (void)p_connection->exec(cmd);
-            cmd = "rm -f " + wildfile;
+            cmd = "rm -f " + RCommand::quoteGlob(wildfile);
             (void)p_connection->exec(cmd);
           }
         }
@@ -946,21 +946,21 @@ bool Launch::validateRemoteDir(void)
     if (propertyFileName != "") {
       file = p_cache->remoteDir + "/" + propertyFileName;
       if (p_connection->exists(file)) {
-        cmd = "rm -f " + file;
+        cmd = "rm -f " + RCommand::quotePath(file);
         (void)p_connection->exec(cmd);
       }
     }
     if (auxiliaryFileName != "") {
       file = p_cache->remoteDir + "/" + auxiliaryFileName;
       if (p_connection->exists(file)) {
-        cmd = "rm -f " + file;
+        cmd = "rm -f " + RCommand::quotePath(file);
         (void)p_connection->exec(cmd);
       }
     }
 
-    cmd = "rm -f " + p_cache->remoteDir + "/.ecce.status";
+    cmd = "rm -f " + RCommand::quotePath(p_cache->remoteDir + "/.ecce.status");
     (void)p_connection->exec(cmd);
-    cmd = "rm -f " + p_cache->remoteDir + "/*.desc";
+    cmd = "rm -f " + RCommand::quotePath(p_cache->remoteDir) + "/*.desc";
     (void)p_connection->exec(cmd);
   }
 
@@ -1016,13 +1016,13 @@ bool Launch::checkRemoteDir(const string& remoteDir, const bool& rerunCheck)
     if (ret && rerunCheck && p_taskjob->getRerun()) {
       // if a reset for rerun operation was done delete all the existing
       // run directory files and clear the rerun flag
-      cmd = "rm -f " + p_cache->remoteDir + "/*";
+      cmd = "rm -f " + RCommand::quotePath(p_cache->remoteDir) + "/*";
       (void)p_connection->exec(cmd);
-      cmd = "rm -f " + p_cache->remoteDir + "/.ecce.status";
+      cmd = "rm -f " + RCommand::quotePath(p_cache->remoteDir + "/.ecce.status");
       (void)p_connection->exec(cmd);
       p_taskjob->setRerun(false);
     } else if (!ret) {
-      cmd = "mkdir -p " + remoteDir;
+      cmd = "mkdir -p " + RCommand::quotePath(remoteDir);
       string err = "The remote directory " + remoteDir +
                       " on " + p_cache->machineName +
                       " cannot be created (no write permission?)";
@@ -1064,7 +1064,7 @@ bool Launch::checkDiskSpace(const string& dir)
       p_connection->executable("/bin/mkfile")) {
 
     string testFile = dir + "/test_mkfile";
-    string cmd = "mkfile 2m " + testFile;
+    string cmd = "mkfile 2m " + RCommand::quotePath(testFile);
     string err = "The remote directory " + dir +
                     " on " + p_cache->machineName +
                     " does not have enough available disk space.";
@@ -1078,7 +1078,7 @@ bool Launch::checkDiskSpace(const string& dir)
       }
     }
 
-    cmd = "rm -f " + testFile;
+    cmd = "rm -f " + RCommand::quotePath(testFile);
     (void)p_connection->exec(cmd);
   }
 
@@ -1245,7 +1245,7 @@ bool Launch::generateJobMonitoringFiles(void)
         RCommand localconn("system");
         if (localconn.isOpen()) {
           string cmd = "grep -i \"^start \" ";
-          cmd.append(inputFilePath);
+          cmd.append(RCommand::quotePath(inputFilePath));
           string oput;
           if (localconn.execout(cmd, oput)) {
             // Strip up to second token
@@ -1256,7 +1256,7 @@ bool Launch::generateJobMonitoringFiles(void)
               calcName = oput;
           } else {
             cmd = "grep -i \"^restart \" ";
-            cmd.append(inputFilePath);
+            cmd.append(RCommand::quotePath(inputFilePath));
             if (localconn.execout(cmd, oput)) {
               // Strip up to second token
               oput = oput.substr(oput.find_first_not_of(" \t",8));
@@ -1404,7 +1404,7 @@ bool Launch::generateDescriptorFile(const string& source, const string& target)
   char* discardScripts = getenv("ECCE_JOB_PARSE_IGNORE");
 
   if (discardScripts == NULL) {
-    string cmd = "cp -f " + source + " " + target;
+    string cmd = "cp -f " + RCommand::quotePath(source) + " " + RCommand::quotePath(target);
     ret = p_localconn->exec(cmd);
     if (!ret)
       p_lastMessage = "Unable to copy parse descriptor file to staging area";
@@ -1822,7 +1822,7 @@ bool Launch::moveJobMonitoringFiles(void)
                     " on " + p_cache->machineName + " does not exist.  "
                     "Cannot start job monitoring.";
   else {
-    string cmd = "rm -f " + p_cache->remoteDir + "/*.desc";
+    string cmd = "rm -f " + RCommand::quotePath(p_cache->remoteDir) + "/*.desc";
     (void)p_connection->exec(cmd);
 
     string config = p_cache->directory + "/eccejobmonitor.conf";
@@ -1905,7 +1905,7 @@ bool Launch::doLaunch(void)
 #endif
   } else {
     if (!p_connection->executable(p_cache->scriptName)) {
-      string cmd = "chmod u+x " + p_cache->scriptName;
+      string cmd = "chmod u+x " + RCommand::quotePath(p_cache->scriptName);
       ret = p_connection->exec(cmd);
       if (!ret) {
         p_lastMessage = "Unable to 'chmod u+x' " + p_cache->scriptName;
@@ -2149,16 +2149,16 @@ bool Launch::startJobStore(const string& importDir)
     string clientCmd = "nohup " + Ecce::ecceBinCommand("eccejobmaster") + " ";
 
     string pipeName = AuthCache::pipeName();
-    clientCmd += "-pipe " + pipeName + " ";
+    clientCmd += "-pipe " + RCommand::quotePath(pipeName) + " ";
 
     if (importDir != "")
       clientCmd += "-importDir ";
     else
       clientCmd += "-remoteDir ";
-    clientCmd += p_cache->remoteDir;
+    clientCmd += RCommand::quotePath(p_cache->remoteDir);
 
     clientCmd += " -calcURL ";
-    clientCmd += p_cache->calcURL;
+    clientCmd += RCommand::quotePath(p_cache->calcURL);
 
     clientCmd += " -restartTries ";
 
@@ -2188,7 +2188,7 @@ bool Launch::startJobStore(const string& importDir)
     }
 
     clientCmd += " -configFile ";
-    clientCmd +=  p_cache->directory + "/eccejobstore.conf";
+    clientCmd += RCommand::quotePath(p_cache->directory + "/eccejobstore.conf");
     // Explicit redirect avoids nohup's own default behavior of writing
     // a stray nohup.out into Gateway's own working directory (confirmed
     // live: this is exactly what was creating /home/andy/nohup.out) --
@@ -2222,7 +2222,7 @@ bool Launch::startJobStore(const string& importDir)
     //  the cwd assumption. The job directory is known writable -- the
     //  config file named on this same command line was just written
     //  into it.
-    clientCmd += " > " + p_cache->directory + "/eccejobmaster.log 2>&1 &";
+    clientCmd += " > " + RCommand::quotePath(p_cache->directory + "/eccejobmaster.log") + " 2>&1 &";
 
 
 #if (!defined(INSTALL) && defined(DEBUG))
@@ -2237,7 +2237,11 @@ bool Launch::startJobStore(const string& importDir)
     {
       string cmd = clientCmd.substr(strlen("nohup "));
       cmd = cmd.substr(0, cmd.size() - 2);               // the trailing " &"
-      for (size_t i = 0; i < cmd.size(); i++)
+      // Only in the program's own (double-quoted) path: the arguments are
+      // sh-quoted, and an escaped quote in them holds a backslash.
+      size_t progEnd = cmd[0] == '"' ? cmd.find('"', 1) : cmd.find(' ');
+      if (progEnd == string::npos) progEnd = cmd.size();
+      for (size_t i = 0; i < progEnd; i++)
         if (cmd[i] == '\\') cmd[i] = '/';
       string out;
       if (!p_localconn || !p_localconn->execbg(cmd, out, ""))

@@ -14,6 +14,7 @@
 #include <sys/utsname.h> // uname
 #include <unistd.h>   // getpid, #120 instrumentation
 #include <cstdio>     // fopen/fprintf, #120 instrumentation
+#include <cstring>
 
 #include <wx/wx.h>
 
@@ -22,6 +23,7 @@
 #include "util/NullPointerException.H"
 #include "util/Ecce.H"
 #include "util/EcceURL.H"
+#include "util/LocalData.H"
 #include "util/JMSMessage.H"
 #include "util/JMSPublisher.H"
 
@@ -34,6 +36,35 @@
 #include "wxgui/WxDavAuth.H"
 #include "wxgui/WxAuth.H"
 #include "wxgui/ewxMessageDialog.H"
+
+bool WxDavAuth::s_switchedToLocal = false;
+
+/**
+ * The login window's "Use this computer instead": what Edit > Change
+ * Server... does for that choice (ecce-first-start --apply local), then
+ * the user is told it applies at the next start.  The session itself was
+ * set up for the server, so it is not switched under the running apps.
+ */
+static bool useThisComputer()
+{
+  wxString home = wxString::FromUTF8(Ecce::ecceHome());
+#ifdef __WXMSW__
+  wxString cmd = "\"" + home + "/python/python3w.exe\" \"" + home +
+                 "/bin/ecce-first-start\" --apply local";
+#else
+  wxString cmd = "\"" + home + "/bin/ecce-first-start\" --apply local";
+#endif
+  long rc = wxExecute(cmd, wxEXEC_SYNC);
+  ewxMessageDialog dlg(0, rc == 0
+      ? "From the next start, ECCE keeps your calculations in a folder on "
+        "this computer.\n\nThis start ends now. Start ECCE again to work "
+        "there."
+      : "ECCE could not switch to this computer. Your setting is unchanged; "
+        "use Edit > Change Server... in the Organizer to try again.",
+      "Use this computer", wxOK | (rc == 0 ? wxICON_INFORMATION : wxICON_EXCLAMATION));
+  dlg.ShowModal();
+  return rc == 0;
+}
 
 // ECCE_DEBUG_DAVAUTH=<file>: appends one line per getAuthorization()/
 // prompt()/authorizationAccepted() decision -- which of cache, session
@@ -375,6 +406,8 @@ bool WxDavAuth::prompt(const string& strurl,
      // server side for them, and the request put both passwords in the
      // URL, which the data server writes to its access log.
      authDlg.showChangeBtn(false);
+     // A data server session can switch to working on this computer.
+     authDlg.showUseLocal(!newUser && !noAccess && LocalData::dir().empty());
      {
        string where = url.getProtocol() + "://" + url.getHost();
        const bool secure = (url.getProtocol() == "https");
@@ -419,7 +452,30 @@ bool WxDavAuth::prompt(const string& strurl,
        authDlg.Show(true);
        ewxRaiseWindow(&authDlg);
 
+       // Test hook: ECCE_TEST_AUTH_ANSWER=uselocal[:seconds] presses "Use
+       // this computer instead" after that long (default 3 s).
+       wxTimer hook(&authDlg);
+       const char *answer = getenv("ECCE_TEST_AUTH_ANSWER");
+       if (answer && strncmp(answer, "uselocal", 8) == 0) {
+         int secs = answer[8] == ':' ? atoi(answer + 9) : 3;
+         authDlg.Bind(wxEVT_TIMER, [&authDlg](wxTimerEvent&) {
+           fprintf(stderr, "ECCE_TEST_AUTH_ANSWER: uselocal\n");
+           authDlg.EndModal(WxAuthGUI::ID_BUTTON_AUTH_USE_LOCAL);
+         });
+         hook.StartOnce(1000 * (secs > 0 ? secs : 3));
+       }
+
        status = authDlg.ShowModal();
+       if (status == WxAuthGUI::ID_BUTTON_AUTH_USE_LOCAL) {
+         authDlg.Show(false);
+         if (useThisComputer()) {
+           s_switchedToLocal = true;
+           // This start ends; the gateway quits on the refused login, any
+           // other app leaves its main loop.
+           if (wxTheApp)
+             wxTheApp->CallAfter([] { wxTheApp->ExitMainLoop(); });
+         }
+       }
        if (status != wxID_OK) {
          userCancelled = true;
        }

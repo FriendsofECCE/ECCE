@@ -4170,7 +4170,7 @@ void NWDirdy::startGeneralTheoryApp(const bool& initFlag)
 
     string cmd = theorycmd;
     cmd += " ";
-    cmd += p_generalTheoryOutFile->path() + " ";
+    cmd += "\"" + p_generalTheoryOutFile->path() + "\" ";
 
     char buf[32];
     sprintf(buf, "%hd", p_generalTheoryInPort);
@@ -4290,7 +4290,7 @@ void NWDirdy::startSingleTheoryApp(const bool& initFlag)
 
     string cmd = theorycmd;
     cmd += " ";
-    cmd += p_singleTheoryOutFile->path() + " ";
+    cmd += "\"" + p_singleTheoryOutFile->path() + "\" ";
 
     char buf[32];
     sprintf(buf, "%hd", p_singleTheoryInPort);

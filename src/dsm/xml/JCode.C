@@ -637,7 +637,9 @@ bool JCode::getTheoryRunTypeEditorNames(string& theory, string& runtype) const
     // "../3rdparty/..." paths never resolved to anything real in this
     // build's flat single-platform layout anyway. Also python -> python3:
     // Debian 13 has no bare "python" on PATH by default.
-    theory = "python3 " + pyfile;
+    // Quoted for sh and for CreateProcess alike: the install folder can
+    // hold a space (a Windows user name).
+    theory = "python3 \"" + pyfile + "\"";
 
     // Note that this will return just the theorydialog value if the
     // script does not exist in codereg which is the proper fallback if the
@@ -658,7 +660,7 @@ bool JCode::getTheoryRunTypeEditorNames(string& theory, string& runtype) const
     pyfile += runtype;
     SFile sfile(pyfile);
 
-    runtype = "python3 " + pyfile;
+    runtype = "python3 \"" + pyfile + "\"";
 
     // Note that this will return just the runtypedialog value if the
     // script does not exist in codereg which is the proper fallback if the

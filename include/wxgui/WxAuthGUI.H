@@ -117,6 +117,7 @@ public:
     static const wxWindowID wxID_STATIC_AUTH_STATUS;
     static const wxWindowID ID_CHECKBOX_AUTH_SAVEPASSWORDS;
     static const wxWindowID ID_TEXTCTRL_AUTH_PASSWORD;
+    static const wxWindowID ID_BUTTON_AUTH_USE_LOCAL;
 ////@end WxAuthGUI member variables
 };
 

@@ -301,10 +301,10 @@ bool CalcEd::write_template(RCommand& localconn, const string& templateFile,
       string templatePathname(Ecce::ecceDataControllersPath());
       templatePathname += "/" + templateFile;
       if (localconn.exists(templatePathname)) {
-        string command = "/bin/cp " + templatePathname + " " + outputFile;
+        string command = "/bin/cp " + RCommand::quotePath(templatePathname) + " " + RCommand::quotePath(outputFile);
         status = localconn.exec(command);
         if (status) {
-          command = "chmod 666 " + outputFile;
+          command = "chmod 666 " + RCommand::quotePath(outputFile);
           status = localconn.exec(command);
         }
       }
@@ -416,19 +416,20 @@ bool CalcEd::input_controller(const bool& saveParamFlag,
           // of build-cmake/, skipping the wrapper) has no such PATH entry
           // and this failed outright -- already have the correct full
           // path right here, so just use it instead of depending on PATH.
+          parser_path = RCommand::quotePath(parser_path);
           if (ecp_flag)
             parser_path += " -e";
           if (spherical_flag)
             parser_path += " -s";
 
-          parser_path += " -n " + tempFileName + " -p -f";
+          parser_path += " -n " + RCommand::quotePath(tempFileName) + " -p -f";
           if (esp_file_flag)
             parser_path += " -q";
           if (con_file_flag)
             parser_path += " -c";
           if (basis_file_flag)
             parser_path += " -b";
-          parser_path += " -t " + orig_input_file;
+          parser_path += " -t " + RCommand::quotePath(orig_input_file);
 
           string warning;
           //  execout() captures the generator's own stdout+stderr into
@@ -479,9 +480,9 @@ bool CalcEd::input_controller(const bool& saveParamFlag,
 
             //  By full path, as the generator above: only the Linux
             //  wrappers put scripts/parsers on PATH.
-            string pretty_cmd = string(Ecce::ecceDataControllersPath()) +
-                                "/prettyInput <" + orig_input_file +
-                                " >" + input_file;
+            string pretty_cmd = RCommand::quotePath(string(Ecce::ecceDataControllersPath()) +
+                                "/prettyInput") + " <" + RCommand::quotePath(orig_input_file) +
+                                " >" + RCommand::quotePath(input_file);
 
             if (!localconn.exec(pretty_cmd))
               message = "Input files could not be generated--pretty parsing "

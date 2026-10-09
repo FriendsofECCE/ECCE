@@ -2284,8 +2284,8 @@ const char* TGBSConfig::dump(const char* code_name, bool useNames)
     codeName + "\" < \"" + sourceFile->path() + "\" > \"" +
     resultsFile->path() + "\"";
 #else
-  string command = codeName + " < " + sourceFile->path() + " > " +
-    resultsFile->path();
+  string command = codeName + " < \"" + sourceFile->path() + "\" > \"" +
+    resultsFile->path() + "\"";
 #endif
 
   // system()'s return value is a raw wait-status, not an errno-style
