@@ -271,9 +271,6 @@ void MoCoeffs::showCoeffs(ICalculation *expt, int moNum,
 #endif 
 
       size_t numFuncTypes;  // length of funcTypes array ==> # of funs in a GBS 
-      size_t idxAtom_plus1 = idxAtom + 1;
-      sprintf(buf,"%zu",idxAtom_plus1);
-      p_grid->SetCellValue(idxAtom,0,buf);
 
       sprintf(buf,"%s%zu",atomID.c_str(),idxAtom+1);
       p_grid->SetCellValue(idxCoef,1,buf);
@@ -367,7 +364,7 @@ void MoCoeffs::showCoeffs(ICalculation *expt, int moNum,
                   for (int kdx=0; kdx<length_g_shell; kdx++) {
 
                      // Atomic Orbital
-                     sprintf(buf,"g%zu ",fCount);
+                     sprintf(buf,"g%zu ",gCount);
                      p_grid->SetCellValue(idxCoef, 2, buf);
 
                      // Coeff
@@ -383,7 +380,7 @@ void MoCoeffs::showCoeffs(ICalculation *expt, int moNum,
                   for (int kdx=0; kdx<length_h_shell; kdx++) {
 
                      // Atomic Orbital
-                     sprintf(buf,"h%zu ",fCount);
+                     sprintf(buf,"h%zu ",hCount);
                      p_grid->SetCellValue(idxCoef, 2, buf);
 
                      // Coeff
@@ -399,7 +396,7 @@ void MoCoeffs::showCoeffs(ICalculation *expt, int moNum,
                   for (int kdx=0; kdx<length_i_shell; kdx++) {
 
                      // Atomic Orbital
-                     sprintf(buf,"i%zu ",fCount);
+                     sprintf(buf,"i%zu ",iCount);
                      p_grid->SetCellValue(idxCoef, 2, buf);
 
                      // Coeff
