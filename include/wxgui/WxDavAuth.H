@@ -60,12 +60,15 @@ class WxDavAuth : public AuthEventListener
       static const int EXIT_SWITCHED_TO_LOCAL = 10;
       static void setRestartsOnSwitch(bool r) { s_restartsOnSwitch = r; }
       static bool restartsOnSwitch() { return s_restartsOnSwitch; }
+      // Run right after the switch, before the app leaves its main loop.
+      static void setOnSwitch(void (*f)()) { s_onSwitch = f; }
 
    protected:
       WxDavAuth(const WxDavAuth& rhs);
 
       static bool s_switchedToLocal;
       static bool s_restartsOnSwitch;
+      static void (*s_onSwitch)();
 
       bool prompt(const string& strurl,
             const bool& newUser,

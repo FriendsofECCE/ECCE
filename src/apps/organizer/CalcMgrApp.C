@@ -51,7 +51,7 @@ static void restartInLocalMode()
 {
   const char *root = getenv("ECCE_ROOT");
   string script = (root && *root ? string(root) : string(Ecce::ecceHome())) +
-                  "/ecce.cmd";
+                  "\\ecce.cmd";
   for (const char *v : {"ECCE_REMOTE_SERVER", "ECCE_REMOTE_DIR",
                         "ECCE_SERVER_SESSION", "ECCE_SESSION_ID"})
     _putenv_s(v, "");
@@ -65,8 +65,13 @@ static void restartInLocalMode()
   si.cb = sizeof(si);
   if (CreateProcessA(NULL, &line[0], 0, 0, FALSE, CREATE_NO_WINDOW, 0, 0,
                      &si, &pi)) {
+    fprintf(stderr, "Organizer: starting again in local mode: %s\n",
+            line.c_str());
     CloseHandle(pi.hThread);
     CloseHandle(pi.hProcess);
+  } else {
+    fprintf(stderr, "Organizer: could not run %s (error %lu)\n",
+            line.c_str(), (unsigned long)GetLastError());
   }
 }
 #endif
@@ -105,6 +110,7 @@ bool CalcMgrApp::OnInit()
 #ifdef __WXMSW__
   // No gateway here: the Organizer has the session's login window.
   WxDavAuth::setRestartsOnSwitch(true);
+  WxDavAuth::setOnSwitch(restartInLocalMode);
 #endif
 
   if (argc>2 && strcmp(argv[1].ToStdString().c_str(),"-pipe")==0) {
@@ -198,9 +204,6 @@ void CalcMgrApp::openUrlWhenReady(const string& url, int tries)
 
 int CalcMgrApp::OnExit()
 {
-#ifdef __WXMSW__
-  if (WxDavAuth::switchedToLocal()) restartInLocalMode();
-#endif
   return 0;
 }
 

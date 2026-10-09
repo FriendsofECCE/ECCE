@@ -140,9 +140,10 @@ for _ in range(60):
     time.sleep(1)
     pids = organizer_pids()
     files = glob.glob(profile + "/.ECCE/broker_*")
-    local_broker = [open(f).read() for f in files if "user=" in open(f).read()]
+    local_broker = [open(f).read() for f in files if ("port=%d" % bport) not in open(f).read()]
     if pids and not set(pids) & set(first) and local_broker:
         break
+text = open(os.path.join(scratch, "switch.log"), errors="replace").read()
 print("switch: rc=%d first=%s now=%s\n%s" % (rc, first, pids, text))
 check(bool(first), "switch: ecce.cmd starts the Organizer for the server")
 check(len(pids) == 1 and not set(pids) & set(first),
