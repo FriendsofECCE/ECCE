@@ -5876,6 +5876,9 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
                         std::max(PANEL_HEIGHT_MIN, panel->minimumHeight())));
     info.BestSize(wxSize(paneMinWidth, paneHeight));
     info.dock_proportion = paneHeight;
+    //  AUI floors a docked pane at its window's minimum; see
+    //  PropertyPanel::setPaneMinHeight().
+    panel->setPaneMinHeight(info.min_size.y);
     p_baseProportion[panel] = paneHeight;
 
     // ECCE_DEBUG_PANEL_SIZE=1 prints what each panel asked for and what
@@ -5918,7 +5921,7 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
     //  MO Diagram opened by itself on every calculation that had
     //  orbital energies.
     static const set<string> defaultShown = {
-      "Calculation Summary", "Energies", "MOs"
+      "Calculation Summary", "Energies"
     };
     bool show = defaultShown.find(name) != defaultShown.end();
     if (p_panelMode == PANELS_DETAIL) {

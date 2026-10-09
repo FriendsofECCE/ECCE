@@ -19,7 +19,8 @@ PropertyPanel::PropertyPanel()
     p_description(NULL),
     p_calculation(NULL),
     p_needsInitialization(true),
-    p_needsRefresh(false)
+    p_needsRefresh(false),
+    p_paneMinHeight(0)
 {
 }
 
@@ -32,7 +33,8 @@ PropertyPanel::PropertyPanel(IPropCalculation *calculation,
     p_description(NULL),
     p_calculation(NULL),
     p_needsInitialization(true),
-    p_needsRefresh(false)
+    p_needsRefresh(false),
+    p_paneMinHeight(0)
 {
   Create(calculation, parent, id, pos, size, style, name);
 }
@@ -122,6 +124,20 @@ set<string> PropertyPanel::getPropertyNames() const
  */
 void PropertyPanel::initialize()
 {
+}
+
+
+void PropertyPanel::setPaneMinHeight(int height)
+{
+  p_paneMinHeight = height;
+  SetMinSize(GetMinSize());
+}
+
+
+void PropertyPanel::SetMinSize(const wxSize& size)
+{
+  ewxPanel::SetMinSize(wxSize(size.x,
+                              p_paneMinHeight > 0 ? p_paneMinHeight : size.y));
 }
 
 

@@ -488,8 +488,10 @@ void CalcEd::setCurrentCodeButton(const string& currentCode)
 
 void CalcEd::setContext(const string& url, const string& codeName)
 {
-  // Make sure it is raised/uniconified for popup dialogs
-  Raise();
+  // Make sure it is raised/uniconified for popup dialogs.  Not while it is
+  // still hidden: Raise() is gtk_window_present() on GTK, which maps the
+  // window at its empty size before the fields are filled.
+  if (IsShown()) Raise();
 
   // A calculation with unsaved changes?
   if (p_iCalc && url != p_context

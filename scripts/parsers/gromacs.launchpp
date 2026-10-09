@@ -65,7 +65,11 @@ if ($gmx eq "") {
 }
 
 my $tmp = tempdir("gromacs.launchpp.XXXXXX", TMPDIR => 1, CLEANUP => 1);
-my @cmd = ($gmx, "grompp", "-f", $mdp, "-c", "conf.gro", "-p", "topol.top",
+# -r: a topology with [ position_restraints ] needs a reference structure,
+# and grompp ignores it otherwise; the starting structure is the reference,
+# as in the job script (gensub).
+my @cmd = ($gmx, "grompp", "-f", $mdp, "-c", "conf.gro", "-r", "conf.gro",
+           "-p", "topol.top",
            "-o", "$tmp/check.tpr", "-po", "$tmp/mdout.mdp", "-maxwarn", "0");
 my $out = `@cmd 2>&1`;
 my $status = $? >> 8;
