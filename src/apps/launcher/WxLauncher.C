@@ -1045,7 +1045,9 @@ void WxLauncher::updatePreferences()
  */
 void WxLauncher::prefsChangeNotify(string refname)
 {
-    //  Publish a prefs_updated message
+    //  Publish a prefs_updated message; the test hook runs without a broker.
+    if (getenv("ECCE_LAUNCHER_SCRIPT") != NULL)
+        return;
     JMSMessage* mesg = newMessage();
 
     mesg->addProperty("machName", refname);
