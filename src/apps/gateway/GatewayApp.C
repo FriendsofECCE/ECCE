@@ -75,6 +75,7 @@ IMPLEMENT_APP( GatewayApp )
 IMPLEMENT_APP_NO_MAIN( GatewayApp )
 int main(int argc, char **argv)
 {
+  wxDISABLE_DEBUG_SUPPORT();   // as IMPLEMENT_APP's main does in a release build
   int rc = wxEntry(argc, argv);
   return WxDavAuth::switchedToLocal() ? WxDavAuth::EXIT_SWITCHED_TO_LOCAL : rc;
 }
