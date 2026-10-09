@@ -10,7 +10,10 @@ folder), the window answered by ECCE_FIRST_START_ANSWER:
           listener for the broker), ~/.ECCE/RemoteServer is written and the
           session's broker file names the stub broker, which is what the
           apps read to reach a central server.
-organizer.exe is started both times and ended by the test.
+  switch  against a stub server that asks for a login: the login window's
+          "Use this computer instead" (ECCE_TEST_AUTH_ANSWER) ends that
+          Organizer and ecce.cmd starts again, local, in the same start.
+organizer.exe is started each time and ended by the test.
 """
 import glob
 import http.server
@@ -40,20 +43,39 @@ class Stub(http.server.BaseHTTPRequestHandler):
         pass
 
 
-def listener():
-    s = http.server.HTTPServer(("127.0.0.1", 0), Stub)
+class Locked(http.server.BaseHTTPRequestHandler):
+    """A data server that wants a login for everything."""
+    def answer(self):
+        self.send_response(401)
+        self.send_header("WWW-Authenticate", 'Basic realm="ECCE"')
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    do_GET = do_PROPFIND = do_HEAD = do_OPTIONS = do_PUT = do_MKCOL = answer
+
+    def log_message(self, *a):
+        pass
+
+
+def listener(handler=None):
+    s = http.server.HTTPServer(("127.0.0.1", 0), handler or Stub)
     threading.Thread(target=s.serve_forever, daemon=True).start()
     return s, s.server_address[1]
 
 
 data, dport = listener()
 broker, bport = listener()
+locked, lport = listener(Locked)
+
+
+def organizer_pids():
+    r = subprocess.run(["tasklist", "/FI", "IMAGENAME eq organizer.exe", "/NH", "/FO", "CSV"],
+                       capture_output=True, text=True)
+    return [l.split(",")[1].strip('"') for l in r.stdout.splitlines() if "organizer.exe" in l]
 
 
 def organizer_running():
-    r = subprocess.run(["tasklist", "/FI", "IMAGENAME eq organizer.exe", "/NH"],
-                       capture_output=True, text=True)
-    return "organizer.exe" in r.stdout
+    return bool(organizer_pids())
 
 
 def cmd(env, cwd, log):
@@ -103,6 +125,35 @@ text = open(files[0]).read() if files else ""
 check("host=127.0.0.1" in text and ("port=%d" % bport) in text,
       "server: the session's broker file names the server's broker (%s)" % text.replace("\n", " "))
 check(up, "server: ecce.cmd starts the Organizer")
+
+# The login window's "Use this computer instead" goes on locally in this start.
+profile = os.path.join(scratch, "switch")
+shutil.rmtree(profile, ignore_errors=True)
+os.makedirs(profile)
+env = {k: v for k, v in os.environ.items() if not k.startswith("ECCE_")}
+env.update(USERPROFILE=profile, ECCE_FIRST_START_ANSWER="server:127.0.0.1:%d" % lport,
+           ECCE_BROKER_PORT=str(bport), ECCE_TEST_AUTH_ANSWER="uselocal:2")
+rc, text = cmd(env, profile, os.path.join(scratch, "switch.log"))
+first = organizer_pids()
+pids, local_broker = first, ""
+for _ in range(60):
+    time.sleep(1)
+    pids = organizer_pids()
+    files = [f for f in glob.glob(profile + "/.ECCE/broker_*") if os.path.isfile(f)]
+    local_broker = [open(f).read() for f in files if ("port=%d" % bport) not in open(f).read()]
+    if pids and not set(pids) & set(first) and local_broker:
+        break
+text = open(os.path.join(scratch, "switch.log"), errors="replace").read()
+print("switch: rc=%d first=%s now=%s\n%s" % (rc, first, pids, text))
+check(bool(first), "switch: ecce.cmd starts the Organizer for the server")
+check(len(pids) == 1 and not set(pids) & set(first),
+      "switch: that Organizer ended and one new Organizer runs (%s -> %s)" % (first, pids))
+check(os.path.isdir(profile + "/ecce-local") and
+      not os.path.exists(profile + "/.ECCE/RemoteServer/DataServers"),
+      "switch: the local data folder is used and the server is no longer chosen")
+check(bool(local_broker), "switch: the new session has its own local broker")
+subprocess.run(["taskkill", "/F", "/IM", "organizer.exe"], capture_output=True)
+locked.shutdown()
 
 # The server is down: ecce.cmd says so and starts nothing.
 data.shutdown()

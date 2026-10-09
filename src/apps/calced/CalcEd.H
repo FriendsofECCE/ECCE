@@ -198,6 +198,7 @@ class CalcEd: public CalcEdGUI,
 
     // refresh & enable/disable & show/hide indicated field sets
     void updateAllFields();
+    void refit();
     void updateChemSysFields();
     void updateBasisSetFields();
     void updateDetailsFields();

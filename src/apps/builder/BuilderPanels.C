@@ -54,8 +54,9 @@ const char *MODE_NAMES[] = { "classic", "stacked", "accordion", "detail" };
 
 //  What opens first when a layout shows one panel and the user has not
 //  chosen: the data people came for, not the summary the header repeats.
+//  Not the MOs: that panel draws orbitals and is opened when wanted.
 const char *DEFAULT_PANEL_ORDER[] = {
-  "MOs", "Vibrational Frequencies", "Energies", "Calculation Summary"
+  "Energies", "Vibrational Frequencies", "Calculation Summary"
 };
 
 

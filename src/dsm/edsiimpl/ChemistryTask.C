@@ -122,8 +122,8 @@ bool ChemistryTask::fragment(Fragment* frag)
 
       // empiricalFormula property
       results[0].name = VDoc::getEcceNamespace() + ":empiricalFormula";
-      frag->generateEmpiricalFormula();
-      results[0].value = frag->formula();
+      // The Hill formula, as the Calculation Editor shows it.
+      results[0].value = frag->generateEmpiricalFormula();
 
       // charge property
       results[1].name = VDoc::getEcceNamespace() + ":charge";

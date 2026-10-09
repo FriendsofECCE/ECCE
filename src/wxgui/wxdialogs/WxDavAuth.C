@@ -39,6 +39,7 @@
 
 bool WxDavAuth::s_switchedToLocal = false;
 bool WxDavAuth::s_restartsOnSwitch = false;
+void (*WxDavAuth::s_onSwitch)() = 0;
 
 /**
  * The login window's "Use this computer instead": what Edit > Change
@@ -474,6 +475,7 @@ bool WxDavAuth::prompt(const string& strurl,
          authDlg.Show(false);
          if (useThisComputer()) {
            s_switchedToLocal = true;
+           if (s_onSwitch) s_onSwitch();
            // This start ends; the gateway quits on the refused login, any
            // other app leaves its main loop.
            if (wxTheApp)

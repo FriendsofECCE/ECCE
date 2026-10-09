@@ -34,8 +34,69 @@
 #include "wxgui/WxJMSSubscriber.H"
 #include "wxgui/WxState.H"
 
+#include "wxgui/WxDavAuth.H"
+
 #include "CalcMgrApp.H"
 #include "CalcMgr.H"
+
+#ifdef __WXMSW__
+#include <windows.h>
+#include <stdlib.h>
+#include <string.h>
+#include <vector>
+#include "util/Ecce.H"
+
+// The login window's "Use this computer instead": this start was set up for
+// the server, so ecce.cmd runs again, once, for a local session and without
+// the first-start question, as `ecce` does on Linux.  ECCE_SWITCHED_LOCAL
+// carries this process's id: ecce.cmd waits until this Organizer has ended,
+// so its session ends first.  This process keeps its own environment (its
+// session id) for that; the child gets its own block.
+static void restartInLocalMode()
+{
+  const char *root = getenv("ECCE_ROOT");
+  string script = (root && *root ? string(root) : string(Ecce::ecceHome())) +
+                  "\\ecce.cmd";
+  std::vector<string> vars;
+  if (char *block = GetEnvironmentStringsA()) {
+    for (char *v = block; *v; v += strlen(v) + 1) {
+      string s(v), name = s.substr(0, s.find('='));
+      if (name != "ECCE_REMOTE_SERVER" && name != "ECCE_REMOTE_DIR" &&
+          name != "ECCE_SERVER_SESSION" && name != "ECCE_SESSION_ID" &&
+          name != "ECCE_SWITCHED_LOCAL")
+        vars.push_back(s);
+    }
+    FreeEnvironmentStringsA(block);
+  }
+  vars.push_back("ECCE_SWITCHED_LOCAL=" +
+                 std::to_string((unsigned long)GetCurrentProcessId()));
+  string env;
+  for (const string& v : vars) env += v + '\0';
+  env += '\0';
+  // Its output to a file: started with no console window and no standard
+  // handles, the session scripts' messages fail to write and ecce.cmd
+  // takes the broker start for failed.
+  const char *home = getenv("ECCE_REALUSERHOME");
+  string log = string(home && *home ? home : ".") + "/.ECCE/switch-to-local.log";
+  const char *comspec = getenv("COMSPEC");
+  string line = "\"" + string(comspec && *comspec ? comspec : "cmd.exe") +
+                "\" /d /s /c \"\"" + script + "\" > \"" + log + "\" 2>&1\"";
+  STARTUPINFOA si;
+  PROCESS_INFORMATION pi;
+  memset(&si, 0, sizeof(si));
+  si.cb = sizeof(si);
+  if (CreateProcessA(NULL, &line[0], 0, 0, FALSE, CREATE_NO_WINDOW, &env[0],
+                     0, &si, &pi)) {
+    fprintf(stderr, "Organizer: starting again in local mode: %s\n",
+            line.c_str());
+    CloseHandle(pi.hThread);
+    CloseHandle(pi.hProcess);
+  } else {
+    fprintf(stderr, "Organizer: could not run %s (error %lu)\n",
+            line.c_str(), (unsigned long)GetLastError());
+  }
+}
+#endif
 
 
 IMPLEMENT_APP(CalcMgrApp)
@@ -68,6 +129,11 @@ string CalcMgrApp::getName() const
 bool CalcMgrApp::OnInit()
 {
   ewxApp::OnInit();
+#ifdef __WXMSW__
+  // No gateway here: the Organizer has the session's login window.
+  WxDavAuth::setRestartsOnSwitch(true);
+  WxDavAuth::setOnSwitch(restartInLocalMode);
+#endif
 
   if (argc>2 && strcmp(argv[1].ToStdString().c_str(),"-pipe")==0) {
     AuthCache::getCache().pipeIn(argv[2].ToStdString());
@@ -160,7 +226,6 @@ void CalcMgrApp::openUrlWhenReady(const string& url, int tries)
 
 int CalcMgrApp::OnExit()
 {
-  //  cerr << "Enter CalcMgrApp::OnExit()\n";
   return 0;
 }
 
@@ -239,21 +304,21 @@ void CalcMgrApp::msgRenameMCB(JMSMessage& msg)
 void CalcMgrApp::msgURLCreatedMCB(JMSMessage& msg)
 {
   EcceURL url(msg.getProperty("url"));
-  p_calcMgr->updateAddNode(url);
+  p_calcMgr->queueUpdate(CalcMgr::UPDATE_ADDED, url);
 }
 
 
 void CalcMgrApp::msgURLRemovedMCB(JMSMessage& msg)
 {
   EcceURL url(msg.getProperty("url"));
-  p_calcMgr->updateRemoveNode(url);
+  p_calcMgr->queueUpdate(CalcMgr::UPDATE_REMOVED, url);
 }
 
 
 void CalcMgrApp::msgChangedMCB(JMSMessage& msg)
 {
   EcceURL url(msg.getProperty("url"));
-  p_calcMgr->updateUrl(url);
+  p_calcMgr->queueUpdate(CalcMgr::UPDATE_CHANGED, url);
 }
 
 

@@ -209,11 +209,9 @@ string TFormula::formula(int charge) const
 // man
 //
 // Description:
-//    Returns the empirical formula which follows the convention
-//    established by the Quantum Chemistry Literature Database.
-//       . Carbon atoms first
-//       . H next
-//       . the rest in alphabetical order
+//    Returns the empirical formula in Hill order:
+//       . with carbon: C first, H next, the rest in alphabetical order
+//       . without carbon: all elements in alphabetical order
 //       . >1 char elements followed by . (He.)
 //       . count follows symbol (H4)
 //       . charged species represented by +/-
@@ -228,29 +226,20 @@ string TFormula::empiricalFormula
   string ret;
 
   if (pairs.size() > 0) {
-    // First handle Carbon
-    int idx;
-    for (idx=0; idx<pairs.size(); idx++) {
-      if (pairs[idx].tag == "C") {
-        ret += formatElement("C",pairs[idx].count);
-        break;
-      }
+    // Hill order: with carbon, C, H, then the rest alphabetically; without
+    // carbon every element alphabetically, H included.
+    bool hasCarbon = false;
+    for (size_t idx=0; idx<pairs.size(); idx++) {
+      if (pairs[idx].tag == "C") hasCarbon = true;
     }
-    // Now Hydrogen
-    for (idx=0; idx<pairs.size(); idx++) {
-      if (pairs[idx].tag == "H") {
-        ret += formatElement("H",pairs[idx].count);
-        break;
-      }
-    }
-    EcceSortedVector<TTagCountPair, less<TTagCountPair> > sorted;
-    for (idx=0; idx<pairs.size(); idx++) {
-      if (pairs[idx].tag != "C" && pairs[idx].tag != "H") {
-         sorted.push_back(pairs[idx]);
-      }
-    }
-
-    for (idx=0; idx<sorted.size(); idx++) {
+    vector<TTagCountPair> sorted(pairs);
+    std::stable_sort(sorted.begin(), sorted.end(),
+        [hasCarbon](const TTagCountPair& a, const TTagCountPair& b) {
+          int ra = hasCarbon ? (a.tag == "C" ? 0 : a.tag == "H" ? 1 : 2) : 2;
+          int rb = hasCarbon ? (b.tag == "C" ? 0 : b.tag == "H" ? 1 : 2) : 2;
+          return ra != rb ? ra < rb : a.tag < b.tag;
+        });
+    for (size_t idx=0; idx<sorted.size(); idx++) {
       ret += formatElement(sorted[idx].tag,sorted[idx].count);
     }
     

@@ -560,8 +560,10 @@ void WxLauncherGUI::CreateControls()
     ewxStaticText* itemStaticText84 = new ewxStaticText( itemPanel3, wxID_STATIC, _("Remote Machine Access"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer82->Add(itemStaticText84, 0, wxALIGN_TOP|wxTOP, 3);
 
-    ewxStaticLine* itemStaticLine85 = new ewxStaticLine( itemPanel3, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL|wxDOUBLE_BORDER );
-    itemBoxSizer82->Add(itemStaticLine85, 1, wxGROW|wxLEFT|wxRIGHT|wxTOP, 3);
+    // Centred, not grown: stretched to the heading's height, MSW draws the
+    // line as a grey bar.
+    ewxStaticLine* itemStaticLine85 = new ewxStaticLine( itemPanel3, wxID_STATIC, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
+    itemBoxSizer82->Add(itemStaticLine85, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 3);
 
     ewxPanel* itemPanel86 = new ewxPanel( itemPanel3, ID_PANEL_WXLAUNCHER_6, wxDefaultPosition, wxDefaultSize, wxNO_BORDER|wxTAB_TRAVERSAL );
     itemBoxSizer4->Add(itemPanel86, 0, wxGROW, 3);

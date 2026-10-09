@@ -24,6 +24,7 @@
 
 #include <fstream>
 #include <memory>
+#include <algorithm>
 #include <sstream>
 #include <iostream>
 using std::cerr;
@@ -88,6 +89,7 @@ static std::string s_registerMessage;
 #include "comm/RunMgmt.H"
 
 #include "wxgui/ewxProgressDialog.H"
+#include <wx/wupdlock.h>
 #include "wxgui/EcceTool.H"
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxBitmap.H"
@@ -409,6 +411,11 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * new <parent url> <type>
  *                 File > New with resource type <type> (gromacs_md_study,
  *                 gromacs_md_energy) in <parent>, as the New menu makes it
+ * counts          broker notices, the updates made for them and their
+ *                 batches since the last counts
+ * newprompt <parent url> <code>
+ *                 File > New <code> Calculation with the name prompt,
+ *                 answered OK after 1.5 s
  * contextmenu <url> right-click <url> in the tree; the New submenu's items
  */
 void CalcMgr::runTestCommand(const string& line)
@@ -598,6 +605,13 @@ void CalcMgr::runTestCommand(const string& line)
           outcome += string(" ") + f[0] + "=" +
                      (t ? string(t->GetLabel().ToUTF8()) : string("<none>"));
         }
+        // The space between the formula and the "Charge:" column beside it
+        // (negative: they overlap).
+        wxWindow *formula = panel ? panel->FindWindow("empiricalFormula") : 0;
+        wxWindow *charge = panel ? panel->FindWindow("Charge:") : 0;
+        if (formula && charge)
+          outcome += " formula-gap=" + std::to_string(charge->GetPosition().x -
+              formula->GetPosition().x - formula->GetSize().x);
       }
     } else if (command == "contextmenu") {
       // "contextmenu <url>": the tree's item-menu event for <url>, as a
@@ -646,6 +660,44 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "tail-close") {
       if (p_testTail) p_testTail->Close();
       outcome = "ok";
+    } else if (command == "counts") {
+      // Broker notices received, tree/summary updates made for them, and
+      // the batches they came in, since the last "counts".
+      outcome = "notices=" + std::to_string(p_testNotices) +
+                " applied=" + std::to_string(p_testApplied) +
+                " batches=" + std::to_string(p_testBatches);
+      p_testNotices = p_testApplied = p_testBatches = 0;
+    } else if (command == "newprompt") {
+      // "newprompt PARENT-URL CODE": File > New <code> Calculation with the
+      // name prompt, as the menu does it (disabler included); the prompt is
+      // answered OK after 1.5 s.
+      std::istringstream args(calcName);
+      string parentUrl, code;
+      args >> parentUrl >> code;
+      ResourceType *rt = ResourceDescriptor::getResourceDescriptor()
+          .getResourceType("virtual_document", "ecceCalculation", code);
+      WxResourceTreeItemData *parentNode = findNode(EcceURL(parentUrl),
+                                                    true, true);
+      if (!rt || !parentNode) {
+        outcome = !rt ? "no resource type " + code : "no parent node";
+      } else {
+        wxTimer answer;
+        answer.Bind(wxEVT_TIMER, [](wxTimerEvent&) {
+          for (wxWindowList::compatibility_iterator n =
+                 wxTopLevelWindows.GetFirst(); n; n = n->GetNext()) {
+            wxDialog *d = dynamic_cast<wxDialog*>(n->GetData());
+            if (d && d->IsModal()) d->EndModal(wxID_OK);
+          }
+        });
+        answer.StartOnce(1500);
+        bool ask = GetMenuBar()->IsChecked(wxID_ASKFORNAME);
+        GetMenuBar()->Check(wxID_ASKFORNAME, true);
+        startDisabler();
+        createResource(rt, parentNode, false);
+        stopDisabler();
+        GetMenuBar()->Check(wxID_ASKFORNAME, ask);
+        outcome = "ok";
+      }
     } else if (command == "start") {
       // "start TOOL [URL]": what a tool button does (startApp), e.g.
       // "start CalculationEditor <calc url>".
@@ -5213,7 +5265,18 @@ void CalcMgr::createResource(ResourceType * resType,
         infoStr = invalidMsg + infoStr;
       ewxTextEntryDialog dialog(this, infoStr, "New " + name + " Name",
                                 name, wxOK | wxCANCEL);
-      if (dialog.ShowModal() == wxID_OK) {
+      // The dialog disables the windows itself.  Left disabled by
+      // startDisabler(), the Organizer cannot take the activation back when
+      // the dialog closes, and on MSW the window behind it (another
+      // program) comes to the front.
+      const bool paused = p_disabler != 0;
+      if (paused) {
+        delete p_disabler;
+        p_disabler = 0;
+      }
+      const int answer = dialog.ShowModal();
+      if (paused) p_disabler = new wxWindowDisabler;
+      if (answer == wxID_OK) {
         name = dialog.GetValue();
         if (resType->isValidResourceName(name))
           break;
@@ -5437,6 +5500,44 @@ void CalcMgr::updateUrl(const EcceURL & url)
       onSelectionChange(true);
       //      stopDisabler();
     }
+  }
+}
+
+
+void CalcMgr::queueUpdate(UpdateKind kind, const EcceURL & url)
+{
+  p_testNotices++;
+  std::pair<UpdateKind, string> item(kind, url.toString());
+  // A repeated change notice adds nothing; additions and removals keep
+  // their order, only an immediate repeat is dropped.
+  bool dup = kind == UPDATE_CHANGED
+    ? std::find(p_queuedUpdates.begin(), p_queuedUpdates.end(), item) !=
+        p_queuedUpdates.end()
+    : !p_queuedUpdates.empty() && p_queuedUpdates.back() == item;
+  if (!dup) p_queuedUpdates.push_back(item);
+  if (!p_updateTimer) {
+    p_updateTimer = new wxTimer(this);
+    Bind(wxEVT_TIMER, [this](wxTimerEvent&) { applyQueuedUpdates(); },
+         p_updateTimer->GetId());
+  }
+  // The notices of one Save arrive within a few ms of each other.
+  if (!p_updateTimer->IsRunning()) p_updateTimer->StartOnce(150);
+}
+
+
+void CalcMgr::applyQueuedUpdates()
+{
+  std::vector<std::pair<UpdateKind, string> > todo;
+  todo.swap(p_queuedUpdates);
+  if (todo.empty()) return;
+  p_testBatches++;
+  wxWindowUpdateLocker freeze(this);
+  for (size_t i = 0; i < todo.size(); i++) {
+    p_testApplied++;
+    EcceURL url(todo[i].second);
+    if (todo[i].first == UPDATE_ADDED) updateAddNode(url);
+    else if (todo[i].first == UPDATE_REMOVED) updateRemoveNode(url);
+    else updateUrl(url);
   }
 }
 
