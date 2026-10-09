@@ -612,6 +612,18 @@ void CalcMgr::runTestCommand(const string& line)
         if (formula && charge)
           outcome += " formula-gap=" + std::to_string(charge->GetPosition().x -
               formula->GetPosition().x - formula->GetSize().x);
+        // Each tool button's label, and "clipped" when it is wider than
+        // the button.
+        if (panel) {
+          for (wxWindow *w : panel->GetChildren()) {
+            EcceTool *tool = dynamic_cast<EcceTool*>(w);
+            if (!tool || tool->getLabel().empty()) continue;
+            bool clipped = tool->GetTextExtent(tool->getLabel()).x >
+                           tool->GetSize().x;
+            outcome += " tool=" + string(tool->getLabel().ToUTF8()) +
+                       (clipped ? ":clipped" : "");
+          }
+        }
       }
     } else if (command == "contextmenu") {
       // "contextmenu <url>": the tree's item-menu event for <url>, as a

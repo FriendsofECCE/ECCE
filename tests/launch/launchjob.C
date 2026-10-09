@@ -11,6 +11,8 @@
 //                                 a project <name>-project holding a GROMACS MD study <name> with an Optimize, an Equilibrate and a
 //                                 Dynamics task chained as the Organizer's New menu chains
 //                                 them; prints the study's and the tasks' URLs, one a line
+//   launchjob nwchemmdstudy <parentURL> <name>
+//                                 the same with an NWChem MD study holding a Prepare and an Optimize task
 //   launchjob mdsetup <taskURL> <machine> <runDir> <user> [procs=P]
 //                                 launch settings for an MD study task made some other
 //                                 way (the Organizer's New menu), as the Launcher saves them
@@ -166,14 +168,15 @@ static ResourceType* typeNamed(const string& name)
   return 0;
 }
 
-static int doGromacsStudy(const vector<string>& a)
+static int doMdStudy(const vector<string>& a, bool gromacs)
 {
-  if (a.size() < 2) { cerr << "gromacsstudy: wrong argument count" << endl; return 2; }
+  if (a.size() < 2) { cerr << "mdstudy: wrong argument count" << endl; return 2; }
   Resource* parent = EDSIFactory::getResource(EcceURL(a[0]));
   if (!parent) { cerr << "no such parent: " << a[0] << endl; return 1; }
-  ResourceType* studyType = typeNamed("gromacs_md_study");
-  if (!studyType || studyType->getApplicationType() != "GROMACS") {
-    cerr << "gromacs_md_study is not registered" << endl;
+  const string prefix = gromacs ? "gromacs_md_" : "nwchem_md_";
+  ResourceType* studyType = typeNamed(prefix + "study");
+  if (!studyType || studyType->getApplicationType() != (gromacs ? "GROMACS" : "MDStudy")) {
+    cerr << prefix << "study is not registered" << endl;
     return 1;
   }
   ResourceType* projType = typeNamed("project");
@@ -183,11 +186,12 @@ static int doGromacsStudy(const vector<string>& a)
   Session* session = dynamic_cast<Session*>(study);
   if (!session) { cerr << "could not create the study" << endl; return 1; }
   cout << study->getURL().toString() << endl;
-  const char* names[] = { "optimize", "equilibrate", "dynamics" };
-  const char* types[] = { "gromacs_md_optimize", "gromacs_md_equilibrate",
-                          "gromacs_md_dynamics" };
-  for (int i = 0; i < 3; i++) {
-    ResourceType* tt = typeNamed(types[i]);
+  // an NWChem MD Optimize cannot be a study's first task
+  vector<string> names;
+  if (gromacs) names = { "optimize", "equilibrate", "dynamics" };
+  else names = { "prepare", "optimize" };
+  for (size_t i = 0; i < names.size(); i++) {
+    ResourceType* tt = typeNamed(prefix + names[i]);
     Resource* task = tt ? study->createChild(names[i], tt) : 0;
     if (!task) { cerr << "could not create " << names[i] << endl; return 1; }
     //  as CalcMgr does after createChild: the new task follows the last
@@ -362,7 +366,8 @@ int main(int argc, char** argv)
     return 0;
   }
   if (mode == "mdsetup") return doMdSetup(a);
-  if (mode == "gromacsstudy") return doGromacsStudy(a);
+  if (mode == "gromacsstudy") return doMdStudy(a, true);
+  if (mode == "nwchemmdstudy") return doMdStudy(a, false);
   if (mode == "killflag" && a.size() >= 1) {
     TaskJob* t = getTask(a[0]);
     if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }

@@ -190,6 +190,7 @@ void CalculationContextPanel::createControls()
   // a button to represent the tool and a grid of the Resource's metadata
   // associated with the tool.
   wxBoxSizer *sizer;
+  vector<EcceTool*> toolButtons;
   for (tpvIt = toolPropertyViews.begin();
        tpvIt != toolPropertyViews.end();
        tpvIt++) {
@@ -199,7 +200,9 @@ void CalculationContextPanel::createControls()
     sizer = new wxBoxSizer(wxHORIZONTAL);
 
     // create the button for this tool and add it to its sizer
-    sizer->Add(createToolButton(pairRT_TPV.first),
+    EcceTool *toolButton = createToolButton(pairRT_TPV.first);
+    toolButtons.push_back(toolButton);
+    sizer->Add(toolButton,
           0,                        // do not stretch horizontally
           wxALIGN_CENTER_VERTICAL|  // center vertically
           wxALL,                    // make border all around
@@ -284,6 +287,14 @@ void CalculationContextPanel::createControls()
         5);                       // of border width 5
   } // end of ToolPropertyView for loop
 
+  // One width for every button, the widest label's, so that the property
+  // columns beside them line up.
+  int buttonWidth = 0;
+  for (EcceTool *b : toolButtons)
+    buttonWidth = wxMax(buttonWidth, b->GetMinSize().x);
+  for (EcceTool *b : toolButtons)
+    b->SetMinSize(wxSize(buttonWidth, b->GetMinSize().y));
+
   // the annotation is added last
   // we used to check for blank annotations, but we wanted to emphasize the use
   // of annotations so now they always appear
@@ -346,7 +357,16 @@ void CalculationContextPanel::createControls()
  */
 EcceTool* CalculationContextPanel::createToolButton(ResourceTool *resTool)
 {
-  EcceTool * tool = new EcceTool(this, resTool);
+  // The MD editors are registered once, as NWChem's, and also edit the
+  // GROMACS tasks: name the code of the task shown.
+  wxString label = resTool->getLabel();
+  if (label.StartsWith("NWChem MD ")) {
+    string app = p_itemData->getResource()->getProp(
+                     VDoc::getEcceNamespace() + ":application");
+    if (!app.empty() && app.compare(0, 6, "NWChem") != 0)
+      label = wxString::FromUTF8(app.c_str()) + label.Mid(6);
+  }
+  EcceTool * tool = new EcceTool(this, resTool, label);
   Connect( resTool->getId(),
            wxEVT_COMMAND_BUTTON_CLICKED,
            wxCommandEventHandler( CalculationContextPanel::OnButtonClick) );
