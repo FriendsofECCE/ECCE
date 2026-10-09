@@ -219,7 +219,9 @@ elif [ -n "${ECCE_REMOTE_SERVER:-}" ]; then
   check_central_server || exit 2
   if [ "$RBTLS" = 1 ]; then
     echo "ecce-gateway-start: -remote -- using the central broker over TLS"
-    pin="$ECCE_HOME/siteconfig/RemoteServer/server.pem"
+    # Beside the DataServers that named the server: a user's own choice
+    # (first start, ecce-remote-setup --user) pins in ~/.ECCE/RemoteServer.
+    pin="${ECCE_REMOTE_DIR:-$ECCE_HOME/siteconfig/RemoteServer}/server.pem"
     if [ -e "$pin" ]; then
       trust=("cafile=$pin" "pinned=1")
     else

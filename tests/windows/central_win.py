@@ -14,6 +14,7 @@ user's real ~/.ECCE is not read or changed.
 """
 import base64
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -75,8 +76,12 @@ r = subprocess.run([tree + "/usr/bin/bash.exe", BIN + "/ecce-gateway-start"], en
 say("gateway: rc=%d %s" % (r.returncode, r.stdout.decode(errors="replace").strip()))
 check(r.returncode == 0, "ecce-gateway-start reached the server")
 
-host, _, port = server.partition(":")
-base = "http://%s:%s/" % (host, port or "8096")
+# The login is keyed by the server's URL as the answer wrote it (https on
+# 8443 when the server has TLS).
+base = ""
+if os.path.exists(mine + "/DataServers"):
+    m = re.search(r"<Url>\s*(https?://[^/<]+)/", open(mine + "/DataServers", errors="replace").read())
+    base = m.group(1) + "/" if m else ""
 
 
 def authPipe(name):
@@ -160,8 +165,14 @@ if url:
     req = urllib.request.Request(url.rstrip("/") + "/Inputs/", method="PROPFIND",
                                  headers={"Depth": "1", "Authorization": "Basic " +
                                           base64.b64encode(("%s:%s" % (user, password)).encode()).decode()})
+    ctx = None
+    if url.startswith("https:"):
+        import ssl
+        ctx = ssl.create_default_context(cafile=mine + "/server.pem") \
+            if os.path.exists(mine + "/server.pem") else ssl.create_default_context()
+        ctx.check_hostname = False
     try:
-        listing = urllib.request.urlopen(req, timeout=30).read().decode(errors="replace")
+        listing = urllib.request.urlopen(req, timeout=30, context=ctx).read().decode(errors="replace")
     except Exception as e:
         listing = "error %s" % e
     check(".mop" in listing, "the input is stored on the server (Inputs/*.mop)")
