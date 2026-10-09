@@ -1,3 +1,4 @@
+#include <cstring>
 #include "wx/wxprec.h"
 
 #ifndef WX_PRECOMP
@@ -122,6 +123,7 @@ void ewxMessageDialog::OnButtonClick( wxCommandEvent& event )
 
 // ECCE_TEST_DIALOG_CLOSE=<seconds>: log the dialog to stderr, then dismiss it
 // after that long, so a headless run can see it and still end cleanly.
+// ECCE_TEST_DIALOG_ANSWER=yes|ok|cancel picks the button pressed (default ok).
 int ewxMessageDialog::ShowModal()
 {
   const char * secs = getenv("ECCE_TEST_DIALOG_CLOSE");
@@ -132,7 +134,11 @@ int ewxMessageDialog::ShowModal()
           (const char *)p_label->GetLabel().mb_str());
   fflush(stderr);
   wxTimer timer(this);
-  Bind(wxEVT_TIMER, [this](wxTimerEvent&) { EndModal(wxID_OK); });
+  const char * ans = getenv("ECCE_TEST_DIALOG_ANSWER");
+  int id = wxID_OK;
+  if (ans && !strcmp(ans, "yes")) id = wxID_YES;
+  else if (ans && !strcmp(ans, "cancel")) id = wxID_CANCEL;
+  Bind(wxEVT_TIMER, [this, id](wxTimerEvent&) { EndModal(id); });
   timer.StartOnce(atoi(secs) * 1000);
   return ewxDialog::ShowModal();
 }

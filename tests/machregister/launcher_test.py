@@ -74,10 +74,12 @@ def mpi_check(disp, build, tmp):
     g.write(os.path.join(fake, "mpirun"), "#!/bin/sh\n")
     os.chmod(os.path.join(fake, "mpirun"), 0o755)
 
-    def run(path, script):
+    def run(path, script, answer=None):
         g.write(os.path.join(e.root, "lscript"), script)
         env = e.env(disp)
         env.pop("ECCE_MACHREG_SCRIPT", None)
+        if answer:
+            env["ECCE_TEST_DIALOG_ANSWER"] = answer
         env.update({"ECCE_REALUSER": "eccetest", "PATH": path,
                     "ECCE_TEST_DIALOG_CLOSE": "1",
                     "ECCE_LAUNCHER_SCRIPT": os.path.join(e.root, "lscript")})
@@ -107,6 +109,16 @@ quit
             "a missing mpirun for ORCA on 4 cores is named")
     g.check("mpicheck NWChem: go" in out,
             "after Run on 1 core nothing more is asked")
+    p = run(farm, """
+machine localhost
+procs 4
+mpicheck ORCA
+expect wsprocs 4
+quit
+""", answer="yes")
+    clean(p, "the MPI check answered Launch anyway")
+    g.check("ECCE_TEST_DIALOG:" in p.stdout and "mpicheck ORCA: go" in p.stdout,
+            "Launch anyway goes on with the cores as set (4)")
     p = run(fake + os.pathsep + farm, """
 machine localhost
 procs 4
