@@ -90,6 +90,15 @@ check(r.returncode == 0 and ("http://127.0.0.1:%d/Ecce" % port) in text and pref
       "window, Connect to a server: RemoteServer written, preference off (rc=%d %s)"
       % (r.returncode, r.stderr.strip()))
 
+# The next start asks again with the server preselected; Continue keeps
+# it as it is rather than setting it up again.
+before = os.stat(ds).st_mtime_ns if os.path.exists(ds) else 0
+r = window(env, "continue")
+check(r.returncode == 0 and "preselected server" in r.stderr
+      and os.path.exists(ds) and os.stat(ds).st_mtime_ns == before,
+      "next start, server preselected, Continue leaves it untouched (rc=%d %s)"
+      % (r.returncode, r.stderr.strip()))
+
 # Edit > Change Server...: from the server back to this computer, then away again.
 r = window(env, "local", "--change")
 check(r.returncode == 0 and not os.path.exists(ds) and pref(env) == "on",

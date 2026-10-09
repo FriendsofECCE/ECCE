@@ -109,13 +109,17 @@ case("localenv-empty", "ECCE_LOCAL_DATA is set and empty (a data server)",
      lambda e, u, h: e.update(ECCE_LOCAL_DATA=""))
 case("localflag", "ecce --local",
      lambda e, u, h: e.update(ECCE_LOCAL="1"))
-case("answered", "the question was answered before (~/.ECCE/first-start-answer)",
-     lambda e, u, h: open(u + "/.ECCE/first-start-answer", "w").write("local\n"))
 if sys.platform.startswith("linux"):   # macOS and Windows always have a screen
     case("nodisplay", "there is no display",
          lambda e, u, h: e.pop("DISPLAY"))
 case("switch", "ECCE_NO_FIRST_START is set (tests, scripts)",
      lambda e, u, h: e.update(ECCE_NO_FIRST_START="1"))
+
+# An answer from an earlier start does not skip the question.
+env, user, ehome = fresh("answered", False)
+open(user + "/.ECCE/first-start-answer", "w").write("local\n")
+rc, out = verdict(env)
+check(rc == 0 and out == "ask", "asked again after an earlier answer (%s)" % out)
 
 for name, what, setup, srv in cases:
     env, user, ehome = fresh(name, srv)
@@ -164,7 +168,7 @@ local_dir = user + ("/ecce-local" if sys.platform == "win32" else "/.ECCE-local"
 check(rc == 0 and os.path.isdir(local_dir) and prefstate(env) == "on",
       "local: the data folder exists and the preference is on (%s)" % out)
 rc, out = verdict(env)
-check(rc == 1, "local chosen: not asked again (%s)" % out)
+check(rc == 0 and out == "ask", "local chosen: asked again at the next start (%s)" % out)
 
 rc, out = apply(env, "server:127.0.0.1:%d" % port)
 ds = user + "/.ECCE/RemoteServer/DataServers"
@@ -173,7 +177,7 @@ check(rc == 0 and ("http://127.0.0.1:%d/Ecce" % port) in text and
       "ECCE Data Server on 127.0.0.1" in text and prefstate(env) == "off",
       "server: RemoteServer/DataServers names the server, preference off (%s)" % out)
 rc, out = verdict(env)
-check(rc == 1 and "already answered" in out, "server chosen: not asked again (%s)" % out)
+check(rc == 0 and out == "ask", "server chosen: asked again at the next start (%s)" % out)
 
 rc, out = apply(env, "local")
 check(rc == 0 and not os.path.exists(ds) and os.path.exists(user + "/.ECCE/RemoteServer.off/DataServers")

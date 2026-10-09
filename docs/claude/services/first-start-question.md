@@ -7,9 +7,11 @@ paths: ["packaging/gateway/ecce-first-start", "packaging/ecce.in", "packaging/ga
 issues: [240, 216]
 ---
 `ecce` runs `ecce-first-start` before it makes the session id (#240). It
-asks once per user ("Store data on this computer" / "Connect to a server"); the
-answer goes to `~/.ECCE/first-start-answer`. Only that answer and explicit
-configuration skip it (`skip_reason()`: siteconfig/RemoteServer,
+asks at every start ("Store data on this computer" / "Connect to a server";
+Andy, 2026-10-09: a laptop moves between home and campus), with the current
+setup preselected, and Continue on an unchanged choice changes nothing (no
+new server setup). The answer still goes to `~/.ECCE/first-start-answer`, but
+does not skip the question; only explicit configuration does (`skip_reason()`: siteconfig/RemoteServer,
 SharedBroker, `-remote`, `--local`/ECCE_LOCAL_DATA, a central-server account,
 no display, ECCE_NO_FIRST_START). An installed server package is not
 configuration and does not skip it (Andy, 2026-10-09). Existing data
