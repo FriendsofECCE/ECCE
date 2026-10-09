@@ -8,6 +8,7 @@
   using std::make_pair;
 
 #include <wx/link.h>
+#include <wx/msgdlg.h>
 #include <wx/stopwatch.h>
 #include <wx/settings.h>
 #include <wx/textctrl.h>
@@ -1001,8 +1002,7 @@ void MoPanel::showCoeffs(bool force)
    if (p_coeffsDlg == 0) {
       p_coeffsDlg = new MoCoeffs(this);
    }
-   if (force) p_coeffsDlg->Show();
-   if (p_coeffsDlg->IsShownOnScreen()) {
+   if (force || p_coeffsDlg->IsShownOnScreen()) {
       //  The per-function percentages are the alpha ones; the dialog
       //  itself only reads the alpha coefficients.
       MoAoBasis::Composition comp;
@@ -1012,9 +1012,18 @@ void MoPanel::showCoeffs(bool force)
           mo <= (int)p_aoRows[0].size() &&
           p_aoBasis->analyse(p_aoRows[0][mo-1], MoAoBasis::MULLIKEN, comp))
          shown = &comp;
-      p_coeffsDlg->showCoeffs(
-            dynamic_cast<ICalculation*>(getCalculation()), mo,
-            shown ? &comp.perFunction : 0);
+      try {
+         p_coeffsDlg->showCoeffs(
+               dynamic_cast<ICalculation*>(getCalculation()), mo,
+               shown ? &comp.perFunction : 0);
+      } catch (const std::exception& ex) {
+         p_coeffsDlg->Hide();
+         wxMessageBox(wxString::Format("The coefficients of this orbital "
+                                       "cannot be shown: %s", ex.what()),
+                      "ECCE MO Coefficients", wxOK | wxICON_WARNING, this);
+         return;
+      }
+      if (force) p_coeffsDlg->Show();
    }
 }
 

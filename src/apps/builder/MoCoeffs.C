@@ -27,6 +27,7 @@
 #include "dsm/IPropCalculation.H"
 #include "dsm/ICalculation.H"
 #include "dsm/PropFactory.H"
+#include "dsm/ICalcUtils.H"
 
 #include "inv/ChemKit/ChemColor.H"
 
@@ -160,7 +161,12 @@ void MoCoeffs::showCoeffs(ICalculation *expt, int moNum,
 {
    SetTitle( wxString::Format (_T("ECCE MO Coefficients: %d"), moNum));
 
-   p_grid->BeginBatch();
+   //  Ends the batch on a throw too, or the grid never repaints.
+   struct BatchGuard {
+      wxGrid *g;
+      explicit BatchGuard(wxGrid *grid) : g(grid) { g->BeginBatch(); }
+      ~BatchGuard() { g->EndBatch(); }
+   } batch(p_grid);
 
    // Clear table
    p_grid->DeleteRows(0,p_grid->GetNumberRows());
@@ -180,8 +186,14 @@ void MoCoeffs::showCoeffs(ICalculation *expt, int moNum,
 
    Fragment frag;
    expt->getFragment(frag);
-   TGBSConfig *gbsConfig = expt->gbsConfig();
+   std::unique_ptr<TGBSConfig> gbsOwned(expt->gbsConfig());
+   //  A semiempirical code (MOPAC) writes no basis set; use the one its
+   //  Slater exponents imply, as MoPanel and MoAoBasis do.
+   if (!gbsOwned || gbsOwned->empty())
+      gbsOwned.reset(ICalcUtils::slaterBasisConfig(expt));
+   TGBSConfig *gbsConfig = gbsOwned.get();
    INTERNALEXCEPTION(gbsConfig,"basis set is null.");
+   INTERNALEXCEPTION(moCoefs,"MO coefficients are missing.");
 
    //  MOAOORDER-marked calcs (currently ORCA) store MO with columns in
    //  the PARSER's canonical order, not TGBSConfig's own -- see
@@ -418,17 +430,8 @@ void MoCoeffs::showCoeffs(ICalculation *expt, int moNum,
                wxString::Format("%.2f", 100.0*(*percent)[r]));
    }
 
-   p_grid->EndBatch();
-
-
    p_grid->AutoSizeColumns();
    GetSizer()->Fit(this);
-
-   //  gbsConfig() returns a NEW TGBSConfig this function owns (a
-   //  pre-existing leak here, same shape MoDiagramPanel.C's other
-   //  gbsConfig() call sites already guard against with "delete
-   //  config" -- fixed while adding a second consumer of it above).
-   delete gbsConfig;
 }
 
 
