@@ -145,6 +145,10 @@ def problems(work, case):
         if not 0.9 <= d <= 1.2 or (direct <= 1.2 and nb != 1):
             found.append("final: H at %s has %d bond(s), %.2f A from the "
                          "nearest %s image" % (xyz, nb, d, heavy))
+        ideal = {"C": 1.09, "O": 0.96}.get(heavy)
+        if ideal and abs(d - ideal) > 0.02:
+            found.append("final: H at %s is %.3f A from %s, not the typical "
+                         "%.2f A" % (xyz, d, heavy, ideal))
     return found
 
 

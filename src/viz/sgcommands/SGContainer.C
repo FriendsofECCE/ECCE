@@ -2693,18 +2693,29 @@ bool SGContainer::changeStyleAllResidues( const DisplayStyle& newstyle, SGFragme
 
 }
 
+namespace {
+//  Typical X-H bond lengths (Angstrom) of main-group hydrides. The sum of
+//  covalent radii overshoots them (H's radius is sized for bond perception:
+//  C-H came out 1.17, O-H 1.13), so a new H starts near its usual place.
+//  Elements not listed keep the radius sum.
+float hydrogenBondLength(TPerTab& tpt, const string& parent, float crH)
+{
+  static const struct { const char *sym; float len; } table[] = {
+    {"H", 0.74f}, {"B", 1.19f}, {"C", 1.09f}, {"N", 1.01f}, {"O", 0.96f},
+    {"F", 0.92f}, {"Si", 1.48f}, {"P", 1.42f}, {"S", 1.34f}, {"Cl", 1.27f},
+    {"Ge", 1.53f}, {"As", 1.52f}, {"Se", 1.46f}, {"Br", 1.41f}, {"I", 1.61f},
+  };
+  for (const auto& e : table)
+    if (parent == e.sym) return e.len;
+  return crH + tpt.covalentRadius(tpt.atomicNumber(parent));
+}
+}
+
+
 /**
  * Description
- *   Returns true if any nubs were changed to Hydrogens
- *
- *   Currently we just use 1.0 angstrom for all the bond lengths.  I
- *   asked Erich about this:  
- *
- *     "Regarding the H bond lengths of 1.0 angstroms, I don't think it 
- *      matters.  They are usually about that for organic molecules
- *      anyway.  It might make a difference with metal hydrogen bonds,
- *      but I don't think it's worth spending any time on it.
- *      If its easy, do it!"
+ *   Returns true if any nubs were changed to Hydrogens, each placed at
+ *   hydrogenBondLength() from its parent.
  */
 bool SGContainer::addHydrogens(SGFragment *frag, bool all,
                                      bool checkStatus) 
@@ -2731,8 +2742,7 @@ bool SGContainer::addHydrogens(SGFragment *frag, bool all,
       if (atm->atomicSymbol() == "Nub") {
         parent = frag->nubParent(atm);
         if (parent == 0) continue;  // a nub without an atom has no H site
-        radii = crH +
-           tpt.covalentRadius(tpt.atomicNumber(parent->atomicSymbol()));
+        radii = hydrogenBondLength(tpt, parent->atomicSymbol(), crH);
         changeTo(atm,parent,"H",radii);
         atm->atomName(atm->getHydrogenName().c_str());
         ret = true;
@@ -2746,8 +2756,7 @@ bool SGContainer::addHydrogens(SGFragment *frag, bool all,
           catm = (*list)[ic];
           if (catm->atomicSymbol() == "Nub") {
             parent = atm;
-            radii = crH +
-               tpt.covalentRadius(tpt.atomicNumber(parent->atomicSymbol()));
+            radii = hydrogenBondLength(tpt, parent->atomicSymbol(), crH);
             changeTo(catm,parent,"H",radii);
             catm->atomName(catm->getHydrogenName().c_str());
             ret = true;
@@ -2778,8 +2787,7 @@ bool SGContainer::addHydrogens(SGFragment *frag, bool all,
       if (atm->atomicSymbol() == "Nub" && addH) {
         parent = frag->nubParent(atm);
         if (parent == 0) continue;  // a nub without an atom has no H site
-        radii = crH +
-           tpt.covalentRadius(tpt.atomicNumber(parent->atomicSymbol()));
+        radii = hydrogenBondLength(tpt, parent->atomicSymbol(), crH);
         changeTo(atm,parent,"H",radii);
         atm->atomName(atm->getHydrogenName().c_str());
         ret = true;
