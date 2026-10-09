@@ -46,6 +46,7 @@ def summary(s, display, genv, wrappers, urls, png=None):
         stdout=open(logpath, "w"), stderr=subprocess.STDOUT,
         start_new_session=True)
     answers = {}
+    menus = {}
     try:
         deadline = time.time() + 120
         while time.time() < deadline and not any(
@@ -55,19 +56,22 @@ def summary(s, display, genv, wrappers, urls, png=None):
         with open(cmd, "a") as h:
             for i, u in enumerate(urls):
                 h.write("summary %s\n" % u)
+                h.write("toolsmenu %s\n" % u)
                 if png:
                     h.write("snap %s\n" % os.path.join(png, "summary-%d.png" % i))
         deadline = time.time() + 90
         while time.time() < deadline and len(answers) < len(urls):
+            log = open(logpath, errors="replace").read()
             for u in urls:
-                m = re.search(r"ECCE_TEST_ORGANIZER: summary %s: (.*)" % re.escape(u),
-                              open(logpath, errors="replace").read())
-                if m:
+                m = re.search(r"ECCE_TEST_ORGANIZER: summary %s: (.*)" % re.escape(u), log)
+                t = re.search(r"ECCE_TEST_ORGANIZER: toolsmenu %s: (.*)" % re.escape(u), log)
+                if m and t:
                     answers[u] = m.group(1)
+                    menus[u] = t.group(1)
             time.sleep(0.5)
     finally:
         stop(org)
-    return answers
+    return answers, menus
 
 
 def main():
@@ -135,12 +139,16 @@ def main():
             finally:
                 ed.close()
 
-        answers = summary(s, display, genv, wrappers, list(opts.values()), args.png)
+        answers, menus = summary(s, display, genv, wrappers, list(opts.values()), args.png)
         for code, url in opts.items():
             out = answers.get(url, "")
             tools = re.findall(r"tool=(.*?)(?= tool=|$)", out)
             check(("%s MD Optimize" % code) in tools,
                   "the %s Optimize summary names its editor: %s" % (code, tools))
+            items = re.findall(r"item=(.*?)(?= item=|$)", menus.get(url, ""))
+            check(any(i.startswith("%s MD Optimize" % code) for i in items) and
+                  (code == "NWChem" or not any(i.startswith("NWChem MD") for i in items)),
+                  "the %s Optimize Tools menu names its editor: %s" % (code, items))
             check(tools and not any(t.endswith(":clipped") for t in tools),
                   "no %s summary button clips its label" % code)
     finally:

@@ -625,6 +625,21 @@ void CalcMgr::runTestCommand(const string& line)
           }
         }
       }
+    } else if (command == "toolsmenu") {
+      // "toolsmenu <url>": the labels of the Tools menu for <url>.
+      WxResourceTreeItemData *node = findNode(EcceURL(calcName), false, false);
+      if (!node) {
+        outcome = "not in the tree";
+      } else {
+        wxMenu menu;
+        getToolsMenu(menu, node);
+        outcome = "ok";
+        for (size_t i = 0; i < menu.GetMenuItemCount(); i++) {
+          wxMenuItem *it = menu.FindItemByPosition(i);
+          if (!it->IsSeparator())
+            outcome += " item=" + string(it->GetItemLabel().ToUTF8());
+        }
+      }
     } else if (command == "contextmenu") {
       // "contextmenu <url>": the tree's item-menu event for <url>, as a
       // right click sends it, then the labels of the menu's New submenu.
@@ -3359,8 +3374,17 @@ void CalcMgr::getToolsMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
 
   vector<ResourceTool *>::iterator toolItor = toolVec.begin();
   for (;toolItor != toolVec.end(); toolItor++) {
+    // The MD editors are registered once, as NWChem's, and also edit the
+    // GROMACS tasks: name the code of the task (as the summary buttons do).
+    wxString label = wxString::FromUTF8((*toolItor)->getMenuItem().c_str());
+    if (label.StartsWith("NWChem MD ") && itemData && itemData->getResource()) {
+      string app = itemData->getResource()->getProp(
+                       VDoc::getEcceNamespace() + ":application");
+      if (!app.empty() && app.compare(0, 6, "NWChem") != 0)
+        label = wxString::FromUTF8(app.c_str()) + label.Mid(6);
+    }
     wxMenuItem *item = new wxMenuItem(&menu, (*toolItor)->getId(),
-            (*toolItor)->getMenuItem(), _T(""), wxITEM_NORMAL);
+            label, _T(""), wxITEM_NORMAL);
     item->SetBitmap(wxBitmap(ewxBitmap((*toolItor)->getIcon())
             .ConvertToImage().Scale(16,16)));
     menu.Append(item);
