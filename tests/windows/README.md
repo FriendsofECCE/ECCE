@@ -23,6 +23,8 @@ wxwidgets3.2-msw,xerces-c}`.
   scheduled task (`schtasks /create /tn ecceshot /sc once /st 00:00
   /it /tr "...\go.bat"` then `schtasks /run /tn ecceshot`) because ssh
   sessions have no desktop.
+- `central_win.py <tree> <state> <host:port> <user> <password>` - a Windows client against a central server (#247): the first-start answer `server:<host:port>`, the session as `ecce.cmd` starts it, the login through an `-pipe` auth file (the server account must be the Windows user name, `ECCE_REALUSER`), a MOPAC calculation made on the server and its input saved and read back over WebDAV. On a failure it lists and photographs the Organizer's windows (`titles.ps1`, `winshot.ps1`). Needs the desktop (scheduled task).
+- `e2e_win.py <tree> <state> [codes]` - local jobs end to end through the apps' test hooks; give the tree and state paths with a space to cover a user name with one (the temp folder is below the state folder).
 - `launch_local.py complete|cancel [--state DIR]` - local job end to end, no GUI (by default with the per-session broker of `packaging/windows/ecce-broker-win`, checking that state messages arrive and the ACL holds; `cancel` lists the job's process group before and after; `WINTEST=NO_MESSAGING` skips the broker; `WINTEST_HOME` runs it against an install tree made by `packaging/windows/bundle-shell.sh`, `WINTEST_BASE_PATH` sets the PATH).
 
 ## Strawberry Perl
