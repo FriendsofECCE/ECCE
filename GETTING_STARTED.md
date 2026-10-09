@@ -443,8 +443,9 @@ Server...** in the Organizer, which shows the current mode and data folder.
 The change applies at the next start; nothing is copied between modes.
 The data server's login window has a button **Use this computer
 instead...** that does the same as choosing this computer there
-(`ecce-first-start --apply local`) and ends that start with a message to
-start again.
+(`ecce-first-start --apply local`); `ecce` then goes on in local mode, in a
+new session (ecce-gateway exits with status 10 for it). On Windows, which
+has no gateway, that start ends with a message to start again.
 On Windows `ecce.cmd` runs the window with the package's own Python and, for
 a server, starts the session the same way `ecce -remote` does (the broker
 file, then the Organizer). On macOS the window needs wxPython, which

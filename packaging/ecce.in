@@ -215,8 +215,24 @@ ecce_user_server_mode
 passthrough=()
 if $remote; then passthrough+=(-remote); fi
 
+# ecce-gateway ends with this status when its login window switched the
+# user to this computer: the start goes on, once, as `ecce --local` in a
+# session of its own; the ended session is reaped as any other.
+switched_local=10
+switch_to_local() {
+  unset ECCE_REMOTE_SERVER ECCE_REMOTE_DIR
+  if [ -z "${ECCE_LOCAL_DATA:-}" ]; then unset ECCE_LOCAL_DATA; fi
+  export ECCE_LOCAL=1
+  ECCE_SESSION_ID="$(ecce_new_session_id)"
+  passthrough=()
+}
+
 if ! $bug; then
-  exec ecce-gateway "${passthrough[@]}"
+  ecce-gateway "${passthrough[@]}"
+  status=$?
+  if [ $status -ne $switched_local ]; then exit $status; fi
+  switch_to_local
+  exec ecce-gateway
 fi
 
 # ---------------------------------------------------------------- bug mode
@@ -334,19 +350,31 @@ bug_finish() {
 # monitor that outlives the session would hold a pipe open and keep this
 # command from returning.
 # macOS has no setsid(1) and its tail has no --pid.
-if command -v setsid >/dev/null 2>&1; then
-  setsid ecce-gateway "${passthrough[@]}" >> "$session_log" 2>&1 < /dev/null &
-else
-  perl -e 'use POSIX qw(setsid); setsid(); exec @ARGV or exit 127' ecce-gateway "${passthrough[@]}" >> "$session_log" 2>&1 < /dev/null &
-fi
-child=$!
-if tail --pid=$$ -n 0 /dev/null >/dev/null 2>&1; then
-  tail -n +1 -F --pid=$child "$session_log" 2>/dev/null &
-else
-  tail -n +1 -F "$session_log" 2>/dev/null &
-  follow_kill=true
-fi
-follower=$!
+start_child() {
+  if command -v setsid >/dev/null 2>&1; then
+    setsid ecce-gateway "${passthrough[@]}" >> "$session_log" 2>&1 < /dev/null &
+  else
+    perl -e 'use POSIX qw(setsid); setsid(); exec @ARGV or exit 127' ecce-gateway "${passthrough[@]}" >> "$session_log" 2>&1 < /dev/null &
+  fi
+  child=$!
+  # Shown from byte $1 on, so a second start does not repeat the first's output.
+  if tail --pid=$$ -n 0 /dev/null >/dev/null 2>&1; then
+    tail -c +"$1" -F --pid=$child "$session_log" 2>/dev/null &
+  else
+    tail -c +"$1" -F "$session_log" 2>/dev/null &
+    follow_kill=true
+  fi
+  follower=$!
+}
+wait_child() {
+  status=0
+  while kill -0 "$child" 2>/dev/null; do
+    wait "$child"
+    status=$?
+  done
+  if [ "${follow_kill:-}" = true ]; then sleep 1; kill "$follower" 2>/dev/null; fi
+  wait "$follower" 2>/dev/null
+}
 interrupted=false
 stop_session() {
   interrupted=true
@@ -354,13 +382,13 @@ stop_session() {
 }
 trap stop_session INT TERM HUP
 trap bug_finish EXIT
-status=0
-while kill -0 "$child" 2>/dev/null; do
-  wait "$child"
-  status=$?
-done
-if [ "${follow_kill:-}" = true ]; then sleep 1; kill "$follower" 2>/dev/null; fi
-wait "$follower" 2>/dev/null
+start_child 1
+wait_child
+if ! $interrupted && [ $status -eq $switched_local ]; then
+  switch_to_local
+  start_child $(($(wc -c < "$session_log") + 1))
+  wait_child
+fi
 if $interrupted; then
   ECCE_REAP_QUIET=1 "$ECCE_HOME/bin/ecce-gateway-reap" --if-idle >/dev/null 2>&1
   exit 130

@@ -54,7 +54,7 @@ windows the way a window manager does (WM_DELETE_WINDOW):
               then Edit > Change Server back to this computer
   auth-uselocal  the login window's "Use this computer instead" (its test
               hook), connecting to this run's data server: the switch is
-              made, the start ends without an error, the next is local
+              made and the same start goes on in local mode, as the next
   markers     the reaper alone: a broker under a server marker survives
               --if-idle; a per-user one does not
   window      ECCE_GATEWAY_WINDOW=1 keeps the Gateway window's behaviour
@@ -2828,7 +2828,7 @@ def caseAuthUseLocal(checks, display, logdir):
     """The login window's "Use this computer instead": pressed through its
     test hook (ECCE_TEST_AUTH_ANSWER) when a client connects to this run's
     data server; the choice is made as Change Server makes it, the start
-    ends without an error, and the next start works on this computer."""
+    goes on in local mode in a new session, as the next start does."""
     serverEnv = display.env()
     stopOwnBroker(serverEnv)
     marker = os.path.join(statedir(), "mosquitto.server")
@@ -2866,18 +2866,33 @@ def caseAuthUseLocal(checks, display, logdir):
                             shot], stdout=subprocess.DEVNULL,
                            stderr=subprocess.DEVNULL)
             checks.check(os.path.exists(shot), "the login window photographed (%s)" % shot)
-            try:
-                session.proc.wait(timeout=90)
-            except subprocess.TimeoutExpired:
-                pass
-            checks.check(session.proc.poll() is not None,
-                         "the start ended after the switch")
+            first = session.gateway()
+            sid1 = session.sid(timeout=10)
+            deadline = time.time() + 60
+            while first and alive(first) and time.time() < deadline:
+                time.sleep(0.5)
+            checks.check(first and not alive(first),
+                         "the first gateway ended after the switch")
+            # The same `ecce` goes on in a new session, in local mode.
+            session._sid = None
+            frame = session.organizer()
+            checks.check(frame, "the same start opened the Organizer")
+            sid2 = session.sid(timeout=0)
+            checks.check(sid2 and sid2 != sid1,
+                         "in a session of its own (%s, was %s)" % (sid2, sid1))
+            orgs = named(sid2 or display.name, "organizer")
+            got = procEnv(orgs[0]).get("ECCE_LOCAL_DATA") if orgs else None
+            checks.check(got == os.path.join(user, ".ECCE-local"),
+                         "the Organizer works on this computer (%s)" % got)
             text = open(log, errors="replace").read()
             checks.check("ECCE_TEST_AUTH_ANSWER: uselocal" in text,
                          "the button was pressed")
-            checks.check("From the next start" in text and
-                         "Authentication Failure" not in text,
-                         "the user was told to start again, with no error")
+            checks.check("From the next start" not in text and
+                         "Authentication Failure" not in text and
+                         "ended by SIG" not in text,
+                         "no message, no error")
+            if frame:
+                firstStartEnd(checks, display, session, frame)
         finally:
             session.kill()
         checks.check(os.path.isdir(os.path.join(user, ".ECCE-local")),

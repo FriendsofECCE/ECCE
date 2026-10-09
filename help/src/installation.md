@@ -136,7 +136,8 @@ again.
 
 The login window for a server also has a button **Use this computer
 instead...**. It makes the same choice as **Store data on this computer**
-and ends this start; start ECCE again to work on this computer.
+and ECCE goes on to start on this computer. On Windows, start ECCE again
+to work on this computer.
 
 To change your mind later, choose **Edit > Change Server...** in the
 Organizer. The window says where ECCE works now, and which folder holds your
