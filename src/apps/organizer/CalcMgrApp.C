@@ -73,9 +73,14 @@ static void restartInLocalMode()
   string env;
   for (const string& v : vars) env += v + '\0';
   env += '\0';
+  // Its output to a file: started with no console window and no standard
+  // handles, the session scripts' messages fail to write and ecce.cmd
+  // takes the broker start for failed.
+  const char *home = getenv("ECCE_REALUSERHOME");
+  string log = string(home && *home ? home : ".") + "/.ECCE/switch-to-local.log";
   const char *comspec = getenv("COMSPEC");
   string line = "\"" + string(comspec && *comspec ? comspec : "cmd.exe") +
-                "\" /d /c \"\"" + script + "\"\"";
+                "\" /d /s /c \"\"" + script + "\" > \"" + log + "\" 2>&1\"";
   STARTUPINFOA si;
   PROCESS_INFORMATION pi;
   memset(&si, 0, sizeof(si));
