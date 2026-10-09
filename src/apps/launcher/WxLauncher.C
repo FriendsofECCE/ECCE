@@ -1235,10 +1235,16 @@ bool WxLauncher::confirmMpiLauncher(const string& code)
                  StringConverter::toString(procs) + " cores, and " + missing +
                  " was not found on this computer.\n\nInstall " + mpi +
                  " to run in parallel, or run this job on 1 core.";
+    //  Only a warning: the search can miss an MPI the user's own setup
+    //  provides, so launching as set stays the default.
     ewxMessageDialog dlg(this, msg, "MPI not found", wxICON_EXCLAMATION);
     dlg.AddButton(wxID_CANCEL, "Cancel");
-    dlg.AddButton(wxID_OK, "Run on 1 core")->SetDefault();
-    if (dlg.ShowModal() != wxID_OK)
+    dlg.AddButton(wxID_OK, "Run on 1 core");
+    dlg.AddButton(wxID_YES, "Launch anyway")->SetDefault();
+    const int answer = dlg.ShowModal();
+    if (answer == wxID_YES)
+        return true;
+    if (answer != wxID_OK)
         return false;
 
     p_inCtrlUpdate = true;
