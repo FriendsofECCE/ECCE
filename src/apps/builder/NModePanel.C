@@ -93,7 +93,7 @@ NModePanel::NModePanel()
     p_spectrum(NULL),
     p_fwhmText(NULL),
     p_scaleText(NULL),
-    p_timer(NULL),
+    p_timer(NULL), p_animating(false),
     p_slider(NULL),
     p_selectedRow(0),
     p_loopSpeed(0),
@@ -119,7 +119,7 @@ NModePanel::NModePanel(IPropCalculation *calculation,
     p_spectrum(NULL),
     p_fwhmText(NULL),
     p_scaleText(NULL),
-    p_timer(NULL),
+    p_timer(NULL), p_animating(false),
     p_slider(NULL),
     p_selectedRow(0),
     p_loopSpeed(0),
@@ -361,6 +361,7 @@ bool NModePanel::isGraphShown()
 void NModePanel::OnTimer(wxTimerEvent& evt)
 {
    if (checkStructure()) nextStep();
+   if (p_animating) p_timer->StartOnce(animationDelay());
 }
 
 
@@ -392,7 +393,7 @@ bool NModePanel::checkStructure()
       if (child != p_staleNote) child->Enable(ok);
    p_staleNote->Show(!ok);
    if (!ok) {
-      p_timer->Stop();
+      stop();
       SGContainer& sg = getFW().getSceneGraph();
       sg.getNMRoot()->whichChild.setValue(SO_SWITCH_NONE);
       sg.getNMVecRoot()->removeAllChildren();
@@ -1014,15 +1015,27 @@ void NModePanel::previousStep()
 void NModePanel::start()
 {
    if (!checkStructure()) return;
-   if (!p_timer->IsRunning()) {
-      ewxTextCtrl *text = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_NMODE_DELAY);
-      p_timer->Start(text->getValueAsInt());
+   if (!p_animating) {
+      p_animating = true;
+      p_timer->StartOnce(animationDelay());
    }
 }
 
 void NModePanel::stop()
 {
+   p_animating = false;
    p_timer->Stop();
+}
+
+// One-shot, re-armed after each step: a repeating timer shorter than a
+// step (20 ms against a step plus render) is always due, and GTK never
+// gets to its lower-priority redraw, so the spectrum's selection and every
+// other widget stopped repainting while the animation ran.
+int NModePanel::animationDelay()
+{
+   ewxTextCtrl *text = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_NMODE_DELAY);
+   int ms = text ? text->getValueAsInt() : 20;
+   return ms > 0 ? ms : 1;
 }
 
 
@@ -1082,7 +1095,7 @@ void NModePanel::OnTextctrlNmodeDelayEnter( wxCommandEvent& event )
    ewxConfig *config = ewxConfig::getConfig(INIFILE);
    config->Write("NMode/Delay",text->getValueAsInt());
 
-   if (p_timer->IsRunning()) {
+   if (p_animating) {
       stop();
       start();
    }
@@ -1111,7 +1124,7 @@ void NModePanel::OnEndSliderMotion(wxScrollEvent& event)
    wxRadioBox *radbox = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
    if (radbox->GetSelection() == 0) {
       ; // animation
-      bool restart = p_timer->IsRunning();
+      bool restart = p_animating;
       stop();
       Command *cmd = new NModeTraceCmd("Normal Mode Animation", &sg, expt);
       // No UI to support this right now...
@@ -1160,7 +1173,7 @@ void NModePanel::loseFocus()
    sg.getNMVecRoot()->whichChild.setValue(SO_SWITCH_NONE);
    sg.getNMRoot()->whichChild.setValue(SO_SWITCH_NONE);
    sg.getcsSwitch()->whichChild.setValue(SO_SWITCH_ALL);
-   p_timer->Stop();
+   stop();
    // Restore after the animation, never over an edited structure.
    if (checkStructure()) selectFragStep(-1);
 }
