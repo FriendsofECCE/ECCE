@@ -1301,8 +1301,10 @@ fi")
 exec 3>&2
 { \"$ECCE_HOME/bin/${_app}\" \"$@\" 2>&3 3>&-; } 2>/dev/null
 _status=$?
-if [ $_status -gt 128 ] && [ $_status -ne 143 ]; then
-  echo \"${_app}: ended by SIG$(kill -l $((_status - 128)) 2>/dev/null)\" >&2
+_sig=
+if [ $_status -gt 128 ] && [ $_status -ne 143 ]; then _sig=$(kill -l $((_status - 128)) 2>/dev/null); fi
+if [ -n \"$_sig\" ]; then
+  echo \"${_app}: ended by SIG$_sig\" >&2
 fi
 exit $_status")
   else()
@@ -1446,8 +1448,10 @@ trap 'ECCE_REAP_QUIET=1 \"$ECCE_HOME/bin/ecce-gateway-reap\" --if-idle >/dev/nul
 exec 3>&2
 { \"$ECCE_HOME/bin/builder\" \"$@\" 2>&3 3>&-; } 2>/dev/null
 _status=$?
-if [ $_status -gt 128 ] && [ $_status -ne 143 ]; then
-  echo \"ecce-viewer: ended by SIG$(kill -l $((_status - 128)) 2>/dev/null)\" >&2
+_sig=
+if [ $_status -gt 128 ] && [ $_status -ne 143 ]; then _sig=$(kill -l $((_status - 128)) 2>/dev/null); fi
+if [ -n \"$_sig\" ]; then
+  echo \"ecce-viewer: ended by SIG$_sig\" >&2
 fi
 exit $_status
 ")

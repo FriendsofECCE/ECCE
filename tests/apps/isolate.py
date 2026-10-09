@@ -220,8 +220,13 @@ def homeOverlay(install, state, dataserverPort):
         if entry == "siteconfig":
             continue
         _link(os.path.join(install, entry), os.path.join(home, entry))
+    # The machine's own central-server or shared-broker setup would make
+    # every case a -remote one and skip the first-start question; the cases
+    # that need either make their own.
     shutil.copytree(os.path.join(install, "siteconfig"), siteconfig,
-                    symlinks=True)
+                    symlinks=True,
+                    ignore=lambda d, names: [n for n in names if d == os.path.join(install, "siteconfig")
+                                             and n in ("RemoteServer", "SharedBroker", "SharedBroker.passwd")])
 
     _rewrite(os.path.join(siteconfig, "DataServers"),
              (r"(<(?:Url|BasisSet)>\s*http://[^:<\s]+):\d+",
@@ -347,12 +352,6 @@ def apply(install, state=None):
     brokerPort = _pickPort("ECCE_BROKER_PORT")
 
     os.makedirs(os.path.join(state, ".ECCE"), exist_ok=True)
-    # The suite's user has answered the first-start question (#240), as a
-    # returning user has; the first-start cases make users of their own.
-    answer = os.path.join(state, ".ECCE", "first-start-answer")
-    if not os.path.exists(answer):
-        with open(answer, "w") as handle:
-            handle.write("local\n")
     home = homeOverlay(install, state, dataserverPort)
 
     settings = {
@@ -362,6 +361,9 @@ def apply(install, state=None):
         "ECCE_BROKER_PORT": str(brokerPort),
         "ECCE_HOME": home,
         "ECCE_HELP": "http://localhost:%d/" % dataserverPort,
+        # The first-start question comes at every start (#240); only the
+        # cases about it clear this.
+        "ECCE_NO_FIRST_START": "1",
     }
     os.environ.update(settings)
     return settings

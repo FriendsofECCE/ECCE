@@ -202,7 +202,7 @@ void WxAuthGUI::CreateControls()
     buttonRow->Add(itemButton20, wxSizerFlags().CenterVertical());
     // Shown by WxDavAuth for a data server login; hidden otherwise.
     ewxButton* useLocal = new ewxButton( itemDialog1, ID_BUTTON_AUTH_USE_LOCAL, _("Use this computer instead..."), wxDefaultPosition, wxDefaultSize, 0 );
-    useLocal->SetToolTip(_("Keep your calculations in a folder on this computer instead of on the server. Applies the next time you start ECCE."));
+    useLocal->SetToolTip(_("Keep your calculations in a folder on this computer instead of on the server."));
     useLocal->Show(false);
     buttonRow->Add(useLocal, wxSizerFlags().CenterVertical());
     buttonRow->AddStretchSpacer(1);

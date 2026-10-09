@@ -67,7 +67,19 @@ using std::ofstream;
 #endif
 
 
+#ifdef __WXMSW__
 IMPLEMENT_APP( GatewayApp )
+#else
+// wxEntry gives 255 for a refused OnInit; `ecce` needs to tell the login
+// window's switch to this computer apart from a failed start.
+IMPLEMENT_APP_NO_MAIN( GatewayApp )
+int main(int argc, char **argv)
+{
+  wxDISABLE_DEBUG_SUPPORT();   // as IMPLEMENT_APP's main does in a release build
+  int rc = wxEntry(argc, argv);
+  return WxDavAuth::switchedToLocal() ? WxDavAuth::EXIT_SWITCHED_TO_LOCAL : rc;
+}
+#endif
 
 
 class SessionWatch : public wxTimer
@@ -182,6 +194,9 @@ static void offerLocalDataMove()
 bool GatewayApp::OnInit()
 {
   ewxApp::OnInit();
+#ifndef __WXMSW__
+  WxDavAuth::setRestartsOnSwitch(true);   // `ecce` starts again, see main()
+#endif
 
   // Captured before anything else runs: whether `-l` set this session's
   // login is what decides, once the session's first login succeeds

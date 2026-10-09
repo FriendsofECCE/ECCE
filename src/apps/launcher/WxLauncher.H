@@ -114,6 +114,8 @@ class WxLauncher : public WxLauncherGUI,
         bool clickLaunch();
         void setRunDirectory(const string& path);
         string hookGet(const string& what);
+        bool confirmMpiLauncher(const string& code);
+        void setProcessors(int n);
         void stageLaunchMenuItemClickCB(wxCommandEvent& event);
         void finishLaunchMenuItemClickCB(wxCommandEvent& event);
         void quitMenuItemClickCB(wxCommandEvent& event);

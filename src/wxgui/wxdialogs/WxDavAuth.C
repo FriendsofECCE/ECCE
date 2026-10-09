@@ -38,12 +38,14 @@
 #include "wxgui/ewxMessageDialog.H"
 
 bool WxDavAuth::s_switchedToLocal = false;
+bool WxDavAuth::s_restartsOnSwitch = false;
 
 /**
  * The login window's "Use this computer instead": what Edit > Change
  * Server... does for that choice (ecce-first-start --apply local), then
- * the user is told it applies at the next start.  The session itself was
- * set up for the server, so it is not switched under the running apps.
+ * either `ecce` starts again in local mode (the gateway's login) or the
+ * user is told it applies at the next start.  A running session was set
+ * up for the server, so it is not switched under the running apps.
  */
 static bool useThisComputer()
 {
@@ -55,6 +57,8 @@ static bool useThisComputer()
   wxString cmd = "\"" + home + "/bin/ecce-first-start\" --apply local";
 #endif
   long rc = wxExecute(cmd, wxEXEC_SYNC);
+  if (rc == 0 && WxDavAuth::restartsOnSwitch())
+    return true;
   ewxMessageDialog dlg(0, rc == 0
       ? "From the next start, ECCE keeps your calculations in a folder on "
         "this computer.\n\nThis start ends now. Start ECCE again to work "

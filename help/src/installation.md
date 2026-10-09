@@ -100,10 +100,9 @@ menu. It starts the same `ecce` command.
 
 ### The first question
 
-The first time you start ECCE it asks, once, in a window called "Welcome to
-ECCE", where your work goes. If you used ECCE before, the window shows how
-it is set up now and has that choice selected; click **Continue** to keep
-it:
+Each time you start ECCE it asks, in a window called "Welcome to ECCE",
+where your work goes. If you used ECCE before, the window shows how it is
+set up now and has that choice selected; click **Continue** to keep it:
 
 ![The first question](img/first-start.png)
 
@@ -136,7 +135,8 @@ again.
 
 The login window for a server also has a button **Use this computer
 instead...**. It makes the same choice as **Store data on this computer**
-and ends this start; start ECCE again to work on this computer.
+and ECCE goes on to start on this computer. On Windows, start ECCE again
+to work on this computer.
 
 To change your mind later, choose **Edit > Change Server...** in the
 Organizer. The window says where ECCE works now, and which folder holds your

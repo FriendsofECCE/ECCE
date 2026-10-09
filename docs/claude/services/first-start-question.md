@@ -7,9 +7,11 @@ paths: ["packaging/gateway/ecce-first-start", "packaging/ecce.in", "packaging/ga
 issues: [240, 216]
 ---
 `ecce` runs `ecce-first-start` before it makes the session id (#240). It
-asks once per user ("Store data on this computer" / "Connect to a server"); the
-answer goes to `~/.ECCE/first-start-answer`. Only that answer and explicit
-configuration skip it (`skip_reason()`: siteconfig/RemoteServer,
+asks at every start ("Store data on this computer" / "Connect to a server";
+Andy, 2026-10-09: a laptop moves between home and campus), with the current
+setup preselected, and Continue on an unchanged choice changes nothing (no
+new server setup). The answer still goes to `~/.ECCE/first-start-answer`, but
+does not skip the question; only explicit configuration does (`skip_reason()`: siteconfig/RemoteServer,
 SharedBroker, `-remote`, `--local`/ECCE_LOCAL_DATA, a central-server account,
 no display, ECCE_NO_FIRST_START). An installed server package is not
 configuration and does not skip it (Andy, 2026-10-09). Existing data
@@ -55,11 +57,15 @@ to `tests/apps/first_start_test.py`.
   silently (ImportError) until it does; local data stays the default there.
 - The data server login window (WxAuth, shown by `WxDavAuth::prompt` in
   a data-server session) has "Use this computer instead...": it runs
-  `ecce-first-start --apply local`, says the change applies at the next
-  start, and ends this one (the gateway skips its "Authentication
-  Failure" message, other apps leave their main loop). Restart rather
-  than switch in place: the session's broker and -remote state are
-  already set up. Test hook `ECCE_TEST_AUTH_ANSWER=uselocal[:s]`;
+  `ecce-first-start --apply local` and ends this session (the gateway
+  skips its "Authentication Failure" message, other apps leave their
+  main loop). The gateway then exits with status 10
+  (`WxDavAuth::EXIT_SWITCHED_TO_LOCAL`, its own `main()`, since a refused
+  wx OnInit is always 255) and `ecce` starts once more as `--local` with
+  a new session id, in both normal and --bug mode. Restart rather than
+  switch in place: the session's broker and -remote state are already
+  set up. Only the gateway restarts; another app's login window (and
+  Windows' Organizer, no gateway) still says "From the next start". Test hook `ECCE_TEST_AUTH_ANSWER=uselocal[:s]`;
   `tests/apps/session_end.py auth-uselocal`.
 - Tests set `ECCE_FIRST_START_ANSWER` (`local`, `server:host[:port]`,
   `continue` = Continue on what is preselected; the window logs

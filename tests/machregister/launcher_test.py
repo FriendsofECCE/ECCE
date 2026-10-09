@@ -45,6 +45,79 @@ def clean(p, what):
             else "" if done else ": did not finish\n" + p.stdout[-1200:]))
 
 
+def path_without_mpi(root):
+    """A PATH like this one with no mpirun/mpiexec: a farm of links to
+    everything else, so the test does not depend on what is installed."""
+    farm = os.path.join(root, "nompi")
+    os.makedirs(farm)
+    for d in os.environ.get("PATH", "/usr/bin:/bin").split(os.pathsep):
+        if not os.path.isdir(d):
+            continue
+        for f in os.listdir(d):
+            t = os.path.join(farm, f)
+            if not f.startswith(("mpirun", "mpiexec")) and not os.path.lexists(t):
+                os.symlink(os.path.join(d, f), t)
+    return farm
+
+
+def mpi_check(disp, build, tmp):
+    """Launch's MPI check on this computer: a missing mpirun for ORCA on
+    4 cores offers "Run on 1 core" (taken by ECCE_TEST_DIALOG_CLOSE) and
+    sets 1; a found one, 1 core, a thread-MPI GROMACS and a remote
+    machine are not asked."""
+    e = g.Env(tmp, "launcher-mpi")
+    g.write(os.path.join(e.ue, "CONFIG.localhost"),
+            "ORCA: orca\nGROMACS: gmx\nNWChem: nwchem\n")
+    farm = path_without_mpi(e.root)
+    fake = os.path.join(e.root, "withmpi")
+    os.makedirs(fake)
+    g.write(os.path.join(fake, "mpirun"), "#!/bin/sh\n")
+    os.chmod(os.path.join(fake, "mpirun"), 0o755)
+
+    def run(path, script):
+        g.write(os.path.join(e.root, "lscript"), script)
+        env = e.env(disp)
+        env.pop("ECCE_MACHREG_SCRIPT", None)
+        env.update({"ECCE_REALUSER": "eccetest", "PATH": path,
+                    "ECCE_TEST_DIALOG_CLOSE": "1",
+                    "ECCE_LAUNCHER_SCRIPT": os.path.join(e.root, "lscript")})
+        return subprocess.run([os.path.join(build, "launcher")], env=env,
+                              cwd=e.root, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT, text=True, timeout=120)
+
+    p = run(farm, """
+machine localhost
+procs 4
+expect wsprocs 4
+mpicheck GROMACS
+mpicheck ORCA
+expect wsprocs 1
+mpicheck NWChem
+machine mine
+procs 4
+mpicheck NWChem
+quit
+""")
+    clean(p, "the MPI check runs")
+    out = p.stdout
+    g.check("mpicheck GROMACS: go" in out and out.count("ECCE_TEST_DIALOG:") == 1,
+            "one warning: not for a thread-MPI GROMACS or a remote machine")
+    g.check("[MPI not found] ORCA needs mpirun to run on 4 cores" in out
+            and "Open MPI" in out and "mpicheck ORCA: go" in out,
+            "a missing mpirun for ORCA on 4 cores is named")
+    g.check("mpicheck NWChem: go" in out,
+            "after Run on 1 core nothing more is asked")
+    p = run(fake + os.pathsep + farm, """
+machine localhost
+procs 4
+mpicheck ORCA
+expect wsprocs 4
+quit
+""")
+    clean(p, "the MPI check with mpirun found")
+    g.check("ECCE_TEST_DIALOG:" not in p.stdout, "no warning with mpirun on PATH")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--build", required=True)
@@ -118,6 +191,7 @@ quit
         q = g.read(os.path.join(e.ue, "cluster.Q"))
         g.check("gpu" in q and "short|defProcessors:" in q,
                 "the save really went through Register Machines")
+        mpi_check(disp, build, tmp)
     finally:
         disp.__exit__(None, None, None)
         shutil.rmtree(tmp, ignore_errors=True)

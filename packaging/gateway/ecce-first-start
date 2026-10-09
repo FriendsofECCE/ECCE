@@ -10,9 +10,9 @@
 Exit status of the plain form: 0 go on, 3 the user chose Quit.  Anything
 else (no wxPython, no display) goes on with what ECCE would have done.
 
-The question is asked once per user: an answer is recorded in
-~/.ECCE/first-start-answer, and only that or explicit configuration skips it
-(see skip_reason()).  Data from before the question (a local folder, a
+The question is asked at every start, with the current choice preselected
+(Continue on it changes nothing); only explicit configuration skips it (see
+skip_reason()).  The answer is still recorded in ~/.ECCE/first-start-answer.  Data from before the question (a local folder, a
 server already chosen, ~/.ECCE/dataserver) only preselects the matching
 choice.  The choice itself is kept as the state ECCE already reads:
 
@@ -100,8 +100,8 @@ def skip_reason():
         return "this account runs a central server"
     # Existing data says how ECCE was used, not that the user never wants
     # the other way: it only preselects the window's choice.
-    if os.path.exists(ANSWER):
-        return "already answered (~/.ECCE/first-start-answer)"
+    # A recorded answer does not skip it: a laptop is used at home and on
+    # campus, so the question comes at every start with the choice preselected.
     return None
 
 
@@ -337,7 +337,7 @@ def build_dialog(wx, change):
     def finish(_evt=None):
         status.SetLabel("")
         if r_local.GetValue():
-            if change and mode == "local":
+            if mode == "local":
                 result["changed"] = False
             elif mode == "here" and os.path.isdir(os.path.join(STATE, "dataserver")):
                 # The per-user data server is on this computer too: keep
@@ -350,6 +350,8 @@ def build_dialog(wx, change):
                 return
             else:
                 result["changed"] = True
+        elif mode == "server" and addr.GetValue().strip() == host:
+            result["changed"] = False   # the server already set up
         else:
             go.Disable()
             cancel.Disable()

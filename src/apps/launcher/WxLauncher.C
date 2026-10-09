@@ -1045,7 +1045,9 @@ void WxLauncher::updatePreferences()
  */
 void WxLauncher::prefsChangeNotify(string refname)
 {
-    //  Publish a prefs_updated message
+    //  Publish a prefs_updated message; the test hook runs without a broker.
+    if (getenv("ECCE_LAUNCHER_SCRIPT") != NULL)
+        return;
     JMSMessage* mesg = newMessage();
 
     mesg->addProperty("machName", refname);
@@ -1145,7 +1147,106 @@ void WxLauncher::launchButtonClickCB(wxCommandEvent& event)
     p_messagesFeedback->clearMessage();
 
     this->ensureEditsApplied(true);
+    if (p_taskJob != NULL &&
+        !confirmMpiLauncher(p_taskJob->application()->getCodeName()))
+    {
+        p_messagesFeedback->setMessage("Launch cancelled.", WxFeedback::INFO);
+        return;
+    }
     this->launchCalc(true);
+}
+
+
+// The MPI launcher the job script starts for this code on more than one
+// core, when it cannot be found here; "" when it is found or not needed.
+// A user command or setup snippet in CONFIG may bring its own MPI (a
+// module load, say), so a code configured that way is not checked.
+static string missingMpiLauncher(const string& code, RefMachine *mach)
+{
+    string key;
+    StringConverter::toLower(code, key);
+    if (key == "nwchemmd")
+        key = "nwchem";          // gensub runs NWChemMD with the nwchem entry
+    if (key != "nwchem" && key != "orca" && key != "quantumespresso" &&
+        key != "gromacs")
+        return "";
+
+    map<string,string> cfg = RefMachine::config(mach->refname());
+    auto value = [&cfg](const string& k) {
+        map<string,string>::const_iterator it = cfg.find(k);
+        return it == cfg.end() ? string() : STLUtil::trim(it->second);
+    };
+    if (!value(key + "command").empty() || !value(key + "_setup").empty() ||
+        !value("setup").empty())
+        return "";
+
+    string exe = value(key);
+    string::size_type slash = exe.find_last_of("/\\");
+    string base = slash == string::npos ? exe : exe.substr(slash + 1);
+    if (key == "gromacs" && base.compare(0, 7, "gmx_mpi") != 0)
+        return "";               // thread-MPI gmx needs no mpirun
+
+#ifdef __WXMSW__
+    string launcher = key == "orca" ? "mpiexec" : "mpirun";
+    wxString file = launcher + ".exe";
+#else
+    string launcher = "mpirun";
+    wxString file = launcher;
+#endif
+    wxPathList dirs;
+    dirs.AddEnvList("PATH");
+    if (!value("xappspath").empty())
+        dirs.Add(value("xappspath"));
+    if (!value("qmgrpath").empty())
+        dirs.Add(value("qmgrpath"));
+    if (slash != string::npos) {
+        dirs.Add(exe.substr(0, slash));
+        if (key == "nwchem")     // an ECCE-deployed NWChem's own MPI
+            dirs.Add(exe.substr(0, slash) + "/../../system/bin");
+    }
+    return dirs.FindAbsoluteValidPath(file).empty() ? launcher : "";
+}
+
+
+/**
+ * Launch with more than one core on this computer, for a code whose job
+ * script starts mpirun/mpiexec that is not installed: offer one core or
+ * Cancel before anything is submitted.  Remote and queued machines are not
+ * checked; their PATH is not this one.  False when the user cancelled.
+ */
+bool WxLauncher::confirmMpiLauncher(const string& code)
+{
+    if (p_slctPrefs == NULL || p_slctPrefs->isOptionSupported("Q"))
+        return true;
+    RefMachine *mach = p_slctPrefs->getRegisteredMachine();
+    int procs = p_slctPrefs->getProcessors();
+    if (mach == NULL || procs <= 1)
+        return true;
+    string user = p_slctPrefs->isOptionSupported("UN")
+                      ? p_slctPrefs->getUsername() : "";
+    if (RCommand::isRemote(mach->fullname(), p_slctPrefs->getRemoteShell(), user))
+        return true;
+    string missing = missingMpiLauncher(code, mach);
+    if (missing.empty())
+        return true;
+
+    string mpi = missing == "mpiexec" ? "Microsoft MPI" : "Open MPI";
+    string msg = code + " needs " + missing + " to run on " +
+                 StringConverter::toString(procs) + " cores, and " + missing +
+                 " was not found on this computer.\n\nInstall " + mpi +
+                 " to run in parallel, or run this job on 1 core.";
+    ewxMessageDialog dlg(this, msg, "MPI not found", wxICON_EXCLAMATION);
+    dlg.AddButton(wxID_CANCEL, "Cancel");
+    dlg.AddButton(wxID_OK, "Run on 1 core")->SetDefault();
+    if (dlg.ShowModal() != wxID_OK)
+        return false;
+
+    p_inCtrlUpdate = true;
+    p_wkstnProcsParamEdit->setValue(1);
+    p_inCtrlUpdate = false;
+    p_prefsEdited = true;
+    this->ensureEditsApplied(false);
+    return true;
 }
 
 
@@ -2780,6 +2881,17 @@ void WxLauncher::setRunDirectory(const string& path)
 }
 
 
+void WxLauncher::setProcessors(int n)
+{
+    if (p_slctPrefs != NULL && p_slctPrefs->isOptionSupported("Q"))
+        p_batchProcsParamEdit->setValue(n);
+    else
+        p_wkstnProcsParamEdit->setValue(n);
+    p_prefsEdited = true;
+    this->ensureEditsApplied(false);
+}
+
+
 string WxLauncher::hookGet(const string& what)
 {
     if (what == "request")
@@ -2800,6 +2912,8 @@ string WxLauncher::hookGet(const string& what)
         return StringConverter::toString(p_batchProcsParamEdit->getMaximum());
     if (what == "procs")
         return StringConverter::toString(p_batchProcsParamEdit->getValue());
+    if (what == "wsprocs")
+        return StringConverter::toString(p_wkstnProcsParamEdit->getValue());
     if (what == "memory")
         return StringConverter::toString(p_maxMemoryParamEdit->getValue());
     if (what == "button")

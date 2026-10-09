@@ -52,6 +52,7 @@ class NModePanel : public NModesGUI,
       void previousStep();
       void start();
       void stop();
+      int animationDelay();
       bool isGraphShown();
 
       void showAnimationMode();
@@ -118,6 +119,7 @@ class NModePanel : public NModesGUI,
       wxTextCtrl *p_scaleText;
 
       wxTimer *p_timer;
+      bool p_animating;          // from Start until Stop or a structure change
 
       /* scaling factor */
       SliderCombo *p_slider;

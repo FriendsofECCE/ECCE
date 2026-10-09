@@ -55,10 +55,17 @@ class WxDavAuth : public AuthEventListener
       // the switch was made: the start ends without an error message.
       static bool switchedToLocal() { return s_switchedToLocal; }
 
+      // The gateway's exit status after that switch: `ecce` then starts
+      // again in local mode, so the user is not told to do it.
+      static const int EXIT_SWITCHED_TO_LOCAL = 10;
+      static void setRestartsOnSwitch(bool r) { s_restartsOnSwitch = r; }
+      static bool restartsOnSwitch() { return s_restartsOnSwitch; }
+
    protected:
       WxDavAuth(const WxDavAuth& rhs);
 
       static bool s_switchedToLocal;
+      static bool s_restartsOnSwitch;
 
       bool prompt(const string& strurl,
             const bool& newUser,
