@@ -3,6 +3,8 @@
 
 #include "PropertyPanel.H"
 
+class wxScrolledWindow;
+
 class CalcInfoPanel : public PropertyPanel
 {
   DECLARE_DYNAMIC_CLASS(CalcInfoPanel)
@@ -29,6 +31,8 @@ class CalcInfoPanel : public PropertyPanel
     virtual void initialize();
 
     static wxString secondsToString(int sec);
+
+    wxScrolledWindow *p_body;
 };
 
 #endif // CALCINFOPANEL_H_
