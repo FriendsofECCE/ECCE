@@ -2087,6 +2087,15 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_pbc_ux PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # The default tool panes of a calculation not yet run (Symmetry last) stay
+  # docked, clear of the viewer, at 1024x600, 1366x768 and 1400x900.
+  add_test(NAME apps_tool_column
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/tool_column_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_tool_column PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # Every app's main window and every codereg Theory/Runtype dialog fits a
   # small screen (#189): measured on private Xvfb screens, no window may
   # extend past the screen.  Same installed tree and isolation as `apps`.

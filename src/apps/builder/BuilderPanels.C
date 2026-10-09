@@ -570,6 +570,7 @@ void Builder::updatePanes(bool allowSwitch)
   PanelGuard guard(p_panelBuildDepth);
   syncColumn(allowSwitch);
   p_mgr.Update();
+  fitToolColumn();
   updating = false;
   if (again) {
     again = false;
@@ -1036,6 +1037,57 @@ void Builder::makeRoomFor(const wxString& name)
     }
     updatePanes();
   }
+}
+
+
+/**
+ * Shares the right-hand column among its tool panes when their own height
+ * floors do not fit in it.  AUI lays out the panes that fit and gives the
+ * rest no height (Symmetry, the last default pane, on a 1400x900 screen);
+ * each pane's floor is scaled down by the same factor instead, and its
+ * controls scroll.  On a screen with room every pane keeps its floor.
+ * Lays out again when it changes a floor; returns whether it did.
+ */
+bool Builder::fitToolColumn()
+{
+  //  Below this a pane is a caption with a scroll bar.
+  static const int SHRUNK_FLOOR = 40;
+  bool changed = false;
+  for (int round = 0; round < 3; ++round) {
+    vector<wxAuiPaneInfo*> column;
+    int avail = 0, need = 0;
+    wxAuiPaneInfoArray &panes = p_mgr.GetAllPanes();
+    for (size_t i = 0; i < panes.GetCount(); ++i) {
+      wxAuiPaneInfo &pane = panes.Item(i);
+      if (!pane.IsShown() || pane.IsFloating() || pane.IsToolbar() ||
+          !pane.window || pane.dock_direction != wxAUI_DOCK_RIGHT ||
+          pane.dock_layer < 1 || p_folded.count(pane.window) ||
+          !p_paneFloor.count(pane.window)) {
+        continue;
+      }
+      column.push_back(&pane);
+      avail += std::max(0, pane.rect.height);
+      need += p_paneFloor[pane.window];
+    }
+    //  Not laid out yet: a frame not yet sized would shrink everything.
+    if (avail <= 0) break;
+    bool now = false;
+    for (size_t i = 0; i < column.size(); ++i) {
+      wxAuiPaneInfo &pane = *column[i];
+      const int floor = p_paneFloor[pane.window];
+      const int want = need <= avail ? floor :
+          std::min(floor, std::max(SHRUNK_FLOOR,
+                                   (int)((long)floor * avail / need)));
+      if (pane.min_size.y != want) {
+        pane.MinSize(wxSize(pane.min_size.x, want));
+        now = true;
+      }
+    }
+    if (!now) break;
+    changed = true;
+    p_mgr.Update();
+  }
+  return changed;
 }
 
 

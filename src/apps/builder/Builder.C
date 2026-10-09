@@ -2677,6 +2677,14 @@ void Builder::helpBuilderMenuitemClick( wxCommandEvent& event )
 void Builder::OnSize( wxSizeEvent& event )
 {
    BuilderGUI::OnSize(event);
+   //  AUI lays out a resize itself; the tool column's floors follow after.
+   if (!p_fitPending) {
+      p_fitPending = true;
+      CallAfter([this]() {
+         p_fitPending = false;
+         if (fitToolColumn()) updatePanes();
+      });
+   }
 }
 
 
@@ -3586,12 +3594,16 @@ wxString Builder::paneInfoForSave(wxAuiPaneInfo &pane)
 {
   map<wxWindow*, FoldState>::iterator it = p_folded.find(pane.window);
   if (it == p_folded.end()) {
+    wxAuiPaneInfo copy(pane);
     if (p_tabHidden.count(pane.window)) {
-      wxAuiPaneInfo shown(pane);
-      shown.Show(true);
-      return p_mgr.SavePaneInfo(shown);
+      copy.Show(true);
     }
-    return p_mgr.SavePaneInfo(pane);
+    //  A floor lowered for this screen is not part of the layout.
+    map<wxWindow*, int>::const_iterator floor = p_paneFloor.find(pane.window);
+    if (floor != p_paneFloor.end() && copy.min_size.y < floor->second) {
+      copy.MinSize(wxSize(copy.min_size.x, floor->second));
+    }
+    return p_mgr.SavePaneInfo(copy);
   }
   wxAuiPaneInfo copy(pane);
   if (p_tabHidden.count(pane.window)) {
@@ -5643,9 +5655,51 @@ static int contentMinWidth(wxWindow *window)
 //  A fixed pane cannot be resized by the user, so its height is what its
 //  sizer needs in the current font.  A degenerate answer from a panel
 //  not yet laid out falls back to the old flat 150.
+static const char TOOL_SCROLL_NAME[] = "ecceToolScroll";
+
+static wxWindow *toolScroller(wxWindow *window)
+{
+  if (!window) return 0;
+  for (wxWindow *child : window->GetChildren()) {
+    if (child->GetName() == TOOL_SCROLL_NAME) return child;
+  }
+  return 0;
+}
+
+//  Moves a tool panel's controls into a vertically scrolled window of its
+//  own, so that its window has no height floor: a column too short for
+//  every open pane can then shrink it (fitToolColumn) and it scrolls.
+//  Without that, wxGTK keeps a window at least its min size and the pane
+//  AUI could not fit was drawn where it was created, over the viewer.
+static void scrollToolContent(wxWindow *panel)
+{
+  wxSizer *content = panel->GetSizer();
+  if (!content || toolScroller(panel)) return;
+  panel->Layout();
+  const wxSize need = content->GetMinSize();
+  wxScrolledWindow *scroll = new wxScrolledWindow(
+      panel, wxID_ANY, wxDefaultPosition, panel->GetClientSize(),
+      wxVSCROLL | wxTAB_TRAVERSAL | wxNO_BORDER, TOOL_SCROLL_NAME);
+  std::vector<wxWindow*> kids(panel->GetChildren().begin(),
+                              panel->GetChildren().end());
+  for (wxWindow *child : kids) {
+    if (child != scroll && !child->IsTopLevel()) child->Reparent(scroll);
+  }
+  panel->SetSizer(0, false);
+  scroll->SetSizer(content);
+  scroll->SetScrollRate(0, 10);
+  scroll->SetMinSize(wxSize(need.x, 1));
+  wxBoxSizer *outer = new wxBoxSizer(wxVERTICAL);
+  outer->Add(scroll, 1, wxEXPAND);
+  panel->SetSizer(outer);
+  panel->SetMinSize(wxSize(need.x, -1));
+}
+
 static int contentFixedHeight(wxWindow *window)
 {
-  wxSizer *sizer = window ? window->GetSizer() : 0;
+  wxWindow *scroll = toolScroller(window);
+  wxSizer *sizer = scroll ? scroll->GetSizer()
+                          : window ? window->GetSizer() : 0;
   if (!sizer) {
     return FIXED_PANE_HEIGHT_FALLBACK;
   }
@@ -5708,6 +5762,13 @@ void Builder::addToolPanel(wxWindow *panel, const string& name,
     // not something specific to any one panel's own layout.
     pinfo.MinSize(wxSize(minWidth, 150));
   }
+
+  //  Lists, tables and the Periodic Builder scroll by themselves.
+  if (name != NAME_TOOL_CONTEXT && name != NAME_TOOL_ATOM_TABLE &&
+      name != NAME_TOOL_RESIDUE_TABLE && name != NAME_TOOL_PBC) {
+    scrollToolContent(panel);
+  }
+  p_paneFloor[panel] = pinfo.min_size.y;
 
   // NOTE: the OptionsButton() caption button (ewxAUI addition) has no
   // stock wx3.2 wxAuiPaneInfo equivalent and is dropped here - see
