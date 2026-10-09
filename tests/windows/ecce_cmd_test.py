@@ -139,7 +139,7 @@ pids, local_broker = first, ""
 for _ in range(60):
     time.sleep(1)
     pids = organizer_pids()
-    files = glob.glob(profile + "/.ECCE/broker_*")
+    files = [f for f in glob.glob(profile + "/.ECCE/broker_*") if os.path.isfile(f)]
     local_broker = [open(f).read() for f in files if ("port=%d" % bport) not in open(f).read()]
     if pids and not set(pids) & set(first) and local_broker:
         break

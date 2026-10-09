@@ -42,20 +42,37 @@
 #ifdef __WXMSW__
 #include <windows.h>
 #include <stdlib.h>
+#include <string.h>
+#include <vector>
 #include "util/Ecce.H"
 
 // The login window's "Use this computer instead": this start was set up for
 // the server, so ecce.cmd runs again, once, for a local session and without
-// the first-start question (ECCE_SWITCHED_LOCAL), as `ecce` does on Linux.
+// the first-start question, as `ecce` does on Linux.  ECCE_SWITCHED_LOCAL
+// carries this process's id: ecce.cmd waits until this Organizer has ended,
+// so its session ends first.  This process keeps its own environment (its
+// session id) for that; the child gets its own block.
 static void restartInLocalMode()
 {
   const char *root = getenv("ECCE_ROOT");
   string script = (root && *root ? string(root) : string(Ecce::ecceHome())) +
                   "\\ecce.cmd";
-  for (const char *v : {"ECCE_REMOTE_SERVER", "ECCE_REMOTE_DIR",
-                        "ECCE_SERVER_SESSION", "ECCE_SESSION_ID"})
-    _putenv_s(v, "");
-  _putenv_s("ECCE_SWITCHED_LOCAL", "1");
+  std::vector<string> vars;
+  if (char *block = GetEnvironmentStringsA()) {
+    for (char *v = block; *v; v += strlen(v) + 1) {
+      string s(v), name = s.substr(0, s.find('='));
+      if (name != "ECCE_REMOTE_SERVER" && name != "ECCE_REMOTE_DIR" &&
+          name != "ECCE_SERVER_SESSION" && name != "ECCE_SESSION_ID" &&
+          name != "ECCE_SWITCHED_LOCAL")
+        vars.push_back(s);
+    }
+    FreeEnvironmentStringsA(block);
+  }
+  vars.push_back("ECCE_SWITCHED_LOCAL=" +
+                 std::to_string((unsigned long)GetCurrentProcessId()));
+  string env;
+  for (const string& v : vars) env += v + '\0';
+  env += '\0';
   const char *comspec = getenv("COMSPEC");
   string line = "\"" + string(comspec && *comspec ? comspec : "cmd.exe") +
                 "\" /d /c \"\"" + script + "\"\"";
@@ -63,8 +80,8 @@ static void restartInLocalMode()
   PROCESS_INFORMATION pi;
   memset(&si, 0, sizeof(si));
   si.cb = sizeof(si);
-  if (CreateProcessA(NULL, &line[0], 0, 0, FALSE, CREATE_NO_WINDOW, 0, 0,
-                     &si, &pi)) {
+  if (CreateProcessA(NULL, &line[0], 0, 0, FALSE, CREATE_NO_WINDOW, &env[0],
+                     0, &si, &pi)) {
     fprintf(stderr, "Organizer: starting again in local mode: %s\n",
             line.c_str());
     CloseHandle(pi.hThread);

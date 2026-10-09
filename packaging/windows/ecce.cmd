@@ -27,10 +27,7 @@ if not defined ECCE_NO_FIRST_START if not defined ECCE_SWITCHED_LOCAL if exist "
 rem A server given by the installation, or chosen in that window, makes this a
 rem -remote session (what ecce-session-lib.sh does on the other systems).
 set "ECCE_SERVER_SESSION="
-if defined ECCE_SWITCHED_LOCAL (
-  set "ECCE_SWITCHED_LOCAL="
-  goto local
-)
+if defined ECCE_SWITCHED_LOCAL goto switched
 if defined ECCE_LOCAL_DATA goto local
 if defined ECCE_REMOTE_SERVER set "ECCE_SERVER_SESSION=1"
 if exist "%ECCE_ROOT%\siteconfig\RemoteServer\DataServers" set "ECCE_SERVER_SESSION=1"
@@ -39,6 +36,18 @@ if not defined ECCE_SERVER_SESSION if exist "%USERPROFILE%\.ECCE\RemoteServer\Da
   set "ECCE_REMOTE_DIR=%UH%/.ECCE/RemoteServer"
 )
 if defined ECCE_SERVER_SESSION goto server
+goto local
+:switched
+rem The Organizer that switched (its process id) ends first, with its session.
+set /a "_wait=0"
+:waitold
+tasklist /FI "PID eq %ECCE_SWITCHED_LOCAL%" /NH 2>nul | find " %ECCE_SWITCHED_LOCAL% " >nul || goto waited
+set /a "_wait+=1"
+if %_wait% GEQ 30 goto waited
+ping -n 2 127.0.0.1 >nul
+goto waitold
+:waited
+set "ECCE_SWITCHED_LOCAL="
 :local
 if not defined ECCE_LOCAL_DATA set "ECCE_LOCAL_DATA=%UH%/ecce-local"
 if not exist "%USERPROFILE%\ecce-local" mkdir "%USERPROFILE%\ecce-local"
