@@ -1414,6 +1414,13 @@ sub orca()
       $retval .= "cat $::inFile.orig >> $::inFile.tmp\n";
       $retval .= "mv $::inFile.tmp $::inFile\n";
     }
+    # ORCA starts its parallel part with mpiexec (Windows, Microsoft MPI)
+    # or mpirun; without one it stops at once, so run on one core instead.
+    $retval .= "case \"\$(uname -s)\" in MINGW*|MSYS*|CYGWIN*) orcampi=mpiexec ;; *) orcampi=mpirun ;; esac\n";
+    $retval .= "if grep -qi '^[[:space:]]*%pal' $::inFile && ! command -v \$orcampi >/dev/null 2>&1; then\n";
+    $retval .= "  echo \"ORCA: \$orcampi not found, running on 1 core. Parallel ORCA needs Microsoft MPI (Windows) or Open MPI.\" >> $::logfile\n";
+    $retval .= "  perl -i -ne 'print unless /^\\s*%pal\\b/i' $::inFile\n";
+    $retval .= "fi\n";
     $retval .= "\"\$orca\" $::inFile > $::outFile 2>&1\n";
   }
   return $retval;

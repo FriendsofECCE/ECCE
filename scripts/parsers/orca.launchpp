@@ -12,11 +12,8 @@
 #   script is required to exist, even as a no-op, or the launch fails
 #   outright with an empty shelled-out command).
 #
-#   Only touches %pal when numProcs > 1 -- ai.orca already omits %pal
-#   entirely for serial jobs (or writes its own from an explicit
-#   Processors theory-dialog setting; see ai.orca's ORCABlocks), and
-#   ORCA defaults to serial with no %pal block at all, so there's
-#   nothing to inject for the common single-processor case.
+#   For numProcs <= 1 any %pal line is removed (ORCA runs serial with
+#   none), since the stored input keeps what an earlier launch wrote.
 #
 #   Must be smart enough to reprocess a file that already has a %pal
 #   line (idempotent on relaunch) -- replaces it in place rather than
@@ -52,7 +49,7 @@ while (<PARAMDICT>) {
 close(PARAMDICT);
 
 my $numProcs = $ParamDict{'numProcs'};
-exit(0) if (!defined($numProcs) || $numProcs <= 1);
+$numProcs = 1 if (!defined($numProcs) || $numProcs < 1);
 
 unless (open(INFILE, $ParamDict{'inputFile'})) {
   die "Cannot open ORCA input file $ParamDict{'inputFile'}";
@@ -64,8 +61,10 @@ if (!-w $ParamDict{'inputFile'}) {
   die "Cannot write to ORCA input file $ParamDict{'inputFile'}!";
 }
 
-my $palLine = "%pal nprocs $numProcs end\n";
-my $replaced = 0;
+#  A serial launch removes the block an earlier parallel launch wrote into
+#  this same stored input; ORCA would otherwise still start N processes.
+my $palLine = ($numProcs > 1) ? "%pal nprocs $numProcs end\n" : "";
+my $replaced = ($numProcs <= 1);
 foreach my $line (@contents) {
   if ($line =~ /^\s*%pal\b/i) {
     $line = $palLine;
