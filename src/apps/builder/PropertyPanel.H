@@ -102,6 +102,16 @@ class PropertyPanel : public ewxPanel
 
     void ensureInitialized();
 
+    /**
+     * Holds the window's minimum height at the docked pane's floor.  The
+     * panels' own SetSizeHints() (in Create, initialize, refresh) would
+     * raise it to the content's height, and AUI's dock sizer floors a pane
+     * at its window's minimum, so two tall panels left the next one only
+     * its caption.  0 lets SetMinSize() through unchanged.
+     */
+    void setPaneMinHeight(int height);
+    virtual void SetMinSize(const wxSize& size) override;
+
   protected:
     virtual void initialize();
 
@@ -111,6 +121,7 @@ class PropertyPanel : public ewxPanel
 
     bool p_needsInitialization;
     bool p_needsRefresh;
+    int p_paneMinHeight;
 
     static set<PropertyPanel*> p_allPropertyPanels;
     static map<string, set<PropertyPanel*> > p_propertyPanels;
