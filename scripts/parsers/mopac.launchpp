@@ -48,7 +48,7 @@ open(PARAMDICT, "<$opt_p") || die "parameter file does not exist!\n";
 while (<PARAMDICT>) {
   $_ =~ s/\s*!.*$//;
   if (/:/) {
-    my ($key, $value) = split(/:/);
+    my ($key, $value) = split(/:/, $_, 2);   # a Windows path holds a colon
     $key =~ s/^\s*//;
     $key =~ s/\s*$//;
     $value =~ s/^\s*//;

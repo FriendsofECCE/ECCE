@@ -341,6 +341,39 @@ static void copyChecks(const string& tmp)
   }
 }
 
+
+// Paths with a space or a quote, as Windows user folders have (#247): the
+// file operations and cd take a path, not shell syntax.
+static void spaceChecks(const string& tmp)
+{
+  const string d = tmp + "/a dir/it's here";
+  mkdir((tmp + "/a dir").c_str(), 0755);
+  mkdir(d.c_str(), 0755);
+  put(d + "/x 1.out", "x\n");
+  put(d + "/y.out", "y\n");
+  RCommand rc("system", "", "bash");
+  check("space: directory()", rc.directory(d));
+  check("space: writable()", rc.writable(d));
+  check("space: exists() of a file", rc.exists(d + "/x 1.out"));
+  check("space: no word splitting", !rc.exists(tmp + "/a"));
+  string o;
+  check("space: cd() and pwd", rc.cd(d) && rc.execout("pwd", o) &&
+        o == d + "\r\n");
+  check("space: relative exists after cd", rc.exists("x 1.out"));
+  check("space: home", rc.directory("~") && rc.directory("~/"));
+  check("quotePath keeps ~", RCommand::quotePath("~") == "~" &&
+        RCommand::quotePath("~/a b") == "~/'a b'");
+  check("quoteGlob", RCommand::quoteGlob("/p q/*.out") == "'/p q/'*'.out'" &&
+        RCommand::quoteGlob("a b") == "'a b'");
+  const string dst = tmp + "/space dst";
+  mkdir(dst.c_str(), 0755);
+  vector<string> src;
+  src.push_back(d + "/*.out");
+  check("space: shellget of a glob in a spaced folder",
+        rc.shellget(src, dst) && exists(dst + "/x 1.out") &&
+        exists(dst + "/y.out"));
+}
+
 int main()
 {
   // RCommand asks for the login it runs as.
@@ -383,6 +416,7 @@ int main()
 
   directChecks();
   copyChecks(tmp);
+  spaceChecks(tmp);
   failures += extra;
 
   string cmd = "rm -rf " + tmp;

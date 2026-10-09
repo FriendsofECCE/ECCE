@@ -669,8 +669,8 @@ vector<string> RunMgmt::updateCacheFromComputeHost(const TaskJob* job,
                 if (hopMachine != "") {
                   string cmd;
                   for (idx=0; idx < baseFiles.size(); idx++) {
-                    cmd = "/bin/cp -f " + baseFiles[idx] + " " +
-                          jdata.jobpath;
+                    cmd = "/bin/cp -f " + RCommand::quotePath(baseFiles[idx]) + " " +
+                          RCommand::quotePath(jdata.jobpath);
                     (void)rcmd->exec(cmd);
                   }
                 }
@@ -720,8 +720,8 @@ vector<string> RunMgmt::updateCacheFromComputeHost(const TaskJob* job,
                    // rename the files with the pid prepended to
                    // guarantee unique names per calcviewer session
                    for (idx = 0; idx < baseFiles.size(); idx++) {
-                     cmd = "/bin/mv -f " + baseFiles[idx] + " " +
-                                           key + baseFiles[idx];
+                     cmd = "/bin/mv -f " + RCommand::quotePath(baseFiles[idx]) + " " +
+                                           RCommand::quotePath(key + baseFiles[idx]);
                      (void)lcmd.exec(cmd);
                    }
                 } else {

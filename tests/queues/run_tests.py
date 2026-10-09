@@ -346,9 +346,31 @@ def goldenSuite(args, rep):
                     rep.check(False, prob)
             rep.done()
         snippetCases(g, rep, args)
+        spacedRunDir(g, rep)
         realParsers(g, rep, args)
     finally:
         g.close()
+
+
+def spacedRunDir(g, rep):
+    """A run directory with a space, as a Windows user folder has (#247):
+    gensub reads it whole from the param file and writes it quoted."""
+    rep.row("golden", "slurm", "-", "run directory with a space")
+    rundir = "/qtest/run dir"
+    try:
+        text = g.script("slurm", "mopac", PROFILES["basic"], name="spaced", rundir=rundir)
+    except RuntimeError as exc:
+        rep.check(False, str(exc))
+        rep.done()
+        return
+    rep.check("cd '%s' || exit 1" % rundir in text,
+              "the script changes to the quoted run directory")
+    bare = [l for l in text.splitlines() if rundir in l and "'%s'" % rundir not in l
+            and not l.startswith("#")]
+    rep.check(not bare, "no line names it unquoted%s" % (": %r" % bare[:3] if bare else ""))
+    for prob in notShell(text):
+        rep.check(False, prob)
+    rep.done()
 
 
 CSH_LEFTOVERS = re.compile(

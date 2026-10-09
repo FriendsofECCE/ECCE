@@ -71,7 +71,7 @@ bool TailSource::start(RCommand* rcmd, const string& path, int lines,
   }
   // Runs before the stream, on the same login: it also opens a shared
   // OpenSSH connection when one has to be logged in to first.
-  const bool there = p_rcmd->exists(shPath(path));
+  const bool there = p_rcmd->exists(path);
   if (missing) *missing = !there;
   if (!p_rcmd->isOpen()) {
     error = p_rcmd->commError();

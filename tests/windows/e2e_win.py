@@ -39,7 +39,7 @@ def check(ok, what):
 
 shutil.rmtree(state, ignore_errors=True)
 home, local, out = state + "/home", state + "/local", state + "/out"
-for d in (home + "/.ECCE", local + "/users/local", out, state + "/runs", state + "/direct"):
+for d in (home + "/.ECCE", local + "/users/local", out, state + "/runs", state + "/direct", state + "/tmp"):
     os.makedirs(d)
 sysdir = os.environ.get("SystemRoot", r"C:\Windows")
 userpath = os.environ.get("PATH", "")
@@ -49,6 +49,8 @@ env.update({
     "ECCE_REALUSER": os.environ.get("USERNAME", "user"),
     "HOST": os.environ.get("COMPUTERNAME", "localhost"),
     "ECCE_NO_DATASERVER": "1", "ECCE_SESSION_LIVENESS": "lease",
+    # below the state dir, so a state path with a space also covers the temp folder
+    "ECCE_TMPDIR": state + "/tmp",
     "ECCE_SESSION_ID": os.urandom(8).hex(),
     # as ecce.cmd: the package first, then the user's own PATH
     "PATH": os.pathsep.join([BIN, tree + "/scripts", tree + "/scripts/parsers", tree + "/usr/bin", tree + "/python",
@@ -149,7 +151,7 @@ for c in cases:
     run = state + "/runs/" + name
     os.makedirs(run)
     rc, text = app("launcher", "ECCE_LAUNCHER_SCRIPT",
-                   "wait 3000\nmachine localhost\nrundir %s\nwait 1500\nlaunch\nwait 5000\nquit\n" % run,
+                   "wait 3000\nmachine localhost\nrundir \"%s\"\nwait 1500\nlaunch\nwait 5000\nquit\n" % run,
                    ("-context", url), log=os.path.join(out, c + ".launcher.log"))
     check("FAIL" not in text, "the Launcher launched")
     st = ""
@@ -181,7 +183,9 @@ for c in cases:
             o = open(os.path.join(dd, mop[0][:-4] + ".out"), errors="replace").read()
             m = re.search(r"FINAL HEAT OF FORMATION =\s*([-0-9.]+)", o)
             direct = m.group(1) if m else ""
-            so = open(d + "/Outputs/" + [f for f in os.listdir(d + "/Outputs") if f.endswith(("out", "mopout"))][0], errors="replace").read() if os.path.isdir(d + "/Outputs") else ""
+            outs = [f for f in os.listdir(d + "/Outputs") if f.endswith(("out", "mopout"))] \
+                if os.path.isdir(d + "/Outputs") else []
+            so = open(d + "/Outputs/" + outs[0], errors="replace").read() if outs else ""
             m2 = re.search(r"FINAL HEAT OF FORMATION =\s*([-0-9.]+)", so)
             check(m2 is not None and direct and abs(float(m2.group(1)) - float(direct)) < 1e-4,
                   "heat of formation %s (ECCE run) = %s (direct)" % (m2.group(1) if m2 else "?", direct))

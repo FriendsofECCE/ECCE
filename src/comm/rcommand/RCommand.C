@@ -89,6 +89,34 @@ static string shQuote(const string& s)
   return q + "'";
 }
 
+string RCommand::quotePath(const string& path)
+{
+  if (path == "~") return path;
+  if (path.compare(0, 2, "~/") == 0) return "~/" + shQuote(path.substr(2));
+  return shQuote(path);
+}
+
+string RCommand::quoteGlob(const string& pattern)
+{
+  string::size_type slash = pattern.rfind('/');
+  string last = slash == string::npos ? pattern : pattern.substr(slash + 1);
+  if (last.find_first_of("*?") == string::npos) return quotePath(pattern);
+  // The glob characters of the last component stay bare; the rest is quoted
+  // piecewise, so "a b*.out" becomes 'a b'*'.out'.
+  string word;
+  string lit;
+  for (size_t i = 0; i < last.size(); i++) {
+    if (last[i] == '*' || last[i] == '?') {
+      if (!lit.empty()) word += shQuote(lit);
+      lit.clear();
+      word += last[i];
+    } else lit += last[i];
+  }
+  if (!lit.empty()) word += shQuote(lit);
+  if (slash == string::npos) return word;
+  return quotePath(pattern.substr(0, slash + 1)) + word;
+}
+
 // What the machine's sourceFile adds to the environment, found by running it
 // once in the shell it was written for and diffing `env -0` before and after.
 // Aliases and shell functions the file defines cannot be carried over.
@@ -1008,7 +1036,7 @@ bool RCommand::fileOp(const string& op, const string& filename)
   // "o" (csh's "owned by you") has no lowercase equivalent in POSIX
   // test -- bash/POSIX use capital -O for this.
   string bashOpone = (opone == "o") ? "O" : opone;
-  string testTarget = (filename == "~") ? (filename + "/") : filename;
+  string testTarget = (filename == "~") ? (filename + "/") : quotePath(filename);
   string cmd = "test -" + bashOpone + " " + testTarget;
 
   string output;
@@ -1052,7 +1080,7 @@ bool RCommand::cd(const string& directory)
   // Nothing persists between commands, so remember where we are, as an
   // absolute path; the transport prepends the cd to every later command.
   string output;
-  if (!execout("cd -- " + directory + " && pwd", output)) {
+  if (!execout("cd -- " + quotePath(directory) + " && pwd", output)) {
     p_errMessage = "Unable to cd to " + directory;
     return false;
   }
@@ -1258,7 +1286,8 @@ bool RCommand::execbg(const string& command, string& output,
          << p_transport->dir() << ") pid " << pid << endl;
   if (pid < 0) {
     p_errMessage = errorMessage != "" ? errorMessage :
-                   "Failed executing background command " + command;
+                   "Failed executing background command " + command +
+                   (error.empty() ? "" : ": " + error);
     output = "";
     return false;
   }
@@ -1688,12 +1717,13 @@ bool RCommand::shellget(const char** fromFiles, const string& toFile)
   if (!p_connected) return false;
 
   for (int it=0; fromFiles[it]!=NULL; it++) {
-    cmd = "ls ";
-    cmd += fromFiles[it];
+    // One name per line (output is not a terminal), so names may hold spaces.
+    cmd = "ls -d -- ";
+    cmd += quoteGlob(fromFiles[it]);
     if (execout(cmd, globbedFileStr)) {
 
       StringTokenizer next(globbedFileStr);
-      while (!(globbedFile=next.next(" \t\r\n")).empty()) {
+      while (!(globbedFile=next.next("\r\n")).empty()) {
 
         char* gstr = (char*)globbedFile.c_str();
         if ((baseFrom = strrchr(gstr, '/')) != NULL)

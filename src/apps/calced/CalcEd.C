@@ -4061,7 +4061,7 @@ void CalcEd::startTheoryApp(const bool& localInitFlag)
     p_theoryInitFlag = false;
 
     cmd += " ";
-    cmd += p_theoryOutFile->path() + " ";
+    cmd += "\"" + p_theoryOutFile->path() + "\" ";
 
     char buf[32];
     sprintf(buf, "%d", p_theoryInPort);
@@ -4150,7 +4150,7 @@ void CalcEd::startRuntypeApp(const bool& localInitFlag)
     p_runtypeInitFlag = false;
 
     cmd += " ";
-    cmd += p_runtypeOutFile->path() + " ";
+    cmd += "\"" + p_runtypeOutFile->path() + "\" ";
 
     char buf[32];
     sprintf(buf, "%d", p_runtypeInPort);

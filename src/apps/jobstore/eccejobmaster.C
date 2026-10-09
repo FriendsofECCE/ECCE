@@ -39,6 +39,7 @@
   using std::string;
 
 #include "util/Ecce.H"
+#include "comm/RCommand.H"
 #ifdef _WIN32
 #include "comm/DirectTransport.H"
 #endif
@@ -69,7 +70,11 @@ void logEntry(const string& entry)
 static int winShell(string cmd)
 {
   if (cmd.compare(0, 6, "nohup ") == 0) cmd.erase(0, 6);
-  for (size_t i = 0; i < cmd.size(); i++)
+  // Only in the program's own (double-quoted) path: the arguments are
+  // sh-quoted, and an escaped quote in them holds a backslash.
+  size_t progEnd = cmd[0] == '"' ? cmd.find('"', 1) : cmd.find(' ');
+  if (progEnd == string::npos) progEnd = cmd.size();
+  for (size_t i = 0; i < progEnd; i++)
     if (cmd[i] == '\\') cmd[i] = '/';
   DirectTransport t;
   TransportResult r = t.run(cmd, -1);
@@ -110,9 +115,10 @@ int main(int argc, char** argv)
   // working directory is whatever the launching app had (#107).
   string ejsStart = "nohup " + Ecce::ecceBinCommand("eccejobstore");
 
+  // Paths and URLs below the user's folder can hold a space (Windows).
   for (it=9; it<argc; it++) {
     ejsStart += " ";
-    ejsStart += argv[it];
+    ejsStart += RCommand::quotePath(argv[it]);
   }
 
   // the last argument is the config filename -- use it to determine the
@@ -122,8 +128,7 @@ int main(int argc, char** argv)
   if (slash != string::npos)
     cacheDir.resize(slash);
 
-  string ejsEnd = " > " + cacheDir;
-  ejsEnd += "/eccejobstore.log";
+  string ejsEnd = " > " + RCommand::quotePath(cacheDir + "/eccejobstore.log");
 
   logFileName = cacheDir + "/eccejobmaster.log";
   ofstream logFile(logFileName.c_str(), (ios::out | ios::trunc));
@@ -167,7 +172,7 @@ int main(int argc, char** argv)
     ejsCmd = ejsStart;
 
     string authPipeName = AuthCache::pipeName();
-    ejsCmd += " -pipe " + authPipeName;
+    ejsCmd += " -pipe " + RCommand::quotePath(authPipeName);
 
     if (it > 0) {
       ejsCmd += " -restart";
@@ -294,9 +299,9 @@ int main(int argc, char** argv)
     // the temporary cache directory
     (void)chdir(setdir.c_str());
 
-    string rmcmd = "/bin/rm -rf " + cacheDir;
+    string rmcmd = "/bin/rm -rf " + RCommand::quotePath(cacheDir);
 #ifdef _WIN32
-    (void)winShell("rm -rf " + cacheDir);
+    (void)winShell("rm -rf " + RCommand::quotePath(cacheDir));
 #else
     (void)system(rmcmd.c_str());
 #endif
@@ -327,9 +332,9 @@ int main(int argc, char** argv)
   }
 
   if (!importDir.empty() && importDir.length()>5 && deleteFlag) {
-    string rmcmd = "/bin/rm -rf " + importDir;
+    string rmcmd = "/bin/rm -rf " + RCommand::quotePath(importDir);
 #ifdef _WIN32
-    (void)winShell("rm -rf " + importDir);
+    (void)winShell("rm -rf " + RCommand::quotePath(importDir));
 #else
     (void)system(rmcmd.c_str());
 #endif

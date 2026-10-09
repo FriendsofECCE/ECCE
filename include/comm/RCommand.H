@@ -193,6 +193,14 @@ public:
     static string localityNote(const string& machine, const string& remShell,
                                const string& userName="");
     static bool isSameDomain(const string& machine);
+
+    // A path as one shell word, for command lines built here and by callers:
+    // single-quoted, except that a leading ~ or ~/ stays bare so the remote
+    // shell still expands it.  Windows user folders contain spaces.
+    static string quotePath(const string& path);
+    // A pattern whose last component is a glob: the directory part quoted,
+    // the last component left to the shell.
+    static string quoteGlob(const string& pattern);
     static string whereami(void);
 
 private:

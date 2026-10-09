@@ -1444,7 +1444,7 @@ void interactGetFiles(void)
       ifstream ifs(fileName.c_str());
       if (!ifs.getline(buf, 255)) {
         ifs.close();
-        string cmd = "sed -i '1,1d' " + fileName;
+        string cmd = "sed -i '1,1d' " + RCommand::quotePath(fileName);
         localconn->exec(cmd);
       } else
         ifs.close();
@@ -2438,7 +2438,7 @@ void interactFile(char* fileData)
     // for imports, create a symbolic link immediately to the specified file
     if (cpImportDir != "") {
       // if the operation fails (file doesn't exist) just ignore
-      string cmd = "ln -s " + cpImportDir + fileName + " " + fileName;
+      string cmd = "ln -s " + RCommand::quotePath(cpImportDir + fileName) + " " + RCommand::quotePath(fileName);
       (void)localconn->exec(cmd);
     }
   }
