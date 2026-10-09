@@ -22,7 +22,8 @@ choice.  The choice itself is kept as the state ECCE already reads:
                                --user --auto), the preference off
 
 Test hooks: ECCE_NO_FIRST_START=1 never asks; ECCE_FIRST_START_ANSWER=local
-or server:<host[:port]> answers the window as if its button was pressed;
+or server:<host[:port]> answers the window as if its button was pressed,
+"continue" presses Continue on what is preselected;
 ECCE_FIRST_START_SHOT=<file.png> saves a picture of the window first.
 """
 import http.client
@@ -97,10 +98,6 @@ def skip_reason():
         return "a shared broker is declared (siteconfig/SharedBroker)"
     if os.path.exists(os.path.join(STATE, "mosquitto.server")):
         return "this account runs a central server"
-    # The Windows and macOS packages carry the script but run no server.
-    if (sys.platform.startswith("linux") and
-            os.path.exists(os.path.join(ECCE_HOME, "bin", "ecce-dataserver-start"))):
-        return "the server package is installed here"
     # Existing data says how ECCE was used, not that the user never wants
     # the other way: it only preselects the window's choice.
     if os.path.exists(ANSWER):
@@ -396,7 +393,12 @@ def build_dialog(wx, change):
         if shot:
             picture(shot)
         ans = os.environ.get("ECCE_FIRST_START_ANSWER", "")
-        if ans == "local":
+        if ans:
+            sys.stderr.write("ecce-first-start: preselected %s\n" %
+                             ("server" if r_server.GetValue() else "local"))
+        if ans == "continue":
+            finish()
+        elif ans == "local":
             r_local.SetValue(True)
             sync()
             finish()

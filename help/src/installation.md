@@ -119,9 +119,10 @@ Click **Continue** to confirm. ECCE remembers your choice and does not ask
 again. **Quit** closes ECCE without choosing anything.
 
 ECCE asks on Linux, macOS and Windows alike: on your own laptop you can
-connect to your teacher's server in the same way. It does not ask if it is
-already set up: on a computer that has a server configured by its
-administrator, on a server itself, or when you have used ECCE here before.
+connect to your teacher's server in the same way. Once you have answered,
+it does not ask again. It does not ask at all on a computer whose
+administrator has already set up a server, or in the account that runs the
+server.
 
 If ECCE cannot connect, it tells you in the same window. Check the address
 and your network connection, then click **Continue** again.
@@ -132,6 +133,10 @@ the certificate the server shows the first time you connect. If that
 certificate ever changes, ECCE does not log you in and says so; ask the
 server's administrator, then choose **Edit > Change Server...** and connect
 again.
+
+The login window for a server also has a button **Use this computer
+instead...**. It makes the same choice as **Store data on this computer**
+and ends this start; start ECCE again to work on this computer.
 
 To change your mind later, choose **Edit > Change Server...** in the
 Organizer. The window says where ECCE works now, and which folder holds your

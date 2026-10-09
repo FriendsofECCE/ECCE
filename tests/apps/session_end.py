@@ -52,6 +52,9 @@ windows the way a window manager does (WM_DELETE_WINDOW):
               "Store data on this computer"; later starts do not ask
   first-server  the same answering "Connect to a server" (this run's data server),
               then Edit > Change Server back to this computer
+  auth-uselocal  the login window's "Use this computer instead" (its test
+              hook), connecting to this run's data server: the switch is
+              made, the start ends without an error, the next is local
   markers     the reaper alone: a broker under a server marker survives
               --if-idle; a per-user one does not
   window      ECCE_GATEWAY_WINDOW=1 keeps the Gateway window's behaviour
@@ -2821,7 +2824,98 @@ def caseFirstServer(checks, display, logdir):
     stopOwnBroker(serverEnv)
 
 
+def caseAuthUseLocal(checks, display, logdir):
+    """The login window's "Use this computer instead": pressed through its
+    test hook (ECCE_TEST_AUTH_ANSWER) when a client connects to this run's
+    data server; the choice is made as Change Server makes it, the start
+    ends without an error, and the next start works on this computer."""
+    serverEnv = display.env()
+    stopOwnBroker(serverEnv)
+    marker = os.path.join(statedir(), "mosquitto.server")
+    mark = run("ecce-remote-setup", serverEnv, "--server")
+    if not checks.check(mark.returncode == 0 and os.path.exists(marker),
+                        "the server account marked"):
+        return
+    try:
+        run("ecce-gateway-start", serverEnv)
+        dport = fixture.dataserverPort()
+        home = clientOnlyHome("uselocal")
+        user = firstStartUser("uselocal")
+        pngdir = os.environ.get("ECCE_FIRST_START_PNGS", logdir)
+        os.makedirs(pngdir, exist_ok=True)
+        shot = os.path.join(pngdir, "login-use-this-computer.png")
+        if os.path.exists(shot):
+            os.unlink(shot)
+        extra = {"ECCE_REALUSERHOME": user, "ECCE_HOME": home,
+                 "ECCE_FIRST_START_ANSWER": "server:localhost:%d" % dport,
+                 "ECCE_TEST_AUTH_ANSWER": "uselocal:10",
+                 "ECCE_TEST_DIALOG_CLOSE": "4"}
+        log = os.path.join(logdir, "auth-uselocal.log")
+        session = Session(display, log, extra=extra)
+        try:
+            wid = None
+            deadline = time.time() + 90
+            while wid is None and time.time() < deadline:
+                wid = next((w for w, t in display.windows()
+                            if t == "ECCE Authentication"), None)
+                time.sleep(0.5)
+            if not checks.check(wid, "the login window opened"):
+                return
+            time.sleep(2)
+            subprocess.run(["import", "-display", display.name, "-window", wid,
+                            shot], stdout=subprocess.DEVNULL,
+                           stderr=subprocess.DEVNULL)
+            checks.check(os.path.exists(shot), "the login window photographed (%s)" % shot)
+            try:
+                session.proc.wait(timeout=90)
+            except subprocess.TimeoutExpired:
+                pass
+            checks.check(session.proc.poll() is not None,
+                         "the start ended after the switch")
+            text = open(log, errors="replace").read()
+            checks.check("ECCE_TEST_AUTH_ANSWER: uselocal" in text,
+                         "the button was pressed")
+            checks.check("From the next start" in text and
+                         "Authentication Failure" not in text,
+                         "the user was told to start again, with no error")
+        finally:
+            session.kill()
+        checks.check(os.path.isdir(os.path.join(user, ".ECCE-local")),
+                     "~/.ECCE-local was made")
+        env = dict(display.env(), **extra)
+        pref = run("ecce-localdata", env, "pref-state").stdout.decode().strip()
+        checks.check(pref == "on", "the preference is on (%s)" % pref)
+        checks.check(not os.path.exists(os.path.join(user, ".ECCE", "RemoteServer"))
+                     and os.path.exists(os.path.join(user, ".ECCE", "RemoteServer.off")),
+                     "the server was set aside")
+        try:
+            answer = open(os.path.join(user, ".ECCE", "first-start-answer")).read().strip()
+        except OSError:
+            answer = ""
+        checks.check(answer == "local", "the answer is recorded (%s)" % answer)
+        # The next start: no question, no login, the Organizer in local mode.
+        again = {"ECCE_REALUSERHOME": user, "ECCE_HOME": home}
+        session, frame = firstStartRun(checks, display, logdir, "uselocal2", again, None)
+        try:
+            checks.check(frame, "the next start opened the Organizer")
+            orgs = named(display.name, "organizer")
+            got = procEnv(orgs[0]).get("ECCE_LOCAL_DATA") if orgs else None
+            checks.check(got == os.path.join(user, ".ECCE-local"),
+                         "the next start works on this computer (%s)" % got)
+            if frame:
+                firstStartEnd(checks, display, session, frame)
+        finally:
+            session.kill()
+    finally:
+        try:
+            os.unlink(marker)
+        except OSError:
+            pass
+        stopOwnBroker(serverEnv)
+
+
 CASES = {"first-local": caseFirstLocal, "first-server": caseFirstServer,
+         "auth-uselocal": caseAuthUseLocal,
          "local": caseLocal, "local-usesym": caseLocalUseSymmetry, "local-pref": caseLocalPref, "local-save": caseLocalSave, "bug": caseBug, "window": caseWindow, "stop": caseStop, "remote": caseRemote,
          "remote-down": caseRemoteDown, "remote-refused": caseRemoteRefused,
          "quit-stop": caseQuitStop,

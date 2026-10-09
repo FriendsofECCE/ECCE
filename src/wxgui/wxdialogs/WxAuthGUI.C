@@ -50,6 +50,7 @@ const wxWindowID WxAuthGUI::wxID_STATIC_AUTH_SECURITY = wxNewId();
 const wxWindowID WxAuthGUI::wxID_STATIC_AUTH_STATUS = wxNewId();
 const wxWindowID WxAuthGUI::ID_CHECKBOX_AUTH_SAVEPASSWORDS = wxNewId();
 const wxWindowID WxAuthGUI::ID_TEXTCTRL_AUTH_PASSWORD = wxNewId();
+const wxWindowID WxAuthGUI::ID_BUTTON_AUTH_USE_LOCAL = wxNewId();
 
 /*!
  * WxAuthGUI type definition
@@ -199,6 +200,11 @@ void WxAuthGUI::CreateControls()
     ewxButton* itemButton20 = new ewxButton( itemDialog1, wxID_CHANGE, _("Change..."), wxDefaultPosition, wxDefaultSize, 0 );
     itemButton20->Show(false);
     buttonRow->Add(itemButton20, wxSizerFlags().CenterVertical());
+    // Shown by WxDavAuth for a data server login; hidden otherwise.
+    ewxButton* useLocal = new ewxButton( itemDialog1, ID_BUTTON_AUTH_USE_LOCAL, _("Use this computer instead..."), wxDefaultPosition, wxDefaultSize, 0 );
+    useLocal->SetToolTip(_("Keep your calculations in a folder on this computer instead of on the server. Applies the next time you start ECCE."));
+    useLocal->Show(false);
+    buttonRow->Add(useLocal, wxSizerFlags().CenterVertical());
     buttonRow->AddStretchSpacer(1);
 
     wxStdDialogButtonSizer* buttons = new wxStdDialogButtonSizer();

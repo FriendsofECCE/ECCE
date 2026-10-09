@@ -708,7 +708,9 @@ bool GatewayApp::checkUser()
 
   bool userExists = connection->exists();
   string err = connection->m_msgStack.getMessage();
-  if (!err.empty()) {
+  if (!err.empty() && WxDavAuth::switchedToLocal()) {
+    ret = false;      // the login window said why this start ends
+  } else if (!err.empty()) {
     string msg,title;
     if (connection->m_msgStack.findKey("CANCELED")) {
       msg = "Access controls have been set up on this server.  "

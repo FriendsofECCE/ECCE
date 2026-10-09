@@ -347,6 +347,12 @@ def apply(install, state=None):
     brokerPort = _pickPort("ECCE_BROKER_PORT")
 
     os.makedirs(os.path.join(state, ".ECCE"), exist_ok=True)
+    # The suite's user has answered the first-start question (#240), as a
+    # returning user has; the first-start cases make users of their own.
+    answer = os.path.join(state, ".ECCE", "first-start-answer")
+    if not os.path.exists(answer):
+        with open(answer, "w") as handle:
+            handle.write("local\n")
     home = homeOverlay(install, state, dataserverPort)
 
     settings = {

@@ -441,6 +441,10 @@ preference, or `~/.ECCE/RemoteServer/`, which `ecce-remote-setup <host>
 --user --auto` writes without root) and changes from **Edit > Change
 Server...** in the Organizer, which shows the current mode and data folder.
 The change applies at the next start; nothing is copied between modes.
+The data server's login window has a button **Use this computer
+instead...** that does the same as choosing this computer there
+(`ecce-first-start --apply local`) and ends that start with a message to
+start again.
 On Windows `ecce.cmd` runs the window with the package's own Python and, for
 a server, starts the session the same way `ecce -remote` does (the broker
 file, then the Organizer). On macOS the window needs wxPython, which
@@ -463,10 +467,13 @@ asked** where an administrator or the command line decides:
 `siteconfig/RemoteServer` present (an administrator or `ecce-remote-setup` as
 root), `ecce -remote` or `ECCE_REMOTE_SERVER`, `ECCE_LOCAL_DATA` or `ecce
 --local`, a shared broker declared (`siteconfig/SharedBroker`), an account
-marked as a central server (`~/.ECCE/mosquitto.server`), and on Linux **any
-installation that has the `ecce-server` package** (the server itself, and
-remote desktop sessions such as FastX on it). So modes 2 and 3, the server
-machine and the all-in-one install behave exactly as before.
+marked as a central server (`~/.ECCE/mosquitto.server`). An installed
+`ecce-server` package is not configuration: its users are asked too, and a
+user who already works on the per-user data server finds **Store data on
+this computer** preselected, where Continue keeps that data server. On a
+server whose users log in to it (FastX), `ecce-remote-setup` run as root
+(`siteconfig/RemoteServer`) points everyone at the server and nothing is
+asked.
 `ECCE_NO_FIRST_START=1` never asks (tests and scripts set it), and without a
 display or wxPython nothing is asked.
 
