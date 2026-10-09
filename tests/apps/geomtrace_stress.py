@@ -124,7 +124,7 @@ def script(calcs):
     """The scene script: calcs is [(url, steps)], the first one opened."""
     (a, na), (b, nb), (c, nc) = calcs
     return "\n".join([
-        "gtfocus", "gtsweep", "gtexpect %d" % na,
+        "gtfocus", "gttitle Total Energy", "gtsweep", "gtexpect %d" % na,
         #  clicking a point of the plot shows that step's geometry
         "gtpick 0", "gtpick mid", "gtpick last",
         "gtplay 300 1", "gtsweep", "gtstop",

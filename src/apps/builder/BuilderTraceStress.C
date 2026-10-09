@@ -217,6 +217,18 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
     return true;
   }
 
+  //  "gttitle <text>": the plot's title contains <text> (the series shown).
+  if (c == "gttitle" && w.size() >= 2) {
+    ewxPlotCtrl *plot = plotOf(gt);
+    string want = w[1];
+    for (size_t i = 2; i < w.size(); i++) want += " " + w[i];
+    if (!plot) return s.fail("gttitle: no plot");
+    string title = string(plot->GetPlotTitle().ToUTF8());
+    if (title.find(want) == string::npos)
+      return s.fail("gttitle: plot shows '" + title + "', want '" + want + "'");
+    return true;
+  }
+
   //  "gtpick <step|mid|last>": click the plot where that step's point is
   //  drawn (zero-based; mid and last of the plotted points), as a user does; the molecule on screen must then be the
   //  one the trace holds for that step.
