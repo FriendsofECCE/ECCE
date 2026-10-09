@@ -14,7 +14,7 @@ button, so a GROMACS Optimize showed "NWChem M..." clipped.
 (NWChem MD tasks are `NWChemMD`, their study `MDStudy`); `shortLabel`
 drops a trailing " Editor"; the button's width is its label's and the
 panel gives all its buttons the widest one, so the property columns still
-line up. The menu items ("NWChem MD Optimize &Editor...") still say NWChem.
+line up. The Tools menu items get the same substitution (`CalcMgr::getToolsMenu`); the hook `toolsmenu <url>` lists them.
 
 Check: the Organizer hook `summary <url>` (ECCE_TEST_ORGANIZER) lists
 `tool=<label>` per button, with `:clipped` when the label is wider than

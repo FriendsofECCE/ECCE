@@ -77,6 +77,7 @@ class GeomTracePropertyPanel : public VizPropertyPanel,
     bool p_fold;
 
     string p_currentProp;
+    bool p_propChosen;     // the user picked the series (so it is remembered)
 
     vector<string> p_importantProps;
     map<string,wxWindowID> p_keyToId;

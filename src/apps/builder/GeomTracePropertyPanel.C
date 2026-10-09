@@ -72,6 +72,7 @@ GeomTracePropertyPanel::GeomTracePropertyPanel()
     p_recompute(false),
     p_fold(true),
     p_currentProp(""),
+    p_propChosen(false),
     p_importantProps(),
     p_keyToId(),
     p_idToKey()
@@ -89,6 +90,7 @@ GeomTracePropertyPanel::GeomTracePropertyPanel(IPropCalculation *calculation,
     p_recompute(false),
     p_fold(false),
     p_currentProp(""),
+    p_propChosen(false),
     p_importantProps(),
     p_keyToId(),
     p_idToKey()
@@ -247,7 +249,11 @@ void GeomTracePropertyPanel::restoreSettings()
   config->Read("GeomTrace/Delay",&p_delay,500);
   p_currentProp = config->Read("GeomTrace/Prop","");
   if (p_currentProp.empty() || !getCalculation()->getProperty(p_currentProp)) {
-    // find first important prop that actually exists to fill plot
+    // Open on the total energy when there is one; else the first series.
+    if (getCalculation()->getProperty("TEVEC") && p_keyToId.count("TEVEC")) {
+      p_currentProp = "TEVEC";
+      return;
+    }
     map<string,wxWindowID>::iterator string_to_id_it;
     for (string_to_id_it = p_keyToId.begin();
             string_to_id_it != p_keyToId.end();
@@ -267,7 +273,8 @@ void GeomTracePropertyPanel::saveSettings()
   config->Write("GeomTrace/Recompute", p_recompute);
   config->Write("GeomTrace/Fold", p_fold);
   config->Write("GeomTrace/Delay", p_delay);
-  config->Write("GeomTrace/Prop", wxString(p_currentProp));
+  if (p_propChosen)
+    config->Write("GeomTrace/Prop", wxString(p_currentProp));
 }
 
 
@@ -341,6 +348,7 @@ void GeomTracePropertyPanel::OnToolClick(wxCommandEvent& event)
     p_fold = event.IsChecked();
   } else {
     p_currentProp = p_idToKey[event.GetId()];
+    p_propChosen = true;
     fillPlot();
   }
   saveSettings();
