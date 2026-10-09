@@ -1,4 +1,6 @@
 
+#include "wx/timer.h"
+
 #include "util/EcceURL.H"
 
 #include "tdat/AuthCache.H"
@@ -16,7 +18,8 @@ IMPLEMENT_APP(CalcEdApp)
 CalcEdApp::CalcEdApp()
   : ewxApp(),
     WxJMSMessageDispatch(CALCED, true),
-    p_calced(NULL)
+    p_calced(NULL),
+    p_shown(false)
 {
 
 }
@@ -48,12 +51,20 @@ bool CalcEdApp::OnInit()
     }
   }
 
-  if (!context.empty())
-      p_calced->setContext(context);
-
-  // Show the main window
-  p_calced->Show();
   SetTopWindow(p_calced);
+  if (!context.empty()) {
+    p_calced->setContext(context);
+    showEditor();
+  } else {
+    //  Started by the gateway, the calculation arrives in ecce_invoke after
+    //  notifyReady(); shown before it, the empty editor is resized to the
+    //  filled one's size on screen.  The timer covers a start without one.
+    wxTimer *timer = new wxTimer();   // lives until the process exits
+    timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+      if (!p_shown) showEditor();
+    });
+    timer->StartOnce(5000);
+  }
   registerTopShell(p_calced);
 
   //  Subscribe to Messages
@@ -137,11 +148,24 @@ void CalcEdApp::invokeMCB(JMSMessage& msg)
     }
 
     p_calced->Iconize(false);
+    showEditor();
     p_calced->Raise();
-    p_calced->Show(true);
     p_calced->SetFocus();
     p_calced->RequestUserAttention();
+  } else {
+    showEditor();
   }
+}
+
+
+//  The first Show centres the window at the size its content was fitted to.
+void CalcEdApp::showEditor()
+{
+  if (!p_shown) {
+    p_shown = true;
+    p_calced->Centre();
+  }
+  p_calced->Show(true);
 }
 
 

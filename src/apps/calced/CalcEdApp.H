@@ -47,7 +47,10 @@ class CalcEdApp : public ewxApp,
     string identify();
 
   private:
+    void showEditor();
+
     CalcEd *p_calced;
+    bool p_shown;
 };
 
 DECLARE_APP(CalcEdApp)
