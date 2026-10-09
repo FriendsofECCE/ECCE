@@ -220,8 +220,13 @@ def homeOverlay(install, state, dataserverPort):
         if entry == "siteconfig":
             continue
         _link(os.path.join(install, entry), os.path.join(home, entry))
+    # The machine's own central-server or shared-broker setup would make
+    # every case a -remote one and skip the first-start question; the cases
+    # that need either make their own.
     shutil.copytree(os.path.join(install, "siteconfig"), siteconfig,
-                    symlinks=True)
+                    symlinks=True,
+                    ignore=lambda d, names: [n for n in names if d == os.path.join(install, "siteconfig")
+                                             and n in ("RemoteServer", "SharedBroker", "SharedBroker.passwd")])
 
     _rewrite(os.path.join(siteconfig, "DataServers"),
              (r"(<(?:Url|BasisSet)>\s*http://[^:<\s]+):\d+",
