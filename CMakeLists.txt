@@ -2414,6 +2414,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_gromacs PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+  # The MD Optimize editor and the Organizer's editor button for a GROMACS
+  # and an NWChem MD study (private Xvfb); skipped (77) without Xvfb.
+  add_test(NAME launch_md_editors
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/md_editors_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_md_editors PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
   # Builder overlays, the Organizer thumbnail and New of MD studies, through
   # the controls' own event paths (private Xvfb); skipped (77) without Xvfb,
   # ImageMagick's import or python3-pil.

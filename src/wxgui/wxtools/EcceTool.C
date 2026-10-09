@@ -51,6 +51,8 @@ static wxString shortLabel(const wxString& label)
   if (label.StartsWith("Electronic")) return "Editor";
   if (label.StartsWith("Basis")) return "Basis Set";
   if (label.StartsWith("Machine")) return "Machines";
+  // the icon already says it is an editor
+  if (label.EndsWith(" Editor")) return label.Left(label.length() - 7);
   return label;
 }
 
@@ -89,6 +91,16 @@ EcceTool::EcceTool(wxWindow * parent, ResourceTool * resTool)
 }
 
 
+EcceTool::EcceTool(wxWindow * parent, ResourceTool * resTool,
+                   const wxString& label)
+{
+  p_bitmap = ewxBitmap(resTool->getIcon(), wxBITMAP_TYPE_XPM);
+  p_bundle = toolBundle(resTool->getIcon());
+  if (p_bundle.IsOk()) p_label = shortLabel(label);
+  Create(parent, resTool->getId(), resTool->getName());
+}
+
+
 EcceTool::EcceTool(wxWindow *parent, const wxString& name)
 {
   ResourceTool *resTool =
@@ -112,11 +124,15 @@ void EcceTool::Create(wxWindow * parent, wxWindowID id, const wxString& name)
 {
   p_isHover = false;
   int height = 68;
-  if (p_bundle.IsOk())
+  int width = BUTTON_WIDTH;
+  if (p_bundle.IsOk()) {
     height = ICON_SIZE + 10 + parent->GetCharHeight();
-  ewxPanel::Create(parent, id, wxDefaultPosition,
-                   wxSize(BUTTON_WIDTH, height),
+    // wide enough for the label, which the sizer then makes room for
+    width = wxMax(width, parent->GetTextExtent(p_label).x + 12);
+  }
+  ewxPanel::Create(parent, id, wxDefaultPosition, wxSize(width, height),
                    wxNO_BORDER|wxTAB_TRAVERSAL, name);
+  SetMinSize(wxSize(width, height));
 
   p_isSunken = false;
   p_invokeParam = new InvokeParam;

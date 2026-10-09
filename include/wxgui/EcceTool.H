@@ -40,6 +40,7 @@ public:
   EcceTool();
   ~EcceTool();
   EcceTool(wxWindow * parent, ResourceTool * resTool);
+  EcceTool(wxWindow * parent, ResourceTool * resTool, const wxString& label);
   EcceTool(wxWindow * parent, const wxString& name);
   EcceTool(wxWindow * parent, wxWindowID id,
            const wxString& name, const wxBitmap& bitmap);
@@ -61,6 +62,7 @@ public:
 
   void toolActivate(bool forceNew);
   void setBitMap(wxBitmap bitmap);
+  const wxString& getLabel() const { return p_label; }
 
 protected:
 
