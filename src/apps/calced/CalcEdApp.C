@@ -65,7 +65,6 @@ bool CalcEdApp::OnInit()
     });
     timer->StartOnce(5000);
   }
-  registerTopShell(p_calced);
 
   //  Subscribe to Messages
   subscribeMessages();
@@ -159,11 +158,14 @@ void CalcEdApp::invokeMCB(JMSMessage& msg)
 
 
 //  The first Show centres the window at the size its content was fitted to.
+//  It is registered as a top shell only then: the dispatcher Show()s every
+//  top shell before it hands ecce_invoke to invokeMCB.
 void CalcEdApp::showEditor()
 {
   if (!p_shown) {
     p_shown = true;
     p_calced->Centre();
+    registerTopShell(p_calced);
   }
   p_calced->Show(true);
 }
