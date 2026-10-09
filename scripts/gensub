@@ -1533,7 +1533,9 @@ sub gromacs()
     #  mdrun's when it ran, not that of the editconf after it.
     $retval .= "\n$::CC - grompp builds the .tpr; its complaints, which are\n";
     $retval .= "$::CC - mostly about the topology, go where the user will look.\n";
-    $retval .= "\"\$gmx\" grompp -f $::inFile -c conf.gro -p topol.top -o topol.tpr -maxwarn 0 > grompp.out 2>&1\n";
+    #  -r: position restraints are held to the starting structure; grompp
+    #  refuses a restrained topology without it and ignores it otherwise.
+    $retval .= "\"\$gmx\" grompp -f $::inFile -c conf.gro -r conf.gro -p topol.top -o topol.tpr -maxwarn 0 > grompp.out 2>&1\n";
     $retval .= "if [ \$? -ne 0 ]; then\n";
     $retval .= "  cat grompp.out >> $::logfile\n";
     $retval .= "  cp grompp.out $::outFile\n";

@@ -157,7 +157,8 @@ class Home(object):
                         ECCE_REALUSERHOME=self.user)
 
 
-def stage(gmx, home, tmp, name, calc, spec, start_gro, nprocs=2):
+def stage(gmx, home, tmp, name, calc, spec, start_gro, nprocs=2,
+          topology=os.path.join(FIXTURES, "topol.top")):
     """One task of the study, the way Launch and the job script handle it."""
     print("== %s" % name)
     rundir = os.path.join(tmp, "run-" + name)
@@ -176,7 +177,7 @@ def stage(gmx, home, tmp, name, calc, spec, start_gro, nprocs=2):
                re.finditer(r"^(\S+)\s*=\s*(.*)$", out, re.M))
 
     # 2. staged under the names Launch gives them
-    shutil.copy(os.path.join(FIXTURES, "topol.top"), rundir)
+    shutil.copy(topology, os.path.join(rundir, "topol.top"))
     shutil.copy(start_gro, os.path.join(rundir, "conf.gro"))
 
     # 3. the launch-time check, as Launch calls it
@@ -243,6 +244,29 @@ def gmx_energy(gmx, res, term):
         if line.strip() and line[0] not in "#@":
             vals.append(float(line.split()[1]))
     return vals
+
+
+def restrained(gmx, home, tmp):
+    src = os.path.join(tmp, "restrained")
+    os.makedirs(src)
+    with open(os.path.join(FIXTURES, "conf.gro")) as h:
+        lines = h.read().splitlines()
+    gro = os.path.join(src, "conf.gro")
+    with open(gro, "w") as h:
+        h.write("Three SPC waters\n9\n%s\n%s\n"
+                % ("\n".join(lines[2:11]), lines[-1]))
+    top = os.path.join(src, "topol.top")
+    with open(top, "w") as h:
+        h.write('#include "oplsaa.ff/forcefield.itp"\n'
+                '#include "oplsaa.ff/spc.itp"\n\n'
+                "[ position_restraints ]\n"
+                "; atom  funct  fcx   fcy   fcz\n"
+                "    1      1  1000  1000  1000\n\n"
+                "[ system ]\nRestrained waters\n\n[ molecules ]\nSOL   3\n")
+    name, calc, spec = STAGES[0]
+    res = stage(gmx, home, tmp, "restrained", calc, spec, gro, topology=top)
+    check(res is not None,
+          "a topology with [ position_restraints ] is accepted at launch and runs")
 
 
 def main():
@@ -328,6 +352,11 @@ def main():
                 check(abs(last(r["props"], "TE") - te[-1]) < 0.5,
                       "TE is Total-Energy as gmx energy reports it (%g vs %g)"
                       % (last(r["props"], "TE"), te[-1]))
+
+        # ---- a topology with position restraints (#253) ----------------
+        #  grompp refuses [ position_restraints ] without a reference
+        #  structure (-r); three SPC waters, the first one held in place.
+        restrained(gmx, home, tmp)
 
         # ---- an input mistake is reported, plainly, at launch ----------
         rd = os.path.join(tmp, "run-broken")
