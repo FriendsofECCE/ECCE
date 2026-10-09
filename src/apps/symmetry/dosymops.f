@@ -137,14 +137,15 @@ c
 c
       do 300 i=1,nata
 c
-c     Check to see if the atom is already present
+c     Check to see if the atom is already present.  An atom generated
+c     from an earlier one is not unique: skip it, so that a full
+c     molecule passed in comes back as it went in.
 c
          do l=1,ipcord
             dx=dabs(coords(1,i)-coords_new(1,l))
             dy=dabs(coords(2,i)-coords_new(2,l))
             dz=dabs(coords(3,i)-coords_new(3,l))
-            if(dx+dy+dz.le.3*tol) then
-            endif
+            if(dx+dy+dz.le.3*tol) goto 300
          enddo
  543     format(a,2i4,3f12.6)
  544     format(a,i4,3f12.6)

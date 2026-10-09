@@ -779,6 +779,57 @@ def checkAutosymThreshold(report):
 
 
 
+def checkGenmol(report):
+    """genmol, as the Calculation Editor runs it after the Builder's Find.
+
+    Find marks the whole molecule as its symmetry-unique atoms, so genmol is
+    handed every atom: it must give the molecule back unchanged, not add an
+    image of each atom already there (water came back as H4O).  From one
+    atom of each kind it must still build the whole molecule.
+    """
+    build = os.path.join(ROOT, "build-cmake")
+    tools = [os.path.join(build, b) for b in ("autosym", "genmol")]
+    if not all(os.path.isfile(t) and os.access(t, os.X_OK) for t in tools):
+        tools = ["/opt/ecce/bin/autosym", "/opt/ecce/bin/genmol"]
+    if not all(os.path.isfile(t) and os.access(t, os.X_OK) for t in tools):
+        print("  autosym/genmol not available -- skipping the genmol check")
+        return
+    autosym, genmol = tools
+
+    def feed(binary, head, atoms):
+        lines = head + ["%-16s\n%d %.10f %.10f %.10f" % a for a in atoms]
+        run = subprocess.run([binary], input="\n".join(lines) + "\n",
+                             capture_output=True, text=True, timeout=60)
+        return run.returncode, run.stdout.split("\n")
+
+    r = 1.09 / math.sqrt(3)
+    molecules = {
+        "water": [("O", 8, 0.0, 0.0, 0.1173), ("H", 1, 0.0, 0.7572, -0.4692),
+                  ("H", 1, 0.0, -0.7572, -0.4692)],
+        "methane": [("C", 6, 0.0, 0.0, 0.0)] +
+                   [("H", 1, a * r, b * r, c * r) for a, b, c in
+                    ((1, 1, 1), (1, -1, -1), (-1, 1, -1), (-1, -1, 1))],
+        "benzene": [atom for k in range(6) for atom in (
+            ("C", 6, 1.39 * math.cos(k * math.pi / 3),
+             1.39 * math.sin(k * math.pi / 3), 0.0),
+            ("H", 1, 2.47 * math.cos(k * math.pi / 3),
+             2.47 * math.sin(k * math.pi / 3), 0.0))],
+    }
+    for name, atoms in molecules.items():
+        status, out = feed(autosym, ["%d" % len(atoms), "0.01"], atoms)
+        group = out[0].split()[0] if status == 0 and out[0].strip() else "?"
+        xyz = [[float(v) for v in line.split()] for line in out[1:1 + len(atoms)]]
+        found = [a[:2] + tuple(c) for a, c in zip(atoms, xyz)]
+        # one carbon/oxygen and one hydrogen: each kind is one orbit here
+        unique = [found[0], found[1]]
+        for label, given in (("every atom", found), ("one atom of each kind", unique)):
+            status, out = feed(genmol, ["%d" % len(given), "0.01", group], given)
+            count = int(out[0]) if status == 0 and out[0].strip() else -1
+            report.check(count == len(atoms),
+                         "genmol on %s (%s) from %s gives %d atoms (got %d)"
+                         % (name, group, label, len(atoms), count))
+
+
 def checkFragments(tablePath, verbose):
     """The two outer columns, against the textbook answers for CH4 and H2O."""
     binary = os.environ.get("ECCE_TEST_SYMOPS",
@@ -1314,6 +1365,7 @@ def main():
     beforeVoie = report.checks
     checkValenceEnergies(report)
     checkAutosymThreshold(report)
+    checkGenmol(report)
     print("  valence orbital energies: %d checks"
           % (report.checks - beforeVoie))
 

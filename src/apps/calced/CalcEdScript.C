@@ -240,6 +240,17 @@ void CalcEd::runCalcEdScript(const string& file)
             : lamp->GetLabel() + " " + lamp->GetToolTipText();
         lampText.Replace("\n", " | ");
         fprintf(stderr, "CALCED: verify=%s\n", lampText.utf8_str().data());
+        //  The chemical system as the page shows it.
+        auto label = [this](wxWindowID id) {
+          wxWindow *w = FindWindow(id);
+          return w ? w->GetLabel() : wxString("?");
+        };
+        fprintf(stderr, "CALCED: formula=%s atoms=%s electrons=%s "
+                "symmetry=%s\n",
+                label(ID_STATICTEXT_CALCED_FORMULA).utf8_str().data(),
+                label(ID_STATICTEXT_CALCED_ATOMS).utf8_str().data(),
+                label(ID_STATICTEXT_CALCED_ELECTRONS).utf8_str().data(),
+                label(ID_STATICTEXT_CALCED_SYMMETRY).utf8_str().data());
         for (GUIValues::const_iterator it = p_GUIValues->begin();
              it != p_GUIValues->end(); ++it)
           fprintf(stderr, "CALCED: %s=%s\n", it->first.c_str(),
