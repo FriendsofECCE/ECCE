@@ -122,10 +122,14 @@ try:
     say("newproject: " + ask("newproject p"))
     say("newcalc: " + ask("newcalc p m NWChem"))
     url = proj + "/m"
+    # the summary on screen while the Builder saves, as after a user's Save
+    say("summary empty: " + ask("summary " + url))
     text = app("builder", "ECCE_BUILDER_SCRIPT",
                "wait 4000\nadd C Tetrahedral 0 0 0\nwait 1500\ncmd addh\nwait 1500\n"
                "expect atoms 5\nsave\nwait 4000\nquit\n", ("-context", url))
     say("builder: " + ("CH4 drawn" if "expect atoms 5: ok" in text else "FAILED"))
+    time.sleep(3)
+    ps("winshot.ps1", "-ProcId", org.pid, "-Png", pngs + "/organizer-after-save.png")
     say("summary: " + ask("summary " + url))
     time.sleep(2)
     ps("winshot.ps1", "-ProcId", org.pid, "-Png", pngs + "/organizer.png")

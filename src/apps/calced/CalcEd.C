@@ -454,9 +454,11 @@ void CalcEd::OnButtonCalcedCodeClick(wxCommandEvent &event)
 
   vector<string> codes = CodeFactory::getFullySupportedCodes();
   if (codes[icode] != p_codeName) {
+    wxWindowUpdateLocker freeze(this);
     p_startUp = true;
     doSetContext(codes[icode]);
     p_startUp = false;
+    refit();
   }
 }
 
@@ -540,6 +542,7 @@ void CalcEd::setContext(const string& url, const string& codeName)
     p_startUp = true;
     doSetContext(codeName);
     p_startUp = false;
+    refit();
 
     //  Check whatever input file this calculation already has, so the
     //  lamp means something on a calculation that is merely opened
@@ -2499,7 +2502,7 @@ void CalcEd::populateSummaryField(const string& summaryType)
   }
   sizer->Clear(true);
   sizer->Layout();
-  sizer->SetSizeHints(this);
+  if (!p_startUp) sizer->SetSizeHints(this);
   // A gap between label and value: a long label ("SCF Conv. Algorithm")
   // otherwise runs into its value.
   sizer->SetHGap(FromDIP(8));
@@ -2566,8 +2569,7 @@ void CalcEd::populateSummaryField(const string& summaryType)
   p_theoryDetailsSizer->Layout();
   p_runtypeDetailsSizer->Layout();
   p_detailsBox->GetContainingSizer()->Layout();
-  GetSizer()->SetSizeHints(this);
-  fitToScreen();
+  refit();
 }
 
 
@@ -2953,14 +2955,24 @@ bool CalcEd::isGbsValid()
 }
 
 
+// The window takes its content's size once the fields are filled; while a
+// context is set up (p_startUp) each section only lays itself out, or the
+// window is resized once per section.
+void CalcEd::refit()
+{
+  if (p_startUp) return;
+  GetSizer()->SetSizeHints(this);
+  fitToScreen();
+}
+
+
 void CalcEd::updateAllFields()
 {
   refreshAllFields();
   enableAllFields();
   showAllFields();
   GetSizer()->Layout();
-  GetSizer()->SetSizeHints(this);
-  fitToScreen();
+  refit();
 }
 
 
@@ -2970,8 +2982,7 @@ void CalcEd::updateChemSysFields()
   enableChemSysFields();
   showChemSysFields();
   GetSizer()->Layout();
-  GetSizer()->SetSizeHints(this);
-  fitToScreen();
+  refit();
 }
 
 
@@ -2981,8 +2992,7 @@ void CalcEd::updateBasisSetFields()
   enableBasisSetFields();
   showBasisSetFields();
   GetSizer()->Layout();
-  GetSizer()->SetSizeHints(this);
-  fitToScreen();
+  refit();
 }
 
 
@@ -2992,8 +3002,7 @@ void CalcEd::updateDetailsFields()
   enableDetailsFields();
   showDetailsFields();
   GetSizer()->Layout();
-  GetSizer()->SetSizeHints(this);
-  fitToScreen();
+  refit();
 }
 
 
@@ -3415,8 +3424,7 @@ void CalcEd::showGeomEditor()
                                    hasRuntypeGeom);
   } 
   GetSizer()->Layout();
-  GetSizer()->SetSizeHints(this);
-  fitToScreen();
+  refit();
 }
 
 

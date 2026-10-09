@@ -605,6 +605,13 @@ void CalcMgr::runTestCommand(const string& line)
           outcome += string(" ") + f[0] + "=" +
                      (t ? string(t->GetLabel().ToUTF8()) : string("<none>"));
         }
+        // The space between the formula and the "Charge:" column beside it
+        // (negative: they overlap).
+        wxWindow *formula = panel ? panel->FindWindow("empiricalFormula") : 0;
+        wxWindow *charge = panel ? panel->FindWindow("Charge:") : 0;
+        if (formula && charge)
+          outcome += " formula-gap=" + std::to_string(charge->GetPosition().x -
+              formula->GetPosition().x - formula->GetSize().x);
       }
     } else if (command == "contextmenu") {
       // "contextmenu <url>": the tree's item-menu event for <url>, as a
