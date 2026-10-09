@@ -144,7 +144,7 @@ void WxFeedbackGUI::CreateControls()
     itemBoxSizer11->Add(itemTextCtrl12, 1, wxGROW|wxALL, 0);
 
     wxBitmap itemBitmapButton13Bitmap(itemPanel1->GetBitmapResource(wxT("drop_w.xpm")));
-    ewxBitmapButton* itemBitmapButton13 = new ewxBitmapButton( itemPanel1, ID_BITMAPBUTTON_DROPICON, itemBitmapButton13Bitmap, wxDefaultPosition, wxSize(50, 60), wxBU_AUTODRAW|wxBU_EXACTFIT );
+    ewxBitmapButton* itemBitmapButton13 = new ewxBitmapButton( itemPanel1, ID_BITMAPBUTTON_DROPICON, itemBitmapButton13Bitmap, wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW|wxBU_EXACTFIT );
     itemBoxSizer11->Add(itemBitmapButton13, 0, wxALIGN_BOTTOM|wxLEFT, 0);
 
 ////@end WxFeedbackGUI content construction

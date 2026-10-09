@@ -34,8 +34,42 @@
 #include "wxgui/WxJMSSubscriber.H"
 #include "wxgui/WxState.H"
 
+#include "wxgui/WxDavAuth.H"
+
 #include "CalcMgrApp.H"
 #include "CalcMgr.H"
+
+#ifdef __WXMSW__
+#include <windows.h>
+#include <stdlib.h>
+#include "util/Ecce.H"
+
+// The login window's "Use this computer instead": this start was set up for
+// the server, so ecce.cmd runs again, once, for a local session and without
+// the first-start question (ECCE_SWITCHED_LOCAL), as `ecce` does on Linux.
+static void restartInLocalMode()
+{
+  const char *root = getenv("ECCE_ROOT");
+  string script = (root && *root ? string(root) : string(Ecce::ecceHome())) +
+                  "/ecce.cmd";
+  for (const char *v : {"ECCE_REMOTE_SERVER", "ECCE_REMOTE_DIR",
+                        "ECCE_SERVER_SESSION", "ECCE_SESSION_ID"})
+    _putenv_s(v, "");
+  _putenv_s("ECCE_SWITCHED_LOCAL", "1");
+  const char *comspec = getenv("COMSPEC");
+  string line = "\"" + string(comspec && *comspec ? comspec : "cmd.exe") +
+                "\" /d /c \"\"" + script + "\"\"";
+  STARTUPINFOA si;
+  PROCESS_INFORMATION pi;
+  memset(&si, 0, sizeof(si));
+  si.cb = sizeof(si);
+  if (CreateProcessA(NULL, &line[0], 0, 0, FALSE, CREATE_NO_WINDOW, 0, 0,
+                     &si, &pi)) {
+    CloseHandle(pi.hThread);
+    CloseHandle(pi.hProcess);
+  }
+}
+#endif
 
 
 IMPLEMENT_APP(CalcMgrApp)
@@ -68,6 +102,10 @@ string CalcMgrApp::getName() const
 bool CalcMgrApp::OnInit()
 {
   ewxApp::OnInit();
+#ifdef __WXMSW__
+  // No gateway here: the Organizer has the session's login window.
+  WxDavAuth::setRestartsOnSwitch(true);
+#endif
 
   if (argc>2 && strcmp(argv[1].ToStdString().c_str(),"-pipe")==0) {
     AuthCache::getCache().pipeIn(argv[2].ToStdString());
@@ -160,7 +198,9 @@ void CalcMgrApp::openUrlWhenReady(const string& url, int tries)
 
 int CalcMgrApp::OnExit()
 {
-  //  cerr << "Enter CalcMgrApp::OnExit()\n";
+#ifdef __WXMSW__
+  if (WxDavAuth::switchedToLocal()) restartInLocalMode();
+#endif
   return 0;
 }
 
@@ -239,21 +279,21 @@ void CalcMgrApp::msgRenameMCB(JMSMessage& msg)
 void CalcMgrApp::msgURLCreatedMCB(JMSMessage& msg)
 {
   EcceURL url(msg.getProperty("url"));
-  p_calcMgr->updateAddNode(url);
+  p_calcMgr->queueUpdate(CalcMgr::UPDATE_ADDED, url);
 }
 
 
 void CalcMgrApp::msgURLRemovedMCB(JMSMessage& msg)
 {
   EcceURL url(msg.getProperty("url"));
-  p_calcMgr->updateRemoveNode(url);
+  p_calcMgr->queueUpdate(CalcMgr::UPDATE_REMOVED, url);
 }
 
 
 void CalcMgrApp::msgChangedMCB(JMSMessage& msg)
 {
   EcceURL url(msg.getProperty("url"));
-  p_calcMgr->updateUrl(url);
+  p_calcMgr->queueUpdate(CalcMgr::UPDATE_CHANGED, url);
 }
 
 

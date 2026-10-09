@@ -18,13 +18,19 @@ if not defined ECCE_TMPDIR set "ECCE_TMPDIR=%TEMP:\=/%"
 set ECCE_SESSION_LIVENESS=lease
 rem Where the user keeps their work is asked once, at the first start (#240):
 rem the exit status 3 is "Quit" in that window; any other failure goes on.
-if not defined ECCE_NO_FIRST_START if exist "%ECCE_ROOT%\python\python3w.exe" (
+rem ECCE_SWITCHED_LOCAL: the Organizer starts this again after the login
+rem window's "Use this computer instead"; that start is local and not asked.
+if not defined ECCE_NO_FIRST_START if not defined ECCE_SWITCHED_LOCAL if exist "%ECCE_ROOT%\python\python3w.exe" (
   start /wait "" "%ECCE_ROOT%\python\python3w.exe" "%ECCE_ROOT%\bin\ecce-first-start"
   if errorlevel 3 if not errorlevel 4 exit /b 0
 )
 rem A server given by the installation, or chosen in that window, makes this a
 rem -remote session (what ecce-session-lib.sh does on the other systems).
 set "ECCE_SERVER_SESSION="
+if defined ECCE_SWITCHED_LOCAL (
+  set "ECCE_SWITCHED_LOCAL="
+  goto local
+)
 if defined ECCE_LOCAL_DATA goto local
 if defined ECCE_REMOTE_SERVER set "ECCE_SERVER_SESSION=1"
 if exist "%ECCE_ROOT%\siteconfig\RemoteServer\DataServers" set "ECCE_SERVER_SESSION=1"

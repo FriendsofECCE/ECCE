@@ -5918,7 +5918,7 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
     //  MO Diagram opened by itself on every calculation that had
     //  orbital energies.
     static const set<string> defaultShown = {
-      "Calculation Summary", "Energies", "MOs"
+      "Calculation Summary", "Energies"
     };
     bool show = defaultShown.find(name) != defaultShown.end();
     if (p_panelMode == PANELS_DETAIL) {

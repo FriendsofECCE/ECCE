@@ -130,6 +130,10 @@ void CalculationContextPanel::refresh()
   p_properties->findValue(VDoc::getEcceNamespace() + ":annotation", annotation);
   annotationCtrl->SetValue(annotation);
 
+  // New values (a longer formula after a Save) need their columns widened.
+  Layout();
+  FitInside();
+
   // get the thumbnail and replace the builder button icon
   // variables to get the jpeg thumbnail resource
   SFile *thumbnail = TempStorage::getTempFile();

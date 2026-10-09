@@ -14,6 +14,7 @@
 
 #include <wx/combo.h>
 
+#include <wx/wupdlock.h>
 #include "util/Ecce.H"
 #include "util/BrowserHelp.H"
 #include "wxgui/WxHelpViewer.H"
@@ -530,6 +531,9 @@ void CalcEd::setContext(const string& url, const string& codeName)
   }
 
   if (doit) {
+    // Filling the fields relays the window out several times; show only
+    // the result.
+    wxWindowUpdateLocker freeze(this);
     freeContext();
     bool msgFlag = p_iCalc != (ICalculation*)0;
     p_iCalc = givenCalc;
@@ -2496,6 +2500,9 @@ void CalcEd::populateSummaryField(const string& summaryType)
   sizer->Clear(true);
   sizer->Layout();
   sizer->SetSizeHints(this);
+  // A gap between label and value: a long label ("SCF Conv. Algorithm")
+  // otherwise runs into its value.
+  sizer->SetHGap(FromDIP(8));
 
   if (p_code && p_GUIValues) {
     SummaryIterator *it = p_code->getSummaryIterator(summaryType);

@@ -158,9 +158,11 @@ WxResourceStateImageList::combineWithState(wxBitmap bitmap,
   combinedDC.SetPen(*wxWHITE);
   combinedDC.DrawRectangle(0, 0, combinedWidth, greaterHeight);
 
-  // draw resource bitmap (given as param in this function call)
+  // draw resource bitmap (given as param in this function call); one with
+  // no state goes at the right, next to its label, not before an empty slot
   wxMemoryDC resourceDC(bitmap);
-  combinedDC.Blit(0, 0, bitmap.GetWidth(), bitmap.GetHeight(),
+  const int x = state == ResourceDescriptor::NUMBER_OF_STATES ? stateWidth : 0;
+  combinedDC.Blit(x, 0, bitmap.GetWidth(), bitmap.GetHeight(),
                   &resourceDC, 0, 0, wxCOPY, true);
   if (state != ResourceDescriptor::NUMBER_OF_STATES) {
     wxBitmap stateBitmap(WxStateImageList::getImageList()->GetBitmap(state));

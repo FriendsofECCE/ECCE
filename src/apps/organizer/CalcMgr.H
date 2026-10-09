@@ -8,6 +8,9 @@
 #define _CALCMGR_H_
 
 #include <wx/weakref.h>
+#include <wx/timer.h>
+#include <utility>
+#include <vector>
 #include "wxgui/WxTailWindow.H"
 #include <wx/frame.h>
 #include <wx/toolbar.h>
@@ -262,6 +265,11 @@ public:
   void updateUrl(const EcceURL & url);
   void updateAddNode(const EcceURL & url);
   void updateRemoveNode(const EcceURL & url);
+  // The broker's ecce_url_* notices.  One Save or Launch sends several in a
+  // row, and each rebuilt the tree and the summary (a visible flicker on
+  // MSW); they are collected and applied together under one Freeze.
+  enum UpdateKind { UPDATE_CHANGED, UPDATE_ADDED, UPDATE_REMOVED };
+  void queueUpdate(UpdateKind kind, const EcceURL & url);
   void setMessage(const string & message,
                   WxFeedback::Severity severity=WxFeedback::WARNING,
                   bool clear = false);
@@ -498,6 +506,12 @@ protected:
   //  Set by the "new" test command: createResource reports its error
   //  here instead of in a modal dialog.
   string *p_testCreateError = 0;
+
+  void applyQueuedUpdates();
+  std::vector<std::pair<UpdateKind, string> > p_queuedUpdates;
+  wxTimer *p_updateTimer = 0;
+  // For the "counts" test command.
+  int p_testNotices = 0, p_testApplied = 0, p_testBatches = 0;
 };
 
 
