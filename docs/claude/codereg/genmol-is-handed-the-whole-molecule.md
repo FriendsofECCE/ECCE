@@ -16,7 +16,10 @@ empty body, so each atom's images were added again. Water came back as
 H4O (5 atoms, 12 electrons), methane as 17 atoms, benzene as 72, in every
 release from the PNNL base to 9.0.0-alpha.8. The test now skips an atom
 already generated from an earlier one; from an irreducible set the result
-is unchanged.
+is unchanged. Only for molecules (`itype` 0): genmollat shares
+`dosymops.f`, works in fractional coordinates, and the Builder's lattice
+tools (Generate, supercells, folding; `tests/apps/pbc_edit_test.py`,
+`nmode_edit_test.py`) lost atoms when the skip applied there too.
 
 Tests: `tests/symmetry/run_tests.py` (`checkGenmol`: full and irreducible
 input for water, methane, benzene) and `tests/apps/symmetry_find_test.py`

@@ -137,15 +137,17 @@ c
 c
       do 300 i=1,nata
 c
-c     Check to see if the atom is already present.  An atom generated
-c     from an earlier one is not unique: skip it, so that a full
-c     molecule passed in comes back as it went in.
+c     Check to see if the atom is already present.  In a molecule an
+c     atom generated from an earlier one is not unique: skip it, so that
+c     a full molecule passed in comes back as it went in.  Periodic
+c     systems (genmollat: fractional coordinates, its own elimination)
+c     keep every atom they are given.
 c
          do l=1,ipcord
             dx=dabs(coords(1,i)-coords_new(1,l))
             dy=dabs(coords(2,i)-coords_new(2,l))
             dz=dabs(coords(3,i)-coords_new(3,l))
-            if(dx+dy+dz.le.3*tol) goto 300
+            if(itype.eq.0 .and. dx+dy+dz.le.3*tol) goto 300
          enddo
  543     format(a,2i4,3f12.6)
  544     format(a,i4,3f12.6)
