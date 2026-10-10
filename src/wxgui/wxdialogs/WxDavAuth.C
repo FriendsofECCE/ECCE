@@ -411,8 +411,9 @@ bool WxDavAuth::prompt(const string& strurl,
      // server side for them, and the request put both passwords in the
      // URL, which the data server writes to its access log.
      authDlg.showChangeBtn(false);
-     // A data server session can switch to working on this computer.
-     authDlg.showUseLocal(!newUser && !noAccess && LocalData::dir().empty());
+     // The start window asks "this computer or a server" at every start,
+     // so the login window does not ask it a second time.
+     authDlg.showUseLocal(false);
      {
        string where = url.getProtocol() + "://" + url.getHost();
        const bool secure = (url.getProtocol() == "https");

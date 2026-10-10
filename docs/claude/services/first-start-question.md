@@ -55,8 +55,11 @@ to `tests/apps/first_start_test.py`.
   Edit > Change Server... starts the script with `python3w.exe` on Windows.
 - macOS: ECCE.app bundles no Python or wxPython, so the window is skipped
   silently (ImportError) until it does; local data stays the default there.
-- The data server login window (WxAuth, shown by `WxDavAuth::prompt` in
-  a data-server session) has "Use this computer instead...": it runs
+- The data server login window's "Use this computer instead..." is no
+  longer shown (Andy, 2026-10-10): the start window asks at every start,
+  so it was the same question twice. The machinery below is kept (and the
+  test hook still presses it), so it can be removed or brought back in one
+  place (`WxDavAuth.C`, `showUseLocal`). It ran
   `ecce-first-start --apply local` and ends this session (the gateway
   skips its "Authentication Failure" message, other apps leave their
   main loop). The gateway then exits with status 10
