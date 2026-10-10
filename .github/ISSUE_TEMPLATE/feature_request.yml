@@ -1,0 +1,19 @@
+name: Feature request
+description: Something ECCE could do, or do better.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What would you like ECCE to do?
+      description: Describe what you want to do, not only how ECCE should look.
+  - type: textarea
+    id: why
+    attributes:
+      label: What is it for?
+      description: For example a course, a research project, or a code you use.
+  - type: textarea
+    id: now
+    attributes:
+      label: How do you do it now?
+      description: A workaround, another program, or not at all.
