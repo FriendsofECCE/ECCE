@@ -1,5 +1,8 @@
 blank_issues_enabled: true
 contact_links:
+  - name: Questions and ideas
+    url: https://github.com/FriendsofECCE/ECCE/discussions
+    about: Ask how to do something, share how you use ECCE, or suggest an idea, in Discussions.
   - name: Help pages
     url: https://github.com/FriendsofECCE/ECCE/tree/main/help/src
     about: How to install ECCE, run a first calculation, and set up codes. The same pages are in ECCE under Help.

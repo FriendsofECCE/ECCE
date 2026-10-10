@@ -53,6 +53,8 @@ The same pages are in ECCE under **Help**.
 
 ## Getting help and reporting a problem
 
+Questions, and how you use ECCE, are welcome in
+[Discussions](https://github.com/FriendsofECCE/ECCE/discussions).
 Run the session that goes wrong with `ecce --bug`. When it ends, ECCE
 collects its logs into `~/ecce-bug-<time>.zip` (no passwords, but host
 names, user names and paths). Attach that to a
