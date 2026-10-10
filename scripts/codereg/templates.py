@@ -368,6 +368,9 @@ class EccePanel(wx.lib.scrolledpanel.ScrolledPanel):
                                style = wx.TE_MULTILINE|wx.TE_WORDWRAP|
                                wx.TE_READONLY)
         self.msg.SetBackgroundColour(EcceGlobals.ReadonlyColour)
+        # A message line, not a text field to type in: the arrow pointer,
+        # not the text cursor, over it.
+        self.msg.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
         self.colorTimer = wx.Timer(self.msg, 1)
         self.messageTimer = wx.Timer(self.msg, 2)
         self.msg.Bind(wx.EVT_TIMER, self.OnColorTimer, self.colorTimer, 1)
