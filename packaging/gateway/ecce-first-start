@@ -324,7 +324,9 @@ def build_dialog(wx, change):
     mode, text, host = current_state()
     # The address field offers the last server, else this computer when it
     # has a server package; "host" stays the active server for Continue.
-    suggested = host or last_server() or ("localhost" if server_installed() else "")
+    #  The own data server is reached as "a server on this computer".
+    suggested = host or ("localhost" if mode == "here" else "") or \
+        last_server() or ("localhost" if server_installed() else "")
     if not change and not existing_setup():
         mode, text = "", ""
 
@@ -373,8 +375,8 @@ def build_dialog(wx, change):
     status.SetForegroundColour(wx.Colour(168, 32, 32))
     box.Add(status, 0, wx.TOP, 12)
 
-    r_server.SetValue(mode == "server")
-    r_local.SetValue(mode != "server")
+    r_server.SetValue(mode in ("server", "here"))
+    r_local.SetValue(mode not in ("server", "here"))
 
     def sync(_evt=None):
         addr.Enable(r_server.GetValue())
@@ -404,17 +406,15 @@ def build_dialog(wx, change):
         if r_local.GetValue():
             if mode == "local":
                 result["changed"] = False
-            elif mode == "here" and os.path.isdir(os.path.join(STATE, "dataserver")):
-                # The per-user data server is on this computer too: keep
-                # it, rather than switch to a folder its data is not in.
-                record("local")
-                result["changed"] = False
             elif not choose_local():
                 status.SetLabel("ECCE could not save this choice.")
                 panel.Layout()
                 return
             else:
                 result["changed"] = True
+        elif mode == "here" and is_this_computer(addr.GetValue().strip().split(":")[0]):
+            record("server this computer")   # the own data server, kept
+            result["changed"] = False
         elif mode == "server" and addr.GetValue().strip() == host:
             result["changed"] = False   # the server already set up
         else:

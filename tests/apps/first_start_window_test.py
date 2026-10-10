@@ -119,8 +119,9 @@ check(r.returncode == 0 and os.path.exists(ds) and pref(env) == "off",
       "Change Server, to the server (rc=%d %s)" % (r.returncode, r.stderr.strip()))
 
 # A Linux user who already works on the per-user data server, with the
-# server package installed: asked once, "this computer" preselected, and
-# Continue keeps that data server (no local folder, preference untouched).
+# server package installed: asked, "Connect to a server" preselected with
+# localhost, and Continue keeps that data server (no local folder,
+# preference untouched).
 env, user = fresh("perusersrv")
 os.makedirs(os.path.join(user, ".ECCE", "dataserver"))
 open(os.path.join(env["ECCE_HOME"], "bin", "ecce-dataserver-start"), "w").close()
@@ -129,11 +130,21 @@ r = subprocess.run([sys.executable, SCRIPT, "--check"], env=env, capture_output=
 check(r.stdout.strip() == "ask", "per-user data server user is asked (%s)" % r.stdout.strip())
 r = window(env, "continue")
 ans = os.path.join(user, ".ECCE", "first-start-answer")
-check(r.returncode == 0 and "preselected local" in r.stderr
+check(r.returncode == 0 and "preselected server" in r.stderr
       and not os.path.isdir(os.path.join(user, local_dir)) and pref(env) == "unset"
       and os.path.exists(ans),
-      "per-user data server: this computer preselected, Continue keeps the data "
-      "server (rc=%d %s)" % (r.returncode, r.stderr.strip()))
+      "per-user data server: server (localhost) preselected, Continue keeps the "
+      "data server (rc=%d %s)" % (r.returncode, r.stderr.strip()))
+
+# The same user choosing "Store data on this computer" gets the folder,
+# not the data server they had.
+env, user = fresh("perusersrv-local")
+os.makedirs(os.path.join(user, ".ECCE", "dataserver"))
+open(os.path.join(env["ECCE_HOME"], "bin", "ecce-dataserver-start"), "w").close()
+r = window(env, "local")
+check(r.returncode == 0 and os.path.isdir(os.path.join(user, local_dir)) and pref(env) == "on",
+      "per-user data server user choosing this computer gets the folder "
+      "(rc=%d %s)" % (r.returncode, r.stderr.strip()))
 
 env, user = fresh("refused")
 r = window(env, "server:127.0.0.1:1")
