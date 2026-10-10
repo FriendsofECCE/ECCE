@@ -194,9 +194,11 @@ if [ -f "$c2s_tpl" ] \
   mkdir -p "$c2s_dir" 2>/dev/null && cp "$c2s_tpl" "$c2s_dir/CONFIG.localhost" 2>/dev/null || true
 fi
 
-# A client with nothing set up asks once where the user keeps their work
-# (#240); every existing setup skips the window. 3 is "Quit" in it; any
-# other failure goes on as if it had not been there.
+# The start window asks where the user keeps their work (#240); only
+# explicit configuration skips it. 3 is "Quit" in it; any other failure
+# goes on as if it had not been there. The tools it runs (ecce-localdata)
+# need ECCE_REALUSERHOME, which is otherwise exported only later.
+export ECCE_REALUSERHOME=${ECCE_REALUSERHOME:-$HOME}
 if [ -x "$ECCE_HOME/bin/ecce-first-start" ]; then
   "$ECCE_HOME/bin/ecce-first-start"
   if [ $? -eq 3 ]; then exit 0; fi
