@@ -1733,6 +1733,20 @@ CASES = [
         },
     ),
     dict(
+        #  ORCA with ! NBO (NBO 7): the Natural Population table is NBO's
+        #  own text, read for the NPA vector.
+        name='orca-h2o-nbo-npa',
+        desc='orca.desc',
+        fixture='orca/h2o_nbo.out',
+        parse_args=('.', 'Energy', 'DFT', 'B3LYP', '0'),
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym, so no Irrep column'},
+        expect={
+            'NPA': dict(keys={'NPA': {
+                'size': '3', 'values': '-0.88855 0.44428 0.44428',
+                'sum': 0.0, 'units': 'e'}}),
+        },
+    ),
+    dict(
         #  UHF: ORCA prints charge and spin columns; only the charge may
         #  be taken, and Loewdin has no "Sum" line to stop on.
         name='orca-oh-uhf-loewdin',
@@ -2007,12 +2021,6 @@ KNOWN_DEAD = {
 # "this can never work", which is the distinction that matters when a
 # property turns out to be missing in the field.
 UNCOVERED = {
-    #  NPA from ORCA needs the licensed NBO program, whose output may not
-    #  be checked in.  The block is NBO's own text, the same as Gaussian's
-    #  NPA, which g16-h2o-pop-charges covers through the same parse script.
-    ('orca.desc', 'NPA'):
-        "Needs ORCA run with ! NBO (licensed NBO 7, output not committable); "
-        "same block and script logic as gaussian-16's [NPA].",
     #  Still UNCOVERED rather than dead, but with a caveat worth having.
     #  An attempt to produce a fixture on 2026-09-22 -- a Gaussian-basis
     #  periodic SCF ("system crystal", LiH, STO-3G) against NWChem 7.2.3
