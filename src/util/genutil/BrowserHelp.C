@@ -145,27 +145,16 @@ void BrowserHelp::showHelpPage(const string& key) const
 
 
 /**
- * The ecce support queue feedback submission form is displayed in a web
+ * The project's GitHub issue page is displayed in a web
  * browser window.  If a web browser isn't already running, it will be started.
  * Because of this, this method may take some time and callers may want
  * to provide some sort of busy notification.
  */
 void BrowserHelp::showFeedbackPage(void) const
 {
-#if 000
-   // old ecce-support queue
-   string email = "ecce-support@emsl.pnl.gov";
-
-   if (getenv("ECCE_SUPPORT") != NULL)
-      email = getenv("ECCE_SUPPORT");
-
-   displayURL(URL("Feedback") + email, true);
-#else
-   // new NWChem wiki ECCE forums
-   string forums = "http://www.nwchem-sw.org/index.php/Special:AWCforum/sc/id4/ECCE:_Extensible_Computational_Chemistry_Environment.html";
-
-   displayURL(forums, true);
-#endif
+   //  GitHub's issue page: bug and feature forms, and a link to
+   //  Discussions for questions.
+   displayURL("https://github.com/FriendsofECCE/ECCE/issues/new/choose", true);
 }
 
 
