@@ -24,3 +24,43 @@ keywords:
   - quantum chemistry
   - graphical user interface
   - molecular modelling
+references:
+  - type: software
+    title: "Extensible Computational Chemistry Environment"
+    authors:
+      - name: "Pacific Northwest National Laboratory"
+    year: 2012
+    doi: 10.11578/dc.20171025.1329
+  - type: conference-paper
+    title: "The Extensible Computational Chemistry Environment: A Problem Solving Environment for High Performance Theoretical Chemistry"
+    authors:
+      - family-names: Black
+        given-names: Gary
+      - family-names: Schuchardt
+        given-names: Karen
+      - family-names: Gracio
+        given-names: Debbie
+      - family-names: Palmer
+        given-names: Bruce
+    collection-title: "Computational Science - ICCS 2003"
+    series: "Lecture Notes in Computer Science"
+    start: 122
+    end: 131
+    year: 2003
+    doi: 10.1007/3-540-44864-0_13
+  - type: article
+    title: "Ecce—a problem-solving environment's evolution toward Grid services and a Web architecture"
+    authors:
+      - family-names: Schuchardt
+        given-names: Karen
+      - family-names: Didier
+        given-names: Brett
+      - family-names: Black
+        given-names: Gary
+    journal: "Concurrency and Computation: Practice and Experience"
+    volume: 14
+    issue: "13-15"
+    start: 1221
+    end: 1239
+    year: 2002
+    doi: 10.1002/cpe.673
