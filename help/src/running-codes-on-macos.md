@@ -48,6 +48,30 @@ started. Miniforge below is only for NWChem.
 ORCA 6.1.1 for macOS needs macOS 12.3 or newer. On older systems it stops
 at once with a `dyld: Symbol not found` message.
 
+### ORCA on more than one core (Open MPI)
+
+ORCA runs on one core without anything else. Its parallel parts are
+started with `mpirun` from Open MPI, and the macOS builds are made for
+Open MPI 4.1 (the file name ends in `openmpi411`). Miniforge (see NWChem
+below) installs it without administrator rights:
+
+```
+~/miniforge3/bin/conda install -y "openmpi=4.1"
+```
+
+`mpirun` is then `~/miniforge3/bin/mpirun`. ORCA finds it through the
+`PATH`, so put `~/miniforge3/bin` on it in the script that **Script run at
+login** names (see the end of this page), and close ECCE and start it
+again. To check, type `which mpirun` in a terminal.
+
+Then set the number of cores in the Launcher. If ECCE cannot find
+`mpirun`, the Launcher warns: **Launch anyway** starts the job as set,
+**Run on 1 core** changes it to one core. A job that finds no `mpirun`
+when it runs uses one core and says so in its output.
+
+This has not yet been tried on a Mac with ECCE; if it does not work,
+please report it.
+
 ## NWChem
 
 NWChem for macOS comes from conda-forge. Miniforge is a small conda

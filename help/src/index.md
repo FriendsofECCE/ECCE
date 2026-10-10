@@ -23,7 +23,8 @@ the second page.
    bond lengths.
 
 8. [Running codes on macOS](running-codes-on-macos.md): MOPAC, ORCA and NWChem
-   on a Mac, without administrator rights.
+   on a Mac, without administrator rights, and Open MPI for ORCA on more
+   than one core.
 9. [Running codes on Windows](running-codes-on-windows.md): MOPAC and ORCA
    on a Windows PC, and Microsoft MPI for ORCA on more than one core.
 
