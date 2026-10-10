@@ -243,8 +243,15 @@ def server_installed():
 
 def is_this_computer(host):
     h = host.strip("[]").lower()
-    return h in ("localhost", "127.0.0.1", "::1",
-                 socket.gethostname().lower(), socket.getfqdn().lower())
+    if h in ("localhost", "127.0.0.1", "::1"):
+        return True
+    name = socket.gethostname().lower()
+    if h == name or h == name.split(".")[0]:
+        return True
+    #  getfqdn() does a reverse lookup that can hang for many seconds on
+    #  macOS; only a dotted name can be this computer's full name.
+    return "." in h and h.split(".")[0] == name.split(".")[0] and \
+        h == socket.getfqdn().lower()
 
 
 def broker_port(tls):
