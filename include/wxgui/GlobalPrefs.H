@@ -117,6 +117,7 @@ private:
   // Data folder page (#216); saved at once, never touched by Reset All.
   ewxCheckBox* p_localData;
   ewxTextCtrl* p_localFolder;
+  ewxButton* p_changeFolder;
   ewxButton* p_openFolder;
   ewxStaticText* p_localNote;
 

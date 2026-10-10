@@ -94,7 +94,7 @@ GlobalPrefs::GlobalPrefs(wxWindow* parent)
     p_focus(NULL), p_quickTransp(NULL), p_confirmExit(NULL), p_closeShells(NULL),
     p_savePasswords(NULL), p_showBusy(NULL), p_alwaysOnTop(NULL),
     p_leftClickNewApp(NULL), p_orientation(NULL),
-    p_localData(NULL), p_localFolder(NULL), p_openFolder(NULL),
+    p_localData(NULL), p_localFolder(NULL), p_changeFolder(NULL), p_openFolder(NULL),
     p_localNote(NULL), p_stateIconSizer(NULL), p_resetAll(NULL), p_restoring(true)
 {
   p_editor.choice = p_terminal.choice = p_browser.choice = NULL;
@@ -403,8 +403,8 @@ void GlobalPrefs::createDataPage(wxWindow* page)
                                   wxDefaultPosition, wxSize(320, -1),
                                   wxTE_READONLY);
   row->Add(p_localFolder, 1, wxALIGN_CENTER_VERTICAL|wxRIGHT, PAD);
-  ewxButton* change = new ewxButton(sb, wxID_ANY, _("Change..."));
-  row->Add(change, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, PAD);
+  p_changeFolder = new ewxButton(sb, wxID_ANY, _("Change..."));
+  row->Add(p_changeFolder, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, PAD);
   p_openFolder = new ewxButton(sb, wxID_ANY, _("Open data folder"));
   row->Add(p_openFolder, 0, wxALIGN_CENTER_VERTICAL);
   box->Add(row, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, PAD);
@@ -415,7 +415,7 @@ void GlobalPrefs::createDataPage(wxWindow* page)
   page->SetSizer(outer);
 
   p_localData->Bind(wxEVT_CHECKBOX, &GlobalPrefs::OnLocalDataToggle, this);
-  change->Bind(wxEVT_BUTTON, &GlobalPrefs::OnChangeDataFolder, this);
+  p_changeFolder->Bind(wxEVT_BUTTON, &GlobalPrefs::OnChangeDataFolder, this);
   p_openFolder->Bind(wxEVT_BUTTON, &GlobalPrefs::OnOpenDataFolder, this);
   updateDataPage();
 }
@@ -430,6 +430,10 @@ void GlobalPrefs::updateDataPage()
   string moveTo = LocalData::prefMoveTo();
   p_localData->SetValue(on);
   p_localFolder->SetValue(folder);
+  //  The folder only applies with the box checked; a folder already made
+  //  can still be opened, since its calculations stay there.
+  p_localFolder->Enable(on);
+  p_changeFolder->Enable(on);
   p_openFolder->Enable(wxDirExists(folder));
 
   string note =
