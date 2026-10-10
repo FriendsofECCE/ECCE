@@ -234,6 +234,14 @@ void WxGridView::setAttributes()
     p_grid->AutoSizeColumns(true);
   }
 
+  //  Autosizing counts the header text but not the sort/selection mark
+  //  drawn beside it, which then covers the label (the atom table's "#").
+  const int mark = p_grid->FromDIP(20);
+  for (int j = 0; j < p_grid->GetNumberCols(); j++) {
+    int w = p_grid->GetTextExtent(p_grid->GetColLabelValue(j)).GetWidth() + mark;
+    if (p_grid->GetColSize(j) < w) p_grid->SetColSize(j, w);
+  }
+
   p_grid->EndBatch();
 }
 
