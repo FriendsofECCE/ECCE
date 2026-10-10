@@ -134,7 +134,7 @@ If the server proves who it is with a certificate that your computer already
 trusts, ECCE connects without further questions. Otherwise ECCE remembers
 the certificate the server shows the first time you connect. If that
 certificate ever changes, ECCE does not log you in and says so; ask the
-server's administrator, then choose **Edit > Change Server...** and connect
+server's administrator, then choose **Edit > Preferences**, tab **Data folder**, **Change Server...** and connect
 again.
 
 The login window for a server also has a button **Use this computer
@@ -142,7 +142,7 @@ instead...**. It makes the same choice as **Store data on this computer**
 and ECCE goes on to start on this computer. On Windows, start ECCE again
 to work on this computer.
 
-To change your mind later, choose **Edit > Change Server...** in the
+To change your mind later, choose **Edit > Preferences**, tab **Data folder**, **Change Server...** in the
 Organizer. The window says where ECCE works now, and which folder holds your
 calculations if it is this computer. The change applies the next time you
 start ECCE: close all ECCE windows, then start ECCE again. Your
