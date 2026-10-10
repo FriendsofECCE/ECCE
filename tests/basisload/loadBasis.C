@@ -35,7 +35,7 @@
  * i.e. load the set from its components, which is the reference the whole
  * file is compared with.  "sweep composite" does the same for --sweep.
  *
- * --dump and --complete are described where they are defined.
+ * --dump, --complete and --stored are described where they are defined.
  */
 #include <string.h>
 #include <stdlib.h>
@@ -44,6 +44,9 @@
 #include <string>
 #include <vector>
 #include <set>
+#include <map>
+#include <fstream>
+#include <sstream>
 #include <stdio.h>
 
 #include "util/Ecce.H"
@@ -280,8 +283,68 @@ static int collide()
   return 0;
 }
 
+//  loadBasis <library-url> --stored <file> <atom>...
+//  reads a stored BasisSet.ecce_basisset through DavCalculation's own
+//  readers -- the TGBSConfig the MO viewer gets from gbsConfig() -- and
+//  prints each element's shells and the molecule's function count, counted
+//  the way MoAoBasis does (2l+1 spherical, (l+1)(l+2)/2 Cartesian).
+static int storedOne(int argc, char** argv)
+{
+  if (argc < 5) {
+    cerr << "usage: loadBasis <library-url> --stored <file> <atom>...\n";
+    return 2;
+  }
+  Ecce::initialize();
+  std::ifstream in(argv[3]);
+  if (!in) { cerr << "cannot read " << argv[3] << "\n"; return 2; }
+  std::stringstream text;
+  text << in.rdbuf();
+  //  Under the library's server, so the version property lookup gets a
+  //  plain 404 rather than a refused connection.
+  DavCalculation calc(EcceURL((string(argv[1]) + "/unused").c_str()));
+  const DOMDocument* doc = calc.getXMLDocument(text.str());
+  if (doc == 0) { cerr << "not a basis set document\n"; return 2; }
+  TGBSConfig config;
+  //  The configuration type is a DAV property of the stored file, not in
+  //  it: a mixed basis (one group per element) is stored as "element".
+  if (text.str().find("<Group ") != text.str().rfind("<Group "))
+    config.type(TGBSConfig::element);
+  map<string, TGaussianBasisSet*, less<string> > cache;
+  calc.parseConfigDataElement(*doc, &config, cache);
+  calc.parseConfigMapElement(*doc, &config, cache);
+
+  int spherical = 0, cartesian = 0;
+  set<string> printed;
+  for (int a = 4; a < argc; a++) {
+    const string symbol = argv[a];
+    string shells;
+    vector<const TGaussianBasisSet*> list = config.getGBSList(symbol);
+    for (size_t g = 0; g < list.size(); g++) {
+      const int sets = list[g]->num_contracted_sets(symbol.c_str());
+      for (int ics = 0; ics < sets; ics++) {
+        vector<TGaussianBasisSet::AngularMomentum> types =
+            list[g]->func_types(symbol.c_str(), ics);
+        string shell;
+        for (size_t t = 0; t < types.size(); t++) {
+          const int l = (int)types[t];
+          spherical += 2*l + 1;
+          cartesian += ((l+1)*(l+2))/2;
+          shell += TGaussianBasisSet::shell_formatter[l];
+        }
+        shells += " " + shell;
+      }
+    }
+    if (printed.insert(symbol).second)
+      cout << "SHELLS " << symbol << shells << endl;
+  }
+  cout << "FUNCTIONS spherical " << spherical << " cartesian " << cartesian
+       << endl;
+  return 0;
+}
+
 int main(int argc, char** argv)
 {
+  if (argc >= 3 && string(argv[2]) == "--stored") return storedOne(argc, argv);
   if (argc >= 3 && string(argv[2]) == "--collide") return collide();
   if (argc >= 3 && string(argv[2]) == "--complete")
     return completeOne(argc, argv);

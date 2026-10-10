@@ -21,7 +21,11 @@
    using std::string;
 #include <vector>
    using std::vector;
+#include <set>
+   using std::set;
+#include <algorithm>
    using std::find;
+   using std::find_if;
 
 #include <xercesc/util/PlatformUtils.hpp>
 #include <xercesc/util/XMLString.hpp>
@@ -199,6 +203,68 @@ GUIValues *DavCalculation::guiparams(const string& theoryType) const {
 }
 
 
+//  A calculation saved while the library gave two parts of one aggregate the
+//  same name and type (#164) lists that key twice in its orbital mapping and
+//  holds only the first part's shells: 6-31G* with no d shell.  No other
+//  save writes a key twice.  Such a group is rebuilt from the library by its
+//  orbital name, which is what a named deck ran with; a group whose
+//  contractions were edited is left as stored, since rebuilding would undo
+//  the edits.  The caller deletes the stored group once every group is
+//  parsed: later groups copy the basis sets it owns.
+static TGBSGroup* repairLostAggregatePart(TGBSGroup* group, const string& tag)
+{
+  const OrbitalMap* orbitals = group->getOrbitalGBSMappings();
+  if (orbitals == 0 || orbitals->size() != 1) return group;
+  const string orbitalName = orbitals->begin()->first;
+  const vector<string>& keys = orbitals->begin()->second;
+  const set<string> storedParts(keys.begin(), keys.end());
+  if (storedParts.size() == keys.size()) return group;
+
+  ElementToGBSInfoMap& info = group->getContractionInfoMap();
+  for (ElementToGBSInfoMap::iterator e = info.begin(); e != info.end(); e++)
+    for (GBSToContInfoMap::iterator g = e->second.begin();
+         g != e->second.end(); g++) {
+      const ContractionInfo& c = g->second;
+      if (find(c.deleteFlags.begin(), c.deleteFlags.end(), true) !=
+              c.deleteFlags.end() ||
+          find(c.uncontractFlags.begin(), c.uncontractFlags.end(), true) !=
+              c.uncontractFlags.end())
+        return group;
+    }
+  FunctionMap* added[2] = { &group->getTightMap(), &group->getDiffuseMap() };
+  for (int m = 0; m < 2; m++)
+    for (FunctionMap::iterator e = added[m]->begin(); e != added[m]->end(); e++)
+      if (find_if(e->second.begin(), e->second.end(),
+                  [](int n) { return n != 0; }) != e->second.end())
+        return group;
+
+  EDSIServerCentral central;
+  EDSIGaussianBasisSetLibrary lib(central.getDefaultBasisSetLibrary());
+  vector<TGaussianBasisSet*> parts =
+      lib.lookup(orbitalName.c_str(), TGaussianBasisSet::UnknownGBSType,
+                 tag.c_str());
+  set<string> freshParts;
+  for (size_t i = 0; i < parts.size(); i++)
+    freshParts.insert(parts[i]->getUniqueKey());
+  if (parts.empty() || freshParts.size() != parts.size()) {
+    for (size_t i = 0; i < parts.size(); i++) delete parts[i];
+    return group;
+  }
+
+  TGBSGroup* repaired = new TGBSGroup;
+  repaired->insertOrbitalGBS(orbitalName, parts, true);
+  //  Fittings and the ECP were stored whole; keep them as they are.
+  for (TGBSGroup::iterator it = group->begin(); it != group->end(); it++)
+    if (it->second != 0 &&
+        storedParts.count(it->second->getUniqueKey()) == 0 &&
+        freshParts.count(it->second->getUniqueKey()) == 0)
+      repaired->insertGBS(new TGaussianBasisSet(*it->second));
+  if (group->ecp() != 0)
+    repaired->insertGBS(new TGaussianBasisSet(*group->ecp()));
+  return repaired;
+}
+
+
 void DavCalculation::parseConfigMapElement(
 	       const DOMDocument& doc,
 	       TGBSConfig* config,
@@ -210,6 +276,7 @@ void DavCalculation::parseConfigMapElement(
 
   // to identify sharing of basis sets between groups
   map<string, TGaussianBasisSet*, less<string> > usedBasisSets;
+  vector<TGBSGroup*> superseded;
 
   // Loop through all the groups in the map, creating groups from basis sets
   // in the cache:
@@ -249,12 +316,19 @@ void DavCalculation::parseConfigMapElement(
     delete [] xStr;
     delete [] tempStr;
     
+    TGBSGroup* repaired = repairLostAggregatePart(group, tag);
+    if (repaired != group) {
+      superseded.push_back(group);
+      group = repaired;
+    }
+
     // add group to config:
 #ifdef DEBUG
     cout << "inserting " << group->name() << " for tag " << tag << endl;
 #endif
     config->insertGBSGroup(tag, group);
   }
+  for (size_t i = 0; i < superseded.size(); i++) delete superseded[i];
 }
 
 

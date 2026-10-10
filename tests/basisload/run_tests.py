@@ -229,6 +229,9 @@ def makeHome(state, port):
                              handle.read())
     if not n or ":8096" in servers:
         sys.exit("siteconfig/DataServers: could not repoint it at :%d" % port)
+    #  As the install does (CMakeLists.txt): the read-time repair of a
+    #  stored basis looks the set up in the default library by this name.
+    servers = servers.replace("eccetera.emsl.pnl.gov", "127.0.0.1")
     with open(os.path.join(home, "siteconfig", "DataServers"), "w") as handle:
         handle.write(servers)
     with open(os.path.join(DATASERVER, "httpd.conf.ecce")) as handle:
@@ -510,6 +513,44 @@ def runComplete(driver, e, base):
     return problems
 
 
+#  The first three were stored by ECCE while #164 was live: the orbital
+#  mapping lists the aggregate's key twice and the data holds 6-31G* without
+#  its d shell.  (fixture, atoms, coordinates, the function count the run's
+#  own output printed.)  CH4: NWChem ("functions = 22") and ORCA ("Number of
+#  basis functions ... 22") both ran 6-31G* by name; water H STO-3G +
+#  O 6-31G*, ORCA 16; water H def2-SVP + O 6-31+G*, Gaussian 16 by name,
+#  "28 basis functions".  CO was stored whole after the fix and must be read
+#  as stored: NWChem, Cartesian, 30.
+STORED_CASES = [
+    ("ch4-631gs-lost-d.ecce_basisset", ["C", "H", "H", "H", "H"],
+     "spherical", 22),
+    ("water-mixed-lost-d.ecce_basisset", ["O", "H", "H"], "spherical", 16),
+    ("water-631pgs-lost-d.ecce_basisset", ["O", "H", "H"], "spherical", 28),
+    ("co-631gs-intact.ecce_basisset", ["C", "O"], "cartesian", 30),
+]
+
+
+def runStored(driver, e, base):
+    problems = []
+    for fixture, atoms, system, want in STORED_CASES:
+        proc = subprocess.run(
+            [driver, base, "--stored", os.path.join(HERE, "fixtures", fixture)]
+            + atoms, env=e, capture_output=True, text=True)
+        m = re.search(r"^FUNCTIONS spherical (\d+) cartesian (\d+)",
+                      proc.stdout, re.M)
+        if proc.returncode != 0 or not m:
+            problems.append("%s: --stored exited %d: %s" % (
+                fixture, proc.returncode, proc.stderr[-300:]))
+            continue
+        got = int(m.group(1 if system == "spherical" else 2))
+        if got != want:
+            problems.append("%s: %d %s functions, the output had %d (%s)" % (
+                fixture, got, system, want,
+                "; ".join(l for l in proc.stdout.splitlines()
+                          if l.startswith("SHELLS"))))
+    return problems
+
+
 def report(label, problems, verbose=False):
     print("  %s %s" % ("FAIL" if problems else "ok  ", label))
     for p in problems:
@@ -560,6 +601,10 @@ def main():
             for case in cases:
                 problems = runCase(driver, e, base, case, args.verbose)
                 failed += report(case[0], problems)
+            failed += report("stored basis sets, including ones that lost "
+                             "their d shell (#265), give the output's "
+                             "function count",
+                             runStored(driver, e, base))
             count, problems = runSweep(driver, e, base, args.verbose, whole)
             failed += report("every multi-file aggregate (%d)" % count,
                              problems or ([] if count else ["none found"]))
