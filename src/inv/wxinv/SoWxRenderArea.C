@@ -131,6 +131,9 @@ SoWxRenderArea::SoWxRenderArea(wxWindow * parent,
   p_glxSize.setValue(0, 0);
 
   p_windowResized = false;
+  p_resizeRedraw.SetOwner(this);
+  Bind(wxEVT_TIMER, [this](wxTimerEvent&) { p_sceneMgr->scheduleRedraw(); },
+       p_resizeRedraw.GetId());
   p_inPaint = false;
   p_redrawPending = false;
   p_frameCB = 0;
@@ -1444,6 +1447,10 @@ void SoWxRenderArea::OnSize(wxSizeEvent& event)
 
   //  sizeChanged(p_glxSize);
   p_sceneMgr->scheduleRedraw();
+  //  Under a compositing window manager the GL back buffer can follow the
+  //  window only after this first frame, which then stays on screen at the
+  //  old size (#275); one more frame once the resize has settled.
+  p_resizeRedraw.StartOnce(150);
 
 #ifdef SOWXDEBUG
   cerr << "Leave SoWxRenderArea::OnSize\n";

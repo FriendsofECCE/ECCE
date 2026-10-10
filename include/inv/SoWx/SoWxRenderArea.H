@@ -290,6 +290,7 @@ private:
   SbBool p_enableDrawToFrontBuffer;
   SbVec2s p_glxSize;
   bool p_windowResized;
+  wxTimer p_resizeRedraw;
 
   bool p_inPaint;
   // Set when Inventor's renderCB fires while a paint is already in
