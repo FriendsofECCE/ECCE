@@ -275,6 +275,13 @@ void EcceTool::toolActivate(bool shiftDown)
  * Builder button).  With the SVG icon the paint draws the bundle, not
  * p_bitmap, so the picture is kept scaled to the icon's size instead.
  */
+void EcceTool::clearBitMap()
+{
+  p_thumbnail = wxBitmap();
+  Refresh();
+}
+
+
 void EcceTool::setBitMap(wxBitmap bitmap)
 {
   p_bitmap = bitmap;

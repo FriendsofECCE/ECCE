@@ -3107,10 +3107,9 @@ void CalcEd::refreshChemSysThumb()
   }
 
   if (restoreStandardBitmap) {
-    ResourceTool *tool = ResourceDescriptor::getResourceDescriptor()
-            .getTool(p_builderTool->GetId());
-    if (tool != (ResourceTool*)0)
-      p_builderTool->setBitMap(ewxBitmap(tool->getIcon(), wxBITMAP_TYPE_XPM));
+    //  The tool's own (SVG) icon; setBitMap would show the old pixmap as
+    //  if it were a thumbnail.
+    p_builderTool->clearBitMap();
   }
 }
 

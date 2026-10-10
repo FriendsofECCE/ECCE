@@ -62,6 +62,7 @@ public:
 
   void toolActivate(bool forceNew);
   void setBitMap(wxBitmap bitmap);
+  void clearBitMap();   // back to the tool's own icon
   const wxString& getLabel() const { return p_label; }
 
 protected:
