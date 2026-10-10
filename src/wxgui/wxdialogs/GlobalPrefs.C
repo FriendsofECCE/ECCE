@@ -21,6 +21,7 @@
 #include "util/TDateTime.H"
 #include "util/UnitFactory.H"
 #include "util/Ecce.H"
+#include "util/RemoteServerDir.H"
 #include "util/LocalData.H"
 
 #include "dsm/ResourceDescriptor.H"
@@ -421,6 +422,20 @@ void GlobalPrefs::createDataPage(wxWindow* page)
 }
 
 
+//  Where this computer keeps the calculations the next start uses: the
+//  folder, or the own data server's files; "" when they are on a server
+//  elsewhere and there is nothing here to open.
+static string dataFolderToOpen(bool folderMode)
+{
+  if (folderMode) return LocalData::prefFolder();
+  if (wxFileExists(remoteServerDir() + "/DataServers")) return "";
+  string top = string(Ecce::realUserPrefPath()) + "dataserver/htdocs/Ecce";
+  string mine = top + "/users/" + Ecce::serverUser();
+  if (wxDirExists(mine)) return mine;
+  return wxDirExists(top) ? top : "";
+}
+
+
 // The page shows the preference, which is what the NEXT start uses; the
 // running session keeps the mode it started in.
 void GlobalPrefs::updateDataPage()
@@ -434,7 +449,11 @@ void GlobalPrefs::updateDataPage()
   //  can still be opened, since its calculations stay there.
   p_localFolder->Enable(on);
   p_changeFolder->Enable(on);
-  p_openFolder->Enable(wxDirExists(folder));
+  string shown = dataFolderToOpen(on);
+  p_openFolder->Enable(!shown.empty() && wxDirExists(shown));
+  p_openFolder->SetToolTip(shown.empty() ?
+      _("Your calculations are on a server on another computer.") :
+      wxString::FromUTF8(shown.c_str()));
 
   string note =
       "The folder holds your projects and calculations. A change takes\n"
@@ -497,7 +516,8 @@ void GlobalPrefs::OnChangeDataFolder(wxCommandEvent& event)
 
 void GlobalPrefs::OnOpenDataFolder(wxCommandEvent& event)
 {
-  string folder = LocalData::prefFolder();
+  string folder = dataFolderToOpen(p_localData->GetValue());
+  if (folder.empty()) return;
 #ifdef __WXMSW__
   // There is no xdg-open; Explorer opens it (no console window either).
   wxString path = wxString::FromUTF8(folder.c_str());
