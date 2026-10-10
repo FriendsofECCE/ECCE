@@ -20,8 +20,10 @@ the second page.
    of a first laboratory, ready in the Structure Library at their measured
    bond lengths.
 
-6. [Running codes on macOS](running-codes-on-macos.md): MOPAC, ORCA and NWChem
+7. [Running codes on macOS](running-codes-on-macos.md): MOPAC, ORCA and NWChem
    on a Mac, without administrator rights.
+8. [Running codes on Windows](running-codes-on-windows.md): MOPAC and ORCA
+   on a Windows PC, and Microsoft MPI for ORCA on more than one core.
 
 Reference:
 
