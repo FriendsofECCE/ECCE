@@ -288,6 +288,16 @@ args:    '.' 'Geometry' 'SCF' 'RHF' '0'
       values: -0.330530 0.165265 0.165265
       units: e
 
+[LOEWDIN]  Script=orca.loewdin  Freq=last  Skip=2  Lines=-
+  Begin=LOEWDIN ATOMIC CHARGES
+  End=LOEWDIN REDUCED ORBITAL CHARGES
+  begins=2 delivered=1 buffered_away=1
+  block 1: begin-line=2103 fed=6 rc=0 first-fed='   0 O :   -0.231553'
+    key: LOEWDIN
+      size: 3
+      values: -0.231553 0.115776 0.115776
+      units: e
+
 [DELTAE]  Script=orca.deltae  Freq=all  Skip=0  Lines=1
   Begin=^\s*\d+\s+-?\d+\.\d+\s+-?\d+\.\d+[eE][+-]\d+
   begins=28 delivered=28 buffered_away=0

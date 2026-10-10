@@ -16,7 +16,8 @@ class WxColorSchemeButton;
 class wxTreeListCtrl;
 
 /**
- * UI Panel to display Mulliken and Mulliken Shell Charges.
+ * UI Panel to display Mulliken and Mulliken Shell Charges, and the same
+ * view of any other per-atom charge property (Loewdin, Hirshfeld, NPA, ...).
  * The UI shows the values of shell charges but the visualization
  * shows only the total atomic charges.
  */
@@ -89,6 +90,9 @@ class MullikenPanel : public VizPropertyPanel,
      float *p_blue;
 
      bool p_internalSelect;
+
+     // property shown, from the descriptor entry (MULLIKEN, LOEWDIN, ...)
+     string p_key;
 
 
 

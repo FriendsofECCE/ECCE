@@ -154,6 +154,16 @@ args:    '.' 'Magnetic' 'SCF' 'RHF' '0'
       values: -0.365061 0.182530 0.182530
       units: e
 
+[ESPFIT]  Script=gaussian-16.espfit  Freq=last  Skip=2  Lines=-
+  Begin= ESP charges\:
+  End= Sum of ESP
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=403 fed=4 rc=0 first-fed='     1  O   -0.612920'
+    key: ESPFIT
+      size: 3
+      values: -0.612920 0.306460 0.306460
+      units: e
+
 [ESCF1][ESCFVEC]  Script=gaussian-16.energy  Freq=all  Skip=0  Lines=1
   Begin=SCF Done\:
   begins=1 delivered=1 buffered_away=0

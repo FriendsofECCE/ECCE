@@ -205,6 +205,16 @@ args:    '.' 'Vibration' 'SCF' 'RHF' '0'
       values: 0.200727 -0.200727
       units: e
 
+[APT]  Script=gaussian-16.apt  Freq=last  Skip=2  Lines=-
+  Begin= APT charges\:
+  End= Sum of APT
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=456 fed=3 rc=0 first-fed='     1  C    0.152597'
+    key: APT
+      size: 2
+      values: 0.152597 -0.152597
+      units: e
+
 [ESCF1][ESCFVEC]  Script=gaussian-16.energy  Freq=all  Skip=0  Lines=1
   Begin=SCF Done\:
   begins=1 delivered=1 buffered_away=0

@@ -1,0 +1,7 @@
+#!/usr/bin/env perl
+# HIRSHFELD atomic charges, one per atom; row parsing is in atomcharges.pl.
+$| = 1;
+use FindBin;
+require "$FindBin::Bin/atomcharges.pl";
+&emitCharges("HIRSHFELD", &chargeRows());
+exit(0);

@@ -1,0 +1,7 @@
+#!/usr/bin/env perl
+# MBIS atomic charges, one per atom; row parsing is in atomcharges.pl.
+$| = 1;
+use FindBin;
+require "$FindBin::Bin/atomcharges.pl";
+&emitCharges("MBIS", &chargeRows());
+exit(0);

@@ -188,6 +188,69 @@
   </PropertyPanel>
 
   <PropertyPanel>
+    <name>Loewdin Charges</name>
+    <group>Charges</group>
+    <class>MullikenPanel</class>
+    <consumer>true</consumer>
+    <allowPin>false</allowPin>
+    <property name="LOEWDIN"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Hirshfeld Charges</name>
+    <group>Charges</group>
+    <class>MullikenPanel</class>
+    <consumer>true</consumer>
+    <allowPin>false</allowPin>
+    <property name="HIRSHFELD"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>CM5 Charges</name>
+    <group>Charges</group>
+    <class>MullikenPanel</class>
+    <consumer>true</consumer>
+    <allowPin>false</allowPin>
+    <property name="CM5"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>MBIS Charges</name>
+    <group>Charges</group>
+    <class>MullikenPanel</class>
+    <consumer>true</consumer>
+    <allowPin>false</allowPin>
+    <property name="MBIS"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Natural (NPA) Charges</name>
+    <group>Charges</group>
+    <class>MullikenPanel</class>
+    <consumer>true</consumer>
+    <allowPin>false</allowPin>
+    <property name="NPA"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>APT Charges</name>
+    <group>Charges</group>
+    <class>MullikenPanel</class>
+    <consumer>true</consumer>
+    <allowPin>false</allowPin>
+    <property name="APT"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>ESP-Fitted Charges</name>
+    <group>Charges</group>
+    <class>MullikenPanel</class>
+    <consumer>true</consumer>
+    <allowPin>false</allowPin>
+    <property name="ESPFIT"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
     <name>MOs</name>
     <group>Orbitals</group>
     <class>MoPanel</class>

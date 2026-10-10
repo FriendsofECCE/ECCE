@@ -44,4 +44,12 @@ foreach my $v (@values) { print "$v\n"; }
 print "units:\ne\n";
 print "END\n";
 
+# The same numbers as a PropVector<Atom>, which is what the charge panel
+# that colours the molecule reads.
+print "key: ESPFIT\n";
+print "size:\n$n\n";
+print "values:\n" . join(" ", @values) . "\n";
+print "units:\ne\n";
+print "END\n";
+
 exit(0);

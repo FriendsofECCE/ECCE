@@ -34,6 +34,7 @@
 #include "wxviz/WxVizToolFW.H"
 
 #include "MullikenPanel.H"
+#include "PropertyPanelFactory.H"
 
   using std::find;
 
@@ -146,6 +147,12 @@ bool MullikenPanel::Create(IPropCalculation *calculation,
     wxFAIL_MSG( wxT("MullikenPanel creation failed") );
     return false;
   }
+
+  // One class serves every atomic-charge scheme (Mulliken, Loewdin, ...);
+  // the descriptor entry that created us names the property it shows.
+  p_key = "MULLIKEN";
+  if (getDescription() && !getDescription()->properties.empty())
+    p_key = *getDescription()->properties.begin();
 
   if (!GetSizer())
     SetSizer(new wxBoxSizer(wxVERTICAL));
@@ -278,7 +285,7 @@ void MullikenPanel::fillUI()
   double min = std::numeric_limits<double>::max();
   double max = std::numeric_limits<double>::min();
   // Get the main property
-  PropVector *vec =  (PropVector*) calc->getProperty("MULLIKEN");
+  PropVector *vec =  (PropVector*) calc->getProperty(p_key);
   if (vec != (PropVector*)0) {
 
      // Get unit information
@@ -294,7 +301,8 @@ void MullikenPanel::fillUI()
      if (frag) {
 
         // Get the shell charges and basis info if the shel charges exist
-        PropVector *svec =  (PropVector*) calc->getProperty("MLKNSHELL");
+        PropVector *svec = (p_key == "MULLIKEN") ?
+           (PropVector*) calc->getProperty("MLKNSHELL") : (PropVector*)0;
         TGBSConfig *config = (TGBSConfig*)0;
         if (svec) {
            // Need the basis set too
@@ -327,7 +335,7 @@ void MullikenPanel::fillUI()
            if (value < min) min = value;
            p_treelist->SetItemText (item, 1, wxString::Format (_T("%d"), idx+1));
            p_treelist->SetItemText (item, 2, symLabel.c_str());
-           p_treelist->SetItemText (item, 3, "total atomic");
+           p_treelist->SetItemText (item, 3, p_key == "MULLIKEN" ? "total atomic" : "atomic");
            p_treelist->SetItemText (item, 4, wxString::Format (PrefLabels::DOUBLEFORMAT, value));
 
 
@@ -558,7 +566,7 @@ void MullikenPanel::OnAssign(wxCommandEvent& event)
    TAtm *atom;
 
    IPropCalculation *pcalc = getCalculation();
-   PropVector *vec =  (PropVector*) pcalc->getProperty("MULLIKEN");
+   PropVector *vec =  (PropVector*) pcalc->getProperty(p_key);
    if (vec != (PropVector*)0) {
      int nRows = vec->rows();
      for (int idx=0; idx<nRows; idx++) {

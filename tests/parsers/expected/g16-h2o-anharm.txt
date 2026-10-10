@@ -467,6 +467,16 @@ args:    '.' 'Vibration' 'DFT' 'B3LYP' '0'
       values: -0.368181 0.187249 0.180932
       units: e
 
+[APT]  Script=gaussian-16.apt  Freq=last  Skip=2  Lines=-
+  Begin= APT charges\:
+  End= Sum of APT
+  begins=7 delivered=1 buffered_away=6
+  block 1: begin-line=2690 fed=4 rc=0 first-fed='     1  O   -0.165937'
+    key: APT
+      size: 3
+      values: -0.165937 0.084484 0.081453
+      units: e
+
 [FERMICON]  Script=gaussian-16.fermicon  Freq=first  Skip=2  Lines=-
   Begin=Fermi
   End=-------------------

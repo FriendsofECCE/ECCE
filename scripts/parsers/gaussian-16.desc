@@ -210,6 +210,43 @@ Frequency=all
 End= Sum of Mulliken
 [END]
 
+# Only printed on request: APT with Freq, ESP charges with Pop=MK/CHELPG/HLY
+# (the label is "ESP charges" for all three), Hirshfeld and CM5 with
+# Pop=Hirshfeld/CM5 (one table, two columns), NPA with Pop=NPA.  Begin for
+# the Hirshfeld table must not match "Hirshfeld charges with hydrogens
+# summed", which comes right after it.
+[APT]
+Script=gaussian-16.apt
+Begin= APT charges\:
+Skip=2
+Frequency=last
+End= Sum of APT
+[END]
+
+[ESPFIT]
+Script=gaussian-16.espfit
+Begin= ESP charges\:
+Skip=2
+Frequency=last
+End= Sum of ESP
+[END]
+
+[HIRSHFELD][CM5]
+Script=gaussian-16.hirshfeld
+Begin= Hirshfeld charges, spin densities
+Skip=2
+Frequency=last
+End=^\s+Tot\s
+[END]
+
+[NPA]
+Script=gaussian-16.npa
+Begin= Summary of Natural Population Analysis
+Skip=1
+Frequency=last
+End=\* Total \*
+[END]
+
 [FERMICON]
 Script=gaussian-16.fermicon
 Begin=Fermi

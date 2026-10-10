@@ -286,6 +286,13 @@ Delta		Delta					DELTA		Percent		PropValue
 #
 Charge		Mulliken Charges			MULLIKEN	Charge		PropVector<Atom>
 Charge		Mulliken Shell Charges			MLKNSHELL	Charge		PropVector<Unknown>
+Charge		Loewdin Charges			LOEWDIN	Charge		PropVector<Atom>
+Charge		Hirshfeld Charges			HIRSHFELD	Charge		PropVector<Atom>
+Charge		CM5 Charges			CM5	Charge		PropVector<Atom>
+Charge		MBIS Charges			MBIS	Charge		PropVector<Atom>
+Charge		Natural (NPA) Charges			NPA	Charge		PropVector<Atom>
+Charge		APT Charges			APT	Charge		PropVector<Atom>
+Charge		ESP-Fitted Charges			ESPFIT	Charge		PropVector<Atom>
 Charge		Electron Density at Nuclei		EDENS		EFieldGrad	PropVector<Atom>
 Charge		Fermi Contact				FERMI		MHertz		PropVector<Atom>
 Charge		ESP Charge Fitting			ESPCHARGE	Charge		PropTable<Atom,Charge>

@@ -646,6 +646,18 @@ run job whatsoever -- see `expt_cases.NOTES`.
 
 ---
 
+## Partial-charge fixtures (#272), 2026-10-10
+
+Same niobium, same versions, scratch paths and user/host names replaced.
+
+* `gaussian-16/h2o_pop_charges` -- `HF/STO-3G Freq Pop=(Full,NPA,Hirshfeld,CM5,MK)`:
+  APT, ESP (Merz-Kollman) and NPA blocks. Hirshfeld/CM5 print nothing here.
+* `gaussian-16/h2o_hirshfeld_cm5` -- `B3LYP/6-31G(d) Pop=CM5`: the combined
+  Hirshfeld/CM5 table.
+* `orca/h2o_hirshfeld_mbis` -- `! RHF STO-3G Hirshfeld CHELPG MBIS`.
+
+---
+
 ## ecceqm/
 
 `ecce-qm 0.1` (the built-in engine, `src/qm`), captured on **niobium** on

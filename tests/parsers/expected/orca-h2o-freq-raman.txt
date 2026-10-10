@@ -87,6 +87,16 @@ args:    '.' 'Vibration' 'SCF' 'RHF' '0'
       values: -0.347039 0.173520 0.173520
       units: e
 
+[LOEWDIN]  Script=orca.loewdin  Freq=last  Skip=2  Lines=-
+  Begin=LOEWDIN ATOMIC CHARGES
+  End=LOEWDIN REDUCED ORBITAL CHARGES
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=592 fed=6 rc=0 first-fed='   0 O :   -0.155534'
+    key: LOEWDIN
+      size: 3
+      values: -0.155534 0.077767 0.077767
+      units: e
+
 [VIBFREQ]  Script=orca.vibfreq  Freq=last  Skip=4  Lines=-
   Begin=VIBRATIONAL FREQUENCIES
   End=^-{4,}\s*$

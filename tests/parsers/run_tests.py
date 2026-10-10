@@ -366,6 +366,14 @@ def run_case(case, res, verbose=False):
                           where, '[%s] %s values = %r, expected to contain %r'
                           % (typ, key, flat.get('values', ''),
                              want['values_contain']))
+            if 'sum' in want:
+                # Partial charges: the total, as the code prints it, to the
+                # rounding of the printed digits.
+                tot = sum(float(v) for v in flat.get('values', '').split())
+                res.check(abs(tot - want['sum']) < 5e-5 * max(
+                              1, len(flat.get('values', '').split())),
+                          where, '[%s] %s sums to %.6f, expected %s'
+                          % (typ, key, tot, want['sum']))
             if 'units' in want:
                 res.check(flat.get('units', '') == want['units'], where,
                           '[%s] %s units = %r, expected %r'

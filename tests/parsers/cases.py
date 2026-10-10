@@ -861,11 +861,13 @@ CASES = [
             #  buffers the other four away -- the golden file records
             #  begins=5 delivered=1 buffered_away=4, which is the real
             #  assertion that all five were seen and the last one won.
-            'ESPCHARGE': dict(blocks=1, keys={
+            'ESPCHARGE][ESPFIT': dict(blocks=1, keys={
                 'ESPCHARGE': {'size': '3 1',
                               'rowlabels': '0-O 1-H 2-H',
                               'values': '-0.566360 0.283186 0.283175',
-                              'units': 'e'}}),
+                              'units': 'e'},
+                'ESPFIT': {'size': '3', 'sum': 0.0,
+                           'values': '-0.566360 0.283186 0.283175'}}),
         },
     ),
     dict(
@@ -984,7 +986,7 @@ CASES = [
                               '27.026 30.232 43.780',
                     'units': 'ppm'},
             }),
-            'ESPCHARGE': dict(blocks=1, keys={'ESPCHARGE': {
+            'ESPCHARGE][ESPFIT': dict(blocks=1, keys={'ESPCHARGE': {
                 'size': '3 1',
                 'rowlabels': '0-O 1-H 2-H',
                 'values': '-0.618788 0.309403 0.309386',
@@ -1702,6 +1704,94 @@ CASES = [
             'MOBETA': dict(keys={'MOBETA': {'size': '10 10'}}),
         },
     ),
+    # -----------------------------------------------------------------
+    # Partial charges beyond Mulliken (#272).  Every value below is read off
+    # the printed block; 'sum' is the molecule's total charge (0).
+    # -----------------------------------------------------------------
+    dict(
+        #  RHF/STO-3G water with ! Hirshfeld CHELPG MBIS.  Loewdin is
+        #  printed unasked; the others only on request.  CHELPG feeds the
+        #  ESPFIT vector as well as the older ESPCHARGE table.
+        name='orca-h2o-hirshfeld-mbis',
+        desc='orca.desc',
+        fixture='orca/h2o_hirshfeld_mbis.out',
+        parse_args=('.', 'Energy', 'SCF', 'RHF', '0'),
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym, so no Irrep column'},
+        expect={
+            'LOEWDIN': dict(keys={'LOEWDIN': {
+                'size': '3', 'values': '-0.253314 0.126657 0.126657',
+                'sum': 0.0, 'units': 'e'}}),
+            'HIRSHFELD': dict(keys={'HIRSHFELD': {
+                'size': '3', 'values': '-0.311560 0.155782 0.155782',
+                'sum': 0.0, 'units': 'e'}}),
+            'MBIS': dict(keys={'MBIS': {
+                'size': '3', 'values': '-0.589391 0.294697 0.294697',
+                'sum': 0.0, 'units': 'e'}}),
+            'ESPCHARGE][ESPFIT': dict(keys={'ESPFIT': {
+                'size': '3', 'values': '-0.619444 0.309729 0.309715',
+                'sum': 0.0, 'units': 'e'}}),
+        },
+    ),
+    dict(
+        #  UHF: ORCA prints charge and spin columns; only the charge may
+        #  be taken, and Loewdin has no "Sum" line to stop on.
+        name='orca-oh-uhf-loewdin',
+        desc='orca.desc',
+        fixture='orca/oh_uhf.out',
+        parse_args=('.', 'Energy', 'SCF', 'UHF', '1'),
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym, so no Irrep column'},
+        expect={
+            'LOEWDIN': dict(keys={'LOEWDIN': {
+                'size': '2', 'values': '-0.109515 0.109515', 'sum': 0.0}}),
+        },
+    ),
+    dict(
+        #  HF/STO-3G Freq Pop=(Full,NPA,Hirshfeld,CM5,MK): APT, the
+        #  Merz-Kollman ESP fit and NPA.  (Hirshfeld/CM5 print nothing
+        #  here -- Gaussian wants Pop=Hirshfeld or Pop=CM5 on its own;
+        #  see the next case.)
+        name='g16-h2o-pop-charges',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/h2o_pop_charges.log',
+        parse_args=('.', 'Vibration', 'SCF', 'RHF', '0'),
+        silent_ok={
+            'DELTAE': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'RMSDP': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'ESCF1][ESCFVEC': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'EGRAD': 'runtype-gated to /Geo/i (see g16-co-freq).',
+        },
+        expect={
+            'APT': dict(keys={'APT': {
+                'size': '3', 'values': '-0.210563 0.105282 0.105282',
+                'sum': 0.0, 'units': 'e'}}),
+            'ESPFIT': dict(keys={'ESPFIT': {
+                'size': '3', 'values': '-0.614670 0.307335 0.307335',
+                'sum': 0.0, 'units': 'e'}}),
+            'NPA': dict(keys={'NPA': {
+                'size': '3', 'values': '-0.39526 0.19763 0.19763',
+                'sum': 0.0, 'units': 'e'}}),
+        },
+    ),
+    dict(
+        #  B3LYP/6-31G(d) Pop=CM5: one table, Q-H first and Q-CM5 last.
+        name='g16-h2o-hirshfeld-cm5',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/h2o_hirshfeld_cm5.log',
+        parse_args=('.', 'Energy', 'DFT', 'B3LYP', '0'),
+        silent_ok={
+            'DELTAE': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'RMSDP': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'ESCF1][ESCFVEC': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'EGRAD': 'runtype-gated to /Geo/i (see g16-co-freq).',
+        },
+        expect={
+            'HIRSHFELD][CM5': dict(keys={
+                'HIRSHFELD': {'size': '3', 'sum': 0.0, 'units': 'e',
+                              'values': '-0.323144 0.161572 0.161572'},
+                'CM5': {'size': '3', 'sum': 0.0, 'units': 'e',
+                        'values': '-0.659188 0.329594 0.329594'}}),
+        },
+    ),
 ]
 
 
@@ -1823,6 +1913,9 @@ KNOWN_KEY_ALIASES = {
         "Script=gaussian-16.db parses Gaussian's archive block and emits "
         "whatever it finds there (TE, ESCF, CPUSEC, S2, S2A, POLARIZ, ...); "
         "the bracket names are just this entry's section label.",
+    ('gaussian-16.desc', 'POLARIZ2][HYPERPOL1'):
+        "Same script and reason as POLARIZ1][HYPERPOL1: in a job without "
+        "polar= the archive block yields only CPUSEC/ESCF.",
     ('gaussian-16.desc', 'FERMICON'):
         "Script=gaussian-16.fermicon emits the property key FERMI; FERMICON "
         "is the section label only.",
@@ -1914,6 +2007,12 @@ KNOWN_DEAD = {
 # "this can never work", which is the distinction that matters when a
 # property turns out to be missing in the field.
 UNCOVERED = {
+    #  NPA from ORCA needs the licensed NBO program, whose output may not
+    #  be checked in.  The block is NBO's own text, the same as Gaussian's
+    #  NPA, which g16-h2o-pop-charges covers through the same parse script.
+    ('orca.desc', 'NPA'):
+        "Needs ORCA run with ! NBO (licensed NBO 7, output not committable); "
+        "same block and script logic as gaussian-16's [NPA].",
     #  Still UNCOVERED rather than dead, but with a caveat worth having.
     #  An attempt to produce a fixture on 2026-09-22 -- a Gaussian-basis
     #  periodic SCF ("system crystal", LiH, STO-3G) against NWChem 7.2.3

@@ -120,6 +120,16 @@ args:    '.' 'Magnetic' 'SCF' 'RHF' '0'
       values: -0.365753 0.182876 0.182876
       units: e
 
+[LOEWDIN]  Script=orca.loewdin  Freq=last  Skip=2  Lines=-
+  Begin=LOEWDIN ATOMIC CHARGES
+  End=LOEWDIN REDUCED ORBITAL CHARGES
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=608 fed=6 rc=0 first-fed='   0 O :   -0.253023'
+    key: LOEWDIN
+      size: 3
+      values: -0.253023 0.126511 0.126511
+      units: e
+
 [DELTAE]  Script=orca.deltae  Freq=all  Skip=0  Lines=1
   Begin=^\s*\d+\s+-?\d+\.\d+\s+-?\d+\.\d+[eE][+-]\d+
   begins=8 delivered=8 buffered_away=0
@@ -172,7 +182,7 @@ args:    '.' 'Magnetic' 'SCF' 'RHF' '0'
       size: 1
       values: 0
 
-[ESPCHARGE]  Script=orca.espcharge  Freq=last  Skip=2  Lines=-
+[ESPCHARGE][ESPFIT]  Script=orca.espcharge  Freq=last  Skip=2  Lines=-
   Begin=CHELPG Charges
   End=Total charge:
   begins=1 delivered=1 buffered_away=0
@@ -181,6 +191,10 @@ args:    '.' 'Magnetic' 'SCF' 'RHF' '0'
       size: 3 1
       rowlabels: 0-O 1-H 2-H
       columnlabels: Charge
+      values: -0.618788 0.309403 0.309386
+      units: e
+    key: ESPFIT
+      size: 3
       values: -0.618788 0.309403 0.309386
       units: e
 
