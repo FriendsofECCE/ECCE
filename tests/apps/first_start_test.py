@@ -146,6 +146,9 @@ class Stub(http.server.BaseHTTPRequestHandler):
 httpd = http.server.HTTPServer(("127.0.0.1", 0), Stub)
 threading.Thread(target=httpd.serve_forever, daemon=True).start()
 port = httpd.server_address[1]
+brk = socket.socket()           # stands in for the server's broker
+brk.bind(("127.0.0.1", 0))
+brk.listen(5)
 
 
 def apply(env, answer):
@@ -160,6 +163,7 @@ def prefstate(env):
 
 
 env, user, ehome = fresh("apply")
+env["ECCE_BROKER_PORT"] = str(brk.getsockname()[1])
 with open(ehome + "/siteconfig/DataServers", "w") as f:
     f.write("<DataServers><Server><Url>http://localhost:8096/Ecce</Url>"
             "<Desc>local</Desc></Server></DataServers>\n")

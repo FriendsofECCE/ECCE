@@ -12,6 +12,7 @@ listener).  Linux, macOS and Windows; exit 77 without wxPython.
 import http.server
 import os
 import shutil
+import socket
 import subprocess
 import sys
 import threading
@@ -46,6 +47,16 @@ httpd = http.server.HTTPServer(("127.0.0.1", 0), Stub)
 threading.Thread(target=httpd.serve_forever, daemon=True).start()
 port = httpd.server_address[1]
 
+# A listener standing in for the broker (the window checks it is reachable).
+brk = socket.socket()
+brk.bind(("127.0.0.1", 0))
+brk.listen(5)
+broker_port = brk.getsockname()[1]
+dead = socket.socket()          # a port nothing answers on
+dead.bind(("127.0.0.1", 0))
+dead_port = dead.getsockname()[1]
+dead.close()
+
 
 def fresh(name):
     base = os.path.join(scratch, name)
@@ -58,7 +69,7 @@ def fresh(name):
         f.write("<DataServers><Server><Url>http://localhost:8096/Ecce</Url>"
                 "<Desc>local</Desc></Server></DataServers>\n")
     env = {k: v for k, v in os.environ.items() if not k.startswith("ECCE_")}
-    env.update(ECCE_HOME=ehome, ECCE_REALUSERHOME=user,
+    env.update(ECCE_HOME=ehome, ECCE_REALUSERHOME=user, ECCE_BROKER_PORT=str(broker_port),
                PATH=os.path.dirname(localdata) + os.pathsep + os.environ.get("PATH", ""))
     return env, user
 
@@ -128,6 +139,48 @@ env, user = fresh("refused")
 r = window(env, "server:127.0.0.1:1")
 check(r.returncode == 4 and not os.path.exists(os.path.join(user, ".ECCE", "RemoteServer", "DataServers")),
       "window, a server that does not answer is refused and writes nothing (rc=%d)" % r.returncode)
+
+# The address field: the last server after switching to this computer; with
+# a server package and nothing set up, this computer.
+env2, user2 = fresh("prefill")
+r = window(env2, "server:127.0.0.1:%d" % port)
+r = window(env2, "local")
+r = window(env2, "continue")
+check("address 127.0.0.1\n" in r.stderr,
+      "address prefilled with the last server after switching to local (%s)" % r.stderr.strip())
+env2, user2 = fresh("prefill-srv")
+open(os.path.join(env2["ECCE_HOME"], "bin", "ecce-dataserver-start"), "w").close()
+r = window(env2, "continue")
+check("address localhost\n" in r.stderr,
+      "address prefilled with localhost when the server package is installed (%s)" % r.stderr.strip())
+
+# This computer with the server package and no broker answering: the
+# per-user data server, as for a user who never saw the window.
+env2, user2 = fresh("thiscomputer")
+open(os.path.join(env2["ECCE_HOME"], "bin", "ecce-dataserver-start"), "w").close()
+env2["ECCE_BROKER_PORT"] = str(dead_port)
+r = window(env2, "server:localhost")
+check(r.returncode == 0 and not os.path.exists(os.path.join(user2, ".ECCE", "RemoteServer"))
+      and pref(env2) == "off" and os.path.exists(os.path.join(user2, ".ECCE", "first-start-answer")),
+      "server:localhost with a server package and no broker: per-user data server (rc=%d %s)"
+      % (r.returncode, r.stderr.strip()))
+# ... but a broker answering there means a central server: connect as a client.
+env2, user2 = fresh("thiscomputer-central")
+open(os.path.join(env2["ECCE_HOME"], "bin", "ecce-dataserver-start"), "w").close()
+r = window(env2, "server:localhost:%d" % port)
+check(r.returncode == 0 and os.path.exists(os.path.join(user2, ".ECCE", "RemoteServer", "DataServers")),
+      "server:localhost with a broker answering: connected as a client (rc=%d %s)"
+      % (r.returncode, r.stderr.strip()))
+
+# A data server that answers on a host whose broker does not: refused, nothing written.
+env2, user2 = fresh("nobroker")
+env2["ECCE_BROKER_PORT"] = str(dead_port)
+r = window(env2, "server:127.0.0.1:%d" % port)
+check(r.returncode == 4 and "message broker" in r.stderr
+      and not os.path.exists(os.path.join(user2, ".ECCE", "RemoteServer"))
+      and pref(env2) == "unset",
+      "a server whose broker does not answer is refused, nothing written (rc=%d %s)"
+      % (r.returncode, r.stderr.strip()))
 
 httpd.shutdown()
 sys.exit(1 if failures else 0)

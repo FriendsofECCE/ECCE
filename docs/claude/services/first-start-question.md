@@ -73,3 +73,15 @@ to `tests/apps/first_start_test.py`.
   input. The suite's isolated user (`tests/apps/isolate.py`) has a recorded
   answer, so the other cases are not asked. `tests/apps/session_end.py
   first-local first-server` drive it through the real `ecce`.
+- "Connect to a server" (#259): the address field is prefilled with the active
+  server, else the last one (`~/.ECCE/RemoteServer.off/DataServers`), else
+  `localhost` when `ecce-dataserver-start` is in `$ECCE_HOME/bin`. An address
+  that is this computer, with the server package and nothing answering on the
+  broker port (8088, `ECCE_BROKER_PORT`), is the per-user data server, the
+  same state as "here" (no RemoteServer, LocalData preference off), not a
+  client connection; a broker answering there is a central server, and it
+  connects as a client. Any other address must also answer on the broker port
+  (8883 when the setup chose TLS) or it is refused with nothing written.
+  Tests that connect to a stub data server need a listener on
+  `ECCE_BROKER_PORT`. `ecce-localdata` defaults `ECCE_REALUSERHOME` to `$HOME`
+  (USERPROFILE) so the script can call it outside a session.
