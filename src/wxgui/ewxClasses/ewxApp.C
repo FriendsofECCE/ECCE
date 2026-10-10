@@ -206,19 +206,35 @@ void ewxApp::OnAbout(wxCommandEvent& WXUNUSED(event))
    wxAboutDialogInfo info;
    info.SetName("ECCE");
    info.SetVersion(Ecce::ecceVersion());
-   info.SetDescription(_("Extensible Computational Chemistry Environment\n\n"
-      "Originally developed at the Environmental Molecular Sciences "
-      "Laboratory (EMSL), Pacific Northwest National Laboratory, operated "
-      "for the U.S. Department of Energy by Battelle. Neither Pacific "
-      "Northwest National Laboratory, Battelle Memorial Institute nor the "
-      "U.S. Department of Energy is responsible for, or endorses, the "
-      "modifications made since 2012."));
+   info.SetDescription(wxString::FromUTF8("Extensible Computational Chemistry Environment: "
+      "build molecules, set up and run calculations, and look at the "
+      "results.\n\n"
+      "ECCE was created at the Environmental Molecular Sciences Laboratory "
+      "(EMSL) of Pacific Northwest National Laboratory, from 1994, as a "
+      "problem-solving environment for computational chemistry: one program "
+      "to build a molecule, set up a calculation, run it on a remote "
+      "computer, and keep and analyse the results. A new code is added by "
+      "registering it, describing how to write its input, run it and read "
+      "its results, rather than by changing ECCE itself. PNNL made ECCE "
+      "open source, and its last version, 7.0, appeared in 2013.\n\n"
+      "Since 2017, ECCE has been maintained as the FriendsofECCE project on "
+      "GitHub by C. Andr\xC3\xA9 Ohlin (Ume\xC3\xA5 University) and Matthew "
+      "Asplund (Brigham Young University). In 2018 PNNL's ECCE website "
+      "pointed its users to the project. Since 2026 ECCE has been rebuilt "
+      "for current systems (version 8), and as a client and server with "
+      "native clients for Windows and macOS and a built-in quantum "
+      "chemistry program (version 9).\n\n"
+      "Neither Pacific Northwest National Laboratory, Battelle Memorial "
+      "Institute nor the U.S. Department of Energy is responsible for, or "
+      "endorses, the modifications made since 2012.\n\n"
+      "Report problems: start ecce --bug and attach the archive to an issue "
+      "at github.com/FriendsofECCE/ECCE."));
    info.SetCopyright(wxString::FromUTF8(
       "Copyright \xC2\xA9 1994-2012 Pacific Northwest National Laboratory, "
       "Battelle Memorial Institute.\n"
-      "Copyright \xC2\xA9 2017-2026 CA Ohlin."));
+      "Copyright \xC2\xA9 2017-2026 C. Andr\xC3\xA9 Ohlin."));
    info.SetWebSite("https://github.com/FriendsofECCE/ECCE");
-   info.AddDeveloper("CA Ohlin");
+   info.AddDeveloper(wxString::FromUTF8("C. Andr\xC3\xA9 Ohlin (maintainer)"));
    info.AddDeveloper("Matthew Asplund");
    info.AddArtist(_("Icons: Lucide contributors (ISC licence), "
                     "https://lucide.dev"));
