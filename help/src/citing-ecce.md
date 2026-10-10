@@ -7,7 +7,7 @@ the software is used, which helps keep it maintained.
 
 Cite the DOI for all versions of ECCE:
 
-> C. André Ohlin, Matthew Asplund and FriendsofECCE, *ECCE: Extensible
+> C. André Ohlin and Matthew Asplund, *ECCE: Extensible
 > Computational Chemistry Environment*, Zenodo,
 > [https://doi.org/10.5281/zenodo.23281771](https://doi.org/10.5281/zenodo.23281771).
 
@@ -19,7 +19,7 @@ BibTeX:
 
 ```
 @software{ECCE,
-  author    = {Ohlin, C. Andr{\'e} and Asplund, Matthew and {FriendsofECCE}},
+  author    = {Ohlin, C. Andr{\'e} and Asplund, Matthew},
   title     = {{ECCE}: Extensible Computational Chemistry Environment},
   publisher = {Zenodo},
   doi       = {10.5281/zenodo.23281771},

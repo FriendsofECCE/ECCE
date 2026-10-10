@@ -15,7 +15,6 @@ authors:
   - given-names: Matthew
     family-names: Asplund
     affiliation: Brigham Young University
-  - name: FriendsofECCE
 version: 9.0.0-beta.1
 date-released: 2026-10-10
 doi: 10.5281/zenodo.23281771
