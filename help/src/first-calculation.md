@@ -52,7 +52,7 @@ Creation** if you prefer that.)
 2. Choose **Tools > Builder...** (Ctrl+B).
 
 The Builder opens on this calculation. (If you have not used the Builder
-before, [Looking at a file](looking-at-a-file.md) shows how to open existing
+before, [Importing a structure](importing-a-structure.md) shows how to open existing
 structure files in it.) To add water from the structure
 library:
 
@@ -188,7 +188,7 @@ reported.
 2. Choose **Tools > Viewer...** (Ctrl+R).
 
 The Viewer shows the final geometry. (The same Viewer shows the output of a
-calculation run elsewhere: see [Looking at a file](looking-at-a-file.md).) Open the results from its
+calculation run elsewhere: see [Importing a calculation](importing-a-calculation.md).) Open the results from its
 **Properties** menu. Each entry shows or hides a panel.
 
 - **Calculation Summary** lists the theory, run type and basis set, and

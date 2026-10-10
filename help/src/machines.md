@@ -177,7 +177,7 @@ script on your computer and stops.
 6. When the job has finished, copy the output file back.
 7. In the Organizer, choose **File > Import Calculation from Output
    File...** to bring the results into ECCE (see
-   [Looking at a file](looking-at-a-file.md)). ECCE creates a new
+   [Importing a calculation](importing-a-calculation.md)). ECCE creates a new
    calculation from the output; it is not attached to the calculation you
    launched on `dummy`.
 

@@ -227,5 +227,6 @@ For administrators and central servers, see `GETTING_STARTED.md`: it covers
 accounts for a class, the shared broker, and building from source.
 
 To look at a structure or at existing results first, continue with
-[Looking at a file](looking-at-a-file.md). To run calculations, continue with
+[Importing a structure](importing-a-structure.md) or
+[Importing a calculation](importing-a-calculation.md). To run calculations, continue with
 [Machines](machines.md).
