@@ -194,6 +194,7 @@ class CalcEd: public CalcEdGUI,
     bool theoryNeedsBasis() const;
     bool isReady() const;
     bool requiresMissingCell() const;
+    std::string notReadyReason() const;
     bool isGbsValid();
 
     // refresh & enable/disable & show/hide indicated field sets
@@ -430,6 +431,7 @@ class CalcEd: public CalcEdGUI,
     bool              p_runtypeInFlag;
     bool              p_runtypeHoldFlag;
     bool              p_runtypeInitFlag;
+    std::string p_lastNotReady;
 };
 
 #endif // _CALCED_H_

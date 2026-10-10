@@ -3254,6 +3254,34 @@ void CalcEd::enableDetailsFields()
 }
 
 
+/**
+ * The first thing the user still has to supply, for the greyed-out
+ * buttons; empty when nothing is missing or the run is past setup.
+ */
+string CalcEd::notReadyReason() const
+{
+  if (!p_frag)
+    return "Not ready: build or import a molecule (Builder).";
+  if (p_frag->containsNubs())
+    return "Not ready: the molecule has open bonds; add hydrogens or "
+           "remove them in the Builder.";
+  if (requiresMissingCell())
+    return "Not ready: this code needs a periodic unit cell.";
+  if (p_iCalc->getState() >= ResourceDescriptor::STATE_SUBMITTED)
+    return "";
+  if (theoryNeedsBasis()) {
+    if (!p_basis)
+      return "Not ready: choose a basis set (Basis Set or Quick Basis Menu).";
+    TTheory theory = getTheory();
+    if (!GBSRules::isConsistent(p_frag, p_basis, p_code, &theory) ||
+        !GBSRules::isComplete(p_frag, p_basis, p_code, &theory))
+      return "Not ready: the basis set does not cover every element of "
+             "the molecule; open Basis Set to complete it.";
+  }
+  return "";
+}
+
+
 void CalcEd::enableLaunch()
 {
   if (p_iCalc) {
@@ -3297,6 +3325,16 @@ void CalcEd::enableLaunch()
     //  should let people do what they want with it).
     FindWindow(ID_BUTTON_CALCED_LAUNCH)->Enable(togo && p_hasInputFile);
     FindWindow(ID_BUTTON_CALCED_VERIFY)->Enable(togo);
+
+    string why = ready ? "" : notReadyReason();
+    wxString tip(why.c_str(), wxConvUTF8);
+    FindWindow(ID_BUTTON_CALCED_FINAL_EDIT)->SetToolTip(tip);
+    FindWindow(ID_BUTTON_CALCED_LAUNCH)->SetToolTip(tip);
+    FindWindow(ID_BUTTON_CALCED_VERIFY)->SetToolTip(tip);
+    //  Once per change of reason: this runs on nearly every edit.
+    if (why != p_lastNotReady && !why.empty() && !requiresMissingCell())
+      p_feedback->setMessage(why, WxFeedback::INFO);
+    p_lastNotReady = why;
 
     //  Deliberately NOT running the checker here.  enableLaunch() is
     //  reached from enableAllFields(), which runs on essentially every
