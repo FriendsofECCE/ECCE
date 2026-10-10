@@ -23,6 +23,7 @@
 #include "inv/nodes/SoSeparator.H"
 #include "inv/ChemKit/ChemIso.H"
 #include "inv/ChemKit/ChemDetail.H"
+#include "inv/ChemKit/ChemColor.H"
 #include "inv/actions/SoCallbackAction.H"
 #include "inv/actions/SoRayPickAction.H"
 #include "inv/SoPickedPoint.H"
@@ -1045,6 +1046,21 @@ void logFrame(void *d)
           f->clock.Time(), vp[2], vp[3], sa.getPaths().getLength());
   for (int k = 0; k < sa.getPaths().getLength(); k++)
     fprintf(f->log, " %.6g", ((ChemIso *)sa.getPaths()[k]->getTail())->threshold.getValue());
+  //  The colour each atom is drawn in at this frame, resolved through the
+  //  colour node's binding as ChemDisplay resolves it.
+  ChemColor *cn = f->sg->getColorNode();
+  SGFragment *frag = f->sg->getFragment();
+  if (cn && frag) {
+    bool indexed = cn->atomColorBinding.getValue() == ChemColor::ATOM_PER_ATOM_INDEXED;
+    fprintf(f->log, " binding %s atoms", indexed ? "indexed" : "per-atom");
+    for (int a = 0; a < (int)frag->numAtoms(); a++) {
+      int i = indexed ? frag->atomRef(a)->atomicNumber() : a;
+      if (i < 0 || i >= cn->atomColor.getNum()) i = 0;
+      const SbColor& c = cn->atomColor[i];
+      fprintf(f->log, " %s=%.3f,%.3f,%.3f",
+              frag->atomRef(a)->atomicSymbol().c_str(), c[0], c[1], c[2]);
+    }
+  }
   fprintf(f->log, "\n");
   fflush(f->log);
   f->n++;
@@ -1053,7 +1069,7 @@ void logFrame(void *d)
 }  // namespace
 
 bool SceneScript::recordFrames(wxWindow *canvasOwner, const string& name,
-                               std::function<void()> act)
+                               std::function<void()> act, int settleMs)
 {
   SoWxRenderArea *area = findRenderArea(canvasOwner);
   if (!area) return fail("recordframes: no render area");
@@ -1065,8 +1081,9 @@ bool SceneScript::recordFrames(wxWindow *canvasOwner, const string& name,
   f.n = 0;
   area->setFrameCallback(logFrame, &f);
   act();
-  //  Let any deferred redraw land too (1 s of event loop).
-  for (int i = 0; i < 100; i++) { wxTheApp->Yield(true); wxMilliSleep(10); }
+  //  Let any deferred redraw land too.
+  wxStopWatch settle;
+  while (settle.Time() < settleMs) { wxTheApp->Yield(true); wxMilliSleep(10); }
   area->setFrameCallback(0, 0);
   fclose(f.log);
   return true;

@@ -59,9 +59,10 @@ class SceneScript
 
     // Runs act() and records every frame the render area under canvasOwner
     // paints meanwhile: <name>-NN.ppm plus one line per frame in
-    // <name>-frames.txt with the thresholds of the isosurfaces drawn.
+    // <name>-frames.txt with the thresholds of the isosurfaces drawn and
+    // the colour each atom is drawn in.  settleMs: event loop run after act().
     bool recordFrames(wxWindow *canvasOwner, const string& name,
-                      std::function<void()> act);
+                      std::function<void()> act, int settleMs = 1000);
     bool fail(const string& m) { p_msg = m; return false; }
 
   private:

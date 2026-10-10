@@ -490,11 +490,16 @@ void MullikenPanel::restoreColorTable()
          cmd->getParameter("red")->setDouble(p_defRed[idx]);
          cmd->getParameter("green")->setDouble(p_defGreen[idx]);
          cmd->getParameter("blue")->setDouble(p_defBlue[idx]);
-         fw.execute(cmd);
+         fw.execute(cmd, true);
       }
 
+      //  The table and the binding change together, then one paint: a
+      //  paint per entry drew the atoms per-atom from a half-restored
+      //  element table (atom 0 in entry 0's pale salmon), and that frame
+      //  stayed up while the next panel was built (#258).
       fw.getSceneGraph().getColorNode()->atomColorBinding.setValue(
             ChemColor::ATOM_PER_ATOM_INDEXED);
+      fw.getViewer().refreshRenderArea();
    }
 }
 
@@ -520,9 +525,12 @@ void MullikenPanel::setColorTable()
       cmd->getParameter("red")->setDouble(p_red[idx]);
       cmd->getParameter("green")->setDouble(p_green[idx]);
       cmd->getParameter("blue")->setDouble(p_blue[idx]);
-      fw.execute(cmd);
+      fw.execute(cmd, true);
    }
+   //  As in restoreColorTable(): no frame between the colours and the
+   //  binding, or it shows element colours with some atoms recoloured.
    fw.getSceneGraph().getColorNode()->atomColorBinding.setValue(ChemColor::ATOM_PER_ATOM);
+   fw.getViewer().refreshRenderArea();
 }
 
 

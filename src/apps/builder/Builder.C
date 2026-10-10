@@ -5318,6 +5318,19 @@ void Builder::updatePropertyMenus()
             cube->selectGrid(atoi(w[2].c_str()), atof(w[3].c_str()));
           });
         }
+        //  "propswitch <name> <ms> <property>": a click on <property> in the
+        //  Properties list, every frame painted meanwhile and for <ms> after.
+        if (w[0] == "propswitch" && w.size() >= 4) {
+          if (!p_index) return s.fail("propswitch: no Properties list");
+          string prop = w[3];
+          for (size_t k = 4; k < w.size(); k++) prop += " " + w[k];
+          bool found = true;
+          bool ok = s.recordFrames(p_viewer, w[1], [this, prop, &found]() {
+            found = p_index->click(prop);
+          }, atoi(w[2].c_str()));
+          if (!found) return s.fail("propswitch: not in the list: " + prop);
+          return ok;
+        }
         //  "plotshot <name> <w> <h> <panel name>": show that panel floating
         //  at w x h and save what is on the screen there to <name>.png.
         if (w[0] == "plotshot") return plotShotCommand(s, w, outdir);
