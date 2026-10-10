@@ -225,6 +225,27 @@ Local mode reads the structure and basis-set libraries from the
 
 <!-- capture: Organizer window, freshly started in local data mode, nothing selected, Run State Legend visible -->
 
+## Notice of new releases
+
+At most once a day, a few seconds after the Organizer opens, ECCE asks
+GitHub which releases exist. If a newer one in your release line is
+available, a bar appears at the top of the Organizer: "ECCE 9.0.0-beta.2 is
+available." **Release notes** opens the release page in your browser, and
+**Don't remind me about this version** hides the bar until a still newer
+version is published. ECCE 8 hears only about newer 8 releases. A preview
+(alpha or beta) hears about newer previews and the final release, and a
+final release only about newer final releases.
+
+The request carries nothing but the name and version of ECCE. Nothing is
+downloaded or installed, and if you are offline or GitHub does not answer,
+ECCE says nothing. If you installed ECCE from your distribution, update it
+with the package manager instead.
+
+To turn the check off, untick **Check for new releases** under **Edit >
+Preferences**, tab **General**. Administrators can switch it off for
+everyone by setting `ECCE_NO_UPDATE_CHECK=1` in the environment ECCE starts
+in; no request is then made at all.
+
 ## Next steps
 
 For administrators and central servers, see `GETTING_STARTED.md`: it covers

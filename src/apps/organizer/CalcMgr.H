@@ -41,6 +41,7 @@ class BookmarkEditor;
 class WxFind;
 class GlobalPrefs;
 class ewxPanel;
+class ReleaseNotice;
 
 class WxConfigureNwfsArchive;
 
@@ -354,6 +355,7 @@ protected:
   void machineNoticeRegisterClickCB(wxCommandEvent& event);
   void OnActivate(wxActivateEvent& event);
   ewxPanel   *p_machineNoticePanel;
+  ReleaseNotice *p_releaseNotice;   // #273
 
   void startApp(const string& app, int force, const string& url,
                 const string& codename = "", int amulet = 0);

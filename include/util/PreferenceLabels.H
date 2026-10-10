@@ -60,6 +60,11 @@ static const char *LOCALDATA        ;   // Boolean: local data folder, not a ser
 static const char *LOCALDATAFOLDER  ;   // String: that folder; empty is ~/.ECCE-local
 static const char *LOCALDATAMOVETO  ;   // String: move it here at the next start
 static const char *BUILTINSSH       ;   // Boolean: unused; old preference files still carry it
+static const char *UPDATECHECK      ;   // Boolean: look for newer releases (#273)
+static const char *UPDATELAST       ;   // String: seconds since the epoch of the last look
+static const char *UPDATEFOUND      ;   // String: newer version found, "" for none
+static const char *UPDATEFOUNDURL   ;   // String: its release page
+static const char *UPDATEDISMISSED  ;   // String: version the user asked not to hear about
 static const char *TAILINTERMINAL   ;   // Boolean: Tail in the Terminal, not ECCE's own window
 
 

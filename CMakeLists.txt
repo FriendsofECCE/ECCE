@@ -1780,6 +1780,12 @@ target_link_libraries(throwlog_test PRIVATE ecceutil)
 add_test(NAME throwlog COMMAND throwlog_test)
 add_test(NAME throwlog-all COMMAND throwlog_test all)
 
+# tests/releasecheck -- version order and release-line choice of the update
+# check (#273), on canned GitHub JSON.
+add_executable(releasecheck_test tests/releasecheck/releasecheck_test.C)
+target_link_libraries(releasecheck_test PRIVATE ecceutil)
+add_test(NAME releasecheck COMMAND releasecheck_test)
+
 # tests/spectrum -- the wx-free IR/Raman spectrum model (#214): ticks, axis
 # reversal and zoom, broadening, sticks.
 add_executable(vibspectrum_test tests/spectrum/vibspectrum_test.C)

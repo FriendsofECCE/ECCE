@@ -23,6 +23,7 @@
 #endif
 
 #include <fstream>
+#include "ReleaseNotice.H"
 #include <memory>
 #include <algorithm>
 #include <sstream>
@@ -180,6 +181,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   // Issue #150: built once, right after the base class has laid out the
   // toolbar and splitter this inserts itself between.
   p_machineNoticePanel = NULL;
+  p_releaseNotice = NULL;
   buildMachineNotice();
   Bind(wxEVT_ACTIVATE, &CalcMgr::OnActivate, this);
 
@@ -318,6 +320,14 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   // Issue #150: checked last, once whatever registerLocalMachine() just
   // did (or failed to do) is already reflected in RefMachine's tables.
   refreshMachineNotice();
+
+  // #273: the bar sits above the machine notice; the check runs after start.
+  {
+    wxInfoBar* bar = new wxInfoBar(this);
+    p_topSizer->Insert(1, bar, 0, wxGROW);
+    p_releaseNotice = new ReleaseNotice(bar);
+    p_releaseNotice->start();
+  }
 
   stopDisabler();
 
@@ -776,6 +786,7 @@ void CalcMgr::runTestCommand(const string& line)
  */
 CalcMgr::~CalcMgr( )
 {
+  delete p_releaseNotice;
   saveSettings();
   int low, high;
   ResourceDescriptor rs = ResourceDescriptor::getResourceDescriptor();

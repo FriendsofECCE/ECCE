@@ -20,6 +20,7 @@
 #include "util/PreferenceLabels.H"
 #include "util/TDateTime.H"
 #include "util/UnitFactory.H"
+#include "util/ReleaseCheck.H"
 #include "util/Ecce.H"
 #include "util/RemoteServerDir.H"
 #include "util/LocalData.H"
@@ -92,7 +93,7 @@ GlobalPrefs::GlobalPrefs(wxWindow* parent)
   : p_publisher(NULL), p_book(NULL),
     p_fontSize(NULL), p_dateFormat(NULL),
     p_timeFormat(NULL), p_unit(NULL), p_systemFont(NULL), p_beepError(NULL), p_beepWarn(NULL),
-    p_focus(NULL), p_quickTransp(NULL), p_confirmExit(NULL), p_closeShells(NULL),
+    p_focus(NULL), p_quickTransp(NULL), p_updateCheck(NULL), p_confirmExit(NULL), p_closeShells(NULL),
     p_savePasswords(NULL), p_showBusy(NULL), p_alwaysOnTop(NULL),
     p_leftClickNewApp(NULL), p_orientation(NULL),
     p_localData(NULL), p_localFolder(NULL), p_changeFolder(NULL), p_openFolder(NULL),
@@ -248,6 +249,19 @@ void GlobalPrefs::createGeneralPage(wxWindow* page)
     (*checks[c])->Bind(wxEVT_CHECKBOX,
                        c < 3 ? &GlobalPrefs::OnGlobalChange
                              : &GlobalPrefs::OnGatewayChange, this);
+  }
+  p_updateCheck = new ewxCheckBox(sb2, wxID_ANY, _("Check for new releases"),
+                                  wxDefaultPosition, wxDefaultSize, wxCHK_2STATE);
+  p_updateCheck->SetToolTip(_("At most once a day, ECCE asks GitHub which "
+      "releases exist, sending nothing but its version. Nothing is "
+      "downloaded or installed."));
+  p_updateCheck->Bind(wxEVT_CHECKBOX, &GlobalPrefs::OnGlobalChange, this);
+  box2->Add(p_updateCheck, 0, wxALL, 3);
+  if (ReleaseCheck::disabledByEnvironment()) {
+    p_updateCheck->Enable(false);
+    box2->Add(new ewxStaticText(sb2, wxID_ANY,
+        _("ECCE_NO_UPDATE_CHECK is set, so no check is made.")),
+        0, wxLEFT|wxBOTTOM, PAD*2);
   }
   outer->Add(box2, 0, wxGROW|wxALL, PAD);
 
@@ -708,6 +722,7 @@ void GlobalPrefs::OnResetAll(wxCommandEvent& event)
     p_beepWarn->SetValue(p_beepWarnDefault);
     p_focus->SetValue(p_focusDefault);
     p_quickTransp->SetValue(p_quickTranspDefault);
+    p_updateCheck->SetValue(p_updateCheckDefault);
     OnGlobalChange(event);
   }
 
@@ -817,6 +832,7 @@ void GlobalPrefs::saveSettings()
   eccePref.setBool(PrefLabels::WARNINGBEEP, p_beepWarn->GetValue());
   eccePref.setBool(PrefLabels::FOCUSFOLLOWMOUSE, p_focus->GetValue());
   eccePref.setBool(PrefLabels::QUICKTRANSPARENCY, p_quickTransp->GetValue());
+  eccePref.setBool(PrefLabels::UPDATECHECK, p_updateCheck->GetValue());
   eccePref.setString(PrefLabels::EDITOR, programValue(p_editor));
   eccePref.setString(PrefLabels::TERMINAL, programValue(p_terminal));
   eccePref.setString(PrefLabels::BROWSER, programValue(p_browser));
@@ -888,6 +904,10 @@ void GlobalPrefs::restoreSettings()
   if (!eccePref.getBool(PrefLabels::QUICKTRANSPARENCY, boolBuf))
     boolBuf = p_quickTranspDefault;
   p_quickTransp->SetValue(boolBuf);
+
+  if (!eccePref.getBool(PrefLabels::UPDATECHECK, boolBuf))
+    boolBuf = p_updateCheckDefault;
+  p_updateCheck->SetValue(boolBuf);
 
   strBuf = "";
   eccePref.getString(PrefLabels::EDITOR, strBuf);
@@ -961,7 +981,8 @@ bool GlobalPrefs::isDefaultGlobalPref()
          p_beepError->GetValue() == p_beepErrorDefault &&
          p_beepWarn->GetValue() == p_beepWarnDefault &&
          p_focus->GetValue() == p_focusDefault &&
-         p_quickTransp->GetValue() == p_quickTranspDefault;
+         p_quickTransp->GetValue() == p_quickTranspDefault &&
+         p_updateCheck->GetValue() == p_updateCheckDefault;
 }
 
 
