@@ -173,7 +173,9 @@ GlobalPrefs::GlobalPrefs(wxWindow* parent)
 
 GlobalPrefs::~GlobalPrefs()
 {
-  saveSettings();
+  //  No save here: every change is saved when it is made, and a copy of
+  //  this window that another app (the gateway) built at its start would
+  //  otherwise write its stale settings back when that app exits.
   delete p_publisher;
   p_publisher = NULL;
 }
