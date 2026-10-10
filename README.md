@@ -197,15 +197,23 @@ folder as well as in the data server.
 ### 4. Run on a compute machine
 
 A calculation runs on a registered machine. **`localhost`**, this
-computer, is registered site-wide: jobs run directly on it, without ssh
-and without a batch system. The first time you start `ecce` it copies a
-template to `~/.ECCE/CONFIG.localhost` that names NWChem, Gaussian,
-ORCA, MOPAC and Quantum ESPRESSO by their bare command names (`nwchem`,
-`g16`, `orca`, `mopac`, `pw.x`), so a code that is on your `PATH` is
-found without any registration. Edit your copy to give a full path
-instead, for example `ORCA: /opt/orca/<version>/orca`. The file is never
-overwritten once it exists, and is not created if the site provides its
-own `CONFIG.localhost`.
+computer, is registered already: jobs run directly on it, without ssh and
+without a batch system.
+
+* **Codes on your `PATH` work at once.** ECCE starts NWChem, Gaussian,
+  ORCA, MOPAC and Quantum ESPRESSO by their command names (`nwchem`,
+  `g16`, `orca`, `mopac`, `pw.x`), so a code you can start from a
+  terminal by that name needs no setup.
+* **A code elsewhere needs its full path.** Open **Tools → Register
+  Machines…**, select `localhost`, and on the **Codes** tab enter the
+  program, for example `/opt/orca/orca_6_1_1/orca`. Then **Save**.
+* **Where this is kept.** Your settings for `localhost` are in
+  `~/.ECCE/CONFIG.localhost`. ECCE creates that file at your first start
+  and never replaces it afterwards, so your changes stay. On an
+  installation where the administrator has set up `localhost` for
+  everyone (a `CONFIG.localhost` in the installation's `siteconfig`), ECCE
+  starts from that one; what you save in Register Machines is added on
+  top of it.
 
 For any other machine, open **Tools → Register Machines…** in the
 Organizer. It has five tabs:
