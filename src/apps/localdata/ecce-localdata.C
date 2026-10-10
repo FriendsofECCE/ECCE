@@ -12,6 +12,7 @@
  * The wrappers use the first form to decide, once per session, whether
  * a data server is wanted; the others are for tests and for scripts.
  */
+#include <cstdlib>
 #include <iostream>
 #include <string>
 #include "util/LocalData.H"
@@ -20,6 +21,17 @@
 
 int main(int argc, char **argv)
 {
+  // Run from a script outside a session, ECCE_REALUSERHOME is unset and
+  // Ecce asserts; the user's home is what it would be.
+  if (!getenv("ECCE_REALUSERHOME")) {
+#ifdef _WIN32
+    const char *h = getenv("USERPROFILE");
+    if (h) _putenv_s("ECCE_REALUSERHOME", h);
+#else
+    const char *h = getenv("HOME");
+    if (h) setenv("ECCE_REALUSERHOME", h, 0);
+#endif
+  }
   std::string cmd = argc > 1 ? argv[1] : "";
   if (cmd.empty()) {
     std::cout << LocalData::dir() << std::endl;

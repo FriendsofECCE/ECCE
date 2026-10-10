@@ -109,10 +109,14 @@ set up now and has that choice selected; click **Continue** to keep it:
 - **Store data on this computer** keeps your calculations in a folder on this
   computer (`~/.ECCE-local`; on Windows the folder `ecce-local` in your
   user folder). Choose this if you work alone.
-- **Connect to a server** uses a server that your teacher or institution
-  runs. Type its address, for example `ecce.example.edu`, and click
-  **Continue**. ECCE then shows the login window; use the user name and
-  password you were given.
+- **Connect to a server** keeps your calculations on an ECCE server. Enter
+  its address, for example `ecce.example.edu`; the address field is filled in
+  with the last server you used, or with this computer if it has its own ECCE
+  server. Click **Continue**. If the address is this computer and no shared
+  server runs here, ECCE uses this computer's own server. Otherwise ECCE shows
+  the login window; use the user name and password you were given. If the
+  server is not set up for other computers, ECCE says so and does not change
+  anything.
 
 Click **Continue** to confirm. ECCE remembers your choice and does not ask
 again. **Quit** closes ECCE without choosing anything.

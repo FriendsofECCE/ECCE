@@ -201,6 +201,8 @@ def remote_setup(host, port):
         if _reachable(host, dport, False, None) is None:
             return None
         way = "plain"
+    if not broker_answers(host, way != "plain"):
+        return "nobroker-tls" if way != "plain" else "nobroker"
 
     site = os.path.join(ECCE_HOME, "siteconfig")
     try:
@@ -235,6 +237,51 @@ def remote_setup(host, port):
     return way
 
 
+def server_installed():
+    return os.path.exists(os.path.join(ECCE_HOME, "bin", "ecce-dataserver-start"))
+
+
+def is_this_computer(host):
+    h = host.strip("[]").lower()
+    return h in ("localhost", "127.0.0.1", "::1",
+                 socket.gethostname().lower(), socket.getfqdn().lower())
+
+
+def broker_port(tls):
+    return int(os.environ.get("ECCE_BROKER_TLS_PORT", 8883) if tls
+               else os.environ.get("ECCE_BROKER_PORT", 8088))
+
+
+def broker_answers(host, tls=False):
+    try:
+        socket.create_connection((host, broker_port(tls)), timeout=5).close()
+        return True
+    except OSError:
+        return False
+
+
+def last_server():
+    """Host of the server used before, also when it is switched off."""
+    for d in (MINE, MINE + ".off"):
+        try:
+            t = open(os.path.join(d, "DataServers")).read()
+            u = t.split("<Url>", 1)[1].split("</Url>", 1)[0]
+            return u.split("://", 1)[1].split("/", 1)[0].rsplit(":", 1)[0]
+        except (OSError, IndexError):
+            pass
+    return ""
+
+
+def choose_peruser():
+    """This computer's own per-user data server: the state of the "here" mode."""
+    if os.path.exists(MINE):
+        old = MINE + ".off"
+        shutil.rmtree(old, ignore_errors=True)
+        os.rename(MINE, old)
+    run([tool("ecce-localdata"), "pref", "off"])
+    record("server this computer")
+
+
 def choose_server(address):
     """None when connected, else a sentence for the user."""
     address = address.strip()
@@ -245,7 +292,15 @@ def choose_server(address):
     host, _, port = address.partition(":")
     if not host or (port and not port.isdigit()):
         return "Type the address of the server, for example ecce.example.edu"
+    if is_this_computer(host) and server_installed() and not broker_answers(host):
+        choose_peruser()
+        return None
     way = remote_setup(host, int(port) if port else None)
+    if way and way.startswith("nobroker"):
+        return ("ECCE could not reach the message broker of %s (port %d).\n"
+                "Ask the administrator whether the server is set up for other "
+                "computers (ecce-remote-setup --server)."
+                % (host, broker_port(way == "nobroker-tls")))
     if way:
         print(way)
     else:
@@ -260,6 +315,9 @@ def choose_server(address):
 def build_dialog(wx, change):
     # The first time too: what is set up already is preselected.
     mode, text, host = current_state()
+    # The address field offers the last server, else this computer when it
+    # has a server package; "host" stays the active server for Continue.
+    suggested = host or last_server() or ("localhost" if server_installed() else "")
     if not change and not existing_setup():
         mode, text = "", ""
 
@@ -293,13 +351,13 @@ def build_dialog(wx, change):
     box.Add(label("Your calculations are saved in a folder on this computer."),
             0, wx.LEFT | wx.BOTTOM, 24)
     box.Add(r_server, 0, wx.TOP, 8)
-    box.Add(label("Use a server that your teacher or institution runs.\n"
-                  "You need its address and your login."),
+    box.Add(label("Your calculations are kept on an ECCE server. Enter its address;\n"
+                  "this computer's own server is filled in if it has one."),
             0, wx.LEFT, 24)
     row = wx.BoxSizer(wx.HORIZONTAL)
     row.Add(wx.StaticText(panel, label="Server address:"), 0,
             wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-    addr = wx.TextCtrl(panel, size=(280, -1), value=host)
+    addr = wx.TextCtrl(panel, size=(280, -1), value=suggested)
     row.Add(addr, 1)
     box.Add(row, 0, wx.EXPAND | wx.LEFT | wx.TOP, 24)
     box.Add(label("for example  ecce.example.edu"), 0, wx.LEFT | wx.TOP, 4)
@@ -398,6 +456,7 @@ def build_dialog(wx, change):
         if ans:
             sys.stderr.write("ecce-first-start: preselected %s\n" %
                              ("server" if r_server.GetValue() else "local"))
+            sys.stderr.write("ecce-first-start: address %s\n" % addr.GetValue())
         if ans == "continue":
             finish()
         elif ans == "local":
