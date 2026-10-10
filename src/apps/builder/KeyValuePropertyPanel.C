@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <vector>
 #include <iostream>
   using std::cout;
   using std::endl;
@@ -91,10 +93,16 @@ void KeyValuePropertyPanel::refresh()
     }
   }
 
-  // now iterate over the map and create the sizer
+  //  Alphabetical, except that totals ("Total Energy" and the like) come
+  //  last, below the terms they sum.
+  vector<string> keys;
   map<string,string>::iterator propIt;
-  for (propIt = props.begin(); propIt != props.end(); ++propIt) {
-    string key = propIt->first;
+  for (propIt = props.begin(); propIt != props.end(); ++propIt)
+    keys.push_back(propIt->first);
+  std::stable_partition(keys.begin(), keys.end(), [](const string& k) {
+    return k.compare(0, 5, "Total") != 0;
+  });
+  for (const string& key : keys) {
     GetSizer()->Add(new ewxNonBoldLabel(this, wxID_ANY, key),
             0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL);
     GetSizer()->Add(new ewxStaticText(this, wxID_ANY, props[key]),
