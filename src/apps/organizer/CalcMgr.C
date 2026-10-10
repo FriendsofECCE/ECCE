@@ -221,6 +221,22 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   p_find = 0;
   p_prefs = 0;
   Bind(wxEVT_MENU, &CalcMgr::OnPreferencesClick, this, wxID_PREFERENCES);
+  {
+    // Help > How to Cite ECCE..., before About.
+    wxMenuBar* mb = GetMenuBar();
+    int help = mb->FindMenu(_("&Help"));
+    if (help != wxNOT_FOUND) {
+      wxMenu* m = mb->GetMenu(help);
+      int about = m->FindItem(_("About ECCE..."));
+      size_t pos = m->GetMenuItemCount();
+      if (about != wxNOT_FOUND) m->FindChildItem(about, &pos);
+      wxWindowID id = wxNewId();
+      m->Insert(pos, id, _("How to &Cite ECCE..."));
+      Bind(wxEVT_MENU, [](wxCommandEvent&) {
+        WxHelpViewer::show("citing-ecce.html");
+      }, id);
+    }
+  }
   updateBookmarkMenu();
 
   p_nwfs = 0;
