@@ -3692,9 +3692,9 @@ void CalcMgr::resetForRerun()
     msg += single ? "this calculation " : "these calculations ";
     msg += "will remove all existing output properties and change the ";
     msg += single ? "state " : "states ";
-    msg += "to ready allowing the ";
-    msg += single ? "job " : "jobs ";
-    msg += "to be rerun from the start.";
+    msg += "to ready, so that the ";
+    msg += single ? "job can " : "jobs can ";
+    msg += "be rerun from the start.\n\n";
     msg += "Continue?";
 
     string title = "Reset ";
