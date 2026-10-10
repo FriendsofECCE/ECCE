@@ -106,6 +106,9 @@ private:
   ewxCheckBox* p_focus;
   ewxCheckBox* p_quickTransp;
   ewxCheckBox* p_updateCheck;
+  ewxCheckBox* p_updatePreviews;
+  bool p_updateLocked;
+  void updateUpdateControls();
   ewxCheckBox* p_confirmExit;
   ewxCheckBox* p_closeShells;
   ewxCheckBox* p_savePasswords;
@@ -144,6 +147,7 @@ private:
   const static bool p_focusDefault = false;
   const static bool p_quickTranspDefault = false;
   const static bool p_updateCheckDefault = true;
+  const static bool p_updatePreviewsDefault = false;
   const static bool p_confirmExitDefault = true;
   const static bool p_showBusyDefault = true;
   const static bool p_alwaysOnTopDefault = false;

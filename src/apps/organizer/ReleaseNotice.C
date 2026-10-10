@@ -16,7 +16,7 @@ namespace {
 
   bool enabled()
   {
-    if (ReleaseCheck::disabledByEnvironment()) return false;
+    if (ReleaseCheck::disabled()) return false;
     Preferences pref(PrefLabels::GLOBALPREFFILE);
     bool on = true;
     pref.getBool(PrefLabels::UPDATECHECK, on);
@@ -126,7 +126,10 @@ void ReleaseNotice::handleJson(const string& json)
 {
   ReleaseCheck::Release found;
   Preferences pref(PrefLabels::GLOBALPREFFILE);
-  bool have = ReleaseCheck::newerRelease(Ecce::ecceVersion(), json, found);
+  bool previews = false;
+  pref.getBool(PrefLabels::UPDATEPREVIEWS, previews);
+  bool have = ReleaseCheck::newerRelease(Ecce::ecceVersion(), json, found,
+                                         previews);
   pref.setString(PrefLabels::UPDATEFOUND, have ? found.version : "");
   pref.setString(PrefLabels::UPDATEFOUNDURL, have ? found.url : "");
   pref.saveFile();

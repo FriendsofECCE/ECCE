@@ -9,11 +9,13 @@ issues: [273]
 The Organizer asks the GitHub releases API for a newer release at most once
 a day (wxWebRequest, asynchronous, User-Agent `ECCE/<version>` only) and
 shows a wxInfoBar. Which release counts is decided in the wx-free
-`ReleaseCheck::newerRelease`: same major version; a preview install sees
+`ReleaseCheck::newerRelease`: same major.minor for 8.x, same major from 9; a preview install sees
 newer previews and finals, anything else only finals; drafts are skipped.
 
-- Off: preference `UpdateCheck` (Edit > Preferences > General) or
-  `ECCE_NO_UPDATE_CHECK=1`. Off means no request and no preference writes.
+- Off: preference `UpdateCheck` (Edit > Preferences > General),
+  `ECCE_NO_UPDATE_CHECK=1`, or `ECCE_NO_UPDATE_CHECK yes` in
+  `siteconfig/site_runtime` (`Ecce::ecceNoUpdateCheck`; the server's copy
+  under -remote). `UpdateCheck.Previews` adds previews for a stable install. Off means no request and no preference writes.
 - Test hook: `ECCE_UPDATE_CHECK_URL` is an http(s) URL or `file://` path to
   a JSON file; a file path is read directly, so a headless Organizer needs
   no network.

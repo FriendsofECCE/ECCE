@@ -232,9 +232,10 @@ GitHub which releases exist. If a newer one in your release line is
 available, a bar appears at the top of the Organizer: "ECCE 9.0.0-beta.2 is
 available." **Release notes** opens the release page in your browser, and
 **Don't remind me about this version** hides the bar until a still newer
-version is published. ECCE 8 hears only about newer 8 releases. A preview
-(alpha or beta) hears about newer previews and the final release, and a
-final release only about newer final releases.
+version is published. ECCE 8.18 hears only about newer 8.18 patch releases.
+ECCE 9 hears about newer 9 releases. A preview (alpha or beta) also hears
+about newer previews; a final release hears only about final releases unless
+you tick **Also tell me about previews**.
 
 The request carries nothing but the name and version of ECCE. Nothing is
 downloaded or installed, and if you are offline or GitHub does not answer,
@@ -243,8 +244,10 @@ with the package manager instead.
 
 To turn the check off, untick **Check for new releases** under **Edit >
 Preferences**, tab **General**. Administrators can switch it off for
-everyone by setting `ECCE_NO_UPDATE_CHECK=1` in the environment ECCE starts
-in; no request is then made at all.
+everyone on an installation by removing the `#` from the
+`ECCE_NO_UPDATE_CHECK yes` line in `siteconfig/site_runtime`, or for one
+start by setting `ECCE_NO_UPDATE_CHECK=1` in the environment. No request is
+then made at all, and the checkbox is greyed out with a note.
 
 ## Next steps
 

@@ -329,6 +329,7 @@ class Ecce
       // site_runtime settings that can't be overriden
       static bool   ecceAutoAccounts();
       static bool   ecceStoreTrajectories();
+      static bool   ecceNoUpdateCheck();
 
    protected:
 

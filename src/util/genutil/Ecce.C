@@ -513,6 +513,25 @@ bool Ecce::ecceAutoAccounts(void)
   return status;
 }
 
+bool Ecce::ecceNoUpdateCheck(void)
+{
+  string path;
+  if (getenv("ECCE_REMOTE_SERVER")) {
+    path = remoteServerDir() + "/site_runtime";
+  } else {
+    path = "$ECCE_HOME/siteconfig/site_runtime";
+  }
+  SFile file(path);
+  KeyValueReader reader(file.path(true));
+  reader.setSeparator(' ');
+
+  string key, value;
+  while (reader.getpair(key, value) && key!="ECCE_NO_UPDATE_CHECK");
+  return key == "ECCE_NO_UPDATE_CHECK" &&
+         (value == "yes" || value == "Yes" || value == "YES" ||
+          value == "true" || value == "True" || value == "TRUE");
+}
+
 bool Ecce::ecceStoreTrajectories(void)
 {
   string path;

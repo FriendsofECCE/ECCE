@@ -61,6 +61,7 @@ static const char *LOCALDATAFOLDER  ;   // String: that folder; empty is ~/.ECCE
 static const char *LOCALDATAMOVETO  ;   // String: move it here at the next start
 static const char *BUILTINSSH       ;   // Boolean: unused; old preference files still carry it
 static const char *UPDATECHECK      ;   // Boolean: look for newer releases (#273)
+static const char *UPDATEPREVIEWS   ;   // Boolean: previews too, for a stable install
 static const char *UPDATELAST       ;   // String: seconds since the epoch of the last look
 static const char *UPDATEFOUND      ;   // String: newer version found, "" for none
 static const char *UPDATEFOUNDURL   ;   // String: its release page

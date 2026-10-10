@@ -30,13 +30,14 @@ namespace ReleaseCheck
   bool isPreview(const string& version);
 
   /// The newest release in `json` (the GitHub releases list) that
-  /// belongs to the running version's line and is newer than it.  An
-  /// installed preview hears about every newer release of its major
-  /// version, previews included; anything else only about stable ones.
+  /// belongs to the running version's line and is newer than it.  The
+  /// line is major.minor for 8.x (patch releases only) and the major
+  /// version from 9 on.  An installed preview, or `includePreviews`,
+  /// also hears about previews; otherwise only stable releases count.
   /// Drafts are skipped.  False when there is none or the JSON is
   /// unusable.
   bool newerRelease(const string& current, const string& json,
-                    Release& found);
+                    Release& found, bool includePreviews = false);
 
   /// The releases URL, or ECCE_UPDATE_CHECK_URL when set (a test hook;
   /// an http(s) URL or a file:// path to a JSON file).
@@ -44,6 +45,13 @@ namespace ReleaseCheck
 
   /// ECCE_NO_UPDATE_CHECK set to anything but empty or 0.
   bool disabledByEnvironment();
+
+  /// The site switch: ECCE_NO_UPDATE_CHECK yes/true in
+  /// siteconfig/site_runtime (the server's copy under -remote).
+  bool disabledBySite();
+
+  /// Either switch.
+  inline bool disabled() { return disabledByEnvironment() || disabledBySite(); }
 
   /// Whether `now` is a day or more after `lastCheck` (both seconds
   /// since the epoch; a lastCheck in the future counts as due).

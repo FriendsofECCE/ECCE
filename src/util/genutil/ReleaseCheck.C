@@ -1,5 +1,7 @@
 #include "util/ReleaseCheck.H"
 
+#include "util/Ecce.H"
+
 #include <cstdlib>
 #include <cctype>
 #include <vector>
@@ -170,11 +172,11 @@ bool ReleaseCheck::isPreview(const string& version)
 
 
 bool ReleaseCheck::newerRelease(const string& current, const string& json,
-                                Release& found)
+                                Release& found, bool includePreviews)
 {
   Parsed cur;
   if (!parse(current, cur)) return false;
-  bool previewUser = !cur.pre.empty();
+  bool previewUser = !cur.pre.empty() || includePreviews;
 
   Reader r(json);
   r.ws();
@@ -207,6 +209,9 @@ bool ReleaseCheck::newerRelease(const string& current, const string& json,
     Parsed p;
     if (draft || !parse(tag, p) || url.empty()) continue;
     if (p.core[0] != cur.core[0]) continue;
+    // 8.x is bug-fix only, so its line is the minor version.
+    if (cur.core[0] == 8 && (p.ncore < 2 || cur.ncore < 2 ||
+                             p.core[1] != cur.core[1])) continue;
     if ((prerelease || !p.pre.empty()) && !previewUser) continue;
     string ver = stripV(tag);
     if (compareVersions(ver, current) <= 0) continue;
@@ -232,6 +237,12 @@ bool ReleaseCheck::disabledByEnvironment()
 {
   const char* v = getenv("ECCE_NO_UPDATE_CHECK");
   return v != 0 && *v != '\0' && string(v) != "0";
+}
+
+
+bool ReleaseCheck::disabledBySite()
+{
+  return Ecce::ecceNoUpdateCheck();
 }
 
 

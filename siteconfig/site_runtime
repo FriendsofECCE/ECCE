@@ -1,5 +1,6 @@
 # Site-specific configuration parameters
-# In this build only ECCE_AUTO_ACCOUNTS and ECCE_STORE_TRAJECTORIES are read
+# In this build only ECCE_AUTO_ACCOUNTS, ECCE_STORE_TRAJECTORIES and
+# ECCE_NO_UPDATE_CHECK are read
 # from this file. The other entries were put into the environment by the old
 # csh launchers; the ecce launcher does not, so to use one, export it as an
 # environment variable instead (see docs/ENVIRONMENT.md).
@@ -60,6 +61,11 @@ ECCE_AUTO_ACCOUNTS yes
 # the value is yes (i.e., users can never store trajectories if the
 # site administrator sets the value here to "no").
 ECCE_STORE_TRAJECTORIES yes
+
+# Switch off the check for newer ECCE releases for every user of this
+# installation (the Preferences checkbox is then greyed out).  The line is
+# read as written: remove the leading # to switch the check off.
+# ECCE_NO_UPDATE_CHECK yes
 
 # Should the organizer always check for running jobstores when projects
 # are opened?

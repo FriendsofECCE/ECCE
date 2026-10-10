@@ -93,7 +93,7 @@ GlobalPrefs::GlobalPrefs(wxWindow* parent)
   : p_publisher(NULL), p_book(NULL),
     p_fontSize(NULL), p_dateFormat(NULL),
     p_timeFormat(NULL), p_unit(NULL), p_systemFont(NULL), p_beepError(NULL), p_beepWarn(NULL),
-    p_focus(NULL), p_quickTransp(NULL), p_updateCheck(NULL), p_confirmExit(NULL), p_closeShells(NULL),
+    p_focus(NULL), p_quickTransp(NULL), p_updateCheck(NULL), p_updatePreviews(NULL), p_updateLocked(false), p_confirmExit(NULL), p_closeShells(NULL),
     p_savePasswords(NULL), p_showBusy(NULL), p_alwaysOnTop(NULL),
     p_leftClickNewApp(NULL), p_orientation(NULL),
     p_localData(NULL), p_localFolder(NULL), p_changeFolder(NULL), p_openFolder(NULL),
@@ -257,11 +257,26 @@ void GlobalPrefs::createGeneralPage(wxWindow* page)
       "downloaded or installed."));
   p_updateCheck->Bind(wxEVT_CHECKBOX, &GlobalPrefs::OnGlobalChange, this);
   box2->Add(p_updateCheck, 0, wxALL, 3);
-  if (ReleaseCheck::disabledByEnvironment()) {
-    p_updateCheck->Enable(false);
-    box2->Add(new ewxStaticText(sb2, wxID_ANY,
-        _("ECCE_NO_UPDATE_CHECK is set, so no check is made.")),
-        0, wxLEFT|wxBOTTOM, PAD*2);
+  p_updatePreviews = new ewxCheckBox(sb2, wxID_ANY,
+      _("Also tell me about previews (alpha and beta releases)"),
+      wxDefaultPosition, wxDefaultSize, wxCHK_2STATE);
+  p_updatePreviews->Bind(wxEVT_CHECKBOX, &GlobalPrefs::OnGlobalChange, this);
+  box2->Add(p_updatePreviews, 0, wxLEFT|wxTOP|wxBOTTOM, 3 + 2*PAD);
+  p_updateCheck->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
+    updateUpdateControls();
+    e.Skip();
+  });
+  {
+    string why;
+    if (ReleaseCheck::disabledByEnvironment())
+      why = "ECCE_NO_UPDATE_CHECK is set, so no check is made.";
+    else if (ReleaseCheck::disabledBySite())
+      why = "The administrator of this installation has switched the check off.";
+    if (!why.empty()) {
+      p_updateLocked = true;
+      box2->Add(new ewxStaticText(sb2, wxID_ANY, wxString::FromUTF8(why.c_str())),
+                0, wxLEFT|wxBOTTOM, PAD*2);
+    }
   }
   outer->Add(box2, 0, wxGROW|wxALL, PAD);
 
@@ -723,6 +738,8 @@ void GlobalPrefs::OnResetAll(wxCommandEvent& event)
     p_focus->SetValue(p_focusDefault);
     p_quickTransp->SetValue(p_quickTranspDefault);
     p_updateCheck->SetValue(p_updateCheckDefault);
+    p_updatePreviews->SetValue(p_updatePreviewsDefault);
+    updateUpdateControls();
     OnGlobalChange(event);
   }
 
@@ -761,6 +778,15 @@ void GlobalPrefs::OnResetAll(wxCommandEvent& event)
 
 
 // Tell the other apps of this session that a global setting changed.
+// The previews box follows the check; a switch set by the environment or
+// the site greys both.
+void GlobalPrefs::updateUpdateControls()
+{
+  p_updateCheck->Enable(!p_updateLocked);
+  p_updatePreviews->Enable(!p_updateLocked && p_updateCheck->GetValue());
+}
+
+
 void GlobalPrefs::OnGlobalChange(wxCommandEvent& event)
 {
   saveSettings();
@@ -833,6 +859,7 @@ void GlobalPrefs::saveSettings()
   eccePref.setBool(PrefLabels::FOCUSFOLLOWMOUSE, p_focus->GetValue());
   eccePref.setBool(PrefLabels::QUICKTRANSPARENCY, p_quickTransp->GetValue());
   eccePref.setBool(PrefLabels::UPDATECHECK, p_updateCheck->GetValue());
+  eccePref.setBool(PrefLabels::UPDATEPREVIEWS, p_updatePreviews->GetValue());
   eccePref.setString(PrefLabels::EDITOR, programValue(p_editor));
   eccePref.setString(PrefLabels::TERMINAL, programValue(p_terminal));
   eccePref.setString(PrefLabels::BROWSER, programValue(p_browser));
@@ -909,6 +936,11 @@ void GlobalPrefs::restoreSettings()
     boolBuf = p_updateCheckDefault;
   p_updateCheck->SetValue(boolBuf);
 
+  if (!eccePref.getBool(PrefLabels::UPDATEPREVIEWS, boolBuf))
+    boolBuf = p_updatePreviewsDefault;
+  p_updatePreviews->SetValue(boolBuf);
+  updateUpdateControls();
+
   strBuf = "";
   eccePref.getString(PrefLabels::EDITOR, strBuf);
   setProgramRow(p_editor, strBuf);
@@ -982,7 +1014,8 @@ bool GlobalPrefs::isDefaultGlobalPref()
          p_beepWarn->GetValue() == p_beepWarnDefault &&
          p_focus->GetValue() == p_focusDefault &&
          p_quickTransp->GetValue() == p_quickTranspDefault &&
-         p_updateCheck->GetValue() == p_updateCheckDefault;
+         p_updateCheck->GetValue() == p_updateCheckDefault &&
+         p_updatePreviews->GetValue() == p_updatePreviewsDefault;
 }
 
 
