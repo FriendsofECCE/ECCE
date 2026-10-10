@@ -96,6 +96,9 @@ void MDEdBase::constructor()
    p_feedback = (WxFeedback*)FindWindow(ID_FEEDBACK);
    p_feedback->setDropHandler(this);
    p_feedback->setSaveHandler(this);
+   // Save sits in the button row, just before the launch button.
+   wxWindow *launch = FindWindow(ID_BUTTON_LAUNCH);
+   p_feedback->addSaveButton(this, launch->GetContainingSizer(), launch);
 
    EDSIFactory::addAuthEventListener(this);
 

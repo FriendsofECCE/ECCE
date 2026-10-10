@@ -50,7 +50,7 @@ WxAccessControl::WxAccessControl( wxWindow* parent, wxWindowID id,
 
   p_feedback = new WxFeedback(this);
   p_feedback->hideEditState();
-  p_feedback->hideDropSite();
+  p_feedback->hideStateIcon();
   p_feedback->hideTopLine();
   p_feedback->hideStateIcon();
   p_topSizer->Detach(p_buttonSizer);

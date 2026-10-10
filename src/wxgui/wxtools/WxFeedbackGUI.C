@@ -23,7 +23,6 @@
 #endif
 
 ////@begin includes
-#include "wxgui/ewxBitmapButton.H"
 #include "wxgui/ewxPanel.H"
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxBitmap.H"
@@ -38,7 +37,6 @@
 const wxWindowID WxFeedbackGUI::ID_PANEL_STATE = wxNewId();
 const wxWindowID WxFeedbackGUI::ID_PANEL_FEEDBACK = wxNewId();
 const wxWindowID WxFeedbackGUI::ID_TEXTCTRL_FEEDBACK_MSG = wxNewId();
-const wxWindowID WxFeedbackGUI::ID_BITMAPBUTTON_DROPICON = wxNewId();
 const wxWindowID WxFeedbackGUI::ID_RESETSTATE = wxNewId();
 const wxWindowID WxFeedbackGUI::ID_SAVE = wxNewId();
 const wxWindowID WxFeedbackGUI::wxID_STATIC_FEEDBACK_CONTEXT = wxNewId();
@@ -142,10 +140,6 @@ void WxFeedbackGUI::CreateControls()
 
     ewxTextCtrl* itemTextCtrl12 = new ewxTextCtrl( itemPanel1, ID_TEXTCTRL_FEEDBACK_MSG, _T(""), wxDefaultPosition, wxSize(-1, 60), wxTE_MULTILINE|wxTE_READONLY|wxTE_LEFT|wxTE_WORDWRAP );
     itemBoxSizer11->Add(itemTextCtrl12, 1, wxGROW|wxALL, 0);
-
-    wxBitmap itemBitmapButton13Bitmap(itemPanel1->GetBitmapResource(wxT("drop_w.xpm")));
-    ewxBitmapButton* itemBitmapButton13 = new ewxBitmapButton( itemPanel1, ID_BITMAPBUTTON_DROPICON, itemBitmapButton13Bitmap, wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW|wxBU_EXACTFIT );
-    itemBoxSizer11->Add(itemBitmapButton13, 0, wxALIGN_BOTTOM|wxLEFT, 0);
 
 ////@end WxFeedbackGUI content construction
 }

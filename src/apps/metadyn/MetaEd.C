@@ -771,6 +771,10 @@ void MetaEd::CreateControls()
   p_feedback->setSaveHandler(this);
   GetSizer()->Add(p_feedback, 0, wxEXPAND, 0);
 
+  // Save sits in the button row, just before the launch button.
+  wxWindow *launch = FindWindow(ID_BUTTON_METAED_LAUNCH);
+  p_feedback->addSaveButton(this, launch->GetContainingSizer(), launch);
+
   replaceBuilderButton();
 }
 

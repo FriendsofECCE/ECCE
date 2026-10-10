@@ -100,7 +100,7 @@ void NWDirdySetup::initializeGUI()
 
    p_feedback = ((WxFeedback*)FindWindow(ID_FEEDBACK_NWDRDYSET));
    p_feedback->hideTopLine();
-   p_feedback->hideDropSite();
+   p_feedback->hideStateIcon();
 
    check = ((ewxCheckBox*)FindWindow(ID_CHECKBOX_NWDRDYSET_SYM));
    check->SetValue(model->AUTOSYM);

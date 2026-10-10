@@ -401,6 +401,16 @@ void WxBasisTool::initControls()
     p_messagesFeedback->setSaveHandler(this);
     p_messagesFeedback->setDropHandler(this);
 
+    // No button row here: give Save one of its own above the messages.
+    wxSizer *column = p_messagesFeedback->GetContainingSizer();
+    wxBoxSizer *saveRow = new wxBoxSizer(wxHORIZONTAL);
+    saveRow->AddStretchSpacer(1);
+    p_messagesFeedback->addSaveButton(p_messagesFeedback->GetParent(),
+                                      saveRow);
+    column->Insert(column->GetChildren().IndexOf(
+                       column->GetItem(p_messagesFeedback)),
+                   saveRow, 0, wxGROW|wxALL, 3);
+
     itemID = ID_STATIC_WXBASISTOOL_CONTEXT_FORMULA;
     p_contextFormulaStatic = (ewxStaticText *)(FindWindowById(itemID));
 

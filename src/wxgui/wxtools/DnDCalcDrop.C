@@ -20,13 +20,11 @@ using std::endl;
 
 /**
  * Constructor.
- * @param btn - the wxBitmapButton used for the drop and drop active pixmaps.
  * @param hanlder - implementer of CalcDropHanlder interface that will be called
  *    when a drop occurs.
  */
-DndCalcDrop::DndCalcDrop(wxBitmapButton *btn, CalcDropHandler *handler) 
+DndCalcDrop::DndCalcDrop(CalcDropHandler *handler) 
 { 
-   p_btn = btn;
    p_handler = handler;
    resetData();
    //   SetDataObject(new wxURLDataObject); 
@@ -53,7 +51,6 @@ wxDragResult DndCalcDrop::OnDragOver(wxCoord WXUNUSED(x), wxCoord WXUNUSED(y),
 wxDragResult DndCalcDrop::OnEnter(wxCoord WXUNUSED(x), wxCoord WXUNUSED(y),
       wxDragResult WXUNUSED(def))
 {
-   p_btn->SetBitmapLabel(ewxBitmap("dropValid.xpm",wxBITMAP_TYPE_XPM));
    return wxDragLink;  // At least IE 5.x needs wxDragLink, the
    // other browsers on MSW seem okay with it too.
 }
@@ -61,7 +58,6 @@ wxDragResult DndCalcDrop::OnEnter(wxCoord WXUNUSED(x), wxCoord WXUNUSED(y),
 
 void DndCalcDrop::OnLeave()
 {
-   p_btn->SetBitmapLabel(ewxBitmap("drop_w.xpm",wxBITMAP_TYPE_XPM));
 }
 
 /**

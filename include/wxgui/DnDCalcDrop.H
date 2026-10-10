@@ -19,19 +19,15 @@
 #include "wx/dnd.h"
 #include "wxgui/CalcDropHandler.H"
 
-class wxBitmapButton;
-
 /**
- * A drag and drop target that takes urls and swaps our drop active icon
- * in and out.
+ * A drag and drop target that takes a dropped calculation URL or file.
  *
- * This class is copied from the wxWidgets dnd sample with the addition
- * of onEnter and onLeave handling.
+ * This class is copied from the wxWidgets dnd sample.
  */
 class DndCalcDrop : public wxDropTarget
 {
    public:
-      DndCalcDrop(wxBitmapButton *btn, CalcDropHandler *handler);
+      explicit DndCalcDrop(CalcDropHandler *handler);
 
       virtual void OnDropURL(wxCoord WXUNUSED(x), wxCoord WXUNUSED(y), const wxString& text);
 
@@ -51,7 +47,6 @@ class DndCalcDrop : public wxDropTarget
 
    protected:
 
-      wxBitmapButton *p_btn;
       CalcDropHandler *p_handler;
 
       wxDataObjectComposite * p_data;

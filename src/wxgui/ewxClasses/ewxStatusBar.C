@@ -11,7 +11,6 @@
 
 BEGIN_EVENT_TABLE(ewxStatusBar, wxStatusBar)
   EVT_SIZE(ewxStatusBar::OnSize)
-  EVT_BUTTON(wxID_SAVE, ewxStatusBar::OnButton)
 END_EVENT_TABLE()
 
 static const int BITMAP_SIZE_X = 20;
@@ -43,10 +42,8 @@ bool ewxStatusBar::Create(wxWindow *parent, wxWindowID id, long style,
     return false;
   }
 
-  // A text button reads as something to press; the lock is only a state.
-  p_save = new wxButton(this, wxID_SAVE, _("Save"), wxDefaultPosition,
-                        wxDefaultSize, wxBU_EXACTFIT);
-  p_save->SetToolTip(_("Save changes (Ctrl+S)"));
+  // Saving is the host window's File > Save and toolbar button; this
+  // field only shows the read-only lock.
   p_lock = new wxStaticBitmap(this, wxID_ANY, ewxBitmap("lock.xpm"));
   p_runstate = new WxState(this);
   /*
@@ -61,9 +58,7 @@ bool ewxStatusBar::Create(wxWindow *parent, wxWindowID id, long style,
   SetFieldsCount(FIELD_MAX);
   SetStatusWidths(FIELD_MAX, widths);
   SetStatusStyles(FIELD_MAX, styles);
-  // The text button is taller than the old 20px icon field; without
-  // this its bottom edge is clipped.
-  SetMinHeight(wxMax(BITMAP_SIZE_Y, p_save->GetBestSize().y));
+  SetMinHeight(BITMAP_SIZE_Y);
 
   setStyles(this);
 
@@ -76,7 +71,6 @@ bool ewxStatusBar::Create(wxWindow *parent, wxWindowID id, long style,
 
 void ewxStatusBar::Init()
 {
-  p_save = NULL;
   p_lock = NULL;
   p_runstate = NULL;
   p_saveHandler = NULL;
@@ -109,11 +103,8 @@ void ewxStatusBar::OnSize(wxSizeEvent& event)
 {
   wxRect rect;
   wxSize size;
-  if (p_save) {
+  if (p_lock) {
     GetFieldRect(FIELD_SAVE, rect);
-    size = p_save->GetSize();
-    p_save->Move(rect.x + (rect.width - size.x) / 2,
-                 rect.y + (rect.height - size.y) / 2);
     size = p_lock->GetSize();
     p_lock->Move(rect.x + (rect.width - size.x) / 2,
                  rect.y + (rect.height - size.y) / 2);
@@ -127,13 +118,6 @@ void ewxStatusBar::OnSize(wxSizeEvent& event)
   }
 
   event.Skip();
-}
-
-
-void ewxStatusBar::OnButton(wxCommandEvent& WXUNUSED(event))
-{
-  if (p_saveHandler) // && p_editStatus=="MODIFIED")
-    p_saveHandler->processSave();
 }
 
 
@@ -176,17 +160,7 @@ void ewxStatusBar::setEditStatus(string editStatus)
     return;
   }
   p_editStatus = editStatus;
-  p_save->Show(editStatus == "MODIFIED");
   p_lock->Show(editStatus == "READONLY");
-
-  // The field is only as wide as the text button while there is one, so
-  // the log field shifts only when there is something to save.
-  int widths[FIELD_MAX] = {BITMAP_SIZE_X, -1, BITMAP_SIZE_X, -1};
-  if (editStatus == "MODIFIED") {
-    widths[FIELD_SAVE] = p_save->GetBestSize().x + 4;
-  }
-  SetStatusWidths(FIELD_MAX, widths);
-  SendSizeEvent();
 }
 
 

@@ -98,7 +98,6 @@ public:
     static const wxWindowID ID_PANEL_STATE;
     static const wxWindowID ID_PANEL_FEEDBACK;
     static const wxWindowID ID_TEXTCTRL_FEEDBACK_MSG;
-    static const wxWindowID ID_BITMAPBUTTON_DROPICON;
     static const wxWindowID ID_RESETSTATE;
     static const wxWindowID ID_SAVE;
     static const wxWindowID wxID_STATIC_FEEDBACK_CONTEXT;

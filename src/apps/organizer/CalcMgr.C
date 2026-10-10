@@ -849,7 +849,7 @@ void CalcMgr::initializeGUI()
   // wxFrame destructor will delete it.
   p_feedback = new WxFeedback(this);
   p_feedback->hideEditState();
-  p_feedback->hideDropSite();
+  p_feedback->hideStateIcon();
   p_feedback->hideStateIcon();
   p_topSizer->Add(p_feedback, 0, wxGROW, 0);
   p_contextPanel = 0;

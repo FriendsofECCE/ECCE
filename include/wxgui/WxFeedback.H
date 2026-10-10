@@ -77,9 +77,11 @@ class WxFeedback : public WxFeedbackGUI
       void setEditStatus(WxFeedback::EditStatus status);
 
       // A standard labelled Save button for the host window to put in its
-      // own button row; it replaces the one in this pane and is enabled
+      // own button row (addSaveButton places it); it is enabled
       // exactly while the status is MODIFIED.  The host owns its placement.
       wxButton* adoptSaveButton(wxWindow *parent);
+      void addSaveButton(wxWindow *parent, wxSizer *row,
+                         wxWindow *anchor = 0);
       WxFeedback::EditStatus getEditStatus() const;
       void setSaveHandler(wxObjectEventFunction function);
 
@@ -94,7 +96,6 @@ class WxFeedback : public WxFeedbackGUI
       void readPreferences();
 
       void hideEditState();
-      void hideDropSite();
       void hideStateIcon();
       void hideTopLine();
       void showTopLine();
@@ -118,7 +119,6 @@ class WxFeedback : public WxFeedbackGUI
       WxFeedback::EditStatus  p_editStatus;
       WxState                *p_stateIcon;
       FeedbackSaveHandler    *p_saveHandler;
-      wxButton               *p_saveText;
       wxButton               *p_hostSave;
       FeedbackTextEvtHandler *p_textEvtHandler;
       PropertyTask           *p_task;

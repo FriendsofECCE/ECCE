@@ -44,14 +44,12 @@ public:
 
 
   void OnSize(wxSizeEvent& event);
-  void OnButton(wxCommandEvent& event);
 
 private:
 
   void Init();
   wxBitmap CreateBitmapForButton(bool on = false);
 
-  wxButton * p_save;
   wxStaticBitmap * p_lock;
   WxState * p_runstate;
   FeedbackSaveHandler * p_saveHandler;

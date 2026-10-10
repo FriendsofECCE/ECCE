@@ -259,7 +259,7 @@ void PolyrateGUI::CreateControls()
 
     ewxMenuBar* menuBar = new ewxMenuBar;
     wxMenu* itemMenu161 = new wxMenu;
-    itemMenu161->Append(ID_MENU_PLYRT_SAVE, _("Save"), _T(""), wxITEM_NORMAL);
+    itemMenu161->Append(ID_MENU_PLYRT_SAVE, _("&Save\tCtrl+S"), _T(""), wxITEM_NORMAL);
     itemMenu161->AppendSeparator();
     itemMenu161->Append(ID_MENU_PLYRT_CLOSE, _("Close"), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu161, _("File"));

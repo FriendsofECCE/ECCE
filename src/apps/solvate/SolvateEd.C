@@ -783,6 +783,10 @@ void SolvateEd::CreateControls()
   p_feedback->setSaveHandler(this);
   GetSizer()->Add(p_feedback, 0, wxEXPAND, 0);
 
+  // Save ends the button row; there is no launch button here.
+  wxWindow *last = FindWindow(ID_BUTTON_SOLVATEED_CLEAR_SLV);
+  p_feedback->addSaveButton(this, last->GetContainingSizer());
+
   replaceBuilderButton();
 }
 

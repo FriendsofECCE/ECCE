@@ -61,14 +61,13 @@ WxFeedback::WxFeedback( ) : WxFeedbackGUI()
 }
 
 
-static const wxWindowID ID_SAVETEXT = wxNewId();
-
 /**
  * Constructor.
  * Status is set to NA.
  *
- * Connect your application to the save icon by calling setSaveHandler.
- * Connect your application to the drop icon by calling setDropHandler.
+ * Connect your application to Save by calling setSaveHandler and putting
+ * the button from addSaveButton in its button row.
+ * Connect your application to calculation drops by calling setDropHandler.
  */
 WxFeedback::WxFeedback( wxWindow* parent, wxWindowID id,
                         const wxPoint& pos, const wxSize& size,
@@ -84,16 +83,9 @@ WxFeedback::WxFeedback( wxWindow* parent, wxWindowID id,
    }
    readPreferences();
 
-   // The unsaved-changes control is a real text button: the bare floppy
-   // icon did not read as something to press.  The icon button stays for
-   // the read-only lock, which is a state and not an action.
+   // Save lives in the host's button row (addSaveButton); the icon button
+   // here is only the read-only lock, a state and not an action.
    p_hostSave = 0;
-   p_saveText = new wxButton(this, ID_SAVETEXT, _("Save"));
-   p_saveText->SetToolTip(_("Save changes (Ctrl+S)"));
-   p_saveText->Show(false);
-   p_topLineSizer->Add(p_saveText, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
-   Connect(ID_SAVETEXT, wxEVT_COMMAND_BUTTON_CLICKED,
-           wxCommandEventHandler(WxFeedback::onSaveClicked));
 
    p_textMenu = new ewxMenu;
    p_textMenu->Append(wxID_CLEAR, "Clear", "", wxITEM_NORMAL);
@@ -200,16 +192,14 @@ void WxFeedback::readPreferences()
 
 
 /**
- * Sets up the drop site and adds a handler.
- * You must call this to get the drop site to be functional.
+ * Lets the whole editor window accept a calculation dropped from the
+ * Organizer; there is no visible drop target.
  * Currently only URL drops are supported.
  */
 void WxFeedback::setDropHandler(CalcDropHandler *handler)
 {
-
-   wxBitmapButton *btn = 
-      ((wxBitmapButton*)FindWindow( ID_BITMAPBUTTON_DROPICON));
-   btn->SetDropTarget(new DndCalcDrop(btn, handler));
+   wxWindow *top = wxGetTopLevelParent(this);
+   if (top) top->SetDropTarget(new DndCalcDrop(handler));
 }
 
 
@@ -264,7 +254,6 @@ void WxFeedback::setEditStatus(WxFeedback::EditStatus status)
 
    FlatBitmapButton *save = (FlatBitmapButton*) FindWindow( getSaveId());
 
-   p_saveText->Show(status == MODIFIED && p_hostSave == 0);
    if (p_hostSave) p_hostSave->Enable(status == MODIFIED);
    if (status == READONLY) {
       save->SetBitmap(ewxBitmap("lock.xpm",wxBITMAP_TYPE_XPM));
@@ -280,16 +269,31 @@ void WxFeedback::setEditStatus(WxFeedback::EditStatus status)
 wxButton* WxFeedback::adoptSaveButton(wxWindow *parent)
 {
    if (p_hostSave == 0) {
-      p_hostSave = new wxButton(parent, ID_SAVETEXT + 1, _("Save"));
+      p_hostSave = new wxButton(parent, wxID_ANY, _("Save"));
       p_hostSave->SetToolTip(_("Save changes (Ctrl+S)"));
       p_hostSave->Enable(p_editStatus == MODIFIED);
       p_hostSave->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) {
          onSaveClicked(e);
       });
-      p_saveText->Hide();
-      p_topLineSizer->Layout();
    }
    return p_hostSave;
+}
+
+
+/**
+ * Creates the Save button in the sizer "row", just before "anchor" (the
+ * Launch button in the code editors) or at the end when there is none.
+ */
+void WxFeedback::addSaveButton(wxWindow *parent, wxSizer *row,
+                               wxWindow *anchor)
+{
+   size_t pos = row->GetItemCount();
+   if (anchor) {
+      int idx = row->GetChildren().IndexOf(row->GetItem(anchor));
+      if (idx != wxNOT_FOUND) pos = (size_t)idx;
+   }
+   row->Insert(pos, adoptSaveButton(parent), 0,
+               wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
 }
 
 
@@ -435,23 +439,12 @@ void WxFeedback::hideStateIcon()
 
 
 /**
- * Hides drop site icon for apps that don't use it.
- */
-void WxFeedback::hideDropSite()
-{
-   ((wxBitmapButton*)FindWindow(ID_BITMAPBUTTON_DROPICON))->Hide();
-   p_stateIcon->Hide();
-}
-
-
-/**
  * Hides EditState icon for apps that don't use it.
  */
 void WxFeedback::hideEditState()
 {
    FlatBitmapButton *save = (FlatBitmapButton*) FindWindow( getSaveId());
    save->Hide();
-   p_saveText->Hide();
 }
 
 

@@ -122,6 +122,9 @@ MDPrep::MDPrep(wxWindow* parent, wxWindowID id, const wxString& caption,
 
    p_feedback = ((WxFeedback*)FindWindow(ID_FEEDBACK));
    p_feedback->setSaveHandler(this);
+   // Save sits in the button row, just before the launch button.
+   wxWindow *launch = FindWindow(ID_BUTTON_MDPREP_LOCAL);
+   p_feedback->addSaveButton(this, launch->GetContainingSizer(), launch);
    p_feedback->setDropHandler(this);
    p_feedback->setEditStatus(WxFeedback::EDIT);
 
