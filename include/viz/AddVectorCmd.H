@@ -9,6 +9,7 @@
 #include "viz/PropCmd.H"
 
 class SGContainer;
+class VRVector;
 
 /**
  * This is a generic action that will draw any number of vectors to the
@@ -36,6 +37,8 @@ class AddVectorCmd : public PropCmd
       virtual double getScaleFactor();
       virtual string getPropertyName();
       virtual SoSwitch* getRootNode();
+      // Called on each arrow after its position and direction are set.
+      virtual void shapeVector(VRVector *) {}
 
       // Pure virtual behavior
       virtual bool getDisplacements(vector<double*>& displacements,

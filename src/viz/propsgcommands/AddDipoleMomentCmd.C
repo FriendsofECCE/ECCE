@@ -11,13 +11,38 @@
 #include "tdat/PropVector.H"
 
 #include "viz/cvSGContainer.H"
+#include "viz/VRVector.H"
 #include "viz/AddDipoleMomentCmd.H"
+
+// 2 D (water) is then about one O-H bond long.
+const double AddDipoleMomentCmd::ANGSTROM_PER_DEBYE = 0.5;
 
 AddDipoleMomentCmd::AddDipoleMomentCmd(const string& name, Receiver *receiver,
                          IPropCalculation *calc)
   : AddVectorCmd(name, receiver, calc)
 {
-  // Parent class does everything
+  p_preferredScaleFactor = ANGSTROM_PER_DEBYE;
+}
+
+
+/**
+ * VRVector puts its tip at 1.075 |direction|; divided out so that the tip
+ * is exactly Amplitude x |mu| Angstrom from the origin.
+ */
+double AddDipoleMomentCmd::getScaleFactor()
+{
+  return AddVectorCmd::getScaleFactor() / 1.075;
+}
+
+
+/**
+ * A shaft and head of constant size, set against the default bond radius
+ * (0.14 A): with the length-proportional shape a large dipole drew a club
+ * and a small one a needle.
+ */
+void AddDipoleMomentCmd::shapeVector(VRVector *vec)
+{
+  vec->fixedThickness(0.06f, 0.15f, 0.30f);
 }
 
 AddDipoleMomentCmd::~AddDipoleMomentCmd()

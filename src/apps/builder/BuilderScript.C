@@ -22,6 +22,11 @@
 //    viewer NAME                 a click on NAME's "Show in viewer" box
 //    overlay                     the column's tab (1 = Properties), and for
 //                                each viewer panel: shown, viz focus
+//    vector PROP                 each arrow under PROP's property switch, as
+//                                drawn: start, unit direction, farthest
+//                                vertex from the start (length) and from the
+//                                axis (thickness), Angstrom; the property
+//                                vector and the longest bond for comparison
 //    quit
 //  Each command is answered on stderr: "ECCE_BUILDER_SCRIPT: <line>: ok".
 
@@ -37,7 +42,19 @@
 #include <wx/timer.h>
 #include <wx/utils.h>
 
+#include <cmath>
+
+#include "inv/actions/SoCallbackAction.H"
+#include "inv/actions/SoSearchAction.H"
+#include "inv/nodes/SoShape.H"
+#include "inv/nodes/SoSwitch.H"
+#include "inv/SoPrimitiveVertex.H"
+#include "inv/SoPath.H"
+
 #include "tdat/LatticeDef.H"
+#include "tdat/PropVector.H"
+#include "tdat/TBond.H"
+#include "viz/VRVector.H"
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
 
@@ -61,6 +78,24 @@ struct ScriptState {
   std::string dir;
   ScriptState() : next(0), notBefore(0), waitUntil(0) {}
 };
+
+struct ArrowExtent { SbVec3f start, axis; float along, across; };
+
+void arrowVertex(void *d, SoCallbackAction *a, const SoPrimitiveVertex *v1,
+                 const SoPrimitiveVertex *v2, const SoPrimitiveVertex *v3)
+{
+  ArrowExtent *e = (ArrowExtent *)d;
+  const SoPrimitiveVertex *v[3] = {v1, v2, v3};
+  for (int i = 0; i < 3; i++) {
+    SbVec3f p;
+    a->getModelMatrix().multVecMatrix(v[i]->getPoint(), p);
+    SbVec3f r = p - e->start;
+    float t = r.dot(e->axis);
+    float off = (r - e->axis * t).length();
+    if (t > e->along) e->along = t;
+    if (off > e->across) e->across = off;
+  }
+}
 
 bool exists(const std::string& path)
 {
@@ -226,6 +261,41 @@ void Builder::runBuilderScript(const std::string& file)
         }
         fprintf(stderr, "BUILDER: overlay tab=%d%s\n", p_columnTab,
                 list.c_str());
+      } else if (w[0] == "vector" && w.size() == 2) {
+        SoSearchAction sa;
+        sa.setType(VRVector::getClassTypeId(), FALSE);
+        sa.setInterest(SoSearchAction::ALL);
+        sa.apply(getSG()->getPropertySwitch(w[1]));
+        for (int k = 0; k < sa.getPaths().getLength(); k++) {
+          VRVector *vec = (VRVector *)sa.getPaths()[k]->getTail();
+          const double *p = vec->getPosition(), *d = vec->getDirection();
+          SbVec3f u((float)d[0], (float)d[1], (float)d[2]);
+          if (u.length() > 0.f) u.normalize();
+          ArrowExtent ex = {SbVec3f((float)p[0], (float)p[1], (float)p[2]),
+                            u, 0.f, 0.f};
+          SoCallbackAction ca;
+          ca.addTriangleCallback(SoShape::getClassTypeId(), arrowVertex, &ex);
+          ca.apply(vec);
+          fprintf(stderr, "BUILDER: vector %s %d start=%.4f,%.4f,%.4f "
+                  "dir=%.4f,%.4f,%.4f length=%.4f radius=%.4f\n",
+                  w[1].c_str(), k, p[0], p[1], p[2], u[0], u[1], u[2],
+                  ex.along, ex.across);
+        }
+        PropVector *pv = dynamic_cast<PropVector*>(
+            p_calculation ? p_calculation->getProperty(w[1]) : 0);
+        if (pv && pv->rows() >= 3)
+          fprintf(stderr, "BUILDER: vector %s value=%.4f,%.4f,%.4f |v|=%.4f "
+                  "%s\n", w[1].c_str(), pv->value(0), pv->value(1),
+                  pv->value(2), sqrt(pv->value(0)*pv->value(0) +
+                  pv->value(1)*pv->value(1) + pv->value(2)*pv->value(2)),
+                  pv->units().c_str());
+        double longest = 0.0;
+        vector<TBond*> *bonds = frag ? frag->bonds() : 0;
+        for (size_t b = 0; bonds && b < bonds->size(); b++)
+          longest = std::max(longest, (double)(*bonds)[b]->length());
+        delete bonds;
+        fprintf(stderr, "BUILDER: vector %s arrows=%d longest_bond=%.4f\n",
+                w[1].c_str(), sa.getPaths().getLength(), longest);
       } else if (w[0] == "quit") {
         fprintf(stderr, "ECCE_BUILDER_SCRIPT: quit\n");
         Close(true);

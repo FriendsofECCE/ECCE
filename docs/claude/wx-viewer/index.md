@@ -27,6 +27,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [`Builder::execute()` paints after every command, so a command sequence shows each intermediate state (#226)](builder-execute-paints-after-every-command.md)
 - [Charge-colouring panels must change the colour table and its binding in one paint (#258)](colour-panels-must-not-paint-per-atom.md)
 - [Normal-mode arrows start on the drawn sphere, have a fixed thickness, and the longest tip is 1 A out (#228)](normal-mode-arrows-start-on-the-atom-sphere.md)
+- [The dipole arrow is 0.5 A per Debye from the centre of nuclear charge, along mu (negative to positive end) (#266)](dipole-arrow-length-origin-convention.md)
 - [`tools/coin/compare.sh` renders a fixed scene set with both viewer builds (#166 stage 2); harness pitfalls](tools-coin-compare-sh-renders-both-viewer-builds.md)
 - [Atom labels drew nothing in 9.x: the sh wrappers dropped `FL_FONT_PATH`; flclient now defaults to `$ECCE_HOME/data/client/fonts`](atom-labels-need-the-bundled-font-fl-font-path.md)
 - [Builder Reset View (toolbar, Render menu, Home) is camera only; the old home button restored a pre-molecule camera](builder-reset-view-is-camera-only-home-key.md)

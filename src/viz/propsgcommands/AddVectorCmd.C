@@ -114,6 +114,7 @@ bool AddVectorCmd::execute()
          vec->direction(displacements[i][0] * scale,
                displacements[i][1] * scale,
                displacements[i][2] * scale);
+         shapeVector(vec);
 
          root->addChild(vec);
 

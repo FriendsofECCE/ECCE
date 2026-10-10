@@ -269,6 +269,7 @@ def overlayCase(s, display, env, wrappers, png):
     say("classic layout, the Properties menu")
     lines = ["wait 4000", "overlay", "shot plain",
              "property Dipole Moment", "wait 1500", "overlay", "shot dipole",
+             "vector DIPOLE",
              "property Dipole Moment", "wait 1500", "overlay", "shot closed",
              "quit"]
     text, shots = runScript(s, display, env, wrappers, ["-context", url],
@@ -281,11 +282,41 @@ def overlayCase(s, display, env, wrappers, png):
               % focused(states[1]))
         check(focused(states[2]) == [],
               "closing it from the menu clears it: %s" % focused(states[2]))
+    dipoleArrow(text)
     for name, want in (("plain", False), ("dipole", True), ("closed", False)):
         if name in shots:
             n = tinted(shots[name], "yellow")
             check((n > 3) == want, "%s: %d yellow pixels in the viewer"
                   % (name, n))
+
+
+def dipoleArrow(text):
+    """#266: the arrow as drawn is 0.5 A per Debye from the centre of nuclear
+    charge, along mu (negative to positive end), with a constant shaft."""
+    arrow = value = None
+    for line in text.splitlines():
+        if line.startswith("BUILDER: vector DIPOLE 0 "):
+            arrow = dict(kv.split("=") for kv in line.split()[4:])
+        elif line.startswith("BUILDER: vector DIPOLE value="):
+            value = line.split("value=")[1].split()[0]
+    if not check(arrow is not None and value is not None,
+                 "the dipole arrow is measured"):
+        return
+    mu = [float(v) for v in value.split(",")]
+    norm = sum(v * v for v in mu) ** 0.5
+    u = [float(v) for v in arrow["dir"].split(",")]
+    length = float(arrow["length"])
+    check(abs(length - 0.5 * norm) < 0.01,
+          "arrow %.3f A for |mu| %.3f D (0.5 A/D)" % (length, norm))
+    check(sum(a * b for a, b in zip(u, mu)) / norm > 0.999,
+          "arrow along mu: %s vs %s" % (arrow["dir"], value))
+    check(abs(float(arrow["radius"]) - 0.15) < 0.01,
+          "head radius %s A" % arrow["radius"])
+    # Centre of nuclear charge of the fixture's last geometry.
+    zc = (8 * -0.0822784 + 2 * 0.4910908) / 10
+    start = [float(v) for v in arrow["start"].split(",")]
+    check(abs(start[2] - zc) < 0.002 and abs(start[0]) < 0.002,
+          "starts at the centre of nuclear charge: %s" % arrow["start"])
 
 
 def thumbnailCase(s, display, env, wrappers, png):

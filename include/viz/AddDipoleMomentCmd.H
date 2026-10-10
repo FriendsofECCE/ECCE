@@ -4,11 +4,10 @@
 #include "viz/AddVectorCmd.H"
 
 /**
- *   Create a dipole moment vector.  The vector origin depends on whether
- *   it is computed by center of mass or center of charge.  The vector
- *   length is determined by the vector data.  We allow a scale factor
- *   to help users make printouts but this is a bit hacky and they
- *   may get confused by it - we'll see.
+ *   The dipole moment as one arrow from the centre of nuclear charge, along
+ *   mu as the codes report it (from the negative to the positive end).  The
+ *   "Amplitude" is the length in Angstrom per Debye, so arrows of different
+ *   molecules compare directly.
  */
 class AddDipoleMomentCmd : public AddVectorCmd
 {
@@ -19,6 +18,11 @@ class AddDipoleMomentCmd : public AddVectorCmd
       // AddVectorCmd virtuals
       virtual bool getDisplacements(vector<double*>& displacements,
                                   vector<SIGN>& signs);
+      virtual double getScaleFactor();
+      virtual void shapeVector(VRVector *);
+
+      // Default length of the arrow, Angstrom per Debye.
+      static const double ANGSTROM_PER_DEBYE;
 
 };
 

@@ -24,6 +24,9 @@ class  VRVector : public SoGroup {
     void scaleFactor(float,float,float);
     // Constant shaft/head size whatever the length; the length is |direction|.
     void fixedThickness(bool);
+    // The same with these sizes in Angstrom (the defaults are the
+    // normal-mode arrow's 0.035, 0.09, 0.18).
+    void fixedThickness(float shaftRadius, float headRadius, float headLength);
     // Start the arrow this far from the position, along its direction.
     void startRadius(double);
     const double* getPosition(); 
@@ -46,6 +49,7 @@ SoINTERNAL public:
    SoTranslation * shaftTrans;
    SoTranslation * headTrans;
    bool p_fixed;
+   float p_shaftRadius, p_headRadius, p_headLength;
    double p_startRadius;
    double p_center[3];
    void  place();

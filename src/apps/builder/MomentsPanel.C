@@ -6,6 +6,7 @@
 //  using std::copy;
   using std::fill;
 #include <limits>
+#include <cmath>
 
 #include <wx/link.h>
 #include <wx/log.h>
@@ -146,7 +147,9 @@ bool MomentsPanel::Create(IPropCalculation *calculation,
     optionsSizer->Add(colorbtn, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
     optionsSizer->AddSpacer(3);
-    label = new ewxStaticText( panel, wxID_STATIC, _("Scale:"), wxDefaultPosition, wxDefaultSize, 0 );
+    label = new ewxStaticText( panel, wxID_STATIC,
+          isDipole() ? wxString::FromUTF8("Length, \u00c5 per D:") : _("Scale:"),
+          wxDefaultPosition, wxDefaultSize, 0 );
     optionsSizer->Add(label, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
    // Initilialize button color
@@ -158,15 +161,45 @@ bool MomentsPanel::Create(IPropCalculation *calculation,
    ewxPanel *p = new ewxPanel(this);
    optionsSizer->Add(p, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
    p_slider = new SliderCombo(p, ID_MOMENTS_SLIDER);
-   p_slider->SetRange(0.1,10000.0);
-   p_slider->SetToolTip("Scale");
+   if (isDipole()) {
+      p_slider->SetRange(0.05, 5.0);
+      p_slider->SetToolTip(wxString::FromUTF8(
+            "Arrow length in \u00c5 per Debye of |\u03bc|"));
+   } else {
+      p_slider->SetRange(0.1,10000.0);
+      p_slider->SetToolTip("Scale");
+   }
 
    fillTable();
+
+   if (isDipole()) {
+      PropVector *vec = (PropVector*)
+         calculation->getProperty(*getPropertyNames().begin());
+      double mu = 0.0;
+      for (int i = 0; vec && i < 3 && i < (int)vec->rows(); i++)
+         mu += vec->value(i)*vec->value(i);
+      wxString note = wxString::Format(wxString::FromUTF8(
+         "|\u03bc| = %.3f D. The arrow starts at the centre of nuclear "
+         "charge and points along \u03bc as the code reports it: from the "
+         "negative to the positive end."), sqrt(mu));
+      ewxStaticText *text = new ewxStaticText(panel, wxID_STATIC, note);
+      text->Wrap(260);
+      GetSizer()->Add(text, 0, wxALIGN_LEFT|wxALL, 3);
+   }
 
    GetSizer()->Fit(this);
    GetSizer()->SetSizeHints(this);
 
    return true;
+}
+
+
+bool MomentsPanel::isDipole()
+{
+  if (GetClassInfo() != CLASSINFO(MomentsPanel)) return false;
+  set<string> keys = getPropertyNames();
+  return keys.size() > 0 &&
+     (*keys.begin() == "DIPOLE" || *keys.begin() == "MP2DIPOLE");
 }
 
 
@@ -213,6 +246,12 @@ void MomentsPanel::fillTable()
         p_grid->SetColLabelValue(1,"Y");
         p_grid->SetColLabelValue(2,"Z");
 
+
+        if (isDipole()) {
+           p_grid->SetColLabelValue(0,"X / D");
+           p_grid->SetColLabelValue(1,"Y / D");
+           p_grid->SetColLabelValue(2,"Z / D");
+        }
 
         int nRows = vec->rows();
         p_grid->InsertRows(0,nRows/3);

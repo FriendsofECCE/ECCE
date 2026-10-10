@@ -42,17 +42,17 @@ void VRVector::direction(double x, double y ,double z)
       // Sizes in Angstrom, independent of the arrow's length; the head
       // takes at most half of a short arrow.
       const float tip = 1.075f*norm;
-      const float hl = (0.18f < 0.5f*tip) ? 0.18f : 0.5f*tip;
+      const float hl = (p_headLength < 0.5f*tip) ? p_headLength : 0.5f*tip;
       const float sl = tip - hl;
       const bool none = (norm <= 0.f);
       transf->scaleFactor.setValue(1,1,1);
       scal->scaleFactor.setValue(1,1,1);
       shaftTrans->translation.setValue(0, sl/2, 0);
       shaft->height = sl;
-      shaft->radius = none ? 0.f : 0.035f;
+      shaft->radius = none ? 0.f : p_shaftRadius;
       headTrans->translation.setValue(0, sl/2 + hl/2, 0);
       head->height = hl;
-      head->bottomRadius = none ? 0.f : 0.09f;
+      head->bottomRadius = none ? 0.f : p_headRadius;
    } else {
       transf->scaleFactor.setValue(norm,norm,norm);
    }
@@ -81,6 +81,15 @@ void VRVector::fixedThickness(bool on)
 {
    p_fixed = on;
    direction(p_direction[0], p_direction[1], p_direction[2]);
+}
+
+void VRVector::fixedThickness(float shaftRadius, float headRadius,
+                              float headLength)
+{
+   p_shaftRadius = shaftRadius;
+   p_headRadius = headRadius;
+   p_headLength = headLength;
+   fixedThickness(true);
 }
 
 void VRVector::startRadius(double r)
@@ -156,6 +165,9 @@ VRVector::VRVector()
 void VRVector::constructor()
 {
      p_fixed = false;
+     p_shaftRadius = 0.035f;
+     p_headRadius = 0.09f;
+     p_headLength = 0.18f;
      p_startRadius = 0.0;
      for (int i = 0; i < 3; i++) p_direction[i] = p_center[i] = p_position[i] = 0.0;
      SoSeparator * sep = new SoSeparator;

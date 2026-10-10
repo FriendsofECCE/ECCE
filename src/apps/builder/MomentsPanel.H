@@ -63,6 +63,10 @@ class MomentsPanel : public VizPropertyPanel
          but after that, stick with the user's choice. */
       bool p_guessScale;
 
+      /* DIPOLE or MP2DIPOLE drawn by this class itself (not a subclass):
+         the panel states the arrow's length, origin and direction. */
+      bool isDipole();
+
 };
 
 #endif // MOMENTSPANEL_H

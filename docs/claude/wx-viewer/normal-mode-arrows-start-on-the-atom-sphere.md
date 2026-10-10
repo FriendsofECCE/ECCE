@@ -21,8 +21,8 @@ And Stick), which is every heavy atom in an X-H stretch. So:
   atoms; in Stick the atom is the rod's rounded end, so the start radius is the
   bond cylinder radius (0.2 A by default).
 - **Thickness.** `VRVector::fixedThickness(true)`: shaft radius 0.035 A,
-  head radius 0.09 A, head length 0.18 A or half of a short arrow. Other
-  users of `VRVector` (dipole, trajectory vectors) keep the old
+  head radius 0.09 A, head length 0.18 A or half of a short arrow. The
+  dipole uses its own fixed sizes (#266); trajectory vectors keep the old
   length-proportional shape. The POV-Ray export reads the old scale
   convention and does not follow the fixed thickness (a scale mismatch: it scales the shaft and head by |d|).
 
