@@ -4102,6 +4102,11 @@ void CalcEd::startTheoryApp(const bool& localInitFlag)
 #endif
 
     string err;
+    // The dialog places itself over the editor before it is first shown,
+    // instead of appearing where the window manager puts it and moving.
+    wxRect r = GetScreenRect();
+    wxSetEnv("ECCE_EDITOR_RECT", wxString::Format("%d,%d,%d,%d",
+             r.x, r.y, r.width, r.height));
     if (!launchDetachedApp(cmd)) {
       p_feedback->setMessage("Unable to invoke theory details dialog",
                              WxFeedback::ERROR);
@@ -4191,6 +4196,11 @@ void CalcEd::startRuntypeApp(const bool& localInitFlag)
 #endif
 
     string err;
+    // The dialog places itself over the editor before it is first shown,
+    // instead of appearing where the window manager puts it and moving.
+    wxRect r = GetScreenRect();
+    wxSetEnv("ECCE_EDITOR_RECT", wxString::Format("%d,%d,%d,%d",
+             r.x, r.y, r.width, r.height));
     if (!launchDetachedApp(cmd)) {
       p_feedback->setMessage("Unable to invoke runtype details dialog",
                              WxFeedback::ERROR);

@@ -123,10 +123,27 @@ class EcceFrame(wx.Frame):
     def Finalize(self):
         if EcceGlobals.RestoreFlag != "NO_GUIValues":
             self.Fit()
+            self.PlaceOverEditor()
             self.Show(True)
             app.MainLoop()
         else:
             self.Destroy()
+
+    def PlaceOverEditor(self):
+        # Centred on the editor that started us, clamped to its screen.
+        try:
+            x, y, w, h = [int(v) for v in
+                          os.environ["ECCE_EDITOR_RECT"].split(",")]
+        except (KeyError, ValueError):
+            return
+        size = self.GetSize()
+        px, py = x + (w - size.width) // 2, y + (h - size.height) // 2
+        n = wx.Display.GetFromPoint(wx.Point(x + w // 2, y + h // 2))
+        if n != wx.NOT_FOUND:
+            area = wx.Display(n).GetClientArea()
+            px = max(area.x, min(px, area.x + area.width - size.width))
+            py = max(area.y, min(py, area.y + area.height - size.height))
+        self.SetPosition(wx.Point(px, py))
 
 
 
