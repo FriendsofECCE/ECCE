@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use ECCE, please cite it as below."
+type: software
+title: "ECCE: Extensible Computational Chemistry Environment"
+abstract: >-
+  A graphical environment for computational chemistry: build molecules,
+  set up calculations for NWChem, Gaussian, ORCA, MOPAC and a built-in
+  Hartree-Fock/DFT engine, run them on a workstation or a cluster, keep
+  them in a managed store, and view the results. Originally developed at
+  Pacific Northwest National Laboratory.
+authors:
+  - given-names: C. André
+    family-names: Ohlin
+    affiliation: Umeå University
+  - name: FriendsofECCE
+version: 9.0.0-beta.1
+date-released: 2026-10-10
+doi: 10.5281/zenodo.23281771
+license: ECL-2.0
+repository-code: "https://github.com/FriendsofECCE/ECCE"
+url: "https://github.com/FriendsofECCE/ECCE"
+keywords:
+  - computational chemistry
+  - quantum chemistry
+  - graphical user interface
+  - molecular modelling

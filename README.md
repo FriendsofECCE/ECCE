@@ -1,5 +1,7 @@
 # ECCE
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23281771.svg)](https://doi.org/10.5281/zenodo.23281771)
+
 The Extensible Computational Chemistry Environment (ECCE, pronounced
 "etch-ā") is a graphical environment for computational chemistry: build a
 molecule, set up a calculation, run it on your own computer or a cluster,
@@ -68,6 +70,13 @@ you did and what you expected.
   history.
 * The [wiki](https://github.com/FriendsofECCE/ECCE/wiki): where things are
   in the code, and the current work plan.
+
+## Citing ECCE
+
+Please cite the DOI for all versions,
+[10.5281/zenodo.23281771](https://doi.org/10.5281/zenodo.23281771); each
+release also has its own DOI there. GitHub's "Cite this repository" button
+gives the reference in APA and BibTeX form.
 
 ## License
 
