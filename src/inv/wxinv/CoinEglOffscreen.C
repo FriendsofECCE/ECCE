@@ -4,6 +4,7 @@
 #define GL_GLEXT_PROTOTYPES 1   // before any GL header: the FBO entry points
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <dlfcn.h>
 
 #include <EGL/egl.h>
@@ -12,6 +13,8 @@
 #include <GL/glext.h>
 
 #include <Inventor/C/glue/gl.h>
+#include <Inventor/C/errors/debugerror.h>
+#include <Inventor/C/base/string.h>
 
 #include "inv/SoWx/CoinEglOffscreen.H"
 
@@ -29,6 +32,9 @@ struct Ctx {
   GLuint fbo, color, depth;
   // What was current when we took over, to hand back in reinstate().
   GlPlatform::Current prev;
+  // Coin's error handler while ours stands in for it.
+  cc_debugerror_cb *prevCb;
+  void *prevData;
 };
 
 EGLDisplay s_dpy = EGL_NO_DISPLAY;
@@ -90,6 +96,22 @@ cc_glglue_offscreen_data create(unsigned int w, unsigned int h)
   return c;
 }
 
+// A GLX-built Coin sets up the glue of each new context by asking GLX
+// whether rendering is direct; with our EGL context current GLX has none,
+// so Coin warns "Couldn't get current GLX context" and assumes direct,
+// which is right for an FBO. Only that warning, and only while our
+// context is current, is dropped.
+void filterGlxWarning(const cc_debugerror *err, void *data)
+{
+  Ctx *c = (Ctx *)data;
+  const cc_string *msg = cc_error_get_debug_string(&err->super);
+  if (cc_debugerror_get_severity(err) == CC_DEBUGERROR_WARNING && msg &&
+      strstr(cc_string_get_text(msg), "current GLX context"))
+    return;
+  if (c->prevCb) c->prevCb(err, c->prevData);
+  else cc_error_default_handler_cb(&err->super, NULL);
+}
+
 SbBool makeCurrent(cc_glglue_offscreen_data d)
 {
   Ctx *c = (Ctx *)d;
@@ -97,6 +119,13 @@ SbBool makeCurrent(cc_glglue_offscreen_data d)
   GlPlatform::release(c->prev);
   if (!eglMakeCurrent(s_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, c->ctx)) return FALSE;
   glBindFramebuffer(GL_FRAMEBUFFER, c->fbo);
+  void *data = NULL;
+  cc_debugerror_cb *cb = cc_debugerror_get_handler(&data);
+  if (cb != filterGlxWarning) {
+    c->prevCb = cb;
+    c->prevData = data;
+  }
+  cc_debugerror_set_handler_callback(filterGlxWarning, c);
   return TRUE;
 }
 
@@ -107,6 +136,9 @@ void reinstate(cc_glglue_offscreen_data d)
   Ctx *c = (Ctx *)d;
   eglMakeCurrent(s_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
   GlPlatform::restore(c->prev);
+  void *data = NULL;
+  if (cc_debugerror_get_handler(&data) == filterGlxWarning)
+    cc_debugerror_set_handler_callback(c->prevCb, c->prevData);
 }
 
 void destruct(cc_glglue_offscreen_data d)

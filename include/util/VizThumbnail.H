@@ -16,11 +16,9 @@ class VizThumbnail
 {
   public:
     static void thumbnail(const string& whoami, const string& calcurl,
-                          int width = 64, int height = 64,
-                          double r = 0.0, double g = 0.0, double b = 0.0);
+                          int width = 64, int height = 64);
     static void thumbnail(const string& whoami, const vector<string>& calcurls,
-                          int width = 64, int height = 64,
-                          double r = 0.0, double g = 0.0, double b = 0.0);
+                          int width = 64, int height = 64);
 };
 
 #endif // VIZTHUMBNAIL_H_

@@ -46,8 +46,7 @@ string                VizRender::p_msg       = "";
 int                   VizRender::p_oldWidth  = 0;
 int                   VizRender::p_oldHeight = 0; 
 
-bool VizRender::thumbnail(const string& urlstr, int width, int height,
-                          double r, double g, double b)
+bool VizRender::thumbnail(const string& urlstr, int width, int height)
 {
   p_msg = "";
   bool ret = true;
@@ -110,7 +109,10 @@ bool VizRender::thumbnail(const string& urlstr, int width, int height,
     // center the fragment in the viewer
     viewer->viewAll();
 
-    if (!VizRender::thumbnail(viewer->getTopNode(), task, width, height, r,g,b))
+    // loadDisplayStyle gave the viewer the Background preference.
+    const SbColor bg = viewer->getBackgroundColor();
+    if (!VizRender::thumbnail(viewer->getTopNode(), task, bg[0], bg[1], bg[2],
+                              width, height))
     {
       //cout <<  p_msg << endl;
       throw EcceException(p_msg, __FILE__, __LINE__);
@@ -126,8 +128,8 @@ bool VizRender::thumbnail(const string& urlstr, int width, int height,
 
 
 bool VizRender::thumbnail(SoNode *root, ChemistryTask *task,
-                          int width, int height,
-                          double r, double g, double b)
+                          double r, double g, double b,
+                          int width, int height)
 {
   p_msg = "";
   bool ret = true;

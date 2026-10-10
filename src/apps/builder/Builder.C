@@ -4058,7 +4058,9 @@ void Builder::doSaveThumb()
     cmd.getParameter("type")->setInteger(AtomLabelsCmd::NONE);
     cmd.execute();
     // create thumbnail (without labels)
-    if (!VizRender::thumbnail(p_viewer->getTopNode(), task))
+    // The offscreen render does not see the canvas's background.
+    const SbColor bg = p_viewer->getBackgroundColor();
+    if (!VizRender::thumbnail(p_viewer->getTopNode(), task, bg[0], bg[1], bg[2]))
       showMessage(VizRender::msg(), true);
     // turn labels back on
     cmd.undo();

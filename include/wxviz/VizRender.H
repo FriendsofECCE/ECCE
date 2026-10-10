@@ -19,11 +19,13 @@ class SFile;
 class VizRender
 {
   public:
-    static bool thumbnail(const string& urlstr, int width = 64, int height = 64,
-                          double r = 0.0, double g = 0.0, double b = 0.0);
+    // Drawn on the Builder's Background preference.
+    static bool thumbnail(const string& urlstr, int width = 64, int height = 64);
+    // r, g, b: the background of the viewer the scene is shown in; the
+    // offscreen renderer has none of its own.
     static bool thumbnail(SoNode *root, ChemistryTask *task,
-                          int width = 64, int height = 64,
-                          double r = 0.0, double g = 0.0, double b = 0.0);
+                          double r, double g, double b,
+                          int width = 64, int height = 64);
     static bool file(SoNode *root, SFile *file, string type = "RGB",
                      int width = 64, int height = 64,
                      double r = 0.0, double g = 0.0, double b = 0.0);

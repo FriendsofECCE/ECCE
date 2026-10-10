@@ -11,19 +11,17 @@
 #include "util/VizThumbnail.H"
 
 void VizThumbnail::thumbnail(const string& whoami, const string& calcurl,
-                             int width, int height,
-                             double r, double g, double b)
+                             int width, int height)
 {
   vector<string> calcurls;
   calcurls.push_back(calcurl);
-  VizThumbnail::thumbnail(whoami, calcurls, width, height, r, g, b);
+  VizThumbnail::thumbnail(whoami, calcurls, width, height);
 }
 
 
 void VizThumbnail::thumbnail(const string& whoami,
                              const vector<string>& calcurls,
-                             int width, int height,
-                             double r, double g, double b)
+                             int width, int height)
 {
   JMSPublisher publisher(whoami);
 
@@ -33,9 +31,6 @@ void VizThumbnail::thumbnail(const string& whoami,
 
   msg->addProperty("width",   StringConverter::toString(width));
   msg->addProperty("height",  StringConverter::toString(height));
-  msg->addProperty("r",       StringConverter::toString(r));
-  msg->addProperty("g",       StringConverter::toString(g));
-  msg->addProperty("b",       StringConverter::toString(b));
 
   for (size_t i = 0; i < calcurls.size(); i++) {
     msg->addProperty("calcurl" + StringConverter::toString((int)i),calcurls[i]);

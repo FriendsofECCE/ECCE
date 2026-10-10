@@ -466,16 +466,22 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     if (!p_calc) return fail("vizthumb: needs a calculation");
     string url = p_calc->getURL().toString();
     int tw = atoi(w[2].c_str()), th = atoi(w[3].c_str());
-    if (!VizRender::thumbnail(url, tw, th, 0.0, 0.0, 0.0)) {
+    if (!VizRender::thumbnail(url, tw, th)) {
       FILE *u = fopen((p_outdir + "/" + w[1] + ".UNAVAILABLE").c_str(), "w");
       if (u) { fprintf(u, "%s\n", VizRender::msg().c_str()); fclose(u); }
       return true;
     }
+    return exec({"storedthumb", w[1]}, w[1]);
+  } else if (c == "storedthumb" && w.size() == 2) {
+    //  "storedthumb <name>": the calculation's stored thumbnail (as the
+    //  Builder's savethumb or vizthumb wrote it) -> <name>.jpg.
+    if (!p_calc) return fail("storedthumb: needs a calculation");
+    string url = p_calc->getURL().toString();
     ChemistryTask *task = dynamic_cast<ChemistryTask *>(EDSIFactory::getResource(url));
     SFile *tmp = TempStorage::getTempFile();
-    if (!task || !task->getThumbnail(tmp)) return fail("vizthumb: thumbnail not stored");
+    if (!task || !task->getThumbnail(tmp)) return fail("storedthumb: thumbnail not stored");
     string cmd = "cp '" + tmp->path() + "' '" + p_outdir + "/" + w[1] + ".jpg'";
-    if (system(cmd.c_str()) != 0) return fail("vizthumb: copy failed");
+    if (system(cmd.c_str()) != 0) return fail("storedthumb: copy failed");
   } else if (c == "redraws" && w.size() >= 3) {
     return countRedraws(w[1], vector<string>(w.begin() + 2, w.end()));
   } else if (c == "viewall") {

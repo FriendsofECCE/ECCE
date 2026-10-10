@@ -170,7 +170,6 @@ string VizThumbnailApp::identify()
 void VizThumbnailApp::render(JMSMessage& msg)
 {
   int i, idx;
-  double d;
   string calcurl, error;
   idx = 0;
   while (! (calcurl = msg.getProperty(
@@ -178,10 +177,7 @@ void VizThumbnailApp::render(JMSMessage& msg)
     idx++;
     if (!VizRender::thumbnail(calcurl,
             StringConverter::toInt(msg.getProperty("width"), i) ? i : 64,
-            StringConverter::toInt(msg.getProperty("height"), i) ? i : 64,
-            StringConverter::toDouble(msg.getProperty("r"), d) ? d : 0.0,
-            StringConverter::toDouble(msg.getProperty("g"), d) ? d : 0.0,
-            StringConverter::toDouble(msg.getProperty("b"), d) ? d : 0.0))
+            StringConverter::toInt(msg.getProperty("height"), i) ? i : 64))
     {
       error = calcurl + ": " + VizRender::msg() + "\n";
       cerr << "VizThumbnailApp::render error: " << error << endl;

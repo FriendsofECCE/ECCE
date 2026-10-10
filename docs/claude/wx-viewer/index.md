@@ -58,3 +58,4 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [Normal modes belong to the calculated structure; reloading a fragment needs touchNumbers (#244)](normal-modes-belong-to-the-calculated-structure.md)
 - [macOS (wx 3.3): opening a calculation with MOs crashed the Builder in wxAuiManager::DoFrameLayout](macos-builder-nested-updatepanes-crash.md)
 - [wxMSW: 16-bit menu ids, no right-click selection, no manifest, text-mode 0x1A, a grey frame, no alpha by default, console windows from system()/popen()](wxmsw-silent-differences.md)
+- [An offscreen render has no background of its own; a GLX Coin warns about the EGL offscreen context (#276)](offscreen-thumbnail-needs-the-viewers-background.md)
