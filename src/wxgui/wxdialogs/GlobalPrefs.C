@@ -409,6 +409,11 @@ void GlobalPrefs::createDataPage(wxWindow* page)
   p_openFolder = new ewxButton(sb, wxID_ANY, _("Open data folder"));
   row->Add(p_openFolder, 0, wxALIGN_CENTER_VERTICAL);
   box->Add(row, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, PAD);
+  //  The same choice as the start window: this computer or a server.
+  ewxButton* server = new ewxButton(sb, wxID_ANY, _("Change Server..."));
+  server->SetToolTip(_("Choose between this computer and a server, "
+                       "as at the start of ECCE."));
+  box->Add(server, 0, wxLEFT|wxBOTTOM, PAD);
   outer->Add(box, 0, wxGROW|wxALL, PAD);
 
   p_localNote = new ewxStaticText(page, wxID_ANY, wxEmptyString);
@@ -418,6 +423,7 @@ void GlobalPrefs::createDataPage(wxWindow* page)
   p_localData->Bind(wxEVT_CHECKBOX, &GlobalPrefs::OnLocalDataToggle, this);
   p_changeFolder->Bind(wxEVT_BUTTON, &GlobalPrefs::OnChangeDataFolder, this);
   p_openFolder->Bind(wxEVT_BUTTON, &GlobalPrefs::OnOpenDataFolder, this);
+  server->Bind(wxEVT_BUTTON, &GlobalPrefs::OnChangeServer, this);
   updateDataPage();
 }
 
@@ -510,6 +516,21 @@ void GlobalPrefs::OnChangeDataFolder(wxCommandEvent& event)
     LocalData::setPref(LocalData::prefEnabled(), chosen, "");
   else
     LocalData::setPref(LocalData::prefEnabled(), folder, chosen);
+  updateDataPage();
+}
+
+
+void GlobalPrefs::OnChangeServer(wxCommandEvent& event)
+{
+  wxString home = wxString::FromUTF8(Ecce::ecceHome());
+#ifdef __WXMSW__
+  // A script with no extension: run it with the package's own Python.
+  wxString cmd = "\"" + home + "/python/python3w.exe\" \"" + home +
+                 "/bin/ecce-first-start\" --change";
+#else
+  wxString cmd = home + "/bin/ecce-first-start --change";
+#endif
+  wxExecute(cmd, wxEXEC_SYNC);
   updateDataPage();
 }
 

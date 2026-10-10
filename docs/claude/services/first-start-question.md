@@ -52,7 +52,7 @@ to `tests/apps/first_start_test.py`.
   under the bundled bash, which skips its flock/reap on MSYS (neither
   exists there); a local session gets its own loopback broker
   (windows-session-and-tool-start.md).
-  Edit > Change Server... starts the script with `python3w.exe` on Windows.
+  Edit > Preferences > Data folder > Change Server... (formerly Edit > Change Server...) starts the script with `python3w.exe` on Windows.
 - macOS: ECCE.app bundles no Python or wxPython, so the window is skipped
   silently (ImportError) until it does; local data stays the default there.
 - The data server login window's "Use this computer instead..." is no

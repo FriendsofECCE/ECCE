@@ -62,6 +62,7 @@ private:
   void OnLocalDataToggle(wxCommandEvent& event);
   void OnChangeDataFolder(wxCommandEvent& event);
   void OnOpenDataFolder(wxCommandEvent& event);
+  void OnChangeServer(wxCommandEvent& event);
   ProgramRow makeProgramRow(wxWindow* page, wxSizer* sizer,
                             const wxString& label,
                             const vector<string>& labels,
