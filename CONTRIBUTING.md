@@ -18,6 +18,9 @@ note is the disclosure. Treat AI-authored analysis the same as you would
 any other contributor's: useful, but verify anything you're relying on,
 especially root-cause claims in older issue threads.
 
+When you change something people see or use, please follow the short
+checklist in [ACCESSIBILITY.md](ACCESSIBILITY.md#for-contributors).
+
 ## Building from source
 
 CI (`.github/workflows/build.yml`) builds every push on Debian, Ubuntu,

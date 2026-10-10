@@ -70,6 +70,8 @@ you did and what you expected.
   history.
 * The [wiki](https://github.com/FriendsofECCE/ECCE/wiki): where things are
   in the code, and the current work plan.
+* [Accessibility](ACCESSIBILITY.md): what ECCE does for keyboard, screen
+  reader and low-vision use, and how to report a barrier.
 
 ## Citing ECCE
 
