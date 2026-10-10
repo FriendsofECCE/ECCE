@@ -72,4 +72,4 @@ you did and what you expected.
 ## License
 
 ECCE is free software under the Educational Community License 2.0; see
-[`LICENSE`](LICENSE).
+[`LICENSE`](LICENSE). For the use of the name, see [`TRADEMARKS.md`](TRADEMARKS.md).
