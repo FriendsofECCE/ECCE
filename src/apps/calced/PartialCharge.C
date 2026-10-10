@@ -633,7 +633,7 @@ void PartialCharge::OnHelpClick(wxCommandEvent& event)
 
 void PartialCharge::initializeMessaging()
 {
-  p_msgDispatcher = new WxJMSMessageDispatch(WHOAMI, true);
+  p_msgDispatcher = new WxJMSMessageDispatch(WHOAMI, false);   // a helper, not the app: no ecce_invoke
 
   p_msgDispatcher->subscribe("ecce_get_atomlist",
        this, (wxJmsCBFunc)&PartialCharge::selectionMCB);

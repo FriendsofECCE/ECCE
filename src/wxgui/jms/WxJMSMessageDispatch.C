@@ -991,9 +991,12 @@ string WxJMSMessageDispatch::getPollContext() const
 
 void WxJMSMessageDispatch::internalInvokeMCB(JMSMessage& msg)
 {
-   // Call the app's registered callback function:
-   EE_ASSERT(p_invokeMCBPtr, EE_WARNING, 
-         "You did not subscribe to ecce_invoke!");
+   //  A listener without a handler (a helper that subscribed by mistake)
+   //  ignores the invoke rather than crashing the app.
+   if (p_invokeMCBPtr == 0) {
+      cerr << "ecce_invoke ignored: no handler in " << getMyName() << endl;
+      return;
+   }
 
    // moved to before calling invoke to eliminate timing problems with
    // new builder request/response type messages like "getcharge"
