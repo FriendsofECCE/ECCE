@@ -2,7 +2,7 @@ group: C2v
 formula: H2O
 construction: a central atom and its neighbours
 headline: 
-note: Energies in Hartree.  Molecular levels are the calculation's own orbital energies in Hartree. Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, kept in the atom's own shell order; its free-atom energy is given beside it. A shell with a non-bonding orbital (one that is at least 99% that shell, of the orbitals drawn) is drawn at that orbital's energy instead.
+note: Energies in Hartree.  Molecular levels are the calculation's own orbital energies in Hartree. Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, kept in the atom's own shell order; its free-atom energy is given beside it. A shell with a non-bonding orbital (one that is at least 99% that shell, of the orbitals drawn) is drawn at that orbital's energy instead.  Symmetry labels computed from the orbitals in C2v (cross-checked against the code's own C2V labels, which agreed on all 24 orbitals both sides could label, and every computed label subduces to match).
 column left
   title: O
   fromHalves: 0

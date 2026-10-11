@@ -275,6 +275,50 @@ bool SymmetryAnalysis::atomImages(const vector<double>& coords,
 }
 
 
+bool SymmetryAnalysis::symmetrise(vector<double>& coords,
+                                  const vector<string>& elements,
+                                  const vector<SymOp>& ops,
+                                  double tolerance,
+                                  double *maxShift)
+{
+  vector< vector<int> > images;
+  if (ops.empty() || !atomImages(coords, elements, ops, tolerance, images))
+    return false;
+  const size_t n = elements.size();
+  for (size_t o = 0; o < images.size(); o++) {
+    vector<bool> hit(n, false);
+    for (size_t a = 0; a < n; a++) {
+      if (hit[images[o][a]]) return false;   // two atoms onto one
+      hit[images[o][a]] = true;
+    }
+  }
+
+  vector<double> out(3*n, 0.0);
+  for (size_t a = 0; a < n; a++) {
+    for (size_t o = 0; o < ops.size(); o++) {
+      const double *x = &coords[3*images[o][a]];
+      for (int r = 0; r < 3; r++)
+        for (int c = 0; c < 3; c++)
+          out[3*a + r] += ops[o].m[c][r] * x[c];   // R^T x
+    }
+    for (int r = 0; r < 3; r++) out[3*a + r] /= (double)ops.size();
+  }
+
+  double worst = 0.0;
+  for (size_t a = 0; a < n; a++) {
+    double d2 = 0.0;
+    for (int r = 0; r < 3; r++) {
+      const double d = out[3*a + r] - coords[3*a + r];
+      d2 += d*d;
+    }
+    worst = std::max(worst, sqrt(d2));
+  }
+  if (maxShift != 0) *maxShift = worst;
+  coords.swap(out);
+  return true;
+}
+
+
 void SymmetryAnalysis::orbits(const vector< vector<int> >& images,
                               int numAtoms,
                               vector< vector<int> >& out)

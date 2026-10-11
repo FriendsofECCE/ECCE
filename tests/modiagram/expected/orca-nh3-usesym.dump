@@ -1,0 +1,55 @@
+group: C3v
+formula: NH3
+construction: a central atom and its neighbours
+headline: 
+note: Energies in Hartree.  Molecular levels are the calculation's own orbital energies in Hartree. Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, kept in the atom's own shell order; its free-atom energy is given beside it.  Symmetry labels computed from the orbitals in C3v (cross-checked against the code's own CS labels, which agreed on all 29 orbitals both sides could label, and every computed label subduces to match).
+column left
+  title: N
+  fromHalves: 0
+  hiddenCount: 0
+  hiddenMaxEnergy: 0.000000
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 0
+  shellKeys: N:0 N:1
+  levels: 3
+  level 0 energy=-0.814008 tabulated=-25.600000 irrep=A1 label=A1  (2s) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.94 Ha"
+  level 1 energy=-0.437444 tabulated=-13.200000 irrep=A1 label=A1  (2p) character=UNKNOWN pairing=-1 occupancy=1.0000 occupancyBeta=-1.0000 degeneracy=1 shell=1 slot=1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.49 Ha"
+  level 2 energy=-0.437444 tabulated=-13.200000 irrep=E label=E  (2p) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=2 shell=1 slot=1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.49 Ha"
+column centre
+  title: Molecular orbitals
+  fromHalves: 0
+  hiddenCount: 1
+  hiddenMaxEnergy: -15.536280
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 4
+  shellKeys:
+  levels: 5
+  level 0 energy=-1.119210 tabulated=0.000000 irrep=A1 label=2A1 character=BONDING pairing=0 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5061 shareRight=0.4939 lowdinMax=0.5061 OP=0.4014 mullikenMax=0.6305 norm=1.0000 orbitals=[1] annotation="-1.1192"
+  level 1 energy=-0.619060 tabulated=0.000000 irrep=E label=1E character=BONDING pairing=1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.5797 shareRight=0.4203 lowdinMax=0.5797 OP=0.3830 mullikenMax=0.5410 norm=1.0000 orbitals=[2,3] annotation="-0.6191"
+  level 2 energy=-0.421620 tabulated=0.000000 irrep=A1 label=3A1 nb character=NONBONDING pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.9170 shareRight=0.0830 lowdinMax=0.9170 OP=-0.0336 mullikenMax=0.9410 norm=1.0000 orbitals=[4] annotation="-0.4216"
+  level 3 energy=0.176880 tabulated=0.000000 irrep=A1 label=4A1* character=ANTIBONDING pairing=0 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.1419 shareRight=0.8581 lowdinMax=0.2860 OP=-7.3026 mullikenMax=0.4305 norm=1.0000 orbitals=[5] annotation="0.1769"
+  level 4 energy=0.270270 tabulated=0.000000 irrep=E label=2E* character=ANTIBONDING pairing=1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.1329 shareRight=0.8671 lowdinMax=0.2890 OP=-2.1693 mullikenMax=0.3273 norm=1.0000 orbitals=[6,7] annotation="0.2703"
+column right
+  title: 3H TASOs
+  fromHalves: 0
+  hiddenCount: 0
+  hiddenMaxEnergy: 0.000000
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 0
+  shellKeys: H:0
+  levels: 2
+  level 0 energy=-0.294137 tabulated=-13.600000 irrep=A1 label=A1  (1s) character=UNKNOWN pairing=-1 occupancy=1.0000 occupancyBeta=-1.0000 degeneracy=1 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.50 Ha"
+  level 1 energy=-0.034428 tabulated=-13.600000 irrep=E label=E  (1s) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=2 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.50 Ha"
+links: 12
+  link 0 left=0 centre=0 right=-1
+  link 1 left=1 centre=0 right=-1
+  link 2 left=-1 centre=0 right=0
+  link 3 left=2 centre=1 right=-1
+  link 4 left=-1 centre=1 right=1
+  link 5 left=1 centre=2 right=-1
+  link 6 left=0 centre=2 right=-1
+  link 7 left=1 centre=3 right=-1
+  link 8 left=0 centre=3 right=-1
+  link 9 left=-1 centre=3 right=0
+  link 10 left=2 centre=4 right=-1
+  link 11 left=-1 centre=4 right=1

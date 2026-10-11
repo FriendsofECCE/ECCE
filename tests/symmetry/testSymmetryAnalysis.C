@@ -250,6 +250,44 @@ static void basisChecks(const string& opsDir)
 }
 
 
+//  symmetrise() (#132): a code's geometry can be exact in a subgroup and
+//  only ~0.001 Angstrom from the full group, which atomImages() at the
+//  fragment analysis's 0.001 tolerance rejects.  Checked against the
+//  definition: afterwards every operation maps the atoms onto atoms to
+//  rounding, and no atom moved further than the noise put in.
+static void symmetriseChecks(const string& opsDir)
+{
+  printf("\n  symmetrise\n");
+  vector<SymOp> ops;
+  if (!readOps(opsDir + "/C2V.ops", ops)) {
+    check(false, "read C2V.ops");
+    return;
+  }
+  const char* e[] = {"O", "H", "H"};
+  vector<string> elements(e, e+3);
+  //  Water in the xz plane, the C2 broken by up to 0.003 Angstrom.
+  const double c[] = { 0.0004, -0.0003, 0.1172,
+                       0.7581,  0.0010, -0.4688,
+                      -0.7559, -0.0008, -0.4711 };
+  vector<double> coords(c, c+9);
+  vector< vector<int> > images;
+  check(!SymmetryAnalysis::atomImages(coords, elements, ops, 1.0e-3, images),
+        "noisy water is not C2v to 0.001");
+  double shift = -1;
+  check(SymmetryAnalysis::symmetrise(coords, elements, ops, 0.05, &shift),
+        "symmetrised at 0.05");
+  check(SymmetryAnalysis::atomImages(coords, elements, ops, 1.0e-9, images),
+        "afterwards C2v to 1e-9");
+  check(shift > 0.0 && shift < 0.003, "no atom moved more than the noise");
+
+  //  Far from the group: refused, and the coordinates left alone.
+  const double f[] = { 0, 0, 0.12,   0.76, 0, -0.47,   -0.60, 0.2, -0.40 };
+  vector<double> far(f, f+9), before = far;
+  check(!SymmetryAnalysis::symmetrise(far, elements, ops, 0.05),
+        "a structure 0.2 Angstrom off is refused");
+  check(far == before, "and left unchanged");
+}
+
 int main(int argc, char** argv)
 {
   const string tables = (argc > 1) ? argv[1]
@@ -316,6 +354,7 @@ int main(int argc, char** argv)
 
   for (size_t i = 0; i < mols.size(); i++) run(mols[i], opsDir);
   basisChecks(opsDir);
+  symmetriseChecks(opsDir);
 
   printf("\n  %s\n", bad ? "FAIL" : "PASS");
   return bad ? 1 : 0;

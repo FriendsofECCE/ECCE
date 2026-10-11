@@ -59,6 +59,23 @@ class SymmetryAnalysis
                            double tolerance,
                            vector< vector<int> >& images);
 
+    /**
+     * Make coordinates exactly symmetric under ops: each atom becomes the
+     * average of R^T x over its images.  For a structure that is in the
+     * group's frame but only symmetric to a few 0.01 Angstrom, which
+     * atomImages() at a tight tolerance would otherwise reject.
+     *
+     * @param tolerance  as atomImages()'s; every op must map the atoms
+     *                   one to one within it
+     * @param maxShift   if not null, the largest distance an atom moved
+     * @return false, leaving coords untouched, if any op does not
+     */
+    static bool symmetrise(vector<double>& coords,
+                           const vector<string>& elements,
+                           const vector<SymOp>& ops,
+                           double tolerance,
+                           double *maxShift = 0);
+
     /** Partition the atoms into orbits, from their images. */
     static void orbits(const vector< vector<int> >& images,
                        int numAtoms,

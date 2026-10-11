@@ -1035,10 +1035,14 @@ namespace {
       if (subDerived[i].empty() || i >= (int)reported.size() ||
           reported[i].empty()) continue;
       checked++;
-      string a = subDerived[i], b = reported[i];
-      for (size_t c = 0; c < a.size(); c++) a[c] = toupper((unsigned char)a[c]);
-      for (size_t c = 0; c < b.size(); c++) b[c] = toupper((unsigned char)b[c]);
-      if (a == b) agree++;
+      //  canonicalIrrep(), not toupper(): the codes write a double prime
+      //  as A" and the tables as A'', so every A'' orbital of a Cs-
+      //  labelled run used to count as a disagreement.
+      if (MoDiagram::canonicalIrrep(subDerived[i]) ==
+          MoDiagram::canonicalIrrep(reported[i])) agree++;
+      else if (mosymDebug())
+        mosymPrintf("[MOSYM]   orbital %d (%.4f): code %s, computed %s\n",
+                    i + 1, e[i], reported[i].c_str(), subDerived[i].c_str());
     }
     //  ALL OR NOTHING: a single disagreement means the axis convention
     //  or the frame premise is wrong somewhere, and a diagram is not
@@ -1684,6 +1688,41 @@ void MoDiagramPanel::buildOnce()
     }
   }
 
+  //  autosym also finds groups with complex irreps (C3 for a slightly
+  //  irregular NH3), which have no table here; without one nothing at
+  //  all was drawn.  Fall back to drawing without symmetry.
+  //  What the diagram did to the symmetry, said on it.  Kept apart from
+  //  `why`, which MoFragments::build() overwrites.
+  string symmetryNote;
+  if (!group.empty() && CharacterTable::lookup(group) == 0) {
+    symmetryNote = "There is no character table for " + group + " here, "
+                   "so the diagram is drawn without symmetry (C1).";
+    group = "C1";
+  }
+
+  //  autosym accepts a group within its tolerance but leaves the atoms
+  //  only that close to symmetric, while the fragment analysis matches
+  //  atoms to 0.001 Angstrom: a code's own geometry, symmetric to 1e-6
+  //  in a subgroup and to 1e-3 in this group, then drew no fragments.
+  //  Symmetrising this copy changes nothing the calculation computed.
+  string symmetrisedNote, symmetrisedGroup;
+  if (!coords.empty() && !group.empty() && group != "C1") {
+    vector<SymOp> ops;
+    double shift = 0.0;
+    if (MoFragments::symmetryOperations(group, ops) &&
+        SymmetryAnalysis::symmetrise(coords, elements, ops, 0.05, &shift) &&
+        shift >= 5.0e-4) {
+      symmetrisedGroup = group;
+      ostringstream text;
+      text.setf(std::ios::fixed);
+      text.precision(3);
+      text << "The structure was symmetrised to " << group
+           << " for this diagram (atoms moved by up to " << shift
+           << " Angstrom); the orbitals are the calculation's own.";
+      symmetrisedNote = text.str();
+    }
+  }
+
   //  --- the molecular orbitals ---------------------------------------
   //
   //  Grouped by irrep DIMENSION where the group is known.  A degenerate
@@ -1726,7 +1765,7 @@ void MoDiagramPanel::buildOnce()
                                })) {
       s = computedLabels;
       labelsInFullGroup = true;
-      if (why.empty()) why = computedNote;
+      symmetryNote += (symmetryNote.empty() ? "" : "  ") + computedNote;
     }
   }
 
@@ -2693,6 +2732,8 @@ void MoDiagramPanel::buildOnce()
       }
       note << "  The orbital energies are shown on their own below.";
       if (!why.empty()) note << "  " << why;
+      if (!symmetryNote.empty()) note << "  " << symmetryNote;
+      if (group == symmetrisedGroup) note << "  " << symmetrisedNote;
 
       //  SAID ONCE, LOUDLY, AT THE TOP.
       //
@@ -2733,6 +2774,8 @@ void MoDiagramPanel::buildOnce()
   }
 
   if (!why.empty()) note << "  " << why;
+  if (!symmetryNote.empty()) note << "  " << symmetryNote;
+  if (group == symmetrisedGroup) note << "  " << symmetrisedNote;
 
   progressDlg.progress(97, _("Drawing"));
   p_canvas->setGroup(group);
