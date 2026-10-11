@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<eccejobstore>
+     <event  type="Message"  name="Job log started for calculation"  date="Sun, 11 Oct 2026 08:21:59 CEST" >file:///home/andy/.cache/ecce-ecceqm-6w76akr3/localdata/users/local/ecceqm-water-geovib-1791699716-project/ecceqm-water-geovib-1791699716     </event>
+     <event  type="Message"  name="eccejobstore running on client"  date="Sun, 11 Oct 2026 08:21:59 CEST" >niobium     </event>
+     <event  type="Message"  name="Cache"  date="Sun, 11 Oct 2026 08:21:59 CEST" >Successfully started property parsing cache     </event>
+     <event  type="Message"  name="Local cache directory"  date="Sun, 11 Oct 2026 08:21:59 CEST" >/home/andy/.cache/ecce-ecceqm-6w76akr3/tmp/ecce_andy/jobs/ecceqm-water-geovib-1791699716__SMVcyu     </event>
+     <event  type="Message"  name="Job Monitor"  date="Sun, 11 Oct 2026 08:21:59 CEST" >Started job monitor (stdio comms) with command: perl eccejobmonitor -configFile eccejobmonitor.conf -jobId 2295333 -bookmark 0; echo eccejobmonitor_went_bye_bye     </event>
+     <event  type="Message"  name="System"  date="Sun, 11 Oct 2026 08:21:59 CEST" >Started local RCommand connection     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Sun, 11 Oct 2026 08:21:59 CEST" >Receiving calculation output from eccejobmonitor     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Sun, 11 Oct 2026 08:22:00 CEST" >Running     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Sun, 11 Oct 2026 08:22:08 CEST" >Sun Oct 11 08:22:08 2026: job monitor running on Shell job pid '2295333'     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Sun, 11 Oct 2026 08:22:20 CEST" >Sun Oct 11 08:22:20 2026: job monitor running on Shell job pid '2295333'     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Sun, 11 Oct 2026 08:22:33 CEST" >Sun Oct 11 08:22:33 2026: job monitor running on Shell job pid '2295333'     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Sun, 11 Oct 2026 08:22:45 CEST" >Sun Oct 11 08:22:45 2026: job monitor running on Shell job pid '2295333'     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Sun, 11 Oct 2026 08:22:58 CEST" >Sun Oct 11 08:22:58 2026: job monitor running on Shell job pid '2295333'     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Sun, 11 Oct 2026 08:23:10 CEST" >Sun Oct 11 08:23:10 2026: job monitor running on Shell job pid '2295333'     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Sun, 11 Oct 2026 08:23:23 CEST" >Sun Oct 11 08:23:23 2026: job monitor running on Shell job pid '2295333'     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Sun, 11 Oct 2026 08:23:34 CEST" >File marked to copy from compute host: ecceqm.qmout     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Sun, 11 Oct 2026 08:23:34 CEST" >File marked to copy from compute host: ecceqm.qmout     </event>
+     <event  type="Message"  name="Benchmark"  date="Sun, 11 Oct 2026 08:23:34 CEST" >Before file copy of output files     </event>
+     <event  type="Message"  name="Benchmark"  date="Sun, 11 Oct 2026 08:23:34 CEST" >After file copy of output files     </event>
+     <event  type="Message"  name="File Copy"  date="Sun, 11 Oct 2026 08:23:34 CEST" >Successfully copied files from server--
+RCommand::get(localhost, ssh, andy, <elided>, {/home/andy/.cache/ecce-ecceqm-6w76akr3/jobs/ecceqm-water-geovib-1791699716-project/ecceqm-water-geovib-1791699716/ecceqm.qmout,/home/andy/.cache/ecce-ecceqm-6w76akr3/jobs/ecceqm-water-geovib-1791699716-project/ecceqm-water-geovib-1791699716/*.cub,/home/andy/.cache/ecce-ecceqm-6w76akr3/jobs/ecceqm-water-geovib-1791699716-project/ecceqm-water-geovib-1791699716/*.cube,/home/andy/.cache/ecce-ecceqm-6w76akr3/jobs/ecceqm-water-geovib-1791699716-project/ecceqm-water-geovib-1791699716/*.file30}, /home/andy/.cache/ecce-ecceqm-6w76akr3/tmp/ecce_andy/jobs/ecceqm-water-geovib-1791699716__SMVcyu) succeeded     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Sun, 11 Oct 2026 08:23:34 CEST" >Complete     </event>
+     <event  type="Message"  name="eccejobstore exit"  date="Sun, 11 Oct 2026 08:23:34 CEST" >eccejobstore terminating normally, exit status 0     </event>
+</eccejobstore>
