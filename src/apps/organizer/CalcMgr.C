@@ -21,6 +21,9 @@
 #include "wx/wx.h"
 #include <unistd.h>
 #endif
+#ifdef __WXMSW__
+#include "wx/msw/wrapwin.h"
+#endif
 
 #include <fstream>
 #include "ReleaseNotice.H"
@@ -448,6 +451,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  *                 hand the snapshot in <file> to the Organizer as an
  *                 ecce_url_progress message does (empty file: forget it)
  * size <w> <h>   resize the Organizer window
+ * firstvisible    the label of the tree's top visible row (its scroll)
  * progressbox     the shown summary's Progress box: shown or not, its
  *                 paints and the lines it draws, separated by " | "
  * contact <url> lost <epoch>|ok
@@ -772,6 +776,11 @@ void CalcMgr::runTestCommand(const string& line)
       for (int i = 0; i < 5; i++) wxYield();
       outcome = "ok " + std::to_string(GetSize().x) + "x" +
                 std::to_string(GetSize().y);
+    } else if (command == "firstvisible") {
+      for (int i = 0; i < 5; i++) wxYield();
+      wxTreeItemId first = p_treeCtrl->GetFirstVisibleItem();
+      outcome = first.IsOk() ? string(p_treeCtrl->GetItemText(first).utf8_str())
+                             : string("none");
     } else if (command == "progressbox") {
       CalculationContextPanel *panel =
           dynamic_cast<CalculationContextPanel*>(p_contextPanel);
@@ -2595,12 +2604,15 @@ void CalcMgr::OnTreectrlItemExpanded( wxTreeEvent& event )
 {
   //  cerr << "\nEnter Expanded event\n";
 
+  //  Bring the new children into view, then the item itself.  Not
+  //  ScrollTo(): on MSW it makes the item the top row, so every expand
+  //  scrolled the tree.
   wxTreeItemId id = event.GetItem();
-  // A small hack to ensure that all the children are visible
-  p_treeCtrl->ScrollTo(p_treeCtrl->GetLastChild(id));
-  // @todo May not have a sibling if last child!!
-  p_treeCtrl->ScrollTo(p_treeCtrl->GetNextSibling(id));
-  p_treeCtrl->ScrollTo(id);
+  wxTreeItemId last = p_treeCtrl->GetLastChild(id);
+  wxTreeItemId next = p_treeCtrl->GetNextSibling(id);
+  if (last.IsOk()) p_treeCtrl->EnsureVisible(last);
+  if (next.IsOk()) p_treeCtrl->EnsureVisible(next);
+  p_treeCtrl->EnsureVisible(id);
   
   //  cerr << "Leave Expanded event\n";
   event.Skip();
@@ -6253,8 +6265,21 @@ void CalcMgr::onSelectionChange(bool selectInTree)
   } holdMenus(GetMenuBar());
   //  The summary pane is replaced and the tree and toolbar change in one
   //  go; on MSW each step was painted (an empty pane, then half of it).
-  //  Released before the menu bar, so its repaint is not swallowed.
-  wxWindowUpdateLocker hold(this);
+  //  Released before the menu bar, so its repaint is not swallowed.  On
+  //  MSW the thaw only invalidates, and each child then painted on its own
+  //  turn (the run-state legend a frame after the summary); paint them all
+  //  at once.
+  struct FrameHold {
+    wxWindow *win;
+    explicit FrameHold(wxWindow *w) : win(w) { win->Freeze(); }
+    ~FrameHold() {
+      win->Thaw();
+#ifdef __WXMSW__
+      ::RedrawWindow((HWND)win->GetHWND(), NULL, NULL,
+                     RDW_UPDATENOW | RDW_ALLCHILDREN);
+#endif
+    }
+  } hold(this);
   wxMenuBar * menuBar = GetMenuBar();
   WxResourceTreeItemData *itemData = 0;
 

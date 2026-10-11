@@ -109,6 +109,14 @@ protected:
 
   WxResourceTreeCtrl();
 
+#ifdef __WXMSW__
+  //  wxMSW's tree has its own Freeze(), after which the native control
+  //  came back scrolled elsewhere.  The Organizer freezes it on every
+  //  selection, so the plain window freeze (WM_SETREDRAW) is used instead.
+  virtual void DoFreeze() wxOVERRIDE { wxWindow::DoFreeze(); }
+  virtual void DoThaw() wxOVERRIDE { wxWindow::DoThaw(); }
+#endif
+
   virtual void clear();
 
   virtual bool autoOpen();

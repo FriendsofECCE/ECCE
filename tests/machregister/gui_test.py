@@ -1644,14 +1644,15 @@ quit
     exe(os.path.join(dirs["a"], "MOPAC2016.exe"))
     exe(os.path.join(dirs["b"], "mopac"))
     exe(os.path.join(dirs["d"], "pw.x"))
-    #  The machine's login setup is what puts the programs on the PATH; the
-    #  shell RCommand starts does not inherit the test's own.
+    #  The machine's login setup puts the programs on the PATH.  The shell
+    #  Find runs inherits machregister's PATH, so that is held to the system
+    #  directories: a host's own ORCA on its PATH would add a choice.
     setup = os.path.join(tmp, "path.sh")
     write(setup, "PATH=%s:%s:$PATH; export PATH\n" % (dirs["a"], dirs["b"]))
     write(os.path.join(e.ue, "CONFIG.stubm"),
           "nwchem: /opt/nwchem\ncondorAllowTmp: true\nsourceFile: %s\n" % setup)
-    extra = LOCALUSER
-    pw = os.path.join(dirs["d"], "pw.x")
+    extra = dict(LOCALUSER, PATH=os.defpath)
+    pw =os.path.join(dirs["d"], "pw.x")
     # Check if pw.x is installed on the system (e.g., /bin/pw.x or /usr/bin/pw.x on niobium)
     system_pw_paths = ["/bin/pw.x", "/usr/bin/pw.x"]
     system_pw_installed = any(os.path.exists(p) for p in system_pw_paths)
@@ -1702,7 +1703,7 @@ code QuantumESPRESSO
 click code:find
 expect field code:quantumespresso %(pw)s
 quit
-""" % {"pw": pw}, extra=LOCALUSER)
+""" % {"pw": pw}, extra=extra)
     clean(p, "Find runs the machine's login setup first")
 
 

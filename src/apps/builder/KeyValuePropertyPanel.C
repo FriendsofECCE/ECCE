@@ -22,6 +22,46 @@
 
 #include "KeyValuePropertyPanel.H"
 
+#include "wx/dcclient.h"
+
+namespace {
+//  A group heading's fold arrow: pointing down when open, right when folded.
+class FoldArrow : public wxWindow
+{
+  public:
+    FoldArrow(wxWindow *parent, bool open, int height)
+      : wxWindow(parent, wxID_ANY, wxDefaultPosition, wxSize(height, height)),
+        p_open(open)
+    {
+      SetMinSize(wxSize(height, height));
+      SetBackgroundStyle(wxBG_STYLE_PAINT);
+      Bind(wxEVT_PAINT, [this](wxPaintEvent&) {
+        wxPaintDC dc(this);
+        dc.SetBackground(wxBrush(GetParent()->GetBackgroundColour()));
+        dc.Clear();
+        const wxSize s = GetClientSize();
+        const double h = s.y * 0.45, c = s.x / 2.0, m = s.y / 2.0;
+        wxPoint p[3];
+        if (p_open) {
+          p[0] = wxPoint(int(c - h / 2), int(m - h / 4));
+          p[1] = wxPoint(int(c + h / 2), int(m - h / 4));
+          p[2] = wxPoint(int(c), int(m + h / 4 + 1));
+        } else {
+          p[0] = wxPoint(int(c - h / 4), int(m - h / 2));
+          p[1] = wxPoint(int(c - h / 4), int(m + h / 2));
+          p[2] = wxPoint(int(c + h / 4 + 1), int(m));
+        }
+        const wxColour fg = GetParent()->GetForegroundColour();
+        dc.SetPen(wxPen(fg));
+        dc.SetBrush(wxBrush(fg));
+        dc.DrawPolygon(3, p);
+      });
+    }
+  private:
+    bool p_open;
+};
+}
+
 
 wxFORCE_LINK_THIS_MODULE(KeyValuePropertyPanel)
 
@@ -95,7 +135,9 @@ bool KeyValuePropertyPanel::toggleGroup(const string& group)
 
 void KeyValuePropertyPanel::refresh()
 {
-  DestroyChildren();
+  //  Clear(true), not DestroyChildren(): the headings' spacers are not
+  //  windows, and left in the sizer they shift every later row by a cell.
+  GetSizer()->Clear(true);
   p_rows.clear();
 
   struct Row { string key, value, units, group; size_t order; };
@@ -185,24 +227,38 @@ void KeyValuePropertyPanel::refresh()
         title += " (" + solvModel + ")";
       string text = (folded ? "\xE2\x96\xB8 " : "\xE2\x96\xBE ") + title;
       if (folded) text += " (" + std::to_string(members.size()) + ")";
+      //  The fold arrow is drawn, not a "▾" in the label: wxMSW measured
+      //  that glyph narrower than the native control drew it (a fallback
+      //  font), and the control wrapped the title out of sight.
+      wxBoxSizer *headSizer = new wxBoxSizer(wxHORIZONTAL);
       ewxStaticText *head = new ewxStaticText(this, wxID_ANY,
-                                              wxString::FromUTF8(text));
+          wxString::FromUTF8(title + (folded ? " (" +
+              std::to_string(members.size()) + ")" : string())));
       head->SetFont(head->GetFont().Bold());
-      head->SetCursor(wxCursor(wxCURSOR_HAND));
-      head->Bind(wxEVT_LEFT_DOWN, [this, name](wxMouseEvent&) {
-        CallAfter([this, name]() { toggleGroup(name); });
-      });
-      sizer->Add(head, 0, left);
+      FoldArrow *arrow = new FoldArrow(this, !folded, head->GetCharHeight());
+      headSizer->Add(arrow, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 3);
+      headSizer->Add(head, 0, wxALIGN_CENTER_VERTICAL);
+      for (wxWindow *w : {static_cast<wxWindow*>(arrow),
+                          static_cast<wxWindow*>(head)}) {
+        w->SetCursor(wxCursor(wxCURSOR_HAND));
+        w->Bind(wxEVT_LEFT_DOWN, [this, name](wxMouseEvent&) {
+          CallAfter([this, name]() { toggleGroup(name); });
+        });
+      }
+      sizer->Add(headSizer, 0, left);
       sizer->AddSpacer(0);
       sizer->AddSpacer(0);
       p_rows.push_back("H " + text);
     }
     if (!folded) {
       for (const Row *row : members) {
-        sizer->Add(new ewxNonBoldLabel(this, wxID_ANY, row->key), 0, left);
-        sizer->Add(new ewxStaticText(this, wxID_ANY, row->value),
+        sizer->Add(new ewxNonBoldLabel(this, wxID_ANY,
+                                         wxString::FromUTF8(row->key)), 0, left);
+        sizer->Add(new ewxStaticText(this, wxID_ANY,
+                                      wxString::FromUTF8(row->value)),
                 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL);
-        sizer->Add(new ewxNonBoldLabel(this, wxID_ANY, row->units), 0, left);
+        sizer->Add(new ewxNonBoldLabel(this, wxID_ANY,
+                                         wxString::FromUTF8(row->units)), 0, left);
         p_rows.push_back("R " + row->key + " | " + row->value + " | " +
                          row->units);
       }
