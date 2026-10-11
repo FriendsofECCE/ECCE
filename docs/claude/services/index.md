@@ -61,3 +61,4 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [tests/macos/e2e.sh: water single points on a Mac with real codes](macos-end-to-end-run.md)
 - [Windows: the user's folder can hold a space, and every path ECCE builds sits below it (#247)](windows-paths-hold-spaces.md)
 - [Windows: a text-mode stream's tellg() is not the length of what it reads; DAV PUT 400 (#247)](windows-dav-put-text-mode.md)
+- [Windows MSI: install time goes by the file and the component; Strawberry keeps core modules in vendor\lib (#257)](windows-msi-time-goes-by-file.md)

@@ -82,6 +82,7 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
          it != panels.end() && !mo; ++it)
       mo = dynamic_cast<MoPanel*>(*it);
     if (!mo) return s.fail("plotshot: no MO panel for '" + mode + "'");
+    mo->ensureInitialized();
     wxCommandEvent ev(wxEVT_MENU, mode == "plotsym" ? MoPanel::PLOTSYM
                                  : mode == "plot" ? MoPanel::PLOT
                                                   : MoPanel::TABLE);

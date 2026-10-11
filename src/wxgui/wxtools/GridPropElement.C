@@ -30,6 +30,7 @@
 #include "util/Preferences.H"
 #include "util/PreferenceLabels.H"
 #include "util/TDateTime.H"
+#include "tdat/TFormula.H"
 
 #include "dsm/ITraversable.H"
 #include "dsm/ResourceType.H"
@@ -64,6 +65,9 @@ GridPropElement::GridPropElement(Resource *resource, ResourceProperty *property)
   // trying to write to a resource which we don't have access to.
   if (property->getName() == "displayname") {
     setValue(resource->getName());
+  }
+  else if (property->getName() == "empiricalFormula") {
+    setValue(TFormula::hillOrder(resource->getProp(property->getQName())).c_str());
   }
   else {
     setValue(resource->getProp(property->getQName()).c_str());

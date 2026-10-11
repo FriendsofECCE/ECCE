@@ -10,6 +10,7 @@
 #ifndef WX_PRECOMP
 #include "wx/wx.h"
 #endif
+#include <wx/timer.h>
 
 #include <iostream>
 using std::cerr;
@@ -73,6 +74,7 @@ bool BuilderApp::OnInit()
   string context = "";
   string file;
   bool standalone = false;
+  bool started = false;    // by the Organizer or the gateway (-pipe)
   if (argc > 1) {
     for (int i=1; i<argc; i++) {
       if (strcmp(argv[i].ToStdString().c_str(), "-standalone") == 0)
@@ -87,6 +89,7 @@ bool BuilderApp::OnInit()
         // silently discarding the credentials and taking the next argument
         // with it.
         AuthCache::getCache().pipeIn(argv[++i].ToStdString());
+        started = true;
       } else if (strcmp(argv[i].ToStdString().c_str(), "-context") == 0) {
         // Might need index out of boundary check
         context = argv[++i];
@@ -109,7 +112,14 @@ bool BuilderApp::OnInit()
 
   p_builder->Show(false);
   SetTopWindow(p_builder);
-  registerTopShell(p_builder);
+  //  Started for a tool request (-pipe), the calculation comes in the
+  //  ecce_invoke that follows, and invokeMCB() shows the window then:
+  //  shown first, the empty default is drawn and then rebuilt in view.
+  //  Registered as a top shell only then, since the dispatcher shows every
+  //  top shell before it hands an ecce_invoke to invokeMCB().
+  const bool showOnInvoke = started && !standalone && context.empty() &&
+                            file.empty();
+  if (!showOnInvoke) registerTopShell(p_builder);
 
   if (context != "") {
     p_builder->setContext(context);
@@ -216,8 +226,19 @@ bool BuilderApp::OnInit()
     notifyReady();
   }
 
-  p_builder->Show(true);
-  
+  //  The timer shows the window should that message never come.
+  if (showOnInvoke) {
+    wxTimer *timer = new wxTimer();
+    timer->Bind(wxEVT_TIMER, [this, timer](wxTimerEvent&) {
+      registerTopShell(p_builder);
+      if (!p_builder->IsShown()) p_builder->Show(true);
+      p_builder->CallAfter([timer]() { delete timer; });
+    });
+    timer->StartOnce(5000);
+  } else {
+    p_builder->Show(true);
+  }
+
   return true;
 }
 
@@ -527,6 +548,7 @@ void BuilderApp::invokeMCB(JMSMessage& msg)
 
     }
 
+    registerTopShell(p_builder);
     p_builder->Iconize(false);
     p_builder->Raise();
     p_builder->Show(true);
@@ -534,6 +556,8 @@ void BuilderApp::invokeMCB(JMSMessage& msg)
     p_builder->RequestUserAttention();
 
   } else if (msg.getIntProperty("importcalc") == 1) {
+    registerTopShell(p_builder);
+    p_builder->Show(true);
     wxCommandEvent event;
     p_builder->OnImportCalcClick(event);
   }
