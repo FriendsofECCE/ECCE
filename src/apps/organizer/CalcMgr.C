@@ -3181,6 +3181,20 @@ void CalcMgr::getContextMenu(wxMenu & menu)
       menu.Append(item);
     }
 
+    // The two Run Mgmt tasks used mid-run are also reachable here; the
+    // state-based task list is what enables them, as in the menu bar.
+    if (isCalculationNode) {
+      bool sep = false;
+      vector<ResourceRmTask *> rmVec = resType->getRmTasks(state);
+      for (size_t i = 0; i < rmVec.size(); i++) {
+        const string & rn = rmVec[i]->getName();
+        if (rn != "terminateCalc" && rn != "shellInRunDir") continue;
+        if (!sep) { menu.AppendSeparator(); sep = true; }
+        menu.Append(rmVec[i]->getId(), rmVec[i]->getMenuItem(), "",
+                    wxITEM_NORMAL);
+      }
+    }
+
     if (p_currentSelection[0].isSystemFolder()) {
       menu.Enable(wxID_CUT, false);
       menu.Enable(wxID_RENAME, false);
