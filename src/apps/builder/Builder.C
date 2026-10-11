@@ -70,6 +70,8 @@ using std::vector;
 
 #include "wxgui/ContextHistory.H"
 #include "wxgui/ewxWindowUtils.H"
+#include <wx/dcgraph.h>
+#include <wx/bmpbndl.h>
 #include "wxgui/ewxBitmap.H"
 #include "wxgui/ewxBitmapButton.H"
 #include "wxgui/ewxButton.H"
@@ -669,11 +671,10 @@ void Builder::createToolbar()
     p_viewToolbar->SetToolPacking(0);
     p_viewToolbar->SetToolBitmapSize(wxSize(22, 22));
     p_viewToolbar->AddTool(ViewerEvtHandler::ID_DEPTH_CUEING, _T(""),
-            ewxBitmap("depthcue.png", wxBITMAP_TYPE_PNG),
+            ewxBitmap::svgIcon("depthcue", wxSize(22, 22), "depthcue.png"),
             _("Enable/disable depth cueing"), wxITEM_CHECK);
-    ewxBitmap spinBitmap("spin.xpm");
     p_viewToolbar->AddTool(ViewerEvtHandler::ID_ENABLE_SPINNING, _T(""),
-            spinBitmap, _("Enable/disable spinning"), wxITEM_CHECK);
+            ewxBitmap::svgIcon("spin", wxSize(22, 22), "spin.xpm"), _("Enable/disable spinning"), wxITEM_CHECK);
     wxBitmap resetIcon = ewxBitmap::themedIcon("go-home", wxSize(22, 22));
     if (!resetIcon.IsOk()) resetIcon = ewxBitmap("home_view16.png", wxBITMAP_TYPE_PNG);
     p_viewToolbar->AddTool(ID_TOOL_RESETVIEW, _T(""), resetIcon,
@@ -681,21 +682,17 @@ void Builder::createToolbar()
 
     p_styleToolbar = new wxToolBar(this, ID_STYLE_TOOLBAR, wxDefaultPosition,
             wxDefaultSize, wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
-    ewxBitmap itemtool16Bitmap("axis.png", wxBITMAP_TYPE_PNG);
     p_styleToolbar->AddTool(ViewerEvtHandler::ID_SHOW_AXES, _T(""),
-            itemtool16Bitmap, _("Show/hide axis"), wxITEM_CHECK);
-    ewxBitmap itemtool17Bitmap("rings.xpm");
+            ewxBitmap::svgIcon("axis", wxSize(22, 22), "axis.png"), _("Show/hide axis"), wxITEM_CHECK);
     p_styleToolbar->AddTool(ViewerEvtHandler::ID_SHOW_RING, _T(""),
-            itemtool17Bitmap, _("Display aromatic rings"), wxITEM_CHECK);
-    ewxBitmap styleBitmap("styles.xpm");
-    p_styleToolbar->AddTool(ID_TOOL_STYLE, _T(""), styleBitmap,
+            ewxBitmap::svgIcon("rings", wxSize(22, 22), "rings.xpm"), _("Display aromatic rings"), wxITEM_CHECK);
+    p_styleToolbar->AddTool(ID_TOOL_STYLE, _T(""),
+            ewxBitmap::svgIcon("styles", wxSize(22, 22), "styles.xpm"),
             _("Set global display style")); 
-    ewxBitmap bgcolorBitmap("background.png", wxBITMAP_TYPE_PNG);
     p_styleToolbar->AddTool(ViewerEvtHandler::ID_BACKGROUND_COLOR, _T(""),
-            bgcolorBitmap, _("Background Color"), wxITEM_NORMAL);
-    ewxBitmap fgcolorBitmap("textcolor22.png", wxBITMAP_TYPE_PNG);
+            ewxBitmap::svgIcon("background", wxSize(22, 22), "background.png"), _("Background Color"), wxITEM_NORMAL);
     p_styleToolbar->AddTool(ViewerEvtHandler::ID_FOREGROUND_COLOR, _T(""),
-            fgcolorBitmap, _("Atom Label Color"), wxITEM_NORMAL);
+            ewxBitmap::svgIcon("textcolor", wxSize(22, 22), "textcolor22.png"), _("Atom Label Color"), wxITEM_NORMAL);
 
     p_manipulatorToolbar = new wxToolBar(this, ID_DRAGGER_TOOLBAR,
             wxDefaultPosition, wxDefaultSize,
@@ -1962,13 +1959,41 @@ void Builder::updateBondIcon()
  * The current build element has changed. Reflect the change in the
  * toolbar.
  */
+//  A round chip in the element's colour with its symbol, drawn at n pixels
+//  on the toolbar's own face colour (the old square of flat colour with
+//  plain text showed up as an odd block next to the line icons).
+static wxBitmap elementToolBitmap(const wxString& sym, const wxColour& col,
+                                  int n)
+{
+  wxBitmap bitmap(n, n);
+  wxMemoryDC mdc;
+  mdc.SelectObject(bitmap);
+  mdc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE)));
+  mdc.Clear();
+  {
+    wxGCDC dc(mdc);
+    const wxColour rim(col.Red() * 6 / 10, col.Green() * 6 / 10,
+                       col.Blue() * 6 / 10);
+    dc.SetBrush(wxBrush(col));
+    dc.SetPen(wxPen(rim, wxMax(1, n / 22)));
+    const int m = wxMax(1, n / 11);
+    dc.DrawEllipse(m, m, n - 2 * m, n - 2 * m);
+    wxFont font = ewxStyledWindow::getBoldFont();
+    font.SetPixelSize(wxSize(0, wxMax(8, n * 11 / 22)));
+    dc.SetFont(font);
+    const bool dark = (col.Red() * 299 + col.Green() * 587 + col.Blue() * 114)
+                      < 128000;
+    dc.SetTextForeground(dark ? *wxWHITE : *wxBLACK);
+    wxSize size = dc.GetTextExtent(sym);
+    dc.DrawText(sym, (n - size.GetX()) / 2, (n - size.GetY()) / 2);
+  }
+  mdc.SelectObject(wxNullBitmap);
+  return bitmap;
+}
+
+
 void Builder::updateElementIcon()
 {
-  wxBitmap bitmap(22, 22);
-
-  wxMemoryDC dc;
-  dc.SelectObject(bitmap);
-
   TPerTab pertab;
   Preferences prefs("PerTable");
   string color;
@@ -1979,17 +2004,11 @@ void Builder::updateElementIcon()
   else
     col = ewxColor(pertab.color(pertab.atomicNumber(p_currentElement)));
 
-  dc.SetBackground(wxBrush(col, wxSOLID));
-  dc.Clear();
-  //dc.DrawCircle( 8, 8, 8);
-  //dc.SetBrush( *wxWHITE_BRUSH );
-  dc.SetPen(*wxBLACK_PEN);
-  dc.SetFont(ewxStyledWindow::getBoldFont());
-  wxSize size = dc.GetTextExtent(p_currentElement);
-  dc.DrawText( p_currentElement, 11-size.GetX()/2, 11-size.GetY()/2);
-  dc.SelectObject( wxNullBitmap );
-
-  p_modeToolbar->SetToolNormalBitmap(ID_MODE_ATOM, bitmap);
+  const wxString sym(p_currentElement);
+  wxBitmapBundle chip = wxBitmapBundle::FromBitmaps(
+      elementToolBitmap(sym, col, 22), elementToolBitmap(sym, col, 44));
+  p_modeToolbar->SetToolNormalBitmap(ID_MODE_ATOM,
+                                     chip.GetBitmapFor(p_modeToolbar));
 }
 
 
@@ -6231,13 +6250,8 @@ void Builder::toggleTool(int id, bool isChecked)
   else if (p_viewToolbar->FindById(id)) {
     p_viewToolbar->ToggleTool(id, isChecked);
 
-    if (id == ViewerEvtHandler::ID_DEPTH_CUEING) {
-      ewxBitmap enableBitmap("depthcue.png", wxBITMAP_TYPE_PNG);
-      ewxBitmap disableBitmap("depthcue_disabled.png", wxBITMAP_TYPE_PNG);
-      p_viewToolbar->SetToolNormalBitmap(ViewerEvtHandler::ID_DEPTH_CUEING,
-                                         isChecked?disableBitmap:enableBitmap);
-    }
-
+    //  The depth-cue tool is a toggle: its pressed look says which state
+    //  it is in, so the icon stays the same.
   }
   else if (p_styleToolbar->FindById(id)) {
     p_styleToolbar->ToggleTool(id, isChecked);

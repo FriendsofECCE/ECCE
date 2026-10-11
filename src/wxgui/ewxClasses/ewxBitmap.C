@@ -158,6 +158,21 @@ static const wxBitmap& alphaToMask(const wxBitmap& bmp) { return bmp; }
  * The bundled Lucide icon drawn in the text colour (its stroke is
  * currentColor), for platforms with no icon theme.
  */
+static wxBitmap svgFileIcon(const wxString& path, const wxSize& size,
+                            const wxColour& ink)
+{
+  wxFFile in(path);
+  wxString svg;
+  if (!in.IsOpened() || !in.ReadAll(&svg)) return wxBitmap();
+  svg.Replace("currentColor", ink.GetAsString(wxC2S_HTML_SYNTAX));
+  wxScopedCharBuffer utf8 = svg.utf8_str();
+  wxCharBuffer data(utf8.length());
+  memcpy(data.data(), utf8.data(), utf8.length());
+  wxBitmapBundle b = wxBitmapBundle::FromSVG(data.data(), size);
+  return b.IsOk() ? alphaToMask(b.GetBitmap(size)) : wxBitmap();
+}
+
+
 static wxBitmap lucideIcon(const wxString& icon, const wxSize& size,
                            const wxColour& ink)
 {
@@ -165,17 +180,26 @@ static wxBitmap lucideIcon(const wxString& icon, const wxSize& size,
     if (icon != LUCIDE_ICONS[i].icon) continue;
     wxFileName file(ewxBitmap::pixmapFile(
         wxString("lucide/") + LUCIDE_ICONS[i].lucide + ".svg"));
-    wxFFile in(file.GetFullPath());
-    wxString svg;
-    if (!in.IsOpened() || !in.ReadAll(&svg)) return wxBitmap();
-    svg.Replace("currentColor", ink.GetAsString(wxC2S_HTML_SYNTAX));
-    wxScopedCharBuffer utf8 = svg.utf8_str();
-    wxCharBuffer data(utf8.length());
-    memcpy(data.data(), utf8.data(), utf8.length());
-    wxBitmapBundle b = wxBitmapBundle::FromSVG(data.data(), size);
-    return b.IsOk() ? alphaToMask(b.GetBitmap(size)) : wxBitmap();
+    return svgFileIcon(file.GetFullPath(), size, ink);
   }
   return wxBitmap();
+}
+
+
+/**
+ * ECCE's own line icon (data/client/pixmaps/svg/icon-<name>.svg), drawn
+ * in the text colour at the size and twice it, so a toolbar is sharp at
+ * any scale.  The old pixmap `fallback` only if the file is missing.
+ */
+wxBitmapBundle ewxBitmap::svgIcon(const wxString& name, const wxSize& size,
+                                  const wxString& fallback)
+{
+  wxColour ink = wxSystemSettings::GetColour(wxSYS_COLOUR_BTNTEXT);
+  wxString path = pixmapFile("svg/icon-" + name + ".svg");
+  wxBitmap one = svgFileIcon(path, size, ink);
+  wxBitmap two = svgFileIcon(path, size * 2, ink);
+  if (one.IsOk() && two.IsOk()) return wxBitmapBundle::FromBitmaps(one, two);
+  return bundle(fallback);
 }
 
 
