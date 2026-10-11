@@ -118,7 +118,7 @@ def makeCalc(data, name, props=None, source=GOOD, basis=None):
 
 
 def runBuilder(display, url, out, scene, shot=None, mode=None,
-               dialogSeconds="1", extraEnv=None):
+               dialogSeconds="1", extraEnv=None, panel="MOs"):
     os.makedirs(out, exist_ok=True)
     script = os.path.join(out, "scene")
     with open(script, "w") as handle:
@@ -155,7 +155,7 @@ def runBuilder(display, url, out, scene, shot=None, mode=None,
     return apps.run(display, "builder", args=("-context", url),
                     windowTimeout=120, settle=90 if not shot else 40,
                     inspect=inspect if shot else None,
-                    env=dict(env, **{"ECCE_OPEN_PANEL": "MOs",
+                    env=dict(env, **{"ECCE_OPEN_PANEL": panel,
                          "ECCE_VIEWER_SCENE": script,
                          "ECCE_VIEWER_SCENE_OUT": out,
                          "ECCE_TEST_DIALOG_CLOSE": dialogSeconds,

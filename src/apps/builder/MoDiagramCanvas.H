@@ -1579,6 +1579,9 @@ class MoDiagramCanvas : public wxPanel
      * then the owner's composition.  Cached, since the composition may
      * need the overlap integrals.
      */
+    /** The text of the last clicked level, shown under the diagram. */
+    const string& infoText() const { return p_info; }
+
     string describeLevel(int level)
     {
       if (level < 0 || level >= (int)p_centre.levels.size()) return "";
@@ -1596,13 +1599,13 @@ class MoDiagramCanvas : public wxPanel
       }
       char e[64];
       snprintf(e, sizeof e, "%.4f", l.energy);
-      out << "   E = " << e << " Hartree";
-      if (!l.irrep.empty()) out << "   " << l.irrep;
+      out << ", E = " << e << " Hartree";
+      if (!l.irrep.empty()) out << ", " << l.irrep;
       if (l.occupancyBeta >= 0.0)
-        out << "   occupancy " << l.occupancy << " alpha, "
+        out << ", occupancy " << l.occupancy << " alpha, "
             << l.occupancyBeta << " beta";
       else
-        out << "   occupancy " << l.occupancy;
+        out << ", occupancy " << l.occupancy;
       if (p_owner != 0 && !l.orbitals.empty()) {
         const string comp = p_owner->orbitalComposition(l.orbitals);
         if (!comp.empty()) out << "\n" << comp;

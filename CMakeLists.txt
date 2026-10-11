@@ -2017,6 +2017,13 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/default_style.py)
   set_tests_properties(look_default_style PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
 
+  # The MO diagram's column headings do not overlap at docked widths.
+  add_test(NAME look_modiagram_heads
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/modiagramheads.py
+                   --libdir ${CMAKE_BINARY_DIR})
+  set_tests_properties(look_modiagram_heads PROPERTIES TIMEOUT 300)
+
   # tests/guivalues -- memory sizes saved before the GB-everywhere change
   # (Megawords, Megabytes) are converted by GUIValues::load() before a
   # dialog or a generator reads them.  Needs g++ and libecceutil.a.
