@@ -43,6 +43,7 @@
 #include "viz/AtomLabelsCmd.H"
 #include "viz/ComputeMoCmd.H"
 #include "viz/CSStyleCmd.H"
+#include "viz/ForegroundCmd.H"
 #include "viz/GTStepCmd.H"
 #include "viz/IsoSurfaceCmd.H"
 #include "viz/IsoValueCmd.H"
@@ -133,6 +134,14 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     //  "background r g b" (0..1), as the Background preference does.
     if (w.size() != 4) return fail("background: r g b");
     p_viewer->setBackgroundColor(SbColor(atof(w[1].c_str()), atof(w[2].c_str()), atof(w[3].c_str())));
+    //  The contrasting text colour, as ViewerEvtHandler::setBackground
+    //  picks it; otherwise the corner text stays green on white.
+    SbColor fg = p_viewer->calculateContrastingColor();
+    ForegroundCmd fgCmd("Foreground", p_sg);
+    fgCmd.getParameter("red")->setDouble(fg[0]);
+    fgCmd.getParameter("green")->setDouble(fg[1]);
+    fgCmd.getParameter("blue")->setDouble(fg[2]);
+    fgCmd.execute();
   } else if (c == "style") {
     CSStyleCmd cmd("Style", p_sg);
     DisplayDescriptor dd("default", rest, "Element");

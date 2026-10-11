@@ -30,8 +30,10 @@ Traps found building it:
 - A selected atom shows only if it goes through the viewer's `SGSelection`
   node (`getSelectionPath` + `ChemDisplayPath` + `merge`); filling
   `m_atomHighLight` alone changes nothing on screen.
-- The vendored build's offset is about +41 on every channel for lit
-  surfaces, not only green; compare after a per-channel correction.
+- The vendored build's offset (about +41 on every channel for lit atoms)
+  was a frozen ambient, fixed in ChemDisplay (see
+  vendored-atoms-green-ambient.md); the per-channel correction should now
+  find about zero on atoms.
 - `IsoValueCmd`'s "Value" is a log10 slider value (10^Value is the isovalue);
   passing 0.05 puts the surface above the field maximum and draws nothing.
 - Normal-mode indices are 0-based and the fixture has 3 modes; an index past
