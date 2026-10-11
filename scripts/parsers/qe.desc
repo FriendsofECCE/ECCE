@@ -226,3 +226,61 @@ Frequency=all
 Skip=0
 Lines=4
 [END]
+
+# Job progress for the Organizer's Progress box (#284).  No Script: these
+# only feed the monitor's live snapshot.  The SCF threshold is printed in
+# the header and again after each ionic step (it is tightened).  The
+# ionic step is printed after its criteria, so it is "istep", not a
+# record; the energy and force thresholds are not printed at all, so the
+# criteria show without targets.  Energies are in Ry and are left out.
+[PROGRESS]
+Begin=^\s+scf convergence threshold\s+=\s+(\S+)
+Remember=convthr
+[END]
+
+[PROGRESS]
+Begin=^\s+new conv_thr\s+=\s+(\S+) Ry
+Remember=convthr
+[END]
+
+[PROGRESS]
+Begin=^\s+iteration #\s*(\d+)\s+ecut
+Progress=scf cycle=$1
+[END]
+
+[PROGRESS]
+Begin=^\s+estimated scf accuracy\s+<\s+(\S+) Ry
+Progress=scf scferr=$1/{convthr}
+History=scferr
+[END]
+
+[PROGRESS]
+Begin=^\s+convergence has been achieved in
+Progress=scf converged=yes
+[END]
+
+[PROGRESS]
+Begin=^\s+Energy error\s+=\s+(\S+)
+Progress=opt dE=$1
+[END]
+
+[PROGRESS]
+Begin=^\s+Gradient error\s+=\s+(\S+)
+Progress=opt maxgrad=$1
+History=maxgrad
+[END]
+
+[PROGRESS]
+Begin=^\s+number of bfgs steps\s+=\s+(\d+)
+Progress=opt istep=$1
+[END]
+
+[PROGRESS]
+Begin=^\s+bfgs converged in\s+\d+ scf cycles and\s+(\d+) bfgs steps
+Progress=opt istep=$1 converged=yes
+[END]
+
+[PROGRESS]
+Begin=^\s+The maximum number of steps has been reached
+Progress=opt converged=no
+[END]

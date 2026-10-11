@@ -148,6 +148,17 @@ case("mopac geovib (PM7 EF, then FORCE)", "mopac.desc", fx("mopac", "gv.out"),
 case("mopac opt, not converged", "mopac.desc", fx("mopac", "capped.out"),
      {"opt": {"step": "3", "converged": "no"}})
 
+case("qe relax (pw.x 6.7)", "qe.desc", fx("qe", "h2o_relax.pwout"),
+     {"opt": {"istep": "3", "converged": "yes", "maxgrad": lambda v: "/" not in v},
+      "scf": {"cycle": lambda v: int(v) >= 1, "converged": "yes", "scferr": target}},
+     {"opt": (4, 4)})
+case("qe vc-relax", "qe.desc", fx("qe", "si_vcrelax.pwout"),
+     {"opt": {"istep": "4", "converged": "yes"}})
+case("qe scf only", "qe.desc", fx("qe", "si_scf.pwout"),
+     {"scf": {"converged": "yes", "scferr": target}})
+case("qe relax, step limit", "qe.desc", fx("qe", "capped.pwout"),
+     {"opt": {"istep": "1", "converged": "no"}})
+
 
 def run_case(name, desc, out, want, hist, out2):
     n, stages, text = replay(os.path.join(PARSERS, desc), out, "ALL", out2)

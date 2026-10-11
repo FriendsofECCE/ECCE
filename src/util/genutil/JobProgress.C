@@ -130,6 +130,7 @@ static string criterionLabel(const string& stage, const string& key)
   if (key == "maxstep") return "max step";
   if (key == "rmsstep") return "RMS step";
   if (key == "dE") return "\xce\x94" "E";   // Delta E
+  if (key == "scferr") return "estimated SCF error";
   if (key == "grad") return stage == "scf" ? "orbital gradient" : "gradient";
   return key;
 }
@@ -150,7 +151,11 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age) const
   b.title = title(st.name);
   const string rec = !st.field("cycle").empty() ? "cycle"
                    : !st.field("step").empty() ? "step"
-                   : !st.field("point").empty() ? "point" : "";
+                   : !st.field("point").empty() ? "point"
+                   // a step number printed after its criteria (QE): the
+                   // monitor cannot take it as a record, the box shows it
+                   : !st.field("istep").empty() ? "istep" : "";
+  const string recName = rec == "istep" ? "step" : rec;
   string first;
   if (rec == "point") {
     double k = 0, n = 0;
@@ -173,7 +178,7 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age) const
       }
     }
   } else if (!rec.empty()) {
-    first = rec + " " + st.field(rec);
+    first = recName + " " + st.field(rec);
   }
   if (!st.field("energy").empty())
     first += string(first.empty() ? "" : " \xc2\xb7 ") + "E = " +
@@ -212,7 +217,7 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age) const
         b.plot.push_back(std::log10(std::max(std::fabs(v), 1e-16)));
       b.plotLog = true;
       b.plotLabel = "log |" + criterionLabel(st.name, st.historyKey) +
-                    "| per " + (rec.empty() ? "record" : rec);
+                    "| per " + (rec.empty() ? "record" : recName);
     }
   }
   return b;
@@ -239,7 +244,8 @@ vector<string> JobProgress::summary(bool completed) const
   vector<string> out;
   const Stage *opt = stage("opt"), *freq = stage("freq"), *scf = stage("scf");
   if (opt) {
-    const string step = opt->field("step");
+    const string step = !opt->field("step").empty() ? opt->field("step")
+                                                   : opt->field("istep");
     string line;
     if (opt->field("converged") == "yes")
       line = "Optimisation converged in " + step + " steps";
