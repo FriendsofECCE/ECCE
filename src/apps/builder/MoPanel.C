@@ -232,7 +232,10 @@ bool MoPanel::Create(IPropCalculation *calculation,
    ((ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE))->Bind(
       wxEVT_CHOICE, &MoPanel::onFieldTypeChanged, this);
 
-   initialize();
+   //  The table and graph are filled when the panel is first shown
+   //  (initialize()); most opens never show it.  The grids of the
+   //  calculation the panel was made for are cleared now, as before.
+   getFW().getSceneGraph().clearGrids();
 
    GetSizer()->Fit(this);
    GetSizer()->SetSizeHints(this);
@@ -244,6 +247,12 @@ bool MoPanel::Create(IPropCalculation *calculation,
 
    return true;
 }
+
+void MoPanel::initialize()
+{
+   initialize(false);
+}
+
 
 void MoPanel::initialize(bool cleargrids)
 {

@@ -73,7 +73,8 @@ class MoPanel : public MoGUI,
     virtual wxSize GetMinSize() const override;
 
    protected:
-     void initialize(bool resetgrids=true);
+     virtual void initialize() override;
+     void initialize(bool resetgrids);
      void getSurfaceColors(double& posR, double& posG, double& posB,
                            double& negR, double& negG, double& negB);
      void showCoeffs(bool popup);
