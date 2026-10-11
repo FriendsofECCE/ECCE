@@ -1,9 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
-<path d="M17 21L30 33" stroke="#7f8a96"/>
-<circle cx="17" cy="21" r="11" fill="#0072B2" stroke="none"/>
-<circle cx="31" cy="33" r="7" fill="#D55E00" stroke="none"/>
-<circle cx="33" cy="10" r="5" fill="#56B4E9" stroke="none"/>
-<path d="M28 13l-6 5" stroke="#7f8a96"/>
-<rect x="30" y="34" width="29" height="23" rx="3" stroke="#7f8a96" fill="none"/>
-<path d="M34 51l6-8 5 5 6-10 4 6" stroke="#E69F00" stroke-width="3"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+<defs>
+<radialGradient id="sH" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#ffffff" stop-opacity=".95"/><stop offset=".3" stop-color="#f0f0f0"/><stop offset="1" stop-color="#6a6a6a"/></radialGradient>
+<radialGradient id="sC" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#ffffff" stop-opacity=".95"/><stop offset=".3" stop-color="#5a5a5a"/><stop offset="1" stop-color="#1f1f1f"/></radialGradient>
+<radialGradient id="sO" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#ffffff" stop-opacity=".95"/><stop offset=".3" stop-color="#D55E00"/><stop offset="1" stop-color="#5f2a00"/></radialGradient>
+<radialGradient id="sh"><stop offset=".5" stop-color="#000" stop-opacity=".32"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+<linearGradient id="bez" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7b8591"/><stop offset="1" stop-color="#3b424b"/></linearGradient>
+<linearGradient id="scr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f3a47"/><stop offset="1" stop-color="#10151b"/></linearGradient>
+<linearGradient id="stand" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5c6671"/><stop offset=".5" stop-color="#9aa4af"/><stop offset="1" stop-color="#4a525c"/></linearGradient>
+<linearGradient id="bond" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a8a8a8"/><stop offset=".35" stop-color="#f4f4f4"/><stop offset="1" stop-color="#5a5a5a"/></linearGradient>
+</defs>
+<rect x="6.5" y="10" width="54" height="38" rx="3" fill="#000" fill-opacity=".2"/>
+<rect x="26" y="46" width="12" height="7" fill="url(#stand)"/><rect x="17" y="52" width="30" height="5" rx="2.5" fill="url(#stand)" stroke="#8d98a4" stroke-width=".6"/>
+<rect x="5" y="7" width="54" height="40" rx="3" fill="url(#bez)" stroke="#9aa4af" stroke-width="1"/>
+<rect x="8" y="10" width="48" height="34" rx="1" fill="url(#scr)"/>
+<g transform="translate(21,27) rotate(126.87)"><rect x="0" y="-1.5" width="10" height="3" rx="1.5" fill="url(#bond)"/></g>
+<g transform="translate(21,27) rotate(-30.96)"><rect x="0" y="-1.5" width="11.66" height="3" rx="1.5" fill="url(#bond)"/></g>
+<circle cx="16.2" cy="37" r="4.94" fill="url(#sh)"/>
+<circle cx="15" cy="35" r="3.8" fill="url(#sH)"/>
+<circle cx="32.2" cy="23" r="6.5" fill="url(#sh)"/>
+<circle cx="31" cy="21" r="5" fill="url(#sO)"/>
+<circle cx="22.2" cy="29" r="7.8" fill="url(#sh)"/>
+<circle cx="21" cy="27" r="6" fill="url(#sC)"/>
+<path d="M33 40 L37 40 L40 22 L43 40 L47 40 L49.5 31 L52 40 L55 40" fill="none" stroke="#56B4E9" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 </svg>

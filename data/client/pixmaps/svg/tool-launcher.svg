@@ -1,6 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
-<rect x="5" y="9" width="44" height="32" rx="4" stroke="#7f8a96"/>
-<path d="M19 50h16M27 41v9" stroke="#7f8a96"/>
-<circle cx="46" cy="44" r="14" fill="#009E73" stroke="none"/>
-<path d="M41 37l13 7-13 7z" fill="#ffffff" stroke="none"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+<defs>
+<radialGradient id="sG" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#ffffff" stop-opacity=".95"/><stop offset=".3" stop-color="#009E73"/><stop offset="1" stop-color="#004733"/></radialGradient>
+<radialGradient id="sh"><stop offset=".5" stop-color="#000" stop-opacity=".32"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+<linearGradient id="box" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7b8591"/><stop offset="1" stop-color="#3b424b"/></linearGradient>
+<linearGradient id="slot" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#252b32"/><stop offset="1" stop-color="#4a525c"/></linearGradient>
+</defs>
+<rect x="9.5" y="12" width="40" height="40" rx="4" fill="#000" fill-opacity=".2"/>
+<rect x="8" y="9" width="40" height="40" rx="4" fill="url(#box)" stroke="#9aa4af" stroke-width="1.2"/>
+<rect x="12" y="13.5" width="32" height="9" rx="2" fill="url(#slot)"/><circle cx="39" cy="18.0" r="2.2" fill="#7CE0A8"/><rect x="14.5" y="16.9" width="14" height="2.2" rx="1" fill="#8f9aa6"/>
+<rect x="12" y="24" width="32" height="9" rx="2" fill="url(#slot)"/><circle cx="39" cy="28.5" r="2.2" fill="#7CE0A8"/><rect x="14.5" y="27.4" width="14" height="2.2" rx="1" fill="#8f9aa6"/>
+<rect x="12" y="34.5" width="32" height="9" rx="2" fill="url(#slot)"/><circle cx="39" cy="39.0" r="2.2" fill="#7CE0A8"/><rect x="14.5" y="37.9" width="14" height="2.2" rx="1" fill="#8f9aa6"/>
+<circle cx="47.2" cy="48" r="15.6" fill="url(#sh)"/>
+<circle cx="46" cy="46" r="12" fill="url(#sG)"/>
+<path d="M42 39.5 L53 46 L42 52.5Z" fill="#ffffff"/>
 </svg>

@@ -1,7 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
-<path d="M14 6h24l12 12v40H14z" stroke="#7f8a96"/>
-<path d="M38 6v12h12" stroke="#7f8a96"/>
-<path d="M21 28h22M21 36h16M21 44h10" stroke="#7f8a96" stroke-width="2.5"/>
-<path d="M22 58l-8-0 4-14z" fill="#0072B2" stroke="none" transform="translate(0,0)"/>
-<path d="M30 54l22-22 6 6-22 22-9 3z" fill="#E69F00" stroke="#ffffff" stroke-width="1.5"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+<defs>
+<radialGradient id="sh"><stop offset=".5" stop-color="#000" stop-opacity=".32"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+<linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d3d9e0"/></linearGradient>
+<linearGradient id="wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F5B921"/><stop offset=".5" stop-color="#E69F00"/><stop offset="1" stop-color="#8a5f00"/></linearGradient>
+<linearGradient id="ferr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e4743a"/><stop offset="1" stop-color="#7f3800"/></linearGradient>
+</defs>
+<rect x="9.5" y="8" width="38" height="50" rx="3" fill="#000" fill-opacity=".2"/>
+<rect x="8" y="6" width="38" height="50" rx="3" fill="url(#paper)" stroke="#7f8a96" stroke-width="1.6"/>
+<rect x="14" y="14" width="26" height="3.2" rx="1.2" fill="#6f7c8a"/>
+<rect x="14" y="21" width="20" height="3.2" rx="1.2" fill="#6f7c8a"/>
+<rect x="14" y="28" width="24" height="3.2" rx="1.2" fill="#6f7c8a"/>
+<rect x="14" y="35" width="14" height="3.2" rx="1.2" fill="#6f7c8a"/>
+<g opacity=".2" transform="translate(31.3,51.8) rotate(-45)"><rect x="0" y="-3.8" width="30" height="7.6" fill="#000"/><rect x="30" y="-3.8" width="5.5" height="7.6" fill="#000"/><path d="M0,-3.8 L-9,0 L0,3.8Z" fill="#000"/><path d="M-6,-1.1 L-9,0 L-6,1.1Z" fill="#000"/></g>
+<g transform="translate(30,50) rotate(-45)"><rect x="0" y="-3.8" width="30" height="7.6" fill="url(#wood)"/><rect x="30" y="-3.8" width="5.5" height="7.6" fill="url(#ferr)"/><path d="M0,-3.8 L-9,0 L0,3.8Z" fill="#f0d7a8"/><path d="M-6,-1.1 L-9,0 L-6,1.1Z" fill="#333"/></g>
 </svg>
