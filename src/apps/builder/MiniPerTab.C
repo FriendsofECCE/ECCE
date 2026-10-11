@@ -300,6 +300,14 @@ void MiniPerTab::setElements()
 {
   p_gridSizer->Clear(true);
 
+  // Once the Builder has moved this panel's controls into its scroll window,
+  // new controls must be children of that window: as siblings they sit
+  // beneath it on MSW and never receive a mouse click.
+  wxWindow *owner = this;
+  for (wxWindow *child : GetChildren()) {
+    if (child->GetName() == "ecceToolScroll") owner = child;
+  }
+
   TPerTab pertab;
   Preferences prefs("PerTable");
   string color;
@@ -317,7 +325,7 @@ void MiniPerTab::setElements()
   // postage stamp.
   int index;
   for (index = 0; index < NUM_ELT_BTN; ++index) {
-    p_eltBtns[index] = new wxToggleButton(this, index+ID_ELT_BASE,
+    p_eltBtns[index] = new wxToggleButton(owner, index+ID_ELT_BASE,
                                           p_elements[index],
                                           wxDefaultPosition, wxDefaultSize,
                                           wxBU_EXACTFIT);
@@ -358,10 +366,10 @@ void MiniPerTab::setElements()
       }
       else if (i == 8) {
         if (j == 0)
-          btn = new ewxButton(this, wxID_REMOVE, "Delete", wxDefaultPosition,
+          btn = new ewxButton(owner, wxID_REMOVE, "Delete", wxDefaultPosition,
                               wxDefaultSize, wxBU_EXACTFIT);
         else
-          btn = new ewxButton(this, ID_SHOW_TABLE, "More...",wxDefaultPosition,
+          btn = new ewxButton(owner, ID_SHOW_TABLE, "More...",wxDefaultPosition,
                               wxDefaultSize, wxBU_EXACTFIT);
         p_gridSizer->Add(btn, wxGBPosition(j,i));
       }
