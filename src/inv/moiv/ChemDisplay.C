@@ -380,6 +380,8 @@ ChemDisplay::ChemDisplay()
 	lodSelector = new ChemLOD();
 	clipAtoms = true;
 	clipBonds = true;
+	atomPixelRadius = 0.0f;
+	bondPixelRadius = 0.0f;
 // <-- EGB && SGB
 // --> octree culling
 	octreenode = new ChemOctreeNode();

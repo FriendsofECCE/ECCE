@@ -71,6 +71,7 @@
 #include <gl/gl.h>
 #endif
 
+#include "inv/ChemKit/ChemPerPixel.H"
 #include "inv/ChemKit/ChemDetail.H"
 #include "inv/ChemKit/ChemDisplay.H"
 #include "inv/ChemKit/ChemBaseDataElement.H"
@@ -301,8 +302,9 @@ void ChemDisplay::setupCylinders(SoGLRenderAction *action, SoState *&state,
 		//  As for the spheres: the complexity's sides are a floor, more as
 		//  the bonds grow on screen, within a vertex budget (#210).
 		int32_t sides = unitCylinder->getNumberOfSides();
-		const int32_t need = polygonSidesFor(
-			cdp->bondCylinderRadius.getValue() * maxPixelsPerUnit(chemData));
+		bondPixelRadius =
+			cdp->bondCylinderRadius.getValue() * maxPixelsPerUnit(chemData);
+		const int32_t need = polygonSidesFor(bondPixelRadius);
 		//  Two half-cylinders per bond, about 4*s + 6 vertices each.
 		const double bonds = chemData->getNumberOfBonds() > 0 ?
 			chemData->getNumberOfBonds() : 1;
@@ -384,6 +386,15 @@ printf ("In ChemDisplay::renderBondsAsCylinders\n");
 	beginCylinders(cdp->bondCylinderDisplayStyle.getValue());
 // <-- EGB && SGB
 
+	//  The LOD styles are left to fixed-function lighting, and thin bonds
+	//  as small atoms are (see renderAtomsAsSpheres).
+	const int cylStyle = cdp->bondCylinderDisplayStyle.getValue();
+	const bool perPixel = bondPixelRadius >= ChemPerPixel::minBondPixels &&
+		cylStyle != ChemDisplayParam::BONDCYLINDER_LOD_NOCAP &&
+		cylStyle != ChemDisplayParam::BONDCYLINDER_LOD_FLATCAP &&
+		cylStyle != ChemDisplayParam::BONDCYLINDER_LOD_ROUNDCAP &&
+		ChemPerPixel::begin(state);
+
 	// Render the cylinders
 	switch (chemColor->bondColorBinding.getValue()) {
 	  case ChemColor::BOND_OVERALL:
@@ -459,6 +470,8 @@ printf ("In ChemDisplay::renderBondsAsCylinders\n");
 	  default:
 		break;
 	}
+
+	if (perPixel) ChemPerPixel::end();
 
 #ifndef IV2_0
 	lazyElt->reset(state, myMask);

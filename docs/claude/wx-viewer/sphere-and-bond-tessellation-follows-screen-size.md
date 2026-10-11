@@ -52,7 +52,8 @@ definition, the pictures, the selection and the atoms' styles.
 Specular: in the Coin build ChemDisplay's own `glMaterial` is overwritten
 by the lazy element's send of SGContainer's `p_cdMat` SoMaterial; in the
 vendored build it is not. Both carry the same values (0.4 grey, shininess
-0.3 = 38.4 in GL); change both together.
+0.3 = 38.4 in GL); change both together. In the Coin build large atoms
+are lit per pixel with these values (see chemdisplay-per-pixel-lighting.md).
 
 Edges: `SoWxViewer::CreateControls` asks for 4x multisampling
 (`ECCE_GL_SAMPLES`, 0 = off; off by default under `LIBGL_ALWAYS_SOFTWARE`).

@@ -24,6 +24,7 @@
 #include "inv/ChemKit/ChemIso.H"
 #include "inv/ChemKit/ChemDetail.H"
 #include "inv/ChemKit/ChemColor.H"
+#include "inv/ChemKit/ChemPerPixel.H"
 #include "inv/actions/SoCallbackAction.H"
 #include "inv/actions/SoRayPickAction.H"
 #include "inv/SoPickedPoint.H"
@@ -145,6 +146,15 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
   } else if (c == "style") {
     CSStyleCmd cmd("Style", p_sg);
     DisplayDescriptor dd("default", rest, "Element");
+    cmd.getParameter("descriptor")->setString(dd.toString());
+    cmd.getParameter("all")->setBoolean(true);
+    cmd.execute();
+  } else if (c == "stylecs" && rest.find('/') != string::npos) {
+    //  "stylecs <colour scheme>/<style>", e.g. "Position from CM/Ball And
+    //  Stick": per-atom colours as the property colourings set them.
+    size_t slash = rest.find('/');
+    DisplayDescriptor dd("default", rest.substr(slash + 1), rest.substr(0, slash));
+    CSStyleCmd cmd("Style", p_sg);
     cmd.getParameter("descriptor")->setString(dd.toString());
     cmd.getParameter("all")->setBoolean(true);
     cmd.execute();
@@ -433,6 +443,13 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     int sz = atoi(w[2].c_str());
     if (sz == 480) return fail("offscreen: 480 would read the canvas");
     return snapshot(w[1], sz, 0.2f, 0.3f, 0.4f);
+  } else if (c == "perpixel" && w.size() == 2) {
+    //  "perpixel <name>": whether the last rendered context drew atoms and
+    //  bonds with per-pixel lighting (on/off/unavailable) to <name>.txt.
+    FILE *o = fopen((p_outdir + "/" + w[1] + ".txt").c_str(), "w");
+    if (!o) return fail("perpixel: cannot write");
+    fprintf(o, "%s\n", ChemPerPixel::status());
+    fclose(o);
   } else if (c == "isolobe" && w.size() == 3) {
     //  "isolobe <both|pos|neg> <transparency>": redraw the isosurface with
     //  that transparency, optionally leaving only one lobe (the other's

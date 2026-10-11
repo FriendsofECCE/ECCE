@@ -2002,6 +2002,15 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_BINARY_DIR}/viewer-scenes)
   set_tests_properties(look_hidpi PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
 
+  # Per-pixel lighting of atoms and bonds changes the shading only: same
+  # covered pixels, wireframe, selection, offscreen and MO blending (#210).
+  # Needs `ninja viewer-scenes`, Xvfb and PIL; SKIPs in the vendored build.
+  add_test(NAME look_perpixel
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/perpixel.py
+                   ${CMAKE_BINARY_DIR}/viewer-scenes)
+  set_tests_properties(look_perpixel PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
+
   # The saved DefaultStyle moves from the old default once (#227).
   add_test(NAME look_default_style
            COMMAND ${PYTHON3_EXECUTABLE}

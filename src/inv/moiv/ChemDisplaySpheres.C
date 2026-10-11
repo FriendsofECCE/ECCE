@@ -75,6 +75,7 @@
 #endif /* __gl_h_ */
 
 #include "inv/SbBox.H"
+#include "inv/ChemKit/ChemPerPixel.H"
 #include "inv/SoPickedPoint.H"
 #include "inv/SoPrimitiveVertex.H"
 #include "inv/actions/SoCallbackAction.H"
@@ -322,6 +323,7 @@ ChemDisplay::setupSpheres(SoGLRenderAction *action, SoState *&state,
 	//  The complexity is a floor; the depth rises with the atoms' size on
 	//  screen, within a vertex budget so large systems keep their speed.
 	int32_t depth = ChemUnitSphere::depthForComplexity(complexity);
+	atomPixelRadius = 1e6f;   // not measured for the other styles
 	if (atomSphereDisplayStyle == ChemDisplayParam::ATOMSPHERE_HEMISPHERES ||
 		atomSphereDisplayStyle == ChemDisplayParam::ATOMSPHERE_FULLSPHERES) {
 		float rmax = 0.0f;
@@ -331,8 +333,8 @@ ChemDisplay::setupSpheres(SoGLRenderAction *action, SoState *&state,
 		rmax *= cdp->atomRadiiScaleFactor.getValue();
 		if (cdp->displayStyle.getValue() != ChemDisplayParam::DISPLAY_CPK)
 			rmax *= cdp->ballStickSphereScaleFactor.getValue();
-		const int32_t need =
-			(polygonSidesFor(rmax * maxPixelsPerUnit(chemData)) + 3) / 4;
+		atomPixelRadius = rmax * maxPixelsPerUnit(chemData);
+		const int32_t need = (polygonSidesFor(atomPixelRadius) + 3) / 4;
 		//  A hemisphere strip has about 4*d*d + 6*d vertices.
 		const double atoms = chemData->getNumberOfAtoms() > 0 ?
 			chemData->getNumberOfAtoms() : 1;
@@ -537,6 +539,18 @@ printf ("In ChemDisplay::renderAtomsAsSpheres\n");
 	beginSpheres(displayStyle);
 // <-- EGB && SGB
 
+	//  Only the lit, tessellated spheres: billboards are textured quads and
+	//  the LOD styles draw unlit points.  (clipAtoms only culls.)  Small
+	//  atoms keep Gouraud: there it looks the same, and per-pixel cost the
+	//  5184-atom water box a fifth more frame time on software GL.
+	const bool perPixel = atomPixelRadius >= ChemPerPixel::minAtomPixels &&
+		(displayStyle == ChemDisplayParam::ATOMSPHERE_HEMISPHERES ||
+		 displayStyle == ChemDisplayParam::ATOMSPHERE_FULLSPHERES ||
+		 displayStyle == ChemDisplayParam::ATOMSPHERE_ARRAY_HEMISPHERES ||
+		 displayStyle == ChemDisplayParam::ATOMSPHERE_ARRAY_FULLSPHERES ||
+		 displayStyle == ChemDisplayParam::ATOMSPHERE_GLUSPHERE) &&
+		ChemPerPixel::begin(state);
+
 	// Render the spheres
 	switch (chemRadii->atomRadiiBinding.getValue()) {
 	  case ChemRadii::RADII_OVERALL:
@@ -680,6 +694,7 @@ printf ("In ChemDisplay::renderAtomsAsSpheres\n");
 	  default:	
 		break;
 	}
+	if (perPixel) ChemPerPixel::end();
 // --> EGB && SGB
 	endSpheres(displayStyle);
 // <-- EGB && SGB

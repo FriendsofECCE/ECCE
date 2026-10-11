@@ -756,6 +756,10 @@ void bBoxResiduesNone(SoState *state, ChemDisplayParam *cdp,
     // the tessellation that keeps a circle of that size smooth (#210).
     float   maxPixelsPerUnit(const ChemBaseData *chemData) const;
     static int32_t polygonSidesFor(float radiusPixels);
+    // Largest atom / bond radius on screen this frame, in pixels, from
+    // setupSpheres / setupCylinders; gates per-pixel lighting (#210).
+    float   atomPixelRadius;
+    float   bondPixelRadius;
 
     void    setupSpheres(SoGLRenderAction *action,
                          SoState *&state,
