@@ -664,6 +664,10 @@ void grabFrame(void *p)
   glFinish();
   glPixelStorei(GL_PACK_ALIGNMENT, 1);
   glReadPixels(vp[0], vp[1], f->w, f->h, GL_RGB, GL_UNSIGNED_BYTE, &f->px[0]);
+#ifndef GL_SAMPLES
+  // Windows' GL headers stop at 1.1; the value is fixed by the GL 1.3 spec.
+# define GL_SAMPLES 0x80A9
+#endif
   glGetIntegerv(GL_SAMPLES, &f->samples);
   f->got = true;
 }
