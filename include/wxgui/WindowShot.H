@@ -7,4 +7,7 @@
 // that take screenshots (machregister, launcher).
 bool ecceWindowShot(wxWindow* win, const wxString& file);
 
+// The client area as it is on screen now: no raise, no yield.
+bool ecceClientShot(wxWindow* win, const wxString& file);
+
 #endif

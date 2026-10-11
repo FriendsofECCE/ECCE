@@ -102,11 +102,22 @@ bool ecceWindowShot(wxWindow* win, const wxString& file)
     if (cgWindowShot(win, file))
         return true;
 #endif
+    return ecceClientShot(win, file);
+}
+
+
+bool ecceClientShot(wxWindow* win, const wxString& file)
+{
     wxSize sz = win->GetClientSize();
     wxClientDC screen(win);
-    wxBitmap bmp(sz.x, sz.y);
+    // 24 bits and no alpha: on MSW a 32-bit bitmap keeps the alpha byte
+    // GDI leaves at 0, so the text and backgrounds came out transparent.
+    wxBitmap bmp(sz.x, sz.y, 24);
     wxMemoryDC mem(bmp);
     mem.Blit(0, 0, sz.x, sz.y, &screen, 0, 0);
     mem.SelectObject(wxNullBitmap);
-    return bmp.ConvertToImage().SaveFile(file, wxBITMAP_TYPE_PNG);
+    wxImage img = bmp.ConvertToImage();
+    if (img.HasAlpha())
+        img.ClearAlpha();
+    return img.SaveFile(file, wxBITMAP_TYPE_PNG);
 }

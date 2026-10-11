@@ -56,6 +56,7 @@ static std::string s_registerMessage;
 #include "util/TDateTime.H"
 #include "util/SFile.H"
 #include "util/BrowserHelp.H"
+#include "wxgui/WindowShot.H"
 #include "wxgui/WxHelpViewer.H"
 #include "util/EditEvent.H"
 #include "util/NullPointerException.H"
@@ -691,14 +692,7 @@ void CalcMgr::runTestCommand(const string& line)
         wxTheApp->Yield(true);
         wxMilliSleep(50);
       }
-      wxSize sz = GetClientSize();
-      wxClientDC screen(this);
-      wxBitmap bmp(sz.x, sz.y);
-      wxMemoryDC mem(bmp);
-      mem.Blit(0, 0, sz.x, sz.y, &screen, 0, 0);
-      mem.SelectObject(wxNullBitmap);
-      outcome = bmp.ConvertToImage().SaveFile(
-          wxString::FromUTF8(calcName.c_str()), wxBITMAP_TYPE_PNG)
+      outcome = ecceClientShot(this, wxString::FromUTF8(calcName.c_str()))
           ? "saved" : "not saved";
     } else if (command == "tail-close") {
       if (p_testTail) p_testTail->Close();
