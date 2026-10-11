@@ -36,4 +36,5 @@ MOPAC → spec) is the bridge it would reuse.
 - [Compare irrep labels with canonicalIrrep(), never toupper()](a-cs-label-is-written-a-double-quote.md)
 - [Complex-conjugate irrep pairs are ONE real row flagged `separable:`](conjugate-irrep-pairs-are-one-separable-row.md)
 - [Hover and click text come from the MOs panel's own code; headings are measured, not placed (#132)](tooltip-composition-and-measured-headings.md)
+- [A homonuclear diatomic is classified by phase, not energy](a-homonuclear-diatomic-is-classified-by-phase.md)
 - [A spherical-only code on a Cartesian-flagged basis: columns unpermuted, no labels](a-spherical-only-code-on-a-cartesian-flagged-basis.md)

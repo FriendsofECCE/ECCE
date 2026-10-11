@@ -23,12 +23,12 @@ column centre
   hiddenAboveCount: 3
   shellKeys:
   levels: 6
-  level 0 energy=-0.779322 tabulated=0.000000 irrep=SGG label=2SGG character=BONDING pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=0.3899 mullikenMax=0.5000 norm=1.0000 orbitals=[2] annotation="-0.7793"
-  level 1 energy=-0.397908 tabulated=0.000000 irrep=SGU label=2SGU character=BONDING pairing=0 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=-0.0253 mullikenMax=0.5000 norm=1.0000 orbitals=[3] annotation="-0.3979"
-  level 2 energy=-0.316442 tabulated=0.000000 irrep=PIU label=1PIU character=BONDING pairing=1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=0.2601 mullikenMax=0.5000 norm=1.0000 orbitals=[4,5] annotation="-0.3164"
-  level 3 energy=-0.248158 tabulated=0.000000 irrep=SGG label=3SGG character=BONDING pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=-0.0344 mullikenMax=0.5000 norm=1.0000 orbitals=[6] annotation="-0.2482"
-  level 4 energy=0.020907 tabulated=0.000000 irrep=PIG label=1PIG* character=ANTIBONDING pairing=1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=-0.8234 mullikenMax=0.5000 norm=1.0000 orbitals=[7,8] annotation="0.0209"
-  level 5 energy=0.335536 tabulated=0.000000 irrep=SGU label=3SGU* character=ANTIBONDING pairing=0 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=-48.3619 mullikenMax=0.5000 norm=1.0000 orbitals=[9] annotation="0.3355"
+  level 0 energy=-0.779322 tabulated=0.000000 irrep=SGG label=2SGG character=BONDING pairing=0 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=0.3899 mullikenMax=0.5000 norm=1.0000 orbitals=[2] annotation="-0.7793"
+  level 1 energy=-0.397908 tabulated=0.000000 irrep=SGU label=2SGU* character=ANTIBONDING pairing=0 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=-0.0253 mullikenMax=0.5000 norm=1.0000 orbitals=[3] annotation="-0.3979"
+  level 2 energy=-0.316442 tabulated=0.000000 irrep=PIU label=1PIU character=BONDING pairing=2 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=0.2601 mullikenMax=0.5000 norm=1.0000 orbitals=[4,5] annotation="-0.3164"
+  level 3 energy=-0.248158 tabulated=0.000000 irrep=SGG label=3SGG character=BONDING pairing=1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=-0.0344 mullikenMax=0.5000 norm=1.0000 orbitals=[6] annotation="-0.2482"
+  level 4 energy=0.020907 tabulated=0.000000 irrep=PIG label=1PIG* character=ANTIBONDING pairing=2 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=-0.8234 mullikenMax=0.5000 norm=1.0000 orbitals=[7,8] annotation="0.0209"
+  level 5 energy=0.335536 tabulated=0.000000 irrep=SGU label=3SGU* character=ANTIBONDING pairing=1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=-48.3619 mullikenMax=0.5000 norm=1.0000 orbitals=[9] annotation="0.3355"
 column right
   title: C
   fromHalves: 0

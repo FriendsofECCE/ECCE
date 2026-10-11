@@ -1,6 +1,7 @@
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <map>
 #include <sstream>
 using std::ostringstream;
@@ -1926,6 +1927,65 @@ static string pairingKey(const MoLevel& level, bool mirrored)
 }
 
 
+/** The in-phase and out-of-phase combinations of a homonuclear
+ *  diatomic's fragment orbitals, read off the irrep rather than the
+ *  energy.  The g combination of a sigma or delta orbital (s, pz, dz2)
+ *  has the facing lobes in phase and is bonding; for a pi orbital it is
+ *  the u one.  Mixing between shells moves an energy but not this phase:
+ *  C2's 2sigma-u sits below the 2p it borrows from and is still the
+ *  out-of-phase 2s pair.  Pairs are made within sigma, pi, delta... in
+ *  energy order -- 2sigma-g with 2sigma-u*, 3sigma-g with 3sigma-u* --
+ *  because the k-th bonding orbital of a type is the in-phase partner of
+ *  the k-th out-of-phase one.  Returns false, touching nothing, unless
+ *  every undecided level carries a linear-group label. */
+static bool classifyLinearByPhase(vector<MoLevel>& centre, int& nextPair)
+{
+  struct Kind { int type; bool gerade; };
+  vector<Kind> kinds(centre.size());
+  bool any = false;
+  for (size_t c = 0; c < centre.size(); c++) {
+    kinds[c].type = -1;
+    kinds[c].gerade = false;
+    if (centre[c].character != MoLevel::UNKNOWN) continue;
+    const string& ir = centre[c].irrep;
+    static const char* const names[] = { "SG", "PI", "DEL", "PHI" };
+    for (int t = 0; t < 4; t++) {
+      const size_t n = strlen(names[t]);
+      if (ir.size() == n + 1 && ir.compare(0, n, names[t]) == 0 &&
+          (ir[n] == 'G' || ir[n] == 'U')) {
+        kinds[c].type = t;
+        kinds[c].gerade = (ir[n] == 'G');
+      }
+    }
+    if (kinds[c].type < 0) return false;
+    any = true;
+  }
+  if (!any) return false;
+
+  for (int t = 0; t < 4; t++) {
+    vector<size_t> bonding, anti;
+    for (size_t c = 0; c < centre.size(); c++) {
+      if (kinds[c].type != t) continue;
+      const bool evenM = (t == 0 || t == 2);
+      if (kinds[c].gerade == evenM) bonding.push_back(c);
+      else                          anti.push_back(c);
+    }
+    for (size_t i = 0; i < bonding.size(); i++) {
+      centre[bonding[i]].character = MoLevel::BONDING;
+    }
+    for (size_t i = 0; i < anti.size(); i++) {
+      centre[anti[i]].character = MoLevel::ANTIBONDING;
+      centre[anti[i]].label += "*";
+    }
+    for (size_t i = 0; i < bonding.size() && i < anti.size(); i++) {
+      centre[bonding[i]].pairing = centre[anti[i]].pairing = nextPair++;
+    }
+  }
+  return true;
+}
+
+
+
 void MoDiagram::classifyByEnergy(const vector<MoLevel>& left,
                                  vector<MoLevel>& centre,
                                  const vector<MoLevel>& right,
@@ -1942,22 +2002,15 @@ void MoDiagram::classifyByEnergy(const vector<MoLevel>& left,
   //  is read against where they actually sit.
   int nextPair = 0;
 
-  //  A SYMMETRIC DIATOMIC IS DECIDED BY ITS PARTNER, NOT BY ITS
-  //  PARENTS.
-  //
-  //  Reading "is it below everything it is built from" fails here.  A
-  //  diatomic's two combinations of one shell straddle that shell, and
-  //  mixing moves them: C2's sigma-u sits above the 2s it came from
-  //  but below the 2p it borrows from, so it was called non-bonding --
-  //  an antibonding orbital, labelled nb, and then excluded from
-  //  pairing so its partner lost its colour too.
-  //
-  //  What is certain is the pair: of the two combinations a shell
-  //  gives, the lower IS the bonding one and the higher IS the
-  //  antibonding one.  That needs no reference to where the atomic
-  //  level sits, and it is what a person draws.
+  //  A SYMMETRIC DIATOMIC IS DECIDED BY PHASE, NOT BY ENERGY (#132):
+  //  s-p mixing puts C2's out-of-phase 2s pair below its 2p, so
+  //  "below the parents" called it bonding.  With no linear-group
+  //  labels, fall back to lowest = bonding, highest = antibonding
+  //  within a shell.
   const bool symmetric = equivalentColumns(left, right);
-  if (symmetric) {
+  if (symmetric && classifyLinearByPhase(centre, nextPair)) {
+    //  decided by construction; the energy rule below has nothing left
+  } else if (symmetric) {
     vector<string> keys;
     for (size_t c = 0; c < centre.size(); c++) {
       if (centre[c].character != MoLevel::UNKNOWN) continue;

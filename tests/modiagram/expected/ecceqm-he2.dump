@@ -2,7 +2,7 @@ group: D4h
 formula: He2
 construction: a central atom and its neighbours
 headline: 
-note: Energies in Hartree.  No valence orbital energies for He or He (the table is main group only).  Symmetry labels computed from the orbitals in D4h; the code reported none.
+note: Energies in Hartree.  Molecular levels are the calculation's own orbital energies in Hartree. Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, kept in the atom's own shell order; its free-atom energy is given beside it.  Symmetry labels computed from the orbitals in D4h; the code reported none.
 column left
   title: He
   fromHalves: 0
@@ -10,8 +10,9 @@ column left
   hiddenMaxEnergy: 0.000000
   hiddenSemicoreCount: 0
   hiddenAboveCount: 0
-  shellKeys:
-  levels: 0
+  shellKeys: He:0
+  levels: 1
+  level 0 energy=-0.646214 tabulated=-24.600000 irrep=- label=1s character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.90 Ha"
 column centre
   title: Molecular orbitals
   fromHalves: 0
@@ -20,10 +21,9 @@ column centre
   hiddenSemicoreCount: 0
   hiddenAboveCount: 1
   shellKeys:
-  levels: 3
-  level 0 energy=-0.647999 tabulated=0.000000 irrep=SGG label=1SGG character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[0] annotation="-0.6480"
-  level 1 energy=-0.644429 tabulated=0.000000 irrep=SGU label=1SGU character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[1] annotation="-0.6444"
-  level 2 energy=1.100460 tabulated=0.000000 irrep=SGG label=2SGG character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[2] annotation="1.1005"
+  levels: 2
+  level 0 energy=-0.647999 tabulated=0.000000 irrep=SGG label=1SGG character=BONDING pairing=0 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=0.0000 mullikenMax=0.5000 norm=1.0000 orbitals=[0] annotation="-0.6480"
+  level 1 energy=-0.644429 tabulated=0.000000 irrep=SGU label=1SGU* character=ANTIBONDING pairing=0 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=0.0000 mullikenMax=0.5000 norm=1.0000 orbitals=[1] annotation="-0.6444"
 column right
   title: He
   fromHalves: 0
@@ -31,6 +31,11 @@ column right
   hiddenMaxEnergy: 0.000000
   hiddenSemicoreCount: 0
   hiddenAboveCount: 0
-  shellKeys:
-  levels: 0
-links: 0
+  shellKeys: He:0
+  levels: 1
+  level 0 energy=-0.646214 tabulated=-24.600000 irrep=- label=1s character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.90 Ha"
+links: 4
+  link 0 left=0 centre=0 right=-1
+  link 1 left=-1 centre=0 right=0
+  link 2 left=0 centre=1 right=-1
+  link 3 left=-1 centre=1 right=0

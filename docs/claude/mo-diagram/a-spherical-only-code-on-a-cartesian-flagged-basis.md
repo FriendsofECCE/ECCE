@@ -27,5 +27,4 @@ Fixtures `ecceqm-*` come from `makecalc.py ecceqm` (real engine run); their
 stored code, basis kind and size are set over WebDAV by `capture.py`
 from `.davprops`, because the copied property database is ORCA's. A
 fixture with the wrong code or coordsys fails the same way, silently.
-He2 has no fragment levels for a different reason: the valence-energy
-table has no He.
+He2 had no fragment levels until the valence-energy table got He (1s).
