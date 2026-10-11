@@ -188,6 +188,14 @@ int main(int argc, char** argv)
       ejsCmd += ejsEnd;
 
     ejsCmd += " 2>&1";
+    // A store that loses its monitor to silence reconnects with the job
+    // still running; on its last try it parks the job instead (#284).
+    sprintf(buf, "%d", maxTries - tries - 1);
+#ifdef _WIN32
+    _putenv_s("ECCE_JOB_TRIES_LEFT", buf);
+#else
+    setenv("ECCE_JOB_TRIES_LEFT", buf, 1);
+#endif
 
     entry = "eccejobstore invoked with system(" + ejsCmd + ")";
     logEntry(entry);

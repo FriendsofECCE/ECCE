@@ -25,6 +25,28 @@ class RunMgmt
       static bool jobStoreRunning(const string& jobID);
 
       /**
+       * What the compute machine says about a job, over ECCE's own login
+       * (#284): whether its process or queue job still exists, when its
+       * output was last written, and the job script's status file.  Only
+       * reports; the run state is left to the job monitor.
+       */
+      struct MachineCheck {
+        bool reached = false;       // logged in and ran the check
+        int present = -1;           // 1 found, 0 not found, -1 unknown
+        string what;                // "Process 123", "Slurm job 456"
+        string jobLine;             // the ps or queue line that matched
+        long long outputTime = 0;   // last written, epoch; 0: no file
+        long long outputSize = -1;
+        long long machineNow = 0;   // the machine's clock
+        string outputName;
+        string status;              // .ecce.status, "" until the script ends
+        string error;
+        // Plain sentences, one per line, for the Progress box and tests.
+        vector<string> describe() const;
+      };
+      static MachineCheck checkOnMachine(const TaskJob *calc);
+
+      /**
        * Register the local machine if not already registered.
        * This allows import to work without user intervention.
        *

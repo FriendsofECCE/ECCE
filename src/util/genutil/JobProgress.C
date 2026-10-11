@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <ctime>
 #include <sstream>
 
 using std::string;
@@ -148,6 +149,32 @@ string JobProgress::updatedText(double seconds)
   if (seconds < 90) return fmt("updated %.0f s ago", seconds);
   if (seconds < 5400) return fmt("updated %.0f min ago", seconds / 60);
   return fmt("updated %.1f h ago", seconds / 3600);
+}
+
+
+static string agoText(double seconds)
+{
+  if (seconds < 0) seconds = 0;
+  if (seconds < 90) return fmt("%.0f s", seconds);
+  if (seconds < 5400) return fmt("%.0f min", std::floor(seconds / 60));
+  return fmt("%.1f h", seconds / 3600);
+}
+
+
+string JobProgress::noContactText(double seconds)
+{
+  return "\xe2\x9a\xa0 no contact for " + agoText(seconds);   // U+26A0
+}
+
+
+string JobProgress::lastHeardText(double when, double now)
+{
+  time_t t = (time_t)when;
+  struct tm tms;
+  localtime_r(&t, &tms);
+  char hm[16];
+  strftime(hm, sizeof hm, "%H:%M", &tms);
+  return string(hm) + " (" + agoText(now - when) + " ago)";
 }
 
 

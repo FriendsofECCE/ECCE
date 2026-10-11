@@ -125,6 +125,8 @@ static std::string s_registerMessage;
 #include "ProjectContextPanel.H"
 #include "util/JobProgress.H"
 #include "ProgressBox.H"
+
+static string progressKey(const EcceURL & url);
 #include "ContextPanelInterface.H"
 #include "TreeDropTarget.H"
 #include "WxConfigureNwfsArchive.H"
@@ -448,6 +450,14 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * size <w> <h>   resize the Organizer window
  * progressbox     the shown summary's Progress box: shown or not, its
  *                 paints and the lines it draws, separated by " | "
+ * contact <url> lost <epoch>|ok
+ *                 the job store's out-of-contact notice (#284)
+ * checklines <url> <line>|<line>
+ *                 what Check Job on Machine said, as if it had run
+ * fold open|shut  fold the Progress box, as a click on its heading does
+ * treestate <url> the tree icon's index, and those of running and of
+ *                 out of contact
+ * tablestates     the shown project table's State cells
  */
 void CalcMgr::runTestCommand(const string& line)
 {
@@ -709,6 +719,52 @@ void CalcMgr::runTestCommand(const string& line)
       text << in.rdbuf();
       progressUpdate(EcceURL(url), in ? text.str() : string());
       outcome = in ? "ok" : "no file " + file;
+    } else if (command == "contact") {
+      // "contact <url> lost <epoch>" or "contact <url> ok", as the job
+      // store's contact notice arrives.
+      const string url = calcName.substr(0, calcName.find(' '));
+      const string value = calcName.size() > url.size() + 1
+                           ? calcName.substr(url.size() + 1) : string("ok");
+      contactUpdate(EcceURL(url), value, "");
+      outcome = "ok";
+    } else if (command == "checklines") {
+      // "checklines <url> <line>|<line>": what a machine check said.
+      const string url = calcName.substr(0, calcName.find(' '));
+      vector<string> lines;
+      string rest = calcName.size() > url.size() + 1
+                    ? calcName.substr(url.size() + 1) : string();
+      for (size_t at; (at = rest.find('|')) != string::npos; rest.erase(0, at + 1))
+        lines.push_back(rest.substr(0, at));
+      if (!rest.empty()) lines.push_back(rest);
+      p_machineCheck[progressKey(EcceURL(url))] = lines;
+      contactChanged(EcceURL(url));
+      outcome = "ok";
+    } else if (command == "fold") {
+      // "fold open|shut", as a click on the box's heading does.
+      CalculationContextPanel *panel =
+          dynamic_cast<CalculationContextPanel*>(p_contextPanel);
+      ProgressBox *box = panel ? panel->getProgressBox() : 0;
+      if (box) box->setCollapsed(calcName == "shut");
+      for (int i = 0; i < 5; i++) wxYield();
+      outcome = box ? string("folded=") + (box->collapsed() ? "1" : "0")
+                    : string("no box");
+    } else if (command == "treestate") {
+      // "treestate <url>": the tree icon shown, against those of running
+      // and of out of contact.
+      WxResourceTreeItemData *node = p_treeCtrl->findNode(EcceURL(calcName),
+                                                          true, true);
+      if (!node) {
+        outcome = "no node";
+      } else {
+        double lastHeard = 0;
+        Resource *r = node->getResource();
+        outcome = "image=" + std::to_string(p_treeCtrl->GetItemImage(node->GetId())) +
+            " running=" + std::to_string(WxResourceStateImageList::getImageIndex(
+                r, ResourceDescriptor::STATE_RUNNING)) +
+            " lost=" + std::to_string(WxResourceStateImageList::getImageIndex(
+                r, (ResourceDescriptor::RUNSTATE)WxState::OUT_OF_CONTACT)) +
+            " outOfContact=" + (outOfContact(r, lastHeard) ? "1" : "0");
+      }
     } else if (command == "size") {
       int w = 0, h = 0;
       std::istringstream(calcName) >> w >> h;
@@ -728,7 +784,10 @@ void CalcMgr::runTestCommand(const string& line)
                   " paints=" + std::to_string(box->paints()) +
                   " panel=" + std::to_string((unsigned long)(uintptr_t)panel) +
                   " size=" + std::to_string(box->GetSize().x) + "x" +
-                  std::to_string(box->GetSize().y);
+                  std::to_string(box->GetSize().y) +
+                  " stateicon=" + (panel->getStateIcon() &&
+                                   panel->getStateIcon()->outOfContact()
+                                   ? "running?" : "plain");
         for (const string& l : box->describe()) outcome += " | " + l;
       }
     } else if (command == "table") {
@@ -747,6 +806,12 @@ void CalcMgr::runTestCommand(const string& line)
                   " paints=" + std::to_string(table->progressPaints());
         for (const string& c : table->progressCells()) outcome += " | " + c;
       }
+    } else if (command == "tablestates") {
+      // The shown table's State cells, "name=state" ("running?": #284).
+      ProjectContextPanel *table = dynamic_cast<ProjectContextPanel*>(p_contextPanel);
+      outcome = table ? "states" : "no table";
+      if (table)
+        for (const string& c : table->stateCells()) outcome += " | " + c;
     } else if (command == "snap") {
       for (int i = 0; i < 3; i++) {
         Update();
@@ -941,6 +1006,11 @@ void CalcMgr::initializeGUI()
 
 
   p_legend = WxState::createLegend(this);
+
+  p_treeCtrl->setOutOfContactTest([this](Resource *r) {
+    double lastHeard = 0;
+    return outOfContact(r, lastHeard);
+  });
 
   p_topSizer->Add(p_legend, 0, wxGROW|wxALL, 0);
 
@@ -1720,6 +1790,8 @@ void CalcMgr::OnRmTaskClick( wxCommandEvent& event )
     terminateCalc();
   } else if (rmTask->getName() == CHECKJOB) {
     checkJob();
+  } else if (rmTask->getName() == CHECKJOBONMACHINE) {
+    checkJobOnMachine();
   } else if (rmTask->getName() == RECONNECTJOB) {
     reconnectJob();
   } else if (rmTask->getName() == FORCEFAIL) {
@@ -3757,6 +3829,19 @@ void CalcMgr::terminateCalc()
  * Run management CCB.
  * Only allows single selection.
  */
+void CalcMgr::checkJobOnMachine()
+{
+  if (getSelection())
+    checkJobOnMachine(findNode(p_currentSelection[0], false, true));
+  else
+    setMessage("Multiple selections not allowed for the machine check.");
+}
+
+
+/**
+ * Run management CCB.
+ * Only allows single selection.
+ */
 void CalcMgr::checkJob()
 {
   // get the selected tree or panel item(s), remember how many selected
@@ -4360,6 +4445,32 @@ void CalcMgr::checkJob(WxResourceTreeItemData *itemData)
 
 
 /**
+ * Asks the compute machine, over ECCE's own login, whether the job's process
+ * or queue job is still there and when its output was last written (#284).
+ * Only reports: the job monitor (or Reconnect) still decides the state.
+ */
+
+void CalcMgr::checkJobOnMachine(WxResourceTreeItemData *itemData)
+{
+  TaskJob *calc = itemData ? dynamic_cast<TaskJob*>(itemData->getResource()) : 0;
+  if (!calc) return;
+  vector<string> lines;
+  {
+    wxBusyCursor busy;
+    lines = RunMgmt::checkOnMachine(calc).describe();
+  }
+  time_t now = time(0);
+  char at[32];
+  strftime(at, sizeof at, "%H:%M", localtime(&now));
+  lines.insert(lines.begin(), string("Checked at ") + at + ":");
+  p_machineCheck[progressKey(itemData->getUrl())] = lines;
+  for (size_t i = 1; i < lines.size(); i++)
+    setMessage(itemData->getName() + ": " + lines[i], WxFeedback::INFO);
+  contactChanged(itemData->getUrl());
+}
+
+
+/**
  * Session start (#208): catch up the calculations whose monitoring stopped
  * while ECCE was away, once per session.
  */
@@ -4430,6 +4541,9 @@ void CalcMgr::reconnectJob(WxResourceTreeItemData *itemData)
   string message;
   if (JobCatchUp::reconnect(calc, message)) {
     setMessage(message, WxFeedback::INFO);
+    // The new monitor's own silence counts from now (#284).
+    p_contact.erase(progressKey(url));
+    p_machineCheck.erase(progressKey(url));
 
     // don't issue warning for submitted jobs because it would be silly
     if (state != ResourceDescriptor::STATE_SUBMITTED)
@@ -5683,6 +5797,14 @@ void CalcMgr::progressUpdate(const EcceURL & url, const string & text)
     p_liveProgress.erase(key);
   else
     p_liveProgress[key] = std::make_pair(text, (double)time(0));
+  // Progress comes only from a monitor that is heard.
+  auto lost = p_contact.find(key);
+  if (lost != p_contact.end() && lost->second > 0) {
+    lost->second = -1;
+    p_machineCheck.erase(key);
+    contactChanged(url);
+    return;
+  }
   CalculationContextPanel *panel =
       dynamic_cast<CalculationContextPanel*>(p_contextPanel);
   if (panel && progressKey(panel->getUrl()) == key)
@@ -5711,12 +5833,85 @@ string CalcMgr::progressCellText(Resource * resource) const
   if (ResourceUtils::stringToState(resource->getProp(ecce + ":state")) !=
       ResourceDescriptor::STATE_RUNNING)
     return "";
+  double lastHeard = 0;
+  if (outOfContact(resource, lastHeard))
+    return JobProgress::noContactText((double)time(0) - lastHeard);
   string text, live;
   double at = 0;
   if (liveProgress(resource->getURL(), live, at)) text = live;
   else text = resource->getProp(ecce + ":progress");
   JobProgress p;
   return p.parse(text) ? p.shortLine() : "";
+}
+
+
+void CalcMgr::contactUpdate(const EcceURL & url, const string & contact,
+                            const string & progress)
+{
+  const string key = progressKey(url);
+  if (contact.compare(0, 5, "lost ") == 0) {
+    p_contact[key] = atof(contact.c_str() + 5);
+  } else {
+    p_contact[key] = -1;
+    p_machineCheck.erase(key);
+  }
+  //  The snapshot it carries is the last one heard, not a new one: its
+  //  age comes from the job store's stamp in it.
+  if (!progress.empty()) {
+    auto it = p_liveProgress.find(key);
+    if (it == p_liveProgress.end() || it->second.first != progress)
+      p_liveProgress[key] = std::make_pair(progress, 0.0);
+  }
+  contactChanged(url);
+}
+
+
+bool CalcMgr::outOfContact(Resource * resource, double & lastHeard) const
+{
+  if (!resource) return false;
+  const string ecce = VDoc::getEcceNamespace();
+  if (ResourceUtils::stringToState(resource->getProp(ecce + ":state")) !=
+      ResourceDescriptor::STATE_RUNNING)
+    return false;
+  auto it = p_contact.find(progressKey(resource->getURL()));
+  if (it != p_contact.end()) {
+    lastHeard = it->second;
+    return it->second > 0;
+  }
+  const string stored = resource->getProp(ecce + ":contact");
+  if (stored.compare(0, 5, "lost ") != 0) return false;
+  lastHeard = atof(stored.c_str() + 5);
+  return lastHeard > 0;
+}
+
+
+vector<string> CalcMgr::machineCheckLines(const EcceURL & url) const
+{
+  auto it = p_machineCheck.find(progressKey(url));
+  return it == p_machineCheck.end() ? vector<string>() : it->second;
+}
+
+
+void CalcMgr::contactChanged(const EcceURL & url)
+{
+  const string key = progressKey(url);
+  WxResourceTreeItemData *node = p_treeCtrl->findNode(url, false, false);
+  if (node) p_treeCtrl->refreshState(node);
+  CalculationContextPanel *panel =
+      dynamic_cast<CalculationContextPanel*>(p_contextPanel);
+  if (panel && progressKey(panel->getUrl()) == key)
+    panel->updateProgress();
+  if (ProjectContextPanel *table = dynamic_cast<ProjectContextPanel*>(p_contextPanel))
+    table->updateProgress(url);
+}
+
+
+void CalcMgr::progressAction(int action, WxResourceTreeItemData * itemData)
+{
+  if (!itemData) return;
+  if (action == 0) reconnectJob(itemData);
+  else if (action == 1) checkJobOnMachine(itemData);
+  else if (action == 2) tailOutputFile(itemData);
 }
 
 

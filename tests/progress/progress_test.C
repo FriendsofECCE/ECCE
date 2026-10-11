@@ -130,6 +130,14 @@ int main()
   check(!none.parse("") && none.empty(), "empty text is no progress");
   check(JobProgress::updatedText(3) == "updated 3 s ago" &&
         JobProgress::updatedText(300) == "updated 5 min ago", "updated n s ago");
+  // Out of contact (#284): minutes are whole, the time is local.
+  check(JobProgress::noContactText(45) == "\xe2\x9a\xa0 no contact for 45 s" &&
+        JobProgress::noContactText(17 * 60 + 50) ==
+            "\xe2\x9a\xa0 no contact for 17 min",
+        "no contact for n min: " + JobProgress::noContactText(17 * 60 + 50));
+  const string heard = JobProgress::lastHeardText(1760000000, 1760000000 + 600);
+  check(heard.size() == 18 && heard[2] == ':' &&
+        heard.substr(5) == " (10 min ago)", "last heard hh:mm (n min ago): " + heard);
 
   cout << (failures ? "FAILED" : "PASSED") << endl;
   return failures ? 1 : 0;

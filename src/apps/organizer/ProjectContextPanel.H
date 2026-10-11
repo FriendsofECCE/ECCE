@@ -51,12 +51,15 @@ class ProjectContextPanel : public ProjectContextPanelGUI
 
     void refresh();
 
-    // A progress message for the calculation: its Progress cell only.
+    // A progress or contact message for the calculation: its Progress and
+    // State cells only.
     void updateProgress(const EcceURL &url);
 
     // "name=text" of every row's Progress cell, and how many times a
     // cell was set after the table was built (tests).
     vector<string> progressCells();
+    // The same for the State column (the stored state, or "running?").
+    vector<string> stateCells();
     int progressPaints() const { return p_progressSets; }
 
     vector<EcceURL> getSelections();
@@ -68,6 +71,9 @@ class ProjectContextPanel : public ProjectContextPanelGUI
     void loseFocus();
 
   protected:
+    vector<string> columnCells(int type);
+    string stateCellText(Resource *resource) const;
+
 
     ProjectContextPanel(CalcMgr *calcmgr,
             WxResourceTreeItemData *project,

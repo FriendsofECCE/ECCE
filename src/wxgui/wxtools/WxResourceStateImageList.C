@@ -17,6 +17,7 @@
 #include "wxgui/ewxBitmap.H"
 #include "wxgui/WxResourceImageList.H"
 #include "wxgui/WxStateImageList.H"
+#include "wxgui/WxState.H"
 
 #include "wxgui/WxResourceStateImageList.H"
 
@@ -136,8 +137,7 @@ WxResourceStateImageList* WxResourceStateImageList::getImageList()
 
 
 wxBitmap
-WxResourceStateImageList::combineWithState(wxBitmap bitmap,
-                                           ResourceDescriptor::RUNSTATE state)
+WxResourceStateImageList::combineWithState(wxBitmap bitmap, int state)
 {
   int index=0, stateWidth, stateHeight;
   WxStateImageList::getImageList()->GetSize(index, stateHeight, stateWidth);
@@ -161,10 +161,10 @@ WxResourceStateImageList::combineWithState(wxBitmap bitmap,
   // draw resource bitmap (given as param in this function call); one with
   // no state goes at the right, next to its label, not before an empty slot
   wxMemoryDC resourceDC(bitmap);
-  const int x = state == ResourceDescriptor::NUMBER_OF_STATES ? stateWidth : 0;
+  const int x = state < 0 ? stateWidth : 0;
   combinedDC.Blit(x, 0, bitmap.GetWidth(), bitmap.GetHeight(),
                   &resourceDC, 0, 0, wxCOPY, true);
-  if (state != ResourceDescriptor::NUMBER_OF_STATES) {
+  if (state >= 0) {
     wxBitmap stateBitmap(WxStateImageList::getImageList()->GetBitmap(state));
     wxMemoryDC stateDC(stateBitmap);
     combinedDC.Blit(bitmap.GetWidth(), 0,
@@ -178,7 +178,7 @@ WxResourceStateImageList::combineWithState(wxBitmap bitmap,
 
 void
 WxResourceStateImageList::combineAndAddWithState(ResourceType * resourceType,
-                                           ResourceDescriptor::RUNSTATE state)
+                                                 int state)
 {
   int iconType = ResourceDescriptor::IT_NORMAL;
   string normalName = resourceType->getIcon(
@@ -204,11 +204,12 @@ void
 WxResourceStateImageList::combineAndAddWithStates(ResourceType * resourceType)
 {
   if (resourceType->getStateBased()) {
+    // Through WxState::OUT_OF_CONTACT, one past the last state, so that
+    // getImageIndex() finds it as it finds a state.
     for (int state = ResourceDescriptor::STATE_ILLEGAL;
-             state < ResourceDescriptor::NUMBER_OF_STATES;
+             state <= WxState::OUT_OF_CONTACT;
              state++) {
-      combineAndAddWithState(resourceType,
-                             (ResourceDescriptor::RUNSTATE) state);
+      combineAndAddWithState(resourceType, state);
     }
   } else {
     combineAndAddWithState(resourceType);

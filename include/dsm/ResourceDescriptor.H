@@ -76,6 +76,7 @@ const string SHELLINRUNDIR = "shellInRunDir";
 const string MANAGEFILES = "manageFiles";
 const string TERMINATECALC = "terminateCalc";
 const string CHECKJOB = "checkJob";
+const string CHECKJOBONMACHINE = "checkJobOnMachine";
 const string RECONNECTJOB = "reconnectJob";
 const string FORCEFAIL = "forceFail";
 const string RESETFORRERUN = "resetForRerun";

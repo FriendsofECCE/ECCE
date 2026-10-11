@@ -122,6 +122,7 @@ WxState::WxState( ) : WxStateGUI()
   initializeColors();
   p_currentState = ResourceDescriptor::STATE_CREATED;
   p_useSystemColor = false;
+  p_outOfContact = false;
 }
 
 
@@ -137,6 +138,7 @@ WxState::WxState( wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxS
   initializeColors();
   p_currentState = ResourceDescriptor::STATE_CREATED;
   p_useSystemColor = false;
+  p_outOfContact = false;
 }
 
 
@@ -339,6 +341,7 @@ void WxState::draw(wxDC & dc, ResourceDescriptor::RUNSTATE currentState,
   case ResourceDescriptor::STATE_SUBMITTED:
   case ResourceDescriptor::STATE_RUNNING:
   case ResourceDescriptor::STATE_WAITING:
+  case ResourceDescriptor::NUMBER_OF_STATES:   // OUT_OF_CONTACT
     circle = true;
     break;
   case ResourceDescriptor::STATE_COMPLETED:
@@ -365,6 +368,10 @@ void WxState::draw(wxDC & dc, ResourceDescriptor::RUNSTATE currentState,
   wxPen pen(*p_pens[useSystemColor?1:0][currentState]);
   // Waiting is an open ring, so its stroke must carry the colour.
   pen.SetWidth(currentState == ResourceDescriptor::STATE_WAITING ? 2 : 1);
+  if (currentState == OUT_OF_CONTACT) {
+    brush = *wxTRANSPARENT_BRUSH;
+    pen = wxPen(ewxThemeColours::statusText(ewxThemeColours::UNSURE), 2);
+  }
   pen.SetJoin(wxJOIN_ROUND); // a miter would stick out past a sharp apex
 
   // Antialiased through a graphics context when the DC allows it.
@@ -481,6 +488,19 @@ ewxPanel* WxState::createLegend(wxWindow* parent)
     stateLabel->SetFont(ewxStyledWindow::getSmallLabelFont());
     pair->Add(stateLabel, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
     legendSizer->Add(pair, 0, wxALIGN_CENTER_VERTICAL);
+    if (state == ResourceDescriptor::STATE_RUNNING) {
+      stateIcon = new WxState(legend);
+      stateIcon->setRunState(ResourceDescriptor::STATE_RUNNING);
+      stateIcon->setOutOfContact(true);
+      pair = new wxBoxSizer(wxHORIZONTAL);
+      pair->Add(stateIcon, 0, wxFIXED_MINSIZE|wxALIGN_CENTER_VERTICAL|wxLEFT, 6);
+      stateLabel = new ewxStaticText(legend, -1,
+          getName((ResourceDescriptor::RUNSTATE)OUT_OF_CONTACT) +
+          " (no contact)");
+      stateLabel->SetFont(ewxStyledWindow::getSmallLabelFont());
+      pair->Add(stateLabel, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
+      legendSizer->Add(pair, 0, wxALIGN_CENTER_VERTICAL);
+    }
   }
 
   legendVSizer->Add(legendSizer, 0, wxGROW|wxALL, 2);
@@ -496,7 +516,18 @@ void WxState::OnPaint( wxPaintEvent& event )
 {
   wxPaintDC dc(this);
   dc.SetBackground(GetBackgroundColour());
-  draw(dc, p_currentState, p_useSystemColor);
+  draw(dc, p_outOfContact && p_currentState == ResourceDescriptor::STATE_RUNNING
+           ? (ResourceDescriptor::RUNSTATE)OUT_OF_CONTACT : p_currentState,
+       p_useSystemColor);
+}
+
+
+void WxState::setOutOfContact(bool lost)
+{
+  if (lost != p_outOfContact) {
+    p_outOfContact = lost;
+    Refresh();
+  }
 }
 
 
@@ -538,8 +569,9 @@ string WxState::getName(ResourceDescriptor::RUNSTATE state, bool capital)
     return (capital?"Monitor Error":"monitor error");
   case ResourceDescriptor::STATE_SYSTEM_FAILURE:
     return (capital?"System Error":"system error");
+  case ResourceDescriptor::NUMBER_OF_STATES:   // OUT_OF_CONTACT
+    return (capital?"Running?":"running?");
   case ResourceDescriptor::STATE_ILLEGAL:
-  case ResourceDescriptor::NUMBER_OF_STATES:
     return (capital?"Illegal State":"illegal state");
   }
   return "";

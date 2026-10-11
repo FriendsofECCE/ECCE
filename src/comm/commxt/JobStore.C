@@ -25,6 +25,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <algorithm>
 #include <time.h>
 
 #include <iostream>
@@ -172,6 +173,11 @@ void sendNotify(const char* op, const string& key1="", const string& name = "",
 void interactProgress(char* text);
 void progressStore(bool force);
 void progressClear(void);
+void contactStore(const string& value);
+void contactLost(void);
+void contactHeard(void);
+void contactInit(void);
+void reconnectAfterSilence(void);
 
 // Messaging state
 static JMSSubscriber *vsubscriber = 0;
@@ -191,8 +197,15 @@ static const int   MAX_BLOCK_LENGTH = 2048;
 
 // timeouts and retries
 static const int   MAX_READ_TRIES = 100;
-static const unsigned long READ_TIMEOUT_MILLISECONDS = 180000; // 3 minutes
 static const unsigned long PROCESS_TIMEOUT_MILLISECONDS = 1800000; // 30 minutes
+// Silence from the monitor (#284): after gContactSeconds the Organizer is
+// told the job is out of contact; after the read timeout this store hands
+// back to eccejobmaster for a fresh connection.  Both set in contactInit().
+static unsigned long readTimeoutMilliseconds = 180000;
+static int gContactSeconds = 60;
+static bool gContactLost = false;
+static time_t gLastHeard = 0;                 // wall clock, for the Organizer
+static struct timespec gLastHeardMono = {0, 0};
 
 // file names
 static const char* programName = "eccejobstore";
@@ -320,11 +333,11 @@ void jobstore_main(RCommand* rconn, const string& jobId,
   if (!restartFlag)
     progressClear();
 
-  if (restartFlag)
-    // before restart we set state to monitor error since we aren't
-    // guaranteed jobstore will be coming back.  When we do realize
-    // that we're back again and that it is a restart we set the
-    // state back to submitted.
+  // A restart after a monitor error or a park sets the state back to
+  // submitted; one after silence left the job running, which it stays
+  // until the monitor reports otherwise (#284).
+  if (restartFlag && calculation &&
+      calculation->getState() != ResourceDescriptor::STATE_RUNNING)
     calcUpdateState(ResourceDescriptor::STATE_SUBMITTED);
 
   // cache store command args since storeProperty is called so often
@@ -1052,12 +1065,37 @@ void dispatchSignals(void)
 
 void handleTimeout(unsigned long milliseconds)
 {
-  if (milliseconds == READ_TIMEOUT_MILLISECONDS)
-    restartSystem("eccejobstore",
-                  "Read timeout--job monitor failed to send heartbeat message");
-  else
+  if (milliseconds == PROCESS_TIMEOUT_MILLISECONDS)
     restart("eccejobstore",
             "Processing timeout--eccejobstore hung while processing message");
+  else
+    reconnectAfterSilence();
+}
+
+// The monitor fell silent (no heartbeat, no output) for the read timeout.
+// That says nothing about the job, so its state stays as it is (running,
+// shown "running?") and eccejobmaster starts a fresh store and monitor,
+// which read on from the bookmark (#284, #208).  Only the last try parks
+// the job waiting for login, since nothing will watch it after that.
+void reconnectAfterSilence(void)
+{
+  const string msg =
+      "Read timeout--job monitor failed to send heartbeat message";
+  const char* left = getenv("ECCE_JOB_TRIES_LEFT");
+  if (left && atoi(left) <= 0) {
+    restartSystem("eccejobstore", msg);
+    return;
+  }
+  logPrint(ActivityLog::WARNING, "eccejobstore", msg);
+  logMessage("eccejobstore", "reconnecting; the run state is left as it is");
+  logNumErrors++;
+  initMessaging();
+  if (!gContactLost)
+    contactLost();
+  WaitingJobs::add(cpCalcURL);
+  endState = ResourceDescriptor::STATE_ILLEGAL;
+  cleanup(4);
+  exit(4);
 }
 
 void ecceExitMCB(JMSMessage& msg)
@@ -1880,6 +1918,20 @@ static int timeoutRemaining(void)
   return (int)((ns + 999999) / 1000000);
 }
 
+// Milliseconds until the monitor's silence counts as out of contact (0 if
+// it does now), -1 when already reported.
+static int contactRemaining(void)
+{
+  if (gContactLost || gLastHeard == 0)
+    return -1;
+  struct timespec now;
+  clock_gettime(CLOCK_MONOTONIC, &now);
+  long long ms = (long long)(gLastHeardMono.tv_sec + gContactSeconds -
+                             now.tv_sec) * 1000LL +
+                 (gLastHeardMono.tv_nsec - now.tv_nsec) / 1000000LL;
+  return ms <= 0 ? 0 : (int)ms;
+}
+
 // ------------------------------------------------------------------------- //
 // Get the calculation output from eccejobmonitor.
 // Return if successful, exit otherwise.
@@ -1900,7 +1952,9 @@ void getJobMonitorInput(int fid)
   static bool ignoreFlag = false;
 
   int nbytes = read(fid, dataptr, needRead);
-  
+  if (nbytes > 0)
+    contactHeard();
+
   if (nbytes == needRead) {
     readTries = 0;
 
@@ -2001,7 +2055,7 @@ void getJobMonitorInput(int fid)
                     "Job monitor has died (exceeded maximum read retries)");
   }
 
-  setTimeout(READ_TIMEOUT_MILLISECONDS);
+  setTimeout(readTimeoutMilliseconds);
 }
 
 
@@ -2047,7 +2101,11 @@ static void processEvents(int monFd)
     struct pollfd fds[3] = {
       {sigPipe[0], POLLIN, 0}, {monFd, POLLIN, 0}, {vMsgFd, POLLIN, 0}};
 
-    if (poll(fds, 3, timeoutRemaining()) < 0) {
+    int wait = timeoutRemaining();
+    const int contact = contactRemaining();
+    if (contact >= 0 && (wait < 0 || contact < wait))
+      wait = contact;
+    if (poll(fds, 3, wait) < 0) {
       if (errno == EINTR)
         continue;
       restartSystem("eccejobstore", string("poll failed: ") + strErrno());
@@ -2064,6 +2122,11 @@ static void processEvents(int monFd)
       handleTimeout(ms);
       return;
     }
+
+    // Only while nothing is waiting from the monitor: a backlog read after
+    // a long property store is contact, not silence.
+    if (!(fds[1].revents & ready) && contactRemaining() == 0)
+      contactLost();
 
     bool handled = false;
     if (fds[1].revents & ready) {
@@ -2083,7 +2146,8 @@ static void processEvents(int monFd)
 void interactGetOutput(void)
 {
   doneFlag = false;
-  setTimeout(READ_TIMEOUT_MILLISECONDS);
+  contactInit();
+  setTimeout(readTimeoutMilliseconds);
 
 #ifdef BENCHMARK
   ETimer time;
@@ -2597,6 +2661,11 @@ void progressClear(void)
 {
   if (!calculation)
     return;
+  // A new run is in contact until its own monitor falls silent.
+  if (!calculation->getProp(VDoc::getEcceNamespace() + ":contact").empty()) {
+    contactStore("");
+    sendNotify("ecce_url_progress", "contact", "ok");
+  }
   const string key = VDoc::getEcceNamespace() + ":progress";
   if (calculation->getProp(key).empty())
     return;
@@ -2610,6 +2679,112 @@ void progressClear(void)
            ex.what());
   }
   sendNotify("ecce_url_progress", "progress", "");
+}
+
+
+// ------------------------------------------------------------------------- //
+// Out of contact (#284).  The monitor sends a heartbeat (jmUP) every sixth
+// job check, one check per timePauseReadLine (10 s, 2 s for a local job),
+// besides its output.  Three heartbeats missed (at least a minute, for
+// slow property scripts) and the Organizer shows the job "running?"; the
+// run state itself is not touched.  ECCE_JOB_CONTACT_SECONDS and
+// ECCE_JOB_RECONNECT_SECONDS override both times (tests, slow schedulers).
+// ------------------------------------------------------------------------- //
+void contactInit(void)
+{
+  if (gLastHeard != 0)
+    return;
+  int pause = 10;
+  ifstream conf((localDirectory() + "/eccejobmonitor.conf").c_str());
+  string key;
+  while (conf >> key) {
+    string value;
+    getline(conf, value);
+    if (key == "timePauseReadLine" && atoi(value.c_str()) > 0)
+      pause = atoi(value.c_str());
+  }
+  gContactSeconds = std::max(60, 3 * 6 * pause);
+  int reconnect = std::max(180, gContactSeconds + 120);
+  const char* env = getenv("ECCE_JOB_CONTACT_SECONDS");
+  if (env && atoi(env) > 0)
+    gContactSeconds = atoi(env);
+  env = getenv("ECCE_JOB_RECONNECT_SECONDS");
+  if (env && atoi(env) > 0)
+    reconnect = atoi(env);
+  readTimeoutMilliseconds = (unsigned long)reconnect * 1000UL;
+
+  gLastHeard = time(0);
+  clock_gettime(CLOCK_MONOTONIC, &gLastHeardMono);
+  // A store restarted after silence carries on from the last one: the
+  // Organizer already shows the job out of contact since then.
+  if (restartFlag && calculation) {
+    const string stored =
+        calculation->getProp(VDoc::getEcceNamespace() + ":contact");
+    if (stored.compare(0, 5, "lost ") == 0) {
+      gContactLost = true;
+      gLastHeard = (time_t)atol(stored.c_str() + 5);
+    }
+    if (gProgress.empty()) {
+      gProgress = calculation->getProp(VDoc::getEcceNamespace() +
+                                       ":progress");
+      gProgressStored = gProgress;
+    }
+  }
+  char buf[128];
+  snprintf(buf, sizeof buf, "out of contact after %d s of silence, "
+           "reconnect after %d s", gContactSeconds, reconnect);
+  logMessage("eccejobstore", buf);
+}
+
+
+// The monitor's state as the Organizer sees it: "lost <epoch last heard>"
+// or "" (in contact).  Stored so that a restarted Organizer shows it too.
+void contactStore(const string& value)
+{
+  if (!calculation)
+    return;
+  const string key = VDoc::getEcceNamespace() + ":contact";
+  if (value.empty() && calculation->getProp(key).empty())
+    return;
+  vector<MetaDataResult> results(1);
+  results[0].name = key;
+  results[0].value = value;
+  try {
+    calculation->addProps(results);
+  } catch (DavException& ex) {
+    logErr("DAV Server", string("storing the contact state: ") + ex.what());
+  }
+}
+
+
+void contactLost(void)
+{
+  gContactLost = true;
+  char lost[64];
+  snprintf(lost, sizeof lost, "lost %ld", (long)gLastHeard);
+  char msg[160];
+  snprintf(msg, sizeof msg, "No message from the job monitor for %ld s; "
+           "the job may still be running", (long)(time(0) - gLastHeard));
+  logPrint(ActivityLog::WARNING, "eccejobmonitor", msg);
+  if (calculation)
+    sendNotify("ecce_url_progress", "contact", lost, "progress", gProgress);
+  contactStore(lost);
+}
+
+
+void contactHeard(void)
+{
+  if (gLastHeard == 0)
+    return;
+  gLastHeard = time(0);
+  clock_gettime(CLOCK_MONOTONIC, &gLastHeardMono);
+  if (!gContactLost)
+    return;
+  gContactLost = false;
+  logMessage("eccejobmonitor", "Job monitor in contact again");
+  if (calculation)
+    sendNotify("ecce_url_progress", "contact", "ok", "progress", gProgress);
+  contactStore("");
 }
 
 

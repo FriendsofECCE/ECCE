@@ -201,9 +201,17 @@ void CalculationContextPanel::updateProgress()
   }
   if (!started) text.clear();
 
+  double lastHeard = 0;
+  const bool lost = p_calcMgr &&
+      p_calcMgr->outOfContact(p_itemData->getResource(), lastHeard);
+  if (p_state) p_state->setOutOfContact(lost);
   const bool resized = p_progressBox->set(text, received, finished,
-                                          state == ResourceDescriptor::STATE_COMPLETED);
-  const bool show = p_progressBox->hasProgress();
+                                          state == ResourceDescriptor::STATE_COMPLETED,
+                                          lost ? lastHeard : 0,
+                                          lost && p_calcMgr
+                                          ? p_calcMgr->machineCheckLines(getUrl())
+                                          : vector<string>());
+  const bool show = p_progressBox->wanted();
   if (show != GetSizer()->IsShown(p_progressSizer)) {
     GetSizer()->Show(p_progressSizer, show);
     Layout();
@@ -337,8 +345,13 @@ void CalculationContextPanel::createControls()
     // A running job's progress goes between the launcher and the viewer
     // rows; hidden until there is some (#284).
     if (pairRT_TPV.first->getName() == "Launcher" && !p_progressBox) {
-      p_progressSizer = new wxStaticBoxSizer(wxVERTICAL, this, "Progress");
-      p_progressBox = new ProgressBox(p_progressSizer->GetStaticBox());
+      // The box draws its own heading, which folds it.
+      p_progressSizer = new wxBoxSizer(wxVERTICAL);
+      p_progressBox = new ProgressBox(this);
+      p_progressBox->setActionHandler([this](int action) {
+        if (p_calcMgr) p_calcMgr->progressAction(action, p_itemData);
+      });
+      p_progressBox->setRelayout([this]() { Layout(); FitInside(); });
       p_progressSizer->Add(p_progressBox, wxSizerFlags(1).Expand().Border());
       GetSizer()->Add(p_progressSizer, wxSizerFlags().Expand().Border());
       GetSizer()->Hide(p_progressSizer);

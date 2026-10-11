@@ -21,6 +21,7 @@
 #ifndef WXRESOURCETREECTRL_H
 #define WXRESOURCETREECTRL_H
 
+#include <functional>
 #include <string>
 using std::string;
 
@@ -123,6 +124,15 @@ protected:
                              const wxTreeItemId& item2);
 
   void setImageList();
+
+public:
+  // True for a running calculation whose monitor is out of contact (#284);
+  // the tree then shows WxState::OUT_OF_CONTACT for it.  Set by the
+  // Organizer, which hears it from the job store.
+  void setOutOfContactTest(std::function<bool(Resource*)> test)
+  { p_outOfContact = test; }
+
+protected:
   int getImageIndex(Resource * resource,
                     ResourceDescriptor::IconType iconType =
                     ResourceDescriptor::IT_NORMAL);
@@ -133,6 +143,7 @@ private:
   bool p_deepTraverse;
   bool p_homeAsRoot;
   bool p_showRunStates;
+  std::function<bool(Resource*)> p_outOfContact;
   int p_treeSort;
   // Guards against a real, confirmed reentrancy crash: findNode()'s own
   // SelectItem() call synchronously fires a tree-selection-changed

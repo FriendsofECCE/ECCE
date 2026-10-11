@@ -42,12 +42,9 @@ class WxResourceStateImageList : public ewxImageList
   
     void addAllImages();
 
-    wxBitmap combineWithState(wxBitmap bitmap,
-                              ResourceDescriptor::RUNSTATE state =
-                              ResourceDescriptor::NUMBER_OF_STATES);
-    void combineAndAddWithState(ResourceType * resourceType,
-                                ResourceDescriptor::RUNSTATE state =
-                                ResourceDescriptor::NUMBER_OF_STATES);
+    // state: a WxStateImageList index, -1 for none.
+    wxBitmap combineWithState(wxBitmap bitmap, int state = -1);
+    void combineAndAddWithState(ResourceType * resourceType, int state = -1);
     void combineAndAddWithStates(ResourceType * resourceType);
 
     int getImageIndex(ResourceType * resourceType,
