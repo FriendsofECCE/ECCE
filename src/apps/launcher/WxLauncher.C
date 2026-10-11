@@ -2467,6 +2467,7 @@ void WxLauncher::launchCalc(const bool& fullLaunchFlag)
     if (!p_launchData->done())
     {
         p_messagesFeedback->setMessage("Launch aborted...", WxFeedback::WARNING);
+        p_launchData->removeStaging();
     }
     else
     {
@@ -2790,6 +2791,7 @@ void WxLauncher::finishStagedLaunch()
         p_messagesFeedback->setMessage(p_launchData->message(), WxFeedback::ERROR);
         p_messagesFeedback->setMessage("Job submission failed.",
                                        WxFeedback::ERROR);
+        p_launchData->removeStaging();
     }
 
     p_jobStaged = false;

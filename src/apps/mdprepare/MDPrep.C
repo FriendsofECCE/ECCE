@@ -3591,6 +3591,7 @@ void MDPrep::OnButtonMdprepLocalClick(wxCommandEvent &event)
 
       if (!launch->done()) {
          p_feedback->setMessage("NWChem MD Prepare launch failed!  " + launch->message(), WxFeedback::ERROR);
+         launch->removeStaging();
          p_progressDialog->Update(100, "NWChem MD Prepare launch failed!");
          sleep(3);
          //p_progressDialog->Destroy();
