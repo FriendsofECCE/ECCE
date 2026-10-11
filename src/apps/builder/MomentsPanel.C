@@ -136,38 +136,42 @@ bool MomentsPanel::Create(IPropCalculation *calculation,
    p_grid->CreateGrid(3, 3, wxGrid::wxGridSelectRows);
    tableSizer->Add(p_grid, 1, wxGROW|wxALL, 3);
 
-   wxBoxSizer *optionsSizer = new wxBoxSizer(wxHORIZONTAL);
-   panel->GetSizer()->Add(optionsSizer, 0, wxALIGN_LEFT|wxALL, 0);
+   // Quadrupole, polarizability and stress panels show just the table: an
+   // arrow, its colour and its scale mean nothing there.
+   if (drawsArrow()) {
+      wxBoxSizer *optionsSizer = new wxBoxSizer(wxHORIZONTAL);
+      panel->GetSizer()->Add(optionsSizer, 0, wxALIGN_LEFT|wxALL, 0);
 
-    // A button to control color
-    optionsSizer->AddSpacer(3);
-    ewxStaticText* label = new ewxStaticText( panel, wxID_STATIC, _("Tensor Color:"), wxDefaultPosition, wxDefaultSize, 0 );
-    optionsSizer->Add(label, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
-    ewxButton* colorbtn = new ewxButton( panel, ID_BUTTON_MOMENTS_VECCOLOR, _T(""), wxDefaultPosition, wxSize(24, 24), wxBU_EXACTFIT );
-    optionsSizer->Add(colorbtn, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+       // A button to control color
+       optionsSizer->AddSpacer(3);
+       ewxStaticText* label = new ewxStaticText( panel, wxID_STATIC, _("Tensor Color:"), wxDefaultPosition, wxDefaultSize, 0 );
+       optionsSizer->Add(label, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+       ewxButton* colorbtn = new ewxButton( panel, ID_BUTTON_MOMENTS_VECCOLOR, _T(""), wxDefaultPosition, wxSize(24, 24), wxBU_EXACTFIT );
+       optionsSizer->Add(colorbtn, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
-    optionsSizer->AddSpacer(3);
-    label = new ewxStaticText( panel, wxID_STATIC,
-          isDipole() ? wxString::FromUTF8("Length, \u00c5 per D:") : _("Scale:"),
-          wxDefaultPosition, wxDefaultSize, 0 );
-    optionsSizer->Add(label, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+       optionsSizer->AddSpacer(3);
+       label = new ewxStaticText( panel, wxID_STATIC,
+             isDipole() ? wxString::FromUTF8("Length, \u00c5 per D:") : _("Scale:"),
+             wxDefaultPosition, wxDefaultSize, 0 );
+       optionsSizer->Add(label, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
-   // Initilialize button color
-   ewxConfig *config = ewxConfig::getConfig(INIFILE);
-   wxString color = config->Read(getConfigKey().c_str(), "yellow");
-   colorbtn->SetBackgroundColour(wxColour(color));
+      // Initilialize button color
+      ewxConfig *config = ewxConfig::getConfig(INIFILE);
+      wxString color = config->Read(getConfigKey().c_str(), "yellow");
+      colorbtn->SetBackgroundColour(wxColour(color));
 
-   // Add the slider
-   ewxPanel *p = new ewxPanel(this);
-   optionsSizer->Add(p, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
-   p_slider = new SliderCombo(p, ID_MOMENTS_SLIDER);
-   if (isDipole()) {
-      p_slider->SetRange(0.05, 5.0);
-      p_slider->SetToolTip(wxString::FromUTF8(
-            "Arrow length in \u00c5 per Debye of |\u03bc|"));
-   } else {
-      p_slider->SetRange(0.1,10000.0);
-      p_slider->SetToolTip("Scale");
+      // Add the slider
+      ewxPanel *p = new ewxPanel(this);
+      optionsSizer->Add(p, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+      p_slider = new SliderCombo(p, ID_MOMENTS_SLIDER);
+      if (isDipole()) {
+         p_slider->SetRange(0.05, 5.0);
+         p_slider->SetToolTip(wxString::FromUTF8(
+               "Arrow length in \u00c5 per Debye of |\u03bc|"));
+      } else {
+         p_slider->SetRange(0.1,10000.0);
+         p_slider->SetToolTip("Scale");
+      }
    }
 
    fillTable();

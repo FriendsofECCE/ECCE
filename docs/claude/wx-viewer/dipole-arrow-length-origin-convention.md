@@ -16,8 +16,11 @@ under the property's switch. Nothing else draws it.
   so the command divides that out; with the old scale 1.0 the tip was
   1.075 A/D, about 2.4 O-H bonds for water.
 - **Origin.** `Center` = "charge": the centre of nuclear charge
-  (Z-weighted). The "mass" branch of `getSingleCenter` is an unweighted
-  centroid, not a centre of mass; nothing uses it.
+  (Z-weighted). The "mass" branch of `getSingleCenter` is the
+  mass-weighted centre (`TAtm::getMass`); nothing selects it yet.
+- **Only the dipole panel draws it.** `QuadPolePanel` (quadrupole,
+  polarizability, stress) overrides `drawsArrow()` to false: no vectors, no
+  colour or scale row.
 - **Direction.** Drawn along mu as parsed. NWChem, ORCA, Gaussian 16 and
   MOPAC all report mu = sum q r (negative to positive end); checked
   against each code's geometry for water. All parsers store Debye

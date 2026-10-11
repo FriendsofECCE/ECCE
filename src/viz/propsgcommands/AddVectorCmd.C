@@ -216,15 +216,20 @@ void AddVectorCmd::getSingleCenter(vector<double*>& centers)
       // 1/Sum of charges
       xyz.scale(1.0/totalCharge);
    } else {
-      // assume mass
-      TAtm *atom;
+      // Centre of mass.  An atom whose mass was never set (0) falls back
+      // to its atomic number so that the centre stays defined.
+      double totalMass = 0.0;
       for (int i=0; i<numAtoms; i++) {
-         atom = frag->atomRef(i);
+         TAtm *atom = frag->atomRef(i);
+         double m = atom->getMass();
+         if (m <= 0.0) m = atom->atomicNumber();
+         totalMass += m;
          const double *coords = atom->coordinates();
          MPoint tmp(coords[0], coords[1], coords[2]);
+         tmp.scale(m);
          xyz.add(tmp);
       }
-      xyz.scale(1.0/numAtoms);
+      if (totalMass > 0.0) xyz.scale(1.0/totalMass);
    }
    centers.push_back(new double[3]);
    centers[0][0] = xyz.x();

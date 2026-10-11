@@ -151,34 +151,9 @@ void QuadPolePanel::fillTable()
 }
 
 
-void QuadPolePanel::showVectors(bool guessScale)
+void QuadPolePanel::showVectors(bool)
 {
-   WxVizToolFW& fw = getFW();
-   IPropCalculation *expt = getCalculation();
-#ifndef INSTALL
-   ICalculation *escalc = dynamic_cast<ICalculation*>(expt);
-   INTERNALEXCEPTION(escalc, "Cannot down cast to ICalucation");
-#endif
-   SGContainer& sg = fw.getSceneGraph();
-
-   ewxButton* btn = (ewxButton*)FindWindow(ID_BUTTON_MOMENTS_VECCOLOR);
-   wxColour color = btn->GetBackgroundColour();
-
-   // Only the neutral color is used for this vector...
-   Command *cmd = new AddQuadMomentCmd("Dipole",&sg, expt);
-   set<string> props = getPropertyNames();
-   string pname = *(props.begin());
-   cmd->getParameter("property")->setString(pname);
-   cmd->getParameter("neutral")->setString(color.GetAsString(wxC2S_HTML_SYNTAX).ToStdString());
-   cmd->getParameter("Amplitude")->setDouble(p_slider->GetFloatValue());
-   if (guessScale) {
-      cmd->getParameter("newData")->setBoolean(guessScale);
-   }
-   fw.execute(cmd);
-
-   if (guessScale) {
-      p_slider->SetValue(cmd->getParameter("Amplitude")->getDouble());
-   }
+   // Nothing to draw: principal axes of a tensor are not a dipole arrow.
 }
 
 

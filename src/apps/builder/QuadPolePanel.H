@@ -38,6 +38,7 @@ class QuadPolePanel : public MomentsPanel
    protected:
       virtual void fillTable();
       virtual void showVectors(bool guessScale);
+      virtual bool drawsArrow() const { return false; }
 
       bool p_useOriginalGeomHack;
 };
