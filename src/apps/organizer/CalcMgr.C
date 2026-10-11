@@ -27,6 +27,8 @@
 #include <memory>
 #include <algorithm>
 #include <sstream>
+#include <cstdint>
+#include <ctime>
 #include <iostream>
 using std::cerr;
 using std::endl;
@@ -116,6 +118,8 @@ static std::string s_registerMessage;
 
 #include "BookmarkEditor.H"
 #include "ContextPanelFactory.H"
+#include "CalculationContextPanel.H"
+#include "ProgressBox.H"
 #include "ContextPanelInterface.H"
 #include "TreeDropTarget.H"
 #include "WxConfigureNwfsArchive.H"
@@ -433,6 +437,12 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  *                 File > New <code> Calculation with the name prompt,
  *                 answered OK after 1.5 s
  * contextmenu <url> right-click <url> in the tree; the New submenu's items
+ * progress <url> <file>
+ *                 hand the snapshot in <file> to the Organizer as an
+ *                 ecce_url_progress message does (empty file: forget it)
+ * size <w> <h>   resize the Organizer window
+ * progressbox     the shown summary's Progress box: shown or not, its
+ *                 paints and the lines it draws, separated by " | "
  */
 void CalcMgr::runTestCommand(const string& line)
 {
@@ -684,6 +694,37 @@ void CalcMgr::runTestCommand(const string& line)
         outcome += " selection=" +
                    (sel ? sel->getUrl().toString() : string("none")) +
                    " new=" + newItems();
+      }
+    } else if (command == "progress") {
+      const string url = calcName.substr(0, calcName.find(' '));
+      const string file = calcName.size() > url.size() + 1
+                          ? calcName.substr(url.size() + 1) : string();
+      std::ifstream in(file.c_str());
+      std::stringstream text;
+      text << in.rdbuf();
+      progressUpdate(EcceURL(url), in ? text.str() : string());
+      outcome = in ? "ok" : "no file " + file;
+    } else if (command == "size") {
+      int w = 0, h = 0;
+      std::istringstream(calcName) >> w >> h;
+      if (w > 0 && h > 0) SetSize(w, h);
+      for (int i = 0; i < 5; i++) wxYield();
+      outcome = "ok " + std::to_string(GetSize().x) + "x" +
+                std::to_string(GetSize().y);
+    } else if (command == "progressbox") {
+      CalculationContextPanel *panel =
+          dynamic_cast<CalculationContextPanel*>(p_contextPanel);
+      ProgressBox *box = panel ? panel->getProgressBox() : 0;
+      for (int i = 0; i < 5; i++) wxYield();
+      if (!box) {
+        outcome = "no box";
+      } else {
+        outcome = string("shown=") + (box->IsShownOnScreen() ? "1" : "0") +
+                  " paints=" + std::to_string(box->paints()) +
+                  " panel=" + std::to_string((unsigned long)(uintptr_t)panel) +
+                  " size=" + std::to_string(box->GetSize().x) + "x" +
+                  std::to_string(box->GetSize().y);
+        for (const string& l : box->describe()) outcome += " | " + l;
       }
     } else if (command == "snap") {
       for (int i = 0; i < 3; i++) {
@@ -5595,6 +5636,40 @@ void CalcMgr::queueUpdate(UpdateKind kind, const EcceURL & url)
   }
   // The notices of one Save arrive within a few ms of each other.
   if (!p_updateTimer->IsRunning()) p_updateTimer->StartOnce(150);
+}
+
+
+// One key per calculation whether or not its URL ends in a slash.
+static string progressKey(const EcceURL & url)
+{
+  string s = url.toString();
+  while (s.size() > 1 && s.back() == '/') s.pop_back();
+  return s;
+}
+
+
+void CalcMgr::progressUpdate(const EcceURL & url, const string & text)
+{
+  const string key = progressKey(url);
+  if (text.empty())
+    p_liveProgress.erase(key);
+  else
+    p_liveProgress[key] = std::make_pair(text, (double)time(0));
+  CalculationContextPanel *panel =
+      dynamic_cast<CalculationContextPanel*>(p_contextPanel);
+  if (panel && progressKey(panel->getUrl()) == key)
+    panel->updateProgress();
+}
+
+
+bool CalcMgr::liveProgress(const EcceURL & url, string & text,
+                           double & received) const
+{
+  auto it = p_liveProgress.find(progressKey(url));
+  if (it == p_liveProgress.end()) return false;
+  text = it->second.first;
+  received = it->second.second;
+  return true;
 }
 
 
