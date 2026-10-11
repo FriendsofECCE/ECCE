@@ -188,7 +188,14 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age) const
     double v, t;
     bool hasT;
     if (f.first == rec || f.first == "energy" || f.first == "eta") continue;
-    if (!split(f.second, v, t, hasT) || !hasT) continue;
+    if (!split(f.second, v, t, hasT)) continue;
+    if (!hasT) {
+      // A value whose target the code never prints: shown as a plain line.
+      const string label = criterionLabel(st.name, f.first);
+      if (label != f.first)
+        b.lines.push_back(label + " " + fmt("%.1e", v));
+      continue;
+    }
     Criterion c;
     c.label = criterionLabel(st.name, f.first);
     c.value = fmt("%.1e", v) + " / " + fmt("%.0e", t);
@@ -254,6 +261,12 @@ vector<string> JobProgress::summary(bool completed) const
         number(freq->field("imaginary"), imag)) {
       string line = fmt("Frequencies: %.0f real", real) +
                     fmt(", %.0f imaginary", imag);
+      if (number(freq->field("zpe"), zpe))
+        line += " \xc2\xb7 ZPE " + fmt("%.6f", zpe) + " hartree";
+      out.push_back(line);
+    } else if (freq->field("done") == "yes") {
+      // Codes that do not say how many modes are imaginary.
+      string line = "Frequencies: done";
       if (number(freq->field("zpe"), zpe))
         line += " \xc2\xb7 ZPE " + fmt("%.6f", zpe) + " hartree";
       out.push_back(line);

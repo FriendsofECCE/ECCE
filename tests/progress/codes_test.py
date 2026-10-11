@@ -141,6 +141,13 @@ case("nwchem opt, not converged", "nwchem.desc", fx("nwchem", "h2o_scf_opt_cappe
      {"opt": {"converged": "no", "step": "2"}},
      out2=fx("nwchem", "h2o_scf_opt_capped.nwout"))
 
+case("mopac geovib (PM7 EF, then FORCE)", "mopac.desc", fx("mopac", "gv.out"),
+     {"opt": {"step": "8", "converged": "yes", "grad": lambda v: float(v) < 0.05},
+      "freq": {"step": lambda v: int(v) >= 9, "done": "yes"}},
+     {"opt": (8, 8)})
+case("mopac opt, not converged", "mopac.desc", fx("mopac", "capped.out"),
+     {"opt": {"step": "3", "converged": "no"}})
+
 
 def run_case(name, desc, out, want, hist, out2):
     n, stages, text = replay(os.path.join(PARSERS, desc), out, "ALL", out2)

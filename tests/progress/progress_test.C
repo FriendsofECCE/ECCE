@@ -84,6 +84,14 @@ int main()
   check(has(sum, "Frequencies: 3 real, 0 imaginary") && has(sum, "ZPE 0.021346"),
         "summary: frequencies and ZPE");
 
+  // A code that gives no mode counts, and a value without a target.
+  JobProgress g;
+  g.parse("# seq=4\nfreq step=15 done=yes\nopt step=3 grad=0.141\n");
+  check(has(g.summary(true), "Frequencies: done"), "summary: done without counts");
+  vector<JobProgress::Block> gb = g.running(0);
+  check(gb.size() == 2 && gb[0].criteria.empty() &&
+        has(gb[0].lines, "gradient 1.4e-01"), "a value without a target is a line");
+
   JobProgress e;
   e.parse("# seq=3\nscf cycle=15 energy=-1.1 converged=yes\n");
   vector<string> es = e.summary(true);

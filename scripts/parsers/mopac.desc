@@ -382,3 +382,33 @@ Frequency=last
 Skip=0
 Lines=1
 [END]
+
+# Job progress for the Organizer's Progress box (#284).  No Script: these
+# only feed the monitor's live snapshot.  MOPAC prints its gradient cutoff
+# only after the last cycle, so the gradient has no target while running;
+# it prints no SCF iterations and no number of force steps.
+[PROGRESS]
+Begin=^ CYCLE:\s+(\d+)\s+TIME:\s+\S+\s+TIME LEFT:\s+\S+\s+GRAD\.:\s+(\S+)
+Progress=opt step=$1 grad=$2
+History=grad
+[END]
+
+[PROGRESS]
+Begin=^\s+GRADIENT =\s+\S+ IS LESS THAN CUTOFF
+Progress=opt converged=yes
+[END]
+
+[PROGRESS]
+Begin=^\s+EXCESS NUMBER OF OPTIMIZATION CYCLES
+Progress=opt converged=no
+[END]
+
+[PROGRESS]
+Begin=^ STEP:\s+(\d+)\s
+Progress=freq step=$1
+[END]
+
+[PROGRESS]
+Begin=^\s+ZERO POINT ENERGY\s+\S+ KCAL/MOL
+Progress=freq done=yes
+[END]

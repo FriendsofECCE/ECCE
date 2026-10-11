@@ -1,0 +1,6 @@
+PM7 EF CHARGE=0 SINGLET PRECISE CYCLES=3
+water geometry optimization capped at 3 cycles
+progress test
+O    0.000000    0.000000    0.000000
+H    1.100000    0.000000    0.700000
+H   -1.100000    0.000000    0.700000
