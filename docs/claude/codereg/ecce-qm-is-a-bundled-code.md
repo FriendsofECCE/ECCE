@@ -3,7 +3,7 @@ type: map
 title: "ECCE-QM is a bundled code: where it is wired, and the per-code flags it introduced"
 area: codereg
 section: "New-code checklist (gotchas found integrating ORCA, issue #38)"
-paths: ["data/client/cap/ECCE-QM.edml", "scripts/parsers/ai.ecceqm", "scripts/parsers/ecceqm.desc", "scripts/parsers/ecceqm.parse", "scripts/parsers/std2ECCEQM", "scripts/parsers/ECCE-QM.expt", "scripts/codereg/ecceqmtheory.py", "scripts/gensub", "src/tdat/resources/RefMachine.C", "src/apps/calced/CalcEd.C", "src/apps/builder/MoDiagramPanel.C", "src/dsm/xml/JCode.C", "src/qm", "tests/launch/ecceqm_test.py"]
+paths: ["data/client/cap/ECCE-QM.edml", "scripts/parsers/ai.ecceqm", "scripts/parsers/ecceqm.desc", "scripts/parsers/ecceqm.parse", "scripts/parsers/std2ECCEQM", "scripts/parsers/ECCE-QM.expt", "scripts/codereg/ecceqmtheory.py", "scripts/gensub", "src/tdat/resources/RefMachine.C", "src/apps/calced/CalcEd.C", "src/apps/launcher/WxLauncher.C", "src/apps/builder/MoDiagramPanel.C", "src/dsm/xml/JCode.C", "src/qm", "tests/launch/ecceqm_test.py"]
 issues: []
 ---
 **ECCE-QM** (program `ecce-qm`, `src/qm`, `docs/qm/README.md`) is the HF/DFT
@@ -56,8 +56,13 @@ next bundled code:
   all 3N modes with the translations/rotations first at 0, as ORCA lists
   them), `begin normal_modes` (VIB) and the keys `zero_point_energy`,
   `thermal_energy`, `enthalpy`, `entropy_ts`, `gibbs_energy` (EZEROPT, ETHERM,
-  ENTHALPY, ENTROPY, EGIBBS; one Begin each, none may match another's line). No
+  ENTHALPY, ENTROPY, EGIBBS; one Begin each, none may match another's line),
+  and `thermo_temperature`/`thermo_pressure_atm` give THERMOTEMP/THERMOPRES. No
   runtype dialog, so the engine's `maxsteps`/`opt_conv` are not set from ECCE.
+* **Launch warns before a large run** (`WxLauncher::confirmQmSize()`, #248):
+  Vibration/GeoVib with N^2 x nbf above 5000 (DFT) or 15000 (HF), or any run
+  beyond 25 atoms or 150 functions (memory, nbf^4 bytes). Cancel or "Launch
+  anyway" (the default); never a block. `tests/apps/ecceqm_size_warning_test.py`.
 * **No Theory Details beyond** the DFT functional (DFT only) and an
   "unrestricted" tick; no runtype dialog; no convergence, grid, memory or
   thread settings. `ECCEQM_EXTRA` in the environment appends lines to the input

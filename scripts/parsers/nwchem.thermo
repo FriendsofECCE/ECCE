@@ -4,7 +4,8 @@
 # Purpose:
 # Reads NWChem's plain stdout (not the ecce_print trace, which carries no
 # thermochemistry and no solvation data) and emits EZEROPT, ETHERM,
-# ENTHALPY, ENTROPY, EGIBBS, THERMOTEMP and, for COSMO, ESOLV.
+# ENTHALPY, ENTROPY, EGIBBS, THERMOTEMP and, for COSMO, ESOLV and
+# SOLVMODEL ("COSMO, eps = 78.4"; NWChem prints no pressure).
 #
 # NWChem prints only corrections, so the absolute values ORCA and Gaussian
 # report are rebuilt here.  The reference electronic energy is the first
@@ -31,7 +32,7 @@ $| = 1;
 
 use constant KCAL_PER_HARTREE => 627.5094740631;
 
-my ($e, $temp, $zpe, $dE, $dH, $S, $gas, $sol);
+my ($e, $temp, $zpe, $dE, $dH, $S, $gas, $sol, $eps, $solvname);
 my $inHessian = 0;
 while (<STDIN>) {
   $inHessian = 1 if (/NWChem Nuclear Hessian and Frequency Analysis/);
@@ -44,6 +45,8 @@ while (<STDIN>) {
   elsif (/Thermal correction to Energy\s+=.*\(\s*(-?\d+\.\d+)\s+au\)/) { $dE = $1; }
   elsif (/Thermal correction to Enthalpy\s+=.*\(\s*(-?\d+\.\d+)\s+au\)/) { $dH = $1; }
   elsif (/^\s*Total Entropy\s+=\s+(-?\d+\.\d+)\s+cal\/mol-K/) { $S = $1; }
+  elsif (/^\s*dielectric constant -eps-\s+=\s+(\d+\.\d+)/) { $eps = $1; }
+  elsif (/^\s*solvname_long:\s+(\S.*?)\s*$/) { $solvname = $1; }
   elsif (/^\s*gas phase energy\s+=\s+(-?\d+\.\d+)/) { $gas = $1; }
   elsif (/^\s*sol phase energy\s+=\s+(-?\d+\.\d+)/) { $sol = $1; }
 }
@@ -68,5 +71,14 @@ if (defined($e) && defined($dE) && defined($dH) && defined($S) && defined($temp)
 }
 if (defined($gas) && defined($sol)) {
   &emit("ESOLV", sprintf("%.10f", $sol - $gas), "Hartree");
+}
+if (defined($eps)) {
+  my $text = "COSMO";
+  if (defined($solvname) && lc($solvname) ne "unknown") {
+    $text .= ", " . ucfirst(lc($solvname));
+  } else {
+    $text .= sprintf(", \xCE\xB5 = %.1f", $eps);
+  }
+  &emit("SOLVMODEL", $text, "NA");
 }
 exit(0);

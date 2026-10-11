@@ -1,0 +1,13 @@
+EGIBBS	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+ENTHALPY	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+ENTROPY	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+ESCF	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+ESOLVCDS	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+ETHERM	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+EZEROPT	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+KE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+NNREPUL	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+SOLVMODEL	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+TE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+THERMOPRES	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+THERMOTEMP	http://www.emsl.pnl.gov/ecce:mime-type		text/xml

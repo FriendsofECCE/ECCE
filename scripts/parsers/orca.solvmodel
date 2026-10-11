@@ -1,0 +1,34 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Names the solvation model and solvent from ORCA's CPCM block, stored as
+# SOLVMODEL for the Energies panel heading, e.g. "SMD, Water":
+#   CPCM parameters:
+#     Epsilon                                         ...      78.3550
+#     Epsilon function type                           ...         CPCM
+#   Solvent:                                          ... WATER
+#   SMD-CDS solvent descriptors:
+# SMD is told by the descriptors, which only an SMD run prints.  Without a
+# solvent name the dielectric is used.
+#
+################################################################################
+
+$| = 1;
+
+my ($eps, $type, $solvent, $smd);
+while (<STDIN>) {
+  if (/^\s*Epsilon\s+\.\.\.\s+(\d+\.\d+)/) { $eps = $1; }
+  elsif (/^\s*Epsilon function type\s+\.\.\.\s+(\S+)/) { $type = $1; }
+  elsif (/^Solvent:\s+\.\.\.\s+(\S.*?)\s*$/) { $solvent = ucfirst(lc($1)); }
+  elsif (/^SMD-CDS solvent descriptors/) { $smd = 1; }
+}
+exit(0) if (!defined($type) && !$smd);
+my $text = $smd ? "SMD" : $type;
+if (defined($solvent)) {
+  $text .= ", $solvent";
+} elsif (defined($eps)) {
+  $text .= sprintf(", \xCE\xB5 = %.1f", $eps);
+}
+print "key: SOLVMODEL\nsize:\n1\nvalues:\n$text\nunits:\nNA\nEND\n";
+exit(0);

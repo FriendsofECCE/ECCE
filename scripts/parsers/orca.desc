@@ -362,6 +362,25 @@ Skip=0
 Lines=1
 [END]
 
+# Temperature and pressure of the thermochemistry block (two lines).
+[THERMOTEMP][THERMOPRES]
+Script=orca.thermoconds
+Begin=^Temperature\s+\.\.\.
+Frequency=last
+Skip=0
+Lines=2
+[END]
+
+# CPCM block: the epsilon, the function type (CPCM/COSMO), the solvent name
+# when one was given, and the SMD descriptors that mark SMD.
+[SOLVMODEL]
+Script=orca.solvmodel
+Begin=CPCM SOLVATION MODEL
+Frequency=last
+Skip=0
+Lines=16
+[END]
+
 # SMD cavity-dispersion term, in the TOTAL SCF ENERGY component list.
 # CPCM without SMD prints no such line.
 [ESOLVCDS]

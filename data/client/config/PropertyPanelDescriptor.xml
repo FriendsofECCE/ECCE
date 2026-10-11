@@ -80,6 +80,8 @@
     <class>KeyValuePropertyPanel</class>
     <consumer>true</consumer>
     <property class="Energy" type="value"/>
+    <!-- a string, so not matched by type="value": heads the Solvation group -->
+    <property name="SOLVMODEL"/>
   </PropertyPanel>
 
   <PropertyPanel>

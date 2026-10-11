@@ -69,9 +69,10 @@ CASES = [
 ]
 RUN_PROPS = {
     "Geometry": ("GEOMTRACE", "TEVEC", "EGRAD", "EGRADVEC"),
-    "Vibration": ("VIBFREQ", "VIBIR", "VIB", "EZEROPT", "ETHERM", "ENTHALPY", "ENTROPY", "EGIBBS"),
+    "Vibration": ("VIBFREQ", "VIBIR", "VIB", "EZEROPT", "ETHERM", "ENTHALPY", "ENTROPY", "EGIBBS",
+                  "THERMOTEMP", "THERMOPRES"),
     "GeoVib": ("GEOMTRACE", "TEVEC", "VIBFREQ", "VIBIR", "VIB", "EZEROPT", "ETHERM",
-               "ENTHALPY", "ENTROPY", "EGIBBS"),
+               "ENTHALPY", "ENTROPY", "EGIBBS", "THERMOTEMP", "THERMOPRES"),
 }
 FREQ_ORACLE = os.path.join(REPO, "tests", "qm", "freq_oracle.json")
 

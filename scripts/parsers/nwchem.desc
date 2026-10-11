@@ -284,7 +284,7 @@ Lines=1
 
 # Thermochemistry and COSMO solvation exist only in NWChem's stdout (the
 # primary output file), not in the ecce_print trace, hence a File= entry.
-[EZEROPT][ETHERM][ENTHALPY][ENTROPY][EGIBBS][THERMOTEMP][ESOLV]
+[EZEROPT][ETHERM][ENTHALPY][ENTROPY][EGIBBS][THERMOTEMP][ESOLV][SOLVMODEL]
 Script=nwchem.thermo
 File=nwch.nwout
 Begin=nwch.nwout

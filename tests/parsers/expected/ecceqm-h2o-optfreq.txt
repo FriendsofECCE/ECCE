@@ -266,6 +266,24 @@ args:    '.' 'GeoVib' 'SCF' 'HF' '0'
       values: 0.024378945906
       units: Hartree
 
+[THERMOTEMP]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^thermo_temperature\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=147 fed=1 rc=0 first-fed='thermo_temperature 298.150000000000'
+    key: THERMOTEMP
+      size: 1
+      values: 298.15
+      units: Kelvin
+
+[THERMOPRES]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^thermo_pressure_atm\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=148 fed=1 rc=0 first-fed='thermo_pressure_atm 1.000000000000'
+    key: THERMOPRES
+      size: 1
+      values: 1
+      units: atm
+
 [ETHERM]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
   Begin=^thermal_energy\s
   begins=1 delivered=1 buffered_away=0

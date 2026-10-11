@@ -48,7 +48,7 @@ CASES = [
             }),
             # Printed: zero-point 0.024386, sums -74.938683 / -74.937739 /
             # -74.959907, S = 46.658 cal/mol-K at 298.15 K (see #176).
-            'EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP': dict(
+            'EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES': dict(
                 keys={
                     'EZEROPT': {'values': '0.024386', 'units': 'Hartree'},
                     'ETHERM': {'values': '-74.938683', 'units': 'Hartree'},
@@ -1748,6 +1748,9 @@ CASES = [
                 'VIBIR': {'size': '9', 'units': 'KM/Mole',
                           'values': '0.0000 0.0000 0.0000 0.0000 0.0000 0.0000 7.2372 44.2883 29.9724'}}),
             'VIB': dict(keys={'VIB': {'size': '9 3 3', 'units': 'Angstrom'}}),
+            # thermo_temperature 298.150000000000, thermo_pressure_atm 1.000000000000
+            'THERMOTEMP': dict(keys={'THERMOTEMP': {'values': '298.15', 'units': 'Kelvin'}}),
+            'THERMOPRES': dict(keys={'THERMOPRES': {'values': '1', 'units': 'atm'}}),
             'EZEROPT': dict(keys={'EZEROPT': {'values': '0.024378945906', 'units': 'Hartree'}}),
             'ETHERM': dict(keys={'ETHERM': {'values': '-74.938689411361', 'units': 'Hartree'}}),
             'ENTHALPY': dict(keys={'ENTHALPY': {'values': '-74.937745226493', 'units': 'Hartree'}}),
@@ -1898,7 +1901,7 @@ CASES = [
         # B3LYP/6-31G(d) Opt Freq: S(total) = 45.137 cal/mol-K at 298.15 K
         parse_args=('.', 'GeoVib', 'SCF', 'RHF', '0'),
         expect={
-            'EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP': dict(
+            'EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES': dict(
                 blocks=1, keys={
                     'EZEROPT': {'values': '0.021164', 'units': 'Hartree'},
                     'ETHERM': {'values': '-76.384955', 'units': 'Hartree'},
@@ -1906,10 +1909,13 @@ CASES = [
                     'EGIBBS': {'values': '-76.405457', 'units': 'Hartree'},
                     'ENTROPY': {'values': '0.02144605', 'units': 'Hartree'},
                     'THERMOTEMP': {'values': '298.150', 'units': 'Kelvin'},
+                    # "Temperature 298.150 Kelvin.  Pressure 1.00000 Atm."
+                    'THERMOPRES': {'values': '1.00000', 'units': 'atm'},
                 }),
         },
         silent_ok={
             'ESOLVCDS': 'gas-phase job: no SMD term printed',
+            'SOLVMODEL': 'gas-phase job: no PCM block printed',
         },
     ),
     dict(
@@ -1919,14 +1925,19 @@ CASES = [
         # SMD(water) Opt Freq: S(total) = 45.157 cal/mol-K
         parse_args=('.', 'GeoVib', 'SCF', 'RHF', '0'),
         expect={
-            'EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP': dict(
+            'EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES': dict(
                 blocks=1, keys={
                     'EZEROPT': {'values': '0.020987', 'units': 'Hartree'},
                     'ETHERM': {'values': '-76.398294', 'units': 'Hartree'},
                     'ENTHALPY': {'values': '-76.397350', 'units': 'Hartree'},
                     'EGIBBS': {'values': '-76.418806', 'units': 'Hartree'},
                     'ENTROPY': {'values': '0.02145555', 'units': 'Hartree'},
+                    'THERMOPRES': {'values': '1.00000', 'units': 'atm'},
                 }),
+            # "Model : PCM." with "Atomic radii : SMD-Coulomb." and
+            # "Solvent : Water, Eps=  78.355300".
+            'SOLVMODEL': dict(keys={
+                'SOLVMODEL': {'values': 'SMD, Water', 'units': 'NA'}}),
             # "SMD-CDS (non-electrostatic) energy (kcal/mol) = 1.43"
             # on the final geometry's SCF, 1.43 / 627.5094740631.
             'ESOLVCDS': dict(keys={
@@ -1958,6 +1969,14 @@ CASES = [
                                             'units': 'Hartree'}}),
             'ESOLVCDS': dict(keys={'ESOLVCDS': {
                 'values': '0.00230618459683', 'units': 'Hartree'}}),
+            # "Temperature ... 298.15 K", "Pressure ... 1.00 atm".
+            'THERMOTEMP][THERMOPRES': dict(keys={
+                'THERMOTEMP': {'values': '298.15', 'units': 'Kelvin'},
+                'THERMOPRES': {'values': '1.00', 'units': 'atm'}}),
+            # "Epsilon function type ... CPCM" is overruled by the SMD
+            # descriptors; "Solvent: ... WATER".
+            'SOLVMODEL': dict(keys={
+                'SOLVMODEL': {'values': 'SMD, Water', 'units': 'NA'}}),
         },
     ),
 
@@ -2036,7 +2055,10 @@ MOFILE_CASES = [
         script='nwchem.thermo',
         fixture='nwchem/h2o_cosmo.nwout',
         parse_args=('.', 'Energy', 'DFT', 'B3LYP', '0'),
-        expect={'ESOLV': {'values': '-0.0118040211', 'units': 'Hartree'}},
+        # "dielectric constant -eps- = 78.40"; NWChem names no solvent
+        # ("solvname_long: unknown"), so the dielectric is the label.
+        expect={'ESOLV': {'values': '-0.0118040211', 'units': 'Hartree'},
+                'SOLVMODEL': {'values': 'COSMO, ε = 78.4', 'units': 'NA'}},
         expect_no_keys={'EGIBBS', 'ENTHALPY'},
     ),
 ]

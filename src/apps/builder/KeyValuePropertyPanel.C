@@ -11,6 +11,7 @@
 #include "util/PreferenceLabels.H"
 
 #include "tdat/TProperty.H"
+#include "tdat/PropString.H"
 
 #include "dsm/IPropCalculation.H"
 #include "dsm/PropFactory.H"
@@ -99,7 +100,7 @@ void KeyValuePropertyPanel::refresh()
 
   struct Row { string key, value, units, group; size_t order; };
   vector<Row> rows;
-  string thermoTemp;
+  string thermoTemp, thermoPres, solvModel;
   bool grouped = false;
   set<string> names = getPropertyNames();
   set<string>::iterator nameIt;
@@ -107,6 +108,11 @@ void KeyValuePropertyPanel::refresh()
     TProperty *tprop = getCalculation()->getProperty(*nameIt);
     const Property_Ref *propRef = PropFactory::getPropRef(*nameIt);
     if (!tprop) continue;
+    if (*nameIt == "SOLVMODEL") {
+      // A string: shown in the Solvation heading, not as a row.
+      if (PropString *ps = dynamic_cast<PropString*>(tprop)) solvModel = ps->value();
+      continue;
+    }
     string units = tprop->units()=="NA"? "": tprop->units();
     wxString valueStr = wxString::Format(PrefLabels::PRECISEDOUBLEFORMAT,
                                          tprop->scalarize());
@@ -114,6 +120,11 @@ void KeyValuePropertyPanel::refresh()
       // Shown in the Thermochemistry heading, not as a row.
       thermoTemp = string(wxString::Format("%g", tprop->scalarize()).c_str()) + " " +
                    (units == "Kelvin" ? string("K") : units);
+      continue;
+    }
+    if (*nameIt == "THERMOPRES") {
+      thermoPres = string(wxString::Format("%g", tprop->scalarize()).c_str()) + " " +
+                   (units.empty() ? string("atm") : units);
       continue;
     }
     Row row;
@@ -156,8 +167,13 @@ void KeyValuePropertyPanel::refresh()
     if (grouped) {
       folded = isFolded(name);
       string title = name.empty() ? "Other" : name;
-      if (name == "Thermochemistry" && !thermoTemp.empty())
-        title += " (" + thermoTemp + ")";
+      if (name == "Thermochemistry" && (!thermoTemp.empty() || !thermoPres.empty())) {
+        string conds = thermoTemp;
+        if (!thermoPres.empty()) conds += (conds.empty() ? "" : ", ") + thermoPres;
+        title += " (" + conds + ")";
+      }
+      if (name == "Solvation" && !solvModel.empty())
+        title += " (" + solvModel + ")";
       string text = (folded ? "\xE2\x96\xB8 " : "\xE2\x96\xBE ") + title;
       if (folded) text += " (" + std::to_string(members.size()) + ")";
       ewxStaticText *head = new ewxStaticText(this, wxID_ANY,

@@ -87,7 +87,7 @@ args:    '.' 'Vibration' 'SCF' 'RHF' '0'
       rowlabels: 1-A1 2-A1 3-B2
       values: A1 A1 B2
 
-[EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP]  Script=gaussian-16.thermo  Freq=last  Skip=-  Lines=-
+[EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES]  Script=gaussian-16.thermo  Freq=last  Skip=-  Lines=-
   Begin= Thermochemistry
   End=Cartesian Forces
   begins=1 delivered=1 buffered_away=0
@@ -116,6 +116,10 @@ args:    '.' 'Vibration' 'SCF' 'RHF' '0'
       size: 1
       values: 298.150
       units: Kelvin
+    key: THERMOPRES
+      size: 1
+      values: 1.00000
+      units: atm
 
 [DIPOLE2]  Script=gaussian-16.dipole  Freq=last  Skip=1  Lines=1
   Begin=Dipole moment \(field\-independent basis\, Debye\)\:

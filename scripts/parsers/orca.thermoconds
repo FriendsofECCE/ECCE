@@ -1,0 +1,26 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# ORCA's THERMOCHEMISTRY block opens with the conditions, stored as
+# THERMOTEMP (K) and THERMOPRES (atm) for the Energies panel heading:
+#   Temperature         ...   298.15 K
+#   Pressure            ...     1.00 atm
+#
+################################################################################
+
+$| = 1;
+
+my ($temp, $pres);
+while (<STDIN>) {
+  if (/^Temperature\s+\.\.\.\s+(\d+\.\d+)\s+K/) { $temp = $1; }
+  elsif (/^Pressure\s+\.\.\.\s+(\d+\.\d+)\s+atm/) { $pres = $1; }
+}
+
+sub emit {
+  my ($key, $value, $units) = @_;
+  print "key: $key\nsize:\n1\nvalues:\n$value\nunits:\n$units\nEND\n";
+}
+&emit("THERMOTEMP", $temp, "Kelvin") if (defined($temp));
+&emit("THERMOPRES", $pres, "atm") if (defined($pres));
+exit(0);

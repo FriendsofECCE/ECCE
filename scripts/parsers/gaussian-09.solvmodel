@@ -1,0 +1,33 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Names the solvation model and solvent from Gaussian's PCM block, stored as
+# SOLVMODEL for the Energies panel heading, e.g. "SMD, Water":
+#   Model                : PCM.
+#   Atomic radii         : SMD-Coulomb.
+#   Solvent              : Water, Eps=  78.355300 Eps(inf)=   1.777849
+# SMD is told by its radii set (the model line says PCM).  A solvent given
+# only by its dielectric prints as "Other", so the dielectric is used then.
+# Same script for Gaussian 09 and 16.
+#
+################################################################################
+
+$| = 1;
+
+my ($model, $radii, $solvent, $eps);
+while (<STDIN>) {
+  if (/^\s*Model\s*:\s*(\S+?)\.?\s*$/) { $model = $1; }
+  elsif (/^\s*Atomic radii\s*:\s*(\S+?)\.?\s*$/) { $radii = $1; }
+  elsif (/^\s*Solvent\s*:\s*([^,]+?)\s*,\s*Eps=\s*(\d+\.\d+)/) { $solvent = $1; $eps = $2; }
+}
+exit(0) if (!defined($model));
+$model = "SMD" if (defined($radii) && $radii =~ /^SMD/);
+my $text = $model;
+if (defined($solvent) && lc($solvent) ne "other") {
+  $text .= ", $solvent";
+} elsif (defined($eps)) {
+  $text .= sprintf(", \xCE\xB5 = %.1f", $eps);
+}
+print "key: SOLVMODEL\nsize:\n1\nvalues:\n$text\nunits:\nNA\nEND\n";
+exit(0);

@@ -359,7 +359,7 @@ args:    '.' 'Vibration' 'DFT' 'B3LYP' '0'
       values: 56.53615267 7.61103307 32.24629709
       units: KM/Mole
 
-[EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP]  Script=gaussian-16.thermo  Freq=last  Skip=-  Lines=-
+[EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES]  Script=gaussian-16.thermo  Freq=last  Skip=-  Lines=-
   Begin= Thermochemistry
   End=Cartesian Forces
   begins=2 delivered=1 buffered_away=1
@@ -388,6 +388,10 @@ args:    '.' 'Vibration' 'DFT' 'B3LYP' '0'
       size: 1
       values: 298.150
       units: Kelvin
+    key: THERMOPRES
+      size: 1
+      values: 1.00000
+      units: atm
 
 [DIPOLE2]  Script=gaussian-16.dipole  Freq=last  Skip=1  Lines=1
   Begin=Dipole moment \(field\-independent basis\, Debye\)\:

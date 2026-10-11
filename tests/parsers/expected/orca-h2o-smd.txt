@@ -386,6 +386,28 @@ args:    '.' 'GeoVib' 'SCF' 'RHF' '0'
       values: -76.32967989
       units: Hartree
 
+[THERMOTEMP][THERMOPRES]  Script=orca.thermoconds  Freq=last  Skip=0  Lines=2
+  Begin=^Temperature\s+\.\.\.
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=3449 fed=2 rc=0 first-fed='Temperature         ...   298.15 K'
+    key: THERMOTEMP
+      size: 1
+      values: 298.15
+      units: Kelvin
+    key: THERMOPRES
+      size: 1
+      values: 1.00
+      units: atm
+
+[SOLVMODEL]  Script=orca.solvmodel  Freq=last  Skip=0  Lines=16
+  Begin=CPCM SOLVATION MODEL
+  begins=5 delivered=1 buffered_away=4
+  block 1: begin-line=2884 fed=16 rc=0 first-fed='CPCM SOLVATION MODEL'
+    key: SOLVMODEL
+      size: 1
+      values: SMD, Water
+      units: NA
+
 [ESOLVCDS]  Script=orca.solv  Freq=last  Skip=0  Lines=1
   Begin=SMD CDS \(Gcds\)
   begins=5 delivered=1 buffered_away=4

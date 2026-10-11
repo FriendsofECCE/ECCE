@@ -4,15 +4,18 @@ binaries.
 
     tests/apps/energies_groups_test.py [--build build-cmake] [--png DIR] [--baseline]
 
-Two calculations: calc-water-freq-g16 (Gaussian-16 opt+freq of water, the
-scalars of tests/parsers/fixtures/gaussian-16/h2o_optfreq.log) and the
-ECCE-QM water GeoVib (tests/ecceqm/fixtures/h2o-geovib).  For each the
+Three calculations: calc-water-freq-g16 (Gaussian-16 opt+freq of water, the
+scalars of tests/parsers/fixtures/gaussian-16/h2o_optfreq.log),
+calc-water-smd-g16 (the same with SMD(water): hand-assembled from
+h2o_smd.log, with the pressure and the solvation model) and the ECCE-QM
+water GeoVib (tests/ecceqm/fixtures/h2o-geovib).  For each the
 Builder opens the Energies panel and reports its rows through the script
 commands "rows" and "fold" (no synthetic input):
 
   * headings in the agreed order, empty groups absent;
   * Components starts folded with its row count, the other groups open;
-  * Thermochemistry carries the temperature, which is not a row of its own;
+  * Thermochemistry carries the temperature and the pressure, which are not
+    rows of their own, and Solvation the model and solvent;
   * "Entropy Term (T·S)", and Total Energy first in Total;
   * the fold state is remembered: folded, opened, and again after a restart.
 
@@ -36,6 +39,7 @@ from harness import say  # noqa: E402
 
 check = bo.check
 CASES = (("calc-water-freq-g16", os.path.join(HERE, "fixtures")),
+         ("calc-water-smd-g16", os.path.join(HERE, "fixtures")),
          ("h2o-geovib", os.path.join(REPO, "tests", "ecceqm", "fixtures")))
 
 
@@ -159,9 +163,14 @@ def main():
                   "Total Energy is the first row")
             thermo = [h for h in heads if "Thermochemistry" in h]
             check(len(thermo) == 1, "one Thermochemistry heading")
-            if "freq" in name:
-                check(thermo and "(298.15 K)" in thermo[0],
-                      "the temperature is in the heading: %s" % thermo)
+            conditions = {"calc-water-freq-g16": "(298.15 K)",
+                          "calc-water-smd-g16": "(298.15 K, 1 atm)",
+                          "h2o-geovib": "(298.15 K, 1 atm)"}[name]
+            check(thermo and conditions in thermo[0],
+                  "the conditions are in the heading, %s: %s" % (conditions, thermo))
+            check(not any("Thermochemistry Pressure" in r or "Solvation Model" in r
+                          for r in first),
+                  "the pressure and the solvent model are not rows")
             check(not any("Thermochemistry Temperature" in r for r in first),
                   "the temperature is not a row")
             check(any(r.startswith("R Entropy Term (T·S)") for r in first),
@@ -173,8 +182,15 @@ def main():
                   "groups in the agreed order: %s" % names)
             check(all(g in names for g in ("Total", "Components", "Thermochemistry")),
                   "the groups this calculation has are present")
-            check("Solvation" not in names and "Derived" not in names,
-                  "empty groups are not shown")
+            solv = [h for h in heads if "Solvation" in h]
+            if "smd" in name:
+                check(solv and solv[0].endswith("Solvation (SMD, Water)"),
+                      "the solvation model and solvent are in the heading: %s" % solv)
+                check(any(r.startswith("R SMD Cavity-Dispersion") for r in first),
+                      "the CDS term is a row")
+            else:
+                check("Solvation" not in names, "empty groups are not shown")
+            check("Derived" not in names, "empty groups are not shown")
             check(any(r.startswith("R Nuclear Repulsion") for r in opened),
                   "opening Components shows its rows")
             check(any(h.startswith("▸ Total") for h in headings(total_folded)),

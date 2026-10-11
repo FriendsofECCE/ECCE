@@ -84,6 +84,10 @@ if ($first =~ /^(energy_\w+)\s+(\S+)/ && exists($energyKey{$1})) {
   my %k = (zero_point_energy => 'EZEROPT', thermal_energy => 'ETHERM', enthalpy => 'ENTHALPY',
            entropy_ts => 'ENTROPY', gibbs_energy => 'EGIBBS');
   &scalarProp($k{$1}, $2, "Hartree");
+} elsif ($first =~ /^thermo_temperature\s+(\S+)/) {
+  &scalarProp('THERMOTEMP', sprintf("%.2f", $1), "Kelvin");
+} elsif ($first =~ /^thermo_pressure_atm\s+(\S+)/) {
+  &scalarProp('THERMOPRES', sprintf("%.5g", $1), "atm");
 } elsif ($first =~ /^begin vibrations\b/) {
   # index frequency(cm-1) ir(km/mol), every mode of the 3N, translations and
   # rotations first with 0 (the rows of VIBFREQ, VIBIR and VIB line up)

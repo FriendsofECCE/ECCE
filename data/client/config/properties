@@ -164,6 +164,7 @@ Energy		Gibbs Free Energy			EGIBBS		Energy		PropValue	Thermochemistry
 # scale a quantity that is not an energy.
 Energy		Heat Capacity (Cp)			HEATCAP		NA		PropValue	Thermochemistry
 Energy		Thermochemistry Temperature		THERMOTEMP	Temperature	PropValue	Thermochemistry
+Energy		Thermochemistry Pressure		THERMOPRES	NA		PropValue	Thermochemistry
 #
 # Solvation.  ESOLV is E(solution) - E(gas), stored only where the code
 # prints both totals (NWChem COSMO).  Gaussian and ORCA SMD print just the
@@ -171,6 +172,7 @@ Energy		Thermochemistry Temperature		THERMOTEMP	Temperature	PropValue	Thermochem
 # solvation free energy.
 Energy		Solvation Energy (E_sol - E_gas)	ESOLV		Energy		PropValue	Solvation
 Energy		SMD Cavity-Dispersion Term (CDS)	ESOLVCDS	Energy		PropValue	Solvation
+Energy		Solvation Model and Solvent		SOLVMODEL	NA		PropString	Solvation
 #
 #
 Energy		Total Energy Vector			TEVEC		Energy		PropTSVector<Geometry Step>

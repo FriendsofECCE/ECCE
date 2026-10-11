@@ -201,6 +201,19 @@ args:    '.' 'Vibration' 'SCF' 'RHF' '0'
       values: -40.13941034
       units: Hartree
 
+[THERMOTEMP][THERMOPRES]  Script=orca.thermoconds  Freq=last  Skip=0  Lines=2
+  Begin=^Temperature\s+\.\.\.
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=1101 fed=2 rc=0 first-fed='Temperature         ...   298.15 K'
+    key: THERMOTEMP
+      size: 1
+      values: 298.15
+      units: Kelvin
+    key: THERMOPRES
+      size: 1
+      values: 1.00
+      units: atm
+
 [DELTAE]  Script=orca.deltae  Freq=all  Skip=0  Lines=1
   Begin=^\s*\d+\s+-?\d+\.\d+\s+-?\d+\.\d+[eE][+-]\d+
   begins=8 delivered=8 buffered_away=0

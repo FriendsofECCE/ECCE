@@ -138,11 +138,19 @@ End=Harmonic frequencies
 # The block also swallows the rest of the output up to the next
 # "Cartesian Forces" line, as the NULL2 entry it replaces did, so the
 # entries below cannot match inside it.
-[EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP]
+[EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES]
 Script=gaussian-16.thermo
 Begin= Thermochemistry
 Frequency=last
 End=Cartesian Forces
+[END]
+
+# Model and solvent from the last PCM block (the final geometry).
+[SOLVMODEL]
+Script=gaussian-16.solvmodel
+Begin=Polarizable Continuum Model \(PCM\)
+Frequency=last
+End=Spheres list
 [END]
 
 # SMD only; PCM prints no solvation term of its own.

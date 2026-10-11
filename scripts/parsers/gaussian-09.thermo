@@ -21,7 +21,7 @@
 #                       E (Thermal)             CV                S
 #    Total                   17.080              5.968             46.658
 #
-# The pressure has no property key, so it is not stored.
+# The pressure is stored as THERMOPRES (atm), for the panel heading.
 #
 ################################################################################
 
@@ -29,10 +29,11 @@ $| = 1;
 
 use constant KCAL_PER_HARTREE => 627.5094740631;
 
-my ($temp, $zpe, $etherm, $enth, $gibbs, $S);
+my ($temp, $pres, $zpe, $etherm, $enth, $gibbs, $S);
 my $inTable = 0;
 while (<STDIN>) {
-  if (/^\s*Temperature\s+(\d+\.\d+)\s+Kelvin/) { $temp = $1; }
+  if (/^\s*Temperature\s+(\d+\.\d+)\s+Kelvin\.\s+Pressure\s+(\d+\.\d+)\s+Atm/) { $temp = $1; $pres = $2; }
+  elsif (/^\s*Temperature\s+(\d+\.\d+)\s+Kelvin/) { $temp = $1; }
   elsif (/Zero-point correction=\s+(-?\d+\.\d+)/) { $zpe = $1; }
   elsif (/Sum of electronic and thermal Energies=\s+(-?\d+\.\d+)/) { $etherm = $1; }
   elsif (/Sum of electronic and thermal Enthalpies=\s+(-?\d+\.\d+)/) { $enth = $1; }
@@ -58,4 +59,5 @@ if (defined($S) && defined($temp)) {
 }
 &emit("EGIBBS", $gibbs, "Hartree") if (defined($gibbs));
 &emit("THERMOTEMP", $temp, "Kelvin") if (defined($temp));
+&emit("THERMOPRES", $pres, "atm") if (defined($pres));
 exit(0);

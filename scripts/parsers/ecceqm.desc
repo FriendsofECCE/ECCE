@@ -172,6 +172,22 @@ Skip=0
 Lines=1
 [END]
 
+[THERMOTEMP]
+Script=ecceqm.parse
+Begin=^thermo_temperature\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[THERMOPRES]
+Script=ecceqm.parse
+Begin=^thermo_pressure_atm\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
 [ETHERM]
 Script=ecceqm.parse
 Begin=^thermal_energy\s
