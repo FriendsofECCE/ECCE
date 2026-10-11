@@ -8,11 +8,13 @@ param([string]$Tree, [string]$Version, [string]$Out)
 $ErrorActionPreference = "Stop"
 $Tree = (Resolve-Path $Tree).Path
 
-# MSI wants a.b.c.d numbers.  alpha.N -> a.b.c.N, a release -> a.b.c.1000, so
-# a release sorts above its alphas.  Windows Installer ignores the 4th field
-# when comparing, hence AllowSameVersionUpgrades below.
-if ($Version -notmatch '^(\d+)\.(\d+)\.(\d+)(?:-[A-Za-z]+\.?(\d+))?') { throw "version $Version" }
-$n = if ($Matches[4]) { $Matches[4] } else { "1000" }
+# MSI wants a.b.c.d numbers.  alpha.N -> a.b.c.N, beta.N -> a.b.c.(100+N),
+# rc.N -> a.b.c.(200+N), a release -> a.b.c.1000, so Apps & Features shows
+# them in release order.  Windows Installer ignores the 4th field when
+# comparing, hence AllowSameVersionUpgrades below.
+if ($Version -notmatch '^(\d+)\.(\d+)\.(\d+)(?:-([A-Za-z]+)\.?(\d+))?') { throw "version $Version" }
+$n = if (-not $Matches[5]) { 1000 }
+     else { @{ alpha = 0; beta = 100; rc = 200 }[$Matches[4].ToLower()] + [int]$Matches[5] }
 $msiVer = "$($Matches[1]).$($Matches[2]).$($Matches[3]).$n"
 
 $ids = @{}; $nid = 0

@@ -5924,12 +5924,20 @@ static void enableTopMenu(wxMenuBar *bar, const wxString& title, bool enable)
 
 void CalcMgr::onSelectionChange(bool selectInTree)
 {
-  //  The summary pane is replaced and the tree and toolbar change in one
-  //  go; on MSW each step was painted (an empty pane, then half of it).
-  wxWindowUpdateLocker hold(this);
   //  The menu bar is not one of the frame's children; wxMSW redraws it for
   //  every item added or removed (half a menu bar on screen) unless frozen.
-  wxWindowUpdateLocker holdMenus(GetMenuBar());
+  //  Thawing does not repaint it on MSW (it has no window of its own), so
+  //  without the Refresh the menus kept the look of the old selection: Run
+  //  Mgmt drawn disabled for a completed calculation.
+  struct MenuBarHold {
+    wxMenuBar *bar;
+    explicit MenuBarHold(wxMenuBar *b) : bar(b) { if (bar) bar->Freeze(); }
+    ~MenuBarHold() { if (bar) { bar->Thaw(); bar->Refresh(); } }
+  } holdMenus(GetMenuBar());
+  //  The summary pane is replaced and the tree and toolbar change in one
+  //  go; on MSW each step was painted (an empty pane, then half of it).
+  //  Released before the menu bar, so its repaint is not swallowed.
+  wxWindowUpdateLocker hold(this);
   wxMenuBar * menuBar = GetMenuBar();
   WxResourceTreeItemData *itemData = 0;
 

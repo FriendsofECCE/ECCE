@@ -1815,7 +1815,13 @@ void WxLauncher::refreshCalcDirectory()
         STLUtil::trim((string)p_calcDrctyTextCtrl->GetValue()).empty() &&
         !RCommand::isRemote(machRgstn->fullname(),
                             (string)p_remShellChoice->GetStringSelection(), ""))
-        p_calcDrctyTextCtrl->SetValue(string(Ecce::realUserHome()) + "/ecce-runs");
+    {
+        string dflt = string(Ecce::realUserHome()) + "/ecce-runs";
+        p_calcDrctyTextCtrl->SetValue(dflt);
+        // Launch reads the preferences, not the box: without this the job
+        // got an empty run directory ("Unable to 'cd' to run directory").
+        p_slctPrefs->setRemoteDirectory(dflt);
+    }
 #endif
 
     p_calcDrctyPanel->Show(supported);
