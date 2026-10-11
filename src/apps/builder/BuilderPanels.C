@@ -640,6 +640,18 @@ void Builder::setDetail(wxWindow *win)
     unfocusPanel(p_detail);
   }
   p_detail = win;
+  syncIndexSelection(win);
+}
+
+
+//  The Properties list highlights the panel that is shown.  Quiet: the
+//  list's own selection event would open the panel a second time.
+void Builder::syncIndexSelection(wxWindow *win)
+{
+  if (!p_index || !win) return;
+  wxAuiPaneInfo &pane = p_mgr.GetPane(win);
+  if (pane.IsOk() && dynamic_cast<PropertyPanel*>(win))
+    p_index->setSelected(pane.name.ToStdString());
 }
 
 

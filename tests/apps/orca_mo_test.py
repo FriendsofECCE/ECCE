@@ -19,6 +19,10 @@ Two calculations, both water with cc-pVDZ as ECCE holds it (24 functions):
 
 And, in every panel layout, the MOs pane no narrower than its own rows.
 
+The Properties list highlights the panel that is shown (opened from
+ECCE_OPEN_PANEL, the Properties menu or a click on the list), in the list +
+detail and the classic layout.
+
 Same installed tree and isolation as run_tests.py (ECCE_TEST_HOME,
 ECCE_TEST_WRAPPERS).  Exit 77 (skip) without an install or Xvfb.
 """
@@ -191,6 +195,49 @@ def checkWidth(display, data, work, mode):
                                                     m.group(1)))
 
 
+def readState(out, name):
+    path = os.path.join(out, name + ".txt")
+    if not os.path.exists(path):
+        return None
+    return dict(l.split(" ", 1) for l in open(path).read().splitlines()
+                if " " in l)
+
+
+def checkTree(display, data, work, mode):
+    """The Properties list highlights the panel that is shown: the one
+    ECCE_OPEN_PANEL opened, then the one a Properties menu choice opened, then
+    the one a click on the list opened."""
+    url = makeCalc(data, "tree-" + mode)
+    out = os.path.join(work, "tree-" + mode)
+    scene = ("hold 3\nptree opened\n"
+             "property Mulliken Charges\nhold 3\nptree menu\n")
+    if mode == "detail":      # the list is empty in the other layouts
+        scene += "list MOs\nhold 3\nptree list\n"
+    result = runBuilder(display, url, out, scene, mode=mode)
+    what = "Properties list follows the shown panel, %s layout" % mode
+    steps = [("opened", "MOs"), ("menu", "Mulliken Charges")]
+    if mode == "detail":
+        steps.append(("list", "MOs"))
+    for name, want in steps:
+        st = readState(out, name)
+        if st is None:
+            fail(what, "no state after the %s step" % name, result.log)
+            return
+        shown = [s for s in st.get("shown", "").split(",") if s]
+        #  The list is only filled in the list + detail layout; elsewhere
+        #  it must not keep a highlight of its own.
+        wantTree = want if mode == "detail" else ""
+        if st.get("tree", "") != wantTree:
+            fail(what, "after %s the list highlights '%s', want '%s' "
+                 "(shown: %s)" % (name, st.get("tree"), wantTree, shown))
+            return
+        if want not in shown or (mode == "detail" and shown != [want]):
+            fail(what, "after %s the shown panels are %s, want %s"
+                 % (name, shown, want))
+            return
+    print("ok    %s" % what)
+
+
 def checkMismatch(display, data, work):
     url = makeCalc(data, "water-23", BAD_PROPS)
     out = os.path.join(work, "bad")
@@ -241,6 +288,10 @@ def shots(display, data, work, dest):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--shots", help="save the Builder window here")
+    parser.add_argument("--only", choices=("tree",),
+                        help="run just the tree checks")
+    parser.add_argument("--keep", action="store_true",
+                        help="keep the scratch directory for inspection")
     options = parser.parse_args()
     if not os.path.exists(os.path.join(apps.WRAPPERS, "ecce-builder")):
         print("SKIP: no ecce-builder under %s" % apps.WRAPPERS)
@@ -269,15 +320,23 @@ def main():
         try:
             if options.shots:
                 shots(display, data, work, options.shots)
+            elif options.only == "tree":
+                for mode in ("detail", "classic"):
+                    checkTree(display, data, work, mode)
             else:
                 checkGood(display, data, work)
                 checkMismatch(display, data, work)
+                for mode in ("detail", "classic"):
+                    checkTree(display, data, work, mode)
                 for mode in ("classic", "stacked", "accordion", "detail"):
                     checkWidth(display, data, work, mode)
         finally:
             stop = os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")
             subprocess.run([stop], env=display.env(), timeout=120)
-    shutil.rmtree(work, ignore_errors=True)
+    if options.keep:
+        print("kept %s" % work)
+    else:
+        shutil.rmtree(work, ignore_errors=True)
     print("FAILED: " + ", ".join(failures) if failures else "PASSED")
     return 1 if failures else 0
 

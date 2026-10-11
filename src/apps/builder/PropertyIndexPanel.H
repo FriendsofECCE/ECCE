@@ -29,6 +29,9 @@ class PropertyIndexPanel : public wxPanel
                    const wxString& energy);
     void setEntries(const std::vector<Entry>& entries);
     void setSelected(const std::string& name);
+
+    // The entry the list highlights, "" when none (test hook and guard).
+    std::string selected() const;
     void setSelectHandler(std::function<void(const std::string&)> f)
     { p_onSelect = f; }
 

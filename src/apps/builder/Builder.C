@@ -3363,6 +3363,8 @@ void Builder::OnPropertyMenuClick( wxCommandEvent& event )
     }
     pane.Show(false);
     unfocusPanel(win);
+    if (p_index && p_index->selected() == pane.name.ToStdString())
+      p_index->setSelected("");
   } else {
     pane.Show(true);
     if (docked && p_panelMode == PANELS_ACCORDION) {
@@ -3388,6 +3390,7 @@ void Builder::focusShownPanel(wxWindow *win)
   VizPropertyPanel *panel = dynamic_cast<VizPropertyPanel*>(win);
   if (panel && panel->drawsInViewer() && !panel->hasFocus())
     panel->setFocus(true);
+  syncIndexSelection(win);
 }
 
 
@@ -3706,6 +3709,10 @@ void Builder::OnChildFocus(wxChildFocusEvent& event)
     if (pinfo.IsOk() && pinfo.IsShown()) {
       panel->setFocus(true);
     }
+  }
+  if (panel) {
+    wxAuiPaneInfo &shown = p_mgr.GetPane(panel);
+    if (shown.IsOk() && shown.IsShown()) syncIndexSelection(panel);
   }
   event.Skip();
 }
@@ -5360,6 +5367,44 @@ void Builder::updatePropertyMenus()
             w[0] == "panestate" || w[0] == "xshot" ||
             w[0] == "setcontext" || w[0] == "columntab")
           return pbcTestCommand(s, w, outdir);
+        //  "ptree <name>": the Properties list's highlighted entry beside
+        //  the property panes that are shown, -> <name>.txt.
+        if (w[0] == "ptree" && w.size() == 2) {
+          std::ofstream out(outdir + "/" + w[1] + ".txt");
+          out << "mode " << p_panelMode << "\n"
+              << "tree " << (p_index ? p_index->selected() : string("-"))
+              << "\n";
+          wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
+          string shown;
+          for (size_t k = 0; k < all.GetCount(); k++) {
+            wxAuiPaneInfo &pi = all.Item(k);
+            if (dynamic_cast<PropertyPanel*>(pi.window) && pi.IsShown())
+              shown += (shown.empty() ? "" : ",") + pi.name.ToStdString();
+          }
+          out << "shown " << shown << "\n";
+          return true;
+        }
+        //  "property <menu item>" / "list <entry>": a Properties menu choice
+        //  (as GTK delivers a click on a check item) and a click on the
+        //  Properties list, as in the Builder script.
+        if ((w[0] == "property" || w[0] == "list") && w.size() >= 2) {
+          string name = w[1];
+          for (size_t k = 2; k < w.size(); k++) name += " " + w[k];
+          if (w[0] == "list") {
+            if (!p_index || !p_index->click(name))
+              return s.fail("list: not in the Properties list: " + name);
+            return true;
+          }
+          int id = p_propertyMenu->FindItem(name);
+          if (id == wxNOT_FOUND)
+            return s.fail("property: no Properties menu item " + name);
+          bool on = !p_propertyMenu->IsChecked(id);
+          p_propertyMenu->Check(id, on);
+          wxCommandEvent ev(wxEVT_MENU, id);
+          ev.SetInt(on ? 1 : 0);
+          GetEventHandler()->ProcessEvent(ev);
+          return true;
+        }
         if ((w[0] != "mopanel" && w[0] != "motable") || w.size() != 2)
           return s.fail("unknown command: " + w[0]);
         MoPanel *mo = 0;

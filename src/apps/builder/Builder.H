@@ -347,6 +347,7 @@ class Builder: public BuilderGUI,
       // Property menu events
       void focusShownPanel(wxWindow *win);
       void unfocusPanel(wxWindow *win);
+      void syncIndexSelection(wxWindow *win);
               void OnPropertyMenuClick( wxCommandEvent& event );
 
       // Help menu events
