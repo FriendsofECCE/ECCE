@@ -533,6 +533,9 @@ protected:
   //  Set by the "new" test command: createResource reports its error
   //  here instead of in a modal dialog.
   string *p_testCreateError = 0;
+  //  Set by the "duplicate" test command: the tree's selection and
+  //  collapse events, in order.
+  std::vector<string> *p_testTreeEvents = 0;
 
   void applyQueuedUpdates();
   std::vector<std::pair<UpdateKind, string> > p_queuedUpdates;

@@ -451,6 +451,10 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * progress <url> <file>
  *                 hand the snapshot in <file> to the Organizer as an
  *                 ecce_url_progress message does (empty file: forget it)
+ * duplicate <url> [last]
+ *                 right-click <url> > Duplicate for Rerun (or Duplicate
+ *                 Setup with Last Geometry); the tree's selection and
+ *                 collapse events during it, then the tree
  * size <w> <h>   resize the Organizer window
  * firstvisible    the label of the tree's top visible row (its scroll)
  * progressbox     the shown summary's Progress box: shown or not, its
@@ -905,6 +909,39 @@ void CalcMgr::runTestCommand(const string& line)
       } else {
         p_treeCtrl->SelectItem(node->GetId());
         outcome = "ok";
+      }
+    } else if (command == "duplicate") {
+      std::istringstream args(calcName);
+      string url, how;
+      args >> url >> how;
+      WxResourceTreeItemData *node = findNode(EcceURL(url), true, true);
+      if (!node) {
+        outcome = "not in the tree";
+      } else {
+        p_treeCtrl->SelectItem(node->GetId());
+        for (int i = 0; i < 5; i++) wxYield();
+        std::vector<string> events;
+        p_testTreeEvents = &events;
+        wxCommandEvent ev;
+        if (how == "last") OnDuplicate2Click(ev);
+        else OnDuplicateClick(ev);
+        for (int i = 0; i < 5; i++) wxYield();
+        p_testTreeEvents = 0;
+        outcome = "ok";
+        for (size_t i = 0; i < events.size(); i++) outcome += " " + events[i];
+        outcome += " |";
+        std::function<void(wxTreeItemId, int)> walk =
+            [&](wxTreeItemId id, int depth) {
+          wxTreeItemIdValue cookie;
+          for (wxTreeItemId c = p_treeCtrl->GetFirstChild(id, cookie);
+               c.IsOk(); c = p_treeCtrl->GetNextChild(id, cookie)) {
+            bool sel = p_treeCtrl->GetSelection() == c;
+            outcome += string(" ") + (sel ? "[" : "") + std::to_string(depth)
+                       + ":" + string(p_treeCtrl->GetItemText(c).ToUTF8());
+            walk(c, depth + 1);
+          }
+        };
+        walk(p_treeCtrl->GetRootItem(), 0);
       }
     } else if (command == "rmtask") {
       // "rmtask URL LABEL": selects URL and runs its Run Mgmt menu item
@@ -2023,12 +2060,31 @@ void CalcMgr::OnForwardClick( wxCommandEvent& event )
 }
 
 
+//  Holds the frame's redraws until a change is complete, then paints all
+//  its children at once (the MSW thaw only invalidates).
+struct FrameHold {
+  wxWindow *win;
+  explicit FrameHold(wxWindow *w) : win(w) { win->Freeze(); }
+  ~FrameHold() {
+    win->Thaw();
+#ifdef __WXMSW__
+    ::RedrawWindow((HWND)win->GetHWND(), NULL, NULL,
+                   RDW_UPDATENOW | RDW_ALLCHILDREN);
+#endif
+  }
+};
+
+
 /*!
  * wxEVT_COMMAND_MENU_SELECTED event handler for wxID_DUPLICATE
  */
 void CalcMgr::OnDuplicateClick( wxCommandEvent& event )
 {
   startDisabler();
+
+  //  The copy is added in place and selected; on MSW every step in between
+  //  (an item added, the selection moved, the panels refilled) was painted.
+  FrameHold hold(this);
 
   // get selection
   if (getSelection()) {
@@ -2068,6 +2124,10 @@ void CalcMgr::OnDuplicateClick( wxCommandEvent& event )
 void CalcMgr::OnDuplicate2Click( wxCommandEvent& event )
 {
   startDisabler();
+
+  //  The copy is added in place and selected; on MSW every step in between
+  //  (an item added, the selection moved, the panels refilled) was painted.
+  FrameHold hold(this);
 
   // get selection
   if (getSelection()) {
@@ -2434,8 +2494,10 @@ void CalcMgr::OnExportClick( wxCommandEvent& event )
  */
 void CalcMgr::OnTreectrlSelChanged( wxTreeEvent& event )
 {
-  //  cerr << "\nEnter SelChanged event\n";
-  
+  if (p_testTreeEvents)
+    p_testTreeEvents->push_back(
+        event.GetItem() == p_treeCtrl->GetRootItem() ? "sel:root" : "sel");
+
   // If the parent of current selection is collapsed, the tree will auto select
   // root and then select the collapsed parent node. Skip the select root case.
   if (event.GetItem() == p_treeCtrl->GetRootItem()) {
@@ -2618,7 +2680,7 @@ void CalcMgr::OnTreectrlItemActivated( wxTreeEvent& event )
  */
 void CalcMgr::OnTreectrlItemCollapsed( wxTreeEvent& event )
 {
-  //  cerr << "\nEnter Collapsed event\n";
+  if (p_testTreeEvents) p_testTreeEvents->push_back("collapsed");
   //  cerr << "Leave Collapsed event\n";
   event.Skip();
 }
@@ -5527,7 +5589,10 @@ WxResourceTreeItemData* CalcMgr::duplicate(WxResourceTreeItemData* itemData,
     // copy failed for some reason, tell the user 
     setMessage(resource->messages());
   } else {
-    p_treeCtrl->refresh(p_treeCtrl->getParent(itemData));
+    //  Insert just the copy: reloading the parent collapsed every expanded
+    //  sibling and dropped the selection to the root.
+    if (!p_treeCtrl->addToTree(copyUrl))
+      p_treeCtrl->refresh(p_treeCtrl->getParent(itemData));
     ret = findNode(copyUrl, openWhenFound, false);
     notifyCreate(copyUrl.toString());
   }
@@ -5572,21 +5637,6 @@ void CalcMgr::processEditCompletion(const EditEvent& ee)
     notifyProperty(url.toString(), property, value);
   }
 }
-
-
-//  Holds the frame's redraws until a change is complete, then paints all
-//  its children at once (the MSW thaw only invalidates).
-struct FrameHold {
-  wxWindow *win;
-  explicit FrameHold(wxWindow *w) : win(w) { win->Freeze(); }
-  ~FrameHold() {
-    win->Thaw();
-#ifdef __WXMSW__
-    ::RedrawWindow((HWND)win->GetHWND(), NULL, NULL,
-                   RDW_UPDATENOW | RDW_ALLCHILDREN);
-#endif
-  }
-};
 
 
 /**
