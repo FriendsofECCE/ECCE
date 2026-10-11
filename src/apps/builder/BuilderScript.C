@@ -27,6 +27,9 @@
 //                                vertex from the start (length) and from the
 //                                axis (thickness), Angstrom; the property
 //                                vector and the longest bond for comparison
+//    ellipsoid PROP              each sphere under PROP's property switch, as
+//                                drawn: centre, and its three axes as semi-axis
+//                                length and unit direction, Angstrom
 //    quit
 //  Each command is answered on stderr: "ECCE_BUILDER_SCRIPT: <line>: ok".
 
@@ -45,6 +48,8 @@
 #include <cmath>
 
 #include "inv/actions/SoCallbackAction.H"
+#include "inv/actions/SoGetMatrixAction.H"
+#include "inv/nodes/SoSphere.H"
 #include "inv/actions/SoSearchAction.H"
 #include "inv/nodes/SoShape.H"
 #include "inv/nodes/SoSwitch.H"
@@ -296,6 +301,30 @@ void Builder::runBuilderScript(const std::string& file)
         delete bonds;
         fprintf(stderr, "BUILDER: vector %s arrows=%d longest_bond=%.4f\n",
                 w[1].c_str(), sa.getPaths().getLength(), longest);
+      } else if (w[0] == "ellipsoid" && w.size() == 2) {
+        SoSearchAction sa;
+        sa.setType(SoSphere::getClassTypeId(), FALSE);
+        sa.setInterest(SoSearchAction::ALL);
+        sa.apply(getSG()->getPropertySwitch(w[1]));
+        // Read back through the transform the renderer applies to the
+        // unit sphere: its rows are the images of the unit axes.
+        for (int k = 0; k < sa.getPaths().getLength(); k++) {
+          SoGetMatrixAction ma(SbViewportRegion(100, 100));
+          ma.apply(sa.getPaths()[k]);
+          const SbMatrix m = ma.getMatrix();
+          fprintf(stderr, "BUILDER: ellipsoid %s %d centre=%.4f,%.4f,%.4f",
+                  w[1].c_str(), k, m[3][0], m[3][1], m[3][2]);
+          for (int i = 0; i < 3; i++) {
+            SbVec3f a(m[i][0], m[i][1], m[i][2]);
+            float len = a.length();
+            if (len > 0.f) a /= len;
+            fprintf(stderr, " axis%d=%.4f,%.4f,%.4f,%.4f", i, len, a[0], a[1],
+                    a[2]);
+          }
+          fprintf(stderr, "\n");
+        }
+        fprintf(stderr, "BUILDER: ellipsoid %s count=%d\n", w[1].c_str(),
+                sa.getPaths().getLength());
       } else if (w[0] == "quit") {
         fprintf(stderr, "ECCE_BUILDER_SCRIPT: quit\n");
         Close(true);

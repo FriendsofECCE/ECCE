@@ -136,9 +136,9 @@ bool MomentsPanel::Create(IPropCalculation *calculation,
    p_grid->CreateGrid(3, 3, wxGrid::wxGridSelectRows);
    tableSizer->Add(p_grid, 1, wxGROW|wxALL, 3);
 
-   // Quadrupole, polarizability and stress panels show just the table: an
-   // arrow, its colour and its scale mean nothing there.
-   if (drawsArrow()) {
+   // Quadrupole, hyperpolarizability and stress panels show just the table:
+   // an arrow, its colour and its scale mean nothing there.
+   if (drawsOverlay()) {
       wxBoxSizer *optionsSizer = new wxBoxSizer(wxHORIZONTAL);
       panel->GetSizer()->Add(optionsSizer, 0, wxALIGN_LEFT|wxALL, 0);
 
@@ -151,13 +151,16 @@ bool MomentsPanel::Create(IPropCalculation *calculation,
 
        optionsSizer->AddSpacer(3);
        label = new ewxStaticText( panel, wxID_STATIC,
-             isDipole() ? wxString::FromUTF8("Length, \u00c5 per D:") : _("Scale:"),
+             isDipole() ? wxString::FromUTF8("Length, \u00c5 per D:") :
+             isPolarizability() ?
+                wxString::FromUTF8("Size, \u00c5 per 10 a.u.:") : _("Scale:"),
              wxDefaultPosition, wxDefaultSize, 0 );
        optionsSizer->Add(label, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
       // Initilialize button color
       ewxConfig *config = ewxConfig::getConfig(INIFILE);
-      wxString color = config->Read(getConfigKey().c_str(), "yellow");
+      wxString color = config->Read(getConfigKey().c_str(),
+            isPolarizability() ? "#56b4e9" : "yellow");
       colorbtn->SetBackgroundColour(wxColour(color));
 
       // Add the slider
@@ -168,6 +171,10 @@ bool MomentsPanel::Create(IPropCalculation *calculation,
          p_slider->SetRange(0.05, 5.0);
          p_slider->SetToolTip(wxString::FromUTF8(
                "Arrow length in \u00c5 per Debye of |\u03bc|"));
+      } else if (isPolarizability()) {
+         p_slider->SetRange(0.01, 20.0);
+         p_slider->SetToolTip(wxString::FromUTF8(
+               "Semi-axis length in \u00c5 per 10 a.u. of polarizability"));
       } else {
          p_slider->SetRange(0.1,10000.0);
          p_slider->SetToolTip("Scale");
