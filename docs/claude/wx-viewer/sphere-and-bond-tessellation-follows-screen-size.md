@@ -2,7 +2,7 @@
 type: map
 title: "Atom sphere and bond cylinder tessellation: the quality sliders are a floor, the rest follows screen size within a vertex budget (#210)"
 area: wx-viewer
-paths: [src/inv/moiv/ChemDisplaySpheres.C, src/inv/moiv/ChemDisplay.C, src/inv/wxinv/SoWxViewer.C, src/inv/moiv/ChemDisplayCylinders.C, src/inv/moiv/ChemUnitSphere.C, src/inv/moiv/ChemUnitCylinder.C, src/tdat/chemistry/DisplayDescriptor.C, src/viz/sgcommands/SGContainer.C, src/wxviz/viztools/VizStyleChooser.C]
+paths: [src/inv/moiv/ChemDisplaySpheres.C, src/inv/moiv/ChemDisplay.C, src/inv/wxinv/SoWxViewer.C, src/inv/moiv/ChemDisplayCylinders.C, src/inv/moiv/ChemUnitSphere.C, src/inv/moiv/ChemUnitCylinder.C, src/tdat/chemistry/DisplayDescriptor.C, src/viz/sgcommands/SGContainer.C, src/wxviz/viztools/VizStyleChooser.C, tests/apps/display_style_test.py]
 issues: [210, 224]
 ---
 The default Ball and Stick draws atoms as camera-facing hemispheres
@@ -32,10 +32,22 @@ no display list: `DISPLAYLIST` is never defined) and bonds as
   `lastSphereComplexity` early, so `ChemLOD::changeSphereComplexity` is never
   called for it.
 
-The Display Style dialog's sliders only change their number label; nothing
-is applied until Update (or Add). After Update the view redraws by itself
-in both builds (no rotation needed): `stylerq` + `idleframes` in a scene
-script show one idle frame identical to a forced paint.
+The Display Style dialog's sliders redraw when they are let go
+(`wxEVT_SCROLL_CHANGED`, which wxGTK sends on release, key and track click,
+not per drag tick; the number label still follows every tick through
+`wxEVT_SLIDER`). `VizStyleChooser::previewSliders` redefines the selected
+style (`SGContainer::changeStyle`) with the slider values and touches the
+display; it does not do Update's second half, `setStyle`'s
+`changeStyleAll/Selected`, so atoms keep the style they have and the
+selection is not touched. It is skipped when the dialog's display-style
+choice differs from the stored style's (those changes wait for Update).
+Update (or Add) is still what stores a new style choice or colour scheme
+and assigns it to the selection or to all atoms. After either the view
+redraws by itself in both builds (no rotation needed): `stylerq` +
+`idleframes` in a scene script show one idle frame identical to a forced
+paint. `tests/apps/display_style_test.py` lets go of the sliders through
+the Builder's `dsstyle` scene commands (the real handler) and checks the
+definition, the pictures, the selection and the atoms' styles.
 
 Specular: in the Coin build ChemDisplay's own `glMaterial` is overwritten
 by the lazy element's send of SGContainer's `p_cdMat` SoMaterial; in the

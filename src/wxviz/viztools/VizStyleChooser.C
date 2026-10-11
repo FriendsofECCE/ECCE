@@ -34,6 +34,8 @@ using std::string;
 #include "util/EventDispatcher.H"
 
 #include "viz/CSStyleCmd.H"
+#include "viz/SGContainer.H"
+#include "viz/SGFragment.H"
 
 #include "wxgui/ewxCheckBox.H"
 #include "wxgui/ewxChoice.H"
@@ -59,6 +61,7 @@ VizStyleChooser::VizStyleChooser( ) : Listener("VizStyle")
 {
    p_hasResidues = -1;
    p_hasBioRes = -1;
+   p_settingSliders = false;
    restoreSettings();
    subscribe();
 }
@@ -75,6 +78,7 @@ VizStyleChooser::VizStyleChooser( wxWindow* parent,
 {
    p_hasResidues = -1;
    p_hasBioRes = -1;
+   p_settingSliders = false;
    Create( parent, id, caption, pos, size, style );
    restoreSettings();
    subscribe();
@@ -93,6 +97,20 @@ VizStyleChooser::~VizStyleChooser()
 void VizStyleChooser::initializeGUI()
 {
    ewxChoice *choice;
+
+   //  CHANGED comes once a slider is let go (also for keys and track
+   //  clicks), not for every tick of a drag.
+   static const wxWindowID sliderIds[] = {
+      ID_SLIDER_DSPLY_LNWDTH, ID_SLIDER_DSPLY_CYLRQ, ID_SLIDER_DSPLY_CYLRAD,
+      ID_SLIDER_DSPLY_RESRAD, ID_SLIDER_DSPLY_SPHRQ, ID_SLIDER_DSPLY_SPHSCL,
+      ID_SLIDER_DSPLY_COILW, ID_SLIDER_DSPLY_HLXRAD, ID_SLIDER_DSPLY_HLXW,
+      ID_SLIDER_DSPLY_SHTW, ID_SLIDER_DSPLY_RBTHK, ID_SLIDER_DSPLY_CCYLRQ,
+      ID_SLIDER_DSPLY_CYLR, ID_SLIDER_DSPLY_TUBER };
+   for (size_t i = 0; i < sizeof(sliderIds)/sizeof(sliderIds[0]); i++) {
+      wxWindow *w = FindWindow(sliderIds[i]);
+      if (w) w->Bind(wxEVT_SCROLL_CHANGED, &VizStyleChooser::OnSliderReleased,
+                     this);
+   }
 
    choice = ((ewxChoice*)FindWindow(ID_CHOICE_DSPLY_ATOMSPHERE));
    choice->Append("ATOMSPHERE_HEMISPHERES");
@@ -254,6 +272,7 @@ void VizStyleChooser::saveSettings()
 
 void VizStyleChooser::setPanelsFromDescriptor(const DisplayDescriptor& dd)
 {
+   p_settingSliders = true;
    ewxSlider *slider;
    ewxRadioButton *radio;
    ewxCheckBox *check;
@@ -330,6 +349,7 @@ void VizStyleChooser::setPanelsFromDescriptor(const DisplayDescriptor& dd)
    ival = (int)(10.0*dd.getCartoonTubeRadius()+0.5);
    slider->SetValue(ival);
 
+   p_settingSliders = false;
 }
 
 
@@ -1060,6 +1080,79 @@ void VizStyleChooser::chooseColor()
 
 }
 
+/**
+ * A slider was let go: redefine the selected style with the slider values
+ * and redraw, as Update would, but without Update's second half, which
+ * re-assigns the style to the current selection (or to every atom).  Only
+ * the style's own definition changes, so atoms keep the style they have
+ * and the selection stays what it is.  Anything else pending in the dialog
+ * (another display style or colour scheme) waits for Update: previewing
+ * sliders of a different style on this one would be wrong.
+ */
+void VizStyleChooser::OnSliderReleased( wxScrollEvent& event )
+{
+   event.Skip();
+   if (!p_settingSliders) previewSliders();
+}
+
+void VizStyleChooser::previewSliders()
+{
+   ewxListBox *lbox = ((ewxListBox*)FindWindow(ID_LISTBOX_DSPLY_GROUPS));
+   const string name = lbox->GetStringSelection().ToStdString();
+   if (name.empty()) return;
+
+   SGContainer& sg = getFW().getSceneGraph();
+   if (!sg.styleExists(name)) return;
+   DisplayDescriptor dd = sg.getDisplayDescriptor(name);
+
+   DisplayDescriptor *gui = buildDescriptor();
+   if (gui->getStyle() == dd.getStyle()) {
+      dd.setLineWidth(gui->getLineWidth());
+      dd.setCylinderRadius(gui->getCylinderRadius());
+      dd.setResidueCylinderRadius(gui->getResidueCylinderRadius());
+      dd.setCylinderRQ(gui->getCylinderRQ());
+      dd.setSphereSize(gui->getSphereSize());
+      dd.setSphereRQ(gui->getSphereRQ());
+      dd.setCoilWidth(gui->getCoilWidth());
+      dd.setHelixWidth(gui->getHelixWidth());
+      dd.setSheetWidth(gui->getSheetWidth());
+      dd.setRibbonThickness(gui->getRibbonThickness());
+      dd.setHelixRadius(gui->getHelixRadius());
+      dd.setCartoonCylinderRadius(gui->getCartoonCylinderRadius());
+      dd.setCartoonCylinderRQ(gui->getCartoonCylinderRQ());
+      dd.setCartoonTubeRadius(gui->getCartoonTubeRadius());
+      sg.changeStyle(dd);
+      sg.getFragment()->touchNumbers();
+      sg.touchChemDisplay();
+   }
+   delete gui;
+}
+
+bool VizStyleChooser::scriptSlider(const string& name, int value)
+{
+   static const struct { const char *name; const wxWindowID *id; } ids[] = {
+      {"lnwdth", &ID_SLIDER_DSPLY_LNWDTH}, {"cylrq", &ID_SLIDER_DSPLY_CYLRQ},
+      {"cylrad", &ID_SLIDER_DSPLY_CYLRAD}, {"resrad", &ID_SLIDER_DSPLY_RESRAD},
+      {"sphrq", &ID_SLIDER_DSPLY_SPHRQ}, {"sphscl", &ID_SLIDER_DSPLY_SPHSCL},
+      {"coilw", &ID_SLIDER_DSPLY_COILW}, {"hlxrad", &ID_SLIDER_DSPLY_HLXRAD},
+      {"hlxw", &ID_SLIDER_DSPLY_HLXW}, {"shtw", &ID_SLIDER_DSPLY_SHTW},
+      {"rbthk", &ID_SLIDER_DSPLY_RBTHK}, {"ccylrq", &ID_SLIDER_DSPLY_CCYLRQ},
+      {"cylr", &ID_SLIDER_DSPLY_CYLR}, {"tuber", &ID_SLIDER_DSPLY_TUBER}};
+   for (size_t i = 0; i < sizeof(ids)/sizeof(ids[0]); i++) {
+      if (name != ids[i].name) continue;
+      ewxSlider *slider = (ewxSlider*)FindWindow(*ids[i].id);
+      p_settingSliders = true;
+      slider->SetValue(value);
+      p_settingSliders = false;
+      updateSliders();
+      wxScrollEvent ev(wxEVT_SCROLL_CHANGED, *ids[i].id, value);
+      ev.SetEventObject(slider);
+      slider->GetEventHandler()->ProcessEvent(ev);
+      return true;
+   }
+   return false;
+}
+
 void VizStyleChooser::OnSliderDsplyLnwdthUpdated( wxCommandEvent& event )
 {
   ewxSlider* slider = ((ewxSlider*)FindWindow(ID_SLIDER_DSPLY_LNWDTH));
@@ -1234,8 +1327,7 @@ void VizStyleChooser::requestStyles()
    int pos = lbox->FindString(name.c_str());
    if (pos == wxNOT_FOUND) pos = 0;
    lbox->Select(pos);
-   refreshGUI(name);
-
+   name = lbox->GetString(pos).ToStdString();
 
    bool hasResidues = sg.getFragment()->numResidues() > 0 ;
    p_hasBioRes = sg.getFragment()->hasBiologicalResidues() > 0;
@@ -1254,5 +1346,8 @@ void VizStyleChooser::requestStyles()
       p_hasResidues = 0;
    }
 
-
+   //  After the option lists: filling them resets the style choice to its
+   //  first entry, so the dialog showed Ball And Wireframe for the
+   //  Ball And Stick the first time it opened.
+   refreshGUI(name);
 }

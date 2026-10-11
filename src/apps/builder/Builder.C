@@ -164,6 +164,8 @@ using std::vector;
 #include "wxviz/GoHomeCmd.H"
 #include "wxviz/DumpSGCmd.H"
 #include "wxviz/ViewerEvtHandler.H"
+#include "wxviz/VizStyleChooser.H"
+#include "tdat/DisplayDescriptor.H"
 #include "wxviz/PovrayCmd.H"
 #include "wxviz/RenderFileCmd.H"
 #include "wxviz/SelectionPanel.H"
@@ -5352,6 +5354,34 @@ void Builder::updatePropertyMenus()
           else
             out << "none\n";
           return true;
+        }
+        //  "dsstyle open | slider <name> <value> | info <file>": the Display
+        //  Style dialog (Custom Style...), a slider let go in it, and what
+        //  the scene then holds -> <file>.txt (#210).
+        if (w[0] == "dsstyle" && w.size() >= 2) {
+          VizStyleChooser *chooser = p_viewerEvtHandler->openStyleChooser();
+          for (int i = 0; i < 20; i++) { wxTheApp->Yield(true); wxMilliSleep(10); }
+          if (w[1] == "open") return true;
+          if (w[1] == "slider" && w.size() == 4)
+            return chooser->scriptSlider(w[2], atoi(w[3].c_str())) ||
+                   s.fail("dsstyle: no slider " + w[2]);
+          if (w[1] == "info" && w.size() == 3) {
+            SGContainer *sg = getSG();
+            DisplayDescriptor dd = sg->getDisplayDescriptor("default");
+            std::ofstream out(outdir + "/" + w[2] + ".txt");
+            out << "sphrq " << dd.getSphereRQ() << "\n"
+                << "cylrq " << dd.getCylinderRQ() << "\n"
+                << "selected " << sg->getFragment()->m_atomHighLight.size()
+                << "\n";
+            map<string, int> styles;
+            for (int i = 0; i < (int)sg->getFragment()->numAtoms(); i++)
+              styles[sg->getFragment()->atomRef(i)->displayStyle().getName()]++;
+            for (map<string, int>::iterator it = styles.begin();
+                 it != styles.end(); ++it)
+              out << "atoms " << it->first << " " << it->second << "\n";
+            return true;
+          }
+          return s.fail("dsstyle: unknown form");
         }
         //  "pbc...", "cmd", "fragdump": Periodic Builder editing (#243).
         if (w[0].compare(0, 3, "pbc") == 0 || w[0] == "cmd" ||

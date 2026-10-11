@@ -353,19 +353,26 @@ void ViewerEvtHandler::styleChange(wxCommandEvent & event)
 }
 
 
+VizStyleChooser *ViewerEvtHandler::openStyleChooser()
+{
+  if (p_styleChooser == 0) {
+    p_styleChooser = new VizStyleChooser(p_parent);
+    ((WxVizTool*)p_styleChooser)->connectToolKitFW(&(getFW()));
+    p_styleChooser->initializeGUI();
+  }
+  p_styleChooser->Show();
+  p_styleChooser->Raise();
+  return p_styleChooser;
+}
+
+
 void ViewerEvtHandler::doStyleChange(const wxString& style)
 {
   WxVizToolFW& fw = getFW();
   SGContainer& sg = fw.getSceneGraph();
 
   if (p_styleNames[ID_STYLE_CUSTOM].StartsWith(style)) {
-     if (p_styleChooser == 0) {
-        p_styleChooser = new VizStyleChooser(p_parent);
-        ((WxVizTool*)p_styleChooser)->connectToolKitFW(&(fw));
-        p_styleChooser->initializeGUI();
-     }
-    p_styleChooser->Show();
-    p_styleChooser->Raise();
+    openStyleChooser();
   } else {
     p_lastStyle = style;
 
