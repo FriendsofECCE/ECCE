@@ -7,6 +7,8 @@ shows is logged by framelog.ps1 and saved as a PNG under <png dir>:
   - viewer-open/: the Viewer opened from the Organizer on an ECCE-QM water
     run, then switched by its Properties list (Builder script "list") to
     several property panels;
+  - duplicate/: right-click > Duplicate for Rerun and Duplicate Setup with
+    Last Geometry on a calculation, with another project expanded;
   - prompts: Run Mgmt > Reset to Rerun (after the viewer phase's run) and
     New Calculation with the name prompt, and whether the Organizer stays
     the foreground window.
@@ -14,7 +16,7 @@ Needs the desktop (a scheduled task with /it, see desktask.ps1).
 
     python redraw_win.py <install tree> <state dir> <png dir> [phases]
 
-phases: any of select,viewer,prompts (default all).
+phases: any of select,viewer,duplicate,prompts (default all but duplicate).
 """
 import os
 import shutil
@@ -153,6 +155,19 @@ try:
             say("select %s: %.2f s" % (url.rsplit("/", 1)[1], time.time() - t))
             time.sleep(2)
         report("organizer select", fl.result())
+
+    if "duplicate" in PHASES:
+        # A second project stays expanded: it used to collapse.
+        say("newproject q: " + ask("newproject q"))
+        say("newcalc x: " + ask("newcalc q x NWChem"))
+        ask("summary file://%s/users/local/q/x" % local)
+        ask("summary " + calcs[0])
+        time.sleep(2)
+        for cmd in ("duplicate " + calcs[0], "duplicate " + calcs[0] + " last"):
+            fl = framelog(8, "duplicate-" + str(len(cmd)), pid=org.pid)
+            time.sleep(1)
+            say("%s: %s" % (cmd.split()[0], ask(cmd)))
+            report("organizer during " + cmd, fl.result())
 
     if "viewer" in PHASES:
         say("newcalc qm: " + ask("newcalc p w ECCE-QM"))
