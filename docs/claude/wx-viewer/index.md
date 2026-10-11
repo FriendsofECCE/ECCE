@@ -68,3 +68,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [Atom/bond tessellation follows screen size, quality sliders are a floor; specular in two places; MSAA invisible to `snap` (#210)](sphere-and-bond-tessellation-follows-screen-size.md)
 - [Coin build lights atoms and bonds per pixel from the fixed-function state; small atoms keep Gouraud; `ECCE_GL_PERPIXEL=0` (#210)](chemdisplay-per-pixel-lighting.md)
 - [Vendored-Inventor build: atoms tinted green by a frozen ambient; set glColorMaterial(DIFFUSE) before enabling it (#83, #210)](vendored-atoms-green-ambient.md)
+- [Element colours: Jmol (default) or ECCE classic, Preferences > Colours; `TPerTab::setColours` is the one place](element-colour-scheme-jmol-or-classic.md)
+- [Run-state icons in image lists need real alpha, or a selected row shows a white halo](run-state-icons-need-real-alpha.md)
+- [The Hill-order formula is He2, not He.2](two-letter-formula-has-no-dot.md)
+

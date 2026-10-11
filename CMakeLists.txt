@@ -1786,6 +1786,11 @@ add_executable(releasecheck_test tests/releasecheck/releasecheck_test.C)
 target_link_libraries(releasecheck_test PRIVATE ecceutil)
 add_test(NAME releasecheck COMMAND releasecheck_test)
 
+# tests/formula -- the Hill-order formula shown in the Organizer.
+add_executable(formula_test tests/formula/formula_test.C)
+target_link_libraries(formula_test PRIVATE eccetdat ecceutil)
+add_test(NAME formula COMMAND formula_test)
+
 # tests/spectrum -- the wx-free IR/Raman spectrum model (#214): ticks, axis
 # reversal and zoom, broadening, sticks.
 add_executable(vibspectrum_test tests/spectrum/vibspectrum_test.C)

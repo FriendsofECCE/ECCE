@@ -212,7 +212,6 @@ string TFormula::formula(int charge) const
 //    Returns the empirical formula in Hill order:
 //       . with carbon: C first, H next, the rest in alphabetical order
 //       . without carbon: all elements in alphabetical order
-//       . >1 char elements followed by . (He.)
 //       . count follows symbol (H4)
 //       . charged species represented by +/-
 //
@@ -285,10 +284,10 @@ string TFormula::hillOrder(const string& formula)
 string TFormula::formatElement(const string& tag, int count)
 {
   ostrstream os;
+  //  No separator after a two-letter symbol: "He2" cannot be read as anything
+  //  else, since symbols start with a capital.  hillOrder() still accepts the
+  //  "He.2" that older versions stored.
   os << tag;
-  if (tag.length() > 1 && count > 1) {
-    os << ".";
-  }
   if (count > 1) {
     os << count;
   }

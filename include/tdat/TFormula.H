@@ -73,7 +73,7 @@ public:
     static EcceSortedVector<TTagCountPair, less<TTagCountPair> >*
 	                               parse_formula(const string& formula);
     static bool test_formula(const string& formula);
-    // A stored formula (e.g. "H8C3O3", "Fe.2Cl3+") in Hill order; a string
+    // A stored formula (e.g. "H8C3O3", "Fe2Cl3+"; "Fe.2Cl3+" from older versions is read too) in Hill order; a string
     // that is not a formula is returned unchanged.
     static string hillOrder(const string& formula);
 
