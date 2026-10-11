@@ -376,6 +376,9 @@ wxSize ProgressBox::layout(wxDC *dc)
             y = std::max(y, y0 + plotH);
             if (dc) dc->SetFont(normal);
           }
+          // A stage with no line yet (a title only) still takes its own row,
+          // or the next title is drawn over it.
+          y = std::max(y, y0 + lh);
           y += lh / 3;
         }
 
