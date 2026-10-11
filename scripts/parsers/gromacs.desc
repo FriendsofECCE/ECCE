@@ -86,3 +86,33 @@ Frequency=last
 Skip=0
 End=Pressure \(bar\)
 [END]
+
+# Job progress for the Organizer's Progress box (#284).  No Script: these
+# only feed the monitor's live snapshot.  mdrun echoes the integrator and
+# nsteps in its log; the stage is named by the integrator (md, steep, ...)
+# and the step line gives the bar.  A minimisation that converges early
+# stops short of nsteps.
+[PROGRESS]
+Begin=^\s+integrator\s+=\s+(\S+)
+Remember=integrator
+[END]
+
+[PROGRESS]
+Begin=^\s+nsteps\s+=\s+(\d+)
+Remember=nsteps
+[END]
+
+[PROGRESS]
+Begin=^\s+(\d+)\s+-?\d+\.\d{5}\s*$
+Progress={integrator} point=$1/{nsteps}
+[END]
+
+[PROGRESS]
+Begin=^(?:Steepest Descents|Polak-Ribiere Conjugate Gradients|Low-Memory BFGS Minimizer) converged to
+Progress={integrator} converged=yes
+[END]
+
+[PROGRESS]
+Begin=^(?:Steepest Descents|Polak-Ribiere Conjugate Gradients|Low-Memory BFGS Minimizer) did not converge to
+Progress={integrator} converged=no
+[END]

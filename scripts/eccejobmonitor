@@ -4296,7 +4296,7 @@ sub ProgressEntryAdd
         return undef;
     }
     return "$where: Progress must start with a stage name"
-        unless ($$buf{'progress'} =~ /^\s*[A-Za-z][\w-]*(\s|$)/);
+        unless ($$buf{'progress'} =~ /^\s*(?:[A-Za-z][\w-]*|\{\w+\})(\s|$)/);
     push @gProgList, [$re, $$buf{'progress'}, $$buf{'history'}];
     undef;
 }

@@ -159,6 +159,11 @@ case("qe scf only", "qe.desc", fx("qe", "si_scf.pwout"),
 case("qe relax, step limit", "qe.desc", fx("qe", "capped.pwout"),
      {"opt": {"istep": "1", "converged": "no"}})
 
+case("gromacs md (2025.2)", "gromacs.desc", fx("gromacs", "water_md.log"),
+     {"md": {"point": "500/500"}})
+case("gromacs minimisation", "gromacs.desc", fx("gromacs", "water_em.log"),
+     {"steep": {"point": "4/200", "converged": "yes"}})
+
 
 def run_case(name, desc, out, want, hist, out2):
     n, stages, text = replay(os.path.join(PARSERS, desc), out, "ALL", out2)

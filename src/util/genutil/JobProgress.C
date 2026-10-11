@@ -102,6 +102,12 @@ string JobProgress::title(const string& stage)
   if (stage == "opt") return "Optimisation";
   if (stage == "scf") return "SCF";
   if (stage == "freq") return "Frequencies";
+  // GROMACS names the stage by its integrator.
+  if (stage == "steep" || stage == "cg" || stage == "l-bfgs" || stage == "nm")
+    return "Minimisation";
+  if (stage == "md" || stage == "md-vv" || stage == "md-vv-avek" ||
+      stage == "sd" || stage == "bd")
+    return "Molecular dynamics";
   return stage;
 }
 
@@ -163,7 +169,8 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age) const
     if (split(st.field("point"), k, n, hasN) && hasN && n > 0) {
       b.bar = true;
       b.fraction = std::min(1.0, std::max(0.0, k / n));
-      first = fmt("point %.0f", k) + fmt(" of %.0f", n);
+      first = string(st.name == "freq" ? "point" : "step") + fmt(" %.0f", k) +
+              fmt(" of %.0f", n);
       double eta;
       if (st.field("done") == "yes") {
         double real, imag;
@@ -280,6 +287,22 @@ vector<string> JobProgress::summary(bool completed) const
       out.push_back(fmt("Frequencies stopped at point %.0f", k) +
                     fmt(" of %.0f", n));
     }
+  }
+  // Runs counted in steps (GROMACS): where they got to.
+  for (const auto& st : p_stages) {
+    if (st.name == "opt" || st.name == "freq" || st.name == "scf") continue;
+    double k = 0, n = 0;
+    bool hasN = false;
+    if (!split(st.field("point"), k, n, hasN)) continue;
+    string line;
+    if (st.field("converged") == "yes")
+      line = title(st.name) + " converged in " + fmt("%.0f", k) + " steps";
+    else if (st.field("converged") == "no")
+      line = title(st.name) + " did not converge in " + fmt("%.0f", k) + " steps";
+    else
+      line = title(st.name) + ": " + fmt("%.0f", k) +
+             (hasN ? fmt(" of %.0f", n) : string()) + " steps";
+    out.push_back(line);
   }
   if (!opt && !freq && scf) {
     const string cyc = scf->field("cycle");

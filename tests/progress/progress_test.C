@@ -92,6 +92,15 @@ int main()
   check(gb.size() == 2 && gb[0].criteria.empty() &&
         has(gb[0].lines, "gradient 1.4e-01"), "a value without a target is a line");
 
+  JobProgress r;
+  r.parse("# seq=5\nmd point=100/500 eta=30\n");
+  vector<JobProgress::Block> rb = r.running(0);
+  check(rb.size() == 1 && rb[0].title == "Molecular dynamics" && rb[0].bar &&
+        has(rb[0].lines, "step 100 of 500"), "a step-counted run (GROMACS)");
+  r.parse("# seq=6\nsteep point=4/200 converged=yes\n");
+  check(has(r.summary(true), "Minimisation converged in 4 steps"),
+        "minimisation summary");
+
   JobProgress e;
   e.parse("# seq=3\nscf cycle=15 energy=-1.1 converged=yes\n");
   vector<string> es = e.summary(true);

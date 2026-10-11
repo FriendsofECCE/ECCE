@@ -60,6 +60,10 @@ A code gets progress in the Organizer by `.desc` entries alone:
   numerical ones (ORCA `NumFreq`) `point=k/n`. Gaussian: the freq job of
   `Opt Freq` repeats "Step number 1 out of a maximum of 2", which would
   restart the opt record, so that wording is skipped.
+- **GROMACS** names the stage by the integrator (`Progress={integrator}
+  point=$1/{nsteps}`): `md` is "Molecular dynamics", `steep` "Minimisation".
+  QE prints the ionic step after its criteria, so it is sent as `istep`
+  (not a record, which would clear them).
 - **ECCE-QM** writes its own `progress scf|opt|freq ...` lines
   (`write_progress_*` in `src/qm/output.cpp`), flushed per line.
 

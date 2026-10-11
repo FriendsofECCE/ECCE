@@ -1813,6 +1813,11 @@ if(PYTHON3_FOR_SPECTRUM)
            COMMAND ${PYTHON3_FOR_SPECTRUM}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/progress/monitor_test.py)
   set_tests_properties(progress-monitor PROPERTIES SKIP_RETURN_CODE 77)
+  # each code's [PROGRESS] entries over real output of that code
+  add_test(NAME progress-codes
+           COMMAND ${PYTHON3_FOR_SPECTRUM}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/progress/codes_test.py)
+  set_tests_properties(progress-codes PROPERTIES SKIP_RETURN_CODE 77)
 endif()
 
 # tests/session -- the session id and key (#233): shell and C++ derivations
