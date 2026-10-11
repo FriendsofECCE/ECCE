@@ -3341,7 +3341,7 @@ void Builder::OnContextRadioClick( wxCommandEvent& event )
 
 void Builder::OnContextListClick( wxListEvent& event )
 {
-  setContext(event.GetText().ToStdString());
+  setContext(p_contextPanel->ContextAt(event.GetIndex()).ToStdString());
 }
 
 
