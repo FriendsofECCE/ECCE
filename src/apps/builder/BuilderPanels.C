@@ -810,9 +810,16 @@ void Builder::updatePropertyIndex()
   //  A structure file (PDB, XYZ, CAR, cube, ...) and a new structure are
   //  AbstractPropCalculations, whose getProperty() throws: they have no
   //  properties, so they get no energy line.
-  TProperty *te = dynamic_cast<AbstractPropCalculation*>(p_calculation)
-                  ? 0 : p_calculation->getProperty("TE");
-  if (te) {
+  const bool props = !dynamic_cast<AbstractPropCalculation*>(p_calculation);
+  // A semiempirical code (MOPAC) reports its heat of formation, which it
+  // also publishes as TE; it is not a total energy, so say what it is.
+  TProperty *hof = props ? p_calculation->getProperty("HFENERGY") : 0;
+  TProperty *te = props && !hof ? p_calculation->getProperty("TE") : 0;
+  if (hof) {
+    const string units = hof->units() == "NA" ? "" : hof->units();
+    energy = wxString::Format("Heat of formation %.6f %s", hof->scalarize(),
+                              units.c_str());
+  } else if (te) {
     const string units = te->units() == "NA" ? "" : te->units();
     energy = wxString::Format("Total energy %.6f %s", te->scalarize(),
                               units.c_str());
