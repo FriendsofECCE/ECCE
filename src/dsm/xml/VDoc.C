@@ -2295,12 +2295,11 @@ void VDoc::loadQMMMTermsName()
 
 /**
  * Loads the Basis Set resource name for the VDoc.  The name is retrieved
- * from a DAV property.  If the property does not exist or the property
- * value is empty - an exception will be thrown.  For older VDocs (pre-4.0),
+ * from a DAV property.  If the property does not exist or is empty the
+ * default name is used.  For older VDocs (pre-4.0),
  * the name is assigned based on the previous naming convention.
  *
  * @throw DavException DAV server access error
- * @throw InvalidException Name of resource could not be determined.
  *
  */
 void VDoc::loadBasisSetName()
@@ -2326,9 +2325,11 @@ void VDoc::loadBasisSetName()
       }
     }
 
+    // A calculation without the property has no basis set yet; the default
+    // name finds nothing, which the editors read as "none chosen".  Throwing
+    // here made the whole calculation unopenable.
     if (p_basisSet.empty()) {
-      throw InvalidException("Could not determine Basis Set resource name.",
-                             WHERE);
+      p_basisSet = "BasisSet.ecce_basisset";
     }
   }
   else {
