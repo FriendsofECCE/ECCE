@@ -31,8 +31,9 @@ bool WxStateImageList::Create()
 
 void WxStateImageList::addAllImages()
 {
+  // One past the last state: WxState::OUT_OF_CONTACT.
   for (int state = ResourceDescriptor::STATE_ILLEGAL;
-           state < ResourceDescriptor::NUMBER_OF_STATES;
+           state <= WxState::OUT_OF_CONTACT;
            state++) {
     wxBitmap stateMap(p_size, p_size);
     wxMemoryDC stateDC(stateMap);

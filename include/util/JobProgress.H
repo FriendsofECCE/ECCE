@@ -90,6 +90,12 @@ public:
   // "updated 3 s ago", "updated 2 min ago".
   static std::string updatedText(double seconds);
 
+  // Out of contact (#284), the table cell and the folded box: "no contact
+  // for 17 min" after a warning sign (UTF-8).
+  static std::string noContactText(double seconds);
+  // "14:02 (17 min ago)": when the job was last heard from, local time.
+  static std::string lastHeardText(double when, double now);
+
   // The stage's title: "Optimisation", "SCF", "Frequencies", or its name.
   static std::string title(const std::string& stage);
 

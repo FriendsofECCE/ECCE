@@ -69,6 +69,7 @@ using std::endl;
 #include "wxgui/WxResourceTreeItemData.H"
 #include "wxgui/WxResourceTreeCtrl.H"
 #include "wxgui/WxStateImageList.H"
+#include "wxgui/WxState.H"
 
 
 /**
@@ -966,11 +967,12 @@ int WxResourceTreeCtrl::getImageIndex(Resource * resource,
 
   if (p_showRunStates) {
     TaskJob * taskJob = dynamic_cast<TaskJob*>(resource);
-    ret = WxResourceStateImageList::getImageIndex(
-            resource,
-            taskJob ? taskJob->getState() :
-                      ResourceDescriptor::NUMBER_OF_STATES,
-            iconType);
+    ResourceDescriptor::RUNSTATE state = taskJob ? taskJob->getState() :
+                                         ResourceDescriptor::NUMBER_OF_STATES;
+    if (taskJob && state == ResourceDescriptor::STATE_RUNNING &&
+        p_outOfContact && p_outOfContact(resource))
+      state = (ResourceDescriptor::RUNSTATE)WxState::OUT_OF_CONTACT;
+    ret = WxResourceStateImageList::getImageIndex(resource, state, iconType);
   } else {
     ret = WxResourceImageList::getImageIndex(resource, iconType);
   }

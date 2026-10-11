@@ -32,6 +32,11 @@ class ewxPanel;
 class WxState : public WxStateGUI
 {    
 public:
+  // Not a run state: a running job whose monitor is out of contact (#284),
+  // drawn as a hollow amber circle.  The image lists hold it after the
+  // last state.
+  enum { OUT_OF_CONTACT = ResourceDescriptor::NUMBER_OF_STATES };
+
   WxState( );
   WxState( wxWindow* parent, wxWindowID id = SYMBOL_WXSTATEGUI_IDNAME,
            const wxPoint& pos = SYMBOL_WXSTATEGUI_POSITION,
@@ -54,6 +59,9 @@ public:
   void setRunState(ResourceDescriptor::RUNSTATE state,
                    bool useSystemColor = false);
   ResourceDescriptor::RUNSTATE getRunState() const;
+  // Drawn as OUT_OF_CONTACT while the state is running.
+  void setOutOfContact(bool lost);
+  bool outOfContact() const { return p_outOfContact; }
 
   bool canBeReset();
   string getPrefString();
@@ -83,6 +91,8 @@ protected:
   ResourceDescriptor::RUNSTATE p_currentState;
 
   bool p_useSystemColor;
+
+  bool p_outOfContact;
 
   /** The color string name - for editing purposes. */
   //string p_color;

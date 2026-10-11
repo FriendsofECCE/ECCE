@@ -280,6 +280,18 @@ public:
   // The project table's Progress cell: JobProgress::shortLine() of the live
   // snapshot, else the stored one; empty unless the calculation is running.
   string progressCellText(Resource * resource) const;
+  // Out of contact (#284): the job store's "contact" ("lost <epoch last
+  // heard>" or "ok") on ecce_url_progress, with the snapshot it holds.
+  void contactUpdate(const EcceURL & url, const string & contact,
+                     const string & progress);
+  // A running calculation whose monitor is out of contact: the live
+  // notice, else the stored ecce:contact.  lastHeard: seconds since 1970.
+  bool outOfContact(Resource * resource, double & lastHeard) const;
+  // What the last "Check Job on Machine" said, one sentence a line.
+  vector<string> machineCheckLines(const EcceURL & url) const;
+  // The Progress box's buttons: 0 Reconnect, 1 Check Job on Machine,
+  // 2 Show Output So Far (the Tail window).
+  void progressAction(int action, WxResourceTreeItemData * itemData);
   void setMessage(const string & message,
                   WxFeedback::Severity severity=WxFeedback::WARNING,
                   bool clear = false);
@@ -387,6 +399,7 @@ protected:
   void manageFiles();
   void terminateCalc();
   void checkJob();
+  void checkJobOnMachine();
   void reconnectJob();
   void forceFail();
   void resetForRerun();
@@ -415,6 +428,7 @@ protected:
   void manageFiles(     WxResourceTreeItemData*);
   void terminateCalc(   WxResourceTreeItemData*);
   void checkJob(        WxResourceTreeItemData*);
+  void checkJobOnMachine(WxResourceTreeItemData*);
   void reconnectJob(    WxResourceTreeItemData*);
   bool resetForRerun(   WxResourceTreeItemData*,
                         ResourceDescriptor::RUNSTATE state = 
@@ -525,6 +539,12 @@ protected:
   int p_testNotices = 0, p_testApplied = 0, p_testBatches = 0;
   // url -> (snapshot, when it arrived, seconds since 1970)
   std::map<string, std::pair<string, double> > p_liveProgress;
+  // url -> epoch last heard while out of contact, -1 in contact again
+  std::map<string, double> p_contact;
+  std::map<string, vector<string> > p_machineCheck;
+  // The tree icon, the shown summary and the table's cells of one
+  // calculation, after its contact changed.
+  void contactChanged(const EcceURL & url);
 };
 
 

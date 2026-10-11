@@ -56,6 +56,7 @@ class CalculationContextPanel : public ewxScrolledWindow,
 
     /** The Progress box, for tests; null if this calculation has none. */
     ProgressBox *getProgressBox() const { return p_progressBox; }
+    WxState *getStateIcon() const { return p_state; }
 
   protected:
 
@@ -94,7 +95,7 @@ class CalculationContextPanel : public ewxScrolledWindow,
 
     /** The Progress box, after the Launcher row, and its frame. */
     ProgressBox *p_progressBox;
-    wxStaticBoxSizer *p_progressSizer;
+    wxBoxSizer *p_progressSizer;
 
     /** The stored snapshot (ecce:progress) as of the last refresh. */
     std::string p_storedProgress;

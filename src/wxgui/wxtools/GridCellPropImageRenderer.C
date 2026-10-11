@@ -28,6 +28,7 @@
 #include "wxgui/WxResourceImageList.H"
 #include "wxgui/WxState.H"
 #include "wxgui/WxStateImageList.H"
+#include "wxgui/WxState.H"
 
 #include "wxgui/GridCellPropImageRenderer.H"
 
@@ -124,8 +125,13 @@ void GridCellPropImageRenderer::drawRunstateIcon(GridPropElement *element,
                                                  int row, int col,
                                                  bool isSelected) 
 {
+  // "running?": the Organizer's mark for a running job out of contact.
+  const string value = element->getValue().ToStdString();
   drawIcon(WxStateImageList::getImageList()->GetIcon(
-           ResourceUtils::stringToState(element->getValue().ToStdString())),
+           value == WxState::getName(
+               (ResourceDescriptor::RUNSTATE)WxState::OUT_OF_CONTACT)
+           ? (int)WxState::OUT_OF_CONTACT
+           : (int)ResourceUtils::stringToState(value)),
            dc, rectCell);
 }
 

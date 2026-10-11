@@ -26,6 +26,8 @@
 #include "wxgui/GridModel.H"
 #include "wxgui/GridPropElement.H"
 #include "wxgui/WxGridView.H"
+#include "wxgui/WxState.H"
+#include "dsm/VDoc.H"
 
 #include "CalcMgr.H"
 #include "ProjectContextPanel.H"
@@ -183,12 +185,24 @@ void ProjectContextPanel::refresh()
 
 vector<string> ProjectContextPanel::progressCells()
 {
+  return columnCells(GridProperty::PT_PROGRESS);
+}
+
+
+vector<string> ProjectContextPanel::stateCells()
+{
+  return columnCells(GridProperty::PT_RUNSTATE_ICON);
+}
+
+
+vector<string> ProjectContextPanel::columnCells(int type)
+{
   vector<string> out;
   if (!p_projectView) return out;
   for (int col = 0; col < p_projectView->getColCount(); col++) {
     GridPropElement *head =
         dynamic_cast<GridPropElement*>(p_projectView->getElement(0, col));
-    if (!head || head->getPropertyType() != GridProperty::PT_PROGRESS) continue;
+    if (!head || head->getPropertyType() != type) continue;
     for (int row = 0; row < p_projectView->getRowCount(); row++) {
       GridPropElement *cell =
           dynamic_cast<GridPropElement*>(p_projectView->getElement(row, col));
@@ -209,6 +223,17 @@ static string trimmedUrl(const EcceURL &url)
 }
 
 
+// The State cell: the stored state, or "running?" while the job is out of
+// contact (#284); GridCellPropImageRenderer draws that as the amber ring.
+string ProjectContextPanel::stateCellText(Resource *resource) const
+{
+  double lastHeard = 0;
+  if (p_calcMgr->outOfContact(resource, lastHeard))
+    return WxState::getName((ResourceDescriptor::RUNSTATE)WxState::OUT_OF_CONTACT);
+  return resource->getProp(VDoc::getEcceNamespace() + ":state");
+}
+
+
 void ProjectContextPanel::updateProgress(const EcceURL &url)
 {
   if (!p_projectView || !p_initialized) return;
@@ -218,13 +243,23 @@ void ProjectContextPanel::updateProgress(const EcceURL &url)
   for (int col = 0; col < cols; col++) {
     GridPropElement *head =
         dynamic_cast<GridPropElement*>(p_projectView->getElement(0, col));
-    if (!head || head->getPropertyType() != GridProperty::PT_PROGRESS) continue;
+    if (!head) continue;
+    const bool state = head->getPropertyType() == GridProperty::PT_RUNSTATE_ICON;
+    if (!state && head->getPropertyType() != GridProperty::PT_PROGRESS) continue;
     for (int row = 0; row < rows; row++) {
       GridPropElement *cell =
           dynamic_cast<GridPropElement*>(p_projectView->getElement(row, col));
       if (!cell || trimmedUrl(cell->getResource()->getURL()) != key) continue;
       const wxString text = wxString::FromUTF8(
-          p_calcMgr->progressCellText(cell->getResource()).c_str());
+          (state ? stateCellText(cell->getResource())
+                 : p_calcMgr->progressCellText(cell->getResource())).c_str());
+      if (state) {
+        if (text != cell->getValue()) {
+          cell->setValue(text);
+          p_projectView->getGrid()->RefreshBlock(row, col, row, col);
+        }
+        break;
+      }
       if (text != cell->getValue()) {
         cell->setValue(text);
         p_progressSets++;
@@ -235,7 +270,7 @@ void ProjectContextPanel::updateProgress(const EcceURL &url)
         if (grid->GetColSize(col) < need) grid->SetColSize(col, need);
         grid->RefreshBlock(row, col, row, col);
       }
-      return;
+      break;
     }
   }
 }
@@ -311,6 +346,9 @@ void ProjectContextPanel::initialize()
           if (property->getType() == GridProperty::PT_PROGRESS) {
             cellValue->setValue(wxString::FromUTF8(
                 p_calcMgr->progressCellText(resource).c_str()));
+          } else if (property->getType() == GridProperty::PT_RUNSTATE_ICON) {
+            cellValue->setValue(wxString::FromUTF8(
+                stateCellText(resource).c_str()));
           }
           gridModel->SetValueAsGridElement(i, column, cellValue);
         }

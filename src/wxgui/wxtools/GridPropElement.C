@@ -38,6 +38,7 @@
 
 #include "wxgui/GridElement.H"
 #include "wxgui/WxResourceImageList.H"
+#include "wxgui/ewxThemeColours.H"
 #include "wxgui/GridCellPropImageRenderer.H"
 #include "wxgui/GridPropElement.H"
 
@@ -85,6 +86,28 @@ GridPropElement::~GridPropElement()
 
 
 
+// The Progress column (#284): a job out of contact ("no contact for
+// 17 min") in the theme's amber, other text as usual.
+class ProgressCellRenderer : public wxGridCellStringRenderer
+{
+public:
+  void Draw(wxGrid& grid, wxGridCellAttr& attr, wxDC& dc, const wxRect& rect,
+            int row, int col, bool isSelected) override
+  {
+    if (!isSelected &&
+        grid.GetCellValue(row, col).StartsWith(wxString::FromUTF8("\xe2\x9a\xa0"))) {
+      wxGridCellAttr *amber = attr.Clone();
+      amber->SetTextColour(ewxThemeColours::statusText(ewxThemeColours::UNSURE));
+      wxGridCellStringRenderer::Draw(grid, *amber, dc, rect, row, col, isSelected);
+      amber->DecRef();
+      return;
+    }
+    wxGridCellStringRenderer::Draw(grid, attr, dc, rect, row, col, isSelected);
+  }
+  wxGridCellRenderer *Clone() const override { return new ProgressCellRenderer; }
+};
+
+
 wxGridCellAttr *GridPropElement::getAttributes()
 {
   wxGridCellAttr *cellAttr = new wxGridCellAttr();
@@ -107,7 +130,7 @@ wxGridCellAttr *GridPropElement::getAttributes()
       cellAttr->SetAlignment(wxALIGN_CENTER, wxALIGN_CENTER);
       break;
     case GridProperty::PT_PROGRESS:
-      cellAttr->SetRenderer(new wxGridCellStringRenderer);
+      cellAttr->SetRenderer(new ProgressCellRenderer);
       cellAttr->SetAlignment(wxALIGN_LEFT, wxALIGN_CENTER);
       break;
     case GridProperty::PT_CHECK:

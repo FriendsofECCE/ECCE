@@ -325,8 +325,15 @@ void CalcMgrApp::msgChangedMCB(JMSMessage& msg)
 
 void CalcMgrApp::msgProgressMCB(JMSMessage& msg)
 {
-  p_calcMgr->progressUpdate(EcceURL(msg.getProperty("url")),
-                            msg.getProperty("progress"));
+  // A "contact" notice (#284) carries the last snapshot heard, if any; it
+  // must not forget the shown one when it carries none.
+  const string contact = msg.getProperty("contact");
+  if (!contact.empty())
+    p_calcMgr->contactUpdate(EcceURL(msg.getProperty("url")), contact,
+                             msg.getProperty("progress"));
+  else
+    p_calcMgr->progressUpdate(EcceURL(msg.getProperty("url")),
+                              msg.getProperty("progress"));
 }
 
 

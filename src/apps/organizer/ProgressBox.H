@@ -4,11 +4,13 @@
  * The Progress box of the calculation summary (#284): where a running job
  * has got to, from the snapshot eccejobstore relays (ecce_url_progress) or
  * stores (ecce:progress).  Only paints; JobProgress (util) decides what
- * the lines say.
+ * the lines say.  The heading folds it to one line (remembered per user);
+ * out of contact it greys the last progress and offers three actions.
  */
 #ifndef PROGRESSBOX_H
 #define PROGRESSBOX_H
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -16,6 +18,8 @@
 #include <wx/timer.h>
 
 #include "util/JobProgress.H"
+
+class wxButton;
 
 class ProgressBox : public wxPanel
 {
@@ -26,13 +30,30 @@ public:
   /**
    * text: the snapshot ("" for none); received: when it arrived, seconds
    * since 1970 (0: take the job store's stamp in the text); finished: the
-   * job is over (summary instead of live lines); completed: it ended well.
+   * job is over (summary instead of live lines); completed: it ended well;
+   * lastHeard: seconds since 1970 while the job is out of contact, else 0;
+   * checkLines: what Check Job on Machine said.
    * Returns true when the box's size changed (the caller lays out again).
    */
   bool set(const std::string& text, double received, bool finished,
-           bool completed);
+           bool completed, double lastHeard = 0,
+           const std::vector<std::string>& checkLines =
+               std::vector<std::string>());
 
   bool hasProgress() const { return !p_progress.empty(); }
+  bool outOfContact() const { return p_lastHeard > 0 && !p_finished; }
+  // Shown at all: progress to show, or a job out of contact.
+  bool wanted() const { return hasProgress() || outOfContact(); }
+
+  bool collapsed() const { return p_collapsed; }
+  // Folds or unfolds, remembers it for this user and lays out again.
+  void setCollapsed(bool collapsed);
+
+  // 0 Reconnect, 1 Check Job on Machine, 2 Show Output So Far.
+  void setActionHandler(std::function<void(int)> handler)
+  { p_action = handler; }
+  // Called after the box changed size by itself (a fold).
+  void setRelayout(std::function<void()> relayout) { p_relayout = relayout; }
 
   /** What the box shows, a line per row, for tests. */
   std::vector<std::string> describe() const;
@@ -42,18 +63,28 @@ public:
 private:
   void OnPaint(wxPaintEvent& event);
   void OnTimer(wxTimerEvent& event);
+  void OnClick(wxMouseEvent& event);
 
-  // Draws (dc != 0) or only measures; returns the size used.
-  wxSize layout(wxDC *dc) const;
+  // Draws (dc != 0) or only measures and places the buttons; returns the
+  // size used.
+  wxSize layout(wxDC *dc);
   double age() const;
+  std::string foldedText() const;
+  int headingHeight() const;
 
   JobProgress p_progress;
   std::string p_text;
   double p_received;
   bool p_finished;
   bool p_completed;
+  double p_lastHeard;
+  std::vector<std::string> p_check;
+  bool p_collapsed;
   wxTimer p_timer;
   int p_paints;
+  wxButton *p_buttons[3];
+  std::function<void(int)> p_action;
+  std::function<void()> p_relayout;
 };
 
 #endif
