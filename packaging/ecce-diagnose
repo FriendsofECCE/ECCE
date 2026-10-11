@@ -21,8 +21,12 @@
 # resolves -- and every one of them looks identical from inside ECCE.
 # Collect broadly once rather than narrowly several times.
 #
-# It deliberately does NOT collect any password or credential file, and
-# it masks anything password-shaped out of the environment dump.  The
+# Installed as "ecce-diagnose" (ecce-client package; also in the Windows
+# and macOS bundles, where it needs a POSIX shell and will note what is
+# missing instead of failing).  It deliberately does NOT collect any
+# password or credential file (per-session authcache_*, ServerLogin*,
+# the data server's user files), and it masks anything password-shaped
+# out of the environment dump and out of every log it quotes.  The
 # output is still yours to read before sending: it contains host names,
 # user names and full paths.
 
@@ -118,12 +122,73 @@ note "using $HOME_DIR"
 [ -r "$HOME_DIR/data/client/config/Version" ] && \
   { note ""; note "--- Version"; cat "$HOME_DIR/data/client/config/Version" >> "$OUT"; }
 run ls -la "$HOME_DIR/bin"
-shell_run "command -v ecce ecce-gateway ecmd eccejobmaster eccejobstore eccejobmonitor gensub 2>&1"
-if have dpkg; then run dpkg -l ecce; fi
-if have rpm;  then run rpm -qi ecce; fi
+shell_run "command -v ecce ecce-gateway ecce-diagnose ecmd eccejobmaster eccejobstore 2>&1"
+# 9.x ships ecce-client and ecce-server separately; a client-only machine
+# has no local data server, which changes what the later sections mean.
+if have dpkg; then shell_run "dpkg -l 'ecce*' 2>&1 | grep -E '^(ii|rc|Desired|\\|\\+)' | cut -c1-120"; fi
+if ! have dpkg && have rpm; then shell_run "rpm -qa 'ecce*' 2>&1"; fi
+note ""
+[ -x "$HOME_DIR/bin/ecce-dataserver-start" ] \
+  && note "ecce-server part: INSTALLED (local data server and broker available)" \
+  || note "ecce-server part: not installed (client only: needs a server, or local data mode)"
+for c in mosquitto ecce-first-start ecce-gateway-start; do
+  p=$(command -v "$c" 2>/dev/null || { [ -x "$HOME_DIR/bin/$c" ] && echo "$HOME_DIR/bin/$c"; })
+  note "$c: ${p:-not found}"
+done
+have mosquitto && { note "mosquitto: $(T 10 mosquitto -h 2>&1 | head -1)"; }
 note ""
 note "--- the wrapper actually on PATH"
-W=$(command -v ecce 2>/dev/null) && { note "$W"; head -60 "$W" >> "$OUT" 2>&1; } || note "no 'ecce' on PATH"
+W=$(command -v ecce 2>/dev/null) && { note "$W"; head -8 "$W" >> "$OUT" 2>&1; } || note "no 'ecce' on PATH"
+
+# ------------------------------------------------------- deployment mode
+say "Deployment mode and where the data lives"
+# Three modes: local (per-user data server, or local data mode with no
+# server at all), central server (-remote) and a shared system broker.
+# Which one is in force decides where every other log is.
+note "ECCE_REMOTE_SERVER=${ECCE_REMOTE_SERVER:-<unset>}  ECCE_LOCAL=${ECCE_LOCAL:-<unset>}  ECCE_LOCAL_DATA=${ECCE_LOCAL_DATA-<unset>}"
+note "ECCE_SESSION_ID=${ECCE_SESSION_ID:-<unset; set only inside a running session>}"
+RH="${ECCE_REALUSERHOME:-$HOME}"
+for d in "$HOME_DIR/siteconfig/RemoteServer" "$RH/.ECCE/RemoteServer" "$RH/.ECCE/RemoteServer.off" "$HOME_DIR/siteconfig/SharedBroker"; do
+  if [ -d "$d" ]; then note ""; note "--- $d"; ls -la "$d" >> "$OUT" 2>&1
+  else note "$d: absent"; fi
+done
+# Server address, user and trust settings are not secret; the password
+# is never stored in these files, but mask anyway.
+for f in "$RH/.ECCE/ServerLogin" "$RH/.ECCE/ServerLogin.remote" "$RH/.ECCE/first-start-answer"; do
+  [ -r "$f" ] || continue
+  note ""; note "--- $f (comments stripped, masked)"
+  grep -vE '^\s*#|^\s*$' "$f" | mask >> "$OUT" 2>&1
+done
+note ""
+note "--- local data mode (data kept in a folder on this computer, no server); preference:"
+if have ecce-localdata || [ -x "$HOME_DIR/bin/ecce-localdata" ]; then
+  LD=$(command -v ecce-localdata 2>/dev/null || echo "$HOME_DIR/bin/ecce-localdata")
+  shell_run "ECCE_HOME=\"$HOME_DIR\" T 10 \"$LD\" pref-state 2>&1 | head -3"
+else
+  note "ecce-localdata not installed"
+fi
+LDIR="${ECCE_LOCAL_DATA:-$RH/.ECCE-local}"
+if [ -d "$LDIR" ]; then
+  note "data folder $LDIR exists:"
+  ls -la "$LDIR" >> "$OUT" 2>&1
+  note "free space there:"; df -h "$LDIR" >> "$OUT" 2>&1
+else
+  note "no local data folder at $LDIR"
+fi
+note ""
+note "--- per-user session state in ~/.ECCE (names and sizes only: the"
+note "    authcache_* files hold credentials and are never read)"
+shell_run "ls -la --time-style=long-iso \"$RH\"/.ECCE/broker_* \"$RH\"/.ECCE/authcache_* \"$RH\"/.ECCE/session_* \"$RH\"/.ECCE/mosquitto.pid \"$RH\"/.ECCE/.gateway.lock \"$RH\"/.ECCE/waiting 2>&1"
+for f in "$RH"/.ECCE/broker_* "$RH"/.ECCE/session_*; do
+  [ -r "$f" ] || continue
+  note ""; note "--- $f"; mask < "$f" >> "$OUT" 2>&1
+done
+note ""
+note "--- session leases (an ECCE program of a session holds one while alive)"
+shell_run "ls -R \"$RH\"/.ECCE/leases 2>&1 | head -40"
+have ecce-gateway-status && { note ""; run ecce-gateway-status; }
+[ -x "$HOME_DIR/bin/ecce-gateway-status" ] && ! have ecce-gateway-status && { note ""; run "$HOME_DIR/bin/ecce-gateway-status"; }
+[ -x "$HOME_DIR/bin/ecce-dataserver-status" ] && { note ""; run "$HOME_DIR/bin/ecce-dataserver-status"; }
 
 # ---------------------------------------------------------------- shells
 say "Shells"
@@ -207,13 +272,15 @@ rm -rf "$TMPD"
 
 # ------------------------------------------------------------- toolchain
 say "Tools ECCE shells out to"
-for t in perl python3 java httpd apache2 ssh nohup env sed awk; do
+for t in perl python3 httpd apache2 mosquitto ssh flock nohup env sed awk; do
   p=$(command -v "$t" 2>/dev/null) && { note ""; note "$t -> $p"; T 10 "$t" --version >> "$OUT" 2>&1 || T 10 "$t" -V >> "$OUT" 2>&1 || true; } \
                                    || note "$t -> NOT FOUND"
 done
 note ""
+have python3 && shell_run "python3 -c 'import wx; print(\"wxPython\", wx.version())' 2>&1 | tail -1"
+note ""
 note "Computational codes on PATH:"
-for c in nwchem g16 g09 orca mopac pw.x gmx; do
+for c in nwchem g16 orca mopac pw.x gmx cp2k; do
   p=$(command -v "$c" 2>/dev/null) && note "  $c -> $p" || note "  $c -> not on PATH"
 done
 
@@ -288,12 +355,19 @@ for f in "$HOME"/.ECCE/CONFIG.*; do
   grep -vE '^\s*#|^\s*$' "$f" >> "$OUT" 2>&1
 done
 note ""
-note "--- any ECCE log files"
-shell_run "ls -la \"\$HOME\"/.ECCE/*.log 2>/dev/null || echo 'none in ~/.ECCE'"
-for f in "$HOME"/.ECCE/*.log; do
-  [ -r "$f" ] || continue
-  note ""; note "--- $f (last 80 lines)"; tail -80 "$f" >> "$OUT" 2>&1
+note "--- ECCE log files: the broker's log, the per-user data server's logs"
+note "    and anything else *.log in ~/.ECCE (last 80 lines each, masked)"
+shell_run "ls -la \"\$HOME\"/.ECCE/*.log \"\$HOME\"/.ECCE/mosquitto.out \"\$HOME\"/.ECCE/dataserver/logs 2>/dev/null || echo 'none in ~/.ECCE'"
+for f in "$HOME"/.ECCE/*.log "$HOME"/.ECCE/mosquitto.out "$HOME"/.ECCE/mosquitto.conf \
+         "$HOME"/.ECCE/dataserver/logs/error_log "$HOME"/.ECCE/dataserver/httpd.conf; do
+  [ -r "$f" ] && [ -s "$f" ] || continue
+  note ""; note "--- $f (last 80 lines)"; tail -80 "$f" | mask >> "$OUT" 2>&1
 done
+if [ -r /var/log/mosquitto/mosquitto.log ]; then
+  note ""; note "--- /var/log/mosquitto/mosquitto.log (system broker, last 40 lines)"
+  tail -40 /var/log/mosquitto/mosquitto.log | mask >> "$OUT" 2>&1
+fi
+have systemctl && shell_run "systemctl status ecce-broker --no-pager 2>&1 | head -12"
 shell_run "ls -la /tmp/*ecce* /tmp/*ECCE* 2>/dev/null | head -20 || echo 'nothing ECCE-shaped in /tmp'"
 
 # ------------------------------------------------- machines and resolution
@@ -317,7 +391,8 @@ for n in $NAMES localhost "$(hostname -s 2>/dev/null)" "$(hostname -f 2>/dev/nul
 done
 note ""
 note "--- can this host ssh to itself without a password?"
-note "    (ECCE ssh's to any machine it does not recognise as this one)"
+note "    (ECCE reaches every machine it does not recognise as this one over"
+note "     ssh exec channels; there is no other remote transport since 9.0)"
 if have ssh; then
   for n in localhost "$(hostname -s 2>/dev/null)"; do
     [ -n "$n" ] || continue
@@ -335,14 +410,14 @@ fi
 # -------------------------------------------------------------- services
 say "Services"
 if have ss; then
-  shell_run "ss -ltnp 2>/dev/null | grep -E ':(8096|8088)' || echo 'nothing listening on the ECCE ports'"
+  shell_run "ss -ltnpx 2>/dev/null | grep -E 'httpd|apache2|mosquitto|:8096|:1883|:8883' || echo 'no ECCE listening sockets seen'"
 elif have netstat; then
-  shell_run "netstat -ltnp 2>/dev/null | grep -E ':(8096|8088)' || echo 'nothing listening on the ECCE ports'"
+  shell_run "netstat -ltnp 2>/dev/null | grep -E 'httpd|apache2|mosquitto|:8096|:1883|:8883' || echo 'no ECCE listening sockets seen'"
 fi
-shell_run "pgrep -a -u \"\$(id -un)\" -f 'httpd|mosquitto|eccejobstore|eccejobmaster|eccejobmonitor' || echo 'no ECCE service processes for this user'"
+shell_run "pgrep -a -u \"\$(id -un)\" -f 'httpd|apache2|mosquitto|ecce-gateway|eccejobstore|eccejobmaster' || echo 'no ECCE service processes for this user'"
 note ""
 note "--- full ECCE process tree"
-shell_run "ps -u \"\$(id -un)\" -o pid,ppid,stat,etime,rss,args --forest 2>/dev/null | grep -iE 'ecce|mosquitto|httpd|nwchem|orca|mopac|g16|g09|PID' | cut -c1-220 | head -60 || ps -u \"\$(id -un)\" -f | head -40"
+shell_run "ps -u \"\$(id -un)\" -o pid,ppid,stat,etime,rss,args --forest 2>/dev/null | grep -iE 'ecce|mosquitto|httpd|apache2|nwchem|orca|mopac|g16|PID' | cut -c1-220 | head -60 || ps -u \"\$(id -un)\" -f | head -40"
 
 # --------------------------------------------------------- desktop
 say "Desktop and graphics"
@@ -364,7 +439,8 @@ have glxinfo && shell_run "glxinfo -B 2>/dev/null | head -12 || echo 'glxinfo fa
 have xdpyinfo && shell_run "xdpyinfo 2>/dev/null | head -8 || echo 'cannot reach the X display'"
 note ""
 note "--- libraries the ECCE binaries actually link against"
-for b in builder organizer calced gateway; do
+for b in builder organizer calced gateway; do  # no ldd on macOS/Windows: skipped quietly
+  have ldd || break
   [ -x "$HOME_DIR/bin/$b" ] || continue
   note ""
   note "$b:"
@@ -385,7 +461,7 @@ note "core pattern: $(cat /proc/sys/kernel/core_pattern 2>/dev/null)"
 note "core limit:   $(ulimit -c)"
 shell_run "ls -la core core.* 2>/dev/null | head || echo 'no core files in the current directory'"
 if have journalctl; then
-  shell_run "journalctl --user --since '1 day ago' --no-pager 2>/dev/null | grep -iE 'ecce|builder|organizer|calced|segfault|core dump' | tail -30 || echo 'nothing in the user journal'"
+  shell_run "journalctl --user --since '1 day ago' --no-pager 2>/dev/null | grep -iE 'ecce|builder|organizer|calced|mosquitto|segfault|core dump' | tail -30 || echo 'nothing in the user journal'"
 fi
 
 # ---------------------------------------------------------- resources
