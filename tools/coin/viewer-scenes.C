@@ -1,7 +1,7 @@
 //  Renders a SceneScript on a built-in XYZ system through the Builder's own
 //  scene code (SGContainerManager/SGContainer/SGFragment in an SGViewer), so
 //  the vendored-Inventor build and the Coin build can be compared.
-//  Usage: viewer-scenes <outdir> <script> <water|benzene|crco6|glycine|ethanol>
+//  Usage: viewer-scenes <outdir> <script> <water|benzene|crco6|glycine|ethanol|waterbox|file.xyz>
 //  Driven by tools/coin/compare.sh; calculation-backed scenes (MO, normal
 //  modes, geometry trace) run inside the Builder instead (ECCE_VIEWER_SCENE).
 #include <cmath>
@@ -66,6 +66,15 @@ string xyzFor(const string& sys)
       o << "C " << 1.91 * ax[i][0] << " " << 1.91 * ax[i][1] << " " << 1.91 * ax[i][2] << "\n";
     for (int i = 0; i < 6; i++)
       o << "O " << 3.05 * ax[i][0] << " " << 3.05 * ax[i][1] << " " << 3.05 * ax[i][2] << "\n";
+  }
+  else if (sys.size() > 4 && sys.compare(sys.size() - 4, 4, ".xyz") == 0) {
+    //  Any XYZ file (Angstrom), e.g. a converted MD frame for timing.
+    FILE *f = fopen(sys.c_str(), "r");
+    if (!f) return "";
+    char buf[4096];
+    size_t n;
+    while ((n = fread(buf, 1, sizeof buf, f)) > 0) o.write(buf, n);
+    fclose(f);
   }
   else if (sys == "waterbox") {
     //  data/client/solvents/water216.xyz, 2x2x2: 5184 atoms (the file's

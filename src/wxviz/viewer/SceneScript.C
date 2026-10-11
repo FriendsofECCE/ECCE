@@ -564,8 +564,10 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     //  for tools/coin/isoref.py's renderer-independent reference image.
     return exportIso(w[1]);
   } else if (c == "timeframes" && w.size() == 3) {
-    //  "timeframes <name> <frames>": rotate 2 degrees, paint synchronously,
-    //  glFinish, per frame (4 s cap); writes mean/median/p95 ms to <name>.txt.
+    //  "timeframes <name> <frames>": orbit 2 degrees about the focal point,
+    //  paint synchronously, glFinish, per frame (4 s cap); writes
+    //  mean/median/p95 ms to <name>.txt.  About the focal point, not the
+    //  origin, so a zoomed-in view stays on what it shows.
     SoWxRenderArea *area = findRenderArea(p_viewer);
     SoCamera *cam = p_viewer->getCamera();
     if (!area || !cam) return fail("timeframes: no render area");
@@ -575,10 +577,12 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     wxStopWatch total;
     for (int i = 0; i < 3 + frames && total.Time() < 4000; i++) {
       wxStopWatch f;
-      SbVec3f pos = cam->position.getValue(), np;
-      r.multVec(pos, np);
-      cam->position.setValue(np);
-      cam->orientation.setValue(r * cam->orientation.getValue());
+      SbVec3f dir, np;
+      cam->orientation.getValue().multVec(SbVec3f(0, 0, -1), dir);
+      SbVec3f focal = cam->position.getValue() + dir * cam->focalDistance.getValue();
+      r.multVec(cam->position.getValue() - focal, np);
+      cam->position.setValue(focal + np);
+      cam->orientation.setValue(cam->orientation.getValue() * r);   // orient, then orbit
       area->Refresh(false);
       area->Update();
       glFinish();
