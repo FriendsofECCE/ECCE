@@ -1,0 +1,157 @@
+#!/usr/bin/env python3
+"""[PROGRESS] entries of each code's .desc (#284), replayed through the real
+eccejobmonitor over genuine output of that code.
+
+    tests/progress/codes_test.py                 all cases
+    tests/progress/codes_test.py --case orca     cases whose name contains "orca"
+    tests/progress/codes_test.py --show <desc> <output-file> [parseType]
+                                                 print the last snapshot of any run
+
+Post mode reads the file at once, so the monitor sends the first line's
+snapshot and the last one; the checks are on the last, which holds every
+stage's final fields and history.  Fixtures are real outputs (scratch paths
+sanitised) in tests/progress/fixtures/<code>/ or tests/parsers/fixtures/.
+"""
+
+import argparse
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(HERE))
+MONITOR = os.path.join(ROOT, "scripts", "eccejobmonitor")
+PARSERS = os.path.join(ROOT, "scripts", "parsers")
+OWN = os.path.join(HERE, "fixtures")
+SHARED = os.path.join(ROOT, "tests", "parsers", "fixtures")
+
+failures = []
+
+
+def check(ok, what):
+    print("%s %s" % ("ok   " if ok else "FAIL ", what))
+    if not ok:
+        failures.append(what)
+
+
+def replay(desc, out, parse_types="ALL"):
+    """-> (number of jmPROG messages, {stage: text of its line}, history lines)."""
+    work = tempfile.mkdtemp(prefix="ecce-progress-")
+    try:
+        results = os.path.join(work, "results.out")
+        cmd = ["perl", MONITOR, "-commType", "stdio", "-monitoringMode", "post",
+               "-jobOutputFile", out, "-parseDescriptorFile", desc,
+               "-parseTypes", parse_types, "-outputFile", results,
+               "-calcName", "p", "-logFile", os.path.join(work, "monitor.log"),
+               "-filesToTransfer", "", "-importDir", work + os.sep,
+               "-progress", "1"]
+        proc = subprocess.run(cmd, cwd=work, stdin=subprocess.DEVNULL,
+                              capture_output=True, text=True, timeout=300)
+        if proc.returncode != 0:
+            return None, {}, proc.stderr[-400:]
+        raw = open(results, "rb").read().decode("utf-8", "replace")
+        texts, i = [], 0
+        while True:
+            i = raw.find("\001", i)
+            if i < 0:
+                break
+            length = int(raw[i + 2:i + 6])
+            payload = raw[i + 6:i + 6 + length].replace("\002", "\n")
+            i += 6 + length
+            if payload.startswith("jmPROG\0"):
+                texts.append(payload.split("\0", 1)[1])
+        stages = {}
+        for line in (texts[-1].splitlines()[1:] if texts else []):
+            name, _, rest = line.partition(" ")
+            stages[name] = rest
+        return len(texts), stages, texts[-1] if texts else ""
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def fields(stage_text):
+    return dict(w.split("=", 1) for w in stage_text.split() if "=" in w)
+
+
+def hist_len(stages, name):
+    h = fields(stages.get(name + "~", ""))
+    return len(next(iter(h.values())).split(",")) if h else 0
+
+
+# name, desc, output file, expectations: {stage: {key: value-or-callable}},
+# history lengths {stage: (min, max)}
+CASES = []
+
+
+def case(name, desc, out, want, hist=None):
+    CASES.append((name, desc, out, want, hist or {}))
+
+
+def fx(code, name):
+    own = os.path.join(OWN, code, name)
+    return own if os.path.exists(own) else os.path.join(SHARED, code, name)
+
+
+def has(prefix):
+    return lambda v: v.startswith(prefix)
+
+
+def target(v):
+    return "/" in v
+
+
+case("orca opt+freq (analytic, HF)", "orca.desc", fx("orca", "h2o_optfreq.out"),
+     {"opt": {"step": "4", "converged": "yes", "energy": has("-74.9659"),
+              "maxgrad": target, "rmsstep": target, "dE": target},
+      "freq": {"done": "yes", "zpe": has("0.0243")},
+      "scf": {"cycle": lambda v: int(v) >= 1, "dE": lambda v: "/" not in v}},
+     {"opt": (4, 4)})
+case("orca opt, not converged", "orca.desc", fx("orca", "optmax.out"),
+     {"opt": {"step": "2", "converged": "no", "maxgrad": target}})
+case("orca numerical frequencies", "orca.desc", fx("orca", "numfreq.out"),
+     {"freq": {"point": "12/12", "done": "yes", "zpe": has("0.0229")}})
+
+
+def run_case(name, desc, out, want, hist):
+    n, stages, text = replay(os.path.join(PARSERS, desc), out)
+    check(n is not None and n >= 1, "%s: monitor ran, %s snapshot(s)" % (name, n))
+    if not n:
+        return
+    for stage, keys in want.items():
+        got = fields(stages.get(stage, ""))
+        check(stage in stages, "%s: stage %s present" % (name, stage))
+        for key, expect in keys.items():
+            v = got.get(key)
+            ok = v is not None and (expect(v) if callable(expect) else v == expect)
+            check(ok, "%s: %s %s = %s" % (name, stage, key, v))
+    for stage, (lo, hi) in hist.items():
+        n = hist_len(stages, stage)
+        check(lo <= n <= hi, "%s: %s history has %d values" % (name, stage, n))
+    print("  last snapshot:\n    " + text.replace("\n", "\n    "))
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--case", action="append", default=[])
+    ap.add_argument("--show", nargs="+")
+    a = ap.parse_args()
+    if not shutil.which("perl"):
+        return 77
+    if a.show:
+        n, stages, text = replay(os.path.abspath(a.show[0]),
+                                 os.path.abspath(a.show[1]),
+                                 a.show[2] if len(a.show) > 2 else "ALL")
+        print("%s snapshot(s)\n%s" % (n, text))
+        return 0
+    for c in CASES:
+        if a.case and not any(s in c[0] for s in a.case):
+            continue
+        run_case(*c)
+    print("FAILED: %s" % "; ".join(failures) if failures else "PASSED")
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -466,3 +466,73 @@ Begin=CHEMICAL SHIELDINGS \(ppm\)
 Frequency=first
 End=CHEMICAL SHIELDING SUMMARY
 [END]
+
+# Job progress for the Organizer's Progress box (#284).  No Script: these
+# only feed the monitor's live snapshot, not the property table.
+# SCF: ORCA prints its tolerance only in the header, so the cycle has no
+# target here; the box plots log|dE|.
+[PROGRESS]
+Begin=^\s+(\d+)\s+(-\d+\.\d+)\s+(-?\d\.\d+e[-+]\d+)\s+\d\.\d+e[-+]\d+
+Progress=scf cycle=$1 energy=$2 dE=$3
+History=dE
+[END]
+
+# One entry per line of ORCA's convergence table; the cycle line comes
+# first so that it starts the record.
+[PROGRESS]
+Begin=^\s+\*\s+GEOMETRY OPTIMIZATION CYCLE\s+(\d+)\s+\*
+Progress=opt step=$1
+[END]
+
+[PROGRESS]
+Begin=^Current Energy\s+\.{4}\s+(-?\d+\.\d+) Eh
+Progress=opt energy=$1
+History=energy
+[END]
+
+[PROGRESS]
+Begin=^\s+Energy change\s+(-?\d+\.\d+)\s+(\d+\.\d+)\s+(?:YES|NO)
+Progress=opt dE=$1/$2
+[END]
+
+[PROGRESS]
+Begin=^\s+MAX gradient\s+(-?\d+\.\d+)\s+(\d+\.\d+)\s+(?:YES|NO)
+Progress=opt maxgrad=$1/$2
+[END]
+
+[PROGRESS]
+Begin=^\s+RMS gradient\s+(-?\d+\.\d+)\s+(\d+\.\d+)\s+(?:YES|NO)
+Progress=opt rmsgrad=$1/$2
+[END]
+
+[PROGRESS]
+Begin=^\s+MAX step\s+(-?\d+\.\d+)\s+(\d+\.\d+)\s+(?:YES|NO)
+Progress=opt maxstep=$1/$2
+[END]
+
+[PROGRESS]
+Begin=^\s+RMS step\s+(-?\d+\.\d+)\s+(\d+\.\d+)\s+(?:YES|NO)
+Progress=opt rmsstep=$1/$2
+[END]
+
+[PROGRESS]
+Begin=THE OPTIMIZATION HAS CONVERGED
+Progress=opt converged=yes
+[END]
+
+[PROGRESS]
+Begin=The optimization did not converge but reached the maximum number of
+Progress=opt converged=no
+[END]
+
+# Numerical frequencies count displaced geometries; an analytic Hessian
+# has no steps, so only the closing line (with the zero-point energy) shows.
+[PROGRESS]
+Begin=<< Calculating gradient on displaced geometry\s+(\d+) \(of\s+(\d+)\) >>
+Progress=freq point=$1/$2
+[END]
+
+[PROGRESS]
+Begin=^Zero point energy\s+\.\.\.\s+(-?\d+\.\d+) Eh
+Progress=freq done=yes zpe=$1
+[END]
