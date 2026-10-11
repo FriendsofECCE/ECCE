@@ -364,7 +364,7 @@ def checkMismatch(display, data, work):
 
 
 def checkFallback(display, data, work):
-    url = makeCalc(data, "water-fallback", BAD_PROPS, LOST_D_BASIS)
+    url = makeCalc(data, "water-fallback", BAD_PROPS, basis=LOST_D_BASIS)
     out = os.path.join(work, "fallback")
     result = runBuilder(display, url, out,
                         "mopanel first\nmogrid g1\nmopanel second\n"
@@ -403,7 +403,7 @@ def shots(display, data, work, dest):
         shutil.copy(full, os.path.join(dest, "builder-mo-panel.png"))
         print("shot  %s" % os.path.join(dest, "builder-mo-panel.png"))
     #  The warning in the panel, the dialog already dismissed.
-    url = makeCalc(data, "water-shot-fallback", BAD_PROPS, LOST_D_BASIS)
+    url = makeCalc(data, "water-shot-fallback", BAD_PROPS, basis=LOST_D_BASIS)
     out = os.path.join(work, "shot-fallback")
     full = os.path.join(out, "window.png")
     runBuilder(display, url, out, "mopanel compute\nhold 3\n", shot=full)
