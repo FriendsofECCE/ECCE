@@ -1,0 +1,61 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts the Thermochemistry block of a Gaussian Freq job into the keys
+# ORCA already fills: EZEROPT, ETHERM, ENTHALPY, EGIBBS and ENTROPY, plus
+# THERMOTEMP.  Same script for Gaussian 09 and 16 (identical block layout).
+#
+# Units: Gaussian prints the "Sum of electronic and ..." lines as absolute
+# energies in Hartree/particle, so ETHERM/ENTHALPY/EGIBBS need no
+# conversion.  EZEROPT is the "Zero-point correction" (the correction, as
+# for ORCA, not the electronic-plus-ZPE sum).  ENTROPY holds T*S in
+# Hartree, as for ORCA, so S (cal/mol-K, total row of the table) is
+# multiplied by the printed temperature.
+#
+#   Temperature   298.150 Kelvin.  Pressure   1.00000 Atm.
+#   Zero-point correction=                           0.024386 (Hartree/Particle)
+#   Sum of electronic and thermal Energies=               -74.938683
+#   Sum of electronic and thermal Enthalpies=             -74.937739
+#   Sum of electronic and thermal Free Energies=          -74.959907
+#                       E (Thermal)             CV                S
+#    Total                   17.080              5.968             46.658
+#
+# The pressure has no property key, so it is not stored.
+#
+################################################################################
+
+$| = 1;
+
+use constant KCAL_PER_HARTREE => 627.5094740631;
+
+my ($temp, $zpe, $etherm, $enth, $gibbs, $S);
+my $inTable = 0;
+while (<STDIN>) {
+  if (/^\s*Temperature\s+(\d+\.\d+)\s+Kelvin/) { $temp = $1; }
+  elsif (/Zero-point correction=\s+(-?\d+\.\d+)/) { $zpe = $1; }
+  elsif (/Sum of electronic and thermal Energies=\s+(-?\d+\.\d+)/) { $etherm = $1; }
+  elsif (/Sum of electronic and thermal Enthalpies=\s+(-?\d+\.\d+)/) { $enth = $1; }
+  elsif (/Sum of electronic and thermal Free Energies=\s+(-?\d+\.\d+)/) { $gibbs = $1; }
+  elsif (/E \(Thermal\)\s+CV\s+S/) { $inTable = 1; }
+  elsif ($inTable && /^\s*Total\s+\S+\s+\S+\s+(-?\d+\.\d+)\s*$/) { $S = $1; $inTable = 0; }
+}
+
+sub emit {
+  my ($key, $value, $units) = @_;
+  print "key: $key\n";
+  print "size:\n1\n";
+  print "values:\n$value\n";
+  print "units:\n$units\n";
+  print "END\n";
+}
+
+&emit("EZEROPT", $zpe, "Hartree") if (defined($zpe));
+&emit("ETHERM", $etherm, "Hartree") if (defined($etherm));
+&emit("ENTHALPY", $enth, "Hartree") if (defined($enth));
+if (defined($S) && defined($temp)) {
+  &emit("ENTROPY", sprintf("%.8f", $S * $temp / 1000.0 / KCAL_PER_HARTREE), "Hartree");
+}
+&emit("EGIBBS", $gibbs, "Hartree") if (defined($gibbs));
+&emit("THERMOTEMP", $temp, "Kelvin") if (defined($temp));
+exit(0);

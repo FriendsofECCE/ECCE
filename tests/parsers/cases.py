@@ -46,6 +46,16 @@ CASES = [
                 'MULLIKEN': {'values': '-0.330647 0.165312 0.165335',
                              'units': 'e'},
             }),
+            # Printed: zero-point 0.024386, sums -74.938683 / -74.937739 /
+            # -74.959907, S = 46.658 cal/mol-K at 298.15 K (see #176).
+            'EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP': dict(
+                keys={
+                    'EZEROPT': {'values': '0.024386', 'units': 'Hartree'},
+                    'ETHERM': {'values': '-74.938683', 'units': 'Hartree'},
+                    'ENTHALPY': {'values': '-74.937739', 'units': 'Hartree'},
+                    'EGIBBS': {'values': '-74.959907', 'units': 'Hartree'},
+                    'ENTROPY': {'values': '0.02216872', 'units': 'Hartree'},
+                }),
             # The vibrational block: one [VIB][VIBFREQ][VIBIR][VIBRAM][VIBSYM]
             # parse type, five properties out of one script invocation.
             'VIB][VIBFREQ][VIBIR][VIBRAM][VIBSYM': dict(keys={
@@ -1872,6 +1882,85 @@ CASES = [
                                             'units': 'e'}}),
         },
     ),
+
+    # -----------------------------------------------------------------
+    # Thermochemistry and solvation (#176).  Every expected value below
+    # is a number the code printed in its own summary lines, re-derived
+    # here by hand, never taken from the parser's output:
+    #   ENTROPY is T*S in Hartree: S [cal/mol-K] * T / 1000 / 627.509474.
+    # Gaussian and ORCA print no gas-phase total with SMD, so they give
+    # ESOLVCDS (the CDS term) only; ESOLV needs both totals (NWChem COSMO).
+    # -----------------------------------------------------------------
+    dict(
+        name='g16-h2o-freq-thermo',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/h2o_freq_thermo.log',
+        # B3LYP/6-31G(d) Opt Freq: S(total) = 45.137 cal/mol-K at 298.15 K
+        parse_args=('.', 'GeoVib', 'SCF', 'RHF', '0'),
+        expect={
+            'EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP': dict(
+                blocks=1, keys={
+                    'EZEROPT': {'values': '0.021164', 'units': 'Hartree'},
+                    'ETHERM': {'values': '-76.384955', 'units': 'Hartree'},
+                    'ENTHALPY': {'values': '-76.384011', 'units': 'Hartree'},
+                    'EGIBBS': {'values': '-76.405457', 'units': 'Hartree'},
+                    'ENTROPY': {'values': '0.02144605', 'units': 'Hartree'},
+                    'THERMOTEMP': {'values': '298.150', 'units': 'Kelvin'},
+                }),
+        },
+        silent_ok={
+            'ESOLVCDS': 'gas-phase job: no SMD term printed',
+        },
+    ),
+    dict(
+        name='g16-h2o-smd',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/h2o_smd.log',
+        # SMD(water) Opt Freq: S(total) = 45.157 cal/mol-K
+        parse_args=('.', 'GeoVib', 'SCF', 'RHF', '0'),
+        expect={
+            'EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP': dict(
+                blocks=1, keys={
+                    'EZEROPT': {'values': '0.020987', 'units': 'Hartree'},
+                    'ETHERM': {'values': '-76.398294', 'units': 'Hartree'},
+                    'ENTHALPY': {'values': '-76.397350', 'units': 'Hartree'},
+                    'EGIBBS': {'values': '-76.418806', 'units': 'Hartree'},
+                    'ENTROPY': {'values': '0.02145555', 'units': 'Hartree'},
+                }),
+            # "SMD-CDS (non-electrostatic) energy (kcal/mol) = 1.43"
+            # on the final geometry's SCF, 1.43 / 627.5094740631.
+            'ESOLVCDS': dict(keys={
+                'ESOLVCDS': {'values': '0.0022788501',
+                             'units': 'Hartree'}}),
+        },
+    ),
+    dict(
+        name='orca-h2o-smd',
+        desc='orca.desc',
+        fixture='orca/h2o_smd.out',
+        # B3LYP/def2-SVP Opt Freq, CPCM(water) with SMD.  The last
+        # "SMD CDS (Gcds)" is the last SCF of the numerical frequency
+        # run (a displaced geometry), within 2e-5 Eh of the final
+        # geometry's value.
+        parse_args=('.', 'GeoVib', 'SCF', 'RHF', '0'),
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck, so ORCA '
+                                         'prints no Irrep column'},
+        expect={
+            'EZEROPT': dict(keys={'EZEROPT': {'values': '0.02098747',
+                                              'units': 'Hartree'}}),
+            'ETHERM': dict(keys={'ETHERM': {'values': '-76.30917009',
+                                            'units': 'Hartree'}}),
+            'ENTHALPY': dict(keys={'ENTHALPY': {'values': '-76.30822588',
+                                                'units': 'Hartree'}}),
+            'ENTROPY': dict(keys={'ENTROPY': {'values': '0.02145401',
+                                              'units': 'Hartree'}}),
+            'EGIBBS': dict(keys={'EGIBBS': {'values': '-76.32967989',
+                                            'units': 'Hartree'}}),
+            'ESOLVCDS': dict(keys={'ESOLVCDS': {
+                'values': '0.00230618459683', 'units': 'Hartree'}}),
+        },
+    ),
+
 ]
 
 
@@ -1915,6 +2004,40 @@ MOFILE_CASES = [
             'ORBENG': {'size': '5', 'units': 'Hartree'},
             'MO': {'size': '5 5'},
         },
+    ),
+    # NWChem thermochemistry and COSMO live only in stdout, read as a
+    # File= entry (nwchem.desc), so they are replayed here.
+    # Printed: E = -74.963023129097 (SCF), corrections 0.028561 / 0.029505
+    # au, S = 45.039 cal/mol-K at 298.15 K.
+    #   ETHERM   = E + 0.028561 = -74.934462129
+    #   ENTHALPY = E + 0.029505 = -74.933518129
+    #   T*S      = 45.039 * 298.15 / 1000 / 627.509474 = 0.0213994822
+    #   EGIBBS   = ENTHALPY - T*S = -74.954917611
+    dict(
+        name='nwchem-h2o-freq-thermo-stdout',
+        script='nwchem.thermo',
+        fixture='nwchem/h2o_freq_thermo.nwout',
+        parse_args=('.', 'Vibration', 'SCF', 'RHF', '0'),
+        expect={
+            'EZEROPT': {'values': '0.025729', 'units': 'Hartree'},
+            'ETHERM': {'values': '-74.93446213', 'units': 'Hartree'},
+            'ENTHALPY': {'values': '-74.93351813', 'units': 'Hartree'},
+            'ENTROPY': {'values': '0.02139948', 'units': 'Hartree'},
+            'EGIBBS': {'values': '-74.95491761', 'units': 'Hartree'},
+            'THERMOTEMP': {'values': '298.15', 'units': 'Kelvin'},
+        },
+        expect_no_keys={'ESOLV'},
+    ),
+    # COSMO: gas -76.408731344414, sol -76.420535365515 (printed), so
+    # ESOLV = sol - gas = -0.011804021101 Hartree (-7.41 kcal/mol, the
+    # magnitude NWChem prints as "(electrostatic) solvation energy").
+    dict(
+        name='nwchem-h2o-cosmo-stdout',
+        script='nwchem.thermo',
+        fixture='nwchem/h2o_cosmo.nwout',
+        parse_args=('.', 'Energy', 'DFT', 'B3LYP', '0'),
+        expect={'ESOLV': {'values': '-0.0118040211', 'units': 'Hartree'}},
+        expect_no_keys={'EGIBBS', 'ENTHALPY'},
     ),
 ]
 

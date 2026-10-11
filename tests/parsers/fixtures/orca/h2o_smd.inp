@@ -1,0 +1,10 @@
+! B3LYP def2-SVP Opt Freq CPCM(Water)
+%cpcm
+  smd true
+  SMDsolvent "water"
+end
+* xyz 0 1
+O   0.000000   0.000000   0.117300
+H   0.000000   0.757200  -0.469200
+H   0.000000  -0.757200  -0.469200
+*

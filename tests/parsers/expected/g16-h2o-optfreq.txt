@@ -463,12 +463,35 @@ args:    '.' 'GeoVib' 'SCF' 'RHF' '0'
   block 1: begin-line=1359 fed=364 rc=0 first-fed=' Link1:  Proceeding to internal job step number  2.'
     (script emitted no property)
 
-[NULL2]  Script=gaussian-16.null  Freq=first  Skip=-  Lines=-
+[EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP]  Script=gaussian-16.thermo  Freq=last  Skip=-  Lines=-
   Begin= Thermochemistry
   End=Cartesian Forces
   begins=1 delivered=1 buffered_away=0
   block 1: begin-line=1741 fed=116 rc=0 first-fed=' - Thermochemistry -'
-    (script emitted no property)
+    key: EZEROPT
+      size: 1
+      values: 0.024386
+      units: Hartree
+    key: ETHERM
+      size: 1
+      values: -74.938683
+      units: Hartree
+    key: ENTHALPY
+      size: 1
+      values: -74.937739
+      units: Hartree
+    key: ENTROPY
+      size: 1
+      values: 0.02216872
+      units: Hartree
+    key: EGIBBS
+      size: 1
+      values: -74.959907
+      units: Hartree
+    key: THERMOTEMP
+      size: 1
+      values: 298.150
+      units: Kelvin
 
 [DIPOLE2]  Script=gaussian-16.dipole  Freq=last  Skip=1  Lines=1
   Begin=Dipole moment \(field\-independent basis\, Debye\)\:

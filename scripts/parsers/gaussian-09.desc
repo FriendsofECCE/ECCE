@@ -121,11 +121,23 @@ Frequency=first
 End=Harmonic frequencies
 [END]
 
-[NULL2]
-Script=gaussian-09.null
+# The block also swallows the rest of the output up to the next
+# "Cartesian Forces" line, as the NULL2 entry it replaces did, so the
+# entries below cannot match inside it.
+[EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP]
+Script=gaussian-09.thermo
 Begin= Thermochemistry
-Frequency=first
+Frequency=last
 End=Cartesian Forces
+[END]
+
+# SMD only; PCM prints no solvation term of its own.
+[ESOLVCDS]
+Script=gaussian-09.solv
+Begin=SMD-CDS \(non-electrostatic\) energy
+Frequency=last
+Skip=0
+Lines=1
 [END]
 
 [DIPOLE1]

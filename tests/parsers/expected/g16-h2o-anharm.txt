@@ -44,7 +44,7 @@ args:    '.' 'Vibration' 'DFT' 'B3LYP' '0'
 
 [EGRAD]  Script=gaussian-16.egrad  Freq=all  Skip=0  Lines=1
   Begin=Cartesian Forces\:
-  begins=7 delivered=7 buffered_away=0
+  begins=6 delivered=6 buffered_away=0
   block 1: begin-line=1069 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.109958578 RMS     0.049990636'
     (script emitted no property)
   block 2: begin-line=1407 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.104960642 RMS     0.048586992'
@@ -57,19 +57,17 @@ args:    '.' 'Vibration' 'DFT' 'B3LYP' '0'
     (script emitted no property)
   block 6: begin-line=2758 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.107783448 RMS     0.050005906'
     (script emitted no property)
-  block 7: begin-line=2958 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.107509494 RMS     0.049301035'
-    (script emitted no property)
 
 [EGRADVEC]  Script=gaussian-16.egradvec  Freq=last  Skip=3  Lines=-
   Begin=             Forces
   End=--------------------------------------
-  begins=7 delivered=1 buffered_away=6
-  block 1: begin-line=2951 fed=4 rc=0 first-fed='      1        8          -0.000000000    0.000000000    0.107509494'
+  begins=6 delivered=1 buffered_away=5
+  block 1: begin-line=2751 fed=4 rc=0 first-fed='      1        8          -0.000000000   -0.016747604    0.107783448'
     key: EGRADVEC
       size: 3 3
       rowlabels: 1 2 3
       columnlabels: X Y Z
-      values: -0.000000000 0.000000000 -0.107509494 0.000000000 -0.047633451 0.053754747 0.000000000 0.047633451 0.053754747
+      values: -0.000000000 0.016747604 -0.107783448 0.000000000 -0.056176243 0.060545201 0.000000000 0.03942864 0.047238248
       units: Hartree/Bohr
 
 [DELTAE]  Script=gaussian-16.deltae  Freq=all  Skip=0  Lines=1
@@ -361,12 +359,35 @@ args:    '.' 'Vibration' 'DFT' 'B3LYP' '0'
       values: 56.53615267 7.61103307 32.24629709
       units: KM/Mole
 
-[NULL2]  Script=gaussian-16.null  Freq=first  Skip=-  Lines=-
+[EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP]  Script=gaussian-16.thermo  Freq=last  Skip=-  Lines=-
   Begin= Thermochemistry
   End=Cartesian Forces
-  begins=1 delivered=1 buffered_away=0
-  block 1: begin-line=605 fed=124 rc=0 first-fed=' - Thermochemistry -'
-    (script emitted no property)
+  begins=2 delivered=1 buffered_away=1
+  block 1: begin-line=2841 fed=118 rc=0 first-fed=' - Thermochemistry -'
+    key: EZEROPT
+      size: 1
+      values: 0.024655
+      units: Hartree
+    key: ETHERM
+      size: 1
+      values: -75.285033
+      units: Hartree
+    key: ENTHALPY
+      size: 1
+      values: -75.284089
+      units: Hartree
+    key: ENTROPY
+      size: 1
+      values: 0.02140994
+      units: Hartree
+    key: EGIBBS
+      size: 1
+      values: -75.305499
+      units: Hartree
+    key: THERMOTEMP
+      size: 1
+      values: 298.150
+      units: Kelvin
 
 [DIPOLE2]  Script=gaussian-16.dipole  Freq=last  Skip=1  Lines=1
   Begin=Dipole moment \(field\-independent basis\, Debye\)\:

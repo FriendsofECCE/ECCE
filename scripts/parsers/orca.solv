@@ -1,0 +1,23 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# ORCA SMD lists the cavity-dispersion term among the TOTAL SCF ENERGY
+# components, already in Hartree:
+#   SMD CDS (Gcds)     :          0.00229851141187 Eh               0.06255 eV
+# No gas-phase total is printed, so this is stored as ESOLVCDS and not as
+# the full solvation free energy (see gaussian-16.solv).
+#
+################################################################################
+
+$| = 1;
+
+$_ = <STDIN>;
+exit(0) if (!defined($_) || !/:\s*(-?\d+\.\d+)\s*Eh/);
+
+print "key: ESOLVCDS\n";
+print "size:\n1\n";
+print "values:\n$1\n";
+print "units:\nHartree\n";
+print "END\n";
+exit(0);

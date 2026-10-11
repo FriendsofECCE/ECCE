@@ -146,7 +146,10 @@ def tinted(path, which):
     r, g, b = p[..., 0], p[..., 1], p[..., 2]
     if which == "yellow":
         return int(((r > 120) & (g > 120) & (b < 60)).sum())
-    return int(((b > 120) & (r < 80) & (g < 80)).sum())
+    # The charge blue is lit and shaded by the viewer, so its green channel
+    # is about half its blue (e.g. 60,111,241), not near zero: test for a
+    # clearly blue hue. White hydrogens and red oxygen never satisfy it.
+    return int(((b > 100) & (b > r + 60) & (b > g + 30)).sum())
 
 
 def runScript(s, display, env, wrappers, argv, lines, png, prefix, extra=None):

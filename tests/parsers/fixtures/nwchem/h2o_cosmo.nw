@@ -1,0 +1,19 @@
+start h2ocosmo
+title "H2O B3LYP COSMO"
+echo
+geometry units angstroms
+  O   0.000000   0.000000   0.117300
+  H   0.000000   0.757200  -0.469200
+  H   0.000000  -0.757200  -0.469200
+end
+basis
+  * library 6-31G*
+end
+dft
+  xc b3lyp
+end
+cosmo
+  dielec 78.4
+end
+ecce_print h2o_cosmo.eprint
+task dft energy
