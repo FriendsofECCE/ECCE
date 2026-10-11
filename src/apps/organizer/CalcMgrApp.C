@@ -257,6 +257,11 @@ void CalcMgrApp::miscPrefChangeMCB(JMSMessage& msg)
 
 void CalcMgrApp::invokeMCB(JMSMessage& msg)
 {
+  //  Only a request for the Organizer itself brings it forward.  Opening
+  //  another tool from it must not raise it again or flag it for attention:
+  //  GNOME then announces "ECCE Organizer is ready" over the new tool.
+  const string app = msg.getProperty("appname");
+  if (!app.empty() && app != "Organizer") return;
   p_calcMgr->Iconize(false);
   p_calcMgr->Raise();
   p_calcMgr->Show(true);
