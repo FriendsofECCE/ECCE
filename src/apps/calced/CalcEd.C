@@ -3249,27 +3249,59 @@ void CalcEd::enableDetailsFields()
  * The first thing the user still has to supply, for the greyed-out
  * buttons; empty when nothing is missing or the run is past setup.
  */
-string CalcEd::notReadyReason() const
+string CalcEd::notReadyReason(int *box) const
 {
-  if (!p_frag)
+  int dummy;
+  if (!box) box = &dummy;
+  *box = BOX_NONE;
+  if (!p_frag) {
+    *box = BOX_CHEMSYS;
     return "Not ready: build or import a molecule (Builder).";
-  if (p_frag->containsNubs())
+  }
+  if (p_frag->containsNubs()) {
+    *box = BOX_CHEMSYS;
     return "Not ready: the molecule has open bonds; add hydrogens or "
            "remove them in the Builder.";
-  if (requiresMissingCell())
+  }
+  if (requiresMissingCell()) {
+    *box = BOX_CHEMSYS;
     return "Not ready: this code needs a periodic unit cell.";
+  }
   if (p_iCalc->getState() >= ResourceDescriptor::STATE_SUBMITTED)
     return "";
   if (theoryNeedsBasis()) {
-    if (!p_basis)
+    if (!p_basis) {
+      *box = BOX_BASIS;
       return "Not ready: choose a basis set (Basis Set or Quick Basis Menu).";
+    }
     TTheory theory = getTheory();
     if (!GBSRules::isConsistent(p_frag, p_basis, p_code, &theory) ||
-        !GBSRules::isComplete(p_frag, p_basis, p_code, &theory))
+        !GBSRules::isComplete(p_frag, p_basis, p_code, &theory)) {
+      *box = BOX_BASIS;
       return "Not ready: the basis set does not cover every element of "
              "the molecule; open Basis Set to complete it.";
+    }
   }
   return "";
+}
+
+
+/**
+ * Puts a "*" on the title of the box the first missing item belongs to
+ * (system colours and fonts only, so it follows the theme), and takes it
+ * off the other.
+ */
+void CalcEd::markBlockingBox(int box)
+{
+  wxStaticBox *boxes[] = { p_chemSysBox, p_basisBox };
+  int ids[] = { BOX_CHEMSYS, BOX_BASIS };
+  for (int i = 0; i < 2; i++) {
+    wxString label = boxes[i]->GetLabel();
+    bool marked = label.EndsWith(" *");
+    if (marked) label.RemoveLast(2);
+    if (box == ids[i]) label += " *";
+    if (marked != (box == ids[i])) boxes[i]->SetLabel(label);
+  }
 }
 
 
@@ -3317,7 +3349,9 @@ void CalcEd::enableLaunch()
     FindWindow(ID_BUTTON_CALCED_LAUNCH)->Enable(togo && p_hasInputFile);
     FindWindow(ID_BUTTON_CALCED_VERIFY)->Enable(togo);
 
-    string why = ready ? "" : notReadyReason();
+    int box;
+    string why = ready ? "" : notReadyReason(&box);
+    markBlockingBox(ready ? (int)BOX_NONE : box);
     wxString tip(why.c_str(), wxConvUTF8);
     FindWindow(ID_BUTTON_CALCED_FINAL_EDIT)->SetToolTip(tip);
     FindWindow(ID_BUTTON_CALCED_LAUNCH)->SetToolTip(tip);
@@ -3341,6 +3375,7 @@ void CalcEd::enableLaunch()
     FindWindow(ID_BUTTON_CALCED_FINAL_EDIT)->Enable(false);
     FindWindow(ID_BUTTON_CALCED_LAUNCH)->Enable(false);
     FindWindow(ID_BUTTON_CALCED_VERIFY)->Enable(false);
+    markBlockingBox(BOX_NONE);
     setVerifyLight(false, VerifyFinding::GOOD,
                    "There is no input file to check yet.");
   }

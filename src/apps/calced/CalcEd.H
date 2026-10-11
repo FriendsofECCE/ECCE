@@ -190,7 +190,9 @@ class CalcEd: public CalcEdGUI,
     bool theoryNeedsBasis() const;
     bool isReady() const;
     bool requiresMissingCell() const;
-    std::string notReadyReason() const;
+    enum { BOX_NONE, BOX_CHEMSYS, BOX_BASIS };
+    std::string notReadyReason(int *box = 0) const;
+    void markBlockingBox(int box);
     bool isGbsValid();
 
     // refresh & enable/disable & show/hide indicated field sets

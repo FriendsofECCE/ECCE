@@ -168,6 +168,8 @@ public:
 ////@begin CalcEdGUI member variables
     wxBoxSizer* p_codeSizer;
     wxStaticBox* p_detailsBox;
+    wxStaticBox* p_chemSysBox;
+    wxStaticBox* p_basisBox;
     wxFlexGridSizer* p_theoryDetailsSizer;
     wxFlexGridSizer* p_runtypeDetailsSizer;
     wxBoxSizer* p_buttonRow;

@@ -230,8 +230,8 @@ void CalcEdGUI::CreateControls()
     itemButton14->Show(false);
     itemStaticBoxSizer12->Add(itemButton14, 0, wxALIGN_CENTER_VERTICAL, 5);
 
-    wxStaticBox* itemStaticBoxSizer15Static = new wxStaticBox(itemFrame1, wxID_ANY, _("Chemical System"));
-    wxStaticBoxSizer* itemStaticBoxSizer15 = new wxStaticBoxSizer(itemStaticBoxSizer15Static, wxHORIZONTAL);
+    p_chemSysBox = new wxStaticBox(itemFrame1, wxID_ANY, _("Chemical System"));
+    wxStaticBoxSizer* itemStaticBoxSizer15 = new wxStaticBoxSizer(p_chemSysBox, wxHORIZONTAL);
     itemBoxSizer11->Add(itemStaticBoxSizer15, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, 5);
 
     ewxButton* itemButton16 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_BUILDER, _("Builder"), wxDefaultPosition, wxSize(64, 64), 0 );
@@ -347,8 +347,8 @@ void CalcEdGUI::CreateControls()
     ewxStaticText* itemStaticText42 = new ewxStaticText( itemFrame1, ID_STATICTEXT_CALCED_OPEN_SHELLS, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer38->Add(itemStaticText42, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 
-    wxStaticBox* itemStaticBoxSizer43Static = new wxStaticBox(itemFrame1, wxID_ANY, _("Basis Set"));
-    wxStaticBoxSizer* itemStaticBoxSizer43 = new wxStaticBoxSizer(itemStaticBoxSizer43Static, wxHORIZONTAL);
+    p_basisBox = new wxStaticBox(itemFrame1, wxID_ANY, _("Basis Set"));
+    wxStaticBoxSizer* itemStaticBoxSizer43 = new wxStaticBoxSizer(p_basisBox, wxHORIZONTAL);
     itemBoxSizer11->Add(itemStaticBoxSizer43, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, 5);
 
     ewxButton* itemButton44 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_BASIS_SET, _("Basis"), wxDefaultPosition, wxSize(64, 64), 0 );
