@@ -23,6 +23,8 @@ class GridDlg;
 class MoCoeffs;
 class MoAoBasis;
 class wxGrid;
+class WxColorSchemeButton;
+class wxStaticText;
 class wxTextCtrl;
 
 
@@ -100,6 +102,15 @@ class MoPanel : public MoGUI,
       */
      string tableState() const;
 
+     /**
+      * The ESP colour bar as drawn, "key value" lines, for headless checks
+      * (the Builder's "mobar" scene command).
+      */
+     string espBarState() const;
+
+     /** Choose a field type as a click in the type drop-down does. */
+     bool selectFieldType(const string& name);
+
      /** The text shown under the table: the selected MO's composition. */
      string compositionText() const { return p_compSummary; }
 
@@ -153,6 +164,13 @@ class MoPanel : public MoGUI,
       void onFieldTypeChanged(wxCommandEvent& event);
       void rebuildEspSurface();
 
+      //  The legend for a potential-mapped surface: the surface's own ramp,
+      //  the range it is stretched over, and the density isovalue.  Shown
+      //  only while such a surface is the one drawn.
+      void buildEspBar();
+      void refreshEspBar();
+      void hideEspBar();
+
       //  Bring the selected row into the middle of the table once the
       //  table has its real, on-screen size; see selectMo().
       //  Coefficients and basis disagree in size; see MoPanel.C.
@@ -168,6 +186,12 @@ class MoPanel : public MoGUI,
       ewxCheckBox *p_espAuto;
       ewxTextCtrl *p_espMin;
       ewxTextCtrl *p_espMax;
+      wxBoxSizer  *p_espBarSizer = 0;
+      WxColorSchemeButton *p_espBar = 0;
+      wxStaticText *p_espBarMin = 0;
+      wxStaticText *p_espBarMax = 0;
+      wxStaticText *p_espBarInfo = 0;
+      string p_espDrawnType;     // field type of the surface on screen
 
 
       //  The selected MO's atomic-orbital composition (#161), from the

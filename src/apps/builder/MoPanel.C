@@ -43,6 +43,7 @@
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/SliderCombo.H"
 #include "wxgui/WindowEvent.H"
+#include "wxgui/WxColorSchemeButton.H"
 
 #include "viz/ComputeMoCmd.H"
 #include "viz/IsoSurfaceCmd.H"
@@ -1322,6 +1323,9 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
       p_slider->SetValue(isovalue);
       updateIsoValue(isovalue);
 
+      p_espDrawnType = espSurface ? fieldtype : string();
+      refreshEspBar();
+
       // --- Deal with orthogonal slices (Slicer gui)
       // We need to update the max values of all 3 ortho slice sliders and
       // reset the current values if, for example, we have reduced the
@@ -1559,6 +1563,8 @@ void MoPanel::updateIsoValue(double isovalue)
 
    double posR, posG, posB, negR, negG, negB;
    getSurfaceColors(posR, posG, posB, negR, negG, negB);
+
+   if (p_espBarSizer != 0 && p_espBar->IsShown()) refreshEspBar();
 
    Command *cmd = new IsoValueCmd("Iso Value", &sg, expt);
    cmd->getParameter("Value")->setDouble(isovalue);
@@ -1828,6 +1834,119 @@ void MoPanel::buildEspRangeControls()
    p_espMax->Bind(wxEVT_TEXT_ENTER, &MoPanel::onEspRangeChanged, this);
    p_espMin->Bind(wxEVT_KILL_FOCUS, &MoPanel::onEspRangeFocusLost, this);
    p_espMax->Bind(wxEVT_KILL_FOCUS, &MoPanel::onEspRangeFocusLost, this);
+
+   buildEspBar();
+}
+
+
+/**
+ * The legend.  Built hidden, on a row of its own below the range controls
+ * for the same width reason as them.  The colours are the ones the surface's
+ * ramp holds (IsoSurfaceCmd::potentialRampColor), laid out left to right
+ * from the most negative to the most positive potential.
+ */
+void MoPanel::buildEspBar()
+{
+   p_espBarSizer = new wxBoxSizer(wxVERTICAL);
+   GetSizer()->Add(p_espBarSizer, 0, wxALIGN_LEFT|wxLEFT|wxBOTTOM, 5);
+
+   wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+   p_espBarMin = new ewxStaticText(this, wxID_STATIC, "-0.0000");
+   row->Add(p_espBarMin, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 4);
+
+   vector<wxColour> colors;
+   const int steps = 64;
+   for (int i = 0; i < steps; i++) {
+      double r, g, b;
+      IsoSurfaceCmd::potentialRampColor(2.0*i/(steps - 1) - 1.0, r, g, b);
+      colors.push_back(wxColour((unsigned char)(r*255.0 + 0.5),
+                                (unsigned char)(g*255.0 + 0.5),
+                                (unsigned char)(b*255.0 + 0.5)));
+   }
+   p_espBar = new WxColorSchemeButton(this, -1, wxDefaultPosition,
+                                      wxSize(200, 18));
+   p_espBar->addColors(colors);
+   row->Add(p_espBar, 0, wxALIGN_CENTER_VERTICAL);
+
+   p_espBarMax = new ewxStaticText(this, wxID_STATIC, "+0.0000");
+   row->Add(p_espBarMax, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 4);
+   p_espBarSizer->Add(row, 0, wxBOTTOM, 2);
+
+   p_espBarInfo = new ewxStaticText(this, wxID_STATIC, "");
+   p_espBarSizer->Add(p_espBarInfo, 0);
+
+   GetSizer()->Show(p_espBarSizer, false, true);
+}
+
+
+void MoPanel::hideEspBar()
+{
+   if (p_espBarSizer == 0) return;
+   GetSizer()->Show(p_espBarSizer, false, true);
+   GetSizer()->Layout();
+}
+
+
+/**
+ * Fill the legend from what is on screen: the grid's colour range is the
+ * one the ramp was stretched over (IsoSurfaceCmd sets it, whether measured,
+ * typed in or from ECCE_ESP_RANGE), the slider is the density isovalue.
+ */
+void MoPanel::refreshEspBar()
+{
+   if (p_espBarSizer == 0) return;
+   SingleGrid *grid = getFW().getSceneGraph().getCurrentGrid();
+   //  Follows the surface on screen, not the drop-down: choosing a type
+   //  draws nothing until Compute.
+   if (!p_isValid || grid == 0 || grid->colorFieldData() == 0 ||
+       p_espDrawnType.empty()) {
+      hideEspBar();
+      return;
+   }
+
+   float lo = grid->colorFieldMin();
+   float hi = grid->colorFieldMax();
+   IsoSurfaceCmd::potentialRampRange(lo, hi);
+   const double toKcal = 627.5095;   // 1 Hartree/e in kcal/mol per e
+   const double iso = pow(10.0, static_cast<double>(p_slider->GetFloatValue()));
+
+   p_espBarMin->SetLabel(wxString::Format("%+.4f", lo));
+   p_espBarMax->SetLabel(wxString::Format("%+.4f", hi));
+   p_espBarInfo->SetLabel(wxString::Format(
+      "red: negative (electron-rich)   blue: positive (electron-poor)\n"
+      "a.u. (Hartree/e); %+.1f to %+.1f kcal/mol per e; surface %.4f e/bohr^3",
+      lo*toKcal, hi*toKcal, iso));
+   GetSizer()->Show(p_espBarSizer, true, true);
+   GetSizer()->Layout();
+}
+
+
+bool MoPanel::selectFieldType(const string& name)
+{
+   ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+   const int at = typewin->FindString(wxString::FromUTF8(name.c_str()));
+   if (at == wxNOT_FOUND) return false;
+   typewin->SetSelection(at);
+   wxCommandEvent ev(wxEVT_CHOICE, typewin->GetId());
+   ev.SetEventObject(typewin);
+   ev.SetInt(at);
+   typewin->GetEventHandler()->ProcessEvent(ev);
+   return true;
+}
+
+
+string MoPanel::espBarState() const
+{
+   if (p_espBarSizer == 0) return "espbar none\n";
+   const bool shown = p_espBar->IsShownOnScreen();
+   string out = string("espbar_shown ") + (shown ? "1" : "0") + "\n";
+   out += "espbar_min " + p_espBarMin->GetLabel().ToStdString() + "\n";
+   out += "espbar_max " + p_espBarMax->GetLabel().ToStdString() + "\n";
+   out += "espbar_colors " + std::to_string(p_espBar->getColors().size()) + "\n";
+   wxString info = p_espBarInfo->GetLabel();
+   info.Replace("\n", " | ");
+   out += "espbar_info " + info.ToStdString() + "\n";
+   return out;
 }
 
 
@@ -1902,6 +2021,7 @@ void MoPanel::onFieldTypeChanged(wxCommandEvent& event)
    const bool esp = espFieldSelected();
    showEspRangeControls(esp);
 
+
    //  The mode has to follow the choice, not only the panel's focus --
    //  switching type with the panel already focused would otherwise
    //  leave an opaque map being drawn under SCREEN_DOOR, or the
@@ -1951,4 +2071,5 @@ void MoPanel::rebuildEspSurface()
 
    updateSurface();
    updateIsoValue();
+   refreshEspBar();
 }

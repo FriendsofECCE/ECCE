@@ -5405,7 +5405,24 @@ void Builder::updatePropertyMenus()
           GetEventHandler()->ProcessEvent(ev);
           return true;
         }
-        if ((w[0] != "mopanel" && w[0] != "motable") || w.size() != 2)
+        //  "mofield <type>": the MO panel's field-type choice, as clicked.
+        if (w[0] == "mofield" && w.size() >= 2) {
+          string type = w[1];
+          for (size_t k = 2; k < w.size(); k++) type += " " + w[k];
+          MoPanel *mo = 0;
+          set<PropertyPanel*> mp =
+              PropertyPanel::getPanels(p_calculation->getURL().toString());
+          for (set<PropertyPanel*>::iterator it = mp.begin();
+               it != mp.end() && !mo; ++it)
+            mo = dynamic_cast<MoPanel*>(*it);
+          if (!mo) return s.fail("mofield: no MO panel");
+          mo->ensureInitialized();
+          if (!mo->selectFieldType(type))
+            return s.fail("mofield: no field type " + type);
+          return true;
+        }
+        if ((w[0] != "mopanel" && w[0] != "motable" && w[0] != "mobar") ||
+            w.size() != 2)
           return s.fail("unknown command: " + w[0]);
         MoPanel *mo = 0;
         set<PropertyPanel*> panels =
@@ -5415,6 +5432,12 @@ void Builder::updatePropertyMenus()
           mo = dynamic_cast<MoPanel*>(*it);
         if (!mo) return s.fail(w[0] + ": no MO panel");
         mo->ensureInitialized();
+        //  "mobar <name>": the ESP colour bar as drawn -> <name>.txt.
+        if (w[0] == "mobar") {
+          std::ofstream out(outdir + "/" + w[1] + ".txt");
+          out << mo->espBarState();
+          return true;
+        }
         //  "motable <name>": the MO table's selection and scroll state, and
         //  the alpha HOMO from the parsed occupations, -> <name>.txt.
         if (w[0] == "motable") {

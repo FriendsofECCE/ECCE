@@ -23,6 +23,10 @@ The Properties list highlights the panel that is shown (opened from
 ECCE_OPEN_PANEL, the Properties menu or a click on the list), in the list +
 detail and the classic layout.
 
+The ESP colour bar (water, Gaussian 16, calc-water-vib): absent until an ESP
+surface is drawn, then showing the range the surface's ramp was stretched
+over, absent again once an MO is drawn instead.
+
 Same installed tree and isolation as run_tests.py (ECCE_TEST_HOME,
 ECCE_TEST_WRAPPERS).  Exit 77 (skip) without an install or Xvfb.
 """
@@ -50,6 +54,7 @@ PROJECT_META = os.path.join(ROOT, "tools", "screenshots", "data",
 MISMATCH = ("the output has 23 basis functions, but the basis set ECCE has "
             "for this calculation has 24")
 ZERO_GRID = "The grid value for this MO is 0"
+WATER_G16 = os.path.join(FIXTURES, "calc-water-vib")
 SKIP = 77
 
 failures = []
@@ -80,12 +85,20 @@ def traceCheck():
         print("ok    trace(P.S) = %.4f for water's 10 electrons" % total)
 
 
-def makeCalc(data, name, props=None):
+def makeCalc(data, name, props=None, source=GOOD):
     project = os.path.join(data, "users", "local", "orca-mo")
     os.makedirs(project, exist_ok=True)
     shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
     calc = os.path.join(project, name)
-    shutil.copytree(GOOD, calc)
+    shutil.copytree(source, calc, ignore=shutil.ignore_patterns(".DAV"))
+    if source == WATER_G16:
+        #  The fixture's properties live in the data server's WebDAV state;
+        #  a local calculation reads the same facts from .ecce-meta.
+        meta = open(os.path.join(GOOD, ".ecce-meta")).read()
+        meta = meta.replace("\tORCA\n", "\tGaussian-16\n")
+        meta = meta.replace("ecce:runtype\t\tEnergy", "ecce:runtype\t\tVibration")
+        with open(os.path.join(calc, ".ecce-meta"), "w") as handle:
+            handle.write(meta)
     if props:
         for f in os.listdir(props):
             shutil.copy(os.path.join(props, f), os.path.join(calc, "Props"))
@@ -93,7 +106,7 @@ def makeCalc(data, name, props=None):
 
 
 def runBuilder(display, url, out, scene, shot=None, mode=None,
-               dialogSeconds="1"):
+               dialogSeconds="1", extraEnv=None):
     os.makedirs(out, exist_ok=True)
     script = os.path.join(out, "scene")
     with open(script, "w") as handle:
@@ -126,6 +139,7 @@ def runBuilder(display, url, out, scene, shot=None, mode=None,
     if shot:
         #  The scene in the Builder's own canvas, the window kept open.
         env["ECCE_VIEWER_SCENE_HOLD"] = "120"
+    env.update(extraEnv or {})
     return apps.run(display, "builder", args=("-context", url),
                     windowTimeout=120, settle=90 if not shot else 40,
                     inspect=inspect if shot else None,
@@ -238,6 +252,82 @@ def checkTree(display, data, work, mode):
     print("ok    %s" % what)
 
 
+def checkEspBar(display, data, work):
+    """The ESP legend: hidden before an ESP surface is drawn and once an MO
+    replaces it (choosing a type alone draws nothing, so the bar stays),
+    on the ESP surface it carries the surface's colour range (fixed here by
+    ECCE_ESP_RANGE, so the expected value does not come from the code that
+    draws the bar) and says what the colours and the units are."""
+    url = makeCalc(data, "esp-bar", source=WATER_G16)
+    out = os.path.join(work, "esp-bar")
+    scene = ("mobar before\nmofield Density (ESP)\nmobar chosen\n"
+             "mopanel esp\nmobar drawn\nmofield MO\nmobar typed\n"
+             "mopanel mo\nmobar mo\n")
+    result = runBuilder(display, url, out, scene,
+                        extraEnv={"ECCE_ESP_RANGE": "0.05"})
+    what = "ESP colour bar"
+    st = {n: readState(out, n) for n in
+          ("before", "chosen", "drawn", "typed", "mo")}
+    if any(v is None for v in st.values()):
+        fail(what, "the scene did not finish: %s" % [n for n, v in st.items()
+                                                      if v is None],
+             result.log)
+        return
+    for name in ("before", "chosen", "mo"):
+        if st[name].get("espbar_shown") != "1" and \
+                st[name].get("espbar_shown") != "0":
+            fail(what, "no bar state at %s" % name)
+            return
+        if st[name]["espbar_shown"] != "0":
+            fail(what, "the bar is visible at '%s'; it belongs to a drawn "
+                 "ESP surface only" % name)
+            return
+    d = st["drawn"]
+    info = d.get("espbar_info", "")
+    problems = []
+    if d.get("espbar_shown") != "1":
+        problems.append("not visible while the ESP surface is drawn")
+    if d.get("espbar_min", "").strip() != "-0.0500" or \
+            d.get("espbar_max", "").strip() != "+0.0500":
+        problems.append("range %s .. %s, want -0.0500 .. +0.0500"
+                        % (d.get("espbar_min"), d.get("espbar_max")))
+    if d.get("espbar_colors") != "64":
+        problems.append("%s colours, the ramp has 64" % d.get("espbar_colors"))
+    for text in ("negative (electron-rich)", "positive (electron-poor)",
+                 "Hartree/e", "kcal/mol", "e/bohr^3"):
+        if text not in info:
+            problems.append("legend lacks '%s'" % text)
+    if "-31.4 to +31.4 kcal/mol" not in info:   # 0.05 * 627.5095
+        problems.append("kcal/mol range is not 0.05 Hartree/e converted")
+    if problems:
+        fail(what, "; ".join(problems), info)
+    else:
+        print("ok    %s: shown only with the ESP surface, +/-0.05 Hartree/e"
+              % what)
+
+    #  Auto-scaled: the bar must show the range the surface was coloured
+    #  over, which IsoSurfaceCmd logs independently of the bar.
+    out = os.path.join(work, "esp-bar-auto")
+    result = runBuilder(display, url, out,
+                        "mofield Density (ESP)\nmopanel esp\nmobar auto\n",
+                        extraEnv={"ECCE_DEBUG_ISO": "1"})
+    what = "ESP colour bar, auto range"
+    st = readState(out, "auto")
+    used = re.findall(r"range \+/- (\S+)", result.log or "")
+    if st is None or not used:
+        fail(what, "no bar state or no range logged", result.log)
+        return
+    lo, hi = st["espbar_min"].strip(), st["espbar_max"].strip()
+    want = float(used[-1])
+    if abs(float(hi) - want) > 6e-5 or abs(float(lo) + want) > 6e-5 \
+            or not want > 0:
+        fail(what, "bar %s .. %s, the surface was coloured +/-%g"
+             % (lo, hi, want))
+    else:
+        print("ok    %s: %s .. %s as the surface was coloured" % (what, lo,
+                                                                   hi))
+
+
 def checkMismatch(display, data, work):
     url = makeCalc(data, "water-23", BAD_PROPS)
     out = os.path.join(work, "bad")
@@ -288,8 +378,8 @@ def shots(display, data, work, dest):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--shots", help="save the Builder window here")
-    parser.add_argument("--only", choices=("tree",),
-                        help="run just the tree checks")
+    parser.add_argument("--only", choices=("esp", "tree"),
+                        help="run just the ESP bar or the tree checks")
     parser.add_argument("--keep", action="store_true",
                         help="keep the scratch directory for inspection")
     options = parser.parse_args()
@@ -320,12 +410,15 @@ def main():
         try:
             if options.shots:
                 shots(display, data, work, options.shots)
+            elif options.only == "esp":
+                checkEspBar(display, data, work)
             elif options.only == "tree":
                 for mode in ("detail", "classic"):
                     checkTree(display, data, work, mode)
             else:
                 checkGood(display, data, work)
                 checkMismatch(display, data, work)
+                checkEspBar(display, data, work)
                 for mode in ("detail", "classic"):
                     checkTree(display, data, work, mode)
                 for mode in ("classic", "stacked", "accordion", "detail"):
