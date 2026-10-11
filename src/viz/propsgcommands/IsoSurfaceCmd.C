@@ -492,6 +492,28 @@ bool IsoSurfaceCmd::execute()
 //   rather than the middle of whatever range this molecule happens to
 //   span.
 /////////////////////////////////////////////////////////////////////////////
+void IsoSurfaceCmd::potentialRampColor(double t, double& r, double& g,
+                                       double& b)
+{
+   if (t < 0.0) {                 // red -> white
+      r = 1.0;  g = 1.0 + t;  b = 1.0 + t;
+   } else {                       // white -> blue
+      r = 1.0 - t;  g = 1.0 - t;  b = 1.0;
+   }
+}
+
+
+//  A molecule with no charges at all would give a zero-width range, which
+//  would put every vertex at one end of the ramp.
+void IsoSurfaceCmd::potentialRampRange(float& minValue, float& maxValue)
+{
+   if (maxValue <= minValue) {
+      minValue = -1.0;
+      maxValue =  1.0;
+   }
+}
+
+
 void IsoSurfaceCmd::setPotentialRamp(ChemIso *isosurf, float minValue,
                                      float maxValue, double transparency)
 {
@@ -505,21 +527,12 @@ void IsoSurfaceCmd::setPotentialRamp(ChemIso *isosurf, float minValue,
       const double t = 2.0*i/(steps-1) - 1.0;
 
       double r, g, b;
-      if (t < 0.0) {                 // red -> white
-         r = 1.0;  g = 1.0 + t;  b = 1.0 + t;
-      } else {                       // white -> blue
-         r = 1.0 - t;  g = 1.0 - t;  b = 1.0;
-      }
+      potentialRampColor(t, r, g, b);
       ramp[i] = SbColor(r, g, b).getPackedValue(transparency);
    }
    isosurf->orderedRGBA.finishEditing();
 
-   //  A molecule with no charges at all would give a zero-width range,
-   //  which would put every vertex at one end of the ramp.
-   if (maxValue <= minValue) {
-      minValue = -1.0;
-      maxValue =  1.0;
-   }
+   potentialRampRange(minValue, maxValue);
    isosurf->minValue.setValue(minValue);
    isosurf->maxValue.setValue(maxValue);
 }

@@ -57,6 +57,8 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [wxMSW paints every intermediate state: panes before AUI places them, menu bars item by item; a disabled active window hands the activation away (#254, #255, #256)](windows-every-intermediate-state-is-painted.md)
 - [Every `ewxFrame`/`ewxDialog` is capped to its display and scrolls what does not fit (`fitToScreen()`); codereg dialogs scroll in `EccePanel` (#189)](windows-fit-small-screens-via-fittodisplay.md)
 
+- [The ESP colour bar draws the surface's own ramp and the grid's colour range; it follows the surface on screen, not the type drop-down (#210)](esp-colour-bar-reads-the-surfaces-own-ramp.md)
+
 - [A failed live property update must not free the cached property; a panel's timer must die with the panel (#217)](property-cache-and-panel-timers-outlive-their-objects.md)
 - [The Inventor viewer works in framebuffer pixels; wx sizes and mouse positions are logical units (#133)](viewer-sizes-are-framebuffer-pixels.md)
 - [Normal modes belong to the calculated structure; reloading a fragment needs touchNumbers (#244)](normal-modes-belong-to-the-calculated-structure.md)

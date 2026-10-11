@@ -129,6 +129,15 @@ void PropertyIndexPanel::setSelected(const std::string& name)
 }
 
 
+std::string PropertyIndexPanel::selected() const
+{
+  wxTreeItemId item = p_tree->GetSelection();
+  if (!item.IsOk()) return "";
+  NameData *d = dynamic_cast<NameData*>(p_tree->GetItemData(item));
+  return d ? d->name : "";
+}
+
+
 bool PropertyIndexPanel::click(const std::string& name)
 {
   p_tree->SetFocus();

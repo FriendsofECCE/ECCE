@@ -21,6 +21,14 @@ class IsoSurfaceCmd : public PropCmd
     void init();
     bool execute();
 
+    /**
+     * The ramp's colour at t in [-1, 1] (negative to positive extreme),
+     * and the range actually used for a grid's [min, max].  Public so a
+     * legend draws the surface's own colours, not a copy of them.
+     */
+    static void potentialRampColor(double t, double& r, double& g, double& b);
+    static void potentialRampRange(float& minValue, float& maxValue);
+
   protected:
 
 
