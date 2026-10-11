@@ -28,6 +28,10 @@ class XcIntegrator {
   // Da, Db: spin densities.  closed_shell: Da == Db is assumed and only Va
   // is computed (Vb = Va).  Returns E_xc; also reports the integrated electron count.
   double compute(const Mat& Da, const Mat& Db, bool closed_shell, Mat& Va, Mat& Vb, double* nelec = nullptr);
+  // Gradient of E_xc with respect to the nuclei (3 per atom, bohr) from the
+  // basis-function derivatives only; the weights' dependence on the nuclei is
+  // neglected.  Same density arguments as compute().
+  void gradient(const Mat& Da, const Mat& Db, bool closed_shell, std::vector<double>& grad);
   size_t npoints() const { return grid_.size(); }
 
  private:

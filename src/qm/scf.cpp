@@ -271,6 +271,7 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt) {
     if (closed) { diagonalize(Fa, X, eps_a, Ca); eps_b = eps_a; Cb = Ca; }
   }
 
+  R.F_a = Fa; R.F_b = Fb;
   R.eps_a = eps_a; R.eps_b = eps_b; R.C_a = Ca; R.C_b = Cb;
   R.D_a = density(Ca, na);
   R.D_b = density(Cb, nb);

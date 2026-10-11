@@ -2,7 +2,7 @@
 //  * Lebedev rules integrate monomials exactly (analytic values);
 //  * AO values on the grid, integrated pairwise, reproduce libcint's overlap
 //    matrix (two independent routes to <i|j>: quadrature and libcint);
-//  * AO gradients agree with finite differences of the AO values.
+//  * AO gradients and second derivatives agree with finite differences.
 #include <cmath>
 #include <iostream>
 #include "ao.hpp"
@@ -79,6 +79,28 @@ int main(int argc, char** argv) {
         }
       }
       check(gerr < 1e-6, std::string("AO gradient vs finite difference ") + bname, gerr);
+      // second derivatives (DFT gradients) by differences of the gradients, relative to the largest
+      double herr = 0;
+      for (int p = 0; p < 20; ++p) {
+        size_t i = (p * 7919) % g.size();
+        double h = 1e-6, pt[3] = {g.x[i], g.y[i], g.z[i]};
+        AoValues a0, ap, am;
+        eval_ao(b, pt, 1, 2, a0);
+        const double scale = std::max(1.0, a0.dxx.cwiseAbs().maxCoeff());
+        for (int c = 0; c < 3; ++c) {
+          double q[3] = {pt[0], pt[1], pt[2]};
+          q[c] += h; eval_ao(b, q, 1, 1, ap);
+          q[c] -= 2 * h; eval_ao(b, q, 1, 1, am);
+          const Mat* row[3] = {c == 0 ? &a0.dxx : c == 1 ? &a0.dxy : &a0.dxz,
+                               c == 0 ? &a0.dxy : c == 1 ? &a0.dyy : &a0.dyz,
+                               c == 0 ? &a0.dxz : c == 1 ? &a0.dyz : &a0.dzz};
+          const Mat* gp[3] = {&ap.dx, &ap.dy, &ap.dz};
+          const Mat* gm[3] = {&am.dx, &am.dy, &am.dz};
+          for (int d = 0; d < 3; ++d)
+            herr = std::max(herr, ((*gp[d] - *gm[d]) / (2 * h) - *row[d]).cwiseAbs().maxCoeff() / scale);
+        }
+      }
+      check(herr < 1e-6, std::string("AO second derivatives vs finite difference ") + bname, herr);
     }
   }
   return fails ? 1 : 0;
