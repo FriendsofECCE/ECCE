@@ -241,7 +241,9 @@ def drop_open_block(lines, desc):
 #  Keys whose full-file output already breaks the size rule (a scalar whose
 #  value is several words, e.g. NWChem's VERSION): the rule says nothing
 #  about them, so they are left out of the comparison for that case.
-SIZE_EXEMPT = set()
+# One text value that may contain spaces ("COSMO, eps = 78.4"), so its
+# words are not separate values.
+SIZE_EXEMPT = {'SOLVMODEL'}
 
 
 def script_ok(out, serr, rc):
