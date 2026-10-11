@@ -103,7 +103,8 @@ namespace {
         for (size_t k = 0; k < numClasses; k++) {
            sum += counts[k]*(*chiI)[k]*chi[k];
         }
-        const double n = sum/(double)table.order();
+        const double n = sum/(double)(table.order()
+                                      *(table.separable(names[i]) ? 2 : 1));
         const double rounded = (n < 0.0) ? -floor(-n + 0.5) : floor(n + 0.5);
 
         if (fabs(n - rounded) > 0.1) return false;

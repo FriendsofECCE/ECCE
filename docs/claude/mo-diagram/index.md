@@ -34,3 +34,4 @@ MOPAC → spec) is the bridge it would reuse.
 - [MO composition: MoAoBasis, Mulliken by default (#161)](mo-composition-is-moaobasis-mulliken-by-default.md)
 - [An atom's shell with a non-bonding orbital is drawn at that orbital (#140)](a-shell-with-a-non-bonding-orbital-is-drawn-at-it.md)
 - [Compare irrep labels with canonicalIrrep(), never toupper()](a-cs-label-is-written-a-double-quote.md)
+- [Complex-conjugate irrep pairs are ONE real row flagged `separable:`](conjugate-irrep-pairs-are-one-separable-row.md)

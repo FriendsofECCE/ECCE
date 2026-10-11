@@ -32,10 +32,21 @@
 # five, so a transcription slip in a hand-entered table cannot survive.
 # That is the only reason entering them by hand is acceptable.
 #
-# Only real characters appear here.  The cyclic groups Cn with n > 2 have
-# complex characters for their E irreps; none of the groups below is one,
-# and a group that needs them must not be added without extending the
-# format rather than rounding them.
+# COMPLEX CHARACTERS.  Groups with a cyclic part (C3-C6, Cnh, S4/S6/S8,
+# T, Th) have irreps that come in complex-conjugate pairs.  Each pair is
+# stored as ONE real two-dimensional row with characters
+# eps^k + eps^-k = 2cos(2 pi k j/n), which is how the codes label it
+# (E, E1, E', E"...).  Such rows are listed on a
+#
+#   separable: <irrep> <irrep> ...
+#
+# line.  A separable row has norm 2h, not h, and stands for two 1-D
+# irreps, so the checks count it twice (as many irreps as classes,
+# squared dimensions) and CharacterTable::reduce() divides its raw sum
+# by 2h, giving the number of copies of the real E.  Their characters
+# are irrational in general (2cos72 ...), so rounding is not allowed.
+#
+# Characters are from standard tables, verified mechanically.
 
 [C1] h=1
 classes: E
@@ -319,4 +330,174 @@ A2u: 1 1 -1 -1 1 -1 1 -1 -1 1
 Eu: 2 -1 0 0 2 -2 0 1 -2 0
 T1u: 3 0 -1 1 -1 -3 -1 0 1 1
 T2u: 3 0 1 -1 -1 -3 1 0 1 -1
+translations: T1u
+
+[C3] h=3
+classes: E C3 C3p2
+counts:  1 1 1
+A: 1 1 1
+E: 2 -1 -1
+separable: E
+translations: A + E
+
+[C4] h=4
+classes: E C4 C2 C4p3
+counts:  1 1 1 1
+A: 1 1 1 1
+B: 1 -1 1 -1
+E: 2 0 -2 0
+separable: E
+translations: A + E
+
+[C5] h=5
+classes: E C5 C5p2 C5p3 C5p4
+counts:  1 1 1 1 1
+A: 1 1 1 1 1
+E1: 2 0.618033989 -1.618033989 -1.618033989 0.618033989
+E2: 2 -1.618033989 0.618033989 0.618033989 -1.618033989
+separable: E1 E2
+translations: A + E1
+
+[C6] h=6
+classes: E C6 C3 C2 C3p2 C6p5
+counts:  1 1 1 1 1 1
+A: 1 1 1 1 1 1
+B: 1 -1 1 -1 1 -1
+E1: 2 1 -1 -2 -1 1
+E2: 2 -1 -1 2 -1 -1
+separable: E1 E2
+translations: A + E1
+
+[C3H] h=6
+classes: E C3 C3p2 sh S3 S3p5
+counts:  1 1 1 1 1 1
+A': 1 1 1 1 1 1
+E': 2 -1 -1 2 -1 -1
+A'': 1 1 1 -1 -1 -1
+E'': 2 -1 -1 -2 1 1
+separable: E' E''
+translations: E' + A''
+
+[C4H] h=8
+classes: E C4 C2 C4p3 i S4p3 sh S4
+counts:  1 1 1 1 1 1 1 1
+Ag: 1 1 1 1 1 1 1 1
+Bg: 1 -1 1 -1 1 -1 1 -1
+Eg: 2 0 -2 0 2 0 -2 0
+Au: 1 1 1 1 -1 -1 -1 -1
+Bu: 1 -1 1 -1 -1 1 -1 1
+Eu: 2 0 -2 0 -2 0 2 0
+separable: Eg Eu
+translations: Au + Eu
+
+[C5H] h=10
+classes: E C5 C5p2 C5p3 C5p4 sh S5 S5p7 S5p3 S5p9
+counts:  1 1 1 1 1 1 1 1 1 1
+A': 1 1 1 1 1 1 1 1 1 1
+E1': 2 0.618033989 -1.618033989 -1.618033989 0.618033989 2 0.618033989 -1.618033989 -1.618033989 0.618033989
+E2': 2 -1.618033989 0.618033989 0.618033989 -1.618033989 2 -1.618033989 0.618033989 0.618033989 -1.618033989
+A'': 1 1 1 1 1 -1 -1 -1 -1 -1
+E1'': 2 0.618033989 -1.618033989 -1.618033989 0.618033989 -2 -0.618033989 1.618033989 1.618033989 -0.618033989
+E2'': 2 -1.618033989 0.618033989 0.618033989 -1.618033989 -2 1.618033989 -0.618033989 -0.618033989 1.618033989
+separable: E1' E2' E1'' E2''
+translations: E1' + A''
+
+[C6H] h=12
+classes: E C6 C3 C2 C3p2 C6p5 i S3p5 S6p5 sh S6 S3
+counts:  1 1 1 1 1 1 1 1 1 1 1 1
+Ag: 1 1 1 1 1 1 1 1 1 1 1 1
+Bg: 1 -1 1 -1 1 -1 1 -1 1 -1 1 -1
+E1g: 2 1 -1 -2 -1 1 2 1 -1 -2 -1 1
+E2g: 2 -1 -1 2 -1 -1 2 -1 -1 2 -1 -1
+Au: 1 1 1 1 1 1 -1 -1 -1 -1 -1 -1
+Bu: 1 -1 1 -1 1 -1 -1 1 -1 1 -1 1
+E1u: 2 1 -1 -2 -1 1 -2 -1 1 2 1 -1
+E2u: 2 -1 -1 2 -1 -1 -2 1 1 -2 1 1
+separable: E1g E2g E1u E2u
+translations: Au + E1u
+
+[S4] h=4
+classes: E S4 C2 S4p3
+counts:  1 1 1 1
+A: 1 1 1 1
+B: 1 -1 1 -1
+E: 2 0 -2 0
+separable: E
+translations: B + E
+
+[S6] h=6
+classes: E C3 C3p2 i S6p5 S6
+counts:  1 1 1 1 1 1
+Ag: 1 1 1 1 1 1
+Eg: 2 -1 -1 2 -1 -1
+Au: 1 1 1 -1 -1 -1
+Eu: 2 -1 -1 -2 1 1
+separable: Eg Eu
+translations: Au + Eu
+
+[S8] h=8
+classes: E S8 C4 S8p3 C2 S8p5 C4p3 S8p7
+counts:  1 1 1 1 1 1 1 1
+A: 1 1 1 1 1 1 1 1
+B: 1 -1 1 -1 1 -1 1 -1
+E1: 2 1.414213562 0 -1.414213562 -2 -1.414213562 0 1.414213562
+E2: 2 0 -2 0 2 0 -2 0
+E3: 2 -1.414213562 0 1.414213562 -2 1.414213562 0 -1.414213562
+separable: E1 E2 E3
+translations: B + E1
+
+[T] h=12
+classes: E C3 C3p2 C2
+counts:  1 4 4 3
+A: 1 1 1 1
+E: 2 -1 -1 2
+T: 3 0 0 -1
+separable: E
+translations: T
+
+[TH] h=24
+classes: E C3 C3p2 C2 i S6p5 S6 sh
+counts:  1 4 4 3 1 4 4 3
+Ag: 1 1 1 1 1 1 1 1
+Eg: 2 -1 -1 2 2 -1 -1 2
+Tg: 3 0 0 -1 3 0 0 -1
+Au: 1 1 1 1 -1 -1 -1 -1
+Eu: 2 -1 -1 2 -2 1 1 -2
+Tu: 3 0 0 -1 -3 0 0 1
+separable: Eg Eu
+translations: Tu
+
+[O] h=24
+classes: E C3 C2 C4 C2
+counts:  1 8 6 6 3
+A1: 1 1 1 1 1
+A2: 1 1 -1 -1 1
+E: 2 -1 0 0 2
+T1: 3 0 -1 1 -1
+T2: 3 0 1 -1 -1
+translations: T1
+
+[I] h=60
+classes: E C5 C5p2 C3 C2
+counts:  1 12 12 20 15
+A: 1 1 1 1 1
+T1: 3 1.618033989 -0.618033989 0 -1
+T2: 3 -0.618033989 1.618033989 0 -1
+G: 4 -1 -1 1 0
+H: 5 0 0 -1 1
+translations: T1
+
+[IH] h=120
+classes: E C5 C5p2 C3 C2 i S10 S10p3 S6 sh
+counts:  1 12 12 20 15 1 12 12 20 15
+Ag: 1 1 1 1 1 1 1 1 1 1
+T1g: 3 1.618033989 -0.618033989 0 -1 3 -0.618033989 1.618033989 0 -1
+T2g: 3 -0.618033989 1.618033989 0 -1 3 1.618033989 -0.618033989 0 -1
+Gg: 4 -1 -1 1 0 4 -1 -1 1 0
+Hg: 5 0 0 -1 1 5 0 0 -1 1
+Au: 1 1 1 1 1 -1 -1 -1 -1 -1
+T1u: 3 1.618033989 -0.618033989 0 -1 -3 0.618033989 -1.618033989 0 1
+T2u: 3 -0.618033989 1.618033989 0 -1 -3 -1.618033989 0.618033989 0 1
+Gu: 4 -1 -1 1 0 -4 1 1 -1 0
+Hu: 5 0 0 -1 1 -5 0 0 1 -1
 translations: T1u

@@ -48,6 +48,16 @@ out T₂, in Oh T₁ᵤ, in D3h E′+A₂″.
 Every check here was self-tested by introducing the error and watching
 it fail: a flipped sign, a row swap, a renamed irrep, a g/u mislabel.
 
+## Complex irreps
+
+C3-C6, Cnh, S4/S6/S8, T and Th have complex-conjugate irrep pairs. Each
+pair is one real 2-D row (`2cos(2 pi k j/n)`) on a `separable:` line, with
+norm 2h. The checks count such a row as two irreps, halve its squared
+dimension, expect norm 2h, and test columns through each class's inverse
+(taken from the class names). `reduce()` divides its raw sum by 2h; the
+C++ test reduces the Cartesian representation and known reducible ones
+(atom orbits) per new group.
+
 ## The C++ loader
 
 `CharacterTable` reads the same file and provides the reduction formula,

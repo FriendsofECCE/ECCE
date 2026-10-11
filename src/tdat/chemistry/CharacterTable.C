@@ -105,6 +105,10 @@ int CharacterTable::loadFile(const string& path)
       int value;
       while (fields >> value) current.p_counts.push_back(value);
 
+    } else if (key == "separable") {
+      string token;
+      while (fields >> token) current.p_separable.insert(token);
+
     } else if (key == "translations") {
       //  Recorded in the file as a check on the labelling; nothing here
       //  reads it, and tests/symmetry is what enforces it.
@@ -172,6 +176,12 @@ int CharacterTable::dimension(const string& irrep) const
 }
 
 
+bool CharacterTable::separable(const string& irrep) const
+{
+  return p_separable.count(irrep) > 0;
+}
+
+
 bool CharacterTable::reduce(const vector<double>& chi,
                             vector<int>& multiplicity) const
 {
@@ -189,7 +199,7 @@ bool CharacterTable::reduce(const vector<double>& chi,
     for (size_t c = 0; c < nclass; c++) {
       total += p_counts[c] * (*row)[c] * chi[c];
     }
-    total /= p_order;
+    total /= p_order * (separable(p_irreps[i]) ? 2 : 1);
 
     //  A non-integral or negative multiplicity means what was handed in
     //  is not a representation of this group.  Reported rather than

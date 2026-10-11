@@ -352,6 +352,49 @@ int main(int argc, char** argv)
     mols.push_back(m);
   }
 
+  //  Groups whose E irreps are stored as one real row for a conjugate
+  //  pair (#132): the atoms of an orbit span what the arithmetic of the
+  //  orbit forces.  NH3 with C3 only.
+  {
+    Molecule m;
+    m.name = "ammonia, C3"; m.group = "C3";
+    const char* e[] = {"N", "H", "H", "H"};
+    const double c[] = { 0, 0, 0.1,
+                         0.94, 0, -0.3,
+                         -0.47, 0.81406388, -0.3,
+                         -0.47, -0.81406388, -0.3};
+    m.elements.assign(e, e+4);
+    m.coords.assign(c, c+12);
+    m.centre = "N"; m.terminal = "A + E"; m.terminalCount = 3;
+    mols.push_back(m);
+  }
+  //  Six atoms of a planar ring: the sigma framework of benzene,
+  //  A1g + B1u + E1u + E2g in D6h, restricted to C6h.
+  {
+    Molecule m;
+    m.name = "hexagon, C6h"; m.group = "C6H";
+    const char* e[] = {"C", "C", "C", "C", "C", "C"};
+    const double r = 1.4, h3 = 0.8660254037844386;
+    const double c[] = { r, 0, 0,   r/2, r*h3, 0,   -r/2, r*h3, 0,
+                        -r, 0, 0,  -r/2,-r*h3, 0,    r/2,-r*h3, 0};
+    m.elements.assign(e, e+6);
+    m.coords.assign(c, c+18);
+    m.centre = ""; m.terminal = "Ag + E2g + Bu + E1u"; m.terminalCount = 6;
+    mols.push_back(m);
+  }
+  //  CH4 under T alone: the tetrahedron's vertices are A + T.
+  {
+    Molecule m;
+    m.name = "methane, T"; m.group = "T";
+    const char* e[] = {"C", "H", "H", "H", "H"};
+    const double c[] = { 0, 0, 0,
+                         1, 1, 1,   1,-1,-1,  -1, 1,-1,  -1,-1, 1};
+    m.elements.assign(e, e+5);
+    m.coords.assign(c, c+15);
+    m.centre = "C"; m.terminal = "A + T"; m.terminalCount = 4;
+    mols.push_back(m);
+  }
+
   for (size_t i = 0; i < mols.size(); i++) run(mols[i], opsDir);
   basisChecks(opsDir);
   symmetriseChecks(opsDir);

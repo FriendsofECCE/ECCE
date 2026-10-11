@@ -22,9 +22,11 @@
 #define CHARACTERTABLE_HH
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 using std::map;
+using std::set;
 using std::string;
 using std::vector;
 
@@ -85,6 +87,14 @@ class CharacterTable
     int dimension(const string& irrep) const;
 
     /**
+     * True for a row that stands for a complex-conjugate PAIR of 1-D
+     * irreps stored as one real 2-D row (C3's E, C6h's E1g, T's E).
+     * Its norm is 2h rather than h, and the number of copies of it in
+     * a real representation is the raw projection divided by 2h.
+     */
+    bool separable(const string& irrep) const;
+
+    /**
      * Reduce a representation into its irreducible components.
      *
      *     n_i = (1/h) sum_c  n_c  chi_i(c)  chi(c)
@@ -92,6 +102,9 @@ class CharacterTable
      * @param chi           one character per class, in class order
      * @param multiplicity  filled with one count per irrep, in irrep
      *                      order
+     *
+     *         A separable row's divisor is 2h (see separable()), so
+     *         its multiplicity counts copies of the real E.
      *
      * @return false if chi is the wrong length, or if any multiplicity
      *         comes out negative or non-integral -- which means the
@@ -112,6 +125,7 @@ class CharacterTable
     vector<string> p_irreps;
 
     map<string, vector<double> > p_characters;
+    set<string>    p_separable;
 
     static map<string, CharacterTable> p_tables;
     static bool p_loaded;
