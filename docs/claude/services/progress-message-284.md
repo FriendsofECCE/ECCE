@@ -35,6 +35,9 @@ properties `url` and `progress` (the snapshot text, `\n`-separated; empty
 - **No wx in the rules.** `JobProgress` (util) parses the text and makes
   the lines; `tests/progress/progress_test.C` (ctest `progress`) checks
   them; the box only paints them in system colours and `PlotPalette`.
+- **Contact.** The same topic carries the job store's out-of-contact
+  notice, property `contact` (see out-of-contact-284.md); its `progress`
+  may be empty and then must not clear the shown snapshot.
 - **Tests.** `launchjob listen <topic> <s> <file>` records messages as a
   subscriber; `launchjob progress <url>` prints the stored snapshot.
   Organizer hook commands `progress <url> <file>` (inject as the broker

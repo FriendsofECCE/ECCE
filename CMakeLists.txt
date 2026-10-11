@@ -2081,6 +2081,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_progress_table PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Out of contact and the folding Progress box (#284): state icons, the
+  # greyed box and its actions, the amber table cell, the remembered fold.
+  add_test(NAME apps_progress_contact
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/progress_contact_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_progress_contact PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
 
   # The Quantum ESPRESSO tutorial (help/src/qe-first-calculation.md) replayed
   # in the real apps: silicon scf and a water relax, run by pw.x through the
@@ -2454,6 +2462,16 @@ if(PYTHON3_EXECUTABLE)
                      --build ${CMAKE_BINARY_DIR}
              WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
     set_tests_properties(launch_ecceqm PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
+    # #284: a stopped job monitor makes the job "out of contact", never
+    # failed; a killed engine is reported gone by the machine check and is
+    # final only from its output; silence past the reconnect time reconnects
+    # with the job still running.
+    add_test(NAME launch_contact
+             COMMAND ${PYTHON3_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/contact_test.py
+                     --build ${CMAKE_BINARY_DIR}
+             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+    set_tests_properties(launch_contact PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
   endif()
 
   # A GROMACS MD study through the real editors (private Xvfb), launches and

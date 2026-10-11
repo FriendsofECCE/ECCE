@@ -39,8 +39,12 @@
 //                                                         for a code, one name per line
 //   launchjob listen <topic> <seconds> <file>             append each message on <topic>
 //                                                         to <file>: arrival time, url and
-//                                                         "progress", newlines as \n (#284)
+//                                                         "progress", newlines as \n (#284),
+//                                                         and "contact" when present
 //   launchjob progress <calcURL>                          the stored progress snapshot
+//   launchjob contact <calcURL>                           the stored contact state (#284)
+//   launchjob checkjob <calcURL>                          Check Job on Machine: its
+//                                                         sentences, then "present=" etc.
 //
 // Credentials arrive as an AuthCache pipe file named by -pipe <file>,
 // exactly as ecmd and eccejobmaster receive them.
@@ -340,7 +344,10 @@ static void listenMCB(JMSMessage& msg)
   }
   char at[32];
   snprintf(at, sizeof at, "%lld.%03lld", ms / 1000, ms % 1000);
-  *listenOut << at << "\t" << msg.getProperty("url") << "\t" << esc << endl;
+  *listenOut << at << "\t" << msg.getProperty("url") << "\t" << esc;
+  const string contact = msg.getProperty("contact");
+  if (!contact.empty()) *listenOut << "\tcontact=" << contact;
+  *listenOut << endl;
 }
 
 // Subscribes as the Organizer does and records what arrives.
@@ -471,6 +478,22 @@ int main(int argc, char** argv)
     if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }
     cout << t->getProp(VDoc::getEcceNamespace() + ":progress") << endl;
     return 0;
+  }
+  if (mode == "contact") {
+    TaskJob* t = getTask(a[0]);
+    if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+    cout << t->getProp(VDoc::getEcceNamespace() + ":contact") << endl;
+    return 0;
+  }
+  if (mode == "checkjob") {
+    TaskJob* t = getTask(a[0]);
+    if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+    RunMgmt::MachineCheck c = RunMgmt::checkOnMachine(t);
+    for (const string& l : c.describe()) cout << l << endl;
+    cout << "reached=" << c.reached << " present=" << c.present
+         << " outputTime=" << c.outputTime << " machineNow=" << c.machineNow
+         << " status=" << (c.status.empty() ? "-" : c.status) << endl;
+    return c.reached ? 0 : 1;
   }
   if (mode == "jobid") {
     TaskJob* t = getTask(a[0]);
