@@ -253,6 +253,35 @@ string TFormula::empiricalFormula
   return ret;
 }
 
+string TFormula::hillOrder(const string& formula)
+{
+  // Calculations saved by older versions stored the formula with H
+  // first; they are shown in the order new ones are stored in.
+  vector<TTagCountPair> pairs;
+  size_t i = 0;
+  const size_t n = formula.size();
+  while (i < n && isupper((unsigned char)formula[i])) {
+    TTagCountPair p;
+    p.tag = formula[i++];
+    if (i < n && islower((unsigned char)formula[i])) p.tag += formula[i++];
+    if (i < n && formula[i] == '.') i++;
+    size_t digits = i;
+    while (i < n && isdigit((unsigned char)formula[i])) i++;
+    p.count = digits < i ? atoi(formula.substr(digits, i - digits).c_str()) : 1;
+    pairs.push_back(p);
+  }
+  int charge = 0;
+  if (i < n && (formula[i] == '+' || formula[i] == '-')) {
+    const int sign = formula[i++] == '+' ? 1 : -1;
+    size_t digits = i;
+    while (i < n && isdigit((unsigned char)formula[i])) i++;
+    charge = sign * (digits < i ? atoi(formula.substr(digits, i - digits).c_str()) : 1);
+  }
+  if (pairs.empty() || i != n) return formula;
+  return empiricalFormula(pairs, charge);
+}
+
+
 string TFormula::formatElement(const string& tag, int count)
 {
   ostrstream os;

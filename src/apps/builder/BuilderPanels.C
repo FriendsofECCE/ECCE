@@ -568,7 +568,19 @@ void Builder::updatePanes(bool allowSwitch)
   }
   updating = true;
   PanelGuard guard(p_panelBuildDepth);
+  BuilderRedrawHold hold(this);
   syncColumn(allowSwitch);
+  //  Update() shows a pane's window before it lays the frame out, so the
+  //  window would first appear wherever it was (the frame's corner, over
+  //  the viewer).  Off the frame it is not seen until it is placed.
+  wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
+  for (size_t i = 0; i < all.GetCount(); ++i) {
+    wxAuiPaneInfo &pane = all.Item(i);
+    if (pane.window && pane.IsShown() && !pane.IsFloating() &&
+        !pane.window->IsShown()) {
+      pane.window->Move(-30000, -30000);
+    }
+  }
   p_mgr.Update();
   fitToolColumn();
   updating = false;
@@ -637,6 +649,7 @@ void Builder::selectDetail(const string& name)
   if (!pane.IsOk()) {
     return;
   }
+  BuilderRedrawHold hold(this);
   if (p_panelMode == PANELS_DETAIL && paneGroup(pane) == GROUP_PROPERTIES) {
     setDetail(pane.window);
   }

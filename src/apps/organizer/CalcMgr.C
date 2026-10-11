@@ -741,6 +741,50 @@ void CalcMgr::runTestCommand(const string& line)
         GetMenuBar()->Check(wxID_ASKFORNAME, ask);
         outcome = "ok";
       }
+    } else if (command == "click") {
+      // "click URL": selects a row already in the tree as a click does,
+      // with no tree loading first (unlike "summary").
+      WxResourceTreeItemData *node = findNode(EcceURL(calcName), false, false);
+      if (!node) {
+        outcome = "not in the tree";
+      } else {
+        p_treeCtrl->SelectItem(node->GetId());
+        outcome = "ok";
+      }
+    } else if (command == "rmtask") {
+      // "rmtask URL LABEL": selects URL and runs its Run Mgmt menu item
+      // LABEL (e.g. Rerun) as the menu does; a prompt it shows is answered
+      // Cancel after 1.5 s.
+      std::istringstream args(calcName);
+      string url, label;
+      args >> url;
+      std::getline(args >> std::ws, label);
+      WxResourceTreeItemData *node = findNode(EcceURL(url), true, true);
+      wxMenuBar *bar = GetMenuBar();
+      if (!node) {
+        outcome = "not in the tree";
+      } else {
+        p_treeCtrl->SelectItem(node->GetId());
+        for (int i = 0; i < 5; i++) wxYield();
+        wxMenu *rm = bar->GetMenu(bar->FindMenu(_("Run Mgmt")));
+        int id = rm ? rm->FindItem(label) : wxNOT_FOUND;
+        if (id == wxNOT_FOUND) {
+          outcome = "no Run Mgmt item " + label;
+        } else {
+          wxTimer answer;
+          answer.Bind(wxEVT_TIMER, [](wxTimerEvent&) {
+            for (wxWindowList::compatibility_iterator n =
+                   wxTopLevelWindows.GetFirst(); n; n = n->GetNext()) {
+              wxDialog *d = dynamic_cast<wxDialog*>(n->GetData());
+              if (d && d->IsModal()) d->EndModal(wxID_CANCEL);
+            }
+          });
+          answer.StartOnce(1500);
+          wxCommandEvent ev(wxEVT_MENU, id);
+          GetEventHandler()->ProcessEvent(ev);
+          outcome = "ok";
+        }
+      }
     } else if (command == "start") {
       // "start TOOL [URL]": what a tool button does (startApp), e.g.
       // "start CalculationEditor <calc url>".
@@ -5304,17 +5348,7 @@ void CalcMgr::createResource(ResourceType * resType,
         infoStr = invalidMsg + infoStr;
       ewxTextEntryDialog dialog(this, infoStr, "New " + name + " Name",
                                 name, wxOK | wxCANCEL);
-      // The dialog disables the windows itself.  Left disabled by
-      // startDisabler(), the Organizer cannot take the activation back when
-      // the dialog closes, and on MSW the window behind it (another
-      // program) comes to the front.
-      const bool paused = p_disabler != 0;
-      if (paused) {
-        delete p_disabler;
-        p_disabler = 0;
-      }
       const int answer = dialog.ShowModal();
-      if (paused) p_disabler = new wxWindowDisabler;
       if (answer == wxID_OK) {
         name = dialog.GetValue();
         if (resType->isValidResourceName(name))
@@ -5878,8 +5912,24 @@ void CalcMgr::importValidationComplete(TaskJob *ipc, bool status,
 }
 
 
+//  A top menu's state is set only when it changes: wxMSW redraws the whole
+//  menu bar for every EnableTop().
+static void enableTopMenu(wxMenuBar *bar, const wxString& title, bool enable)
+{
+  const int pos = bar->FindMenu(title);
+  if (pos != wxNOT_FOUND && bar->IsEnabledTop(pos) != enable)
+    bar->EnableTop(pos, enable);
+}
+
+
 void CalcMgr::onSelectionChange(bool selectInTree)
 {
+  //  The summary pane is replaced and the tree and toolbar change in one
+  //  go; on MSW each step was painted (an empty pane, then half of it).
+  wxWindowUpdateLocker hold(this);
+  //  The menu bar is not one of the frame's children; wxMSW redraws it for
+  //  every item added or removed (half a menu bar on screen) unless frozen.
+  wxWindowUpdateLocker holdMenus(GetMenuBar());
   wxMenuBar * menuBar = GetMenuBar();
   WxResourceTreeItemData *itemData = 0;
 
@@ -5927,8 +5977,8 @@ void CalcMgr::onSelectionChange(bool selectInTree)
 
   
   if (!getSelection()) {
-    menuBar->EnableTop(menuBar->FindMenu(_("Run Mgmt")), false);
-    menuBar->EnableTop(menuBar->FindMenu(_("Tools")), false);
+    enableTopMenu(menuBar, _("Run Mgmt"), false);
+    enableTopMenu(menuBar, _("Tools"), false);
     menuBar->Enable(wxID_CHANGE_ACCESS, false);
     menuBar->Enable(wxID_RENAME, false);
     menuBar->Enable(wxID_VIEW_PROPERTY, false);
@@ -6017,18 +6067,18 @@ void CalcMgr::onSelectionChange(bool selectInTree)
       // Which tasks get displayed depends on the state of the calculation.
       wxMenu * rmTaskMenu = menuBar->GetMenu(menuBar->FindMenu(_("Run Mgmt")));
       getRunMgmtMenu(*rmTaskMenu, itemData);
-      menuBar->EnableTop(menuBar->FindMenu(_("Run Mgmt")),
+      enableTopMenu(menuBar, _("Run Mgmt"),
                          rmTaskMenu->GetMenuItemCount()>0);
 
       // dynamically populate the Tool menu
       wxMenu * toolMenu = menuBar->GetMenu(menuBar->FindMenu(_("Tools")));
       getToolsMenu(*toolMenu, itemData);
-      menuBar->EnableTop(menuBar->FindMenu(_("Tools")),
+      enableTopMenu(menuBar, _("Tools"),
                          toolMenu->GetMenuItemCount()>0);
     }
     else {
-      menuBar->EnableTop(menuBar->FindMenu(_("Run Mgmt")), false);
-      menuBar->EnableTop(menuBar->FindMenu(_("Tools")), false);
+      enableTopMenu(menuBar, _("Run Mgmt"), false);
+      enableTopMenu(menuBar, _("Tools"), false);
       menuBar->Enable(wxID_CHANGE_ACCESS, false);
       menuBar->Enable(wxID_CUT, false);
       menuBar->Enable(wxID_RENAME, false);
@@ -6108,13 +6158,19 @@ void CalcMgr::refresh()
 /**
  * Start window disabler and busy cursr.
  *
+ * The Organizer itself stays enabled: on MSW disabling the active window
+ * hands the activation to the window behind it (another program), so a
+ * prompt shown next opened behind that window, and the tree lost its focus
+ * and repainted its selected rows.  A modal dialog disables the Organizer
+ * itself while it runs.
+ *
  * return true if it is already disabled.
  */
 int CalcMgr::startDisabler()
 {
   if (p_disablerCount == 0 && p_disabler == 0 && p_cursor == 0) {
     p_focusOnTreeBeforeDisabler = p_focusOnTree;
-    p_disabler = new wxWindowDisabler;
+    p_disabler = new wxWindowDisabler(this);
     p_cursor = new wxBusyCursor();
   }
 

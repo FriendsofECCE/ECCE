@@ -51,7 +51,12 @@ Get-ChildItem "$tmp\c\bin" -Filter *.dll | Move-Item -Destination "$sb\c\bin"
 foreach ($d in "perl\html", "perl\man", "perl\lib\pods", "perl\site\lib\auto\share\dist\Alien-Build") {
   if (Test-Path "$sb\$d") { Remove-Item -Recurse -Force "$sb\$d" }
 }
-Get-ChildItem "$sb\perl" -Recurse -Include *.pod, *.a, *.h -File | Remove-Item -Force
+Get-ChildItem "$sb\perl" -Recurse -Include *.pod, *.a, *.h, .packlist -File | Remove-Item -Force
+# ECCE's scripts use core modules only (Getopt::Std, FindBin, File::Temp,
+# JSON::PP, ...).  Strawberry's other vendor modules were most of the files
+# in the package, and the installer's time goes by the file (#257).
+& "$sb\perl\bin\perl.exe" (Join-Path $PSScriptRoot "perl-core-only.pl") "$sb\perl\vendor\lib"
+if ($LASTEXITCODE -ne 0) { throw "perl-core-only.pl failed" }
 Remove-Item -Recurse -Force $tmp
 "strawberry bundled: $(Size $sb)"
 

@@ -1403,9 +1403,10 @@ bool Builder::isStandalone()
  * Doesn't matter whether the current context has changed since we're not
  * removing it.
  */
-void Builder::setContext(const string& url, const bool& force) 
+void Builder::setContext(const string& url, const bool& force)
 {
   wxBusyCursor busy;
+  BuilderRedrawHold hold(this);
   //  Creating/re-docking this calculation's property panels must not
   //  hand any of them the 3-D viewer -- see OnChildFocus() (#111).
   PanelBuildGuard buildGuard(p_panelBuildDepth);
@@ -3346,6 +3347,7 @@ void Builder::OnContextListClick( wxListEvent& event )
 
 void Builder::OnPropertyMenuClick( wxCommandEvent& event )
 {
+  BuilderRedrawHold hold(this);
   wxString name = p_propertyMenu->GetLabelText(event.GetId());
   wxAuiPaneInfo &pane = p_mgr.GetPane(name);
   if (!pane.IsOk()) {
@@ -3543,6 +3545,7 @@ void Builder::toggleFold(wxWindow *win)
   if (!pane.IsOk()) {
     return;
   }
+  BuilderRedrawHold hold(this);
   const bool opening = p_folded.count(win) > 0;
   foldPane(win, !opening);
   if (opening && p_panelMode == PANELS_ACCORDION &&
@@ -5366,6 +5369,7 @@ void Builder::updatePropertyMenus()
              it != panels.end() && !mo; ++it)
           mo = dynamic_cast<MoPanel*>(*it);
         if (!mo) return s.fail(w[0] + ": no MO panel");
+        mo->ensureInitialized();
         //  "motable <name>": the MO table's selection and scroll state, and
         //  the alpha HOMO from the parsed occupations, -> <name>.txt.
         if (w[0] == "motable") {
@@ -6070,10 +6074,11 @@ void Builder::createPropertyPanel(const string& name)
     viztool->connectToolKitFW(this);
   }
   
-  // the real panel creation
+  // Created hidden: a shown child of the frame sits at its (0,0), over the
+  // viewer, until AUI places it.
+  panel->Hide();
   panel->Create(p_calculation, this, wxID_ANY);
   panel->SetMinSize(wxSize(400,-1));
-  panel->Show(false);
 
   addPropertyPanel(panel, name);
 }

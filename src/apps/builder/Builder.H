@@ -13,6 +13,7 @@
 #include <wx/tglbtn.h>
 #include <wx/bmpbuttn.h>
 #include <wx/artprov.h>
+#include <wx/wupdlock.h>
 #include "inv/draggers/SoDragger.H"
 #include "inv/nodes/SoEventCallback.H" 
 
@@ -62,6 +63,23 @@ class SceneScript;
 class StructLib;
 class ViewerEvtHandler;
 class wxToolBarToolBase;
+
+//  wxMSW paints every intermediate state of a pane change (a column built
+//  pane by pane, each new pane drawn where it was before AUI placed it);
+//  this holds the frame's redraws until the change is complete.  GTK draws
+//  once per idle anyway, so it is a no-op there.
+class BuilderRedrawHold
+{
+  public:
+    explicit BuilderRedrawHold(wxWindow *frame)
+#ifdef __WXMSW__
+      : p_lock(frame) {}
+  private:
+    wxWindowUpdateLocker p_lock;
+#else
+      { (void)frame; }
+#endif
+};
 
 class Builder: public BuilderGUI,
                public WxDavAuth,
