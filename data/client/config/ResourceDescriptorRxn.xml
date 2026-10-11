@@ -364,6 +364,11 @@
         <State name="Running"/>
         <State name="Waiting"/>
       </RunManagementTask>
+      <RunManagementTask name="checkJobOnMachine">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
       <RunManagementTask name="reconnectJob">
         <State name="Submitted"/>
         <State name="Running"/>
@@ -635,6 +640,11 @@
         <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJobOnMachine">
         <State name="Submitted"/>
         <State name="Running"/>
         <State name="Waiting"/>
@@ -919,6 +929,11 @@
         <State name="Running"/>
         <State name="Waiting"/>
       </RunManagementTask>
+      <RunManagementTask name="checkJobOnMachine">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
       <RunManagementTask name="reconnectJob">
         <State name="Submitted"/>
         <State name="Running"/>
@@ -1188,6 +1203,11 @@
         <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJobOnMachine">
         <State name="Submitted"/>
         <State name="Running"/>
         <State name="Waiting"/>
@@ -1472,6 +1492,11 @@
         <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJobOnMachine">
         <State name="Submitted"/>
         <State name="Running"/>
         <State name="Waiting"/>
@@ -1771,6 +1796,11 @@
         <State name="Running"/>
         <State name="Waiting"/>
       </RunManagementTask>
+      <RunManagementTask name="checkJobOnMachine">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
       <RunManagementTask name="reconnectJob">
         <State name="Submitted"/>
         <State name="Running"/>
@@ -2041,6 +2071,11 @@
         <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJobOnMachine">
         <State name="Submitted"/>
         <State name="Running"/>
         <State name="Waiting"/>
@@ -2346,6 +2381,11 @@
         <State name="Running"/>
         <State name="Waiting"/>
       </RunManagementTask>
+      <RunManagementTask name="checkJobOnMachine">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
       <RunManagementTask name="reconnectJob">
         <State name="Submitted"/>
         <State name="Running"/>
@@ -2599,6 +2639,11 @@
         <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJobOnMachine">
         <State name="Submitted"/>
         <State name="Running"/>
         <State name="Waiting"/>
@@ -2860,6 +2905,11 @@
         <State name="Running"/>
         <State name="Waiting"/>
       </RunManagementTask>
+      <RunManagementTask name="checkJobOnMachine">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
       <RunManagementTask name="reconnectJob">
         <State name="Submitted"/>
         <State name="Running"/>
@@ -3113,6 +3163,11 @@
         <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJobOnMachine">
         <State name="Submitted"/>
         <State name="Running"/>
         <State name="Waiting"/>
@@ -3548,6 +3603,11 @@
         <State name="Running"/>
         <State name="Waiting"/>
       </RunManagementTask>
+      <RunManagementTask name="checkJobOnMachine">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
       <RunManagementTask name="reconnectJob">
         <State name="Submitted"/>
         <State name="Running"/>
@@ -3779,6 +3839,11 @@
         <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJobOnMachine">
         <State name="Submitted"/>
         <State name="Running"/>
         <State name="Waiting"/>
@@ -4068,6 +4133,11 @@
         <State name="Running"/>
         <State name="Waiting"/>
       </RunManagementTask>
+      <RunManagementTask name="checkJobOnMachine">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
       <RunManagementTask name="reconnectJob">
         <State name="Submitted"/>
         <State name="Running"/>
@@ -4321,6 +4391,11 @@
         <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJobOnMachine">
         <State name="Submitted"/>
         <State name="Running"/>
         <State name="Waiting"/>
@@ -4582,6 +4657,11 @@
         <State name="Running"/>
         <State name="Waiting"/>
       </RunManagementTask>
+      <RunManagementTask name="checkJobOnMachine">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
       <RunManagementTask name="reconnectJob">
         <State name="Submitted"/>
         <State name="Running"/>
@@ -4835,6 +4915,11 @@
         <State name="Waiting"/>
       </RunManagementTask>
       <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJobOnMachine">
         <State name="Submitted"/>
         <State name="Running"/>
         <State name="Waiting"/>
@@ -5116,6 +5201,9 @@
     </RunManagementTask>
     <RunManagementTask name="checkJob">
       <MenuItem>&amp;Check Job Monitoring</MenuItem>
+    </RunManagementTask>
+    <RunManagementTask name="checkJobOnMachine">
+      <MenuItem>Check Job on Mac&amp;hine</MenuItem>
     </RunManagementTask>
     <RunManagementTask name="reconnectJob">
       <MenuItem>Reconnect &amp;Job Monitoring</MenuItem>

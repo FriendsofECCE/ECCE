@@ -10,6 +10,8 @@
 #include <signal.h>
 #include <unistd.h>
 #include <vector>
+#include <cstdio>
+#include <ctime>
 
 #include <iostream>
 using namespace std;
@@ -23,6 +25,7 @@ using namespace std;
 #include "util/TempStorage.H"
 #include "util/StringConverter.H"
 #include "util/StringTokenizer.H"
+#include "util/TypedFile.H"
 
 #include "tdat/RefMachine.H"
 #include "tdat/RefQueueMgr.H"
@@ -207,6 +210,205 @@ string RunMgmt::terminate(const TaskJob *calc)
 //    It may be better to require the caller to send in the dirs
 //    to shorten the txn in the caller.
 ///////////////////////////////////////////////////////////////////////////////
+// True when `text` holds `id` as a word of its own (a queue id may be
+// listed with or without its ".server" suffix).
+static bool holdsId(const string& text, const string& id)
+{
+  const string shortId = id.substr(0, id.find('.'));
+  for (const string& want : {id, shortId}) {
+    if (want.empty()) continue;
+    for (size_t at = text.find(want); at != string::npos;
+         at = text.find(want, at + 1)) {
+      const bool before = at == 0 || !isalnum((unsigned char)text[at - 1]);
+      const size_t end = at + want.size();
+      const bool after = end >= text.size() ||
+                         !isalnum((unsigned char)text[end]);
+      if (before && after) return true;
+    }
+  }
+  return false;
+}
+
+
+RunMgmt::MachineCheck RunMgmt::checkOnMachine(const TaskJob *calc)
+{
+  MachineCheck c;
+  Jobdata job = calc->jobdata();
+  const Launchdata& launch = calc->launchdata();
+  if (job.jobid.empty() || job.jobpath.empty()) {
+    c.error = "No job information available";
+    return c;
+  }
+  RefMachine* refMachine = RefMachine::refLookup(launch.machine);
+  if (!refMachine) {
+    c.error = "Machine \"" + launch.machine + "\" is not currently registered";
+    return c;
+  }
+  string qMgrName = "Shell";
+  const QueueManager* qMgr = QueueManager::lookup(launch.machine);
+  if (qMgr) qMgrName = qMgr->queueMgrName();
+  const bool shell = qMgrName == "Shell";
+  c.what = (shell ? string("Process ") : qMgrName + " job ") + job.jobid;
+
+  TypedFile out;
+  calc->getDataFile(JCode::PRIMARY_OUTPUT, out);
+  c.outputName = out.name();
+
+  // One script, one round trip: the run directory, the clock, the output's
+  // time and size (perl: the monitor needs it there anyway, and stat's
+  // options differ between GNU and BSD), the status file, then the job.
+  string script = "cd " + RCommand::quotePath(job.jobpath) +
+                  " || { echo 'ecce-check nodir'; exit 0; }\n"
+                  "echo \"ecce-check now `date +%s`\"\n";
+  if (!c.outputName.empty())
+    script += "perl -e '@s = stat($ARGV[0]); "
+              "print \"ecce-check out $s[9] $s[7]\\n\" if @s' " +
+              RCommand::quotePath(c.outputName) + "\n";
+  script += "if [ -f .ecce.status ]; then echo \"ecce-check status "
+            "`head -c 32 .ecce.status | tr -d '\\n'`\"; fi\n"
+            "echo 'ecce-check job-begin'\n";
+  if (shell) {
+    script += "ps -p " + job.jobid + " 2>&1\n";
+  } else {
+    string query;
+    const RefQueueManager* rqMgr = RefQueueManager::lookup(qMgrName);
+    if (rqMgr) query = rqMgr->queryJobCommand();
+    size_t loc;
+    while ((loc = query.find("##id##")) != string::npos)
+      query.replace(loc, 6, job.jobid);
+    while ((loc = query.find("##user##")) != string::npos)
+      query.replace(loc, 8, launch.user);
+    script += (query.empty() ? string("true") : query) + " 2>&1\n";
+  }
+  script += "echo 'ecce-check job-end'\n";
+
+  RCommand rcmd(refMachine->fullname(), launch.remoteShell,
+                refMachine->shell(), launch.user, "",
+                refMachine->frontendMachine(), refMachine->frontendBypass(),
+                refMachine->shellPath(), refMachine->libPath(),
+                refMachine->sourceFile());
+  delete refMachine;
+  string output;
+  if (!rcmd.isOpen()) {
+    c.error = rcmd.commError();
+    return c;
+  }
+  rcmd.execout(script, output, "", 60);
+  if (output.find("ecce-check") == string::npos) {
+    c.error = rcmd.commError().empty() ? output : rcmd.commError();
+    return c;
+  }
+  c.reached = true;
+  if (output.find("ecce-check nodir") != string::npos) {
+    c.error = "The run directory " + job.jobpath + " does not exist";
+    return c;
+  }
+
+  bool inJob = false;
+  StringTokenizer lines(output, "\n");
+  vector<string> all = lines.tokenize("\n");
+  for (string line : all) {
+    // A transport may hand the lines back with CRLF.
+    while (!line.empty() && (line.back() == '\r' || line.back() == ' '))
+      line.pop_back();
+    if (line.compare(0, 15, "ecce-check now ") == 0) {
+      c.machineNow = atoll(line.c_str() + 15);
+    } else if (line.compare(0, 15, "ecce-check out ") == 0) {
+      sscanf(line.c_str() + 15, "%lld %lld", &c.outputTime, &c.outputSize);
+    } else if (line.compare(0, 18, "ecce-check status ") == 0) {
+      c.status = line.substr(18);
+    } else if (line == "ecce-check job-begin") {
+      inJob = true;
+      c.present = 0;
+    } else if (line == "ecce-check job-end") {
+      inJob = false;
+    } else if (inJob && shell) {
+      // As eccejobmonitor reads it: the PID column, after an MSYS status
+      // letter if there is one.
+      StringTokenizer t(line);
+      vector<string> f = t.tokenize(" \t");
+      if (!f.empty() && !isdigit((unsigned char)f[0][0]) && f[0] != "PID")
+        f.erase(f.begin());
+      if (!f.empty() && f[0] == job.jobid) {
+        c.present = 1;
+        c.jobLine = line;
+      }
+    } else if (inJob && c.present != 1 && holdsId(line, job.jobid)) {
+      // "Unknown Job Id 123" names the id too.
+      string l;
+      StringConverter::toLower(line, l);
+      if (l.find("unknown") == string::npos &&
+          l.find("invalid") == string::npos &&
+          l.find("not found") == string::npos &&
+          l.find("error") == string::npos) {
+        c.present = 1;
+        c.jobLine = line;
+      }
+    }
+  }
+  return c;
+}
+
+
+static string clockTime(long long t)
+{
+  time_t tt = (time_t)t;
+  struct tm tms;
+  localtime_r(&tt, &tms);
+  char buf[16];
+  strftime(buf, sizeof buf, "%H:%M", &tms);
+  return buf;
+}
+
+
+static string agoText(long long seconds)
+{
+  if (seconds < 0) seconds = 0;
+  if (seconds < 120) return std::to_string(seconds) + " s ago";
+  if (seconds < 7200) return std::to_string(seconds / 60) + " min ago";
+  return std::to_string(seconds / 3600) + " h ago";
+}
+
+
+vector<string> RunMgmt::MachineCheck::describe() const
+{
+  vector<string> out;
+  if (!reached) {
+    out.push_back("Could not check the machine: " +
+                  (error.empty() ? string("no reply") : error));
+    return out;
+  }
+  if (!error.empty()) {
+    out.push_back(error + ".");
+    return out;
+  }
+  if (present == 1)
+    out.push_back(what + " is still on the machine.");
+  else if (present == 0)
+    out.push_back(what + " is no longer on the machine.");
+  else
+    out.push_back("Whether " + what + " is still there is not known.");
+  if (outputTime > 0) {
+    string size;
+    if (outputSize >= 0)
+      size = outputSize < 10240
+             ? ", " + std::to_string(outputSize) + " bytes"
+             : ", " + std::to_string(outputSize / 1024) + " kB";
+    out.push_back("Output " + outputName + " last written " +
+                  clockTime(outputTime) + " (" +
+                  agoText(machineNow - outputTime) + ")" + size + ".");
+  } else if (!outputName.empty()) {
+    out.push_back("No output file " + outputName + " yet.");
+  }
+  if (!status.empty())
+    out.push_back("The job script has ended (status " + status + ").");
+  if (present == 0 || !status.empty())
+    out.push_back("Reconnect reads the output to its end and sets the "
+                  "final state.");
+  return out;
+}
+
+
 string RunMgmt::cleanServerDirs(const TaskJob *calc)
 {
   string ret;
