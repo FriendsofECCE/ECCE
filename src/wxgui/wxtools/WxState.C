@@ -80,33 +80,6 @@ static const char* DARK_STATE_COLOURS[] = {
   "#e0e0e0",  // LAST
 };
 
-// Former defaults, indexed like the tables above.  "Reset" in Preferences
-// copies the defaults into the user's own file, so a user value equal to
-// one of these is a stale copy rather than a choice, and the new default
-// wins.  Pre-9.0 (light only), then 9.0.0-alpha.3/alpha.4 light and dark.
-static const char* PRE90_STATE_COLOURS[] = {
-  "", "#b0e2ff", "#0000ff", "#b4eeb4", "#00cd00", "", "#007d49", "#007d49",
-  "#757575", "#ffa500", "#ff0000", "#000000", "",
-};
-static const char* ALPHA_LIGHT_STATE_COLOURS[] = {
-  "", "#3a6ea5", "#0000ff", "#1f6f8f", "#007a00", "", "#007d49", "#007d49",
-  "#6b6b6b", "#a35200", "#d00000", "#000000", "",
-};
-static const char* ALPHA_DARK_STATE_COLOURS[] = {
-  "", "#b0e2ff", "#9999ff", "#b4eeb4", "#00cd00", "", "#3ddc97", "#3ddc97",
-  "#b0b0b0", "#ffa500", "#ff8080", "#e0e0e0", "",
-};
-
-static bool isFormerDefault(int state, const string& value, bool dark)
-{
-  wxString v(value);
-  if (dark)
-    return v.IsSameAs(ALPHA_DARK_STATE_COLOURS[state], false);
-  return v.IsSameAs(PRE90_STATE_COLOURS[state], false) ||
-         v.IsSameAs(ALPHA_LIGHT_STATE_COLOURS[state], false);
-}
-
-
 vector<string>   WxState::p_defaultColors;
 vector<wxBrush*> WxState::p_brushes[2];
 vector<wxPen*>   WxState::p_pens[2];
@@ -148,8 +121,7 @@ WxState::~WxState()
 
 /**
  * Initialize colors, brushes and pens.  
- * System colors are loaded followed by user colors.  This is only done
- * if not colors have been set yet.
+ * The system colours (EcceGlobal) are loaded once; there are no per-user ones.
  */
 void WxState::initializeColors()
 {
@@ -165,23 +137,8 @@ void WxState::initializeColors()
     createBrushesAndPens();
 
     resetToSystemDefault();
-
-    resetToUserDefault();
   }
 }
-
-
-/**
- * Force reload of user preference values.
- * Same as resetToUserDefault() with clearer name.
- * Need to call this in response to preference change event.
- * Caller must call refresh.
- */
-void WxState::resetUserPreferences()
-{
-  resetToUserDefault();
-}
-
 
 
 // A fill too light to stand out against a light theme (below 3:1, the WCAG
@@ -430,38 +387,20 @@ void WxState::resetToSystemDefault()
 
 
 /**
- * Reset all state colors to the user preferred colors.
- * NOTE!!!! This involves reloading the system pref file for each instance 
- * of this class.
- *
- * Caller must call refresh to update display of individual instances.
+ * Reads the state colours from the system preference file and recreates the
+ * brushes and pens.  A colour stored in a user's own file is ignored.
  */
-void WxState::resetToUserDefault()
+void WxState::resetFromPreferences(const Preferences& sysPrefs)
 {
-  Preferences sysPrefs(PrefLabels::GLOBALPREFFILE);
-  resetFromPreferences(sysPrefs, true);
-}
-
-
-
-/**
- * Reloads the user state color strings and recreates the brushes and pens.
- */
-void WxState::resetFromPreferences(const Preferences& sysPrefs, bool user)
-{
-  bool dark = ewxThemeColours::isDark();
   int i = ResourceDescriptor::STATE_CREATED;
   for (; i < ResourceDescriptor::NUMBER_OF_STATES; i++) {
     string value;
-    if (sysPrefs.getString(getPrefString(i), value)) {
-      bool stale = user && isFormerDefault(i, value, dark);
-      if (!stale) p_defaultColors[i] = value;
-    }
+    if (sysPrefs.getString(getPrefString(i), value))
+      p_defaultColors[i] = value;
     p_brushes[0][i]->SetColour(ewxColor(p_defaultColors[i]));
     p_pens[0][i]->SetColour(outlineFor(ewxColor(p_defaultColors[i])));
   }
 }
-
 
 
 ewxPanel* WxState::createLegend(wxWindow* parent)
@@ -528,19 +467,6 @@ void WxState::setOutOfContact(bool lost)
     p_outOfContact = lost;
     Refresh();
   }
-}
-
-
-bool WxState::canBeReset()
-{
-  return p_pens[0][p_currentState]->GetColour() != 
-    p_pens[1][p_currentState]->GetColour();
-}
-
-
-string WxState::getPrefString()
-{
-  return getPrefString(p_currentState);
 }
 
 
@@ -621,10 +547,3 @@ string WxState::getPrefKey(int state)
   }
   return "";
 }
-
-
-string WxState::getColorString()
-{
-  return p_defaultColors[p_currentState];
-}
-

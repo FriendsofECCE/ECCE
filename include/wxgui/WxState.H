@@ -47,10 +47,6 @@ public:
   void refresh();
 
   static void resetToSystemDefault();
-  // Need to call this function when state preference message is received
-  // then refresh the frame or panel
-  static void resetToUserDefault();
-  static void resetUserPreferences();
 
   static void finalize();
 
@@ -63,10 +59,7 @@ public:
   void setOutOfContact(bool lost);
   bool outOfContact() const { return p_outOfContact; }
 
-  bool canBeReset();
-  string getPrefString();
   string getName(bool capital = false);
-  string getColorString();
 
   static string getName(ResourceDescriptor::RUNSTATE state,
                         bool capital = false);
@@ -83,8 +76,7 @@ protected:
   static void initializeColors();
   static void createBrushesAndPens();
 
-  static void resetFromPreferences(const Preferences& prefs,
-                                   bool user = false);
+  static void resetFromPreferences(const Preferences& prefs);
   static string getPrefKey(int state);
 
   /** The current run state to draw */

@@ -36,9 +36,9 @@ non-text). The icons are never used as text colours.
 Not enforced, known weak: unsuccessful/failed (both diamonds) are 2.3 apart
 for deuteranopes in the light theme.
 
-A user value equal to a former default (pre-9.0, or 9.0-alpha light/dark)
-is a stale "Reset" copy and is ignored; add the old table to
-`isFormerDefault` when defaults change.
+The colours are not user-settable: the Preferences "Run state icons" tab
+was removed, and `WxState` reads only the system `EcceGlobal`. A colour left
+in a user's own prefs file is ignored.
 
 `tests/look/statelegend.py OUTDIR [--ecce-home DIR]` renders the real
 Organizer legend (`WxState::createLegend`) in light and dark on Xvfb.

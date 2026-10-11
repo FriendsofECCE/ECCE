@@ -89,6 +89,9 @@ bool ProgressBox::set(const string& text, double received, bool finished,
   const bool changed = want != GetMinSize();
   if (changed) SetMinSize(want);
   Refresh(false);
+  //  A box that got shorter leaves its old lines in the area it vacates
+  //  until the parent repaints, under whatever is laid out there next.
+  if (changed && GetParent()) GetParent()->Refresh();
   return changed;
 }
 
@@ -103,6 +106,7 @@ void ProgressBox::setCollapsed(bool collapsed)
   const wxSize want = layout(0);
   SetMinSize(want);
   Refresh(false);
+  if (GetParent()) GetParent()->Refresh();
   if (p_relayout) p_relayout();
 }
 

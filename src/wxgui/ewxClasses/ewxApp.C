@@ -226,7 +226,7 @@ void ewxApp::OnAbout(wxCommandEvent& WXUNUSED(event))
       "chemistry program (version 9).\n\n"
       "Neither Pacific Northwest National Laboratory, Battelle Memorial "
       "Institute nor the U.S. Department of Energy is responsible for, or "
-      "endorses, the modifications made since 2012.\n\n"
+      "endorses, the modifications made by the FriendsofECCE project.\n\n"
       "Report problems: start ecce --bug and attach the archive to an issue "
       "at github.com/FriendsofECCE/ECCE."));
    info.SetCopyright(wxString::FromUTF8(

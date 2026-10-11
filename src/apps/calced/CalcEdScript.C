@@ -39,6 +39,8 @@
 #include "util/ResourceUtils.H"
 #include "dsm/ICalculation.H"
 #include "wxgui/ewxChoice.H"
+#include "wxgui/ewxStaticText.H"
+#include "wxgui/ewxThemeColours.H"
 
 #include "CalcEd.H"
 
@@ -233,6 +235,12 @@ void CalcEd::runCalcEdScript(const string& file)
                 getTheoryName().ToStdString().c_str(),
                 getRuntypeName().ToStdString().c_str(),
                 launch && launch->IsEnabled() ? "enabled" : "disabled");
+        //  The standing not-ready line and the box outlined in red.
+        const wxColour red = ewxThemeColours::statusText(ewxThemeColours::BAD);
+        fprintf(stderr, "CALCED: notready=%s outline=%s,%s\n",
+                p_notReadyText->GetLabel().utf8_str().data(),
+                p_chemSysMark->GetBackgroundColour() == red ? "chemsys" : "none",
+                p_basisMark->GetBackgroundColour() == red ? "basis" : "none");
         //  The Verify lamp: empty (not checked), else its tooltip.
         wxWindow *lamp = FindWindow(ID_STATICTEXT_CALCED_VERIFY_LIGHT);
         wxString lampText = !lamp || lamp->GetLabel().IsEmpty()

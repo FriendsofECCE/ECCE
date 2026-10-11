@@ -434,6 +434,7 @@ class Builder: public BuilderGUI,
       void setColumnTab(int tab, bool save=true);
       void selectDetail(const string& name);
       void setDetail(wxWindow *win);
+      void keepColumnWidth();
       void ensureDetail();
       void accordionNormalize(wxWindow *keepOpen=0);
       void foldPane(wxWindow *win, bool fold);

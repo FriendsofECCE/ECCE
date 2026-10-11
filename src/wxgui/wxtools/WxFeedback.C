@@ -182,8 +182,6 @@ void WxFeedback::readPreferences()
    Preferences resetPrefs("Organizer");
    resetPrefs.getBool("Organizer.ConfirmResets", p_confirmResets);
 
-   // support update of color changes for state icon
-   p_stateIcon->resetUserPreferences();
    p_stateIcon->refresh();
 }
 
