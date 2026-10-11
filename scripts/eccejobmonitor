@@ -81,6 +81,7 @@ my $MSG_TYPE_ERROR   = 'jmERROR';	# error message
 my $MSG_TYPE_FILE    = 'jmFILE';	# file message
 my $MSG_TYPE_PORT    = 'jmPORT';	# port message
 my $MSG_TYPE_PROP    = 'jmPROP';	# property message
+my $MSG_TYPE_PROG    = 'jmPROG';	# progress snapshot (#284)
 my $MSG_TYPE_NODE    = 'jmNODE';	# ejm requests restart on compute node
 my $MSG_TYPE_STATUS  = 'jmSTATUS';	# status message
 my $MSG_TYPE_UP      = 'jmUP';  	# up (heartbeat) message
@@ -141,6 +142,19 @@ my @gPdMatchList;
 my %gPdTable;
 my %gPdTableFiles;
 my %gPdTableFreq;
+
+# [PROGRESS] entries (#284).  They are matched against every line, inside
+# property blocks too, and never consume it, so they cannot starve a
+# property entry nor be starved by one.  Each is
+# [Begin regex, Progress template, History field].
+my @gProgList;
+my %gProg;		# stage -> snapshot (see ProgressLine)
+my $gProgStages = 0;	# stages seen, for their order in the message
+my $gProgDirty = 0;
+my $gProgLastSent = 0;
+my $gProgSeq = 0;
+my $gProgHistMax = 60;	# values kept per history
+my $gHiRes = eval { require Time::HiRes; 1 };
 
 # Order in which parse types were read from the descriptor file.
 # Perl randomizes hash key order per process, so anything that
@@ -207,6 +221,7 @@ my %gConfig = (
     'portCycles'		=> 1,
     'portRange'			=> 1000,
     'portStart'			=> 3852,
+    'progress'			=> 0,		# {0, 1}
     'regExp'			=> 1,		# {0, 1}
     'systemName'		=> '-',
     'timeLimitFileExist'	=> undef,
@@ -439,6 +454,11 @@ EOT
 					default: %portRange
     portStart			port number to start looking at
 					default: %portStart
+    progress			send [PROGRESS] snapshots (jmPROG); set by
+				a job store that understands them
+					0		no
+					1		yes
+					default: %progress
     regExp			allow regular expressions in parse descriptors
 					0		no
 					1		yes
@@ -844,6 +864,11 @@ sub ConfigCheck
     $p = 'portRange';
     $v = $gConfig{$p};
     return "$p '$v' is invalid" unless (($v =~ /^\d+$/) && ($v >= 1));
+
+    $p = 'progress';
+    $v = $gConfig{$p};
+    @ok = qw{0 1};
+    return "$p '$v' is invalid" unless (grep {$v eq $_} @ok);
 
     $p = 'portStart';
     $v = $gConfig{$p};
@@ -1667,6 +1692,10 @@ sub Init
     # read parse descriptor file
     $errMsg = &PDFileRead($gConfig{'parseDescriptorFile'});
     Die "Init: $errMsg" if (defined $errMsg);
+
+    # progress snapshots only for a client that asked for them
+    @gProgList = () unless ($gConfig{'progress'});
+    LogMsg "progress entries: " . scalar(@gProgList);
 
     # enable the parse types requested by the client
     $errMsg = &PDTypesEnable($gConfig{'parseTypes'});
@@ -2914,6 +2943,9 @@ sub JobOutputGet
                     {
                         # job is still active; not EOF
 
+                        # a snapshot held back by the throttle goes now
+                        &ProgressFlush(0) if (@gProgList);
+
                         # pause to avoid hogging CPU
                         sleep $gConfig{'timePauseReadLine'};
 
@@ -2963,6 +2995,12 @@ sub JobOutputGet
 
             # Keep track of where we are for restarting
             $currPos += length;
+
+            if (@gProgList)
+            {
+                &ProgressLine($_);
+                &ProgressFlush(0);
+            }
 
             if ($parseHandle)
             {
@@ -3110,7 +3148,8 @@ sub JobOutputGet
 
     LogMsg "JobOutputGet: statistics:\n", &StatSprint();
 
-    # send buffered data blocks
+    # the last snapshot, then buffered data blocks
+    &ProgressFlush(1) if (@gProgList);
     &MsgSendBlockFlush();
 }
 
@@ -3913,7 +3952,9 @@ sub PDFileRead
         $PD_KEY_LINES,
         $PD_KEY_PREFIX,
         $PD_KEY_SCRIPT,
-        $PD_KEY_SKIP
+        $PD_KEY_SKIP,
+        'progress',
+        'history'
     );
     my @pdValsFreq = (
         $PD_VAL_FREQ_ALL,
@@ -4027,9 +4068,23 @@ sub PDFileRead
                     last;
                 }
             }
+            elsif (($_ eq '[END]') && ($parseType eq 'PROGRESS'))
+            {
+                $errMsg = &ProgressEntryAdd(\%pdBuf, $line, $file);
+                last if (defined $errMsg);
+                $parseType = undef;
+                undef %pdBuf;
+            }
             elsif ($_ eq '[END]')
             {
                 # in parse type; matched end of parse type
+
+                if (exists $pdBuf{'progress'} || exists $pdBuf{'history'})
+                {
+                    $errMsg = "line $line of $what '$file': "
+                        . "Progress and History belong in [PROGRESS] only";
+                    last;
+                }
 
                 # check for missing rules
                 unless (exists $pdBuf{$PD_KEY_BEGIN})
@@ -4194,6 +4249,200 @@ sub PDFileRead
 
     # return
     $errMsg;
+}
+
+# --------------------------------------------------------------------------- #
+# Store a [PROGRESS] entry (#284):
+#
+#	Begin=<regex>		matched against every output line
+#	Progress=<template>	"<stage> key=value ...", $1..$9 taken from
+#				Begin's groups
+#	History=<key>		optional: keep this key's values, one per
+#				record, for a plot
+#
+# Return an error message upon failure, undef upon success.
+# --------------------------------------------------------------------------- #
+
+sub ProgressEntryAdd
+{
+    my($buf, $line, $file) = @_;
+    my $where = "line $line of parse descriptor file '$file' [PROGRESS]";
+
+    foreach (keys %$buf)
+    {
+        next if ($_ eq $PD_KEY_TYPE || $_ eq $PD_KEY_BEGIN
+                 || $_ eq 'progress' || $_ eq 'history');
+        return "$where: rule key '$_' is not used here";
+    }
+    return "$where: Begin and Progress must be given"
+        unless (exists $$buf{$PD_KEY_BEGIN} && exists $$buf{'progress'});
+    my $re = eval { qr/$$buf{$PD_KEY_BEGIN}/ };
+    return "$where: bad Begin pattern: $@" unless (defined $re);
+    return "$where: Progress must start with a stage name"
+        unless ($$buf{'progress'} =~ /^\s*[A-Za-z][\w-]*(\s|$)/);
+    push @gProgList, [$re, $$buf{'progress'}, $$buf{'history'}];
+    undef;
+}
+
+sub ProgressNow
+{
+    $gHiRes ? Time::HiRes::time() : time;
+}
+
+# --------------------------------------------------------------------------- #
+# Fold one output line into the snapshot.  A stage's record is its cycle,
+# step or point: a new record clears the stage's other fields, and a
+# record lower than the last starts the stage over (a new SCF), which
+# also clears its history.  point=k/n gets an eta in seconds.
+# --------------------------------------------------------------------------- #
+
+sub ProgressLine
+{
+    my($line) = @_;
+    my $entry;
+
+    foreach $entry (@gProgList)
+    {
+        my @cap = ($line =~ $$entry[0]);
+        next unless (@cap);
+
+        my $text = $$entry[1];
+        $text =~ s/\$(\d)/(defined $cap[$1 - 1]) ? $cap[$1 - 1] : ''/ge;
+        my($stage, @pairs) = split ' ', $text;
+        next unless (defined $stage && $stage =~ /^[A-Za-z][\w-]*$/);
+
+        my %set;
+        my @keys;
+        foreach (@pairs)
+        {
+            next unless (/^(\w+)=([^\s=]{1,40})$/);
+            push @keys, $1 unless (exists $set{$1});
+            $set{$1} = $2;
+        }
+        next unless (@keys);
+
+        my $st = $gProg{$stage};
+        unless ($st)
+        {
+            $st = $gProg{$stage} =
+                { 'order' => $gProgStages++, 'keys' => [], 'f' => {},
+                  'hist' => [] };
+        }
+
+        my ($recKey) = grep { exists $set{$_} } qw(cycle step point);
+        my $rec = undef;
+        if (defined $recKey)
+        {
+            ($rec) = ($set{$recKey} =~ /^(-?\d+)/);
+            if (defined $rec && defined $$st{'rec'} && $rec != $$st{'rec'})
+            {
+                if ($rec < $$st{'rec'})
+                {
+                    $$st{'hist'} = [];
+                    delete $$st{'t0'};
+                }
+                $$st{'keys'} = [];
+                $$st{'f'} = {};
+            }
+            $$st{'rec'} = $rec if (defined $rec);
+        }
+
+        foreach (@keys)
+        {
+            push @{$$st{'keys'}}, $_ unless (exists $$st{'f'}{$_});
+            $$st{'f'}{$_} = $set{$_};
+        }
+
+        my $hk = $$entry[2];
+        if (defined $hk && exists $set{$hk})
+        {
+            my ($v) = split '/', $set{$hk};
+            my $h = $$st{'hist'};
+            $$st{'histKey'} = $hk;
+            if (@$h && defined $rec && $$h[-1][0] == $rec)
+            {
+                $$h[-1][1] = $v;
+            }
+            else
+            {
+                push @$h, [(defined $rec ? $rec : scalar @$h), $v];
+                shift @$h while (@$h > $gProgHistMax);
+            }
+        }
+
+        if (exists $set{'point'} && $set{'point'} =~ m{^(\d+)/(\d+)$})
+        {
+            my($k, $n) = ($1, $2);
+            my $now = &ProgressNow();
+            if (!defined $$st{'t0'} || $k < $$st{'k0'})
+            {
+                $$st{'t0'} = $now;
+                $$st{'k0'} = $k;
+            }
+            if ($k > $$st{'k0'} && $k < $n)
+            {
+                push @{$$st{'keys'}}, 'eta' unless (exists $$st{'f'}{'eta'});
+                $$st{'f'}{'eta'} = int(($now - $$st{'t0'}) / ($k - $$st{'k0'})
+                                       * ($n - $k) + 0.5);
+            }
+            elsif (exists $$st{'f'}{'eta'})
+            {
+                $$st{'f'}{'eta'} = 0;
+            }
+        }
+
+        $gProgDirty = 1;
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# Send the snapshot if it changed, at most once a second (latest wins).
+# With $force, wait out the second instead of holding it back.
+# --------------------------------------------------------------------------- #
+
+sub ProgressFlush
+{
+    my($force) = @_;
+
+    return unless ($gProgDirty);
+
+    my $gap = $gHiRes ? 1.0 : 2;
+    my $wait = $gProgLastSent + $gap - &ProgressNow();
+    if ($wait > 0)
+    {
+        return unless ($force);
+        select(undef, undef, undef, $wait);
+    }
+    $gProgLastSent = &ProgressNow();
+    $gProgDirty = 0;
+    $gProgSeq++;
+
+    my @stages = sort { $gProg{$a}{'order'} <=> $gProg{$b}{'order'} }
+                 keys %gProg;
+    my $keep = $gProgHistMax;
+    my $text;
+    my $limit = $MSG_MAXLEN - length($MSG_TYPE_PROG) - 1;
+    for (;;)
+    {
+        $text = sprintf("# seq=%d sent=%.3f\n", $gProgSeq, $gProgLastSent);
+        foreach my $stage (@stages)
+        {
+            my $st = $gProg{$stage};
+            $text .= join(' ', $stage,
+                          map { "$_=$$st{'f'}{$_}" } @{$$st{'keys'}}) . "\n";
+            my $h = $$st{'hist'};
+            if ($keep > 0 && @$h)
+            {
+                my $from = @$h > $keep ? @$h - $keep : 0;
+                $text .= "$stage~ $$st{'histKey'}="
+                    . join(',', map { $$_[1] } @$h[$from .. $#$h]) . "\n";
+            }
+        }
+        last if (length($text) <= $limit || $keep <= 0);
+        $keep = $keep > 10 ? $keep - 10 : 0;
+    }
+
+    &MsgSend(join $MSG_SEP, $MSG_TYPE_PROG, $text);
 }
 
 # --------------------------------------------------------------------------- #

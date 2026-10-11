@@ -54,6 +54,7 @@ from collections import OrderedDict
 # ---------------------------------------------------------------------------
 
 PD_KEYS = ('begin', 'end', 'file', 'frequency', 'lines', 'prefix', 'script',
+           'progress', 'history',
            'skip')
 FREQ_ALL = 'all'
 FREQ_FIRST = 'first'
@@ -111,6 +112,7 @@ class Desc(object):
         self.collisions = []       # (dropped ParseType, kept ParseType)
         self.bad_regex = []        # (ParseType, which, error-string)
         self.type_freq = {}        # %gPdTableFreq: parse type -> frequency
+        self.progress = []         # [PROGRESS] entries (@gProgList), not properties
 
     def live_entries(self):
         """Entries PDMatchListCreate would put in the match list: stored in
@@ -168,6 +170,10 @@ def read_desc(path):
                         raise DescError("line %d of %s: bad frequency '%s'"
                                         % (lineno, path, val))
                 buf[key] = val
+            elif line == '[END]' and parse_type == 'PROGRESS':
+                desc.progress.append(dict(buf))
+                parse_type = None
+                buf = None
             elif line == '[END]':
                 _finish_entry(desc, parse_type, buf, start_line, lineno, path)
                 parse_type = None
