@@ -284,11 +284,13 @@ void SGContainer::constructor()
    //test = new SoClipPlane();
    //p_display->addChild(test);
 
-   // add Material for the ChemBaseData node.  
-   // Don't set any default values here
+   // Material for the ChemBaseData node.  Only the highlight is set: the
+   // colours come from ChemColor.  ChemDisplay's own glMaterial specular is
+   // overridden by this node's lazy-element send, so it is set here (#210).
    p_cdMat = new SoMaterial;
    p_display->addChild(p_cdMat);
-   p_cdMat->shininess.setValue(0.8);
+   p_cdMat->specularColor.setValue(0.4f, 0.4f, 0.4f);
+   p_cdMat->shininess.setValue(0.3f);
 
    // For now, both atom and bond labels will be set to the same
    // color.  See command AtomPropLabelColor.
