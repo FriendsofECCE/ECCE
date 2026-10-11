@@ -46,10 +46,14 @@ int main(int argc, char** argv) {
     std::unique_ptr<qm::Basis> basis;
     qm::ScfResult r;
     qm::Molecule at;
+    // The previous geometry's orbitals start the next SCF (optimisation steps).
+    bool have_prev = false;
     auto evaluate = [&](const qm::Molecule& m) {
       basis.reset(new qm::Basis(m, lib, in.basis, in.spherical));
       at = m;
-      r = qm::run_scf(*basis, m, in.scf);
+      qm::ScfResult next = qm::run_scf(*basis, m, in.scf, have_prev ? &r : nullptr);
+      r = std::move(next);
+      have_prev = true;
       qm::OptEval e;
       e.energy = r.energy;
       if (in.runtype != qm::RunType::Energy) {

@@ -110,7 +110,7 @@ Mat atomic_density(int Z, BasisLibrary& lib, const std::string& name, bool sph) 
 
 }  // namespace
 
-ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt) {
+ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, const ScfResult* guess) {
   mol.check();
   FunctionalSpec fs = functional_by_name(opt.method);
   const bool dft = !fs.is_hf();
@@ -139,33 +139,56 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt) {
   std::unique_ptr<XcIntegrator> xc;
   if (dft) xc.reset(new XcIntegrator(basis, fs, make_grid(mol, opt.grid_radial, opt.grid_angular)));
 
-  // Initial guess: superposition of spin-averaged atomic densities.
-  Mat Dsad = Mat::Zero(n, n);
-  {
-    std::map<int, Mat> atomd;
-    for (const Shell& s : basis.shells()) (void)s;
-    for (size_t a = 0; a < mol.atoms.size(); ++a) {
-      int Z = mol.atoms[a].Z;
-      if (!atomd.count(Z)) atomd[Z] = atomic_density(Z, basis.library(), basis.name(), basis.spherical());
-      // place the atomic block on this atom's AOs (same shell order per element)
-      std::vector<int> idx;
-      for (const Shell& s : basis.shells())
-        if (s.atom == static_cast<int>(a))
-          for (int k = 0; k < s.nao; ++k) idx.push_back(s.ao0 + k);
-      const Mat& Da0 = atomd[Z];
-      if (static_cast<int>(idx.size()) != Da0.rows()) throw Error("internal: atomic guess size mismatch");
-      for (size_t p = 0; p < idx.size(); ++p)
-        for (size_t q = 0; q < idx.size(); ++q) Dsad(idx[p], idx[q]) = Da0(p, q);
+  // Initial guess: the orbitals of a neighbouring geometry, made orthonormal
+  // against this S (Cholesky keeps the beta set inside the alpha set for
+  // ROHF), or else a superposition of spin-averaged atomic densities.
+  Mat Da, Db;
+  const bool have_guess = guess && guess->converged && guess->C_a.rows() == n && guess->C_a.cols() == n &&
+                          guess->nalpha == na && guess->nbeta == nb;
+  if (have_guess) {
+    auto orth = [&](const Mat& C, int nocc) {
+      Mat Co = C.leftCols(nocc);
+      Eigen::LLT<Mat> llt(Co.transpose() * S * Co);
+      Mat L = llt.matrixL();
+      return Mat(Co * L.transpose().inverse());
+    };
+    const Mat Oa = orth(guess->C_a, na);
+    if (ref == Reference::Unrestricted) {
+      Da = density(Oa, na);
+      Db = density(orth(guess->C_b, nb), nb);
+    } else {
+      Da = density(Oa, na);
+      Db = density(Oa, nb);
     }
+  } else {
+    Mat Dsad = Mat::Zero(n, n);
+    {
+      std::map<int, Mat> atomd;
+      for (const Shell& s : basis.shells()) (void)s;
+      for (size_t a = 0; a < mol.atoms.size(); ++a) {
+        int Z = mol.atoms[a].Z;
+        if (!atomd.count(Z)) atomd[Z] = atomic_density(Z, basis.library(), basis.name(), basis.spherical());
+        // place the atomic block on this atom's AOs (same shell order per element)
+        std::vector<int> idx;
+        for (const Shell& s : basis.shells())
+          if (s.atom == static_cast<int>(a))
+            for (int k = 0; k < s.nao; ++k) idx.push_back(s.ao0 + k);
+        const Mat& Da0 = atomd[Z];
+        if (static_cast<int>(idx.size()) != Da0.rows()) throw Error("internal: atomic guess size mismatch");
+        for (size_t p = 0; p < idx.size(); ++p)
+          for (size_t q = 0; q < idx.size(); ++q) Dsad(idx[p], idx[q]) = Da0(p, q);
+      }
+    }
+    const double scale = static_cast<double>(na + nb) / std::max(1.0, Dsad.cwiseProduct(S).sum());
+    Da = 0.5 * scale * Dsad;
+    Db = Da;
   }
-  const double scale = static_cast<double>(na + nb) / std::max(1.0, Dsad.cwiseProduct(S).sum());
-  Mat Da = 0.5 * scale * Dsad, Db = Da;
 
   Diis diis;
   Vec eps_a, eps_b;
   Mat Ca, Cb;
   double Eold = 0;
-  bool first = true;
+  bool first = !have_guess;
   Mat Fa, Fb;
   for (int it = 1; it <= opt.max_iter; ++it) {
     // ---- Fock matrices and energy ----
