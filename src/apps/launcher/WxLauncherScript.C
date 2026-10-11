@@ -139,6 +139,9 @@ int LauncherScript::runCommand(const vector<string>& w)
     else if (cmd == "mpicheck" && n == 2)
         fprintf(stderr, "[LAUNCHER] mpicheck %s: %s\n", w[1].c_str(),
                 p_frame->confirmMpiLauncher(w[1]) ? "go" : "cancel");
+    else if (cmd == "sizecheck" && n == 1)
+        fprintf(stderr, "[LAUNCHER] sizecheck: %s\n",
+                p_frame->confirmQmSize() ? "go" : "cancel");
     else if (cmd == "rundir" && n == 2)
         p_frame->setRunDirectory(w[1]);
     else if (cmd == "reload")

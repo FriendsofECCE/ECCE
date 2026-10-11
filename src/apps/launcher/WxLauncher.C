@@ -31,7 +31,9 @@
 #include "util/TempStorage.H"
 #include "util/TypedFile.H"
 
+#include "tdat/Fragment.H"
 #include "tdat/QueueMgr.H"
+#include "tdat/TTheory.H"
 
 #include "MemoryUnits.H"
 
@@ -39,6 +41,7 @@
 #include "dsm/CodeFactory.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/EDSIServerCentral.H"
+#include "dsm/ICalculation.H"
 #include "dsm/JCode.H"
 #include "dsm/MdTask.H"
 #include "dsm/ResourceDescriptor.H"
@@ -1152,7 +1155,107 @@ void WxLauncher::launchButtonClickCB(wxCommandEvent& event)
         p_messagesFeedback->setMessage("Launch cancelled.", WxFeedback::INFO);
         return;
     }
+    if (!confirmQmSize())
+    {
+        p_messagesFeedback->setMessage("Launch cancelled.", WxFeedback::INFO);
+        return;
+    }
     this->launchCalc(true);
+}
+
+
+// A range of times in round minutes, or in hours from 90 minutes up.
+static string roughRange(double lo, double hi)
+{
+    char buf[96];
+    if (hi < 60.0)
+        return "under a minute";
+    if (hi < 90.0 * 60.0)
+        snprintf(buf, sizeof(buf), "%.0f to %.0f minutes", lo / 60.0, hi / 60.0);
+    else
+        snprintf(buf, sizeof(buf), "%.1f to %.1f hours", lo / 3600.0, hi / 3600.0);
+    return buf;
+}
+
+
+/**
+ * The text of the ECCE-QM size warning, "" when the run is small.  ECCE-QM
+ * keeps the two-electron integrals in memory (nbf^4 bytes: 170 MB at 114
+ * functions, 4 GB at 250) and a frequency run does 6N gradients, so its time
+ * grows as N^2 * nbf: about 0.06 N^2 nbf s for DFT on 8 idle cores, a third
+ * of that for HF (docs/qm/README.md).  A 4-core laptop takes twice as long.
+ */
+static string qmSizeWarning(const string& runType, bool dft, size_t atoms, int nbf)
+{
+    string msg;
+    double work = (double)atoms * (double)atoms * (double)nbf;
+    bool frequencies = runType == "Vibration" || runType == "GeoVib";
+    if (frequencies && work > (dft ? 5000.0 : 15000.0))
+    {
+        double desktop = work * (dft ? 0.06 : 0.02);
+        msg = "A " + string(runType == "Vibration" ? "frequency" : "geometry and frequency") +
+              " run on " + StringConverter::toString((int)atoms) + " atoms with " +
+              StringConverter::toString(nbf) + " basis functions takes roughly " +
+              roughRange(desktop, 2.0 * desktop) +
+              " on a typical laptop (the shorter time is for an 8-core desktop).";
+    }
+    if (atoms > 25 || nbf > 150)
+    {
+        double bytes = (double)nbf * nbf * nbf * nbf;
+        char buf[64];
+        if (bytes >= 1.0e9)
+            snprintf(buf, sizeof(buf), "%.1f GB", bytes / 1.0e9);
+        else
+            snprintf(buf, sizeof(buf), "%.0f MB", bytes / 1.0e6);
+        if (!msg.empty())
+            msg += "\n\n";
+        msg += "ECCE-QM keeps the two-electron integrals in memory: " +
+               StringConverter::toString((int)atoms) + " atoms and " +
+               StringConverter::toString(nbf) + " basis functions need about " + buf +
+               " of RAM (170 MB at 114 functions, 4 GB at 250).";
+    }
+    return msg;
+}
+
+
+/**
+ * Launch of an ECCE-QM calculation that is large for a student machine: say
+ * how long it is likely to take and how much memory it needs, and offer
+ * Cancel.  Only a warning; launching as set is the default.  False when the
+ * user cancelled.
+ */
+bool WxLauncher::confirmQmSize()
+{
+    if (p_taskJob == NULL || p_taskJob->application()->getCodeName() != "ECCE-QM")
+        return true;
+    ICalculation *calc = dynamic_cast<ICalculation*>(p_taskJob);
+    if (calc == NULL)
+        return true;
+
+    string msg;
+    Fragment *frag = calc->fragment();
+    TGBSConfig *config = calc->gbsConfig();
+    TTheory *theory = calc->theory();
+    if (frag != NULL && config != NULL && theory != NULL)
+    {
+        TagCountMap *tags = frag->tagCountsSTL();
+        if (tags != NULL)
+        {
+            msg = qmSizeWarning(calc->runtype().name(), theory->category() == "DFT",
+                                frag->numAtoms(), config->num_functions(*tags));
+            delete tags;
+        }
+    }
+    delete frag;
+    delete config;
+    delete theory;
+    if (msg.empty())
+        return true;
+
+    ewxMessageDialog dlg(this, msg, "Large ECCE-QM calculation", wxICON_EXCLAMATION);
+    dlg.AddButton(wxID_CANCEL, "Cancel");
+    dlg.AddButton(wxID_YES, "Launch anyway")->SetDefault();
+    return dlg.ShowModal() == wxID_YES;
 }
 
 

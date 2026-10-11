@@ -208,7 +208,8 @@ did not converge). Further keywords: `hessian_step` (bohr, default 0.005),
   15000 for HF, and before any run beyond 25 atoms or 150 basis functions (the
   integrals are held in memory: about 170 MB at 114 functions, 4 GB at 250).
   The table is the basis for those numbers; the program itself enforces
-  nothing.
+  nothing, but ECCE's Launcher shows the warning before Launch ("Launch
+  anyway" or Cancel), with the time as the 8-core figure to twice that.
 * Tests: `qm_unit` (model Hessians, symmetry numbers, Sackur-Tetrode),
   `tests/qm/freq_test.py` (frequencies, IR intensities, ZPE and the thermal
   quantities against ORCA 6.1.1 at ORCA's own TightOpt geometry,
