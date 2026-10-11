@@ -362,6 +362,16 @@ Skip=0
 Lines=1
 [END]
 
+# SMD cavity-dispersion term, in the TOTAL SCF ENERGY component list.
+# CPCM without SMD prints no such line.
+[ESOLVCDS]
+Script=orca.solv
+Begin=SMD CDS \(Gcds\)
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
 # Matches the SCF iteration data line's own shape directly rather than
 # anchoring on a section header -- see orca.deltae's header comment for
 # why (no single stable header text works; verified live against a
