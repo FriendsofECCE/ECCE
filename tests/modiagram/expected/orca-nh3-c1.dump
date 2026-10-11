@@ -1,8 +1,8 @@
-group: C1
+group: C3
 formula: NH3
-construction: atom sets you chose
+construction: a central atom and its neighbours
 headline: 
-note: Energies in Hartree.  Molecular levels are the calculation's own orbital energies in Hartree. Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, kept in the atom's own shell order; its free-atom energy is given beside it.  Drawn as N against the other atoms, which is this program's guess at the fragments: it has 4 symmetry-distinct sets of atoms and more than one way to split them. Choose the fragments yourself if another split is the one you want.  There is no character table for C3 here, so the diagram is drawn without symmetry (C1).  Symmetry labels computed from the orbitals in C1; the code reported none.
+note: This calculation reports no orbital symmetry labels, so the molecular levels are unlabelled and are correlated by what they are built from rather than by symmetry.  Molecular levels are the calculation's own orbital energies in Hartree. Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, kept in the atom's own shell order; its free-atom energy is given beside it.  The structure was symmetrised to C3 for this diagram (atoms moved by up to 0.001 Angstrom); the orbitals are the calculation's own.
 column left
   title: N
   fromHalves: 0
@@ -11,9 +11,10 @@ column left
   hiddenSemicoreCount: 0
   hiddenAboveCount: 0
   shellKeys: N:0 N:1
-  levels: 2
-  level 0 energy=-0.813728 tabulated=-25.600000 irrep=A label=A  (2s) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.94 Ha"
-  level 1 energy=-0.441572 tabulated=-13.200000 irrep=A label=3× A  (2p) character=UNKNOWN pairing=-1 occupancy=3.0000 occupancyBeta=-1.0000 degeneracy=3 shell=1 slot=1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.49 Ha"
+  levels: 3
+  level 0 energy=-0.864527 tabulated=-25.600000 irrep=A label=A  (2s) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.94 Ha"
+  level 1 energy=-0.443330 tabulated=-13.200000 irrep=A label=A  (2p) character=UNKNOWN pairing=-1 occupancy=1.0000 occupancyBeta=-1.0000 degeneracy=1 shell=1 slot=1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.49 Ha"
+  level 2 energy=-0.443330 tabulated=-13.200000 irrep=E label=E  (2p) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=2 shell=1 slot=1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.49 Ha"
 column centre
   title: Molecular orbitals
   fromHalves: 0
@@ -23,13 +24,13 @@ column centre
   hiddenAboveCount: 3
   shellKeys:
   levels: 7
-  level 0 energy=-1.118800 tabulated=0.000000 irrep=A label=2A character=BONDING pairing=0 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5065 shareRight=0.4935 lowdinMax=0.5065 OP=0.4011 mullikenMax=0.6312 norm=1.0000 orbitals=[1] annotation="-1.1188"
-  level 1 energy=-0.618910 tabulated=0.000000 irrep=A label=3A character=MIXED pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5796 shareRight=0.4204 lowdinMax=0.5796 OP=0.3829 mullikenMax=0.5410 norm=1.0000 orbitals=[2] annotation="-0.6189"
-  level 2 energy=-0.618730 tabulated=0.000000 irrep=A label=4A character=MIXED pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5795 shareRight=0.4205 lowdinMax=0.5795 OP=0.3829 mullikenMax=0.5409 norm=1.0000 orbitals=[3] annotation="-0.6187"
-  level 3 energy=-0.421510 tabulated=0.000000 irrep=A label=5A nb character=NONBONDING pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.9171 shareRight=0.0829 lowdinMax=0.9171 OP=-0.0336 mullikenMax=0.9409 norm=1.0000 orbitals=[4] annotation="-0.4215"
-  level 4 energy=0.176800 tabulated=0.000000 irrep=A label=6A character=MIXED pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.1422 shareRight=0.8578 lowdinMax=0.2862 OP=-7.2936 mullikenMax=0.4304 norm=1.0000 orbitals=[5] annotation="0.1768"
-  level 5 energy=0.270150 tabulated=0.000000 irrep=A label=7A character=MIXED pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.1333 shareRight=0.8667 lowdinMax=0.5628 OP=-2.1681 mullikenMax=0.6439 norm=1.0000 orbitals=[6] annotation="0.2702"
-  level 6 energy=0.270230 tabulated=0.000000 irrep=A label=8A* character=ANTIBONDING pairing=0 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.1331 shareRight=0.8669 lowdinMax=0.4848 OP=-2.1687 mullikenMax=0.5540 norm=1.0000 orbitals=[7] annotation="0.2702"
+  level 0 energy=-1.118800 tabulated=0.000000 irrep=- label=2 character=BONDING pairing=0 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5065 shareRight=0.4935 lowdinMax=0.5065 OP=0.4011 mullikenMax=0.6312 norm=1.0000 orbitals=[1] annotation="-1.1188"
+  level 1 energy=-0.618910 tabulated=0.000000 irrep=- label=3 character=BONDING pairing=1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5796 shareRight=0.4204 lowdinMax=0.5796 OP=0.3829 mullikenMax=0.5410 norm=1.0000 orbitals=[2] annotation="-0.6189"
+  level 2 energy=-0.618730 tabulated=0.000000 irrep=- label=4 character=BONDING pairing=2 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5795 shareRight=0.4205 lowdinMax=0.5795 OP=0.3829 mullikenMax=0.5409 norm=1.0000 orbitals=[3] annotation="-0.6187"
+  level 3 energy=-0.421510 tabulated=0.000000 irrep=- label=5 nb character=NONBONDING pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.9171 shareRight=0.0829 lowdinMax=0.9171 OP=-0.0336 mullikenMax=0.9409 norm=1.0000 orbitals=[4] annotation="-0.4215"
+  level 4 energy=0.176800 tabulated=0.000000 irrep=- label=6* character=ANTIBONDING pairing=2 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.1422 shareRight=0.8578 lowdinMax=0.2862 OP=-7.2936 mullikenMax=0.4304 norm=1.0000 orbitals=[5] annotation="0.1768"
+  level 5 energy=0.270150 tabulated=0.000000 irrep=- label=7* character=ANTIBONDING pairing=1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.1333 shareRight=0.8667 lowdinMax=0.5628 OP=-2.1681 mullikenMax=0.6439 norm=1.0000 orbitals=[6] annotation="0.2702"
+  level 6 energy=0.270230 tabulated=0.000000 irrep=- label=8* character=ANTIBONDING pairing=0 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.1331 shareRight=0.8669 lowdinMax=0.4848 OP=-2.1687 mullikenMax=0.5540 norm=1.0000 orbitals=[7] annotation="0.2702"
 column right
   title: 3H TASOs
   fromHalves: 0
@@ -38,26 +39,31 @@ column right
   hiddenSemicoreCount: 0
   hiddenAboveCount: 0
   shellKeys: H:0
-  levels: 1
-  level 0 energy=-0.121479 tabulated=-13.600000 irrep=A label=3× A  (1s) character=UNKNOWN pairing=-1 occupancy=3.0000 occupancyBeta=-1.0000 degeneracy=3 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.50 Ha"
-links: 20
+  levels: 2
+  level 0 energy=-0.121479 tabulated=-13.600000 irrep=A label=A  (1s) character=UNKNOWN pairing=-1 occupancy=1.0000 occupancyBeta=-1.0000 degeneracy=1 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.50 Ha"
+  level 1 energy=-0.121479 tabulated=-13.600000 irrep=E label=E  (1s) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=2 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.50 Ha"
+links: 24
   link 0 left=0 centre=0 right=-1
-  link 1 left=1 centre=0 right=-1
-  link 2 left=-1 centre=0 right=0
-  link 3 left=0 centre=1 right=-1
-  link 4 left=1 centre=1 right=-1
+  link 1 left=-1 centre=0 right=0
+  link 2 left=-1 centre=0 right=1
+  link 3 left=1 centre=1 right=-1
+  link 4 left=2 centre=1 right=-1
   link 5 left=-1 centre=1 right=0
-  link 6 left=0 centre=2 right=-1
+  link 6 left=-1 centre=1 right=1
   link 7 left=1 centre=2 right=-1
-  link 8 left=-1 centre=2 right=0
-  link 9 left=1 centre=3 right=-1
-  link 10 left=0 centre=3 right=-1
-  link 11 left=1 centre=4 right=-1
-  link 12 left=0 centre=4 right=-1
-  link 13 left=-1 centre=4 right=0
-  link 14 left=1 centre=5 right=-1
-  link 15 left=0 centre=5 right=-1
-  link 16 left=-1 centre=5 right=0
-  link 17 left=1 centre=6 right=-1
-  link 18 left=0 centre=6 right=-1
-  link 19 left=-1 centre=6 right=0
+  link 8 left=2 centre=2 right=-1
+  link 9 left=-1 centre=2 right=0
+  link 10 left=-1 centre=2 right=1
+  link 11 left=1 centre=3 right=-1
+  link 12 left=2 centre=3 right=-1
+  link 13 left=0 centre=4 right=-1
+  link 14 left=-1 centre=4 right=0
+  link 15 left=-1 centre=4 right=1
+  link 16 left=1 centre=5 right=-1
+  link 17 left=2 centre=5 right=-1
+  link 18 left=-1 centre=5 right=0
+  link 19 left=-1 centre=5 right=1
+  link 20 left=1 centre=6 right=-1
+  link 21 left=2 centre=6 right=-1
+  link 22 left=-1 centre=6 right=0
+  link 23 left=-1 centre=6 right=1
