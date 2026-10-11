@@ -66,6 +66,11 @@ GridPropElement::GridPropElement(Resource *resource, ResourceProperty *property)
   if (property->getName() == "displayname") {
     setValue(resource->getName());
   }
+  else if (property->getType() == GridProperty::PT_PROGRESS) {
+    // Made by the Organizer from the job's live or stored snapshot; the
+    // stored text itself is not a cell value.
+    setValue("");
+  }
   else if (property->getName() == "empiricalFormula") {
     setValue(TFormula::hillOrder(resource->getProp(property->getQName())).c_str());
   }
@@ -100,6 +105,10 @@ wxGridCellAttr *GridPropElement::getAttributes()
     case GridProperty::PT_DATE_TIME:
       cellAttr->SetRenderer(new wxGridCellStringRenderer);
       cellAttr->SetAlignment(wxALIGN_CENTER, wxALIGN_CENTER);
+      break;
+    case GridProperty::PT_PROGRESS:
+      cellAttr->SetRenderer(new wxGridCellStringRenderer);
+      cellAttr->SetAlignment(wxALIGN_LEFT, wxALIGN_CENTER);
       break;
     case GridProperty::PT_CHECK:
       cellAttr->SetRenderer(new wxGridCellBoolRenderer);

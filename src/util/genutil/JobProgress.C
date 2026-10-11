@@ -324,3 +324,65 @@ vector<string> JobProgress::summary(bool completed) const
   }
   return out;
 }
+
+
+// 4.1e-05 -> "4e\xe2\x88\x925": one digit and the exponent, as a cell has room for.
+static string shortNumber(const string& text)
+{
+  double v;
+  if (!number(text.substr(0, text.find('/')), v) || v == 0) return "0";
+  char b[32];
+  snprintf(b, sizeof b, "%.0e", fabs(v));
+  string out = b;                       // "4e-05"
+  const size_t e = out.find('e');
+  const bool neg = out[e + 1] == '-';
+  const string digits = out.substr(e + 2);
+  const int exp = atoi(digits.c_str());
+  return out.substr(0, e) + "e" + (neg ? "\xe2\x88\x92" : "") + std::to_string(exp);
+}
+
+
+string JobProgress::shortLine() const
+{
+  const Stage *current = 0;
+  for (const auto& st : p_stages)
+    if (st.name == "opt" || st.name == "freq") current = &st;
+  const Stage *scf = stage("scf");
+  const string dot = " \xc2\xb7 ";
+
+  string scfPart;
+  if (scf && !scf->field("cycle").empty()) {
+    scfPart = "SCF " + scf->field("cycle");
+    if (!current && !scf->field("dE").empty())
+      scfPart += dot + "\xce\x94" "E " + shortNumber(scf->field("dE"));
+  }
+
+  if (current && current->name == "opt") {
+    const string step = !current->field("step").empty() ? current->field("step")
+                                                         : current->field("istep");
+    string line = "Opt";
+    if (!step.empty()) line += " step " + step;
+    if (current->field("converged") == "yes") return line + dot + "converged";
+    if (!scfPart.empty()) line += dot + scfPart;
+    return line;
+  }
+  if (current) {                          // freq
+    double k, n;
+    bool hasN;
+    if (split(current->field("point"), k, n, hasN) && hasN && n > 0)
+      return fmt("Freq %.0f", k) + fmt("/%.0f", n);
+    if (current->field("done") == "yes") return "Freq done";
+    if (!current->field("step").empty()) return "Freq step " + current->field("step");
+    return scfPart.empty() ? "Freq" : "Freq" + dot + scfPart;
+  }
+  if (!scfPart.empty()) return scfPart;
+
+  for (const auto& st : p_stages) {       // runs counted in steps (GROMACS)
+    double k, n;
+    bool hasN;
+    if (st.name != "scf" && split(st.field("point"), k, n, hasN))
+      return (title(st.name) == "Molecular dynamics" ? string("MD") : title(st.name)) +
+             fmt(" %.0f", k) + (hasN ? fmt("/%.0f", n) : string());
+  }
+  return "";
+}

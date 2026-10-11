@@ -2074,6 +2074,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_progress_box PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # The project table's Progress column (#284): stored and live snapshots.
+  add_test(NAME apps_progress_table
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/progress_table_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_progress_table PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
 
   # The Quantum ESPRESSO tutorial (help/src/qe-first-calculation.md) replayed
   # in the real apps: silicon scf and a water relax, run by pw.x through the

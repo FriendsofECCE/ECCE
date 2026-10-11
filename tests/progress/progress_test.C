@@ -101,6 +101,22 @@ int main()
   check(has(r.summary(true), "Minimisation converged in 4 steps"),
         "minimisation summary");
 
+  // The table cell.
+  check(p.shortLine() == "Freq 14/54", "cell: frequencies, the last of opt/freq: " + p.shortLine());
+  JobProgress c1;
+  c1.parse("# seq=1\nscf cycle=7 dE=-4.1e-05/1e-8\nopt step=4 energy=-1\n");
+  check(c1.shortLine() == "Opt step 4 \xc2\xb7 SCF 7", "cell: optimisation and its SCF: " + c1.shortLine());
+  JobProgress c2;
+  c2.parse("# seq=1\nscf cycle=7 energy=-1 dE=-4.1e-05/1e-8\n");
+  check(c2.shortLine() == "SCF 7 \xc2\xb7 \xce\x94" "E 4e\xe2\x88\x92" "5", "cell: SCF alone: " + c2.shortLine());
+  JobProgress c3;
+  c3.parse("# seq=1\nopt step=6 converged=yes\nfreq step=9\n");
+  check(c3.shortLine() == "Freq step 9", "cell: freq without a total: " + c3.shortLine());
+  JobProgress c4;
+  c4.parse("# seq=1\nmd point=100/500\n");
+  check(c4.shortLine() == "MD 100/500", "cell: MD run: " + c4.shortLine());
+  check(JobProgress().shortLine().empty(), "cell: nothing without progress");
+
   JobProgress e;
   e.parse("# seq=3\nscf cycle=15 energy=-1.1 converged=yes\n");
   vector<string> es = e.summary(true);

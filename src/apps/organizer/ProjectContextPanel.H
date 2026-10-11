@@ -51,6 +51,14 @@ class ProjectContextPanel : public ProjectContextPanelGUI
 
     void refresh();
 
+    // A progress message for the calculation: its Progress cell only.
+    void updateProgress(const EcceURL &url);
+
+    // "name=text" of every row's Progress cell, and how many times a
+    // cell was set after the table was built (tests).
+    vector<string> progressCells();
+    int progressPaints() const { return p_progressSets; }
+
     vector<EcceURL> getSelections();
 
     void clearSelections();
@@ -88,6 +96,7 @@ class ProjectContextPanel : public ProjectContextPanelGUI
 
 
     CalcMgr *p_calcMgr;  /**< Pointer to CalcMgr window */
+    int p_progressSets = 0;
 
     WxResourceTreeItemData 
       *p_project;        /**< A project tree item.  Property data for the 

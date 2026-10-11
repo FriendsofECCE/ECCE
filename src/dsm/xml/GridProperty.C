@@ -185,6 +185,9 @@ string GridProperty::propertyTypeToStr(GridProperty::PropertyType type)
     case PT_FLOAT:
       ret = "float";
       break;
+    case PT_PROGRESS:
+      ret = "progress";
+      break;
     case PT_UNDEFINED:
       ret = "undefined";
       break;
@@ -226,6 +229,9 @@ GridProperty::PropertyType GridProperty::strToPropertyType(const string& pt)
     }
     else if (lstr == "float") {
       ret = GridProperty::PT_FLOAT;
+    }
+    else if (lstr == "progress") {
+      ret = GridProperty::PT_PROGRESS;
     }
     else {
       ret = GridProperty::PT_UNDEFINED;

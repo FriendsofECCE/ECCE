@@ -277,6 +277,9 @@ public:
   void progressUpdate(const EcceURL & url, const string & text);
   bool liveProgress(const EcceURL & url, string & text,
                     double & received) const;
+  // The project table's Progress cell: JobProgress::shortLine() of the live
+  // snapshot, else the stored one; empty unless the calculation is running.
+  string progressCellText(Resource * resource) const;
   void setMessage(const string & message,
                   WxFeedback::Severity severity=WxFeedback::WARNING,
                   bool clear = false);

@@ -181,6 +181,66 @@ void ProjectContextPanel::refresh()
 
 
 
+vector<string> ProjectContextPanel::progressCells()
+{
+  vector<string> out;
+  if (!p_projectView) return out;
+  for (int col = 0; col < p_projectView->getColCount(); col++) {
+    GridPropElement *head =
+        dynamic_cast<GridPropElement*>(p_projectView->getElement(0, col));
+    if (!head || head->getPropertyType() != GridProperty::PT_PROGRESS) continue;
+    for (int row = 0; row < p_projectView->getRowCount(); row++) {
+      GridPropElement *cell =
+          dynamic_cast<GridPropElement*>(p_projectView->getElement(row, col));
+      if (cell)
+        out.push_back(cell->getResource()->getName() + "=" +
+                      string(cell->getValue().ToUTF8()));
+    }
+  }
+  return out;
+}
+
+
+static string trimmedUrl(const EcceURL &url)
+{
+  string s = url.toString();
+  while (s.size() > 1 && s.back() == '/') s.pop_back();
+  return s;
+}
+
+
+void ProjectContextPanel::updateProgress(const EcceURL &url)
+{
+  if (!p_projectView || !p_initialized) return;
+  const int cols = p_projectView->getColCount();
+  const int rows = p_projectView->getRowCount();
+  const string key = trimmedUrl(url);
+  for (int col = 0; col < cols; col++) {
+    GridPropElement *head =
+        dynamic_cast<GridPropElement*>(p_projectView->getElement(0, col));
+    if (!head || head->getPropertyType() != GridProperty::PT_PROGRESS) continue;
+    for (int row = 0; row < rows; row++) {
+      GridPropElement *cell =
+          dynamic_cast<GridPropElement*>(p_projectView->getElement(row, col));
+      if (!cell || trimmedUrl(cell->getResource()->getURL()) != key) continue;
+      const wxString text = wxString::FromUTF8(
+          p_calcMgr->progressCellText(cell->getResource()).c_str());
+      if (text != cell->getValue()) {
+        cell->setValue(text);
+        p_progressSets++;
+        // The column was sized for what the cells held when the table was
+        // built; a longer line must not be clipped.
+        wxGrid *grid = p_projectView->getGrid();
+        const int need = grid->GetTextExtent(text).GetWidth() + grid->FromDIP(12);
+        if (grid->GetColSize(col) < need) grid->SetColSize(col, need);
+        grid->RefreshBlock(row, col, row, col);
+      }
+      return;
+    }
+  }
+}
+
+
 /**
  * Initialize the grid using the default property view.
  */
@@ -248,6 +308,10 @@ void ProjectContextPanel::initialize()
         try {
           GridPropElement *cellValue = 
             new GridPropElement(resource, property);
+          if (property->getType() == GridProperty::PT_PROGRESS) {
+            cellValue->setValue(wxString::FromUTF8(
+                p_calcMgr->progressCellText(resource).c_str()));
+          }
           gridModel->SetValueAsGridElement(i, column, cellValue);
         }
         catch (InvalidException ex) {

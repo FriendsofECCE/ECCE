@@ -4642,10 +4642,19 @@
         <Type>runstateIcon</Type>
       </Property>
       <Property>
+        <Label>Progress</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>progress</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>progress</Type>
+      </Property>
+      <Property>
         <Label>Viewed</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>reviewed</Name>
-        <Order>4</Order>
+        <Order>5</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>check</Type>
@@ -4654,7 +4663,7 @@
         <Label>Created</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>creationdate</Name>
-        <Order>6</Order>
+        <Order>7</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>datetime</Type>
@@ -4663,7 +4672,7 @@
         <Label>Last Modified</Label>
         <Namespace>DAV</Namespace>
         <Name>getlastmodified</Name>
-        <Order>7</Order>
+        <Order>8</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>datetime</Type>
@@ -4672,7 +4681,7 @@
         <Label>Size</Label>
         <Namespace>DAV</Namespace>
         <Name>getcontentlength</Name>
-        <Order>8</Order>
+        <Order>9</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>numeric</Type>
@@ -4681,7 +4690,7 @@
         <Label>Application</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>application</Name>
-        <Order>9</Order>
+        <Order>10</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>cdata</Type>
@@ -4690,7 +4699,7 @@
         <Label>Formula</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>empiricalFormula</Name>
-        <Order>10</Order>
+        <Order>11</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>cdata</Type>
@@ -4699,7 +4708,7 @@
         <Label>Theory</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>theory</Name>
-        <Order>13</Order>
+        <Order>14</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>cdata</Type>
@@ -4708,7 +4717,7 @@
         <Label>Run Type</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>runtype</Name>
-        <Order>14</Order>
+        <Order>15</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>cdata</Type>
@@ -4717,7 +4726,7 @@
         <Label>Machine</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>launch_machine</Name>
-        <Order>15</Order>
+        <Order>16</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>cdata</Type>
@@ -4866,10 +4875,19 @@
         <Type>runstateIcon</Type>
       </Property>
       <Property>
+        <Label>Progress</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>progress</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>progress</Type>
+      </Property>
+      <Property>
         <Label>Last Modified</Label>
         <Namespace>DAV</Namespace>
         <Name>getlastmodified</Name>
-        <Order>4</Order>
+        <Order>5</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>datetime</Type>
@@ -4878,7 +4896,7 @@
         <Label>Size</Label>
         <Namespace>DAV</Namespace>
         <Name>getcontentlength</Name>
-        <Order>5</Order>
+        <Order>6</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>numeric</Type>
@@ -4887,7 +4905,7 @@
         <Label>Machine</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>launch_machine</Name>
-        <Order>6</Order>
+        <Order>7</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>cdata</Type>
@@ -4896,7 +4914,7 @@
         <Label>Processors</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>launch_totalprocs</Name>
-        <Order>7</Order>
+        <Order>8</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>cdata</Type>
@@ -4905,7 +4923,7 @@
         <Label>Start Date</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>startdate</Name>
-        <Order>8</Order>
+        <Order>9</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>datetime</Type>
@@ -4914,7 +4932,7 @@
         <Label>Completion Date</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>completiondate</Name>
-        <Order>9</Order>
+        <Order>10</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>datetime</Type>
@@ -4951,10 +4969,19 @@
         <Type>runstateIcon</Type>
       </Property>
       <Property>
+        <Label>Progress</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>progress</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>progress</Type>
+      </Property>
+      <Property>
         <Label>Viewed</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>reviewed</Name>
-        <Order>4</Order>
+        <Order>5</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>check</Type>
@@ -4963,7 +4990,7 @@
         <Label>Created</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>creationdate</Name>
-        <Order>5</Order>
+        <Order>6</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>datetime</Type>
@@ -4972,7 +4999,7 @@
         <Label>Last Modified</Label>
         <Namespace>DAV</Namespace>
         <Name>getlastmodified</Name>
-        <Order>6</Order>
+        <Order>7</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>datetime</Type>
@@ -4981,7 +5008,7 @@
         <Label>Size</Label>
         <Namespace>DAV</Namespace>
         <Name>getcontentlength</Name>
-        <Order>7</Order>
+        <Order>8</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>numeric</Type>
@@ -4990,7 +5017,7 @@
         <Label>Application</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>application</Name>
-        <Order>8</Order>
+        <Order>9</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>cdata</Type>
@@ -4999,7 +5026,7 @@
         <Label>Formula</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>empiricalFormula</Name>
-        <Order>9</Order>
+        <Order>10</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>cdata</Type>
@@ -5008,7 +5035,7 @@
         <Label>BasisSet</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>name</Name>
-        <Order>10</Order>
+        <Order>11</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>cdata</Type>
@@ -5017,7 +5044,7 @@
         <Label>Annotation</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>annotation</Name>
-        <Order>11</Order>
+        <Order>12</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>check</Type>
@@ -5026,7 +5053,7 @@
         <Label>Owner</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>owner</Name>
-        <Order>12</Order>
+        <Order>13</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>cdata</Type>
@@ -5035,7 +5062,7 @@
         <Label>Theory</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>theory</Name>
-        <Order>13</Order>
+        <Order>14</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>cdata</Type>
@@ -5044,7 +5071,7 @@
         <Label>Run Type</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>runtype</Name>
-        <Order>14</Order>
+        <Order>15</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>cdata</Type>
@@ -5053,7 +5080,7 @@
         <Label>Machine</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>launch_machine</Name>
-        <Order>15</Order>
+        <Order>16</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>cdata</Type>
@@ -5062,7 +5089,7 @@
         <Label>Processors</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>launch_totalprocs</Name>
-        <Order>17</Order>
+        <Order>18</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>cdata</Type>
@@ -5071,7 +5098,7 @@
         <Label>Start Date</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>startdate</Name>
-        <Order>18</Order>
+        <Order>19</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>datetime</Type>
@@ -5080,7 +5107,7 @@
         <Label>Completion Date</Label>
         <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
         <Name>completiondate</Name>
-        <Order>19</Order>
+        <Order>20</Order>
         <Display>true</Display>
         <IsReadOnly>true</IsReadOnly>
         <Type>datetime</Type>

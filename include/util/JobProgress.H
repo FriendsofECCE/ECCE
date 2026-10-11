@@ -76,6 +76,12 @@ public:
   // stopped (failed, killed): then the lines say where it got to.
   std::vector<std::string> summary(bool completed) const;
 
+  // One short line for a table cell while the job runs, e.g. "Freq 14/54",
+  // "Opt step 4 - SCF 10" or "SCF 7 - dE 4e-5" (UTF-8 middle dot, Delta,
+  // minus sign).  The stage that came last of opt/freq is the current
+  // one.  Empty without progress.
+  std::string shortLine() const;
+
   // "a/b" -> a, b.  False when a is not a number; hasTarget false
   // without "/b".
   static bool split(const std::string& v, double& value, double& target,

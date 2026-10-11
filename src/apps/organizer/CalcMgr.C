@@ -119,6 +119,8 @@ static std::string s_registerMessage;
 #include "BookmarkEditor.H"
 #include "ContextPanelFactory.H"
 #include "CalculationContextPanel.H"
+#include "ProjectContextPanel.H"
+#include "util/JobProgress.H"
 #include "ProgressBox.H"
 #include "ContextPanelInterface.H"
 #include "TreeDropTarget.H"
@@ -725,6 +727,22 @@ void CalcMgr::runTestCommand(const string& line)
                   " size=" + std::to_string(box->GetSize().x) + "x" +
                   std::to_string(box->GetSize().y);
         for (const string& l : box->describe()) outcome += " | " + l;
+      }
+    } else if (command == "table") {
+      // "table [PROJECT-URL]": select the project (when given) and report
+      // its table's Progress cells, one "name=text" each.
+      if (!calcName.empty()) {
+        WxResourceTreeItemData *node = findNode(EcceURL(calcName), true, true);
+        if (node) p_treeCtrl->SelectItem(node->GetId());
+      }
+      for (int i = 0; i < 5; i++) wxYield();
+      ProjectContextPanel *table = dynamic_cast<ProjectContextPanel*>(p_contextPanel);
+      if (!table) {
+        outcome = "no table";
+      } else {
+        outcome = "panel=" + std::to_string((unsigned long)(uintptr_t)table) +
+                  " paints=" + std::to_string(table->progressPaints());
+        for (const string& c : table->progressCells()) outcome += " | " + c;
       }
     } else if (command == "snap") {
       for (int i = 0; i < 3; i++) {
@@ -5659,6 +5677,9 @@ void CalcMgr::progressUpdate(const EcceURL & url, const string & text)
       dynamic_cast<CalculationContextPanel*>(p_contextPanel);
   if (panel && progressKey(panel->getUrl()) == key)
     panel->updateProgress();
+  // The project table: that one cell, no rebuild (#254).
+  if (ProjectContextPanel *table = dynamic_cast<ProjectContextPanel*>(p_contextPanel))
+    table->updateProgress(url);
 }
 
 
@@ -5670,6 +5691,22 @@ bool CalcMgr::liveProgress(const EcceURL & url, string & text,
   text = it->second.first;
   received = it->second.second;
   return true;
+}
+
+
+string CalcMgr::progressCellText(Resource * resource) const
+{
+  if (!resource) return "";
+  const string ecce = VDoc::getEcceNamespace();
+  if (ResourceUtils::stringToState(resource->getProp(ecce + ":state")) !=
+      ResourceDescriptor::STATE_RUNNING)
+    return "";
+  string text, live;
+  double at = 0;
+  if (liveProgress(resource->getURL(), live, at)) text = live;
+  else text = resource->getProp(ecce + ":progress");
+  JobProgress p;
+  return p.parse(text) ? p.shortLine() : "";
 }
 
 
