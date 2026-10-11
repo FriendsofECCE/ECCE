@@ -2,7 +2,7 @@
 type: pitfall
 title: "wxMSW: 16-bit menu ids, no right-click selection, no manifest, text-mode 0x1A, a grey frame, no alpha by default, console windows from system()/popen()"
 area: wx-viewer
-paths: ["packaging/windows/ecce.rc", "src/apps/calced/CalcEd.C", "src/apps/organizer/CalcMgr.C", "src/dsm/edsiimpl/ChemistryTask.C", "src/dsm/edsiimpl/Resource.C", "src/wxgui/ewxClasses/ewxStyledWindow.C", "src/inv/wxinv/SoWxViewer.C", "src/apps/builder/Builder.C", "src/apps/builder/VizPropertyPanel.C", "include/util/Ecce.H", "src/tdat/chemistry/MoFragments.C", "src/comm/rcommand/RCommand.C", "src/comm/commxt/Launch.C", "src/util/command/CommandWrapper.C", "tests/windows/probe_win.py", "src/wxgui/wxdialogs/WindowShot.C", "src/apps/builder/NModePanel.C", "src/apps/builder/StructLib.C"]
+paths: ["packaging/windows/ecce.rc", "src/apps/calced/CalcEd.C", "src/apps/organizer/CalcMgr.C", "src/dsm/edsiimpl/ChemistryTask.C", "src/dsm/edsiimpl/Resource.C", "src/wxgui/ewxClasses/ewxStyledWindow.C", "src/inv/wxinv/SoWxViewer.C", "src/apps/builder/Builder.C", "src/apps/builder/VizPropertyPanel.C", "include/util/Ecce.H", "src/tdat/chemistry/MoFragments.C", "src/comm/rcommand/RCommand.C", "src/comm/commxt/Launch.C", "src/util/command/CommandWrapper.C", "tests/windows/probe_win.py", "src/wxgui/wxdialogs/WindowShot.C", "src/apps/builder/NModePanel.C", "src/apps/builder/StructLib.C", "src/apps/builder/KeyValuePropertyPanel.C"]
 issues: [133]
 ---
 Each of these worked on GTK and failed silently on Windows:
@@ -47,6 +47,12 @@ Each of these worked on GTK and failed silently on Windows:
   the plot said "Not enough room"); a second `Layout()` at the same size
   fixes it. A GL canvas shown after being hidden stays black until its
   parent is laid out and it is refreshed (Structure Library preview).
+- **A symbol Segoe UI lacks ("▾", "▸") is measured narrower than the
+  native static text draws it** (font fallback), and the control wraps
+  at a space: the Energies headings showed only "▾". Draw such marks
+  (`FoldArrow` in `KeyValuePropertyPanel.C`). A `std::string` given to a
+  wx label as is goes through the ANSI code page ("T·S" became "TÂ·S");
+  use `wxString::FromUTF8`.
 
 `tests/windows/probe_win.py` checks the first, second and fourth through
 the apps' hooks; `tests/windows/winshot.ps1` photographs windows, which
