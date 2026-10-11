@@ -401,7 +401,7 @@ Lines=1
 # ESP charges by default) -- real block verified against a captured
 # ORCA 6.1.1 run. Skip=2 (Begin+dashes), End bounds it before the
 # "Total charge:" summary line.
-[ESPCHARGE][ESPFIT]
+[ESPFIT]
 Script=orca.espcharge
 Begin=CHELPG Charges
 Skip=2

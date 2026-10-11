@@ -322,6 +322,7 @@ void MoPanel::updateUIOptions()
    //  then quietly producing a plain surface.
    bool espOk = densityOk;
    bool espChargesOk = densityOk && (expt->getProperty("ESPCHARGE") ||
+                                     expt->getProperty("ESPFIT") ||
                                      expt->getProperty("MULLIKEN"));
 
    ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);

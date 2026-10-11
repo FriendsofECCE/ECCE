@@ -1394,10 +1394,17 @@ bool ComputeMoCmd::computeEsp(SingleGrid *grid, vector<TAtm*> *atoms,
   const char *source = 0;
 
   PropTable *espTable = (PropTable*)calc->getProperty("ESPCHARGE");
+  PropVector *espFit = (PropVector*)calc->getProperty("ESPFIT");
   if (espTable != 0 && (unsigned long)espTable->rows() == numAtoms &&
       espTable->columns() >= 1) {
     for (unsigned long a = 0; a < numAtoms; a++) {
       charges[a] = espTable->value((int)a, 0);
+    }
+    source = "ESP charges";
+  } else if (espFit != 0 && (unsigned long)espFit->rows() == numAtoms) {
+    // ORCA (CHELPG) and Gaussian (MK/CHELPG/HLY) store the fit this way.
+    for (unsigned long a = 0; a < numAtoms; a++) {
+      charges[a] = espFit->value((int)a);
     }
     source = "ESP charges";
   } else {

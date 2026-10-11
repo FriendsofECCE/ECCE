@@ -455,17 +455,11 @@ args:    '.' 'Geometry' 'SCF' 'RHF' '0'
       size: 1
       values: 1
 
-[ESPCHARGE][ESPFIT]  Script=orca.espcharge  Freq=last  Skip=2  Lines=-
+[ESPFIT]  Script=orca.espcharge  Freq=last  Skip=2  Lines=-
   Begin=CHELPG Charges
   End=Total charge:
   begins=5 delivered=1 buffered_away=4
   block 1: begin-line=2304 fed=5 rc=0 first-fed='  0   O   :      -0.566360'
-    key: ESPCHARGE
-      size: 3 1
-      rowlabels: 0-O 1-H 2-H
-      columnlabels: Charge
-      values: -0.566360 0.283186 0.283175
-      units: e
     key: ESPFIT
       size: 3
       values: -0.566360 0.283186 0.283175

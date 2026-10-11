@@ -651,7 +651,10 @@ run job whatsoever -- see `expt_cases.NOTES`.
 Same niobium, same versions, scratch paths and user/host names replaced.
 
 * `gaussian-16/h2o_pop_charges` -- `HF/STO-3G Freq Pop=(Full,NPA,Hirshfeld,CM5,MK)`:
-  APT, ESP (Merz-Kollman) and NPA blocks. Hirshfeld/CM5 print nothing here.
+  APT, ESP (Merz-Kollman) and NPA blocks. Hirshfeld/CM5 print nothing here:
+  Gaussian prints that table only when exactly one of the two is named.
+* `gaussian-16/h2o_cm5_full_mk` -- `B3LYP/6-31G(d) Pop=(Full,CM5,MK)`: the
+  Hirshfeld/CM5 table together with other Pop keywords (2026-10-11).
 * `gaussian-16/h2o_hirshfeld_cm5` -- `B3LYP/6-31G(d) Pop=CM5`: the combined
   Hirshfeld/CM5 table.
 * `orca/h2o_hirshfeld_mbis` -- `! RHF STO-3G Hirshfeld CHELPG MBIS`.

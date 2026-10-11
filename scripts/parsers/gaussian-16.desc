@@ -212,7 +212,8 @@ End= Sum of Mulliken
 
 # Only printed on request: APT with Freq, ESP charges with Pop=MK/CHELPG/HLY
 # (the label is "ESP charges" for all three), Hirshfeld and CM5 with
-# Pop=Hirshfeld/CM5 (one table, two columns), NPA with Pop=NPA.  Begin for
+# Pop=Hirshfeld or Pop=CM5 (one table, two columns; naming both prints
+# neither), NPA with Pop=NPA.  Begin for
 # the Hirshfeld table must not match "Hirshfeld charges with hydrogens
 # summed", which comes right after it.
 [APT]

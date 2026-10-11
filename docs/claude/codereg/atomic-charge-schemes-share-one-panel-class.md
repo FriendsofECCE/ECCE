@@ -19,12 +19,17 @@ out atom rows by shape, so a new scheme usually needs no new regex.
 What each code actually prints (checked by running ORCA 6.1.1, Gaussian 16
 Rev C.01, NWChem 7.2.3):
 - ORCA: Loewdin always; Hirshfeld (`! Hirshfeld`), MBIS (`! MBIS`), CHELPG
-  (`! CHELPG`, feeds `ESPFIT` and the older `ESPCHARGE` table) on request;
-  NPA only with the licensed NBO (`! NBO`), whose output cannot be checked in.
+  (`! CHELPG`, parsed into `ESPFIT` only) on request; NPA only with the
+  licensed NBO (`! NBO`), whose output cannot be checked in. `ESPCHARGE`
+  (a table, NWChem's key) is not emitted for ORCA: it listed the same
+  charges a second time under Charges. The ESP surface takes `ESPCHARGE`,
+  else `ESPFIT`, else Mulliken.
 - Gaussian 16: APT with `Freq`; ESP fit (label is "ESP charges" for MK,
-  CHELPG and HLY alike, so one key `ESPFIT`); Hirshfeld and CM5 need
-  `Pop=Hirshfeld` or `Pop=CM5` on its own -- `Pop=(Full,Hirshfeld,CM5)` and
-  `Pop=(...,Hirshfeld,CM5,MK)` printed nothing; NPA with `Pop=NPA`.
+  CHELPG and HLY alike, so one key `ESPFIT`); the Hirshfeld/CM5 table is
+  printed when exactly one of `Hirshfeld` and `CM5` is named, beside any
+  other Pop keywords (`Pop=(Full,CM5,MK)` and `Pop=(NPA,Hirshfeld)` print
+  it, checked on Rev C.01); naming both (`Pop=(Full,Hirshfeld,CM5)`) prints
+  neither. The parse entry has no Pop condition. NPA with `Pop=NPA`.
 - NWChem: nothing new. The `ecce_print` trace the monitor parses carries
   only Mulliken atomic/shell charges (and Car-Parrinello atomic charges);
   Lowdin and ESP charges exist only in the normal stdout, at two decimals,

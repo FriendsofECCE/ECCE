@@ -1,0 +1,156 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    g16-h2o-cm5-full-mk
+desc:    gaussian-16.desc
+fixture: gaussian-16/h2o_cm5_full_mk.log (537 lines)
+args:    '.' 'Energy' 'DFT' 'B3LYP' '0'
+
+[ORBOCC1][ORBOCCBETA]  Script=gaussian-16.orbocc  Freq=last  Skip=-  Lines=-
+  Begin=Orbital symmetries
+  End=Condensed to atoms
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=179 fed=222 rc=0 first-fed=' Orbital symmetries:'
+    key: ORBOCC
+      size: 19
+      rowlabels: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
+      values: 2 2 2 2 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+    key: ORBSYM
+      size: 19
+      rowlabels: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
+      values: A1 A1 B2 A1 B1 A1 B2 B2 A1 B1 A1 B2 A1 A1 A2 B1 A1 B2 A1
+
+[GEOMTRACE]  Script=gaussian-16.geomtrace  Freq=all  Skip=5  Lines=-
+  Begin=Input orientation\:
+  End=--------------------------------------
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=100 fed=4 rc=0 first-fed='      1          8           0        0.000000    0.000000    0.117300'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: 0.000000 0.000000 0.117300 0.000000 0.757200 -0.469200 0.000000 -0.757200 -0.469200
+      units: Hartree
+
+[GEOMTRACE1]  Script=gaussian-16.geomtrace  Freq=all  Skip=5  Lines=-
+  Begin=Standard orientation\:
+  End=--------------------------------------
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=120 fed=4 rc=0 first-fed='      1          8           0        0.000000   -0.000000    0.117300'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: 0.000000 -0.000000 0.117300 0.000000 0.757200 -0.469200 -0.000000 -0.757200 -0.469200
+      units: Hartree
+
+[KE][NNREPUL]  Script=gaussian-16.ke  Freq=all  Skip=0  Lines=1
+  Begin=N\-N\=
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=433 fed=1 rc=0 first-fed=' N-N= 9.189533762935D+00 E-N=-1.989761742145D+02  KE= 7.585612624253D+01'
+    key: NNREPUL
+      size: 1
+      values: 9.189533762935e+00
+      units: Hartree
+    key: KE
+      size: 1
+      values: 7.585612624253e+01
+      units: Hartree
+
+[DIPOLE2]  Script=gaussian-16.dipole  Freq=last  Skip=1  Lines=1
+  Begin=Dipole moment \(field\-independent basis\, Debye\)\:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=416 fed=1 rc=0 first-fed='    X=             -0.0000    Y=              0.0000    Z=             -2.0790  Tot=              2.0790'
+    key: DIPOLE
+      size: 3
+      rowlabels: X Y Z
+      values: -0.0000 0.0000 -2.0790
+      units: Debye
+
+[QUADPOLE1]  Script=gaussian-16.quadpole  Freq=last  Skip=1  Lines=-
+  Begin=Quadrupole moment \(field\-independent basis\, Debye\-Ang\)\:
+  End=Traceless
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=418 fed=3 rc=0 first-fed='   XX=             -7.1820   YY=             -4.2646   ZZ=             -6.0061'
+    key: QUADPOLE
+      size: 6
+      rowlabels: XX XY XZ YY YZ ZZ
+      values: -7.1820 0.0000 0.0000 -4.2646 0.0000 -6.0061
+
+[OCTAPOLE2]  Script=gaussian-16.octapole  Freq=last  Skip=1  Lines=3
+  Begin=Octapole moment \(field\-independent basis\, Debye\-Ang\*\*2\)\:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=424 fed=3 rc=0 first-fed='  XXX=              0.0000  YYY=              0.0000  ZZZ=             -1.2174  XYY=             -0.0000'
+    key: OCTAPOLE
+      size: 10
+      rowlabels: XXX YYY ZZZ XYY XXY XXZ XZZ YZZ YYZ XYZ
+      values: 0.0000 0.0000 -1.2174 -0.0000 0.0000 -0.3297 -0.0000 0.0000 -1.1930 -0.0000
+
+[HEXPOLE]  Script=gaussian-16.hexpole  Freq=last  Skip=1  Lines=4
+  Begin=Hexadecapole moment \(field\-independent basis\, Debye\-Ang\*\*3\)\:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=428 fed=4 rc=0 first-fed=' XXXX=             -5.1890 YYYY=             -5.9395 ZZZZ=             -6.2050 XXXY=             -0.0000'
+    key: HEXPOLE
+      size: 15
+      rowlabels: XXXX YYYY ZZZZ XXXY XXXZ YYYX YYYZ ZZZX ZZZY XXYY XXZZ YYZZ XXYZ YYXZ ZZXY
+      values: -5.1890 -5.9395 -6.2050 -0.0000 -0.0000 -0.0000 -0.0000 -0.0000 0.0000 -2.0890 -1.9452 -1.7273 -0.0000 0.0000 0.0000
+
+[POLARIZ2][HYPERPOL1]  Script=gaussian-16.db  Freq=last  Skip=-  Lines=-
+  Begin= 1\\1\\GINC
+  End=Job cpu
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=523 fed=12 rc=0 first-fed=' 1\\1\\GINC-NIOBIUM\\SP\\RB3LYP\\6-31G(d)\\H2O1\\ANDY\\11-Oct-2026\\0\\\\# B3LYP/6'
+    key: ESCF
+      size: 1
+      values: -76.4087309
+      units: Hartree
+    key: CPUSEC
+      size: 1
+      values: 1.1
+
+[MULLIKEN]  Script=gaussian-16.mulliken  Freq=all  Skip=2  Lines=-
+  Begin= Mulliken (atomic )?charges( and spin densities)?\:
+  End= Sum of Mulliken
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=405 fed=4 rc=0 first-fed='     1  O   -0.778130'
+    key: MULLIKEN
+      size: 3
+      values: -0.778130 0.389065 0.389065
+      units: e
+
+[ESPFIT]  Script=gaussian-16.espfit  Freq=last  Skip=2  Lines=-
+  Begin= ESP charges\:
+  End= Sum of ESP
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=500 fed=4 rc=0 first-fed='     1  O   -0.756347'
+    key: ESPFIT
+      size: 3
+      values: -0.756347 0.378173 0.378173
+      units: e
+
+[HIRSHFELD][CM5]  Script=gaussian-16.hirshfeld  Freq=last  Skip=2  Lines=-
+  Begin= Hirshfeld charges, spin densities
+  End=^\s+Tot\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=451 fed=4 rc=0 first-fed='     1  O   -0.323144   0.000000  -0.000000   0.000000  -0.186775  -0.659188'
+    key: HIRSHFELD
+      size: 3
+      values: -0.323144 0.161572 0.161572
+      units: e
+    key: CM5
+      size: 3
+      values: -0.659188 0.329594 0.329594
+      units: e
+
+[ESCF1][ESCFVEC]  Script=gaussian-16.energy  Freq=all  Skip=0  Lines=1
+  Begin=SCF Done\:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=170 fed=1 rc=0 first-fed=' SCF Done:  E(RB3LYP) =  -76.4087309161     A.U. after    9 cycles'
+    (script emitted no property)
+
+[PNTGRP]  Script=gaussian-16.symmetry  Freq=all  Skip=0  Lines=1
+  Begin= Full point group
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=117 fed=1 rc=0 first-fed=' Full point group                 C2V     NOp   4'
+    key: PNTGRP
+      size: 1
+      values: C2V
+

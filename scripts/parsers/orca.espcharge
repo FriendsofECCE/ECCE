@@ -2,11 +2,9 @@
 ################################################################################
 #
 # Purpose:
-# Extracts ORCA's "CHELPG Charges" block into ECCE's ESPCHARGE property
-# (a PropTable<Atom,Charge> -- modeled on orca.egradvec's PropTable<
-# Atom,Coordinate> output shape, just a single "Charge" column instead
-# of X/Y/Z). Only present when the job's input requests CHELPG (ORCA
-# does not compute ESP charges by default).
+# Extracts ORCA's "CHELPG Charges" block into ECCE's ESPFIT property.
+# Only present when the job's input requests CHELPG (ORCA does not compute
+# ESP charges by default).
 #
 # Sample real input, verified against a real ORCA 6.1.1 RHF/STO-3G
 # CHELPG run:
@@ -35,17 +33,8 @@ while (<STDIN>) {
 my $n = $#rowlabels + 1;
 exit(0) if ($n < 1);
 
-print "key: ESPCHARGE\n";
-print "size:\n$n 1\n";
-print "rowlabels:\n" . join(" ", @rowlabels) . "\n";
-print "columnlabels:\nCharge\n";
-print "values:\n";
-foreach my $v (@values) { print "$v\n"; }
-print "units:\ne\n";
-print "END\n";
-
-# The same numbers as a PropVector<Atom>, which is what the charge panel
-# that colours the molecule reads.
+# One property, a PropVector<Atom> (what the charge panel reads).  ESPCHARGE
+# is not emitted too: it would list the same charges twice under Charges.
 print "key: ESPFIT\n";
 print "size:\n$n\n";
 print "values:\n" . join(" ", @values) . "\n";

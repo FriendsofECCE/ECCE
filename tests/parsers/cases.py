@@ -835,7 +835,7 @@ CASES = [
         #  a CHELPG block on every optimisation cycle -- five here -- and
         #  the charges genuinely move as the geometry relaxes: O goes
         #  from -0.618127 in the first block to -0.566360 in the last.
-        #  [ESPCHARGE] is Frequency=last, so what must survive is the
+        #  [ESPFIT] is Frequency=last, so what must survive is the
         #  CONVERGED geometry's charges. Pinning the last block's values
         #  is the assertion that it does: were the frequency ever changed
         #  to first, or the buffering to deliver the wrong block, the
@@ -861,11 +861,7 @@ CASES = [
             #  buffers the other four away -- the golden file records
             #  begins=5 delivered=1 buffered_away=4, which is the real
             #  assertion that all five were seen and the last one won.
-            'ESPCHARGE][ESPFIT': dict(blocks=1, keys={
-                'ESPCHARGE': {'size': '3 1',
-                              'rowlabels': '0-O 1-H 2-H',
-                              'values': '-0.566360 0.283186 0.283175',
-                              'units': 'e'},
+            'ESPFIT': dict(blocks=1, keys={
                 'ESPFIT': {'size': '3', 'sum': 0.0,
                            'values': '-0.566360 0.283186 0.283175'}}),
         },
@@ -986,9 +982,8 @@ CASES = [
                               '27.026 30.232 43.780',
                     'units': 'ppm'},
             }),
-            'ESPCHARGE][ESPFIT': dict(blocks=1, keys={'ESPCHARGE': {
-                'size': '3 1',
-                'rowlabels': '0-O 1-H 2-H',
+            'ESPFIT': dict(blocks=1, keys={'ESPFIT': {
+                'size': '3',
                 'values': '-0.618788 0.309403 0.309386',
                 'units': 'e'}}),
         },
@@ -1711,7 +1706,7 @@ CASES = [
     dict(
         #  RHF/STO-3G water with ! Hirshfeld CHELPG MBIS.  Loewdin is
         #  printed unasked; the others only on request.  CHELPG feeds the
-        #  ESPFIT vector as well as the older ESPCHARGE table.
+        #  ESPFIT vector (and no separate ESPCHARGE table: it listed the same charges twice).
         name='orca-h2o-hirshfeld-mbis',
         desc='orca.desc',
         fixture='orca/h2o_hirshfeld_mbis.out',
@@ -1727,7 +1722,7 @@ CASES = [
             'MBIS': dict(keys={'MBIS': {
                 'size': '3', 'values': '-0.589391 0.294697 0.294697',
                 'sum': 0.0, 'units': 'e'}}),
-            'ESPCHARGE][ESPFIT': dict(keys={'ESPFIT': {
+            'ESPFIT': dict(keys={'ESPFIT': {
                 'size': '3', 'values': '-0.619444 0.309729 0.309715',
                 'sum': 0.0, 'units': 'e'}}),
         },
@@ -1804,6 +1799,31 @@ CASES = [
                               'values': '-0.323144 0.161572 0.161572'},
                 'CM5': {'size': '3', 'sum': 0.0, 'units': 'e',
                         'values': '-0.659188 0.329594 0.329594'}}),
+        },
+    ),
+    dict(
+        #  B3LYP/6-31G(d) Pop=(Full,CM5,MK): the Hirshfeld/CM5 table is
+        #  printed whenever exactly one of Hirshfeld and CM5 is named, with
+        #  any other Pop keywords alongside (naming both prints neither, see
+        #  h2o_pop_charges), so the entry must not depend on Pop being alone.
+        name='g16-h2o-cm5-full-mk',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/h2o_cm5_full_mk.log',
+        parse_args=('.', 'Energy', 'DFT', 'B3LYP', '0'),
+        silent_ok={
+            'DELTAE': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'RMSDP': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'ESCF1][ESCFVEC': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'EGRAD': 'runtype-gated to /Geo/i (see g16-co-freq).',
+        },
+        expect={
+            'HIRSHFELD][CM5': dict(keys={
+                'HIRSHFELD': {'size': '3', 'sum': 0.0, 'units': 'e',
+                              'values': '-0.323144 0.161572 0.161572'},
+                'CM5': {'size': '3', 'sum': 0.0, 'units': 'e',
+                        'values': '-0.659188 0.329594 0.329594'}}),
+            'ESPFIT': dict(keys={'ESPFIT': {'size': '3', 'sum': 0.0,
+                                            'units': 'e'}}),
         },
     ),
 ]
