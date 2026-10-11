@@ -254,7 +254,6 @@ void BuilderApp::subscribeMessages()
   subscribe("ecce_invoke_status", (wxJmsCBFunc)&BuilderApp::invokeStatusMCB, false);
 
   // Global Preference Messages
-  subscribe("ecce_preferences_states", (wxJmsCBFunc)&BuilderApp::statePrefsMCB);
   subscribe("ecce_preferences_units", (wxJmsCBFunc)&BuilderApp::unitsPrefsMCB);
   subscribe("ecce_preferences_pertab", (wxJmsCBFunc)&BuilderApp::pertabPrefsMCB);
   subscribe("ecce_preferences_misc", (wxJmsCBFunc)&BuilderApp::miscPrefsMCB);
@@ -606,17 +605,6 @@ void BuilderApp::invokeStatusMCB(JMSMessage& msg)
     wxLogError("%s", errMsg);
   }
 }
-
-
-/**
- * Responds to state color preference change msg
- */
-void BuilderApp::statePrefsMCB(JMSMessage& msg)
-{
-  WxState::resetToUserDefault();
-  p_builder->Refresh();
-}
-
 
 
 /**

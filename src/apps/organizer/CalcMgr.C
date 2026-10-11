@@ -6068,12 +6068,6 @@ WxResourceTreeItemData * CalcMgr::findNode(const EcceURL &targetUrl,
 }
 
 
-void CalcMgr::recolorStatePixmaps()
-{
-  p_treeCtrl->recolorStatePixmaps();
-}
-
-
 ///////////////////// WxCalcImportClient virtuals ///////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////

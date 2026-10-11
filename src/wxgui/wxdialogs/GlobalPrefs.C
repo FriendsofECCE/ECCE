@@ -35,7 +35,6 @@
 #include "wxgui/ewxNotebook.H"
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxTextCtrl.H"
-#include "wxgui/StateButton.H"
 #include "wxgui/WxState.H"
 
 #include "wxgui/GlobalPrefs.H"
@@ -97,7 +96,7 @@ GlobalPrefs::GlobalPrefs(wxWindow* parent)
     p_savePasswords(NULL), p_showBusy(NULL), p_alwaysOnTop(NULL),
     p_leftClickNewApp(NULL), p_orientation(NULL),
     p_localData(NULL), p_localFolder(NULL), p_changeFolder(NULL), p_openFolder(NULL),
-    p_localNote(NULL), p_stateIconSizer(NULL), p_resetAll(NULL), p_restoring(true)
+    p_localNote(NULL), p_resetAll(NULL), p_restoring(true)
 {
   p_editor.choice = p_terminal.choice = p_browser.choice = NULL;
   p_editor.text = p_terminal.text = p_browser.text = NULL;
@@ -125,10 +124,6 @@ GlobalPrefs::GlobalPrefs(wxWindow* parent)
   wxPanel* data = new wxPanel(p_book);
   createDataPage(data);
   p_book->AddPage(data, _("Data folder"));
-
-  wxPanel* states = new wxPanel(p_book);
-  createStatesPage(states);
-  p_book->AddPage(states, _("Run state icons"));
 
   if (gatewayWindowEnabled()) {
     wxPanel* gw = new wxPanel(p_book);
@@ -598,43 +593,6 @@ void GlobalPrefs::OnOpenDataFolder(wxCommandEvent& event)
 }
 
 
-void GlobalPrefs::createStatesPage(wxWindow* page)
-{
-  wxBoxSizer* outer = new wxBoxSizer(wxVERTICAL);
-  p_stateIconSizer = new wxGridSizer(6, PAD, PAD);
-  for (int i = 0; i < 2; i++) {
-    p_stateIconSizer->Add(new ewxStaticText(page, wxID_ANY, _("State")), 0,
-                          wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL);
-    p_stateIconSizer->Add(new ewxStaticText(page, wxID_ANY, _("Default")), 0,
-                          wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL);
-    p_stateIconSizer->Add(new ewxStaticText(page, wxID_ANY, _("Custom")), 0,
-                          wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL);
-  }
-
-  // The order matters: the grid fills row by row, two states per row.
-  addState(page, ResourceDescriptor::STATE_CREATED);
-  addState(page, ResourceDescriptor::STATE_LOADED);
-  addState(page, ResourceDescriptor::STATE_READY);
-  addState(page, ResourceDescriptor::STATE_KILLED);
-  addState(page, ResourceDescriptor::STATE_SUBMITTED);
-  addState(page, ResourceDescriptor::STATE_UNSUCCESSFUL);
-  addState(page, ResourceDescriptor::STATE_RUNNING);
-  addState(page, ResourceDescriptor::STATE_FAILED);
-  addState(page, ResourceDescriptor::STATE_COMPLETED);
-  addState(page, ResourceDescriptor::STATE_SYSTEM_FAILURE);
-  addState(page, ResourceDescriptor::STATE_WAITING);
-
-  for (int i = ResourceDescriptor::STATE_CREATED;
-       i < ResourceDescriptor::NUMBER_OF_STATES; i++) {
-    p_stateButton[i][0]->SetSibling(p_stateButton[i][1]);
-    p_stateButton[i][1]->SetSibling(p_stateButton[i][0]);
-  }
-
-  outer->Add(p_stateIconSizer, 1, wxGROW|wxALL, PAD*2);
-  page->SetSizer(outer);
-}
-
-
 void GlobalPrefs::createGatewayPage(wxWindow* page)
 {
   wxBoxSizer* outer = new wxBoxSizer(wxVERTICAL);
@@ -658,22 +616,6 @@ void GlobalPrefs::createGatewayPage(wxWindow* page)
   outer->Add(p_orientation, 0, wxALL, 3);
   p_orientation->Bind(wxEVT_CHOICE, &GlobalPrefs::OnGatewayChange, this);
   page->SetSizer(outer);
-}
-
-
-void GlobalPrefs::addState(wxWindow* page, ResourceDescriptor::RUNSTATE state)
-{
-  p_stateIconSizer->Add(
-      new ewxStaticText(page, wxID_STATIC, WxState::getName(state, true)), 0,
-      wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL);
-
-  p_stateButton[state][0] = new StateButton(state, true, this, page);
-  p_stateIconSizer->Add(p_stateButton[state][0], 0,
-                        wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL);
-
-  p_stateButton[state][1] = new StateButton(state, false, this, page);
-  p_stateIconSizer->Add(p_stateButton[state][1], 0,
-                        wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL);
 }
 
 
@@ -775,15 +717,6 @@ void GlobalPrefs::OnResetAll(wxCommandEvent& event)
     setProgramRow(p_browser, "");
   }
 
-  if (!isDefaultStatePref()) {
-    resetAllStateColors();
-    WxState::resetToSystemDefault();
-    for (int i = ResourceDescriptor::STATE_CREATED;
-         i < ResourceDescriptor::NUMBER_OF_STATES; i++) {
-      p_stateButton[i][0]->SetStatus(StateButton::FLATBUTTON);
-      p_stateButton[i][1]->SetStatus(StateButton::RAISENBUTTON);
-    }
-  }
   p_restoring = false;
   saveSettings();
   Refresh();
@@ -841,14 +774,6 @@ void GlobalPrefs::OnGatewayChange(wxCommandEvent& event)
   Target gateway(GATEWAY, "");
   JMSMessage * blankMsg = p_publisher->newMessage(gateway);
   p_publisher->publish("ecce_preferences_gateway", *blankMsg);
-  delete blankMsg;
-}
-
-
-void GlobalPrefs::OnStatePrefChange()
-{
-  JMSMessage * blankMsg = p_publisher->newMessage();
-  p_publisher->publish("ecce_preferences_states", *blankMsg);
   delete blankMsg;
 }
 
@@ -1017,7 +942,7 @@ void GlobalPrefs::restorePasswordPref()
 void GlobalPrefs::updateResetButton()
 {
   p_resetAll->Enable(!isDefaultGlobalPref() || !isDefaultGatewayPref() ||
-                     !isDefaultPrograms() || !isDefaultStatePref());
+                     !isDefaultPrograms());
 }
 
 
@@ -1058,57 +983,4 @@ bool GlobalPrefs::isDefaultPrograms()
 {
   return programValue(p_editor).empty() && programValue(p_terminal).empty() &&
          programValue(p_browser).empty();
-}
-
-
-bool GlobalPrefs::isDefaultStatePref()
-{
-  for (int i = ResourceDescriptor::STATE_CREATED;
-       i < ResourceDescriptor::NUMBER_OF_STATES; i++) {
-    if (p_stateButton[i][0]->CanBeReset())
-      return false;
-  }
-  return true;
-}
-
-
-void GlobalPrefs::changeStateColor(string statename, string newcolor)
-{
-  Preferences eccePref = Preferences(PrefLabels::GLOBALPREFFILE);
-  eccePref.setString(statename, newcolor);
-  eccePref.saveFile();
-  OnStatePrefChange();
-  updateResetButton();
-}
-
-
-void GlobalPrefs::resetStateColor(string statename)
-{
-  Preferences eccePref = Preferences(PrefLabels::GLOBALPREFFILE, true);
-  string defcolor;
-  eccePref.getString(statename, defcolor);
-  eccePref = Preferences(PrefLabels::GLOBALPREFFILE);
-  eccePref.setString(statename, defcolor);
-  eccePref.saveFile();
-  OnStatePrefChange();
-  updateResetButton();
-}
-
-
-void GlobalPrefs::resetAllStateColors()
-{
-  Preferences sysPrefs(PrefLabels::GLOBALPREFFILE, true);
-  Preferences eccePref = Preferences(PrefLabels::GLOBALPREFFILE);
-  string defaultColor;
-  string prefString;
-
-  for (int i = ResourceDescriptor::STATE_CREATED;
-       i < ResourceDescriptor::NUMBER_OF_STATES; i++) {
-    prefString = WxState::getPrefString(i);
-    sysPrefs.getString(prefString, defaultColor);
-    eccePref.setString(prefString, defaultColor);
-  }
-
-  eccePref.saveFile();
-  OnStatePrefChange();
 }

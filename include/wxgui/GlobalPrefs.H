@@ -29,7 +29,6 @@ class ewxNotebook;
 class ewxTextCtrl;
 class ewxStaticText;
 class JMSPublisher;
-class StateButton;
 
 class GlobalPrefs: public ewxFrame
 {
@@ -55,7 +54,6 @@ public:
 private:
   void createGeneralPage(wxWindow* page);
   void createProgramsPage(wxWindow* page);
-  void createStatesPage(wxWindow* page);
   void createGatewayPage(wxWindow* page);
   void createDataPage(wxWindow* page);
   void updateDataPage();
@@ -77,21 +75,15 @@ private:
   void OnGatewayChange(wxCommandEvent& event);
   void OnProgramChoice(wxCommandEvent& event);
   void OnProgramText(wxCommandEvent& event);
-  void OnStatePrefChange();
 
   void saveSettings();
   void restoreSettings();
-  void changeStateColor(string statename, string newcolor);
-  void resetStateColor(string statename);
-  void resetAllStateColors();
 
   bool isDefaultGlobalPref();
   bool isDefaultGatewayPref();
-  bool isDefaultStatePref();
   bool isDefaultPrograms();
   void updateResetButton();
 
-  void addState(wxWindow* page, ResourceDescriptor::RUNSTATE state);
 
   JMSPublisher* p_publisher;
   ewxNotebook* p_book;
@@ -131,9 +123,7 @@ private:
   ProgramRow p_terminal;
   ProgramRow p_browser;
 
-  wxGridSizer* p_stateIconSizer;
   ewxButton* p_resetAll;
-  StateButton* p_stateButton[ResourceDescriptor::NUMBER_OF_STATES][2];
 
   bool p_restoring;
 
@@ -158,7 +148,6 @@ private:
   const static bool p_savePasswordsDefault = false;
   const static int p_orientationDefault = 0;
 
-  friend class StateButton;
 };
 
 #endif

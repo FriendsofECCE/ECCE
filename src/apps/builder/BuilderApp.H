@@ -32,7 +32,6 @@ public:
   void identifyMCB(JMSMessage& msg);
   void invokeStatusMCB(JMSMessage& msg);
 
-  void statePrefsMCB(JMSMessage& msg);
   void unitsPrefsMCB(JMSMessage& msg);
   void pertabPrefsMCB(JMSMessage& msg);
   void miscPrefsMCB(JMSMessage& msg);

@@ -171,7 +171,6 @@ bool CalcMgrApp::OnInit()
   subscribe("ecce_identify", (wxJmsCBFunc)&CalcMgrApp::identifyMCB);
   
   // Preference Messages
-  subscribe("ecce_preferences_states", (wxJmsCBFunc)&CalcMgrApp::statePrefChangeMCB);
   subscribe("ecce_preferences_misc", (wxJmsCBFunc)&CalcMgrApp::miscPrefChangeMCB);
 
   //  startup status Messages
@@ -246,14 +245,6 @@ void CalcMgrApp::identifyMCB(JMSMessage& msg)
   reply->addProperty("info", "Organizer: " + currentNode);
   publish("ecce_identify_reply", *reply);
   delete reply;
-}
-
-
-void CalcMgrApp::statePrefChangeMCB(JMSMessage& msg)
-{
-  WxState::resetToUserDefault();
-  p_calcMgr->recolorStatePixmaps();
-  p_calcMgr->Refresh();
 }
 
 

@@ -301,7 +301,6 @@ public:
   WxResourceTreeItemData * findNode(const EcceURL &targetUrl,
                                     bool openWhenFound = true,
                                     bool loadFromServer = true);
-  void recolorStatePixmaps();
   void onSelectionChange(bool selectInTree = false);
   void focusOnTree();
   void focusLeaveTree();
