@@ -2,7 +2,7 @@
 type: pitfall
 title: "wxMSW: 16-bit menu ids, no right-click selection, no manifest, text-mode 0x1A, a grey frame, no alpha by default, console windows from system()/popen()"
 area: wx-viewer
-paths: ["packaging/windows/ecce.rc", "src/apps/calced/CalcEd.C", "src/apps/organizer/CalcMgr.C", "src/dsm/edsiimpl/ChemistryTask.C", "src/dsm/edsiimpl/Resource.C", "src/wxgui/ewxClasses/ewxStyledWindow.C", "src/inv/wxinv/SoWxViewer.C", "src/apps/builder/Builder.C", "src/apps/builder/VizPropertyPanel.C", "include/util/Ecce.H", "src/tdat/chemistry/MoFragments.C", "src/comm/rcommand/RCommand.C", "src/comm/commxt/Launch.C", "src/util/command/CommandWrapper.C", "tests/windows/probe_win.py", "src/wxgui/wxdialogs/WindowShot.C", "src/apps/builder/NModePanel.C", "src/apps/builder/StructLib.C", "src/apps/builder/KeyValuePropertyPanel.C"]
+paths: ["packaging/windows/ecce.rc", "src/apps/calced/CalcEd.C", "src/apps/organizer/CalcMgr.C", "src/dsm/edsiimpl/ChemistryTask.C", "src/dsm/edsiimpl/Resource.C", "src/wxgui/ewxClasses/ewxStyledWindow.C", "src/inv/wxinv/SoWxViewer.C", "src/apps/builder/Builder.C", "src/apps/builder/VizPropertyPanel.C", "include/util/Ecce.H", "src/tdat/chemistry/MoFragments.C", "src/comm/rcommand/RCommand.C", "src/comm/commxt/Launch.C", "src/util/command/CommandWrapper.C", "tests/windows/probe_win.py", "src/wxgui/wxdialogs/WindowShot.C", "src/apps/builder/NModePanel.C", "src/apps/builder/StructLib.C", "src/apps/builder/KeyValuePropertyPanel.C", "include/wxgui/WxResourceTreeCtrl.H"]
 issues: [133]
 ---
 Each of these worked on GTK and failed silently on Windows:
@@ -53,6 +53,14 @@ Each of these worked on GTK and failed silently on Windows:
   (`FoldArrow` in `KeyValuePropertyPanel.C`). A `std::string` given to a
   wx label as is goes through the ANSI code page ("T·S" became "TÂ·S");
   use `wxString::FromUTF8`.
+- **`wxTreeCtrl::Freeze()` is not WM_SETREDRAW on MSW**: after a thaw the
+  native tree was scrolled elsewhere (the Organizer's tree moved at every
+  selection, since `onSelectionChange` freezes the frame and with it the
+  tree). `WxResourceTreeCtrl` uses the plain window freeze. A thaw only
+  invalidates; children then paint one by one (the run-state legend came
+  a frame after the summary) unless `RedrawWindow(RDW_UPDATENOW |
+  RDW_ALLCHILDREN)` paints them at once. Check with
+  `firstvisible` (Organizer test command) and `framelog.ps1`.
 
 `tests/windows/probe_win.py` checks the first, second and fourth through
 the apps' hooks; `tests/windows/winshot.ps1` photographs windows, which
