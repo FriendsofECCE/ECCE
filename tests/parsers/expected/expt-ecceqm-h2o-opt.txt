@@ -1,0 +1,32 @@
+# expt-ecceqm-h2o-opt
+# ECCE-QM.expt ecceqm/h2o_opt.qmout
+# Golden record of what the importer DOES, not of what it
+# should do -- see expt_cases.NOTES before changing one.
+
+=== .frag
+title:	h2o_opt
+type:	molecule
+charge:	0
+num_atoms:	3
+atom_info:	symbol cart
+atom_list:
+ O 0.000000000000 0.039064625384 0.150089294214
+ H 0.000000000000 0.809785846394 -0.470343891438
+ H 0.000000000000 -0.706050471778 -0.500845402776
+
+=== .param
+title:	h2o_opt
+Category:	SCF
+Theory:	HF
+RunType:	Geometry
+Charge:	0
+ES.ChemSys.Multiplicity:	1
+SphericalBasis:	TRUE
+
+=== .gbs
+NameBasis
+basis "ao basis" spherical print
+H library "STO-3G"
+O library "STO-3G"
+END
+EndNameBasis

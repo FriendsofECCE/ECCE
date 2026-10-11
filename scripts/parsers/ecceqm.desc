@@ -14,6 +14,33 @@ Skip=0
 Lines=1
 [END]
 
+# One block per geometry of a gradient or optimisation run (none for Energy),
+# written as soon as the step is done: the geometry trace, the energy trace
+# (TE above stays the final energy) and the gradient.
+[TEVEC]
+Script=ecceqm.parse
+Begin=^energy_step\s
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+[GEOMTRACE]
+Script=ecceqm.parse
+Begin=^begin geometry\b
+Frequency=all
+Skip=0
+End=^end geometry
+[END]
+
+[EGRAD][EGRADVEC]
+Script=ecceqm.parse
+Begin=^begin gradient\b
+Frequency=all
+Skip=0
+End=^end gradient
+[END]
+
 [NNREPUL]
 Script=ecceqm.parse
 Begin=^energy_nuclear\s

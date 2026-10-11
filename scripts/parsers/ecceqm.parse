@@ -46,6 +46,40 @@ my %energyKey = (
 
 if ($first =~ /^(energy_\w+)\s+(\S+)/ && exists($energyKey{$1})) {
   &scalarProp($energyKey{$1}, $2, "Hartree");
+} elsif ($first =~ /^energy_step\s+(\S+)/) {
+  &scalarProp("TEVEC", $1, "Hartree");
+} elsif ($first =~ /^begin geometry\b/) {
+  # index symbol x y z (angstrom): one geometry of the trace
+  my (@rows, $labels);
+  foreach my $l (@lines) {
+    last if ($l =~ /^end\b/);
+    my @f = split(' ', $l);
+    next if (@f < 5);
+    push(@rows, " $f[2] $f[3] $f[4]");
+    $labels .= " $f[0]-$f[1]";
+  }
+  if (@rows) {
+    print "key: GEOMTRACE\nsize:\n1 ", scalar(@rows), " 3\nrowlabels:\n$labels\n";
+    print "columnlabels:\nX Y Z\nvalues:\n", join("\n", @rows), "\nunits:\nAngstrom\nEND\n";
+  }
+} elsif ($first =~ /^begin gradient\b/) {
+  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+  my (@rows, @v);
+  foreach my $l (@lines) {
+    last if ($l =~ /^end\b/);
+    my @f = split(' ', $l);
+    next if (@f < 5);
+    push(@rows, "$f[2] $f[3] $f[4]");
+    push(@v, @f[2, 3, 4]);
+  }
+  if (@rows) {
+    my $norm = 0;
+    $norm += $_ * $_ foreach (@v);
+    &scalarProp("EGRAD", sprintf("%.10f", sqrt($norm)), "Hartree/Bohr");
+    print "key: EGRADVEC\nsize:\n", scalar(@rows), " 3\nrowlabels:\n";
+    print join(" ", 1 .. scalar(@rows)), "\ncolumnlabels:\nX Y Z\nvalues:\n", join("\n", @rows), "\n";
+    print "units:\nHartree/Bohr\nEND\n";
+  }
 } elsif ($first =~ /^s_squared\s+(\S+)/) {
   &scalarProp("S2", $1);
 } elsif ($first =~ /^wall_seconds\s+(\S+)/) {
