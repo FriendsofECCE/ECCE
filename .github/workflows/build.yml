@@ -520,6 +520,35 @@ jobs:
           cat macos-app-run/summary.txt >> "$GITHUB_STEP_SUMMARY"
           exit $rc
 
+      # The first-year diatomics lab as a local client (no server), through
+      # the apps' test hooks, on the app's own Python.  Energies are in the
+      # summary and the lab-out artifact.
+      - name: Diatomics lab (local client)
+        if: always() && hashFiles('dist/*.dmg') != ''
+        continue-on-error: true
+        timeout-minutes: 40
+        run: |
+          mnt=$(mktemp -d)
+          hdiutil attach dist/ECCE-*.dmg -mountpoint "$mnt" -nobrowse -quiet
+          appdir=$(mktemp -d)
+          cp -R "$mnt/ECCE.app" "$appdir/"
+          hdiutil detach "$mnt" -quiet
+          rc=0
+          "$appdir/ECCE.app/Contents/Resources/python/bin/python3" tests/macos/lab_local.py mac \
+            "$appdir/ECCE.app" "$PWD/lab-out" | tee lab.log || rc=$?
+          { echo '### Diatomics lab'; echo '```'; sed -n '/=== table/,$p' lab.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lab-out-${{ matrix.arch }}
+          path: |
+            lab.log
+            lab-out/out
+            lab-out/png
+          if-no-files-found: ignore
+
       - name: Summary on failure
         if: failure()
         run: echo '### macOS packaging FAILED (see the failed step above)' >> "$GITHUB_STEP_SUMMARY"
