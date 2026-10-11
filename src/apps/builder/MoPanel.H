@@ -98,6 +98,13 @@ class MoPanel : public MoGUI,
      bool showOrbital(int orbengIndex);
 
      /**
+      * The composition text of alpha orbitals given by ORBENG index (0-based),
+      * as the composition line under the table: one orbital, or the mean over
+      * a degenerate set.  For the MO diagram's tooltip and info line.
+      */
+     string compositionText(const std::vector<int>& orbengIndices);
+
+     /**
       * The table's selection and scroll state as "key value" lines, for
       * headless checks (the Builder's "motable" scene command).
       */

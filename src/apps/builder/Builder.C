@@ -184,6 +184,7 @@ using std::vector;
 #include "PropertyPanel.H"
 #include "Cube.H"
 #include "MoPanel.H"
+#include "MoDiagramPanel.H"
 #include "tdat/PropVector.H"
 #include "PropertyPanelFactory.H"
 #include "ShapeDropDown.H"
@@ -5433,6 +5434,30 @@ void Builder::updatePropertyMenus()
           wxCommandEvent ev(wxEVT_MENU, id);
           ev.SetInt(on ? 1 : 0);
           GetEventHandler()->ProcessEvent(ev);
+          return true;
+        }
+        //  "modiagram <name> tip|click <n>": the diagram's text for molecular
+        //  level <n> (the tooltip), or a click on orbital <n> (0-based ORBENG
+        //  index); -> <name>.txt, with whether a surface was computed.
+        if (w[0] == "modiagram" && w.size() == 4) {
+          MoDiagramPanel *md = 0;
+          set<PropertyPanel*> dp =
+              PropertyPanel::getPanels(p_calculation->getURL().toString());
+          for (set<PropertyPanel*>::iterator it = dp.begin();
+               it != dp.end() && !md; ++it)
+            md = dynamic_cast<MoDiagramPanel*>(*it);
+          if (!md) return s.fail("modiagram: no MO diagram panel");
+          md->ensureInitialized();
+          std::ofstream out(outdir + "/" + w[1] + ".txt");
+          const int n = atoi(w[3].c_str());
+          if (w[2] == "tip") {
+            out << md->levelText(n) << "\n";
+          } else {
+            md->orbitalClicked(n);
+            SingleGrid *grid = getSG()->getCurrentGrid();
+            out << "grid " << (grid && grid->fieldMax() > grid->fieldMin()
+                               ? "yes" : "no") << "\n";
+          }
           return true;
         }
         //  "mofield <type>": the MO panel's field-type choice, as clicked.

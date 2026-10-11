@@ -1096,6 +1096,38 @@ bool MoPanel::ensureAoBasis()
 }
 
 
+namespace {
+/** Parts largest first, as "O1 p 45.2%   H2 s 10.0%   other (3) 1.1%". */
+string shareList(vector<MoAoBasis::Share> parts)
+{
+   std::stable_sort(parts.begin(), parts.end(),
+       [](const MoAoBasis::Share& a, const MoAoBasis::Share& b) {
+         return a.share > b.share; });
+
+   string list;
+   double other = 0.0;
+   int hidden = 0, shown = 0;
+   for (size_t k = 0; k < parts.size(); k++) {
+      if (shown >= 10 || fabs(parts[k].share) < 0.005) {
+         other += parts[k].share;
+         hidden++;
+         continue;
+      }
+      char buf[64];
+      snprintf(buf, sizeof buf, "%s %.1f%%", parts[k].label.c_str(),
+               100.0*parts[k].share);
+      list += (shown++ ? "   " : "") + string(buf);
+   }
+   if (hidden > 0) {
+      char buf[64];
+      snprintf(buf, sizeof buf, "   other (%d) %.1f%%", hidden, 100.0*other);
+      list += buf;
+   }
+   return list;
+}
+}
+
+
 /**
  * The selected orbital's composition by atom and shell type, largest
  * first.  Mulliken, as the MO diagram uses; it is not bounded, so a
@@ -1121,31 +1153,7 @@ void MoPanel::showComposition()
           !p_aoBasis->analyse(rows[mo-1], MoAoBasis::MULLIKEN, comp)) {
          text = _("Composition not available for this orbital.");
       } else {
-         vector<MoAoBasis::Share> parts = comp.types;
-         std::stable_sort(parts.begin(), parts.end(),
-             [](const MoAoBasis::Share& a, const MoAoBasis::Share& b) {
-               return a.share > b.share; });
-
-         string list;
-         double other = 0.0;
-         int hidden = 0, shown = 0;
-         for (size_t k = 0; k < parts.size(); k++) {
-            if (shown >= 10 || fabs(parts[k].share) < 0.005) {
-               other += parts[k].share;
-               hidden++;
-               continue;
-            }
-            char buf[64];
-            snprintf(buf, sizeof buf, "%s %.1f%%", parts[k].label.c_str(),
-                     100.0*parts[k].share);
-            list += (shown++ ? "   " : "") + string(buf);
-         }
-         if (hidden > 0) {
-            char buf[64];
-            snprintf(buf, sizeof buf, "   other (%d) %.1f%%", hidden,
-                     100.0*other);
-            list += buf;
-         }
+         const string list = shareList(comp.types);
          p_compSummary = list;
          text = wxString::Format(_("MO %d%s, composition (%s population):\n"),
                   mo, type == "beta" ? " beta" : "",
@@ -1766,6 +1774,41 @@ bool MoPanel::showOrbital(int orbengIndex)
       return true;
    }
    return false;
+}
+
+
+string MoPanel::compositionText(const vector<int>& orbengIndices)
+{
+   ensureInitialized();
+   if (orbengIndices.empty()) return "";
+   if (!ensureAoBasis())
+      return string("Composition not available: ") + p_aoWhy + ".";
+
+   const vector< vector<double> >& rows = p_aoRows[0];
+   vector<MoAoBasis::Share> mean;
+   string numbers;
+   for (size_t k = 0; k < orbengIndices.size(); k++) {
+      const int mo = orbengIndices[k] + 1;
+      MoAoBasis::Composition comp;
+      if (mo < 1 || mo > (int)rows.size() ||
+          !p_aoBasis->analyse(rows[mo-1], MoAoBasis::MULLIKEN, comp))
+         return "Composition not available for this orbital.";
+      if (k == 0) mean = comp.types;
+      else for (size_t j = 0; j < mean.size() && j < comp.types.size(); j++)
+         mean[j].share += comp.types[j].share;
+      numbers += (k ? ", " : "") + std::to_string(mo);
+   }
+   for (size_t j = 0; j < mean.size(); j++)
+      mean[j].share /= orbengIndices.size();
+
+   //  A degenerate set is averaged: how it splits between its partners
+   //  depends on how the code happened to rotate them.
+   const string head = orbengIndices.size() == 1
+      ? "MO " + numbers
+      : "MOs " + numbers + " (degenerate set, mean over its orbitals)";
+   return head + ", composition (" +
+          MoAoBasis::methodName(MoAoBasis::MULLIKEN) + " population):\n" +
+          shareList(mean);
 }
 
 

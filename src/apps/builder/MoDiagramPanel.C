@@ -218,6 +218,27 @@ static void trimUnconnectedFragment(MoColumn& column,
 }
 
 
+string MoDiagramPanel::levelText(int level)
+{
+  return p_canvas ? p_canvas->describeLevel(level) : string();
+}
+
+
+string MoDiagramPanel::orbitalComposition(const vector<int>& orbengIndices)
+{
+  IPropCalculation *calc = getCalculation();
+  if (calc == 0) return "";
+  set<PropertyPanel*> panels =
+      PropertyPanel::getPanels(calc->getURL().toString(), "MOs");
+  for (set<PropertyPanel*>::iterator it = panels.begin();
+       it != panels.end(); ++it) {
+    MoPanel *mo = dynamic_cast<MoPanel*>(*it);
+    if (mo != 0) return mo->compositionText(orbengIndices);
+  }
+  return "";
+}
+
+
 void MoDiagramPanel::orbitalClicked(int orbengIndex)
 {
   IPropCalculation *calc = getCalculation();

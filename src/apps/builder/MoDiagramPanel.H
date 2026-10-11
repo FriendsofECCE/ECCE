@@ -78,6 +78,12 @@ class MoDiagramPanel : public VizPropertyPanel,
        */
       virtual void orbitalClicked(int orbengIndex);
 
+      /** What the diagram shows for a molecular level (tooltip text). */
+      string levelText(int level);
+
+      /** The MOs panel's composition line for a level's orbitals. */
+      virtual string orbitalComposition(const vector<int>& orbengIndices);
+
       /** Needs orbital energies; without them there is no diagram. */
       virtual bool isRelevant(IPropCalculation *propCalc) const;
 

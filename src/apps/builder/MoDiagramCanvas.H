@@ -25,6 +25,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <map>
+#include <string>
 #include <sstream>
 #include <utility>
 #include <vector>
@@ -54,6 +56,10 @@ class MoDiagramClickTarget
   public:
     virtual ~MoDiagramClickTarget() {}
     virtual void orbitalClicked(int orbengIndex) = 0;
+
+    /** Composition text for these ORBENG indices (one level), or "". */
+    virtual std::string orbitalComposition(const std::vector<int>&)
+    { return std::string(); }
 };
 
 /**
@@ -112,6 +118,9 @@ class MoDiagramCanvas : public wxPanel
       p_haveFragments = haveFragments;
       p_note = note;
       p_headline = headline;
+      p_info.clear();
+      p_tips.clear();
+      p_tipLevel = -1;
       Refresh();
     }
 
@@ -122,7 +131,7 @@ class MoDiagramCanvas : public wxPanel
     //  than recomputed on the click: the layout depends on the window
     //  size, the folded bands and the heading, and a second copy of
     //  that arithmetic would drift from the one that draws.
-    struct Hit { wxRect box; int orbital; };
+    struct Hit { wxRect box; int orbital; int level; };
 
     /**
      * The colour of a level: one per bonding/antibonding pair.
@@ -681,6 +690,7 @@ class MoDiagramCanvas : public wxPanel
               Hit hit;
               hit.box = wxRect(lx - 6, ly - 7, slot + 12, 15);
               hit.orbital = level.orbitals[oi];
+              hit.level = (int)i;
               hits->push_back(hit);
             }
           }
@@ -1119,8 +1129,9 @@ class MoDiagramCanvas : public wxPanel
       dc.SetFont(*wxSMALL_FONT);
       const int lineHeight = dc.GetTextExtent(wxT("Xg")).y + 1;
       const vector<wxString> noteLines = wrapNote(dc, size.x - 16);
+      const vector<wxString> infoLines = wrapText(dc, p_info, size.x - 16);
 
-      int footerLines = (int)noteLines.size();
+      int footerLines = (int)noteLines.size() + (int)infoLines.size();
       if (!p_centre.levels.empty()) footerLines++;          // the hint
       if (p_centre.hiddenCount > 0)  footerLines += 2;      // band and text
       footerLines++;                                         // "Experimental"
@@ -1403,6 +1414,14 @@ class MoDiagramCanvas : public wxPanel
         dc.DrawText(noteLines[i-1], 8, line);
       }
 
+      //  What the last clicked level is, in the diagram's own words.
+      dc.SetTextForeground(wxColour(30, 30, 30));
+      for (size_t i = infoLines.size(); i > 0; i--) {
+        line -= lineHeight;
+        dc.DrawText(infoLines[i-1], 8, line);
+      }
+      dc.SetTextForeground(wxColour(110, 110, 110));
+
       //  Only where a click can actually do something.  The
       //  standalone program has no 3-D viewer to show an orbital in,
       //  and an instruction that does nothing is worse than none.
@@ -1477,11 +1496,25 @@ class MoDiagramCanvas : public wxPanel
     /** The note, broken into lines that fit. */
     vector<wxString> wrapNote(wxDC& dc, int width)
     {
+      return wrapText(dc, p_note, width);
+    }
+
+    vector<wxString> wrapText(wxDC& dc, const string& text, int width)
+    {
       vector<wxString> lines;
-      if (p_note.empty()) return lines;
+      if (text.empty()) return lines;
+
+      //  Explicit line breaks are kept.
+      const string::size_type nl = text.find('\n');
+      if (nl != string::npos) {
+        lines = wrapText(dc, text.substr(0, nl), width);
+        const vector<wxString> rest = wrapText(dc, text.substr(nl + 1), width);
+        lines.insert(lines.end(), rest.begin(), rest.end());
+        return lines;
+      }
 
       wxString line, word;
-      const wxString all(p_note.c_str(), wxConvUTF8);
+      const wxString all(text.c_str(), wxConvUTF8);
       for (size_t i = 0; i <= all.length(); i++) {
         const wxUniChar c = (i < all.length()) ? all[i]
                                                : wxUniChar(wxT(' '));
@@ -1512,19 +1545,76 @@ class MoDiagramCanvas : public wxPanel
       return -1;
     }
 
+    int levelAt(const wxPoint& at) const
+    {
+      for (size_t i = 0; i < p_hits.size(); i++) {
+        if (p_hits[i].box.Contains(at)) return p_hits[i].level;
+      }
+      return -1;
+    }
+
+  public:
+    /**
+     * What a molecular level is: MO number(s), energy, irrep, occupancy,
+     * then the owner's composition.  Cached, since the composition may
+     * need the overlap integrals.
+     */
+    string describeLevel(int level)
+    {
+      if (level < 0 || level >= (int)p_centre.levels.size()) return "";
+      std::map<int,string>::const_iterator hit = p_tips.find(level);
+      if (hit != p_tips.end()) return hit->second;
+
+      const MoLevel& l = p_centre.levels[level];
+      ostringstream out;
+      if (l.orbitals.size() > 1) {
+        out << "MOs ";
+        for (size_t k = 0; k < l.orbitals.size(); k++)
+          out << (k ? ", " : "") << l.orbitals[k] + 1;
+      } else if (!l.orbitals.empty()) {
+        out << "MO " << l.orbitals[0] + 1;
+      }
+      char e[64];
+      snprintf(e, sizeof e, "%.4f", l.energy);
+      out << "   E = " << e << " Hartree";
+      if (!l.irrep.empty()) out << "   " << l.irrep;
+      if (l.occupancyBeta >= 0.0)
+        out << "   occupancy " << l.occupancy << " alpha, "
+            << l.occupancyBeta << " beta";
+      else
+        out << "   occupancy " << l.occupancy;
+      if (p_owner != 0 && !l.orbitals.empty()) {
+        const string comp = p_owner->orbitalComposition(l.orbitals);
+        if (!comp.empty()) out << "\n" << comp;
+      }
+      p_tips[level] = out.str();
+      return p_tips[level];
+    }
+
+  private:
+
     void onClick(wxMouseEvent& event)
     {
       event.Skip();
       const int orbital = orbitalAt(event.GetPosition());
-      if (orbital >= 0 && p_owner != 0) p_owner->orbitalClicked(orbital);
+      if (orbital >= 0 && p_owner != 0) {
+        p_info = describeLevel(levelAt(event.GetPosition()));
+        Refresh();
+        p_owner->orbitalClicked(orbital);
+      }
     }
 
     /** A hand cursor over a level, so the levels look clickable. */
     void onMotion(wxMouseEvent& event)
     {
       event.Skip();
-      SetCursor(orbitalAt(event.GetPosition()) >= 0
-                ? wxCursor(wxCURSOR_HAND) : wxNullCursor);
+      const int level = levelAt(event.GetPosition());
+      SetCursor(level >= 0 ? wxCursor(wxCURSOR_HAND) : wxNullCursor);
+      if (level != p_tipLevel) {
+        p_tipLevel = level;
+        if (level < 0 || p_owner == 0) UnsetToolTip();
+        else SetToolTip(wxString(describeLevel(level).c_str(), wxConvUTF8));
+      }
     }
 
     MoDiagramClickTarget *p_owner;
@@ -1549,6 +1639,9 @@ class MoDiagramCanvas : public wxPanel
     string p_formula;
 
     vector<Hit> p_hits;
+    string p_info;                       // the clicked level, in the footer
+    std::map<int,string> p_tips;         // level -> text, see describeLevel()
+    int p_tipLevel = -1;
     string p_note;
     mutable double p_lo, p_hi;
     //  Every label placed in the column being drawn, as (y, notch), so
