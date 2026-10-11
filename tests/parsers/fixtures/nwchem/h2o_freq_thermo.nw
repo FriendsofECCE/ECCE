@@ -1,0 +1,13 @@
+start h2othermo
+title "H2O SCF/STO-3G frequencies thermo"
+echo
+geometry units angstroms
+  O   0.000000   0.000000   0.117300
+  H   0.000000   0.757200  -0.469200
+  H   0.000000  -0.757200  -0.469200
+end
+basis
+  * library STO-3G
+end
+ecce_print h2o_freq_thermo.eprint
+task scf freq

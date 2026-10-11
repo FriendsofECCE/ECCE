@@ -282,6 +282,14 @@ Skip=1
 Lines=1
 [END]
 
+# Thermochemistry and COSMO solvation exist only in NWChem's stdout (the
+# primary output file), not in the ecce_print trace, hence a File= entry.
+[EZEROPT][ETHERM][ENTHALPY][ENTROPY][EGIBBS][THERMOTEMP][ESOLV]
+Script=nwchem.thermo
+File=nwch.nwout
+Begin=nwch.nwout
+[END]
+
 [MULLIKEN]
 Script=nwchem.mulliken
 Begin=begin%total mulliken atomic
