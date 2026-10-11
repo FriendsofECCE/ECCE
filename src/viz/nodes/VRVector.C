@@ -7,7 +7,9 @@
 #include "inv/nodes/SoScale.H"
 #include "inv/nodes/SoSeparator.H"
 
+#include <GL/gl.h>
 #include "inv/nodes/SoMaterial.H"
+#include "inv/nodes/SoCallback.H"
 #include "inv/nodes/SoCone.H"
 #include "inv/nodes/SoCylinder.H"
 #include "inv/nodes/SoTranslation.H"
@@ -92,6 +94,51 @@ void VRVector::fixedThickness(float shaftRadius, float headRadius,
    fixedThickness(true);
 }
 
+static void depthTestOff(void*, SoAction*)
+{
+   glDisable(GL_DEPTH_TEST);
+}
+
+static void depthTestOn(void*, SoAction*)
+{
+   glEnable(GL_DEPTH_TEST);
+}
+
+/**
+ * A second pass over the same geometry with the depth test off: the
+ * arrow of a diatomic's dipole lies inside the bond and the atoms hide
+ * it.  The first pass stays opaque and depth tested, so the visible part
+ * is unchanged and the hidden part shows through at 40 %.
+ */
+void VRVector::showThroughMolecule()
+{
+   if (throughMat) return;
+   SoSeparator *pass = new SoSeparator;
+   SoCallback *off = new SoCallback;
+   off->setCallback(depthTestOff);
+   pass->addChild(off);
+   pass->addChild(transf);
+
+   throughMat = new SoMaterial;
+   const float *rgb = mat->diffuseColor.getValues(0)->getValue();
+   throughMat->diffuseColor.setValue(rgb[0], rgb[1], rgb[2]);
+   throughMat->transparency.setValue(0.6f);
+
+   SoSeparator *geo = new SoSeparator;
+   geo->addChild(throughMat);
+   geo->addChild(scal);
+   geo->addChild(shaftTrans);
+   geo->addChild(shaft);
+   geo->addChild(headTrans);
+   geo->addChild(head);
+   pass->addChild(geo);
+
+   SoCallback *on = new SoCallback;
+   on->setCallback(depthTestOn);
+   pass->addChild(on);
+   addChild(pass);
+}
+
 void VRVector::startRadius(double r)
 {
    p_startRadius = r;
@@ -118,6 +165,7 @@ void VRVector::position(double x, double y ,double z)
 void VRVector::setColor(float R, float G ,float B)
 {
    mat->diffuseColor.setValue(R, G, B);
+   if (throughMat) throughMat->diffuseColor.setValue(R, G, B);
    //mat->shininess = 1.0;
    /*
    original code - flat looking 
@@ -165,6 +213,7 @@ VRVector::VRVector()
 void VRVector::constructor()
 {
      p_fixed = false;
+     throughMat = 0;
      p_shaftRadius = 0.035f;
      p_headRadius = 0.09f;
      p_headLength = 0.18f;

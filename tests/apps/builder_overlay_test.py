@@ -309,7 +309,64 @@ def overlayCase(s, display, env, wrappers, png):
         check(n <= 3, "quad: %d yellow pixels in the viewer" % n)
     check("BUILDER: ellipsoid QUADPOLE count=0" in text,
           "no ellipsoid under the quadrupole")
+    hfCase(s, display, env, wrappers, png)
     polarCase(s, display, env, wrappers, png)
+
+
+def hfCase(s, display, env, wrappers, png):
+    """A diatomic's dipole arrow lies inside the bond; it must still show
+    (drawn again with the depth test off).  HF is made from the water
+    fixture: its chemsys and DIPOLE replaced, the geometry trace dropped."""
+    say("HF, Ball and Stick: the dipole arrow is not hidden by the bond")
+    data = s.localData()
+    project = os.path.join(data, "users", "local", "overlay")
+    calc = os.path.join(project, "hf")
+    shutil.rmtree(calc, ignore_errors=True)
+    shutil.copytree(FIXTURE, calc, symlinks=True)
+    with open(os.path.join(calc, "Parameters", "chemsys.mvm"), "w") as out:
+        out.write("""title: hf
+type: molecule
+num_atoms: 2
+atom_info: symbol cart
+atom_list: 
+F 0.00000 0.00000 0.00000
+H 0.92000 0.00000 0.00000
+attr_list:
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+atom_type_list:
+        6   2
+        1   2
+num_bonds: 1
+bond_list: 
+1 2 1.00000 2
+""")
+    for name in os.listdir(os.path.join(calc, "Props")):
+        if not name.startswith(".") and name != "DIPOLE":
+            os.unlink(os.path.join(calc, "Props", name))
+    with open(os.path.join(calc, "Props", "DIPOLE"), "w") as out:
+        out.write('<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n'
+                  '<vector name="DIPOLE" rowLabel="Coordinate" rowLabels="x y z"'
+                  ' rows="3" units="Debye">1.9 0 0</vector>\n')
+    lines = ["wait 4000", "list Dipole Moment", "wait 1500", "vector DIPOLE",
+             "shot hf", "quit"]
+    text, shots = runScript(s, display, env, wrappers,
+                            ["-context", "file://" + calc + "/"], lines, png,
+                            "hf", {"ECCE_PANEL_MODE": "detail"})
+    if "hf" not in shots:
+        check(False, "HF photographed")
+        return
+    from PIL import Image
+    import numpy
+    img = Image.open(shots["hf"])
+    box = viewerBox(img)
+    p = numpy.asarray(img.convert("RGB").crop(box)).astype(int)
+    r, g, b = p[..., 0], p[..., 1], p[..., 2]
+    #  The arrow's own yellow (r and g alike, no blue); the light green of
+    #  fluorine is not it.
+    n = int(((r > 120) & (abs(r - g) < 35) & (b < 0.5 * r)).sum())
+    #  85 without the second pass (a sliver at the hydrogen), 429 with it.
+    check(n > 250, "hf: %d yellow pixels in the viewer" % n)
 
 
 # Real polarizability tensors (HF, a.u.) from Gaussian 16 and ORCA 6.1.1 for
@@ -595,7 +652,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--build", default=os.path.join(REPO, "build-cmake"))
     ap.add_argument("--png")
-    ap.add_argument("--only", choices=("overlay", "thumbnail", "new"))
+    ap.add_argument("--only", choices=("overlay", "thumbnail", "new", "hf"))
     ap.add_argument("--keep", action="store_true")
     args = ap.parse_args()
     build = os.path.abspath(args.build)
@@ -637,6 +694,12 @@ def main():
         say("X display %s" % display.name)
         env = s.env({"DISPLAY": display.name, "GTK_THEME": "Adwaita",
                      "PATH": wrappers + os.pathsep + s.env()["PATH"]})
+        if args.only == "hf":
+            os.makedirs(os.path.join(s.localData(), "users", "local", "overlay"),
+                        exist_ok=True)
+            shutil.copy(PROJECT_META, os.path.join(
+                s.localData(), "users", "local", "overlay", ".ecce-meta"))
+            hfCase(s, display, env, wrappers, png)
         if args.only in (None, "overlay"):
             overlayCase(s, display, env, wrappers, png)
         if args.only in (None, "thumbnail"):

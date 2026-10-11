@@ -29,6 +29,9 @@ class  VRVector : public SoGroup {
     void fixedThickness(float shaftRadius, float headRadius, float headLength);
     // Start the arrow this far from the position, along its direction.
     void startRadius(double);
+    // Draw the arrow a second time, after everything else's depth test, at
+    // 40 % opacity, so the part inside an atom or bond still shows.
+    void showThroughMolecule();
     const double* getPosition(); 
     const double* getDirection(); 
     SoTransform* getTransform();
@@ -44,6 +47,7 @@ SoINTERNAL public:
    SoScale * scal; 
    SoTransform * transf;
    SoMaterial * mat;
+   SoMaterial * throughMat;
    SoCylinder * shaft;
    SoCone * head;
    SoTranslation * shaftTrans;

@@ -32,3 +32,13 @@ under the property's switch. Nothing else draws it.
 Measure, do not eyeball: the Builder script command `vector DIPOLE`
 prints the drawn arrow's start, direction, farthest vertex along the axis
 (length) and from it (radius); `builder_overlay_test.py` checks them.
+- **Through the molecule.** A diatomic's arrow lies inside the bond, so the
+  atoms hid it. `AddDipoleMomentCmd::shapeVector` calls
+  `VRVector::showThroughMolecule()`: a second pass over the same shaft and
+  head, after the opaque one, with the depth test off (`SoCallback` with raw
+  `glDisable/glEnable(GL_DEPTH_TEST)`) and 60 % transparency. The first pass
+  is unchanged; the display style is never touched. In the viewer's usual
+  screen-door transparency the dimmed pass is a 40 % stipple.
+  `builder_overlay_test.py --only hf` counts the arrow's yellow pixels (85
+  without the pass, 429 with it).
+

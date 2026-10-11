@@ -43,6 +43,7 @@ double AddDipoleMomentCmd::getScaleFactor()
 void AddDipoleMomentCmd::shapeVector(VRVector *vec)
 {
   vec->fixedThickness(0.06f, 0.15f, 0.30f);
+  vec->showThroughMolecule();
 }
 
 AddDipoleMomentCmd::~AddDipoleMomentCmd()
