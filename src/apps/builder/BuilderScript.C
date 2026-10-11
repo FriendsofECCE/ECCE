@@ -22,6 +22,8 @@
 //    viewer NAME                 a click on NAME's "Show in viewer" box
 //    overlay                     the column's tab (1 = Properties), and for
 //                                each viewer panel: shown, viz focus
+//    rows PANEL                  the rows of a key/value panel (Energies)
+//    fold PANEL GROUP            a click on that group's heading
 //    vector PROP                 each arrow under PROP's property switch, as
 //                                drawn: start, unit direction, farthest
 //                                vertex from the start (length) and from the
@@ -68,6 +70,7 @@
 #include "Builder.H"
 #include "PBC.H"
 #include "dsm/IPropCalculation.H"
+#include "KeyValuePropertyPanel.H"
 #include "PropertyIndexPanel.H"
 #include "StructLib.H"
 #include "VizPropertyPanel.H"
@@ -251,6 +254,21 @@ void Builder::runBuilderScript(const std::string& file)
             ev.SetInt(box->GetValue() ? 1 : 0);
             box->GetEventHandler()->ProcessEvent(ev);
           }
+        }
+      } else if ((w[0] == "rows" || w[0] == "fold") && w.size() >= 2) {
+        //  rows <panel>: the rows a KeyValuePropertyPanel shows;
+        //  fold <panel> <group>: what a click on that group's heading does.
+        KeyValuePropertyPanel *kv = dynamic_cast<KeyValuePropertyPanel*>(
+            p_mgr.GetPane(wxString(w[1])).window);
+        if (!kv) {
+          outcome = "no key/value panel " + w[1];
+        } else if (w[0] == "fold") {
+          if (w.size() < 3) outcome = "fold needs a group";
+          else kv->toggleGroup(w[2]);
+        } else {
+          fprintf(stderr, "BUILDER: rows %s\n", w[1].c_str());
+          for (const std::string& row : kv->rowDump())
+            fprintf(stderr, "BUILDER: row %s\n", row.c_str());
         }
       } else if (w[0] == "overlay") {
         std::string list;

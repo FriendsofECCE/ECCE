@@ -69,6 +69,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 ### How a property gets from disk into the Properties menu
 
 - [Most property keys are deliberately *not* panel triggers](most-property-keys-are-deliberately-not-panel.md)
+- [The Energies panel groups its rows by a column of the properties file](energies-panel-groups-283.md)
 - [Per-atom charge schemes: one parser helper, one panel class](atomic-charge-schemes-share-one-panel-class.md)
 - [A `.desc` bracket group's names are labels, not the stored key](labels-not-the-stored-key.md)
 - [NWChem's `.desc` `Begin` patterns match the `ecce_print` trace file, not NWChem's stdout](nwchems-desc-begin-patterns-begin-end-task.md)

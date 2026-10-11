@@ -15,6 +15,7 @@
 #include "dsm/IPropCalculation.H"
 #include "dsm/PropFactory.H"
 
+#include "wxgui/ewxConfig.H"
 #include "wxgui/ewxNonBoldLabel.H"
 #include "wxgui/ewxStaticText.H"
 
@@ -66,53 +67,126 @@ KeyValuePropertyPanel::~KeyValuePropertyPanel()
 }
 
 
+//  Group names are the "group" column of data/client/config/properties, in
+//  display order.  A property with no (or an unknown) group goes last.
+static const char *GROUPS[] = {"Total", "Components", "Thermochemistry",
+                               "Solvation", "Derived", ""};
+static const char *INIFILE = "wxbuilder.ini";
+
+
+bool KeyValuePropertyPanel::isFolded(const string& group) const
+{
+  bool folded = (group == "Components");
+  ewxConfig::getConfig(INIFILE)->Read("Energies/Fold/" + group, &folded);
+  return folded;
+}
+
+
+bool KeyValuePropertyPanel::toggleGroup(const string& group)
+{
+  bool folded = !isFolded(group);
+  ewxConfig::getConfig(INIFILE)->Write("Energies/Fold/" + group, folded);
+  refresh();
+  if (GetParent()) GetParent()->Layout();
+  return folded;
+}
+
+
 void KeyValuePropertyPanel::refresh()
 {
   DestroyChildren();
+  p_rows.clear();
 
-  // for each TProperty, if found, insert a key/value pair into a map
-  // this automatically sorts the key/values by key
+  struct Row { string key, value, units, group; size_t order; };
+  vector<Row> rows;
+  string thermoTemp;
+  bool grouped = false;
   set<string> names = getPropertyNames();
   set<string>::iterator nameIt;
-  map<string,string> props, units;
   for (nameIt = names.begin(); nameIt != names.end(); nameIt++) {
     TProperty *tprop = getCalculation()->getProperty(*nameIt);
     const Property_Ref *propRef = PropFactory::getPropRef(*nameIt);
-    if (tprop) {
-      string key;
-      if (propRef) {
-        key = propRef->long_name;
-      } else {
-        key = nameIt->c_str();
-      }
-      wxString valueStr = 
-          wxString::Format (PrefLabels::PRECISEDOUBLEFORMAT, 
-          tprop->scalarize());
-      props[key] = valueStr.c_str();
-      units[key] = tprop->units()=="NA"? "": tprop->units();
+    if (!tprop) continue;
+    string units = tprop->units()=="NA"? "": tprop->units();
+    wxString valueStr = wxString::Format(PrefLabels::PRECISEDOUBLEFORMAT,
+                                         tprop->scalarize());
+    if (*nameIt == "THERMOTEMP") {
+      // Shown in the Thermochemistry heading, not as a row.
+      thermoTemp = string(wxString::Format("%g", tprop->scalarize()).c_str()) + " " +
+                   (units == "Kelvin" ? string("K") : units);
+      continue;
     }
+    Row row;
+    row.key = propRef ? propRef->long_name : *nameIt;
+    row.value = valueStr.c_str();
+    row.units = units;
+    row.group = propRef ? propRef->group : "";
+    if (std::find(std::begin(GROUPS), std::end(GROUPS), row.group) ==
+        std::end(GROUPS))
+      row.group = "";
+    row.order = propRef ? propRef->order : 0;
+    grouped = grouped || !row.group.empty();
+    rows.push_back(row);
   }
 
-  //  Alphabetical, except that totals ("Total Energy" and the like) come
-  //  last, below the terms they sum.
-  vector<string> keys;
-  map<string,string>::iterator propIt;
-  for (propIt = props.begin(); propIt != props.end(); ++propIt)
-    keys.push_back(propIt->first);
-  std::stable_partition(keys.begin(), keys.end(), [](const string& k) {
-    return k.compare(0, 5, "Total") != 0;
-  });
-  for (const string& key : keys) {
-    GetSizer()->Add(new ewxNonBoldLabel(this, wxID_ANY, key),
-            0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL);
-    GetSizer()->Add(new ewxStaticText(this, wxID_ANY, props[key]),
-            0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL);
-    GetSizer()->Add(new ewxNonBoldLabel(this, wxID_ANY, units[key]),
-            0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL);
+  //  Without groups (the S**2 panel) the old order is kept: alphabetical,
+  //  "Total..." last.  With them, each group lists in the file's order.
+  if (!grouped) {
+    std::sort(rows.begin(), rows.end(), [](const Row& a, const Row& b) {
+      bool ta = a.key.compare(0, 5, "Total") == 0;
+      bool tb = b.key.compare(0, 5, "Total") == 0;
+      return ta != tb ? tb : a.key < b.key;
+    });
+  } else {
+    std::stable_sort(rows.begin(), rows.end(), [](const Row& a, const Row& b) {
+      return a.order < b.order;
+    });
   }
 
-  GetSizer()->Fit(this);
-  GetSizer()->SetSizeHints(this);
+  wxSizer *sizer = GetSizer();
+  const long left = wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL;
+  for (const char *groupName : GROUPS) {
+    const string name = groupName;
+    vector<const Row*> members;
+    for (const Row& row : rows)
+      if (!grouped || row.group == name) members.push_back(&row);
+    if (members.empty()) continue;
+
+    bool folded = false;
+    if (grouped) {
+      folded = isFolded(name);
+      string title = name.empty() ? "Other" : name;
+      if (name == "Thermochemistry" && !thermoTemp.empty())
+        title += " (" + thermoTemp + ")";
+      string text = (folded ? "\xE2\x96\xB8 " : "\xE2\x96\xBE ") + title;
+      if (folded) text += " (" + std::to_string(members.size()) + ")";
+      ewxStaticText *head = new ewxStaticText(this, wxID_ANY,
+                                              wxString::FromUTF8(text));
+      head->SetFont(head->GetFont().Bold());
+      head->SetCursor(wxCursor(wxCURSOR_HAND));
+      head->Bind(wxEVT_LEFT_DOWN, [this, name](wxMouseEvent&) {
+        CallAfter([this, name]() { toggleGroup(name); });
+      });
+      sizer->Add(head, 0, left);
+      sizer->AddSpacer(0);
+      sizer->AddSpacer(0);
+      p_rows.push_back("H " + text);
+    }
+    if (!folded) {
+      for (const Row *row : members) {
+        sizer->Add(new ewxNonBoldLabel(this, wxID_ANY, row->key), 0, left);
+        sizer->Add(new ewxStaticText(this, wxID_ANY, row->value),
+                0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL);
+        sizer->Add(new ewxNonBoldLabel(this, wxID_ANY, row->units), 0, left);
+        p_rows.push_back("R " + row->key + " | " + row->value + " | " +
+                         row->units);
+      }
+    }
+    if (!grouped) break;
+  }
+
+  sizer->Fit(this);
+  sizer->SetSizeHints(this);
 }
 
 

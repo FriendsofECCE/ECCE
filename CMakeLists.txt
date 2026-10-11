@@ -2459,6 +2459,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_ecceqm_vib_builder PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # The Energies panel's groups and their fold state (#283).
+  add_test(NAME apps_energies_groups
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/energies_groups_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_energies_groups PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # An 8.x eccejobmaster exports ECCE_TRANSPORT=pty; it must be ignored.
   add_test(NAME launch_legacy_transport
            COMMAND ${PYTHON3_EXECUTABLE}

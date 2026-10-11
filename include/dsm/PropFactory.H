@@ -73,6 +73,8 @@ struct Property_Ref
     string        dbclass;              // Full property class name
     TProperty::ClassType classType;     // TProperty subclass type as enum
     vector<string> index;               // Dimension index names
+    string        group;                // Display group in a panel (optional)
+    size_t        order;                // Position in the properties file
  
  // Accessors:   
     bool canGraph(void) const; 

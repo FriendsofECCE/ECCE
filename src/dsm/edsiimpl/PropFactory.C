@@ -430,7 +430,7 @@ void PropFactory::initialize()
 
    const char *sep = "\t\n";
    LineReader reader(*inFile);
-   string line,classification,name,key,units,dbclass;
+   string line,classification,name,key,units,dbclass,group;
    Property_Ref propRef;
 
    while (reader.getLine(line)) {
@@ -441,6 +441,7 @@ void PropFactory::initialize()
      key = column.next(sep);
      units = column.next(sep);
      dbclass = column.next(sep);
+     group = column.next(sep);   // optional sixth column
 
      if (classification.empty() || name.empty() || key.empty() ||
          units.empty() || dbclass.empty())  {
@@ -454,6 +455,8 @@ void PropFactory::initialize()
      propRef.short_name = key.c_str();
      propRef.units = units.c_str();
      propRef.dbclass = dbclass.c_str();
+     propRef.group = group.c_str();
+     propRef.order = propRefList.size();
 
      // convert dbclass string to enumerated value
      if (propRef.dbclass.substr(0,9) == "PropValue")

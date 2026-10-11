@@ -26,6 +26,11 @@
 #              secondary.  However, it is currently being used for some properties (e.g. Energy Vectors) to 
 #              filter them out from being displayed by the CalcBrowser since, the scalar is available
 #  append - Whether the property should be appended to upon a restart
+#  group - Optional sixth column of the file's tab-separated fields: the
+#          heading a scalar Energy property is listed under in the Energies
+#          panel (Total, Components, Thermochemistry, Solvation, Derived).
+#          Within a group rows keep this file's order.  A new energy
+#          property needs only its line here, with a group.
 #
 ###############################################################################
 # Fields MUST be tab separated.  If they are not, you should get a fatal
@@ -38,50 +43,50 @@ Energy		Delta E					DELTAE		Energy		PropTSVector<Wave Step>
 Energy		RMSDP					RMSDP		Energy		PropTSVector<Wave Step>
 Energy		Wavefunction Step Energy		EWVEC		Energy		PropTSVector<Wave Step>
 Energy		Orbital Gradient Norm			DEWVEC		Energy		PropTSVector<Wave Step>
-Energy		Electron Affinity			EA		Energy		PropValue
-Energy		Dissociation Energy			DE		Energy		PropValue
-Energy		Excitation Energy			EXCI		Energy		PropValue
-Energy		Proton Affinity				PA		Energy		PropValue
-Energy		Ionization Potential			IP		Energy		PropValue
-Energy		Conformational Energy Difference	CED		Energy		PropValue
-Energy		Reaction Energy Difference		RXN		Energy		PropValue
-Energy		Rotational Inversion Barrier		ROTINV		Energy		PropValue
-Energy		Nuclear Repulsion Energy		NNREPUL		Energy		PropValue
-Energy		One-Electron Energy			ONEELEC		Energy		PropValue
-Energy		Two-Electron Energy			TWOELEC		Energy		PropValue
-Energy		Correlation Energy			CORRELTN	Energy		PropValue
-Energy		Coulomb Energy				COULOMB		Energy		PropValue
-Energy		Van der Waals Energy			VDW		Energy		PropValue
-Energy		Potential Energy			PE		Energy		PropValue
-Energy		Exchange Energy				EXCHANGE	Energy		PropValue
-Energy		Exchange-Correlation Energy		EXCORR		Energy		PropValue
-Energy		Kinetic Energy				KE		Energy		PropValue
+Energy		Electron Affinity			EA		Energy		PropValue	Derived
+Energy		Dissociation Energy			DE		Energy		PropValue	Derived
+Energy		Excitation Energy			EXCI		Energy		PropValue	Derived
+Energy		Proton Affinity				PA		Energy		PropValue	Derived
+Energy		Ionization Potential			IP		Energy		PropValue	Derived
+Energy		Conformational Energy Difference	CED		Energy		PropValue	Derived
+Energy		Reaction Energy Difference		RXN		Energy		PropValue	Derived
+Energy		Rotational Inversion Barrier		ROTINV		Energy		PropValue	Derived
+Energy		Nuclear Repulsion Energy		NNREPUL		Energy		PropValue	Components
+Energy		One-Electron Energy			ONEELEC		Energy		PropValue	Components
+Energy		Two-Electron Energy			TWOELEC		Energy		PropValue	Components
+Energy		Correlation Energy			CORRELTN	Energy		PropValue	Components
+Energy		Coulomb Energy				COULOMB		Energy		PropValue	Components
+Energy		Van der Waals Energy			VDW		Energy		PropValue	Components
+Energy		Potential Energy			PE		Energy		PropValue	Components
+Energy		Exchange Energy				EXCHANGE	Energy		PropValue	Components
+Energy		Exchange-Correlation Energy		EXCORR		Energy		PropValue	Components
+Energy		Kinetic Energy				KE		Energy		PropValue	Components
 Energy		Atomic Energy				AE		Energy		PropTable<Basis Set,Theory>
 # 
-Energy		Total Energy				TE		Energy		PropValue
-Energy		SCF Energy				ESCF		Energy		PropValue
-Energy		DFT Energy				EDFT		Energy		PropValue
-Energy		MP2 Energy				EMP2		Energy		PropValue
-Energy		MP3 Energy				EMP3		Energy		PropValue
-Energy		MP4(D) Energy				EMP4D		Energy		PropValue
-Energy		MP4(DQ) Energy				EMP4DQ		Energy		PropValue
-Energy		MP4(SDQ) Energy				EMP4SDQ		Energy		PropValue
-Energy		MP4(SDTQ) Energy			EMP4SDTQ	Energy		PropValue
-Energy		MP5 Energy				EMP5		Energy		PropValue
-Energy		CCSD Energy				ECCSD		Energy		PropValue
-Energy		CCSD(T) Energy 				ECCSDTPERT	Energy		PropValue
-Energy		CCSD+T Energy				ECCSDTPERT2	Energy		PropValue
-Energy		QCISD Energy				EQCISD		Energy		PropValue
-Energy		QCISD(T) Energy				EQCISDT		Energy		PropValue
-Energy		CASSCF Energy				ECAS		Energy		PropValue
-Energy		CIS Energy				ECIS		Energy		PropValue
-Energy		CISD Energy				ECISD		Energy		PropValue
-Energy		CNDO Energy				ECNDO		Energy		PropValue
-Energy		INDO Energy				EINDO		Energy		PropValue
-Energy		MINDO/3 Energy				EMINDO3		Energy		PropValue
-Energy		MNDO Energy				EMNDO		Energy		PropValue
-Energy		AM1 Energy				EAM1		Energy		PropValue
-Energy		PM3 Energy				EPM3		Energy		PropValue
+Energy		Total Energy				TE		Energy		PropValue	Total
+Energy		SCF Energy				ESCF		Energy		PropValue	Total
+Energy		DFT Energy				EDFT		Energy		PropValue	Total
+Energy		MP2 Energy				EMP2		Energy		PropValue	Total
+Energy		MP3 Energy				EMP3		Energy		PropValue	Total
+Energy		MP4(D) Energy				EMP4D		Energy		PropValue	Total
+Energy		MP4(DQ) Energy				EMP4DQ		Energy		PropValue	Total
+Energy		MP4(SDQ) Energy				EMP4SDQ		Energy		PropValue	Total
+Energy		MP4(SDTQ) Energy			EMP4SDTQ	Energy		PropValue	Total
+Energy		MP5 Energy				EMP5		Energy		PropValue	Total
+Energy		CCSD Energy				ECCSD		Energy		PropValue	Total
+Energy		CCSD(T) Energy 				ECCSDTPERT	Energy		PropValue	Total
+Energy		CCSD+T Energy				ECCSDTPERT2	Energy		PropValue	Total
+Energy		QCISD Energy				EQCISD		Energy		PropValue	Total
+Energy		QCISD(T) Energy				EQCISDT		Energy		PropValue	Total
+Energy		CASSCF Energy				ECAS		Energy		PropValue	Total
+Energy		CIS Energy				ECIS		Energy		PropValue	Total
+Energy		CISD Energy				ECISD		Energy		PropValue	Total
+Energy		CNDO Energy				ECNDO		Energy		PropValue	Total
+Energy		INDO Energy				EINDO		Energy		PropValue	Total
+Energy		MINDO/3 Energy				EMINDO3		Energy		PropValue	Total
+Energy		MNDO Energy				EMNDO		Energy		PropValue	Total
+Energy		AM1 Energy				EAM1		Energy		PropValue	Total
+Energy		PM3 Energy				EPM3		Energy		PropValue	Total
 #
 AmicaSCF	Hartree-Fock				ESCF_A		Energy		PropValue
 AmicaSCF	MCSCF 					EMCSCF_A	Energy		PropValue
@@ -130,21 +135,21 @@ AmicaOther	Cowan-Griffin Relativistic Correction	ERELCORR_A	Energy		PropValue
 #
 #  SC02 results
 #
-Energy		Gx Energy				GXENERGY	Energy		PropValue
-Energy		Heat of Formation			HFENERGY	Energy		PropValue
+Energy		Gx Energy				GXENERGY	Energy		PropValue	Total
+Energy		Heat of Formation			HFENERGY	Energy		PropValue	Total
 #
-Energy		Zero Point Energy			EZEROPT		Energy		PropValue
+Energy		Zero Point Energy			EZEROPT		Energy		PropValue	Thermochemistry
 #
 # Thermochemistry (298.15K, 1 atm ideal-gas statistical mechanics) --
-# headline values only (U, H, T*S, G); the individual vibrational/
+# headline values only (U, H, T·S, G); the individual vibrational/
 # rotational/translational correction components ORCA also reports
 # aren't broken out as their own properties yet, same way NNREPUL/
 # ONEELEC/TWOELEC decompose TE. New infrastructure: no code extracted
 # any of these before ORCA (2026-09 session).
-Energy		Total Thermal Energy			ETHERM		Energy		PropValue
-Energy		Total Enthalpy				ENTHALPY	Energy		PropValue
-Energy		Entropy Term (T*S)			ENTROPY		Energy		PropValue
-Energy		Gibbs Free Energy			EGIBBS		Energy		PropValue
+Energy		Total Thermal Energy			ETHERM		Energy		PropValue	Thermochemistry
+Energy		Total Enthalpy				ENTHALPY	Energy		PropValue	Thermochemistry
+Energy		Entropy Term (T·S)			ENTROPY		Energy		PropValue	Thermochemistry
+Energy		Gibbs Free Energy			EGIBBS		Energy		PropValue	Thermochemistry
 #
 # MOPAC's THERMO table reports heat capacity and the temperature the row
 # applies to alongside the values above, and there was nowhere to put
@@ -157,15 +162,15 @@ Energy		Gibbs Free Energy			EGIBBS		Energy		PropValue
 # units string the parser stored whenever the class is NA.  Declaring it
 # as Energy would hand it to the Hartree/kcal converter and silently
 # scale a quantity that is not an energy.
-Energy		Heat Capacity (Cp)			HEATCAP		NA		PropValue
-Energy		Thermochemistry Temperature		THERMOTEMP	Temperature	PropValue
+Energy		Heat Capacity (Cp)			HEATCAP		NA		PropValue	Thermochemistry
+Energy		Thermochemistry Temperature		THERMOTEMP	Temperature	PropValue	Thermochemistry
 #
 # Solvation.  ESOLV is E(solution) - E(gas), stored only where the code
 # prints both totals (NWChem COSMO).  Gaussian and ORCA SMD print just the
 # cavity-dispersion term, kept apart as ESOLVCDS since it is not the full
 # solvation free energy.
-Energy		Solvation Energy (E_sol - E_gas)	ESOLV		Energy		PropValue
-Energy		SMD Cavity-Dispersion Term (CDS)	ESOLVCDS	Energy		PropValue
+Energy		Solvation Energy (E_sol - E_gas)	ESOLV		Energy		PropValue	Solvation
+Energy		SMD Cavity-Dispersion Term (CDS)	ESOLVCDS	Energy		PropValue	Solvation
 #
 #
 Energy		Total Energy Vector			TEVEC		Energy		PropTSVector<Geometry Step>

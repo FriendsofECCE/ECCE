@@ -1130,7 +1130,7 @@ CASES = [
             #    ENTHALPY = -14.404 kcal/mol / 627.5094740631
             #    ENTROPY  = 44.4894 * 298.00 / 1000 / 627.5094740631
             #  ENTROPY is T*S, not S, because that is what ECCE's key
-            #  holds -- its label is literally "Entropy Term (T*S)".
+            #  holds -- its label is literally "Entropy Term (T·S)".
             #
             #  EGIBBS is absent by design, not by omission: MOPAC has no
             #  absolute energy, so H - T*S here would not mean what that
