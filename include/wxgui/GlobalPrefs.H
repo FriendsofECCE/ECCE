@@ -105,6 +105,7 @@ private:
   ewxCheckBox* p_beepWarn;
   ewxCheckBox* p_focus;
   ewxCheckBox* p_quickTransp;
+  ewxCheckBox* p_ecceQmMoDiagram;
   ewxCheckBox* p_updateCheck;
   ewxCheckBox* p_updatePreviews;
   bool p_updateLocked;
@@ -146,6 +147,7 @@ private:
   const static bool p_beepWarnDefault = true;
   const static bool p_focusDefault = false;
   const static bool p_quickTranspDefault = false;
+  const static bool p_ecceQmMoDiagramDefault = false;
   const static bool p_updateCheckDefault = true;
   const static bool p_updatePreviewsDefault = false;
   const static bool p_confirmExitDefault = true;

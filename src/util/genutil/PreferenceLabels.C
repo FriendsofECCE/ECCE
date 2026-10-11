@@ -53,6 +53,7 @@ const char *PrefLabels::LOCALDATA         = "LocalData";       // Boolean
 const char *PrefLabels::LOCALDATAFOLDER   = "LocalData.Folder"; // String
 const char *PrefLabels::LOCALDATAMOVETO   = "LocalData.MoveTo"; // String
 const char *PrefLabels::BUILTINSSH        = "BuiltinSsh";     // Boolean
+const char *PrefLabels::ECCEQMMODIAGRAM   = "EcceQmMoDiagram";       // Boolean
 const char *PrefLabels::UPDATECHECK       = "UpdateCheck";           // Boolean
 const char *PrefLabels::UPDATEPREVIEWS   = "UpdateCheck.Previews";   // Boolean
 const char *PrefLabels::UPDATELAST        = "UpdateCheck.Last";      // String

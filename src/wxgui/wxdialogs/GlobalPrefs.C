@@ -93,7 +93,7 @@ GlobalPrefs::GlobalPrefs(wxWindow* parent)
   : p_publisher(NULL), p_book(NULL),
     p_fontSize(NULL), p_dateFormat(NULL),
     p_timeFormat(NULL), p_unit(NULL), p_systemFont(NULL), p_beepError(NULL), p_beepWarn(NULL),
-    p_focus(NULL), p_quickTransp(NULL), p_updateCheck(NULL), p_updatePreviews(NULL), p_updateLocked(false), p_confirmExit(NULL), p_closeShells(NULL),
+    p_focus(NULL), p_quickTransp(NULL), p_ecceQmMoDiagram(NULL), p_updateCheck(NULL), p_updatePreviews(NULL), p_updateLocked(false), p_confirmExit(NULL), p_closeShells(NULL),
     p_savePasswords(NULL), p_showBusy(NULL), p_alwaysOnTop(NULL),
     p_leftClickNewApp(NULL), p_orientation(NULL),
     p_localData(NULL), p_localFolder(NULL), p_changeFolder(NULL), p_openFolder(NULL),
@@ -292,6 +292,18 @@ void GlobalPrefs::createGeneralPage(wxWindow* page)
       _("Applies the next time an orbital or isosurface is shown in the Builder.")),
       0, wxLEFT|wxBOTTOM, PAD);
   outer->Add(box3, 0, wxGROW|wxALL, PAD);
+
+  // Off by default: in some labs students draw the ECCE-QM diagram
+  // themselves.  Other codes always offer it.
+  wxStaticBoxSizer* box4 = new wxStaticBoxSizer(wxVERTICAL, page, _("Molecular orbitals"));
+  p_ecceQmMoDiagram = new ewxCheckBox(box4->GetStaticBox(), wxID_ANY,
+      _("Show the MO diagram for ECCE-QM calculations"),
+      wxDefaultPosition, wxDefaultSize, wxCHK_2STATE);
+  p_ecceQmMoDiagram->SetToolTip(_("The MO diagram is always offered for the "
+      "other codes. Applies the next time a calculation is opened in the Builder."));
+  p_ecceQmMoDiagram->Bind(wxEVT_CHECKBOX, &GlobalPrefs::OnGlobalChange, this);
+  box4->Add(p_ecceQmMoDiagram, 0, wxALL, 3);
+  outer->Add(box4, 0, wxGROW|wxALL, PAD);
 
   page->SetSizer(outer);
 }
@@ -737,6 +749,7 @@ void GlobalPrefs::OnResetAll(wxCommandEvent& event)
     p_beepWarn->SetValue(p_beepWarnDefault);
     p_focus->SetValue(p_focusDefault);
     p_quickTransp->SetValue(p_quickTranspDefault);
+    p_ecceQmMoDiagram->SetValue(p_ecceQmMoDiagramDefault);
     p_updateCheck->SetValue(p_updateCheckDefault);
     p_updatePreviews->SetValue(p_updatePreviewsDefault);
     updateUpdateControls();
@@ -858,6 +871,7 @@ void GlobalPrefs::saveSettings()
   eccePref.setBool(PrefLabels::WARNINGBEEP, p_beepWarn->GetValue());
   eccePref.setBool(PrefLabels::FOCUSFOLLOWMOUSE, p_focus->GetValue());
   eccePref.setBool(PrefLabels::QUICKTRANSPARENCY, p_quickTransp->GetValue());
+  eccePref.setBool(PrefLabels::ECCEQMMODIAGRAM, p_ecceQmMoDiagram->GetValue());
   eccePref.setBool(PrefLabels::UPDATECHECK, p_updateCheck->GetValue());
   eccePref.setBool(PrefLabels::UPDATEPREVIEWS, p_updatePreviews->GetValue());
   eccePref.setString(PrefLabels::EDITOR, programValue(p_editor));
@@ -931,6 +945,10 @@ void GlobalPrefs::restoreSettings()
   if (!eccePref.getBool(PrefLabels::QUICKTRANSPARENCY, boolBuf))
     boolBuf = p_quickTranspDefault;
   p_quickTransp->SetValue(boolBuf);
+
+  if (!eccePref.getBool(PrefLabels::ECCEQMMODIAGRAM, boolBuf))
+    boolBuf = p_ecceQmMoDiagramDefault;
+  p_ecceQmMoDiagram->SetValue(boolBuf);
 
   if (!eccePref.getBool(PrefLabels::UPDATECHECK, boolBuf))
     boolBuf = p_updateCheckDefault;
@@ -1014,6 +1032,7 @@ bool GlobalPrefs::isDefaultGlobalPref()
          p_beepWarn->GetValue() == p_beepWarnDefault &&
          p_focus->GetValue() == p_focusDefault &&
          p_quickTransp->GetValue() == p_quickTranspDefault &&
+         p_ecceQmMoDiagram->GetValue() == p_ecceQmMoDiagramDefault &&
          p_updateCheck->GetValue() == p_updateCheckDefault &&
          p_updatePreviews->GetValue() == p_updatePreviewsDefault;
 }
