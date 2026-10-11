@@ -241,9 +241,10 @@ def drop_open_block(lines, desc):
 #  Keys whose full-file output already breaks the size rule (a scalar whose
 #  value is several words, e.g. NWChem's VERSION): the rule says nothing
 #  about them, so they are left out of the comparison for that case.
+SIZE_EXEMPT = set()
 # One text value that may contain spaces ("COSMO, eps = 78.4"), so its
 # words are not separate values.
-SIZE_EXEMPT = {'SOLVMODEL'}
+TEXT_KEYS = {'SOLVMODEL'}
 
 
 def script_ok(out, serr, rc):
@@ -269,7 +270,8 @@ def check_records(where, recs, res):
                       '[%s] emitted with an empty values: section' % key)
         res.check(not BAD_NUMBER.search(vals), where,
                   '[%s] has a NaN/Inf in its values: %.80s' % (key, vals))
-        if 'size' in sec and 'values' in sec and key not in SIZE_EXEMPT:
+        if ('size' in sec and 'values' in sec and key not in SIZE_EXEMPT
+                and key not in TEXT_KEYS):
             try:
                 dims = [int(x) for x in flat['size'].split()]
             except ValueError:
