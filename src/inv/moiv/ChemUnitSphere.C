@@ -269,10 +269,25 @@ ChemUnitSphere::ChemUnitSphere(float complexity)
 //
 ////////////////////////////////////////////////////////////////////////
 {
+    init(complexity, computeDepth(complexity));
+}
+
+ChemUnitSphere::ChemUnitSphere(float complexity, int32_t theDepth)
+{
+    init(complexity, theDepth < 1 ? 1 : theDepth);
+}
+
+int32_t ChemUnitSphere::depthForComplexity(float complexity)
+{
+    return computeDepth(complexity);
+}
+
+void ChemUnitSphere::init(float complexity, int32_t theDepth)
+{
     vertCount = 0;
     vertices = NULL;
 
-    depth = computeDepth(complexity);
+    depth = theDepth;
     generateVertices(depth, vertCount, vertices);
 
 // --> EGB && SGB

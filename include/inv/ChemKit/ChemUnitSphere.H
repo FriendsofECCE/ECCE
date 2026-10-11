@@ -85,6 +85,9 @@
 class ChemUnitSphere {
   public:
     ChemUnitSphere(float complexity = 0.4);
+    //  A tessellation depth other than the one the complexity gives (#210).
+    ChemUnitSphere(float complexity, int32_t depth);
+    static int32_t depthForComplexity(float complexity);
     ~ChemUnitSphere();
 
 // --> EGB && SGB
@@ -115,6 +118,7 @@ class ChemUnitSphere {
 // <-- EGB && SGB
 
   private:
+    void init(float complexity, int32_t theDepth);
     int32_t depth;
     int32_t vertCount;
     SbVec3f *vertices;

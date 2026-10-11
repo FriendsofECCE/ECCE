@@ -752,6 +752,11 @@ void bBoxResiduesNone(SoState *state, ChemDisplayParam *cdp,
                            ChemDisplayParam *&cdp,
                            ChemBaseData *&chemData);
 
+    // Screen pixels per object-space unit at the nearest atom in view, and
+    // the tessellation that keeps a circle of that size smooth (#210).
+    float   maxPixelsPerUnit(const ChemBaseData *chemData) const;
+    static int32_t polygonSidesFor(float radiusPixels);
+
     void    setupSpheres(SoGLRenderAction *action,
                          SoState *&state,
                          ChemColor *&chemColor,
