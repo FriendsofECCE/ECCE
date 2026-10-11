@@ -149,6 +149,7 @@ my %gPdTableFreq;
 # [Begin regex, Progress template, History field].
 my @gProgList;
 my %gProg;		# stage -> snapshot (see ProgressLine)
+my %gProgMem;		# Remember= values
 my $gProgStages = 0;	# stages seen, for their order in the message
 my $gProgDirty = 0;
 my $gProgLastSent = 0;
@@ -2944,6 +2945,7 @@ sub JobOutputGet
                         # job is still active; not EOF
 
                         # a snapshot held back by the throttle goes now
+                        &ProgressTail(1) if (@gProgList);
                         &ProgressFlush(0) if (@gProgList);
 
                         # pause to avoid hogging CPU
@@ -2999,6 +3001,7 @@ sub JobOutputGet
             if (@gProgList)
             {
                 &ProgressLine($_);
+                &ProgressTail(0);
                 &ProgressFlush(0);
             }
 
@@ -3149,6 +3152,7 @@ sub JobOutputGet
     LogMsg "JobOutputGet: statistics:\n", &StatSprint();
 
     # the last snapshot, then buffered data blocks
+    &ProgressTail(1) if (@gProgList);
     &ProgressFlush(1) if (@gProgList);
     &MsgSendBlockFlush();
 }
@@ -3954,7 +3958,8 @@ sub PDFileRead
         $PD_KEY_SCRIPT,
         $PD_KEY_SKIP,
         'progress',
-        'history'
+        'history',
+        'remember'
     );
     my @pdValsFreq = (
         $PD_VAL_FREQ_ALL,
@@ -4259,6 +4264,9 @@ sub PDFileRead
 #				Begin's groups
 #	History=<key>		optional: keep this key's values, one per
 #				record, for a plot
+#	Remember=<name>		instead of Progress: keep $1 as {name} for the
+#				Progress templates of other entries (a code's
+#				convergence targets, printed once up front)
 #
 # Return an error message upon failure, undef upon success.
 # --------------------------------------------------------------------------- #
@@ -4271,17 +4279,64 @@ sub ProgressEntryAdd
     foreach (keys %$buf)
     {
         next if ($_ eq $PD_KEY_TYPE || $_ eq $PD_KEY_BEGIN
-                 || $_ eq 'progress' || $_ eq 'history');
+                 || $_ eq 'progress' || $_ eq 'history'
+                 || $_ eq 'remember');
         return "$where: rule key '$_' is not used here";
     }
-    return "$where: Begin and Progress must be given"
-        unless (exists $$buf{$PD_KEY_BEGIN} && exists $$buf{'progress'});
+    return "$where: Begin and Progress (or Remember) must be given"
+        unless (exists $$buf{$PD_KEY_BEGIN}
+                && (exists $$buf{'progress'} || exists $$buf{'remember'}));
     my $re = eval { qr/$$buf{$PD_KEY_BEGIN}/ };
     return "$where: bad Begin pattern: $@" unless (defined $re);
+    if (exists $$buf{'remember'})
+    {
+        return "$where: Remember takes a name"
+            unless ($$buf{'remember'} =~ /^\w+$/);
+        push @gProgList, [$re, undef, undef, $$buf{'remember'}];
+        return undef;
+    }
     return "$where: Progress must start with a stage name"
         unless ($$buf{'progress'} =~ /^\s*[A-Za-z][\w-]*(\s|$)/);
     push @gProgList, [$re, $$buf{'progress'}, $$buf{'history'}];
     undef;
+}
+
+# --------------------------------------------------------------------------- #
+# Some codes keep what shows progress (NWChem: the SCF and optimiser tables)
+# in their stdout, while the parse file is a separate trace.  When
+# jobOutputFile2 is another file, its complete lines also go through
+# ProgressLine, read here every half second, or on $force.  Never parsed
+# for properties, and a missing file is no error.
+# --------------------------------------------------------------------------- #
+
+my($gTailFh, $gTailLast, $gTailOff) = (undef, 0, 0);
+
+sub ProgressTail
+{
+    my($force) = @_;
+    my $name = $gConfig{'jobOutputFile2'};
+
+    return unless (defined $name && $name ne '' &&
+                   $name ne $gConfig{'jobOutputFile'});
+    my $now = &ProgressNow();
+    return unless ($force || $now - $gTailLast >= 0.5);
+    $gTailLast = $now;
+
+    unless ($gTailFh)
+    {
+        open($gTailFh, '<', $name) || return;
+        $gTailOff = 0;
+    }
+    seek($gTailFh, $gTailOff, 0);
+    my $n = 0;
+    while (defined(my $l = <$gTailFh>))
+    {
+        last unless ($l =~ /\n$/);	# half-written: again next time
+        $gTailOff = tell($gTailFh);
+        &ProgressLine($l);
+        last if (++$n >= 20000);
+    }
+    seek($gTailFh, $gTailOff, 0);
 }
 
 sub ProgressNow
@@ -4306,8 +4361,16 @@ sub ProgressLine
         my @cap = ($line =~ $$entry[0]);
         next unless (@cap);
 
+        if (defined $$entry[3])
+        {
+            $gProgMem{$$entry[3]} = $cap[0] if (defined $cap[0]);
+            next;
+        }
+
         my $text = $$entry[1];
         $text =~ s/\$(\d)/(defined $cap[$1 - 1]) ? $cap[$1 - 1] : ''/ge;
+        $text =~ s/\{(\w+)\}/(defined $gProgMem{$1}) ? $gProgMem{$1} : ''/ge;
+        $text =~ s/(\d)D([-+]\d)/$1e$2/g;	# Fortran exponents
         my($stage, @pairs) = split ' ', $text;
         next unless (defined $stage && $stage =~ /^[A-Za-z][\w-]*$/);
 

@@ -1,0 +1,1118 @@
+%begin%input file%1%char
+Title "h2o opt capped"
+
+Start  h2o
+
+echo
+
+charge 0
+
+geometry autosym units angstrom
+ O     0.000000     0.000000     0.000000
+ H     0.900000     0.000000     0.900000
+ H     -0.900000     0.000000     0.900000
+end
+
+ecce_print ecce.out
+
+basis "ao basis" cartesian print
+  H library "STO-3G"
+  O library "STO-3G"
+END
+
+scf
+  RHF
+  nopen 0
+end
+
+driver
+  maxiter 2
+end
+
+task scf optimize
+%end%input file%1%char
+%begin%version%1%char
+Mon_May_12_21:20:53_2025 Version 7.2.3
+%end%version%1%char
+%begin%entry%1%char
+task_optimize
+%end%entry%1%char
+task_optimize%begin%entry%1%char
+driver
+task_optimize%end%entry%1%char
+task_optimize driver%begin%entry%1%char
+task_gradient
+task_optimize driver%end%entry%1%char
+task_optimize driver task_gradient%begin%entry%1%char
+scf
+task_optimize driver task_gradient%end%entry%1%char
+task_optimize driver task_gradient scf%begin%entry%1%char
+load_basis
+task_optimize driver task_gradient scf%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient scf load_basis%begin%exit%2%char
+load_basis
+ok
+task_optimize driver task_gradient scf load_basis%end%exit%1%char
+task_optimize driver task_gradient scf%begin%entry%1%char
+bas_input
+task_optimize driver task_gradient scf%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient scf bas_input%begin%exit%2%char
+bas_input
+ok
+task_optimize driver task_gradient scf bas_input%end%exit%1%char
+task_optimize driver task_gradient scf%begin%group class names%4%char
+e
+c2
+si.xz
+si.yz
+task_optimize driver task_gradient scf%end%group class names%4%char
+task_optimize driver task_gradient scf%begin%group irrep names%4%char
+a1
+a2
+b1
+b2
+task_optimize driver task_gradient scf%end%group irrep names%4%char
+task_optimize driver task_gradient scf%begin%total energy%1%double
+-7.47795781303879e+01 
+task_optimize driver task_gradient scf%end%total energy%1%double
+task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double
+8.28057375101970e-01 
+task_optimize driver task_gradient scf%end%orbital gradient norm%1%double
+task_optimize driver task_gradient scf%begin%total energy%1%double
+-7.48397381373201e+01 
+task_optimize driver task_gradient scf%end%total energy%1%double
+task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double
+3.72880197576792e-01 
+task_optimize driver task_gradient scf%end%orbital gradient norm%1%double
+task_optimize driver task_gradient scf%begin%total energy%1%double
+-7.48542756984285e+01 
+task_optimize driver task_gradient scf%end%total energy%1%double
+task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double
+1.18950159407515e-01 
+task_optimize driver task_gradient scf%end%orbital gradient norm%1%double
+task_optimize driver task_gradient scf%begin%total energy%1%double
+-7.48551761574865e+01 
+task_optimize driver task_gradient scf%end%total energy%1%double
+task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double
+3.68397963480620e-03 
+task_optimize driver task_gradient scf%end%orbital gradient norm%1%double
+task_optimize driver task_gradient scf%begin%total energy%1%double
+-7.48551771227560e+01 
+task_optimize driver task_gradient scf%end%total energy%1%double
+task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double
+5.04892909781802e-07 
+task_optimize driver task_gradient scf%end%orbital gradient norm%1%double
+task_optimize driver task_gradient scf%begin%total energy%1%double
+-7.48551771227560e+01 
+task_optimize driver task_gradient scf%end%total energy%1%double
+task_optimize driver task_gradient scf%begin%one-electron energy%1%double
+-1.18070708805243e+02 
+task_optimize driver task_gradient scf%end%one-electron energy%1%double
+task_optimize driver task_gradient scf%begin%two-electron energy%1%double
+3.62693697225127e+01 
+task_optimize driver task_gradient scf%end%two-electron energy%1%double
+task_optimize driver task_gradient scf%begin%nuclear repulsion energy%1%double
+6.94616195997456e+00 
+task_optimize driver task_gradient scf%end%nuclear repulsion energy%1%double
+task_optimize driver task_gradient scf%begin%orbital symmetries%7%int
+1 1 3 1 4 1 3 
+task_optimize driver task_gradient scf%end%orbital symmetries%7%int
+task_optimize driver task_gradient scf%begin%total mulliken atomic charges%3%double
+-1.50126208103533e-01 7.50631040517657e-02 7.50631040517661e-02 
+task_optimize driver task_gradient scf%end%total mulliken atomic charges%3%double
+task_optimize driver task_gradient scf%begin%total mulliken shell charges%5%double
+1.99901459074329e+00 1.92636712989171e+00 4.22474448746854e+00 9.24936895948234e-01 
+9.24936895948234e-01 
+task_optimize driver task_gradient scf%end%total mulliken shell charges%5%double
+task_optimize driver task_gradient scf%begin%total dipole%3%double
+-6.66133814775094e-16 9.52309719702901e-18 5.32480228277129e-01 
+task_optimize driver task_gradient scf%end%total dipole%3%double
+task_optimize driver task_gradient scf%begin%open shell dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+task_optimize driver task_gradient scf%end%open shell dipole%3%double
+task_optimize driver task_gradient scf%begin%nuclear dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+task_optimize driver task_gradient scf%end%nuclear dipole%3%double
+task_optimize driver task_gradient scf%begin%total quadrupole%6%double
+-3.49814612887487e+00 3.73386528860822e-17 -2.22044604925031e-16 -4.69561946054010e+00 
+1.48530383717160e-17 -3.81054880724848e+00 
+task_optimize driver task_gradient scf%end%total quadrupole%6%double
+task_optimize driver task_gradient scf%begin%open shell quadrupole%6%double
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 
+task_optimize driver task_gradient scf%end%open shell quadrupole%6%double
+task_optimize driver task_gradient scf%begin%nuclear quadrupole%6%double
+5.78512418530175e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 4.62809934824140e+00 
+task_optimize driver task_gradient scf%end%nuclear quadrupole%6%double
+task_optimize driver task_gradient scf%begin%molecular orbital energies RHF%7%double
+-2.02975940567946e+01 -1.17495915915508e+00 -4.61396425066742e-01 -4.34798389324445e-01 
+-3.97236649768150e-01 3.77913310540102e-01 4.16644924023424e-01 
+task_optimize driver task_gradient scf%end%molecular orbital energies RHF%7%double
+task_optimize driver task_gradient scf%begin%molecular orbital occupations RHF%7%double
+2.00000000000000e+00 2.00000000000000e+00 2.00000000000000e+00 2.00000000000000e+00 
+2.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+task_optimize driver task_gradient scf%end%molecular orbital occupations RHF%7%double
+task_optimize driver task_gradient scf%begin%molecular orbital symmetries RHF%7%int
+1 1 3 1 4 1 3 
+task_optimize driver task_gradient scf%end%molecular orbital symmetries RHF%7%int
+task_optimize driver task_gradient scf%begin%molecular orbital range RHF%2%int
+1 7 
+task_optimize driver task_gradient scf%end%molecular orbital range RHF%2%int
+task_optimize driver task_gradient scf%begin%molecular orbital vectors RHF%7 7%double
+ 0.995 0.022 2*0.0 0.002 -0.003 -0.003
+ -0.247 0.938 2*0.0 0.051 0.119 0.119
+ 2*0.0 0.650 2*0.0 0.456 -0.456
+ 0.082 -0.410 2*0.0 0.683 0.389 0.389
+ 3*0.0 1.000 3*0.0
+ -0.084 0.463 2*0.0 0.783 -0.619 -0.619
+ 2*0.0 0.823 2*0.0 -0.671 0.671
+task_optimize driver task_gradient scf%end%molecular orbital vectors RHF%7 7%double
+task_optimize driver task_gradient scf%begin%exit%2%char
+scf
+ok
+task_optimize driver task_gradient scf%end%exit%1%char
+task_optimize driver task_gradient%begin%entry%1%char
+gradients
+task_optimize driver task_gradient%end%entry%1%char
+task_optimize driver task_gradient gradients%begin%entry%1%char
+load_basis
+task_optimize driver task_gradient gradients%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient gradients load_basis%begin%exit%2%char
+load_basis
+ok
+task_optimize driver task_gradient gradients load_basis%end%exit%1%char
+task_optimize driver task_gradient gradients%begin%entry%1%char
+bas_input
+task_optimize driver task_gradient gradients%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient gradients bas_input%begin%exit%2%char
+bas_input
+ok
+task_optimize driver task_gradient gradients bas_input%end%exit%1%char
+task_optimize driver task_gradient gradients%begin%exit%2%char
+gradients
+ok
+task_optimize driver task_gradient gradients%end%exit%1%char
+task_optimize driver task_gradient%begin%cartesian coordinates%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 -1.80000000000000e-01 
+9.00000000000000e-01 0.00000000000000e+00 7.20000000000000e-01 
+-9.00000000000000e-01 0.00000000000000e+00 7.20000000000000e-01 
+task_optimize driver task_gradient%end%cartesian coordinates%3 3%double
+task_optimize driver task_gradient%begin%atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_optimize driver task_gradient%end%atomic charges%3%double
+task_optimize driver task_gradient%begin%atomic tags%3%char
+O
+H
+H
+task_optimize driver task_gradient%end%atomic tags%3%char
+task_optimize driver task_gradient%begin%group name%1%char
+C2v
+task_optimize driver task_gradient%end%group name%1%char
+task_optimize driver task_gradient%begin%total energy%1%double
+-7.48551771227560e+01 
+task_optimize driver task_gradient%end%total energy%1%double
+task_optimize driver task_gradient%begin%total gradient%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 -2.37510791031993e-01 
+1.06543671272644e-01 0.00000000000000e+00 1.18755395515996e-01 
+-1.06543671272644e-01 0.00000000000000e+00 1.18755395515996e-01 
+task_optimize driver task_gradient%end%total gradient%3 3%double
+task_optimize driver task_gradient%begin%gradient norm%1%double
+3.27597575634300e-01 
+task_optimize driver task_gradient%end%gradient norm%1%double
+task_optimize driver task_gradient%begin%gradient max%1%double
+2.37510791031993e-01 
+task_optimize driver task_gradient%end%gradient max%1%double
+task_optimize driver task_gradient%begin%cpu time%1%double
+9.11700000000000e-02 
+task_optimize driver task_gradient%end%cpu time%1%double
+task_optimize driver task_gradient%begin%wall time%1%double
+3.36207590000000e-02 
+task_optimize driver task_gradient%end%wall time%1%double
+task_optimize driver task_gradient%begin%exit%2%char
+task_gradient
+ok
+task_optimize driver task_gradient%end%exit%1%char
+task_optimize driver%begin%entry%1%char
+task_energy
+task_optimize driver%end%entry%1%char
+task_optimize driver task_energy%begin%entry%1%char
+scf
+task_optimize driver task_energy%end%entry%1%char
+task_optimize driver task_energy scf%begin%entry%1%char
+load_basis
+task_optimize driver task_energy scf%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_energy scf load_basis%begin%exit%2%char
+load_basis
+ok
+task_optimize driver task_energy scf load_basis%end%exit%1%char
+task_optimize driver task_energy scf%begin%entry%1%char
+bas_input
+task_optimize driver task_energy scf%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_energy scf bas_input%begin%exit%2%char
+bas_input
+ok
+task_optimize driver task_energy scf bas_input%end%exit%1%char
+task_optimize driver task_energy scf%begin%total energy%1%double
+-7.49346344212721e+01 
+task_optimize driver task_energy scf%end%total energy%1%double
+task_optimize driver task_energy scf%begin%orbital gradient norm%1%double
+1.79677503335828e-01 
+task_optimize driver task_energy scf%end%orbital gradient norm%1%double
+task_optimize driver task_energy scf%begin%total energy%1%double
+-7.49377822851843e+01 
+task_optimize driver task_energy scf%end%total energy%1%double
+task_optimize driver task_energy scf%begin%orbital gradient norm%1%double
+5.94493039257262e-02 
+task_optimize driver task_energy scf%end%orbital gradient norm%1%double
+task_optimize driver task_energy scf%begin%total energy%1%double
+-7.49379198885755e+01 
+task_optimize driver task_energy scf%end%total energy%1%double
+task_optimize driver task_energy scf%begin%orbital gradient norm%1%double
+6.73475167758574e-02 
+task_optimize driver task_energy scf%end%orbital gradient norm%1%double
+task_optimize driver task_energy scf%begin%total energy%1%double
+-7.49385076131916e+01 
+task_optimize driver task_energy scf%end%total energy%1%double
+task_optimize driver task_energy scf%begin%orbital gradient norm%1%double
+3.94303795552409e-03 
+task_optimize driver task_energy scf%end%orbital gradient norm%1%double
+task_optimize driver task_energy scf%begin%total energy%1%double
+-7.49385081265319e+01 
+task_optimize driver task_energy scf%end%total energy%1%double
+task_optimize driver task_energy scf%begin%orbital gradient norm%1%double
+1.13313880855742e-05 
+task_optimize driver task_energy scf%end%orbital gradient norm%1%double
+task_optimize driver task_energy scf%begin%total energy%1%double
+-7.49385081265319e+01 
+task_optimize driver task_energy scf%end%total energy%1%double
+task_optimize driver task_energy scf%begin%one-electron energy%1%double
+-1.19998204641119e+02 
+task_optimize driver task_energy scf%end%one-electron energy%1%double
+task_optimize driver task_energy scf%begin%two-electron energy%1%double
+3.71445259819433e+01 
+task_optimize driver task_energy scf%end%two-electron energy%1%double
+task_optimize driver task_energy scf%begin%nuclear repulsion energy%1%double
+7.91517053264344e+00 
+task_optimize driver task_energy scf%end%nuclear repulsion energy%1%double
+task_optimize driver task_energy scf%begin%orbital symmetries%7%int
+1 1 3 1 4 1 3 
+task_optimize driver task_energy scf%end%orbital symmetries%7%int
+task_optimize driver task_energy scf%begin%total mulliken atomic charges%3%double
+-2.35982001473937e-01 1.17991000736968e-01 1.17991000736969e-01 
+task_optimize driver task_energy scf%end%total mulliken atomic charges%3%double
+task_optimize driver task_energy scf%begin%total mulliken shell charges%5%double
+1.99841211214377e+00 1.88544988584348e+00 4.35212000348669e+00 8.82008999263032e-01 
+8.82008999263031e-01 
+task_optimize driver task_energy scf%end%total mulliken shell charges%5%double
+task_optimize driver task_energy scf%begin%total dipole%3%double
+-4.44089209850063e-16 1.11165482593807e-17 6.06430104429806e-01 
+task_optimize driver task_energy scf%end%total dipole%3%double
+task_optimize driver task_energy scf%begin%open shell dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+task_optimize driver task_energy scf%end%open shell dipole%3%double
+task_optimize driver task_energy scf%begin%nuclear dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 1.48200785208600e+00 
+task_optimize driver task_energy scf%end%nuclear dipole%3%double
+task_optimize driver task_energy scf%begin%total quadrupole%6%double
+-3.35386227258859e+00 2.46209694162895e-17 -4.44089209850063e-16 -4.62545402579189e+00 
+1.14424551734316e-17 -3.75587797067247e+00 
+task_optimize driver task_energy scf%end%total quadrupole%6%double
+task_optimize driver task_energy scf%begin%open shell quadrupole%6%double
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 
+task_optimize driver task_energy scf%end%open shell quadrupole%6%double
+task_optimize driver task_energy scf%begin%nuclear quadrupole%6%double
+5.03759879260867e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 3.28073502016333e+00 
+task_optimize driver task_energy scf%end%nuclear quadrupole%6%double
+task_optimize driver task_energy scf%begin%exit%2%char
+scf
+ok
+task_optimize driver task_energy scf%end%exit%1%char
+task_optimize driver task_energy%begin%cpu time%1%double
+1.45450000000000e-02 
+task_optimize driver task_energy%end%cpu time%1%double
+task_optimize driver task_energy%begin%wall time%1%double
+2.24541100000000e-02 
+task_optimize driver task_energy%end%wall time%1%double
+task_optimize driver task_energy%begin%cartesian coordinates%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 -6.79650231195970e-02 
+8.39842705534400e-01 0.00000000000000e+00 6.63982511559799e-01 
+-8.39842705534400e-01 0.00000000000000e+00 6.63982511559799e-01 
+task_optimize driver task_energy%end%cartesian coordinates%3 3%double
+task_optimize driver task_energy%begin%atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_optimize driver task_energy%end%atomic charges%3%double
+task_optimize driver task_energy%begin%atomic tags%3%char
+O
+H
+H
+task_optimize driver task_energy%end%atomic tags%3%char
+task_optimize driver task_energy%begin%group name%1%char
+C2v
+task_optimize driver task_energy%end%group name%1%char
+task_optimize driver task_energy%begin%total energy%1%double
+-7.49385081265319e+01 
+task_optimize driver task_energy%end%total energy%1%double
+task_optimize driver task_energy%begin%exit%2%char
+task_energy
+ok
+task_optimize driver task_energy%end%exit%1%char
+task_optimize driver%begin%entry%1%char
+task_gradient
+task_optimize driver%end%entry%1%char
+task_optimize driver task_gradient%begin%entry%1%char
+scf
+task_optimize driver task_gradient%end%entry%1%char
+task_optimize driver task_gradient scf%begin%entry%1%char
+load_basis
+task_optimize driver task_gradient scf%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient scf load_basis%begin%exit%2%char
+load_basis
+ok
+task_optimize driver task_gradient scf load_basis%end%exit%1%char
+task_optimize driver task_gradient scf%begin%entry%1%char
+bas_input
+task_optimize driver task_gradient scf%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient scf bas_input%begin%exit%2%char
+bas_input
+ok
+task_optimize driver task_gradient scf bas_input%end%exit%1%char
+task_optimize driver task_gradient scf%begin%total energy%1%double
+-7.47212571858350e+01 
+task_optimize driver task_gradient scf%end%total energy%1%double
+task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double
+7.29405317650876e-01 
+task_optimize driver task_gradient scf%end%orbital gradient norm%1%double
+task_optimize driver task_gradient scf%begin%total energy%1%double
+-7.47519080353632e+01 
+task_optimize driver task_gradient scf%end%total energy%1%double
+task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double
+3.61401440912425e-01 
+task_optimize driver task_gradient scf%end%orbital gradient norm%1%double
+task_optimize driver task_gradient scf%begin%total energy%1%double
+-7.47648749582132e+01 
+task_optimize driver task_gradient scf%end%total energy%1%double
+task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double
+3.96433087522340e-01 
+task_optimize driver task_gradient scf%end%orbital gradient norm%1%double
+task_optimize driver task_gradient scf%begin%total energy%1%double
+-7.47695198733891e+01 
+task_optimize driver task_gradient scf%end%total energy%1%double
+task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double
+9.56394092003423e-02 
+task_optimize driver task_gradient scf%end%orbital gradient norm%1%double
+task_optimize driver task_gradient scf%begin%total energy%1%double
+-7.47698038777617e+01 
+task_optimize driver task_gradient scf%end%total energy%1%double
+task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double
+3.57629492900740e-02 
+task_optimize driver task_gradient scf%end%orbital gradient norm%1%double
+task_optimize driver task_gradient scf%begin%total energy%1%double
+-7.47698834339413e+01 
+task_optimize driver task_gradient scf%end%total energy%1%double
+task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double
+2.85877510820281e-04 
+task_optimize driver task_gradient scf%end%orbital gradient norm%1%double
+task_optimize driver task_gradient scf%begin%total energy%1%double
+-7.47698834386263e+01 
+task_optimize driver task_gradient scf%end%total energy%1%double
+task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double
+4.80141268298560e-06 
+task_optimize driver task_gradient scf%end%orbital gradient norm%1%double
+task_optimize driver task_gradient scf%begin%total energy%1%double
+-7.47698834386263e+01 
+task_optimize driver task_gradient scf%end%total energy%1%double
+task_optimize driver task_gradient scf%begin%one-electron energy%1%double
+-1.26281247035295e+02 
+task_optimize driver task_gradient scf%end%one-electron energy%1%double
+task_optimize driver task_gradient scf%begin%two-electron energy%1%double
+3.98894930883312e+01 
+task_optimize driver task_gradient scf%end%two-electron energy%1%double
+task_optimize driver task_gradient scf%begin%nuclear repulsion energy%1%double
+1.16218705083373e+01 
+task_optimize driver task_gradient scf%end%nuclear repulsion energy%1%double
+task_optimize driver task_gradient scf%begin%orbital symmetries%7%int
+1 1 3 1 4 1 3 
+task_optimize driver task_gradient scf%end%orbital symmetries%7%int
+task_optimize driver task_gradient scf%begin%total mulliken atomic charges%3%double
+-6.32538453778782e-01 3.16269226889390e-01 3.16269226889390e-01 
+task_optimize driver task_gradient scf%end%total mulliken atomic charges%3%double
+task_optimize driver task_gradient scf%begin%total mulliken shell charges%5%double
+1.99647194754079e+00 1.73551690639035e+00 4.90054959984764e+00 6.83730773110610e-01 
+6.83730773110610e-01 
+task_optimize driver task_gradient scf%end%total mulliken shell charges%5%double
+task_optimize driver task_gradient scf%begin%total dipole%3%double
+-5.55111512312578e-16 1.19065824212661e-17 7.10854524864973e-01 
+task_optimize driver task_gradient scf%end%total dipole%3%double
+task_optimize driver task_gradient scf%begin%open shell dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+task_optimize driver task_gradient scf%end%open shell dipole%3%double
+task_optimize driver task_gradient scf%begin%nuclear dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 4.38660005429425e+00 
+task_optimize driver task_gradient scf%end%nuclear dipole%3%double
+task_optimize driver task_gradient scf%begin%total quadrupole%6%double
+-3.10350275285065e+00 -4.62959137510141e-19 -5.55111512312578e-16 -4.37383510509439e+00 
+3.29169538684205e-18 -3.43571976213614e+00 
+task_optimize driver task_gradient scf%end%total quadrupole%6%double
+task_optimize driver task_gradient scf%begin%open shell quadrupole%6%double
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 
+task_optimize driver task_gradient scf%end%open shell quadrupole%6%double
+task_optimize driver task_gradient scf%begin%nuclear quadrupole%6%double
+2.91831105141222e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 2.85025390489176e+00 
+task_optimize driver task_gradient scf%end%nuclear quadrupole%6%double
+task_optimize driver task_gradient scf%begin%exit%2%char
+scf
+ok
+task_optimize driver task_gradient scf%end%exit%1%char
+task_optimize driver task_gradient%begin%entry%1%char
+gradients
+task_optimize driver task_gradient%end%entry%1%char
+task_optimize driver task_gradient gradients%begin%entry%1%char
+load_basis
+task_optimize driver task_gradient gradients%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient gradients load_basis%begin%exit%2%char
+load_basis
+ok
+task_optimize driver task_gradient gradients load_basis%end%exit%1%char
+task_optimize driver task_gradient gradients%begin%entry%1%char
+bas_input
+task_optimize driver task_gradient gradients%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient gradients bas_input%begin%exit%2%char
+bas_input
+ok
+task_optimize driver task_gradient gradients bas_input%end%exit%1%char
+task_optimize driver task_gradient gradients%begin%exit%2%char
+gradients
+ok
+task_optimize driver task_gradient gradients%end%exit%1%char
+task_optimize driver task_gradient%begin%cartesian coordinates%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 1.51612707027623e-01 
+6.39222357190968e-01 0.00000000000000e+00 5.54193646486189e-01 
+-6.39222357190968e-01 0.00000000000000e+00 5.54193646486189e-01 
+task_optimize driver task_gradient%end%cartesian coordinates%3 3%double
+task_optimize driver task_gradient%begin%atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_optimize driver task_gradient%end%atomic charges%3%double
+task_optimize driver task_gradient%begin%atomic tags%3%char
+O
+H
+H
+task_optimize driver task_gradient%end%atomic tags%3%char
+task_optimize driver task_gradient%begin%group name%1%char
+C2v
+task_optimize driver task_gradient%end%group name%1%char
+task_optimize driver task_gradient%begin%total energy%1%double
+-7.47698834386263e+01 
+task_optimize driver task_gradient%end%total energy%1%double
+task_optimize driver task_gradient%begin%total gradient%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 6.18749719708594e-01 
+-4.66263271217504e-01 0.00000000000000e+00 -3.09374859854297e-01 
+4.66263271217504e-01 0.00000000000000e+00 -3.09374859854297e-01 
+task_optimize driver task_gradient%end%total gradient%3 3%double
+task_optimize driver task_gradient%begin%gradient norm%1%double
+1.00452959121775e+00 
+task_optimize driver task_gradient%end%gradient norm%1%double
+task_optimize driver task_gradient%begin%gradient max%1%double
+6.18749719708594e-01 
+task_optimize driver task_gradient%end%gradient max%1%double
+task_optimize driver task_gradient%begin%cpu time%1%double
+2.46000000000001e-02 
+task_optimize driver task_gradient%end%cpu time%1%double
+task_optimize driver task_gradient%begin%wall time%1%double
+2.86375610000000e-02 
+task_optimize driver task_gradient%end%wall time%1%double
+task_optimize driver task_gradient%begin%exit%2%char
+task_gradient
+ok
+task_optimize driver task_gradient%end%exit%1%char
+task_optimize driver%begin%entry%1%char
+task_energy
+task_optimize driver%end%entry%1%char
+task_optimize driver task_energy%begin%entry%1%char
+scf
+task_optimize driver task_energy%end%entry%1%char
+task_optimize driver task_energy scf%begin%entry%1%char
+load_basis
+task_optimize driver task_energy scf%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_energy scf load_basis%begin%exit%2%char
+load_basis
+ok
+task_optimize driver task_energy scf load_basis%end%exit%1%char
+task_optimize driver task_energy scf%begin%entry%1%char
+bas_input
+task_optimize driver task_energy scf%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_energy scf bas_input%begin%exit%2%char
+bas_input
+ok
+task_optimize driver task_energy scf bas_input%end%exit%1%char
+task_optimize driver task_energy scf%begin%total energy%1%double
+-7.48641462040087e+01 
+task_optimize driver task_energy scf%end%total energy%1%double
+task_optimize driver task_energy scf%begin%orbital gradient norm%1%double
+1.84523962672336e-01 
+task_optimize driver task_energy scf%end%orbital gradient norm%1%double
+task_optimize driver task_energy scf%begin%total energy%1%double
+-7.48670056451594e+01 
+task_optimize driver task_energy scf%end%total energy%1%double
+task_optimize driver task_energy scf%begin%orbital gradient norm%1%double
+3.61641382950767e-02 
+task_optimize driver task_energy scf%end%orbital gradient norm%1%double
+task_optimize driver task_energy scf%begin%total energy%1%double
+-7.48672054205982e+01 
+task_optimize driver task_energy scf%end%total energy%1%double
+task_optimize driver task_energy scf%begin%orbital gradient norm%1%double
+4.58527818928021e-04 
+task_optimize driver task_energy scf%end%orbital gradient norm%1%double
+task_optimize driver task_energy scf%begin%total energy%1%double
+-7.48672054359914e+01 
+task_optimize driver task_energy scf%end%total energy%1%double
+task_optimize driver task_energy scf%begin%orbital gradient norm%1%double
+5.02357595057770e-06 
+task_optimize driver task_energy scf%end%orbital gradient norm%1%double
+task_optimize driver task_energy scf%begin%total energy%1%double
+-7.48672054359914e+01 
+task_optimize driver task_energy scf%end%total energy%1%double
+task_optimize driver task_energy scf%begin%one-electron energy%1%double
+-1.25066449842378e+02 
+task_optimize driver task_energy scf%end%one-electron energy%1%double
+task_optimize driver task_energy scf%begin%two-electron energy%1%double
+3.93805722966691e+01 
+task_optimize driver task_energy scf%end%two-electron energy%1%double
+task_optimize driver task_energy scf%begin%nuclear repulsion energy%1%double
+1.08186721097179e+01 
+task_optimize driver task_energy scf%end%nuclear repulsion energy%1%double
+task_optimize driver task_energy scf%begin%orbital symmetries%7%int
+1 1 3 1 4 1 3 
+task_optimize driver task_energy scf%end%orbital symmetries%7%int
+task_optimize driver task_energy scf%begin%total mulliken atomic charges%3%double
+-5.42771995581571e-01 2.71385997790784e-01 2.71385997790784e-01 
+task_optimize driver task_energy scf%end%total mulliken atomic charges%3%double
+task_optimize driver task_energy scf%begin%total mulliken shell charges%5%double
+1.99678060874092e+00 1.76628346918524e+00 4.77970791765542e+00 7.28614002209216e-01 
+7.28614002209216e-01 
+task_optimize driver task_energy scf%end%total mulliken shell charges%5%double
+task_optimize driver task_energy scf%begin%total dipole%3%double
+-5.55111512312578e-16 1.22321718423535e-17 7.18815326337201e-01 
+task_optimize driver task_energy scf%end%total dipole%3%double
+task_optimize driver task_energy scf%begin%open shell dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+task_optimize driver task_energy scf%end%open shell dipole%3%double
+task_optimize driver task_energy scf%begin%nuclear dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 3.88499432620485e+00 
+task_optimize driver task_energy scf%end%nuclear dipole%3%double
+task_optimize driver task_energy scf%begin%total quadrupole%6%double
+-3.15632586065072e+00 4.63226049261765e-18 -5.55111512312578e-16 -4.42180195750226e+00 
+4.40832449698870e-18 -3.48376045116470e+00 
+task_optimize driver task_energy scf%end%total quadrupole%6%double
+task_optimize driver task_energy scf%begin%open shell quadrupole%6%double
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 
+task_optimize driver task_energy scf%end%open shell quadrupole%6%double
+task_optimize driver task_energy scf%begin%nuclear quadrupole%6%double
+3.20452457670451e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 2.71550378751746e+00 
+task_optimize driver task_energy scf%end%nuclear quadrupole%6%double
+task_optimize driver task_energy scf%begin%exit%2%char
+scf
+ok
+task_optimize driver task_energy scf%end%exit%1%char
+task_optimize driver task_energy%begin%cpu time%1%double
+1.70890000000000e-02 
+task_optimize driver task_energy%end%cpu time%1%double
+task_optimize driver task_energy%begin%wall time%1%double
+2.10387250000000e-02 
+task_optimize driver task_energy%end%wall time%1%double
+task_optimize driver task_energy%begin%cartesian coordinates%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 1.13692944274360e-01 
+6.69835205648189e-01 0.00000000000000e+00 5.73153527862821e-01 
+-6.69835205648189e-01 0.00000000000000e+00 5.73153527862821e-01 
+task_optimize driver task_energy%end%cartesian coordinates%3 3%double
+task_optimize driver task_energy%begin%atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_optimize driver task_energy%end%atomic charges%3%double
+task_optimize driver task_energy%begin%atomic tags%3%char
+O
+H
+H
+task_optimize driver task_energy%end%atomic tags%3%char
+task_optimize driver task_energy%begin%group name%1%char
+C2v
+task_optimize driver task_energy%end%group name%1%char
+task_optimize driver task_energy%begin%total energy%1%double
+-7.48672054359914e+01 
+task_optimize driver task_energy%end%total energy%1%double
+task_optimize driver task_energy%begin%exit%2%char
+task_energy
+ok
+task_optimize driver task_energy%end%exit%1%char
+task_optimize driver%begin%entry%1%char
+task_gradient
+task_optimize driver%end%entry%1%char
+task_optimize driver task_gradient%begin%entry%1%char
+scf
+task_optimize driver task_gradient%end%entry%1%char
+task_optimize driver task_gradient scf%begin%entry%1%char
+load_basis
+task_optimize driver task_gradient scf%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient scf load_basis%begin%exit%2%char
+load_basis
+ok
+task_optimize driver task_gradient scf load_basis%end%exit%1%char
+task_optimize driver task_gradient scf%begin%entry%1%char
+bas_input
+task_optimize driver task_gradient scf%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient scf bas_input%begin%exit%2%char
+bas_input
+ok
+task_optimize driver task_gradient scf bas_input%end%exit%1%char
+task_optimize driver task_gradient scf%begin%total energy%1%double
+-7.49384457923188e+01 
+task_optimize driver task_gradient scf%end%total energy%1%double
+task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double
+2.33990376021210e-01 
+task_optimize driver task_gradient scf%end%orbital gradient norm%1%double
+task_optimize driver task_gradient scf%begin%total energy%1%double
+-7.49433387662102e+01 
+task_optimize driver task_gradient scf%end%total energy%1%double
+task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double
+5.10862845824548e-02 
+task_optimize driver task_gradient scf%end%orbital gradient norm%1%double
+task_optimize driver task_gradient scf%begin%total energy%1%double
+-7.49437568208739e+01 
+task_optimize driver task_gradient scf%end%total energy%1%double
+task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double
+1.07012204850121e-03 
+task_optimize driver task_gradient scf%end%orbital gradient norm%1%double
+task_optimize driver task_gradient scf%begin%total energy%1%double
+-7.49437569337117e+01 
+task_optimize driver task_gradient scf%end%total energy%1%double
+task_optimize driver task_gradient scf%begin%orbital gradient norm%1%double
+3.13584243837027e-07 
+task_optimize driver task_gradient scf%end%orbital gradient norm%1%double
+task_optimize driver task_gradient scf%begin%total energy%1%double
+-7.49437569337117e+01 
+task_optimize driver task_gradient scf%end%total energy%1%double
+task_optimize driver task_gradient scf%begin%one-electron energy%1%double
+-1.23408865657436e+02 
+task_optimize driver task_gradient scf%end%one-electron energy%1%double
+task_optimize driver task_gradient scf%begin%two-electron energy%1%double
+3.86580552946085e+01 
+task_optimize driver task_gradient scf%end%two-electron energy%1%double
+task_optimize driver task_gradient scf%begin%nuclear repulsion energy%1%double
+9.80705342911575e+00 
+task_optimize driver task_gradient scf%end%nuclear repulsion energy%1%double
+task_optimize driver task_gradient scf%begin%orbital symmetries%7%int
+1 1 3 1 4 1 3 
+task_optimize driver task_gradient scf%end%orbital symmetries%7%int
+task_optimize driver task_gradient scf%begin%total mulliken atomic charges%3%double
+-4.27301946122636e-01 2.13650973061318e-01 2.13650973061318e-01 
+task_optimize driver task_gradient scf%end%total mulliken atomic charges%3%double
+task_optimize driver task_gradient scf%begin%total mulliken shell charges%5%double
+1.99731200846640e+00 1.81205946133526e+00 4.61793047632098e+00 7.86349026938682e-01 
+7.86349026938682e-01 
+task_optimize driver task_gradient scf%end%total mulliken shell charges%5%double
+task_optimize driver task_gradient scf%begin%total dipole%3%double
+-6.66133814775094e-16 1.21040457366117e-17 7.09242548618707e-01 
+task_optimize driver task_gradient scf%end%total dipole%3%double
+task_optimize driver task_gradient scf%begin%open shell dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+task_optimize driver task_gradient scf%end%open shell dipole%3%double
+task_optimize driver task_gradient scf%begin%nuclear dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 3.08441927305648e+00 
+task_optimize driver task_gradient scf%end%nuclear dipole%3%double
+task_optimize driver task_gradient scf%begin%total quadrupole%6%double
+-3.26422843389722e+00 1.26675702677124e-17 -7.77156117237610e-16 -4.49002710530615e+00 
+6.14016787674141e-18 -3.56298258254795e+00 
+task_optimize driver task_gradient scf%end%total quadrupole%6%double
+task_optimize driver task_gradient scf%begin%open shell quadrupole%6%double
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 
+task_optimize driver task_gradient scf%end%open shell quadrupole%6%double
+task_optimize driver task_gradient scf%begin%nuclear quadrupole%6%double
+3.59053224781562e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 2.68127999314896e+00 
+task_optimize driver task_gradient scf%end%nuclear quadrupole%6%double
+task_optimize driver task_gradient scf%begin%exit%2%char
+scf
+ok
+task_optimize driver task_gradient scf%end%exit%1%char
+task_optimize driver task_gradient%begin%entry%1%char
+gradients
+task_optimize driver task_gradient%end%entry%1%char
+task_optimize driver task_gradient gradients%begin%entry%1%char
+load_basis
+task_optimize driver task_gradient gradients%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient gradients load_basis%begin%exit%2%char
+load_basis
+ok
+task_optimize driver task_gradient gradients load_basis%end%exit%1%char
+task_optimize driver task_gradient gradients%begin%entry%1%char
+bas_input
+task_optimize driver task_gradient gradients%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient gradients bas_input%begin%exit%2%char
+bas_input
+ok
+task_optimize driver task_gradient gradients bas_input%end%exit%1%char
+task_optimize driver task_gradient gradients%begin%exit%2%char
+gradients
+ok
+task_optimize driver task_gradient gradients%end%exit%1%char
+task_optimize driver task_gradient%begin%cartesian coordinates%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 5.31720722396678e-02 
+7.09031585358945e-01 0.00000000000000e+00 6.03413963880167e-01 
+-7.09031585358945e-01 0.00000000000000e+00 6.03413963880167e-01 
+task_optimize driver task_gradient%end%cartesian coordinates%3 3%double
+task_optimize driver task_gradient%begin%atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_optimize driver task_gradient%end%atomic charges%3%double
+task_optimize driver task_gradient%begin%atomic tags%3%char
+O
+H
+H
+task_optimize driver task_gradient%end%atomic tags%3%char
+task_optimize driver task_gradient%begin%group name%1%char
+C2v
+task_optimize driver task_gradient%end%group name%1%char
+task_optimize driver task_gradient%begin%total energy%1%double
+-7.49437569337117e+01 
+task_optimize driver task_gradient%end%total energy%1%double
+task_optimize driver task_gradient%begin%total gradient%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 1.74706736937488e-01 
+-1.06268364686570e-01 0.00000000000000e+00 -8.73533684687426e-02 
+1.06268364686570e-01 0.00000000000000e+00 -8.73533684687426e-02 
+task_optimize driver task_gradient%end%total gradient%3 3%double
+task_optimize driver task_gradient%begin%gradient norm%1%double
+2.61475804929121e-01 
+task_optimize driver task_gradient%end%gradient norm%1%double
+task_optimize driver task_gradient%begin%gradient max%1%double
+1.74706736937488e-01 
+task_optimize driver task_gradient%end%gradient max%1%double
+task_optimize driver task_gradient%begin%cpu time%1%double
+1.89910000000000e-02 
+task_optimize driver task_gradient%end%cpu time%1%double
+task_optimize driver task_gradient%begin%wall time%1%double
+2.81286640000000e-02 
+task_optimize driver task_gradient%end%wall time%1%double
+task_optimize driver task_gradient%begin%exit%2%char
+task_gradient
+ok
+task_optimize driver task_gradient%end%exit%1%char
+task_optimize driver%begin%exit%2%char
+driver
+failed
+task_optimize driver%end%exit%1%char
+task_optimize%begin%cpu time%1%double
+1.97928000000000e-01 
+task_optimize%end%cpu time%1%double
+task_optimize%begin%wall time%1%double
+1.46118899000000e-01 
+task_optimize%end%wall time%1%double
+task_optimize%begin%exit%2%char
+task_optimize
+failed
+task_optimize%end%exit%1%char
+%begin%entry%1%char
+errquit
+%end%entry%1%char
+errquit%begin%errquit message%1%char
+scf optimize failed
+errquit%end%errquit message%1%char
+errquit%begin%errquit code%1%int
+0 
+errquit%end%errquit code%1%int
+errquit%begin%exit%2%char
+errquit
+failed
+errquit%end%exit%1%char

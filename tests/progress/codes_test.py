@@ -4,7 +4,7 @@ eccejobmonitor over genuine output of that code.
 
     tests/progress/codes_test.py                 all cases
     tests/progress/codes_test.py --case orca     cases whose name contains "orca"
-    tests/progress/codes_test.py --show <desc> <output-file> [parseType]
+    tests/progress/codes_test.py --show <desc> <output-file> [parseType] [--file2 stdout]
                                                  print the last snapshot of any run
 
 Post mode reads the file at once, so the monitor sends the first line's
@@ -36,7 +36,7 @@ def check(ok, what):
         failures.append(what)
 
 
-def replay(desc, out, parse_types="ALL"):
+def replay(desc, out, parse_types="ALL", out2=None):
     """-> (number of jmPROG messages, {stage: text of its line}, history lines)."""
     work = tempfile.mkdtemp(prefix="ecce-progress-")
     try:
@@ -47,6 +47,8 @@ def replay(desc, out, parse_types="ALL"):
                "-calcName", "p", "-logFile", os.path.join(work, "monitor.log"),
                "-filesToTransfer", "", "-importDir", work + os.sep,
                "-progress", "1"]
+        if out2:
+            cmd += ["-jobOutputFile2", out2]
         proc = subprocess.run(cmd, cwd=work, stdin=subprocess.DEVNULL,
                               capture_output=True, text=True, timeout=300)
         if proc.returncode != 0:
@@ -85,8 +87,8 @@ def hist_len(stages, name):
 CASES = []
 
 
-def case(name, desc, out, want, hist=None):
-    CASES.append((name, desc, out, want, hist or {}))
+def case(name, desc, out, want, hist=None, out2=None):
+    CASES.append((name, desc, out, want, hist or {}, out2))
 
 
 def fx(code, name):
@@ -106,7 +108,7 @@ case("orca opt+freq (analytic, HF)", "orca.desc", fx("orca", "h2o_optfreq.out"),
      {"opt": {"step": "4", "converged": "yes", "energy": has("-74.9659"),
               "maxgrad": target, "rmsstep": target, "dE": target},
       "freq": {"done": "yes", "zpe": has("0.0243")},
-      "scf": {"cycle": lambda v: int(v) >= 1, "dE": lambda v: "/" not in v}},
+      "scf": {"cycle": lambda v: int(v) >= 1, "dE": target}},
      {"opt": (4, 4)})
 case("orca opt, not converged", "orca.desc", fx("orca", "optmax.out"),
      {"opt": {"step": "2", "converged": "no", "maxgrad": target}})
@@ -124,9 +126,24 @@ case("gaussian-16 opt, not converged", "gaussian-16.desc", fx("gaussian-16", "nh
 case("gaussian-09 desc on g16 output", "gaussian-09.desc", fx("gaussian-16", "nh3_optfreq.log"),
      {"opt": {"step": "4", "converged": "yes"}, "freq": {"done": "yes"}})
 
+case("nwchem SCF geovib (stdout + trace)", "nwchem.desc", fx("nwchem", "h2o_scf_geovib.eprint"),
+     {"opt": {"step": "3", "converged": "yes", "maxgrad": target, "rmsgrad": target,
+              "maxstep": target, "rmsstep": target},
+      "scf": {"cycle": lambda v: int(v) >= 1, "grad": target},
+      "freq": {"done": "yes", "zpe": has("0.0")}},
+     {"opt": (4, 4)}, out2=fx("nwchem", "h2o_scf_geovib.nwout"))
+case("nwchem DFT geovib (stdout + trace)", "nwchem.desc", fx("nwchem", "h2o_dft_geovib.eprint"),
+     {"opt": {"converged": "yes", "maxgrad": target},
+      "scf": {"dE": target, "energy": has("-75.")},
+      "freq": {"done": "yes", "zpe": has("0.022")}},
+     out2=fx("nwchem", "h2o_dft_geovib.nwout"))
+case("nwchem opt, not converged", "nwchem.desc", fx("nwchem", "h2o_scf_opt_capped.eprint"),
+     {"opt": {"converged": "no", "step": "2"}},
+     out2=fx("nwchem", "h2o_scf_opt_capped.nwout"))
 
-def run_case(name, desc, out, want, hist):
-    n, stages, text = replay(os.path.join(PARSERS, desc), out)
+
+def run_case(name, desc, out, want, hist, out2):
+    n, stages, text = replay(os.path.join(PARSERS, desc), out, "ALL", out2)
     check(n is not None and n >= 1, "%s: monitor ran, %s snapshot(s)" % (name, n))
     if not n:
         return
@@ -147,13 +164,15 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--case", action="append", default=[])
     ap.add_argument("--show", nargs="+")
+    ap.add_argument("--file2", help="with --show: the stdout file (jobOutputFile2)")
     a = ap.parse_args()
     if not shutil.which("perl"):
         return 77
     if a.show:
         n, stages, text = replay(os.path.abspath(a.show[0]),
                                  os.path.abspath(a.show[1]),
-                                 a.show[2] if len(a.show) > 2 else "ALL")
+                                 a.show[2] if len(a.show) > 2 else "ALL",
+                                 os.path.abspath(a.file2) if a.file2 else None)
         print("%s snapshot(s)\n%s" % (n, text))
         return 0
     for c in CASES:

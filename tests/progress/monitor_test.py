@@ -10,7 +10,9 @@ Checks that the monitor
     a lower one starts it over (a new SCF clears its history);
   - matches a progress line inside another entry's block without taking
     it from that block;
-  - keeps the message within one packet however long the histories get.
+  - keeps the message within one packet however long the histories get;
+  - Remember= values reach other entries' {name}, Fortran 1.0D-04 becomes
+    1.0e-04, and the lines of jobOutputFile2 (stdout) are matched too.
 
     tests/progress/monitor_test.py
 """
@@ -89,6 +91,35 @@ def run(work, out, progress):
     return msgs
 
 
+def check_remember_and_second_file():
+    work = tempfile.mkdtemp(prefix="ecce-progress-")
+    try:
+        desc = os.path.join(work, "t.desc")
+        with open(desc, "w") as h:
+            h.write("[PROGRESS]\nBegin=^thr (\\S+)\nRemember=tol\n[END]\n"
+                    "[PROGRESS]\nBegin=^iter (\\d+) (\\S+)\n"
+                    "Progress=scf cycle=$1 dE=$2/{tol} grad=$2/{nothing}\n[END]\n")
+        parse = os.path.join(work, "parse.out")
+        stdout = os.path.join(work, "stdout.out")
+        with open(parse, "w") as h:
+            h.write("nothing here\n")
+        with open(stdout, "w") as h:
+            h.write("thr 1.0D-04\niter 1 5.0D-03\niter 2 2.5D-05\n")
+        cmd = ["perl", MONITOR, "-commType", "stdio", "-monitoringMode", "post",
+               "-jobOutputFile", parse, "-jobOutputFile2", stdout,
+               "-parseDescriptorFile", desc, "-parseTypes", "ALL",
+               "-outputFile", os.path.join(work, "r.out"), "-calcName", "p",
+               "-logFile", os.path.join(work, "m.log"), "-filesToTransfer", "",
+               "-importDir", work + os.sep, "-progress", "1"]
+        subprocess.run(cmd, cwd=work, stdin=subprocess.DEVNULL,
+                       capture_output=True, text=True, timeout=60)
+        raw = open(os.path.join(work, "r.out"), "rb").read().decode("utf-8", "replace")
+        ok = "scf cycle=2 dE=2.5e-05/1.0e-04 grad=2.5e-05/" in raw.replace("\002", "\n")
+        check(ok, "Remember, {name} (unknown: empty), D exponents and jobOutputFile2")
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def main():
     if not shutil.which("perl"):
         return 77
@@ -133,6 +164,7 @@ def main():
         check(10 <= n <= 60, "opt history kept, trimmed to fit (%d values)" % n)
         geo = [p for _, p in msgs if "\0GEOMTRACE\0" in p and "progress freq point=0/18" in p]
         check(len(geo) == 1, "the progress line inside a geometry block stays in that block")
+        check_remember_and_second_file()
     finally:
         shutil.rmtree(work, ignore_errors=True)
     print("FAILED: %s" % "; ".join(failures) if failures else "PASSED")

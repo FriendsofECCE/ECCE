@@ -469,11 +469,16 @@ End=CHEMICAL SHIELDING SUMMARY
 
 # Job progress for the Organizer's Progress box (#284).  No Script: these
 # only feed the monitor's live snapshot, not the property table.
-# SCF: ORCA prints its tolerance only in the header, so the cycle has no
-# target here; the box plots log|dE|.
+# SCF: the energy tolerance is printed once per SCF in its settings (the
+# geometry block's own "Energy Change TolE" has no leading space).
+[PROGRESS]
+Begin=^ Energy Change\s+TolE\s+\.{4}\s+(\S+) Eh
+Remember=scftol
+[END]
+
 [PROGRESS]
 Begin=^\s+(\d+)\s+(-\d+\.\d+)\s+(-?\d\.\d+e[-+]\d+)\s+\d\.\d+e[-+]\d+
-Progress=scf cycle=$1 energy=$2 dE=$3
+Progress=scf cycle=$1 energy=$2 dE=$3/{scftol}
 History=dE
 [END]
 

@@ -637,3 +637,76 @@ Begin=task_car-parrinello%begin%orbital gradient norm
 Frequency=all
 End=task
 [END]
+
+# Job progress for the Organizer's Progress box (#284).  The monitor reads
+# the ecce_print trace for the entries above, but the trace gives values on
+# a line of their own, and no optimiser table or thresholds; stdout
+# (jobOutputFile2) has them, and the monitor feeds its lines to these
+# entries too.  Convergence targets are printed once up front and are
+# remembered (they follow the user's Tight/Default/Loose choice).
+[PROGRESS]
+Begin=^\s+maximum gradient threshold\s+\(gmax\)\s+=\s+(\S+)
+Remember=gmax
+[END]
+
+[PROGRESS]
+Begin=^\s+rms gradient threshold\s+\(grms\)\s+=\s+(\S+)
+Remember=grms
+[END]
+
+[PROGRESS]
+Begin=^\s+maximum cartesian step threshold\s+\(xmax\)\s+=\s+(\S+)
+Remember=xmax
+[END]
+
+[PROGRESS]
+Begin=^\s+rms cartesian step threshold\s+\(xrms\)\s+=\s+(\S+)
+Remember=xrms
+[END]
+
+[PROGRESS]
+Begin=Convergence on energy requested:\s+(\S+)
+Remember=dftetol
+[END]
+
+[PROGRESS]
+Begin=^ Convergence threshold\s+:\s+(\S+)
+Remember=scfgtol
+[END]
+
+# DFT iterations ...
+[PROGRESS]
+Begin=^\s*d=\s*\d+,ls=\S+,\w+\s+(\d+)\s+(-?\d+\.\d+)\s+(-?\d\.\d+D[-+]\d+)
+Progress=scf cycle=$1 energy=$2 dE=$3/{dftetol}
+History=dE
+[END]
+
+# ... and those of the SCF module (always the quadratic solver).
+[PROGRESS]
+Begin=^\s+(\d+)\s+(-?\d+\.\d+)\s+(\d\.\d+D[-+]\d+)\s+\d\.\d+D[-+]\d+\s+\d+\.\d+\s*$
+Progress=scf cycle=$1 energy=$2 grad=$3/{scfgtol}
+History=grad
+[END]
+
+# One line per optimiser step carries the step and all four criteria.
+[PROGRESS]
+Begin=^@\s+(\d+)\s+(-?\d+\.\d+)\s+\S+\s+(\d\.\d+)\s+(\d\.\d+)\s+(\d\.\d+)\s+(\d\.\d+)\s+\d+\.\d+
+Progress=opt step=$1 energy=$2 maxgrad=$3/{gmax} rmsgrad=$4/{grms} rmsstep=$5/{xrms} maxstep=$6/{xmax}
+History=energy
+[END]
+
+[PROGRESS]
+Begin=^\s+Optimization converged
+Progress=opt converged=yes
+[END]
+
+[PROGRESS]
+Begin=^ Failed to converge in maximum number of steps
+Progress=opt converged=no
+[END]
+
+# Analytic Hessians count nothing; the zero-point correction closes it.
+[PROGRESS]
+Begin=^ Zero-Point correction to Energy\s+=.*\(\s*(\d+\.\d+) au\)
+Progress=freq done=yes zpe=$1
+[END]

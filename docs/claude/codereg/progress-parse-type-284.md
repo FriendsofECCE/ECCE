@@ -42,6 +42,24 @@ A code gets progress in the Organizer by `.desc` entries alone:
   `converged=yes|no`, `done=yes real= imaginary= zpe=` (freq summary).
   Other names are shown as they are; new labels go in
   `src/util/genutil/JobProgress.C`.
+- **Targets printed once: `Remember=`.** A `[PROGRESS]` entry with
+  `Begin=` and `Remember=<name>` (no `Progress`) keeps its `$1`; other
+  entries write it as `{name}`, e.g. `maxgrad=$3/{gmax}`. A name not yet
+  seen becomes empty, so the box shows the value without a tick or cross.
+  Fortran `1.0D-04` in a message becomes `1.0e-04`. Used for NWChem's
+  thresholds and ORCA's SCF tolerance, which follow the user's settings.
+- **A second file.** When `jobOutputFile2` (stdout) is not the parse file,
+  the monitor also feeds its complete lines to the `[PROGRESS]` entries
+  (`ProgressTail`, every 0.5 s, and before each wait and the last
+  snapshot); never for properties. NWChem needs it: the `ecce_print` trace
+  has SCF energies and gradients, but each value on a line of its own and
+  no optimiser table or thresholds.
+- **What a code can give.** Steps and criteria where the output prints
+  them per step; analytic frequencies only a closing `done=yes zpe=`
+  (no counts of real/imaginary modes, the monitor keeps no counters);
+  numerical ones (ORCA `NumFreq`) `point=k/n`. Gaussian: the freq job of
+  `Opt Freq` repeats "Step number 1 out of a maximum of 2", which would
+  restart the opt record, so that wording is skipped.
 - **ECCE-QM** writes its own `progress scf|opt|freq ...` lines
   (`write_progress_*` in `src/qm/output.cpp`), flushed per line.
 

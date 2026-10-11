@@ -1,0 +1,44 @@
+Title "h2o"
+
+Start  h2o
+
+echo
+
+
+charge 0
+
+geometry autosym units angstrom
+ O     0.000000     0.000000     0.000000
+ H     0.766044     0.000000     0.642788
+ H     -0.766044     0.000000     0.642788
+end
+
+ecce_print ecce.out
+
+basis "ao basis" cartesian print
+  H library "STO-3G"
+  O library "STO-3G"
+END
+
+dft
+  mult 1
+  XC pbe0
+  mulliken
+end
+
+
+
+
+
+
+
+
+driver
+  default
+end
+
+
+
+
+task dft optimize
+task dft freq

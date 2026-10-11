@@ -1,0 +1,1924 @@
+%begin%input file%1%char
+Title "h2o"
+
+Start  h2o
+
+echo
+
+
+charge 0
+
+geometry autosym units angstrom
+ O     0.000000     0.000000     0.000000
+ H     0.766044     0.000000     0.642788
+ H     -0.766044     0.000000     0.642788
+end
+
+ecce_print ecce.out
+
+basis "ao basis" cartesian print
+  H library "STO-3G"
+  O library "STO-3G"
+END
+
+dft
+  mult 1
+  XC pbe0
+  mulliken
+end
+
+
+
+
+
+
+
+
+driver
+  default
+end
+
+
+
+
+task dft optimize
+task dft freq
+%end%input file%1%char
+%begin%version%1%char
+Mon_May_12_21:20:53_2025 Version 7.2.3
+%end%version%1%char
+%begin%entry%1%char
+task_optimize
+%end%entry%1%char
+task_optimize%begin%entry%1%char
+driver
+task_optimize%end%entry%1%char
+task_optimize driver%begin%entry%1%char
+task_gradient
+task_optimize driver%end%entry%1%char
+task_optimize driver task_gradient%begin%entry%1%char
+load_basis
+task_optimize driver task_gradient%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient load_basis%begin%exit%2%char
+load_basis
+ok
+task_optimize driver task_gradient load_basis%end%exit%1%char
+task_optimize driver task_gradient%begin%entry%1%char
+bas_input
+task_optimize driver task_gradient%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient bas_input%begin%exit%2%char
+bas_input
+ok
+task_optimize driver task_gradient bas_input%end%exit%1%char
+task_optimize driver task_gradient%begin%group class names%4%char
+e
+c2
+si.xz
+si.yz
+task_optimize driver task_gradient%end%group class names%4%char
+task_optimize driver task_gradient%begin%group irrep names%4%char
+a1
+a2
+b1
+b2
+task_optimize driver task_gradient%end%group irrep names%4%char
+task_optimize driver task_gradient%begin%entry%1%char
+dft
+task_optimize driver task_gradient%end%entry%1%char
+task_optimize driver task_gradient dft%begin%total mulliken atomic charges%3%double
+-6.88862494023924e-01 3.44431247011962e-01 3.44431247011962e-01 
+task_optimize driver task_gradient dft%end%total mulliken atomic charges%3%double
+task_optimize driver task_gradient dft%begin%total mulliken shell charges%5%double
+1.99803582668601e+00 1.83307546330779e+00 4.85775120403013e+00 6.55568752988038e-01 
+6.55568752988038e-01 
+task_optimize driver task_gradient dft%end%total mulliken shell charges%5%double
+task_optimize driver task_gradient dft%begin%iteration counter%1%int
+1 
+task_optimize driver task_gradient dft%end%iteration counter%1%int
+task_optimize driver task_gradient dft%begin%iterative total energy difference%1%double
+-8.40193779649643e+01 
+task_optimize driver task_gradient dft%end%iterative total energy difference%1%double
+task_optimize driver task_gradient dft%begin%iterative total density difference%1%double
+1.29286557275320e-01 
+task_optimize driver task_gradient dft%end%iterative total density difference%1%double
+task_optimize driver task_gradient dft%begin%iteration counter%1%int
+2 
+task_optimize driver task_gradient dft%end%iteration counter%1%int
+task_optimize driver task_gradient dft%begin%iterative total energy difference%1%double
+-2.21998288665475e-02 
+task_optimize driver task_gradient dft%end%iterative total energy difference%1%double
+task_optimize driver task_gradient dft%begin%iterative total density difference%1%double
+5.28477077437496e-02 
+task_optimize driver task_gradient dft%end%iterative total density difference%1%double
+task_optimize driver task_gradient dft%begin%iteration counter%1%int
+3 
+task_optimize driver task_gradient dft%end%iteration counter%1%int
+task_optimize driver task_gradient dft%begin%iterative total energy difference%1%double
+-2.40772457447918e-02 
+task_optimize driver task_gradient dft%end%iterative total energy difference%1%double
+task_optimize driver task_gradient dft%begin%iterative total density difference%1%double
+1.09516911018279e-03 
+task_optimize driver task_gradient dft%end%iterative total density difference%1%double
+task_optimize driver task_gradient dft%begin%iteration counter%1%int
+4 
+task_optimize driver task_gradient dft%end%iteration counter%1%int
+task_optimize driver task_gradient dft%begin%iterative total energy difference%1%double
+-1.19326574434808e-05 
+task_optimize driver task_gradient dft%end%iterative total energy difference%1%double
+task_optimize driver task_gradient dft%begin%iterative total density difference%1%double
+3.62032836351902e-05 
+task_optimize driver task_gradient dft%end%iterative total density difference%1%double
+task_optimize driver task_gradient dft%begin%iteration counter%1%int
+5 
+task_optimize driver task_gradient dft%end%iteration counter%1%int
+task_optimize driver task_gradient dft%begin%iterative total energy difference%1%double
+-4.84197926198249e-09 
+task_optimize driver task_gradient dft%end%iterative total energy difference%1%double
+task_optimize driver task_gradient dft%begin%iterative total density difference%1%double
+3.52271184089466e-06 
+task_optimize driver task_gradient dft%end%iterative total density difference%1%double
+task_optimize driver task_gradient dft%begin%total mulliken atomic charges%3%double
+-3.30325713807289e-01 1.65162856903643e-01 1.65162856903643e-01 
+task_optimize driver task_gradient dft%end%total mulliken atomic charges%3%double
+task_optimize driver task_gradient dft%begin%total mulliken shell charges%5%double
+1.99768320025357e+00 1.87513399651378e+00 4.45750851703994e+00 8.34837143096357e-01 
+8.34837143096357e-01 
+task_optimize driver task_gradient dft%end%total mulliken shell charges%5%double
+task_optimize driver task_gradient dft%begin%total mulliken atomic charges%3%double
+-2.32207149242141e-01 1.16103574621074e-01 1.16103574621074e-01 
+task_optimize driver task_gradient dft%end%total mulliken atomic charges%3%double
+task_optimize driver task_gradient dft%begin%total mulliken shell charges%5%double
+1.99644447121143e+00 1.73917425219352e+00 4.49658842583719e+00 8.83896425378926e-01 
+8.83896425378926e-01 
+task_optimize driver task_gradient dft%end%total mulliken shell charges%5%double
+task_optimize driver task_gradient dft%begin%total dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 6.50078194898432e-01 
+task_optimize driver task_gradient dft%end%total dipole%3%double
+task_optimize driver task_gradient dft%begin%alpha electronic dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 3.25039097449216e-01 
+task_optimize driver task_gradient dft%end%alpha electronic dipole%3%double
+task_optimize driver task_gradient dft%begin%beta electronic dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 3.25039097449216e-01 
+task_optimize driver task_gradient dft%end%beta electronic dipole%3%double
+task_optimize driver task_gradient dft%begin%nuclear dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+task_optimize driver task_gradient dft%end%nuclear dipole%3%double
+task_optimize driver task_gradient dft%begin%total quadrupole%6%double
+-3.33302240707517e+00 0.00000000000000e+00 -1.11022302462516e-16 -4.56197626093337e+00 
+0.00000000000000e+00 -3.95474703854024e+00 
+task_optimize driver task_gradient dft%end%total quadrupole%6%double
+task_optimize driver task_gradient dft%begin%alpha electronic quadrupole%6%double
+-3.76209534015610e+00 0.00000000000000e+00 -5.55111512312578e-17 -2.28098813046668e+00 
+0.00000000000000e+00 -3.15775715350151e+00 
+task_optimize driver task_gradient dft%end%alpha electronic quadrupole%6%double
+task_optimize driver task_gradient dft%begin%beta electronic quadrupole%6%double
+-3.76209534015610e+00 0.00000000000000e+00 -5.55111512312578e-17 -2.28098813046668e+00 
+0.00000000000000e+00 -3.15775715350151e+00 
+task_optimize driver task_gradient dft%end%beta electronic quadrupole%6%double
+task_optimize driver task_gradient dft%begin%nuclear quadrupole%6%double
+4.19116827323704e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 2.36076726846277e+00 
+task_optimize driver task_gradient dft%end%nuclear quadrupole%6%double
+task_optimize driver task_gradient dft%begin%molecular orbital energies dft alpha%7%double
+-1.89076208249132e+01 -9.44650827765310e-01 -4.31736756078786e-01 -2.59073543856222e-01 
+-1.57374801670606e-01 3.43874669209143e-01 4.37544991428584e-01 
+task_optimize driver task_gradient dft%end%molecular orbital energies dft alpha%7%double
+task_optimize driver task_gradient dft%begin%molecular orbital occupations dft alpha%7%double
+2.00000000000000e+00 2.00000000000000e+00 2.00000000000000e+00 2.00000000000000e+00 
+2.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+task_optimize driver task_gradient dft%end%molecular orbital occupations dft alpha%7%double
+task_optimize driver task_gradient dft%begin%molecular orbital symmetries dft alpha%7%int
+1 1 3 1 4 1 3 
+task_optimize driver task_gradient dft%end%molecular orbital symmetries dft alpha%7%int
+task_optimize driver task_gradient dft%begin%molecular orbital range dft alpha%2%int
+1 7 
+task_optimize driver task_gradient dft%end%molecular orbital range dft alpha%2%int
+task_optimize driver task_gradient dft%begin%molecular orbital vectors dft alpha%7 7%double
+ 0.994 0.029 2*0.0 0.004 -0.007 -0.007
+ -0.229 0.817 2*0.0 0.178 0.168 0.168
+ 2*0.0 0.616 2*0.0 0.447 -0.447
+ 0.122 -0.602 2*0.0 0.733 0.298 0.298
+ 3*0.0 1.000 3*0.0
+ -0.122 0.787 2*0.0 0.772 -0.760 -0.760
+ 2*0.0 0.952 2*0.0 -0.808 0.808
+task_optimize driver task_gradient dft%end%molecular orbital vectors dft alpha%7 7%double
+task_optimize driver task_gradient dft%begin%total energy%1%double
+-7.52534341243656e+01 
+task_optimize driver task_gradient dft%end%total energy%1%double
+task_optimize driver task_gradient dft%begin%nuclear repulsion energy%1%double
+8.81223285270941e+00 
+task_optimize driver task_gradient dft%end%nuclear repulsion energy%1%double
+task_optimize driver task_gradient dft%begin%coulomb energy%1%double
+4.69658421030073e+01 
+task_optimize driver task_gradient dft%end%coulomb energy%1%double
+task_optimize driver task_gradient dft%begin%exchange energy%1%double
+-9.35216968377704e+00 
+task_optimize driver task_gradient dft%end%exchange energy%1%double
+task_optimize driver task_gradient dft%begin%exit%2%char
+dft
+ok
+task_optimize driver task_gradient dft%end%exit%1%char
+task_optimize driver task_gradient%begin%entry%1%char
+dft
+task_optimize driver task_gradient%end%entry%1%char
+task_optimize driver task_gradient dft%begin%entry%1%char
+load_basis
+task_optimize driver task_gradient dft%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient dft load_basis%begin%exit%2%char
+load_basis
+ok
+task_optimize driver task_gradient dft load_basis%end%exit%1%char
+task_optimize driver task_gradient dft%begin%entry%1%char
+bas_input
+task_optimize driver task_gradient dft%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient dft bas_input%begin%exit%2%char
+bas_input
+ok
+task_optimize driver task_gradient dft bas_input%end%exit%1%char
+task_optimize driver task_gradient dft%begin%exit%2%char
+dft
+ok
+task_optimize driver task_gradient dft%end%exit%1%char
+task_optimize driver task_gradient%begin%cartesian coordinates%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 -1.28557600000000e-01 
+7.66044000000001e-01 0.00000000000000e+00 5.14230400000000e-01 
+-7.66044000000001e-01 0.00000000000000e+00 5.14230400000000e-01 
+task_optimize driver task_gradient%end%cartesian coordinates%3 3%double
+task_optimize driver task_gradient%begin%atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_optimize driver task_gradient%end%atomic charges%3%double
+task_optimize driver task_gradient%begin%atomic tags%3%char
+O
+H
+H
+task_optimize driver task_gradient%end%atomic tags%3%char
+task_optimize driver task_gradient%begin%group name%1%char
+C2v
+task_optimize driver task_gradient%end%group name%1%char
+task_optimize driver task_gradient%begin%total energy%1%double
+-7.52534341243656e+01 
+task_optimize driver task_gradient%end%total energy%1%double
+task_optimize driver task_gradient%begin%total gradient%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 3.06817983717648e-02 
+-9.82543711927147e-03 0.00000000000000e+00 -1.53408991858835e-02 
+9.82543711927147e-03 -3.46944695195361e-18 -1.53408991858835e-02 
+task_optimize driver task_gradient%end%total gradient%3 3%double
+task_optimize driver task_gradient%begin%gradient norm%1%double
+4.00641679828501e-02 
+task_optimize driver task_gradient%end%gradient norm%1%double
+task_optimize driver task_gradient%begin%gradient max%1%double
+3.06817983717648e-02 
+task_optimize driver task_gradient%end%gradient max%1%double
+task_optimize driver task_gradient%begin%cpu time%1%double
+7.48720000000000e-02 
+task_optimize driver task_gradient%end%cpu time%1%double
+task_optimize driver task_gradient%begin%wall time%1%double
+5.84389499000000e-01 
+task_optimize driver task_gradient%end%wall time%1%double
+task_optimize driver task_gradient%begin%exit%2%char
+task_gradient
+ok
+task_optimize driver task_gradient%end%exit%1%char
+task_optimize driver%begin%entry%1%char
+task_energy
+task_optimize driver%end%entry%1%char
+task_optimize driver task_energy%begin%entry%1%char
+load_basis
+task_optimize driver task_energy%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_energy load_basis%begin%exit%2%char
+load_basis
+ok
+task_optimize driver task_energy load_basis%end%exit%1%char
+task_optimize driver task_energy%begin%entry%1%char
+bas_input
+task_optimize driver task_energy%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_energy bas_input%begin%exit%2%char
+bas_input
+ok
+task_optimize driver task_energy bas_input%end%exit%1%char
+task_optimize driver task_energy%begin%entry%1%char
+dft
+task_optimize driver task_energy%end%entry%1%char
+task_optimize driver task_energy dft%begin%total mulliken atomic charges%3%double
+-3.24097063291685e-01 1.62048531645841e-01 1.62048531645842e-01 
+task_optimize driver task_energy dft%end%total mulliken atomic charges%3%double
+task_optimize driver task_energy dft%begin%total mulliken shell charges%5%double
+1.99770420181735e+00 1.87952586723179e+00 4.44686699424254e+00 8.37951468354159e-01 
+8.37951468354158e-01 
+task_optimize driver task_energy dft%end%total mulliken shell charges%5%double
+task_optimize driver task_energy dft%begin%iteration counter%1%int
+1 
+task_optimize driver task_energy dft%end%iteration counter%1%int
+task_optimize driver task_energy dft%begin%iterative total energy difference%1%double
+-8.38379784738134e+01 
+task_optimize driver task_energy dft%end%iterative total energy difference%1%double
+task_optimize driver task_energy dft%begin%iterative total density difference%1%double
+1.29219757089608e-02 
+task_optimize driver task_energy dft%end%iterative total density difference%1%double
+task_optimize driver task_energy dft%begin%iteration counter%1%int
+2 
+task_optimize driver task_energy dft%end%iteration counter%1%int
+task_optimize driver task_energy dft%begin%iterative total energy difference%1%double
+-3.12740864828243e-04 
+task_optimize driver task_energy dft%end%iterative total energy difference%1%double
+task_optimize driver task_energy dft%begin%iterative total density difference%1%double
+3.79856813300950e-03 
+task_optimize driver task_energy dft%end%iterative total density difference%1%double
+task_optimize driver task_energy dft%begin%iteration counter%1%int
+3 
+task_optimize driver task_energy dft%end%iteration counter%1%int
+task_optimize driver task_energy dft%begin%iterative total energy difference%1%double
+-1.01124167102284e-04 
+task_optimize driver task_energy dft%end%iterative total energy difference%1%double
+task_optimize driver task_energy dft%begin%iterative total density difference%1%double
+9.65847666008014e-04 
+task_optimize driver task_energy dft%end%iterative total density difference%1%double
+task_optimize driver task_energy dft%begin%iteration counter%1%int
+4 
+task_optimize driver task_energy dft%end%iteration counter%1%int
+task_optimize driver task_energy dft%begin%iterative total energy difference%1%double
+-5.39015933043174e-06 
+task_optimize driver task_energy dft%end%iterative total energy difference%1%double
+task_optimize driver task_energy dft%begin%iterative total density difference%1%double
+4.53795378799389e-05 
+task_optimize driver task_energy dft%end%iterative total density difference%1%double
+task_optimize driver task_energy dft%begin%iteration counter%1%int
+5 
+task_optimize driver task_energy dft%end%iteration counter%1%int
+task_optimize driver task_energy dft%begin%iterative total energy difference%1%double
+-7.33120941731613e-09 
+task_optimize driver task_energy dft%end%iterative total energy difference%1%double
+task_optimize driver task_energy dft%begin%iterative total density difference%1%double
+2.48063766789359e-07 
+task_optimize driver task_energy dft%end%iterative total density difference%1%double
+task_optimize driver task_energy dft%begin%total mulliken atomic charges%3%double
+-3.03923582618838e-01 1.51961791309419e-01 1.51961791309419e-01 
+task_optimize driver task_energy dft%end%total mulliken atomic charges%3%double
+task_optimize driver task_energy dft%begin%total mulliken shell charges%5%double
+1.99789755271132e+00 1.89017625355158e+00 4.41584977635593e+00 8.48038208690581e-01 
+8.48038208690581e-01 
+task_optimize driver task_energy dft%end%total mulliken shell charges%5%double
+task_optimize driver task_energy dft%begin%total mulliken atomic charges%3%double
+-2.16093000117354e-01 1.08046500058674e-01 1.08046500058674e-01 
+task_optimize driver task_energy dft%end%total mulliken atomic charges%3%double
+task_optimize driver task_energy dft%begin%total mulliken shell charges%5%double
+1.99671753917117e+00 1.76699276207413e+00 4.45238269887205e+00 8.91953499941326e-01 
+8.91953499941326e-01 
+task_optimize driver task_energy dft%end%total mulliken shell charges%5%double
+task_optimize driver task_energy dft%begin%total dipole%3%double
+-1.11022302462516e-16 0.00000000000000e+00 6.38402692589720e-01 
+task_optimize driver task_energy dft%end%total dipole%3%double
+task_optimize driver task_energy dft%begin%alpha electronic dipole%3%double
+-5.55111512312578e-17 0.00000000000000e+00 5.00369348670499e-01 
+task_optimize driver task_energy dft%end%alpha electronic dipole%3%double
+task_optimize driver task_energy dft%begin%beta electronic dipole%3%double
+-5.55111512312578e-17 0.00000000000000e+00 5.00369348670499e-01 
+task_optimize driver task_energy dft%end%beta electronic dipole%3%double
+task_optimize driver task_energy dft%begin%nuclear dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 -3.62336004751278e-01 
+task_optimize driver task_energy dft%end%nuclear dipole%3%double
+task_optimize driver task_energy dft%begin%total quadrupole%6%double
+-3.40566331822972e+00 0.00000000000000e+00 -1.11022302462516e-16 -4.58022940524211e+00 
+0.00000000000000e+00 -3.96083465341680e+00 
+task_optimize driver task_energy dft%end%total quadrupole%6%double
+task_optimize driver task_energy dft%begin%alpha electronic quadrupole%6%double
+-3.80373545009158e+00 0.00000000000000e+00 -5.55111512312578e-17 -2.29011470262106e+00 
+0.00000000000000e+00 -3.32308884380096e+00 
+task_optimize driver task_energy dft%end%alpha electronic quadrupole%6%double
+task_optimize driver task_energy dft%begin%beta electronic quadrupole%6%double
+-3.80373545009158e+00 0.00000000000000e+00 -5.55111512312578e-17 -2.29011470262106e+00 
+0.00000000000000e+00 -3.32308884380096e+00 
+task_optimize driver task_energy dft%end%beta electronic quadrupole%6%double
+task_optimize driver task_energy dft%begin%nuclear quadrupole%6%double
+4.20180758195343e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 2.68534303418513e+00 
+task_optimize driver task_energy dft%end%nuclear quadrupole%6%double
+task_optimize driver task_energy dft%begin%total energy%1%double
+-7.52541538280491e+01 
+task_optimize driver task_energy dft%end%total energy%1%double
+task_optimize driver task_energy dft%begin%nuclear repulsion energy%1%double
+8.58424390828673e+00 
+task_optimize driver task_energy dft%end%nuclear repulsion energy%1%double
+task_optimize driver task_energy dft%begin%coulomb energy%1%double
+4.67412020983514e+01 
+task_optimize driver task_energy dft%end%coulomb energy%1%double
+task_optimize driver task_energy dft%begin%exchange energy%1%double
+-9.32988601648369e+00 
+task_optimize driver task_energy dft%end%exchange energy%1%double
+task_optimize driver task_energy dft%begin%exit%2%char
+dft
+ok
+task_optimize driver task_energy dft%end%exit%1%char
+task_optimize driver task_energy%begin%cpu time%1%double
+5.38880000000000e-02 
+task_optimize driver task_energy%end%cpu time%1%double
+task_optimize driver task_energy%begin%wall time%1%double
+6.60000130000000e-02 
+task_optimize driver task_energy%end%wall time%1%double
+task_optimize driver task_energy%begin%cartesian coordinates%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 -1.55949024315403e-01 
+7.67015687642824e-01 0.00000000000000e+00 5.27926112157702e-01 
+-7.67015687642824e-01 0.00000000000000e+00 5.27926112157702e-01 
+task_optimize driver task_energy%end%cartesian coordinates%3 3%double
+task_optimize driver task_energy%begin%atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_optimize driver task_energy%end%atomic charges%3%double
+task_optimize driver task_energy%begin%atomic tags%3%char
+O
+H
+H
+task_optimize driver task_energy%end%atomic tags%3%char
+task_optimize driver task_energy%begin%group name%1%char
+C2v
+task_optimize driver task_energy%end%group name%1%char
+task_optimize driver task_energy%begin%total energy%1%double
+-7.52541538280491e+01 
+task_optimize driver task_energy%end%total energy%1%double
+task_optimize driver task_energy%begin%exit%2%char
+task_energy
+ok
+task_optimize driver task_energy%end%exit%1%char
+task_optimize driver%begin%entry%1%char
+task_gradient
+task_optimize driver%end%entry%1%char
+task_optimize driver task_gradient%begin%entry%1%char
+load_basis
+task_optimize driver task_gradient%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient load_basis%begin%exit%2%char
+load_basis
+ok
+task_optimize driver task_gradient load_basis%end%exit%1%char
+task_optimize driver task_gradient%begin%entry%1%char
+bas_input
+task_optimize driver task_gradient%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient bas_input%begin%exit%2%char
+bas_input
+ok
+task_optimize driver task_gradient bas_input%end%exit%1%char
+task_optimize driver task_gradient%begin%entry%1%char
+dft
+task_optimize driver task_gradient%end%entry%1%char
+task_optimize driver task_gradient dft%begin%total mulliken atomic charges%3%double
+-3.05784975520888e-01 1.52892487760443e-01 1.52892487760443e-01 
+task_optimize driver task_gradient dft%end%total mulliken atomic charges%3%double
+task_optimize driver task_gradient dft%begin%total mulliken shell charges%5%double
+1.99789095434700e+00 1.88899488825664e+00 4.41889913291725e+00 8.47107512239557e-01 
+8.47107512239557e-01 
+task_optimize driver task_gradient dft%end%total mulliken shell charges%5%double
+task_optimize driver task_gradient dft%begin%iteration counter%1%int
+1 
+task_optimize driver task_gradient dft%end%iteration counter%1%int
+task_optimize driver task_gradient dft%begin%iterative total energy difference%1%double
+-8.39032243113968e+01 
+task_optimize driver task_gradient dft%end%iterative total energy difference%1%double
+task_optimize driver task_gradient dft%begin%iterative total density difference%1%double
+3.62201694740853e-03 
+task_optimize driver task_gradient dft%end%iterative total density difference%1%double
+task_optimize driver task_gradient dft%begin%iteration counter%1%int
+2 
+task_optimize driver task_gradient dft%end%iteration counter%1%int
+task_optimize driver task_gradient dft%begin%iterative total energy difference%1%double
+-2.55244633109442e-05 
+task_optimize driver task_gradient dft%end%iterative total energy difference%1%double
+task_optimize driver task_gradient dft%begin%iterative total density difference%1%double
+1.02926644222976e-03 
+task_optimize driver task_gradient dft%end%iterative total density difference%1%double
+task_optimize driver task_gradient dft%begin%iteration counter%1%int
+3 
+task_optimize driver task_gradient dft%end%iteration counter%1%int
+task_optimize driver task_gradient dft%begin%iterative total energy difference%1%double
+-7.24838470489431e-06 
+task_optimize driver task_gradient dft%end%iterative total energy difference%1%double
+task_optimize driver task_gradient dft%begin%iterative total density difference%1%double
+2.75575891440116e-04 
+task_optimize driver task_gradient dft%end%iterative total density difference%1%double
+task_optimize driver task_gradient dft%begin%iteration counter%1%int
+4 
+task_optimize driver task_gradient dft%end%iteration counter%1%int
+task_optimize driver task_gradient dft%begin%iterative total energy difference%1%double
+-4.38234124544579e-07 
+task_optimize driver task_gradient dft%end%iterative total energy difference%1%double
+task_optimize driver task_gradient dft%begin%iterative total density difference%1%double
+1.26812198965390e-05 
+task_optimize driver task_gradient dft%end%iterative total density difference%1%double
+task_optimize driver task_gradient dft%begin%iteration counter%1%int
+5 
+task_optimize driver task_gradient dft%end%iteration counter%1%int
+task_optimize driver task_gradient dft%begin%iterative total energy difference%1%double
+-5.53825429960852e-10 
+task_optimize driver task_gradient dft%end%iterative total energy difference%1%double
+task_optimize driver task_gradient dft%begin%iterative total density difference%1%double
+1.05109377821630e-07 
+task_optimize driver task_gradient dft%end%iterative total density difference%1%double
+task_optimize driver task_gradient dft%begin%total mulliken atomic charges%3%double
+-3.11331367258838e-01 1.55665683629417e-01 1.55665683629417e-01 
+task_optimize driver task_gradient dft%end%total mulliken atomic charges%3%double
+task_optimize driver task_gradient dft%begin%total mulliken shell charges%5%double
+1.99783696894820e+00 1.88603602058886e+00 4.42745837772177e+00 8.44334316370583e-01 
+8.44334316370583e-01 
+task_optimize driver task_gradient dft%end%total mulliken shell charges%5%double
+task_optimize driver task_gradient dft%begin%total mulliken atomic charges%3%double
+-2.20611816689381e-01 1.10305908344689e-01 1.10305908344689e-01 
+task_optimize driver task_gradient dft%end%total mulliken atomic charges%3%double
+task_optimize driver task_gradient dft%begin%total mulliken shell charges%5%double
+1.99663959385760e+00 1.75922608683378e+00 4.46474613599801e+00 8.89694091655311e-01 
+8.89694091655311e-01 
+task_optimize driver task_gradient dft%end%total mulliken shell charges%5%double
+task_optimize driver task_gradient dft%begin%total dipole%3%double
+1.11022302462516e-16 0.00000000000000e+00 6.41850109695101e-01 
+task_optimize driver task_gradient dft%end%total dipole%3%double
+task_optimize driver task_gradient dft%begin%alpha electronic dipole%3%double
+5.55111512312578e-17 0.00000000000000e+00 4.49291257906174e-01 
+task_optimize driver task_gradient dft%end%alpha electronic dipole%3%double
+task_optimize driver task_gradient dft%begin%beta electronic dipole%3%double
+5.55111512312578e-17 0.00000000000000e+00 4.49291257906174e-01 
+task_optimize driver task_gradient dft%end%beta electronic dipole%3%double
+task_optimize driver task_gradient dft%begin%nuclear dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 -2.56732406117247e-01 
+task_optimize driver task_gradient dft%end%nuclear dipole%3%double
+task_optimize driver task_gradient dft%begin%total quadrupole%6%double
+-3.38471375130331e+00 0.00000000000000e+00 2.22044604925031e-16 -4.57506339106447e+00 
+0.00000000000000e+00 -3.95947723322462e+00 
+task_optimize driver task_gradient dft%end%total quadrupole%6%double
+task_optimize driver task_gradient dft%begin%alpha electronic quadrupole%6%double
+-3.79272085202713e+00 0.00000000000000e+00 1.11022302462516e-16 -2.28753169553224e+00 
+0.00000000000000e+00 -3.27275944594952e+00 
+task_optimize driver task_gradient dft%end%alpha electronic quadrupole%6%double
+task_optimize driver task_gradient dft%begin%beta electronic quadrupole%6%double
+-3.79272085202713e+00 0.00000000000000e+00 1.11022302462516e-16 -2.28753169553224e+00 
+0.00000000000000e+00 -3.27275944594952e+00 
+task_optimize driver task_gradient dft%end%beta electronic quadrupole%6%double
+task_optimize driver task_gradient dft%begin%nuclear quadrupole%6%double
+4.20072795275095e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 2.58604165867442e+00 
+task_optimize driver task_gradient dft%end%nuclear quadrupole%6%double
+task_optimize driver task_gradient dft%begin%total energy%1%double
+-7.52542888769540e+01 
+task_optimize driver task_gradient dft%end%total energy%1%double
+task_optimize driver task_gradient dft%begin%nuclear repulsion energy%1%double
+8.64896864607873e+00 
+task_optimize driver task_gradient dft%end%nuclear repulsion energy%1%double
+task_optimize driver task_gradient dft%begin%coulomb energy%1%double
+4.68051707903962e+01 
+task_optimize driver task_gradient dft%end%coulomb energy%1%double
+task_optimize driver task_gradient dft%begin%exchange energy%1%double
+-9.33622429075165e+00 
+task_optimize driver task_gradient dft%end%exchange energy%1%double
+task_optimize driver task_gradient dft%begin%exit%2%char
+dft
+ok
+task_optimize driver task_gradient dft%end%exit%1%char
+task_optimize driver task_gradient%begin%entry%1%char
+dft
+task_optimize driver task_gradient%end%entry%1%char
+task_optimize driver task_gradient dft%begin%entry%1%char
+load_basis
+task_optimize driver task_gradient dft%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient dft load_basis%begin%exit%2%char
+load_basis
+ok
+task_optimize driver task_gradient dft load_basis%end%exit%1%char
+task_optimize driver task_gradient dft%begin%entry%1%char
+bas_input
+task_optimize driver task_gradient dft%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient dft bas_input%begin%exit%2%char
+bas_input
+ok
+task_optimize driver task_gradient dft bas_input%end%exit%1%char
+task_optimize driver task_gradient dft%begin%exit%2%char
+dft
+ok
+task_optimize driver task_gradient dft%end%exit%1%char
+task_optimize driver task_gradient%begin%cartesian coordinates%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 -1.47965735485457e-01 
+7.66917141276864e-01 0.00000000000000e+00 5.23934467742729e-01 
+-7.66917141276864e-01 0.00000000000000e+00 5.23934467742729e-01 
+task_optimize driver task_gradient%end%cartesian coordinates%3 3%double
+task_optimize driver task_gradient%begin%atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_optimize driver task_gradient%end%atomic charges%3%double
+task_optimize driver task_gradient%begin%atomic tags%3%char
+O
+H
+H
+task_optimize driver task_gradient%end%atomic tags%3%char
+task_optimize driver task_gradient%begin%group name%1%char
+C2v
+task_optimize driver task_gradient%end%group name%1%char
+task_optimize driver task_gradient%begin%total energy%1%double
+-7.52542888769540e+01 
+task_optimize driver task_gradient%end%total energy%1%double
+task_optimize driver task_gradient%begin%total gradient%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 9.83787740520548e-05 
+8.60266922819597e-04 0.00000000000000e+00 -4.91893870286364e-05 
+-8.60266922819597e-04 0.00000000000000e+00 -4.91893870286364e-05 
+task_optimize driver task_gradient%end%total gradient%3 3%double
+task_optimize driver task_gradient%begin%gradient norm%1%double
+1.22255303842880e-03 
+task_optimize driver task_gradient%end%gradient norm%1%double
+task_optimize driver task_gradient%begin%gradient max%1%double
+8.60266922819597e-04 
+task_optimize driver task_gradient%end%gradient max%1%double
+task_optimize driver task_gradient%begin%cpu time%1%double
+6.42210000000000e-02 
+task_optimize driver task_gradient%end%cpu time%1%double
+task_optimize driver task_gradient%begin%wall time%1%double
+8.16802430000001e-02 
+task_optimize driver task_gradient%end%wall time%1%double
+task_optimize driver task_gradient%begin%exit%2%char
+task_gradient
+ok
+task_optimize driver task_gradient%end%exit%1%char
+task_optimize driver%begin%entry%1%char
+task_energy
+task_optimize driver%end%entry%1%char
+task_optimize driver task_energy%begin%entry%1%char
+load_basis
+task_optimize driver task_energy%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_energy load_basis%begin%exit%2%char
+load_basis
+ok
+task_optimize driver task_energy load_basis%end%exit%1%char
+task_optimize driver task_energy%begin%entry%1%char
+bas_input
+task_optimize driver task_energy%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_energy bas_input%begin%exit%2%char
+bas_input
+ok
+task_optimize driver task_energy bas_input%end%exit%1%char
+task_optimize driver task_energy%begin%entry%1%char
+dft
+task_optimize driver task_energy%end%entry%1%char
+task_optimize driver task_energy dft%begin%total mulliken atomic charges%3%double
+-3.11548618605674e-01 1.55774309302836e-01 1.55774309302836e-01 
+task_optimize driver task_energy dft%end%total mulliken atomic charges%3%double
+task_optimize driver task_energy dft%begin%total mulliken shell charges%5%double
+1.99783789857579e+00 1.88599353929716e+00 4.42771718073272e+00 8.44225690697164e-01 
+8.44225690697164e-01 
+task_optimize driver task_energy dft%end%total mulliken shell charges%5%double
+task_optimize driver task_energy dft%begin%iteration counter%1%int
+1 
+task_optimize driver task_energy dft%end%iteration counter%1%int
+task_optimize driver task_energy dft%begin%iterative total energy difference%1%double
+-8.39118099052731e+01 
+task_optimize driver task_energy dft%end%iterative total energy difference%1%double
+task_optimize driver task_energy dft%begin%iterative total density difference%1%double
+3.91506358219906e-04 
+task_optimize driver task_energy dft%end%iterative total density difference%1%double
+task_optimize driver task_energy dft%begin%iteration counter%1%int
+2 
+task_optimize driver task_energy dft%end%iteration counter%1%int
+task_optimize driver task_energy dft%begin%iterative total energy difference%1%double
+-4.90660625018791e-07 
+task_optimize driver task_energy dft%end%iterative total energy difference%1%double
+task_optimize driver task_energy dft%begin%iterative total density difference%1%double
+4.89242727517578e-05 
+task_optimize driver task_energy dft%end%iterative total density difference%1%double
+task_optimize driver task_energy dft%begin%iteration counter%1%int
+3 
+task_optimize driver task_energy dft%end%iteration counter%1%int
+task_optimize driver task_energy dft%begin%iterative total energy difference%1%double
+-8.93373908184003e-09 
+task_optimize driver task_energy dft%end%iterative total energy difference%1%double
+task_optimize driver task_energy dft%begin%iterative total density difference%1%double
+1.44343126279861e-05 
+task_optimize driver task_energy dft%end%iterative total density difference%1%double
+task_optimize driver task_energy dft%begin%iteration counter%1%int
+4 
+task_optimize driver task_energy dft%end%iteration counter%1%int
+task_optimize driver task_energy dft%begin%iterative total energy difference%1%double
+-1.02207309282676e-09 
+task_optimize driver task_energy dft%end%iterative total energy difference%1%double
+task_optimize driver task_energy dft%begin%iterative total density difference%1%double
+2.83615305802801e-06 
+task_optimize driver task_energy dft%end%iterative total density difference%1%double
+task_optimize driver task_energy dft%begin%total mulliken atomic charges%3%double
+-3.11597822087066e-01 1.55798911043533e-01 1.55798911043533e-01 
+task_optimize driver task_energy dft%end%total mulliken atomic charges%3%double
+task_optimize driver task_energy dft%begin%total mulliken shell charges%5%double
+1.99783851892507e+00 1.88654090442507e+00 4.42721839873693e+00 8.44201088956467e-01 
+8.44201088956467e-01 
+task_optimize driver task_energy dft%end%total mulliken shell charges%5%double
+task_optimize driver task_energy dft%begin%total mulliken atomic charges%3%double
+-2.20784690023496e-01 1.10392345011746e-01 1.10392345011746e-01 
+task_optimize driver task_energy dft%end%total mulliken atomic charges%3%double
+task_optimize driver task_energy dft%begin%total mulliken shell charges%5%double
+1.99664789148327e+00 1.75946888779392e+00 4.46466791074631e+00 8.89607654988254e-01 
+8.89607654988254e-01 
+task_optimize driver task_energy dft%end%total mulliken shell charges%5%double
+task_optimize driver task_energy dft%begin%total dipole%3%double
+2.22044604925031e-16 0.00000000000000e+00 6.43171364647458e-01 
+task_optimize driver task_energy dft%end%total dipole%3%double
+task_optimize driver task_energy dft%begin%alpha electronic dipole%3%double
+1.11022302462516e-16 0.00000000000000e+00 4.59247112370686e-01 
+task_optimize driver task_energy dft%end%alpha electronic dipole%3%double
+task_optimize driver task_energy dft%begin%beta electronic dipole%3%double
+1.11022302462516e-16 0.00000000000000e+00 4.59247112370686e-01 
+task_optimize driver task_energy dft%end%beta electronic dipole%3%double
+task_optimize driver task_energy dft%begin%nuclear dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 -2.75322860093914e-01 
+task_optimize driver task_energy dft%end%nuclear dipole%3%double
+task_optimize driver task_energy dft%begin%total quadrupole%6%double
+-3.39406747273333e+00 0.00000000000000e+00 -2.22044604925031e-16 -4.57470628611711e+00 
+0.00000000000000e+00 -3.95743958002544e+00 
+task_optimize driver task_energy dft%end%total quadrupole%6%double
+task_optimize driver task_energy dft%begin%alpha electronic quadrupole%6%double
+-3.78084982243041e+00 0.00000000000000e+00 -1.11022302462516e-16 -2.28735314305856e+00 
+0.00000000000000e+00 -3.28034082152113e+00 
+task_optimize driver task_energy dft%end%alpha electronic quadrupole%6%double
+task_optimize driver task_energy dft%begin%beta electronic quadrupole%6%double
+-3.78084982243041e+00 0.00000000000000e+00 -1.11022302462516e-16 -2.28735314305856e+00 
+0.00000000000000e+00 -3.28034082152113e+00 
+task_optimize driver task_energy dft%end%beta electronic quadrupole%6%double
+task_optimize driver task_energy dft%begin%nuclear quadrupole%6%double
+4.16763217212749e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 2.60324206301682e+00 
+task_optimize driver task_energy dft%end%nuclear quadrupole%6%double
+task_optimize driver task_energy dft%begin%total energy%1%double
+-7.52542899996000e+01 
+task_optimize driver task_energy dft%end%total energy%1%double
+task_optimize driver task_energy dft%begin%nuclear repulsion energy%1%double
+8.65752040628955e+00 
+task_optimize driver task_energy dft%end%nuclear repulsion energy%1%double
+task_optimize driver task_energy dft%begin%coulomb energy%1%double
+4.68102979439558e+01 
+task_optimize driver task_energy dft%end%coulomb energy%1%double
+task_optimize driver task_energy dft%begin%exchange energy%1%double
+-9.33677689013309e+00 
+task_optimize driver task_energy dft%end%exchange energy%1%double
+task_optimize driver task_energy dft%begin%exit%2%char
+dft
+ok
+task_optimize driver task_energy dft%end%exit%1%char
+task_optimize driver task_energy%begin%cpu time%1%double
+4.69590000000000e-02 
+task_optimize driver task_energy%end%cpu time%1%double
+task_optimize driver task_energy%begin%wall time%1%double
+5.90274380000000e-02 
+task_optimize driver task_energy%end%wall time%1%double
+task_optimize driver task_energy%begin%cartesian coordinates%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 -1.49371113384461e-01 
+7.63890057321755e-01 0.00000000000000e+00 5.24637156692231e-01 
+-7.63890057321755e-01 0.00000000000000e+00 5.24637156692231e-01 
+task_optimize driver task_energy%end%cartesian coordinates%3 3%double
+task_optimize driver task_energy%begin%atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_optimize driver task_energy%end%atomic charges%3%double
+task_optimize driver task_energy%begin%atomic tags%3%char
+O
+H
+H
+task_optimize driver task_energy%end%atomic tags%3%char
+task_optimize driver task_energy%begin%group name%1%char
+C2v
+task_optimize driver task_energy%end%group name%1%char
+task_optimize driver task_energy%begin%total energy%1%double
+-7.52542899996000e+01 
+task_optimize driver task_energy%end%total energy%1%double
+task_optimize driver task_energy%begin%exit%2%char
+task_energy
+ok
+task_optimize driver task_energy%end%exit%1%char
+task_optimize driver%begin%entry%1%char
+task_gradient
+task_optimize driver%end%entry%1%char
+task_optimize driver task_gradient%begin%entry%1%char
+load_basis
+task_optimize driver task_gradient%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient load_basis%begin%exit%2%char
+load_basis
+ok
+task_optimize driver task_gradient load_basis%end%exit%1%char
+task_optimize driver task_gradient%begin%entry%1%char
+bas_input
+task_optimize driver task_gradient%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient bas_input%begin%exit%2%char
+bas_input
+ok
+task_optimize driver task_gradient bas_input%end%exit%1%char
+task_optimize driver task_gradient%begin%entry%1%char
+dft
+task_optimize driver task_gradient%end%entry%1%char
+task_optimize driver task_gradient dft%begin%entry%1%char
+load_basis
+task_optimize driver task_gradient dft%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient dft load_basis%begin%exit%2%char
+load_basis
+ok
+task_optimize driver task_gradient dft load_basis%end%exit%1%char
+task_optimize driver task_gradient dft%begin%entry%1%char
+bas_input
+task_optimize driver task_gradient dft%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient dft bas_input%begin%exit%2%char
+bas_input
+ok
+task_optimize driver task_gradient dft bas_input%end%exit%1%char
+task_optimize driver task_gradient dft%begin%exit%2%char
+dft
+ok
+task_optimize driver task_gradient dft%end%exit%1%char
+task_optimize driver task_gradient%begin%cartesian coordinates%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 -1.49371113384461e-01 
+7.63890057321755e-01 0.00000000000000e+00 5.24637156692231e-01 
+-7.63890057321755e-01 0.00000000000000e+00 5.24637156692231e-01 
+task_optimize driver task_gradient%end%cartesian coordinates%3 3%double
+task_optimize driver task_gradient%begin%atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_optimize driver task_gradient%end%atomic charges%3%double
+task_optimize driver task_gradient%begin%atomic tags%3%char
+O
+H
+H
+task_optimize driver task_gradient%end%atomic tags%3%char
+task_optimize driver task_gradient%begin%group name%1%char
+C2v
+task_optimize driver task_gradient%end%group name%1%char
+task_optimize driver task_gradient%begin%total energy%1%double
+-7.52542899996000e+01 
+task_optimize driver task_gradient%end%total energy%1%double
+task_optimize driver task_gradient%begin%total gradient%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 -9.83387099393607e-05 
+-6.64913509792364e-04 0.00000000000000e+00 4.91693549701244e-05 
+6.64913509792364e-04 0.00000000000000e+00 4.91693549701244e-05 
+task_optimize driver task_gradient%end%total gradient%3 3%double
+task_optimize driver task_gradient%begin%gradient norm%1%double
+9.48011447092120e-04 
+task_optimize driver task_gradient%end%gradient norm%1%double
+task_optimize driver task_gradient%begin%gradient max%1%double
+6.64913509792364e-04 
+task_optimize driver task_gradient%end%gradient max%1%double
+task_optimize driver task_gradient%begin%cpu time%1%double
+1.66109999999999e-02 
+task_optimize driver task_gradient%end%cpu time%1%double
+task_optimize driver task_gradient%begin%wall time%1%double
+1.66113230000000e-02 
+task_optimize driver task_gradient%end%wall time%1%double
+task_optimize driver task_gradient%begin%exit%2%char
+task_gradient
+ok
+task_optimize driver task_gradient%end%exit%1%char
+task_optimize driver%begin%entry%1%char
+task_energy
+task_optimize driver%end%entry%1%char
+task_optimize driver task_energy%begin%entry%1%char
+load_basis
+task_optimize driver task_energy%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_energy load_basis%begin%exit%2%char
+load_basis
+ok
+task_optimize driver task_energy load_basis%end%exit%1%char
+task_optimize driver task_energy%begin%entry%1%char
+bas_input
+task_optimize driver task_energy%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_energy bas_input%begin%exit%2%char
+bas_input
+ok
+task_optimize driver task_energy bas_input%end%exit%1%char
+task_optimize driver task_energy%begin%entry%1%char
+dft
+task_optimize driver task_energy%end%entry%1%char
+task_optimize driver task_energy dft%begin%total mulliken atomic charges%3%double
+-3.11503234333427e-01 1.55751617166713e-01 1.55751617166713e-01 
+task_optimize driver task_energy dft%end%total mulliken atomic charges%3%double
+task_optimize driver task_energy dft%begin%total mulliken shell charges%5%double
+1.99783810463131e+00 1.88655812850246e+00 4.42710700119965e+00 8.44248382833287e-01 
+8.44248382833287e-01 
+task_optimize driver task_energy dft%end%total mulliken shell charges%5%double
+task_optimize driver task_energy dft%begin%iteration counter%1%int
+1 
+task_optimize driver task_energy dft%end%iteration counter%1%int
+task_optimize driver task_energy dft%begin%iterative total energy difference%1%double
+-8.39081300843847e+01 
+task_optimize driver task_energy dft%end%iterative total energy difference%1%double
+task_optimize driver task_energy dft%begin%iterative total density difference%1%double
+1.75672686707056e-04 
+task_optimize driver task_energy dft%end%iterative total density difference%1%double
+task_optimize driver task_energy dft%begin%iteration counter%1%int
+2 
+task_optimize driver task_energy dft%end%iteration counter%1%int
+task_optimize driver task_energy dft%begin%iterative total energy difference%1%double
+-9.78193810396988e-08 
+task_optimize driver task_energy dft%end%iterative total energy difference%1%double
+task_optimize driver task_energy dft%begin%iterative total density difference%1%double
+2.22674925067523e-05 
+task_optimize driver task_energy dft%end%iterative total density difference%1%double
+task_optimize driver task_energy dft%begin%iteration counter%1%int
+3 
+task_optimize driver task_energy dft%end%iteration counter%1%int
+task_optimize driver task_energy dft%begin%iterative total energy difference%1%double
+-1.80061476839910e-09 
+task_optimize driver task_energy dft%end%iterative total energy difference%1%double
+task_optimize driver task_energy dft%begin%iterative total density difference%1%double
+7.17809885614139e-06 
+task_optimize driver task_energy dft%end%iterative total density difference%1%double
+task_optimize driver task_energy dft%begin%total mulliken atomic charges%3%double
+-3.11494922788622e-01 1.55747461394311e-01 1.55747461394311e-01 
+task_optimize driver task_energy dft%end%total mulliken atomic charges%3%double
+task_optimize driver task_energy dft%begin%total mulliken shell charges%5%double
+1.99783777073379e+00 1.88631539188865e+00 4.42734176016618e+00 8.44252538605689e-01 
+8.44252538605689e-01 
+task_optimize driver task_energy dft%end%total mulliken shell charges%5%double
+task_optimize driver task_energy dft%begin%total mulliken atomic charges%3%double
+-2.20718295932885e-01 1.10359147966445e-01 1.10359147966446e-01 
+task_optimize driver task_energy dft%end%total mulliken atomic charges%3%double
+task_optimize driver task_energy dft%begin%total mulliken shell charges%5%double
+1.99664416954090e+00 1.75935382974384e+00 4.46472029664815e+00 8.89640852033555e-01 
+8.89640852033554e-01 
+task_optimize driver task_energy dft%end%total mulliken shell charges%5%double
+task_optimize driver task_energy dft%begin%total dipole%3%double
+1.11022302462516e-16 0.00000000000000e+00 6.42602655868325e-01 
+task_optimize driver task_energy dft%end%total dipole%3%double
+task_optimize driver task_energy dft%begin%alpha electronic dipole%3%double
+5.55111512312578e-17 0.00000000000000e+00 4.54831022581613e-01 
+task_optimize driver task_energy dft%end%alpha electronic dipole%3%double
+task_optimize driver task_energy dft%begin%beta electronic dipole%3%double
+5.55111512312578e-17 0.00000000000000e+00 4.54831022581613e-01 
+task_optimize driver task_energy dft%end%beta electronic dipole%3%double
+task_optimize driver task_energy dft%begin%nuclear dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 -2.67059389294900e-01 
+task_optimize driver task_energy dft%end%nuclear dipole%3%double
+task_optimize driver task_energy dft%begin%total quadrupole%6%double
+-3.38992742860260e+00 0.00000000000000e+00 0.00000000000000e+00 -4.57485565781741e+00 
+0.00000000000000e+00 -3.95832582716922e+00 
+task_optimize driver task_energy dft%end%total quadrupole%6%double
+task_optimize driver task_energy dft%begin%alpha electronic quadrupole%6%double
+-3.78603623359082e+00 0.00000000000000e+00 0.00000000000000e+00 -2.28742782890871e+00 
+0.00000000000000e+00 -3.27695374709375e+00 
+task_optimize driver task_energy dft%end%alpha electronic quadrupole%6%double
+task_optimize driver task_energy dft%begin%beta electronic quadrupole%6%double
+-3.78603623359082e+00 0.00000000000000e+00 0.00000000000000e+00 -2.28742782890871e+00 
+0.00000000000000e+00 -3.27695374709375e+00 
+task_optimize driver task_energy dft%end%beta electronic quadrupole%6%double
+task_optimize driver task_energy dft%begin%nuclear quadrupole%6%double
+4.18214503857904e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 2.59558166701827e+00 
+task_optimize driver task_energy dft%end%nuclear quadrupole%6%double
+task_optimize driver task_energy dft%begin%total energy%1%double
+-7.52542917519315e+01 
+task_optimize driver task_energy dft%end%total energy%1%double
+task_optimize driver task_energy dft%begin%nuclear repulsion energy%1%double
+8.65383843207320e+00 
+task_optimize driver task_energy dft%end%nuclear repulsion energy%1%double
+task_optimize driver task_energy dft%begin%coulomb energy%1%double
+4.68080395646828e+01 
+task_optimize driver task_energy dft%end%coulomb energy%1%double
+task_optimize driver task_energy dft%begin%exchange energy%1%double
+-9.33653409017793e+00 
+task_optimize driver task_energy dft%end%exchange energy%1%double
+task_optimize driver task_energy dft%begin%exit%2%char
+dft
+ok
+task_optimize driver task_energy dft%end%exit%1%char
+task_optimize driver task_energy%begin%cpu time%1%double
+3.55160000000000e-02 
+task_optimize driver task_energy%end%cpu time%1%double
+task_optimize driver task_energy%begin%wall time%1%double
+5.16941800000000e-02 
+task_optimize driver task_energy%end%wall time%1%double
+task_optimize driver task_energy%begin%cartesian coordinates%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 -1.48746421849516e-01 
+7.65218941367903e-01 0.00000000000000e+00 5.24324810924758e-01 
+-7.65218941367903e-01 0.00000000000000e+00 5.24324810924758e-01 
+task_optimize driver task_energy%end%cartesian coordinates%3 3%double
+task_optimize driver task_energy%begin%atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_optimize driver task_energy%end%atomic charges%3%double
+task_optimize driver task_energy%begin%atomic tags%3%char
+O
+H
+H
+task_optimize driver task_energy%end%atomic tags%3%char
+task_optimize driver task_energy%begin%group name%1%char
+C2v
+task_optimize driver task_energy%end%group name%1%char
+task_optimize driver task_energy%begin%total energy%1%double
+-7.52542917519315e+01 
+task_optimize driver task_energy%end%total energy%1%double
+task_optimize driver task_energy%begin%exit%2%char
+task_energy
+ok
+task_optimize driver task_energy%end%exit%1%char
+task_optimize driver%begin%entry%1%char
+task_gradient
+task_optimize driver%end%entry%1%char
+task_optimize driver task_gradient%begin%entry%1%char
+load_basis
+task_optimize driver task_gradient%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient load_basis%begin%exit%2%char
+load_basis
+ok
+task_optimize driver task_gradient load_basis%end%exit%1%char
+task_optimize driver task_gradient%begin%entry%1%char
+bas_input
+task_optimize driver task_gradient%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient bas_input%begin%exit%2%char
+bas_input
+ok
+task_optimize driver task_gradient bas_input%end%exit%1%char
+task_optimize driver task_gradient%begin%entry%1%char
+dft
+task_optimize driver task_gradient%end%entry%1%char
+task_optimize driver task_gradient dft%begin%entry%1%char
+load_basis
+task_optimize driver task_gradient dft%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient dft load_basis%begin%exit%2%char
+load_basis
+ok
+task_optimize driver task_gradient dft load_basis%end%exit%1%char
+task_optimize driver task_gradient dft%begin%entry%1%char
+bas_input
+task_optimize driver task_gradient dft%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_optimize driver task_gradient dft bas_input%begin%exit%2%char
+bas_input
+ok
+task_optimize driver task_gradient dft bas_input%end%exit%1%char
+task_optimize driver task_gradient dft%begin%exit%2%char
+dft
+ok
+task_optimize driver task_gradient dft%end%exit%1%char
+task_optimize driver task_gradient%begin%cartesian coordinates%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 -1.48746421849516e-01 
+7.65218941367903e-01 0.00000000000000e+00 5.24324810924758e-01 
+-7.65218941367903e-01 0.00000000000000e+00 5.24324810924758e-01 
+task_optimize driver task_gradient%end%cartesian coordinates%3 3%double
+task_optimize driver task_gradient%begin%atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_optimize driver task_gradient%end%atomic charges%3%double
+task_optimize driver task_gradient%begin%atomic tags%3%char
+O
+H
+H
+task_optimize driver task_gradient%end%atomic tags%3%char
+task_optimize driver task_gradient%begin%group name%1%char
+C2v
+task_optimize driver task_gradient%end%group name%1%char
+task_optimize driver task_gradient%begin%total energy%1%double
+-7.52542917519315e+01 
+task_optimize driver task_gradient%end%total energy%1%double
+task_optimize driver task_gradient%begin%total gradient%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 -9.10835994738513e-07 
+1.85764703347635e-06 0.00000000000000e+00 4.55417998923568e-07 
+-1.85764703347635e-06 0.00000000000000e+00 4.55417998923568e-07 
+task_optimize driver task_gradient%end%total gradient%3 3%double
+task_optimize driver task_gradient%begin%gradient norm%1%double
+2.85414406061876e-06 
+task_optimize driver task_gradient%end%gradient norm%1%double
+task_optimize driver task_gradient%begin%gradient max%1%double
+1.85764703347635e-06 
+task_optimize driver task_gradient%end%gradient max%1%double
+task_optimize driver task_gradient%begin%cpu time%1%double
+1.60500000000000e-02 
+task_optimize driver task_gradient%end%cpu time%1%double
+task_optimize driver task_gradient%begin%wall time%1%double
+1.60491470000000e-02 
+task_optimize driver task_gradient%end%wall time%1%double
+task_optimize driver task_gradient%begin%exit%2%char
+task_gradient
+ok
+task_optimize driver task_gradient%end%exit%1%char
+task_optimize driver%begin%exit%2%char
+driver
+ok
+task_optimize driver%end%exit%1%char
+task_optimize%begin%cpu time%1%double
+3.20777000000000e-01 
+task_optimize%end%cpu time%1%double
+task_optimize%begin%wall time%1%double
+8.90876837000000e-01 
+task_optimize%end%wall time%1%double
+task_optimize%begin%exit%2%char
+task_optimize
+ok
+task_optimize%end%exit%1%char
+%begin%single task cpu time%1%double
+3.20870000000000e-01 
+%end%single task cpu time%1%double
+%begin%single task wall time%1%double
+8.90975217000000e-01 
+%end%single task wall time%1%double
+%begin%entry%1%char
+task_frequencies
+%end%entry%1%char
+task_frequencies%begin%entry%1%char
+task_hessian
+task_frequencies%end%entry%1%char
+task_frequencies task_hessian%begin%entry%1%char
+task_hessian
+task_frequencies task_hessian%end%entry%1%char
+task_frequencies task_hessian task_hessian%begin%entry%1%char
+task_energy
+task_frequencies task_hessian task_hessian%end%entry%1%char
+task_frequencies task_hessian task_hessian task_energy%begin%entry%1%char
+load_basis
+task_frequencies task_hessian task_hessian task_energy%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_frequencies task_hessian task_hessian task_energy load_basis%begin%exit%2%char
+load_basis
+ok
+task_frequencies task_hessian task_hessian task_energy load_basis%end%exit%1%char
+task_frequencies task_hessian task_hessian task_energy%begin%entry%1%char
+bas_input
+task_frequencies task_hessian task_hessian task_energy%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_frequencies task_hessian task_hessian task_energy bas_input%begin%exit%2%char
+bas_input
+ok
+task_frequencies task_hessian task_hessian task_energy bas_input%end%exit%1%char
+task_frequencies task_hessian task_hessian task_energy%begin%entry%1%char
+dft
+task_frequencies task_hessian task_hessian task_energy%end%entry%1%char
+task_frequencies task_hessian task_hessian task_energy dft%begin%total mulliken atomic charges%3%double
+-3.11494922788622e-01 1.55747461394311e-01 1.55747461394311e-01 
+task_frequencies task_hessian task_hessian task_energy dft%end%total mulliken atomic charges%3%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%total mulliken shell charges%5%double
+1.99783777073379e+00 1.88631539188865e+00 4.42734176016618e+00 8.44252538605689e-01 
+8.44252538605689e-01 
+task_frequencies task_hessian task_hessian task_energy dft%end%total mulliken shell charges%5%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%iteration counter%1%int
+1 
+task_frequencies task_hessian task_hessian task_energy dft%end%iteration counter%1%int
+task_frequencies task_hessian task_hessian task_energy dft%begin%iterative total energy difference%1%double
+-8.39081303770087e+01 
+task_frequencies task_hessian task_hessian task_energy dft%end%iterative total energy difference%1%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%iterative total density difference%1%double
+1.88941123232882e-06 
+task_frequencies task_hessian task_hessian task_energy dft%end%iterative total density difference%1%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%iteration counter%1%int
+2 
+task_frequencies task_hessian task_hessian task_energy dft%end%iteration counter%1%int
+task_frequencies task_hessian task_hessian task_energy dft%begin%iterative total energy difference%1%double
+-5.48538992006797e-12 
+task_frequencies task_hessian task_hessian task_energy dft%end%iterative total energy difference%1%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%iterative total density difference%1%double
+9.14096612204219e-07 
+task_frequencies task_hessian task_hessian task_energy dft%end%iterative total density difference%1%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%total mulliken atomic charges%3%double
+-3.11488907894722e-01 1.55744453942617e-01 1.55744453952103e-01 
+task_frequencies task_hessian task_hessian task_energy dft%end%total mulliken atomic charges%3%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%total mulliken shell charges%5%double
+1.99783776792406e+00 1.88631474301770e+00 4.42733639695297e+00 8.44255546057383e-01 
+8.44255546047897e-01 
+task_frequencies task_hessian task_hessian task_energy dft%end%total mulliken shell charges%5%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%total mulliken atomic charges%3%double
+-2.20713097747979e-01 1.10356548869051e-01 1.10356548878932e-01 
+task_frequencies task_hessian task_hessian task_energy dft%end%total mulliken atomic charges%3%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%total mulliken shell charges%5%double
+1.99664416150080e+00 1.75935339389667e+00 4.46471554235050e+00 8.89643451130949e-01 
+8.89643451121068e-01 
+task_frequencies task_hessian task_hessian task_energy dft%end%total mulliken shell charges%5%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%total dipole%3%double
+-3.21994653162960e-11 -9.19308277136347e-14 6.42595973648719e-01 
+task_frequencies task_hessian task_hessian task_energy dft%end%total dipole%3%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%alpha electronic dipole%3%double
+-1.60997326581480e-11 -4.59654138568173e-14 4.54827681471810e-01 
+task_frequencies task_hessian task_hessian task_energy dft%end%alpha electronic dipole%3%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%beta electronic dipole%3%double
+-1.60997326581480e-11 -4.59654138568173e-14 4.54827681471810e-01 
+task_frequencies task_hessian task_hessian task_energy dft%end%beta electronic dipole%3%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%nuclear dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 -2.67059389294900e-01 
+task_frequencies task_hessian task_hessian task_energy dft%end%nuclear dipole%3%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%total quadrupole%6%double
+-3.38994076669142e+00 2.67049923512997e-15 -1.58512092340857e-11 -4.57485733195311e+00 
+-6.79987667443230e-14 -3.95833275816191e+00 
+task_frequencies task_hessian task_hessian task_energy dft%end%total quadrupole%6%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%alpha electronic quadrupole%6%double
+-3.78604290263523e+00 1.33524961756499e-15 -7.92560461704284e-12 -2.28742866597656e+00 
+-3.39993833721615e-14 -3.27695721259009e+00 
+task_frequencies task_hessian task_hessian task_energy dft%end%alpha electronic quadrupole%6%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%beta electronic quadrupole%6%double
+-3.78604290263523e+00 1.33524961756499e-15 -7.92560461704284e-12 -2.28742866597656e+00 
+-3.39993833721615e-14 -3.27695721259009e+00 
+task_frequencies task_hessian task_hessian task_energy dft%end%beta electronic quadrupole%6%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%nuclear quadrupole%6%double
+4.18214503857904e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 2.59558166701827e+00 
+task_frequencies task_hessian task_hessian task_energy dft%end%nuclear quadrupole%6%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%molecular orbital energies dft alpha%7%double
+-1.89127142663587e+01 -9.38921166161039e-01 -4.19610013599609e-01 -2.67093735455861e-01 
+-1.58114765469433e-01 3.30685307782622e-01 4.13807083167530e-01 
+task_frequencies task_hessian task_hessian task_energy dft%end%molecular orbital energies dft alpha%7%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%molecular orbital occupations dft alpha%7%double
+2.00000000000000e+00 2.00000000000000e+00 2.00000000000000e+00 2.00000000000000e+00 
+2.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+task_frequencies task_hessian task_hessian task_energy dft%end%molecular orbital occupations dft alpha%7%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%molecular orbital symmetries dft alpha%7%int
+1 1 1 1 1 1 1 
+task_frequencies task_hessian task_hessian task_energy dft%end%molecular orbital symmetries dft alpha%7%int
+task_frequencies task_hessian task_hessian task_energy dft%begin%molecular orbital range dft alpha%2%int
+1 7 
+task_frequencies task_hessian task_hessian task_energy dft%end%molecular orbital range dft alpha%2%int
+task_frequencies task_hessian task_hessian task_energy dft%begin%molecular orbital vectors dft alpha%7 7%double
+ 0.994 0.028 2*0.0 0.004 -0.006 -0.006
+ -0.230 0.824 2*0.0 0.174 0.166 0.166
+ 2*0.0 0.621 2*0.0 0.449 -0.449
+ 0.122 -0.601 2*0.0 0.721 0.308 0.308
+ 3*0.0 1.000 3*0.0
+ -0.118 0.751 2*0.0 0.783 -0.744 -0.744
+ 2*0.0 0.935 2*0.0 -0.796 0.796
+task_frequencies task_hessian task_hessian task_energy dft%end%molecular orbital vectors dft alpha%7 7%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%total energy%1%double
+-7.52542919449410e+01 
+task_frequencies task_hessian task_hessian task_energy dft%end%total energy%1%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%nuclear repulsion energy%1%double
+8.65383843207320e+00 
+task_frequencies task_hessian task_hessian task_energy dft%end%nuclear repulsion energy%1%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%coulomb energy%1%double
+4.68081302564784e+01 
+task_frequencies task_hessian task_hessian task_energy dft%end%coulomb energy%1%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%exchange energy%1%double
+-9.33654268296103e+00 
+task_frequencies task_hessian task_hessian task_energy dft%end%exchange energy%1%double
+task_frequencies task_hessian task_hessian task_energy dft%begin%exit%2%char
+dft
+ok
+task_frequencies task_hessian task_hessian task_energy dft%end%exit%1%char
+task_frequencies task_hessian task_hessian task_energy%begin%cpu time%1%double
+8.92400000000000e-02 
+task_frequencies task_hessian task_hessian task_energy%end%cpu time%1%double
+task_frequencies task_hessian task_hessian task_energy%begin%wall time%1%double
+1.05203250000000e-01 
+task_frequencies task_hessian task_hessian task_energy%end%wall time%1%double
+task_frequencies task_hessian task_hessian task_energy%begin%cartesian coordinates%3 3%double
+0.00000000000000e+00 0.00000000000000e+00 -1.48746421849516e-01 
+7.65218941367903e-01 0.00000000000000e+00 5.24324810924758e-01 
+-7.65218941367903e-01 0.00000000000000e+00 5.24324810924758e-01 
+task_frequencies task_hessian task_hessian task_energy%end%cartesian coordinates%3 3%double
+task_frequencies task_hessian task_hessian task_energy%begin%atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_frequencies task_hessian task_hessian task_energy%end%atomic charges%3%double
+task_frequencies task_hessian task_hessian task_energy%begin%atomic tags%3%char
+O
+H
+H
+task_frequencies task_hessian task_hessian task_energy%end%atomic tags%3%char
+task_frequencies task_hessian task_hessian task_energy%begin%group name%1%char
+C1
+task_frequencies task_hessian task_hessian task_energy%end%group name%1%char
+task_frequencies task_hessian task_hessian task_energy%begin%total energy%1%double
+-7.52542919449410e+01 
+task_frequencies task_hessian task_hessian task_energy%end%total energy%1%double
+task_frequencies task_hessian task_hessian task_energy%begin%exit%2%char
+task_energy
+ok
+task_frequencies task_hessian task_hessian task_energy%end%exit%1%char
+task_frequencies task_hessian task_hessian%begin%entry%1%char
+load_basis
+task_frequencies task_hessian task_hessian%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_frequencies task_hessian task_hessian load_basis%begin%exit%2%char
+load_basis
+ok
+task_frequencies task_hessian task_hessian load_basis%end%exit%1%char
+task_frequencies task_hessian task_hessian%begin%entry%1%char
+bas_input
+task_frequencies task_hessian task_hessian%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_frequencies task_hessian task_hessian bas_input%begin%exit%2%char
+bas_input
+ok
+task_frequencies task_hessian task_hessian bas_input%end%exit%1%char
+task_frequencies task_hessian task_hessian%begin%entry%1%char
+load_basis
+task_frequencies task_hessian task_hessian%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_frequencies task_hessian task_hessian load_basis%begin%exit%2%char
+load_basis
+ok
+task_frequencies task_hessian task_hessian load_basis%end%exit%1%char
+task_frequencies task_hessian task_hessian%begin%entry%1%char
+bas_input
+task_frequencies task_hessian task_hessian%end%entry%1%char
+basis "ao basis" cartesian
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+end
+task_frequencies task_hessian task_hessian bas_input%begin%exit%2%char
+bas_input
+ok
+task_frequencies task_hessian task_hessian bas_input%end%exit%1%char
+task_frequencies task_hessian task_hessian%begin%cpu time%1%double
+2.25968200000000e+00 
+task_frequencies task_hessian task_hessian%end%cpu time%1%double
+task_frequencies task_hessian task_hessian%begin%wall time%1%double
+9.06385592000000e-01 
+task_frequencies task_hessian task_hessian%end%wall time%1%double
+task_frequencies task_hessian task_hessian%begin%exit%2%char
+task_hessian
+ok
+task_frequencies task_hessian task_hessian%end%exit%1%char
+task_frequencies task_hessian%begin%frequencies%9%double
+1.81604964447039e+00 2.47408383558129e+00 4.65940485257470e+00 6.12045868512983e+00 
+7.49660709203505e+00 9.00241681834047e+00 2.03931418663675e+03 3.71765351564724e+03 
+3.94630751474138e+03 
+task_frequencies task_hessian%end%frequencies%9%double
+task_frequencies task_hessian%begin%normal modes%9 9%double
+-8.02770971418088e-05 2.33067040117080e-01 4.55815137533538e-06 -8.20468676401147e-05 
+2.55082772113262e-01 6.57018906908163e-06 -8.20468783511187e-05 2.55082201733660e-01 
+2.54608864116200e-06 
+-2.34464708609838e-01 -7.87238179104175e-05 8.87614791528190e-05 -2.44444042080298e-01 
+-9.44486525876924e-05 1.14341928697951e-02 -2.44444041954864e-01 -9.25136948885805e-05 
+-1.12566698140909e-02 
+8.54907002520725e-05 -3.51303439787392e-06 2.35633004427235e-01 1.11884901864857e-04 
+-1.17268015092039e-05 2.35603553707403e-01 1.12948788101763e-04 -1.20775321241392e-05 
+2.35664778182913e-01 
+-1.72769184829556e-06 -9.05518511033476e-02 2.51345835079757e-06 -6.26581286959194e-06 
+6.56547374841449e-01 7.67286605399853e-06 -6.26581514316774e-06 6.56541797389467e-01 
+-2.64593544985685e-06 
+5.82994385373565e-02 1.64397310167830e-06 1.14471248063365e-05 -4.18576968687132e-01 
+-7.78986177452463e-06 5.42174060112655e-01 -4.18576968566038e-01 -2.68813676368508e-06 
+-5.42151165526962e-01 
+1.10899770593702e-07 -2.64049017262501e-07 5.85166566633592e-08 1.85164105907451e-06 
+-7.04353654108862e-01 -1.92054045294756e-06 1.85161649092327e-06 7.04359059814580e-01 
+2.03753652834594e-06 
+1.26886714763648e-10 -1.06600641871887e-11 6.54849025145158e-02 4.38246816480321e-01 
+1.15938325738347e-12 -5.19642777557891e-01 -4.38246816254442e-01 -4.21894499658910e-11 
+-5.19642777785797e-01 
+5.99028881456422e-12 2.99759685823576e-12 -5.20451330121941e-02 5.51414186524054e-01 
+-3.85554877407473e-13 4.12996117073189e-01 -5.51414187342508e-01 2.34673891092014e-12 
+4.12996117814750e-01 
+-6.43999321924797e-02 -5.43895980559566e-12 -7.91776870165203e-11 5.11036486215855e-01 
+3.88584224178595e-13 4.49498453144077e-01 5.11036485451590e-01 -3.21783186798985e-12 
+-4.49498452488172e-01 
+task_frequencies task_hessian%end%normal modes%9 9%double
+task_frequencies task_hessian%begin%intensities%9%double
+1.23711616578471e-04 2.54192933412079e-05 2.03016511791250e-10 1.42465444130363e-01 
+5.80451726984328e-02 3.02027041238398e-12 3.57825420407567e-03 6.39226319193246e-02 
+4.29012932826490e-02 
+task_frequencies task_hessian%end%intensities%9%double
+task_frequencies task_hessian%begin%intensities (debye/ang)2%9%double
+2.85412550295075e-03 5.86443338133157e-04 4.68375258402650e-09 3.28679123777966e+00 
+1.33914835408115e+00 6.96800433799592e-11 8.25531737629110e-02 1.47474601838182e+00 
+9.89766997264243e-01 
+task_frequencies task_hessian%end%intensities (debye/ang)2%9%double
+task_frequencies task_hessian%begin%intensities (KM/mol)%9%double
+1.20600216053363e-01 2.47799871480055e-02 1.97910558940071e-07 1.38882376752081e+02 
+5.65853115648643e+01 2.94430930859309e-09 3.48825956721417e+00 6.23149501508638e+01 
+4.18223072493306e+01 
+task_frequencies task_hessian%end%intensities (KM/mol)%9%double
+task_frequencies task_hessian%begin%projected frequencies%9%double
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 1.23614572372099e-05 
+1.28577179883943e-05 2.50280302132183e-05 2.03932902553941e+03 3.71765854480331e+03 
+3.94631045401171e+03 
+task_frequencies task_hessian%end%projected frequencies%9%double
+task_frequencies task_hessian%begin%projected normal modes%9 9%double
+0.00000000000000e+00 2.50039775115346e-01 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+9.96110312774363e-01 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 9.96110312774363e-01 
+0.00000000000000e+00 
+2.35907009122581e-01 0.00000000000000e+00 2.92487492965099e-06 2.33431638913712e-01 
+0.00000000000000e+00 2.81718892082757e-03 2.33431638913711e-01 0.00000000000000e+00 
+-2.81133917096830e-03 
+5.66808151225168e-03 0.00000000000000e+00 2.34236209417941e-01 -4.61922875584320e-02 
+0.00000000000000e+00 2.93196591004538e-01 -4.61922875583809e-02 0.00000000000000e+00 
+1.75275827831301e-01 
+-5.18487163961670e-02 0.00000000000000e+00 2.56199192367986e-02 4.22297333715252e-01 
+0.00000000000000e+00 -5.13439723862986e-01 4.22297333715252e-01 0.00000000000000e+00 
+5.64679562336583e-01 
+-1.35313023360192e-10 0.00000000000000e+00 6.54842488564567e-02 4.38249532545950e-01 
+0.00000000000000e+00 -5.19641140561574e-01 -4.38249530398435e-01 0.00000000000000e+00 
+-5.19641142450485e-01 
+7.64991931594364e-10 0.00000000000000e+00 -5.20453669282631e-02 5.51412022971430e-01 
+0.00000000000000e+00 4.12998759294634e-01 -5.51412035112404e-01 0.00000000000000e+00 
+4.12998769973582e-01 
+-6.43999662003892e-02 0.00000000000000e+00 -7.55872634907315e-10 5.11036973048349e-01 
+0.00000000000000e+00 4.49497872633232e-01 5.11036961789810e-01 0.00000000000000e+00 
+-4.49497860637828e-01 
+task_frequencies task_hessian%end%projected normal modes%9 9%double
+task_frequencies task_hessian%begin%projected intensities%9%double
+1.59578531846038e-02 6.33156513145662e-02 6.33156513296050e-02 1.56380167665009e-06 
+6.86479521831190e-04 5.73826566995308e-02 3.57840314244728e-03 6.39224829809525e-02 
+4.29011853755882e-02 
+task_frequencies task_hessian%end%projected intensities%9%double
+task_frequencies task_hessian%begin%projected intensities (debye/ang)2%9%double
+3.68160379810668e-01 1.46074249250647e+00 1.46074249285343e+00 3.60781498967245e-05 
+1.58376291952264e-02 1.32386358244146e+00 8.25566098897400e-02 1.47474258225498e+00 
+9.89764507762426e-01 
+task_frequencies task_hessian%end%projected intensities (debye/ang)2%9%double
+task_frequencies task_hessian%begin%projected intensities (KM/mol)%9%double
+1.55565062929263e+01 6.17232353701614e+01 6.17232353848220e+01 1.52447138987135e-03 
+6.69214265715601e-01 5.59394581291386e+01 3.48840475972149e+00 6.23148049583561e+01 
+4.18222020561789e+01 
+task_frequencies task_hessian%end%projected intensities (KM/mol)%9%double
+task_frequencies task_hessian%begin%cpu time%1%double
+2.26143600000000e+00 
+task_frequencies task_hessian%end%cpu time%1%double
+task_frequencies task_hessian%begin%wall time%1%double
+-4.30146915000000e-01 
+task_frequencies task_hessian%end%wall time%1%double
+task_frequencies task_hessian%begin%exit%2%char
+task_frequencies
+ok
+task_frequencies task_hessian%end%exit%1%char
+%begin%single task cpu time%1%double
+2.26150000000000e+00 
+%end%single task cpu time%1%double
+%begin%single task wall time%1%double
+9.08202458000000e-01 
+%end%single task wall time%1%double
+%begin%all tasks cpu time%1%double
+2.64236800000000e+00 
+%end%all tasks cpu time%1%double
+%begin%all tasks wall time%1%double
+1.83832418800000e+00 
+%end%all tasks wall time%1%double
