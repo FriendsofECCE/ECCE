@@ -57,6 +57,8 @@ static std::string s_registerMessage;
 #include "util/SFile.H"
 #include "util/BrowserHelp.H"
 #include "wxgui/WindowShot.H"
+#include <wx/display.h>
+#include <algorithm>
 #include "wxgui/WxHelpViewer.H"
 #include "util/EditEvent.H"
 #include "util/NullPointerException.H"
@@ -1048,7 +1050,21 @@ void CalcMgr::restoreSettings()
 
   setTreeStyle();
 
+  int savedWidth = -1;
+  const bool sized = prefs.getInt("Organizer.Width", savedWidth) &&
+                     savedWidth > 0;
   restoreWindowSettings("Organizer", prefs, true);
+  if (!sized) {
+    // A fresh profile has no size; the sizers' minimum (500x400) clips the
+    // summary pane, so start at a share of the display instead.
+    int idx = wxDisplay::GetFromWindow(this);
+    wxRect area = wxDisplay((unsigned)(idx == wxNOT_FOUND ? 0 : idx))
+                    .GetClientArea();
+    int w = std::max(860, std::min(1100, area.width * 60 / 100));
+    int h = std::max(600, std::min(800, area.height * 80 / 100));
+    SetSize(std::min(w, area.width), std::min(h, area.height));
+    Centre();
+  }
 
   string tmp = Ecce::realUserPrefPath();
   tmp += "/OrganizerHistory";
