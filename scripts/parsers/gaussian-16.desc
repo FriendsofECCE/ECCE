@@ -468,3 +468,76 @@ Frequency=all
 Skip=0
 Lines=1
 [END]
+
+# Job progress for the Organizer's Progress box (#284).  No Script: these
+# only feed the monitor's live snapshot.  Per-cycle SCF lines exist only
+# at print level P, which ECCE's route section uses.
+[PROGRESS]
+Begin=^ Cycle\s+(\d+)\s+Pass
+Progress=scf cycle=$1
+[END]
+
+[PROGRESS]
+Begin=^ E=\s+(-?\d+\.\d+)(?:\s+Delta-E=\s+(-?\d+\.\d+))?
+Progress=scf energy=$1 dE=$2
+History=dE
+[END]
+
+[PROGRESS]
+Begin=^ SCF Done:\s+E\(\S+\)\s+=\s+(-?\d+\.\d+)
+Progress=scf energy=$1 converged=yes
+[END]
+
+# The frequency job step of "Opt Freq" runs the optimiser once more with
+# "a maximum of 2" steps; skipping that wording keeps it from restarting
+# the optimisation's record (so a real MaxCycles=2 shows no steps).
+# Gaussian prints no energy at the step, so the energy change DE of the
+# step before is the history.
+[PROGRESS]
+Begin=^ Step number\s+(\d+) out of a maximum of(?>\s+)(?!2\s*$)
+Progress=opt step=$1
+[END]
+
+[PROGRESS]
+Begin=^ DE=\s*(-?\d\.\d+)D([-+]\d+) DEPred
+Progress=opt dE=$1e$2
+History=dE
+[END]
+
+# Convergence items carry their thresholds on the same line.
+[PROGRESS]
+Begin=^ Maximum Force\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(?:YES|NO)
+Progress=opt maxgrad=$1/$2
+[END]
+
+[PROGRESS]
+Begin=^ RMS     Force\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(?:YES|NO)
+Progress=opt rmsgrad=$1/$2
+[END]
+
+[PROGRESS]
+Begin=^ Maximum Displacement\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(?:YES|NO)
+Progress=opt maxstep=$1/$2
+[END]
+
+[PROGRESS]
+Begin=^ RMS     Displacement\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(?:YES|NO)
+Progress=opt rmsstep=$1/$2
+[END]
+
+[PROGRESS]
+Begin=^    -- Stationary point found
+Progress=opt converged=yes
+[END]
+
+[PROGRESS]
+Begin=^    -- Number of steps exceeded
+Progress=opt converged=no
+[END]
+
+# Gaussian counts nothing during a frequency run; the thermochemistry
+# block's zero-point correction closes it.
+[PROGRESS]
+Begin=^ Zero-point correction=\s+(-?\d+\.\d+)
+Progress=freq done=yes zpe=$1
+[END]

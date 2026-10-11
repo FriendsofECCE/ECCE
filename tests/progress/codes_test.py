@@ -113,6 +113,17 @@ case("orca opt, not converged", "orca.desc", fx("orca", "optmax.out"),
 case("orca numerical frequencies", "orca.desc", fx("orca", "numfreq.out"),
      {"freq": {"point": "12/12", "done": "yes", "zpe": has("0.0229")}})
 
+case("gaussian-16 opt+freq (B3LYP/6-31G*, #P)", "gaussian-16.desc", fx("gaussian-16", "nh3_optfreq.log"),
+     {"opt": {"step": "4", "converged": "yes", "maxgrad": target, "rmsgrad": target,
+              "maxstep": target, "rmsstep": target, "dE": lambda v: "e-" in v},
+      "freq": {"done": "yes", "zpe": has("0.0345")},
+      "scf": {"cycle": lambda v: int(v) >= 1, "converged": "yes"}},
+     {"opt": (3, 4)})
+case("gaussian-16 opt, not converged", "gaussian-16.desc", fx("gaussian-16", "nh3_optmax.log"),
+     {"opt": {"step": "3", "converged": "no", "maxgrad": target}})
+case("gaussian-09 desc on g16 output", "gaussian-09.desc", fx("gaussian-16", "nh3_optfreq.log"),
+     {"opt": {"step": "4", "converged": "yes"}, "freq": {"done": "yes"}})
+
 
 def run_case(name, desc, out, want, hist):
     n, stages, text = replay(os.path.join(PARSERS, desc), out)
