@@ -169,6 +169,9 @@ void authMCB(JMSMessage& msg);
 void ecceExitMCB(JMSMessage& msg);
 void sendNotify(const char* op, const string& key1="", const string& name = "",
                 const string& key2 = "", const string& value = "");
+void interactProgress(char* text);
+void progressStore(bool force);
+void progressClear(void);
 
 // Messaging state
 static JMSSubscriber *vsubscriber = 0;
@@ -236,6 +239,15 @@ static string gFailReason;
 static string lastRestartFileName = "";
 static int lastRestartCallCount = 0;
 
+// The latest progress snapshot (#284) and the one last stored with the
+// calculation.  Storing is a metadata write on the data server, so it
+// happens at most every PROGRESS_STORE_SECONDS and once at the end;
+// the broker gets every snapshot (the monitor sends at most one a second).
+static string gProgress;
+static string gProgressStored;
+static time_t gProgressStoredAt = 0;
+static const int PROGRESS_STORE_SECONDS = 10;
+
 // Used for storing status information which
 // will be saved as meta data for the calculation task 
 static string eccejoblog = "";
@@ -302,6 +314,11 @@ void jobstore_main(RCommand* rconn, const string& jobId,
   // 5/3/2002 - Don't know if this comment is relevent to new messaging
   // sytstem or not.
   initMessaging();
+
+  // A new run starts without the last run's progress; a restarted job
+  // store keeps it until the monitor sends more.
+  if (!restartFlag)
+    progressClear();
 
   if (restartFlag)
     // before restart we set state to monitor error since we aren't
@@ -676,6 +693,9 @@ void recordStatusReason(const string& reason)
 // ------------------------------------------------------------------------- //
 void cleanup(int exitStatus)
 {
+  // Before the final state: the Organizer reads the snapshot when the
+  // state change arrives.
+  progressStore(true);
 
   // Set the final run state (if set) just before exitting to guarantee
   // output files have been uplodaed to data server
@@ -1764,7 +1784,10 @@ void initMon(void)
 
   if (remoteconn->isOpen()) {
     // specify command to invoke eccejobmonitor
-    string cmd = "perl eccejobmonitor -configFile eccejobmonitor.conf";
+    // -progress: this job store relays jmPROG; an older one would treat it
+    // as a protocol error, so the monitor sends it only when asked.
+    string cmd = "perl eccejobmonitor -configFile eccejobmonitor.conf"
+                 " -progress 1";
 
     if (cpJobId != "")
       cmd += " -jobId " + cpJobId;
@@ -1928,6 +1951,8 @@ void getJobMonitorInput(int fid)
         interactProperty(databuf, seqCode);
       else if (strcmp(databuf, "jmPROP") == 0)
         interactProperty(&databuf[7], seqCode);
+      else if (strcmp(databuf, "jmPROG") == 0)
+        interactProgress(&databuf[7]);
       else if (strcmp(databuf, "jmUP") == 0)
         interactUp(&databuf[5]);
       else if (strcmp(databuf, "jmSTATUS") == 0)
@@ -2520,6 +2545,71 @@ void sendNotify(const char* topic, const string& key1, const string& name,
     }
     logInfo("Messaging",  message);
   }
+}
+
+
+// ------------------------------------------------------------------------- //
+// A progress snapshot from eccejobmonitor (#284): relay it on the broker
+// as ecce_url_progress (the owner's own topic, FILTER BY: NONE) and keep
+// it for storing.  Not a property: nothing of it goes to Props/.
+// ------------------------------------------------------------------------- //
+void interactProgress(char* text)
+{
+  convertToNewlines(text);
+  string snap = text;
+  // When this job store relayed it, for "updated n s ago" after a restart
+  // of the Organizer (the monitor's own clock may be another machine's).
+  const string::size_type eol = snap.find('\n');
+  if (snap.compare(0, 2, "# ") == 0 && eol != string::npos) {
+    char at[32];
+    snprintf(at, sizeof at, " at=%ld", (long)time(0));
+    snap.insert(eol, at);
+  }
+  gProgress = snap;
+  if (calculation)
+    sendNotify("ecce_url_progress", "progress", gProgress);
+  progressStore(false);
+}
+
+
+void progressStore(bool force)
+{
+  if (!calculation || gProgress.empty() || gProgress == gProgressStored)
+    return;
+  const time_t now = time(0);
+  if (!force && now - gProgressStoredAt < PROGRESS_STORE_SECONDS)
+    return;
+  vector<MetaDataResult> results(1);
+  results[0].name = VDoc::getEcceNamespace() + ":progress";
+  results[0].value = gProgress;
+  try {
+    calculation->addProps(results);
+    gProgressStored = gProgress;
+    gProgressStoredAt = now;
+  } catch (DavException& ex) {
+    logErr("DAV Server", string("storing the progress snapshot: ") +
+           ex.what());
+  }
+}
+
+
+void progressClear(void)
+{
+  if (!calculation)
+    return;
+  const string key = VDoc::getEcceNamespace() + ":progress";
+  if (calculation->getProp(key).empty())
+    return;
+  vector<MetaDataResult> results(1);
+  results[0].name = key;
+  results[0].value = "";
+  try {
+    calculation->addProps(results);
+  } catch (DavException& ex) {
+    logErr("DAV Server", string("clearing the progress snapshot: ") +
+           ex.what());
+  }
+  sendNotify("ecce_url_progress", "progress", "");
 }
 
 

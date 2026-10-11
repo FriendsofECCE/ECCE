@@ -79,6 +79,8 @@ ecce_url_details
 ecce_url_launch
 ecce_url_property
 ecce_url_property_data
+// A running job's progress snapshot (#284), from eccejobstore
+ecce_url_progress
 ecce_url_runtype
 ecce_url_spin
 ecce_url_state

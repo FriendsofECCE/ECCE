@@ -19,7 +19,12 @@ without the windows:
      overlap matrix from the stored basis and the code's MOOrdering, and every
      orbital must have c.S.c = 1, so trace(P S) is the electron count;
   6. checks that the MO correlation diagram is not offered for the code
-     (ECCE-QM.edml SupportsMODiagram) and still is for another code.
+     (ECCE-QM.edml SupportsMODiagram) and still is for another code;
+  7. for the GeoVib run, records the ecce_url_progress messages the job store
+     relays (#284) as the Organizer receives them: several, numbered in
+     order, at most one a second, steps and frequency points never going
+     back, the last one complete and the same as the snapshot stored with
+     the calculation.
 
     tests/launch/ecceqm_test.py [--build build-cmake] [--keep] [-v]
 
@@ -344,6 +349,65 @@ def vectorValues(calc, key):
     return [float(v) for v in re.findall(r"[-+]?\d+\.\d+(?:[eE][-+]?\d+)?", body)]
 
 
+def startListener(suite, state, name):
+    """launchjob listen, subscribed as the Organizer is, in the background."""
+    path = os.path.join(state, "progress-%s.tsv" % name)
+    proc = subprocess.Popen(
+        [os.path.join(suite.home, "bin", "launchjob"), "-pipe", os.devnull,
+         "listen", "ecce_url_progress", "900", path],
+        env=suite.env(), cwd=os.path.join(suite.home, "bin"),
+        stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    for _ in range(50):
+        if os.path.exists(path) and "# listening" in open(path).read():
+            break
+        time.sleep(0.2)
+    return proc, path
+
+
+def checkProgress(suite, url, proc, path):
+    time.sleep(3)
+    proc.terminate()
+    proc.wait(timeout=30)
+    msgs = []
+    for line in open(path).read().splitlines():
+        if line.startswith("#"):
+            continue
+        at, murl, text = line.split("\t", 2)
+        if murl.rstrip("/") == url.rstrip("/") and text:
+            msgs.append((float(at), text.replace("\\n", "\n")))
+    say("  progress messages: %d" % len(msgs))
+    if not check(len(msgs) >= 3, "the Organizer's topic carried progress (%d messages)" % len(msgs)):
+        return
+    heads, steps, points = [], [], []
+    for _, text in msgs:
+        lines = text.splitlines()
+        heads.append(dict(w.split("=", 1) for w in lines[0][2:].split()))
+        stages = dict(l.split(" ", 1) for l in lines[1:] if " " in l)
+        m = re.search(r"\bstep=(\d+)", stages.get("opt", ""))
+        steps.append(int(m.group(1)) if m else 0)
+        m = re.search(r"\bpoint=(\d+)/(\d+)", stages.get("freq", ""))
+        points.append(int(m.group(1)) if m else -1)
+    seqs = [int(h["seq"]) for h in heads]
+    check(seqs == sorted(seqs) and len(set(seqs)) == len(seqs),
+          "numbered in order: %s" % seqs)
+    sent = [float(h["sent"]) for h in heads]
+    gaps = [b - a for a, b in zip(sent, sent[1:])]
+    check(min(gaps) >= 1.0, "at most one a second at the monitor (smallest gap %.3f s)" % min(gaps))
+    check(all("at" in h for h in heads), "each stamped by the job store")
+    check(steps == sorted(steps) and points == sorted(points),
+          "optimisation steps %s and frequency points %s never go back" % (steps, points))
+    last = msgs[-1][1]
+    check(re.search(r"^opt step=\d+ .*converged=yes", last, re.M) is not None,
+          "the last snapshot has the converged optimisation")
+    check(re.search(r"^freq point=(\d+)/\1 done=yes real=3 imaginary=0 zpe=", last, re.M)
+          is not None, "the last snapshot has all frequency points, 3 real, 0 imaginary")
+    check(re.search(r"^scf~ dE=", last, re.M) is not None,
+          "the last snapshot keeps the SCF history")
+    rc, stored = suite.driver("progress", url)
+    check(rc == 0 and stored.strip() == last.strip(),
+          "the stored snapshot is the last one relayed")
+
+
 def runCase(suite, env, build, state, oracle, name, mol, key, mult, tol, qm,
             export=None, runtype="Energy"):
     say("--- %s" % name)
@@ -367,12 +431,17 @@ def runCase(suite, env, build, state, oracle, name, mol, key, mult, tol, qm,
     if not check(rc == 0, "molecule, basis and theory stored (setup)"):
         say(out)
         return
+    listener = None
+    if runtype == "GeoVib":
+        listener = startListener(suite, state, name)
     rc, out = suite.driver("launch", url)
     say("\n".join("  | " + l for l in out.strip().splitlines()[-8:]))
     if not check(rc == 0, "Launch ran to the end"):
         return
     state_ = suite.waitState(url)
     check(state_ == "completed", "the run reached completed (last: %s)" % state_)
+    if listener:
+        checkProgress(suite, url, *listener)
     if state_ != "completed":
         suite.diagnose(url)
         return
