@@ -671,3 +671,6 @@ Same niobium, same versions, scratch paths and user/host names replaced.
 * `o2_roks` — O2 triplet, B3LYP/STO-3G, restricted open-shell (one orbital set,
   occupations 2, 1, 0).
 * `o2_uks` — the same unrestricted (alpha and beta sets).
+* `h2o_optfreq` — water, HF/STO-3G, `runtype optfreq`: the trace of the
+  optimisation, then the frequencies, IR intensities, normal modes and
+  thermochemistry (2026-10-11).

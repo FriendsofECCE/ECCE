@@ -1720,6 +1720,31 @@ CASES = [
                 'EGRADVEC': {'size': '3 3', 'units': 'Hartree/Bohr'}}),
         },
     ),
+    dict(
+        # Optimisation followed by frequencies (runtype optfreq).  Like
+        # ORCA's, VIBFREQ/VIBIR/VIB hold all 3N modes with the six
+        # translations and rotations first at zero, so the rows line up;
+        # ORCA's RHF/STO-3G water frequencies for this molecule are
+        # 2169.86 4141.54 4392.65 (fixtures/orca/h2o_optfreq.out).
+        name='ecceqm-h2o-optfreq',
+        desc='ecceqm.desc',
+        fixture='ecceqm/h2o_optfreq.qmout',
+        parse_args=('.', 'GeoVib', 'SCF', 'HF', '0'),
+        expect={
+            'TE': dict(keys={'TE': {'values': '-74.965901191978'}}),
+            'VIBFREQ][VIBIR': dict(keys={
+                'VIBFREQ': {'size': '9', 'units': 'cm-1',
+                            'values': '0.0000 0.0000 0.0000 0.0000 0.0000 0.0000 2170.0148 4140.0307 4391.0749'},
+                'VIBIR': {'size': '9', 'units': 'KM/Mole',
+                          'values': '0.0000 0.0000 0.0000 0.0000 0.0000 0.0000 7.2372 44.2883 29.9724'}}),
+            'VIB': dict(keys={'VIB': {'size': '9 3 3', 'units': 'Angstrom'}}),
+            'EZEROPT': dict(keys={'EZEROPT': {'values': '0.024378945906', 'units': 'Hartree'}}),
+            'ETHERM': dict(keys={'ETHERM': {'values': '-74.938689411361', 'units': 'Hartree'}}),
+            'ENTHALPY': dict(keys={'ENTHALPY': {'values': '-74.937745226493', 'units': 'Hartree'}}),
+            'ENTROPY': dict(keys={'ENTROPY': {'values': '0.021514702198', 'units': 'Hartree'}}),
+            'EGIBBS': dict(keys={'EGIBBS': {'values': '-74.959259928692', 'units': 'Hartree'}}),
+        },
+    ),
     # -----------------------------------------------------------------
     # Partial charges beyond Mulliken (#272).  Every value below is read off
     # the printed block; 'sum' is the molecule's total charge (0).

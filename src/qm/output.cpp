@@ -64,8 +64,50 @@ void write_opt_step(std::ostream& os, const OptStep& st) {
   os.flush();
 }
 
+// Every mode of the 3N is listed, the translations and rotations first with
+// frequency and intensity 0 (as ORCA does), so the lists line up row by row.
+static void write_frequency_blocks(std::ostream& os, const FrequencyOutput& f, const Molecule& mol, double e_el) {
+  const VibResult& v = f.vib;
+  const int n = 3 * static_cast<int>(mol.atoms.size()), ntr = v.ntransrot;
+  os << std::fixed << std::setprecision(12);
+  os << "hessian_step " << f.step << "\n";
+  os << "max_gradient " << std::scientific << std::setprecision(4) << f.max_gradient << std::fixed << std::setprecision(12) << "\n";
+  os << "vib_transrot " << ntr << "\n";
+  os << "vib_imaginary " << v.n_imaginary << "\n";
+  os << "begin transrot_residual  # smallest frequencies (cm-1) before projection\n";
+  os << std::setprecision(4);
+  for (double x : v.residual) os << x << "\n";
+  os << "end transrot_residual\n";
+  os << "begin vibrations  # index frequency(cm-1) ir_intensity(km/mol); imaginary frequencies are negative\n";
+  for (int i = 0; i < n; ++i) {
+    const bool real = i >= ntr;
+    os << i + 1 << " " << (real ? v.freq[i - ntr] : 0.0) << " " << (real ? v.ir[i - ntr] : 0.0) << "\n";
+  }
+  os << "end vibrations\n";
+  os << "begin normal_modes  # index then x y z of every atom, Cartesian displacements of unit length\n";
+  os << std::setprecision(8);
+  for (int i = 0; i < n; ++i) {
+    os << i + 1;
+    for (int k = 0; k < n; ++k) os << " " << (i >= ntr ? v.modes(k, i - ntr) : 0.0);
+    os << "\n";
+  }
+  os << "end normal_modes\n";
+  const Thermo& t = f.thermo;
+  os << std::setprecision(12);
+  os << "thermo_temperature " << t.temperature << "\nthermo_pressure_atm " << t.pressure << "\n";
+  os << "symmetry_number " << t.symmetry_number << "\n";
+  os << "zero_point_energy " << t.zpe << "\n";
+  os << "thermal_energy " << e_el + t.e_thermal << "\n";
+  os << "enthalpy " << e_el + t.enthalpy_corr << "\n";
+  os << "entropy_ts " << t.ts << "\n";
+  os << "gibbs_energy " << e_el + t.gibbs_corr << "\n";
+  os << std::setprecision(10);
+  os << "entropy_translation " << t.s_trans << "\nentropy_rotation " << t.s_rot << "\nentropy_vibration " << t.s_vib
+     << "\nentropy_electronic " << t.s_elec << "\n";
+}
+
 void write_text_output(std::ostream& os, const Input& in, const Basis& b, const ScfResult& r, double seconds,
-                       const OptResult* opt) {
+                       const OptResult* opt, const FrequencyOutput* freq) {
   const bool dft = in.scf.method != "hf";
   const bool restricted = r.reference != Reference::Unrestricted;
   const Molecule& mol = b.molecule();
@@ -74,7 +116,8 @@ void write_text_output(std::ostream& os, const Input& in, const Basis& b, const 
   os << "format_version 1\n";
   os << "program ecce-qm 0.1\n";
   os << "title " << in.title << "\n";
-  os << "runtype " << (in.runtype == RunType::Energy ? "energy" : in.runtype == RunType::Gradient ? "gradient" : "optimize") << "\n";
+  static const char* kRunNames[] = {"energy", "gradient", "optimize", "frequency", "optfreq"};
+  os << "runtype " << kRunNames[static_cast<int>(in.runtype)] << "\n";
   os << "method " << in.scf.method << "\n";
   os << "reference " << ref_name(r.reference, dft) << "\n";
   os << "basis " << in.basis << "\n";
@@ -133,10 +176,11 @@ void write_text_output(std::ostream& os, const Input& in, const Basis& b, const 
     spin_block("alpha", r.eps_a, r.occ_a, r.occ_a, r.C_a, false);
     spin_block("beta", r.eps_b, r.occ_b, r.occ_b, r.C_b, false);
   }
+  if (freq) write_frequency_blocks(os, *freq, mol, r.energy);
   os << "end_of_output\n";
 }
 
-void write_molden(std::ostream& os, const Input& in, const Basis& b, const ScfResult& r) {
+void write_molden(std::ostream& os, const Input& in, const Basis& b, const ScfResult& r, const FrequencyOutput* freq) {
   if (!b.spherical()) throw Error("Molden export needs spherical d/f functions");
   const Molecule& mol = b.molecule();
   os << "[Molden Format]\n[Title]\n " << in.title << " (ecce-qm)\n[Atoms] Angs\n";
@@ -145,6 +189,24 @@ void write_molden(std::ostream& os, const Input& in, const Basis& b, const ScfRe
     os << element_symbol(mol.atoms[a].Z) << " " << a + 1 << " " << mol.atoms[a].Z << " "
        << mol.atoms[a].x[0] * kBohrToAngstrom << " " << mol.atoms[a].x[1] * kBohrToAngstrom << " "
        << mol.atoms[a].x[2] * kBohrToAngstrom << "\n";
+  if (freq && !freq->vib.freq.empty()) {
+    const VibResult& v = freq->vib;
+    const int nat = static_cast<int>(mol.atoms.size());
+    os << std::fixed << std::setprecision(4) << "[FREQ]\n";
+    for (double x : v.freq) os << x << "\n";
+    os << std::setprecision(10) << "[FR-COORD]\n";
+    for (int a = 0; a < nat; ++a)
+      os << element_symbol(mol.atoms[a].Z) << " " << mol.atoms[a].x[0] << " " << mol.atoms[a].x[1] << " " << mol.atoms[a].x[2] << "\n";
+    os << "[FR-NORM-COORD]\n";
+    for (size_t m = 0; m < v.freq.size(); ++m) {
+      os << "vibration " << m + 1 << "\n";
+      for (int a = 0; a < nat; ++a)
+        os << v.modes(3 * a, m) << " " << v.modes(3 * a + 1, m) << " " << v.modes(3 * a + 2, m) << "\n";
+    }
+    os << std::setprecision(4) << "[INT]\n";
+    for (double x : v.ir) os << x << "\n";
+  }
+  os << std::fixed << std::setprecision(10);
   os << "[5D]\n[7F]\n[9G]\n[GTO]\n";
   os << std::scientific << std::setprecision(10);
   const char* L = "spdfghik";

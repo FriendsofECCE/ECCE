@@ -2,13 +2,17 @@
 //  * Lebedev rules integrate monomials exactly (analytic values);
 //  * AO values on the grid, integrated pairwise, reproduce libcint's overlap
 //    matrix (two independent routes to <i|j>: quadrature and libcint);
-//  * AO gradients and second derivatives agree with finite differences.
+//  * AO gradients and second derivatives agree with finite differences;
+//  * model Hessians give the closed-form frequency and IR intensity, rotational
+//    symmetry numbers of standard molecules, and the Sackur-Tetrode entropy.
 #include <cmath>
 #include <iostream>
 #include "ao.hpp"
 #include "basis.hpp"
 #include "grid.hpp"
 #include "integrals.hpp"
+#include "vibration.hpp"
+#include <array>
 
 using namespace qm;
 
@@ -103,5 +107,59 @@ int main(int argc, char** argv) {
       check(herr < 1e-6, std::string("AO second derivatives vs finite difference ") + bname, herr);
     }
   }
+  // Vibrations.  A diatomic with a given Hessian and dipole derivative has
+  // closed-form answers: nu = 5140.487 sqrt(k/mu) cm-1 for k in hartree/bohr^2
+  // and mu in amu, and I = 974.88 (dmu/dQ)^2 km/mol for dmu/dQ in e/sqrt(amu).
+  {
+    Molecule m;
+    for (double z : {0.0, 1.4}) { Atom a; a.Z = 1; a.x[2] = z; m.atoms.push_back(a); }
+    const double k = 0.37, q = 0.1, mH = isotope_mass(1);
+    Derivatives d;
+    d.hessian = Mat::Zero(6, 6);
+    d.hessian(2, 2) = d.hessian(5, 5) = k;
+    d.hessian(2, 5) = d.hessian(5, 2) = -k;
+    d.dmu = Mat::Zero(3, 6);
+    d.dmu(2, 2) = q;
+    d.dmu(2, 5) = -q;
+    VibResult v = analyse_vibrations(m, d);
+    const double nu = 5140.487 * std::sqrt(k / (mH / 2));
+    check(v.ntransrot == 5 && v.freq.size() == 1, "H2 model: 5 translations/rotations, one vibration", v.freq.size());
+    check(std::fabs(v.freq[0] / nu - 1) < 1e-4, "H2 model: frequency", v.freq[0] - nu);
+    const double ir = 974.88 * 2 * q * q / mH;
+    check(std::fabs(v.ir[0] / ir - 1) < 1e-3, "H2 model: IR intensity", v.ir[0] - ir);
+    check(rotational_symmetry_number(m) == 2, "H2 symmetry number 2");
+    // translations and rotations of the model Hessian come out at zero
+    check(std::fabs(v.residual.front()) < 1e-3 && std::fabs(v.residual.back()) < 1e-3, "H2 model: TR residual", v.residual.back());
+  }
+  {
+    auto mol = [](std::initializer_list<std::array<double, 4>> list) {
+      Molecule m;
+      for (auto& r : list) { Atom a; a.Z = static_cast<int>(r[0]); for (int k = 0; k < 3; ++k) a.x[k] = r[k + 1]; m.atoms.push_back(a); }
+      return m;
+    };
+    check(rotational_symmetry_number(mol({{8, 0, 0, 0.22}, {1, 0, 1.43, -0.89}, {1, 0, -1.43, -0.89}})) == 2, "H2O symmetry number 2");
+    const double c = 1.1 / std::sqrt(3.0) * 1.8897;
+    check(rotational_symmetry_number(mol({{6, 0, 0, 0}, {1, c, c, c}, {1, c, -c, -c}, {1, -c, c, -c}, {1, -c, -c, c}})) == 12, "CH4 symmetry number 12");
+    const double r = 1.9, h = 0.8;
+    check(rotational_symmetry_number(mol({{7, 0, 0, 0.3}, {1, r, 0, -h}, {1, -r / 2, r * 0.8660254, -h}, {1, -r / 2, -r * 0.8660254, -h}})) == 3, "NH3 symmetry number 3");
+    check(rotational_symmetry_number(mol({{6, 0, 0, 0}, {8, 0, 0, 2.13}})) == 1, "CO symmetry number 1");
+    check(rotational_symmetry_number(mol({{7, 0, 0, 0}, {7, 0, 0, 2.07}})) == 2, "N2 symmetry number 2");
+    std::vector<std::array<double, 4>> bz;
+    for (int k = 0; k < 6; ++k) {
+      const double a = k * kPi / 3;
+      bz.push_back({6, 2.64 * std::cos(a), 2.64 * std::sin(a), 0});
+      bz.push_back({1, 4.69 * std::cos(a), 4.69 * std::sin(a), 0});
+    }
+    Molecule b;
+    for (auto& r2 : bz) { Atom a; a.Z = static_cast<int>(r2[0]); for (int k = 0; k < 3; ++k) a.x[k] = r2[k + 1]; b.atoms.push_back(a); }
+    check(rotational_symmetry_number(b) == 12, "benzene symmetry number 12");
+    // translational entropy of Ar at 298.15 K, 1 bar (Sackur-Tetrode, 1 bar): 154.846 J/(mol K)
+    Molecule ar = mol({{18, 0, 0, 0}});
+    VibResult none = analyse_vibrations(ar, Derivatives{Mat::Zero(3, 3), Mat::Zero(3, 3)});
+    Thermo t = thermochemistry(ar, none, 298.15, 1e5 / 101325.0, 0);
+    const double sJ = t.s_trans * 4.3597447222071e-18 * 6.02214076e23;
+    check(none.ntransrot == 3 && std::fabs(sJ - 154.846) < 0.02, "Ar translational entropy", sJ);
+  }
+
   return fails ? 1 : 0;
 }

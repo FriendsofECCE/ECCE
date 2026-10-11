@@ -10,7 +10,8 @@
 #       dictionary/geometry readers and the ##tag## substitution engine are
 #       the same as ai.orca's.  Format of the input: src/qm/input.hpp.
 #
-#       Energy, Gradient and Geometry (geometry optimisation) runtypes;
+#       Energy, Gradient, Geometry (geometry optimisation), Vibration
+#       (frequencies, IR, thermochemistry) and GeoVib runtypes;
 #       RunType() is the one place that maps them to the engine's
 #       "runtype" keyword and refuses the others.  The basis set is always
 #       written out in full by std2ECCEQM (wrECCEQMGBS.pm), so the engine
@@ -300,8 +301,12 @@ sub RunType {
     return "gradient";
   } elsif ($runtype eq "Geometry") {
     return "optimize";
+  } elsif ($runtype eq "Vibration") {
+    return "frequency";
+  } elsif ($runtype eq "GeoVib") {
+    return "optfreq";
   }
-  die "ai.ecceqm error: unsupported runtype '$runtype' (ECCE-QM does Energy, Gradient and Geometry)\n";
+  die "ai.ecceqm error: unsupported runtype '$runtype' (ECCE-QM does Energy, Gradient, Geometry, Vibration and GeoVib)\n";
 }
 
 # The basis_data block std2ECCEQM wrote, with its "basis <name>" line.

@@ -78,8 +78,14 @@ Input parse_input(std::istream& in) {
       if (v == "energy") r.runtype = RunType::Energy;
       else if (v == "gradient") r.runtype = RunType::Gradient;
       else if (v == "optimize" || v == "opt") r.runtype = RunType::Optimize;
-      else throw bad("runtype must be energy, gradient or optimize");
+      else if (v == "frequency" || v == "freq") r.runtype = RunType::Frequency;
+      else if (v == "optfreq") r.runtype = RunType::OptFreq;
+      else throw bad("runtype must be energy, gradient, optimize, frequency or optfreq");
     }
+    else if (k == "hessian_step") r.hessian_step = std::stod(rest);
+    else if (k == "temperature") r.temperature = std::stod(rest);
+    else if (k == "pressure") r.pressure = std::stod(rest);
+    else if (k == "symmetry_number") r.symmetry_number = std::stoi(rest);
     else if (k == "maxsteps") r.opt.max_steps = std::stoi(rest);
     else if (k == "opt_conv") r.opt.set_convergence(lower(rest));
     else if (k == "molden") r.molden = true;

@@ -41,6 +41,8 @@ struct ScfResult {
   int nalpha = 0, nbeta = 0;
 };
 
-ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt);
+// guess: the converged result of a nearby geometry of the same molecule and
+// basis, used instead of the atomic-density guess (ignored if it does not fit).
+ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, const ScfResult* guess = nullptr);
 
 }  // namespace qm

@@ -6,7 +6,8 @@
    on; there is nothing to install or register.
 
    Kept deliberately small, because it is for students: HF and DFT
-   (SVWN, PBE, B3LYP, PBE0), Energy, Gradient and Geometry (ai.ecceqm's
+   (SVWN, PBE, B3LYP, PBE0), Energy, Gradient, Geometry, Vibration and
+   GeoVib (ai.ecceqm's
    RunType() maps them to the engine's runtype keyword; no runtype
    dialog, so no further options), and a fixed list of basis sets chosen
    from the Calculation Editor's quick-pick menu.  The Basis Set Tool is
@@ -93,11 +94,15 @@
     <runtype>Energy</runtype>
     <runtype>Gradient</runtype>
     <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
   </Theory>
   <Theory category="SCF" name="HF">
     <runtype>Energy</runtype>
     <runtype>Gradient</runtype>
     <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
   </Theory>
 
   <TheorySummary>

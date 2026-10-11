@@ -2421,7 +2421,7 @@ if(PYTHON3_EXECUTABLE)
                      ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/ecceqm_test.py
                      --build ${CMAKE_BINARY_DIR}
              WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
-    set_tests_properties(launch_ecceqm PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+    set_tests_properties(launch_ecceqm PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
   endif()
 
   # A GROMACS MD study through the real editors (private Xvfb), launches and
@@ -2449,6 +2449,15 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_overlay PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
+  # ECCE-QM Geometry and Vibration runs of water in the Builder: the IR
+  # spectrum's sticks against the engine's output, the geometry trace.
+  add_test(NAME apps_ecceqm_vib_builder
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/ecceqm_vib_builder_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_ecceqm_vib_builder PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
   # An 8.x eccejobmaster exports ECCE_TRANSPORT=pty; it must be ignored.
   add_test(NAME launch_legacy_transport

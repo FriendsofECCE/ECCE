@@ -3,8 +3,9 @@
 A small quantum chemistry engine for teaching-size molecules (tens of atoms
 at most), shipped with ECCE so that a calculation needs no external code.
 Stage 1 is single-point energies and orbitals; stage 2 (below) adds analytic
-gradients and geometry optimisation; stage 4 registers it in ECCE as the code
-ECCE-QM. Planned: numerical Hessian, frequencies and IR (stage 3).
+gradients and geometry optimisation; stage 3 harmonic frequencies, IR
+intensities and thermochemistry; stage 4 registers it in ECCE as the code
+ECCE-QM.
 
 Source `src/qm/` (library `eccems`, no wx; command line `ecce-qm`), tests
 `tests/qm/`.
@@ -40,7 +41,7 @@ Everything is static, so the same CMake works on Linux, macOS and MSYS2
     basis def2-SVP        # any ECCE library name: 6-31G*, STO-3G, def2-TZVP, ...
     spherical true        # default; false = Cartesian d, f
     grid 99 590           # radial x Lebedev points per atom (DFT)
-    runtype optimize      # energy (default), gradient or optimize
+    runtype optimize      # energy (default), gradient, optimize, frequency or optfreq
     geometry              # angstrom (units bohr to change)
     O 0 0 0.1173
     H 0 0.7572 -0.4692
@@ -127,6 +128,94 @@ and `opt_conv normal|tight` (default normal) tune the latter.
   and angles against ORCA TightOpt, `opt_oracle.json`, made by
   `gen_opt_oracle.py`).
 
+## Frequencies, IR intensities, thermochemistry (stage 3)
+
+`runtype frequency` computes the harmonic vibrations at the given geometry,
+`runtype optfreq` optimises first (and does nothing more if the optimisation
+did not converge). Further keywords: `hessian_step` (bohr, default 0.005),
+`temperature` (K, 298.15), `pressure` (atm, 1), `symmetry_number` (default: worked out).
+
+* Hessian (`vibration.cpp`): central differences of the analytic gradient over
+  every Cartesian coordinate, step 0.005 bohr, so 6N gradient evaluations
+  (`2 x 3N`). The same displaced calculations give the dipole derivatives.
+  Every displaced SCF starts from the orbitals of the reference geometry and
+  is converged to 1e-8 (orbital gradient) and 1e-11 hartree, tighter than an
+  energy needs, so that the noise in the Hessian stays below 0.1 cm-1. The
+  step is a compromise: smaller ones amplify the SCF noise, larger ones the
+  cubic terms; 0.0025 and 0.005 agree to 0.05 cm-1 for water B3LYP, 0.02 is off by 0.8, and
+  0.005 reproduces ORCA's analytic frequencies to 0.2-0.8 cm-1.
+  With DFT the Hessian is the derivative of the gradient that neglects the
+  grid-weight terms, so translations and rotations carry a residual of a few
+  cm-1 (printed, see below).
+* Analysis: masses of the most abundant isotopes (hydrogen 1.00783, not
+  deuterium or the average; elements up to Kr), mass-weighted Hessian,
+  translations and rotations about the centre of mass projected out (3 for an
+  atom, 5 for a linear molecule, else 6), the rest diagonalised. Frequencies
+  in cm-1, imaginary ones negative. `transrot_residual` lists the smallest
+  frequencies of the unprojected mass-weighted Hessian: translations come out
+  below 1 cm-1 for HF and up to a few cm-1 for DFT, rotations a few to 20 cm-1
+  because the gradient at a converged geometry is not exactly zero (the
+  rotational term is proportional to it); `max_gradient` is printed too.
+* IR intensity: with the Cartesian dipole derivative `dmu/dx` and the mode's
+  Cartesian displacement `dx` (mass-weighted eigenvector over sqrt(m)),
+  `I = N_A/(12 eps0 c^2) |dmu/dQ|^2` in km/mol (the integrated absorption
+  coefficient, what ORCA and Gaussian print).
+* Thermochemistry at `temperature`, `pressure`: ideal gas, rigid rotor,
+  harmonic oscillator (no quasi-RRHO treatment of low modes; ORCA applies
+  Grimme's by default, switch it off with `%freq QuasiRRHO false end` to
+  compare). Translation Sackur-Tetrode; rotation with the rotational symmetry
+  number sigma (linear `q = T/(sigma Theta)`, otherwise
+  `q = sqrt(pi)/sigma T^1.5/sqrt(Theta_A Theta_B Theta_C)`); vibration over
+  the real modes only (imaginary ones are left out); electronic `ln(2S+1)`
+  from the multiplicity (spin only, no orbital degeneracy). Reported:
+  `zero_point_energy` (the correction), `thermal_energy` (electronic energy +
+  ZPE + thermal, ORCA's "total thermal energy"), `enthalpy` (+ kT),
+  `entropy_ts` (T S) and `gibbs_energy` (H - T S), all in hartree, with the
+  entropy parts in hartree/K. The symmetry number is the number of proper
+  rotations that map the molecule onto itself (0.02 bohr tolerance), 2 for a
+  linear molecule with an inversion centre; `symmetry_number N` overrides it.
+  A DFT geometry that is a little distorted can still be found symmetric by
+  ecce-qm where ORCA, with a tighter test, finds a subgroup (CH4 B3LYP: ORCA
+  sigma 4, ecce-qm 12).
+* Output: `vib_transrot`, `vib_imaginary`, `hessian_step`, `max_gradient`,
+  `begin transrot_residual`, `begin vibrations` (every one of the 3N modes:
+  index, frequency, IR intensity; the translations and rotations first with
+  0, as in ORCA, so ECCE's VIBFREQ, VIBIR and VIB line up row by row),
+  `begin normal_modes` (per mode the x y z of every atom, Cartesian
+  displacements of unit length), then the thermochemistry keys above. With
+  `--molden` the file also gets `[FREQ]`, `[FR-COORD]`, `[FR-NORM-COORD]`
+  and `[INT]` for the real vibrations.
+* Cost: `6N` gradient evaluations, each an SCF from the reference orbitals plus
+  a gradient. Wall time, 6-31G*, default threads, on an 8-core machine that was
+  shared with other jobs (load 4 to 16, so read them as a 4-core laptop; the
+  frequency times of water and ethanol were measured on a quieter machine):
+
+  | molecule (atoms, basis functions) | method | energy | optimisation | one gradient | frequencies |
+  |---|---|---|---|---|---|
+  | water (3, 18) | HF | 0.5 s | 1.6 s (5 steps) | 0.2 s | 4 s |
+  | water (3, 18) | B3LYP | 1.2 s | 4.9 s (5) | 0.7 s | 19 s |
+  | ethanol (9, 54) | B3LYP | | | | 247 s (quiet machine) |
+  | benzene (12, 96) | HF | 3.0 s | 28 s (4) | 4.2 s | 604 s |
+  | benzene (12, 96) | B3LYP | 19 s | 82 s (3) | 16 s | 1382 s |
+  | cyclohexane (18, 108) | HF | 0.9 s | 33 s (6) | | 644 s |
+  | cyclohexane (18, 108) | B3LYP | 18 s | 160 s (6) | 31 s | not run (about 6N x 40 s) |
+
+  Frequency time grows as `N^2 x nbf` (grid and integrals per gradient times
+  `6N` gradients): about `0.06 N^2 nbf` seconds for DFT on 8 idle cores and a
+  third of that for HF. A pointer for a student laptop (about half that
+  machine): warn before a frequency run when `N^2 x nbf` exceeds 5000 for DFT
+  (ethanol B3LYP is 4400, 4 minutes; benzene B3LYP 13800, 13 to 23 minutes) or
+  15000 for HF, and before any run beyond 25 atoms or 150 basis functions (the
+  integrals are held in memory: about 170 MB at 114 functions, 4 GB at 250).
+  The table is the basis for those numbers; the program itself enforces
+  nothing.
+* Tests: `qm_unit` (model Hessians, symmetry numbers, Sackur-Tetrode),
+  `tests/qm/freq_test.py` (frequencies, IR intensities, ZPE and the thermal
+  quantities against ORCA 6.1.1 at ORCA's own TightOpt geometry,
+  `freq_oracle.json`, made by `gen_freq_oracle.py`; triplet O2 restricted
+  open-shell against the curvature of its own energies, since ORCA has no
+  ROHF Hessian).
+
 ## Output format (version 1)
 
 Line oriented text, key value pairs, then blocks
@@ -171,8 +260,10 @@ Organizer; the Calculation Editor offers
   B3LYP (default) or PBE0 in Theory Details, which also has one tick for
   unrestricted orbitals (UHF/UKS; open shells are otherwise restricted
   open-shell, ROHF/ROKS);
-* run type: Energy, Gradient or Geometry (optimisation, the geometry trace and
-  energy plot appear as for any other code);
+* run type: Energy, Gradient, Geometry (optimisation, the geometry trace and
+  energy plot appear as for any other code), Vibration (frequencies, IR
+  intensities, normal modes and thermochemistry at the given geometry) or
+  GeoVib (optimisation, then the same);
 * basis set: STO-3G, 3-21G, 6-31G* (default), cc-pVDZ or def2-SVP from the
   Basis Set menu (the Basis Set Tool is not used); an element a basis does not
   cover, or that would need a core potential (def2 beyond Kr), is named before

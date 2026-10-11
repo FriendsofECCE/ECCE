@@ -54,12 +54,26 @@ ORACLE = os.path.join(REPO, "tests", "qm", "oracle.json")
 BASIS_DIR = os.path.join(REPO, "data", "admin", "basissets")
 PARSERS = os.path.join(REPO, "scripts", "parsers")
 
-#  (name, molecule, oracle case, multiplicity, tolerance in hartree).  ORCA's
-#  DefGrid3 and ours are different grids: the oracle tests allow 1e-5.
+#  (name, molecule, oracle case, multiplicity, tolerance in hartree, run type).
+#  ORCA's DefGrid3 and ours are different grids: the oracle tests allow 1e-5.
+#  Energy runs are checked against ORCA's energy at the stored geometry; the
+#  others only for the properties they must produce (their energies are at
+#  other geometries), and GeoVib also for the B3LYP water frequencies
+#  (tests/qm/freq_oracle.json, ORCA at its own optimum).
 CASES = [
-    ("water", "h2o", "h2o_6-31gs_b3lyp_r", 1, 1e-5),
-    ("o2-triplet-roks", "o2", "o2_6-31gs_b3lyp_ro", 3, 1e-5),
+    ("water", "h2o", "h2o_6-31gs_b3lyp_r", 1, 1e-5, "Energy"),
+    ("o2-triplet-roks", "o2", "o2_6-31gs_b3lyp_ro", 3, 1e-5, "Energy"),
+    ("water-geometry", "h2o", None, 1, None, "Geometry"),
+    ("water-vibration", "h2o", None, 1, None, "Vibration"),
+    ("water-geovib", "h2o", None, 1, None, "GeoVib"),
 ]
+RUN_PROPS = {
+    "Geometry": ("GEOMTRACE", "TEVEC", "EGRAD", "EGRADVEC"),
+    "Vibration": ("VIBFREQ", "VIBIR", "VIB", "EZEROPT", "ETHERM", "ENTHALPY", "ENTROPY", "EGIBBS"),
+    "GeoVib": ("GEOMTRACE", "TEVEC", "VIBFREQ", "VIBIR", "VIB", "EZEROPT", "ETHERM",
+               "ENTHALPY", "ENTROPY", "EGIBBS"),
+}
+FREQ_ORACLE = os.path.join(REPO, "tests", "qm", "freq_oracle.json")
 
 say = launch.say
 failures = []
@@ -121,7 +135,7 @@ def writeGbs(path, elements, basis):
         out.write("END\nEndNumericalBasis\n")
 
 
-def writeCalcFiles(work, name, mol, mult):
+def writeCalcFiles(work, name, mol, mult, runtype="Energy"):
     charge, _mult, atoms = MOLECULES[mol]
     with open(os.path.join(work, name + ".frag"), "w") as out:
         out.write("fragment\ntitle: %s\nnum_atoms: %d\natom_info: symbol\n"
@@ -129,9 +143,9 @@ def writeCalcFiles(work, name, mol, mult):
         for a in atoms:
             out.write("%s %.10f %.10f %.10f\n" % a)
     with open(os.path.join(work, name + ".param"), "w") as out:
-        out.write("Category: DFT\nTheory: DFT\nRunType: Energy\n"
+        out.write("Category: DFT\nTheory: DFT\nRunType: %s\n"
                   "Charge: %d\nChemSys.Multiplicity: %d\n"
-                  "ES.Theory.DFT.XCFunctionals: %s\n" % (charge, mult, FUNCTIONAL))
+                  "ES.Theory.DFT.XCFunctionals: %s\n" % (runtype, charge, mult, FUNCTIONAL))
     elements = sorted({a[0] for a in atoms})
     writeGbs(os.path.join(work, name + ".gbs"), elements, BASIS)
 
@@ -236,6 +250,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--build", default=os.path.join(REPO, "build-cmake"))
     parser.add_argument("--keep", action="store_true")
+    parser.add_argument("--only", metavar="CASE", help="run just this case")
     parser.add_argument("--export", metavar="DIR",
                         help="copy each finished calculation folder to DIR "
                         "(how tests/ecceqm/fixtures was made)")
@@ -298,9 +313,11 @@ def main():
             check("localhost" in out.split(),
                   "the Launcher offers localhost for %s with nothing registered (%s)"
                   % (CODE, " ".join(out.split())))
-            for name, mol, key, mult, tol in CASES:
+            for name, mol, key, mult, tol, runtype in CASES:
+                if opts.only and opts.only != name:
+                    continue
                 runCase(suite, env, build, state, oracle, name, mol, key, mult, tol, qm,
-                        opts.export)
+                        opts.export, runtype)
             checkDiagramNotOffered(build)
     finally:
         if not opts.keep:
@@ -319,12 +336,20 @@ def main():
     return 0
 
 
+def vectorValues(calc, key):
+    """The numbers of a vector property file, in order."""
+    with open(os.path.join(calc, "Props", key), errors="replace") as handle:
+        text = handle.read()
+    body = text.split(">", 2)[2]   # after the XML declaration and the root's start tag
+    return [float(v) for v in re.findall(r"[-+]?\d+\.\d+(?:[eE][-+]?\d+)?", body)]
+
+
 def runCase(suite, env, build, state, oracle, name, mol, key, mult, tol, qm,
-            export=None):
+            export=None, runtype="Energy"):
     say("--- %s" % name)
     work = os.path.join(state, "work", name)
     os.makedirs(work)
-    writeCalcFiles(work, name, mol, mult)
+    writeCalcFiles(work, name, mol, mult, runtype)
     deck = generateDeck(env, work, name)
     output = importFromOutput(env, work, name, qm, deck)
 
@@ -363,11 +388,34 @@ def runCase(suite, env, build, state, oracle, name, mol, key, mult, tol, qm,
     outputs = os.listdir(os.path.join(calc, "Outputs"))
     check("ecceqm.qmout" in outputs, "the output file was stored in Outputs/")
     energy = propertyValue(calc, "TE")
-    want = oracle[key]["orca"]["energy"]
-    check(energy is not None and abs(energy - want) < tol,
-          "total energy %.8f against ORCA %.8f (%s, tolerance %g)"
-          % (energy if energy is not None else float("nan"), want,
-             oracle[key]["orca"]["keywords"].split()[0], tol))
+    if key:
+        want = oracle[key]["orca"]["energy"]
+        check(energy is not None and abs(energy - want) < tol,
+              "total energy %.8f against ORCA %.8f (%s, tolerance %g)"
+              % (energy if energy is not None else float("nan"), want,
+                 oracle[key]["orca"]["keywords"].split()[0], tol))
+    for prop in RUN_PROPS.get(runtype, ()):
+        check(prop in props, "%s present in Props/" % prop)
+    if runtype in ("Vibration", "GeoVib"):
+        freqs = vectorValues(calc, "VIBFREQ")
+        irs = vectorValues(calc, "VIBIR")
+        check(len(freqs) == 9 and len(irs) == 9 and freqs[:6] == [0.0] * 6,
+              "VIBFREQ and VIBIR list all 9 modes, six zeros first (%d, %d)" % (len(freqs), len(irs)))
+        check(all(f > 1000 for f in freqs[6:]) and all(i > 1.0 for i in irs[6:]),
+              "three real vibrations with IR intensities: %s / %s" % (freqs[6:], irs[6:]))
+        modes = vectorValues(calc, "VIB")
+        check(len(modes) >= 81, "VIB holds a displacement vector for every mode (%d numbers)" % len(modes))
+    if runtype == "GeoVib":
+        with open(FREQ_ORACLE) as handle:
+            ref = json.load(handle)["h2o_b3lyp_r"]
+        worst = max(abs(a - b) for a, b in zip(freqs[6:], ref["freq"]))
+        check(worst < 3.0, "B3LYP/6-31G* water frequencies %s against ORCA %s (worst %.2f cm-1)"
+              % (freqs[6:], ref["freq"], worst))
+        zpe = propertyValue(calc, "EZEROPT")
+        check(zpe is not None and abs(zpe - ref["zpe"]) < 2e-5,
+              "zero-point energy %s against ORCA %s" % (zpe, ref["zpe"]))
+    if runtype == "Geometry":
+        check(len(vectorValues(calc, "TEVEC")) >= 3, "the energy trace has several steps")
     if export:
         target = os.path.join(export, name)
         shutil.rmtree(target, ignore_errors=True)
