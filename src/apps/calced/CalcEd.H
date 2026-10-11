@@ -198,6 +198,9 @@ class CalcEd: public CalcEdGUI,
     // refresh & enable/disable & show/hide indicated field sets
     void updateAllFields();
     void refit();
+    // A change that updates several field sets: one refit and one repaint
+    // at the end, not a resized, half-drawn window per set (MSW).
+    struct UpdateHold;
     void updateChemSysFields();
     void updateBasisSetFields();
     void updateDetailsFields();
@@ -354,6 +357,8 @@ class CalcEd: public CalcEdGUI,
 
     string p_context;
     bool   p_startUp;
+    int    p_holdDepth = 0;
+    bool   p_refitPending = false;
 
     /**
      * True once Final Edit has written a hand-edited deck back to DAV

@@ -271,6 +271,8 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
  *   save              Save, keeping the generator's files (as Shift+Save)
  *   quit              exit without asking
  *   builder           the Builder button (startApp of the Builder)
+ *   launcher          the Launch... button's tool request
+ *   runtype <label>   choose a run type as the Runtype menu does
  */
 void CalcEd::runTestCommand(const string& line)
 {
@@ -318,6 +320,21 @@ void CalcEd::runTestCommand(const string& line)
   } else if (line == "builder") {
     startApp("Builder", 0, p_context);
     outcome = "requested";
+  } else if (line == "launcher") {
+    ResourceTool *tool =
+        ResourceDescriptor::getResourceDescriptor().getTool(LAUNCHER);
+    if (tool) startApp(tool->getName(), 0, p_context);
+    outcome = tool ? "requested" : "no Launcher tool";
+  } else if (line.compare(0, 8, "runtype ") == 0) {
+    ewxChoice *choice = (ewxChoice*)FindWindow(ID_CHOICE_CALCED_RUNTYPE);
+    if (!choice->SetStringSelection(line.substr(8))) {
+      outcome = "no such run type";
+    } else {
+      wxCommandEvent event(wxEVT_COMMAND_CHOICE_SELECTED,
+                           ID_CHOICE_CALCED_RUNTYPE);
+      OnChoiceCalcedRuntypeSelected(event);
+      outcome = "ok";
+    }
   } else if (line == "quit") {
     cerr << "ECCE_TEST_CALCED: quit: ok" << endl;
     closeTheoryApp(true);
@@ -2494,7 +2511,9 @@ void CalcEd::populateSummaryField(const string& summaryType)
   }
   sizer->Clear(true);
   sizer->Layout();
-  if (!p_startUp) sizer->SetSizeHints(this);
+  //  No SetSizeHints(this) here: this sizer is a small part of the window,
+  //  and just emptied it made the whole window shrink to a title bar until
+  //  refit() at the end of the update.
   // A gap between label and value: a long label ("SCF Conv. Algorithm")
   // otherwise runs into its value.
   sizer->SetHGap(FromDIP(8));
@@ -2947,12 +2966,33 @@ bool CalcEd::isGbsValid()
 }
 
 
+struct CalcEd::UpdateHold {
+  CalcEd *ed;
+  explicit UpdateHold(CalcEd *e) : ed(e) { ed->Freeze(); ed->p_holdDepth++; }
+  ~UpdateHold() {
+    if (--ed->p_holdDepth == 0 && ed->p_refitPending) {
+      ed->p_refitPending = false;
+      ed->refit();
+    }
+    ed->Thaw();
+#ifdef __WXMSW__
+    ::RedrawWindow((HWND)ed->GetHWND(), NULL, NULL,
+                   RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN);
+#endif
+  }
+};
+
+
 // The window takes its content's size once the fields are filled; while a
 // context is set up (p_startUp) each section only lays itself out, or the
 // window is resized once per section.
 void CalcEd::refit()
 {
   if (p_startUp) return;
+  if (p_holdDepth > 0) {
+    p_refitPending = true;
+    return;
+  }
   GetSizer()->SetSizeHints(this);
   fitToScreen();
 }
@@ -3832,6 +3872,7 @@ void CalcEd::doSave()
  */
 void CalcEd::doTheoryChange()
 {
+  UpdateHold hold(this);
   populateRuntypes();
   setRuntype(p_lastRuntype);
 
@@ -3846,6 +3887,7 @@ void CalcEd::doTheoryChange()
 
 void CalcEd::doRuntypeChange()
 {
+  UpdateHold hold(this);
   enableSave();
   makeRuntypeNoSphericalConsistent();
   resetRuntypeDetails();
