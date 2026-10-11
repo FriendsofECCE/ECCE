@@ -285,10 +285,12 @@ static void testSticks()
   CHECK(near(u.maxStick(VIB_IR, 3000, 5000), 44.2829, 1e-12));
   CHECK(u.maxStick(VIB_IR, 100, 200) == 0.0);
 
-  //  Default range: modes plus a margin, on round numbers.
+  //  Default range: modes plus a margin (a tenth of their spread here), on
+  //  round numbers.
   double l, h;
   water().defaultRange(&l, &h);
-  CHECK(l == 2000 && h == 4500);
+  CHECK(l == 1900 && h == 4700);
+  CHECK(2169.8577 - l >= 0.08 * (h - l) && h - 4392.6459 >= 0.08 * (h - l));
 }
 
 int main()
