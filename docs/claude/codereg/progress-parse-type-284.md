@@ -1,0 +1,50 @@
+---
+type: map
+title: "`[PROGRESS]` entries in a `.desc`: job progress, not properties; matched on every line, folded into a snapshot, sent at most once a second (#284)"
+area: codereg
+section: "Getting a calculation set up (the \"code registration\" system)"
+paths: ["scripts/eccejobmonitor", "scripts/parsers/ecceqm.desc", "src/qm/output.cpp", "src/qm/main.cpp", "tests/progress/monitor_test.py", "tests/parsers/eccejobmonitor_sim.py", "src/comm/commxt/JobStore.C"]
+issues: [284]
+---
+A code gets progress in the Organizer by `.desc` entries alone:
+
+    [PROGRESS]
+    Begin=^\s+(\d+)\s+(-?\d+\.\d+)\s+(\S+)      any regex, groups $1..$9
+    Progress=scf cycle=$1 energy=$2 dE=$3/1e-8  "<stage> key=value ..."
+    History=dE                                  optional, kept for a plot
+    [END]
+
+- **Not in the property table.** `PDFileRead` diverts them to
+  `@gProgList`; no `Script`, `End`, `Lines`, `Frequency` (an error if
+  given). They are tested against *every* line, inside other entries'
+  blocks too, and never consume a line, so the Begin-priority and
+  End-starvation traps of property entries do not apply either way.
+  `JCode::parseScript` skips them (no `Script`), and the parser test
+  simulator keeps them in `Desc.progress`.
+- **The snapshot.** Per stage the monitor keeps the latest fields. A record
+  key (`cycle`, `step` or `point`, the first one present) that changes
+  clears the stage's other fields; one that goes down (a new SCF) also
+  clears its history. So a multi-line block (ORCA's convergence table) is
+  one entry per line, all setting fields of the same `opt` stage, with the
+  step line first. A value `a/b` is a quantity and its target (the box
+  shows a tick or a cross); `point=k/n` gets `eta=` seconds from the
+  monitor's own clock. History keeps the last 60 values; the message is
+  trimmed to one packet (2042 bytes).
+- **Sending.** `jmPROG <text>` only with `-progress 1`, which
+  eccejobstore puts on the monitor's command line: an older job store would
+  restart on an unknown message type, an older monitor ignores the flag.
+  At most one a second, latest wins; a held-back snapshot goes at the next
+  end-of-file wait (`timePauseReadLine`, 2 s local, 10 s otherwise) and the
+  last one when the output ends.
+- **Stage names the box knows:** `opt`, `freq`, `scf` (titles, order,
+  plots: energy per step, log |dE| per cycle). Field labels it knows:
+  `energy`, `dE`, `grad`, `maxgrad`, `rmsgrad`, `maxstep`, `rmsstep`,
+  `converged=yes|no`, `done=yes real= imaginary= zpe=` (freq summary).
+  Other names are shown as they are; new labels go in
+  `src/util/genutil/JobProgress.C`.
+- **ECCE-QM** writes its own `progress scf|opt|freq ...` lines
+  (`write_progress_*` in `src/qm/output.cpp`), flushed per line.
+
+`tests/progress/monitor_test.py` (ctest `progress-monitor`) runs the real
+monitor over a made-up output; `tests/launch/ecceqm_test.py` checks the
+messages of a real GeoVib run as the Organizer receives them.

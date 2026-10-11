@@ -9,6 +9,7 @@
 
 #include <wx/weakref.h>
 #include <wx/timer.h>
+#include <map>
 #include <utility>
 #include <vector>
 #include "wxgui/WxTailWindow.H"
@@ -269,6 +270,13 @@ public:
   // MSW); they are collected and applied together under one Freeze.
   enum UpdateKind { UPDATE_CHANGED, UPDATE_ADDED, UPDATE_REMOVED };
   void queueUpdate(UpdateKind kind, const EcceURL & url);
+  // ecce_url_progress (#284): the newest snapshot per calculation, kept so
+  // that selecting a running calculation shows it at once.  Empty text
+  // forgets it (a new run).  Only the shown summary's Progress box is
+  // repainted; nothing else is reloaded.
+  void progressUpdate(const EcceURL & url, const string & text);
+  bool liveProgress(const EcceURL & url, string & text,
+                    double & received) const;
   void setMessage(const string & message,
                   WxFeedback::Severity severity=WxFeedback::WARNING,
                   bool clear = false);
@@ -512,6 +520,8 @@ protected:
   wxTimer *p_updateTimer = 0;
   // For the "counts" test command.
   int p_testNotices = 0, p_testApplied = 0, p_testBatches = 0;
+  // url -> (snapshot, when it arrived, seconds since 1970)
+  std::map<string, std::pair<string, double> > p_liveProgress;
 };
 
 

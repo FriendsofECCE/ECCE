@@ -65,6 +65,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [`scripts/codereg`](scripts-codereg.md)
 - [`scripts/parsers`](scripts-parsers.md)
 - [`scripts/gensub`](scripts-gensub.md)
+- [`[PROGRESS]` entries in a `.desc`: job progress, not properties (#284)](progress-parse-type-284.md)
 
 ### How a property gets from disk into the Properties menu
 

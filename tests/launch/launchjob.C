@@ -37,12 +37,21 @@
 //   launchjob reconnect <calcURL>                         Run Management > Reconnect
 //   launchjob machines [code]                             the Launcher's machine list
 //                                                         for a code, one name per line
+//   launchjob listen <topic> <seconds> <file>             append each message on <topic>
+//                                                         to <file>: arrival time, url and
+//                                                         "progress", newlines as \n (#284)
+//   launchjob progress <calcURL>                          the stored progress snapshot
 //
 // Credentials arrive as an AuthCache pipe file named by -pipe <file>,
 // exactly as ecmd and eccejobmaster receive them.
 
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
+#ifndef _WIN32
+#include <poll.h>
+#endif
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -73,6 +82,8 @@
 #include "util/StringConverter.H"
 #include "util/TempStorage.H"
 #include "util/TypedFile.H"
+#include "util/JMSMessage.H"
+#include "util/JMSSubscriber.H"
 
 using namespace std;
 
@@ -316,6 +327,48 @@ static int doSetup(const vector<string>& a)
   return 0;
 }
 
+static ofstream* listenOut = 0;
+
+static void listenMCB(JMSMessage& msg)
+{
+  const long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+      std::chrono::system_clock::now().time_since_epoch()).count();
+  string text = msg.getProperty("progress"), esc;
+  for (char c : text) {
+    if (c == '\n') esc += "\\n";
+    else esc += c;
+  }
+  char at[32];
+  snprintf(at, sizeof at, "%lld.%03lld", ms / 1000, ms % 1000);
+  *listenOut << at << "\t" << msg.getProperty("url") << "\t" << esc << endl;
+}
+
+// Subscribes as the Organizer does and records what arrives.
+static int doListen(const vector<string>& a)
+{
+  if (a.size() != 3) { cerr << "listen: <topic> <seconds> <file>" << endl; return 2; }
+  ofstream out(a[2].c_str(), ios::app);
+  listenOut = &out;
+  JMSSubscriber sub("LaunchJobListen");
+  if (!sub.subscribe(a[0].c_str(), listenMCB, false) || !sub.startSubscriber()) {
+    cerr << "listen: could not subscribe" << endl;
+    return 1;
+  }
+  out << "# listening" << endl;
+#ifdef _WIN32
+  cerr << "listen: not on Windows" << endl;
+  return 2;
+#else
+  const time_t end = time(0) + atoi(a[1].c_str());
+  while (time(0) < end) {
+    struct pollfd p = {sub.getSocketID(), POLLIN, 0};
+    if (p.fd < 0) return 1;
+    if (poll(&p, 1, 500) > 0) sub.processMessage();
+  }
+  return 0;
+#endif
+}
+
 // What CalcMgr::resetForRestart() does, then the user's edited input deck.
 static int doRestart(const vector<string>& a)
 {
@@ -365,6 +418,7 @@ int main(int argc, char** argv)
       cout << items[i]->getRegisteredMachine()->refname() << endl;
     return 0;
   }
+  if (mode == "listen") return doListen(a);
   if (mode == "mdsetup") return doMdSetup(a);
   if (mode == "gromacsstudy") return doMdStudy(a, true);
   if (mode == "nwchemmdstudy") return doMdStudy(a, false);
@@ -410,6 +464,12 @@ int main(int argc, char** argv)
     buildArgs(t, kv);
     cout << "files: input=" << kv["##input##"] << " output=" << kv["##output##"]
          << " parse=" << kv["##parse##"] << endl;
+    return 0;
+  }
+  if (mode == "progress") {
+    TaskJob* t = getTask(a[0]);
+    if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+    cout << t->getProp(VDoc::getEcceNamespace() + ":progress") << endl;
     return 0;
   }
   if (mode == "jobid") {

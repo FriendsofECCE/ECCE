@@ -193,6 +193,7 @@ bool CalcMgrApp::OnInit()
   subscribe("ecce_url_details", (wxJmsCBFunc)&CalcMgrApp::msgChangedMCB);
   subscribe("ecce_url_basis", (wxJmsCBFunc)&CalcMgrApp::msgChangedMCB);
   subscribe("ecce_url_launch", (wxJmsCBFunc)&CalcMgrApp::msgChangedMCB);
+  subscribe("ecce_url_progress", (wxJmsCBFunc)&CalcMgrApp::msgProgressMCB);
   subscribe("ecce_machconf_changed", (wxJmsCBFunc)&CalcMgrApp::msgMachConfChangedMCB);
   subscribe("ecce_machreg_changed", (wxJmsCBFunc)&CalcMgrApp::msgMachRegChangedMCB);
   subscribe("ecce_data_server", (wxJmsCBFunc)&CalcMgrApp::msgDataServerMCB,false);
@@ -319,6 +320,13 @@ void CalcMgrApp::msgChangedMCB(JMSMessage& msg)
 {
   EcceURL url(msg.getProperty("url"));
   p_calcMgr->queueUpdate(CalcMgr::UPDATE_CHANGED, url);
+}
+
+
+void CalcMgrApp::msgProgressMCB(JMSMessage& msg)
+{
+  p_calcMgr->progressUpdate(EcceURL(msg.getProperty("url")),
+                            msg.getProperty("progress"));
 }
 
 

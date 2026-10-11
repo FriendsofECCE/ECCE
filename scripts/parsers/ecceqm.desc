@@ -219,3 +219,26 @@ Frequency=last
 Skip=0
 Lines=1
 [END]
+
+
+# Job progress for the Organizer (#284), not properties: eccejobmonitor tests
+# every line against these, inside other entries' blocks too, and keeps a
+# snapshot it sends at most once a second.  Progress is "<stage> key=value
+# ...", $1.. from Begin; a record (cycle, step, point) that changes clears
+# the stage's other keys.  History keeps one value per record for a plot.
+[PROGRESS]
+Begin=^progress scf (.*)$
+Progress=scf $1
+History=dE
+[END]
+
+[PROGRESS]
+Begin=^progress opt (.*)$
+Progress=opt $1
+History=energy
+[END]
+
+[PROGRESS]
+Begin=^progress freq (.*)$
+Progress=freq $1
+[END]

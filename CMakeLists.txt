@@ -1803,6 +1803,18 @@ if(PYTHON3_FOR_SPECTRUM)
                        SKIP_RETURN_CODE 77)
 endif()
 
+# tests/progress -- the job progress snapshot and the Progress box's lines
+# (#284), without wx; the monitor's [PROGRESS] handling over a real output.
+add_executable(progress_test tests/progress/progress_test.C)
+target_link_libraries(progress_test PRIVATE ecceutil)
+add_test(NAME progress COMMAND progress_test)
+if(PYTHON3_FOR_SPECTRUM)
+  add_test(NAME progress-monitor
+           COMMAND ${PYTHON3_FOR_SPECTRUM}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/progress/monitor_test.py)
+  set_tests_properties(progress-monitor PROPERTIES SKIP_RETURN_CODE 77)
+endif()
+
 # tests/session -- the session id and key (#233): shell and C++ derivations
 # agree, and both generators make well-formed, distinct ids.
 add_executable(session_key_test tests/session/session_key_test.C)
@@ -2048,6 +2060,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/summary_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_summary PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+  # The summary's Progress box (#284): running from the stored snapshot and
+  # from a live one, completed, never launched; ECCE_TEST_ORGANIZER.
+  add_test(NAME apps_progress_box
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/progress_box_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_progress_box PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # The Quantum ESPRESSO tutorial (help/src/qe-first-calculation.md) replayed

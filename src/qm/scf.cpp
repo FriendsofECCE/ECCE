@@ -257,7 +257,17 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
     const double gmax = err.cwiseAbs().maxCoeff();
     if (opt.verbose)
       std::cerr << "iter " << it << "  E = " << E << "  dE = " << E - Eold << "  |grad| = " << gmax << "\n";
-    if (!first && std::fabs(E - Eold) < opt.conv_energy && gmax < opt.conv_grad) {
+    const bool done = !first && std::fabs(E - Eold) < opt.conv_energy && gmax < opt.conv_grad;
+    if (opt.on_cycle) {
+      ScfCycle c;
+      c.cycle = it;
+      c.energy = E;
+      c.dE = it > 1 ? E - Eold : std::nan("");
+      c.grad = gmax;
+      c.converged = done;
+      opt.on_cycle(c);
+    }
+    if (done) {
       R.converged = true;
       R.iterations = it;
       R.energy = E;

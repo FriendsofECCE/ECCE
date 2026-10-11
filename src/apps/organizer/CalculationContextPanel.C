@@ -39,8 +39,10 @@
 #include "wxgui/WxResourceTreeItemData.H"
 #include "wxgui/WxState.H"
 
+#include "CalcMgr.H"
 #include "CalcMgrGUI.H"
 #include "CalculationContextPanel.H"
+#include "ProgressBox.H"
 
 
 
@@ -59,7 +61,9 @@ CalculationContextPanel::CalculationContextPanel( CalcMgr * calcMgr,
   p_itemData(itemData),
   p_state(NULL),
   p_properties(NULL),
-  p_inpProvProps(NULL)
+  p_inpProvProps(NULL),
+  p_progressBox(NULL),
+  p_progressSizer(NULL)
 {
   // set the scroll rate of the scrolled window
   SetScrollbars(10, 10, 0, 0);
@@ -131,6 +135,11 @@ void CalculationContextPanel::refresh()
   p_properties->findValue(VDoc::getEcceNamespace() + ":annotation", annotation);
   annotationCtrl->SetValue(annotation);
 
+  p_storedProgress.clear();
+  p_properties->findValue(VDoc::getEcceNamespace() + ":progress",
+                          p_storedProgress);
+  updateProgress();
+
   // New values (a longer formula after a Save) need their columns widened.
   Layout();
   FitInside();
@@ -166,6 +175,44 @@ void CalculationContextPanel::refresh()
   if (p_inpProvProps != 0) delete p_inpProvProps;
 }
 
+
+
+EcceURL CalculationContextPanel::getUrl() const
+{
+  return p_itemData ? p_itemData->getUrl() : EcceURL();
+}
+
+
+void CalculationContextPanel::updateProgress()
+{
+  if (!p_progressBox) return;
+  const ResourceDescriptor::RUNSTATE state = ResourceUtils::stringToState(
+      p_itemData->getResource()->getProp(VDoc::getEcceNamespace() + ":state"));
+  const bool started = state >= ResourceDescriptor::STATE_SUBMITTED;
+  const bool finished = state >= ResourceDescriptor::STATE_COMPLETED;
+
+  string text = p_storedProgress;
+  double received = 0;
+  string live;
+  double liveAt = 0;
+  if (p_calcMgr && p_calcMgr->liveProgress(getUrl(), live, liveAt)) {
+    text = live;
+    received = liveAt;
+  }
+  if (!started) text.clear();
+
+  const bool resized = p_progressBox->set(text, received, finished,
+                                          state == ResourceDescriptor::STATE_COMPLETED);
+  const bool show = p_progressBox->hasProgress();
+  if (show != GetSizer()->IsShown(p_progressSizer)) {
+    GetSizer()->Show(p_progressSizer, show);
+    Layout();
+    FitInside();
+  } else if (show && resized) {
+    Layout();
+    FitInside();
+  }
+}
 
 
 /**
@@ -286,6 +333,16 @@ void CalculationContextPanel::createControls()
         wxALIGN_CENTER_VERTICAL|  // center vertically,
         wxALL,                    // and make border all around
         5);                       // of border width 5
+
+    // A running job's progress goes between the launcher and the viewer
+    // rows; hidden until there is some (#284).
+    if (pairRT_TPV.first->getName() == "Launcher" && !p_progressBox) {
+      p_progressSizer = new wxStaticBoxSizer(wxVERTICAL, this, "Progress");
+      p_progressBox = new ProgressBox(p_progressSizer->GetStaticBox());
+      p_progressSizer->Add(p_progressBox, wxSizerFlags(1).Expand().Border());
+      GetSizer()->Add(p_progressSizer, wxSizerFlags().Expand().Border());
+      GetSizer()->Hide(p_progressSizer);
+    }
   } // end of ToolPropertyView for loop
 
   // One width for every button, the widest label's, so that the property

@@ -21,6 +21,8 @@ class EcceTool;
 class WxResourceTreeItemData;
 class ContextPanelFactory;
 class wxBoxSizer;
+class wxStaticBoxSizer;
+class ProgressBox;
 
 
 /**
@@ -41,6 +43,19 @@ class CalculationContextPanel : public ewxScrolledWindow,
     ~CalculationContextPanel();
 
     void refresh();
+
+    /** The calculation shown, for routing progress messages to it. */
+    EcceURL getUrl() const;
+
+    /**
+     * Shows the newest progress (#284): CalcMgr's live snapshot if one has
+     * arrived, else the stored one.  Repaints only the box unless it
+     * appears, disappears or changes size.
+     */
+    void updateProgress();
+
+    /** The Progress box, for tests; null if this calculation has none. */
+    ProgressBox *getProgressBox() const { return p_progressBox; }
 
   protected:
 
@@ -76,6 +91,13 @@ class CalculationContextPanel : public ewxScrolledWindow,
 
     /** If an MDTask, searches input providers for missing properties.*/
     EcceMap *p_inpProvProps;
+
+    /** The Progress box, after the Launcher row, and its frame. */
+    ProgressBox *p_progressBox;
+    wxStaticBoxSizer *p_progressSizer;
+
+    /** The stored snapshot (ecce:progress) as of the last refresh. */
+    std::string p_storedProgress;
 };
 
 #endif // CALCULATIONCONTEXTPANEL_H

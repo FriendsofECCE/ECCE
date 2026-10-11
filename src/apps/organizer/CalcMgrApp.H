@@ -43,6 +43,7 @@ DECLARE_CLASS(CalcMgrApp)
   void msgURLCreatedMCB(JMSMessage& msg);
   void msgURLRemovedMCB(JMSMessage& msg);
   void msgChangedMCB(JMSMessage& msg);
+  void msgProgressMCB(JMSMessage& msg);
   void msgMachConfChangedMCB(JMSMessage& msg);
   void msgMachRegChangedMCB(JMSMessage& msg);
   void msgDataServerMCB(JMSMessage& msg);
