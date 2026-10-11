@@ -549,10 +549,15 @@ void BuilderApp::invokeMCB(JMSMessage& msg)
 
     registerTopShell(p_builder);
     p_builder->Iconize(false);
+#ifdef __WXMSW__
+    p_builder->Show(true);
+    ewxRaiseWindow(p_builder);
+#else
     p_builder->Raise();
     p_builder->Show(true);
     p_builder->SetFocus();
     p_builder->RequestUserAttention();
+#endif
 
   } else if (msg.getIntProperty("importcalc") == 1) {
     registerTopShell(p_builder);

@@ -5,6 +5,7 @@
 
 #include "dsm/ResourceDescriptor.H"
 #include "wxgui/WxAppJMSMessageDispatch.H"
+#include "wxgui/ewxWindowUtils.H"
 
 WxAppJMSMessageDispatch::WxAppJMSMessageDispatch(const string& name, bool app)
   : ewxApp(), WxJMSMessageDispatch(name, app)
@@ -56,10 +57,17 @@ void WxAppJMSMessageDispatch::invokeMCB(JMSMessage& msg)
 {
    wxTopLevelWindow *top = (wxTopLevelWindow*)GetTopWindow();
    top->Iconize(false);
+#ifdef __WXMSW__
+   // One activation: Show, then SetForegroundWindow; the separate Raise,
+   // SetFocus and attention request each moved the focus again.
+   top->Show(true);
+   ewxRaiseWindow(top);
+#else
    top->Raise();
    top->Show(true);
    top->SetFocus();
    top->RequestUserAttention();
+#endif
 }
 
 /**
