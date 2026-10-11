@@ -671,3 +671,23 @@ Same niobium, same versions, scratch paths and user/host names replaced.
 * `o2_roks` — O2 triplet, B3LYP/STO-3G, restricted open-shell (one orbital set,
   occupations 2, 1, 0).
 * `o2_uks` — the same unrestricted (alpha and beta sets).
+
+---
+
+## Thermochemistry and solvation fixtures (#176), 2026-10-11
+
+All captured on niobium; scratch paths in the output replaced by `/scratch`,
+otherwise unedited.  Water, geometry O 0 0 0.1173 / H 0 +-0.7572 -0.4692 A.
+
+| file | code, job |
+|------|-----------|
+| `gaussian-16/h2o_freq_thermo.{gjf,log}` | G16, B3LYP/6-31G(d) `Opt Freq` |
+| `gaussian-16/h2o_smd.{gjf,log}` | G16, same with `SCRF=(SMD,Solvent=Water)` |
+| `orca/h2o_smd.{inp,out}` | ORCA 6.1.1, B3LYP def2-SVP `Opt Freq CPCM(Water)` with `smd true` |
+| `nwchem/h2o_freq_thermo.{nw,nwout}` | NWChem 7.2.3, `task scf freq`, STO-3G |
+| `nwchem/h2o_cosmo.{nw,nwout}` | NWChem 7.2.3, B3LYP/6-31G* `task dft energy` with `cosmo` |
+
+The NWChem `.nwout` files are the plain stdout, not an ecce_print trace:
+NWChem's trace carries neither thermochemistry nor solvation, so
+`nwchem.desc` reads them through a `File=nwch.nwout` entry, replayed by
+`MOFILE_CASES`.
