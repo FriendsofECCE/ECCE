@@ -88,6 +88,8 @@ const wxWindowID WxLauncherGUI::ID_PARAMEDIT_WXLAUNCHER_BATCHNODES = wxNewId();
 const wxWindowID WxLauncherGUI::ID_STATIC_WXLAUNCHER_QUEUELABELRIGHT = wxNewId();
 const wxWindowID WxLauncherGUI::ID_PANEL_WXLAUNCHER_WALLTIME = wxNewId();
 const wxWindowID WxLauncherGUI::ID_STATIC_WXLAUNCHER_USERNAMELABEL = wxNewId();
+const wxWindowID WxLauncherGUI::ID_STATIC_WXLAUNCHER_USERNAMEREQUIRED = wxNewId();
+const wxWindowID WxLauncherGUI::ID_STATIC_WXLAUNCHER_REMOTEHEADING = wxNewId();
 const wxWindowID WxLauncherGUI::ID_PANEL_WXLAUNCHER_PRIORITY = wxNewId();
 const wxWindowID WxLauncherGUI::ID_TEXTCTRL_WXLAUNCHER_PASSWORD1 = wxNewId();
 const wxWindowID WxLauncherGUI::ID_STATIC_WXLAUNCHER_REQUIREDFIELDSKEY = wxNewId();
@@ -557,7 +559,7 @@ void WxLauncherGUI::CreateControls()
     ewxStaticLine* itemStaticLine83 = new ewxStaticLine( itemPanel3, wxID_STATIC, wxDefaultPosition, wxSize(7, -1), wxLI_HORIZONTAL );
     itemBoxSizer82->Add(itemStaticLine83, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 3);
 
-    ewxStaticText* itemStaticText84 = new ewxStaticText( itemPanel3, wxID_STATIC, _("Remote Machine Access"), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxStaticText* itemStaticText84 = new ewxStaticText( itemPanel3, ID_STATIC_WXLAUNCHER_REMOTEHEADING, _("Remote Machine Access"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer82->Add(itemStaticText84, 0, wxALIGN_TOP|wxTOP, 3);
 
     // Centred, not grown: stretched to the heading's height, MSW draws the
@@ -589,7 +591,7 @@ void WxLauncherGUI::CreateControls()
     ewxStaticText* itemStaticText91 = new ewxStaticText( itemPanel89, ID_STATIC_WXLAUNCHER_USERNAMELABEL, _("Username:"), wxDefaultPosition, wxSize(120, -1), wxALIGN_LEFT );
     itemFlexGridSizer90->Add(itemStaticText91, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 3);
 
-    ewxStaticText* itemStaticText92 = new ewxStaticText( itemPanel89, wxID_STATIC, _("*"), wxDefaultPosition, wxSize(7, -1), 0 );
+    ewxStaticText* itemStaticText92 = new ewxStaticText( itemPanel89, ID_STATIC_WXLAUNCHER_USERNAMEREQUIRED, _("*"), wxDefaultPosition, wxSize(7, -1), 0 );
     itemStaticText92->SetForegroundColour(ewxThemeColours::statusText(ewxThemeColours::BAD));
     itemStaticText92->SetFont(wxFont(14, wxSWISS, wxNORMAL, wxNORMAL, false, _T("Sans")));
     itemFlexGridSizer90->Add(itemStaticText92, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
