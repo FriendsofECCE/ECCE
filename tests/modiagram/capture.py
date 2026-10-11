@@ -56,7 +56,35 @@ FIXTURES = {
     "gaussian-water-cs": os.path.join(FIXTURES_DIR, "gaussian-water-cs"),
     "orca-co2-c2v": os.path.join(FIXTURES_DIR, "orca-co2-c2v"),
     "orca-nh3-c1": os.path.join(FIXTURES_DIR, "orca-nh3-c1"),
+    #  #132: ECCE-QM runs (makecalc.py ecceqm), which print no orbital
+    #  symmetry labels and keep the input frame.
+    "ecceqm-c2": os.path.join(FIXTURES_DIR, "ecceqm-c2"),
+    "ecceqm-he2": os.path.join(FIXTURES_DIR, "ecceqm-he2"),
+    "ecceqm-n2": os.path.join(FIXTURES_DIR, "ecceqm-n2"),
+    "ecceqm-co-rotated": os.path.join(FIXTURES_DIR, "ecceqm-co-rotated"),
 }
+
+
+def setProperties(url, props):
+    """Store ecce: properties over WebDAV: {relative path: {name: value}}.
+    The fixtures' stored metadata is a binary property database made from
+    an ORCA template, so a calculation of another code is told its code
+    and basis kind here instead."""
+    import base64
+    import urllib.request
+    user = fixture.realUser()
+    token = base64.b64encode(("%s:%s" % (
+        user, fixture.passwordFor(user))).encode()).decode()
+    for path, values in props.items():
+        sets = "".join("<E:%s>%s</E:%s>" % (k, v, k) for k, v in values.items())
+        body = ('<?xml version="1.0"?><D:propertyupdate xmlns:D="DAV:" '
+                'xmlns:E="http://www.emsl.pnl.gov/ecce:"><D:set><D:prop>%s'
+                '</D:prop></D:set></D:propertyupdate>' % sets).encode()
+        target = url + "/" + path if path else url + "/"
+        request = urllib.request.Request(target, data=body, method="PROPPATCH")
+        request.add_header("Authorization", "Basic " + token)
+        request.add_header("Content-Type", "text/xml")
+        urllib.request.urlopen(request, timeout=30).read()
 
 
 def captureOne(name, source, outfile, timeout, png=None):
@@ -110,6 +138,23 @@ def captureOne(name, source, outfile, timeout, png=None):
             apps.stopServices(display)
             restorePrefs()
             return "fixture install failed: %s" % error
+
+        marker = os.path.join(source, ".davprops")
+        if os.path.exists(marker):
+            import json
+            try:
+                setProperties(url, json.load(open(marker)))
+            except Exception as err:
+                apps.stopServices(display)
+                restorePrefs()
+                return "could not set the stored properties: %s" % err
+
+        #  ECCE-QM's MO diagram is off by default (Preferences).
+        prefs = os.path.join(state, ".ECCE", "EcceGlobal")
+        os.makedirs(os.path.dirname(prefs), exist_ok=True)
+        if not os.path.exists(prefs) or "EcceQmMoDiagram" not in open(prefs).read():
+            with open(prefs, "a") as handle:
+                handle.write("EcceQmMoDiagram:\ttrue\n")
 
         if os.path.exists(outfile):
             os.remove(outfile)

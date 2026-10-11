@@ -3,7 +3,10 @@
 
     makecalc.py CODE MOLECULE NOISE OUTDIR [--opt] [--seed N] [--keep]
 
-CODE is g16, orca or nwchem; MOLECULE one of h2o, nh3, ch4, co2.  NOISE
+CODE is g16, orca, nwchem or ecceqm; MOLECULE one of h2o, nh3, ch4, co2,
+c2, he2, n2, co, hf (the last five are Teaching > Diatomics, bond along x).
+ecceqm runs the built-in engine (B3LYP/6-31G*), which keeps the input
+frame; --no-rotate leaves the molecule as the library has it.  NOISE
 (Angstrom) perturbs every coordinate by up to that much after a random
 rotation, which is what a structure drawn in the Builder and never
 symmetrised looks like: off the symmetric geometry and in no standard
@@ -55,16 +58,41 @@ MOLECULES = {
             ("O", 0.0, 0.0, -1.16)],
 }
 
+
+def libraryDiatomics():
+    """Teaching > Diatomics, read from the structure library itself."""
+    folder = os.path.join(ROOT, "data", "client", "StructureLibrary",
+                          "Teaching", "Diatomics")
+    for name in os.listdir(folder):
+        if not name.endswith(".mvm"):
+            continue
+        atoms, on = [], False
+        for line in open(os.path.join(folder, name)):
+            if line.startswith("atom_list"):
+                on = True
+            elif on and len(line.split()) == 4:
+                el, *xyz = line.split()
+                atoms.append((el, *[float(v) for v in xyz]))
+            elif on:
+                break
+        MOLECULES[name[:-4].lower()] = atoms
+
+
+libraryDiatomics()
+
 #  Existing fixtures whose DAV metadata (code, owner, state) is reused.
-TEMPLATE = {"g16": "gaussian-co", "orca": "orca-co", "nwchem": "nwchem-water"}
+TEMPLATE = {"g16": "gaussian-co", "orca": "orca-co", "nwchem": "nwchem-water",
+            "ecceqm": "orca-co"}
 
 
-def geometry(name, noise, seed):
+def geometry(name, noise, seed, rotate=True):
     rnd = random.Random(seed)
     #  A random rotation (from a random unit quaternion).
     q = [rnd.gauss(0, 1) for _ in range(4)]
     n = math.sqrt(sum(x * x for x in q))
     w, x, y, z = (c / n for c in q)
+    if not rotate:
+        w, x, y, z = 1.0, 0.0, 0.0, 0.0
     R = [[1 - 2*(y*y + z*z), 2*(x*y - z*w), 2*(x*z + y*w)],
          [2*(x*y + z*w), 1 - 2*(x*x + z*z), 2*(y*z - x*w)],
          [2*(x*z - y*w), 2*(y*z + x*w), 1 - 2*(x*x + y*y)]]
@@ -103,6 +131,11 @@ def deck(code, atoms, opt):
                    "".join('  %s library "def2-svp"\n' % e
                            for e in sorted(set(a[0] for a in atoms))),
                    "optimize" if opt else "energy"))
+    if code == "ecceqm":
+        return ("ecceqm.qmin", "ecceqm.qmout",
+                "title MO diagram fixture\ncharge 0\nmultiplicity 1\n"
+                "method b3lyp\nspherical true\nbasis 6-31G*\n"
+                "geometry\n%send\n" % xyzLines(atoms))
     raise SystemExit("unknown code " + code)
 
 
@@ -118,6 +151,9 @@ def runCode(code, work, deckName, outName):
         cmd = [os.path.join("/opt/orca", os.path.dirname(exe[0]), "orca"),
                deckName]
         stdout = open(os.path.join(work, outName), "w")
+    elif code == "ecceqm":
+        cmd = [os.environ.get("ECCE_QM", "ecce-qm"), "-o", outName, deckName]
+        stdout = subprocess.DEVNULL
     else:
         cmd = ["nwchem", deckName]
         stdout = open(os.path.join(work, "calc.nwout"), "w")
@@ -190,6 +226,51 @@ def chemsys(atoms):
                                 " 0.000000   1   0   0   0\n" * len(atoms)))
 
 
+#  What the Calculation Editor stored for a Pople set before it
+#  forced spherical functions on a spherical-only code: Cartesian ("N"),
+#  while ECCE-QM always runs five d functions.  "Y" is the forced value.
+COORDSYS = "N"
+
+
+def basisFilePople(elements):
+    """BasisSet.ecce_basisset for 6-31G* as the Calculation Editor stores it
+    for ECCE-QM (tests/ecceqm/fixtures/o2-roks): the 6-31G contractions plus
+    the polarisation shell from 6-31GS."""
+    def blocks(name):
+        out = {}
+        text = open(os.path.join(ROOT, "data", "admin", "basissets",
+                                 name + ".BAS")).read()
+        for chunk in text.split("atom=")[1:]:
+            el, body = chunk.split("\n", 1)
+            out[el.strip()] = body
+        return out
+    base, pol = blocks("6-31G"), blocks("6-31GS")
+    flags = "false " * 8
+    out = ["<MolecularConfig>\n<Map>\n"]
+    #  One Group per element, as the Calculation Editor writes a Pople set.
+    for el in elements:
+        out.append(
+            '<Group Tag="%s" Name="6-31G*">\n<OrderedList>\n'
+            '<BasisSet Type="pople">6-31G*</BasisSet>\n</OrderedList>\n'
+            '<OrbitalMapping>\n<OrbitalBasisSet Name="6-31G*">\n'
+            '<BasisSet Type="pople">6-31G*</BasisSet>\n'
+            '</OrbitalBasisSet>\n</OrbitalMapping>\n<ContractionInfoMap>\n'
+            '<Element tag="%s">\n<BasisSet uniqueKey="6-31G*:pople">\n'
+            '<DeleteFlags>%s</DeleteFlags>\n<UncontractFlags>\n%s'
+            '</UncontractFlags>\n</BasisSet>\n</Element>\n'
+            '</ContractionInfoMap>\n<DiffuseMap>\n<Element tag="%s">\n%s'
+            '</Element>\n</DiffuseMap>\n<TightMap>\n<Element tag="%s">\n%s'
+            '</Element>\n</TightMap>\n</Group>\n'
+            % (el, el, flags, flags, el, "0 " * 8, el, "0 " * 8))
+    out.append("</Map>\n<Data>\nBasisSet=6-31G*\nType=pople "
+               "Category=ORBITAL Spherical=UnknownCoordSys "
+               "ContType=UnknownContType\n")
+    for el in elements:
+        out.append("element=%s\n%s%s" % (el, base[el], pol.get(el, "")))
+    out.append("EndBasisSet\n</Data>\n</MolecularConfig>")
+    return "".join(out)
+
+
 def basisFile(elements):
     """BasisSet.ecce_basisset for def2-SVP on these elements, in the shape
     the Calculation Editor stores (orca-co's), with the contractions taken
@@ -239,13 +320,16 @@ def main():
     ap.add_argument("outdir")
     ap.add_argument("--opt", action="store_true")
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--no-rotate", action="store_true")
+    ap.add_argument("--spherical-flag", action="store_true",
+                    help="record the basis as spherical (coordsys Y)")
     ap.add_argument("--keep", action="store_true")
     ap.add_argument("--save-output", help="copy the code's output here")
     a = ap.parse_args()
     #  The parser scripts find pertab.pl and friends through ECCE_HOME.
     os.environ["ECCE_HOME"] = ROOT
 
-    atoms = geometry(a.molecule, a.noise, a.seed)
+    atoms = geometry(a.molecule, a.noise, a.seed, not a.no_rotate)
     deckName, outName, text = deck(a.code, atoms, a.opt)
     work = tempfile.mkdtemp(prefix="modiagram-%s-" % a.code,
                             dir=os.environ.get("TMPDIR"))
@@ -256,7 +340,8 @@ def main():
         if a.save_output:
             shutil.copy(out, a.save_output)
         descName = {"g16": "gaussian-16.desc", "orca": "orca.desc",
-                    "nwchem": "nwchem.desc"}[a.code]
+                    "nwchem": "nwchem.desc",
+                    "ecceqm": "ecceqm.desc"}[a.code]
         descPath = os.path.join(PARSERS, descName)
         results = pipeline.run_monitor(out, descPath, work)
         blocks = pipeline.unpack(results)
@@ -290,10 +375,32 @@ def main():
             if atom[0] not in elements:
                 elements.append(atom[0])
         open(os.path.join(a.outdir, "Parameters", "BasisSet.ecce_basisset"),
-             "w").write(basisFile(elements))
+             "w").write(basisFilePople(elements) if a.code == "ecceqm"
+                        else basisFile(elements))
         open(os.path.join(a.outdir, "Parameters", "SetupParams"), "w").write(
             "ES.Theory.UseSymmetry|1||1|1|toggle_input\n")
         open(os.path.join(a.outdir, "Inputs", deckName), "w").write(text)
+        if a.code == "ecceqm":
+            #  The template's stored metadata is ORCA's (code, basis
+            #  coordinate system and size), a binary property database;
+            #  capture.py patches these over WebDAV after installing.
+            import json
+            coordsys = "Y" if a.spherical_flag else COORDSYS
+            basis = open(os.path.join(a.outdir, "Parameters",
+                                      "BasisSet.ecce_basisset")).read()
+            nfun = int(re.search(r"^nbf (\d+)", open(out).read(), re.M)[1])
+            nprim = 0
+            for el in (x[0] for x in atoms):
+                body = basis.split("element=%s\n" % el)[1].split("element=")[0]
+                nprim += sum(int(n) for n in re.findall(
+                    r"num_primitives=(\d+)", body.split("EndBasisSet")[0]))
+            json.dump({"": {"application": "ECCE-QM"},
+                       "Parameters/BasisSet.ecce_basisset": {
+                           "name": "6-31G*", "coordsys": coordsys,
+                           "numFunctions": str(nfun),
+                           "numPrimitives": str(nprim),
+                           "ecpName": "", "gbs-type": "element"}},
+                      open(os.path.join(a.outdir, ".davprops"), "w"), indent=1)
         pg = [flat(r, "values") for r in props.get("PNTGRP", [])]
         print("%s %s noise=%g: code's group %s; %s"
               % (a.code, a.molecule, a.noise, pg[-1] if pg else "-",

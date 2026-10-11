@@ -47,40 +47,49 @@ PropTable* reorderToNative(PropTable *moTable, IPropCalculation *calc,
   PropString *marker = (PropString*)calc->getProperty("MOAOORDER");
   if (marker == 0 || marker->value() != "angular-momentum") return moTable;
 
-  const bool cartesian =
+  // The recorded coordinate system first, the other only if its width
+  // is not the table's: a spherical-only code (ECCE-QM, ORCA) runs a
+  // basis recorded as Cartesian (Pople sets) with five d functions, and
+  // giving up there left every column unpermuted.
+  const bool recordedCartesian =
       (gbsConfig->coordsys() == TGaussianBasisSet::Cartesian);
-
-  // Walk TGBSConfig exactly the way every consumer does (atom, then
-  // getGBSList()'s insertion order, then contracted set, then column)
-  // to get the NATIVE shell sequence and each shell's native column
-  // offset.
   vector<Shell> shells;
-  int nativeCol = 0;
-  for (size_t a = 0; a < atomSymbols.size(); a++) {
-    vector<const TGaussianBasisSet*> gbslist =
-        gbsConfig->getGBSList(atomSymbols[a]);
-    for (size_t g = 0; g < gbslist.size(); g++) {
-      const TGaussianBasisSet *gbs = gbslist[g];
-      if (gbs == 0) continue;
-      const size_t sets = gbs->num_contracted_sets(atomSymbols[a].c_str());
-      for (size_t ics = 0; ics < sets; ics++) {
-        vector<TGaussianBasisSet::AngularMomentum> types =
-            gbs->func_types(atomSymbols[a].c_str(), ics);
-        for (size_t t = 0; t < types.size(); t++) {
-          Shell s;
-          s.atomIdx = a;
-          s.l = (int)types[t];
-          s.nativeStart = nativeCol;
-          s.canonicalStart = -1;  // filled in below
-          s.length = shellLength(s.l, cartesian);
-          s.nativeIndex = shells.size();
-          shells.push_back(s);
-          nativeCol += s.length;
+  bool cartesian = recordedCartesian;
+  for (int attempt = 0; attempt < 2; attempt++) {
+    cartesian = (attempt == 0) ? recordedCartesian : !recordedCartesian;
+    // Walk TGBSConfig exactly the way every consumer does (atom, then
+    // getGBSList()'s insertion order, then contracted set, then column)
+    // to get the NATIVE shell sequence and each shell's native column
+    // offset.
+    shells.clear();
+    int nativeCol = 0;
+    for (size_t a = 0; a < atomSymbols.size(); a++) {
+      vector<const TGaussianBasisSet*> gbslist =
+          gbsConfig->getGBSList(atomSymbols[a]);
+      for (size_t g = 0; g < gbslist.size(); g++) {
+        const TGaussianBasisSet *gbs = gbslist[g];
+        if (gbs == 0) continue;
+        const size_t sets = gbs->num_contracted_sets(atomSymbols[a].c_str());
+        for (size_t ics = 0; ics < sets; ics++) {
+          vector<TGaussianBasisSet::AngularMomentum> types =
+              gbs->func_types(atomSymbols[a].c_str(), ics);
+          for (size_t t = 0; t < types.size(); t++) {
+            Shell s;
+            s.atomIdx = a;
+            s.l = (int)types[t];
+            s.nativeStart = nativeCol;
+            s.canonicalStart = -1;  // filled in below
+            s.length = shellLength(s.l, cartesian);
+            s.nativeIndex = shells.size();
+            shells.push_back(s);
+            nativeCol += s.length;
+          }
         }
       }
     }
+    if (nativeCol == moTable->columns()) break;
+    if (attempt == 1) return moTable;  // can't make sense of it
   }
-  if (nativeCol != moTable->columns()) return moTable;  // can't make sense of it
 
   // The parser's canonical order: per atom, the SAME shells stably
   // sorted by l (see orca.mo's canonicalRowOrder -- this must match it).

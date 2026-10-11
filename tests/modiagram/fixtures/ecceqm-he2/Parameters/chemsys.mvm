@@ -1,0 +1,13 @@
+title: 
+type: molecule
+fragment_attributes:
+  point_group: C1
+end_fragment_attributes:
+num_atoms: 2
+atom_info: symbol cart
+atom_list: 
+He -1.500000 0.000000 0.000000
+He 1.500000 0.000000 0.000000
+attr_list:
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0

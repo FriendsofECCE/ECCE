@@ -1,0 +1,36 @@
+group: D4h
+formula: He2
+construction: a central atom and its neighbours
+headline: 
+note: Energies in Hartree.  No valence orbital energies for He or He (the table is main group only).  Symmetry labels computed from the orbitals in D4h; the code reported none.
+column left
+  title: He
+  fromHalves: 0
+  hiddenCount: 0
+  hiddenMaxEnergy: 0.000000
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 0
+  shellKeys:
+  levels: 0
+column centre
+  title: Molecular orbitals
+  fromHalves: 0
+  hiddenCount: 0
+  hiddenMaxEnergy: 0.000000
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 1
+  shellKeys:
+  levels: 3
+  level 0 energy=-0.647999 tabulated=0.000000 irrep=SGG label=1SGG character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[0] annotation="-0.6480"
+  level 1 energy=-0.644429 tabulated=0.000000 irrep=SGU label=1SGU character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[1] annotation="-0.6444"
+  level 2 energy=1.100460 tabulated=0.000000 irrep=SGG label=2SGG character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[2] annotation="1.1005"
+column right
+  title: He
+  fromHalves: 0
+  hiddenCount: 0
+  hiddenMaxEnergy: 0.000000
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 0
+  shellKeys:
+  levels: 0
+links: 0

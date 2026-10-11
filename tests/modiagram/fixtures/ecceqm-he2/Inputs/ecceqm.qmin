@@ -1,0 +1,10 @@
+title MO diagram fixture
+charge 0
+multiplicity 1
+method b3lyp
+spherical true
+basis 6-31G*
+geometry
+ He     -1.500000     0.000000     0.000000
+ He      1.500000     0.000000     0.000000
+end

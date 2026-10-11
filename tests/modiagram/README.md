@@ -130,6 +130,16 @@ group than the code did in 41 real runs (water, NH3, CH4, CO2; noise
 
 `makecalc.py` builds such a fixture from a real run; see its docstring.
 
+## ECCE-QM fixtures (#132)
+
+`ecceqm-c2`, `-he2`, `-n2` (bond along x, as the Teaching > Diatomics
+library has them) and `ecceqm-co-rotated` (random rotation): real runs of
+the bundled engine, B3LYP/6-31G*, made with `makecalc.py ecceqm <mol> 0
+<dir> [--no-rotate]`. ECCE-QM prints no orbital labels, so the diagram
+computes them. The basis is recorded Cartesian (`.davprops`, applied by
+`capture.py` over WebDAV): that is the case that used to draw no labels.
+Preferences' `EcceQmMoDiagram` is switched on by `capture.py`.
+
 ## Reproducing
 
 ```
