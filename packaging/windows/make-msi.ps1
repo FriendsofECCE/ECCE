@@ -30,9 +30,20 @@ function Emit($dir, $indent) {
     $script:nid++
     [void]$sb.AppendLine("$indent<Component Id=`"c$nid`" Guid=`"$(DirGuid $dir)`"><CreateFolder /></Component>")
   }
-  foreach ($f in Get-ChildItem -LiteralPath $dir -File) {
+  # One component per directory, not per file: Windows Installer registers
+  # and unregisters each component (#257).  The major upgrade removes the
+  # old product first, so a directory's file list may change between versions.
+  $files = @(Get-ChildItem -LiteralPath $dir -File)
+  if ($files.Count) {
     $script:nid++
-    [void]$sb.AppendLine("$indent<Component Id=`"c$nid`"><File Id=`"f$nid`" Source=`"$(Esc $f.FullName)`" KeyPath=`"yes`" /></Component>")
+    [void]$sb.AppendLine("$indent<Component Id=`"c$nid`" Guid=`"$(DirGuid $dir)`">")
+    $key = " KeyPath=`"yes`""
+    foreach ($f in $files) {
+      $script:nid++
+      [void]$sb.AppendLine("$indent  <File Id=`"f$nid`" Source=`"$(Esc $f.FullName)`"$key />")
+      $key = ""
+    }
+    [void]$sb.AppendLine("$indent</Component>")
   }
   foreach ($d in Get-ChildItem -LiteralPath $dir -Directory) {
     $script:nid++
@@ -54,7 +65,7 @@ $wxs = @"
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
   <Package Name="ECCE" Manufacturer="FriendsofECCE" Version="$msiVer" UpgradeCode="$upgrade"
            Scope="perUser" InstallerVersion="500" Language="1033">
-    <MajorUpgrade AllowSameVersionUpgrades="yes"
+    <MajorUpgrade AllowSameVersionUpgrades="yes" Schedule="afterInstallValidate"
       DowngradeErrorMessage="A newer version of ECCE is already installed." />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
     <Icon Id="ecce.exe" SourceFile="$(Esc "$Tree\bin\organizer.exe")" />
