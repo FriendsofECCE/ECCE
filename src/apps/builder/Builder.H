@@ -461,6 +461,7 @@ class Builder: public BuilderGUI,
       void updateMenus();
       void updateUndoMenus();
       void updateBondIcon();
+      wxBitmapBundle bondIcon(double order);
       void updateElementIcon();
       void updateShapeIcon();
       void updateForAnyEdit();

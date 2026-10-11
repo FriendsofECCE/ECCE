@@ -667,8 +667,7 @@ void Builder::createToolbar()
     ewxBitmap shapeBitmap(ShapeData::shapeToSmallImage(ShapeData::tetrahedral));
     p_modeToolbar->AddTool(ID_MODE_SHAPE, _T(""), shapeBitmap,
                            _("Geometry"), wxITEM_NORMAL);
-    ewxBitmap bondBitmap(TBond::orderToSmallImage(TBond::Single));
-    p_modeToolbar->AddTool(ID_MODE_BOND, _T(""), bondBitmap,
+    p_modeToolbar->AddTool(ID_MODE_BOND, _T(""), bondIcon(TBond::Single),
                            _("Choose Build Bond"), wxITEM_CHECK);
     ewxBitmap structBitmap("structlib.png");
     p_modeToolbar->AddTool(ID_MODE_STRUCTLIB, _T(""), structBitmap,
@@ -1958,10 +1957,23 @@ int Builder::getMode()
  */
 void Builder::updateBondIcon()
 {
-  string pixmap = TBond::orderToSmallImage(p_currentBond);
+  p_modeToolbar->SetToolNormalBitmap(ID_MODE_BOND, bondIcon(p_currentBond));
+}
 
-  ewxBitmap bitmap(pixmap.c_str());
-  p_modeToolbar->SetToolNormalBitmap(ID_MODE_BOND, bitmap);
+
+/**
+ * The bond tool's icon in the toolbar's line style (the old one-size
+ * pixmap looked like a stray "-H"); the pixmap only if the SVG is missing.
+ */
+wxBitmapBundle Builder::bondIcon(double order)
+{
+  const char *name = order == TBond::Double   ? "bond-double"
+                   : order == TBond::Triple   ? "bond-triple"
+                   : order == TBond::Aromatic ? "bond-aromatic"
+                   : order == TBond::Metal    ? "bond-metal"
+                   :                            "bond-single";
+  return ewxBitmap::svgIcon(name, wxSize(22, 22),
+                            TBond::orderToSmallImage(order));
 }
 
 
