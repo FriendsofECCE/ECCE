@@ -198,6 +198,9 @@ using std::vector;
 #include "Slice.H"
 
 #include <wx/timer.h>
+#include <wx/textentry.h>
+#include <wx/spinctrl.h>
+#include <wx/accel.h>
 #include "Builder.H"
 
 
@@ -523,6 +526,12 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   p_viewerEvtHandler->connectToolKitFW(this);
   PushEventHandler(p_viewerEvtHandler);
   Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(Builder::OnKeyDown));
+  //  Key events go to the focused child (the 3-D canvas), never the frame,
+  //  so Delete is an accelerator: OnDeleteClick leaves text fields alone.
+  wxAcceleratorEntry delKeys[2];
+  delKeys[0].Set(wxACCEL_NORMAL, WXK_DELETE, wxID_DELETE);
+  delKeys[1].Set(wxACCEL_NORMAL, WXK_NUMPAD_DELETE, wxID_DELETE);
+  SetAcceleratorTable(wxAcceleratorTable(2, delKeys));
 
   TPerTab tpt;
   ShapeData shapes;
@@ -2803,6 +2812,18 @@ void Builder::OnPasteClick( wxCommandEvent& event )
 
 void Builder::OnDeleteClick( wxCommandEvent& event )
 {
+   //  The accelerator is the Delete key: in a text field it edits the text.
+   wxWindow *focus = wxWindow::FindFocus();
+   if (dynamic_cast<wxTextEntry*>(focus) || dynamic_cast<wxSpinCtrl*>(focus) ||
+       dynamic_cast<wxSpinCtrlDouble*>(focus)) {
+      if (wxTextEntry *te = dynamic_cast<wxTextEntry*>(focus)) {
+         long from, to;
+         te->GetSelection(&from, &to);
+         if (from == to) to = from + 1;
+         if (te->IsEditable()) te->Remove(from, to);
+      }
+      return;
+   }
    deleteSelection();
 }
 

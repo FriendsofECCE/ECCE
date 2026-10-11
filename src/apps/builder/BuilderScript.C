@@ -225,6 +225,10 @@ void Builder::runBuilderScript(const std::string& file)
         p_modeMenu->Check(id, true);
         wxCommandEvent modeEv(wxEVT_MENU, id);
         GetEventHandler()->ProcessEvent(modeEv);
+      } else if (w[0] == "key" && w.size() == 2 && w[1] == "delete") {
+        //  What the Delete accelerator sends.
+        wxCommandEvent delEv(wxEVT_MENU, wxID_DELETE);
+        GetEventHandler()->ProcessEvent(delEv);
       } else if (w[0] == "save") {
         doSave();
       } else if (w[0] == "info") {
