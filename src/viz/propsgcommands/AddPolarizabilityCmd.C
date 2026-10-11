@@ -4,6 +4,8 @@
 #include "inv/nodes/SoMaterial.H"
 #include "inv/nodes/SoSeparator.H"
 #include "inv/nodes/SoSphere.H"
+#include "inv/nodes/SoShapeHints.H"
+#include "inv/nodes/SoComplexity.H"
 #include "inv/nodes/SoSwitch.H"
 #include "inv/nodes/SoTransform.H"
 
@@ -118,9 +120,19 @@ bool AddPolarizabilityCmd::execute()
   mat->diffuseColor.setValue(color.red(), color.green(), color.blue());
   mat->transparency = 0.55f;
 
+  // Both faces of a blended closed surface interleave into stripes; draw
+  // the near one only, on a finer mesh.
+  SoShapeHints *hints = new SoShapeHints;
+  hints->vertexOrdering = SoShapeHints::COUNTERCLOCKWISE;
+  hints->shapeType = SoShapeHints::SOLID;
+  SoComplexity *cplx = new SoComplexity;
+  cplx->value = 0.9f;
+
   SoSeparator *sep = new SoSeparator;
   sep->addChild(transf);
   sep->addChild(mat);
+  sep->addChild(hints);
+  sep->addChild(cplx);
   sep->addChild(new SoSphere);
   root->addChild(sep);
   return true;
