@@ -1316,16 +1316,36 @@ class MoDiagramCanvas : public wxPanel
       //  in the visible pi system -- benzene's H column) IS DROPPED
       //  ENTIRELY, title included, rather than shown as a heading over
       //  blank space with nothing under it.
-      if (p_haveFragments && !p_left.levels.empty()) {
-        dc.DrawText(wxString(p_left.title.c_str(), wxConvUTF8),
-                    xLeft, top - 38);
+      //  Measured, not assumed: docked narrow, the right heading started
+      //  inside "Molecular orbitals".  Abbreviate the centre one first,
+      //  then push the outer two apart, inside the window.
+      {
+        const bool haveL = p_haveFragments && !p_left.levels.empty();
+        const bool haveR = p_haveFragments && !p_right.levels.empty();
+        const wxString tl(p_left.title.c_str(), wxConvUTF8);
+        const wxString tr(p_right.title.c_str(), wxConvUTF8);
+        wxString tc(p_centre.title.c_str(), wxConvUTF8);
+        const int gap = 10;
+        int xl = xLeft, xr = xRight;
+        const int wl = haveL ? dc.GetTextExtent(tl).x : 0;
+        const int wr = haveR ? dc.GetTextExtent(tr).x : 0;
+        int wc = dc.GetTextExtent(tc).x;
+        const bool crowded = (haveL && xl + wl + gap > xCentre) ||
+                             (haveR && xCentre + wc + gap > xr);
+        if (crowded && tc == wxT("Molecular orbitals")) {
+          tc = wxT("MOs");
+          wc = dc.GetTextExtent(tc).x;
+        }
+        if (haveR) {
+          if (xr < xCentre + wc + gap) xr = xCentre + wc + gap;
+          if (xr + wr > size.x - 4) xr = size.x - 4 - wr;
+        }
+        if (haveL && xl + wl + gap > xCentre) xl = xCentre - gap - wl;
+        if (haveL && xl < 2) xl = 2;
+        if (haveL) dc.DrawText(tl, xl, top - 38);
+        if (haveR) dc.DrawText(tr, xr, top - 38);
+        dc.DrawText(tc, xCentre, top - 38);
       }
-      if (p_haveFragments && !p_right.levels.empty()) {
-        dc.DrawText(wxString(p_right.title.c_str(), wxConvUTF8),
-                    xRight, top - 38);
-      }
-      dc.DrawText(wxString(p_centre.title.c_str(), wxConvUTF8),
-                  xCentre, top - 38);
 
       //  Correlation lines first, so the levels sit on top of them.
       if (p_haveFragments) {
