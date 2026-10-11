@@ -2012,6 +2012,7 @@ void Builder::updateShapeIcon()
  */
 void Builder::toggleModeButton(int modeId)
 {
+  BuilderRedrawHold hold(this);
   if (modeId == ID_MODE_STRUCTLIB) {
     savePaneLayout(NAME_LAYOUT_DEFAULT);
     loadPaneLayout(NAME_LAYOUT_STRUCTLIB);
@@ -4626,6 +4627,16 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
   if (update || symmetryShown) {
     updatePanes();
     debugPrintPaneSizes(p_mgr);
+  }
+
+  //  A table that was hidden while the molecule changed (the Structure
+  //  Library layout) comes back empty: refill the ones now on screen.
+  const wxString tables[] = { NAME_TOOL_ATOM_TABLE, NAME_TOOL_RESIDUE_TABLE };
+  for (const wxString& name : tables) {
+    wxAuiPaneInfo &pane = p_mgr.GetPane(name);
+    WxVizTool *tool = pane.IsOk() && pane.IsShown()
+        ? dynamic_cast<WxVizTool*>(pane.window) : 0;
+    if (tool) tool->refresh();
   }
 }
 

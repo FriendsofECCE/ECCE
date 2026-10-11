@@ -9,8 +9,11 @@
 //    pbc ...                     Periodic Builder, see PBC::scriptCommand
 //    library PATH [ENTRY]        the Structure Library pane: open the folder
 //                                PATH (Teaching/Diatomics), select ENTRY
+//    mode atom|select|structlib  Mode menu
+//    popup NAME                  the element chooser: its place and size
+//    click                       a click in the 3D view in the current mode
 //    save                        File > Save
-//    info                        atoms and lattice, on stderr
+//    info                       atoms and lattice, on stderr
 //    expect atoms N | expect lattice yes|no
 //    shot NAME                   writes NAME.ready next to the script and
 //                                waits for NAME.go: the test photographs the
@@ -43,6 +46,9 @@
 #include <wx/aui/aui.h>
 #include <wx/app.h>
 #include <wx/checkbox.h>
+#include <wx/dcmemory.h>
+#include <wx/dcscreen.h>
+#include <wx/image.h>
 #include <wx/menu.h>
 #include <wx/timer.h>
 #include <wx/utils.h>
@@ -67,6 +73,8 @@
 
 #include "viz/FindSymmetryCmd.H"
 #include "wxgui/ewxProgressDialog.H"
+#include "wxgui/PerTabPanel.H"
+#include "wxgui/TearableContent.H"
 #include "Builder.H"
 #include "PBC.H"
 #include "dsm/IPropCalculation.H"
@@ -179,6 +187,44 @@ void Builder::runBuilderScript(const std::string& file)
         GetEventHandler()->ProcessEvent(modeEv);
         if (!p_structLib->openFolder(w[1], w.size() > 2 ? w[2] : ""))
           outcome = "FAIL: not found in the Structure Library";
+      } else if (w[0] == "popup" && w.size() == 2) {
+        //  The element chooser, as the Choose Build Element tool opens it,
+        //  and where it is and how big, straight after it is shown and half
+        //  a second later.
+        PerTabPanel *pertab = new PerTabPanel(this, false, ID_ITEM_DEFAULT,
+                                              false, true, true);
+        pertab->SetName("Elements");
+        TearableContent *tc = new TearableContent(pertab);
+        tc->Position(wxGetMousePosition(), wxSize(1, 1));
+        tc->Popup();
+        for (int shot = 0; shot < 2; shot++) {
+          if (shot) {
+            for (int i = 0; i < 10; i++) { wxTheApp->Yield(true); wxMilliSleep(50); }
+          }
+          const wxRect r = tc->GetScreenRect();
+          const wxSize c = pertab->GetSize(), best = pertab->GetBestSize();
+          fprintf(stderr, "BUILDER popup %s after %d ms: at %d,%d size %dx%d, "
+                  "content %dx%d (best %dx%d), mouse %d,%d\n", w[1].c_str(),
+                  shot * 500, r.x, r.y, r.width, r.height, c.x, c.y, best.x,
+                  best.y, wxGetMousePosition().x, wxGetMousePosition().y);
+        }
+        tc->Dismiss();
+      } else if (w[0] == "click") {
+        //  A click in the viewer in the current mode (Atom adds the
+        //  element, Add Structure the library selection).
+        try {
+          Command *cmd = createModeCommand(p_currentMode);
+          if (cmd) execute(cmd);
+          else outcome = "FAIL: nothing to do in this mode";
+        } catch (EcceException& ex) {
+          outcome = std::string("FAIL: ") + ex.what();
+        }
+      } else if (w[0] == "mode" && w.size() == 2) {
+        const int id = w[1] == "atom" ? ID_MODE_ATOM
+                     : w[1] == "select" ? ID_MODE_SELECT : ID_MODE_STRUCTLIB;
+        p_modeMenu->Check(id, true);
+        wxCommandEvent modeEv(wxEVT_MENU, id);
+        GetEventHandler()->ProcessEvent(modeEv);
       } else if (w[0] == "save") {
         doSave();
       } else if (w[0] == "info") {

@@ -552,6 +552,30 @@ void Builder::syncMenuChecks()
 
 //  wxAuiManager::Update() with the layout's own rules applied first and
 //  the folded panes' windows hidden again after (Update() re-shows them).
+static int s_holdDepth = 0;
+
+BuilderRedrawHold::BuilderRedrawHold(wxWindow *frame) : p_frame(frame)
+{
+#ifdef __WXMSW__
+  s_holdDepth++;
+  p_frame->Freeze();
+#endif
+}
+
+
+BuilderRedrawHold::~BuilderRedrawHold()
+{
+#ifdef __WXMSW__
+  p_frame->Thaw();
+  if (--s_holdDepth == 0) {
+    ::RedrawWindow((HWND)p_frame->GetHWND(), NULL, NULL,
+                   RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN |
+                   RDW_UPDATENOW);
+  }
+#endif
+}
+
+
 void Builder::updatePanes(bool allowSwitch)
 {
   //  wxAuiManager::Update() lays the frame out, and a size event handled on

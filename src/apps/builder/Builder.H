@@ -66,19 +66,17 @@ class wxToolBarToolBase;
 
 //  wxMSW paints every intermediate state of a pane change (a column built
 //  pane by pane, each new pane drawn where it was before AUI placed it);
-//  this holds the frame's redraws until the change is complete.  GTK draws
-//  once per idle anyway, so it is a no-op there.
+//  this holds the frame's redraws until the change is complete, then paints
+//  every child (a thaw only invalidates, and the scrolled tool panes kept
+//  the pixels of their old layout).  GTK draws once per idle anyway, so it is
+//  a no-op there.
 class BuilderRedrawHold
 {
   public:
-    explicit BuilderRedrawHold(wxWindow *frame)
-#ifdef __WXMSW__
-      : p_lock(frame) {}
+    explicit BuilderRedrawHold(wxWindow *frame);
+    ~BuilderRedrawHold();
   private:
-    wxWindowUpdateLocker p_lock;
-#else
-      { (void)frame; }
-#endif
+    wxWindow *p_frame;
 };
 
 class Builder: public BuilderGUI,
