@@ -4,7 +4,7 @@ Full notes, and the packages, are on the [releases page](https://github.com/Frie
 
 ## What's new in 9.0
 
-9.0.0-alpha.1 to alpha.10 and 9.0.0-beta.1 are previews. 9.x does not interoperate with 8.x;
+9.0.0-alpha.1 to alpha.10, 9.0.0-beta.1 and beta.2 are previews. 9.x does not interoperate with 8.x;
 see [Upgrading from 8.x](GETTING_STARTED.md#upgrading-from-8x).
 
 * **Two packages**, `ecce-client` and `ecce-server`
@@ -93,6 +93,7 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
 
 | 9.x (previews) | 8.x (stable) |
 |---|---|
+| **v9.0.0-beta.2** — ECCE-QM geometry optimisation, frequencies, IR and thermochemistry; job progress in the Organizer for ECCE-QM, ORCA, Gaussian, NWChem, MOPAC, QE and GROMACS, and "running?" when a job is out of contact; Energies grouped, thermochemistry and solvation for G16/NWChem; Jmol element colours (Preferences › Colours); sharper atoms, per-pixel lighting, new icons; ESP colour bar, polarizability ellipsoid; MO diagram fixes (TASOs when the code symmetrised, ECCE-QM diatomics, more character tables, composition on hover); Windows: Builder element buttons, focus, redraw and a faster installer | |
 | **v9.0.0-beta.1** — "Store data on this computer" works on Linux; "Connect to a server" prefilled, with this computer's own data server and a broker check; data folder controls greyed out when unused; help pages Running codes on Windows, Importing a structure, Importing a calculation | **v8.18.10** — After Symmetry > Find, the Calculation Editor no longer shows too many atoms and electrons (water as H4O). |
 | **v9.0.0-alpha.10** — The start question at every start; "Use this computer instead" goes on in local mode; Windows: no Organizer flicker or focus loss, Calculation Editor opens once, Launcher and #247 layouts, Hill formulas; MPI warning that never blocks a launch; ORCA on one core no longer needs MPI; Symmetry pane no longer over the viewer; Add Hydrogens at typical bond lengths; GROMACS position restraints (#253) | **v8.18.9** — A compute machine's password was sent to the data server, and jobs on machines with password login were not monitored. |
 | **v9.0.0-alpha.9** — Windows: user names with a space (#247) and saving to a data server fixed; TLS server chosen at first start; Symmetry > Find no longer shows extra atoms in the Calculation Editor; first start asked on Linux; "Use this computer instead" in the login window; MO diagram built only when opened | **v8.18.8** — ORCA with an explicitly written Dunning or ANO basis set lost functions and gave wrong energies (#239). |
