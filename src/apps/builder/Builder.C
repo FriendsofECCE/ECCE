@@ -195,6 +195,7 @@ using std::vector;
 #include "PBC.H"
 #include "Slice.H"
 
+#include <wx/timer.h>
 #include "Builder.H"
 
 
@@ -2681,14 +2682,18 @@ void Builder::helpBuilderMenuitemClick( wxCommandEvent& event )
 void Builder::OnSize( wxSizeEvent& event )
 {
    BuilderGUI::OnSize(event);
-   //  AUI lays out a resize itself; the tool column's floors follow after.
-   if (!p_fitPending) {
-      p_fitPending = true;
-      CallAfter([this]() {
-         p_fitPending = false;
-         if (fitToolColumn()) updatePanes();
-      });
+   //  AUI lays out a resize itself.  The tool column's floors follow once
+   //  the size has settled, not at every size event: a layout pass answered
+   //  each size a window manager imposed (a half-screen tile) with a size
+   //  request of our own, and the frame hopped between the two (#275).
+   //  fitToolColumn() lays out by itself when a floor changes.
+   if (!p_fitTimerBound) {
+      p_fitTimerBound = true;
+      p_fitTimer.SetOwner(this);
+      Bind(wxEVT_TIMER, [this](wxTimerEvent&) { fitToolColumn(); },
+           p_fitTimer.GetId());
    }
+   p_fitTimer.StartOnce(400);
 }
 
 

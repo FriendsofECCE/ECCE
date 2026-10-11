@@ -582,7 +582,8 @@ class Builder: public BuilderGUI,
       //  Each tool pane's own height floor; fitToolColumn() lowers the
       //  pane's min_size below it while the column is too short.
       map<wxWindow*, int> p_paneFloor;
-      bool p_fitPending = false;
+      wxTimer p_fitTimer;              // see OnSize()
+      bool p_fitTimerBound = false;
       void toggleFold(wxWindow *win);
       void unfoldPane(wxAuiPaneInfo &pane);
       wxString paneInfoForSave(wxAuiPaneInfo &pane);
