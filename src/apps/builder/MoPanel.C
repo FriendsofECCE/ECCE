@@ -1736,6 +1736,9 @@ bool MoPanel::espFieldSelected()
 /////////////////////////////////////////////////////////////////////////////
 bool MoPanel::showOrbital(int orbengIndex)
 {
+   //  A panel nobody has opened has not read the basis or coefficients
+   //  yet (initialization is lazy), so p_isValid is still false.
+   ensureInitialized();
    if (!p_isValid || p_mogrid == 0) return false;
    if (orbengIndex < 0) return false;
 
