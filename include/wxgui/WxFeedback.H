@@ -23,7 +23,6 @@ class PropertyTask;
 #include "util/EcceURL.H"
 
 #include "wxgui/WxFeedbackGUI.H"
-#include "wxgui/CalcDropHandler.H"
 #include "wxgui/FeedbackSaveHandler.H"
 
 
@@ -66,7 +65,6 @@ class WxFeedback : public WxFeedbackGUI
       static WxFeedback* getFeedback(wxWindow *win);
       static WxFeedback* findFeedback(wxWindow *win);
 
-      void setDropHandler(CalcDropHandler *handler);
       void setSaveHandler(FeedbackSaveHandler *handler);
       
       void setContextURL(const EcceURL& url);

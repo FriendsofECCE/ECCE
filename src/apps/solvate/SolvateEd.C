@@ -45,7 +45,6 @@ SolvateEd::SolvateEd( )
     WxDavAuth(),
     JMSPublisher(SOLVATE),
     FeedbackSaveHandler(),
-    CalcDropHandler(),
     p_feedback(NULL),
     p_builderTool(NULL),
     p_iCalc(NULL),
@@ -66,7 +65,6 @@ SolvateEd::SolvateEd( wxWindow* parent, wxWindowID id, const wxString& caption,
     WxDavAuth(),
     JMSPublisher(SOLVATE),
     FeedbackSaveHandler(),
-    CalcDropHandler(),
     p_feedback(NULL),
     p_builderTool(NULL),
     p_iCalc(NULL),
@@ -359,12 +357,6 @@ WxFeedback *SolvateEd::getFeedback()
 void SolvateEd::processSave()
 {
   doSave();
-}
-
-
-void SolvateEd::processDrop(const string& url)
-{
-  setContext(url);
 }
 
 
@@ -779,7 +771,6 @@ void SolvateEd::subjectMCB(wxCommandEvent& event)
 void SolvateEd::CreateControls()
 {
   p_feedback = new WxFeedback(this);
-  p_feedback->setDropHandler(this);
   p_feedback->setSaveHandler(this);
   GetSizer()->Add(p_feedback, 0, wxEXPAND, 0);
 

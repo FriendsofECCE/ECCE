@@ -62,7 +62,6 @@ MetaEd::MetaEd( )
     WxDavAuth(),
     JMSPublisher(METADYNAMICS),
     FeedbackSaveHandler(),
-    CalcDropHandler(),
     EditListener(),
     p_feedback(NULL),
     p_builderTool(NULL),
@@ -104,7 +103,6 @@ MetaEd::MetaEd( wxWindow* parent, wxWindowID id, const wxString& caption,
     WxDavAuth(),
     JMSPublisher(METADYNAMICS),
     FeedbackSaveHandler(),
-    CalcDropHandler(),
     EditListener(),
     p_feedback(NULL),
     p_builderTool(NULL),
@@ -399,12 +397,6 @@ WxFeedback *MetaEd::getFeedback()
 void MetaEd::processSave()
 {
   doSave();
-}
-
-
-void MetaEd::processDrop(const string& url)
-{
-  setContext(url);
 }
 
 
@@ -767,7 +759,6 @@ void MetaEd::propertyMCB(wxCommandEvent& event)
 void MetaEd::CreateControls()
 {
   p_feedback = new WxFeedback(this);
-  p_feedback->setDropHandler(this);
   p_feedback->setSaveHandler(this);
   GetSizer()->Add(p_feedback, 0, wxEXPAND, 0);
 

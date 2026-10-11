@@ -145,7 +145,6 @@ CalcEd::CalcEd( )
     WxDavAuth(),
     JMSPublisher(CALCED),
     FeedbackSaveHandler(),
-    CalcDropHandler(),
     EditListener(),
     p_feedback(NULL),
     p_builderTool(NULL),
@@ -195,7 +194,6 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
     WxDavAuth(),
     JMSPublisher(CALCED),
     FeedbackSaveHandler(),
-    CalcDropHandler(),
     EditListener(),
     p_feedback(NULL),
     p_builderTool(NULL),
@@ -869,12 +867,6 @@ ESPConstraintModel *CalcEd::getESPConstraintModel()
 void CalcEd::processSave()
 {
   doSave();
-}
-
-
-void CalcEd::processDrop(const string& url)
-{
-  setContext(url);
 }
 
 
@@ -1805,7 +1797,6 @@ void CalcEd::propertyMCB(wxCommandEvent& event)
 void CalcEd::CreateControls()
 {
   p_feedback = new WxFeedback(this);
-  p_feedback->setDropHandler(this);
   p_feedback->setSaveHandler(this);
   GetSizer()->Add(p_feedback, 0, wxEXPAND, 0);
 

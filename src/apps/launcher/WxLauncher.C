@@ -246,7 +246,6 @@ void WxLauncher::createControls()
     p_messagesFeedback = (WxFeedback *)(FindWindow(ID_FEEDBACK_WXLAUNCHER_MESSAGES));
     p_messagesFeedback->SetExtraStyle(wxWS_EX_VALIDATE_RECURSIVELY | wxWS_EX_PROCESS_UI_UPDATES);
     p_messagesFeedback->setContextLabel("");
-    p_messagesFeedback->setDropHandler(this);
     p_messagesFeedback->setEditStatus(WxFeedback::NA);
     p_messagesFeedback->GetSizer()->SetMinSize(-1, 1);
 
@@ -2148,15 +2147,6 @@ const Queue * WxLauncher::getQueueSelection()
         slctQueue = (const Queue *)(p_queueChoice->GetClientData(slctnIdx));
 
     return slctQueue;
-}
-
-
-/**
- *  Implementation of a DropListener interface.
- */
-void WxLauncher::processDrop(const string &url)
-{
-    this->setContext(url);
 }
 
 

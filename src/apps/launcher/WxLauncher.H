@@ -24,7 +24,6 @@
 
 #include "comm/Launch.H"
 
-#include "wxgui/CalcDropHandler.H"
 #include "wxgui/WxDavAuth.H"
 #include "wxgui/WxFeedback.H"
 
@@ -46,8 +45,7 @@ class ewxTextCtrl;
 
 class WxLauncher : public WxLauncherGUI,
                    public WxDavAuth,
-                   public JMSPublisher,
-                   public CalcDropHandler
+                   public JMSPublisher
 {
     DECLARE_CLASS(WxLauncher)
     DECLARE_EVENT_TABLE()
@@ -68,8 +66,6 @@ class WxLauncher : public WxLauncherGUI,
                          long style = SYMBOL_WXLAUNCHERGUI_STYLE);
         ~WxLauncher();
 
-        //  Implementation of CalcDropHandler interface
-        virtual void processDrop(const string &url);
 
         void setStandAlone(bool w);
         void loadSettings(string fname);

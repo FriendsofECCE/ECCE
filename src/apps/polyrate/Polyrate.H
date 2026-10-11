@@ -21,7 +21,6 @@
 #include "dsm/DirDyVTSTTask.H"
 
 #include "wxgui/ewxChoice.H"
-#include "wxgui/CalcDropHandler.H"
 #include "wxgui/WxDavAuth.H"
 #include "wxgui/WxJMSListener.H"
 #include "wxgui/WxFeedback.H"
@@ -45,7 +44,6 @@ class Polyrate: public PolyrateGUI,
                public WxJMSListener, 
                public EditListener,
                public TaskApp,
-               public CalcDropHandler,
                public FeedbackSaveHandler
 {    
 
@@ -81,8 +79,6 @@ class Polyrate: public PolyrateGUI,
 
       virtual void setUnitFamily(const string& family);
 
-      // CalcDropHandler virtuals
-      virtual void processDrop(const string& url);
       virtual void processSave();
 
       void setSaveState(bool unsavedChanges);

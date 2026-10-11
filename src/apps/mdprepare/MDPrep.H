@@ -16,7 +16,6 @@
 
 #include "dsm/ResourceDescriptor.H"
 
-#include "wxgui/CalcDropHandler.H"
 #include "wxgui/WxDavAuth.H"
 #include "wxgui/WxJMSListener.H"
 
@@ -44,7 +43,6 @@ class MDPrep: public MDPrepGUI,
               public TaskApp,
               public WxDavAuth, 
               public EditListener,
-              public CalcDropHandler,
               public FeedbackSaveHandler
 {    
 
@@ -87,8 +85,6 @@ class MDPrep: public MDPrepGUI,
       virtual void taskAppShow();
       virtual void setUnitFamily(const string& family);
 
-      // CalcDropHandler virtuals
-      virtual void processDrop(const string& url);
       virtual void processSave();
 
       void setSaveState(bool unsavedChanges);

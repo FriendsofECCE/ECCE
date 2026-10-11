@@ -94,7 +94,6 @@ MDEdBase::MDEdBase( wxWindow* parent, wxWindowID id, const wxString& caption,
 void MDEdBase::constructor()
 {
    p_feedback = (WxFeedback*)FindWindow(ID_FEEDBACK);
-   p_feedback->setDropHandler(this);
    p_feedback->setSaveHandler(this);
    // Save sits in the button row, just before the launch button.
    wxWindow *launch = FindWindow(ID_BUTTON_LAUNCH);
@@ -285,12 +284,6 @@ void MDEdBase::updateDisabledState(ResourceDescriptor::RUNSTATE state, bool forc
    btn->setCustomDisabledStyle(true);
 }
 
-
-
-void MDEdBase::processDrop(const string& url)
-{
-   setContext(url);
-}
 
 
 /**

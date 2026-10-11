@@ -11,7 +11,6 @@
 #include "dsm/TGaussianBasisSet.H"
 #include "dsm/TGBSConfig.H"
 
-#include "wxgui/CalcDropHandler.H"
 #include "wxgui/FeedbackSaveHandler.H"
 #include "wxgui/WxDavAuth.H"
 #include "wxgui/WxFeedback.H"
@@ -62,8 +61,7 @@ class WxFeedback;
 class WxBasisTool: public WxBasisToolGUI,
                    public WxDavAuth,
                    public JMSPublisher,
-                   public FeedbackSaveHandler,
-                   public CalcDropHandler
+                   public FeedbackSaveHandler
 {
     DECLARE_CLASS(WxBasisTool)
     DECLARE_EVENT_TABLE()
@@ -173,8 +171,6 @@ class WxBasisTool: public WxBasisToolGUI,
         //  Implementation of FeedbackSaveHandler interface
         virtual void processSave();
 
-        //  Implementation of CalcDropHandler interface
-        virtual void processDrop(const string& url);
 
         void showErrorMessage(string mesg);
         void showContextChanged(bool chgd);

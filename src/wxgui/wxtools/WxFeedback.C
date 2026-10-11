@@ -43,7 +43,6 @@
 #include "wxgui/WxState.H"
 #include "wxgui/WxFeedback.H"
 #include "wxgui/ewxBitmap.H"
-#include "wxgui/DnDCalcDrop.H"
 #include "wxgui/ewxMessageDialog.H"
 #include "wxgui/ewxColor.H"
 #include "wxgui/ewxThemeColours.H"
@@ -67,7 +66,6 @@ WxFeedback::WxFeedback( ) : WxFeedbackGUI()
  *
  * Connect your application to Save by calling setSaveHandler and putting
  * the button from addSaveButton in its button row.
- * Connect your application to calculation drops by calling setDropHandler.
  */
 WxFeedback::WxFeedback( wxWindow* parent, wxWindowID id,
                         const wxPoint& pos, const wxSize& size,
@@ -189,18 +187,6 @@ void WxFeedback::readPreferences()
    p_stateIcon->refresh();
 }
 
-
-
-/**
- * Lets the whole editor window accept a calculation dropped from the
- * Organizer; there is no visible drop target.
- * Currently only URL drops are supported.
- */
-void WxFeedback::setDropHandler(CalcDropHandler *handler)
-{
-   wxWindow *top = wxGetTopLevelParent(this);
-   if (top) top->SetDropTarget(new DndCalcDrop(handler));
-}
 
 
 /**

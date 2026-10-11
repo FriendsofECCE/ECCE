@@ -5,14 +5,12 @@
 #include "dsm/EDSIServerCentral.H"
 
 #include "wxgui/ewxFrame.H"
-#include "wxgui/CalcDropHandler.H"
 #include "wxgui/ewxStatusBar.H"
 #include "wxgui/ewxTool.H"
 
 
 ewxTool::ewxTool()
   : ewxFrame(),
-    CalcDropHandler(),
     p_statusbar(NULL)
 {
 
@@ -23,7 +21,6 @@ ewxTool::ewxTool(wxWindow* parent, wxWindowID id, const wxString& title,
                  const wxPoint& pos, const wxSize& size, long style,
                  const wxString& name)
   : ewxFrame(),
-    CalcDropHandler(),
     p_statusbar(NULL)
 {
   Create(parent, id, title, pos, size, style, name);
@@ -48,16 +45,6 @@ bool ewxTool::Create(wxWindow* parent, wxWindowID id, const wxString& title,
 wxStatusBar* ewxTool::CreateStatusBar()
 {
   return p_statusbar;
-}
-
-
-/**
- * The CalcDropHandler method.
- * setContext is automatically called.
- */
-void ewxTool::processDrop(const string &url)
-{
-  setContext(url);
 }
 
 

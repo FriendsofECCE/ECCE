@@ -97,7 +97,6 @@ Polyrate::Polyrate(wxWindow* parent, wxWindowID id, const wxString& caption,
     WxJMSListener(),
     EditListener(),
     TaskApp(WHOAMI, 1000),
-    CalcDropHandler(),
     FeedbackSaveHandler()
 {
 
@@ -127,7 +126,6 @@ Polyrate::Polyrate(wxWindow* parent, wxWindowID id, const wxString& caption,
    // Save sits in the button row, just before the launch button.
    wxWindow *launch = FindWindow(ID_BUTTON_PLYRT_LAUNCH);
    p_feedback->addSaveButton(this, launch->GetContainingSizer(), launch);
-   p_feedback->setDropHandler(this);
    p_feedback->setEditStatus(WxFeedback::EDIT);
 }
 
@@ -272,15 +270,6 @@ void Polyrate::initializeGUI()
 PolyrateModel& Polyrate::getPolyrateModel() const
 {
    return (PolyrateModel&)*p_model;
-}
-
-
-/**
- * Process drop into feedback drop site.
- */
-void Polyrate::processDrop(const string& url)
-{
-   setContext(url);
 }
 
 

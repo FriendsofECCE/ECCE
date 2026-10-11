@@ -110,7 +110,6 @@ NWDirdy::NWDirdy(wxWindow* parent, wxWindowID id, const wxString& caption,
     WxJMSListener(),
     EditListener(),
     TaskApp(WHOAMI, 1000),
-    CalcDropHandler(),
     FeedbackSaveHandler()
 {
    ewxWindowUtils::setToolIcon(this, NWDIRDY);
@@ -150,7 +149,6 @@ NWDirdy::NWDirdy(wxWindow* parent, wxWindowID id, const wxString& caption,
    // Save sits in the button row, just before the launch button.
    wxWindow *launch = FindWindow(ID_BUTTON_NWDIRDY_LAUNCH);
    p_feedback->addSaveButton(this, launch->GetContainingSizer(), launch);
-   p_feedback->setDropHandler(this);
    p_feedback->setEditStatus(WxFeedback::EDIT);
 
    createDynamicGUI();
@@ -201,15 +199,6 @@ void NWDirdy::initializeGUI()
 NWDirdyModel& NWDirdy::getNWDirdyModel() const
 {
    return (NWDirdyModel&)*p_model;
-}
-
-
-/**
- * Process drop into feedback drop site.
- */
-void NWDirdy::processDrop(const string& url)
-{
-   setContext(url);
 }
 
 

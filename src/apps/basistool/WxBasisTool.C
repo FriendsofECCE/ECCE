@@ -399,7 +399,6 @@ void WxBasisTool::initControls()
     p_messagesFeedback = (WxFeedback *)(FindWindowById(itemID));
     p_messagesFeedback->setEditStatus(WxFeedback::EDIT);
     p_messagesFeedback->setSaveHandler(this);
-    p_messagesFeedback->setDropHandler(this);
 
     // No button row here: give Save one of its own above the messages.
     wxSizer *column = p_messagesFeedback->GetContainingSizer();
@@ -3281,12 +3280,6 @@ void WxBasisTool::processSave()
     }
 
     errs.flush();
-}
-
-
-void WxBasisTool::processDrop(const string& url)
-{
-  setContext(new EcceURL(url), cntxtNewCalculation, "", "");
 }
 
 

@@ -125,7 +125,6 @@ MDPrep::MDPrep(wxWindow* parent, wxWindowID id, const wxString& caption,
    // Save sits in the button row, just before the launch button.
    wxWindow *launch = FindWindow(ID_BUTTON_MDPREP_LOCAL);
    p_feedback->addSaveButton(this, launch->GetContainingSizer(), launch);
-   p_feedback->setDropHandler(this);
    p_feedback->setEditStatus(WxFeedback::EDIT);
 
    // Make Lisong happy--don't make feedback area extra tall
@@ -606,15 +605,6 @@ void MDPrep::initializeGUI()
                                             forceUnits[i], label));
    }
 }
-
-/**
- * Process drop into feedback drop site.
- */
-void MDPrep::processDrop(const string& url)
-{
-   setContext(url);
-}
-
 
 void MDPrep::setState(PrepState state)
 {

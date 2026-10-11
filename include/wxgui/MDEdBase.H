@@ -16,7 +16,6 @@
 #include "dsm/MDCompositeModel.H"
 
 #include "wxgui/WxDavAuth.H"
-#include "wxgui/CalcDropHandler.H"
 
 #include "wxgui/MDEdBaseGUI.H"
 #include "wxgui/MDPanelHelper.H"
@@ -48,7 +47,6 @@ class MDEdBase: public MDEdBaseGUI,
                 public WxDavAuth,
                 public EditListener,
                 public MDPanelHelper,
-                public CalcDropHandler,
                 public FeedbackSaveHandler
 {    
 
@@ -72,8 +70,6 @@ class MDEdBase: public MDEdBaseGUI,
       virtual WxFeedback& getFeedback();
       virtual void notifyChange();
 
-      // CalcDropHandler virtuals
-      virtual void processDrop(const string& url);
 
       // FeedbackSaveHandler virtuals
       virtual void processSave();

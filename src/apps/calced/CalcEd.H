@@ -19,7 +19,6 @@ using std::vector;
 #include "tdat/TTheory.H"
 #include "tdat/ESPConstraintModel.H"
 
-#include "wxgui/CalcDropHandler.H"
 #include "wxgui/WxFeedback.H"
 #include "wxgui/FeedbackSaveHandler.H"
 #include "wxgui/WxDavAuth.H"
@@ -46,7 +45,6 @@ class CalcEd: public CalcEdGUI,
               public WxDavAuth,
               public JMSPublisher,
               public FeedbackSaveHandler,
-              public CalcDropHandler,
               public EditListener
 {
   DECLARE_CLASS( CalcEd )
@@ -82,8 +80,6 @@ class CalcEd: public CalcEdGUI,
     // FeedbackSaveHandler virtuals
     virtual void processSave();
 
-    // CalcDropHandler virtuals
-    virtual void processDrop(const string& url);
 
     // EditListener virtuals
     virtual void processEditCompletion(const EditEvent& ee);

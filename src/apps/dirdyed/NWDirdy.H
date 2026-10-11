@@ -30,7 +30,6 @@
 
 #include "wxgui/WxDavAuth.H"
 #include "wxgui/WxJMSListener.H"
-#include "wxgui/CalcDropHandler.H"
 #include "wxgui/WxFeedback.H"
 
 #include "NWDirdyGUI.H"
@@ -59,7 +58,6 @@ class NWDirdy: public NWDirdyGUI,
                public WxJMSListener, 
                public EditListener,
                public TaskApp,
-               public CalcDropHandler,
                public FeedbackSaveHandler
 {    
 
@@ -99,8 +97,6 @@ class NWDirdy: public NWDirdyGUI,
 
       virtual void setUnitFamily(const string& family);
 
-      // CalcDropHandler virtuals
-      virtual void processDrop(const string& url);
       virtual void processSave();
 
       bool doSave(const bool& reportFlag=true);

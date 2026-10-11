@@ -7,7 +7,6 @@
 #include "dsm/ResourceDescriptor.H"
 
 #include "wxgui/ewxFrame.H"
-#include "wxgui/CalcDropHandler.H"
 
 class FeedbackSaveHandler;
 class ewxStatusBar;
@@ -28,7 +27,7 @@ class ewxStatusBar;
  *  . messaging methods, 
  *  . preference saving/restoring methods.
  */
-class ewxTool : public ewxFrame, public CalcDropHandler
+class ewxTool : public ewxFrame
 {
 
 public:
@@ -70,12 +69,6 @@ public:
    * Tools probably don't need to override this method.
    */
   virtual string getContext() const;
-
-  /**
-   * The CalcDropHandler method.
-   * setContext is automatically called.
-   */
-  virtual void processDrop(const string &url);
 
   /**
    * Destroy the window.

@@ -9,7 +9,6 @@
 #include "util/JMSPublisher.H"
 #include "util/ResourceUtils.H"
 
-#include "wxgui/CalcDropHandler.H"
 #include "wxgui/WxFeedback.H"
 #include "wxgui/FeedbackSaveHandler.H"
 #include "wxgui/WxDavAuth.H"
@@ -23,8 +22,7 @@ class ICalculation;
 class SolvateEd: public SolvateEdGUI,
               public WxDavAuth,
               public JMSPublisher,
-              public FeedbackSaveHandler,
-              public CalcDropHandler
+              public FeedbackSaveHandler
 {
   DECLARE_CLASS( SolvateEd )
   DECLARE_EVENT_TABLE()
@@ -53,8 +51,6 @@ class SolvateEd: public SolvateEdGUI,
     // FeedbackSaveHandler virtuals
     virtual void processSave();
 
-    // CalcDropHandler virtuals
-    virtual void processDrop(const string& url);
 
     // Event handlers
     virtual void OnToolClick(wxCommandEvent &event);
