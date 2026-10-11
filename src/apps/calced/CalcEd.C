@@ -1834,12 +1834,11 @@ void CalcEd::replaceBuilderButton()
   // invoked and reset the ID of the EcceTool.
   ResourceDescriptor rd = ResourceDescriptor::getResourceDescriptor();
   ResourceTool *tool = rd.getTool(BUILDER);
-  p_builderTool = new EcceTool(this, tool);
+  wxWindow *placeHolder = FindWindow(ID_BUTTON_CALCED_BUILDER);
+  p_builderTool = new EcceTool(placeHolder->GetParent(), tool);
   Connect( tool->getId(), wxEVT_COMMAND_BUTTON_CLICKED,
            wxCommandEventHandler( CalcEd::OnToolClick ) );
 
-  // find and replace the Builder button placeholder
-  wxWindow *placeHolder = FindWindow(ID_BUTTON_CALCED_BUILDER);
   placeHolder->GetContainingSizer()->Replace(placeHolder, p_builderTool);
   placeHolder->Destroy();
 }
@@ -1850,12 +1849,10 @@ void CalcEd::replaceBasisSetButton()
   // create our replacement
   ResourceTool *tool =
           ResourceDescriptor::getResourceDescriptor().getTool(BASISTOOL);
-  p_basisSetTool = new EcceTool(this, tool);
+  wxWindow *placeholder = FindWindow(ID_BUTTON_CALCED_BASIS_SET);
+  p_basisSetTool = new EcceTool(placeholder->GetParent(), tool);
   Connect( tool->getId(), wxEVT_COMMAND_BUTTON_CLICKED,
            wxCommandEventHandler( CalcEd::OnToolClick ) );
-
-  // find and replace the Basis Set button placeholder
-  wxWindow *placeholder = FindWindow(ID_BUTTON_CALCED_BASIS_SET);
 
   placeholder->GetContainingSizer()->Replace(placeholder, p_basisSetTool);
   placeholder->Destroy();
@@ -3289,20 +3286,33 @@ string CalcEd::notReadyReason(int *box) const
 
 
 /**
- * Puts a "*" on the title of the box the first missing item belongs to
- * (system colours and fonts only, so it follows the theme), and takes it
- * off the other.
+ * Outlines the box the first missing item belongs to in red (a panel
+ * round the box; the other box keeps the system background) and shows
+ * the reason on a line above the buttons, empty when nothing is missing.
  */
-void CalcEd::markBlockingBox(int box)
+void CalcEd::markBlockingBox(int box, const string& why)
 {
-  wxStaticBox *boxes[] = { p_chemSysBox, p_basisBox };
+  wxPanel *marks[] = { p_chemSysMark, p_basisMark };
   int ids[] = { BOX_CHEMSYS, BOX_BASIS };
+  const wxColour red = ewxThemeColours::statusText(ewxThemeColours::BAD);
   for (int i = 0; i < 2; i++) {
-    wxString label = boxes[i]->GetLabel();
-    bool marked = label.EndsWith(" *");
-    if (marked) label.RemoveLast(2);
-    if (box == ids[i]) label += " *";
-    if (marked != (box == ids[i])) boxes[i]->SetLabel(label);
+    const bool on = box == ids[i];
+    if (on == (marks[i]->GetBackgroundColour() == red)) continue;
+    //  The inner panel keeps the system background so only the 2 px
+    //  margin turns red, not the box's interior.
+    (i ? p_basisInner : p_chemSysInner)->SetBackgroundColour(GetBackgroundColour());
+    marks[i]->SetBackgroundColour(on ? red : GetBackgroundColour());
+    marks[i]->Refresh();
+  }
+  const wxString text(why.c_str(), wxConvUTF8);
+  if (text != p_notReadyText->GetLabel()) {
+    p_notReadyText->SetLabel(text);
+    p_notReadyText->SetToolTip(text);
+  }
+  wxSizer *column = p_notReadyText->GetContainingSizer();
+  if (column && column->IsShown(p_notReadyText) == why.empty()) {
+    column->Show(p_notReadyText, !why.empty());
+    column->Layout();
   }
 }
 
@@ -3353,15 +3363,11 @@ void CalcEd::enableLaunch()
 
     int box;
     string why = ready ? "" : notReadyReason(&box);
-    markBlockingBox(ready ? (int)BOX_NONE : box);
+    markBlockingBox(ready ? (int)BOX_NONE : box, why);
     wxString tip(why.c_str(), wxConvUTF8);
     FindWindow(ID_BUTTON_CALCED_FINAL_EDIT)->SetToolTip(tip);
     FindWindow(ID_BUTTON_CALCED_LAUNCH)->SetToolTip(tip);
     FindWindow(ID_BUTTON_CALCED_VERIFY)->SetToolTip(tip);
-    //  Once per change of reason: this runs on nearly every edit.
-    if (why != p_lastNotReady && !why.empty() && !requiresMissingCell())
-      p_feedback->setMessage(why, WxFeedback::INFO);
-    p_lastNotReady = why;
 
     //  Deliberately NOT running the checker here.  enableLaunch() is
     //  reached from enableAllFields(), which runs on essentially every
@@ -3377,7 +3383,7 @@ void CalcEd::enableLaunch()
     FindWindow(ID_BUTTON_CALCED_FINAL_EDIT)->Enable(false);
     FindWindow(ID_BUTTON_CALCED_LAUNCH)->Enable(false);
     FindWindow(ID_BUTTON_CALCED_VERIFY)->Enable(false);
-    markBlockingBox(BOX_NONE);
+    markBlockingBox(BOX_NONE, "");
     setVerifyLight(false, VerifyFinding::GOOD,
                    "There is no input file to check yet.");
   }

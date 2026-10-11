@@ -32,6 +32,8 @@
 class wxBoxSizer;
 class wxFlexGridSizer;
 class ewxFrame;
+class wxPanel;
+class ewxStaticText;
 ////@end forward declarations
 
 /*!
@@ -170,6 +172,11 @@ public:
     wxStaticBox* p_detailsBox;
     wxStaticBox* p_chemSysBox;
     wxStaticBox* p_basisBox;
+    wxPanel* p_chemSysMark;
+    wxPanel* p_chemSysInner;
+    wxPanel* p_basisMark;
+    wxPanel* p_basisInner;
+    ewxStaticText* p_notReadyText;
     wxFlexGridSizer* p_theoryDetailsSizer;
     wxFlexGridSizer* p_runtypeDetailsSizer;
     wxBoxSizer* p_buttonRow;

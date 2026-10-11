@@ -192,7 +192,7 @@ class CalcEd: public CalcEdGUI,
     bool requiresMissingCell() const;
     enum { BOX_NONE, BOX_CHEMSYS, BOX_BASIS };
     std::string notReadyReason(int *box = 0) const;
-    void markBlockingBox(int box);
+    void markBlockingBox(int box, const std::string& why);
     bool isGbsValid();
 
     // refresh & enable/disable & show/hide indicated field sets
@@ -429,7 +429,6 @@ class CalcEd: public CalcEdGUI,
     bool              p_runtypeInFlag;
     bool              p_runtypeHoldFlag;
     bool              p_runtypeInitFlag;
-    std::string p_lastNotReady;
 };
 
 #endif // _CALCED_H_

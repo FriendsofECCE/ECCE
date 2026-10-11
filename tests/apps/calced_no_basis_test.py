@@ -55,6 +55,8 @@ def runCase(display, folder, label):
               run_tests._tail(log, 15))
     sym.check("CALCED: formula=" in log, "%s: the editor shows the molecule" % label,
               run_tests._tail(log, 15))
+    sym.check("outline=none,basis" in log, "%s: the Basis Set box is outlined, "
+              "the Chemical System box is not" % label, run_tests._tail(log, 15))
     sym.check(WANT in log, "%s: it says a basis set must be chosen" % label,
               run_tests._tail(log, 15))
 
