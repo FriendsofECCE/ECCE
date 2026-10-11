@@ -17,6 +17,7 @@
 #include "util/PreferenceLabels.H"
 #include "util/ResourceUtils.H"
 #include "util/TDateTime.H"
+#include "tdat/TFormula.H"
 #include "util/TempStorage.H"
 #include "util/NullPointerException.H"
 
@@ -529,6 +530,8 @@ void CalculationContextPanel::setPropValue(ResourceProperty* resProp)
   // on its type
   if (type == GridProperty::PT_CDATA)
   {
+    if (resProp->getName() == "empiricalFormula")
+      valuestr = TFormula::hillOrder(valuestr);
     prop->SetLabel(valuestr);
   }
   else if (type == GridProperty::PT_DATE_TIME)
