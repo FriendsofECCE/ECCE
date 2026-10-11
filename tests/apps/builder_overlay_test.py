@@ -289,15 +289,138 @@ def overlayCase(s, display, env, wrappers, png):
             check((n > 3) == want, "%s: %d yellow pixels in the viewer"
                   % (name, n))
 
-    say("Quadrupole Moment draws no arrow (#266)")
+    say("Quadrupole Moment draws no arrow (#266) and no ellipsoid (#279)")
     lines = ["wait 4000", "list Quadrapole Moment", "wait 1500", "overlay",
-             "shot quad", "quit"]
+             "ellipsoid QUADPOLE", "shot quad", "quit"]
     text, shots = runScript(s, display, env, wrappers, ["-context", url],
                             lines, png, "quad",
                             {"ECCE_PANEL_MODE": "detail"})
     if "quad" in shots:
         n = tinted(shots["quad"], "yellow")
         check(n <= 3, "quad: %d yellow pixels in the viewer" % n)
+    check("BUILDER: ellipsoid QUADPOLE count=0" in text,
+          "no ellipsoid under the quadrupole")
+    polarCase(s, display, env, wrappers, png)
+
+
+# Real polarizability tensors (HF, a.u.) from Gaussian 16 and ORCA 6.1.1 for
+# water, CO2 along (1,2,2)/3 and benzene in the xy plane; the Gaussian ones
+# went through gaussian-16.desc/.db, the ORCA ones (no POLARIZ parser) were
+# read off the printed raw cartesian tensor.
+POLAR_FIXTURES = ("calc-polar-h2o-g16", "calc-polar-co2-g16",
+                  "calc-polar-c6h6-g16", "calc-polar-h2o-orca",
+                  "calc-polar-co2-orca")
+
+
+def polarTensor(calc):
+    """xx xy xz yy yz zz of the fixture's POLARIZ, as a symmetric matrix."""
+    import numpy
+    import re
+    with open(os.path.join(calc, "Props", "POLARIZ")) as handle:
+        v = [float(x) for x in re.search(r"<vector [^>]*>([^<]*)<", handle.read())
+             .group(1).split()]
+    return numpy.array([[v[0], v[1], v[2]], [v[1], v[3], v[4]],
+                        [v[2], v[4], v[5]]])
+
+
+def polarAtoms(calc):
+    import numpy
+    atoms = []
+    with open(os.path.join(calc, "Parameters", "chemsys.mvm")) as handle:
+        lines = handle.read().splitlines()
+    start = lines.index("atom_list: ") + 1
+    for l in lines[start:]:
+        w = l.split()
+        if len(w) != 4:
+            break
+        atoms.append((w[0], numpy.array([float(x) for x in w[1:]])))
+    return atoms
+
+
+def ellipsoids(text):
+    """The "ellipsoid POLARIZ k" lines: centre and (length, direction) of
+    each axis, as the renderer will transform the unit sphere."""
+    import numpy
+    found = []
+    for line in text.splitlines():
+        if line.startswith("BUILDER: ellipsoid POLARIZ ") and "centre=" in line:
+            kv = dict(p.split("=") for p in line.split()[4:])
+            axes = []
+            for i in range(3):
+                n = [float(x) for x in kv["axis%d" % i].split(",")]
+                axes.append((n[0], numpy.array(n[1:])))
+            found.append((numpy.array([float(x) for x in
+                                       kv["centre"].split(",")]), axes))
+    return found
+
+
+def polarCase(s, display, env, wrappers, png):
+    import numpy
+    say("Polarizability: a translucent ellipsoid on the principal axes (#279)")
+    data = s.localData()
+    project = os.path.join(data, "users", "local", "overlay")
+    for name in POLAR_FIXTURES:
+        calc = os.path.join(project, name)
+        shutil.rmtree(calc, ignore_errors=True)
+        shutil.copytree(os.path.join(HERE, "fixtures", name), calc,
+                        symlinks=True)
+        lines = ["wait 4000", "shot plain", "list Polarizability",
+                 "wait 1500", "overlay", "ellipsoid POLARIZ", "shot polar",
+                 "quit"]
+        text, shots = runScript(s, display, env, wrappers,
+                                ["-context", "file://" + calc + "/"], lines,
+                                png, name, {"ECCE_PANEL_MODE": "detail"})
+        found = ellipsoids(text)
+        if not check(len(found) == 1, "%s: one ellipsoid (%d)"
+                     % (name, len(found))):
+            say(text[-2000:])
+            continue
+        centre, axes = found[0]
+        atoms = polarAtoms(calc)
+        z = numpy.array([{"H": 1, "C": 6, "O": 8}[a] for a, _ in atoms], float)
+        xyz = numpy.array([p for _, p in atoms])
+        want = (z[:, None] * xyz).sum(axis=0) / z.sum()
+        check(numpy.abs(centre - want).max() < 0.002,
+              "%s: centred on the centre of nuclear charge %s (%s)"
+              % (name, numpy.round(want, 4), numpy.round(centre, 4)))
+        # numpy's eigh is the oracle for the command's own Diag3.
+        w, v = numpy.linalg.eigh(polarTensor(calc))
+        order = numpy.argsort(w)[::-1]
+        w, v = w[order], v[:, order]
+        lengths = numpy.array([a[0] for a in axes])
+        scale = lengths / w
+        check(scale.std() / scale.mean() < 1e-3,
+              "%s: semi-axes %s proportional to the eigenvalues %s"
+              % (name, numpy.round(lengths, 3), numpy.round(w, 3)))
+        check(abs(lengths.max() - 1.5) < 0.01,
+              "%s: longest semi-axis %.3f A at the default scale"
+              % (name, lengths.max()))
+        for i in range(3):
+            # A degenerate pair has no unique axes: compare the plane.
+            degenerate = any(abs(w[i] - w[j]) < 1e-3 * w[0]
+                             for j in range(3) if j != i)
+            if not degenerate:
+                dot = abs(float(numpy.dot(axes[i][1], v[:, i])))
+                check(dot > 0.999, "%s: axis %d along the eigenvector "
+                      "(|cos| %.5f)" % (name, i, dot))
+        if "co2" in name:
+            along = numpy.array([1, 2, 2]) / 3.0
+            dot = abs(float(numpy.dot(axes[0][1], along)))
+            check(dot > 0.999 and w[0] > 2 * w[1],
+                  "%s: the long axis lies along the molecule (|cos| %.5f)"
+                  % (name, dot))
+        if "c6h6" in name:
+            check(abs(w[0] - w[1]) < 1e-3 * w[0] and w[1] > 1.5 * w[2],
+                  "%s: in-plane axes equal and larger than the out-of-plane "
+                  "one: %s" % (name, numpy.round(w, 3)))
+            check(abs(float(axes[2][1][2])) > 0.999,
+                  "%s: the short axis is the ring normal %s"
+                  % (name, numpy.round(axes[2][1], 4)))
+        if "plain" in shots and "polar" in shots:
+            n = differs(shots["plain"], shots["polar"])
+            check(n > 200, "%s: the ellipsoid changes %d viewer pixels"
+                  % (name, n))
+
 
 
 def dipoleArrow(text):

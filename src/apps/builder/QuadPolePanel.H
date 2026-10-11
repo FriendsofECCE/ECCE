@@ -4,6 +4,8 @@
 
 #include "MomentsPanel.H"
 
+class ewxStaticText;
+
 
 
 /**
@@ -38,9 +40,15 @@ class QuadPolePanel : public MomentsPanel
    protected:
       virtual void fillTable();
       virtual void showVectors(bool guessScale);
-      virtual bool drawsArrow() const { return false; }
+      // Only the polarizability is drawn (as an ellipsoid); the other
+      // tensors show their table.
+      virtual bool drawsOverlay() const { return isPolarizability(); }
+      virtual bool isPolarizability() const;
 
       bool p_useOriginalGeomHack;
+
+      // The semi-axes in Angstrom at the current scale.
+      ewxStaticText *p_axesText;
 };
 
 #endif // QUADPOLEPANEL__H

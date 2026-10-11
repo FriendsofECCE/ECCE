@@ -19,8 +19,9 @@ under the property's switch. Nothing else draws it.
   (Z-weighted). The "mass" branch of `getSingleCenter` is the
   mass-weighted centre (`TAtm::getMass`); nothing selects it yet.
 - **Only the dipole panel draws it.** `QuadPolePanel` (quadrupole,
-  polarizability, stress) overrides `drawsArrow()` to false: no vectors, no
-  colour or scale row.
+  hyperpolarizability, stress) draw no arrow (`drawsOverlay()` is false):
+  no vectors, no colour or scale row. The polarizability has its own
+  drawing, see polarizability-ellipsoid-convention.md.
 - **Direction.** Drawn along mu as parsed. NWChem, ORCA, Gaussian 16 and
   MOPAC all report mu = sum q r (negative to positive end); checked
   against each code's geometry for water. All parsers store Debye

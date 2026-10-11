@@ -66,7 +66,8 @@ class MomentsPanel : public VizPropertyPanel
       /* DIPOLE or MP2DIPOLE drawn by this class itself (not a subclass):
          the panel states the arrow's length, origin and direction. */
       bool isDipole();
-      virtual bool drawsArrow() const { return true; }
+      virtual bool drawsOverlay() const { return true; }
+      virtual bool isPolarizability() const { return false; }
 
 };
 

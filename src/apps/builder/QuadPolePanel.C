@@ -21,7 +21,9 @@
 #include "wxgui/ewxButton.H"
 #include "wxgui/SliderCombo.H"
 
-#include "viz/AddQuadMomentCmd.H"
+#include "wxgui/ewxStaticText.H"
+
+#include "viz/AddPolarizabilityCmd.H"
 
 #include "wxviz/WxVizToolFW.H"
 
@@ -42,7 +44,7 @@ IMPLEMENT_DYNAMIC_CLASS(QuadPolePanel, MomentsPanel)
 
 
 QuadPolePanel::QuadPolePanel()
-  : MomentsPanel()
+  : MomentsPanel(), p_axesText(NULL)
 {
    p_useOriginalGeomHack = false;
 }
@@ -51,7 +53,7 @@ QuadPolePanel::QuadPolePanel()
 QuadPolePanel::QuadPolePanel(IPropCalculation *calculation,
         wxWindow *parent, wxWindowID id, const wxPoint& pos,
         const wxSize& size, long style, const wxString& name)
-  : MomentsPanel()
+  : MomentsPanel(), p_axesText(NULL)
 {
   p_useOriginalGeomHack = false;
   Create(calculation, parent, id, pos, size, style, name);
@@ -85,8 +87,41 @@ bool QuadPolePanel::Create(IPropCalculation *calculation,
      }
   }
 
+  if (isPolarizability()) {
+     PropVector *vec = (PropVector*) calculation->getProperty(*keys.begin());
+     double ew[3], ev[3][3];
+     if (AddPolarizabilityCmd::principalAxes(vec, ew, ev)) {
+        string units = vec->units();
+        // Gaussian and ORCA report bohr^3 and the property carries no unit.
+        if (units.empty() || units == "au") units = "a.u.";
+        wxString note = wxString::Format(wxString::FromUTF8(
+           "Principal values (%s): %.3f, %.3f, %.3f\n"
+           "Isotropic mean \u03b1 = (\u03b11+\u03b12+\u03b13)/3 = %.3f"),
+           (units == "a.u." ? "a.u. = bohr\u00b3" : units).c_str(),
+           ew[0], ew[1], ew[2], (ew[0]+ew[1]+ew[2])/3.0);
+        ewxStaticText *text = new ewxStaticText(this, wxID_STATIC, note);
+        text->SetToolTip(wxString::FromUTF8(
+           "The ellipsoid is centred on the centre of "
+           "nuclear charge; its semi-axes lie along the principal axes of "
+           "the symmetrised tensor, in proportion to the principal values."));
+        GetSizer()->Add(text, 0, wxALIGN_LEFT|wxALL, 3);
+        p_grid->SetMinSize(wxSize(200, 80));
+        p_axesText = new ewxStaticText(this, wxID_STATIC, wxEmptyString);
+        GetSizer()->Add(p_axesText, 0, wxALIGN_LEFT|wxALL, 3);
+     }
+  }
+
+  GetSizer()->Fit(this);
+  GetSizer()->SetSizeHints(this);
 
   return true;
+}
+
+
+bool QuadPolePanel::isPolarizability() const
+{
+  set<string> keys = getPropertyNames();
+  return keys.size() > 0 && *keys.begin() == "POLARIZ";
 }
 
 
@@ -151,9 +186,42 @@ void QuadPolePanel::fillTable()
 }
 
 
-void QuadPolePanel::showVectors(bool)
+void QuadPolePanel::showVectors(bool guessScale)
 {
-   // Nothing to draw: principal axes of a tensor are not a dipole arrow.
+   if (!isPolarizability() || !p_slider) return;
+
+   WxVizToolFW& fw = getFW();
+   IPropCalculation *expt = getCalculation();
+   SGContainer& sg = fw.getSceneGraph();
+
+   wxButton *btn = (wxButton*)FindWindow(ID_BUTTON_MOMENTS_VECCOLOR);
+   wxColour color = btn->GetBackgroundColour();
+
+   // The slider is in Angstrom per 10 a.u. so that its two decimals suit
+   // both water and benzene; the command takes Angstrom per a.u.
+   Command *cmd = new AddPolarizabilityCmd("Polarizability", &sg, expt);
+   cmd->getParameter("property")->setString(*(getPropertyNames().begin()));
+   cmd->getParameter("neutral")->setString(
+         color.GetAsString(wxC2S_HTML_SYNTAX).ToStdString());
+   cmd->getParameter("Amplitude")->setDouble(p_slider->GetFloatValue()/10.0);
+   if (guessScale) {
+      cmd->getParameter("newData")->setBoolean(true);
+   }
+   fw.execute(cmd);
+
+   double scale = cmd->getParameter("Amplitude")->getDouble();
+   if (guessScale) {
+      p_slider->SetValue(scale*10.0);
+   }
+
+   double ew[3], ev[3][3];
+   if (p_axesText && AddPolarizabilityCmd::principalAxes(
+         (PropVector*) expt->getProperty(*(getPropertyNames().begin())),
+         ew, ev)) {
+      p_axesText->SetLabel(wxString::Format(wxString::FromUTF8(
+         "Semi-axes: %.2f, %.2f, %.2f \u00c5  (%.4f \u00c5 per a.u.)"),
+         ew[0]*scale, ew[1]*scale, ew[2]*scale, scale));
+   }
 }
 
 
@@ -161,6 +229,11 @@ void QuadPolePanel::receiveFocus()
 {
    //cout << "Using geometry " << (p_useOriginalGeomHack ? -2 : -1) << endl;
    selectFragStep(p_useOriginalGeomHack ? -2 : -1);
+   if (isPolarizability()) {
+      // The molecule has to show through the ellipsoid.
+      getFW().getViewer().setTransparencyType(
+         SoGLRenderAction::SORTED_OBJECT_BLEND);
+   }
    showVectors(p_guessScale);
    p_guessScale = false;
 
@@ -172,6 +245,9 @@ void QuadPolePanel::receiveFocus()
 void QuadPolePanel::loseFocus()
 {
    selectFragStep(-1);  // restore to default
+   if (isPolarizability()) {
+      getFW().getViewer().setTransparencyType(SoGLRenderAction::DELAYED_ADD);
+   }
    SGContainer& sg = getFW().getSceneGraph();
    SoSwitch *pswitch = sg.getPropertySwitch(*(getPropertyNames().begin()));
    pswitch->whichChild.setValue(SO_SWITCH_NONE);
