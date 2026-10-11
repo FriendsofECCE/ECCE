@@ -357,7 +357,8 @@ else
   running="$(own_broker_pid)"
   if [ -n "$running" ] && [ -S "$SOCK" ] &&
      [ "$NEWCONF" = "$(cat "$CONF" 2>/dev/null)" ]; then
-    echo "ecce-gateway-start: broker already running (pid $running)"
+    # Every app start lands here; say so only when asked.
+    [ -n "${ECCE_DEBUG_STARTUP:-}" ] && echo "ecce-gateway-start: broker already running (pid $running)"
   else
     if [ -n "$running" ]; then
       echo "ecce-gateway-start: restarting the mosquitto broker (its configuration changed)..."

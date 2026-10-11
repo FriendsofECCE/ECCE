@@ -241,7 +241,8 @@ unsigned int build(Context &c, const cc_glglue *glue, const Key &k)
 		unavailable(c, std::string("link failed: ") + trimmed(buf));
 		return 0;
 	}
-	sayOnce("on");
+	// The normal case; every viewer process would otherwise print it.
+	if (getenv("ECCE_DEBUG_GL")) sayOnce("on");
 	return p;
 }
 
