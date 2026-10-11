@@ -142,7 +142,8 @@ did not converge). Further keywords: `hessian_step` (bohr, default 0.005),
   is converged to 1e-8 (orbital gradient) and 1e-11 hartree, tighter than an
   energy needs, so that the noise in the Hessian stays below 0.1 cm-1. The
   step is a compromise: smaller ones amplify the SCF noise, larger ones the
-  cubic terms; 0.005 reproduces ORCA's analytic frequencies to 0.2-0.8 cm-1.
+  cubic terms; 0.0025 and 0.005 agree to 0.05 cm-1 for water B3LYP, 0.02 is off by 0.8, and
+  0.005 reproduces ORCA's analytic frequencies to 0.2-0.8 cm-1.
   With DFT the Hessian is the derivative of the gradient that neglects the
   grid-weight terms, so translations and rotations carry a residual of a few
   cm-1 (printed, see below).
@@ -184,9 +185,30 @@ did not converge). Further keywords: `hessian_step` (bohr, default 0.005),
   displacements of unit length), then the thermochemistry keys above. With
   `--molden` the file also gets `[FREQ]`, `[FR-COORD]`, `[FR-NORM-COORD]`
   and `[INT]` for the real vibrations.
-* Cost: `6N` gradient evaluations at the price of one SCF each (the guess makes
-  them cheap); benzene B3LYP/6-31G* takes minutes, see the table in
-  `docs/qm/benchmarks.md` for the cap proposed for student machines.
+* Cost: `6N` gradient evaluations, each an SCF from the reference orbitals plus
+  a gradient. Wall time, 6-31G*, default threads, on an 8-core machine that was
+  shared with other jobs (load 4 to 16, so read them as a 4-core laptop; the
+  frequency times of water and ethanol were measured on a quieter machine):
+
+  | molecule (atoms, basis functions) | method | energy | optimisation | one gradient | frequencies |
+  |---|---|---|---|---|---|
+  | water (3, 18) | HF | 0.5 s | 1.6 s (5 steps) | 0.2 s | 4 s |
+  | water (3, 18) | B3LYP | 1.2 s | 4.9 s (5) | 0.7 s | 19 s |
+  | ethanol (9, 54) | B3LYP | | | | 247 s (quiet machine) |
+  | benzene (12, 96) | HF | 3.0 s | 28 s (4) | 4.2 s | 604 s |
+  | benzene (12, 96) | B3LYP | 19 s | 82 s (3) | 16 s | 1382 s |
+  | cyclohexane (18, 108) | HF | 0.9 s | 33 s (6) | | 644 s |
+  | cyclohexane (18, 108) | B3LYP | 18 s | 160 s (6) | 31 s | not run (about 6N x 40 s) |
+
+  Frequency time grows as `N^2 x nbf` (grid and integrals per gradient times
+  `6N` gradients): about `0.06 N^2 nbf` seconds for DFT on 8 idle cores and a
+  third of that for HF. A pointer for a student laptop (about half that
+  machine): warn before a frequency run when `N^2 x nbf` exceeds 5000 for DFT
+  (ethanol B3LYP is 4400, 4 minutes; benzene B3LYP 13800, 13 to 23 minutes) or
+  15000 for HF, and before any run beyond 25 atoms or 150 basis functions (the
+  integrals are held in memory: about 170 MB at 114 functions, 4 GB at 250).
+  The table is the basis for those numbers; the program itself enforces
+  nothing.
 * Tests: `qm_unit` (model Hessians, symmetry numbers, Sackur-Tetrode),
   `tests/qm/freq_test.py` (frequencies, IR intensities, ZPE and the thermal
   quantities against ORCA 6.1.1 at ORCA's own TightOpt geometry,
