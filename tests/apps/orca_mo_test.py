@@ -229,6 +229,59 @@ def readState(out, name):
                 if " " in l)
 
 
+CO = os.path.join(ROOT, "tests", "modiagram", "fixtures", "orca-co")
+
+
+def makeCo(data):
+    """CO (ORCA HF/def2-SVP): the water calculation's shell with CO's
+    geometry, basis and orbitals."""
+    url = makeCalc(data, "co")
+    calc = url[len("file://"):].rstrip("/")
+    for name in ("chemsys.mvm", "BasisSet.ecce_basisset"):
+        shutil.copy(os.path.join(CO, "Parameters", name),
+                    os.path.join(calc, "Parameters", name))
+    for name in os.listdir(os.path.join(calc, "Props")):
+        if not name.startswith("."):
+            os.unlink(os.path.join(calc, "Props", name))
+    for name in ("MO", "ORBENG", "ORBOCC", "ORBSYM"):
+        shutil.copy(os.path.join(CO, "Props", name),
+                    os.path.join(calc, "Props", name))
+    return url
+
+
+def checkHomoVisible(display, data, work):
+    """The HOMO row is selected when the MOs panel opens and is scrolled
+    into view, also for a small molecule (a few dozen rows)."""
+    for what, url in (("water (24 MOs)", makeCalc(data, "homo-water")),
+                      ("CO", makeCo(data))):
+        out = os.path.join(work, "homo-" + what.split()[0])
+        result = runBuilder(display, url, out, "motable t0\nhold 1\nmotable t1\nhold 3\nmotable tab\n",
+                            mode="detail")
+        st = readState(out, "tab")
+        if st is None:
+            fail("HOMO in view, " + what, "no table state", result.log)
+            continue
+        for early in ("t0", "t1"):
+            e = readState(out, early) or {}
+            print("      %s: selectedRow=%s scrollY=%s visible=%s window=%s" % (
+                early, e.get("selectedRow"), e.get("scrollY", "").strip(),
+                e.get("visibleRows"), e.get("gridWindow")))
+        homo = int((st.get("occHomo") or "0").strip())
+        visible = st.get("selectedVisible", "").strip() == "1"
+        selected = int((st.get("selectedMo") or "0").strip())
+        rows = (st.get("visibleRows") or "").split()
+        if selected != homo:
+            fail("HOMO in view, " + what, "selected MO %d, the HOMO is %d"
+                 % (selected, homo))
+        elif not visible:
+            fail("HOMO in view, " + what, "the HOMO row is selected but "
+                 "outside the visible rows %s (scrollY %s)"
+                 % (rows, st.get("scrollY", "").strip()))
+        else:
+            print("ok    HOMO in view, %s: MO %d selected, rows %s visible"
+                  % (what, homo, " to ".join(rows)))
+
+
 def checkTree(display, data, work, mode):
     """The Properties list highlights the panel that is shown: the one
     ECCE_OPEN_PANEL opened, then the one a Properties menu choice opened, then
@@ -424,7 +477,7 @@ def shots(display, data, work, dest):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--shots", help="save the Builder window here")
-    parser.add_argument("--only", choices=("esp", "tree"),
+    parser.add_argument("--only", choices=("esp", "tree", "homo"),
                         help="run just the ESP bar or the tree checks")
     parser.add_argument("--keep", action="store_true",
                         help="keep the scratch directory for inspection")
@@ -458,6 +511,8 @@ def main():
                 shots(display, data, work, options.shots)
             elif options.only == "esp":
                 checkEspBar(display, data, work)
+            elif options.only == "homo":
+                checkHomoVisible(display, data, work)
             elif options.only == "tree":
                 for mode in ("detail", "classic"):
                     checkTree(display, data, work, mode)
@@ -465,6 +520,7 @@ def main():
                 checkGood(display, data, work)
                 checkMismatch(display, data, work)
                 checkEspBar(display, data, work)
+                checkHomoVisible(display, data, work)
                 for mode in ("detail", "classic"):
                     checkTree(display, data, work, mode)
                 checkFallback(display, data, work)

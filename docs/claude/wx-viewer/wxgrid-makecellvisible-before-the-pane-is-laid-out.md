@@ -25,3 +25,11 @@ clears the flag. `wxEVT_SHOW` is not a substitute: the grid reports shown
 Measured headlessly with the Builder scene commands `motable` (selected row,
 `IsVisible`, scroll offset, the HOMO from ORBOCC) and `hold`. Any other
 panel that selects a grid row during `initialize()` has the same shape.
+
+A short grid has a second trap (small molecules: CO, C2, O2, HF): `wxGrid`
+scrolls in units of 15 px, a row is 25 px and the grid window can be under
+two rows high, so the unit chosen to centre the row (or the one
+`MakeCellVisible` picks) may cut the row's edge off; the HOMO was selected and
+one row out of view. `scrollToSelection()` therefore tries the neighbouring
+units until `IsVisible(row, 0, true)` holds. `tests/apps/orca_mo_test.py --only
+homo` checks water and CO (CO failed before this).

@@ -195,6 +195,7 @@ class MoPanel : public MoGUI,
 
       void scrollToSelection();
       void onGridWindowSize(wxSizeEvent& event);
+      void onIdle(wxIdleEvent& event);
       bool p_scrollPending = false;
 
       wxBoxSizer  *p_espSizer;

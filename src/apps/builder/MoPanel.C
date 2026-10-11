@@ -170,6 +170,10 @@ bool MoPanel::Create(IPropCalculation *calculation,
    p_mogrid->SetMinSize(minSize);
    p_mogrid->GetGridWindow()->Bind(wxEVT_SIZE, &MoPanel::onGridWindowSize,
                                    this);
+   //  A small molecule's grid gets its final size while the pane is still
+   //  hidden and is then shown with no further size event, so the pending
+   //  scroll is also retried when the panel is idle.
+   Bind(wxEVT_IDLE, &MoPanel::onIdle, this);
    wxSizer *sizer = p_mogrid->GetContainingSizer();
 
    // Create our two plots
@@ -829,6 +833,13 @@ void MoPanel::onGridWindowSize(wxSizeEvent& event)
 }
 
 
+void MoPanel::onIdle(wxIdleEvent& event)
+{
+   event.Skip();
+   if (p_scrollPending) scrollToSelection();
+}
+
+
 void MoPanel::scrollToSelection()
 {
    if (!p_scrollPending || p_mogrid == NULL) return;
@@ -850,9 +861,17 @@ void MoPanel::scrollToSelection()
    if (uy > 0) {
       const wxRect r = p_mogrid->CellToRect(row, 0);
       const int y = std::max(0, r.y + r.height / 2 - ch / 2);
-      p_mogrid->Scroll(-1, y / uy);
+      //  Scroll units are coarser than a row's edge in a short grid: try the
+      //  neighbouring units until the whole row is in view.
+      const int units[] = { y / uy, y / uy - 1, y / uy + 1, y / uy - 2,
+                            y / uy + 2 };
+      for (int u : units) {
+         if (u < 0) continue;
+         p_mogrid->Scroll(-1, u);
+         if (p_mogrid->IsVisible(row, 0, true)) break;
+      }
    }
-   p_mogrid->MakeCellVisible(row, 0);
+   if (!p_mogrid->IsVisible(row, 0, true)) p_mogrid->MakeCellVisible(row, 0);
    p_scrollPending = false;
 }
 
