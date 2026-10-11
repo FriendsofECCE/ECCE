@@ -1193,7 +1193,12 @@ void CalcEd::OnButtonCalcedBasisQuickClick( wxCommandEvent& event )
       menu.Append(ID_BASIS_PICK0 + (int)i, picks[i]);
     }
   }
-  PopupMenu(&menu, FindWindow(event.GetId())->GetPosition());
+  //  Below the button, in this frame's coordinates: the button sits in
+  //  nested panels, so its own GetPosition() is relative to one of them.
+  wxWindow *btn = FindWindow(event.GetId());
+  PopupMenu(&menu, btn ? ScreenToClient(btn->ClientToScreen(
+                             wxPoint(0, btn->GetSize().y)))
+                       : wxDefaultPosition);
 }
 
 
