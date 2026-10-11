@@ -10,6 +10,9 @@
    #include <sys/types.h>
    #include <unistd.h>
    #include <stdio.h>
+   #ifdef _WIN32
+   #include <windows.h>
+   #endif
 
 // Application includes:
    #include "util/JMSPublisher.H"
@@ -98,6 +101,12 @@ bool JMSPublisher::publish(const string& topic,
                                  const JMSMessage& msg) const {
   bool ret = false;
   if (p_messagingEnabled) {
+#ifdef _WIN32
+    // The tool this asks for is started (or reused) by another process; a
+    // background process may not take the foreground, so the window the user
+    // is working in hands the right on before it asks.
+    if (topic == "ecce_get_app") AllowSetForegroundWindow(ASFW_ANY);
+#endif
     ret = MqttLink::instance().publish(topic, msg);
     // No login yet (cancelled dialog) is already logged once by MqttLink and
     // is not a failure. A broker that has gone away (stopped, restarting)

@@ -5574,8 +5574,23 @@ void CalcMgr::processEditCompletion(const EditEvent& ee)
 }
 
 
+//  Holds the frame's redraws until a change is complete, then paints all
+//  its children at once (the MSW thaw only invalidates).
+struct FrameHold {
+  wxWindow *win;
+  explicit FrameHold(wxWindow *w) : win(w) { win->Freeze(); }
+  ~FrameHold() {
+    win->Thaw();
+#ifdef __WXMSW__
+    ::RedrawWindow((HWND)win->GetHWND(), NULL, NULL,
+                   RDW_UPDATENOW | RDW_ALLCHILDREN);
+#endif
+  }
+};
+
+
 /**
- * Resource created in parent of type resType.  If option is selected, the 
+ * Resource created in parent of type resType.  If option is selected, the
  * rename prompt is opened during creation.
  *
  * @param resType   the type of resource to create
@@ -5617,6 +5632,10 @@ void CalcMgr::createResource(ResourceType * resType,
     }
   }
   
+  //  The tree is rebuilt and the new calculation selected: on MSW the
+  //  collapsed tree, an empty pane and the half-filled summary were each
+  //  painted on their way.
+  FrameHold hold(this);
   try {
     Resource * parRes = parent->getResource();
     Resource * newRes = parRes->createChild(name, resType);
@@ -6305,6 +6324,13 @@ static void enableTopMenu(wxMenuBar *bar, const wxString& title, bool enable)
 }
 
 
+struct CalcMgr::MenuBarHold {
+  wxMenuBar *bar;
+  explicit MenuBarHold(wxMenuBar *b) : bar(b) { if (bar) bar->Freeze(); }
+  ~MenuBarHold() { if (bar) { bar->Thaw(); bar->Refresh(); } }
+};
+
+
 void CalcMgr::onSelectionChange(bool selectInTree)
 {
   //  The menu bar is not one of the frame's children; wxMSW redraws it for
@@ -6312,28 +6338,14 @@ void CalcMgr::onSelectionChange(bool selectInTree)
   //  Thawing does not repaint it on MSW (it has no window of its own), so
   //  without the Refresh the menus kept the look of the old selection: Run
   //  Mgmt drawn disabled for a completed calculation.
-  struct MenuBarHold {
-    wxMenuBar *bar;
-    explicit MenuBarHold(wxMenuBar *b) : bar(b) { if (bar) bar->Freeze(); }
-    ~MenuBarHold() { if (bar) { bar->Thaw(); bar->Refresh(); } }
-  } holdMenus(GetMenuBar());
+  MenuBarHold holdMenus(GetMenuBar());
   //  The summary pane is replaced and the tree and toolbar change in one
   //  go; on MSW each step was painted (an empty pane, then half of it).
   //  Released before the menu bar, so its repaint is not swallowed.  On
   //  MSW the thaw only invalidates, and each child then painted on its own
   //  turn (the run-state legend a frame after the summary); paint them all
   //  at once.
-  struct FrameHold {
-    wxWindow *win;
-    explicit FrameHold(wxWindow *w) : win(w) { win->Freeze(); }
-    ~FrameHold() {
-      win->Thaw();
-#ifdef __WXMSW__
-      ::RedrawWindow((HWND)win->GetHWND(), NULL, NULL,
-                     RDW_UPDATENOW | RDW_ALLCHILDREN);
-#endif
-    }
-  } hold(this);
+  FrameHold hold(this);
   wxMenuBar * menuBar = GetMenuBar();
   WxResourceTreeItemData *itemData = 0;
 
@@ -6375,7 +6387,29 @@ void CalcMgr::onSelectionChange(bool selectInTree)
     stopDisabler();
   }
 
-  itemData = p_treeCtrl->getSelection();
+  //  The menus follow the selection once it has settled: a Shift range or
+  //  a click that moves the selection reports every step, and rebuilding
+  //  Run Mgmt, Tools and File for each made the top menus flicker between
+  //  enabled and greyed on MSW.
+#ifdef __WXMSW__
+  if (!p_menusPending) {
+    p_menusPending = true;
+    CallAfter([this]() {
+      p_menusPending = false;
+      updateSelectionMenus();
+    });
+  }
+#else
+  updateSelectionMenus();
+#endif
+}
+
+
+void CalcMgr::updateSelectionMenus()
+{
+  MenuBarHold holdMenus(GetMenuBar());
+  wxMenuBar * menuBar = GetMenuBar();
+  WxResourceTreeItemData * itemData = p_treeCtrl->getSelection();
   wxMenu * fileMenu = menuBar->GetMenu(menuBar->FindMenu(_("File")));
   getFileMenu(*fileMenu, itemData);
 

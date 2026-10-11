@@ -76,6 +76,19 @@ void ewxRaiseWindow(wxWindow *win)
   } else {
     win->Raise();
   }
+#elif defined(__WXMSW__)
+  // wxMSW's Raise() is BringWindowToTop(): the window comes up but is not
+  // activated, so a tool the user just asked for stayed behind its caller.
+  // The caller grants the right with AllowSetForegroundWindow (see
+  // JMSPublisher::publish); without it Windows only flashes the taskbar.
+  wxTopLevelWindow *top = wxDynamicCast(win, wxTopLevelWindow);
+  if (top) top->Iconize(false);
+  win->Raise();
+  how = "SetForegroundWindow";
+  if (!::SetForegroundWindow((HWND)win->GetHWND())) {
+    how = "SetForegroundWindow denied";
+    if (top) top->RequestUserAttention();
+  }
 #else
   win->Raise();
 #endif

@@ -31,6 +31,19 @@ GTK draws once per idle; wxMSW shows each step of a change. Found with
   registered (`registerTopShell`) only when its invoke has set the
   calculation, so it is first shown complete.
 
+- **New calculation (W2)**: `createResource()` holds the Organizer's redraws
+  (`FrameHold`: freeze, thaw, `RedrawWindow(RDW_ALLCHILDREN)`), or the tree
+  collapsing and re-expanding and an empty summary pane were painted; the
+  Organizer's menus are rebuilt once per settled selection (`CallAfter`).
+- **Builder (W3, W10)**: `BuilderRedrawHold` repaints every child when the
+  outermost hold is released (`RDW_ERASE | RDW_ALLCHILDREN`), and
+  `loadPaneLayout()` refills the Atom and Residue tables of the layout it
+  restores (the Atom Table came back empty after the Structure Library).
+- **Popups (W4)**: `TearableContent::Popup()` repaints at once on MSW.
+- **Progress box (W8)**: a stage with only a title (a `freq` line with no
+  fields) was zero rows high and the next title was drawn over it; every
+  stage takes at least one row.
+
 Measuring: `framelog.ps1` samples in C# (PowerShell took up to 0.5 s per
 sample) and must not call `GetWindowText` (it waits for the busy window, the
 very moment worth seeing). The idle test PC's blank screen saver makes

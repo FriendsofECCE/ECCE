@@ -72,3 +72,5 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [Run-state icons in image lists need real alpha, or a selected row shows a white halo](run-state-icons-need-real-alpha.md)
 - [The Hill-order formula is He2, not He.2](two-letter-formula-has-no-dot.md)
 
+- [wxMSW: Raise() does not activate; a tool another process starts may not take the foreground, so Windows flashes its caption (W9, W13)](windows-raise-is-not-activate-and-flashes.md)
+- [`SetSizeHints(window)` on a small sizer sizes the whole window to it: the Calculation Editor shrank to a title bar (W5)](sizer-sethints-on-a-subsizer-shrinks-the-window.md)

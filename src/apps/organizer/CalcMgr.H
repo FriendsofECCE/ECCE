@@ -302,6 +302,8 @@ public:
                                     bool openWhenFound = true,
                                     bool loadFromServer = true);
   void onSelectionChange(bool selectInTree = false);
+  void updateSelectionMenus();
+  struct MenuBarHold;
   void focusOnTree();
   void focusLeaveTree();
   void copySelectionToClipboard(bool deleteAfterPaste);
@@ -503,6 +505,7 @@ protected:
   bool p_deleteAfterPaste;
 
   bool p_focusOnTree;
+  bool p_menusPending = false;   // MSW: menus rebuilt once per selection
   bool p_focusOnTreeBeforeDisabler;
   bool p_popupOnTree;
 
