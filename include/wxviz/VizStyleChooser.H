@@ -96,6 +96,13 @@ class VizStyleChooser: public VizStyleChooserGUI,
       virtual    void OnButtonDsplyBlockeditClick( wxCommandEvent& event );
       virtual    void OnCloseWindow( wxCloseEvent& event );
 
+      /// A slider let go (not each tick of a drag): preview its value.
+      void OnSliderReleased( wxScrollEvent& event );
+
+      /// Test hook (ECCE_VIEWER_SCENE "dsstyle"): set the slider whose
+      /// label is name (sphrq, cylrq, ...) and release it as a user would.
+      bool scriptSlider(const string& name, int value);
+
 
       // Listener interface
       virtual void eventMCB(const Event& event);
@@ -108,7 +115,11 @@ class VizStyleChooser: public VizStyleChooserGUI,
 
       void requestStyles();
       void chooseColor();
+      void previewSliders();
 
+
+      /** True while the dialog sets its own sliders (no preview then). */
+      bool p_settingSliders;
 
       /** Flag to keep track of whether options lists have been changed */
       int p_hasResidues;

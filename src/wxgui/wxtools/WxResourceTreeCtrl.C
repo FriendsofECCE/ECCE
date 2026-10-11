@@ -44,6 +44,7 @@ using std::endl;
 #include "wx/treectrl.h"
 
 #include "util/Ecce.H"
+#include "util/LocalData.H"
 #include "util/ErrMsg.H"
 #include "util/ETimer.H"
 #include "util/TDateTime.H"
@@ -199,6 +200,16 @@ void WxResourceTreeCtrl::mountServerList(BookmarkList * serverList)
 }
 
 
+static bool isLocalDataFolder(const EcceURL& url)
+{
+  const string dir = LocalData::dir();
+  if (dir.empty() || url.getProtocol().find("file") != 0) return false;
+  string path = url.getFile();
+  while (path.size() > 1 && path[path.size()-1] == '/') path.erase(path.size()-1);
+  return path == dir;
+}
+
+
 /**
  * Add one more root to the TreeCtrl.
  *
@@ -212,6 +223,11 @@ WxResourceTreeItemData * WxResourceTreeCtrl::addRoot(const string& name,
   EcceURL rootUrl = url;
   if (p_homeAsRoot) {
     rootName = rootName + " - " + Ecce::serverUser();
+    EDSIServerCentral servers;
+    rootUrl = servers.getUserHome(url);
+  } else if (isLocalDataFolder(url)) {
+    // Local data: the folder's only content is users/local, so show the
+    // user's projects directly.  Display only; every URL stays as it was.
     EDSIServerCentral servers;
     rootUrl = servers.getUserHome(url);
   }

@@ -114,6 +114,8 @@ public:
   virtual void centerCoord(wxCommandEvent & event);
   virtual void styleChange(wxCommandEvent & event);
   virtual void doStyleChange(const wxString& style);
+  /// Custom Style...: the Display Style dialog, made on first use.
+  VizStyleChooser *openStyleChooser();
   virtual void showAtomLabel(wxCommandEvent & event);
   virtual void showBondLabel(wxCommandEvent & event);
   virtual void selectModeAction(wxCommandEvent & event);

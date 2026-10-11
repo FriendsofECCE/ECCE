@@ -46,6 +46,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Central-server TLS: ports, loopback, what must stay in step](tls-central-server.md)
 - [Per-session state is keyed by the session id, and the "is it already running?" checks must be too](per-user-service-state-is-keyed-by.md)
 - [A calculation can live in any local folder, not only in a data store](calculations-in-any-local-folder.md)
+- [In local data mode the Organizer's root is the user's home, labelled Local data](organizer-local-tree-has-no-users-level.md)
 - [Waiting for login: a lost monitor parks the job, session start catches it up](waiting-for-login.md)
 - [Test suites get a per-run state directory, ports and X display](test-suites-isolate-per-run.md)
 - [Full builds and long suites go to radium/tellurium via tools/offload](long-suites-go-to-offload-hosts.md)

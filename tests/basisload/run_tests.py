@@ -530,11 +530,23 @@ STORED_CASES = [
 ]
 
 
-def runStored(driver, e, base):
+#  The same files read without the repair, which is the basis a Gaussian run
+#  with an explicitly written deck really had (the numbers the MO viewer
+#  falls back to when the output has them, #265).  CO was whole.
+EXACT_CASES = [
+    ("ch4-631gs-lost-d.ecce_basisset", ["C", "H", "H", "H", "H"],
+     "spherical", 17),
+    ("water-mixed-lost-d.ecce_basisset", ["O", "H", "H"], "spherical", 11),
+    ("water-631pgs-lost-d.ecce_basisset", ["O", "H", "H"], "spherical", 23),
+    ("co-631gs-intact.ecce_basisset", ["C", "O"], "cartesian", 30),
+]
+
+
+def runStored(driver, e, base, mode="--stored", cases=STORED_CASES):
     problems = []
-    for fixture, atoms, system, want in STORED_CASES:
+    for fixture, atoms, system, want in cases:
         proc = subprocess.run(
-            [driver, base, "--stored", os.path.join(HERE, "fixtures", fixture)]
+            [driver, base, mode, os.path.join(HERE, "fixtures", fixture)]
             + atoms, env=e, capture_output=True, text=True)
         m = re.search(r"^FUNCTIONS spherical (\d+) cartesian (\d+)",
                       proc.stdout, re.M)
@@ -605,6 +617,11 @@ def main():
                              "their d shell (#265), give the output's "
                              "function count",
                              runStored(driver, e, base))
+            failed += report("the same files read as stored (no repair) "
+                             "give the shortened basis a Gaussian run "
+                             "with an explicit deck had (#265)",
+                             runStored(driver, e, base, "--stored-exact",
+                                       EXACT_CASES))
             count, problems = runSweep(driver, e, base, args.verbose, whole)
             failed += report("every multi-file aggregate (%d)" % count,
                              problems or ([] if count else ["none found"]))

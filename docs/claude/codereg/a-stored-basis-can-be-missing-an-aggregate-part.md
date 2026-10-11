@@ -3,7 +3,7 @@ type: pitfall
 title: "A stored basis set can be missing part of an aggregate; it is repaired when read, and copying a calculation copies the damage"
 area: codereg
 section: "Pitfalls found more than once (check for siblings)"
-paths: ["src/dsm/edsiimpl/DavCalculation.C", "src/dsm/edsiimpl/EDSIGaussianBasisSetLibrary.C", "tests/basisload/run_tests.py", "tests/basisload/fixtures"]
+paths: ["src/dsm/edsiimpl/DavCalculation.C", "src/dsm/edsiimpl/EDSIGaussianBasisSetLibrary.C", "tests/basisload/run_tests.py", "tests/basisload/fixtures", "src/viz/propsgcommands/ComputeMoCmd.C", "src/apps/builder/MoPanel.C", "tests/apps/orca_mo_test.py"]
 issues: [164, 265]
 ---
 **Calculations saved between 2026-08-28 and 8.16.0 (fa0847fc) can hold
@@ -24,7 +24,18 @@ Gaussian Gen deck from that period really ran without the d shell (17).
 whose orbital mapping repeats a key from the default library under its
 orbital name, unless its contractions were edited (deleted, uncontracted,
 tight or diffuse functions added). After that, the explicit-deck runs
-are the ones that disagree with the output, and the MO viewer refuses
-them. That is correct: the run did not have the basis the user chose.
+are the ones that disagree with the output. The MO panel does not refuse
+them: `ComputeMoCmd` counts the functions of the completed basis, and when
+the output's width fits neither convention it reads the basis again as
+stored (`ICalculation::gbsConfigAsStored`, no repair). If that one has the
+output's width it is the basis the run used: the orbital is drawn with it
+and `MoPanel::reportBasisFallback` says so (a dialog once per calculation,
+a warning that stays in the panel; `FallbackFrom`/`FallbackWidth` on the
+command). If neither basis fits, the old refusal stands. The other
+`gbsConfig()` readers (View Coefficients, MO diagram, Mulliken) still use
+the completed basis only.
+
 `tests/basisload` checks real stored files against the function counts
-their own outputs printed.
+their own outputs printed (`--stored`, and `--stored-exact` for the
+shortened counts 17, 11, 23). `tests/apps/orca_mo_test.py` presses Compute
+on a 23-function output with the lost-d water basis: drawn, one warning.

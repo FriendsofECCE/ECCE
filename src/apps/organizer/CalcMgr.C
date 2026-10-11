@@ -26,6 +26,7 @@
 #endif
 
 #include <fstream>
+#include <functional>
 #include "ReleaseNotice.H"
 #include <memory>
 #include <algorithm>
@@ -670,6 +671,31 @@ void CalcMgr::runTestCommand(const string& line)
           }
         }
       }
+    } else if (command == "home" || command == "up") {
+      // The toolbar's Home and Up buttons, then the selected node's URL.
+      wxCommandEvent ev;
+      if (command == "home") OnHomeClick(ev); else OnUpClick(ev);
+      WxResourceTreeItemData *sel = p_treeCtrl->getSelection();
+      outcome = "ok selected=" + (sel ? sel->getUrl().toString() : string("-"));
+    } else if (command == "tree") {
+      // The tree as drawn: "depth:label" for each node below the hidden
+      // root, in order, "[" marking the selected one, then its URL.
+      std::function<void(wxTreeItemId, int)> walk =
+          [&](wxTreeItemId id, int depth) {
+        wxTreeItemIdValue cookie;
+        for (wxTreeItemId c = p_treeCtrl->GetFirstChild(id, cookie);
+             c.IsOk(); c = p_treeCtrl->GetNextChild(id, cookie)) {
+          bool sel = p_treeCtrl->GetSelection() == c;
+          outcome += string(" ") + (sel ? "[" : "") + std::to_string(depth) +
+                     ":" + string(p_treeCtrl->GetItemText(c).ToUTF8());
+          walk(c, depth + 1);
+        }
+      };
+      outcome = "ok";
+      walk(p_treeCtrl->GetRootItem(), 0);
+      WxResourceTreeItemData *sel = p_treeCtrl->getSelection();
+      outcome += " selected=" + (sel ? sel->getUrl().toString() : string("-")) +
+                 " up=" + (p_treeCtrl->canSelectParent() ? "yes" : "no");
     } else if (command == "toolsmenu") {
       // "toolsmenu <url>": the labels of the Tools menu for <url>.
       WxResourceTreeItemData *node = findNode(EcceURL(calcName), false, false);
