@@ -1,5 +1,6 @@
 // Self-consistent field: RHF/UHF/ROHF and the Kohn-Sham equivalents.
 #pragma once
+#include <functional>
 #include <string>
 #include <vector>
 #include "basis.hpp"
@@ -11,6 +12,13 @@ namespace qm {
 
 enum class Reference { Restricted, Unrestricted, RestrictedOpen };
 
+// One SCF cycle, for progress reports.  dE is NaN on the first cycle.
+struct ScfCycle {
+  int cycle = 0;
+  double energy = 0, dE = 0, grad = 0;
+  bool converged = false;
+};
+
 struct ScfOptions {
   std::string method = "hf";      // hf, svwn, pbe, b3lyp, pbe0
   Reference reference = Reference::Restricted;
@@ -20,6 +28,7 @@ struct ScfOptions {
   int grid_radial = 99;
   int grid_angular = 590;
   bool verbose = false;
+  std::function<void(const ScfCycle&)> on_cycle;  // called after every cycle
 };
 
 struct ScfResult {

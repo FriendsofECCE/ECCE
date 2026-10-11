@@ -1,5 +1,6 @@
 #include "output.hpp"
 #include <cmath>
+#include <cstdio>
 #include <iomanip>
 #include <map>
 #include <ostream>
@@ -61,6 +62,60 @@ void write_opt_step(std::ostream& os, const OptStep& st) {
     os << a + 1 << " " << element_symbol(st.mol.atoms[a].Z) << " " << st.grad[3 * a] << " " << st.grad[3 * a + 1] << " "
        << st.grad[3 * a + 2] << "\n";
   os << "end gradient\n";
+  os.flush();
+}
+
+// Fixed formats, so the monitor's lines do not depend on the stream's state.
+static std::string sci(double v, int digits = 2) {
+  char b[32];
+  std::snprintf(b, sizeof b, "%.*e", digits, v);
+  return b;
+}
+
+static std::string fix(double v) {
+  char b[32];
+  std::snprintf(b, sizeof b, "%.10f", v);
+  return b;
+}
+
+void write_progress_scf(std::ostream& os, const ScfCycle& c, const ScfOptions& opt) {
+  os << "progress scf cycle=" << c.cycle << " energy=" << fix(c.energy);
+  if (!std::isnan(c.dE)) os << " dE=" << sci(c.dE) << "/" << sci(opt.conv_energy, 0);
+  os << " grad=" << sci(c.grad) << "/" << sci(opt.conv_grad, 0);
+  if (c.converged) os << " converged=yes";
+  os << "\n";
+  os.flush();
+}
+
+void write_progress_scf_failed(std::ostream& os, int cycles) {
+  os << "progress scf cycle=" << cycles << " converged=no\n";
+  os.flush();
+}
+
+void write_progress_opt(std::ostream& os, const OptStep& st, const OptOptions& opt) {
+  os << "progress opt step=" << st.index << " energy=" << fix(st.energy) << " maxgrad=" << sci(st.max_grad) << "/"
+     << sci(opt.max_grad, 0) << " rmsgrad=" << sci(st.rms_grad) << "/" << sci(opt.rms_grad, 0)
+     << " maxstep=" << sci(st.max_step) << "/" << sci(opt.max_step, 0) << " rmsstep=" << sci(st.rms_step) << "/"
+     << sci(opt.rms_step, 0);
+  if (st.index > 1) os << " dE=" << sci(st.d_energy) << "/" << sci(opt.d_energy, 0);
+  os << "\n";
+  os.flush();
+}
+
+void write_progress_opt_end(std::ostream& os, int step, bool converged) {
+  os << "progress opt step=" << step << " converged=" << (converged ? "yes" : "no") << "\n";
+  os.flush();
+}
+
+void write_progress_freq(std::ostream& os, int point, int points) {
+  os << "progress freq point=" << point << "/" << points << "\n";
+  os.flush();
+}
+
+void write_progress_freq_end(std::ostream& os, int points, const FrequencyOutput& f) {
+  const int imag = f.vib.n_imaginary;
+  os << "progress freq point=" << points << "/" << points << " done=yes real="
+     << static_cast<int>(f.vib.freq.size()) - imag << " imaginary=" << imag << " zpe=" << fix(f.thermo.zpe) << "\n";
   os.flush();
 }
 

@@ -227,7 +227,14 @@ wall_seconds`. Blocks: `atoms` (index symbol Z x y z[angstrom] mulliken),
 `ao_labels` (index label), `orbitals SPIN` (index energy occupation; SPIN is
 `restricted` with total occupation 0/1/2, or `alpha` and `beta`),
 `mo_coefficients SPIN` (one line per MO: index then nbf coefficients).
-The file ends with `end_of_output`. ECCE reads MO coefficients from a code's
+The file ends with `end_of_output`.
+Lines starting `progress ` are for ECCE's job monitor (the Organizer's
+Progress box, #284), written and flushed as the run goes:
+`progress scf cycle=N energy=E dE=x/target grad=g/target [converged=yes|no]`,
+`progress opt step=N energy=E maxgrad=a/t rmsgrad=a/t maxstep=a/t
+rmsstep=a/t [dE=a/t]` and `progress opt step=N converged=yes|no` at the end,
+`progress freq point=k/n` and finally `progress freq point=n/n done=yes
+real=R imaginary=I zpe=Z`. ECCE reads MO coefficients from a code's
 output text (`scripts/parsers/orca.mo` for ORCA); stage 4 adds a parser for this
 format. The Molden file (`--molden`) uses the 5D 7F 9G convention and was
 checked against Multiwfn 2026.9.20 (density and orbital values at a point,

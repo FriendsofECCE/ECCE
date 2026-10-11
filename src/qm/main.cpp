@@ -43,6 +43,8 @@ int main(int argc, char** argv) {
     auto t0 = std::chrono::steady_clock::now();
     auto seconds = [&] { return std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count(); };
 
+    in.scf.on_cycle = [&](const qm::ScfCycle& c) { qm::write_progress_scf(os, c, in.scf); };
+
     // The basis belongs to one geometry; keep the one of the latest evaluation.
     std::unique_ptr<qm::Basis> basis;
     qm::ScfResult r;
@@ -55,6 +57,7 @@ int main(int argc, char** argv) {
       qm::ScfResult next = qm::run_scf(*basis, m, in.scf, have_prev ? &r : nullptr);
       r = std::move(next);
       have_prev = true;
+      if (!r.converged) qm::write_progress_scf_failed(os, r.iterations);
       qm::OptEval e;
       e.energy = r.energy;
       if (in.runtype != qm::RunType::Energy) {
@@ -82,29 +85,41 @@ int main(int argc, char** argv) {
       so.conv_grad = std::min(so.conv_grad, 1e-8);
       so.conv_energy = std::min(so.conv_energy, 1e-11);
       so.max_iter = std::max(so.max_iter, 200);
+      so.on_cycle = [&](const qm::ScfCycle& c) { qm::write_progress_scf(os, c, so); };
       auto point = [&](const qm::Molecule& m) {
         qm::Basis b(m, lib, in.basis, in.spherical);
         qm::ScfResult rr = qm::run_scf(b, m, so, &r_ref);
-        if (!rr.converged) throw qm::Error("SCF did not converge at a displaced geometry");
+        if (!rr.converged) {
+          qm::write_progress_scf_failed(os, rr.iterations);
+          throw qm::Error("SCF did not converge at a displaced geometry");
+        }
         qm::PointEval pe;
         pe.grad = qm::scf_gradient(b, m, so, rr);
         for (int k = 0; k < 3; ++k) pe.dipole[k] = rr.dipole[k];
         return pe;
       };
+      const int points = 6 * static_cast<int>(ref.atoms.size());
+      qm::write_progress_freq(os, 0, points);
       qm::Derivatives d = qm::finite_difference_derivatives(ref, in.hessian_step, point, [&](int k, int n) {
+        qm::write_progress_freq(os, k, n);
         if (verbose) std::cerr << "hessian point " << k << "/" << n << "\n";
       });
       fo.vib = qm::analyse_vibrations(ref, d);
       fo.thermo = qm::thermochemistry(ref, fo.vib, in.temperature, in.pressure, in.symmetry_number);
+      qm::write_progress_freq_end(os, points, fo);
       return fo;
     };
 
     if (qm::does_optimize(in.runtype)) {
+      int last_step = 0;
       qm::OptResult res = qm::optimize_geometry(in.mol, in.opt, evaluate, [&](const qm::OptStep& st) {
         qm::write_opt_step(os, st);
+        qm::write_progress_opt(os, st, in.opt);
+        last_step = st.index;
         if (verbose)
           std::cerr << "step " << st.index << "  E = " << st.energy << "  max|g| = " << st.max_grad << "\n";
       });
+      qm::write_progress_opt_end(os, last_step, res.converged);
       if (!same(at, res.mol)) evaluate(res.mol);  // the last trial was turned down
       std::unique_ptr<qm::FrequencyOutput> fo;
       if (in.runtype == qm::RunType::OptFreq && res.converged) fo.reset(new qm::FrequencyOutput(frequencies(res.mol, res.grad)));
