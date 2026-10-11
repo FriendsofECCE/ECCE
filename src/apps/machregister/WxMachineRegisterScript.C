@@ -352,12 +352,16 @@ int MachRegScript::runCommand(const vector<string>& w)
         //  Every suggested path ends in a name `Find` would look for.
         for (size_t i = 0; i < f->p_codeNames.size(); i++)
         {
-            SchedulerQuery::ProgramHelp h =
-                SchedulerQuery::programHelp(f->p_codeNames[i]);
+            SchedulerQuery::ProgramHelp h = SchedulerQuery::programHelp(
+                f->p_codeNames[i], f->windowsPrograms());
             for (size_t k = 0; k < h.examples.size(); k++)
             {
                 string base = h.examples[k].substr(
-                    h.examples[k].rfind('/') + 1);
+                    h.examples[k].find_last_of("/\\") + 1);
+                if (std::find(h.names.begin(), h.names.end(), base) ==
+                        h.names.end() && base.size() > 4 &&
+                    base.compare(base.size() - 4, 4, ".exe") == 0)
+                    base.resize(base.size() - 4);
                 if (std::find(h.names.begin(), h.names.end(), base) ==
                     h.names.end())
                     fail(f->p_codeNames[i] + ": example " + h.examples[k] +

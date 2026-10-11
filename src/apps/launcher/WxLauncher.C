@@ -372,6 +372,7 @@ void WxLauncher::refreshControls()
     string shellName = this->refreshShells(machRgstn);
     this->refreshAuthentication(machRgstn, shellName);
     this->refreshLocality();
+    this->refreshRemoteSection();
 
     this->refreshCalcDirectory();
     this->refreshScratchDirectory();
@@ -846,12 +847,59 @@ bool WxLauncher::checkConnectAllowed()
     {
         if (p_slctPrefs->isOptionSupported("UN"))
         {
+            //  An empty Username on this computer is the user's own login:
+            //  the job runs here (updatePreferences fills in the name).
             string user = (string)p_usernameTextCtrl->GetValue();
-            result = (STLUtil::trim(user)).size() > 0;
+            result = (STLUtil::trim(user)).size() > 0 || namesThisHost();
         }
     }
 
     return result;
+}
+
+
+/**
+ *  True when the selected machine is this computer and, with no Username,
+ *  the job runs here rather than over the remote shell (#144).
+ */
+bool WxLauncher::namesThisHost() const
+{
+    if (p_slctPrefs == NULL)
+        return false;
+    RefMachine *machRgstn = p_slctPrefs->getRegisteredMachine();
+    if (machRgstn == NULL)
+        return false;
+    return !RCommand::isRemote(machRgstn->fullname(),
+                    (string)p_remShellChoice->GetStringSelection(), "");
+}
+
+
+/**
+ *  For this computer the Username is optional, and on Windows, where such
+ *  a job never goes over a shell, the whole Remote Machine Access section
+ *  is left out unless a different login was saved.  Decided when a machine
+ *  is chosen, not while typing, so the field never vanishes under the cursor.
+ */
+void WxLauncher::refreshRemoteSection()
+{
+    const bool thisHost = namesThisHost();
+    if (wxWindow *req = FindWindow(ID_STATIC_WXLAUNCHER_USERNAMEREQUIRED))
+        req->Show(!thisHost);
+
+    bool hide = false;
+#ifdef _WIN32
+    string user = STLUtil::trim((string)p_usernameTextCtrl->GetValue());
+    hide = thisHost && (user.empty() || user == Ecce::realUser());
+#endif
+    if (wxWindow *panel = FindWindow(ID_PANEL_WXLAUNCHER_USERNAME))
+        panel->Show(p_slctPrefs->isOptionSupported("UN") && !hide);
+    if (wxWindow *heading = FindWindow(ID_STATIC_WXLAUNCHER_REMOTEHEADING))
+    {
+        wxSizer *row = heading->GetContainingSizer();
+        wxWindow *parent = heading->GetParent();
+        if (row && parent && parent->GetSizer())
+            parent->GetSizer()->Show(row, !hide, true);
+    }
 }
 
 
@@ -2419,6 +2467,7 @@ void WxLauncher::launchCalc(const bool& fullLaunchFlag)
     if (!p_launchData->done())
     {
         p_messagesFeedback->setMessage("Launch aborted...", WxFeedback::WARNING);
+        p_launchData->removeStaging();
     }
     else
     {
@@ -2742,6 +2791,7 @@ void WxLauncher::finishStagedLaunch()
         p_messagesFeedback->setMessage(p_launchData->message(), WxFeedback::ERROR);
         p_messagesFeedback->setMessage("Job submission failed.",
                                        WxFeedback::ERROR);
+        p_launchData->removeStaging();
     }
 
     p_jobStaged = false;

@@ -164,7 +164,33 @@ static string shown(const vector<string>& argv)
 
 //  ---- finding a code's program ---------------------------------------------
 
-ProgramHelp programHelp(const string& code)
+//  Where the Windows builds of the codes usually end up.
+static void windowsExamples(const string& code, ProgramHelp& h)
+{
+    string ex;
+    if (code == "ORCA")
+        ex = "C:\\Users\\<you>\\orca_6_1_1\\orca.exe";
+    else if (code == "MOPAC")
+        ex = "C:\\Program Files\\MOPAC\\bin\\mopac.exe";
+    else if (code.compare(0, 9, "Gaussian-") == 0 && code.size() == 11)
+        ex = "C:\\G" + code.substr(9) + "W\\g" + code.substr(9) + ".exe";
+    else
+        ex = "C:\\Program Files\\" + code + "\\bin\\" + h.names[0] +
+             (h.names[0].find('.') == string::npos ? ".exe" : "");
+    h.examples.assign(1, ex);
+}
+
+static ProgramHelp baseHelp(const string& code);
+
+ProgramHelp programHelp(const string& code, bool windows)
+{
+    ProgramHelp h = baseHelp(code);
+    if (windows)
+        windowsExamples(code, h);
+    return h;
+}
+
+static ProgramHelp baseHelp(const string& code)
 {
     ProgramHelp h;
     if (code == "NWChem" || code == "NWChemMD")
@@ -256,7 +282,7 @@ string findProgramScript(const ProgramHelp& h)
 }
 
 string findInstallDirsScript(const ProgramHelp& h, const string& code,
-                             const vector<string>& roots)
+                             const vector<string>& roots, bool windows)
 {
     string lower = code, upper = code, cap = code;
     for (size_t i = 0; i < code.size(); i++)
@@ -271,9 +297,11 @@ string findInstallDirsScript(const ProgramHelp& h, const string& code,
     for (size_t r = 0; r < roots.size(); r++)
     {
         const char* forms[] = { lower.c_str(), upper.c_str(), cap.c_str() };
+        const string root = roots[r] == "$HOME" ? string("\"$HOME\"")
+                                                : quote(roots[r]);
         for (int f = 0; f < 3; f++)
             if (f == 0 || string(forms[f]) != forms[f - 1])
-                dirs += " " + quote(roots[r]) + "/" + forms[f] + "*";
+                dirs += " " + root + "/" + forms[f] + "*";
     }
     if (dirs.empty())
         return "";
@@ -282,11 +310,21 @@ string findInstallDirsScript(const ProgramHelp& h, const string& code,
     {
         string n = h.names[i];
         bool exe = n.size() > 4 && n.compare(n.size() - 4, 4, ".exe") == 0;
-        string test = exe ? "$p" : "$p.exe";
-        string comp = h.companion.empty() ? "" :
-            " && [ -f \"${p%/*}/" + h.companion + ".exe\" ]";
+        string test, comp;
+        if (windows)
+        {
+            test = "[ -f \"" + string(exe ? "$p" : "$p.exe") + "\" ]";
+            if (!h.companion.empty())
+                comp = " && [ -f \"${p%/*}/" + h.companion + ".exe\" ]";
+        }
+        else
+        {
+            test = "[ -f \"$p\" ] && [ -x \"$p\" ]";
+            if (!h.companion.empty())
+                comp = " && [ -x \"${p%/*}/" + h.companion + "\" ]";
+        }
         s += "for d in" + dirs + "; do for p in \"$d/" + n + "\" \"$d/bin/" +
-             n + "\"; do if [ -f \"" + test + "\" ]" + comp +
+             n + "\"; do if " + test + comp +
              "; then echo \"ECCE-FOUND:$p\"; fi; done; done\n";
     }
     return s;

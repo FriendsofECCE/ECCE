@@ -1,4 +1,5 @@
 #include <wx/sizer.h>
+#include <wx/uri.h>
 
 #include "wxgui/ewxPanel.H"
 #include "wxgui/StringListCtrl.H"
@@ -56,24 +57,31 @@ bool ContextPanel::Create(wxWindow* parent, wxWindowID id, const wxPoint& pos,
 
 wxString ContextPanel::GetContext() const
 {
-  return p_list->GetItemText(p_list->GetFirstSelected());
+  return ContextAt(p_list->GetFirstSelected());
+}
+
+
+wxString ContextPanel::ContextAt(long index) const
+{
+  if (index < 0 || index >= (long)p_contexts.size()) return "";
+  return p_contexts[index];
 }
 
 
 bool ContextPanel::SetContext(const wxString& context)
 {
-  if (context.IsEmpty() || context.IsSameAs("")) {
+  if (context.IsEmpty()) {
     return false; // bail
   }
 
-  // Check we don't already have this file
-  long index = p_list->Find(context);
+  long index = indexOf(context);
   if (index == wxNOT_FOUND) {
-    //index = p_list->Append(context);
-    p_list->Append(context);
+    p_contexts.push_back(context);
+    index = p_list->Append(label(context));
+    relabel();
   }
-  //p_list->Select(index);
-  p_list->SetSelection(context);
+  p_list->SetItemState(index, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
+  p_list->EnsureVisible(index);
 
   return true;
 }
@@ -81,9 +89,11 @@ bool ContextPanel::SetContext(const wxString& context)
 
 bool ContextPanel::RemoveContext(const wxString& context)
 {
-  long index = p_list->Find(context);
+  long index = indexOf(context);
   if (index != wxNOT_FOUND) {
     p_list->Delete(index);
+    p_contexts.erase(p_contexts.begin() + index);
+    relabel();
     return true;
   }
 
@@ -94,9 +104,10 @@ bool ContextPanel::RemoveContext(const wxString& context)
 bool ContextPanel::RenameContext(const wxString& oldContext,
                                  const wxString& newContext)
 {
-  long index = p_list->Find(oldContext);
+  long index = indexOf(oldContext);
   if (index != wxNOT_FOUND) {
-    p_list->Change(index, newContext);
+    p_contexts[index] = newContext;
+    relabel();
     return true;
   }
 
@@ -104,4 +115,38 @@ bool ContextPanel::RenameContext(const wxString& oldContext,
 }
 
 
+long ContextPanel::indexOf(const wxString& context) const
+{
+  for (size_t i = 0; i < p_contexts.size(); i++)
+    if (p_contexts[i] == context) return (long)i;
+  return wxNOT_FOUND;
+}
 
+
+//  A calculation is listed by its name, the last part of its URL; a name
+//  that two open calculations share gets its folder added.
+wxString ContextPanel::label(const wxString& context)
+{
+  if (context.Find("://") == wxNOT_FOUND) return context;
+  wxString path = context.AfterFirst(':').Mid(2);
+  while (path.EndsWith("/")) path.RemoveLast();
+  return wxURI::Unescape(path.AfterLast('/'));
+}
+
+
+void ContextPanel::relabel()
+{
+  for (size_t i = 0; i < p_contexts.size(); i++) {
+    wxString name = label(p_contexts[i]);
+    bool shared = false;
+    for (size_t j = 0; j < p_contexts.size() && !shared; j++)
+      shared = j != i && label(p_contexts[j]) == name;
+    if (shared) {
+      wxString path = p_contexts[i].AfterFirst(':').Mid(2);
+      while (path.EndsWith("/")) path.RemoveLast();
+      wxString folder = wxURI::Unescape(path.BeforeLast('/').AfterLast('/'));
+      if (!folder.IsEmpty()) name += " (" + folder + ")";
+    }
+    if (p_list->GetItemText(i) != name) p_list->Change(i, name);
+  }
+}

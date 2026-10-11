@@ -494,18 +494,29 @@ void NModePanel::createSpectrumPane()
    col->Show(noRoom, false);
    noRoomButton->Bind(wxEVT_BUTTON,
                       [this](wxCommandEvent&) { openSpectrumWindow(); });
+   //  The settings row goes first: at the Viewer's first size on a laptop
+   //  screen (1366x768) the pane is about 140 px, room for the plot alone.
    pane->Bind(wxEVT_SIZE, [pane, col, row, noRoom, this](wxSizeEvent& e) {
-      const bool tight = e.GetSize().y < 190;
-      if (col->IsShown(noRoom) != tight) {
-         col->Show(p_spectrum, !tight);
-         col->Show(row, !tight);
-         col->Show(noRoom, tight);
+      const int h = e.GetSize().y;
+      const bool plot = h >= 110, settings = h >= 190;
+      if (col->IsShown(p_spectrum) != plot || col->IsShown(row) != settings) {
+         col->Show(p_spectrum, plot);
+         col->Show(row, settings);
+         col->Show(noRoom, !plot);
       }
       e.Skip();
    });
 
    pane->SetSizer(col);
    p_gridPlotSizer->Add(pane, 1, wxGROW);
+
+   //  The wrap sizers under the plot learn their width only in a layout, so
+   //  the first one reserved them several rows (on MSW about 100 px) and the
+   //  plot did not fit; a second pass at the same size gives it back.
+   Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
+      e.Skip();
+      CallAfter([this]() { Layout(); });
+   });
 
    p_fwhmText->Bind(wxEVT_TEXT_ENTER,
                     [this](wxCommandEvent&) { applySpectrumSettings(); });

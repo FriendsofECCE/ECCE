@@ -324,6 +324,7 @@ Launch::Launch(TaskJob* task,
   }
 
   p_valid = true;
+  p_storeStarted = false;
   p_connection = (RCommand*)0;
   p_localconn = (RCommand*)0;
   p_curOp = 0;
@@ -614,6 +615,21 @@ void Launch::cacheCalcInfo(const string& importDir, const string& importName)
 string Launch::stagingDirectory(void) const
 {
   return (p_cache != (CalcInfo*)0) ? p_cache->directory : "";
+}
+
+
+//  A launch that stopped before the job store took over leaves its
+//  staging directory behind (eccejobmaster removes it after a job);
+//  a noRemoteAccess launch keeps it, it is what the user copies.
+void Launch::removeStaging(void)
+{
+  if (p_storeStarted || p_localOnly || p_cache == (CalcInfo*)0 ||
+      p_cache->directory.empty())
+    return;
+  SDirectory dir(p_cache->directory.c_str());
+  if (dir.exists())
+    (void)dir.remove();
+  p_cache->directory = "";
 }
 
 
@@ -2112,6 +2128,7 @@ bool Launch::launchNormal(void)
 bool Launch::startJobStore(const string& importDir)
 {
   bool ret = true;
+  p_storeStarted = true;
 
   // make files writable so they can be copied over if the job is killed
   // this is called whenever job monitoring is being done (full job

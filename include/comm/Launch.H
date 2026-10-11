@@ -72,6 +72,7 @@ public:
         // Meaningful for a noRemoteAccess launch (issue #94), where that
         // directory is the deliverable: the user takes it from there.
         string stagingDirectory(void) const;
+        void removeStaging(void);
         // True when this launch only prepared files locally.
         bool   isLocalOnly(void) const;
         bool done(void) const;
@@ -110,6 +111,7 @@ private:
         RCommand               *p_connection;
         RCommand               *p_localconn;
         bool                    p_valid;
+        bool                    p_storeStarted;
         string                  p_lastMessage;
         string                  p_infoMessage;
         CalcInfo               *p_cache;

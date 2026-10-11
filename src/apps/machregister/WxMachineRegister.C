@@ -1034,14 +1034,7 @@ void WxMachineRegister::showCode()
     for (size_t i = 0; i < p_codePaths.size(); i++)
         p_codePaths[i]->Show((int)i == p_codeSel);
     p_codeTitle->SetLabel(name);
-    {
-        SchedulerQuery::ProgramHelp h = SchedulerQuery::programHelp(name);
-        string t = "Example: " + SchedulerQuery::exampleText(h);
-        if (!h.note.empty())
-            t += ".  " + h.note;
-        p_codeExample->SetLabel(wxString::FromUTF8(t.c_str()));
-        p_codeExample->Wrap(380);
-    }
+    showProgramHelp();
     for (size_t r = 0; r < p_codeShown.size(); r++)
         if (p_codeShown[r] == p_codeSel)
             p_codeList->SetSelection((int)r);
@@ -1073,6 +1066,9 @@ void WxMachineRegister::showCode()
         p_codePage->Layout();
         static_cast<wxScrolledWindow*>(p_codePage)->FitInside();
     }
+    //  A code's texts (example, hint) can make the page wider than when the
+    //  frame was sized.
+    this->growToFitSizer();
 }
 
 
@@ -1671,6 +1667,9 @@ void WxMachineRegister::growToFitSizer(bool fitWholeForm)
         natural.x = wxMax(natural.x, s.x);
         natural.y = wxMax(natural.y, s.y);
     }
+    //  The pages scroll vertically; the scroll bar takes its width from the
+    //  content, which then lost its right-hand column (tags, undo buttons).
+    natural.x += wxSystemSettings::GetMetric(wxSYS_VSCROLL_X, this);
 
     //  Window best sizes are cached; the notebook's change must reach the
     //  frame's sizer.
@@ -1744,6 +1743,39 @@ wxSize WxMachineRegister::maxClientSizeForDisplay()
  *  Shown where the name is typed, from RCommand::isRemote(), the function
  *  the launch uses.
  */
+//  The Program boxes' hints and the example under them.
+void WxMachineRegister::showProgramHelp()
+{
+    if (p_codeNames.empty() || p_codeExample == NULL)
+        return;
+    const bool win = windowsPrograms();
+    for (size_t i = 0; i < p_codePaths.size(); i++)
+        p_codePaths[i]->SetHint("e.g. " + SchedulerQuery::programHelp(
+                                    p_codeNames[i], win).examples[0]);
+    SchedulerQuery::ProgramHelp h =
+        SchedulerQuery::programHelp(p_codeNames[p_codeSel], win);
+    string t = "Example: " + SchedulerQuery::exampleText(h);
+    if (!h.note.empty())
+        t += ".  " + h.note;
+    p_codeExample->SetLabel(wxString::FromUTF8(t.c_str()));
+    p_codeExample->Wrap(380);
+}
+
+
+//  True when the machine is this computer and this is the Windows build:
+//  its programs are Windows programs, found and shown as such.
+bool WxMachineRegister::windowsPrograms() const
+{
+#ifdef _WIN32
+    return p_fullName != NULL &&
+           !RCommand::localityNote((string)p_fullName->GetValue(), "ssh",
+                                   "").empty();
+#else
+    return false;
+#endif
+}
+
+
 void WxMachineRegister::refreshLocality()
 {
     if (p_localityText == NULL || p_fullName == NULL)
@@ -1776,6 +1808,9 @@ void WxMachineRegister::refreshLocality()
         }
     }
 
+#ifdef _WIN32
+    showProgramHelp();
+#endif
     if ((string)p_localityText->GetLabel() != text)
     {
         p_localityText->SetLabel(text);

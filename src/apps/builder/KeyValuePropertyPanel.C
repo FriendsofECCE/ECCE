@@ -103,6 +103,15 @@ void KeyValuePropertyPanel::refresh()
   string thermoTemp, thermoPres, solvModel;
   bool grouped = false;
   set<string> names = getPropertyNames();
+  // MOPAC publishes its heat of formation as TE too; listing that number
+  // again as "Total Energy" would call it something it is not.
+  if (names.count("HFENERGY") && names.count("TE")) {
+    TProperty *hof = getCalculation()->getProperty("HFENERGY");
+    TProperty *te = getCalculation()->getProperty("TE");
+    if (hof && te && hof->scalarize() == te->scalarize() &&
+        hof->units() == te->units())
+      names.erase("TE");
+  }
   set<string>::iterator nameIt;
   for (nameIt = names.begin(); nameIt != names.end(); nameIt++) {
     TProperty *tprop = getCalculation()->getProperty(*nameIt);

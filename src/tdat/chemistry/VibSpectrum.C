@@ -325,7 +325,9 @@ void VibSpectrum::defaultRange(double *lo, double *hi) const
     else { minReal = min(minReal, w); maxReal = max(maxReal, w); }
   }
   if (!any || maxReal < 0) { *lo = 0; *hi = 4000; return; }
-  const double pad = max(100.0, 4.0 * p_fwhm);
+  //  The margin grows with the range: 100 cm-1 is a few pixels in the
+  //  docked panel, and a band at the edge looked cut off.
+  const double pad = max(max(100.0, 4.0 * p_fwhm), 0.1 * (maxReal - minReal));
   double h = std::ceil((maxReal + pad) / 100.0) * 100.0;
   double l = std::floor((minReal - pad) / 100.0) * 100.0;
   if (l < 0) l = 0;

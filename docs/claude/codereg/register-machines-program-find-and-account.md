@@ -3,7 +3,7 @@ type: map
 title: "Codes tab: one table gives the Program examples, hints and Find names; the Default account lives in MachPrefs"
 area: codereg
 section: "Machine configuration (CONFIG files)"
-paths: ["src/apps/machregister/SchedulerQuery.C", "src/apps/machregister/WxMachineRegister.C", "src/apps/machregister/WxMachineRegisterTools.C", "src/dsm/xml/CodeFactory.C"]
+paths: ["src/apps/machregister/SchedulerQuery.C", "src/apps/machregister/WxMachineRegisterScript.C", "src/apps/machregister/WxMachineRegister.C", "src/apps/machregister/WxMachineRegisterTools.C", "src/dsm/xml/CodeFactory.C"]
 issues: [234]
 ---
 - `SchedulerQuery::programHelp(code)` is the only place that knows a code's
@@ -14,6 +14,15 @@ issues: [234]
   looks for. A code whose name a program shares (ORCA and the GNOME screen
   reader) needs a `companion` file; its search walks the PATH, because
   `command -v` returns only the first match.
+- On Windows, for this computer, the examples are Windows paths
+  (`programHelp(code, true)`); when nothing is on the PATH, Find looks in a folder named after
+  the code below the user folder, `AppData\Local[\Programs]`, Program Files
+  and the drive root (`findInstallDirsScript`); elsewhere it looks below
+  `$HOME`, `/opt` and `/usr/local` (and `/Applications` on a Mac). A test
+  that moves `USERPROFILE` to a fresh profile hides a real install there.
+- The frame grows after a code is shown (`showCode` -> `growToFitSizer`):
+  a code's texts can widen the page, and the pages' vertical scroll bar
+  is added to their natural width; both cut off the right-hand column.
 - The Codes list shows a code only when a resource descriptor registers it
   (`CodeFactory::isRegistered`: an `applicationType` in
   ResourceDescriptor*.xml) or the machine already has a setting for it. A

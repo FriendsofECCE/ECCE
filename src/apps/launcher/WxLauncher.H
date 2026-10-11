@@ -208,6 +208,8 @@ class WxLauncher : public WxLauncherGUI,
         void updatePriority(int pval);
         void refreshAuthentication(RefMachine *machRgstn, string shellName);
         void refreshLocality();
+        void refreshRemoteSection();
+        bool namesThisHost() const;
 
         void refreshLaunchControls();
         void refreshLaunchControls(bool cnctAllwd);

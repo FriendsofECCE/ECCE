@@ -693,7 +693,9 @@ void CalcEd::doSetContext(const string& codeName)
     if (p_iCalc->getDataFileNames(JCode::INPUT).size() > 0) {
       p_feedback->setMessage("Basis set has changed since the "
               "Electronic Structure Editor was last up.", WxFeedback::WARNING);
-    } else {
+    } else if (p_iCalc->getState() > ResourceDescriptor::STATE_CREATED) {
+      // Not for a new calculation: one of a code without a basis set
+      // (MOPAC) is ready before any input was made, nothing is missing.
       p_feedback->setMessage("Input file does not exist.  Hit save to "
               "generate input file.", WxFeedback::WARNING);
     }

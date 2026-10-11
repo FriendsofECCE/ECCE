@@ -1,6 +1,8 @@
 #ifndef CONTEXTPANEL_H_
 #define CONTEXTPANEL_H_
 
+#include <vector>
+
 #include "wxgui/ewxPanel.H"
 
 class StringListCtrl;
@@ -28,12 +30,19 @@ class ContextPanel : public ewxPanel
                         const wxString& name = "ContextPanel");
 
     wxString GetContext() const;
+    wxString ContextAt(long index) const;
     bool SetContext(const wxString& context);
     bool RemoveContext(const wxString& context);
     bool RenameContext(const wxString& oldContext, const wxString& newContext);
 
   protected:
+    static wxString label(const wxString& context);
+    long indexOf(const wxString& context) const;
+    void relabel();
+
     StringListCtrl * p_list;
+    // The contexts (URLs) in list order; the list shows their names.
+    std::vector<wxString> p_contexts;
 };
 
 #endif // CONTEXTPANEL_H_

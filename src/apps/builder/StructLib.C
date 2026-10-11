@@ -434,8 +434,16 @@ void StructLib::structuresListItemSelectedCB( wxListEvent& event)
         p_container->touchChemDisplay();
 
         p_viewer->Show(true);
-        p_viewer->viewAll();
         p_nullSelectionStaticText->Show(false);
+        //  The viewer was hidden, so it has no size until its panel is laid
+        //  out: fitted before that, the camera saw nothing, and on MSW the
+        //  newly shown GL window stayed black until something repainted it.
+        p_viewer->GetParent()->Layout();
+        p_viewer->viewAll();
+        p_viewer->Refresh();
+        CallAfter([this]() {
+            if (p_viewer->IsShown()) { p_viewer->viewAll(); p_viewer->Refresh(); }
+        });
     }
     else
     {
