@@ -2,9 +2,9 @@
 
 A small quantum chemistry engine for teaching-size molecules (tens of atoms
 at most), shipped with ECCE so that a calculation needs no external code.
-Stage 1 is single-point energies and orbitals; stage 4 (below) registers it in
-ECCE as the code ECCE-QM. Planned: analytic gradients and geometry
-optimisation (stage 2), numerical Hessian, frequencies and IR (stage 3).
+Stage 1 is single-point energies and orbitals; stage 2 (below) adds analytic
+gradients and geometry optimisation; stage 4 registers it in ECCE as the code
+ECCE-QM. Planned: numerical Hessian, frequencies and IR (stage 3).
 
 Source `src/qm/` (library `eccems`, no wx; command line `ecce-qm`), tests
 `tests/qm/`.
@@ -40,6 +40,7 @@ Everything is static, so the same CMake works on Linux, macOS and MSYS2
     basis def2-SVP        # any ECCE library name: 6-31G*, STO-3G, def2-TZVP, ...
     spherical true        # default; false = Cartesian d, f
     grid 99 590           # radial x Lebedev points per atom (DFT)
+    runtype optimize      # energy (default), gradient or optimize
     geometry              # angstrom (units bohr to change)
     O 0 0 0.1173
     H 0 0.7572 -0.4692
@@ -91,6 +92,41 @@ spherical shells s; px,py,pz; then real harmonics m=-l..l (d: xy yz z2 xz
 x2-y2), Cartesian shells in libcint order. `ao_labels` in the output gives
 the ORCA-style label of every coefficient row.
 
+## Gradients and geometry optimisation (stage 2)
+
+`runtype gradient` adds the analytic nuclear gradient, `runtype optimize` moves
+the nuclei to a minimum; `maxsteps N` (default 100 energy+gradient evaluations)
+and `opt_conv normal|tight` (default normal) tune the latter.
+
+* Gradient (`src/qm/gradient.cpp`, XC part in `xc.cpp`): libcint derivative
+  integrals (`int1e_ipovlp`, `int1e_ipkin`, `int1e_iprinv` for the nuclear
+  attraction of each nucleus with its operator-centre term, `int2e_ip1`), the
+  energy-weighted density `1/2 sum_s (S^-1 F_s D_s + D_s F_s S^-1)` for the
+  overlap term (also right for ROHF/ROKS), and the LDA/GGA terms of the XC
+  energy on the grid. For RHF, UHF, ROHF and SVWN, PBE, B3LYP, PBE0 with
+  restricted, unrestricted and restricted-open orbitals. The derivative of the
+  grid weights is neglected.
+* Optimiser (`optimizer.cpp`): Cartesian BFGS, Lindh model Hessian
+  (stretches, bends, torsions) as the start, rational function steps in the
+  space with translation and rotation removed, trust radius 0.3 bohr (at most
+  1.0), a step that raises the energy is retried shorter. Converged when the
+  maximum and RMS gradient, the maximum and RMS of the next step and the last
+  energy change are all below the thresholds: `normal` is ORCA's Opt
+  (3e-4, 1e-4 hartree/bohr; 4e-3, 2e-3 bohr; 5e-6 hartree), `tight` is
+  TightOpt (1e-4, 3e-5; 1e-3, 6e-4; 1e-6). No redundant internal coordinates,
+  so a floppy molecule needs more steps than ORCA's.
+* Output: one block per accepted geometry, written as soon as it is known:
+  `opt_step N`, `energy_step E`, `opt_criteria ...`, `begin geometry`
+  (index symbol x y z, angstrom), `begin gradient` (hartree/bohr). Then the
+  usual output for the final geometry, plus `runtype`, `opt_converged` and
+  `opt_evaluations`. A gradient run has the one block. ECCE turns the blocks
+  into GEOMTRACE, TEVEC (the energy trace; TE is the final energy), EGRAD and
+  EGRADVEC (`ecceqm.desc`).
+* Tests: `tests/qm/gradient_test.py` (analytic gradient against central
+  differences of the energy), `tests/qm/opt_test.py` (final energy, distances
+  and angles against ORCA TightOpt, `opt_oracle.json`, made by
+  `gen_opt_oracle.py`).
+
 ## Output format (version 1)
 
 Line oriented text, key value pairs, then blocks
@@ -135,7 +171,8 @@ Organizer; the Calculation Editor offers
   B3LYP (default) or PBE0 in Theory Details, which also has one tick for
   unrestricted orbitals (UHF/UKS; open shells are otherwise restricted
   open-shell, ROHF/ROKS);
-* run type: Energy;
+* run type: Energy, Gradient or Geometry (optimisation, the geometry trace and
+  energy plot appear as for any other code);
 * basis set: STO-3G, 3-21G, 6-31G* (default), cc-pVDZ or def2-SVP from the
   Basis Set menu (the Basis Set Tool is not used); an element a basis does not
   cover, or that would need a core potential (def2 beyond Kr), is named before
