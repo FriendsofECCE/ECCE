@@ -313,41 +313,44 @@ def overlayCase(s, display, env, wrappers, png):
     polarCase(s, display, env, wrappers, png)
 
 
-def hfCase(s, display, env, wrappers, png):
-    """A diatomic's dipole arrow lies inside the bond; it must still show
-    (drawn again with the depth test off).  HF is made from the water
-    fixture: its chemsys and DIPOLE replaced, the geometry trace dropped."""
-    say("HF, Ball and Stick: the dipole arrow is not hidden by the bond")
-    data = s.localData()
-    project = os.path.join(data, "users", "local", "overlay")
-    calc = os.path.join(project, "hf")
+def moleculeCalc(s, name, atoms, bonds, dipole=None):
+    """A calculation of the given atoms [(symbol, x, y, z)] and bonds
+    [(i, j)] (1-based), made from the water fixture: its chemsys replaced
+    and its other properties dropped, a DIPOLE (Debye) written if given."""
+    project = os.path.join(s.localData(), "users", "local", "overlay")
+    os.makedirs(project, exist_ok=True)
+    if not os.path.exists(os.path.join(project, ".ecce-meta")):
+        shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+    calc = os.path.join(project, name)
     shutil.rmtree(calc, ignore_errors=True)
     shutil.copytree(FIXTURE, calc, symlinks=True)
+    text = "title: %s\ntype: molecule\nnum_atoms: %d\n" % (name, len(atoms))
+    text += "atom_info: symbol cart\natom_list: \n"
+    text += "".join("%s %.5f %.5f %.5f\n" % a for a in atoms)
+    text += "attr_list:\n" + " 0.000000   1   0   0   0\n" * len(atoms)
+    text += "atom_type_list:\n" + "        6   2\n" * len(atoms)
+    text += "num_bonds: %d\nbond_list: \n" % len(bonds)
+    text += "".join("%d %d 1.00000 2\n" % b for b in bonds)
     with open(os.path.join(calc, "Parameters", "chemsys.mvm"), "w") as out:
-        out.write("""title: hf
-type: molecule
-num_atoms: 2
-atom_info: symbol cart
-atom_list: 
-F 0.00000 0.00000 0.00000
-H 0.92000 0.00000 0.00000
-attr_list:
- 0.000000   1   0   0   0
- 0.000000   1   0   0   0
-atom_type_list:
-        6   2
-        1   2
-num_bonds: 1
-bond_list: 
-1 2 1.00000 2
-""")
-    for name in os.listdir(os.path.join(calc, "Props")):
-        if not name.startswith(".") and name != "DIPOLE":
-            os.unlink(os.path.join(calc, "Props", name))
-    with open(os.path.join(calc, "Props", "DIPOLE"), "w") as out:
-        out.write('<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n'
-                  '<vector name="DIPOLE" rowLabel="Coordinate" rowLabels="x y z"'
-                  ' rows="3" units="Debye">1.9 0 0</vector>\n')
+        out.write(text)
+    for prop in os.listdir(os.path.join(calc, "Props")):
+        if not prop.startswith(".") and not (dipole and prop == "DIPOLE"):
+            os.unlink(os.path.join(calc, "Props", prop))
+    if dipole:
+        with open(os.path.join(calc, "Props", "DIPOLE"), "w") as out:
+            out.write('<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n'
+                      '<vector name="DIPOLE" rowLabel="Coordinate" '
+                      'rowLabels="x y z" rows="3" units="Debye">%s %s %s'
+                      '</vector>\n' % dipole)
+    return calc
+
+
+def hfCase(s, display, env, wrappers, png):
+    """A diatomic's dipole arrow lies inside the bond; it must still show
+    (drawn again with the depth test off)."""
+    say("HF, Ball and Stick: the dipole arrow is not hidden by the bond")
+    calc = moleculeCalc(s, "hf", [("F", 0, 0, 0), ("H", 0.92, 0, 0)],
+                        [(1, 2)], dipole=(1.9, 0, 0))
     lines = ["wait 4000", "list Dipole Moment", "wait 1500", "vector DIPOLE",
              "shot hf", "quit"]
     text, shots = runScript(s, display, env, wrappers,
@@ -367,6 +370,54 @@ bond_list:
     n = int(((r > 120) & (abs(r - g) < 35) & (b < 0.5 * r)).sum())
     #  85 without the second pass (a sliver at the hydrogen), 429 with it.
     check(n > 250, "hf: %d yellow pixels in the viewer" % n)
+
+
+def coloursCase(s, display, env, wrappers, png):
+    """Preferences > Colours: HF and CFClBrI in Jmol and ECCE (classic)
+    colours.  The scheme is the saved preference, as the dialog writes it."""
+    import numpy
+    from PIL import Image
+    say("Element colours: Jmol (default) and ECCE classic")
+    t = 1.0 / 3 ** 0.5
+    halo = [("C", 0, 0, 0)]
+    for sym, d, v in (("F", 1.35, (1, 1, 1)), ("Cl", 1.77, (1, -1, -1)),
+                      ("Br", 1.94, (-1, 1, -1)), ("I", 2.14, (-1, -1, 1))):
+        halo.append((sym, d * t * v[0], d * t * v[1], d * t * v[2]))
+    molecules = (("hf", moleculeCalc(s, "hf-col", [("F", 0, 0, 0),
+                                                   ("H", 0.92, 0, 0)],
+                                     [(1, 2)])),
+                 ("halogens", moleculeCalc(s, "halogens", halo,
+                                           [(1, 2), (1, 3), (1, 4), (1, 5)])))
+    prefs = os.path.join(s.state, ".ECCE", "EcceGlobal")
+    found = {}
+    for scheme in ("jmol", "ecce"):
+        with open(prefs, "w") as out:
+            out.write("ElementColours:\t%s\n" % scheme)
+        for name, calc in molecules:
+            lines = ["wait 4000", "shot x", "quit"]
+            text, shots = runScript(
+                s, display, env, wrappers, ["-context", "file://" + calc + "/"],
+                lines, png, "colours-%s-%s" % (name, scheme),
+                {"ECCE_PANEL_MODE": "detail"})
+            if "x" not in shots:
+                check(False, "%s in %s photographed" % (name, scheme))
+                continue
+            img = Image.open(shots["x"])
+            p = numpy.asarray(img.convert("RGB").crop(viewerBox(img))).astype(int)
+            r, g, b = p[..., 0], p[..., 1], p[..., 2]
+            found[(name, scheme)] = (
+                int(((g > 150) & (r < g - 30) & (b < g - 60)).sum()),  # green
+                int(((b > 150) & (r > 90) & (g < 90)).sum()),          # purple
+                int(((r > 110) & (g < 70) & (b < 70)).sum()))          # brown-red
+    hf = [found.get(("hf", k), (0, 0, 0)) for k in ("jmol", "ecce")]
+    check(hf[0][0] > 3000 and hf[0][1] < 800,
+          "hf: Jmol fluorine is light green (%d green, %d purple)" % hf[0][:2])
+    check(hf[1][1] > 3000 and hf[1][0] < 800,
+          "hf: classic fluorine is purple (%d green, %d purple)" % hf[1][:2])
+    hal = [found.get(("halogens", k), (0, 0, 0)) for k in ("jmol", "ecce")]
+    check(hal[0][2] > 200 and hal[1][2] < 50,
+          "halogens: Jmol bromine is brown-red, classic is not (%d, %d)"
+          % (hal[0][2], hal[1][2]))
 
 
 # Real polarizability tensors (HF, a.u.) from Gaussian 16 and ORCA 6.1.1 for
@@ -596,6 +647,52 @@ def orgCommand(cmd, log, line, timeout=90):
     return "timeout"
 
 
+def prefsCase(s, display, env, wrappers, png):
+    """The Colours tab: the default is Jmol, a choice is saved at once and a
+    new Organizer shows the saved one."""
+    say("Preferences > Colours: choice saved and kept")
+    png = os.path.abspath(png)
+    prefs = os.path.join(s.state, ".ECCE", "EcceGlobal")
+    if os.path.exists(prefs):
+        os.unlink(prefs)
+
+    def saved():
+        try:
+            with open(prefs) as handle:
+                for line in handle:
+                    if line.upper().startswith("ELEMENTCOLOURS"):
+                        return line.split(":", 1)[1].strip()
+        except OSError:
+            pass
+        return None
+
+    for run, (choose, want) in enumerate(((None, "jmol"), ("ecce", "ecce"),
+                                          (None, "ecce"), ("jmol", "jmol"))):
+        cmd = os.path.join(s.state, "prefs%d.cmd" % run)
+        open(cmd, "w").close()
+        org, log = organizer(s, display, env, wrappers, cmd, "prefs%d" % run)
+        try:
+            out = orgCommand(cmd, log, "prefs state")
+            if run == 0:
+                check(out == "colours=jmol", "a new user's tab shows Jmol: %s"
+                      % out)
+            elif run == 2:
+                check(out == "colours=ecce",
+                      "a new Organizer shows the saved choice: %s" % out)
+            out = orgCommand(cmd, log, "prefs snap " + os.path.join(
+                png, "prefs-colours-%d.png" % run))
+            check(out == "saved", "the tab is photographed: %s" % out)
+            if choose:
+                out = orgCommand(cmd, log, "prefs colours " + choose)
+                check(out == "ok", "choosing %s: %s" % (choose, out))
+                check(saved() == want, "saved as %s (file has %s)"
+                      % (want, saved()))
+                orgCommand(cmd, log, "prefs snap " + os.path.join(
+                    png, "prefs-colours-%d-%s.png" % (run, choose)))
+        finally:
+            stop(org)
+
+
 def newCase(s, display, env, wrappers, png):
     say("File > New: MD studies and their tasks")
     cmd = os.path.join(s.state, "new.cmd")
@@ -652,7 +749,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--build", default=os.path.join(REPO, "build-cmake"))
     ap.add_argument("--png")
-    ap.add_argument("--only", choices=("overlay", "thumbnail", "new", "hf"))
+    ap.add_argument("--only", choices=("overlay", "thumbnail", "new", "hf", "colours",
+                                           "prefs"))
     ap.add_argument("--keep", action="store_true")
     args = ap.parse_args()
     build = os.path.abspath(args.build)
@@ -695,11 +793,11 @@ def main():
         env = s.env({"DISPLAY": display.name, "GTK_THEME": "Adwaita",
                      "PATH": wrappers + os.pathsep + s.env()["PATH"]})
         if args.only == "hf":
-            os.makedirs(os.path.join(s.localData(), "users", "local", "overlay"),
-                        exist_ok=True)
-            shutil.copy(PROJECT_META, os.path.join(
-                s.localData(), "users", "local", "overlay", ".ecce-meta"))
             hfCase(s, display, env, wrappers, png)
+        if args.only in (None, "prefs"):
+            prefsCase(s, display, env, wrappers, png)
+        if args.only in (None, "colours"):
+            coloursCase(s, display, env, wrappers, png)
         if args.only in (None, "overlay"):
             overlayCase(s, display, env, wrappers, png)
         if args.only in (None, "thumbnail"):

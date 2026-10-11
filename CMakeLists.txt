@@ -2017,6 +2017,13 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/default_style.py)
   set_tests_properties(look_default_style PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
 
+  # Preferences > Colours: Jmol or classic element colours, the saved choice.
+  add_test(NAME look_element_colours
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/elementcolours.py
+                   --libdir ${CMAKE_BINARY_DIR})
+  set_tests_properties(look_element_colours PROPERTIES TIMEOUT 300)
+
   # The MO diagram's column headings do not overlap at docked widths.
   add_test(NAME look_modiagram_heads
            COMMAND ${PYTHON3_EXECUTABLE}

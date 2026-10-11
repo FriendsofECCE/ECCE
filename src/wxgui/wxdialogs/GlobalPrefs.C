@@ -26,6 +26,7 @@
 #include "util/LocalData.H"
 
 #include "dsm/ResourceDescriptor.H"
+#include "tdat/TPerTab.H"
 
 #include "wxgui/ewxBitmap.H"
 #include "wxgui/ewxButton.H"
@@ -91,7 +92,7 @@ namespace {
 GlobalPrefs::GlobalPrefs(wxWindow* parent)
   : p_publisher(NULL), p_book(NULL),
     p_fontSize(NULL), p_dateFormat(NULL),
-    p_timeFormat(NULL), p_unit(NULL), p_systemFont(NULL), p_beepError(NULL), p_beepWarn(NULL),
+    p_timeFormat(NULL), p_unit(NULL), p_elementColours(NULL), p_systemFont(NULL), p_beepError(NULL), p_beepWarn(NULL),
     p_focus(NULL), p_quickTransp(NULL), p_ecceQmMoDiagram(NULL), p_updateCheck(NULL), p_updatePreviews(NULL), p_updateLocked(false), p_confirmExit(NULL), p_closeShells(NULL),
     p_savePasswords(NULL), p_showBusy(NULL), p_alwaysOnTop(NULL),
     p_leftClickNewApp(NULL), p_orientation(NULL),
@@ -116,6 +117,10 @@ GlobalPrefs::GlobalPrefs(wxWindow* parent)
   wxPanel* general = new wxPanel(p_book);
   createGeneralPage(general);
   p_book->AddPage(general, _("General"));
+
+  wxPanel* colours = new wxPanel(p_book);
+  createColoursPage(colours);
+  p_book->AddPage(colours, _("Colours"));
 
   wxPanel* programs = new wxPanel(p_book);
   createProgramsPage(programs);
@@ -301,6 +306,63 @@ void GlobalPrefs::createGeneralPage(wxWindow* page)
   outer->Add(box4, 0, wxGROW|wxALL, PAD);
 
   page->SetSizer(outer);
+}
+
+
+void GlobalPrefs::createColoursPage(wxWindow* page)
+{
+  wxBoxSizer* outer = new wxBoxSizer(wxVERTICAL);
+  wxStaticBoxSizer* box = new wxStaticBoxSizer(wxVERTICAL, page, _("Element colours"));
+  wxWindow* sb = box->GetStaticBox();
+  wxBoxSizer* row = new wxBoxSizer(wxHORIZONTAL);
+  row->Add(new ewxStaticText(sb, wxID_ANY, _("Colour scheme:")), 0,
+           wxALIGN_CENTER_VERTICAL|wxRIGHT, PAD);
+  p_elementColours = new ewxChoice(sb, wxID_ANY);
+  p_elementColours->Append(_("Jmol"));
+  p_elementColours->Append(_("ECCE (classic)"));
+  p_elementColours->Bind(wxEVT_CHOICE, &GlobalPrefs::OnColourScheme, this);
+  row->Add(p_elementColours, 0, wxALIGN_CENTER_VERTICAL);
+  box->Add(row, 0, wxALL, PAD);
+  box->Add(new ewxStaticText(sb, wxID_ANY,
+      _("Used for the atoms in the 3D viewer, the periodic table and "
+        "thumbnails. An open Builder changes at once; other windows "
+        "change when they are next opened.")), 0, wxLEFT|wxRIGHT|wxBOTTOM, PAD);
+  outer->Add(box, 0, wxGROW|wxALL, PAD);
+  page->SetSizer(outer);
+}
+
+
+void GlobalPrefs::showColoursPage()
+{
+  for (size_t i = 0; i < p_book->GetPageCount(); i++)
+    if (p_book->GetPageText(i) == _("Colours")) p_book->SetSelection(i);
+}
+
+
+bool GlobalPrefs::chooseColourScheme(const string& scheme)
+{
+  if (scheme != "jmol" && scheme != "ecce") return false;
+  p_elementColours->SetSelection(scheme == "ecce" ? 1 : 0);
+  wxCommandEvent event(wxEVT_CHOICE, p_elementColours->GetId());
+  event.SetEventObject(p_elementColours);
+  p_elementColours->GetEventHandler()->ProcessEvent(event);
+  return true;
+}
+
+
+string GlobalPrefs::colourSchemeShown() const
+{
+  return p_elementColours->GetSelection() == 1 ? "ecce" : "jmol";
+}
+
+
+void GlobalPrefs::OnColourScheme(wxCommandEvent& event)
+{
+  saveSettings();
+  TPerTab::applyColourScheme();
+  JMSMessage * blankMsg = p_publisher->newMessage();
+  p_publisher->publish("ecce_preferences_pertab", *blankMsg);
+  delete blankMsg;
 }
 
 
@@ -687,6 +749,7 @@ void GlobalPrefs::OnResetAll(wxCommandEvent& event)
     p_dateFormat->SetSelection(p_dateFormatDefault);
     p_timeFormat->SetSelection(p_timeFormatDefault);
     p_unit->SetSelection(p_unitDefault);
+    p_elementColours->SetSelection(p_elementColoursDefault);
     p_beepError->SetValue(p_beepErrorDefault);
     p_beepWarn->SetValue(p_beepWarnDefault);
     p_focus->SetValue(p_focusDefault);
@@ -718,7 +781,7 @@ void GlobalPrefs::OnResetAll(wxCommandEvent& event)
   }
 
   p_restoring = false;
-  saveSettings();
+  OnColourScheme(event);
   Refresh();
 }
 
@@ -792,6 +855,8 @@ void GlobalPrefs::saveSettings()
   eccePref.setInt(PrefLabels::DATEFORMAT, p_dateFormat->GetSelection());
   eccePref.setInt(PrefLabels::TIMEFORMAT, p_timeFormat->GetSelection());
   eccePref.setString(PrefLabels::UNITFAMILY, family);
+  eccePref.setString(PrefLabels::ELEMENTCOLOURS,
+                     p_elementColours->GetSelection() == 1 ? "ecce" : "jmol");
   eccePref.setBool(PrefLabels::ERRORBEEP, p_beepError->GetValue());
   eccePref.setBool(PrefLabels::WARNINGBEEP, p_beepWarn->GetValue());
   eccePref.setBool(PrefLabels::FOCUSFOLLOWMOUSE, p_focus->GetValue());
@@ -854,6 +919,10 @@ void GlobalPrefs::restoreSettings()
   }
   else
     p_unit->SetSelection(p_unitDefault);
+
+  p_elementColours->SetSelection(
+      eccePref.getString(PrefLabels::ELEMENTCOLOURS, strBuf) && strBuf == "ecce"
+          ? 1 : p_elementColoursDefault);
 
   if (!eccePref.getBool(PrefLabels::ERRORBEEP, boolBuf))
     boolBuf = p_beepErrorDefault;
@@ -953,6 +1022,7 @@ bool GlobalPrefs::isDefaultGlobalPref()
          p_dateFormat->GetSelection() == p_dateFormatDefault &&
          p_timeFormat->GetSelection() == p_timeFormatDefault &&
          p_unit->GetSelection() == p_unitDefault &&
+         p_elementColours->GetSelection() == p_elementColoursDefault &&
          p_beepError->GetValue() == p_beepErrorDefault &&
          p_beepWarn->GetValue() == p_beepWarnDefault &&
          p_focus->GetValue() == p_focusDefault &&

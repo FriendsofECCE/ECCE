@@ -67,6 +67,7 @@ static const char *UPDATELAST       ;   // String: seconds since the epoch of th
 static const char *UPDATEFOUND      ;   // String: newer version found, "" for none
 static const char *UPDATEFOUNDURL   ;   // String: its release page
 static const char *UPDATEDISMISSED  ;   // String: version the user asked not to hear about
+static const char *ELEMENTCOLOURS   ;   // String: "jmol" (default) or "ecce", the element colour scheme
 static const char *TAILINTERMINAL   ;   // Boolean: Tail in the Terminal, not ECCE's own window
 
 

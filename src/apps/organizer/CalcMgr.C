@@ -940,6 +940,26 @@ void CalcMgr::runTestCommand(const string& line)
           outcome = "ok";
         }
       }
+    } else if (command == "prefs") {
+      // "prefs open|colours jmol|colours ecce|state|snap PATH": the
+      // Preferences window, its Colours tab as a click chooses.
+      std::istringstream args(calcName);
+      string what, arg;
+      args >> what >> arg;
+      if (p_prefs == (GlobalPrefs*)0) p_prefs = new GlobalPrefs(this);
+      p_prefs->Show(true);
+      p_prefs->showColoursPage();
+      for (int i = 0; i < 10; i++) wxYield();
+      if (what == "colours") {
+        outcome = p_prefs->chooseColourScheme(arg) ? "ok" : "unknown scheme";
+      } else if (what == "state") {
+        outcome = "colours=" + p_prefs->colourSchemeShown();
+      } else if (what == "snap") {
+        outcome = ecceClientShot(p_prefs, wxString::FromUTF8(arg.c_str()))
+            ? "saved" : "not saved";
+      } else {
+        outcome = "ok";
+      }
     } else if (command == "start") {
       // "start TOOL [URL]": what a tool button does (startApp), e.g.
       // "start CalculationEditor <calc url>".

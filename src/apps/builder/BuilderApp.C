@@ -36,6 +36,7 @@ using std::endl;
 #include "viz/SelectCmd.H"
 #include "viz/ValidateStrCmd.H"
 
+#include "tdat/TPerTab.H"
 #include "BuilderApp.H"
 #include "Builder.H"
 
@@ -621,6 +622,7 @@ void BuilderApp::unitsPrefsMCB(JMSMessage& msg)
  */
 void BuilderApp::pertabPrefsMCB(JMSMessage& msg)
 {
+  TPerTab::applyColourScheme();
   p_builder->pertabPrefsMCB();
 }
 

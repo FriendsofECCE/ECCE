@@ -96,6 +96,12 @@ public:
 
     static string mixedCase(const string& oldSymbol);
 
+    // Element colours: "jmol" (default) or "ecce" (the classic AtomicElements
+    // colours), chosen in Preferences > Colours.  applyColourScheme() re-reads
+    // the choice and recolours the tables of this process.
+    static string colourSchemePref();
+    static void applyColourScheme();
+
 
 protected:
 
@@ -113,6 +119,7 @@ protected:
     static map<string*, TOxidationState*, ltstringPtr> *p_refoxhash;
     static map<string*, TOxidationState*, ltstringPtr> *p_useroxhash;
 
+    static void setColours(const string& scheme);
     void loadOxidationData();
     void loadNeutralData();
 

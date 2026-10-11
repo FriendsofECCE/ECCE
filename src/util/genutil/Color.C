@@ -288,9 +288,10 @@ void Color::setRGB(float red, float green, float blue)
 string Color::xcolor() const
 {
   char buf[10];
-  int r = (int) (p_red * 255);
-  int g = (int) (p_green * 255);
-  int b = (int) (p_blue * 255);
+  //  Rounded: truncating turned #90e050 into #8fe04f.
+  int r = (int) (p_red * 255 + 0.5);
+  int g = (int) (p_green * 255 + 0.5);
+  int b = (int) (p_blue * 255 + 0.5);
   sprintf(buf,"#%02x%02x%02x",r,g,b);
   return buf;
 }

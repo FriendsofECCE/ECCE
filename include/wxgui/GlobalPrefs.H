@@ -38,6 +38,12 @@ public:
 
   void restorePasswordPref();
 
+  // Test hooks (the Organizer's ECCE_TEST_ORGANIZER "prefs" command): show the
+  // Colours tab, choose a scheme as a click does, say which one is shown.
+  void showColoursPage();
+  bool chooseColourScheme(const string& scheme);
+  string colourSchemeShown() const;
+
   // One "command" setting: a choice of well-known programs plus a text
   // field that is editable for "Other".  Stored value is the command;
   // empty means the built-in default.
@@ -53,6 +59,8 @@ public:
 
 private:
   void createGeneralPage(wxWindow* page);
+  void createColoursPage(wxWindow* page);
+  void OnColourScheme(wxCommandEvent& event);
   void createProgramsPage(wxWindow* page);
   void createGatewayPage(wxWindow* page);
   void createDataPage(wxWindow* page);
@@ -92,6 +100,7 @@ private:
   ewxChoice* p_dateFormat;
   ewxChoice* p_timeFormat;
   ewxChoice* p_unit;
+  ewxChoice* p_elementColours;
   ewxCheckBox* p_systemFont;
   ewxCheckBox* p_beepError;
   ewxCheckBox* p_beepWarn;
@@ -132,6 +141,7 @@ private:
   const static int p_timeFormatDefault = 0;
   // Default units family is DEFAULT_UNIT_FAMILY which is the 3rd one.
   const static int p_unitDefault = 2;
+  const static int p_elementColoursDefault = 0;  // Jmol
   const static bool p_systemFontDefault = false;
   const static bool p_beepErrorDefault = true;
   const static bool p_beepWarnDefault = true;
