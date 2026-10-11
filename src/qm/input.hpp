@@ -12,9 +12,15 @@
 //   grid <nradial> <nangular>    DFT grid, default 99 590
 //   units <angstrom|bohr>        geometry units, default angstrom
 //   maxiter <n>, conv_energy <x>, conv_grad <x>
-//   runtype <energy|gradient|optimize>   default energy; gradient adds the
-//                                analytic nuclear gradient, optimize moves
-//                                the nuclei to a minimum (Cartesian BFGS)
+//   runtype <energy|gradient|optimize|frequency|optfreq>   default energy;
+//                                gradient adds the analytic nuclear gradient,
+//                                optimize moves the nuclei to a minimum
+//                                (Cartesian BFGS), frequency adds harmonic
+//                                frequencies, IR intensities and
+//                                thermochemistry, optfreq does both
+//   hessian_step <bohr>          frequency: finite-difference step (0.005)
+//   temperature <K>, pressure <atm>   thermochemistry (298.15, 1)
+//   symmetry_number <n>          rotational symmetry number (default: from the geometry)
 //   maxsteps <n>                 optimize: most energy+gradient evaluations (100)
 //   opt_conv <normal|tight>      optimize: ORCA's Opt or TightOpt thresholds
 //   basis_data ... end           explicit basis, replaces the library file:
@@ -33,7 +39,10 @@
 
 namespace qm {
 
-enum class RunType { Energy, Gradient, Optimize };
+enum class RunType { Energy, Gradient, Optimize, Frequency, OptFreq };
+
+inline bool does_frequencies(RunType t) { return t == RunType::Frequency || t == RunType::OptFreq; }
+inline bool does_optimize(RunType t) { return t == RunType::Optimize || t == RunType::OptFreq; }
 
 struct Input {
   std::string title;
@@ -44,6 +53,11 @@ struct Input {
   bool molden = false;
   RunType runtype = RunType::Energy;
   OptOptions opt;
+  // Frequency runs: Cartesian step of the finite-difference Hessian (bohr),
+  // temperature (K) and pressure (atm) of the thermochemistry, rotational
+  // symmetry number (0: worked out from the geometry).
+  double hessian_step = 0.005, temperature = 298.15, pressure = 1.0;
+  int symmetry_number = 0;
   // Z -> shells from a basis_data block (empty: use the library).
   std::map<int, std::vector<ShellDef>> explicit_basis;
 };

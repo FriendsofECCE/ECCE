@@ -3,8 +3,9 @@
 A small quantum chemistry engine for teaching-size molecules (tens of atoms
 at most), shipped with ECCE so that a calculation needs no external code.
 Stage 1 is single-point energies and orbitals; stage 2 (below) adds analytic
-gradients and geometry optimisation; stage 4 registers it in ECCE as the code
-ECCE-QM. Planned: numerical Hessian, frequencies and IR (stage 3).
+gradients and geometry optimisation; stage 3 harmonic frequencies, IR
+intensities and thermochemistry; stage 4 registers it in ECCE as the code
+ECCE-QM.
 
 Source `src/qm/` (library `eccems`, no wx; command line `ecce-qm`), tests
 `tests/qm/`.
@@ -40,7 +41,7 @@ Everything is static, so the same CMake works on Linux, macOS and MSYS2
     basis def2-SVP        # any ECCE library name: 6-31G*, STO-3G, def2-TZVP, ...
     spherical true        # default; false = Cartesian d, f
     grid 99 590           # radial x Lebedev points per atom (DFT)
-    runtype optimize      # energy (default), gradient or optimize
+    runtype optimize      # energy (default), gradient, optimize, frequency or optfreq
     geometry              # angstrom (units bohr to change)
     O 0 0 0.1173
     H 0 0.7572 -0.4692
@@ -126,6 +127,72 @@ and `opt_conv normal|tight` (default normal) tune the latter.
   differences of the energy), `tests/qm/opt_test.py` (final energy, distances
   and angles against ORCA TightOpt, `opt_oracle.json`, made by
   `gen_opt_oracle.py`).
+
+## Frequencies, IR intensities, thermochemistry (stage 3)
+
+`runtype frequency` computes the harmonic vibrations at the given geometry,
+`runtype optfreq` optimises first (and does nothing more if the optimisation
+did not converge). Further keywords: `hessian_step` (bohr, default 0.005),
+`temperature` (K, 298.15), `pressure` (atm, 1), `symmetry_number` (default: worked out).
+
+* Hessian (`vibration.cpp`): central differences of the analytic gradient over
+  every Cartesian coordinate, step 0.005 bohr, so 6N gradient evaluations
+  (`2 x 3N`). The same displaced calculations give the dipole derivatives.
+  Every displaced SCF starts from the orbitals of the reference geometry and
+  is converged to 1e-8 (orbital gradient) and 1e-11 hartree, tighter than an
+  energy needs, so that the noise in the Hessian stays below 0.1 cm-1. The
+  step is a compromise: smaller ones amplify the SCF noise, larger ones the
+  cubic terms; 0.005 reproduces ORCA's analytic frequencies to 0.2-0.8 cm-1.
+  With DFT the Hessian is the derivative of the gradient that neglects the
+  grid-weight terms, so translations and rotations carry a residual of a few
+  cm-1 (printed, see below).
+* Analysis: masses of the most abundant isotopes (hydrogen 1.00783, not
+  deuterium or the average; elements up to Kr), mass-weighted Hessian,
+  translations and rotations about the centre of mass projected out (3 for an
+  atom, 5 for a linear molecule, else 6), the rest diagonalised. Frequencies
+  in cm-1, imaginary ones negative. `transrot_residual` lists the smallest
+  frequencies of the unprojected mass-weighted Hessian: translations come out
+  below 1 cm-1 for HF and up to a few cm-1 for DFT, rotations a few to 20 cm-1
+  because the gradient at a converged geometry is not exactly zero (the
+  rotational term is proportional to it); `max_gradient` is printed too.
+* IR intensity: with the Cartesian dipole derivative `dmu/dx` and the mode's
+  Cartesian displacement `dx` (mass-weighted eigenvector over sqrt(m)),
+  `I = N_A/(12 eps0 c^2) |dmu/dQ|^2` in km/mol (the integrated absorption
+  coefficient, what ORCA and Gaussian print).
+* Thermochemistry at `temperature`, `pressure`: ideal gas, rigid rotor,
+  harmonic oscillator (no quasi-RRHO treatment of low modes; ORCA applies
+  Grimme's by default, switch it off with `%freq QuasiRRHO false end` to
+  compare). Translation Sackur-Tetrode; rotation with the rotational symmetry
+  number sigma (linear `q = T/(sigma Theta)`, otherwise
+  `q = sqrt(pi)/sigma T^1.5/sqrt(Theta_A Theta_B Theta_C)`); vibration over
+  the real modes only (imaginary ones are left out); electronic `ln(2S+1)`
+  from the multiplicity (spin only, no orbital degeneracy). Reported:
+  `zero_point_energy` (the correction), `thermal_energy` (electronic energy +
+  ZPE + thermal, ORCA's "total thermal energy"), `enthalpy` (+ kT),
+  `entropy_ts` (T S) and `gibbs_energy` (H - T S), all in hartree, with the
+  entropy parts in hartree/K. The symmetry number is the number of proper
+  rotations that map the molecule onto itself (0.02 bohr tolerance), 2 for a
+  linear molecule with an inversion centre; `symmetry_number N` overrides it.
+  A DFT geometry that is a little distorted can still be found symmetric by
+  ecce-qm where ORCA, with a tighter test, finds a subgroup (CH4 B3LYP: ORCA
+  sigma 4, ecce-qm 12).
+* Output: `vib_transrot`, `vib_imaginary`, `hessian_step`, `max_gradient`,
+  `begin transrot_residual`, `begin vibrations` (every one of the 3N modes:
+  index, frequency, IR intensity; the translations and rotations first with
+  0, as in ORCA, so ECCE's VIBFREQ, VIBIR and VIB line up row by row),
+  `begin normal_modes` (per mode the x y z of every atom, Cartesian
+  displacements of unit length), then the thermochemistry keys above. With
+  `--molden` the file also gets `[FREQ]`, `[FR-COORD]`, `[FR-NORM-COORD]`
+  and `[INT]` for the real vibrations.
+* Cost: `6N` gradient evaluations at the price of one SCF each (the guess makes
+  them cheap); benzene B3LYP/6-31G* takes minutes, see the table in
+  `docs/qm/benchmarks.md` for the cap proposed for student machines.
+* Tests: `qm_unit` (model Hessians, symmetry numbers, Sackur-Tetrode),
+  `tests/qm/freq_test.py` (frequencies, IR intensities, ZPE and the thermal
+  quantities against ORCA 6.1.1 at ORCA's own TightOpt geometry,
+  `freq_oracle.json`, made by `gen_freq_oracle.py`; triplet O2 restricted
+  open-shell against the curvature of its own energies, since ORCA has no
+  ROHF Hessian).
 
 ## Output format (version 1)
 

@@ -13,6 +13,7 @@
 #include "input.hpp"
 #include "output.hpp"
 #include "scf.hpp"
+#include "vibration.hpp"
 
 int main(int argc, char** argv) {
   std::string inp, outp, molden, bdir;
@@ -69,22 +70,53 @@ int main(int argc, char** argv) {
       return true;
     };
 
-    if (in.runtype == qm::RunType::Optimize) {
+    // Frequencies: finite differences of the analytic gradient around the
+    // reference geometry, every displaced SCF started from the reference
+    // orbitals and converged tighter than an energy needs.
+    auto frequencies = [&](const qm::Molecule& ref, const std::vector<double>& g0) {
+      qm::FrequencyOutput fo;
+      fo.step = in.hessian_step;
+      for (double v : g0) fo.max_gradient = std::max(fo.max_gradient, std::fabs(v));
+      const qm::ScfResult r_ref = r;
+      qm::ScfOptions so = in.scf;
+      so.conv_grad = std::min(so.conv_grad, 1e-8);
+      so.conv_energy = std::min(so.conv_energy, 1e-11);
+      so.max_iter = std::max(so.max_iter, 200);
+      auto point = [&](const qm::Molecule& m) {
+        qm::Basis b(m, lib, in.basis, in.spherical);
+        qm::ScfResult rr = qm::run_scf(b, m, so, &r_ref);
+        if (!rr.converged) throw qm::Error("SCF did not converge at a displaced geometry");
+        qm::PointEval pe;
+        pe.grad = qm::scf_gradient(b, m, so, rr);
+        for (int k = 0; k < 3; ++k) pe.dipole[k] = rr.dipole[k];
+        return pe;
+      };
+      qm::Derivatives d = qm::finite_difference_derivatives(ref, in.hessian_step, point, [&](int k, int n) {
+        if (verbose) std::cerr << "hessian point " << k << "/" << n << "\n";
+      });
+      fo.vib = qm::analyse_vibrations(ref, d);
+      fo.thermo = qm::thermochemistry(ref, fo.vib, in.temperature, in.pressure, in.symmetry_number);
+      return fo;
+    };
+
+    if (qm::does_optimize(in.runtype)) {
       qm::OptResult res = qm::optimize_geometry(in.mol, in.opt, evaluate, [&](const qm::OptStep& st) {
         qm::write_opt_step(os, st);
         if (verbose)
           std::cerr << "step " << st.index << "  E = " << st.energy << "  max|g| = " << st.max_grad << "\n";
       });
       if (!same(at, res.mol)) evaluate(res.mol);  // the last trial was turned down
-      qm::write_text_output(os, in, *basis, r, seconds(), &res);
+      std::unique_ptr<qm::FrequencyOutput> fo;
+      if (in.runtype == qm::RunType::OptFreq && res.converged) fo.reset(new qm::FrequencyOutput(frequencies(res.mol, res.grad)));
+      qm::write_text_output(os, in, *basis, r, seconds(), &res, fo.get());
       if (!molden.empty()) {
         std::ofstream f(molden);
-        qm::write_molden(f, in, *basis, r);
+        qm::write_molden(f, in, *basis, r, fo.get());
       }
       return res.converged ? 0 : 1;
     }
     qm::OptEval e = evaluate(in.mol);
-    if (in.runtype == qm::RunType::Gradient) {
+    if (in.runtype == qm::RunType::Gradient || in.runtype == qm::RunType::Frequency) {
       qm::OptStep st;
       st.index = 1;
       st.mol = in.mol;
@@ -94,10 +126,12 @@ int main(int argc, char** argv) {
       st.rms_grad = std::sqrt(std::inner_product(e.grad.begin(), e.grad.end(), e.grad.begin(), 0.0) / e.grad.size());
       qm::write_opt_step(os, st);
     }
-    qm::write_text_output(os, in, *basis, r, seconds());
+    std::unique_ptr<qm::FrequencyOutput> fo;
+    if (in.runtype == qm::RunType::Frequency && r.converged) fo.reset(new qm::FrequencyOutput(frequencies(in.mol, e.grad)));
+    qm::write_text_output(os, in, *basis, r, seconds(), nullptr, fo.get());
     if (!molden.empty()) {
       std::ofstream f(molden);
-      qm::write_molden(f, in, *basis, r);
+      qm::write_molden(f, in, *basis, r, fo.get());
     }
     if (probe.size() == 3) {
       // orbital values and electron density at a point, for checking exports
