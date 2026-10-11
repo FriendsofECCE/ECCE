@@ -1323,7 +1323,8 @@ sub ecceqm
 
   my %keyword = map { $_ => 1 }
     qw(title charge multiplicity method basis spherical grid units
-       maxiter conv_energy conv_grad molden runtype maxsteps opt_conv);
+       maxiter conv_energy conv_grad molden runtype maxsteps opt_conv
+       hessian_step temperature pressure symmetry_number);
   my %functional = map { $_ => 1 } qw(hf svwn lda pbe b3lyp pbe0);
   my $INT = qr/[-+]?\d+/;
 
@@ -1414,11 +1415,11 @@ sub ecceqm
       next;
     }
     if ($k eq "runtype" || $k eq "opt_conv") {
-      my $ok = $k eq "runtype" ? qr/(energy|gradient|optimize|opt)/i : qr/(normal|tight)/i;
+      my $ok = $k eq "runtype" ? qr/(energy|gradient|optimize|opt|frequency|freq|optfreq)/i : qr/(normal|tight)/i;
       if ($rest !~ /^$ok$/) {
         finding("BAD", $n, "keywords",
-                "'$k' takes " . ($k eq "runtype" ? "energy, gradient or " .
-                "optimize" : "normal or tight") . ", and this reads " .
+                "'$k' takes " . ($k eq "runtype" ? "energy, gradient, optimize, frequency or " .
+                "optfreq" : "normal or tight") . ", and this reads " .
                 "\"$rest\"; ecce-qm stops on it.");
         $bad++;
       }

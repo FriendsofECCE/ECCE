@@ -55,7 +55,7 @@ open(PARAMS, ">$root.param");
 print(PARAMS "title:\t$title\n");
 print(PARAMS "Category:\t$category\n");
 print(PARAMS "Theory:\t$theory\n");
-my %runtype = (gradient => 'Gradient', optimize => 'Geometry');
+my %runtype = (gradient => 'Gradient', optimize => 'Geometry', frequency => 'Vibration', optfreq => 'GeoVib');
 print(PARAMS "RunType:\t" . ($runtype{$kv{runtype}} || 'Energy') . "\n");
 print(PARAMS "Charge:\t" . (defined($kv{charge}) ? $kv{charge} : 0) . "\n");
 print(PARAMS "ES.ChemSys.Multiplicity:\t$kv{multiplicity}\n") if (defined($kv{multiplicity}));

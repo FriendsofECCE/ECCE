@@ -80,6 +80,48 @@ if ($first =~ /^(energy_\w+)\s+(\S+)/ && exists($energyKey{$1})) {
     print join(" ", 1 .. scalar(@rows)), "\ncolumnlabels:\nX Y Z\nvalues:\n", join("\n", @rows), "\n";
     print "units:\nHartree/Bohr\nEND\n";
   }
+} elsif ($first =~ /^(zero_point_energy|thermal_energy|enthalpy|entropy_ts|gibbs_energy)\s+(\S+)/) {
+  my %k = (zero_point_energy => 'EZEROPT', thermal_energy => 'ETHERM', enthalpy => 'ENTHALPY',
+           entropy_ts => 'ENTROPY', gibbs_energy => 'EGIBBS');
+  &scalarProp($k{$1}, $2, "Hartree");
+} elsif ($first =~ /^begin vibrations\b/) {
+  # index frequency(cm-1) ir(km/mol), every mode of the 3N, translations and
+  # rotations first with 0 (the rows of VIBFREQ, VIBIR and VIB line up)
+  my (@f, @ir);
+  foreach my $l (@lines) {
+    last if ($l =~ /^end\b/);
+    my @c = split(' ', $l);
+    next if (@c < 3);
+    push(@f, $c[1]);
+    push(@ir, $c[2]);
+  }
+  if (@f) {
+    my $n = scalar(@f);
+    my $labels = join(" ", 1 .. $n);
+    print "key: VIBFREQ\nsize:\n$n\nrowlabels:\n$labels\nvalues:\n", join(" ", @f), "\nunits:\ncm-1\nEND\n";
+    print "key: VIBIR\nsize:\n$n\nrowlabels:\n$labels\nvalues:\n", join(" ", @ir), "\nunits:\nKM/Mole\nEND\n";
+  }
+} elsif ($first =~ /^begin normal_modes\b/) {
+  # index then x y z per atom: one Cartesian displacement vector per mode
+  my @modes;
+  foreach my $l (@lines) {
+    last if ($l =~ /^end\b/);
+    my @c = split(' ', $l);
+    shift(@c);
+    push(@modes, [@c]) if (@c);
+  }
+  if (@modes) {
+    my $nm = scalar(@modes);
+    my $na = scalar(@{$modes[0]}) / 3;
+    print "key: VIB\nsize:\n$nm $na 3\nvectorlabels:\n", join(" ", ("NA") x $nm), "\nrowlabels:\n";
+    print join(" ", 1 .. $na), "\ncolumnlabels:\nX Y Z\nvalues:\n";
+    foreach my $m (@modes) {
+      for my $a (0 .. $na - 1) {
+        print join(" ", @{$m}[3 * $a .. 3 * $a + 2]), "\n";
+      }
+    }
+    print "units:\nAngstrom\nEND\n";
+  }
 } elsif ($first =~ /^s_squared\s+(\S+)/) {
   &scalarProp("S2", $1);
 } elsif ($first =~ /^wall_seconds\s+(\S+)/) {

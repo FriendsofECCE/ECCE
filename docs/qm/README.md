@@ -238,8 +238,10 @@ Organizer; the Calculation Editor offers
   B3LYP (default) or PBE0 in Theory Details, which also has one tick for
   unrestricted orbitals (UHF/UKS; open shells are otherwise restricted
   open-shell, ROHF/ROKS);
-* run type: Energy, Gradient or Geometry (optimisation, the geometry trace and
-  energy plot appear as for any other code);
+* run type: Energy, Gradient, Geometry (optimisation, the geometry trace and
+  energy plot appear as for any other code), Vibration (frequencies, IR
+  intensities, normal modes and thermochemistry at the given geometry) or
+  GeoVib (optimisation, then the same);
 * basis set: STO-3G, 3-21G, 6-31G* (default), cc-pVDZ or def2-SVP from the
   Basis Set menu (the Basis Set Tool is not used); an element a basis does not
   cover, or that would need a core potential (def2 beyond Kr), is named before

@@ -141,6 +141,8 @@ CASES = [
                                                       ("GOOD", "electrons")]),
     ("ecceqm-optimize.qmin",     "ECCE-QM",        3, [("GOOD", "keywords"),
                                                       ("GOOD", "method")]),
+    ("ecceqm-optfreq.qmin",      "ECCE-QM",        3, [("GOOD", "keywords"),
+                                                      ("GOOD", "method")]),
     ("ecceqm-bad-runtype.qmin",  "ECCE-QM",        3, [("BAD", "keywords")]),
     ("ecceqm-bad-method.qmin",   "ECCE-QM",        3, [("BAD", "method")]),
     ("ecceqm-unknown-keyword.qmin", "ECCE-QM",     3, [("BAD", "keywords")]),

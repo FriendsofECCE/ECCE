@@ -1,0 +1,32 @@
+# expt-ecceqm-h2o-optfreq
+# ECCE-QM.expt ecceqm/h2o_optfreq.qmout
+# Golden record of what the importer DOES, not of what it
+# should do -- see expt_cases.NOTES before changing one.
+
+=== .frag
+title:	h2o_optfreq
+type:	molecule
+charge:	0
+num_atoms:	3
+atom_info:	symbol cart
+atom_list:
+ O 0.000000000000 0.039064624111 0.150089294811
+ H 0.000000000000 0.809785846765 -0.470343892270
+ H 0.000000000000 -0.706050470876 -0.500845402541
+
+=== .param
+title:	h2o_optfreq
+Category:	SCF
+Theory:	HF
+RunType:	GeoVib
+Charge:	0
+ES.ChemSys.Multiplicity:	1
+SphericalBasis:	TRUE
+
+=== .gbs
+NameBasis
+basis "ao basis" spherical print
+H library "STO-3G"
+O library "STO-3G"
+END
+EndNameBasis

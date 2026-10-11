@@ -145,3 +145,61 @@ Skip=0
 End=^end mo_coefficients
 [END]
 
+
+# Frequency runs (Vibration, GeoVib).  Like ORCA's, VIBFREQ, VIBIR and VIB
+# list all 3N modes with the translations and rotations first, at zero.
+[VIBFREQ][VIBIR]
+Script=ecceqm.parse
+Begin=^begin vibrations\b
+Frequency=last
+Skip=0
+End=^end vibrations
+[END]
+
+[VIB]
+Script=ecceqm.parse
+Begin=^begin normal_modes\b
+Frequency=last
+Skip=0
+End=^end normal_modes
+[END]
+
+[EZEROPT]
+Script=ecceqm.parse
+Begin=^zero_point_energy\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[ETHERM]
+Script=ecceqm.parse
+Begin=^thermal_energy\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[ENTHALPY]
+Script=ecceqm.parse
+Begin=^enthalpy\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[ENTROPY]
+Script=ecceqm.parse
+Begin=^entropy_ts\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
+[EGIBBS]
+Script=ecceqm.parse
+Begin=^gibbs_energy\s
+Frequency=last
+Skip=0
+Lines=1
+[END]

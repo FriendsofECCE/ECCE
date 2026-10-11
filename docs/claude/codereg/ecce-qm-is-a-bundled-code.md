@@ -45,11 +45,16 @@ next bundled code:
   trace(P S) = N; see `the-mo-diagram-needs-the-codes-mo`).
 * **Restricted open-shell** output is one orbital set with occupations 2, 1, 0
   (ORCA's ROKS does the same), unrestricted has alpha and beta sets.
-* **Runtype:** Energy, Gradient, Geometry. `ai.ecceqm`'s `RunType()` maps them
+* **Runtype:** Energy, Gradient, Geometry, Vibration, GeoVib (named as ORCA's, so the Calculation Editor reads the same). `ai.ecceqm`'s `RunType()` maps them
   to the engine's `runtype` keyword (and is the one place that refuses the
   rest), the `.edml` theories list them, and `ecceqm.desc` has one block per
   step (`begin geometry`, `begin gradient`, `energy_step`) for GEOMTRACE, TEVEC,
-  EGRAD/EGRADVEC, all Frequency=all, while TE is the last `energy_total`. No
+  EGRAD/EGRADVEC, all Frequency=all, while TE is the last `energy_total`.
+  A frequency run adds `begin vibrations` (VIBFREQ and VIBIR from one entry,
+  all 3N modes with the translations/rotations first at 0, as ORCA lists
+  them), `begin normal_modes` (VIB) and the keys `zero_point_energy`,
+  `thermal_energy`, `enthalpy`, `entropy_ts`, `gibbs_energy` (EZEROPT, ETHERM,
+  ENTHALPY, ENTROPY, EGIBBS; one Begin each, none may match another's line). No
   runtype dialog, so the engine's `maxsteps`/`opt_conv` are not set from ECCE.
 * **No Theory Details beyond** the DFT functional (DFT only) and an
   "unrestricted" tick; no runtype dialog; no convergence, grid, memory or
