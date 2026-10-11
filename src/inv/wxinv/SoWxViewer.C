@@ -4,6 +4,7 @@
 
 // For compilers that support precompilation, includes "wx/wx.h".
 #include <cstring>
+#include <cstdlib>
 #include "wx/wxprec.h"
 
 #ifdef __BORLANDC__
@@ -338,6 +339,27 @@ void SoWxViewer::CreateControls()
 #endif
   }
 #endif
+  //  Multisampling smooths the stair-stepped edges of atoms and bonds
+  //  (#210); without it nothing in the viewer antialiases polygons.
+  //  ECCE_GL_SAMPLES sets the count, 0 turns it off.  Off by default under
+  //  LIBGL_ALWAYS_SOFTWARE: there it costs CPU time on every frame.
+  if (gl_attrib != NULL) {
+    const char *sw = getenv("LIBGL_ALWAYS_SOFTWARE");
+    int samples = (sw != NULL && *sw != '\0' && *sw != '0') ? 0 : 4;
+    const char *e = getenv("ECCE_GL_SAMPLES");
+    if (e != NULL && *e != '\0') samples = atoi(e);
+    int n = 0;
+    while (gl_attrib[n] != 0) n++;
+    if (samples > 1 && n + 5 <= 20) {
+      int with_ms[20];
+      memcpy(with_ms, gl_attrib, n * sizeof(int));
+      with_ms[n++] = WX_GL_SAMPLE_BUFFERS; with_ms[n++] = 1;
+      with_ms[n++] = WX_GL_SAMPLES;        with_ms[n++] = samples;
+      with_ms[n] = 0;
+      if (wxGLCanvas::IsDisplaySupported(with_ms))
+        memcpy(gl_attrib, with_ms, (n + 1) * sizeof(int));
+    }
+  }
   p_renderArea = new SoWxRenderArea(this , wxID_ANY, wxDefaultPosition,
                                     wxDefaultSize, 0, "SoWxViewer", gl_attrib);
 
