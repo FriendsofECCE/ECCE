@@ -111,7 +111,7 @@ bool SceneScript::run(const string& scriptPath)
   return true;
 }
 
-namespace { SoWxRenderArea *findRenderArea(wxWindow *w); double lastIso = 0.05; }
+namespace { SoWxRenderArea *findRenderArea(wxWindow *w); int idleGrab(SoWxRenderArea *area, const string& ppm); double lastIso = 0.05; }
 
 bool SceneScript::exec(const vector<string>& w, const string& rest)
 {
@@ -139,6 +139,36 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     cmd.getParameter("descriptor")->setString(dd.toString());
     cmd.getParameter("all")->setBoolean(true);
     cmd.execute();
+  } else if (c == "stylerq" && w.size() >= 4) {
+    //  "stylerq <sphereRQ> <cylinderRQ> <style>": the Display Style
+    //  dialog's Update with only the two quality sliders changed (#210).
+    DisplayDescriptor dd("default", rest.substr(rest.find(' ', rest.find(' ') + 1) + 1), "Element");
+    dd.setSphereRQ(atoi(w[1].c_str()));
+    dd.setCylinderRQ(atoi(w[2].c_str()));
+    CSStyleCmd cmd("Style", p_sg);
+    cmd.getParameter("descriptor")->setString(dd.toString());
+    cmd.getParameter("all")->setBoolean(true);
+    cmd.execute();
+  } else if (c == "zoom" && w.size() == 2) {
+    //  "zoom <factor>": dolly the camera toward its focal point.
+    SoCamera *cam = p_viewer->getCamera();
+    if (!cam) return fail("zoom: no camera");
+    float f = (float)atof(w[1].c_str());
+    SbVec3f dir;
+    cam->orientation.getValue().multVec(SbVec3f(0, 0, -1), dir);
+    float d = cam->focalDistance.getValue();
+    SbVec3f focal = cam->position.getValue() + dir * d;
+    cam->focalDistance.setValue(d / f);
+    cam->position.setValue(focal - dir * (d / f));
+  } else if (c == "idleframes" && w.size() == 2) {
+    //  "idleframes <name>": frames the idle loop alone draws (no forced
+    //  paint) after the previous command, and the last of them as
+    //  <name>.ppm; shows whether a change reaches the screen by itself.
+    SoWxRenderArea *area = findRenderArea(p_viewer);
+    if (!area) return fail("idleframes: no render area");
+    int frames = idleGrab(area, p_outdir + "/" + w[1] + ".ppm");
+    FILE *o = fopen((p_outdir + "/" + w[1] + ".txt").c_str(), "w");
+    if (o) { fprintf(o, "idle frames %d\n", frames); fclose(o); }
   } else if (c == "labels") {
     int type = AtomLabelsCmd::NONE;
     if (rest == "element") type = AtomLabelsCmd::ELEMENT;
@@ -586,9 +616,9 @@ namespace {
 
 struct Frame {
   vector<unsigned char> px;
-  int w, h;
+  int w, h, samples;
   bool got;
-  Frame() : w(0), h(0), got(false) {}
+  Frame() : w(0), h(0), samples(0), got(false) {}
 };
 
 //  Runs inside the render area's redraw, after the scene is drawn and
@@ -604,7 +634,23 @@ void grabFrame(void *p)
   glFinish();
   glPixelStorei(GL_PACK_ALIGNMENT, 1);
   glReadPixels(vp[0], vp[1], f->w, f->h, GL_RGB, GL_UNSIGNED_BYTE, &f->px[0]);
+  glGetIntegerv(GL_SAMPLES, &f->samples);
   f->got = true;
+}
+
+void writePpm(const string& path, int w, int h, const unsigned char *rgb);
+struct IdleFrames { Frame f; int n; };
+void countAndGrab(void *p) { IdleFrames *g = (IdleFrames *)p; g->n++; grabFrame(&g->f); }
+
+int idleGrab(SoWxRenderArea *area, const string& ppm)
+{
+  IdleFrames g;
+  g.n = 0;
+  area->setFrameCallback(countAndGrab, &g);
+  for (int k = 0; k < 100; k++) { wxTheApp->Yield(true); wxMilliSleep(5); }
+  area->setFrameCallback(0, 0);
+  if (g.f.got) writePpm(ppm, g.f.w, g.f.h, &g.f.px[0]);
+  return g.n;
 }
 
 SoWxRenderArea *findRenderArea(wxWindow *w)
@@ -910,6 +956,7 @@ bool SceneScript::snapshot(const string& name, int size, float r, float g,
     }
     area->setFrameCallback(0, 0);
     if (!f.got) return fail("canvas never painted: " + name);
+    fprintf(stderr, "snap %s: GL_SAMPLES %d\n", name.c_str(), f.samples);
     writePpm(p_outdir + "/" + name + ".ppm", f.w, f.h, &f.px[0]);
     return true;
   }
