@@ -610,8 +610,8 @@ void CalcEd::doSetContext(const string& codeName)
       if (p_codeName!=codeName && p_iCalc->theory()!=(TTheory*)0) {
         long buttonFlags = wxYES_NO | wxYES_DEFAULT | wxICON_QUESTION;
         ewxMessageDialog *dialog = new ewxMessageDialog(this,
-                "The code for the selected calculation is different!  Do you "
-                "want to change the code?",
+                "This calculation was set up for " + p_codeName +
+                ".  Change it to " + codeName + "?",
                 "Electronic Structure Editor Code Change", buttonFlags);
         wxWindowID answer = dialog->ShowModal();
         if (answer == wxID_YES) {
