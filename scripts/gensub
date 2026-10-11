@@ -1498,7 +1498,8 @@ sub ecceqm()
 #
 # Launch stages the inputs under fixed names: gromacs.mdp (the declared
 # input), topol.top, conf.gro, and any .itp/.ndx files the topology
-# includes.  The final structure is written under the name the MD task
+# includes (one in a folder is staged as <folder>__SLASH__<file>).
+# The final structure is written under the name the MD task
 # code looks it up by (<system>_<calc>.gro, MdTask::getRestartName) and as
 # chemsys.pdb (the output fragment name, which is VDoc's constant) for the
 # Builder.
@@ -1527,6 +1528,16 @@ sub gromacs()
   } else {
     $restart = $::mdSystemName . "_" . $::mdCalcName . ".gro";
     $mpi = ($gmx =~ /gmx_mpi[^\/]*$/) ? 1 : 0;
+
+    #  Include files that live in a folder (min.ff/forcefield.itp) are staged
+    #  under flat names with the separator spelled out; put the folders back
+    #  where the topology's #include lines expect them.
+    $retval .= "\n$::CC - Recreate the include sub-folders of the topology.\n";
+    $retval .= "for f in *__SLASH__*; do\n";
+    $retval .= "  [ -f \"\$f\" ] || continue\n";
+    $retval .= "  d=`echo \"\$f\" | sed 's#__SLASH__#/#g'`\n";
+    $retval .= "  mkdir -p \"`dirname \"\$d\"`\" && mv \"\$f\" \"\$d\"\n";
+    $retval .= "done\n";
 
     #  What follows is one if/else so that the status the script goes on
     #  to read as "the code's exit status" is grompp's when it failed and

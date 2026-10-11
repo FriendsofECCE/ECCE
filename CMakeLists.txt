@@ -1831,9 +1831,12 @@ add_test(NAME gromacs_structure
                  ${CMAKE_SOURCE_DIR}/tests/gromacs_md/groconv_test.py
                  $<TARGET_FILE:gromacs_groconv>)
 set_tests_properties(gromacs_structure PROPERTIES SKIP_RETURN_CODE 77)
+add_executable(gromacs_includes tests/gromacs_md/includes.C
+               src/dsm/chemistry/GromacsIncludes.C)
 add_test(NAME gromacs_md
          COMMAND ${PYTHON3_EXECUTABLE}
-                 ${CMAKE_SOURCE_DIR}/tests/gromacs_md/run_tests.py)
+                 ${CMAKE_SOURCE_DIR}/tests/gromacs_md/run_tests.py
+                 --includes-bin $<TARGET_FILE:gromacs_includes>)
 set_tests_properties(gromacs_md PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 
 # tests/mqtt -- the messaging library against a private mosquitto on a Unix

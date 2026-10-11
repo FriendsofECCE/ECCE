@@ -18,6 +18,7 @@
 #include "tdat/Fragment.H"
 
 #include "dsm/EDSIFactory.H"
+#include "dsm/GromacsIncludes.H"
 #include "dsm/GromacsStructure.H"
 #include "dsm/JCode.H"
 #include "dsm/MdTask.H"
@@ -212,7 +213,7 @@ void GromacsInputsPanel::refresh()
         if (std::find(seen.begin(), seen.end(), names[i]) != seen.end())
           continue;
         seen.push_back(names[i]);
-        string label = names[i] + (first ? "" : "   (from " + t->getName() + ")");
+        string label = GromacsIncludes::decodeName(names[i]) + (first ? "" : "   (from " + t->getName() + ")");
         p_includes->Append(wxString::FromUTF8(label.c_str()),
                            new wxStringClientData(
                              wxString::FromUTF8((first ? "own" : "other"))));
@@ -315,6 +316,40 @@ bool GromacsInputsPanel::attach(int fileType, const string& storedName,
   return t->putInputFile(storedName, &in);
 }
 
+// The files the topology includes that sit beside it (a force-field folder
+// such as min.ff/) go with it; GROMACS's own library is left to grompp.
+string GromacsInputsPanel::attachTopologyIncludes(const string& topPath)
+{
+  MdTask *t = task();
+  if (t == 0) return "";
+  vector<GromacsIncludes::File> found;
+  vector<string> system, missing;
+  GromacsIncludes::collect(topPath, found, system, missing);
+
+  int stored = 0;
+  for (size_t i = 0; i < found.size(); i++) {
+    string contents, err;
+    if (!readWhole(found[i].path, contents, err)) {
+      missing.push_back(found[i].name);
+      continue;
+    }
+    string name = GromacsIncludes::encodeName(found[i].name);
+    istringstream in(contents);
+    t->putInputFile(name, 0);
+    if (t->putInputFile(name, &in)) stored++;
+    else missing.push_back(found[i].name);
+  }
+
+  string out = " " + std::to_string(stored) + " include file" +
+               (stored == 1 ? "" : "s") + " found beside it and attached.";
+  if (!missing.empty()) {
+    out += " Not found:";
+    for (size_t i = 0; i < missing.size(); i++) out += " " + missing[i];
+    out += ".";
+  }
+  return out;
+}
+
 bool GromacsInputsPanel::attachFile(Kind kind, const string& path,
                                     string& message)
 {
@@ -332,7 +367,8 @@ bool GromacsInputsPanel::attachFile(Kind kind, const string& path,
       message = "The topology could not be stored.";
       return false;
     }
-    message = "Attached " + tailOf(path) + " as the topology.";
+    message = "Attached " + tailOf(path) + " as the topology." +
+              attachTopologyIncludes(path);
   } else if (kind == STRUCTURE_FILE) {
     // Read here as well as by grompp: it is what lets the Builder show the
     // structure, and a file that is not a .gro is refused before it is
@@ -453,7 +489,8 @@ void GromacsInputsPanel::OnRemoveInclude(wxCommandEvent&)
   if (sel == wxNOT_FOUND || t == 0) return;
   string label = p_includes->GetString(sel).ToStdString();
   size_t sp = label.find("   (from ");
-  string name = (sp == string::npos) ? label : label.substr(0, sp);
+  string name = GromacsIncludes::encodeName(
+                  (sp == string::npos) ? label : label.substr(0, sp));
   t->putInputFile(name, 0);
   refresh();
   if (p_owner) p_owner->gromacsInputsChanged();

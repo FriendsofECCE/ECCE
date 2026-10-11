@@ -289,6 +289,16 @@ def overlayCase(s, display, env, wrappers, png):
             check((n > 3) == want, "%s: %d yellow pixels in the viewer"
                   % (name, n))
 
+    say("Quadrupole Moment draws no arrow (#266)")
+    lines = ["wait 4000", "list Quadrapole Moment", "wait 1500", "overlay",
+             "shot quad", "quit"]
+    text, shots = runScript(s, display, env, wrappers, ["-context", url],
+                            lines, png, "quad",
+                            {"ECCE_PANEL_MODE": "detail"})
+    if "quad" in shots:
+        n = tinted(shots["quad"], "yellow")
+        check(n <= 3, "quad: %d yellow pixels in the viewer" % n)
+
 
 def dipoleArrow(text):
     """#266: the arrow as drawn is 0.5 A per Debye from the centre of nuclear

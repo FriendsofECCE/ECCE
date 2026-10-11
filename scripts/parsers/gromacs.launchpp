@@ -25,6 +25,7 @@
 use strict;
 use Getopt::Std;
 use File::Temp qw(tempdir);
+use Cwd ();
 
 our($opt_p, $opt_v);
 getopts('p:v');
@@ -65,6 +66,28 @@ if ($gmx eq "") {
 }
 
 my $tmp = tempdir("gromacs.launchpp.XXXXXX", TMPDIR => 1, CLEANUP => 1);
+
+# Include files in a folder are staged as <folder>__SLASH__<file> (the file
+# transfer is flat).  grompp is run in a scratch directory where they are
+# linked back under their folders, so that nothing staged is moved before
+# Launch ships it.
+my $work = "$tmp/run";
+mkdir($work);
+my $cwd = Cwd::getcwd();
+opendir(my $dh, ".") || die "gromacs.launchpp: cannot read the staging directory\n";
+foreach my $f (readdir($dh)) {
+  next if ($f eq "." || $f eq ".." || ! -f $f);
+  (my $rel = $f) =~ s#__SLASH__#/#g;
+  if ($rel =~ m#^/# || $rel =~ m#(^|/)\.\.(/|$)#) { next; }
+  if ($rel =~ m#/#) {
+    (my $dir = $rel) =~ s#/[^/]*$##;
+    system("mkdir", "-p", "$work/$dir");
+  }
+  symlink("$cwd/$f", "$work/$rel");
+}
+closedir($dh);
+chdir($work);
+$mdp = "$cwd/$mdp" if ($mdp !~ m#^/#);
 # -r: a topology with [ position_restraints ] needs a reference structure,
 # and grompp ignores it otherwise; the starting structure is the reference,
 # as in the job script (gensub).

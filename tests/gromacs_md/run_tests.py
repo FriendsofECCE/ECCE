@@ -158,7 +158,7 @@ class Home(object):
 
 
 def stage(gmx, home, tmp, name, calc, spec, start_gro, nprocs=2,
-          topology=os.path.join(FIXTURES, "topol.top")):
+          topology=os.path.join(FIXTURES, "topol.top"), extras=None):
     """One task of the study, the way Launch and the job script handle it."""
     print("== %s" % name)
     rundir = os.path.join(tmp, "run-" + name)
@@ -179,6 +179,8 @@ def stage(gmx, home, tmp, name, calc, spec, start_gro, nprocs=2,
     # 2. staged under the names Launch gives them
     shutil.copy(topology, os.path.join(rundir, "topol.top"))
     shutil.copy(start_gro, os.path.join(rundir, "conf.gro"))
+    for stored, src in (extras or {}).items():
+        shutil.copy(src, os.path.join(rundir, stored))
 
     # 3. the launch-time check, as Launch calls it
     with open(os.path.join(rundir, "postParams"), "w") as h:
@@ -269,11 +271,89 @@ def restrained(gmx, home, tmp):
           "a topology with [ position_restraints ] is accepted at launch and runs")
 
 
+def local_forcefield(gmx, home, tmp, includes_bin):
+    """A force field kept beside the topology (#260): found by following the
+    #include lines, staged flat, put back in its folder by the job script."""
+    src = os.path.join(tmp, "localff")
+    os.makedirs(os.path.join(src, "my.ff"))
+    os.makedirs(os.path.join(src, "parts"))
+
+    def put(rel, text):
+        with open(os.path.join(src, rel), "w") as h:
+            h.write(text)
+
+    # ffnonbonded.itp is found next to the file that includes it, parts/
+    # next to the topology and inside parts/ next to the including file.
+    put("my.ff/forcefield.itp",
+        "[ defaults ]\n1 2 yes 0.5 0.5\n\n"
+        '#include "ffnonbonded.itp"\n')
+    put("my.ff/ffnonbonded.itp",
+        "[ atomtypes ]\n"
+        "OW 8 15.9994 -0.82 A 3.16557e-01 6.50194e-01\n"
+        "HW 1  1.008   0.41 A 0.0 0.0\n")
+    put("my.ff/spc.itp",
+        "[ moleculetype ]\nSOL 2\n\n[ atoms ]\n"
+        "1 OW 1 SOL OW 1 -0.82\n2 HW 1 SOL HW1 1 0.41\n3 HW 1 SOL HW2 1 0.41\n\n"
+        '#include "../parts/settles.itp"\n')
+    put("parts/settles.itp",
+        "[ settles ]\n1 1 0.1 0.16330\n\n"
+        '#include "exclusions.itp"\n')
+    put("parts/exclusions.itp",
+        "[ exclusions ]\n1 2 3\n2 1 3\n3 1 2\n")
+    top = os.path.join(src, "topol.top")
+    put("topol.top",
+        '#include "my.ff/forcefield.itp"\n'
+        '#include "my.ff/spc.itp"\n'
+        "#ifdef WITH_IONS\n"
+        '#include "oplsaa.ff/ions.itp"\n'
+        '#include "no-such-file.itp"\n'
+        "#endif\n\n"
+        "[ system ]\nThree waters\n\n[ molecules ]\nSOL 3\n")
+    with open(os.path.join(FIXTURES, "conf.gro")) as h:
+        lines = h.read().splitlines()
+    gro = os.path.join(src, "conf.gro")
+    with open(gro, "w") as h:
+        h.write("Three SPC waters\n9\n%s\n%s\n"
+                % ("\n".join(lines[2:11]), lines[-1]))
+
+    extras = {}
+    if includes_bin:
+        rc, out = run([includes_bin, top])
+        files = sorted(l.split(None, 1)[1] for l in out.splitlines()
+                       if l.startswith("file "))
+        check(files == ["my.ff__SLASH__ffnonbonded.itp",
+                        "my.ff__SLASH__forcefield.itp",
+                        "my.ff__SLASH__spc.itp",
+                        "parts__SLASH__exclusions.itp",
+                        "parts__SLASH__settles.itp"],
+              "the topology's includes are followed recursively, relative to "
+              "each including file and to the topology (%s)" % files)
+        check("missing no-such-file.itp" in out.splitlines(),
+              "an include found nowhere is reported as missing")
+        check(not any("oplsaa.ff" in l for l in out.splitlines()
+                      if l.startswith(("file", "missing"))),
+              "GROMACS's own library include is left alone")
+        for f in files:
+            extras[f] = os.path.join(src, f.replace("__SLASH__", "/"))
+    else:
+        for rel in ("my.ff/forcefield.itp", "my.ff/ffnonbonded.itp",
+                    "my.ff/spc.itp", "parts/settles.itp",
+                    "parts/exclusions.itp"):
+            extras[rel.replace("/", "__SLASH__")] = os.path.join(src, rel)
+
+    name, calc, spec = STAGES[0]
+    res = stage(gmx, home, tmp, "localff", calc, spec, gro, topology=top,
+                extras=extras)
+    check(res is not None,
+          "a topology with a force-field folder beside it launches and runs")
+
+
 def main():
     global verbose
     ap = argparse.ArgumentParser()
     ap.add_argument("-v", action="store_true")
     ap.add_argument("--keep", action="store_true")
+    ap.add_argument("--includes-bin", help="the gromacs_includes binary")
     args = ap.parse_args()
     verbose = args.v
 
@@ -357,6 +437,9 @@ def main():
         #  grompp refuses [ position_restraints ] without a reference
         #  structure (-r); three SPC waters, the first one held in place.
         restrained(gmx, home, tmp)
+
+        # ---- includes kept beside the topology (#260) ------------------
+        local_forcefield(gmx, home, tmp, args.includes_bin)
 
         # ---- an input mistake is reported, plainly, at launch ----------
         rd = os.path.join(tmp, "run-broken")

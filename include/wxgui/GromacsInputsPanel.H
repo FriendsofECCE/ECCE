@@ -55,6 +55,7 @@ class GromacsInputsPanel : public ewxPanel
        * do once a file is chosen.  Returns false with the reason in
        * message (the Attach buttons show it in a dialog).
        */
+      string attachTopologyIncludes(const string& topPath);
       bool attachFile(Kind kind, const string& path, string& message);
 
       /** What the page shows, in words: for the test hook. */
