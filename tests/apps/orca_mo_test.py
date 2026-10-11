@@ -17,6 +17,13 @@ Two calculations, both water with cc-pVDZ as ECCE holds it (24 functions):
                            numbers of functions differ, never the "grid
                            value is 0" text.
 
+  ... with orca-mo-23/ and the stored basis of water-631pgs-lost-d (#265)
+                           a basis that lost its d shell when an older ECCE
+                           saved it: ECCE completes it to 28 functions, the
+                           output has the 23 the stored basis has.  Compute
+                           must draw the orbital, warn once in a dialog, and
+                           keep the warning in the MOs panel.
+
 And, in every panel layout, the MOs pane no narrower than its own rows.
 
 Same installed tree and isolation as run_tests.py (ECCE_TEST_HOME,
@@ -41,6 +48,8 @@ import xdisplay   # noqa: E402
 FIXTURES = os.path.join(HERE, "fixtures")
 GOOD = os.path.join(FIXTURES, "calc-orca-water-ccpvdz")
 BAD_PROPS = os.path.join(FIXTURES, "orca-mo-23")
+LOST_D_BASIS = os.path.join(ROOT, "tests", "basisload", "fixtures",
+                            "water-631pgs-lost-d.ecce_basisset")
 PROJECT_META = os.path.join(ROOT, "tools", "screenshots", "data",
                             "project.ecce-meta")
 MISMATCH = ("the output has 23 basis functions, but the basis set ECCE has "
@@ -76,7 +85,7 @@ def traceCheck():
         print("ok    trace(P.S) = %.4f for water's 10 electrons" % total)
 
 
-def makeCalc(data, name, props=None):
+def makeCalc(data, name, props=None, basis=None):
     project = os.path.join(data, "users", "local", "orca-mo")
     os.makedirs(project, exist_ok=True)
     shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
@@ -85,6 +94,9 @@ def makeCalc(data, name, props=None):
     if props:
         for f in os.listdir(props):
             shutil.copy(os.path.join(props, f), os.path.join(calc, "Props"))
+    if basis:
+        shutil.copy(basis, os.path.join(calc, "Parameters",
+                                        "BasisSet.ecce_basisset"))
     return "file://" + calc + "/"
 
 
@@ -214,6 +226,32 @@ def checkMismatch(display, data, work):
         print("ok    %s: one dialog, both counts named" % what)
 
 
+def checkFallback(display, data, work):
+    url = makeCalc(data, "water-fallback", BAD_PROPS, LOST_D_BASIS)
+    out = os.path.join(work, "fallback")
+    result = runBuilder(display, url, out,
+                        "mopanel first\nmogrid g1\nmopanel second\n"
+                        "mogrid g2\n")
+    log = result.log or ""
+    what = "23-function output, stored basis without its d shell"
+    dialogs = [l for l in log.splitlines() if "ECCE_TEST_DIALOG:" in l]
+    rng = gridRange(out, "g2")
+    flat = log.replace("\n", " ")
+    if result.crashed:
+        fail(what, "builder CRASHED (%s)" % result.signalName, log)
+    elif "cannot draw this orbital" in flat:
+        fail(what, "refused although the stored basis matches", log)
+    elif len(dialogs) != 1:
+        fail(what, "%d dialogs, want exactly one" % len(dialogs), log)
+    elif ("The output has 23 basis functions, but the complete basis set "
+          "for this calculation has 28") not in flat:
+        fail(what, "the warning does not give both function counts", log)
+    elif rng is None or not rng[1] > rng[0]:
+        fail(what, "the orbital was not drawn: %s" % (rng,), log)
+    else:
+        print("ok    %s: drawn with the stored basis, warned once" % what)
+
+
 def shots(display, data, work, dest):
     os.makedirs(dest, exist_ok=True)
     url = makeCalc(data, "water-shot")
@@ -227,6 +265,14 @@ def shots(display, data, work, dest):
     if os.path.exists(full):
         shutil.copy(full, os.path.join(dest, "builder-mo-panel.png"))
         print("shot  %s" % os.path.join(dest, "builder-mo-panel.png"))
+    #  The warning in the panel, the dialog already dismissed.
+    url = makeCalc(data, "water-shot-fallback", BAD_PROPS, LOST_D_BASIS)
+    out = os.path.join(work, "shot-fallback")
+    full = os.path.join(out, "window.png")
+    runBuilder(display, url, out, "mopanel compute\nhold 3\n", shot=full)
+    if os.path.exists(full):
+        shutil.copy(full, os.path.join(dest, "mo-basis-fallback.png"))
+        print("shot  %s" % os.path.join(dest, "mo-basis-fallback.png"))
     #  The mismatch dialog, left up while the window is photographed.
     url = makeCalc(data, "water-shot-23", BAD_PROPS)
     out = os.path.join(work, "shot-23")
@@ -272,6 +318,7 @@ def main():
             else:
                 checkGood(display, data, work)
                 checkMismatch(display, data, work)
+                checkFallback(display, data, work)
                 for mode in ("classic", "stacked", "accordion", "detail"):
                     checkWidth(display, data, work, mode)
         finally:

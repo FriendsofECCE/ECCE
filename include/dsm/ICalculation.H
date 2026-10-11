@@ -43,6 +43,10 @@ class ICalculation : virtual public PropertyTask
 
     virtual bool gbsConfig(TGBSConfig* config, const string& theoryType="") = 0;
     virtual TGBSConfig* gbsConfig(const string& theoryType="") const = 0;
+    // The basis exactly as stored, without the repair gbsConfig() makes of
+    // an aggregate that lost a part when saved (#265).
+    virtual TGBSConfig* gbsConfigAsStored(const string& theoryType="") const
+    { return gbsConfig(theoryType); }
 
     virtual bool gbsUseExpCoeff(bool useExpCoeff) = 0;
     virtual bool gbsUseExpCoeff() const = 0;

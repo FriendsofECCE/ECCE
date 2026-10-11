@@ -227,6 +227,7 @@ bool MoPanel::Create(IPropCalculation *calculation,
    p_slider->SetToolTip("Log Iso value:");
 
    buildEspRangeControls();
+   buildBasisWarning();
 
    //  Dynamically, for the reason given in buildEspRangeControls().
    ((ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE))->Bind(
@@ -1227,6 +1228,16 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
 
    //  Coefficients that do not fit the basis are not a zero grid, and the
    //  grid still holds the previous orbital: say what is wrong and stop.
+   const int usedWidth = cmd->getParameter("FallbackWidth")->getInteger();
+   if (usedWidth > 0) {
+      reportBasisFallback(cmd->getParameter("FallbackFrom")->getInteger(),
+                          usedWidth);
+   } else if (p_basisWarning != 0 && p_basisWarning->IsShown()) {
+      //  This orbital came from the basis ECCE holds: nothing to warn of.
+      GetSizer()->Show(p_basisWarning, false, true);
+      GetSizer()->Layout();
+   }
+
    const int coefWidth = cmd->getParameter("CoefWidth")->getInteger();
    if (coefWidth > 0) {
       reportBasisMismatch(coefWidth,
@@ -1399,6 +1410,53 @@ void MoPanel::reportBasisMismatch(int coefWidth, int basisWidth,
    (void)dlg.ShowModal();
    dlg.Destroy();
    fw.showMessage(shortText.ToStdString(), false);
+}
+
+
+/** The warning's row, empty and hidden until a Compute needs it. */
+void MoPanel::buildBasisWarning()
+{
+   p_basisWarning = new ewxStaticText(this, wxID_STATIC, wxEmptyString);
+   p_basisWarning->SetForegroundColour(wxColour(160, 40, 0));
+   GetSizer()->Add(p_basisWarning, 0, wxEXPAND|wxALL, 5);
+   GetSizer()->Show(p_basisWarning, false, true);
+}
+
+
+/**
+ * The calculation's stored basis set lost part of itself when an older
+ * ECCE saved it, and ECCE now completes it from the library; this output
+ * was made without that part.  The orbital is drawn with the basis the
+ * output used.  Said in the panel for as long as it shows such an orbital,
+ * and once per calculation in a dialog.
+ */
+void MoPanel::reportBasisFallback(int repairedWidth, int usedWidth)
+{
+   const wxString text = wxString::Format(
+         "Warning: drawn with the %d-function basis the output used; the "
+         "complete basis has %d (stored basis lacks a part).",
+         usedWidth, repairedWidth);
+   const wxString detail = wxString::Format(
+         "The output has %d basis functions, but the complete basis set "
+         "for this calculation has %d. Its stored basis set is missing a "
+         "part (saved by an older ECCE) and the run used it that way, so "
+         "orbitals are drawn with the %d-function basis the output used.",
+         usedWidth, repairedWidth, usedWidth);
+   p_basisWarning->SetLabel(text);
+   p_basisWarning->Wrap(280);
+   GetSizer()->Show(p_basisWarning, true, true);
+   GetSizer()->Layout();
+
+   WxVizToolFW& fw = getFW();
+   fw.showMessage("Orbital drawn with the basis set the output used "
+                  "(it differs from ECCE's complete basis set).", false);
+   const string url = getCalculation()->getURL().toString();
+   if (!p_fallbackReported.insert(url).second) return;
+   ewxMessageDialog dlg(this, detail + "\n\nThe orbital is drawn, and a "
+         "warning stays in the MOs panel.", "ECCE Warning",
+         wxOK|wxICON_EXCLAMATION);
+   (void)dlg.ShowModal();
+   dlg.Destroy();
 }
 
 

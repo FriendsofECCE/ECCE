@@ -288,7 +288,7 @@ static int collide()
 //  readers -- the TGBSConfig the MO viewer gets from gbsConfig() -- and
 //  prints each element's shells and the molecule's function count, counted
 //  the way MoAoBasis does (2l+1 spherical, (l+1)(l+2)/2 Cartesian).
-static int storedOne(int argc, char** argv)
+static int storedOne(int argc, char** argv, bool repair)
 {
   if (argc < 5) {
     cerr << "usage: loadBasis <library-url> --stored <file> <atom>...\n";
@@ -311,7 +311,7 @@ static int storedOne(int argc, char** argv)
     config.type(TGBSConfig::element);
   map<string, TGaussianBasisSet*, less<string> > cache;
   calc.parseConfigDataElement(*doc, &config, cache);
-  calc.parseConfigMapElement(*doc, &config, cache);
+  calc.parseConfigMapElement(*doc, &config, cache, repair);
 
   int spherical = 0, cartesian = 0;
   set<string> printed;
@@ -344,7 +344,12 @@ static int storedOne(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-  if (argc >= 3 && string(argv[2]) == "--stored") return storedOne(argc, argv);
+  if (argc >= 3 && string(argv[2]) == "--stored")
+    return storedOne(argc, argv, true);
+  //  The same, without the repair of a lost aggregate part: the basis a run
+  //  whose deck wrote it out explicitly really had (#265).
+  if (argc >= 3 && string(argv[2]) == "--stored-exact")
+    return storedOne(argc, argv, false);
   if (argc >= 3 && string(argv[2]) == "--collide") return collide();
   if (argc >= 3 && string(argv[2]) == "--complete")
     return completeOne(argc, argv);

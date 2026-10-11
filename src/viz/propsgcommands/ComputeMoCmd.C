@@ -83,6 +83,29 @@
 static bool espDebug() { static const bool on = getenv("ECCE_ESP_DEBUG") != 0; return on; }
 #define ESP_LOG if (!espDebug()) {} else cerr
 
+//  Functions the basis gives these atoms, counted spherical and Cartesian
+//  as MoAoBasis does (2l+1, (l+1)(l+2)/2).
+static void countFunctions(TGBSConfig *config, const vector<string>& symbols,
+                           int& spherical, int& cartesian)
+{
+  spherical = cartesian = 0;
+  for (size_t a = 0; a < symbols.size(); a++) {
+    vector<const TGaussianBasisSet*> list = config->getGBSList(symbols[a]);
+    for (size_t g = 0; g < list.size(); g++) {
+      const size_t sets = list[g]->num_contracted_sets(symbols[a].c_str());
+      for (size_t ics = 0; ics < sets; ics++) {
+        vector<TGaussianBasisSet::AngularMomentum> types =
+            list[g]->func_types(symbols[a].c_str(), ics);
+        for (size_t t = 0; t < types.size(); t++) {
+          const int l = (int)types[t];
+          spherical += 2*l + 1;
+          cartesian += ((l+1)*(l+2))/2;
+        }
+      }
+    }
+  }
+}
+
 //
 // Last remaining macro 
 //
@@ -165,6 +188,11 @@ void ComputeMoCmd::init(void)
    //  basis, so the panel can say that instead of "the grid is 0".
    addParameter(new CommandParameter("CoefWidth", 0));
    addParameter(new CommandParameter("BasisWidth", 0));
+   //  Set when the orbital was drawn with the basis as stored because only
+   //  that one has the output's number of functions (#265): the width of
+   //  ECCE's completed basis, and the width used.
+   addParameter(new CommandParameter("FallbackFrom", 0));
+   addParameter(new CommandParameter("FallbackWidth", 0));
 
 }
 
@@ -512,6 +540,42 @@ bool ComputeMoCmd::execute()
       //  is read before it, so a missing basis used to be a null
       //  dereference and not the clean refusal it was written to be.
       if (gbsConfig == (TGBSConfig *)0) return false;
+
+      //  An output made without part of the basis ECCE now completes from
+      //  its library (a Gaussian deck written out explicitly by an ECCE
+      //  that saved 6-31G* without its d shell) has fewer functions than
+      //  the completed basis.  If the basis as stored has the output's
+      //  number, that is the basis the run used: draw with it, and say so.
+      if (moCoefs != 0) {
+        vector<string> symbols;
+        vector<TAtm*> *fragAtoms = sgfrag->atoms();
+        if (fragAtoms != 0) {
+          for (size_t ii = 0; ii < fragAtoms->size(); ii++)
+            symbols.push_back((*fragAtoms)[ii]->atomicSymbol());
+          delete fragAtoms;
+        }
+        int sph = 0, cart = 0;
+        countFunctions(gbsConfig, symbols, sph, cart);
+        const int width = moCoefs->columns();
+        if (width != sph && width != cart) {
+          TGBSConfig *stored = escalc->gbsConfigAsStored();
+          int storedSph = 0, storedCart = 0;
+          if (stored != 0 && !stored->empty())
+            countFunctions(stored, symbols, storedSph, storedCart);
+          if (width == storedSph || width == storedCart) {
+            getParameter("FallbackFrom")->setInteger(
+                gbsConfig->coordsys() == TGaussianBasisSet::Cartesian ? cart
+                                                                      : sph);
+            getParameter("FallbackWidth")->setInteger(width);
+            cerr << "MO: coefficient width " << width << " matches the "
+                 << "basis as stored, not the completed one" << endl;
+            delete gbsConfig;
+            gbsConfig = stored;
+          } else {
+            delete stored;
+          }
+        }
+      }
 
       //  MOAOORDER-marked calcs (currently ORCA) store MO/MOBETA with
       //  columns in the PARSER's canonical order, not TGBSConfig's own --

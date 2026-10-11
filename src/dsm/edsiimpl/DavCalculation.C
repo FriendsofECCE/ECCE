@@ -82,6 +82,19 @@ DavCalculation::DavCalculation(const EcceURL& eurl)  {
  */
 TGBSConfig* DavCalculation::gbsConfig(const string& theoryType) const
 {
+  return readGbsConfig(theoryType, true);
+}
+
+
+TGBSConfig* DavCalculation::gbsConfigAsStored(const string& theoryType) const
+{
+  return readGbsConfig(theoryType, false);
+}
+
+
+TGBSConfig* DavCalculation::readGbsConfig(const string& theoryType,
+                                          bool repair) const
+{
   TGBSConfig* config = new TGBSConfig; 
 
   // Set url to gbs file:
@@ -132,7 +145,7 @@ cout << input.str() << endl;
   parseConfigDataElement(*doc, config, gbsCache);
   
   // Parse the Map element from the DOM document:
-  parseConfigMapElement(*doc, config, gbsCache);
+  parseConfigMapElement(*doc, config, gbsCache, repair);
 
   if (doc != 0) ((DOMDocument *) doc)->release();
   return config; 
@@ -268,8 +281,8 @@ static TGBSGroup* repairLostAggregatePart(TGBSGroup* group, const string& tag)
 void DavCalculation::parseConfigMapElement(
 	       const DOMDocument& doc,
 	       TGBSConfig* config,
-	       map<string, TGaussianBasisSet*, less<string> >& gbsCache )
-               const
+	       map<string, TGaussianBasisSet*, less<string> >& gbsCache,
+	       bool repair ) const
 {
   TGBSGroup* group = 0;
   string groupName;
@@ -316,7 +329,7 @@ void DavCalculation::parseConfigMapElement(
     delete [] xStr;
     delete [] tempStr;
     
-    TGBSGroup* repaired = repairLostAggregatePart(group, tag);
+    TGBSGroup* repaired = repair ? repairLostAggregatePart(group, tag) : group;
     if (repaired != group) {
       superseded.push_back(group);
       group = repaired;

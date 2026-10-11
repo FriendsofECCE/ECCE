@@ -67,6 +67,7 @@ class DavCalculation : virtual public ICalculation
     TRunType runtype(void) const;
     bool gbsConfig(TGBSConfig* config, const string& theoryType=""); 
     TGBSConfig* gbsConfig(const string& theoryType="") const;
+    TGBSConfig* gbsConfigAsStored(const string& theoryType="") const;
     bool gbsUseExpCoeff(bool useExpCoeff);
     bool gbsUseExpCoeff(void) const;
     bool guiparams(GUIValues *params, const string& theoryType="");
@@ -104,8 +105,10 @@ class DavCalculation : virtual public ICalculation
 
     void parseGbsData(TGaussianBasisSet* gbs, istream* is ) const;
     void parseEcpData(TGaussianBasisSet* ecp, istream* is ) const;
+    TGBSConfig* readGbsConfig(const string& theoryType, bool repair) const;
     void parseConfigMapElement(const DOMDocument& doc, TGBSConfig* config,
-            map<string, TGaussianBasisSet*, less<string> >& gbsCache) const;
+            map<string, TGaussianBasisSet*, less<string> >& gbsCache,
+            bool repair = true) const;
     void parseGroupOrbitalMap(const DOMNode& groupNode, 
                               TGBSGroup* group, string groupName) const;
     void parseGroupTightMap(const DOMNode& groupNode, TGBSGroup* group) const;

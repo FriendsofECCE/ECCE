@@ -15,6 +15,7 @@
 #include <string>
 
 class ewxCheckBox;
+class ewxStaticText;
 class ewxTextCtrl;
 class Command;
 
@@ -159,6 +160,13 @@ class MoPanel : public MoGUI,
       void reportBasisMismatch(int coefWidth, int basisWidth,
                                const string& code);
       std::set<string> p_mismatchReported;   // calculation URLs told
+
+      //  The output has fewer functions than the completed stored basis,
+      //  and the stored basis as it is matches it (#265).
+      void reportBasisFallback(int repairedWidth, int usedWidth);
+      void buildBasisWarning();
+      std::set<string> p_fallbackReported;
+      ewxStaticText *p_basisWarning = NULL;
 
       void scrollToSelection();
       void onGridWindowSize(wxSizeEvent& event);
