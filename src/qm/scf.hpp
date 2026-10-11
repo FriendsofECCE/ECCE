@@ -32,6 +32,7 @@ struct ScfResult {
   Mat C_a, C_b;
   Vec occ_a, occ_b;               // 0 or 1 per spin orbital
   Mat D_a, D_b;
+  Mat F_a, F_b;                   // Fock matrices of the last iteration (gradient)
   Mat S;
   std::vector<double> mulliken;   // net atomic charges
   double dipole[3] = {0, 0, 0};   // a.u., origin at the coordinate origin

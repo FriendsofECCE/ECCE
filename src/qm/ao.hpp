@@ -9,6 +9,7 @@ namespace qm {
 struct AoValues {
   Mat phi;                 // npts x nbf
   Mat dx, dy, dz;          // gradients, filled when deriv >= 1
+  Mat dxx, dxy, dxz, dyy, dyz, dzz;  // second derivatives, deriv >= 2
 };
 
 // xyz: 3*npts doubles (x0,y0,z0,x1,...), bohr.

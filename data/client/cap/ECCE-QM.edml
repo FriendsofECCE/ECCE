@@ -6,9 +6,9 @@
    on; there is nothing to install or register.
 
    Kept deliberately small, because it is for students: HF and DFT
-   (SVWN, PBE, B3LYP, PBE0), Energy only so far (to add Opt, add its
-   runtype to the theories below, teach ai.ecceqm's RunType() and the
-   input format a gradient step), and a fixed list of basis sets chosen
+   (SVWN, PBE, B3LYP, PBE0), Energy, Gradient and Geometry (ai.ecceqm's
+   RunType() maps them to the engine's runtype keyword; no runtype
+   dialog, so no further options), and a fixed list of basis sets chosen
    from the Calculation Editor's quick-pick menu.  The Basis Set Tool is
    not used.
 
@@ -91,9 +91,13 @@
   <!-- DFT first: a new calculation starts as B3LYP. -->
   <Theory category="DFT" name="DFT">
     <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
   </Theory>
   <Theory category="SCF" name="HF">
     <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
   </Theory>
 
   <TheorySummary>

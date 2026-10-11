@@ -43,7 +43,29 @@ static const char* ref_name(Reference r, bool dft) {
   }
 }
 
-void write_text_output(std::ostream& os, const Input& in, const Basis& b, const ScfResult& r, double seconds) {
+void write_opt_step(std::ostream& os, const OptStep& st) {
+  os << std::setprecision(12) << std::fixed;
+  os << "opt_step " << st.index << "\n";
+  os << "energy_step " << st.energy << "\n";
+  os << std::scientific << std::setprecision(4);
+  os << "opt_criteria max_gradient " << st.max_grad << " rms_gradient " << st.rms_grad << " max_step " << st.max_step
+     << " rms_step " << st.rms_step << " energy_change " << st.d_energy << "\n";
+  os << std::fixed << std::setprecision(10);
+  os << "begin geometry  # index symbol x y z (angstrom)\n";
+  for (size_t a = 0; a < st.mol.atoms.size(); ++a)
+    os << a + 1 << " " << element_symbol(st.mol.atoms[a].Z) << " " << st.mol.atoms[a].x[0] * kBohrToAngstrom << " "
+       << st.mol.atoms[a].x[1] * kBohrToAngstrom << " " << st.mol.atoms[a].x[2] * kBohrToAngstrom << "\n";
+  os << "end geometry\n";
+  os << "begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)\n";
+  for (size_t a = 0; a < st.mol.atoms.size(); ++a)
+    os << a + 1 << " " << element_symbol(st.mol.atoms[a].Z) << " " << st.grad[3 * a] << " " << st.grad[3 * a + 1] << " "
+       << st.grad[3 * a + 2] << "\n";
+  os << "end gradient\n";
+  os.flush();
+}
+
+void write_text_output(std::ostream& os, const Input& in, const Basis& b, const ScfResult& r, double seconds,
+                       const OptResult* opt) {
   const bool dft = in.scf.method != "hf";
   const bool restricted = r.reference != Reference::Unrestricted;
   const Molecule& mol = b.molecule();
@@ -52,6 +74,7 @@ void write_text_output(std::ostream& os, const Input& in, const Basis& b, const 
   os << "format_version 1\n";
   os << "program ecce-qm 0.1\n";
   os << "title " << in.title << "\n";
+  os << "runtype " << (in.runtype == RunType::Energy ? "energy" : in.runtype == RunType::Gradient ? "gradient" : "optimize") << "\n";
   os << "method " << in.scf.method << "\n";
   os << "reference " << ref_name(r.reference, dft) << "\n";
   os << "basis " << in.basis << "\n";
@@ -63,6 +86,10 @@ void write_text_output(std::ostream& os, const Input& in, const Basis& b, const 
   os << "nalpha " << r.nalpha << "\nnbeta " << r.nbeta << "\n";
   os << "converged " << (r.converged ? "yes" : "no") << "\n";
   os << "iterations " << r.iterations << "\n";
+  if (opt) {
+    os << "opt_converged " << (opt->converged ? "yes" : "no") << "\n";
+    os << "opt_evaluations " << opt->evaluations << "\n";
+  }
   os << "energy_total " << r.energy << "\n";
   os << "energy_nuclear " << r.e_nuc << "\n";
   os << "energy_one_electron " << r.e_one << "\n";

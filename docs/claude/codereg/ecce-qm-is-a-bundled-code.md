@@ -45,10 +45,12 @@ next bundled code:
   trace(P S) = N; see `the-mo-diagram-needs-the-codes-mo`).
 * **Restricted open-shell** output is one orbital set with occupations 2, 1, 0
   (ORCA's ROKS does the same), unrestricted has alpha and beta sets.
-* **Runtype:** Energy only. `ai.ecceqm`'s `RunType()` is the one place that
-  refuses the others, and the `.edml` theories list the runtypes; adding Opt
-  is both, plus an `opt` keyword and gradient in the engine, plus
-  `GEOMTRACE`/`TEVEC` in `ecceqm.desc`.
+* **Runtype:** Energy, Gradient, Geometry. `ai.ecceqm`'s `RunType()` maps them
+  to the engine's `runtype` keyword (and is the one place that refuses the
+  rest), the `.edml` theories list them, and `ecceqm.desc` has one block per
+  step (`begin geometry`, `begin gradient`, `energy_step`) for GEOMTRACE, TEVEC,
+  EGRAD/EGRADVEC, all Frequency=all, while TE is the last `energy_total`. No
+  runtype dialog, so the engine's `maxsteps`/`opt_conv` are not set from ECCE.
 * **No Theory Details beyond** the DFT functional (DFT only) and an
   "unrestricted" tick; no runtype dialog; no convergence, grid, memory or
   thread settings. `ECCEQM_EXTRA` in the environment appends lines to the input

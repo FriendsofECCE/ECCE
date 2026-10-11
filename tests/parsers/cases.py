@@ -1699,6 +1699,27 @@ CASES = [
             'MOBETA': dict(keys={'MOBETA': {'size': '10 10'}}),
         },
     ),
+    dict(
+        # Geometry optimisation: one geometry/energy/gradient block per
+        # step.  TE stays the final energy while TEVEC, GEOMTRACE and EGRAD
+        # accumulate the trace (ORCA's RHF/STO-3G value for this molecule is
+        # -74.965901192, tests/parsers/fixtures/orca/h2o_optfreq.out).
+        name='ecceqm-h2o-opt',
+        desc='ecceqm.desc',
+        fixture='ecceqm/h2o_opt.qmout',
+        parse_args=('.', 'Geometry', 'SCF', 'HF', '0'),
+        expect={
+            'TE': dict(keys={'TE': {'values': '-74.965901191979'}}),
+            'TEVEC': dict(blocks=4, keys={
+                'TEVEC': {'values': '-74.965901191979', 'units': 'Hartree'}}),
+            'GEOMTRACE': dict(blocks=4, keys={'GEOMTRACE': {
+                'size': '1 3 3', 'rowlabels': '1-O 2-H 3-H',
+                'units': 'Angstrom'}}),
+            'EGRAD][EGRADVEC': dict(blocks=4, keys={
+                'EGRAD': {'units': 'Hartree/Bohr'},
+                'EGRADVEC': {'size': '3 3', 'units': 'Hartree/Bohr'}}),
+        },
+    ),
     # -----------------------------------------------------------------
     # Partial charges beyond Mulliken (#272).  Every value below is read off
     # the printed block; 'sum' is the molecule's total charge (0).

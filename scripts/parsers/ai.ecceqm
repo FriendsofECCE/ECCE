@@ -10,9 +10,11 @@
 #       dictionary/geometry readers and the ##tag## substitution engine are
 #       the same as ai.orca's.  Format of the input: src/qm/input.hpp.
 #
-#       Single points only (RunType Energy); RunType() is the one place to
-#       add Opt.  The basis set is always written out in full by std2ECCEQM
-#       (wrECCEQMGBS.pm), so the engine never needs a library.
+#       Energy, Gradient and Geometry (geometry optimisation) runtypes;
+#       RunType() is the one place that maps them to the engine's
+#       "runtype" keyword and refuses the others.  The basis set is always
+#       written out in full by std2ECCEQM (wrECCEQMGBS.pm), so the engine
+#       never needs a library.
 #
 #       ECCEQM_EXTRA in the environment appends its text to the input; it is
 #       for tests and experts (grid, convergence), not for the GUI.
@@ -250,10 +252,10 @@ BEGIN { %XCKeyword = (
 
 # Everything but the basis and the geometry.
 sub QMControl {
-  &RunType($AbiDict{"RunType"});
   my $result = "";
   my $name = defined($chemsys_name) && $chemsys_name ne "" ? $chemsys_name : "ECCE-QM";
   $result .= "title $name\n";
+  $result .= "runtype " . &RunType($AbiDict{"RunType"}) . "\n";
   my $charge = ($AbiDict{"Charge"} eq "") ? 0 : $AbiDict{"Charge"};
   $result .= "charge $charge\n";
   $result .= "multiplicity " . &Multiplicity . "\n";
@@ -289,14 +291,17 @@ sub Method {
   return $m;
 }
 
-# The supported run types.  Opt would be added here and in RunType()'s caller
-# (the input needs an "opt" keyword and the engine a gradient first).
+# The supported run types and the engine keyword each maps to.
 sub RunType {
   my ($runtype) = @_;
-  if ($runtype ne "Energy") {
-    die "ai.ecceqm error: unsupported runtype '$runtype' (ECCE-QM does Energy only so far)\n";
+  if ($runtype eq "Energy") {
+    return "energy";
+  } elsif ($runtype eq "Gradient") {
+    return "gradient";
+  } elsif ($runtype eq "Geometry") {
+    return "optimize";
   }
-  return "";
+  die "ai.ecceqm error: unsupported runtype '$runtype' (ECCE-QM does Energy, Gradient and Geometry)\n";
 }
 
 # The basis_data block std2ECCEQM wrote, with its "basis <name>" line.

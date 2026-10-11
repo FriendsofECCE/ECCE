@@ -12,6 +12,11 @@
 //   grid <nradial> <nangular>    DFT grid, default 99 590
 //   units <angstrom|bohr>        geometry units, default angstrom
 //   maxiter <n>, conv_energy <x>, conv_grad <x>
+//   runtype <energy|gradient|optimize>   default energy; gradient adds the
+//                                analytic nuclear gradient, optimize moves
+//                                the nuclei to a minimum (Cartesian BFGS)
+//   maxsteps <n>                 optimize: most energy+gradient evaluations (100)
+//   opt_conv <normal|tight>      optimize: ORCA's Opt or TightOpt thresholds
 //   basis_data ... end           explicit basis, replaces the library file:
 //                                "shell <El> <S|P|D|F|G|H|I>" then one
 //                                "exponent coefficient" row per primitive
@@ -23,9 +28,12 @@
 #include <vector>
 #include "basislib.hpp"
 #include "molecule.hpp"
+#include "optimizer.hpp"
 #include "scf.hpp"
 
 namespace qm {
+
+enum class RunType { Energy, Gradient, Optimize };
 
 struct Input {
   std::string title;
@@ -34,6 +42,8 @@ struct Input {
   int spherical = 1;     // 1 spherical, 0 Cartesian
   ScfOptions scf;
   bool molden = false;
+  RunType runtype = RunType::Energy;
+  OptOptions opt;
   // Z -> shells from a basis_data block (empty: use the library).
   std::map<int, std::vector<ShellDef>> explicit_basis;
 };

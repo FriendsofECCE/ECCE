@@ -170,4 +170,115 @@ double XcIntegrator::compute(const Mat& Da, const Mat& Db, bool closed, Mat& Va,
   return Exc;
 }
 
+void XcIntegrator::gradient(const Mat& Da, const Mat& Db, bool closed, std::vector<double>& grad) {
+  const int nb = basis_.nbf();
+  const bool gga = spec_.gga;
+  const size_t ng = grid_.size();
+  const int blk = 128;
+  const int nblk = static_cast<int>((ng + blk - 1) / blk);
+  const int natm = basis_.natm();
+  std::vector<int> aoatom(nb);
+  for (const Shell& s : basis_.shells())
+    for (int k = 0; k < s.nao; ++k) aoatom[s.ao0 + k] = s.atom;
+  grad.assign(3 * natm, 0.0);
+  const int pol = closed ? 0 : 1;
+#pragma omp parallel
+  {
+    std::vector<std::unique_ptr<Func>> fs;
+    for (int id : spec_.libxc_ids) fs.emplace_back(new Func(id, pol));
+    std::vector<double> gt(3 * natm, 0.0);
+    AoValues ao;
+    std::vector<double> xyz(3 * blk);
+#pragma omp for schedule(dynamic)
+    for (int ib = 0; ib < nblk; ++ib) {
+      const size_t g0 = static_cast<size_t>(ib) * blk;
+      const int n = static_cast<int>(std::min<size_t>(blk, ng - g0));
+      for (int g = 0; g < n; ++g) {
+        xyz[3 * g] = grid_.x[g0 + g]; xyz[3 * g + 1] = grid_.y[g0 + g]; xyz[3 * g + 2] = grid_.z[g0 + g];
+      }
+      eval_ao(basis_, xyz.data(), n, gga ? 2 : 1, ao);
+      const Mat* dphi[3] = {&ao.dx, &ao.dy, &ao.dz};
+      const Mat* hess[3][3] = {{&ao.dxx, &ao.dxy, &ao.dxz}, {&ao.dxy, &ao.dyy, &ao.dyz}, {&ao.dxz, &ao.dyz, &ao.dzz}};
+      const Mat ta = ao.phi * Da;
+      const Vec ra = (ta.array() * ao.phi.array()).rowwise().sum();
+      Mat tb;
+      Vec rb = ra;
+      if (!closed) { tb = ao.phi * Db; rb = (tb.array() * ao.phi.array()).rowwise().sum(); }
+      Mat tda[3], tdb[3];  // grad(phi) * D
+      Vec ga[3], gb[3];    // grad(rho_spin)
+      if (gga) {
+        for (int d = 0; d < 3; ++d) {
+          tda[d] = *dphi[d] * Da;
+          ga[d] = 2 * (ta.array() * dphi[d]->array()).rowwise().sum();
+          if (!closed) {
+            tdb[d] = *dphi[d] * Db;
+            gb[d] = 2 * (tb.array() * dphi[d]->array()).rowwise().sum();
+          } else gb[d] = ga[d];
+        }
+      }
+      std::vector<double> rho(closed ? n : 2 * n), sig(gga ? (closed ? n : 3 * n) : 0);
+      std::vector<double> zk(n), vrho(rho.size()), vsig(sig.size());
+      std::vector<double> vr_acc(rho.size(), 0.0), vs_acc(sig.size(), 0.0);
+      for (int g = 0; g < n; ++g) {
+        if (closed) {
+          rho[g] = 2 * ra[g];
+          if (gga) { double X = 2 * ga[0][g], Y = 2 * ga[1][g], Z = 2 * ga[2][g]; sig[g] = X * X + Y * Y + Z * Z; }
+        } else {
+          rho[2 * g] = ra[g]; rho[2 * g + 1] = rb[g];
+          if (gga) {
+            sig[3 * g] = ga[0][g] * ga[0][g] + ga[1][g] * ga[1][g] + ga[2][g] * ga[2][g];
+            sig[3 * g + 1] = ga[0][g] * gb[0][g] + ga[1][g] * gb[1][g] + ga[2][g] * gb[2][g];
+            sig[3 * g + 2] = gb[0][g] * gb[0][g] + gb[1][g] * gb[1][g] + gb[2][g] * gb[2][g];
+          }
+        }
+      }
+      for (auto& fp : fs) {
+        std::fill(zk.begin(), zk.end(), 0.0);
+        std::fill(vrho.begin(), vrho.end(), 0.0);
+        std::fill(vsig.begin(), vsig.end(), 0.0);
+        const xc_func_type* p = &fp->f;
+        if (p->info->family == XC_FAMILY_LDA) xc_lda_exc_vxc(p, n, rho.data(), zk.data(), vrho.data());
+        else xc_gga_exc_vxc(p, n, rho.data(), sig.data(), zk.data(), vrho.data(), vsig.data());
+        for (size_t k = 0; k < vr_acc.size(); ++k) vr_acc[k] += vrho[k];
+        for (size_t k = 0; k < vs_acc.size(); ++k) vs_acc[k] += vsig[k];
+      }
+      // One spin's part: -2 sum_{mu on A, nu} D_mu,nu int [ v_rho d_x(phi_mu) phi_nu
+      // + g . grad(d_x(phi_mu) phi_nu) ], with the g vector compute() puts in the potential.
+      auto spin_term = [&](const Mat& t, const Mat* td, const Vec& vrw, const Vec* gv, double factor) {
+        for (int d = 0; d < 3; ++d) {
+          Mat A = dphi[d]->array() * (t.array().colwise() * vrw.array());
+          if (gga)
+            for (int e = 0; e < 3; ++e)
+              A.array() += (hess[d][e]->array() * t.array() + dphi[d]->array() * td[e].array()).colwise() * gv[e].array();
+          const Vec col = A.colwise().sum();
+          for (int m = 0; m < nb; ++m) gt[3 * aoatom[m] + d] -= 2 * factor * col(m);
+        }
+      };
+      Vec vra(n), vrb(n), gva[3], gvb[3];
+      for (int d = 0; d < 3; ++d) { gva[d] = Vec::Zero(n); gvb[d] = Vec::Zero(n); }
+      for (int g = 0; g < n; ++g) {
+        const double w = grid_.w[g0 + g];
+        if (closed) {
+          vra[g] = w * vr_acc[g];
+          if (gga) for (int d = 0; d < 3; ++d) gva[d][g] = 4 * w * vs_acc[g] * ga[d][g];
+        } else {
+          vra[g] = w * vr_acc[2 * g];
+          vrb[g] = w * vr_acc[2 * g + 1];
+          if (gga) {
+            const double vaa = vs_acc[3 * g], vab = vs_acc[3 * g + 1], vbb = vs_acc[3 * g + 2];
+            for (int d = 0; d < 3; ++d) {
+              gva[d][g] = w * (2 * vaa * ga[d][g] + vab * gb[d][g]);
+              gvb[d][g] = w * (2 * vbb * gb[d][g] + vab * ga[d][g]);
+            }
+          }
+        }
+      }
+      spin_term(ta, tda, vra, gva, closed ? 2.0 : 1.0);
+      if (!closed) spin_term(tb, tdb, vrb, gvb, 1.0);
+    }
+#pragma omp critical
+    for (int k = 0; k < 3 * natm; ++k) grad[k] += gt[k];
+  }
+}
+
 }  // namespace qm

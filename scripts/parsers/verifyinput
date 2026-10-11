@@ -1323,7 +1323,7 @@ sub ecceqm
 
   my %keyword = map { $_ => 1 }
     qw(title charge multiplicity method basis spherical grid units
-       maxiter conv_energy conv_grad molden);
+       maxiter conv_energy conv_grad molden runtype maxsteps opt_conv);
   my %functional = map { $_ => 1 } qw(hf svwn lda pbe b3lyp pbe0);
   my $INT = qr/[-+]?\d+/;
 
@@ -1413,9 +1413,20 @@ sub ecceqm
       $badKeyword++;
       next;
     }
-    if ($k eq "charge" || $k eq "multiplicity" || $k eq "maxiter") {
+    if ($k eq "runtype" || $k eq "opt_conv") {
+      my $ok = $k eq "runtype" ? qr/(energy|gradient|optimize|opt)/i : qr/(normal|tight)/i;
+      if ($rest !~ /^$ok$/) {
+        finding("BAD", $n, "keywords",
+                "'$k' takes " . ($k eq "runtype" ? "energy, gradient or " .
+                "optimize" : "normal or tight") . ", and this reads " .
+                "\"$rest\"; ecce-qm stops on it.");
+        $bad++;
+      }
+      next;
+    }
+    if ($k eq "charge" || $k eq "multiplicity" || $k eq "maxiter" || $k eq "maxsteps") {
       if ($rest !~ /^$INT\b/) {
-        finding("BAD", $n, $k eq "maxiter" ? "keywords" : "charge",
+        finding("BAD", $n, ($k eq "maxiter" || $k eq "maxsteps") ? "keywords" : "charge",
                 "'$k' needs a whole number, and this reads \"$rest\".");
         $bad++;
         next;

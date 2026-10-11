@@ -73,6 +73,15 @@ Input parse_input(std::istream& in) {
     else if (k == "maxiter") r.scf.max_iter = std::stoi(rest);
     else if (k == "conv_energy") r.scf.conv_energy = std::stod(rest);
     else if (k == "conv_grad") r.scf.conv_grad = std::stod(rest);
+    else if (k == "runtype") {
+      std::string v = lower(rest);
+      if (v == "energy") r.runtype = RunType::Energy;
+      else if (v == "gradient") r.runtype = RunType::Gradient;
+      else if (v == "optimize" || v == "opt") r.runtype = RunType::Optimize;
+      else throw bad("runtype must be energy, gradient or optimize");
+    }
+    else if (k == "maxsteps") r.opt.max_steps = std::stoi(rest);
+    else if (k == "opt_conv") r.opt.set_convergence(lower(rest));
     else if (k == "molden") r.molden = true;
     else throw bad("unknown keyword '" + key + "'");
   }

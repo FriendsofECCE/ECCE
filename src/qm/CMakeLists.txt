@@ -84,7 +84,7 @@ FetchContent_MakeAvailable(libcint)
 # --- the library and the command line tool ---------------------------------
 add_library(eccems STATIC
   molecule.cpp basislib.cpp basis.cpp integrals.cpp ao.cpp grid.cpp xc.cpp
-  scf.cpp input.cpp output.cpp)
+  scf.cpp gradient.cpp optimizer.cpp input.cpp output.cpp)
 target_include_directories(eccems PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${libcint_SOURCE_DIR}/include)
 target_link_libraries(eccems PUBLIC Eigen3::Eigen cint qm_xc)
 if(OpenMP_CXX_FOUND)
@@ -119,6 +119,14 @@ if(QM_PYTHON3)
   add_test(NAME qm_diatomic_order COMMAND ${QM_PYTHON3} ${_qm_tests}/diatomic_order_test.py
            $<TARGET_FILE:ecce-qm> ${_ecce_root}/data/admin/basissets)
   set_tests_properties(qm_diatomic_order PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+  # Analytic gradient against finite differences, and optimisations against
+  # ORCA (tests/qm/opt_oracle.json); the full lists run without --quick.
+  add_test(NAME qm_gradient_quick COMMAND ${QM_PYTHON3} ${_qm_tests}/gradient_test.py $<TARGET_FILE:ecce-qm> --quick)
+  add_test(NAME qm_opt_quick COMMAND ${QM_PYTHON3} ${_qm_tests}/opt_test.py $<TARGET_FILE:ecce-qm> --quick)
+  add_test(NAME qm_gradient COMMAND ${QM_PYTHON3} ${_qm_tests}/gradient_test.py $<TARGET_FILE:ecce-qm>)
+  add_test(NAME qm_opt COMMAND ${QM_PYTHON3} ${_qm_tests}/opt_test.py $<TARGET_FILE:ecce-qm>)
+  set_tests_properties(qm_gradient_quick qm_opt_quick PROPERTIES TIMEOUT 1800)
+  set_tests_properties(qm_gradient qm_opt PROPERTIES TIMEOUT 7200)
   set_tests_properties(qm_scf_quick PROPERTIES TIMEOUT 3600)
   set_tests_properties(qm_scf PROPERTIES TIMEOUT 7200)
 endif()
