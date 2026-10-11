@@ -51,6 +51,11 @@ FIXTURES = {
     "gaussian-co": os.path.join(FIXTURES_DIR, "gaussian-co"),
     "orca-crco6": os.path.join(FIXTURES_DIR, "orca-crco6"),
     "nwchem-water": os.path.join(FIXTURES_DIR, "nwchem-water"),
+    #  #132: unsymmetrised input, symmetry on in the deck (makecalc.py).
+    "orca-nh3-usesym": os.path.join(FIXTURES_DIR, "orca-nh3-usesym"),
+    "gaussian-water-cs": os.path.join(FIXTURES_DIR, "gaussian-water-cs"),
+    "orca-co2-c2v": os.path.join(FIXTURES_DIR, "orca-co2-c2v"),
+    "orca-nh3-c1": os.path.join(FIXTURES_DIR, "orca-nh3-c1"),
 }
 
 
@@ -200,6 +205,10 @@ def main():
                         help="capture each fixture N times and require "
                              "byte-identical dumps (determinism check)")
     parser.add_argument("--timeout", type=float, default=90)
+    parser.add_argument("--out", metavar="DIR",
+                        help="write each dump to DIR/<name>.dump and compare "
+                             "against nothing (for exploring a fixture that "
+                             "has no golden yet)")
     parser.add_argument("--png", metavar="DIR",
                         help="also screenshot the ECCE Builder window "
                              "(MO Diagram panel open) for each captured "
@@ -209,6 +218,11 @@ def main():
         os.makedirs(args.png, exist_ok=True)
 
     names = args.names or list(FIXTURES)
+    #  A path to a calculation directory runs as its own fixture.
+    for n in list(names):
+        if n not in FIXTURES and os.path.isdir(n):
+            FIXTURES[os.path.basename(os.path.normpath(n))] = os.path.abspath(n)
+            names[names.index(n)] = os.path.basename(os.path.normpath(n))
     unknown = [n for n in names if n not in FIXTURES]
     if unknown:
         print("unknown fixture(s): %s" % ", ".join(unknown))
@@ -248,7 +262,11 @@ def main():
             continue
 
         expected = os.path.join(EXPECTED_DIR, "%s.dump" % name)
-        if args.update:
+        if args.out:
+            os.makedirs(args.out, exist_ok=True)
+            open(os.path.join(args.out, name + ".dump"), "wb").write(dumps[0])
+            print("%s: wrote %s" % (name, os.path.join(args.out, name + ".dump")))
+        elif args.update:
             os.makedirs(EXPECTED_DIR, exist_ok=True)
             open(expected, "wb").write(dumps[0])
             print("%s: wrote %s (%d bytes)"

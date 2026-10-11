@@ -40,6 +40,16 @@ these dumps verbatim.
     ANALYSIS` -- i.e. lines 901-7806 of that output). See "crco6 residual
     normalisation" below for what checking that reparse against the real
     overlap matrix found.
+  - `orca-nh3-usesym`, `gaussian-water-cs`, `orca-co2-c2v`,
+    `orca-nh3-c1` (#132): a structure that was never symmetrised in the
+    Builder, run with "Use symmetry" on. Made by `makecalc.py` from real
+    runs (ORCA 6.1.1, Gaussian 16 C.01), HF/def2-SVP, seed 1:
+    `makecalc.py orca nh3 0 ...` (exact geometry, randomly rotated; ORCA
+    finds C3v and labels in Cs), `makecalc.py g16 h2o 0.001 ...`
+    (Gaussian finds only Cs), `makecalc.py orca co2 0.001 ...` (ORCA
+    finds C2v), `makecalc.py orca nh3 0.001 ...` (ORCA finds C1,
+    autosym C3). Each must draw fragment columns with TASOs; before the
+    fix none did.
   - `calc-water-vib` is NOT duplicated here -- `capture.py` points
     straight at `tests/apps/fixtures/calc-water-vib` (Gaussian-16 water,
     STO-3G, opt+freq, C2v), reusing it rather than a second copy.
@@ -97,6 +107,28 @@ ordering bug, and both were just the stale files. The overlay must link
      connect()'s 0.05 cutoff draws them to the ligands only.
   2. 4p (T1u) links only to 2T1u at -2.246 Ha, which is Cr's 3p semicore
      (99% on Cr). The core cutoff (-3.49) leaves it visible.
+
+## Unsymmetrised structures (#132, 2026-10-11)
+
+What the diagram analyses for a finished calculation is the Builder's
+displayed geometry: the chemical system with the LAST GEOMTRACE step
+applied. For Gaussian that is the Standard orientation, for ORCA the
+symmetry-perfected Cartesians, for NWChem the geometry it prints to
+`ecce.out` -- the code's own symmetrised geometry, for a single point
+as much as for an optimisation. So autosym on it never found a lower
+group than the code did in 41 real runs (water, NH3, CH4, CO2; noise
+0 to 0.001 Angstrom; three codes). The refusals came from elsewhere:
+
+- the subgroup cross-check compared labels with `toupper()`, so a
+  code's `A"` never equalled the table's `A''`: every Cs-labelled run
+  (ORCA's C3v NH3) lost its full-group labels and drew nothing;
+- autosym accepts a group within its tolerance but leaves the atoms
+  ~0.001 Angstrom off it, which MoFragments' 0.001 match rejects; the
+  copy is now symmetrised (`SymmetryAnalysis::symmetrise()`);
+- autosym can return a group with no character table here (C3), which
+  drew nothing; it now falls back to C1.
+
+`makecalc.py` builds such a fixture from a real run; see its docstring.
 
 ## Reproducing
 
