@@ -13,6 +13,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <sstream>
 #include <string>
 #include <vector>
 #include "tdat/CharacterTable.H"
@@ -72,7 +73,7 @@ int main(int argc, char** argv)
   //  compendium and the set grows.  What matters is that a useful
   //  number loaded and that the ones checked below are among them.
   const int groups = CharacterTable::loadFile(path);
-  check(groups >= 25, "loaded the character tables (got %d groups)", groups);
+  check(groups >= 43, "loaded the character tables (got %d groups)", groups);
   if (groups == 0) { printf("\n  FAIL\n"); return 1; }
 
   //  Case insensitivity: the group name reaches this from the detector,
@@ -107,6 +108,13 @@ int main(int argc, char** argv)
     //  From the wider set the compendium supplies.
     {"D6H", "A2u + E1u"}, {"D3D", "A2u + Eu"}, {"D2D", "B2 + E"},
     {"D5", "A2 + E1"}, {"D4D", "B2 + E1"},
+    //  The cyclic, improper-rotation, cubic and icosahedral groups,
+    //  where the conjugate pairs are stored as one real E.
+    {"C3", "A + E"}, {"C4", "A + E"}, {"C5", "A + E1"}, {"C6", "A + E1"},
+    {"C3H", "E' + A''"}, {"C4H", "Au + Eu"}, {"C5H", "E1' + A''"},
+    {"C6H", "Au + E1u"}, {"S4", "B + E"}, {"S6", "Au + Eu"},
+    {"S8", "B + E1"}, {"T", "T"}, {"TH", "Tu"}, {"O", "T1"},
+    {"I", "T1"}, {"IH", "T1u"},
   };
   printf("\n  (x,y,z) reduced through the loaded tables:\n");
   for (size_t i = 0; i < sizeof(cases)/sizeof(cases[0]); i++) {
@@ -120,6 +128,59 @@ int main(int argc, char** argv)
     const string got = t->reduceToString(chi);
     check(got == cases[i].expect, "%-4s (x,y,z) spans %-18s want %s",
           cases[i].group, got.c_str(), cases[i].expect);
+  }
+
+  //  Reducible representations whose decomposition is known without
+  //  the table: an orbit of atoms contributes the number it leaves in
+  //  place, so a regular orbit gives h at E and 0 elsewhere and each
+  //  real E must come out with the multiplicity of one conjugate half.
+  struct Rep { const char* group; const char* chi; const char* expect; };
+  Rep reps[] = {
+    {"C3", "3 0 0", "A + E"},
+    {"C3", "6 0 0", "2A + 2E"},
+    {"C3", "2 -1 -1", "E"},
+    {"C4", "4 0 0 0", "A + B + E"},
+    {"C5", "5 0 0 0 0", "A + E1 + E2"},
+    {"C6", "6 0 0 0 0 0", "A + B + E1 + E2"},
+    {"C3H", "3 0 0 3 0 0", "A' + E'"},
+    {"C3H", "6 0 0 0 0 0", "A' + E' + A'' + E''"},
+    {"C4H", "8 0 0 0 0 0 0 0", "Ag + Bg + Eg + Au + Bu + Eu"},
+    {"C5H", "10 0 0 0 0 0 0 0 0 0", "A' + E1' + E2' + A'' + E1'' + E2''"},
+    {"C6H", "6 0 0 0 0 0 0 0 0 6 0 0", "Ag + E2g + Bu + E1u"},
+    {"S4", "4 0 0 0", "A + B + E"},
+    {"S6", "6 0 0 0 0 0", "Ag + Eg + Au + Eu"},
+    {"S8", "8 0 0 0 0 0 0 0", "A + B + E1 + E2 + E3"},
+    {"T", "4 1 1 0", "A + T"},
+    {"T", "12 0 0 0", "A + E + 3T"},
+    {"TH", "6 0 0 2 0 0 0 4", "Ag + Eg + Tu"},
+    {"TH", "24 0 0 0 0 0 0 0", "Ag + Eg + 3Tg + Au + Eu + 3Tu"},
+    {"O", "6 0 0 2 2", "A1 + E + T1"},
+    {"I", "12 2 2 0 0", "A + T1 + T2 + H"},
+    {"IH", "12 2 2 0 0 0 0 0 0 4", "Ag + Hg + T1u + T2u"},
+  };
+  printf("\n  known reducible representations:\n");
+  for (size_t i = 0; i < sizeof(reps)/sizeof(reps[0]); i++) {
+    const CharacterTable* t = CharacterTable::lookup(reps[i].group);
+    if (t == 0) { check(false, "%s loaded", reps[i].group); continue; }
+    vector<double> chi;
+    istringstream in(reps[i].chi);
+    double v;
+    while (in >> v) chi.push_back(v);
+    const string got = t->reduceToString(chi);
+    check(got == reps[i].expect, "%-4s %-24s -> %s", reps[i].group,
+          reps[i].chi, got.c_str());
+  }
+
+  //  A separable row is flagged, an ordinary one is not.
+  const CharacterTable* c3 = CharacterTable::lookup("C3");
+  if (c3) {
+    check(c3->separable("E") && !c3->separable("A"),
+          "C3: E is separable, A is not");
+    vector<int> m;
+    vector<double> one(3, 0.0);
+    one[0] = 1.0;
+    check(!c3->reduce(one, m),
+          "C3: a lone 1-D character at E is refused (not a real rep)");
   }
 
   //  A representation must reduce to non-negative integers, and the

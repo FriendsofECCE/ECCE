@@ -50,6 +50,17 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 CONFIG = os.path.join(ROOT, "data", "client", "config")
 
 
+#  Rows that stand for a complex-conjugate pair, by group: {group: set(label)}.
+#  Kept beside the parsed tuples rather than inside them so the many
+#  callers that unpack five fields stay as they are.
+SEPARABLE = {}
+
+
+def weight(group, label):
+    """How many 1-D irreps a stored row stands for: 2 if separable."""
+    return 2 if label in SEPARABLE.get(group, ()) else 1
+
+
 def readTables(path):
     """Parse the character table file into {group: (h, classes, counts, irreps)}."""
     groups = {}
@@ -58,6 +69,7 @@ def readTables(path):
     classes = counts = None
     translations = ""
     irreps = []
+    SEPARABLE.clear()
 
     for raw in open(path):
         line = raw.split("#")[0].strip()
@@ -70,9 +82,11 @@ def readTables(path):
             close = line.index("]")
             name = line[1:close]
             h = int(line[close + 1:].strip().split("=")[1])
+            SEPARABLE[name] = set()
             classes = counts = None
             translations = ""
             irreps = []
+            SEPARABLE[name] = set()
             continue
 
         key, _, rest = line.partition(":")
@@ -83,6 +97,8 @@ def readTables(path):
             classes = fields
         elif key == "counts":
             counts = [int(f) for f in fields]
+        elif key == "separable":
+            SEPARABLE[name].update(fields)
         elif key == "translations":
             translations = rest.strip()
         else:
@@ -174,7 +190,8 @@ def checkTranslations(name, h, classes, counts, irreps, expected, report):
     parts = []
     dimension = 0
     for label, row in irreps:
-        n = sum(counts[i]*row[i]*chi[i] for i in range(len(classes)))/float(h)
+        n = (sum(counts[i]*row[i]*chi[i] for i in range(len(classes)))
+             / float(h*weight(name, label)))
         if abs(n - round(n)) > 1e-9 or round(n) < 0:
             report.check(False,
                          "%s/%s: (x,y,z) reduces to a non-integer or negative "
@@ -195,6 +212,49 @@ def checkTranslations(name, h, classes, counts, irreps, expected, report):
                  % (name, got, expected))
 
 
+def inverseClasses(classes):
+    """Index of each class's inverse, from the class NAMES alone.
+
+    C_n^k -> C_n^(n-k), S_n^k -> S_n^(-k), the rest are their own
+    inverse.  Operations are keyed by (kind, rotation angle / 2pi).
+    """
+    def key(c):
+        m = re.match(r"^([CS])(\d+)(?:p(\d+))?$", c)
+        if not m:
+            return (c, 0.0)
+        n, k = int(m.group(2)), int(m.group(3) or 1)
+        return (m.group(1), round((float(k) / n) % 1.0, 9))
+    keys = [key(c) for c in classes]
+    out = []
+    for kind, frac in keys:
+        want = (kind, round((1.0 - frac) % 1.0, 9))
+        out.append(keys.index(want) if want in keys else -1)
+    return out
+
+
+def checkSeparableColumns(name, h, classes, counts, irreps, report):
+    """Column orthogonality when conjugate pairs are stored as one row.
+
+    With complex irreps sum_i chi_i(a) chi_i(b)* = (h/n_a) delta_ab and
+    sum_i chi_i(a) chi_i(b) = (h/n_a) delta_(b, inverse of a).  A real
+    row contributes r_a r_b to both sums, a separable one splits its
+    r_a r_b between them, so 2*(real rows) + 1*(separable rows) must
+    come to (h/n_a)(delta_ab + delta_(b, inv a)).
+    """
+    inv = inverseClasses(classes)
+    report.check(-1 not in inv, "%s: every class has an inverse class" % name)
+    if -1 in inv:
+        return
+    for a in range(len(classes)):
+        for b in range(len(classes)):
+            total = sum((1 if weight(name, label) == 2 else 2) * chi[a] * chi[b]
+                        for label, chi in irreps)
+            want = (float(h) / counts[a]) * ((a == b) + (inv[a] == b))
+            report.check(abs(total - want) < 1e-6,
+                         "%s: columns %s.%s = %g, want %g"
+                         % (name, classes[a], classes[b], total, want))
+
+
 def checkGroup(name, h, classes, counts, irreps, report):
     nclass = len(classes)
 
@@ -207,9 +267,11 @@ def checkGroup(name, h, classes, counts, irreps, report):
 
     #  As many irreps as classes -- a basic theorem, and the check that
     #  catches a whole row being left out.
-    report.check(len(irreps) == nclass,
+    #  A separable row is two conjugate 1-D irreps.
+    nirrep = sum(weight(name, label) for label, _ in irreps)
+    report.check(nirrep == nclass,
                  "%s: %d irreps for %d classes (must be equal)"
-                 % (name, len(irreps), nclass))
+                 % (name, nirrep, nclass))
 
     report.check(sum(counts) == h,
                  "%s: class counts sum to h (%d vs %d)"
@@ -227,22 +289,27 @@ def checkGroup(name, h, classes, counts, irreps, report):
     #  which must be the first class.
     report.check(classes[0].upper() == "E" and counts[0] == 1,
                  "%s: first class is the identity" % name)
-    dims = [chi[0] for _, chi in irreps]
-    report.check(abs(sum(d * d for d in dims) - h) < 1e-6,
+    #  A separable row of dimension 2 is two 1-D irreps: 2, not 4.
+    sumsq = sum(chi[0] ** 2 / weight(name, label) for label, chi in irreps)
+    report.check(abs(sumsq - h) < 1e-6,
                  "%s: squared dimensions sum to h (%g vs %d)"
-                 % (name, sum(d * d for d in dims), h))
+                 % (name, sumsq, h))
 
     #  Row orthogonality, including each row's own norm.
     for i, (li, ci) in enumerate(irreps):
         for j, (lj, cj) in enumerate(irreps):
             total = sum(counts[c] * ci[c] * cj[c] for c in range(nclass))
-            want = h if i == j else 0
+            want = h*weight(name, li) if i == j else 0
             #  Tolerance, not equality: the five-fold and eight-fold
             #  groups have irrational characters (2cos72, sqrt2, the
             #  golden ratio), so these sums are exact only in principle.
             report.check(abs(total - want) < 1e-6,
                          "%s: <%s|%s> = %g, want %d"
                          % (name, li, lj, total, want))
+
+    if SEPARABLE.get(name):
+        checkSeparableColumns(name, h, classes, counts, irreps, report)
+        return
 
     #  Column orthogonality: sum over IRREPS this time, which is an
     #  independent constraint and catches errors row orthogonality can
@@ -549,9 +616,10 @@ def checkSymops(groups, report, verbose):
         #  and here it ties the Fortran matrices to the hand-entered
         #  numbers without either having been derived from the other.
         cc = conjugacyClasses(ops)
-        report.check(len(cc) == len(irreps),
+        nirrep = sum(weight(name, label) for label, _ in irreps)
+        report.check(len(cc) == nirrep,
                      "%s: %d conjugacy classes for %d irreps (must be equal)"
-                     % (name, len(cc), len(irreps)))
+                     % (name, len(cc), nirrep))
 
         #  And the class SIZES must match the counts line.
         sizes = sorted(len(c) for c in cc)
@@ -574,7 +642,7 @@ def checkAnalysis(tablePath, verbose):
 
     opsDir = tempfile.mkdtemp(prefix="ecce-symops-")
     try:
-        for group in ("TD", "C2V", "OH", "D2H"):
+        for group in ("TD", "C2V", "OH", "D2H", "C3", "C6H", "T"):
             run = subprocess.run([binary], input=group + "\n",
                                  capture_output=True, text=True, timeout=60)
             if run.returncode != 0:

@@ -1688,9 +1688,9 @@ void MoDiagramPanel::buildOnce()
     }
   }
 
-  //  autosym also finds groups with complex irreps (C3 for a slightly
-  //  irregular NH3), which have no table here; without one nothing at
-  //  all was drawn.  Fall back to drawing without symmetry.
+  //  autosym can still return a group with no table here (C7, C8, D8h
+  //  and the like); without one nothing at all was drawn.  Fall back to
+  //  drawing without symmetry.
   //  What the diagram did to the symmetry, said on it.  Kept apart from
   //  `why`, which MoFragments::build() overwrites.
   string symmetryNote;
