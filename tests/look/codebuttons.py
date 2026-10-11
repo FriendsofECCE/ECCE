@@ -45,20 +45,22 @@ def main():
     ap.add_argument("--libdir", default=os.path.join(ROOT, "build-cmake"))
     ap.add_argument("--thing", default=os.path.join(
         ROOT, "src/wxgui/wxthings/ThingToggle.C"))
+    ap.add_argument("--theme", default="Adwaita")
     ap.add_argument("--check", action="store_true")
     o = ap.parse_args()
     os.makedirs(o.outdir, exist_ok=True)
     work = tempfile.mkdtemp(prefix="codebuttons")
     binary = os.path.join(work, "codebuttons")
     cxx = out(["wx-config", "--cxxflags"]).stdout.split()
-    libs = out(["wx-config", "--libs", "core,base,adv,html"]).stdout.split()
+    libs = out(["wx-config", "--libs", "core,base,adv,html,aui,gl"]).stdout.split()
     cmd = (["nice", "-n", "19", "g++", "-std=c++17", "-o", binary,
             os.path.join(HERE, "codebuttons.C"), o.thing,
             "-I" + os.path.join(ROOT, "include")] + cxx
            + ["-L" + o.libdir, "-Wl,-rpath," + o.libdir,
               "-Wl,--start-group"] + ["-l" + lib for lib in LIBS]
            + ["-Wl,--end-group"] + libs
-           + ["-lxerces-c", "-lssh", "-lmosquitto", "-lssl", "-lcrypto"])
+           + ["-lxerces-c", "-lssh", "-lmosquitto", "-lssl", "-lcrypto"]
+           + out(["pkg-config", "--libs", "gtk+-3.0"]).stdout.split())
     b = out(cmd)
     if b.returncode:
         print(b.stderr[-3000:])
@@ -69,16 +71,16 @@ def main():
         time.sleep(2)
         env = dict(os.environ, DISPLAY=xvfb.name, HOME=work,
                    ECCE_REALUSERHOME=work, ECCE_HOME=ROOT,
-                   GTK_THEME="Adwaita")
+                   GTK_THEME=o.theme)
         r = out([binary, o.outdir], env=env, timeout=60)
         if r.returncode:
             print(r.stderr[-500:])
             return 1
-        for state in ("enabled", "disabled"):
+        for state in ("enabled", "disabled", "modal"):
             img = Image.open(os.path.join(o.outdir, state + ".png"))
             d = dark(img)
             print("%s: %.1f%% near-black pixels" % (state, 100 * d))
-            if o.check and state == "disabled" and d > 0.10:
+            if o.check and state != "enabled" and d > 0.10:
                 print("FAIL: the disabled code icons are black squares")
                 status = 1
     finally:

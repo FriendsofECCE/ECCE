@@ -299,59 +299,10 @@ wxBitmap wxCustomButton::CreateBitmapDisabled(const wxBitmap &bitmap) const
 {
     wxCHECK_MSG(bitmap.Ok(), wxNullBitmap, wxT("invalid bitmap"));
 
-    unsigned char br = GetBackgroundColour().Red();
-    unsigned char bg = GetBackgroundColour().Green();
-    unsigned char bb = GetBackgroundColour().Blue();
-
-    wxImage image = bitmap.ConvertToImage();
-    int pos, width = image.GetWidth(), height = image.GetHeight();
-    unsigned char *img_data = image.GetData();
-
-    for (int j=0; j<height; j++)
-    {
-        for (int i=j%2; i<width; i+=2)
-        {
-            pos = (j*width+i)*3;
-            img_data[pos  ] = br;
-            img_data[pos+1] = bg;
-            img_data[pos+2] = bb;
-        }
-    }
-
-    return wxBitmap(image);
-
-/*      // FIXME why bother creating focused wxCustomButton's bitmap
-        wxImage imgFoc = bitmap.ConvertToImage();
-
-        bool mask = false;
-        unsigned char mr=0, mg=0, mb=0;
-        if (img.HasMask())
-        {
-            mask = true;
-            mr = imgDis.GetMaskRed();
-            mg = imgDis.GetMaskGreen();
-            mb = imgDis.GetMaskBlue();
-        }
-        unsigned char *r, *g, *b;
-        unsigned char *focData = imgFoc.GetData();
-        r = imgFoc.GetData();
-        g = imgFoc.GetData() + 1;
-        b = imgFoc.GetData() + 2;
-        for (int j=0; j<h; j++)
-        {
-            for (int i=0; i<w; i++)
-            {
-                if ((!mask || ((*r!=mr)&&(*b!=mb)&&(*g!=mg))) &&
-                    ((*r<236)&&(*b<236)&&(*g<236)))
-                {
-                    *r += 20; *g += 20; *b += 20;
-                }
-                r += 3; g += 3; b += 3;
-            }
-        }
-        m_bmpFocus = wxBitmap(imgFoc);
-*/
-
+    //  Greyed and kept translucent, whatever the button's background colour
+    //  (a null or transparent one turned the old dither into black squares).
+    wxBitmap disabled = bitmap.ConvertToDisabled();
+    return disabled.Ok() ? disabled : bitmap;
 }
 
 void wxCustomButton::SetBitmapLabel(const wxBitmap& bitmap)
