@@ -42,6 +42,7 @@ using namespace std;
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxStyledWindow.H"
 
+#include <cstring>
 #include "wxgui/WxState.H"
 
 
@@ -252,7 +253,7 @@ void WxState::refresh()
  * wxDC is allowed to be passed in and drawn the state icon on it.
  */
 void WxState::draw(wxDC & dc, ResourceDescriptor::RUNSTATE currentState,
-                   bool useSystemColor, const wxRect& rect)
+                   bool useSystemColor, const wxRect& rect, bool clear)
 {
   initializeColors();
 
@@ -269,9 +270,11 @@ void WxState::draw(wxDC & dc, ResourceDescriptor::RUNSTATE currentState,
   }
   
   // Clear existing drawing within the given rectangle (or dc)
-  dc.SetBrush(dc.GetBackground().GetColour());
-  dc.SetPen(*wxTRANSPARENT_PEN);
-  dc.DrawRectangle(x, y, width, height);
+  if (clear) {
+    dc.SetBrush(dc.GetBackground().GetColour());
+    dc.SetPen(*wxTRANSPARENT_PEN);
+    dc.DrawRectangle(x, y, width, height);
+  }
 
   if (currentState == ResourceDescriptor::STATE_ILLEGAL) {
     dc.SetBrush( *p_brushes[useSystemColor?1:0][currentState]);
@@ -362,6 +365,26 @@ void WxState::draw(wxDC & dc, ResourceDescriptor::RUNSTATE currentState,
       ip.push_back(wxPoint(wxRound(pts[i].m_x), wxRound(pts[i].m_y)));
     dc.DrawPolygon((int)ip.size(), &ip[0]);
   }
+}
+
+
+/**
+ * The icon on a transparent bitmap.  Drawn on white and masked by white, an
+ * image list kept the antialiased edge pixels half white, which showed as a
+ * pale halo on a selected row.
+ */
+wxBitmap WxState::alphaBitmap(ResourceDescriptor::RUNSTATE state, int size)
+{
+  wxImage img(size, size);
+  img.InitAlpha();
+  memset(img.GetData(), 0, (size_t)size*size*3);
+  memset(img.GetAlpha(), 0, (size_t)size*size);
+  wxBitmap bmp(img, 32);
+  {
+    wxMemoryDC dc(bmp);
+    draw(dc, state, false, wxRect(), false);
+  }
+  return bmp;
 }
 
 

@@ -5,7 +5,9 @@
  *
  *
  */
+#include <cstring>
 #include "wx/dcmemory.h" // for wxMemoryDC
+#include "wx/image.h"
 
 #include "wx/icon.h"
 #include "dsm/Resource.H"
@@ -60,29 +62,29 @@ void WxResourceStateImageList::addAllImages()
 
   // add the stateless icons
   bitmap = combineWithState(ewxBitmap(_T("server.xpm")));
-  Add(bitmap, *wxWHITE);
-  Add(bitmap, *wxWHITE);
-  Add(bitmap, *wxWHITE);
-  Add(bitmap, *wxWHITE);
+  Add(bitmap);
+  Add(bitmap);
+  Add(bitmap);
+  Add(bitmap);
 
   bitmap = combineWithState(ewxBitmap(_T("folder_home.xpm")));
-  Add(bitmap, *wxWHITE);
-  Add(bitmap, *wxWHITE);
-  Add(bitmap, *wxWHITE);
-  Add(bitmap, *wxWHITE);
+  Add(bitmap);
+  Add(bitmap);
+  Add(bitmap);
+  Add(bitmap);
 
   bitmap = combineWithState(ewxBitmap(_T("user.xpm")));
-  Add(bitmap, *wxWHITE);
-  Add(bitmap, *wxWHITE);
+  Add(bitmap);
+  Add(bitmap);
   bitmap = combineWithState(ewxBitmap(_T("user_open.xpm")));
-  Add(bitmap, *wxWHITE);
-  Add(bitmap, *wxWHITE);
+  Add(bitmap);
+  Add(bitmap);
 
   bitmap = combineWithState(ewxBitmap(_T("users.xpm")));
-  Add(bitmap, *wxWHITE);
-  Add(bitmap, *wxWHITE);
-  Add(bitmap, *wxWHITE);
-  Add(bitmap, *wxWHITE);
+  Add(bitmap);
+  Add(bitmap);
+  Add(bitmap);
+  Add(bitmap);
 
   vector<ResourceType *> resourceTypes =
           ResourceDescriptor::getResourceDescriptor().getResourceTypes();
@@ -136,6 +138,22 @@ WxResourceStateImageList* WxResourceStateImageList::getImageList()
 }
 
 
+namespace {
+//  The bitmap as an image with an alpha channel.  An icon with neither a mask
+//  nor alpha keeps what the old white mask did: white is clear.
+wxImage withAlpha(const wxBitmap& bmp, bool whiteIsClear)
+{
+  wxImage img = bmp.ConvertToImage();
+  if (!img.HasAlpha()) {
+    if (!img.HasMask() && whiteIsClear) img.SetMaskColour(255, 255, 255);
+    img.InitAlpha();
+  }
+  return img;
+}
+}
+
+//  Real alpha, so that no white pixels are left around the state icon's
+//  antialiased edge when a selection colour shows through.
 wxBitmap
 WxResourceStateImageList::combineWithState(wxBitmap bitmap, int state)
 {
@@ -144,35 +162,22 @@ WxResourceStateImageList::combineWithState(wxBitmap bitmap, int state)
   int combinedWidth = bitmap.GetWidth() + stateWidth;
   int greaterHeight = bitmap.GetHeight() > stateHeight ? bitmap.GetHeight() :
                                                           stateHeight;
-  wxBitmap combinedBitmap(combinedWidth, greaterHeight);
-  wxMemoryDC combinedDC(combinedBitmap);
-  // clear the entire combined bitmap
-  // NOTE: This is done because there is (I assume) some undocumented static
-  // memory or caching that occurs.  If the following is commented out, at
-  // least using GTK2, images are drawn on top of older images even though
-  // this 'combinedBitmap' is using memory from the stack.
-  // This technique, used in combination with the "useMask=true" in the
-  // wxBitmap.Blit function, is the only way I could combine two bitmaps
-  // side-by-side into a new bitmap without severe distortion.
-  combinedDC.SetBrush(*wxWHITE_BRUSH);
-  combinedDC.SetPen(*wxWHITE);
-  combinedDC.DrawRectangle(0, 0, combinedWidth, greaterHeight);
+  wxImage combined(combinedWidth, greaterHeight);
+  combined.InitAlpha();
+  memset(combined.GetData(), 0, (size_t)combinedWidth*greaterHeight*3);
+  memset(combined.GetAlpha(), 0, (size_t)combinedWidth*greaterHeight);
 
-  // draw resource bitmap (given as param in this function call); one with
-  // no state goes at the right, next to its label, not before an empty slot
-  wxMemoryDC resourceDC(bitmap);
+  // the resource bitmap; one with no state goes at the right, next to its
+  // label, not before an empty slot
   const int x = state < 0 ? stateWidth : 0;
-  combinedDC.Blit(x, 0, bitmap.GetWidth(), bitmap.GetHeight(),
-                  &resourceDC, 0, 0, wxCOPY, true);
+  combined.Paste(withAlpha(bitmap, true), x, 0, wxIMAGE_ALPHA_BLEND_COMPOSE);
   if (state >= 0) {
-    wxBitmap stateBitmap(WxStateImageList::getImageList()->GetBitmap(state));
-    wxMemoryDC stateDC(stateBitmap);
-    combinedDC.Blit(bitmap.GetWidth(), 0,
-                    stateBitmap.GetWidth(), stateBitmap.GetHeight(),
-                    &stateDC, 0, 0, wxCOPY, true);
+    combined.Paste(withAlpha(WxStateImageList::getImageList()->GetBitmap(state),
+                             false),
+                   bitmap.GetWidth(), 0, wxIMAGE_ALPHA_BLEND_COMPOSE);
   }
 
-  return combinedBitmap;
+  return wxBitmap(combined, 32);
 }
 
 
@@ -185,16 +190,16 @@ WxResourceStateImageList::combineAndAddWithState(ResourceType * resourceType,
                       (ResourceDescriptor::IconType)iconType);
   ewxBitmap normalBitmap(normalName);
   wxBitmap combinedNormal = combineWithState(normalBitmap, state);
-  Add(combinedNormal, *wxWHITE);
+  Add(combinedNormal);
   for (iconType = iconType + 1;
        iconType < ResourceDescriptor::IT_UNDEFINED;
        iconType++) {
     string iconName = resourceType->getIcon(
                       (ResourceDescriptor::IconType)iconType);
     if (iconName == normalName) {
-      Add(combinedNormal, *wxWHITE);
+      Add(combinedNormal);
     } else {
-      Add(combineWithState(ewxBitmap(iconName), state), *wxWHITE);
+      Add(combineWithState(ewxBitmap(iconName), state));
     }
   }
 }

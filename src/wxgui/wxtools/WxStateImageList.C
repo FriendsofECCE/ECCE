@@ -35,11 +35,7 @@ void WxStateImageList::addAllImages()
   for (int state = ResourceDescriptor::STATE_ILLEGAL;
            state <= WxState::OUT_OF_CONTACT;
            state++) {
-    wxBitmap stateMap(p_size, p_size);
-    wxMemoryDC stateDC(stateMap);
-    stateDC.SetBackground(*wxWHITE_BRUSH);
-    WxState::draw(stateDC, (ResourceDescriptor::RUNSTATE)state);
-    Add(stateMap, *wxWHITE);
+    Add(WxState::alphaBitmap((ResourceDescriptor::RUNSTATE)state, p_size));
   }
 }
 

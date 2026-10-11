@@ -65,7 +65,10 @@ public:
                         bool capital = false);
   static string getPrefString(int state);
   static void draw(wxDC & dc, ResourceDescriptor::RUNSTATE currentState,
-                   bool useSystemColor = false, const wxRect& rect = wxRect());
+                   bool useSystemColor = false, const wxRect& rect = wxRect(),
+                   bool clear = true);
+  // The icon on a transparent background (real alpha), for image lists.
+  static wxBitmap alphaBitmap(ResourceDescriptor::RUNSTATE state, int size);
   // The Organizer's "Run States:" strip; tests/look/statelegend renders it.
   static ewxPanel* createLegend(wxWindow* parent);
 

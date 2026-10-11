@@ -48,14 +48,15 @@ def main():
     work = tempfile.mkdtemp(prefix="stateicons")
     binary = os.path.join(work, "stateicons")
     cxx = out(["wx-config", "--cxxflags"]).stdout.split()
-    libs = out(["wx-config", "--libs", "core,base,adv,html"]).stdout.split()
+    libs = out(["wx-config", "--libs", "core,base,adv,html,aui,gl"]).stdout.split()
     cmd = (["nice", "-n", "19", "g++", "-std=c++17", "-o", binary,
             os.path.join(HERE, "stateicons.C"),
             os.path.join(ROOT, "src/wxgui/wxtools/WxState.C"),
             "-I" + os.path.join(ROOT, "include")] + cxx
            + ["-L" + o.libdir, "-Wl,-rpath," + o.libdir]
            + ["-l" + lib for lib in LIBS]
-           + libs + ["-lxerces-c", "-lssh", "-lmosquitto", "-lssl", "-lcrypto"])
+           + libs + ["-lxerces-c", "-lssh", "-lmosquitto", "-lssl", "-lcrypto"]
+           + out(["pkg-config", "--libs", "gtk+-3.0"]).stdout.split())
     b = out(cmd)
     if b.returncode:
         print(b.stderr[-3000:])
@@ -98,6 +99,29 @@ def main():
                     if touch:
                         print("%s size %d state %d: %d edge pixels non-bg"
                               % (tn, size, i, touch))
+                        if o.check:
+                            status = 1
+                for f in sorted(os.listdir(raw)):
+                    if f.startswith("icon-%d-" % size):
+                        shutil.copy(os.path.join(raw, f), os.path.join(
+                            o.outdir, "%s-%s-%s" % (o.tag, tn, f)))
+                    if not f.startswith("alpha-%d-" % size):
+                        continue
+                    a = Image.open(os.path.join(raw, f)).convert("RGBA")
+                    shutil.copy(os.path.join(raw, f), os.path.join(
+                        o.outdir, "%s-%s-%s" % (o.tag, tn, f)))
+                    px = list(a.getdata())
+                    clear = a.getpixel((0, 0))[3]
+                    # A selection colour must show through the edge: no
+                    # translucent pixel may be whiter than the icon itself.
+                    solid = [p for p in px if p[3] == 255]
+                    edge = [p for p in px if 8 <= p[3] < 255]
+                    whitest = max((sum(p[:3]) for p in solid), default=0)
+                    bad = [p for p in edge if sum(p[:3]) > whitest + 60]
+                    if clear != 0 or bad:
+                        print("%s size %d %s: corner alpha %d, %d edge "
+                              "pixels whiter than the fill" %
+                              (tn, size, f, clear, len(bad)))
                         if o.check:
                             status = 1
                 sheet = sheet.resize((sheet.width * 8, sheet.height * 8),

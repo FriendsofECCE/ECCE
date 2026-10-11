@@ -40,6 +40,11 @@ int main(int argc, char** argv)
       std::string f = std::string(argv[1]) + "/icon-" + std::to_string(size) +
                       "-" + std::to_string(s) + ".png";
       bmp.SaveFile(f, wxBITMAP_TYPE_PNG);
+      //  The bitmap the image lists hold: real alpha, no white halo.
+      f = std::string(argv[1]) + "/alpha-" + std::to_string(size) + "-" +
+          std::to_string(s) + ".png";
+      WxState::alphaBitmap((ResourceDescriptor::RUNSTATE)s, size)
+          .SaveFile(f, wxBITMAP_TYPE_PNG);
     }
   }
   _exit(0);
