@@ -198,6 +198,13 @@ void TearableContent::Popup(wxWindow * focus)
 {
   p_content->TransferDataToWindow();
   wxPopupTransientWindow::Popup(focus);
+#ifdef __WXMSW__
+  //  A popup is shown before its children have painted: an empty grey box
+  //  for a moment.  Paint it complete now.
+  Layout();
+  ::RedrawWindow((HWND)GetHWND(), NULL, NULL,
+                 RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN);
+#endif
 }
 
 
