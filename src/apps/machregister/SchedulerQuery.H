@@ -78,7 +78,9 @@ namespace SchedulerQuery
         string note;                // one sentence under the example, or ""
         string companion;
     };
-    ProgramHelp programHelp(const string& code);
+    /// `windows`: the machine is this Windows computer, so the examples
+    /// are Windows paths (the names Find looks for are the same).
+    ProgramHelp programHelp(const string& code, bool windows = false);
     /// POSIX sh text that prints one "ECCE-FOUND:<absolute path>" line for
     /// each candidate `command -v` finds.
     /// The examples as shown under the Program box ("a  or  b").
@@ -88,8 +90,11 @@ namespace SchedulerQuery
     /// (any case of its first letter, version suffixes allowed) under each
     /// of `roots`, or in that folder's bin; for programs installed outside
     /// PATH, as Windows installers do.  Paths are as sh writes them.
+    /// A root written "$HOME" is left for the machine's shell to expand.
+    /// `windows`: the programs end in .exe.
     string findInstallDirsScript(const ProgramHelp& h, const string& code,
-                                 const vector<string>& roots);
+                                 const vector<string>& roots,
+                                 bool windows = true);
     /// A path from this computer's file dialog in the form the job script
     /// (sh) runs: C:\a\b.exe -> /c/a/b on Windows; unchanged elsewhere.
     string localProgramPath(const string& chosen);

@@ -306,6 +306,8 @@ class WxMachineRegister: public ewxFrame
         void growToFitSizer(bool fitWholeForm = false);
         wxSize maxClientSizeForDisplay();
         void keepOnScreen();
+        bool windowsPrograms() const;
+        void showProgramHelp();
         void refreshLocality();
         void updateFooter();
         vector<string> pendingSkeletons() const;

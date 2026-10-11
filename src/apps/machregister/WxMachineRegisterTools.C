@@ -30,6 +30,7 @@
 #include "util/Ecce.H"
 #include "tdat/ConfigFile.H"
 #include "tdat/RefMachine.H"
+#include "comm/RCommand.H"
 #include "dsm/MachinePreferences.H"
 
 #include "wxgui/ewxButton.H"
@@ -398,29 +399,44 @@ void WxMachineRegister::findProgram()
                        "first.");
         return;
     }
-    SchedulerQuery::ProgramHelp h = SchedulerQuery::programHelp(code);
+    SchedulerQuery::ProgramHelp h = SchedulerQuery::programHelp(code, windowsPrograms());
     SchedulerQuery::Connection conn = this->connection();
     string output, err;
     bool ran = false;
     string extra;
-#ifdef _WIN32
-    //  Windows installers put programs in folders not on PATH.  The roots
-    //  are this computer's; on another machine they match nothing.
+    const bool win = windowsPrograms();
+    if (win)
     {
+        //  Windows installers put programs in folders not on PATH, and an
+        //  unpacked ORCA often sits right below the drive.
         vector<string> roots;
-        const char* vars[] = { "USERPROFILE", "LOCALAPPDATA", "ProgramFiles" };
+        const char* vars[] = { "USERPROFILE", "LOCALAPPDATA", "ProgramFiles",
+                               "ProgramFiles(x86)", "SystemDrive" };
         for (const char* v : vars)
         {
             const char* val = getenv(v);
             if (val && *val)
-                roots.push_back(SchedulerQuery::localProgramPath(val));
+                roots.push_back(SchedulerQuery::localProgramPath(
+                    string(val) + (string(v) == "SystemDrive" ? "/" : "")));
         }
         if (getenv("LOCALAPPDATA"))
             roots.push_back(SchedulerQuery::localProgramPath(
                                 getenv("LOCALAPPDATA")) + "/Programs");
-        extra = SchedulerQuery::findInstallDirsScript(h, code, roots);
+        extra = SchedulerQuery::findInstallDirsScript(h, code, roots, true);
     }
+    else
+    {
+        //  Codes unpacked by hand (ORCA, MOPAC) are usually below these.
+        vector<string> roots;
+        roots.push_back("$HOME");
+        roots.push_back("/opt");
+        roots.push_back("/usr/local");
+#ifdef __APPLE__
+        if (!RCommand::localityNote(machine, "ssh", "").empty())
+            roots.push_back("/Applications");
 #endif
+        extra = SchedulerQuery::findInstallDirsScript(h, code, roots, false);
+    }
     runBusy(this, "Find program", "Looking for " + code + " on " + machine +
             "...", [&]() {
         SchedulerQuery::Remote r(conn);
@@ -429,9 +445,15 @@ void WxMachineRegister::findProgram()
         vector<string> argv;
         argv.push_back("sh");
         argv.push_back("-c");
-        argv.push_back(SchedulerQuery::findProgramScript(h) + extra +
-                       "exit 0\n");
+        argv.push_back(SchedulerQuery::findProgramScript(h) + "exit 0\n");
         ran = r.run(argv, output, 60);
+        //  The install folders only when nothing is on the PATH: what the
+        //  login setup provides is what the job script will run.
+        if (ran && SchedulerQuery::parseFound(output).empty() && !extra.empty())
+        {
+            argv.back() = extra + "exit 0\n";
+            ran = r.run(argv, output, 60);
+        }
         if (!ran)
             err = output;
     });
@@ -446,10 +468,17 @@ void WxMachineRegister::findProgram()
         names += (i ? ", " : "") + h.names[i];
     if (found.empty())
     {
-        displayMessage("No " + names + " was found on " + machine + ". The "
-            "program was left as it was. If " + code + " is loaded with "
-            "'module load', put that command in the login setup on the "
-            "Connection tab; otherwise enter the path by hand.");
+        if (win)
+            displayMessage("No " + names + " was found on this computer, on "
+                "the PATH or in a folder named after " + code + " in your "
+                "user folder, AppData\\Local\\Programs, Program Files or "
+                "the top of the drive. The program was left as it was. Choose "
+                "it with Browse..., e.g. " + h.examples[0] + ".");
+        else
+            displayMessage("No " + names + " was found on " + machine + ". "
+                "The program was left as it was. If " + code + " is loaded "
+                "with 'module load', put that command in the login setup on "
+                "the Connection tab; otherwise enter the path by hand.");
         return;
     }
     string pick = found[0];
