@@ -297,6 +297,21 @@ void ChemDisplay::setupCylinders(SoGLRenderAction *action, SoState *&state,
 		lodSelector->changeCylinderComplexity(bcc,displayStyle);
 // <-- EGB && SGB regenerate lod
 	}
+	{
+		//  As for the spheres: the complexity's sides are a floor, more as
+		//  the bonds grow on screen, within a vertex budget (#210).
+		int32_t sides = unitCylinder->getNumberOfSides();
+		const int32_t need = polygonSidesFor(
+			cdp->bondCylinderRadius.getValue() * maxPixelsPerUnit(chemData));
+		//  Two half-cylinders per bond, about 4*s + 6 vertices each.
+		const double bonds = chemData->getNumberOfBonds() > 0 ?
+			chemData->getNumberOfBonds() : 1;
+		int32_t cap = 64;
+		while (cap > sides && bonds * 2.0 * (4.0 * cap + 6.0) > 300000.0)
+			cap--;
+		if (need > sides) sides = need < cap ? need : cap;
+		unitCylinder->soSides = sides;
+	}
 	lastCylinderDoNormals = doNormals;
 	lastCylinderDoTextures = doTextures;
 

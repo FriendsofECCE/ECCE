@@ -150,6 +150,8 @@ class ChemUnitCylinder {
     int32_t getCapType() const { return capType; }
     int32_t getNumberOfSections() const { return numSections; }
     int32_t getNumberOfSides() const { return numSides; }
+    // Sides of the SOCYLINDER bond styles; set per frame by ChemDisplay.
+    int32_t soSides;
     int32_t getNumberOfRoundCapSections() const { return numRoundCapSections; }
 
 // --> EGB && SGB

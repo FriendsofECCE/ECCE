@@ -319,9 +319,32 @@ ChemDisplay::setupSpheres(SoGLRenderAction *action, SoState *&state,
 		}
 	}
 #else
-	if (lastSphereComplexity != complexity) {
+	//  The complexity is a floor; the depth rises with the atoms' size on
+	//  screen, within a vertex budget so large systems keep their speed.
+	int32_t depth = ChemUnitSphere::depthForComplexity(complexity);
+	if (atomSphereDisplayStyle == ChemDisplayParam::ATOMSPHERE_HEMISPHERES ||
+		atomSphereDisplayStyle == ChemDisplayParam::ATOMSPHERE_FULLSPHERES) {
+		float rmax = 0.0f;
+		const float *radii = chemRadii->atomRadii.getValues(0);
+		for (int i = 0; i < chemRadii->atomRadii.getNum(); i++)
+			if (radii[i] > rmax) rmax = radii[i];
+		rmax *= cdp->atomRadiiScaleFactor.getValue();
+		if (cdp->displayStyle.getValue() != ChemDisplayParam::DISPLAY_CPK)
+			rmax *= cdp->ballStickSphereScaleFactor.getValue();
+		const int32_t need =
+			(polygonSidesFor(rmax * maxPixelsPerUnit(chemData)) + 3) / 4;
+		//  A hemisphere strip has about 4*d*d + 6*d vertices.
+		const double atoms = chemData->getNumberOfAtoms() > 0 ?
+			chemData->getNumberOfAtoms() : 1;
+		int32_t cap = 32;
+		while (cap > depth && atoms * (4.0 * cap * cap + 6.0 * cap) > 300000.0)
+			cap--;
+		if (need > depth) depth = need < cap ? need : cap;
+	}
+	if (unitSphere == NULL || lastSphereComplexity != complexity ||
+		unitSphere->getDepth() != depth) {
 		if (unitSphere != NULL) delete unitSphere;
-		unitSphere = new ChemUnitSphere(complexity);
+		unitSphere = new ChemUnitSphere(complexity, depth);
 	}
 #endif
 
@@ -330,6 +353,50 @@ ChemDisplay::setupSpheres(SoGLRenderAction *action, SoState *&state,
 	lastSphereDoTextures = doTextures;
 	lastSphereDisplayStyle = atomSphereDisplayStyle;
 	lastCacheContext = action->getCacheContext();
+}
+
+//  Largest scale, in framebuffer pixels per object unit, over the atoms whose
+//  centres are in or near the view; 0 if none is.  Uses the matrices
+//  GLRender stored for this frame.
+float
+ChemDisplay::maxPixelsPerUnit(const ChemBaseData *chemData) const
+{
+	SbMatrix mv = currentModelMatrix;
+	mv.multRight(currentViewMatrix);
+	SbVec3f up;
+	mv.inverse().multDirMatrix(SbVec3f(0.0f, 1.0f, 0.0f), up);
+	if (up.normalize() <= 0.0f) return 0.0f;
+	const SbMatrix &m = currentMVP;
+	const SbVec2s vp = currentVPR.getViewportSizePixels();
+	//  Clip-space change for one object unit along the screen's up axis.
+	const float dx = (up[0]*m[0][0] + up[1]*m[1][0] + up[2]*m[2][0]) * vp[0] * 0.5f;
+	const float dy = (up[0]*m[0][1] + up[1]*m[1][1] + up[2]*m[2][1]) * vp[1] * 0.5f;
+	const float perW = sqrtf(dx * dx + dy * dy);
+	float best = 0.0f;
+	const int32_t n = chemData->getNumberOfAtoms();
+	for (int32_t i = 0; i < n; i++) {
+		const SbVec3f c = chemData->getAtomCoordinates(i);
+		const float w = c[0]*m[0][3] + c[1]*m[1][3] + c[2]*m[2][3] + m[3][3];
+		if (w <= 1e-6f) continue;              // behind the camera
+		const float x = (c[0]*m[0][0] + c[1]*m[1][0] + c[2]*m[2][0] + m[3][0]) / w;
+		const float y = (c[0]*m[0][1] + c[1]*m[1][1] + c[2]*m[2][1] + m[3][1]) / w;
+		const float z = (c[0]*m[0][2] + c[1]*m[1][2] + c[2]*m[2][2] + m[3][2]) / w;
+		if (x < -2.0f || x > 2.0f || y < -2.0f || y > 2.0f || z < -1.0f || z > 1.0f)
+			continue;
+		if (perW / w > best) best = perW / w;
+	}
+	return best;
+}
+
+//  Sides of a regular polygon whose edges stay within a quarter pixel of a
+//  circle of the given radius.
+int32_t
+ChemDisplay::polygonSidesFor(float radiusPixels)
+{
+	const float tol = 0.25f;
+	if (radiusPixels <= tol) return 3;
+	const float n = (float)M_PI / acosf(1.0f - tol / radiusPixels);
+	return n > 256.0f ? 256 : (int32_t)ceilf(n);
 }
 
 ////////////////////////////////////////////////////////////////////////

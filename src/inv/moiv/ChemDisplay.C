@@ -687,13 +687,15 @@ ChemDisplay::GLRender(SoGLRenderAction *action)
 	float diffuse[] = {0.8, 0.8, 0.8, 1.0};
 	glMaterialfv(GL_FRONT_AND_BACK,GL_DIFFUSE,diffuse);
 	
-	float specular[] = {0.0, 0.0, 0.0, 1.0};
+	//  The highlight of SGContainer's material (#210).  Coin's lazy element
+	//  sends that material over these values, Open Inventor's does not.
+	float specular[] = {0.4, 0.4, 0.4, 1.0};
 	glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,specular);
 
 	float emission[] = {0.0, 0.0, 0.0, 1.0};
 	glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emission);
 
-	glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,0.0f);
+	glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,0.3f * 128.0f);
 // <--
 
 	//  TEMPORARY INSTRUMENTATION for #83 (green cast under software GL).
