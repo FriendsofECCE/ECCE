@@ -581,6 +581,7 @@ void Builder::updatePanes(bool allowSwitch)
       pane.window->Move(-30000, -30000);
     }
   }
+  keepColumnWidth();
   p_mgr.Update();
   fitToolColumn();
   updating = false;
@@ -627,13 +628,39 @@ void Builder::setColumnTab(int tab, bool save)
   if (save) {
     p_columnTabChosen = true;   // for this calculation, see setContext()
   }
+  keepColumnWidth();
   updatePanes();
+}
+
+
+//  List + detail: the column keeps one width (see below).
+void Builder::keepColumnWidth()
+{
+  if (p_panelMode != PANELS_DETAIL) return;
+  //  The column keeps one width, so it does not change size when the shown
+  //  property does.  The MOs table (not measured until that panel is first
+  //  shown) is the widest, under 60 characters; a panel that needs more
+  //  widens the column once and it stays.
+  wxAuiPaneInfo &idx = p_mgr.GetPane(wxString(NAME_PROPERTY_INDEX));
+  if (idx.IsOk() && !idx.IsFloating()) {
+    int w = std::max(std::max(idx.rect.width, idx.min_size.x),
+                     62 * GetCharWidth());
+    wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
+    for (size_t i = 0; i < all.GetCount(); ++i) {
+      wxAuiPaneInfo &pane = all.Item(i);
+      if (pane.window && !pane.IsFloating() &&
+          dynamic_cast<PropertyPanel*>(pane.window))
+        w = std::max(w, pane.window->GetMinSize().x);
+    }
+    idx.MinSize(wxSize(w, idx.min_size.y)).BestSize(wxSize(w, idx.best_size.y));
+  }
 }
 
 
 //  List + detail: make `win` the one open property panel.
 void Builder::setDetail(wxWindow *win)
 {
+  keepColumnWidth();
   if (p_detail && p_detail != win) {
     wxAuiPaneInfo &old = p_mgr.GetPane(p_detail);
     if (old.IsOk()) old.Show(false);

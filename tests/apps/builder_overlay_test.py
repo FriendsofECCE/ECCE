@@ -269,6 +269,12 @@ def overlayCase(s, display, env, wrappers, png):
             check((n > 30) == want, "%s: %d %s pixels in the viewer"
                   % (name, n, colour))
 
+    from PIL import Image
+    edges = {n: (viewerBox(Image.open(shots[n])) or (0, 0, 0, 0))[2]
+             for n in ("plain", "dipole", "mulliken", "mos") if n in shots}
+    check(len(set(edges.values())) == 1,
+          "the panel column keeps its width across panels: %s" % edges)
+
     say("classic layout, the Properties menu")
     lines = ["wait 4000", "overlay", "shot plain",
              "property Dipole Moment", "wait 1500", "overlay", "shot dipole",
