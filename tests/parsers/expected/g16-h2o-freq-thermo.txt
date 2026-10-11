@@ -1,0 +1,568 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    g16-h2o-freq-thermo
+desc:    gaussian-16.desc
+fixture: gaussian-16/h2o_freq_thermo.log (1751 lines)
+args:    '.' 'GeoVib' 'SCF' 'RHF' '0'
+
+[ORBOCC1][ORBOCCBETA]  Script=gaussian-16.orbocc  Freq=last  Skip=-  Lines=-
+  Begin=Orbital symmetries
+  End=Condensed to atoms
+  begins=2 delivered=1 buffered_away=1
+  block 1: begin-line=1078 fed=10 rc=0 first-fed=' Orbital symmetries:'
+    key: ORBOCC
+      size: 19
+      rowlabels: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
+      values: 2 2 2 2 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+    key: ORBSYM
+      size: 19
+      rowlabels: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
+      values: A1 A1 B2 A1 B1 A1 B2 B2 A1 B1 A1 B2 A1 A1 A2 B1 A1 B2 A1
+
+[GEOMTRACE]  Script=gaussian-16.geomtrace  Freq=all  Skip=5  Lines=-
+  Begin=Input orientation\:
+  End=--------------------------------------
+  begins=4 delivered=4 buffered_away=0
+  block 1: begin-line=153 fed=4 rc=0 first-fed='      1          8           0        0.000000    0.000000    0.117300'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: 0.000000 0.000000 0.117300 0.000000 0.757200 -0.469200 0.000000 -0.757200 -0.469200
+      units: Hartree
+  block 2: begin-line=497 fed=4 rc=0 first-fed='      1          8           0        0.000000    0.000000    0.123354'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: 0.000000 0.000000 0.123354 0.000000 0.762667 -0.472227 -0.000000 -0.762667 -0.472227
+      units: Hartree
+  block 3: begin-line=759 fed=4 rc=0 first-fed='      1          8           0       -0.000000    0.000000    0.125678'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: -0.000000 0.000000 0.125678 0.000000 0.761289 -0.473389 -0.000000 -0.761289 -0.473389
+      units: Hartree
+  block 4: begin-line=1037 fed=4 rc=0 first-fed='      1          8           0       -0.000000   -0.000000    0.125678'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: -0.000000 -0.000000 0.125678 0.000000 0.761289 -0.473389 -0.000000 -0.761289 -0.473389
+      units: Hartree
+
+[GEOMTRACE1]  Script=gaussian-16.geomtrace  Freq=all  Skip=5  Lines=-
+  Begin=Standard orientation\:
+  End=--------------------------------------
+  begins=4 delivered=4 buffered_away=0
+  block 1: begin-line=173 fed=4 rc=0 first-fed='      1          8           0        0.000000   -0.000000    0.117300'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: 0.000000 -0.000000 0.117300 0.000000 0.757200 -0.469200 -0.000000 -0.757200 -0.469200
+      units: Hartree
+  block 2: begin-line=518 fed=4 rc=0 first-fed='      1          8           0        0.000000   -0.000000    0.119116'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: 0.000000 -0.000000 0.119116 -0.000000 0.762667 -0.476465 -0.000000 -0.762667 -0.476465
+      units: Hartree
+  block 3: begin-line=780 fed=4 rc=0 first-fed='      1          8           0        0.000000    0.000000    0.119813'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: 0.000000 0.000000 0.119813 0.000000 0.761289 -0.479254 -0.000000 -0.761289 -0.479254
+      units: Hartree
+  block 4: begin-line=1058 fed=4 rc=0 first-fed='      1          8           0        0.000000    0.000000    0.119813'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: 0.000000 0.000000 0.119813 0.000000 0.761289 -0.479254 -0.000000 -0.761289 -0.479254
+      units: Hartree
+
+[EGRAD]  Script=gaussian-16.egrad  Freq=all  Skip=0  Lines=1
+  Begin=Cartesian Forces\:
+  begins=3 delivered=3 buffered_away=0
+  block 1: begin-line=453 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.013927073 RMS     0.006782353'
+    key: EGRAD
+      size: 1
+      values: 0.013927073
+      units: Hartree/Bohr
+  block 2: begin-line=710 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.001906889 RMS     0.000791357'
+    key: EGRAD
+      size: 1
+      values: 0.001906889
+      units: Hartree/Bohr
+  block 3: begin-line=971 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.000098992 RMS     0.000053956'
+    key: EGRAD
+      size: 1
+      values: 0.000098992
+      units: Hartree/Bohr
+
+[EGRADVEC]  Script=gaussian-16.egradvec  Freq=last  Skip=3  Lines=-
+  Begin=             Forces
+  End=--------------------------------------
+  begins=3 delivered=1 buffered_away=2
+  block 1: begin-line=964 fed=4 rc=0 first-fed='      1        8          -0.000000000   -0.000000000   -0.000098992'
+    key: EGRADVEC
+      size: 3 3
+      rowlabels: 1 2 3
+      columnlabels: X Y Z
+      values: -0.000000000 -0.000000000 9.8992e-05 0.000000000 -7.5837e-05 -4.9496e-05 0.000000000 7.5837e-05 -4.9496e-05
+      units: Hartree/Bohr
+
+[DELTAE]  Script=gaussian-16.deltae  Freq=all  Skip=0  Lines=1
+  Begin=Delta\-E
+  begins=20 delivered=20 buffered_away=0
+  block 1: begin-line=270 fed=1 rc=0 first-fed=' E= -76.3570704621508     Delta-E=       -0.027434385737 Rises=F Damp=T'
+    key: DELTAE
+      size: 1
+      values: -0.027434385737
+      units: Hartree
+  block 2: begin-line=282 fed=1 rc=0 first-fed=' E= -76.4085937954880     Delta-E=       -0.051523333337 Rises=F Damp=F'
+    key: DELTAE
+      size: 1
+      values: -0.051523333337
+      units: Hartree
+  block 3: begin-line=294 fed=1 rc=0 first-fed=' E= -76.4087283333768     Delta-E=       -0.000134537889 Rises=F Damp=F'
+    key: DELTAE
+      size: 1
+      values: -0.000134537889
+      units: Hartree
+  block 4: begin-line=306 fed=1 rc=0 first-fed=' E= -76.4087298037706     Delta-E=       -0.000001470394 Rises=F Damp=F'
+    key: DELTAE
+      size: 1
+      values: -0.000001470394
+      units: Hartree
+  block 5: begin-line=318 fed=1 rc=0 first-fed=' E= -76.4087309161029     Delta-E=       -0.000001112332 Rises=F Damp=F'
+    key: DELTAE
+      size: 1
+      values: -0.000001112332
+      units: Hartree
+  block 6: begin-line=329 fed=1 rc=0 first-fed=' E= -76.4087309161072     Delta-E=       -0.000000000004 Rises=F Damp=F'
+    key: DELTAE
+      size: 1
+      values: -0.000000000004
+      units: Hartree
+  block 7: begin-line=340 fed=1 rc=0 first-fed=' E= -76.4087309161081     Delta-E=       -0.000000000001 Rises=F Damp=F'
+    key: DELTAE
+      size: 1
+      values: -0.000000000001
+      units: Hartree
+  block 8: begin-line=351 fed=1 rc=0 first-fed=' E= -76.4087309161085     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    key: DELTAE
+      size: 1
+      values: -0.000000000000
+      units: Hartree
+  block 9: begin-line=607 fed=1 rc=0 first-fed=' E= -76.4089155496366     Delta-E=       -0.000033136591 Rises=F Damp=F'
+    key: DELTAE
+      size: 1
+      values: -0.000033136591
+      units: Hartree
+  block 10: begin-line=619 fed=1 rc=0 first-fed=' E= -76.4089465887254     Delta-E=       -0.000031039089 Rises=F Damp=F'
+    key: DELTAE
+      size: 1
+      values: -0.000031039089
+      units: Hartree
+  block 11: begin-line=631 fed=1 rc=0 first-fed=' E= -76.4089489094863     Delta-E=       -0.000002320761 Rises=F Damp=F'
+    key: DELTAE
+      size: 1
+      values: -0.000002320761
+      units: Hartree
+  block 12: begin-line=642 fed=1 rc=0 first-fed=' E= -76.4089489308030     Delta-E=       -0.000000021317 Rises=F Damp=F'
+    key: DELTAE
+      size: 1
+      values: -0.000000021317
+      units: Hartree
+  block 13: begin-line=653 fed=1 rc=0 first-fed=' E= -76.4089489308863     Delta-E=       -0.000000000083 Rises=F Damp=F'
+    key: DELTAE
+      size: 1
+      values: -0.000000000083
+      units: Hartree
+  block 14: begin-line=664 fed=1 rc=0 first-fed=' E= -76.4089489308874     Delta-E=       -0.000000000001 Rises=F Damp=F'
+    key: DELTAE
+      size: 1
+      values: -0.000000000001
+      units: Hartree
+  block 15: begin-line=868 fed=1 rc=0 first-fed=' E= -76.4089533507176     Delta-E=       -0.000002465212 Rises=F Damp=F'
+    key: DELTAE
+      size: 1
+      values: -0.000002465212
+      units: Hartree
+  block 16: begin-line=880 fed=1 rc=0 first-fed=' E= -76.4089536735356     Delta-E=       -0.000000322818 Rises=F Damp=F'
+    key: DELTAE
+      size: 1
+      values: -0.000000322818
+      units: Hartree
+  block 17: begin-line=892 fed=1 rc=0 first-fed=' E= -76.4089539098562     Delta-E=       -0.000000236321 Rises=F Damp=F'
+    key: DELTAE
+      size: 1
+      values: -0.000000236321
+      units: Hartree
+  block 18: begin-line=903 fed=1 rc=0 first-fed=' E= -76.4089539099318     Delta-E=       -0.000000000076 Rises=F Damp=F'
+    key: DELTAE
+      size: 1
+      values: -0.000000000076
+      units: Hartree
+  block 19: begin-line=914 fed=1 rc=0 first-fed=' E= -76.4089539099354     Delta-E=       -0.000000000004 Rises=F Damp=F'
+    key: DELTAE
+      size: 1
+      values: -0.000000000004
+      units: Hartree
+  block 20: begin-line=925 fed=1 rc=0 first-fed=' E= -76.4089539099354     Delta-E=       -0.000000000000 Rises=F Damp=F'
+    key: DELTAE
+      size: 1
+      values: -0.000000000000
+      units: Hartree
+
+[RMSDP]  Script=gaussian-16.rmsdp  Freq=all  Skip=0  Lines=1
+  Begin=RMSDP
+  begins=23 delivered=23 buffered_away=0
+  block 1: begin-line=267 fed=1 rc=0 first-fed=' RMSDP=2.99D-02 MaxDP=2.30D-01              OVMax= 2.01D-01'
+    key: RMSDP
+      size: 1
+      values: 2.99E-02
+      units: Hartree
+  block 2: begin-line=279 fed=1 rc=0 first-fed=' RMSDP=3.59D-03 MaxDP=3.86D-02 DE=-2.74D-02 OVMax= 1.12D-01'
+    key: RMSDP
+      size: 1
+      values: 3.59E-03
+      units: Hartree
+  block 3: begin-line=291 fed=1 rc=0 first-fed=' RMSDP=4.78D-04 MaxDP=4.07D-03 DE=-5.15D-02 OVMax= 3.26D-03'
+    key: RMSDP
+      size: 1
+      values: 4.78E-04
+      units: Hartree
+  block 4: begin-line=303 fed=1 rc=0 first-fed=' RMSDP=3.85D-05 MaxDP=1.73D-04 DE=-1.35D-04 OVMax= 2.83D-04'
+    key: RMSDP
+      size: 1
+      values: 3.85E-05
+      units: Hartree
+  block 5: begin-line=314 fed=1 rc=0 first-fed=' RMSDP=7.93D-06 MaxDP=7.16D-05 DE=-1.47D-06 OVMax= 4.35D-05'
+    key: RMSDP
+      size: 1
+      values: 7.93E-06
+      units: Hartree
+  block 6: begin-line=326 fed=1 rc=0 first-fed=' RMSDP=7.93D-06 MaxDP=7.16D-05 DE=-1.11D-06 OVMax= 1.11D-06'
+    key: RMSDP
+      size: 1
+      values: 7.93E-06
+      units: Hartree
+  block 7: begin-line=337 fed=1 rc=0 first-fed=' RMSDP=7.43D-08 MaxDP=5.15D-07 DE=-4.32D-12 OVMax= 5.31D-07'
+    key: RMSDP
+      size: 1
+      values: 7.43E-08
+      units: Hartree
+  block 8: begin-line=348 fed=1 rc=0 first-fed=' RMSDP=2.41D-08 MaxDP=1.89D-07 DE=-8.95D-13 OVMax= 1.60D-07'
+    key: RMSDP
+      size: 1
+      values: 2.41E-08
+      units: Hartree
+  block 9: begin-line=359 fed=1 rc=0 first-fed=' RMSDP=7.49D-10 MaxDP=4.15D-09 DE=-4.12D-13 OVMax= 5.94D-09'
+    key: RMSDP
+      size: 1
+      values: 7.49E-10
+      units: Hartree
+  block 10: begin-line=604 fed=1 rc=0 first-fed=' RMSDP=6.67D-04 MaxDP=5.35D-03              OVMax= 5.35D-03'
+    key: RMSDP
+      size: 1
+      values: 6.67E-04
+      units: Hartree
+  block 11: begin-line=616 fed=1 rc=0 first-fed=' RMSDP=2.84D-04 MaxDP=1.93D-03 DE=-3.31D-05 OVMax= 2.00D-03'
+    key: RMSDP
+      size: 1
+      values: 2.84E-04
+      units: Hartree
+  block 12: begin-line=628 fed=1 rc=0 first-fed=' RMSDP=7.20D-05 MaxDP=5.77D-04 DE=-3.10D-05 OVMax= 5.85D-04'
+    key: RMSDP
+      size: 1
+      values: 7.20E-05
+      units: Hartree
+  block 13: begin-line=639 fed=1 rc=0 first-fed=' RMSDP=5.53D-06 MaxDP=3.87D-05 DE=-2.32D-06 OVMax= 5.09D-05'
+    key: RMSDP
+      size: 1
+      values: 5.53E-06
+      units: Hartree
+  block 14: begin-line=650 fed=1 rc=0 first-fed=' RMSDP=8.22D-07 MaxDP=6.86D-06 DE=-2.13D-08 OVMax= 7.48D-06'
+    key: RMSDP
+      size: 1
+      values: 8.22E-07
+      units: Hartree
+  block 15: begin-line=661 fed=1 rc=0 first-fed=' RMSDP=5.88D-08 MaxDP=3.80D-07 DE=-8.32D-11 OVMax= 5.14D-07'
+    key: RMSDP
+      size: 1
+      values: 5.88E-08
+      units: Hartree
+  block 16: begin-line=674 fed=1 rc=0 first-fed=' RMSDP=2.53D-09 MaxDP=2.18D-08 DE=-1.18D-12 OVMax= 2.11D-08'
+    key: RMSDP
+      size: 1
+      values: 2.53E-09
+      units: Hartree
+  block 17: begin-line=865 fed=1 rc=0 first-fed=' RMSDP=1.48D-04 MaxDP=1.21D-03              OVMax= 1.08D-03'
+    key: RMSDP
+      size: 1
+      values: 1.48E-04
+      units: Hartree
+  block 18: begin-line=877 fed=1 rc=0 first-fed=' RMSDP=4.85D-05 MaxDP=3.21D-04 DE=-2.47D-06 OVMax= 3.58D-04'
+    key: RMSDP
+      size: 1
+      values: 4.85E-05
+      units: Hartree
+  block 19: begin-line=889 fed=1 rc=0 first-fed=' RMSDP=2.04D-05 MaxDP=1.43D-04 DE=-3.23D-07 OVMax= 1.52D-04'
+    key: RMSDP
+      size: 1
+      values: 2.04E-05
+      units: Hartree
+  block 20: begin-line=900 fed=1 rc=0 first-fed=' RMSDP=6.24D-07 MaxDP=5.47D-06 DE=-2.36D-07 OVMax= 4.77D-06'
+    key: RMSDP
+      size: 1
+      values: 6.24E-07
+      units: Hartree
+  block 21: begin-line=911 fed=1 rc=0 first-fed=' RMSDP=7.95D-08 MaxDP=3.75D-07 DE=-7.56D-11 OVMax= 6.60D-07'
+    key: RMSDP
+      size: 1
+      values: 7.95E-08
+      units: Hartree
+  block 22: begin-line=922 fed=1 rc=0 first-fed=' RMSDP=1.39D-08 MaxDP=8.84D-08 DE=-3.60D-12 OVMax= 1.20D-07'
+    key: RMSDP
+      size: 1
+      values: 1.39E-08
+      units: Hartree
+  block 23: begin-line=935 fed=1 rc=0 first-fed=' RMSDP=4.83D-10 MaxDP=4.19D-09 DE=-5.68D-14 OVMax= 3.92D-09'
+    key: RMSDP
+      size: 1
+      values: 4.83E-10
+      units: Hartree
+
+[KE][NNREPUL]  Script=gaussian-16.ke  Freq=all  Skip=0  Lines=1
+  Begin=N\-N\=
+  begins=2 delivered=2 buffered_away=0
+  block 1: begin-line=416 fed=1 rc=0 first-fed=' N-N= 9.189533762935D+00 E-N=-1.989761742145D+02  KE= 7.585612624253D+01'
+    key: NNREPUL
+      size: 1
+      values: 9.189533762935e+00
+      units: Hartree
+    key: KE
+      size: 1
+      values: 7.585612624253e+01
+      units: Hartree
+  block 2: begin-line=1120 fed=1 rc=0 first-fed=' N-N= 9.087674509440D+00 E-N=-1.987554946038D+02  KE= 7.581961867583D+01'
+    key: NNREPUL
+      size: 1
+      values: 9.087674509440e+00
+      units: Hartree
+    key: KE
+      size: 1
+      values: 7.581961867583e+01
+      units: Hartree
+
+[VIB][VIBFREQ][VIBIR][VIBRAM][VIBSYM]  Script=gaussian-16.vib  Freq=first  Skip=-  Lines=-
+  Begin=reduced masses \(AMU\), force constants \(mDyne\/A\)
+  End=-------------------
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=1492 fed=14 rc=0 first-fed=' incident light, reduced masses (AMU), force constants (mDyne/A),'
+    key: VIB
+      size: 3 3 3
+      vectorlabels: 1-A1 2-A1 3-B2
+      rowlabels: 1-O 2-H 3-H
+      columnlabels: X Y Z
+      values: -0.000000000000000e+00 -0.000000000000000e+00 -7.000000000000001e-02 0.000000000000000e+00 4.300000000000000e-01 5.600000000000001e-01 0.000000000000000e+00 -4.300000000000000e-01 5.600000000000001e-01 0.000000000000000e+00 0.000000000000000e+00 5.000000000000000e-02 0.000000000000000e+00 5.800000000000000e-01 -4.000000000000000e-01 -0.000000000000000e+00 -5.800000000000000e-01 -4.000000000000000e ...[605 chars]
+      units: Angstrom
+    key: VIBFREQ
+      size: 3
+      rowlabels: 1-A1 2-A1 3-B2
+      values: 1713.6121 3727.3640 3848.9321
+      units: cm-1
+    key: VIBIR
+      size: 3
+      rowlabels: 1-A1 2-A1 3-B2
+      values: 75.6992 1.6864 19.2838
+      units: KM/Mole
+    key: VIBRAM
+      size: 3
+      rowlabels: 1-A1 2-A1 3-B2
+      values: 0 0 0
+      units: A^4/AMU
+    key: VIBSYM
+      size: 3
+      rowlabels: 1-A1 2-A1 3-B2
+      values: A1 A1 B2
+
+[NULL1]  Script=gaussian-16.null  Freq=first  Skip=-  Lines=-
+  Begin=Proceeding to internal job step
+  End=Harmonic frequencies
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=1147 fed=344 rc=0 first-fed=' Link1:  Proceeding to internal job step number  2.'
+    (script emitted no property)
+
+[EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP]  Script=gaussian-16.thermo  Freq=last  Skip=-  Lines=-
+  Begin= Thermochemistry
+  End=Cartesian Forces
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=1506 fed=86 rc=0 first-fed=' - Thermochemistry -'
+    key: EZEROPT
+      size: 1
+      values: 0.021164
+      units: Hartree
+    key: ETHERM
+      size: 1
+      values: -76.384955
+      units: Hartree
+    key: ENTHALPY
+      size: 1
+      values: -76.384011
+      units: Hartree
+    key: ENTROPY
+      size: 1
+      values: 0.02144605
+      units: Hartree
+    key: EGIBBS
+      size: 1
+      values: -76.405457
+      units: Hartree
+    key: THERMOTEMP
+      size: 1
+      values: 298.150
+      units: Kelvin
+
+[DIPOLE2]  Script=gaussian-16.dipole  Freq=last  Skip=1  Lines=1
+  Begin=Dipole moment \(field\-independent basis\, Debye\)\:
+  begins=2 delivered=1 buffered_away=1
+  block 1: begin-line=1103 fed=1 rc=0 first-fed='    X=             -0.0000    Y=              0.0000    Z=             -2.0961  Tot=              2.0961'
+    key: DIPOLE
+      size: 3
+      rowlabels: X Y Z
+      values: -0.0000 0.0000 -2.0961
+      units: Debye
+
+[QUADPOLE1]  Script=gaussian-16.quadpole  Freq=last  Skip=1  Lines=-
+  Begin=Quadrupole moment \(field\-independent basis\, Debye\-Ang\)\:
+  End=Traceless
+  begins=2 delivered=1 buffered_away=1
+  block 1: begin-line=1105 fed=3 rc=0 first-fed='   XX=             -7.2039   YY=             -4.2889   ZZ=             -5.9885'
+    key: QUADPOLE
+      size: 6
+      rowlabels: XX XY XZ YY YZ ZZ
+      values: -7.2039 0.0000 0.0000 -4.2889 -0.0000 -5.9885
+
+[OCTAPOLE2]  Script=gaussian-16.octapole  Freq=last  Skip=1  Lines=3
+  Begin=Octapole moment \(field\-independent basis\, Debye\-Ang\*\*2\)\:
+  begins=2 delivered=1 buffered_away=1
+  block 1: begin-line=1111 fed=3 rc=0 first-fed='  XXX=              0.0000  YYY=             -0.0000  ZZZ=             -1.2180  XYY=             -0.0000'
+    key: OCTAPOLE
+      size: 10
+      rowlabels: XXX YYY ZZZ XYY XXY XXZ XZZ YZZ YYZ XYZ
+      values: 0.0000 -0.0000 -1.2180 -0.0000 -0.0000 -0.3237 -0.0000 0.0000 -1.2126 -0.0000
+
+[HEXPOLE]  Script=gaussian-16.hexpole  Freq=last  Skip=1  Lines=4
+  Begin=Hexadecapole moment \(field\-independent basis\, Debye\-Ang\*\*3\)\:
+  begins=2 delivered=1 buffered_away=1
+  block 1: begin-line=1115 fed=4 rc=0 first-fed=' XXXX=             -5.2143 YYYY=             -6.0626 ZZZZ=             -6.2957 XXXY=             -0.0000'
+    key: HEXPOLE
+      size: 15
+      rowlabels: XXXX YYYY ZZZZ XXXY XXXZ YYYX YYYZ ZZZX ZZZY XXYY XXZZ YYZZ XXYZ YYXZ ZZXY
+      values: -5.2143 -6.0626 -6.2957 -0.0000 -0.0000 -0.0000 0.0000 -0.0000 -0.0000 -2.1172 -1.9683 -1.7415 0.0000 0.0000 0.0000
+
+[POLARIZ1][HYPERPOL1]  Script=gaussian-16.db  Freq=last  Skip=-  Lines=-
+  Begin=l9999\.exe
+  End=Job cpu
+  begins=2 delivered=1 buffered_away=1
+  block 1: begin-line=1664 fed=85 rc=0 first-fed=' (Enter /opt/gaussian/g16/l9999.exe)'
+    key: CPUSEC
+      size: 1
+      values: 1.6
+
+[MULLIKEN]  Script=gaussian-16.mulliken  Freq=all  Skip=2  Lines=-
+  Begin= Mulliken (atomic )?charges( and spin densities)?\:
+  End= Sum of Mulliken
+  begins=2 delivered=2 buffered_away=0
+  block 1: begin-line=388 fed=4 rc=0 first-fed='     1  O   -0.778130'
+    key: MULLIKEN
+      size: 3
+      values: -0.778130 0.389065 0.389065
+      units: e
+  block 2: begin-line=1092 fed=4 rc=0 first-fed='     1  O   -0.774229'
+    key: MULLIKEN
+      size: 3
+      values: -0.774229 0.387114 0.387114
+      units: e
+
+[ESCF1][ESCFVEC]  Script=gaussian-16.energy  Freq=all  Skip=0  Lines=1
+  Begin=SCF Done\:
+  begins=3 delivered=3 buffered_away=0
+  block 1: begin-line=361 fed=1 rc=0 first-fed=' SCF Done:  E(RB3LYP) =  -76.4087309161     A.U. after    9 cycles'
+    key: ESCF
+      size: 1
+      values: -76.4087309161
+      units: Hartree
+    key: ESCFVEC
+      size: 1
+      values: -76.4087309161
+      units: Hartree
+    key: TE
+      size: 1
+      values: -76.4087309161
+      units: Hartree
+    key: TEVEC
+      size: 1
+      values: -76.4087309161
+      units: Hartree
+  block 2: begin-line=676 fed=1 rc=0 first-fed=' SCF Done:  E(RB3LYP) =  -76.4089489309     A.U. after    7 cycles'
+    key: ESCF
+      size: 1
+      values: -76.4089489309
+      units: Hartree
+    key: ESCFVEC
+      size: 1
+      values: -76.4089489309
+      units: Hartree
+    key: TE
+      size: 1
+      values: -76.4089489309
+      units: Hartree
+    key: TEVEC
+      size: 1
+      values: -76.4089489309
+      units: Hartree
+  block 3: begin-line=937 fed=1 rc=0 first-fed=' SCF Done:  E(RB3LYP) =  -76.4089539099     A.U. after    7 cycles'
+    key: ESCF
+      size: 1
+      values: -76.4089539099
+      units: Hartree
+    key: ESCFVEC
+      size: 1
+      values: -76.4089539099
+      units: Hartree
+    key: TE
+      size: 1
+      values: -76.4089539099
+      units: Hartree
+    key: TEVEC
+      size: 1
+      values: -76.4089539099
+      units: Hartree
+
+[PNTGRP]  Script=gaussian-16.symmetry  Freq=all  Skip=0  Lines=1
+  Begin= Full point group
+  begins=4 delivered=4 buffered_away=0
+  block 1: begin-line=170 fed=1 rc=0 first-fed=' Full point group                 C2V     NOp   4'
+    key: PNTGRP
+      size: 1
+      values: C2V
+  block 2: begin-line=514 fed=1 rc=0 first-fed=' Full point group                 C2V     NOp   4'
+    key: PNTGRP
+      size: 1
+      values: C2V
+  block 3: begin-line=776 fed=1 rc=0 first-fed=' Full point group                 C2V     NOp   4'
+    key: PNTGRP
+      size: 1
+      values: C2V
+  block 4: begin-line=1054 fed=1 rc=0 first-fed=' Full point group                 C2V     NOp   4'
+    key: PNTGRP
+      size: 1
+      values: C2V
+

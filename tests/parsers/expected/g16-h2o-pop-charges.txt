@@ -87,12 +87,35 @@ args:    '.' 'Vibration' 'SCF' 'RHF' '0'
       rowlabels: 1-A1 2-A1 3-B2
       values: A1 A1 B2
 
-[NULL2]  Script=gaussian-16.null  Freq=first  Skip=-  Lines=-
+[EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP]  Script=gaussian-16.thermo  Freq=last  Skip=-  Lines=-
   Begin= Thermochemistry
   End=Cartesian Forces
   begins=1 delivered=1 buffered_away=0
   block 1: begin-line=470 fed=56 rc=0 first-fed=' - Thermochemistry -'
-    (script emitted no property)
+    key: EZEROPT
+      size: 1
+      values: 0.025794
+      units: Hartree
+    key: ETHERM
+      size: 1
+      values: -74.934396
+      units: Hartree
+    key: ENTHALPY
+      size: 1
+      values: -74.933451
+      units: Hartree
+    key: ENTROPY
+      size: 1
+      values: 0.02140898
+      units: Hartree
+    key: EGIBBS
+      size: 1
+      values: -74.954861
+      units: Hartree
+    key: THERMOTEMP
+      size: 1
+      values: 298.150
+      units: Kelvin
 
 [DIPOLE2]  Script=gaussian-16.dipole  Freq=last  Skip=1  Lines=1
   Begin=Dipole moment \(field\-independent basis\, Debye\)\:

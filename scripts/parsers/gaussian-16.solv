@@ -1,0 +1,27 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Gaussian SMD prints, after every SCF, only the non-electrostatic
+# cavity-dispersion-solvent-structure term:
+#   SMD-CDS (non-electrostatic) energy       (kcal/mol) =       1.43
+# It prints no gas-phase total, so the full solvation free energy cannot
+# be formed from one job and this is stored as ESOLVCDS, not ESOLV.
+# kcal/mol is converted to Hartree like every other energy.
+#
+################################################################################
+
+$| = 1;
+
+use constant KCAL_PER_HARTREE => 627.5094740631;
+
+$_ = <STDIN>;
+exit(0) if (!defined($_) || !/=\s*(-?\d+\.\d+)\s*$/);
+my $value = sprintf("%.10f", $1 / KCAL_PER_HARTREE);
+
+print "key: ESOLVCDS\n";
+print "size:\n1\n";
+print "values:\n$value\n";
+print "units:\nHartree\n";
+print "END\n";
+exit(0);
