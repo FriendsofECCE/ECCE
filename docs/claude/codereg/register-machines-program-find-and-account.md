@@ -15,7 +15,7 @@ issues: [234]
   reader) needs a `companion` file; its search walks the PATH, because
   `command -v` returns only the first match.
 - On Windows, for this computer, the examples are Windows paths
-  (`programHelp(code, true)`) and Find also looks in a folder named after
+  (`programHelp(code, true)`); when nothing is on the PATH, Find looks in a folder named after
   the code below the user folder, `AppData\Local[\Programs]`, Program Files
   and the drive root (`findInstallDirsScript`); elsewhere it looks below
   `$HOME`, `/opt` and `/usr/local` (and `/Applications` on a Mac). A test
