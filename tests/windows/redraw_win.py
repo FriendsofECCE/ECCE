@@ -3,7 +3,7 @@
 #256), through the apps' own test hooks, no clicks.  Every state the screen
 shows is logged by framelog.ps1 and saved as a PNG under <png dir>:
   - organizer-select/: the Organizer while the tree selection steps through
-    four calculations (test command "summary", the tree's own selection);
+    four calculations (test command "click", the tree's own selection);
   - viewer-open/: the Viewer opened from the Organizer on an ECCE-QM water
     run, then switched by its Properties list (Builder script "list") to
     several property panels;
@@ -147,7 +147,9 @@ try:
         time.sleep(1)
         for url in calcs:
             t = time.time()
-            ask("summary " + url)
+            # "click" selects as a user's click does; older builds lack it.
+            if ask("click " + url, wait=10) == "unknown command":
+                ask("summary " + url)
             say("select %s: %.2f s" % (url.rsplit("/", 1)[1], time.time() - t))
             time.sleep(2)
         report("organizer select", fl.result())

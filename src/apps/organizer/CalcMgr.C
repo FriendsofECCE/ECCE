@@ -741,6 +741,16 @@ void CalcMgr::runTestCommand(const string& line)
         GetMenuBar()->Check(wxID_ASKFORNAME, ask);
         outcome = "ok";
       }
+    } else if (command == "click") {
+      // "click URL": selects a row already in the tree as a click does,
+      // with no tree loading first (unlike "summary").
+      WxResourceTreeItemData *node = findNode(EcceURL(calcName), false, false);
+      if (!node) {
+        outcome = "not in the tree";
+      } else {
+        p_treeCtrl->SelectItem(node->GetId());
+        outcome = "ok";
+      }
     } else if (command == "rmtask") {
       // "rmtask URL LABEL": selects URL and runs its Run Mgmt menu item
       // LABEL (e.g. Rerun) as the menu does; a prompt it shows is answered
@@ -5902,8 +5912,24 @@ void CalcMgr::importValidationComplete(TaskJob *ipc, bool status,
 }
 
 
+//  A top menu's state is set only when it changes: wxMSW redraws the whole
+//  menu bar for every EnableTop().
+static void enableTopMenu(wxMenuBar *bar, const wxString& title, bool enable)
+{
+  const int pos = bar->FindMenu(title);
+  if (pos != wxNOT_FOUND && bar->IsEnabledTop(pos) != enable)
+    bar->EnableTop(pos, enable);
+}
+
+
 void CalcMgr::onSelectionChange(bool selectInTree)
 {
+  //  The summary pane is replaced and the tree and toolbar change in one
+  //  go; on MSW each step was painted (an empty pane, then half of it).
+  wxWindowUpdateLocker hold(this);
+  //  The menu bar is not one of the frame's children; wxMSW redraws it for
+  //  every item added or removed (half a menu bar on screen) unless frozen.
+  wxWindowUpdateLocker holdMenus(GetMenuBar());
   wxMenuBar * menuBar = GetMenuBar();
   WxResourceTreeItemData *itemData = 0;
 
@@ -5951,8 +5977,8 @@ void CalcMgr::onSelectionChange(bool selectInTree)
 
   
   if (!getSelection()) {
-    menuBar->EnableTop(menuBar->FindMenu(_("Run Mgmt")), false);
-    menuBar->EnableTop(menuBar->FindMenu(_("Tools")), false);
+    enableTopMenu(menuBar, _("Run Mgmt"), false);
+    enableTopMenu(menuBar, _("Tools"), false);
     menuBar->Enable(wxID_CHANGE_ACCESS, false);
     menuBar->Enable(wxID_RENAME, false);
     menuBar->Enable(wxID_VIEW_PROPERTY, false);
@@ -6041,18 +6067,18 @@ void CalcMgr::onSelectionChange(bool selectInTree)
       // Which tasks get displayed depends on the state of the calculation.
       wxMenu * rmTaskMenu = menuBar->GetMenu(menuBar->FindMenu(_("Run Mgmt")));
       getRunMgmtMenu(*rmTaskMenu, itemData);
-      menuBar->EnableTop(menuBar->FindMenu(_("Run Mgmt")),
+      enableTopMenu(menuBar, _("Run Mgmt"),
                          rmTaskMenu->GetMenuItemCount()>0);
 
       // dynamically populate the Tool menu
       wxMenu * toolMenu = menuBar->GetMenu(menuBar->FindMenu(_("Tools")));
       getToolsMenu(*toolMenu, itemData);
-      menuBar->EnableTop(menuBar->FindMenu(_("Tools")),
+      enableTopMenu(menuBar, _("Tools"),
                          toolMenu->GetMenuItemCount()>0);
     }
     else {
-      menuBar->EnableTop(menuBar->FindMenu(_("Run Mgmt")), false);
-      menuBar->EnableTop(menuBar->FindMenu(_("Tools")), false);
+      enableTopMenu(menuBar, _("Run Mgmt"), false);
+      enableTopMenu(menuBar, _("Tools"), false);
       menuBar->Enable(wxID_CHANGE_ACCESS, false);
       menuBar->Enable(wxID_CUT, false);
       menuBar->Enable(wxID_RENAME, false);
