@@ -74,7 +74,8 @@ class Ged16TheoryPanel(EccePanel):
                                        choices = ["NBO 7", "NBO 6"],
                                        name = "ES.Theory.NBOVersion",
                                        default = 0,
-                                       label = "NBO version:")
+                                       label = "NBO version:",
+                                       export = 1)
         genopsSizer.AddWidget(self.nboVersion)
 
         self.useMayerBox = EcceCheckBox(self,
