@@ -249,6 +249,21 @@ everyone on an installation by removing the `#` from the
 start by setting `ECCE_NO_UPDATE_CHECK=1` in the environment. No request is
 then made at all, and the checkbox is greyed out with a note.
 
+## Switches for testing and troubleshooting
+
+**Edit > Preferences**, tab **Advanced**, has check boxes for switches that
+developers and the people helping you may ask you to turn on: the C++
+Details dialogs, fixed-function lighting in the 3-D view, no progress
+records for older calculations, diagnostic output, and log files for the
+MO-diagram symmetry analysis and for data-server logins. Leave them off
+otherwise.
+
+A change applies to programs started afterwards; a program that is already
+open keeps its settings until you restart it. Where a switch is also an
+environment variable, a variable you have set yourself wins over the check
+box, and the tab says so. This is how to use the switches when you start ECCE
+from the Start menu or the Dock, where no variable can be set.
+
 ## Next steps
 
 For administrators and central servers, see `GETTING_STARTED.md`: it covers

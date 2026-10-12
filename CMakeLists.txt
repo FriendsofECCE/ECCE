@@ -1809,6 +1809,11 @@ add_executable(sitehide_test tests/systemfolder/sitehide_test.C)
 target_link_libraries(sitehide_test PRIVATE ecceutil)
 add_test(NAME sitehide COMMAND sitehide_test)
 
+# Preferences > Advanced switches reach started programs' environment (#307).
+add_executable(envswitches_test tests/envswitches/envswitches_test.C)
+target_link_libraries(envswitches_test PRIVATE ecceutil)
+add_test(NAME envswitches COMMAND envswitches_test)
+
 # tests/formula -- the Hill-order formula shown in the Organizer.
 add_executable(formula_test tests/formula/formula_test.C)
 target_link_libraries(formula_test PRIVATE eccetdat ecceutil)
@@ -2168,6 +2173,13 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/progress_backfill_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_progress_backfill PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+  # Preferences > Advanced switches reach started programs (#307).
+  add_test(NAME apps_advanced_prefs
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/advanced_prefs_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_advanced_prefs PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # Organizer summary panel: molecule and basis fields of a data-server
   # and of a local-data calculation, ECCE_TEST_ORGANIZER "summary".

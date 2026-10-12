@@ -1017,7 +1017,7 @@ void CalcMgr::runTestCommand(const string& line)
         }
       }
     } else if (command == "prefs") {
-      // "prefs open|colours jmol|colours ecce|state|snap PATH": the
+      // "prefs open|colours jmol|colours ecce|advanced KEY on|childenv VAR|state|snap PATH": the
       // Preferences window, its Colours tab as a click chooses.
       std::istringstream args(calcName);
       string what, arg;
@@ -1028,6 +1028,19 @@ void CalcMgr::runTestCommand(const string& line)
       for (int i = 0; i < 10; i++) wxYield();
       if (what == "colours") {
         outcome = p_prefs->chooseColourScheme(arg) ? "ok" : "unknown scheme";
+      } else if (what == "advanced") {
+        // "prefs advanced KEY on|off": a click on that Advanced check box.
+        string state;
+        args >> state;
+        outcome = p_prefs->tickAdvanced(arg, state == "on") ? "ok" : "unknown switch";
+      } else if (what == "childenv") {
+        // "prefs childenv VAR": what a program started now would see.
+        string cmd = "printf %s \"${" + arg + "-UNSET}\"";
+        FILE *pipe = popen(cmd.c_str(), "r");
+        char buf[512];
+        outcome = arg + "=";
+        while (pipe && fgets(buf, sizeof buf, pipe)) outcome += buf;
+        if (pipe) pclose(pipe);
       } else if (what == "state") {
         outcome = "colours=" + p_prefs->colourSchemeShown();
       } else if (what == "snap") {

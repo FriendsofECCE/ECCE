@@ -10,6 +10,7 @@
 #include "wx/wx.h"
 #endif
 #include "wx/dirdlg.h"
+#include "wx/filedlg.h"
 
 #include <cstdlib>
 #include <algorithm>
@@ -22,6 +23,7 @@
 #include "util/UnitFactory.H"
 #include "util/ReleaseCheck.H"
 #include "util/Ecce.H"
+#include "util/EnvSwitches.H"
 #include "util/RemoteServerDir.H"
 #include "util/LocalData.H"
 
@@ -129,6 +131,10 @@ GlobalPrefs::GlobalPrefs(wxWindow* parent)
   wxPanel* data = new wxPanel(p_book);
   createDataPage(data);
   p_book->AddPage(data, _("Data folder"));
+
+  wxPanel* advanced = new wxPanel(p_book);
+  createAdvancedPage(advanced);
+  p_book->AddPage(advanced, _("Advanced"));
 
   if (gatewayWindowEnabled()) {
     wxPanel* gw = new wxPanel(p_book);
@@ -493,6 +499,78 @@ string GlobalPrefs::envOverrideNote(const char* var, const char* what)
 }
 
 
+void GlobalPrefs::createAdvancedPage(wxWindow* page)
+{
+  wxBoxSizer* outer = new wxBoxSizer(wxVERTICAL);
+  ewxStaticText* intro = new ewxStaticText(page, wxID_ANY,
+      _("These switches are for testing and troubleshooting; leave them off "
+        "unless you are asked to turn one on.\nA change applies to programs "
+        "started afterwards; a program that is already open keeps its "
+        "settings until it is restarted."));
+  outer->Add(intro, 0, wxALL, PAD);
+
+  const vector<EnvSwitches::Entry>& list = EnvSwitches::all();
+  for (size_t i = 0; i < list.size(); i++) {
+    const EnvSwitches::Entry& e = list[i];
+    AdvancedRow row;
+    row.file = NULL;
+    row.choose = NULL;
+    row.box = new ewxCheckBox(page, wxID_ANY, wxString::FromUTF8(e.label),
+                              wxDefaultPosition, wxDefaultSize, wxCHK_2STATE);
+    row.box->Bind(wxEVT_CHECKBOX, &GlobalPrefs::OnGlobalChange, this);
+    outer->Add(row.box, 0, wxLEFT|wxRIGHT|wxTOP, PAD);
+    string desc = e.description;
+    for (size_t j = 0; j < e.vars.size(); j++)
+      if (EnvSwitches::setExplicitly(e.vars[j].name))
+        desc += string("\n") + e.vars[j].name + " is set in the environment and wins.";
+    outer->Add(new ewxStaticText(page, wxID_ANY, wxString::FromUTF8(desc)),
+               0, wxLEFT|wxRIGHT, PAD*3);
+    if (e.takesFile) {
+      wxBoxSizer* line = new wxBoxSizer(wxHORIZONTAL);
+      row.file = new ewxTextCtrl(page, wxID_ANY, "", wxDefaultPosition,
+                                 wxSize(320, -1));
+      row.file->Bind(wxEVT_TEXT, &GlobalPrefs::OnGlobalChange, this);
+      row.choose = new ewxButton(page, wxID_ANY, _("Choose..."));
+      row.choose->Bind(wxEVT_BUTTON, &GlobalPrefs::OnChooseAdvancedFile, this);
+      line->Add(row.file, 1, wxALIGN_CENTER_VERTICAL);
+      line->Add(row.choose, 0, wxLEFT, PAD);
+      outer->Add(line, 0, wxGROW|wxLEFT|wxRIGHT|wxTOP, PAD*3);
+    }
+    p_advanced.push_back(row);
+  }
+  page->SetSizer(outer);
+}
+
+
+bool GlobalPrefs::tickAdvanced(const string& key, bool on)
+{
+  const vector<EnvSwitches::Entry>& sw = EnvSwitches::all();
+  for (size_t i = 0; i < sw.size() && i < p_advanced.size(); i++) {
+    if (key != sw[i].key) continue;
+    p_advanced[i].box->SetValue(on);
+    wxCommandEvent ev(wxEVT_CHECKBOX, p_advanced[i].box->GetId());
+    OnGlobalChange(ev);
+    return true;
+  }
+  return false;
+}
+
+
+void GlobalPrefs::OnChooseAdvancedFile(wxCommandEvent& event)
+{
+  for (size_t i = 0; i < p_advanced.size(); i++) {
+    if (p_advanced[i].choose != event.GetEventObject()) continue;
+    wxFileDialog dlg(this, _("Log file"), "", p_advanced[i].file->GetValue(),
+                     "*", wxFD_SAVE);
+    if (dlg.ShowModal() == wxID_OK) {
+      p_advanced[i].file->SetValue(dlg.GetPath());
+      p_advanced[i].box->SetValue(true);
+      saveSettings();
+    }
+  }
+}
+
+
 void GlobalPrefs::createDataPage(wxWindow* page)
 {
   wxBoxSizer* outer = new wxBoxSizer(wxVERTICAL);
@@ -763,6 +841,8 @@ void GlobalPrefs::OnResetAll(wxCommandEvent& event)
     p_ecceQmMoDiagram->SetValue(p_ecceQmMoDiagramDefault);
     p_updateCheck->SetValue(p_updateCheckDefault);
     p_updatePreviews->SetValue(p_updatePreviewsDefault);
+    for (size_t i = 0; i < p_advanced.size(); i++)
+      p_advanced[i].box->SetValue(false);
     updateUpdateControls();
     OnGlobalChange(event);
   }
@@ -873,7 +953,15 @@ void GlobalPrefs::saveSettings()
   eccePref.setString(PrefLabels::EDITOR, programValue(p_editor));
   eccePref.setString(PrefLabels::TERMINAL, programValue(p_terminal));
   eccePref.setString(PrefLabels::BROWSER, programValue(p_browser));
+  const vector<EnvSwitches::Entry>& sw = EnvSwitches::all();
+  for (size_t i = 0; i < sw.size() && i < p_advanced.size(); i++) {
+    eccePref.setBool(sw[i].key, p_advanced[i].box->GetValue());
+    if (p_advanced[i].file)
+      eccePref.setString(string(sw[i].key) + ".File",
+                         p_advanced[i].file->GetValue().ToStdString());
+  }
   eccePref.saveFile();
+  EnvSwitches::apply();   // programs this one starts see the change
 
   Preferences gwPref = Preferences(PrefLabels::GATEWAYPREFFILE);
   saveWindowSettings("GatewayPrefs", gwPref, false);
@@ -969,6 +1057,19 @@ void GlobalPrefs::restoreSettings()
   eccePref.getString(PrefLabels::BROWSER, strBuf);
   setProgramRow(p_browser, strBuf);
 
+  const vector<EnvSwitches::Entry>& sw = EnvSwitches::all();
+  for (size_t i = 0; i < sw.size() && i < p_advanced.size(); i++) {
+    boolBuf = false;
+    eccePref.getBool(sw[i].key, boolBuf);
+    p_advanced[i].box->SetValue(boolBuf);
+    if (p_advanced[i].file) {
+      strBuf = "";
+      eccePref.getString(string(sw[i].key) + ".File", strBuf);
+      if (strBuf.empty()) strBuf = EnvSwitches::fileFor(sw[i], "");
+      p_advanced[i].file->ChangeValue(wxString::FromUTF8(strBuf));
+    }
+  }
+
   Preferences gwPref = Preferences(PrefLabels::GATEWAYPREFFILE);
   restoreWindowSettings("GatewayPrefs", gwPref, false);
 
@@ -1035,7 +1136,16 @@ bool GlobalPrefs::isDefaultGlobalPref()
          p_quickTransp->GetValue() == p_quickTranspDefault &&
          p_ecceQmMoDiagram->GetValue() == p_ecceQmMoDiagramDefault &&
          p_updateCheck->GetValue() == p_updateCheckDefault &&
-         p_updatePreviews->GetValue() == p_updatePreviewsDefault;
+         p_updatePreviews->GetValue() == p_updatePreviewsDefault &&
+         isDefaultAdvanced();
+}
+
+
+bool GlobalPrefs::isDefaultAdvanced()
+{
+  for (size_t i = 0; i < p_advanced.size(); i++)
+    if (p_advanced[i].box->GetValue()) return false;
+  return true;
 }
 
 

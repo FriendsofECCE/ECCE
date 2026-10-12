@@ -45,6 +45,7 @@ using std::ostrstream;
 #include "util/EcceException.H"
 #include "util/RemoteServerDir.H"
 #include "util/Ecce.H"
+#include "util/EnvSwitches.H"
 #include "util/ErrMsg.H"
 #include "util/KeyValueReader.H"
 #include "util/SFile.H"
@@ -95,6 +96,10 @@ void Ecce::initialize()
 
    // Define a default exception handler that dumps core instead of just exit.
    EcceException::setDefaultHandler();
+
+   // Switches ticked in Preferences > Advanced become environment variables
+   // here, before any code reads them and before children are started (#307).
+   EnvSwitches::apply();
 
    SessionLease::acquire();
 }

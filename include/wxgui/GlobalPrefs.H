@@ -43,6 +43,7 @@ public:
   void showColoursPage();
   bool chooseColourScheme(const string& scheme);
   string colourSchemeShown() const;
+  bool tickAdvanced(const string& key, bool on);   // as a click does
 
   // One "command" setting: a choice of well-known programs plus a text
   // field that is editable for "Other".  Stored value is the command;
@@ -64,6 +65,8 @@ private:
   void createProgramsPage(wxWindow* page);
   void createGatewayPage(wxWindow* page);
   void createDataPage(wxWindow* page);
+  void createAdvancedPage(wxWindow* page);
+  void OnChooseAdvancedFile(wxCommandEvent& event);
   void updateDataPage();
   void OnLocalDataToggle(wxCommandEvent& event);
   void OnChangeDataFolder(wxCommandEvent& event);
@@ -88,6 +91,7 @@ private:
   void restoreSettings();
 
   bool isDefaultGlobalPref();
+  bool isDefaultAdvanced();
   bool isDefaultGatewayPref();
   bool isDefaultPrograms();
   void updateResetButton();
@@ -127,6 +131,14 @@ private:
   ewxButton* p_changeFolder;
   ewxButton* p_openFolder;
   ewxStaticText* p_localNote;
+
+  // Advanced page (#307): one row per EnvSwitches::all() entry.
+  struct AdvancedRow {
+    ewxCheckBox* box;
+    ewxTextCtrl* file;     // NULL unless the switch takes a file
+    ewxButton* choose;
+  };
+  vector<AdvancedRow> p_advanced;
 
   ProgramRow p_editor;
   ProgramRow p_terminal;
