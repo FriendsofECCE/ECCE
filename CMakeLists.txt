@@ -1818,6 +1818,24 @@ if(PYTHON3_FOR_SPECTRUM)
                        SKIP_RETURN_CODE 77)
 endif()
 
+# tests/gridview -- Ctrl/Shift+click selection in WxGridView (#290); needs a
+# display, so ctest runs it under xvfb-run.
+add_executable(gridview_select_test
+               tests/gridview/gridview_select_test.C)
+target_compile_definitions(gridview_select_test PRIVATE ${wxWidgets_DEFINITIONS})
+target_include_directories(gridview_select_test PRIVATE
+                           ${wxWidgets_INCLUDE_DIRS} ${XercesC_INCLUDE_DIRS})
+target_link_libraries(gridview_select_test PRIVATE eccewxgui
+  ${wxWidgets_LIBRARIES} eccedsi eccedav eccecipc eccefaces eccexml eccetdat
+  ecceutil ${XercesC_LIBRARIES})
+find_program(XVFB_RUN_FOR_GRIDVIEW NAMES xvfb-run)
+if(XVFB_RUN_FOR_GRIDVIEW)
+  add_test(NAME gridview-select
+           COMMAND ${XVFB_RUN_FOR_GRIDVIEW} -a $<TARGET_FILE:gridview_select_test>)
+  set_tests_properties(gridview-select PROPERTIES ENVIRONMENT
+    "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}")
+endif()
+
 # tests/progress -- the job progress snapshot and the Progress box's lines
 # (#284), without wx; the monitor's [PROGRESS] handling over a real output.
 add_executable(progress_test tests/progress/progress_test.C)

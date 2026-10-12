@@ -90,6 +90,8 @@ class WxGridView: public wxWindow
     ewxGrid * getGrid();
   
     void enableMultiSelect(bool multiSelect);
+    // Set by the grid's mouse handler while a Ctrl/Cmd+click is in progress.
+    void setCmdClick(bool cmd) { p_cmdClick = cmd; }
     void enableLabelClickProcessing(bool);
 
 
@@ -106,6 +108,7 @@ class WxGridView: public wxWindow
     ewxGrid *p_grid;
     string p_appName;
     set<int> p_selections;
+    bool p_cmdClick;
     int p_sortedCol;        /**< The current sort column */
     bool p_caseSensitive;
     bool p_ascSort;         /**< Indicates the sort column is ascending if true,
