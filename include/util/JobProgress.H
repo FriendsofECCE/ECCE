@@ -70,7 +70,8 @@ public:
 
   // While the job runs.  `age`: seconds since the snapshot arrived, for
   // the time left of a frequency run.
-  std::vector<Block> running(double age) const;
+  // `finished`: the job has ended, so no time left is shown.
+  std::vector<Block> running(double age, bool finished = false) const;
 
   // After it: one or two lines.  `completed` is false for a job that
   // stopped (failed, killed): then the lines say where it got to.
@@ -100,7 +101,7 @@ public:
   static std::string title(const std::string& stage);
 
 private:
-  Block stageBlock(const Stage& st, double age) const;
+  Block stageBlock(const Stage& st, double age, bool finished) const;
 
   int p_seq = 0;
   double p_at = 0;

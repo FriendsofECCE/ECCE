@@ -12,7 +12,7 @@ hook; "progressbox" prints what the box draws and "snap" saves the window:
 - running, after a live ecce_url_progress snapshot ("progress <url> <file>",
   the path the broker message takes): newer lines, the same panel (no
   rebuild), more paints of the box, and no tree or summary update;
-- completed: the short summary instead;
+- completed: the plots as they were, the outcome lines below them;
 - a calculation that was never launched: no box.
 
 ECCE_PROGRESS_PNGS=<dir> keeps the window captures there.  Same installed
@@ -177,8 +177,11 @@ def run(display, pngs):
               "live: no tree or summary update for a progress message", counts[1])
         check("Optimisation converged in 6 steps" in completed and
               "Frequencies: 3 real, 0 imaginary" in completed and
-              "ZPE 0.021346 hartree" in completed and "plot" not in completed,
-              "completed: the short summary", completed)
+              "ZPE 0.021346 hartree" in completed and
+              "plot energy per step" in completed and
+              completed.index("plot energy") < completed.index("summary: ") and
+              "s left" not in completed and "updated" not in completed,
+              "completed: the plots stay, the outcome lines follow them", completed)
         check(field(none, "shown") == "0", "never launched: no box", none)
         for n in ("progress-running-stored.png", "progress-running-live.png",
                   "progress-completed.png"):

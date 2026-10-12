@@ -21,7 +21,8 @@
  *    exec COMMAND          run a shell command (for example a Register
  *                          Machines run that saves) and wait for it
  *    expect KEY VALUE      KEY: request | machine | machines | queues |
- *                          queue | procs | wsprocs | procsmax | memory | button
+ *                          queue | procs | wsprocs | procsmax | memory | memunits |
+ *                          scratchunits | button
  *    wait MS | shot FILE | quit
  */
 #ifndef WXLAUNCHERSCRIPT_HH

@@ -70,6 +70,7 @@ WxGridView::WxGridView(wxWindow* parent,
 
     // Single selection or multiple selection mode
     p_multiSelect = true;
+    p_cmdClick = false;
 
     // Initialize grid properties
     setSelectionColor(ewxStyledWindow::getFocusedSelectionColor());
@@ -590,7 +591,11 @@ void WxGridView::gridSelectCell(wxGridEvent& event)
   // Set the current selection, then skip letting the
   // EVT_GRID_RANGE_SELECT to handle selection set
   // maintenance
-  selectRow(event.GetRow());
+  // A Ctrl/Cmd+click must keep the rest of the selection: wxGrid toggles
+  // the row itself, and selecting it alone here would drop the others.
+  // The cell event carries no modifiers, so the click's are remembered.
+  if (!p_cmdClick)
+    selectRow(event.GetRow());
 
   /*
     wxCommandEvent evt(wxEVT_COMMAND_MENU_SELECTED, wxID_PANEL_SELECTION);
@@ -698,6 +703,7 @@ GridEvtHandler::~GridEvtHandler()
 
 void GridEvtHandler::OnMouseLeftDown(wxMouseEvent &event)
 {
+  p_gridView->setCmdClick(event.CmdDown());
   int row = p_gridView->yToRow(event.GetY());
   bool rowSelected = false;
   set<int> selRows = p_gridView->getSelectedRows();
@@ -783,6 +789,7 @@ void GridEvtHandler::OnMouseMotion(wxMouseEvent &event)
 
 void GridEvtHandler::OnMouseLeftUp(wxMouseEvent &event)
 {
+  p_gridView->setCmdClick(false);
   int row = p_gridView->yToRow(event.GetY());
   int col = p_gridView->getGrid()->XToCol(event.GetX());
   if (p_potentialDrag) {
