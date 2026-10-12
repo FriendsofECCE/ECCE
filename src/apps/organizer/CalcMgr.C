@@ -6225,10 +6225,10 @@ void CalcMgr::finishProgressBackfill(long pid)
     std::ifstream in((base + ".res").c_str(), std::ios::binary);
     raw.assign((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
   }
-  wxRemoveFile(base);
-  wxRemoveFile(base + ".parse");
-  wxRemoveFile(base + ".out");
-  wxRemoveFile(base + ".res");
+  //  Only the files that were written exist (older calculations have no
+  //  parse file); wxRemoveFile would pop an error dialog for the rest.
+  for (const string & f : {base, base + ".parse", base + ".out", base + ".res"})
+    if (wxFileExists(f)) wxRemoveFile(f);
   wxFileName::Rmdir(base + ".d", wxPATH_RMDIR_RECURSIVE);
 
   const string text = lastProgressMessage(raw);
