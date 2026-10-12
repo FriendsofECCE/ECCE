@@ -1,0 +1,26 @@
+title "Methane, B3LYP/6-31G*, optimisation and frequencies"
+start methane
+echo
+ecce_print methane.eprint
+memory 2000 mb
+geometry units angstrom
+ C   0.000000   0.000000   0.000000
+ H   0.640000   0.640000   0.640000
+ H  -0.640000  -0.640000   0.640000
+ H  -0.640000   0.640000  -0.640000
+ H   0.640000  -0.640000  -0.640000
+end
+basis
+ * library 6-31G*
+end
+dft
+ xc b3lyp
+ mulliken
+end
+task dft optimize
+task dft freq
+property
+ mulliken
+ esp
+end
+task dft property

@@ -139,6 +139,8 @@ void CalculationContextPanel::refresh()
   p_properties->findValue(VDoc::getEcceNamespace() + ":progress",
                           p_storedProgress);
   updateProgress();
+  if (p_storedProgress.empty() && p_calcMgr)
+    p_calcMgr->backfillProgress(getUrl());
 
   // New values (a longer formula after a Save) need their columns widened.
   Layout();

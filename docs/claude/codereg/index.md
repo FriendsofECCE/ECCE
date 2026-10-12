@@ -153,3 +153,4 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [`eccejobmonitor` polls every 2 s for a local job without a queue manager, 10 s otherwise](eccejobmonitor-poll-interval.md)
 - [A parser script can be handed half a line: post mode delivers a final line with no newline](parser-scripts-must-survive-a-final-line-cut-short.md)
 - [ORCA 6.1.1: no orca_scf next to orca (Find), and the Intel Mac build needs macOS 12.3](orca-6-companion-file-and-macos-minimum.md)
+- [Example calculations ship as program outputs; File > Open Example Calculations imports a fresh copy (and MOPAC has an importer)](example-calculations-are-outputs-not-stored-calcs.md)

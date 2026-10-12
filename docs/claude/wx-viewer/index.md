@@ -76,3 +76,4 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [wxMSW: controls made after the scroll move sit under the tool panel scroll window and get no clicks (Build pane element buttons)](msw-controls-made-after-the-scroll-move-sit-under-it.md)
 - [A second close inside the Quit dialog's loop deletes the frame and frees the stack dialog: free(): invalid pointer (#291)](second-close-destroys-stack-dialog.md)
 - [The MO table vanished and scrolled to the top when the ESP colour bar appeared: propertyPaneRoom (#285)](mo-panel-esp-bar-needs-pane-room.md)
+- [Structure Library ligands: a Nub atom bonded to each donor atom, pointing at the metal site](library-ligands-carry-a-nub-at-each-donor.md)

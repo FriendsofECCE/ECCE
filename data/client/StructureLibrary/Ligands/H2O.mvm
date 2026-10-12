@@ -1,0 +1,17 @@
+# Water, donor O.  Geometry: MOPAC PM7 (charge +0), nubs mark the donor
+# atoms; each points at the site a metal would occupy.
+title:          H2O
+type:           molecule
+num_atoms:      4
+atom_info:      symbol cart
+atom_list:
+  O      0.00000    0.00000    0.00000
+  Nub   -0.28865   -0.15176   -0.37901
+  H      0.95474    0.01265    0.03174
+  H     -0.28612    0.33884    0.84611
+num_bonds:      3
+bond_info:     order
+bond_list:
+ 1  3  1.00000
+ 1  4  1.00000
+ 1  2  1.00000

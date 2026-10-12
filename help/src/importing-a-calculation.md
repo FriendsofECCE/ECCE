@@ -16,10 +16,12 @@ ECCE recognises the code from a marker line in the output file:
 | NWChem | The output of a run (the file contains "Northwest Computational Chemistry Package"), or ECCE's formatted output (`ecce_print`). |
 | Gaussian 16, 09, 03, 98 | The output (log) file. The version is read from the line "Gaussian NN, Revision". |
 | ORCA | The output of a run (the file contains the "O   R   C   A" banner). |
+| ECCE-QM | The output file of the built-in program (`.qmout`). |
+| MOPAC | The output of a run (the file contains "MOPAC v"). ECCE reads the Hamiltonian, run type, charge, spin and the last geometry. |
 
 Output files of other codes are not recognised and the import ends with
-"Unrecognized output file format--cannot import." MOPAC and Quantum
-ESPRESSO outputs cannot be imported, although ECCE can run those codes.
+"Unrecognized output file format--cannot import." Quantum
+ESPRESSO outputs cannot be imported, although ECCE can run that code.
 GAMESS-UK, Amica and MOLCAS are not recognised either. Importers for
 Gaussian 03 and 98 exist but were not tested in this version.
 From an ORCA output ECCE always reads the molecule. It fills in the

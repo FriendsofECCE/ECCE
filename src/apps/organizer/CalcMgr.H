@@ -10,6 +10,7 @@
 #include <wx/weakref.h>
 #include <wx/timer.h>
 #include <map>
+#include <set>
 #include <utility>
 #include <vector>
 #include "wxgui/WxTailWindow.H"
@@ -104,6 +105,12 @@ public:
   void OnNewStructureClick( wxCommandEvent& event );
 
   void OnImportClick( wxCommandEvent& event );
+
+  void OnOpenExamplesClick( wxCommandEvent& event );
+
+  /// Imports the shipped example calculations into a new project
+  /// "Examples" (never an existing one); returns its name, "" on failure.
+  string openExamples(string& message);
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_EXPORT
   void OnExportClick( wxCommandEvent& event );
@@ -277,6 +284,11 @@ public:
   void progressUpdate(const EcceURL & url, const string & text);
   bool liveProgress(const EcceURL & url, string & text,
                     double & received) const;
+  // A finished calculation with an output but no stored snapshot (it ran
+  // before progress was kept, or was imported): fold the output through the
+  // job monitor's [PROGRESS] entries in the background, once per session
+  // per calculation, store the result as the monitor would, and show it.
+  void backfillProgress(const EcceURL & url);
   // The project table's Progress cell: JobProgress::shortLine() of the live
   // snapshot, else the stored one; empty unless the calculation is running.
   string progressCellText(Resource * resource) const;
@@ -547,6 +559,11 @@ protected:
   int p_testNotices = 0, p_testApplied = 0, p_testBatches = 0;
   // url -> (snapshot, when it arrived, seconds since 1970)
   std::map<string, std::pair<string, double> > p_liveProgress;
+  // Progress backfills (backfillProgress): tried urls, and the running
+  // monitors by pid -> (url, temp file prefix).
+  std::set<string> p_backfillTried;
+  std::map<long, std::pair<EcceURL, string> > p_backfills;
+  void finishProgressBackfill(long pid);
   // url -> epoch last heard while out of contact, -1 in contact again
   std::map<string, double> p_contact;
   std::map<string, vector<string> > p_machineCheck;

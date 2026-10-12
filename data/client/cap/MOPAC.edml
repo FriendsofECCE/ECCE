@@ -21,12 +21,8 @@
        Tool's code list because <GaussianBasisSetRules> is absent.
        No C++ change was needed for any of this.
 
-     * There is no <Importer> (a MOPAC.expt output importer for
-       externally-run jobs is not written yet), so MOPAC simply does
-       not appear in CodeFactory::getImportCodes() - which is the
-       correct behavior, not an error.  ORCA.edml declares an
-       <Importer>ORCA.expt</Importer> that does not exist on disk;
-       that is not copied here.
+     * <Importer>MOPAC.expt</Importer> reads an externally run output
+       (Hamiltonian, run type, charge, spin, last geometry).
 
    The input file is named mopac.mop and NOT something like
    "mopac.mopin".  This is a hard MOPAC requirement, not a style
@@ -239,6 +235,7 @@
 <IntegrationFiles>
   <Template>mopac.tpl</Template>
   <InputGenerator>ai.mopac</InputGenerator>
+  <Importer>MOPAC.expt</Importer>
   <ParseSpecification>mopac.desc</ParseSpecification>
   <LaunchPreprocessor>mopac.launchpp</LaunchPreprocessor>
 </IntegrationFiles>
