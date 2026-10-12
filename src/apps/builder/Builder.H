@@ -617,6 +617,7 @@ class Builder: public BuilderGUI,
 
     public:
       void toolPaneResized(const string& name);
+      void propertyPaneRoom(wxWindow *win, int need);
       //  Test hooks (ECCE_PANEL_TEST): what the layout currently holds.
       PanelMode panelMode() const { return p_panelMode; }
       void runPanelLayoutTest();

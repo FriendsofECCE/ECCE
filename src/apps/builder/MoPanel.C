@@ -52,6 +52,7 @@
 
 #include "wxviz/WxVizToolFW.H"
 
+#include "Builder.H"
 #include "MoPanel.H"
 #include "GridDlg.H"
 #include "MoCoeffs.H"
@@ -1362,6 +1363,14 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
       updateIsoValue(isovalue);
 
       p_espDrawnType = espSurface ? fieldtype : string();
+      p_drawnType = fieldtype;
+      //  The composition describes the selected MO, not a density or ESP
+      //  surface.
+      const bool moDrawn = fieldtype == "MO";
+      if (p_compText != 0 && GetSizer()->IsShown(p_compText) != moDrawn) {
+         GetSizer()->Show(p_compText, moDrawn);
+         reflow();
+      }
       refreshEspBar();
 
       // --- Deal with orthogonal slices (Slicer gui)
@@ -2006,7 +2015,9 @@ void MoPanel::hideEspBar()
 {
    if (p_espBarSizer == 0) return;
    GetSizer()->Show(p_espBarSizer, false, true);
-   GetSizer()->Layout();
+   const bool changed = p_espBarShown;
+   p_espBarShown = false;
+   if (changed) reflow();
 }
 
 
@@ -2040,7 +2051,33 @@ void MoPanel::refreshEspBar()
       "a.u. (Hartree/e); %+.1f to %+.1f kcal/mol per e; surface %.4f e/bohr^3",
       lo*toKcal, hi*toKcal, iso));
    GetSizer()->Show(p_espBarSizer, true, true);
+   const bool changed = !p_espBarShown;
+   p_espBarShown = true;
+   if (changed) reflow();
+   else GetSizer()->Layout();
+}
+
+
+void MoPanel::reflow()
+{
    GetSizer()->Layout();
+   //  Resizing the table drops its scroll position; the selected MO has to
+   //  be brought back into view once it has its new size.
+   p_scrollPending = true;
+   CallAfter(&MoPanel::scrollToSelection);
+
+   //  What the panel needs with the table at four rows (the grid's own
+   //  minimum is more); the pane would otherwise give the table none.
+   const int tableFloor = 100;
+   const int need = GetSizer()->CalcMin().y - p_mogrid->GetMinSize().y +
+                    tableFloor;
+   Builder *builder = dynamic_cast<Builder*>(wxGetTopLevelParent(this));
+   if (builder && IsShownOnScreen()) {
+      const bool crowded = p_espBarShown;
+      builder->CallAfter([builder, this, need, crowded]() {
+         builder->propertyPaneRoom(this, crowded ? need : 0);
+      });
+   }
 }
 
 
@@ -2063,6 +2100,13 @@ string MoPanel::espBarState() const
    if (p_espBarSizer == 0) return "espbar none\n";
    const bool shown = p_espBar->IsShownOnScreen();
    string out = string("espbar_shown ") + (shown ? "1" : "0") + "\n";
+   out += string("composition_shown ") +
+          (p_compText != 0 && p_compText->IsShownOnScreen() ? "1" : "0") + "\n";
+   out += "table_height " +
+          std::to_string(p_mogrid->GetGridWindow()->GetClientSize().y) + "\n";
+   out += string("selected_visible ") +
+          (p_selectedRow >= 0 && p_mogrid->IsVisible(p_selectedRow, 0, true)
+           ? "1" : "0") + "\n";
    out += "espbar_min " + p_espBarMin->GetLabel().ToStdString() + "\n";
    out += "espbar_max " + p_espBarMax->GetLabel().ToStdString() + "\n";
    out += "espbar_colors " + std::to_string(p_espBar->getColors().size()) + "\n";
