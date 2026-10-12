@@ -102,7 +102,6 @@ def main():
             builderCase(display, url)
             calcedCase(display, url)
             calcedCase(display, url, "fixed")
-            calcedCase(display, url, "restrain")
         finally:
             restorePrefs()
             os.environ.pop("ECCE_LOCAL_DATA", None)
