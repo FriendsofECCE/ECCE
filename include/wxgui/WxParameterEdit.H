@@ -80,6 +80,7 @@ class WxParameterEdit:  public ewxPanel
 
         bool            getUnitsVisible();
         void            setUnitsVisible(bool visible);
+        void            relayout();
 
         void            setValue(int value);
         void            setRange(int vmin, int vmax);

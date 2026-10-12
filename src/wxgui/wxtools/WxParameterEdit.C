@@ -186,6 +186,22 @@ wxSize WxParameterEdit::GetMinSize() const
 void WxParameterEdit::setUnitsVisible(bool vsbl)
 {
     p_unitsStaticText->Show(vsbl);
+    relayout();
+}
+
+// The cached best size of this panel (and of the label inside it) is stale
+// after a label or visibility change; on MSW the parent keeps the old size
+// and clips the units text, so invalidate and lay out the parent as well.
+void WxParameterEdit::relayout()
+{
+    p_unitsStaticText->InvalidateBestSize();
+    this->InvalidateBestSize();
+    this->Layout();
+    this->Fit();
+    if (GetParent()) {
+        GetParent()->InvalidateBestSize();
+        GetParent()->Layout();
+    }
 }
 
 
@@ -260,6 +276,8 @@ string WxParameterEdit::getUnitsLabel()
 void WxParameterEdit::setUnitsLabel(string units)
 {
     p_unitsStaticText->SetLabel(units);
-    this->Layout();
-    this->Fit();
+    int w, h;
+    p_unitsStaticText->GetTextExtent(units, &w, &h);
+    p_unitsStaticText->SetMinSize(wxSize(w, -1));
+    relayout();
 }
