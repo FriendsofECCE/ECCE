@@ -178,7 +178,8 @@ string JobProgress::lastHeardText(double when, double now)
 }
 
 
-JobProgress::Block JobProgress::stageBlock(const Stage& st, double age) const
+JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
+                                           bool finished) const
 {
   Block b;
   b.title = title(st.name);
@@ -205,7 +206,7 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age) const
             number(st.field("imaginary"), imag))
           first += fmt(" \xc2\xb7 %.0f real", real) +
                    fmt(", %.0f imaginary", imag);
-      } else if (number(st.field("eta"), eta) && eta > 0) {
+      } else if (!finished && number(st.field("eta"), eta) && eta > 0) {
         const double left = std::max(0.0, eta - age);
         first += left < 90 ? fmt(" \xc2\xb7 about %.0f s left", left)
                            : fmt(" \xc2\xb7 about %.0f min left", left / 60);
@@ -258,17 +259,17 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age) const
 }
 
 
-vector<JobProgress::Block> JobProgress::running(double age) const
+vector<JobProgress::Block> JobProgress::running(double age, bool finished) const
 {
   // The outer loops first: optimisation, then frequencies, then the SCF
   // inside them; other stages in the order they appeared.
   vector<Block> out;
   static const char *order[] = {"opt", "freq", "scf"};
   for (const char *name : order)
-    if (const Stage *st = stage(name)) out.push_back(stageBlock(*st, age));
+    if (const Stage *st = stage(name)) out.push_back(stageBlock(*st, age, finished));
   for (const auto& st : p_stages)
     if (st.name != "opt" && st.name != "freq" && st.name != "scf")
-      out.push_back(stageBlock(st, age));
+      out.push_back(stageBlock(st, age, finished));
   return out;
 }
 

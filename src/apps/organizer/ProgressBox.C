@@ -168,13 +168,9 @@ vector<string> ProgressBox::describe() const
     out.push_back("folded: " + foldedText());
     return out;
   }
-  if (p_finished) {
-    for (const string& s : p_progress.summary(p_completed))
-      out.push_back(s);
-    return out;
-  }
   const string grey = outOfContact() ? "(grey) " : "";
-  for (const JobProgress::Block& b : p_progress.running(std::max(0.0, age()))) {
+  for (const JobProgress::Block& b :
+           p_progress.running(std::max(0.0, age()), p_finished)) {
     for (const string& l : b.lines) out.push_back(grey + b.title + ": " + l);
     for (const JobProgress::Criterion& c : b.criteria)
       out.push_back("  " + c.label + " " + c.value + " " +
@@ -188,7 +184,10 @@ vector<string> ProgressBox::describe() const
       out.push_back("  plot " + b.plotLabel + " (" +
                     std::to_string(b.plot.size()) + " points)");
   }
-  if (!outOfContact() && age() >= 0)
+  if (p_finished)
+    for (const string& s : p_progress.summary(p_completed))
+      out.push_back("summary: " + s);
+  else if (!outOfContact() && age() >= 0)
     out.push_back(JobProgress::updatedText(age()));
   for (const string& l : p_check) out.push_back("check: " + l);
   return out;
@@ -273,17 +272,7 @@ wxSize ProgressBox::layout(wxDC *dc)
       w = headW;
       y += headingHeight() + FromDIP(2);
 
-      if (p_finished) {
-        for (const string& s : p_progress.summary(p_completed)) {
-          if (dc) {
-            dc->SetTextForeground(text);
-            dc->DrawText(U(s), 0, y);
-          }
-          w = std::max(w, m.GetTextExtent(U(s)).x);
-          y += lh;
-        }
-        size = wxSize(w, y);
-      } else {
+      {
         if (lost) {
           const string a = string(WARN) + " No contact: last heard from " +
               JobProgress::lastHeardText(p_lastHeard, (double)time(0));
@@ -301,7 +290,7 @@ wxSize ProgressBox::layout(wxDC *dc)
         }
 
         vector<JobProgress::Block> blocks =
-            p_progress.running(std::max(0.0, age()));
+            p_progress.running(std::max(0.0, age()), p_finished);
         // Titles in one column; text after them; plots at the right.
         int titleW = 0, cellW = 0;
         m.SetFont(bold);
@@ -382,8 +371,20 @@ wxSize ProgressBox::layout(wxDC *dc)
           y += lh / 3;
         }
 
+        // A finished job keeps its plots; the outcome goes under them.
+        if (p_finished) {
+          for (const string& s : p_progress.summary(p_completed)) {
+            if (dc) {
+              dc->SetTextForeground(text);
+              dc->DrawText(U(s), 0, y);
+            }
+            w = std::max(w, m.GetTextExtent(U(s)).x);
+            y += lh;
+          }
+        }
+
         const double a = age();
-        if (!lost && a >= 0) {
+        if (!lost && !p_finished && a >= 0) {
           if (dc) {
             dc->SetFont(small);
             dc->SetTextForeground(pal.axis);

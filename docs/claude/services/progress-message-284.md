@@ -28,8 +28,9 @@ properties `url` and `progress` (the snapshot text, `\n`-separated; empty
 - **Display.** The box sits after the Launcher row, is hidden for a
   calculation not yet submitted or without a snapshot, shows the live
   lines while running (repainted once a second for "updated n s ago" and
-  the time left, the box only) and `JobProgress::summary()` once the state
-  is completed or later. A progress message never queues a tree or summary
+  the time left, the box only). Once the state is completed or later it keeps
+  the same blocks and plots (`running(age, finished=true)`: no time left, no
+  "updated") and adds `JobProgress::summary()` below them. A progress message never queues a tree or summary
   update (`counts` stays 0) and never rebuilds the panel (#254); only a
   change of the box's size re-lays out the panel.
 - **No wx in the rules.** `JobProgress` (util) parses the text and makes
