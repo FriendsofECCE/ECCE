@@ -419,6 +419,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
 
 
 /**
+ * treeflags      the tree with "+" (expander) and "-" (open) on each node
+ * examplesmenu   the same through the menu item's own handler
  * examples        File > Open Example Calculations: a new project
  *                 Examples (Examples_2, ...) with the shipped examples
  * import <file>   import <file> into session-test, as File > Import
@@ -504,6 +506,12 @@ void CalcMgr::runTestCommand(const string& line)
       string message;
       string made = openExamples(message);
       outcome = made.empty() ? "not made: " + message : "ok " + made;
+    } else if (command == "examplesmenu") {
+      // the menu item itself (disabler, message), not openExamples() alone
+      wxCommandEvent ev(wxEVT_COMMAND_MENU_SELECTED,
+                        CalcMgrGUI::wxID_OPENEXAMPLES);
+      ProcessEvent(ev);
+      outcome = "ok";
     } else if (command == "newproject" || command == "newcalc") {
       // File > New Project / New <code> Calculation, without the name
       // prompt: "newproject NAME" in the home, "newcalc PROJECT NAME TYPE"
@@ -714,6 +722,23 @@ void CalcMgr::runTestCommand(const string& line)
       WxResourceTreeItemData *sel = p_treeCtrl->getSelection();
       outcome += " selected=" + (sel ? sel->getUrl().toString() : string("-")) +
                  " up=" + (p_treeCtrl->canSelectParent() ? "yes" : "no");
+    } else if (command == "treeflags") {
+      // "depth:label" with "+" for a node drawn with an expander and "-"
+      // for one that is open, for each node below the hidden root
+      std::function<void(wxTreeItemId, int)> walk =
+          [&](wxTreeItemId id, int depth) {
+        wxTreeItemIdValue cookie;
+        for (wxTreeItemId c = p_treeCtrl->GetFirstChild(id, cookie);
+             c.IsOk(); c = p_treeCtrl->GetNextChild(id, cookie)) {
+          outcome += " " + std::to_string(depth) + ":" +
+                     string(p_treeCtrl->GetItemText(c).ToUTF8()) +
+                     (p_treeCtrl->ItemHasChildren(c) ? "+" : "") +
+                     (p_treeCtrl->IsExpanded(c) ? "-" : "");
+          walk(c, depth + 1);
+        }
+      };
+      outcome = "ok";
+      walk(p_treeCtrl->GetRootItem(), 0);
     } else if (command == "toolsmenu") {
       // "toolsmenu <url>": the labels of the Tools menu for <url>.
       WxResourceTreeItemData *node = findNode(EcceURL(calcName), false, false);
@@ -2591,13 +2616,26 @@ string CalcMgr::openExamples(string& message)
   if (WxResourceTreeItemData *homeNode = findNode(home, false, false))
     p_treeCtrl->refresh(homeNode);
 
-  WxCalcImport dlg(this);
-  dlg.registerListener(this);
-  for (const char *rel : kExampleOutputs) {
-    // importFile selects each new calculation; the next must land in the
-    // project again, not beside it.
-    findNode(project, true, true);
-    dlg.importFile(dir + rel);
+  // The project is selected for the whole import (getContainer files each
+  // calculation under the selection's project); the tree is rebuilt once
+  // afterwards, not per calculation.
+  findNode(project, true, true);
+  p_batchImport = true;
+  {
+    WxCalcImport dlg(this);
+    dlg.registerListener(this);
+    for (const char *rel : kExampleOutputs)
+      dlg.importFile(dir + rel);
+  }
+  p_batchImport = false;
+  if (WxResourceTreeItemData *projNode = findNode(project, false, false))
+    p_treeCtrl->refresh(projNode);
+  findNode(project, true, true);
+  setContextPanel();
+  if (!p_batchError.empty()) {
+    message = "An example could not be imported: " + p_batchError;
+    p_batchError.clear();
+    return "";
   }
   message = "Example calculations are being imported into " + name + ".";
   return name;
@@ -6514,8 +6552,10 @@ TaskJob *CalcMgr::getContainer(const string& name)
     }
 
     if (childRes != 0) {
-      p_treeCtrl->refresh(projData);
-      setContextPanel();
+      if (!p_batchImport) {
+        p_treeCtrl->refresh(projData);
+        setContextPanel();
+      }
 
       ret = dynamic_cast<TaskJob*>(childRes);
     }
@@ -6551,6 +6591,8 @@ void CalcMgr::importValidationComplete(TaskJob *ipc, bool status,
         setMessage(msg, WxFeedback::ERROR);
       }
     }
+    if (p_batchImport && p_batchError.empty())
+      p_batchError = message;
     setMessage(message, WxFeedback::ERROR);
   } else {
     if (message != "")
@@ -6575,16 +6617,22 @@ void CalcMgr::importValidationComplete(TaskJob *ipc, bool status,
     setMessage(message, WxFeedback::INFO);
 
     // get the parent of the calculation
-    if (parentData != (WxResourceTreeItemData*)0) {
+    if (p_batchImport) {
+      // openExamples() rebuilds the project's subtree once, at the end.
+    } else if (parentData != (WxResourceTreeItemData*)0) {
       p_treeCtrl->refresh(parentData);
     }
     else {
       p_treeCtrl->refresh(p_treeCtrl->getSelection());
     }
-    setContextPanel();
+    if (!p_batchImport)
+      setContextPanel();
 
     // let the world know this calculation was created/imported
     notifyCreate(ipc->getURL().toString());
+
+    if (p_batchImport)
+      return;
 
     // Select the new calculation, as a calculation made with New is
     // selected (OnNewResourceClick); otherwise the work area stays on
