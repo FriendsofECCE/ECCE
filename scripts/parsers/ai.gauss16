@@ -399,7 +399,9 @@ sub G09Route {
         $tmpTheory =~ /ROMP/ || $tmpTheory =~ /HF/ || $tmpTheory =~ /DFT/) {
 #Andy
     if ($AbiDict{"UseNBO"}) { 
-    $route .= " Pop=(NBO6, savenbos,full)"; #Andy
+    #  A calculation saved before the version choice existed used NBO6.
+    my $nbo = ($AbiDict{"NBOVersion"} =~ /7/) ? "NBO7" : "NBO6";
+    $route .= " Pop=($nbo, savenbos,full)";
     } else {
 # end Andy
     $route .= " Pop=(full)";

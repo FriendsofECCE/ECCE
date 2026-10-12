@@ -63,11 +63,19 @@ class Ged16TheoryPanel(EccePanel):
 
 # Added by Andy 10/10/2016        
         self.useNBOBox = EcceCheckBox(self,
-                                           label = " Do NBO6 calculation",
+                                           label = " Do NBO calculation",
                                            name = "ES.Theory.UseNBO",
                                            default = False,
                                            export = 1)
         genopsSizer.AddWidget(self.useNBOBox)
+        #  G16 C.01 and later call NBO 7 through gaunbo7 (Pop=NBO7);
+        #  earlier revisions and an NBO 6 installation use Pop=NBO6.
+        self.nboVersion = EcceComboBox(self,
+                                       choices = ["NBO 7", "NBO 6"],
+                                       name = "ES.Theory.NBOVersion",
+                                       default = 0,
+                                       label = "NBO version:")
+        genopsSizer.AddWidget(self.nboVersion)
 
         self.useMayerBox = EcceCheckBox(self,
                                            label = " Do Mayer BO",
