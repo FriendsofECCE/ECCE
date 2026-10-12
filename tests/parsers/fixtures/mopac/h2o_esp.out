@@ -1,0 +1,199 @@
+ *******************************************************************************
+ **                                                                           **
+ **                              MOPAC v23.1.2                                **
+ **                                                                           **
+ *******************************************************************************
+ **          Digital Object Identifier (DOI): 10.5281/zenodo.6511958          **
+ **    Visit the DOI location for information on how to cite this program.    **
+ *******************************************************************************
+
+                              PM7 CALCULATION RESULTS
+
+ *******************************************************************************
+ *  CALCULATION DONE: (MAX THREADS = 8)              Mon Oct 12 19:17:57 2026  *
+ *  PM7        - The PM7 Hamiltonian to be used
+ *  SINGLET    - SPIN STATE DEFINED AS A SINGLET
+ *  ESP        - ELECTROSTATIC POTENTIAL CALCULATION
+ *
+ *
+ *
+ *                 CHARGE ON SYSTEM = 0
+ *
+ *
+ *
+ *  1SCF       - DO 1 SCF AND THEN STOP 
+ *  T=         - A TIME OF 172800.0 SECONDS REQUESTED
+ *  DUMP=N     - RESTART FILE WRITTEN EVERY 7200.0 SECONDS REQUESTED
+ *******************************************************************************
+PM7 ESP 1SCF CHARGE=0 SINGLET
+ water
+ x
+   ATOM   CHEMICAL          X               Y               Z
+  NUMBER   SYMBOL      (ANGSTROMS)     (ANGSTROMS)     (ANGSTROMS)
+
+     1       O          0.00000000  *   0.00000000  *   0.11730000  *
+     2       H          0.00000000  *   0.75720000  *  -0.46920000  *
+     3       H          0.00000000  *  -0.75720000  *  -0.46920000  *
+
+
+
+          CARTESIAN COORDINATES 
+
+    NO.       ATOM           X           Y           Z
+
+     1         O          0.0000      0.0000      0.1173
+     2         H          0.0000      0.7572     -0.4692
+     3         H          0.0000     -0.7572     -0.4692
+
+ General Reference for PM7:
+ "Optimization of Parameters for Semiempirical Methods VI: More Modifications to the 
+ NDDO Approximations and Re-optimization of Parameters", J. J. P. Stewart, J. Mol. Mod., 1:32, 19 (2013)
+ https://link.springer.com/article/10.1007/s00894-012-1667-x
+
+           Empirical Formula: H2 O  =     3 atoms
+
+
+
+      MOLECULAR POINT GROUP   :   C2v 
+
+
+ SINGLET STATE CALCULATION
+
+
+      RHF CALCULATION, NO. OF DOUBLY OCCUPIED LEVELS = 4
+
+
+ -------------------------------------------------------------------------------
+ PM7 ESP 1SCF CHARGE=0 SINGLET
+ water
+ x
+
+
+     1SCF WAS SPECIFIED, SO BFGS WAS NOT USED                 
+     SCF FIELD WAS ACHIEVED                                   
+
+
+                              PM7 CALCULATION
+                                                       MOPAC v23.1.2 Linux
+                                                       Mon Oct 12 19:17:57 2026
+
+
+
+
+          FINAL HEAT OF FORMATION =        -57.79007 KCAL/MOL =    -241.79367 KJ/MOL
+
+
+          COSMO AREA              =         42.49 SQUARE ANGSTROMS
+          COSMO VOLUME            =         25.21 CUBIC ANGSTROMS
+
+          IONIZATION POTENTIAL    =         12.095147 EV
+          HOMO LUMO ENERGIES (EV) =        -12.095  4.044
+          NO. OF FILLED LEVELS    =          4
+          MOLECULAR WEIGHT        =         18.0152         POINT GROUP:  C2v 
+
+          MOLECULAR DIMENSIONS (Angstroms)
+
+            Atom       Atom       Distance
+            H     3    H     2     1.51440
+            H     2    O     1     0.58650
+            O     1    H     2     0.00000
+
+
+          SCF CALCULATIONS        =          1
+
+          WALL-CLOCK TIME         =      0.023 SECONDS
+          COMPUTATION TIME        =      0.086 SECONDS
+
+
+
+
+   ATOM   CHEMICAL          X               Y               Z
+  NUMBER   SYMBOL      (ANGSTROMS)     (ANGSTROMS)     (ANGSTROMS)
+
+     1       O          0.00000000  *   0.00000000  *   0.11730000  *
+     2       H          0.00000000  *   0.75720000  *  -0.46920000  *
+     3       H          0.00000000  *  -0.75720000  *  -0.46920000  *
+
+                             CARTESIAN COORDINATES
+
+   1    O        0.000000000     0.000000000     0.117300000
+   2    H        0.000000000     0.757200000    -0.469200000
+   3    H        0.000000000    -0.757200000    -0.469200000
+
+
+           Empirical Formula: H2 O  =     3 atoms
+
+
+
+      MOLECULAR POINT GROUP   :   C2v 
+
+
+                  EIGENVALUES  
+ -29.59571 -17.76075 -14.25148 -12.09515   4.04370   6.30581
+
+
+              NET ATOMIC CHARGES AND DIPOLE CONTRIBUTIONS
+
+  ATOM NO.   TYPE          CHARGE      No. of ELECS.   s-Pop       p-Pop       
+    1          O          -0.645360        6.6454     1.81709     4.82827
+    2          H           0.322680        0.6773     0.67732
+    3          H           0.322680        0.6773     0.67732
+ DIPOLE           X         Y         Z       TOTAL
+ POINT-CHG.     0.000    -0.000    -1.818     1.818
+ HYBRID        -0.000     0.000    -0.323     0.323
+ SUM           -0.000    -0.000    -2.141     2.141
+
+
+          ATOMIC ORBITAL ELECTRON POPULATIONS
+
+     Atom    s        px        py        pz   
+    1  O   1.81709   2.00000   1.35196   1.47631
+    2  H   0.67732
+    3  H   0.67732
+
+NAICAS DUMPED:  33.33 PERCENT COMPLETE
+NAICAS DUMPED:  66.67 PERCENT COMPLETE
+NAICAS DUMPED: 100.00 PERCENT COMPLETE
+
+NAICAP DUMPED:  10.00 PERCENT COMPLETE
+NAICAP DUMPED:  20.00 PERCENT COMPLETE
+NAICAP DUMPED:  30.00 PERCENT COMPLETE
+NAICAP DUMPED:  40.00 PERCENT COMPLETE
+NAICAP DUMPED:  50.00 PERCENT COMPLETE
+NAICAP DUMPED:  60.00 PERCENT COMPLETE
+NAICAP DUMPED:  70.00 PERCENT COMPLETE
+NAICAP DUMPED:  80.00 PERCENT COMPLETE
+NAICAP DUMPED:  90.00 PERCENT COMPLETE
+NAICAP DUMPED: 100.00 PERCENT COMPLETE
+
+
+            ELECTROSTATIC POTENTIAL CHARGES
+
+               ATOM NO.    TYPE    CHARGE
+                    1          O    -0.5889
+                    2          H     0.2944
+                    3          H     0.2944
+
+            THE NUMBER OF POINTS IS:       288
+            THE RMS DEVIATION IS:       2.1910
+            THE RRMS DEVIATION IS:      0.2012
+
+
+     DIPOLE MOMENT EVALUATED FROM THE POINT CHARGES
+
+             X        Y        Z       TOTAL
+           0.0000  -0.0000  -1.6589   1.6589
+
+         TIME TO CALCULATE ESP:    0.02 SECONDS
+
+ **********************
+ *                    *
+ * JOB ENDED NORMALLY *
+ *                    *
+ **********************
+
+
+
+ TOTAL JOB TIME:             0.08 SECONDS
+
+ == MOPAC DONE ==

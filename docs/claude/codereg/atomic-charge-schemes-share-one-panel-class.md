@@ -30,6 +30,9 @@ Rev C.01, NWChem 7.2.3):
   other Pop keywords (`Pop=(Full,CM5,MK)` and `Pop=(NPA,Hirshfeld)` print
   it, checked on Rev C.01); naming both (`Pop=(Full,Hirshfeld,CM5)`) prints
   neither. The parse entry has no Pop condition. NPA with `Pop=NPA`.
+- MOPAC: `ESP` keyword (Theory Details box `ES.Theory.SCF.ESPCharges`) prints
+  "ELECTROSTATIC POTENTIAL CHARGES" at four decimals, parsed into `ESPFIT`
+  (`mopac.espcharge`). Checked on MOPAC 23.1.2, PM7 water: -0.5889 0.2944 0.2944.
 - NWChem: nothing new. The `ecce_print` trace the monitor parses carries
   only Mulliken atomic/shell charges (and Car-Parrinello atomic charges);
   Lowdin and ESP charges exist only in the normal stdout, at two decimals,

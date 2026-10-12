@@ -86,6 +86,15 @@ class MopacTheoryPanel(EccePanel):
                                      default=True,
                                      export=1)
         scfSizer.AddWidget(self.printMOs)
+
+        # ESP keyword: charges fitted to the electrostatic potential,
+        # read back as the ESPFIT property.
+        self.espCharges = EcceCheckBox(self,
+                                       label=" ESP-fitted charges (ESP)",
+                                       name="ES.Theory.SCF.ESPCharges",
+                                       default=False,
+                                       export=1)
+        scfSizer.AddWidget(self.espCharges)
         self.panelSizer.Add(scfSizer)
 
         # PARALLEL

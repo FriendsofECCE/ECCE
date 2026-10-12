@@ -1,0 +1,28 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Extracts MOPAC's "ELECTROSTATIC POTENTIAL CHARGES" table (printed with the
+# ESP keyword) into ECCE's ESPFIT property.  Rows, after Skip=3:
+#                     1          O    -0.5889
+#                     2          H     0.2944
+# MOPAC prints four decimals.
+#
+################################################################################
+
+$| = 1;
+
+my @charges;
+while (<STDIN>) {
+  push(@charges, $1) if (/^\s*\d+\s+[A-Za-z]{1,2}\s+(-?\d+\.\d+)\s*$/);
+}
+
+if (@charges) {
+  print "key: ESPFIT\n";
+  print "size:\n", scalar(@charges), "\n";
+  print "values:\n";
+  print join(" ", @charges), "\n";
+  print "units:\ne\n";
+  print "END\n";
+}
+exit(0);

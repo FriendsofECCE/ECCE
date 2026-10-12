@@ -230,6 +230,16 @@ Frequency=last
 End=^\s*SUM\s
 [END]
 
+# Only present when ai.mopac wrote the ESP keyword.  Begin is the heading
+# itself (nothing else ends on it); Skip=3 = heading, blank, column header.
+[ESPFIT]
+Script=mopac.espcharge
+Begin=ELECTROSTATIC POTENTIAL CHARGES
+Skip=3
+Frequency=last
+End=^\s*$
+[END]
+
 # Single line, e.g. "      MOLECULAR POINT GROUP   :   C2v".  Printed
 # once per geometry MOPAC reports on; Frequency=last takes the final
 # (post-optimization) one.  Deliberately NOT anchored on the other

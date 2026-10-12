@@ -1239,6 +1239,22 @@ CASES = [
         },
     ),
     dict(
+        # PM7 ESP 1SCF water (#272).  The ESP table is a second charge
+        # table after the Mulliken-style one; the MULLIKEN entry must
+        # still see only its own.
+        name='mopac-h2o-esp',
+        desc='mopac.desc',
+        fixture='mopac/h2o_esp.out',
+        parse_args=('.', 'Energy', 'SE', 'RPM7', '0'),
+        expect={
+            'ESPFIT': dict(blocks=1, keys={'ESPFIT': {
+                'size': '3', 'sum': 0.0,
+                'values': '-0.5889 0.2944 0.2944', 'units': 'e'}}),
+            'MULLIKEN][DIPOLE': dict(blocks=1, keys={'MULLIKEN': {
+                'values': '-0.645360 0.322680 0.322680'}}),
+        },
+    ),
+    dict(
         # PM7 UHF 1SCF DOUBLET methyl radical: the open-shell path.
         # MOPAC's charge table has the same shape open- or closed-shell
         # (no spin-density column, unlike Gaussian's and ORCA's), so the

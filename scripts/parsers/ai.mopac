@@ -352,6 +352,9 @@ sub KeywordLine {
   #  labelled "use symmetry" was ticked would constrain the geometry,
   #  which is not what the box says and not what the user asked for.
 
+  # ESP: fits charges to the electrostatic potential (verified on 23.1.2).
+  push(@kw, "ESP") if ($AbiDict{"ES.Theory.SCF.ESPCharges"} eq "1");
+
   # PRECISE: "TIGHTER CRITERIA TO BE USED" (binary's own banner text).
   push(@kw, "PRECISE") if ($AbiDict{"ES.Theory.SCF.Precise"} eq "1");
 
