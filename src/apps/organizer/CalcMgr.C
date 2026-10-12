@@ -42,6 +42,9 @@ static bool offerStopServer(bool& inUse);
 static std::string s_registerMessage;
 
 #include <wx/dataobj.h>
+#include <wx/filename.h>
+#include <wx/process.h>
+#include <wx/utils.h>
 #include <wx/dnd.h>
 #include <wx/treectrl.h>
 
@@ -6069,6 +6072,140 @@ bool CalcMgr::liveProgress(const EcceURL & url, string & text,
   text = it->second.first;
   received = it->second.second;
   return true;
+}
+
+
+//  The last jmPROG snapshot in a job monitor message file: messages are
+//  \001, a sequence digit, a four-digit length and the payload, whose
+//  newlines are \002 and whose fields are separated by \0.
+static string lastProgressMessage(const string & raw)
+{
+  string last;
+  size_t i = 0;
+  while ((i = raw.find('\001', i)) != string::npos) {
+    if (i + 6 > raw.size()) break;
+    const size_t len = (size_t)atoi(raw.substr(i + 2, 4).c_str());
+    const string payload = raw.substr(i + 6, len);
+    i += 6 + len;
+    if (payload.compare(0, 7, string("jmPROG", 6) + '\0') != 0) continue;
+    last = payload.substr(7);
+    for (char & c : last) if (c == '\002') c = '\n';
+  }
+  return last;
+}
+
+
+static bool copyStreamToFile(istream * is, const string & path)
+{
+  if (!is) return false;
+  std::ofstream out(path.c_str(), std::ios::binary);
+  out << is->rdbuf();
+  delete is;
+  return (bool)out;
+}
+
+
+void CalcMgr::backfillProgress(const EcceURL & url)
+{
+  const string key = progressKey(url);
+  if (getenv("ECCE_NO_PROGRESS_BACKFILL") || !p_backfillTried.insert(key).second)
+    return;
+  string have;
+  double at;
+  if (liveProgress(url, have, at)) return;
+  TaskJob * calc = dynamic_cast<TaskJob*>(EDSIFactory::getResource(url));
+  if (!calc || !calc->application()) return;
+  const string ecce = VDoc::getEcceNamespace();
+  if (!calc->getProp(ecce + ":progress").empty()) return;
+  if (calc->getState() < ResourceDescriptor::STATE_COMPLETED) return;
+
+  string desc = calc->application()->parseDescriptor();
+  if (desc.empty()) return;
+  if (desc[0] != '/') desc = string(Ecce::ecceDataControllersPath()) + "/" + desc;
+  const string monitor = string(Ecce::ecceHome()) + "/scripts/eccejobmonitor";
+
+  //  What the job monitor of a live job reads: the parse file, and the
+  //  program's own output as the second file.
+  wxBusyCursor busy;
+  const string base = wxFileName::CreateTempFileName("eccepg").ToStdString();
+  const string work = base + ".d";
+  if (base.empty() || !wxMkdir(work)) return;
+  const string parse = base + ".parse", out2 = base + ".out";
+  const bool haveParse = copyStreamToFile(
+      calc->getDataFile(JCode::PARSE_OUTPUT), parse);
+  const bool haveOut = copyStreamToFile(
+      calc->getDataFile(JCode::PRIMARY_OUTPUT), out2);
+  if (!haveParse && !haveOut) {
+    wxRemoveFile(base);
+    wxFileName::Rmdir(work, wxPATH_RMDIR_RECURSIVE);
+    return;
+  }
+
+  wxString cmd;
+  cmd << "perl \"" << monitor << "\" -commType stdio -monitoringMode post"
+      << " -jobOutputFile \"" << (haveParse ? parse : out2) << "\"";
+  if (haveParse && haveOut) cmd << " -jobOutputFile2 \"" << out2 << "\"";
+  cmd << " -parseDescriptorFile \"" << desc << "\" -parseTypes NONE"
+      << " -outputFile \"" << base << ".res\" -calcName backfill"
+      << " -logFile \"" << work << "/monitor.log\" -filesToTransfer \"\""
+      << " -importDir \"" << work << "/\" -progress 1";
+
+  wxProcess * proc = new wxProcess(this);
+  proc->Redirect();
+  wxExecuteEnv env;
+  env.cwd = work;
+  const long pid = wxExecute(cmd, wxEXEC_ASYNC | wxEXEC_HIDE_CONSOLE, proc, &env);
+  if (pid <= 0) {
+    delete proc;
+    wxRemoveFile(base);
+    wxFileName::Rmdir(work, wxPATH_RMDIR_RECURSIVE);
+    return;
+  }
+  //  The monitor reads standard input; end of input lets it run on.
+  proc->CloseOutput();
+  if (p_backfills.empty()) {
+    Bind(wxEVT_END_PROCESS, [this](wxProcessEvent & ev) {
+      finishProgressBackfill(ev.GetPid());
+    });
+  }
+  p_backfills[pid] = std::make_pair(url, base);
+}
+
+
+void CalcMgr::finishProgressBackfill(long pid)
+{
+  auto it = p_backfills.find(pid);
+  if (it == p_backfills.end()) return;
+  const EcceURL url = it->second.first;
+  const string base = it->second.second;
+  p_backfills.erase(it);
+
+  string raw;
+  {
+    std::ifstream in((base + ".res").c_str(), std::ios::binary);
+    raw.assign((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+  }
+  wxRemoveFile(base);
+  wxRemoveFile(base + ".parse");
+  wxRemoveFile(base + ".out");
+  wxRemoveFile(base + ".res");
+  wxFileName::Rmdir(base + ".d", wxPATH_RMDIR_RECURSIVE);
+
+  const string text = lastProgressMessage(raw);
+  JobProgress check;
+  if (text.empty() || !check.parse(text)) return;
+  if (Resource * res = EDSIFactory::getResource(url)) {
+    vector<MetaDataResult> results(1);
+    results[0].name = VDoc::getEcceNamespace() + ":progress";
+    results[0].value = text;
+    res->addProps(results);
+  }
+  //  Age 0: a finished calculation's box shows no age.
+  p_liveProgress[progressKey(url)] = std::make_pair(text, 0.0);
+  CalculationContextPanel * panel =
+      dynamic_cast<CalculationContextPanel*>(p_contextPanel);
+  if (panel && progressKey(panel->getUrl()) == progressKey(url))
+    panel->updateProgress();
 }
 
 

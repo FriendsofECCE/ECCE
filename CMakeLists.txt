@@ -2130,6 +2130,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_ligands PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # A finished calculation without ecce:progress gets one from its stored
+  # output (#284): CalcMgr::backfillProgress.
+  add_test(NAME apps_progress_backfill
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/progress_backfill_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_progress_backfill PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # Organizer summary panel: molecule and basis fields of a data-server
   # and of a local-data calculation, ECCE_TEST_ORGANIZER "summary".
   add_test(NAME apps_summary

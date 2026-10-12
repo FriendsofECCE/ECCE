@@ -3,7 +3,7 @@ type: map
 title: "`ecce_url_progress`: the job store relays progress on the owner's own topic and stores the last snapshot as `ecce:progress` (#284)"
 area: services
 section: "Pitfalls"
-paths: ["src/comm/commxt/JobStore.C", "data/client/config/ecce_messages", "include/util/JobProgress.H", "src/util/genutil/JobProgress.C", "src/apps/organizer/CalcMgrApp.C", "src/apps/organizer/CalcMgr.C", "src/apps/organizer/CalculationContextPanel.C", "src/apps/organizer/ProgressBox.C", "tests/launch/launchjob.C", "tests/launch/ecceqm_test.py", "tests/apps/progress_box_test.py", "tests/progress/progress_test.C"]
+paths: ["src/comm/commxt/JobStore.C", "data/client/config/ecce_messages", "include/util/JobProgress.H", "src/util/genutil/JobProgress.C", "src/apps/organizer/CalcMgrApp.C", "src/apps/organizer/CalcMgr.C", "tests/apps/progress_backfill_test.py", "src/apps/organizer/CalculationContextPanel.C", "src/apps/organizer/ProgressBox.C", "tests/launch/launchjob.C", "tests/launch/ecceqm_test.py", "tests/apps/progress_box_test.py", "tests/progress/progress_test.C"]
 issues: [284, 213, 254]
 ---
 **Path.** monitor `jmPROG` -> `JobStore::interactProgress` (adds
@@ -43,3 +43,14 @@ properties `url` and `progress` (the snapshot text, `\n`-separated; empty
   subscriber; `launchjob progress <url>` prints the stored snapshot.
   Organizer hook commands `progress <url> <file>` (inject as the broker
   does) and `progressbox` (what the box draws).
+- **Backfill.** A finished calculation with an output and no `ecce:progress`
+  (run before the record existed, or imported by an older ECCE) gets one when
+  the summary is first shown: `CalcMgr::backfillProgress` copies the stored
+  parse and primary outputs to temp files and runs `eccejobmonitor` in post
+  mode (`-parseTypes NONE -progress 1`, stdin closed) over them with the
+  code's `.desc`, as a `wxProcess`; the last `jmPROG` of its message file is
+  stored with `addProps` and shown (age 0, so no "updated"). Once per
+  calculation per session, and nothing is stored for a code with no
+  `[PROGRESS]` entries or no stored stdout (an imported NWChem `.eprint`).
+  `ECCE_NO_PROGRESS_BACKFILL=1` turns it off. The monitor reads stdin in
+  `stdio` mode and hangs on an open one.
