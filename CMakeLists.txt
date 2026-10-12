@@ -1814,6 +1814,15 @@ add_executable(formula_test tests/formula/formula_test.C)
 target_link_libraries(formula_test PRIVATE eccetdat ecceutil)
 add_test(NAME formula COMMAND formula_test)
 
+# tests/dummy_atoms (#298): dummy atom X is not an element for basis/formula.
+add_executable(dummy_fragment_test tests/dummy_atoms/dummy_fragment_test.C)
+target_link_libraries(dummy_fragment_test PRIVATE eccetdat ecceutil)
+add_test(NAME dummy_fragment COMMAND dummy_fragment_test)
+set_tests_properties(dummy_fragment PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
+add_test(NAME dummy_atoms_decks
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/dummy_atoms/run_tests.py)
+
 # tests/spectrum -- the wx-free IR/Raman spectrum model (#214): ticks, axis
 # reversal and zoom, broadening, sticks.
 add_executable(vibspectrum_test tests/spectrum/vibspectrum_test.C)

@@ -15,7 +15,7 @@
 # set in data/client/cap/ORCA.edml -- RHF/UHF/RDFT/UDFT crossed with
 # Energy/Gradient/Geometry/Vibration/GeoVib. No MP2/CC/CI, no basis-set
 # route-card shortcut (always writes the explicit %basis block from
-# wrORCAGBS.pm), no geometry constraints, no symmetry handling.
+# wrORCAGBS.pm), geometry constraints (frozen, bond, angle, torsion), no symmetry handling.
 #
 # The "! <keywords>" line and %basis block below have been verified against
 # a real ORCA 6.1.1 install (RHF/UHF/RKS/UKS + EnGrad/Opt/Freq keywords, and
@@ -606,9 +606,11 @@ sub ORCABlocks {
   my $runtype = $AbiDict{"RunType"};
   if ($runtype =~ /Geo/i) {
     my $maxsteps = $AbiDict{"ES.Runtype.GeomOpt.MaximumStepsValue"};
-    if ($maxsteps ne "") {
-      $result .= "%geom\n  MaxIter $maxsteps\nend\n";
-    }
+    my $geom = "";
+    $geom .= "  MaxIter $maxsteps\n" if ($maxsteps ne "");
+    $geom .= " Constraints\n" . join("", @orcaConstraints) . " end\n"
+      if (@orcaConstraints);
+    $result .= "%geom\n" . $geom . "end\n" if ($geom ne "");
   }
   $_ = $result;
   return $result;
@@ -753,6 +755,7 @@ sub chemsys {
   ($chemsys_atoms != 0) || die "ai.orca error: Fragment has no atoms!\n";
   for (my $index = 0; $index < $chemsys_atoms; $index++) {
     my $symbol = $tags{$index};
+    $symbol = "DA" if ($symbol eq "X");   # ORCA's dummy atom
     print(NEWFILE " $symbol     $coords{$index,0}     ");
     print(NEWFILE "$coords{$index,1}     $coords{$index,2}\n");
   }
@@ -839,10 +842,30 @@ sub readChemSys {
   }
 }
 
-# Constraint file support is out of reduced scope -- stub so the pipeline
-# doesn't break if calced ever writes a .con file. Revisit alongside
-# GeometryConstraintRules in ORCA.edml.
+# Frozen atoms and fixed bond/angle/torsion values, as ORCA %geom Constraints
+# entries.  ORCA counts atoms from 0 like the file's Group does, and a dummy
+# atom (DA) is a numbered centre, so the indices are used unchanged.
 sub readCnstrntFile {
+  @orcaConstraints = ();
+  return if ($CnstrntFILE eq "" || !open(GEOCNST, $CnstrntFILE));
+  while (<GEOCNST>) {
+    next unless (/<Constraint\s/i);
+    my ($type, $value, @group) = ("", "");
+    $type = lc $1 if (/type\s*=\s*"\s*(\S*)\s*"/i);
+    while (<GEOCNST>) {
+      last if (/<\/Constraint>/i);
+      $value = $1 if (/<Value>\s*(\S*)\s*<\/Value>/i);
+      @group = split(' ', $1) if (/<Group>(.*)<\/Group>/i);
+    }
+    my $letter = $type eq "bond" ? "B" : $type eq "angle" ? "A" :
+                 $type eq "torsion" ? "D" : "";
+    if ($letter ne "") {
+      push(@orcaConstraints, "  { $letter @group $value C }\n");
+    } elsif ($type eq "fixed") {
+      push(@orcaConstraints, map { "  { C $_ C }\n" } @group);
+    }
+  }
+  close(GEOCNST);
 }
 
 sub usage {

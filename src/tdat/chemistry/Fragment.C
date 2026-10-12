@@ -3105,6 +3105,7 @@ vector<TTagCountPair>* Fragment::tagCounts(void) const
   for (int idx=0; idx<cnt; idx++) {
 
     atom = p_atoms[idx];
+    if (atom->atomicSymbol() == "X") continue;  // dummy atom: not an element
     lookup.tag = atom->atomicSymbol();
     vector<TTagCountPair>::iterator it;
     it = find(result->begin(), result->end(), lookup);
@@ -3136,6 +3137,7 @@ TagCountMap* Fragment::tagCountsSTL(void) const
   for (int idx=0; idx < p_atoms.size(); idx++)
   {
     atom = p_atoms[idx]; // element tag to look up
+    if (atom->atomicSymbol() == "X") continue;  // dummy atom: no basis, no electrons
     bool isPointCharge = false;
     if (atom->getBehaviorType() == TAtm::POINT) {
       isPointCharge = true;
@@ -3349,6 +3351,7 @@ vector<string>* Fragment::uniqueTags(void) const
   vector<string>::iterator it;
   for (int idx=0;idx<cnt; idx++) {
     const string& symbol = p_atoms[idx]->atomicSymbol();
+    if (symbol == "X") continue;  // dummy atom needs no basis set
     it = find(tags->begin(), tags->end(), symbol);
     if (it == tags->end()) tags->push_back(symbol);
   }

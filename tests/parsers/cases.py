@@ -285,6 +285,18 @@ CASES = [
             'GEOMTRACE': dict(min_blocks=2, keys={'GEOMTRACE': {}}),
         },
     ),
+    # #298: NH3 + dummy X (atom 5, last) in a constrained optimisation. The
+    # trace must keep five rows per step so atom numbers match the Builder.
+    dict(
+        name='nwchem-nh3-dummy-opt',
+        desc='nwchem.desc',
+        fixture='nwchem/nh3x_dummy_opt.eprint',
+        parse_args=('.', 'Geometry', 'SCF', 'RHF', '0'),
+        silent_ok={'MOLAB1': 'C1 geometry: no irrep block to map.'},
+        expect={
+            'GEOMTRACE': dict(min_blocks=2, keys={'GEOMTRACE': {}}),
+        },
+    ),
     dict(
         name='nwchem-oh-uhf',
         desc='nwchem.desc',
@@ -343,6 +355,20 @@ CASES = [
     # -----------------------------------------------------------------
     # ORCA
     # -----------------------------------------------------------------
+    # #298: NH3 + dummy atom DA (ORCA prints it as XX) with constrained
+    # angles; the trace keeps the dummy as atom 5.
+    dict(
+        name='orca-nh3-dummy-opt',
+        desc='orca.desc',
+        fixture='orca/nh3x_dummy_opt.out',
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck, so ORCA '
+                                         'prints no Irrep column'},
+        parse_args=('.', 'Geometry', 'SCF', 'RHF', '0'),
+        expect={
+            'GEOMTRACE': dict(min_blocks=2, keys={'GEOMTRACE': {
+                'size': '1 5 3'}}),
+        },
+    ),
     dict(
         name='orca-h2o-opt',
         desc='orca.desc',
