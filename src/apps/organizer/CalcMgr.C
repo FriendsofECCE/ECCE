@@ -6441,7 +6441,12 @@ void CalcMgr::onSelectionChange(bool selectInTree)
   //  MSW the thaw only invalidates, and each child then painted on its own
   //  turn (the run-state legend a frame after the summary); paint them all
   //  at once.
-  FrameHold hold(this);
+  //  Not when the selection came from the project table (selectInTree
+  //  false): nothing in the frame is rebuilt then, and the thaw's repaint
+  //  of every child made the table and summary flash on each click.
+  std::unique_ptr<FrameHold> hold;
+  if (selectInTree)
+    hold.reset(new FrameHold(this));
   wxMenuBar * menuBar = GetMenuBar();
   WxResourceTreeItemData *itemData = 0;
 
