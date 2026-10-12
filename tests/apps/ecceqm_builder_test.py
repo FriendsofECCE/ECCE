@@ -120,7 +120,7 @@ def main():
         os.environ["ECCE_LOCAL_DATA"] = folder
         restorePrefs = fixture.settleUpgradeNotices()
         try:
-            openBuilder(display, urls["o2"], "ECCE-QM O2: MOs panel opens", True)
+            openBuilder(display, urls["o2"], "ECCE-QM O2: MOs panel opens", False)
             openBuilder(display, urls["o2"], "ECCE-QM O2: MO Diagram offered",
                         True, panel="MO Diagram")
             openBuilder(display, urls["water-orca"],
