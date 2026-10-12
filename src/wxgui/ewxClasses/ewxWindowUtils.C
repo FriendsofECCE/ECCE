@@ -657,14 +657,30 @@ struct Watch
 {
   bool pending;
   int tries;
-  Watch() : pending(false), tries(0) {}
+  wxSize refused;   // a size the window manager put back after a fit
+  Watch() : pending(false), tries(0), refused(-1, -1) {}
 };
+
+
+//  A window the window manager has tiled (dragged to a screen edge) fills
+//  the work area's height, which the title-bar reserve reads as too tall.
+bool isTiled(wxTopLevelWindow *win)
+{
+#if defined(__WXGTK__)
+  GtkWidget *w = (GtkWidget *) win->GetHandle();
+  GdkWindow *gw = w ? gtk_widget_get_window(w) : NULL;
+  if (gw && (gdk_window_get_state(gw) & GDK_WINDOW_STATE_TILED))
+    return true;
+#endif
+  return false;
+}
 
 std::map<wxTopLevelWindow*, Watch> g_watched;
 
 bool outsideDisplay(wxTopLevelWindow *win)
 {
-  if (!win->IsShown() || win->IsMaximized() || win->IsFullScreen())
+  if (!win->IsShown() || win->IsMaximized() || win->IsFullScreen() ||
+      isTiled(win))
     return false;
 
   wxSize cap = ewxWindowUtils::clientCapForDisplay(win);
@@ -701,12 +717,17 @@ void watch(wxTopLevelWindow *win)
       it->second.tries = 0;
       return;
     }
+    //  The window manager put back the size the last fit changed: it
+    //  insists on it, and fitting again would make the window hop (#275).
+    if (win->GetClientSize() == it->second.refused)
+      return;
     //  A window that will not obey (a minimum size larger than the display)
     //  must not be chased for ever.
     if (it->second.tries >= 3)
       return;
     it->second.pending = true;
     it->second.tries++;
+    it->second.refused = win->GetClientSize();
     win->CallAfter([win]() {
       std::map<wxTopLevelWindow*, Watch>::iterator w = g_watched.find(win);
       if (w == g_watched.end())
