@@ -42,8 +42,8 @@
 // Static conversion arrays
 
 // used for counting functions & primitives:
-short TGBSConfig::sph_mult[]  = { 1, 3, 5, 7, 9, 11, 13}; 
-short TGBSConfig::cart_mult[] = { 1, 3, 6, 10, 15, 21, 28};
+short TGBSConfig::sph_mult[]  = { 1, 3, 5, 7, 9, 11, 13, 15}; 
+short TGBSConfig::cart_mult[] = { 1, 3, 6, 10, 15, 21, 28, 36};
 
 // converts config type to its corresponding string:
 const char* TGBSConfig::configType_formatter[] = {
