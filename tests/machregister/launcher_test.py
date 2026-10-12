@@ -172,6 +172,7 @@ quit
             os.makedirs(pngs, exist_ok=True)
         shot1 = ("shot %s/launcher-machine-settings.png" % pngs) if pngs else ""
         shot2 = ("shot %s/launcher-after-save.png" % pngs) if pngs else ""
+        shot3 = ("shot %s/launcher-memory-unit.png" % pngs) if pngs else ""
         p = run_launcher(disp, build, e, """
 expect button 1
 machine cluster
@@ -194,8 +195,13 @@ expect queues gpu,long,short
 queue gpu
 expect procsmax 8
 %(shot2)s
+machine dummy
+expect memunits GB
+expect scratchunits MBytes
+%(shot3)s
 quit
-""" % {"save": save, "shot1": shot1, "shot2": shot2})
+""" % {"save": save, "shot1": shot1, "shot2": shot2,
+                                       "shot3": shot3})
         clean(p, "the button names the chosen machine; the Launcher reloads "
                  "queues and defaults after a save")
         g.check("binary=%s" % os.path.join(build, "launcher") in p.stdout,

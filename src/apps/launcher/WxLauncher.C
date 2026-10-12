@@ -1685,6 +1685,8 @@ void WxLauncher::refreshMemoryLimit(const Queue *slctQueue)
         p_maxMemoryParamEdit->setRange(0, MemoryUnits::mbToGB(vmax));
         p_maxMemoryParamEdit->setValue(MemoryUnits::mbToGB(value));
         p_maxMemoryParamEdit->setUnitsLabel("GB");
+        // The generated layout hides the units label; show it once it has text.
+        p_maxMemoryParamEdit->setUnitsVisible(true);
         p_maxMemoryParamEdit->Layout();
         p_maxMemoryParamEdit->Fit();
     }
@@ -1724,6 +1726,9 @@ void WxLauncher::refreshScratchSpace(const Queue *slctQueue)
         p_minScratchParamEdit->setRange(0, vmax);
         p_minScratchParamEdit->setValue(value);
         p_minScratchParamEdit->setUnitsLabel(units);
+        p_minScratchParamEdit->setUnitsVisible(true);
+        p_minScratchParamEdit->Layout();
+        p_minScratchParamEdit->Fit();
     }
 
     p_minScratchPanel->Show(supported);
@@ -3071,6 +3076,12 @@ string WxLauncher::hookGet(const string& what)
         return StringConverter::toString(p_wkstnProcsParamEdit->getValue());
     if (what == "memory")
         return StringConverter::toString(p_maxMemoryParamEdit->getValue());
+    if (what == "memunits")
+        return p_maxMemoryParamEdit->getUnitsVisible()
+                   ? p_maxMemoryParamEdit->getUnitsLabel() : "";
+    if (what == "scratchunits")
+        return p_minScratchParamEdit->getUnitsVisible()
+                   ? p_minScratchParamEdit->getUnitsLabel() : "";
     if (what == "button")
     {
         wxWindow* b = FindWindow(ID_BUTTON_WXLAUNCHER_MACHSETTINGS);
