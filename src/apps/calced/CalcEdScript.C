@@ -228,7 +228,7 @@ void CalcEd::runCalcEdScript(const string& file)
         OnButtonCalcedConstraintClick(ev);
         fprintf(stderr, "%s", p_geomConstraints->testReport(
                 w.size() > 1 ? atoi(w[1].c_str()) : 3,
-                w.size() > 2 && w[2] == "fixed").c_str());
+                w.size() > 2 ? (w[2] == "fixed" ? 1 : 2) : 0).c_str());
       } else if (w[0] == "dismiss") {
         bool closed = false;
         for (wxWindowList::compatibility_iterator n =

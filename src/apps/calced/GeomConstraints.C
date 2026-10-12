@@ -1053,14 +1053,14 @@ void GeomConstraints::gridCellChange(wxGridEvent& event)
  * N constraints of each kind from the fragment's atoms, shows the tables,
  * and reports each grid's size against what its columns need.
  */
-std::string GeomConstraints::testReport(int count, bool fixedOnly)
+std::string GeomConstraints::testReport(int count, int mode)
 {
   GeomConstraintModel *model = getModel();
   Fragment *frag = p_calcEd->getFrag();
   std::string out;
   if (!model || !frag) return "no model\n";
   const int n = frag->numAtoms();
-  for (int k = fixedOnly ? 5 : 2; k <= 4; k++) {
+  for (int k = mode == 1 ? 5 : 2; k <= 4; k++) {
     int made = 0;
     for (int a = 0; a < n && made < count; a++)
       for (int b = 0; b < n && made < count; b++)
@@ -1072,14 +1072,14 @@ std::string GeomConstraints::testReport(int count, bool fixedOnly)
             if (k > 3) atoms.push_back(d);
             std::set<int> distinct(atoms.begin(), atoms.end());
             if ((int)distinct.size() != k || a > b) continue;
-            if (made % 2) model->addRestraint(atoms);
+            if (mode == 2) model->addRestraint(atoms);
             else model->addConstraint(atoms);
             made++;
           }
   }
   std::vector<int> fixed;
   for (int a = 0; a < n && a < count; a++) fixed.push_back(a);
-  if (fixedOnly) model->fixAtoms(fixed);
+  if (mode == 1) model->fixAtoms(fixed);
   initDisplay();
   Show(true);
   Layout();
