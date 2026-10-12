@@ -76,6 +76,39 @@ OneElectron one_electron(Basis& b) {
   return r;
 }
 
+std::vector<double> schwarz_bounds(Basis& b, bool deriv) {
+  const int ns = b.nshl();
+  const auto& sh = b.shells();
+  std::vector<double> q(static_cast<size_t>(ns) * ns, 0.0);
+  const bool sp = b.spherical();
+  Fn1* f = deriv ? (sp ? int2e_ip1ip2_sph : int2e_ip1ip2_cart) : (sp ? int2e_sph : int2e_cart);
+  const int ncomp = deriv ? 9 : 1;
+  int maxn = 0;
+  for (auto& s : sh) maxn = std::max(maxn, s.nao);
+#pragma omp parallel
+  {
+    std::vector<double> buf(static_cast<size_t>(maxn) * maxn * maxn * maxn * ncomp), cache;
+#pragma omp for schedule(dynamic, 4)
+    for (int IJ = 0; IJ < ns * ns; ++IJ) {
+      const int I = IJ / ns, J = IJ % ns;
+      if (!deriv && J > I) continue;
+      int shls[4] = {I, J, I, J};
+      size_t cs = f(nullptr, nullptr, shls, b.atm().data(), b.natm(), b.bas().data(), ns, b.env().data(), nullptr, nullptr);
+      if (cache.size() < cs + 16) cache.resize(cs + 16);
+      if (!f(buf.data(), nullptr, shls, b.atm().data(), b.natm(), b.bas().data(), ns, b.env().data(), nullptr, cache.data())) continue;
+      const int ni = sh[I].nao, nj = sh[J].nao;
+      const size_t blk = static_cast<size_t>(ni) * nj * ni * nj;
+      double m = 0;
+      for (int c = 0; c < ncomp; c += (deriv ? 4 : 1))  // xx, yy, zz of the 3x3 components
+        for (int j = 0; j < nj; ++j)
+          for (int i = 0; i < ni; ++i) m = std::max(m, std::fabs(buf[c * blk + i + ni * (j + nj * (i + static_cast<size_t>(ni) * j))]));
+      q[static_cast<size_t>(I) * ns + J] = std::sqrt(m);
+      if (!deriv) q[static_cast<size_t>(J) * ns + I] = std::sqrt(m);
+    }
+  }
+  return q;
+}
+
 double EriStore::bytes_needed(int n) {
   double np = n * (n + 1) / 2.0;
   return np * (np + 1) / 2.0 * 8.0;
@@ -102,6 +135,7 @@ EriStore::EriStore(Basis& b, double max_bytes) : n_(b.nbf()) {
   int maxn = 0;
   for (auto& s : sh) maxn = std::max(maxn, s.nao);
   const long nsp = static_cast<long>(ns) * (ns + 1) / 2;
+  const std::vector<double> Q = schwarz_bounds(b, false);
   std::vector<int> spI(nsp), spJ(nsp);
   for (int I = 0, p = 0; I < ns; ++I)
     for (int J = 0; J <= I; ++J, ++p) { spI[p] = I; spJ[p] = J; }
@@ -113,6 +147,7 @@ EriStore::EriStore(Basis& b, double max_bytes) : n_(b.nbf()) {
       int I = spI[ij], J = spJ[ij];
       for (long kl = 0; kl <= ij; ++kl) {
         int K = spI[kl], L = spJ[kl];
+        if (Q[static_cast<size_t>(I) * ns + J] * Q[static_cast<size_t>(K) * ns + L] < kSchwarzThreshold) continue;
         int shls[4] = {I, J, K, L};
         size_t cs = f(nullptr, nullptr, shls, b.atm().data(), b.natm(), b.bas().data(), ns, b.env().data(), opt, nullptr);
         if (cache.size() < cs + 16) cache.resize(cs + 16);

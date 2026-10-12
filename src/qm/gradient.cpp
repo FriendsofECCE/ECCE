@@ -3,6 +3,7 @@
 #include <cmath>
 #include <memory>
 #include "cint_wrap.hpp"
+#include "integrals.hpp"
 #include "xc.hpp"
 
 namespace qm {
@@ -111,6 +112,17 @@ std::vector<double> scf_gradient(Basis& basis, const Molecule& mol, const ScfOpt
     Fn1* f = sp ? int2e_ip1_sph : int2e_ip1_cart;
     int maxn = 0;
     for (auto& s : sh) maxn = std::max(maxn, s.nao);
+    // Per shell-pair maxima of |D| and the Schwarz bounds let the loop skip
+    // quartets whose largest possible contribution is negligible.
+    const std::vector<double> Qd = schwarz_bounds(basis, true), Q = schwarz_bounds(basis, false);
+    std::vector<double> dT(static_cast<size_t>(ns) * ns, 0.0), dS(dT);
+    for (int I = 0; I < ns; ++I)
+      for (int J = 0; J < ns; ++J) {
+        const auto blkI = sh[I].nao, blkJ = sh[J].nao;
+        dT[I * ns + J] = Dt.block(sh[I].ao0, sh[J].ao0, blkI, blkJ).cwiseAbs().maxCoeff();
+        dS[I * ns + J] = std::max(r.D_a.block(sh[I].ao0, sh[J].ao0, blkI, blkJ).cwiseAbs().maxCoeff(),
+                                  r.D_b.block(sh[I].ao0, sh[J].ao0, blkI, blkJ).cwiseAbs().maxCoeff());
+      }
 #pragma omp parallel
     {
       std::vector<double> gt(3 * natm, 0.0), buf(static_cast<size_t>(maxn) * maxn * maxn * maxn * 3), cache;
@@ -119,6 +131,9 @@ std::vector<double> scf_gradient(Basis& basis, const Molecule& mol, const ScfOpt
         const int I = IJ / ns, J = IJ % ns;
         for (int K = 0; K < ns; ++K)
           for (int L = 0; L <= K; ++L) {
+            const double wmax = 4 * dT[I * ns + J] * dT[K * ns + L] +
+                                4 * exx * (dS[I * ns + K] * dS[J * ns + L] + dS[I * ns + L] * dS[J * ns + K]);
+            if (Qd[I * ns + J] * Q[K * ns + L] * wmax < kSchwarzThreshold) continue;
             int shls[4] = {I, J, K, L};
             size_t cs = f(nullptr, nullptr, shls, basis.atm().data(), basis.natm(), basis.bas().data(), ns, basis.env().data(), opt2, nullptr);
             if (cache.size() < cs + 16) cache.resize(cs + 16);
@@ -156,7 +171,7 @@ std::vector<double> scf_gradient(Basis& basis, const Molecule& mol, const ScfOpt
   }
 
   if (!fs.is_hf()) {
-    XcIntegrator xc(basis, fs, make_grid(mol, opt.grid_radial, opt.grid_angular));
+    XcIntegrator xc(basis, fs, make_grid(mol, opt.grid_radial, opt.grid_angular, opt.grid_prune));
     std::vector<double> gx;
     xc.gradient(r.D_a, r.D_b, closed, gx);
     for (int k = 0; k < 3 * natm; ++k) g[k] += gx[k];
