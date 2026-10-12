@@ -229,6 +229,17 @@ void CalcEd::runCalcEdScript(const string& file)
           if (d && d->IsModal()) { d->EndModal(wxID_OK); closed = true; break; }
         }
         if (!closed) outcome = "no modal dialog";
+      } else if (w[0] == "rects") {
+        // where the button row, the summary and the frame are, for layout tests
+        auto r = [this](wxWindowID id) {
+          wxWindow *x = FindWindow(id);
+          wxRect q = x ? x->GetRect() : wxRect();
+          return wxString::Format("%d,%d,%d,%d", q.x, q.y, q.width, q.height);
+        };
+        fprintf(stderr, "CALCED: rects verify=%s launch=%s frame=%d,%d\n",
+                r(ID_BUTTON_CALCED_VERIFY).utf8_str().data(),
+                r(ID_BUTTON_CALCED_LAUNCH).utf8_str().data(),
+                GetClientSize().x, GetClientSize().y);
       } else if (w[0] == "info") {
         wxWindow *launch = FindWindow(ID_BUTTON_CALCED_LAUNCH);
         fprintf(stderr, "CALCED: theory=%s runtype=%s launch=%s\n",

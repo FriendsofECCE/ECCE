@@ -2586,6 +2586,11 @@ void CalcEd::populateSummaryField(const string& summaryType)
   p_runtypeDetailsSizer->Layout();
   p_detailsBox->GetContainingSizer()->Layout();
   refit();
+  // The summary arrives from the details dialog after the theory change's
+  // hold has ended; without a full layout and repaint, wxMSW keeps the old
+  // button row's pixels where the shorter summary used to end (#294).
+  GetSizer()->Layout();
+  Refresh(true);
 }
 
 
