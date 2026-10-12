@@ -42,6 +42,14 @@ names the line.
 | `units` | `angstrom` or `bohr` (`au` also means bohr) | `angstrom` |
 | `charges` | any of `loewdin`, `chelpg`, `mk`: extra atomic charges besides Mulliken (see below) | none |
 | `maxiter` | whole number | 150 |
+| `runtype` | `energy`, `gradient`, `optimize` (or `opt`), `frequency` (or `freq`), or `optfreq` (optimise, then frequencies at the optimised geometry) | `energy` |
+| `maxsteps` | whole number: geometry optimisation steps (energy and gradient evaluations) | 100 |
+| `opt_conv` | `normal` or `tight`: optimisation convergence criteria | `normal` |
+| `hessian_step` | number, in bohr: displacement for the finite-difference frequencies | 0.005 |
+| `temperature` | number, in K: for the thermochemistry | 298.15 |
+| `pressure` | number, in atm: for the thermochemistry | 1 |
+| `symmetry_number` | whole number: rotational symmetry number for the thermochemistry | found from the geometry |
+| `molden` | no value: also write the orbitals (and normal modes) in Molden format | off |
 | `conv_energy` | number, in Hartree | `1e-10` |
 | `conv_grad` | number | `1e-7` |
 
