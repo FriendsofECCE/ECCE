@@ -23,8 +23,9 @@ Machines and reached over ssh.
 
 ## ORCA
 
-1. Download ORCA for Windows from the FACCTS customer portal
-   (<https://www.faccts.de/customer>; you need a free academic account): the 64-bit Windows build.
+1. Download ORCA for Windows from FACCTS
+   (<https://www.faccts.de/orca/>; you need a free academic account): the
+   64-bit Windows build.
 2. Install or unpack it into a folder in your user folder, for example
    `C:\Users\<you>\orca`. Keep all of its files together: ORCA finds its
    helper programs next to itself.

@@ -34,8 +34,9 @@ started. Miniforge below is only for NWChem.
 
 ## ORCA
 
-1. Download ORCA for macOS from the FACCTS customer portal
-   (<https://www.faccts.de/customer>; you need a free academic account). Choose the Intel build on an Intel Mac and the arm64 build on
+1. Download ORCA for macOS from FACCTS
+   (<https://www.faccts.de/orca/>; you need a free academic account).
+   Choose the Intel build on an Intel Mac and the arm64 build on
    an Apple-silicon Mac.
 2. Unpack it in your home folder:
 

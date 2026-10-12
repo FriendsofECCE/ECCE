@@ -43,8 +43,9 @@ On Fedora, Rocky Linux and RHEL, some of these codes are in Fedora or EPEL;
 
 ORCA is free for academic use but is not in any distribution's archive.
 
-1. Log in to the FACCTS customer portal (<https://www.faccts.de/customer>; a free academic account)
-   and download ORCA for Linux: x86-64 for a PC, arm64 for an ARM machine.
+1. Download ORCA from FACCTS (<https://www.faccts.de/orca/>; you need a free
+   academic account to log in), choosing ORCA for Linux: x86-64 for a PC,
+   arm64 for an ARM machine.
    For x86-64 there are two archives,
    `orca_6_1_1_linux_x86-64_shared_openmpi418.tar.xz` and
    `orca_6_1_1_linux_x86-64_shared_openmpi418_nodmrg.tar.xz`; the second
