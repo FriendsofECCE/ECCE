@@ -416,6 +416,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
 
 
 /**
+ * examples        File > Open Example Calculations: a new project
+ *                 Examples (Examples_2, ...) with the shipped examples
  * import <file>   import <file> into session-test, as File > Import
  *                 Calculation from Output File does
  * walk            select and expand every node below the home, as a user
@@ -490,6 +492,11 @@ void CalcMgr::runTestCommand(const string& line)
       dlg.registerListener(this);
       dlg.importFile(calcName);
       outcome = "done";
+    } else if (command == "examples") {
+      // File > Open Example Calculations
+      string message;
+      string made = openExamples(message);
+      outcome = made.empty() ? "not made: " + message : "ok " + made;
     } else if (command == "newproject" || command == "newcalc") {
       // File > New Project / New <code> Calculation, without the name
       // prompt: "newproject NAME" in the home, "newcalc PROJECT NAME TYPE"
@@ -2483,6 +2490,87 @@ void CalcMgr::OnImportClick( wxCommandEvent& event )
 
 
 /*!
+ * wxEVT_COMMAND_MENU_SELECTED event handler for wxID_OPENEXAMPLES
+ */
+void CalcMgr::OnOpenExamplesClick( wxCommandEvent& event )
+{
+  startDisabler();
+  string message;
+  if (openExamples(message).empty())
+    setMessage(message, WxFeedback::ERROR);
+  else
+    setMessage(message, WxFeedback::INFO);
+  stopDisabler();
+}
+
+
+/**
+ * The shipped example calculations are program outputs (data/client/examples),
+ * imported as any output is.  Each call makes a fresh project, so a user's
+ * own copy is never overwritten; its "ecce:exampleSet" metadata says which
+ * version of the set it holds, for a later "newer examples" notice.
+ */
+static const char *const kExampleOutputs[] = {
+  "ecceqm-water/water.qmout",
+  "orca-benzene/benzene.out",
+  "mopac-ammonia/ammonia.out",
+  "nwchem-methane/methane.eprint",
+};
+static const char *const kExampleSetVersion = "1";
+
+string CalcMgr::openExamples(string& message)
+{
+  const string dir = string(Ecce::ecceHome()) + "/data/client/examples/";
+  EDSIServerCentral central;
+  EcceURL home = central.getDefaultUserHome();
+  Resource *homeRes = EDSIFactory::getResource(home);
+  if (!homeRes) {
+    message = "Cannot reach your home folder for the examples.";
+    return "";
+  }
+  for (const char *rel : kExampleOutputs) {
+    if (!SFile(dir + rel).exists()) {
+      message = "The example calculations are not installed (" + dir + rel +
+                " is missing).";
+      return "";
+    }
+  }
+
+  // Project names allow no spaces (NameRule of the project type).
+  string name = "Examples";
+  for (int n = 2; EDSIFactory::getResource(home.getChild(name)); n++)
+    name = "Examples_" + std::to_string(n);
+
+  Resource *proj = homeRes->createChild(name,
+      ResourceDescriptor::getResourceDescriptor().getResourceType(
+          "collection", "ecceProject", ""));
+  if (!proj) {
+    message = "Cannot create the project " + name + ".";
+    return "";
+  }
+  vector<MetaDataResult> mark(1);
+  mark[0].name = VDoc::getEcceNamespace() + ":exampleSet";
+  mark[0].value = kExampleSetVersion;
+  proj->addProps(mark);
+
+  EcceURL project = proj->getURL();
+  if (WxResourceTreeItemData *homeNode = findNode(home, false, false))
+    p_treeCtrl->refresh(homeNode);
+
+  WxCalcImport dlg(this);
+  dlg.registerListener(this);
+  for (const char *rel : kExampleOutputs) {
+    // importFile selects each new calculation; the next must land in the
+    // project again, not beside it.
+    findNode(project, true, true);
+    dlg.importFile(dir + rel);
+  }
+  message = "Example calculations are being imported into " + name + ".";
+  return name;
+}
+
+
+/*!
  * wxEVT_COMMAND_MENU_SELECTED event handler for wxID_EXPORT
  */
 void CalcMgr::OnExportClick( wxCommandEvent& event )
@@ -3407,6 +3495,8 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
   menu.AppendSeparator();
 
   menu.Append(wxID_IMPORT, _("&Import Calculation from Output File..."),
+              _T(""), wxITEM_NORMAL);
+  menu.Append(wxID_OPENEXAMPLES, _("Open &Example Calculations"),
               _T(""), wxITEM_NORMAL);
   menu.AppendSeparator();
 

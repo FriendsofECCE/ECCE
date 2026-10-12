@@ -105,6 +105,12 @@ public:
 
   void OnImportClick( wxCommandEvent& event );
 
+  void OnOpenExamplesClick( wxCommandEvent& event );
+
+  /// Imports the shipped example calculations into a new project
+  /// "Examples" (never an existing one); returns its name, "" on failure.
+  string openExamples(string& message);
+
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_EXPORT
   void OnExportClick( wxCommandEvent& event );
 

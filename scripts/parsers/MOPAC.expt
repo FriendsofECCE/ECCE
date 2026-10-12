@@ -1,0 +1,100 @@
+#!/usr/bin/env perl
+###############################################################################
+# FILENAME:  MOPAC.expt
+#
+# SYNTAX: MOPAC.expt <outfile>
+#
+# PURPOSE:
+#       Reads a MOPAC output file and writes the ECCE .frag/.param pair, so
+#       it can be imported as a completed calculation.  There is no basis
+#       set to record.  The Hamiltonian, run type, charge and spin are read
+#       from the keyword banner MOPAC prints for every data set; a file
+#       with several data sets (optimise, then FORCE OLDGEO) is one
+#       calculation, and the geometry is the last one printed.
+###############################################################################
+
+use Getopt::Std;
+
+$| = 1;
+&getopts(':hv');
+&usage if ($opt_h || $opt_help);
+exit if ($opt_v);
+&usage if ($#ARGV != 0);
+
+open(INPUT, $ARGV[0]) || die "Can't locate output file $ARGV[0]";
+my ($method, $uhf, $charge, $mult, $group, $opt, $vib, $grad, $version);
+my @atoms;
+while (<INPUT>) {
+  $version = $1 if (/MOPAC v(\S+)/ && !defined($version));
+  if (/^ \*\s+(PM7|PM6|PM3|AM1|RM1|MNDO)\s+-/) { $method = $1; }
+  $uhf = 1 if (/^ \*\s+UHF\s+-/ || /UHF CALCULATION/);
+  $charge = $1 if (/CHARGE ON SYSTEM\s*=\s*(-?\d+)/);
+  $mult = 1 if (/^ \*\s+SINGLET\s/);
+  $mult = 2 if (/^ \*\s+DOUBLET\s/);
+  $mult = 3 if (/^ \*\s+TRIPLET\s/);
+  $group = $1 if (/MOLECULAR POINT GROUP\s*:\s*(\S+)/);
+  $opt = 1 if (/Geometry optimization using/);
+  $vib = 1 if (/^ \*\s+FORCE\s+-/);
+  $grad = 1 if (/^ \*\s+GRADIENTS\s+-/);
+  if (/^\s+CARTESIAN COORDINATES\s*$/) {
+    my @block;
+    while (<INPUT>) {
+      next if (/^\s*$/ && !@block);
+      next if (/^\s+NO\.\s+ATOM/ && !@block);
+      if (/^\s+\d+\s+([A-Z][a-z]?)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/) {
+        push(@block, [$1, $2, $3, $4]);
+      } else {
+        last;
+      }
+    }
+    @atoms = @block if (@block);
+  }
+}
+close(INPUT);
+
+if (!@atoms) {
+  print "No molecular geometry found in $ARGV[0]\n";
+  exit(1);
+}
+
+$charge = 0 unless (defined($charge));
+$mult = 1 unless (defined($mult));
+my $runType = ($opt && $vib) ? "GeoVib" : $opt ? "Geometry" : $vib ? "Vibration"
+            : $grad ? "Gradient" : "Energy";
+
+($title = $ARGV[0]) =~ s/\.[^.]*$//;
+(my $root = $ARGV[0]) =~ s/\.[^.]*$//;
+
+open(PARAMS, ">$root.param");
+print(PARAMS "title:\t$title\n");
+print(PARAMS "version:\t$version\n") if (defined($version));
+if (defined($method)) {
+  print(PARAMS "Category:\tSE\n");
+  print(PARAMS "Theory:\t" . ($uhf ? "U" : "R") . "$method\n");
+}
+print(PARAMS "RunType:\t$runType\n");
+print(PARAMS "Charge:\t$charge\n");
+print(PARAMS "ES.ChemSys.Multiplicity:\t$mult\n");
+close(PARAMS);
+
+open(MOL, ">$root.frag");
+print(MOL "title:\t$title\ntype:\tmolecule\n");
+print(MOL "charge:\t$charge\n");
+print(MOL "num_atoms:\t" . scalar(@atoms) . "\n");
+if (defined($group) && uc($group) ne "C1") {
+  print(MOL "fragment_attributes:\n  point_group: $group\n");
+  print(MOL "end_fragment_attributes:\n");
+}
+print(MOL "atom_info:\tsymbol cart\natom_list:\n");
+foreach my $a (@atoms) {
+  print(MOL " $a->[0] $a->[1] $a->[2] $a->[3]\n");
+}
+close(MOL);
+exit(0);
+
+sub usage {
+  print "Usage: MOPAC.expt <outfile>\n";
+  print "Options:    -h        this help\n";
+  print "            -v        version\n";
+  exit;
+}

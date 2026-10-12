@@ -11,6 +11,8 @@ the second page.
    code installed.
 3. [Importing a calculation](importing-a-calculation.md): look at the results
    of a calculation that ran elsewhere.
+   [Example calculations](example-calculations.md) are four finished ones
+   shipped with ECCE, for the same purpose.
 4. [Machines](machines.md): where calculations run, and how to tell ECCE
    where a code is installed.
 5. [Your first calculation](first-calculation.md): a geometry optimisation

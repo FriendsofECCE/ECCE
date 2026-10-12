@@ -1,0 +1,11 @@
+PM7 EF VECTORS ALLVEC GRAPHF
+Ammonia, PM7, optimisation
+ 
+N     0.000000 1    0.000000 1    0.120000 1
+H     0.000000 1    0.940000 1   -0.270000 1
+H     0.814064 1   -0.470000 1   -0.270000 1
+H    -0.814064 1   -0.470000 1   -0.270000 1
+
+PM7 FORCE OLDGEO VECTORS ALLVEC GRAPHF
+Ammonia, PM7, frequencies at the optimised geometry
+ 
