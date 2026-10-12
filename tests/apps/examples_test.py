@@ -23,6 +23,7 @@ import tempfile
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 
 import apps       # noqa: E402
@@ -81,22 +82,38 @@ def waitImported(root, projects, seconds=240):
 def run(display, data, work):
     root = os.path.join(data, "users", "local")
     script = os.path.join(work, "commands")
+    # Another project's calculation is the selection, as after a session
+    # that ended on one.
+    alpha = os.path.join(root, "alpha")
+    os.makedirs(alpha)
+    shutil.copy(os.path.join(ROOT, "tools", "screenshots", "data",
+                             "project.ecce-meta"),
+                os.path.join(alpha, ".ecce-meta"))
+    calc = os.path.join(alpha, "water")
+    shutil.copytree(os.path.join(HERE, "fixtures", "calc-water-opt"), calc,
+                    symlinks=True)
     with open(script, "w") as handle:
-        handle.write("examples\nexamples\n")
+        handle.write("examplesmenu\nexamples\n")
+
     box = {}
 
     def inspect(_display):
         box["props"] = waitImported(root, ["Examples", "Examples_2"])
+        # the tree as drawn once both imports have settled
+        with open(script, "a") as handle:
+            handle.write("treeflags\ntree\n")
+        time.sleep(6)
 
     result = apps.run(display, "organizer", windowTimeout=60, settle=20,
-                      env={"ECCE_TEST_ORGANIZER": script}, inspect=inspect)
+                      env={"ECCE_TEST_ORGANIZER": script,
+                               "ECCE_ORGANIZER_OPEN": "file://" + calc}, inspect=inspect)
     log = result.log or ""
     what = "Open Example Calculations"
     if result.crashed:
         return fail(what, "CRASHED (%s)" % result.signalName, log)
     answers = re.findall(r"ECCE_TEST_ORGANIZER: examples: (.*)$", log, re.M)
     problems = []
-    if answers != ["ok Examples", "ok Examples_2"]:
+    if answers != ["ok Examples_2"]:
         problems.append("answers %s" % answers)
     for project in ("Examples", "Examples_2"):
         got = (box.get("props") or {}).get(project, {})
@@ -115,6 +132,24 @@ def run(display, data, work):
         text = open(meta).read() if os.path.exists(meta) else ""
         if not re.search(r"exampleSet[^0-9]*1", text):
             problems.append("%s records no example-set version" % project)
+    trees = re.findall(r"ECCE_TEST_ORGANIZER: tree: ok (.*)$", log, re.M)
+    if not trees:
+        problems.append("no tree answer")
+    else:
+        nodes = [t.lstrip("[") for t in trees[-1].split(" selected=")[0].split()]
+        for project in ("Examples", "Examples_2"):
+            below = []
+            seen = False
+            for n in nodes:
+                depth, _, label = n.partition(":")
+                if seen and depth == "2":
+                    below.append(label)
+                elif seen:
+                    break
+                seen = label == project if depth == "1" else seen
+            if sorted(below) != sorted(EXPECT):
+                problems.append("tree: %s holds %s, expected %s (tree: %s)"
+                                % (project, below, sorted(EXPECT), trees[-1]))
     if problems:
         fail(what, "; ".join(problems), log)
     else:

@@ -143,7 +143,7 @@ void WxCalcImport::importFile(const string& fileSpec)
         RCommand localconn("system");
         if (localconn.isOpen()) {
           string cmd = "grep -i \"^start \" ";
-          cmd.append(fileSpec);
+          cmd.append(RCommand::quotePath(fileSpec));
           string oput;
           if (localconn.execout(cmd, oput)) {
             // Strip up to second token
@@ -154,7 +154,7 @@ void WxCalcImport::importFile(const string& fileSpec)
               name = oput;
           } else {
             cmd = "grep -i \"^restart \" ";
-            cmd.append(fileSpec);
+            cmd.append(RCommand::quotePath(fileSpec));
             if (localconn.execout(cmd, oput)) {
               // Strip up to second token
               oput = oput.substr(oput.find_first_not_of(" \t",8));

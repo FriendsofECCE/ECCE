@@ -556,6 +556,10 @@ protected:
   std::vector<std::pair<UpdateKind, string> > p_queuedUpdates;
   wxTimer *p_updateTimer = 0;
   // For the "counts" test command.
+  // True while openExamples() imports several outputs: the tree is rebuilt
+  // once at the end, not after each calculation (#263).
+  bool p_batchImport = false;
+  std::string p_batchError;     // the first import that failed in the batch
   int p_testNotices = 0, p_testApplied = 0, p_testBatches = 0;
   // url -> (snapshot, when it arrived, seconds since 1970)
   std::map<string, std::pair<string, double> > p_liveProgress;

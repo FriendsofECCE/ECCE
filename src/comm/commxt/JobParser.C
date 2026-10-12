@@ -133,6 +133,10 @@ bool JobParser::importCalculation(const char* parseFile,
 
   string whereami = RCommand::whereami();
   RefMachine* refMachine = RefMachine::abbrevLookup(whereami);
+  // The Windows client registers this computer as "localhost", never under
+  // its host name (RunMgmt::registerLocalMachine).
+  if (!refMachine)
+    refMachine = RefMachine::refLookup("localhost");
   if (!refMachine) {
     message = whereami + " must be a registered compute server to import.";
     return ret;

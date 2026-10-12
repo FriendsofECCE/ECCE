@@ -21,3 +21,12 @@ add the output to `kExampleOutputs` and the expected `Props` to
   Hamiltonian, run type, charge, spin and the last `CARTESIAN COORDINATES`
   block of a multi-data-set output; the properties come from `mopac.desc`.
 - The Props names that mean a charge scheme: `ESPFIT` is CHELPG, `MKFIT` is MK.
+- `JobParser::importCalculation` looked the machine up by host name; the
+  Windows client registers itself as `localhost` only
+  (`RunMgmt::registerLocalMachine`), so every import there ended "<host> must
+  be a registered compute server", the empty calculation was deleted again
+  and the Examples project stayed empty. It falls back to `localhost` now.
+- `openExamples` selects the new project once, imports all four with
+  `p_batchImport` set (no per-calculation tree rebuild, which wxMSW paints
+  step by step) and rebuilds the project's subtree once at the end; a failed
+  import is reported after that, not overwritten (#263).
