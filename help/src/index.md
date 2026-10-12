@@ -32,6 +32,8 @@ Reference:
 
 - [How to cite ECCE](citing-ecce.md): the DOI, a BibTeX entry, and the
   original PNNL papers.
+- [ECCE-QM](ecce-qm.md): the built-in Hartree-Fock and density functional
+  program: methods, basis sets, run types, limits and how it was checked.
 - [ECCE-QM input and output files](ecce-qm-files.md): every keyword of the
   built-in engine's input, and what its output file contains.
 
