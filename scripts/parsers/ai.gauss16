@@ -394,20 +394,25 @@ sub G09Route {
   #       Post-SCF densities or gradients only with  
   #       Real MP2, MP3, MP4SDQ, CI, CCD, and QCI
   $tmpTheory = $AbiDict{"Theory"};
+  # Gaussian rejects two Pop keywords, so every population analysis the
+  # user ticked goes into the one Pop=(...) list.
+  my @pop;
+  if ($AbiDict{"UseNBO"}) {
+    # A calculation saved before the version choice existed used NBO6.
+    push @pop, (($AbiDict{"NBOVersion"} =~ /7/) ? "NBO7" : "NBO6"), "savenbos";
+  }
+  push @pop, "Hirshfeld" if $AbiDict{"UseHirshfeld"};
+  # One ESP fit per job: Gaussian fits once when both are named.
+  push @pop, "MK" if $AbiDict{"ESPCharges"} =~ /Merz/;
+  push @pop, "CHelpG" if $AbiDict{"ESPCharges"} =~ /CHelpG/;
+  push @pop, "full";
+  my $popKey = " Pop=(" . join(",", @pop) . ")";
   if ((($tmpTheory =~ /MP4/ || $tmpTheory =~ /MP5/) &&  $tmpTheory !~ /SDQ/) || 
         $tmpTheory =~ /CCSD/ || $tmpTheory =~ /QCISD.T./ ||
         $tmpTheory =~ /ROMP/ || $tmpTheory =~ /HF/ || $tmpTheory =~ /DFT/) {
-#Andy
-    if ($AbiDict{"UseNBO"}) { 
-    #  A calculation saved before the version choice existed used NBO6.
-    my $nbo = ($AbiDict{"NBOVersion"} =~ /7/) ? "NBO7" : "NBO6";
-    $route .= " Pop=($nbo, savenbos,full)";
-    } else {
-# end Andy
-    $route .= " Pop=(full)";
-    } 
+    $route .= $popKey;
   } else {
-    $route .= " Density Pop=(full)";
+    $route .= " Density" . $popKey;
   }
   $result = &multiLineString($route,78); # break the route line if too long
 

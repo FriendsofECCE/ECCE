@@ -1886,6 +1886,31 @@ CASES = [
         },
     ),
 
+    dict(
+        #  Route written by ai.gauss16 with Hirshfeld and Merz-Kollman ticked
+        #  (one Pop=(...) keyword); a real g16 run of CO.
+        name='g16-co-pop-hirshfeld-mk',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/co_pop_all.log',
+        parse_args=('.', 'Energy', 'DFT', 'rPBE1PBE', '0'),
+        silent_ok={
+            'DELTAE': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'RMSDP': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'ESCF1][ESCFVEC': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'EGRAD': 'runtype-gated to /Geo/i (see g16-co-freq).',
+        },
+        expect={
+            'HIRSHFELD][CM5': dict(keys={
+                'HIRSHFELD': {'size': '2', 'sum': 0.0, 'units': 'e',
+                              'values': '0.163068 -0.163068'},
+                'CM5': {'size': '2', 'sum': 0.0, 'units': 'e',
+                        'values': '0.187346 -0.187346'}}),
+            'ESPFIT': dict(keys={'ESPFIT': {'size': '2', 'sum': 0.0,
+                                            'units': 'e',
+                                            'values': '0.121482 -0.121482'}}),
+        },
+    ),
+
     # -----------------------------------------------------------------
     # Thermochemistry and solvation (#176).  Every expected value below
     # is a number the code printed in its own summary lines, re-derived

@@ -1,0 +1,11 @@
+%nprocshared=2
+%Mem=2GB
+%Chk=co.chk
+#P rPBE1PBE/6-31G* 6D 10F Symmetry=(PG=C4V,Loose) Punch=(MO) iop(6/80=1) AIM=(CP) Pop=(Hirshfeld,CHelpG,MK,full)
+
+CO
+
+0 1
+ C     0.0624493     0.00000     0.00000
+ O     1.43755     0.00000     0.00000
+

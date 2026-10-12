@@ -78,6 +78,22 @@ class Ged16TheoryPanel(EccePanel):
                                        export = 1)
         genopsSizer.AddWidget(self.nboVersion)
 
+        self.useHirshfeldBox = EcceCheckBox(self,
+                                           label = " Hirshfeld and CM5 charges",
+                                           name = "ES.Theory.UseHirshfeld",
+                                           default = False,
+                                           export = 1)
+        genopsSizer.AddWidget(self.useHirshfeldBox)
+
+        #  Gaussian does one ESP fit per job (naming both CHelpG and MK
+        #  fits once only), so the two are a choice, not two tick boxes.
+        self.espCharges = EcceComboBox(self,
+                                       choices = ["None", "Merz-Kollman", "CHelpG"],
+                                       name = "ES.Theory.ESPCharges",
+                                       default = 0,
+                                       label = "ESP-fitted charges:")
+        genopsSizer.AddWidget(self.espCharges)
+
         self.useMayerBox = EcceCheckBox(self,
                                            label = " Do Mayer BO",
                                            name = "ES.Theory.UseMayer",
