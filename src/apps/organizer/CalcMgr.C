@@ -5655,7 +5655,16 @@ void CalcMgr::resetWithLastGeom(WxResourceTreeItemData *itemData)
       int numSteps = geotrace->tables();
       int numRows = frag->numAtoms();
       const vector<double>& values = geotrace->values(numSteps-1);
-      if (3*(size_t)numRows != values.size()) {
+      // A trace without the dummy atoms (MOPAC, Gaussian) maps onto the
+      // other atoms in order.
+      std::vector<int> target;
+      for (int idx=0; idx<numRows; idx++)
+        if (frag->atomRef(idx)->atomicSymbol() != "X") target.push_back(idx);
+      if (target.size() != (size_t)numRows && 3*target.size() == values.size()) {
+        for (size_t k=0; k<target.size(); k++)
+          frag->atomRef(target[k])->coordinates(values[3*k], values[3*k+1],
+                                                values[3*k+2]);
+      } else if (3*(size_t)numRows != values.size()) {
         std::cerr << "GEOMTRACE last step holds " << values.size()
                   << " values for " << numRows
                   << " atoms; coordinates left unchanged" << std::endl;

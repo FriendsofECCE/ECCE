@@ -344,6 +344,10 @@ sub chemsys {
   ($chemsys_atoms != 0) || die "ai.ecceqm error: Fragment has no atoms!\n";
   for (my $index = 0; $index < $chemsys_atoms; $index++) {
     my $symbol = $tags{$index};
+    # ecce-qm has no dummy atoms and no geometry constraints to use one in.
+    ($symbol ne "X") || die "ai.ecceqm error: ecce-qm does not support dummy " .
+        "atoms (atom " . ($index + 1) . "). Delete the X atom in the Builder, " .
+        "or use NWChem or ORCA.\n";
     print(NEWFILE " $symbol     $coords{$index,0}     ");
     print(NEWFILE "$coords{$index,1}     $coords{$index,2}\n");
   }

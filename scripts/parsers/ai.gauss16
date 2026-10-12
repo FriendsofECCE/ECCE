@@ -2269,6 +2269,17 @@ sub readCnstrntFile {
           @group = split(/ +/,$tgroup);
         }
       }
+      # Gaussian leaves dummy atoms out of the centres a Cartesian ModRedundant
+      # section may name ("Illegal centers"), so such a job cannot run.
+      foreach my $g (@group) {
+        if ($tags{$g} eq "X") {
+          print STDERR "ai.gauss16 warning [ModRedundant]: Gaussian cannot " .
+              "constrain a Cartesian dummy atom (atom " . ($g + 1) . "); the " .
+              "job will stop with 'Illegal centers'. Constrain real atoms, " .
+              "or use NWChem or ORCA, which accept dummy atoms in constraints.\n";
+          last;
+        }
+      }
       if ($type eq "bond") {
         $newline = "B";
       } elsif ($type eq "angle") {
@@ -2281,6 +2292,10 @@ sub readCnstrntFile {
       }
       for ($i=0; $i<@group; $i++) {
         $itmp = $group[$i] + 1;
+        # Gaussian's Cartesian centre numbers skip dummy atoms.
+        for (my $d = 0; $d < $group[$i]; $d++) {
+          $itmp-- if ($tags{$d} eq "X");
+        }
         $newline .= " $itmp";
       }
       if ($value eq "") {

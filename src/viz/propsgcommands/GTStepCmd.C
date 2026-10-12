@@ -60,12 +60,22 @@ bool GTStepCmd::execute()
   if (trace) {
     // loop through all the atoms and replace with coordinates for this step 
     int natoms = sgfrag->numAtoms() ;
+    // MOPAC and Gaussian leave dummy atoms out of their geometry tables; the
+    // rows then belong to the non-dummy atoms in order, and a dummy keeps
+    // its position.
+    int ndummy = 0;
+    for (int j = 0; j < natoms; j++)
+      if (sgfrag->atomRef(j)->atomicSymbol() == "X") ndummy++;
+    const bool skipDummies = ndummy > 0 && trace->rows() == natoms - ndummy;
+    int row = 0;
     for (int j = 0; j < natoms; j++) {
+      if (skipDummies && sgfrag->atomRef(j)->atomicSymbol() == "X") continue;
       double coords[] = {
-        trace->value(step,j,0),
-        trace->value(step,j,1),
-        trace->value(step,j,2)
+        trace->value(step,row,0),
+        trace->value(step,row,1),
+        trace->value(step,row,2)
       };
+      row++;
       sgfrag->atomRef(j)->coordinates(coords);
     }
     //TODO decide what to do if there is no lattice - create one?

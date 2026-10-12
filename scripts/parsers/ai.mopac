@@ -502,6 +502,18 @@ sub chemsys {
   ($chemsys_atoms != 0) || die "ai.mopac error: Fragment has no atoms!\n";
   for (my $index = 0; $index < $chemsys_atoms; $index++) {
     my $symbol = $tags{$index};
+    if ($symbol eq "X") {
+      # MOPAC's dummy atom is XX.  It leaves it out of every table it prints;
+      # geometry traces are mapped onto the other atoms by the viewer, but
+      # per-atom tables (charges) then number the real atoms from 1 on.
+      $symbol = "XX";
+      if ($index < $chemsys_atoms - 1) {
+        print STDERR "ai.mopac warning [XX]: MOPAC omits dummy atoms from " .
+            "its output, so per-atom results (charges, gradients) number " .
+            "the atoms after the dummy one lower than the Builder does. " .
+            "Put the dummy atom last to avoid this.\n";
+      }
+    }
     printf(NEWFILE " %-2s  %14.9f  %14.9f  %14.9f\n", $symbol,
            $coords{$index,0}, $coords{$index,1}, $coords{$index,2});
   }

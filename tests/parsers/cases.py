@@ -1031,6 +1031,18 @@ CASES = [
     # semiempirical, so the energies are heats of formation in kcal/mol
     # and there is no basis set anywhere in the pipeline.
     # -----------------------------------------------------------------
+    # #298: NH3 + dummy XX; MOPAC leaves it out of its tables, so the trace
+    # has the four real atoms (the viewer maps them onto the non-dummy atoms).
+    dict(
+        name='mopac-nh3-dummy-opt',
+        desc='mopac.desc',
+        fixture='mopac/nh3x_dummy_opt.out',
+        parse_args=('.', 'Geometry', 'SE', 'RPM7', '0'),
+        expect={
+            'GEOMTRACE': dict(blocks=2, keys={'GEOMTRACE': {
+                'size': '1 4 3', 'rowlabels': '1-N 2-H 3-H 4-H'}}),
+        },
+    ),
     dict(
         # PM7 EF PRECISE geometry optimisation of methane.
         name='mopac-ch4-opt',

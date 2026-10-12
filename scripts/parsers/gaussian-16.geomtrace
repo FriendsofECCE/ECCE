@@ -49,9 +49,9 @@ $| = 1;
       # produced a PropTSVecTable whose steps have different row counts --
       # GitHub issue #27 -- and, because a dummy can sit anywhere in the
       # centre list, shifted every following atom's coordinates onto the
-      # wrong atom in the geometry trace.  ECCE's chemical system has no
-      # dummy atoms, so dropping them here makes each step line up 1:1 with
-      # the fragment.  Ghost/Bq centres (atomic number 0) are kept: they
+      # wrong atom in the geometry trace.  Dropping them here makes
+      # every step the same size; GTStepCmd and CalcMgr map the rows onto the
+      # fragment's non-dummy atoms (#298).  Ghost/Bq centres (atomic number 0) are kept: they
       # appear consistently in every orientation block.
       next if ($atomicNumber < 0);
       $line = join(" ",($xcoord,$ycoord,$zcoord));
