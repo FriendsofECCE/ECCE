@@ -16,7 +16,7 @@ authors:
     family-names: Asplund
     affiliation: Brigham Young University
 version: 9.0.0
-date-released: 2026-10-12
+date-released: 2026-10-13
 doi: 10.5281/zenodo.23281771
 license: ECL-2.0
 repository-code: "https://github.com/FriendsofECCE/ECCE"
