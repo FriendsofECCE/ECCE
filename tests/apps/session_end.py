@@ -50,6 +50,9 @@ windows the way a window manager does (WM_DELETE_WINDOW):
               and no per-user broker is ever started
   first-local the first-start window (#240): a fresh client-only user answers
               "Store data on this computer"; later starts ask with it preselected
+  create-account  #203: a fresh user on this computer's own data server is
+              offered an account with the name and password just typed
+  create-account-central  a central server's login offers none
   first-server  the same answering "Connect to a server" (this run's data server),
               then Edit > Change Server back to this computer
   auth-uselocal  the login window's "Use this computer instead" (its test
@@ -2838,6 +2841,97 @@ def caseFirstServer(checks, display, logdir):
     stopOwnBroker(serverEnv)
 
 
+def caseCreateAccount(checks, display, logdir):
+    """#203: a fresh user's first login to this computer's own (per-user)
+    data server, which has no accounts, offers to create one and logs in;
+    the second start logs in with no offer."""
+    stopOwnBroker(display.env())          # nothing answers on the broker port
+    run("ecce-dataserver-stop", display.env())   # the user's own takes its port
+    user = firstStartUser("create")
+    extra = {"ECCE_REALUSERHOME": user, "ECCE_HOME": os.environ["ECCE_HOME"],
+             "ECCE_NO_FIRST_START": "",
+             "ECCE_FIRST_START_ANSWER": "server:localhost",
+             "ECCE_TEST_AUTH_ANSWER": "login:newstud:Sup3rSecret"}
+    users = os.path.join(user, ".ECCE", "dataserver", "users")
+
+    def entries():
+        try:
+            return [l.split(":")[0] for l in open(users) if ":" in l]
+        except OSError:
+            return None
+
+    try:
+        for n, what in ((1, "first"), (2, "second")):
+            if n == 2:
+                extra["ECCE_FIRST_START_ANSWER"] = "continue"
+            log = os.path.join(logdir, "create-account-%d.log" % n)
+            session = Session(display, log, extra=dict(extra))
+            try:
+                frame = session.organizer()
+                if not checks.check(frame, "%s start: the Organizer opened" % what):
+                    return
+                text = open(log, errors="replace").read()
+                asked = "create-account asked" in text
+                checks.check(asked == (n == 1),
+                             "%s start: the offer was %smade" %
+                             (what, "" if n == 1 else "not "))
+                checks.check(entries() == ["newstud"],
+                             "%s start: the account file holds newstud (%s)" %
+                             (what, entries()))
+                checks.check(os.path.isdir(os.path.join(
+                    user, ".ECCE", "dataserver", "htdocs", "Ecce", "users",
+                    "newstud")), "%s start: the account's folder exists" % what)
+                checks.check("Authentication Failure" not in text and
+                             "no account" not in text,
+                             "%s start: no failure message" % what)
+                firstStartEnd(checks, display, session, frame)
+            finally:
+                session.kill()
+    finally:
+        env = dict(display.env(), **extra)
+        run("ecce-dataserver-stop", env)
+        stopOwnBroker(env)
+        run("ecce-dataserver-start", display.env())
+
+
+def caseCreateAccountCentral(checks, display, logdir):
+    """#203: against a central server (a broker answering) an unknown user
+    gets no offer to create an account; the server's administrator does."""
+    serverEnv = display.env()
+    stopOwnBroker(serverEnv)
+    mark = run("ecce-remote-setup", serverEnv, "--server")
+    if not checks.check(mark.returncode == 0, "the server account marked"):
+        return
+    try:
+        run("ecce-gateway-start", serverEnv)
+        dport = fixture.dataserverPort()
+        user = firstStartUser("create-central")
+        extra = {"ECCE_REALUSERHOME": user, "ECCE_HOME": os.environ["ECCE_HOME"],
+                 "ECCE_NO_FIRST_START": "",
+                 "ECCE_FIRST_START_ANSWER": "server:localhost:%d" % dport,
+                 "ECCE_TEST_AUTH_ANSWER": "login:nobodyhere:Whatever1",
+                 "ECCE_TEST_DIALOG_CLOSE": "4"}
+        log = os.path.join(logdir, "create-account-central.log")
+        session = Session(display, log, extra=extra)
+        try:
+            # The hook logs in as the unknown user over and over; give it time.
+            time.sleep(30)
+            text = open(log, errors="replace").read()
+            checks.check("ECCE_TEST_AUTH_ANSWER: login nobodyhere" in text,
+                         "the login window was answered with an unknown user")
+            checks.check(not waitWindow(display, "Create account", 0),
+                         "no Create account window")
+            checks.check("create-account asked" not in text,
+                         "no offer to create an account")
+            checks.check(not os.path.exists(os.path.join(
+                user, ".ECCE", "dataserver", "users")),
+                "the client made no account file of its own")
+        finally:
+            session.kill()
+    finally:
+        stopOwnBroker(serverEnv)
+
+
 def caseAuthUseLocal(checks, display, logdir):
     """The login window's "Use this computer instead": pressed through its
     test hook (ECCE_TEST_AUTH_ANSWER) when a client connects to this run's
@@ -2952,6 +3046,8 @@ def caseAuthUseLocal(checks, display, logdir):
 
 CASES = {"first-local": caseFirstLocal, "first-server": caseFirstServer,
          "auth-uselocal": caseAuthUseLocal,
+         "create-account": caseCreateAccount,
+         "create-account-central": caseCreateAccountCentral,
          "local": caseLocal, "local-usesym": caseLocalUseSymmetry, "local-pref": caseLocalPref, "local-save": caseLocalSave, "bug": caseBug, "window": caseWindow, "stop": caseStop, "remote": caseRemote,
          "remote-down": caseRemoteDown, "remote-refused": caseRemoteRefused,
          "quit-stop": caseQuitStop,
