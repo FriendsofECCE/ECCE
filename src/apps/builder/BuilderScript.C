@@ -13,6 +13,8 @@
 //    popup NAME                  the element chooser: its place and size
 //    click                       a click in the 3D view in the current mode
 //    save                        File > Save
+//    savemenu                    the File > Save menu event, if enabled
+//    savestate                   dirty flag and Save menu/toolbar enabled state
 //    info                       atoms and lattice, on stderr
 //    libatom I                   select atom (a Nub) I of the library structure
 //    select I                    select atom (or Nub) I, as a click does; -1 none
@@ -233,6 +235,14 @@ void Builder::runBuilderScript(const std::string& file)
         GetEventHandler()->ProcessEvent(delEv);
       } else if (w[0] == "save") {
         doSave();
+      } else if (w[0] == "savemenu") {
+        //  File > Save as the menu or Ctrl+S sends it; ignored when disabled
+        wxCommandEvent saveEv(wxEVT_MENU, wxID_SAVE);
+        if (p_fileMenu->IsEnabled(wxID_SAVE)) GetEventHandler()->ProcessEvent(saveEv);
+      } else if (w[0] == "savestate") {
+        fprintf(stderr, "BUILDER: dirty=%d save_enabled=%d toolbar_save_enabled=%d\n",
+                isDirty() ? 1 : 0, p_fileMenu->IsEnabled(wxID_SAVE) ? 1 : 0,
+                p_fileToolbar->GetToolEnabled(wxID_SAVE) ? 1 : 0);
       } else if (w[0] == "info") {
         LatticeDef *lat = frag ? frag->getLattice() : 0;
         fprintf(stderr, "BUILDER: atoms=%d lattice=%s\n",

@@ -2919,7 +2919,10 @@ void Builder::eventMCB(const Event& event)
      Event evt("ShapeChanged", p_currentShapes[p_currentElement]);
      EventDispatcher::getDispatcher().publish(evt);
    }
+     // The Save item and toolbar button follow the dirty flag the close
+     // prompt reads, so refresh them whenever it is set.
    else if (name == "ElementColorChanged") {
+     updateSave();
      pertabPrefsMCB();
    }
    else if (name == "BondChanged") {
