@@ -78,6 +78,8 @@ those settings.
 | `ECCE_SESSION_LIVENESS` | How ECCE decides which of its programs are still running (session end, the reaper, Quit and Stop Server): each program's session lease in `~/.ECCE/leases/` and, on Linux, the process table. | `lease` or `proc` to use one only. Default: both where there is a `/proc`, else the lease. |
 | `ECCE_AUTO_ACCOUNTS` | Data server creates web accounts automatically. **A key in `site_runtime`, not an environment variable.** | `yes`/`true` (any case) to enable. Users cannot override it. |
 | `ECCE_STORE_TRAJECTORIES` | Users may store molecular-dynamics trajectories on the server. **A key in `site_runtime`, not an environment variable.** | `yes`/`true` (any case). `no` forbids it for everyone. |
+| `ECCE_HIDE_MO_DIAGRAM` | Hides the MO diagram for every code, overriding Preferences. **A key in `site_runtime`, not an environment variable.** | `yes`/`true` (any case). Default off. |
+
 
 ### Job monitoring tuning
 

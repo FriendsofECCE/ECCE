@@ -19,6 +19,7 @@
 #include <wx/timer.h>
 #include <wx/toplevel.h>
 
+#include "util/Ecce.H"
 #include "util/Preferences.H"
 #include "util/PreferenceLabels.H"
 #include "tdat/PropVector.H"
@@ -549,6 +550,8 @@ wxSize MoDiagramPanel::preferredFloatingSize() const
 bool MoDiagramPanel::isRelevant(IPropCalculation *propCalc) const
 {
   if (propCalc == 0) return false;
+  //  The site setting wins over every user preference.
+  if (Ecce::ecceHideMoDiagram()) return false;
   //  A code can opt out in its .edml (SupportsMODiagram false), e.g.
   //  ECCE-QM for labs where students draw the diagram; the user can opt
   //  back in under Preferences.  Orbital list, energies and pictures are

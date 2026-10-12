@@ -330,6 +330,7 @@ class Ecce
       static bool   ecceAutoAccounts();
       static bool   ecceStoreTrajectories();
       static bool   ecceNoUpdateCheck();
+      static bool   ecceHideMoDiagram();
 
    protected:
 

@@ -303,6 +303,12 @@ void GlobalPrefs::createGeneralPage(wxWindow* page)
       "other codes. Applies the next time a calculation is opened in the Builder."));
   p_ecceQmMoDiagram->Bind(wxEVT_CHECKBOX, &GlobalPrefs::OnGlobalChange, this);
   box4->Add(p_ecceQmMoDiagram, 0, wxALL, 3);
+  if (Ecce::ecceHideMoDiagram()) {
+    p_ecceQmMoDiagram->Enable(false);
+    box4->Add(new ewxStaticText(box4->GetStaticBox(), wxID_ANY,
+        _("The administrator of this installation has switched the MO diagram off.")),
+        0, wxLEFT|wxBOTTOM, PAD);
+  }
   outer->Add(box4, 0, wxGROW|wxALL, PAD);
 
   page->SetSizer(outer);

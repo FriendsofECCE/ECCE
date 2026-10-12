@@ -1,6 +1,6 @@
 # Site-specific configuration parameters
-# In this build only ECCE_AUTO_ACCOUNTS, ECCE_STORE_TRAJECTORIES and
-# ECCE_NO_UPDATE_CHECK are read
+# In this build only ECCE_AUTO_ACCOUNTS, ECCE_STORE_TRAJECTORIES,
+# ECCE_NO_UPDATE_CHECK and ECCE_HIDE_MO_DIAGRAM are read
 # from this file. The other entries were put into the environment by the old
 # csh launchers; the ecce launcher does not, so to use one, export it as an
 # environment variable instead (see docs/ENVIRONMENT.md).
@@ -66,6 +66,11 @@ ECCE_STORE_TRAJECTORIES yes
 # installation (the Preferences checkbox is then greyed out).  The line is
 # read as written: remove the leading # to switch the check off.
 # ECCE_NO_UPDATE_CHECK yes
+
+# Hide the MO diagram for every code on this installation, overriding the
+# user's Preferences (for a course where students draw the diagrams).  The
+# orbital list, energies and orbital pictures stay.  Remove the leading #.
+# ECCE_HIDE_MO_DIAGRAM yes
 
 # Should the organizer always check for running jobstores when projects
 # are opened?

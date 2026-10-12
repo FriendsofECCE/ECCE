@@ -1791,6 +1791,11 @@ add_executable(systemfolder_test tests/systemfolder/systemfolder_test.C)
 target_link_libraries(systemfolder_test PRIVATE ecceutil)
 add_test(NAME systemfolder COMMAND systemfolder_test)
 
+# The ECCE_HIDE_MO_DIAGRAM site setting (#280).
+add_executable(sitehide_test tests/systemfolder/sitehide_test.C)
+target_link_libraries(sitehide_test PRIVATE ecceutil)
+add_test(NAME sitehide COMMAND sitehide_test)
+
 # tests/formula -- the Hill-order formula shown in the Organizer.
 add_executable(formula_test tests/formula/formula_test.C)
 target_link_libraries(formula_test PRIVATE eccetdat ecceutil)

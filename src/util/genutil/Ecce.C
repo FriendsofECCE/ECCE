@@ -513,7 +513,8 @@ bool Ecce::ecceAutoAccounts(void)
   return status;
 }
 
-bool Ecce::ecceNoUpdateCheck(void)
+// True when site_runtime has "<key> yes|true".
+static bool siteFlag(const char *wanted)
 {
   string path;
   if (getenv("ECCE_REMOTE_SERVER")) {
@@ -526,10 +527,20 @@ bool Ecce::ecceNoUpdateCheck(void)
   reader.setSeparator(' ');
 
   string key, value;
-  while (reader.getpair(key, value) && key!="ECCE_NO_UPDATE_CHECK");
-  return key == "ECCE_NO_UPDATE_CHECK" &&
+  while (reader.getpair(key, value) && key != wanted);
+  return key == wanted &&
          (value == "yes" || value == "Yes" || value == "YES" ||
           value == "true" || value == "True" || value == "TRUE");
+}
+
+bool Ecce::ecceNoUpdateCheck(void)
+{
+  return siteFlag("ECCE_NO_UPDATE_CHECK");
+}
+
+bool Ecce::ecceHideMoDiagram(void)
+{
+  return siteFlag("ECCE_HIDE_MO_DIAGRAM");
 }
 
 bool Ecce::ecceStoreTrajectories(void)
