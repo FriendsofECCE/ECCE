@@ -40,7 +40,7 @@ column right
   levels: 2
   level 0 energy=-0.556350 tabulated=-19.400000 irrep=- label=2s character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.71 Ha"
   level 1 energy=0.112565 tabulated=-10.700000 irrep=- label=2p character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=3 shell=1 slot=1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.39 Ha"
-links: 16
+links: 18
   link 0 left=0 centre=0 right=-1
   link 1 left=-1 centre=0 right=0
   link 2 left=0 centre=1 right=-1
@@ -49,11 +49,13 @@ links: 16
   link 5 left=-1 centre=1 right=1
   link 6 left=1 centre=2 right=-1
   link 7 left=-1 centre=2 right=1
-  link 8 left=1 centre=3 right=-1
-  link 9 left=-1 centre=3 right=1
-  link 10 left=1 centre=4 right=-1
-  link 11 left=-1 centre=4 right=1
-  link 12 left=1 centre=5 right=-1
-  link 13 left=0 centre=5 right=-1
-  link 14 left=-1 centre=5 right=1
-  link 15 left=-1 centre=5 right=0
+  link 8 left=0 centre=3 right=-1
+  link 9 left=1 centre=3 right=-1
+  link 10 left=-1 centre=3 right=0
+  link 11 left=-1 centre=3 right=1
+  link 12 left=1 centre=4 right=-1
+  link 13 left=-1 centre=4 right=1
+  link 14 left=1 centre=5 right=-1
+  link 15 left=0 centre=5 right=-1
+  link 16 left=-1 centre=5 right=1
+  link 17 left=-1 centre=5 right=0

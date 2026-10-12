@@ -1200,7 +1200,13 @@ static bool matchesShell(const MoLevel& centre, const MoLevel& fragment,
   for (size_t i = 0; i < shares.size(); i++) {
     if (shares[i] > dominant) dominant = shares[i];
   }
-  return shares[fragment.shell] >= 0.35*dominant;
+  //  An s shell is held to a lower bar: sigma-g orbitals of C2 and N2 mix
+  //  2s into a mostly-2p orbital (3sg of C2 has 0.34 of its 2p share in
+  //  2s), and that mixing is what the s line shows (#287).  A p line from
+  //  an s-dominated orbital keeps the 0.35 bar.
+  const string& name = fragment.label;
+  const bool sShell = !name.empty() && name[name.size() - 1] == 's';
+  return shares[fragment.shell] >= (sShell ? 0.25 : 0.35)*dominant;
 }
 
 

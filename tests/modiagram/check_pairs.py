@@ -30,6 +30,37 @@ def molecular_levels(path):
     return levels
 
 
+def mixing_links(path):
+    """For each molecular level label, the set of (side, fragment level) links."""
+    labels, out = [], {}
+    inside = False
+    for line in open(path):
+        if line.startswith("column "):
+            inside = line.strip() == "column centre"
+        elif inside and line.lstrip().startswith("level "):
+            labels.append(re.search(r'label=(\S+)', line).group(1).rstrip("*"))
+        elif line.lstrip().startswith("link "):
+            f = dict(re.findall(r'(\w+)=(-?\d+)', line))
+            c = int(f["centre"])
+            for side in ("left", "right"):
+                if int(f[side]) >= 0:
+                    out.setdefault(labels[c], set()).add((side, int(f[side])))
+    return out
+
+
+def check_sp_mixing(d):
+    """3sg of C2 and N2 is linked to both the 2s (0) and 2p (1) of both atoms (#287)."""
+    bad = 0
+    for name in ("ecceqm-c2", "ecceqm-n2"):
+        links = mixing_links(os.path.join(d, name + ".dump")).get("3SGG", set())
+        want = {("left", 0), ("left", 1), ("right", 0), ("right", 1)}
+        ok = want <= links
+        bad += not ok
+        print("%-12s 3SGG s-p mixing links %s" % (name, "ok" if ok else
+              "FAIL (have %s)" % sorted(links)))
+    return bad
+
+
 def main():
     d = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "expected")
     bad = 0
@@ -47,6 +78,7 @@ def main():
         bad += not ok
         print("%-12s bonding=%d antibonding=%d pairs=%s %s"
               % (name, nb, na, got, "ok" if ok else "FAIL (want %s)" % want))
+    bad += check_sp_mixing(d)
     return 1 if bad else 0
 
 
