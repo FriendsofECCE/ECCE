@@ -77,3 +77,4 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [A second close inside the Quit dialog's loop deletes the frame and frees the stack dialog: free(): invalid pointer (#291)](second-close-destroys-stack-dialog.md)
 - [The MO table vanished and scrolled to the top when the ESP colour bar appeared: propertyPaneRoom (#285)](mo-panel-esp-bar-needs-pane-room.md)
 - [Structure Library ligands: a Nub atom bonded to each donor atom, pointing at the metal site](library-ligands-carry-a-nub-at-each-donor.md)
+- [Builder Save is only refreshed by updateSave(); a wxGrid in a sizer needs its own minimum size; Open structures height](builder-save-follows-dirty-and-grid-needs-its-own-size.md)
