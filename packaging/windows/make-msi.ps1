@@ -70,7 +70,8 @@ $wxs = @"
     <MajorUpgrade AllowSameVersionUpgrades="yes" Schedule="afterInstallValidate"
       DowngradeErrorMessage="A newer version of ECCE is already installed." />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
-    <Icon Id="ecce.ico" SourceFile="$(Esc (Join-Path $PSScriptRoot "ecce.ico"))" />
+    <!-- Start menu icon: bitmap frames at the small sizes (ecce.ico, PNG frames, is the programs' own). -->
+    <Icon Id="ecce.ico" SourceFile="$(Esc (Join-Path $PSScriptRoot "ecce-menu.ico"))" />
     <Property Id="ARPPRODUCTICON" Value="ecce.ico" />
     <Property Id="ARPCOMMENTS" Value="ECCE $Version (Windows client, experimental)" />
     <Property Id="INSTALLFOLDER_PATH">
@@ -90,7 +91,7 @@ $($sb.ToString())
           <Shortcut Id="EcceShortcut" Name="ECCE" Description="ECCE computational chemistry"
                     Target="[SystemFolder]wscript.exe"
                     Arguments="//B //Nologo &quot;[INSTALLFOLDER]ecce.vbs&quot;"
-                    WorkingDirectory="INSTALLFOLDER" Icon="ecce.ico" />
+                    WorkingDirectory="INSTALLFOLDER" Icon="ecce.ico" IconIndex="0" />
           <RemoveFolder Id="RmMenu" On="uninstall" />
           <RegistryValue Root="HKCU" Key="Software\FriendsofECCE\ECCE" Name="InstallDir"
                          Type="string" Value="[INSTALLFOLDER]" KeyPath="yes" />
