@@ -45,6 +45,7 @@ class AtomMeasureAngle;
 class AtomMeasureDist;
 class AtomMeasureTorsion;
 class ContextHistory;
+class TearableContent;
 class ContextPanel;
 class ewxButton;
 class ewxBitmapButton;
@@ -124,6 +125,7 @@ class Builder: public BuilderGUI,
       ID_MODE_BOND,
       ID_MODE_STRUCTLIB,
       ID_MODE_SHAPE,
+      ID_MODE_ELEMENT_LIST,
     
       ID_TOOL_GOHOME,
       ID_TOOL_RESETVIEW,
@@ -335,6 +337,8 @@ class Builder: public BuilderGUI,
       virtual void OnModeNextClick( wxCommandEvent& event );
       virtual void OnModeClick( wxCommandEvent& event );
       virtual void OnModeElementClick( wxCommandEvent& event );
+      void OnModeElementList( wxCommandEvent& event );
+      TearableContent *showElementChooser();
       virtual void OnModeShapeClick( wxCommandEvent& event );
       virtual void OnModeBondClick( wxCommandEvent& event );
 
@@ -463,6 +467,7 @@ class Builder: public BuilderGUI,
       void updateBondIcon();
       wxBitmapBundle bondIcon(double order);
       void updateElementIcon();
+      static wxBitmapBundle elementArrowIcon();
       void updateShapeIcon();
       void updateForAnyEdit();
       void updateModeText();

@@ -212,6 +212,8 @@ BEGIN_EVENT_TABLE( Builder, BuilderGUI )
     EVT_MENU( ID_MODE_TRANSLATE, Builder::OnModeClick )
     EVT_MENU( ID_MODE_ZOOM, Builder::OnModeClick )
     EVT_MENU( ID_MODE_ATOM, Builder::OnModeElementClick )
+    EVT_TOOL_RCLICKED( ID_MODE_ATOM, Builder::OnModeElementList )
+    EVT_MENU( ID_MODE_ELEMENT_LIST, Builder::OnModeElementList )
     EVT_MENU( ID_MODE_SHAPE, Builder::OnModeShapeClick )
     EVT_MENU( ID_MODE_BOND, Builder::OnModeBondClick )
     EVT_MENU( ID_MODE_STRUCTLIB, Builder::OnModeClick )
@@ -663,7 +665,10 @@ void Builder::createToolbar()
                            _("Zoom"), wxITEM_CHECK);
     ewxBitmap atomBitmap("mode_select.png", wxBITMAP_TYPE_PNG);
     p_modeToolbar->AddTool(ID_MODE_ATOM, _T(""), atomBitmap,
-                           _("Choose Build Element"), wxITEM_CHECK);
+                           _("Build with this element (right-click or the "
+                             "arrow: choose another)"), wxITEM_CHECK);
+    p_modeToolbar->AddTool(ID_MODE_ELEMENT_LIST, _T(""), elementArrowIcon(),
+                           _("Choose Build Element"), wxITEM_NORMAL);
     ewxBitmap shapeBitmap(ShapeData::shapeToSmallImage(ShapeData::tetrahedral));
     p_modeToolbar->AddTool(ID_MODE_SHAPE, _T(""), shapeBitmap,
                            _("Geometry"), wxITEM_NORMAL);
@@ -1128,6 +1133,7 @@ void Builder::createReadOnlyIds()
   p_readOnlyDisabledIds.insert(ViewerEvtHandler::ID_ORIENT);
 
   p_readOnlyDisabledIds.insert(ID_MODE_ATOM);
+  p_readOnlyDisabledIds.insert(ID_MODE_ELEMENT_LIST);
   p_readOnlyDisabledIds.insert(ID_MODE_SHAPE);
   p_readOnlyDisabledIds.insert(ID_MODE_BOND);
   p_readOnlyDisabledIds.insert(ID_MODE_STRUCTLIB);
@@ -2012,6 +2018,33 @@ static wxBitmap elementToolBitmap(const wxString& sym, const wxColour& col,
   }
   mdc.SelectObject(wxNullBitmap);
   return bitmap;
+}
+
+
+//  A small downward triangle on the toolbar's face colour: the element
+//  tool's chooser.
+wxBitmapBundle Builder::elementArrowIcon()
+{
+  auto draw = [](int n) {
+    wxBitmap bitmap(n, n);
+    wxMemoryDC mdc;
+    mdc.SelectObject(bitmap);
+    mdc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE)));
+    mdc.Clear();
+    {
+      wxGCDC dc(mdc);
+      const wxColour ink = wxSystemSettings::GetColour(wxSYS_COLOUR_BTNTEXT);
+      dc.SetBrush(wxBrush(ink));
+      dc.SetPen(wxPen(ink, 1));
+      const int w = n * 7 / 22, top = n * 9 / 22;
+      wxPoint tri[3] = { wxPoint(n / 2 - w, top), wxPoint(n / 2 + w, top),
+                         wxPoint(n / 2, top + w) };
+      dc.DrawPolygon(3, tri);
+    }
+    mdc.SelectObject(wxNullBitmap);
+    return bitmap;
+  };
+  return wxBitmapBundle::FromBitmaps(draw(22), draw(44));
 }
 
 
@@ -3337,29 +3370,51 @@ void Builder::OnModeClick( wxCommandEvent& event )
 
 void Builder::OnModeElementClick( wxCommandEvent& event )
 {
-  // Used to gate the popup on getToolState(ID_MODE_ATOM) && !event.
-  // IsChecked() -- but getToolState() reads the mode MENU's radio item,
-  // which is only synced by setMode()/toggleModeButton(), themselves
-  // only reached via the ElementChanged->ShapeChanged chain published
-  // below. So on the click that actually enters Atom mode for the first
-  // time, getToolState() still reported the PREVIOUS mode and the
-  // condition was false: the click silently entered Atom mode with no
-  // chooser shown, and only a second, redundant click (once the toolbar
-  // had caught up) passed the guard and popped it up (#158). Do both
-  // unconditionally instead: publish ElementChanged (unchanged --
-  // still what enters Atom mode, via Builder::eventMCB's ShapeChanged
-  // handler) and always show the chooser, so the first click both
-  // enters the mode and lets the user pick an element.
+  // Publishing ElementChanged is what enters Atom mode (see
+  // Builder::eventMCB's ShapeChanged handler). It is done here and not by
+  // reading the toolbar, whose state is only synced by that chain (#158).
+  // The click only activates the tool with the current element; the
+  // chooser is the arrow beside it, or a right-click (#286).
   Event evt("ElementChanged", p_currentElement);
   EventDispatcher::getDispatcher().publish(evt);
+  toggleModeButton(ID_MODE_ATOM);
+}
 
+
+void Builder::OnModeElementList( wxCommandEvent& event )
+{
+  showElementChooser();
+}
+
+
+//  The periodic table, below the element tool's arrow, not at the pointer.
+TearableContent *Builder::showElementChooser()
+{
   PerTabPanel *pertab = new PerTabPanel(this, false,
           ID_ITEM_DEFAULT, false, true, true);
   pertab->SetName("Elements");
   TearableContent *tc = new TearableContent(pertab);
-  tc->Position(wxGetMousePosition(), wxSize(1, 1));
+  //  wxToolBar has no tool rectangle; find it by probing the bar.
+  wxRect anchor;
+  const int mid = p_modeToolbar->GetSize().y / 2;
+  int left = -1, right = -1;
+  for (int x = 0; x < p_modeToolbar->GetSize().x; x++) {
+    wxToolBarToolBase *at = p_modeToolbar->FindToolForPosition(x, mid);
+    if (at && at->GetId() == ID_MODE_ELEMENT_LIST) {
+      if (left < 0) left = x;
+      right = x;
+    }
+  }
+  if (left >= 0)
+    anchor = wxRect(left, 0, right - left + 1, p_modeToolbar->GetSize().y);
+  if (anchor.IsEmpty()) {
+    tc->Position(wxGetMousePosition(), wxSize(1, 1));
+  } else {
+    tc->Position(p_modeToolbar->ClientToScreen(anchor.GetTopLeft()),
+                 anchor.GetSize());
+  }
   tc->Popup();
-  toggleModeButton(event.GetId());
+  return tc;
 }
 
 
