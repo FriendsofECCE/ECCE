@@ -1,0 +1,154 @@
+ **********************************************************************
+
+
+ I. ATTRACTORS
+
+ -------------------------------------------------------------------------------
+ Attr.     Cartesian Coordinates          Nucleus               Density
+          X          Y          Z       (Distance)        Total         Spin
+ -------------------------------------------------------------------------------
+   1   0.000000   0.003440   0.073011  H  (0.073092)   0.45191E+00   0.00000E+00
+   2   0.000000   0.000009   1.700748  O  (0.000010)   0.28986E+03   0.00000E+00
+   3   0.000000   1.854180   2.439822  H  (0.039325)   0.33664E+00   0.00000E+00
+ -------------------------------------------------------------------------------
+
+
+ II. CRITICAL POINTS ON ATTRACTOR INTERACTION LINES
+
+ -------------------------------------------------------------------------------
+ Line  Attractors       Cartesian Coordinates                   Density
+          A   B        X          Y          Z            Total         Spin
+ -------------------------------------------------------------------------------
+    1     2   1     0.000000   0.011816   0.330310     0.41463E+00   0.00000E+00
+    2     3   2     0.000000   1.469867   2.269792     0.25911E+00   0.00000E+00
+ -------------------------------------------------------------------------------
+
+ -------------------------------------------------------------------------------
+ Line        Density     Ellipticity      Hessian eigenvalues and eigenvectors
+            Laplacian                      Eig          X         Y         Z
+ -------------------------------------------------------------------------------
+    1      -0.2566E+01    0.2450E-01   -0.2290E+01  -0.00000   0.99962  -0.02744
+                                       -0.2235E+01  -1.00000  -0.00000   0.00000
+                                        0.1958E+01   0.00000   0.02744   0.99962
+    2      -0.1129E+01    0.2336E-01   -0.1017E+01  -0.00000   0.39409  -0.91907
+                                       -0.9941E+00   1.00000   0.00000  -0.00000
+                                        0.8824E+00   0.00000  -0.91907  -0.39409
+ -------------------------------------------------------------------------------
+
+ -------------------------------------------------------------------------------
+ Line  Buckling  Distance to attractor A    Distance to attractor B   Angle dev.
+                  Arc     Line    Differ.    Arc     Line    Differ.   A     B
+ -------------------------------------------------------------------------------
+    1   0.0089  1.37101  1.37049  0.00052  0.25744  0.25743  0.00000  3.39  2.19
+    2   0.0156  0.42025  0.42025  0.00001  1.57635  1.57616  0.00019  2.57  2.06
+ -------------------------------------------------------------------------------
+
+   3 attractors -   2 bond point(s) +   0 ring point(s) -   0 cage point(s) = 1
+
+
+ ****** ZERO-FLUX SURFACE  1 ETA0   0.683557 ******
+
+ NUCLEI  2  1 BOND POINT COORDS     0.000000    0.011816    0.330310
+
+ GRID OF 820 POINTS (100.0 % OF THE FULL GRID) USED
+
+ ITERATION  1    RMS ERROR  0.1501782488E-01
+ ITERATION  2    RMS ERROR  0.7747214466E-04
+ ITERATION  3    RMS ERROR  0.1027121490E-08
+
+ CONVERGENCE ATTAINED IN  3 ITERATIONS
+
+ ****** ZERO-FLUX SURFACE  2 ETA0  -0.578809 ******
+
+ NUCLEI  3  2 BOND POINT COORDS     0.000000    1.469867    2.269792
+
+ GRID OF 820 POINTS (100.0 % OF THE FULL GRID) USED
+
+ ITERATION  1    RMS ERROR  0.1860798890E-02
+ ITERATION  2    RMS ERROR  0.4292031768E-05
+ ITERATION  3    RMS ERROR  0.8570127789E-10
+
+ CONVERGENCE ATTAINED IN  3 ITERATIONS
+
+
+ SURFACE OF ATOM  1 IS COMPOSED OF  1 SHEET(S)
+
+ SURFACE OF THE FIRST NEIGHBORING ATOM  2 IS COMPOSED OF  2 SHEET(S)
+
+ THE ROTATION MATRIX EIGENVALUES ARE     -0.00000     0.31381     3.12374
+ DENSITY FITTING:  0.911E+00 EXP(- 0.264E+01 R) + -0.172E+00 EXP(- 0.528E+01 R)
+ RatMin= 0.860E+00 RatMax= 0.101E+01
+
+ GRID OF   1639 POINTS USED
+
+ CONTROL SUM FOR INTEGRATION:   1.0000002115
+
+  0 INTERSECTIONS OCCURRED   523 TIMES
+  1 INTERSECTIONS OCCURRED  1036 TIMES
+  2 INTERSECTIONS OCCURRED    40 TIMES
+
+
+ SURFACE OF ATOM  2 IS COMPOSED OF  2 SHEET(S)
+
+ THE ROTATION MATRIX EIGENVALUES ARE     -0.00000     0.67183     1.45908
+ DENSITY FITTING:  0.296E+02 EXP(- 0.303E+01 R) + -0.210E+03 EXP(- 0.605E+01 R)
+ RatMin= 0.817E+00 RatMax= 0.112E+01
+
+ GRID OF   6399 POINTS USED
+
+ CONTROL SUM FOR INTEGRATION:   1.0000000132
+
+  0 INTERSECTIONS OCCURRED  2160 TIMES
+  1 INTERSECTIONS OCCURRED  4239 TIMES
+
+
+ SURFACE OF ATOM  3 IS COMPOSED OF  1 SHEET(S)
+
+ SURFACE OF THE FIRST NEIGHBORING ATOM  2 IS COMPOSED OF  2 SHEET(S)
+
+ THE ROTATION MATRIX EIGENVALUES ARE     -0.00000     0.21496     4.56028
+ DENSITY FITTING:  0.775E+00 EXP(- 0.252E+01 R) + -0.707E-01 EXP(- 0.503E+01 R)
+ RatMin= 0.897E+00 RatMax= 0.103E+01
+
+ GRID OF   1599 POINTS USED
+
+ CONTROL SUM FOR INTEGRATION:   1.0000002115
+
+  0 INTERSECTIONS OCCURRED   597 TIMES
+  1 INTERSECTIONS OCCURRED  1002 TIMES
+ Top of loop for attractor    1.
+ NumAIM:  IAttr=    1 NDomn=   1639 RSph=  0.26 TotL=    11657.64 TotS=      411.79 Frac=  3.5%
+          NPtTot=     86845 NPtSph=     38376 NPtOut=     49840 Frac= 44.19%
+ NumAIM:  IAttr=    1 IDomn=       0 NDomn=    1639 MaxPt=  100 NPoly= 3.
+ NumAIM:  IAttr=    1 IDomn=    1000 NDomn=    1639 MaxPt=  100 NPoly= 3.
+ Top of loop for attractor    2.
+ NumAIM:  IAttr=    2 NDomn=   6399 RSph=  1.37 TotL=    61450.46 TotS=     8771.30 Frac= 14.3%
+          NPtTot=    458471 NPtSph=    268758 NPtOut=    198112 Frac= 58.62%
+ NumAIM:  IAttr=    2 IDomn=       0 NDomn=    6399 MaxPt=  100 NPoly= 3.
+ NumAIM:  IAttr=    2 IDomn=    1000 NDomn=    6399 MaxPt=  100 NPoly= 3.
+ NumAIM:  IAttr=    2 IDomn=    2000 NDomn=    6399 MaxPt=  100 NPoly= 3.
+ NumAIM:  IAttr=    2 IDomn=    3000 NDomn=    6399 MaxPt=  100 NPoly= 3.
+ NumAIM:  IAttr=    2 IDomn=    4000 NDomn=    6399 MaxPt=  100 NPoly= 3.
+ NumAIM:  IAttr=    2 IDomn=    5000 NDomn=    6399 MaxPt=  100 NPoly= 3.
+ NumAIM:  IAttr=    2 IDomn=    6000 NDomn=    6399 MaxPt=  100 NPoly= 3.
+ Top of loop for attractor    3.
+ NumAIM:  IAttr=    3 NDomn=   1599 RSph=  0.42 TotL=    13290.29 TotS=      672.01 Frac=  5.1%
+          NPtTot=     96580 NPtSph=     44772 NPtOut=     53072 Frac= 46.36%
+ NumAIM:  IAttr=    3 IDomn=       0 NDomn=    1599 MaxPt=  100 NPoly= 3.
+ NumAIM:  IAttr=    3 IDomn=    1000 NDomn=    1599 MaxPt=  100 NPoly= 3.
+
+ NPtAll=      641896 Sph=      329710 Frac= 51.37%
+
+ III. PROPERTIES OF ATTRACTORS
+
+ ------------------------------------------------
+ Attr.        Number of electrons         Charge
+              total         spin
+ ------------------------------------------------
+   1         0.417132     0.000000       0.582868
+   2         9.088424     0.000000      -1.088424
+   3         0.495005     0.000000       0.504995
+ ------------------------------------------------
+ Total      10.000561     0.000000      -0.000561
+ ------------------------------------------------
+

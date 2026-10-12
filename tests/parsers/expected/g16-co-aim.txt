@@ -1,0 +1,16 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    g16-co-aim
+desc:    gaussian-16.desc
+fixture: gaussian-16/co_aim_cp.log (119 lines)
+args:    '.' 'Energy' 'DFT' 'B3LYP' '0'
+
+[AIM]  Script=gaussian-16.aim  Freq=last  Skip=0  Lines=-
+  Begin= I\. ATTRACTORS
+  End=^ Total\s+\d+\.\d+\s+\d+\.\d+
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=8 fed=110 rc=0 first-fed=' I. ATTRACTORS'
+    key: AIM
+      size: 2
+      values: 0.890256 -0.891752
+      units: e
+

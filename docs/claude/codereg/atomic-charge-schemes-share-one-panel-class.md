@@ -6,7 +6,7 @@ section: "How a property gets from disk into the Properties menu"
 paths: ["scripts/parsers/atomcharges.pl", "scripts/parsers/orca.desc", "scripts/parsers/gaussian-16.desc", "src/apps/builder/MullikenPanel.C", "data/client/config/PropertyPanelDescriptor.xml", "data/client/config/properties"]
 issues: [272]
 ---
-`MULLIKEN`, `LOEWDIN`, `HIRSHFELD`, `CM5`, `MBIS`, `NPA`, `APT` and `ESPFIT`
+`MULLIKEN`, `LOEWDIN`, `HIRSHFELD`, `CM5`, `MBIS`, `NPA`, `APT`, `AIM` and `ESPFIT`
 are all `PropVector<Atom>` in units of e. Each has its own descriptor entry
 and menu title, but they are all `class MullikenPanel`: the panel reads the
 key from `getDescription()->properties`, so a new per-atom scheme needs a
@@ -34,3 +34,10 @@ Rev C.01, NWChem 7.2.3):
   only Mulliken atomic/shell charges (and Car-Parrinello atomic charges);
   Lowdin and ESP charges exist only in the normal stdout, at two decimals,
   which is not what the monitor reads.
+- Gaussian 16 AIM (`AIM=(CP)`): the `AIM` entry's block runs from
+  "I. ATTRACTORS" (attractor to element) to the Total row of "III.
+  PROPERTIES OF ATTRACTORS" (charges). Attractors are taken in printed order
+  as atom order (checked on CO and an H,O,H water with unequal bonds); the
+  charges sum to about -0.002, not 0, so tests must not use a `sum` check.
+- Gaussian does one ESP fit per job: `Pop=(MK,CHelpG)` fits once, so the
+  dialog offers a choice (`ES.Theory.ESPCharges`), not two tick boxes.

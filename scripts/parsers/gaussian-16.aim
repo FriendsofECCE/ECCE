@@ -1,0 +1,26 @@
+#!/usr/bin/env perl
+# AIM (Bader) charges.  The block starts at "I. ATTRACTORS", whose rows
+# name the nucleus each attractor belongs to, and ends at the Total row of
+# "III. PROPERTIES OF ATTRACTORS", whose rows carry the charge:
+#
+#   1  -0.000000  -0.000000  -1.484877  C  (0.000016)   0.11905E+03  0.00000E+00
+#   1         5.135774     0.000000       0.864226
+#
+# Attractors without a nucleus (non-nuclear maxima) are not atoms and are
+# left out.  Charges come out in attractor order, which is atom order.
+$| = 1;
+use FindBin;
+require "$FindBin::Bin/atomcharges.pl";
+
+my (%nuc, %chg, @order);
+while (<STDIN>) {
+  if (/^\s*(\d+)\s+-?\d+\.\d+\s+-?\d+\.\d+\s+-?\d+\.\d+\s+[A-Za-z]{1,2}\s+\(/) {
+    $nuc{$1} = 1;
+    push(@order, $1);
+  } elsif (/^\s*(\d+)\s+\d+\.\d+\s+-?\d+\.\d+\s+(-?\d+\.\d+)\s*$/) {
+    $chg{$1} = $2;
+  }
+}
+my @v = map { $chg{$_} } grep { exists $chg{$_} } @order;
+&emitCharges("AIM", @v) if (scalar(@v) == scalar(@order));
+exit(0);

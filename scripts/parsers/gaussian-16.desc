@@ -260,6 +260,16 @@ Frequency=last
 End=^\s+Tot\s
 [END]
 
+# AIM=(CP): the attractor-to-nucleus table (section I) and the charges
+# (section III) are far apart, so the block spans both.
+[AIM]
+Script=gaussian-16.aim
+Begin= I\. ATTRACTORS
+Skip=0
+Frequency=last
+End=^ Total\s+\d+\.\d+\s+\d+\.\d+
+[END]
+
 [NPA]
 Script=gaussian-16.npa
 Begin= Summary of Natural Population Analysis

@@ -190,6 +190,16 @@ args:    '.' 'Energy' 'DFT' 'rPBE1PBE' '0'
       values: 0.187346 -0.187346
       units: e
 
+[AIM]  Script=gaussian-16.aim  Freq=last  Skip=0  Lines=-
+  Begin= I\. ATTRACTORS
+  End=^ Total\s+\d+\.\d+\s+\d+\.\d+
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=1011 fed=105 rc=0 first-fed=' I. ATTRACTORS'
+    key: AIM
+      size: 2
+      values: 0.864226 -0.865780
+      units: e
+
 [ESCF1][ESCFVEC]  Script=gaussian-16.energy  Freq=all  Skip=0  Lines=1
   Begin=SCF Done\:
   begins=1 delivered=1 buffered_away=0

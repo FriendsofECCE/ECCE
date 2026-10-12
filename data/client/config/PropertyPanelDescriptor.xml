@@ -235,6 +235,15 @@
   </PropertyPanel>
 
   <PropertyPanel>
+    <name>AIM (Bader) Charges</name>
+    <group>Charges</group>
+    <class>MullikenPanel</class>
+    <consumer>true</consumer>
+    <allowPin>false</allowPin>
+    <property name="AIM"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
     <name>APT Charges</name>
     <group>Charges</group>
     <class>MullikenPanel</class>

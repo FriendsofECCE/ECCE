@@ -1911,6 +1911,34 @@ CASES = [
         },
     ),
 
+    dict(
+        #  AIM=(CP): section I maps attractors to nuclei, section III has the
+        #  charges; trimmed from a real CO job.
+        name='g16-co-aim',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/co_aim_cp.log',
+        parse_args=('.', 'Energy', 'DFT', 'B3LYP', '0'),
+        expect={
+            'AIM': dict(keys={'AIM': {'size': '2',
+                                      'units': 'e',
+                                      'values': '0.890256 -0.891752'}}),
+        },
+    ),
+
+    dict(
+        #  AIM=(CP): section I maps attractors to nuclei, section III has the
+        #  charges; real job, atoms H,O,H with unequal O-H lengths.
+        name='g16-h2o-aim-asymmetric',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/h2o_asym_aim.log',
+        parse_args=('.', 'Energy', 'DFT', 'B3LYP', '0'),
+        expect={
+            'AIM': dict(keys={'AIM': {'size': '3',
+                                      'units': 'e',
+                                      'values': '0.582868 -1.088424 0.504995'}}),
+        },
+    ),
+
     # -----------------------------------------------------------------
     # Thermochemistry and solvation (#176).  Every expected value below
     # is a number the code printed in its own summary lines, re-derived

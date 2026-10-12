@@ -1,0 +1,16 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    g16-h2o-aim-asymmetric
+desc:    gaussian-16.desc
+fixture: gaussian-16/h2o_asym_aim.log (154 lines)
+args:    '.' 'Energy' 'DFT' 'B3LYP' '0'
+
+[AIM]  Script=gaussian-16.aim  Freq=last  Skip=0  Lines=-
+  Begin= I\. ATTRACTORS
+  End=^ Total\s+\d+\.\d+\s+\d+\.\d+
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=4 fed=149 rc=0 first-fed=' I. ATTRACTORS'
+    key: AIM
+      size: 3
+      values: 0.582868 -1.088424 0.504995
+      units: e
+
