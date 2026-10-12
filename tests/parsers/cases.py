@@ -2109,6 +2109,17 @@ MOFILE_CASES = [
             'MO': {'size': '5 5'},
         },
     ),
+    # `task esp` after an SCF task (Theory Details tick box, #272): the
+    # fit goes to <job>.q, read as a File= entry.  Real NWChem 7.2.3,
+    # H2O HF/6-31G*; the charges sum to zero.
+    dict(
+        name='nwchem-h2o-esp-q',
+        script='nwchem.esp',
+        fixture='nwchem/h2o_esp.q',
+        parse_args=('.', 'Energy', 'SCF', 'RHF', '0'),
+        expect={'ESPCHARGE': {'size': '3 1', 'columnlabels': 'ESP',
+                              'units': 'e'}},
+    ),
     # NWChem thermochemistry and COSMO live only in stdout, read as a
     # File= entry (nwchem.desc), so they are replayed here.
     # Printed: E = -74.963023129097 (SCF), corrections 0.028561 / 0.029505

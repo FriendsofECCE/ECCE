@@ -33,6 +33,11 @@ Rev C.01, NWChem 7.2.3):
 - MOPAC: `ESP` keyword (Theory Details box `ES.Theory.SCF.ESPCharges`) prints
   "ELECTROSTATIC POTENTIAL CHARGES" at four decimals, parsed into `ESPFIT`
   (`mopac.espcharge`). Checked on MOPAC 23.1.2, PM7 water: -0.5889 0.2944 0.2944.
+- NWChem ESP: the Theory Details box `ES.Theory.NWChem.ESPCharges` (SCF/DFT,
+  not the ESP runtype) appends `task esp`; the fit lands in `<job>.q`, which
+  `nwchem.esp` (a File= entry, not the ecce_print trace) publishes as the
+  `ESPCHARGE` table, not `ESPFIT`. Checked on NWChem 7.2.3, H2O HF/6-31G*:
+  -0.8093 0.4043 0.4049.
 - NWChem: nothing new. The `ecce_print` trace the monitor parses carries
   only Mulliken atomic/shell charges (and Car-Parrinello atomic charges);
   Lowdin and ESP charges exist only in the normal stdout, at two decimals,

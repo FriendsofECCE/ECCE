@@ -320,6 +320,12 @@ sub Tasks {
     $result .= "task ";
     $result .= $local_runtype;
   }
+  # esp fits to the density of the preceding scf/dft task, so it goes last
+  # (after an optimisation: the final geometry).
+  if ($AbiDict{"ES.Theory.NWChem.ESPCharges"} eq "1" && $runtype ne "ESP"
+      && ($local_theory eq "scf" || $local_theory eq "dft")) {
+    $result .= "\ntask esp";
+  }
   return $result;
 }
 

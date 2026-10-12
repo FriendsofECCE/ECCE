@@ -54,6 +54,19 @@ class NedTheoryPanel(EccePanel):
         generalSizer.AddWidget(self.initGuess)
         self.panelSizer.Add(generalSizer)
 
+        # NWChem's esp module only runs on SCF/DFT wavefunctions; the ESP
+        # runtype already is this fit, so it needs no tick box.
+        if ((EcceGlobals.Category == "SCF" or EcceGlobals.Category == "DFT")
+            and EcceGlobals.RunType != "ESP"
+            and EcceGlobals.RunType != "DirDyVTST"):
+            chargeSizer = EcceBoxSizer(self, "Charges", 1)
+            self.espCharges = EcceCheckBox(self,
+                                           label = " ESP-fitted charges (task esp)",
+                                           name = "ES.Theory.NWChem.ESPCharges",
+                                           default = False)
+            chargeSizer.AddWidget(self.espCharges)
+            self.panelSizer.Add(chargeSizer)
+
         # Special logic for DirDyVTST task, as determined by overloading
         # the meaning of the RunType value
         if EcceGlobals.RunType != "DirDyVTST":
