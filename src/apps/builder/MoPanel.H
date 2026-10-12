@@ -170,6 +170,7 @@ class MoPanel : public MoGUI,
       void onEspRangeFocusLost(wxFocusEvent& event);
       void showEspRangeControls(bool show);
       void onFieldTypeChanged(wxCommandEvent& event);
+      void chooseMoFieldType();
       void rebuildEspSurface();
 
       //  The legend for a potential-mapped surface: the surface's own ramp,

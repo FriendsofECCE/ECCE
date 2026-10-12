@@ -1580,6 +1580,7 @@ void MoPanel::OnGridOkButton(wxCommandEvent& evt)
 void MoPanel::OnMoSelection(wxGridEvent& event)
 {
    p_selectedRow = event.GetRow();
+   chooseMoFieldType();
    showComposition();
    showCoeffs(false);
    event.Skip();
@@ -1749,6 +1750,19 @@ void MoPanel::getSurfaceColors(double& posR, double& posG, double& posB,
 
 }
 
+/** Picking an orbital means the user wants it drawn as an orbital, so a
+    leftover ESP or density choice would only show the old kind of surface. */
+void MoPanel::chooseMoFieldType()
+{
+   ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+   if (typewin == 0) return;
+   const int mo = typewin->FindString(_("MO"));
+   if (mo == wxNOT_FOUND || typewin->GetSelection() == mo) return;
+   typewin->SetSelection(mo);
+   wxCommandEvent changed(wxEVT_CHOICE);
+   onFieldTypeChanged(changed);
+}
+
 /** Is one of the two potential-mapped field types selected? */
 bool MoPanel::espFieldSelected()
 {
@@ -1794,6 +1808,7 @@ bool MoPanel::showOrbital(int orbengIndex)
       if (number != wanted) continue;
 
       selectMo(row);
+      chooseMoFieldType();
 
       //  Compute it, through the same path the Compute button uses, so
       //  there is one place that knows how to build a surface.
