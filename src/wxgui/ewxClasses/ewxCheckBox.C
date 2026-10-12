@@ -57,6 +57,20 @@ ewxCheckBox::~ewxCheckBox()
 }
 
 
+#ifdef __WXGTK__
+//  A check box in a panel that was never shown is laid out a few pixels
+//  wide or high; GTK then warns that it is smaller than its indicator. Give it the
+//  indicator's size at least.
+void ewxCheckBox::DoSetSize(int x, int y, int width, int height, int sizeFlags)
+{
+  const int indicator = 20;
+  if (width > 0 && width < indicator) width = indicator;
+  if (height > 0 && height < indicator) height = indicator;
+  wxCheckBox::DoSetSize(x, y, width, height, sizeFlags);
+}
+#endif
+
+
 /**
  * Set widget to our custom disabled style.
  * @param enabled true to enable, false to disable

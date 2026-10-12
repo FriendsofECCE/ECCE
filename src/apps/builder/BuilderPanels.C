@@ -1050,6 +1050,35 @@ void Builder::toolPaneResized(const string& name)
 
 
 /**
+ * A property panel gained or lost controls (the MOs panel's ESP colour bar)
+ * and needs `need` pixels of height to keep its table readable; 0 returns
+ * it to the ordinary floor and share. A docked pane takes the column's
+ * spare height from the Properties list, which keeps its own floor.
+ */
+void Builder::propertyPaneRoom(wxWindow *win, int need)
+{
+  PropertyPanel *panel = dynamic_cast<PropertyPanel*>(win);
+  wxAuiPaneInfo &pane = p_mgr.GetPane(win);
+  if (!panel || !pane.IsOk() || pane.IsFloating() || !pane.IsShown() ||
+      p_folded.count(win)) {
+    return;
+  }
+  const int floor = std::max(80, panel->minimumHeight());
+  const bool more = need > floor && need > pane.rect.height;
+  const bool held = pane.dock_proportion >= 300000;
+  if (!more && !(need <= 0 && held)) return;
+  const int height = more ? need : floor;
+  pane.MinSize(wxSize(pane.min_size.x, height));
+  panel->setPaneMinHeight(height);
+  map<wxWindow*, int>::const_iterator base = p_baseProportion.find(win);
+  pane.dock_proportion = more ? 300000
+      : (p_panelMode == PANELS_DETAIL ? detailProportion()
+         : (base == p_baseProportion.end() ? 150 : base->second));
+  updatePanes();
+}
+
+
+/**
  * A tool pane opened from the Tools menu gets the height its controls need.
  * The right-hand column holds a fixed number of panes at their minimum
  * height; one more used to be laid out with no height at all, its window

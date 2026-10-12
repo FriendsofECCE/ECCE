@@ -62,6 +62,7 @@ FIXTURES = {
     "ecceqm-he2": os.path.join(FIXTURES_DIR, "ecceqm-he2"),
     "ecceqm-n2": os.path.join(FIXTURES_DIR, "ecceqm-n2"),
     "ecceqm-co-rotated": os.path.join(FIXTURES_DIR, "ecceqm-co-rotated"),
+    "ecceqm-water": os.path.join(FIXTURES_DIR, "ecceqm-water"),
 }
 
 

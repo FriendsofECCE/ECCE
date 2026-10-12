@@ -1,0 +1,13 @@
+{
+ "": {
+  "application": "ECCE-QM"
+ },
+ "Parameters/BasisSet.ecce_basisset": {
+  "name": "6-31G*",
+  "coordsys": "N",
+  "numFunctions": "18",
+  "numPrimitives": "19",
+  "ecpName": "",
+  "gbs-type": "element"
+ }
+}

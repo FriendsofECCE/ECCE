@@ -70,7 +70,7 @@ failures = []
 
 
 def fail(what, why, log=""):
-    tail = "\n".join("      | " + l for l in (log or "").splitlines()[-12:])
+    tail = "\n".join("      | " + l for l in (log or "").splitlines()[-30:])
     failures.append(what)
     print("FAIL  %s: %s\n%s" % (what, why, tail))
 
@@ -326,10 +326,11 @@ def checkEspBar(display, data, work):
     url = makeCalc(data, "esp-bar", source=WATER_G16)
     out = os.path.join(work, "esp-bar")
     scene = ("mobar before\nmofield Density (ESP)\nmobar chosen\n"
-             "mopanel esp\nmobar drawn\nmofield MO\nmobar typed\n"
+             "mopanel esp\nhold 3\nmobar drawn\npanestate pst MOs\nmofield MO\nmobar typed\n"
              "mopanel mo\nmobar mo\n")
     result = runBuilder(display, url, out, scene,
-                        extraEnv={"ECCE_ESP_RANGE": "0.05"})
+                        extraEnv={"ECCE_ESP_RANGE": "0.05",
+                                  "ECCE_PANEL_FULLSCREEN": "1"})
     what = "ESP colour bar"
     st = {n: readState(out, n) for n in
           ("before", "chosen", "drawn", "typed", "mo")}
@@ -364,7 +365,20 @@ def checkEspBar(display, data, work):
             problems.append("legend lacks '%s'" % text)
     if "-31.4 to +31.4 kcal/mol" not in info:   # 0.05 * 627.5095
         problems.append("kcal/mol range is not 0.05 Hartree/e converted")
+    #  The MO-specific composition line is hidden for a surface that is not
+    #  an MO, and the table keeps rows, with the selected MO in view (#285).
+    if d.get("composition_shown") != "0":
+        problems.append("the MO composition is shown beside an ESP surface")
+    if int(d.get("table_height", "0")) < 90:
+        problems.append("the MO table is %s px high" % d.get("table_height"))
+    if d.get("selected_visible") != "1":
+        problems.append("the selected MO scrolled out of view")
+    if st["mo"].get("composition_shown") != "1":
+        problems.append("the composition did not return with an MO surface")
     if problems:
+        pst = os.path.join(out, "pst.txt")
+        if os.path.exists(pst):
+            info += "\n" + open(pst).read()
         fail(what, "; ".join(problems), info)
     else:
         print("ok    %s: shown only with the ESP surface, +/-0.05 Hartree/e"
@@ -375,7 +389,8 @@ def checkEspBar(display, data, work):
     out = os.path.join(work, "esp-bar-auto")
     result = runBuilder(display, url, out,
                         "mofield Density (ESP)\nmopanel esp\nmobar auto\n",
-                        extraEnv={"ECCE_DEBUG_ISO": "1"})
+                        extraEnv={"ECCE_DEBUG_ISO": "1",
+                                  "ECCE_PANEL_FULLSCREEN": "1"})
     what = "ESP colour bar, auto range"
     st = readState(out, "auto")
     used = re.findall(r"range \+/- (\S+)", result.log or "")
@@ -391,6 +406,19 @@ def checkEspBar(display, data, work):
     else:
         print("ok    %s: %s .. %s as the surface was coloured" % (what, lo,
                                                                    hi))
+
+
+def espTall(data, work):
+    """The ESP bar on a screen of the height the report came from: a
+    1366x768 Builder has no room for the bar and a readable table at once."""
+    with xdisplay.Display(screen="1700x1000x24") as display:
+        gateway = os.path.join(apps.INSTALL, "bin", "ecce-gateway-start")
+        subprocess.run([gateway], env=display.env(), timeout=180)
+        try:
+            checkEspBar(display, data, work)
+        finally:
+            stop = os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")
+            subprocess.run([stop], env=display.env(), timeout=120)
 
 
 def checkMismatch(display, data, work):
@@ -474,6 +502,32 @@ def shots(display, data, work, dest):
         print("shot  %s" % os.path.join(dest, "mo-basis-mismatch.png"))
 
 
+def smallScreen(options, data, work):
+    with xdisplay.Display() as display:
+        gateway = os.path.join(apps.INSTALL, "bin", "ecce-gateway-start")
+        subprocess.run([gateway], env=display.env(), timeout=180)
+        try:
+            if options.shots:
+                shots(display, data, work, options.shots)
+            elif options.only == "homo":
+                checkHomoVisible(display, data, work)
+            elif options.only == "tree":
+                for mode in ("detail", "classic"):
+                    checkTree(display, data, work, mode)
+            else:
+                checkGood(display, data, work)
+                checkMismatch(display, data, work)
+                checkHomoVisible(display, data, work)
+                for mode in ("detail", "classic"):
+                    checkTree(display, data, work, mode)
+                checkFallback(display, data, work)
+                for mode in ("classic", "stacked", "accordion", "detail"):
+                    checkWidth(display, data, work, mode)
+        finally:
+            stop = os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")
+            subprocess.run([stop], env=display.env(), timeout=120)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--shots", help="save the Builder window here")
@@ -503,32 +557,12 @@ def main():
     os.environ["ECCE_LOCAL_DATA"] = data
     xdisplay.SCREEN = "1366x768x24"
     traceCheck()
-    with xdisplay.Display() as display:
-        gateway = os.path.join(apps.INSTALL, "bin", "ecce-gateway-start")
-        subprocess.run([gateway], env=display.env(), timeout=180)
-        try:
-            if options.shots:
-                shots(display, data, work, options.shots)
-            elif options.only == "esp":
-                checkEspBar(display, data, work)
-            elif options.only == "homo":
-                checkHomoVisible(display, data, work)
-            elif options.only == "tree":
-                for mode in ("detail", "classic"):
-                    checkTree(display, data, work, mode)
-            else:
-                checkGood(display, data, work)
-                checkMismatch(display, data, work)
-                checkEspBar(display, data, work)
-                checkHomoVisible(display, data, work)
-                for mode in ("detail", "classic"):
-                    checkTree(display, data, work, mode)
-                checkFallback(display, data, work)
-                for mode in ("classic", "stacked", "accordion", "detail"):
-                    checkWidth(display, data, work, mode)
-        finally:
-            stop = os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")
-            subprocess.run([stop], env=display.env(), timeout=120)
+    if options.only == "esp":
+        espTall(data, work)
+    else:
+        smallScreen(options, data, work)
+        if not options.only and not options.shots:
+            espTall(data, work)
     if options.keep:
         print("kept %s" % work)
     else:

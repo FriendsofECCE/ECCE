@@ -179,6 +179,12 @@ class MoPanel : public MoGUI,
       void refreshEspBar();
       void hideEspBar();
 
+      //  Lay the panel out again after controls came or went, keep the
+      //  selected MO in view and, for the Properties list's column, ask
+      //  for the height the table needs.
+      void reflow();
+      bool p_espBarShown = false;
+
       //  Bring the selected row into the middle of the table once the
       //  table has its real, on-screen size; see selectMo().
       //  Coefficients and basis disagree in size; see MoPanel.C.
@@ -208,6 +214,7 @@ class MoPanel : public MoGUI,
       wxStaticText *p_espBarMax = 0;
       wxStaticText *p_espBarInfo = 0;
       string p_espDrawnType;     // field type of the surface on screen
+      string p_drawnType;        // any field type drawn; empty before one
 
 
       //  The selected MO's atomic-orbital composition (#161), from the

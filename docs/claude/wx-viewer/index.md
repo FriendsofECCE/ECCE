@@ -74,3 +74,5 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [wxMSW: Raise() does not activate; a tool another process starts may not take the foreground, so Windows flashes its caption (W9, W13)](windows-raise-is-not-activate-and-flashes.md)
 - [`SetSizeHints(window)` on a small sizer sizes the whole window to it: the Calculation Editor shrank to a title bar (W5)](sizer-sethints-on-a-subsizer-shrinks-the-window.md)
 - [wxMSW: controls made after the scroll move sit under the tool panel scroll window and get no clicks (Build pane element buttons)](msw-controls-made-after-the-scroll-move-sit-under-it.md)
+- [A second close inside the Quit dialog's loop deletes the frame and frees the stack dialog: free(): invalid pointer (#291)](second-close-destroys-stack-dialog.md)
+- [The MO table vanished and scrolled to the top when the ESP colour bar appeared: propertyPaneRoom (#285)](mo-panel-esp-bar-needs-pane-room.md)

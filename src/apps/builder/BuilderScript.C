@@ -188,25 +188,22 @@ void Builder::runBuilderScript(const std::string& file)
         if (!p_structLib->openFolder(w[1], w.size() > 2 ? w[2] : ""))
           outcome = "FAIL: not found in the Structure Library";
       } else if (w[0] == "popup" && w.size() == 2) {
-        //  The element chooser, as the Choose Build Element tool opens it,
-        //  and where it is and how big, straight after it is shown and half
-        //  a second later.
-        PerTabPanel *pertab = new PerTabPanel(this, false, ID_ITEM_DEFAULT,
-                                              false, true, true);
-        pertab->SetName("Elements");
-        TearableContent *tc = new TearableContent(pertab);
-        tc->Position(wxGetMousePosition(), wxSize(1, 1));
-        tc->Popup();
+        //  The element chooser, as the arrow beside the element tool opens
+        //  it, and where it is, straight after it is shown and half a
+        //  second later, with the mode toolbar's own rectangle.
+        TearableContent *tc = showElementChooser();
+        const wxRect bar(p_modeToolbar->GetScreenPosition(),
+                         p_modeToolbar->GetSize());
         for (int shot = 0; shot < 2; shot++) {
           if (shot) {
             for (int i = 0; i < 10; i++) { wxTheApp->Yield(true); wxMilliSleep(50); }
           }
           const wxRect r = tc->GetScreenRect();
-          const wxSize c = pertab->GetSize(), best = pertab->GetBestSize();
           fprintf(stderr, "BUILDER popup %s after %d ms: at %d,%d size %dx%d, "
-                  "content %dx%d (best %dx%d), mouse %d,%d\n", w[1].c_str(),
-                  shot * 500, r.x, r.y, r.width, r.height, c.x, c.y, best.x,
-                  best.y, wxGetMousePosition().x, wxGetMousePosition().y);
+                  "toolbar %d,%d %dx%d, mouse %d,%d\n", w[1].c_str(),
+                  shot * 500, r.x, r.y, r.width, r.height, bar.x, bar.y,
+                  bar.width, bar.height, wxGetMousePosition().x,
+                  wxGetMousePosition().y);
         }
         tc->Dismiss();
       } else if (w[0] == "click") {

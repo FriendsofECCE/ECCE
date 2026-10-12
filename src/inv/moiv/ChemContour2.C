@@ -158,15 +158,17 @@ ChemContour2::~ChemContour2()
 //
 ////////////////////////////////////////////////////////////////////////
 {
+    // Read it first: removing the last child deletes lineSet.
+    SoVertexProperty *vp =
+        (SoVertexProperty *)lineSet->vertexProperty.getValue();
+
     // Remove children from the list. "remove" does an unref.
     for (int i = children->getLength()-1; i >= 0; i--) {
         children->remove(i);
     }
-    
+
     // Delete vertexProperty
-    SoVertexProperty *vp =
-        (SoVertexProperty *)lineSet->vertexProperty.getValue();
-    if (vp != NULL) vp->unref();   
+    if (vp != NULL) vp->unref();
     
     // Deleting lineSet is unnecessary since it was unrefed
     // by the remove.

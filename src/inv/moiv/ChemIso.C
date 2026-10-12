@@ -157,14 +157,16 @@ ChemIso::~ChemIso()
 //
 ////////////////////////////////////////////////////////////////////////
 {
+    // Read it first: removing the last child deletes triStrip.
+    SoVertexProperty *vp =
+        (SoVertexProperty *)triStrip->vertexProperty.getValue();
+
     // Remove children from the list. "remove" does an unref.
     for (int i = children->getLength()-1; i >= 0; i--) {
         children->remove(i);
     }
 
     // Delete vertexProperty
-    SoVertexProperty *vp =
-        (SoVertexProperty *)triStrip->vertexProperty.getValue();
     if (vp != NULL) vp->unref();
 
     // Deleting triStrip is not necessary since it was unrefed by the
