@@ -38,8 +38,10 @@ next bundled code:
   makes `MoDiagramPanel::isRelevant()` false, which drops the panel silently
   from the Properties menu. The MO list, energies, occupations and orbital
   pictures are untouched, unless the user ticks Preferences > "Show the MO
-  diagram for ECCE-QM calculations" (`EcceQmMoDiagram`, default off; Andy
-  2026-10-11: off for labs where students draw it, other codes always on).
+  diagram for ECCE-QM calculations" (`EcceQmMoDiagram`, default ON since
+  2026-10-12, Andy "for now"; a lab where students draw the diagram turns it
+  off there or site-wide with `ECCE_HIDE_MO_DIAGRAM yes`). The default lives
+  in two places, GlobalPrefs.H and MoDiagramPanel::isRelevant(); keep them equal.
 * **MO columns** come in ECCE's canonical order (atoms, shells stably sorted by
   l), marked `MOAOORDER angular-momentum`; the m-order inside a shell is
   `ECCE-QM.edml`'s `MOOrdering` (libcint real harmonics, fitted to monomials,

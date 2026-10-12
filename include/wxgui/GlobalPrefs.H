@@ -147,7 +147,7 @@ private:
   const static bool p_beepWarnDefault = true;
   const static bool p_focusDefault = false;
   const static bool p_quickTranspDefault = false;
-  const static bool p_ecceQmMoDiagramDefault = false;
+  const static bool p_ecceQmMoDiagramDefault = true;
   const static bool p_updateCheckDefault = true;
   const static bool p_updatePreviewsDefault = false;
   const static bool p_confirmExitDefault = true;

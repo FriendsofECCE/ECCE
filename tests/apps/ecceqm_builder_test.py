@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 The Builder on an ECCE-QM calculation: the orbitals are there and draw, and
-the MO correlation diagram is not offered.
+the MO correlation diagram is offered (the Preferences switch for ECCE-QM
+defaults to on since 2026-10-12).
 
 The calculation is tests/ecceqm/fixtures/o2-roks, made by
 tests/launch/ecceqm_test.py --export from a real run of the bundled engine
@@ -119,10 +120,9 @@ def main():
         os.environ["ECCE_LOCAL_DATA"] = folder
         restorePrefs = fixture.settleUpgradeNotices()
         try:
-            openBuilder(display, urls["o2"], "ECCE-QM O2: MOs panel opens", False)
-            #  Asked for by name, the diagram opens only where it is offered.
-            openBuilder(display, urls["o2"], "ECCE-QM O2: MO Diagram not offered",
-                        False, panel="MO Diagram")
+            openBuilder(display, urls["o2"], "ECCE-QM O2: MOs panel opens", True)
+            openBuilder(display, urls["o2"], "ECCE-QM O2: MO Diagram offered",
+                        True, panel="MO Diagram")
             openBuilder(display, urls["water-orca"],
                         "control (ORCA water): MO Diagram offered", True,
                         panel="MO Diagram")

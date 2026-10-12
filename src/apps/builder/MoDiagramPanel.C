@@ -561,7 +561,8 @@ bool MoDiagramPanel::isRelevant(IPropCalculation *propCalc) const
     const JCode *app = esCalc->application();
     if (app != 0 && !app->supportsMODiagram()) {
       Preferences prefs(PrefLabels::GLOBALPREFFILE);
-      bool show = false;
+      //  Must match GlobalPrefs' default for an unset preference.
+      bool show = true;
       prefs.getBool(PrefLabels::ECCEQMMODIAGRAM, show);
       if (!show) return false;
     }
