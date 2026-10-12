@@ -592,6 +592,7 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   // create first (Default) IPropCalculation and setContext
   wxCommandEvent emptyEvent;
   OnNewClick(emptyEvent);
+  p_startupContext = p_calculation->getURL().toString();
 
   // Cannot call this until we have an SGContainer, established by the first
   // call to setContext.  OnNewClick above calls setContext.
@@ -1549,8 +1550,8 @@ void Builder::setContext(const string& url, const bool& force)
   }
 
   p_contextPanel->SetContext(url);
-
   updateContextPane();
+
   applySceneGraphSettings();
 
   // Refresh the GUI based on the current IPropCalculation/Job contexts
@@ -1593,6 +1594,21 @@ void Builder::setContext(const string& url, const bool& force)
         updatePanes(true); // TODO is this needed yet or can it wait?
         p_stayCollapsed = false;
       }
+    }
+  }
+
+  // The blank structure the Builder starts with is only a placeholder: once a
+  // real structure is opened and the blank one is still untouched, drop it.
+  if (newContext && !p_startupContext.empty() &&
+      p_startupContext != url) {
+    const string blank = p_startupContext;
+    p_startupContext.clear();
+    map<string, IPropCalculation*>::iterator it = p_calculations.find(blank);
+    if (it != p_calculations.end() && p_calculations.size() > 1 &&
+        dynamic_cast<DefaultCalculation*>(it->second) &&
+        !dynamic_cast<DefaultCalculation*>(p_calculation) &&
+        !isDirty(it->second)) {
+      doClose(blank, false);
     }
   }
 }
@@ -2903,7 +2919,10 @@ void Builder::eventMCB(const Event& event)
    SGFragment *frag = getSG()->getFragment();
 
    if (name == "ResidueChange" || name == "GeomChange") {
+     // The Save item and toolbar button follow the dirty flag the close
+     // prompt reads, so refresh them whenever it is set.
      setDirty(true);
+     updateSave();
      updateForAnyEdit();
    }
    else if (name == "StepChange") {
@@ -2920,10 +2939,7 @@ void Builder::eventMCB(const Event& event)
      Event evt("ShapeChanged", p_currentShapes[p_currentElement]);
      EventDispatcher::getDispatcher().publish(evt);
    }
-     // The Save item and toolbar button follow the dirty flag the close
-     // prompt reads, so refresh them whenever it is set.
    else if (name == "ElementColorChanged") {
-     updateSave();
      pertabPrefsMCB();
    }
    else if (name == "BondChanged") {
@@ -4261,6 +4277,7 @@ void Builder::doClose(const string& context, const bool& autoOpen)
   p_sgMgr->removeSceneGraph(contextToClose);
   p_contextHistory->RemoveContext(contextToClose);
   p_contextPanel->RemoveContext(contextToClose);
+  updateContextPane();
   removePropertyPanels(contextToClose);
 
   // delete the entire calculation if it was a transient import
@@ -4277,7 +4294,6 @@ bool Builder::isReadOnly() const
 }
 
 /**
-  updateContextPane();
  * Determines the readonly status of the given calc, or the current calc if 
  * no calc is given.
  */

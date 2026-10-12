@@ -545,6 +545,7 @@ class Builder: public BuilderGUI,
       wxMenu *p_contextMenu;
       ContextHistory *p_contextHistory;
       ContextPanel *p_contextPanel;
+      std::string p_startupContext;   // the blank structure opened at start
       vector<wxMenu*> p_menus;
 
       wxBoxSizer  *p_mainSizer;
