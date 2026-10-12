@@ -12,8 +12,10 @@ struct Grid {
 };
 
 // nrad radial points and nang Lebedev points per atom (nang must be one of
-// the tabulated sizes, see lebedev_sizes()).
-Grid make_grid(const Molecule& mol, int nrad, int nang);
+// the tabulated sizes, see lebedev_sizes()).  With prune, the angular grid is
+// thinned close to the nucleus, where the density is nearly spherical; the
+// full nang points are kept from about one Bragg radius outwards.
+Grid make_grid(const Molecule& mol, int nrad, int nang, bool prune = true);
 std::vector<int> lebedev_sizes();
 
 }  // namespace qm

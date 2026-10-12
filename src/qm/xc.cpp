@@ -25,10 +25,72 @@ FunctionalSpec functional_by_name(const std::string& name) {
   return f;
 }
 
-struct XcIntegrator::Impl {};
+// Batches of nearby grid points, each with the shells that reach it.
+struct XcIntegrator::Impl {
+  struct Batch {
+    size_t g0 = 0;
+    int n = 0;
+    std::vector<int> shells;  // shells with any value above the cutoff here
+    std::vector<int> ao;      // their AOs, in basis order
+    std::vector<int> aoatom;  // atom of each of those AOs
+  };
+  std::vector<Batch> batches;
+};
+
+namespace {
+const int kBatch = 128;  // points per batch
+
+// Recursive bisection along the longest side so that each leaf is compact.
+void bisect(const Grid& g, std::vector<size_t>& idx, size_t lo, size_t hi, std::vector<std::pair<size_t, size_t>>& leaves) {
+  if (hi - lo <= static_cast<size_t>(kBatch)) { leaves.emplace_back(lo, hi); return; }
+  double mn[3] = {1e300, 1e300, 1e300}, mx[3] = {-1e300, -1e300, -1e300};
+  for (size_t k = lo; k < hi; ++k) {
+    const double p[3] = {g.x[idx[k]], g.y[idx[k]], g.z[idx[k]]};
+    for (int c = 0; c < 3; ++c) { mn[c] = std::min(mn[c], p[c]); mx[c] = std::max(mx[c], p[c]); }
+  }
+  int ax = 0;
+  for (int c = 1; c < 3; ++c) if (mx[c] - mn[c] > mx[ax] - mn[ax]) ax = c;
+  const std::vector<double>& v = ax == 0 ? g.x : (ax == 1 ? g.y : g.z);
+  const size_t mid = (lo + hi) / 2;
+  std::nth_element(idx.begin() + lo, idx.begin() + mid, idx.begin() + hi, [&](size_t a, size_t b) { return v[a] < v[b]; });
+  bisect(g, idx, lo, mid, leaves);
+  bisect(g, idx, mid, hi, leaves);
+}
+}  // namespace
 
 XcIntegrator::XcIntegrator(const Basis& b, const FunctionalSpec& f, Grid g)
-    : basis_(b), spec_(f), grid_(std::move(g)), impl_(new Impl) {}
+    : basis_(b), spec_(f), impl_(new Impl) {
+  std::vector<size_t> idx(g.size());
+  for (size_t k = 0; k < idx.size(); ++k) idx[k] = k;
+  std::vector<std::pair<size_t, size_t>> leaves;
+  bisect(g, idx, 0, idx.size(), leaves);
+  for (size_t k = 0; k < idx.size(); ++k) {
+    grid_.x.push_back(g.x[idx[k]]); grid_.y.push_back(g.y[idx[k]]);
+    grid_.z.push_back(g.z[idx[k]]); grid_.w.push_back(g.w[idx[k]]);
+  }
+  for (const auto& lf : leaves) {
+    Impl::Batch B;
+    B.g0 = lf.first;
+    B.n = static_cast<int>(lf.second - lf.first);
+    double mn[3] = {1e300, 1e300, 1e300}, mx[3] = {-1e300, -1e300, -1e300};
+    for (size_t k = lf.first; k < lf.second; ++k) {
+      const double p[3] = {grid_.x[k], grid_.y[k], grid_.z[k]};
+      for (int c = 0; c < 3; ++c) { mn[c] = std::min(mn[c], p[c]); mx[c] = std::max(mx[c], p[c]); }
+    }
+    for (int is = 0; is < basis_.nshl(); ++is) {
+      const Shell& s = basis_.shells()[is];
+      double d2 = 0;  // squared distance from the shell centre to the batch's bounding box
+      for (int c = 0; c < 3; ++c) {
+        const double d = std::max({mn[c] - s.center[c], s.center[c] - mx[c], 0.0});
+        d2 += d * d;
+      }
+      if (d2 > s.extent * s.extent) continue;
+      B.shells.push_back(is);
+      for (int k = 0; k < s.nao; ++k) { B.ao.push_back(s.ao0 + k); B.aoatom.push_back(s.atom); }
+    }
+    if (!B.shells.empty()) impl_->batches.push_back(std::move(B));
+  }
+}
 XcIntegrator::~XcIntegrator() = default;
 
 namespace {
@@ -45,9 +107,8 @@ double XcIntegrator::compute(const Mat& Da, const Mat& Db, bool closed, Mat& Va,
   const int nb = basis_.nbf();
   const bool gga = spec_.gga;
   const int deriv = gga ? 1 : 0;
-  const size_t ng = grid_.size();
-  const int blk = 128;
-  const int nblk = static_cast<int>((ng + blk - 1) / blk);
+  const int blk = kBatch;
+  const int nblk = static_cast<int>(impl_->batches.size());
   Va = Mat::Zero(nb, nb);
   Vb = Mat::Zero(nb, nb);
   double Exc = 0, ne = 0;
@@ -62,18 +123,20 @@ double XcIntegrator::compute(const Mat& Da, const Mat& Db, bool closed, Mat& Va,
     std::vector<double> xyz(3 * blk);
 #pragma omp for schedule(dynamic)
     for (int ib = 0; ib < nblk; ++ib) {
-      const size_t g0 = static_cast<size_t>(ib) * blk;
-      const int n = static_cast<int>(std::min<size_t>(blk, ng - g0));
+      const Impl::Batch& B = impl_->batches[ib];
+      const size_t g0 = B.g0;
+      const int n = B.n, nl = static_cast<int>(B.ao.size());
       for (int g = 0; g < n; ++g) {
         xyz[3 * g] = grid_.x[g0 + g]; xyz[3 * g + 1] = grid_.y[g0 + g]; xyz[3 * g + 2] = grid_.z[g0 + g];
       }
-      eval_ao(basis_, xyz.data(), n, deriv, ao);
+      eval_ao(basis_, xyz.data(), n, deriv, ao, &B.shells);
+      const Mat Das = Da(B.ao, B.ao), Dbs = closed ? Das : Db(B.ao, B.ao);
       // densities
-      Mat ta = ao.phi * Da;
+      Mat ta = ao.phi * Das;
       Vec ra = (ta.array() * ao.phi.array()).rowwise().sum();
       Mat tb;
       Vec rb;
-      if (!closed) { tb = ao.phi * Db; rb = (tb.array() * ao.phi.array()).rowwise().sum(); }
+      if (!closed) { tb = ao.phi * Dbs; rb = (tb.array() * ao.phi.array()).rowwise().sum(); }
       else rb = ra;
       Vec gax, gay, gaz, gbx, gby, gbz;
       if (gga) {
@@ -118,8 +181,8 @@ double XcIntegrator::compute(const Mat& Da, const Mat& Db, bool closed, Mat& Va,
         for (size_t k = 0; k < vs_acc.size(); ++k) vs_acc[k] += vsig[k];
       }
       // energy and potential pieces
-      Mat Aa = Mat::Zero(n, nb), Ab;
-      if (!closed) Ab = Mat::Zero(n, nb);
+      Mat Aa = Mat::Zero(n, nl), Ab;
+      if (!closed) Ab = Mat::Zero(n, nl);
       Vec wv(n);
       for (int g = 0; g < n; ++g) {
         const double w = grid_.w[g0 + g];
@@ -138,7 +201,7 @@ double XcIntegrator::compute(const Mat& Da, const Mat& Db, bool closed, Mat& Va,
           if (gga) Aa.row(g) += cx * ao.dx.row(g) + cy * ao.dy.row(g) + cz * ao.dz.row(g);
         }
         Mat Vt = ao.phi.transpose() * Aa;
-        Vat += Vt + Vt.transpose();
+        Vat(B.ao, B.ao) += Vt + Vt.transpose();
       } else {
         for (int g = 0; g < n; ++g) {
           const double w = grid_.w[g0 + g];
@@ -156,8 +219,8 @@ double XcIntegrator::compute(const Mat& Da, const Mat& Db, bool closed, Mat& Va,
           }
         }
         Mat Vta = ao.phi.transpose() * Aa, Vtb = ao.phi.transpose() * Ab;
-        Vat += Vta + Vta.transpose();
-        Vbt += Vtb + Vtb.transpose();
+        Vat(B.ao, B.ao) += Vta + Vta.transpose();
+        Vbt(B.ao, B.ao) += Vtb + Vtb.transpose();
       }
     }
 #pragma omp critical
@@ -173,13 +236,9 @@ double XcIntegrator::compute(const Mat& Da, const Mat& Db, bool closed, Mat& Va,
 void XcIntegrator::gradient(const Mat& Da, const Mat& Db, bool closed, std::vector<double>& grad) {
   const int nb = basis_.nbf();
   const bool gga = spec_.gga;
-  const size_t ng = grid_.size();
-  const int blk = 128;
-  const int nblk = static_cast<int>((ng + blk - 1) / blk);
+  const int blk = kBatch;
+  const int nblk = static_cast<int>(impl_->batches.size());
   const int natm = basis_.natm();
-  std::vector<int> aoatom(nb);
-  for (const Shell& s : basis_.shells())
-    for (int k = 0; k < s.nao; ++k) aoatom[s.ao0 + k] = s.atom;
   grad.assign(3 * natm, 0.0);
   const int pol = closed ? 0 : 1;
 #pragma omp parallel
@@ -191,27 +250,29 @@ void XcIntegrator::gradient(const Mat& Da, const Mat& Db, bool closed, std::vect
     std::vector<double> xyz(3 * blk);
 #pragma omp for schedule(dynamic)
     for (int ib = 0; ib < nblk; ++ib) {
-      const size_t g0 = static_cast<size_t>(ib) * blk;
-      const int n = static_cast<int>(std::min<size_t>(blk, ng - g0));
+      const Impl::Batch& B = impl_->batches[ib];
+      const size_t g0 = B.g0;
+      const int n = B.n, nl = static_cast<int>(B.ao.size());
       for (int g = 0; g < n; ++g) {
         xyz[3 * g] = grid_.x[g0 + g]; xyz[3 * g + 1] = grid_.y[g0 + g]; xyz[3 * g + 2] = grid_.z[g0 + g];
       }
-      eval_ao(basis_, xyz.data(), n, gga ? 2 : 1, ao);
+      eval_ao(basis_, xyz.data(), n, gga ? 2 : 1, ao, &B.shells);
+      const Mat Das = Da(B.ao, B.ao), Dbs = closed ? Das : Db(B.ao, B.ao);
       const Mat* dphi[3] = {&ao.dx, &ao.dy, &ao.dz};
       const Mat* hess[3][3] = {{&ao.dxx, &ao.dxy, &ao.dxz}, {&ao.dxy, &ao.dyy, &ao.dyz}, {&ao.dxz, &ao.dyz, &ao.dzz}};
-      const Mat ta = ao.phi * Da;
+      const Mat ta = ao.phi * Das;
       const Vec ra = (ta.array() * ao.phi.array()).rowwise().sum();
       Mat tb;
       Vec rb = ra;
-      if (!closed) { tb = ao.phi * Db; rb = (tb.array() * ao.phi.array()).rowwise().sum(); }
+      if (!closed) { tb = ao.phi * Dbs; rb = (tb.array() * ao.phi.array()).rowwise().sum(); }
       Mat tda[3], tdb[3];  // grad(phi) * D
       Vec ga[3], gb[3];    // grad(rho_spin)
       if (gga) {
         for (int d = 0; d < 3; ++d) {
-          tda[d] = *dphi[d] * Da;
+          tda[d] = *dphi[d] * Das;
           ga[d] = 2 * (ta.array() * dphi[d]->array()).rowwise().sum();
           if (!closed) {
-            tdb[d] = *dphi[d] * Db;
+            tdb[d] = *dphi[d] * Dbs;
             gb[d] = 2 * (tb.array() * dphi[d]->array()).rowwise().sum();
           } else gb[d] = ga[d];
         }
@@ -251,7 +312,7 @@ void XcIntegrator::gradient(const Mat& Da, const Mat& Db, bool closed, std::vect
             for (int e = 0; e < 3; ++e)
               A.array() += (hess[d][e]->array() * t.array() + dphi[d]->array() * td[e].array()).colwise() * gv[e].array();
           const Vec col = A.colwise().sum();
-          for (int m = 0; m < nb; ++m) gt[3 * aoatom[m] + d] -= 2 * factor * col(m);
+          for (int m = 0; m < nl; ++m) gt[3 * B.aoatom[m] + d] -= 2 * factor * col(m);
         }
       };
       Vec vra(n), vrb(n), gva[3], gvb[3];

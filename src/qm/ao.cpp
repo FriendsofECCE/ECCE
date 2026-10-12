@@ -26,8 +26,12 @@ const Mat& c2s(int l) {
 }
 }  // namespace
 
-void eval_ao(const Basis& b, const double* xyz, int n, int deriv, AoValues& out) {
-  const int nb = b.nbf();
+void eval_ao(const Basis& b, const double* xyz, int n, int deriv, AoValues& out, const std::vector<int>* shells) {
+  int nb = b.nbf();
+  if (shells) {
+    nb = 0;
+    for (int k : *shells) nb += b.shells()[k].nao;
+  }
   out.phi = Mat::Zero(n, nb);
   if (deriv >= 1) {
     out.dx = Mat::Zero(n, nb);
@@ -38,7 +42,12 @@ void eval_ao(const Basis& b, const double* xyz, int n, int deriv, AoValues& out)
     for (Mat* m : {&out.dxx, &out.dxy, &out.dxz, &out.dyy, &out.dyz, &out.dzz}) *m = Mat::Zero(n, nb);
   }
   const bool sph = b.spherical();
-  for (const Shell& s : b.shells()) {
+  const int nsel = shells ? static_cast<int>(shells->size()) : b.nshl();
+  int col = 0;
+  for (int is = 0; is < nsel; ++is) {
+    const Shell& s = b.shells()[shells ? (*shells)[is] : is];
+    const int col0 = col;
+    col += s.nao;
     const int l = s.l, nc = (l + 1) * (l + 2) / 2;
     const double fac = l == 0 ? 0.282094791773878143 : (l == 1 ? 0.488602511902919921 : 1.0);
     // list of (lx,ly,lz) in libcint order
@@ -94,11 +103,11 @@ void eval_ao(const Basis& b, const double* xyz, int n, int deriv, AoValues& out)
       }
       if (!T) {
         for (int c = 0; c < nc; ++c) {
-          out.phi(g, s.ao0 + c) = cv[c];
-          if (deriv >= 1) { out.dx(g, s.ao0 + c) = cgx[c]; out.dy(g, s.ao0 + c) = cgy[c]; out.dz(g, s.ao0 + c) = cgz[c]; }
+          out.phi(g, col0 + c) = cv[c];
+          if (deriv >= 1) { out.dx(g, col0 + c) = cgx[c]; out.dy(g, col0 + c) = cgy[c]; out.dz(g, col0 + c) = cgz[c]; }
           if (deriv >= 2) {
             Mat* hm[6] = {&out.dxx, &out.dxy, &out.dxz, &out.dyy, &out.dyz, &out.dzz};
-            for (int q = 0; q < 6; ++q) (*hm[q])(g, s.ao0 + c) = ch[c][q];
+            for (int q = 0; q < 6; ++q) (*hm[q])(g, col0 + c) = ch[c][q];
           }
         }
       } else {
@@ -113,10 +122,10 @@ void eval_ao(const Basis& b, const double* xyz, int n, int deriv, AoValues& out)
           }
           if (deriv >= 2) {
             Mat* hm[6] = {&out.dxx, &out.dxy, &out.dxz, &out.dyy, &out.dyz, &out.dzz};
-            for (int q = 0; q < 6; ++q) (*hm[q])(g, s.ao0 + m) = vh[q];
+            for (int q = 0; q < 6; ++q) (*hm[q])(g, col0 + m) = vh[q];
           }
-          out.phi(g, s.ao0 + m) = v;
-          if (deriv >= 1) { out.dx(g, s.ao0 + m) = vx; out.dy(g, s.ao0 + m) = vy; out.dz(g, s.ao0 + m) = vz; }
+          out.phi(g, col0 + m) = v;
+          if (deriv >= 1) { out.dx(g, col0 + m) = vx; out.dy(g, col0 + m) = vy; out.dz(g, col0 + m) = vz; }
         }
       }
     }

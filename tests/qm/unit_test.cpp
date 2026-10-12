@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
     m.atoms.push_back(a);
     for (int n : lebedev_sizes()) {
       if (n < 26) continue;  // degree >= 7
-      Grid g = make_grid(m, 1, n);  // one radial shell: weights = 4 pi r^2 w_r * w_ang
+      Grid g = make_grid(m, 1, n, false);  // one radial shell: weights = 4 pi r^2 w_r * w_ang
       // recover the angular weights: normalise by their sum
       double s = 0, v = 0;
       for (size_t i = 0; i < g.size(); ++i) {

@@ -137,7 +137,7 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
   const Mat X = inv_sqrt(S);
 
   std::unique_ptr<XcIntegrator> xc;
-  if (dft) xc.reset(new XcIntegrator(basis, fs, make_grid(mol, opt.grid_radial, opt.grid_angular)));
+  if (dft) xc.reset(new XcIntegrator(basis, fs, make_grid(mol, opt.grid_radial, opt.grid_angular, opt.grid_prune)));
 
   // Initial guess: the orbitals of a neighbouring geometry, made orthonormal
   // against this S (Cholesky keeps the beta set inside the alpha set for

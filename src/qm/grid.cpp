@@ -37,12 +37,26 @@ double becke_s(double nu) {
 
 }  // namespace
 
-Grid make_grid(const Molecule& mol, int nrad, int nang) {
+Grid make_grid(const Molecule& mol, int nrad, int nang, bool prune) {
   const LebEntry* leb = nullptr;
   for (const auto& e : leb_registry)
     if (e.npts == nang) leb = &e;
   if (!leb) throw Error("no Lebedev grid with " + std::to_string(nang) + " points");
   const int na = static_cast<int>(mol.atoms.size());
+
+  // Angular size by radial region, in units of the atom's Bragg radius, as a
+  // fraction of nang rounded up to a tabulated Lebedev size (SG-1 style).
+  struct Region { double rmax, frac; };
+  static const Region regions[] = {{0.25, 0.05}, {0.5, 0.2}, {1.0, 0.5}, {1e30, 1.0}};
+  auto leb_for = [&](double r, double rbragg) {
+    if (!prune) return leb;
+    double frac = 1.0;
+    for (const Region& g : regions)
+      if (r < g.rmax * rbragg) { frac = g.frac; break; }
+    for (const auto& e : leb_registry)
+      if (e.npts >= frac * nang) return &e;
+    return leb;
+  };
 
   // Becke size-adjustment parameters a_ij.
   std::vector<double> aij(na * na, 0.0), rij(na * na, 0.0);
@@ -62,14 +76,16 @@ Grid make_grid(const Molecule& mol, int nrad, int nang) {
   std::vector<double> P(na);
   for (int A = 0; A < na; ++A) {
     const double xi = ta_xi(mol.atoms[A].Z);
+    const double rbragg = bragg(mol.atoms[A].Z) / 0.529177210903;
     for (int ir = 1; ir <= nrad; ++ir) {
       const double th = ir * kPi / (nrad + 1), xr = std::cos(th);
       const double r = xi / std::log(2.0) * std::pow(1 + xr, 0.6) * std::log(2.0 / (1 - xr));
       const double drdx = xi / std::log(2.0) *
                           (0.6 * std::pow(1 + xr, -0.4) * std::log(2.0 / (1 - xr)) + std::pow(1 + xr, 0.6) / (1 - xr));
       const double wr = kPi / (nrad + 1) * std::sin(th) * std::sin(th) / std::sqrt(1 - xr * xr) * drdx * r * r;
-      for (int ia = 0; ia < leb->npts; ++ia) {
-        const double* p = leb->data[ia];
+      const LebEntry* la = leb_for(r, rbragg);
+      for (int ia = 0; ia < la->npts; ++ia) {
+        const double* p = la->data[ia];
         const double px = mol.atoms[A].x[0] + r * p[0], py = mol.atoms[A].x[1] + r * p[1],
                      pz = mol.atoms[A].x[2] + r * p[2];
         double wp = 1.0;

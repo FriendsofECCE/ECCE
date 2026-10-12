@@ -10,6 +10,8 @@
 //   basis <name>                 ECCE library name (def2-SVP, 6-31G*, ...)
 //   spherical <true|false>       default true (spherical d, f, ...)
 //   grid <nradial> <nangular>    DFT grid, default 99 590
+//   grid_prune <true|false>      thin the angular grid near the nuclei
+//                                (default true; false = full grid everywhere)
 //   units <angstrom|bohr>        geometry units, default angstrom
 //   maxiter <n>, conv_energy <x>, conv_grad <x>
 //   charges <loewdin|chelpg|mk ...>   extra charge sets besides Mulliken

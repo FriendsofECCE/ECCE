@@ -12,7 +12,10 @@ struct AoValues {
   Mat dxx, dxy, dxz, dyy, dyz, dzz;  // second derivatives, deriv >= 2
 };
 
-// xyz: 3*npts doubles (x0,y0,z0,x1,...), bohr.
-void eval_ao(const Basis& b, const double* xyz, int npts, int deriv, AoValues& out);
+// xyz: 3*npts doubles (x0,y0,z0,x1,...), bohr.  With `shells`, only those
+// shells are evaluated and the columns follow their order (the DFT code passes
+// the shells that reach a batch of points).
+void eval_ao(const Basis& b, const double* xyz, int npts, int deriv, AoValues& out,
+             const std::vector<int>* shells = nullptr);
 
 }  // namespace qm
