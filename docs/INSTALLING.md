@@ -101,6 +101,10 @@ current one, and **Close** closes it; an **Open structures** panel is
 part of the window. **Save As…** can store a calculation in any local
 folder as well as in the data server.
 
+A whole calculation, from the first start to the results, is shown in
+the video [Your first ORCA calculation with ECCE](https://youtu.be/8NzblPZJl5k)
+(4 minutes).
+
 ## 4. Run on a compute machine
 
 A calculation runs on a registered machine. **`localhost`**, this
