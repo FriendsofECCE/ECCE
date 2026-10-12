@@ -262,6 +262,11 @@ sub QMControl {
   $result .= "multiplicity " . &Multiplicity . "\n";
   $result .= "method " . &Method($AbiDict{"Category"}, $AbiDict{"Theory"}) . "\n";
   $result .= "spherical true\n";
+  my @schemes;
+  push(@schemes, "loewdin") if ($AbiDict{"ES.Theory.ECCEQM.Loewdin"} eq "1");
+  push(@schemes, "chelpg") if ($AbiDict{"ES.Theory.ECCEQM.CHELPG"} eq "1");
+  push(@schemes, "mk") if ($AbiDict{"ES.Theory.ECCEQM.MK"} eq "1");
+  $result .= "charges " . join(" ", @schemes) . "\n" if (@schemes);
   $_ = $result;
   return $result;
 }

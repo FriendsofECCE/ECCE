@@ -113,6 +113,32 @@ Skip=0
 End=^end atoms
 [END]
 
+# Extra charge sets ("charges" keyword): LOEWDIN, ESPFIT (CHELPG) and MKFIT
+# (Merz-Kollman) are one block each.
+[LOEWDIN]
+Script=ecceqm.parse
+Begin=^begin charges loewdin\b
+Frequency=last
+Skip=0
+End=^end charges
+[END]
+
+[ESPFIT]
+Script=ecceqm.parse
+Begin=^begin charges chelpg\b
+Frequency=last
+Skip=0
+End=^end charges
+[END]
+
+[MKFIT]
+Script=ecceqm.parse
+Begin=^begin charges mk\b
+Frequency=last
+Skip=0
+End=^end charges
+[END]
+
 [ORBENG][ORBOCC]
 Script=ecceqm.parse
 Begin=^begin orbitals (restricted|alpha)

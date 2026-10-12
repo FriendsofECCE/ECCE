@@ -1,0 +1,154 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    ecceqm-h2o-charges
+desc:    ecceqm.desc
+fixture: ecceqm/h2o_charges.qmout (82 lines)
+args:    '.' 'Energy' 'SCF' 'HF' '0'
+
+[TE]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_total\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=25 fed=1 rc=0 first-fed='energy_total -74.963023138467'
+    key: TE
+      size: 1
+      values: -74.963023138467
+      units: Hartree
+
+[NNREPUL]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_nuclear\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=26 fed=1 rc=0 first-fed='energy_nuclear 9.189533762640'
+    key: NNREPUL
+      size: 1
+      values: 9.189533762640
+      units: Hartree
+
+[ONEELEC]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_one_electron\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=27 fed=1 rc=0 first-fed='energy_one_electron -122.361417904490'
+    key: ONEELEC
+      size: 1
+      values: -122.361417904490
+      units: Hartree
+
+[COULOMB]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_coulomb\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=28 fed=1 rc=0 first-fed='energy_coulomb 47.313111346330'
+    key: COULOMB
+      size: 1
+      values: 47.313111346330
+      units: Hartree
+
+[EXCHANGE]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_exchange_hf\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=29 fed=1 rc=0 first-fed='energy_exchange_hf -9.104250342947'
+    key: EXCHANGE
+      size: 1
+      values: -9.104250342947
+      units: Hartree
+
+[EXCORR]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^energy_xc\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=30 fed=1 rc=0 first-fed='energy_xc 0.000000000000'
+    key: EXCORR
+      size: 1
+      values: 0.000000000000
+      units: Hartree
+
+[S2]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^s_squared\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=31 fed=1 rc=0 first-fed='s_squared 0.000000000000'
+    key: S2
+      size: 1
+      values: 0.000000000000
+
+[ETIME]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^wall_seconds\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=34 fed=1 rc=0 first-fed='wall_seconds 0.24'
+    key: ETIME
+      size: 1
+      values: 0.24
+
+[DIPOLE]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^dipole_debye\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=33 fed=1 rc=0 first-fed='dipole_debye 0.000000000000 0.000000000000 -1.725305137710 1.725305137710'
+    key: DIPOLE
+      size: 3
+      rowlabels: X Y Z
+      values: 0.000000000000 0.000000000000 -1.725305137710
+      units: Debye
+
+[MULLIKEN]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin atoms\b
+  End=^end atoms
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=35 fed=5 rc=0 first-fed='begin atoms  # index symbol Z x y z (angstrom) mulliken_net_charge'
+    key: MULLIKEN
+      size: 3
+      values: -0.365748682800 0.182874341400 0.182874341400
+      units: e
+
+[LOEWDIN]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin charges loewdin\b
+  End=^end charges
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=40 fed=5 rc=0 first-fed='begin charges loewdin  # index symbol net_charge'
+    key: LOEWDIN
+      size: 3
+      values: -0.253021726313 0.126510863157 0.126510863157
+      units: e
+
+[ESPFIT]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin charges chelpg\b
+  End=^end charges
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=45 fed=5 rc=0 first-fed='begin charges chelpg  # index symbol net_charge  (3956 fit points)'
+    key: ESPFIT
+      size: 3
+      values: -0.616152713536 0.308053007692 0.308099705844
+      units: e
+
+[MKFIT]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin charges mk\b
+  End=^end charges
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=50 fed=5 rc=0 first-fed='begin charges mk  # index symbol net_charge  (335 fit points)'
+    key: MKFIT
+      size: 3
+      values: -0.615637636670 0.307932607760 0.307705028910
+      units: e
+
+[ORBENG][ORBOCC]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin orbitals (restricted|alpha)
+  End=^end orbitals
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=64 fed=9 rc=0 first-fed='begin orbitals restricted  # index energy(hartree) occupation'
+    key: ORBENG
+      size: 7
+      values: -20.241863044957 -1.268161902830 -0.617564542664 -0.453021688190 -0.391236770221 0.605171883394 0.741597532762
+      units: Hartree
+    key: ORBOCC
+      size: 7
+      values: 2.000000000000 2.000000000000 2.000000000000 2.000000000000 2.000000000000 0.000000000000 0.000000000000
+      units: electrons
+
+[MO][MOAOORDER]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=-
+  Begin=^begin mo_coefficients (restricted|alpha)
+  End=^end mo_coefficients
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=73 fed=9 rc=0 first-fed='begin mo_coefficients restricted  # one line per MO: index then nbf coefficients'
+    key: MO
+      size: 7 7
+      rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6 MO-7
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 BasFun-7
+      values: 0.9941309484 0.0265495914 0.0000000000 -0.0000000000 -0.0043420442 -0.0059653003 -0.0059653003 0.2328048921 -0.8336938872 0.0000000000 0.0000000000 0.1294414595 -0.1586754791 -0.1586754791 -0.0000000000 0.0000000000 0.0000000000 0.6064782202 0.0000000000 0.4450629515 -0.4450629515 0.1031719806 -0.5367981849 -0.0000000000 0.0000000000 -0.7764912512 0.2781030419 0.2781030419 -0.0000000000 0.00000000 ...[659 chars]
+    key: MOAOORDER
+      size: 1
+      values: angular-momentum
+

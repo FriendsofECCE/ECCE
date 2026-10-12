@@ -308,6 +308,7 @@ Charge		Natural (NPA) Charges			NPA	Charge		PropVector<Atom>
 Charge		AIM (Bader) Charges			AIM	Charge		PropVector<Atom>
 Charge		APT Charges			APT	Charge		PropVector<Atom>
 Charge		ESP-Fitted Charges			ESPFIT	Charge		PropVector<Atom>
+Charge		Merz-Kollman Charges			MKFIT	Charge		PropVector<Atom>
 Charge		Electron Density at Nuclei		EDENS		EFieldGrad	PropVector<Atom>
 Charge		Fermi Contact				FERMI		MHertz		PropVector<Atom>
 Charge		ESP Charge Fitting			ESPCHARGE	Charge		PropTable<Atom,Charge>

@@ -141,6 +141,16 @@ if ($first =~ /^(energy_\w+)\s+(\S+)/ && exists($energyKey{$1})) {
     push(@q, $f[6]) if (@f >= 7);
   }
   &vectorProp("MULLIKEN", \@q, "e") if (@q);
+} elsif ($first =~ /^begin charges\s+(\w+)/) {
+  # index symbol net_charge; one block per scheme asked for with "charges"
+  my %key = ("loewdin" => "LOEWDIN", "chelpg" => "ESPFIT", "mk" => "MKFIT");
+  my @q;
+  foreach my $l (@lines) {
+    last if ($l =~ /^end\b/);
+    my @f = split(' ', $l);
+    push(@q, $f[2]) if (@f >= 3);
+  }
+  &vectorProp($key{$1}, \@q, "e") if (@q && $key{$1});
 } elsif ($first =~ /^begin orbitals\s+(\w+)/) {
   my $spin = $1;
   my (@en, @occ);

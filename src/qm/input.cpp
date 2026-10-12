@@ -88,6 +88,17 @@ Input parse_input(std::istream& in) {
     else if (k == "symmetry_number") r.symmetry_number = std::stoi(rest);
     else if (k == "maxsteps") r.opt.max_steps = std::stoi(rest);
     else if (k == "opt_conv") r.opt.set_convergence(lower(rest));
+    else if (k == "charges") {
+      std::stringstream cs(lower(rest));
+      std::string w;
+      while (cs >> w) {
+        if (w == "loewdin" || w == "lowdin") r.charges.loewdin = true;
+        else if (w == "chelpg") r.charges.chelpg = true;
+        else if (w == "mk" || w == "merz-kollman") r.charges.mk = true;
+        else if (w == "none") r.charges = ChargeOptions();
+        else throw bad("charges: unknown scheme '" + w + "' (loewdin, chelpg, mk)");
+      }
+    }
     else if (k == "molden") r.molden = true;
     else throw bad("unknown keyword '" + key + "'");
   }

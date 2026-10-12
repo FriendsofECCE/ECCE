@@ -39,6 +39,7 @@ names the line.
 | `spherical` | `true` or `false` | `true` |
 | `grid` | two whole numbers: radial points, angular points | `99 590` |
 | `units` | `angstrom` or `bohr` (`au` also means bohr) | `angstrom` |
+| `charges` | any of `loewdin`, `chelpg`, `mk`: extra atomic charges besides Mulliken (see below) | none |
 | `maxiter` | whole number | 150 |
 | `conv_energy` | number, in Hartree | `1e-10` |
 | `conv_grad` | number | `1e-7` |
@@ -196,6 +197,28 @@ end atoms
 One line per atom, counted from 0: element, atomic number, position in
 Angstrom, and the Mulliken net charge. The charges add up to the charge of
 the molecule.
+
+### Other atomic charges
+
+With the keyword `charges loewdin chelpg mk` (any of the three) the output has
+one more block for each, in the same form, with the net charge per atom:
+
+```
+begin charges loewdin  # index symbol net_charge
+0 O -0.651047134805
+1 H 0.325523567403
+2 H 0.325523567403
+end charges
+```
+
+The blocks are `loewdin`, `chelpg` and `mk`. Loewdin charges come from the
+orbital populations after symmetric orthogonalisation of the basis. CHELPG and
+Merz-Kollman charges are fitted to the electrostatic potential on points around
+the molecule, with the sum fixed to the charge of the molecule; the header of
+the block gives the number of points. They differ from Mulliken charges, and
+from each other, by amounts that depend on the basis set. In the Calculation
+Editor the three are tick boxes in **Theory Details**, and the Viewer lists
+them under Charges beside Mulliken.
 
 ### Orbital energies and occupations
 

@@ -162,7 +162,7 @@ static void write_frequency_blocks(std::ostream& os, const FrequencyOutput& f, c
 }
 
 void write_text_output(std::ostream& os, const Input& in, const Basis& b, const ScfResult& r, double seconds,
-                       const OptResult* opt, const FrequencyOutput* freq) {
+                       const OptResult* opt, const FrequencyOutput* freq, const ChargeSets* charges) {
   const bool dft = in.scf.method != "hf";
   const bool restricted = r.reference != Reference::Unrestricted;
   const Molecule& mol = b.molecule();
@@ -207,6 +207,19 @@ void write_text_output(std::ostream& os, const Input& in, const Basis& b, const 
        << mol.atoms[a].x[0] * kBohrToAngstrom << " " << mol.atoms[a].x[1] * kBohrToAngstrom << " "
        << mol.atoms[a].x[2] * kBohrToAngstrom << " " << r.mulliken[a] << "\n";
   os << "end atoms\n";
+  if (charges) {
+    auto block = [&](const char* name, const std::vector<double>& q, int npts) {
+      if (q.empty()) return;
+      os << "begin charges " << name << "  # index symbol net_charge";
+      if (npts) os << "  (" << npts << " fit points)";
+      os << "\n";
+      for (size_t a = 0; a < q.size(); ++a) os << a << " " << element_symbol(mol.atoms[a].Z) << " " << q[a] << "\n";
+      os << "end charges\n";
+    };
+    block("loewdin", charges->loewdin, 0);
+    block("chelpg", charges->chelpg, charges->chelpg_points);
+    block("mk", charges->mk, charges->mk_points);
+  }
   auto labels = ao_labels(b);
   os << "begin ao_labels  # index label, order of the MO coefficients\n";
   for (int i = 0; i < b.nbf(); ++i) os << i + 1 << " " << labels[i] << "\n";

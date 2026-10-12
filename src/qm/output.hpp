@@ -4,6 +4,7 @@
 #include <iosfwd>
 #include <string>
 #include "basis.hpp"
+#include "charges.hpp"
 #include "input.hpp"
 #include "optimizer.hpp"
 #include "scf.hpp"
@@ -21,7 +22,8 @@ struct FrequencyOutput {
 
 // opt: set for runtype optimize, adds the convergence summary.
 void write_text_output(std::ostream& os, const Input& in, const Basis& b, const ScfResult& r, double seconds,
-                       const OptResult* opt = nullptr, const FrequencyOutput* freq = nullptr);
+                       const OptResult* opt = nullptr, const FrequencyOutput* freq = nullptr,
+                       const ChargeSets* charges = nullptr);
 
 // One geometry with its energy and gradient, written as soon as it is known
 // and before the final output, so a running job shows its trace.

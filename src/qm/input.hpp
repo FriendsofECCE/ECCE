@@ -12,6 +12,7 @@
 //   grid <nradial> <nangular>    DFT grid, default 99 590
 //   units <angstrom|bohr>        geometry units, default angstrom
 //   maxiter <n>, conv_energy <x>, conv_grad <x>
+//   charges <loewdin|chelpg|mk ...>   extra charge sets besides Mulliken
 //   runtype <energy|gradient|optimize|frequency|optfreq>   default energy;
 //                                gradient adds the analytic nuclear gradient,
 //                                optimize moves the nuclei to a minimum
@@ -33,6 +34,7 @@
 #include <string>
 #include <vector>
 #include "basislib.hpp"
+#include "charges.hpp"
 #include "molecule.hpp"
 #include "optimizer.hpp"
 #include "scf.hpp"
@@ -51,6 +53,7 @@ struct Input {
   int spherical = 1;     // 1 spherical, 0 Cartesian
   ScfOptions scf;
   bool molden = false;
+  ChargeOptions charges;  // extra charge sets (keyword "charges")
   RunType runtype = RunType::Energy;
   OptOptions opt;
   // Frequency runs: Cartesian step of the finite-difference Hessian (bohr),

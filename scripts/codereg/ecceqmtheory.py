@@ -94,6 +94,16 @@ class EcceqmTheoryPanel(EccePanel):
         orbSizer.AddWidget(self.unrestricted)
         orbSizer.AddWidget(self.closedNote)
         self.panelSizer.Add(orbSizer)
+        # Mulliken charges are always printed; these add to them.
+        chgSizer = EcceBoxSizer(self, label="Extra atomic charges", cols=1)
+        for label, name in ((" Loewdin", "ES.Theory.ECCEQM.Loewdin"),
+                            (" CHELPG (fitted to the electrostatic potential)",
+                             "ES.Theory.ECCEQM.CHELPG"),
+                            (" Merz-Kollman (fitted to the electrostatic potential)",
+                             "ES.Theory.ECCEQM.MK")):
+            chgSizer.AddWidget(EcceCheckBox(self, label=label, name=name,
+                                            default=False, export=1))
+        self.panelSizer.Add(chgSizer)
         self.panelSizer.SetMinSize(wx.Size(380, -1))
 
         self.AddButtons()

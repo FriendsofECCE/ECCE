@@ -1665,6 +1665,22 @@ CASES = [
         },
     ),
     dict(
+        #  "charges loewdin chelpg mk": three extra blocks, one key each.
+        name='ecceqm-h2o-charges',
+        desc='ecceqm.desc',
+        fixture='ecceqm/h2o_charges.qmout',
+        parse_args=('.', 'Energy', 'SCF', 'HF', '0'),
+        silent_ok={},
+        expect={
+            'LOEWDIN': dict(keys={'LOEWDIN': {'size': '3', 'sum': 0.0,
+                                              'units': 'e'}}),
+            'ESPFIT': dict(keys={'ESPFIT': {'size': '3', 'sum': 0.0,
+                                            'units': 'e'}}),
+            'MKFIT': dict(keys={'MKFIT': {'size': '3', 'sum': 0.0,
+                                          'units': 'e'}}),
+        },
+    ),
+    dict(
         # Restricted open-shell Kohn-Sham triplet: one orbital set with
         # occupations 2, 1, 0 (the case the Builder draws as an open shell).
         name='ecceqm-o2-roks',

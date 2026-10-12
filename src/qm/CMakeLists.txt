@@ -84,7 +84,7 @@ FetchContent_MakeAvailable(libcint)
 # --- the library and the command line tool ---------------------------------
 add_library(eccems STATIC
   molecule.cpp basislib.cpp basis.cpp integrals.cpp ao.cpp grid.cpp xc.cpp
-  scf.cpp gradient.cpp optimizer.cpp vibration.cpp input.cpp output.cpp)
+  scf.cpp charges.cpp gradient.cpp optimizer.cpp vibration.cpp input.cpp output.cpp)
 target_include_directories(eccems PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${libcint_SOURCE_DIR}/include)
 target_link_libraries(eccems PUBLIC Eigen3::Eigen cint qm_xc)
 if(OpenMP_CXX_FOUND)
@@ -119,6 +119,11 @@ if(QM_PYTHON3)
   add_test(NAME qm_diatomic_order COMMAND ${QM_PYTHON3} ${_qm_tests}/diatomic_order_test.py
            $<TARGET_FILE:ecce-qm> ${_ecce_root}/data/admin/basissets)
   set_tests_properties(qm_diatomic_order PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+  # Loewdin, CHELPG and Merz-Kollman charges against ORCA and Gaussian 16;
+  # exits 77 (skip) when neither is installed.
+  add_test(NAME qm_charges COMMAND ${QM_PYTHON3} ${_qm_tests}/charges_test.py $<TARGET_FILE:ecce-qm>)
+  add_test(NAME qm_charges_deck COMMAND ${QM_PYTHON3} ${_qm_tests}/charges_deck_test.py)
+  set_tests_properties(qm_charges PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
   # Analytic gradient against finite differences, and optimisations against
   # ORCA (tests/qm/opt_oracle.json); the full lists run without --quick.
   add_test(NAME qm_gradient_quick COMMAND ${QM_PYTHON3} ${_qm_tests}/gradient_test.py $<TARGET_FILE:ecce-qm> --quick)

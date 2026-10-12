@@ -69,7 +69,26 @@ restricted-open otherwise.
 * DFT grid: Treutler-Ahlrichs M4 radial points x Lebedev, Becke partition
   with Bragg-radius size adjustment, no pruning. Default 99 x 590 per atom.
 * Output: total and component energies, orbital energies and occupations,
-  MO coefficients, Mulliken net charges, dipole, <S^2>; a Molden file.
+  MO coefficients, Mulliken net charges (Loewdin, CHELPG, MK on request), dipole, <S^2>; a Molden file.
+
+### Extra charge sets (`charges` keyword)
+
+`charges loewdin chelpg mk` (any subset) adds charge sets to the output
+(`begin charges <scheme>`, `src/qm/charges.cpp`); Mulliken is always printed.
+
+* Loewdin: diagonal of S^1/2 P S^1/2 summed per atom.
+* CHELPG: the potential from the nuclei and `int1e_rinv` at points on a cubic
+  grid of 0.3 A, outside the CHELPG radii (H 1.45, C 1.50, N/O/F 1.70, Bondi
+  elsewhere) and within 2.8 A of some atom; least squares with the total charge
+  fixed by a Lagrange multiplier. Not rotation invariant, like any CHELPG.
+* Merz-Kollman: points on the surfaces at 1.4, 1.6, 1.8, 2.0 times the MK radii
+  (H 1.20, C/N 1.50, O 1.40, F 1.35, Bondi elsewhere), about one point per
+  square Angstrom from a Fibonacci spiral, minus those inside another atom's
+  scaled sphere; same fit.
+* Against ORCA 6.1.1 (Loewdin, CHELPG) and Gaussian 16 (Pop=MK), H2O, NH3, CO,
+  HF at HF and B3LYP/6-31G*: Loewdin within 1e-5, CHELPG within 0.005, MK within
+  0.003 e (`tests/qm/charges_test.py`, ctest `qm_charges`).
+* ECCE keys: LOEWDIN, ESPFIT (CHELPG, the key ORCA's CHELPG uses) and MKFIT.
 
 ### Restricted open shell (ROHF, ROKS)
 

@@ -9,6 +9,7 @@
 #include <vector>
 #include "ao.hpp"
 #include "basis.hpp"
+#include "charges.hpp"
 #include "gradient.hpp"
 #include "input.hpp"
 #include "output.hpp"
@@ -65,6 +66,11 @@ int main(int argc, char** argv) {
         e.grad = qm::scf_gradient(*basis, m, in.scf, r);
       }
       return e;
+    };
+    auto extra_charges = [&]() {
+      std::unique_ptr<qm::ChargeSets> cs;
+      if (in.charges.any() && r.converged) cs.reset(new qm::ChargeSets(qm::compute_charges(*basis, at, r, in.charges)));
+      return cs;
     };
     auto same = [](const qm::Molecule& a, const qm::Molecule& b) {
       for (size_t i = 0; i < a.atoms.size(); ++i)
@@ -123,7 +129,8 @@ int main(int argc, char** argv) {
       if (!same(at, res.mol)) evaluate(res.mol);  // the last trial was turned down
       std::unique_ptr<qm::FrequencyOutput> fo;
       if (in.runtype == qm::RunType::OptFreq && res.converged) fo.reset(new qm::FrequencyOutput(frequencies(res.mol, res.grad)));
-      qm::write_text_output(os, in, *basis, r, seconds(), &res, fo.get());
+      auto cs = extra_charges();
+      qm::write_text_output(os, in, *basis, r, seconds(), &res, fo.get(), cs.get());
       if (!molden.empty()) {
         std::ofstream f(molden);
         qm::write_molden(f, in, *basis, r, fo.get());
@@ -143,7 +150,8 @@ int main(int argc, char** argv) {
     }
     std::unique_ptr<qm::FrequencyOutput> fo;
     if (in.runtype == qm::RunType::Frequency && r.converged) fo.reset(new qm::FrequencyOutput(frequencies(in.mol, e.grad)));
-    qm::write_text_output(os, in, *basis, r, seconds(), nullptr, fo.get());
+    auto cs = extra_charges();
+    qm::write_text_output(os, in, *basis, r, seconds(), nullptr, fo.get(), cs.get());
     if (!molden.empty()) {
       std::ofstream f(molden);
       qm::write_molden(f, in, *basis, r, fo.get());
