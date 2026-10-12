@@ -2,7 +2,7 @@
 
 This covers building, installing, and running this fork of ECCE on Debian
 13 ("trixie") — from a clean checkout to a working login. It documents
-`main` (the 9.0 development line, 9.0.0-alpha previews) and its
+`main` (the 9.x line, the recommended version) and its
 CMake/CPack packaging, not the old `build_ecce`/recursive-make workflow.
 For 8.x (branch `stable-8`), use that branch's copy of this file; its
 package is the single `ecce` package.

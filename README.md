@@ -8,8 +8,8 @@ molecule, set up a calculation, run it on your own computer or a cluster,
 and look at the results (orbitals, densities, vibrations, geometry
 optimisations), with every calculation kept in one place.
 
-It works with **NWChem, Gaussian, ORCA and MOPAC**; the 9.0 previews also
-include ECCE-QM, a small built-in Hartree–Fock/DFT program that needs
+It works with **NWChem, Gaussian, ORCA and MOPAC**; ECCE 9 also includes
+ECCE-QM, a small built-in Hartree–Fock/DFT program that needs
 nothing else installed. ECCE was developed at Pacific Northwest National
 Laboratory, which stopped supporting it around 2017; it is maintained
 here since, with PNNL's blessing.
@@ -22,10 +22,13 @@ More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
 
 Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
-* **For production work:** 8.18.x (latest
+* **ECCE 9** (latest
+  [9.0.0-beta.2](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.0.0-beta.2)),
+  for Linux, macOS and Windows: the recommended version. The macOS and
+  Windows clients are experimental.
+* **ECCE 8.18.x** (latest
   [8.18.10](https://github.com/FriendsofECCE/ECCE/releases/tag/v8.18.10)),
-  Linux.
-* **To try what is new:** the 9.0 previews, for Linux, macOS and Windows.
+  Linux only: the older line, which still gets bug fixes.
 
 | System | File | Install |
 |---|---|---|
