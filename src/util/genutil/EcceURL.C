@@ -1,3 +1,4 @@
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -544,15 +545,35 @@ static string localDataRoot()
   return LocalData::dir();
 }
 
+// Symlinks and trailing slashes must not make the same directory compare
+// unequal.
+static string canonicalPath(string p)
+{
+  while (p.size() > 1 && p[p.size()-1] == '/') p.erase(p.size()-1);
+  char buf[PATH_MAX];
+  if (realpath(p.c_str(), buf)) return buf;
+  return p;
+}
+
+// The Organizer's "Local data" node is rooted at the user folder
+// <dir>/users/local, not at <dir>.
+bool EcceURL::isLocalDataHome() const
+{
+  if (p_protocol != "file") return false;
+  string home = LocalData::userHome();
+  if (home.empty()) return false;
+  return canonicalPath(p_file) == canonicalPath(home);
+}
+
 bool EcceURL::isSystemFolder() const
 {
   if (p_protocol == "file") {
     // The local data root must not be renamed or deleted from the tree.
     string root = localDataRoot();
     if (!root.empty()) {
-      string f = p_file;
-      while (f.size() > 1 && f[f.size()-1] == '/') f.erase(f.size()-1);
-      return f == root || f == root + "/users";
+      string f = canonicalPath(p_file);
+      string r = canonicalPath(root);
+      return f == r || f == r + "/users" || isLocalDataHome();
     }
     return false;
   }

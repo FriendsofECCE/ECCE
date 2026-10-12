@@ -2174,6 +2174,7 @@ void CalcMgr::OnDuplicate2Click( wxCommandEvent& event )
  */
 void CalcMgr::OnCutClick( wxCommandEvent& event )
 {
+  if (selectionHasSystemFolder()) return;
   startDisabler();
 
   copySelectionToClipboard(true);
@@ -2223,6 +2224,7 @@ void CalcMgr::OnPasteClick( wxCommandEvent& event )
  */
 void CalcMgr::OnDeleteClick( wxCommandEvent& event )
 {
+  if (selectionHasSystemFolder()) return;
   startDisabler();
 
   deleteSelection();
@@ -2238,6 +2240,7 @@ void CalcMgr::OnDeleteClick( wxCommandEvent& event )
  */
 void CalcMgr::OnRenameClick( wxCommandEvent& event )
 {
+  if (selectionHasSystemFolder()) return;
   startDisabler();
 
   // It needs to be a single selection
@@ -2907,8 +2910,20 @@ void CalcMgr::copySelectionToClipboard(bool deleteAfterPaste)
 /**
  * Delete current selection
  */
+// Menu state can lag behind the selection (keyboard Delete, accelerators),
+// so the handlers refuse system folders themselves.
+bool CalcMgr::selectionHasSystemFolder()
+{
+  if (!getSelection()) return false;
+  for (size_t i = 0; i < p_currentSelection.size(); i++)
+    if (p_currentSelection[i].isSystemFolder()) return true;
+  return false;
+}
+
+
 void CalcMgr::deleteSelection()
 {
+  if (selectionHasSystemFolder()) return;
   getSelection();
   vector<EcceURL> selection = p_currentSelection;
   vector<EcceURL>::iterator itor = selection.begin();
@@ -6837,7 +6852,8 @@ bool CalcMgr::canDropOnTree(wxCoord x, wxCoord y)
     //    cerr << "On top of item " << itemData->getUrl().toString() << endl;
     // logic about whether it is ok to drop on it
     return (!itemData->getUrl().isSystemFolder() ||
-            itemData->getUrl().getParent().isEcceUsers())
+            itemData->getUrl().getParent().isEcceUsers() ||
+            itemData->getUrl().isLocalDataHome())
       && (itemData->getResource()->getResourceType() !=
           ResourceDescriptor::RT_DOCUMENT);
   }

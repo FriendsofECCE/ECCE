@@ -1786,6 +1786,11 @@ add_executable(releasecheck_test tests/releasecheck/releasecheck_test.C)
 target_link_libraries(releasecheck_test PRIVATE ecceutil)
 add_test(NAME releasecheck COMMAND releasecheck_test)
 
+# tests/systemfolder -- the Organizer's Local data node is a system folder (#288).
+add_executable(systemfolder_test tests/systemfolder/systemfolder_test.C)
+target_link_libraries(systemfolder_test PRIVATE ecceutil)
+add_test(NAME systemfolder COMMAND systemfolder_test)
+
 # tests/formula -- the Hill-order formula shown in the Organizer.
 add_executable(formula_test tests/formula/formula_test.C)
 target_link_libraries(formula_test PRIVATE eccetdat ecceutil)

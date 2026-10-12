@@ -309,6 +309,7 @@ public:
   void copySelectionToClipboard(bool deleteAfterPaste);
   void paste();
   void deleteSelection();
+  bool selectionHasSystemFolder();
   string getTreeSelectionName();
   bool getTypeAndState(WxResourceTreeItemData * itemData, 
                        ResourceType *& resType,

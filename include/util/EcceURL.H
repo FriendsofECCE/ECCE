@@ -96,6 +96,8 @@ class EcceURL  {
 
     bool isLocal() const;
     bool isSystemFolder() const;
+    /// True for the Organizer's "Local data" node (<dir>/users/local).
+    bool isLocalDataHome() const;
     bool isEcceRoot() const;
     bool isEcceUsers() const;
     bool isEcceUserHome() const;
