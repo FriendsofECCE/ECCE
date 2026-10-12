@@ -59,6 +59,9 @@ class StructLib: public StructLibGUI, public WxVizTool
         int  getSelectedAtom() const;
         void configure();
         bool openFolder(const std::string& path, const std::string& select);
+        /// Test hook (BuilderScript "libatom"): the library atom a click on it
+        /// would have selected; -1 leaves the preview selection in charge.
+        void setTestAtom(int atom) { p_testAtom = atom; }
 
     private:
         void connectResource(const EcceURL& url,
@@ -82,6 +85,7 @@ class StructLib: public StructLibGUI, public WxVizTool
         ewxStaticText       *p_noneExistStaticText;
 
         SGFragment          *p_librarySelection;
+        int                  p_testAtom = -1;
 
         EDSIStructureLib    *p_structures;
 

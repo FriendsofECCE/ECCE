@@ -641,6 +641,7 @@ Fragment *StructLib::getSelectedFragment() const
 int StructLib::getSelectedAtom() const
 {
   int ret = -1;
+  if (p_testAtom >= 0) return p_testAtom;
   
   // Get selection object
   SGSelection *sel = p_viewer->getSel();

@@ -14,6 +14,11 @@
 //    click                       a click in the 3D view in the current mode
 //    save                        File > Save
 //    info                       atoms and lattice, on stderr
+//    libatom I                   select atom (a Nub) I of the library structure
+//    select I                    select atom (or Nub) I, as a click does; -1 none
+//    selectnub A                 select the first Nub of the last atom of element A
+//    bonds A B                   count the bonds from the last atom of element A
+//                                to atoms of element B
 //    expect atoms N | expect lattice yes|no
 //    shot NAME                   writes NAME.ready next to the script and
 //                                waits for NAME.go: the test photographs the
@@ -235,6 +240,39 @@ void Builder::runBuilderScript(const std::string& file)
         LatticeDef *lat = frag ? frag->getLattice() : 0;
         fprintf(stderr, "BUILDER: atoms=%d lattice=%s\n",
                 frag ? (int)frag->numAtoms() : -1, lat ? "yes" : "no");
+      } else if (w[0] == "libatom" && w.size() == 2) {
+        p_structLib->setTestAtom(atoi(w[1].c_str()));
+      } else if (w[0] == "select" && w.size() == 2 && frag) {
+        //  The atom (or Nub) a click on it would select, by index.
+        frag->m_atomHighLight.clear();
+        if (atoi(w[1].c_str()) >= 0)
+          frag->m_atomHighLight.assign(1, atoi(w[1].c_str()));
+      } else if (w[0] == "selectnub" && w.size() == 2 && frag) {
+        //  The first Nub on the last atom of element A.
+        TAtm *last = 0;
+        for (size_t i = 0; i < frag->numAtoms(); i++)
+          if (frag->atomRef(i)->atomicSymbol() == w[1]) last = frag->atomRef(i);
+        outcome = "FAIL: no such atom or no nub";
+        for (TBond *b : last ? last->bondList() : vector<TBond*>()) {
+          TAtm *o = b->atom1() == last ? b->atom2() : b->atom1();
+          if (o->atomicSymbol() == "Nub") {
+            frag->m_atomHighLight.assign(1, o->index());
+            outcome = "ok";
+            break;
+          }
+        }
+      } else if (w[0] == "bonds" && w.size() == 3 && frag) {
+        //  Bonds from the last atom of element A to atoms of element B.
+        TAtm *last = 0;
+        for (size_t i = 0; i < frag->numAtoms(); i++)
+          if (frag->atomRef(i)->atomicSymbol() == w[1]) last = frag->atomRef(i);
+        int n = 0;
+        for (TBond *b : last ? last->bondList() : vector<TBond*>()) {
+          TAtm *o = b->atom1() == last ? b->atom2() : b->atom1();
+          if (o->atomicSymbol() == w[2]) n++;
+        }
+        fprintf(stderr, "BUILDER: bonds %s-%s=%d\n", w[1].c_str(),
+                w[2].c_str(), n);
       } else if (w[0] == "expect" && w.size() == 3) {
         LatticeDef *lat = frag ? frag->getLattice() : 0;
         if (w[1] == "atoms" && (!frag || (int)frag->numAtoms() != atoi(w[2].c_str())))

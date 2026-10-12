@@ -2122,6 +2122,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_examples PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Structure Library > Ligands attach to a metal's nub in the Builder
+  # (ECCE_BUILDER_SCRIPT select/selectnub/libatom/bonds).
+  add_test(NAME apps_ligands
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/ligands_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_ligands PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # Organizer summary panel: molecule and basis fields of a data-server
   # and of a local-data calculation, ECCE_TEST_ORGANIZER "summary".
   add_test(NAME apps_summary
