@@ -13,8 +13,8 @@ c  orbitals transforms.  So this is a wrapper, not a new algorithm:
 c  the operations it prints are the same ones the structure tools have
 c  always used, and cannot drift from them.
 c
-c  Input, on standard input:
-c     the group name, uppercase, one line
+c  Input: the group name, uppercase, as the first argument or else one
+c     line on standard input
 c
 c  Output, on standard output:
 c     the number of operations, then that many 3x4 matrices, one row
@@ -61,8 +61,18 @@ c     index into this list IS the group number gensym expects.
      & 'TH','TD','O','OH','I',
      & 'IH'/
 
-      read(5,100,end=900) group_name
+c     The group name is the first argument when there is one (no shell
+c     pipe is needed, which cmd.exe makes unreliable), else standard
+c     input.  A carriage return left by a Windows echo is blanked.
+      group_name = ' '
+      call get_command_argument(1, group_name)
+      if (group_name.eq.' ') then
+        read(5,100,end=900) group_name
+      end if
   100 format(a10)
+      do i = 1, 10
+        if (group_name(i:i).eq.char(13)) group_name(i:i) = ' '
+      end do
 
       itype  = 0
       numset = 1

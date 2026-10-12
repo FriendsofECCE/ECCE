@@ -223,14 +223,20 @@ bool MoFragments::symmetryOperations(const string& group, vector<SymOp>& ops)
    //  to the bin directory, so a bare "./symops" finds nothing.
    string command = Ecce::ecceBinCommand("symops");
 
+   //  The name is an argument, not piped in: on Windows the echo pipe went
+   //  through two extra cmd.exe processes, and a failure there looked
+   //  like an unknown group.  Group names are letters and digits only.
+   for (string::size_type i = 0; i < upper.size(); i++) {
+      if (!isalnum((unsigned char)upper[i])) return false;
+   }
 #ifdef _WIN32
-   command = "echo " + upper + "| " + command + " 2>NUL";
+   command = command + " " + upper;
 #else
-   command = "echo " + upper + " | " + command + " 2>/dev/null";
+   command = command + " " + upper + " 2>/dev/null";
 #endif
 
    string output;
-   const int status = Ecce::readCommand(command, output);
+   const int status = Ecce::readCommand(command, output, false);
    if (status < 0) return false;
    std::istringstream pipe(output);
 
