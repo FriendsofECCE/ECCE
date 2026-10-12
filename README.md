@@ -40,8 +40,10 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 ## First steps
 
 The same pages are in ECCE under **Help**. To see it done first, watch
+[Your first calculation with ECCE-QM](https://youtu.be/HQarL7NbFjk)
+(3 minutes, nothing else to install) or
 [Your first ORCA calculation with ECCE](https://youtu.be/8NzblPZJl5k)
-(4 minutes, with subtitles).
+(4 minutes); both have subtitles.
 
 1. [Installation](help/src/installation.md): what you see the first time
    ECCE starts, and where your work is kept.
