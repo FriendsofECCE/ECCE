@@ -542,6 +542,19 @@ ecce_app(polyed src/apps/polyrate WX
 ecce_app(solvate src/apps/solvate WX
   LINK eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 
+# Native replacement for the wxPython Details dialogs (pilot): reads the
+# .dlg files next to scripts/codereg/*.py.  wx only, so it links nothing of
+# ECCE's; JCode::getTheoryRunTypeEditorNames starts it when ECCE_NATIVE_DIALOGS
+# is set.  Not in ECCE_GUI_APPS: no wrapper script, it is never run by hand.
+add_executable(ecce-dialog src/apps/codereg-dialog/ecce-dialog.cpp)
+target_compile_definitions(ecce-dialog PRIVATE ${wxWidgets_DEFINITIONS})
+target_include_directories(ecce-dialog PRIVATE ${wxWidgets_INCLUDE_DIRS})
+target_link_libraries(ecce-dialog PRIVATE ${wxWidgets_LIBRARIES})
+if(WIN32)
+  set_target_properties(ecce-dialog PROPERTIES WIN32_EXECUTABLE ON)
+endif()
+install(TARGETS ecce-dialog RUNTIME DESTINATION bin COMPONENT client)
+
 # --- wx + GL apps ---
 ecce_app(builder src/apps/builder WX GL
   LINK eccewxguicomm eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccecommxt eccecomm eccercmd 
@@ -1965,6 +1978,15 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/dialogs/run_tests.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/dialogs)
+
+  # The native ecce-dialog against the wxPython dialog for ECCE-QM Theory
+  # Details: same settings sent, same pixels (tests/dialogs/native_test.py).
+  add_test(NAME dialogs_native
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/dialogs/native_test.py
+                   --dialog $<TARGET_FILE:ecce-dialog>)
+  set_tests_properties(dialogs_native PROPERTIES SKIP_RETURN_CODE 77
+                       TIMEOUT 900)
 
   # tests/verify -- the input-deck checker (#148).  Runs the real
   # scripts/parsers/verifyinput over decks captured from real runs and

@@ -600,6 +600,22 @@ vector<TRunType> *JCode::runTypes(const TTheory* theory) const
   return result;
 }
 
+// ECCE_NATIVE_DIALOGS=1 runs the C++ ecce-dialog on a Details dialog's .dlg
+// description when there is one (pilot); the Python dialog stays the default
+// and the fallback for every dialog that has no .dlg yet.
+static string nativeDialogCommand(const string& pyfile, const string& pythonCmd)
+{
+  const char *on = getenv("ECCE_NATIVE_DIALOGS");
+  if (!on || !*on || string(on) == "0" || pyfile.size() < 3) return pythonCmd;
+  string dlg = pyfile.substr(0, pyfile.size() - 3) + ".dlg";
+  string exe = string(Ecce::ecceHome()) + "/bin/ecce-dialog";
+#ifdef _WIN32
+  exe += ".exe";
+#endif
+  if (!SFile(dlg).exists() || !SFile(exe).exists()) return pythonCmd;
+  return "\"" + exe + "\" \"" + dlg + "\"";
+}
+
 bool JCode::getTheoryRunTypeEditorNames(string& theory, string& runtype) const
 {
   theory = "";
@@ -640,6 +656,7 @@ bool JCode::getTheoryRunTypeEditorNames(string& theory, string& runtype) const
     // Quoted for sh and for CreateProcess alike: the install folder can
     // hold a space (a Windows user name).
     theory = "python3 \"" + pyfile + "\"";
+    theory = nativeDialogCommand(pyfile, theory);
 
     // Note that this will return just the theorydialog value if the
     // script does not exist in codereg which is the proper fallback if the
@@ -661,6 +678,7 @@ bool JCode::getTheoryRunTypeEditorNames(string& theory, string& runtype) const
     SFile sfile(pyfile);
 
     runtype = "python3 \"" + pyfile + "\"";
+    runtype = nativeDialogCommand(pyfile, runtype);
 
     // Note that this will return just the runtypedialog value if the
     // script does not exist in codereg which is the proper fallback if the

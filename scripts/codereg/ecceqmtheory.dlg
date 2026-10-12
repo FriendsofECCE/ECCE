@@ -1,0 +1,18 @@
+# ECCE-QM Theory Details for the native engine (bin/ecce-dialog), the same
+# dialog as ecceqmtheory.py.  Keep the two in step: tests/dialogs/native_test.py
+# compares what they send.  Functionals here are XC_FUNCTIONALS in the .py.
+
+dialog title="ECCE-QM Editor: Theory Details" minwidth=380 message=hide
+
+box label="DFT Functional" when="category==DFT"
+combo name=ES.Theory.DFT.XCFunctionals label="Functional:" choices="SVWN|PBE|B3LYP|PBE0" default=B3LYP export=1
+
+# Open-shell systems use restricted orbitals unless "Unrestricted" is chosen.
+box label="Open shells"
+radiopair name=ES.Theory.ECCEQM.Unrestricted first="Restricted open-shell (ROHF/ROKS)" second="Unrestricted (UHF/UKS)" enable_if="mult>1"
+note label="Closed shell: RHF/RKS, no choice." show_if="mult<=1"
+
+box label="Extra atomic charges"
+check name=ES.Theory.ECCEQM.Loewdin label=" Loewdin" default=0 export=1
+check name=ES.Theory.ECCEQM.CHELPG label=" CHELPG (fitted to the electrostatic potential)" default=0 export=1
+check name=ES.Theory.ECCEQM.MK label=" Merz-Kollman (fitted to the electrostatic potential)" default=0 export=1
