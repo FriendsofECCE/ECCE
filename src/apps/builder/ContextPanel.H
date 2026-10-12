@@ -29,6 +29,7 @@ class ContextPanel : public ewxPanel
                         long style = wxTAB_TRAVERSAL,
                         const wxString& name = "ContextPanel");
 
+    int preferredHeight() const;
     wxString GetContext() const;
     wxString ContextAt(long index) const;
     bool SetContext(const wxString& context);

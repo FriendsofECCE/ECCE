@@ -83,6 +83,7 @@
 #include "wxgui/PerTabPanel.H"
 #include "wxgui/TearableContent.H"
 #include "Builder.H"
+#include "ContextPanel.H"
 #include "PBC.H"
 #include "dsm/IPropCalculation.H"
 #include "KeyValuePropertyPanel.H"
@@ -244,6 +245,12 @@ void Builder::runBuilderScript(const std::string& file)
                 isDirty() ? 1 : 0, p_fileMenu->IsEnabled(wxID_SAVE) ? 1 : 0,
                 p_fileToolbar->GetToolEnabled(wxID_SAVE) ? 1 : 0);
       } else if (w[0] == "info") {
+        fprintf(stderr, "CONTEXTS: %d\n", (int)p_calculations.size());
+        {
+          wxAuiPaneInfo &cp = p_mgr.GetPane(static_cast<wxWindow*>(p_contextPanel));
+          fprintf(stderr, "CONTEXTPANE: min_height=%d rows=%d\n",
+                  cp.min_size.y, (int)p_calculations.size());
+        }
         LatticeDef *lat = frag ? frag->getLattice() : 0;
         fprintf(stderr, "BUILDER: atoms=%d lattice=%s\n",
                 frag ? (int)frag->numAtoms() : -1, lat ? "yes" : "no");

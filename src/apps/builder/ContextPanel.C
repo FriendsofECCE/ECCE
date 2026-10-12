@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <wx/sizer.h>
 #include <wx/uri.h>
 
@@ -42,7 +43,7 @@ bool ContextPanel::Create(wxWindow* parent, wxWindowID id, const wxPoint& pos,
     return false;
   }
 
-  SetMinSize(wxSize(400,300));
+  SetMinSize(wxSize(200, 40));
 
   p_list = new StringListCtrl(this, ID_LIST);
 
@@ -52,6 +53,20 @@ bool ContextPanel::Create(wxWindow* parent, wxWindowID id, const wxPoint& pos,
   SetSizerAndFit(sizer);
 
   return true;
+}
+
+
+int ContextPanel::preferredHeight() const
+{
+  // Three rows to start with, growing with the open structures up to eight.
+  const int rows = std::min(8, std::max(3, (int)p_contexts.size()));
+  int rowHeight = p_list->GetCharHeight() + 8;
+  wxRect first;
+  if (p_list->GetItemCount() > 0 && p_list->GetItemRect(0, first) &&
+      first.height > 0) {
+    rowHeight = first.height;
+  }
+  return rows * rowHeight + 8;
 }
 
 

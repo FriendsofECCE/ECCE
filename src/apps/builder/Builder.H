@@ -399,6 +399,7 @@ class Builder: public BuilderGUI,
       Command * createCommand(const string& input);
       Command * createModeCommand(int modeId);
 
+      void updateContextPane();
       void addToolPanel(wxWindow *panel, const string& name,
                         const bool& readOnlyDisabled=true,
                         const bool& alwaysFixed=true);

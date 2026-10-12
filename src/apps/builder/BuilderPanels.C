@@ -32,6 +32,7 @@
 
 #include "AbstractPropCalculation.H"
 #include "Builder.H"
+#include "ContextPanel.H"
 #include "DefaultCalculation.H"
 #include "PropertyIndexPanel.H"
 #include "PropertyPanel.H"
@@ -1046,6 +1047,23 @@ void Builder::toolPaneResized(const string& name)
   if (pane.IsOk() && pane.IsShown()) {
     makeRoomFor(wxString(name));
   }
+}
+
+
+/**
+ * The Open structures pane is as tall as its rows: three at least, more as
+ * structures are opened.  A fixed pane's height is its minimum size.
+ */
+void Builder::updateContextPane()
+{
+  if (!p_contextPanel) return;
+  wxAuiPaneInfo &pane = p_mgr.GetPane(static_cast<wxWindow*>(p_contextPanel));
+  if (!pane.IsOk()) return;
+  const int height = p_contextPanel->preferredHeight();
+  p_paneFloor[static_cast<wxWindow*>(p_contextPanel)] = height;
+  if (pane.min_size.y == height) return;
+  pane.MinSize(wxSize(pane.min_size.x, height));
+  if (pane.IsShown() && !pane.IsFloating()) updatePanes();
 }
 
 

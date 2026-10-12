@@ -1550,6 +1550,7 @@ void Builder::setContext(const string& url, const bool& force)
 
   p_contextPanel->SetContext(url);
 
+  updateContextPane();
   applySceneGraphSettings();
 
   // Refresh the GUI based on the current IPropCalculation/Job contexts
@@ -4276,6 +4277,7 @@ bool Builder::isReadOnly() const
 }
 
 /**
+  updateContextPane();
  * Determines the readonly status of the given calc, or the current calc if 
  * no calc is given.
  */
@@ -6029,9 +6031,11 @@ void Builder::addToolPanel(wxWindow *panel, const string& name,
   int minWidth = contentMinWidth(panel);
   if (alwaysFixed) {
     pinfo.Fixed().MaximizeButton(false);
-    //  The context pane is a list that scrolls, so it keeps the floor.
-    int height = name == NAME_TOOL_CONTEXT ? FIXED_PANE_HEIGHT_FALLBACK
-                                           : contentFixedHeight(panel);
+    //  The context pane is a list that scrolls: about three rows, see
+    //  updateContextPane().
+    int height = name == NAME_TOOL_CONTEXT
+        ? static_cast<ContextPanel*>(panel)->preferredHeight()
+        : contentFixedHeight(panel);
     pinfo.MinSize(wxSize(minWidth, height));
   } else {
     pinfo.Resizable(true).MaximizeButton(true);
