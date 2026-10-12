@@ -30,6 +30,9 @@ class ewxCheckBox : public wxCheckBox, public ewxStyledWindow
   protected:
       bool p_editable;
       ewxDisabler *p_disabler;
+#ifdef __WXGTK__
+      virtual void DoSetSize(int x, int y, int width, int height, int sizeFlags);
+#endif
 };
 
 #endif
