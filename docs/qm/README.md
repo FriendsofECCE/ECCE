@@ -67,7 +67,9 @@ restricted-open otherwise.
 * Two-electron integrals in core (8-fold packed), so the size limit is memory:
   benzene def2-SVP (114 functions) needs 170 MB, about 250 functions 4 GB.
 * DFT grid: Treutler-Ahlrichs M4 radial points x Lebedev, Becke partition
-  with Bragg-radius size adjustment, no pruning. Default 99 x 590 per atom.
+  with Bragg-radius size adjustment. Default 99 x 590 per atom, with the angular
+  grid thinned close to each nucleus (SG-1 style regions; `grid_prune false` for the full grid).
+  Shell-pair Schwarz screening (1e-12) of the two-electron integrals and gradient.
 * Output: total and component energies, orbital energies and occupations,
   MO coefficients, Mulliken net charges (Loewdin, CHELPG, MK on request), dipole, <S^2>; a Molden file.
 

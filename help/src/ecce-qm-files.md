@@ -38,6 +38,7 @@ names the line.
 | `basis` | a basis set name from ECCE's library, such as `6-31G*` | `STO-3G` |
 | `spherical` | `true` or `false` | `true` |
 | `grid` | two whole numbers: radial points, angular points | `99 590` |
+| `grid_prune` | `true` or `false`: thin the angular grid near the nuclei | `true` |
 | `units` | `angstrom` or `bohr` (`au` also means bohr) | `angstrom` |
 | `charges` | any of `loewdin`, `chelpg`, `mk`: extra atomic charges besides Mulliken (see below) | none |
 | `maxiter` | whole number | 150 |
@@ -278,3 +279,24 @@ accepted in an input file but does nothing; use the command line option.
 without meeting the energy and gradient limits. The orbitals in the file are
 those of the last cycle and should not be used. Try another geometry, or a
 larger `maxiter`.
+
+### Size and speed
+
+The two-electron integrals are kept in memory, so the size limit is memory:
+about 250 basis functions need 4 GB. Integrals that cannot matter are skipped,
+and the DFT grid is pruned (fewer angular points close to the nuclei). Pruning
+changes a B3LYP energy by less than 1e-8 Hartree against `grid_prune false`; use `false` to compare with the full grid.
+
+Wall-clock times on one machine (8 cores available, 3 used), 6-31G*,
+before and after these changes:
+
+| Molecule (basis functions) | Calculation | Before | After |
+|---|---|---|---|
+| benzene (102) | HF energy | 0.7 s | 0.7 s |
+| benzene | B3LYP energy | 14 s | 6 s |
+| benzene | B3LYP gradient | 21 s | 10 s |
+| benzene | B3LYP geometry optimisation + frequencies | 28 min | 13 min |
+| caffeine, 24 atoms (216) | HF energy | 24 s | 19 s |
+| caffeine | HF gradient | 91 s | 58 s |
+| caffeine | B3LYP energy | 188 s | 54 s |
+| caffeine | B3LYP gradient | 280 s | 101 s |
