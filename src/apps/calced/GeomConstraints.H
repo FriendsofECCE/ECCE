@@ -38,6 +38,7 @@ class GeomConstraints: public GeomConstraintsGUI,
     virtual ~GeomConstraints( );
 
     void initDisplay(bool isEnabled=true);
+    std::string testReport(int count, bool fixedOnly=false);
 
   protected:
 

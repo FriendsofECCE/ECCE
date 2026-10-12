@@ -43,6 +43,7 @@
 #include "wxgui/ewxThemeColours.H"
 
 #include "CalcEd.H"
+#include "GeomConstraints.H"
 
 namespace {
 
@@ -221,6 +222,13 @@ void CalcEd::runCalcEdScript(const string& file)
                            : ID_BUTTON_CALCED_FINAL_EDIT);
         }
         if (!ok) outcome = "FAIL: " + w[1] + " not available";
+      } else if (w[0] == "constraints") {
+        //  Geometry Constraints dialog with N of each kind, sizes on stderr
+        wxCommandEvent ev(wxEVT_BUTTON, ID_BUTTON_CALCED_CONSTRAINT);
+        OnButtonCalcedConstraintClick(ev);
+        fprintf(stderr, "%s", p_geomConstraints->testReport(
+                w.size() > 1 ? atoi(w[1].c_str()) : 3,
+                w.size() > 2 && w[2] == "fixed").c_str());
       } else if (w[0] == "dismiss") {
         bool closed = false;
         for (wxWindowList::compatibility_iterator n =

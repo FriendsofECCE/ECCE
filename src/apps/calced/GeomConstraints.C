@@ -1,3 +1,7 @@
+#include <set>
+#include <string>
+#include <vector>
+#include <wx/gdicmn.h>
 #include "util/BrowserHelp.H"
 #include "wxgui/WxHelpViewer.H"
 #include "util/JMSMessage.H"
@@ -15,6 +19,7 @@
 #include "dsm/Resource.H"
 #include "dsm/ResourceType.H"
 
+#include <wx/settings.h>
 #include "wxgui/ewxGrid.H"
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/GridModel.H"
@@ -69,7 +74,7 @@ GeomConstraints::GeomConstraints(CalcEd *calced,
   p_bondConstraintSizer->SetMinSize(200, 40);
   p_fixedAtomSizer->SetMinSize(200, 40);
 
-  p_visibleRows = 5;
+  p_visibleRows = 3;
 
   createTables();
 
@@ -181,7 +186,7 @@ void GeomConstraints::initConstraintTable(WxGridView *table)
   table->getGrid()->ClearSelection();
   table->enableLabelClickProcessing(false);
 
-  //setTableSize(table);
+  setTableSize(table);
 }
 
 
@@ -220,32 +225,31 @@ void GeomConstraints::initFixedAtomTable()
   p_fixedAtomConstraints->getGrid()->ClearSelection();
   p_fixedAtomConstraints->enableLabelClickProcessing(false);
 
-  //setTableSize(p_fixedAtomConstraints);
+  setTableSize(p_fixedAtomConstraints);
 
 }
 
 
 void GeomConstraints::setTableSize(WxGridView *table) 
 {
-  if (table->getRowCount() > 0) {
-    int rows = (p_visibleRows <= table->getRowCount()) ? 
-                p_visibleRows :
-                table->getRowCount();
-    int height = 0;
-    int labelHeight = table->getColLabelHeight();
-    int rowHeight = table->getGrid()->GetGridWindow()->GetCharHeight();
+  // The grid reports a one-column best size, so the sizer gave each section
+  // a one-column box with a horizontal scroll bar.  Size it to its columns
+  // and to its rows (up to p_visibleRows, then it scrolls vertically).
+  int rows = table->getRowCount();
+  if (rows <= 0) return;
+  ewxGrid *grid = table->getGrid();
+  grid->AutoSizeColumns(true);
 
-    height = labelHeight + (rowHeight * rows);
+  int visible = (p_visibleRows <= rows) ? p_visibleRows : rows;
+  const int scroll = wxSystemSettings::GetMetric(wxSYS_VSCROLL_X);
+  int width = 4;
+  for (int c = 0; c < table->getColCount(); c++) width += table->getColWidth(c);
+  if (rows > visible) width += scroll;
+  int height = table->getColLabelHeight() + 4;
+  for (int r = 0; r < visible; r++) height += table->getRowHeight(r);
 
-    // Set the window's minimum size
-    // so sizer will be correct
-    wxSize winSize = table->GetSize();
-    winSize.SetHeight(height + 50);
-    table->SetMinSize(winSize);
-    table->SetSize(winSize);
-    table->SetMaxSize(winSize);
-  }
-
+  grid->SetMinSize(wxSize(width, height));
+  table->SetMinSize(wxSize(width, height));
 }
 
 
@@ -605,7 +609,7 @@ void GeomConstraints::displayFixedAtoms(GeomConstraintModel *model)
 
       }
       initFixedAtomTable();
-      p_fixedAtomSizer->Add(p_fixedAtomConstraints);
+      p_fixedAtomSizer->Add(p_fixedAtomConstraints, 0, wxEXPAND, 0);
       //p_fixedAtomSizer->Add(p_fixedAtomConstraints, 0, wxEXPAND, 0);
       p_fixedAtomConstraints->Show(true);
 
@@ -678,7 +682,7 @@ void GeomConstraints::displayConstraints(wxSizer *container,
          delete atoms;
       }
       initConstraintTable(table);
-      container->Add(table);
+      container->Add(table, 0, wxEXPAND, 0);
       //container->Add(table, 0, wxEXPAND, 0);
       table->Show(true);
     }
@@ -1042,3 +1046,71 @@ void GeomConstraints::gridCellChange(wxGridEvent& event)
 
 
 
+
+
+/**
+ * Test hook (ECCE_CALCED_SCRIPT "constraints N"): fills the model with up to
+ * N constraints of each kind from the fragment's atoms, shows the tables,
+ * and reports each grid's size against what its columns need.
+ */
+std::string GeomConstraints::testReport(int count, bool fixedOnly)
+{
+  GeomConstraintModel *model = getModel();
+  Fragment *frag = p_calcEd->getFrag();
+  std::string out;
+  if (!model || !frag) return "no model\n";
+  const int n = frag->numAtoms();
+  for (int k = fixedOnly ? 5 : 2; k <= 4; k++) {
+    int made = 0;
+    for (int a = 0; a < n && made < count; a++)
+      for (int b = 0; b < n && made < count; b++)
+        for (int c = (k > 2 ? 0 : n - 1); c < (k > 2 ? n : n) && made < count; c++)
+          for (int d = (k > 3 ? 0 : n - 1); d < (k > 3 ? n : n) && made < count; d++) {
+            std::vector<int> atoms;
+            atoms.push_back(a); atoms.push_back(b);
+            if (k > 2) atoms.push_back(c);
+            if (k > 3) atoms.push_back(d);
+            std::set<int> distinct(atoms.begin(), atoms.end());
+            if ((int)distinct.size() != k || a > b) continue;
+            if (made % 2) model->addRestraint(atoms);
+            else model->addConstraint(atoms);
+            made++;
+          }
+  }
+  std::vector<int> fixed;
+  for (int a = 0; a < n && a < count; a++) fixed.push_back(a);
+  if (fixedOnly) model->fixAtoms(fixed);
+  initDisplay();
+  Show(true);
+  Layout();
+  Update();
+
+  struct { const char *name; WxGridView *t; } all[] = {
+    {"bond", p_bondConstraints}, {"angle", p_angleConstraints},
+    {"torsion", p_torsionConstraints}, {"fixed", p_fixedAtomConstraints},
+    {"bondrestr", p_bondRestraints}, {"anglerestr", p_angleRestraints},
+    {"torsionrestr", p_torsionRestraints}};
+  char buf[256];
+  for (size_t i = 0; i < sizeof(all) / sizeof(all[0]); i++) {
+    WxGridView *t = all[i].t;
+    if (!t->IsShown()) {
+      snprintf(buf, sizeof buf, "grid %s hidden\n", all[i].name);
+      out += buf;
+      continue;
+    }
+    int need = 0;
+    for (int c = 0; c < t->getColCount(); c++) need += t->getColWidth(c);
+    wxSize cl = t->getGrid()->GetClientSize();
+    wxSize virt = t->getGrid()->GetVirtualSize();
+    snprintf(buf, sizeof buf,
+             "grid %s rows=%d cols=%d width=%d colsneed=%d virtual=%dx%d "
+             "client=%dx%d hscroll=%d\n", all[i].name, t->getRowCount(),
+             t->getColCount(), t->GetSize().x, need, virt.x, virt.y, cl.x,
+             cl.y, virt.x > cl.x ? 1 : 0);
+    out += buf;
+  }
+  snprintf(buf, sizeof buf, "dialog %dx%d display=%dx%d\n", GetSize().x,
+           GetSize().y, wxGetDisplaySize().x, wxGetDisplaySize().y);
+  out += buf;
+  return out;
+}
