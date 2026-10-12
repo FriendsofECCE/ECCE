@@ -36,6 +36,11 @@ $| = 1;
     $icnt++;
   }
 
+# A .q file cut short (a job stopped while writing it) gives fewer rows or
+# values than its header promises; publish nothing rather than a half vector.
+  exit 0 if (!$natom || !$ncol || $icnt < $natom);
+  exit 0 if (scalar(grep { defined($_) && $_ ne "" } @charges) < $natom * $ncol);
+
 #
 # Print out the data in standard format.
 #
