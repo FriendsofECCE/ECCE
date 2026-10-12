@@ -11,7 +11,6 @@
 #ifndef WX_PRECOMP
 #include "wx/wx.h"
 #ifdef __WXMSW__
-#include "wx/msw/private.h"
 #include "wx/iconbndl.h"
 #endif
 #endif
@@ -122,7 +121,18 @@ bool ewxWindowUtils::setToolIcon(wxTopLevelWindow *win,
 #ifdef __WXMSW__
   // The taskbar and Alt-Tab show this icon; the tool's pixmap is a small
   // legacy picture, the executable's own resource carries every size.
-  win->SetIcons(wxIconBundle(wxT("aaaa"), wxGetInstance()));
+  //  Loaded size by size from the resource: wx/msw/private.h, needed for
+  //  wxGetInstance(), breaks the ANSI/Unicode API selection in this file.
+  wxIconBundle bundle;
+  static const int sizes[] = { 16, 24, 32, 48, 64, 256 };
+  for (int s : sizes) {
+    wxIcon ico(wxT("aaaa"), wxBITMAP_TYPE_ICO_RESOURCE, s, s);
+    if (ico.IsOk()) bundle.AddIcon(ico);
+  }
+  if (!bundle.IsEmpty())
+    win->SetIcons(bundle);
+  else
+    win->SetIcon(ewxBitmap::icon(icon));
 #else
   win->SetIcon(ewxBitmap::icon(icon));
 #endif
