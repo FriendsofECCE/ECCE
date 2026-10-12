@@ -52,9 +52,10 @@ The same pages are in ECCE under **Help**. To see it done first, watch
    ECCE starts, and where your work is kept.
 2. [Your first calculation](help/src/first-calculation.md): build, run and
    look at a calculation.
-3. [Running codes on Windows](help/src/running-codes-on-windows.md) or
-   [on macOS](help/src/running-codes-on-macos.md): installing MOPAC and
-   ORCA and telling ECCE where they are.
+3. Running codes [on Linux](help/src/running-codes-on-linux.md),
+   [on Windows](help/src/running-codes-on-windows.md) or
+   [on macOS](help/src/running-codes-on-macos.md): installing NWChem, MOPAC,
+   ORCA and the others, and telling ECCE where they are.
 4. [Importing a structure](help/src/importing-a-structure.md) or
    [a calculation](help/src/importing-a-calculation.md) that ran elsewhere.
 

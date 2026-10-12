@@ -22,10 +22,13 @@ the second page.
    of a first laboratory, ready in the Structure Library at their measured
    bond lengths.
 
-8. [Running codes on macOS](running-codes-on-macos.md): MOPAC, ORCA and NWChem
+8. [Running codes on Linux](running-codes-on-linux.md): NWChem, MOPAC,
+   GROMACS, Quantum ESPRESSO and CP2K from the package archive; ORCA,
+   Gaussian and NBO from their makers.
+9. [Running codes on macOS](running-codes-on-macos.md): MOPAC, ORCA and NWChem
    on a Mac, without administrator rights, and Open MPI for ORCA on more
    than one core.
-9. [Running codes on Windows](running-codes-on-windows.md): MOPAC and ORCA
+10. [Running codes on Windows](running-codes-on-windows.md): MOPAC and ORCA
    on a Windows PC, and Microsoft MPI for ORCA on more than one core.
 
 Reference:
