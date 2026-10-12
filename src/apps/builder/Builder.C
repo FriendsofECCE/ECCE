@@ -530,10 +530,26 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(Builder::OnKeyDown));
   //  Key events go to the focused child (the 3-D canvas), never the frame,
   //  so Delete is an accelerator: OnDeleteClick leaves text fields alone.
-  wxAcceleratorEntry delKeys[2];
-  delKeys[0].Set(wxACCEL_NORMAL, WXK_DELETE, wxID_DELETE);
-  delKeys[1].Set(wxACCEL_NORMAL, WXK_NUMPAD_DELETE, wxID_DELETE);
-  SetAcceleratorTable(wxAcceleratorTable(2, delKeys));
+  //  The same holds for the File/Select/Mode menu shortcuts (Ctrl+S did
+  //  nothing while the view had the focus).  Ctrl+C/V/X/Z/Y/A are left out:
+  //  they would be taken from text fields too.
+  wxAcceleratorEntry keys[] = {
+    wxAcceleratorEntry(wxACCEL_NORMAL, WXK_DELETE, wxID_DELETE),
+    wxAcceleratorEntry(wxACCEL_NORMAL, WXK_NUMPAD_DELETE, wxID_DELETE),
+    wxAcceleratorEntry(wxACCEL_CTRL, 'N', wxID_NEW),
+    wxAcceleratorEntry(wxACCEL_CTRL, 'O', wxID_OPEN),
+    wxAcceleratorEntry(wxACCEL_CTRL, 'W', wxID_CLOSE),
+    wxAcceleratorEntry(wxACCEL_CTRL, 'S', wxID_SAVE),
+    wxAcceleratorEntry(wxACCEL_CTRL, 'E', wxID_SAVEAS),
+    wxAcceleratorEntry(wxACCEL_CTRL, 'Q', wxID_EXIT),
+    wxAcceleratorEntry(wxACCEL_CTRL, 'D', wxID_DELETE),
+    wxAcceleratorEntry(wxACCEL_CTRL, 'R', ID_SELECT_REVERSE),
+    wxAcceleratorEntry(wxACCEL_CTRL, 'U', ID_UNSELECT),
+    wxAcceleratorEntry(wxACCEL_CTRL, ',', ID_MODE_PREV),
+    wxAcceleratorEntry(wxACCEL_CTRL, '.', ID_MODE_NEXT),
+    wxAcceleratorEntry(wxACCEL_CTRL, 'H', wxID_HELP),
+  };
+  SetAcceleratorTable(wxAcceleratorTable(sizeof(keys) / sizeof(keys[0]), keys));
 
   TPerTab tpt;
   ShapeData shapes;
