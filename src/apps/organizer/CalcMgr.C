@@ -467,6 +467,10 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * treestate <url> the tree icon's index, and those of running and of
  *                 out of contact
  * tablestates     the shown project table's State cells
+ * close [n]       n (default 1) window close requests in a row, as clicks on
+ *                 the title bar's X, each queued as its own event
+ * answer ok|stop  answer the modal dialog that is open (Quit ECCE) with OK
+ *                 or Quit and Stop Server
  */
 void CalcMgr::runTestCommand(const string& line)
 {
@@ -1020,6 +1024,23 @@ void CalcMgr::runTestCommand(const string& line)
                 " register=" + (s_registerMessage.empty() ? "known"
                     : s_registerMessage.find("has just been added") !=
                       string::npos ? "added" : "failed");
+    } else if (command == "close") {
+      int n = atoi(calcName.c_str());
+      if (n < 1) n = 1;
+      for (int i = 0; i < n; i++) CallAfter([this]() { Close(); });
+      outcome = "queued";
+    } else if (command == "answer") {
+      outcome = "no dialog";
+      for (wxWindowList::iterator it = wxTopLevelWindows.begin();
+           it != wxTopLevelWindows.end(); ++it) {
+        wxDialog *dlg = wxDynamicCast(*it, wxDialog);
+        if (dlg && dlg->IsModal()) {
+          dlg->EndModal(calcName == "stop" ? (int)ID_ORGANIZER_QUIT_STOP_SERVER
+                                           : (int)wxID_OK);
+          outcome = "answered";
+          break;
+        }
+      }
     } else if (line == "quit-offer") {
       bool inUse = false;
       outcome = offerStopServer(inUse) ? "stop offered"
@@ -1532,6 +1553,13 @@ static bool offerStopServer(bool& inUse)
 
 bool CalcMgr::confirmAndQuit()
 {
+  // A second close while the dialog is open runs the dialog's own event
+  // loop again; the frame's deletion then ends in that nested loop and
+  // destroys the first dialog, a stack object, as a child (#291). A close
+  // after the answer has nothing left to ask.
+  if (p_quitAsking) return false;
+  if (p_quitConfirmed) return true;
+
   // #190: under a central server (ECCE_REMOTE_SERVER) this client's own
   // ecce-dataserver-stop/ecce-gateway-stop can't reach the server's
   // services anyway (different account) -- offering the button is just
@@ -1550,11 +1578,14 @@ bool CalcMgr::confirmAndQuit()
                        wxOK|wxCANCEL|wxICON_QUESTION, wxDefaultPosition);
   if (canStop)
     dlg.AddButton(ID_ORGANIZER_QUIT_STOP_SERVER, "Quit and Stop Server");
+  p_quitAsking = true;
   int result = dlg.ShowModal();
+  p_quitAsking = false;
 
   if (result == wxID_CANCEL)
     return false;
 
+  p_quitConfirmed = true;
   Destroy();
 
   if (result == ID_ORGANIZER_QUIT_STOP_SERVER) {

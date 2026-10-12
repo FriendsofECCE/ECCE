@@ -381,6 +381,8 @@ protected:
   void OnActivate(wxActivateEvent& event);
   ewxPanel   *p_machineNoticePanel;
   ReleaseNotice *p_releaseNotice;   // #273
+  bool p_quitAsking = false;        // the Quit dialog is open (#291)
+  bool p_quitConfirmed = false;     // the user said yes; teardown pending
 
   void startApp(const string& app, int force, const string& url,
                 const string& codename = "", int amulet = 0);

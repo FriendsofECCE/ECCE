@@ -2130,6 +2130,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_progress_box PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Two close requests before the Quit dialog is answered (#291).
+  add_test(NAME apps_organizer_close
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/organizer_close_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_organizer_close PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # The project table's Progress column (#284): stored and live snapshots.
   add_test(NAME apps_progress_table
            COMMAND ${PYTHON3_EXECUTABLE}
