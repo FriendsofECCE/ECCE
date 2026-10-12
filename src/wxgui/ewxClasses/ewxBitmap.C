@@ -297,6 +297,14 @@ wxBitmap ewxBitmap::placeholder(const wxString& name)
 wxIcon ewxBitmap::icon(const wxString& name)
 {
   wxIcon ret;
+#ifdef __WXMSW__
+  // The Gateway-style dialogs: the executable's own ECCE icon, not the
+  // legacy pixmap.
+  if (name == wxT("gateway64.xpm")) {
+    wxIcon own(wxT("aaaa"), wxBITMAP_TYPE_ICO_RESOURCE, 32, 32);
+    if (own.IsOk()) return own;
+  }
+#endif
   ret.CopyFromBitmap(ewxBitmap(name));
   return ret;
 }
