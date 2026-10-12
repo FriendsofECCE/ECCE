@@ -253,7 +253,7 @@
   </PropertyPanel>
 
   <PropertyPanel>
-    <name>ESP-Fitted Charges</name>
+    <name>CHELPG / ESP-Fitted Charges</name>
     <group>Charges</group>
     <class>MullikenPanel</class>
     <consumer>true</consumer>
@@ -262,7 +262,7 @@
   </PropertyPanel>
 
   <PropertyPanel>
-    <name>Merz-Kollman Charges</name>
+    <name>Merz-Kollman Charges (ESP-Fitted)</name>
     <group>Charges</group>
     <class>MullikenPanel</class>
     <consumer>true</consumer>
