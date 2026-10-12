@@ -43,12 +43,16 @@ On Fedora, Rocky Linux and RHEL, some of these codes are in Fedora or EPEL;
 
 ORCA is free for academic use but is not in any distribution's archive.
 
-1. Make a free account on the ORCA forum
-   (<https://orcaforum.kofo.mpg.de>) and download ORCA for Linux, x86-64.
+1. Log in to the FACCTS customer portal (<https://www.faccts.de/customer>; a free academic account)
+   and download ORCA for Linux: x86-64 for a PC, arm64 for an ARM machine.
+   For x86-64 there are two archives,
+   `orca_6_1_1_linux_x86-64_shared_openmpi418.tar.xz` and
+   `orca_6_1_1_linux_x86-64_shared_openmpi418_nodmrg.tar.xz`; the second
+   leaves out the DMRG module, which ECCE does not use. Either works.
 2. Unpack it, for example in your home folder:
 
    ```
-   mkdir -p ~/orca && tar xf <the downloaded archive> -C ~/orca
+   mkdir -p ~/orca && tar xf orca_6_1_1_linux_x86-64_shared_openmpi418_nodmrg.tar.xz -C ~/orca
    ```
 
    or, for every user of the computer, under `/opt` with `sudo`.
@@ -57,7 +61,7 @@ ORCA is free for academic use but is not in any distribution's archive.
 
 For a calculation on more than one core, ORCA needs the Open MPI version
 named in the archive's file name (for example, `openmpi418` is Open MPI
-4.1.8). The ORCA forum's download page and manual describe how to install it
+4.1.8). ORCA's download page and manual describe how to install it
 if your distribution's `openmpi-bin` is a different version.
 
 ## Gaussian
