@@ -9,6 +9,11 @@
 #   ecce-dataserver-adduser                       interactive prompts
 #   ecce-dataserver-adduser -b USER PASS [FIRST] [LAST]
 #                                                  non-interactive (scripting/testing)
+#   ecce-dataserver-adduser --stdin USER [FIRST] [LAST]
+#                                                  non-interactive, password
+#                                                  read from stdin (the login
+#                                                  window uses this: -b would
+#                                                  show it in ps)
 #   ecce-dataserver-adduser --from FILE            batch, e.g. for a class
 #                                                  (FILE may be - for stdin)
 #
@@ -172,7 +177,18 @@ if [ "${1:-}" = "--from" ]; then
 fi
 
 batch=0
-if [ "${1:-}" = "-b" ]; then
+if [ "${1:-}" = "--stdin" ]; then
+  batch=1
+  shift
+  userid="${1:?username required}"
+  firstname="${2:-}"
+  lastname="${3:-}"
+  IFS= read -r password || true
+  if [ -z "$password" ] || ! [[ "$userid" =~ ^[A-Za-z0-9]+$ ]]; then
+    echo "ecce-dataserver-adduser: need a user name of letters and digits and a password on stdin" >&2
+    exit 1
+  fi
+elif [ "${1:-}" = "-b" ]; then
   batch=1
   shift
   userid="${1:?username required}"

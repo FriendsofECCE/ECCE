@@ -71,6 +71,59 @@ static bool useThisComputer()
   return rc == 0;
 }
 
+
+// The per-user data server (no ECCE_REMOTE_SERVER, not local data) starts
+// with an empty account file, so a fresh user's first login can only fail.
+// A central server's accounts are its administrator's: nothing is offered.
+static bool perUserServerLacksAccount(const string& user)
+{
+  if (getenv("ECCE_REMOTE_SERVER") || !LocalData::dir().empty() ||
+      user.empty())
+    return false;
+  string adduser = string(Ecce::ecceHome()) + "/bin/ecce-dataserver-adduser";
+  if (access(adduser.c_str(), X_OK) != 0) return false;
+  const char *home = getenv("ECCE_REALUSERHOME");
+  string users = string(home && *home ? home : Ecce::realUserHome()) +
+                 "/.ECCE/dataserver/users";
+  FILE *f = fopen(users.c_str(), "r");
+  if (f == 0) return false;
+  bool found = false;
+  char line[1024];
+  string prefix = user + ":";
+  while (!found && fgets(line, sizeof(line), f))
+    found = (strncmp(line, prefix.c_str(), prefix.size()) == 0);
+  fclose(f);
+  return !found;
+}
+
+// Creates the account with the password sent on stdin, never argv (ps).
+static bool createPerUserAccount(const string& user, const string& password)
+{
+#ifdef __WXMSW__
+  return false;
+#else
+  string cmd = "\"" + string(Ecce::ecceHome()) +
+               "/bin/ecce-dataserver-adduser\" --stdin '" + user + "'";
+  FILE *p = popen(cmd.c_str(), "w");
+  if (p == 0) return false;
+  fprintf(p, "%s\n", password.c_str());
+  return pclose(p) == 0;
+#endif
+}
+
+// ECCE_TEST_AUTH_ANSWER=login:USER:PASS fills the window and presses OK.
+static bool testLoginAnswer(string& user, string& pass)
+{
+  const char *a = getenv("ECCE_TEST_AUTH_ANSWER");
+  if (a == 0 || strncmp(a, "login:", 6) != 0) return false;
+  string rest = a + 6;
+  size_t c = rest.find(':');
+  if (c == string::npos) return false;
+  user = rest.substr(0, c);
+  pass = rest.substr(c + 1);
+  return true;
+}
+
 // ECCE_DEBUG_DAVAUTH=<file>: appends one line per getAuthorization()/
 // prompt()/authorizationAccepted() decision -- which of cache, session
 // file or a real dialog supplied credentials, what retryCount reached
@@ -471,6 +524,17 @@ bool WxDavAuth::prompt(const string& strurl,
          hook.StartOnce(1000 * (secs > 0 ? secs : 3));
        }
 
+       string tUser, tPass;
+       if (testLoginAnswer(tUser, tPass)) {
+         fprintf(stderr, "ECCE_TEST_AUTH_ANSWER: login %s\n", tUser.c_str());
+         authDlg.setUser(tUser);
+         authDlg.setPassword(tPass);
+         authDlg.Bind(wxEVT_TIMER, [&authDlg](wxTimerEvent&) {
+           authDlg.EndModal(wxID_OK);
+         });
+         hook.StartOnce(1500);
+       }
+
        status = authDlg.ShowModal();
        if (status == WxAuthGUI::ID_BUTTON_AUTH_USE_LOCAL) {
          authDlg.Show(false);
@@ -491,6 +555,28 @@ bool WxDavAuth::prompt(const string& strurl,
          ret = true;
          user = authDlg.getUser();
          password = authDlg.getPassword();
+         if (perUserServerLacksAccount(user)) {
+           string q = "There is no account for " + user + " on this "
+             "computer's ECCE data server yet.\n\nCreate it with the "
+             "password you just entered?";
+           ewxMessageDialog ask(0, q.c_str(), "Create account",
+                                wxYES_NO | wxYES_DEFAULT | wxICON_QUESTION);
+           wxTimer yes(&ask);
+           if (testLoginAnswer(tUser, tPass)) {
+             fprintf(stderr, "ECCE_TEST_AUTH_ANSWER: create-account asked\n");
+             ask.Bind(wxEVT_TIMER, [&ask](wxTimerEvent&) {
+               ask.EndModal(wxID_YES);
+             });
+             yes.StartOnce(1000);
+           }
+           if (ask.ShowModal() == wxID_YES &&
+               !createPerUserAccount(user, password)) {
+             ewxMessageDialog err(0, "The account could not be created. "
+               "Run ecce-dataserver-adduser in a terminal to see why.",
+               "Create account", wxOK | wxICON_EXCLAMATION);
+             err.ShowModal();
+           }
+         }
        }
      }
 
