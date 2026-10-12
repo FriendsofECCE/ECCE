@@ -453,10 +453,12 @@ sub verifyRamanRequest {
 }
 
 sub ChelpgToken {
-  my $result = "";
-  if ($AbiDict{"ES.Runtype.ORCA.UseCHELPG"} eq "1") {
-    $result = "CHELPG";
-  }
+  my @t;
+  push @t, "CHELPG"    if ($AbiDict{"ES.Runtype.ORCA.UseCHELPG"} eq "1");
+  push @t, "Hirshfeld" if ($AbiDict{"ES.Runtype.ORCA.UseHirshfeld"} eq "1");
+  push @t, "MBIS"      if ($AbiDict{"ES.Runtype.ORCA.UseMBIS"} eq "1");
+  push @t, "NBO"       if ($AbiDict{"ES.Runtype.ORCA.UseNBO"} eq "1");
+  my $result = join(" ", @t);
   $_ = $result;
   return $result;
 }

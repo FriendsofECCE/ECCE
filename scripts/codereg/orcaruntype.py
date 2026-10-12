@@ -97,18 +97,10 @@ class OrcaRunTypePanel(EccePanel):
             vibSizer.AddWidget(self.useRaman)
             self.panelSizer.Add(vibSizer)
 
-        # PARTIAL CHARGES (issue #88). orca.desc has parsed "CHELPG
-        # Charges" into ESPCHARGE since ORCA was integrated, but nothing
-        # in ai.orca or this dialog could ever ASK for them -- so that
-        # parse type was unreachable from the GUI and the property never
-        # appeared for any job. The parser was correct; only the request
-        # was missing.
-        #
-        # Offered for every runtype rather than gated on one, because
-        # ORCA computes CHELPG charges from the converged density of
-        # whatever job ran. Verified against ORCA 6.1.1: "! CHELPG" is
-        # accepted and emits the block orca.desc expects, with its
-        # Skip=2 landing exactly on the first charge row.
+        # Mulliken and Loewdin come with every ORCA job; these must be asked
+        # for. ORCA computes them from the converged density of whatever job
+        # ran, so they are offered for every run type. NBO needs NBOEXE in
+        # the machine's ORCA environment.
         chargeSizer = EcceBoxSizer(self, label="Partial Charges", cols=1)
         self.useChelpg = EcceCheckBox(self,
                                       label=" CHELPG charges (ESP fit)",
@@ -116,6 +108,24 @@ class OrcaRunTypePanel(EccePanel):
                                       default=False,
                                       export=1)
         chargeSizer.AddWidget(self.useChelpg)
+        self.useHirshfeld = EcceCheckBox(self,
+                                         label=" Hirshfeld charges",
+                                         name="ES.Runtype.ORCA.UseHirshfeld",
+                                         default=False,
+                                         export=1)
+        chargeSizer.AddWidget(self.useHirshfeld)
+        self.useMbis = EcceCheckBox(self,
+                                    label=" MBIS charges",
+                                    name="ES.Runtype.ORCA.UseMBIS",
+                                    default=False,
+                                    export=1)
+        chargeSizer.AddWidget(self.useMbis)
+        self.useNbo = EcceCheckBox(self,
+                                   label=" NBO analysis (natural charges)",
+                                   name="ES.Runtype.ORCA.UseNBO",
+                                   default=False,
+                                   export=1)
+        chargeSizer.AddWidget(self.useNbo)
         self.panelSizer.Add(chargeSizer)
 
         self.AddButtons()
