@@ -1164,6 +1164,9 @@ sub gaussianScript()
   # We still need to check the environment to allow the user
   # to override the path like we did with the previous implementation
   $retval .= &pathVar($tag, $exe, $envOverride);
+  # A Windows path (C:\G09W\g09.exe) has no '/' for ${tag%/*} to strip;
+  # Windows takes forward slashes as well.
+  $retval .= "$tag=\$(printf '%s' \"\$$tag\" | tr '\\\\' '/')\n";
   # Gaussian for Windows separates folders in GAUSS_EXEDIR with ';'.
   $retval .= "case \"\$(uname -s)\" in MINGW*|MSYS*|CYGWIN*) gsep=';' ;; *) gsep=':' ;; esac\n";
   $retval .= "if [ -n \"\${GAUSS_EXEDIR+set}\" ]; then\n";
