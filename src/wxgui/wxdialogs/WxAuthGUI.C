@@ -51,6 +51,7 @@ const wxWindowID WxAuthGUI::wxID_STATIC_AUTH_STATUS = wxNewId();
 const wxWindowID WxAuthGUI::ID_CHECKBOX_AUTH_SAVEPASSWORDS = wxNewId();
 const wxWindowID WxAuthGUI::ID_TEXTCTRL_AUTH_PASSWORD = wxNewId();
 const wxWindowID WxAuthGUI::ID_BUTTON_AUTH_USE_LOCAL = wxNewId();
+const wxWindowID WxAuthGUI::ID_BUTTON_AUTH_RESET = wxNewId();
 
 /*!
  * WxAuthGUI type definition
@@ -205,6 +206,12 @@ void WxAuthGUI::CreateControls()
     useLocal->SetToolTip(_("Keep your calculations in a folder on this computer instead of on the server."));
     useLocal->Show(false);
     buttonRow->Add(useLocal, wxSizerFlags().CenterVertical());
+    // Shown only for this computer's own data server, whose accounts the
+    // user owns.
+    ewxButton* reset = new ewxButton( itemDialog1, ID_BUTTON_AUTH_RESET, _("Forgot password..."), wxDefaultPosition, wxDefaultSize, 0 );
+    reset->SetToolTip(_("Set a new password for this account on this computer's data server."));
+    reset->Show(false);
+    buttonRow->Add(reset, wxSizerFlags().CenterVertical());
     buttonRow->AddStretchSpacer(1);
 
     wxStdDialogButtonSizer* buttons = new wxStdDialogButtonSizer();

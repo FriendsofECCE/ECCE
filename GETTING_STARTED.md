@@ -527,6 +527,10 @@ For a class, `ecce-dataserver-adduser --from class.csv` creates a batch of
 accounts at once from a `username,password,first,last` CSV file (blank
 password fields get a random one generated); generated passwords are
 written to `class.csv.passwords` for the admin to hand out and then delete.
+`ecce-dataserver-adduser --passwd NAME` sets a new password for an existing
+account (asked twice); this is how an administrator resets a forgotten one.
+On a per-user data server the login window's **Forgot password...** does the
+same for the user.
 
 The listen setting is written once, to `~/.ECCE/dataserver/listen`, and
 both services read it: the data server's own `Listen` directive and the

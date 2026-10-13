@@ -184,6 +184,13 @@ If the account does not exist, ECCE shows "There is no account for ... on
 this ECCE data server". Create the account with `ecce-dataserver-adduser`
 and start again.
 
+If you have forgotten your password and the server is this computer's own,
+type your user name in the login window and click **Forgot password...**.
+Enter the new password twice and click **OK**; ECCE sets it and logs you in.
+On someone else's server there is no such button: ask the server's
+administrator to reset the password. On the server they run
+`ecce-dataserver-adduser --passwd <user name>`.
+
 If you connect to someone else's server, run `ecce-remote-setup
 <server-host>` once, then start with `ecce -remote`. Your administrator
 gives you the host name.

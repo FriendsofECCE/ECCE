@@ -36,6 +36,7 @@
 #include "wxgui/WxDavAuth.H"
 #include "wxgui/WxAuth.H"
 #include "wxgui/ewxMessageDialog.H"
+#include "wxgui/ewxThemeColours.H"
 
 bool WxDavAuth::s_switchedToLocal = false;
 bool WxDavAuth::s_restartsOnSwitch = false;
@@ -72,20 +73,33 @@ static bool useThisComputer()
 }
 
 
-// The per-user data server (no ECCE_REMOTE_SERVER, not local data) starts
-// with an empty account file, so a fresh user's first login can only fail.
-// A central server's accounts are its administrator's: nothing is offered.
-static bool perUserServerLacksAccount(const string& user)
+static string perUserAccountFile()
 {
-  if (getenv("ECCE_REMOTE_SERVER") || !LocalData::dir().empty() ||
-      user.empty())
+  const char *home = getenv("ECCE_REALUSERHOME");
+  return string(home && *home ? home : Ecce::realUserHome()) +
+         "/.ECCE/dataserver/users";
+}
+
+// The data server is this computer's own (per-user) one, whose accounts
+// belong to the user: no ECCE_REMOTE_SERVER, not local data, the account
+// tool installed and the account file present. A central server's
+// accounts are its administrator's, so nothing is offered there.
+static bool perUserServer()
+{
+#ifdef __WXMSW__
+  return false;
+#else
+  if (getenv("ECCE_REMOTE_SERVER") || !LocalData::dir().empty())
     return false;
   string adduser = string(Ecce::ecceHome()) + "/bin/ecce-dataserver-adduser";
-  if (access(adduser.c_str(), X_OK) != 0) return false;
-  const char *home = getenv("ECCE_REALUSERHOME");
-  string users = string(home && *home ? home : Ecce::realUserHome()) +
-                 "/.ECCE/dataserver/users";
-  FILE *f = fopen(users.c_str(), "r");
+  return access(adduser.c_str(), X_OK) == 0 &&
+         access(perUserAccountFile().c_str(), R_OK) == 0;
+#endif
+}
+
+static bool perUserAccountExists(const string& user)
+{
+  FILE *f = fopen(perUserAccountFile().c_str(), "r");
   if (f == 0) return false;
   bool found = false;
   char line[1024];
@@ -93,22 +107,138 @@ static bool perUserServerLacksAccount(const string& user)
   while (!found && fgets(line, sizeof(line), f))
     found = (strncmp(line, prefix.c_str(), prefix.size()) == 0);
   fclose(f);
-  return !found;
+  return found;
 }
 
-// Creates the account with the password sent on stdin, never argv (ps).
-static bool createPerUserAccount(const string& user, const string& password)
+// The per-user data server starts with an empty account file, so a fresh
+// user's first login can only fail.
+static bool perUserServerLacksAccount(const string& user)
+{
+  return !user.empty() && perUserServer() && !perUserAccountExists(user);
+}
+
+// The account tool's own rule; checked here too because the name goes
+// into a shell command.
+static bool validAccountName(const string& user)
+{
+  if (user.empty()) return false;
+  for (char c : user)
+    if (!isalnum((unsigned char)c)) return false;
+  return true;
+}
+
+// Runs ecce-dataserver-adduser ARGS USER with the password on stdin, never
+// argv (ps). On failure `error` holds what the tool said, to show the user.
+static bool runAccountTool(const string& args, const string& user,
+                           const string& password, string& error)
 {
 #ifdef __WXMSW__
+  error = "Not available on this system.";
   return false;
 #else
+  if (!validAccountName(user)) {
+    error = "A user name has letters and digits only.";
+    return false;
+  }
+  char errPath[] = "/tmp/ecce-adduser-XXXXXX";
+  int fd = mkstemp(errPath);
+  if (fd < 0) { error = "Could not create a temporary file."; return false; }
+  close(fd);
   string cmd = "\"" + string(Ecce::ecceHome()) +
-               "/bin/ecce-dataserver-adduser\" --stdin '" + user + "'";
+               "/bin/ecce-dataserver-adduser\" " + args + " '" + user +
+               "' >/dev/null 2>'" + errPath + "'";
+  bool ok = false;
   FILE *p = popen(cmd.c_str(), "w");
-  if (p == 0) return false;
-  fprintf(p, "%s\n", password.c_str());
-  return pclose(p) == 0;
+  if (p != 0) {
+    fprintf(p, "%s\n", password.c_str());
+    ok = (pclose(p) == 0);
+  }
+  error.clear();
+  if (FILE *e = fopen(errPath, "r")) {
+    char buf[512];
+    while (fgets(buf, sizeof(buf), e)) error += buf;
+    fclose(e);
+  }
+  unlink(errPath);
+  while (!error.empty() && isspace((unsigned char)error.back()))
+    error.pop_back();
+  const string tag = "ecce-dataserver-adduser: ";
+  if (error.compare(0, tag.size(), tag) == 0) error.erase(0, tag.size());
+  if (!ok && error.empty()) error = "ecce-dataserver-adduser failed.";
+  return ok;
 #endif
+}
+
+// Asks for the new password twice; false when cancelled. With
+// ECCE_TEST_AUTH_ANSWER=reset:USER:PASS the test fills both and presses OK.
+static bool askNewPassword(wxWindow *parent, const string& user,
+                           string& password)
+{
+  wxDialog dlg(parent, wxID_ANY, "Set a new password");
+  const int gap = wxSizerFlags::GetDefaultBorder();
+  wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+  string intro = "Set a new password for " + user +
+                 " on this computer's ECCE data server.";
+  top->Add(new wxStaticText(&dlg, wxID_ANY, intro),
+           wxSizerFlags().DoubleBorder(wxLEFT|wxRIGHT|wxTOP));
+  wxFlexGridSizer *grid = new wxFlexGridSizer(2, gap, gap);
+  grid->AddGrowableCol(1);
+  const wxSize fieldSize = dlg.FromDIP(wxSize(240, -1));
+  wxTextCtrl *first = new wxTextCtrl(&dlg, wxID_ANY, "", wxDefaultPosition,
+                                     fieldSize, wxTE_PASSWORD);
+  wxTextCtrl *again = new wxTextCtrl(&dlg, wxID_ANY, "", wxDefaultPosition,
+                                     fieldSize, wxTE_PASSWORD);
+  grid->Add(new wxStaticText(&dlg, wxID_ANY, "New password:"),
+            wxSizerFlags().Right().CenterVertical());
+  grid->Add(first, wxSizerFlags(1).Expand());
+  grid->Add(new wxStaticText(&dlg, wxID_ANY, "Again:"),
+            wxSizerFlags().Right().CenterVertical());
+  grid->Add(again, wxSizerFlags(1).Expand());
+  top->Add(grid, wxSizerFlags().Expand().DoubleBorder(wxLEFT|wxRIGHT|wxTOP));
+  wxStaticText *status = new wxStaticText(&dlg, wxID_ANY, "");
+  status->SetForegroundColour(ewxThemeColours::statusText(ewxThemeColours::BAD));
+  status->Show(false);
+  top->Add(status, wxSizerFlags().DoubleBorder(wxLEFT|wxRIGHT|wxTOP));
+  top->Add(dlg.CreateStdDialogButtonSizer(wxOK | wxCANCEL),
+           wxSizerFlags().Expand().DoubleBorder());
+  dlg.SetSizerAndFit(top);
+  dlg.Centre();
+  first->SetFocus();
+
+  // OK closes the dialog only when both fields agree.
+  dlg.Bind(wxEVT_BUTTON, [&](wxCommandEvent& ev) {
+    if (first->GetValue().empty() || first->GetValue() != again->GetValue()) {
+      status->SetLabel(first->GetValue().empty()
+                       ? "Enter the new password twice."
+                       : "The two passwords differ.");
+      status->Show(true);
+      dlg.Layout();
+      dlg.Fit();
+      return;
+    }
+    ev.Skip();
+  }, wxID_OK);
+
+  wxTimer hook(&dlg);
+  const char *a = getenv("ECCE_TEST_AUTH_ANSWER");
+  if (a && strncmp(a, "reset:", 6) == 0) {
+    string rest = a + 6;
+    size_t c = rest.find(':');
+    if (c != string::npos) {
+      first->SetValue(rest.substr(c + 1));
+      again->SetValue(rest.substr(c + 1));
+      fprintf(stderr, "ECCE_TEST_AUTH_ANSWER: new password asked\n");
+      dlg.Bind(wxEVT_TIMER, [&dlg](wxTimerEvent&) {
+        wxCommandEvent ok(wxEVT_BUTTON, wxID_OK);
+        ok.SetEventObject(dlg.FindWindow(wxID_OK));
+        dlg.GetEventHandler()->ProcessEvent(ok);
+      });
+      hook.StartOnce(1000);
+    }
+  }
+  if (dlg.ShowModal() != wxID_OK) return false;
+  password = first->GetValue().ToStdString();
+  return true;
 }
 
 // ECCE_TEST_AUTH_ANSWER=login:USER:PASS fills the window and presses OK.
@@ -456,17 +586,32 @@ bool WxDavAuth::prompt(const string& strurl,
          authDlg.setStatus(user + " has no access to this folder.");
        } else {
          authDlg.setPrompt("Please try again:");
-         authDlg.setStatus("The user name or password was not accepted.");
+         string why = "The user name or password was not accepted.";
+         // A central server's accounts are kept by its administrator, who
+         // resets a password on the server itself.
+         if (getenv("ECCE_REMOTE_SERVER"))
+           why += "\nAsk your server administrator to reset the password. "
+                  "On the server they run:\n    ecce-dataserver-adduser "
+                  "--passwd " + (validAccountName(user) ? user : "NAME");
+         authDlg.setStatus(why);
+         if (getenv("ECCE_TEST_AUTH_ANSWER"))
+           fprintf(stderr, "ECCE_TEST_AUTH_ANSWER: status %s\n", why.c_str());
        }
      }
 
-     // No password change or account creation from here: there is no
-     // server side for them, and the request put both passwords in the
-     // URL, which the data server writes to its access log.
+     // The old Change... button stays hidden: it has no server side, and
+     // its request put both passwords in the URL, which the data server
+     // writes to its access log. Accounts on this computer's own server
+     // are made and reset with ecce-dataserver-adduser instead.
      authDlg.showChangeBtn(false);
      // The start window asks "this computer or a server" at every start,
      // so the login window does not ask it a second time.
      authDlg.showUseLocal(false);
+     const bool offerReset = perUserServer();
+     authDlg.showReset(offerReset);
+     if (getenv("ECCE_TEST_AUTH_ANSWER"))
+       fprintf(stderr, "ECCE_TEST_AUTH_ANSWER: reset %s\n",
+               offerReset ? "offered" : "not offered");
      {
        string where = url.getProtocol() + "://" + url.getHost();
        const bool secure = (url.getProtocol() == "https");
@@ -535,7 +680,48 @@ bool WxDavAuth::prompt(const string& strurl,
          hook.StartOnce(1500);
        }
 
+       // ECCE_TEST_AUTH_ANSWER=reset:USER:PASS presses "Forgot password..."
+       // once for USER; askNewPassword() then enters PASS.
+       static bool resetPressed = false;
+       if (answer && strncmp(answer, "reset:", 6) == 0 && !resetPressed) {
+         string rest = answer + 6;
+         authDlg.setUser(rest.substr(0, rest.find(':')));
+         authDlg.Bind(wxEVT_TIMER, [&authDlg](wxTimerEvent&) {
+           fprintf(stderr, "ECCE_TEST_AUTH_ANSWER: reset pressed\n");
+           resetPressed = true;
+           authDlg.EndModal(WxAuthGUI::ID_BUTTON_AUTH_RESET);
+         });
+         hook.StartOnce(1500);
+       }
+
        status = authDlg.ShowModal();
+       if (status == WxAuthGUI::ID_BUTTON_AUTH_RESET) {
+         string who = authDlg.getUser();
+         string newPass, error;
+         if (!validAccountName(who)) {
+           authDlg.setStatus("Enter your user name (letters and digits), "
+                             "then press Forgot password... again.");
+         } else if (!perUserAccountExists(who)) {
+           authDlg.setStatus("There is no account " + who + " on this "
+             "computer's data server. Enter a password and press OK to "
+             "create it.");
+         } else if (askNewPassword(&authDlg, who, newPass)) {
+           if (runAccountTool("--passwd", who, newPass, error)) {
+             fprintf(stderr, "ECCE_TEST_AUTH_ANSWER: password reset\n");
+             authDlg.setPassword(newPass);
+             status = wxID_OK;     // logs in with the new password
+           } else {
+             ewxMessageDialog err(&authDlg, ("The password was not changed:\n"
+               + error).c_str(), "Set a new password",
+               wxOK | wxICON_EXCLAMATION);
+             err.ShowModal();
+           }
+         }
+         if (status != wxID_OK) {
+           done = false;
+           continue;
+         }
+       }
        if (status == WxAuthGUI::ID_BUTTON_AUTH_USE_LOCAL) {
          authDlg.Show(false);
          if (useThisComputer()) {
@@ -569,11 +755,11 @@ bool WxDavAuth::prompt(const string& strurl,
              });
              yes.StartOnce(1000);
            }
+           string error;
            if (ask.ShowModal() == wxID_YES &&
-               !createPerUserAccount(user, password)) {
-             ewxMessageDialog err(0, "The account could not be created. "
-               "Run ecce-dataserver-adduser in a terminal to see why.",
-               "Create account", wxOK | wxICON_EXCLAMATION);
+               !runAccountTool("--stdin", user, password, error)) {
+             ewxMessageDialog err(0, ("The account could not be created:\n"
+               + error).c_str(), "Create account", wxOK | wxICON_EXCLAMATION);
              err.ShowModal();
            }
          }

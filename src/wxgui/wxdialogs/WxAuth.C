@@ -55,6 +55,8 @@ WxAuth::WxAuth( wxWindow* parent, wxWindowID id, const wxString& caption, const 
 
    Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(ID_BUTTON_AUTH_USE_LOCAL); },
         ID_BUTTON_AUTH_USE_LOCAL);
+   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(ID_BUTTON_AUTH_RESET); },
+        ID_BUTTON_AUTH_RESET);
 
    ewxTextCtrl * passInput = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_AUTH_PASSWORD));
    passInput->setLeaveAsEnter(false);
@@ -242,6 +244,14 @@ void WxAuth::showUseLocal(const bool& show)
 {
   wxWindow *b = FindWindow(ID_BUTTON_AUTH_USE_LOCAL);
   if (b) b->Show(show);
+}
+
+
+void WxAuth::showReset(const bool& show)
+{
+  wxWindow *b = FindWindow(ID_BUTTON_AUTH_RESET);
+  if (b) b->Show(show);
+  Layout();
 }
 
 

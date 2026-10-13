@@ -16,6 +16,10 @@
 #                                                  show it in ps)
 #   ecce-dataserver-adduser --from FILE            batch, e.g. for a class
 #                                                  (FILE may be - for stdin)
+#   ecce-dataserver-adduser --passwd USER          set a new password for an
+#                                                  existing account (asked
+#                                                  twice on a terminal, else
+#                                                  one line on stdin)
 #
 # --from FILE reads CSV lines "username,password,first,last" (first/last
 # optional, default to username; blank lines and #-comments are ignored;
@@ -173,6 +177,40 @@ if [ "${1:-}" = "--from" ]; then
   echo "$created created, $skipped skipped, $failed failed"
   echo "ecce-dataserver-adduser: generated passwords written to $passfile -- hand them out, then delete this file"
   [ "$failed" -gt 0 ] && exit 1
+  exit 0
+fi
+
+if [ "${1:-}" = "--passwd" ]; then
+  userid="${2:?username required}"
+  if ! [[ "$userid" =~ ^[A-Za-z0-9]+$ ]]; then
+    echo "ecce-dataserver-adduser: a user name has letters and digits only" >&2
+    exit 1
+  fi
+  if ! [ -f "$STATEDIR/users" ] || ! grep -q "^${userid}:" "$STATEDIR/users"; then
+    echo "ecce-dataserver-adduser: there is no account '$userid' on this data server" >&2
+    exit 1
+  fi
+  if [ -t 0 ]; then
+    read -r -s -p "New password for $userid? " password; echo ""
+    read -r -s -p "Again? " again; echo ""
+    if [ "$password" != "$again" ]; then
+      echo "ecce-dataserver-adduser: the two passwords differ; nothing changed" >&2
+      exit 1
+    fi
+  else
+    IFS= read -r password || true
+  fi
+  if [ -z "$password" ]; then
+    echo "ecce-dataserver-adduser: an empty password is not allowed; nothing changed" >&2
+    exit 1
+  fi
+  # Same file, same htpasswd as account creation: the central broker's
+  # plugin re-reads it on change, so the new password works at once.
+  if ! out="$(printf '%s\n' "$password" | htpasswd -i "$STATEDIR/users" "$userid" 2>&1)"; then
+    echo "ecce-dataserver-adduser: $out" >&2
+    exit 1
+  fi
+  echo "ecce-dataserver-adduser: new password set for '$userid'"
   exit 0
 fi
 

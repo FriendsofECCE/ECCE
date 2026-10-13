@@ -51,8 +51,10 @@ windows the way a window manager does (WM_DELETE_WINDOW):
   first-local the first-start window (#240): a fresh client-only user answers
               "Store data on this computer"; later starts ask with it preselected
   create-account  #203: a fresh user on this computer's own data server is
-              offered an account with the name and password just typed
-  create-account-central  a central server's login offers none
+              offered an account with the name and password just typed; a
+              third start sets a new password with "Forgot password..."
+  create-account-central  a central server's login offers no account and
+              no reset, and names the administrator's reset command
   first-server  the same answering "Connect to a server" (this run's data server),
               then Edit > Change Server back to this computer
   auth-uselocal  the login window's "Use this computer instead" (its test
@@ -2844,7 +2846,8 @@ def caseFirstServer(checks, display, logdir):
 def caseCreateAccount(checks, display, logdir):
     """#203: a fresh user's first login to this computer's own (per-user)
     data server, which has no accounts, offers to create one and logs in;
-    the second start logs in with no offer."""
+    the second start logs in with no offer; the third presses "Forgot
+    password...", sets a new one and logs in with it."""
     stopOwnBroker(display.env())          # nothing answers on the broker port
     run("ecce-dataserver-stop", display.env())   # the user's own takes its port
     user = firstStartUser("create")
@@ -2887,6 +2890,29 @@ def caseCreateAccount(checks, display, logdir):
                 firstStartEnd(checks, display, session, frame)
             finally:
                 session.kill()
+
+        extra["ECCE_TEST_AUTH_ANSWER"] = "reset:newstud:N3wSecret"
+        log = os.path.join(logdir, "create-account-3.log")
+        session = Session(display, log, extra=dict(extra))
+        try:
+            frame = session.organizer()
+            checks.check(frame, "reset start: the Organizer opened")
+            text = open(log, errors="replace").read()
+            checks.check("reset offered" in text, "reset: offered on this "
+                         "computer's own server")
+            checks.check("new password asked" in text and
+                         "password reset" in text,
+                         "reset: the new password was asked and set")
+            verify = subprocess.run(["htpasswd", "-vb", users, "newstud",
+                                     "N3wSecret"], capture_output=True)
+            checks.check(verify.returncode == 0,
+                         "reset: the account file holds the new password")
+            checks.check(entries() == ["newstud"],
+                         "reset: still one account (%s)" % entries())
+            if frame:
+                firstStartEnd(checks, display, session, frame)
+        finally:
+            session.kill()
     finally:
         env = dict(display.env(), **extra)
         run("ecce-dataserver-stop", env)
@@ -2923,6 +2949,13 @@ def caseCreateAccountCentral(checks, display, logdir):
                          "no Create account window")
             checks.check("create-account asked" not in text,
                          "no offer to create an account")
+            checks.check("reset not offered" in text and
+                         "reset offered" not in text,
+                         "no Forgot password... on a central server")
+            checks.check("ask your server administrator" in text.lower() and
+                         "ecce-dataserver-adduser --passwd nobodyhere" in text,
+                         "the refused login names the administrator's reset "
+                         "command")
             checks.check(not os.path.exists(os.path.join(
                 user, ".ECCE", "dataserver", "users")),
                 "the client made no account file of its own")

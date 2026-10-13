@@ -52,6 +52,9 @@ public:
   /** The "Use this computer instead" button; it ends the dialog with
       ID_BUTTON_AUTH_USE_LOCAL. */
   void showUseLocal(const bool& show);
+  /** The "Forgot password..." button; it ends the dialog with
+      ID_BUTTON_AUTH_RESET. */
+  void showReset(const bool& show);
 
   /** A line under the fields saying the connection is encrypted; "" hides it. */
   void setEncryption(const string& note);

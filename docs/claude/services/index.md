@@ -35,7 +35,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 
 - [The Gateway window no longer appears](the-gateway-window-no-longer-appears.md)
 - [The first-start question: where a user keeps their work](first-start-question.md)
-- [The per-user data server starts with no accounts; its login window offers to create one](per-user-server-offers-an-account.md)
+- [The per-user data server starts with no accounts; its login window offers to create one and to reset a password](per-user-server-offers-an-account.md)
 - [The release check: where it runs and what switches it off](release-check.md)
 - [The session id (`ECCE_SESSION_ID`) and session liveness](the-session-id.md)
 
