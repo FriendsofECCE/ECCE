@@ -11,8 +11,8 @@ programs. ECCE itself contains a quantum chemistry program (ECCE-QM) and
 drives several others, so the project publishes no such comparison at all
 (Andy, 2026-10-13). "Published" means anything that leaves this machine:
 release notes, CHANGELOG, help pages, the wiki, repository docs, issue and
-pull-request text, commit messages, test data and test code, videos, the
-manual and papers.
+pull-request text, commit messages, stored test data, videos, the manual
+and papers.
 
 **Allowed**
 - What ECCE does with Gaussian 16: which keywords the input writer
@@ -29,12 +29,15 @@ manual and papers.
   another code agree with, differ from or were "checked against" Gaussian,
   with or without numbers.
 - Timings or benchmarks of Gaussian.
-- Reference values computed with Gaussian stored as the expected answer of
-  a test of another program (test oracles come from ORCA, NWChem or another
-  program whose terms allow it). Running `g16` privately, on this machine,
-  to look at a question is fine; the outcome is not written down in the
-  repository or anywhere public.
+- Gaussian reference numbers stored in the repository, or test output,
+  logs or tables showing how another program's results compare with
+  Gaussian's.
 - Gaussian binaries, and text copied from its manuals.
+
+**Testing is fine.** Tests may run `g16` live and hold ECCE-QM or another
+code to its results (`tests/qm/charges_test.py` does, for Merz-Kollman
+charges). What is published is the test, not the comparison: the outcome
+stays on the machine that ran it and is not quoted anywhere public.
 
 Before a release, grep new public text for Gaussian or G16 near "against",
 "agree", "within", "compared" or "checked".
