@@ -8,7 +8,7 @@ Tolerances (hartree):
   total energy vs ORCA, DFT             1e-5  (grids differ: ours is 99 radial x
                                         590 Lebedev, ORCA DefGrid3, NWChem xfine)
   total energy vs ORCA, PBE and PBE0    1e-4  (ORCA's PBE differs from NWChem's
-                                        and Gaussian's by 1-2e-5; see README.md)
+                                        by 1-2e-5; see README.md)
   total energy vs NWChem, all           1e-6 (grid error grows with size: 6e-7 for benzene)
   orbital energies                      1e-5
   orbital energies, restricted open     1e-4 occupied, 5e-4 for the lowest virtual,

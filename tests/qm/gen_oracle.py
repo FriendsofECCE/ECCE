@@ -123,28 +123,6 @@ def run_nwchem(c, work):
             "keywords": "dft grid xfine, spherical basis" if method_is_dft(c) else "scf rhf thresh 1e-9, spherical basis",
             "energy": float(m[-1])}
 
-def run_g16(c, work):
-    """Gaussian 16 PBE/def2-SVP water: a third opinion on the PBE definition
-    (recorded for information; the test does not require agreement)."""
-    mol, basis, method, ref = c
-    ch, mult, atoms = MOLECULES[mol]
-    name = case_name(c) + "_g16"
-    d = os.path.join(work, name)
-    os.makedirs(d, exist_ok=True)
-    com = os.path.join(d, name + ".com")
-    with open(com, "w") as f:
-        f.write("%nprocshared=4\n#p PBEPBE/def2SVP int=ultrafine scf=(tight,maxcycle=200) 5D 7F nosymm\n\n" + name + "\n\n%d %d\n" % (ch, mult))
-        for a in atoms:
-            f.write("%-2s %.10f %.10f %.10f\n" % a)
-        f.write("\n")
-    env = dict(os.environ, g16root="/opt/gaussian", GAUSS_SCRDIR=d)
-    log = os.path.join(d, name + ".log")
-    if not os.path.exists(log):
-        subprocess.run(["/opt/gaussian/g16/g16", com], cwd=d, env=env, capture_output=True)
-    m = re.findall(r"SCF Done:.*=\s+(-?\d+\.\d+)\s+A\.U\.", open(log).read())
-    return {"program": "Gaussian", "version": "16 C.01", "keywords": "PBEPBE/def2SVP int=ultrafine scf=tight 5D 7F",
-            "energy": float(m[-1])}
-
 def method_is_dft(c):
     return c[2] != "hf"
 
@@ -166,8 +144,6 @@ def main():
         ent["orca"] = run_orca(c, work)
         if do_nw and c[3] == "r" and ((c[0] in ("h2o", "co", "nh3") and c[1] != "STO-3G") or (c[0] == "benzene" and c[1] == "def2-SVP")):
             ent["nwchem"] = run_nwchem(c, work)
-        if do_nw and name == "h2o_def2-svp_pbe_r":
-            ent["gaussian"] = run_g16(c, work)
         data[name] = ent
         print(name, ent["orca"]["energy"], flush=True)
         json.dump(data, open(path, "w"), indent=1, sort_keys=True)

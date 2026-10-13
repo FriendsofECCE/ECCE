@@ -158,3 +158,4 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [Example calculations ship as program outputs; File > Open Example Calculations imports a fresh copy (and MOPAC has an importer)](example-calculations-are-outputs-not-stored-calcs.md)
 - [The dummy atom X has no basis, no electrons, no formula entry - and each code numbers it differently](dummy-atom-x-is-not-an-element-and-each-code-numbers-it-differently.md)
 - [Geometry constraints are edited in the Builder and stored with the calculation; the input uses them only for Geometry/GeoVib](geometry-constraints-are-edited-in-the-builder-and-stored-with-the-calculation.md)
+- [Gaussian: describe ECCE's support for it; never publish a comparison of Gaussian with another program](what-may-be-published-about-gaussian.md)

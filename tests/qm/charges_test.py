@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-"""ecce-qm Loewdin, CHELPG and Merz-Kollman charges against ORCA (Loewdin,
-CHELPG) and Gaussian 16 (Pop=MK), live runs on H2O, NH3, CO and HF at
-HF/6-31G* and B3LYP/6-31G*.
+"""ecce-qm Loewdin and CHELPG charges against ORCA, live runs on H2O, NH3, CO
+and HF at HF/6-31G* and B3LYP/6-31G*.  Merz-Kollman has no reference here yet.
 
     charges_test.py ECCE-QM-EXE [WORKDIR]
 
 Loewdin must agree to 1e-3 e.  The fits sample different points in each
-program (grid origin, surface generator), so CHELPG and MK are held to 0.02 e.
-Exits 77 (skip) if neither ORCA nor g16 is installed.  One core each, one run
+program (grid origin, surface generator), so CHELPG is held to 0.02 e.
+Exits 77 (skip) if ORCA is not installed.  One core each, one run
 at a time.
 """
 import glob, os, re, shutil, subprocess, sys, tempfile
@@ -17,8 +16,6 @@ sys.path.insert(0, HERE)
 from molecules import MOLECULES
 
 ORCA = (glob.glob("/opt/orca/orca_6*/orca") or [None])[0]
-G16ROOT = "/opt/gaussian"
-G16 = os.path.join(G16ROOT, "g16", "g16")
 TOL_LOEWDIN, TOL_FIT = 1e-3, 0.02
 CASES = [(m, meth) for m in ("h2o", "nh3", "co", "hf") for meth in ("hf", "b3lyp")]
 
@@ -68,32 +65,13 @@ def run_orca(mol, meth, d):
     return {"loewdin": table("LOEWDIN ATOMIC CHARGES"), "chelpg": table("CHELPG Charges")}
 
 
-def run_g16(mol, meth, d):
-    ch, mult, atoms = MOLECULES[mol]
-    kw = "HF" if meth == "hf" else "B3LYP"
-    inp = os.path.join(d, "g.gjf")
-    with open(inp, "w") as f:
-        f.write("%%nprocshared=1\n%%mem=1GB\n#P %s/6-31G* 5D 7F NoSymm Pop=MK SCF=Tight\n\nt\n\n%d %d\n"
-                % (kw, ch, mult))
-        for a in atoms:
-            f.write("%-2s %.10f %.10f %.10f\n" % a)
-        f.write("\n")
-    env = dict(os.environ, g16root=G16ROOT, GAUSS_SCRDIR=d)
-    with open(inp) as fin, open(os.path.join(d, "g.log"), "w") as fout:
-        subprocess.run([G16], stdin=fin, stdout=fout, stderr=subprocess.DEVNULL, env=env, cwd=d)
-    txt = open(os.path.join(d, "g.log")).read()
-    m = re.search(r"ESP charges:\n\s+1\n(.*?)Sum of ESP", txt, re.S)
-    return {"mk": [float(x) for x in re.findall(r"^\s*\d+\s+[A-Za-z]+\s+(-?\d+\.\d+)", m.group(1), re.M)]} if m else {}
-
-
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
         return 2
     exe = os.path.abspath(sys.argv[1])
-    have_g16 = os.path.exists(G16)
-    if not ORCA and not have_g16:
-        print("SKIP: neither ORCA nor Gaussian 16 found")
+    if not ORCA:
+        print("SKIP: ORCA not found")
         return 77
     keep = len(sys.argv) > 2
     work = os.path.abspath(sys.argv[2]) if keep else tempfile.mkdtemp(prefix="qmcharges-")
@@ -103,13 +81,8 @@ def main():
             d = os.path.join(work, "%s_%s" % (mol, meth))
             os.makedirs(d, exist_ok=True)
             q = run_ecceqm(exe, mol, meth, d)
-            ref = {}
-            if ORCA:
-                ref.update(run_orca(mol, meth, d))
-            if have_g16:
-                ref.update(run_g16(mol, meth, d))
-            for scheme, tol, who in (("loewdin", TOL_LOEWDIN, "ORCA"), ("chelpg", TOL_FIT, "ORCA"),
-                                     ("mk", TOL_FIT, "g16")):
+            ref = run_orca(mol, meth, d)
+            for scheme, tol, who in (("loewdin", TOL_LOEWDIN, "ORCA"), ("chelpg", TOL_FIT, "ORCA")):
                 if scheme not in ref or len(ref[scheme]) != len(q[scheme]):
                     print("MISSING %s/%s %s from %s" % (mol, meth, scheme, who))
                     fails += 1

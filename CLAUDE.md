@@ -67,6 +67,10 @@ subagent flags, directly.
   `tests/containers/central_server_test.py` runs the central-server mode
   with separate Unix accounts in containers and `ecce-broker.service`
   under systemd; two physical machines remain untested.
+- **Never publish a comparison of Gaussian with another program** —
+  not in notes, help, wiki, docs, issues, commits, tests or papers
+  (Andy, 2026-10-13). Describing ECCE's Gaussian support is fine. Full
+  rule: `docs/claude/codereg/what-may-be-published-about-gaussian.md`.
 - **Memory settings should be entered/labeled in GB everywhere, for
   every code** — Andy's explicit UX preference (2026-09-07), not each
   code's native convention. The wire format still has to match what

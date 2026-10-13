@@ -5486,12 +5486,6 @@
   ],
   "basis": "def2-SVP",
   "charge": 0,
-  "gaussian": {
-   "energy": -76.2719830091,
-   "keywords": "PBEPBE/def2SVP int=ultrafine scf=tight 5D 7F",
-   "program": "Gaussian",
-   "version": "16 C.01"
-  },
   "method": "pbe",
   "molecule": "h2o",
   "multiplicity": 1,
