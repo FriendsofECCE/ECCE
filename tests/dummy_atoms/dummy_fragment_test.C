@@ -1,6 +1,7 @@
 //  #298: a dummy atom X is not an element -- no basis set, no nuclear charge,
 //  not in the formula -- while still counting as an atom (its index is what
 //  the constraints and the output tables refer to).
+#include <cmath>
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -71,5 +72,24 @@ int main()
   r = orderConstraintAtoms(f3, p);
   check(r.reordered && !r.needsConfirm && (r.atoms[0] == 0 || r.atoms[0] == 3) && r.atoms[1] != r.atoms[0],
         "torsion picked scrambled becomes a chain: " + r.description);
+
+  // #306: a dummy on a saturated centre, from the picked coordinates.
+  {
+    std::vector<std::vector<double> > m;
+    const double c[4][3] = {{0,0,0}, {0.63,0.63,0.63}, {-0.63,-0.63,0.63}, {-0.63,0.63,-0.63}};
+    for (int i = 0; i < 4; i++) m.push_back(std::vector<double>(c[i], c[i] + 3));
+    double o[3];
+    check(dummyAtomPosition(m, DUMMY_BEYOND, 1.0, o).empty(), "beyond: defined");
+    const double r = sqrt(o[0]*o[0] + o[1]*o[1] + o[2]*o[2]);
+    check(fabs(r - 1.0) < 1e-9 && o[0] > 0 && o[1] < 0 && o[2] < 0, "beyond: 1 A from the first atom, opposite the rest");
+    dummyAtomPosition(m, DUMMY_BETWEEN, 0.5, o);
+    check(fabs(o[0] + 0.5/sqrt(3.0)) < 1e-9 && o[1] > 0, "between: towards the rest");
+    dummyAtomPosition(m, DUMMY_CENTRE, 1.0, o);
+    check(fabs(o[0] + 0.1575) < 1e-9 && fabs(o[1] - 0.1575) < 1e-9 && fabs(o[2] - 0.1575) < 1e-9, "centre: centroid of all picked");
+    std::vector<std::vector<double> > two(m.begin(), m.begin() + 1);
+    check(!dummyAtomPosition(two, DUMMY_BEYOND, 1.0, o).empty(), "one atom: refused");
+    std::vector<std::vector<double> > same(2, m[0]);
+    check(!dummyAtomPosition(same, DUMMY_BEYOND, 1.0, o).empty(), "no axis: refused");
+  }
   return failures ? 1 : 0;
 }

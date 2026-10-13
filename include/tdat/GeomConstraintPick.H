@@ -34,4 +34,25 @@ GeomConstraintPick orderConstraintAtoms(const Fragment& frag,
 /** "N1": the symbol and the 1-based index, as ECCE shows atoms. */
 std::string constraintAtomName(const Fragment& frag, int index);
 
+/** Where a dummy atom goes relative to the picked atoms (#306). */
+enum DummyPlacement
+{
+  DUMMY_CENTRE,    ///< at the centroid of all picked atoms
+  DUMMY_BEYOND,    ///< on the axis through the first atom, past it
+  DUMMY_BETWEEN    ///< on that axis, between the first atom and the rest
+};
+
+/**
+ * Position for a dummy atom on a saturated centre, which has no open site.
+ * The axis runs from C, the centroid of the atoms after the first, through
+ * the first atom A; the point lies `distance` from A, on the far side of A
+ * from C (DUMMY_BEYOND) or towards C (DUMMY_BETWEEN).
+ * @param xyz the picked atoms' coordinates in pick order (at least two)
+ * @param out receives x, y, z
+ * @return empty on success, else why no point is defined
+ */
+std::string dummyAtomPosition(const std::vector<std::vector<double> >& xyz,
+                              DummyPlacement how, double distance,
+                              double out[3]);
+
 #endif

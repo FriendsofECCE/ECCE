@@ -53,6 +53,8 @@ using std::vector;
 #include "tdat/FragUtil.H"
 #include "tdat/GeomConstraintModel.H"
 #include "tdat/GeomConstraintRules.H"
+#include "tdat/GeomConstraintPick.H"
+#include <wx/radiobut.h>
 #include "dsm/ICalculation.H"
 #include "dsm/JCode.H"
 #include "GeomConstraintsDialog.H"
@@ -854,6 +856,9 @@ void Builder::createMenus()
   p_toolMenu->Append(ID_GEOM_CONSTRAINTS, _("Geometry Constraints..."),
                      _("Fix atoms and constrain bonds, angles and torsions"));
   Bind(wxEVT_MENU, &Builder::OnGeomConstraints, this, ID_GEOM_CONSTRAINTS);
+  p_toolMenu->Append(ID_ADD_DUMMY, _("Add Dummy Atom..."),
+                     _("Place a dummy atom X from the selected atoms"));
+  Bind(wxEVT_MENU, &Builder::OnAddDummy, this, ID_ADD_DUMMY);
 
   p_propertyMenu = GetMenuBar()->GetMenu(
                    GetMenuBar()->FindMenu(_("Properties")));
@@ -1157,6 +1162,7 @@ void Builder::createToolPanels()
 void Builder::createReadOnlyIds()
 {
   p_readOnlyDisabledIds.insert(ID_IMPORT);
+  p_readOnlyDisabledIds.insert(ID_ADD_DUMMY);
 
   p_readOnlyDisabledIds.insert(ViewerEvtHandler::ID_CLEAN_COORD);
   p_readOnlyDisabledIds.insert(ViewerEvtHandler::ID_ADD_H);
@@ -1687,10 +1693,12 @@ bool Builder::mouseEvent(wxMouseEvent *event)
    } else if (event->RightUp() &&
               abs(event->GetX() - p_rightDownAt.x) < 4 &&
               abs(event->GetY() - p_rightDownAt.y) < 4 &&
-              !constraintSelection().empty() && !constraintsReadOnly()) {
+              !constraintSelection().empty() && !isReadOnly()) {
       CallAfter([this]() {
         wxMenu menu;
-        menu.Append(ID_GEOM_CONSTRAINTS, _("Constrain Selected Atoms..."));
+        if (!constraintsReadOnly())
+          menu.Append(ID_GEOM_CONSTRAINTS, _("Constrain Selected Atoms..."));
+        menu.Append(ID_ADD_DUMMY, _("Add Dummy Atom..."));
         PopupMenu(&menu);
       });
    }
@@ -4351,6 +4359,112 @@ void Builder::constraintsEdited()
   p_constraintsDirty[p_calculation->getURL().toString()] = true;
   setDirty(true);
   updateSave();
+}
+
+
+void Builder::OnAddDummy(wxCommandEvent& event)
+{
+  string codeName;
+  if (!dummyAtomsSupported(codeName)) {
+    showMessage(codeName + " does not support dummy atoms; none can be "
+                "added to this calculation.", true);
+    return;
+  }
+  SGFragment *frag = getSG()->getFragment();
+  vector<int> pick;
+  if (frag)
+    for (size_t i = 0; i < frag->m_atomHighLight.size(); i++)
+      if (!frag->atomRef(frag->m_atomHighLight[i])->isNub())
+        pick.push_back(frag->m_atomHighLight[i]);
+  if (pick.size() < 2) {
+    showMessage("Select at least two atoms first: the dummy atom is placed "
+                "from them.", true);
+    return;
+  }
+  // The axis mode suits a centre bonded to the others (methane's C and H).
+  bool allBonded = true;
+  const vector<TBond*>& bl = frag->atomRef(pick[0])->bondList();
+  for (size_t i = 1; i < pick.size(); i++) {
+    bool found = false;
+    for (size_t b = 0; b < bl.size(); b++)
+      if (bl[b]->atom1() == frag->atomRef(pick[i]) ||
+          bl[b]->atom2() == frag->atomRef(pick[i])) found = true;
+    allBonded = allBonded && found;
+  }
+
+  wxDialog dlg(this, wxID_ANY, "Add Dummy Atom");
+  wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+  wxRadioButton *beyond = new wxRadioButton(&dlg, wxID_ANY,
+      "On the axis through the atom picked first, beyond it",
+      wxDefaultPosition, wxDefaultSize, wxRB_GROUP);
+  wxRadioButton *between = new wxRadioButton(&dlg, wxID_ANY,
+      "On the axis through the atom picked first, between it and the others");
+  wxRadioButton *centre = new wxRadioButton(&dlg, wxID_ANY,
+      "At the centre of the selected atoms");
+  top->Add(beyond, 0, wxALL, 6);
+  top->Add(between, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
+  top->Add(centre, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
+  wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+  wxStaticText *label = new wxStaticText(&dlg, wxID_ANY,
+      wxString::FromUTF8("Distance from the atom picked first (\xC3\x85):"));
+  wxSpinCtrlDouble *dist = new wxSpinCtrlDouble(&dlg, wxID_ANY, "1.0",
+      wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0.1, 10.0, 1.0, 0.1);
+  row->Add(label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+  row->Add(dist, 0);
+  top->Add(row, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
+  top->Add(dlg.CreateStdDialogButtonSizer(wxOK | wxCANCEL), 0, wxALL | wxEXPAND, 6);
+  dlg.SetSizerAndFit(top);
+  (allBonded ? beyond : centre)->SetValue(true);
+  auto sync = [&](wxCommandEvent&) {
+    const bool on = !centre->GetValue();
+    label->Enable(on);
+    dist->Enable(on);
+  };
+  for (wxRadioButton *r : {beyond, between, centre})
+    r->Bind(wxEVT_RADIOBUTTON, sync);
+  wxCommandEvent ev;
+  sync(ev);
+  if (dlg.ShowModal() != wxID_OK) return;
+
+  const string err = addDummyAtom(centre->GetValue() ? DUMMY_CENTRE :
+      (beyond->GetValue() ? DUMMY_BEYOND : DUMMY_BETWEEN), dist->GetValue());
+  if (!err.empty()) showMessage(err, true);
+}
+
+
+string Builder::addDummyAtom(int placement, double distance)
+{
+  string codeName;
+  if (!dummyAtomsSupported(codeName))
+    return codeName + " does not support dummy atoms; none can be added to "
+                      "this calculation.";
+  SGFragment *frag = getSG()->getFragment();
+  if (!frag) return "No structure is open.";
+  vector<vector<double> > xyz;
+  for (size_t i = 0; i < frag->m_atomHighLight.size(); i++) {
+    const TAtm *a = frag->atomRef(frag->m_atomHighLight[i]);
+    if (a->isNub()) continue;
+    const double *c = a->coordinates();
+    xyz.push_back(vector<double>(c, c + 3));
+  }
+  double pos[3];
+  string err = dummyAtomPosition(xyz, (DummyPlacement)placement, distance, pos);
+  if (!err.empty()) return err;
+
+  // Same command as a click in Atom mode; "Lone" keeps it unbonded.
+  frag->m_atomHighLight.clear();
+  AtomEditCmd *cmd = new AtomEditCmd("add", getSG());
+  cmd->getParameter("x")->setDouble(pos[0]);
+  cmd->getParameter("y")->setDouble(pos[1]);
+  cmd->getParameter("z")->setDouble(pos[2]);
+  cmd->getParameter("elem")->setString("X");
+  cmd->getParameter("geom")->setString("Lone");
+  cmd->getParameter("bondOrder")->setDouble(1.0);
+  cmd->getParameter("resIndex")->setInteger(-1);
+  if (!execute(cmd, true)) return "The dummy atom could not be added.";
+  frag->m_atomHighLight.assign(1, (int)frag->numAtoms() - 1);
+  EventDispatcher::getDispatcher().publish(Event("SelectionChanged"));
+  return "";
 }
 
 

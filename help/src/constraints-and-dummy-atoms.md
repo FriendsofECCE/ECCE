@@ -84,6 +84,31 @@ Not every code can use one. If the calculation's code cannot (Quantum
 ESPRESSO, GROMACS and the NWChem molecular dynamics codes), choosing `X` in
 the Builder says so and no atom is added.
 
+### A dummy atom on a saturated centre
+
+Attaching `X` at an open site only works where the atom has one. The carbon
+of methane has none, so place the dummy atom from the atoms around it instead:
+
+1. In the Builder, select the atoms the position is to come from. The order
+   you pick them in matters for the axis mode below.
+2. Choose **Tools > Add Dummy Atom...**, or right-click in the 3D view and
+   choose **Add Dummy Atom...**.
+3. Choose where `X` goes:
+   - **At the centre of the selected atoms**: at the centroid of the
+     selection.
+   - **On the axis through the atom picked first**: the line runs from the
+     centroid of the other selected atoms through the first atom. `X` lies
+     the distance you give (1.0 Å to begin with) from that atom,
+     **beyond** it or **between** it and the others.
+4. Press **OK**. `X` is added, not bonded to anything, and selected. **Undo**
+   (Ctrl+Z) removes it again.
+
+For methane, pick the carbon and then three hydrogens and choose the axis
+mode, beyond: `X` lies on the C3 axis, 1.0 Å from the carbon, opposite the
+three hydrogens. For ammonia, pick the three hydrogens and choose the centre.
+The dialog starts in the axis mode when the first atom is bonded to all the
+others, and in the centre mode otherwise.
+
 ## Example: the potential of ammonia
 
 1. Make a new calculation with NWChem and open it in the Builder.

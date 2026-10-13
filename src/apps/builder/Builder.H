@@ -114,6 +114,7 @@ class Builder: public BuilderGUI,
       ID_DRAGGER_TOOLBAR,
       ID_DOCK_FLOATING_PANELS,
       ID_GEOM_CONSTRAINTS,
+      ID_ADD_DUMMY,
       ID_VIEW_TOGGLE_COLUMN,
       ID_VIEW_RESET_LAYOUT,
       ID_VIEW_PANELS_CLASSIC,
@@ -254,6 +255,11 @@ class Builder: public BuilderGUI,
       std::string constraintCodeName() const;
       bool constraintsSupportedByCode() const;
       bool dummyAtomsSupported(string& codeName) const;
+      /// Adds an unbonded dummy atom X placed from the selected atoms (see
+      /// dummyAtomPosition), as one undoable edit, and selects it.
+      /// @param placement a DummyPlacement
+      /// @return why nothing was added, or empty
+      string addDummyAtom(int placement, double distance);
       GeomConstraintsDialog *constraintsDialog() { return p_constraintsDialog; }
       virtual void center();
       virtual bool isAutoCenter() const;
@@ -345,6 +351,7 @@ class Builder: public BuilderGUI,
       virtual void OnToolMenuClick( wxCommandEvent& event );
       void OnDockFloatingPanels( wxCommandEvent& event );
       void OnGeomConstraints( wxCommandEvent& event );
+      void OnAddDummy( wxCommandEvent& event );
 
       virtual void OnPaneClose(wxAuiManagerEvent& event);
       void OnPaneButton(wxAuiManagerEvent& event);

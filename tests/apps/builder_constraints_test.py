@@ -235,6 +235,54 @@ def unsupportedCase(display, url):
           "and no X is added by a click: %s" % atoms, tail)
 
 
+def atomsOf(log):
+    return re.findall(r"BUILDER: atom (\d+) (\w+) (\S+) (\S+) (\S+)", log)
+
+
+def placeCase(display, empty, nh3, qe):
+    """Add Dummy Atom (#306): methane's C has no open site."""
+    import math
+    log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT", [
+        "wait 4000", "add C Tetrahedral 0 0 0", "cmd addh", "wait 500", "coords",
+        "constraints select 0 1 2 3", "dummy beyond 1.0", "coords",
+        "constraints select 0 1 2 3", "dummy between 0.5", "quit"],
+        "file://" + empty + "/")
+    tail = run_tests._tail(log, 30)
+    blocks = log.split("BUILDER: formula=")
+    check(len(blocks) >= 3, "methane built and X placed (%d)" % len(blocks), tail)
+    if len(blocks) >= 3:
+        before = atomsOf(blocks[0])
+        after = atomsOf(blocks[1])
+        check(len(before) == 5 and len(after) == 6 and after[5][1] == "X",
+              "one X added to CH4: %s" % [a[1] for a in after], tail)
+        if len(after) == 6 and after[5][1] == "X":
+            xyz = [[float(v) for v in a[2:5]] for a in after]
+            c, x = xyz[0], xyz[5]
+            axis = [x[i] - c[i] for i in range(3)]
+            cen = [sum(xyz[h][i] for h in (1, 2, 3)) / 3 - c[i] for i in range(3)]
+            cosang = sum(a * b for a, b in zip(axis, cen)) / (math.hypot(*axis) * math.hypot(*cen))
+            check(abs(math.hypot(*axis) - 1.0) < 0.0005, "X is 1.000 A from C: %.4f" % math.hypot(*axis), tail)
+            check(cosang < -0.9999, "X is on the C3 axis, opposite the three H: cos %.5f" % cosang, tail)
+    check(re.findall(r"BUILDER: dummy (\w+): (.*)", log) == [("beyond", "added"), ("between", "added")],
+          "both modes report added: %s" % re.findall(r"BUILDER: dummy .*", log), tail)
+    log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT", [
+        "wait 4000", "constraints select 1 2 3", "dummy centre", "coords", "quit"],
+        "file://" + nh3 + "/")
+    tail = run_tests._tail(log, 30)
+    at = atomsOf(log)
+    check(len(at) == 6 and at[5][1] == "X", "NH3: an X added: %s" % [a[1] for a in at], tail)
+    if len(at) == 6 and at[5][1] == "X":
+        xyz = [[float(v) for v in a[2:5]] for a in at]
+        cen = [sum(xyz[h][i] for h in (1, 2, 3)) / 3 for i in range(3)]
+        check(max(abs(xyz[5][i] - cen[i]) for i in range(3)) < 0.0005,
+              "NH3: X at the centroid of the three H: %s vs %s" % (xyz[5], cen), tail)
+    log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT", [
+        "wait 4000", "constraints select 0 1", "dummy centre", "quit"],
+        "file://" + qe + "/")
+    check(re.search(r"BUILDER: dummy centre: refused: Quantum\S* does not support dummy atoms", log) is not None,
+          "a code without dummy atoms refuses", run_tests._tail(log, 20))
+
+
 def main():
     def checkApp(display, name, results, verbose=False):
         folder = os.path.join(fixture.stateDir(), "builderconstraints-localdata")
@@ -256,6 +304,7 @@ def main():
                      "Energy run")
             clickCase(display, "file://" + energy + "/")
             empty = os.path.join(base, "empty-nw")
+            placeCase(display, empty, energy, os.path.join(base, "nh3-qe"))
             dummyCase(display, "file://" + empty + "/", empty)
             unsupportedCase(display, "file://" + os.path.join(base, "nh3-qe") + "/")
             geomCase(display, "file://" + geom + "/")

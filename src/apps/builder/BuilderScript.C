@@ -98,6 +98,7 @@
 #include "dsm/ChemistryTask.H"
 #include "tdat/GeomConstraintModel.H"
 #include "tdat/GeomConstraintRules.H"
+#include "tdat/GeomConstraintPick.H"
 #include "util/EventDispatcher.H"
 #include "PBC.H"
 #include "dsm/IPropCalculation.H"
@@ -446,6 +447,14 @@ void Builder::runBuilderScript(const std::string& file)
           }
           fprintf(stderr, "BUILDER: constraints stored=%d\n", n);
         }
+      } else if (w[0] == "dummy" && w.size() >= 2) {
+        //  Add Dummy Atom (#306): "dummy centre|beyond|between [D]" on the
+        //  selection.
+        int how = w[1] == "centre" ? DUMMY_CENTRE :
+                  (w[1] == "between" ? DUMMY_BETWEEN : DUMMY_BEYOND);
+        std::string err = addDummyAtom(how, w.size() > 2 ? atof(w[2].c_str()) : 1.0);
+        fprintf(stderr, "BUILDER: dummy %s: %s\n", w[1].c_str(),
+                err.empty() ? "added" : ("refused: " + err).c_str());
       } else if (w[0] == "symmetry") {
         //  The Symmetry panel's Find (autosym), then the point group found.
         Command *cmd = new FindSymmetryCmd("Find Symmetry", getSG());

@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 
 #include "tdat/Fragment.H"
@@ -89,4 +90,33 @@ GeomConstraintPick orderConstraintAtoms(const Fragment& frag,
   if (n == 3)
     r.description += " (centre " + constraintAtomName(frag, r.atoms[1]) + ")";
   return r;
+}
+
+
+std::string dummyAtomPosition(const std::vector<std::vector<double> >& xyz,
+                              DummyPlacement how, double distance,
+                              double out[3])
+{
+  const size_t n = xyz.size();
+  if (n < 2) return "Pick at least two atoms.";
+  double c[3] = {0, 0, 0};
+  const size_t from = (how == DUMMY_CENTRE) ? 0 : 1;
+  for (size_t i = from; i < n; i++)
+    for (int k = 0; k < 3; k++) c[k] += xyz[i][k];
+  for (int k = 0; k < 3; k++) c[k] /= double(n - from);
+  if (how == DUMMY_CENTRE) {
+    for (int k = 0; k < 3; k++) out[k] = c[k];
+    return "";
+  }
+  double v[3], len2 = 0;
+  for (int k = 0; k < 3; k++) {
+    v[k] = xyz[0][k] - c[k];
+    len2 += v[k] * v[k];
+  }
+  if (len2 < 1e-12)
+    return "The first atom lies at the centre of the others, so there is no "
+           "axis; pick another atom first.";
+  const double s = (how == DUMMY_BEYOND ? distance : -distance) / sqrt(len2);
+  for (int k = 0; k < 3; k++) out[k] = xyz[0][k] + s * v[k];
+  return "";
 }
