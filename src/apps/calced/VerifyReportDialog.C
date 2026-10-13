@@ -111,7 +111,7 @@ void VerifyReportDialog::build(const string& codeName,
   //  ---------------------------------------------------- the findings
   wxTextCtrl* list =
     new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 150),
-                   wxTE_MULTILINE | wxTE_READONLY | wxTE_RICH2);
+                   wxTE_MULTILINE | wxTE_READONLY | wxTE_RICH2 | wxVSCROLL);
   list->SetFont(wxFont(wxFontInfo().Family(wxFONTFAMILY_TELETYPE)));
 
   for (size_t i = 0; i < findings.size(); i++) {
@@ -129,6 +129,10 @@ void VerifyReportDialog::build(const string& codeName,
                               finding.level == VerifyFinding::UNSURE ? ink(ewxThemeColours::UNSURE)
                                                                      : ink(ewxThemeColours::GOOD)));
   }
+  //  AppendText leaves the view at the end, which hid the first findings
+  //  (the top of the report) above the pane.
+  list->SetInsertionPoint(0);
+  list->ShowPosition(0);
   top->Add(list, 0, wxEXPAND|wxLEFT|wxRIGHT|wxBOTTOM, 8);
 
   //  -------------------------------------------- the deck, marked up
@@ -138,7 +142,7 @@ void VerifyReportDialog::build(const string& codeName,
   wxTextCtrl* text =
     new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxDefaultSize,
                    wxTE_MULTILINE | wxTE_READONLY | wxTE_RICH2 |
-                   wxTE_DONTWRAP);
+                   wxTE_DONTWRAP | wxVSCROLL | wxHSCROLL);
   text->SetFont(wxFont(wxFontInfo(10).Family(wxFONTFAMILY_TELETYPE)));
 
   //  Which lines each finding covers, and at what level.
