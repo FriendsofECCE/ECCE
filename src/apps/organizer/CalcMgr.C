@@ -65,6 +65,7 @@ static std::string s_registerMessage;
 #include "util/TDateTime.H"
 #include "util/SFile.H"
 #include "util/BrowserHelp.H"
+#include "util/VizThumbnail.H"
 #include "wxgui/WindowShot.H"
 #include <wx/display.h>
 #include <algorithm>
@@ -2672,9 +2673,11 @@ string CalcMgr::openExamples(string& message)
     {"methane", "NWChem, B3LYP/6-31G*: optimisation, frequencies and "
                 "properties, imported from NWChem's own output."},
   };
+  vector<string> thumbUrls;
   if (Resource *projRes = EDSIFactory::getResource(project)) {
     if (vector<Resource*> *calcs = projRes->getChildren(true)) {
       for (Resource *calc : *calcs) {
+        if (calc) thumbUrls.push_back(calc->getURL().toString());
         for (const auto &note : kNotes) {
           if (calc && calc->getName() == note.name) {
             vector<MetaDataResult> ann(1);
@@ -2685,6 +2688,14 @@ string CalcMgr::openExamples(string& message)
         }
       }
     }
+  }
+  // The imported calculations have no thumbnail until the Builder saves
+  // one; ask VizThumbnail, as the Dirdy editor does. It renders in its own
+  // process, so the import does not wait for it.
+  if (!thumbUrls.empty()) {
+    VizThumbnail::thumbnail(ORGANIZER, thumbUrls);
+    cerr << "Organizer: thumbnails requested for " << thumbUrls.size()
+         << " example calculations" << endl;
   }
   if (WxResourceTreeItemData *projNode = findNode(project, false, false))
     p_treeCtrl->refresh(projNode);

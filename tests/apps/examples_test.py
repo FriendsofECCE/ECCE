@@ -100,6 +100,16 @@ def reportProblemProblems(log):
     return []
 
 
+def thumbnails(project):
+    """Calculations of a project directory that hold a Thumbnail file."""
+    found = set()
+    for calc in os.listdir(project) if os.path.isdir(project) else []:
+        for base, _dirs, files in os.walk(os.path.join(project, calc)):
+            if any(f.lower().startswith("thumbnail") for f in files):
+                found.add(calc)
+    return found
+
+
 def run(display, data, work):
     root = os.path.join(data, "users", "local")
     home = os.environ["ECCE_REALUSERHOME"]
@@ -156,13 +166,20 @@ def run(display, data, work):
                 handle.write("summary file://%s\n" % os.path.join(
                     root, "Examples_2", calc))
         time.sleep(12)
+        # VizThumbnail renders them in its own process
+        end = time.time() + 90
+        while time.time() < end and len(
+                thumbnails(os.path.join(root, "Examples_2"))) < len(EXPECT):
+            time.sleep(2)
+        box["thumbs"] = thumbnails(os.path.join(root, "Examples_2"))
         # ecce-diagnose takes about half a minute
         end = time.time() + 120
         while time.time() < end and not glob.glob(
                 os.path.join(home, "ecce-bug-*.zip")):
             time.sleep(2)
 
-    result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+    # Through the gateway: it starts VizThumbnail for the thumbnail requests.
+    result = apps.run(display, "gateway", windowTimeout=60, settle=20,
                       env={"ECCE_TEST_ORGANIZER": script,
                            "ECCE_NO_EXAMPLE_IMPORT": "",
                            "ECCE_ORGANIZER_OPEN": "file://" + calc},
@@ -228,6 +245,11 @@ def run(display, data, work):
         if not rt or runtype not in rt.group(1):
             problems.append("%s: run type not %s (%s)" % (calc, runtype, s))
     problems += reportProblemProblems(log)
+    requested = re.findall(r"thumbnails requested for (\d+) example", log)
+    if requested[:2] != [str(len(EXPECT))] * 2:
+        problems.append("thumbnail requests: %s" % requested)
+    if len(box.get("thumbs", ())) != len(EXPECT):
+        problems.append("thumbnails stored for %s" % sorted(box.get("thumbs", ())))
     if problems:
         fail(what, "; ".join(problems), log)
     else:
