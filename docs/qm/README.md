@@ -87,9 +87,9 @@ restricted-open otherwise.
   (H 1.20, C/N 1.50, O 1.40, F 1.35, Bondi elsewhere), about one point per
   square Angstrom from a Fibonacci spiral, minus those inside another atom's
   scaled sphere; same fit.
-* Against ORCA 6.1.1 (Loewdin, CHELPG) and Gaussian 16 (Pop=MK), H2O, NH3, CO,
-  HF at HF and B3LYP/6-31G*: Loewdin within 1e-5, CHELPG within 0.005, MK within
-  0.003 e (`tests/qm/charges_test.py`, ctest `qm_charges`).
+* Against ORCA 6.1.1 (Loewdin, CHELPG), H2O, NH3, CO, HF at HF and
+  B3LYP/6-31G*: Loewdin within 1e-5, CHELPG within 0.005 e
+  (`tests/qm/charges_test.py`, ctest `qm_charges`).
 * ECCE keys: LOEWDIN, ESPFIT (CHELPG, the key ORCA's CHELPG uses) and MKFIT.
 
 ### Restricted open shell (ROHF, ROKS)
@@ -292,7 +292,7 @@ header. `qm_unit` checks the Lebedev rules against analytic integrals and the
 AO values (used for DFT) against libcint's overlap matrix by quadrature.
 
 PBE differs between programs: for water def2-SVP libxc gives -76.272001, NWChem
-agrees to 2e-8, Gaussian 16 C.01 (ultrafine grid) gives -76.271983, ORCA -76.272015. The difference
+agrees to 2e-8, ORCA gives -76.272015. The difference
 to ORCA grows with the number of electrons (1.4e-5 for water, 5.5e-5 for
 benzene); the tests therefore hold ORCA's PBE and PBE0 to 1e-4 and NWChem's to
 1e-6.

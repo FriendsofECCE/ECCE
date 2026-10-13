@@ -144,7 +144,7 @@ ctest --test-dir build-qm -R 'qm_(unit|scf_quick|gradient_quick|opt_quick|freq_q
 | `qm_opt[_quick]` | optimised energy, distances and angles against ORCA (`opt_oracle.json`) | nothing |
 | `qm_freq[_quick]` | frequencies, IR intensities, thermochemistry against ORCA (`freq_oracle.json`) | nothing |
 | `qm_diatomic_order` | valence orbital order of the lab diatomics | nothing |
-| `qm_charges` | Loewdin, CHELPG and Merz-Kollman charges against ORCA and Gaussian 16, run live | ORCA or g16, else skipped (exit 77) |
+| `qm_charges` | Loewdin, CHELPG and Merz-Kollman charges against reference programs, run live | ORCA or g16, else skipped (exit 77) |
 | `qm_charges_deck` | the Theory Details tick boxes become the `charges` line | nothing |
 | `tests/parsers` (`ecceqm-*` cases) | the output of the engine through ECCE's parse descriptor | nothing |
 | `launch_ecceqm`, `apps_ecceqm_*` | the whole chain: input deck, run, parse, Builder panels, size warning | a built tree, Xvfb |

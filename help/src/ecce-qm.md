@@ -120,9 +120,8 @@ nitrogen, hydrogen fluoride, benzene and open-shell oxygen, with the STO-3G,
   few microhartree. ORCA cannot compute restricted open shell frequencies, so
   those were checked against the curvature of ECCE-QM's own energies.
 - Loewdin charges agree with ORCA's to 1e-5 e. CHELPG charges agree with
-  ORCA's within 0.005 e and Merz-Kollman charges with Gaussian 16's within
-  0.003 e; the small differences come from the points where the potential is
-  sampled, which each program chooses in its own way.
+  ORCA's within 0.005 e; the small differences come from the points where the
+  potential is sampled, which each program chooses in its own way.
 - The orbitals were checked in the Molden format against the program Multiwfn.
 
 ## Reporting a problem, and citing
