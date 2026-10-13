@@ -13,6 +13,7 @@ using std::cerr;
 #include "dsm/ResourceTool.H"
 
 #include "util/BrowserHelp.H"
+#include "wxgui/ewxReportProblem.H"
 #include "wxgui/WxHelpViewer.H"
 #include "util/Preferences.H"
 
@@ -78,7 +79,7 @@ PerTabFrame::PerTabFrame(wxWindow* parent, wxWindowID id, const wxString& captio
 
   ewxMenu * helpMenu = new ewxMenu;
   helpMenu->Append(wxID_HELP, "on Periodic Table...", "", wxITEM_NORMAL);
-  helpMenu->Append(ID_ITEM_FEEDBACK, "Support...", "", wxITEM_NORMAL);
+  helpMenu->Append(ID_ITEM_FEEDBACK, "Report a Problem...", "", wxITEM_NORMAL);
   helpMenu->Append(wxID_ABOUT, "About ECCE...", "", wxITEM_NORMAL);
   menuBar->Append(helpMenu, "Help");
 
@@ -117,7 +118,7 @@ void PerTabFrame::OnMenuClick(wxCommandEvent& event)
     WxHelpViewer::showKey(PERTAB);
     break;
   case ID_ITEM_FEEDBACK:
-    help.showFeedbackPage();
+    ewxReportProblem::run(this);
     break;
   default:
     p_topPanel->OnMenuClick(event);

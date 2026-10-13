@@ -23,6 +23,7 @@
 #endif
 
 ////@begin includes
+#include "wxgui/ewxApp.H"
 #include "wxgui/ewxRadioButton.H"
 #include <wx/settings.h>
 #include "wxgui/ewxGrid.H"
@@ -272,7 +273,7 @@ void WxBasisToolGUI::CreateControls()
     menuBar->Append(itemMenu115, _("Edit"));
     wxMenu* itemMenu118 = new wxMenu;
     itemMenu118->Append(wxID_HELP, _("On Basis Set Tool...\tCTRL+H"), _T(""), wxITEM_NORMAL);
-    itemMenu118->Append(ID_MENUITEM_WXBASISTOOL_HELP_SUPPORT, _("Support..."), _T(""), wxITEM_NORMAL);
+    itemMenu118->Append(ewxApp::ID_REPORT_PROBLEM, _("Report a Problem..."), _T(""), wxITEM_NORMAL);
     itemMenu118->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu118, _("Help"));
     itemFrame1->SetMenuBar(menuBar);

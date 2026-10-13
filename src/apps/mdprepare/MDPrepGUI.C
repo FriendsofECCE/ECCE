@@ -23,6 +23,7 @@
 #endif
 
 ////@begin includes
+#include "wxgui/ewxApp.H"
 #include "wxgui/ewxRadioButton.H"
 #include "wxgui/ewxBitmapButton.H"
 #include "wxgui/ewxNotebook.H"
@@ -653,7 +654,7 @@ void MDPrepGUI::CreateControls()
     menuBar->Append(itemMenu533, _("File"));
     wxMenu* itemMenu537 = new wxMenu;
     itemMenu537->Append(ID_MENU_MDPREP_HELP, _("on NWChem MD Prepare..."), _T(""), wxITEM_NORMAL);
-    itemMenu537->Append(ID_MENU_FEEDBACK, _("Support..."), _T(""), wxITEM_NORMAL);
+    itemMenu537->Append(ewxApp::ID_REPORT_PROBLEM, _("Report a Problem..."), _T(""), wxITEM_NORMAL);
     itemMenu537->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu537, _("Help"));
     itemFrame1->SetMenuBar(menuBar);

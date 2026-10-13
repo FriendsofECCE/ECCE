@@ -23,6 +23,7 @@
 #endif
 
 ////@begin includes
+#include "wxgui/ewxApp.H"
 #include "wxgui/ewxStaticLine.H"
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxNotebook.H"
@@ -137,7 +138,7 @@ void MDEdBaseGUI::CreateControls()
     menuBar->Append(itemMenu3, _("File"));
     wxMenu* itemMenu7 = new wxMenu;
     itemMenu7->Append(ID_MENU_HELP, _("on NWChem MD Task..."), _T(""), wxITEM_NORMAL);
-    itemMenu7->Append(ID_MENU_SUPPORT, _("Support..."), _T(""), wxITEM_NORMAL);
+    itemMenu7->Append(ewxApp::ID_REPORT_PROBLEM, _("Report a Problem..."), _T(""), wxITEM_NORMAL);
     itemMenu7->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu7, _("Help"));
     itemFrame1->SetMenuBar(menuBar);

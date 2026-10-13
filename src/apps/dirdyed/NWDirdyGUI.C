@@ -23,6 +23,7 @@
 #endif
 
 ////@begin includes
+#include "wxgui/ewxApp.H"
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxBitmapButton.H"
 #include "wxgui/ewxNonBoldLabel.H"
@@ -244,7 +245,7 @@ void NWDirdyGUI::CreateControls()
     itemMenu110->Append(wxID_EXIT, _("&Quit\tCtrl+q"), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu110, _("File"));
     wxMenu* itemMenu114 = new wxMenu;
-    itemMenu114->Append(ID_MENU_FEEDBACK, _("Support..."), _T(""), wxITEM_NORMAL);
+    itemMenu114->Append(ewxApp::ID_REPORT_PROBLEM, _("Report a Problem..."), _T(""), wxITEM_NORMAL);
     itemMenu114->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
     itemMenu114->Append(ID_MENU_MDPREP_HELP, _("on NWChem DirDyVTST Editor..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu114, _("Help"));

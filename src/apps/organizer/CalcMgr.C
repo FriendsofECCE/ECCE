@@ -69,6 +69,7 @@ static std::string s_registerMessage;
 #include <wx/display.h>
 #include <algorithm>
 #include "wxgui/WxHelpViewer.H"
+#include "wxgui/ewxReportProblem.H"
 #include "util/EditEvent.H"
 #include "util/NullPointerException.H"
 
@@ -439,6 +440,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  *                 Refresh does
  * message <text> show <text> in the message pane, as any status message does
  * publish         publish ecce_activity, as every tool start does
+ * reportproblem  Help > Report a Problem... without the dialog: the
+ *                 archive path
  * quit-offer      whether the Quit dialog would offer Quit and Stop Server
  * tail <machine> <user> <file>
  *                 Run Mgmt's Tail on <file> of a registered machine, as
@@ -1092,6 +1095,12 @@ void CalcMgr::runTestCommand(const string& line)
           break;
         }
       }
+    } else if (command == "reportproblem") {
+      // Help > Report a Problem... without its dialog: the archive path
+      wxString error;
+      wxString archive = ewxReportProblem::collect(error, this);
+      outcome = archive.empty() ? "failed: " + string(error.utf8_str())
+                                : "archive " + string(archive.utf8_str());
     } else if (line == "quit-offer") {
       bool inUse = false;
       outcome = offerStopServer(inUse) ? "stop offered"

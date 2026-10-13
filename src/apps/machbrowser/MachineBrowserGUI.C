@@ -23,6 +23,7 @@
 #endif
 
 ////@begin includes
+#include "wxgui/ewxApp.H"
 #include "wxgui/ewxPanel.H"
 #include "wxgui/ewxBitmap.H"
 #include "wxgui/ewxMenuBar.H"
@@ -142,7 +143,7 @@ void MachineBrowserGUI::CreateControls()
     menuBar->Append(itemMenu27, _("Machine"));
     wxMenu* itemMenu31 = new wxMenu;
     itemMenu31->Append(wxID_HELP, _("on Machine Browser..."), _T(""), wxITEM_NORMAL);
-    itemMenu31->Append(ID_MENUITEM_MACHINEBROWSER_HELPSUPPORT, _("Support..."), _T(""), wxITEM_NORMAL);
+    itemMenu31->Append(ewxApp::ID_REPORT_PROBLEM, _("Report a Problem..."), _T(""), wxITEM_NORMAL);
     itemMenu31->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu31, _("Help"));
     itemFrame1->SetMenuBar(menuBar);

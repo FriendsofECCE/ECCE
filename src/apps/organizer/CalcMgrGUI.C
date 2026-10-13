@@ -23,6 +23,7 @@
 #endif
 
 ////@begin includes
+#include "wxgui/ewxApp.H"
 #include "wxgui/WxResourceTreeCtrl.H"
 #include "wxgui/ewxPanel.H"
 #include "wxgui/ewxBitmap.H"
@@ -323,7 +324,7 @@ void CalcMgrGUI::CreateControls()
     menuBar->Append(itemMenu53, _("&Tools"));
     wxMenu* itemMenu54 = new wxMenu;
     itemMenu54->Append(wxID_HELP, _("&on Organizer...\tCtrl+H"), _T(""), wxITEM_NORMAL);
-    itemMenu54->Append(ID_MENU_SUPPORT, _("Support..."), _T(""), wxITEM_NORMAL);
+    itemMenu54->Append(ewxApp::ID_REPORT_PROBLEM, _("Report a Problem..."), _T(""), wxITEM_NORMAL);
     itemMenu54->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu54, _("&Help"));
     wxMenu* itemMenu57 = new wxMenu;

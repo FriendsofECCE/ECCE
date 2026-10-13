@@ -23,6 +23,7 @@
 #endif
 
 ////@begin includes
+#include "wxgui/ewxApp.H"
 #include "wxgui/ewxComboBox.H"
 #include "wxgui/ewxStaticLine.H"
 #include "wxgui/ewxStaticText.H"
@@ -146,7 +147,7 @@ void SolvateEdGUI::CreateControls()
     menuBar->Append(itemMenu3, _("File"));
     wxMenu* itemMenu7 = new wxMenu;
     itemMenu7->Append(wxID_HELP, _("on Solvation Editor..."), _T(""), wxITEM_NORMAL);
-    itemMenu7->Append(ID_MENU_FEEDBACK, _("Support..."), _T(""), wxITEM_NORMAL);
+    itemMenu7->Append(ewxApp::ID_REPORT_PROBLEM, _("Report a Problem..."), _T(""), wxITEM_NORMAL);
     itemMenu7->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu7, _("Help"));
     itemFrame1->SetMenuBar(menuBar);

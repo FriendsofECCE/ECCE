@@ -26,6 +26,7 @@
 #include "wxgui/ewxWindowUtils.H"
 #include <wx/filefn.h>
 #include "wxgui/ewxApp.H"
+#include "wxgui/ewxReportProblem.H"
 #include "wxgui/ewxBitmap.H"
 
 #ifdef __WXGTK__
@@ -176,6 +177,7 @@ bool ewxApp::OnInit()
    Ecce::initialize();
 
    Bind(wxEVT_MENU, &ewxApp::OnAbout, this, wxID_ABOUT);
+   Bind(wxEVT_MENU, &ewxApp::OnReportProblem, this, ID_REPORT_PROBLEM);
 
    Color::initialize();
 
@@ -200,6 +202,12 @@ void ewxApp::processGlobalPreferenceChange()
    wxWindow *top = GetTopWindow();
    ewxWindowUtils::processGlobalPreferenceChange(top);
 
+}
+
+
+void ewxApp::OnReportProblem(wxCommandEvent& WXUNUSED(event))
+{
+   ewxReportProblem::run(GetTopWindow());
 }
 
 
@@ -229,8 +237,8 @@ void ewxApp::OnAbout(wxCommandEvent& WXUNUSED(event))
       "Neither Pacific Northwest National Laboratory, Battelle Memorial "
       "Institute nor the U.S. Department of Energy is responsible for, or "
       "endorses, the modifications made by the FriendsofECCE project.\n\n"
-      "Report problems: start ecce --bug and attach the archive to an issue "
-      "at github.com/FriendsofECCE/ECCE.");
+      "Report problems: Help > Report a Problem... collects the diagnostics "
+      "for an issue at github.com/FriendsofECCE/ECCE.");
 #ifndef __WXGTK__
    // The generic About box (Windows, macOS) does not wrap: break the lines
    // so the dialog keeps a readable width.

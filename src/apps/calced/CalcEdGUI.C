@@ -23,6 +23,7 @@
 #endif
 
 ////@begin includes
+#include "wxgui/ewxApp.H"
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxNonBoldLabel.H"
 #include "wxgui/ewxMenuBar.H"
@@ -213,7 +214,7 @@ void CalcEdGUI::CreateControls()
     menuBar->Append(itemMenu3, _("File"));
     wxMenu* itemMenu8 = new wxMenu;
     itemMenu8->Append(wxID_HELP, _("on Electronic Structure Editor..."), _T(""), wxITEM_NORMAL);
-    itemMenu8->Append(ID_MENU_FEEDBACK, _("Support..."), _T(""), wxITEM_NORMAL);
+    itemMenu8->Append(ewxApp::ID_REPORT_PROBLEM, _("Report a Problem..."), _T(""), wxITEM_NORMAL);
     itemMenu8->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu8, _("Help"));
     itemFrame1->SetMenuBar(menuBar);

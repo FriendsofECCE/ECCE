@@ -304,6 +304,23 @@ environment variable, a variable you have set yourself wins over the check
 box, and the tab says so. This is how to use the switches when you start ECCE
 from the Start menu or the Dock, where no variable can be set.
 
+## Reporting a problem
+
+**Help > Report a Problem...** (in every ECCE window) collects what is needed
+to find out what went wrong into a folder `ecce-bug-<date>` in your home
+folder, and packs it as `ecce-bug-<date>.zip` next to it. On Linux and macOS
+this takes about half a minute; it holds the ECCE version, your system, the
+logs of the services and the checks that ECCE's diagnostic tool makes. On
+Windows it holds the ECCE version, the Windows version, the ECCE logs and the
+last ECCE crash records of the Windows event log.
+
+A window then shows where the archive is. **Open folder** shows it in your
+file manager, and **Open issue page** opens ECCE's page for a new issue in
+your browser. Describe what you did and what happened, and attach the
+archive there. ECCE sends nothing itself. The archive holds no passwords, but
+it does hold host names, user names and folder paths: look through it before
+you attach it.
+
 ## Next steps
 
 For administrators and central servers, see `GETTING_STARTED.md`: it covers

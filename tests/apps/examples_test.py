@@ -16,6 +16,7 @@ the example set.
 Same installed tree and isolation as run_tests.py (ECCE_TEST_HOME,
 ECCE_TEST_WRAPPERS).  Exit 77 (skip) without an install or Xvfb.
 """
+import glob
 import os
 import re
 import shutil
@@ -23,6 +24,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
@@ -82,8 +84,25 @@ def waitImported(root, projects, seconds=240):
     return last
 
 
+def reportProblemProblems(log):
+    """The archive Help > Report a Problem... makes: a zip with the version
+    and the ecce-diagnose text."""
+    answers = re.findall(r"ECCE_TEST_ORGANIZER: reportproblem: (.*)$", log, re.M)
+    if len(answers) != 1 or not answers[0].startswith("archive "):
+        return ["Report a Problem answered %s" % answers]
+    path = answers[0][len("archive "):]
+    if not os.path.exists(path):
+        return ["Report a Problem: no archive %s" % path]
+    names = zipfile.ZipFile(path).namelist()
+    found = [n for n in names if "ecce-diagnostics-" in n]
+    if not found or not any(n.endswith("version.txt") for n in names):
+        return ["Report a Problem: archive holds %s" % names]
+    return []
+
+
 def run(display, data, work):
     root = os.path.join(data, "users", "local")
+    home = os.environ["ECCE_REALUSERHOME"]
     script = os.path.join(work, "commands")
     # Another project's calculation is the selection, as after a session
     # that ended on one.
@@ -130,12 +149,18 @@ def run(display, data, work):
         box["props"] = waitImported(root, projects)
         # the tree as drawn once both imports have settled
         with open(script, "a") as handle:
-            handle.write("treeflags\ntree\n")
+            # Help > Report a Problem... without its dialog
+            handle.write("reportproblem\ntreeflags\ntree\n")
             # what the project table's Theory and Run Type columns show
             for calc in sorted(EXPECT):
                 handle.write("summary file://%s\n" % os.path.join(
                     root, "Examples_2", calc))
         time.sleep(12)
+        # ecce-diagnose takes about half a minute
+        end = time.time() + 120
+        while time.time() < end and not glob.glob(
+                os.path.join(home, "ecce-bug-*.zip")):
+            time.sleep(2)
 
     result = apps.run(display, "organizer", windowTimeout=60, settle=20,
                       env={"ECCE_TEST_ORGANIZER": script,
@@ -202,6 +227,7 @@ def run(display, data, work):
             problems.append("%s: no theory in its summary (%s)" % (calc, s))
         if not rt or runtype not in rt.group(1):
             problems.append("%s: run type not %s (%s)" % (calc, runtype, s))
+    problems += reportProblemProblems(log)
     if problems:
         fail(what, "; ".join(problems), log)
     else:

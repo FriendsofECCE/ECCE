@@ -23,6 +23,7 @@
 #endif
 
 ////@begin includes
+#include "wxgui/ewxApp.H"
 #include "wxgui/ewxThemeColours.H"
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxPanel.H"
@@ -264,7 +265,7 @@ void PolyrateGUI::CreateControls()
     itemMenu161->Append(ID_MENU_PLYRT_CLOSE, _("Close"), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu161, _("File"));
     wxMenu* itemMenu165 = new wxMenu;
-    itemMenu165->Append(ID_MENU_FEEDBACK, _("Support..."), _T(""), wxITEM_NORMAL);
+    itemMenu165->Append(ewxApp::ID_REPORT_PROBLEM, _("Report a Problem..."), _T(""), wxITEM_NORMAL);
     itemMenu165->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
     itemMenu165->Append(ID_MENU_PLYRT_HELP, _("on POLYRATE..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu165, _("Help"));

@@ -23,6 +23,7 @@
 #endif
 
 ////@begin includes
+#include "wxgui/ewxApp.H"
 #include "wxgui/ewxTool.H"
 #include "wxgui/ewxMenuBar.H"
 ////@end includes
@@ -221,7 +222,7 @@ void BuilderGUI::CreateControls()
     menuBar->Append(itemMenu44, _("Context"));
     wxMenu* itemMenu45 = new wxMenu;
     itemMenu45->Append(wxID_HELP, _("on Builder...\tCtrl+h"), _T(""), wxITEM_NORMAL);
-    itemMenu45->Append(ID_SUPPORT, _("Support..."), _T(""), wxITEM_NORMAL);
+    itemMenu45->Append(ewxApp::ID_REPORT_PROBLEM, _("Report a Problem..."), _T(""), wxITEM_NORMAL);
     itemMenu45->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu45, _("Help"));
     itemewxTool1->SetMenuBar(menuBar);
