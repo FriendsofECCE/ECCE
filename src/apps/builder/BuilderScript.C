@@ -5,7 +5,8 @@
 //    wait MS                     pause
 //    add ELEM SHAPE X Y Z        a click in the 3D view in Atom mode
 //    panel NAME                  Tools > NAME (shows the panel)
-//    cmd TEXT                    a Builder command line (addh, center, ...)
+//    panesize NAME               the docked pane's rectangle and height floor
+//    cmd TEXT                 a Builder command line (addh, center, ...)
 //    pbc ...                     Periodic Builder, see PBC::scriptCommand
 //    library PATH [ENTRY]        the Structure Library pane: open the folder
 //                                PATH (Teaching/Diatomics), select ENTRY
@@ -209,6 +210,15 @@ void Builder::runBuilderScript(const std::string& file)
           ev.SetInt(1);
           GetEventHandler()->ProcessEvent(ev);
         }
+      } else if (w[0] == "panesize" && w.size() >= 2) {
+        wxString nm = line.substr(line.find("panesize") + 9);
+        nm.Trim(false).Trim(true);
+        wxAuiPaneInfo &pn = p_mgr.GetPane(nm);
+        fprintf(stderr, "PANESIZE %s: %s y=%d height=%d min_height=%d "
+                "resizable=%d\n",
+                (const char*)nm.mb_str(),
+                pn.IsOk() && pn.IsShown() ? "shown" : "hidden", pn.rect.y,
+                pn.rect.height, pn.min_size.y, pn.IsResizable() ? 1 : 0);
       } else if (w[0] == "pbc" && w.size() >= 2 && pbc) {
         std::vector<std::string> rest(w.begin() + 1, w.end());
         std::string err = pbc->scriptCommand(rest);

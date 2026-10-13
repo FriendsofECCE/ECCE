@@ -5008,7 +5008,8 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
       minSize.x = contentMinWidth(pane.window);
       //  Likewise a fixed pane's saved height, which may predate a font
       //  change.
-      if (pane.IsFixed() && !pane.IsToolbar() && pane.name != NAME_TOOL_CONTEXT &&
+      if ((pane.IsFixed() || p_contentFloored.count(pane.window)) &&
+          !pane.IsToolbar() && pane.name != NAME_TOOL_CONTEXT &&
           pane.name != NAME_COLUMN_TABS) {
         minSize.y = contentFixedHeight(pane.window);
       }
@@ -6397,7 +6398,17 @@ void Builder::addToolPanel(wxWindow *panel, const string& name,
           .Right().Position(p_toolCount).Fixed();
   int minWidth = contentMinWidth(panel);
   if (alwaysFixed) {
-    pinfo.Fixed().MaximizeButton(false);
+    pinfo.MaximizeButton(false);
+    //  Resizable, at a share of the column too small to take surplus, so a
+    //  neighbour's sash can move past it; it keeps its content height as a
+    //  floor.  A fixed pane here stopped Build's sash at its edge (#293).
+    if (name != NAME_TOOL_CONTEXT) {
+      pinfo.Resizable(true);
+      pinfo.dock_proportion = 1;
+      p_contentFloored.insert(panel);
+    } else {
+      pinfo.Fixed();
+    }
     //  The context pane is a list that scrolls: about three rows, see
     //  updateContextPane().
     int height = name == NAME_TOOL_CONTEXT

@@ -104,6 +104,30 @@ def builderCase(display, url):
           % (str(m.groups()) if m else "?"), tail)
 
 
+def paneSizeCase(display, url):
+    """No tool pane beside Build is fixed (a fixed neighbour stops Build's
+    sash, #293), and the panes still open at their content heights."""
+    log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT",
+                       ["wait 4000", "panel Build",
+                        "panesize Open structures", "panesize Build",
+                        "panesize Selection", "panesize Symmetry",
+                        "quit"], url)
+    tail = run_tests._tail(log, 25)
+    seq = [(n, s, int(h), int(f), r) for n, s, h, f, r in re.findall(
+        r"PANESIZE (.+?): (\w+) y=-?\d+ height=(-?\d+) "
+        r"min_height=(\d+) resizable=(\d)", log)]
+    check(len(seq) == 4, "four pane size reports (%d)" % len(seq), tail)
+    if len(seq) != 4:
+        return
+    ctx, b0, sel0, sym0 = seq
+    check(ctx[2] <= 140, "Open structures still opens short (%s)" % ctx[2], tail)
+    check(b0[2] == 150 and sel0[2] == sel0[3] and sym0[2] == sym0[3],
+          "panes open at their default heights (Build %s, Selection %s/%s, "
+          "Symmetry %s/%s)" % (b0[2], sel0[2], sel0[3], sym0[2], sym0[3]), tail)
+    check(sel0[4] == "1" and sym0[4] == "1", "Selection and Symmetry are not "
+          "fixed, so they do not stop Build's sash", tail)
+
+
 def main():
     def checkApp(display, name, results, verbose=False):
         folder = os.path.join(fixture.stateDir(), "builderedit-localdata")
@@ -117,6 +141,7 @@ def main():
             url = "file://" + os.path.join(folder, "users", "local",
                                            "proj-mopac", "ch4") + "/"
             builderCase(display, url)
+            paneSizeCase(display, url)
         finally:
             restorePrefs()
             os.environ.pop("ECCE_LOCAL_DATA", None)
