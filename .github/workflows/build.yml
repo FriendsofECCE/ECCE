@@ -838,6 +838,7 @@ jobs:
             echo "- ctest: ${{ steps.tests.outcome }}"
             echo "- local jobs: ${{ steps.localjobs.outcome }}"
             echo "- start the apps: ${{ steps.apps.outcome }}"
+            echo "- organizer probe: ${{ steps.probe.outcome }}, ecce-qm: ${{ steps.ecceqm.outcome }}"
             echo "- first-start question: ${{ steps.firststart.outcome }}"
             echo "- msi build: ${{ steps.msi.outcome }}, msi test: ${{ steps.msitest.outcome }}"; } >> "$GITHUB_STEP_SUMMARY"
-          [ "${{ steps.tests.outcome }}${{ steps.localjobs.outcome }}${{ steps.apps.outcome }}${{ steps.firststart.outcome }}" = successsuccesssuccesssuccess ] && [ "${{ steps.msi.outcome }}${{ steps.msitest.outcome }}" = successsuccess ]
+          [ "${{ steps.tests.outcome }}${{ steps.localjobs.outcome }}${{ steps.apps.outcome }}${{ steps.firststart.outcome }}${{ steps.probe.outcome }}${{ steps.ecceqm.outcome }}" = successsuccesssuccesssuccesssuccesssuccess ] && [ "${{ steps.msi.outcome }}${{ steps.msitest.outcome }}" = successsuccess ]
