@@ -6,7 +6,13 @@ computational chemistry code installed.
 
 ## Open them
 
-In the Organizer, choose **File > Open Example Calculations**. ECCE makes a
+The first time you start ECCE, the Organizer imports the examples by itself
+into a project called `Examples`. It does this once: if you delete the
+project, it does not come back at the next start, and an `Examples` project
+you already have is left as it is.
+
+To get a fresh copy, choose **File > Open Example Calculations** in the
+Organizer. ECCE makes a
 new project called `Examples` in your home folder and imports the four
 outputs into it, as described in
 [Importing a calculation](importing-a-calculation.md). The calculations show

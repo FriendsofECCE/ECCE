@@ -111,6 +111,8 @@ public:
   /// Imports the shipped example calculations into a new project
   /// "Examples" (never an existing one); returns its name, "" on failure.
   string openExamples(string& message);
+  /// At a user's first start, imports the examples into "Examples" once.
+  void importExamplesOnce();
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_EXPORT
   void OnExportClick( wxCommandEvent& event );

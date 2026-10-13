@@ -3,10 +3,12 @@
 
     tests/apps/examples_test.py                own Xvfb, services, local data
 
-The Organizer's ECCE_TEST_ORGANIZER command `examples` is the menu item.  It
-imports the outputs under data/client/examples (ECCE-QM water, ORCA benzene,
-MOPAC ammonia, NWChem methane) into a new project Examples, and a second
-call into Examples_2 without touching the first.  Each calculation must
+A user's first Organizer imports the outputs under data/client/examples
+(ECCE-QM water, ORCA benzene, MOPAC ammonia, NWChem methane) into a new
+project Examples by itself (#302).  The ECCE_TEST_ORGANIZER command
+`examples` is the menu item: at the second start (which imports nothing)
+it makes Examples_2, and a second call Examples_3, without touching the
+first.  Each calculation must
 carry the properties its output holds: the files under Props/ are what the
 Viewer's Properties menu is built from.  The project records the version of
 the example set.
@@ -92,13 +94,28 @@ def run(display, data, work):
     calc = os.path.join(alpha, "water")
     shutil.copytree(os.path.join(HERE, "fixtures", "calc-water-opt"), calc,
                     symlinks=True)
+    first = {}
+
+    def firstStart(_display):
+        first["props"] = waitImported(root, ["Examples"])
+
+    result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                      env={"ECCE_NO_EXAMPLE_IMPORT": ""}, inspect=firstStart)
+    got = (first.get("props") or {}).get("Examples", {})
+    if result.crashed or sorted(c.split("_")[0] for c in got) != sorted(EXPECT):
+        fail("first start imports the examples",
+             "Examples holds %s" % sorted(got), result.log)
+    else:
+        print("ok    first start imports the examples into Examples")
+
     with open(script, "w") as handle:
         handle.write("examplesmenu\nexamples\n")
 
     box = {}
+    projects = ["Examples", "Examples_2", "Examples_3"]
 
     def inspect(_display):
-        box["props"] = waitImported(root, ["Examples", "Examples_2"])
+        box["props"] = waitImported(root, projects)
         # the tree as drawn once both imports have settled
         with open(script, "a") as handle:
             handle.write("treeflags\ntree\n")
@@ -106,16 +123,20 @@ def run(display, data, work):
 
     result = apps.run(display, "organizer", windowTimeout=60, settle=20,
                       env={"ECCE_TEST_ORGANIZER": script,
-                               "ECCE_ORGANIZER_OPEN": "file://" + calc}, inspect=inspect)
+                           "ECCE_NO_EXAMPLE_IMPORT": "",
+                           "ECCE_ORGANIZER_OPEN": "file://" + calc},
+                      inspect=inspect)
     log = result.log or ""
     what = "Open Example Calculations"
     if result.crashed:
         return fail(what, "CRASHED (%s)" % result.signalName, log)
     answers = re.findall(r"ECCE_TEST_ORGANIZER: examples: (.*)$", log, re.M)
     problems = []
-    if answers != ["ok Examples_2"]:
+    if answers != ["ok Examples_3"]:
         problems.append("answers %s" % answers)
-    for project in ("Examples", "Examples_2"):
+    if os.path.exists(os.path.join(root, "Examples_4")):
+        problems.append("the second start imported the examples again")
+    for project in projects:
         got = (box.get("props") or {}).get(project, {})
         for calc, names in EXPECT.items():
             held = [c for c in got if c.startswith(calc)]
@@ -137,7 +158,8 @@ def run(display, data, work):
         problems.append("no tree answer")
     else:
         nodes = [t.lstrip("[") for t in trees[-1].split(" selected=")[0].split()]
-        for project in ("Examples", "Examples_2"):
+        # Examples (from the first start) is drawn collapsed here.
+        for project in projects[1:]:
             below = []
             seen = False
             for n in nodes:

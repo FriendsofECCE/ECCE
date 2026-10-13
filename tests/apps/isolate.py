@@ -364,6 +364,9 @@ def apply(install, state=None):
         # The first-start question comes at every start (#240); only the
         # cases about it clear this.
         "ECCE_NO_FIRST_START": "1",
+        # A user's first Organizer imports the example calculations (#302);
+        # only examples_test.py clears this.
+        "ECCE_NO_EXAMPLE_IMPORT": "1",
     }
     os.environ.update(settings)
     return settings

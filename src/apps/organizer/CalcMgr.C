@@ -347,6 +347,9 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
     p_releaseNotice->start();
   }
 
+  // #302: after the window is up, so the import shows in the tree.
+  CallAfter([this]() { importExamplesOnce(); });
+
   stopDisabler();
 
   //  ECCE_TEST_CALCIMPORT=<file>: File > Import Calculation from Output File
@@ -2652,6 +2655,45 @@ string CalcMgr::openExamples(string& message)
   }
   message = "Example calculations are being imported into " + name + ".";
   return name;
+}
+
+
+/**
+ * A user's first start puts the examples into "Examples" without the menu.
+ * The preference records that it was done, so a user who deletes the
+ * project does not get it back at every start; an Examples project that
+ * is already there is left as it is and only recorded.
+ * ECCE_NO_EXAMPLE_IMPORT=1 switches this off (the test suites set it).
+ */
+void CalcMgr::importExamplesOnce()
+{
+  const char *off = getenv("ECCE_NO_EXAMPLE_IMPORT");
+  if (off && *off && string(off) != "0") return;
+  Preferences prefs("Organizer");
+  string done;
+  if (prefs.getString("Organizer.ExampleSet", done) && !done.empty()) return;
+
+  EDSIServerCentral central;
+  EcceURL home = central.getDefaultUserHome();
+  if (!EDSIFactory::getResource(home)) return;   // not logged in: next start
+  string made;
+  if (EDSIFactory::getResource(home.getChild("Examples"))) {
+    made = "Examples";
+  } else {
+    startDisabler();
+    string message;
+    made = openExamples(message);
+    stopDisabler();
+    if (made.empty()) {
+      setMessage(message, WxFeedback::WARNING);
+      return;
+    }
+    setMessage("The example calculations are in the project " + made +
+               "; File > Open Example Calculations makes a fresh copy.",
+               WxFeedback::INFO);
+  }
+  prefs.setString("Organizer.ExampleSet", kExampleSetVersion);
+  prefs.saveFile();
 }
 
 

@@ -3,7 +3,7 @@ type: map
 title: "Example calculations ship as program outputs; File > Open Example Calculations imports a fresh copy"
 area: codereg
 paths: ["data/client/examples", "src/apps/organizer/CalcMgr.C", "scripts/parsers/MOPAC.expt", "data/client/cap/MOPAC.edml", "tests/apps/examples_test.py"]
-issues: []
+issues: [302]
 ---
 `data/client/examples/<name>/` holds an output and its input (ECCE-QM water,
 ORCA benzene, MOPAC ammonia, NWChem methane), not a stored calculation: they
@@ -11,7 +11,12 @@ go through the ordinary importer, so they stay valid when the stored format
 changes. `CalcMgr::openExamples` (menu item and the `examples` command of
 `ECCE_TEST_ORGANIZER`) makes project `Examples`, or `Examples_2`, ... (project
 names allow no spaces), sets `ecce:exampleSet` (the set version) on it, and
-imports each output; it never touches an existing project. To change the set,
+imports each output; it never touches an existing project. At a user's
+first start `CalcMgr::importExamplesOnce` (CallAfter from the constructor)
+does the same once into `Examples`, recorded as the `Organizer.ExampleSet`
+preference; an existing `Examples` is only recorded. `isolate.py` sets
+`ECCE_NO_EXAMPLE_IMPORT=1` so the other app tests start with an empty tree;
+`examples_test.py` clears it. To change the set,
 add the output to `kExampleOutputs` and the expected `Props` to
 `tests/apps/examples_test.py`, and raise `kExampleSetVersion`.
 
