@@ -65,7 +65,9 @@ static polarizability of the molecule, drawn as an ellipsoid in the Viewer.
 The polarizability is worked out with a small electric field applied in the
 three directions, at the given geometry and at every geometry the frequency
 calculation displaces, so the calculation takes about seven times as long as
-the frequencies alone.
+the frequencies alone. **Open in window** in the vibration panel shows the
+spectrum in a window of its own, so the IR and Raman spectra can be seen side
+by side.
 
 ## What you get
 
@@ -102,7 +104,9 @@ of basis functions. As a guide, measured on an 8-core desktop computer with
 6-31G*: water with B3LYP takes 20 seconds for its frequencies and ethanol
 about four minutes; benzene takes 10 minutes with Hartree-Fock and 23 minutes
 with B3LYP. A laptop with four cores takes about twice as long. Raman activities
-multiply the time of the frequency calculation by about seven (water with B3LYP, 8 cores: 5 seconds for the frequencies, 30 seconds with Raman). ECCE shows an
+multiply the time of the frequency calculation by about seven (water with
+B3LYP, 8 cores: 5 seconds for the frequencies, 30 seconds with Raman). ECCE
+shows an
 estimate and asks before launching a frequency run that is expected to take
 long, Raman activities included.
 
@@ -112,8 +116,8 @@ ECCE-QM runs on one core, which makes it slower there.
 
 ## How it was checked
 
-The results were compared with ORCA 6.1.1 (and, for a subset, NWChem 7.2.3
-and Gaussian 16) on small molecules: water, ammonia, methane, carbon monoxide,
+The results were compared with ORCA 6.1.1 (and, for a subset, NWChem 7.2.3)
+on small molecules: water, ammonia, methane, carbon monoxide,
 nitrogen, hydrogen fluoride, benzene and open-shell oxygen, with the STO-3G,
 6-31G*, def2-SVP, 3-21G and cc-pVDZ basis sets.
 

@@ -5910,7 +5910,18 @@ void CalcMgr::createResource(ResourceType * resType,
         infoStr = invalidMsg + infoStr;
       ewxTextEntryDialog dialog(this, infoStr, "New " + name + " Name",
                                 name, wxOK | wxCANCEL);
+      //  Under the busy cursor and window disabler of a menu action, GTK
+      //  on XWayland does not draw what is typed into the dialog's field.
+      const bool held = p_disabler != 0;
+      if (held) {
+        delete p_disabler;  p_disabler = 0;
+        delete p_cursor;    p_cursor = 0;
+      }
       const int answer = dialog.ShowModal();
+      if (held) {
+        p_disabler = new wxWindowDisabler(this);
+        p_cursor = new wxBusyCursor();
+      }
       if (answer == wxID_OK) {
         name = dialog.GetValue();
         if (resType->isValidResourceName(name))

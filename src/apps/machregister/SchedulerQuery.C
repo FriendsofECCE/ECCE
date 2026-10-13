@@ -323,8 +323,10 @@ string findInstallDirsScript(const ProgramHelp& h, const string& code,
             if (!h.companion.empty())
                 comp = " && [ -x \"${p%/*}/" + h.companion + "\" ]";
         }
+        //  ORCA unpacks into a versioned folder, often inside an orca folder
+        //  (/opt/orca/orca_6_1_1_linux_x86-64_.../orca): look one level down.
         s += "for d in" + dirs + "; do for p in \"$d/" + n + "\" \"$d/bin/" +
-             n + "\"; do if " + test + comp +
+             n + "\" \"$d\"/*/" + n + "; do if " + test + comp +
              "; then echo \"ECCE-FOUND:$p\"; fi; done; done\n";
     }
     return s;

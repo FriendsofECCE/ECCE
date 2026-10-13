@@ -1396,6 +1396,14 @@ sub orca()
 
   $retval .= &pathVar("orca", "$orca", "ECCE_ORCA");
   $retval .= "echo \"Using ORCA path: \$orca\" >> $::logfile\n";
+  # Debian and Ubuntu desktops have the GNOME screen reader at /usr/bin/orca,
+  # a Python script that exits 0 without output when given an input file.
+  $retval .= "orcafile=\$(command -v \"\$orca\" 2>/dev/null)\n";
+  $retval .= "orcabad=\n";
+  $retval .= "if [ -n \"\$orcafile\" ] && head -n 1 \"\$orcafile\" 2>/dev/null | grep -q python; then\n";
+  $retval .= "  orcabad=\"ORCA: \$orcafile is the GNOME screen reader, not the ORCA quantum chemistry program. Set ORCA's full path for this machine in Tools > Register Machines > Codes.\"\n";
+  $retval .= "  echo \"\$orcabad\" >> $::logfile\n";
+  $retval .= "fi\n";
 
   if ($cmd ne "") {
     $retval .= "$cmd\n";
@@ -1421,7 +1429,7 @@ sub orca()
     $retval .= "  echo \"ORCA: \$orcampi not found, running on 1 core. Parallel ORCA needs Microsoft MPI (Windows) or Open MPI.\" >> $::logfile\n";
     $retval .= "  perl -i -ne 'print unless /^\\s*%pal\\b/i' $::inFile\n";
     $retval .= "fi\n";
-    $retval .= "\"\$orca\" $::inFile > $::outFile 2>&1\n";
+    $retval .= "if [ -z \"\$orcabad\" ]; then \"\$orca\" $::inFile > $::outFile 2>&1; else echo \"\$orcabad\" > $::outFile; false; fi\n";
   }
   return $retval;
   nouse strict vars;

@@ -24,7 +24,9 @@
 #include "tdat/TaskApp.H"
 
 #include "wxgui/ewxWindowUtils.H"
+#include <wx/filefn.h>
 #include "wxgui/ewxApp.H"
+#include "wxgui/ewxBitmap.H"
 
 #ifdef __WXGTK__
 #include <glib.h>
@@ -254,9 +256,19 @@ void ewxApp::OnAbout(wxCommandEvent& WXUNUSED(event))
          "\xE2\x80\x94 http://opensource.org/licenses/ecl2.php"));
    }
 
-   // The app's own tool icon; without one GTK draws a broken-image glyph.
-   wxTopLevelWindow *top = wxDynamicCast(GetTopWindow(), wxTopLevelWindow);
-   if (top && top->GetIcon().IsOk()) info.SetIcon(top->GetIcon());
+   // ECCE's logo; without a usable icon GTK draws a broken-image glyph,
+   // and a window's own icon can be a bundle entry GTK cannot draw here.
+   wxBitmap logo;
+   if (wxFileExists(ewxBitmap::pixmapFile("ecce-logo-128.png")) &&
+       logo.LoadFile(ewxBitmap::pixmapFile("ecce-logo-128.png"),
+                     wxBITMAP_TYPE_PNG) && logo.IsOk()) {
+      wxIcon icon;
+      icon.CopyFromBitmap(logo);
+      info.SetIcon(icon);
+   } else {
+      wxTopLevelWindow *top = wxDynamicCast(GetTopWindow(), wxTopLevelWindow);
+      if (top && top->GetIcon().IsOk()) info.SetIcon(top->GetIcon());
+   }
 
    wxAboutBox(info, GetTopWindow());
 }

@@ -598,8 +598,13 @@ def check(name, project, deckText, summary, tmp):
             % (dist(o, h[0]), dist(o, h[1]), angle(o, h[0], h[1])))
         steps = re.findall(r'<step number="\d+">([^<]*)</step>',
                            propFile(project, name, "GEOMTRACE"))
+        #  ECCE's deck converges more loosely than the reference deck, so its
+        #  step count comes from ECCE's own pw.x output.
+        ownOut = os.path.join(calcRoot(project, name), "Outputs", "qe.pwout")
+        own = open(ownOut, errors="replace").read() \
+            if os.path.exists(ownOut) else text
         bfgs = re.search(r"bfgs converged in\s+\d+ scf cycles and\s+(\d+) "
-                         r"bfgs steps", text)
+                         r"bfgs steps", own)
         if not steps or not bfgs:
             fail("h2o-relax: no geometry trace or no converged optimisation")
         else:

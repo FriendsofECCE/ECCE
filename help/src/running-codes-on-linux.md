@@ -36,6 +36,13 @@ Ubuntu 24.04 has the same packages, some in older versions.
 the GNOME screen reader, not the quantum chemistry program. ORCA comes from
 its own web site; see below.
 
+The screen reader is often installed with the desktop anyway, so give ORCA's
+full path in Register Machines rather than the bare name `orca`. **Find**
+looks for ORCA in folders named `orca...` in your home folder, `/opt` and
+`/usr/local`, and one folder below them (for example
+`/opt/orca/orca_6_1_1_linux_x86-64_.../orca`). A job that finds the screen
+reader instead of ORCA stops and says so in its output.
+
 On Fedora, Rocky Linux and RHEL, some of these codes are in Fedora or EPEL;
 `dnf search nwchem` (and so on) shows what your system offers.
 

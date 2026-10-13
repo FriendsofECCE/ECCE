@@ -1356,6 +1356,9 @@ export ECCE_NWCHEM_DATA=\${ECCE_NWCHEM_DATA:-$(\"$ECCE_HOME/bin/ecce-nwchem-data
 # harmless no-op under a plain X11 session, and left overridable.
 if [ \"\$XDG_SESSION_TYPE\" = \"wayland\" ]; then
   export GDK_BACKEND=\${GDK_BACKEND:-x11}
+  # Under XWayland, IBus holds typed text unshown until Enter in GTK3
+  # entries; GTK's own input method draws it.  A user's choice stands.
+  export GTK_IM_MODULE=\${GTK_IM_MODULE:-gtk-im-context-simple}
 fi
 export PATH=\"$ECCE_HOME/scripts:$ECCE_HOME/scripts/parsers:$PATH\"
 # THE CENTRAL-SERVER MODEL.  ECCE was originally deployed with one

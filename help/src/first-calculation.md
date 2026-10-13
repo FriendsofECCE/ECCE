@@ -68,8 +68,9 @@ library:
 
 If you prefer to draw the molecule yourself:
 
-1. Choose **Mode > Atom** (Ctrl+5), or click the element tool (the round
-   chip with the element's symbol) in the Mode Toolbar.
+1. An empty structure opens ready to place carbon, the element shown on
+   the round chip in the Mode Toolbar. Otherwise choose **Mode > Atom**
+   (Ctrl+5), or click that chip.
 2. Choose the element O: click **Element selector**, the small periodic
    table beside the chip, and pick O in the table that opens below it.
 3. Click in the empty 3D view to place the oxygen atom.

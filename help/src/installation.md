@@ -81,6 +81,34 @@ starts its own broker; you can ignore it.
 The Debian packages are the ones that are tested. The Ubuntu, Rocky and
 Fedora packages are built on those systems but have had less testing.
 
+## Install on macOS
+
+The macOS version is experimental.
+
+1. Find out which kind of processor the Mac has: Apple menu > **About This
+   Mac**. "Chip: Apple M..." needs the `arm64` file, "Processor: ... Intel"
+   the `x86_64` file. An Intel build on an Apple silicon Mac runs only with
+   Rosetta; without it, ECCE says which file to install and stops.
+2. Download `ECCE-<version>-arm64.dmg` or `ECCE-<version>-x86_64.dmg` from
+   the ECCE releases page, open it and drag **ECCE** to **Applications**.
+3. ECCE is not notarised by Apple, so at the first start macOS says it cannot
+   check the app for malware. Either run, in Terminal,
+
+   ```
+   xattr -dr com.apple.quarantine /Applications/ECCE.app
+   ```
+
+   or open ECCE once, click **Done**, then choose System Settings > Privacy &
+   Security, and click **Open Anyway** next to "ECCE was blocked". On macOS
+   14 and earlier, right-click the app and choose **Open** instead.
+
+## Install on Windows
+
+Run `ECCE-windows-<version>.msi` from the ECCE releases page. It installs
+for your own user and needs no administrator rights; start ECCE from the
+Start menu. Windows shows a SmartScreen warning because the program is not
+signed: choose **More info**, then **Run anyway**.
+
 ## Start ECCE
 
 Start ECCE from a terminal with:
@@ -95,6 +123,11 @@ windows need. The Organizer opens first. Open the other windows from it.
 
 The `ecce-client` package also adds an **ECCE** entry to the applications
 menu. It starts the same `ecce` command.
+
+On a GNOME or other Wayland desktop, ECCE's windows run through XWayland.
+There, ECCE uses GTK's own input method for typing, because with IBus the
+typed text did not appear until Enter was pressed. To use another input
+method, start ECCE with `GTK_IM_MODULE` set to it.
 
 ## What you see the first time
 
