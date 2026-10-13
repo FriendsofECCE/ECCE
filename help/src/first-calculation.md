@@ -68,9 +68,10 @@ library:
 
 If you prefer to draw the molecule yourself:
 
-1. Choose **Mode > Atom** (Ctrl+5), or click **Choose Build Element** in the
-   Mode Toolbar.
-2. Choose the element O.
+1. Choose **Mode > Atom** (Ctrl+5), or click the element tool (the round
+   chip with the element's symbol) in the Mode Toolbar.
+2. Choose the element O: click **Element selector**, the small periodic
+   table beside the chip, and pick O in the table that opens below it.
 3. Click in the empty 3D view to place the oxygen atom.
 4. Choose **Build > Add Hydrogen** (Ctrl+F) to complete the valence with
    hydrogen atoms.

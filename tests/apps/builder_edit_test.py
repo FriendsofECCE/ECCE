@@ -44,6 +44,7 @@ def builderCase(display, url):
                         "wait 1500", "savestate",
                         "add X Terminal 5 0 0", "savestate",
                         "cmd clean", "savestate",
+                        "popup selector",
                         "info", "wait 500", "quit"], url)
     st = states(log)
     tail = run_tests._tail(log, 20)
@@ -59,6 +60,21 @@ def builderCase(display, url):
     m = re.search(r"CONTEXTS: (\d+)", log)
     check(m is not None and m.group(1) == "1",
           "one open structure, no blank Unnamed (%s)" % (m.group(1) if m else "?"), tail)
+    # The element selector opens below its own tool, not at the pointer
+    # (#304); the pointer of a fresh Xvfb is far from the toolbar.
+    tool = re.search(r"BUILDER popup selector tool: (-?\d+),(-?\d+) (\d+)x(\d+)", log)
+    pop = re.search(r"BUILDER popup selector after 500 ms: at (-?\d+),(-?\d+) "
+                    r"size (\d+)x(\d+)", log)
+    if tool and pop:
+        tx, ty, tw, th = map(int, tool.groups())
+        px, py, pw, ph = map(int, pop.groups())
+        check(tw > 1 and th > 1, "the selector tool has a rectangle %s"
+              % (tool.groups(),), tail)
+        check(abs(py - (ty + th)) <= 2 and abs(px - tx) <= 2,
+              "the periodic table opens below the selector (tool %s, "
+              "popup %s)" % (tool.groups(), pop.groups()), tail)
+    else:
+        check(False, "the element selector reported where it opened", tail)
     m = re.search(r"CONTEXTPANE: min_height=(\d+) rows=(\d+)", log)
     check(m is not None and 40 <= int(m.group(1)) <= 110,
           "Open structures pane is about three rows high (%s)"

@@ -23,6 +23,12 @@ class ewxConfig;
 // the toolkit's own call. ECCE_DEBUG_RAISE=1 logs the path taken to stderr.
 void ewxRaiseWindow(wxWindow *win);
 
+class wxToolBar;
+// A tool's rectangle in its toolbar's client coordinates, empty when it
+// cannot be found. wxGTK has no FindToolForPosition, so there the GTK tool
+// item's own allocation is read.
+wxRect ewxToolRect(wxToolBar *bar, int toolId);
+
 
 /**
  * This class contains a set of static utility functions that can be

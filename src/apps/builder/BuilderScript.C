@@ -80,6 +80,7 @@
 #include "viz/SGFragment.H"
 
 #include "viz/FindSymmetryCmd.H"
+#include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxProgressDialog.H"
 #include "wxgui/PerTabPanel.H"
 #include "wxgui/TearableContent.H"
@@ -220,6 +221,10 @@ void Builder::runBuilderScript(const std::string& file)
         TearableContent *tc = showElementChooser();
         const wxRect bar(p_modeToolbar->GetScreenPosition(),
                          p_modeToolbar->GetSize());
+        wxRect tool = ewxToolRect(p_modeToolbar, ID_MODE_ELEMENT_LIST);
+        tool.SetPosition(p_modeToolbar->ClientToScreen(tool.GetPosition()));
+        fprintf(stderr, "BUILDER popup %s tool: %d,%d %dx%d\n", w[1].c_str(),
+                tool.x, tool.y, tool.width, tool.height);
         for (int shot = 0; shot < 2; shot++) {
           if (shot) {
             for (int i = 0; i < 10; i++) { wxTheApp->Yield(true); wxMilliSleep(50); }

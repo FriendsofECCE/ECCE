@@ -694,9 +694,9 @@ void Builder::createToolbar()
     ewxBitmap atomBitmap("mode_select.png", wxBITMAP_TYPE_PNG);
     p_modeToolbar->AddTool(ID_MODE_ATOM, _T(""), atomBitmap,
                            _("Build with this element (right-click or the "
-                             "arrow: choose another)"), wxITEM_CHECK);
+                             "element selector: choose another)"), wxITEM_CHECK);
     p_modeToolbar->AddTool(ID_MODE_ELEMENT_LIST, _T(""), elementArrowIcon(),
-                           _("Choose Build Element"), wxITEM_NORMAL);
+                           _("Element selector"), wxITEM_NORMAL);
     ewxBitmap shapeBitmap(ShapeData::shapeToSmallImage(ShapeData::tetrahedral));
     p_modeToolbar->AddTool(ID_MODE_SHAPE, _T(""), shapeBitmap,
                            _("Geometry"), wxITEM_NORMAL);
@@ -2097,8 +2097,8 @@ static wxBitmap elementToolBitmap(const wxString& sym, const wxColour& col,
 }
 
 
-//  A small downward triangle on the toolbar's face colour: the element
-//  tool's chooser.
+//  The outline of a periodic table on the toolbar's face colour: the
+//  element tool's selector says what it opens.
 wxBitmapBundle Builder::elementArrowIcon()
 {
   auto draw = [](int n) {
@@ -2111,11 +2111,18 @@ wxBitmapBundle Builder::elementArrowIcon()
       wxGCDC dc(mdc);
       const wxColour ink = wxSystemSettings::GetColour(wxSYS_COLOUR_BTNTEXT);
       dc.SetBrush(wxBrush(ink));
-      dc.SetPen(wxPen(ink, 1));
-      const int w = n * 7 / 22, top = n * 9 / 22;
-      wxPoint tri[3] = { wxPoint(n / 2 - w, top), wxPoint(n / 2 + w, top),
-                         wxPoint(n / 2, top + w) };
-      dc.DrawPolygon(3, tri);
+      dc.SetPen(*wxTRANSPARENT_PEN);
+      // 9 columns by 5 rows: H and He on top, the s and p blocks above the
+      // d block.
+      static const char *rows[] = { "X.......X", "XX..XXXXX", "XX..XXXXX",
+                                    "XXXXXXXXX", "XXXXXXXXX" };
+      const int pitch = n / 11, gap = pitch >= 4 ? 1 : 0;
+      const int x0 = (n - 9 * pitch) / 2, y0 = (n - 5 * pitch) / 2;
+      for (int r = 0; r < 5; r++)
+        for (int c = 0; c < 9; c++)
+          if (rows[r][c] == 'X')
+            dc.DrawRectangle(x0 + c * pitch, y0 + r * pitch,
+                             pitch - gap, pitch - gap);
     }
     mdc.SelectObject(wxNullBitmap);
     return bitmap;
@@ -3481,24 +3488,20 @@ TearableContent *Builder::showElementChooser()
           ID_ITEM_DEFAULT, false, true, true);
   pertab->SetName("Elements");
   TearableContent *tc = new TearableContent(pertab);
-  //  wxToolBar has no tool rectangle; find it by probing the bar.
-  wxRect anchor;
-  const int mid = p_modeToolbar->GetSize().y / 2;
-  int left = -1, right = -1;
-  for (int x = 0; x < p_modeToolbar->GetSize().x; x++) {
-    wxToolBarToolBase *at = p_modeToolbar->FindToolForPosition(x, mid);
-    if (at && at->GetId() == ID_MODE_ELEMENT_LIST) {
-      if (left < 0) left = x;
-      right = x;
-    }
+  //  A drop-down below the selector tool, else below the toolbar under the
+  //  pointer. Position() opens at origin + size, so a zero width keeps the
+  //  table's left edge on the tool's.
+  wxRect anchor = ewxToolRect(p_modeToolbar, ID_MODE_ELEMENT_LIST);
+  if (anchor.IsEmpty()) {
+    const wxPoint at = p_modeToolbar->ScreenToClient(wxGetMousePosition());
+    if (wxRect(p_modeToolbar->GetClientSize()).Contains(at))
+      anchor = wxRect(at.x, 0, 1, p_modeToolbar->GetClientSize().y);
   }
-  if (left >= 0)
-    anchor = wxRect(left, 0, right - left + 1, p_modeToolbar->GetSize().y);
   if (anchor.IsEmpty()) {
     tc->Position(wxGetMousePosition(), wxSize(1, 1));
   } else {
     tc->Position(p_modeToolbar->ClientToScreen(anchor.GetTopLeft()),
-                 anchor.GetSize());
+                 wxSize(0, anchor.GetHeight()));
   }
   tc->Popup();
   return tc;

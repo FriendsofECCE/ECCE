@@ -55,6 +55,45 @@ extern "C" {
 #include "wxgui/ewxConfig.H"
 #include "wxgui/NumericValidatorBase.H"
 #include "wxgui/WxFeedback.H"
+#include "wx/toolbar.h"
+
+
+wxRect ewxToolRect(wxToolBar *bar, int toolId)
+{
+  if (!bar) return wxRect();
+  const int pos = bar->GetToolPos(toolId);
+  if (pos == wxNOT_FOUND) return wxRect();
+#if defined(__WXGTK__)
+  GtkToolbar *tb = bar->GTKGetToolbar();
+  GtkToolItem *item = tb ? gtk_toolbar_get_nth_item(tb, pos) : NULL;
+  GtkWidget *base = (GtkWidget*)bar->GetHandle();
+  int x = 0, y = 0;
+  if (item && base && gtk_widget_get_realized(GTK_WIDGET(item)) &&
+      gtk_widget_translate_coordinates(GTK_WIDGET(item), base, 0, 0, &x, &y)) {
+    GtkAllocation a;
+    gtk_widget_get_allocation(GTK_WIDGET(item), &a);
+    if (a.width > 1 && a.height > 1) return wxRect(x, y, a.width, a.height);
+  }
+  return wxRect();
+#else
+  // Probe the bar along its middle for the tool's extent.
+  const bool vertical = bar->IsVertical();
+  const int length = vertical ? bar->GetSize().y : bar->GetSize().x;
+  const int mid = (vertical ? bar->GetSize().x : bar->GetSize().y) / 2;
+  int first = -1, last = -1;
+  for (int i = 0; i < length; i++) {
+    wxToolBarToolBase *at = vertical ? bar->FindToolForPosition(mid, i)
+                                     : bar->FindToolForPosition(i, mid);
+    if (at && at->GetId() == toolId) {
+      if (first < 0) first = i;
+      last = i;
+    }
+  }
+  if (first < 0) return wxRect();
+  return vertical ? wxRect(0, first, bar->GetSize().x, last - first + 1)
+                  : wxRect(first, 0, last - first + 1, bar->GetSize().y);
+#endif
+}
 
 
 void ewxRaiseWindow(wxWindow *win)
