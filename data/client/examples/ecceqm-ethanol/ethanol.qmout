@@ -1,0 +1,1019 @@
+progress scf cycle=1 energy=-155.4409447744 grad=5.27e-01/1e-07
+progress scf cycle=2 energy=-154.7256179651 dE=7.15e-01/1e-10 grad=1.66e-01/1e-07
+progress scf cycle=3 energy=-154.6733306449 dE=5.23e-02/1e-10 grad=2.14e-01/1e-07
+progress scf cycle=4 energy=-154.9318749707 dE=-2.59e-01/1e-10 grad=1.96e-02/1e-07
+progress scf cycle=5 energy=-154.9342379926 dE=-2.36e-03/1e-10 grad=5.98e-03/1e-07
+progress scf cycle=6 energy=-154.9345764165 dE=-3.38e-04/1e-10 grad=5.22e-04/1e-07
+progress scf cycle=7 energy=-154.9345810762 dE=-4.66e-06/1e-10 grad=1.79e-04/1e-07
+progress scf cycle=8 energy=-154.9345813655 dE=-2.89e-07/1e-10 grad=5.43e-05/1e-07
+progress scf cycle=9 energy=-154.9345813940 dE=-2.85e-08/1e-10 grad=4.32e-06/1e-07
+progress scf cycle=10 energy=-154.9345813944 dE=-3.94e-10/1e-10 grad=3.52e-07/1e-07
+progress scf cycle=11 energy=-154.9345813944 dE=-2.90e-12/1e-10 grad=4.54e-08/1e-07 converged=yes
+opt_step 1
+energy_step -154.934581394401
+opt_criteria max_gradient 7.7909e-03 rms_gradient 4.1005e-03 max_step 5.4021e-02 rms_step 1.9389e-02 energy_change 0.0000e+00
+begin geometry  # index symbol x y z (angstrom)
+1 C -0.0469000000 0.5550000000 0.0000000000
+2 C 1.4446000000 0.2860000000 0.0000000000
+3 O -0.7420000000 -0.6880000000 0.0000000000
+4 H -0.3460000000 1.1270000000 0.8820000000
+5 H -0.3460000000 1.1270000000 -0.8820000000
+6 H 1.7130000000 -0.2820000000 0.8890000000
+7 H 1.7130000000 -0.2820000000 -0.8890000000
+8 H 1.9970000000 1.2260000000 0.0000000000
+9 H -1.6830000000 -0.4870000000 0.0000000000
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 C 0.0074298171 0.0045397584 0.0000000000
+2 C 0.0060809052 -0.0019040166 0.0000000000
+3 O -0.0077909256 0.0066385660 0.0000000000
+4 H -0.0021919299 -0.0062141515 -0.0046423699
+5 H -0.0021919299 -0.0062141515 0.0046423699
+6 H -0.0027252804 0.0030629270 -0.0024329192
+7 H -0.0027252804 0.0030629270 0.0024329192
+8 H -0.0024714708 -0.0028044882 -0.0000000000
+9 H 0.0065870810 -0.0001596861 0.0000000000
+end gradient
+progress opt step=1 energy=-154.9345813944 maxgrad=7.79e-03/3e-04 rmsgrad=4.10e-03/1e-04 maxstep=5.40e-02/4e-03 rmsstep=1.94e-02/2e-03
+progress scf cycle=1 energy=-154.9350702464 grad=3.61e-03/1e-07
+progress scf cycle=2 energy=-154.9352916480 dE=-2.21e-04/1e-10 grad=8.51e-04/1e-07
+progress scf cycle=3 energy=-154.9352992780 dE=-7.63e-06/1e-10 grad=7.42e-04/1e-07
+progress scf cycle=4 energy=-154.9353111995 dE=-1.19e-05/1e-10 grad=1.18e-04/1e-07
+progress scf cycle=5 energy=-154.9353113505 dE=-1.51e-07/1e-10 grad=8.63e-05/1e-07
+progress scf cycle=6 energy=-154.9353113743 dE=-2.38e-08/1e-10 grad=1.33e-05/1e-07
+progress scf cycle=7 energy=-154.9353113753 dE=-9.71e-10/1e-10 grad=4.34e-07/1e-07
+progress scf cycle=8 energy=-154.9353113753 dE=-4.38e-12/1e-10 grad=7.82e-08/1e-07 converged=yes
+opt_step 2
+energy_step -154.935311375298
+opt_criteria max_gradient 3.7019e-03 rms_gradient 1.1942e-03 max_step 1.0694e-02 rms_step 4.1121e-03 energy_change -7.2998e-04
+begin geometry  # index symbol x y z (angstrom)
+1 C -0.0595618746 0.5612327014 -0.0000000000
+2 C 1.4334917933 0.2855042917 -0.0000000000
+3 O -0.7348349762 -0.6969161694 -0.0000000000
+4 H -0.3344549929 1.1507139354 0.8873565868
+5 H -0.3344549929 1.1507139354 -0.8873565868
+6 H 1.7119024060 -0.2892077125 0.8872830942
+7 H 1.7119024060 -0.2892077125 -0.8872830942
+8 H 1.9949733196 1.2247532523 -0.0000000000
+9 H -1.6852630883 -0.5155865220 0.0000000000
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 C 0.0012667926 0.0037018724 0.0000000000
+2 C 0.0008973711 -0.0010377356 -0.0000000000
+3 O -0.0019397492 -0.0015836125 -0.0000000000
+4 H 0.0001190141 -0.0012936992 -0.0010599331
+5 H 0.0001190141 -0.0012936992 0.0010599331
+6 H -0.0006778874 0.0009018588 -0.0008337295
+7 H -0.0006778874 0.0009018588 0.0008337295
+8 H -0.0009826993 -0.0008402029 0.0000000000
+9 H 0.0018742794 0.0005500336 0.0000000000
+end gradient
+progress opt step=2 energy=-154.9353113753 maxgrad=3.70e-03/3e-04 rmsgrad=1.19e-03/1e-04 maxstep=1.07e-02/4e-03 rmsstep=4.11e-03/2e-03 dE=-7.30e-04/5e-06
+progress scf cycle=1 energy=-154.9353384215 grad=6.83e-04/1e-07
+progress scf cycle=2 energy=-154.9353487274 dE=-1.03e-05/1e-10 grad=3.22e-04/1e-07
+progress scf cycle=3 energy=-154.9353502479 dE=-1.52e-06/1e-10 grad=1.89e-04/1e-07
+progress scf cycle=4 energy=-154.9353510728 dE=-8.25e-07/1e-10 grad=6.44e-05/1e-07
+progress scf cycle=5 energy=-154.9353510871 dE=-1.43e-08/1e-10 grad=2.88e-05/1e-07
+progress scf cycle=6 energy=-154.9353510902 dE=-3.02e-09/1e-10 grad=1.46e-06/1e-07
+progress scf cycle=7 energy=-154.9353510902 dE=-2.92e-11/1e-10 grad=8.82e-08/1e-07 converged=yes
+opt_step 3
+energy_step -154.935351090189
+opt_criteria max_gradient 1.5942e-03 rms_gradient 4.2805e-04 max_step 2.2549e-03 rms_step 8.9161e-04 energy_change -3.9715e-05
+begin geometry  # index symbol x y z (angstrom)
+1 C -0.0622603814 0.5604755534 -0.0000000000
+2 C 1.4330002882 0.2863710882 -0.0000000000
+3 O -0.7363139525 -0.6969720744 0.0000000000
+4 H -0.3342880338 1.1547266430 0.8880104636
+5 H -0.3342880338 1.1547266430 -0.8880104636
+6 H 1.7147651186 -0.2907482598 0.8869378757
+7 H 1.7147651186 -0.2907482598 -0.8869378757
+8 H 1.9980788378 1.2254142737 0.0000000000
+9 H -1.6897589618 -0.5212456074 0.0000000000
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 C 0.0003865174 0.0013499672 -0.0000000000
+2 C -0.0000781015 0.0000083520 0.0000000000
+3 O -0.0003431408 -0.0015942168 -0.0000000000
+4 H 0.0001234118 -0.0001220496 -0.0001106089
+5 H 0.0001234118 -0.0001220496 0.0001106089
+6 H -0.0000530080 0.0001196390 -0.0001563760
+7 H -0.0000530080 0.0001196390 0.0001563760
+8 H 0.0000176369 -0.0000945329 -0.0000000000
+9 H -0.0001255599 0.0003418866 -0.0000000000
+end gradient
+progress opt step=3 energy=-154.9353510902 maxgrad=1.59e-03/3e-04 rmsgrad=4.28e-04/1e-04 maxstep=2.25e-03/4e-03 rmsstep=8.92e-04/2e-03 dE=-3.97e-05/5e-06
+progress scf cycle=1 energy=-154.9353534260 grad=2.67e-04/1e-07
+progress scf cycle=2 energy=-154.9353548567 dE=-1.43e-06/1e-10 grad=8.47e-05/1e-07
+progress scf cycle=3 energy=-154.9353548556 dE=1.02e-09/1e-10 grad=1.16e-04/1e-07
+progress scf cycle=4 energy=-154.9353549679 dE=-1.12e-07/1e-10 grad=1.87e-05/1e-07
+progress scf cycle=5 energy=-154.9353549693 dE=-1.44e-09/1e-10 grad=3.73e-06/1e-07
+progress scf cycle=6 energy=-154.9353549695 dE=-1.39e-10/1e-10 grad=4.93e-07/1e-07
+progress scf cycle=7 energy=-154.9353549695 dE=-1.88e-12/1e-10 grad=2.18e-08/1e-07 converged=yes
+opt_step 4
+energy_step -154.935354969460
+opt_criteria max_gradient 7.9521e-04 rms_gradient 2.1081e-04 max_step 1.5854e-03 rms_step 4.6167e-04 energy_change -3.8793e-06
+begin geometry  # index symbol x y z (angstrom)
+1 C -0.0625901531 0.5605213486 -0.0000000000
+2 C 1.4330269772 0.2860722747 -0.0000000000
+3 O -0.7358057107 -0.6958037039 0.0000000000
+4 H -0.3347541918 1.1554863611 0.8880567096
+5 H -0.3347541918 1.1554863611 -0.8880567096
+6 H 1.7151698895 -0.2913746448 0.8870999650
+7 H 1.7151698895 -0.2913746448 -0.8870999650
+8 H 1.9980168091 1.2254254965 0.0000000000
+9 H -1.6897793178 -0.5224388486 -0.0000000000
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 C 0.0001679611 0.0006024387 -0.0000000000
+2 C -0.0001527448 0.0000049612 -0.0000000000
+3 O 0.0000906725 -0.0007952141 0.0000000000
+4 H -0.0000050581 0.0000130252 0.0000407390
+5 H -0.0000050581 0.0000130252 -0.0000407390
+6 H 0.0000637358 -0.0000438500 0.0000262114
+7 H 0.0000637358 -0.0000438500 -0.0000262114
+8 H 0.0000568052 0.0000497671 0.0000000000
+9 H -0.0002819233 0.0002063234 -0.0000000000
+end gradient
+progress opt step=4 energy=-154.9353549695 maxgrad=7.95e-04/3e-04 rmsgrad=2.11e-04/1e-04 maxstep=1.59e-03/4e-03 rmsstep=4.62e-04/2e-03 dE=-3.88e-06/5e-06
+progress scf cycle=1 energy=-154.9353553385 grad=1.66e-04/1e-07
+progress scf cycle=2 energy=-154.9353560262 dE=-6.88e-07/1e-10 grad=1.20e-04/1e-07
+progress scf cycle=3 energy=-154.9353560141 dE=1.21e-08/1e-10 grad=1.35e-04/1e-07
+progress scf cycle=4 energy=-154.9353560791 dE=-6.50e-08/1e-10 grad=2.93e-06/1e-07
+progress scf cycle=5 energy=-154.9353560792 dE=-7.99e-11/1e-10 grad=7.13e-07/1e-07
+progress scf cycle=6 energy=-154.9353560792 dE=-8.01e-12/1e-10 grad=3.10e-07/1e-07
+progress scf cycle=7 energy=-154.9353560792 dE=-1.59e-12/1e-10 grad=1.49e-08/1e-07 converged=yes
+opt_step 5
+energy_step -154.935356079205
+opt_criteria max_gradient 1.2365e-04 rms_gradient 5.0743e-05 max_step 3.7372e-04 rms_step 1.7336e-04 energy_change -1.1097e-06
+begin geometry  # index symbol x y z (angstrom)
+1 C -0.0626345342 0.5602786454 -0.0000000000
+2 C 1.4330934779 0.2859829435 0.0000000000
+3 O -0.7356141639 -0.6949647705 0.0000000000
+4 H -0.3346378421 1.1556727311 0.8879545124
+5 H -0.3346378421 1.1556727311 -0.8879545124
+6 H 1.7149416307 -0.2914665209 0.8872229935
+7 H 1.7149416307 -0.2914665209 -0.8872229935
+8 H 1.9978753660 1.2254266905 0.0000000000
+9 H -1.6896277229 -0.5231359293 0.0000000000
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 C 0.0000615672 0.0000008719 -0.0000000000
+2 C -0.0000597870 0.0000416008 -0.0000000000
+3 O 0.0000833097 -0.0001043457 0.0000000000
+4 H -0.0000295956 0.0000300211 0.0000478807
+5 H -0.0000295956 0.0000300211 -0.0000478807
+6 H 0.0000282533 -0.0000463314 0.0000574837
+7 H 0.0000282533 -0.0000463314 -0.0000574837
+8 H 0.0000393973 0.0000520457 -0.0000000000
+9 H -0.0001236477 0.0000490901 0.0000000000
+end gradient
+progress opt step=5 energy=-154.9353560792 maxgrad=1.24e-04/3e-04 rmsgrad=5.07e-05/1e-04 maxstep=3.74e-04/4e-03 rmsstep=1.73e-04/2e-03 dE=-1.11e-06/5e-06
+progress opt step=5 converged=yes
+progress freq point=0/54
+progress scf cycle=1 energy=-154.9353460827 grad=3.20e-04/1e-08
+progress scf cycle=2 energy=-154.9353492192 dE=-3.14e-06/1e-11 grad=1.13e-04/1e-08
+progress scf cycle=3 energy=-154.9353492364 dE=-1.72e-08/1e-11 grad=1.32e-04/1e-08
+progress scf cycle=4 energy=-154.9353493582 dE=-1.22e-07/1e-11 grad=2.45e-05/1e-08
+progress scf cycle=5 energy=-154.9353493607 dE=-2.57e-09/1e-11 grad=6.43e-06/1e-08
+progress scf cycle=6 energy=-154.9353493612 dE=-4.23e-10/1e-11 grad=2.92e-07/1e-08
+progress scf cycle=7 energy=-154.9353493612 dE=-2.64e-12/1e-11 grad=4.13e-08/1e-08
+progress scf cycle=8 energy=-154.9353493612 dE=2.56e-13/1e-11 grad=6.75e-09/1e-08 converged=yes
+progress freq point=1/54
+progress scf cycle=1 energy=-154.9353467479 grad=3.21e-04/1e-08
+progress scf cycle=2 energy=-154.9353498836 dE=-3.14e-06/1e-11 grad=1.12e-04/1e-08
+progress scf cycle=3 energy=-154.9353498999 dE=-1.63e-08/1e-11 grad=1.31e-04/1e-08
+progress scf cycle=4 energy=-154.9353500215 dE=-1.22e-07/1e-11 grad=2.40e-05/1e-08
+progress scf cycle=5 energy=-154.9353500240 dE=-2.47e-09/1e-11 grad=6.45e-06/1e-08
+progress scf cycle=6 energy=-154.9353500244 dE=-4.17e-10/1e-11 grad=2.94e-07/1e-08
+progress scf cycle=7 energy=-154.9353500244 dE=-1.79e-12/1e-11 grad=4.11e-08/1e-08
+progress scf cycle=8 energy=-154.9353500244 dE=-3.13e-13/1e-11 grad=6.33e-09/1e-08 converged=yes
+progress freq point=2/54
+progress scf cycle=1 energy=-154.9353452854 grad=3.78e-04/1e-08
+progress scf cycle=2 energy=-154.9353492158 dE=-3.93e-06/1e-11 grad=2.35e-04/1e-08
+progress scf cycle=3 energy=-154.9353492645 dE=-4.87e-08/1e-11 grad=2.58e-04/1e-08
+progress scf cycle=4 energy=-154.9353496266 dE=-3.62e-07/1e-11 grad=2.83e-05/1e-08
+progress scf cycle=5 energy=-154.9353496302 dE=-3.60e-09/1e-11 grad=6.33e-06/1e-08
+progress scf cycle=6 energy=-154.9353496307 dE=-5.10e-10/1e-11 grad=7.21e-07/1e-08
+progress scf cycle=7 energy=-154.9353496307 dE=-5.80e-12/1e-11 grad=9.05e-08/1e-08
+progress scf cycle=8 energy=-154.9353496307 dE=-2.27e-13/1e-11 grad=2.38e-08/1e-08
+progress scf cycle=9 energy=-154.9353496307 dE=-1.14e-13/1e-11 grad=1.24e-08/1e-08
+progress scf cycle=10 energy=-154.9353496307 dE=-5.68e-14/1e-11 grad=1.11e-09/1e-08 converged=yes
+progress freq point=3/54
+progress scf cycle=1 energy=-154.9353452390 grad=3.78e-04/1e-08
+progress scf cycle=2 energy=-154.9353491885 dE=-3.95e-06/1e-11 grad=2.33e-04/1e-08
+progress scf cycle=3 energy=-154.9353492367 dE=-4.82e-08/1e-11 grad=2.56e-04/1e-08
+progress scf cycle=4 energy=-154.9353495945 dE=-3.58e-07/1e-11 grad=2.81e-05/1e-08
+progress scf cycle=5 energy=-154.9353495980 dE=-3.54e-09/1e-11 grad=6.36e-06/1e-08
+progress scf cycle=6 energy=-154.9353495985 dE=-5.18e-10/1e-11 grad=7.28e-07/1e-08
+progress scf cycle=7 energy=-154.9353495985 dE=-6.37e-12/1e-11 grad=9.20e-08/1e-08
+progress scf cycle=8 energy=-154.9353495985 dE=3.98e-13/1e-11 grad=2.92e-08/1e-08
+progress scf cycle=9 energy=-154.9353495985 dE=-2.84e-13/1e-11 grad=1.26e-08/1e-08
+progress scf cycle=10 energy=-154.9353495985 dE=3.98e-13/1e-11 grad=1.09e-09/1e-08 converged=yes
+progress freq point=4/54
+progress scf cycle=1 energy=-154.9353451812 grad=3.27e-04/1e-08
+progress scf cycle=2 energy=-154.9353486581 dE=-3.48e-06/1e-11 grad=4.69e-05/1e-08
+progress scf cycle=3 energy=-154.9353486928 dE=-3.47e-08/1e-11 grad=1.22e-05/1e-08
+progress scf cycle=4 energy=-154.9353486953 dE=-2.40e-09/1e-11 grad=2.10e-06/1e-08
+progress scf cycle=5 energy=-154.9353486954 dE=-1.20e-10/1e-11 grad=1.60e-06/1e-08
+progress scf cycle=6 energy=-154.9353486954 dE=-9.89e-12/1e-11 grad=8.04e-07/1e-08
+progress scf cycle=7 energy=-154.9353486954 dE=-2.44e-12/1e-11 grad=4.09e-08/1e-08
+progress scf cycle=8 energy=-154.9353486954 dE=-2.84e-14/1e-11 grad=2.51e-08/1e-08
+progress scf cycle=9 energy=-154.9353486954 dE=-1.99e-13/1e-11 grad=1.88e-09/1e-08 converged=yes
+progress freq point=5/54
+progress scf cycle=1 energy=-154.9353451812 grad=3.27e-04/1e-08
+progress scf cycle=2 energy=-154.9353486581 dE=-3.48e-06/1e-11 grad=4.69e-05/1e-08
+progress scf cycle=3 energy=-154.9353486928 dE=-3.47e-08/1e-11 grad=1.22e-05/1e-08
+progress scf cycle=4 energy=-154.9353486953 dE=-2.40e-09/1e-11 grad=2.10e-06/1e-08
+progress scf cycle=5 energy=-154.9353486954 dE=-1.20e-10/1e-11 grad=1.60e-06/1e-08
+progress scf cycle=6 energy=-154.9353486954 dE=-9.35e-12/1e-11 grad=8.04e-07/1e-08
+progress scf cycle=7 energy=-154.9353486954 dE=-2.98e-12/1e-11 grad=4.09e-08/1e-08
+progress scf cycle=8 energy=-154.9353486954 dE=5.68e-14/1e-11 grad=2.51e-08/1e-08
+progress scf cycle=9 energy=-154.9353486954 dE=-1.42e-13/1e-11 grad=1.88e-09/1e-08 converged=yes
+progress freq point=6/54
+progress scf cycle=1 energy=-154.9353475284 grad=3.19e-04/1e-08
+progress scf cycle=2 energy=-154.9353500214 dE=-2.49e-06/1e-11 grad=1.41e-04/1e-08
+progress scf cycle=3 energy=-154.9353500528 dE=-3.13e-08/1e-11 grad=1.15e-04/1e-08
+progress scf cycle=4 energy=-154.9353501818 dE=-1.29e-07/1e-11 grad=1.77e-05/1e-08
+progress scf cycle=5 energy=-154.9353501829 dE=-1.10e-09/1e-11 grad=8.99e-06/1e-08
+progress scf cycle=6 energy=-154.9353501832 dE=-3.54e-10/1e-11 grad=3.14e-07/1e-08
+progress scf cycle=7 energy=-154.9353501832 dE=-1.82e-12/1e-11 grad=3.57e-08/1e-08
+progress scf cycle=8 energy=-154.9353501832 dE=-4.55e-13/1e-11 grad=6.91e-09/1e-08 converged=yes
+progress freq point=7/54
+progress scf cycle=1 energy=-154.9353468977 grad=3.18e-04/1e-08
+progress scf cycle=2 energy=-154.9353493932 dE=-2.50e-06/1e-11 grad=1.41e-04/1e-08
+progress scf cycle=3 energy=-154.9353494262 dE=-3.30e-08/1e-11 grad=1.14e-04/1e-08
+progress scf cycle=4 energy=-154.9353495547 dE=-1.28e-07/1e-11 grad=1.80e-05/1e-08
+progress scf cycle=5 energy=-154.9353495558 dE=-1.13e-09/1e-11 grad=9.04e-06/1e-08
+progress scf cycle=6 energy=-154.9353495561 dE=-3.57e-10/1e-11 grad=3.08e-07/1e-08
+progress scf cycle=7 energy=-154.9353495562 dE=-1.96e-12/1e-11 grad=4.18e-08/1e-08
+progress scf cycle=8 energy=-154.9353495562 dE=1.71e-13/1e-11 grad=1.13e-08/1e-08
+progress scf cycle=9 energy=-154.9353495562 dE=-1.99e-13/1e-11 grad=4.70e-09/1e-08 converged=yes
+progress freq point=8/54
+progress scf cycle=1 energy=-154.9353458975 grad=3.29e-04/1e-08
+progress scf cycle=2 energy=-154.9353484854 dE=-2.59e-06/1e-11 grad=3.45e-05/1e-08
+progress scf cycle=3 energy=-154.9353484985 dE=-1.31e-08/1e-11 grad=5.73e-05/1e-08
+progress scf cycle=4 energy=-154.9353485142 dE=-1.57e-08/1e-11 grad=2.07e-05/1e-08
+progress scf cycle=5 energy=-154.9353485160 dE=-1.76e-09/1e-11 grad=2.56e-06/1e-08
+progress scf cycle=6 energy=-154.9353485161 dE=-8.03e-11/1e-11 grad=7.27e-07/1e-08
+progress scf cycle=7 energy=-154.9353485161 dE=-7.16e-12/1e-11 grad=5.27e-08/1e-08
+progress scf cycle=8 energy=-154.9353485161 dE=3.41e-13/1e-11 grad=7.01e-09/1e-08 converged=yes
+progress freq point=9/54
+progress scf cycle=1 energy=-154.9353463536 grad=3.29e-04/1e-08
+progress scf cycle=2 energy=-154.9353489408 dE=-2.59e-06/1e-11 grad=3.46e-05/1e-08
+progress scf cycle=3 energy=-154.9353489538 dE=-1.30e-08/1e-11 grad=5.75e-05/1e-08
+progress scf cycle=4 energy=-154.9353489695 dE=-1.57e-08/1e-11 grad=2.05e-05/1e-08
+progress scf cycle=5 energy=-154.9353489712 dE=-1.72e-09/1e-11 grad=2.55e-06/1e-08
+progress scf cycle=6 energy=-154.9353489713 dE=-8.05e-11/1e-11 grad=7.27e-07/1e-08
+progress scf cycle=7 energy=-154.9353489713 dE=-7.56e-12/1e-11 grad=5.19e-08/1e-08
+progress scf cycle=8 energy=-154.9353489713 dE=5.68e-13/1e-11 grad=6.95e-09/1e-08 converged=yes
+progress freq point=10/54
+progress scf cycle=1 energy=-154.9353461441 grad=3.31e-04/1e-08
+progress scf cycle=2 energy=-154.9353487730 dE=-2.63e-06/1e-11 grad=3.70e-05/1e-08
+progress scf cycle=3 energy=-154.9353487927 dE=-1.97e-08/1e-11 grad=1.02e-05/1e-08
+progress scf cycle=4 energy=-154.9353487941 dE=-1.38e-09/1e-11 grad=1.65e-06/1e-08
+progress scf cycle=5 energy=-154.9353487941 dE=-5.49e-11/1e-11 grad=3.90e-07/1e-08
+progress scf cycle=6 energy=-154.9353487941 dE=-2.16e-12/1e-11 grad=3.18e-07/1e-08
+progress scf cycle=7 energy=-154.9353487941 dE=-3.69e-13/1e-11 grad=4.97e-08/1e-08
+progress scf cycle=8 energy=-154.9353487941 dE=-4.55e-13/1e-11 grad=7.57e-09/1e-08 converged=yes
+progress freq point=11/54
+progress scf cycle=1 energy=-154.9353461441 grad=3.31e-04/1e-08
+progress scf cycle=2 energy=-154.9353487730 dE=-2.63e-06/1e-11 grad=3.70e-05/1e-08
+progress scf cycle=3 energy=-154.9353487927 dE=-1.97e-08/1e-11 grad=1.02e-05/1e-08
+progress scf cycle=4 energy=-154.9353487941 dE=-1.38e-09/1e-11 grad=1.65e-06/1e-08
+progress scf cycle=5 energy=-154.9353487941 dE=-5.48e-11/1e-11 grad=3.90e-07/1e-08
+progress scf cycle=6 energy=-154.9353487941 dE=-1.76e-12/1e-11 grad=3.18e-07/1e-08
+progress scf cycle=7 energy=-154.9353487941 dE=-6.82e-13/1e-11 grad=4.97e-08/1e-08
+progress scf cycle=8 energy=-154.9353487941 dE=-3.41e-13/1e-11 grad=7.57e-09/1e-08 converged=yes
+progress freq point=12/54
+progress scf cycle=1 energy=-154.9353444751 grad=4.93e-04/1e-08
+progress scf cycle=2 energy=-154.9353473937 dE=-2.92e-06/1e-11 grad=4.11e-04/1e-08
+progress scf cycle=3 energy=-154.9353476311 dE=-2.37e-07/1e-11 grad=3.08e-04/1e-08
+progress scf cycle=4 energy=-154.9353479757 dE=-3.45e-07/1e-11 grad=1.64e-05/1e-08
+progress scf cycle=5 energy=-154.9353479784 dE=-2.78e-09/1e-11 grad=2.46e-06/1e-08
+progress scf cycle=6 energy=-154.9353479785 dE=-6.94e-11/1e-11 grad=1.13e-06/1e-08
+progress scf cycle=7 energy=-154.9353479785 dE=-1.90e-11/1e-11 grad=6.99e-08/1e-08
+progress scf cycle=8 energy=-154.9353479785 dE=-6.25e-13/1e-11 grad=7.01e-09/1e-08 converged=yes
+progress freq point=13/54
+progress scf cycle=1 energy=-154.9353452273 grad=4.95e-04/1e-08
+progress scf cycle=2 energy=-154.9353481498 dE=-2.92e-06/1e-11 grad=4.12e-04/1e-08
+progress scf cycle=3 energy=-154.9353483899 dE=-2.40e-07/1e-11 grad=3.08e-04/1e-08
+progress scf cycle=4 energy=-154.9353487343 dE=-3.44e-07/1e-11 grad=1.63e-05/1e-08
+progress scf cycle=5 energy=-154.9353487371 dE=-2.79e-09/1e-11 grad=2.51e-06/1e-08
+progress scf cycle=6 energy=-154.9353487372 dE=-7.51e-11/1e-11 grad=1.11e-06/1e-08
+progress scf cycle=7 energy=-154.9353487372 dE=-1.86e-11/1e-11 grad=6.78e-08/1e-08
+progress scf cycle=8 energy=-154.9353487372 dE=-6.82e-13/1e-11 grad=7.06e-09/1e-08 converged=yes
+progress freq point=14/54
+progress scf cycle=1 energy=-154.9353495938 grad=3.49e-04/1e-08
+progress scf cycle=2 energy=-154.9353523313 dE=-2.74e-06/1e-11 grad=2.11e-04/1e-08
+progress scf cycle=3 energy=-154.9353522760 dE=5.54e-08/1e-11 grad=2.51e-04/1e-08
+progress scf cycle=4 energy=-154.9353524885 dE=-2.13e-07/1e-11 grad=8.15e-06/1e-08
+progress scf cycle=5 energy=-154.9353524892 dE=-6.69e-10/1e-11 grad=3.53e-06/1e-08
+progress scf cycle=6 energy=-154.9353524894 dE=-1.83e-10/1e-11 grad=2.68e-07/1e-08
+progress scf cycle=7 energy=-154.9353524894 dE=-1.93e-12/1e-11 grad=2.87e-08/1e-08
+progress scf cycle=8 energy=-154.9353524894 dE=1.71e-13/1e-11 grad=1.75e-08/1e-08
+progress scf cycle=9 energy=-154.9353524894 dE=-4.55e-13/1e-11 grad=5.16e-09/1e-08 converged=yes
+progress freq point=15/54
+progress scf cycle=1 energy=-154.9353485159 grad=3.48e-04/1e-08
+progress scf cycle=2 energy=-154.9353512389 dE=-2.72e-06/1e-11 grad=2.15e-04/1e-08
+progress scf cycle=3 energy=-154.9353511823 dE=5.66e-08/1e-11 grad=2.54e-04/1e-08
+progress scf cycle=4 energy=-154.9353514000 dE=-2.18e-07/1e-11 grad=8.24e-06/1e-08
+progress scf cycle=5 energy=-154.9353514007 dE=-6.90e-10/1e-11 grad=3.53e-06/1e-08
+progress scf cycle=6 energy=-154.9353514009 dE=-1.83e-10/1e-11 grad=2.52e-07/1e-08
+progress scf cycle=7 energy=-154.9353514009 dE=-1.45e-12/1e-11 grad=2.93e-08/1e-08
+progress scf cycle=8 energy=-154.9353514009 dE=-1.71e-13/1e-11 grad=1.73e-08/1e-08
+progress scf cycle=9 energy=-154.9353514009 dE=4.55e-13/1e-11 grad=5.10e-09/1e-08 converged=yes
+progress freq point=16/54
+progress scf cycle=1 energy=-154.9353534614 grad=3.94e-04/1e-08
+progress scf cycle=2 energy=-154.9353554764 dE=-2.02e-06/1e-11 grad=2.98e-05/1e-08
+progress scf cycle=3 energy=-154.9353554974 dE=-2.10e-08/1e-11 grad=3.77e-06/1e-08
+progress scf cycle=4 energy=-154.9353554978 dE=-3.23e-10/1e-11 grad=3.70e-06/1e-08
+progress scf cycle=5 energy=-154.9353554978 dE=-6.03e-11/1e-11 grad=2.20e-06/1e-08
+progress scf cycle=6 energy=-154.9353554978 dE=-1.91e-11/1e-11 grad=1.31e-07/1e-08
+progress scf cycle=7 energy=-154.9353554978 dE=0.00e+00/1e-11 grad=1.75e-08/1e-08
+progress scf cycle=8 energy=-154.9353554978 dE=-3.41e-13/1e-11 grad=8.31e-09/1e-08 converged=yes
+progress freq point=17/54
+progress scf cycle=1 energy=-154.9353534614 grad=3.94e-04/1e-08
+progress scf cycle=2 energy=-154.9353554764 dE=-2.02e-06/1e-11 grad=2.98e-05/1e-08
+progress scf cycle=3 energy=-154.9353554974 dE=-2.10e-08/1e-11 grad=3.77e-06/1e-08
+progress scf cycle=4 energy=-154.9353554978 dE=-3.22e-10/1e-11 grad=3.70e-06/1e-08
+progress scf cycle=5 energy=-154.9353554978 dE=-6.07e-11/1e-11 grad=2.20e-06/1e-08
+progress scf cycle=6 energy=-154.9353554978 dE=-1.89e-11/1e-11 grad=1.31e-07/1e-08
+progress scf cycle=7 energy=-154.9353554978 dE=-2.27e-13/1e-11 grad=1.75e-08/1e-08
+progress scf cycle=8 energy=-154.9353554978 dE=5.68e-14/1e-11 grad=8.31e-09/1e-08 converged=yes
+progress freq point=18/54
+progress scf cycle=1 energy=-154.9353549314 grad=1.12e-04/1e-08
+progress scf cycle=2 energy=-154.9353552785 dE=-3.47e-07/1e-11 grad=3.10e-05/1e-08
+progress scf cycle=3 energy=-154.9353552836 dE=-5.06e-09/1e-11 grad=2.78e-05/1e-08
+progress scf cycle=4 energy=-154.9353552936 dE=-1.00e-08/1e-11 grad=2.71e-06/1e-08
+progress scf cycle=5 energy=-154.9353552938 dE=-1.81e-10/1e-11 grad=1.87e-06/1e-08
+progress scf cycle=6 energy=-154.9353552938 dE=-1.05e-11/1e-11 grad=7.89e-07/1e-08
+progress scf cycle=7 energy=-154.9353552938 dE=-2.13e-12/1e-11 grad=2.76e-08/1e-08
+progress scf cycle=8 energy=-154.9353552938 dE=-5.97e-13/1e-11 grad=7.32e-09/1e-08 converged=yes
+progress freq point=19/54
+progress scf cycle=1 energy=-154.9353546379 grad=1.12e-04/1e-08
+progress scf cycle=2 energy=-154.9353549847 dE=-3.47e-07/1e-11 grad=3.12e-05/1e-08
+progress scf cycle=3 energy=-154.9353549897 dE=-5.09e-09/1e-11 grad=2.81e-05/1e-08
+progress scf cycle=4 energy=-154.9353550000 dE=-1.02e-08/1e-11 grad=2.73e-06/1e-08
+progress scf cycle=5 energy=-154.9353550001 dE=-1.79e-10/1e-11 grad=1.92e-06/1e-08
+progress scf cycle=6 energy=-154.9353550002 dE=-1.20e-11/1e-11 grad=7.82e-07/1e-08
+progress scf cycle=7 energy=-154.9353550002 dE=-2.56e-12/1e-11 grad=2.76e-08/1e-08
+progress scf cycle=8 energy=-154.9353550002 dE=2.56e-13/1e-11 grad=7.82e-09/1e-08 converged=yes
+progress freq point=20/54
+progress scf cycle=1 energy=-154.9353537461 grad=1.72e-04/1e-08
+progress scf cycle=2 energy=-154.9353542019 dE=-4.56e-07/1e-11 grad=8.02e-05/1e-08
+progress scf cycle=3 energy=-154.9353542550 dE=-5.31e-08/1e-11 grad=5.61e-05/1e-08
+progress scf cycle=4 energy=-154.9353542894 dE=-3.44e-08/1e-11 grad=1.68e-05/1e-08
+progress scf cycle=5 energy=-154.9353542904 dE=-9.55e-10/1e-11 grad=5.67e-06/1e-08
+progress scf cycle=6 energy=-154.9353542905 dE=-1.53e-10/1e-11 grad=2.44e-07/1e-08
+progress scf cycle=7 energy=-154.9353542905 dE=-1.99e-12/1e-11 grad=3.93e-08/1e-08
+progress scf cycle=8 energy=-154.9353542905 dE=-2.27e-13/1e-11 grad=1.62e-08/1e-08
+progress scf cycle=9 energy=-154.9353542905 dE=1.14e-13/1e-11 grad=6.79e-09/1e-08 converged=yes
+progress freq point=21/54
+progress scf cycle=1 energy=-154.9353540491 grad=1.72e-04/1e-08
+progress scf cycle=2 energy=-154.9353545057 dE=-4.57e-07/1e-11 grad=8.04e-05/1e-08
+progress scf cycle=3 energy=-154.9353545588 dE=-5.31e-08/1e-11 grad=5.61e-05/1e-08
+progress scf cycle=4 energy=-154.9353545932 dE=-3.44e-08/1e-11 grad=1.68e-05/1e-08
+progress scf cycle=5 energy=-154.9353545941 dE=-9.60e-10/1e-11 grad=5.66e-06/1e-08
+progress scf cycle=6 energy=-154.9353545943 dE=-1.54e-10/1e-11 grad=2.44e-07/1e-08
+progress scf cycle=7 energy=-154.9353545943 dE=-1.53e-12/1e-11 grad=3.93e-08/1e-08
+progress scf cycle=8 energy=-154.9353545943 dE=-4.55e-13/1e-11 grad=1.54e-08/1e-08
+progress scf cycle=9 energy=-154.9353545943 dE=3.41e-13/1e-11 grad=6.81e-09/1e-08 converged=yes
+progress freq point=22/54
+progress scf cycle=1 energy=-154.9353521671 grad=2.17e-04/1e-08
+progress scf cycle=2 energy=-154.9353528616 dE=-6.95e-07/1e-11 grad=8.84e-05/1e-08
+progress scf cycle=3 energy=-154.9353529332 dE=-7.16e-08/1e-11 grad=6.19e-05/1e-08
+progress scf cycle=4 energy=-154.9353529805 dE=-4.73e-08/1e-11 grad=1.90e-05/1e-08
+progress scf cycle=5 energy=-154.9353529815 dE=-1.02e-09/1e-11 grad=7.92e-06/1e-08
+progress scf cycle=6 energy=-154.9353529818 dE=-2.55e-10/1e-11 grad=3.88e-07/1e-08
+progress scf cycle=7 energy=-154.9353529818 dE=-2.30e-12/1e-11 grad=4.41e-08/1e-08
+progress scf cycle=8 energy=-154.9353529818 dE=3.41e-13/1e-11 grad=1.81e-08/1e-08
+progress scf cycle=9 energy=-154.9353529818 dE=-1.71e-13/1e-11 grad=9.12e-09/1e-08 converged=yes
+progress freq point=23/54
+progress scf cycle=1 energy=-154.9353526240 grad=2.17e-04/1e-08
+progress scf cycle=2 energy=-154.9353533212 dE=-6.97e-07/1e-11 grad=8.86e-05/1e-08
+progress scf cycle=3 energy=-154.9353533932 dE=-7.21e-08/1e-11 grad=6.20e-05/1e-08
+progress scf cycle=4 energy=-154.9353534405 dE=-4.73e-08/1e-11 grad=1.91e-05/1e-08
+progress scf cycle=5 energy=-154.9353534415 dE=-1.03e-09/1e-11 grad=7.93e-06/1e-08
+progress scf cycle=6 energy=-154.9353534418 dE=-2.56e-10/1e-11 grad=3.88e-07/1e-08
+progress scf cycle=7 energy=-154.9353534418 dE=-2.33e-12/1e-11 grad=4.41e-08/1e-08
+progress scf cycle=8 energy=-154.9353534418 dE=-3.41e-13/1e-11 grad=1.74e-08/1e-08
+progress scf cycle=9 energy=-154.9353534418 dE=3.98e-13/1e-11 grad=9.17e-09/1e-08 converged=yes
+progress freq point=24/54
+progress scf cycle=1 energy=-154.9353549314 grad=1.12e-04/1e-08
+progress scf cycle=2 energy=-154.9353552785 dE=-3.47e-07/1e-11 grad=3.10e-05/1e-08
+progress scf cycle=3 energy=-154.9353552836 dE=-5.06e-09/1e-11 grad=2.78e-05/1e-08
+progress scf cycle=4 energy=-154.9353552936 dE=-1.00e-08/1e-11 grad=2.71e-06/1e-08
+progress scf cycle=5 energy=-154.9353552938 dE=-1.81e-10/1e-11 grad=1.87e-06/1e-08
+progress scf cycle=6 energy=-154.9353552938 dE=-1.09e-11/1e-11 grad=7.89e-07/1e-08
+progress scf cycle=7 energy=-154.9353552938 dE=-2.13e-12/1e-11 grad=2.76e-08/1e-08
+progress scf cycle=8 energy=-154.9353552938 dE=-7.96e-13/1e-11 grad=7.32e-09/1e-08 converged=yes
+progress freq point=25/54
+progress scf cycle=1 energy=-154.9353546379 grad=1.12e-04/1e-08
+progress scf cycle=2 energy=-154.9353549847 dE=-3.47e-07/1e-11 grad=3.12e-05/1e-08
+progress scf cycle=3 energy=-154.9353549897 dE=-5.09e-09/1e-11 grad=2.81e-05/1e-08
+progress scf cycle=4 energy=-154.9353550000 dE=-1.02e-08/1e-11 grad=2.73e-06/1e-08
+progress scf cycle=5 energy=-154.9353550001 dE=-1.79e-10/1e-11 grad=1.92e-06/1e-08
+progress scf cycle=6 energy=-154.9353550002 dE=-1.22e-11/1e-11 grad=7.82e-07/1e-08
+progress scf cycle=7 energy=-154.9353550002 dE=-2.22e-12/1e-11 grad=2.76e-08/1e-08
+progress scf cycle=8 energy=-154.9353550002 dE=3.41e-13/1e-11 grad=7.82e-09/1e-08 converged=yes
+progress freq point=26/54
+progress scf cycle=1 energy=-154.9353537461 grad=1.72e-04/1e-08
+progress scf cycle=2 energy=-154.9353542019 dE=-4.56e-07/1e-11 grad=8.02e-05/1e-08
+progress scf cycle=3 energy=-154.9353542550 dE=-5.31e-08/1e-11 grad=5.61e-05/1e-08
+progress scf cycle=4 energy=-154.9353542894 dE=-3.44e-08/1e-11 grad=1.68e-05/1e-08
+progress scf cycle=5 energy=-154.9353542904 dE=-9.55e-10/1e-11 grad=5.67e-06/1e-08
+progress scf cycle=6 energy=-154.9353542905 dE=-1.54e-10/1e-11 grad=2.44e-07/1e-08
+progress scf cycle=7 energy=-154.9353542905 dE=-1.36e-12/1e-11 grad=3.93e-08/1e-08
+progress scf cycle=8 energy=-154.9353542905 dE=-5.12e-13/1e-11 grad=1.62e-08/1e-08
+progress scf cycle=9 energy=-154.9353542905 dE=1.71e-13/1e-11 grad=6.79e-09/1e-08 converged=yes
+progress freq point=27/54
+progress scf cycle=1 energy=-154.9353540491 grad=1.72e-04/1e-08
+progress scf cycle=2 energy=-154.9353545057 dE=-4.57e-07/1e-11 grad=8.04e-05/1e-08
+progress scf cycle=3 energy=-154.9353545588 dE=-5.31e-08/1e-11 grad=5.61e-05/1e-08
+progress scf cycle=4 energy=-154.9353545932 dE=-3.44e-08/1e-11 grad=1.68e-05/1e-08
+progress scf cycle=5 energy=-154.9353545941 dE=-9.61e-10/1e-11 grad=5.66e-06/1e-08
+progress scf cycle=6 energy=-154.9353545943 dE=-1.53e-10/1e-11 grad=2.44e-07/1e-08
+progress scf cycle=7 energy=-154.9353545943 dE=-1.65e-12/1e-11 grad=3.93e-08/1e-08
+progress scf cycle=8 energy=-154.9353545943 dE=-3.41e-13/1e-11 grad=1.54e-08/1e-08
+progress scf cycle=9 energy=-154.9353545943 dE=-5.68e-14/1e-11 grad=6.81e-09/1e-08 converged=yes
+progress freq point=28/54
+progress scf cycle=1 energy=-154.9353526240 grad=2.17e-04/1e-08
+progress scf cycle=2 energy=-154.9353533212 dE=-6.97e-07/1e-11 grad=8.86e-05/1e-08
+progress scf cycle=3 energy=-154.9353533932 dE=-7.21e-08/1e-11 grad=6.20e-05/1e-08
+progress scf cycle=4 energy=-154.9353534405 dE=-4.73e-08/1e-11 grad=1.91e-05/1e-08
+progress scf cycle=5 energy=-154.9353534415 dE=-1.03e-09/1e-11 grad=7.93e-06/1e-08
+progress scf cycle=6 energy=-154.9353534418 dE=-2.57e-10/1e-11 grad=3.88e-07/1e-08
+progress scf cycle=7 energy=-154.9353534418 dE=-1.88e-12/1e-11 grad=4.41e-08/1e-08
+progress scf cycle=8 energy=-154.9353534418 dE=-6.25e-13/1e-11 grad=1.74e-08/1e-08
+progress scf cycle=9 energy=-154.9353534418 dE=2.84e-13/1e-11 grad=9.17e-09/1e-08 converged=yes
+progress freq point=29/54
+progress scf cycle=1 energy=-154.9353521671 grad=2.17e-04/1e-08
+progress scf cycle=2 energy=-154.9353528616 dE=-6.95e-07/1e-11 grad=8.84e-05/1e-08
+progress scf cycle=3 energy=-154.9353529332 dE=-7.16e-08/1e-11 grad=6.19e-05/1e-08
+progress scf cycle=4 energy=-154.9353529805 dE=-4.73e-08/1e-11 grad=1.90e-05/1e-08
+progress scf cycle=5 energy=-154.9353529815 dE=-1.02e-09/1e-11 grad=7.92e-06/1e-08
+progress scf cycle=6 energy=-154.9353529818 dE=-2.55e-10/1e-11 grad=3.88e-07/1e-08
+progress scf cycle=7 energy=-154.9353529818 dE=-2.44e-12/1e-11 grad=4.41e-08/1e-08
+progress scf cycle=8 energy=-154.9353529818 dE=-5.68e-14/1e-11 grad=1.81e-08/1e-08
+progress scf cycle=9 energy=-154.9353529818 dE=-3.13e-13/1e-11 grad=9.12e-09/1e-08 converged=yes
+progress freq point=30/54
+progress scf cycle=1 energy=-154.9353546963 grad=1.19e-04/1e-08
+progress scf cycle=2 energy=-154.9353550409 dE=-3.45e-07/1e-11 grad=3.65e-05/1e-08
+progress scf cycle=3 energy=-154.9353550491 dE=-8.24e-09/1e-11 grad=3.54e-05/1e-08
+progress scf cycle=4 energy=-154.9353550639 dE=-1.48e-08/1e-11 grad=2.96e-06/1e-08
+progress scf cycle=5 energy=-154.9353550640 dE=-1.43e-10/1e-11 grad=1.75e-06/1e-08
+progress scf cycle=6 energy=-154.9353550640 dE=-1.03e-11/1e-11 grad=6.57e-07/1e-08
+progress scf cycle=7 energy=-154.9353550640 dE=-1.76e-12/1e-11 grad=3.16e-08/1e-08
+progress scf cycle=8 energy=-154.9353550640 dE=-3.41e-13/1e-11 grad=9.14e-09/1e-08 converged=yes
+progress freq point=31/54
+progress scf cycle=1 energy=-154.9353549740 grad=1.19e-04/1e-08
+progress scf cycle=2 energy=-154.9353553191 dE=-3.45e-07/1e-11 grad=3.61e-05/1e-08
+progress scf cycle=3 energy=-154.9353553272 dE=-8.11e-09/1e-11 grad=3.51e-05/1e-08
+progress scf cycle=4 energy=-154.9353553417 dE=-1.46e-08/1e-11 grad=3.02e-06/1e-08
+progress scf cycle=5 energy=-154.9353553419 dE=-1.45e-10/1e-11 grad=1.78e-06/1e-08
+progress scf cycle=6 energy=-154.9353553419 dE=-9.89e-12/1e-11 grad=6.53e-07/1e-08
+progress scf cycle=7 energy=-154.9353553419 dE=-2.27e-12/1e-11 grad=3.08e-08/1e-08
+progress scf cycle=8 energy=-154.9353553419 dE=-1.14e-13/1e-11 grad=8.77e-09/1e-08 converged=yes
+progress freq point=32/54
+progress scf cycle=1 energy=-154.9353541685 grad=1.67e-04/1e-08
+progress scf cycle=2 energy=-154.9353546278 dE=-4.59e-07/1e-11 grad=7.33e-05/1e-08
+progress scf cycle=3 energy=-154.9353546663 dE=-3.85e-08/1e-11 grad=4.91e-05/1e-08
+progress scf cycle=4 energy=-154.9353546922 dE=-2.60e-08/1e-11 grad=5.41e-06/1e-08
+progress scf cycle=5 energy=-154.9353546925 dE=-2.59e-10/1e-11 grad=3.79e-06/1e-08
+progress scf cycle=6 energy=-154.9353546925 dE=-5.42e-11/1e-11 grad=6.25e-07/1e-08
+progress scf cycle=7 energy=-154.9353546925 dE=-2.22e-12/1e-11 grad=4.46e-08/1e-08
+progress scf cycle=8 energy=-154.9353546925 dE=-1.14e-13/1e-11 grad=1.01e-08/1e-08
+progress scf cycle=9 energy=-154.9353546925 dE=5.68e-14/1e-11 grad=5.28e-09/1e-08 converged=yes
+progress freq point=33/54
+progress scf cycle=1 energy=-154.9353537057 grad=1.68e-04/1e-08
+progress scf cycle=2 energy=-154.9353541638 dE=-4.58e-07/1e-11 grad=7.34e-05/1e-08
+progress scf cycle=3 energy=-154.9353542024 dE=-3.87e-08/1e-11 grad=4.91e-05/1e-08
+progress scf cycle=4 energy=-154.9353542285 dE=-2.60e-08/1e-11 grad=5.41e-06/1e-08
+progress scf cycle=5 energy=-154.9353542287 dE=-2.57e-10/1e-11 grad=3.80e-06/1e-08
+progress scf cycle=6 energy=-154.9353542288 dE=-5.42e-11/1e-11 grad=6.20e-07/1e-08
+progress scf cycle=7 energy=-154.9353542288 dE=-2.39e-12/1e-11 grad=4.45e-08/1e-08
+progress scf cycle=8 energy=-154.9353542288 dE=-1.14e-13/1e-11 grad=1.04e-08/1e-08
+progress scf cycle=9 energy=-154.9353542288 dE=0.00e+00/1e-11 grad=5.28e-09/1e-08 converged=yes
+progress freq point=34/54
+progress scf cycle=1 energy=-154.9353519628 grad=2.06e-04/1e-08
+progress scf cycle=2 energy=-154.9353526261 dE=-6.63e-07/1e-11 grad=1.02e-04/1e-08
+progress scf cycle=3 energy=-154.9353527300 dE=-1.04e-07/1e-11 grad=5.88e-05/1e-08
+progress scf cycle=4 energy=-154.9353527689 dE=-3.89e-08/1e-11 grad=4.16e-06/1e-08
+progress scf cycle=5 energy=-154.9353527692 dE=-3.06e-10/1e-11 grad=1.95e-06/1e-08
+progress scf cycle=6 energy=-154.9353527692 dE=-1.89e-11/1e-11 grad=1.15e-06/1e-08
+progress scf cycle=7 energy=-154.9353527692 dE=-5.49e-12/1e-11 grad=6.23e-08/1e-08
+progress scf cycle=8 energy=-154.9353527692 dE=1.99e-13/1e-11 grad=1.64e-08/1e-08
+progress scf cycle=9 energy=-154.9353527692 dE=-1.14e-13/1e-11 grad=5.30e-09/1e-08 converged=yes
+progress freq point=35/54
+progress scf cycle=1 energy=-154.9353525138 grad=2.06e-04/1e-08
+progress scf cycle=2 energy=-154.9353531798 dE=-6.66e-07/1e-11 grad=1.03e-04/1e-08
+progress scf cycle=3 energy=-154.9353532842 dE=-1.04e-07/1e-11 grad=5.88e-05/1e-08
+progress scf cycle=4 energy=-154.9353533231 dE=-3.89e-08/1e-11 grad=4.17e-06/1e-08
+progress scf cycle=5 energy=-154.9353533234 dE=-3.09e-10/1e-11 grad=1.93e-06/1e-08
+progress scf cycle=6 energy=-154.9353533234 dE=-1.85e-11/1e-11 grad=1.15e-06/1e-08
+progress scf cycle=7 energy=-154.9353533234 dE=-5.23e-12/1e-11 grad=6.19e-08/1e-08
+progress scf cycle=8 energy=-154.9353533234 dE=-5.68e-14/1e-11 grad=1.59e-08/1e-08
+progress scf cycle=9 energy=-154.9353533234 dE=5.68e-14/1e-11 grad=5.38e-09/1e-08 converged=yes
+progress freq point=36/54
+progress scf cycle=1 energy=-154.9353546963 grad=1.19e-04/1e-08
+progress scf cycle=2 energy=-154.9353550409 dE=-3.45e-07/1e-11 grad=3.65e-05/1e-08
+progress scf cycle=3 energy=-154.9353550491 dE=-8.24e-09/1e-11 grad=3.54e-05/1e-08
+progress scf cycle=4 energy=-154.9353550639 dE=-1.48e-08/1e-11 grad=2.96e-06/1e-08
+progress scf cycle=5 energy=-154.9353550640 dE=-1.43e-10/1e-11 grad=1.75e-06/1e-08
+progress scf cycle=6 energy=-154.9353550640 dE=-9.83e-12/1e-11 grad=6.57e-07/1e-08
+progress scf cycle=7 energy=-154.9353550640 dE=-1.88e-12/1e-11 grad=3.16e-08/1e-08
+progress scf cycle=8 energy=-154.9353550640 dE=-3.41e-13/1e-11 grad=9.14e-09/1e-08 converged=yes
+progress freq point=37/54
+progress scf cycle=1 energy=-154.9353549740 grad=1.19e-04/1e-08
+progress scf cycle=2 energy=-154.9353553191 dE=-3.45e-07/1e-11 grad=3.61e-05/1e-08
+progress scf cycle=3 energy=-154.9353553272 dE=-8.11e-09/1e-11 grad=3.51e-05/1e-08
+progress scf cycle=4 energy=-154.9353553417 dE=-1.46e-08/1e-11 grad=3.02e-06/1e-08
+progress scf cycle=5 energy=-154.9353553419 dE=-1.45e-10/1e-11 grad=1.78e-06/1e-08
+progress scf cycle=6 energy=-154.9353553419 dE=-1.00e-11/1e-11 grad=6.53e-07/1e-08
+progress scf cycle=7 energy=-154.9353553419 dE=-1.53e-12/1e-11 grad=3.08e-08/1e-08
+progress scf cycle=8 energy=-154.9353553419 dE=-1.71e-13/1e-11 grad=8.77e-09/1e-08 converged=yes
+progress freq point=38/54
+progress scf cycle=1 energy=-154.9353541685 grad=1.67e-04/1e-08
+progress scf cycle=2 energy=-154.9353546278 dE=-4.59e-07/1e-11 grad=7.33e-05/1e-08
+progress scf cycle=3 energy=-154.9353546663 dE=-3.85e-08/1e-11 grad=4.91e-05/1e-08
+progress scf cycle=4 energy=-154.9353546922 dE=-2.60e-08/1e-11 grad=5.41e-06/1e-08
+progress scf cycle=5 energy=-154.9353546925 dE=-2.59e-10/1e-11 grad=3.79e-06/1e-08
+progress scf cycle=6 energy=-154.9353546925 dE=-5.39e-11/1e-11 grad=6.25e-07/1e-08
+progress scf cycle=7 energy=-154.9353546925 dE=-2.73e-12/1e-11 grad=4.46e-08/1e-08
+progress scf cycle=8 energy=-154.9353546925 dE=2.56e-13/1e-11 grad=1.01e-08/1e-08
+progress scf cycle=9 energy=-154.9353546925 dE=-2.27e-13/1e-11 grad=5.28e-09/1e-08 converged=yes
+progress freq point=39/54
+progress scf cycle=1 energy=-154.9353537057 grad=1.68e-04/1e-08
+progress scf cycle=2 energy=-154.9353541638 dE=-4.58e-07/1e-11 grad=7.34e-05/1e-08
+progress scf cycle=3 energy=-154.9353542024 dE=-3.87e-08/1e-11 grad=4.91e-05/1e-08
+progress scf cycle=4 energy=-154.9353542285 dE=-2.60e-08/1e-11 grad=5.41e-06/1e-08
+progress scf cycle=5 energy=-154.9353542287 dE=-2.57e-10/1e-11 grad=3.80e-06/1e-08
+progress scf cycle=6 energy=-154.9353542288 dE=-5.41e-11/1e-11 grad=6.20e-07/1e-08
+progress scf cycle=7 energy=-154.9353542288 dE=-2.61e-12/1e-11 grad=4.45e-08/1e-08
+progress scf cycle=8 energy=-154.9353542288 dE=0.00e+00/1e-11 grad=1.04e-08/1e-08
+progress scf cycle=9 energy=-154.9353542288 dE=1.99e-13/1e-11 grad=5.28e-09/1e-08 converged=yes
+progress freq point=40/54
+progress scf cycle=1 energy=-154.9353525138 grad=2.06e-04/1e-08
+progress scf cycle=2 energy=-154.9353531798 dE=-6.66e-07/1e-11 grad=1.03e-04/1e-08
+progress scf cycle=3 energy=-154.9353532842 dE=-1.04e-07/1e-11 grad=5.88e-05/1e-08
+progress scf cycle=4 energy=-154.9353533231 dE=-3.89e-08/1e-11 grad=4.17e-06/1e-08
+progress scf cycle=5 energy=-154.9353533234 dE=-3.09e-10/1e-11 grad=1.93e-06/1e-08
+progress scf cycle=6 energy=-154.9353533234 dE=-1.85e-11/1e-11 grad=1.15e-06/1e-08
+progress scf cycle=7 energy=-154.9353533234 dE=-5.12e-12/1e-11 grad=6.19e-08/1e-08
+progress scf cycle=8 energy=-154.9353533234 dE=-1.14e-13/1e-11 grad=1.59e-08/1e-08
+progress scf cycle=9 energy=-154.9353533234 dE=-2.27e-13/1e-11 grad=5.38e-09/1e-08 converged=yes
+progress freq point=41/54
+progress scf cycle=1 energy=-154.9353519628 grad=2.06e-04/1e-08
+progress scf cycle=2 energy=-154.9353526261 dE=-6.63e-07/1e-11 grad=1.02e-04/1e-08
+progress scf cycle=3 energy=-154.9353527300 dE=-1.04e-07/1e-11 grad=5.88e-05/1e-08
+progress scf cycle=4 energy=-154.9353527689 dE=-3.89e-08/1e-11 grad=4.16e-06/1e-08
+progress scf cycle=5 energy=-154.9353527692 dE=-3.06e-10/1e-11 grad=1.95e-06/1e-08
+progress scf cycle=6 energy=-154.9353527692 dE=-1.90e-11/1e-11 grad=1.15e-06/1e-08
+progress scf cycle=7 energy=-154.9353527692 dE=-5.12e-12/1e-11 grad=6.23e-08/1e-08
+progress scf cycle=8 energy=-154.9353527692 dE=1.99e-13/1e-11 grad=1.64e-08/1e-08
+progress scf cycle=9 energy=-154.9353527692 dE=-4.83e-13/1e-11 grad=5.30e-09/1e-08 converged=yes
+progress freq point=42/54
+progress scf cycle=1 energy=-154.9353537866 grad=1.71e-04/1e-08
+progress scf cycle=2 energy=-154.9353542240 dE=-4.37e-07/1e-11 grad=7.05e-05/1e-08
+progress scf cycle=3 energy=-154.9353542604 dE=-3.64e-08/1e-11 grad=4.87e-05/1e-08
+progress scf cycle=4 energy=-154.9353542860 dE=-2.56e-08/1e-11 grad=6.60e-06/1e-08
+progress scf cycle=5 energy=-154.9353542863 dE=-2.81e-10/1e-11 grad=4.03e-06/1e-08
+progress scf cycle=6 energy=-154.9353542864 dE=-5.58e-11/1e-11 grad=6.87e-07/1e-08
+progress scf cycle=7 energy=-154.9353542864 dE=-3.72e-12/1e-11 grad=3.59e-08/1e-08
+progress scf cycle=8 energy=-154.9353542864 dE=8.53e-14/1e-11 grad=1.23e-08/1e-08
+progress scf cycle=9 energy=-154.9353542864 dE=-2.27e-13/1e-11 grad=4.64e-09/1e-08 converged=yes
+progress freq point=43/54
+progress scf cycle=1 energy=-154.9353541788 grad=1.71e-04/1e-08
+progress scf cycle=2 energy=-154.9353546173 dE=-4.38e-07/1e-11 grad=7.03e-05/1e-08
+progress scf cycle=3 energy=-154.9353546535 dE=-3.63e-08/1e-11 grad=4.86e-05/1e-08
+progress scf cycle=4 energy=-154.9353546791 dE=-2.56e-08/1e-11 grad=6.64e-06/1e-08
+progress scf cycle=5 energy=-154.9353546794 dE=-2.83e-10/1e-11 grad=4.04e-06/1e-08
+progress scf cycle=6 energy=-154.9353546794 dE=-5.61e-11/1e-11 grad=6.87e-07/1e-08
+progress scf cycle=7 energy=-154.9353546794 dE=-3.13e-12/1e-11 grad=3.54e-08/1e-08
+progress scf cycle=8 energy=-154.9353546794 dE=-1.14e-13/1e-11 grad=1.11e-08/1e-08
+progress scf cycle=9 energy=-154.9353546794 dE=-5.68e-14/1e-11 grad=4.67e-09/1e-08 converged=yes
+progress freq point=44/54
+progress scf cycle=1 energy=-154.9353516832 grad=2.15e-04/1e-08
+progress scf cycle=2 energy=-154.9353523818 dE=-6.99e-07/1e-11 grad=1.13e-04/1e-08
+progress scf cycle=3 energy=-154.9353524907 dE=-1.09e-07/1e-11 grad=6.00e-05/1e-08
+progress scf cycle=4 energy=-154.9353525312 dE=-4.05e-08/1e-11 grad=7.26e-06/1e-08
+progress scf cycle=5 energy=-154.9353525316 dE=-4.08e-10/1e-11 grad=5.09e-06/1e-08
+progress scf cycle=6 energy=-154.9353525317 dE=-8.88e-11/1e-11 grad=8.70e-07/1e-08
+progress scf cycle=7 energy=-154.9353525317 dE=-4.97e-12/1e-11 grad=5.50e-08/1e-08
+progress scf cycle=8 energy=-154.9353525317 dE=0.00e+00/1e-11 grad=1.70e-08/1e-08
+progress scf cycle=9 energy=-154.9353525317 dE=1.14e-13/1e-11 grad=5.88e-09/1e-08 converged=yes
+progress freq point=45/54
+progress scf cycle=1 energy=-154.9353521766 grad=2.15e-04/1e-08
+progress scf cycle=2 energy=-154.9353528780 dE=-7.01e-07/1e-11 grad=1.14e-04/1e-08
+progress scf cycle=3 energy=-154.9353529877 dE=-1.10e-07/1e-11 grad=6.00e-05/1e-08
+progress scf cycle=4 energy=-154.9353530282 dE=-4.05e-08/1e-11 grad=7.31e-06/1e-08
+progress scf cycle=5 energy=-154.9353530286 dE=-4.11e-10/1e-11 grad=5.13e-06/1e-08
+progress scf cycle=6 energy=-154.9353530287 dE=-8.96e-11/1e-11 grad=8.70e-07/1e-08
+progress scf cycle=7 energy=-154.9353530287 dE=-4.63e-12/1e-11 grad=5.46e-08/1e-08
+progress scf cycle=8 energy=-154.9353530287 dE=8.53e-14/1e-11 grad=1.58e-08/1e-08
+progress scf cycle=9 energy=-154.9353530287 dE=-3.41e-13/1e-11 grad=5.97e-09/1e-08 converged=yes
+progress freq point=46/54
+progress scf cycle=1 energy=-154.9353551634 grad=1.54e-04/1e-08
+progress scf cycle=2 energy=-154.9353554834 dE=-3.20e-07/1e-11 grad=1.59e-05/1e-08
+progress scf cycle=3 energy=-154.9353554873 dE=-3.91e-09/1e-11 grad=5.67e-06/1e-08
+progress scf cycle=4 energy=-154.9353554879 dE=-5.38e-10/1e-11 grad=5.61e-07/1e-08
+progress scf cycle=5 energy=-154.9353554879 dE=-6.71e-12/1e-11 grad=1.25e-07/1e-08
+progress scf cycle=6 energy=-154.9353554879 dE=-3.98e-13/1e-11 grad=8.30e-08/1e-08
+progress scf cycle=7 energy=-154.9353554879 dE=-3.41e-13/1e-11 grad=1.55e-08/1e-08
+progress scf cycle=8 energy=-154.9353554879 dE=4.55e-13/1e-11 grad=8.91e-09/1e-08 converged=yes
+progress freq point=47/54
+progress scf cycle=1 energy=-154.9353551634 grad=1.54e-04/1e-08
+progress scf cycle=2 energy=-154.9353554834 dE=-3.20e-07/1e-11 grad=1.59e-05/1e-08
+progress scf cycle=3 energy=-154.9353554873 dE=-3.91e-09/1e-11 grad=5.67e-06/1e-08
+progress scf cycle=4 energy=-154.9353554879 dE=-5.38e-10/1e-11 grad=5.61e-07/1e-08
+progress scf cycle=5 energy=-154.9353554879 dE=-6.65e-12/1e-11 grad=1.25e-07/1e-08
+progress scf cycle=6 energy=-154.9353554879 dE=-2.84e-13/1e-11 grad=8.30e-08/1e-08
+progress scf cycle=7 energy=-154.9353554879 dE=-4.55e-13/1e-11 grad=1.55e-08/1e-08
+progress scf cycle=8 energy=-154.9353554879 dE=3.41e-13/1e-11 grad=8.91e-09/1e-08 converged=yes
+progress freq point=48/54
+progress scf cycle=1 energy=-154.9353484640 grad=5.17e-04/1e-08
+progress scf cycle=2 energy=-154.9353498535 dE=-1.39e-06/1e-11 grad=4.58e-04/1e-08
+progress scf cycle=3 energy=-154.9353503152 dE=-4.62e-07/1e-11 grad=2.26e-04/1e-08
+progress scf cycle=4 energy=-154.9353505031 dE=-1.88e-07/1e-11 grad=1.18e-05/1e-08
+progress scf cycle=5 energy=-154.9353505053 dE=-2.26e-09/1e-11 grad=4.16e-06/1e-08
+progress scf cycle=6 energy=-154.9353505056 dE=-2.26e-10/1e-11 grad=7.41e-07/1e-08
+progress scf cycle=7 energy=-154.9353505056 dE=-1.11e-11/1e-11 grad=5.75e-08/1e-08
+progress scf cycle=8 energy=-154.9353505056 dE=3.41e-13/1e-11 grad=1.47e-08/1e-08
+progress scf cycle=9 energy=-154.9353505056 dE=-7.39e-13/1e-11 grad=7.11e-09/1e-08 converged=yes
+progress freq point=49/54
+progress scf cycle=1 energy=-154.9353473157 grad=5.15e-04/1e-08
+progress scf cycle=2 energy=-154.9353486946 dE=-1.38e-06/1e-11 grad=4.57e-04/1e-08
+progress scf cycle=3 energy=-154.9353491543 dE=-4.60e-07/1e-11 grad=2.26e-04/1e-08
+progress scf cycle=4 energy=-154.9353493419 dE=-1.88e-07/1e-11 grad=1.18e-05/1e-08
+progress scf cycle=5 energy=-154.9353493441 dE=-2.24e-09/1e-11 grad=4.11e-06/1e-08
+progress scf cycle=6 energy=-154.9353493443 dE=-2.20e-10/1e-11 grad=7.48e-07/1e-08
+progress scf cycle=7 energy=-154.9353493443 dE=-1.11e-11/1e-11 grad=5.75e-08/1e-08
+progress scf cycle=8 energy=-154.9353493443 dE=-6.25e-13/1e-11 grad=1.51e-08/1e-08
+progress scf cycle=9 energy=-154.9353493443 dE=2.84e-14/1e-11 grad=7.36e-09/1e-08 converged=yes
+progress freq point=50/54
+progress scf cycle=1 energy=-154.9353543057 grad=2.86e-04/1e-08
+progress scf cycle=2 energy=-154.9353549654 dE=-6.60e-07/1e-11 grad=9.64e-05/1e-08
+progress scf cycle=3 energy=-154.9353549523 dE=1.31e-08/1e-11 grad=1.21e-04/1e-08
+progress scf cycle=4 energy=-154.9353550086 dE=-5.63e-08/1e-11 grad=4.48e-06/1e-08
+progress scf cycle=5 energy=-154.9353550088 dE=-2.02e-10/1e-11 grad=1.04e-06/1e-08
+progress scf cycle=6 energy=-154.9353550089 dE=-6.48e-12/1e-11 grad=6.38e-07/1e-08
+progress scf cycle=7 energy=-154.9353550089 dE=-3.98e-12/1e-11 grad=1.39e-08/1e-08
+progress scf cycle=8 energy=-154.9353550089 dE=2.27e-13/1e-11 grad=2.35e-09/1e-08 converged=yes
+progress freq point=51/54
+progress scf cycle=1 energy=-154.9353548019 grad=2.87e-04/1e-08
+progress scf cycle=2 energy=-154.9353554623 dE=-6.60e-07/1e-11 grad=9.45e-05/1e-08
+progress scf cycle=3 energy=-154.9353554492 dE=1.30e-08/1e-11 grad=1.19e-04/1e-08
+progress scf cycle=4 energy=-154.9353555043 dE=-5.51e-08/1e-11 grad=4.58e-06/1e-08
+progress scf cycle=5 energy=-154.9353555045 dE=-2.03e-10/1e-11 grad=1.06e-06/1e-08
+progress scf cycle=6 energy=-154.9353555045 dE=-7.67e-12/1e-11 grad=6.37e-07/1e-08
+progress scf cycle=7 energy=-154.9353555046 dE=-3.47e-12/1e-11 grad=1.38e-08/1e-08
+progress scf cycle=8 energy=-154.9353555046 dE=-4.55e-13/1e-11 grad=2.29e-09/1e-08 converged=yes
+progress freq point=52/54
+progress scf cycle=1 energy=-154.9353551565 grad=3.96e-04/1e-08
+progress scf cycle=2 energy=-154.9353560278 dE=-8.71e-07/1e-11 grad=2.95e-05/1e-08
+progress scf cycle=3 energy=-154.9353560399 dE=-1.21e-08/1e-11 grad=7.84e-06/1e-08
+progress scf cycle=4 energy=-154.9353560405 dE=-5.85e-10/1e-11 grad=1.48e-06/1e-08
+progress scf cycle=5 energy=-154.9353560405 dE=-1.31e-11/1e-11 grad=1.90e-06/1e-08
+progress scf cycle=6 energy=-154.9353560405 dE=-1.25e-11/1e-11 grad=1.24e-07/1e-08
+progress scf cycle=7 energy=-154.9353560405 dE=-4.55e-13/1e-11 grad=1.12e-08/1e-08
+progress scf cycle=8 energy=-154.9353560405 dE=0.00e+00/1e-11 grad=8.87e-09/1e-08 converged=yes
+progress freq point=53/54
+progress scf cycle=1 energy=-154.9353551565 grad=3.96e-04/1e-08
+progress scf cycle=2 energy=-154.9353560278 dE=-8.71e-07/1e-11 grad=2.95e-05/1e-08
+progress scf cycle=3 energy=-154.9353560399 dE=-1.21e-08/1e-11 grad=7.84e-06/1e-08
+progress scf cycle=4 energy=-154.9353560405 dE=-5.85e-10/1e-11 grad=1.48e-06/1e-08
+progress scf cycle=5 energy=-154.9353560405 dE=-1.32e-11/1e-11 grad=1.90e-06/1e-08
+progress scf cycle=6 energy=-154.9353560405 dE=-1.25e-11/1e-11 grad=1.24e-07/1e-08
+progress scf cycle=7 energy=-154.9353560405 dE=-2.84e-13/1e-11 grad=1.12e-08/1e-08
+progress scf cycle=8 energy=-154.9353560405 dE=1.71e-13/1e-11 grad=8.87e-09/1e-08 converged=yes
+progress freq point=54/54
+progress freq point=54/54 done=yes real=21 imaginary=0 zpe=0.0802447666
+# ecce-qm output, format version 1
+format_version 1
+program ecce-qm 0.1
+title Ethanol, B3LYP/6-31G*, optimisation, frequencies and Raman activities
+runtype optfreq
+method b3lyp
+reference rks
+basis 6-31G*
+spherical true
+grid 99 590
+charge 0
+multiplicity 1
+nbf 54
+nalpha 13
+nbeta 13
+converged yes
+iterations 7
+opt_converged yes
+opt_evaluations 5
+energy_total -154.935356079205
+energy_nuclear 81.591618240950
+energy_one_electron -371.497249547392
+energy_coulomb 156.589022700584
+energy_exchange_hf -4.148734225376
+energy_xc -17.470013247971
+grid_electrons 25.999998963296
+s_squared 0.000000000000
+dipole_au -0.307323185819 0.529236784767 -0.000000000000
+dipole_debye -0.781137623627 1.345185731064 -0.000000000000 1.555538697077
+wall_seconds 729.88
+begin atoms  # index symbol Z x y z (angstrom) mulliken_net_charge
+0 C 6 -0.062634534170 0.560278645378 -0.000000000000 -0.009848075523
+1 C 6 1.433093477916 0.285982943477 0.000000000000 -0.442861274226
+2 O 8 -0.735614163886 -0.694964770479 0.000000000000 -0.627095552158
+3 H 1 -0.334637842148 1.155672731098 0.887954512396 0.115588606252
+4 H 1 -0.334637842148 1.155672731098 -0.887954512396 0.115588606252
+5 H 1 1.714941630667 -0.291466520928 0.887222993483 0.157089829117
+6 H 1 1.714941630668 -0.291466520928 -0.887222993483 0.157089829117
+7 H 1 1.997875366026 1.225426690544 0.000000000000 0.138693282677
+8 H 1 -1.689627722925 -0.523135929260 0.000000000000 0.395754748490
+end atoms
+begin ao_labels  # index label, order of the MO coefficients
+1 0C 1s
+2 0C 2s
+3 0C 3s
+4 0C 1px
+5 0C 1py
+6 0C 1pz
+7 0C 2px
+8 0C 2py
+9 0C 2pz
+10 0C 1dxy
+11 0C 1dyz
+12 0C 1dz2
+13 0C 1dxz
+14 0C 1dx2y2
+15 1C 1s
+16 1C 2s
+17 1C 3s
+18 1C 1px
+19 1C 1py
+20 1C 1pz
+21 1C 2px
+22 1C 2py
+23 1C 2pz
+24 1C 1dxy
+25 1C 1dyz
+26 1C 1dz2
+27 1C 1dxz
+28 1C 1dx2y2
+29 2O 1s
+30 2O 2s
+31 2O 3s
+32 2O 1px
+33 2O 1py
+34 2O 1pz
+35 2O 2px
+36 2O 2py
+37 2O 2pz
+38 2O 1dxy
+39 2O 1dyz
+40 2O 1dz2
+41 2O 1dxz
+42 2O 1dx2y2
+43 3H 1s
+44 3H 2s
+45 4H 1s
+46 4H 2s
+47 5H 1s
+48 5H 2s
+49 6H 1s
+50 6H 2s
+51 7H 1s
+52 7H 2s
+53 8H 1s
+54 8H 2s
+end ao_labels
+begin orbitals restricted  # index energy(hartree) occupation
+1 -19.126604424492 2.000000000000
+2 -10.217909582472 2.000000000000
+3 -10.160116938304 2.000000000000
+4 -1.004700904590 2.000000000000
+5 -0.739307156720 2.000000000000
+6 -0.601835015866 2.000000000000
+7 -0.506515912841 2.000000000000
+8 -0.455233989666 2.000000000000
+9 -0.390637011407 2.000000000000
+10 -0.375223865574 2.000000000000
+11 -0.356978973412 2.000000000000
+12 -0.321000890428 2.000000000000
+13 -0.257539874236 2.000000000000
+14 0.080987615966 0.000000000000
+15 0.123041580387 0.000000000000
+16 0.160660505057 0.000000000000
+17 0.165547856896 0.000000000000
+18 0.178952781270 0.000000000000
+19 0.202453190309 0.000000000000
+20 0.218192789136 0.000000000000
+21 0.243601957585 0.000000000000
+22 0.532870219310 0.000000000000
+23 0.562322880964 0.000000000000
+24 0.566171579766 0.000000000000
+25 0.590550719256 0.000000000000
+26 0.673778962090 0.000000000000
+27 0.687722438740 0.000000000000
+28 0.816637727056 0.000000000000
+29 0.854304824224 0.000000000000
+30 0.881487596889 0.000000000000
+31 0.899455929801 0.000000000000
+32 0.911780378073 0.000000000000
+33 0.946921956527 0.000000000000
+34 1.026688293169 0.000000000000
+35 1.031826162527 0.000000000000
+36 1.040277764247 0.000000000000
+37 1.186334130238 0.000000000000
+38 1.420734172830 0.000000000000
+39 1.450509047514 0.000000000000
+40 1.491634378907 0.000000000000
+41 1.734450080414 0.000000000000
+42 1.750074111680 0.000000000000
+43 1.793142295690 0.000000000000
+44 1.929065183580 0.000000000000
+45 1.949685774253 0.000000000000
+46 2.044410766165 0.000000000000
+47 2.170898702562 0.000000000000
+48 2.224674319158 0.000000000000
+49 2.330863298028 0.000000000000
+50 2.385075648036 0.000000000000
+51 2.411578947151 0.000000000000
+52 2.506116631010 0.000000000000
+53 2.619605400529 0.000000000000
+54 2.845140679277 0.000000000000
+end orbitals
+begin mo_coefficients restricted  # one line per MO: index then nbf coefficients
+1 -0.0001305891 -0.0011299036 0.0098765584 -0.0005033971 -0.0006086257 0.0000000000 -0.0009484158 -0.0037213279 -0.0000000000 0.0000658507 0.0000000000 -0.0001292699 0.0000000000 0.0000771671 0.0000329254 -0.0000276522 -0.0024464581 0.0004135586 0.0001250873 0.0000000000 0.0009123197 -0.0001818903 -0.0000000000 -0.0000344051 0.0000000000 -0.0000140874 0.0000000000 -0.0002159230 0.9951172861 0.0291428580 -0.0175662435 -0.0005704714 0.0016677352 -0.0000000000 -0.0003540818 -0.0046181578 0.0000000000 -0.0004194802 0.0000000000 0.0004839992 0.0000000000 0.0001145187 -0.0005439577 -0.0006172984 -0.0005439577 -0.0006172984 0.0000579026 -0.0000977399 0.0000579026 -0.0000977399 -0.0000264960 0.0006778728 0.0005583441 0.0023842199
+2 -0.9952832797 -0.0368295506 0.0288582834 0.0003112017 0.0009474226 -0.0000000000 0.0027486249 0.0010485886 0.0000000000 -0.0004404518 0.0000000000 0.0002589109 -0.0000000000 0.0002651907 -0.0012898951 0.0010944471 -0.0077470751 -0.0005931177 0.0000720178 -0.0000000000 0.0041198870 -0.0007211467 0.0000000000 -0.0002798758 0.0000000000 -0.0004674146 0.0000000000 0.0007997990 -0.0000668420 -0.0001492903 -0.0012860235 0.0001946053 0.0002620109 -0.0000000000 0.0000391436 0.0007589328 -0.0000000000 0.0012538673 -0.0000000000 -0.0009601992 -0.0000000000 -0.0008656718 0.0005304955 -0.0055566325 0.0005304955 -0.0055566325 0.0004578891 -0.0003488043 0.0004578891 -0.0003488043 0.0004090519 -0.0003673261 0.0001182744 -0.0005879567
+3 0.0012996083 0.0010278459 -0.0070600717 0.0005486108 -0.0001849110 0.0000000000 -0.0035288228 0.0004135573 -0.0000000000 -0.0003270012 0.0000000000 -0.0006078289 -0.0000000000 0.0007696664 -0.9952819515 -0.0373093062 0.0321879632 0.0002539844 -0.0000234332 -0.0000000000 -0.0014214442 -0.0000366890 0.0000000000 -0.0000196607 -0.0000000000 0.0000200905 -0.0000000000 -0.0000088866 0.0000017553 0.0002367841 0.0000796214 0.0002325238 0.0000782553 -0.0000000000 -0.0008324712 -0.0000385514 0.0000000000 0.0000037699 0.0000000000 0.0001694904 0.0000000000 -0.0001809970 0.0004021142 -0.0001868816 0.0004021142 -0.0001868816 0.0005075484 -0.0057924368 0.0005075484 -0.0057924368 0.0005745084 -0.0055043380 -0.0001214907 -0.0005767103
+4 0.0755584558 -0.1464116907 -0.0446815193 0.0506633573 0.0872390669 -0.0000000000 0.0111516579 -0.0102001285 -0.0000000000 -0.0139888604 0.0000000000 0.0086547713 0.0000000000 0.0075297768 0.0166433866 -0.0291744975 -0.0344976219 0.0229923538 0.0029807528 0.0000000000 0.0116334287 0.0013467157 -0.0000000000 -0.0001704366 0.0000000000 0.0020288328 -0.0000000000 -0.0037969087 0.2030248198 -0.4451197026 -0.4485823119 0.0480973642 -0.1033118113 -0.0000000000 0.0222802689 -0.0540433980 -0.0000000000 0.0003504139 -0.0000000000 0.0153386723 0.0000000000 -0.0056883934 -0.0258244449 -0.0002061349 -0.0258244449 -0.0002061349 -0.0059872773 -0.0013105420 -0.0059872773 -0.0013105420 -0.0042139088 0.0019655400 -0.1289397183 0.0016328532
+5 0.1231124720 -0.2426858275 -0.1986422036 -0.1033252021 -0.0240703262 -0.0000000000 -0.0230036941 -0.0159531801 0.0000000000 0.0089715664 -0.0000000000 -0.0005349739 -0.0000000000 -0.0060863792 0.1566072529 -0.3001745540 -0.2573966309 0.0511622990 -0.0156916956 0.0000000000 0.0015300915 -0.0080114189 -0.0000000000 0.0013672074 0.0000000000 0.0013450842 0.0000000000 -0.0016121516 -0.0518689365 0.1191729630 0.1396902936 -0.1171321927 -0.0390565172 0.0000000000 -0.0535318318 -0.0177081840 0.0000000000 -0.0080166748 0.0000000000 -0.0013059723 -0.0000000000 0.0095149335 -0.0739009212 -0.0146329973 -0.0739009212 -0.0146329973 -0.0906085315 -0.0184837833 -0.0906085315 -0.0184837833 -0.0946552831 -0.0169419101 0.0823468752 0.0191676437
+6 -0.1285406877 0.2636936814 0.2455912865 -0.1031935180 0.0645274125 -0.0000000000 -0.0411044189 0.0400907286 0.0000000000 -0.0011356620 0.0000000000 0.0095546155 0.0000000000 -0.0109043336 0.1179995923 -0.2319424934 -0.2315664479 -0.1310610276 0.0315998995 0.0000000000 -0.0479847283 0.0117122405 -0.0000000000 -0.0055186635 0.0000000000 -0.0069310629 0.0000000000 0.0111471419 0.0387532499 -0.0898130307 -0.1169719187 0.1366073202 0.1279699868 -0.0000000000 0.0695213055 0.0664737529 -0.0000000000 0.0058720363 -0.0000000000 -0.0003463405 0.0000000000 -0.0170248421 0.1253662885 0.0471145391 0.1253662885 0.0471145391 -0.1117054097 -0.0434082781 -0.1117054097 -0.0434082781 -0.1086682114 -0.0457017259 -0.0869443803 -0.0370344121
+7 -0.0166463625 0.0322069898 0.0287158260 -0.0222878514 0.2998678511 0.0000000000 -0.0268552626 0.1136794684 0.0000000000 -0.0070181599 0.0000000000 0.0148033816 -0.0000000000 0.0149125168 -0.0083679406 0.0124451690 0.0385934123 0.0526693876 0.1249167073 0.0000000000 0.0141871714 0.0557717000 0.0000000000 -0.0018162252 0.0000000000 -0.0032650055 -0.0000000000 -0.0034096785 0.0306541710 -0.0759276287 -0.0959782837 -0.4116000684 -0.0736580091 0.0000000000 -0.2092034538 -0.0235595701 0.0000000000 -0.0179568050 0.0000000000 -0.0061314978 -0.0000000000 0.0131346929 0.1012354280 0.0631617647 0.1012354280 0.0631617647 -0.0205235384 -0.0153104730 -0.0205235384 -0.0153104730 0.0763537014 0.0454381040 0.2036027722 0.1203079076
+8 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.3661377899 -0.0000000000 0.0000000000 -0.1474785974 0.0000000000 -0.0106028662 0.0000000000 0.0053066384 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.2432597757 0.0000000000 0.0000000000 -0.1089112903 0.0000000000 0.0089317251 0.0000000000 0.0033075625 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.1900500426 -0.0000000000 -0.0000000000 -0.1183154737 -0.0000000000 -0.0139698191 -0.0000000000 0.0014561263 0.0000000000 -0.1642691343 -0.1270328593 0.1642691343 0.1270328593 -0.1114095002 -0.0777594739 0.1114095002 0.0777594739 0.0000000000 -0.0000000000 0.0000000000 0.0000000000
+9 -0.0040104895 0.0099250978 0.0170439313 0.3253027759 0.0497796958 0.0000000000 0.1768096940 0.0123708516 0.0000000000 -0.0067435018 0.0000000000 -0.0001555889 0.0000000000 0.0054872953 0.0038069827 -0.0037380400 -0.0556069510 -0.2394906456 0.2371857266 -0.0000000000 -0.1084053686 0.0891588750 -0.0000000000 0.0034153666 0.0000000000 -0.0134494242 0.0000000000 0.0055763588 -0.0450744277 0.0972935418 0.1921779697 0.0606061974 -0.3328765886 0.0000000000 0.0380279619 -0.2068778889 0.0000000000 0.0143783932 -0.0000000000 0.0066237553 -0.0000000000 0.0170233968 -0.0285142055 -0.0200755121 -0.0285142055 -0.0200755121 -0.1221869341 -0.0933232897 -0.1221869341 -0.0933232897 0.0493353199 0.0581414348 -0.0345101816 -0.0105073705
+10 -0.0169385331 0.0363187590 0.0494264180 0.1643956106 0.0783018265 -0.0000000000 0.0640421475 0.0176238749 -0.0000000000 -0.0202501187 -0.0000000000 0.0067310251 0.0000000000 0.0077797184 -0.0056114431 0.0136092750 0.0149083488 -0.2280159325 -0.3468408137 0.0000000000 -0.0985685997 -0.1573571544 0.0000000000 -0.0204119230 -0.0000000000 0.0131924524 0.0000000000 0.0085998403 0.0138772414 -0.0356822049 -0.0644183748 -0.1565745497 -0.1666436147 -0.0000000000 -0.0889457689 -0.1071954551 -0.0000000000 -0.0009879585 -0.0000000000 -0.0007314219 -0.0000000000 0.0158314434 0.0234479267 0.0195064525 0.0234479267 0.0195064525 0.0891329927 0.0753407440 0.0891329927 0.0753407440 -0.2769048174 -0.2542005454 0.0798576811 0.0750754332
+11 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.2057812274 -0.0000000000 -0.0000000000 0.1030478403 -0.0000000000 0.0086311539 0.0000000000 -0.0199615351 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.3770091975 -0.0000000000 -0.0000000000 -0.1980319255 -0.0000000000 0.0215133624 0.0000000000 -0.0159819086 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.2095893745 -0.0000000000 0.0000000000 0.1440142221 -0.0000000000 0.0128800673 -0.0000000000 -0.0054278363 0.0000000000 0.1133259113 0.1102907223 -0.1133259113 -0.1102907223 -0.2107512387 -0.1799582678 0.2107512387 0.1799582678 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000
+12 -0.0168385242 0.0498818859 -0.0001159647 0.1914307456 -0.2417661435 -0.0000000000 0.0490594403 -0.0843754987 -0.0000000000 0.0138181247 -0.0000000000 -0.0137292798 0.0000000000 0.0185619845 -0.0251743167 0.0506999827 0.1416614567 -0.2449725488 0.0861694331 0.0000000000 -0.1197988838 0.0793818979 0.0000000000 0.0016264111 -0.0000000000 -0.0066081541 0.0000000000 0.0095785425 0.0555540701 -0.1216965846 -0.2446425909 -0.2143043587 0.3725717779 0.0000000000 -0.1403111367 0.2679137902 0.0000000000 -0.0143367358 0.0000000000 -0.0128323519 -0.0000000000 -0.0015370685 -0.1134456174 -0.1314349890 -0.1134456174 -0.1314349890 -0.0558621713 -0.0770827211 -0.0558621713 -0.0770827211 -0.0103308001 -0.0475648897 0.1395994749 0.0987516141
+13 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.1928957959 -0.0000000000 -0.0000000000 0.0121844989 0.0000000000 0.0358147883 -0.0000000000 0.0029593697 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0395664479 -0.0000000000 0.0000000000 0.0375740057 -0.0000000000 0.0071303921 -0.0000000000 -0.0066757697 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.5817618932 -0.0000000000 0.0000000000 -0.4517602449 -0.0000000000 -0.0173920312 -0.0000000000 0.0161508726 0.0000000000 0.1553133584 0.2096699426 -0.1553133584 -0.2096699426 -0.0373353112 -0.0892365000 0.0373353112 0.0892365000 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000
+14 -0.0398647364 0.0200448883 0.8239587732 0.0094625437 0.2105484475 0.0000000000 0.0829230852 0.4169866540 0.0000000000 0.0128032328 -0.0000000000 -0.0043575945 0.0000000000 -0.0001999778 -0.0254768219 0.0406081616 0.2710168530 0.0546398168 0.0211961937 0.0000000000 0.2641153236 0.0459748127 0.0000000000 -0.0163361989 -0.0000000000 0.0029951361 -0.0000000000 -0.0019051391 -0.0745842401 0.1408110214 0.8428753199 -0.2161596884 0.0982716926 0.0000000000 -0.3922373059 0.1445173768 0.0000000000 -0.0109879467 0.0000000000 -0.0092548498 -0.0000000000 0.0001084359 -0.0086301976 -0.5323091835 -0.0086301976 -0.5323091835 0.0269638322 -0.0958328190 0.0269638322 -0.0958328190 -0.0605364155 -0.4541319199 -0.1199841795 -1.1859837513
+15 -0.0724185065 0.1186510115 1.0147245981 -0.1281759784 0.0372744144 0.0000000000 -0.4821972015 0.2411490940 -0.0000000000 -0.0142777294 -0.0000000000 -0.0033534514 0.0000000000 0.0065317713 -0.1041601164 0.1150915039 1.7906976375 0.1303092631 -0.0159872449 0.0000000000 0.3557297804 -0.2348768600 0.0000000000 0.0052810283 0.0000000000 -0.0091354393 -0.0000000000 0.0060976582 0.0343458805 -0.0487197419 -0.4777577907 0.1022686149 -0.1544233387 0.0000000000 0.1774968908 -0.2424938638 0.0000000000 0.0107890885 0.0000000000 0.0008159316 0.0000000000 -0.0037329517 -0.0143169719 -0.7172614046 -0.0143169719 -0.7172614046 -0.0428842793 -0.9057661414 -0.0428842793 -0.9057661414 0.0251683358 -0.6630680951 0.0352091631 0.4843964770
+16 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.3497457597 -0.0000000000 -0.0000000000 0.8548077622 0.0000000000 -0.0066113746 0.0000000000 0.0194445257 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.2682348262 -0.0000000000 0.0000000000 0.6783856601 0.0000000000 0.0095654997 0.0000000000 -0.0196229553 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0387069658 -0.0000000000 0.0000000000 -0.1450679195 -0.0000000000 0.0024811225 0.0000000000 0.0091343257 0.0000000000 -0.0712640778 -1.1166701500 0.0712640778 1.1166701500 -0.0761920166 -0.9444697580 0.0761920166 0.9444697580 -0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000
+17 0.1173110743 -0.1222596376 -2.0376579617 0.0415814474 -0.1370883371 -0.0000000000 -0.1291890161 -0.4369652051 -0.0000000000 0.0009800120 0.0000000000 0.0010779825 -0.0000000000 0.0003268214 -0.1117120933 0.0986764010 1.9691007278 0.0627428142 -0.0285308925 -0.0000000000 -0.0917808311 0.1099487089 -0.0000000000 0.0037103520 -0.0000000000 0.0059069648 0.0000000000 -0.0011767227 -0.0281724095 0.0553237881 0.3206197535 -0.0484072396 0.0508942224 0.0000000000 -0.1022043284 0.1313296584 0.0000000000 -0.0043048959 -0.0000000000 0.0015191894 -0.0000000000 0.0018412258 0.0468466278 1.1042792311 0.0468466278 1.1042792311 -0.0151507147 -0.7313801567 -0.0151507147 -0.7313801567 -0.0242791035 -0.7604809365 -0.0543501735 -0.4040096449
+18 0.0089136491 -0.0319861346 -0.0375102162 0.0409147430 0.0643379414 -0.0000000000 0.0994967047 -0.2480250685 -0.0000000000 0.0241582191 0.0000000000 0.0004038817 -0.0000000000 0.0001818760 -0.0038062152 -0.0007105622 0.0681938429 0.1208896549 0.3882233886 -0.0000000000 0.3763851994 1.3014153452 0.0000000000 -0.0108539131 -0.0000000000 0.0110296656 0.0000000000 0.0013922244 0.0004922996 0.0286635128 -0.2207296689 0.1477619378 0.0477763370 0.0000000000 0.1870712566 0.0065338496 0.0000000000 -0.0014638842 -0.0000000000 0.0104103027 -0.0000000000 -0.0093389559 -0.0087252015 0.0664913662 -0.0087252015 0.0664913662 0.0429767652 0.7665928293 0.0429767652 0.7665928293 -0.1027811055 -1.8078976238 0.0070216601 0.4017578336
+19 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.3210481353 0.0000000000 -0.0000000000 1.1537805692 0.0000000000 -0.0014907681 -0.0000000000 -0.0126304609 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.2978770457 0.0000000000 0.0000000000 -1.3099502757 -0.0000000000 -0.0155877041 0.0000000000 -0.0129638759 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.1089270209 -0.0000000000 0.0000000000 -0.1977429345 -0.0000000000 0.0000086166 0.0000000000 0.0137287574 -0.0000000000 -0.0060074307 -1.0667963917 0.0060074307 1.0667963917 0.0632348269 1.2324732404 -0.0632348269 -1.2324732404 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000
+20 0.0557540120 -0.0742568494 -0.6311293257 0.2678137422 0.2604160636 -0.0000000000 0.8395734759 1.2728871674 -0.0000000000 0.0122198370 -0.0000000000 -0.0178786885 0.0000000000 -0.0269028079 0.0001153554 -0.0288397260 0.0799377538 0.1107073951 -0.1121192638 0.0000000000 0.2151143279 -0.6786558620 0.0000000000 -0.0217998165 0.0000000000 -0.0095015918 -0.0000000000 -0.0058833289 -0.0481086822 0.0749355194 0.7376958120 0.2689969591 0.2851203346 0.0000000000 0.5890802967 0.6401870470 -0.0000000000 0.0066174838 0.0000000000 -0.0091870000 -0.0000000000 -0.0032153975 -0.0248516325 -0.0704809992 -0.0248516325 -0.0704809992 0.0063077824 -0.3944718749 0.0063077824 -0.3944718749 -0.0643721960 0.2456678104 0.0825235732 0.7553175493
+21 0.0901834502 -0.1085838129 -1.6855150908 -0.3028248290 0.2175399959 0.0000000000 -1.4826399085 0.9446518439 0.0000000000 -0.0035879685 -0.0000000000 -0.0226389675 -0.0000000000 0.0094994927 -0.0666681998 0.0241789671 1.4132561912 -0.2753126226 0.0969941167 -0.0000000000 -1.7892840711 0.1750572021 -0.0000000000 0.0034521880 -0.0000000000 0.0103117415 -0.0000000000 -0.0309580500 -0.0241150699 0.0270586719 0.4032016274 0.0827187171 0.0446642548 -0.0000000000 0.3237711488 0.1396888405 -0.0000000000 -0.0134528043 0.0000000000 -0.0049413064 0.0000000000 -0.0113828658 -0.0720118822 -0.3914256845 -0.0720118822 -0.3914256845 0.0578608632 0.2529912302 0.0578608632 0.2529912302 0.0425658351 0.2225492529 -0.0211923486 -0.0095475071
+22 -0.0257960351 0.0461738124 -0.2470149275 -0.5680054564 0.0969760590 -0.0000000000 1.0484765191 -0.5384350706 0.0000000000 0.0300275320 0.0000000000 0.0733827176 -0.0000000000 -0.0599974918 0.0013667428 -0.0674374819 -0.5819740667 0.5702183502 -0.3351629521 0.0000000000 -0.6736455762 0.6099175642 -0.0000000000 0.0155229676 -0.0000000000 0.0651212553 -0.0000000000 -0.0590011687 0.0201538332 -0.0791541896 -0.0683043777 0.0239769737 0.0068064124 -0.0000000000 -0.2099163869 0.0163113584 -0.0000000000 0.0191038165 -0.0000000000 -0.0010670649 -0.0000000000 -0.0080119954 0.1177531472 0.0928561111 0.1177531472 0.0928561111 0.1668558596 0.0787808248 0.1668558596 0.0787808248 0.0177059050 -0.0479188266 0.0427393422 0.1607130798
+23 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.1856962004 0.0000000000 -0.0000000000 0.2621489321 0.0000000000 -0.0516603890 -0.0000000000 0.0602733318 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.6152704902 0.0000000000 0.0000000000 1.1879357187 -0.0000000000 0.0962374725 0.0000000000 -0.0506264935 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.1167581506 -0.0000000000 -0.0000000000 -0.0138316143 -0.0000000000 -0.0027642368 0.0000000000 0.0265284406 -0.0000000000 -0.2932871707 0.0323670059 0.2932871707 -0.0323670059 -0.4127439633 -0.1138925967 0.4127439633 0.1138925967 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000
+24 0.0227650717 -0.3815570373 0.6045241811 0.3056993114 0.8933632828 -0.0000000000 -0.3603878809 -1.6704356485 0.0000000000 0.0443540609 0.0000000000 0.0091788689 -0.0000000000 -0.0333001335 0.0004105880 0.0204843016 -0.1577970171 0.0448498755 -0.0309545905 -0.0000000000 0.0445190055 0.1908458505 0.0000000000 0.0056359192 0.0000000000 -0.0055188214 0.0000000000 -0.0140113943 -0.0057469767 0.1230970365 -0.8333685945 0.0900646848 0.2587141267 0.0000000000 -0.2120431927 -0.2309735856 0.0000000000 -0.1078088533 0.0000000000 0.0727923194 0.0000000000 0.0482617780 0.1546545327 0.1523957698 0.1546545327 0.1523957698 -0.0572239717 -0.0103917786 -0.0572239717 -0.0103917786 0.1497251772 0.0213708117 0.0550849133 -0.2644888835
+25 0.0062679845 -0.0997507161 0.6499076912 -0.1353613681 0.2157785290 0.0000000000 0.2433422014 -0.9255151109 -0.0000000000 0.0340244964 0.0000000000 -0.0345486806 -0.0000000000 0.0491160991 -0.0152887174 0.1640341894 -0.3912402582 -0.4982754643 -0.5436382437 0.0000000000 1.0243557460 1.2943928434 -0.0000000000 -0.0672245112 -0.0000000000 0.0874132059 0.0000000000 0.0185555381 -0.0206210005 0.1661618006 -0.4687251051 0.1912211003 -0.0186031170 0.0000000000 -0.2585743460 -0.1146475896 0.0000000000 -0.0212534172 0.0000000000 0.0417708224 -0.0000000000 -0.0583926243 -0.0759074011 0.2056293828 -0.0759074011 0.2056293828 0.1503641994 0.0368593547 0.1503641994 0.0368593547 -0.4596115409 -0.2989582840 -0.2758219047 0.1766931237
+26 0.0412257277 -0.2507416130 0.8877032314 -0.7956819023 0.1100986525 -0.0000000000 1.9395219481 -0.2399071371 0.0000000000 -0.0223551274 -0.0000000000 -0.0236226060 0.0000000000 0.0468823443 -0.0393077626 0.2824882759 -1.0891316181 -0.6086074376 0.3554429354 0.0000000000 1.4514009504 -0.9198523683 -0.0000000000 0.0476385609 0.0000000000 0.0041366368 -0.0000000000 -0.0801822723 0.0023802379 -0.0351027590 0.1296039859 0.0290514124 0.1135119064 -0.0000000000 -0.0795332905 0.0749625050 -0.0000000000 0.0028523267 -0.0000000000 -0.0128250864 -0.0000000000 -0.0158499039 0.1751853398 0.2707792606 0.1751853398 0.2707792606 -0.1848190070 -0.3069260800 -0.1848190070 -0.3069260800 0.0772568624 -0.0670086333 0.0325649376 0.2752118276
+27 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.7204755675 0.0000000000 -0.0000000000 -2.0739125511 -0.0000000000 0.0773281247 -0.0000000000 -0.0331359130 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.5595023635 0.0000000000 -0.0000000000 1.6268704912 0.0000000000 0.0471057338 0.0000000000 0.0566467013 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.3412797994 -0.0000000000 0.0000000000 0.0582723836 0.0000000000 -0.0002871975 -0.0000000000 -0.0016104211 -0.0000000000 0.2583728687 0.5951023269 -0.2583728687 -0.5951023269 -0.0242613989 -0.5607957661 0.0242613989 0.5607957661 0.0000000000 -0.0000000000 0.0000000000 0.0000000000
+28 0.0240445786 -0.1536868897 -0.0405555130 0.0879445401 -0.1480744103 -0.0000000000 -0.3470605712 0.0993891735 0.0000000000 -0.1118462416 0.0000000000 0.0517411759 -0.0000000000 -0.0332930305 0.0047441167 -0.1509075948 0.5214853683 -0.2439777528 -0.1870147108 -0.0000000000 0.1166760469 0.6181144195 0.0000000000 0.0479369118 -0.0000000000 0.0284659099 0.0000000000 0.0154872162 -0.0012116800 0.0457849558 0.0842694173 0.4063452059 -0.4027822025 -0.0000000000 0.0604690742 0.4254420673 -0.0000000000 -0.0171400463 -0.0000000000 -0.0768107215 -0.0000000000 0.1162890411 0.3167179966 -0.2975334924 0.3167179966 -0.2975334924 0.0928772558 0.1024343837 0.0928772558 0.1024343837 0.1138369547 -0.5222268876 0.8489040417 -0.6790480609
+29 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.8637633318 0.0000000000 -0.0000000000 -1.5596446829 -0.0000000000 -0.1637542772 0.0000000000 0.0649018217 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.3420953692 0.0000000000 0.0000000000 -0.5255903129 -0.0000000000 0.0174745646 0.0000000000 -0.0603263988 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.1655258569 0.0000000000 0.0000000000 0.3017119959 -0.0000000000 0.0710295337 -0.0000000000 0.0222751422 0.0000000000 -0.6019390985 1.4985267120 0.6019390985 -1.4985267120 -0.1012162214 0.4849659376 0.1012162214 -0.4849659376 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000
+30 -0.0411482770 0.1718042638 -0.5529396021 -0.2260074504 0.3532839964 -0.0000000000 0.2358731522 -0.3907293731 0.0000000000 0.0101813539 0.0000000000 -0.0339400584 -0.0000000000 0.0657306576 -0.0392731329 0.0863248461 -0.0504235932 0.2814711833 0.3811202806 0.0000000000 -0.1142941334 -0.6336903102 -0.0000000000 -0.0904773109 0.0000000000 0.0328604180 0.0000000000 0.0472285716 0.0265762379 -0.2214925763 0.2038600742 0.0921220048 -0.2906281840 0.0000000000 -0.0158602231 0.2983799316 -0.0000000000 -0.0672348181 -0.0000000000 -0.0337859790 -0.0000000000 0.0429615092 -0.4670305319 0.6019064278 -0.4670305319 0.6019064278 -0.1598119485 -0.2532368340 -0.1598119485 -0.2532368340 -0.7090555054 0.9468141979 0.4318660086 -0.4808906264
+31 -0.0165492455 0.1317811938 -0.6102173141 -0.1304438540 0.1560734313 0.0000000000 0.1129918900 0.1953577868 0.0000000000 -0.0766446585 -0.0000000000 -0.0517215775 -0.0000000000 0.0029877876 -0.0285469327 0.0379316684 0.1473647965 -0.0094956491 -0.7475515357 -0.0000000000 0.1298870303 1.0946817734 0.0000000000 0.1145014025 -0.0000000000 -0.1471467115 0.0000000000 0.0011579624 -0.0076482388 -0.0227610448 0.2597726178 -0.1194208451 -0.1549261978 -0.0000000000 0.3710923119 0.3143172459 0.0000000000 -0.0074388315 0.0000000000 -0.0167317699 0.0000000000 -0.0053934793 -0.3057626420 0.2205464869 -0.3057626420 0.2205464869 -0.5890190505 0.8176305817 -0.5890190505 0.8176305817 0.4494161986 -1.3315569200 0.0643505902 0.1207523076
+32 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.0465224561 -0.0000000000 0.0000000000 -0.0361383043 -0.0000000000 0.0747499601 -0.0000000000 0.0563366472 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.7265539059 -0.0000000000 0.0000000000 -1.0083637137 0.0000000000 0.1955559872 -0.0000000000 -0.0669769915 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 0.2727128283 0.0000000000 0.0000000000 -0.2435757136 -0.0000000000 -0.0422843635 0.0000000000 -0.0021131647 0.0000000000 0.2339719378 -0.1418223442 -0.2339719378 0.1418223442 -0.6861004288 1.2886994244 0.6861004288 -1.2886994244 0.0000000000 -0.0000000000 0.0000000000 0.0000000000
+33 0.0209212434 -1.0471352608 2.3538918160 0.1012803046 -0.3823758841 0.0000000000 -0.6508769621 0.4797841725 -0.0000000000 -0.0182271665 -0.0000000000 0.0220965351 -0.0000000000 -0.0233907620 -0.0613251784 0.5639034603 -0.9510694348 0.2860947441 -0.1608867501 -0.0000000000 -0.2933079007 0.4346373417 0.0000000000 0.0004145071 -0.0000000000 0.0219755911 0.0000000000 0.0530734031 0.0226095733 -0.1397563068 -0.2009795939 -0.0682084926 0.2619940565 -0.0000000000 0.0992484365 -0.5388731832 0.0000000000 -0.0366450767 0.0000000000 0.0063723543 0.0000000000 0.0319207804 0.3089128654 -1.0797581874 0.3089128654 -1.0797581874 -0.4182990331 0.6266202409 -0.4182990331 0.6266202409 -0.5909974163 0.4402748454 0.1232453744 -0.1659867649
+34 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.1543590772 0.0000000000 0.0000000000 1.1707108895 -0.0000000000 -0.1369158672 0.0000000000 0.0680561235 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.0398110214 -0.0000000000 -0.0000000000 -0.5597884043 -0.0000000000 -0.0795607840 -0.0000000000 -0.0901851085 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.8276682390 -0.0000000000 0.0000000000 -1.2386058720 0.0000000000 0.0871439331 0.0000000000 0.0837379816 -0.0000000000 -0.2863089625 -0.1700293933 0.2863089625 0.1700293933 0.1723552989 0.0826534460 -0.1723552989 -0.0826534460 0.0000000000 0.0000000000 -0.0000000000 0.0000000000
+35 -0.0295445854 -0.5235063411 1.2450179295 -0.0938396520 -0.0618249178 -0.0000000000 -0.5794177954 -0.0030264064 0.0000000000 0.0301619353 -0.0000000000 -0.0541694651 0.0000000000 -0.0670485304 -0.0042788481 -1.4297572515 3.1400193723 -0.2301800954 -0.1332060413 0.0000000000 0.6034795059 0.4001402127 -0.0000000000 0.0210764897 -0.0000000000 0.0485538533 -0.0000000000 -0.0207341013 0.0595838628 -0.4874330087 0.1381205311 -0.0523475262 0.4079766330 0.0000000000 0.0858327837 -0.8393023138 -0.0000000000 -0.0473478735 0.0000000000 -0.0459206137 0.0000000000 0.0582197570 -0.2579729443 -0.2013760874 -0.2579729443 -0.2013760873 0.1115042347 -0.7722612904 0.1115042347 -0.7722612904 0.0430119795 -1.1388920620 0.3897525732 -0.5573694598
+36 0.0184215115 1.0686040682 -1.4447677059 0.0494910470 0.0067514200 -0.0000000000 -0.3876423951 -0.5095069561 -0.0000000000 0.0334290740 0.0000000000 -0.1346031445 -0.0000000000 -0.0239594392 0.0100386077 0.9404894396 -1.5521502556 0.0079704827 -0.1018967117 -0.0000000000 -0.4677109844 0.2827564544 0.0000000000 -0.0228518103 -0.0000000000 -0.0379520628 0.0000000000 0.0501239483 0.0315034031 -0.2090756546 0.2136454488 0.4322540446 0.4903466483 -0.0000000000 -0.5443237987 -0.8272950858 0.0000000000 0.0465574424 -0.0000000000 -0.0932714688 -0.0000000000 0.0058924148 -0.0498214584 0.5913030519 -0.0498214584 0.5913030519 -0.0054733035 0.5952447010 -0.0054733035 0.5952447010 0.1221553607 0.3617110348 0.3830182097 -0.7118461651
+37 0.0573284289 1.1893657004 -3.4427892163 -0.0409119306 0.1488346293 -0.0000000000 -0.6854492746 -0.0407136627 0.0000000000 -0.1572669395 -0.0000000000 -0.0337774969 0.0000000000 -0.0500662678 -0.0256903676 -0.1742483148 1.6192807400 -0.1413334311 -0.0640661001 0.0000000000 -0.4224744800 0.8328446109 -0.0000000000 0.0878319091 -0.0000000000 0.0846993434 -0.0000000000 0.1622713860 -0.0243804566 0.4140871855 -0.3766899104 -0.6309842354 0.1509097948 0.0000000000 1.4968595326 0.0248257233 -0.0000000000 0.0001169101 0.0000000000 -0.1216008446 0.0000000000 0.0515458961 0.2308857794 0.4320247698 0.2308857794 0.4320247698 0.0302745282 0.0500630422 0.0302745282 0.0500630422 -0.3414180710 -0.2758680567 0.2685002373 0.7793686551
+38 -0.0619282243 -0.7298450455 2.7786073821 0.0061497119 0.0047287056 0.0000000000 1.4030665276 0.2347594306 -0.0000000000 -0.1167173757 0.0000000000 -0.0418394083 0.0000000000 0.0429676942 0.1067467427 1.6106022713 -4.8603765436 -0.1287197972 -0.0671845118 -0.0000000000 1.2021627628 0.1378842330 0.0000000000 0.0714362245 -0.0000000000 0.0445088140 -0.0000000000 0.0437978066 0.0335065998 -0.6321169225 0.6707093949 -0.3627541372 -0.0902047010 -0.0000000000 0.7597088406 0.2491726410 0.0000000000 -0.1615822613 -0.0000000000 0.1558174758 -0.0000000000 0.0161056596 -0.2338993037 -0.1564012598 -0.2338993037 -0.1564012598 0.4912502996 0.5037709862 0.4912502996 0.5037709862 0.3685786999 0.1978088671 0.1976126528 0.1951004520
+39 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0738999182 0.0000000000 0.0000000000 0.1709879044 -0.0000000000 -0.2366493779 -0.0000000000 -0.5843157996 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.0836286349 0.0000000000 -0.0000000000 0.1468893092 0.0000000000 0.1504887338 0.0000000000 0.4665748992 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 0.0082998882 0.0000000000 0.0000000000 -0.1564209392 0.0000000000 0.3984627607 0.0000000000 0.1345202842 0.0000000000 0.0082152476 -0.1321086638 -0.0082152476 0.1321086638 -0.1460442799 -0.0025492242 0.1460442799 0.0025492242 0.0000000000 0.0000000000 0.0000000000 0.0000000000
+40 0.0362764007 0.4815402659 -1.6971940646 0.0470084034 -0.0900704755 -0.0000000000 -0.1389787378 0.1890472964 0.0000000000 0.3762769597 -0.0000000000 0.2107439047 -0.0000000000 0.3791932368 -0.0038135338 -0.1205881497 0.6983764054 -0.0438966114 -0.1441206731 0.0000000000 -0.2330313512 0.1807532239 -0.0000000000 -0.3460507913 0.0000000000 -0.2007856122 0.0000000000 -0.1785250070 0.0122216934 -0.2442104865 0.5086388994 -0.1456287468 -0.0463125812 0.0000000000 0.6329915906 0.1666173436 -0.0000000000 -0.3526054535 0.0000000000 -0.1110727872 -0.0000000000 -0.2620545585 0.2516142972 0.1428030823 0.2516142972 0.1428030823 -0.0508568420 0.0202845470 -0.0508568420 0.0202845470 0.0959612985 -0.1846998617 0.2442639861 0.1469653365
+41 0.1062287964 1.2956615593 -5.1243703456 0.1144955365 0.0801263393 -0.0000000000 -0.5058209300 0.9142082400 -0.0000000000 -0.2109128937 -0.0000000000 0.0526937528 0.0000000000 -0.0242313061 -0.0619228560 -0.6717644225 3.0563596636 -0.0748670970 0.0029429704 0.0000000000 -1.0066821581 0.1899334871 0.0000000000 0.0994155072 -0.0000000000 -0.0438127450 -0.0000000000 0.0483971485 0.0109735580 -1.2668670026 3.0415322348 0.0709251165 -0.1261009428 -0.0000000000 0.0833529115 1.0776505843 0.0000000000 0.0034482197 -0.0000000000 0.4135576370 0.0000000000 0.0342966514 0.3775852564 0.3669738383 0.3775852564 0.3669738383 -0.1817408299 -0.1159673404 -0.1817408299 -0.1159673404 -0.2706841309 -0.2499353247 -0.3269473242 -0.2068475450
+42 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.0030764940 -0.0000000000 0.0000000000 0.4435157195 -0.0000000000 0.2029007043 0.0000000000 -0.0871315272 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0210160958 -0.0000000000 0.0000000000 -0.1310499405 0.0000000000 0.0747952295 -0.0000000000 -0.0338560194 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.0534676001 0.0000000000 0.0000000000 -0.1691116256 0.0000000000 0.3218515762 0.0000000000 -0.9073894101 0.0000000000 -0.1808096453 -0.1613923279 0.1808096453 0.1613923279 0.0335742784 0.0553251134 -0.0335742784 -0.0553251134 -0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000
+43 0.0053780312 -0.0880581389 0.0051526480 -0.0616747664 -0.0370946814 -0.0000000000 0.6260942245 0.4024005686 0.0000000000 -0.1339497573 0.0000000000 -0.0002395870 -0.0000000000 0.2944600012 0.0117648187 -0.2856456538 0.0023543959 0.2006556815 0.0798868426 -0.0000000000 -0.1575860815 -0.5963484951 0.0000000000 0.4269179367 -0.0000000000 0.2555914556 -0.0000000000 0.5393700858 -0.0182991290 0.0052519639 0.4219586307 0.2157838134 0.0394440246 0.0000000000 -0.3651259848 0.2004566342 -0.0000000000 -0.4001979249 0.0000000000 -0.1494645628 -0.0000000000 -0.3530280671 0.0215739027 -0.0284056200 0.0215739027 -0.0284056200 0.0116985942 -0.1765652792 0.0116985942 -0.1765652792 0.1399255260 0.1906900334 -0.1453497730 0.0138838456
+44 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.0227539712 0.0000000000 0.0000000000 1.3217148111 -0.0000000000 0.3702049114 -0.0000000000 0.1498630838 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.0545898824 -0.0000000000 0.0000000000 -0.8556047727 -0.0000000000 0.4044440045 0.0000000000 0.7046711517 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.1364590656 -0.0000000000 0.0000000000 -0.3806148886 -0.0000000000 -0.4362202069 0.0000000000 -0.0429507992 0.0000000000 -0.4537908579 -0.3237437601 0.4537908579 0.3237437601 0.1789781747 0.2243122178 -0.1789781747 -0.2243122178 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000
+45 -0.0159702171 0.3456291334 -0.2636414844 0.2891800215 -0.0077617727 0.0000000000 -0.3451983899 0.4179141701 0.0000000000 0.3161204435 0.0000000000 0.4693833205 0.0000000000 -0.3132326194 -0.0245544447 0.3272454686 0.0882879120 -0.2371428411 0.0297547096 0.0000000000 0.2042721508 -0.3162567753 -0.0000000000 0.3507657925 0.0000000000 0.5391778955 0.0000000000 -0.2698101310 0.0084133429 -0.0999342504 0.2140189143 -0.0347379422 -0.0496464301 0.0000000000 0.2149846955 0.0435594338 -0.0000000000 -0.0431078362 -0.0000000000 -0.0007848951 0.0000000000 -0.2031067669 -0.2059182206 0.0117534812 -0.2059182206 0.0117534812 -0.2429838856 0.0105164285 -0.2429838856 0.0105164285 -0.0532002356 0.0975521070 0.1742019820 -0.0469846608
+46 0.0154176884 -0.2043798982 -0.1831218211 0.1957447996 0.2001248098 0.0000000000 0.2303740151 -0.5826009730 0.0000000000 0.2428576359 0.0000000000 -0.6501058084 -0.0000000000 -0.3132135476 0.0018707984 0.0372280453 -0.2360987525 0.0180983141 0.0292264500 0.0000000000 0.1787780251 0.2645377695 -0.0000000000 0.2285140325 0.0000000000 -0.1325284148 0.0000000000 -0.1262111039 0.0287650916 -0.5035657304 0.4556554269 -0.1017760719 -0.3232744449 0.0000000000 -0.1698904658 0.4033649978 -0.0000000000 -0.0482411337 -0.0000000000 -0.4292985373 -0.0000000000 -0.2512740052 0.3281511685 0.0940642178 0.3281511685 0.0940642178 0.0943049359 0.0178759739 0.0943049359 0.0178759739 -0.2455064649 -0.0027414505 -0.2239997895 -0.0677137979
+47 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.1076116130 -0.0000000000 0.0000000000 0.3414330367 0.0000000000 0.1240291481 0.0000000000 -0.6122032973 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 0.1090411796 -0.0000000000 -0.0000000000 0.3273651617 -0.0000000000 -0.7190763071 -0.0000000000 0.0448985829 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.1056742640 0.0000000000 0.0000000000 -0.2867220456 0.0000000000 -0.5397234383 0.0000000000 -0.1470240916 0.0000000000 -0.3066986233 -0.0345883238 0.3066986233 0.0345883238 -0.4462573799 0.0106183565 0.4462573799 -0.0106183565 0.0000000000 0.0000000000 -0.0000000000 0.0000000000
+48 0.0299632636 -0.0585343990 -0.7211586058 -0.0511745959 0.0776430189 -0.0000000000 -0.2044150364 0.2979336774 -0.0000000000 0.4290475896 -0.0000000000 -0.1911027227 0.0000000000 0.1025509010 -0.0075512019 -0.0716595554 0.4500877171 -0.0570673798 -0.1277127025 -0.0000000000 -0.3873176284 -0.3960797219 -0.0000000000 -0.4494837189 -0.0000000000 0.6012199433 0.0000000000 0.5063562823 0.0156159649 -0.2431304787 0.3760052483 -0.1109852811 -0.1536232553 -0.0000000000 0.2802116638 0.2328323152 0.0000000000 0.3471063647 0.0000000000 0.0739682543 -0.0000000000 0.1309035390 0.1825097614 -0.0576311589 0.1825097614 -0.0576311589 -0.2783671308 0.0197296633 -0.2783671308 0.0197296633 0.6519902342 -0.0447491687 0.0683073376 0.0326785706
+49 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0290629472 -0.0000000000 -0.0000000000 -0.2250331966 0.0000000000 -0.4423027822 0.0000000000 0.6204310595 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0555323775 -0.0000000000 0.0000000000 0.2409177495 0.0000000000 -0.6016762815 -0.0000000000 0.6321213822 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.0194298756 0.0000000000 -0.0000000000 0.0583616111 0.0000000000 0.1205174801 0.0000000000 -0.1802805763 -0.0000000000 0.3573538325 -0.0840773453 -0.3573538325 0.0840773453 -0.4430855556 0.1015652357 0.4430855556 -0.1015652357 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000
+50 0.0178977695 -0.1702630797 -0.1301684720 -0.1152770285 0.0819035750 -0.0000000000 -0.7498896586 0.0865056867 0.0000000000 0.5296744496 0.0000000000 0.1381250850 -0.0000000000 0.0734474930 -0.0160777160 -0.0765170901 0.7199980406 -0.0992406356 0.0362751749 -0.0000000000 -0.3706175719 0.3169481323 -0.0000000000 0.4490180600 0.0000000000 -0.5115707187 -0.0000000000 0.3483400284 0.0167747499 0.2656802776 -0.7759446566 -0.0882988763 -0.0015615062 0.0000000000 0.7014221879 -0.3171728275 -0.0000000000 0.4668247875 -0.0000000000 0.4515611966 0.0000000000 -0.2609105181 0.0087645637 -0.1527226705 0.0087645637 -0.1527226705 0.2460047270 -0.0511926101 0.2460047270 -0.0511926101 -0.3391622544 0.0275406224 0.8336245132 -0.0182048659
+51 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.0467900690 -0.0000000000 -0.0000000000 0.1968389847 -0.0000000000 -0.9124585467 -0.0000000000 -0.1445987749 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.0626733964 -0.0000000000 0.0000000000 -0.1391275621 -0.0000000000 0.3957438715 0.0000000000 -0.0956070724 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.0429991909 0.0000000000 -0.0000000000 -0.2429355541 -0.0000000000 -0.5976406318 0.0000000000 -0.3711825027 -0.0000000000 0.3274704457 -0.2146345657 -0.3274704457 0.2146345657 0.2277657472 -0.0397465238 -0.2277657472 0.0397465238 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000
+52 0.0523176081 0.1097218826 -1.5557321784 0.0203986650 0.2582943902 -0.0000000000 -0.1003259391 0.7250245959 -0.0000000000 0.1739995895 -0.0000000000 0.5173185464 0.0000000000 0.2154783866 -0.0132589809 0.1130616589 0.3815033546 -0.1631942277 -0.0185202013 -0.0000000000 -0.3170237131 0.1055204589 -0.0000000000 0.2733510186 0.0000000000 -0.2436606342 0.0000000000 0.2606378138 -0.0235786508 -0.6953493546 1.9062100592 -0.0069735568 -0.0269585505 -0.0000000000 -0.0588093831 0.6792007428 0.0000000000 0.2013724677 -0.0000000000 -0.6680418219 -0.0000000000 0.6691926031 -0.0225668372 0.0283365397 -0.0225668372 0.0283365397 0.1071659494 0.0733713364 0.1071659494 0.0733713364 -0.1209587867 -0.0199798962 -0.9171783671 0.0618198384
+53 0.0655122820 -0.0378796480 -1.6448843767 -0.1981858055 0.2329695146 -0.0000000000 -0.5583524902 0.2338531621 0.0000000000 -0.2246582625 0.0000000000 0.5440115826 -0.0000000000 -0.7920139331 -0.0508113764 -0.0631994196 1.2188660569 -0.3156736903 0.0770971853 0.0000000000 -0.7749290061 0.0965336845 -0.0000000000 -0.5005249342 -0.0000000000 -0.3518163866 0.0000000000 0.6127583433 -0.0049154659 -0.2377755384 0.6532752818 0.0190626996 -0.0436714079 0.0000000000 0.0112194932 0.3717948477 -0.0000000000 -0.0135979203 -0.0000000000 -0.1827154268 -0.0000000000 -0.4408656810 -0.1261698145 0.1196695424 -0.1261698145 0.1196695424 0.0266278372 -0.0136647780 0.0266278372 -0.0136647780 0.1774051016 -0.0583723904 0.0191439359 -0.1162400484
+54 0.0395239315 -0.3249025535 -1.0223424431 0.4604228980 0.6299154465 -0.0000000000 0.6016840609 0.6624592543 0.0000000000 -0.7195334830 0.0000000000 0.2944922836 0.0000000000 0.6317506900 0.0285995523 0.0662427479 -0.3972085098 0.1089198146 -0.0586597451 -0.0000000000 0.2829808792 0.0490815785 0.0000000000 0.0019545063 0.0000000000 0.1758144209 -0.0000000000 -0.2818586099 -0.0357021960 -0.5740836396 1.7422872139 -0.0597577022 0.0326842929 0.0000000000 0.9875202529 1.0955904983 -0.0000000000 0.8669305641 -0.0000000000 -0.3919667405 0.0000000000 -0.6786769484 -0.0012368932 0.0837790368 -0.0012368932 0.0837790368 -0.0192794540 0.0689170691 -0.0192794540 0.0689170691 0.0061506523 -0.1416469294 0.3596958404 0.1765734843
+end mo_coefficients
+polarizability_field_step 0.001000000000
+polarizability_isotropic 26.345478570323
+polarizability_anisotropy 5.195145198295
+begin polarizability  # rows xx xy xz / yx yy yz / zx zy zz (a.u., bohr^3)
+29.365986951851 0.986307403575 0.000000000044
+0.986307403575 25.922011274009 -0.000000000016
+0.000000000044 -0.000000000016 23.748437485109
+end polarizability
+hessian_step 0.005000000000
+max_gradient 1.2365e-04
+vib_transrot 6
+vib_imaginary 0
+begin transrot_residual  # smallest frequencies (cm-1) before projection
+0.0075
+-1.7234
+-3.9690
+7.3513
+10.4273
+19.1085
+end transrot_residual
+begin vibrations  # index frequency(cm-1) ir_intensity(km/mol); imaginary frequencies are negative
+1 0.0000 0.0000
+2 0.0000 0.0000
+3 0.0000 0.0000
+4 0.0000 0.0000
+5 0.0000 0.0000
+6 0.0000 0.0000
+7 251.0541 29.8722
+8 304.0804 101.3192
+9 417.4842 11.2176
+10 829.7563 0.0143
+11 912.0314 9.7117
+12 1042.0780 56.6809
+13 1125.3169 23.4861
+14 1193.5124 4.7829
+15 1290.9988 87.5426
+16 1309.7841 0.0907
+17 1427.7351 0.4041
+18 1480.8073 16.5523
+19 1513.4224 4.3856
+20 1531.4405 3.0721
+21 1560.4873 2.5973
+22 2979.1197 74.0477
+23 3002.2235 78.0805
+24 3054.5976 15.8373
+25 3125.1499 31.7889
+26 3129.7297 34.6895
+27 3742.5714 10.2159
+end vibrations
+begin normal_modes  # index then x y z of every atom, Cartesian displacements of unit length
+1 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000
+2 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000
+3 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000
+4 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000
+5 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000
+6 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000
+7 0.00000000 -0.00000000 -0.05296549 0.00000000 0.00000000 -0.01464549 -0.00000000 0.00000000 0.08579819 -0.00361173 0.08340568 -0.10870850 0.00361173 -0.08340568 -0.10870850 -0.14409161 -0.42387879 -0.24412719 0.14409161 0.42387879 -0.24412719 -0.00000000 0.00000000 0.53324577 -0.00000000 -0.00000000 -0.38422155
+8 -0.00000000 -0.00000000 -0.05913362 0.00000000 0.00000000 0.02624202 -0.00000000 0.00000000 -0.03277631 -0.02059878 0.02216256 -0.08289755 0.02059878 -0.02216256 -0.08289755 -0.11235611 -0.16726753 -0.04737787 0.11235611 0.16726753 -0.04737787 -0.00000000 0.00000000 0.26505665 -0.00000000 0.00000000 0.90731268
+9 0.08113112 -0.16894076 0.00000000 0.16492910 0.11657369 -0.00000000 -0.22982618 -0.01917599 -0.00000000 0.12709409 -0.13102259 -0.01069008 0.12709409 -0.13102259 0.01069008 0.42752210 0.26065590 0.01091183 0.42752210 0.26065590 -0.01091183 -0.22194761 0.35469571 -0.00000000 -0.16957326 0.31390032 -0.00000000
+10 0.00000000 -0.00000000 -0.06151068 -0.00000000 -0.00000000 -0.04677699 0.00000000 0.00000000 0.02090474 0.37364199 -0.23906110 0.21960930 -0.37364199 0.23906110 0.21960930 -0.42309307 0.14585757 0.18733807 0.42309307 -0.14585757 0.18733807 -0.00000000 0.00000000 0.17800339 0.00000000 0.00000000 -0.03430871
+11 -0.06720302 0.14594584 -0.00000000 0.20005041 0.07932347 -0.00000000 -0.09856494 -0.13025422 -0.00000000 -0.22991454 0.04376902 0.00321393 -0.22991454 0.04376902 -0.00321393 -0.11822037 -0.15256787 -0.04513782 -0.11822037 -0.15256787 0.04513782 0.78212950 -0.27505345 0.00000000 -0.10335369 -0.12236285 0.00000000
+12 0.22087631 -0.01177876 -0.00000000 -0.14916458 0.13141125 0.00000000 -0.03201829 -0.10492299 0.00000000 0.14187142 -0.07267318 0.00332489 0.14187142 -0.07267318 -0.00332489 -0.45997833 -0.05871165 -0.02637557 -0.45997833 -0.05871165 0.02637557 0.20438608 -0.09556368 -0.00000000 0.08612191 0.59909380 0.00000000
+13 -0.10695095 -0.23349549 -0.00000000 0.05244183 0.08332591 0.00000000 0.06980926 0.15088854 0.00000000 -0.32883115 -0.28506135 -0.01611614 -0.32883115 -0.28506135 0.01611614 -0.18052027 -0.14531986 -0.06518284 -0.18052027 -0.14531986 0.06518284 0.43252792 -0.16099440 -0.00000000 0.12728200 0.41508950 -0.00000000
+14 -0.00000000 -0.00000000 0.17153904 -0.00000000 0.00000000 -0.10305518 0.00000000 0.00000000 -0.05535852 0.07293486 0.55197410 -0.16564154 -0.07293486 -0.55197410 -0.16564154 -0.30645289 0.13277826 0.09185870 0.30645289 -0.13277826 0.09185870 -0.00000000 -0.00000000 0.20501190 0.00000000 0.00000000 0.00570811
+15 0.02672662 -0.08734597 0.00000000 -0.00758453 0.08490921 -0.00000000 -0.03253605 0.05960752 -0.00000000 0.33893986 0.03262319 0.01198443 0.33893986 0.03262319 -0.01198443 -0.19939834 -0.09095700 -0.05081469 -0.19939834 -0.09095700 0.05081469 0.17466195 -0.03391829 0.00000000 -0.16529587 -0.76641462 0.00000000
+16 0.00000000 -0.00000000 -0.03351331 -0.00000000 0.00000000 0.09139750 0.00000000 0.00000000 -0.02682696 0.58995148 0.25537122 -0.00710879 -0.58995148 -0.25537122 -0.00710879 0.24278809 -0.10901431 -0.05905940 -0.24278809 0.10901431 -0.05905940 0.00000000 -0.00000000 -0.12012938 0.00000000 -0.00000000 -0.01098810
+17 0.05006964 0.01563037 -0.00000000 0.12688393 -0.03191977 -0.00000000 -0.01220092 0.01512065 0.00000000 -0.22753497 -0.08676715 -0.01670119 -0.22753497 -0.08676714 0.01670119 -0.46924094 -0.03454321 0.17205610 -0.46924094 -0.03454321 -0.17205610 -0.48562210 0.32447024 0.00000000 -0.03414435 -0.12787015 -0.00000000
+18 -0.17094076 -0.02035460 -0.00000000 0.08417921 0.01416445 0.00000000 0.03108954 -0.04530772 0.00000000 0.49995458 0.23224590 0.04978512 0.49995458 0.23224590 -0.04978512 -0.19761636 -0.12482428 0.00056390 -0.19761636 -0.12482428 -0.00056390 -0.16642401 0.16037210 -0.00000000 0.10138891 0.41755607 -0.00000000
+19 0.00000000 -0.00000000 0.02180616 0.00000000 -0.00000000 0.05033678 -0.00000000 0.00000000 -0.00182300 -0.03156486 0.02534846 -0.00178983 0.03156486 -0.02534846 -0.00178983 -0.37606980 -0.31189720 -0.05127220 0.37606980 0.31189720 -0.05127220 -0.00000000 0.00000000 -0.71480445 -0.00000000 -0.00000000 -0.00913279
+20 0.03189566 -0.00356906 0.00000000 -0.00478693 0.04845491 0.00000000 -0.00250803 -0.00562114 -0.00000000 -0.14084023 0.16767062 -0.15216758 -0.14084023 0.16767062 0.15216758 0.12681259 -0.47624385 -0.36948385 0.12681259 -0.47624385 0.36948385 -0.25229483 0.17842252 -0.00000000 -0.00262471 -0.00651265 -0.00000000
+21 0.01993409 -0.08276388 -0.00000000 0.00114267 -0.01511565 -0.00000000 0.00104417 -0.00771373 0.00000000 -0.12979257 0.50406223 -0.40119812 -0.12979257 0.50406223 0.40119812 -0.06140335 0.17708751 0.14078295 -0.06140335 0.17708751 -0.14078295 0.11136117 -0.07969495 0.00000000 0.00350156 0.00525274 -0.00000000
+22 -0.03158279 0.05712475 -0.00000000 -0.00091420 -0.00515567 0.00000000 0.00220991 0.00202613 0.00000000 0.16804081 -0.35634387 -0.58410722 0.16804081 -0.35634387 0.58410722 -0.00209667 0.00346594 -0.00989958 -0.00209667 0.00346594 0.00989958 0.02029543 0.04690014 0.00000000 -0.00032035 0.00791268 -0.00000000
+23 -0.00000000 0.00000000 0.09519513 -0.00000000 0.00000000 -0.00924440 0.00000000 -0.00000000 -0.00055143 0.18569066 -0.37099476 -0.56374412 -0.18569066 0.37099476 -0.56374412 0.01639653 -0.04051145 0.05982376 -0.01639653 0.04051145 0.05982376 0.00000000 0.00000000 -0.00347890 -0.00000000 0.00000000 -0.00332950
+24 0.00220869 -0.00110591 -0.00000000 -0.04935751 0.00559135 0.00000000 0.00003797 -0.00003955 -0.00000000 -0.00521780 0.00619359 0.00995832 -0.00521780 0.00619359 -0.00995832 0.13290361 -0.29455888 0.45742339 0.13290361 -0.29455888 -0.45742339 0.30677634 0.52512198 -0.00000000 -0.00135760 -0.00117103 -0.00000000
+25 -0.00162036 0.00465147 -0.00000000 0.01548578 0.09135965 -0.00000000 -0.00020022 -0.00041811 0.00000000 0.00996694 -0.01920622 -0.02894227 0.00996694 -0.01920622 0.02894227 0.11240229 -0.21239351 0.35742715 0.11240229 -0.21239351 -0.35742715 -0.40694684 -0.67243724 -0.00000000 0.00029283 -0.00091568 0.00000000
+26 -0.00000000 0.00000000 0.01076877 0.00000000 0.00000000 0.09274122 -0.00000000 -0.00000000 -0.00025566 0.02117422 -0.03640466 -0.05930298 -0.02117422 0.03640466 -0.05930298 -0.17789932 0.37628702 -0.56299550 0.17789932 -0.37628702 -0.56299550 -0.00000000 -0.00000000 0.01712076 -0.00000000 -0.00000000 -0.00094208
+27 -0.00096942 0.00247004 0.00000000 0.00010967 -0.00054412 0.00000000 -0.06182695 0.00851480 0.00000000 0.00273663 0.00174904 -0.00145657 0.00273663 0.00174904 0.00145657 0.00088998 -0.00011246 0.00047535 0.00088998 -0.00011246 -0.00047535 -0.00043780 0.00148522 -0.00000000 0.98466009 -0.16282593 -0.00000000
+end normal_modes
+begin raman  # index activity(A^4/amu) depolarization_ratio, rows as in vibrations
+1 0.000000 0.000000
+2 0.000000 0.000000
+3 0.000000 0.000000
+4 0.000000 0.000000
+5 0.000000 0.000000
+6 0.000000 0.000000
+7 0.796912 0.750000
+8 4.572123 0.750000
+9 0.285406 0.695780
+10 0.054051 0.750000
+11 6.011796 0.393775
+12 2.934285 0.178750
+13 5.689903 0.558993
+14 3.369278 0.750000
+15 6.931814 0.746072
+16 14.916732 0.750000
+17 1.189635 0.652031
+18 5.610058 0.655730
+19 17.477370 0.750000
+20 27.050570 0.746625
+21 4.244725 0.640043
+22 108.495843 0.123787
+23 92.165378 0.750000
+24 109.736273 0.010545
+25 61.131771 0.749902
+26 49.345966 0.750000
+27 114.440360 0.312603
+end raman
+thermo_temperature 298.150000000000
+thermo_pressure_atm 1.000000000000
+symmetry_number 1
+zero_point_energy 0.080244766588
+thermal_energy -154.850845952482
+enthalpy -154.849901767614
+entropy_ts 0.030575922082
+gibbs_energy -154.880477689696
+entropy_translation 0.0000596103
+entropy_rotation 0.0000355681
+entropy_vibration 0.0000073737
+entropy_electronic 0.0000000000
+end_of_output

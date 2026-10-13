@@ -40,7 +40,7 @@ EXPECT = {
     "water": ["TE", "VIBFREQ", "VIBIR", "MULLIKEN", "LOEWDIN", "ESPFIT",
               "MKFIT", "MO"],
     "benzene": ["MO", "VIBFREQ", "ESPFIT", "HIRSHFELD", "MBIS", "NPA"],
-    "ethanol": ["MO", "VIBFREQ", "VIBIR", "VIBRAM", "VIBRAMDEPOL"],
+    "ethanol": ["TE", "MO", "VIBFREQ", "VIBIR", "VIBRAM", "VIBRAMDEPOL"],
     "ammonia": ["MO", "VIBFREQ"],
     "methane": ["MO", "VIBFREQ", "MULLIKEN"],
 }

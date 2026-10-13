@@ -1,15 +1,11 @@
-# Ethanol, B3LYP/6-31G*, optimisation, frequencies and Raman activities
-! B3LYP 6-31G* Opt NumFreq
-%pal nprocs 4 end
-%maxcore 2000
-%elprop
-  Polar 1
-end
-%output
-  Print[P_MOs] 1
-  Print[P_OrbEn] 2
-end
-* xyz 0 1
+title Ethanol, B3LYP/6-31G*, optimisation, frequencies and Raman activities
+charge 0
+multiplicity 1
+method b3lyp
+basis 6-31G*
+runtype optfreq
+raman true
+geometry
  C    -0.0469000     0.5550000     0.0000000
  C     1.4446000     0.2860000     0.0000000
  O    -0.7420000    -0.6880000     0.0000000
@@ -19,4 +15,4 @@ end
  H     1.7130000    -0.2820000    -0.8890000
  H     1.9970000     1.2260000     0.0000000
  H    -1.6830000    -0.4870000     0.0000000
-*
+end

@@ -33,7 +33,7 @@ entries from the **Properties** menu.
 |---|---|---|---|
 | `water` | ECCE-QM | B3LYP/6-31G*, geometry optimisation and frequencies | Energies, vibrational frequencies and IR intensities, and the atomic charges from Mulliken, Loewdin, CHELPG and Merz-Kollman (MK) fits. |
 | `benzene` | ORCA | B3LYP/6-31G*, geometry optimisation and frequencies | Molecular orbitals, vibrational frequencies, and the charges from CHELPG, Hirshfeld, MBIS and natural population analysis (NPA, from NBO 7). |
-| `ethanol` | ORCA | B3LYP/6-31G*, geometry optimisation, numerical frequencies and Raman activities | Vibrational frequencies with IR intensities, Raman activities and depolarisation ratios, shown in the spectrum viewer's IR and Raman panes. |
+| `ethanol` | ECCE-QM | B3LYP/6-31G*, geometry optimisation, frequencies and Raman activities | Vibrational frequencies with IR intensities, Raman activities and depolarisation ratios, shown in the spectrum viewer's IR and Raman panes. |
 | `ammonia` | MOPAC | PM7, geometry optimisation, then frequencies | Molecular orbitals and vibrational frequencies of a semiempirical calculation. |
 | `methane` | NWChem | B3LYP/6-31G*, geometry optimisation, frequencies and properties | Molecular orbitals, vibrational frequencies and Mulliken charges. |
 

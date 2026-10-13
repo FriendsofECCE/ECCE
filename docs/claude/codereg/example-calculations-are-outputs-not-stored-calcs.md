@@ -5,8 +5,8 @@ area: codereg
 paths: ["data/client/examples", "src/apps/organizer/CalcMgr.C", "scripts/parsers/MOPAC.expt", "data/client/cap/MOPAC.edml", "tests/apps/examples_test.py"]
 issues: [302]
 ---
-`data/client/examples/<name>/` holds an output and its input (ECCE-QM water,
-ORCA benzene and ethanol (Raman), MOPAC ammonia, NWChem methane), not a stored calculation: they
+`data/client/examples/<name>/` holds an output and its input (ECCE-QM water
+and ethanol (Raman), ORCA benzene, MOPAC ammonia, NWChem methane), not a stored calculation: they
 go through the ordinary importer, so they stay valid when the stored format
 changes. `CalcMgr::openExamples` (menu item and the `examples` command of
 `ECCE_TEST_ORGANIZER`) makes project `Examples`, or `Examples_2`, ... (project

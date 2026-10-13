@@ -2588,7 +2588,7 @@ void CalcMgr::OnOpenExamplesClick( wxCommandEvent& event )
 static const char *const kExampleOutputs[] = {
   "ecceqm-water/water.qmout",
   "orca-benzene/benzene.out",
-  "orca-ethanol/ethanol.out",
+  "ecceqm-ethanol/ethanol.qmout",
   "mopac-ammonia/ammonia.out",
   "nwchem-methane/methane.eprint",
 };
