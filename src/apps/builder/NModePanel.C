@@ -510,6 +510,23 @@ void NModePanel::createSpectrumPane()
    pane->SetSizer(col);
    p_gridPlotSizer->Add(pane, 1, wxGROW);
 
+   //  The window is most useful beside the Table view, where the plot's own
+   //  button is hidden: offer it next to the Graph/Table choice as well.
+   wxWindow *viewBox = FindWindow(ID_RADIOBOX_NMODE_DATAVIEW);
+   wxSizer *viewSizer = viewBox ? viewBox->GetContainingSizer() : 0;
+   if (viewSizer) {
+      size_t at = 0;
+      for (wxSizerItemList::compatibility_iterator n =
+             viewSizer->GetChildren().GetFirst(); n; n = n->GetNext(), at++)
+         if (n->GetData()->GetWindow() == viewBox) break;
+      wxButton *spectrum = new wxButton(viewBox->GetParent(), wxID_ANY,
+                                        "Spectrum...");
+      spectrum->SetToolTip("The IR and Raman spectra in their own window.");
+      viewSizer->Insert(at + 1, spectrum, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
+      spectrum->Bind(wxEVT_BUTTON,
+                     [this](wxCommandEvent&) { openSpectrumWindow(); });
+   }
+
    //  The wrap sizers under the plot learn their width only in a layout, so
    //  the first one reserved them several rows (on MSW about 100 px) and the
    //  plot did not fit; a second pass at the same size gives it back.

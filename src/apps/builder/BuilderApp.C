@@ -604,7 +604,7 @@ void BuilderApp::invokeStatusMCB(JMSMessage& msg)
 {
   static const char *errMsg =
     "Unable to start the application.  "
-    "Please use the ECCE Support tool to report this problem.";
+    "Please report it at https://github.com/FriendsofECCE/ECCE/issues .";
 
   string status = msg.getProperty("status");
 

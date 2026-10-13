@@ -108,6 +108,17 @@ def run(display, data, work):
              "Examples holds %s" % sorted(got), result.log)
     else:
         print("ok    first start imports the examples into Examples")
+    # each example says what it is for in its Annotation field
+    noted = []
+    for calc in sorted(got):
+        meta = os.path.join(root, "Examples", calc, ".ecce-meta")
+        if os.path.exists(meta) and "annotation" in open(meta, errors="replace").read():
+            noted.append(calc)
+    if sorted(noted) != sorted(got):
+        fail("each example has an annotation",
+             "annotated: %s of %s" % (noted, sorted(got)), "")
+    else:
+        print("ok    each example has an annotation")
 
     with open(script, "w") as handle:
         handle.write("examplesmenu\nexamples\n")

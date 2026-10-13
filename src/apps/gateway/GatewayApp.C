@@ -592,7 +592,7 @@ void GatewayApp::toolStartStatusMCB(JMSMessage& msg)
     p_sessionSeen = true;
     ewxMessageDialog * dlg = new ewxMessageDialog(dialogParent(),
                     "Unable to start the application.\n"
-                    "Please use the ECCE Support tool to report this problem.",
+                    "Please report it at https://github.com/FriendsofECCE/ECCE/issues .",
                     "System Error", wxOK|wxICON_EXCLAMATION, wxDefaultPosition);
     dlg->ShowModal();
     dlg->Destroy();

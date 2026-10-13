@@ -2645,6 +2645,38 @@ string CalcMgr::openExamples(string& message)
       dlg.importFile(dir + rel);
   }
   p_batchImport = false;
+
+  // What each example is for, in its Annotation field.
+  static const struct { const char *name, *text; } kNotes[] = {
+    {"water", "ECCE-QM, B3LYP/6-31G*: geometry optimisation and frequencies. "
+              "Look at the vibrations and IR spectrum, and compare the "
+              "Mulliken, Loewdin, CHELPG and Merz-Kollman charges."},
+    {"ethanol", "ECCE-QM, B3LYP/6-31G*: optimisation, frequencies and Raman "
+                "activities. Open the vibrations and use Spectrum... to see "
+                "the IR and Raman spectra side by side."},
+    {"benzene", "ORCA, B3LYP/6-31G*: optimisation and frequencies with "
+                "CHELPG, Hirshfeld, MBIS and NBO charges. Look at the pi "
+                "orbitals in the MO panel."},
+    {"ammonia", "MOPAC, PM7: optimisation, then frequencies. A semiempirical "
+                "calculation: compare its orbitals and frequencies with the "
+                "DFT examples."},
+    {"methane", "NWChem, B3LYP/6-31G*: optimisation, frequencies and "
+                "properties, imported from NWChem's own output."},
+  };
+  if (Resource *projRes = EDSIFactory::getResource(project)) {
+    if (vector<Resource*> *calcs = projRes->getChildren(true)) {
+      for (Resource *calc : *calcs) {
+        for (const auto &note : kNotes) {
+          if (calc && calc->getName() == note.name) {
+            vector<MetaDataResult> ann(1);
+            ann[0].name = VDoc::getEcceNamespace() + ":annotation";
+            ann[0].value = note.text;
+            calc->addProps(ann);
+          }
+        }
+      }
+    }
+  }
   if (WxResourceTreeItemData *projNode = findNode(project, false, false))
     p_treeCtrl->refresh(projNode);
   findNode(project, true, true);
