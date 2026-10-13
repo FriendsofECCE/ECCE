@@ -197,8 +197,9 @@ static void offerLocalDataMove()
 
 
 // The Organizer takes a few seconds to appear after the login; the title
-// card says ECCE is starting.  It closes by itself and
-// is left out of test runs and with ECCE_NO_SPLASH.
+// card says ECCE is starting.  It is not kept on top, so the Organizer's
+// window covers it when it opens; it closes itself after five seconds.  Left
+// out of test runs and with ECCE_NO_SPLASH.
 static void showSplash()
 {
   const char *off = getenv("ECCE_NO_SPLASH");
@@ -222,7 +223,7 @@ static void showSplash()
   }
   new wxSplashScreen(card, wxSPLASH_CENTRE_ON_SCREEN | wxSPLASH_TIMEOUT,
                      5000, 0, wxID_ANY, wxDefaultPosition, wxDefaultSize,
-                     wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxSTAY_ON_TOP);
+                     wxBORDER_NONE | wxFRAME_NO_TASKBAR);
   wxYield();
 }
 
