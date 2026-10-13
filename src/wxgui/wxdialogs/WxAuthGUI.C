@@ -135,8 +135,16 @@ void WxAuthGUI::CreateControls()
     wxBoxSizer* mainRow = new wxBoxSizer(wxHORIZONTAL);
     topSizer->Add(mainRow, wxSizerFlags(1).Expand().DoubleBorder(wxLEFT|wxRIGHT|wxTOP));
 
-    wxImage logoImage(itemDialog1->GetBitmapResource(wxT("passprompt.xpm")).ConvertToImage());
-    logoImage.Rescale(114, 64, wxIMAGE_QUALITY_HIGH);
+    // The current ECCE logo, as in Help > About; the old passprompt art
+    // only if the PNG is missing.
+    wxImage logoImage;
+    wxString logoFile = ewxBitmap::pixmapFile("ecce-logo-128.png");
+    if (wxFileExists(logoFile) && logoImage.LoadFile(logoFile, wxBITMAP_TYPE_PNG))
+      logoImage.Rescale(64, 64, wxIMAGE_QUALITY_HIGH);
+    else {
+      logoImage = itemDialog1->GetBitmapResource(wxT("passprompt.xpm")).ConvertToImage();
+      logoImage.Rescale(114, 64, wxIMAGE_QUALITY_HIGH);
+    }
     wxStaticBitmap* logo = new wxStaticBitmap( itemDialog1, wxID_STATIC, wxBitmap(logoImage), wxDefaultPosition, wxDefaultSize, 0 );
     mainRow->Add(logo, wxSizerFlags().Top().Border(wxRIGHT, 3*gap));
 
