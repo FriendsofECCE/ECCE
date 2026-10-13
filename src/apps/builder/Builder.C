@@ -2117,8 +2117,10 @@ static wxBitmap elementToolBitmap(const wxString& sym, const wxColour& col,
 }
 
 
-//  The outline of a periodic table on the toolbar's face colour: the
-//  element tool's selector says what it opens.
+//  A small periodic table on the toolbar's face colour: the element tool's
+//  selector says what it opens.  Metals, metalloids and non-metals get the
+//  three Okabe-Ito colours that stay apart for colour-blind users and read on
+//  light and dark toolbars alike.
 wxBitmapBundle Builder::elementArrowIcon()
 {
   auto draw = [](int n) {
@@ -2129,20 +2131,25 @@ wxBitmapBundle Builder::elementArrowIcon()
     mdc.Clear();
     {
       wxGCDC dc(mdc);
-      const wxColour ink = wxSystemSettings::GetColour(wxSYS_COLOUR_BTNTEXT);
-      dc.SetBrush(wxBrush(ink));
       dc.SetPen(*wxTRANSPARENT_PEN);
       // 9 columns by 5 rows: H and He on top, the s and p blocks above the
-      // d block.
-      static const char *rows[] = { "X.......X", "XX..XXXXX", "XX..XXXXX",
-                                    "XXXXXXXXX", "XXXXXXXXX" };
+      // d block, the metalloids on the diagonal between metals and non-metals.
+      // M metal, S metalloid, N non-metal.
+      static const char *rows[] = { "N.......N", "MM..SNNNN", "MM..MSNNN",
+                                    "MMMMMSSNN", "MMMMMMSSN" };
+      const wxColour metal(0, 114, 178), metalloid(230, 159, 0),
+                     nonmetal(0, 158, 115);
       const int pitch = n / 11, gap = pitch >= 4 ? 1 : 0;
       const int x0 = (n - 9 * pitch) / 2, y0 = (n - 5 * pitch) / 2;
       for (int r = 0; r < 5; r++)
-        for (int c = 0; c < 9; c++)
-          if (rows[r][c] == 'X')
-            dc.DrawRectangle(x0 + c * pitch, y0 + r * pitch,
-                             pitch - gap, pitch - gap);
+        for (int c = 0; c < 9; c++) {
+          const char kind = rows[r][c];
+          if (kind == '.') continue;
+          dc.SetBrush(wxBrush(kind == 'M' ? metal
+                              : kind == 'S' ? metalloid : nonmetal));
+          dc.DrawRectangle(x0 + c * pitch, y0 + r * pitch,
+                           pitch - gap, pitch - gap);
+        }
     }
     mdc.SelectObject(wxNullBitmap);
     return bitmap;
