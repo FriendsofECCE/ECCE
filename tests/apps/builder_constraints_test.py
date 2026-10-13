@@ -152,6 +152,25 @@ def geomCase(display, url):
           % (m.group(2) if m else "?"), tail)
 
 
+def clickCase(display, url):
+    log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT", [
+        "wait 4000",
+        "atomclick plain 2", "atomclick shift 3", "atomclick plain 2",
+        "atomclick ctrl 3", "atomclick ctrl 4", "atomclick ctrl 3",
+        "wait 500", "quit"], url)
+    tail = run_tests._tail(log, 25)
+    sel = re.findall(r"BUILDER: selected after (\w+) click on (\d+):([ \d]*)", log)
+    got = [(m[0], m[1], m[2].split()) for m in sel]
+    check(len(got) == 6, "six clicks reported (%d)" % len(got), tail)
+    if len(got) != 6:
+        return
+    check(got[1][2] == ["2", "3"], "Shift+click adds atom 3: %s" % got[1][2], tail)
+    check(got[2][2] == ["2"], "a plain click selects only the atom clicked: %s" % got[2][2], tail)
+    check(got[3][2] == ["2", "3"], "Ctrl+click adds atom 3, as Shift+click does: %s" % got[3][2], tail)
+    check(got[4][2] == ["2", "3", "4"], "Ctrl+click adds atom 4 in pick order: %s" % got[4][2], tail)
+    check(got[5][2] == ["2", "4"], "Ctrl+click on a selected atom takes it out again: %s" % got[5][2], tail)
+
+
 def main():
     def checkApp(display, name, results, verbose=False):
         folder = os.path.join(fixture.stateDir(), "builderconstraints-localdata")
@@ -171,6 +190,7 @@ def main():
                   "reopened: the constraints are still there (%s)" % (m.group(1) if m else "?"), tail)
             deckCase(display, "file://" + energy + "/", energy, False,
                      "Energy run")
+            clickCase(display, "file://" + energy + "/")
             geomCase(display, "file://" + geom + "/")
             deckCase(display, "file://" + geom + "/", geom, True, "Geometry run")
         finally:

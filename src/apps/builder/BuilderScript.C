@@ -45,6 +45,7 @@
 //    quit
 //  Each command is answered on stderr: "ECCE_BUILDER_SCRIPT: <line>: ok".
 
+#include <cmath>
 #include <cstdio>
 #include <fstream>
 #include <sstream>
@@ -85,6 +86,9 @@
 #include "Builder.H"
 #include "ContextPanel.H"
 #include "GeomConstraintsDialog.H"
+#include "inv/SoWx/SoWxRenderArea.H"
+#include "inv/nodes/SoCamera.H"
+#include "wxviz/SGViewer.H"
 #include "dsm/ChemistryTask.H"
 #include "tdat/GeomConstraintModel.H"
 #include "tdat/GeomConstraintRules.H"
@@ -124,6 +128,15 @@ void arrowVertex(void *d, SoCallbackAction *a, const SoPrimitiveVertex *v1,
     if (t > e->along) e->along = t;
     if (off > e->across) e->across = off;
   }
+}
+
+SoWxRenderArea *findViewerArea(wxWindow *w)
+{
+  if (SoWxRenderArea *a = dynamic_cast<SoWxRenderArea *>(w)) return a;
+  for (wxWindowList::iterator it = w->GetChildren().begin();
+       it != w->GetChildren().end(); ++it)
+    if (SoWxRenderArea *a = findViewerArea(*it)) return a;
+  return 0;
 }
 
 bool exists(const std::string& path)
@@ -304,6 +317,41 @@ void Builder::runBuilderScript(const std::string& file)
         std::ofstream(base + ".ready") << "ready\n";
         st->waitingFor = base + ".go";
         st->waitUntil = wxGetLocalTimeMillis() + 90000;
+      } else if (w[0] == "atomclick" && w.size() == 3 && frag) {
+        //  A left click on atom N (1-based) in the viewer, as wx delivers it,
+        //  with no key, Shift or Ctrl down.  Prints the selection after it.
+        SoWxRenderArea *area = findViewerArea(p_viewer);
+        if (!area) {
+          outcome = "FAIL: no render area";
+        } else {
+          SbVec3f p = frag->getAtomCoordinates(atoi(w[2].c_str()) - 1), d;
+          const SbViewportRegion& vpr = p_viewer->getViewportRegion();
+          SbViewVolume vv =
+              p_viewer->getCamera()->getViewVolume(vpr.getViewportAspectRatio());
+          vv.projectToScreen(p, d);
+          SbVec2s sz = vpr.getViewportSizePixels();
+          const double sc = area->GetContentScaleFactor();
+          const int lx = (int)std::lround(d[0] * sz[0] / sc);
+          const int ly = (int)std::lround((sz[1] - 1 - d[1] * sz[1]) / sc);
+          static long stamp = 100000;
+          for (int k = 0; k < 2; k++) {
+            wxMouseEvent e(k == 0 ? wxEVT_LEFT_DOWN : wxEVT_LEFT_UP);
+            e.m_x = lx;
+            e.m_y = ly;
+            e.m_leftDown = (k == 0);
+            e.SetShiftDown(w[1] == "shift");
+            e.SetControlDown(w[1] == "ctrl");
+            e.SetEventObject(area);
+            e.SetTimestamp(stamp += 50);
+            area->GetEventHandler()->ProcessEvent(e);
+          }
+          wxTheApp->Yield(true);
+          std::string sel;
+          for (size_t i = 0; i < frag->m_atomHighLight.size(); i++)
+            sel += " " + std::to_string(frag->m_atomHighLight[i] + 1);
+          fprintf(stderr, "BUILDER: selected after %s click on %s:%s\n",
+                  w[1].c_str(), w[2].c_str(), sel.c_str());
+        }
       } else if (w[0] == "constraints" && w.size() >= 2) {
         //  Geometry Constraints (#306): "show", "select I J ..", "press
         //  constrain|restrain|fix yes|no", "list", "stored".

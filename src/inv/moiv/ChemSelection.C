@@ -3573,8 +3573,11 @@ ChemSelection::invokeSelectionPolicy(ChemPath *chemPath, SbBool shiftDown,
             performToggleSelection(chemPath, FALSE, notify);
             break;
         case SHIFT:
-            if (shiftDown) {
-                 performToggleSelection(chemPath, ctrlDown, notify);
+            // Ctrl+click adds to the selection as Shift+click does; both
+            // together merge rather than toggle (#306).
+            if (shiftDown || ctrlDown) {
+                 performToggleSelection(chemPath, shiftDown && ctrlDown,
+                                        notify);
             }
             else {
                 performSingleSelection(chemPath, notify); 
