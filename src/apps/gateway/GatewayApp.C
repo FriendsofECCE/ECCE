@@ -9,6 +9,8 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "wx/splash.h"
+#include "wx/weakref.h"
+#include "wx/timer.h"
 #include "wx/dcmemory.h"
 #include "wx/filefn.h"
 #include "wxgui/ewxBitmap.H"
@@ -196,10 +198,26 @@ static void offerLocalDataMove()
 }
 
 
+// Lets the splash drop behind other windows once its minimum time is up.
+class SplashBehind : public wxTimer
+{
+public:
+  explicit SplashBehind(wxSplashScreen *s) : p_splash(s) {}
+  void Notify() override
+  {
+    if (p_splash)
+      p_splash->SetWindowStyleFlag(p_splash->GetWindowStyleFlag() &
+                                   ~wxSTAY_ON_TOP);
+    delete this;
+  }
+private:
+  wxWeakRef<wxSplashScreen> p_splash;
+};
+
 // The Organizer takes a few seconds to appear after the login; the title
-// card says ECCE is starting.  It is not kept on top, so the Organizer's
-// window covers it when it opens; it closes itself after five seconds.  Left
-// out of test runs and with ECCE_NO_SPLASH.
+// card says ECCE is starting.  It stays in front for 1.5 s, then the
+// Organizer's window may cover it; it closes itself after five seconds.
+// Left out of test runs and with ECCE_NO_SPLASH.
 static void showSplash()
 {
   const char *off = getenv("ECCE_NO_SPLASH");
@@ -221,10 +239,15 @@ static void showSplash()
                 277, 190);
     dc.SelectObject(wxNullBitmap);
   }
-  new wxSplashScreen(card, wxSPLASH_CENTRE_ON_SCREEN | wxSPLASH_TIMEOUT,
-                     5000, 0, wxID_ANY, wxDefaultPosition, wxDefaultSize,
-                     wxBORDER_NONE | wxFRAME_NO_TASKBAR);
+  wxSplashScreen *splash =
+    new wxSplashScreen(card, wxSPLASH_CENTRE_ON_SCREEN | wxSPLASH_TIMEOUT,
+                       5000, 0, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                       wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxSTAY_ON_TOP);
   wxYield();
+  // In front for at least 1.5 s so a quick start does not just flash it;
+  // then the Organizer's window may cover it.  The splash may already be
+  // gone (clicked), hence the weak reference.
+  (new SplashBehind(splash))->StartOnce(1500);
 }
 
 bool GatewayApp::OnInit()
