@@ -119,7 +119,11 @@ def run(display, data, work):
         # the tree as drawn once both imports have settled
         with open(script, "a") as handle:
             handle.write("treeflags\ntree\n")
-        time.sleep(6)
+            # what the project table's Theory and Run Type columns show
+            for calc in sorted(EXPECT):
+                handle.write("summary file://%s\n" % os.path.join(
+                    root, "Examples_2", calc))
+        time.sleep(12)
 
     result = apps.run(display, "organizer", windowTimeout=60, settle=20,
                       env={"ECCE_TEST_ORGANIZER": script,
@@ -172,6 +176,20 @@ def run(display, data, work):
             if sorted(below) != sorted(EXPECT):
                 problems.append("tree: %s holds %s, expected %s (tree: %s)"
                                 % (project, below, sorted(EXPECT), trees[-1]))
+    # Theory and Run Type as the calculation ran (the importer's .param).
+    want = {"water": "GeoVib", "benzene": "GeoVib", "ammonia": "GeoVib",
+            "methane": "GeoVib"}
+    sums = re.findall(r"ECCE_TEST_ORGANIZER: summary file://\S+/(\w+): (.*)$",
+                      log, re.M)
+    got = {c: s for c, s in sums}
+    for calc, runtype in want.items():
+        s = got.get(calc, "")
+        theory = re.search(r" Theory=(\S*)", s)
+        rt = re.search(r" Runtype=(\S*)", s)
+        if not theory or theory.group(1) in ("", "<none>"):
+            problems.append("%s: no theory in its summary (%s)" % (calc, s))
+        if not rt or runtype not in rt.group(1):
+            problems.append("%s: run type not %s (%s)" % (calc, runtype, s))
     if problems:
         fail(what, "; ".join(problems), log)
     else:

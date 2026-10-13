@@ -975,7 +975,11 @@ sub parseInputFile {
   }
   $runType = $keyToRuntype{lc($NWTask)};
   if ($runType eq "") { 
-     if ( $NWTask =~ /optimize/i ) {
+     # Tasks after the optimisation (freq, then property) still make an
+     # optimisation with frequencies.
+     if ( $NWTask =~ /(optimize|saddle)/i && $NWTask =~ /freq/i ) {
+        $runType = "GeoVib";
+     } elsif ( $NWTask =~ /optimize/i ) {
         $runType = "Geometry";
      } else {
         $runType = "UNKNOWN";
