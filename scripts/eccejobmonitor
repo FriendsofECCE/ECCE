@@ -3959,7 +3959,8 @@ sub PDFileRead
         $PD_KEY_SKIP,
         'progress',
         'history',
-        'remember'
+        'remember',
+        'times'
     );
     my @pdValsFreq = (
         $PD_VAL_FREQ_ALL,
@@ -4267,6 +4268,8 @@ sub PDFileRead
 #	Remember=<name>		instead of Progress: keep $1 as {name} for the
 #				Progress templates of other entries (a code's
 #				convergence targets, printed once up front)
+#	Times=<integer>		with Remember: keep $1 times this (MOPAC
+#				prints the atoms, its FORCE takes 3 per atom)
 #
 # Return an error message upon failure, undef upon success.
 # --------------------------------------------------------------------------- #
@@ -4280,7 +4283,7 @@ sub ProgressEntryAdd
     {
         next if ($_ eq $PD_KEY_TYPE || $_ eq $PD_KEY_BEGIN
                  || $_ eq 'progress' || $_ eq 'history'
-                 || $_ eq 'remember');
+                 || $_ eq 'remember' || $_ eq 'times');
         return "$where: rule key '$_' is not used here";
     }
     return "$where: Begin and Progress (or Remember) must be given"
@@ -4292,9 +4295,13 @@ sub ProgressEntryAdd
     {
         return "$where: Remember takes a name"
             unless ($$buf{'remember'} =~ /^\w+$/);
-        push @gProgList, [$re, undef, undef, $$buf{'remember'}];
+        return "$where: Times takes a whole number"
+            if (exists $$buf{'times'} && $$buf{'times'} !~ /^\d+$/);
+        push @gProgList, [$re, undef, undef, $$buf{'remember'},
+                          $$buf{'times'}];
         return undef;
     }
+    return "$where: Times belongs with Remember" if (exists $$buf{'times'});
     return "$where: Progress must start with a stage name"
         unless ($$buf{'progress'} =~ /^\s*(?:[A-Za-z][\w-]*|\{\w+\})(\s|$)/);
     push @gProgList, [$re, $$buf{'progress'}, $$buf{'history'}];
@@ -4363,7 +4370,12 @@ sub ProgressLine
 
         if (defined $$entry[3])
         {
-            $gProgMem{$$entry[3]} = $cap[0] if (defined $cap[0]);
+            if (defined $cap[0])
+            {
+                $gProgMem{$$entry[3]} = $cap[0];
+                $gProgMem{$$entry[3]} = $cap[0] * $$entry[4]
+                    if (defined $$entry[4] && $cap[0] =~ /^\d+$/);
+            }
             next;
         }
 

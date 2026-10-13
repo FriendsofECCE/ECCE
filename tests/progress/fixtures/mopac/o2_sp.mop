@@ -1,0 +1,6 @@
+PM7 1SCF UHF CHARGE=0 TRIPLET
+O2 single point
+
+O 0 0 0
+O 1.21 0 0
+

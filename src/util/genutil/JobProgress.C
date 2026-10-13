@@ -289,7 +289,8 @@ vector<string> JobProgress::summary(bool completed) const
     else
       line = "Optimisation stopped at step " + step;
     string e = opt->field("energy");
-    if (e.empty() && !opt->history.empty())
+    // MOPAC's history is the gradient, not an energy.
+    if (e.empty() && !opt->history.empty() && opt->historyKey == "energy")
       e = fmt("%.10f", opt->history.back());
     if (!e.empty()) line += " \xc2\xb7 E = " + energyText(e);
     out.push_back(line);
@@ -335,7 +336,10 @@ vector<string> JobProgress::summary(bool completed) const
   if (!opt && !freq && scf) {
     const string cyc = scf->field("cycle");
     string line;
-    if (scf->field("converged") == "yes")
+    // MOPAC prints no SCF cycles unless asked to.
+    if (scf->field("converged") == "yes" && cyc.empty())
+      line = "SCF converged";
+    else if (scf->field("converged") == "yes")
       line = "SCF converged in " + cyc + " cycles";
     else if (scf->field("converged") == "no")
       line = "SCF not converged after " + cyc + " cycles";

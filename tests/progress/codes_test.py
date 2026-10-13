@@ -142,11 +142,18 @@ case("nwchem opt, not converged", "nwchem.desc", fx("nwchem", "h2o_scf_opt_cappe
      out2=fx("nwchem", "h2o_scf_opt_capped.nwout"))
 
 case("mopac geovib (PM7 EF, then FORCE)", "mopac.desc", fx("mopac", "gv.out"),
-     {"opt": {"step": "8", "converged": "yes", "grad": lambda v: float(v) < 0.05},
-      "freq": {"step": lambda v: int(v) >= 9, "done": "yes"}},
+     {"opt": {"step": "8", "converged": "yes",
+              "grad": lambda v: v.endswith("/0.05000") and float(v.split("/")[0]) < 0.05},
+      "scf": {"converged": "yes"},
+      "freq": {"point": "9/9", "done": "yes"}},       # 3 atoms, 3 steps each
      {"opt": (8, 8)})
 case("mopac opt, not converged", "mopac.desc", fx("mopac", "capped.out"),
      {"opt": {"step": "3", "converged": "no"}})
+case("mopac 1SCF", "mopac.desc", fx("mopac", "o2_sp.out"),
+     {"scf": {"converged": "yes"}})
+case("mopac 1SCF with PL (SCF iterations printed)", "mopac.desc",
+     fx("mopac", "o2_sp_pl.out"),
+     {"scf": {"cycle": "8", "converged": "yes"}})
 
 case("qe relax (pw.x 6.7)", "qe.desc", fx("qe", "h2o_relax.pwout"),
      {"opt": {"istep": "3", "converged": "yes", "maxgrad": lambda v: "/" not in v},

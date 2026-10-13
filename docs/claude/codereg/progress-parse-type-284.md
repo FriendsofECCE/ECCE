@@ -4,7 +4,7 @@ title: "`[PROGRESS]` entries in a `.desc`: job progress, not properties; matched
 area: codereg
 section: "Getting a calculation set up (the \"code registration\" system)"
 paths: ["scripts/eccejobmonitor", "scripts/parsers/ecceqm.desc", "src/qm/output.cpp", "src/qm/main.cpp", "tests/progress/monitor_test.py", "tests/parsers/eccejobmonitor_sim.py", "src/comm/commxt/JobStore.C"]
-issues: [284]
+issues: [284, 303]
 ---
 A code gets progress in the Organizer by `.desc` entries alone:
 
@@ -48,6 +48,8 @@ A code gets progress in the Organizer by `.desc` entries alone:
   seen becomes empty, so the box shows the value without a tick or cross.
   Fortran `1.0D-04` in a message becomes `1.0e-04`. Used for NWChem's
   thresholds and ORCA's SCF tolerance, which follow the user's settings.
+  `Times=<n>` beside `Remember=` keeps `$1` times n: MOPAC prints the atom
+  count, and its FORCE runs 3 steps per atom (`freq point=$1/{nforce}`).
 - **A second file.** When `jobOutputFile2` (stdout) is not the parse file,
   the monitor also feeds its complete lines to the `[PROGRESS]` entries
   (`ProgressTail`, every 0.5 s, and before each wait and the last
@@ -60,6 +62,11 @@ A code gets progress in the Organizer by `.desc` entries alone:
   numerical ones (ORCA `NumFreq`) `point=k/n`. Gaussian: the freq job of
   `Opt Freq` repeats "Step number 1 out of a maximum of 2", which would
   restart the opt record, so that wording is skipped.
+- **MOPAC** prints SCF iterations only with `PL` (ECCE's inputs do not set
+  it), so an SCF is normally just `scf converged=yes` and the summary says
+  "SCF converged" without a count; the opt history is the gradient, so
+  the summary takes an energy from the history only when it is `energy`.
+  CP2K has no code registration yet, so no `.desc`.
 - **GROMACS** names the stage by the integrator (`Progress={integrator}
   point=$1/{nsteps}`): `md` is "Molecular dynamics", `steep` "Minimisation".
   QE prints the ionic step after its criteria, so it is sent as `istep`

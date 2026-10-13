@@ -395,8 +395,17 @@ Lines=1
 
 # Job progress for the Organizer's Progress box (#284).  No Script: these
 # only feed the monitor's live snapshot.  MOPAC prints its gradient cutoff
-# only after the last cycle, so the gradient has no target while running;
-# it prints no SCF iterations and no number of force steps.
+# only after the last cycle, so the gradient gets its target only then.
+# SCF iterations are printed only with the PL keyword, which ECCE's inputs
+# do not set; otherwise an SCF only shows as converged.  FORCE takes three
+# displacements per atom, so its STEP count runs to 3 x the atoms of the
+# data set.
+[PROGRESS]
+Begin=^\s+Empirical Formula:.*=\s+(\d+) atoms
+Remember=nforce
+Times=3
+[END]
+
 [PROGRESS]
 Begin=^ CYCLE:\s+(\d+)\s+TIME:\s+\S+\s+TIME LEFT:\s+\S+\s+GRAD\.:\s+(\S+)
 Progress=opt step=$1 grad=$2
@@ -404,8 +413,8 @@ History=grad
 [END]
 
 [PROGRESS]
-Begin=^\s+GRADIENT =\s+\S+ IS LESS THAN CUTOFF
-Progress=opt converged=yes
+Begin=^\s+GRADIENT =\s+(\S+) IS LESS THAN CUTOFF =\s+(\S+)
+Progress=opt grad=$1/$2 converged=yes
 [END]
 
 [PROGRESS]
@@ -414,8 +423,18 @@ Progress=opt converged=no
 [END]
 
 [PROGRESS]
+Begin=^ ITERATION\s+(\d+) PLS=
+Progress=scf cycle=$1
+[END]
+
+[PROGRESS]
+Begin=^\s+SCF FIELD WAS ACHIEVED
+Progress=scf converged=yes
+[END]
+
+[PROGRESS]
 Begin=^ STEP:\s+(\d+)\s
-Progress=freq step=$1
+Progress=freq point=$1/{nforce}
 [END]
 
 [PROGRESS]

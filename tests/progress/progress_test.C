@@ -122,6 +122,18 @@ int main()
   vector<string> es = e.summary(true);
   check(es.size() == 1 && has(es, "SCF converged in 15 cycles"), "single point summary");
 
+  // MOPAC: no SCF cycles, a gradient history that is no energy.
+  JobProgress m;
+  m.parse("# seq=2\nopt step=5 grad=0.484/1.0 converged=yes\n"
+          "opt~ grad=31.9,6.2,0.484\nscf converged=yes\n");
+  vector<string> ms = m.summary(true);
+  check(has(ms, "Optimisation converged in 5 steps") && !has(ms, "hartree"),
+        "MOPAC summary: no gradient shown as an energy");
+  JobProgress m1;
+  m1.parse("# seq=1\nscf converged=yes\n");
+  check(has(m1.summary(true), "SCF converged") &&
+        !has(m1.summary(true), "cycles"), "SCF converged without a count");
+
   JobProgress k;
   k.parse("# seq=3\nopt step=3 energy=-76.4\n");
   check(has(k.summary(false), "Optimisation stopped at step 3"), "a stopped run");
