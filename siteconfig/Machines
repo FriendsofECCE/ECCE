@@ -10,7 +10,7 @@
 # unreachable from ECCE: the input deck and submit script are generated
 # locally and ECCE stops there, telling you the directory to copy. See
 # CONFIG.dummy, which carries "noRemoteAccess: true".
-dummy	dummy.invalid	Generic	Manual submission (ECCE does not contact it)	Unspecified	1024:128	ssh	:NWChem:Gaussian-16:Gaussian-09:ORCA:MOPAC:QuantumESPRESSO	MN:RD:SD:Q:TL:MM:SS:AA
+dummy	dummy.invalid	Generic	Manual submission only	Unspecified	1024:128	ssh	:NWChem:Gaussian-16:Gaussian-09:ORCA:MOPAC:QuantumESPRESSO	MN:RD:SD:Q:TL:MM:SS:AA
 
 # The machine ECCE is running on. Jobs run directly here under the "Shell"
 # queue manager (no batch system), which is the normal arrangement for a
