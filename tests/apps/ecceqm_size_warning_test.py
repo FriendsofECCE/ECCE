@@ -117,6 +117,9 @@ def main():
         flat = " ".join(text.split())
         dialogs = ["ECCE_TEST_DIALOG:" + d.split("[LAUNCHER]")[0]
                    for d in flat.split("ECCE_TEST_DIALOG:")[1:]]
+        # The hook also logs whether the dialog's parent is frozen (#308).
+        dialogs = [d for d in dialogs if "parent not frozen" not in d
+                   and "parent frozen" not in d]
         check(len(dialogs) == 1 and "[Large ECCE-QM calculation]" in dialogs[0],
               "benzene GeoVib B3LYP 6-31G* is warned about: %s" % dialogs)
         check(dialogs and "12 atoms with 96 basis functions" in dialogs[0]
