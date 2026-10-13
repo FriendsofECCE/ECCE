@@ -1,0 +1,21 @@
+---
+type: pitfall
+title: "The Builder draws normal modes (and MOs, dipole) on the last GEOMTRACE step, so a code that reorients must deliver one (#312)"
+area: codereg
+paths: [scripts/parsers/orca.desc, scripts/parsers/nwchem.desc, scripts/parsers/gaussian-16.desc, src/viz/propsgcommands/ShowFragCmd.C, tests/parsers/vib_frame_test.py, tests/apps/vib_frame_builder_test.py]
+issues: [312]
+---
+ORCA with UseSym, Gaussian (standard orientation) and NWChem (`geometry
+autosym`) print modes, orbitals and tensors in their own frame, not the one
+chemsys.mvm holds. The Builder opens a calculation on the last GEOMTRACE
+step (`ShowFragCmd`, index -1), so the frames agree only if the code's own
+geometry reaches GEOMTRACE. ORCA and Gaussian print one in every run. NWChem
+prints the coordinates of a frequency-only run under `task_hessian
+task_energy`, which `[GEOMHESS]` now routes to `nwchem.geomtrace` (it was
+discarded, and the arrows floated off the atoms); in GeoVib the script
+drops it because the gradient blocks already hold the trace.
+
+Check with `tests/parsers/vib_frame_test.py`: the hydrogen that moves most
+in a mode above 2500 cm-1 moves along its own X-H bond only if geometry and
+modes share a frame. ORCA's NumFreq turns symmetry off and keeps the input
+frame, so it needs no care.

@@ -211,9 +211,21 @@ NWChem 7.2.3 emits no `zero point` `ecce_print` tag at all (the string
 exists in the binary only as an rtdb key, `vib:zero point energy`), so that
 entry appears to be dead for this version.
 
+### `h2o_sym_freq.eprint` + `.nw`, `h2o_sym_optfreq.eprint` + `.nw`
+Water, SCF/STO-3G, `geometry autosym`, started rotated off the symmetry
+frame; frequencies only, and `optimize` then `freq` (runtypes **Vibration**,
+**GeoVib**).  NWChem moves the molecule into its own frame and prints the
+modes there.  Used by `tests/parsers/vib_frame_test.py` (#312).
+
 ---
 
 ## orca/
+
+### `ethanol_sym_freq.out`, `ethanol_sym_optfreq.out` + `.inp`
+Ethanol (trans, Cs) HF/STO-3G, `UseSym`, `Freq` and `Opt Freq`, the input
+rotated off ORCA's frame.  ORCA reorients (z = 0 is the mirror plane) and
+prints geometry and modes there.  Used by `tests/parsers/vib_frame_test.py`
+and `tests/apps/vib_frame_builder_test.py` (#312).
 
 ### `h2o_opt.out` + `h2o_opt.inp`
 Water, RHF/STO-3G geometry optimisation, `%pal nprocs 1`.  ECCE runtype

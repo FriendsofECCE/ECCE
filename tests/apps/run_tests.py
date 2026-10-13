@@ -40,6 +40,7 @@ import apps                                                   # noqa: E402
 import cases as CASEDEFS                                      # noqa: E402
 import geomtrace_stress                                       # noqa: E402
 import nmode_edit_test                                        # noqa: E402
+import vib_frame_builder_test                                 # noqa: E402
 import pbc_edit_test                                          # noqa: E402
 import pbc_ux_test                                            # noqa: E402
 import fixture                                                # noqa: E402
@@ -675,6 +676,7 @@ def main():
                                        verbose=args.verbose)
                 pbc_edit_test.check(display, results, verbose=args.verbose)
                 nmode_edit_test.check(display, results)
+                vib_frame_builder_test.check(display, results)
                 pbc_ux_test.check(display, results)
             finally:
                 restorePrefs()

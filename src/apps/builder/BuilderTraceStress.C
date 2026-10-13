@@ -23,6 +23,7 @@
 
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
+#include "viz/VRVector.H"
 
 #include "wxgui/ewxPlotCtrl.H"
 #include "wxgui/PlaybackControl.H"
@@ -383,6 +384,47 @@ bool Builder::nmodeTestCommand(SceneScript& s, const vector<string>& w)
     fprintf(stderr, "VIBSTATE: atoms=%lu arrows=%d enabled=%d\n",
             (unsigned long)sg->getFragment()->numAtoms(),
             sg->getNMVecRoot()->getNumChildren(), nm->modesApply() ? 1 : 0);
+    return true;
+  }
+  //  "vibframe": whether the arrows sit in the frame of the drawn atoms.
+  //  The hydrogen with the longest arrow in a stretch moves along its own
+  //  X-H bond, so cos(arrow, bond) is 1 when atoms and modes share a frame
+  //  and is arbitrary when they do not.
+  if (c == "vibframe") {
+    SGFragment *frag = getSG()->getFragment();
+    SoSwitch *root = getSG()->getNMVecRoot();
+    int n = root->getNumChildren();
+    int best = -1;
+    double longest = 0.0;
+    for (int k = 0; k < n && k < (int)frag->numAtoms(); k++) {
+      VRVector *v = dynamic_cast<VRVector*>(root->getChild(k));
+      if (!v || frag->atomRef(k)->atomicSymbol() != "H") continue;
+      const double *d = v->getDirection();
+      double len = sqrt(d[0]*d[0] + d[1]*d[1] + d[2]*d[2]);
+      if (len > longest) { longest = len; best = k; }
+    }
+    double cosine = -1.0;
+    if (best >= 0) {
+      const double *h = frag->atomRef(best)->coordinates();
+      const double *d = dynamic_cast<VRVector*>(root->getChild(best))
+                            ->getDirection();
+      int heavy = -1;
+      double near = 1.0e30;
+      for (int k = 0; k < (int)frag->numAtoms(); k++) {
+        if (frag->atomRef(k)->atomicSymbol() == "H") continue;
+        const double *x = frag->atomRef(k)->coordinates();
+        double r = (x[0]-h[0])*(x[0]-h[0]) + (x[1]-h[1])*(x[1]-h[1]) +
+                   (x[2]-h[2])*(x[2]-h[2]);
+        if (r < near) { near = r; heavy = k; }
+      }
+      if (heavy >= 0) {
+        const double *x = frag->atomRef(heavy)->coordinates();
+        double b[3] = {h[0]-x[0], h[1]-x[1], h[2]-x[2]};
+        double dot = d[0]*b[0] + d[1]*b[1] + d[2]*b[2];
+        cosine = fabs(dot) / (longest * sqrt(near));
+      }
+    }
+    fprintf(stderr, "VIBFRAME: atom=%d cos=%.4f\n", best, cosine);
     return true;
   }
   return s.fail("unknown command: " + c);
