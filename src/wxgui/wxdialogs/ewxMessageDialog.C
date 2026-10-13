@@ -135,7 +135,7 @@ int ewxMessageDialog::ShowModal()
           (const char *)p_label->GetLabel().mb_str());
   // A frozen parent is not repainted where the dialog uncovers it.
   if (GetParent())
-    fprintf(stderr, "ECCE_TEST_DIALOG: parent %s\n",
+    fprintf(stderr, "ECCE_TEST_DIALOG_PARENT: %s\n",
             GetParent()->IsFrozen() ? "frozen" : "not frozen");
   fflush(stderr);
   wxTimer timer(this);

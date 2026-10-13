@@ -113,8 +113,8 @@ def main():
             watcher.join(10)
             sym.check("[%s]" % QUESTION in log, "the question was asked",
                       run_tests._tail(log, 40))
-            sym.check("ECCE_TEST_DIALOG: parent not frozen" in log and
-                      "ECCE_TEST_DIALOG: parent frozen" not in log,
+            sym.check("ECCE_TEST_DIALOG_PARENT: not frozen" in log and
+                      "ECCE_TEST_DIALOG_PARENT: frozen" not in log,
                       "the editor is not frozen while the question is open",
                       run_tests._tail(log, 40))
             black = blackPixels(png, seen.get("cover")) \

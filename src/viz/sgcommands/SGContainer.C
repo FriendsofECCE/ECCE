@@ -1964,11 +1964,13 @@ void SGContainer::updateNMVecStarts()
       root->removeAllChildren();
       root->whichChild.setValue(SO_SWITCH_NONE);
    }
+   // Thin the sticks first: a Stick-style arrow starts at the rod's radius
+   // as drawn, not at its width before the arrows were shown.
+   applyNMStickScale();
    for (int j = 0; j < root->getNumChildren(); j++) {
       VRVector *v = dynamic_cast<VRVector*>(root->getChild(j));
       if (v) v->startRadius(displayedSphereRadius(j));
    }
-   applyNMStickScale();
 }
 
 // 0.15 erases the bond, 0.4 leaves the arrow shaft half inside the stick.
