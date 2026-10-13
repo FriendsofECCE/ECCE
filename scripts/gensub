@@ -1190,7 +1190,12 @@ sub gaussianScript()
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } else {
-    $retval .= "\"\$$tag\" < $::inFile > $::outFile 2>&1\n";
+    # Gaussian for Windows cannot read its input from standard input
+    # ("invalid file name ... stdin"); it takes the file names instead.
+    $retval .= "case \"\$(uname -s)\" in\n";
+    $retval .= "  MINGW*|MSYS*|CYGWIN*) \"\$$tag\" $::inFile $::outFile > $::outFile.stdout 2>&1 ;;\n";
+    $retval .= "  *) \"\$$tag\" < $::inFile > $::outFile 2>&1 ;;\n";
+    $retval .= "esac\n";
   }
   return $retval;
 }
