@@ -1,0 +1,9 @@
+! RHF def2-SVP UseSym TightSCF
+%maxcore 1500
+%output
+  Print[P_MOs] 1
+  Print[P_OrbEn] 2
+end
+* xyz 0 1
+Cr   0.000000   0.000000   0.000000
+*

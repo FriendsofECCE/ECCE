@@ -38,3 +38,4 @@ MOPAC → spec) is the bridge it would reuse.
 - [Hover and click text come from the MOs panel's own code; headings are measured, not placed (#132)](tooltip-composition-and-measured-headings.md)
 - [A homonuclear diatomic is classified by phase, not energy](a-homonuclear-diatomic-is-classified-by-phase.md)
 - [A spherical-only code on a Cartesian-flagged basis: columns unpermuted, no labels](a-spherical-only-code-on-a-cartesian-flagged-basis.md)
+- [Fragment-orbital analysis expands MOs with G^-1, not just C'Sc (#201)](fragment-orbitals-are-expanded-with-the-fragment-overlap.md)
