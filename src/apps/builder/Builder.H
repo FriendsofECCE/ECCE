@@ -141,7 +141,13 @@ class Builder: public BuilderGUI,
       ID_ROT_Y,
       ID_ROT_Z,
     
-      ID_CHOICE_VIEWER
+      ID_CHOICE_VIEWER,
+
+      // Ctrl+X/C/V/Z as accelerators (editShortcut)
+      ID_ACCEL_CUT,
+      ID_ACCEL_COPY,
+      ID_ACCEL_PASTE,
+      ID_ACCEL_UNDO
     };
 
     const static string NAME_TOOL_CONTEXT;
@@ -357,6 +363,8 @@ class Builder: public BuilderGUI,
       virtual void OnModeElementClick( wxCommandEvent& event );
       void OnModeElementList( wxCommandEvent& event );
       TearableContent *showElementChooser();
+      /// Ctrl+X/C/V/Z: edit the focused text field, else the structure.
+      void editShortcut(int accelId);
       virtual void OnModeShapeClick( wxCommandEvent& event );
       virtual void OnModeBondClick( wxCommandEvent& event );
 

@@ -542,8 +542,9 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   //  Key events go to the focused child (the 3-D canvas), never the frame,
   //  so Delete is an accelerator: OnDeleteClick leaves text fields alone.
   //  The same holds for the File/Select/Mode menu shortcuts (Ctrl+S did
-  //  nothing while the view had the focus).  Ctrl+C/V/X/Z/Y/A are left out:
-  //  they would be taken from text fields too.
+  //  nothing while the view had the focus).  Ctrl+X/C/V/Z are accelerators
+  //  too, but go through editShortcut, which gives them to a focused text
+  //  field.  Ctrl+Y/A are left out.
   wxAcceleratorEntry keys[] = {
     wxAcceleratorEntry(wxACCEL_NORMAL, WXK_DELETE, wxID_DELETE),
     wxAcceleratorEntry(wxACCEL_NORMAL, WXK_NUMPAD_DELETE, wxID_DELETE),
@@ -559,8 +560,14 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
     wxAcceleratorEntry(wxACCEL_CTRL, ',', ID_MODE_PREV),
     wxAcceleratorEntry(wxACCEL_CTRL, '.', ID_MODE_NEXT),
     wxAcceleratorEntry(wxACCEL_CTRL, 'H', wxID_HELP),
+    wxAcceleratorEntry(wxACCEL_CTRL, 'X', ID_ACCEL_CUT),
+    wxAcceleratorEntry(wxACCEL_CTRL, 'C', ID_ACCEL_COPY),
+    wxAcceleratorEntry(wxACCEL_CTRL, 'V', ID_ACCEL_PASTE),
+    wxAcceleratorEntry(wxACCEL_CTRL, 'Z', ID_ACCEL_UNDO),
   };
   SetAcceleratorTable(wxAcceleratorTable(sizeof(keys) / sizeof(keys[0]), keys));
+  Bind(wxEVT_MENU, [this](wxCommandEvent& ev) { editShortcut(ev.GetId()); },
+       ID_ACCEL_CUT, ID_ACCEL_UNDO);
 
   TPerTab tpt;
   ShapeData shapes;
@@ -2937,6 +2944,34 @@ void Builder::OnPasteClick( wxCommandEvent& event )
       cmd->getParameter("genBondOrders")->setBoolean(false);
       execute(cmd);
    }
+}
+
+
+void Builder::editShortcut(int accelId)
+{
+   //  An accelerator is taken before the focused control sees the key, so
+   //  a text field is edited here as its own key binding would.
+   wxWindow *focus = wxWindow::FindFocus();
+   if (wxTextEntry *te = dynamic_cast<wxTextEntry*>(focus)) {
+      switch (accelId) {
+         case ID_ACCEL_CUT:   if (te->CanCut()) te->Cut(); break;
+         case ID_ACCEL_COPY:  if (te->CanCopy()) te->Copy(); break;
+         case ID_ACCEL_PASTE: if (te->CanPaste()) te->Paste(); break;
+         case ID_ACCEL_UNDO:  if (te->CanUndo()) te->Undo(); break;
+      }
+      return;
+   }
+   //  Other controls with a text field of their own keep the keys idle.
+   if (dynamic_cast<wxSpinCtrl*>(focus) || dynamic_cast<wxSpinCtrlDouble*>(focus))
+      return;
+   int menuId = accelId == ID_ACCEL_CUT   ? wxID_CUT
+              : accelId == ID_ACCEL_COPY  ? wxID_COPY
+              : accelId == ID_ACCEL_PASTE ? wxID_PASTE : wxID_UNDO;
+   wxMenuBar *bar = GetMenuBar();
+   if (bar && bar->FindItem(menuId) && !bar->IsEnabled(menuId)) return;
+   wxCommandEvent ev(wxEVT_MENU, menuId);
+   ev.SetEventObject(this);
+   GetEventHandler()->ProcessEvent(ev);
 }
 
 

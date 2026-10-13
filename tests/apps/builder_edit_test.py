@@ -45,6 +45,9 @@ def builderCase(display, url):
                         "add X Terminal 5 0 0", "savestate",
                         "cmd clean", "savestate",
                         "popup selector",
+                        "select 1", "info", "key viewer copy", "select -1",
+                        "key viewer paste", "info", "key viewer undo", "info",
+                        "key text cut", "info",
                         "info", "wait 500", "quit"], url)
     st = states(log)
     tail = run_tests._tail(log, 20)
@@ -75,6 +78,26 @@ def builderCase(display, url):
               "popup %s)" % (tool.groups(), pop.groups()), tail)
     else:
         check(False, "the element selector reported where it opened", tail)
+    # Ctrl+C/V/Z with the 3-D view focused edit the structure; Ctrl+X in a
+    # text field cuts its text and leaves the structure alone.
+    atoms = [int(a) for a in re.findall(r"BUILDER: atoms=(\d+)", log)]
+    if len(atoms) >= 4:
+        check(atoms[1] > atoms[0], "Ctrl+C, Ctrl+V in the view paste "
+              "the selected atom (%s)" % atoms[:2], tail)
+        check(atoms[2] == atoms[0], "Ctrl+Z in the view undoes the paste "
+              "(%s)" % atoms[:3], tail)
+        check(atoms[3] == atoms[0], "Ctrl+X in a text field leaves the "
+              "structure alone (%s)" % atoms[:4], tail)
+    else:
+        check(False, "atom counts around the shortcuts (%s)" % atoms, tail)
+    cut = re.search(r"key text cut: ok focus=(\S+) text=\[(.*)\]", log)
+    check(cut is not None and cut.group(2) == "",
+          "Ctrl+X in a text field cuts its text (%s)"
+          % ((cut.groups() if cut else None),), tail)
+    view = re.search(r"key viewer copy: ok focus=(\S+)", log)
+    check(view is not None and "Text" not in view.group(1),
+          "the view had the focus for Ctrl+C (%s)"
+          % (view.group(1) if view else None), tail)
     m = re.search(r"CONTEXTPANE: min_height=(\d+) rows=(\d+)", log)
     check(m is not None and 40 <= int(m.group(1)) <= 110,
           "Open structures pane is about three rows high (%s)"

@@ -11,6 +11,9 @@
 //                                PATH (Teaching/Diatomics), select ENTRY
 //    mode atom|select|structlib  Mode menu
 //    popup NAME                  the element chooser: its place and size
+//    key viewer|text cut|copy|paste|undo
+//                                Ctrl+X/C/V/Z with the focus in the 3-D view
+//                                or in a text field (holding "abc")
 //    click                       a click in the 3D view in the current mode
 //    save                        File > Save
 //    savemenu                    the File > Save menu event, if enabled
@@ -48,6 +51,7 @@
 #include <cmath>
 #include <cstdio>
 #include <fstream>
+#include <functional>
 #include <sstream>
 #include <sys/stat.h>
 
@@ -58,6 +62,7 @@
 #include <wx/dcscreen.h>
 #include <wx/image.h>
 #include <wx/menu.h>
+#include <wx/textctrl.h>
 #include <wx/timer.h>
 #include <wx/utils.h>
 
@@ -214,6 +219,45 @@ void Builder::runBuilderScript(const std::string& file)
         GetEventHandler()->ProcessEvent(modeEv);
         if (!p_structLib->openFolder(w[1], w.size() > 2 ? w[2] : ""))
           outcome = "FAIL: not found in the Structure Library";
+      } else if (w[0] == "key" && w.size() == 3 &&
+                 (w[1] == "viewer" || w[1] == "text")) {
+        //  Ctrl+X/C/V/Z as the frame's accelerator delivers it, with the
+        //  focus in the 3-D view or in a text field holding "abc", all of
+        //  it selected; then the field's text.
+        const int id = w[2] == "cut" ? ID_ACCEL_CUT : w[2] == "copy"
+                     ? ID_ACCEL_COPY : w[2] == "paste" ? ID_ACCEL_PASTE
+                     : ID_ACCEL_UNDO;
+        wxTextCtrl *field = 0;
+        std::function<void(wxWindow*)> find = [&](wxWindow *p) {
+          for (wxWindow *c : p->GetChildren()) {
+            if (field) return;
+            wxTextCtrl *t = dynamic_cast<wxTextCtrl*>(c);
+            if (t && t->IsShownOnScreen() && t->IsEditable() &&
+                !t->IsMultiLine())
+              field = t;
+            else
+              find(c);
+          }
+        };
+        if (w[1] == "text") {
+          find(this);
+          if (field) {
+            field->SetValue("abc");
+            field->SetFocus();
+            field->SelectAll();
+          }
+        } else if (SoWxRenderArea *area = findViewerArea(p_viewer)) {
+          area->SetFocus();
+        }
+        for (int i = 0; i < 5; i++) wxTheApp->Yield(true);
+        wxWindow *focus = wxWindow::FindFocus();
+        wxCommandEvent ev(wxEVT_MENU, id);
+        GetEventHandler()->ProcessEvent(ev);
+        outcome = std::string("ok focus=") +
+                  (focus ? wxString(focus->GetClassInfo()->GetClassName()) : wxString("none"))
+                      .ToStdString();
+        if (field) outcome += " text=[" + field->GetValue().ToStdString() + "]";
+        else if (w[1] == "text") outcome = "FAIL: no text field";
       } else if (w[0] == "popup" && w.size() == 2) {
         //  The element chooser, as the arrow beside the element tool opens
         //  it, and where it is, straight after it is shown and half a
