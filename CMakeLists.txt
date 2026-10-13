@@ -488,6 +488,18 @@ target_include_directories(mocomp PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(mocomp PRIVATE
   eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
   ${XercesC_LIBRARIES})
+# Fragment-orbital analysis of a parent and its fragment calculations (#201).
+# Installed as bin/fragments; its wrapper is ecce-fragments.
+add_executable(fragments src/apps/fragments/fragments.C)
+target_include_directories(fragments PRIVATE ${XercesC_INCLUDE_DIRS})
+set(_frag_libs eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc
+  eccefaces eccexml eccetdat ecceutil)
+if(APPLE)
+  target_link_libraries(fragments PRIVATE ${_frag_libs} ${XercesC_LIBRARIES})
+else()
+  target_link_libraries(fragments PRIVATE
+    "$<LINK_GROUP:RESCAN,${_frag_libs}>" ${XercesC_LIBRARIES})
+endif()
 # flock(1) for the session scripts where util-linux is absent (macOS).
 if(NOT WIN32)   # the Windows client has no session scripts (#133)
   add_executable(ecce-flock src/apps/flock/ecce-flock.c)
@@ -992,7 +1004,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-site-admin mocomp
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-site-admin mocomp fragments
   autosym getfrag genmol genmollat cleansym symops)
 if(NOT WIN32)
   list(APPEND ECCE_CLI_APPS ecce-flock)
@@ -2567,6 +2579,13 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/mocomp/run_tests.py
                    ${CMAKE_BINARY_DIR})
   set_tests_properties(mocomp PROPERTIES TIMEOUT 300)
+  # tests/fragments: fragment-orbital compositions of Cr(CO)6 = Cr + (CO)6
+  # against checked-in Multiwfn CDA numbers (#201).
+  add_test(NAME fragments
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/fragments/run_tests.py
+                   ${CMAKE_BINARY_DIR})
+  set_tests_properties(fragments PROPERTIES TIMEOUT 300)
   add_test(NAME fragreaders
            COMMAND fragreaders ${CMAKE_CURRENT_SOURCE_DIR}/tests/fragreaders/data)
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/fragreaders-home)
