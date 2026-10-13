@@ -4,6 +4,7 @@
 #include <cmath>
 #include <fstream>
 #include <memory>
+#include <mutex>
 #include <numeric>
 #include <iostream>
 #include <vector>
@@ -12,6 +13,7 @@
 #include "charges.hpp"
 #include "gradient.hpp"
 #include "input.hpp"
+#include "integrals.hpp"
 #include "output.hpp"
 #include "polar.hpp"
 #include "scf.hpp"
@@ -110,10 +112,22 @@ int main(int argc, char** argv) {
       so.conv_energy = std::min(so.conv_energy, 1e-11);
       so.max_iter = std::max(so.max_iter, 200);
       so.on_cycle = [&](const qm::ScfCycle& c) { qm::write_progress_scf(os, c, so); };
+      // Displaced points run side by side when memory allows; the per-cycle
+      // SCF lines of concurrent points would interleave, so they are dropped.
+      qm::Concurrency conc;
+      if (in.parallel_points) {
+        qm::Basis b0(ref, lib, in.basis, in.spherical);
+        conc = qm::plan_concurrency(6 * static_cast<int>(ref.atoms.size()),
+                                    1.3 * qm::EriStore::bytes_needed(b0.nbf()) + 3e8);
+      }
+      if (conc.workers > 1) so.on_cycle = nullptr;
+      if (verbose) std::cerr << "frequency points: " << conc.workers << " at once\n";
+      std::mutex os_mu;
       auto point = [&](const qm::Molecule& m) {
         qm::Basis b(m, lib, in.basis, in.spherical);
         qm::ScfResult rr = qm::run_scf(b, m, so, &r_ref);
         if (!rr.converged) {
+          std::lock_guard<std::mutex> lk(os_mu);
           qm::write_progress_scf_failed(os, rr.iterations);
           throw qm::Error("SCF did not converge at a displaced geometry");
         }
@@ -131,7 +145,7 @@ int main(int argc, char** argv) {
       qm::Derivatives d = qm::finite_difference_derivatives(ref, in.hessian_step, point, [&](int k, int n) {
         qm::write_progress_freq(os, k, n);
         if (verbose) std::cerr << "hessian point " << k << "/" << n << "\n";
-      });
+      }, conc.workers, conc.threads);
       fo.vib = qm::analyse_vibrations(ref, d);
       fo.thermo = qm::thermochemistry(ref, fo.vib, in.temperature, in.pressure, in.symmetry_number);
       qm::write_progress_freq_end(os, points, fo);

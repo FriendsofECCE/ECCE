@@ -1,7 +1,17 @@
 #include "vibration.hpp"
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cmath>
+#include <cstdlib>
+#include <exception>
+#include <fstream>
+#include <mutex>
+#include <string>
+#include <thread>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 namespace qm {
 
@@ -31,24 +41,91 @@ double isotope_mass(int Z) {
   return m[Z];
 }
 
+Concurrency plan_concurrency(int npoints, double bytes_per_point) {
+  Concurrency c;
+#ifdef _OPENMP
+  if (std::getenv("ECCE_QM_SERIAL")) return c;
+  std::ifstream mi("/proc/meminfo");
+  std::string key;
+  double avail_kb = 0;
+  while (mi >> key) {
+    if (key == "MemAvailable:") { mi >> avail_kb; break; }
+    mi.ignore(256, '\n');
+  }
+  if (avail_kb <= 0) return c;  // unknown memory: stay serial
+  // Keep a quarter of the available memory free for the system and for the
+  // grids and matrices that come on top of the integrals.
+  const double fit = 0.75 * avail_kb * 1024.0 / std::max(bytes_per_point, 1.0);
+  const int budget = std::max(1, omp_get_max_threads());
+  const int p = static_cast<int>(std::min<double>({static_cast<double>(budget), static_cast<double>(npoints), fit}));
+  if (p < 2) return c;
+  c.workers = p;
+  c.threads = std::max(1, budget / p);
+#else
+  (void)npoints; (void)bytes_per_point;
+#endif
+  return c;
+}
+
 Derivatives finite_difference_derivatives(const Molecule& mol, double step,
                                           const std::function<PointEval(const Molecule&)>& eval,
-                                          const std::function<void(int, int)>& on_point) {
+                                          const std::function<void(int, int)>& on_point, int workers,
+                                          int threads_per_worker) {
   const int n = 3 * static_cast<int>(mol.atoms.size());
   Derivatives d;
   d.hessian = Mat::Zero(n, n);
   d.dmu = Mat::Zero(3, n);
   d.dalpha = Mat::Zero(9, n);
   bool have_alpha = false;
-  int done = 0;
-  for (int i = 0; i < n; ++i) {
-    PointEval pe[2];
-    for (int s = 0; s < 2; ++s) {
-      Molecule m = mol;
-      m.atoms[i / 3].x[i % 3] += (s == 0 ? step : -step);
-      pe[s] = eval(m);
-      if (on_point) on_point(++done, 2 * n);
+
+  // Point 2*i + s is coordinate i displaced by +step (s = 0) or -step.
+  std::vector<PointEval> pts(2 * n);
+  auto run_point = [&](int k) {
+    Molecule m = mol;
+    m.atoms[(k / 2) / 3].x[(k / 2) % 3] += (k % 2 == 0 ? step : -step);
+    pts[k] = eval(m);
+  };
+  if (workers <= 1) {
+    for (int k = 0; k < 2 * n; ++k) {
+      run_point(k);
+      if (on_point) on_point(k + 1, 2 * n);
     }
+  } else {
+    std::atomic<int> next(0);
+    std::mutex mu;
+    std::exception_ptr err;
+    int done = 0;
+    auto work = [&]() {
+#ifdef _OPENMP
+      // The thread count is per thread, so each worker's parallel regions get
+      // their own team of this size and nothing nests.
+      if (threads_per_worker > 0) omp_set_num_threads(threads_per_worker);
+#else
+      (void)threads_per_worker;
+#endif
+      for (;;) {
+        const int k = next.fetch_add(1);
+        if (k >= 2 * n) return;
+        try {
+          run_point(k);
+        } catch (...) {
+          std::lock_guard<std::mutex> lk(mu);
+          if (!err) err = std::current_exception();
+          next = 2 * n;
+          return;
+        }
+        std::lock_guard<std::mutex> lk(mu);
+        if (on_point) on_point(++done, 2 * n);
+      }
+    };
+    std::vector<std::thread> pool;
+    for (int w = 0; w < workers; ++w) pool.emplace_back(work);
+    for (std::thread& t : pool) t.join();
+    if (err) std::rethrow_exception(err);
+  }
+
+  for (int i = 0; i < n; ++i) {
+    const PointEval* pe = &pts[2 * i];
     for (int j = 0; j < n; ++j) d.hessian(j, i) = (pe[0].grad[j] - pe[1].grad[j]) / (2 * step);
     for (int c = 0; c < 3; ++c) d.dmu(c, i) = (pe[0].dipole[c] - pe[1].dipole[c]) / (2 * step);
     for (int c = 0; c < 9; ++c) {

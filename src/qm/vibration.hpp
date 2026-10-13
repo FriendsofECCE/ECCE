@@ -23,10 +23,21 @@ struct Derivatives {
 };
 
 // Central differences of eval over every Cartesian coordinate, step in bohr.
-// on_point(k, n) is called after each of the n displaced geometries.
+// on_point(k, n) is called after each of the n displaced geometries; with
+// several workers it is called under a lock, k counts completions and the
+// derivatives do not depend on the order the points finish in.  eval must be
+// safe to call from several threads when workers > 1.
 Derivatives finite_difference_derivatives(const Molecule& mol, double step,
                                           const std::function<PointEval(const Molecule&)>& eval,
-                                          const std::function<void(int, int)>& on_point = nullptr);
+                                          const std::function<void(int, int)>& on_point = nullptr,
+                                          int workers = 1, int threads_per_worker = 0);
+
+// How many displaced points to run at once and how many OpenMP threads each
+// gets, from the thread budget (OMP_NUM_THREADS or the core count), the free
+// memory and the memory one point needs.  {1, 0} (serial, as before) without
+// OpenMP, without /proc/meminfo, or when ECCE_QM_SERIAL is set.
+struct Concurrency { int workers = 1, threads = 0; };
+Concurrency plan_concurrency(int npoints, double bytes_per_point);
 
 struct VibResult {
   int ntransrot = 6;                 // 3 for an atom, 5 for a linear molecule

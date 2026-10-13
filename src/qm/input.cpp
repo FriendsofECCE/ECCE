@@ -111,6 +111,10 @@ Input parse_input(std::istream& in) {
       const bool on = (v == "true" || v == "yes" || v == "on" || v == "1");
       (k == "raman" ? r.raman : r.polarizability) = on;
     }
+    else if (k == "parallel_points") {
+      const std::string v = lower(rest);
+      r.parallel_points = (v == "true" || v == "yes" || v == "on" || v == "1");
+    }
     else if (k == "field_step") r.field_step = std::stod(rest);
     else if (k == "maxsteps") r.opt.max_steps = std::stoi(rest);
     else if (k == "opt_conv") r.opt.set_convergence(lower(rest));
