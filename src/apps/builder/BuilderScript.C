@@ -84,6 +84,11 @@
 #include "wxgui/TearableContent.H"
 #include "Builder.H"
 #include "ContextPanel.H"
+#include "GeomConstraintsDialog.H"
+#include "dsm/ChemistryTask.H"
+#include "tdat/GeomConstraintModel.H"
+#include "tdat/GeomConstraintRules.H"
+#include "util/EventDispatcher.H"
 #include "PBC.H"
 #include "dsm/IPropCalculation.H"
 #include "KeyValuePropertyPanel.H"
@@ -299,6 +304,41 @@ void Builder::runBuilderScript(const std::string& file)
         std::ofstream(base + ".ready") << "ready\n";
         st->waitingFor = base + ".go";
         st->waitUntil = wxGetLocalTimeMillis() + 90000;
+      } else if (w[0] == "constraints" && w.size() >= 2) {
+        //  Geometry Constraints (#306): "show", "select I J ..", "press
+        //  constrain|restrain|fix yes|no", "list", "stored".
+        if (!p_constraintsDialog) showConstraints();
+        GeomConstraintsDialog *dlg = p_constraintsDialog;
+        if (w[1] == "show") {
+          showConstraints();
+          fprintf(stderr, "BUILDER: constraints shown=%d\n", dlg->IsShown() ? 1 : 0);
+        } else if (w[1] == "select" && frag) {
+          frag->m_atomHighLight.clear();
+          for (size_t i = 2; i < w.size(); i++)
+            frag->m_atomHighLight.push_back(atoi(w[i].c_str()));
+          EventDispatcher::getDispatcher().publish(Event("SelectionChanged"));
+          fprintf(stderr, "BUILDER: constraints pick: %s\n", dlg->selectionText().c_str());
+        } else if (w[1] == "press" && w.size() == 4) {
+          fprintf(stderr, "BUILDER: constraints %s: %s\n", w[2].c_str(),
+                  dlg->press(w[2], w[3] == "yes").c_str());
+        } else if (w[1] == "list") {
+          std::vector<std::string> rows = dlg->rowTexts();
+          for (size_t i = 0; i < rows.size(); i++)
+            fprintf(stderr, "BUILDER: constraint row: %s\n", rows[i].c_str());
+          fprintf(stderr, "BUILDER: constraints rows=%d note: %s\n",
+                  (int)rows.size(), dlg->noteText().c_str());
+        } else if (w[1] == "stored") {
+          //  What the calculation itself holds, read back as the input
+          //  writers read it.
+          ChemistryTask *task = dynamic_cast<ChemistryTask*>(p_calculation);
+          int n = -1;
+          if (task && frag) {
+            GeomConstraintModel m(*frag, GeomConstraintRules());
+            task->getGeomConstraintModel(m);
+            n = m.size();
+          }
+          fprintf(stderr, "BUILDER: constraints stored=%d\n", n);
+        }
       } else if (w[0] == "symmetry") {
         //  The Symmetry panel's Find (autosym), then the point group found.
         Command *cmd = new FindSymmetryCmd("Find Symmetry", getSG());

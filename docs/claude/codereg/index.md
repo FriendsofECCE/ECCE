@@ -157,3 +157,4 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [ORCA 6.1.1: no orca_scf next to orca (Find), and the Intel Mac build needs macOS 12.3](orca-6-companion-file-and-macos-minimum.md)
 - [Example calculations ship as program outputs; File > Open Example Calculations imports a fresh copy (and MOPAC has an importer)](example-calculations-are-outputs-not-stored-calcs.md)
 - [The dummy atom X has no basis, no electrons, no formula entry - and each code numbers it differently](dummy-atom-x-is-not-an-element-and-each-code-numbers-it-differently.md)
+- [Geometry constraints are edited in the Builder and stored with the calculation; the input uses them only for Geometry/GeoVib](geometry-constraints-are-edited-in-the-builder-and-stored-with-the-calculation.md)

@@ -9,6 +9,9 @@
  * molecule, which is what the Builder leaves for CalcEd to set up and save.
  * "g16" makes proj-g16/w-c1 and proj-g16/w-c2v, Gaussian-16 calculations
  * holding a distorted (C1) and a symmetric (C2v) water.
+ * "nwchem" makes proj-nw/nh3-energy, nh3-geom (run type Geometry) and nh3-orca
+ * (an ORCA calculation), each holding NH3 with a dummy atom X bonded to N,
+ * for the Geometry Constraints tests.
  * "summary" reads <scratch-dir>/proj-sum/water-opt (a copy of
  * tests/apps/fixtures/calc-water-opt): the molecule and basis properties,
  * stored on its Parameters documents, must be the calculation's, as the
@@ -26,6 +29,7 @@ using namespace std;
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/ResourceType.H"
 #include "dsm/VDoc.H"
+#include "tdat/TRunType.H"
 #include "util/EcceURL.H"
 
 static int failures = 0;
@@ -104,6 +108,33 @@ int main(int argc, char **argv)
     Fragment frag("ch4", tags, xyz, 4, bonds);
     check(icalc->fragment(&frag), "methane stored");
     cout << calc->getURL().toString() << endl;
+    return failures ? 1 : 0;
+  }
+
+  if (mode == "nwchem") {
+    Resource *top = EDSIFactory::getResource(EcceURL("file://" + root));
+    ResourceDescriptor& rd = ResourceDescriptor::getResourceDescriptor();
+    ResourceType *projType = rd.getResourceType("collection", "ecceProject", "");
+    Resource *proj = top && projType ? top->createChild("proj-nw", projType) : 0;
+    vector<string> tags = {"N", "H", "H", "H", "X"};
+    const int bonds[] = { 0, 1, 0, 2, 0, 3, 0, 4 };
+    const double xyz[] = { 0, 0, 0.1,  0, 0.94, -0.3,  0.81, -0.47, -0.3,
+                           -0.81, -0.47, -0.3,  0, 0, 1.1 };
+    struct { const char *name; const char *code; const char *run; } calcs[] =
+        { {"nh3-energy", "NWChem", "Energy"}, {"nh3-geom", "NWChem", "Geometry"},
+          {"nh3-orca", "ORCA", "Energy"}, };
+    for (auto& c : calcs) {
+      ResourceType *calcType = rd.getResourceType("virtual_document",
+                                                  "ecceCalculation", c.code);
+      Resource *calc = proj && calcType ? proj->createChild(c.name, calcType) : 0;
+      ICalculation *icalc = dynamic_cast<ICalculation*>(calc);
+      check(icalc != 0, string(c.code) + " calculation " + c.name + " created");
+      if (!icalc) return 1;
+      icalc->runtype(TRunType(c.run, false));
+      Fragment frag(c.name, tags, xyz, 4, bonds);
+      check(icalc->fragment(&frag), string("NH3+X stored in ") + c.name);
+      cout << calc->getURL().toString() << endl;
+    }
     return failures ? 1 : 0;
   }
 

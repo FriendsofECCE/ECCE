@@ -44,7 +44,10 @@
 class AtomMeasureAngle;
 class AtomMeasureDist;
 class AtomMeasureTorsion;
+class ChemistryTask;
 class ContextHistory;
+class GeomConstraintModel;
+class GeomConstraintsDialog;
 class TearableContent;
 class ContextPanel;
 class ewxButton;
@@ -110,6 +113,7 @@ class Builder: public BuilderGUI,
       ID_MEASURE_TOOLBAR,
       ID_DRAGGER_TOOLBAR,
       ID_DOCK_FLOATING_PANELS,
+      ID_GEOM_CONSTRAINTS,
       ID_VIEW_TOGGLE_COLUMN,
       ID_VIEW_RESET_LAYOUT,
       ID_VIEW_PANELS_CLASSIC,
@@ -232,6 +236,18 @@ class Builder: public BuilderGUI,
       virtual SGContainer&     getSceneGraph();
       virtual SGViewer&        getViewer();
       virtual void showMessage(const string& msg, bool error=false);
+
+      // Geometry constraints of the open structure (#306), kept per context
+      // and saved with the calculation when the structure is saved.
+      void showConstraints();
+      GeomConstraintModel *constraintModel(bool create);
+      std::vector<int> constraintSelection();
+      void constraintsEdited();
+      bool constraintsReadOnly() const;
+      std::string constraintRunType() const;
+      std::string constraintCodeName() const;
+      bool constraintsSupportedByCode() const;
+      GeomConstraintsDialog *constraintsDialog() { return p_constraintsDialog; }
       virtual void center();
       virtual bool isAutoCenter() const;
       virtual bool isSelectModeDrag() const;
@@ -321,6 +337,7 @@ class Builder: public BuilderGUI,
       virtual void OnShowCmdClick( wxCommandEvent& event );
       virtual void OnToolMenuClick( wxCommandEvent& event );
       void OnDockFloatingPanels( wxCommandEvent& event );
+      void OnGeomConstraints( wxCommandEvent& event );
 
       virtual void OnPaneClose(wxAuiManagerEvent& event);
       void OnPaneButton(wxAuiManagerEvent& event);
@@ -567,6 +584,11 @@ class Builder: public BuilderGUI,
       set<int> p_readOnlyDisabledIds;
 
       map<string, IPropCalculation*> p_calculations;
+      map<string, GeomConstraintModel*> p_constraintModels;
+      map<string, bool> p_constraintsDirty;
+      GeomConstraintsDialog *p_constraintsDialog;
+      wxPoint p_rightDownAt;
+      void saveConstraints();
       IPropCalculation *p_calculation;
       map<string, CommandManager*> p_commandManagers;
       CommandManager *p_commandManager;

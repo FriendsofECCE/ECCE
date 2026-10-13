@@ -27,6 +27,8 @@
 #include "util/EditEvent.H"
 
 #include "tdat/Fragment.H"
+#include "tdat/GeomConstraintModel.H"
+#include "tdat/GeomConstraintRules.H"
 #include "tdat/GUIValues.H"
 
 #include "dsm/GBSRules.H"
@@ -66,7 +68,6 @@
 
 #include "CalcEd.H"
 #include "VerifyReportDialog.H"
-#include "GeomConstraints.H"
 #include "PartialCharge.H"
 
 //#define DEBUG
@@ -158,7 +159,7 @@ CalcEd::CalcEd( )
     p_basis(NULL),
     p_lastTheory(),
     p_lastRuntype(),
-    p_geomConstraints(NULL),
+    p_constraintCount(0),
     p_partialCharge(NULL),
     p_ESPCnstrnt(NULL),
     p_context(""),
@@ -207,7 +208,7 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
     p_basis(NULL),
     p_lastTheory(),
     p_lastRuntype(),
-    p_geomConstraints(NULL),
+    p_constraintCount(0),
     p_partialCharge(NULL),
     p_ESPCnstrnt(NULL),
     p_context(""),
@@ -755,8 +756,7 @@ void CalcEd::doSetContext(const string& codeName)
 
   // GDB 2/19/13  Fix for dialog states getting cleared between app invocations
   // Always restore the underlying model regardless of whether dialog is invoked
-  updateGeomModel();
-  p_geomConstraints = new GeomConstraints(this, this, wxID_ANY, "Geometry Constraints");
+  refreshConstraintCount();
 
   updateESPModel();
   p_partialCharge = new PartialCharge(this);
@@ -823,10 +823,6 @@ void CalcEd::freeContext()
     p_ESPCnstrnt = 0;
   }
 
-  if (p_geomConstraints) {
-    delete p_geomConstraints;
-    p_geomConstraints = 0;
-  } 
 
   if (p_partialCharge) {
     delete p_partialCharge;
@@ -1300,17 +1296,40 @@ void CalcEd::OnButtonCalcedPartialClick( wxCommandEvent& event )
 
 void CalcEd::OnButtonCalcedConstraintClick( wxCommandEvent& event )
 {
-  if (p_geomConstraints == 0) {
-    updateGeomModel();
-    p_geomConstraints = new GeomConstraints(this, this, wxID_ANY, "Geometry Constraints");
-  }
-
-  enableGeomConstraints();
-  p_geomConstraints->Show(true);
-  p_geomConstraints->Raise();
-
+  openConstraints();
   event.Skip();
 }
+
+
+/**
+ * Constraints belong to the structure, so they are defined in the Builder
+ * (Tools > Geometry Constraints) with the atoms selected there.
+ */
+void CalcEd::openConstraints()
+{
+  const string url = getContext();
+  Target gateway(GATEWAY, "");
+  JMSMessage *msg = newMessage();
+  msg->addProperty("action", "start");
+  publish("ecce_activity", *msg);
+  delete msg;
+
+  msg = newMessage(gateway);
+  msg->markAsPointToPoint();
+  Resource *resource = EDSIFactory::getResource(url);
+  ResourceType *resourceType = resource ? resource->getDescriptor() : 0;
+  if (resourceType) {
+    vector<ResourceTool*> tools = resourceType->getTools();
+    for (size_t i = 0; i < tools.size(); i++) {
+      if (tools[i]->getName() == BUILDER) {
+        invoke(*msg, tools[i]->getName(), 0, url, "constraints");
+        break;
+      }
+    }
+  }
+  delete msg;
+}
+
 
 /**
  * Persistently delete the esp constraint model and clean up memory.
@@ -1328,22 +1347,6 @@ void CalcEd::clearESPModel()
 }
 
 
-/**
- * Persistently delete the geometry model and clean up memory.
- */
-void CalcEd::clearGeomModel()
-{
-   ChemistryTask *task = dynamic_cast<ChemistryTask*>(p_iCalc);
-   if (task) {
-      task->setGeomConstraintModel(0);
-      if (p_frag) {
-         GeomConstraintModel *model = p_frag->getConstraints();
-         delete model;
-         p_frag->setConstraints(0);
-      }
-   }
-}
-
 void CalcEd::updateESPModel()
 {
    if (p_frag) {
@@ -1355,19 +1358,33 @@ void CalcEd::updateESPModel()
    }
 }
 
-void CalcEd::updateGeomModel()
+void CalcEd::refreshConstraintCount()
 {
-  if (p_frag) {
-    GeomConstraintRules *geomRules = new GeomConstraintRules();
-    GeomConstraintModel *geomModel = new GeomConstraintModel(*p_frag, *geomRules);
-    p_frag->setConstraints(geomModel);
-    if (p_iCalc) {
-      ChemistryTask *calc = dynamic_cast<ChemistryTask*>(p_iCalc);
-      if (calc) {
-        calc->getGeomConstraintModel(*geomModel);
-      }
-    }
+  p_constraintCount = 0;
+  ChemistryTask *task = dynamic_cast<ChemistryTask*>(p_iCalc);
+  if (task && p_frag) {
+    GeomConstraintModel model(*p_frag, GeomConstraintRules());
+    task->getGeomConstraintModel(model);
+    p_constraintCount = model.size();
   }
+}
+
+
+/// "2 constraints defined: used only by geometry optimisations", or empty.
+string CalcEd::constraintNote() const
+{
+  if (p_constraintCount <= 0) return "";
+  char buf[96];
+  snprintf(buf, sizeof buf, "%d constraint%s defined", p_constraintCount,
+           p_constraintCount == 1 ? "" : "s");
+  string note = buf;
+  bool supported = true;
+  if (p_code) p_code->get_bool("SupportsConstraints", supported);
+  if (!supported)
+    note += ": " + p_codeName + " does not use geometry constraints";
+  else if (!GeomConstraintModel::usedByRunType(getRuntypeName().ToStdString()))
+    note += ": used only by geometry optimisations";
+  return note;
 }
 
 
@@ -1507,6 +1524,20 @@ bool CalcEd::verifyInput(vector<VerifyFinding>* out)
       lineNo++;
     }
     findings.push_back(warn);
+  }
+
+  //  Constraints the input leaves out because the run type cannot use them
+  //  (#306): said here, since the deck itself cannot show what is missing.
+  if (p_constraintCount > 0 &&
+      !GeomConstraintModel::usedByRunType(getRuntypeName().ToStdString())) {
+    VerifyFinding note;
+    note.level = VerifyFinding::UNSURE;
+    note.line = 0;
+    note.check = "constraints";
+    note.message = constraintNote() + ". They are kept with the structure "
+                   "and left out of this input; choose the Geometry run "
+                   "type to apply them.";
+    findings.push_back(note);
   }
 
   vector<VerifyFinding> checked;
@@ -1763,9 +1794,6 @@ void CalcEd::subjectMCB(wxCommandEvent& event)
   clearESPModel();
   if (p_partialCharge) p_partialCharge->initializeGUI();
 
-  clearGeomModel();
-  if (p_geomConstraints) p_geomConstraints->initDisplay(false);
-
   p_frag = p_iCalc->fragment();
   if (p_frag) {
 
@@ -1777,8 +1805,8 @@ void CalcEd::subjectMCB(wxCommandEvent& event)
                 p_fullFrag->pointGroup() + "); see the terminal for why.",
                 WxFeedback::WARNING);
     }
-    updateGeomModel();
   }
+  refreshConstraintCount();
 
   setSpinMult(p_iCalc->spinMultiplicity(), false);
   restrictSpinByCharge();
@@ -3532,20 +3560,19 @@ void CalcEd::showGeomEditor()
   bool hasCalc(p_iCalc);
   bool isSubmitted(hasCalc
           && p_iCalc->getState() >= ResourceDescriptor::STATE_SUBMITTED);
-  bool hasRuntypeGeom(getRuntypeName().IsSameAs("Geometry") ||
-                      getRuntypeName().IsSameAs("GeoVib"));
   bool supportsConstraints = false;
   if (p_code) {
     p_code->get_bool("SupportsConstraints", supportsConstraints);
   }
 
+  // Any run type: the constraints belong to the structure, the run type only
+  // decides whether the input uses them (see the note beside the button).
   FindWindow(ID_BUTTON_CALCED_CONSTRAINT)->Show(!isSubmitted
-          && hasFragment && hasRuntypeGeom && supportsConstraints);
-  if (p_geomConstraints != 0) { 
-    p_geomConstraints->initDisplay(!isSubmitted && 
-                                   hasFragment && 
-                                   hasRuntypeGeom);
-  } 
+          && hasFragment && supportsConstraints);
+  const string note = constraintNote();
+  p_constraintNote->SetLabel(wxString::FromUTF8(note));
+  p_constraintNote->SetToolTip(wxString::FromUTF8(note));
+  p_buttonRow->Show(p_constraintNote, !note.empty());
   GetSizer()->Layout();
   refit();
 }
@@ -3778,15 +3805,14 @@ void CalcEd::doSave()
 
     }
 
-    // Save geometry and ESP constraint model
+    // Save the ESP constraint model (the geometry constraints are saved by
+    // the Builder, which edits them)
     ChemistryTask *task = dynamic_cast<ChemistryTask*>(p_iCalc);
     if (p_frag) {
-      task->setGeomConstraintModel(p_frag->getConstraints());
       task->setESPModel(p_ESPCnstrnt);
     }
     else {
       // make sure to remove model if there was one
-      task->setGeomConstraintModel(0);
       task->setESPModel(0);
     }
 

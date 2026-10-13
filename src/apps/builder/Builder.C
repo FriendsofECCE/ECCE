@@ -51,6 +51,11 @@ using std::vector;
 #include "util/TempStorage.H"
 
 #include "tdat/FragUtil.H"
+#include "tdat/GeomConstraintModel.H"
+#include "tdat/GeomConstraintRules.H"
+#include "dsm/ICalculation.H"
+#include "dsm/JCode.H"
+#include "GeomConstraintsDialog.H"
 #include "tdat/ShapeData.H"
 #include "tdat/TPerTab.H"
 #include "tdat/TBond.H"
@@ -410,6 +415,9 @@ Builder::Builder()
     p_standalone(false),
     p_readOnlyDisabledIds(),
     p_calculations(),
+    p_constraintModels(),
+    p_constraintsDirty(),
+    p_constraintsDialog(NULL),
     p_calculation(NULL),
     p_commandManagers(),
     p_commandManager(NULL),
@@ -485,6 +493,9 @@ Builder::Builder( wxWindow* parent, bool standalone, wxWindowID id,
     p_standalone(standalone),
     p_readOnlyDisabledIds(),
     p_calculations(),
+    p_constraintModels(),
+    p_constraintsDirty(),
+    p_constraintsDialog(NULL),
     p_calculation(NULL),
     p_commandManagers(),
     p_commandManager(NULL),
@@ -833,6 +844,9 @@ void Builder::createMenus()
                      _("Return every floating panel to its dock"));
   Bind(wxEVT_MENU, &Builder::OnDockFloatingPanels, this,
        ID_DOCK_FLOATING_PANELS);
+  p_toolMenu->Append(ID_GEOM_CONSTRAINTS, _("Geometry Constraints..."),
+                     _("Fix atoms and constrain bonds, angles and torsions"));
+  Bind(wxEVT_MENU, &Builder::OnGeomConstraints, this, ID_GEOM_CONSTRAINTS);
 
   p_propertyMenu = GetMenuBar()->GetMenu(
                    GetMenuBar()->FindMenu(_("Properties")));
@@ -1547,7 +1561,16 @@ void Builder::setContext(const string& url, const bool& force)
     getCM()->clearCommands();
     setDirty(false);
     setImport(false);
+
+    // The constraints follow the atoms of this fragment from here on.
+    const string ctxUrl = p_calculation->getURL().toString();
+    delete p_constraintModels[ctxUrl];
+    p_constraintModels.erase(ctxUrl);
+    p_constraintsDirty[ctxUrl] = false;
+    if (dynamic_cast<ChemistryTask*>(p_calculation)) constraintModel(true);
   }
+
+  if (p_constraintsDialog) p_constraintsDialog->refresh();
 
   p_contextPanel->SetContext(url);
   updateContextPane();
@@ -1644,6 +1667,20 @@ void Builder::selectionChangeCB(void *  data, ChemSelection * sel)
 
 bool Builder::mouseEvent(wxMouseEvent *event)
 {
+   // A right click (not a drag, which rotates) on a selection offers the
+   // constraints for it (#306).
+   if (event->RightDown()) {
+      p_rightDownAt = event->GetPosition();
+   } else if (event->RightUp() &&
+              abs(event->GetX() - p_rightDownAt.x) < 4 &&
+              abs(event->GetY() - p_rightDownAt.y) < 4 &&
+              !constraintSelection().empty() && !constraintsReadOnly()) {
+      CallAfter([this]() {
+        wxMenu menu;
+        menu.Append(ID_GEOM_CONSTRAINTS, _("Constrain Selected Atoms..."));
+        PopupMenu(&menu);
+      });
+   }
    // For not, process all button events.  May want to revert to just button up
    //if (event->ButtonUp() && p_viewer->isViewing()) {
    if (p_viewer->isViewing()) {
@@ -2930,6 +2967,8 @@ void Builder::eventMCB(const Event& event)
    }
    else if (name == "SelectionChanged") {
       setSelection(frag->m_atomHighLight, frag->m_bondHighLight);
+      if (p_constraintsDialog && p_constraintsDialog->IsShown())
+        p_constraintsDialog->refresh();
    }
    else if (name == "ElementChanged") {
      // @todo Update the elt button, shape button and
@@ -4125,6 +4164,7 @@ void Builder::doSave()
   }
   if (!abortFlag) {
     if (p_calculation->fragment(frag)) {
+      saveConstraints();
       setDirty(false);
       // Add a check to make warn them if they are saving with nubs
       // Do after save so empirical formula is regenerated
@@ -4211,6 +4251,108 @@ void Builder::doSaveAs(const bool& imagesOnly)
 }
 
 
+void Builder::OnGeomConstraints(wxCommandEvent& event)
+{
+  showConstraints();
+}
+
+
+void Builder::showConstraints()
+{
+  if (!p_constraintsDialog) p_constraintsDialog = new GeomConstraintsDialog(this);
+  p_constraintsDialog->refresh();
+  p_constraintsDialog->Show(true);
+  p_constraintsDialog->Raise();
+}
+
+
+/**
+ * The constraints of the current structure.  They are built from the
+ * calculation's stored ones (and its code's rules) the first time they are
+ * needed, and follow the fragment's atoms by pointer after that.
+ */
+GeomConstraintModel *Builder::constraintModel(bool create)
+{
+  if (!p_calculation) return 0;
+  const string url = p_calculation->getURL().toString();
+  map<string, GeomConstraintModel*>::iterator it = p_constraintModels.find(url);
+  if (it != p_constraintModels.end()) return it->second;
+  SGFragment *frag = getSG()->getFragment();
+  if (!create || !frag) return 0;
+
+  GeomConstraintModel *model = new GeomConstraintModel(*frag, GeomConstraintRules());
+  if (ChemistryTask *task = dynamic_cast<ChemistryTask*>(p_calculation))
+    task->getGeomConstraintModel(*model);
+  p_constraintModels[url] = model;
+  return model;
+}
+
+
+vector<int> Builder::constraintSelection()
+{
+  SGFragment *frag = getSG()->getFragment();
+  return frag ? frag->m_atomHighLight : vector<int>();
+}
+
+
+void Builder::constraintsEdited()
+{
+  if (!p_calculation) return;
+  p_constraintsDirty[p_calculation->getURL().toString()] = true;
+  setDirty(true);
+  updateSave();
+}
+
+
+bool Builder::constraintsReadOnly() const
+{
+  return !p_calculation || isReadOnly();
+}
+
+
+string Builder::constraintRunType() const
+{
+  ICalculation *calc = dynamic_cast<ICalculation*>(p_calculation);
+  return calc ? calc->runtype().name() : string();
+}
+
+
+string Builder::constraintCodeName() const
+{
+  ChemistryTask *task = dynamic_cast<ChemistryTask*>(p_calculation);
+  const JCode *code = task ? task->application() : 0;
+  return code ? code->name() : string();
+}
+
+
+bool Builder::constraintsSupportedByCode() const
+{
+  ChemistryTask *task = dynamic_cast<ChemistryTask*>(p_calculation);
+  const JCode *code = task ? task->application() : 0;
+  bool supported = true;
+  if (code) code->get_bool("SupportsConstraints", supported);
+  return supported;
+}
+
+
+/**
+ * Stores the constraints with the calculation, with the structure they
+ * describe; a run type that cannot use them leaves them out of the input.
+ */
+void Builder::saveConstraints()
+{
+  ChemistryTask *task = dynamic_cast<ChemistryTask*>(p_calculation);
+  GeomConstraintModel *model = constraintModel(false);
+  if (!task || !model) return;
+  const string url = p_calculation->getURL().toString();
+  model->cleanUnmatchedAtoms();
+  if (model->size() > 0 || p_constraintsDirty[url]) {
+    task->setGeomConstraintModel(model);
+    p_constraintsDirty[url] = false;
+  }
+}
+
+
 void Builder::doSaveThumb()
 {
   ChemistryTask *task = NULL;
@@ -4271,6 +4413,9 @@ void Builder::doClose(const string& context, const bool& autoOpen)
   }
 
   // now remove the old context
+  delete p_constraintModels[contextToClose];
+  p_constraintModels.erase(contextToClose);
+  p_constraintsDirty.erase(contextToClose);
   p_calculations.erase(contextToClose);
   delete p_commandManagers[contextToClose];
   p_commandManagers.erase(contextToClose);

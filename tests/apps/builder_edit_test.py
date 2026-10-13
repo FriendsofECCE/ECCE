@@ -2,13 +2,12 @@
 """
 Builder: Save follows the unsaved-changes flag the close prompt reads, the
 Open structures pane starts at about three rows, and no blank "Unnamed"
-structure is left next to the calculation the Builder opened; and the
-Calculation Editor's Geometry Constraints dialog shows every column.
+structure is left next to the calculation the Builder opened.  (The
+Geometry Constraints dialog is tested in builder_constraints_test.py.)
 
 Local data mode, calculations made by tests/filedsi/resourceTest (MOPAC
 methane).  ECCE_BUILDER_SCRIPT "savestate"/"savemenu" report and use the
-Save item; ECCE_CALCED_SCRIPT "constraints N" fills the dialog and reports
-each grid.  Exit 77 (skip) without an install or Xvfb.
+Save item.  Exit 77 (skip) without an install or Xvfb.
 """
 import os
 import re
@@ -66,27 +65,6 @@ def builderCase(display, url):
           % (str(m.groups()) if m else "?"), tail)
 
 
-def calcedCase(display, url, kind=""):
-    log = sym.scripted(display, "calced", "ECCE_CALCED_SCRIPT",
-                       ["wait 6000", "constraints 20 " + kind,
-                        "wait 1500", "quit"], url)
-    tail = run_tests._tail(log, 20)
-    grids = re.findall(r"grid (\w+) rows=(\d+) cols=(\d+) width=(\d+) "
-                       r"colsneed=(\d+) virtual=(\d+)x(\d+) client=(\d+)x(\d+) "
-                       r"hscroll=(\d)", log)
-    check(len(grids) >= 1, "constraint grids reported (%d)" % len(grids), tail)
-    for g in grids:
-        name, rows, cols, width, need, vx, vy, cx, cy, hs = g
-        check(hs == "0" and int(width) >= int(need),
-              "%s grid: %s columns fit, no horizontal scroll (width %s, need %s)"
-              % (name, cols, width, need), tail)
-        check(int(cy) < 200, "%s grid: %s rows, height %s capped, scrolls "
-              "vertically" % (name, rows, cy), tail)
-    m = re.search(r"dialog (\d+)x(\d+) display=(\d+)x(\d+)", log)
-    check(m is not None and int(m.group(2)) <= int(m.group(4)) and int(m.group(2)) <= 768,
-          "dialog fits the screen (%s)" % (str(m.groups()) if m else "?"), tail)
-
-
 def main():
     def checkApp(display, name, results, verbose=False):
         folder = os.path.join(fixture.stateDir(), "builderedit-localdata")
@@ -100,8 +78,6 @@ def main():
             url = "file://" + os.path.join(folder, "users", "local",
                                            "proj-mopac", "ch4") + "/"
             builderCase(display, url)
-            calcedCase(display, url)
-            calcedCase(display, url, "fixed")
         finally:
             restorePrefs()
             os.environ.pop("ECCE_LOCAL_DATA", None)

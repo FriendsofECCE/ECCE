@@ -43,7 +43,6 @@
 #include "wxgui/ewxThemeColours.H"
 
 #include "CalcEd.H"
-#include "GeomConstraints.H"
 
 namespace {
 
@@ -223,12 +222,21 @@ void CalcEd::runCalcEdScript(const string& file)
         }
         if (!ok) outcome = "FAIL: " + w[1] + " not available";
       } else if (w[0] == "constraints") {
-        //  Geometry Constraints dialog with N of each kind, sizes on stderr
-        wxCommandEvent ev(wxEVT_BUTTON, ID_BUTTON_CALCED_CONSTRAINT);
-        OnButtonCalcedConstraintClick(ev);
-        fprintf(stderr, "%s", p_geomConstraints->testReport(
-                w.size() > 1 ? atoi(w[1].c_str()) : 3,
-                w.size() > 2 ? (w[2] == "fixed" ? 1 : 2) : 0).c_str());
+        //  The Geometry Constraints button and the note beside it (#306)
+        wxWindow *b = FindWindow(ID_BUTTON_CALCED_CONSTRAINT);
+        fprintf(stderr, "CALCED: constraints button=%d count=%d note=%s\n",
+                b && b->IsShown() ? 1 : 0, p_constraintCount,
+                constraintNote().c_str());
+        {
+          //  and what Verify says about them
+          std::vector<VerifyFinding> findings;
+          if (verifyInput(&findings))
+            for (size_t i = 0; i < findings.size(); i++)
+              if (findings[i].check == "constraints")
+                fprintf(stderr, "CALCED: verify %s: %s\n",
+                        findings[i].level == VerifyFinding::UNSURE ? "UNSURE" : "other",
+                        findings[i].message.c_str());
+        }
       } else if (w[0] == "dismiss") {
         bool closed = false;
         for (wxWindowList::compatibility_iterator n =

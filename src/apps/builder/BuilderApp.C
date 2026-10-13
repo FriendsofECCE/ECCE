@@ -334,7 +334,9 @@ void BuilderApp::invokeMCB(JMSMessage& msg)
         setPollContext(urlstr);
       }
 
-      if (action == "getselection") {
+      if (action == "constraints") {
+        p_builder->showConstraints();
+      } else if (action == "getselection") {
         Target t(msg.getOriginalSenderName(), msg.getOriginalSenderId());
         JMSMessage *reply = newMessage(t);
         SGFragment *frag = p_builder->getSceneGraph().getFragment();

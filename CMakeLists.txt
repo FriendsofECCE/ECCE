@@ -2171,6 +2171,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_ligands PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Geometry Constraints in the Builder, Ctrl+click, dummy atoms (#306).
+  add_test(NAME apps_builder_constraints
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_constraints_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_constraints PROPERTIES TIMEOUT 1500
+                       SKIP_RETURN_CODE 77)
   # A finished calculation without ecce:progress gets one from its stored
   # output (#284): CalcMgr::backfillProgress.
   add_test(NAME apps_progress_backfill

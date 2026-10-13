@@ -515,9 +515,14 @@ void CalcEdGUI::CreateControls()
     itemButton84->Show(false);
     itemBoxSizer83->Add(itemButton84, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
 
-    ewxButton* itemButton85 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_CONSTRAINT, _("Constraint Editor..."), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxButton* itemButton85 = new ewxButton( itemFrame1, ID_BUTTON_CALCED_CONSTRAINT, _("Geometry Constraints..."), wxDefaultPosition, wxDefaultSize, 0 );
     itemButton85->Show(false);
     itemBoxSizer83->Add(itemButton85, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
+
+    //  "2 constraints defined: used only by geometry optimisations"
+    p_constraintNote = new ewxStaticText( itemFrame1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+    itemBoxSizer83->Add(p_constraintNote, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
+    itemBoxSizer83->Show(p_constraintNote, false);
 
     //  The light and the Verify button sit together, immediately left
     //  of Final Edit: the light is the standing answer and the button

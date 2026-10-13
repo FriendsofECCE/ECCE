@@ -177,6 +177,7 @@ public:
     wxPanel* p_basisMark;
     wxPanel* p_basisInner;
     ewxStaticText* p_notReadyText;
+    ewxStaticText* p_constraintNote;
     wxFlexGridSizer* p_theoryDetailsSizer;
     wxFlexGridSizer* p_runtypeDetailsSizer;
     wxBoxSizer* p_buttonRow;

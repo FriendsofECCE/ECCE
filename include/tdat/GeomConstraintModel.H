@@ -38,6 +38,11 @@ class GeomConstraintModel : public Serializable
 
    public:
 
+      /// Run types whose input uses the constraints; for any other they are
+      /// kept with the structure but left out of the input (#306).
+      static bool usedByRunType(const std::string& runtype)
+      { return runtype == "Geometry" || runtype == "GeoVib"; }
+
       GeomConstraintModel(const Fragment& frag, 
                           const GeomConstraintRules& rules);
       GeomConstraintModel(const GeomConstraintModel& rhs); 

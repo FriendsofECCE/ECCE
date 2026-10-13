@@ -38,7 +38,6 @@ class ICalculation;
 class JCode;
 class SFile;
 class TGBSConfig;
-class GeomConstraints;
 class PartialCharge;
 
 class CalcEd: public CalcEdGUI,
@@ -239,9 +238,12 @@ class CalcEd: public CalcEdGUI,
 
     void saveSettings();
     void restoreSettings();
-    void updateGeomModel();
+    /// The constraints are edited in the Builder (#306); the editor only
+    /// reports how many the structure has and opens the Builder for them.
+    void refreshConstraintCount();
+    string constraintNote() const;
+    void openConstraints();
     void updateESPModel();
-    void clearGeomModel();
     void clearESPModel();
 
     void startApp(int id, int force, const string& url) const;
@@ -347,8 +349,8 @@ class CalcEd: public CalcEdGUI,
     TTheory  p_lastTheory;
     TRunType p_lastRuntype;
 
-    /** the geom constraints dialog. */
-    GeomConstraints *p_geomConstraints;
+    /** how many geometry constraints the calculation holds. */
+    int p_constraintCount;
 
     /** the partial charge dialog. */
     PartialCharge   *p_partialCharge;

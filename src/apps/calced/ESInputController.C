@@ -106,9 +106,8 @@ bool CalcEd::write_esp(const string& output_file, bool& file_flag)
 
 bool CalcEd::write_constraints(const string& output_file, bool& file_flag)
 {
-  // we only write_constraints if our runtype is geometry, so bail if it isn't
-  if (p_iCalc->runtype().name() != "Geometry"
-          && p_iCalc->runtype().name() != "GeoVib") {
+  // only a run type that uses constraints gets them; they stay stored
+  if (!GeomConstraintModel::usedByRunType(p_iCalc->runtype().name())) {
     // it's not an error to bail early if not the correct runtype
     return true;
   }

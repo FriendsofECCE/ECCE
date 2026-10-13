@@ -49,7 +49,7 @@ def check(ok, what, detail=""):
             print(detail)
 
 
-def makeCalculations(folder):
+def makeCalculations(folder, modes=("g16", "mopac")):
     """The local data folder, with the calculations resourceTest makes."""
     build = os.environ.get("ECCE_TEST_BUILD", os.path.join(REPO, "build-cmake"))
     driver = os.path.join(fixture.stateDir(), "resourceTest")
@@ -69,7 +69,7 @@ def makeCalculations(folder):
     env = dict(os.environ, ECCE_HOME=apps.INSTALL, ECCE_LOCAL_DATA=folder,
                ECCE_REALUSER=getpass.getuser(), ECCE_NO_MESSAGING="1",
                LD_LIBRARY_PATH=build)
-    for mode in ("g16", "mopac"):
+    for mode in modes:
         done = subprocess.run([driver, mode, user], env=env,
                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         if done.returncode != 0:
