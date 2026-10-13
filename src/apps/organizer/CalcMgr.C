@@ -2588,10 +2588,11 @@ void CalcMgr::OnOpenExamplesClick( wxCommandEvent& event )
 static const char *const kExampleOutputs[] = {
   "ecceqm-water/water.qmout",
   "orca-benzene/benzene.out",
+  "orca-ethanol/ethanol.out",
   "mopac-ammonia/ammonia.out",
   "nwchem-methane/methane.eprint",
 };
-static const char *const kExampleSetVersion = "1";
+static const char *const kExampleSetVersion = "2";
 
 string CalcMgr::openExamples(string& message)
 {

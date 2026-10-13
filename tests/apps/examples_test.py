@@ -40,6 +40,7 @@ EXPECT = {
     "water": ["TE", "VIBFREQ", "VIBIR", "MULLIKEN", "LOEWDIN", "ESPFIT",
               "MKFIT", "MO"],
     "benzene": ["MO", "VIBFREQ", "ESPFIT", "HIRSHFELD", "MBIS", "NPA"],
+    "ethanol": ["MO", "VIBFREQ", "VIBIR", "VIBRAM", "VIBRAMDEPOL"],
     "ammonia": ["MO", "VIBFREQ"],
     "methane": ["MO", "VIBFREQ", "MULLIKEN"],
 }
@@ -64,7 +65,7 @@ def propsOf(project):
 
 
 def waitImported(root, projects, seconds=240):
-    """Wait until each project holds four calculations whose Props stopped
+    """Wait until each project holds all the example calculations whose Props stopped
     changing for 20 s."""
     end = time.time() + seconds
     last, stable = None, 0
@@ -155,7 +156,7 @@ def run(display, data, work):
                                    sorted(got[held[0]])))
         meta = os.path.join(root, project, ".ecce-meta")
         text = open(meta).read() if os.path.exists(meta) else ""
-        if not re.search(r"exampleSet[^0-9]*1", text):
+        if not re.search(r"exampleSet[^0-9]*2", text):
             problems.append("%s records no example-set version" % project)
     trees = re.findall(r"ECCE_TEST_ORGANIZER: tree: ok (.*)$", log, re.M)
     if not trees:

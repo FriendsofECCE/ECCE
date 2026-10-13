@@ -6,7 +6,7 @@ paths: ["data/client/examples", "src/apps/organizer/CalcMgr.C", "scripts/parsers
 issues: [302]
 ---
 `data/client/examples/<name>/` holds an output and its input (ECCE-QM water,
-ORCA benzene, MOPAC ammonia, NWChem methane), not a stored calculation: they
+ORCA benzene and ethanol (Raman), MOPAC ammonia, NWChem methane), not a stored calculation: they
 go through the ordinary importer, so they stay valid when the stored format
 changes. `CalcMgr::openExamples` (menu item and the `examples` command of
 `ECCE_TEST_ORGANIZER`) makes project `Examples`, or `Examples_2`, ... (project
@@ -31,7 +31,7 @@ add the output to `kExampleOutputs` and the expected `Props` to
   (`RunMgmt::registerLocalMachine`), so every import there ended "<host> must
   be a registered compute server", the empty calculation was deleted again
   and the Examples project stayed empty. It falls back to `localhost` now.
-- `openExamples` selects the new project once, imports all four with
+- `openExamples` selects the new project once, imports them all with
   `p_batchImport` set (no per-calculation tree rebuild, which wxMSW paints
   step by step) and rebuilds the project's subtree once at the end; a failed
   import is reported after that, not overwritten (#263).

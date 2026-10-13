@@ -148,9 +148,10 @@ sub parseKeywordLine {
     elsif ($ucTok eq "RKS") { $sawRKS = 1; }
     elsif ($ucTok eq "UKS") { $sawUKS = 1; }
     elsif (exists($xcFunctionals{$ucTok})) { $xcFunctional = $xcFunctionals{$ucTok}; }
-    elsif ($tok eq "Opt") { $sawOpt = 1; }
-    elsif ($tok eq "Freq") { $sawFreq = 1; }
-    elsif ($tok eq "EnGrad") { $sawEnGrad = 1; }
+    # ORCA keywords ignore case, and Raman with B88 functionals needs NumFreq.
+    elsif ($ucTok =~ /^(LOOSE|NORMAL|TIGHT|VERYTIGHT)?OPT$/) { $sawOpt = 1; }
+    elsif ($ucTok =~ /^(NUM|AN)?FREQ$/) { $sawFreq = 1; }
+    elsif ($ucTok eq "ENGRAD") { $sawEnGrad = 1; }
     elsif ($ucTok eq "NMR") { $sawNMR = 1; }
     elsif (exists($unsupportedRuntypeTokens{$ucTok})) { $sawUnsupportedRuntype = 1; }
     # Any other token is either a basis name or an auxiliary/
