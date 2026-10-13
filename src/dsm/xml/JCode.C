@@ -774,6 +774,13 @@ bool JCode::supportsMODiagram(void) const
   return supported;
 }
 
+bool JCode::supportsDummyAtoms(void) const
+{
+  bool supported = true;
+  get_bool("SupportsDummyAtoms", supported);
+  return supported;
+}
+
 bool JCode::getBasisSetQuickListSupported(void) const
 {
   bool supportedFlag = true;

@@ -5,6 +5,7 @@
 -->
 
 <appdescriptor codeName="NWChem">
+<SupportsDummyAtoms>false</SupportsDummyAtoms>
 
 <GaussianBasisSetRules>
   <MaxLValue>  5</MaxLValue>

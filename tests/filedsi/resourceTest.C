@@ -10,8 +10,8 @@
  * "g16" makes proj-g16/w-c1 and proj-g16/w-c2v, Gaussian-16 calculations
  * holding a distorted (C1) and a symmetric (C2v) water.
  * "nwchem" makes proj-nw/nh3-energy, nh3-geom (run type Geometry) and nh3-orca
- * (an ORCA calculation), each holding NH3 with a dummy atom X bonded to N,
- * for the Geometry Constraints tests.
+ * (an ORCA calculation), nh3-qe (Quantum ESPRESSO), each holding NH3 with a dummy atom X bonded to N,
+ * for the Geometry Constraints tests; empty-nw holds no structure.
  * "summary" reads <scratch-dir>/proj-sum/water-opt (a copy of
  * tests/apps/fixtures/calc-water-opt): the molecule and basis properties,
  * stored on its Parameters documents, must be the calculation's, as the
@@ -122,7 +122,8 @@ int main(int argc, char **argv)
                            -0.81, -0.47, -0.3,  0, 0, 1.1 };
     struct { const char *name; const char *code; const char *run; } calcs[] =
         { {"nh3-energy", "NWChem", "Energy"}, {"nh3-geom", "NWChem", "Geometry"},
-          {"nh3-orca", "ORCA", "Energy"}, };
+          {"nh3-orca", "ORCA", "Energy"}, {"nh3-qe", "QuantumESPRESSO", "Energy"},
+          {"empty-nw", "NWChem", "Energy"} };
     for (auto& c : calcs) {
       ResourceType *calcType = rd.getResourceType("virtual_document",
                                                   "ecceCalculation", c.code);
@@ -131,6 +132,10 @@ int main(int argc, char **argv)
       check(icalc != 0, string(c.code) + " calculation " + c.name + " created");
       if (!icalc) return 1;
       icalc->runtype(TRunType(c.run, false));
+      if (string(c.name) == "empty-nw") {      // a structure still to be drawn
+        cout << calc->getURL().toString() << endl;
+        continue;
+      }
       Fragment frag(c.name, tags, xyz, 4, bonds);
       check(icalc->fragment(&frag), string("NH3+X stored in ") + c.name);
       cout << calc->getURL().toString() << endl;

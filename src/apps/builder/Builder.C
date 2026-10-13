@@ -1293,6 +1293,12 @@ Command * Builder::createModeCommand(int modeId)
     break;
   case ID_MODE_ATOM:
     {
+      string codeName;
+      if (p_currentElement == "X" && !dummyAtomsSupported(codeName)) {
+        showMessage(codeName + " does not support dummy atoms, so none is "
+                    "added. Choose another element.", true);
+        break;
+      }
       try {
         int resIdx = checkResidueEditing();
         cmd = new AtomEditCmd("add", getSG());
@@ -2572,6 +2578,8 @@ CommandManager* Builder::getCM()
 
 void Builder::showMessage(const string& msg, bool error )
 {
+  if (getenv("ECCE_BUILDER_SCRIPT"))      // test hook: the log panel on stderr
+    fprintf(stderr, "BUILDER: message: %s\n", msg.c_str());
   if (error) {
     wxLogError("%s", msg.c_str());
   } else {
@@ -2974,6 +2982,10 @@ void Builder::eventMCB(const Event& event)
      // @todo Update the elt button, shape button and
      // unset the viewer state buttons
      p_currentElement = value;
+     string codeName;
+     if (value == "X" && !dummyAtomsSupported(codeName))
+       showMessage(codeName + " does not support dummy atoms; none can be "
+                   "added to this calculation.", false);
      updateElementIcon();
      Event evt("ShapeChanged", p_currentShapes[p_currentElement]);
      EventDispatcher::getDispatcher().publish(evt);
@@ -4301,6 +4313,17 @@ void Builder::constraintsEdited()
   p_constraintsDirty[p_calculation->getURL().toString()] = true;
   setDirty(true);
   updateSave();
+}
+
+
+/// A dummy atom X is written into the input only by codes whose writer and
+/// output parser handle it (the SupportsDummyAtoms element of the code).
+bool Builder::dummyAtomsSupported(string& codeName) const
+{
+  ChemistryTask *task = dynamic_cast<ChemistryTask*>(p_calculation);
+  const JCode *code = task ? task->application() : 0;
+  codeName = code ? code->name() : string();
+  return !code || code->supportsDummyAtoms();
 }
 
 

@@ -24,6 +24,7 @@
    lookup by type then cannot find it.
 -->
 <appdescriptor>
+<SupportsDummyAtoms>false</SupportsDummyAtoms>
 
 <DataFiles>
   <Input  type="primary" mimetype="chemical/x-gromacs-mdp" comment="true" commentstring=";">gromacs.mdp</Input>

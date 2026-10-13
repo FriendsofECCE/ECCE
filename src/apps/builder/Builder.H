@@ -247,6 +247,7 @@ class Builder: public BuilderGUI,
       std::string constraintRunType() const;
       std::string constraintCodeName() const;
       bool constraintsSupportedByCode() const;
+      bool dummyAtomsSupported(string& codeName) const;
       GeomConstraintsDialog *constraintsDialog() { return p_constraintsDialog; }
       virtual void center();
       virtual bool isAutoCenter() const;

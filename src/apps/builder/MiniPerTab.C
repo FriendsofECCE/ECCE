@@ -337,6 +337,9 @@ void MiniPerTab::setElements()
     p_eltBtns[index]->SetBitmap(elementChip(p_elements[index], col,
                                             GetContentScaleFactor()));
     p_eltBtns[index]->SetBitmapPosition(wxLEFT);
+    if (p_elements[index] == "X")
+      p_eltBtns[index]->SetToolTip(_("Dummy atom: no electrons, no basis "
+                                     "set; for constraints"));
   }
 
   wxSize uniform(0, 0);

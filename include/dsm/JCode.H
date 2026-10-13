@@ -115,6 +115,8 @@ class JCode
   bool getBasisSetToolHidden(void) const;
   /// Element SupportsMODiagram; true unless the code says false.
   bool supportsMODiagram(void) const;
+  /// Element SupportsDummyAtoms; true unless the code says false.
+  bool supportsDummyAtoms(void) const;
   bool theoryNeedsBasis(const TTheory& theory) const;
   bool theoryCategoryNeedsBasis(const string& theorycat) const;
 

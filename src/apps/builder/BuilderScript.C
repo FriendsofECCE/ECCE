@@ -352,6 +352,16 @@ void Builder::runBuilderScript(const std::string& file)
           fprintf(stderr, "BUILDER: selected after %s click on %s:%s\n",
                   w[1].c_str(), w[2].c_str(), sel.c_str());
         }
+      } else if (w[0] == "element" && w.size() == 2) {
+        //  The element chosen in the Build panel.
+        EventDispatcher::getDispatcher().publish(Event("ElementChanged", w[1]));
+      } else if (w[0] == "coords" && frag) {
+        for (size_t i = 0; i < frag->numAtoms(); i++) {
+          const double *c = frag->atomRef(i)->coordinates();
+          fprintf(stderr, "BUILDER: atom %d %s %.4f %.4f %.4f\n", (int)i + 1,
+                  frag->atomRef(i)->atomicSymbol().c_str(), c[0], c[1], c[2]);
+        }
+        fprintf(stderr, "BUILDER: formula=%s\n", frag->formula().c_str());
       } else if (w[0] == "constraints" && w.size() >= 2) {
         //  Geometry Constraints (#306): "show", "select I J ..", "press
         //  constrain|restrain|fix yes|no", "list", "stored".

@@ -5,6 +5,7 @@
 -->
 
 <appdescriptor codeName="NWChem">
+<SupportsDummyAtoms>false</SupportsDummyAtoms>
 
 <!-- Raw File Naming Conventions
 -->

@@ -51,6 +51,8 @@ ElementButton::ElementButton(int atomicNum, PerTabPanel * parent,
 
   p_atomicNumStr = StringConverter::toString(atomicNum);
   p_symbol = parent->getTPerTab()->atomicSymbol(atomicNum);
+  if (atomicNum == 0)
+    SetToolTip(_("Dummy atom: no electrons, no basis set; for constraints"));
   clearSizeInfo();
 
   // Compute size metrics eagerly with a client DC (not a paint DC), so a

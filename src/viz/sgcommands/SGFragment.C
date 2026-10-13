@@ -3097,8 +3097,11 @@ bool SGFragment::addAtom(const string& elem, const string& geom,
          if (parentAtom == 0) {
             throw EcceException("This nub is not attached to an atom.",WHERE);
          }
+         // A dummy atom is shaped "Lone" (no open sites) in the Build panel,
+         // but on an open site it is a terminal atom like any other (#306).
+         const string nubGeom = (elem == "X" && geom == "Lone") ? "Terminal" : geom;
          ret = fragutil.addToNub(parentAtom,selAtom,elem.c_str(),
-               geom.c_str(),order);
+               nubGeom.c_str(),order);
       } else {
 #ifdef autonubselect
          // ok so we have to find a nub

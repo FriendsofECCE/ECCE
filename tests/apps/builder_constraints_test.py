@@ -171,6 +171,70 @@ def clickCase(display, url):
     check(got[5][2] == ["2", "4"], "Ctrl+click on a selected atom takes it out again: %s" % got[5][2], tail)
 
 
+def dummyCase(display, url, calcdir):
+    log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT", [
+        "wait 4000", "add N Tetrahedral 0 0 0", "wait 500", "mode atom",
+        "element H", "selectnub N", "click", "selectnub N", "click",
+        "selectnub N", "click",
+        "element X", "selectnub N", "click",
+        "coords", "bonds N X", "bonds N H", "bonds N Nub",
+        "cmd clean", "coords", "symmetry", "save", "wait 3000", "quit"], url)
+    tail = run_tests._tail(log, 30)
+    if os.environ.get("CONSTRAINTS_TEST_LOG"):
+        open(os.environ["CONSTRAINTS_TEST_LOG"], "w").write(log)
+    atoms = re.findall(r"BUILDER: atom (\d+) (\w+) (\S+) (\S+) (\S+)", log)
+    first = [a for a in atoms if int(a[0]) <= 5]
+    syms = [a[1] for a in atoms[:5]]
+    check(syms == ["N", "H", "H", "H", "X"], "N, three H and a dummy X at the free site: %s" % syms, tail)
+    if syms != ["N", "H", "H", "H", "X"]:
+        return
+    def xyz(a):
+        return [float(v) for v in a[2:5]]
+    import math
+    n, x = xyz(atoms[0]), xyz(atoms[4])
+    d = math.dist(n, x)
+    check(0.8 <= d <= 1.6, "X-N distance is a bond length: %.3f" % d, tail)
+    hs = [xyz(a) for a in atoms[1:4]]
+    cen = [sum(h[i] for h in hs) / 3 for i in range(3)]
+    axis = [x[i] - n[i] for i in range(3)]
+    toH = [cen[i] - n[i] for i in range(3)]
+    cosang = sum(a * b for a, b in zip(axis, toH)) / (math.hypot(*axis) * math.hypot(*toH))
+    check(cosang < -0.9, "X sits opposite the three H (C3 axis): cos %.3f" % cosang, tail)
+    m = re.findall(r"BUILDER: bonds N-(\w+)=(\d+)", log)
+    check(("X", "1") in m, "the X is bonded to N in the Builder: %s" % m, tail)
+    forms = re.findall(r"BUILDER: formula=(\S*)", log)
+    check(forms and all(f == "H3N" for f in forms), "the formula leaves X out: %s" % forms, tail)
+    check(re.search(r"BUILDER: pointgroup=\S+", log) is not None, "symmetry ran with X present", tail)
+    after = atoms[5:10]
+    check(len(after) == 5 and after[4][1] == "X", "Clean keeps the X", tail)
+    # the code input: X is a centre with no basis and no bond lines
+    log = sym.scripted(display, "calced", "ECCE_CALCED_SCRIPT",
+                       ["wait 3000", "ready", "basis 6-31G", "wait 1500", "info",
+                        "button save", "wait 6000", "quit"], url)
+    d = deck(calcdir)
+    check(d is not None, "dummy: the editor wrote a deck", run_tests._tail(log, 20))
+    if d is None:
+        return
+    xl = [l for l in d.splitlines() if l.split()[:1] == ["X"]]
+    check(len(xl) == 1, "dummy: X is in the NWChem geometry once: %s" % xl, d[:800])
+    libs = re.findall(r"^\s*(\w+)\s+library", d, re.M)
+    check(sorted(set(libs)) == ["H", "N"], "dummy: no basis set for X: %s" % libs, d[:800])
+    check("connect" not in d.lower() and not re.search(r"^\s*bond\b", d, re.M),
+          "dummy: no bond or connectivity lines reach the input", d[:800])
+
+
+def unsupportedCase(display, url):
+    log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT", [
+        "wait 4000", "info", "mode atom", "element X", "wait 500", "select -1",
+        "click", "info", "quit"], url)
+    tail = run_tests._tail(log, 25)
+    check(re.search(r"BUILDER: message: Quantum\S* does not support dummy atoms", log) is not None,
+          "choosing X in a Quantum ESPRESSO calculation says so", tail)
+    atoms = re.findall(r"BUILDER: atoms=(\d+)", log)
+    check(len(atoms) == 2 and atoms[0] == atoms[1],
+          "and no X is added by a click: %s" % atoms, tail)
+
+
 def main():
     def checkApp(display, name, results, verbose=False):
         folder = os.path.join(fixture.stateDir(), "builderconstraints-localdata")
@@ -191,6 +255,9 @@ def main():
             deckCase(display, "file://" + energy + "/", energy, False,
                      "Energy run")
             clickCase(display, "file://" + energy + "/")
+            empty = os.path.join(base, "empty-nw")
+            dummyCase(display, "file://" + empty + "/", empty)
+            unsupportedCase(display, "file://" + os.path.join(base, "nh3-qe") + "/")
             geomCase(display, "file://" + geom + "/")
             deckCase(display, "file://" + geom + "/", geom, True, "Geometry run")
         finally:
