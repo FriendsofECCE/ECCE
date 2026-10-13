@@ -523,6 +523,7 @@ protected:
 
   bool p_focusOnTree;
   bool p_menusPending = false;   // MSW: menus rebuilt once per selection
+  bool p_menuTitlesChanged = false;  // a top menu's state changed under a hold
   bool p_focusOnTreeBeforeDisabler;
   bool p_popupOnTree;
 

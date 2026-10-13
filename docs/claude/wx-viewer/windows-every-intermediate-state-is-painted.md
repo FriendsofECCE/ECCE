@@ -3,7 +3,7 @@ type: pitfall
 title: "wxMSW paints every intermediate state: panes before AUI places them, menu bars item by item, a disabled active window hands the activation away"
 area: wx-viewer
 paths: ["src/apps/builder/Builder.C", "src/apps/builder/BuilderPanels.C", "src/apps/builder/BuilderApp.C", "src/apps/builder/MoPanel.C", "src/apps/organizer/CalcMgr.C", "src/wxgui/jms/WxJMSMessageDispatch.C", "tests/windows/framelog.ps1", "tests/windows/redraw_win.py"]
-issues: [254, 255, 256]
+issues: [254, 255, 256, 296]
 ---
 GTK draws once per idle; wxMSW shows each step of a change. Found with
 60 fps recordings, checked with `tests/windows/redraw_win.py`.
@@ -20,7 +20,10 @@ GTK draws once per idle; wxMSW shows each step of a change. Found with
 - **The menu bar is not one of the frame's children**: wxMSW redraws it
   for every item appended or deleted (half a menu bar on screen). Freeze the
   `wxMenuBar` itself while menus are rebuilt; `wxMenuBar::Refresh()` skips
-  while frozen.
+  while frozen. The Organizer redraws the bar after the hold only when a
+  top menu changed state, and sets items and tools only when their state
+  changes (#296; the title flash this addresses was never checked on
+  Windows here).
 - **Disabling the active window (`wxWindowDisabler` with no window to
   skip) hands the activation to the window behind it**, another program;
   a prompt then opens behind that, and the tree loses its focus and

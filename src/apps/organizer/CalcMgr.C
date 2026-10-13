@@ -6750,19 +6750,50 @@ void CalcMgr::importValidationComplete(TaskJob *ipc, bool status,
 
 
 //  A top menu's state is set only when it changes: wxMSW redraws the whole
-//  menu bar for every EnableTop().
-static void enableTopMenu(wxMenuBar *bar, const wxString& title, bool enable)
+//  menu bar for every EnableTop().  `changed` says the bar needs a redraw.
+static void enableTopMenu(wxMenuBar *bar, const wxString& title, bool enable,
+                          bool& changed)
 {
   const int pos = bar->FindMenu(title);
-  if (pos != wxNOT_FOUND && bar->IsEnabledTop(pos) != enable)
+  if (pos != wxNOT_FOUND && bar->IsEnabledTop(pos) != enable) {
     bar->EnableTop(pos, enable);
+    changed = true;
+  }
 }
 
 
+//  Menu items and tools are only touched when their state changes, so a
+//  selection that changes nothing redraws nothing (#296).
+static void enableMenuItem(wxMenuBar *bar, int id, bool enable)
+{
+  if (bar->FindItem(id) && bar->IsEnabled(id) != enable)
+    bar->Enable(id, enable);
+}
+
+
+static void enableTool(wxToolBar *bar, int id, bool enable)
+{
+  if (bar && bar->FindById(id) && bar->GetToolEnabled(id) != enable)
+    bar->EnableTool(id, enable);
+}
+
+
+//  While frozen, wxMSW does not redraw the menu bar for each item rebuilt.
+//  Its titles are the only part on screen, so the bar is redrawn after the
+//  hold only when one of them changed state.
 struct CalcMgr::MenuBarHold {
   wxMenuBar *bar;
-  explicit MenuBarHold(wxMenuBar *b) : bar(b) { if (bar) bar->Freeze(); }
-  ~MenuBarHold() { if (bar) { bar->Thaw(); bar->Refresh(); } }
+  bool& titlesChanged;
+  MenuBarHold(wxMenuBar *b, bool& changed) : bar(b), titlesChanged(changed)
+    { if (bar) bar->Freeze(); }
+  ~MenuBarHold() {
+    if (!bar) return;
+    bar->Thaw();
+    if (!bar->IsFrozen() && titlesChanged) {
+      titlesChanged = false;
+      bar->Refresh();
+    }
+  }
 };
 
 
@@ -6771,9 +6802,9 @@ void CalcMgr::onSelectionChange(bool selectInTree)
   //  The menu bar is not one of the frame's children; wxMSW redraws it for
   //  every item added or removed (half a menu bar on screen) unless frozen.
   //  Thawing does not repaint it on MSW (it has no window of its own), so
-  //  without the Refresh the menus kept the look of the old selection: Run
-  //  Mgmt drawn disabled for a completed calculation.
-  MenuBarHold holdMenus(GetMenuBar());
+  //  the hold redraws it when a title changed state (Run Mgmt drawn
+  //  disabled for a completed calculation otherwise).
+  MenuBarHold holdMenus(GetMenuBar(), p_menuTitlesChanged);
   //  The summary pane is replaced and the tree and toolbar change in one
   //  go; on MSW each step was painted (an empty pane, then half of it).
   //  Released before the menu bar, so its repaint is not swallowed.  On
@@ -6847,7 +6878,7 @@ void CalcMgr::onSelectionChange(bool selectInTree)
 
 void CalcMgr::updateSelectionMenus()
 {
-  MenuBarHold holdMenus(GetMenuBar());
+  MenuBarHold holdMenus(GetMenuBar(), p_menuTitlesChanged);
   wxMenuBar * menuBar = GetMenuBar();
   WxResourceTreeItemData * itemData = p_treeCtrl->getSelection();
   wxMenu * fileMenu = menuBar->GetMenu(menuBar->FindMenu(_("File")));
@@ -6855,17 +6886,17 @@ void CalcMgr::updateSelectionMenus()
 
   
   if (!getSelection()) {
-    enableTopMenu(menuBar, _("Run Mgmt"), false);
-    enableTopMenu(menuBar, _("Tools"), false);
-    menuBar->Enable(wxID_CHANGE_ACCESS, false);
-    menuBar->Enable(wxID_RENAME, false);
-    menuBar->Enable(wxID_VIEW_PROPERTY, false);
-    menuBar->Enable(wxID_ANNOTATION, false);
-    menuBar->Enable(wxID_DUPLICATE, false);
-    menuBar->Enable(wxID_DUPLICATE2, false);
-    p_toolBar->EnableTool(wxID_RENAME, false);
-    p_toolBar->EnableTool(wxID_VIEW_PROPERTY, false);
-    p_toolBar->EnableTool(wxID_DOWNLOAD, false);
+    enableTopMenu(menuBar, _("Run Mgmt"), false, p_menuTitlesChanged);
+    enableTopMenu(menuBar, _("Tools"), false, p_menuTitlesChanged);
+    enableMenuItem(menuBar, wxID_CHANGE_ACCESS, false);
+    enableMenuItem(menuBar, wxID_RENAME, false);
+    enableMenuItem(menuBar, wxID_VIEW_PROPERTY, false);
+    enableMenuItem(menuBar, wxID_ANNOTATION, false);
+    enableMenuItem(menuBar, wxID_DUPLICATE, false);
+    enableMenuItem(menuBar, wxID_DUPLICATE2, false);
+    enableTool(p_toolBar, wxID_RENAME, false);
+    enableTool(p_toolBar, wxID_VIEW_PROPERTY, false);
+    enableTool(p_toolBar, wxID_DOWNLOAD, false);
 
   }
   else {
@@ -6922,21 +6953,21 @@ void CalcMgr::updateSelectionMenus()
       // Only work on project, not even virtual documents
       // @todo shouldn't use hardwired string
       // A local folder has one user, so there is nobody to grant access.
-      menuBar->Enable(wxID_CHANGE_ACCESS,
+      enableMenuItem(menuBar, wxID_CHANGE_ACCESS,
                       isProject && !itemData->getUrl().isLocal());
-      menuBar->Enable(wxID_CUT, !isSystemFolder);
-      menuBar->Enable(wxID_RENAME, !isSystemFolder);
-      menuBar->Enable(wxID_DELETE, !isSystemFolder);
-      menuBar->Enable(wxID_VIEW_PROPERTY, true);
-      menuBar->Enable(wxID_ANNOTATION, !isSystemFolder);
-      menuBar->Enable(wxID_DUPLICATE, isCalculation);
-      menuBar->Enable(wxID_DUPLICATE2, isCalculation);
-      menuBar->Enable(wxID_TEST_SUITE, isCalculation);
-      p_toolBar->EnableTool(wxID_CUT, !isSystemFolder);
-      p_toolBar->EnableTool(wxID_RENAME, !isSystemFolder);
-      p_toolBar->EnableTool(wxID_DELETE, !isSystemFolder);
-      p_toolBar->EnableTool(wxID_VIEW_PROPERTY, true);
-      p_toolBar->EnableTool(wxID_DOWNLOAD, isDocument);
+      enableMenuItem(menuBar, wxID_CUT, !isSystemFolder);
+      enableMenuItem(menuBar, wxID_RENAME, !isSystemFolder);
+      enableMenuItem(menuBar, wxID_DELETE, !isSystemFolder);
+      enableMenuItem(menuBar, wxID_VIEW_PROPERTY, true);
+      enableMenuItem(menuBar, wxID_ANNOTATION, !isSystemFolder);
+      enableMenuItem(menuBar, wxID_DUPLICATE, isCalculation);
+      enableMenuItem(menuBar, wxID_DUPLICATE2, isCalculation);
+      enableMenuItem(menuBar, wxID_TEST_SUITE, isCalculation);
+      enableTool(p_toolBar, wxID_CUT, !isSystemFolder);
+      enableTool(p_toolBar, wxID_RENAME, !isSystemFolder);
+      enableTool(p_toolBar, wxID_DELETE, !isSystemFolder);
+      enableTool(p_toolBar, wxID_VIEW_PROPERTY, true);
+      enableTool(p_toolBar, wxID_DOWNLOAD, isDocument);
 
       // dynamically populate the Run Management menu
       // The run management menu resource always iterates from top to bottom.
@@ -6946,31 +6977,31 @@ void CalcMgr::updateSelectionMenus()
       wxMenu * rmTaskMenu = menuBar->GetMenu(menuBar->FindMenu(_("Run Mgmt")));
       getRunMgmtMenu(*rmTaskMenu, itemData);
       enableTopMenu(menuBar, _("Run Mgmt"),
-                         rmTaskMenu->GetMenuItemCount()>0);
+                         rmTaskMenu->GetMenuItemCount()>0, p_menuTitlesChanged);
 
       // dynamically populate the Tool menu
       wxMenu * toolMenu = menuBar->GetMenu(menuBar->FindMenu(_("Tools")));
       getToolsMenu(*toolMenu, itemData);
       enableTopMenu(menuBar, _("Tools"),
-                         toolMenu->GetMenuItemCount()>0);
+                         toolMenu->GetMenuItemCount()>0, p_menuTitlesChanged);
     }
     else {
-      enableTopMenu(menuBar, _("Run Mgmt"), false);
-      enableTopMenu(menuBar, _("Tools"), false);
-      menuBar->Enable(wxID_CHANGE_ACCESS, false);
-      menuBar->Enable(wxID_CUT, false);
-      menuBar->Enable(wxID_RENAME, false);
-      menuBar->Enable(wxID_DELETE, false);
-      menuBar->Enable(wxID_VIEW_PROPERTY, false);
-      menuBar->Enable(wxID_ANNOTATION, false);
-      menuBar->Enable(wxID_DUPLICATE, false);
-      menuBar->Enable(wxID_DUPLICATE2, false);
-      menuBar->Enable(wxID_TEST_SUITE, false);
-      p_toolBar->EnableTool(wxID_CUT, false);
-      p_toolBar->EnableTool(wxID_RENAME, false);
-      p_toolBar->EnableTool(wxID_DELETE, false);
-      p_toolBar->EnableTool(wxID_VIEW_PROPERTY, false);
-      p_toolBar->EnableTool(wxID_DOWNLOAD, false);
+      enableTopMenu(menuBar, _("Run Mgmt"), false, p_menuTitlesChanged);
+      enableTopMenu(menuBar, _("Tools"), false, p_menuTitlesChanged);
+      enableMenuItem(menuBar, wxID_CHANGE_ACCESS, false);
+      enableMenuItem(menuBar, wxID_CUT, false);
+      enableMenuItem(menuBar, wxID_RENAME, false);
+      enableMenuItem(menuBar, wxID_DELETE, false);
+      enableMenuItem(menuBar, wxID_VIEW_PROPERTY, false);
+      enableMenuItem(menuBar, wxID_ANNOTATION, false);
+      enableMenuItem(menuBar, wxID_DUPLICATE, false);
+      enableMenuItem(menuBar, wxID_DUPLICATE2, false);
+      enableMenuItem(menuBar, wxID_TEST_SUITE, false);
+      enableTool(p_toolBar, wxID_CUT, false);
+      enableTool(p_toolBar, wxID_RENAME, false);
+      enableTool(p_toolBar, wxID_DELETE, false);
+      enableTool(p_toolBar, wxID_VIEW_PROPERTY, false);
+      enableTool(p_toolBar, wxID_DOWNLOAD, false);
     }
   }
 }
