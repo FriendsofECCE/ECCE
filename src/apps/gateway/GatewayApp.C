@@ -9,6 +9,9 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "wx/splash.h"
+#ifdef __WXMSW__
+#include "wx/msw/wrapwin.h"
+#endif
 #include "wx/weakref.h"
 #include "wx/timer.h"
 #include "wx/dcmemory.h"
@@ -243,6 +246,11 @@ static void showSplash()
     new wxSplashScreen(card, wxSPLASH_CENTRE_ON_SCREEN | wxSPLASH_TIMEOUT,
                        5000, 0, wxID_ANY, wxDefaultPosition, wxDefaultSize,
                        wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxSTAY_ON_TOP);
+#ifdef __WXMSW__
+  // ecce.vbs starts us hidden, and Windows applies that to a program's
+  // first ShowWindow, which was the splash's; the second call is obeyed.
+  ::ShowWindow((HWND) splash->GetHWND(), SW_SHOWNA);
+#endif
   wxYield();
   // In front for at least 1.5 s so a quick start does not just flash it;
   // then the Organizer's window may cover it.  The splash may already be
