@@ -44,7 +44,11 @@ your `PATH`.
 * **macOS:** since 9.0.0-alpha.7 each release has an `ECCE.app` in a
   `.dmg` for Apple silicon (macOS 11 or later) and for Intel (macOS 10.15
   or later); CI also builds them as workflow artifacts
-  `ECCE-macos-dmg-arm64` and `ECCE-macos-dmg-x86_64`. Drag ECCE to
+  `ECCE-macos-dmg-arm64` and `ECCE-macos-dmg-x86_64`. Apple menu > About
+  This Mac shows which one a Mac needs: "Chip: Apple M…" takes the
+  `arm64` file, "Processor: … Intel …" the `x86_64` file. The Intel build
+  runs on Apple silicon only with Rosetta (`softwareupdate
+  --install-rosetta`); without it, ECCE says so and stops. Drag ECCE to
   Applications. The app is signed ad hoc only, so macOS refuses it at
   first. On macOS 14 and earlier, right-click the app and choose Open. On
   macOS 15 and later, open it once, then choose System Settings > Privacy
