@@ -21,6 +21,7 @@ using std::vector;
 #include "inv/nodes/SoPerspectiveCamera.H"
 #include "inv/nodes/SoMaterial.H"
 #include "inv/nodes/SoSeparator.H"
+#include "inv/SoSceneManager.H"
 #include "inv/nodes/SoDirectionalLight.H"
 #include "inv/nodes/SoNode.H"
 #include "inv/nodes/SoCone.H"
@@ -2195,7 +2196,7 @@ void Builder::updateShapeIcon()
 /**
  *
  */
-void Builder::toggleModeButton(int modeId, bool redraw)
+void Builder::toggleModeButton(int modeId)
 {
   BuilderRedrawHold hold(this);
   if (modeId == ID_MODE_STRUCTLIB) {
@@ -2219,9 +2220,9 @@ void Builder::toggleModeButton(int modeId, bool redraw)
                          p_mgr.GetPane(label).IsShown());
   }
 
-  //  Without a GL context (a calculation opened at start-up, on macOS and
-  //  Windows still when queued events run) Coin dereferences a null string.
-  if (redraw) p_viewer->actualRedraw();
+  //  Drawing here directly would run outside a paint, where macOS and
+  //  Windows have no current GL context and Coin dereferences a null string.
+  p_viewer->getSceneManager()->scheduleRedraw();
 
   p_modeToolbar->ToggleTool(ID_MODE_SELECT, modeId == ID_MODE_SELECT);
   p_modeToolbar->ToggleTool(ID_MODE_ROTATE, modeId == ID_MODE_ROTATE);
@@ -4495,7 +4496,7 @@ void Builder::startInMode(int modeId)
     if (p_pendingMode != modeId) return;    // superseded by a later context
     p_pendingMode = 0;
     setMode(modeId);
-    toggleModeButton(modeId, false);   // the view draws itself when shown
+    toggleModeButton(modeId);
   });
 }
 

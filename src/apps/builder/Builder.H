@@ -512,7 +512,7 @@ class Builder: public BuilderGUI,
       void updateViewerText();
 
       void reportError(const string& msg);
-      void toggleModeButton(int toolId, bool redraw = true);
+      void toggleModeButton(int toolId);
 
       void setUnsavedState(bool changed);
       void doSave();
