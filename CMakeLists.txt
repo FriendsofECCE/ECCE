@@ -1354,6 +1354,9 @@ export ECCE_NWCHEM_DATA=\${ECCE_NWCHEM_DATA:-$(\"$ECCE_HOME/bin/ecce-nwchem-data
 # above) sidesteps it, same fix commonly used for other legacy GTK
 # apps under Wayland. Only takes effect on an actual Wayland session;
 # harmless no-op under a plain X11 session, and left overridable.
+# GTK3 hides scroll bars until the pointer reaches a pane's edge; long
+# panes (Verify, output, tables) should show that they scroll.
+export GTK_OVERLAY_SCROLLING=\${GTK_OVERLAY_SCROLLING:-0}
 if [ \"\$XDG_SESSION_TYPE\" = \"wayland\" ]; then
   export GDK_BACKEND=\${GDK_BACKEND:-x11}
   # Under XWayland, IBus holds typed text unshown until Enter in GTK3
