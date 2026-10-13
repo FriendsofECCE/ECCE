@@ -1591,7 +1591,7 @@ sub ecceqm
   } elsif (!$geomAtoms) {
     finding("BAD", $geomOpen, "geometry", "The geometry block is empty.");
   } else {
-    finding("GOOD", ($geomOpen + 1) . "-" . ($geomClose - 1), "geometry",
+    finding("GOOD", "$geomOpen-$geomClose", "geometry",
             "$geomAtoms atoms in the geometry block.")
       unless (grep { /^BAD\|\d+\|geometry\|/ } @findings);
   }
@@ -1619,6 +1619,9 @@ sub ecceqm
                 "$geomAtoms atoms (dummy atoms count).");
       }
     }
+    finding("GOOD", "$consOpen-$consClose", "constraints",
+            "Every constrained atom is in the geometry.")
+      unless (grep { /^BAD\|\d+\|constraints\|/ } @findings);
   }
 
   #  Basis: ECCE always writes it out, so its absence is a hand edit.
