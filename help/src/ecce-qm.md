@@ -35,7 +35,8 @@ grid of 99 radial and 590 angular points per atom. The functionals themselves co
 
 ## Basis sets
 
-STO-3G, 3-21G, 6-31G*, cc-pVDZ and def2-SVP, chosen from the **Basis Set**
+STO-3G, 3-21G, 6-31G, 6-31G*, 6-31+G*, 6-311G*, cc-pVDZ, aug-cc-pVDZ,
+cc-pVTZ and def2-SVP, chosen from the **Basis Set**
 menu of the Calculation Editor. A new calculation starts with 6-31G*. The
 basis sets are the ones in ECCE's library; the Basis Set Tool is not used for
 this code. Spherical d and f functions are used throughout. An element that a basis set does not cover, or that would
@@ -97,6 +98,9 @@ of the number of basis functions, about 170 MB for 114 functions and about 4 GB
 for 250. The program refuses a calculation whose integrals would need more
 than 12 GB, and ECCE warns before launching one with more than 25 atoms or 150
 basis functions. The warning is only a warning; you can launch anyway.
+The larger basis sets matter here: water has 13 basis functions in 6-31G but
+41 in aug-cc-pVDZ and 58 in cc-pVTZ, so a molecule that is quick with 6-31G*
+can need much more memory and time with aug-cc-pVDZ or cc-pVTZ.
 
 A frequency calculation needs six energy and force calculations per atom, so
 its time grows roughly as the square of the number of atoms times the number
@@ -119,7 +123,8 @@ ECCE-QM runs on one core, which makes it slower there.
 The results were compared with ORCA 6.1.1 (and, for a subset, NWChem 7.2.3)
 on small molecules: water, ammonia, methane, carbon monoxide,
 nitrogen, hydrogen fluoride, benzene and open-shell oxygen, with the STO-3G,
-6-31G*, def2-SVP, 3-21G and cc-pVDZ basis sets.
+6-31G*, def2-SVP, 3-21G and cc-pVDZ basis sets; water and hydrogen chloride
+were also checked with 6-31G, 6-31+G*, 6-311G*, aug-cc-pVDZ and cc-pVTZ.
 
 - Energies: Hartree-Fock agrees to about 1e-8 hartree. B3LYP, PBE and PBE0
   agree to about 1e-5 hartree; the remaining difference is the integration

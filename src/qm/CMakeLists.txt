@@ -139,6 +139,9 @@ if(QM_PYTHON3)
   # raman_oracle.json); the deck test needs no engine.
   add_test(NAME qm_raman_quick COMMAND ${QM_PYTHON3} ${_qm_tests}/raman_test.py $<TARGET_FILE:ecce-qm> --quick)
   add_test(NAME qm_raman COMMAND ${QM_PYTHON3} ${_qm_tests}/raman_test.py $<TARGET_FILE:ecce-qm>)
+  # The ECCE-QM basis list: the deck ai.ecceqm writes and the bare name agree
+  # with each other and with ORCA.
+  add_test(NAME qm_basis_deck COMMAND ${QM_PYTHON3} ${_qm_tests}/basis_deck_test.py $<TARGET_FILE:ecce-qm>)
   add_test(NAME qm_raman_deck COMMAND ${QM_PYTHON3} ${_qm_tests}/raman_deck_test.py)
   set_tests_properties(qm_raman_quick PROPERTIES TIMEOUT 1800)
   set_tests_properties(qm_raman PROPERTIES TIMEOUT 7200)

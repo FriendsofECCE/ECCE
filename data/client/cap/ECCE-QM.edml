@@ -100,7 +100,7 @@
      Set Tool is hidden for this code.  One list, here. -->
 <Editor theorydialog="ecceqmtheory.py"
         runtypedialog="ecceqmruntype.py"
-        basisSetPicks="STO-3G,3-21G,6-31G*,cc-pVDZ,def2-SVP"
+        basisSetPicks="STO-3G,3-21G,6-31G,6-31G*,6-31+G*,6-311G*,cc-pVDZ,aug-cc-pVDZ,cc-pVTZ,def2-SVP"
         basisSetDefault="6-31G*"
         basisSetToolHidden="true">
   <!-- DFT first: a new calculation starts as B3LYP. -->

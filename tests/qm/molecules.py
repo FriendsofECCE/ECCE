@@ -45,4 +45,5 @@ MOLECULES = {
     "o2": (0, 3, _diatomic("O", "O", 1.2075)),
     "he2": (0, 1, _diatomic("He", "He", 3.0)),
     "hf": (0, 1, _diatomic("H", "F", 0.917)),
+    "hcl": (0, 1, _diatomic("H", "Cl", 1.275)),
 }

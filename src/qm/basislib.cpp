@@ -33,18 +33,25 @@ BasisLibrary::BasisLibrary(const std::string& dir) : dir_(dir) {
   dir_.clear();
 }
 
+// A name is looked up the way ECCE's library names its files: "+" is P and
+// "*" is S (6-31+G* is 6-31PGS), and a set that ECCE stores in pieces has a
+// whole-set "-AGG" file next to them.  A "+" between two names (a+b) still
+// means two files to combine.
+static bool is_pople_diffuse(const std::string& name) {
+  return name.find("+G") != std::string::npos || name.find("++") != std::string::npos;
+}
+
 std::vector<std::string> BasisLibrary::expand_name(const std::string& name) {
+  if (is_pople_diffuse(name)) {
+    std::string m;
+    for (char c : name) m += (c == '+' ? 'P' : c == '*' ? 'S' : c);
+    return {m};
+  }
   std::vector<std::string> out;
   std::stringstream ss(name);
   std::string part;
-  while (std::getline(ss, part, '+')) {
-    if (part.empty()) continue;
-    // A trailing "+" belongs to Pople names such as 6-31+G*; only split when
-    // the pieces are separated by "+" on both sides of a letter-led token.
-    out.push_back(part);
-  }
-  // Pople-style "+" (diffuse) names are not combined files: keep them whole.
-  if (name.find("+G") != std::string::npos || name.find("++") != std::string::npos) out = {name};
+  while (std::getline(ss, part, '+'))
+    if (!part.empty()) out.push_back(part);
   std::vector<std::string> files;
   for (auto& p : out) {
     size_t n = 0;
@@ -142,6 +149,22 @@ std::vector<ShellDef> BasisLibrary::shells(const std::string& name, int Z) {
     return e->second;
   }
   auto files = expand_name(name);
+  if (files.size() == 1) {
+    // The plain file of an augmented set holds only the added functions; the
+    // complete set is the -AGG file.  An empty -AGG placeholder does not count.
+    std::string agg;
+    try { agg = find_file(files[0] + "-AGG"); } catch (const Error&) {}
+    struct stat st;
+    if (!agg.empty() && stat(agg.c_str(), &st) == 0 && st.st_size > 0) {
+      files[0] += "-AGG";
+    } else {
+      std::string low;
+      for (char c : files[0]) low += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+      if (low.compare(0, 4, "aug-") == 0 || low.compare(0, 5, "daug-") == 0 || low.compare(0, 6, "d-aug-") == 0)
+        throw Error("basis '" + name + "' is only the diffuse augmentation in the library and no complete set exists; "
+                    "ecce-qm will not run a partial basis");
+    }
+  }
   for (size_t i = 0; i < files.size(); ++i) {
     // Polarisation files omit light elements; the first file must cover Z.
     const Table& t = load_file(files[i]);

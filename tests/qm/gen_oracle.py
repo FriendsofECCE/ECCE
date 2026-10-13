@@ -35,8 +35,15 @@ for mol in ("h2o", "co"):
         for method in ("hf", "b3lyp"):
             CASES.append((mol, basis, method, "r"))
 
+# The rest of the ECCE-QM basis list; HCl has second-row atoms, water has not.
+for mol in ("h2o", "hcl"):
+    for basis in ("6-31G", "6-31+G*", "6-311G*", "cc-pVDZ", "aug-cc-pVDZ", "cc-pVTZ"):
+        for method in ("hf", "b3lyp"):
+            if (mol, basis, method, "r") not in CASES:
+                CASES.append((mol, basis, method, "r"))
+
 def case_name(c):
-    return "%s_%s_%s_%s" % (c[0], c[1].replace("*", "s").lower(), c[2], c[3])
+    return "%s_%s_%s_%s" % (c[0], c[1].replace("*", "s").replace("+", "p").lower(), c[2], c[3])
 
 ORCA_METHOD = {("hf", "r"): "HF", ("hf", "u"): "UHF", ("hf", "ro"): "ROHF",
                ("b3lyp", "r"): "B3LYP", ("b3lyp", "u"): "UKS B3LYP", ("b3lyp", "ro"): "ROKS B3LYP",

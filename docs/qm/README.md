@@ -53,7 +53,10 @@ Basis sets are read from ECCE's own `data/admin/basissets/*.BAS`
 (`ECCE_BASIS_DIR`, `$ECCE_HOME/data/admin/basissets` or `--basis-dir`).
 ECCE stores polarisation sets as separate files, so `6-31G*` means
 `6-31G.BAS` plus `6-31GS.BAS`, `6-31G**` adds `6-31GSS.BAS`; `a+b` combines files
-explicitly. ECPs (the def2 heavy elements) are not supported.
+explicitly. `+` and `*` in a name are written P and S in the library, so
+`6-31+G*` is `6-31PGS-AGG.BAS`; where a whole-set `-AGG` file exists it is
+preferred (the plain `AUG-CC-PVDZ.BAS` holds only the diffuse functions), and
+an augmented name with no complete set is refused. ECPs (the def2 heavy elements) are not supported.
 Without a prefix the reference is restricted for multiplicity 1 and
 restricted-open otherwise.
 
