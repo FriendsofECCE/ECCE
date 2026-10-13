@@ -627,11 +627,18 @@ void CalcEd::doSetContext(const string& codeName)
 
       if (p_codeName!=codeName && p_iCalc->theory()!=(TTheory*)0) {
         long buttonFlags = wxYES_NO | wxYES_DEFAULT | wxICON_QUESTION;
-        ewxMessageDialog *dialog = new ewxMessageDialog(this,
+        ewxMessageDialog dialog(this,
                 "This calculation was set up for " + p_codeName +
                 ".  Change it to " + codeName + "?",
                 "Electronic Structure Editor Code Change", buttonFlags);
-        wxWindowID answer = dialog->ShowModal();
+        // The callers freeze the editor while it is rebuilt; frozen, the
+        // areas the question uncovers are never repainted (black boxes).
+        // Release the hold for the question and take it again afterwards.
+        int frozen = 0;
+        for (; IsFrozen(); frozen++) Thaw();
+        if (frozen) Update();
+        wxWindowID answer = dialog.ShowModal();
+        while (frozen-- > 0) Freeze();
         if (answer == wxID_YES) {
           tmpCode = codeName;
         } else {

@@ -2178,6 +2178,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_constraints PROPERTIES TIMEOUT 1500
                        SKIP_RETURN_CODE 77)
+  # The Calculation Editor is not frozen (no black areas) while the Code
+  # Change question is open (#308).
+  add_test(NAME apps_calced_code_change
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/calced_code_change_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_calced_code_change PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # A finished calculation without ecce:progress gets one from its stored
   # output (#284): CalcMgr::backfillProgress.
   add_test(NAME apps_progress_backfill

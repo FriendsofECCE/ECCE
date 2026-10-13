@@ -124,6 +124,7 @@ void ewxMessageDialog::OnButtonClick( wxCommandEvent& event )
 // ECCE_TEST_DIALOG_CLOSE=<seconds>: log the dialog to stderr, then dismiss it
 // after that long, so a headless run can see it and still end cleanly.
 // ECCE_TEST_DIALOG_ANSWER=yes|ok|cancel picks the button pressed (default ok).
+// It also says whether the parent window is frozen.
 int ewxMessageDialog::ShowModal()
 {
   const char * secs = getenv("ECCE_TEST_DIALOG_CLOSE");
@@ -132,6 +133,10 @@ int ewxMessageDialog::ShowModal()
   fprintf(stderr, "ECCE_TEST_DIALOG: [%s] %s\n",
           (const char *)GetTitle().mb_str(),
           (const char *)p_label->GetLabel().mb_str());
+  // A frozen parent is not repainted where the dialog uncovers it.
+  if (GetParent())
+    fprintf(stderr, "ECCE_TEST_DIALOG: parent %s\n",
+            GetParent()->IsFrozen() ? "frozen" : "not frozen");
   fflush(stderr);
   wxTimer timer(this);
   const char * ans = getenv("ECCE_TEST_DIALOG_ANSWER");
