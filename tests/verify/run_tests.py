@@ -88,6 +88,16 @@ CASES = [
     ("nwchem-oh-uccsd.nw",    "NWChem",           2, [("GOOD", "task")]),
     ("nwchem-oh-ccsd-openshell.nw", "NWChem",     2, [("BAD", "openshell")]),
     ("nwchem-oh-mp2-rohf.nw", "NWChem",           2, [("BAD", "openshell")]),
+    #  NH3 plus a dummy centre X (5 atoms, 10 electrons) with a zcoord block
+    #  in the geometry; the dummy takes no basis and adds no electrons, and
+    #  NWChem tags are case-insensitive.
+    ("nwchem-ammonia-dummy-mp2.nw",  "NWChem",     5, [("GOOD", "geometry"),
+                                                       ("GOOD", "electrons"),
+                                                       ("GOOD", "task")]),
+    ("nwchem-ammonia-dummy-ccsd.nw", "NWChem",     5, [("GOOD", "electrons"),
+                                                       ("GOOD", "task")]),
+    ("nwchem-ammonia-dummy-lowercase.nw", "NWChem", 5, [("GOOD", "geometry"),
+                                                        ("GOOD", "electrons")]),
     ("mopac-methane.mopin",   "MOPAC",            5, [("GOOD", "geometry")]),
     ("qe-silicon.qein",       "QuantumESPRESSO",  2, [("GOOD", "control"),
                                                       ("GOOD", "system"),

@@ -113,7 +113,7 @@ my $firstAtom = 0;
 for my $i (0 .. $#lines) {
   #  Trailing tokens are allowed: MOPAC writes an optimisation flag
   #  after each coordinate, and NWChem permits a tag.
-  if ($lines[$i] =~ /^\s*([A-Z][a-z]?)\d*\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
+  if ($lines[$i] =~ /^\s*([A-Z][a-z]?|x)\d*\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
     $atoms++;
     $firstAtom = $i + 1 if (!$firstAtom);
   }
@@ -165,9 +165,10 @@ my %seen;
 my @elements;
 my @atomSymbols;
 for my $i (0 .. $#stripped) {
-  if ($stripped[$i] =~ /^\s*([A-Z][a-z]?)\d*\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
+  if ($stripped[$i] =~ /^\s*([A-Z][a-z]?|x)\d*\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
     my $element = ucfirst(lc($1));
-    next if ($1 eq "X");   # a dummy atom: no nucleus, electrons or basis
+    #  NWChem tags are case-insensitive, so a hand-typed dummy may be "x".
+    next if (lc($1) eq "x");   # a dummy atom: no nucleus, electrons or basis
     push(@atomSymbols, $element);
     next if (exists($seen{$element}));
     $seen{$element} = 1;
