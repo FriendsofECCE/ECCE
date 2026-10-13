@@ -44,7 +44,7 @@
   <SupportsRestrainTorsions>false</SupportsRestrainTorsions>
   <SupportsFixedAtomsAndConstraints>false</SupportsFixedAtomsAndConstraints>
   <SupportsFixedAtomsAndRestraints>true</SupportsFixedAtomsAndRestraints>
-  <SupportsMixedConstraintsAndRestraints>false</SupportsMixedConstraintsAndRestraints>
+  <SupportsMixedConstraintsAndRestraints>true</SupportsMixedConstraintsAndRestraints>
 </GeometryConstraintRules>
 
 

@@ -4,7 +4,7 @@ title: "The dummy atom X has no basis, no electrons, no formula entry - and each
 area: codereg
 section: "Input writers"
 paths: ["src/tdat/chemistry/Fragment.C", "scripts/parsers/ai.nwchem", "scripts/parsers/ai.orca", "scripts/parsers/ai.gauss16", "scripts/parsers/ai.mopac", "scripts/parsers/ai.ecceqm", "src/viz/propsgcommands/GTStepCmd.C", "tests/dummy_atoms/run_tests.py", "src/qm/optimizer.cpp", "tests/qm/constraint_test.py"]
-issues: [298, 309]
+issues: [298, 306, 309]
 ---
 In the data model X is an ordinary atom (atomic number 0, symbol `X`) that keeps its
 index. `Fragment::uniqueTags`, `tagCounts` and `tagCountsSTL` skip it, so no basis set
@@ -32,3 +32,9 @@ Per code (all verified with real runs on NH3 + X with fixed X-N-H angles):
 Gaussian and MOPAC leave the dummy out of their geometry tables, so the trace has fewer
 rows than the fragment; `GTStepCmd` and `CalcMgr` (reuse geometry) map the rows onto the
 non-dummy atoms in order. Per-atom tables (charges, gradients) are not remapped.
+
+NWChem cannot combine a fixed atom with a bond/angle/torsion constraint (#306, run with
+7.2.3): `fix atom` needs `noautoz`, which makes `zcoord` silently ignored; with autoz the
+optimizer stops with "cartesian constraints+internals". `ai.nwchem` therefore leaves
+autoz on whenever there is a zcoord (loud failure), and Verify reports the combination.
+A spring restraint with a zcoord angle does hold.

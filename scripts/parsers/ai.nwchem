@@ -1061,7 +1061,10 @@ sub chemsys {
   local($symbol, $task, $index);
   ($chemsys_atoms != 0) || die "Sorry, Fragment has no atoms!\n";
   $task = "geometry";
-  if (@geo_constraints > 0) {
+  # Fixed atoms are Cartesian and want noautoz; zcoord needs autoz.  NWChem
+  # cannot combine them, so keep autoz and let it stop loudly (Verify says
+  # why) instead of silently ignoring the zcoord constraints.
+  if (@geo_constraints > 0 && @geo_zcoords == 0) {
     $task .= " noautoz";
   }
   # TCE aborts on a non-Abelian point group (any linear molecule), so its

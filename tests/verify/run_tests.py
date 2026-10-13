@@ -167,6 +167,8 @@ CASES = [
     ("g16-no-geometry.g16in",   "Gaussian-16",    0, [("BAD", "geometry")]),
     ("g16-no-route.g16in",      "Gaussian-16",    3, [("BAD", "route")]),
     ("nwchem-ammonia-no-task.nw", "NWChem",       4, [("BAD", "task")]),
+    ("nwchem-fixed-and-zcoord.nw", "NWChem",      4, [("BAD", "constraints")]),
+    ("nwchem-zcoord-noautoz.nw",   "NWChem",      4, [("BAD", "constraints")]),
     ("orca-no-route.orcain",    "ORCA",           8, [("BAD", "route")]),
 
     #  --- the atom count disagreeing with the calculation -------------
@@ -568,6 +570,11 @@ ACCEPTS_ANYWAY = {
         "(Gaussian warns, exits 0)",
     "nwchem-ammonia-no-task.nw":
         "reads the whole file and then does nothing, exiting 0",
+    "nwchem-fixed-and-zcoord.nw":
+        "accepts the input and stops at the first optimizer step with "
+        "'cartesian constraints+internals' (#306)",
+    "nwchem-zcoord-noautoz.nw":
+        "optimizes with the zcoord constraints ignored, exiting 0 (#306)",
     "orca-no-route.orcain":
         "runs on its own defaults rather than what was asked for",
     "orca-ecp-no-lmax-shell.orcain":

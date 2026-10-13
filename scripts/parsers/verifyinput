@@ -1186,6 +1186,24 @@ sub nwchem
     }
   }
 
+  #  Found by running NWChem 7.2.3 (#306): zcoord needs autoz (with noautoz
+  #  it is ignored without a word), and fixed atoms cannot be used with
+  #  autoz ("cartesian constraints+internals").
+  if ($whole =~ /^\s*zcoord\b/mi) {
+    if ($whole =~ /^\s*fix\s+atom\b/mi) {
+      finding("BAD", 0, "constraints",
+              "Fixed atoms cannot be combined with bond, angle or torsion " .
+              "constraints in NWChem: the optimizer stops with 'cartesian " .
+              "constraints+internals'. Use either fixed atoms, or the " .
+              "internal-coordinate constraints (a restraint may be combined " .
+              "with the latter).");
+    } elsif ($whole =~ /^\s*geometry\b[^\n]*\bnoautoz\b/mi) {
+      finding("BAD", 0, "constraints",
+              "The geometry has noautoz, and NWChem then ignores the zcoord " .
+              "bond, angle and torsion constraints without a message.");
+    }
+  }
+
   if ($whole =~ /^\s*task\b/mi) {
     finding("GOOD", 0, "task", "A task directive is present.");
   } else {

@@ -125,6 +125,29 @@ def special():
         f += check("ecceqm: GeoVib with constraints refused", "not a minimum" in str(e))
     f += check("ecceqm: constraints only for Geometry runs",
                "constraints" not in deck("ecceqm", runtype="Energy"))
+    f += nwchem_mixing()
+    return f
+
+
+def nwchem_mixing():
+    """#306: zcoord (bond/angle/torsion) needs autoz and is ignored under noautoz;
+    fixed atoms need noautoz.  Real NWChem 7.2.3: angle alone, or with a spring
+    restraint, holds; a fixed atom plus an angle cannot be combined."""
+    hdr = "<GeomConstraintModel>\n%s</GeomConstraintModel>\n"
+    fixed = '<Constraint type="fixed">\n<Group>0</Group>\n</Constraint>\n'
+    angle = '<Constraint type="angle">\n<Value>113.0</Value>\n<Group>4 0 1</Group>\n</Constraint>\n'
+    spring = ('<Restraint type="bond">\n<Value>1.05</Value>\n<ForceConstant>0.5</ForceConstant>\n'
+              '<Group>0 1</Group>\n</Restraint>\n')
+    geo = lambda d: [l for l in d.splitlines() if l.startswith("geometry")][0]
+    f = 0
+    d = deck("nwchem", con=hdr % angle)
+    f += check("nwchem: angle alone keeps autoz", "noautoz" not in geo(d) and "zcoord" in d)
+    d = deck("nwchem", con=hdr % (spring + angle))
+    f += check("nwchem: spring + angle keeps autoz", "noautoz" not in geo(d) and "spring bond" in d)
+    d = deck("nwchem", con=hdr % fixed)
+    f += check("nwchem: fixed atom alone uses noautoz", "noautoz" in geo(d))
+    d = deck("nwchem", con=hdr % (fixed + angle))
+    f += check("nwchem: fixed atom + angle is not silently noautoz", "noautoz" not in geo(d) and "zcoord" in d)
     return f
 
 
