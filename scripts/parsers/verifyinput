@@ -1362,7 +1362,7 @@ sub ecceqm
     qw(title charge multiplicity method basis spherical grid grid_prune
        charges units maxiter conv_energy conv_grad molden runtype maxsteps opt_conv
        hessian_step temperature pressure symmetry_number
-       polarizability polarisability raman field_step);
+       polarizability polarisability raman field_step parallel_points);
   my %functional = map { $_ => 1 } qw(hf svwn lda pbe b3lyp pbe0);
   my $INT = qr/[-+]?\d+/;
 
