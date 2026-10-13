@@ -8,6 +8,10 @@
 // Licence:     
 /////////////////////////////////////////////////////////////////////////////
 
+#include "wx/splash.h"
+#include "wx/dcmemory.h"
+#include "wx/filefn.h"
+#include "wxgui/ewxBitmap.H"
 #include <iomanip>
 using std::ios;
 #include <iostream>
@@ -189,6 +193,37 @@ static void offerLocalDataMove()
     ewxMessageDialog info(0, note, "ECCE data folder", wxOK | wxICON_INFORMATION);
     info.ShowModal();
   }
+}
+
+
+// The Organizer takes a few seconds to appear after the login; the title
+// card says ECCE is starting.  It closes by itself and
+// is left out of test runs and with ECCE_NO_SPLASH.
+static void showSplash()
+{
+  const char *off = getenv("ECCE_NO_SPLASH");
+  if ((off && *off && string(off) != "0") || getenv("ECCE_TEST_HOME") ||
+      getenv("ECCE_NO_REAP") || !Ecce::guiAvailable())
+    return;
+  wxBitmap card;
+  wxString file = ewxBitmap::pixmapFile("ecce-splash.png");
+  if (!wxFileExists(file) || !card.LoadFile(file, wxBITMAP_TYPE_PNG) ||
+      !card.IsOk())
+    return;
+  {
+    wxMemoryDC dc(card);
+    wxFont font(wxFontInfo(15).Family(wxFONTFAMILY_SWISS));
+    dc.SetFont(font);
+    dc.SetTextForeground(wxColour(205, 205, 212));
+    dc.DrawText(wxString("Version ") + Ecce::ecceVersion() +
+                wxString::FromUTF8(" \xC2\xB7 starting\xE2\x80\xA6"),
+                277, 190);
+    dc.SelectObject(wxNullBitmap);
+  }
+  new wxSplashScreen(card, wxSPLASH_CENTRE_ON_SCREEN | wxSPLASH_TIMEOUT,
+                     5000, 0, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                     wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxSTAY_ON_TOP);
+  wxYield();
 }
 
 bool GatewayApp::OnInit()
@@ -404,6 +439,8 @@ bool GatewayApp::OnInit()
     //
     //  forcenew is 0: if an Organizer is somehow already up, raise it
     //  rather than opening a second one.
+    //  After the login, while the Organizer loads: the slow part of a start.
+    showSplash();
     Target myself("", getMyID());
     JMSMessage *startMsg = newMessage(myself);
     startMsg->addProperty("appname", "Organizer");
