@@ -14,12 +14,13 @@ $env{ecce_home}/scripts/parsers
 $fragfile\n
 $func
 $functional
+$letter
 $lmax\n
 $maxcore.
 $maxcore\n
 $maxcoregb
 $maxiter\nend\n
-$maxsteps\nend\n
+$maxsteps\n
 $message\n
 $model
 $namebasis
@@ -106,11 +107,14 @@ $wrote
 <solvent>
 <template>\n
 >tmpfile
+@group
+@orcaconstraints
 [ecce-ai]
 [polar]:
 \'$result\'
 \n
 \nend\n
+\s*
 a
 activities
 activities.\n
@@ -119,6 +123,7 @@ ai.orca
 ai.orca:
 also
 and
+angle
 another
 appear
 are
@@ -148,6 +153,7 @@ aug-pcsseg-0
 aug-pcsseg-1
 aug-pcsseg-2
 aug-pcsseg-3
+b
 b2gp-plyp
 b2plyp
 b3lyp
@@ -156,8 +162,10 @@ b97m-v
 basis>/c
 be
 blyp
+bond
 bp86
 bytes
+c
 c1
 c2
 c2h
@@ -204,6 +212,7 @@ ci
 clear
 coeff
 compute
+constraints\n
 convergence
 coordinants
 core
@@ -227,6 +236,7 @@ d6
 d6d
 d6h
 d8h
+da
 def2-qzvp
 def2-qzvpp
 def2-sv
@@ -260,6 +270,9 @@ error:
 es.runtype.geomopt.convergencegradient
 es.runtype.geomopt.maximumstepsvalue
 es.runtype.orca.usechelpg
+es.runtype.orca.usehirshfeld
+es.runtype.orca.usembis
+es.runtype.orca.usenbo
 es.runtype.vibration.method
 es.runtype.vibration.useraman
 es.theory.dft.xcfunctionals
@@ -278,6 +291,7 @@ exponent
 f
 file
 file:
+fixed
 fort.7
 fragment
 freq
@@ -299,6 +313,7 @@ h
 has
 help\n
 hf
+hirshfeld
 huzinaga
 hybrid
 i
@@ -334,6 +349,7 @@ magnetic
 main
 maxiter
 mb/core
+mbis
 memorysize
 method
 midi
@@ -347,6 +363,7 @@ mult
 must
 n_core
 name_gbs
+nbo
 need
 newecp
 newgto
@@ -451,6 +468,7 @@ tmpfile
 to
 tolerance
 tolerances
+torsion
 tpss
 tpssh
 treating
@@ -490,3 +508,4 @@ x
 xyz
 y
 z
+}\n

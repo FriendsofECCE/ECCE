@@ -71,6 +71,7 @@ $wrote
 &$subname;
 '$value'
 '%s'
+'illegal
 ****\n
 -$firstshell
 -75.2990044687
@@ -127,6 +128,7 @@ $wrote
 >tmpfile
 [ecce-ai]
 [freq
+[modredundant]:
 \'$result\'
 \n
 \niop
@@ -162,7 +164,9 @@ argument
 arsenic
 as
 astatine
+atom
 atomic
+atoms
 atoms!\n
 atoms-in-molecules
 aug-cc-pv5z
@@ -255,12 +259,15 @@ cc-pvtz
 cc.convergenceenergy.value
 cc.convergenceiterations
 cd-demon\n
+centers
+centers'.
 cep-121g
 cep-31g
 cep-4g
 cerium
 cesium
 charge
+chelpg
 chemsys.multiplicity
 chlorine
 chromium
@@ -276,6 +283,7 @@ coarsegrid
 cobalt
 code
 compute
+constrain
 constraint
 constraints
 continuous
@@ -352,6 +360,7 @@ double-hybrid
 dropped
 dsdpbep86
 dubnium
+dummy
 dunning
 dunning-hay
 dysprosium
@@ -402,6 +411,7 @@ es.theory.scf.solvent
 es.theory.scf.usescrf
 es.theory.usecartesian
 es.theory.usefrozencores
+espcharges
 europium
 exchange
 exchangefunctionals
@@ -477,6 +487,7 @@ helium
 help\n
 higher
 highest
+hirshfeld
 hissbpbe
 holmium
 hpmodes
@@ -488,6 +499,7 @@ hyperpol.
 i
 igaim
 ih
+illegal
 in
 incore
 indium
@@ -560,6 +572,7 @@ min
 minimum
 mismatch
 missing
+mk
 mn12l
 mn12sx
 mn15
@@ -582,6 +595,8 @@ n12
 n12sx
 name_gbs
 nbo6
+nbo7
+nboversion
 ne
 neodymium
 neon
@@ -680,6 +695,7 @@ rccd
 rdft
 read
 readwindow
+real
 recognition
 removing
 replaced
@@ -758,6 +774,7 @@ sto-2g
 sto-3g
 sto-3g*
 sto-6g
+stop
 strontium
 sub
 subroutine
@@ -831,6 +848,7 @@ uranium
 usage:
 use
 useaim
+usehirshfeld
 usemayer
 usenbo
 user
