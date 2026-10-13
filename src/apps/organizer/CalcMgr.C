@@ -1637,6 +1637,7 @@ bool CalcMgr::confirmAndQuit()
                 "another ECCE session or a job of yours still uses them.";
   ewxMessageDialog dlg(this, question, "Quit ECCE",
                        wxOK|wxCANCEL|wxICON_QUESTION, wxDefaultPosition);
+  dlg.SetButtonLabel(wxID_OK, "Quit");
   if (canStop)
     dlg.AddButton(ID_ORGANIZER_QUIT_STOP_SERVER, "Quit and Stop Server");
   p_quitAsking = true;

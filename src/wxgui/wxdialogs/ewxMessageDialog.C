@@ -8,7 +8,7 @@
 #include "wxgui/ewxDialog.H"
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxStaticText.H"
-#include "wxgui/ewxBitmap.H"
+#include <wx/artprov.h>
 #include "wxgui/ewxMessageDialog.H"
 
 #include <stdio.h>
@@ -28,47 +28,66 @@ ewxMessageDialog::ewxMessageDialog( wxWindow* parent,
   ewxDialog(parent, wxID_ANY, caption, pos,
             wxDefaultSize, wxDEFAULT_DIALOG_STYLE, "ewxMessageDialog")
 {
+  p_message = message;
   SetFont(getNormalFont());
-
   p_topSizer = new wxBoxSizer(wxVERTICAL);
   SetSizer(p_topSizer);
-
   p_labelSizer = new wxBoxSizer(wxHORIZONTAL);
+  p_topSizer->Add(p_labelSizer, 1, wxEXPAND | wxALL, 12);
 
-  p_topSizer->Add(p_labelSizer, 0, wxALL, 5);
-
-  wxString iconName = "msg_information.png";
-
-  if (style & wxICON_INFORMATION)
-    iconName = "msg_information.png";
-  else if (style & wxICON_EXCLAMATION)
-    iconName = "msg_exclamation.png";
+  // Windows and macOS message boxes carry the system's icon; GNOME's carry
+  // none (its theme has no full-colour large ones), only the bold heading.
+#ifndef __WXGTK__
+  wxArtID art = wxART_INFORMATION;
+  if (style & wxICON_EXCLAMATION)
+    art = wxART_WARNING;
   else if ((style & wxICON_HAND) || (style & wxICON_ERROR))
-    iconName = "msg_error.png";
+    art = wxART_ERROR;
   else if (style & wxICON_QUESTION)
-    iconName = "msg_question.png";
+    art = wxART_QUESTION;
+  wxStaticBitmap * icon = new wxStaticBitmap(this, wxID_STATIC,
+      wxArtProvider::GetBitmap(art, wxART_MESSAGE_BOX));
+  p_labelSizer->Add(icon, 0, wxALIGN_TOP | wxRIGHT, 12);
+#endif
 
-  wxStaticBitmap * icon = new wxStaticBitmap(this,
-                                             wxID_STATIC,
-                                             ewxBitmap(iconName,
-                                                       wxBITMAP_TYPE_PNG),
-                                             wxDefaultPosition);
-
-  p_labelSizer->Add(icon, 0, wxALL, 5);
-
-  p_label = new ewxStaticText(this, -1, message);
-  p_label->SetFont(getNormalFont());
+  // A question or headline followed by an explanation: the first paragraph
+  // in bold, as desktop message boxes set it, so it reads at a glance.
+  wxBoxSizer * text = new wxBoxSizer(wxVERTICAL);
+  p_labelSizer->Add(text, 1, wxALIGN_TOP);
+  wxString head = message, body;
+  int split = message.Find("\n\n");
+  if (split != wxNOT_FOUND) {
+    head = message.Left(split);
+    body = message.Mid(split + 2);
+  }
+  p_label = new ewxStaticText(this, -1, head);
+#ifdef __WXGTK__
+  p_label->SetFont(getNormalFont().Bold());
+#else
+  if (!body.empty())
+    p_label->SetFont(getNormalFont().Bold());
+#endif
   p_label->Wrap(400);
-
-  p_labelSizer->Add(p_label, 0, wxALL, 5);
+  text->Add(p_label, 0);
+  if (!body.empty()) {
+    ewxStaticText * detail = new ewxStaticText(this, -1, body);
+    detail->Wrap(400);
+    text->Add(detail, 0, wxTOP, 8);
+  }
 
   p_buttonSizer = CreateButtonSizer(0);
-  if (style & wxOK)
-    AddButton(wxID_OK, "OK");
-
+#ifdef __WXGTK__
+  // GNOME puts Cancel before the action, Windows and macOS after it.
   if (style & wxCANCEL)
     AddButton(wxID_CANCEL, "Cancel");
-
+  if (style & wxOK)
+    AddButton(wxID_OK, "OK")->SetDefault();
+#else
+  if (style & wxOK)
+    AddButton(wxID_OK, "OK")->SetDefault();
+  if (style & wxCANCEL)
+    AddButton(wxID_CANCEL, "Cancel");
+#endif
   if (style & wxYES_NO) {
     wxButton * but;
     but = AddButton(wxID_NO, "No");
@@ -78,7 +97,6 @@ ewxMessageDialog::ewxMessageDialog( wxWindow* parent,
     if (style & wxYES_DEFAULT)
       but->SetDefault();
   }
-
   if (extraStyle & wxYES_NO_TO_ALL) {
     wxButton * but;
     but = AddButton(wxID_NO_TO_ALL, "No to All");
@@ -88,8 +106,7 @@ ewxMessageDialog::ewxMessageDialog( wxWindow* parent,
     if (style & wxYES_TO_ALL_DEFAULT)
       but->SetDefault();
   }
-
-  p_topSizer->Add(p_buttonSizer, 0, wxALIGN_RIGHT|wxALL, 5);
+  p_topSizer->Add(p_buttonSizer, 0, wxALIGN_RIGHT | wxLEFT | wxRIGHT | wxBOTTOM, 12);
 
   Layout();
   Fit();
@@ -115,6 +132,16 @@ wxButton * ewxMessageDialog::AddButton(int id, wxString label)
 }
 
 
+void ewxMessageDialog::SetButtonLabel(int id, const wxString& label)
+{
+  if (wxButton * but = wxDynamicCast(FindWindow(id), wxButton)) {
+    but->SetLabel(label);
+    Layout();
+    Fit();
+  }
+}
+
+
 void ewxMessageDialog::OnButtonClick( wxCommandEvent& event )
 {
   EndModal(event.GetId());
@@ -132,7 +159,7 @@ int ewxMessageDialog::ShowModal()
     return ewxDialog::ShowModal();
   fprintf(stderr, "ECCE_TEST_DIALOG: [%s] %s\n",
           (const char *)GetTitle().mb_str(),
-          (const char *)p_label->GetLabel().mb_str());
+          (const char *)p_message.mb_str());
   // A frozen parent is not repainted where the dialog uncovers it.
   if (GetParent())
     fprintf(stderr, "ECCE_TEST_DIALOG_PARENT: %s\n",

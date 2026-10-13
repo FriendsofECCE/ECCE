@@ -38,6 +38,8 @@ public:
 
   virtual int ShowModal();
   wxButton * AddButton(int id, wxString label);
+  // Name a standard button after its action, e.g. OK -> "Quit".
+  void SetButtonLabel(int id, const wxString& label);
 
 protected:
   void OnButtonClick( wxCommandEvent& event );
@@ -45,6 +47,7 @@ protected:
   wxBoxSizer * p_topSizer;
   wxBoxSizer * p_labelSizer;
   ewxStaticText * p_label;
+  wxString p_message;   // whole text; p_label holds its first paragraph
   wxSizer * p_buttonSizer;
 };
 

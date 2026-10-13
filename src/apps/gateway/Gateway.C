@@ -669,6 +669,7 @@ void Gateway::exitGateway()
     ewxMessageDialog dlg(this, question, "Quit ECCE",
                          wxOK|wxCANCEL|wxICON_QUESTION,
                          wxDefaultPosition);
+    dlg.SetButtonLabel(wxID_OK, "Quit");
     // GitHub #52: plain Quit only ever closed the GUI client -- the
     // background services (JMS broker, data server) are deliberately
     // left running (they're meant to persist across app launches so you
