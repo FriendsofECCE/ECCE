@@ -134,6 +134,11 @@ if(QM_PYTHON3)
   # (tests/qm/freq_oracle.json), ROHF O2 against its energy curvature.
   add_test(NAME qm_freq_quick COMMAND ${QM_PYTHON3} ${_qm_tests}/freq_test.py $<TARGET_FILE:ecce-qm> --quick)
   add_test(NAME qm_freq COMMAND ${QM_PYTHON3} ${_qm_tests}/freq_test.py $<TARGET_FILE:ecce-qm>)
+  # Constrained optimisation with a dummy atom (NH3 + X, fixed X-N-H angles)
+  # against NWChem, bond and angle constraints against ORCA; exits 77 (skip)
+  # when neither is installed.
+  add_test(NAME qm_constraints COMMAND ${QM_PYTHON3} ${_qm_tests}/constraint_test.py $<TARGET_FILE:ecce-qm>)
+  set_tests_properties(qm_constraints PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
   set_tests_properties(qm_freq_quick PROPERTIES TIMEOUT 1800)
   set_tests_properties(qm_freq PROPERTIES TIMEOUT 7200)
   set_tests_properties(qm_gradient_quick qm_opt_quick PROPERTIES TIMEOUT 1800)

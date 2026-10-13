@@ -61,6 +61,11 @@ next bundled code:
   ENTHALPY, ENTROPY, EGIBBS; one Begin each, none may match another's line),
   and `thermo_temperature`/`thermo_pressure_atm` give THERMOTEMP/THERMOPRES. No
   runtype dialog, so the engine's `maxsteps`/`opt_conv` are not set from ECCE.
+* **Constraints and dummy atoms** (#309): `ECCE-QM.edml` has `SupportsConstraints`
+  true with the same rules as ORCA's; `ai.ecceqm` reads the constraint file into the
+  engine's `constraints` block (`##QMConstraints##` in `ecceqm.tpl`, Geometry runs
+  only) and writes `X`. `verifyinput`'s ecceqm checker knows both blocks (they are
+  not in its keyword list, like `geometry`).
 * **Launch warns before a large run** (`WxLauncher::confirmQmSize()`, #248):
   Vibration/GeoVib with N^2 x nbf above 5000 (DFT) or 15000 (HF), or any run
   beyond 25 atoms or 150 functions (memory, nbf^4 bytes). Cancel or "Launch

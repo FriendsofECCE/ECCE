@@ -167,6 +167,7 @@ my @atomSymbols;
 for my $i (0 .. $#stripped) {
   if ($stripped[$i] =~ /^\s*([A-Z][a-z]?)\d*\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
     my $element = ucfirst(lc($1));
+    next if ($1 eq "X");   # a dummy atom: no nucleus, electrons or basis
     push(@atomSymbols, $element);
     next if (exists($seen{$element}));
     $seen{$element} = 1;
@@ -1349,6 +1350,8 @@ sub ecceqm
   my $multGiven = 0;
   my ($geomOpen, $geomClose, $basisOpen, $basisClose) = (0, 0, 0, 0);
   my ($inGeom, $inBasis, $shells, $primitives, $curShell) = (0, 0, 0, 0, 0);
+  my ($inCons, $consOpen, $consClose) = (0, 0, 0);
+  my @consAtoms;     # [line, atom number] to check against the geometry
   my %covered;
   my ($bad, $geomAtoms, $basisName) = (0, 0, "");
   my $badKeyword = 0;
@@ -1364,7 +1367,7 @@ sub ecceqm
     if ($inGeom) {
       if ($k eq "end") { $inGeom = 0; $geomClose = $n; next; }
       if ($line =~ /^\s*([A-Za-z]+)\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
-        if (!exists($Z{ucfirst(lc($1))})) {
+        if ($1 !~ /^[Xx]$/ && !exists($Z{ucfirst(lc($1))})) {
           finding("BAD", $n, "geometry",
                   "\"$1\" is not an element symbol ecce-qm knows.");
           $bad++;
@@ -1378,6 +1381,33 @@ sub ecceqm
                 "atom (element and three coordinates): \"$shown\". " .
                 "ecce-qm stops on it.");
         $bad++;
+      }
+      next;
+    }
+
+    if ($inCons) {
+      if ($k eq "end") { $inCons = 0; $consClose = $n; next; }
+      my %need = (bond => 2, angle => 3, torsion => 4, dihedral => 4, fix => 1);
+      my @w = split(' ', $rest);
+      if (!exists($need{$k})) {
+        finding("BAD", $n, "constraints",
+                "\"$key\" is not a constraint ecce-qm knows (bond, " .
+                "angle, torsion or fix); ecce-qm stops on it.");
+        $bad++;
+      } elsif (@w < $need{$k} || @w > $need{$k} + ($k eq "fix" ? 0 : 1) ||
+               grep { $_ !~ /^\d+$/ } @w[0 .. $need{$k} - 1]) {
+        finding("BAD", $n, "constraints",
+                "'$k' needs $need{$k} atom numbers" .
+                ($k eq "fix" ? "" : " and an optional value") .
+                "; ecce-qm stops on this line.");
+        $bad++;
+      } elsif (@w > $need{$k} && $w[$need{$k}] !~ /^$NUM$/) {
+        finding("BAD", $n, "constraints",
+                "The value of a '$k' constraint must be a number, and " .
+                "this reads \"$w[$need{$k}]\".");
+        $bad++;
+      } else {
+        push(@consAtoms, [$n, $_]) for (@w[0 .. $need{$k} - 1]);
       }
       next;
     }
@@ -1421,6 +1451,7 @@ sub ecceqm
     }
 
     if ($k eq "geometry")   { $inGeom = 1; $geomOpen = $n; next; }
+    if ($k eq "constraints") { $inCons = 1; $consOpen = $n; next; }
     if ($k eq "basis_data") { $inBasis = 1; $basisOpen = $n; next; }
 
     if (!$keyword{$k}) {
@@ -1525,6 +1556,20 @@ sub ecceqm
     finding("GOOD", ($geomOpen + 1) . "-" . ($geomClose - 1), "geometry",
             "$geomAtoms atoms in the geometry block.")
       unless (grep { /^BAD\|\d+\|geometry\|/ } @findings);
+  }
+
+  #  Constraints: closed, and naming atoms the geometry has.
+  if ($consOpen && !$consClose) {
+    finding("BAD", $consOpen, "constraints",
+            "The constraints block is never closed by an 'end'.");
+  } elsif ($consOpen) {
+    for my $c (@consAtoms) {
+      if ($c->[1] < 1 || $c->[1] > $geomAtoms) {
+        finding("BAD", $c->[0], "constraints",
+                "Atom $c->[1] is not in the geometry, which has " .
+                "$geomAtoms atoms (dummy atoms count).");
+      }
+    }
   }
 
   #  Basis: ECCE always writes it out, so its absence is a hand edit.

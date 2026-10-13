@@ -111,6 +111,100 @@ Vec b_row(const Vec& x0, double (*f)(const Vec&, const int*), const int* at, int
   return b;
 }
 
+// ---- constraints ----------------------------------------------------------
+
+double con_value(const GeoConstraint& c, const Vec& x) {
+  switch (c.kind) {
+    case GeoConstraint::Bond: return distance(x, c.atoms);
+    case GeoConstraint::Angle: return angle(x, c.atoms);
+    default: return dihedral(x, c.atoms);
+  }
+}
+
+double con_residual(const GeoConstraint& c, const Vec& x) {
+  double r = con_value(c, x) - c.value;
+  if (c.kind == GeoConstraint::Torsion) {
+    while (r > kPi) r -= 2 * kPi;
+    while (r < -kPi) r += 2 * kPi;
+  }
+  return r;
+}
+
+// Dummy atoms that no bond, angle or torsion names are fixed in space.
+std::vector<bool> fixed_atoms(const Molecule& m, const std::vector<GeoConstraint>& cons) {
+  std::vector<bool> fix(m.atoms.size(), false);
+  std::vector<bool> named(m.atoms.size(), false);
+  for (const auto& c : cons) {
+    if (c.kind == GeoConstraint::Fix) fix[c.atoms[0]] = true;
+    else
+      for (int i = 0; i < (c.kind == GeoConstraint::Bond ? 2 : c.kind == GeoConstraint::Angle ? 3 : 4); ++i)
+        named[c.atoms[i]] = true;
+  }
+  for (size_t a = 0; a < m.atoms.size(); ++a)
+    if (m.atoms[a].Z == 0 && !named[a]) fix[a] = true;
+  return fix;
+}
+
+// Rows: the gradient of every bond/angle/torsion constraint, and a unit row
+// for each Cartesian component of a fixed atom.
+Mat constraint_rows(const Vec& x, const std::vector<GeoConstraint>& cons, const std::vector<bool>& fix) {
+  std::vector<Vec> rows;
+  for (const auto& c : cons) {
+    if (c.kind == GeoConstraint::Fix) continue;
+    double (*f)(const Vec&, const int*) = c.kind == GeoConstraint::Bond ? distance : c.kind == GeoConstraint::Angle ? angle : dihedral;
+    rows.push_back(b_row(x, f, c.atoms, c.kind == GeoConstraint::Bond ? 2 : c.kind == GeoConstraint::Angle ? 3 : 4));
+  }
+  for (size_t a = 0; a < fix.size(); ++a)
+    if (fix[a])
+      for (int k = 0; k < 3; ++k) {
+        Vec e = Vec::Zero(x.size());
+        e(3 * a + k) = 1;
+        rows.push_back(e);
+      }
+  Mat B(rows.size(), x.size());
+  for (size_t i = 0; i < rows.size(); ++i) B.row(i) = rows[i].transpose();
+  return B;
+}
+
+// Orthonormal basis of the steps that keep every constraint (to first
+// order); with no fixed atom also free of translation and rotation.
+Mat constrained_space(const Vec& x, const Mat& B, bool with_rigid) {
+  const int n = static_cast<int>(x.size());
+  Mat M = Mat::Zero(n, n);
+  for (int i = 0; i < B.rows(); ++i) {
+    const double nr = B.row(i).norm();
+    if (nr > 1e-12) M += B.row(i).transpose() * B.row(i) / (nr * nr);
+  }
+  if (with_rigid) {
+    const Mat Qv = vibrational_space(x);
+    M += Mat::Identity(n, n) - Qv * Qv.transpose();
+  }
+  Eigen::SelfAdjointEigenSolver<Mat> es(M);
+  int nv = 0;
+  for (int i = 0; i < n; ++i)
+    if (es.eigenvalues()(i) < 1e-6) ++nv;
+  return es.eigenvectors().leftCols(nv);
+}
+
+// Newton iterations (minimum-norm corrections) back onto the constraint values.
+void restore_constraints(Vec& x, const std::vector<GeoConstraint>& cons, const std::vector<bool>& fix) {
+  for (int it = 0; it < 200; ++it) {
+    std::vector<double> res;
+    for (const auto& c : cons)
+      if (c.kind != GeoConstraint::Fix) res.push_back(con_residual(c, x));
+    double worst = 0;
+    for (double v : res) worst = std::max(worst, std::fabs(v));
+    if (worst < 1e-11) return;
+    const Mat B = constraint_rows(x, cons, fix);
+    Vec rhs = Vec::Zero(B.rows());
+    for (size_t i = 0; i < res.size(); ++i) rhs(i) = -res[i];
+    Vec d = B.completeOrthogonalDecomposition().solve(rhs);
+    if (d.norm() > 0.5) d *= 0.5 / d.norm();
+    x += d;
+  }
+  throw Error("the geometry constraints cannot be satisfied together");
+}
+
 }  // namespace
 
 Mat lindh_hessian(const Molecule& mol) {
@@ -121,9 +215,10 @@ Mat lindh_hessian(const Molecule& mol) {
   std::vector<std::vector<double>> w(N, std::vector<double>(N, 0.0));
   for (int a = 0; a < N; ++a)
     for (int b = 0; b < N; ++b)
-      if (a != b) w[a][b] = rho(mol, a, b);
+      if (a != b && mol.atoms[a].Z != 0 && mol.atoms[b].Z != 0) w[a][b] = rho(mol, a, b);
   for (int a = 0; a < N; ++a)
     for (int b = a + 1; b < N; ++b) {
+      if (w[a][b] == 0.0) continue;   // a dummy atom has no bonds
       const int at[2] = {a, b};
       const Vec r = b_row(x, distance, at, 2);
       H += kr * w[a][b] * r * r.transpose();
@@ -165,10 +260,27 @@ OptResult optimize_geometry(const Molecule& start, const OptOptions& opt,
   Vec x = coords(mol);
   OptResult res;
 
+  // Constraints without a value keep the starting one; the others are
+  // imposed on the starting geometry before the first energy.
+  std::vector<GeoConstraint> cons = opt.constraints;
+  for (auto& c : cons)
+    if (c.kind != GeoConstraint::Fix && !c.has_value) c.value = con_value(c, x);
+  const std::vector<bool> fix = fixed_atoms(mol, cons);
+  const bool constrained = !cons.empty() || std::count(fix.begin(), fix.end(), true) > 0;
+  const bool any_fixed = std::count(fix.begin(), fix.end(), true) > 0;
+  if (constrained) {
+    restore_constraints(x, cons, fix);
+    set_coords(mol, x);
+  }
+  // Space of allowed steps at x.
+  auto step_space = [&](const Vec& xx) {
+    return constrained ? constrained_space(xx, constraint_rows(xx, cons, fix), !any_fixed) : vibrational_space(xx);
+  };
+
   // Model Hessian, made positive definite in the vibrational space.
   Mat H;
   {
-    const Mat Q = vibrational_space(x);
+    const Mat Q = step_space(x);
     Eigen::SelfAdjointEigenSolver<Mat> es(Q.transpose() * lindh_hessian(mol) * Q);
     Vec ev = es.eigenvalues().cwiseMax(0.02).cwiseMin(1.5);
     H = Q * es.eigenvectors() * ev.asDiagonal() * es.eigenvectors().transpose() * Q.transpose();
@@ -182,7 +294,7 @@ OptResult optimize_geometry(const Molecule& start, const OptOptions& opt,
 
   for (;;) {
     // Step from the current point: RFO in the vibrational space.
-    const Mat Q = vibrational_space(x);
+    const Mat Q = step_space(x);
     const Mat Hq = Q.transpose() * H * Q;
     const Vec gq = Q.transpose() * g;
     const int m = static_cast<int>(gq.size());
@@ -204,8 +316,11 @@ OptResult optimize_geometry(const Molecule& start, const OptOptions& opt,
     st.mol = mol;
     st.energy = cur.energy;
     st.grad = cur.grad;
-    st.max_grad = g.cwiseAbs().maxCoeff();
-    st.rms_grad = std::sqrt(g.squaredNorm() / n);
+    // With constraints the part of the gradient the constraints absorb is no
+    // sign of a missed minimum.
+    const Vec gc = constrained ? Vec(Q * (Q.transpose() * g)) : g;
+    st.max_grad = gc.cwiseAbs().maxCoeff();
+    st.rms_grad = std::sqrt(gc.squaredNorm() / n);
     st.max_step = s.cwiseAbs().maxCoeff();
     st.rms_step = std::sqrt(s.squaredNorm() / n);
     st.d_energy = have_prev ? cur.energy - last_energy : 0.0;
@@ -220,7 +335,11 @@ OptResult optimize_geometry(const Molecule& start, const OptOptions& opt,
 
     // Try the step.
     Molecule trial = mol;
-    const Vec xt = x + s;
+    Vec xt = x + s;
+    if (constrained) {
+      restore_constraints(xt, cons, fix);
+      s = xt - x;
+    }
     set_coords(trial, xt);
     OptEval ev = eval(trial);
     ++res.evaluations;

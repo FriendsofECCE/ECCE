@@ -45,7 +45,20 @@
   <AllowMultipleOrbitals>False</AllowMultipleOrbitals>
 </GaussianBasisSetRules>
 
-<SupportsConstraints>false</SupportsConstraints>
+<SupportsConstraints>true</SupportsConstraints>
+
+<GeometryConstraintRules>
+  <SupportsAtomConstraints>true</SupportsAtomConstraints>
+  <SupportsConstrainBonds>true</SupportsConstrainBonds>
+  <SupportsConstrainAngles>true</SupportsConstrainAngles>
+  <SupportsConstrainTorsions>true</SupportsConstrainTorsions>
+  <SupportsRestrainBonds>false</SupportsRestrainBonds>
+  <SupportsRestrainAngles>false</SupportsRestrainAngles>
+  <SupportsRestrainTorsions>false</SupportsRestrainTorsions>
+  <SupportsFixedAtomsAndConstraints>true</SupportsFixedAtomsAndConstraints>
+  <SupportsFixedAtomsAndRestraints>false</SupportsFixedAtomsAndRestraints>
+  <SupportsMixedConstraintsAndRestraints>false</SupportsMixedConstraintsAndRestraints>
+</GeometryConstraintRules>
 
 <!-- Per-code switch for the MO correlation diagram.  The students of the
      course this engine was written for are meant to construct the diagram

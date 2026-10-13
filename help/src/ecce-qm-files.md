@@ -53,10 +53,40 @@ names the line.
 | `conv_energy` | number, in Hartree | `1e-10` |
 | `conv_grad` | number | `1e-7` |
 
-Two blocks follow the same rule, each closed by a line `end`:
+Three blocks follow the same rule, each closed by a line `end`:
 
 - `geometry` is followed by one atom per line: the element symbol and the
-  three coordinates, in the unit given by `units`.
+  three coordinates, in the unit given by `units`. The symbol `X` is a dummy
+  atom: it has no nucleus, electrons or basis functions and takes no part in
+  the SCF, the integration grid, the charges, the dipole or the vibrations. It
+  keeps its number, so the atoms are numbered as in the Builder, and it is
+  listed in the geometry, the gradient (zero) and the charges (0). The
+  vibration tables list the real atoms only.
+- `constraints` holds one constraint per line and applies to `runtype
+  optimize`:
+
+  ```
+  constraints
+    bond 1 2 1.05
+    angle 5 1 2 110
+    torsion 3 1 2 4 90
+    fix 3
+  end
+  ```
+
+  `bond` takes two atom numbers and a length in the unit given by `units`,
+  `angle` three atoms and a value in degrees, `torsion` four atoms and a value
+  in degrees, `fix` one atom that stays where it is. Atoms are counted from 1
+  in the order of the geometry block, dummy atoms included. The value is
+  optional; without it the constraint keeps the value of the starting
+  geometry. A value that the starting geometry does not have is imposed before
+  the first energy. A dummy atom that no bond, angle or torsion names is fixed
+  in space; one that is named moves as the constraints require. The optimiser
+  holds every constraint exactly at every step, and the gradient it reports
+  as converged is the part not absorbed by the constraints.
+  `optfreq` with constraints is refused: frequencies at a constrained
+  geometry are not at a minimum. Optimise with the constraints, then run
+  `frequency` without them.
 - `basis_data` gives the basis set in full: a line `shell <element> <letter>`
   with the letter S, P, D, F, G, H or I, followed by one line
   `exponent coefficient` for each primitive of that shell.

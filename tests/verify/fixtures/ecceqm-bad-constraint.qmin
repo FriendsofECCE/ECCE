@@ -1,0 +1,19 @@
+title nh3 with a dummy atom
+charge 0
+multiplicity 1
+runtype optimize
+method hf
+spherical true
+basis STO-3G
+geometry
+ N 0.0 0.0 0.1
+ H 0.0 0.94 -0.3
+ H 0.81 -0.47 -0.3
+ H -0.81 -0.47 -0.3
+ X 0.0 0.0 1.1
+end
+constraints
+  angle 5 1 2 113.0
+  angle 5 1 3 113.0
+  angle 5 1 9 113.0
+end

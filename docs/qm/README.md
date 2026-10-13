@@ -149,6 +149,25 @@ and `opt_conv normal|tight` (default normal) tune the latter.
   and angles against ORCA TightOpt, `opt_oracle.json`, made by
   `gen_opt_oracle.py`).
 
+### Dummy atoms and constraints (#309)
+
+* `X` in the geometry block is a dummy atom (Z = 0). `main.cpp` hands the SCF,
+  gradient, charges and vibrations `Molecule::without_dummies()`; the
+  optimiser and the output keep the full list, so atom numbers match ECCE's
+  (`begin atoms`, `begin charges`, `begin geometry`, `begin gradient` carry the
+  dummy, with charge 0 and gradient 0; `begin vibrations`/`normal_modes` and
+  Molden list the real atoms only).
+* `constraints ... end` (`bond`, `angle`, `torsion`, `fix`; 1-based, dummies
+  counted; see help/src/ecce-qm-files.md). In `optimizer.cpp` the step is
+  taken in the null space of the constraint gradients (plus translation and
+  rotation when no atom is fixed) and the values are then restored by Newton
+  iterations with minimum-norm corrections. A dummy atom no bond/angle/torsion
+  names is fixed in space. Convergence uses the gradient projected on that
+  space. `optfreq` with constraints is refused.
+* Test: `tests/qm/constraint_test.py` (NH3 + X, X-N-H fixed at 100/110/120
+  degrees, HF and B3LYP/6-31G* against NWChem zcoord; water bond and angle
+  against ORCA `%geom Constraints`; agreement 1e-7 Eh and 1e-5 angstrom).
+
 ## Frequencies, IR intensities, thermochemistry (stage 3)
 
 `runtype frequency` computes the harmonic vibrations at the given geometry,

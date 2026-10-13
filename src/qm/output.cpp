@@ -7,7 +7,8 @@
 
 namespace qm {
 
-std::vector<std::string> ao_labels(const Basis& b) {
+std::vector<std::string> ao_labels(const Basis& b, const Molecule* full) {
+  const std::vector<int> idx = full ? full->real_atoms() : std::vector<int>();
   static const char* sph[][9] = {
       {"s"}, {"px", "py", "pz"},
       {"dxy", "dyz", "dz2", "dxz", "dx2y2"},
@@ -30,7 +31,7 @@ std::vector<std::string> ao_labels(const Basis& b) {
               break;
             }
       } else t = std::string(1, "spdfghik"[s.l]) + std::to_string(k - s.l);
-      out[s.ao0 + k] = std::to_string(s.atom) + element_symbol(b.molecule().atoms[s.atom].Z) + " " + std::to_string(n) + t;
+      out[s.ao0 + k] = std::to_string(full ? idx[s.atom] : s.atom) + element_symbol(b.molecule().atoms[s.atom].Z) + " " + std::to_string(n) + t;
     }
   }
   return out;
@@ -162,10 +163,19 @@ static void write_frequency_blocks(std::ostream& os, const FrequencyOutput& f, c
 }
 
 void write_text_output(std::ostream& os, const Input& in, const Basis& b, const ScfResult& r, double seconds,
-                       const OptResult* opt, const FrequencyOutput* freq, const ChargeSets* charges) {
+                       const OptResult* opt, const FrequencyOutput* freq, const ChargeSets* charges,
+                       const Molecule* full_mol) {
   const bool dft = in.scf.method != "hf";
   const bool restricted = r.reference != Reference::Unrestricted;
   const Molecule& mol = b.molecule();
+  const Molecule& allat = full_mol ? *full_mol : mol;   // with dummy atoms
+  const std::vector<int> real = allat.real_atoms();
+  // per-real-atom values to one per atom of allat (dummy atoms: 0)
+  auto spread = [&](const std::vector<double>& q) {
+    std::vector<double> o(allat.atoms.size(), 0.0);
+    for (size_t i = 0; i < real.size() && i < q.size(); ++i) o[real[i]] = q[i];
+    return o;
+  };
   os << std::setprecision(12) << std::fixed;
   os << "# ecce-qm output, format version 1\n";
   os << "format_version 1\n";
@@ -202,25 +212,27 @@ void write_text_output(std::ostream& os, const Input& in, const Basis& b, const 
      << r.dipole[2] * kDebyePerAu << " " << dn * kDebyePerAu << "\n";
   os << "wall_seconds " << std::setprecision(2) << seconds << std::setprecision(12) << "\n";
   os << "begin atoms  # index symbol Z x y z (angstrom) mulliken_net_charge\n";
-  for (size_t a = 0; a < mol.atoms.size(); ++a)
-    os << a << " " << element_symbol(mol.atoms[a].Z) << " " << mol.atoms[a].Z << " "
-       << mol.atoms[a].x[0] * kBohrToAngstrom << " " << mol.atoms[a].x[1] * kBohrToAngstrom << " "
-       << mol.atoms[a].x[2] * kBohrToAngstrom << " " << r.mulliken[a] << "\n";
+  const std::vector<double> mull = spread(r.mulliken);
+  for (size_t a = 0; a < allat.atoms.size(); ++a)
+    os << a << " " << element_symbol(allat.atoms[a].Z) << " " << allat.atoms[a].Z << " "
+       << allat.atoms[a].x[0] * kBohrToAngstrom << " " << allat.atoms[a].x[1] * kBohrToAngstrom << " "
+       << allat.atoms[a].x[2] * kBohrToAngstrom << " " << mull[a] << "\n";
   os << "end atoms\n";
   if (charges) {
-    auto block = [&](const char* name, const std::vector<double>& q, int npts) {
-      if (q.empty()) return;
+    auto block = [&](const char* name, const std::vector<double>& qreal, int npts) {
+      if (qreal.empty()) return;
+      const std::vector<double> q = spread(qreal);
       os << "begin charges " << name << "  # index symbol net_charge";
       if (npts) os << "  (" << npts << " fit points)";
       os << "\n";
-      for (size_t a = 0; a < q.size(); ++a) os << a << " " << element_symbol(mol.atoms[a].Z) << " " << q[a] << "\n";
+      for (size_t a = 0; a < q.size(); ++a) os << a << " " << element_symbol(allat.atoms[a].Z) << " " << q[a] << "\n";
       os << "end charges\n";
     };
     block("loewdin", charges->loewdin, 0);
     block("chelpg", charges->chelpg, charges->chelpg_points);
     block("mk", charges->mk, charges->mk_points);
   }
-  auto labels = ao_labels(b);
+  auto labels = ao_labels(b, full_mol);
   os << "begin ao_labels  # index label, order of the MO coefficients\n";
   for (int i = 0; i < b.nbf(); ++i) os << i + 1 << " " << labels[i] << "\n";
   os << "end ao_labels\n";

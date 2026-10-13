@@ -56,6 +56,27 @@ void Molecule::check() const {
                 std::to_string(n) + " electrons");
 }
 
+bool Molecule::has_dummy() const {
+  for (const auto& a : atoms)
+    if (a.Z == 0) return true;
+  return false;
+}
+
+Molecule Molecule::without_dummies() const {
+  Molecule m = *this;
+  m.atoms.clear();
+  for (const auto& a : atoms)
+    if (a.Z != 0) m.atoms.push_back(a);
+  return m;
+}
+
+std::vector<int> Molecule::real_atoms() const {
+  std::vector<int> r;
+  for (size_t i = 0; i < atoms.size(); ++i)
+    if (atoms[i].Z != 0) r.push_back(static_cast<int>(i));
+  return r;
+}
+
 double Molecule::nuclear_repulsion() const {
   double e = 0;
   for (size_t i = 0; i < atoms.size(); ++i)

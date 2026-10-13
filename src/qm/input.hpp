@@ -29,7 +29,12 @@
 //   basis_data ... end           explicit basis, replaces the library file:
 //                                "shell <El> <S|P|D|F|G|H|I>" then one
 //                                "exponent coefficient" row per primitive
-//   geometry ... end             one atom per line: symbol x y z
+//   geometry ... end             one atom per line: symbol x y z; the symbol X
+//                                is a dummy atom (no nucleus, electrons or basis)
+//   constraints ... end          optimize: "bond a b [r]", "angle a b c [deg]",
+//                                "torsion a b c d [deg]", "fix a"; atoms count
+//                                from 1 including dummies, no value = keep the
+//                                starting one
 #pragma once
 #include <iosfwd>
 #include <map>

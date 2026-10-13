@@ -11,6 +11,12 @@ static std::string lower(std::string s) {
   return s;
 }
 
+// "X", optionally with a label ("X1", "X_a"); "Xe" is xenon.
+static bool is_dummy_symbol(const std::string& s) {
+  if (s.empty() || (s[0] != 'X' && s[0] != 'x')) return false;
+  return s.size() == 1 || !std::isalpha(static_cast<unsigned char>(s[1]));
+}
+
 Input parse_input(std::istream& in) {
   Input r;
   std::string line;
@@ -19,7 +25,9 @@ Input parse_input(std::istream& in) {
   std::string method = "hf";
   int lineno = 0;
   std::vector<std::string> geom_lines;
-  bool in_basis = false;
+  bool in_basis = false, in_cons = false;
+  struct RawCon { std::string kind; std::vector<std::string> args; int line; };
+  std::vector<RawCon> raw_cons;
   ShellDef* cur_shell = nullptr;
   while (std::getline(in, line)) {
     ++lineno;
@@ -33,6 +41,16 @@ Input parse_input(std::istream& in) {
     if (in_geom) {
       if (k == "end") { in_geom = false; continue; }
       geom_lines.push_back(line);
+      continue;
+    }
+    if (in_cons) {
+      if (k == "end") { in_cons = false; continue; }
+      RawCon c;
+      c.kind = k;
+      c.line = lineno;
+      std::string w;
+      while (ss >> w) c.args.push_back(w);
+      raw_cons.push_back(c);
       continue;
     }
     if (in_basis) {
@@ -58,6 +76,7 @@ Input parse_input(std::istream& in) {
     }
     if (k == "basis_data") { in_basis = true; continue; }
     if (k == "geometry") { in_geom = true; continue; }
+    if (k == "constraints") { in_cons = true; continue; }
     std::string rest;
     std::getline(ss, rest);
     rest.erase(0, rest.find_first_not_of(" \t"));
@@ -108,11 +127,47 @@ Input parse_input(std::istream& in) {
     std::string sym;
     Atom a;
     if (!(ss >> sym >> a.x[0] >> a.x[1] >> a.x[2])) throw Error("bad geometry line: " + gl);
-    a.Z = atomic_number(sym);
+    a.Z = is_dummy_symbol(sym) ? 0 : atomic_number(sym);
     for (double& v : a.x) v *= unit;
     r.mol.atoms.push_back(a);
   }
   if (r.mol.atoms.empty()) throw Error("no geometry given");
+  if (r.mol.without_dummies().atoms.empty()) throw Error("the geometry holds only dummy atoms");
+
+  // constraints: atom numbers are 1-based and count the dummy atoms; bond
+  // values are in the geometry units, angles and torsions in degrees.
+  const int nat = static_cast<int>(r.mol.atoms.size());
+  for (const auto& c : raw_cons) {
+    auto bad = [&](const std::string& m) { return Error("input line " + std::to_string(c.line) + ": " + m); };
+    GeoConstraint g;
+    int nidx;
+    if (c.kind == "bond") { g.kind = GeoConstraint::Bond; nidx = 2; }
+    else if (c.kind == "angle") { g.kind = GeoConstraint::Angle; nidx = 3; }
+    else if (c.kind == "torsion" || c.kind == "dihedral") { g.kind = GeoConstraint::Torsion; nidx = 4; }
+    else if (c.kind == "fix") { g.kind = GeoConstraint::Fix; nidx = 1; }
+    else throw bad("constraints: unknown entry '" + c.kind + "' (bond, angle, torsion, fix)");
+    if (static_cast<int>(c.args.size()) < nidx || static_cast<int>(c.args.size()) > nidx + (g.kind == GeoConstraint::Fix ? 0 : 1))
+      throw bad("constraints: '" + c.kind + "' needs " + std::to_string(nidx) + " atom numbers" +
+                (g.kind == GeoConstraint::Fix ? "" : " and an optional value"));
+    for (int i = 0; i < nidx; ++i) {
+      int a;
+      try { a = std::stoi(c.args[i]); } catch (...) { throw bad("constraints: '" + c.args[i] + "' is not an atom number"); }
+      if (a < 1 || a > nat) throw bad("constraints: atom " + std::to_string(a) + " is not in the geometry");
+      g.atoms[i] = a - 1;
+      for (int j = 0; j < i; ++j)
+        if (g.atoms[j] == g.atoms[i]) throw bad("constraints: an atom is named twice");
+    }
+    if (static_cast<int>(c.args.size()) > nidx) {
+      double v;
+      try { v = std::stod(c.args[nidx]); } catch (...) { throw bad("constraints: '" + c.args[nidx] + "' is not a number"); }
+      g.has_value = true;
+      g.value = g.kind == GeoConstraint::Bond ? v * unit : v * kPi / 180.0;
+    }
+    r.opt.constraints.push_back(g);
+  }
+  if (does_frequencies(r.runtype) && does_optimize(r.runtype) && !r.opt.constraints.empty())
+    throw Error("optfreq with constraints: frequencies at a constrained geometry are not at a minimum; "
+                "run runtype optimize with the constraints and a separate frequency run without them");
 
   // method prefix
   std::string m = method;

@@ -20,10 +20,12 @@ struct FrequencyOutput {
   double max_gradient = 0;  // at the geometry the Hessian belongs to, hartree/bohr
 };
 
-// opt: set for runtype optimize, adds the convergence summary.
+// opt: set for runtype optimize, adds the convergence summary.  full: the
+// molecule with its dummy atoms (null: none); the per-atom blocks then keep
+// every atom of it, a dummy with charge 0, so atom numbers match ECCE's.
 void write_text_output(std::ostream& os, const Input& in, const Basis& b, const ScfResult& r, double seconds,
                        const OptResult* opt = nullptr, const FrequencyOutput* freq = nullptr,
-                       const ChargeSets* charges = nullptr);
+                       const ChargeSets* charges = nullptr, const Molecule* full = nullptr);
 
 // One geometry with its energy and gradient, written as soon as it is known
 // and before the final output, so a running job shows its trace.
@@ -42,6 +44,6 @@ void write_progress_freq(std::ostream& os, int point, int points);
 void write_progress_freq_end(std::ostream& os, int points, const FrequencyOutput& f);
 
 // ORCA-style AO label for each basis function: "0O 1s", "1H 2pz", "0C 1dxy".
-std::vector<std::string> ao_labels(const Basis& b);
+std::vector<std::string> ao_labels(const Basis& b, const Molecule* full = nullptr);
 
 }  // namespace qm

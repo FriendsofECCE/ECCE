@@ -49,12 +49,15 @@ int main(int argc, char** argv) {
     // The basis belongs to one geometry; keep the one of the latest evaluation.
     std::unique_ptr<qm::Basis> basis;
     qm::ScfResult r;
-    qm::Molecule at;
+    qm::Molecule at;        // the molecule the SCF saw: no dummy atoms
+    qm::Molecule at_full;   // ... and with them, as the optimiser has it
     // The previous geometry's orbitals start the next SCF (optimisation steps).
     bool have_prev = false;
-    auto evaluate = [&](const qm::Molecule& m) {
+    auto evaluate = [&](const qm::Molecule& mfull) {
+      const qm::Molecule m = mfull.without_dummies();
       basis.reset(new qm::Basis(m, lib, in.basis, in.spherical));
       at = m;
+      at_full = mfull;
       qm::ScfResult next = qm::run_scf(*basis, m, in.scf, have_prev ? &r : nullptr);
       r = std::move(next);
       have_prev = true;
@@ -63,7 +66,11 @@ int main(int argc, char** argv) {
       e.energy = r.energy;
       if (in.runtype != qm::RunType::Energy) {
         if (!r.converged) throw qm::Error("SCF did not converge");
-        e.grad = qm::scf_gradient(*basis, m, in.scf, r);
+        const std::vector<double> g = qm::scf_gradient(*basis, m, in.scf, r);
+        e.grad.assign(3 * mfull.atoms.size(), 0.0);   // a dummy atom feels no force
+        const std::vector<int> idx = mfull.real_atoms();
+        for (size_t i = 0; i < idx.size(); ++i)
+          for (int k = 0; k < 3; ++k) e.grad[3 * idx[i] + k] = g[3 * i + k];
       }
       return e;
     };
@@ -126,11 +133,11 @@ int main(int argc, char** argv) {
           std::cerr << "step " << st.index << "  E = " << st.energy << "  max|g| = " << st.max_grad << "\n";
       });
       qm::write_progress_opt_end(os, last_step, res.converged);
-      if (!same(at, res.mol)) evaluate(res.mol);  // the last trial was turned down
+      if (!same(at_full, res.mol)) evaluate(res.mol);  // the last trial was turned down
       std::unique_ptr<qm::FrequencyOutput> fo;
-      if (in.runtype == qm::RunType::OptFreq && res.converged) fo.reset(new qm::FrequencyOutput(frequencies(res.mol, res.grad)));
+      if (in.runtype == qm::RunType::OptFreq && res.converged) fo.reset(new qm::FrequencyOutput(frequencies(res.mol.without_dummies(), res.grad)));
       auto cs = extra_charges();
-      qm::write_text_output(os, in, *basis, r, seconds(), &res, fo.get(), cs.get());
+      qm::write_text_output(os, in, *basis, r, seconds(), &res, fo.get(), cs.get(), &at_full);
       if (!molden.empty()) {
         std::ofstream f(molden);
         qm::write_molden(f, in, *basis, r, fo.get());
@@ -149,9 +156,9 @@ int main(int argc, char** argv) {
       qm::write_opt_step(os, st);
     }
     std::unique_ptr<qm::FrequencyOutput> fo;
-    if (in.runtype == qm::RunType::Frequency && r.converged) fo.reset(new qm::FrequencyOutput(frequencies(in.mol, e.grad)));
+    if (in.runtype == qm::RunType::Frequency && r.converged) fo.reset(new qm::FrequencyOutput(frequencies(in.mol.without_dummies(), e.grad)));
     auto cs = extra_charges();
-    qm::write_text_output(os, in, *basis, r, seconds(), nullptr, fo.get(), cs.get());
+    qm::write_text_output(os, in, *basis, r, seconds(), nullptr, fo.get(), cs.get(), &at_full);
     if (!molden.empty()) {
       std::ofstream f(molden);
       qm::write_molden(f, in, *basis, r, fo.get());

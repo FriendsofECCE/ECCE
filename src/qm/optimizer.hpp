@@ -1,6 +1,8 @@
 // Geometry optimisation in Cartesian coordinates: BFGS with a Lindh model
 // Hessian as the starting guess, rational function steps in the space with
-// translation and rotation removed, and a trust radius.
+// translation and rotation removed, and a trust radius.  Constraints: the
+// step is taken in the null space of the constraint gradients and the
+// constraint values are then restored by Newton iterations.
 #pragma once
 #include <functional>
 #include <string>
@@ -8,6 +10,15 @@
 #include "molecule.hpp"
 
 namespace qm {
+
+// A geometry constraint.  atoms are 0-based; value in bohr (bond) or radians
+// (angle, torsion); has_value false keeps the value of the starting geometry.
+struct GeoConstraint {
+  enum Kind { Bond, Angle, Torsion, Fix } kind = Bond;
+  int atoms[4] = {0, 0, 0, 0};
+  bool has_value = false;
+  double value = 0;
+};
 
 struct OptOptions {
   int max_steps = 100;           // energy+gradient evaluations
@@ -18,6 +29,9 @@ struct OptOptions {
   double max_step = 4e-3, rms_step = 2e-3;
   double d_energy = 5e-6;
   double trust = 0.3, trust_max = 1.0;  // bohr, length of the whole step
+  // Held exactly at every step.  Dummy atoms that no constraint names stay
+  // where they are; one that a bond, angle or torsion names moves with it.
+  std::vector<GeoConstraint> constraints;
   void set_convergence(const std::string& name);  // "normal" or "tight"; throws
 };
 

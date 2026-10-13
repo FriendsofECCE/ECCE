@@ -24,7 +24,7 @@ BASIS = {
     "orca": "useRouteCard 3-21G\n",
 }
 PARAMS = {
-    "ecceqm": ["Category: DFT", "Theory: RDFT", "RunType: Energy",
+    "ecceqm": ["Category: DFT", "Theory: RDFT", "RunType: Geometry",
                "Charge: 0", "ChemSys.Multiplicity: 1"],
     "mopac": ["Category: SE", "Theory: RPM7", "RunType: Geometry",
               "Charge: 0", "ChemSys.Multiplicity: 1"],
@@ -39,12 +39,13 @@ TPL = {"ecceqm": "ecceqm.tpl", "nwchem": "nwch.tpl", "gauss16": "g16.tpl", "orca
        "mopac": "mopac.tpl"}
 
 
-def deck(code, frag=None, con=None):
+def deck(code, frag=None, con=None, runtype=None):
     work = tempfile.mkdtemp(prefix="ecce-dummy-")
     try:
         shutil.copy(os.path.join(PARSERS, TPL[code]), os.path.join(work, "t.tpl"))
         for ext, txt in (("frag", frag or FRAG), ("basis", BASIS.get(code, "")),
-                         ("con", con or CON), ("param", "\n".join(PARAMS[code]) + "\n")):
+                         ("con", con or CON), ("param", "\n".join(l if not (runtype and l.startswith("RunType:")) else "RunType: " + runtype
+                                  for l in PARAMS[code]) + "\n")):
             with open(os.path.join(work, "w." + ext), "w") as f:
                 f.write(txt)
         env = dict(os.environ, ECCE_HOME=ROOT)
@@ -115,16 +116,28 @@ def special():
     d = deck("orca", xfirst, con)
     f += check("orca: constraint indices count a leading dummy",
                "{ A 2 1 3 107.0 C }" in d)
+    # ECCE-QM counts the dummy too, 1-based; GeoVib would report frequencies
+    # at the constrained geometry and is refused.
     try:
-        deck("ecceqm")
-        f += check("ecceqm: dummy atom rejected with a message", False)
+        deck("ecceqm", runtype="GeoVib")
+        f += check("ecceqm: GeoVib with constraints refused", False)
     except RuntimeError as e:
-        f += check("ecceqm: dummy atom rejected with a message",
-                   "does not support dummy" in str(e))
+        f += check("ecceqm: GeoVib with constraints refused", "not a minimum" in str(e))
+    f += check("ecceqm: constraints only for Geometry runs",
+               "constraints" not in deck("ecceqm", runtype="Energy"))
     return f
 
 
-CODES = {"mopac": mopac, "nwchem": nwchem, "gauss16": gauss16, "orca": orca}
+def ecceqm(d):
+    lines = d.splitlines()
+    geo = lines[lines.index("geometry") + 1:]
+    return (check("ecceqm: X written in the geometry block", any(first(l) == "X" for l in geo))
+            + check("ecceqm: constraints count X as atom 5 (1-based)",
+                    "constraints" in lines and "  angle 5 1 2 113.0" in lines and "  angle 5 1 3 113.0" in lines)
+            + check("ecceqm: no basis shell for X", not any(l.split()[:2] == ["shell", "X"] for l in lines)))
+
+
+CODES = {"ecceqm": ecceqm, "mopac": mopac, "nwchem": nwchem, "gauss16": gauss16, "orca": orca}
 
 
 def main():

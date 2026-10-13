@@ -3,4 +3,5 @@
 geometry
 ##chemsys##
 end
+##QMConstraints##
 ##QMExtra##
