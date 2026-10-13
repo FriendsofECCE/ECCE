@@ -82,6 +82,12 @@ CASES = [
     ("orca-ecp-no-lmax-shell.orcain", "ORCA",     5, [("BAD", "basis")]),
     ("nwchem-ammonia.nw",     "NWChem",           4, [("GOOD", "geometry"),
                                                       ("GOOD", "task")]),
+    #  #297: open-shell OH. The TCE deck runs (UCCSD, 7.2.3); the same deck
+    #  in the closed-shell ccsd module, and ROHF into the mp2 module, are
+    #  stopped by NWChem ("nopen is not zero", "unknown SCFTYPE").
+    ("nwchem-oh-uccsd.nw",    "NWChem",           2, [("GOOD", "task")]),
+    ("nwchem-oh-ccsd-openshell.nw", "NWChem",     2, [("BAD", "openshell")]),
+    ("nwchem-oh-mp2-rohf.nw", "NWChem",           2, [("BAD", "openshell")]),
     ("mopac-methane.mopin",   "MOPAC",            5, [("GOOD", "geometry")]),
     ("qe-silicon.qein",       "QuantumESPRESSO",  2, [("GOOD", "control"),
                                                       ("GOOD", "system"),

@@ -1,0 +1,34 @@
+Title "oh"
+
+Start  oh
+
+echo
+
+charge 0
+
+geometry noautosym units angstrom
+ O     0.0     0.0     0.0
+ H     0.0     0.0     0.97
+end
+
+ecce_print w.ep
+
+basis "ao basis" cartesian print
+  H library "6-31G*"
+  O library "6-31G*"
+END
+
+scf
+  uhf
+  nopen 1
+  maxiter 30
+end
+
+tce
+  ccsd
+  thresh 1e-6
+  maxiter 20
+  freeze core 1
+end
+
+task tce energy

@@ -150,6 +150,36 @@
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
   </Theory>
+  <!-- Open-shell coupled cluster: the ccsd module is closed-shell only, so
+       these run through the tensor contraction engine (ai.nwchem). -->
+  <Theory category="CC" name="UCCSD">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <Theory category="CC" name="UCCSD(T)">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <Theory category="CC" name="ROCCSD">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
+  <Theory category="CC" name="ROCCSD(T)">
+    <runtype>Energy</runtype>
+    <runtype>Gradient</runtype>
+    <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
+    <runtype>GeoVib</runtype>
+  </Theory>
   <!-- Start Eric Bylaska's planewave module integration -->
   <Theory category="NWPW" name="PSPW" needsBasis="false">
     <runtype>Energy</runtype>

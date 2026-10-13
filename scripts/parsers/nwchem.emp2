@@ -40,6 +40,8 @@ while (<STDIN>) {
       $propKey = "ECCSDTPERT";
     } elsif ( /ccsd\+t\(ccsd\)/ ) {
       $propKey = "ECCSDTPERT2";
+    } elsif ( /total ccsd energy/ ) {
+      $propKey = "ECCSD";
     }
   }
 }

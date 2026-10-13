@@ -5,7 +5,10 @@
 # Reads NWChem's plain stdout (not the ecce_print trace, which carries no
 # thermochemistry and no solvation data) and emits EZEROPT, ETHERM,
 # ENTHALPY, ENTROPY, EGIBBS, THERMOTEMP and, for COSMO, ESOLV and
-# SOLVMODEL ("COSMO, eps = 78.4"; NWChem prints no pressure).
+# SOLVMODEL ("COSMO, eps = 78.4"; NWChem prints no pressure).  It also
+# emits the correlated energies of a TCE job (EMP2, ECCSD, ECCSDTPERT,
+# ECCSDTPERT2, CORRELTN, #297): eccejobmonitor allows one parse type per
+# File=, so the stdout entry has one script.
 #
 # NWChem prints only corrections, so the absolute values ORCA and Gaussian
 # report are rebuilt here.  The reference electronic energy is the first
@@ -34,7 +37,17 @@ use constant KCAL_PER_HARTREE => 627.5094740631;
 
 my ($e, $temp, $zpe, $dE, $dH, $S, $gas, $sol, $eps, $solvname);
 my $inHessian = 0;
+# Correlated energies of a tensor contraction engine (TCE) job.  TCE puts
+# only the final total energy (TE) in the ecce_print trace, so the rest is
+# read here from lines such as
+#   CCSD(T) total energy / hartree    =       -76.209712462941212
+# An optimisation or numerical gradient prints them once per geometry; the
+# last one wins.
+my %tce;
 while (<STDIN>) {
+  if (/^\s*(CCSD\(T\)|CCSD\[T\]|CCSD|MBPT\(2\))\s+(total|correlation) energy \/ hartree\s+=\s+(-?\d+\.\d+)/) {
+    $tce{"$1 $2"} = $3;
+  }
   $inHessian = 1 if (/NWChem Nuclear Hessian and Frequency Analysis/);
   if ($inHessian && !defined($e)
       && /^\s+Total [\w()\-\. ]*? energy\s+=\s+(-?\d+\.\d+)\s*$/) {
@@ -80,5 +93,17 @@ if (defined($eps)) {
     $text .= sprintf(", \xCE\xB5 = %.1f", $eps);
   }
   &emit("SOLVMODEL", $text, "NA");
+}
+# The keys the closed-shell ccsd module publishes through nwchem.emp2, plus
+# ECCSD; TCE's CCSD[T] is the ccsd module's CCSD+T(CCSD).  CORRELTN is the
+# CCSD correlation energy, as the ccsd module's "ccsd correlation energy".
+&emit("EMP2", $tce{"MBPT(2) total"}, "Hartree") if (defined($tce{"MBPT(2) total"}));
+&emit("ECCSD", $tce{"CCSD total"}, "Hartree") if (defined($tce{"CCSD total"}));
+&emit("ECCSDTPERT", $tce{"CCSD(T) total"}, "Hartree") if (defined($tce{"CCSD(T) total"}));
+&emit("ECCSDTPERT2", $tce{"CCSD[T] total"}, "Hartree") if (defined($tce{"CCSD[T] total"}));
+if (defined($tce{"CCSD correlation"})) {
+  &emit("CORRELTN", $tce{"CCSD correlation"}, "Hartree");
+} elsif (defined($tce{"MBPT(2) correlation"})) {
+  &emit("CORRELTN", $tce{"MBPT(2) correlation"}, "Hartree");
 }
 exit(0);

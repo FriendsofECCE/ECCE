@@ -276,7 +276,7 @@ sub Tasks {
 #
   if (($local_runtype =~/gradient/ && $local_theory =~ /ccsd/)
       || ($local_runtype =~ /gradient/ && $local_runtype =~ /numerical/)
-      || ($local_runtype =~ /freq/ && !($local_theory =~ /ccsd/))
+      || ($local_runtype =~ /freq/ && !($local_theory =~ /ccsd|tce/))
       || $local_runtype =~ /property/ || $local_runtype =~ /esp/) {
     $result .= "task ";
     $result .= &NWTheoryKey." ";
@@ -353,6 +353,23 @@ sub Charge {
 #      Generate an NWChem theory key from an ecce Category
 #
 ############################################################################## 
+# The ccsd module is closed-shell only; the open-shell references (UCCSD,
+# ROCCSD, with or without (T)) go through the tensor contraction engine,
+# which also needs symmetry off (see chemsys).
+sub UsesTCE {
+  return ($AbiDict{"Category"} eq "CC" && $AbiDict{"Theory"} =~ /^(U|RO)/) ? 1 : 0;
+}
+
+# The method keyword inside the tce block.
+sub TCEMethod {
+  my $result = "";
+  if (&UsesTCE) {
+    $result = ($AbiDict{"Theory"} =~ /\(T\)/) ? "ccsd(t)" : "ccsd";
+  }
+  $_ = $result;
+  return $result;
+}
+
 sub NWTheoryKey {
   my($result);
   if ($AbiDict{"Category"} eq "DFT" ) {
@@ -380,7 +397,9 @@ sub NWTheoryKey {
   } elsif ($AbiDict{"Category"} eq "RIMP" ) {
     $result =  "rimp2";
   } elsif ($AbiDict{"Category"} eq "CC" ) {
-    if ( $AbiDict{"Theory"} =~ /CCSD\(T\)/ ) {
+    if ( &UsesTCE ) {
+      $result =  "tce";
+    } elsif ( $AbiDict{"Theory"} =~ /CCSD\(T\)/ ) {
       $result =  "ccsd(t)";
     } elsif ( $AbiDict{"Theory"} =~ /CCSDPT/ ) {
       $result =  "ccsd+t(ccsd)";
@@ -468,10 +487,10 @@ sub SCFTheory {
   local($result);
   if ($AbiDict{"Category"} eq "SCF") {
     $result = $AbiDict{"Theory"};
-  } elsif ( $AbiDict{"Theory"} =~ /^R/ ) {
-    $result = "rhf";
   } elsif ( $AbiDict{"Theory"} =~ /^RO/ ) {
     $result = "rohf";
+  } elsif ( $AbiDict{"Theory"} =~ /^R/ ) {
+    $result = "rhf";
   } elsif ( $AbiDict{"Theory"} =~ /^U/ ) {
     $result = "uhf";
   } else {
@@ -1045,7 +1064,9 @@ sub chemsys {
   if (@geo_constraints > 0) {
     $task .= " noautoz";
   }
-  if ($AbiDict{"ES.Theory.UseSymmetry"}) {
+  # TCE aborts on a non-Abelian point group (any linear molecule), so its
+  # decks never use automatic symmetry.
+  if ($AbiDict{"ES.Theory.UseSymmetry"} && !&UsesTCE) {
     $task .= " autosym";
     if (defined($AbiDict{"ES.Theory.SymmetryTol"})) {
       $symbol = $AbiDict{"ES.Theory.SymmetryTol"};
@@ -1280,7 +1301,12 @@ sub SCF {
       return "";
     }
   } else {
-    die "Fatal ai.nwchem error:  Unrecognized Category in dictionary\n";
+    # The template's dft block reaches here for every category (its
+    # ##SCF.ConvergenceIterations## retries as ##SCF##); MP/CC/NWPW decks
+    # must drop the line, not abort -- the block is removed afterwards.
+    &aiUnmatched(@_);
+    $_ = "";
+    return "";
   }
 }
 ##
@@ -2386,7 +2412,8 @@ sub removeUnusedSections {
   $toRemove{"scf"} = 1  if ( $category eq "DFT" );
   $toRemove{"dft"} = 1  unless ( $category eq "DFT" );
   $toRemove{"mp2"} = 1  unless ( $category eq "MP" );
-  $toRemove{"ccsd"} = 1 unless ( $category eq "CC" );
+  $toRemove{"ccsd"} = 1 unless ( $category eq "CC" && !&UsesTCE );
+  $toRemove{"tce"} = 1  unless ( &UsesTCE );
   # Start Eric Bylaska's planewave module integration
   $toRemove{"scf"} = 1  if ( $category eq "NWPW" );
   $toRemove{"nwpw"} = 1 unless ( $category eq "NWPW" );
@@ -2402,7 +2429,9 @@ sub removeUnusedSections {
   my @field;
   while (<NEWFILE2>) {
     @field = split;
-    if ( $toRemove{$field[0]} == 1 ) {  # skip this line and until end
+    # Only a block header (column 0): the method line inside the tce block
+    # is itself a bare "ccsd" and would otherwise start a removal there.
+    if ( /^\S/ && $toRemove{$field[0]} == 1 ) {  # skip this line and until end
       while (<NEWFILE2>) { last if /end/; }
       $_ = <NEWFILE2>;
     }

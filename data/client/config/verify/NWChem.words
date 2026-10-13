@@ -381,6 +381,7 @@ es.theory.dft.gridradial
 es.theory.dft.xcfunctionals
 es.theory.mp.direct
 es.theory.mp.usetightconvergence
+es.theory.nwchem.espcharges
 es.theory.scf.convergencealgorithm
 es.theory.scf.dielectric
 es.theory.scf.direct
@@ -754,6 +755,7 @@ t
 tag
 tantalum
 task
+tce
 td
 technetium
 tellurium

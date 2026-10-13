@@ -1828,6 +1828,11 @@ set_tests_properties(dummy_fragment PROPERTIES
 add_test(NAME dummy_atoms_decks
   COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/dummy_atoms/run_tests.py)
 
+# #297: which NWChem module each MP2/CC theory is written for (decks only;
+# add --run to compare real nwchem energies).
+add_test(NAME nwchem_cc_decks
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/nwchem_cc/run_tests.py)
+
 # tests/spectrum -- the wx-free IR/Raman spectrum model (#214): ticks, axis
 # reversal and zoom, broadening, sticks.
 add_executable(vibspectrum_test tests/spectrum/vibspectrum_test.C)

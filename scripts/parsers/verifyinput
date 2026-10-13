@@ -1168,6 +1168,23 @@ sub nwchem
           ($assumed ? " (assumed: the deck does not say)" : "") . ".");
   electronCount($charge, $mult, \@atomSymbols, $assumed);
 
+  #  Found by running NWChem 7.2.3 (#297): the ccsd and mp2 modules stop
+  #  on an open-shell reference, the tensor contraction engine does not.
+  if ($mult > 1) {
+    if ($whole =~ /^\s*task\s+ccsd(?:\(t\)|\+t\(ccsd\))?\s/mi) {
+      finding("BAD", 0, "openshell",
+              "The multiplicity is $mult, but NWChem's ccsd module is " .
+              "closed-shell only and stops with 'nopen is not zero'. " .
+              "Use UCCSD or ROCCSD (tensor contraction engine) instead.");
+    }
+    if ($whole =~ /^\s*task\s+mp2\s/mi && $whole !~ /^\s*uhf\b/mi) {
+      finding("BAD", 0, "openshell",
+              "The multiplicity is $mult, but NWChem's mp2 module needs " .
+              "a UHF reference for an open shell and stops with " .
+              "'unknown SCFTYPE'. Use UMP2.");
+    }
+  }
+
   if ($whole =~ /^\s*task\b/mi) {
     finding("GOOD", 0, "task", "A task directive is present.");
   } else {

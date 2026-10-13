@@ -554,6 +554,48 @@ CASES = [
         },
     ),
     dict(
+        # #297: the deck ai.nwchem writes for RCCSD(T) (ccsd module), water
+        # 6-31G*, NWChem 7.2.3.  The printed totals are MP2 -76.199026586,
+        # CCSD -76.207821883, CCSD+T(CCSD) -76.209802535, CCSD(T)
+        # -76.209712484; CCSD corr. -0.197316892.
+        name='nwchem-h2o-ccsdt-ai-deck',
+        desc='nwchem.desc',
+        fixture='nwchem/h2o_ccsdt.eprint',
+        parse_args=('.', 'Energy', 'CC', 'RCCSD(T)', '0'),
+        silent_ok={
+            'MOLAB1': 'noautosym makes the job C1, so NWChem emits no '
+                      'orbital symmetry labels (see nwchem-h2o-property).',
+        },
+        expect={
+            'EMP2': dict(blocks=1, keys={
+                'EMP2': {'values': '-7.61990265864712e+01'}}),
+            'ECCSD': dict(blocks=1, keys={
+                'ECCSD': {'values': '-7.62078218825773e+01'}}),
+            'ECCSDTPERT': dict(blocks=1, keys={
+                'ECCSDTPERT': {'values': '-7.62097124844685e+01'}}),
+            'ECCSDTPERT2': dict(blocks=1, keys={
+                'ECCSDTPERT2': {'values': '-7.62098025350484e+01'}}),
+            'TEPROP': dict(keys={'TE': {
+                'values': '-7.62097124844685e+01'}}),
+        },
+    ),
+    # #297: open-shell OH UCCSD(T)/6-31G*, frozen core 1, through the tensor
+    # contraction engine.  The trace carries only the final total energy
+    # (TE = CCSD(T)); the correlated energies are in stdout (nwchem.thermo,
+    # a File= entry).  Printed: CCSD -75.535653662 (corr. -0.153511007),
+    # CCSD[T] -75.537040756, CCSD(T) -75.536959896.
+    dict(
+        name='nwchem-oh-uccsdt-tce-trace',
+        desc='nwchem.desc',
+        fixture='nwchem/oh_uccsdt.eprint',
+        parse_args=('.', 'Energy', 'CC', 'UCCSD(T)', '0'),
+        expect={
+            'TEPROP': dict(keys={'TE': {
+                'values': '-7.55369598960036e+01'}}),
+        },
+        expect_no_keys={'EMP2', 'ECCSDTPERT'},
+    ),
+    dict(
         # `task scf freq`.  The vibrational entries were hand-checked
         # against real output while closing #45 but had no fixture; this
         # turns that into a guard.
@@ -2194,6 +2236,22 @@ MOFILE_CASES = [
         expect={'ESOLV': {'values': '-0.0118040211', 'units': 'Hartree'},
                 'SOLVMODEL': {'values': 'COSMO, ε = 78.4', 'units': 'NA'}},
         expect_no_keys={'EGIBBS', 'ENTHALPY'},
+    ),
+    dict(
+        name='nwchem-oh-uccsdt-tce-stdout',
+        script='nwchem.thermo',
+        fixture='nwchem/oh_uccsdt.nwout',
+        parse_args=('.', 'Energy', 'CC', 'UCCSD(T)', '0'),
+        expect={
+            'ECCSD': {'values': '-75.535653661891132', 'units': 'Hartree'},
+            'ECCSDTPERT': {'values': '-75.536959896003580',
+                           'units': 'Hartree'},
+            'ECCSDTPERT2': {'values': '-75.537040756007514',
+                            'units': 'Hartree'},
+            'CORRELTN': {'values': '-0.153511006591657',
+                         'units': 'Hartree'},
+        },
+        expect_no_keys={'EMP2'},
     ),
 ]
 

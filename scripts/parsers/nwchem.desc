@@ -282,9 +282,11 @@ Skip=1
 Lines=1
 [END]
 
-# Thermochemistry and COSMO solvation exist only in NWChem's stdout (the
-# primary output file), not in the ecce_print trace, hence a File= entry.
-[EZEROPT][ETHERM][ENTHALPY][ENTROPY][EGIBBS][THERMOTEMP][ESOLV][SOLVMODEL]
+# Thermochemistry, COSMO solvation and the correlated energies of a TCE job
+# (open-shell coupled cluster) exist only in NWChem's stdout (the primary
+# output file), not in the ecce_print trace, hence a File= entry.  eccejobmonitor
+# allows one parse type per File=, so one script reads all of it.
+[EZEROPT][ETHERM][ENTHALPY][ENTROPY][EGIBBS][THERMOTEMP][ESOLV][SOLVMODEL][ECCSD][EMP2][ECCSDTPERT][ECCSDTPERT2][CORRELTN]
 Script=nwchem.thermo
 File=nwch.nwout
 Begin=nwch.nwout
@@ -321,6 +323,13 @@ End=task
 [EMP2]
 Script=nwchem.emp2
 Begin=ccsd%begin%mp2 energy
+Frequency=all
+End=task
+[END]
+
+[ECCSD]
+Script=nwchem.emp2
+Begin=ccsd%begin%total ccsd energy
 Frequency=all
 End=task
 [END]

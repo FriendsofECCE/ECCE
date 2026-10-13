@@ -1,0 +1,246 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    nwchem-oh-uccsdt-tce-trace
+desc:    nwchem.desc
+fixture: nwchem/oh_uccsdt.eprint (443 lines)
+args:    '.' 'Energy' 'CC' 'UCCSD(T)' '0'
+
+[DEWVEC]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=scf%begin%orbital gradient norm
+  begins=4 delivered=4 buffered_away=0
+  block 1: begin-line=132 fed=2 rc=0 first-fed='task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 3.35731130774072e-01
+  block 2: begin-line=138 fed=2 rc=0 first-fed='task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 7.51908601980676e-02
+  block 3: begin-line=144 fed=2 rc=0 first-fed='task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 3.87903082875729e-03
+  block 4: begin-line=150 fed=2 rc=0 first-fed='task_energy scf%begin%orbital gradient norm%1%double'
+    key: DEWVEC
+      size: 1
+      values: 9.25438498362995e-06
+
+[GEOMPROP]  Script=nwchem.geomtrace  Freq=last  Skip=-  Lines=-
+  Begin=^task_energy%begin%cartesian coordinates
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=411 fed=4 rc=0 first-fed='task_energy%begin%cartesian coordinates%3 2%double'
+    key: GEOMTRACE
+      size: 1 2 3
+      rowlabels: 0 1
+      columnlabels: X Y Z
+      values: 0.000000000000000e+00 0.000000000000000e+00 -1.077777777777780e-01 0.000000000000000e+00 0.000000000000000e+00 8.622222222222220e-01
+      units: Angstrom
+
+[MO]  Script=nwchem.mo  Freq=last  Skip=-  Lines=-
+  Begin=begin%molecular orbital vectors UHF alpha
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=247 fed=28 rc=0 first-fed='task_energy scf%begin%molecular orbital vectors UHF alpha%17 17%double'
+    key: MO
+      size: 17 17
+      rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6 MO-7 MO-8 MO-9 MO-10 MO-11 MO-12 MO-13 MO-14 MO-15 MO-16 MO-17
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 BasFun-7 BasFun-8 BasFun-9 BasFun-10 BasFun-11 BasFun-12 BasFun-13 BasFun-14 BasFun-15 BasFun-16 BasFun-17
+      values: 0.994 0.022 0.0 0.0 0.001 0.005 0.0 0.0 0.0 -0.004 0.0 0.0 -0.004 0.0 -0.005 0.0 0.0 -0.221 0.523 0.0 0.0 0.087 0.472 0.0 0.0 0.052 -0.005 0.015 0.0 0.020 0.0 0.023 0.134 -0.012 0.065 -0.149 0.0 0.0 0.553 -0.271 0.0 0.0 0.339 -0.007 -0.006 0.0 -0.016 0.0 0.056 0.258 0.131 0.0 0.0 0.181 0.665 0.0 0.0 0.120 0.440 0.0 0.0 0.0 0.013 0.0 0.048 0.0 0.0 0.0 0.0 0.0 0.645 -0.176 0.0 0.0 0.463 -0.126 0.0 0 ...[1512 chars]
+
+[MOBETA]  Script=nwchem.mo  Freq=last  Skip=-  Lines=-
+  Begin=begin%molecular orbital vectors UHF beta
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=295 fed=28 rc=0 first-fed='task_energy scf%begin%molecular orbital vectors UHF beta%17 17%double'
+    key: MOBETA
+      size: 17 17
+      rowlabels: MO-1 MO-2 MO-3 MO-4 MO-5 MO-6 MO-7 MO-8 MO-9 MO-10 MO-11 MO-12 MO-13 MO-14 MO-15 MO-16 MO-17
+      columnlabels: BasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 BasFun-7 BasFun-8 BasFun-9 BasFun-10 BasFun-11 BasFun-12 BasFun-13 BasFun-14 BasFun-15 BasFun-16 BasFun-17
+      values: 0.995 0.020 0.0 0.0 0.001 0.003 0.0 0.0 0.0 -0.003 0.0 0.0 -0.004 0.0 -0.003 0.0 0.0 -0.212 0.483 0.0 0.0 0.098 0.469 0.0 0.0 0.053 0.010 -0.018 0.0 -0.020 0.0 0.044 0.171 0.012 0.077 -0.167 0.0 0.0 0.522 -0.334 0.0 0.0 0.335 -0.010 0.007 0.0 0.002 0.0 0.046 0.270 0.158 0.0 0.0 0.627 -0.171 0.0 0.0 0.483 -0.132 0.0 0.0 0.0 0.045 0.0 -0.012 0.0 0.0 0.0 0.0 0.0 0.129 0.474 0.0 0.0 0.173 0.636 0.0 0. ...[1505 chars]
+
+[ORBENG3]  Script=nwchem.orbeng  Freq=last  Skip=-  Lines=-
+  Begin=orbital energies UHF alpha
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=227 fed=7 rc=0 first-fed='task_energy scf%begin%molecular orbital energies UHF alpha%17%double'
+    key: ORBENG
+      size: 17
+      rowlabels: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17
+      values: -2.06388523098427e+01 -1.37895625504100e+00 -6.72034503703106e-01 -6.45090129234880e-01 -5.50928468470472e-01 2.18235956251486e-01 1.04696540761221e+00 1.05386302406353e+00 1.06986981040259e+00 1.13090991905200e+00 1.34352340370874e+00 1.96928030470953e+00 2.02522181719360e+00 2.02883739113286e+00 2.02899710874456e+00 2.74486950521811e+00 3.76314556185309e+00
+      units: Hartree
+
+[ORBENGBETA2]  Script=nwchem.orbeng  Freq=last  Skip=-  Lines=-
+  Begin=orbital energies UHF beta
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=275 fed=7 rc=0 first-fed='task_energy scf%begin%molecular orbital energies UHF beta%17%double'
+    key: ORBENGBETA
+      size: 17
+      rowlabels: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17
+      values: -2.05994754705046e+01 -1.22273683574353e+00 -6.28357138115198e-01 -5.04192021020250e-01 1.32563591601072e-01 2.31110850765301e-01 1.06298368468181e+00 1.07952540852073e+00 1.15527258694962e+00 1.27169938549702e+00 1.37402275890446e+00 2.03672542188469e+00 2.06880736551100e+00 2.12726347852728e+00 2.12853565901388e+00 2.77552227770448e+00 3.80468589696325e+00
+      units: Hartree
+
+[ORBOCC3]  Script=nwchem.orbocc  Freq=last  Skip=-  Lines=-
+  Begin=begin%molecular orbital occupations UHF alpha
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=234 fed=7 rc=0 first-fed='task_energy scf%begin%molecular orbital occupations UHF alpha%17%double'
+    key: ORBOCC
+      size: 17
+      rowlabels: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17
+      values: 1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00
+
+[ORBOCCBETA2]  Script=nwchem.orbocc  Freq=last  Skip=-  Lines=-
+  Begin=begin%molecular orbital occupations UHF beta
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=282 fed=7 rc=0 first-fed='task_energy scf%begin%molecular orbital occupations UHF beta%17%double'
+    key: ORBOCCBETA
+      size: 17
+      rowlabels: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17
+      values: 1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00
+
+[CPUSEC]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%all tasks cpu time
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=438 fed=2 rc=0 first-fed='%begin%all tasks cpu time%1%double'
+    key: CPUSEC
+      size: 1
+      values: 2.63646000000000e-01
+
+[ETIME]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%all tasks wall time
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=441 fed=2 rc=0 first-fed='%begin%all tasks wall time%1%double'
+    key: ETIME
+      size: 1
+      values: 2.79471148000000e-01
+
+[NNREPUL]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%nuclear repulsion
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=162 fed=2 rc=0 first-fed='task_energy scf%begin%nuclear repulsion energy%1%double'
+    key: NNREPUL
+      size: 1
+      values: 4.36434844535834e+00
+      units: Hartree
+
+[MULLIKEN]  Script=nwchem.mulliken  Freq=last  Skip=-  Lines=-
+  Begin=begin%total mulliken atomic
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=171 fed=3 rc=0 first-fed='task_energy scf%begin%total mulliken atomic charges%2%double'
+    key: MULLIKEN
+      size: 2
+      values: -4.42677368186446e-01 4.42677368186454e-01
+      units: e
+
+[MLKNSHELL]  Script=nwchem.mlknshell  Freq=last  Skip=-  Lines=-
+  Begin=begin%total mulliken shell
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=174 fed=4 rc=0 first-fed='task_energy scf%begin%total mulliken shell charges%8%double'
+    key: MLKNSHELL
+      size: 8
+      rowlabels: 1 2 3 4 5 6 7 8
+      values: 1.99572387358195e+00 9.58273022396911e-01 2.71946009839555e+00 9.64086980275347e-01 1.74993444810052e+00 5.51989454361658e-02 4.65298176140204e-01 9.20244556733422e-02
+      units: e
+
+[TEPROP]  Script=nwchem.te  Freq=last  Skip=-  Lines=-
+  Begin=^task_energy%begin%total energy
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=425 fed=3 rc=0 first-fed='task_energy%begin%total energy%1%double'
+    key: TE
+      size: 1
+      values: -7.55369598960036e+01
+      units: Hartree
+
+[DIPOLE][MP2DIPOLE]  Script=nwchem.dipole  Freq=all  Skip=-  Lines=2
+  Begin=begin%total dipole
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=199 fed=2 rc=0 first-fed='task_energy scf%begin%total dipole%3%double'
+    key: DIPOLE
+      size: 3
+      rowlabels: x y z
+      values: -1.14963542178224e-15 -1.3530610347866e-15 1.89157866244596
+      units: Debye
+
+[QUADPOLE]  Script=nwchem.quadpole  Freq=all  Skip=1  Lines=2
+  Begin=begin%total quadrupole
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=211 fed=2 rc=0 first-fed='-4.74286491989338e+00 2.25001561148826e-01 -1.04739889426860e-15 -3.97919329238906e+00'
+    key: QUADPOLE
+      size: 6
+      rowlabels: xx xy xz yy yz zz
+      values: -6.37873120227873 0.302607074606229 -1.40865829428968e-15 -5.35166083006026 3.38343838209135e-16 -4.41111128979037
+      units: au
+
+[ONEELEC]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%one\-electron
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=156 fed=2 rc=0 first-fed='task_energy scf%begin%one-electron energy%1%double'
+    key: ONEELEC
+      size: 1
+      values: -1.12652359069640e+02
+      units: Hartree
+
+[TWOELEC]  Script=nwchem.scalar  Freq=all  Skip=-  Lines=2
+  Begin=begin%two\-electron
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=159 fed=2 rc=0 first-fed='task_energy scf%begin%two-electron energy%1%double'
+    key: TWOELEC
+      size: 1
+      values: 3.29058679689822e+01
+      units: Hartree
+
+[S2]  Script=nwchem.scalar  Freq=last  Skip=-  Lines=2
+  Begin=begin%S\^2
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=168 fed=2 rc=0 first-fed='task_energy scf%begin%S^2%1%double'
+    key: S2
+      size: 1
+      values: 7.55340454788131e-01
+
+[PNTGRP]  Script=nwchem.symmetry  Freq=all  Skip=1  Lines=1
+  Begin=begin%group name
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=422 fed=1 rc=0 first-fed='C1'
+    key: PNTGRP
+      size: 1
+      values: C1
+
+[SYMLAB]  Script=nwchem.symlab  Freq=last  Skip=-  Lines=-
+  Begin=begin%group irrep names
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=402 fed=3 rc=0 first-fed='task_energy%begin%group irrep names%1%char'
+    (script emitted no property)
+
+[MOLAB2]  Script=nwchem.molab  Freq=last  Skip=-  Lines=-
+  Begin=begin%molecular orbital symmetries UHF alpha%
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=241 fed=3 rc=0 first-fed='task_energy scf%begin%molecular orbital symmetries UHF alpha%17%int'
+    key: ORBSYM
+      size: 17
+      values: a a a a a a a a a a a a a a a a a
+
+[MOLAB3]  Script=nwchem.molab  Freq=last  Skip=-  Lines=-
+  Begin=begin%molecular orbital symmetries UHF beta%
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=289 fed=3 rc=0 first-fed='task_energy scf%begin%molecular orbital symmetries UHF beta%17%int'
+    key: ORBSYMBETA
+      size: 17
+      values: a a a a a a a a a a a a a a a a a
+
+[VERSION]  Script=nwchem.version  Freq=last  Skip=-  Lines=-
+  Begin=begin%version%
+  End=end%
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=48 fed=3 rc=0 first-fed='%begin%version%1%char'
+    key: VERSION
+      size: 1
+      values: Mon_May_12_21:20:53_2025 Version 7.2.3
+

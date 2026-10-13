@@ -75,6 +75,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [ECCE-QM extra charge sets: input keyword, output blocks, three ECCE keys](ecceqm-extra-charges-are-a-keyword.md)
 - [A `.desc` bracket group's names are labels, not the stored key](labels-not-the-stored-key.md)
 - [NWChem's `.desc` `Begin` patterns match the `ecce_print` trace file, not NWChem's stdout](nwchems-desc-begin-patterns-begin-end-task.md)
+- [NWChem MP2 and coupled cluster: which module each theory uses, and why MP/CC decks once aborted (#297)](nwchem-mp2-and-coupled-cluster-297.md)
 - [The one gotcha that has bitten this project repeatedly](the-one-gotcha-that-has-bitten-this.md)
 
 ### New-code checklist (gotchas found integrating ORCA, issue #38)

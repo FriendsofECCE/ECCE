@@ -79,6 +79,13 @@ ccsd
   ##UseFrozenCoreValue##
 end
 
+tce
+  ##TCEMethod##
+  ##CCThresh##
+  maxiter ##CC.ConvergenceIterations##
+  ##UseFrozenCoreValue##
+end
+
 ##Property##
 
 ##ESPfit##

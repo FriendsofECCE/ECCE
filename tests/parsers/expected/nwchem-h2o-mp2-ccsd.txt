@@ -142,6 +142,16 @@ args:    '.' 'Energy' 'MP2' 'MP2' '0'
       values: -7.61128253843450e+01
       units: Hartree
 
+[ECCSD]  Script=nwchem.emp2  Freq=all  Skip=-  Lines=-
+  Begin=ccsd%begin%total ccsd energy
+  End=task
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=587 fed=3 rc=0 first-fed='task_energy ccsd%begin%total ccsd energy%1%double'
+    key: ECCSD
+      size: 1
+      values: -7.61193539958156e+01
+      units: Hartree
+
 [ECCSDTPERT]  Script=nwchem.emp2  Freq=all  Skip=-  Lines=-
   Begin=ccsd%begin%total ccsd\(t\)
   End=task
