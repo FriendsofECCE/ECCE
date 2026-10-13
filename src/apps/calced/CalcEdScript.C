@@ -147,6 +147,10 @@ void CalcEd::runCalcEdScript(const string& file)
           else
             processTheoryInput(msg.c_str());
         }
+      } else if (w[0] == "guivalue" && w.size() == 2) {
+        GUIValue *v = p_GUIValues ? p_GUIValues->get(w[1]) : 0;
+        fprintf(stderr, "CALCED: guivalue %s=%s\n", w[1].c_str(),
+                v ? v->getValueAsString().c_str() : "<none>");
       } else if (w[0] == "basis" && w.size() >= 2) {
         std::vector<std::string> picks = quickPicks();
         std::string want = rest(1);

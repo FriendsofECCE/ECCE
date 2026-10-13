@@ -74,6 +74,18 @@
 
 namespace {
 
+//  The GUIValues key a code's runtype dialog keeps its Raman tick under, ""
+//  for a code without one.  The dialogs were written separately and do not
+//  agree on the name.
+string ramanKey(const string& code)
+{
+  if (code == "ORCA" || code == "ECCE-QM")
+    return "ES.Runtype.Vibration.UseRaman";
+  if (code == "Gaussian-16")
+    return "ES.Runtype.Vibration.ComputeRaman";
+  return "";
+}
+
 //  ai.<code>'s own diagnostic is worth showing; the shell session it
 //  ran in is not.  RCommand::execout() can leak its prompt/status
 //  bookkeeping into the captured output (most reliably on a non-zero
@@ -701,7 +713,28 @@ void CalcEd::doSetContext(const string& codeName)
       p_feedback->setMessage(msg, WxFeedback::WARNING);
     }
 
+    //  A code change resets the details dialogs, but a Raman tick is the
+    //  user's choice of what to compute, not a code setting: carry it over.
+    bool raman = false;
+    const string from = ramanKey(currApp->name());
+    const string to = ramanKey(p_code->name());
+    GUIValues *old = (!from.empty() && !to.empty()) ? p_iCalc->guiparams() : 0;
+    if (old != NULL) {
+      GUIValue *tick = old->get(from);
+      raman = tick != NULL && tick->getValueAsString() == "1";
+      delete old;
+    }
+
     p_GUIValues = new GUIValues();
+    if (raman) {
+      GUIValue *entry = new GUIValue();
+      entry->m_key = to;
+      entry->m_type = "toggle_input";
+      entry->m_sensitive = true;
+      entry->m_write = true;
+      p_GUIValues->set(to, entry);
+      entry->setValue(1);
+    }
     enableSave();
   } else if (!currApp) {
     p_GUIValues = new GUIValues();
