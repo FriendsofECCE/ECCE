@@ -1360,7 +1360,8 @@ sub ecceqm
   my %keyword = map { $_ => 1 }
     qw(title charge multiplicity method basis spherical grid grid_prune
        charges units maxiter conv_energy conv_grad molden runtype maxsteps opt_conv
-       hessian_step temperature pressure symmetry_number);
+       hessian_step temperature pressure symmetry_number
+       polarizability polarisability raman field_step);
   my %functional = map { $_ => 1 } qw(hf svwn lda pbe b3lyp pbe0);
   my $INT = qr/[-+]?\d+/;
 
@@ -1373,6 +1374,7 @@ sub ecceqm
   my %covered;
   my ($bad, $geomAtoms, $basisName) = (0, 0, "");
   my $badKeyword = 0;
+  my ($wantsRaman, $runtypeGiven) = (0, "energy");
 
   for my $i (0 .. $#L) {
     my $line = $L[$i];
@@ -1488,6 +1490,8 @@ sub ecceqm
                 "optfreq" : "normal or tight") . ", and this reads " .
                 "\"$rest\"; ecce-qm stops on it.");
         $bad++;
+      } elsif ($k eq "runtype") {
+        $runtypeGiven = lc($rest);
       }
       next;
     }
@@ -1520,7 +1524,15 @@ sub ecceqm
                 "points), and this reads \"$rest\".");
         $bad++;
       }
-    } elsif ($k eq "conv_energy" || $k eq "conv_grad") {
+    } elsif ($k eq "polarizability" || $k eq "polarisability" || $k eq "raman") {
+      if ($rest !~ /^(true|false|yes|no|on|off|1|0)$/i) {
+        finding("BAD", $n, "keywords",
+                "'$k' takes true or false, and this reads \"$rest\".");
+        $bad++;
+      } elsif ($k eq "raman" && $rest =~ /^(true|yes|on|1)$/i) {
+        $wantsRaman = $n;
+      }
+    } elsif ($k eq "field_step" || $k eq "conv_energy" || $k eq "conv_grad") {
       if ($rest !~ /^$NUM(\s|$)/) {
         finding("BAD", $n, "keywords", "'$k' needs a number, and this " .
                 "reads \"$rest\".");
@@ -1529,6 +1541,11 @@ sub ecceqm
     }
   }
 
+  if ($wantsRaman && $runtypeGiven !~ /^(frequency|freq|optfreq)$/) {
+    finding("BAD", $wantsRaman, "keywords",
+            "'raman' needs runtype frequency or optfreq; ecce-qm stops on it.");
+    $bad++;
+  }
   finding("GOOD", 0, "keywords", "Every keyword is one ecce-qm reads.")
     if (!$badKeyword);
 

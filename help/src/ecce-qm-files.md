@@ -45,6 +45,9 @@ names the line.
 | `runtype` | `energy`, `gradient`, `optimize` (or `opt`), `frequency` (or `freq`), or `optfreq` (optimise, then frequencies at the optimised geometry) | `energy` |
 | `maxsteps` | whole number: geometry optimisation steps (energy and gradient evaluations) | 100 |
 | `opt_conv` | `normal` or `tight`: optimisation convergence criteria | `normal` |
+| `polarizability` | `true` or `false`: also compute the static polarizability tensor at the final geometry, by finite field (six more SCF calculations; see below) | `false` |
+| `raman` | `true` or `false`: with `frequency` or `optfreq`, also compute Raman activities and depolarization ratios (see below) | `false` |
+| `field_step` | number, in atomic units: electric field of the finite-field polarizability | 0.001 |
 | `hessian_step` | number, in bohr: displacement for the finite-difference frequencies | 0.005 |
 | `temperature` | number, in K: for the thermochemistry | 298.15 |
 | `pressure` | number, in atm: for the thermochemistry | 1 |
@@ -258,6 +261,47 @@ the block gives the number of points. They differ from Mulliken charges, and
 from each other, by amounts that depend on the basis set. In the Calculation
 Editor the three are tick boxes in **Theory Details**, and the Viewer lists
 them under Charges beside Mulliken.
+
+### Polarizability and Raman activities
+
+With `polarizability true`, or `raman true` in a frequency run, the output has
+the static dipole polarizability of the final geometry:
+
+```
+polarizability_field_step 0.001000000000
+polarizability_isotropic 4.694934150974
+polarizability_anisotropy 3.418529097586
+begin polarizability  # rows xx xy xz / yx yy yz / zx zy zz (a.u., bohr^3)
+2.698588703901 0.180182509339 0.004449254052
+0.180182509339 6.626745686923 -0.047262469958
+0.004449254052 -0.047262469958 4.759468062098
+end polarizability
+```
+
+The tensor is the change of the dipole moment with a uniform electric field,
+taken from the dipole moments at plus and minus the field step along each
+axis (central differences, six extra SCF calculations started from the
+field-free orbitals). It works with every method and reference. ECCE shows it
+as the polarizability ellipsoid. In `raman true` runs the same calculation is
+made at every displaced geometry of the frequency calculation, and the
+derivatives along the normal modes give the activity S = 45 a'^2 + 7 g'^2 in
+angstrom^4/amu and the depolarization ratio 3 g'^2 / (45 a'^2 + 4 g'^2), the
+definitions ORCA prints. They are written in a block with a line for each of
+the 3N modes, in the order of the `vibrations` block (zero for translations
+and rotations):
+
+```
+begin raman  # index activity(A^4/amu) depolarization_ratio, rows as in vibrations
+...
+7 5.613610 0.526162
+end raman
+```
+
+`raman` is refused for other run types. Within a set of degenerate modes
+(methane, ammonia) the split into individual modes is arbitrary, so compare
+the sum of the activities, not the single values. Against ORCA 6.1.1 the
+polarizability agrees to 1e-3 bohr^3 per component and the activities to
+0.1 %.
 
 ### Orbital energies and occupations
 

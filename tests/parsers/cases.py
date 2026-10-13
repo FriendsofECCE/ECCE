@@ -1870,6 +1870,22 @@ CASES = [
             'EGIBBS': dict(keys={'EGIBBS': {'values': '-74.959259928692', 'units': 'Hartree'}}),
         },
     ),
+    dict(
+        #  Vibration with "raman true": VIBRAM/VIBRAMDEPOL row-aligned with
+        #  VIBFREQ (translations and rotations at 0) and the polarisability.
+        name='ecceqm-h2o-raman',
+        desc='ecceqm.desc',
+        fixture='ecceqm/h2o_raman.qmout',
+        parse_args=('.', 'Vibration', 'SCF', 'HF', '0'),
+        expect={
+            'VIBRAM][VIBRAMDEPOL': dict(keys={
+                'VIBRAM': {'size': '9', 'units': 'A**4/AMU',
+                           'values': '0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 5.613610 73.833619 38.931967'},
+                'VIBRAMDEPOL': {'size': '9', 'units': 'NA',
+                                'values': '0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.526162 0.190386 0.750000'}}),
+            'POLARIZ': dict(keys={'POLARIZ': {'size': '6', 'rowlabels': 'XX XY XZ YY YZ ZZ'}}),
+        },
+    ),
     # -----------------------------------------------------------------
     # Partial charges beyond Mulliken (#272).  Every value below is read off
     # the printed block; 'sum' is the molecule's total charge (0).

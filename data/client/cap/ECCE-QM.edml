@@ -8,8 +8,8 @@
    Kept deliberately small, because it is for students: HF and DFT
    (SVWN, PBE, B3LYP, PBE0), Energy, Gradient, Geometry, Vibration and
    GeoVib (ai.ecceqm's
-   RunType() maps them to the engine's runtype keyword; no runtype
-   dialog, so no further options), and a fixed list of basis sets chosen
+   RunType() maps them to the engine's runtype keyword; the runtype
+   dialog offers Raman activities for the last two), and a fixed list of basis sets chosen
    from the Calculation Editor's quick-pick menu.  The Basis Set Tool is
    not used.
 
@@ -99,6 +99,7 @@
      in this order), and the one a new calculation starts with.  The Basis
      Set Tool is hidden for this code.  One list, here. -->
 <Editor theorydialog="ecceqmtheory.py"
+        runtypedialog="ecceqmruntype.py"
         basisSetPicks="STO-3G,3-21G,6-31G*,cc-pVDZ,def2-SVP"
         basisSetDefault="6-31G*"
         basisSetToolHidden="true">

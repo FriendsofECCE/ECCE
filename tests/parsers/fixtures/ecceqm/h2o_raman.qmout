@@ -1,0 +1,381 @@
+progress scf cycle=1 energy=-75.9857319233 grad=5.85e-01/1e-09
+progress scf cycle=2 energy=-75.9527974557 dE=3.29e-02/1e-12 grad=1.03e-01/1e-09
+progress scf cycle=3 energy=-75.9962203908 dE=-4.34e-02/1e-12 grad=7.37e-02/1e-09
+progress scf cycle=4 energy=-76.0091486965 dE=-1.29e-02/1e-12 grad=3.76e-03/1e-09
+progress scf cycle=5 energy=-76.0093312310 dE=-1.83e-04/1e-12 grad=1.48e-03/1e-09
+progress scf cycle=6 energy=-76.0093408272 dE=-9.60e-06/1e-12 grad=3.37e-04/1e-09
+progress scf cycle=7 energy=-76.0093413218 dE=-4.95e-07/1e-12 grad=4.04e-05/1e-09
+progress scf cycle=8 energy=-76.0093413305 dE=-8.65e-09/1e-12 grad=2.41e-06/1e-09
+progress scf cycle=9 energy=-76.0093413305 dE=-5.74e-11/1e-12 grad=4.44e-07/1e-09
+progress scf cycle=10 energy=-76.0093413306 dE=-4.49e-12/1e-12 grad=1.31e-07/1e-09
+progress scf cycle=11 energy=-76.0093413306 dE=-1.14e-13/1e-12 grad=2.10e-08/1e-09
+progress scf cycle=12 energy=-76.0093413306 dE=-2.84e-14/1e-12 grad=3.37e-09/1e-09
+progress scf cycle=13 energy=-76.0093413306 dE=0.00e+00/1e-12 grad=7.67e-10/1e-09 converged=yes
+opt_step 1
+energy_step -76.009341330553
+opt_criteria max_gradient 1.2355e-05 rms_gradient 6.8836e-06 max_step 0.0000e+00 rms_step 0.0000e+00 energy_change 0.0000e+00
+begin geometry  # index symbol x y z (angstrom)
+1 O 0.0129050000 0.0112320000 0.0988200000
+2 H 0.0448880000 0.7506670000 -0.4928830000
+3 H -0.0240440000 -0.7566620000 -0.4551260000
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 O -0.0000003240 -0.0000079354 0.0000123554
+2 H 0.0000004431 0.0000103329 -0.0000094695
+3 H -0.0000001191 -0.0000023975 -0.0000028860
+end gradient
+progress freq point=0/18
+progress scf cycle=1 energy=-76.0093394235 grad=4.32e-04/1e-09
+progress scf cycle=2 energy=-76.0093410845 dE=-1.66e-06/1e-12 grad=1.14e-04/1e-09
+progress scf cycle=3 energy=-76.0093412837 dE=-1.99e-07/1e-12 grad=3.12e-05/1e-09
+progress scf cycle=4 energy=-76.0093413084 dE=-2.46e-08/1e-12 grad=1.28e-05/1e-09
+progress scf cycle=5 energy=-76.0093413113 dE=-2.97e-09/1e-12 grad=2.05e-06/1e-09
+progress scf cycle=6 energy=-76.0093413114 dE=-5.65e-11/1e-12 grad=7.77e-07/1e-09
+progress scf cycle=7 energy=-76.0093413114 dE=-5.09e-12/1e-12 grad=4.17e-08/1e-09
+progress scf cycle=8 energy=-76.0093413114 dE=0.00e+00/1e-12 grad=8.03e-09/1e-09
+progress scf cycle=9 energy=-76.0093413114 dE=1.42e-13/1e-12 grad=7.16e-10/1e-09 converged=yes
+progress freq point=1/18
+progress scf cycle=1 energy=-76.0093394205 grad=4.31e-04/1e-09
+progress scf cycle=2 energy=-76.0093410815 dE=-1.66e-06/1e-12 grad=1.14e-04/1e-09
+progress scf cycle=3 energy=-76.0093412808 dE=-1.99e-07/1e-12 grad=3.12e-05/1e-09
+progress scf cycle=4 energy=-76.0093413054 dE=-2.46e-08/1e-12 grad=1.28e-05/1e-09
+progress scf cycle=5 energy=-76.0093413084 dE=-2.97e-09/1e-12 grad=1.85e-06/1e-09
+progress scf cycle=6 energy=-76.0093413084 dE=-3.98e-11/1e-12 grad=1.88e-07/1e-09
+progress scf cycle=7 energy=-76.0093413084 dE=-1.85e-13/1e-12 grad=4.99e-08/1e-09
+progress scf cycle=8 energy=-76.0093413084 dE=4.26e-14/1e-12 grad=7.95e-09/1e-09
+progress scf cycle=9 energy=-76.0093413084 dE=-2.84e-14/1e-12 grad=7.12e-10/1e-09 converged=yes
+progress freq point=2/18
+progress scf cycle=1 energy=-76.0093279908 grad=5.82e-04/1e-09
+progress scf cycle=2 energy=-76.0093312903 dE=-3.30e-06/1e-12 grad=1.69e-04/1e-09
+progress scf cycle=3 energy=-76.0093316168 dE=-3.27e-07/1e-12 grad=3.87e-05/1e-09
+progress scf cycle=4 energy=-76.0093316354 dE=-1.86e-08/1e-12 grad=7.78e-06/1e-09
+progress scf cycle=5 energy=-76.0093316364 dE=-9.30e-10/1e-12 grad=2.96e-06/1e-09
+progress scf cycle=6 energy=-76.0093316364 dE=-4.03e-11/1e-12 grad=6.02e-07/1e-09
+progress scf cycle=7 energy=-76.0093316364 dE=-4.02e-12/1e-12 grad=9.31e-08/1e-09
+progress scf cycle=8 energy=-76.0093316364 dE=-2.27e-13/1e-12 grad=1.04e-08/1e-09
+progress scf cycle=9 energy=-76.0093316364 dE=8.53e-14/1e-12 grad=3.72e-09/1e-09
+progress scf cycle=10 energy=-76.0093316364 dE=-4.26e-14/1e-12 grad=4.25e-10/1e-09 converged=yes
+progress freq point=3/18
+progress scf cycle=1 energy=-76.0093279042 grad=5.82e-04/1e-09
+progress scf cycle=2 energy=-76.0093312045 dE=-3.30e-06/1e-12 grad=1.69e-04/1e-09
+progress scf cycle=3 energy=-76.0093315311 dE=-3.27e-07/1e-12 grad=3.87e-05/1e-09
+progress scf cycle=4 energy=-76.0093315497 dE=-1.86e-08/1e-12 grad=7.83e-06/1e-09
+progress scf cycle=5 energy=-76.0093315506 dE=-9.46e-10/1e-12 grad=3.37e-06/1e-09
+progress scf cycle=6 energy=-76.0093315507 dE=-5.09e-11/1e-12 grad=6.10e-07/1e-09
+progress scf cycle=7 energy=-76.0093315507 dE=-4.21e-12/1e-12 grad=9.31e-08/1e-09
+progress scf cycle=8 energy=-76.0093315507 dE=-1.42e-13/1e-12 grad=1.05e-08/1e-09
+progress scf cycle=9 energy=-76.0093315507 dE=-5.68e-14/1e-12 grad=3.73e-09/1e-09
+progress scf cycle=10 energy=-76.0093315507 dE=1.42e-13/1e-12 grad=4.28e-10/1e-09 converged=yes
+progress freq point=4/18
+progress scf cycle=1 energy=-76.0093317209 grad=6.84e-04/1e-09
+progress scf cycle=2 energy=-76.0093342386 dE=-2.52e-06/1e-12 grad=3.73e-04/1e-09
+progress scf cycle=3 energy=-76.0093345860 dE=-3.47e-07/1e-12 grad=9.26e-05/1e-09
+progress scf cycle=4 energy=-76.0093346516 dE=-6.56e-08/1e-12 grad=2.30e-05/1e-09
+progress scf cycle=5 energy=-76.0093346552 dE=-3.60e-09/1e-12 grad=2.97e-06/1e-09
+progress scf cycle=6 energy=-76.0093346553 dE=-1.04e-10/1e-12 grad=8.78e-07/1e-09
+progress scf cycle=7 energy=-76.0093346553 dE=-4.75e-12/1e-12 grad=9.28e-08/1e-09
+progress scf cycle=8 energy=-76.0093346553 dE=-1.14e-13/1e-12 grad=1.39e-08/1e-09
+progress scf cycle=9 energy=-76.0093346553 dE=-1.71e-13/1e-12 grad=2.06e-09/1e-09
+progress scf cycle=10 energy=-76.0093346553 dE=2.84e-14/1e-12 grad=1.89e-10/1e-09 converged=yes
+progress freq point=5/18
+progress scf cycle=1 energy=-76.0093318271 grad=6.86e-04/1e-09
+progress scf cycle=2 energy=-76.0093343473 dE=-2.52e-06/1e-12 grad=3.71e-04/1e-09
+progress scf cycle=3 energy=-76.0093346932 dE=-3.46e-07/1e-12 grad=9.28e-05/1e-09
+progress scf cycle=4 energy=-76.0093347585 dE=-6.53e-08/1e-12 grad=2.28e-05/1e-09
+progress scf cycle=5 energy=-76.0093347620 dE=-3.58e-09/1e-12 grad=2.92e-06/1e-09
+progress scf cycle=6 energy=-76.0093347621 dE=-1.01e-10/1e-12 grad=8.65e-07/1e-09
+progress scf cycle=7 energy=-76.0093347621 dE=-4.60e-12/1e-12 grad=9.29e-08/1e-09
+progress scf cycle=8 energy=-76.0093347621 dE=-1.99e-13/1e-12 grad=1.34e-08/1e-09
+progress scf cycle=9 energy=-76.0093347621 dE=2.84e-14/1e-12 grad=2.07e-09/1e-09
+progress scf cycle=10 energy=-76.0093347621 dE=-2.84e-14/1e-12 grad=1.91e-10/1e-09 converged=yes
+progress freq point=6/18
+progress scf cycle=1 energy=-76.0093403590 grad=4.36e-04/1e-09
+progress scf cycle=2 energy=-76.0093411959 dE=-8.37e-07/1e-12 grad=1.11e-04/1e-09
+progress scf cycle=3 energy=-76.0093413054 dE=-1.09e-07/1e-12 grad=2.11e-05/1e-09
+progress scf cycle=4 energy=-76.0093413162 dE=-1.08e-08/1e-12 grad=8.87e-06/1e-09
+progress scf cycle=5 energy=-76.0093413176 dE=-1.35e-09/1e-12 grad=3.40e-06/1e-09
+progress scf cycle=6 energy=-76.0093413177 dE=-1.38e-10/1e-12 grad=4.54e-07/1e-09
+progress scf cycle=7 energy=-76.0093413177 dE=-3.61e-12/1e-12 grad=3.58e-08/1e-09
+progress scf cycle=8 energy=-76.0093413177 dE=-1.42e-14/1e-12 grad=9.23e-09/1e-09
+progress scf cycle=9 energy=-76.0093413177 dE=1.42e-14/1e-12 grad=2.10e-09/1e-09
+progress scf cycle=10 energy=-76.0093413177 dE=-1.14e-13/1e-12 grad=2.87e-10/1e-09 converged=yes
+progress freq point=7/18
+progress scf cycle=1 energy=-76.0093403649 grad=4.36e-04/1e-09
+progress scf cycle=2 energy=-76.0093412019 dE=-8.37e-07/1e-12 grad=1.11e-04/1e-09
+progress scf cycle=3 energy=-76.0093413113 dE=-1.09e-07/1e-12 grad=2.10e-05/1e-09
+progress scf cycle=4 energy=-76.0093413221 dE=-1.08e-08/1e-12 grad=8.79e-06/1e-09
+progress scf cycle=5 energy=-76.0093413234 dE=-1.30e-09/1e-12 grad=3.35e-06/1e-09
+progress scf cycle=6 energy=-76.0093413235 dE=-1.21e-10/1e-12 grad=4.50e-07/1e-09
+progress scf cycle=7 energy=-76.0093413236 dE=-3.55e-12/1e-12 grad=3.58e-08/1e-09
+progress scf cycle=8 energy=-76.0093413236 dE=-8.53e-14/1e-12 grad=9.24e-09/1e-09
+progress scf cycle=9 energy=-76.0093413236 dE=2.84e-14/1e-12 grad=2.09e-09/1e-09
+progress scf cycle=10 energy=-76.0093413236 dE=2.84e-14/1e-12 grad=2.83e-10/1e-09 converged=yes
+progress freq point=8/18
+progress scf cycle=1 energy=-76.0093344729 grad=3.78e-04/1e-09
+progress scf cycle=2 energy=-76.0093359977 dE=-1.52e-06/1e-12 grad=2.00e-04/1e-09
+progress scf cycle=3 energy=-76.0093361440 dE=-1.46e-07/1e-12 grad=6.75e-05/1e-09
+progress scf cycle=4 energy=-76.0093361743 dE=-3.03e-08/1e-12 grad=1.58e-05/1e-09
+progress scf cycle=5 energy=-76.0093361763 dE=-2.05e-09/1e-12 grad=2.26e-06/1e-09
+progress scf cycle=6 energy=-76.0093361764 dE=-9.91e-11/1e-12 grad=3.69e-07/1e-09
+progress scf cycle=7 energy=-76.0093361764 dE=-2.42e-12/1e-12 grad=7.07e-08/1e-09
+progress scf cycle=8 energy=-76.0093361764 dE=-7.11e-14/1e-12 grad=7.97e-09/1e-09
+progress scf cycle=9 energy=-76.0093361764 dE=5.68e-14/1e-12 grad=1.97e-09/1e-09
+progress scf cycle=10 energy=-76.0093361764 dE=-5.68e-14/1e-12 grad=7.43e-10/1e-09 converged=yes
+progress freq point=9/18
+progress scf cycle=1 energy=-76.0093345342 grad=3.80e-04/1e-09
+progress scf cycle=2 energy=-76.0093360659 dE=-1.53e-06/1e-12 grad=2.01e-04/1e-09
+progress scf cycle=3 energy=-76.0093362126 dE=-1.47e-07/1e-12 grad=6.77e-05/1e-09
+progress scf cycle=4 energy=-76.0093362429 dE=-3.03e-08/1e-12 grad=1.58e-05/1e-09
+progress scf cycle=5 energy=-76.0093362450 dE=-2.05e-09/1e-12 grad=2.26e-06/1e-09
+progress scf cycle=6 energy=-76.0093362451 dE=-9.83e-11/1e-12 grad=3.69e-07/1e-09
+progress scf cycle=7 energy=-76.0093362451 dE=-2.34e-12/1e-12 grad=7.06e-08/1e-09
+progress scf cycle=8 energy=-76.0093362451 dE=-8.53e-14/1e-12 grad=7.85e-09/1e-09
+progress scf cycle=9 energy=-76.0093362451 dE=-7.11e-14/1e-12 grad=1.91e-09/1e-09
+progress scf cycle=10 energy=-76.0093362451 dE=1.14e-13/1e-12 grad=7.20e-10/1e-09 converged=yes
+progress freq point=10/18
+progress scf cycle=1 energy=-76.0093366511 grad=3.47e-04/1e-09
+progress scf cycle=2 energy=-76.0093379658 dE=-1.31e-06/1e-12 grad=1.91e-04/1e-09
+progress scf cycle=3 energy=-76.0093381124 dE=-1.47e-07/1e-12 grad=6.09e-05/1e-09
+progress scf cycle=4 energy=-76.0093381452 dE=-3.28e-08/1e-12 grad=1.62e-05/1e-09
+progress scf cycle=5 energy=-76.0093381478 dE=-2.60e-09/1e-12 grad=2.99e-06/1e-09
+progress scf cycle=6 energy=-76.0093381480 dE=-1.51e-10/1e-12 grad=5.34e-07/1e-09
+progress scf cycle=7 energy=-76.0093381480 dE=-2.30e-12/1e-12 grad=7.80e-08/1e-09
+progress scf cycle=8 energy=-76.0093381480 dE=-1.28e-13/1e-12 grad=1.03e-08/1e-09
+progress scf cycle=9 energy=-76.0093381480 dE=1.28e-13/1e-12 grad=1.69e-09/1e-09
+progress scf cycle=10 energy=-76.0093381480 dE=-9.95e-14/1e-12 grad=3.55e-10/1e-09 converged=yes
+progress freq point=11/18
+progress scf cycle=1 energy=-76.0093365679 grad=3.46e-04/1e-09
+progress scf cycle=2 energy=-76.0093378799 dE=-1.31e-06/1e-12 grad=1.91e-04/1e-09
+progress scf cycle=3 energy=-76.0093380268 dE=-1.47e-07/1e-12 grad=6.11e-05/1e-09
+progress scf cycle=4 energy=-76.0093380597 dE=-3.29e-08/1e-12 grad=1.63e-05/1e-09
+progress scf cycle=5 energy=-76.0093380624 dE=-2.63e-09/1e-12 grad=2.99e-06/1e-09
+progress scf cycle=6 energy=-76.0093380625 dE=-1.53e-10/1e-12 grad=5.41e-07/1e-09
+progress scf cycle=7 energy=-76.0093380625 dE=-2.32e-12/1e-12 grad=7.84e-08/1e-09
+progress scf cycle=8 energy=-76.0093380625 dE=-1.14e-13/1e-12 grad=1.03e-08/1e-09
+progress scf cycle=9 energy=-76.0093380625 dE=1.14e-13/1e-12 grad=1.72e-09/1e-09
+progress scf cycle=10 energy=-76.0093380625 dE=-9.95e-14/1e-12 grad=3.57e-10/1e-09 converged=yes
+progress freq point=12/18
+progress scf cycle=1 energy=-76.0093403602 grad=4.36e-04/1e-09
+progress scf cycle=2 energy=-76.0093411978 dE=-8.38e-07/1e-12 grad=1.11e-04/1e-09
+progress scf cycle=3 energy=-76.0093413072 dE=-1.09e-07/1e-12 grad=2.14e-05/1e-09
+progress scf cycle=4 energy=-76.0093413180 dE=-1.08e-08/1e-12 grad=8.90e-06/1e-09
+progress scf cycle=5 energy=-76.0093413194 dE=-1.36e-09/1e-12 grad=3.39e-06/1e-09
+progress scf cycle=6 energy=-76.0093413195 dE=-1.42e-10/1e-12 grad=4.34e-07/1e-09
+progress scf cycle=7 energy=-76.0093413195 dE=-3.71e-12/1e-12 grad=3.67e-08/1e-09
+progress scf cycle=8 energy=-76.0093413195 dE=5.68e-14/1e-12 grad=9.70e-09/1e-09
+progress scf cycle=9 energy=-76.0093413195 dE=-1.14e-13/1e-12 grad=2.14e-09/1e-09
+progress scf cycle=10 energy=-76.0093413195 dE=4.26e-14/1e-12 grad=3.09e-10/1e-09 converged=yes
+progress freq point=13/18
+progress scf cycle=1 energy=-76.0093403572 grad=4.35e-04/1e-09
+progress scf cycle=2 energy=-76.0093411949 dE=-8.38e-07/1e-12 grad=1.11e-04/1e-09
+progress scf cycle=3 energy=-76.0093413043 dE=-1.09e-07/1e-12 grad=2.13e-05/1e-09
+progress scf cycle=4 energy=-76.0093413151 dE=-1.08e-08/1e-12 grad=8.99e-06/1e-09
+progress scf cycle=5 energy=-76.0093413166 dE=-1.42e-09/1e-12 grad=3.37e-06/1e-09
+progress scf cycle=6 energy=-76.0093413167 dE=-1.57e-10/1e-12 grad=4.36e-07/1e-09
+progress scf cycle=7 energy=-76.0093413167 dE=-3.61e-12/1e-12 grad=3.67e-08/1e-09
+progress scf cycle=8 energy=-76.0093413167 dE=-8.53e-14/1e-12 grad=9.68e-09/1e-09
+progress scf cycle=9 energy=-76.0093413167 dE=9.95e-14/1e-12 grad=2.15e-09/1e-09
+progress scf cycle=10 energy=-76.0093413167 dE=-7.11e-14/1e-12 grad=3.14e-10/1e-09 converged=yes
+progress freq point=14/18
+progress scf cycle=1 energy=-76.0093340780 grad=3.66e-04/1e-09
+progress scf cycle=2 energy=-76.0093356882 dE=-1.61e-06/1e-12 grad=2.10e-04/1e-09
+progress scf cycle=3 energy=-76.0093358448 dE=-1.57e-07/1e-12 grad=6.67e-05/1e-09
+progress scf cycle=4 energy=-76.0093358772 dE=-3.24e-08/1e-12 grad=1.64e-05/1e-09
+progress scf cycle=5 energy=-76.0093358794 dE=-2.22e-09/1e-12 grad=2.35e-06/1e-09
+progress scf cycle=6 energy=-76.0093358796 dE=-1.10e-10/1e-12 grad=3.79e-07/1e-09
+progress scf cycle=7 energy=-76.0093358796 dE=-2.70e-12/1e-12 grad=7.23e-08/1e-09
+progress scf cycle=8 energy=-76.0093358796 dE=0.00e+00/1e-12 grad=8.31e-09/1e-09
+progress scf cycle=9 energy=-76.0093358796 dE=0.00e+00/1e-12 grad=1.94e-09/1e-09
+progress scf cycle=10 energy=-76.0093358796 dE=-1.14e-13/1e-12 grad=7.27e-10/1e-09 converged=yes
+progress freq point=15/18
+progress scf cycle=1 energy=-76.0093341033 grad=3.64e-04/1e-09
+progress scf cycle=2 energy=-76.0093357057 dE=-1.60e-06/1e-12 grad=2.10e-04/1e-09
+progress scf cycle=3 energy=-76.0093358617 dE=-1.56e-07/1e-12 grad=6.65e-05/1e-09
+progress scf cycle=4 energy=-76.0093358941 dE=-3.24e-08/1e-12 grad=1.65e-05/1e-09
+progress scf cycle=5 energy=-76.0093358963 dE=-2.23e-09/1e-12 grad=2.35e-06/1e-09
+progress scf cycle=6 energy=-76.0093358964 dE=-1.10e-10/1e-12 grad=3.78e-07/1e-09
+progress scf cycle=7 energy=-76.0093358964 dE=-2.71e-12/1e-12 grad=7.24e-08/1e-09
+progress scf cycle=8 energy=-76.0093358964 dE=-8.53e-14/1e-12 grad=8.43e-09/1e-09
+progress scf cycle=9 energy=-76.0093358964 dE=-2.84e-14/1e-12 grad=2.01e-09/1e-09
+progress scf cycle=10 energy=-76.0093358964 dE=7.11e-14/1e-12 grad=7.52e-10/1e-09 converged=yes
+progress freq point=16/18
+progress scf cycle=1 energy=-76.0093370363 grad=3.41e-04/1e-09
+progress scf cycle=2 energy=-76.0093382720 dE=-1.24e-06/1e-12 grad=1.81e-04/1e-09
+progress scf cycle=3 energy=-76.0093384089 dE=-1.37e-07/1e-12 grad=5.90e-05/1e-09
+progress scf cycle=4 energy=-76.0093384395 dE=-3.05e-08/1e-12 grad=1.56e-05/1e-09
+progress scf cycle=5 energy=-76.0093384419 dE=-2.43e-09/1e-12 grad=3.04e-06/1e-09
+progress scf cycle=6 energy=-76.0093384420 dE=-1.41e-10/1e-12 grad=4.90e-07/1e-09
+progress scf cycle=7 energy=-76.0093384420 dE=-2.19e-12/1e-12 grad=7.53e-08/1e-09
+progress scf cycle=8 energy=-76.0093384420 dE=-7.11e-14/1e-12 grad=1.01e-08/1e-09
+progress scf cycle=9 energy=-76.0093384420 dE=-1.42e-14/1e-12 grad=1.56e-09/1e-09
+progress scf cycle=10 energy=-76.0093384420 dE=0.00e+00/1e-12 grad=3.22e-10/1e-09 converged=yes
+progress freq point=17/18
+progress scf cycle=1 energy=-76.0093370140 grad=3.40e-04/1e-09
+progress scf cycle=2 energy=-76.0093382478 dE=-1.23e-06/1e-12 grad=1.81e-04/1e-09
+progress scf cycle=3 energy=-76.0093383850 dE=-1.37e-07/1e-12 grad=5.88e-05/1e-09
+progress scf cycle=4 energy=-76.0093384157 dE=-3.07e-08/1e-12 grad=1.57e-05/1e-09
+progress scf cycle=5 energy=-76.0093384181 dE=-2.45e-09/1e-12 grad=3.04e-06/1e-09
+progress scf cycle=6 energy=-76.0093384183 dE=-1.43e-10/1e-12 grad=4.98e-07/1e-09
+progress scf cycle=7 energy=-76.0093384183 dE=-2.26e-12/1e-12 grad=7.57e-08/1e-09
+progress scf cycle=8 energy=-76.0093384183 dE=-7.11e-14/1e-12 grad=1.01e-08/1e-09
+progress scf cycle=9 energy=-76.0093384183 dE=-5.68e-14/1e-12 grad=1.59e-09/1e-09
+progress scf cycle=10 energy=-76.0093384183 dE=4.26e-14/1e-12 grad=3.31e-10/1e-09 converged=yes
+progress freq point=18/18
+progress freq point=18/18 done=yes real=3 imaginary=0 zpe=0.0229120155
+# ecce-qm output, format version 1
+format_version 1
+program ecce-qm 0.1
+title 
+runtype frequency
+method hf
+reference rhf
+basis 6-31G*
+spherical true
+charge 0
+multiplicity 1
+nbf 18
+nalpha 5
+nbeta 5
+converged yes
+iterations 13
+energy_total -76.009341330553
+energy_nuclear 9.285896501358
+energy_one_electron -123.229927581746
+energy_coulomb 46.904565109802
+energy_exchange_hf -8.969875359966
+energy_xc 0.000000000000
+s_squared 0.000000000000
+dipole_au -0.003735345013 -0.021408402399 -0.861709986357
+dipole_debye -0.009494300013 -0.054414731290 -2.190248318573 2.190944728131
+wall_seconds 0.42
+begin atoms  # index symbol Z x y z (angstrom) mulliken_net_charge
+0 O 8 0.012905000000 0.011232000000 0.098820000000 -0.900286976978
+1 H 1 0.044888000000 0.750667000000 -0.492883000000 0.450143038924
+2 H 1 -0.024044000000 -0.756662000000 -0.455126000000 0.450143938053
+end atoms
+begin ao_labels  # index label, order of the MO coefficients
+1 0O 1s
+2 0O 2s
+3 0O 3s
+4 0O 1px
+5 0O 1py
+6 0O 1pz
+7 0O 2px
+8 0O 2py
+9 0O 2pz
+10 0O 1dxy
+11 0O 1dyz
+12 0O 1dz2
+13 0O 1dxz
+14 0O 1dx2y2
+15 1H 1s
+16 1H 2s
+17 2H 1s
+18 2H 2s
+end ao_labels
+begin orbitals restricted  # index energy(hartree) occupation
+1 -20.552257471467 2.000000000000
+2 -1.345490011282 2.000000000000
+3 -0.714110378066 2.000000000000
+4 -0.570554516395 2.000000000000
+5 -0.497861663827 2.000000000000
+6 0.217054717361 0.000000000000
+7 0.307164054696 0.000000000000
+8 1.031799335159 0.000000000000
+9 1.168545432607 0.000000000000
+10 1.168972524309 0.000000000000
+11 1.196353333295 0.000000000000
+12 1.385439368392 0.000000000000
+13 1.659761787461 0.000000000000
+14 2.021150179255 0.000000000000
+15 2.030283616839 0.000000000000
+16 2.067142738352 0.000000000000
+17 2.643387498638 0.000000000000
+18 2.965213545826 0.000000000000
+end orbitals
+begin mo_coefficients restricted  # one line per MO: index then nbf coefficients
+1 0.9957799345 0.0220263979 -0.0081736654 -0.0000070924 -0.0000406601 -0.0016359752 0.0000077787 0.0000445905 0.0017943454 -0.0000245255 0.0000059819 -0.0000181746 -0.0000006847 0.0002673253 0.0002350188 0.0019642053 0.0002349895 0.0019642556
+2 -0.2139194062 0.4683484596 0.4901382860 -0.0004054992 -0.0023258720 -0.0935187172 -0.0002419741 -0.0013871821 -0.0558161336 0.0015035597 -0.0001720301 0.0056092604 0.0000757644 -0.0163818002 0.1329355083 -0.0088024671 0.1329387329 -0.0088030251
+3 -0.0000011809 0.0000023893 0.0000057298 0.0232224935 0.5078034449 -0.0127135349 0.0138995863 0.3039406181 -0.0076103180 -0.0002779166 -0.0507629914 0.0022033720 -0.0023173858 0.0012521118 0.2324980418 0.1069054088 -0.2325001056 -0.1069045847
+4 0.0698847160 -0.1700477087 -0.2832108269 -0.0024151676 -0.0138410429 -0.5571717366 -0.0017770381 -0.0101837504 -0.4099607685 0.0006020639 0.0013461196 0.0350834849 0.0002768183 -0.0065099309 0.1400324001 0.0740386992 0.1400292506 0.0740352377
+5 -0.0000000000 0.0000000000 0.0000000000 0.6381210474 -0.0292331528 -0.0020398594 0.5118060328 -0.0234464982 -0.0016360725 -0.0008410782 0.0015653057 0.0001888564 -0.0341089181 -0.0001867188 -0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000
+6 0.0866359413 -0.1016956711 -1.2167526276 0.0009202340 0.0052702470 0.2123454039 0.0020825905 0.0119293780 0.4805289672 -0.0008167403 -0.0003370913 -0.0130393395 -0.0001161571 0.0088835256 0.0549996942 1.0092373737 0.0549968755 1.0092135919
+7 0.0000012500 -0.0000008501 -0.0000269488 0.0148689930 0.3251385818 -0.0081419728 0.0384104611 0.8399170015 -0.0210300775 -0.0001265864 -0.0231138576 0.0010033772 -0.0010551736 0.0005705902 -0.0465471110 -1.4126785771 0.0465459979 1.4127151437
+8 0.0000013530 -0.0000087533 0.0000173168 -0.0040310424 -0.0881473085 0.0022211129 -0.0323410347 -0.7071974943 0.0177058646 -0.0010879190 -0.1988190896 0.0086294912 -0.0090762894 0.0048977939 0.8395598141 -0.4210786228 -0.8395123928 0.4210354774
+9 -0.0000000000 0.0000000000 -0.0000000000 -0.9622729144 0.0440829703 0.0030760643 1.0345319175 -0.0473932489 -0.0033070522 -0.0003480719 0.0006483647 0.0000782263 -0.0141282645 -0.0000773122 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000
+10 0.0722104094 -0.3521262848 0.0484801419 0.0007276179 0.0041625206 0.1679648545 0.0018507642 0.0106454834 0.4264071228 0.0213479015 -0.0072177539 -0.0312146159 0.0002437033 -0.2327606690 0.8949697655 -0.4261692543 0.8950142457 -0.4261488799
+11 0.0308392425 -0.2732588685 0.0390483463 -0.0041667330 -0.0238840143 -0.9611814452 0.0047233970 0.0270690880 1.0896752559 -0.0005065714 -0.0006280422 -0.0177185595 -0.0001445171 0.0054951458 -0.0116889514 0.2046015085 -0.0117063782 0.2046116067
+12 0.0000008282 -0.0000043596 0.0000051055 0.0475190074 1.0390929057 -0.0260228396 -0.0703921163 -1.5392573262 0.0385583719 0.0001449727 0.0263654607 -0.0011450489 0.0012036303 -0.0006571593 -0.1077691859 0.9339438507 0.1077966825 -0.9339602006
+13 -0.0662928010 1.6200425580 -2.5446339469 -0.0010270879 -0.0058888163 -0.2369073671 0.0030290922 0.0173689796 0.6986645560 0.0215999245 -0.0082812409 -0.0540740923 0.0000773448 -0.2355429306 0.1872328827 0.6614838849 0.1872299653 0.6615084661
+14 -0.0004855499 0.1187643423 -0.2387958597 -0.0000187640 -0.0001072585 -0.0043327618 0.0005915091 0.0033904234 0.1364513870 -0.0082650297 0.0449147417 0.9892556110 0.0072409596 0.0915966412 0.0825841051 0.0449247173 0.0825836780 0.0449262677
+15 -0.0000000000 0.0000000000 -0.0000000000 0.0000004853 -0.0000000222 -0.0000000016 0.0000004008 -0.0000000184 -0.0000000013 0.9955024550 -0.0020449552 0.0001382663 -0.0251181435 0.0913221772 0.0000000000 0.0000000000 0.0000000000 -0.0000000000
+16 0.0000000000 0.0000000000 -0.0000000000 -0.0081873042 0.0003750710 0.0000261721 -0.0321397203 0.0014723623 0.0001027399 -0.0245851996 0.0457964814 0.0055254208 -0.9979334104 -0.0054608184 0.0000000000 0.0000000000 0.0000000000 -0.0000000000
+17 -0.0220535936 -0.5590179557 1.4061835642 0.0001292451 0.0007366017 0.0298750276 -0.0031697997 -0.0181597614 -0.7313488724 0.0996219353 -0.0219604667 0.1275075630 0.0031854628 -1.0857867108 -0.8702069284 -0.1278979705 -0.8701789870 -0.1279078970
+18 0.0000012815 0.0000103441 -0.0000476580 -0.0003074832 -0.0067239737 0.0001722762 0.0410941129 0.8985989139 -0.0224824512 -0.0070761585 -1.2920727347 0.0560822575 -0.0589846105 0.0318954739 -0.9761831312 0.0248798865 0.9762423020 -0.0248678157
+end mo_coefficients
+polarizability_field_step 0.001000000000
+polarizability_isotropic 4.694934150974
+polarizability_anisotropy 3.418529097588
+begin polarizability  # rows xx xy xz / yx yy yz / zx zy zz (a.u., bohr^3)
+2.698588703900 0.180182509338 0.004449254052
+0.180182509338 6.626745686925 -0.047262469956
+0.004449254052 -0.047262469956 4.759468062096
+end polarizability
+hessian_step 0.005000000000
+max_gradient 1.2355e-05
+vib_transrot 6
+vib_imaginary 0
+begin transrot_residual  # smallest frequencies (cm-1) before projection
+-0.0016
+0.1360
+-0.1457
+-8.9376
+11.0300
+17.1183
+end transrot_residual
+begin vibrations  # index frequency(cm-1) ir_intensity(km/mol); imaginary frequencies are negative
+1 0.0000 0.0000
+2 0.0000 0.0000
+3 0.0000 0.0000
+4 0.0000 0.0000
+5 0.0000 0.0000
+6 0.0000 0.0000
+7 1826.4714 110.0906
+8 4056.3179 18.2972
+9 4174.4231 59.7343
+end vibrations
+begin normal_modes  # index then x y z of every atom, Cartesian displacements of unit length
+1 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000
+2 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000
+3 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000
+4 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000
+5 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000
+6 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000
+7 -0.00030600 -0.00175367 -0.07059411 0.02199121 0.44169729 0.54947417 -0.01713471 -0.41386533 0.57090562
+8 -0.00021486 -0.00120308 -0.04997249 -0.02497845 -0.57395327 0.41139681 0.02838843 0.59304695 0.38170283
+9 -0.00323313 -0.07069648 0.00174218 0.02379264 0.55007876 -0.44020334 0.02751945 0.57192569 0.41255362
+end normal_modes
+begin raman  # index activity(A^4/amu) depolarization_ratio, rows as in vibrations
+1 0.000000 0.000000
+2 0.000000 0.000000
+3 0.000000 0.000000
+4 0.000000 0.000000
+5 0.000000 0.000000
+6 0.000000 0.000000
+7 5.613610 0.526162
+8 73.833619 0.190386
+9 38.931967 0.750000
+end raman
+thermo_temperature 298.150000000000
+thermo_pressure_atm 1.000000000000
+symmetry_number 2
+zero_point_energy 0.022912015516
+thermal_energy -75.983595523155
+enthalpy -75.982651338287
+entropy_ts 0.021375165371
+gibbs_energy -76.004026503659
+entropy_translation 0.0000551518
+entropy_rotation 0.0000165362
+entropy_vibration 0.0000000046
+entropy_electronic 0.0000000000
+end_of_output

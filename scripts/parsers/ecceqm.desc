@@ -182,6 +182,25 @@ Skip=0
 End=^end vibrations
 [END]
 
+# Raman runs: activity (A^4/amu) and depolarization ratio, all 3N rows like
+# VIBFREQ, the translations and rotations at 0.
+[VIBRAM][VIBRAMDEPOL]
+Script=ecceqm.parse
+Begin=^begin raman\b
+Frequency=last
+Skip=0
+End=^end raman
+[END]
+
+# Static polarisability ("polarizability" keyword, and Raman runs).
+[POLARIZ]
+Script=ecceqm.parse
+Begin=^begin polarizability\b
+Frequency=last
+Skip=0
+End=^end polarizability
+[END]
+
 [VIB]
 Script=ecceqm.parse
 Begin=^begin normal_modes\b

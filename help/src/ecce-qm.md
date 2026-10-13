@@ -57,7 +57,15 @@ of the analytic forces, so it is only meaningful at a stationary point of the
 same method and basis set: run **GeoVib**, or optimise first. Thermochemistry
 is for an ideal gas at 298.15 K and 1 atm in the rigid-rotor, harmonic
 oscillator approximation; the symmetry number is found from the geometry.
-Raman intensities are not available.
+
+For Vibration and GeoVib, **Runtype Details** has a **Raman activities** tick
+box. It adds the Raman activity and the depolarization ratio of every mode,
+shown in the vibration panel and the Raman pane of the spectrum viewer, and the
+static polarizability of the molecule, drawn as an ellipsoid in the Viewer.
+The polarizability is worked out with a small electric field applied in the
+three directions, at the given geometry and at every geometry the frequency
+calculation displaces, so the calculation takes about seven times as long as
+the frequencies alone.
 
 ## What you get
 
@@ -76,7 +84,8 @@ Raman intensities are not available.
 - the dipole moment and, for open shells, the expectation value of S^2;
 - for Vibration and GeoVib, the frequencies, IR spectrum, normal modes,
   zero-point energy, thermal energy, enthalpy,
-  entropy and Gibbs energy.
+  entropy and Gibbs energy, and with **Raman activities** ticked, the Raman
+  spectrum and the polarizability.
 
 ## Practical limits
 
@@ -92,9 +101,10 @@ its time grows roughly as the square of the number of atoms times the number
 of basis functions. As a guide, measured on an 8-core desktop computer with
 6-31G*: water with B3LYP takes 20 seconds for its frequencies and ethanol
 about four minutes; benzene takes 10 minutes with Hartree-Fock and 23 minutes
-with B3LYP. A laptop with four cores takes about twice as long. ECCE shows an
+with B3LYP. A laptop with four cores takes about twice as long. Raman activities
+multiply the time of the frequency calculation by about seven (water with B3LYP, 8 cores: 5 seconds for the frequencies, 30 seconds with Raman). ECCE shows an
 estimate and asks before launching a frequency run that is expected to take
-long.
+long, Raman activities included.
 
 Where the compiler supports it (the Linux version), the integrals and the
 integration grid use all the cores of the computer. The macOS version of
@@ -119,6 +129,12 @@ nitrogen, hydrogen fluoride, benzene and open-shell oxygen, with the STO-3G,
   intensities to 0.07 km/mol, and the zero-point energy and Gibbs energy to a
   few microhartree. ORCA cannot compute restricted open shell frequencies, so
   those were checked against the curvature of ECCE-QM's own energies.
+- The static polarizability agrees with ORCA's analytic (coupled-perturbed)
+  value to 1e-3 bohr^3 in every tensor component at Hartree-Fock and B3LYP,
+  and with NWChem's to 1e-4 bohr^3, for water, ammonia, carbon monoxide and
+  hydrogen fluoride. Raman activities agree with ORCA's to 0.1 % and
+  depolarization ratios to 3e-4 for water, ammonia and methane; the
+  frequencies of those calculations agree to 1.5 cm-1.
 - Loewdin charges agree with ORCA's to 1e-5 e. CHELPG charges agree with
   ORCA's within 0.005 e; the small differences come from the points where the
   potential is sampled, which each program chooses in its own way.

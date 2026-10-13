@@ -60,17 +60,22 @@ next bundled code:
   `thermal_energy`, `enthalpy`, `entropy_ts`, `gibbs_energy` (EZEROPT, ETHERM,
   ENTHALPY, ENTROPY, EGIBBS; one Begin each, none may match another's line),
   and `thermo_temperature`/`thermo_pressure_atm` give THERMOTEMP/THERMOPRES. No
-  runtype dialog, so the engine's `maxsteps`/`opt_conv` are not set from ECCE.
+  runtype dialog for those, so the engine's `maxsteps`/`opt_conv` are not set from ECCE.
+  The Runtype Details dialog (`ecceqmruntype.py`, `runtypedialog` in the `.edml`)
+  has only "Raman activities" (Vibration, GeoVib; `ES.Runtype.Vibration.UseRaman`
+  -> `raman true` in `ai.ecceqm`); `begin raman` is VIBRAM/VIBRAMDEPOL and
+  `begin polarizability` is POLARIZ (`docs/qm/README.md`).
 * **Constraints and dummy atoms** (#309): `ECCE-QM.edml` has `SupportsConstraints`
   true with the same rules as ORCA's; `ai.ecceqm` reads the constraint file into the
   engine's `constraints` block (`##QMConstraints##` in `ecceqm.tpl`, Geometry runs
   only) and writes `X`. `verifyinput`'s ecceqm checker knows both blocks (they are
   not in its keyword list, like `geometry`).
 * **Launch warns before a large run** (`WxLauncher::confirmQmSize()`, #248):
-  Vibration/GeoVib with N^2 x nbf above 5000 (DFT) or 15000 (HF), or any run
+  Vibration/GeoVib with N^2 x nbf (times 7 with Raman, read from the stored
+  `ES.Runtype.Vibration.UseRaman`) above 5000 (DFT) or 15000 (HF), or any run
   beyond 25 atoms or 150 functions (memory, nbf^4 bytes). Cancel or "Launch
   anyway" (the default); never a block. `tests/apps/ecceqm_size_warning_test.py`.
 * **No Theory Details beyond** the DFT functional (DFT only) and an
-  "unrestricted" tick; no runtype dialog; no convergence, grid, memory or
+  "unrestricted" tick; a runtype dialog with one tick; no convergence, grid, memory or
   thread settings. `ECCEQM_EXTRA` in the environment appends lines to the input
   for tests.

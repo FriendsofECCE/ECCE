@@ -269,6 +269,11 @@ sub QMControl {
   push(@schemes, "chelpg") if ($AbiDict{"ES.Theory.ECCEQM.CHELPG"} eq "1");
   push(@schemes, "mk") if ($AbiDict{"ES.Theory.ECCEQM.MK"} eq "1");
   $result .= "charges " . join(" ", @schemes) . "\n" if (@schemes);
+  # Raman activities are only offered (and only meaningful) for frequency runs.
+  if (($AbiDict{"RunType"} eq "Vibration" || $AbiDict{"RunType"} eq "GeoVib") &&
+      $AbiDict{"ES.Runtype.Vibration.UseRaman"} eq "1") {
+    $result .= "raman true\n";
+  }
   $_ = $result;
   return $result;
 }

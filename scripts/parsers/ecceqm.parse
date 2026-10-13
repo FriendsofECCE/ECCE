@@ -105,6 +105,34 @@ if ($first =~ /^(energy_\w+)\s+(\S+)/ && exists($energyKey{$1})) {
     print "key: VIBFREQ\nsize:\n$n\nrowlabels:\n$labels\nvalues:\n", join(" ", @f), "\nunits:\ncm-1\nEND\n";
     print "key: VIBIR\nsize:\n$n\nrowlabels:\n$labels\nvalues:\n", join(" ", @ir), "\nunits:\nKM/Mole\nEND\n";
   }
+} elsif ($first =~ /^begin raman\b/) {
+  # index activity depolarization_ratio, rows as in the vibrations block
+  my (@act, @dep);
+  foreach my $l (@lines) {
+    last if ($l =~ /^end\b/);
+    my @c = split(' ', $l);
+    next if (@c < 3);
+    push(@act, $c[1]);
+    push(@dep, $c[2]);
+  }
+  if (@act) {
+    my $n = scalar(@act);
+    my $labels = join(" ", 1 .. $n);
+    print "key: VIBRAM\nsize:\n$n\nrowlabels:\n$labels\nvalues:\n", join(" ", @act), "\nunits:\nA**4/AMU\nEND\n";
+    print "key: VIBRAMDEPOL\nsize:\n$n\nrowlabels:\n$labels\nvalues:\n", join(" ", @dep), "\nunits:\nNA\nEND\n";
+  }
+} elsif ($first =~ /^begin polarizability\b/) {
+  # three rows of the symmetric tensor; POLARIZ holds XX XY XZ YY YZ ZZ
+  my @t;
+  foreach my $l (@lines) {
+    last if ($l =~ /^end\b/);
+    my @c = split(' ', $l);
+    push(@t, [@c]) if (@c == 3);
+  }
+  if (@t == 3) {
+    my @v = ($t[0][0], $t[0][1], $t[0][2], $t[1][1], $t[1][2], $t[2][2]);
+    print "key: POLARIZ\nsize:\n6\nrowlabels:\nXX XY XZ YY YZ ZZ\nvalues:\n", join(" ", @v), "\nEND\n";
+  }
 } elsif ($first =~ /^begin normal_modes\b/) {
   # index then x y z per atom: one Cartesian displacement vector per mode
   my @modes;

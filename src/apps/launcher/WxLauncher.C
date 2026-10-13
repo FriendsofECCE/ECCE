@@ -32,6 +32,7 @@
 #include "util/TypedFile.H"
 
 #include "tdat/Fragment.H"
+#include "tdat/GUIValues.H"
 #include "tdat/QueueMgr.H"
 #include "tdat/TTheory.H"
 
@@ -1232,17 +1233,22 @@ static string roughRange(double lo, double hi)
  * functions, 4 GB at 250) and a frequency run does 6N gradients, so its time
  * grows as N^2 * nbf: about 0.06 N^2 nbf s for DFT on 8 idle cores, a third
  * of that for HF (docs/qm/README.md).  A 4-core laptop takes twice as long.
+ * Raman activities add a polarisability (six more SCFs) at every displaced
+ * geometry, about seven times the frequency run.
  */
-static string qmSizeWarning(const string& runType, bool dft, size_t atoms, int nbf)
+static string qmSizeWarning(const string& runType, bool dft, size_t atoms, int nbf, bool raman)
 {
     string msg;
     double work = (double)atoms * (double)atoms * (double)nbf;
     bool frequencies = runType == "Vibration" || runType == "GeoVib";
+    if (frequencies && raman)
+        work *= 7.0;
     if (frequencies && work > (dft ? 5000.0 : 15000.0))
     {
         double desktop = work * (dft ? 0.06 : 0.02);
         msg = "A " + string(runType == "Vibration" ? "frequency" : "geometry and frequency") +
-              " run on " + StringConverter::toString((int)atoms) + " atoms with " +
+              " run" + (raman ? " with Raman activities" : "") + " on " +
+              StringConverter::toString((int)atoms) + " atoms with " +
               StringConverter::toString(nbf) + " basis functions takes roughly " +
               roughRange(desktop, 2.0 * desktop) +
               " on a typical laptop (the shorter time is for an 8-core desktop).";
@@ -1284,13 +1290,21 @@ bool WxLauncher::confirmQmSize()
     Fragment *frag = calc->fragment();
     TGBSConfig *config = calc->gbsConfig();
     TTheory *theory = calc->theory();
+    bool raman = false;
+    GUIValues *details = calc->guiparams();
+    if (details != NULL)
+    {
+        GUIValue *tick = details->get("ES.Runtype.Vibration.UseRaman");
+        raman = tick != NULL && tick->getValueAsString() == "1";
+        delete details;
+    }
     if (frag != NULL && config != NULL && theory != NULL)
     {
         TagCountMap *tags = frag->tagCountsSTL();
         if (tags != NULL)
         {
             msg = qmSizeWarning(calc->runtype().name(), theory->category() == "DFT",
-                                frag->numAtoms(), config->num_functions(*tags));
+                                frag->numAtoms(), config->num_functions(*tags), raman);
             delete tags;
         }
     }
