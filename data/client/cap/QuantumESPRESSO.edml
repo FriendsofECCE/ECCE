@@ -76,6 +76,7 @@
 
 <appdescriptor>
 <SupportsDummyAtoms>false</SupportsDummyAtoms>
+<Periodic>true</Periodic>
 
 <!--
   Enables Geometry and Partial Charge sub dialogs if runtype is

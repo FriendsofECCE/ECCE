@@ -85,7 +85,8 @@ The calculation appears under the project, in the run state **Created**.
    the single atom with no open bonds.
 3. Choose **Mode > Atom** (Ctrl+5) and click once in the empty 3D view. One
    silicon atom appears. The status line of the view says `1 atoms`.
-4. Choose **Tools > Periodic Builder**. The panel opens in the right-hand
+4. Choose **Tools > Periodic Builder** unless the panel is already shown: a
+   Quantum ESPRESSO calculation opens with it. The panel is in the right-hand
    column. Click **Create Lattice**.
 5. Set the cell **before** you generate atoms. **Cell Type:** is `Lattice`.
    Enter `5.43` in **a:**, **b:** and **c:**, pressing Enter after each, and

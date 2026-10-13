@@ -3735,6 +3735,7 @@ void Builder::OnToolOrientClick( wxCommandEvent& event )
 void Builder::OnToolMenuClick( wxCommandEvent& event )
 {
   wxAuiPaneInfo &pane = p_mgr.GetPane(GetMenuBar()->GetLabel(event.GetId()));
+  if (pane.name == NAME_TOOL_PBC) p_pbcAutoShown = false;
   pane.Show(event.IsChecked());
   if (!event.IsChecked()) {
     p_tabHidden.erase(pane.window);
@@ -3881,6 +3882,7 @@ void Builder::OnPaneClose(wxAuiManagerEvent& event)
   } else {
     wxString name(event.pane->name);
     wxWindow *win = event.pane->window;
+    if (name == NAME_TOOL_PBC) p_pbcAutoShown = false;
     unfoldPane(*event.pane);
     p_tabHidden.erase(win);
     if (p_detail == win) {
@@ -4922,7 +4924,9 @@ void Builder::savePaneLayout(const wxString& layoutName_)
     if (pane.name == NAME_COLUMN_TOGGLE) {
       continue;
     }
-    wxString info = paneInfoForSave(pane);
+    wxAuiPaneInfo saved(pane);
+    if (pane.name == NAME_TOOL_PBC && p_pbcAutoShown) saved.Hide();
+    wxString info = paneInfoForSave(saved);
     if (dynamic_cast<PropertyPanel*>(pane.window)) {
       // prop panel layouts are save elsewhere
       p_propertyPanelInfo[pane.window] = info;
@@ -5088,13 +5092,40 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
      symmetryShown = true;
   }
 
+  //  A crystal code's calculation opens with the Periodic Builder, which
+  //  holds the cell, since a molecule view cannot define one.  It is only
+  //  shown, not made: no cell is invented for a structure without one.
+  bool periodicShown = false;
+  if (layoutName == NAME_LAYOUT_DEFAULT && !isReadOnly() &&
+      p_mgr.GetPane(NAME_TOOL_PBC).IsOk()) {
+    ChemistryTask *task = dynamic_cast<ChemistryTask*>(p_calculation);
+    const JCode *code = task ? task->application() : 0;
+    const bool periodic = code && code->isPeriodic();
+    if (!periodic && p_pbcAutoShown) {
+      p_mgr.GetPane(NAME_TOOL_PBC).Show(false);
+      GetMenuBar()->Check(
+          GetMenuBar()->FindMenuItem("Tools", NAME_TOOL_PBC), false);
+      p_pbcAutoShown = false;
+      periodicShown = true;
+    } else if (periodic && !p_mgr.GetPane(NAME_TOOL_PBC).IsShown()) {
+      p_pbcAutoShown = true;
+      p_mgr.GetPane(NAME_TOOL_PBC).Show(true);
+      WxVizTool *panel =
+          dynamic_cast<WxVizTool*>(p_mgr.GetPane(NAME_TOOL_PBC).window);
+      if (panel) panel->refresh();
+      GetMenuBar()->Check(
+          GetMenuBar()->FindMenuItem("Tools", NAME_TOOL_PBC), true);
+      periodicShown = true;
+    }
+  }
+
   if (isColumnMode()) {
     applyGeometry();
     refreshColumn();
     collapseLog();
   }
 
-  if (update || symmetryShown) {
+  if (update || symmetryShown || periodicShown) {
     updatePanes();
     debugPrintPaneSizes(p_mgr);
   }

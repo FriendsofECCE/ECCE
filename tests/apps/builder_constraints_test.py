@@ -283,6 +283,22 @@ def placeCase(display, empty, nh3, qe):
           "a code without dummy atoms refuses", run_tests._tail(log, 20))
 
 
+def periodicCase(display, qe, nw):
+    """A periodic code's calculation opens with the Periodic Builder (#300)."""
+    log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT", [
+        "wait 4000", "info", "quit"],
+        "file://" + qe + "/")
+    tail = run_tests._tail(log, 25)
+    got = re.findall(r"BUILDER: periodic_builder=(\w+)", log)
+    check(got and got[0] == "shown", "Quantum ESPRESSO opens with the Periodic Builder: %s" % got, tail)
+    lat = re.findall(r"BUILDER: atoms=\d+ lattice=(\w+)", log)
+    check(lat and lat[0] == "no", "and no cell is invented: %s" % lat, tail)
+    log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT", [
+        "wait 4000", "info", "quit"], "file://" + nw + "/")
+    got = re.findall(r"BUILDER: periodic_builder=(\w+)", log)
+    check(got == ["hidden"], "NWChem opens without it: %s" % got, run_tests._tail(log, 25))
+
+
 def main():
     def checkApp(display, name, results, verbose=False):
         folder = os.path.join(fixture.stateDir(), "builderconstraints-localdata")
@@ -306,6 +322,7 @@ def main():
             empty = os.path.join(base, "empty-nw")
             placeCase(display, empty, energy, os.path.join(base, "nh3-qe"))
             dummyCase(display, "file://" + empty + "/", empty)
+            periodicCase(display, os.path.join(base, "nh3-qe"), energy)
             unsupportedCase(display, "file://" + os.path.join(base, "nh3-qe") + "/")
             geomCase(display, "file://" + geom + "/")
             deckCase(display, "file://" + geom + "/", geom, True, "Geometry run")

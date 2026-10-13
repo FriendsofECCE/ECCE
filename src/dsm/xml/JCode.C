@@ -781,6 +781,13 @@ bool JCode::supportsDummyAtoms(void) const
   return supported;
 }
 
+bool JCode::isPeriodic(void) const
+{
+  bool periodic = false;
+  get_bool("Periodic", periodic);
+  return periodic;
+}
+
 bool JCode::getBasisSetQuickListSupported(void) const
 {
   bool supportedFlag = true;

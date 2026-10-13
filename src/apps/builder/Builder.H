@@ -639,6 +639,11 @@ class Builder: public BuilderGUI,
       //  See the comment on OnChildFocus() in Builder.C (#111).
       int p_panelBuildDepth;
 
+      //  The Periodic Builder was opened by the code, not the user: it is
+      //  not saved as shown, so a non-periodic calculation opened next
+      //  does not inherit it.
+      bool p_pbcAutoShown = false;
+
       PanelMode p_panelMode = PANELS_DETAIL;
       int p_columnTab = 0;               // 0 Structure, 1 Properties
       bool p_columnTabChosen = false;    // the user picked it, this calc

@@ -117,6 +117,8 @@ class JCode
   bool supportsMODiagram(void) const;
   /// Element SupportsDummyAtoms; true unless the code says false.
   bool supportsDummyAtoms(void) const;
+  /// Element Periodic; false unless the code says true (crystal codes).
+  bool isPeriodic(void) const;
   bool theoryNeedsBasis(const TTheory& theory) const;
   bool theoryCategoryNeedsBasis(const string& theorycat) const;
 
