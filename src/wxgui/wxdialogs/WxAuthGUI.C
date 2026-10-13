@@ -146,7 +146,12 @@ void WxAuthGUI::CreateControls()
       logoImage.Rescale(114, 64, wxIMAGE_QUALITY_HIGH);
     }
     wxStaticBitmap* logo = new wxStaticBitmap( itemDialog1, wxID_STATIC, wxBitmap(logoImage), wxDefaultPosition, wxDefaultSize, 0 );
-    mainRow->Add(logo, wxSizerFlags().Top().Border(wxRIGHT, 3*gap));
+    wxBoxSizer* brand = new wxBoxSizer(wxVERTICAL);
+    brand->Add(logo, wxSizerFlags().CenterHorizontal());
+    wxStaticText* name = new wxStaticText(itemDialog1, wxID_STATIC, wxT("ECCE"));
+    name->SetFont(name->GetFont().Bold().Scaled(1.4f));
+    brand->Add(name, wxSizerFlags().CenterHorizontal().Border(wxTOP, gap));
+    mainRow->Add(brand, wxSizerFlags().Top().Border(wxRIGHT, 3*gap));
 
     wxBoxSizer* column = new wxBoxSizer(wxVERTICAL);
     mainRow->Add(column, 1, wxEXPAND, 0);
