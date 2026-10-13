@@ -173,6 +173,89 @@ def runCase(display, results, case, args, timeout, work):
         print("ok    %s: cos %s" % (what, got[-1][1]))
 
 
+#  Arrow start distance from its atom, per style (#312): the sphere radius
+#  as drawn, 0 where the atom has no sphere.  Scene lines per phase.
+STYLE_PHASES = (
+    ("wire-before", "Wireframe", True),
+    ("bs-after", "Ball And Stick", False),
+    ("wire-after", "Wireframe", False),
+    ("stick-after", "Stick", False),
+)
+TOL = 0.01
+
+
+def runStyleCase(display, results, args, timeout, work):
+    """Arrows start on the drawn sphere (centre in Wireframe) whether the
+    style is chosen before the vectors are shown or after (#312)."""
+    what = "vibration arrow starts per style"
+    calc, nmodes = makeCalc("styles", "ethanol_sym_freq", "Vibration", work,
+                            True)
+    url, error = fixture.install("orca-styles", source_dir=calc)
+    if error:
+        results.fail(what, "could not install: " + error)
+        return
+    lines = ["style Ball And Stick", "vibfocus"]
+    for tag, style, before in STYLE_PHASES:
+        if before:
+            lines += ["style " + style, "vibmode %d" % (nmodes - 1),
+                      "vibvector"]
+        else:
+            lines += ["style " + style]
+        lines += ["vibstarts " + tag, "offscreen vib-%s 500" % tag]
+    lines += ["style Ball And Stick", "vibmode %d" % (nmodes - 1),
+              "vibvector", "vibstarts bs-before", "offscreen vib-bs-before 500", ""]
+    script = os.path.join(work, "styles.scene")
+    with open(script, "w") as handle:
+        handle.write("\n".join(lines))
+    try:
+        result = apps.run(display, "builder",
+                          args=args + ("-context", url), windowTimeout=120,
+                          settle=timeout,
+                          env={"ECCE_VIEWER_SCENE": script,
+                               "ECCE_VIEWER_SCENE_OUT": work,
+                               "ECCE_REALUSER": fixture.USER})
+    finally:
+        fixture.remove("orca-styles")
+    log = result.log or ""
+    keep = os.environ.get("VIB_SHOTS_DIR")
+    if keep:
+        os.makedirs(keep, exist_ok=True)
+        open(os.path.join(keep, "builder.log"), "w").write(log)
+        for name in os.listdir(work):
+            if name.endswith((".png", ".ppm", ".txt")):
+                shutil.copy(os.path.join(work, name), keep)
+    rows = re.findall(r"VIBSTART: (\S+) atom=(\d+) (\S+) start=([\d.]+) "
+                      r"sphere=([\d.]+) which=\S+ len=([\d.]+) head=([\d.]+)", log)
+    tail = "\n".join("      | " + l for l in log.splitlines()[-25:])
+    if result.crashed or not rows:
+        results.fail(what, "no VIBSTART lines or crash\n" + tail)
+        return
+    for tag in [t for t, _, _ in STYLE_PHASES] + ["bs-before"]:
+        mine = [r for r in rows if r[0] == tag]
+        if not mine:
+            results.fail(what + " " + tag, "no arrows reported\n" + tail)
+            continue
+        wire = tag.startswith("wire")
+        bad = [r for r in mine
+               if abs(float(r[3]) - (0.0 if wire else float(r[4]))) > TOL
+               or (not wire and tag != "stick-after" and float(r[4]) < 0.05)]
+        # An arrowhead wider than half its arrow is a disc seen end-on.
+        discs = [r for r in mine
+                 if float(r[6]) > 0.5 * 1.075 * float(r[5]) + 1e-4]
+        if discs:
+            results.fail(what + " " + tag, "arrowhead disc: " + ", ".join(
+                "%s%s head=%s len=%s" % (r[2], r[1], r[6], r[5])
+                for r in discs[:6]))
+        if bad:
+            results.fail(what + " " + tag,
+                         "arrow start is not at the expected radius: " +
+                         ", ".join("%s%s start=%s sphere=%s" % (r[2], r[1],
+                                                                r[3], r[4])
+                                   for r in bad[:6]))
+        else:
+            print("ok    %s %s: %d arrows" % (what, tag, len(mine)))
+
+
 def check(display, results, timeout=120):
     work = os.path.join(fixture.stateHome(), "vib-frame")
     shutil.rmtree(work, ignore_errors=True)
@@ -188,6 +271,8 @@ def check(display, results, timeout=120):
         for case in CASES:
             results.checks += 1
             runCase(display, results, case, args, timeout, work)
+        results.checks += 1
+        runStyleCase(display, results, args, timeout, work)
     finally:
         shutil.rmtree(work, ignore_errors=True)
 

@@ -47,14 +47,18 @@ void VRVector::direction(double x, double y ,double z)
       const float hl = (p_headLength < 0.5f*tip) ? p_headLength : 0.5f*tip;
       const float sl = tip - hl;
       const bool none = (norm <= 0.f);
+      // Below two head lengths the radii shrink with the arrow: otherwise an
+      // atom that barely moves gets a full-width disc, visible wherever no
+      // sphere covers it (Wireframe).
+      const float thin = (tip < 2.f*p_headLength) ? tip/(2.f*p_headLength) : 1.f;
       transf->scaleFactor.setValue(1,1,1);
       scal->scaleFactor.setValue(1,1,1);
       shaftTrans->translation.setValue(0, sl/2, 0);
       shaft->height = sl;
-      shaft->radius = none ? 0.f : p_shaftRadius;
+      shaft->radius = none ? 0.f : p_shaftRadius*thin;
       headTrans->translation.setValue(0, sl/2 + hl/2, 0);
       head->height = hl;
-      head->bottomRadius = none ? 0.f : p_headRadius;
+      head->bottomRadius = none ? 0.f : p_headRadius*thin;
    } else {
       transf->scaleFactor.setValue(norm,norm,norm);
    }
@@ -301,4 +305,9 @@ const double* VRVector::getDirection()
 const double* VRVector::getPosition()
 {
   return p_position;
+}
+
+float VRVector::headRadius() const
+{
+   return head->bottomRadius.getValue();
 }

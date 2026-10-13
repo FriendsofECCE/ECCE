@@ -386,6 +386,26 @@ bool Builder::nmodeTestCommand(SceneScript& s, const vector<string>& w)
             sg->getNMVecRoot()->getNumChildren(), nm->modesApply() ? 1 : 0);
     return true;
   }
+  //  "vibstarts": per arrow, the distance from its start to its atom's
+  //  centre and the sphere radius the atom is drawn with (#312).
+  if (c == "vibstarts") {
+    const string tag = w.size() > 1 ? w[1] : "";
+    SGContainer *sg = getSG();
+    SGFragment *frag = sg->getFragment();
+    SoSwitch *root = sg->getNMVecRoot();
+    for (int k = 0; k < root->getNumChildren() && k < (int)frag->numAtoms(); k++) {
+      VRVector *v = dynamic_cast<VRVector*>(root->getChild(k));
+      if (!v) continue;
+      const double *p = v->getPosition();
+      const double *x = frag->atomRef(k)->coordinates();
+      double r = sqrt((p[0]-x[0])*(p[0]-x[0]) + (p[1]-x[1])*(p[1]-x[1]) +
+                      (p[2]-x[2])*(p[2]-x[2]));
+      fprintf(stderr, "VIBSTART: %s atom=%d %s start=%.4f sphere=%.4f which=%d len=%.6f head=%.6f\n", tag.c_str(), k,
+              frag->atomRef(k)->atomicSymbol().c_str(), r,
+              sg->displayedSphereRadius(k), (int)root->whichChild.getValue(), sqrt(v->getDirection()[0]*v->getDirection()[0]+v->getDirection()[1]*v->getDirection()[1]+v->getDirection()[2]*v->getDirection()[2]), v->headRadius());
+    }
+    return true;
+  }
   //  "vibframe": whether the arrows sit in the frame of the drawn atoms.
   //  The hydrogen with the longest arrow in a stretch moves along its own
   //  X-H bond, so cos(arrow, bond) is 1 when atoms and modes share a frame

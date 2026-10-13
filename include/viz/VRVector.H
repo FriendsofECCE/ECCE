@@ -32,6 +32,8 @@ class  VRVector : public SoGroup {
     // Draw the arrow a second time, after everything else's depth test, at
     // 40 % opacity, so the part inside an atom or bond still shows.
     void showThroughMolecule();
+    // Radius of the arrowhead as drawn (for tests).
+    float headRadius() const;
     const double* getPosition(); 
     const double* getDirection(); 
     SoTransform* getTransform();
