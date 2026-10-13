@@ -2535,7 +2535,7 @@ if(PYTHON3_EXECUTABLE)
                    ${_pf}/nwchem/h2o_opt_stdout.out=NWChem
                    ${_pf}/gaussian-16/co_freq.log=Gaussian-16
                    ${_pf}/orca/h2o_sym.out=ORCA
-                   ${_pf}/mopac/ch4_opt.out=-
+                   ${_pf}/mopac/ch4_opt.out=MOPAC
                    ${_pf}/gromacs/water_md.log=-
                    ${_pf}/qe/h2o_gamma.pwout=-)
   set_tests_properties(importcode PROPERTIES ENVIRONMENT

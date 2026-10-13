@@ -97,10 +97,21 @@ open(ehome + "/siteconfig/DataServers", "w").write(
     "<Desc>Local</Desc></EcceServer></EcceData>\n")
 
 
+# First start checks that the server's broker answers (a TCP connect); this
+# test is about the data server's certificate, so a bare listener stands in.
+import socket as _socket
+_broker = _socket.socket()
+_broker.bind(("127.0.0.1", 0))
+_broker.listen(16)
+BROKER_PORT = _broker.getsockname()[1]
+
+
 def connect(name, port, **extra):
     user = f"{scratch}/{name}"
     os.makedirs(user, exist_ok=True)
-    env = dict(os.environ, ECCE_HOME=ehome, ECCE_REALUSERHOME=user, **extra)
+    env = dict(os.environ, ECCE_HOME=ehome, ECCE_REALUSERHOME=user,
+               ECCE_BROKER_TLS_PORT=str(BROKER_PORT),
+               ECCE_BROKER_PORT=str(BROKER_PORT), **extra)
     for v in ("SSL_CERT_FILE", "SSL_CERT_DIR"):
         if v not in extra:
             env.pop(v, None)
