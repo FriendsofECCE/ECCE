@@ -94,13 +94,6 @@ mkdir -p "$DIR"
 rand() { LC_ALL=C od -An -N"$1" -tx1 /dev/urandom | LC_ALL=C tr -d ' \n'; }
 BUSER="s$(rand 4)"
 BPASS="$(rand 16)"
-port=""
-for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
-  c=$((20000 + $(od -An -N2 -tu2 /dev/urandom | tr -d ' ') % 40000))
-  port_open "$c" || { port="$c"; break; }
-done
-[ -n "$port" ] || { echo "ecce-broker-win: no free port found" >&2; exit 1; }
-
 "$PASSWD" -b -c "$(native "$DIR/passwd")" "$BUSER" "$BPASS" >/dev/null 2>&1 ||
   { echo "ecce-broker-win: mosquitto_passwd failed" >&2; exit 1; }
 # The same rules as a central broker (packaging/gateway/ecce-mosquitto.acl).
@@ -108,7 +101,18 @@ cat > "$DIR/acl" <<ACL
 pattern readwrite ecce/%u/#
 pattern read ecce/+/ecce_machreg_changed
 ACL
-cat > "$DIR/mosquitto.conf" <<CONF
+# A cold first start (virus scanning of freshly unpacked files) or a port in
+# a range Windows reserves can keep the broker from coming up; try again on
+# another port, and show the broker's own log before giving up.
+started=""
+for attempt in 1 2 3; do
+  port=""
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    c=$((20000 + $(od -An -N2 -tu2 /dev/urandom | tr -d ' ') % 40000))
+    port_open "$c" || { port="$c"; break; }
+  done
+  [ -n "$port" ] || { echo "ecce-broker-win: no free port found" >&2; exit 1; }
+  cat > "$DIR/mosquitto.conf" <<CONF
 per_listener_settings true
 persistence false
 log_dest file $(native "$DIR/mosquitto.log")
@@ -118,14 +122,21 @@ password_file $(native "$DIR/passwd")
 acl_file $(native "$DIR/acl")
 CONF
 
-# No setsid: on Windows it opens a console window of its own.
-nohup "$MOSQUITTO" -c "$(native "$DIR/mosquitto.conf")" \
-  </dev/null >"$DIR/mosquitto.out" 2>&1 &
-echo $! > "$PIDFILE"
-i=0
-while [ $i -lt 40 ] && ! port_open "$port"; do i=$((i + 1)); sleep 0.25; done
-if ! port_open "$port"; then
-  echo "ecce-broker-win: broker did not come up within 10s -- see $DIR/mosquitto.log and mosquitto.out" >&2
+  # No setsid: on Windows it opens a console window of its own.
+  nohup "$MOSQUITTO" -c "$(native "$DIR/mosquitto.conf")" \
+    </dev/null >"$DIR/mosquitto.out" 2>&1 &
+  echo $! > "$PIDFILE"
+  i=0
+  while [ $i -lt 80 ] && ! port_open "$port"; do i=$((i + 1)); sleep 0.25; done
+  if port_open "$port"; then started=1; break; fi
+  echo "ecce-broker-win: broker did not come up on port $port (attempt $attempt of 3)" >&2
+  pid="$(cat "$PIDFILE" 2>/dev/null)"
+  [ -n "$pid" ] && kill "$pid" 2>/dev/null
+  sleep 1
+done
+if [ -z "$started" ]; then
+  echo "ecce-broker-win: broker did not start; its log:" >&2
+  cat "$DIR/mosquitto.log" "$DIR/mosquitto.out" >&2 2>/dev/null
   stop
   exit 1
 fi
