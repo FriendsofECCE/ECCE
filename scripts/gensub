@@ -1164,8 +1164,10 @@ sub gaussianScript()
   # We still need to check the environment to allow the user
   # to override the path like we did with the previous implementation
   $retval .= &pathVar($tag, $exe, $envOverride);
+  # Gaussian for Windows separates folders in GAUSS_EXEDIR with ';'.
+  $retval .= "case \"\$(uname -s)\" in MINGW*|MSYS*|CYGWIN*) gsep=';' ;; *) gsep=':' ;; esac\n";
   $retval .= "if [ -n \"\${GAUSS_EXEDIR+set}\" ]; then\n";
-  $retval .= "  export GAUSS_EXEDIR=\"\${GAUSS_EXEDIR}:\${$tag%/*}\"\n";
+  $retval .= "  export GAUSS_EXEDIR=\"\${GAUSS_EXEDIR}\${gsep}\${$tag%/*}\"\n";
   $retval .= "else\n";
   $retval .= "  export GAUSS_EXEDIR=\"\${$tag%/*}\"\n";
   $retval .= "fi\n";
