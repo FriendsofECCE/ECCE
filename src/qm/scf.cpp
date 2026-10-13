@@ -131,7 +131,10 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
   R.e_nuc = mol.nuclear_repulsion();
 
   OneElectron oe = one_electron(basis);
-  const Mat H = oe.T + oe.V, &S = oe.S;
+  Mat H = oe.T + oe.V;
+  const Mat& S = oe.S;
+  for (int c = 0; c < 3; ++c)
+    if (opt.field[c] != 0.0) H += opt.field[c] * oe.dip[c];  // electron: energy +F.r
   R.S = S;
   EriStore eri(basis);
   const Mat X = inv_sqrt(S);

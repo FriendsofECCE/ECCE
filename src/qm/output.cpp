@@ -1,4 +1,5 @@
 #include "output.hpp"
+#include "polar.hpp"
 #include <cmath>
 #include <cstdio>
 #include <iomanip>
@@ -148,6 +149,16 @@ static void write_frequency_blocks(std::ostream& os, const FrequencyOutput& f, c
     os << "\n";
   }
   os << "end normal_modes\n";
+  if (!v.raman.empty()) {
+    os << "begin raman  # index activity(A^4/amu) depolarization_ratio, rows as in vibrations\n";
+    os << std::setprecision(6);
+    for (int i = 0; i < n; ++i) {
+      const bool real = i >= ntr;
+      os << i + 1 << " " << (real ? v.raman[i - ntr] : 0.0) << " " << (real ? v.depol[i - ntr] : 0.0) << "\n";
+    }
+    os << "end raman\n";
+    os << std::setprecision(12);
+  }
   const Thermo& t = f.thermo;
   os << std::setprecision(12);
   os << "thermo_temperature " << t.temperature << "\nthermo_pressure_atm " << t.pressure << "\n";
@@ -164,7 +175,7 @@ static void write_frequency_blocks(std::ostream& os, const FrequencyOutput& f, c
 
 void write_text_output(std::ostream& os, const Input& in, const Basis& b, const ScfResult& r, double seconds,
                        const OptResult* opt, const FrequencyOutput* freq, const ChargeSets* charges,
-                       const Molecule* full_mol) {
+                       const Molecule* full_mol, const PolarOutput* polar) {
   const bool dft = in.scf.method != "hf";
   const bool restricted = r.reference != Reference::Unrestricted;
   const Molecule& mol = b.molecule();
@@ -255,6 +266,16 @@ void write_text_output(std::ostream& os, const Input& in, const Basis& b, const 
   else {
     spin_block("alpha", r.eps_a, r.occ_a, r.occ_a, r.C_a, false);
     spin_block("beta", r.eps_b, r.occ_b, r.occ_b, r.C_b, false);
+  }
+  if (polar && polar->alpha.rows() == 3) {
+    const PolarInvariants pi = polarizability_invariants(polar->alpha);
+    os << "polarizability_field_step " << polar->step << "\n";
+    os << "polarizability_isotropic " << pi.iso << "\n";
+    os << "polarizability_anisotropy " << pi.aniso << "\n";
+    os << "begin polarizability  # rows xx xy xz / yx yy yz / zx zy zz (a.u., bohr^3)\n";
+    for (int i = 0; i < 3; ++i)
+      os << polar->alpha(i, 0) << " " << polar->alpha(i, 1) << " " << polar->alpha(i, 2) << "\n";
+    os << "end polarizability\n";
   }
   if (freq) write_frequency_blocks(os, *freq, mol, r.energy);
   os << "end_of_output\n";

@@ -257,6 +257,50 @@ did not converge). Further keywords: `hessian_step` (bohr, default 0.005),
   open-shell against the curvature of its own energies, since ORCA has no
   ROHF Hessian).
 
+## Polarisability and Raman activities (#248, stages 1 and 2)
+
+`polarizability true` (any run type) adds the static dipole polarisability of
+the final geometry; `raman true` (`frequency`, `optfreq`) adds Raman
+activities and depolarisation ratios. `field_step` (a.u., default 0.001).
+
+* Field (`scf.cpp`, `polar.cpp`): `ScfOptions::field` adds `F.r` to the core
+  Hamiltonian (electron energy +F.r, dipole integrals about the coordinate
+  origin, the same origin as the printed dipole). `static_polarizability`
+  runs six SCFs, +-F along x, y, z, started from the field-free orbitals and
+  converged to 1e-8 / 1e-11 like the displaced points of a frequency run;
+  `alpha_ij = [mu_i(+F e_j) - mu_i(-F e_j)] / 2F`, symmetrised. Works for RHF,
+  UHF, ROHF and every functional (the XC potential is the ordinary one, only the
+  density changes). The central difference removes the hyperpolarisability
+  term; the remaining error is of order gamma F^2 / 6 (about 1e-4 bohr^3 for
+  water).
+* Raman (`vibration.cpp`): `finite_difference_derivatives` also differences
+  `PointEval::alpha` at the 6N displaced geometries; `analyse_vibrations`
+  projects d(alpha)/dx on each mode's `q/sqrt(m)` (bohr^2/sqrt(amu), then
+  angstrom^2/sqrt(amu)) and forms a' (mean) and g' (anisotropy, symmetrised
+  tensor): S = 45 a'^2 + 7 g'^2 in angstrom^4/amu, depolarisation ratio
+  3 g'^2 / (45 a'^2 + 4 g'^2), ORCA's definitions. Cost: seven SCFs per
+  displaced geometry instead of one SCF and a gradient (water B3LYP/6-31G*,
+  quiet 8-core machine: 4.7 s frequencies, 30 s with Raman).
+* Output: `polarizability_isotropic`, `polarizability_anisotropy`,
+  `begin polarizability` (3x3, bohr^3), and `begin raman` (index, activity,
+  depolarisation, all 3N rows like `vibrations`, translations and rotations 0).
+  `ecceqm.desc` reads them into POLARIZ (XX XY XZ YY YZ ZZ, the ellipsoid in
+  the Builder), VIBRAM and VIBRAMDEPOL.
+* ECCE: Runtype Details (`ecceqmruntype.py`, Vibration and GeoVib) has a
+  "Raman activities" tick, `ES.Runtype.Vibration.UseRaman`, which
+  `ai.ecceqm` writes as `raman true`; `verifyinput` knows the keywords; the
+  Launcher's size warning counts Raman as seven times the frequency run.
+* Tests: `tests/qm/raman_test.py` (ctest `qm_raman_quick`, `qm_raman`) against
+  `polar_oracle.json` (ORCA 6.1.1 `%elprop Polar 1`, and NWChem 7.2.3 response
+  module) and `raman_oracle.json` (ORCA Freq at HF, NumFreq at B3LYP), made by
+  `gen_raman_oracle.py`; `qm_raman_deck` for the deck. Measured: polarisability
+  within 9e-4 bohr^3 of ORCA (CO B3LYP; the others 3e-4 or better) and 1e-4 of
+  NWChem; activities of water, ammonia and methane within 9e-4 relative,
+  depolarisation within 2e-4. Degenerate modes are compared as groups (the
+  split inside a degenerate set is arbitrary). NWChem's `task scf raman` stops
+  in its response driver on these inputs, so Raman has no NWChem reference.
+  O2 UHF polarisability agrees with ORCA to 1e-4 bohr^3; ORCA has no ROHF one.
+
 ## Output format (version 1)
 
 Line oriented text, key value pairs, then blocks

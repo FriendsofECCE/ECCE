@@ -106,6 +106,12 @@ Input parse_input(std::istream& in) {
     else if (k == "temperature") r.temperature = std::stod(rest);
     else if (k == "pressure") r.pressure = std::stod(rest);
     else if (k == "symmetry_number") r.symmetry_number = std::stoi(rest);
+    else if (k == "polarizability" || k == "polarisability" || k == "raman") {
+      std::string v = lower(rest);
+      const bool on = (v == "true" || v == "yes" || v == "on" || v == "1");
+      (k == "raman" ? r.raman : r.polarizability) = on;
+    }
+    else if (k == "field_step") r.field_step = std::stod(rest);
     else if (k == "maxsteps") r.opt.max_steps = std::stoi(rest);
     else if (k == "opt_conv") r.opt.set_convergence(lower(rest));
     else if (k == "charges") {
@@ -165,6 +171,8 @@ Input parse_input(std::istream& in) {
     }
     r.opt.constraints.push_back(g);
   }
+  if (r.raman && !does_frequencies(r.runtype)) throw Error("raman needs runtype frequency or optfreq");
+  if (r.field_step <= 0) throw Error("field_step must be positive");
   if (does_frequencies(r.runtype) && does_optimize(r.runtype) && !r.opt.constraints.empty())
     throw Error("optfreq with constraints: frequencies at a constrained geometry are not at a minimum; "
                 "run runtype optimize with the constraints and a separate frequency run without them");

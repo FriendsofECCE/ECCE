@@ -17,6 +17,7 @@ constexpr double kElemCharge = 1.602176634e-19;
 constexpr double kBoltz = 1.380649e-23;            // J/K
 constexpr double kPlanck = 6.62607015e-34;         // J s
 constexpr double kAtm = 101325.0;                  // Pa
+constexpr double kBohrA = 0.529177210903;          // bohr in angstrom
 }  // namespace
 
 double isotope_mass(int Z) {
@@ -37,6 +38,8 @@ Derivatives finite_difference_derivatives(const Molecule& mol, double step,
   Derivatives d;
   d.hessian = Mat::Zero(n, n);
   d.dmu = Mat::Zero(3, n);
+  d.dalpha = Mat::Zero(9, n);
+  bool have_alpha = false;
   int done = 0;
   for (int i = 0; i < n; ++i) {
     PointEval pe[2];
@@ -48,7 +51,12 @@ Derivatives finite_difference_derivatives(const Molecule& mol, double step,
     }
     for (int j = 0; j < n; ++j) d.hessian(j, i) = (pe[0].grad[j] - pe[1].grad[j]) / (2 * step);
     for (int c = 0; c < 3; ++c) d.dmu(c, i) = (pe[0].dipole[c] - pe[1].dipole[c]) / (2 * step);
+    for (int c = 0; c < 9; ++c) {
+      d.dalpha(c, i) = (pe[0].alpha[c] - pe[1].alpha[c]) / (2 * step);
+      if (pe[0].alpha[c] != 0.0 || pe[1].alpha[c] != 0.0) have_alpha = true;
+    }
   }
+  if (!have_alpha) d.dalpha.resize(0, 0);
   d.hessian = 0.5 * (d.hessian + d.hessian.transpose()).eval();
   return d;
 }
@@ -164,6 +172,19 @@ VibResult analyse_vibrations(const Molecule& mol, const Derivatives& d) {
     // integrated absorption, the SI form of N_A pi / (3 c^2) |dmu/dQ|^2
     res.ir.push_back(kNA / (12.0 * kEps0 * kC * kC) * a2 * conv * conv / 1000.0);
     res.modes.col(m) = dx / dx.norm();
+    if (d.dalpha.cols() == n) {
+      // d(alpha)/dQ in bohr^2/sqrt(amu), then A^2/sqrt(amu)
+      Eigen::Matrix3d da;
+      for (int ij = 0; ij < 9; ++ij) da(ij / 3, ij % 3) = d.dalpha.row(ij).dot(dx.transpose()) * kBohrA * kBohrA;
+      const double mean = da.trace() / 3.0;
+      const double g2 = 0.5 * (std::pow(da(0, 0) - da(1, 1), 2) + std::pow(da(1, 1) - da(2, 2), 2) +
+                               std::pow(da(2, 2) - da(0, 0), 2)) +
+                        3.0 * (std::pow(0.5 * (da(0, 1) + da(1, 0)), 2) + std::pow(0.5 * (da(0, 2) + da(2, 0)), 2) +
+                               std::pow(0.5 * (da(1, 2) + da(2, 1)), 2));
+      res.raman.push_back(45.0 * mean * mean + 7.0 * g2);
+      const double den = 45.0 * mean * mean + 4.0 * g2;
+      res.depol.push_back(den > 0 ? 3.0 * g2 / den : 0.0);
+    }
   }
   return res;
 }

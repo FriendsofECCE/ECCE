@@ -20,12 +20,19 @@ struct FrequencyOutput {
   double max_gradient = 0;  // at the geometry the Hessian belongs to, hartree/bohr
 };
 
+// Static polarisability tensor of the final geometry (bohr^3).
+struct PolarOutput {
+  Mat alpha;
+  double step = 0;  // field step, a.u.
+};
+
 // opt: set for runtype optimize, adds the convergence summary.  full: the
 // molecule with its dummy atoms (null: none); the per-atom blocks then keep
 // every atom of it, a dummy with charge 0, so atom numbers match ECCE's.
 void write_text_output(std::ostream& os, const Input& in, const Basis& b, const ScfResult& r, double seconds,
                        const OptResult* opt = nullptr, const FrequencyOutput* freq = nullptr,
-                       const ChargeSets* charges = nullptr, const Molecule* full = nullptr);
+                       const ChargeSets* charges = nullptr, const Molecule* full = nullptr,
+                       const PolarOutput* polar = nullptr);
 
 // One geometry with its energy and gradient, written as soon as it is known
 // and before the final output, so a running job shows its trace.

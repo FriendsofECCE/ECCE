@@ -29,6 +29,9 @@ struct ScfOptions {
   int grid_angular = 590;
   bool grid_prune = true;         // thin the angular grid near the nuclei
   bool verbose = false;
+  // Uniform electric field (a.u.): H += F.r.  Used by the finite-field
+  // polarisability; the dipole printed is unchanged in definition.
+  double field[3] = {0, 0, 0};
   std::function<void(const ScfCycle&)> on_cycle;  // called after every cycle
 };
 

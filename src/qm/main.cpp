@@ -13,6 +13,7 @@
 #include "gradient.hpp"
 #include "input.hpp"
 #include "output.hpp"
+#include "polar.hpp"
 #include "scf.hpp"
 #include "vibration.hpp"
 
@@ -79,6 +80,16 @@ int main(int argc, char** argv) {
       if (in.charges.any() && r.converged) cs.reset(new qm::ChargeSets(qm::compute_charges(*basis, at, r, in.charges)));
       return cs;
     };
+    // Static polarisability of the geometry the last SCF saw.
+    auto polar_output = [&]() {
+      std::unique_ptr<qm::PolarOutput> po;
+      if ((in.polarizability || in.raman) && r.converged) {
+        po.reset(new qm::PolarOutput);
+        po->step = in.field_step;
+        po->alpha = qm::static_polarizability(*basis, at, in.scf, r, in.field_step);
+      }
+      return po;
+    };
     auto same = [](const qm::Molecule& a, const qm::Molecule& b) {
       for (size_t i = 0; i < a.atoms.size(); ++i)
         for (int k = 0; k < 3; ++k)
@@ -109,6 +120,10 @@ int main(int argc, char** argv) {
         qm::PointEval pe;
         pe.grad = qm::scf_gradient(b, m, so, rr);
         for (int k = 0; k < 3; ++k) pe.dipole[k] = rr.dipole[k];
+        if (in.raman) {
+          const qm::Mat a = qm::static_polarizability(b, m, so, rr, in.field_step);
+          for (int ij = 0; ij < 9; ++ij) pe.alpha[ij] = a(ij / 3, ij % 3);
+        }
         return pe;
       };
       const int points = 6 * static_cast<int>(ref.atoms.size());
@@ -137,7 +152,8 @@ int main(int argc, char** argv) {
       std::unique_ptr<qm::FrequencyOutput> fo;
       if (in.runtype == qm::RunType::OptFreq && res.converged) fo.reset(new qm::FrequencyOutput(frequencies(res.mol.without_dummies(), res.grad)));
       auto cs = extra_charges();
-      qm::write_text_output(os, in, *basis, r, seconds(), &res, fo.get(), cs.get(), &at_full);
+      auto po = polar_output();
+      qm::write_text_output(os, in, *basis, r, seconds(), &res, fo.get(), cs.get(), &at_full, po.get());
       if (!molden.empty()) {
         std::ofstream f(molden);
         qm::write_molden(f, in, *basis, r, fo.get());
@@ -158,7 +174,8 @@ int main(int argc, char** argv) {
     std::unique_ptr<qm::FrequencyOutput> fo;
     if (in.runtype == qm::RunType::Frequency && r.converged) fo.reset(new qm::FrequencyOutput(frequencies(in.mol.without_dummies(), e.grad)));
     auto cs = extra_charges();
-    qm::write_text_output(os, in, *basis, r, seconds(), nullptr, fo.get(), cs.get(), &at_full);
+    auto po = polar_output();
+    qm::write_text_output(os, in, *basis, r, seconds(), nullptr, fo.get(), cs.get(), &at_full, po.get());
     if (!molden.empty()) {
       std::ofstream f(molden);
       qm::write_molden(f, in, *basis, r, fo.get());

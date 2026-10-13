@@ -84,7 +84,7 @@ FetchContent_MakeAvailable(libcint)
 # --- the library and the command line tool ---------------------------------
 add_library(eccems STATIC
   molecule.cpp basislib.cpp basis.cpp integrals.cpp ao.cpp grid.cpp xc.cpp
-  scf.cpp charges.cpp gradient.cpp optimizer.cpp vibration.cpp input.cpp output.cpp)
+  scf.cpp charges.cpp gradient.cpp optimizer.cpp vibration.cpp polar.cpp input.cpp output.cpp)
 target_include_directories(eccems PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${libcint_SOURCE_DIR}/include)
 target_link_libraries(eccems PUBLIC Eigen3::Eigen cint qm_xc)
 if(OpenMP_CXX_FOUND)
@@ -134,6 +134,14 @@ if(QM_PYTHON3)
   # (tests/qm/freq_oracle.json), ROHF O2 against its energy curvature.
   add_test(NAME qm_freq_quick COMMAND ${QM_PYTHON3} ${_qm_tests}/freq_test.py $<TARGET_FILE:ecce-qm> --quick)
   add_test(NAME qm_freq COMMAND ${QM_PYTHON3} ${_qm_tests}/freq_test.py $<TARGET_FILE:ecce-qm>)
+  # Static polarisability (finite field) against ORCA and NWChem, Raman
+  # activities and depolarisation ratios against ORCA (tests/qm/polar_oracle.json,
+  # raman_oracle.json); the deck test needs no engine.
+  add_test(NAME qm_raman_quick COMMAND ${QM_PYTHON3} ${_qm_tests}/raman_test.py $<TARGET_FILE:ecce-qm> --quick)
+  add_test(NAME qm_raman COMMAND ${QM_PYTHON3} ${_qm_tests}/raman_test.py $<TARGET_FILE:ecce-qm>)
+  add_test(NAME qm_raman_deck COMMAND ${QM_PYTHON3} ${_qm_tests}/raman_deck_test.py)
+  set_tests_properties(qm_raman_quick PROPERTIES TIMEOUT 1800)
+  set_tests_properties(qm_raman PROPERTIES TIMEOUT 7200)
   # Constrained optimisation with a dummy atom (NH3 + X, fixed X-N-H angles)
   # against NWChem, bond and angle constraints against ORCA; exits 77 (skip)
   # when neither is installed.

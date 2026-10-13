@@ -13,11 +13,13 @@ namespace qm {
 struct PointEval {
   std::vector<double> grad;
   double dipole[3] = {0, 0, 0};
+  double alpha[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};  // polarisability, row-major; only for Raman runs
 };
 
 struct Derivatives {
   Mat hessian;  // 3N x 3N, hartree/bohr^2, symmetrised
   Mat dmu;      // 3 x 3N, d(dipole)/d(Cartesian), a.u. (= e)
+  Mat dalpha;   // 9 x 3N, d(alpha_ij)/d(Cartesian), a.u.; empty unless the points carry alpha
 };
 
 // Central differences of eval over every Cartesian coordinate, step in bohr.
@@ -33,6 +35,8 @@ struct VibResult {
   // Vibrations, lowest first; imaginary frequencies are negative.
   std::vector<double> freq;          // cm-1
   std::vector<double> ir;            // km/mol
+  std::vector<double> raman;         // Raman activity, A^4/amu; empty without dalpha
+  std::vector<double> depol;         // depolarisation ratio of plane-polarised light
   Mat modes;                         // 3N x nvib Cartesian displacements, each column of unit length
   int n_imaginary = 0;
 };

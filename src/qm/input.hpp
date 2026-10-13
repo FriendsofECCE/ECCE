@@ -24,6 +24,12 @@
 //   hessian_step <bohr>          frequency: finite-difference step (0.005)
 //   temperature <K>, pressure <atm>   thermochemistry (298.15, 1)
 //   symmetry_number <n>          rotational symmetry number (default: from the geometry)
+//   polarizability <true|false>  static polarisability tensor by finite field
+//                                (six extra SCFs) at the final geometry
+//   raman <true|false>           frequency/optfreq: Raman activities and
+//                                depolarisation ratios (polarisability at every
+//                                displaced geometry, about 7x the cost)
+//   field_step <au>              finite-field step, default 0.001
 //   maxsteps <n>                 optimize: most energy+gradient evaluations (100)
 //   opt_conv <normal|tight>      optimize: ORCA's Opt or TightOpt thresholds
 //   basis_data ... end           explicit basis, replaces the library file:
@@ -68,6 +74,8 @@ struct Input {
   // symmetry number (0: worked out from the geometry).
   double hessian_step = 0.005, temperature = 298.15, pressure = 1.0;
   int symmetry_number = 0;
+  bool polarizability = false, raman = false;
+  double field_step = 0.001;   // a.u.
   // Z -> shells from a basis_data block (empty: use the library).
   std::map<int, std::vector<ShellDef>> explicit_basis;
 };
