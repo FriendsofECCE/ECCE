@@ -1564,8 +1564,13 @@ void Builder::setContext(const string& url, const bool& force)
       EventDispatcher::getDispatcher().publish(event);
 
       center();
-    } else {
-      // no fragment
+      //  Looking at a finished structure must not add atoms by accident.
+      if (p_currentMode == ID_MODE_ATOM || p_pendingMode == ID_MODE_ATOM)
+        startInMode(ID_MODE_SELECT);
+    } else if (!isReadOnly()) {
+      //  An empty structure shows its element highlighted in the Build
+      //  panel; a click in the viewer must then place that element.
+      startInMode(ID_MODE_ATOM);
     }
 
     // restore default styles
@@ -4472,6 +4477,20 @@ string Builder::addDummyAtom(int placement, double distance)
 
 /// A dummy atom X is written into the input only by codes whose writer and
 /// output parser handle it (the SupportsDummyAtoms element of the code).
+/// The mode cursor needs the viewer's GL context, which a calculation
+/// opened at start-up does not have yet; switch once the window is up.
+void Builder::startInMode(int modeId)
+{
+  p_pendingMode = modeId;
+  CallAfter([this, modeId]() {
+    if (p_pendingMode != modeId) return;    // superseded by a later context
+    p_pendingMode = 0;
+    setMode(modeId);
+    toggleModeButton(modeId);
+  });
+}
+
+
 bool Builder::dummyAtomsSupported(string& codeName) const
 {
   ChemistryTask *task = dynamic_cast<ChemistryTask*>(p_calculation);

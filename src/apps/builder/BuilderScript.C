@@ -334,6 +334,9 @@ void Builder::runBuilderScript(const std::string& file)
                 frag ? (int)frag->numAtoms() : -1, lat ? "yes" : "no");
         fprintf(stderr, "BUILDER: periodic_builder=%s\n",
                 p_mgr.GetPane(NAME_TOOL_PBC).IsShown() ? "shown" : "hidden");
+        fprintf(stderr, "BUILDER: mode=%s\n",
+                p_currentMode == ID_MODE_ATOM ? "atom"
+                : p_currentMode == ID_MODE_SELECT ? "select" : "other");
       } else if (w[0] == "libatom" && w.size() == 2) {
         p_structLib->setTestAtom(atoi(w[1].c_str()));
       } else if (w[0] == "select" && w.size() == 2 && frag) {

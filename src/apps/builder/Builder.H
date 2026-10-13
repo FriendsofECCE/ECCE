@@ -255,6 +255,8 @@ class Builder: public BuilderGUI,
       std::string constraintCodeName() const;
       bool constraintsSupportedByCode() const;
       bool dummyAtomsSupported(string& codeName) const;
+      void startInMode(int modeId);
+      int p_pendingMode = 0;   // mode queued by startInMode, 0 if none
       /// Adds an unbonded dummy atom X placed from the selected atoms (see
       /// dummyAtomPosition), as one undoable edit, and selects it.
       /// @param placement a DummyPlacement

@@ -283,6 +283,21 @@ def placeCase(display, empty, nh3, qe):
           "a code without dummy atoms refuses", run_tests._tail(log, 20))
 
 
+def modeCase(display, empty, full):
+    """An empty structure opens ready to place its highlighted element; a
+    finished one in Select mode, so looking cannot add atoms."""
+    log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT", [
+        "wait 4000", "info", "quit"], "file://" + empty + "/")
+    got = re.findall(r"BUILDER: mode=(\w+)", log)
+    check(got == ["atom"], "an empty structure opens in add-atom mode: %s" % got,
+          run_tests._tail(log, 25))
+    log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT", [
+        "wait 4000", "info", "quit"], "file://" + full + "/")
+    got = re.findall(r"BUILDER: mode=(\w+)", log)
+    check(got == ["select"], "a structure with atoms opens in Select mode: %s" % got,
+          run_tests._tail(log, 25))
+
+
 def periodicCase(display, qe, nw):
     """A periodic code's calculation opens with the Periodic Builder (#300)."""
     log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT", [
@@ -320,6 +335,7 @@ def main():
                      "Energy run")
             clickCase(display, "file://" + energy + "/")
             empty = os.path.join(base, "empty-nw")
+            modeCase(display, empty, energy)
             placeCase(display, empty, energy, os.path.join(base, "nh3-qe"))
             dummyCase(display, "file://" + empty + "/", empty)
             periodicCase(display, os.path.join(base, "nh3-qe"), energy)
