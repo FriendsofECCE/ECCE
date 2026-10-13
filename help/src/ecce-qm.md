@@ -104,17 +104,6 @@ can need much more memory and time with aug-cc-pVDZ or cc-pVTZ.
 
 A frequency calculation needs six energy and force calculations per atom, so
 its time grows roughly as the square of the number of atoms times the number
-<<<<<<< HEAD
-of basis functions. As a guide, measured on an 8-core desktop computer with
-6-31G*: water with B3LYP takes 20 seconds for its frequencies and ethanol
-about four minutes; benzene takes 10 minutes with Hartree-Fock and 23 minutes
-with B3LYP. A laptop with four cores takes about twice as long. Raman activities
-multiply the time of the frequency calculation by about seven (water with
-B3LYP, 8 cores: 5 seconds for the frequencies, 30 seconds with Raman). ECCE
-shows an
-estimate and asks before launching a frequency run that is expected to take
-long, Raman activities included.
-=======
 of basis functions. As a guide, measured on one computer (an Intel Core
 i7-7700, four cores with two threads each, that was also busy with other work)
 with B3LYP and 6-31G*: ethanol takes about two minutes for its frequencies,
@@ -131,7 +120,6 @@ this shortened ethanol from 134 to 111 seconds, and ethanol with Raman from 13
 to 10 minutes; the gain is modest because the integrals and the integration
 grid already use every core. `parallel_points false` in the input, or the
 environment variable `ECCE_QM_SERIAL`, runs the points one after another.
->>>>>>> 2925f175 (ECCE-QM: run the displaced points of a frequency/Raman run concurrently)
 
 Where the compiler supports it (the Linux version), the integrals and the
 integration grid use all the cores of the computer. The macOS version of
