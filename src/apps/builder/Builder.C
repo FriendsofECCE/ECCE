@@ -2195,7 +2195,7 @@ void Builder::updateShapeIcon()
 /**
  *
  */
-void Builder::toggleModeButton(int modeId)
+void Builder::toggleModeButton(int modeId, bool redraw)
 {
   BuilderRedrawHold hold(this);
   if (modeId == ID_MODE_STRUCTLIB) {
@@ -2219,7 +2219,9 @@ void Builder::toggleModeButton(int modeId)
                          p_mgr.GetPane(label).IsShown());
   }
 
-  p_viewer->actualRedraw();
+  //  Without a GL context (a calculation opened at start-up, on macOS and
+  //  Windows still when queued events run) Coin dereferences a null string.
+  if (redraw) p_viewer->actualRedraw();
 
   p_modeToolbar->ToggleTool(ID_MODE_SELECT, modeId == ID_MODE_SELECT);
   p_modeToolbar->ToggleTool(ID_MODE_ROTATE, modeId == ID_MODE_ROTATE);
@@ -4484,8 +4486,8 @@ string Builder::addDummyAtom(int placement, double distance)
 
 /// A dummy atom X is written into the input only by codes whose writer and
 /// output parser handle it (the SupportsDummyAtoms element of the code).
-/// The mode cursor needs the viewer's GL context, which a calculation
-/// opened at start-up does not have yet; switch once the window is up.
+/// A calculation opened at start-up has no GL context yet: set the mode and
+/// the toolbar after the window is up, and leave drawing to the view itself.
 void Builder::startInMode(int modeId)
 {
   p_pendingMode = modeId;
@@ -4493,7 +4495,7 @@ void Builder::startInMode(int modeId)
     if (p_pendingMode != modeId) return;    // superseded by a later context
     p_pendingMode = 0;
     setMode(modeId);
-    toggleModeButton(modeId);
+    toggleModeButton(modeId, false);   // the view draws itself when shown
   });
 }
 

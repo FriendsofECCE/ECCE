@@ -208,7 +208,7 @@ void ewxApp::OnAbout(wxCommandEvent& WXUNUSED(event))
    wxAboutDialogInfo info;
    info.SetName("ECCE");
    info.SetVersion(Ecce::ecceVersion());
-   info.SetDescription(wxString::FromUTF8("Extensible Computational Chemistry Environment: "
+   wxString desc = wxString::FromUTF8("Extensible Computational Chemistry Environment: "
       "build molecules, set up and run calculations, and look at the "
       "results.\n\n"
       "ECCE was created at the Environmental Molecular Sciences Laboratory "
@@ -230,7 +230,28 @@ void ewxApp::OnAbout(wxCommandEvent& WXUNUSED(event))
       "Institute nor the U.S. Department of Energy is responsible for, or "
       "endorses, the modifications made by the FriendsofECCE project.\n\n"
       "Report problems: start ecce --bug and attach the archive to an issue "
-      "at github.com/FriendsofECCE/ECCE."));
+      "at github.com/FriendsofECCE/ECCE.");
+#ifndef __WXGTK__
+   // The generic About box (Windows, macOS) does not wrap: break the lines
+   // so the dialog keeps a readable width.
+   {
+      wxString wrapped, line;
+      for (const wxString& word : wxSplit(desc, ' ', '\0')) {
+         const int nl = word.Find('\n');
+         if (line.length() + word.length() > 72 && !line.empty()) {
+            wrapped += line + "\n";
+            line.clear();
+         }
+         line += (line.empty() ? "" : " ") + word;
+         if (nl != wxNOT_FOUND) {
+            wrapped += line.BeforeLast('\n') + "\n";
+            line = line.AfterLast('\n');
+         }
+      }
+      desc = wrapped + line;
+   }
+#endif
+   info.SetDescription(desc);
    info.SetCopyright(wxString::FromUTF8(
       "Copyright \xC2\xA9 1994-2012 Pacific Northwest National Laboratory, "
       "Battelle Memorial Institute.\n"
@@ -259,13 +280,16 @@ void ewxApp::OnAbout(wxCommandEvent& WXUNUSED(event))
    // ECCE's logo; without a usable icon GTK draws a broken-image glyph,
    // and a window's own icon can be a bundle entry GTK cannot draw here.
    wxBitmap logo;
+#ifdef __WXGTK__
    if (wxFileExists(ewxBitmap::pixmapFile("ecce-logo-128.png")) &&
        logo.LoadFile(ewxBitmap::pixmapFile("ecce-logo-128.png"),
                      wxBITMAP_TYPE_PNG) && logo.IsOk()) {
       wxIcon icon;
       icon.CopyFromBitmap(logo);
       info.SetIcon(icon);
-   } else {
+   } else
+#endif
+   {
       wxTopLevelWindow *top = wxDynamicCast(GetTopWindow(), wxTopLevelWindow);
       if (top && top->GetIcon().IsOk()) info.SetIcon(top->GetIcon());
    }

@@ -181,9 +181,13 @@ void BrowserHelp::initialize()
     p_urlTranslations = new Preferences(BrowserHelp::p_helpFile, true);
 
   if (p_urlPrefix == "") {
-    char* ehelp = getenv("ECCE_HELP");
-    NULLPOINTEREXCEPTION(ehelp,"ECCE_HELP environment variable must be defined");
-    p_urlPrefix = ehelp;
+    // The Windows and macOS launchers set no ECCE_HELP: use the installed
+    // help pages rather than ending the program.
+    const char* ehelp = getenv("ECCE_HELP");
+    if (ehelp && *ehelp)
+      p_urlPrefix = ehelp;
+    else
+      p_urlPrefix = string("file://") + Ecce::ecceDataPath() + "/client/WebHelp/";
     if (p_urlPrefix.find_last_of('/') != p_urlPrefix.length()-1)
       p_urlPrefix.append("/");
   }
