@@ -54,6 +54,10 @@ open(INPUT, $ARGV[0]) || die "Can't locate log file $ARGV[0]";
 &parseKeywordLine;
 &getChargeAndMultiplicity;
 &getMolecule;
+# Bare HF or a functional alone: ORCA runs a non-singlet unrestricted.
+if ($restrictionFromMult && defined($multiplicity) && $multiplicity > 1) {
+  $theory = ($theoryCat eq "DFT") ? "UDFT" : "UHF";
+}
 &writeDictAndMVM($ARGV[0]);
 exit(0);
 
@@ -159,6 +163,13 @@ sub parseKeywordLine {
   } elsif ($sawHF) {
     $theoryCat = "SCF";
     $theory = "RHF";
+    $restrictionFromMult = 1;
+  } elsif (defined($xcFunctional)) {
+    # "! B3LYP ..." without RKS/UKS: ORCA picks restricted for a singlet,
+    # unrestricted otherwise; settled once the multiplicity is known.
+    $theoryCat = "DFT";
+    $theory = "RDFT";
+    $restrictionFromMult = 1;
   }
 
   if ($sawOpt && $sawFreq) { $runType = "GeoVib"; }
