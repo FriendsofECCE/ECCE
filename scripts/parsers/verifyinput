@@ -1376,6 +1376,7 @@ sub ecceqm
   my ($bad, $geomAtoms, $basisName) = (0, 0, "");
   my $badKeyword = 0;
   my ($wantsRaman, $runtypeGiven) = (0, "energy");
+  my @kwLines;
 
   for my $i (0 .. $#L) {
     my $line = $L[$i];
@@ -1475,6 +1476,7 @@ sub ecceqm
     if ($k eq "constraints") { $inCons = 1; $consOpen = $n; next; }
     if ($k eq "basis_data") { $inBasis = 1; $basisOpen = $n; next; }
 
+    push(@kwLines, $n) if ($keyword{$k});
     if (!$keyword{$k}) {
       finding("BAD", $n, "keywords",
               "\"$key\" is not an ecce-qm keyword; ecce-qm stops with " .
@@ -1592,6 +1594,17 @@ sub ecceqm
     finding("GOOD", ($geomOpen + 1) . "-" . ($geomClose - 1), "geometry",
             "$geomAtoms atoms in the geometry block.")
       unless (grep { /^BAD\|\d+\|geometry\|/ } @findings);
+  }
+  # Mark the keyword lines that passed, a run of lines per finding, so the
+  # report shows which lines were examined rather than leaving them blank.
+  my %flagged = map { (split(/\|/))[1] => 1 } grep { /^(BAD|UNSURE)\|\d+\|/ } @findings;
+  my @ok = grep { !$flagged{$_} } @kwLines;
+  while (@ok) {
+    my ($first, $last) = (shift(@ok)) x 2;
+    $last = shift(@ok) while (@ok && $ok[0] == $last + 1);
+    finding("GOOD", $first == $last ? $first : "$first-$last", "keywords",
+            ($first == $last ? "An ecce-qm keyword" : "ecce-qm keywords") .
+            ", with a value ecce-qm accepts.");
   }
 
   #  Constraints: closed, and naming atoms the geometry has.
