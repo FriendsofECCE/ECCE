@@ -344,9 +344,9 @@ void WxState::draw(wxDC & dc, ResourceDescriptor::RUNSTATE currentState,
     if (brush.IsOk() && brush.GetStyle() == wxBRUSHSTYLE_SOLID) {
       const wxColour c = brush.GetColour();
       gc->SetBrush(gc->CreateLinearGradientBrush(l, t, l, b,
-                                                 c.ChangeLightness(150), c));
+                                                 c.ChangeLightness(185), c.ChangeLightness(80)));
       if (pen.GetColour() == c)
-        pen.SetColour(c.ChangeLightness(70));
+        pen.SetColour(c.ChangeLightness(55));
     } else {
       gc->SetBrush(brush);
     }
