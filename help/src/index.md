@@ -4,6 +4,26 @@ This chapter takes you from a package to a finished calculation. If you
 only want to look at a structure or at existing results, you can stop after
 the second page.
 
+## First steps
+
+1. At the first question, choose **Store data on this computer**. See
+   [Installation](installation.md).
+2. Choose **File > Open Example Calculations** to get finished calculations
+   to look at. See [Example calculations](example-calculations.md).
+3. Right-click **Local data** and choose **New... > Project...**. A project is
+   a folder. Right-click the project to create a calculation in it. See
+   [Your first calculation](first-calculation.md).
+4. ECCE-QM is built in. For other codes, see
+   [Running codes on Linux](running-codes-on-linux.md),
+   [macOS](running-codes-on-macos.md) or
+   [Windows](running-codes-on-windows.md).
+5. Register a code under **Tools > Register Machines...**. See
+   [Machines](machines.md).
+6. **Help > on Organizer...** opens this help.
+7. **Help > Report a Problem...** builds an archive with diagnostic data to
+   attach to a bug report. See
+   [Installation](installation.md#reporting-a-problem).
+
 1. [Installation](installation.md): which packages to install, and what you
    see when you start ECCE for the first time.
 2. [Importing a structure](importing-a-structure.md): open a structure file

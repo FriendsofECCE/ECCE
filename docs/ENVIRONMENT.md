@@ -191,6 +191,7 @@ These are CMake options, not environment variables: `ECCE_HOME_DIR`
 | `HOST` | The launchers default it to `hostname`; the host part of the session key (see `ECCE_HOST`). |
 | `DISPLAY` | The X display, and nothing else: it does not identify the session (#233). The Linux launchers default it to `:0`. |
 | `GDK_BACKEND` | The launchers set it to `x11` under a Wayland session unless already set, to avoid mis-sized windows. |
+| `GTK_IM_MODULE` | The Linux launchers set it to `gtk-im-context-simple` under a Wayland session unless already set, so that typed text shows as it is typed. Set it to use another input method. |
 
 ## Keys in `site_runtime` that nothing in this build reads
 
