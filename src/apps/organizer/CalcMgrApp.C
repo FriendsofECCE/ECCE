@@ -282,7 +282,8 @@ void CalcMgrApp::msgStatusMCB(JMSMessage& msg)
 {
   static const char *errMsg =
     "Unable to start the application.  "
-    "Please report it at https://github.com/FriendsofECCE/ECCE/issues .";
+    "Please report it at https://github.com/FriendsofECCE/ECCE/issues . "
+    "Help > Report a Problem... collects the diagnostic files.";
 
   //  p_cursor->end_activity();
   string status = msg.getProperty("status");

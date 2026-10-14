@@ -323,7 +323,7 @@ void CalcMgrGUI::CreateControls()
     wxMenu* itemMenu53 = new wxMenu;
     menuBar->Append(itemMenu53, _("&Tools"));
     wxMenu* itemMenu54 = new wxMenu;
-    itemMenu54->Append(wxID_HELP, _("&on Organizer...\tCtrl+H"), _T(""), wxITEM_NORMAL);
+    itemMenu54->Append(wxID_HELP, _("ECCE &Help\tCtrl+H"), _T(""), wxITEM_NORMAL);
     itemMenu54->Append(ewxApp::ID_REPORT_PROBLEM, _("Report a Problem..."), _T(""), wxITEM_NORMAL);
     itemMenu54->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu54, _("&Help"));

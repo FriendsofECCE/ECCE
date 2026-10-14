@@ -19,7 +19,7 @@ the second page.
    [Windows](running-codes-on-windows.md).
 5. Register a code under **Tools > Register Machines...**. See
    [Machines](machines.md).
-6. **Help > on Organizer...** opens this help.
+6. **Help > ECCE Help** (Ctrl+H) opens this help.
 7. **Help > Report a Problem...** builds an archive with diagnostic data to
    attach to a bug report. See
    [Installation](installation.md#reporting-a-problem).
