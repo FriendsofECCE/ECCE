@@ -6010,7 +6010,7 @@ void Builder::updatePropertyMenus()
         if (w[0].compare(0, 3, "pbc") == 0 || w[0] == "cmd" ||
             w[0] == "fragdump" || w[0] == "panelmode" ||
             w[0] == "toolmenu" || w[0] == "paneclose" ||
-            w[0] == "panestate" || w[0] == "xshot" ||
+            w[0] == "panestate" || w[0] == "panefold" || w[0] == "xshot" ||
             w[0] == "setcontext" || w[0] == "columntab")
           return pbcTestCommand(s, w, outdir);
         //  "ptree <name>": the Properties list's highlighted entry beside
