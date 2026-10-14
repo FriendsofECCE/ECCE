@@ -30,6 +30,7 @@
 #include "dsm/MachineConfig.H"
 #include "dsm/EDSIFactory.H"
 
+#include "wxgui/ewxSplash.H"
 #include "wxgui/WxJMSMessageDispatch.H"
 #include "wxgui/WxJMSSubscriber.H"
 #include "wxgui/WxState.H"
@@ -133,6 +134,12 @@ bool CalcMgrApp::OnInit()
   // No gateway here: the Organizer has the session's login window.
   WxDavAuth::setRestartsOnSwitch(true);
   WxDavAuth::setOnSwitch(restartInLocalMode);
+  // ecce.cmd marks the start it makes; the tools started from here must
+  // not inherit the mark.
+  if (wxGetEnv("ECCE_SPLASH", NULL)) {
+    wxUnsetEnv("ECCE_SPLASH");
+    ewxShowSplash();
+  }
 #endif
 
   if (argc>2 && strcmp(argv[1].ToStdString().c_str(),"-pipe")==0) {

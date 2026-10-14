@@ -74,6 +74,9 @@ if errorlevel 1 (
   if not defined ECCE_NO_FIRST_START mshta "javascript:alert('ECCE could not reach its server. Check that the server is running and your network connection, then start ECCE again.');close()"
   exit /b 2
 )
+rem The Organizer shows the start-up splash, which the gateway shows elsewhere.
+set "ECCE_SPLASH=1"
 start "" "%ECCE_ROOT%\bin\organizer.exe" %*
+set "ECCE_SPLASH="
 rem The local broker ends with the session: when no ECCE window is left.
 if defined ECCE_LOCAL_BROKER start "" /b bash.exe "%ECCE_HOME%/bin/ecce-broker-win" watch
