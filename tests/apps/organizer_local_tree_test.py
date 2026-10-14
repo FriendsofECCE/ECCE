@@ -14,6 +14,11 @@ one the data layout gives.  The Organizer's ECCE_TEST_ORGANIZER hook runs:
   summary    selecting a calculation by its URL
   up, home   the toolbar buttons; Up stops at the root
   newproject File > New Project: appears at depth 1 and is selected
+  New        with a calculation selected, File > New > Project... makes the
+             project in the calculation's project, not in the home
+  toolsmenu  the Tools menu of a calculation starts with "For water:"; with
+             the root selected it is the global tools and "Builder", which
+             sends the same launch as File > New Structure
 
 Same installed tree and isolation as run_tests.py (ECCE_TEST_HOME,
 ECCE_TEST_WRAPPERS).  Exit 77 (skip) without an install or Xvfb.
@@ -87,13 +92,17 @@ def run(display, data, work, shot):
         "newproject gamma",
         "tree",
         # File > New: the root selected, then a calculation selected (it
-        # holds nothing, so the project goes to the home)
+        # holds nothing, so the project goes to its project)
         "home",
         "filemenu",
         "summary file://" + calc,
         "filemenu",
         "newfrommenu Project...",
         "tree",
+        "toolsmenu file://" + calc,
+        "home",
+        "toolsmenu " + rootUrl,
+        "toolsclick Builder",
     ]
     if shot:
         commands.append("snap " + shot)
@@ -102,14 +111,15 @@ def run(display, data, work, shot):
         handle.write("\n".join(commands) + "\n")
     result = apps.run(display, "organizer", windowTimeout=60, settle=60,
                       env={"ECCE_TEST_ORGANIZER": script,
+                           "ECCE_TEST_ORGANIZER_NOLAUNCH": "1",
                            "ECCE_ORGANIZER_OPEN": "file://" + calc})
     log = result.log or ""
     what = "Organizer tree, local data"
     if result.crashed:
         return fail(what, "CRASHED (%s)" % result.signalName, log)
     got = answers(log)
-    if len(got) < 15:
-        return fail(what, "%d of %d commands answered" % (len(got), 15), log)
+    if len(got) < 19:
+        return fail(what, "%d of %d commands answered" % (len(got), 19), log)
     problems = []
 
     tree = nodes(got[0][1])
@@ -159,15 +169,45 @@ def run(display, data, work, shot):
                                 % (index, item, offered))
     if got[13][1] != "ok":
         problems.append("File > New > Project...: %s" % got[13][1])
-    if not os.path.isdir(os.path.join(root, "Project")):
+    if not os.path.isdir(os.path.join(root, "alpha", "Project")):
         problems.append("File > New > Project... with a calculation selected "
-                        "did not make Project in the home")
+                        "did not make Project in its project (alpha)")
+    if os.path.isdir(os.path.join(root, "Project")):
+        problems.append("Project was made in the home")
+
+    if "item=For water:" not in got[15][1]:
+        problems.append("Tools for the calculation lacks the heading "
+                        "'For water:': %s" % got[15][1])
+    if "item=Builder" not in got[17][1] or "item=For " in got[17][1]:
+        problems.append("Tools for the root: %s" % got[17][1])
+    if got[18][1] != "ok" or not re.search(
+            r"ECCE_TEST_ORGANIZER: startApp Builder force=1 url=$", log, re.M):
+        problems.append("Tools > Builder did not send the empty-Builder "
+                        "launch: %s" % got[18][1])
 
     if problems:
         fail(what, "; ".join(problems), log)
     else:
         print("ok    %s: %s" % (what, " ".join(labels(tree))))
     return got
+
+
+def check(display, results, verbose=False):
+    """run_tests.py entry: the tree test in local data mode."""
+    folder = tempfile.mkdtemp(prefix="orgtree-",
+                              dir=os.environ.get("ECCE_REALUSERHOME"))
+    data = os.path.join(folder, "data")
+    os.makedirs(os.path.join(data, "users", "local"))
+    os.environ["ECCE_LOCAL_DATA"] = data
+    del failures[:]
+    results.checks += 1
+    try:
+        run(display, data, folder, None)
+    finally:
+        os.environ.pop("ECCE_LOCAL_DATA", None)
+        shutil.rmtree(folder, ignore_errors=True)
+    for failure in failures:
+        results.fail("organizer local tree", failure)
 
 
 def main():

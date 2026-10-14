@@ -768,6 +768,22 @@ void CalcMgr::runTestCommand(const string& line)
             outcome += " item=" + string(it->GetItemLabel().ToUTF8());
         }
       }
+    } else if (command == "toolsclick") {
+      // "toolsclick <label>": choose that item of the Tools menu for the
+      // current selection; the launch it sends is traced by startApp.
+      wxMenu menu;
+      getToolsMenu(menu, 0);
+      outcome = "no such item";
+      for (size_t i = 0; i < menu.GetMenuItemCount(); i++) {
+        wxMenuItem *it = menu.FindItemByPosition(i);
+        if (it->IsSeparator() || !it->IsEnabled() ||
+            string(it->GetItemLabelText().ToUTF8()) != calcName) continue;
+        wxCommandEvent ev(wxEVT_MENU, it->GetId());
+        if (it->GetId() == wxID_NEWSTRUCTURE) OnNewStructureClick(ev);
+        else ProcessEvent(ev);
+        outcome = "ok";
+        break;
+      }
     } else if (command == "filemenu" || command == "newfrommenu") {
       // "filemenu": labels of the File menu's New submenu, as the menu is
       // now. "newfrommenu LABEL": click File > New > LABEL, no name
@@ -1976,6 +1992,29 @@ void CalcMgr::OnConfigureNwfsArchiveClick( wxCommandEvent& event )
 }
 
 
+/**
+ * The item, or its nearest ancestor, whose type can contain resType (any
+ * type when resType is 0); 0 if none. A calculation holds nothing, so New
+ * with one selected means "next to it", in its project.
+ */
+WxResourceTreeItemData * CalcMgr::nearestContainer(
+    WxResourceTreeItemData * node, ResourceType * resType)
+{
+  while (node) {
+    if (node->getResource() && node->getResource()->getDescriptor()) {
+      vector<ResourceType *> c =
+          node->getResource()->getDescriptor()->getContains();
+      if (resType == 0 && !c.empty()) return node;
+      for (size_t i = 0; i < c.size(); i++) if (c[i] == resType) return node;
+    }
+    WxResourceTreeItemData * up = p_treeCtrl->getParent(node);
+    if (up == node) break;
+    node = up;
+  }
+  return 0;
+}
+
+
 /*!
  * wxEVT_COMMAND_MENU_SELECTED event handler for all ID_RESOURCE
  */
@@ -1985,16 +2024,11 @@ void CalcMgr::OnNewResourceClick( wxCommandEvent& event )
 
   ResourceType * resType = ResourceDescriptor::getResourceDescriptor().
     getResourceType(event.GetId());
-  // The selection if it can contain this type, else the user's home.
-  WxResourceTreeItemData * parent = p_treeCtrl->getSelection();
-  bool fits = false;
-  if (parent && parent->getResource() &&
-      parent->getResource()->getDescriptor()) {
-    vector<ResourceType *> c =
-        parent->getResource()->getDescriptor()->getContains();
-    for (size_t i = 0; i < c.size(); i++) if (c[i] == resType) fits = true;
-  }
-  if (!fits) {
+  // The nearest ancestor of the selection (or the selection itself) that
+  // can contain this type, else the user's home.
+  WxResourceTreeItemData * parent = nearestContainer(
+      p_treeCtrl->getSelection(), resType);
+  if (!parent) {
     EDSIServerCentral central;
     parent = findNode(central.getDefaultUserHome(), true, true);
   }
@@ -3646,16 +3680,14 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
   // first click; the same menu is built at construction time.
   if (itemData == 0) itemData = p_treeCtrl->getSelection();
 
-  // New: what the right-click New... would offer for the target, which is
-  // the selection if it can contain something, else the user's home.
+  // New: what OnNewResourceClick would offer, which is the nearest
+  // container at or above the selection, else the user's home.
   {
     ResourceType * target = 0;
-    ResourceDescriptor::RUNSTATE st = ResourceDescriptor::STATE_ILLEGAL;
-    if (!itemData || !getTypeAndState(itemData, target, st) ||
-        target->getContains().empty()) {
-      target = ResourceDescriptor::getResourceDescriptor().
-          getResourceType("collection", "ecceProject", "");
-    }
+    WxResourceTreeItemData * where = nearestContainer(itemData, 0);
+    if (where) target = where->getResource()->getDescriptor();
+    else target = ResourceDescriptor::getResourceDescriptor().
+        getResourceType("collection", "ecceProject", "");
     vector<ResourceType *> types;
     if (target) types = target->getContains();
     wxMenu * newMenu = new wxMenu();
@@ -4035,15 +4067,25 @@ void CalcMgr::getToolsMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
   ResourceType * resType = 0;
   ResourceDescriptor::RUNSTATE state = ResourceDescriptor::STATE_ILLEGAL;
 
-  if(!getTypeAndState(itemData, resType, state))
-    return; // no per-selection tools, but the global ones above stay
-
   vector<ResourceTool *> toolVec;
-  if (resType->getStateBased()) {
-    toolVec = resType->getTools(state);
+  if (getTypeAndState(itemData, resType, state)) {
+    toolVec = resType->getStateBased() ? resType->getTools(state)
+                                       : resType->getTools();
   }
-  else {
-    toolVec = resType->getTools();
+
+  // With nothing applicable selected, offer an empty Builder: the same
+  // entry as File > New Structure, so it needs no handler of its own.
+  if (toolVec.empty()) {
+    menu.Append(wxID_NEWSTRUCTURE, _("Builder"), _T(""), wxITEM_NORMAL);
+    return;
+  }
+
+  // Say which item the tools below act on.
+  if (itemData == 0) itemData = p_treeCtrl->getSelection();
+  if (itemData) {
+    wxMenuItem *head = menu.Append(wxID_ANY, wxString::Format(_("For %s:"),
+        p_treeCtrl->GetItemText(itemData->GetId())));
+    head->Enable(false);
   }
 
   vector<ResourceTool *>::iterator toolItor = toolVec.begin();
@@ -4132,6 +4174,13 @@ void CalcMgr::startApp(const string& app, int force, const string& url,
   //  cerr << "\nInvoke " << app << " with url " << url << endl;
   // Send the start app request to gateway:
   Target gateway(GATEWAY, "");
+
+  // Test hook: report the launch and, with ..._NOLAUNCH, do not send it.
+  if (getenv("ECCE_TEST_ORGANIZER")) {
+    cerr << "ECCE_TEST_ORGANIZER: startApp " << app << " force=" << force
+         << " url=" << url << endl;
+    if (getenv("ECCE_TEST_ORGANIZER_NOLAUNCH")) return;
+  }
 
   JMSMessage *msg = newMessage();
   msg->addProperty("action","start");

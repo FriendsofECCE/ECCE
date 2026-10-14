@@ -378,6 +378,8 @@ protected:
   bool checkMovable(WxResourceTreeItemData * node);
   // Issue #93: selection-independent entries on the Tools menu.
   void addGlobalTools(wxMenu & menu);
+  WxResourceTreeItemData * nearestContainer(WxResourceTreeItemData * node,
+                                            ResourceType * resType);
   void OnGlobalTool(wxCommandEvent& event);
   // Ids already wired to OnGlobalTool, so rebuilding the menu does not
   // stack duplicate handlers.
