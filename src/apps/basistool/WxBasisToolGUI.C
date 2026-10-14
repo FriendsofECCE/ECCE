@@ -652,6 +652,12 @@ void WxBasisToolGUI::CreateControls()
     WxFeedback* itemWxFeedback108 = new WxFeedback( itemPanel2, ID_FEEDBACK_WXBASISTOOL_MESSAGES, wxDefaultPosition, wxSize(100, 100), wxNO_BORDER );
     itemBoxSizer3->Add(itemWxFeedback108, 0, wxGROW|wxALL, 3);
 
+    // A frame sizer (not wx's lone-child layout) lets ewxFrame::Show scroll the
+    // panel when the screen is shorter than the window.
+    wxBoxSizer* frameSizer = new wxBoxSizer(wxVERTICAL);
+    frameSizer->Add(itemPanel2, 1, wxEXPAND);
+    itemFrame1->SetSizer(frameSizer);
+
 ////@end WxBasisToolGUI content construction
 }
 
