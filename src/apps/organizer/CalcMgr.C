@@ -772,6 +772,11 @@ void CalcMgr::OnNewStructureClick( wxCommandEvent& event )
  */
 bool CalcMgr::confirmAndQuit()
 {
+  // A second close request while the dialog is open must neither open another
+  // dialog nor let the first one's Destroy() free the stack dialog (#291).
+  if (p_quitAsking) return false;
+  if (p_quitConfirmed) return true;
+
   ewxMessageDialog dlg(this, "Do you really want to quit?", "Quit ECCE",
                        wxOK|wxCANCEL|wxICON_QUESTION, wxDefaultPosition);
   // #190: under a central server (ECCE_REMOTE_SERVER) this client's own
@@ -780,11 +785,14 @@ bool CalcMgr::confirmAndQuit()
   // misleading, so don't.
   if (!getenv("ECCE_REMOTE_SERVER"))
     dlg.AddButton(ID_ORGANIZER_QUIT_STOP_SERVER, "Quit and Stop Server");
+  p_quitAsking = true;
   int result = dlg.ShowModal();
+  p_quitAsking = false;
 
   if (result == wxID_CANCEL)
     return false;
 
+  p_quitConfirmed = true;
   Destroy();
 
   if (result == ID_ORGANIZER_QUIT_STOP_SERVER) {

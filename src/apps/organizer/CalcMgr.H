@@ -337,6 +337,8 @@ protected:
   void buildMachineNotice();
   void machineNoticeRegisterClickCB(wxCommandEvent& event);
   void OnActivate(wxActivateEvent& event);
+  bool p_quitAsking = false;        // the Quit dialog is open (#291)
+  bool p_quitConfirmed = false;     // the user said yes; teardown pending
   ewxPanel   *p_machineNoticePanel;
 
   void startApp(const string& app, int force, const string& url,
