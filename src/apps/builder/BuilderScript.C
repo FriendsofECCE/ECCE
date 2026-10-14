@@ -22,6 +22,8 @@
 //    info                       atoms and lattice, on stderr
 //    libatom I                   select atom (a Nub) I of the library structure
 //    select I                    select atom (or Nub) I, as a click does; -1 none
+//    selectelem A                select the first atom of element A
+//    key escape                  what the Esc key does with the view focused
 //    selectnub A                 select the first Nub of the last atom of element A
 //    bonds A B                   count the bonds from the last atom of element A
 //                                to atoms of element B
@@ -308,6 +310,11 @@ void Builder::runBuilderScript(const std::string& file)
         p_modeMenu->Check(id, true);
         wxCommandEvent modeEv(wxEVT_MENU, id);
         GetEventHandler()->ProcessEvent(modeEv);
+      } else if (w[0] == "key" && w.size() == 2 && w[1] == "escape") {
+        //  What the Esc key hook does with the 3-D view focused.
+        if (SoWxRenderArea *area = findViewerArea(p_viewer)) area->SetFocus();
+        for (int i = 0; i < 3; i++) wxTheApp->Yield(true);
+        outcome = std::string("ok acted=") + (escapeKey() ? "1" : "0");
       } else if (w[0] == "key" && w.size() == 2 && w[1] == "delete") {
         //  What the Delete accelerator sends.
         wxCommandEvent delEv(wxEVT_MENU, ID_ACCEL_DELETE);
@@ -376,13 +383,28 @@ void Builder::runBuilderScript(const std::string& file)
                   cp.min_size.y, (int)p_calculations.size());
         }
         LatticeDef *lat = frag ? frag->getLattice() : 0;
-        fprintf(stderr, "BUILDER: atoms=%d lattice=%s\n",
-                frag ? (int)frag->numAtoms() : -1, lat ? "yes" : "no");
+        int nubs = 0;
+        for (size_t i = 0; frag && i < frag->numAtoms(); i++)
+          if (frag->atomRef(i)->atomicSymbol() == "Nub") nubs++;
+        fprintf(stderr, "BUILDER: atoms=%d lattice=%s nubs=%d\n",
+                frag ? (int)frag->numAtoms() : -1, lat ? "yes" : "no", nubs);
         fprintf(stderr, "BUILDER: periodic_builder=%s\n",
                 p_mgr.GetPane(NAME_TOOL_PBC).IsShown() ? "shown" : "hidden");
-        fprintf(stderr, "BUILDER: mode=%s\n",
-                p_currentMode == ID_MODE_ATOM ? "atom"
-                : p_currentMode == ID_MODE_SELECT ? "select" : "other");
+        //  The mode in effect, the mode the toolbar shows and whether the
+        //  viewer picks (a click selects) must name the same thing.
+        auto modeName = [](int id) {
+          return id == ID_MODE_ATOM ? "atom" : id == ID_MODE_SELECT ? "select"
+               : id == ID_MODE_STRUCTLIB ? "structlib" : "other";
+        };
+        int shown = 0, nShown = 0;
+        for (int id = ID_MODE_SELECT; id <= ID_MODE_STRUCTLIB; id++)
+          if (p_modeToolbar->FindById(id) && p_modeToolbar->GetToolState(id)) {
+            shown = id;
+            nShown++;
+          }
+        fprintf(stderr, "BUILDER: mode=%s toolbar=%s checked=%d viewer=%s\n",
+                modeName(p_currentMode), modeName(shown), nShown,
+                p_viewer->isViewing() ? "viewing" : "picking");
       } else if (w[0] == "libatom" && w.size() == 2) {
         p_structLib->setTestAtom(atoi(w[1].c_str()));
       } else if (w[0] == "select" && w.size() == 2 && frag) {
@@ -390,6 +412,15 @@ void Builder::runBuilderScript(const std::string& file)
         frag->m_atomHighLight.clear();
         if (atoi(w[1].c_str()) >= 0)
           frag->m_atomHighLight.assign(1, atoi(w[1].c_str()));
+      } else if (w[0] == "selectelem" && w.size() == 2 && frag) {
+        //  The first atom of element A, as a click on it selects it.
+        outcome = "FAIL: no such atom";
+        for (size_t i = 0; i < frag->numAtoms(); i++)
+          if (frag->atomRef(i)->atomicSymbol() == w[1]) {
+            frag->m_atomHighLight.assign(1, (int)i);
+            outcome = "ok";
+            break;
+          }
       } else if (w[0] == "selectnub" && w.size() == 2 && frag) {
         //  The first Nub on the last atom of element A.
         TAtm *last = 0;

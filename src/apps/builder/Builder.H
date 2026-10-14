@@ -298,6 +298,8 @@ class Builder: public BuilderGUI,
       static void selectionChangeCB(void *  data, ChemSelection * sel);
       void processSelectionChange(ChemSelection *sel);
       void setMode(int modeId);
+      void applyMode(int modeId);
+      bool escapeKey();
       int getMode();
 
       void deleteSelection();

@@ -542,6 +542,10 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   p_viewerEvtHandler->connectToolKitFW(this);
   PushEventHandler(p_viewerEvtHandler);
   Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(Builder::OnKeyDown));
+  //  The canvas has the focus, so the frame sees Esc only through the hook.
+  Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& ev) {
+    if (ev.GetKeyCode() != WXK_ESCAPE || !escapeKey()) ev.Skip();
+  });
   //  Key events go to the focused child (the 3-D canvas), never the frame,
   //  so Delete is an accelerator: deleteKey leaves editable text fields alone.
   //  The same holds for the File/Select/Mode menu shortcuts (Ctrl+S did
@@ -1512,7 +1516,6 @@ void Builder::setContext(const string& url, const bool& force)
   // We don't allow struct lib mode across context switches
   if (p_currentMode == ID_MODE_STRUCTLIB) {
     setMode(ID_MODE_SELECT);
-    toggleModeButton(ID_MODE_SELECT);
   }
 
   // If experiment was not previously opened, create it
@@ -1938,13 +1941,24 @@ void Builder::motionChanged(const MotionData& data)
 }
 
 /**
- * Set the builder mode.
+ * Set the builder mode: the one place that sets the mode in effect, the
+ * viewer, the toolbar and the Mode menu together, so they cannot disagree.
+ */
+void Builder::setMode(int modeId)
+{
+  applyMode(modeId);
+  toggleModeButton(modeId);
+}
+
+
+/**
+ * The mode in effect and the viewer's mode; setMode() adds the toolbar.
  *
  * All the builder modes are defined int the header file.
  * All the mbCam* modes set the viewer in viewing mode.
  * All the other modes set the viewer in selecting mode.
  */
-void Builder::setMode(int modeId)
+void Builder::applyMode(int modeId)
 {
   // @todo
   //  Pixel gray = EcceColorFactory::getColor(getBuilder(), Color::WINDOW);
@@ -2025,6 +2039,9 @@ void Builder::setMode(int modeId)
   // save new value for lastMode
   p_currentMode = modeId;
   updateModeText();
+  if (modeId == ID_MODE_STRUCTLIB)
+    showMessage("Structure Library: click an open site to attach, or press "
+                "Esc for Select");
 
   //  instructions(s_modeCmd[mode]);
 
@@ -2201,8 +2218,11 @@ void Builder::toggleModeButton(int modeId)
 {
   BuilderRedrawHold hold(this);
   if (modeId == ID_MODE_STRUCTLIB) {
-    savePaneLayout(NAME_LAYOUT_DEFAULT);
-    loadPaneLayout(NAME_LAYOUT_STRUCTLIB);
+    //  Once only: a second save would store the library layout as the default.
+    if (!p_mgr.GetPane(NAME_TOOL_STRUCTLIB).IsShown()) {
+      savePaneLayout(NAME_LAYOUT_DEFAULT);
+      loadPaneLayout(NAME_LAYOUT_STRUCTLIB);
+    }
   }
   else if (p_mgr.GetPane(NAME_TOOL_STRUCTLIB).IsShown()) {
     savePaneLayout(NAME_LAYOUT_STRUCTLIB);
@@ -2279,7 +2299,6 @@ void Builder::saveSettings()
    // We don't allow struct lib mode across context switches
    if (p_currentMode == ID_MODE_STRUCTLIB) {
      setMode(ID_MODE_SELECT);
-     toggleModeButton(ID_MODE_SELECT);
    }
  
    // Save the last perspective, if we have one
@@ -2673,6 +2692,10 @@ bool Builder::execute(Command *cmd, bool batch)
             // A command that succeeds may still have a note for the user.
             string note = cmd->getErrorMessage();
             if (note != "") showMessage(note);
+            //  One insert per visit: another click would add a second copy.
+            if (p_currentMode == ID_MODE_STRUCTLIB &&
+                dynamic_cast<AddFragmentCmd*>(cmd))
+              setMode(ID_MODE_SELECT);
          } else {
             // I guess false means that the command did nothing
             // See if there is an error message for backwards compatability
@@ -3079,13 +3102,11 @@ void Builder::eventMCB(const Event& event)
      p_currentBond = TBond::strToOrder(value);
      setMode(ID_MODE_BOND);
      updateBondIcon();
-     toggleModeButton(ID_MODE_BOND);
    }
    else if (name == "ShapeChanged") {
      p_currentShapes[p_currentElement] = value;
      setMode(ID_MODE_ATOM);
      updateShapeIcon();
-     toggleModeButton(ID_MODE_ATOM);
    }
    else if (name == "SyncToggle") {
      wxCommandEvent * evt = (wxCommandEvent *)event.getObject();
@@ -3532,7 +3553,6 @@ void Builder::OnViewerChoice( wxCommandEvent& event )
 void Builder::OnModeClick( wxCommandEvent& event )
 {
   setMode(event.GetId());
-  toggleModeButton(event.GetId());
   event.Skip();
 }
 
@@ -3696,9 +3716,25 @@ void Builder::OnKeyDown(wxKeyEvent& event)
    } else if (event.GetKeyCode() == WXK_BACK) {
       deleteSelection();
    } else if (event.GetKeyCode() == WXK_ESCAPE) {
-      setMode(ID_MODE_SELECT);
+      escapeKey();
    }
    event.Skip();
+}
+
+
+/// Esc leaves Structure Library, Build and Bond for Select, except in a text
+/// field, where it is that field's (cancel an edit).  Returns true if it acted.
+bool Builder::escapeKey()
+{
+  wxWindow *focus = wxWindow::FindFocus();
+  if (dynamic_cast<wxTextEntry*>(focus) || dynamic_cast<wxSpinCtrl*>(focus) ||
+      dynamic_cast<wxSpinCtrlDouble*>(focus))
+    return false;
+  if (p_currentMode != ID_MODE_STRUCTLIB && p_currentMode != ID_MODE_ATOM &&
+      p_currentMode != ID_MODE_BOND)
+    return false;
+  setMode(ID_MODE_SELECT);
+  return true;
 }
 
 
@@ -3909,7 +3945,6 @@ void Builder::OnPaneClose(wxAuiManagerEvent& event)
 {
   if (event.pane->name == NAME_TOOL_STRUCTLIB) {
     setMode(ID_MODE_SELECT);
-    toggleModeButton(ID_MODE_SELECT);
     //wxCommandEvent event(wxEVT_COMMAND_MENU_SELECTED, ID_MODE_SELECT);
     //AddPendingEvent(event);
   } else {
@@ -4514,7 +4549,6 @@ void Builder::startInMode(int modeId)
     if (p_pendingMode != modeId) return;    // superseded by a later context
     p_pendingMode = 0;
     setMode(modeId);
-    toggleModeButton(modeId);
   });
 }
 
@@ -6162,7 +6196,6 @@ void Builder::updateReadOnly(const bool& loadPaneFlag)
   if (isReadOnly &&
           (p_currentMode > ID_MODE_ZOOM || p_currentMode < ID_MODE_SELECT)) {
     setMode(ID_MODE_SELECT);
-    toggleModeButton(ID_MODE_SELECT);
   }
 
   // Restore tool menu status based on layout info

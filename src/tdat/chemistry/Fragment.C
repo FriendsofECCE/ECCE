@@ -7976,21 +7976,25 @@ bool Fragment::bondingAtoms(const Fragment& tmpfrag,
          fragnub = tmpfrag.childNub(fragparent);
       }
 
+      // A failed connect must leave the structure as it was, so the hydrogen
+      // below is turned into a Nub only once the other side is known to fit.
+      if (!fragnub || !fragparent) return false;
+
       // Now can we get a baseparent and basenub
       TAtm *batm = atomRef(fragconatom);
       if (batm && batm->atomicSymbol() == "Nub") {
          basenub = batm;
          baseparent = nubParent(basenub);
       } else if (batm && batm->atomicSymbol() == "H") {
-         TPerTab tpt;
-         // Lets just change this atom to a nub 
-         batm->atomicSymbol("Nub");
-         batm->atomicNumber( tpt.atomicNumber("Nub"));
-         basenub = batm;
-         baseparent = 0;
          vector<TAtm*> *bondedAtoms = batm->connectedAtoms();
          if (bondedAtoms->size() >= 1) baseparent = (*bondedAtoms)[0];
          delete bondedAtoms;
+         if (baseparent) {
+            TPerTab tpt;
+            batm->atomicSymbol("Nub");
+            batm->atomicNumber( tpt.atomicNumber("Nub"));
+            basenub = batm;
+         }
       } else {
          baseparent = batm;
          basenub = childNub(baseparent);
