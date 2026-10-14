@@ -10,8 +10,9 @@ the second page.
    [Installation](installation.md).
 2. Choose **File > Open Example Calculations** to get finished calculations
    to look at. See [Example calculations](example-calculations.md).
-3. Right-click **Local data** and choose **New... > Project...**. A project is
-   a folder. Right-click the project to create a calculation in it. See
+3. Choose **File > New > Project...** (or right-click **Local data** and
+   choose **New... > Project...**). A project is a folder. Select the project
+   and choose **File > New** again to create a calculation in it. See
    [Your first calculation](first-calculation.md).
 4. ECCE-QM is built in. For other codes, see
    [Running codes on Linux](running-codes-on-linux.md),

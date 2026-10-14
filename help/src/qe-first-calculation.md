@@ -71,8 +71,8 @@ describes the same crystal, but the Periodic Builder gives the cubic one.)
 ### 1. Create a project and a calculation
 
 1. In the Organizer, select your home folder in the tree on the left.
-2. Choose **File > New Project...**, enter `qe-tutorial` and click **OK**.
-3. Select the project and choose **File > New Quantum ESPRESSO
+2. Choose **File > New > Project...**, enter `qe-tutorial` and click **OK**.
+3. Select the project and choose **File > New > Quantum ESPRESSO
    Calculation...**. Enter `si-scf` and click **OK**.
 
 The calculation appears under the project, in the run state **Created**.

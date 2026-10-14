@@ -86,6 +86,14 @@ def run(display, data, work, shot):
         "home",
         "newproject gamma",
         "tree",
+        # File > New: the root selected, then a calculation selected (it
+        # holds nothing, so the project goes to the home)
+        "home",
+        "filemenu",
+        "summary file://" + calc,
+        "filemenu",
+        "newfrommenu Project...",
+        "tree",
     ]
     if shot:
         commands.append("snap " + shot)
@@ -100,8 +108,8 @@ def run(display, data, work, shot):
     if result.crashed:
         return fail(what, "CRASHED (%s)" % result.signalName, log)
     got = answers(log)
-    if len(got) < 9:
-        return fail(what, "%d of %d commands answered" % (len(got), 9), log)
+    if len(got) < 15:
+        return fail(what, "%d of %d commands answered" % (len(got), 15), log)
     problems = []
 
     tree = nodes(got[0][1])
@@ -140,6 +148,20 @@ def run(display, data, work, shot):
         problems.append("new project url: %s" % got[8][1])
     if not os.path.isdir(os.path.join(root, "gamma")):
         problems.append("gamma was not made under users/local")
+
+    # File > New offers Project and the per-code calculations for the root
+    # and, since a calculation holds nothing, for the calculation too.
+    for index in (10, 12):
+        offered = got[index][1]
+        for item in ("new=Project...", "new=ECCE-QM Calculation..."):
+            if item not in offered:
+                problems.append("File menu answer %d lacks %s: %s"
+                                % (index, item, offered))
+    if got[13][1] != "ok":
+        problems.append("File > New > Project...: %s" % got[13][1])
+    if not os.path.isdir(os.path.join(root, "Project")):
+        problems.append("File > New > Project... with a calculation selected "
+                        "did not make Project in the home")
 
     if problems:
         fail(what, "; ".join(problems), log)

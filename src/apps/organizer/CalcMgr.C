@@ -352,6 +352,13 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   // #302: after the window is up, so the import shows in the tree.
   CallAfter([this]() { importExamplesOnce(); });
 
+  // File > New is offered before the first selection too.
+  {
+    wxMenuBar * mb = GetMenuBar();
+    int fm = mb ? mb->FindMenu(_("File")) : wxNOT_FOUND;
+    if (fm != wxNOT_FOUND) getFileMenu(*mb->GetMenu(fm), 0);
+  }
+
   stopDisabler();
 
   //  ECCE_TEST_CALCIMPORT=<file>: File > Import Calculation from Output File
@@ -759,6 +766,35 @@ void CalcMgr::runTestCommand(const string& line)
           wxMenuItem *it = menu.FindItemByPosition(i);
           if (!it->IsSeparator())
             outcome += " item=" + string(it->GetItemLabel().ToUTF8());
+        }
+      }
+    } else if (command == "filemenu" || command == "newfrommenu") {
+      // "filemenu": labels of the File menu's New submenu, as the menu is
+      // now. "newfrommenu LABEL": click File > New > LABEL, no name
+      // prompt (the resource is named by its type label).
+      std::istringstream args(calcName);
+      string label, name;
+      args >> label >> name;
+      wxMenuBar *mb = GetMenuBar();
+      wxMenu *fm = mb->GetMenu(mb->FindMenu(_("File")));
+      outcome = command == "filemenu" ? "ok" : "no such item";
+      for (size_t i = 0; i < fm->GetMenuItemCount(); i++) {
+        wxMenuItem *it = fm->FindItemByPosition(i);
+        if (!it->GetSubMenu() || it->GetItemLabelText() != "New") continue;
+        wxMenu *sub = it->GetSubMenu();
+        for (size_t j = 0; j < sub->GetMenuItemCount(); j++) {
+          wxMenuItem *si = sub->FindItemByPosition(j);
+          string text = string(si->GetItemLabelText().ToUTF8());
+          if (command == "filemenu") {
+            outcome += " new=" + text;
+          } else if (text == label) {
+            bool ask = GetMenuBar()->IsChecked(wxID_ASKFORNAME);
+            GetMenuBar()->Check(wxID_ASKFORNAME, false);
+            wxCommandEvent ev(wxEVT_MENU, si->GetId());
+            OnNewResourceClick(ev);
+            GetMenuBar()->Check(wxID_ASKFORNAME, ask);
+            outcome = "ok";
+          }
         }
       }
     } else if (command == "contextmenu") {
@@ -1949,7 +1985,20 @@ void CalcMgr::OnNewResourceClick( wxCommandEvent& event )
 
   ResourceType * resType = ResourceDescriptor::getResourceDescriptor().
     getResourceType(event.GetId());
-  createResource(resType);
+  // The selection if it can contain this type, else the user's home.
+  WxResourceTreeItemData * parent = p_treeCtrl->getSelection();
+  bool fits = false;
+  if (parent && parent->getResource() &&
+      parent->getResource()->getDescriptor()) {
+    vector<ResourceType *> c =
+        parent->getResource()->getDescriptor()->getContains();
+    for (size_t i = 0; i < c.size(); i++) if (c[i] == resType) fits = true;
+  }
+  if (!fits) {
+    EDSIServerCentral central;
+    parent = findNode(central.getDefaultUserHome(), true, true);
+  }
+  createResource(resType, parent);
 
   stopDisabler();
 }
@@ -3593,28 +3642,45 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
   ResourceType * resType = 0;
   ResourceDescriptor::RUNSTATE state = ResourceDescriptor::STATE_ILLEGAL;
 
-  if (getTypeAndState(itemData, resType, state)) {
-    vector<ResourceType *> resVec = resType->getContains();
-    vector<ResourceType *>::iterator resItor = resVec.begin();
-    for (;resItor != resVec.end(); resItor++) {
-      wxMenuItem * menuItem = new wxMenuItem(&menu,(*resItor)->getId(),
-              (*resItor)->getMenuItem(), _T(""), wxITEM_NORMAL);
-      menuItem->SetBitmap(ewxBitmap((*resItor)->getIcon()));
-      menu.Append(menuItem);
+  // Without a selection the menu is still built, so New works before the
+  // first click; the same menu is built at construction time.
+  if (itemData == 0) itemData = p_treeCtrl->getSelection();
 
-      if ((*resItor)->getMenuItem() == "New NWChem MD Prepare..." &&
-          dynamic_cast<Session *>(itemData->getResource())->numMembers() == 0)
-        resItor += 3;
-      else if ((*resItor)->getMenuItem() ==
-          "New Direct Dynamics VTST Calculation..." &&
-          dynamic_cast<Session *>(itemData->getResource())->numMembers() == 0)
-        resItor += 5;
+  // New: what the right-click New... would offer for the target, which is
+  // the selection if it can contain something, else the user's home.
+  {
+    ResourceType * target = 0;
+    ResourceDescriptor::RUNSTATE st = ResourceDescriptor::STATE_ILLEGAL;
+    if (!itemData || !getTypeAndState(itemData, target, st) ||
+        target->getContains().empty()) {
+      target = ResourceDescriptor::getResourceDescriptor().
+          getResourceType("collection", "ecceProject", "");
     }
-    
-    if (resVec.size() > 0) {
-      menu.AppendSeparator();
+    vector<ResourceType *> types;
+    if (target) types = target->getContains();
+    wxMenu * newMenu = new wxMenu();
+    for (size_t i = 0; i < types.size(); i++) {
+      string label = types[i]->getMenuItem();
+      if (label.size() > 4) label = label.substr(4);
+      wxMenuItem * mi = new wxMenuItem(newMenu, types[i]->getId(),
+              wxString::FromUTF8(label.c_str()), _T(""), wxITEM_NORMAL);
+      mi->SetBitmap(ewxBitmap(types[i]->getIcon()));
+      newMenu->Append(mi);
+      Session * session = itemData ?
+          dynamic_cast<Session *>(itemData->getResource()) : 0;
+      if (types[i]->getMenuItem() == "New NWChem MD Prepare..." && session &&
+          session->numMembers() == 0)
+        i += 3;
+      else if (types[i]->getMenuItem() ==
+          "New Direct Dynamics VTST Calculation..." && session &&
+          session->numMembers() == 0)
+        i += 5;
     }
-    
+    menu.Append(wxID_ANY, _("&New"), newMenu);
+    menu.AppendSeparator();
+  }
+
+  if (itemData && getTypeAndState(itemData, resType, state)) {
     // (The import entry used to be added here, gated on the selected node
     // being a "project". It is now added unconditionally below -- see there.)
 
