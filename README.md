@@ -245,6 +245,11 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      releases; drop the oldest minor when a new one is added. Everything
      older is on the releases page. -->
 
+- **v8.18.11** — NWChem MP2 and coupled-cluster inputs are generated
+  again, constraints survive a fixed atom, and frequency-only runs draw
+  vibrations on NWChem's geometry; ORCA and NWChem imports are
+  recognised better; the Organizer no longer crashes on a second close;
+  atoms are no longer tinted green.
 - **v8.18.10** — after Symmetry > Find, the Calculation Editor no longer
   shows too many atoms and electrons (water as H4O).
 - **v8.18.9** — a compute machine's login password is no longer sent to
