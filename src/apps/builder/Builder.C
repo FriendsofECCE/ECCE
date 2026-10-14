@@ -2669,6 +2669,9 @@ bool Builder::execute(Command *cmd, bool batch)
             didit = true;
             getCM()->append(cmd);
             updateUndoMenus();
+            // A command that succeeds may still have a note for the user.
+            string note = cmd->getErrorMessage();
+            if (note != "") showMessage(note);
          } else {
             // I guess false means that the command did nothing
             // See if there is an error message for backwards compatability
