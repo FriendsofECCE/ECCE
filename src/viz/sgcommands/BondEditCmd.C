@@ -97,8 +97,33 @@ bool BondEditCmd::execute()
   }
 
   bool addedBond = false;
-  // If just two are selected then we might be adding a bond
-  if (frag->m_atomHighLight.size() == 2) {
+  // Metal order with one metal nub among the picks: attach a pi ligand
+  // at that coordination site.
+  TAtm *piNub = 0;
+  vector<TAtm*> piLigand;
+  if (order == TBond::Metal && frag->m_atomHighLight.size() >= 2) {
+    for (size_t i=0; i<frag->m_atomHighLight.size(); i++) {
+      TAtm *a = frag->atomRef(frag->m_atomHighLight[i]);
+      if (a->atomicSymbol() == "Nub") {
+        if (piNub) { piNub = 0; piLigand.clear(); break; }
+        piNub = a;
+      } else {
+        piLigand.push_back(a);
+      }
+    }
+    if (piLigand.size() != frag->m_atomHighLight.size() - 1) piNub = 0;
+  }
+
+  if (piNub) {
+    try {
+      string msg;
+      frag->bondPiLigand(piNub, piLigand, frag->getMainDisplayStyle(), msg);
+      setErrorMessage(msg);
+      addedBond = ret = true;
+    } catch (EcceException& ex) {
+      setErrorMessage(ex.what());
+    }
+  } else if (frag->m_atomHighLight.size() == 2) {
 
     TAtm *atm1, *atm2;
     int iatm1, iatm2;

@@ -19,6 +19,7 @@
   using std::cout;
   using std::endl;
 #include <set>
+#include <map>
   using std::set;
   using std::find;
   using std::less;
@@ -2105,6 +2106,217 @@ bool Fragment::changeBond(TAtm *atm1, TAtm *atm2, float order)
    return ret;
 }
 
+
+namespace {
+
+typedef double V3[3];
+
+void vsub(const double *a, const double *b, V3 r) { for (int i=0;i<3;i++) r[i]=a[i]-b[i]; }
+double vdot(const double *a, const double *b) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
+void vcross(const double *a, const double *b, V3 r) {
+  r[0]=a[1]*b[2]-a[2]*b[1]; r[1]=a[2]*b[0]-a[0]*b[2]; r[2]=a[0]*b[1]-a[1]*b[0];
+}
+double vlen(const double *a) { return sqrt(vdot(a,a)); }
+void vnorm(V3 a) { double l=vlen(a); if (l>0) for (int i=0;i<3;i++) a[i]/=l; }
+
+// Rotate p about the origin by the rotation taking unit vector u to unit v.
+void rotateUV(const double *u, const double *v, V3 p)
+{
+  V3 k; vcross(u, v, k);
+  double s = vlen(k), c = vdot(u, v);
+  if (s < 1e-9) {
+    if (c > 0) return;
+    // Antiparallel: turn half a circle about any axis perpendicular to u.
+    V3 t = {1,0,0};
+    if (fabs(u[0]) > 0.9) { t[0]=0; t[1]=1; }
+    vcross(u, t, k); vnorm(k); s = 0; c = -1;
+  } else {
+    for (int i=0;i<3;i++) k[i] /= s;
+  }
+  V3 kp; vcross(k, p, kp);
+  double kd = vdot(k, p);
+  for (int i=0;i<3;i++) p[i] = p[i]*c + kp[i]*s + k[i]*kd*(1-c);
+}
+
+}
+
+/**
+ * Attach a pi ligand to a metal at one of its nubs (the coordination site).
+ * Bonded atoms: the picked ligand atoms if several, else the planar 3-7 ring
+ * through the picked atom, else its C=C / C#C partner pair (allyl is not
+ * recognised); a lone atom is just bonded where it is.  The ligand molecule
+ * is turned so its ring plane (pair axis) is perpendicular to the nub
+ * direction and the centroid sits on that direction, 1.7 A (ring) or 2.0 A
+ * (pair) from Fe, shifted by the covalent-radius difference for other metals.
+ * The nub is consumed; the ligand's own atoms and nubs are untouched.
+ */
+void Fragment::bondPiLigand(TAtm *nub, const vector<TAtm*>& ligand,
+      const DisplayStyle& style, string& message)
+{
+   TAtm *metal = nubParent(nub);
+   if (metal == 0 || ligand.empty()) {
+      throw EcceException("No bond sites are available to create this bond.", WHERE);
+   }
+
+   // The ligand molecule: everything connected to the first picked atom.
+   set<TAtm*> comp;
+   vector<TAtm*> stack(1, ligand[0]);
+   comp.insert(ligand[0]);
+   while (!stack.empty()) {
+      TAtm *a = stack.back(); stack.pop_back();
+      vector<TAtm*> *nb = a->connectedAtoms();
+      for (size_t i=0; i<nb->size(); i++)
+         if (comp.insert((*nb)[i]).second) stack.push_back((*nb)[i]);
+      delete nb;
+   }
+   if (comp.count(metal)) {
+      throw EcceException("The pi ligand must be a separate molecule from the metal.", WHERE);
+   }
+   for (size_t i=0; i<ligand.size(); i++) {
+      if (comp.count(ligand[i]) == 0 || ligand[i]->atomicSymbol() == "Nub") {
+         throw EcceException("Select one metal nub and atoms of a single ligand.", WHERE);
+      }
+   }
+
+   // Choose the bonded atoms.
+   vector<TAtm*> bonded;
+   if (ligand.size() > 1) {
+      bonded = ligand;
+   } else {
+      TAtm *seed = ligand[0];
+      // Shortest ring (3-7 atoms) through seed.
+      vector<TAtm*> best;
+      vector<TAtm*> *sn = seed->connectedAtoms();
+      for (size_t i=0; i<sn->size(); i++) {
+         TAtm *first = (*sn)[i];
+         if (first->atomicSymbol() == "Nub") continue;
+         // BFS from first back to seed without using the seed-first edge.
+         map<TAtm*, TAtm*> prev; prev[first] = 0;
+         vector<TAtm*> q(1, first);
+         for (size_t h=0; h<q.size(); h++) {
+            TAtm *a = q[h];
+            int depth = 1;
+            for (TAtm *t=prev[a]; t; t=prev[t]) depth++;
+            if (depth >= 7) continue;
+            vector<TAtm*> *nb = a->connectedAtoms();
+            for (size_t j=0; j<nb->size(); j++) {
+               TAtm *b = (*nb)[j];
+               if (b->atomicSymbol() == "Nub") continue;
+               if (b == seed) {
+                  if (a == first) continue;
+                  vector<TAtm*> ring(1, seed);
+                  for (TAtm *t=a; t; t=prev[t]) ring.push_back(t);
+                  if (best.empty() || ring.size() < best.size()) best = ring;
+               } else if (prev.count(b) == 0) {
+                  prev[b] = a; q.push_back(b);
+               }
+            }
+            delete nb;
+         }
+      }
+      delete sn;
+      if (best.size() >= 3 && best.size() <= 7) {
+         // Planar to 0.2 A about the mean plane (Newell normal).
+         V3 c = {0,0,0}, nrm = {0,0,0};
+         for (size_t i=0; i<best.size(); i++)
+            for (int k=0;k<3;k++) c[k] += best[i]->coordinates()[k]/best.size();
+         for (size_t i=0; i<best.size(); i++) {
+            V3 p1, p2, x;
+            vsub(best[i]->coordinates(), c, p1);
+            vsub(best[(i+1)%best.size()]->coordinates(), c, p2);
+            vcross(p1, p2, x);
+            for (int k=0;k<3;k++) nrm[k] += x[k];
+         }
+         bool planar = vlen(nrm) > 1e-6;
+         vnorm(nrm);
+         for (size_t i=0; planar && i<best.size(); i++) {
+            V3 d; vsub(best[i]->coordinates(), c, d);
+            if (fabs(vdot(d, nrm)) > 0.2) planar = false;
+         }
+         if (planar) bonded = best;
+      }
+      if (bonded.empty()) {
+         vector<TAtm*> *nb = seed->connectedAtoms();
+         for (size_t i=0; i<nb->size() && bonded.empty(); i++) {
+            TBond *b = bond(atomIndex(*seed), atomIndex(*(*nb)[i]));
+            if (b && b->order() >= 2.0 && (*nb)[i]->atomicSymbol() != "Nub") {
+               bonded.push_back(seed); bonded.push_back((*nb)[i]);
+            }
+         }
+         delete nb;
+      }
+      if (bonded.empty()) bonded.push_back(seed);
+   }
+
+   int n = bonded.size();
+   if (n == 1) {
+      // eta1: bond where it is and keep the nub.
+      new TBond(metal, bonded[0], style, TBond::Metal);
+      message = "eta1: 1 Metal bond, placed without aligning";
+      return;
+   }
+
+   // Centroid and axis (ring normal, or the line through a pair) of the
+   // bonded atoms.
+   V3 cen = {0,0,0};
+   for (int i=0;i<n;i++)
+      for (int k=0;k<3;k++) cen[k] += bonded[i]->coordinates()[k]/n;
+   V3 axis = {0,0,0};
+   bool ringLike = (n >= 3);
+   if (ringLike) {
+      for (int i=0;i<n;i++) {
+         V3 p1, p2, x;
+         vsub(bonded[i]->coordinates(), cen, p1);
+         vsub(bonded[(i+1)%n]->coordinates(), cen, p2);
+         vcross(p1, p2, x);
+         for (int k=0;k<3;k++) axis[k] += x[k];
+      }
+      if (vlen(axis) < 1e-6) ringLike = false;
+   }
+   if (!ringLike) vsub(bonded[1]->coordinates(), bonded[0]->coordinates(), axis);
+   vnorm(axis);
+
+   V3 dir;
+   vsub(nub->coordinates(), metal->coordinates(), dir);
+   vnorm(dir);
+
+   TPerTab tpt;
+   double rFe = tpt.covalentRadius(26);
+   double rM = tpt.covalentRadius(metal->atomicNumber());
+   double dist = (ringLike ? 1.7 : 2.0) + ((rM > 0 && rFe > 0) ? rM - rFe : 0.0);
+
+   // Ring normal along +-dir; pair axis perpendicular to dir.
+   V3 target;
+   if (ringLike) {
+      double sgn = vdot(axis, dir) >= 0 ? 1.0 : -1.0;
+      for (int k=0;k<3;k++) target[k] = sgn * dir[k];
+   } else {
+      double d = vdot(axis, dir);
+      for (int k=0;k<3;k++) target[k] = axis[k] - d*dir[k];
+      if (vlen(target) < 1e-6) {
+         V3 t = {1,0,0};
+         if (fabs(dir[0]) > 0.9) { t[0]=0; t[1]=1; }
+         vcross(dir, t, target);
+      }
+      vnorm(target);
+   }
+
+   for (set<TAtm*>::iterator it=comp.begin(); it!=comp.end(); ++it) {
+      V3 p; vsub((*it)->coordinates(), cen, p);
+      rotateUV(axis, target, p);
+      double np[3];
+      for (int k=0;k<3;k++) np[k] = metal->coordinates()[k] + dist*dir[k] + p[k];
+      (*it)->coordinates(np);
+   }
+
+   for (int i=0;i<n;i++) new TBond(metal, bonded[i], style, TBond::Metal);
+   deleteAtom(atomIndex(*nub));
+
+   char buf[160];
+   snprintf(buf, sizeof buf, "eta%d: %d Metal bonds, metal-centroid %.2f A",
+            n, n, dist);
+   message = buf;
+}
 
 /**
  * Bond two atoms that have nubs and remove nubs as needed.

@@ -105,6 +105,10 @@ class Fragment
       virtual bool changeBond(TAtm *atm1, TAtm *atm2, float order);
       virtual void bondAtoms(TAtm *atm1, TAtm *atm2, float order,
             const DisplayStyle& style);
+      // Metal-pi attachment at a metal Nub (see Fragment.C); ligand holds the
+      // picked ligand atoms, message reports the hapticity.
+      void bondPiLigand(TAtm *metalNub, const vector<TAtm*>& ligand,
+            const DisplayStyle& style, string& message);
       virtual void setEnvIndices(void);
       virtual void generateShapes(void);
       virtual bool generateShape(TAtm *atm);
