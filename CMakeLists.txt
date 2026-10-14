@@ -1566,6 +1566,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/run_tests.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
+  # tests/nwchem_cc -- ai.nwchem makes a deck for MP2 and coupled cluster.
+  add_test(NAME nwchem_cc
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/nwchem_cc/run_tests.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/nwchem_cc)
+
   # tests/dialogs -- the GUI-side sibling of the above: runs the real
   # scripts/codereg dialogs headlessly (broadwayd, GTK3's displayless
   # backend; falls back to xvfb; SKIPs cleanly with neither) and diffs what
