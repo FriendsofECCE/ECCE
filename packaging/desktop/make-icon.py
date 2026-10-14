@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate ECCE's application icon: benzene's in-plane electron density.
 
-    ./make-icon.py            writes ecce.svg and ecce-{48,64,128,256}.png here
+    ./make-icon.py            writes ecce.svg and ecce-{48,64,128,256,1024}.png here
 
 The density is a model (Slater-like terms on each nucleus), not ECCE
 output; once ECCE draws plane contour maps itself (#215) the contours
@@ -18,7 +18,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SIZES = (48, 64, 128, 256)
+SIZES = (48, 64, 128, 256, 1024)
 
 # Bohr: C-C 1.40 a.u. from the centre is a stylised ring, not the real 2.64.
 RING_C, RING_H = 1.40, 2.48
