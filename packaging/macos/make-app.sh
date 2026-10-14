@@ -68,6 +68,12 @@ rm -f "$OUT"/ECCE-*.dmg
 dmgdir=$(mktemp -d)
 cp -R "$APP" "$dmgdir/"
 ln -s /Applications "$dmgdir/Applications"
-hdiutil create -volname "ECCE $VERSION" -srcfolder "$dmgdir" -ov -format UDZO "$OUT/ECCE-$FULLVER-$(uname -m).dmg"
+# hdiutil fails now and then with "Resource busy" while the system still
+# scans the new files; a retry a little later succeeds.
+for try in 1 2 3 4 5; do
+  hdiutil create -volname "ECCE $VERSION" -srcfolder "$dmgdir" -ov -format UDZO "$OUT/ECCE-$FULLVER-$(uname -m).dmg" && break
+  [ $try = 5 ] && exit 1
+  sleep $((try*10))
+done
 rm -rf "$dmgdir"
 ls -l "$OUT"/ECCE-*.dmg
