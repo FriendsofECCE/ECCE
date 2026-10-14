@@ -339,6 +339,19 @@ void SoWxViewer::CreateControls()
 #endif
   }
 #endif
+#ifndef __WXMSW__
+  //  Depth 1 means "any", and under XWayland the first visual can have only
+  //  16 bits, which bands the depth-peeled lobes (#322).  Prefer 24 and
+  //  keep the lists above as the fallback.
+  {
+    int deep[20];
+    memcpy(deep, gl_attrib, sizeof deep);
+    for (int i = 0; deep[i] != 0; i++)
+      if (deep[i] == WX_GL_DEPTH_SIZE) { deep[i + 1] = 24; break; }
+    if (wxGLCanvas::IsDisplaySupported(deep))
+      memcpy(gl_attrib, deep, sizeof gl_attrib);
+  }
+#endif
   //  Multisampling smooths the stair-stepped edges of atoms and bonds
   //  (#210); without it nothing in the viewer antialiases polygons.
   //  ECCE_GL_SAMPLES sets the count, 0 turns it off.  Off by default under
