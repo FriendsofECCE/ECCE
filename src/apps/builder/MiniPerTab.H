@@ -10,6 +10,7 @@ using std::vector;
 #include "util/Event.H"
 using namespace ecce;
 
+#include "wxgui/ewxPanel.H"
 #include "wxviz/WxVizTool.H"
 
 #include <wx/weakref.h>
