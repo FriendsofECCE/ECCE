@@ -1,0 +1,445 @@
+%begin%input file%1%char
+start h2osymfreq
+title "rotated water frequencies, autosym, ecce_print"
+echo
+geometry units angstroms autosym
+  O   0.300000   0.150000   0.100000
+  H   0.800000   0.900000   0.700000
+  H  -0.450000   0.950000   0.050000
+end
+basis
+  * library STO-3G
+end
+ecce_print h2o_sym_freq.eprint
+task scf freq
+%end%input file%1%char
+%begin%version%1%char
+Mon_May_12_21:20:53_2025 Version 7.2.3
+%end%version%1%char
+%begin%entry%1%char
+task_frequencies
+%end%entry%1%char
+task_frequencies%begin%entry%1%char
+task_hessian
+task_frequencies%end%entry%1%char
+task_frequencies task_hessian%begin%entry%1%char
+task_hessian
+task_frequencies task_hessian%end%entry%1%char
+task_frequencies task_hessian task_hessian%begin%entry%1%char
+task_energy
+task_frequencies task_hessian task_hessian%end%entry%1%char
+task_frequencies task_hessian task_hessian task_energy%begin%entry%1%char
+scf
+task_frequencies task_hessian task_hessian task_energy%end%entry%1%char
+task_frequencies task_hessian task_hessian task_energy scf%begin%entry%1%char
+load_basis
+task_frequencies task_hessian task_hessian task_energy scf%end%entry%1%char
+basis "ao basis" cartesian
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+end
+task_frequencies task_hessian task_hessian task_energy scf load_basis%begin%exit%2%char
+load_basis
+ok
+task_frequencies task_hessian task_hessian task_energy scf load_basis%end%exit%1%char
+task_frequencies task_hessian task_hessian task_energy scf%begin%entry%1%char
+bas_input
+task_frequencies task_hessian task_hessian task_energy scf%end%entry%1%char
+basis "ao basis" cartesian
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+end
+task_frequencies task_hessian task_hessian task_energy scf bas_input%begin%exit%2%char
+bas_input
+ok
+task_frequencies task_hessian task_hessian task_energy scf bas_input%end%exit%1%char
+task_frequencies task_hessian task_hessian task_energy scf%begin%total energy%1%double
+-7.48736841037880e+01 
+task_frequencies task_hessian task_hessian task_energy scf%end%total energy%1%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%orbital gradient norm%1%double
+7.69834189116308e-01 
+task_frequencies task_hessian task_hessian task_energy scf%end%orbital gradient norm%1%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%total energy%1%double
+-7.49208748776790e+01 
+task_frequencies task_hessian task_hessian task_energy scf%end%total energy%1%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%orbital gradient norm%1%double
+3.50353704269702e-01 
+task_frequencies task_hessian task_hessian task_energy scf%end%orbital gradient norm%1%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%total energy%1%double
+-7.49327606168584e+01 
+task_frequencies task_hessian task_hessian task_energy scf%end%total energy%1%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%orbital gradient norm%1%double
+1.38272531060869e-01 
+task_frequencies task_hessian task_hessian task_energy scf%end%orbital gradient norm%1%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%total energy%1%double
+-7.49337099559649e+01 
+task_frequencies task_hessian task_hessian task_energy scf%end%total energy%1%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%orbital gradient norm%1%double
+2.73574366954583e-03 
+task_frequencies task_hessian task_hessian task_energy scf%end%orbital gradient norm%1%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%total energy%1%double
+-7.49337103990045e+01 
+task_frequencies task_hessian task_hessian task_energy scf%end%total energy%1%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%orbital gradient norm%1%double
+1.00956526326164e-06 
+task_frequencies task_hessian task_hessian task_energy scf%end%orbital gradient norm%1%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%total energy%1%double
+-7.49337103990047e+01 
+task_frequencies task_hessian task_hessian task_energy scf%end%total energy%1%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%orbital gradient norm%1%double
+2.14277882987362e-08 
+task_frequencies task_hessian task_hessian task_energy scf%end%orbital gradient norm%1%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%total energy%1%double
+-7.49337103990047e+01 
+task_frequencies task_hessian task_hessian task_energy scf%end%total energy%1%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%one-electron energy%1%double
+-1.20350856532982e+02 
+task_frequencies task_hessian task_hessian task_energy scf%end%one-electron energy%1%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%two-electron energy%1%double
+3.72756267610472e+01 
+task_frequencies task_hessian task_hessian task_energy scf%end%two-electron energy%1%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%nuclear repulsion energy%1%double
+8.14151937293038e+00 
+task_frequencies task_hessian task_hessian task_energy scf%end%nuclear repulsion energy%1%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%total mulliken atomic charges%3%double
+-2.41182277727937e-01 1.23350980132258e-01 1.17831297595680e-01 
+task_frequencies task_hessian task_hessian task_energy scf%end%total mulliken atomic charges%3%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%total mulliken shell charges%5%double
+1.99852948455132e+00 1.90421886580626e+00 4.33843392737035e+00 8.76649019867742e-01 
+8.82168702404320e-01 
+task_frequencies task_hessian task_hessian task_energy scf%end%total mulliken shell charges%5%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%total dipole%3%double
+4.69801808051192e-02 -6.51018466455538e-01 -2.17656468928526e-17 
+task_frequencies task_hessian task_hessian task_energy scf%end%total dipole%3%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%open shell dipole%3%double
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+task_frequencies task_hessian task_hessian task_energy scf%end%open shell dipole%3%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%nuclear dipole%3%double
+0.00000000000000e+00 2.22044604925031e-16 0.00000000000000e+00 
+task_frequencies task_hessian task_hessian task_energy scf%end%nuclear dipole%3%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%total quadrupole%6%double
+-3.73717840618524e+00 2.83682507063587e-03 -2.06345857306815e-17 -3.72831097854857e+00 
+2.05754901827232e-17 -4.61861337467951e+00 
+task_frequencies task_hessian task_hessian task_energy scf%end%total quadrupole%6%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%open shell quadrupole%6%double
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 
+task_frequencies task_hessian task_hessian task_energy scf%end%open shell quadrupole%6%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%nuclear quadrupole%6%double
+3.54372588519765e+00 2.52757244563144e-02 0.00000000000000e+00 3.95818746805708e+00 
+0.00000000000000e+00 0.00000000000000e+00 
+task_frequencies task_hessian task_hessian task_energy scf%end%nuclear quadrupole%6%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%molecular orbital energies RHF%7%double
+-2.02767791688683e+01 -1.22953579444463e+00 -5.10301350890730e-01 -4.85771330129291e-01 
+-3.97413861110991e-01 5.08118241920450e-01 5.53277698379691e-01 
+task_frequencies task_hessian task_hessian task_energy scf%end%molecular orbital energies RHF%7%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%molecular orbital occupations RHF%7%double
+2.00000000000000e+00 2.00000000000000e+00 2.00000000000000e+00 2.00000000000000e+00 
+2.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+task_frequencies task_hessian task_hessian task_energy scf%end%molecular orbital occupations RHF%7%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%molecular orbital symmetries RHF%7%int
+1 1 1 1 1 1 1 
+task_frequencies task_hessian task_hessian task_energy scf%end%molecular orbital symmetries RHF%7%int
+task_frequencies task_hessian task_hessian task_energy scf%begin%molecular orbital range RHF%2%int
+1 7 
+task_frequencies task_hessian task_hessian task_energy scf%end%molecular orbital range RHF%2%int
+task_frequencies task_hessian task_hessian task_energy scf%begin%molecular orbital vectors RHF%7 7%double
+ 0.994 0.024 0.0 -0.004 0.0 -0.004 -0.004
+ -0.237 0.876 0.009 -0.102 0.0 0.148 0.143
+ 0.009 -0.047 0.664 -0.010 0.0 0.477 -0.428
+ -0.106 0.535 0.007 0.673 0.0 -0.313 -0.384
+ 4*0.0 1.000 2*0.0
+ 0.102 -0.619 0.071 0.834 0.0 0.554 0.774
+ -0.016 0.102 0.847 -0.072 0.0 -0.879 0.674
+task_frequencies task_hessian task_hessian task_energy scf%end%molecular orbital vectors RHF%7 7%double
+task_frequencies task_hessian task_hessian task_energy scf%begin%exit%2%char
+scf
+ok
+task_frequencies task_hessian task_hessian task_energy scf%end%exit%1%char
+task_frequencies task_hessian task_hessian task_energy%begin%cpu time%1%double
+1.44120000000000e-02 
+task_frequencies task_hessian task_hessian task_energy%end%cpu time%1%double
+task_frequencies task_hessian task_hessian task_energy%begin%wall time%1%double
+2.66535070000000e-02 
+task_frequencies task_hessian task_hessian task_energy%end%wall time%1%double
+task_frequencies task_hessian task_hessian task_energy%begin%cartesian coordinates%3 3%double
+-9.67666314684294e-03 1.66076374570083e-01 0.00000000000000e+00 
+7.41770997908620e-01 -6.13555854557392e-01 0.00000000000000e+00 
+-6.64357692733876e-01 -7.15055142003273e-01 0.00000000000000e+00 
+task_frequencies task_hessian task_hessian task_energy%end%cartesian coordinates%3 3%double
+task_frequencies task_hessian task_hessian task_energy%begin%atomic charges%3%double
+8.00000000000000e+00 1.00000000000000e+00 1.00000000000000e+00 
+task_frequencies task_hessian task_hessian task_energy%end%atomic charges%3%double
+task_frequencies task_hessian task_hessian task_energy%begin%atomic tags%3%char
+O
+H
+H
+task_frequencies task_hessian task_hessian task_energy%end%atomic tags%3%char
+task_frequencies task_hessian task_hessian task_energy%begin%group name%1%char
+C1
+task_frequencies task_hessian task_hessian task_energy%end%group name%1%char
+task_frequencies task_hessian task_hessian task_energy%begin%total energy%1%double
+-7.49337103990047e+01 
+task_frequencies task_hessian task_hessian task_energy%end%total energy%1%double
+task_frequencies task_hessian task_hessian task_energy%begin%exit%2%char
+task_energy
+ok
+task_frequencies task_hessian task_hessian task_energy%end%exit%1%char
+task_frequencies task_hessian task_hessian%begin%entry%1%char
+load_basis
+task_frequencies task_hessian task_hessian%end%entry%1%char
+basis "ao basis" cartesian
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+end
+task_frequencies task_hessian task_hessian load_basis%begin%exit%2%char
+load_basis
+ok
+task_frequencies task_hessian task_hessian load_basis%end%exit%1%char
+task_frequencies task_hessian task_hessian%begin%entry%1%char
+bas_input
+task_frequencies task_hessian task_hessian%end%entry%1%char
+basis "ao basis" cartesian
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+end
+task_frequencies task_hessian task_hessian bas_input%begin%exit%2%char
+bas_input
+ok
+task_frequencies task_hessian task_hessian bas_input%end%exit%1%char
+task_frequencies task_hessian task_hessian%begin%entry%1%char
+load_basis
+task_frequencies task_hessian task_hessian%end%entry%1%char
+basis "ao basis" cartesian
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+end
+task_frequencies task_hessian task_hessian load_basis%begin%exit%2%char
+load_basis
+ok
+task_frequencies task_hessian task_hessian load_basis%end%exit%1%char
+task_frequencies task_hessian task_hessian%begin%entry%1%char
+bas_input
+task_frequencies task_hessian task_hessian%end%entry%1%char
+basis "ao basis" cartesian
+ O                s
+     1.307093E+02     1.543290E-01
+     2.380886E+01     5.353281E-01
+     6.443608E+00     4.446345E-01
+ O                s
+     5.033151E+00    -9.996723E-02
+     1.169596E+00     3.995128E-01
+     3.803890E-01     7.001155E-01
+ O                p
+     5.033151E+00     1.559163E-01
+     1.169596E+00     6.076837E-01
+     3.803890E-01     3.919574E-01
+ H                s
+     3.425251E+00     1.543290E-01
+     6.239137E-01     5.353281E-01
+     1.688554E-01     4.446345E-01
+end
+task_frequencies task_hessian task_hessian bas_input%begin%exit%2%char
+bas_input
+ok
+task_frequencies task_hessian task_hessian bas_input%end%exit%1%char
+task_frequencies task_hessian task_hessian%begin%cpu time%1%double
+6.72010000000000e-02 
+task_frequencies task_hessian task_hessian%end%cpu time%1%double
+task_frequencies task_hessian task_hessian%begin%wall time%1%double
+8.32481060000000e-02 
+task_frequencies task_hessian task_hessian%end%wall time%1%double
+task_frequencies task_hessian task_hessian%begin%exit%2%char
+task_hessian
+ok
+task_frequencies task_hessian task_hessian%end%exit%1%char
+task_frequencies task_hessian%begin%frequencies%9%double
+3.53420083192988e-03 4.84507905654699e-03 5.37436009725174e-03 5.64158238102732e+02 
+1.00648597013209e+03 1.28811740613656e+03 2.14922745999155e+03 3.20046176835172e+03 
+3.33617784232423e+03 
+task_frequencies task_hessian%end%frequencies%9%double
+task_frequencies task_hessian%begin%normal modes%9 9%double
+9.15489447920321e-02 -2.17121562217635e-01 0.00000000000000e+00 9.15489448029910e-02 
+-2.17121562201851e-01 0.00000000000000e+00 9.15489448087310e-02 -2.17121562237342e-01 
+0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 2.35633151471815e-01 0.00000000000000e+00 
+0.00000000000000e+00 2.35633151476343e-01 0.00000000000000e+00 0.00000000000000e+00 
+2.35633151474873e-01 
+-2.17121562218790e-01 -9.15489447937821e-02 0.00000000000000e+00 -2.17121562214707e-01 
+-9.15489447865500e-02 0.00000000000000e+00 -2.17121562206161e-01 -9.15489447973973e-02 
+0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 -4.13000630447538e-03 0.00000000000000e+00 
+0.00000000000000e+00 7.36270388711266e-01 0.00000000000000e+00 0.00000000000000e+00 
+-6.70724208437875e-01 
+-5.80070952349467e-02 -4.17812595981571e-03 0.00000000000000e+00 4.32269130360877e-01 
+5.38635041654273e-01 0.00000000000000e+00 4.88345329140250e-01 -4.72325167579501e-01 
+0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 -8.35454972761431e-02 0.00000000000000e+00 
+0.00000000000000e+00 6.28186825592297e-01 0.00000000000000e+00 0.00000000000000e+00 
+6.97740502878287e-01 
+-3.22792562022867e-03 7.00201680130335e-02 0.00000000000000e+00 -3.58702797063329e-01 
+-5.62180480646017e-01 0.00000000000000e+00 4.09932305936996e-01 -5.49090112494140e-01 
+0.00000000000000e+00 
+4.59551965888133e-02 2.92148277384121e-02 0.00000000000000e+00 -2.16118368456907e-02 
+1.78251019998688e-01 0.00000000000000e+00 -7.07730294474116e-01 -6.41911417723463e-01 
+0.00000000000000e+00 
+-3.88559438432263e-02 3.49731360068935e-02 0.00000000000000e+00 7.87858746201687e-01 
+-5.46593766981547e-01 0.00000000000000e+00 -1.71186878833225e-01 -8.45513819878699e-03 
+0.00000000000000e+00 
+task_frequencies task_hessian%end%normal modes%9 9%double
+task_frequencies task_hessian%begin%intensities%9%double
+4.97697196242829e-23 2.49602731906180e-24 7.91187833700362e-24 4.03856099497425e-04 
+6.15174648774530e-02 9.59643175759015e-02 1.16791896670044e-04 5.83058145303624e-02 
+5.92776997859841e-02 
+task_frequencies task_hessian%end%intensities%9%double
+task_frequencies task_hessian%begin%intensities (debye/ang)2%9%double
+1.14822706212292e-21 5.75853377752712e-23 1.82533333266744e-22 9.31728179597978e-03 
+1.41925689955111e+00 2.21397322047694e+00 2.69448205466237e-03 1.34516156868638e+00 
+1.36758373542165e+00 
+task_frequencies task_hessian%end%intensities (debye/ang)2%9%double
+task_frequencies task_hessian%begin%intensities (KM/mol)%9%double
+4.85179897054906e-20 2.43325115522205e-21 7.71289118370972e-21 3.93698944374915e-01 
+5.99702740976643e+01 9.35507735906622e+01 1.13854530085743e-01 5.68393981422821e+01 
+5.77868400644618e+01 
+task_frequencies task_hessian%end%intensities (KM/mol)%9%double
+task_frequencies task_hessian%begin%projected frequencies%9%double
+-1.34439138376925e-05 -1.23854318691413e-05 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 1.33868832379043e-05 2.14885831590066e+03 3.25208111317136e+03 
+3.40873232903502e+03 
+task_frequencies task_hessian%end%projected frequencies%9%double
+task_frequencies task_hessian%begin%projected normal modes%9 9%double
+-5.18711065156745e-02 -2.73050205198085e-02 0.00000000000000e+00 4.65937816226015e-01 
+4.71784536492681e-01 0.00000000000000e+00 5.33350674145216e-01 -4.62125011285548e-01 
+0.00000000000000e+00 
+2.38028847283413e-01 3.89700995034332e-04 0.00000000000000e+00 2.16192003851412e-01 
+-2.06577163752202e-02 0.00000000000000e+00 2.13349094123497e-01 1.87267663533384e-02 
+0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 2.50039775115346e-01 0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 9.96110312774363e-01 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00 
+9.96110312774363e-01 
+5.48741283614136e-03 -2.34073397174470e-01 0.00000000000000e+00 -4.69008204160694e-02 
+-2.84567737804914e-01 0.00000000000000e+00 -5.37211751262262e-02 -1.90081395301077e-01 
+0.00000000000000e+00 
+-2.47895468241451e-03 7.00654160717258e-02 0.00000000000000e+00 -3.64301861661272e-01 
+-5.68682283915512e-01 0.00000000000000e+00 4.03644661293440e-01 -5.43306428592057e-01 
+0.00000000000000e+00 
+2.32191590083076e-02 4.10620111538517e-02 0.00000000000000e+00 3.27244501474253e-01 
+-4.88779602814183e-02 0.00000000000000e+00 -6.95749309961410e-01 -6.02805787219243e-01 
+0.00000000000000e+00 
+-5.09525175874249e-02 1.97120920548628e-02 0.00000000000000e+00 6.97419692140953e-01 
+-6.02047317622083e-01 0.00000000000000e+00 1.11233529484366e-01 2.89202192397719e-01 
+0.00000000000000e+00 
+task_frequencies task_hessian%end%projected normal modes%9 9%double
+task_frequencies task_hessian%begin%projected intensities%9%double
+5.26264667701803e-02 9.35933245650905e-05 1.07824810159880e-02 4.41900422298438e-02 
+4.13956504295671e-02 5.38682241791055e-04 7.17076767791414e-05 6.17058211401593e-02 
+6.41814999369945e-02 
+task_frequencies task_hessian%end%projected intensities%9%double
+task_frequencies task_hessian%begin%projected intensities (debye/ang)2%9%double
+1.21413449353552e+00 2.15927252375473e-03 2.48760422860479e-01 1.01949946167478e+00 
+9.55030617737663e-01 1.24278282573999e-02 1.65435320233552e-03 1.42360242851515e+00 
+1.48071830967963e+00 
+task_frequencies task_hessian%end%projected intensities (debye/ang)2%9%double
+task_frequencies task_hessian%begin%projected intensities (KM/mol)%9%double
+5.13028884282918e+01 9.12394120768996e-02 1.05112969669636e+01 4.30786436045479e+01 
+4.03545319635255e+01 5.25134151026989e-01 6.99041977740528e-02 6.01538931191082e+01 
+6.25673075262159e+01 
+task_frequencies task_hessian%end%projected intensities (KM/mol)%9%double
+task_frequencies task_hessian%begin%cpu time%1%double
+6.86900000000000e-02 
+task_frequencies task_hessian%end%cpu time%1%double
+task_frequencies task_hessian%begin%wall time%1%double
+3.64735580000000e-02 
+task_frequencies task_hessian%end%wall time%1%double
+task_frequencies task_hessian%begin%exit%2%char
+task_frequencies
+ok
+task_frequencies task_hessian%end%exit%1%char
+%begin%single task cpu time%1%double
+6.87920000000000e-02 
+%end%single task cpu time%1%double
+%begin%single task wall time%1%double
+8.50109970000000e-02 
+%end%single task wall time%1%double
+%begin%all tasks cpu time%1%double
+1.65229000000000e-01 
+%end%all tasks cpu time%1%double
+%begin%all tasks wall time%1%double
+1.09215397000000e-01 
+%end%all tasks wall time%1%double

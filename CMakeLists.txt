@@ -1566,6 +1566,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/run_tests.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
+  # The stored geometry and the normal modes are in one frame (#312).
+  add_test(NAME parsers_vib_frame
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/vib_frame_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+
   # tests/nwchem_cc -- ai.nwchem makes a deck for MP2 and coupled cluster.
   add_test(NAME nwchem_cc
            COMMAND ${PYTHON3_EXECUTABLE}

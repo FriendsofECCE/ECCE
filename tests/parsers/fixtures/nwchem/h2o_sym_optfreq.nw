@@ -1,0 +1,14 @@
+start h2osymoptfreq
+title "rotated water optimization and frequencies, autosym, ecce_print"
+echo
+geometry units angstroms autosym
+  O   0.300000   0.150000   0.100000
+  H   0.800000   0.900000   0.700000
+  H  -0.450000   0.950000   0.050000
+end
+basis
+  * library STO-3G
+end
+ecce_print h2o_sym_optfreq.eprint
+task scf optimize
+task scf freq

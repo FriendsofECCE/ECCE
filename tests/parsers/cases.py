@@ -531,6 +531,10 @@ CASES = [
                       'nwchem-h2o-property).',
         },
         expect={
+            # The only geometry a frequency-only run prints; the modes are in
+            # its frame (tests/parsers/vib_frame_test.py).
+            'GEOMHESS': dict(blocks=1, keys={'GEOMTRACE': {
+                'size': '1 3 3'}}),
             # All 3N modes are kept, the six near-zero translational/
             # rotational ones included, exactly as the trace prints them --
             # so a parser that silently dropped or shifted a column would
@@ -1758,6 +1762,9 @@ KNOWN_KEY_ALIASES = {
     ('nwchem.desc', 'GEOMPROP'):
         "Script=nwchem.geomtrace emits GEOMTRACE; GEOMPROP is the section "
         "label for the coordinates printed by a property task.",
+    ('nwchem.desc', 'GEOMHESS'):
+        "Script=nwchem.geomtrace emits GEOMTRACE; GEOMHESS is the section "
+        "label for the coordinates printed by a frequency task.",
     ('nwchem.desc', 'GEOMCAR'):
         "Script=nwchem.geomtrace emits GEOMTRACE; GEOMCAR is the section "
         "label for the plane-wave (nwpw) cartesian coordinate block.",

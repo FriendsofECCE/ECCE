@@ -53,8 +53,12 @@ Frequency=all
 Lines=2
 [END]
 
-[GEOMNULL]
-Script=nwchem.null
+# A frequency-only run has no gradient task, so this is its only geometry:
+# NWChem prints the modes in the frame autosym moved the molecule into, and
+# the viewer must draw them on those coordinates. nwchem.geomtrace drops it
+# for Geometry/GeoVib, where the gradient blocks already hold the trace.
+[GEOMHESS]
+Script=nwchem.geomtrace
 Begin=task_hessian task_energy%begin%cartesian coordinates
 Frequency=last
 End=task
