@@ -271,6 +271,10 @@ WxBasisTool::WxBasisTool(      wxWindow* parent,
     this->Layout();
     this->Fit();
 
+    // The splitter's own minimum is tiny; pin the natural size so that a short
+    // screen scrolls the panel rather than squeezing its controls.
+    FindWindow(ID_PANEL_WXBASISTOOL_MAIN)->SetMinSize(GetClientSize());
+
     p_splitPostnMin = (p_cntxtMoleculePanel->GetBestSize()).GetHeight();
     p_splitPostnMax = (p_mainSplitWindow->GetSize()).GetHeight()
                          - ((p_dividerPanel->GetSize()).GetHeight()
