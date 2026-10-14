@@ -155,7 +155,7 @@ def convert(md, image_exists):
 
 
 PAGE = """<html>
-<head><meta charset="utf-8"><title>%(title)s</title></head>
+<head><meta charset="utf-8"><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>%(title)s</title></head>
 <body>
 %(body)s
 </body>
