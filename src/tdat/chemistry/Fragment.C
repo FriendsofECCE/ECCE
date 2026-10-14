@@ -2310,7 +2310,20 @@ void Fragment::bondPiLigand(TAtm *nub, const vector<TAtm*>& ligand,
    }
 
    for (int i=0;i<n;i++) new TBond(metal, bonded[i], style, TBond::Metal);
-   deleteAtom(atomIndex(*nub));
+
+   // The metal nub is used up, and so are the nubs on the bonded ligand
+   // atoms (Structure Library ligands carry one per donor); they only stood
+   // for the coordination direction and would otherwise take hydrogens.
+   vector<int> gone(1, atomIndex(*nub));
+   for (int i=0;i<n;i++) {
+      vector<TAtm*> *nb = bonded[i]->connectedAtoms();
+      for (size_t j=0; j<nb->size(); j++)
+         if ((*nb)[j]->atomicSymbol() == "Nub") gone.push_back(atomIndex(*(*nb)[j]));
+      delete nb;
+   }
+   sort(gone.begin(), gone.end());
+   gone.erase(unique(gone.begin(), gone.end()), gone.end());
+   for (int i=(int)gone.size()-1; i>=0; i--) deleteAtom(gone[i]);
 
    char buf[160];
    snprintf(buf, sizeof buf, "eta%d: %d Metal bonds, metal-centroid %.2f A",
