@@ -1357,6 +1357,10 @@ void SoWxRenderArea::constructorCommon(SbBool getMouseInput,
  */
 void SoWxRenderArea::OnMouse( wxMouseEvent& event )
 {
+  //  A press in the view takes the keyboard (Delete, Ctrl+C) from whatever
+  //  panel control had it; wx does not do so for a GL canvas by itself.
+  if (event.ButtonDown() && !HasFocus())
+    SetFocus();
   processEvent(&event);
 }
 

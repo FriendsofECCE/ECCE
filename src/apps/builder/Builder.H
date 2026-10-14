@@ -148,7 +148,9 @@ class Builder: public BuilderGUI,
       ID_ACCEL_CUT,
       ID_ACCEL_COPY,
       ID_ACCEL_PASTE,
-      ID_ACCEL_UNDO
+      ID_ACCEL_UNDO,
+      // the bare Delete key (deleteKey); Edit > Delete Selection is wxID_DELETE
+      ID_ACCEL_DELETE
     };
 
     const static string NAME_TOOL_CONTEXT;
@@ -374,6 +376,7 @@ class Builder: public BuilderGUI,
       TearableContent *showElementChooser();
       /// Ctrl+X/C/V/Z: edit the focused text field, else the structure.
       void editShortcut(int accelId);
+      void deleteKey();
       virtual void OnModeShapeClick( wxCommandEvent& event );
       virtual void OnModeBondClick( wxCommandEvent& event );
 

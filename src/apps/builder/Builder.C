@@ -543,14 +543,14 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   PushEventHandler(p_viewerEvtHandler);
   Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(Builder::OnKeyDown));
   //  Key events go to the focused child (the 3-D canvas), never the frame,
-  //  so Delete is an accelerator: OnDeleteClick leaves text fields alone.
+  //  so Delete is an accelerator: deleteKey leaves editable text fields alone.
   //  The same holds for the File/Select/Mode menu shortcuts (Ctrl+S did
   //  nothing while the view had the focus).  Ctrl+X/C/V/Z are accelerators
   //  too, but go through editShortcut, which gives them to a focused text
   //  field.  Ctrl+Y/A are left out.
   wxAcceleratorEntry keys[] = {
-    wxAcceleratorEntry(wxACCEL_NORMAL, WXK_DELETE, wxID_DELETE),
-    wxAcceleratorEntry(wxACCEL_NORMAL, WXK_NUMPAD_DELETE, wxID_DELETE),
+    wxAcceleratorEntry(wxACCEL_NORMAL, WXK_DELETE, ID_ACCEL_DELETE),
+    wxAcceleratorEntry(wxACCEL_NORMAL, WXK_NUMPAD_DELETE, ID_ACCEL_DELETE),
     wxAcceleratorEntry(wxACCEL_CTRL, 'N', wxID_NEW),
     wxAcceleratorEntry(wxACCEL_CTRL, 'O', wxID_OPEN),
     wxAcceleratorEntry(wxACCEL_CTRL, 'W', wxID_CLOSE),
@@ -571,6 +571,7 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   SetAcceleratorTable(wxAcceleratorTable(sizeof(keys) / sizeof(keys[0]), keys));
   Bind(wxEVT_MENU, [this](wxCommandEvent& ev) { editShortcut(ev.GetId()); },
        ID_ACCEL_CUT, ID_ACCEL_UNDO);
+  Bind(wxEVT_MENU, [this](wxCommandEvent&) { deleteKey(); }, ID_ACCEL_DELETE);
 
   TPerTab tpt;
   ShapeData shapes;
@@ -3000,17 +3001,30 @@ void Builder::editShortcut(int accelId)
 
 void Builder::OnDeleteClick( wxCommandEvent& event )
 {
-   //  The accelerator is the Delete key: in a text field it edits the text.
+   //  The menu item and Ctrl+D always act on the selection, wherever the
+   //  focus is; only the bare Delete key (deleteKey) can belong to a field.
+   deleteSelection();
+}
+
+
+void Builder::deleteKey()
+{
+   //  A read-only field (the Log) must not swallow the key; an editable,
+   //  enabled one takes it as an edit.
    wxWindow *focus = wxWindow::FindFocus();
-   if (dynamic_cast<wxTextEntry*>(focus) || dynamic_cast<wxSpinCtrl*>(focus) ||
-       dynamic_cast<wxSpinCtrlDouble*>(focus)) {
+   if (focus && focus->IsEnabled()) {
       if (wxTextEntry *te = dynamic_cast<wxTextEntry*>(focus)) {
-         long from, to;
-         te->GetSelection(&from, &to);
-         if (from == to) to = from + 1;
-         if (te->IsEditable()) te->Remove(from, to);
+         if (te->IsEditable()) {
+            long from, to;
+            te->GetSelection(&from, &to);
+            if (from == to) to = from + 1;
+            te->Remove(from, to);
+            return;
+         }
+      } else if (dynamic_cast<wxSpinCtrl*>(focus) ||
+                 dynamic_cast<wxSpinCtrlDouble*>(focus)) {
+         return;
       }
-      return;
    }
    deleteSelection();
 }
@@ -3674,8 +3688,9 @@ void Builder::unfocusPanel(wxWindow *win)
 void Builder::OnKeyDown(wxKeyEvent& event)
 {
    if (event.GetKeyCode() == WXK_DELETE ||
-       event.GetKeyCode() == WXK_BACK ||
        event.GetKeyCode() == WXK_NUMPAD_DELETE) {
+      deleteKey();
+   } else if (event.GetKeyCode() == WXK_BACK) {
       deleteSelection();
    } else if (event.GetKeyCode() == WXK_ESCAPE) {
       setMode(ID_MODE_SELECT);
@@ -7027,7 +7042,12 @@ void Builder::propertyChangeMCB(JMSMessage& msg)
 
 void Builder::deleteSelection()
 {
-
+   SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
+   if (getenv("ECCE_DEBUG_PANELS")) {
+      fprintf(stderr, "[BUILDER] delete: %d atoms, %d bonds selected\n",
+              frag ? (int)frag->m_atomHighLight.size() : -1,
+              frag ? (int)frag->m_bondHighLight.size() : -1);
+   }
    Command *cmd = new DeleteCmd("Delete Selection", getSG());
    execute(cmd);
 }

@@ -104,6 +104,46 @@ def builderCase(display, url):
           % (str(m.groups()) if m else "?"), tail)
 
 
+def deleteCase(display, url):
+    """Edit > Delete Selection and the Delete key act on the selection with
+    the focus in the read-only Log; an editable field keeps the key (#324).
+    The script posts the menu / accelerator command itself, so this covers
+    the routing, not the keyboard-to-accelerator step."""
+    log = sym.scripted(display, "builder", "ECCE_BUILDER_SCRIPT",
+                       ["wait 4000", "panel Log", "wait 500", "info",
+                        "select 1", "delete menu log",
+                        "select 1", "delete key log",
+                        "select 1", "delete key text",
+                        "select 1", "delete key viewer",
+                        "wait 500", "quit"], url)
+    tail = run_tests._tail(log, 25)
+    start = re.search(r"BUILDER: atoms=(\d+)", log)
+    steps = {}
+    for m in re.finditer(r"delete (menu|key) (log|text|viewer): ok focus=(\S+) "
+                         r"atoms=(\d+)(?: text=\[(.*)\])?", log):
+        steps[(m.group(1), m.group(2))] = (m.group(3), int(m.group(4)), m.group(5))
+    check(start is not None and len(steps) == 4,
+          "four delete reports (%d)" % len(steps), tail)
+    if start is None or len(steps) != 4:
+        return
+    n0 = int(start.group(1))
+    menuLog = steps[("menu", "log")]
+    keyLog = steps[("key", "log")]
+    keyText = steps[("key", "text")]
+    keyView = steps[("key", "viewer")]
+    check("Text" in menuLog[0], "the Log had the focus for the menu (%s)"
+          % menuLog[0], tail)
+    check(menuLog[1] < n0, "Delete Selection with the focus in the Log "
+          "deletes (%d -> %d)" % (n0, menuLog[1]), tail)
+    check(keyLog[1] < menuLog[1], "the Delete key with the focus in the Log "
+          "deletes (%d -> %d)" % (menuLog[1], keyLog[1]), tail)
+    check(keyText[1] == keyLog[1] and keyText[2] == "",
+          "the Delete key in an editable field edits the text and keeps the "
+          "selection (atoms %d, text [%s])" % (keyText[1], keyText[2]), tail)
+    check(keyView[1] < keyText[1], "the Delete key with the 3-D view focused "
+          "deletes (%d -> %d)" % (keyText[1], keyView[1]), tail)
+
+
 def paneSizeCase(display, url):
     """No tool pane beside Build is fixed (a fixed neighbour stops Build's
     sash, #293), and the panes still open at their content heights."""
@@ -142,6 +182,7 @@ def main():
                                            "proj-mopac", "ch4") + "/"
             builderCase(display, url)
             paneSizeCase(display, url)
+            deleteCase(display, url)
         finally:
             restorePrefs()
             os.environ.pop("ECCE_LOCAL_DATA", None)

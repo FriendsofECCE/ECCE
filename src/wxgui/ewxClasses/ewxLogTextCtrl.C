@@ -84,12 +84,14 @@ void ewxLogTextCtrl::FlashOff(wxTimerEvent& WXUNUSED(event))
 }
 
 
+//  szString arrives from wxLogFormatter already carrying the time stamp and
+//  the level prefix ("Error: "), so none is added here.
 void ewxLogTextCtrl::DoLogTextAtLevel(wxLogLevel level, const wxString &szString)
 {
   switch ( level ) {
   case wxLOG_FatalError:
     
-    DoLogText(wxString(_("Fatal error: ")) + szString +"\n");
+    DoLogText(szString + "\n");
     DoLogText(_("Program aborted.\n"));
     Flush();
     abort();
@@ -97,7 +99,7 @@ void ewxLogTextCtrl::DoLogTextAtLevel(wxLogLevel level, const wxString &szString
 
   case wxLOG_Error:
     
-    DoLogText(wxString(_("Error: ")) + szString +"\n");
+    DoLogText(szString + "\n");
     if (p_statusBar) {
       p_statusBar->SetStatusText(szString, 1);
       p_statusBar->SetToolTip(szString);
@@ -111,7 +113,7 @@ void ewxLogTextCtrl::DoLogTextAtLevel(wxLogLevel level, const wxString &szString
     break;
 
   case wxLOG_Warning:
-    DoLogText(wxString(_("Warning: ")) + szString +"\n");
+    DoLogText(szString + "\n");
     if (p_statusBar) {
       p_statusBar->SetStatusText(szString, 1);
       p_statusBar->SetToolTip(szString);
@@ -143,10 +145,7 @@ void ewxLogTextCtrl::DoLogTextAtLevel(wxLogLevel level, const wxString &szString
   case wxLOG_Debug:
 #ifdef __WXDEBUG__
     {
-      wxString msg = level == wxLOG_Trace ? wxT("Trace: ")
-        : wxT("Debug: ");
-      msg << szString;
-      DoLogText(msg);
+      DoLogText(szString);
     }
 #endif
     break;

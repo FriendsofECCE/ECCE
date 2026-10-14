@@ -310,8 +310,54 @@ void Builder::runBuilderScript(const std::string& file)
         GetEventHandler()->ProcessEvent(modeEv);
       } else if (w[0] == "key" && w.size() == 2 && w[1] == "delete") {
         //  What the Delete accelerator sends.
-        wxCommandEvent delEv(wxEVT_MENU, wxID_DELETE);
+        wxCommandEvent delEv(wxEVT_MENU, ID_ACCEL_DELETE);
         GetEventHandler()->ProcessEvent(delEv);
+      } else if (w[0] == "delete" && w.size() == 3 &&
+                 (w[1] == "menu" || w[1] == "key") &&
+                 (w[2] == "viewer" || w[2] == "log" || w[2] == "text")) {
+        //  Edit > Delete Selection (menu) or the Delete accelerator (key)
+        //  with the focus in the 3-D view, the Log, or an editable field
+        //  holding "abc"; reports the atoms left and the field's text.
+        wxTextCtrl *field = 0;
+        if (w[2] == "log") {
+          field = dynamic_cast<wxTextCtrl*>(p_mgr.GetPane(NAME_TOOL_LOG).window);
+          if (field) field->SetFocus();
+        } else if (w[2] == "text") {
+          std::function<void(wxWindow*)> find = [&](wxWindow *p) {
+            for (wxWindow *c : p->GetChildren()) {
+              if (field) return;
+              wxTextCtrl *t = dynamic_cast<wxTextCtrl*>(c);
+              if (t && t->IsShownOnScreen() && t->IsEditable() &&
+                  !t->IsMultiLine())
+                field = t;
+              else
+                find(c);
+            }
+          };
+          find(this);
+          if (field) {
+            field->SetValue("abc");
+            field->SetFocus();
+            field->SelectAll();
+          }
+        } else if (SoWxRenderArea *area = findViewerArea(p_viewer)) {
+          area->SetFocus();
+        }
+        for (int i = 0; i < 5; i++) wxTheApp->Yield(true);
+        wxWindow *focus = wxWindow::FindFocus();
+        if (w[2] != "viewer" && !field) {
+          outcome = "FAIL: no field";
+        } else {
+          wxCommandEvent ev(wxEVT_MENU, w[1] == "menu" ? wxID_DELETE
+                                                        : ID_ACCEL_DELETE);
+          GetEventHandler()->ProcessEvent(ev);
+          outcome = std::string("ok focus=") +
+                    (focus ? wxString(focus->GetClassInfo()->GetClassName())
+                           : wxString("none")).ToStdString() +
+                    " atoms=" + std::to_string(frag ? (int)frag->numAtoms() : -1);
+          if (w[2] == "text")
+            outcome += " text=[" + field->GetValue().ToStdString() + "]";
+        }
       } else if (w[0] == "save") {
         doSave();
       } else if (w[0] == "savemenu") {
