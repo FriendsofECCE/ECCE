@@ -172,7 +172,7 @@ def editCase(display, results, expect):
                   r"selected=(\d+)", log)
     expect(t is not None and t.group(2) == "0",
            "Ctrl+A in a text field leaves the structure alone (%s)"
-           % (t.groups() if t else None))
+           % ((t.groups() if t else None),))
 
 
 def check(display, results, timeout=120):
