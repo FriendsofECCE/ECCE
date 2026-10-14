@@ -3436,6 +3436,10 @@ bool SGFragment::deleteSelectedAtoms(const vector<bool>& atomsToDelete)
    for (idx=0; idx<numToDelete; idx++) {
       src = ptrsToDelete[idx];
 
+      // A deleted nub leaves no bond to replace: giving its parent a new nub
+      // would put the nub back.
+      if (src->atomicSymbol() == "Nub") continue;
+
       // get src's connected atoms
       conAtoms = src->connectedAtoms();
       int numConnectedAtoms = conAtoms->size();

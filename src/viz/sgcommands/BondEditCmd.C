@@ -3,6 +3,7 @@
  *
  *
  */
+#include <algorithm>
 #include <iostream>
   using namespace std;
 
@@ -18,6 +19,7 @@
 #include "tdat/Measures.H"
 
 #include "viz/BondEditCmd.H"
+#include "tdat/TPerTab.H"
 #include "viz/SGFragment.H"
 #include "viz/SGContainer.H"
 
@@ -97,32 +99,45 @@ bool BondEditCmd::execute()
   }
 
   bool addedBond = false;
-  // Metal order with one metal nub among the picks: attach a pi ligand
-  // at that coordination site.
-  TAtm *piNub = 0;
-  vector<TAtm*> piLigand;
+  // Metal order: one pick is a metal (or one of its nubs), the others atoms
+  // of a pi system: attach it with its full hapticity, whichever was picked
+  // first.  Anything else is a plain direct Metal bond below.
+  bool piDone = false;
   if (order == TBond::Metal && frag->m_atomHighLight.size() >= 2) {
+    TPerTab tpt;
+    TAtm *metalPick = 0;
+    bool ambiguous = false;
+    vector<TAtm*> others;
     for (size_t i=0; i<frag->m_atomHighLight.size(); i++) {
       TAtm *a = frag->atomRef(frag->m_atomHighLight[i]);
+      TAtm *eff = a;
       if (a->atomicSymbol() == "Nub") {
-        if (piNub) { piNub = 0; piLigand.clear(); break; }
-        piNub = a;
-      } else {
-        piLigand.push_back(a);
+        eff = frag->nubParent(a);
+        if (!eff) { ambiguous = true; break; }
+      }
+      if (tpt.metal(eff->atomicNumber()) == TPerTab::metallic) {
+        if (metalPick) { ambiguous = true; break; }
+        metalPick = a;
+      } else if (find(others.begin(), others.end(), eff) == others.end()) {
+        others.push_back(eff);
       }
     }
-    if (piLigand.size() != frag->m_atomHighLight.size() - 1) piNub = 0;
+    if (metalPick && !ambiguous && !others.empty()) {
+      try {
+        string msg;
+        if (frag->bondPiLigand(metalPick, others,
+                               frag->getMainDisplayStyle(), msg)) {
+          setErrorMessage(msg);
+          addedBond = ret = piDone = true;
+        }
+      } catch (EcceException& ex) {
+        setErrorMessage(ex.what());
+        piDone = true;   // reported; no direct bond on top of it
+      }
+    }
   }
 
-  if (piNub) {
-    try {
-      string msg;
-      frag->bondPiLigand(piNub, piLigand, frag->getMainDisplayStyle(), msg);
-      setErrorMessage(msg);
-      addedBond = ret = true;
-    } catch (EcceException& ex) {
-      setErrorMessage(ex.what());
-    }
+  if (piDone) {
   } else if (frag->m_atomHighLight.size() == 2) {
 
     TAtm *atm1, *atm2;

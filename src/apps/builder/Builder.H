@@ -150,7 +150,9 @@ class Builder: public BuilderGUI,
       ID_ACCEL_PASTE,
       ID_ACCEL_UNDO,
       // the bare Delete key (deleteKey); Edit > Delete Selection is wxID_DELETE
-      ID_ACCEL_DELETE
+      ID_ACCEL_DELETE,
+      // Ctrl+A (selectAllKey); Edit > Select All is wxID_SELECTALL
+      ID_ACCEL_SELECTALL
     };
 
     const static string NAME_TOOL_CONTEXT;
@@ -300,6 +302,7 @@ class Builder: public BuilderGUI,
       void setMode(int modeId);
       void applyMode(int modeId);
       bool escapeKey();
+      void selectAllKey();
       int getMode();
 
       void deleteSelection();

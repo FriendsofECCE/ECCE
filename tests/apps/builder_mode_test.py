@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Builder: Structure Library mode ends after an insert, says what it is, and
+"""Builder: Structure Library mode stays on after an insert, says what it is, and
 the toolbar always shows the mode in effect (#321 item 9).
 
     tests/apps/builder_mode_test.py             own Xvfb and services
@@ -9,6 +9,7 @@ mode in effect, the mode the toolbar shows and whether the viewer picks;
 "key escape" is what the Esc hook does with the 3-D view focused.
 """
 import os
+import math
 import re
 import shutil
 import sys
@@ -28,8 +29,11 @@ SCRIPT = [
     # a hydrogen picked against a library atom with no open site: no connect
     "selectelem H", "libatom 0", "click", "info",
     "key escape", "info",
-    # a free-space insert succeeds and ends the mode
-    "mode structlib", "select -1", "libatom -1", "click", "info",
+    # free-space inserts stay in the mode and never land on atoms
+    "cmd clear",
+    "select -1", "library SimpleStructures/Simple_arenes Benzene",
+    "libatom -1", "click", "info",
+    "select -1", "click", "info", "coords",
     "key escape", "info", "quit",
 ]
 
@@ -57,9 +61,9 @@ def check(display, results, timeout=120):
                            r"viewer=(\w+)", log)
         atoms = [(int(a), int(n)) for a, n in re.findall(
             r"BUILDER: atoms=(\d+) lattice=\w+ nubs=(\d+)", log)]
-        if len(modes) != 6 or len(atoms) != 6:
+        if len(modes) != 7 or len(atoms) != 7:
             results.fail("builder-mode", "%d mode lines and %d atom lines, "
-                         "expected 6 each\n%s" % (len(modes), len(atoms),
+                         "expected 7 each\n%s" % (len(modes), len(atoms),
                                                   tail(log)))
             return
         problems = []
@@ -88,10 +92,19 @@ def check(display, results, timeout=120):
                "no hydrogen into a Nub (%s -> %s atoms, nubs)"
                % (atoms[1], atoms[2]))
         expect(modes[3][0] == "select", "Esc returns to Select")
-        expect(modes[4][0] == "select" and atoms[4][0] > atoms[3][0],
-               "a successful insert adds atoms (%d -> %d) and returns to "
-               "Select" % (atoms[3][0], atoms[4][0]))
-        expect(modes[5][0] == "select", "Esc in Select stays in Select")
+        expect(modes[4][0] == "structlib" and modes[5][0] == "structlib",
+               "inserts from the Structure Library keep the mode")
+        expect(atoms[4][0] == 12 and atoms[5][0] == 24,
+               "two free-space inserts of benzene give 24 atoms (%s, %s)"
+               % (atoms[4][0], atoms[5][0]))
+        xyz = [tuple(float(v) for v in m) for m in re.findall(
+            r"BUILDER: atom \d+ \w+ (\S+) (\S+) (\S+)", log)]
+        closest = min((math.dist(p, q) for i, p in enumerate(xyz)
+                       for q in xyz[i + 1:]), default=0)
+        expect(len(xyz) == 24 and closest >= 0.5,
+               "no two atoms closer than 0.5 A (%d atoms, closest %.2f A)"
+               % (len(xyz), closest))
+        expect(modes[6][0] == "select", "Esc leaves Structure Library mode")
         if problems:
             results.fail("builder-mode", "; ".join(problems) + "\n" + tail(log))
     finally:

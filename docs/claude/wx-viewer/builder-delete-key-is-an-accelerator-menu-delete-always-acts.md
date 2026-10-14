@@ -16,3 +16,8 @@ click by itself, so `SoWxRenderArea::OnMouse` sets it on a button press.
 acts on. `ewxLogTextCtrl::DoLogTextAtLevel` receives text already prefixed
 with time and level by wxLogFormatter, so it adds none.
 Script hook: `delete <menu|key> <viewer|log|text>` (tests/apps/builder_edit_test.py).
+Deleting a selected nub: `SGFragment::deleteSelectedAtoms` used to give the nub's
+parent a replacement Nub for the bond it lost, so the delete changed nothing; a
+deleted Nub now leaves none (`syncNubSelection` keeps a nub-only selection).
+Ctrl+A is `ID_ACCEL_SELECTALL` (`selectAllKey`): a text field selects its text,
+otherwise Select All; hook `key viewer|text selectall`.

@@ -551,7 +551,7 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   //  The same holds for the File/Select/Mode menu shortcuts (Ctrl+S did
   //  nothing while the view had the focus).  Ctrl+X/C/V/Z are accelerators
   //  too, but go through editShortcut, which gives them to a focused text
-  //  field.  Ctrl+Y/A are left out.
+  //  field; Ctrl+A likewise (selectAllKey).  Ctrl+Y is left out.
   wxAcceleratorEntry keys[] = {
     wxAcceleratorEntry(wxACCEL_NORMAL, WXK_DELETE, ID_ACCEL_DELETE),
     wxAcceleratorEntry(wxACCEL_NORMAL, WXK_NUMPAD_DELETE, ID_ACCEL_DELETE),
@@ -571,11 +571,13 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
     wxAcceleratorEntry(wxACCEL_CTRL, 'C', ID_ACCEL_COPY),
     wxAcceleratorEntry(wxACCEL_CTRL, 'V', ID_ACCEL_PASTE),
     wxAcceleratorEntry(wxACCEL_CTRL, 'Z', ID_ACCEL_UNDO),
+    wxAcceleratorEntry(wxACCEL_CTRL, 'A', ID_ACCEL_SELECTALL),
   };
   SetAcceleratorTable(wxAcceleratorTable(sizeof(keys) / sizeof(keys[0]), keys));
   Bind(wxEVT_MENU, [this](wxCommandEvent& ev) { editShortcut(ev.GetId()); },
        ID_ACCEL_CUT, ID_ACCEL_UNDO);
   Bind(wxEVT_MENU, [this](wxCommandEvent&) { deleteKey(); }, ID_ACCEL_DELETE);
+  Bind(wxEVT_MENU, [this](wxCommandEvent&) { selectAllKey(); }, ID_ACCEL_SELECTALL);
 
   TPerTab tpt;
   ShapeData shapes;
@@ -1336,7 +1338,9 @@ Command * Builder::createModeCommand(int modeId)
   case ID_MODE_BOND:
     cmd = new BondEditCmd("bond", getSG());
     cmd->getParameter("order")->setDouble(p_currentBond);
-    if (!(getSG()->getFragment()->onSameMolecule())) {
+    //  A Metal bond is never aligned (a pi ligand is placed over its site).
+    if (p_currentBond != TBond::Metal &&
+        !(getSG()->getFragment()->onSameMolecule())) {
       ewxMessageDialog mdlg(this, 
                             "The current selections are from two molecules.\n"
                             "Do you want to align them along the new bond?",
@@ -2692,10 +2696,6 @@ bool Builder::execute(Command *cmd, bool batch)
             // A command that succeeds may still have a note for the user.
             string note = cmd->getErrorMessage();
             if (note != "") showMessage(note);
-            //  One insert per visit: another click would add a second copy.
-            if (p_currentMode == ID_MODE_STRUCTLIB &&
-                dynamic_cast<AddFragmentCmd*>(cmd))
-              setMode(ID_MODE_SELECT);
          } else {
             // I guess false means that the command did nothing
             // See if there is an error message for backwards compatability
@@ -3030,6 +3030,22 @@ void Builder::OnDeleteClick( wxCommandEvent& event )
    //  The menu item and Ctrl+D always act on the selection, wherever the
    //  focus is; only the bare Delete key (deleteKey) can belong to a field.
    deleteSelection();
+}
+
+
+/// Ctrl+A selects all atoms, except in a text field, where it is that field's.
+void Builder::selectAllKey()
+{
+   wxWindow *focus = wxWindow::FindFocus();
+   if (wxTextEntry *te = dynamic_cast<wxTextEntry*>(focus)) {
+      te->SelectAll();
+      return;
+   }
+   if (dynamic_cast<wxSpinCtrl*>(focus) || dynamic_cast<wxSpinCtrlDouble*>(focus))
+      return;
+   wxCommandEvent ev(wxEVT_MENU, wxID_SELECTALL);
+   ev.SetEventObject(this);
+   GetEventHandler()->ProcessEvent(ev);
 }
 
 

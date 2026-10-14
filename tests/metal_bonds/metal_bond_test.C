@@ -280,6 +280,34 @@ int main()
           "pyridine bonds Fe-N through the nubs as before (both nubs consumed)");
   }
 
+
+  // A metal with no free nub: the pi atoms are bonded where they are, the
+  // ligand does not move; a lone sp3 carbon is no pi system (eta1 is a
+  // sigma bond made with the Single order).
+  {
+    Fragment nf;
+    nf.addAtom("Fe", fe);
+    int r0 = addRing(nf, 6, 3.0);
+    const double before0 = nf.atomRef(r0)->coordinates()[2];
+    std::vector<TAtm*> pick(1, nf.atomRef(r0));
+    std::string msg;
+    bool ok = nf.bondPiLigand(nf.atomRef(0), pick, style, msg);
+    int nm = 0;
+    for (int i = 0; i < 6; i++) {
+      TBond* b = nf.bond(0, r0 + i);
+      if (b && b->order() == TBond::Metal) nm++;
+    }
+    check(ok && nm == 6 && nf.atomRef(r0)->coordinates()[2] == before0,
+          "no free nub: six Metal bonds, ligand not moved");
+    Fragment me;
+    me.addAtom("Fe", fe);
+    const double c0[3] = {5, 0, 0};
+    me.addAtom("C", c0);
+    std::vector<TAtm*> one(1, me.atomRef(1));
+    check(!me.bondPiLigand(me.atomRef(0), one, style, msg) && me.bond(0, 1) == 0,
+          "a lone carbon is no pi system: nothing is bonded");
+  }
+
   // MVM round trip keeps the 0.5 orders.
   std::stringstream ss;
   fc.dumpMVM(ss, true);

@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -118,5 +120,75 @@ int main()
   check(fabs(after.cen - before.cen) < 0.2, "Fe-centroid within 0.2 A of the placed value");
   check(after.dev < 0.05, "ring stays planar");
   check(after.pside < 0, "the three P stay on the far side of Fe");
+
+  // Fe + the Structure Library's Cyclopentadienyl (a nub and an H on each
+  // carbon), attached by picking the Fe ATOM and one ring carbon; Clean must
+  // keep the ring flat and Fe over its centre.
+  {
+    const char* home = getenv("ECCE_HOME");
+    std::string path = std::string(home ? home : ".") +
+        "/data/client/StructureLibrary/Ligands/Cyclopentadienyl.mvm";
+    Fragment cp;
+    std::ifstream in(path.c_str());
+    check(in.good() && cp.restoreMVM(in, 1.0, false), "Cyclopentadienyl.mvm loads");
+    Fragment m;
+    const double fe0[3] = {0, 0, 0};
+    m.addAtom("Fe", fe0);
+    // A tetrahedral Fe as the Builder makes it: four nubs; the Cp goes to
+    // the one nearest it (+z+x+y side), three stay open.
+    const double td[4][3] = {{1, 1, 1}, {1, -1, -1}, {-1, 1, -1}, {-1, -1, 1}};
+    for (int i = 0; i < 4; i++) {
+      double l = sqrt(3.0), u[3] = {2.2*td[i][0]/l, 2.2*td[i][1]/l, 2.2*td[i][2]/l};
+      m.addAtom("Nub", u);
+      m.addBond(0, 1 + i, 1.0);
+    }
+    m.generateShapes();
+    int off = m.numAtoms();
+    for (int i = 0; i < cp.numAtoms(); i++) {
+      double c[3] = {cp.atomRef(i)->coordinates()[0] + 6, cp.atomRef(i)->coordinates()[1],
+                     cp.atomRef(i)->coordinates()[2] - 4};
+      m.addAtom(cp.atomRef(i)->atomicSymbol().c_str(), c);
+    }
+    for (int i = 0; i < cp.numAtoms(); i++)
+      for (int j = i + 1; j < cp.numAtoms(); j++) {
+        TBond* b = cp.bond(i, j);
+        if (b) m.addBond(off + i, off + j, b->order());
+      }
+    std::vector<TAtm*> pick(1, m.atomRef(off));
+    std::string msg;
+    check(m.bondPiLigand(m.atomRef(0), pick, style, msg) && msg.find("eta5") == 0,
+          "Fe atom + ring carbon attaches eta5: " + msg);
+    int nubs = 0;
+    for (int i = 0; i < m.numAtoms(); i++)
+      if (m.atomRef(i)->atomicSymbol() == "Nub") nubs++;
+    check(nubs == 3, "the Cp's nubs and the used Fe nub are gone, three Fe nubs stay");
+    std::vector<int> ring;
+    for (int i = 1; i < m.numAtoms(); i++)
+      if (m.bond(0, i) && m.bond(0, i)->order() == TBond::Metal) ring.push_back(i);
+    double cen0 = 0;
+    for (int pass = 0; pass < 2; pass++) {
+      double c[3] = {0, 0, 0};
+      for (size_t i = 0; i < ring.size(); i++)
+        for (int k = 0; k < 3; k++) c[k] += m.atomRef(ring[i])->coordinates()[k] / ring.size();
+      double d[3] = {c[0], c[1], c[2]}, dl = sqrt(dot(d, d)), dev = 0;
+      for (size_t i = 0; i < ring.size(); i++) {
+        const double* q = m.atomRef(ring[i])->coordinates();
+        double r[3] = {q[0] - c[0], q[1] - c[1], q[2] - c[2]};
+        dev = std::max(dev, fabs(dot(r, d)) / dl);
+      }
+      printf("     Cp %s Clean: Fe-centroid %.3f, ring out-of-plane %.3f\n",
+             pass ? "after " : "before", dl, dev);
+      if (pass == 0) {
+        cen0 = dl;
+        UFFDesc desc;
+        std::vector<int> none;
+        ForceField ff(&m, &none, &desc, 0);
+        ff.optimize(200, 0.02, 100.0);
+      } else {
+        check(dev < 0.05, "Cp ring stays planar");
+        check(fabs(dl - cen0) < 0.2, "Cp Fe-centroid within 0.2 A");
+      }
+    }
+  }
   return failures ? 1 : 0;
 }

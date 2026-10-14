@@ -43,6 +43,7 @@ import nmode_edit_test                                        # noqa: E402
 import organizer_local_tree_test                              # noqa: E402
 import vib_frame_builder_test                                 # noqa: E402
 import builder_mode_test                                      # noqa: E402
+import builder_metal_test                                     # noqa: E402
 import pbc_edit_test                                          # noqa: E402
 import pbc_ux_test                                            # noqa: E402
 import fixture                                                # noqa: E402
@@ -680,6 +681,7 @@ def main():
                 nmode_edit_test.check(display, results)
                 vib_frame_builder_test.check(display, results)
                 builder_mode_test.check(display, results)
+                builder_metal_test.check(display, results)
                 pbc_ux_test.check(display, results)
                 organizer_local_tree_test.check(display, results)
             finally:

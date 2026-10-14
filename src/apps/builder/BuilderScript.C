@@ -10,9 +10,9 @@
 //    pbc ...                     Periodic Builder, see PBC::scriptCommand
 //    library PATH [ENTRY]        the Structure Library pane: open the folder
 //                                PATH (Teaching/Diatomics), select ENTRY
-//    mode atom|select|structlib  Mode menu
+//    mode atom|select|bond|structlib  Mode menu
 //    popup NAME                  the element chooser: its place and size
-//    key viewer|text cut|copy|paste|undo
+//    key viewer|text cut|copy|paste|undo|selectall
 //                                Ctrl+X/C/V/Z with the focus in the 3-D view
 //                                or in a text field (holding "abc")
 //    click                       a click in the 3D view in the current mode
@@ -23,6 +23,9 @@
 //    libatom I                   select atom (a Nub) I of the library structure
 //    select I                    select atom (or Nub) I, as a click does; -1 none
 //    selectelem A                select the first atom of element A
+//    addelem A                   add the last atom of element A to the selection
+//    bondorder single|metal      the order Bond mode makes
+//    clean                       the viewer's Clean command
 //    key escape                  what the Esc key does with the view focused
 //    selectnub A                 select the first Nub of the last atom of element A
 //    bonds A B                   count the bonds from the last atom of element A
@@ -103,6 +106,7 @@
 #include "tdat/GeomConstraintRules.H"
 #include "tdat/GeomConstraintPick.H"
 #include "util/EventDispatcher.H"
+#include "viz/CleanCmd.H"
 #include "PBC.H"
 #include "dsm/IPropCalculation.H"
 #include "KeyValuePropertyPanel.H"
@@ -239,7 +243,7 @@ void Builder::runBuilderScript(const std::string& file)
         //  it selected; then the field's text.
         const int id = w[2] == "cut" ? ID_ACCEL_CUT : w[2] == "copy"
                      ? ID_ACCEL_COPY : w[2] == "paste" ? ID_ACCEL_PASTE
-                     : ID_ACCEL_UNDO;
+                     : w[2] == "selectall" ? ID_ACCEL_SELECTALL : ID_ACCEL_UNDO;
         wxTextCtrl *field = 0;
         std::function<void(wxWindow*)> find = [&](wxWindow *p) {
           for (wxWindow *c : p->GetChildren()) {
@@ -271,6 +275,8 @@ void Builder::runBuilderScript(const std::string& file)
                       .ToStdString();
         if (field) outcome += " text=[" + field->GetValue().ToStdString() + "]";
         else if (w[1] == "text") outcome = "FAIL: no text field";
+        if (frag)
+          outcome += " selected=" + std::to_string(frag->m_atomHighLight.size());
       } else if (w[0] == "popup" && w.size() == 2) {
         //  The element chooser, as the arrow beside the element tool opens
         //  it, and where it is, straight after it is shown and half a
@@ -306,7 +312,8 @@ void Builder::runBuilderScript(const std::string& file)
         }
       } else if (w[0] == "mode" && w.size() == 2) {
         const int id = w[1] == "atom" ? ID_MODE_ATOM
-                     : w[1] == "select" ? ID_MODE_SELECT : ID_MODE_STRUCTLIB;
+                     : w[1] == "select" ? ID_MODE_SELECT
+                     : w[1] == "bond" ? ID_MODE_BOND : ID_MODE_STRUCTLIB;
         p_modeMenu->Check(id, true);
         wxCommandEvent modeEv(wxEVT_MENU, id);
         GetEventHandler()->ProcessEvent(modeEv);
@@ -421,6 +428,21 @@ void Builder::runBuilderScript(const std::string& file)
             outcome = "ok";
             break;
           }
+      } else if (w[0] == "addelem" && w.size() == 2 && frag) {
+        //  Add the last atom of element A to the selection (a shift-click).
+        outcome = "FAIL: no such atom";
+        for (size_t i = frag->numAtoms(); i-- > 0; )
+          if (frag->atomRef(i)->atomicSymbol() == w[1]) {
+            frag->m_atomHighLight.push_back((int)i);
+            outcome = "ok";
+            break;
+          }
+      } else if (w[0] == "bondorder" && w.size() == 2) {
+        //  The order the Bond mode makes (the Bond tool's choice).
+        p_currentBond = w[1] == "metal" ? TBond::Metal : TBond::Single;
+      } else if (w[0] == "clean") {
+        //  The Clean command of the viewer's menu, with its default settings.
+        execute(new CleanCmd("Force Field Clean", getSG(), 0));
       } else if (w[0] == "selectnub" && w.size() == 2 && frag) {
         //  The first Nub on the last atom of element A.
         TAtm *last = 0;

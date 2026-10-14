@@ -48,14 +48,16 @@ the second page.
 8. [Constraints and dummy atoms](constraints-and-dummy-atoms.md): hold a
    bond, an angle or a torsion fixed during an optimisation, and use a dummy
    atom as a reference point; the potential of ammonia as the example.
-
-9. [Running codes on Linux](running-codes-on-linux.md): NWChem, MOPAC,
+9. [Organometallic complexes: metal-π bonds](organometallics.md): nubs, σ
+   ligands, and π ligands such as cyclopentadienyl and benzene bonded to a
+   metal with the Metal order.
+10. [Running codes on Linux](running-codes-on-linux.md): NWChem, MOPAC,
    GROMACS, Quantum ESPRESSO and CP2K from the package archive; ORCA,
    Gaussian and NBO from their makers.
-10. [Running codes on macOS](running-codes-on-macos.md): MOPAC, ORCA and NWChem
+11. [Running codes on macOS](running-codes-on-macos.md): MOPAC, ORCA and NWChem
    on a Mac, without administrator rights, and Open MPI for ORCA on more
    than one core.
-11. [Running codes on Windows](running-codes-on-windows.md): MOPAC and ORCA
+12. [Running codes on Windows](running-codes-on-windows.md): MOPAC and ORCA
    on a Windows PC, and Microsoft MPI for ORCA on more than one core.
 
 Reference:

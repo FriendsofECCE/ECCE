@@ -2150,10 +2150,14 @@ void rotateUV(const double *u, const double *v, V3 p)
  * (pair) from Fe, shifted by the covalent-radius difference for other metals.
  * The nub is consumed; the ligand's own atoms and nubs are untouched.
  */
-void Fragment::bondPiLigand(TAtm *nub, const vector<TAtm*>& ligand,
+bool Fragment::bondPiLigand(TAtm *metalPick, const vector<TAtm*>& ligand,
       const DisplayStyle& style, string& message)
 {
-   TAtm *metal = nubParent(nub);
+   TAtm *nub = 0, *metal = metalPick;
+   if (metalPick && metalPick->atomicSymbol() == "Nub") {
+      nub = metalPick;
+      metal = nubParent(nub);
+   }
    if (metal == 0 || ligand.empty()) {
       throw EcceException("No bond sites are available to create this bond.", WHERE);
    }
@@ -2169,11 +2173,12 @@ void Fragment::bondPiLigand(TAtm *nub, const vector<TAtm*>& ligand,
          if (comp.insert((*nb)[i]).second) stack.push_back((*nb)[i]);
       delete nb;
    }
-   if (comp.count(metal)) {
-      throw EcceException("The pi ligand must be a separate molecule from the metal.", WHERE);
-   }
+   // A ligand already sigma-bonded to the metal is not moved; its atoms are
+   // bonded (or their bond turned into a Metal bond) where they are.
+   bool joined = comp.count(metal) > 0;
    for (size_t i=0; i<ligand.size(); i++) {
-      if (comp.count(ligand[i]) == 0 || ligand[i]->atomicSymbol() == "Nub") {
+      if (comp.count(ligand[i]) == 0 || ligand[i]->atomicSymbol() == "Nub" ||
+          ligand[i] == metal) {
          throw EcceException("Select one metal nub and atoms of a single ligand.", WHERE);
       }
    }
@@ -2249,12 +2254,8 @@ void Fragment::bondPiLigand(TAtm *nub, const vector<TAtm*>& ligand,
    }
 
    int n = bonded.size();
-   if (n == 1) {
-      // eta1: bond where it is and keep the nub.
-      new TBond(metal, bonded[0], style, TBond::Metal);
-      message = "eta1: 1 Metal bond, placed without aligning";
-      return;
-   }
+   // No pi system: an eta1 contact is an ordinary (Single) sigma bond.
+   if (n == 1) return false;
 
    // Centroid and axis (ring normal, or the line through a pair) of the
    // bonded atoms.
@@ -2276,14 +2277,33 @@ void Fragment::bondPiLigand(TAtm *nub, const vector<TAtm*>& ligand,
    if (!ringLike) vsub(bonded[1]->coordinates(), bonded[0]->coordinates(), axis);
    vnorm(axis);
 
-   V3 dir;
-   vsub(nub->coordinates(), metal->coordinates(), dir);
-   vnorm(dir);
+   // The metal's free nub nearest the ligand is the coordination site.
+   if (!nub && !joined) {
+      double best = 1e30;
+      vector<TAtm*> *mn = metal->connectedAtoms();
+      for (size_t i=0; i<mn->size(); i++) {
+         if ((*mn)[i]->atomicSymbol() != "Nub") continue;
+         V3 d; vsub((*mn)[i]->coordinates(), cen, d);
+         if (vlen(d) < best) { best = vlen(d); nub = (*mn)[i]; }
+      }
+      delete mn;
+   }
+   bool place = nub != 0 && !joined;
+
+   V3 dir = {0,0,1};
+   if (place) {
+      vsub(nub->coordinates(), metal->coordinates(), dir);
+      vnorm(dir);
+   }
 
    TPerTab tpt;
    double rFe = tpt.covalentRadius(26);
    double rM = tpt.covalentRadius(metal->atomicNumber());
    double dist = (ringLike ? 1.7 : 2.0) + ((rM > 0 && rFe > 0) ? rM - rFe : 0.0);
+   if (!place) {
+      V3 d; vsub(cen, metal->coordinates(), d);
+      dist = vlen(d);
+   }
 
    // Ring normal along +-dir; pair axis perpendicular to dir.
    V3 target;
@@ -2301,7 +2321,7 @@ void Fragment::bondPiLigand(TAtm *nub, const vector<TAtm*>& ligand,
       vnorm(target);
    }
 
-   for (set<TAtm*>::iterator it=comp.begin(); it!=comp.end(); ++it) {
+   for (set<TAtm*>::iterator it=comp.begin(); place && it!=comp.end(); ++it) {
       V3 p; vsub((*it)->coordinates(), cen, p);
       rotateUV(axis, target, p);
       double np[3];
@@ -2309,12 +2329,17 @@ void Fragment::bondPiLigand(TAtm *nub, const vector<TAtm*>& ligand,
       (*it)->coordinates(np);
    }
 
-   for (int i=0;i<n;i++) new TBond(metal, bonded[i], style, TBond::Metal);
+   for (int i=0;i<n;i++) {
+      TBond *old = bond(atomIndex(*metal), atomIndex(*bonded[i]));
+      if (old) old->order(TBond::Metal);
+      else new TBond(metal, bonded[i], style, TBond::Metal);
+   }
 
    // The metal nub is used up, and so are the nubs on the bonded ligand
    // atoms (Structure Library ligands carry one per donor); they only stood
    // for the coordination direction and would otherwise take hydrogens.
-   vector<int> gone(1, atomIndex(*nub));
+   vector<int> gone;
+   if (nub && place) gone.push_back(atomIndex(*nub));
    for (int i=0;i<n;i++) {
       vector<TAtm*> *nb = bonded[i]->connectedAtoms();
       for (size_t j=0; j<nb->size(); j++)
@@ -2324,11 +2349,15 @@ void Fragment::bondPiLigand(TAtm *nub, const vector<TAtm*>& ligand,
    sort(gone.begin(), gone.end());
    gone.erase(unique(gone.begin(), gone.end()), gone.end());
    for (int i=(int)gone.size()-1; i>=0; i--) deleteAtom(gone[i]);
+   // A donor atom with its nub gone is no longer four-coordinate (UFF would
+   // otherwise Clean it as sp3 and pucker the ring).
+   for (int i=0;i<n;i++) generateShape(bonded[i]);
 
    char buf[160];
    snprintf(buf, sizeof buf, "eta%d: %d Metal bonds, metal-centroid %.2f A",
             n, n, dist);
    message = buf;
+   return true;
 }
 
 /**
@@ -8160,6 +8189,29 @@ void Fragment::mergeFragment(Fragment& tmpfrag,
 
       } else {
          tmpfrag.translate(x-cmx,y-cmy,z-cmz);
+         // Free space: never land on existing atoms (a second click would
+         // stack an identical copy); if the clicked point is not clear, put
+         // the structure beside them, past the bounding box in +x.
+         if (numAtoms() > 0 && !newAtoms->empty()) {
+            const double clear2 = 1.5*1.5;
+            bool blocked = false;
+            double oldMaxX = -1e30, newMinX = 1e30;
+            for (int i=0; i<numAtoms(); i++) {
+               const double *a = atomRef(i)->coordinates();
+               if (a[0] > oldMaxX) oldMaxX = a[0];
+               for (size_t j=0; !blocked && j<newAtoms->size(); j++) {
+                  const double *b = (*newAtoms)[j]->coordinates();
+                  double d2 = 0;
+                  for (int k=0; k<3; k++) d2 += (a[k]-b[k])*(a[k]-b[k]);
+                  if (d2 < clear2) blocked = true;
+               }
+            }
+            if (blocked) {
+               for (size_t j=0; j<newAtoms->size(); j++)
+                  newMinX = std::min(newMinX, (*newAtoms)[j]->coordinates()[0]);
+               tmpfrag.translate(oldMaxX + 2.5 - newMinX, 0.0, 0.0);
+            }
+         }
          // No bonding action - easier
          if (numExistingResidues > 0) {
             if (curResIndex >= 0) {
