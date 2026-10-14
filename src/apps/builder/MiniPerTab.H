@@ -12,6 +12,9 @@ using namespace ecce;
 
 #include "wxviz/WxVizTool.H"
 
+#include <wx/weakref.h>
+#include <wx/window.h>
+
 class wxBoxSizer;
 class wxGridBagSizer;
 class wxToggleButton;
@@ -60,6 +63,9 @@ public:
   // Listener virtual(s)
   void eventMCB(const Event& event);
 
+  /// The periodic table popup the table button opened (null if none)
+  wxWindow *tablePanel() const { return p_table.get(); }
+
 protected:
   //void OnOpenCloseClick( wxCommandEvent& event );
 
@@ -95,6 +101,7 @@ protected:
 
   ImageDropDown * p_bonds;
   ImageDropDown * p_shapes;
+  wxWeakRef<wxWindow> p_table;
 };
 
 #endif

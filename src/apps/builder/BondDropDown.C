@@ -61,20 +61,21 @@ bool BondDropDown::Create(double order, wxWindow* parent, wxWindowID id,
       return false;
    }
 
+   SetToolBitmapSize(wxSize(24, 24));
    AddTool(SINGLE, TBond::orderToString(TBond::Single),
-           ewxBitmap(TBond::orderToImage(TBond::Single)),
+           ewxBitmap::colorIcon(TBond::orderToImage(TBond::Single), wxSize(24, 24)),
            TBond::orderToString(TBond::Single), wxITEM_RADIO);
    AddTool(DOUBLE, TBond::orderToString(TBond::Double),
-           ewxBitmap(TBond::orderToImage(TBond::Double)),
+           ewxBitmap::colorIcon(TBond::orderToImage(TBond::Double), wxSize(24, 24)),
            TBond::orderToString(TBond::Double), wxITEM_RADIO);
    AddTool(TRIPLE, TBond::orderToString(TBond::Triple),
-           ewxBitmap(TBond::orderToImage(TBond::Triple)),
+           ewxBitmap::colorIcon(TBond::orderToImage(TBond::Triple), wxSize(24, 24)),
            TBond::orderToString(TBond::Triple), wxITEM_RADIO);
    AddTool(AROMATIC, TBond::orderToString(TBond::Aromatic),
-           ewxBitmap(TBond::orderToImage(TBond::Aromatic)),
+           ewxBitmap::colorIcon(TBond::orderToImage(TBond::Aromatic), wxSize(24, 24)),
            TBond::orderToString(TBond::Aromatic), wxITEM_RADIO);
    AddTool(METAL, TBond::orderToString(TBond::Metal),
-           ewxBitmap(TBond::orderToImage(TBond::Metal)),
+           ewxBitmap::colorIcon(TBond::orderToImage(TBond::Metal), wxSize(24, 24)),
            TBond::orderToString(TBond::Metal), wxITEM_RADIO);
 
    Realize();

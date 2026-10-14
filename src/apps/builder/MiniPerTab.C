@@ -221,9 +221,9 @@ void MiniPerTab::CreateControls()
   bondImages.Add( TBond::orderToImage(TBond::Metal) );
 
   p_bonds = new ImageDropDown(this, ID_BOND_SEL, wxEmptyString,
-                              wxDefaultPosition, wxSize(100, 28),
+                              wxDefaultPosition, wxSize(100, 30),
                               bondLabels, bondImages,
-                              wxSize(60, 16),
+                              wxSize(24, 24),
                               wxCB_READONLY);//|wxODCB_DCLICK_CYCLES); //|wxNO_BORDER);
   p_bonds->SetSelection(0);
 
@@ -372,8 +372,16 @@ void MiniPerTab::setElements()
           btn = new ewxButton(owner, wxID_REMOVE, "Delete", wxDefaultPosition,
                               wxDefaultSize, wxBU_EXACTFIT);
         else
-          btn = new ewxButton(owner, ID_SHOW_TABLE, "More...",wxDefaultPosition,
-                              wxDefaultSize, wxBU_EXACTFIT);
+        {
+          // The periodic table, for an element none of the buttons has.
+          ewxButton *table = new ewxButton(owner, ID_SHOW_TABLE, wxEmptyString,
+                                           wxDefaultPosition, wxDefaultSize,
+                                           wxBU_EXACTFIT);
+          table->SetBitmap(ewxBitmap::colorIcon("svg/pertab.svg",
+                                                wxSize(20, 20)));
+          table->SetToolTip(_("Periodic table: choose any element"));
+          btn = table;
+        }
         p_gridSizer->Add(btn, wxGBPosition(j,i));
       }
     }
@@ -468,6 +476,7 @@ void MiniPerTab::OnMoreClick(wxCommandEvent &event)
           ID_ITEM_DEFAULT, false, true, true);
   TearableContent *tc = new TearableContent(pertab);
   pertab->SetName("Elements");
+  p_table = pertab;
   int w, h;
   pertab->GetSize(&w, &h);
   tc->Position(wxGetMousePosition(), wxSize(-w, 1));

@@ -1,4 +1,6 @@
 #include "wx/odcombo.h"
+#include "wx/bmpbndl.h"
+#include <vector>
 
 
 class ImageDropDown : public wxOwnerDrawnComboBox
@@ -30,5 +32,6 @@ public:
 protected:
   
   wxArrayString p_images;
+  std::vector<wxBitmapBundle> p_bundles;
   wxSize p_imageSize;
 };
