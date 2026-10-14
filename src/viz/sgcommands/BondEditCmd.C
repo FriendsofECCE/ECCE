@@ -119,7 +119,13 @@ bool BondEditCmd::execute()
       addedBond = ret = true;
     } else {
       try {
-        if (orient) {
+        if (orient && order == TBond::Metal) {
+          // Aligning works through the bonded nubs, which a Metal bond does
+          // not use, so the second molecule stays where it is.
+          frag->bondAtoms(atm1,atm2,order,frag->getMainDisplayStyle());
+          setErrorMessage("Metal bond made; the molecules were placed "
+                          "without aligning.");
+        } else if (orient) {
           int nAtoms = frag->numAtoms();
           int nBonds = frag->numBonds();
           vector<bool> atombits(nAtoms, false);

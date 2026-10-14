@@ -2563,7 +2563,7 @@ void SGFragment::addFragment(const string& type,
          tmpfrag.removeAtom(idx);
       }
    } else {
-      throw EcceException("Cannot unambigously connect fragments. Please select the sites that should be bonded.",WHERE);
+      throw EcceException("Cannot unambiguously connect fragments. Please select the sites that should be bonded.",WHERE);
    }
 
 }

@@ -1834,6 +1834,13 @@ set_tests_properties(dummy_fragment PROPERTIES
 add_test(NAME dummy_atoms_decks
   COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/dummy_atoms/run_tests.py)
 
+# tests/metal_bonds (#325): Metal bonds need no nubs.
+add_executable(metal_bond_test tests/metal_bonds/metal_bond_test.C)
+target_link_libraries(metal_bond_test PRIVATE eccetdat ecceutil)
+add_test(NAME metal_bonds COMMAND metal_bond_test)
+set_tests_properties(metal_bonds PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
+
 # #297: which NWChem module each MP2/CC theory is written for (decks only;
 # add --run to compare real nwchem energies).
 add_test(NAME nwchem_cc_decks

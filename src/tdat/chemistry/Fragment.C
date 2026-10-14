@@ -2116,6 +2116,24 @@ void Fragment::bondAtoms(TAtm *atm1, TAtm *atm2, float order,
 {
    TAtm *parent1=0, *nub1=0, *parent2=0, *nub2=0;
 
+   // A Metal (pi) bond uses no valence, so it needs no nubs and leaves the
+   // nubs and hydrogens of both atoms alone; ring carbons have none to give.
+   if (order == TBond::Metal) {
+      parent1 = (atm1->atomicSymbol() == "Nub") ? nubParent(atm1) : atm1;
+      parent2 = (atm2->atomicSymbol() == "Nub") ? nubParent(atm2) : atm2;
+      if (parent1 == 0 || parent2 == 0) {
+         throw EcceException("No bond sites are available to create this bond.", WHERE);
+      }
+      if (parent1 == parent2) {
+         throw EcceException("Cannot bond an atom to itself.",WHERE);
+      }
+      if (bond(atomIndex(*parent1), atomIndex(*parent2)) != (TBond*)0) {
+         throw EcceException("The atoms are already bonded.",WHERE);
+      }
+      new TBond(parent1, parent2, style, order);
+      return;
+   }
+
    // First we need to make sure that we have nubs for bonding
    if (atm1->atomicSymbol() == "Nub") {
       nub1 = atm1;
