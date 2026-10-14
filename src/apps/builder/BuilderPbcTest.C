@@ -155,6 +155,18 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     return true;
   }
 
+  //  "panefold <tool>": the fold button on that pane's caption.
+  if (c == "panefold" && w.size() == 2) {
+    string name = w[1];
+    for (char& ch : name) if (ch == '_') ch = ' ';
+    wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(name));
+    if (!pane.IsOk() || !pane.HasPinButton())
+      return s.fail("panefold: no fold button on " + name);
+    toggleFold(pane.window);
+    settle(400);
+    return true;
+  }
+
   //  "panestate <name> <tool>..." -> <outdir>/<name>.txt: one line per tool:
   //  shown, floating, close button, window child of the frame, menu ticked,
   //  rectangle; then the client size and every shown pane's name.
@@ -175,7 +187,9 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
           << " " << p.rect.height;
       wxSizer *content = p.IsOk() && p.window ? p.window->GetSizer() : 0;
       out << " need " << (content ? content->GetMinSize().x : 0) << " have "
-          << (p.IsOk() && p.window ? p.window->GetClientSize().x : 0) << "\n";
+          << (p.IsOk() && p.window ? p.window->GetClientSize().x : 0)
+          << " pin " << (p.IsOk() && p.HasPinButton()) << " folded "
+          << (p.IsOk() && p_folded.count(p.window)) << "\n";
     }
     out << "client " << GetClientSize().x << " " << GetClientSize().y << "\n";
     wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();

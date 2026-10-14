@@ -3868,6 +3868,7 @@ void Builder::OnPaneButton(wxAuiManagerEvent& event)
   wxAuiPaneInfo *pane = event.GetPane();
   if (event.GetButton() != wxAUI_BUTTON_PIN || pane == 0 ||
       (dynamic_cast<PropertyPanel*>(pane->window) == 0 &&
+       !p_structureNames.count(pane->name.ToStdString()) &&
        pane->name != NAME_TOOL_LOG)) {
     event.Skip();
     return;
@@ -5095,6 +5096,11 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
         config->Read(layoutPrefix + pane.name, &info)) {
       unfoldPane(pane);     // the saved info carries the unfolded sizes
       p_mgr.LoadPaneInfo(info, pane);
+      //  Saved before tool panes could fold: no fold button in the info.
+      if (p_structureNames.count(pane.name.ToStdString()) ||
+          pane.name == NAME_TOOL_LOG) {
+        pane.PinButton(true);
+      }
       //  A layout saved under an older build carries whatever flat
       //  min_size.x was in force when it was saved (e.g. the old flat
       //  200) -- LoadPaneInfo() just restored it verbatim, overriding
@@ -6491,7 +6497,7 @@ void Builder::addToolPanel(wxWindow *panel, const string& name,
 {
   wxAuiPaneInfo pinfo;
   pinfo.Name(name).Caption(name).Show(false).CaptionVisible(true)
-          .Right().Position(p_toolCount).Fixed();
+          .Right().Position(p_toolCount).Fixed().PinButton(true);
   int minWidth = contentMinWidth(panel);
   if (alwaysFixed) {
     pinfo.MaximizeButton(false);

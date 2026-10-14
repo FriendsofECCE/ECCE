@@ -313,7 +313,7 @@ void Builder::applyGeometry(bool resetSizes)
       } else {
         const map<string, int>::const_iterator idx = p_toolIndex.find(name);
         pane.Right().Layer(1).Row(0).Position(
-            idx == p_toolIndex.end() ? 0 : idx->second).PinButton(false);
+            idx == p_toolIndex.end() ? 0 : idx->second).PinButton(true);
         if (resetSizes && !p_folded.count(pane.window)) {
           pane.BestSize(wxDefaultSize).MinSize(wxSize(200, 150));
         }
@@ -324,6 +324,7 @@ void Builder::applyGeometry(bool resetSizes)
       const map<string, int>::const_iterator idx = p_toolIndex.find(name);
       const int at = idx == p_toolIndex.end() ? (int)p_toolIndex.size()
                                               : idx->second;
+      pane.PinButton(true);
       if (col) {
         pane.Right().Layer(1).Row(0).Position(at + 1);
       } else if (name == NAME_TOOL_ATOM_TABLE ||
@@ -594,6 +595,7 @@ void Builder::updatePanes(bool allowSwitch)
   updating = true;
   PanelGuard guard(p_panelBuildDepth);
   BuilderRedrawHold hold(this);
+  holdColumnWidth(false);
   syncColumn(allowSwitch);
   //  Update() shows a pane's window before it lays the frame out, so the
   //  window would first appear wherever it was (the frame's corner, over
@@ -607,6 +609,7 @@ void Builder::updatePanes(bool allowSwitch)
     }
   }
   keepColumnWidth();
+  holdColumnWidth(true);
   p_mgr.Update();
   fitToolColumn();
   updating = false;
@@ -658,26 +661,43 @@ void Builder::setColumnTab(int tab, bool save)
 }
 
 
-//  List + detail: the column keeps one width (see below).
+//  The Properties list no longer asks for a width of its own (62 characters
+//  made the column jump when Properties was opened); holdColumnWidth() keeps
+//  the width, and a panel wider than it widens the column once.
 void Builder::keepColumnWidth()
 {
-  if (p_panelMode != PANELS_DETAIL) return;
-  //  The column keeps one width, so it does not change size when the shown
-  //  property does.  The MOs table (not measured until that panel is first
-  //  shown) is the widest, under 60 characters; a panel that needs more
-  //  widens the column once and it stays.
   wxAuiPaneInfo &idx = p_mgr.GetPane(wxString(NAME_PROPERTY_INDEX));
-  if (idx.IsOk() && !idx.IsFloating()) {
-    int w = std::max(std::max(idx.rect.width, idx.min_size.x),
-                     62 * GetCharWidth());
-    wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
-    for (size_t i = 0; i < all.GetCount(); ++i) {
-      wxAuiPaneInfo &pane = all.Item(i);
-      if (pane.window && !pane.IsFloating() &&
-          dynamic_cast<PropertyPanel*>(pane.window))
-        w = std::max(w, pane.window->GetMinSize().x);
+  if (idx.IsOk() && idx.min_size.x > 200) {
+    idx.MinSize(wxSize(200, idx.min_size.y));
+  }
+}
+
+
+//  A one-column layout keeps the width the column last had.  AUI sizes the
+//  dock from the panes that are shown, so each tab would bring its own;
+//  apply=false records the width (a dragged sash included), apply=true
+//  tells every column pane to be that wide before the next layout.
+void Builder::holdColumnWidth(bool apply)
+{
+  if (!isColumnMode() || p_columnHidden) return;
+  wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
+  for (size_t i = 0; i < all.GetCount(); ++i) {
+    wxAuiPaneInfo &pane = all.Item(i);
+    if (!pane.window || pane.IsToolbar() || pane.IsFloating() ||
+        pane.dock_direction != wxAUI_DOCK_RIGHT || pane.dock_layer < 1 ||
+        pane.name == NAME_COLUMN_TOGGLE) {
+      continue;
     }
-    idx.MinSize(wxSize(w, idx.min_size.y)).BestSize(wxSize(w, idx.best_size.y));
+    if (!apply) {
+      if (pane.IsShown() && pane.window->IsShownOnScreen() &&
+          pane.rect.width >= 100) {
+        p_columnWidth = pane.rect.width;
+        return;
+      }
+    } else if (p_columnWidth > 0) {
+      pane.rect.width = p_columnWidth;
+      pane.BestSize(wxSize(p_columnWidth, pane.best_size.y));
+    }
   }
 }
 

@@ -481,6 +481,7 @@ class Builder: public BuilderGUI,
       void selectDetail(const string& name);
       void setDetail(wxWindow *win);
       void keepColumnWidth();
+      void holdColumnWidth(bool apply);
       void ensureDetail();
       void accordionNormalize(wxWindow *keepOpen=0);
       void foldPane(wxWindow *win, bool fold);
@@ -660,6 +661,7 @@ class Builder: public BuilderGUI,
       int p_columnTab = 0;               // 0 Structure, 1 Properties
       bool p_columnTabChosen = false;    // the user picked it, this calc
       bool p_columnHidden = false;       // F9
+      int p_columnWidth = 0;             // the column's width as last laid out
       set<wxWindow*> p_tabHidden;        // open, but hidden by tab/F9
       set<wxWindow*> p_columnSeen;       // property panes given mode defaults
       wxWindow *p_detail = 0;            // list + detail: the shown panel
