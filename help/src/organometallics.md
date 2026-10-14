@@ -17,7 +17,8 @@ the ligands you want, or delete the nubs you do not want (see
 
 The ligands in the **Ligands** folder of the Structure Library have a nub on
 each donor atom. A monodentate ligand such as PPh3, CO or NH3 has one. A
-chelate such as bipyridine has one on each donor.
+chelate such as bipyridine has one on each donor. Cyclopentadienyl has
+none: it is a π ligand, bonded as described below.
 
 1. Add the metal with the Atom tool and a geometry (for example Fe,
    tetrahedral).
