@@ -37,9 +37,9 @@ private:
 
 // The Organizer takes a few seconds to appear after the login; the title
 // card says ECCE is starting.  It stays in front for 1.5 s, then the
-// Organizer's window may cover it; it closes itself after five seconds.
+// Organizer's window may cover it.
 // Left out of test runs and with ECCE_NO_SPLASH.
-void ewxShowSplash()
+void ewxShowSplash(int timeoutMs)
 {
   const char *off = getenv("ECCE_NO_SPLASH");
   if ((off && *off && string(off) != "0") || getenv("ECCE_TEST_HOME") ||
@@ -62,7 +62,7 @@ void ewxShowSplash()
   }
   wxSplashScreen *splash =
     new wxSplashScreen(card, wxSPLASH_CENTRE_ON_SCREEN | wxSPLASH_TIMEOUT,
-                       5000, 0, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                       timeoutMs, 0, wxID_ANY, wxDefaultPosition, wxDefaultSize,
                        wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxSTAY_ON_TOP);
 #ifdef __WXMSW__
   // ecce.vbs starts ECCE hidden, and Windows applies that to a program's

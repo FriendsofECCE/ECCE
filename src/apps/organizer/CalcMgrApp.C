@@ -135,10 +135,11 @@ bool CalcMgrApp::OnInit()
   WxDavAuth::setRestartsOnSwitch(true);
   WxDavAuth::setOnSwitch(restartInLocalMode);
   // ecce.cmd marks the start it makes; the tools started from here must
-  // not inherit the mark.
+  // not inherit the mark.  The Organizer is up a second later, so the
+  // splash goes after two seconds rather than lying over it.
   if (wxGetEnv("ECCE_SPLASH", NULL)) {
     wxUnsetEnv("ECCE_SPLASH");
-    ewxShowSplash();
+    ewxShowSplash(2000);
   }
 #endif
 
