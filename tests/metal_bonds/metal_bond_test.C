@@ -1,9 +1,11 @@
 //  #325: a Metal (pi) bond joins two atoms directly: no nubs needed, none
 //  consumed, no hydrogens touched; the order survives an MVM round trip.
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "tdat/Fragment.H"
 #include "tdat/TBond.H"
@@ -109,6 +111,102 @@ int main()
   check(fc.numAtoms() == total && count(fc, "H") == 10,
         "ferrocene: 21 atoms, 10 H");
   check(fc.numBonds() == 20 + 10, "ferrocene: 30 bonds incl. ten Fe-C");
+
+  // Piano stool: tetrahedral Fe, three P, benzene on the fourth nub.
+  {
+    Fragment ps;
+    const double a = 2.2 / sqrt(3.0);
+    ps.addAtom("Fe", fe);
+    const double pp[3][3] = {{ a, a, 1.6 - a}, {-a, -a, 1.6 - a}, {-a, a, 1.6 + a}};
+    for (int i = 0; i < 3; i++) { ps.addAtom("P", pp[i]); ps.addBond(0, 1 + i, 1.0); }
+    const double nb[3] = {a, -a, 1.6 + a};
+    ps.addAtom("Nub", nb); ps.addBond(0, 4, 1.0);
+    // A flat ring far away, tilted about x.
+    int first = addRing(ps, 6, 0.0);
+    for (int i = first; i < ps.numAtoms(); i++) {
+      const double *c = ps.atomRef(i)->coordinates();
+      double ct = cos(0.7), st = sin(0.7);
+      double n3[3] = {c[0] + 9.0, c[1] * ct - c[2] * st + 5.0, c[1] * st + c[2] * ct - 3.0};
+      ps.atomRef(i)->coordinates(n3);
+    }
+    int before = ps.numAtoms(), hs0 = count(ps, "H");
+    std::vector<TAtm*> pick(1, ps.atomRef(first + 2));
+    std::string msg;
+    threw = false;
+    try { ps.bondPiLigand(ps.atomRef(4), pick, style, msg); } catch (...) { threw = true; }
+    check(!threw, "piano stool: benzene attaches at the Fe nub");
+    printf("     message: %s\n", msg.c_str());
+    check(msg.find("eta6") == 0, "message names eta6");
+    check(ps.numAtoms() == before - 1 && count(ps, "H") == hs0 && count(ps, "Nub") == 0,
+          "only the metal nub is consumed");
+    int nm = 0;
+    double cen[3] = {0, 0, 0};
+    for (int i = 0; i < ps.numAtoms(); i++) {
+      TBond* b = ps.bond(0, i);
+      if (b && b->order() == TBond::Metal) {
+        nm++;
+        for (int k = 0; k < 3; k++) cen[k] += ps.atomRef(i)->coordinates()[k] / 6;
+      }
+    }
+    check(nm == 6, "six Metal bonds");
+    double d[3] = {cen[0] - fe[0], cen[1] - fe[1], cen[2] - fe[2]};
+    double dl = sqrt(d[0]*d[0] + d[1]*d[1] + d[2]*d[2]);
+    printf("     Fe-centroid %.3f\n", dl);
+    check(fabs(dl - 1.7) < 0.01, "Fe-centroid 1.7 A");
+    double dirn[3] = {a, -a, a};
+    double cosang = (d[0]*dirn[0] + d[1]*dirn[1] + d[2]*dirn[2]) / (dl * 2.2);
+    check(cosang > 0.999, "centroid lies on the nub direction");
+    double maxdev = 0;
+    for (int i = 0; i < ps.numAtoms(); i++) {
+      TBond* b = ps.bond(0, i);
+      if (!b || b->order() != TBond::Metal) continue;
+      const double *c = ps.atomRef(i)->coordinates();
+      double r[3] = {c[0] - fe[0] - d[0], c[1] - fe[1] - d[1], c[2] - fe[2] - d[2]};
+      maxdev = std::max(maxdev, fabs(r[0]*d[0] + r[1]*d[1] + r[2]*d[2]) / dl);
+    }
+    printf("     max out-of-plane deviation %.4f\n", maxdev);
+    check(maxdev < 0.01, "ring plane perpendicular to the Fe-centroid line");
+    check(ps.atomRef(1)->coordinates()[0] == pp[0][0], "the P atoms did not move");
+  }
+
+  // Ethene on an equatorial nub of a trigonal-bipyramidal Fe.
+  {
+    Fragment tb;
+    tb.addAtom("Fe", fe);
+    const double ax[2][3] = {{0, 0, 1.6 + 1.8}, {0, 0, 1.6 - 1.8}};
+    const double eq[3][3] = {{1.8, 0, 1.6}, {-0.9, 1.56, 1.6}, {-0.9, -1.56, 1.6}};
+    for (int i = 0; i < 2; i++) { tb.addAtom("C", ax[i]); tb.addBond(0, 1 + i, 1.0); }
+    tb.addAtom("C", eq[1]); tb.addBond(0, 3, 1.0);
+    tb.addAtom("C", eq[2]); tb.addBond(0, 4, 1.0);
+    tb.addAtom("Nub", eq[0]); tb.addBond(0, 5, 1.0);
+    int e0 = tb.numAtoms();
+    const double ec[6][3] = {{5, 5, 0.67}, {5, 5, -0.67}, {5.9, 5, 1.2}, {4.1, 5, 1.2},
+                             {5.9, 5, -1.2}, {4.1, 5, -1.2}};
+    const char* es[6] = {"C", "C", "H", "H", "H", "H"};
+    for (int i = 0; i < 6; i++) tb.addAtom(es[i], ec[i]);
+    tb.addBond(e0, e0 + 1, 2.0);
+    for (int i = 2; i < 6; i++) tb.addBond(e0 + (i < 4 ? 0 : 1), e0 + i, 1.0);
+    std::vector<TAtm*> pick(1, tb.atomRef(e0));
+    std::string msg;
+    threw = false;
+    try { tb.bondPiLigand(tb.atomRef(5), pick, style, msg); } catch (...) { threw = true; }
+    check(!threw && msg.find("eta2") == 0, "ethene attaches at the equatorial nub: " + msg);
+    // The nub (index 5) is deleted, so the ethene carbons are now 5 and 6.
+    int c0 = e0 - 1;
+    check(tb.bond(0, c0) != 0 && tb.bond(0, c0 + 1) != 0 &&
+          tb.bond(0, c0)->order() == TBond::Metal, "two Metal bonds");
+    const double *c1 = tb.atomRef(c0)->coordinates(), *c2 = tb.atomRef(c0 + 1)->coordinates();
+    double mid[3] = {(c1[0]+c2[0])/2 - fe[0], (c1[1]+c2[1])/2 - fe[1], (c1[2]+c2[2])/2 - fe[2]};
+    double ml = sqrt(mid[0]*mid[0] + mid[1]*mid[1] + mid[2]*mid[2]);
+    double cc[3] = {c2[0]-c1[0], c2[1]-c1[1], c2[2]-c1[2]};
+    double cl = sqrt(cc[0]*cc[0] + cc[1]*cc[1] + cc[2]*cc[2]);
+    double cs = (cc[0]*mid[0] + cc[1]*mid[1] + cc[2]*mid[2]) / (cl * ml);
+    printf("     Fe-midpoint %.3f, cos(C=C, M-mid) %.4f, C=C %.3f\n", ml, cs, cl);
+    check(fabs(ml - 2.0) < 0.01, "Fe-midpoint 2.0 A");
+    check(fabs(cs) < 0.01, "C=C perpendicular to the M-midpoint line");
+    check(mid[0] > 1.9, "midpoint lies along the nub direction (+x)");
+    check(count(tb, "Nub") == 0, "the nub is gone");
+  }
 
   // MVM round trip keeps the 0.5 orders.
   std::stringstream ss;
