@@ -100,7 +100,11 @@ void Inversions::initInversionList(void)
   //Atoms along central bond are indexed by 2 and 3, outer atoms are 1 and 4
   for (iat=0; iat<natoms; iat++){
     atm = (*p_atmptrs)[iat];
-    vector<TBond*> list = atm->bondList();
+    // Metal-pi (0.5) and hydrogen (0.1) bonds do not count: a ring carbon
+    // with a metal on its face is still a three-bond planar centre.
+    vector<TBond*> list;
+    for (TBond *b : atm->bondList())
+      if (b->order() >= 1.0) list.push_back(b);
     if (p_rules->checkInversion(atm,list)) {
       TBond *bond;
       bond = list[0];

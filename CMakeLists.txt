@@ -1838,6 +1838,11 @@ add_test(NAME dummy_atoms_decks
 add_executable(metal_bond_test tests/metal_bonds/metal_bond_test.C)
 target_link_libraries(metal_bond_test PRIVATE eccetdat ecceutil)
 add_test(NAME metal_bonds COMMAND metal_bond_test)
+add_executable(metal_clean_test tests/metal_bonds/metal_clean_test.C)
+target_link_libraries(metal_clean_test PRIVATE eccetdat ecceutil)
+add_test(NAME metal_clean COMMAND metal_clean_test)
+set_tests_properties(metal_clean PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
 set_tests_properties(metal_bonds PROPERTIES
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
 
