@@ -664,6 +664,12 @@ ChemDisplay::GLRender(SoGLRenderAction *action)
 // change rendering state
 // -->
 	glEnable(GL_LIGHTING);
+	//  Track diffuse only, before enabling.  The vendored Inventor leaves
+	//  AMBIENT_AND_DIFFUSE here, which ignores the ambient below; when the
+	//  spheres later switch to DIFFUSE the ambient freezes at whichever
+	//  colour Mesa last flushed (often the green corner text), tinting
+	//  every atom (#83, #210).  Coin already enters with DIFFUSE.
+	glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
 	glEnable(GL_COLOR_MATERIAL);
 
 	glColor3f(1,1,1);
