@@ -22,6 +22,8 @@ ImageDropDown::ImageDropDown(wxWindow* parent,
     p_images(images),
     p_imageSize(imageSize)
 {
+  for (size_t i = 0; i < images.GetCount(); i++)
+    p_bundles.push_back(ewxBitmap::colorIcon(images[i], imageSize));
 }
 
 
@@ -38,7 +40,7 @@ void ImageDropDown::OnDrawItem( wxDC& dc,
   r.height -= 2;
 
   if (!(flags & wxODCB_PAINTING_CONTROL)) {
-    dc.DrawBitmap(ewxBitmap(p_images[item]), r.x+1, r.y+1, true);
+    dc.DrawBitmap(p_bundles[item].GetBitmapFor(this), r.x+1, r.y+1, true);
     dc.DrawText(GetString( item ),
                 r.x+10+p_imageSize.GetX(),
                 (r.y + 2) + (r.height - dc.GetCharHeight())/2);
@@ -46,7 +48,7 @@ void ImageDropDown::OnDrawItem( wxDC& dc,
   }
   else
   {
-    dc.DrawBitmap(ewxBitmap(p_images[item]), r.x+1, r.y+1, true);
+    dc.DrawBitmap(p_bundles[item].GetBitmapFor(this), r.x+1, r.y+1, true);
   }
 }
 

@@ -51,6 +51,8 @@
 //    ellipsoid PROP              each sphere under PROP's property switch, as
 //                                drawn: centre, and its three axes as semi-axis
 //                                length and unit direction, Angstrom
+//    pertab A                    press the Build panel's periodic-table button,
+//                                pick element A in it, report the Build element
 //    quit
 //  Each command is answered on stderr: "ECCE_BUILDER_SCRIPT: <line>: ok".
 
@@ -86,6 +88,8 @@
 #include "tdat/LatticeDef.H"
 #include "tdat/PropVector.H"
 #include "tdat/TBond.H"
+#include "tdat/TPerTab.H"
+#include "MiniPerTab.H"
 #include "viz/VRVector.H"
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
@@ -277,6 +281,30 @@ void Builder::runBuilderScript(const std::string& file)
         else if (w[1] == "text") outcome = "FAIL: no text field";
         if (frag)
           outcome += " selected=" + std::to_string(frag->m_atomHighLight.size());
+      } else if (w[0] == "pertab" && w.size() == 2) {
+        //  The Build panel's periodic-table button, then a pick in the
+        //  table it opens: the Build element must follow.
+        wxWindow *button = p_pertab->FindWindow(ID_SHOW_TABLE);
+        if (!button) {
+          outcome = "FAIL: no periodic-table button";
+        } else {
+          wxCommandEvent press(wxEVT_BUTTON, ID_SHOW_TABLE);
+          press.SetEventObject(button);
+          button->GetEventHandler()->ProcessEvent(press);
+          for (int i = 0; i < 3; i++) wxTheApp->Yield(true);
+          PerTabPanel *table =
+              dynamic_cast<PerTabPanel*>(p_pertab->tablePanel());
+          TPerTab tpt;
+          const int z = tpt.atomicNumber(w[1]);
+          if (!table) {
+            outcome = "FAIL: the button opened no table";
+          } else {
+            table->setCurrentElement(z);
+            table->fireSelectionChanged(z);
+            fprintf(stderr, "BUILDER: pertab element=%s\n",
+                    p_currentElement.c_str());
+          }
+        }
       } else if (w[0] == "popup" && w.size() == 2) {
         //  The element chooser, as the arrow beside the element tool opens
         //  it, and where it is, straight after it is shown and half a

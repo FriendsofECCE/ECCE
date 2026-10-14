@@ -211,6 +211,8 @@ using std::vector;
 #include <wx/accel.h>
 #include "Builder.H"
 
+static wxBitmapBundle shapeIcon(ShapeData::Shape shape);
+
 
 IMPLEMENT_CLASS( Builder, BuilderGUI )
 
@@ -714,8 +716,7 @@ void Builder::createToolbar()
                              "element selector: choose another)"), wxITEM_CHECK);
     p_modeToolbar->AddTool(ID_MODE_ELEMENT_LIST, _T(""), elementArrowIcon(),
                            _("Element selector"), wxITEM_NORMAL);
-    ewxBitmap shapeBitmap(ShapeData::shapeToSmallImage(ShapeData::tetrahedral));
-    p_modeToolbar->AddTool(ID_MODE_SHAPE, _T(""), shapeBitmap,
+    p_modeToolbar->AddTool(ID_MODE_SHAPE, _T(""), shapeIcon(ShapeData::tetrahedral),
                            _("Geometry"), wxITEM_NORMAL);
     p_modeToolbar->AddTool(ID_MODE_BOND, _T(""), bondIcon(TBond::Single),
                            _("Choose Build Bond"), wxITEM_CHECK);
@@ -2087,18 +2088,18 @@ void Builder::updateBondIcon()
 
 
 /**
- * The bond tool's icon in the toolbar's line style (the old one-size
- * pixmap looked like a stray "-H"); the pixmap only if the SVG is missing.
+ * The bond tool's icon: the drop-down's own ball-and-stick drawing.
  */
 wxBitmapBundle Builder::bondIcon(double order)
 {
-  const char *name = order == TBond::Double   ? "bond-double"
-                   : order == TBond::Triple   ? "bond-triple"
-                   : order == TBond::Aromatic ? "bond-aromatic"
-                   : order == TBond::Metal    ? "bond-metal"
-                   :                            "bond-single";
-  return ewxBitmap::svgIcon(name, wxSize(22, 22),
-                            TBond::orderToSmallImage(order));
+  return ewxBitmap::colorIcon(TBond::orderToSmallImage(order), wxSize(22, 22));
+}
+
+
+static wxBitmapBundle shapeIcon(ShapeData::Shape shape)
+{
+  return ewxBitmap::colorIcon(ShapeData::shapeToSmallImage(shape),
+                              wxSize(22, 22));
 }
 
 
@@ -2208,10 +2209,8 @@ void Builder::updateElementIcon()
  */
 void Builder::updateShapeIcon()
 {
-  string pixmap = ShapeData::shapeToSmallImage(ShapeData::stringToShape(p_currentShapes[p_currentElement]));
-  
-  ewxBitmap bitmap(pixmap.c_str());
-  p_modeToolbar->SetToolNormalBitmap(ID_MODE_SHAPE, bitmap);
+  p_modeToolbar->SetToolNormalBitmap(ID_MODE_SHAPE, shapeIcon(
+      ShapeData::stringToShape(p_currentShapes[p_currentElement])));
 }
 
 

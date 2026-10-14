@@ -44,6 +44,7 @@ bool ShapeDropDown::Create(ShapeData::Shape shape, wxWindow* parent,
     return false;
   }
 
+  SetToolBitmapSize(wxSize(24, 24));
   addShape(ShapeData::lone);
   addShape(ShapeData::terminal);
   addShape(ShapeData::linear);
@@ -99,6 +100,6 @@ void ShapeDropDown::OnToolClick( wxCommandEvent& event )
 void ShapeDropDown::addShape(ShapeData::Shape shape)
 {
   AddTool(shape + ID_SHAPE_BASE, ShapeData::shapeToString(shape),
-          ewxBitmap(ShapeData::shapeToImage(shape)), "", wxITEM_RADIO);
+          ewxBitmap::colorIcon(ShapeData::shapeToImage(shape), wxSize(24, 24)), "", wxITEM_RADIO);
 }
 

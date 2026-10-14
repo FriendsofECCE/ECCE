@@ -269,15 +269,15 @@ string TBond::orderToSmallImage(double order)
   string pixmap;
   
   if (order == TBond::Single) {
-    pixmap = "bond_single.xpm";
+    pixmap = "svg/bond-single.svg";
   } else if (order == TBond::Double) {
-    pixmap = "bond_double.xpm";
+    pixmap = "svg/bond-double.svg";
   } else if (order == TBond::Triple) {
-    pixmap = "bond_triple.xpm";
+    pixmap = "svg/bond-triple.svg";
   } else if (order == TBond::Aromatic) {
-    pixmap = "bond_aromatic.xpm";
+    pixmap = "svg/bond-aromatic.svg";
   } else if (order == TBond::Metal) {
-    pixmap = "bond_metal.xpm";
+    pixmap = "svg/bond-metal.svg";
   }
 
   return pixmap;
@@ -289,15 +289,15 @@ string TBond::orderToImage(double order)
   string pixmap;
   
   if (order == TBond::Single) {
-    pixmap = "bond_single_large.xpm";
+    pixmap = "svg/bond-single.svg";
   } else if (order == TBond::Double) {
-    pixmap = "bond_double_large.xpm";
+    pixmap = "svg/bond-double.svg";
   } else if (order == TBond::Triple) {
-    pixmap = "bond_triple_large.xpm";
+    pixmap = "svg/bond-triple.svg";
   } else if (order == TBond::Aromatic) {
-    pixmap = "bond_aromatic_large.xpm";
+    pixmap = "svg/bond-aromatic.svg";
   } else if (order == TBond::Metal) {
-    pixmap = "bond_metal_large.xpm";
+    pixmap = "svg/bond-metal.svg";
   }
 
   return pixmap;

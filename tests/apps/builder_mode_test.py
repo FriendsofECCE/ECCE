@@ -34,7 +34,9 @@ SCRIPT = [
     "select -1", "library SimpleStructures/Simple_arenes Benzene",
     "libatom -1", "click", "info",
     "select -1", "click", "info", "coords",
-    "key escape", "info", "quit",
+    "key escape", "info",
+    # the Build panel's periodic-table button, then a pick in its table
+    "pertab Fe", "quit",
 ]
 
 
@@ -105,6 +107,8 @@ def check(display, results, timeout=120):
                "no two atoms closer than 0.5 A (%d atoms, closest %.2f A)"
                % (len(xyz), closest))
         expect(modes[6][0] == "select", "Esc leaves Structure Library mode")
+        expect("BUILDER: pertab element=Fe" in log, "the periodic-table button "
+               "opens the table and a pick there sets the Build element")
         if problems:
             results.fail("builder-mode", "; ".join(problems) + "\n" + tail(log))
     finally:

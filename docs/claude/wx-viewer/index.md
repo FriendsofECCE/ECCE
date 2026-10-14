@@ -80,3 +80,4 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [Structure Library ligands: a Nub atom bonded to each donor atom, pointing at the metal site](library-ligands-carry-a-nub-at-each-donor.md)
 - [Builder Save is only refreshed by updateSave(); a wxGrid in a sizer needs its own minimum size; Open structures height](builder-save-follows-dirty-and-grid-needs-its-own-size.md)
 - [Builder mode: setMode() sets mode, viewer and toolbar together; Structure Library insert returns to Select; Esc is a char hook (#321)](builder-mode-is-set-by-setmode-only.md)
+- [NanoSVG draws objectBoundingBox radial gradients flat: the Builder bond/geometry icons use per-sphere userSpaceOnUse gradients (#323)](nanosvg-renders-bounding-box-gradients-flat.md)

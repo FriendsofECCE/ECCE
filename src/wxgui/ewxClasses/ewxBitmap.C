@@ -204,6 +204,22 @@ wxBitmapBundle ewxBitmap::svgIcon(const wxString& name, const wxSize& size,
 
 
 /**
+ * A multi-colour SVG (path relative to the pixmaps directory, e.g. the
+ * Builder's bond and geometry icons), drawn as it is at the size and
+ * twice it.  The old pixmap name may be passed in its place: that loads
+ * as the bitmap it always was.
+ */
+wxBitmapBundle ewxBitmap::colorIcon(const wxString& svg, const wxSize& size)
+{
+  if (!svg.EndsWith(".svg")) return bundle(svg);
+  wxBitmapBundle b = wxBitmapBundle::FromSVGFile(pixmapFile(svg), size);
+  if (!b.IsOk()) return wxBitmapBundle(placeholder(svg));
+  return wxBitmapBundle::FromBitmaps(alphaToMask(b.GetBitmap(size)),
+                                     alphaToMask(b.GetBitmap(size * 2)));
+}
+
+
+/**
  * The theme's symbolic icon, drawn in the theme's text colour.
  * GTK hands symbolic icons back in a fixed dark grey, which vanishes on a
  * dark theme, so the colour is applied here; the alpha is the shape.

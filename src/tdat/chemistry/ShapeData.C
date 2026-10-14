@@ -146,27 +146,27 @@ static const char*  s_shapeStrs[] = {
 
 
 static const char*  s_shapeImage[] = {
-    "lone24.xpm",                   // 0      :0.0
-    "terminal24.xpm",               // 1      :1.0
-    "linear24.xpm",                 // 2      :2.0
-    "trigplanar24.xpm",             // 3      :3.0
-    "tetrahedral24.xpm",            // 4      :4.0
-    "pyramidal24.xpm",              // 5      :4.1 aka trigonal pyr.
-    "bent24.xpm",                   // 6      :4.2
-    "trigbipyramidal24.xpm",        // 7      :5.0 Chris calls this pentagonal
+    "svg/shape-lone.svg",                   // 0      :0.0
+    "svg/shape-terminal.svg",               // 1      :1.0
+    "svg/shape-linear.svg",                 // 2      :2.0
+    "svg/shape-trigplanar.svg",             // 3      :3.0
+    "svg/shape-tetrahedral.svg",            // 4      :4.0
+    "svg/shape-pyramidal.svg",              // 5      :4.1 aka trigonal pyr.
+    "svg/shape-bent.svg",                   // 6      :4.2
+    "svg/shape-trigbipyramidal.svg",        // 7      :5.0 Chris calls this pentagonal
     "",                             // 8      :5.1 trigBiPyr w/o 1 equat.
     "",                             // 9      :5.2 not yet in builder
-    "octahedral24.xpm",             // 10     :6.0 Chris calls this hexagonal
-    "squarepyramidal24.xpm",        // 11     :6.1 Chris calls this pent. pyr
-    "squareplanar24.xpm",           // 12     :6.2
+    "svg/shape-octahedral.svg",             // 10     :6.0 Chris calls this hexagonal
+    "svg/shape-squarepyramidal.svg",        // 11     :6.1 Chris calls this pent. pyr
+    "svg/shape-squareplanar.svg",           // 12     :6.2
     "",                             // 13     :7.0 not used, 7-coord, very rare
     "",                             // 14     :7.3 aka sq pyramid; not chemical
-    "cubic24.xpm",                  // 15     :8.0 Chris calls this octahedral
+    "svg/shape-cubic.svg",                  // 15     :8.0 Chris calls this octahedral
     "",                             // 16     :8.1 not used, 7-coord, very rare
     "",                             // 17     :9.0 not used, rare 9-coord
     "",                             // 18     :9.1 not used, rare 8-coord
     "",                             // 19     :9.2 not used, 7-coord, very rare
-    "decahedral24.xpm",             // 20     :10.0 added for Andy
+    "svg/shape-decahedral.svg",             // 20     :10.0 added for Andy
     "",                             // 21     :10.2 not used, rare 8-coord
     "",                             // 22     :11.3 not used, rare 8-coord
     ""                              // 23
@@ -204,10 +204,8 @@ string ShapeData::shapeToImage(ShapeData::Shape shape)
 
 string ShapeData::shapeToSmallImage(ShapeData::Shape shape)
 {
-  EE_ASSERT(shape>=0 && shape<p_numTomsShapes,EE_WARNING,"Bad shape index");
-  string ret = s_shapeImage[shape];
-  EE_ASSERT(ret.length()>6, EE_FATAL, "Bad shape image");
-  return ret.replace(ret.length()-6, 2, "18");
+  // One SVG serves every size.
+  return shapeToImage(shape);
 }
 
 
