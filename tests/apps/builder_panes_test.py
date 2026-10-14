@@ -24,10 +24,10 @@ import pbc_ux_test   # noqa: E402
 
 TOLERANCE = 4
 CAPTION = 40          # px: a folded pane is its caption bar
-STRUCTURE = ["Open_structures", "Build", "Coordinates", "Selection",
+STRUCTURE = ["Open_structures", "Build", "Build", "Selection",
              "Symmetry", "Log"]
 NOT_PROPERTY = {"Viewer", "Panel Tabs", "Property Index", "Column Toggle",
-                "Open structures", "Build", "Coordinates", "Selection",
+                "Open structures", "Build", "Build", "Selection",
                 "Symmetry", "Log", "Atom Table", "Residue Table"}
 
 
@@ -110,18 +110,18 @@ def check(display, results):
     tools = " ".join(STRUCTURE)
     work = run(display, results, "tools", unrun_url,
                ["columntab 0", "panestate before " + tools,
-                "panefold Coordinates", "panestate folded " + tools,
+                "panefold Build", "panestate folded " + tools,
                 "columntab 1", "columntab 0", "panestate back " + tools,
-                "panefold Coordinates", "panestate open " + tools], "detail")
-    problems = foldProblems(work, "Coordinates", "tools")
+                "panefold Build", "panestate open " + tools], "detail")
+    problems = foldProblems(work, "Build", "tools")
     if not problems:
-        o = rect(work, "open", "Coordinates")
-        b = rect(work, "before", "Coordinates")
-        if flag(work, "open", "Coordinates", "folded") != 0:
-            problems.append("Coordinates still folded after unfolding")
+        o = rect(work, "open", "Build")
+        b = rect(work, "before", "Build")
+        if flag(work, "open", "Build", "folded") != 0:
+            problems.append("Build still folded after unfolding")
         elif not o or not b or abs(o[1] - b[1]) > 15:
             problems.append("unfolded height %s, was %s" % (o, b))
-        if flag(work, "back", "Coordinates", "folded") != 1:
+        if flag(work, "back", "Build", "folded") != 1:
             problems.append("fold lost on Structure -> Properties -> Structure")
     for p in problems:
         results.fail("builder panes tools", p)

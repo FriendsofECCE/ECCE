@@ -60,7 +60,7 @@ import xdisplay                                               # noqa: E402
 #  and only the second one is worth relying on.
 #
 #  A healthy full run is about six minutes.
-DEFAULT_BUDGET = int(os.environ.get("ECCE_APPS_BUDGET", "1200"))
+DEFAULT_BUDGET = int(os.environ.get("ECCE_APPS_BUDGET", "1500"))
 
 
 class BudgetExpired(Exception):

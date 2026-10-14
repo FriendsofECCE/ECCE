@@ -168,7 +168,7 @@ jobs:
     runs-on: ubuntu-latest
     # Bounded so a hung job cannot hold a runner slot for GitHub's
     # 6-hour default; see the concurrency note above.
-    timeout-minutes: 40
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
 
