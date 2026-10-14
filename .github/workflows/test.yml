@@ -242,6 +242,13 @@ jobs:
           ECCE_TEST_STATE: ${{ runner.temp }}/ecce-state
         run: tests/apps/run_tests.py -v
 
+      - name: Clipping audit, small and normal screens
+        env:
+          ECCE_TEST_STATE: ${{ runner.temp }}/ecce-state
+        run: |
+          tests/apps/clip_test.py --size 1024x600 --out ${{ runner.temp }}/clip600
+          tests/apps/clip_test.py --size 1366x768 --out ${{ runner.temp }}/clip768
+
       - name: Collect service logs on failure
         if: failure()
         run: |
