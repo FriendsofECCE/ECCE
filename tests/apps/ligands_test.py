@@ -37,8 +37,10 @@ EXPECT = {
     "NH3": ("N", 1), "H2O": ("O", 1), "Pyridine": ("N", 1),
     "Bipyridine": ("N", 2), "Phenanthroline": ("N", 2),
     "Ethylenediamine": ("N", 2), "Acetylacetonate": ("O", 2),
-    "Cyclopentadienyl": ("C", 5), "Oxalate": ("O", 2),
+    "Oxalate": ("O", 2),
 }
+# pi ligands carry no nubs (bonded with the Metal order, builder_metal_test)
+PI = ("Cyclopentadienyl",)
 
 failures = []
 
@@ -132,6 +134,9 @@ def main():
             fail(name, why)
         else:
             nubIndex[name] = idx
+    for name in PI:
+        if "Nub" in readMvm(name)[0]:
+            fail(name, "a pi ligand has nubs")
     try:
         settings = isolate.apply(apps.INSTALL)
     except isolate.IsolationError as exc:

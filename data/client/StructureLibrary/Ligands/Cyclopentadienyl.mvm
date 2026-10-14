@@ -1,40 +1,30 @@
-# Cyclopentadienyl anion, one nub per ring carbon (eta-5 face).  Geometry: MOPAC PM7 (charge -1), nubs mark the donor
-# atoms; each points at the site a metal would occupy.
+# Cyclopentadienyl anion, no nubs: it is a pi ligand, bonded with the Metal
+# order (Bond mode, metal + a ring carbon). Geometry: MOPAC PM7 (charge -1).
 title:          Cyclopentadienyl
 type:           molecule
-num_atoms:      15
+num_atoms:      10
 atom_info:      symbol cart
 atom_list:
   C      0.32311    1.15633   -0.00260
-  Nub    0.24420    0.87382    0.40232
   C     -0.99989    0.66461   -0.00074
-  Nub   -0.75463    0.50259    0.40373
   C     -0.94108   -0.74558    0.00209
-  Nub   -0.71023   -0.56208    0.40586
   C      0.41827   -1.12539    0.00210
-  Nub    0.31605   -0.84881    0.40589
   C      1.19960    0.05004   -0.00084
-  Nub    0.90592    0.03860    0.40366
   H      0.60868    2.17799   -0.00489
   H     -1.88337    1.25184   -0.00140
   H     -1.77253   -1.40441    0.00401
   H      0.78794   -2.11972    0.00391
   H      2.25951    0.09426   -0.00153
-num_bonds:      15
+num_bonds:      10
 bond_info:     order
 bond_list:
- 1  3  1.00000
- 1  9  1.00000
- 1  11  1.00000
- 3  5  2.00000
- 3  12  1.00000
- 5  7  1.00000
- 5  13  1.00000
- 7  9  2.00000
- 7  14  1.00000
- 9  15  1.00000
  1  2  1.00000
+ 1  5  1.00000
+ 1  6  1.00000
+ 2  3  2.00000
+ 2  7  1.00000
  3  4  1.00000
- 5  6  1.00000
- 7  8  1.00000
- 9  10  1.00000
+ 3  8  1.00000
+ 4  5  2.00000
+ 4  9  1.00000
+ 5  10  1.00000

@@ -17,7 +17,7 @@ parent is reset by `fixAllNubs`, only its direction matters.
 points along the lone pair (away from the donor's neighbours); a chelate's
 nubs both point at the metal position on the ligand's symmetry axis (2.0 A
 from the donors), so after attaching through one donor the other is closed
-with Bond on the two nubs. Cyclopentadienyl has one nub per ring carbon, all
-pointing at the ring's face. Geometries are MOPAC PM7 (anions with the
+with Bond on the two nubs. Cyclopentadienyl, a π ligand, has no nubs: it is bonded with the Metal
+order, and a nub left on an unbonded ring carbon (η3) made Clean bend its H. Geometries are MOPAC PM7 (anions with the
 charge; `charge:` is not read by the .mvm reader, so the charge is only in the
 comment line); 2,2'-bipyridine is the rigidly rotated cis conformer.
