@@ -920,7 +920,7 @@ void Builder::createMainPanel()
     p_mainSizer->Add(p_cmd, 0, wxEXPAND|wxALL, 0);
   }
    
-  setMode(ID_MODE_SELECT);
+  applyMode(ID_MODE_SELECT);   // the toolbar and panes do not exist yet
 
   p_mgr.AddPane(mainPanel, wxAuiPaneInfo().CenterPane().
           Name("Viewer").Caption("Viewer").CaptionVisible().
