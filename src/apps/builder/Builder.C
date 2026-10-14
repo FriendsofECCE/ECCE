@@ -3913,6 +3913,10 @@ void Builder::foldPane(wxWindow *win, bool fold)
   p_folded[win] = st;
   //  AUI floors a pane at its window's minimum, so a folded pane would
   //  keep the content height until the window is hidden.
+  //  A property panel re-applies its own floor on every SetMinSize.
+  if (PropertyPanel *pp = dynamic_cast<PropertyPanel*>(win)) {
+    pp->setPaneMinHeight(1);
+  }
   win->wxWindow::SetMinSize(wxSize(st.winMin.x, 1));
   unfocusPanel(win);
   pane.BestSize(wxSize(st.best.x, 1)).MinSize(wxSize(st.min.x, 1)).Fixed();
@@ -3930,6 +3934,9 @@ void Builder::unfoldPane(wxAuiPaneInfo &pane)
   pane.BestSize(it->second.best).MinSize(it->second.min)
       .Resizable(it->second.resizable);
   pane.dock_proportion = it->second.proportion;
+  if (PropertyPanel *pp = dynamic_cast<PropertyPanel*>(pane.window)) {
+    pp->setPaneMinHeight(it->second.winMin.y);
+  }
   pane.window->wxWindow::SetMinSize(it->second.winMin);
   p_folded.erase(it);
 }
