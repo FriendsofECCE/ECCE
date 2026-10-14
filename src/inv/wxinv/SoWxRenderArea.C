@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <iostream>
 using std::cerr;
@@ -1361,7 +1362,27 @@ void SoWxRenderArea::OnMouse( wxMouseEvent& event )
   //  panel control had it; wx does not do so for a GL canvas by itself.
   if (event.ButtonDown() && !HasFocus())
     SetFocus();
+
+  // ECCE_DEBUG_MOUSE=1: one line per button/drag event, before and after the
+  // viewer sees it, to tell which wx button/modifier flags a platform sends.
+  static const bool dbg = getenv("ECCE_DEBUG_MOUSE") != NULL;
+  SoWxViewer *v = dbg ? dynamic_cast<SoWxViewer*>(GetParent()) : NULL;
+  if (dbg && (event.ButtonDown() || event.ButtonUp() || event.ButtonDClick()
+              || event.Dragging())) {
+    fprintf(stderr, "mouse type=%d down=%d up=%d drag=%d L=%d M=%d R=%d "
+            "btnL=%d btnR=%d ctrl=%d rawctrl=%d meta=%d shift=%d alt=%d "
+            "xy=%d,%d scale=%.1f viewing=%d\n",
+            (int)event.GetEventType(), event.ButtonDown(), event.ButtonUp(),
+            event.Dragging(), event.LeftIsDown(), event.MiddleIsDown(),
+            event.RightIsDown(), event.Button(wxMOUSE_BTN_LEFT),
+            event.Button(wxMOUSE_BTN_RIGHT), event.ControlDown(),
+            event.RawControlDown(), event.MetaDown(), event.ShiftDown(),
+            event.AltDown(), event.GetX(), event.GetY(),
+            soWxPixelScale(&event), v ? (int)v->isViewing() : -1);
+  }
   processEvent(&event);
+  if (dbg && v && (event.ButtonDown() || event.ButtonUp()))
+    fprintf(stderr, "mouse after: viewing=%d\n", (int)v->isViewing());
 }
 
 
