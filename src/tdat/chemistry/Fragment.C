@@ -2440,11 +2440,13 @@ bool Fragment::generateShape(TAtm *atm)
    TAtm *atom3;
    double angle;
 
-   // This totally ignores metal-pi bonds!!!!
-   // Maybe not a big problem since this is only called after
-   // reading in a molecule which probably doesn't have metal-pi
-   // bonds?  This is a question not a statement.
-   switch (atm->bondList().size())
+   // Metal-pi (0.5) and hydrogen (0.1) bonds use no valence, so they do not
+   // count toward the shape: a ring carbon with a metal on its face is
+   // still trigonal planar.
+   vector<TBond*> bl;
+   for (size_t ib=0; ib<atm->bondList().size(); ib++)
+      if (atm->bondList()[ib]->order() >= 1.0) bl.push_back(atm->bondList()[ib]);
+   switch (bl.size())
    {
       case 0:
          atmShape = ShapeData::lone;
@@ -2454,12 +2456,12 @@ bool Fragment::generateShape(TAtm *atm)
          break;
       case 2:
          atmShape = ShapeData::linear;
-         atom1 = (atm->bondList()[0])->atom1();
+         atom1 = (bl[0])->atom1();
          if (atom1 == atm)
-            atom1 = (atm->bondList()[0])->atom2();
-         atom2 = (atm->bondList()[1])->atom1();
+            atom1 = (bl[0])->atom2();
+         atom2 = (bl[1])->atom1();
          if (atom2 == atm)
-            atom2 = (atm->bondList()[1])->atom2();
+            atom2 = (bl[1])->atom2();
          angle = atm->angleBetween(atom1,atom2);
          if (angle < 172 || angle > 188)
             atmShape = ShapeData::bent;
@@ -2467,15 +2469,15 @@ bool Fragment::generateShape(TAtm *atm)
       case 3:
          atmShape = ShapeData::trigonalPlanar;
          if ( atm->atomicSymbol() != "C" ) { // 3-coordinate C always planar
-            atom1 = (atm->bondList()[0])->atom1();
+            atom1 = (bl[0])->atom1();
             if (atom1 == atm)
-               atom1 = (atm->bondList()[0])->atom2();
-            atom2 = (atm->bondList()[1])->atom1();
+               atom1 = (bl[0])->atom2();
+            atom2 = (bl[1])->atom1();
             if (atom2 == atm)
-               atom2 = (atm->bondList()[1])->atom2();
-            atom3 = (atm->bondList()[2])->atom1();
+               atom2 = (bl[1])->atom2();
+            atom3 = (bl[2])->atom1();
             if (atom3 == atm)
-               atom3 = (atm->bondList()[2])->atom2();
+               atom3 = (bl[2])->atom2();
             double angle12, angle23, angle13;
             angle12 = atm->angleBetween(atom1,atom2);
             angle23 = atm->angleBetween(atom2,atom3);
