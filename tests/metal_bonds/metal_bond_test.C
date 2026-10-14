@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -206,6 +208,76 @@ int main()
     check(fabs(cs) < 0.01, "C=C perpendicular to the M-midpoint line");
     check(mid[0] > 1.9, "midpoint lies along the nub direction (+x)");
     check(count(tb, "Nub") == 0, "the nub is gone");
+  }
+
+  // Structure Library ligands arrive with a nub on each donor atom.
+  {
+    const char* home = getenv("ECCE_HOME");
+    std::string dir = std::string(home ? home : ".") + "/data/client/StructureLibrary/Ligands/";
+    Fragment cp;
+    std::ifstream in((dir + "Cyclopentadienyl.mvm").c_str());
+    check(in.good() && cp.restoreMVM(in, 1.0, false), "Cyclopentadienyl.mvm loads");
+    Fragment m;
+    m.addAtom("Fe", fe);
+    const double up[3] = {0, 0, 3.6};
+    m.addAtom("Nub", up);
+    m.addBond(0, 1, 1.0);
+    int off = m.numAtoms();
+    for (int i = 0; i < cp.numAtoms(); i++) {
+      double c[3] = {cp.atomRef(i)->coordinates()[0] + 6, cp.atomRef(i)->coordinates()[1],
+                     cp.atomRef(i)->coordinates()[2] - 4};
+      m.addAtom(cp.atomRef(i)->atomicSymbol().c_str(), c);
+    }
+    for (int i = 0; i < cp.numAtoms(); i++)
+      for (int j = i + 1; j < cp.numAtoms(); j++) {
+        TBond* b = cp.bond(i, j);
+        if (b) m.addBond(off + i, off + j, b->order());
+      }
+    std::vector<TAtm*> pick(1, m.atomRef(off));   // a ring carbon
+    std::string msg;
+    threw = false;
+    try { m.bondPiLigand(m.atomRef(1), pick, style, msg); } catch (...) { threw = true; }
+    printf("     %s\n", msg.c_str());
+    int nm = 0;
+    for (int i = 1; i < m.numAtoms(); i++) {
+      TBond* b = m.bond(0, i);
+      if (b && b->order() == TBond::Metal) nm++;
+    }
+    printf("     threw=%d nm=%d atoms=%d\n", (int)threw, nm, m.numAtoms());
+    check(!threw && msg.find("eta5") == 0 && nm == 5, "Cp attaches eta5 with five Metal bonds");
+    check(count(m, "Nub") == 0 && count(m, "H") == 5 && m.numAtoms() == 1 + 10,
+          "no nubs left on the metal or the Cp; its hydrogens stay");
+
+    // A sigma donor still goes through the nub path: Fe nub + pyridine N nub.
+    Fragment py;
+    std::ifstream pin((dir + "Pyridine.mvm").c_str());
+    check(pin.good() && py.restoreMVM(pin, 1.0, false), "Pyridine.mvm loads");
+    Fragment s;
+    s.addAtom("Fe", fe);
+    s.addAtom("Nub", up);
+    s.addBond(0, 1, 1.0);
+    int noff = s.numAtoms(), nn = -1, nnub = -1;
+    for (int i = 0; i < py.numAtoms(); i++) {
+      s.addAtom(py.atomRef(i)->atomicSymbol().c_str(), py.atomRef(i)->coordinates());
+      if (py.atomRef(i)->atomicSymbol() == "N") nn = noff + i;
+    }
+    for (int i = 0; i < py.numAtoms(); i++)
+      for (int j = i + 1; j < py.numAtoms(); j++) {
+        TBond* b = py.bond(i, j);
+        if (b) s.addBond(noff + i, noff + j, b->order());
+      }
+    for (int i = noff; i < s.numAtoms(); i++)
+      if (s.atomRef(i)->atomicSymbol() == "Nub") nnub = i;
+    int natoms = s.numAtoms();
+    threw = false;
+    try { s.bondAtoms(s.atomRef(0), s.atomRef(nn), TBond::Single, style); }
+    catch (...) { threw = true; }
+    int nafter = -1;
+    for (int i = 0; i < s.numAtoms(); i++)
+      if (s.atomRef(i)->atomicSymbol() == "N") nafter = i;
+    check(!threw && nn >= 0 && nnub >= 0 && s.numAtoms() == natoms - 2 && nafter > 0 &&
+          s.bond(0, nafter) != 0 && s.bond(0, nafter)->order() == TBond::Single,
+          "pyridine bonds Fe-N through the nubs as before (both nubs consumed)");
   }
 
   // MVM round trip keeps the 0.5 orders.
