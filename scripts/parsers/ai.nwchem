@@ -462,10 +462,10 @@ sub SCFTheory {
   local($result);
   if ($AbiDict{"Category"} eq "SCF") {
     $result = $AbiDict{"Theory"};
-  } elsif ( $AbiDict{"Theory"} =~ /^R/ ) {
-    $result = "rhf";
   } elsif ( $AbiDict{"Theory"} =~ /^RO/ ) {
     $result = "rohf";
+  } elsif ( $AbiDict{"Theory"} =~ /^R/ ) {
+    $result = "rhf";
   } elsif ( $AbiDict{"Theory"} =~ /^U/ ) {
     $result = "uhf";
   } else {
@@ -1274,7 +1274,12 @@ sub SCF {
       return "";
     }
   } else {
-    die "Fatal ai.nwchem error:  Unrecognized Category in dictionary\n";
+    # The template's dft block reaches here for every category (its
+    # ##SCF.ConvergenceIterations## retries as ##SCF##); MP/CC/NWPW decks
+    # must drop the line, not abort -- the block is removed afterwards.
+    &aiUnmatched(@_);
+    $_ = "";
+    return "";
   }
 }
 ##
