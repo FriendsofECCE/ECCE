@@ -609,6 +609,7 @@ void Builder::updatePanes(bool allowSwitch)
     }
   }
   keepColumnWidth();
+  columnMinWidth();
   holdColumnWidth(true);
   p_mgr.Update();
   fitToolColumn();
@@ -680,6 +681,7 @@ void Builder::keepColumnWidth()
 void Builder::holdColumnWidth(bool apply)
 {
   if (!isColumnMode() || p_columnHidden) return;
+  const int floor = apply ? columnMinWidth() : 0;
   wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
   for (size_t i = 0; i < all.GetCount(); ++i) {
     wxAuiPaneInfo &pane = all.Item(i);
@@ -695,8 +697,9 @@ void Builder::holdColumnWidth(bool apply)
         return;
       }
     } else if (p_columnWidth > 0) {
-      pane.rect.width = p_columnWidth;
-      pane.BestSize(wxSize(p_columnWidth, pane.best_size.y));
+      const int w = std::max(p_columnWidth, floor);
+      pane.rect.width = w;
+      pane.BestSize(wxSize(w, pane.best_size.y));
     }
   }
 }

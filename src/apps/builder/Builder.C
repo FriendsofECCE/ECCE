@@ -29,6 +29,7 @@ using std::vector;
 #include "inv/actions/SoGLRenderAction.H"
 #include "inv/manips/SoTrackballManip.H"
 
+#include <wx/settings.h>
 #include <wx/tglbtn.h>
 #include <wx/toolbar.h>
 #include <wx/utils.h>
@@ -6021,7 +6022,8 @@ void Builder::updatePropertyMenus()
             w[0] == "fragdump" || w[0] == "panelmode" ||
             w[0] == "toolmenu" || w[0] == "paneclose" ||
             w[0] == "panestate" || w[0] == "panefold" || w[0] == "xshot" ||
-            w[0] == "setcontext" || w[0] == "columntab")
+            w[0] == "setcontext" || w[0] == "columntab" ||
+            w[0] == "narrowcolumn" || w[0] == "toolfloat" || w[0] == "toolclip")
           return pbcTestCommand(s, w, outdir);
         //  "ptree <name>": the Properties list's highlighted entry beside
         //  the property panes that are shown, -> <name>.txt.
@@ -6395,10 +6397,36 @@ void Builder::torsionPopup(int x, int y, AtomMeasureTorsion *torsion)
 static const int PANE_WIDTH_MIN = 200;
 static const int PANE_WIDTH_MAX = 600;
 
+static wxWindow *toolScroller(wxWindow *window);
+
+//  A tool panel's controls live in its ecceToolScroll window, whose
+//  vertical scroll bar takes width of its own; the sizer's minimum is
+//  re-read here because the controls change after the panel is added
+//  (element buttons, pickers).
+static int scrolledNeed(wxWindow *window)
+{
+  wxWindow *scroll = toolScroller(window);
+  if (!scroll || !scroll->GetSizer()) {
+    return 0;
+  }
+  //  Always reserved: the bar appears when the pane is short, and GTK
+  //  overlay-scrollbar themes report a metric smaller than the bar drawn.
+  const int bar = std::max(wxSystemSettings::GetMetric(wxSYS_VSCROLL_X, window),
+                           20);
+  const int need = scroll->GetSizer()->GetMinSize().x + bar;
+  scroll->SetMinSize(wxSize(need, 1));
+  window->SetMinSize(wxSize(need, -1));
+  return need;
+}
+
 static int contentMinWidth(wxWindow *window)
 {
   if (!window) {
     return PANE_WIDTH_MIN;
+  }
+  const int scrolled = scrolledNeed(window);
+  if (scrolled > 0) {
+    return std::min(std::max(scrolled, PANE_WIDTH_MIN), PANE_WIDTH_MAX);
   }
   // Lay out first -- GetMinSize()/GetBestSize() on a panel with a sizer
   // needs the sizer to have seen its children, and these can be called
@@ -6498,6 +6526,53 @@ static void debugPrintPaneSizes(wxAuiManager &mgr)
            clipped ? " CLIPPED" : "");
     fflush(stdout);
   }
+}
+
+
+//  The column is never narrower than its widest docked pane needs.  A
+//  width saved by an earlier session, or one dragged narrow, is raised to
+//  this; returns the floor.
+int Builder::columnMinWidth()
+{
+  int floor = 0;
+  wxAuiPaneInfoArray &panes = p_mgr.GetAllPanes();
+  for (size_t i = 0; i < panes.GetCount(); ++i) {
+    wxAuiPaneInfo &pane = panes.Item(i);
+    //  A floating pane's frame is as wide as its own content needs.
+    if (pane.IsShown() && pane.IsFloating() && pane.window &&
+        toolScroller(pane.window)) {
+      const int w = contentMinWidth(pane.window);
+      pane.MinSize(wxSize(w, pane.min_size.y));
+      const wxSize chrome = pane.frame
+          ? pane.frame->GetSize() - pane.frame->GetClientSize() : wxSize(0, 0);
+      if (pane.floating_size.x < w + chrome.x)
+        pane.floating_size.x = w + chrome.x;
+      if (pane.frame && pane.frame->GetClientSize().x < w)
+        pane.frame->SetClientSize(w, pane.frame->GetClientSize().y);
+      continue;
+    }
+    if (!pane.IsShown() || pane.IsFloating() || pane.IsToolbar() ||
+        !pane.window || pane.dock_direction != wxAUI_DOCK_RIGHT ||
+        pane.dock_layer < 1 || !toolScroller(pane.window)) {
+      continue;
+    }
+    const int w = contentMinWidth(pane.window);
+    pane.MinSize(wxSize(w, pane.min_size.y));
+    floor = std::max(floor, w);
+  }
+  if (floor <= 0) return 0;
+  for (size_t i = 0; i < panes.GetCount(); ++i) {
+    wxAuiPaneInfo &pane = panes.Item(i);
+    if (!pane.IsShown() || pane.IsFloating() || pane.IsToolbar() ||
+        !pane.window || pane.dock_direction != wxAUI_DOCK_RIGHT ||
+        pane.dock_layer < 1 || pane.name == NAME_COLUMN_TOGGLE) {
+      continue;
+    }
+    if (pane.min_size.x < floor) pane.MinSize(wxSize(floor, pane.min_size.y));
+    if (pane.best_size.x < floor) pane.BestSize(wxSize(floor, pane.best_size.y));
+    if (pane.rect.width > 0 && pane.rect.width < floor) pane.rect.width = floor;
+  }
+  return floor;
 }
 
 

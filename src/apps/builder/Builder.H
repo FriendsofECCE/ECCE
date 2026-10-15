@@ -477,6 +477,7 @@ class Builder: public BuilderGUI,
       void initShownPanels();
       void makeRoomFor(const wxString& name);
       bool fitToolColumn();
+      int columnMinWidth();
       void setColumnTab(int tab, bool save=true);
       void selectDetail(const string& name);
       void setDetail(wxWindow *win);

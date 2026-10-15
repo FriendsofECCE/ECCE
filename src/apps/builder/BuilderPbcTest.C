@@ -9,6 +9,7 @@
 #include <fstream>
 
 #include <wx/app.h>
+#include <wx/scrolwin.h>
 #include <wx/spinctrl.h>
 #include <wx/utils.h>
 #include <wx/aui/aui.h>
@@ -104,6 +105,78 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
   if (c == "columntab" && w.size() == 2) {
     setColumnTab(atoi(w[1].c_str()) ? 1 : 0, true);
     settle(300);
+    return true;
+  }
+
+  //  "narrowcolumn <px>": as a layout saved narrow comes back: the column
+  //  is px wide, its panes ask for no more, then the panes are laid out.
+  if (c == "narrowcolumn" && w.size() == 2) {
+    const int px = atoi(w[1].c_str());
+    p_columnWidth = px;
+    wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
+    for (size_t i = 0; i < all.GetCount(); i++) {
+      wxAuiPaneInfo &pane = all.Item(i);
+      if (pane.IsShown() && !pane.IsFloating() && !pane.IsToolbar() &&
+          pane.dock_direction == wxAUI_DOCK_RIGHT && pane.dock_layer >= 1) {
+        pane.BestSize(wxSize(px, pane.best_size.y));
+        pane.rect.width = px;
+      }
+    }
+    updatePanes(true);
+    settle(400);
+    return true;
+  }
+
+  //  "toolfloat <tool>": the pane torn off into its own frame.
+  if (c == "toolfloat" && w.size() == 2) {
+    string name = w[1];
+    for (char& ch : name) if (ch == '_') ch = ' ';
+    wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(name));
+    if (!pane.IsOk()) return s.fail("toolfloat: no pane " + name);
+    pane.Float().Show(true);
+    p_mgr.Update();
+    updatePanes(true);
+    settle(400);
+    return true;
+  }
+
+  //  "toolclip <name> <tool>" -> <outdir>/<name>.txt: "pane <w>", then one
+  //  "clipped <class> <right edge> <width>" line per control of the tool's
+  //  scroll window that ends beyond its client width, and "hscroll 1" if
+  //  the window scrolls sideways.
+  if (c == "toolclip" && w.size() == 3) {
+    string name = w[2];
+    for (char& ch : name) if (ch == '_') ch = ' ';
+    std::ofstream out(outdir + "/" + w[1] + ".txt");
+    wxAuiPaneInfo &p = p_mgr.GetPane(wxString(name));
+    if (!p.IsOk() || !p.window) return s.fail("toolclip: no pane " + name);
+    out << "pane " << (p.IsFloating() && p.frame ? p.frame->GetClientSize().x
+                                                       : p.rect.width) << "\n";
+    wxScrolledWindow *scroll = 0;
+    for (wxWindow *k : p.window->GetChildren())
+      if (k->GetName() == "ecceToolScroll")
+        scroll = dynamic_cast<wxScrolledWindow*>(k);
+    if (!scroll) return s.fail("toolclip: " + name + " has no scroll window");
+    const int width = scroll->GetClientSize().x;
+    std::vector<wxWindow*> todo(scroll->GetChildren().begin(),
+                                scroll->GetChildren().end());
+    while (!todo.empty()) {
+      wxWindow *k = todo.back();
+      todo.pop_back();
+      if (!k->IsShown()) continue;
+      const wxPoint pos = k->GetPosition();
+      const wxPoint origin = k->GetParent() == scroll ? wxPoint(0, 0)
+          : k->GetParent()->ClientToScreen(wxPoint(0, 0)) -
+            scroll->ClientToScreen(wxPoint(0, 0));
+      const int right = origin.x + pos.x + k->GetSize().x;
+      if (right > width)
+        out << "clipped " << k->GetClassInfo()->GetClassName() << " "
+            << right << " " << width << "\n";
+      for (wxWindow *g : k->GetChildren()) todo.push_back(g);
+    }
+    int vx = 0, vy = 0;
+    scroll->GetVirtualSize(&vx, &vy);
+    out << "hscroll " << (vx > width ? 1 : 0) << "\n";
     return true;
   }
 
