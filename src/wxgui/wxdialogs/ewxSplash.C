@@ -36,8 +36,7 @@ private:
 };
 
 // The Organizer takes a few seconds to appear after the login; the title
-// card says ECCE is starting.  It stays in front for 1.5 s, then the
-// Organizer's window may cover it.
+// card says ECCE is starting.
 // Left out of test runs and with ECCE_NO_SPLASH.
 void ewxShowSplash(int timeoutMs)
 {
@@ -70,8 +69,9 @@ void ewxShowSplash(int timeoutMs)
   ::ShowWindow((HWND) splash->GetHWND(), SW_SHOWNA);
 #endif
   wxYield();
-  // In front for at least 1.5 s so a quick start does not just flash it;
-  // then the Organizer's window may cover it.  The splash may already be
-  // gone (clicked), hence the weak reference.
-  (new SplashBehind(splash))->StartOnce(1500);
+  // A short splash stays in front for its whole time: dropping it behind
+  // let the Organizer cover it at once on macOS.  A longer one may be
+  // covered after 1.5 s.  The splash may already be gone (clicked), hence
+  // the weak reference.
+  if (timeoutMs > 3000) (new SplashBehind(splash))->StartOnce(1500);
 }
