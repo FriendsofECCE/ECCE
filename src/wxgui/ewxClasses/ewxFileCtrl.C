@@ -193,9 +193,8 @@ void ewxFileCtrl::MakeDir()
   string name;
 
   bool showInvalidMsg = false;
-  string invalidMsg =  "Invalid name entered.  Please make sure the\n"
-    "name only contains the following characters:\n" +
-    resType->getNameRule() + "\n\n";
+  string invalidMsg = "A name may contain only letters, digits, "
+      "'.', '_' and '-'.\n\n";
 
   while (true) {
     name = resType->getLabel();
@@ -204,6 +203,7 @@ void ewxFileCtrl::MakeDir()
       infoStr = invalidMsg + infoStr;
     ewxTextEntryDialog dialog(this, infoStr, "New " + name + " Name",
                               name, wxOK | wxCANCEL);
+    dialog.spacesToUnderscores();
     if (dialog.ShowModal() == wxID_OK) {
       name = dialog.GetValue();
       if (resType->isValidResourceName(name))

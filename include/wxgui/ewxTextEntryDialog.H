@@ -23,6 +23,9 @@ class ewxTextEntryDialog : public wxTextEntryDialog, public ewxStyledWindow
     
     virtual ~ewxTextEntryDialog();
 
+    /** For a resource name: a typed space becomes '_' at once. */
+    void spacesToUnderscores();
+
 };
 
 #endif

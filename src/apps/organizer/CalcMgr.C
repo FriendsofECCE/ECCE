@@ -2532,9 +2532,8 @@ void CalcMgr::OnRenameClick( wxCommandEvent& event )
 
     // Prompt for new legal name
     bool showInvalidMsg = false;
-    string invalidMsg =  "Invalid name entered.  Please make sure the\n"
-      "new name only contains the following characters:\n" +
-      resType->getNameRule() + "\n\n";
+    string invalidMsg = "A name may contain only letters, digits, "
+      "'.', '_' and '-'.\n\n";
     while (true) {
       newName = oldUrl.getFilePathTail();
       string infoStr = "Please enter the new name for " +
@@ -2543,6 +2542,7 @@ void CalcMgr::OnRenameClick( wxCommandEvent& event )
         infoStr = invalidMsg + infoStr;
       ewxTextEntryDialog dialog(this, infoStr, "Rename " + resType->getLabel(),
                                 newName, wxOK | wxCANCEL);
+      dialog.spacesToUnderscores();
       if (dialog.ShowModal() == wxID_OK) {
         newName = dialog.GetValue();
         // Quit the loop if it is a legal name
@@ -6145,9 +6145,8 @@ void CalcMgr::createResource(ResourceType * resType,
   string name = resType->getLabel();
   if (!bypassNamePrompt && GetMenuBar()->IsChecked(wxID_ASKFORNAME)) {
     bool showInvalidMsg = false;
-    string invalidMsg =  "Invalid name entered.  Please make sure the\n"
-      "name only contains the following characters:\n" +
-      resType->getNameRule() + "\n\n";
+    string invalidMsg = "A name may contain only letters, digits, "
+      "'.', '_' and '-'.\n\n";
     while (true) {
       name = resType->getLabel();
       string infoStr = "Please enter the name for the new " +
@@ -6156,6 +6155,7 @@ void CalcMgr::createResource(ResourceType * resType,
         infoStr = invalidMsg + infoStr;
       ewxTextEntryDialog dialog(this, infoStr, "New " + name + " Name",
                                 name, wxOK | wxCANCEL);
+      dialog.spacesToUnderscores();
       //  The menu action's window disabler and busy cursor are lifted
       //  while the user types: the prompt is not busy work.
       const bool held = p_disabler != 0;
