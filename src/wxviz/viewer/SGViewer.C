@@ -13,9 +13,6 @@
 #include "inv/nodes/SoCamera.H"
 #include "inv/nodes/SoPerspectiveCamera.H"
 #include "inv/actions/SoGLRenderAction.H"
-#include "inv/actions/SoSearchAction.H"
-#include "inv/ChemKit/ChemBaseData.H"
-#include "inv/ChemKit/ChemDisplayParam.H"
 #include "inv/elements/SoGLLazyElement.H"
 
 #include "wxgui/ewxCursor.H"
@@ -126,9 +123,6 @@ SGViewer::SGViewer( wxWindow* parent, wxWindowID id,
 {
   p_showText = true;
 
-  addStartCallback(&SGViewer::dragLodStartCB);
-  addFinishCallback(&SGViewer::dragLodFinishCB);
-
   // Turn off trim
   setDecoration(false);
 
@@ -229,63 +223,6 @@ SGViewer::SGViewer( wxWindow* parent, wxWindowID id,
 
 SGViewer::~SGViewer()
 {
-  for (size_t i = 0; i < p_dragLod.size(); i++)
-    p_dragLod[i].cdp->unref();
-}
-
-
-namespace {
-  // Below this many atoms a drag looks and costs the same at full quality.
-  const int DRAG_LOD_MIN_ATOMS = 2000;
-  const float DRAG_LOD_SPHERE = 0.2f;    // octahedron depth 2
-  const float DRAG_LOD_CYLINDER = 0.1f;
-}
-
-void SGViewer::dragLodStartCB(void *, SoWxViewer *v)
-{
-  SGViewer *self = static_cast<SGViewer *>(v);
-  if (!self->p_dragLod.empty() || self->p_topRoot == 0) return;
-
-  SoSearchAction sa;
-  sa.setType(ChemBaseData::getClassTypeId());
-  sa.setInterest(SoSearchAction::ALL);
-  sa.setSearchingAll(FALSE);
-  sa.apply(self->p_topRoot);
-  int atoms = 0;
-  for (int i = 0; i < sa.getPaths().getLength(); i++)
-    atoms += static_cast<ChemBaseData *>(sa.getPaths()[i]->getTail())
-                 ->getNumberOfAtoms();
-  if (atoms < DRAG_LOD_MIN_ATOMS) return;
-
-  sa.reset();
-  sa.setType(ChemDisplayParam::getClassTypeId());
-  sa.setInterest(SoSearchAction::ALL);
-  sa.setSearchingAll(FALSE);
-  sa.apply(self->p_topRoot);
-  for (int i = 0; i < sa.getPaths().getLength(); i++) {
-    ChemDisplayParam *cdp =
-        static_cast<ChemDisplayParam *>(sa.getPaths()[i]->getTail());
-    DragLodSaved s = { cdp, cdp->atomSphereComplexity.getValue(),
-                       cdp->bondCylinderComplexity.getValue() };
-    cdp->ref();
-    self->p_dragLod.push_back(s);
-    if (s.sphere > DRAG_LOD_SPHERE)
-      cdp->atomSphereComplexity.setValue(DRAG_LOD_SPHERE);
-    if (s.cylinder > DRAG_LOD_CYLINDER)
-      cdp->bondCylinderComplexity.setValue(DRAG_LOD_CYLINDER);
-  }
-}
-
-void SGViewer::dragLodFinishCB(void *, SoWxViewer *v)
-{
-  SGViewer *self = static_cast<SGViewer *>(v);
-  for (size_t i = 0; i < self->p_dragLod.size(); i++) {
-    DragLodSaved &s = self->p_dragLod[i];
-    s.cdp->atomSphereComplexity.setValue(s.sphere);
-    s.cdp->bondCylinderComplexity.setValue(s.cylinder);
-    s.cdp->unref();
-  }
-  self->p_dragLod.clear();
 }
 
 
