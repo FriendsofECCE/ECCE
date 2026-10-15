@@ -62,6 +62,7 @@ class ResourceType {
     string getContextPanel();
     bool getIsSessionBased();
     vector<ResourceType*> getContains();
+    vector<ResourceType*> getOfferedContains(bool emptySession = false);
     vector<ResourceType*> getContainedBy();
     ResourceTool* getDefaultTool();
     ResourceTool* getDefaultTool(ResourceDescriptor::RUNSTATE runstate);

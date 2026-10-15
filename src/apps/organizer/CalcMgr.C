@@ -3641,31 +3641,23 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   //  nothing itself, so New beside it creates in its folder or project, as
   //  OnNewResourceClick does.
   WxResourceTreeItemData * container = nearestContainer(itemData, 0);
+  Session * containerSession =
+      container ? dynamic_cast<Session *>(container->getResource()) : 0;
   vector<ResourceType *> resVec;
   if (container && container->getResource() &&
       container->getResource()->getDescriptor())
-    resVec = container->getResource()->getDescriptor()->getContains();
-  Session * containerSession =
-      container ? dynamic_cast<Session *>(container->getResource()) : 0;
-  vector<ResourceType *>::iterator resItor;
+    resVec = container->getResource()->getDescriptor()->getOfferedContains(
+        containerSession && containerSession->numMembers() == 0);
   wxMenu *newMenu = new wxMenu();
 
   // for each "contained", add to menu
-  for (resItor = resVec.begin(); resItor != resVec.end(); resItor++) {
+  for (size_t i = 0; i < resVec.size(); i++) {
     // need to remove redundant "New " from each sub menu item
-    string name((*resItor)->getMenuItem(), 4);
-    wxMenuItem * menuItem = new wxMenuItem(&menu, (*resItor)->getId(),
+    string name(resVec[i]->getMenuItem(), 4);
+    wxMenuItem * menuItem = new wxMenuItem(&menu, resVec[i]->getId(),
             name.c_str(), _T(""), wxITEM_NORMAL);
-    menuItem->SetBitmap(ewxBitmap((*resItor)->getIcon()));
+    menuItem->SetBitmap(ewxBitmap(resVec[i]->getIcon()));
     newMenu->Append(menuItem);
-
-    if ((*resItor)->getMenuItem() == "New NWChem MD Prepare..." &&
-        containerSession && containerSession->numMembers() == 0)
-      resItor += 3;
-    else if ((*resItor)->getMenuItem() ==
-        "New Direct Dynamics VTST Calculation..." &&
-        containerSession && containerSession->numMembers() == 0)
-      resItor += 5;
   }
   if (isCalculationNode) {
     if (!resVec.empty())
@@ -3774,8 +3766,11 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
     if (where) target = where->getResource()->getDescriptor();
     else target = ResourceDescriptor::getResourceDescriptor().
         getResourceType("collection", "ecceProject", "");
+    Session * session = where ?
+        dynamic_cast<Session *>(where->getResource()) : 0;
     vector<ResourceType *> types;
-    if (target) types = target->getContains();
+    if (target) types = target->getOfferedContains(
+        session && session->numMembers() == 0);
     wxMenu * newMenu = new wxMenu();
     for (size_t i = 0; i < types.size(); i++) {
       string label = types[i]->getMenuItem();
@@ -3784,15 +3779,6 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
               wxString::FromUTF8(label.c_str()), _T(""), wxITEM_NORMAL);
       mi->SetBitmap(ewxBitmap(types[i]->getIcon()));
       newMenu->Append(mi);
-      Session * session = itemData ?
-          dynamic_cast<Session *>(itemData->getResource()) : 0;
-      if (types[i]->getMenuItem() == "New NWChem MD Prepare..." && session &&
-          session->numMembers() == 0)
-        i += 3;
-      else if (types[i]->getMenuItem() ==
-          "New Direct Dynamics VTST Calculation..." && session &&
-          session->numMembers() == 0)
-        i += 5;
     }
     menu.Append(wxID_ANY, _("&New"), newMenu);
     menu.AppendSeparator();
