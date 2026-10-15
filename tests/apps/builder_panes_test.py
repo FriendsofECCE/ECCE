@@ -148,6 +148,40 @@ def check(display, results):
     for p in problems:
         results.fail("builder panes props", p)
 
+    #  Last: it floats the Build pane, and the layout is saved.
+    narrow(display, results, unrun_url)
+
+
+def clipProblems(work, name, label):
+    """Nothing in the Build pane ends beyond its scroll window's width."""
+    rows = lines(work, name)
+    if not rows:
+        return ["%s: no toolclip file" % label]
+    need = [r for r in rows if r.startswith("need")]
+    found = ["%s: %s" % (label, r) for r in rows
+             if r.startswith("clipped") or r == "hscroll 1"]
+    if not found:
+        print("builder panes: %s Build pane unclipped (%s px, %s)"
+              % (label, rows[0].split()[1], " ".join(need)))
+    return found
+
+
+def narrow(display, results, url):
+    """A saved column narrower than the Build pane needs is raised (#328)."""
+    results.checks += 1
+    shots = os.environ.get("ECCE_PANES_SHOTS")
+    shot = []
+    if shots:
+        os.makedirs(shots, exist_ok=True)
+        shot = ["xshot " + os.path.join(shots, "build-pane-narrow.png")]
+    work = run(display, results, "narrow", url,
+               ["columntab 0", "toolclip default Build", "narrowcolumn 150",
+                "toolclip narrow Build"] + shot +
+               ["toolfloat Build", "toolclip floating Build"], "detail")
+    for label in ("default", "narrow", "floating"):
+        for p in clipProblems(work, label, label):
+            results.fail("builder panes narrow", p)
+
 
 def foldProblems(work, pane, label, other=None):
     """`pane` went from tall to a caption; some other pane got the height."""
