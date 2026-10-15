@@ -174,6 +174,7 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
             << right << " " << width << "\n";
       for (wxWindow *g : k->GetChildren()) todo.push_back(g);
     }
+    out << "need " << scroll->GetSizer()->GetMinSize().x << "\n";
     int vx = 0, vy = 0;
     scroll->GetVirtualSize(&vx, &vy);
     out << "hscroll " << (vx > width ? 1 : 0) << "\n";

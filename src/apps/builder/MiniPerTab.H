@@ -17,7 +17,7 @@ using namespace ecce;
 #include <wx/window.h>
 
 class wxBoxSizer;
-class wxGridBagSizer;
+class wxWrapSizer;
 class wxToggleButton;
 class ImageDropDown;
 class wxConfigBase;
@@ -94,7 +94,7 @@ protected:
 
   ewxPanel *p_extensionPanel;
   wxSizer* p_sizer;
-  wxGridBagSizer *p_gridSizer;
+  wxWrapSizer *p_gridSizer;
 
   string p_elements[NUM_ELT_BTN];
   wxToggleButton * p_eltBtns[NUM_ELT_BTN];

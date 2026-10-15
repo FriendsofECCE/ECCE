@@ -105,8 +105,6 @@ def check(display, results):
         print("builder panes: column width %s (Structure, Properties, "
               "Structure)" % widths)
 
-    narrow(display, results, unrun_url)
-
     # tools: a calculation not yet run opens with the building tools
     results.checks += 1
     tools = " ".join(STRUCTURE)
@@ -150,17 +148,21 @@ def check(display, results):
     for p in problems:
         results.fail("builder panes props", p)
 
+    #  Last: it floats the Build pane, and the layout is saved.
+    narrow(display, results, unrun_url)
+
 
 def clipProblems(work, name, label):
     """Nothing in the Build pane ends beyond its scroll window's width."""
     rows = lines(work, name)
     if not rows:
         return ["%s: no toolclip file" % label]
+    need = [r for r in rows if r.startswith("need")]
     found = ["%s: %s" % (label, r) for r in rows
              if r.startswith("clipped") or r == "hscroll 1"]
     if not found:
-        print("builder panes: %s Build pane unclipped (%s px)"
-              % (label, rows[0].split()[1]))
+        print("builder panes: %s Build pane unclipped (%s px, %s)"
+              % (label, rows[0].split()[1], " ".join(need)))
     return found
 
 

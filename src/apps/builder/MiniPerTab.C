@@ -1,3 +1,4 @@
+#include <wx/wrapsizer.h>
 #include <cmath>
 #include <iostream>
   using std::cout;
@@ -170,7 +171,7 @@ void MiniPerTab::CreateControls()
   p_sizer = new wxBoxSizer(wxVERTICAL);
   SetSizer(p_sizer);
 
-  p_gridSizer = new wxGridBagSizer(3, 3);
+  p_gridSizer = new wxWrapSizer(wxHORIZONTAL);
   p_sizer->Add(p_gridSizer, 0, wxEXPAND|wxLEFT|wxRIGHT|wxTOP, 2);
 
   // Add H / Del H / Clean go on their own row now, split from the bond
@@ -178,7 +179,7 @@ void MiniPerTab::CreateControls()
   // made this the pane's widest row once the element grid below was
   // tightened up, defeating the point of tightening it.
   wxBoxSizer * htopSizer = new wxBoxSizer(wxHORIZONTAL);
-  wxBoxSizer * hSizer = new wxBoxSizer(wxHORIZONTAL);
+  wxWrapSizer * hSizer = new wxWrapSizer(wxHORIZONTAL);
 
   // wxDefaultSize + wxBU_EXACTFIT, not a hardcoded wxSize(48,24) -- the
   // same GTK3 theme padding problem the element buttons have (see
@@ -355,38 +356,27 @@ void MiniPerTab::setElements()
     p_eltBtns[index]->SetMinSize(uniform);
   }
 
-  wxWindow *btn;
-  int i, j;
-  index = 0;
-  for (i=0; i<9; ++i) {
-    for (j=0; j<2; ++j) {
-      if (i == 4 || i == 7) {
-        p_gridSizer->Add(5, 5, wxGBPosition(j,i));
-      }
-      else if (i<7) {
-        p_gridSizer->Add(p_eltBtns[index], wxGBPosition(j,i));
-        ++index;
-      }
-      else if (i == 8) {
-        if (j == 0)
-          btn = new ewxButton(owner, wxID_REMOVE, "Delete", wxDefaultPosition,
-                              wxDefaultSize, wxBU_EXACTFIT);
-        else
-        {
-          // The periodic table, for an element none of the buttons has.
-          ewxButton *table = new ewxButton(owner, ID_SHOW_TABLE, wxEmptyString,
-                                           wxDefaultPosition, wxDefaultSize,
-                                           wxBU_EXACTFIT);
-          table->SetBitmap(ewxBitmap::colorIcon("svg/pertab.svg",
-                                                wxSize(20, 20)));
-          table->SetToolTip(_("Periodic table: choose any element"));
-          btn = table;
-        }
-        p_gridSizer->Add(btn, wxGBPosition(j,i));
-      }
+  //  Element buttons wrap onto further lines when the pane is narrow, in
+  //  the order of the two-row grid they form when it is wide; Delete and
+  //  the periodic table stay together at the end.
+  for (int row = 0; row < 2; ++row) {
+    for (int col = 0; col < 6; ++col) {
+      p_gridSizer->Add(p_eltBtns[col * 2 + row], 0, wxALL, 2);
     }
   }
-  p_gridSizer->AddGrowableCol(7);
+  ewxButton *del = new ewxButton(owner, wxID_REMOVE, "Delete",
+                                 wxDefaultPosition, wxDefaultSize,
+                                 wxBU_EXACTFIT);
+  //  The periodic table, for an element none of the buttons has.
+  ewxButton *table = new ewxButton(owner, ID_SHOW_TABLE, wxEmptyString,
+                                   wxDefaultPosition, wxDefaultSize,
+                                   wxBU_EXACTFIT);
+  table->SetBitmap(ewxBitmap::colorIcon("svg/pertab.svg", wxSize(20, 20)));
+  table->SetToolTip(_("Periodic table: choose any element"));
+  wxBoxSizer *tail = new wxBoxSizer(wxHORIZONTAL);
+  tail->Add(del, 0, wxALL, 2);
+  tail->Add(table, 0, wxALL, 2);
+  p_gridSizer->Add(tail, 0, wxLEFT, 6);
 
   // Check the default Carbon button
   p_eltBtns[1]->SetValue(true);
