@@ -692,8 +692,11 @@ sub QESystem {
   # nosym = .true. also stops QE symmetrising the k-point mesh, so a
   # deck written this way is doing more work on purpose; that is what
   # the user asked for.
+  # Dynamics always runs without symmetry: thermostat velocities break it,
+  # and pw.x then stops in checkallsym at the first step.
   my $useSymmetry = $AbiDict{"ES.Theory.UseSymmetry"};
-  if (defined($useSymmetry) && $useSymmetry eq "0") {
+  if ((defined($useSymmetry) && $useSymmetry eq "0") ||
+      &QECalculationType() eq "md") {
     push(@l, "  nosym = .true.");
   }
 
