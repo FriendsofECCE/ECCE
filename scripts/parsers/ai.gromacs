@@ -154,6 +154,16 @@ sub GMXElectrostatics {
   return $r;
 }
 
+#  Molecules that bond across the cell boundary; grompp's default is no,
+#  so nothing is written when it is not asked for.
+sub GMXPeriodicMolecules {
+  my $r = "";
+  $r = "periodic-molecules       = yes"
+    if (&numOr("ES.Theory.MD.PeriodicMolecules", "0") == 1);
+  $_ = $r;
+  return $r;
+}
+
 sub GMXTemperatureCoupling {
   my @l = ();
   #  Only for dynamics. A minimisation or a single point with a

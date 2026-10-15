@@ -106,6 +106,10 @@ void NWChemMDModelXMLizer::deserialize(const string& data,
           if (value.length() > 0) {
             imodel->setGridDimensions(atoi(value.c_str()));
           }
+          value = getTagValue(iroot, "PeriodicMolecules");
+          if (value.length() > 0) {
+            imodel->setPeriodicMolecules(atoi(value.c_str()));
+          }
           value = getTagValue(iroot, "EwaldConvergence");
           if (value.length() > 0) {
             imodel->setEwaldConvergence(atof(value.c_str()));
@@ -902,6 +906,11 @@ void NWChemMDModelXMLizer::dumpInteraction(InteractionModel *model, ostream &os)
      << "</InteractionOption>" << endl;
   os << "    <GridDimensions>" << model->getGridDimensions()
      << "</GridDimensions>" << endl;
+  // Left out while unchosen; the editor resolves it from the structure.
+  if (model->getPeriodicMolecules() != model->PERIODICMOL) {
+    os << "    <PeriodicMolecules>" << model->getPeriodicMolecules()
+       << "</PeriodicMolecules>" << endl;
+  }
   if (model->getEwaldConvergence() != model->EWALDCONVRG) {
     os << "    <EwaldConvergence>" << model->getEwaldConvergence()
        << "</EwaldConvergence>" << endl;

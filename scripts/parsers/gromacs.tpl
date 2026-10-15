@@ -1,6 +1,7 @@
 ##GMXRunControl##
 ##GMXNeighbourSearching##
 ##GMXElectrostatics##
+##GMXPeriodicMolecules##
 ##GMXTemperatureCoupling##
 ##GMXPressureCoupling##
 ##GMXVelocities##

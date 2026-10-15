@@ -383,12 +383,15 @@ bool GromacsInputsPanel::attachFile(Kind kind, const string& path,
       message = "The structure could not be stored.";
       return false;
     }
+    // Read as a .gro, not via the PDB above: the PDB reader drops CRYST1,
+    // and the box is what the Builder draws as the cell.
     MdTask *t = task();
     Fragment frag;
-    istringstream pin(pdb);
-    if (t != 0 && frag.restorePDB(pin, 1.0, true, 1, " ", true, false, " ")) {
+    istringstream gin(contents);
+    if (t != 0 && frag.restoreGRO(gin, true)) {
       t->fragment(&frag);
     }
+    if (p_owner) p_owner->gromacsStructureAttached(frag.getLattice() != 0);
     char buf[200];
     snprintf(buf, sizeof(buf), "Attached %s: %d atoms.", tailOf(path).c_str(),
              natoms);

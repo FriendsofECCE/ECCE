@@ -134,7 +134,19 @@ void InteractionPanel::initializeGUI()
 //  text->SetValidator(ewxNumericValidator(1,10000,model->LONGFREQ));
   text->SetValidator(validator);
 
+  Bind(wxEVT_CHECKBOX, &InteractionPanel::OnCheckboxPeriodicClick, this,
+       ID_CHECKBOX_INTRCT_PERIODIC);
+
   showElectrostaticPanel();
+}
+
+void InteractionPanel::OnCheckboxPeriodicClick( wxCommandEvent& event )
+{
+    ewxCheckBox *check =
+      ((ewxCheckBox*)FindWindow(ID_CHECKBOX_INTRCT_PERIODIC));
+    getInteractionModel()->setPeriodicMolecules(check->GetValue() ? 1 : 0);
+    p_helper->setSaveState(true);
+    event.Skip();
 }
 
 
@@ -247,6 +259,9 @@ void InteractionPanel::refreshGUI()
 
   check = ((ewxCheckBox*)FindWindow(ID_CHECKBOX_INTRCT_FSTORD));
   check->SetValue(imodel->getFirstOrderOption());
+
+  check = ((ewxCheckBox*)FindWindow(ID_CHECKBOX_INTRCT_PERIODIC));
+  check->SetValue(imodel->getPeriodicMolecules() == 1);
 
   int cutoffOpt = imodel->getCutoffOption();
   if (cutoffOpt == 1) {
@@ -544,5 +559,6 @@ void InteractionPanel::applyGromacsProfile(bool g)
   GromacsProfile::label(FindWindow(wxID_STATIC_INTRCT_ESPLINE),
                         g ? _("PME interpolation order:") :
                         _("Cardinal B-Spline Order:"));
+  GromacsProfile::show(FindWindow(ID_CHECKBOX_INTRCT_PERIODIC), g);
   GromacsProfile::relayout(this);
 }

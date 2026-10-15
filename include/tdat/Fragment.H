@@ -242,6 +242,8 @@ class Fragment
       bool  restoreMVM(istream& infile,double mult=1.0, bool genBonds=true);
       bool  restoreXYZ(istream& infile, double mult=1.0, bool genBonds=true);
       bool  restoreCAR(istream& infile, double mult=1.0, bool genBonds=true);
+      // GROMACS .gro: always nanometres in the file, always Angstroms here.
+      bool  restoreGRO(istream& infile, bool genBonds=true);
       bool prescanPDB(istream& infile, int& numModels,
             vector<string>& altLocVec,
             vector<bool>& groupFlgVec,
@@ -257,6 +259,7 @@ class Fragment
       bool  dumpMVM(ostream& outfile, bool dumpAll=false);
       bool  dumpPDB(ostream& outfile, bool writeBonds=false);
       bool  dumpCAR(ostream& outfile);
+      bool  dumpGRO(ostream& outfile);
 
       bool getConnected(vector<bool>& atoms, const TAtm *theAtom,
             const TAtm* lastAtom,

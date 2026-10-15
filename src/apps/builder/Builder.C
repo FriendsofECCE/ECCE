@@ -2605,7 +2605,20 @@ void Builder::importChemicalSystem(const string& path, wxString type,
   // GDB added 6/15/11 to finish off ECCE 6.1 changes
   PBC *pbc=dynamic_cast<PBC*>(p_mgr.GetPane(NAME_TOOL_PBC).window);
   if (pbc) {
-    pbc->updateSpaceGroup(); 
+    pbc->updateSpaceGroup();
+  }
+
+  //  The cell is drawn only while the Periodic Builder is open, so an
+  //  imported file that brings one (.gro, .car, a PDB with CRYST1) opens
+  //  it; otherwise the box the file defines is not seen.
+  SGFragment *frag = getSG()->getFragment();
+  if (pbc && frag && frag->getLattice() &&
+      !p_mgr.GetPane(NAME_TOOL_PBC).IsShown()) {
+    p_mgr.GetPane(NAME_TOOL_PBC).Show(true);
+    pbc->refresh();
+    GetMenuBar()->Check(
+        GetMenuBar()->FindMenuItem("Tools", NAME_TOOL_PBC), true);
+    updatePanes();
   }
 }
 
