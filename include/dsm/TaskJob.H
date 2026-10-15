@@ -142,6 +142,16 @@ class TaskJob : public Job,
       /** DAV property holding the generator warnings that go with the
           deck in Inputs/ (see CalcEd); cleared with the deck. */
       static string inputWarningsProp();
+
+      /** Orbitals from an earlier calculation, kept as an input file so
+          that this calculation's own regenerated deck does not remove
+          them.  The two properties name the calculation they came from
+          and its basis set, for the Calculation Editor to show. */
+      static string orbitalGuessFile();
+      static string orbitalGuessSourceProp();
+      static string orbitalGuessBasisProp();
+      virtual bool hasOrbitalGuess() const;
+      virtual bool clearOrbitalGuess();
       virtual bool removeOutputFiles();
 
       /** Remove the extracted properties, leaving the calculation's

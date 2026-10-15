@@ -43,6 +43,7 @@
 #include "dsm/ICalculation.H"
 #include "dsm/ICalcUtils.H"
 #include "dsm/JCode.H"
+#include "dsm/OrbitalGuess.H"
 #include "dsm/ResourceTool.H"
 #include "dsm/ResourceType.H"
 #include "dsm/SummaryIterator.H"
@@ -278,6 +279,7 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
 /**
  * One command of the ECCE_TEST_CALCED hook:
  *   state             the stored ES.Theory.UseSymmetry, the box, the theory
+ *   guess             the initial-guess line; guessdefault clicks its button
  *   theory <label>    choose a theory as the Theory menu does
  *   box 0|1           untick/tick "Use symmetry" as a click does
  *   opentheory        Theory Details..., closetheory closes it
@@ -315,6 +317,17 @@ void CalcEd::runTestCommand(const string& line)
     wxCommandEvent event(wxEVT_COMMAND_CHECKBOX_CLICKED,
                          ID_CHECKBOX_CALCED_USE_SYMMETRY);
     OnCheckboxCalcedUseSymmetryClick(event);
+    outcome = "ok";
+  } else if (line == "guess") {
+    TaskJob *job = dynamic_cast<TaskJob*>(p_iCalc);
+    outcome = string("shown=") +
+        (p_guessColumn->IsShown(p_guessRow) ? "1" : "0") +
+        " has=" + (job != 0 && job->hasOrbitalGuess() ? "1" : "0") +
+        " text=" + p_guessText->GetLabel().ToStdString();
+  } else if (line == "guessdefault") {
+    wxCommandEvent event(wxEVT_COMMAND_BUTTON_CLICKED,
+                         ID_BUTTON_CALCED_GUESS_DEFAULT);
+    OnButtonCalcedGuessDefaultClick(event);
     outcome = "ok";
   } else if (line == "opentheory") {
     startTheoryApp(false);
@@ -3281,6 +3294,49 @@ void CalcEd::refreshBasisSetFields()
     ((ewxStaticText*)FindWindow(ID_STATICTEXT_CALCED_XC))->SetLabel("");
     ((ewxStaticText*)FindWindow(ID_STATICTEXT_CALCED_CD))->SetLabel("");
   }
+  refreshOrbitalGuess();
+}
+
+
+/**
+ * The initial-guess line under the Settings box: shown only when this
+ * calculation carries the orbitals of an earlier one.  A different basis
+ * set is a warning-free fact here, the code projects the orbitals.
+ */
+void CalcEd::refreshOrbitalGuess()
+{
+  TaskJob *job = dynamic_cast<TaskJob*>(p_iCalc);
+  bool has = job != 0 && job->hasOrbitalGuess();
+  if (has) {
+    string text = "Initial guess: MOs from " + OrbitalGuess::sourceName(job);
+    string was = OrbitalGuess::sourceBasis(job);
+    //  The importer stores the name in lower case, the library in mixed.
+    if (p_basis != 0 && !was.empty() &&
+        wxString::FromUTF8(was).CmpNoCase(
+            wxString::FromUTF8(p_basis->name())) != 0)
+      text += " (projected from " + was + ")";
+    p_guessText->SetLabel(wxString::FromUTF8(text));
+    p_guessText->SetToolTip(wxString::FromUTF8(text));
+    FindWindow(ID_BUTTON_CALCED_GUESS_DEFAULT)->Enable(
+        job->getState() < ResourceDescriptor::STATE_SUBMITTED);
+  }
+  wxSizer *column = p_guessColumn;
+  if (column != 0 && column->IsShown(p_guessRow) != has) {
+    column->Show(p_guessRow, has);
+    GetSizer()->Layout();
+    refit();
+  }
+}
+
+
+void CalcEd::OnButtonCalcedGuessDefaultClick( wxCommandEvent& event )
+{
+  TaskJob *job = dynamic_cast<TaskJob*>(p_iCalc);
+  if (job != 0) job->clearOrbitalGuess();
+  refreshOrbitalGuess();
+  //  The deck has to be written again without MORead.
+  enableSave();
+  event.Skip();
 }
 
 

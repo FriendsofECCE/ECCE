@@ -131,6 +131,9 @@ public:
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_DUPLICATE2
   void OnDuplicate2Click( wxCommandEvent& event );
 
+  /// "Duplicate with Final Orbitals": the last geometry and the orbitals
+  void OnDuplicate3Click( wxCommandEvent& event );
+
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_CUT
   void OnCutClick( wxCommandEvent& event );
 

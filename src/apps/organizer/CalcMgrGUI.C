@@ -41,6 +41,7 @@ const wxWindowID CalcMgrGUI::wxID_SHOW_LEGEND = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_UPLOAD = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_SHOW_INTERNAL = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_DUPLICATE2 = wxNewId();
+const wxWindowID CalcMgrGUI::wxID_DUPLICATE3 = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_HOMEASROOT = wxNewId();
 const wxWindowID CalcMgrGUI::ID_FRAME = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_SORT_TYPE = wxNewId();
@@ -103,6 +104,8 @@ BEGIN_EVENT_TABLE( CalcMgrGUI, ewxFrame )
     EVT_MENU( wxID_DUPLICATE, CalcMgrGUI::OnDuplicateClick )
 
     EVT_MENU( wxID_DUPLICATE2, CalcMgrGUI::OnDuplicate2Click )
+
+    EVT_MENU( wxID_DUPLICATE3, CalcMgrGUI::OnDuplicate3Click )
 
     EVT_MENU( wxID_CUT, CalcMgrGUI::OnCutClick )
 
@@ -260,6 +263,7 @@ void CalcMgrGUI::CreateControls()
     wxMenu* itemMenu8 = new wxMenu;
     itemMenu8->Append(wxID_DUPLICATE, _("Duplicate for Rerun"), _T(""), wxITEM_NORMAL);
     itemMenu8->Append(wxID_DUPLICATE2, _("Duplicate Setup with Last Geometry"), _T(""), wxITEM_NORMAL);
+    itemMenu8->Append(wxID_DUPLICATE3, _("Duplicate with Final Orbitals"), _T(""), wxITEM_NORMAL);
     itemMenu8->AppendSeparator();
     itemMenu8->Append(wxID_CUT, _("&Cut\tCtrl+X"), _T(""), wxITEM_NORMAL);
     itemMenu8->Append(wxID_COPY, _("C&opy\tCtrl+C"), _T(""), wxITEM_NORMAL);
@@ -469,6 +473,11 @@ void CalcMgrGUI::OnDuplicate2Click( wxCommandEvent& event )
     // Before editing this code, remove the block markers.
     event.Skip();
 ////@end wxEVT_COMMAND_MENU_SELECTED event handler for wxID_DUPLICATE2 in CalcMgrGUI. 
+}
+
+void CalcMgrGUI::OnDuplicate3Click( wxCommandEvent& event )
+{
+    event.Skip();
 }
 
 /*!

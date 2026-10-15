@@ -260,10 +260,24 @@ sub ORCARoute {
   $route .= &SolvationToken . " ";
   $route .= &ChelpgToken . " ";
   $route .= &SymmetryToken . " ";
-  $route .= &AuxCBasisToken;
+  $route .= &AuxCBasisToken . " ";
+  $route .= &OrbitalGuessToken;
   $route =~ s/\s+/ /g;
   $route =~ s/\s+$//;
   return $route;
+}
+
+#  "! MORead" with "%moinp" (see ORCABlocks): start from the orbitals of an
+#  earlier calculation.  CalcEd writes the key only when that calculation's
+#  .gbw is attached to this one.  ORCA projects them itself when the basis
+#  differs, so nothing is added for that.
+sub OrbitalGuessFile {
+  my $f = $AbiDict{"ES.Theory.SCF.OrbitalGuessFile"};
+  return defined($f) ? $f : "";
+}
+
+sub OrbitalGuessToken {
+  return (&OrbitalGuessFile() ne "") ? "MORead" : "";
 }
 
 #  "! UseSym" -- turn on ORCA's symmetry detection.  Verified against
@@ -546,6 +560,8 @@ sub ORCABlocks {
   #  header.  Unconditional, like Print[P_MOs]: it only lengthens the
   #  listing of numbers ORCA already computed.
   $result .= "%output\n  Print[P_MOs] 1\n  Print[P_OrbEn] 2\nend\n";
+  $result .= "%moinp \"" . &OrbitalGuessFile() . "\"\n"
+    if (&OrbitalGuessFile() ne "");
   # One %elprop block. Quadrupole is unconditional (orca.quadpole needs
   # it; ORCA has no octupole/hexadecapole flag). Polar 1 gives Raman
   # activities; verifyRamanRequest warns about combinations ORCA

@@ -68,6 +68,7 @@
 #include "dsm/EDSIFactory.H"
 #include "dsm/JCode.H"
 #include "dsm/MdTask.H"
+#include "dsm/OrbitalGuess.H"
 #include "dsm/MachinePreferences.H"
 #include "dsm/PropertyTask.H"
 #include "dsm/Resource.H"
@@ -410,6 +411,35 @@ int main(int argc, char** argv)
   a.erase(a.begin());
   if (mode == "create") return doCreate(a);
   if (mode == "restart") return doRestart(a);
+  if (mode == "guess" && a.size() == 2) {
+    //  What "Duplicate with Final Orbitals" does after the copy is made.
+    TaskJob* target = getTask(a[0]);
+    TaskJob* source = getTask(a[1]);
+    if (!target || !source) { cerr << "not a calculation" << endl; return 1; }
+    string why;
+    if (!OrbitalGuess::attach(target, source, why)) { cerr << why << endl; return 1; }
+    return 0;
+  }
+  if (mode == "uncreate" && a.size() == 1) {
+    //  What a regenerated deck does first: back to created, inputs removed.
+    TaskJob* t = getTask(a[0]);
+    if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+    return t->resetForRerun(ResourceDescriptor::STATE_CREATED) ? 0 : 1;
+  }
+  if (mode == "available" && a.size() == 1) {
+    TaskJob* t = getTask(a[0]);
+    string why;
+    cout << (OrbitalGuess::available(t, why) ? "yes" : "no: " + why) << endl;
+    return 0;
+  }
+  if (mode == "hasguess" && a.size() == 1) {
+    TaskJob* t = getTask(a[0]);
+    if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+    cout << (t->hasOrbitalGuess() ? "yes" : "no") << " source="
+         << OrbitalGuess::sourceName(t) << " basis="
+         << OrbitalGuess::sourceBasis(t) << endl;
+    return 0;
+  }
   if (mode == "setup") return doSetup(a);
   if (mode == "catchup") {
     vector<JobCatchUp::Result> r = JobCatchUp::run();
