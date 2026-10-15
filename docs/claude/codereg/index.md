@@ -71,6 +71,9 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 
 - [Most property keys are deliberately *not* panel triggers](most-property-keys-are-deliberately-not-panel.md)
 - [The Energies panel groups its rows by a column of the properties file](energies-panel-groups-283.md)
+- [QE molecular dynamics: the step vectors trail the printed positions by one step, and an md run always ends on the step limit](qe-md-step-vectors-trail-the-positions-by-one-step.md)
+- [QE before 7.1 ignores the HUBBARD card with a one-line warning and runs without U](qe-hubbard-card-is-ignored-by-pw-x-before-7-1.md)
+- [QE dispersion (vdw_corr): one output label per method, all read into EDISP](qe-dispersion-correction-prints-a-different-label-per-method.md)
 - [Per-atom charge schemes: one parser helper, one panel class](atomic-charge-schemes-share-one-panel-class.md)
 - [ECCE-QM extra charge sets: input keyword, output blocks, three ECCE keys](ecceqm-extra-charges-are-a-keyword.md)
 - [A `.desc` bracket group's names are labels, not the stored key](labels-not-the-stored-key.md)

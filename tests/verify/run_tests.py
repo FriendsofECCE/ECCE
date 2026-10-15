@@ -103,6 +103,11 @@ CASES = [
     ("qe-silicon.qein",       "QuantumESPRESSO",  2, [("GOOD", "control"),
                                                       ("GOOD", "system"),
                                                       ("GOOD", "positions")]),
+    ("qe-md-berendsen.qein",  "QuantumESPRESSO",  2, [("GOOD", "md")]),
+    ("qe-nio-lda-plus-u.qein", "QuantumESPRESSO", 2, [("GOOD", "hubbard")]),
+    #  U on Ni without spin polarisation: a warning, never a BAD.
+    ("qe-nio-hubbard-card-nospin.qein", "QuantumESPRESSO", 2,
+     [("GOOD", "hubbard"), ("UNSURE", "hubbard")]),
 
     #  --- the two real failures ---------------------------------------
     #  Three faults, not one: the binary bytes, the basis block they

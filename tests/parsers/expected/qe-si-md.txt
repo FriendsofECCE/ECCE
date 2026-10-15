@@ -1,0 +1,308 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    qe-si-md
+desc:    qe.desc
+fixture: qe/si_md.pwout (678 lines)
+args:    '.' 'Dynamics' 'PW' 'PW' '0'
+
+[VERSION]  Script=qe.version  Freq=first  Skip=0  Lines=1
+  Begin=Program PWSCF
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=2 fed=1 rc=0 first-fed='     Program PWSCF v.6.7MaX starts on 15Oct2026 at 14:58:30'
+    key: VERSION
+      size: 1
+      values: PWSCF 6.7MaX
+
+[TE]  Script=qe.energy  Freq=all  Skip=0  Lines=1
+  Begin=^!\s*total energy
+  begins=5 delivered=5 buffered_away=0
+  block 1: begin-line=200 fed=1 rc=0 first-fed='!    total energy              =     -22.64531461 Ry'
+    key: TE
+      size: 1
+      values: -11.322657305
+      units: Hartree
+  block 2: begin-line=304 fed=1 rc=0 first-fed='!    total energy              =     -22.64559741 Ry'
+    key: TE
+      size: 1
+      values: -11.322798705
+      units: Hartree
+  block 3: begin-line=399 fed=1 rc=0 first-fed='!    total energy              =     -22.64582408 Ry'
+    key: TE
+      size: 1
+      values: -11.32291204
+      units: Hartree
+  block 4: begin-line=494 fed=1 rc=0 first-fed='!    total energy              =     -22.64598749 Ry'
+    key: TE
+      size: 1
+      values: -11.322993745
+      units: Hartree
+  block 5: begin-line=589 fed=1 rc=0 first-fed='!    total energy              =     -22.64608771 Ry'
+    key: TE
+      size: 1
+      values: -11.323043855
+      units: Hartree
+
+[EWVEC]  Script=qe.ewvec  Freq=all  Skip=0  Lines=1
+  Begin=^\s+total energy\s*=
+  begins=8 delivered=8 buffered_away=0
+  block 1: begin-line=128 fed=1 rc=0 first-fed='     total energy              =     -22.63853744 Ry'
+    key: EWVEC
+      size: 1
+      values: -11.31926872
+      units: Hartree
+  block 2: begin-line=137 fed=1 rc=0 first-fed='     total energy              =     -22.64348797 Ry'
+    key: EWVEC
+      size: 1
+      values: -11.321743985
+      units: Hartree
+  block 3: begin-line=146 fed=1 rc=0 first-fed='     total energy              =     -22.64520318 Ry'
+    key: EWVEC
+      size: 1
+      values: -11.32260159
+      units: Hartree
+  block 4: begin-line=155 fed=1 rc=0 first-fed='     total energy              =     -22.64530788 Ry'
+    key: EWVEC
+      size: 1
+      values: -11.32265394
+      units: Hartree
+  block 5: begin-line=259 fed=1 rc=0 first-fed='     total energy              =     -22.64559728 Ry'
+    key: EWVEC
+      size: 1
+      values: -11.32279864
+      units: Hartree
+  block 6: begin-line=354 fed=1 rc=0 first-fed='     total energy              =     -22.64582395 Ry'
+    key: EWVEC
+      size: 1
+      values: -11.322911975
+      units: Hartree
+  block 7: begin-line=449 fed=1 rc=0 first-fed='     total energy              =     -22.64598736 Ry'
+    key: EWVEC
+      size: 1
+      values: -11.32299368
+      units: Hartree
+  block 8: begin-line=544 fed=1 rc=0 first-fed='     total energy              =     -22.64608760 Ry'
+    key: EWVEC
+      size: 1
+      values: -11.3230438
+      units: Hartree
+
+[DELTAE]  Script=qe.deltae  Freq=all  Skip=0  Lines=1
+  Begin=estimated scf accuracy
+  begins=13 delivered=13 buffered_away=0
+  block 1: begin-line=129 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.09749955 Ry'
+    key: DELTAE
+      size: 1
+      values: 0.048749775
+      units: Hartree
+  block 2: begin-line=138 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00599681 Ry'
+    key: DELTAE
+      size: 1
+      values: 0.002998405
+      units: Hartree
+  block 3: begin-line=147 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00017917 Ry'
+    key: DELTAE
+      size: 1
+      values: 8.9585e-05
+      units: Hartree
+  block 4: begin-line=156 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00003920 Ry'
+    key: DELTAE
+      size: 1
+      values: 1.96e-05
+      units: Hartree
+  block 5: begin-line=201 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000025 Ry'
+    key: DELTAE
+      size: 1
+      values: 1.25e-07
+      units: Hartree
+  block 6: begin-line=260 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000311 Ry'
+    key: DELTAE
+      size: 1
+      values: 1.555e-06
+      units: Hartree
+  block 7: begin-line=305 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000027 Ry'
+    key: DELTAE
+      size: 1
+      values: 1.35e-07
+      units: Hartree
+  block 8: begin-line=355 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000310 Ry'
+    key: DELTAE
+      size: 1
+      values: 1.55e-06
+      units: Hartree
+  block 9: begin-line=400 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000028 Ry'
+    key: DELTAE
+      size: 1
+      values: 1.4e-07
+      units: Hartree
+  block 10: begin-line=450 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000304 Ry'
+    key: DELTAE
+      size: 1
+      values: 1.52e-06
+      units: Hartree
+  block 11: begin-line=495 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000028 Ry'
+    key: DELTAE
+      size: 1
+      values: 1.4e-07
+      units: Hartree
+  block 12: begin-line=545 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000302 Ry'
+    key: DELTAE
+      size: 1
+      values: 1.51e-06
+      units: Hartree
+  block 13: begin-line=590 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000027 Ry'
+    key: DELTAE
+      size: 1
+      values: 1.35e-07
+      units: Hartree
+
+[EGRADVEC]  Script=qe.egradvec  Freq=last  Skip=2  Lines=-
+  Begin=Forces acting on atoms
+  End=Total force =
+  begins=5 delivered=1 buffered_away=4
+  block 1: begin-line=594 fed=4 rc=0 first-fed='     atom    1 type  1   force =     0.03961590    0.00990866    0.01578581'
+    key: EGRADVEC
+      size: 2 3
+      rowlabels: 1 2
+      columnlabels: X Y Z
+      values: -0.0198079500 -0.0049543300 -0.0078929050 0.0198079500 0.0049543300 0.0078929050
+      units: Hartree/Bohr
+
+[CPUSEC][ETIME]  Script=qe.time  Freq=last  Skip=0  Lines=1
+  Begin=^\s*PWSCF\s*:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=671 fed=1 rc=0 first-fed='     PWSCF        :      1.94s CPU      1.07s WALL'
+    key: CPUSEC
+      size: 1
+      values: 1.94
+    key: ETIME
+      size: 1
+      values: 1.07
+
+[GEOMTRACE]  Script=qe.geomtrace  Freq=all  Skip=0  Lines=-
+  Begin=^ATOMIC_POSITIONS
+  End=^\s*$
+  begins=5 delivered=5 buffered_away=0
+  block 1: begin-line=227 fed=4 rc=0 first-fed='ATOMIC_POSITIONS (angstrom)'
+    key: GEOMTRACE
+      size: 1 2 3
+      rowlabels: 1-Si 2-Si
+      columnlabels: X Y Z
+      values: -0.0004869248 0.0036351001 -0.0037352528 -1.2995130752 1.3963648999 1.3537352528
+      units: Angstrom
+  block 2: begin-line=322 fed=4 rc=0 first-fed='ATOMIC_POSITIONS (angstrom)'
+    key: GEOMTRACE
+      size: 1 2 3
+      rowlabels: 1-Si 2-Si
+      columnlabels: X Y Z
+      values: -0.0006181832 0.0074857149 -0.0074430129 -1.2993818168 1.3925142851 1.3574430129
+      units: Angstrom
+  block 3: begin-line=417 fed=4 rc=0 first-fed='ATOMIC_POSITIONS (angstrom)'
+    key: GEOMTRACE
+      size: 1 2 3
+      rowlabels: 1-Si 2-Si
+      columnlabels: X Y Z
+      values: -0.0003863519 0.0114191464 -0.0109956720 -1.2996136481 1.3885808536 1.3609956720
+      units: Angstrom
+  block 4: begin-line=512 fed=4 rc=0 first-fed='ATOMIC_POSITIONS (angstrom)'
+    key: GEOMTRACE
+      size: 1 2 3
+      rowlabels: 1-Si 2-Si
+      columnlabels: X Y Z
+      values: 0.0001988892 0.0154112026 -0.0143780874 -1.3001988892 1.3845887974 1.3643780874
+      units: Angstrom
+  block 5: begin-line=607 fed=4 rc=0 first-fed='ATOMIC_POSITIONS (angstrom)'
+    key: GEOMTRACE
+      size: 1 2 3
+      rowlabels: 1-Si 2-Si
+      columnlabels: X Y Z
+      values: 0.0011261476 0.0194368740 -0.0175753956 -1.3011261476 1.3805631260 1.3675753956
+      units: Angstrom
+
+[TEVEC][KEVEC][PEVEC][TEMPVEC]  Script=qe.mdstep  Freq=all  Skip=0  Lines=3
+  Begin=^\s+kinetic energy \(Ekin\)
+  begins=5 delivered=5 buffered_away=0
+  block 1: begin-line=232 fed=3 rc=0 first-fed='     kinetic energy (Ekin) =           0.00570026 Ry'
+    key: TEVEC
+      size: 1
+      values: -11.319807175
+      units: Hartree
+    key: KEVEC
+      size: 1
+      values: 0.00285013
+      units: Hartree
+    key: PEVEC
+      size: 1
+      values: -11.322657305
+      units: Hartree
+    key: TEMPVEC
+      size: 1
+      values: 600.00000000
+      units: Kelvin
+  block 2: begin-line=327 fed=3 rc=0 first-fed='     kinetic energy (Ekin) =           0.00598061 Ry'
+    key: TEVEC
+      size: 1
+      values: -11.319808395
+      units: Hartree
+    key: KEVEC
+      size: 1
+      values: 0.002990305
+      units: Hartree
+    key: PEVEC
+      size: 1
+      values: -11.3227987
+      units: Hartree
+    key: TEMPVEC
+      size: 1
+      values: 629.50927102
+      units: Kelvin
+  block 3: begin-line=422 fed=3 rc=0 first-fed='     kinetic energy (Ekin) =           0.00591731 Ry'
+    key: TEVEC
+      size: 1
+      values: -11.319953385
+      units: Hartree
+    key: KEVEC
+      size: 1
+      values: 0.002958655
+      units: Hartree
+    key: PEVEC
+      size: 1
+      values: -11.32291204
+      units: Hartree
+    key: TEMPVEC
+      size: 1
+      values: 622.84578364
+      units: Kelvin
+  block 4: begin-line=517 fed=3 rc=0 first-fed='     kinetic energy (Ekin) =           0.00585738 Ry'
+    key: TEVEC
+      size: 1
+      values: -11.32006505
+      units: Hartree
+    key: KEVEC
+      size: 1
+      values: 0.00292869
+      units: Hartree
+    key: PEVEC
+      size: 1
+      values: -11.32299374
+      units: Hartree
+    key: TEMPVEC
+      size: 1
+      values: 616.53830012
+      units: Kelvin
+  block 5: begin-line=612 fed=3 rc=0 first-fed='     kinetic energy (Ekin) =           0.00579681 Ry'
+    key: TEVEC
+      size: 1
+      values: -11.32014545
+      units: Hartree
+    key: KEVEC
+      size: 1
+      values: 0.002898405
+      units: Hartree
+    key: PEVEC
+      size: 1
+      values: -11.323043855
+      units: Hartree
+    key: TEMPVEC
+      size: 1
+      values: 610.16257779
+      units: Kelvin
+

@@ -516,8 +516,9 @@ sub QECalculationType {
     return ($AbiDict{"ES.Runtype.PW.OptimizeCell"} eq "1")
          ? "vc-relax" : "relax";
   }
+  return "md" if ($runtype eq "Dynamics");
   die "Runtype '$runtype' is not supported for Quantum ESPRESSO.\n" .
-      "  Supported: Energy (scf), Geometry (relax).\n";
+      "  Supported: Energy (scf), Geometry (relax), Dynamics (md).\n";
 }
 
 sub QEControl {
@@ -544,13 +545,20 @@ sub QEControl {
     push(@l, "  forc_conv_thr = " . &numOr("ES.Runtype.PW.ForcConvThr", "1.0d-3"));
     push(@l, "  nstep = " . &numOr("ES.Runtype.PW.NStep", "50"));
   }
+  if ($calc eq "md") {
+    # The dialog is in fs; pw.x's dt is in Rydberg atomic units of time
+    # (4.8377687e-17 s).
+    push(@l, "  dt = " . sprintf("%.4f",
+         &numOr("ES.Runtype.PW.MDTimeStep", "1.0") / 0.04837768652));
+    push(@l, "  nstep = " . &intOr("ES.Runtype.PW.MDSteps", 100));
+  }
   push(@l, "/");
   my $r = join("\n", @l);
   $_ = $r;
   return $r;
 }
 
-# &IONS. Only present for a relax: pw.x rejects the namelist outright on
+# &IONS. Only present for a relax or md: pw.x rejects the namelist outright on
 # an scf run ("calculation='scf': namelist &IONS not needed"), so this
 # resolver returns the empty string and modifyInputFile drops the line.
 #
@@ -579,17 +587,51 @@ sub QECell {
 
 sub QEIons {
   my $calc = &QECalculationType;
-  if ($calc ne "relax" && $calc ne "vc-relax") { $_ = ""; return ""; }
+  if ($calc ne "relax" && $calc ne "vc-relax" && $calc ne "md") {
+    $_ = ""; return "";
+  }
 
   my @l = ();
   push(@l, "&IONS");
-  #  bfgs is pw.x's own default for relax; stated explicitly so the deck
-  #  does not change meaning if that default ever does.
-  push(@l, "  ion_dynamics = 'bfgs'");
+  if ($calc eq "md") {
+    push(@l, "  ion_dynamics = 'verlet'");
+    push(@l, &QEThermostatLines);
+  } else {
+    #  bfgs is pw.x's own default for relax; stated explicitly so the deck
+    #  does not change meaning if that default ever does.
+    push(@l, "  ion_dynamics = 'bfgs'");
+  }
   push(@l, "/");
   my $r = join("\n", @l);
   $_ = $r;
   return $r;
+}
+
+# Only the &IONS keywords pw.x documents for each ion_temperature value:
+# it stops on a namelist key it does not expect.  tempw also sets the
+# starting temperature for every thermostat.
+sub QEThermostatLines {
+  my $c = $AbiDict{"ES.Runtype.PW.IonThermostat"};
+  $c = "" if (!defined($c));
+  my $temp = &numOr("ES.Runtype.PW.MDTemperature", "300.0");
+  my $nraise = &intOr("ES.Runtype.PW.MDCouplingSteps", 10);
+  if ($c =~ /initial/i) {
+    return ("  ion_temperature = 'initial'", "  tempw = $temp");
+  } elsif ($c =~ /berendsen/i) {
+    return ("  ion_temperature = 'berendsen'", "  tempw = $temp",
+            "  nraise = $nraise");
+  } elsif ($c =~ /andersen/i) {
+    return ("  ion_temperature = 'andersen'", "  tempw = $temp",
+            "  nraise = $nraise");
+  } elsif ($c =~ /stochastic/i) {
+    return ("  ion_temperature = 'svr'", "  tempw = $temp",
+            "  nraise = $nraise");
+  } elsif ($c =~ /rescaling/i) {
+    return ("  ion_temperature = 'rescaling'", "  tempw = $temp",
+            "  tolp = " . &numOr("ES.Runtype.PW.MDRescaleTol", "100.0"));
+  }
+  &aiUnmatched($c) if ($c ne "" && $c !~ /constant/i);
+  return ("  ion_temperature = 'not_controlled'");
 }
 
 # QE builds every scratch/save file name out of prefix, so it has to be a
@@ -715,10 +757,88 @@ sub QESystem {
     push(@l, "  input_dft = '$dft'");
   }
 
+  push(@l, &QEDispersionLines);
+  push(@l, &QEHubbardLegacyLines);
+
   push(@l, "/");
   my $r = join("\n", @l);
   $_ = $r;
   return $r;
+}
+
+# dftd3_version 3 is zero damping and 4 is Becke-Johnson in pw.x.
+# dftd3_threebody is left at pw.x's own default.
+sub QEDispersionLines {
+  my $d = $AbiDict{"ES.Theory.PW.Dispersion"};
+  return () if (!defined($d) || $d eq "" || $d =~ /^none/i);
+  return ("  vdw_corr = 'grimme-d2'") if ($d =~ /D2/);
+  return ("  vdw_corr = 'grimme-d3'", "  dftd3_version = 4")
+    if ($d =~ /D3.*(Becke|BJ)/i);
+  return ("  vdw_corr = 'grimme-d3'", "  dftd3_version = 3") if ($d =~ /D3/);
+  return ("  vdw_corr = 'ts'") if ($d =~ /Tkatchenko/i);
+  return ("  vdw_corr = 'xdm'") if ($d =~ /XDM/i);
+  &aiUnmatched($d);
+  return ();
+}
+
+# The U rows of the Theory dialog as ([element, orbital, U], ...), only
+# for elements that are in the structure.  A row for an absent element is
+# ignored with a note, since the dialog cannot know the structure.
+sub hubbardRows {
+  my @rows = ();
+  for (my $i = 1; $i <= 3; $i++) {
+    my $el = $AbiDict{"ES.Theory.PW.HubbardElement$i"};
+    my $u = &numOr("ES.Theory.PW.HubbardU$i", "");
+    next if (!defined($el) || $el !~ /\S/ || $u eq "");
+    $el = &normalizeSymbol($el);
+    if (!defined($speciesIndex{$el})) {
+      print STDERR "ai.qe warning: DFT+U row $i names $el, which is not " .
+        "in the structure; it is ignored.\n";
+      next;
+    }
+    my $orb = $AbiDict{"ES.Theory.PW.HubbardOrbital$i"};
+    $orb = "3d" if (!defined($orb) || $orb !~ /^\d[spdf]$/);
+    push(@rows, [$el, $orb, $u]);
+  }
+  return @rows;
+}
+
+sub hubbardProjector {
+  my $p = $AbiDict{"ES.Theory.PW.HubbardProjector"};
+  return "atomic" if (defined($p) && $p =~ /^atomic/i);
+  return "ortho-atomic";
+}
+
+sub hubbardLegacy {
+  my $s = $AbiDict{"ES.Theory.PW.HubbardSyntax"};
+  return (defined($s) && $s =~ /lda_plus_u/) ? 1 : 0;
+}
+
+# QE before 7.1: pw.x picks the Hubbard orbital from the element
+# (3d, 4f, 2p ...), so only U per species can be written.
+sub QEHubbardLegacyLines {
+  return () if (!&hubbardLegacy);
+  my @rows = &hubbardRows;
+  return () if (!@rows);
+  my @l = ("  lda_plus_u = .true.", "  lda_plus_u_kind = 0",
+           "  U_projection_type = '" . &hubbardProjector . "'");
+  foreach my $r (@rows) {
+    push(@l, sprintf("  Hubbard_U(%d) = %s", $speciesIndex{$r->[0]} + 1, $r->[2]));
+  }
+  return @l;
+}
+
+# QE 7.1 and later: the HUBBARD card names the orbital.
+sub QEHubbard {
+  my @rows = &hubbardRows;
+  if (&hubbardLegacy || !@rows) { $_ = ""; return ""; }
+  my @l = ("HUBBARD {" . &hubbardProjector . "}");
+  foreach my $r (@rows) {
+    push(@l, "  U $r->[0]-$r->[1] $r->[2]");
+  }
+  my $res = join("\n", @l);
+  $_ = $res;
+  return $res;
 }
 
 sub SmearingKeyword {

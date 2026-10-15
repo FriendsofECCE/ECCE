@@ -452,6 +452,69 @@ class QeTheoryPanel(EccePanel):
         dftSizer.AddWidget(self.xcFunc)
         self.panelSizer.Add(dftSizer)
 
+        # vdw_corr.  The strings are matched by ai.qe's QEDispersionLines.
+        dispSizer = EcceBoxSizer(self, label="Dispersion Correction", cols=1)
+        dispChoice = ["None",
+                      "Grimme D2",
+                      "Grimme D3 (zero damping)",
+                      "Grimme D3 (Becke-Johnson damping)",
+                      "Tkatchenko-Scheffler",
+                      "XDM"]
+        self.dispersion = EcceComboBox(self,
+                                       choices=dispChoice,
+                                       name="ES.Theory.PW.Dispersion",
+                                       default=0,
+                                       label="Correction:",
+                                       export=1)
+        dispSizer.AddWidget(self.dispersion)
+        self.panelSizer.Add(dispSizer)
+
+        # DFT+U.  A dialog is never told the elements of the structure, so
+        # the elements are typed; ai.qe ignores a row whose element is not
+        # in the structure.
+        hubSizer = EcceBoxSizer(self, label="DFT+U (Hubbard U)", cols=3)
+        self.hubbardEl = []
+        self.hubbardOrb = []
+        self.hubbardU = []
+        orbChoice = ["2p", "3d", "4d", "5d", "4f", "5f"]
+        for i in (1, 2, 3):
+            el = EcceTextInput(self, size=(40, -1),
+                               name="ES.Theory.PW.HubbardElement%d" % i,
+                               default="", label="Element:", export=1)
+            hubSizer.AddWidget(el)
+            orb = EcceComboBox(self, choices=orbChoice,
+                               name="ES.Theory.PW.HubbardOrbital%d" % i,
+                               default=1, label="Orbital:", export=1)
+            hubSizer.AddWidget(orb)
+            u = EcceFloatInput(self, unit="eV",
+                               name="ES.Theory.PW.HubbardU%d" % i,
+                               default=4.0, hardRange="[0..)",
+                               softRange="[0..12]", label="U:", export=1)
+            hubSizer.AddWidget(u)
+            self.hubbardEl.append(el)
+            self.hubbardOrb.append(orb)
+            self.hubbardU.append(u)
+
+        hubProjChoice = ["Orthogonalized atomic (ortho-atomic)",
+                         "Atomic"]
+        self.hubbardProj = EcceComboBox(self,
+                                        choices=hubProjChoice,
+                                        name="ES.Theory.PW.HubbardProjector",
+                                        default=0,
+                                        label="Projector:",
+                                        export=1)
+        hubSizer.AddWidget(self.hubbardProj)
+        hubSyntaxChoice = ["QE 7.1 or later (HUBBARD card)",
+                           "QE 6.x to 7.0 (lda_plus_u keywords)"]
+        self.hubbardSyntax = EcceComboBox(self,
+                                          choices=hubSyntaxChoice,
+                                          name="ES.Theory.PW.HubbardSyntax",
+                                          default=0,
+                                          label="Input for:",
+                                          export=1)
+        hubSizer.AddWidget(self.hubbardSyntax)
+        self.panelSizer.Add(hubSizer)
+
         self.AddButtons()
 
     def PseudoInfoText(self, elementCount, fileCount):
@@ -472,6 +535,15 @@ class QeTheoryPanel(EccePanel):
         for widget in (self.nk1, self.nk2, self.nk3,
                        self.sk1, self.sk2, self.sk3):
             widget.Enable(grid)
+
+        for el, orb, u in zip(self.hubbardEl, self.hubbardOrb,
+                              self.hubbardU):
+            used = bool(el.GetValue().strip())
+            orb.Enable(used)
+            u.Enable(used)
+        anyU = any(el.GetValue().strip() for el in self.hubbardEl)
+        self.hubbardProj.Enable(anyU)
+        self.hubbardSyntax.Enable(anyU)
 
         smear = self.occupations.GetValue().startswith("Smearing")
         self.smearing.Enable(smear)

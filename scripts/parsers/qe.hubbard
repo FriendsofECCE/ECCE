@@ -1,0 +1,21 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# pw.x's "Hubbard energy" line (DFT+U), in the breakdown printed after the
+# converged energy, as EHUBBARD.  It is a component of the total energy.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+$_ = <STDIN>;
+exit(0) if (!defined($_) || !/=\s*(-?\d+\.?\d*([EeDd][-+]?\d+)?)\s*Ry/);
+my $ry = $1;
+$ry =~ s/[Dd]/E/;
+
+my $hartree = $ry * 0.5;
+print "key: EHUBBARD\nsize:\n1\nvalues:\n$hartree\nunits:\nHartree\nEND\n";
+exit(0);

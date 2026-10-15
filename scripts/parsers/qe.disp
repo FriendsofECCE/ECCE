@@ -1,0 +1,32 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# The dispersion energy pw.x prints after the converged energy when vdw_corr
+# is set, as EDISP (an energy component already contained in the total):
+#
+#      Dispersion Correction     =      -0.00152932 Ry      (Grimme-D2)
+#      DFT-D3 Dispersion         =      -0.00146444 Ry      (Grimme-D3)
+#      Dispersion T-S Correction =      -0.00147766 Ry      (Tkatchenko-Scheffler)
+#      Dispersion XDM Correction =      -0.00090033 Ry      (XDM)
+#
+# Rydberg is converted to Hartree here, as in qe.energy.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my $ry;
+while (<STDIN>) {
+  if (/=\s*(-?\d+\.?\d*([EeDd][-+]?\d+)?)\s*Ry/) {
+    $ry = $1;
+    $ry =~ s/[Dd]/E/;
+  }
+}
+exit(0) if (!defined($ry));
+
+my $hartree = $ry * 0.5;
+print "key: EDISP\nsize:\n1\nvalues:\n$hartree\nunits:\nHartree\nEND\n";
+exit(0);

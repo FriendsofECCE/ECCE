@@ -1361,6 +1361,154 @@ sub espresso
             "There is no ATOMIC_SPECIES block, so no pseudopotential is " .
             "named for any element.");
   }
+
+  espressoOptions(\@L);
+}
+
+#  Molecular dynamics, dispersion and DFT+U.  What is checked is that the
+#  parts agree with each other and with the species list; whether pw.x
+#  accepts a keyword is for pw.x to say.
+sub espressoOptions
+{
+  my ($Lref) = @_;
+  my @L = @$Lref;
+
+  #  Namelist variables, lower-cased, per namelist.
+  my (%nl, $cur);
+  for my $i (0 .. $#L) {
+    my $line = $L[$i];
+    $line =~ s/!.*//;
+    if ($line =~ /^\s*&(\w+)/)    { $cur = lc($1); next; }
+    if ($line =~ /^\s*\/\s*$/)    { undef $cur; next; }
+    next unless (defined($cur));
+    foreach my $item (split(/,/, $line)) {
+      if ($item =~ /^\s*([\w()]+)\s*=\s*(.+?)\s*$/) {
+        my ($k, $v) = (lc($1), $2);
+        $v =~ s/^['"]|['"]$//g;
+        $nl{$cur}{$k} = [lc($v), $i + 1];
+      }
+    }
+  }
+  my $calc = exists($nl{control}{calculation})
+           ? $nl{control}{calculation}[0] : "scf";
+
+  if (exists($nl{ions}) && $calc eq "scf") {
+    finding("BAD", 0, "ions",
+            "An &IONS namelist is present in a calculation = 'scf' run; " .
+            "pw.x stops with \"namelist &IONS not needed\".");
+  }
+
+  if ($calc eq "md") {
+    my $ions = $nl{ions} || {};
+    my $dt = $nl{control}{dt};
+    if (!defined($dt) || $dt->[0] !~ /^[-+]?\d/ || $dt->[0] + 0 <= 0) {
+      finding("BAD", 0, "md", "A molecular dynamics run needs a positive " .
+              "time step (dt, in Rydberg atomic units) in &CONTROL.");
+    } else {
+      finding("GOOD", $dt->[1], "md", "The time step dt is set " .
+              "(Rydberg atomic units; 20 is about 1 fs).");
+    }
+    if (!exists($nl{control}{nstep})) {
+      finding("UNSURE", 0, "md", "nstep is not set, so pw.x runs its own " .
+              "default number of steps (50).");
+    }
+    my $it = exists($ions->{ion_temperature}) ? $ions->{ion_temperature}[0]
+                                              : "not_controlled";
+    if ($it ne "not_controlled" && !exists($ions->{tempw})) {
+      finding("UNSURE", 0, "md", "ion_temperature = '$it' but tempw (the " .
+              "target temperature) is not set; pw.x then uses its default.");
+    } elsif (exists($ions->{ion_temperature})) {
+      finding("GOOD", $ions->{ion_temperature}[1], "md",
+              "ion_temperature = '$it' in the &IONS namelist.");
+    }
+  }
+
+  if (exists($nl{system}{vdw_corr})) {
+    finding("GOOD", $nl{system}{vdw_corr}[1], "dispersion",
+            "A dispersion correction (vdw_corr = '" .
+            $nl{system}{vdw_corr}[0] . "') is requested.");
+  }
+
+  #  DFT+U, in either syntax.
+  my %species;
+  my @speciesOrder;
+  my $inSpecies = 0;
+  foreach my $line (@L) {
+    if ($line =~ /^\s*ATOMIC_SPECIES/i) { $inSpecies = 1; next; }
+    if ($inSpecies && $line =~ /^\s*([A-Za-z][A-Za-z0-9]*)\s+[-+0-9.]/) {
+      $species{$1} = 1;
+      push(@speciesOrder, $1);
+      next;
+    }
+    $inSpecies = 0 if ($inSpecies && $line =~ /\S/);
+  }
+  my %transition = map { $_ => 1 }
+    qw(Sc Ti V Cr Mn Fe Co Ni Cu Zn Y Zr Nb Mo Tc Ru Rh Pd Ag Cd
+       La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg
+       Ac Th Pa U Np Pu);
+  my @uElements;
+
+  my $hubbardAt = 0;
+  for my $i (0 .. $#L) {
+    if ($L[$i] =~ /^\s*HUBBARD\b/i) { $hubbardAt = $i + 1; last; }
+  }
+  if ($hubbardAt) {
+    my $rows = 0;
+    for my $i ($hubbardAt .. $#L) {
+      my $line = $L[$i];
+      $line =~ s/!.*//;
+      next unless ($line =~ /\S/);
+      last if ($line =~ /^\s*[A-Z_]+\b/ && $line !~ /^\s*(U|J0|J|B|E2|E3|alpha)\s/i);
+      if ($line =~ /^\s*U\s+(\S+?)-(\d[spdf])\s+([-+]?\d*\.?\d+([EeDd][-+]?\d+)?)\s*$/) {
+        my ($el) = ($1);
+        $rows++;
+        push(@uElements, $el);
+        if (!$species{$el}) {
+          finding("BAD", $i + 1, "hubbard",
+                  "The HUBBARD card names '$el', which is not a species in " .
+                  "ATOMIC_SPECIES.");
+        }
+      } elsif ($line =~ /^\s*\S+\s+\S+/) {
+        finding("BAD", $i + 1, "hubbard",
+                "This HUBBARD line is not 'U <species>-<orbital> <value>'.");
+      }
+    }
+    if ($rows) {
+      finding("GOOD", $hubbardAt, "hubbard",
+              "A HUBBARD card with $rows U value" . ($rows == 1 ? "" : "s") .
+              " is present.");
+    }
+  }
+  if (exists($nl{system}{lda_plus_u}) &&
+      $nl{system}{lda_plus_u}[0] =~ /^\.?t/) {
+    my $n = 0;
+    foreach my $k (keys %{$nl{system}}) {
+      next unless ($k =~ /^hubbard_u\((\d+)\)$/);
+      $n++;
+      my $idx = $1;
+      if ($idx < 1 || $idx > @speciesOrder) {
+        finding("BAD", $nl{system}{$k}[1], "hubbard",
+                "$k refers to a species that does not exist (there are " .
+                scalar(@speciesOrder) . ").");
+      } else {
+        push(@uElements, $speciesOrder[$idx - 1]);
+      }
+    }
+    finding("GOOD", $nl{system}{lda_plus_u}[1], "hubbard",
+            "lda_plus_u is on with $n Hubbard_U value" . ($n == 1 ? "" : "s") .
+            ".") if ($n);
+  }
+  if (@uElements) {
+    my $nspin = exists($nl{system}{nspin}) ? $nl{system}{nspin}[0] : 1;
+    my @tm = grep { my $e = $_; $e =~ s/\d+$//; $transition{ucfirst(lc($e))} }
+             @uElements;
+    if (@tm && $nspin !~ /^[24]/) {
+      finding("UNSURE", 0, "hubbard",
+              "U is set on " . join(", ", @tm) . " without spin " .
+              "polarisation (nspin = 2).  DFT+U on a transition metal " .
+              "usually needs it, with a starting magnetisation.");
+    }
+  }
 }
 
 
