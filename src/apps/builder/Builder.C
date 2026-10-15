@@ -4969,7 +4969,10 @@ void Builder::savePaneLayout(const wxString& layoutName_)
       continue;
     }
     wxAuiPaneInfo saved(pane);
-    if (pane.name == NAME_TOOL_PBC && p_pbcAutoShown) saved.Hide();
+    //  The Periodic Builder follows the calculation (a crystal code, an
+    //  imported cell), not the last session: opened once for a crystal it
+    //  would otherwise come back for every molecule.
+    if (pane.name == NAME_TOOL_PBC) saved.Hide();
     wxString info = paneInfoForSave(saved);
     if (dynamic_cast<PropertyPanel*>(pane.window)) {
       // prop panel layouts are save elsewhere
