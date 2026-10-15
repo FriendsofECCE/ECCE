@@ -238,6 +238,8 @@ class Fragment
       bool  restoreMVM(istream& infile,double mult=1.0, bool genBonds=true);
       bool  restoreXYZ(istream& infile, double mult=1.0, bool genBonds=true);
       bool  restoreCAR(istream& infile, double mult=1.0, bool genBonds=true);
+      // GROMACS .gro: always nanometres in the file, always Angstroms here.
+      bool  restoreGRO(istream& infile, bool genBonds=true);
       bool prescanPDB(istream& infile, int& numModels,
             vector<string>& altLocVec,
             vector<bool>& groupFlgVec,

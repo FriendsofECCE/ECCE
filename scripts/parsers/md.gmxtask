@@ -67,6 +67,10 @@ if (get("Interaction", "InteractionOption", 1) == 0) {
 } else {
   $p{"ES.Theory.MD.Coulombtype"} = "Reaction-Field";
 }
+# Bonds that cross the cell boundary need periodic-molecules, or grompp
+# reports a molecule that is not whole.  Only written when set.
+$p{"ES.Theory.MD.PeriodicMolecules"} = 1
+  if (get("Interaction", "PeriodicMolecules", 0) == 1);
 $p{"ES.Runtype.MD.NeighbourListInterval"} =
     get("Interaction", "ShortListUpdateFrequency", 10)
   if (defined($D{"Interaction"}{"ShortListUpdateFrequency"}));

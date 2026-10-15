@@ -4838,6 +4838,110 @@ bool Fragment::restoreXYZ(istream& infile, double mult, bool genBonds)
   return ((curAtom+1!=numAtoms) && !error );
 }
 
+// Element of a .gro atom from its name.  GROMACS names carry no element
+// column, so: a mixed-case name whose first two letters are an element
+// (MINFF's Alo, Sit, Mgo, Feo3, Cu2+) is that element; an upper-case
+// two-letter ion (NA, CL, CA) only when the residue has the same name, so
+// that a protein CA stays carbon; anything else is its first letter.
+static string groElement(const string& atomName, const string& resName)
+{
+  TPerTab tpt;
+  string a;
+  size_t i = 0;
+  while (i < atomName.size() && !isalpha((unsigned char)atomName[i])) i++;
+  for (; i < atomName.size() && isalpha((unsigned char)atomName[i]); i++) {
+    a += atomName[i];
+  }
+  if (a.empty()) return "X";
+  string first(1, (char)toupper((unsigned char)a[0]));
+  if (a.size() > 1) {
+    string two = first + (char)tolower((unsigned char)a[1]);
+    bool mixed = islower((unsigned char)a[1]) != 0;
+    bool ion = false;
+    if (!mixed) {
+      string r = STLUtil::upper(resName);
+      string an = STLUtil::upper(a);
+      ion = (r == an || r == an + "+" || r == an + "-");
+    }
+    if ((mixed || ion) && tpt.isValid(two.c_str())) return two;
+  }
+  return first;
+}
+
+bool Fragment::restoreGRO(istream& infile, bool genBonds)
+{
+  string line;
+  if (!getline(infile, line)) return false;
+  p_name = STLUtil::trim(line);
+  if (!getline(infile, line)) return false;
+  int natoms = atoi(line.c_str());
+  if (natoms <= 0) return false;
+
+  Residue *res = 0;
+  string oldResName;
+  int oldResNum = 0;
+  for (int n = 0; n < natoms; n++) {
+    if (!getline(infile, line)) return false;
+    // Columns are fixed (resnum 5, resname 5, atname 5, atnum 5); the
+    // coordinate width is the gap between the first two decimal points.
+    if (line.size() < 20) return false;
+    size_t d1 = line.find('.', 20);
+    size_t d2 = (d1 == string::npos) ? string::npos : line.find('.', d1 + 1);
+    if (d2 == string::npos) return false;
+    size_t w = d2 - d1;
+    if (line.size() < 20 + 3*w) return false;
+    string resName = STLUtil::trim(line.substr(5, 5));
+    string atName = STLUtil::trim(line.substr(10, 5));
+    int resNum = atoi(line.substr(0, 5).c_str());
+    double xyz[3];
+    for (int k = 0; k < 3; k++) {
+      xyz[k] = atof(line.substr(20 + k*w, w).c_str()) * 10.0;
+    }
+
+    string sym = groElement(atName, resName);
+    if (!TPerTab().isValid(sym.c_str())) sym = "X";
+    TAtm *atom = new TAtm(sym.c_str(), xyz);
+    atom->atomName(atName.substr(0, 4).c_str());
+    addAtom(atom);
+
+    if (res == 0 || resName != oldResName || resNum != oldResNum) {
+      string rn = resName.substr(0, 4);
+      res = new Residue(rn.c_str(), resNum);
+      addResidue(res);
+      res->name(rn.c_str());
+      res->number(resNum);
+      res->chain(' ');
+      res->firstAtomPtr(atom);
+      res->couplingInfo(Residue::MONOMER);
+      oldResName = resName;
+      oldResNum = resNum;
+    }
+    atom->atomResidue(res);
+  }
+
+  // Box, nm: 3 values (orthorhombic) or 9 (v1x v2y v3z v1y v1z v2x v2z
+  // v3x v3y).  A zero diagonal means no box.
+  if (getline(infile, line)) {
+    double b[9] = {0,0,0,0,0,0,0,0,0};
+    int nb = sscanf(line.c_str(), "%lf %lf %lf %lf %lf %lf %lf %lf %lf",
+                    &b[0],&b[1],&b[2],&b[3],&b[4],&b[5],&b[6],&b[7],&b[8]);
+    if ((nb == 3 || nb == 9) && b[0] > 0 && b[1] > 0 && b[2] > 0) {
+      MPoint v1(b[0]*10, b[3]*10, b[4]*10);
+      MPoint v2(b[5]*10, b[1]*10, b[6]*10);
+      MPoint v3(b[7]*10, b[8]*10, b[2]*10);
+      LatticeDef *lattice = new LatticeDef(1.,1.,1.,90.,90.,90.);
+      lattice->assign(v1, v2, v3);
+      setLattice(lattice);
+    }
+  }
+
+  if (genBonds) {
+    addCovalentBonds(true);
+    setEnvIndices();
+  }
+  return true;
+}
+
 //////////////////////////////////////////////////////////////////////////
 //  Routine for generating a PDB file
 //////////////////////////////////////////////////////////////////////////

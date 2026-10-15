@@ -2,6 +2,8 @@
 // Add Structure from File arguments and checks atoms, residues and bonds.
 // Usage: fragreaders <dir>   (dir holds the sample files)
 #include <clocale>
+#include <cmath>
+#include <cstring>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -11,6 +13,8 @@
 
 #include "util/Ecce.H"
 #include "tdat/FragUtil.H"
+#include "tdat/LatticeDef.H"
+#include "util/Transformations.H"
 #include "tdat/Fragment.H"
 #include "tdat/Residue.H"
 #include "tdat/TAtm.H"
@@ -179,6 +183,52 @@ int main(int argc, char **argv)
             + to_string(frag->numAtoms()) + ")");
       delete frag;
     }
+  }
+
+  // GROMACS .gro: nm in the file, Angstrom out; the element comes from the
+  // atom name (MINFF names are mixed case, ions repeat the residue name,
+  // a protein CA is carbon); the last line is the cell.
+  for (const char *f : {"minff_ortho.gro", "minff_triclinic.gro"}) {
+    string tag = f;
+    Fragment *frag = load(dir + "/" + f, "GRO");
+    if (!frag) continue;
+    check(frag->numAtoms() == 13, tag + ": 13 atoms (got "
+          + to_string(frag->numAtoms()) + ")");
+    const char *want[] = {"Al","Si","Mg","Fe","O","H","O","H","H",
+                          "Na","Cl","C","Cu"};
+    for (int i = 0; i < frag->numAtoms() && i < 13; i++) {
+      check(frag->atomRef(i)->atomicSymbol() == want[i],
+            tag + ": atom " + to_string(i+1) + " is " + want[i]
+            + " (got " + frag->atomRef(i)->atomicSymbol() + ")");
+    }
+    if (frag->numAtoms() > 1) {
+      const double *c = frag->atomRef(1)->coordinates();
+      check(fabs(c[0] - 5.0) < 1e-6 && fabs(c[1] - 2.0) < 1e-6
+            && fabs(c[2] - 3.0) < 1e-6, tag + ": atom 2 at 5.0 2.0 3.0 A");
+    }
+    checkResidues(frag, tag, 6);
+    LatticeDef *lat = frag->getLattice();
+    check(lat != 0, tag + ": lattice");
+    if (lat) {
+      vector<MPoint> *v = lat->toVectors();
+      double want3[3][3];
+      if (tag == "minff_ortho.gro") {
+        double w[3][3] = {{20,0,0},{0,20,0},{0,0,30}};
+        memcpy(want3, w, sizeof w);
+      } else {
+        double w[3][3] = {{40,0,0},{10,50,0},{5,2.5,60}};
+        memcpy(want3, w, sizeof w);
+      }
+      bool ok = v->size() == 3;
+      for (int k = 0; ok && k < 3; k++) {
+        ok = fabs((*v)[k].x() - want3[k][0]) < 1e-6 &&
+             fabs((*v)[k].y() - want3[k][1]) < 1e-6 &&
+             fabs((*v)[k].z() - want3[k][2]) < 1e-6;
+      }
+      check(ok, tag + ": cell vectors in Angstrom");
+      delete v;
+    }
+    delete frag;
   }
 
   cout << (failures ? "FAILED" : "PASSED") << " (" << failures

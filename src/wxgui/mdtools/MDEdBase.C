@@ -548,6 +548,14 @@ void MDEdBase::setContext(const string& urlstr)
 
         mdTask->getTaskModel(*p_model);
 
+        // Until the user chooses, a structure with a cell is taken to be
+        // periodic; the choice is written with the model from then on.
+        InteractionModel *imodel = getMDModel().getInteractionModel();
+        if (imodel && imodel->getPeriodicMolecules() ==
+                      InteractionModel::PERIODICMOL) {
+          imodel->setPeriodicMolecules(fragSum.isPeriodic() ? 1 : 0);
+        }
+
         // See if no input file exists yet - if not, then generate
         vector<EcceURL> files = mdTask->getDataFiles(JCode::PRIMARY_INPUT);
         if (files.size() == 0) {

@@ -31,6 +31,7 @@ const double InteractionModel::SHORTCUT = 0.9;
 const double InteractionModel::LONGCUT = 0.9;
 const int InteractionModel::SHORTFREQ = 1;
 const int InteractionModel::LONGFREQ = 1;
+const int InteractionModel::PERIODICMOL = -1;
 
 /**
  * Constructor
@@ -56,6 +57,7 @@ InteractionModel::InteractionModel()
   p_lCut = LONGCUT;
   p_spFreq = SHORTFREQ;
   p_lpFreq = LONGFREQ;
+  p_periodicMol = PERIODICMOL;
   p_touched = false;
 }
 
@@ -158,6 +160,11 @@ double InteractionModel::getLRCutoff() const
 int InteractionModel::getShortListUpdateFreq() const
 {
   return p_spFreq;
+}
+
+int InteractionModel::getPeriodicMolecules() const
+{
+  return p_periodicMol;
 }
 
 int InteractionModel::getLongListUpdateFreq() const
@@ -264,6 +271,11 @@ void InteractionModel::setShortListUpdateFreq(int freq)
   p_spFreq = freq;
 }
 
+void InteractionModel::setPeriodicMolecules(int opt)
+{
+  p_periodicMol = opt;
+}
+
 void InteractionModel::setLongListUpdateFreq(int freq)
 {
   p_lpFreq = freq;
@@ -298,6 +310,7 @@ void InteractionModel::reset()
   setLRCutoff(InteractionModel::LONGCUT);
   setShortListUpdateFreq(InteractionModel::SHORTFREQ);
   setLongListUpdateFreq(InteractionModel::LONGFREQ);
+  setPeriodicMolecules(InteractionModel::PERIODICMOL);
 }
 
 void InteractionModel::setDefaultGrid(FragmentSummary& fragSum)
