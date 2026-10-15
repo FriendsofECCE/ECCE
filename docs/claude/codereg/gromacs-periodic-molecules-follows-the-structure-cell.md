@@ -13,10 +13,9 @@ by `scanPDB`) right after `getTaskModel`, before the input file is
 generated. A task whose model is written without the GROMACS editor having
 opened it keeps `periodic-molecules` off.
 
-The structure check is the cell only. `GromacsStructure::groToPdb` writes
-CRYST1 from the first three box numbers (angles 90), so a triclinic .gro is
-"periodic" but its cell in the PDB is orthorhombic. Bonds longer than half a
-box vector are not looked for.
+The structure check is the cell only (`GromacsStructure::groToPdb` writes
+CRYST1 from the 3- or 9-value box). Bonds longer than half a box vector are
+not looked for.
 
 `ai.gromacs` writes `periodic-molecules = yes` or nothing (the GROMACS
 default is no). The checkbox is hand-added to `InteractionPanelGUI.C`, not
