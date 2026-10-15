@@ -126,13 +126,22 @@ double ProgressBox::age() const
 }
 
 
+// What a finished job came to, ending with its final energy.
+vector<string> ProgressBox::outcome() const
+{
+  vector<string> out = p_progress.summary(p_completed);
+  if (!p_finalEnergy.empty()) out.push_back(p_finalEnergy);
+  return out;
+}
+
+
 // The one line of the folded box, after its heading.
 string ProgressBox::foldedText() const
 {
   if (outOfContact())
     return JobProgress::noContactText((double)time(0) - p_lastHeard);
   if (p_finished) {
-    vector<string> s = p_progress.summary(p_completed);
+    vector<string> s = outcome();
     return s.empty() ? string() : s[0];
   }
   string line = p_progress.shortLine();
@@ -185,7 +194,7 @@ vector<string> ProgressBox::describe() const
                     std::to_string(b.plot.size()) + " points)");
   }
   if (p_finished)
-    for (const string& s : p_progress.summary(p_completed))
+    for (const string& s : outcome())
       out.push_back("summary: " + s);
   else if (!outOfContact() && age() >= 0)
     out.push_back(JobProgress::updatedText(age()));
@@ -373,7 +382,7 @@ wxSize ProgressBox::layout(wxDC *dc)
 
         // A finished job keeps its plots; the outcome goes under them.
         if (p_finished) {
-          for (const string& s : p_progress.summary(p_completed)) {
+          for (const string& s : outcome()) {
             if (dc) {
               dc->SetTextForeground(text);
               dc->DrawText(U(s), 0, y);

@@ -95,6 +95,7 @@ class CalculationContextPanel : public ewxScrolledWindow,
 
     /** The Progress box, after the Launcher row, and its frame. */
     ProgressBox *p_progressBox;
+    bool p_energyRead = false;
     wxBoxSizer *p_progressSizer;
 
     /** The stored snapshot (ecce:progress) as of the last refresh. */

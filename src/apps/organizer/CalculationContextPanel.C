@@ -18,11 +18,13 @@
 #include "util/ResourceUtils.H"
 #include "util/TDateTime.H"
 #include "tdat/TFormula.H"
+#include "tdat/TProperty.H"
 #include "util/TempStorage.H"
 #include "util/NullPointerException.H"
 
 #include "dsm/EDSIFactory.H"
 #include "dsm/MdTask.H"
+#include "dsm/PropertyTask.H"
 #include "dsm/Resource.H"
 #include "dsm/ResourceProperty.H"
 #include "dsm/GridProperty.H"
@@ -202,6 +204,24 @@ void CalculationContextPanel::updateProgress()
     received = liveAt;
   }
   if (!started) text.clear();
+
+  // Read once: the property comes from the data server.
+  if (finished && !p_energyRead) {
+    p_energyRead = true;
+    PropertyTask *task = dynamic_cast<PropertyTask*>(p_itemData->getResource());
+    // MOPAC's TE is its heat of formation, so it is named as such.
+    TProperty *hof = task ? task->getProperty("HFENERGY") : 0;
+    TProperty *te = task && !hof ? task->getProperty("TE") : 0;
+    TProperty *e = hof ? hof : te;
+    if (e) {
+      const string units = e->units() == "NA" ? "" : " " + e->units();
+      char line[128];
+      snprintf(line, sizeof line, "%s %.6f%s",
+               hof ? "Heat of formation" : "Final energy", e->scalarize(),
+               units.c_str());
+      p_progressBox->setFinalEnergy(line);
+    }
+  }
 
   double lastHeard = 0;
   const bool lost = p_calcMgr &&
