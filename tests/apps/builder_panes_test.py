@@ -110,10 +110,15 @@ def check(display, results):
     tools = " ".join(STRUCTURE)
     work = run(display, results, "tools", unrun_url,
                ["columntab 0", "panestate before " + tools,
-                "panefold Build", "panestate folded " + tools,
+                "foldclick Build", "panestate folded " + tools,
                 "columntab 1", "columntab 0", "panestate back " + tools,
-                "panefold Build", "panestate open " + tools], "detail")
+                "foldclick Build", "panestate open " + tools], "detail")
     problems = foldProblems(work, "Build", "tools")
+    # foldclick goes through AUI's event chain, where wx's own pin handler
+    # floats the pane if it runs before ours (#344)
+    for name in ("folded", "open"):
+        if flag(work, name, "Build", "floating") != 0:
+            problems.append("the fold button floated Build (%s)" % name)
     if not problems:
         o = rect(work, "open", "Build")
         b = rect(work, "before", "Build")

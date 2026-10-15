@@ -6,6 +6,9 @@
 #if defined(OIV_COIN) && ECCE_GL_X11
 #include "inv/SoWx/CoinEglOffscreen.H"
 #endif
+#if defined(OIV_COIN) && defined(__APPLE__)
+#include "inv/SoWx/CoinCglOffscreen.H"
+#endif
 
 namespace GlPlatform {
 
@@ -45,8 +48,10 @@ bool installOffscreen()
 {
 #if defined(OIV_COIN) && ECCE_GL_X11
   return CoinEglOffscreen::install();
+#elif defined(OIV_COIN) && defined(__APPLE__)
+  return CoinCglOffscreen::install();
 #else
-  // Coin's SoOffscreenRenderer uses CGL on macOS and WGL on Windows.
+  // Coin's SoOffscreenRenderer uses WGL on Windows.
   return true;
 #endif
 }

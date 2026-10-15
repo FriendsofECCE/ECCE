@@ -84,3 +84,5 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [Builder Save is only refreshed by updateSave(); a wxGrid in a sizer needs its own minimum size; Open structures height](builder-save-follows-dirty-and-grid-needs-its-own-size.md)
 - [Builder mode: setMode() sets mode, viewer and toolbar together; Structure Library insert returns to Select; Esc is a char hook (#321)](builder-mode-is-set-by-setmode-only.md)
 - [NanoSVG draws objectBoundingBox radial gradients flat: the Builder bond/geometry icons use per-sphere userSpaceOnUse gradients (#323)](nanosvg-renders-bounding-box-gradients-flat.md)
+- [macOS: Coin's own offscreen context fails, so every thumbnail failed until CoinCglOffscreen (#344)](macos-offscreen-render-needs-our-cgl-context.md)
+- [wx 3.3 binds wxAuiManager's pane-button handler on the frame, wx 3.2 pushes the manager: the fold handler must be on both (#344)](wx33-aui-pin-handler-is-bound-on-the-frame.md)

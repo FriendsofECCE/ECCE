@@ -241,6 +241,24 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     return true;
   }
 
+  //  "foldclick <pane>": a click on the fold button, dispatched as
+  //  wxAuiManager dispatches it (the frame first, then the manager), so
+  //  the toolkit's own pin handler competes as it does for the mouse.
+  if (c == "foldclick" && w.size() == 2) {
+    string name = w[1];
+    for (char& ch : name) if (ch == '_') ch = ' ';
+    wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(name));
+    if (!pane.IsOk() || !pane.HasPinButton())
+      return s.fail("foldclick: no fold button on " + name);
+    wxAuiManagerEvent e(wxEVT_AUI_PANE_BUTTON);
+    e.SetManager(&p_mgr);
+    e.SetPane(&pane);
+    e.SetButton(wxAUI_BUTTON_PIN);
+    if (!GetEventHandler()->ProcessEvent(e)) p_mgr.ProcessEvent(e);
+    settle(400);
+    return true;
+  }
+
   //  "sashdrag <tool> <dy> [lost]": press on the sash under that pane, move
   //  dy px in ten steps and release, as the mouse does it through the
   //  frame's event chain (AUI first); "lost" drops the release and moves

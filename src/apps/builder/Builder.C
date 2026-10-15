@@ -539,7 +539,13 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   BuilderDockArt *art = new BuilderDockArt;
   art->setFoldedQuery([this](wxWindow *w) { return p_folded.count(w) > 0; });
   p_mgr.SetArtProvider(art);
+  //  wx's own pin handler floats the pane.  wx 3.2 pushes the manager onto
+  //  the frame, so ours must be on the manager to run first; wx 3.3 binds
+  //  its handler on the frame instead, so ours must be there too (bound
+  //  later, it runs first).  The pin event is never skipped, so the
+  //  handler runs once.
   p_mgr.Bind(wxEVT_AUI_PANE_BUTTON, &Builder::OnPaneButton, this);
+  Bind(wxEVT_AUI_PANE_BUTTON, &Builder::OnPaneButton, this);
   guardSashDrag();
 
   p_viewerEvtHandler = new ViewerEvtHandler(this);
@@ -6052,6 +6058,7 @@ void Builder::updatePropertyMenus()
             w[0] == "fragdump" || w[0] == "panelmode" ||
             w[0] == "toolmenu" || w[0] == "paneclose" ||
             w[0] == "panestate" || w[0] == "panefold" ||
+            w[0] == "foldclick" ||
             w[0] == "sashdrag" || w[0] == "xshot" ||
             w[0] == "setcontext" || w[0] == "columntab" ||
             w[0] == "narrowcolumn" || w[0] == "toolfloat" || w[0] == "toolclip")
