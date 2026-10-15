@@ -365,6 +365,9 @@ give the reason. The common ones:
 
 ## Where next
 
+[Choosing Quantum ESPRESSO settings](qe-choosing-settings.md) says how to pick
+the cutoff, the k-points, smearing and the box for your own systems.
+
 Change the **Wavefunction Cutoff:** or the k-point grid and watch the energy.
 Change **Runtype:** to `Energy` and tick **Stress tensor (tstress)** in
 **Runtype Details...**.
