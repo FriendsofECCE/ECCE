@@ -101,7 +101,7 @@ int main()
     JobProgress md;
     md.parse("# seq=1\nmd point=5/5\nopt converged=no\n");
     vector<string> ms = md.summary(true);
-    check(ms.size() == 1 && !has(ms, "Optimisation not converged after  steps"),
+    check(ms.size() == 1 && ms[0].find("Optimisation") == string::npos,
           "an md run is not reported as an unconverged optimisation");
   }
   r.parse("# seq=6\nsteep point=4/200 converged=yes\n");
