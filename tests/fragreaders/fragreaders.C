@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iostream>
 #include <set>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -227,6 +228,20 @@ int main(int argc, char **argv)
       }
       check(ok, tag + ": cell vectors in Angstrom");
       delete v;
+    }
+    // dumpGRO then restoreGRO gives the same atoms and cell back.
+    if (tag == "minff_triclinic.gro") {
+      stringstream ss;
+      check(frag->dumpGRO(ss), "dumpGRO writes");
+      Fragment back;
+      check(back.restoreGRO(ss, false) && back.numAtoms() == 13
+            && back.getLattice() != 0, tag + ": dumpGRO output reads back");
+      if (back.numAtoms() == 13 && back.getLattice()) {
+        vector<MPoint> *v = back.getLattice()->toVectors();
+        check(fabs((*v)[2].x() - 5.0) < 1e-3 && fabs((*v)[2].y() - 2.5) < 1e-3,
+              tag + ": cell survives dumpGRO");
+        delete v;
+      }
     }
     delete frag;
   }

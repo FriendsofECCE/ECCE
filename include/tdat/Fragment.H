@@ -255,6 +255,7 @@ class Fragment
       bool  dumpMVM(ostream& outfile, bool dumpAll=false);
       bool  dumpPDB(ostream& outfile, bool writeBonds=false);
       bool  dumpCAR(ostream& outfile);
+      bool  dumpGRO(ostream& outfile);
 
       bool getConnected(vector<bool>& atoms, const TAtm *theAtom,
             const TAtm* lastAtom,

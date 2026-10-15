@@ -59,6 +59,25 @@ def main():
                   % (name, len(a), worst, "agree" if names else "DIFFER"))
             if worst > 0.006 or not names:
                 bad.append("%s: coordinates or names differ from gmx editconf" % name)
+        # a triclinic box: the CRYST1 cell must be the one gmx editconf writes
+        tri = os.path.join(tmp, "tri.gro")
+        lines = open(cases[0]).read().splitlines()
+        lines[-1] = "   3.00000   3.20000   3.40000   0.00000   0.00000   0.50000   0.00000   0.60000   0.70000"
+        open(tri, "w").write("\n".join(lines) + "\n")
+        ref = os.path.join(tmp, "tri_ref.pdb")
+        subprocess.run([gmx, "editconf", "-f", tri, "-o", ref], check=True,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        mine = subprocess.run([conv, tri], stdout=subprocess.PIPE, check=True).stdout.decode()
+
+        def cell(text):
+            for line in text.splitlines():
+                if line.startswith("CRYST1"):
+                    return [float(x) for x in line[6:54].split()]
+            return None
+        c1, c2 = cell(open(ref).read()), cell(mine)
+        print("triclinic CRYST1: gmx %s, ours %s" % (c1, c2))
+        if not c1 or not c2 or max(abs(x - y) for x, y in zip(c1, c2)) > 0.01:
+            bad.append("triclinic box: CRYST1 differs from gmx editconf")
         # a file that is not a .gro is refused with a reason
         junk = os.path.join(tmp, "junk.gro")
         open(junk, "w").write("title\nnot a number\n")

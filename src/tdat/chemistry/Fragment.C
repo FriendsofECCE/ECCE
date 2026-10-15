@@ -4942,6 +4942,42 @@ bool Fragment::restoreGRO(istream& infile, bool genBonds)
   return true;
 }
 
+// Counterpart of restoreGRO: nm, residues from the fragment, the lattice
+// as the box (always the 9-value form, which covers the orthorhombic case).
+bool Fragment::dumpGRO(ostream& out)
+{
+  char buf[200];
+  out << (p_name.empty() ? "ECCE structure" : p_name) << "\n";
+  out << numAtoms() << "\n";
+  for (int i = 0; i < numAtoms(); i++) {
+    TAtm *atom = atomRef(i);
+    Residue *res = atom->getResidue();
+    string rn = res ? res->name() : string("UNK");
+    int rnum = res ? res->number() : 1;
+    string an = atom->atomName();
+    if (an.empty()) an = atom->atomicSymbol();
+    const double *c = atom->coordinates();
+    snprintf(buf, sizeof(buf), "%5d%-5.5s%5.5s%5d%8.3f%8.3f%8.3f",
+             rnum % 100000, STLUtil::trim(rn).c_str(),
+             STLUtil::trim(an).c_str(), (i + 1) % 100000,
+             c[0]/10.0, c[1]/10.0, c[2]/10.0);
+    out << buf << "\n";
+  }
+  LatticeDef *lat = getLattice();
+  if (lat) {
+    vector<MPoint> *v = lat->toVectors();
+    MPoint a = (*v)[0], b = (*v)[1], c = (*v)[2];
+    delete v;
+    snprintf(buf, sizeof(buf), "%10.5f%10.5f%10.5f%10.5f%10.5f%10.5f%10.5f%10.5f%10.5f",
+             a.x()/10, b.y()/10, c.z()/10, a.y()/10, a.z()/10,
+             b.x()/10, b.z()/10, c.x()/10, c.y()/10);
+  } else {
+    snprintf(buf, sizeof(buf), "%10.5f%10.5f%10.5f", 0.0, 0.0, 0.0);
+  }
+  out << buf << "\n";
+  return out.good();
+}
+
 //////////////////////////////////////////////////////////////////////////
 //  Routine for generating a PDB file
 //////////////////////////////////////////////////////////////////////////
