@@ -389,6 +389,8 @@ bool GromacsInputsPanel::attachFile(Kind kind, const string& path,
     if (t != 0 && frag.restorePDB(pin, 1.0, true, 1, " ", true, false, " ")) {
       t->fragment(&frag);
     }
+    if (p_owner)
+      p_owner->gromacsStructureAttached(pdb.find("CRYST1") != string::npos);
     char buf[200];
     snprintf(buf, sizeof(buf), "Attached %s: %d atoms.", tailOf(path).c_str(),
              natoms);

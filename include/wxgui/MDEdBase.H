@@ -90,6 +90,8 @@ class MDEdBase: public MDEdBaseGUI,
 
       /** The GROMACS inputs (topology, structure) changed: recheck Launch. */
       void gromacsInputsChanged();
+      /** A structure was attached; one with a cell defaults to periodic molecules. */
+      void gromacsStructureAttached(bool hasCell);
 
       /**
        * ECCE_TEST_MDED=<dir>: commands appended to <dir>/<tool>.cmd are run
