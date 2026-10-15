@@ -294,7 +294,8 @@ def run_tests(work):
     check(len(vals(got, "TEVEC")) <= len(got["GEOMTRACE"]), "TEVEC is no longer than GEOMTRACE")
 
     print("(b) NiO, U on Ni 3d, %s" % ("lda_plus_u form" if ver[:2] < (7, 1) else "HUBBARD card"))
-    legacy = ["ES.Theory.PW.HubbardSyntax: QE 6.x to 7.0 (lda_plus_u keywords)"] if ver[:2] < (7, 1) else []
+    legacy = (["ES.Theory.PW.HubbardSyntax: QE 6.x to 7.0 (lda_plus_u keywords)"] if ver[:2] < (7, 1)
+              else ["ES.Theory.PW.HubbardSyntax: QE 7.1 or later (HUBBARD card)"])
     base = SMALL + ["ES.Theory.PW.EcutWfc: 30.0", "ES.Theory.PW.Occupations: Smearing (metal)",
                     "ES.Theory.PW.SpinType: Unrestricted", "ES.Theory.PW.StartingMagnetization: 0.5",
                     "ES.Theory.PW.MixingBeta: 0.3", "ES.Theory.PW.ConvergenceEnergy: 1e-7"] + K222
@@ -316,7 +317,9 @@ def run_tests(work):
     check(hub and near(vals(g4, "EHUBBARD")[-1:], [hub[-1] * RY], 1e-8),
           "EHUBBARD equals the Hubbard energy pw.x printed (%s Ry)" % (hub[-1:] or "none"))
     check("Hubbard energy" not in o0 and "EHUBBARD" not in g0, "U = 0: no Hubbard energy printed, none parsed")
-    check("enter write_ns" in o4 and re.search(r"Tr\[ns\(na\)\]", o4), "pw.x printed the Hubbard occupations")
+    # 6.x prints "enter write_ns ... Tr[ns(na)]", 7.x "HUBBARD OCCUPATIONS".
+    check(("enter write_ns" in o4 and re.search(r"Tr\[ns\(na\)\]", o4))
+          or "HUBBARD OCCUPATIONS" in o4, "pw.x printed the Hubbard occupations")
     check(re.search(r"Simplified LDA\+U|DFT\+U|Hubbard", o4) and
           re.search(r"U\s*=?\s*4\.0|Hubbard_U\s*\(eV\)|\s4\.0000", o4), "pw.x echoes U = 4.0 eV")
 
@@ -335,7 +338,7 @@ def run_tests(work):
     for label, rx in (("Grimme D2", r"Dispersion Correction\s+=\s+(\S+) Ry"),
                       ("Grimme D3 (zero damping)", r"DFT-D3 Dispersion\s+=\s+(\S+) Ry"),
                       ("Grimme D3 (Becke-Johnson damping)", r"DFT-D3 Dispersion\s+=\s+(\S+) Ry"),
-                      ("Tkatchenko-Scheffler", r"Dispersion T-S Correction\s+=\s+(\S+) Ry")):
+                      ("Tkatchenko-Scheffler", r"Dispersion (?:T-S )?Correction\s+=\s+(\S+) Ry")):
         out, g = runs[label]
         printed = floats(rx, out)
         te = floats(r"^!\s+total energy\s+=\s+(\S+) Ry", out)[-1]

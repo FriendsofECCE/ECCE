@@ -24,3 +24,11 @@ The dialog is never told the elements, so the U rows are typed (element,
 orbital, U); `ai.qe` ignores a row whose element is not in the structure,
 with a note on stderr. `verifyinput` warns (UNSURE, never BAD) when a
 transition metal has U and `nspin` is not 2.
+
+pw.x 7.5 refuses the old keywords loudly ("DFT+Hubbard input syntax has
+changed since v7.1"); 6.7 ignores a HUBBARD card silently. 7.x also prints
+the occupations under "HUBBARD OCCUPATIONS" (6.x: "enter write_ns") and
+Tkatchenko-Scheffler as plain "Dispersion Correction" (6.x: "Dispersion T-S
+Correction"). tests/qe_features passes against both (a serial 7.5 build is
+in /opt/QE/qe-7.5/build/bin on niobium). The form should follow the
+machine's pw.x version, not a dialog choice.
