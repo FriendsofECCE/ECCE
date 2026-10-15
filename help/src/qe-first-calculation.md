@@ -309,10 +309,11 @@ dynamics).
   rescaling instead rescales when the temperature is off by more than the
   given number of kelvin.
 
-In the Viewer, the Geometry Trace panel animates the trajectory and plots the
-temperature, the kinetic energy, the potential energy and the total energy
-(kinetic plus potential, which a run without a thermostat conserves) against
-the step. The energies belong to the state that the forces were computed at,
+In the Viewer, the Geometry Trace panel animates the trajectory. Its plot
+shows one quantity against the step; choose it in **Y-Axis** at the bottom of
+the panel: `Temperature Vector`, `Kinetic Energy Vector`, `Potential Energy
+Vector` or `Total Energy Vector` (kinetic plus potential, which a run without
+a thermostat conserves). The energies belong to the state that the forces were computed at,
 which is one step before the positions drawn with them. The Organizer shows
 the step count while the job runs.
 
