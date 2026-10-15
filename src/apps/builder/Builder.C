@@ -539,7 +539,11 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   BuilderDockArt *art = new BuilderDockArt;
   art->setFoldedQuery([this](wxWindow *w) { return p_folded.count(w) > 0; });
   p_mgr.SetArtProvider(art);
-  p_mgr.Bind(wxEVT_AUI_PANE_BUTTON, &Builder::OnPaneButton, this);
+  //  On the frame, not the manager: wx 3.3 binds its own pin handler
+  //  (float the pane) to the frame, which sees the event first, so a
+  //  handler on the manager never ran and the fold button floated the
+  //  pane.  Bound after SetManagedWindow, ours runs before wx's.
+  Bind(wxEVT_AUI_PANE_BUTTON, &Builder::OnPaneButton, this);
   guardSashDrag();
 
   p_viewerEvtHandler = new ViewerEvtHandler(this);
@@ -6052,6 +6056,7 @@ void Builder::updatePropertyMenus()
             w[0] == "fragdump" || w[0] == "panelmode" ||
             w[0] == "toolmenu" || w[0] == "paneclose" ||
             w[0] == "panestate" || w[0] == "panefold" ||
+            w[0] == "foldclick" ||
             w[0] == "sashdrag" || w[0] == "xshot" ||
             w[0] == "setcontext" || w[0] == "columntab" ||
             w[0] == "narrowcolumn" || w[0] == "toolfloat" || w[0] == "toolclip")
