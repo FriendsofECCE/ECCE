@@ -810,8 +810,11 @@ sub hubbardProjector {
 }
 
 sub hubbardLegacy {
+  # Unset means the old keywords: Debian 13 ships pw.x 6.7, which ignores a
+  # HUBBARD card with only a warning and runs without U.
   my $s = $AbiDict{"ES.Theory.PW.HubbardSyntax"};
-  return (defined($s) && $s =~ /lda_plus_u/) ? 1 : 0;
+  return 1 if (!defined($s) || $s eq "");
+  return ($s =~ /lda_plus_u/) ? 1 : 0;
 }
 
 # QE before 7.1: pw.x picks the Hubbard orbital from the element

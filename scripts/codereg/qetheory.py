@@ -509,7 +509,7 @@ class QeTheoryPanel(EccePanel):
         self.hubbardSyntax = EcceComboBox(self,
                                           choices=hubSyntaxChoice,
                                           name="ES.Theory.PW.HubbardSyntax",
-                                          default=0,
+                                          default=1,
                                           label="Input for:",
                                           export=1)
         hubSizer.AddWidget(self.hubbardSyntax)

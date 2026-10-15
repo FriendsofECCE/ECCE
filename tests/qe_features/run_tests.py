@@ -172,7 +172,12 @@ def deck_tests():
                  "ES.Theory.PW.HubbardOrbital2: 2p", "ES.Theory.PW.HubbardU2: 1.0",
                  "ES.Theory.PW.HubbardElement3: Fe", "ES.Theory.PW.HubbardU3: 3.0",
                  "ES.Theory.PW.SpinType: Unrestricted"]
-    text, err = deck(NIO, "Energy", u)
+    # Unset syntax gives the pre-7.1 keywords (Debian's pw.x is 6.7).
+    text, _ = deck(NIO, "Energy", u)
+    check("lda_plus_u" in text and "HUBBARD" not in text,
+          "default (unset) syntax writes lda_plus_u, not the HUBBARD card")
+    card = ["ES.Theory.PW.HubbardSyntax: QE 7.1 or later (HUBBARD card)"]
+    text, err = deck(NIO, "Energy", u + card)
     m = re.search(r"^HUBBARD \{ortho-atomic\}\n  U Ni-3d 4.5\n  U O-2p 1.0\n", text, re.M)
     check(m and "Fe" not in text.split("HUBBARD")[1] and "lda_plus_u" not in text,
           "QE 7.1 syntax: HUBBARD {ortho-atomic} card, U Ni-3d 4.5 and U O-2p 1.0")
@@ -180,7 +185,7 @@ def deck_tests():
           "a row for an element not in the structure is ignored with a note")
     f = verify(text, "u.pwin")
     check(has(f, "GOOD", "hubbard") and not has(f, "UNSURE", "hubbard"), "Verify marks the HUBBARD card as checked")
-    text, _ = deck(NIO, "Energy", u + ["ES.Theory.PW.HubbardProjector: Atomic"])
+    text, _ = deck(NIO, "Energy", u + card + ["ES.Theory.PW.HubbardProjector: Atomic"])
     check("HUBBARD {atomic}" in text, "projector Atomic -> HUBBARD {atomic}")
     text, _ = deck(NIO, "Energy", u + ["ES.Theory.PW.HubbardSyntax: QE 6.x to 7.0 (lda_plus_u keywords)"])
     sysn = namelist(text, "SYSTEM")
