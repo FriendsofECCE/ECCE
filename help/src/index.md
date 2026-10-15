@@ -25,6 +25,11 @@ the second page.
    attach to a bug report. See
    [Installation](installation.md#reporting-a-problem).
 
+If something does not work, choose **Help > Report a Problem...**. It builds
+a zip file with the ECCE version, your system and the ECCE logs. Attach the
+zip to a new issue at <https://github.com/FriendsofECCE/ECCE/issues> and
+describe what you did and what happened.
+
 1. [Installation](installation.md): which packages to install, and what you
    see when you start ECCE for the first time.
 2. [Importing a structure](importing-a-structure.md): open a structure file
@@ -37,7 +42,8 @@ the second page.
 4. [Machines](machines.md): where calculations run, and how to tell ECCE
    where a code is installed.
 5. [Your first calculation](first-calculation.md): a geometry optimisation
-   of water with NWChem, from a new project to the results.
+   of water with NWChem, from a new project to the results; also the
+   plane-wave (NWPW) theories PSPW and BAND of NWChem.
 6. [Your first Quantum ESPRESSO calculation](qe-first-calculation.md): bulk
    silicon and a water molecule in a box, with a periodic cell, plane waves
    and pseudopotentials.

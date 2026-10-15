@@ -57,6 +57,7 @@ const wxWindowID CalcMgrGUI::ID_SPLITTERWINDOW = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_MANAGE_BOOKMARK = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_SORT_DATE_REV = wxNewId();
 const wxWindowID CalcMgrGUI::ID_MENU_SUPPORT = wxNewId();
+const wxWindowID CalcMgrGUI::ID_MENU_RUNNING_CODES = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_CONFIGURE_NWFS_ARCHIVE = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_SORT_NAME = wxNewId();
 const wxWindowID CalcMgrGUI::ID_TREECTRL = wxNewId();
@@ -150,6 +151,8 @@ BEGIN_EVENT_TABLE( CalcMgrGUI, ewxFrame )
     EVT_MENU( wxID_HELP, CalcMgrGUI::OnHelpClick )
 
     EVT_MENU( ID_MENU_SUPPORT, CalcMgrGUI::OnMenuSupportClick )
+
+    EVT_MENU( ID_MENU_RUNNING_CODES, CalcMgrGUI::OnRunningCodesClick )
 
     EVT_MENU( wxID_TEST_SUITE, CalcMgrGUI::OnTestSuiteClick )
 
@@ -324,6 +327,7 @@ void CalcMgrGUI::CreateControls()
     menuBar->Append(itemMenu53, _("&Tools"));
     wxMenu* itemMenu54 = new wxMenu;
     itemMenu54->Append(wxID_HELP, _("ECCE &Help\tCtrl+H"), _T(""), wxITEM_NORMAL);
+    itemMenu54->Append(ID_MENU_RUNNING_CODES, _("Running Codes on This Computer"), _T(""), wxITEM_NORMAL);
     itemMenu54->Append(ewxApp::ID_REPORT_PROBLEM, _("Report a Problem..."), _T(""), wxITEM_NORMAL);
     itemMenu54->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu54, _("&Help"));
@@ -681,6 +685,11 @@ void CalcMgrGUI::OnHelpClick( wxCommandEvent& event )
     // Before editing this code, remove the block markers.
     event.Skip();
 ////@end wxEVT_COMMAND_MENU_SELECTED event handler for wxID_HELP in CalcMgrGUI. 
+}
+
+void CalcMgrGUI::OnRunningCodesClick( wxCommandEvent& event )
+{
+    event.Skip();
 }
 
 /*!

@@ -219,6 +219,9 @@ public:
   void OnHelpClick( wxCommandEvent& event );
   void OnPreferencesClick( wxCommandEvent& event );
 
+  /// Help > Running Codes on This Computer
+  void OnRunningCodesClick( wxCommandEvent& event );
+
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_MENU_SUPPORT
   void OnMenuSupportClick( wxCommandEvent& event );
 
