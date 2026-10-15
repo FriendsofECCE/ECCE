@@ -97,6 +97,13 @@ int main()
   vector<JobProgress::Block> rb = r.running(0);
   check(rb.size() == 1 && rb[0].title == "Molecular dynamics" && rb[0].bar &&
         has(rb[0].lines, "step 100 of 500"), "a step-counted run (GROMACS)");
+  {
+    JobProgress md;
+    md.parse("# seq=1\nmd point=5/5\nopt converged=no\n");
+    vector<string> ms = md.summary(true);
+    check(ms.size() == 1 && !has(ms, "Optimisation not converged after  steps"),
+          "an md run is not reported as an unconverged optimisation");
+  }
   r.parse("# seq=6\nsteep point=4/200 converged=yes\n");
   check(has(r.summary(true), "Minimisation converged in 4 steps"),
         "minimisation summary");
