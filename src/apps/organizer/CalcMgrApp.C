@@ -179,7 +179,9 @@ bool CalcMgrApp::OnInit()
   subscribe("ecce_identify", (wxJmsCBFunc)&CalcMgrApp::identifyMCB);
   
   // Preference Messages
-  subscribe("ecce_preferences_misc", (wxJmsCBFunc)&CalcMgrApp::miscPrefChangeMCB);
+  // Not filtered: the Organizer's own Preferences dialog publishes it too.
+  subscribe("ecce_preferences_misc", (wxJmsCBFunc)&CalcMgrApp::miscPrefChangeMCB,
+            false);
 
   //  startup status Messages
   subscribe("ecce_invoke", (wxJmsCBFunc)&CalcMgrApp::invokeMCB);

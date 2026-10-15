@@ -914,6 +914,35 @@ void CalcMgr::runTestCommand(const string& line)
                 r, (ResourceDescriptor::RUNSTATE)WxState::OUT_OF_CONTACT)) +
             " outOfContact=" + (outOfContact(r, lastHeard) ? "1" : "0");
       }
+    } else if (command == "iconstyle") {
+      // "iconstyle flat|shaded": what Preferences > Colours does, message
+      // included, then two seconds for the message to come back.
+      Preferences prefs(PrefLabels::GLOBALPREFFILE);
+      prefs.setString(PrefLabels::STATEICONSTYLE, calcName);
+      prefs.saveFile();
+      WxState::refreshStyle();
+      JMSMessage *msg = newMessage();
+      publish("ecce_preferences_misc", *msg);
+      delete msg;
+      for (int i = 0; i < 40; i++) { wxYield(); wxMilliSleep(50); }
+      outcome = "ok";
+    } else if (command == "treeicon") {
+      // "treeicon <url>": a checksum of the pixels of the tree icon shown.
+      WxResourceTreeItemData *node = p_treeCtrl->findNode(EcceURL(calcName),
+                                                          true, true);
+      wxImageList *list = p_treeCtrl->GetImageList();
+      if (!node || !list) {
+        outcome = "no node";
+      } else {
+        wxImage img = list->GetBitmap(
+            p_treeCtrl->GetItemImage(node->GetId())).ConvertToImage();
+        unsigned long sum = 0;
+        const size_t n = (size_t)img.GetWidth() * img.GetHeight();
+        for (size_t i = 0; i < 3 * n; i++) sum = sum * 31 + img.GetData()[i];
+        if (img.HasAlpha())
+          for (size_t i = 0; i < n; i++) sum = sum * 31 + img.GetAlpha()[i];
+        outcome = "sum=" + std::to_string(sum);
+      }
     } else if (command == "size") {
       int w = 0, h = 0;
       std::istringstream(calcName) >> w >> h;
