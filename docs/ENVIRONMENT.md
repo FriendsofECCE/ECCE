@@ -107,8 +107,8 @@ It makes `~/ecce-bug-<time>/` (under `ECCE_REALUSERHOME`), exports it as
 - `ECCE_RCOM_LOGMODE`, `ECCE_JOB_LOGMODE=yes,yes` (keep the job logs),
   `ECCE_JOB_LOGALL`, `ECCE_AI_DEBUG=1`, `ECCE_DEBUG_PANELS`,
   `ECCE_DEBUG_GL_VISUAL`, `ECCE_DEBUG_MACHNOTICE`;
-- `ECCE_DEBUG_MOSYM_LOG` and `ECCE_DEBUG_AUTHPARENT`, pointed at files in
-  `ECCE_BUG_DIR`.
+- `ECCE_DEBUG_MOSYM_LOG`, `ECCE_DEBUG_AUTHPARENT` and `ECCE_DEBUG_MODAL`,
+  pointed at files in `ECCE_BUG_DIR`.
 
 Left out on purpose: `ECCE_DAV_DEBUG` (always writes to `/tmp/davtraffic`
 and includes the `Authorization` header, which holds the password),
@@ -157,6 +157,7 @@ started `ecce`; use the variables that take a file where there is one.
 | `ECCE_DEBUG_MACHNOTICE` | Print whether the Organizer's "no machines registered" notice is shown. | Set to enable. |
 | `ECCE_DEBUG_AUTHPARENT` | Log each authentication prompt and its parent window to this file. | File path. |
 | `ECCE_DEBUG_SASH` | The Builder reports on stderr each time it releases a mouse capture a pane-sash drag left behind. | Set to enable. |
+| `ECCE_DEBUG_MODAL` | Log every modal dialog to this file: the busy cursor and parent window it was opened under, whether it got focus, and (GTK) each key, scroll and click it received with its repaint count. | File path. |
 | `ECCE_NWDIRDY_DEBUG` | The reaction-rate editor prints its general theory data. | Set to enable. |
 | `ECCE_BUG` | Same as `ecce --bug`: see above. | Set and not `0`. |
 | `ECCE_BUG_DIR` | Set by bug mode to the folder collecting the report. | Do not set. |
@@ -192,7 +193,7 @@ These are CMake options, not environment variables: `ECCE_HOME_DIR`
 | `HOST` | The launchers default it to `hostname`; the host part of the session key (see `ECCE_HOST`). |
 | `DISPLAY` | The X display, and nothing else: it does not identify the session (#233). The Linux launchers default it to `:0`. |
 | `GDK_BACKEND` | The launchers set it to `x11` under a Wayland session unless already set, to avoid mis-sized windows. |
-| `GTK_IM_MODULE` | The Linux launchers set it to `gtk-im-context-simple` under a Wayland session unless already set, so that typed text shows as it is typed. Set it to use another input method. |
+| `GTK_IM_MODULE` | The Linux launchers set it to `gtk-im-context-simple` under a Wayland session unless already set, so that typed text shows as it is typed; with that value they also clear `XMODIFIERS`. Set it to use another input method. |
 
 ## Keys in `site_runtime` that nothing in this build reads
 

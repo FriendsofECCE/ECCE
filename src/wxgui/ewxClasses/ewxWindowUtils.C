@@ -96,6 +96,18 @@ wxRect ewxToolRect(wxToolBar *bar, int toolId)
 }
 
 
+void ewxPopupMenu(wxWindow *win, wxMenu &menu)
+{
+  const int id = win->GetPopupMenuSelectionFromUser(menu);
+  if (id == wxID_NONE) return;
+  wxCommandEvent ev(wxEVT_MENU, id);
+  ev.SetEventObject(&menu);
+  wxMenuItem *item = menu.FindItem(id);
+  if (item && item->IsCheckable()) ev.SetInt(item->IsChecked() ? 1 : 0);
+  win->GetEventHandler()->ProcessEvent(ev);
+}
+
+
 void ewxRaiseWindow(wxWindow *win)
 {
   if (win == NULL) return;

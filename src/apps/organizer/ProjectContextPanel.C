@@ -19,6 +19,7 @@
 #include "dsm/ResourceProperty.H"
 #include "dsm/GridProperty.H"
 
+#include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxPanel.H"
 #include "wxgui/ewxStyledWindow.H"
 #include "wxgui/WxResourceTreeItemData.H"
@@ -501,7 +502,7 @@ void ProjectContextPanel::gridCellRightClick(wxGridEvent& event)
     getContextMenu(menu);
     menu.AppendSeparator();
     p_projectView->getGrid()->getContextMenu(menu);
-    PopupMenu(&menu);
+    ewxPopupMenu(this, menu);
   }
 }
 

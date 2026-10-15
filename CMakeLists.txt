@@ -1362,6 +1362,11 @@ if [ \"\$XDG_SESSION_TYPE\" = \"wayland\" ]; then
   # Under XWayland, IBus holds typed text unshown until Enter in GTK3
   # entries; GTK's own input method draws it.  A user's choice stands.
   export GTK_IM_MODULE=\${GTK_IM_MODULE:-gtk-im-context-simple}
+  # XMODIFIERS=@im=ibus still kept typed text undrawn with it (GNOME on
+  # Wayland, Debian 13); the simple method needs no X input method.
+  if [ \"\$GTK_IM_MODULE\" = gtk-im-context-simple ]; then
+    unset XMODIFIERS
+  fi
 fi
 export PATH=\"$ECCE_HOME/scripts:$ECCE_HOME/scripts/parsers:$PATH\"
 # THE CENTRAL-SERVER MODEL.  ECCE was originally deployed with one
@@ -2261,6 +2266,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/organizer_close_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_organizer_close PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # Modal dialogs are shown without the busy cursor and presented
+  # (ewxModalGuard); ECCE_DEBUG_MODAL.
+  add_test(NAME apps_modal_guard
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/modal_guard_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_modal_guard PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # The project table's Progress column (#284): stored and live snapshots.
   add_test(NAME apps_progress_table

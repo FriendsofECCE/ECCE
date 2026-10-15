@@ -26,6 +26,7 @@
 #include "wxgui/ewxWindowUtils.H"
 #include <wx/filefn.h>
 #include "wxgui/ewxApp.H"
+#include "wxgui/ewxModalGuard.H"
 #include "wxgui/ewxReportProblem.H"
 #include "wxgui/ewxBitmap.H"
 
@@ -167,6 +168,7 @@ bool ewxApp::OnInit()
 #endif
 
    applyBackdropStyle();
+   ewxModalGuard::install();
 
    wxInitAllImageHandlers();
 
