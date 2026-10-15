@@ -125,6 +125,19 @@ string waterBoxXyz(string& err)
   return o.str();
 }
 
+//  ~10k-atom Si/O lattice (bonded at 1.65 A) standing in for a clay system.
+string clayXyz()
+{
+  std::ostringstream o;
+  const int nx = 22, ny = 22, nz = 21;
+  o << nx * ny * nz << "\nlattice\n";
+  for (int i = 0; i < nx; i++) for (int j = 0; j < ny; j++)
+    for (int k = 0; k < nz; k++)
+      o << (((i + j + k) % 2) ? "O " : "Si ") << i * 1.65 << " " << j * 1.65
+        << " " << k * 1.65 << "\n";
+  return o.str();
+}
+
 struct Config {
   string system;
   string style;      //  DisplayStyle name, as in the Builder's style menu
@@ -215,6 +228,15 @@ SingleGrid *syntheticPiGrid()
 }  // namespace
 
 
+//  Lets the benchmark press and release the viewer the way a mouse drag does.
+class BenchViewer : public SGViewer
+{
+public:
+  BenchViewer(wxWindow *p, wxWindowID id) : SGViewer(p, id) {}
+  void press() { interactiveCountInc(); }
+  void release() { interactiveCountDec(); }
+};
+
 class BenchApp : public wxApp
 {
 public:
@@ -229,7 +251,7 @@ private:
   string xyzFor(const string &sys, string &err);
 
   wxFrame *p_frame;
-  SGViewer *p_viewer;
+  BenchViewer *p_viewer;
   SGContainerManager *p_mgr;
   SGContainer *p_sg;
   wxGLCanvas *p_canvas;
@@ -259,7 +281,7 @@ bool BenchApp::OnInit()
 
   p_mgr = new SGContainerManager();
   p_mgr->ref();
-  p_viewer = new SGViewer(p_frame, wxID_ANY);
+  p_viewer = new BenchViewer(p_frame, wxID_ANY);
   p_viewer->setText("", "", "", "");
   p_viewer->setSceneGraph(p_mgr);
   p_viewer->setViewing(false);
@@ -282,6 +304,7 @@ string BenchApp::xyzFor(const string &sys, string &err)
   if (sys == "water") return waterXyz();
   if (sys == "benzene") return benzeneXyz();
   if (sys == "Cr(CO)6") return crco6Xyz();
+  if (sys == "clay") return clayXyz();
   return waterBoxXyz(err);
 }
 
@@ -332,6 +355,9 @@ bool BenchApp::measure(const Config &c, bool caching, int warm, int frames,
                        double budget, Result &r)
 {
   setCaching(p_viewer->getTopNode(), caching);
+  //  BENCH_DRAG=1: time the frames of a drag (press ... release).
+  const bool drag = getenv("BENCH_DRAG") != 0;
+  if (drag) p_viewer->press();
   const SbRotation step(SbVec3f(0, 1, 0), 2.0f * (float)M_PI / frames);
 
   vector<double> ms;
@@ -350,6 +376,16 @@ bool BenchApp::measure(const Config &c, bool caching, int warm, int frames,
           std::chrono::duration<double>(b - t0).count() > budget)
         break;
     }
+  }
+  if (drag) {
+    //  The frame drawn on release should be back at full quality.
+    p_viewer->release();
+    Clock::time_point a = Clock::now();
+    p_canvas->Refresh(false);
+    p_canvas->Update();
+    glFinish();
+    printf("first frame after release: %.1f ms\n",
+           std::chrono::duration<double, std::milli>(Clock::now() - a).count());
   }
   if (ms.empty()) return false;
 
@@ -447,7 +483,7 @@ int BenchApp::OnRun()
     std::istringstream ss(only);
     string st;
     while (std::getline(ss, st, ','))
-      if (!st.empty()) todo.push_back(Config{"water box", st, false});
+      if (!st.empty()) todo.push_back(Config{getenv("BENCH_SYSTEM") ? getenv("BENCH_SYSTEM") : "water box", st, false});
   }
 
   vector<Result> results;

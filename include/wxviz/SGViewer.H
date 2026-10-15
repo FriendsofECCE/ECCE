@@ -17,6 +17,7 @@ using std::stack;
 using std::vector;
 
 class SoCallback;
+class ChemDisplayParam;
 class RTDraggerNode;
 class SGSelection;
 class VR3dXVSmouse;
@@ -144,6 +145,16 @@ protected:
   void restoreCursor();
 
   float p_twist, p_azimuth, p_elevation;
+
+  // Sphere/cylinder tessellation of large systems while the user drags
+  // (moiv ignores SoComplexity, so the viewer's draw style does not reach it).
+  struct DragLodSaved {
+    ChemDisplayParam *cdp;
+    float sphere, cylinder;
+  };
+  vector<DragLodSaved> p_dragLod;
+  static void dragLodStartCB(void *, SoWxViewer *v);
+  static void dragLodFinishCB(void *, SoWxViewer *v);
 };
 
 #endif
