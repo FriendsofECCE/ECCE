@@ -234,6 +234,14 @@ calculation:
 A geometry optimisation that has reached a minimum has no imaginary
 frequencies.
 
+## Plane-wave calculations (NWPW)
+
+NWChem's plane-wave module, NWPW, has no code of its own in the list of
+codes. Choose it in the **Theory:** list of an NWChem calculation: **PSPW**
+or **BAND**. Neither needs a basis set. Car-Parrinello
+molecular dynamics is a run type of **PSPW**; choose it in **Runtype:**
+after you have chosen **PSPW**.
+
 ## Where next
 
 Change the theory to `RDFT`, or the basis set to `cc-pVTZ`, and compare the

@@ -768,6 +768,23 @@ void CalcMgr::runTestCommand(const string& line)
             outcome += " item=" + string(it->GetItemLabel().ToUTF8());
         }
       }
+    } else if (command == "helpmenu") {
+      // "helpmenu": the Help menu's labels, and the page that Help >
+      // Running Codes on This Computer opens and whether it is installed.
+      wxMenuBar *mb = GetMenuBar();
+      wxMenu *hm = mb->GetMenu(mb->FindMenu(_("&Help")));
+      outcome = "ok";
+      for (size_t i = 0; i < hm->GetMenuItemCount(); i++) {
+        wxMenuItem *it = hm->FindItemByPosition(i);
+        if (!it->IsSeparator())
+          outcome += " item=" + string(it->GetItemLabelText().ToUTF8());
+      }
+      string page = WxHelpViewer::pageForKey("RunningCodes");
+      string dir = WxHelpViewer::helpDir();
+      outcome += " page=" + page + " installed=" +
+                 (access((dir + "/index.html").c_str(), R_OK) != 0 ? "no" :
+                  access((dir + "/" + page).c_str(), R_OK) == 0 ? "yes" :
+                  "missing");
     } else if (command == "toolsclick") {
       // "toolsclick <label>": choose that item of the Tools menu for the
       // current selection; the launch it sends is traced by startApp.
@@ -1577,6 +1594,12 @@ void CalcMgr::OnContextMenu( wxContextMenuEvent& event )
 void CalcMgr::OnHelpClick( wxCommandEvent& event )
 {
   WxHelpViewer::showKey("Organizer");
+}
+
+
+void CalcMgr::OnRunningCodesClick( wxCommandEvent& event )
+{
+  WxHelpViewer::showKey("RunningCodes");
 }
 
 

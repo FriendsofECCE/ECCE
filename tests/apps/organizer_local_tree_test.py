@@ -19,6 +19,8 @@ one the data layout gives.  The Organizer's ECCE_TEST_ORGANIZER hook runs:
   toolsmenu  the Tools menu of a calculation starts with "For water:"; with
              the root selected it is the global tools and "Builder", which
              sends the same launch as File > New Structure
+  helpmenu   the Help menu has "Running Codes on This Computer", which
+             opens running-codes-on-linux.html (present when help is installed)
 
 Same installed tree and isolation as run_tests.py (ECCE_TEST_HOME,
 ECCE_TEST_WRAPPERS).  Exit 77 (skip) without an install or Xvfb.
@@ -103,6 +105,7 @@ def run(display, data, work, shot):
         "home",
         "toolsmenu " + rootUrl,
         "toolsclick Builder",
+        "helpmenu",
     ]
     if shot:
         commands.append("snap " + shot)
@@ -118,8 +121,8 @@ def run(display, data, work, shot):
     if result.crashed:
         return fail(what, "CRASHED (%s)" % result.signalName, log)
     got = answers(log)
-    if len(got) < 19:
-        return fail(what, "%d of %d commands answered" % (len(got), 19), log)
+    if len(got) < 20:
+        return fail(what, "%d of %d commands answered" % (len(got), 20), log)
     problems = []
 
     tree = nodes(got[0][1])
@@ -184,6 +187,14 @@ def run(display, data, work, shot):
             r"ECCE_TEST_ORGANIZER: startApp Builder force=1 url=$", log, re.M):
         problems.append("Tools > Builder did not send the empty-Builder "
                         "launch: %s" % got[18][1])
+
+    # Help > Running Codes on This Computer opens this platform's page.
+    if "item=Running Codes on This Computer" not in got[19][1]:
+        problems.append("Help menu lacks Running Codes on This Computer: %s"
+                        % got[19][1])
+    if " page=running-codes-on-linux.html" not in got[19][1] or \
+            "installed=missing" in got[19][1]:
+        problems.append("Running Codes page: %s" % got[19][1])
 
     if problems:
         fail(what, "; ".join(problems), log)

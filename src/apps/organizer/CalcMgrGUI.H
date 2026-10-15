@@ -158,6 +158,9 @@ public:
     /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_HELP
     virtual    void OnHelpClick( wxCommandEvent& event );
 
+    /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENU_RUNNING_CODES
+    virtual    void OnRunningCodesClick( wxCommandEvent& event );
+
     /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENU_SUPPORT
     virtual    void OnMenuSupportClick( wxCommandEvent& event );
 
@@ -272,6 +275,7 @@ public:
     static const wxWindowID wxID_MANAGE_BOOKMARK;
     static const wxWindowID wxID_SORT_DATE_REV;
     static const wxWindowID ID_MENU_SUPPORT;
+    static const wxWindowID ID_MENU_RUNNING_CODES;
     static const wxWindowID wxID_CONFIGURE_NWFS_ARCHIVE;
     static const wxWindowID wxID_SORT_NAME;
     static const wxWindowID ID_TREECTRL;
