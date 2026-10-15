@@ -161,6 +161,7 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
     p_codeList = NULL;
     p_codeTitle = NULL;
     p_codeExample = NULL;
+    p_codeCheck = NULL;
     p_defAccount = NULL;
     p_setupNote = NULL;
     p_wrapupNote = NULL;
@@ -865,6 +866,14 @@ void WxMachineRegister::addCodeLine(wxWindow* page, wxFlexGridSizer* grid,
         });
         reg("code:find", find);
         row->Add(find, wxSizerFlags().Border(wxLEFT, 4).Top());
+        ewxButton* check = new ewxButton(page, wxID_ANY, "Check");
+        check->SetToolTip("Look in the program file on the machine for a "
+                          "sign that it is this code (the file is not run)");
+        check->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+            this->checkProgram();
+        });
+        reg("code:check-button", check);
+        row->Add(check, wxSizerFlags().Border(wxLEFT, 4).Top());
         ewxButton* browse = new ewxButton(page, wxID_ANY, "Browse...");
         browse->SetToolTip("Choose the program file on this computer");
         browse->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
@@ -879,6 +888,10 @@ void WxMachineRegister::addCodeLine(wxWindow* page, wxFlexGridSizer* grid,
             wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
         col->Add(p_codeExample, wxSizerFlags().Expand().Border(wxTOP, 2));
         reg("code:example", p_codeExample);
+        p_codeCheck = new wxStaticText(page, wxID_ANY, "");
+        p_codeCheck->SetFont(p_codeCheck->GetFont().Smaller());
+        col->Add(p_codeCheck, wxSizerFlags().Expand().Border(wxTOP, 2));
+        reg("code:check", p_codeCheck);
         grid->Add(col, wxSizerFlags(1).Expand().Border().CentreVertical());
         l.ctrl = p_codePaths.empty() ? NULL : p_codePaths[0];
     }
@@ -1759,6 +1772,19 @@ void WxMachineRegister::showProgramHelp()
         t += ".  " + h.note;
     p_codeExample->SetLabel(wxString::FromUTF8(t.c_str()));
     p_codeExample->Wrap(380);
+    showProgramCheck("");
+}
+
+
+//  The result of Check or Find under the Program box: a warning only.
+void WxMachineRegister::showProgramCheck(const string& text)
+{
+    if (p_codeCheck == NULL)
+        return;
+    p_codeCheckText = text;
+    p_codeCheck->SetLabel(wxString::FromUTF8(text.c_str()));
+    p_codeCheck->Wrap(380);
+    p_codeCheck->GetContainingSizer()->Layout();
 }
 
 

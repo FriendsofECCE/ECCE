@@ -16,6 +16,7 @@ SKIPs (77) without Xvfb or the machregister binary.
 
 import argparse
 import difflib
+import glob
 import hashlib
 import os
 import re
@@ -1705,6 +1706,38 @@ expect field code:quantumespresso %(pw)s
 quit
 """ % {"pw": pw}, extra=extra)
     clean(p, "Find runs the machine's login setup first")
+
+    #  Check looks for the code's signature in the file; it never runs it.
+    fake = os.path.join(dirs["c"], "orca")
+    write(fake, "#!/bin/sh\ntouch %s\n#ORCA_ signature\n"
+          % os.path.join(tmp, "was-run"), mode=0o755)
+    cases = """
+select stubm
+tab codes
+code ORCA
+check-program ORCA %(fake)s
+expect message 'check-program: confirmed'
+expect message 'Found ORCA at'
+check-program ORCA %(plain)s
+expect message 'check-program: unconfirmed'
+expect message 'does not look like ORCA (no ORCA signature in the file)'
+expect message 'If it is a wrapper script, this is expected.'
+check-program ORCA %(gone)s
+expect message 'check-program: notfound'
+expect message 'was not found or is not executable on'
+expect save-enabled 1
+""" % {"fake": fake, "plain": os.path.join(dirs["a"], "orca"),
+       "gone": os.path.join(tmp, "no-such-dir", "orca")}
+    real = sorted(glob.glob("/opt/orca/orca_*/orca"))
+    if real:
+        cases += "check-program ORCA %s\nexpect message 'check-program: confirmed'\n" % real[0]
+    if os.path.exists("/usr/bin/orca"):
+        #  The GNOME screen reader, where installed.
+        cases += "check-program ORCA /usr/bin/orca\nexpect message 'check-program: unconfirmed'\n"
+    p = run(display, build, e, cases + "quit\n", extra=extra)
+    clean(p, "Check: signature found, absent, no such file; save stays enabled")
+    check(not os.path.exists(os.path.join(tmp, "was-run")),
+          "Check does not run the program")
 
 
 def codes_pngs(tmp, display, build, out):

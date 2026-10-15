@@ -347,6 +347,21 @@ int MachRegScript::runCommand(const vector<string>& w)
     }
     else if (cmd == "choose" && n == 2)
         f->p_choices.push_back(atoi(w[1].c_str()));
+    else if (cmd == "check-program" && n == 3)
+    {
+        //  The Check button's handler on a typed path.
+        if (!f->selectCodeByName(w[1])) fail("code " + w[1] + ": not listed");
+        else
+        {
+            f->p_codePaths[f->p_codeSel]->SetValue(
+                wxString::FromUTF8(w[2].c_str()));
+            string st = f->checkProgram();
+            fprintf(stderr, "[MACHREG] check-program %s: %s\n", w[1].c_str(),
+                    st.c_str());
+            //  the label wraps its text, so the test reads it unwrapped from here
+            f->p_lastMessage = "check-program: " + st + ": " + f->p_codeCheckText;
+        }
+    }
     else if (cmd == "check-program-hints")
     {
         //  Every suggested path ends in a name `Find` would look for.

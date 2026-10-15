@@ -481,6 +481,44 @@ void WxMachineRegister::findProgram()
                 "the Connection tab; otherwise enter the path by hand.");
         return;
     }
+    //  Programs with the code's signature first; the others stay listed.
+    vector<bool> sure(found.size(), true);
+    string sureNote;
+    if (!h.signature.empty())
+    {
+        string out2;
+        bool ran2 = false;
+        runBusy(this, "Find program", "Checking what was found...", [&]() {
+            SchedulerQuery::Remote r(conn);
+            string e;
+            if (!r.open(e)) return;
+            vector<string> argv;
+            argv.push_back("sh");
+            argv.push_back("-c");
+            argv.push_back(SchedulerQuery::checkProgramsScript(h, found) +
+                           "exit 0\n");
+            ran2 = r.run(argv, out2, 60);
+        });
+        vector<SchedulerQuery::ProgramCheck> cs =
+            SchedulerQuery::parseChecks(out2);
+        if (ran2)
+        {
+            vector<string> first, later;
+            for (size_t i = 0; i < found.size(); i++)
+            {
+                bool ok = false;
+                for (size_t k = 0; k < cs.size(); k++)
+                    if (cs[k].path == found[i] && cs[k].state == "yes")
+                        ok = true;
+                (ok ? first : later).push_back(found[i]);
+            }
+            found = first;
+            found.insert(found.end(), later.begin(), later.end());
+            sure.assign(found.size(), false);
+            for (size_t i = 0; i < first.size(); i++)
+                sure[i] = true;
+        }
+    }
     string pick = found[0];
     if (found.size() > 1)
     {
@@ -504,7 +542,8 @@ void WxMachineRegister::findProgram()
         {
             wxArrayString items;
             for (size_t i = 0; i < found.size(); i++)
-                items.Add(wxString::FromUTF8(found[i].c_str()));
+                items.Add(wxString::FromUTF8((found[i] +
+                    (sure[i] ? "" : "  (not confirmed)")).c_str()));
             at = wxGetSingleChoiceIndex("Several programs were found on " +
                      machine + ". Which one is " + code + "?",
                      "Find program", items, 0, this);
@@ -512,6 +551,8 @@ void WxMachineRegister::findProgram()
                 return;
         }
         pick = found[at];
+        if (at != 0)
+            sure[0] = sure[at];
     }
     string now = stripped((string)field->GetValue());
     if (!now.empty() && now != pick &&
@@ -519,6 +560,88 @@ void WxMachineRegister::findProgram()
             wxYES_NO|wxNO_DEFAULT|wxICON_QUESTION, "Replace", "Keep", "") != wxID_YES)
         return;
     field->SetValue(wxString::FromUTF8(pick.c_str()));
+    showProgramCheck(sure[0] ? "Found " + code + " at " + pick + "." :
+        pick + " does not look like " + code + " (no " + code +
+        " signature in the file). If it is a wrapper script, this is "
+        "expected.");
+}
+
+
+//  Check: whether the typed path is a file on the machine with the code's
+//  signature.  Only reports; Save is never held back.  Returns the state
+//  ("confirmed", "unconfirmed", "notfound", "unchecked", "error").
+string WxMachineRegister::checkProgram()
+{
+    if (p_codeNames.empty())
+        return "error";
+    const string code = p_codeNames[p_codeSel];
+    string path = stripped((string)p_codePaths[p_codeSel]->GetValue());
+    string machine = stripped((string)p_fullName->GetValue());
+    if (path.empty())
+    {
+        showProgramCheck("Enter the program's path first.");
+        return "error";
+    }
+    if (machine.empty())
+    {
+        showProgramCheck("Enter the machine's host name on the Machine tab "
+                         "first.");
+        return "error";
+    }
+    SchedulerQuery::ProgramHelp h =
+        SchedulerQuery::programHelp(code, windowsPrograms());
+    SchedulerQuery::Connection conn = this->connection();
+    string output, err;
+    bool ran = false;
+    vector<string> paths(1, path);
+    runBusy(this, "Check program", "Looking in " + path + " on " + machine +
+            "...", [&]() {
+        SchedulerQuery::Remote r(conn);
+        string e;
+        if (!r.open(e)) { err = e; return; }
+        vector<string> argv;
+        argv.push_back("sh");
+        argv.push_back("-c");
+        argv.push_back(SchedulerQuery::checkProgramsScript(h, paths) +
+                       "exit 0\n");
+        ran = r.run(argv, output, 60);
+        if (!ran)
+            err = output;
+    });
+    vector<SchedulerQuery::ProgramCheck> cs = SchedulerQuery::parseChecks(output);
+    if (cs.empty())
+    {
+        showProgramCheck("Could not look on " + machine + ": " + err);
+        return "error";
+    }
+    const SchedulerQuery::ProgramCheck& c = cs[0];
+    string state, text;
+    if (c.state == "yes")
+    {
+        state = "confirmed";
+        text = "Found " + code + " at " + c.resolved + ".";
+    }
+    else if (c.state == "no")
+    {
+        state = "unconfirmed";
+        text = path + " exists but does not look like " + code + " (no " +
+               code + " signature in the file). If it is a wrapper script, "
+               "this is expected.";
+    }
+    else if (c.state == "found")
+    {
+        state = "unchecked";
+        text = path + " exists on " + machine + ", but " + code +
+               " has no signature to look for, so it was not checked.";
+    }
+    else
+    {
+        state = "notfound";
+        text = path + " was not found or is not executable on " + machine +
+               ".";
+    }
+    showProgramCheck(text);
+    return state;
 }
 
 
