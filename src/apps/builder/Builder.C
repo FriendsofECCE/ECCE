@@ -539,7 +539,8 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   art->setFoldedQuery([this](wxWindow *w) { return p_folded.count(w) > 0; });
   p_mgr.SetArtProvider(art);
   p_mgr.Bind(wxEVT_AUI_PANE_BUTTON, &Builder::OnPaneButton, this);
-  
+  guardSashDrag();
+
   p_viewerEvtHandler = new ViewerEvtHandler(this);
   p_viewerEvtHandler->connectToolKitFW(this);
   PushEventHandler(p_viewerEvtHandler);
@@ -5111,6 +5112,11 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
           pane.name == NAME_TOOL_LOG) {
         pane.PinButton(true);
       }
+      //  Saved when Open structures was a fixed pane, without a sash.
+      if (pane.name == NAME_TOOL_CONTEXT && !p_folded.count(pane.window)) {
+        pane.Resizable(true);
+        if (pane.dock_proportion <= 0) pane.dock_proportion = 1;
+      }
       //  A layout saved under an older build carries whatever flat
       //  min_size.x was in force when it was saved (e.g. the old flat
       //  200) -- LoadPaneInfo() just restored it verbatim, overriding
@@ -6020,7 +6026,8 @@ void Builder::updatePropertyMenus()
         if (w[0].compare(0, 3, "pbc") == 0 || w[0] == "cmd" ||
             w[0] == "fragdump" || w[0] == "panelmode" ||
             w[0] == "toolmenu" || w[0] == "paneclose" ||
-            w[0] == "panestate" || w[0] == "panefold" || w[0] == "xshot" ||
+            w[0] == "panestate" || w[0] == "panefold" ||
+            w[0] == "sashdrag" || w[0] == "xshot" ||
             w[0] == "setcontext" || w[0] == "columntab")
           return pbcTestCommand(s, w, outdir);
         //  "ptree <name>": the Properties list's highlighted entry beside
@@ -6513,13 +6520,12 @@ void Builder::addToolPanel(wxWindow *panel, const string& name,
     pinfo.MaximizeButton(false);
     //  Resizable, at a share of the column too small to take surplus, so a
     //  neighbour's sash can move past it; it keeps its content height as a
-    //  floor.  A fixed pane here stopped Build's sash at its edge (#293).
+    //  floor.  A fixed pane here stopped Build's sash at its edge (#293);
+    //  AUI gives a fixed pane no sash of its own.
+    pinfo.Resizable(true);
+    pinfo.dock_proportion = 1;
     if (name != NAME_TOOL_CONTEXT) {
-      pinfo.Resizable(true);
-      pinfo.dock_proportion = 1;
       p_contentFloored.insert(panel);
-    } else {
-      pinfo.Fixed();
     }
     //  The context pane is a list that scrolls: about three rows, see
     //  updateContextPane().

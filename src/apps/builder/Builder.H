@@ -481,6 +481,8 @@ class Builder: public BuilderGUI,
       void selectDetail(const string& name);
       void setDetail(wxWindow *win);
       void keepColumnWidth();
+      void guardSashDrag();
+      void endStuckSashDrag();
       void holdColumnWidth(bool apply);
       void ensureDetail();
       void accordionNormalize(wxWindow *keepOpen=0);
