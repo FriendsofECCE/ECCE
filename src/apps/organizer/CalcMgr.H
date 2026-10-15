@@ -273,6 +273,7 @@ public:
 
   void addRoot(const string& name, const string& url);
   WxFeedback * getFeedback();
+  void redrawStateIcons();
   void updateName(const EcceURL & oldUrl, const EcceURL & newUrl);
   void updateUrl(const EcceURL & url);
   void updateAddNode(const EcceURL & url);

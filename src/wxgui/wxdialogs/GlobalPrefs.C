@@ -94,7 +94,7 @@ namespace {
 GlobalPrefs::GlobalPrefs(wxWindow* parent)
   : p_publisher(NULL), p_book(NULL),
     p_fontSize(NULL), p_dateFormat(NULL),
-    p_timeFormat(NULL), p_unit(NULL), p_elementColours(NULL), p_systemFont(NULL), p_beepError(NULL), p_beepWarn(NULL),
+    p_timeFormat(NULL), p_unit(NULL), p_elementColours(NULL), p_stateIconStyle(NULL), p_systemFont(NULL), p_beepError(NULL), p_beepWarn(NULL),
     p_focus(NULL), p_quickTransp(NULL), p_ecceQmMoDiagram(NULL), p_updateCheck(NULL), p_updatePreviews(NULL), p_updateLocked(false), p_confirmExit(NULL), p_closeShells(NULL),
     p_savePasswords(NULL), p_showBusy(NULL), p_alwaysOnTop(NULL),
     p_leftClickNewApp(NULL), p_orientation(NULL),
@@ -340,6 +340,23 @@ void GlobalPrefs::createColoursPage(wxWindow* page)
         "thumbnails. An open Builder changes at once; other windows "
         "change when they are next opened.")), 0, wxLEFT|wxRIGHT|wxBOTTOM, PAD);
   outer->Add(box, 0, wxGROW|wxALL, PAD);
+
+  wxStaticBoxSizer* box2 = new wxStaticBoxSizer(wxVERTICAL, page, _("Run-state icons"));
+  wxWindow* sb2 = box2->GetStaticBox();
+  wxBoxSizer* row2 = new wxBoxSizer(wxHORIZONTAL);
+  row2->Add(new ewxStaticText(sb2, wxID_ANY, _("Style:")), 0,
+            wxALIGN_CENTER_VERTICAL|wxRIGHT, PAD);
+  p_stateIconStyle = new ewxChoice(sb2, wxID_ANY);
+  p_stateIconStyle->Append(_("Flat"));
+  p_stateIconStyle->Append(_("Shaded"));
+  p_stateIconStyle->Bind(wxEVT_CHOICE, &GlobalPrefs::OnStateIconStyle, this);
+  row2->Add(p_stateIconStyle, 0, wxALIGN_CENTER_VERTICAL);
+  box2->Add(row2, 0, wxALL, PAD);
+  box2->Add(new ewxStaticText(sb2, wxID_ANY,
+      _("The small state icons in the Organizer tree and legend. An open "
+        "Organizer changes at once; other windows change when they are "
+        "next opened.")), 0, wxLEFT|wxRIGHT|wxBOTTOM, PAD);
+  outer->Add(box2, 0, wxGROW|wxALL, PAD);
   page->SetSizer(outer);
 }
 
@@ -374,6 +391,17 @@ void GlobalPrefs::OnColourScheme(wxCommandEvent& event)
   TPerTab::applyColourScheme();
   JMSMessage * blankMsg = p_publisher->newMessage();
   p_publisher->publish("ecce_preferences_pertab", *blankMsg);
+  delete blankMsg;
+}
+
+
+// The Organizer subscribes to the misc message and redraws its tree.
+void GlobalPrefs::OnStateIconStyle(wxCommandEvent& event)
+{
+  saveSettings();
+  WxState::refreshStyle();
+  JMSMessage * blankMsg = p_publisher->newMessage();
+  p_publisher->publish("ecce_preferences_misc", *blankMsg);
   delete blankMsg;
 }
 
@@ -834,6 +862,7 @@ void GlobalPrefs::OnResetAll(wxCommandEvent& event)
     p_timeFormat->SetSelection(p_timeFormatDefault);
     p_unit->SetSelection(p_unitDefault);
     p_elementColours->SetSelection(p_elementColoursDefault);
+    p_stateIconStyle->SetSelection(p_stateIconStyleDefault);
     p_beepError->SetValue(p_beepErrorDefault);
     p_beepWarn->SetValue(p_beepWarnDefault);
     p_focus->SetValue(p_focusDefault);
@@ -868,6 +897,7 @@ void GlobalPrefs::OnResetAll(wxCommandEvent& event)
 
   p_restoring = false;
   OnColourScheme(event);
+  OnStateIconStyle(event);
   Refresh();
 }
 
@@ -943,6 +973,8 @@ void GlobalPrefs::saveSettings()
   eccePref.setString(PrefLabels::UNITFAMILY, family);
   eccePref.setString(PrefLabels::ELEMENTCOLOURS,
                      p_elementColours->GetSelection() == 1 ? "ecce" : "jmol");
+  eccePref.setString(PrefLabels::STATEICONSTYLE,
+                     p_stateIconStyle->GetSelection() == 0 ? "flat" : "shaded");
   eccePref.setBool(PrefLabels::ERRORBEEP, p_beepError->GetValue());
   eccePref.setBool(PrefLabels::WARNINGBEEP, p_beepWarn->GetValue());
   eccePref.setBool(PrefLabels::FOCUSFOLLOWMOUSE, p_focus->GetValue());
@@ -1017,6 +1049,10 @@ void GlobalPrefs::restoreSettings()
   p_elementColours->SetSelection(
       eccePref.getString(PrefLabels::ELEMENTCOLOURS, strBuf) && strBuf == "ecce"
           ? 1 : p_elementColoursDefault);
+
+  p_stateIconStyle->SetSelection(
+      eccePref.getString(PrefLabels::STATEICONSTYLE, strBuf) && strBuf == "flat"
+          ? 0 : p_stateIconStyleDefault);
 
   if (!eccePref.getBool(PrefLabels::ERRORBEEP, boolBuf))
     boolBuf = p_beepErrorDefault;
@@ -1130,6 +1166,7 @@ bool GlobalPrefs::isDefaultGlobalPref()
          p_timeFormat->GetSelection() == p_timeFormatDefault &&
          p_unit->GetSelection() == p_unitDefault &&
          p_elementColours->GetSelection() == p_elementColoursDefault &&
+         p_stateIconStyle->GetSelection() == p_stateIconStyleDefault &&
          p_beepError->GetValue() == p_beepErrorDefault &&
          p_beepWarn->GetValue() == p_beepWarnDefault &&
          p_focus->GetValue() == p_focusDefault &&
