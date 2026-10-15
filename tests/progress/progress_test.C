@@ -100,6 +100,9 @@ int main()
   r.parse("# seq=6\nsteep point=4/200 converged=yes\n");
   check(has(r.summary(true), "Minimisation converged in 4 steps"),
         "minimisation summary");
+  vector<JobProgress::Block> cb = r.running(0);
+  check(cb.size() == 1 && cb[0].bar && cb[0].fraction == 1.0,
+        "a converged run's bar is full before the step limit");
 
   // The table cell.
   check(p.shortLine() == "Freq 14/54", "cell: frequencies, the last of opt/freq: " + p.shortLine());

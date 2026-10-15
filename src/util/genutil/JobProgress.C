@@ -218,9 +218,12 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
   if (!st.field("energy").empty())
     first += string(first.empty() ? "" : " \xc2\xb7 ") + "E = " +
              energyText(st.field("energy"));
-  if (st.field("converged") == "yes")
+  //  The step limit is a ceiling, not a target: a converged stage is
+  //  finished, so its bar is full whatever step it stopped at.
+  if (st.field("converged") == "yes") {
+    if (b.bar) b.fraction = 1.0;
     first += string(first.empty() ? "" : " \xc2\xb7 ") + "converged";
-  else if (st.field("converged") == "no")
+  } else if (st.field("converged") == "no")
     first += string(first.empty() ? "" : " \xc2\xb7 ") + "not converged";
   if (!first.empty()) b.lines.push_back(first);
 
