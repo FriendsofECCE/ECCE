@@ -1,5 +1,8 @@
 # Getting started
 
+ECCE is the Extensible Computational Chemistry Environment, pronounced
+"etch-ā". *Ecce* is Latin for "behold".
+
 This chapter takes you from a package to a finished calculation. If you
 only want to look at a structure or at existing results, you can stop after
 the second page.

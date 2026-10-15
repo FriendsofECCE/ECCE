@@ -3,7 +3,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23281771.svg)](https://doi.org/10.5281/zenodo.23281771)
 
 The Extensible Computational Chemistry Environment (ECCE, pronounced
-"etch-ā") is a graphical environment for computational chemistry: build a
+"etch-ā"; *ecce* is Latin for "behold") is a graphical environment for computational chemistry: build a
 molecule, set up a calculation, run it on your own computer or a cluster,
 and look at the results (orbitals, densities, vibrations, geometry
 optimisations), with every calculation kept in one place.
