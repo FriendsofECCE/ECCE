@@ -156,6 +156,7 @@ started `ecce`; use the variables that take a file where there is one.
 | `ECCE_DEBUG_MACHREGISTER_SIZE` | Print the Machine Registration window's size calculation. | Set to enable. |
 | `ECCE_DEBUG_MACHNOTICE` | Print whether the Organizer's "no machines registered" notice is shown. | Set to enable. |
 | `ECCE_DEBUG_AUTHPARENT` | Log each authentication prompt and its parent window to this file. | File path. |
+| `ECCE_DEBUG_SASH` | The Builder reports on stderr each time it releases a mouse capture a pane-sash drag left behind. | Set to enable. |
 | `ECCE_NWDIRDY_DEBUG` | The reaction-rate editor prints its general theory data. | Set to enable. |
 | `ECCE_BUG` | Same as `ecce --bug`: see above. | Set and not `0`. |
 | `ECCE_BUG_DIR` | Set by bug mode to the folder collecting the report. | Do not set. |

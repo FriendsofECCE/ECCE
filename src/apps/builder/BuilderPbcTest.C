@@ -241,6 +241,42 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     return true;
   }
 
+  //  "sashdrag <tool> <dy> [lost]": press on the sash under that pane, move
+  //  dy px in ten steps and release, as the mouse does it through the
+  //  frame's event chain (AUI first); "lost" drops the release and moves
+  //  once more without the button.  Appends "<tool> <dy> capture <0|1>"
+  //  to <outdir>/sash.txt: whether the frame still holds the mouse.
+  if (c == "sashdrag" && (w.size() == 3 || w.size() == 4)) {
+    string name = w[1];
+    for (char& ch : name) if (ch == '_') ch = ' ';
+    wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(name));
+    if (!pane.IsOk() || !pane.IsShown())
+      return s.fail("sashdrag: no shown pane " + name);
+    const int dy = atoi(w[2].c_str());
+    const int sash = p_mgr.GetArtProvider()->GetMetric(wxAUI_DOCKART_SASH_SIZE);
+    const int x = pane.rect.x + pane.rect.width / 2;
+    const int y0 = pane.rect.GetBottom() + 1 + sash / 2;
+    auto send = [this, x](wxEventType type, int y, bool down) {
+      wxMouseEvent e(type);
+      e.SetPosition(wxPoint(x, y));
+      e.m_leftDown = down;
+      e.SetEventObject(this);
+      GetEventHandler()->ProcessEvent(e);
+      wxTheApp->Yield(true);
+    };
+    send(wxEVT_LEFT_DOWN, y0, true);
+    for (int i = 1; i <= 10; i++) send(wxEVT_MOTION, y0 + dy * i / 10, true);
+    if (w.size() == 4) {
+      send(wxEVT_MOTION, y0 + dy + 3, false);
+    } else {
+      send(wxEVT_LEFT_UP, y0 + dy, false);
+    }
+    settle(400);
+    std::ofstream out(outdir + "/sash.txt", std::ios::app);
+    out << w[1] << " " << dy << " capture " << (HasCapture() ? 1 : 0) << "\n";
+    return true;
+  }
+
   //  "panestate <name> <tool>..." -> <outdir>/<name>.txt: one line per tool:
   //  shown, floating, close button, window child of the frame, menu ticked,
   //  rectangle; then the client size and every shown pane's name.

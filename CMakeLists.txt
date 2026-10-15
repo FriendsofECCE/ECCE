@@ -2209,6 +2209,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_constraints PROPERTIES TIMEOUT 1500
                        SKIP_RETURN_CODE 77)
+  # The column's sashes move Build's edges and release the mouse.
+  add_test(NAME apps_builder_sash
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_sash_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_sash PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # The Calculation Editor is not frozen (no black areas) while the Code
   # Change question is open (#308).
   add_test(NAME apps_calced_code_change
