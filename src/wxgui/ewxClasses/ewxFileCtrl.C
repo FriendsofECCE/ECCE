@@ -204,6 +204,7 @@ void ewxFileCtrl::MakeDir()
       infoStr = invalidMsg + infoStr;
     ewxTextEntryDialog dialog(this, infoStr, "New " + name + " Name",
                               name, wxOK | wxCANCEL);
+    dialog.spacesToUnderscores();
     if (dialog.ShowModal() == wxID_OK) {
       name = dialog.GetValue();
       if (resType->isValidResourceName(name))

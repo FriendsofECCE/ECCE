@@ -29,6 +29,24 @@ ewxTextEntryDialog::ewxTextEntryDialog(wxWindow* parent,
 }
 
 
+// Names become folder names on the data server and in job scripts, where
+// a space breaks paths; turning it into '_' as typed beats rejecting it.
+void ewxTextEntryDialog::spacesToUnderscores()
+{
+  if (!m_textctrl) return;
+  m_textctrl->Bind(wxEVT_TEXT, [this](wxCommandEvent& ev) {
+    wxString v = m_textctrl->GetValue();
+    if (v.Find(' ') != wxNOT_FOUND) {
+      long at = m_textctrl->GetInsertionPoint();
+      v.Replace(" ", "_");
+      m_textctrl->ChangeValue(v);
+      m_textctrl->SetInsertionPoint(at);
+    }
+    ev.Skip();
+  });
+}
+
+
 /**
  * Destructor.
  */

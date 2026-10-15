@@ -2382,6 +2382,7 @@ void CalcMgr::OnRenameClick( wxCommandEvent& event )
         infoStr = invalidMsg + infoStr;
       ewxTextEntryDialog dialog(this, infoStr, "Rename " + resType->getLabel(),
                                 newName, wxOK | wxCANCEL);
+      dialog.spacesToUnderscores();
       if (dialog.ShowModal() == wxID_OK) {
         newName = dialog.GetValue();
         // Quit the loop if it is a legal name
@@ -5963,6 +5964,7 @@ void CalcMgr::createResource(ResourceType * resType,
         infoStr = invalidMsg + infoStr;
       ewxTextEntryDialog dialog(this, infoStr, "New " + name + " Name",
                                 name, wxOK | wxCANCEL);
+      dialog.spacesToUnderscores();
       //  Under the busy cursor and window disabler of a menu action, GTK
       //  on XWayland does not draw what is typed into the dialog's field.
       const bool held = p_disabler != 0;
