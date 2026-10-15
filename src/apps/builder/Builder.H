@@ -152,7 +152,9 @@ class Builder: public BuilderGUI,
       // the bare Delete key (deleteKey); Edit > Delete Selection is wxID_DELETE
       ID_ACCEL_DELETE,
       // Ctrl+A (selectAllKey); Edit > Select All is wxID_SELECTALL
-      ID_ACCEL_SELECTALL
+      ID_ACCEL_SELECTALL,
+      // Ctrl+S: Save, or Save As when there is nothing to save into
+      ID_ACCEL_SAVE
     };
 
     const static string NAME_TOOL_CONTEXT;
