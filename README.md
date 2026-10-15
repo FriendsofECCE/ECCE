@@ -40,6 +40,36 @@ Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases
 Then start `ecce` (on macOS and Windows: ECCE in Applications or the
 Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
+## Coming in 9.2.0
+
+Done and being tested, not yet released:
+
+* **Quantum ESPRESSO:** molecular dynamics, DFT+U and dispersion
+  corrections, and a help page on choosing the cutoff, k-points, smearing
+  and box ([#329](https://github.com/FriendsofECCE/ECCE/issues/329)).
+* **GROMACS:** `.gro` files open in the Builder with their box as the
+  periodic cell, and a periodic-molecules option
+  ([#262](https://github.com/FriendsofECCE/ECCE/issues/262)).
+* **Builder:** metal–π bonds (ferrocene, benzene and cyclopentadienyl
+  complexes) ([#325](https://github.com/FriendsofECCE/ECCE/issues/325)),
+  redrawn bond and shape icons, a periodic-table button
+  ([#323](https://github.com/FriendsofECCE/ECCE/issues/323)), Ctrl+S
+  always saves ([#338](https://github.com/FriendsofECCE/ECCE/issues/338)),
+  panes that fold and resize properly
+  ([#328](https://github.com/FriendsofECCE/ECCE/issues/328)).
+* **Organizer:** the Progress box ends with the final energy
+  ([#352](https://github.com/FriendsofECCE/ECCE/issues/352)); New and
+  Duplicate in the right-click menu; spaces in names become `_`
+  ([#333](https://github.com/FriendsofECCE/ECCE/issues/333)).
+* **Register Machines** checks that a program file really is the code
+  ([#318](https://github.com/FriendsofECCE/ECCE/issues/318)).
+* **Linux under Wayland:** dialogs and the Builder keep repainting, and
+  typed text shows in name prompts
+  ([#311](https://github.com/FriendsofECCE/ECCE/issues/311)).
+* **In progress:** macOS Dock icons and app names, saving in the Builder on
+  macOS, and access to Downloads
+  ([#344](https://github.com/FriendsofECCE/ECCE/issues/344)).
+
 ## First steps
 
 The same pages are in ECCE under **Help**. To see it done first, watch
