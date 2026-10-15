@@ -578,14 +578,11 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   SetAcceleratorTable(wxAcceleratorTable(sizeof(keys) / sizeof(keys[0]), keys));
   Bind(wxEVT_MENU, [this](wxCommandEvent& ev) { editShortcut(ev.GetId()); },
        ID_ACCEL_CUT, ID_ACCEL_UNDO);
-  //  A disabled menu item swallows its accelerator, so with no calculation
-  //  behind the Builder (Save greyed out) Ctrl+S did nothing; it saves
-  //  when it can and otherwise asks where, like Save As.
+  //  With no calculation behind the Builder there is nothing to save
+  //  into, so Ctrl+S asks where, like Save As.
   Bind(wxEVT_MENU, [this](wxCommandEvent&) {
-    const int id = p_fileMenu->IsEnabled(wxID_SAVE) ? wxID_SAVE
-                 : dynamic_cast<DefaultCalculation*>(p_calculation)
-                   ? wxID_SAVEAS : wxID_NONE;
-    if (id == wxID_NONE) return;
+    const int id = dynamic_cast<DefaultCalculation*>(p_calculation)
+                   ? wxID_SAVEAS : wxID_SAVE;
     wxCommandEvent ev(wxEVT_MENU, id);
     ProcessWindowEvent(ev);
   }, ID_ACCEL_SAVE);
