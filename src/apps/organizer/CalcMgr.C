@@ -3626,11 +3626,7 @@ void CalcMgr::getContextMenu(wxMenu & menu)
     return;
   }
 
-  // Whether the selected node is itself a calculation -- used below both
-  // to gate the Duplicate items (GitHub #47) and to fold them into this
-  // same "New..." submenu (per feedback on the first version of this fix:
-  // top-level Cut/Copy/Duplicate/etc. is the wrong place for something
-  // that's really "make a new thing from this one").
+  // Only a calculation can be duplicated (#47).
   bool isCalculationNode = itemData && itemData->getResource() &&
       itemData->getResource()->getContentType() ==
           ResourceDescriptor::CT_CALCULATION;
@@ -3659,17 +3655,8 @@ void CalcMgr::getContextMenu(wxMenu & menu)
     menuItem->SetBitmap(ewxBitmap(resVec[i]->getIcon()));
     newMenu->Append(menuItem);
   }
-  if (isCalculationNode) {
-    if (!resVec.empty())
-      newMenu->AppendSeparator();
-    newMenu->Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
-    newMenu->Append(wxID_DUPLICATE2, _("Duplicate Setup with Last Geometry"));
-  }
   menu.Append(wxID_NEW, _T("New..."), newMenu);
-  // Enable "New..." if there's something to create under this node OR
-  // (a calculation can't contain anything, but still needs "New..."
-  // reachable for Duplicate, which now lives inside it) it's a calculation.
-  menu.Enable(wxID_NEW, !resVec.empty() || isCalculationNode);
+  menu.Enable(wxID_NEW, !resVec.empty());
   menu.AppendSeparator();
 
   // build the standard part of the context menu
@@ -3678,6 +3665,10 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   menu.Append(wxID_COPY, wxT("&Copy"));
   menu.Append(wxID_PASTE, wxT("&Paste"));
   menu.Enable(wxID_PASTE, !p_clipboard.empty());
+  if (isCalculationNode) {
+    menu.Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
+    menu.Append(wxID_DUPLICATE2, _("Duplicate Setup with Last Geometry"));
+  }
   menu.Append(wxID_RENAME, wxT("&Rename"));
   menu.Enable(wxID_RENAME, true);
   menu.Append(wxID_DELETE, wxT("&Delete"));
