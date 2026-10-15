@@ -1856,6 +1856,11 @@ set_tests_properties(metal_bonds PROPERTIES
 add_test(NAME nwchem_cc_decks
   COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/nwchem_cc/run_tests.py)
 
+# #329: Quantum ESPRESSO molecular dynamics, DFT+U and dispersion: decks
+# always, real pw.x runs when pw.x and the SSSP library are installed.
+add_test(NAME qe_features
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/qe_features/run_tests.py)
+
 # tests/spectrum -- the wx-free IR/Raman spectrum model (#214): ticks, axis
 # reversal and zoom, broadening, sticks.
 add_executable(vibspectrum_test tests/spectrum/vibspectrum_test.C)

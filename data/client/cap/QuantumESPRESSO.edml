@@ -111,9 +111,14 @@
      vocabulary is fixed and has no name for it.  qe.desc's LATTICEVEC
      entry reads the changing cell back, so the box animates.
 
+     Dynamics maps to calculation='md' (Born-Oppenheimer): time step,
+     number of steps and the ion thermostat are Runtype Details settings;
+     qe.desc reads the trajectory as GEOMTRACE with the per-step
+     temperature and energies beside it.
+
      Still absent, and each needs work beyond a runtype entry:
      nscf/bands (a second run reusing the first one's charge density,
-     which does not fit one-input/one-output), md, and phonons (ph.x is a
+     which does not fit one-input/one-output), and phonons (ph.x is a
      separate executable). -->
 <Editor theorydialog="qetheory.py" runtypedialog="qeruntype.py">
   <!-- Plane waves cannot run without a cell, so CalcEd holds the
@@ -126,6 +131,7 @@
   <Theory category="PW" name="PW" needsBasis="false">
     <runtype>Energy</runtype>
     <runtype>Geometry</runtype>
+    <runtype>Dynamics</runtype>
   </Theory>
 
   <TheorySummary topLabel="Plane Waves-">
@@ -138,9 +144,17 @@
     <item key="ES.Theory.PW.KPointScheme" label="k-points"></item>
   </TheorySummary>
   <TheorySummary>
+    <item key="ES.Theory.PW.Dispersion" label="Dispersion"></item>
+  </TheorySummary>
+  <TheorySummary>
     <item key="ES.Theory.PW.ConvergenceEnergy" label="SCF Convergence"></item>
   </TheorySummary>
 
+  <RuntypeSummary topLabel="Dynamics-">
+    <item key="ES.Runtype.PW.MDSteps" label="Steps"></item>
+    <item key="ES.Runtype.PW.MDTimeStep" label="Time Step"></item>
+    <item key="ES.Runtype.PW.IonThermostat" label="Temperature"></item>
+  </RuntypeSummary>
   <RuntypeSummary topLabel="Properties-">
     <item key="ES.Runtype.PW.PrintForces" label="Forces"></item>
   </RuntypeSummary>

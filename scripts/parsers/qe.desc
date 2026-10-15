@@ -227,6 +227,37 @@ Skip=0
 Lines=4
 [END]
 
+# Molecular dynamics (calculation='md'): the three lines pw.x prints after
+# each ionic move.  GEOMTRACE above already reads the ATOMIC_POSITIONS block
+# that precedes them; Lines=3 closes this entry before the next SCF starts.
+# "kinetic energy (Ekin)" cannot match the header's "kinetic-energy cutoff".
+[TEVEC][KEVEC][PEVEC][TEMPVEC]
+Script=qe.mdstep
+Begin=^\s+kinetic energy \(Ekin\)
+Frequency=all
+Skip=0
+Lines=3
+[END]
+
+# The dispersion energy of vdw_corr (D2, D3, Tkatchenko-Scheffler, XDM), printed
+# once after each converged energy.  Frequency=all so the last step wins.
+[EDISP]
+Script=qe.disp
+Begin=^\s+(Dispersion Correction|DFT-D3 Dispersion|Dispersion T-S Correction|Dispersion XDM Correction)\s+=
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
+# DFT+U: the Hubbard term of the energy breakdown after the converged energy.
+[EHUBBARD]
+Script=qe.hubbard
+Begin=^\s+Hubbard energy\s+=
+Frequency=all
+Skip=0
+Lines=1
+[END]
+
 # Job progress for the Organizer's Progress box (#284).  No Script: these
 # only feed the monitor's live snapshot.  The SCF threshold is printed in
 # the header and again after each ionic step (it is tightened).  The
@@ -283,4 +314,17 @@ Progress=opt istep=$1 converged=yes
 [PROGRESS]
 Begin=^\s+The maximum number of steps has been reached
 Progress=opt converged=no
+[END]
+
+# Molecular dynamics: nstep is echoed in the header of every run.  An md run
+# always ends on the line above too, so it also leaves an "opt" stage marked
+# not converged; the entry cannot tell the two apart.
+[PROGRESS]
+Begin=^\s+nstep\s+=\s+(\d+)
+Remember=nstep
+[END]
+
+[PROGRESS]
+Begin=^\s+Entering Dynamics:\s+iteration\s+=\s+(\d+)
+Progress=md point=$1/{nstep}
 [END]

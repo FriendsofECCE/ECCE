@@ -130,10 +130,80 @@ class QeRunTypePanel(EccePanel):
             cellSizer.AddWidget(self.optimizeCell)
             self.panelSizer.Add(cellSizer)
 
+        elif EcceGlobals.RunType == "Dynamics":
+
+            # calculation='md', Born-Oppenheimer.  The time step is in fs
+            # here; ai.qe converts it to the Rydberg atomic units pw.x wants.
+            mdSizer = EcceBoxSizer(self, label="Molecular Dynamics", cols=1)
+            self.mdTimeStep = EcceFloatInput(self,
+                                             unit="fs",
+                                             name="ES.Runtype.PW.MDTimeStep",
+                                             default=1.0,
+                                             hardRange="(0..)",
+                                             softRange="[0.1..5]",
+                                             label="Time Step:",
+                                             export=1)
+            mdSizer.AddWidget(self.mdTimeStep)
+            self.mdSteps = EcceSpinCtrl(self,
+                                        hardRange="[1..)",
+                                        softRange="[1..100000]",
+                                        name="ES.Runtype.PW.MDSteps",
+                                        default=100,
+                                        label="Number of Steps:",
+                                        export=1)
+            mdSizer.AddWidget(self.mdSteps)
+            self.panelSizer.Add(mdSizer)
+
+            tempSizer = EcceBoxSizer(self, label="Ion Temperature", cols=1)
+            thermoChoice = ["Constant energy (no thermostat)",
+                            "Constant energy, from an initial temperature",
+                            "Berendsen thermostat",
+                            "Andersen thermostat",
+                            "Stochastic velocity rescaling (SVR)",
+                            "Velocity rescaling"]
+            self.thermostat = EcceComboBox(self,
+                                           choices=thermoChoice,
+                                           name="ES.Runtype.PW.IonThermostat",
+                                           default=2,
+                                           label="Control:",
+                                           export=1)
+            tempSizer.AddWidget(self.thermostat)
+            self.mdTemperature = EcceFloatInput(self,
+                                                unit="K",
+                                                name="ES.Runtype.PW.MDTemperature",
+                                                default=300.0,
+                                                hardRange="(0..)",
+                                                softRange="[1..3000]",
+                                                label="Target and Starting Temperature:",
+                                                export=1)
+            tempSizer.AddWidget(self.mdTemperature)
+            self.mdCoupling = EcceSpinCtrl(self,
+                                           hardRange="[1..)",
+                                           softRange="[1..1000]",
+                                           name="ES.Runtype.PW.MDCouplingSteps",
+                                           default=10,
+                                           label="Coupling or Collision Period (steps):",
+                                           export=1)
+            tempSizer.AddWidget(self.mdCoupling)
+            self.mdRescaleTol = EcceFloatInput(self,
+                                               unit="K",
+                                               name="ES.Runtype.PW.MDRescaleTol",
+                                               default=100.0,
+                                               hardRange="(0..)",
+                                               label="Rescale when off by more than:",
+                                               export=1)
+            tempSizer.AddWidget(self.mdRescaleTol)
+            self.panelSizer.Add(tempSizer)
+
         self.AddButtons()
 
     def CheckDependency(self):
-        pass
+        if EcceGlobals.RunType == "Dynamics":
+            c = self.thermostat.GetValue()
+            self.mdTemperature.Enable(not c.startswith("Constant energy (no"))
+            self.mdCoupling.Enable(c.startswith(("Berendsen", "Andersen",
+                                                 "Stochastic")))
+            self.mdRescaleTol.Enable(c.startswith("Velocity"))
 
 
 frame = QeRunTypeFrame(None,
