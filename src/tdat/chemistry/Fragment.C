@@ -4854,7 +4854,8 @@ static string groElement(const string& atomName, const string& resName)
   }
   if (a.empty()) return "X";
   string first(1, (char)toupper((unsigned char)a[0]));
-  if (a.size() > 1) {
+  // O and H types (Osih, Ohmg, Ho...) would otherwise read as Os, Ho, Hf.
+  if (a.size() > 1 && first != "O" && first != "H") {
     string two = first + (char)tolower((unsigned char)a[1]);
     bool mixed = islower((unsigned char)a[1]) != 0;
     bool ion = false;
