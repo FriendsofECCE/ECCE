@@ -16,6 +16,7 @@
 #ifdef __WXGTK3__
 extern "C" {
   #include <gtk/gtk.h>
+  #include <gdk/gdkx.h>
 }
 #endif
 
@@ -61,10 +62,83 @@ struct Shown {
   long draws = 0, keys = 0, scrolls = 0, buttons = 0;
 #ifdef __WXGTK3__
   gulong drawHandler = 0;
+  long frameDrawn = 0;                 // _NET_WM_FRAME_DRAWN received
 #endif
 };
 
 std::map<wxDialog*, Shown> g_shown;
+
+
+#ifdef __WXGTK3__
+// GTK 3 on X11 freezes a top-level window's frame clock after each frame
+// until the compositor answers with _NET_WM_FRAME_DRAWN, with no timeout.
+// Mutter under XWayland does not always answer, and the window then stops
+// repainting: input arrives, nothing is drawn (dialogs, the Builder view).
+// Without frame sync GTK paints on its own clock and still tells the
+// compositor through the sync counter when a frame is complete.
+// XWayland only (its XWAYLAND extension); ECCE_FRAME_SYNC=1 keeps GTK's
+// default, =0 turns it off on any X server.
+bool frameSyncOff()
+{
+  static int off = -1;
+  if (off >= 0) return off == 1;
+  off = 0;
+  GdkDisplay *display = gdk_display_get_default();
+  if (!display || !GDK_IS_X11_DISPLAY(display)) return false;
+  const char *force = getenv("ECCE_FRAME_SYNC");
+  if (force && *force) {
+    off = force[0] == '0' ? 1 : 0;
+  } else {
+    int opcode, event, error;
+    off = XQueryExtension(GDK_DISPLAY_XDISPLAY(display), "XWAYLAND", &opcode,
+                          &event, &error) ? 1 : 0;
+  }
+  return off == 1;
+}
+
+const char *const FRAME_SYNC_KEY = "ecce-frame-sync-off";
+
+// Before the window is first shown, and so before its first frame.
+gboolean mapHook(GSignalInvocationHint*, guint n, const GValue *values,
+                 gpointer)
+{
+  if (n < 1) return TRUE;
+  GObject *obj = (GObject*)g_value_get_object(&values[0]);
+  if (!obj || !GTK_IS_WINDOW(obj)) return TRUE;
+  GdkWindow *win = gtk_widget_get_window(GTK_WIDGET(obj));
+  if (win && GDK_IS_X11_WINDOW(win) &&
+      !g_object_get_data(G_OBJECT(win), FRAME_SYNC_KEY)) {
+    gdk_x11_window_set_frame_sync_enabled(win, FALSE);
+    g_object_set_data(G_OBJECT(win), FRAME_SYNC_KEY, GINT_TO_POINTER(1));
+  }
+  return TRUE;
+}
+
+const char *frameSyncState(wxDialog *dlg)
+{
+  GtkWidget *w = (GtkWidget*)dlg->GetHandle();
+  GdkWindow *win = w ? gtk_widget_get_window(w) : 0;
+  if (!win || !GDK_IS_X11_WINDOW(win)) return "n/a";
+  return g_object_get_data(G_OBJECT(win), FRAME_SYNC_KEY) ? "off" : "on";
+}
+
+GdkFilterReturn countFrameDrawn(GdkXEvent *xevent, GdkEvent*, gpointer)
+{
+  XEvent *x = (XEvent*)xevent;
+  if (x->type != ClientMessage || g_shown.empty()) return GDK_FILTER_CONTINUE;
+  if (x->xclient.message_type != gdk_x11_get_xatom_by_name_for_display(
+          gdk_display_get_default(), "_NET_WM_FRAME_DRAWN"))
+    return GDK_FILTER_CONTINUE;
+  for (auto& s : g_shown) {
+    GtkWidget *w = (GtkWidget*)s.first->GetHandle();
+    GdkWindow *win = w ? gtk_widget_get_window(w) : 0;
+    if (win && GDK_IS_X11_WINDOW(win) &&
+        GDK_WINDOW_XID(win) == x->xclient.window)
+      s.second.frameDrawn++;
+  }
+  return GDK_FILTER_CONTINUE;
+}
+#endif
 
 
 #ifdef __WXGTK3__
@@ -75,16 +149,19 @@ std::string gtkState(wxDialog *dlg)
   GtkWindow *win = GTK_WINDOW(w);
   GtkWidget *focus = gtk_window_get_focus(win);
   GdkFrameClock *clock = gtk_widget_get_frame_clock(w);
-  char buf[256];
+  std::map<wxDialog*, Shown>::iterator it = g_shown.find(dlg);
+  char buf[320];
   snprintf(buf, sizeof buf,
            "mapped=%d active=%d toplevelFocus=%d focusWidget=%s "
-           "focusHas=%d frame=%lld",
+           "focusHas=%d frame=%lld frameSync=%s frameDrawn=%ld",
            (int)gtk_widget_get_mapped(w),
            (int)gtk_window_is_active(win),
            (int)gtk_window_has_toplevel_focus(win),
            focus ? G_OBJECT_TYPE_NAME(focus) : "none",
            focus ? (int)gtk_widget_has_focus(focus) : -1,
-           clock ? (long long)gdk_frame_clock_get_frame_counter(clock) : -1LL);
+           clock ? (long long)gdk_frame_clock_get_frame_counter(clock) : -1LL,
+           frameSyncState(dlg),
+           it != g_shown.end() ? it->second.frameDrawn : -1L);
   return buf;
 }
 
@@ -132,6 +209,7 @@ void installInputHooks()
   static bool done = false;
   if (done || !logging()) return;
   done = true;
+  gdk_window_add_filter(NULL, countFrameDrawn, NULL);
   const char *names[] = { "key-press-event", "scroll-event",
                           "button-press-event" };
   for (const char *name : names) {
@@ -252,4 +330,23 @@ void ewxModalGuard::install()
   if (guard) return;
   guard = new ModalGuard();
   guard->Register();
+#ifdef __WXGTK3__
+  if (frameSyncOff()) {
+    guint id = g_signal_lookup("map", GTK_TYPE_WIDGET);
+    if (id) g_signal_add_emission_hook(id, 0, mapHook, NULL, NULL);
+  }
+#endif
+}
+
+
+long long ewxModalGuard::frameCounter(wxWindow *win)
+{
+#ifdef __WXGTK3__
+  wxWindow *top = win ? wxGetTopLevelParent(win) : 0;
+  GtkWidget *w = top ? (GtkWidget*)top->GetHandle() : 0;
+  GdkFrameClock *clock = w ? gtk_widget_get_frame_clock(w) : 0;
+  return clock ? (long long)gdk_frame_clock_get_frame_counter(clock) : -1;
+#else
+  return -1;
+#endif
 }

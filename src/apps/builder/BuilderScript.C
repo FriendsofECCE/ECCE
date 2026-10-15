@@ -117,6 +117,7 @@
 #include "PropertyIndexPanel.H"
 #include "StructLib.H"
 #include "VizPropertyPanel.H"
+#include "wxgui/ewxModalGuard.H"
 
 namespace {
 
@@ -423,6 +424,7 @@ void Builder::runBuilderScript(const std::string& file)
           if (frag->atomRef(i)->atomicSymbol() == "Nub") nubs++;
         fprintf(stderr, "BUILDER: atoms=%d lattice=%s nubs=%d\n",
                 frag ? (int)frag->numAtoms() : -1, lat ? "yes" : "no", nubs);
+        fprintf(stderr, "BUILDER: frame=%lld\n", ewxModalGuard::frameCounter(this));
         fprintf(stderr, "BUILDER: periodic_builder=%s\n",
                 p_mgr.GetPane(NAME_TOOL_PBC).IsShown() ? "shown" : "hidden");
         //  The mode in effect, the mode the toolbar shows and whether the
@@ -543,6 +545,35 @@ void Builder::runBuilderScript(const std::string& file)
             sel += " " + std::to_string(frag->m_atomHighLight[i] + 1);
           fprintf(stderr, "BUILDER: selected after %s click on %s:%s\n",
                   w[1].c_str(), w[2].c_str(), sel.c_str());
+        }
+      } else if ((w[0] == "atompos" && w.size() == 2 && frag) ||
+                 (w[0] == "viewpos" && w.size() == 3)) {
+        //  Where atom N (1-based), or the point at fractions fx fy of the
+        //  view from its top left, is on the screen, for a test that clicks
+        //  there through the X server.
+        SoWxRenderArea *area = findViewerArea(p_viewer);
+        if (!area) {
+          outcome = "FAIL: no render area";
+        } else {
+          wxPoint at;
+          if (w[0] == "atompos") {
+            SbVec3f p = frag->getAtomCoordinates(atoi(w[1].c_str()) - 1), d;
+            const SbViewportRegion& vpr = p_viewer->getViewportRegion();
+            SbViewVolume vv = p_viewer->getCamera()->getViewVolume(
+                vpr.getViewportAspectRatio());
+            vv.projectToScreen(p, d);
+            SbVec2s sz = vpr.getViewportSizePixels();
+            const double sc = area->GetContentScaleFactor();
+            at = wxPoint((int)std::lround(d[0] * sz[0] / sc),
+                         (int)std::lround((sz[1] - 1 - d[1] * sz[1]) / sc));
+          } else {
+            const wxSize sz = area->GetClientSize();
+            at = wxPoint((int)(atof(w[1].c_str()) * sz.x),
+                         (int)(atof(w[2].c_str()) * sz.y));
+          }
+          at = area->ClientToScreen(at);
+          fprintf(stderr, "BUILDER: %s %s at %d %d\n", w[0].c_str(),
+                  w[1].c_str(), at.x, at.y);
         }
       } else if (w[0] == "element" && w.size() == 2) {
         //  The element chosen in the Build panel.

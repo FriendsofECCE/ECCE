@@ -76,6 +76,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [A modal dialog shown while its parent is frozen leaves black boxes where it uncovers the parent](modal-inside-freeze-leaves-black-boxes.md)
 - [wxAUI sash drag: live resize can keep the mouse captured (no clicks), integer proportions move nothing, a Fixed pane has no sash](aui-sash-drag-keeps-the-mouse-and-integer-proportions.md)
 - [On GNOME/Wayland a modal dialog can show typed text or scrolling only after it is reopened; not the busy cursor or disabler; every modal goes through ewxModalGuard, ECCE_DEBUG_MODAL logs what it got](xwayland-modal-dialog-takes-no-input.md)
+- [XWayland: GTK 3 stops repainting a window (dialog, Builder view) until Mutter sends _NET_WM_FRAME_DRAWN, which it sometimes never does; frame sync is off for every top-level window](xwayland-gtk3-frame-clock-waits-for-frame-drawn.md)
 - [wxMSW: controls made after the scroll move sit under the tool panel scroll window and get no clicks (Build pane element buttons)](msw-controls-made-after-the-scroll-move-sit-under-it.md)
 - [A second close inside the Quit dialog's loop deletes the frame and frees the stack dialog: free(): invalid pointer (#291)](second-close-destroys-stack-dialog.md)
 - [The MO table vanished and scrolled to the top when the ESP colour bar appeared: propertyPaneRoom (#285)](mo-panel-esp-bar-needs-pane-room.md)

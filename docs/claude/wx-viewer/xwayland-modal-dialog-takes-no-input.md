@@ -1,6 +1,6 @@
 ---
 type: pitfall
-title: "On GNOME/Wayland (XWayland, Mutter 48) a modal dialog can show typed text or scrolling only after it is reopened; the busy cursor and window disabler are not the cause, every modal now goes through ewxModalGuard"
+title: "On GNOME/Wayland (XWayland, Mutter 48) a modal dialog can show typed text or scrolling only after it is reopened; the cause is GTK's frame clock waiting for Mutter (see xwayland-gtk3-frame-clock-waits-for-frame-drawn.md), not the busy cursor, disabler or input method; every modal goes through ewxModalGuard"
 area: wx-viewer
 paths: ["CMakeLists.txt", "src/apps/organizer/ProjectContextPanel.C", "src/apps/organizer/MDTaskPanel.C", "src/wxgui/ewxClasses/ewxModalGuard.C", "include/wxgui/ewxModalGuard.H", "src/wxgui/ewxClasses/ewxApp.C", "src/wxgui/ewxClasses/ewxWindowUtils.C", "src/apps/organizer/CalcMgr.C", "src/wxgui/wxdialogs/WxDavAuth.C", "tests/apps/modal_guard_test.py"]
 issues: [120, 311, 332]
@@ -22,6 +22,13 @@ common/utilscmn.cpp):
   same `OnNewResourceClick` -> `createResource` as New Calculation, which
   already lifts `p_disabler`/`p_cursor` (9.1.0), and still fails.
 So which dialog fails is not decided by the busy cursor or disabler.
+
+Cause, found later with `modal.log`: GTK 3 stops repainting a window until
+Mutter sends `_NET_WM_FRAME_DRAWN`, and under XWayland Mutter sometimes
+never does; `xwayland-gtk3-frame-clock-waits-for-frame-drawn.md`. The
+stall comes and goes between dialogs, so the input-method and menu
+measurements below each saw it come and go; it happened again with both
+changes in place. They are kept but are not the fix.
 
 What was measured on beryllium (XWayland), the name prompt's typed text
 arriving (Enter applies it) but not drawn:
@@ -58,8 +65,9 @@ and the native GTK message and file dialogs (wxFileDialog enters twice):
   toplevel focus, focus widget, frame counter), one `input` line per key,
   scroll or click that reached the dialog with its repaint (`draw`) count,
   and `exit` totals. Keys counted but `draws` flat = GTK stopped painting
-  (frame clock waiting on the compositor); draws rising with nothing on
-  screen = the compositor; no `input` lines = input not routed to the window.
+  (frame clock waiting on the compositor, the case seen); draws rising with
+  nothing on screen = the compositor; no `input` lines = input not routed
+  to the window.
 
 Not covered: the wxPython Details dialogs (`scripts/codereg/*.py`) and
 `ecce-dialog` (own wxApp). Xvfb has no compositor or window manager, so

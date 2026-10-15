@@ -392,7 +392,7 @@ endif()
 pkg_check_modules(GTK3 QUIET gtk+-3.0)
 if(GTK3_FOUND)
   target_include_directories(eccewxgui PRIVATE ${GTK3_INCLUDE_DIRS})
-  target_link_libraries(eccewxgui PRIVATE ${GTK3_LIBRARIES})
+  target_link_libraries(eccewxgui PRIVATE ${GTK3_LIBRARIES} ${ECCE_X11_LIBS})
 endif()
 
 # WindowShot.C reads a window back from the window server on macOS.
@@ -2274,6 +2274,21 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/modal_guard_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_modal_guard PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # Windows keep painting under a headless gnome-shell's Xwayland (GTK 3
+  # frame sync off, ewxModalGuard); skips without gnome-shell.
+  add_test(NAME apps_xwayland_paint
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/xwayland_paint_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_xwayland_paint PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # Preferences > Colours run-state icon style reaches the Organizer's tree.
+  add_test(NAME apps_state_icon_style
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/state_icon_style_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_state_icon_style PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # The project table's Progress column (#284): stored and live snapshots.
   add_test(NAME apps_progress_table
