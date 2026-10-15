@@ -42,3 +42,10 @@ in a user's own prefs file is ignored.
 
 `tests/look/statelegend.py OUTDIR [--ecce-home DIR]` renders the real
 Organizer legend (`WxState::createLegend`) in light and dark on Xvfb.
+
+Style: Preferences > Colours > "Run-state icons" chooses Flat (solid fill,
+the outline rule above) or Shaded (gradient, darker edge; the default).
+`WxState::shaded()` caches the `StateIconStyle` preference;
+`WxState::refreshStyle()` re-reads it. The Organizer redraws on the
+`ecce_preferences_misc` message (`CalcMgr::redrawStateIcons`); other apps
+pick it up when next opened. `look_state_icons` checks both styles differ.

@@ -79,6 +79,28 @@ def main():
                 print(r.stderr[-500:])
                 status = 1
                 continue
+            # Both styles draw, and they differ (Preferences > Colours).
+            flat = os.path.join(work, tn + "-flat")
+            os.makedirs(flat)
+            fhome = os.path.join(work, "home-flat")
+            os.makedirs(fhome, exist_ok=True)
+            r = out([binary, flat, "flat"], timeout=60,
+                    env=dict(env, HOME=fhome, ECCE_REALUSERHOME=fhome))
+            if r.returncode:
+                print(r.stderr[-500:])
+                status = 1
+            else:
+                for n in sorted(f for f in os.listdir(raw)
+                                if f.startswith("icon-16-")):
+                    st = n[8:-4]
+                    # Waiting and loaded are not solid fills: no gradient.
+                    if st in ("5", "7"):
+                        continue
+                    if (Image.open(os.path.join(raw, n)).tobytes() ==
+                            Image.open(os.path.join(flat, n)).tobytes()):
+                        print("%s state %s: flat and shaded icons are equal"
+                              % (tn, st))
+                        status = 1
             for size in SIZES:
                 files = sorted((f for f in os.listdir(raw)
                                 if f.startswith("icon-%d-" % size)),

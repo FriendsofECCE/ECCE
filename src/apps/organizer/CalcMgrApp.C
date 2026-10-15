@@ -260,6 +260,9 @@ void CalcMgrApp::miscPrefChangeMCB(JMSMessage& msg)
 {
   p_calcMgr->getFeedback()->readPreferences();
   p_calcMgr->setContextPanel();
+  // Icon style may have changed: rebuild the image lists, repaint the tree.
+  WxState::refreshStyle();
+  p_calcMgr->redrawStateIcons();
 }
 
 

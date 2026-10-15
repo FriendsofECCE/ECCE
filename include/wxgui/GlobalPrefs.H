@@ -62,6 +62,7 @@ private:
   void createGeneralPage(wxWindow* page);
   void createColoursPage(wxWindow* page);
   void OnColourScheme(wxCommandEvent& event);
+  void OnStateIconStyle(wxCommandEvent& event);
   void createProgramsPage(wxWindow* page);
   void createGatewayPage(wxWindow* page);
   void createDataPage(wxWindow* page);
@@ -105,6 +106,7 @@ private:
   ewxChoice* p_timeFormat;
   ewxChoice* p_unit;
   ewxChoice* p_elementColours;
+  ewxChoice* p_stateIconStyle;  // 0 Flat, 1 Shaded
   ewxCheckBox* p_systemFont;
   ewxCheckBox* p_beepError;
   ewxCheckBox* p_beepWarn;
@@ -154,6 +156,7 @@ private:
   // Default units family is DEFAULT_UNIT_FAMILY which is the 3rd one.
   const static int p_unitDefault = 2;
   const static int p_elementColoursDefault = 0;  // Jmol
+  const static int p_stateIconStyleDefault = 1;  // Shaded
   const static bool p_systemFontDefault = false;
   const static bool p_beepErrorDefault = true;
   const static bool p_beepWarnDefault = true;

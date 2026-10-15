@@ -7210,6 +7210,13 @@ void CalcMgr::updateSelectionMenus()
 }
 
 
+void CalcMgr::redrawStateIcons()
+{
+  p_treeCtrl->recolorStatePixmaps();
+  p_treeCtrl->Refresh();
+}
+
+
 string CalcMgr::getTreeSelectionName()
 {
   string ret = "";

@@ -2,7 +2,7 @@
 //  (tree image list 16, legend, status bar) and save raw PNGs, for
 //  stateicons.py.
 //
-//      stateicons OUTDIR    (needs a DISPLAY; GTK_THEME picks the theme)
+//      stateicons OUTDIR [flat|shaded]   (needs a DISPLAY; GTK_THEME picks the theme)
 #include <cstdio>
 #include <string>
 #include <unistd.h>
@@ -10,6 +10,8 @@
 #include <wx/wx.h>
 #include <wx/dcmemory.h>
 
+#include "util/PreferenceLabels.H"
+#include "util/Preferences.H"
 #include "wxgui/WxState.H"
 
 class App : public wxApp
@@ -27,6 +29,15 @@ int main(int argc, char** argv)
   wxEntryStart(argc, argv);
   if (!wxApp::GetInstance()->CallOnInit() || argc < 2) return 77;
   wxInitAllImageHandlers();
+  //  Optional style: saved as the preference, as the dialog does.
+  if (argc >= 3) {
+    {
+      Preferences prefs(PrefLabels::GLOBALPREFFILE);
+      prefs.setString(PrefLabels::STATEICONSTYLE, argv[2]);
+      prefs.saveFile();
+    }
+    WxState::refreshStyle();
+  }
   int sizes[] = { 12, 16, 20, 24 };
   for (int size : sizes) {
     for (int s = ResourceDescriptor::STATE_CREATED;

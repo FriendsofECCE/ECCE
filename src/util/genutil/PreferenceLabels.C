@@ -61,6 +61,7 @@ const char *PrefLabels::UPDATEFOUND       = "UpdateCheck.Found";     // String
 const char *PrefLabels::UPDATEFOUNDURL    = "UpdateCheck.FoundUrl";  // String
 const char *PrefLabels::UPDATEDISMISSED   = "UpdateCheck.Dismissed"; // String
 const char *PrefLabels::ELEMENTCOLOURS   = "ElementColours";        // String
+const char *PrefLabels::STATEICONSTYLE  = "StateIconStyle";        // String
 const char *PrefLabels::TAILINTERMINAL    = "TailInTerminal"; // Boolean
 
 
