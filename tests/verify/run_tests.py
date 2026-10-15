@@ -99,6 +99,7 @@ CASES = [
     ("nwchem-ammonia-dummy-lowercase.nw", "NWChem", 5, [("GOOD", "geometry"),
                                                         ("GOOD", "electrons")]),
     ("mopac-methane.mopin",   "MOPAC",            5, [("GOOD", "geometry")]),
+    ("mopac-ammonia-freq.mopin", "MOPAC",          4, [("GOOD", "geometry"), ("GOOD", "sections")]),
     ("qe-silicon.qein",       "QuantumESPRESSO",  2, [("GOOD", "control"),
                                                       ("GOOD", "system"),
                                                       ("GOOD", "positions")]),
