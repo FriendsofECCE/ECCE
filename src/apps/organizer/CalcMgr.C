@@ -3637,8 +3637,16 @@ void CalcMgr::getContextMenu(wxMenu & menu)
 
   // build the "new" part of the context menu first
   // the variables to iterate through what "can be contained"
+  //  What New offers comes from the nearest container: a calculation holds
+  //  nothing itself, so New beside it creates in its folder or project, as
+  //  OnNewResourceClick does.
+  WxResourceTreeItemData * container = nearestContainer(itemData, 0);
   vector<ResourceType *> resVec;
-  resVec = resType->getContains();
+  if (container && container->getResource() &&
+      container->getResource()->getDescriptor())
+    resVec = container->getResource()->getDescriptor()->getContains();
+  Session * containerSession =
+      container ? dynamic_cast<Session *>(container->getResource()) : 0;
   vector<ResourceType *>::iterator resItor;
   wxMenu *newMenu = new wxMenu();
 
@@ -3652,11 +3660,11 @@ void CalcMgr::getContextMenu(wxMenu & menu)
     newMenu->Append(menuItem);
 
     if ((*resItor)->getMenuItem() == "New NWChem MD Prepare..." &&
-        dynamic_cast<Session *>(itemData->getResource())->numMembers() == 0)
+        containerSession && containerSession->numMembers() == 0)
       resItor += 3;
     else if ((*resItor)->getMenuItem() ==
         "New Direct Dynamics VTST Calculation..." &&
-        dynamic_cast<Session *>(itemData->getResource())->numMembers() == 0)
+        containerSession && containerSession->numMembers() == 0)
       resItor += 5;
   }
   if (isCalculationNode) {
