@@ -539,10 +539,12 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   BuilderDockArt *art = new BuilderDockArt;
   art->setFoldedQuery([this](wxWindow *w) { return p_folded.count(w) > 0; });
   p_mgr.SetArtProvider(art);
-  //  On the frame, not the manager: wx 3.3 binds its own pin handler
-  //  (float the pane) to the frame, which sees the event first, so a
-  //  handler on the manager never ran and the fold button floated the
-  //  pane.  Bound after SetManagedWindow, ours runs before wx's.
+  //  wx's own pin handler floats the pane.  wx 3.2 pushes the manager onto
+  //  the frame, so ours must be on the manager to run first; wx 3.3 binds
+  //  its handler on the frame instead, so ours must be there too (bound
+  //  later, it runs first).  The pin event is never skipped, so the
+  //  handler runs once.
+  p_mgr.Bind(wxEVT_AUI_PANE_BUTTON, &Builder::OnPaneButton, this);
   Bind(wxEVT_AUI_PANE_BUTTON, &Builder::OnPaneButton, this);
   guardSashDrag();
 
