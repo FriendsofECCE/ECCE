@@ -946,6 +946,32 @@ void CalcMgr::runTestCommand(const string& line)
         GetMenuBar()->Check(wxID_ASKFORNAME, ask);
         outcome = "ok";
       }
+    } else if (command == "busyprompt") {
+      // A text prompt shown under a menu action's busy cursor and window
+      // disabler, answered after 1.5 s: ewxModalGuard must take the busy
+      // cursor off while it is up and put it back afterwards.
+      wxTimer answer;
+      answer.Bind(wxEVT_TIMER, [](wxTimerEvent&) {
+        for (wxWindowList::compatibility_iterator n =
+               wxTopLevelWindows.GetFirst(); n; n = n->GetNext()) {
+          wxDialog *d = dynamic_cast<wxDialog*>(n->GetData());
+          if (d && d->IsModal()) {
+            cerr << "ECCE_TEST_ORGANIZER: busyprompt: up busy="
+                 << (int)wxIsBusy() << " parentEnabled="
+                 << (d->GetParent() ? (int)d->GetParent()->IsEnabled() : -1)
+                 << endl;
+            d->EndModal(wxID_OK);
+          }
+        }
+      });
+      answer.StartOnce(1500);
+      startDisabler();
+      ewxTextEntryDialog prompt(this, "Name:", "Busy Prompt", "x",
+                                wxOK | wxCANCEL);
+      const int rc = prompt.ShowModal();
+      outcome = string(rc == wxID_OK ? "ok" : "cancelled") +
+                " busyAfter=" + (wxIsBusy() ? "1" : "0");
+      stopDisabler();
     } else if (command == "click") {
       // "click URL": selects a row already in the tree as a click does,
       // with no tree loading first (unlike "summary").
@@ -5963,8 +5989,8 @@ void CalcMgr::createResource(ResourceType * resType,
         infoStr = invalidMsg + infoStr;
       ewxTextEntryDialog dialog(this, infoStr, "New " + name + " Name",
                                 name, wxOK | wxCANCEL);
-      //  Under the busy cursor and window disabler of a menu action, GTK
-      //  on XWayland does not draw what is typed into the dialog's field.
+      //  The menu action's window disabler and busy cursor are lifted
+      //  while the user types: the prompt is not busy work.
       const bool held = p_disabler != 0;
       if (held) {
         delete p_disabler;  p_disabler = 0;

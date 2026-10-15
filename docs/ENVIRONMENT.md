@@ -107,8 +107,8 @@ It makes `~/ecce-bug-<time>/` (under `ECCE_REALUSERHOME`), exports it as
 - `ECCE_RCOM_LOGMODE`, `ECCE_JOB_LOGMODE=yes,yes` (keep the job logs),
   `ECCE_JOB_LOGALL`, `ECCE_AI_DEBUG=1`, `ECCE_DEBUG_PANELS`,
   `ECCE_DEBUG_GL_VISUAL`, `ECCE_DEBUG_MACHNOTICE`;
-- `ECCE_DEBUG_MOSYM_LOG` and `ECCE_DEBUG_AUTHPARENT`, pointed at files in
-  `ECCE_BUG_DIR`.
+- `ECCE_DEBUG_MOSYM_LOG`, `ECCE_DEBUG_AUTHPARENT` and `ECCE_DEBUG_MODAL`,
+  pointed at files in `ECCE_BUG_DIR`.
 
 Left out on purpose: `ECCE_DAV_DEBUG` (always writes to `/tmp/davtraffic`
 and includes the `Authorization` header, which holds the password),
@@ -156,6 +156,7 @@ started `ecce`; use the variables that take a file where there is one.
 | `ECCE_DEBUG_MACHREGISTER_SIZE` | Print the Machine Registration window's size calculation. | Set to enable. |
 | `ECCE_DEBUG_MACHNOTICE` | Print whether the Organizer's "no machines registered" notice is shown. | Set to enable. |
 | `ECCE_DEBUG_AUTHPARENT` | Log each authentication prompt and its parent window to this file. | File path. |
+| `ECCE_DEBUG_MODAL` | Log every modal dialog to this file: the busy cursor and parent window it was opened under, whether it got focus, and (GTK) each key, scroll and click it received with its repaint count. | File path. |
 | `ECCE_NWDIRDY_DEBUG` | The reaction-rate editor prints its general theory data. | Set to enable. |
 | `ECCE_BUG` | Same as `ecce --bug`: see above. | Set and not `0`. |
 | `ECCE_BUG_DIR` | Set by bug mode to the folder collecting the report. | Do not set. |

@@ -2236,6 +2236,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_organizer_close PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # Modal dialogs are shown without the busy cursor and presented
+  # (ewxModalGuard); ECCE_DEBUG_MODAL.
+  add_test(NAME apps_modal_guard
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/modal_guard_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_modal_guard PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # The project table's Progress column (#284): stored and live snapshots.
   add_test(NAME apps_progress_table
            COMMAND ${PYTHON3_EXECUTABLE}
