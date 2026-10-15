@@ -2,7 +2,7 @@
 type: pitfall
 title: "On GNOME/Wayland (XWayland, Mutter 48) a modal dialog can show typed text or scrolling only after it is reopened; the busy cursor and window disabler are not the cause, every modal now goes through ewxModalGuard"
 area: wx-viewer
-paths: ["src/wxgui/ewxClasses/ewxModalGuard.C", "include/wxgui/ewxModalGuard.H", "src/wxgui/ewxClasses/ewxApp.C", "src/wxgui/ewxClasses/ewxWindowUtils.C", "src/apps/organizer/CalcMgr.C", "src/wxgui/wxdialogs/WxDavAuth.C", "tests/apps/modal_guard_test.py"]
+paths: ["CMakeLists.txt", "src/apps/organizer/ProjectContextPanel.C", "src/apps/organizer/MDTaskPanel.C", "src/wxgui/ewxClasses/ewxModalGuard.C", "include/wxgui/ewxModalGuard.H", "src/wxgui/ewxClasses/ewxApp.C", "src/wxgui/ewxClasses/ewxWindowUtils.C", "src/apps/organizer/CalcMgr.C", "src/wxgui/wxdialogs/WxDavAuth.C", "tests/apps/modal_guard_test.py"]
 issues: [120, 311, 332]
 ---
 Seen only on GNOME/Wayland (ECCE runs under XWayland, `GDK_BACKEND=x11`),
@@ -22,6 +22,19 @@ common/utilscmn.cpp):
   same `OnNewResourceClick` -> `createResource` as New Calculation, which
   already lifts `p_disabler`/`p_cursor` (9.1.0), and still fails.
 So which dialog fails is not decided by the busy cursor or disabler.
+
+What was measured on beryllium (XWayland), the name prompt's typed text
+arriving (Enter applies it) but not drawn:
+- `GTK_IM_MODULE=gtk-im-context-simple` alone, `XMODIFIERS=@im=ibus`
+  inherited: New Project draws, New Calculation (File > New) does not.
+- `XMODIFIERS=` as well: File > New draws; the same item from the tree's
+  right-click menu does not.
+The launchers now clear `XMODIFIERS` whenever the simple input method is
+in force, and the Organizer's context menus run the chosen item after the
+menu has closed (`ewxPopupMenu`: `GetPopupMenuSelectionFromUser`, then the
+command). wxGTK otherwise runs a popup item's handler from the GTK
+"activate" signal inside `DoPopupMenu`'s own loop, while the menu is still
+being taken down.
 
 What is known from #120 (gdb on beryllium): Mutter declines to activate a
 window mapped with a stale timestamp; `gtk_window_present_with_time()` with

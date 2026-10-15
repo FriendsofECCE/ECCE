@@ -1509,7 +1509,7 @@ void CalcMgr::OnContextMenu( wxContextMenuEvent& event )
   wxMenu menu;
   getContextMenu(menu);
   p_popupOnTree = true;
-  PopupMenu(&menu);
+  ewxPopupMenu(this, menu);
   p_popupOnTree = false;
   /*
   wxPoint pt = event.GetPosition();

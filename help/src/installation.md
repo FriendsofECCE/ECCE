@@ -127,7 +127,8 @@ menu. It starts the same `ecce` command.
 On a GNOME or other Wayland desktop, ECCE's windows run through XWayland.
 There, ECCE uses GTK's own input method for typing, because with IBus the
 typed text did not appear until Enter was pressed. To use another input
-method, start ECCE with `GTK_IM_MODULE` set to it.
+method, start ECCE with `GTK_IM_MODULE` set to it (ECCE then also keeps
+your `XMODIFIERS`).
 
 On a Wayland session, the transparent orbital surfaces can show bands and
 stripes. Logging in with "GNOME on Xorg" avoids this.
