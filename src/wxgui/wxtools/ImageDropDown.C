@@ -24,6 +24,13 @@ ImageDropDown::ImageDropDown(wxWindow* parent,
 {
   for (size_t i = 0; i < images.GetCount(); i++)
     p_bundles.push_back(ewxBitmap::colorIcon(images[i], imageSize));
+
+  // Wide enough for the icon and the longest name, plus the drop button.
+  int text = 0;
+  for (size_t i = 0; i < choices.GetCount(); i++)
+    text = wxMax(text, GetTextExtent(choices[i]).GetWidth());
+  const int width = imageSize.GetX() + 16 + text + GetButtonSize().GetWidth();
+  SetMinSize(wxSize(wxMax(width, size.GetWidth()), size.GetHeight()));
 }
 
 
@@ -39,17 +46,12 @@ void ImageDropDown::OnDrawItem( wxDC& dc,
   r.Deflate(3);
   r.height -= 2;
 
-  if (!(flags & wxODCB_PAINTING_CONTROL)) {
-    dc.DrawBitmap(p_bundles[item].GetBitmapFor(this), r.x+1, r.y+1, true);
-    dc.DrawText(GetString( item ),
-                r.x+10+p_imageSize.GetX(),
-                (r.y + 2) + (r.height - dc.GetCharHeight())/2);
-
-  }
-  else
-  {
-    dc.DrawBitmap(p_bundles[item].GetBitmapFor(this), r.x+1, r.y+1, true);
-  }
+  //  The name goes beside the icon in the closed control too: the small
+  //  icons alone were not enough to tell the choices apart.
+  dc.DrawBitmap(p_bundles[item].GetBitmapFor(this), r.x+1, r.y+1, true);
+  dc.DrawText(GetString( item ),
+              r.x+10+p_imageSize.GetX(),
+              (r.y + 2) + (r.height - dc.GetCharHeight())/2);
 }
 
 
