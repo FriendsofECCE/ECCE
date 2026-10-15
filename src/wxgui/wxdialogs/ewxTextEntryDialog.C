@@ -26,6 +26,9 @@ ewxTextEntryDialog::ewxTextEntryDialog(wxWindow* parent,
     ewxStyledWindow()
 {
   setStyles(this, true);
+  // The styles change the fonts after wx sized the dialog; without a refit
+  // the buttons are cut off at the bottom (seen on Windows).
+  if (GetSizer()) GetSizer()->SetSizeHints(this);
 }
 
 

@@ -2371,9 +2371,8 @@ void CalcMgr::OnRenameClick( wxCommandEvent& event )
 
     // Prompt for new legal name
     bool showInvalidMsg = false;
-    string invalidMsg =  "Invalid name entered.  Please make sure the\n"
-      "new name only contains the following characters:\n" +
-      resType->getNameRule() + "\n\n";
+    string invalidMsg = "A name may contain only letters, digits, "
+      "'.', '_' and '-'.\n\n";
     while (true) {
       newName = oldUrl.getFilePathTail();
       string infoStr = "Please enter the new name for " +
@@ -5953,9 +5952,8 @@ void CalcMgr::createResource(ResourceType * resType,
   string name = resType->getLabel();
   if (!bypassNamePrompt && GetMenuBar()->IsChecked(wxID_ASKFORNAME)) {
     bool showInvalidMsg = false;
-    string invalidMsg =  "Invalid name entered.  Please make sure the\n"
-      "name only contains the following characters:\n" +
-      resType->getNameRule() + "\n\n";
+    string invalidMsg = "A name may contain only letters, digits, "
+      "'.', '_' and '-'.\n\n";
     while (true) {
       name = resType->getLabel();
       string infoStr = "Please enter the name for the new " +

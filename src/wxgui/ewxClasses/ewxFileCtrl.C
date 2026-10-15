@@ -193,9 +193,8 @@ void ewxFileCtrl::MakeDir()
   string name;
 
   bool showInvalidMsg = false;
-  string invalidMsg =  "Invalid name entered.  Please make sure the\n"
-    "name only contains the following characters:\n" +
-    resType->getNameRule() + "\n\n";
+  string invalidMsg = "A name may contain only letters, digits, "
+      "'.', '_' and '-'.\n\n";
 
   while (true) {
     name = resType->getLabel();
