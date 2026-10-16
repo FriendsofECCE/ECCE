@@ -1014,7 +1014,8 @@ void WxMachineRegister::sortCodeShown()
 void WxMachineRegister::fillCodeList()
 {
     static const std::set<string> retired = { "Gaussian-03", "Gaussian-98",
-                                              "GAMESS-UK", "Amica" };
+                                              "GAMESS-UK", "Amica",
+                                              "DirDyVTST", "Polyrate" };
     p_codeList->Clear();
     p_codeShown.clear();
     for (size_t i = 0; i < p_codeNames.size(); i++)
