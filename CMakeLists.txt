@@ -1849,6 +1849,11 @@ set_tests_properties(dummy_fragment PROPERTIES
 add_test(NAME dummy_atoms_decks
   COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/dummy_atoms/run_tests.py)
 
+# tests/layerstack (#357): layer builder geometry, wx-free.
+add_executable(layer_stack_test tests/layerstack/layer_stack_test.C)
+target_link_libraries(layer_stack_test PRIVATE eccetdat ecceutil)
+add_test(NAME layer_stack COMMAND layer_stack_test)
+
 # tests/metal_bonds (#325): Metal bonds need no nubs.
 add_executable(metal_bond_test tests/metal_bonds/metal_bond_test.C)
 target_link_libraries(metal_bond_test PRIVATE eccetdat ecceutil)
