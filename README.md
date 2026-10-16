@@ -23,11 +23,11 @@ More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
 Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
 * **ECCE 9** (latest
-  [9.2.0](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.2.0)),
+  [9.2.1](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.2.1)),
   for Linux, macOS and Windows: the recommended version. The macOS and
   Windows clients are experimental.
 * **ECCE 8.18.x** (latest
-  [8.18.10](https://github.com/FriendsofECCE/ECCE/releases/tag/v8.18.10)),
+  [8.18.12](https://github.com/FriendsofECCE/ECCE/releases/tag/v8.18.12)),
   Linux only: the older line, which still gets bug fixes.
 
 | System | File | Install |
