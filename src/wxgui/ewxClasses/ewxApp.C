@@ -33,16 +33,22 @@
 #ifdef __WXMAC__
 #include <CoreFoundation/CoreFoundation.h>
 #include <unistd.h>
-#include "wx/stdpaths.h"
+#include <limits.h>
+#include <mach-o/dyld.h>
 
 namespace {
 
 // A tool started from the Dock or Finder (a kept Dock icon) has none of
 // ECCE's session environment; it starts ECCE itself instead of a lone tool.
-void startEcceInsteadOfTool()
+// Runs as an early constructor: the static initialisers of the ECCE
+// libraries assert on a missing ECCE_HOME before OnInit is reached.
+__attribute__((constructor(101))) void startEcceInsteadOfTool()
 {
   if (getenv("ECCE_HOME")) return;
-  std::string exe = wxStandardPaths::Get().GetExecutablePath().ToStdString();
+  char buf[PATH_MAX];
+  uint32_t size = sizeof(buf);
+  if (_NSGetExecutablePath(buf, &size) != 0) return;
+  std::string exe = buf;
   size_t at = exe.find("/Contents/Helpers/");
   if (at == std::string::npos) return;     // not inside ECCE.app
   std::string app = exe.substr(0, at);
@@ -198,9 +204,6 @@ ewxApp::~ewxApp()
  */
 bool ewxApp::OnInit()
 {
-#ifdef __WXMAC__
-   startEcceInsteadOfTool();
-#endif
 #ifdef __WXGTK__
    g_log_set_writer_func(filterKnownBenignGtkPizzaWarnings, nullptr, nullptr);
 #endif
