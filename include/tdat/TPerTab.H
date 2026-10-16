@@ -96,6 +96,10 @@ public:
 
     static string mixedCase(const string& oldSymbol);
 
+    // IUPAC symbol for a pre-2016 placeholder (Uun -> Ds, ...); any other
+    // string comes back unchanged.
+    static string canonicalSymbol(const string& symbol);
+
     // Element colours: "jmol" (default) or "ecce" (the classic AtomicElements
     // colours), chosen in Preferences > Colours.  applyColourScheme() re-reads
     // the choice and recolours the tables of this process.

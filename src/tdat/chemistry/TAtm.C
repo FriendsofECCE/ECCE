@@ -109,7 +109,7 @@ TAtm::TAtm(const char *tagString, const double* coord, const string& suffix)
 
   strcpy(p_atomName,"");
   strcpy(p_atomType,"    ");
-  strcpy(p_atomicSymbol,tagString);
+  strcpy(p_atomicSymbol,TPerTab::canonicalSymbol(tagString).c_str());
   p_partialCharge = 0.0;
   p_chargeGroup = 1;
   p_polarizationGroup = 0;
@@ -698,8 +698,9 @@ void TAtm::connectedAtoms(vector<TAtm*> & result, const char* atomSym) const
 ///////////////////////////////////////////////////////////////////////////////
 void TAtm::atomicSymbol(const string&symbol)
 { 
-  strcpy(p_atomicSymbol,symbol.c_str());
-  setMostAbundantIsotopeMass(symbol);
+  string canon = TPerTab::canonicalSymbol(symbol);
+  strcpy(p_atomicSymbol,canon.c_str());
+  setMostAbundantIsotopeMass(canon);
 }
 void TAtm::atomName(const char *name)
 {

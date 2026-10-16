@@ -18,7 +18,7 @@ Hf - Rn: R.B. ROSS, W.C. ERMLER, P.A. CHRISTIANSEN ET AL. J. CHEM.
          PHYS. 93,(1990)6654.
 Fr - Pu: W.C. ERMLER, R.B. ROSS, P.A. CHRISTIANSEN, INT. J. QUANT. 
          CHEM. 40,(1991)829.
-Am - Uuo:C.S. NASH, B.E. BURSTEN, W.C. ERMLER, J. CHEM. PHYS. 1997
+Am - Og:C.S. NASH, B.E. BURSTEN, W.C. ERMLER, J. CHEM. PHYS. 1997
 
 references
 info
@@ -52,9 +52,9 @@ Ti - Rn: (3s,3p,4d)
 Fr - Ra: (5s,5p,4d)         W.C. ERMLER, R.B. ROSS, P.A. CHRISTIANSEN,
                             INT. J. QUANT. CHEM. 40,(1991)829.
 Ac - Pu: (5s,5p,4d,4f)
-Am - Uub:  (0s,2p,6d,5f)    C.S. NASH, B.E. BURSTEN, W.C. ERMLER,
+Am - Cn:  (0s,2p,6d,5f)    C.S. NASH, B.E. BURSTEN, W.C. ERMLER,
                             J. CHEM. PHYS. 1997
-Uut - Uuo: (0s,3p,6d,5f)
+Nh - Og: (0s,3p,6d,5f)
 
 The ECPs for Cf, Es, Fm and Md are described in J. Chem. Phys. 106, 5133 (1997)
 These represent updated versions.

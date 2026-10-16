@@ -11,7 +11,7 @@ the periodic-table and element buttons, `StructLib`, thumbnails) goes through
 `AtomicElements` colours (the "ecce" scheme) and `setColours()` overwrites both
 tables (`p_refel`, `p_userel`) with the Jmol table, by symbol, when the saved
 `ElementColours` preference (EcceGlobal) is not "ecce"; a new user has none, so
-gets Jmol. Elements Jmol has no entry for (the ghost atom X, Uun...) keep their
+gets Jmol. Elements Jmol has no entry for (the ghost atom X, Ds...) keep their
 classic colour. The Jmol table is Jmol's default CPK table
 (jmol.sourceforge.net/jscolors/), hydrogen to meitnerium.
 

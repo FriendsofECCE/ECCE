@@ -3389,7 +3389,7 @@ ecp_potential%l=3%shell=F-G POTENTIAL%num_exponents=8
 2 14.02200031 -250.87223816
 1 22.29000092 115.67070007
 0 135.26950073 8.22783756
-atom=Uun ncore=78 lmax=4
+atom=Ds ncore=78 lmax=4
 ecp_potential%l=4%shell=G POTENTIAL%num_exponents=7
 2 2.32279992 -0.94269902
 2 5.56559992 -16.79473877
@@ -3438,7 +3438,7 @@ ecp_potential%l=3%shell=F-G POTENTIAL%num_exponents=9
 2 18.96209908 -398.08880615
 1 31.52849960 112.13120270
 0 201.21879578 5.49799919
-atom=Uuu ncore=78 lmax=4
+atom=Rg ncore=78 lmax=4
 ecp_potential%l=4%shell=G POTENTIAL%num_exponents=6
 2 3.58710003 -3.96670699
 2 8.36740017 -35.01468658
@@ -3481,7 +3481,7 @@ ecp_potential%l=3%shell=F-G POTENTIAL%num_exponents=7
 2 15.68809986 -239.91658020
 1 25.05120087 119.50780487
 0 149.48849487 8.24896336
-atom=Uub ncore=78 lmax=4
+atom=Cn ncore=78 lmax=4
 ecp_potential%l=4%shell=G POTENTIAL%num_exponents=6
 2 3.86159992 -4.68075991
 2 8.95540047 -36.71400833
@@ -3524,7 +3524,7 @@ ecp_potential%l=3%shell=F-G POTENTIAL%num_exponents=7
 2 15.82779980 -234.00949097
 1 25.44899940 118.58946228
 0 146.29719543 8.24507046
-atom=Uut ncore=78 lmax=4
+atom=Nh ncore=78 lmax=4
 ecp_potential%l=4%shell=G POTENTIAL%num_exponents=6
 2 3.86430001 -3.57477403
 2 9.26659966 -39.99440384
@@ -3566,7 +3566,7 @@ ecp_potential%l=3%shell=F-G POTENTIAL%num_exponents=7
 2 17.35269928 -264.30957031
 1 28.38339996 125.84226990
 0 168.69960022 8.17749882
-atom=Uuq ncore=78 lmax=4
+atom=Fl ncore=78 lmax=4
 ecp_potential%l=4%shell=G POTENTIAL%num_exponents=6
 2 4.19299984 -4.39426422
 2 9.84379959 -41.13504410
@@ -3610,7 +3610,7 @@ ecp_potential%l=3%shell=F-G POTENTIAL%num_exponents=8
 2 17.21750069 -272.16574097
 1 28.36210060 124.26380157
 0 160.97000122 8.14029789
-atom=Uup ncore=78 lmax=4
+atom=Mc ncore=78 lmax=4
 ecp_potential%l=4%shell=G POTENTIAL%num_exponents=6
 2 4.57310009 -5.45129013
 2 10.59549999 -43.23514175
@@ -3654,7 +3654,7 @@ ecp_potential%l=3%shell=F-G POTENTIAL%num_exponents=8
 2 21.50379944 -384.50659180
 1 35.18830109 119.36280060
 0 219.72839355 6.38079405
-atom=Uuh ncore=78 lmax=4
+atom=Lv ncore=78 lmax=4
 ecp_potential%l=4%shell=G POTENTIAL%num_exponents=6
 2 4.77169991 -6.15212011
 2 11.23089981 -44.79880524
@@ -3701,7 +3701,7 @@ ecp_potential%l=3%shell=F-G POTENTIAL%num_exponents=8
 2 26.03829956 -503.51449585
 1 49.04800034 116.73788452
 0 488.52600098 4.03654385
-atom=Uus ncore=78 lmax=4
+atom=Ts ncore=78 lmax=4
 ecp_potential%l=4%shell=G POTENTIAL%num_exponents=6
 2 5.21229982 -7.44620419
 2 11.84329987 -42.97925949
