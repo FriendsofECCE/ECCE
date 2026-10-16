@@ -6012,7 +6012,7 @@ void CalcMgr::resetWithLastGeom(WxResourceTreeItemData *itemData)
       // resetForRerun() method will determine the correct runstate
       tostate = ResourceDescriptor::STATE_ILLEGAL;
       p_feedback->clearMessage();
-      setMessage("There is no geometry trace property.  Coordinates unchanged.");
+      setMessage("This calculation has no optimised geometry; the copy keeps the starting structure.");
     }
     // So having done that we need to set the state to ready and remove
     // existing properties.
