@@ -95,6 +95,18 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     return true;
   }
 
+  //  "pbcscroll": scroll the Periodic Builder to its bottom (Layer builder).
+  if (c == "pbcscroll") {
+    if (!pbc) return s.fail("pbcscroll: no Periodic Builder panel");
+    for (wxWindow *p = pbc->FindWindow(PBCGUI::ID_BUTTON_LAYER_BUILD); p;
+         p = p->GetParent()) {
+      wxScrolledWindow *sw = dynamic_cast<wxScrolledWindow*>(p);
+      if (sw) { sw->Scroll(-1, 1000); break; }
+    }
+    settle(300);
+    return true;
+  }
+
   //  "undo" / "redo": Edit > Undo / Redo.
   if ((c == "undo" || c == "redo") && w.size() == 1) {
     wxCommandEvent ev(wxEVT_MENU, c == "undo" ? wxID_UNDO : wxID_REDO);
@@ -103,10 +115,10 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     return true;
   }
 
-  //  "pblayer <field> <value>": set a Layer builder field (layers spacing
+  //  "pbclayer <field> <value>": set a Layer builder field (layers spacing
   //  shifta shiftb ion1 ion1n ion1q ion1min ion2 ... water watermin seed).
-  if (c == "pblayer" && w.size() == 3) {
-    if (!pbc) return s.fail("pblayer: no Periodic Builder panel");
+  if (c == "pbclayer" && w.size() == 3) {
+    if (!pbc) return s.fail("pbclayer: no Periodic Builder panel");
     static const struct { const char* n; wxWindowID id; bool spin; } f[] = {
       {"layers", PBCGUI::ID_SPIN_LAYER_N, true},
       {"spacing", PBCGUI::ID_TEXT_LAYER_SPACING, false},
@@ -126,12 +138,12 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     for (const auto& e : f) {
       if (w[1] != e.n) continue;
       wxWindow *win = pbc->FindWindow(e.id);
-      if (!win) return s.fail("pblayer: no field " + w[1]);
+      if (!win) return s.fail("pbclayer: no field " + w[1]);
       if (e.spin) dynamic_cast<wxSpinCtrl*>(win)->SetValue(atoi(w[2].c_str()));
       else dynamic_cast<wxTextCtrl*>(win)->SetValue(wxString(w[2]));
       return true;
     }
-    return s.fail("pblayer: unknown field " + w[1]);
+    return s.fail("pbclayer: unknown field " + w[1]);
   }
 
   //  "setcontext <url>": switch this Builder to another calculation.

@@ -6061,6 +6061,7 @@ void Builder::updatePropertyMenus()
             w[0] == "foldclick" ||
             w[0] == "sashdrag" || w[0] == "xshot" ||
             w[0] == "setcontext" || w[0] == "columntab" ||
+            w[0] == "undo" || w[0] == "redo" || w[0] == "pbcscroll" ||
             w[0] == "narrowcolumn" || w[0] == "toolfloat" || w[0] == "toolclip")
           return pbcTestCommand(s, w, outdir);
         //  "ptree <name>": the Properties list's highlighted entry beside

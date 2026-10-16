@@ -24,17 +24,17 @@ LAYER = ["cmd clear", "cmd add", "cmd addh", "pbcopen", "pbcpress create",
 
 CASES = (
     #  name, script, expected counts, "heavy" (unused)
-    ("stack", LAYER + ["pblayer layers 3", "pblayer spacing 4",
-                       "pblayer shifta 0.5", "pbcpress layers"],
+    ("stack", LAYER + ["pbclayer layers 3", "pbclayer spacing 4",
+                       "pbclayer shifta 0.5", "pbcpress layers"],
      {"C": 3, "H": 12}, "C"),
-    ("stack-undo", LAYER + ["pblayer layers 3", "pblayer spacing 4",
+    ("stack-undo", LAYER + ["pbclayer layers 3", "pbclayer spacing 4",
                             "pbcpress layers", "fragdump built", "undo"],
      {"C": 1, "H": 4}, "C"),
-    ("water-ions", LAYER + ["pblayer layers 2", "pblayer spacing 9",
-                            "pblayer water 4", "pblayer ion1 Na",
-                            "pblayer ion1n 2", "pblayer seed 5",
+    ("water-ions", LAYER + ["pbclayer layers 2", "pbclayer spacing 9",
+                            "pbclayer water 4", "pbclayer ion1 Na",
+                            "pbclayer ion1n 2", "pbclayer seed 5",
                             "pbcpress layers"],
-     {"C": 2, "H": 8 + 8, "O": 8, "Na": 4}, "C"),
+     {"C": 2, "H": 8 + 16, "O": 8, "Na": 4}, "C"),
 )
 
 
