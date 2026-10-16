@@ -11,6 +11,8 @@ atomipy assign MINFF atom types and charges, and writes a GROMACS system:
     min.ff/    copy of the MINFF parameter directory, so the run directory
                is self-contained on any machine
 
+A bundled atomipy (<ECCE_HOME>/lib/python/atomipy) and min.ff
+(<ECCE_HOME>/data/minff/min.ff) win over everything below.
 atomipy is found through ECCE_ATOMIPY_PYTHON (a python that has it), else the
 python running this script.  min.ff is fetched from github.com/mholmboe/minff
 at a pinned commit into ~/.cache/ecce/minff/<commit> (ECCE_MINFF_DIR points
@@ -26,6 +28,7 @@ at an existing checkout instead).  Its files are never stored in this repo.
 import argparse
 import contextlib
 import json
+import math
 import os
 import re
 import shutil
@@ -66,8 +69,39 @@ def cache_root():
                         os.path.expanduser("~/.cache"), "ecce", "minff")
 
 
+def bundle_roots():
+    """Install roots to look in for bundled copies: $ECCE_HOME, and the tree
+    or install this script sits in (scripts/ is next to lib/ and data/)."""
+    roots = [os.environ.get("ECCE_HOME"),
+             os.path.dirname(os.path.dirname(os.path.abspath(__file__)))]
+    return [r for r in roots if r]
+
+
+def bundled_atomipy_dir():
+    """Directory holding the bundled atomipy package, or None.
+    Bundled layout: <root>/lib/python/atomipy/."""
+    for r in bundle_roots():
+        d = os.path.join(r, "lib", "python")
+        if os.path.isfile(os.path.join(d, "atomipy", "__init__.py")):
+            return d
+    return None
+
+
+def bundled_minff_dir():
+    """Bundled directory that contains min.ff/: <root>/data/minff."""
+    for r in bundle_roots():
+        d = os.path.join(r, "data", "minff")
+        if os.path.isfile(os.path.join(d, "min.ff", "forcefield.itp")):
+            return d
+    return None
+
+
 def minff_dir(fetch=True):
-    """Directory that contains min.ff/ (a minff checkout)."""
+    """Directory that contains min.ff/: the bundled copy, else
+    ECCE_MINFF_DIR, else the pinned download in the cache."""
+    d = bundled_minff_dir()
+    if d:
+        return d
     d = os.environ.get("ECCE_MINFF_DIR")
     if d:
         if not os.path.isfile(os.path.join(d, "min.ff", "forcefield.itp")):
@@ -142,6 +176,9 @@ def ff_block_types(ffdir, variant, k, mineral):
 # -------------------------------------------------------------- atomipy
 
 def import_atomipy():
+    b = bundled_atomipy_dir()
+    if b and b not in sys.path:
+        sys.path.insert(0, b)
     try:
         import atomipy as ap
         return ap
@@ -149,14 +186,23 @@ def import_atomipy():
         raise MinffError(ATOMIPY_HINT)
 
 
+def _atomipy_env():
+    env = dict(os.environ)
+    b = bundled_atomipy_dir()
+    if b:
+        env["PYTHONPATH"] = b + os.pathsep + env.get("PYTHONPATH", "")
+    return env
+
+
 def find_atomipy_python():
     """Python able to import atomipy: ECCE_ATOMIPY_PYTHON, else python3."""
-    cands = [os.environ.get("ECCE_ATOMIPY_PYTHON"), sys.executable, "python3"]
+    cands = [sys.executable, os.environ.get("ECCE_ATOMIPY_PYTHON"), "python3"]
     for c in cands:
         if not c:
             continue
         try:
-            if subprocess.run([c, "-c", "import atomipy"], capture_output=True).returncode == 0:
+            if subprocess.run([c, "-c", "import atomipy"], capture_output=True,
+                              env=_atomipy_env()).returncode == 0:
                 return c
         except OSError:
             pass
@@ -211,6 +257,45 @@ def restrict_bonded(src, types):
                     continue
             out.append(line)
     return "".join(out)
+
+
+def contiguous_z(path):
+    """Rewrite a .gro so that the mineral is one block along z, the gap
+    between its layers or periodic images at the top of the cell.  A layer
+    split over the z boundary would be torn apart when the Prepare adds a
+    water layer on top of the cell (its bonds would then span the new box).
+    Atoms move by whole cell vectors only, so the periodic system is the
+    same.  Returns the number of atoms moved."""
+    lines = open(path, encoding="utf-8").read().split("\n")
+    n = int(lines[1])
+    box = [float(x) for x in lines[2 + n].split()]
+    box += [0.0] * (9 - len(box))
+    c, vx, vy = box[2], box[7], box[8]
+    if c <= 0 or n == 0:
+        return 0
+    xyz = []
+    for a in lines[2:2 + n]:
+        x, y, z = float(a[20:28]), float(a[28:36]), float(a[36:44])
+        k = math.floor(z / c)
+        xyz.append([x - k * vx, y - k * vy, z - k * c])
+    order = sorted(range(n), key=lambda i: xyz[i][2])
+    # the largest gap, the wrap-around one (top to bottom + c) included
+    best, cut = xyz[order[0]][2] + c - xyz[order[-1]][2], 0
+    for j in range(1, n):
+        gap = xyz[order[j]][2] - xyz[order[j - 1]][2]
+        if gap > best:
+            best, cut = gap, j
+    moved = 0
+    for j in range(cut):
+        i = order[j]
+        xyz[i][0] += vx
+        xyz[i][1] += vy
+        xyz[i][2] += c
+        moved += 1
+    for i, a in enumerate(lines[2:2 + n]):
+        lines[2 + i] = a[:20] + "%8.3f%8.3f%8.3f" % tuple(xyz[i]) + a[44:]
+    open(path, "w", encoding="utf-8").write("\n".join(lines))
+    return moved
 
 
 def read_itp_atoms(path):
@@ -272,6 +357,7 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
         shutil.copy(itp_tmp, os.path.join(outdir, "min.itp"))
         shutil.copy(gro_tmp, os.path.join(outdir, "conf.gro"))
 
+    z_moved = contiguous_z(os.path.join(outdir, "conf.gro"))
     dst = os.path.join(outdir, "min.ff")
     if os.path.isdir(dst):
         shutil.rmtree(dst)
@@ -302,6 +388,7 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
         "type_counts": dict(sorted(counts.items())),
         "total_charge": round(sum(q for _, q in itp), 6),
         "untyped_atoms": untyped,      # 1-based; no parameters in the chosen set
+        "z_moved_atoms": z_moved,      # atoms shifted by a cell vector to make the layer contiguous
         "types_missing_from_ff": sorted(t for t in counts if t not in known),
         "minff_commit": MINFF_COMMIT if not os.environ.get("ECCE_MINFF_DIR") else "ECCE_MINFF_DIR",
         "files": {"topology": "topol.top", "molecule": "min.itp", "structure": "conf.gro"},
@@ -338,13 +425,13 @@ def main(argv=None):
     a = p.parse_args(argv)
     if a.cmd == "build" and not os.environ.get("ECCE_MINFF_REEXEC"):
         try:
-            import atomipy  # noqa: F401
-        except ImportError:
+            import_atomipy()
+        except MinffError:
             py = find_atomipy_python()
             if not py:
                 print("minff_topology: " + ATOMIPY_HINT, file=sys.stderr)
                 return 1
-            env = dict(os.environ, ECCE_MINFF_REEXEC="1")
+            env = dict(_atomipy_env(), ECCE_MINFF_REEXEC="1")
             return subprocess.call([py, os.path.abspath(__file__)] + (
                 sys.argv[1:] if argv is None else list(argv)), env=env)
     try:

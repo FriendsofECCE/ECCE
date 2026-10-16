@@ -290,8 +290,17 @@ What exists so far is the part that runs, the resource type and the editor:
   NIONSPOS NIONSNEG SYSCHARGE0 SYSCHARGE BOXA..BOXGAMMA` (Run Statistics in the
   Viewer). `gensub` takes them from gmx's own output; `gromacs.desc` reads them.
 
-Not done: a restrain-protein (POSRES) switch in the Equilibrate editor, histidine states other than pdb2gmx's own choice, ligands and MINFF as
-sources, and everything listed below that is not these scripts and the task.
+**MINFF source.** `SOURCE=minff` (editor: *Mineral (MINFF)*): the editor's
+Build button runs `minff_topology.py` on the client and stores `conf.gmxmin`,
+`topol.gmxmin` and the includes (`min.itp`, `min.ff__SLASH__...`) in the task;
+`gensub` skips pdb2gmx, optionally lengthens the cell's c axis by `DIST` nm
+(0 = keep the cell), solvates and neutralises with `PNAME` of charge `PQ`
+(MINFF's ions.itp names). Details and traps:
+`docs/claude/codereg/gromacs-prepare-minff-source-traps.md`. Tests:
+`tests/minff/prepare_tests.py` (ctest `minff_prepare`) and the MINFF section of
+`tests/launch/gromacs_prepare_test.py`.
+
+Not done: a restrain-protein (POSRES) switch in the Equilibrate editor, histidine states other than pdb2gmx's own choice, ligands (acpype), and everything listed below that is not these scripts and the task.
 
 Everything above takes a system as given. A Prepare task would build one
 and, like NWChem's, be the first task of a study (`RootTask`) and the

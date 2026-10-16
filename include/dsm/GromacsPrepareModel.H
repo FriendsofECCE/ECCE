@@ -32,6 +32,18 @@ class GromacsPrepareModel : public ITaskModel
       string positiveIon() const { return p_pname; }
       string negativeIon() const { return p_nname; }
 
+      // SOURCE minff: what scripts/minff_topology.py was asked and what it
+      // made.  The recipe does not need them (the files are staged); the
+      // editor shows them again when the task is reopened.
+      string minffVariant() const { return p_mvariant; }
+      string minffMineral() const { return p_mmineral; }
+      int minffAngleK() const { return p_mangle; }
+      string minffReplicate() const { return p_mrep; }
+      string minffSubstitutions() const { return p_msubs; }
+      string minffSeed() const { return p_mseed; }
+      string minffCell() const { return p_mcell; }
+      string minffSummary() const { return p_msummary; }
+
       void source(const string& v) { p_source = v; }
       void forceField(const string& v) { p_ff = v; }
       void waterModel(const string& v) { p_water = v; }
@@ -43,6 +55,14 @@ class GromacsPrepareModel : public ITaskModel
       void ionConcentration(double v) { p_conc = v; }
       void positiveIon(const string& v) { p_pname = v; }
       void negativeIon(const string& v) { p_nname = v; }
+      void minffVariant(const string& v) { p_mvariant = v; }
+      void minffMineral(const string& v) { p_mmineral = v; }
+      void minffAngleK(int v) { p_mangle = v; }
+      void minffReplicate(const string& v) { p_mrep = v; }
+      void minffSubstitutions(const string& v) { p_msubs = v; }
+      void minffSeed(const string& v) { p_mseed = v; }
+      void minffCell(const string& v) { p_mcell = v; }
+      void minffSummary(const string& v) { p_msummary = v; }
 
       /** The defaults; md.gmxprep and gensub carry the same ones. */
       void reset();
@@ -52,6 +72,8 @@ class GromacsPrepareModel : public ITaskModel
 
    private:
       string p_source, p_ff, p_water, p_his, p_box, p_pname, p_nname;
+      string p_mvariant, p_mmineral, p_mrep, p_msubs, p_mseed, p_mcell, p_msummary;
+      int p_mangle;
       bool p_ignh, p_merge;
       double p_dist, p_conc;
 };

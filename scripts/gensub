@@ -1521,12 +1521,12 @@ sub gromacsPrepare()
 
 @@CC@@ - Read the recipe; md.gmxprep has checked every value.
 SOURCE=protein FF=amber99sb-ildn WATER=tip3p HIS=auto IGNH=1 MERGE=1
-BOX=dodecahedron DIST=1.0 CONC=0.15 PNAME=NA NNAME=CL
+BOX=dodecahedron DIST=1.0 CONC=0.15 PNAME=NA NNAME=CL PQ=1
 while IFS='=' read -r k v; do
   case "$k" in
     SOURCE) SOURCE=$v;; FF) FF=$v;; WATER) WATER=$v;; HIS) HIS=$v;;
     IGNH) IGNH=$v;; MERGE) MERGE=$v;; BOX) BOX=$v;; DIST) DIST=$v;;
-    CONC) CONC=$v;; PNAME) PNAME=$v;; NNAME) NNAME=$v;;
+    CONC) CONC=$v;; PNAME) PNAME=$v;; NNAME) NNAME=$v;; PQ) PQ=$v;;
   esac
 done < @@IN@@
 rm -f @@OUT@@
@@ -1549,12 +1549,12 @@ prepRun() {
 }
 genionRun() {
   echo SOL | "$gmx" genion -s ions.tpr -o ion.gro -p topol.top \
-      -pname "$PNAME" -nname "$NNAME" -neutral $GENION_CONC
+      -pname "$PNAME" -pq "$PQ" -nname "$NNAME" -neutral $GENION_CONC
 }
 
 case "$WATER" in
-  tip3p|spc|spce) WBOX=spc216.gro;;
-  tip4p|tip4pew)  WBOX=tip4p.gro;;
+  tip3p|spc|spce|opc3|tip3p-fb) WBOX=spc216.gro;;
+  tip4p|tip4pew|opc|tip4p-fb)   WBOX=tip4p.gro;;
   tip5p)          WBOX=tip5p.gro;;
   *) echo "No water box is known for the water model $WATER" >> @@OUT@@; WBOX="";;
 esac
@@ -1564,8 +1564,31 @@ if [ "`echo "$CONC" | awk '{print ($1 > 0)}'`" = 1 ]; then GENION_CONC="-conc $C
 (
   [ -n "$WBOX" ] || exit 1
 
-  prepStep 1 pdb2gmx
+  # The mineral keeps its own cell: DIST (nm) is a water layer added on top
+  # of it, 0 adds none.  Without water there is nothing for genion to
+  # replace, so a charged mineral stays charged and the summary says so.
+  MINFF_WATER=0
+  if [ "$SOURCE" = minff ] && [ "`echo "$DIST" | awk '{print ($1 > 0)}'`" = 1 ]; then
+    MINFF_WATER=1
+  fi
+  if [ "$SOURCE" = minff ]; then prepStep 1 minff; else prepStep 1 pdb2gmx; fi
   case "$SOURCE" in
+    minff)
+      # staged by Launch from what the editor built on the client; includes
+      # in folders (min.ff/) arrive flat
+      if [ ! -f topol.gmxmin ] || [ ! -f conf.gmxmin ]; then
+        echo "The mineral topology and structure (topol.gmxmin, conf.gmxmin) were not staged." >> @@OUT@@
+        exit 1
+      fi
+      for f in *__SLASH__*; do
+        [ -f "$f" ] || continue
+        d=`echo "$f" | sed 's#__SLASH__#/#g'`
+        mkdir -p "`dirname "$d"`" && mv "$f" "$d"
+      done
+      cp topol.gmxmin topol.top
+      cp conf.gmxmin step1.gro
+      : > prep.pdb2gmx
+      ;;
     protein)
       set -- *.gmxpdb
       pdb=$1
@@ -1584,21 +1607,60 @@ if [ "`echo "$CONC" | awk '{print ($1 > 0)}'`" = 1 ]; then GENION_CONC="-conc $C
   esac
 
   prepStep 2 editconf
-  prepRun "$gmx" editconf -f step1.gro -o step2.gro -c -bt "$BOX" -d "$DIST" || exit 1
+  if [ "$SOURCE" = minff ]; then
+    # z is the stacking direction: lengthen its component of the cell vector
+    # and keep the tilt, which editconf -box would drop
+    n=`wc -l < step1.gro | tr -d ' '`
+    head -n `expr $n - 1` step1.gro > step2.gro
+    tail -n 1 step1.gro | awk -v d="$DIST" -v add=$MINFF_WATER '
+      { for (i = NF + 1; i <= 9; i++) $i = 0
+        if (add) $3 = $3 + d
+        printf "%10.5f%10.5f%10.5f%10.5f%10.5f%10.5f%10.5f%10.5f%10.5f\n", $1,$2,$3,$4,$5,$6,$7,$8,$9 }' >> step2.gro
+    # no editconf here (it prints no box when it changes none): lengths and
+    # angles from the vectors, in editconf's own wording
+    tail -n 1 step2.gro | awk '
+      function acosd(x) { return atan2(sqrt(1 - x * x), x) * 180 / 3.14159265358979 }
+      { a = $1; b = $2; c = $3; v1y = $4; v1z = $5; v2x = $6; v2z = $7; v3x = $8; v3y = $9
+        # v1 = (a, v1y, v1z), v2 = (v2x, b, v2z), v3 = (v3x, v3y, c)
+        la = sqrt(a * a + v1y * v1y + v1z * v1z); lb = sqrt(v2x * v2x + b * b + v2z * v2z)
+        lc = sqrt(v3x * v3x + v3y * v3y + c * c)
+        printf "new box vectors : %.3f %.3f %.3f (nm)\n", la, lb, lc
+        printf "new box angles  : %.2f %.2f %.2f (degrees)\n",
+          acosd((v2x * v3x + b * v3y + v2z * c) / (lb * lc)),
+          acosd((a * v3x + v1y * v3y + v1z * c) / (la * lc)),
+          acosd((a * v2x + v1y * b + v1z * v2z) / (la * lb)) }' > prep.step
+    BOX=cell
+  else
+    prepRun "$gmx" editconf -f step1.gro -o step2.gro -c -bt "$BOX" -d "$DIST" || exit 1
+  fi
   cp prep.step prep.editconf
 
   prepStep 3 solvate
-  prepRun "$gmx" solvate -cp step2.gro -cs "$WBOX" -o step3.gro -p topol.top || exit 1
+  if [ "$SOURCE" = minff ] && [ $MINFF_WATER = 0 ]; then
+    echo "No water layer requested; the mineral keeps its cell and no water is added." >> @@OUT@@
+    cp step2.gro step3.gro
+  else
+    prepRun "$gmx" solvate -cp step2.gro -cs "$WBOX" -o step3.gro -p topol.top || exit 1
+  fi
 
   prepStep 4 genion
-  cat > ions.mdp <<'MDPEOF'
+  RC=1.0
+  PERIODIC=""
+  if [ "$SOURCE" = minff ]; then
+    # genion only reads charges from the .tpr; a small mineral cell cannot
+    # hold the usual 1 nm cut-off
+    RC=0.5
+    PERIODIC="periodic-molecules = yes"
+  fi
+  cat > ions.mdp <<MDPEOF
 integrator = steep
 nsteps = 0
 cutoff-scheme = Verlet
 coulombtype = cutoff
-rcoulomb = 1.0
-rvdw = 1.0
+rcoulomb = $RC
+rvdw = $RC
 pbc = xyz
+$PERIODIC
 MDPEOF
   # A net charge is only a note.  Every GROMOS force field draws one
   # warning (its twin-range parametrisation), which is the one allowed here.
@@ -1606,7 +1668,32 @@ MDPEOF
   case "$FF" in gromos*) maxwarn=1;; esac
   prepRun "$gmx" grompp -f ions.mdp -c step3.gro -p topol.top -o ions.tpr -maxwarn $maxwarn || exit 1
   cp prep.step prep.grompp
-  prepRun genionRun || exit 1
+  if [ "$SOURCE" = minff ] && [ $MINFF_WATER = 0 ]; then
+    echo "No solvent to replace with ions; the charge of the mineral is left as it is." >> @@OUT@@
+    cp step3.gro ion.gro
+  else
+    prepRun genionRun || exit 1
+    if [ "$SOURCE" = minff ]; then
+      # genion names the ion atom after the molecule (Na), but min.ff's
+      # ions.itp calls the atom Na+; grompp warns about the mismatch and the
+      # tasks after this one would need -maxwarn.  Write the topology's name.
+      "$gmx" grompp -f ions.mdp -c ion.gro -p topol.top -pp processed.top -o fix.tpr -maxwarn 9 > prep.fix 2>&1 < /dev/null
+      for ion in "$PNAME" "$NNAME"; do
+        an=`awk -v m="$ion" '
+          /^\[ *moleculetype *\]/ { st = 1; next }
+          /^\[ *atoms *\]/ { if (cur == m) st = 3; else st = 0; next }
+          /^\[/ { st = 0; next }
+          /^;/ || NF == 0 { next }
+          st == 1 { cur = $1; st = 2; next }
+          st == 3 { print $5; exit }' processed.top`
+        [ -n "$an" ] || continue
+        awk -v ion="$ion" -v an="$an" '
+          NR > 2 { r = substr($0, 6, 5); gsub(/ /, "", r)
+                   if (r == ion) $0 = substr($0, 1, 10) sprintf("%-5s", an) substr($0, 16) }
+          { print }' ion.gro > ion.fixed && mv ion.fixed ion.gro
+      done
+    fi
+  fi
   cp ion.gro @@RESTART@@ || exit 1
   cp topol.top @@SYS@@.gmxtop || exit 1
   prepRun "$gmx" editconf -f @@RESTART@@ -o chemsys.pdb || exit 1

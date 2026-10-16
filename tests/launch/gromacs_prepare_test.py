@@ -82,6 +82,8 @@ def main():
     ap.add_argument("--keep", action="store_true")
     ap.add_argument("--png", help="where the editor's screenshot goes "
                     "(default: the test's state directory, with --keep)")
+    ap.add_argument("--minff-only", action="store_true",
+                    help="run only the MINFF section")
     ap.add_argument("--editor-only", action="store_true",
                     help="run only the editor section")
     args = ap.parse_args()
@@ -103,6 +105,11 @@ def main():
         if not s.services(True):
             check(False, "services came up")
             return 1
+
+        if args.minff_only:
+            minff_section(s, build, rundir, args.png or os.path.join(s.state, "png"))
+            failures.extend(gromacs_test_failures())
+            return 1 if failures else 0
 
         if args.editor_only:
             editor_section(s, build, rundir, args.png or os.path.join(s.state, "png"))
@@ -238,6 +245,7 @@ def main():
 
         # ---- the editor ---------------------------------------------------
         editor_section(s, build, rundir, args.png or os.path.join(s.state, "png"))
+        minff_section(s, build, rundir, args.png or os.path.join(s.state, "png"))
         failures.extend(gromacs_test_failures())
     finally:
         leftovers = s.stop()
@@ -535,6 +543,161 @@ def organizer_new(s, build, gmx):
                     break
                 except Exception:
                     pass
+
+
+def minff_section(s, build, rundir, png):
+    """The MINFF source: build in the editor, Prepare, then an Optimize.
+
+    The mineral is the public pyrophyllite unit cell of the minff repository
+    (fetched with min.ff, not stored here), repeated 4 x 3 x 3 with four
+    Al -> Mg substitutions, so it carries a charge of -4 for the ions to
+    neutralise.  Skipped without atomipy, min.ff or the editors."""
+    sys.path.insert(0, os.path.join(REPO, "scripts"))
+    try:
+        import minff_topology as mt
+        py = mt.find_atomipy_python()
+        ffdir = mt.minff_dir()
+    except Exception as e:
+        say("  (MINFF is not checked: %s)" % e)
+        return
+    if not py:
+        say("  (MINFF is not checked: atomipy is not installed)")
+        return
+    if not shutil.which("Xvfb"):
+        say("  (no Xvfb: the MINFF editor is not checked)")
+        return
+    for exe in ("gmxprepare", "mdoptimize"):
+        if not os.access(os.path.join(build, exe), os.X_OK):
+            say("  (%s is not built: MINFF is not checked)" % exe)
+            return
+    import xdisplay
+    import gromacs_test
+    for exe in ("gmxprepare", "mdoptimize"):
+        harness.link(os.path.join(build, exe), os.path.join(s.home, "bin", exe))
+    wrappers = os.path.join(s.state, "wrappers-minff")
+    shutil.rmtree(wrappers, ignore_errors=True)
+    shutil.copytree(os.path.join(build, "wrappers"), wrappers)
+    for entry in os.listdir(wrappers):
+        os.chmod(os.path.join(wrappers, entry), 0o755)
+    if not s.services(True):
+        check(False, "services came up for the MINFF section")
+        return
+
+    cell = os.path.join(ffdir, "Systems", "UC_conf",
+                        "Pyrophyllite_Lee_Guggenheim_1981_GII_0.071.pdb")
+    rc, out = s.driver("gromacsprepstudy", s.userUrl(), "minffprep",
+                       os.path.join(FIXTURES, "1l2y.pdb"), "bare")
+    urls = urls_of(out)
+    if not check(rc == 0 and len(urls) == 3, "a study with a bare Prepare was made"):
+        return
+    prep, opt = urls[1], urls[2]
+    ptask = prep.replace("file://", "").rstrip("/")
+    otask = opt.replace("file://", "").rstrip("/")
+
+    with xdisplay.Display() as display:
+        cmddir = os.path.join(s.state, "mded-minff")
+        os.makedirs(cmddir, exist_ok=True)
+        genv = s.env({"DISPLAY": display.name, "ECCE_TEST_MDED": cmddir,
+                      "ECCE_ATOMIPY_PYTHON": py, "ECCE_MINFF_DIR": ffdir,
+                      "PATH": wrappers + os.pathsep + s.env()["PATH"]})
+        ed = gromacs_test.Editor(s, display, genv, wrappers, cmddir,
+                                 "gmxprepare", "GMXPrepare")
+        try:
+            if not ed.up():
+                return
+            check(ed.cmd("open " + prep) == "ok", "the Prepare opens in gmxprepare")
+            check(ed.cmd("set source minff") == "ok", "source: Mineral (MINFF)")
+            fields = ed.cmd("fields")
+            check("source=minff" in fields and "water=opc3" in fields
+                  and "waters=opc3,opc,spce,tip3p,tip3p-fb,tip4p-fb,tip4pew " in fields
+                  and "dist=0 " in fields and "conc=0 " in fields
+                  and "ions=Na,Cl" in fields and "built=0" in fields,
+                  "MINFF's water models, ions and no water layer: %s" % fields)
+            check(ed.cmd("set mcell " + cell) == "ok", "the unit cell is chosen")
+            check(ed.cmd("set mrep 4 3 3") == "ok" and
+                  ed.cmd("set msubs Al,Mgo,4") == "ok" and
+                  ed.cmd("set mseed 1") == "ok", "repeat 4 3 3, 4 Al -> Mgo, seed 1")
+            shot = os.path.join(png, "gmxprepare-minff.png")
+            os.makedirs(png, exist_ok=True)
+            out = ed.cmd("set mbuild go", timeout=600)
+            check(out == "ok", "Build topology ran minff_topology.py: %s" % out)
+            fields = ed.cmd("fields")
+            say("  fields: %s" % fields)
+            check("built=1" in fields and "1440 atoms, charge -4.0" in fields,
+                  "the editor reports 1440 atoms and charge -4: %s"
+                  % fields.split("mineral=")[-1])
+            check(ed.cmd("snap " + shot) == "saved", "window shot: %s" % shot)
+            # a changed option marks the build as stale, but the files stay
+            check(ed.cmd("set pname Ca") == "ok" and ed.cmd("set dist 2") == "ok"
+                  and ed.cmd("set conc 0") == "ok", "Ca counter-ions, 2 nm of water")
+            check(ed.cmd("set pname NA").startswith("refused"),
+                  "a protein ion name is not offered for a mineral")
+            ed.cmd("save")
+            recipe = ed.cmd("recipe")
+            check("SOURCE=minff" in recipe and "WATER=opc3" in recipe
+                  and "DIST=2" in recipe and "PNAME=Ca" in recipe and "PQ=2" in recipe
+                  and "CONC=0 " in recipe + " ", "Save stored the recipe: %s" % recipe)
+            inputs = sorted(os.listdir(os.path.join(ptask, "Inputs")))
+            say("  Prepare Inputs/: %s" % inputs)
+            check(all(f in inputs for f in ("conf.gmxmin", "topol.gmxmin", "min.itp",
+                                            "min.ff__SLASH__forcefield.itp",
+                                            "min.ff__SLASH__ions.itp",
+                                            "min.ff__SLASH__opc3.itp",
+                                            "gromacs.gmxprep"))
+                  and not any(f.endswith(".gmxpdb") for f in inputs),
+                  "the task holds the structure, topology and includes")
+            model = ed.cmd("model")
+            check("<Source>minff</Source>" in model and "<MinffAngleK>500</MinffAngleK>" in model
+                  and "<MinffReplicate>4 3 3</MinffReplicate>" in model,
+                  "and the options in the model")
+
+            rc, out = s.driver("mdsetup", prep, "localhost", rundir, s.user())
+            check(rc == 0, "launch settings stored for the MINFF Prepare")
+            rc, out = s.launch(prep)
+            check(rc == 0, "Launch accepted the MINFF Prepare (no Builder structure, "
+                  "no PDB): %s" % out.strip().splitlines()[-3:])
+            state = s.waitState(prep, 900)
+            check(state in ("completed", "loaded"), "the MINFF Prepare ran to %s" % state)
+            outs = outputs(prep)
+            say("  Prepare Outputs/: %s" % outs)
+            check(any(o.endswith(".gmxtop") for o in outs)
+                  and any(o.endswith(".gro") for o in outs) and "chemsys.pdb" in outs,
+                  "with its topology, structure and chemsys.pdb")
+            rc, stored = s.driver("progress", prep)
+            say("  stored progress: %s" % stored.strip().replace("\n", " | ")[:400])
+            check("done=yes" in stored and re.search(r"atoms=\d+", stored)
+                  and "box=cell" in stored, "the Progress box has the summary")
+            props = s.props(prep)
+            say("  Prepare properties: %s" % props)
+            check("NATOMS" in props and "NWATERS" in props, "and the properties")
+
+            # ---- the Optimize after it, nothing attached ----------------
+            oed = gromacs_test.Editor(s, display, genv, wrappers, cmddir,
+                                      "mdoptimize", "MDOptimize")
+            try:
+                if oed.up():
+                    check(oed.cmd("open " + opt) == "ok", "the Optimize opens in its editor")
+                    check(oed.cmd("set-steps 50") == "ok", "50 steps")
+                    check(oed.cmd("save") == "ok", "Save")
+                    mdp = open(os.path.join(otask, "Inputs", "gromacs.mdp")).read()
+                    check(re.search(r"periodic-molecules\s*=\s*yes", mdp) is not None,
+                          "the .mdp has periodic-molecules = yes from the cell")
+                    rc, out = s.driver("mdsetup", opt, "localhost", rundir, s.user())
+                    rc, out = s.launch(opt)
+                    check(rc == 0, "Launch accepted the Optimize: %s"
+                          % out.strip().splitlines()[-3:])
+                    state = s.waitState(opt, 900)
+                    check(state in ("completed", "loaded"), "the Optimize ran to %s" % state)
+                    props = s.props(opt)
+                    say("  Optimize properties: %s" % props)
+                    check("TE" in props, "the Optimize stored its energies")
+                    r = last_run_file(rundir, "min.ff__SLASH__forcefield.itp") or \
+                        last_run_file(rundir, "forcefield.itp")
+                    check(r is not None, "the force field includes reached the Optimize's run")
+            finally:
+                oed.close()
+        finally:
+            ed.close()
 
 
 if __name__ == "__main__":

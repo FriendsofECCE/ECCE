@@ -1083,6 +1083,14 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/processmachine)
           COMPONENT client)
 endif()
 
+# scripts/minff_topology.py: the GROMACS Prepare editor's "Mineral (MINFF)"
+# Build button runs it as $ECCE_HOME/scripts/minff_topology.py on the client.
+if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/minff_topology.py)
+  install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/minff_topology.py
+          DESTINATION scripts
+          COMPONENT client)
+endif()
+
 # scripts/gensub: job-submission-script generator, invoked as a bare
 # command (Launch.C:2372, `p_localconn->execout("gensub -v  -p subParams",
 # ...)`, relying entirely on $PATH -- unlike processmachine/std2NWChem
@@ -1958,6 +1966,13 @@ add_test(NAME minff
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/minff/run_tests.py)
 set_tests_properties(minff PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+
+# The same systems through a GROMACS Prepare with the MINFF source:
+# md.gmxprep, gromacs.launchpp and the gensub job script, run for real.
+add_test(NAME minff_prepare
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/minff/prepare_tests.py)
+set_tests_properties(minff_prepare PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 
 # tests/mqtt -- the messaging library against a private mosquitto on a Unix
 # socket; checks delivery, not just acknowledgement.  "auth" is the same on

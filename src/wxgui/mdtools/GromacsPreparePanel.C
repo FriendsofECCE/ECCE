@@ -9,6 +9,9 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <wx/filename.h>
+#include <wx/process.h>
+#include <wx/utils.h>
   using std::vector;
   using std::ifstream;
 
@@ -17,6 +20,7 @@
 #include "util/Preferences.H"
 
 #include "dsm/EDSIFactory.H"
+#include "dsm/GromacsIncludes.H"
 #include "dsm/GromacsPrepareModel.H"
 #include "dsm/JCode.H"
 #include "dsm/MdTask.H"
@@ -25,12 +29,22 @@
 #include "wxgui/ewxCheckBox.H"
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxFileDialog.H"
+#include "wxgui/ewxProgressDialog.H"
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxTextCtrl.H"
 #include "wxgui/MDEdBase.H"
 #include "wxgui/WxFeedback.H"
 #include "wxgui/GromacsPreparePanel.H"
 
+static const wxWindowID ID_SOURCE = wxNewId();
+static const wxWindowID ID_MREP = wxNewId();
+static const wxWindowID ID_MSUBS = wxNewId();
+static const wxWindowID ID_MMINERAL = wxNewId();
+static const wxWindowID ID_MSEED = wxNewId();
+static const wxWindowID ID_MVARIANT = wxNewId();
+static const wxWindowID ID_MANGLE = wxNewId();
+static const wxWindowID ID_MCELL = wxNewId();
+static const wxWindowID ID_MBUILD = wxNewId();
 static const wxWindowID ID_FF = wxNewId();
 static const wxWindowID ID_OTHERFF = wxNewId();
 static const wxWindowID ID_WATER = wxNewId();
@@ -82,8 +96,33 @@ static const char *BOXES[][2] = {
 };
 static const int NBOX = 4;
 
-static const char *POSITIVE[] = { "NA", "K" };
-static const char *NEGATIVE[] = { "CL" };
+struct IonInfo { const char *id; const char *label; };
+static const IonInfo POSITIVE[] = { { "NA", "Sodium (NA)" }, { "K", "Potassium (K)" } };
+static const IonInfo NEGATIVE[] = { { "CL", "Chloride (CL)" } };
+
+// MINFF's ions.itp names its molecules in mixed case; the counter-ions a
+// clay interlayer usually holds, then the halides.  md.gmxprep knows the
+// charge of each and checks the name.
+static const IonInfo MINFF_POSITIVE[] = {
+  { "Na", "Sodium (Na)" }, { "K", "Potassium (K)" }, { "Li", "Lithium (Li)" },
+  { "Cs", "Caesium (Cs)" }, { "Mg", "Magnesium (Mg)" }, { "Ca", "Calcium (Ca)" },
+  { "Sr", "Strontium (Sr)" }, { "Ba", "Barium (Ba)" }, { "Zn", "Zinc (Zn)" },
+  { "Cu2+", "Copper(II) (Cu2+)" }, { "Fe2+", "Iron(II) (Fe2+)" },
+  { "Ni", "Nickel(II) (Ni)" }, { "Mn", "Manganese(II) (Mn)" },
+  { "Al3+", "Aluminium (Al3+)" }, { "Fe3+", "Iron(III) (Fe3+)" },
+};
+static const IonInfo MINFF_NEGATIVE[] = {
+  { "Cl", "Chloride (Cl)" }, { "Br", "Bromide (Br)" }, { "F", "Fluoride (F)" },
+  { "I", "Iodide (I)" },
+};
+
+// The water models of min.ff that minff_topology.py can write.
+static const WaterInfo MINFF_WATERS[] = {
+  { "opc3", "OPC3" }, { "opc", "OPC" }, { "spce", "SPC/E" }, { "tip3p", "TIP3P" },
+  { "tip3p-fb", "TIP3P-FB" }, { "tip4p-fb", "TIP4P-FB" }, { "tip4pew", "TIP4P-Ew" },
+};
+static const int NMINFF_WATER = sizeof(MINFF_WATERS) / sizeof(MINFF_WATERS[0]);
+static const int ANGLE_KS[] = { 0, 250, 500, 1500 };
 
 static string waterLabel(const string& id)
 {
@@ -130,10 +169,12 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   p_model = 0;
   p_editable = true;
   p_refreshing = false;
+  p_built = false;
 
   wxBoxSizer *columns = new wxBoxSizer(wxHORIZONTAL);
   wxBoxSizer *left = new wxBoxSizer(wxVERTICAL);
   wxBoxSizer *right = new wxBoxSizer(wxVERTICAL);
+  ewxStaticText *lab;
 
   // ---- structure ----
   wxStaticBoxSizer *sb = new wxStaticBoxSizer(wxVERTICAL, this, _("Structure"));
@@ -143,66 +184,171 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   g->Add(label(box, _("Source:")), 0, wxALIGN_CENTER_VERTICAL);
   wxArrayString src;
   src.Add(_("Protein (pdb2gmx)"));
-  p_source = new ewxChoice(box, wxID_ANY, wxDefaultPosition, wxDefaultSize, src);
+  src.Add(_("Mineral (MINFF)"));
+  p_source = new ewxChoice(box, ID_SOURCE, wxDefaultPosition, wxDefaultSize, src);
   p_source->SetSelection(0);
   g->Add(p_source, 1, wxEXPAND);
-  g->Add(label(box, _("Structure:")), 0, wxALIGN_CENTER_VERTICAL);
+  lab = label(box, _("Structure:"));
+  p_proteinOnly.push_back(lab);
+  g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
   wxArrayString st;
   st.Add(_("from the Builder"));
   st.Add(_("PDB file..."));
   p_structure = new ewxChoice(box, ID_STRUCT, wxDefaultPosition, wxDefaultSize, st);
   p_structure->SetSelection(0);
+  p_proteinOnly.push_back(p_structure);
   g->Add(p_structure, 1, wxEXPAND);
   p_browse = new ewxButton(box, ID_BROWSE, _("Browse..."));
+  p_proteinOnly.push_back(p_browse);
   g->AddSpacer(0);
   g->Add(p_browse, 0);
   g->AddSpacer(0);
   p_file = label(box, wxEmptyString);
+  p_proteinOnly.push_back(p_file);
   g->Add(p_file, 1, wxEXPAND);
   sb->Add(g, 0, wxALL | wxEXPAND, 6);
   left->Add(sb, 0, wxALL | wxEXPAND, 4);
 
+  // ---- mineral (MINFF) ----
+  // minff_topology.py runs here, on this computer, when Build is pressed;
+  // its structure, topology and includes are stored in the task.
+  sb = new wxStaticBoxSizer(wxVERTICAL, this, _("Mineral (MINFF)"));
+  box = sb->GetStaticBox();
+  p_minffOnly.push_back(box);
+  g = new wxFlexGridSizer(2, 6, 8);
+  g->AddGrowableCol(1);
+  lab = label(box, _("Unit cell:"));
+  p_minffOnly.push_back(lab);
+  g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
+  wxBoxSizer *cellRow = new wxBoxSizer(wxHORIZONTAL);
+  p_cellLabel = label(box, _("none chosen"));
+  p_minffOnly.push_back(p_cellLabel);
+  cellRow->Add(p_cellLabel, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+  p_mcellBtn = new ewxButton(box, ID_MCELL, _("Browse..."));
+  p_minffOnly.push_back(p_mcellBtn);
+  cellRow->Add(p_mcellBtn, 0);
+  g->Add(cellRow, 1, wxEXPAND);
+  lab = label(box, _("Repeat (a b c):"));
+  p_minffOnly.push_back(lab);
+  g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
+  p_mrep = new ewxTextCtrl(box, ID_MREP, wxEmptyString);
+  p_mrep->SetToolTip(_("How many times the unit cell is repeated along its a, b "
+                       "and c axes, for example 4 3 3."));
+  p_minffOnly.push_back(p_mrep);
+  g->Add(p_mrep, 1, wxEXPAND);
+  lab = label(box, _("Substitutions:"));
+  p_minffOnly.push_back(lab);
+  g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
+  p_msubs = new ewxTextCtrl(box, ID_MSUBS, wxEmptyString);
+  p_msubs->SetToolTip(_("Atoms replaced at random, as FROM,TO,COUNT separated by "
+                        "semicolons: Al,Mgo,4 puts four Mgo in place of Al."));
+  p_minffOnly.push_back(p_msubs);
+  g->Add(p_msubs, 1, wxEXPAND);
+  lab = label(box, _("Random seed:"));
+  p_minffOnly.push_back(lab);
+  g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
+  p_mseed = new ewxTextCtrl(box, ID_MSEED, wxEmptyString);
+  p_mseed->SetToolTip(_("A whole number makes the substitutions repeatable; "
+                        "empty is a different draw every time."));
+  p_minffOnly.push_back(p_mseed);
+  g->Add(p_mseed, 1, wxEXPAND);
+  lab = label(box, _("Parameters:"));
+  p_minffOnly.push_back(lab);
+  g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
+  wxArrayString variants;
+  variants.Add(_("General (GMINFF)"));
+  variants.Add(_("Tailored to one mineral (TMINFF)"));
+  p_mvariant = new ewxChoice(box, ID_MVARIANT, wxDefaultPosition, wxDefaultSize, variants);
+  p_minffOnly.push_back(p_mvariant);
+  g->Add(p_mvariant, 1, wxEXPAND);
+  lab = label(box, _("Mineral (TMINFF):"));
+  p_minffOnly.push_back(lab);
+  g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
+  p_mmineral = new ewxTextCtrl(box, ID_MMINERAL, wxEmptyString);
+  p_mmineral->SetToolTip(_("The name of the mineral in MINFF's tailored set, for "
+                           "example Montmorillonite or Kaolinite."));
+  p_minffOnly.push_back(p_mmineral);
+  g->Add(p_mmineral, 1, wxEXPAND);
+  lab = label(box, _("O-M-O angle constant:"));
+  p_minffOnly.push_back(lab);
+  g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
+  wxArrayString ks;
+  for (size_t i = 0; i < sizeof(ANGLE_KS) / sizeof(ANGLE_KS[0]); i++)
+    ks.Add(wxString::Format("%d kJ/mol/rad2", ANGLE_KS[i]));
+  p_mangle = new ewxChoice(box, ID_MANGLE, wxDefaultPosition, wxDefaultSize, ks);
+  p_minffOnly.push_back(p_mangle);
+  g->Add(p_mangle, 1, wxEXPAND);
+  sb->Add(g, 0, wxALL | wxEXPAND, 6);
+  p_mbuild = new ewxButton(box, ID_MBUILD, _("Build topology"));
+  p_minffOnly.push_back(p_mbuild);
+  sb->Add(p_mbuild, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
+  p_summaryLabel = label(box, wxEmptyString);
+  p_minffOnly.push_back(p_summaryLabel);
+  sb->Add(p_summaryLabel, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
+  left->Add(sb, 0, wxALL | wxEXPAND, 4);
+  p_leftSizer = left;
+  p_minffSizer = sb;
+
   // ---- force field ----
   sb = new wxStaticBoxSizer(wxVERTICAL, this, _("Force field"));
   box = sb->GetStaticBox();
+  p_ffBox = (wxStaticBox*)box;
   g = new wxFlexGridSizer(2, 6, 8);
   g->AddGrowableCol(1);
-  g->Add(label(box, _("Force field:")), 0, wxALIGN_CENTER_VERTICAL);
+  lab = label(box, _("Force field:"));
+  p_proteinOnly.push_back(lab);
+  g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
   wxArrayString ffs;
   for (int i = 0; i < NFF; i++) ffs.Add(U(FORCEFIELDS[i].label));
   ffs.Add(_("Other (GMXLIB)"));
   p_ff = new ewxChoice(box, ID_FF, wxDefaultPosition, wxDefaultSize, ffs);
+  p_proteinOnly.push_back(p_ff);
   g->Add(p_ff, 1, wxEXPAND);
-  g->Add(label(box, _("Directory name:")), 0, wxALIGN_CENTER_VERTICAL);
+  lab = label(box, _("Directory name:"));
+  p_proteinOnly.push_back(lab);
+  g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
   p_otherFf = new ewxTextCtrl(box, ID_OTHERFF, wxEmptyString);
   p_otherFf->SetToolTip(_("The name of a force field folder (without .ff) that "
                           "GROMACS finds in its library or in GMXLIB."));
+  p_proteinOnly.push_back(p_otherFf);
   g->Add(p_otherFf, 1, wxEXPAND);
   g->Add(label(box, _("Water model:")), 0, wxALIGN_CENTER_VERTICAL);
   p_water = new ewxChoice(box, ID_WATER);
   g->Add(p_water, 1, wxEXPAND);
-  g->Add(label(box, _("Histidines:")), 0, wxALIGN_CENTER_VERTICAL);
-  g->Add(label(box, _("automatic (names in the PDB are kept)")), 1,
-         wxALIGN_CENTER_VERTICAL);
+  lab = label(box, _("Histidines:"));
+  p_proteinOnly.push_back(lab);
+  g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
+  lab = label(box, _("automatic (names in the PDB are kept)"));
+  p_proteinOnly.push_back(lab);
+  g->Add(lab, 1, wxALIGN_CENTER_VERTICAL);
   sb->Add(g, 0, wxALL | wxEXPAND, 6);
   p_ignh = new ewxCheckBox(box, ID_IGNH, _("Ignore hydrogens in the PDB (-ignh)"));
+  p_proteinOnly.push_back(p_ignh);
   sb->Add(p_ignh, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
   p_merge = new ewxCheckBox(box, ID_MERGE, _("Merge chains into one molecule"));
+  p_proteinOnly.push_back(p_merge);
   sb->Add(p_merge, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
   left->Add(sb, 0, wxALL | wxEXPAND, 4);
 
   // ---- box and ions ----
   sb = new wxStaticBoxSizer(wxVERTICAL, this, _("Box and water"));
   box = sb->GetStaticBox();
+  p_waterBox = (wxStaticBox*)box;
   g = new wxFlexGridSizer(3, 6, 8);
   g->AddGrowableCol(1);
-  g->Add(label(box, _("Box type:")), 0, wxALIGN_CENTER_VERTICAL);
+  lab = label(box, _("Box type:"));
+  p_proteinOnly.push_back(lab);
+  g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
   wxArrayString boxes;
   for (int i = 0; i < NBOX; i++) boxes.Add(U(BOXES[i][1]));
   p_box = new ewxChoice(box, ID_BOX, wxDefaultPosition, wxDefaultSize, boxes);
+  p_proteinOnly.push_back(p_box);
   g->Add(p_box, 1, wxEXPAND);
-  g->AddSpacer(0);
-  g->Add(label(box, _("Distance to edge:")), 0, wxALIGN_CENTER_VERTICAL);
+  lab = label(box, wxEmptyString);
+  p_proteinOnly.push_back(lab);
+  g->Add(lab, 0);
+  p_distLabel = label(box, _("Distance to edge:"));
+  g->Add(p_distLabel, 0, wxALIGN_CENTER_VERTICAL);
   p_dist = new ewxTextCtrl(box, ID_DIST, wxEmptyString);
   g->Add(p_dist, 1, wxEXPAND);
   g->Add(label(box, _("nm")), 0, wxALIGN_CENTER_VERTICAL);
@@ -211,9 +357,9 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
 
   sb = new wxStaticBoxSizer(wxVERTICAL, this, _("Ions"));
   box = sb->GetStaticBox();
-  ewxStaticText *neutral = label(box,
+  p_ionNote = label(box,
       _("The system is always neutralised. Salt is added on top."));
-  sb->Add(neutral, 0, wxALL, 6);
+  sb->Add(p_ionNote, 0, wxALL, 6);
   g = new wxFlexGridSizer(3, 6, 8);
   g->AddGrowableCol(1);
   g->Add(label(box, _("Salt concentration:")), 0, wxALIGN_CENTER_VERTICAL);
@@ -222,16 +368,11 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   g->Add(p_conc, 1, wxEXPAND);
   g->Add(label(box, _("mol/L")), 0, wxALIGN_CENTER_VERTICAL);
   g->Add(label(box, _("Positive ion:")), 0, wxALIGN_CENTER_VERTICAL);
-  wxArrayString pos;
-  pos.Add(_("Sodium (NA)"));
-  pos.Add(_("Potassium (K)"));
-  p_pion = new ewxChoice(box, ID_PION, wxDefaultPosition, wxDefaultSize, pos);
+  p_pion = new ewxChoice(box, ID_PION);
   g->Add(p_pion, 1, wxEXPAND);
   g->AddSpacer(0);
   g->Add(label(box, _("Negative ion:")), 0, wxALIGN_CENTER_VERTICAL);
-  wxArrayString neg;
-  neg.Add(_("Chloride (CL)"));
-  p_nion = new ewxChoice(box, ID_NION, wxDefaultPosition, wxDefaultSize, neg);
+  p_nion = new ewxChoice(box, ID_NION);
   g->Add(p_nion, 1, wxEXPAND);
   g->AddSpacer(0);
   sb->Add(g, 0, wxALL | wxEXPAND, 6);
@@ -240,7 +381,17 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   columns->Add(left, 1, wxEXPAND);
   columns->Add(right, 1, wxEXPAND);
   SetSizer(columns);
+  fillIons();
 
+  Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnSource, this, ID_SOURCE);
+  Bind(wxEVT_TEXT, &GromacsPreparePanel::OnMinffText, this, ID_MREP);
+  Bind(wxEVT_TEXT, &GromacsPreparePanel::OnMinffText, this, ID_MSUBS);
+  Bind(wxEVT_TEXT, &GromacsPreparePanel::OnMinffText, this, ID_MMINERAL);
+  Bind(wxEVT_TEXT, &GromacsPreparePanel::OnMinffText, this, ID_MSEED);
+  Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnMinffChoice, this, ID_MVARIANT);
+  Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnMinffChoice, this, ID_MANGLE);
+  Bind(wxEVT_BUTTON, &GromacsPreparePanel::OnMinffCell, this, ID_MCELL);
+  Bind(wxEVT_BUTTON, &GromacsPreparePanel::OnMinffBuild, this, ID_MBUILD);
   Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnForceField, this, ID_FF);
   Bind(wxEVT_TEXT, &GromacsPreparePanel::OnOtherForceField, this, ID_OTHERFF);
   Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnWater, this, ID_WATER);
@@ -320,10 +471,17 @@ void GromacsPreparePanel::showStructure()
   showFields();
 }
 
+bool GromacsPreparePanel::isMinff() const
+{
+  return p_model != 0 && p_model->source() == "minff";
+}
+
 void GromacsPreparePanel::showFields()
 {
+  bool minff = isMinff();
   bool other = p_ff->GetSelection() == OTHER_FF;
   p_source->Enable(p_editable);
+  p_source->SetSelection(minff ? 1 : 0);
   p_structure->Enable(p_editable);
   p_browse->Enable(p_editable && p_structure->GetSelection() == 1);
   p_ff->Enable(p_editable);
@@ -336,17 +494,70 @@ void GromacsPreparePanel::showFields()
   p_conc->Enable(p_editable);
   p_pion->Enable(p_editable);
   p_nion->Enable(p_editable);
+  for (int i = 0; i < 2; i++) {
+    wxWindow *w = i == 0 ? (wxWindow*)p_mrep : (wxWindow*)p_msubs;
+    w->Enable(p_editable);
+  }
+  p_mseed->Enable(p_editable);
+  p_mvariant->Enable(p_editable);
+  p_mmineral->Enable(p_editable && p_mvariant->GetSelection() == 1);
+  p_mangle->Enable(p_editable);
+  p_mcellBtn->Enable(p_editable);
+  p_mbuild->Enable(p_editable);
+
+  // What does not apply to the source is hidden, not just greyed
+  for (size_t i = 0; i < p_proteinOnly.size(); i++) p_proteinOnly[i]->Show(!minff);
+  p_leftSizer->Show(p_minffSizer, minff, true);
+  p_ffBox->SetLabel(minff ? _("Water model") : _("Force field"));
+  p_waterBox->SetLabel(minff ? _("Water layer") : _("Box and water"));
+  p_distLabel->SetLabel(minff ? _("Water layer above the mineral:")
+                              : _("Distance to edge:"));
+  p_dist->SetToolTip(minff
+      ? _("Water added above the mineral, along the cell's c axis. 0 keeps the "
+          "mineral's cell as it is and adds no water; a charged mineral is then "
+          "not neutralised, because there is no water to replace by ions.")
+      : _("The distance from the solute to the box edge."));
+  p_ionNote->SetLabel(minff
+      ? _("With a water layer the mineral's charge is neutralised by counter-ions.")
+      : _("The system is always neutralised. Salt is added on top."));
+  relayout();
+}
+
+// The mineral page is taller than the protein page; the window grows to fit
+// instead of squeezing the boxes over each other.
+void GromacsPreparePanel::relayout()
+{
+  Layout();
+  wxSizer *s = GetSizer();
+  if (s == 0) return;
+  wxSize need = s->CalcMin(), have = GetClientSize();
+  int dx = need.x > have.x ? need.x - have.x : 0;
+  int dy = need.y > have.y ? need.y - have.y : 0;
+  wxWindow *top = wxGetTopLevelParent(this);
+  if ((dx > 0 || dy > 0) && top != 0 && top != this) {
+    wxSize ts = top->GetSize();
+    top->SetSize(ts.x + dx, ts.y + dy);
+  }
+  Layout();
 }
 
 /** Offer the water models of the chosen force field; keep one if it is there. */
 void GromacsPreparePanel::fillWaters(const string& preferred)
 {
-  vector<string> ids = watersOf(p_ff->GetSelection());
+  vector<string> ids;
+  if (isMinff()) {
+    for (int i = 0; i < NMINFF_WATER; i++) ids.push_back(MINFF_WATERS[i].id);
+  } else {
+    ids = watersOf(p_ff->GetSelection());
+  }
   p_water->Clear();
   int pick = 0;
   for (size_t i = 0; i < ids.size(); i++) {
-    p_water->Append(U(waterLabel(ids[i]).c_str()),
-                    new wxStringClientData(U(ids[i].c_str())));
+    string lab = waterLabel(ids[i]);
+    if (isMinff())
+      for (int k = 0; k < NMINFF_WATER; k++)
+        if (ids[i] == MINFF_WATERS[k].id) lab = MINFF_WATERS[k].label;
+    p_water->Append(U(lab.c_str()), new wxStringClientData(U(ids[i].c_str())));
     if (ids[i] == preferred) pick = (int)i;
   }
   p_water->SetSelection(pick);
@@ -355,6 +566,38 @@ void GromacsPreparePanel::fillWaters(const string& preferred)
       (wxStringClientData*)p_water->GetClientObject(pick);
     p_model->waterModel(string(d->GetData().ToUTF8()));
   }
+}
+
+/** The ions of the source: GROMACS's NA/K/CL, or MINFF's ions.itp. */
+void GromacsPreparePanel::fillIons()
+{
+  bool minff = isMinff();
+  const IonInfo *pos = minff ? MINFF_POSITIVE : POSITIVE;
+  int np = minff ? (int)(sizeof(MINFF_POSITIVE) / sizeof(IonInfo))
+                 : (int)(sizeof(POSITIVE) / sizeof(IonInfo));
+  const IonInfo *neg = minff ? MINFF_NEGATIVE : NEGATIVE;
+  int nn = minff ? (int)(sizeof(MINFF_NEGATIVE) / sizeof(IonInfo))
+                 : (int)(sizeof(NEGATIVE) / sizeof(IonInfo));
+  bool was = p_refreshing;
+  p_refreshing = true;
+  p_pion->Clear();
+  p_nion->Clear();
+  int pp = 0, pn = 0;
+  for (int i = 0; i < np; i++) {
+    p_pion->Append(U(pos[i].label), new wxStringClientData(U(pos[i].id)));
+    if (p_model != 0 && p_model->positiveIon() == pos[i].id) pp = i;
+  }
+  for (int i = 0; i < nn; i++) {
+    p_nion->Append(U(neg[i].label), new wxStringClientData(U(neg[i].id)));
+    if (p_model != 0 && p_model->negativeIon() == neg[i].id) pn = i;
+  }
+  p_pion->SetSelection(pp);
+  p_nion->SetSelection(pn);
+  if (p_model != 0) {
+    p_model->positiveIon(pos[pp].id);
+    p_model->negativeIon(neg[pn].id);
+  }
+  p_refreshing = was;
 }
 
 void GromacsPreparePanel::refreshGUI()
@@ -377,12 +620,51 @@ void GromacsPreparePanel::refreshGUI()
   std::ostringstream oc;
   oc << p_model->ionConcentration();
   p_conc->SetValue(U(oc.str().c_str()));
-  p_pion->SetSelection(p_model->positiveIon() == "K" ? 1 : 0);
-  p_nion->SetSelection(0);
+  fillIons();
+  p_mrep->SetValue(U(p_model->minffReplicate().c_str()));
+  p_msubs->SetValue(U(p_model->minffSubstitutions().c_str()));
+  p_mseed->SetValue(U(p_model->minffSeed().c_str()));
+  p_mmineral->SetValue(U(p_model->minffMineral().c_str()));
+  p_mvariant->SetSelection(p_model->minffVariant() == "tminff" ? 1 : 0);
+  int k = 2;
+  for (size_t i = 0; i < sizeof(ANGLE_KS) / sizeof(ANGLE_KS[0]); i++)
+    if (ANGLE_KS[i] == p_model->minffAngleK()) k = (int)i;
+  p_mangle->SetSelection(k);
   p_badDistance.clear();
   p_badConcentration.clear();
   p_refreshing = false;
   showStructure();
+  showMineral();
+}
+
+// What the stored mineral is, in words; the task's inputs say whether one is there.
+void GromacsPreparePanel::showMineral()
+{
+  if (p_model == 0) return;
+  MdTask *t = task();
+  p_built = false;
+  if (t != 0) {
+    vector<string> names = t->getDataFileNames(JCode::AUXILIARY_INPUT);
+    for (size_t i = 0; i < names.size(); i++)
+      if (names[i] == "topol.gmxmin") p_built = true;
+  }
+  string cell = p_cellPath.empty() ? p_model->minffCell() : p_cellPath;
+  string::size_type s = cell.find_last_of("/\\");
+  if (s != string::npos) cell = cell.substr(s + 1);
+  p_cellLabel->SetLabel(cell.empty() ? _("none chosen") : U(cell.c_str()));
+  p_summaryLabel->SetLabel(p_built
+      ? U(p_model->minffSummary().c_str())
+      : _("No topology built yet. Choose a unit cell and press Build."));
+  relayout();
+}
+
+// Options changed after a build: the stored files no longer match them.
+void GromacsPreparePanel::minffStale()
+{
+  if (p_refreshing || !p_built) return;
+  p_summaryLabel->SetLabel(_("The options changed since the topology was built; "
+                             "press Build to apply them."));
+  relayout();
 }
 
 bool GromacsPreparePanel::validate(string& why) const
@@ -438,6 +720,7 @@ void GromacsPreparePanel::OnWater(wxCommandEvent&)
   if (sel == wxNOT_FOUND) return;
   wxStringClientData *d = (wxStringClientData*)p_water->GetClientObject(sel);
   p_model->waterModel(string(d->GetData().ToUTF8()));
+  minffStale();
   changed();
 }
 
@@ -460,10 +743,285 @@ void GromacsPreparePanel::OnBox(wxCommandEvent&)
 void GromacsPreparePanel::OnIon(wxCommandEvent&)
 {
   if (p_refreshing || p_model == 0) return;
-  p_model->positiveIon(POSITIVE[p_pion->GetSelection() == 1 ? 1 : 0]);
-  p_model->negativeIon(NEGATIVE[0]);
+  int ps = p_pion->GetSelection(), ns = p_nion->GetSelection();
+  if (ps != wxNOT_FOUND)
+    p_model->positiveIon(string(((wxStringClientData*)p_pion->GetClientObject(ps))
+                                ->GetData().ToUTF8()));
+  if (ns != wxNOT_FOUND)
+    p_model->negativeIon(string(((wxStringClientData*)p_nion->GetClientObject(ns))
+                                ->GetData().ToUTF8()));
   changed();
 }
+
+void GromacsPreparePanel::OnSource(wxCommandEvent&)
+{
+  if (p_refreshing || p_model == 0) return;
+  bool minff = p_source->GetSelection() == 1;
+  p_model->source(minff ? "minff" : "protein");
+  // each source starts from its own defaults
+  GromacsPrepareModel d;
+  p_model->waterModel(minff ? "opc3" : d.waterModel());
+  p_model->positiveIon(minff ? "Na" : d.positiveIon());
+  p_model->negativeIon(minff ? "Cl" : d.negativeIon());
+  p_model->boxDistance(minff ? 0.0 : d.boxDistance());
+  p_model->ionConcentration(minff ? 0.0 : d.ionConcentration());
+  refreshGUI();
+  changed();
+}
+
+void GromacsPreparePanel::OnMinffText(wxCommandEvent&)
+{
+  if (p_refreshing || p_model == 0) return;
+  p_model->minffReplicate(string(p_mrep->GetValue().ToUTF8()));
+  p_model->minffSubstitutions(string(p_msubs->GetValue().ToUTF8()));
+  p_model->minffSeed(string(p_mseed->GetValue().ToUTF8()));
+  p_model->minffMineral(string(p_mmineral->GetValue().ToUTF8()));
+  minffStale();
+  changed();
+}
+
+void GromacsPreparePanel::OnMinffChoice(wxCommandEvent&)
+{
+  if (p_refreshing || p_model == 0) return;
+  p_model->minffVariant(p_mvariant->GetSelection() == 1 ? "tminff" : "gminff");
+  int k = p_mangle->GetSelection();
+  if (k >= 0 && k < (int)(sizeof(ANGLE_KS) / sizeof(ANGLE_KS[0])))
+    p_model->minffAngleK(ANGLE_KS[k]);
+  p_mmineral->Enable(p_editable && p_mvariant->GetSelection() == 1);
+  minffStale();
+  changed();
+}
+
+void GromacsPreparePanel::OnMinffCell(wxCommandEvent&)
+{
+  Preferences prefs("GromacsPrepare");
+  string dir;
+  prefs.getString("GromacsPrepare.MineralDir", dir);
+  if (dir.empty()) dir = Ecce::realUserHome();
+  ewxFileDialog dlg(this, _("Choose the mineral unit cell"), dir, "",
+                    "Structures (*.pdb;*.gro;*.cif)|*.pdb;*.gro;*.cif|All files|*",
+                    wxFD_OPEN | wxFD_FILE_MUST_EXIST, wxDefaultPosition);
+  if (dlg.ShowModal() != wxID_OK) return;
+  prefs.setString("GromacsPrepare.MineralDir", dlg.GetDirectory().ToStdString());
+  prefs.saveFile();
+  p_cellPath = dlg.GetPath().ToStdString();
+  showMineral();
+  minffStale();
+  changed();
+}
+
+void GromacsPreparePanel::OnMinffBuild(wxCommandEvent&)
+{
+  string message;
+  if (!buildMineral(true, message))
+    wxMessageBox(U(message.c_str()), "ECCE GROMACS Prepare", wxOK | wxICON_ERROR, this);
+}
+
+// Removes what an earlier build stored: the mineral's structure and
+// topology and every include (min.itp, min.ff/...).
+void GromacsPreparePanel::detachMineral()
+{
+  MdTask *t = task();
+  if (t == 0) return;
+  vector<string> names = t->getDataFileNames(JCode::AUXILIARY_INPUT);
+  for (size_t i = 0; i < names.size(); i++)
+    if (endsWith(names[i], ".gmxmin") || endsWith(names[i], ".itp"))
+      t->putInputFile(names[i], 0);
+}
+
+static string slurp(const string& path)
+{
+  ifstream in(path.c_str(), std::ios::binary);
+  std::ostringstream os;
+  os << in.rdbuf();
+  return os.str();
+}
+
+// Stores conf.gro and topol.top of a build as the task's inputs, with what
+// the topology includes (as the Inputs tab does for an attached topology).
+bool GromacsPreparePanel::storeMineral(const string& dir, string& message)
+{
+  MdTask *t = task();
+  if (t == 0) { message = "No task is open."; return false; }
+  string conf = slurp(dir + "/conf.gro"), top = slurp(dir + "/topol.top");
+  if (conf.empty() || top.empty()) {
+    message = "The build wrote no structure or topology.";
+    return false;
+  }
+  vector<GromacsIncludes::File> found;
+  vector<string> system, missing;
+  GromacsIncludes::collect(dir + "/topol.top", found, system, missing);
+  if (!missing.empty()) {
+    message = "The topology includes " + missing[0] + ", which was not found.";
+    return false;
+  }
+  detachMineral();
+  std::istringstream c(conf), tp(top);
+  if (!t->putInputFile("conf.gmxmin", &c) || !t->putInputFile("topol.gmxmin", &tp)) {
+    message = "The mineral could not be stored in the task.";
+    return false;
+  }
+  for (size_t i = 0; i < found.size(); i++) {
+    std::istringstream in(slurp(found[i].path));
+    if (!t->putInputFile(GromacsIncludes::encodeName(found[i].name), &in)) {
+      message = "Could not store " + found[i].name + " in the task.";
+      return false;
+    }
+  }
+  return true;
+}
+
+static string jsonField(const string& text, const string& key)
+{
+  string::size_type p = text.find("\"" + key + "\":");
+  if (p == string::npos) return "";
+  p = text.find(':', p) + 1;
+  while (p < text.size() && text[p] == ' ') p++;
+  string::size_type e = text.find_first_of(",\n}", p);
+  return text.substr(p, e - p);
+}
+
+class MinffProcess : public wxProcess
+{
+  public:
+    MinffProcess() : wxProcess(wxPROCESS_REDIRECT), done(false), status(-1) {}
+    virtual void OnTerminate(int, int st) { status = st; done = true; }
+    bool done;
+    int status;
+};
+
+// Removes the scratch directory of a build on every way out.
+struct ScratchDir
+{
+  wxString path;
+  ~ScratchDir() { if (!path.empty()) wxFileName::Rmdir(path, wxPATH_RMDIR_RECURSIVE); }
+};
+
+// Runs scripts/minff_topology.py here and stores its result.  Not under
+// wxEXEC_SYNC: atomipy takes a while on a large cell and the window must
+// stay alive, with a progress bar for as long as it does.
+bool GromacsPreparePanel::buildMineral(bool withDialog, string& message)
+{
+  if (p_model == 0) { message = "No model."; return false; }
+  if (p_cellPath.empty()) {
+    message = "Choose the mineral's unit cell first (a .pdb, .gro or .cif file).";
+    return false;
+  }
+  ScratchDir scratch;
+  scratch.path = wxFileName::CreateTempFileName("ecce-minff");
+  wxRemoveFile(scratch.path);
+  if (scratch.path.empty() || !wxMkdir(scratch.path)) {
+    scratch.path.clear();
+    message = "No scratch directory could be made.";
+    return false;
+  }
+  string out = string(scratch.path.ToUTF8());
+
+  vector<string> argv;
+  argv.push_back(Ecce::scriptCommand(string(Ecce::ecceHome()) + "/scripts/minff_topology.py"));
+  argv.push_back("build");
+  argv.push_back(p_cellPath);
+  argv.push_back("-o");
+  argv.push_back(out);
+  std::istringstream rep(p_model->minffReplicate());
+  int r[3] = { 1, 1, 1 };
+  rep >> r[0] >> r[1] >> r[2];
+  if (r[0] < 1 || r[1] < 1 || r[2] < 1) {
+    message = "The repeat must be three whole numbers, 1 or more (for example 4 3 3).";
+    return false;
+  }
+  argv.push_back("--replicate");
+  for (int i = 0; i < 3; i++) argv.push_back(std::to_string(r[i]));
+  // FROM,TO,COUNT;FROM,TO,COUNT
+  std::istringstream subs(p_model->minffSubstitutions());
+  string one;
+  while (std::getline(subs, one, ';')) {
+    for (size_t i = 0; i < one.size(); i++) if (one[i] == ',') one[i] = ' ';
+    std::istringstream f(one);
+    string a, b, n;
+    if (!(f >> a)) continue;
+    if (!(f >> b >> n) || atoi(n.c_str()) < 1) {
+      message = "A substitution is FROM,TO,COUNT, for example Al,Mgo,4.";
+      return false;
+    }
+    argv.push_back("--substitute");
+    argv.push_back(a);
+    argv.push_back(b);
+    argv.push_back(n);
+  }
+  if (!p_model->minffSeed().empty()) {
+    argv.push_back("--seed");
+    argv.push_back(p_model->minffSeed());
+  }
+  argv.push_back("--variant");
+  argv.push_back(p_model->minffVariant());
+  if (p_model->minffVariant() == "tminff") {
+    if (p_model->minffMineral().empty()) {
+      message = "TMINFF needs the name of the mineral, for example Montmorillonite.";
+      return false;
+    }
+    argv.push_back("--mineral");
+    argv.push_back(p_model->minffMineral());
+  }
+  argv.push_back("--angle-k");
+  argv.push_back(std::to_string(p_model->minffAngleK()));
+  argv.push_back("--water");
+  argv.push_back(p_model->waterModel());
+
+  vector<const char*> cargv;
+  for (size_t i = 0; i < argv.size(); i++) cargv.push_back(argv[i].c_str());
+  cargv.push_back(0);
+
+  MinffProcess *proc = new MinffProcess();
+  proc->Redirect();
+  long pid = wxExecute(&cargv[0], wxEXEC_ASYNC, proc);
+  if (pid == 0) {
+    delete proc;
+    message = "minff_topology.py could not be started (is python3 installed?).";
+    return false;
+  }
+  ewxProgressDialog *dlg = 0;
+  string so, se;
+  while (!proc->done) {
+    while (proc->IsInputAvailable()) so += (char)proc->GetInputStream()->GetC();
+    while (proc->IsErrorAvailable()) se += (char)proc->GetErrorStream()->GetC();
+    if (withDialog) {
+      if (dlg == 0)
+        dlg = new ewxProgressDialog(_("MINFF"), _("Building the mineral topology..."),
+                                    100, this, wxPD_APP_MODAL | wxPD_ELAPSED_TIME);
+      dlg->Pulse();
+    }
+    wxMilliSleep(50);
+    wxTheApp->Yield(true);
+  }
+  while (proc->IsInputAvailable()) so += (char)proc->GetInputStream()->GetC();
+  while (proc->IsErrorAvailable()) se += (char)proc->GetErrorStream()->GetC();
+  int status = proc->status;
+  delete dlg;
+  delete proc;
+
+  if (status != 0) {
+    string::size_type p = se.rfind("minff_topology:");
+    message = p != string::npos ? se.substr(p) : se.substr(se.size() > 600 ? se.size() - 600 : 0);
+    if (message.empty()) message = "minff_topology.py failed.";
+    return false;
+  }
+  if (!storeMineral(out, message)) return false;
+
+  // the result in words, from the script's own summary
+  string atoms = jsonField(so, "n_atoms"), charge = jsonField(so, "total_charge");
+  string untyped = so.find("\"untyped_atoms\": []") == string::npos ? " Some atoms have no MINFF type." : "";
+  string cell = p_cellPath.substr(p_cellPath.find_last_of("/\\") == string::npos
+                                  ? 0 : p_cellPath.find_last_of("/\\") + 1);
+  string water = p_model->waterModel();
+  p_model->minffCell(cell);
+  p_model->minffSummary("Built from " + cell + ": " + atoms + " atoms, charge " + charge +
+                        ", water " + water + "." + untyped);
+  showMineral();
+  changed();
+  return true;
+}
+
 
 void GromacsPreparePanel::OnNumber(wxCommandEvent&)
 {
@@ -573,7 +1131,10 @@ bool GromacsPreparePanel::testSet(const string& field, const string& value,
     if (ff == OTHER_FF) p_otherFf->SetValue(U(value.c_str()));
     OnForceField(ev);
   } else if (field == "water") {
-    vector<string> ids = watersOf(p_ff->GetSelection());
+    vector<string> ids;
+    for (unsigned k = 0; k < p_water->GetCount(); k++)
+      ids.push_back(string(((wxStringClientData*)p_water->GetClientObject(k))
+                           ->GetData().ToUTF8()));
     for (size_t i = 0; i < ids.size(); i++) {
       if (ids[i] == value) {
         p_water->SetSelection((int)i);
@@ -602,9 +1163,40 @@ bool GromacsPreparePanel::testSet(const string& field, const string& value,
   } else if (field == "conc") {
     p_conc->SetValue(U(value.c_str()));
     OnNumber(ev);
-  } else if (field == "pname") {
-    p_pion->SetSelection(value == "K" ? 1 : 0);
-    OnIon(ev);
+  } else if (field == "pname" || field == "nname") {
+    ewxChoice *c = field == "pname" ? p_pion : p_nion;
+    for (unsigned i = 0; i < c->GetCount(); i++) {
+      wxStringClientData *d = (wxStringClientData*)c->GetClientObject(i);
+      if (string(d->GetData().ToUTF8()) == value) {
+        c->SetSelection((int)i);
+        OnIon(ev);
+        return true;
+      }
+    }
+    message = "not offered for this source";
+    return false;
+  } else if (field == "source") {
+    p_source->SetSelection(value == "minff" ? 1 : 0);
+    OnSource(ev);
+  } else if (field == "mcell") {
+    p_cellPath = value;
+    showMineral();
+    minffStale();
+    changed();
+  } else if (field == "mrep" || field == "msubs" || field == "mseed" ||
+             field == "mmineral") {
+    (field == "mrep" ? p_mrep : field == "msubs" ? p_msubs :
+     field == "mseed" ? p_mseed : p_mmineral)->SetValue(U(value.c_str()));
+    OnMinffText(ev);
+  } else if (field == "mvariant") {
+    p_mvariant->SetSelection(value == "tminff" ? 1 : 0);
+    OnMinffChoice(ev);
+  } else if (field == "mangle") {
+    for (size_t i = 0; i < sizeof(ANGLE_KS) / sizeof(ANGLE_KS[0]); i++)
+      if (std::to_string(ANGLE_KS[i]) == value) p_mangle->SetSelection((int)i);
+    OnMinffChoice(ev);
+  } else if (field == "mbuild") {
+    return buildMineral(false, message);
   } else if (field == "structure") {
     if (value == "builder") {
       p_structure->SetSelection(0);
@@ -639,6 +1231,8 @@ string GromacsPreparePanel::summary() const
      << " conc=" << p_model->ionConcentration() << " ions="
      << p_model->positiveIon() << "," << p_model->negativeIon()
      << " ignh=" << p_model->ignoreHydrogens()
-     << " merge=" << p_model->mergeChains();
+     << " merge=" << p_model->mergeChains()
+     << " source=" << p_model->source() << " built=" << (p_built ? 1 : 0)
+     << " mineral=" << p_model->minffSummary();
   return os.str();
 }

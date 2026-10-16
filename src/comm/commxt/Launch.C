@@ -1535,7 +1535,9 @@ bool Launch::generateDescriptorFile(const string& source, const string& target)
 static bool isGromacsSourcePdb(const EcceURL& url)
 {
   const string t = url.getFilePathTail();
-  return t.size() > 7 && t.compare(t.size() - 7, 7, ".gmxpdb") == 0;
+  // .gmxmin: a MINFF Prepare's mineral, likewise for that Prepare only
+  return t.size() > 7 && (t.compare(t.size() - 7, 7, ".gmxpdb") == 0 ||
+                          t.compare(t.size() - 7, 7, ".gmxmin") == 0);
 }
 
 

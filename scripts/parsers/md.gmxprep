@@ -27,6 +27,19 @@ my %DEFAULT = (SOURCE => "protein", FF => "amber99sb-ildn", WATER => "tip3p",
                HIS => "auto", IGNH => 1, MERGE => 1, BOX => "dodecahedron",
                DIST => 1.0, CONC => 0.15, PNAME => "NA", NNAME => "CL");
 
+# SOURCE=minff: the topology and structure were built on the client
+# (scripts/minff_topology.py) and are staged, so FF, HIS, IGNH, MERGE and BOX
+# do not apply.  WATER is then MINFF's water model, DIST the water layer
+# added above the mineral (0 = keep its cell), PNAME a counter-ion of MINFF's
+# ions.itp and PQ its charge, derived here.
+my %MINFF_DEFAULT = (WATER => "opc3", DIST => 0, CONC => 0, PNAME => "Na", NNAME => "Cl");
+my %MINFF_POS = (Li => 1, Na => 1, K => 1, Rb => 1, Cs => 1, "Cu+" => 1,
+                 Mg => 2, Ca => 2, Sr => 2, Ba => 2, Mn => 2, Ni => 2, Zn => 2,
+                 Cd => 2, "Fe2+" => 2, "Co2+" => 2, "Cu2+" => 2,
+                 "Al3+" => 3, "Fe3+" => 3, "Cr3+" => 3, "La3+" => 3);
+my %MINFF_NEG = (F => 1, Cl => 1, Br => 1, I => 1);
+my %MINFF_WATER = map { $_ => 1 } qw(opc3 opc spce tip3p tip3p-fb tip4p-fb tip4pew);
+
 my %R;
 
 sub read_kv {
@@ -60,6 +73,11 @@ sub read_xml {
 my $in = do { local $/; <STDIN> };
 if ($in =~ /^\s*</) { read_xml($in); } else { read_kv($in); }
 
+if (($R{SOURCE} || "") eq "minff") {
+  foreach my $k (keys %MINFF_DEFAULT) {
+    $R{$k} = $MINFF_DEFAULT{$k} if (!defined($R{$k}) || $R{$k} eq "");
+  }
+}
 foreach my $k (keys %DEFAULT) {
   $R{$k} = $DEFAULT{$k} if (!defined($R{$k}) || $R{$k} eq "");
 }
@@ -68,9 +86,21 @@ sub need {
   my ($k, $ok, $what) = @_;
   die "md.gmxprep: $k=$R{$k} is not $what.\n" if ($R{$k} !~ $ok);
 }
-need("SOURCE", qr/^protein$/, "a source this version prepares (protein)");
+need("SOURCE", qr/^(protein|minff)$/, "a source this version prepares (protein, minff)");
+my $minff = ($R{SOURCE} eq "minff");
 need("FF",     qr/^[A-Za-z0-9][A-Za-z0-9_.+-]*$/, "a force field directory name");
-need("WATER",  qr/^[a-z0-9]+$/, "a water model name");
+need("WATER",  qr/^[a-z0-9-]+$/, "a water model name");
+if ($minff) {
+  die "md.gmxprep: WATER=$R{WATER} is not a MINFF water model (" .
+      join(", ", sort keys %MINFF_WATER) . ").\n" if (!$MINFF_WATER{$R{WATER}});
+  die "md.gmxprep: PNAME=$R{PNAME} is not a positive ion of MINFF's ions.itp.\n"
+    if (!$MINFF_POS{$R{PNAME}});
+  die "md.gmxprep: NNAME=$R{NNAME} is not a negative ion of MINFF's ions.itp.\n"
+    if (!$MINFF_NEG{$R{NNAME}});
+  $R{PQ} = $MINFF_POS{$R{PNAME}};
+} else {
+  $R{PQ} = 1;
+}
 need("HIS",    qr/^auto$/, "auto (pdb2gmx chooses the histidine states)");
 need("IGNH",   qr/^[01]$/, "0 or 1");
 need("MERGE",  qr/^[01]$/, "0 or 1");
@@ -79,10 +109,10 @@ need("DIST",   qr/^\d+(\.\d+)?$/, "a distance in nm");
 need("CONC",   qr/^\d+(\.\d+)?$/, "a concentration in mol/L (0 neutralises only)");
 need("PNAME",  qr/^[A-Za-z0-9+-]+$/, "an ion name");
 need("NNAME",  qr/^[A-Za-z0-9+-]+$/, "an ion name");
-die "md.gmxprep: DIST=$R{DIST} must be above 0.\n" if ($R{DIST} <= 0);
+die "md.gmxprep: DIST=$R{DIST} must be above 0.\n" if ($R{DIST} <= 0 && !$minff);
 
 print "# ECCE GROMACS prepare recipe\n";
-foreach my $k (qw(SOURCE FF WATER HIS IGNH MERGE BOX DIST CONC PNAME NNAME)) {
+foreach my $k (qw(SOURCE FF WATER HIS IGNH MERGE BOX DIST CONC PNAME NNAME PQ)) {
   print "$k=$R{$k}\n";
 }
 exit(0);
