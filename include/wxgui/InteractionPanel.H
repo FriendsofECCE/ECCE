@@ -109,6 +109,9 @@ class InteractionPanel:  public InteractionPanelGUI
     /// wxEVT_COMMAND_TEXT_ENTER event handler for ID_TEXTCTRL_INTRCT_LFREQ
     virtual    void OnTextctrlIntrctLfreqEnter( wxCommandEvent& event );
 
+    /// GROMACS periodic-molecules checkbox
+    void OnCheckboxPeriodicClick( wxCommandEvent& event );
+
   protected:
 
     void showElectrostaticPanel();

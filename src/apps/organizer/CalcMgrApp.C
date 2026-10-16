@@ -134,12 +134,22 @@ bool CalcMgrApp::OnInit()
   // No gateway here: the Organizer has the session's login window.
   WxDavAuth::setRestartsOnSwitch(true);
   WxDavAuth::setOnSwitch(restartInLocalMode);
-  // ecce.cmd marks the start it makes; the tools started from here must
-  // not inherit the mark.  The Organizer is up a second later, so the
-  // splash goes after two seconds rather than lying over it.
+#endif
+#if defined(__WXMSW__) || defined(__WXMAC__)
+  // ecce.cmd (and on macOS the gateway) marks the start it makes; the
+  // tools started from here must not inherit the mark.
+#ifdef __WXMAC__
+  // The splash belongs to this process: the gateway has no windows, and
+  // a window of a background app does not stay in front of the Organizer's.
+  const int splashMs = 3000;
+#else
+  // The Organizer is up a second later, so the splash goes after two
+  // seconds rather than lying over it.
+  const int splashMs = 2000;
+#endif
   if (wxGetEnv("ECCE_SPLASH", NULL)) {
     wxUnsetEnv("ECCE_SPLASH");
-    ewxShowSplash(2000);
+    ewxShowSplash(splashMs);
   }
 #endif
 
@@ -179,7 +189,9 @@ bool CalcMgrApp::OnInit()
   subscribe("ecce_identify", (wxJmsCBFunc)&CalcMgrApp::identifyMCB);
   
   // Preference Messages
-  subscribe("ecce_preferences_misc", (wxJmsCBFunc)&CalcMgrApp::miscPrefChangeMCB);
+  // Not filtered: the Organizer's own Preferences dialog publishes it too.
+  subscribe("ecce_preferences_misc", (wxJmsCBFunc)&CalcMgrApp::miscPrefChangeMCB,
+            false);
 
   //  startup status Messages
   subscribe("ecce_invoke", (wxJmsCBFunc)&CalcMgrApp::invokeMCB);
@@ -260,6 +272,9 @@ void CalcMgrApp::miscPrefChangeMCB(JMSMessage& msg)
 {
   p_calcMgr->getFeedback()->readPreferences();
   p_calcMgr->setContextPanel();
+  // Icon style may have changed: rebuild the image lists, repaint the tree.
+  WxState::refreshStyle();
+  p_calcMgr->redrawStateIcons();
 }
 
 
@@ -282,7 +297,8 @@ void CalcMgrApp::msgStatusMCB(JMSMessage& msg)
 {
   static const char *errMsg =
     "Unable to start the application.  "
-    "Please report it at https://github.com/FriendsofECCE/ECCE/issues .";
+    "Please report it at https://github.com/FriendsofECCE/ECCE/issues . "
+    "Help > Report a Problem... collects the diagnostic files.";
 
   //  p_cursor->end_activity();
   string status = msg.getProperty("status");

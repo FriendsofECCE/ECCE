@@ -375,6 +375,17 @@ void MDEdBase::gromacsInputsChanged()
 }
 
 
+void MDEdBase::gromacsStructureAttached(bool hasCell)
+{
+  InteractionModel *imodel = getMDModel().getInteractionModel();
+  if (hasCell && imodel && imodel->getPeriodicMolecules() ==
+                           InteractionModel::PERIODICMOL) {
+    imodel->setPeriodicMolecules(1);
+    refreshGUI();
+  }
+}
+
+
 void MDEdBase::registerPages()
 {
    p_pages.clear();
@@ -547,6 +558,11 @@ void MDEdBase::setContext(const string& urlstr)
         p_feedback->setContextURL(url);
 
         mdTask->getTaskModel(*p_model);
+
+        // Until the user chooses, a structure with a cell is taken to be
+        // periodic.  No cell leaves it unchosen rather than off: the
+        // structure is often attached after the editor opens.
+        if (fragSum.isPeriodic()) gromacsStructureAttached(true);
 
         // See if no input file exists yet - if not, then generate
         vector<EcceURL> files = mdTask->getDataFiles(JCode::PRIMARY_INPUT);

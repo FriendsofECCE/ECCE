@@ -18,7 +18,7 @@ A project is a folder that holds calculations. Every calculation belongs to
 a project.
 
 1. In the Organizer, select your home folder in the tree on the left.
-2. Choose **File > New Project...**.
+2. Choose **File > New > Project...**.
    You can also right-click the folder and choose **New... > Project...**.
 3. In the window "New Project Name", enter `tutorial`.
 4. Click **OK**.
@@ -33,7 +33,7 @@ The project appears in the tree. Names may contain letters, digits, `.`,
 ## 2. Create a calculation
 
 1. Select the project `tutorial`.
-2. Choose **File > New NWChem Calculation...**.
+2. Choose **File > New > NWChem Calculation...**.
    You can also right-click the project and choose **New... > NWChem
    Calculation...**.
 3. In the window "New Calculation Name", enter `water-opt`.
@@ -233,6 +233,14 @@ calculation:
 
 A geometry optimisation that has reached a minimum has no imaginary
 frequencies.
+
+## Plane-wave calculations (NWPW)
+
+NWChem's plane-wave module, NWPW, has no code of its own in the list of
+codes. Choose it in the **Theory:** list of an NWChem calculation: **PSPW**
+or **BAND**. Neither needs a basis set. Car-Parrinello
+molecular dynamics is a run type of **PSPW**; choose it in **Runtype:**
+after you have chosen **PSPW**.
 
 ## Where next
 

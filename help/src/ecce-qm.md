@@ -3,7 +3,7 @@
 ECCE-QM is the quantum chemistry program that comes with ECCE. It does
 Hartree-Fock and density functional calculations on small molecules, on the
 computer you are sitting at, with nothing to install and nothing to register:
-choose **New ECCE-QM Calculation** in the Organizer, build or import a
+choose **File > New > ECCE-QM Calculation...** in the Organizer, build or import a
 molecule, and launch. It is meant for teaching and for quick looks at molecules
 of up to a few tens of atoms. For larger systems, other basis sets, effective
 core potentials, correlated methods or anything that must run for hours, use

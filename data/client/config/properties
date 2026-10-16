@@ -57,6 +57,8 @@ Energy		Two-Electron Energy			TWOELEC		Energy		PropValue	Components
 Energy		Correlation Energy			CORRELTN	Energy		PropValue	Components
 Energy		Coulomb Energy				COULOMB		Energy		PropValue	Components
 Energy		Van der Waals Energy			VDW		Energy		PropValue	Components
+Energy		Dispersion Correction			EDISP		Energy		PropValue	Components
+Energy		Hubbard (DFT+U) Energy			EHUBBARD	Energy		PropValue	Components
 Energy		Potential Energy			PE		Energy		PropValue	Components
 Energy		Exchange Energy				EXCHANGE	Energy		PropValue	Components
 Energy		Exchange-Correlation Energy		EXCORR		Energy		PropValue	Components

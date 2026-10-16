@@ -58,7 +58,8 @@ and says so in its output.
 
 ## Tell ECCE where the codes are
 
-1. Choose **Register Machines** and select `localhost`.
+1. In the Organizer, choose **Tools > Register Machines...** (see
+   [Register Machines](register-machines.md)) and select `localhost`.
 2. On the **Codes** tab select a code and enter the full path of its
    program in the **Program** field, for example
    `C:\Users\<you>\orca\orca.exe`. A path with spaces, such as

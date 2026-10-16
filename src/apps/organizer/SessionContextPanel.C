@@ -178,20 +178,13 @@ void SessionContextPanel::createControls()
   ResourceType * resType = p_session->getDescriptor();
   
   if (resType != 0) {
-    vector<ResourceType *> resVec = resType->getContains();
-    vector<ResourceType *>::iterator resItor = resVec.begin();
-    for (;resItor != resVec.end(); resItor++) {
-      p_toolBar->AddTool((*resItor)->getId(),
-                         (*resItor)->getMenuItem(),
-                         ewxBitmap((*resItor)->getIcon()),
-                         (*resItor)->getMenuItem(), wxITEM_NORMAL);
-      if ((*resItor)->getMenuItem() == "New NWChem MD Prepare..." &&
-          p_session->numMembers() == 0)
-        resItor += 3;
-      else if ((*resItor)->getMenuItem() ==
-               "New Direct Dynamics VTST Calculation..." &&
-               p_session->numMembers() == 0)
-        resItor += 5;
+    vector<ResourceType *> resVec = resType->getOfferedContains(
+        p_session->numMembers() == 0);
+    for (size_t i = 0; i < resVec.size(); i++) {
+      p_toolBar->AddTool(resVec[i]->getId(),
+                         resVec[i]->getMenuItem(),
+                         ewxBitmap(resVec[i]->getIcon()),
+                         resVec[i]->getMenuItem(), wxITEM_NORMAL);
     }
   }
 

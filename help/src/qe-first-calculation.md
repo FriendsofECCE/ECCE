@@ -71,8 +71,8 @@ describes the same crystal, but the Periodic Builder gives the cubic one.)
 ### 1. Create a project and a calculation
 
 1. In the Organizer, select your home folder in the tree on the left.
-2. Choose **File > New Project...**, enter `qe-tutorial` and click **OK**.
-3. Select the project and choose **File > New Quantum ESPRESSO
+2. Choose **File > New > Project...**, enter `qe-tutorial` and click **OK**.
+3. Select the project and choose **File > New > Quantum ESPRESSO
    Calculation...**. Enter `si-scf` and click **OK**.
 
 The calculation appears under the project, in the run state **Created**.
@@ -290,6 +290,65 @@ calculation, as for silicon, gives the same energy and the same geometry.
 
 <!-- capture: Viewer on the finished water calculation, Geometry Trace panel -->
 
+## Molecular dynamics
+
+Set **Runtype:** to `Dynamics` and open **Runtype Details...**. The ions move
+on the forces of the electronic structure at every step (Born-Oppenheimer
+dynamics).
+
+- **Time Step:** is in femtoseconds. 1 fs suits most systems; use less when
+  hydrogen atoms move fast.
+- **Number of Steps:** is how many steps are run.
+- **Control:** chooses the temperature. `Constant energy` runs without a
+  thermostat and starts with the atoms at rest. The `initial temperature`
+  choice starts at the given temperature and then also keeps the energy
+  constant. The Berendsen, Andersen and stochastic velocity rescaling (SVR)
+  thermostats, and plain velocity rescaling, drive the ions to the
+  **Target and Starting Temperature:**. For the first three, **Coupling or
+  Collision Period** is in steps (a smaller value couples harder). Velocity
+  rescaling instead rescales when the temperature is off by more than the
+  given number of kelvin.
+
+In the Viewer, the Geometry Trace panel animates the trajectory. Its plot
+shows one quantity against the step; choose it in **Y-Axis** at the bottom of
+the panel: `Temperature Vector`, `Kinetic Energy Vector`, `Potential Energy
+Vector` or `Total Energy Vector` (kinetic plus potential, which a run without
+a thermostat conserves). The energies belong to the state that the forces were computed at,
+which is one step before the positions drawn with them. The Organizer shows
+the step count while the job runs.
+
+## DFT+U
+
+In **Theory Details...**, under **DFT+U (Hubbard U)**, type the symbol of an
+element (for example `Ni`), pick the orbital the correction acts on (`3d` for
+the 3d metals, `4f` for cerium, `2p` for oxygen) and give U in eV. Up to three
+elements can have a U. A row naming an element that is not in the structure is
+ignored. Leave the element boxes empty for a calculation without U.
+
+- **Projector:** `Orthogonalized atomic` is the default. `Atomic` is the
+  simpler choice used by older work.
+- **Input for:** names the Quantum ESPRESSO version that will run the job.
+  From version 7.1 the input has a `HUBBARD` card. Versions 6.x to 7.0 do not
+  know it: they print "card HUBBARD ignored" in the output file and run
+  without U. Choose `QE 6.x to 7.0` for those: the input then uses the older
+  `lda_plus_u` keywords, which take the orbital from the element, so the
+  **Orbital:** box has no effect. The Debian 13 package is version 6.7.
+- Transition-metal oxides usually need **Spin:** `Unrestricted` and a
+  starting magnetisation as well. **Verify** warns when U is set on a
+  transition metal without spin polarisation.
+
+The results list the Hubbard energy among the energy components, and the
+output file prints the occupation matrices of the corrected orbitals.
+
+## Dispersion
+
+In **Theory Details...**, **Dispersion Correction** adds a dispersion energy to
+the energy and the forces: Grimme D2, Grimme D3 (with zero damping or with
+Becke-Johnson damping), Tkatchenko-Scheffler, or XDM. XDM needs PAW
+pseudopotentials: set **Selection:** to `Prefer PAW` under
+**Pseudopotentials**. The dispersion energy is listed among the energy
+components. It is part of the total energy.
+
 ## If a calculation does not complete
 
 The Organizer's summary and **View Run Log...** (in the **Run Mgmt** menu)
@@ -305,6 +364,9 @@ give the reason. The common ones:
   example a pseudopotential file that is not in the directory.
 
 ## Where next
+
+[Choosing Quantum ESPRESSO settings](qe-choosing-settings.md) says how to pick
+the cutoff, the k-points, smearing and the box for your own systems.
 
 Change the **Wavefunction Cutoff:** or the k-point grid and watch the energy.
 Change **Runtype:** to `Energy` and tick **Stress tensor (tstress)** in

@@ -105,6 +105,10 @@ class Fragment
       virtual bool changeBond(TAtm *atm1, TAtm *atm2, float order);
       virtual void bondAtoms(TAtm *atm1, TAtm *atm2, float order,
             const DisplayStyle& style);
+      // Metal-pi attachment (see Fragment.C); metalPick is a metal or its Nub,
+      // ligand the picked ligand atoms.  False if they are no pi system.
+      bool bondPiLigand(TAtm *metalPick, const vector<TAtm*>& ligand,
+            const DisplayStyle& style, string& message);
       virtual void setEnvIndices(void);
       virtual void generateShapes(void);
       virtual bool generateShape(TAtm *atm);
@@ -238,6 +242,8 @@ class Fragment
       bool  restoreMVM(istream& infile,double mult=1.0, bool genBonds=true);
       bool  restoreXYZ(istream& infile, double mult=1.0, bool genBonds=true);
       bool  restoreCAR(istream& infile, double mult=1.0, bool genBonds=true);
+      // GROMACS .gro: always nanometres in the file, always Angstroms here.
+      bool  restoreGRO(istream& infile, bool genBonds=true);
       bool prescanPDB(istream& infile, int& numModels,
             vector<string>& altLocVec,
             vector<bool>& groupFlgVec,
@@ -253,6 +259,7 @@ class Fragment
       bool  dumpMVM(ostream& outfile, bool dumpAll=false);
       bool  dumpPDB(ostream& outfile, bool writeBonds=false);
       bool  dumpCAR(ostream& outfile);
+      bool  dumpGRO(ostream& outfile);
 
       bool getConnected(vector<bool>& atoms, const TAtm *theAtom,
             const TAtm* lastAtom,

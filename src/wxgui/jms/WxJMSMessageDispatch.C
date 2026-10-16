@@ -776,8 +776,22 @@ void WxJMSMessageDispatch::appExec()
                << "\"; cannot launch it." << endl;
           return;
         }
+        string invoke = launchTool->getInvokeArg();
+#ifdef __APPLE__
+        // bin/<tool> links into a helper bundle of ECCE.app; macOS gives
+        // the process the bundle's name and icon only when it is started
+        // by the real path (and not through the link).
+        if (invoke.compare(0, 2, "./") == 0) {
+          size_t sp = invoke.find(' ');
+          string prog = invoke.substr(2, sp == string::npos ? sp : sp - 2);
+          char real[4096];
+          if (realpath((string(Ecce::ecceHome()) + "/bin/" + prog).c_str(), real))
+            invoke = "\"" + string(real) + "\"" +
+                     (sp == string::npos ? string() : invoke.substr(sp));
+        }
+#endif
         string apppath = "cd \"" + string(Ecce::ecceHome()) + "/bin\" && " +
-                         launchTool->getInvokeArg() +
+                         invoke +
                          " -pipe " + authPipeName;
         argv[2] = (char*)apppath.c_str();
         char path[] = "/bin/sh";

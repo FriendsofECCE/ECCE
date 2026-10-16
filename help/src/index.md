@@ -13,8 +13,9 @@ the second page.
    [Installation](installation.md).
 2. Choose **File > Open Example Calculations** to get finished calculations
    to look at. See [Example calculations](example-calculations.md).
-3. Right-click **Local data** and choose **New... > Project...**. A project is
-   a folder. Right-click the project to create a calculation in it. See
+3. Choose **File > New > Project...** (or right-click **Local data** and
+   choose **New... > Project...**). A project is a folder. Select the project
+   and choose **File > New** again to create a calculation in it. See
    [Your first calculation](first-calculation.md).
 4. ECCE-QM is built in. For other codes, see
    [Running codes on Linux](running-codes-on-linux.md),
@@ -22,10 +23,15 @@ the second page.
    [Windows](running-codes-on-windows.md).
 5. Register a code under **Tools > Register Machines...**. See
    [Machines](machines.md).
-6. **Help > on Organizer...** opens this help.
+6. **Help > ECCE Help** (Ctrl+H) opens this help.
 7. **Help > Report a Problem...** builds an archive with diagnostic data to
    attach to a bug report. See
    [Installation](installation.md#reporting-a-problem).
+
+If something does not work, choose **Help > Report a Problem...**. It builds
+a zip file with the ECCE version, your system and the ECCE logs. Attach the
+zip to a new issue at <https://github.com/FriendsofECCE/ECCE/issues> and
+describe what you did and what happened.
 
 1. [Installation](installation.md): which packages to install, and what you
    see when you start ECCE for the first time.
@@ -39,10 +45,13 @@ the second page.
 4. [Machines](machines.md): where calculations run, and how to tell ECCE
    where a code is installed.
 5. [Your first calculation](first-calculation.md): a geometry optimisation
-   of water with NWChem, from a new project to the results.
+   of water with NWChem, from a new project to the results; also the
+   plane-wave (NWPW) theories PSPW and BAND of NWChem.
 6. [Your first Quantum ESPRESSO calculation](qe-first-calculation.md): bulk
    silicon and a water molecule in a box, with a periodic cell, plane waves
    and pseudopotentials.
+   [Choosing Quantum ESPRESSO settings](qe-choosing-settings.md) says how to
+   pick the cutoff, the k-points, smearing and the box.
 7. [Molecules for teaching](molecules-for-teaching.md): the small molecules
    of a first laboratory, ready in the Structure Library at their measured
    bond lengths.
@@ -50,14 +59,16 @@ the second page.
 8. [Constraints and dummy atoms](constraints-and-dummy-atoms.md): hold a
    bond, an angle or a torsion fixed during an optimisation, and use a dummy
    atom as a reference point; the potential of ammonia as the example.
-
-9. [Running codes on Linux](running-codes-on-linux.md): NWChem, MOPAC,
+9. [Organometallic complexes: metal-π bonds](organometallics.md): nubs, σ
+   ligands, and π ligands such as cyclopentadienyl and benzene bonded to a
+   metal with the Metal order.
+10. [Running codes on Linux](running-codes-on-linux.md): NWChem, MOPAC,
    GROMACS, Quantum ESPRESSO and CP2K from the package archive; ORCA,
    Gaussian and NBO from their makers.
-10. [Running codes on macOS](running-codes-on-macos.md): MOPAC, ORCA and NWChem
+11. [Running codes on macOS](running-codes-on-macos.md): MOPAC, ORCA and NWChem
    on a Mac, without administrator rights, and Open MPI for ORCA on more
    than one core.
-11. [Running codes on Windows](running-codes-on-windows.md): MOPAC and ORCA
+12. [Running codes on Windows](running-codes-on-windows.md): MOPAC and ORCA
    on a Windows PC, and Microsoft MPI for ORCA on more than one core.
 
 Reference:

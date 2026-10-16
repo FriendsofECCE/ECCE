@@ -392,7 +392,7 @@ endif()
 pkg_check_modules(GTK3 QUIET gtk+-3.0)
 if(GTK3_FOUND)
   target_include_directories(eccewxgui PRIVATE ${GTK3_INCLUDE_DIRS})
-  target_link_libraries(eccewxgui PRIVATE ${GTK3_LIBRARIES})
+  target_link_libraries(eccewxgui PRIVATE ${GTK3_LIBRARIES} ${ECCE_X11_LIBS})
 endif()
 
 # WindowShot.C reads a window back from the window server on macOS.
@@ -1362,6 +1362,11 @@ if [ \"\$XDG_SESSION_TYPE\" = \"wayland\" ]; then
   # Under XWayland, IBus holds typed text unshown until Enter in GTK3
   # entries; GTK's own input method draws it.  A user's choice stands.
   export GTK_IM_MODULE=\${GTK_IM_MODULE:-gtk-im-context-simple}
+  # XMODIFIERS=@im=ibus still kept typed text undrawn with it (GNOME on
+  # Wayland, Debian 13); the simple method needs no X input method.
+  if [ \"\$GTK_IM_MODULE\" = gtk-im-context-simple ]; then
+    unset XMODIFIERS
+  fi
 fi
 export PATH=\"$ECCE_HOME/scripts:$ECCE_HOME/scripts/parsers:$PATH\"
 # THE CENTRAL-SERVER MODEL.  ECCE was originally deployed with one
@@ -1834,10 +1839,27 @@ set_tests_properties(dummy_fragment PROPERTIES
 add_test(NAME dummy_atoms_decks
   COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/dummy_atoms/run_tests.py)
 
+# tests/metal_bonds (#325): Metal bonds need no nubs.
+add_executable(metal_bond_test tests/metal_bonds/metal_bond_test.C)
+target_link_libraries(metal_bond_test PRIVATE eccetdat ecceutil)
+add_test(NAME metal_bonds COMMAND metal_bond_test)
+add_executable(metal_clean_test tests/metal_bonds/metal_clean_test.C)
+target_link_libraries(metal_clean_test PRIVATE eccetdat ecceutil)
+add_test(NAME metal_clean COMMAND metal_clean_test)
+set_tests_properties(metal_clean PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
+set_tests_properties(metal_bonds PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
+
 # #297: which NWChem module each MP2/CC theory is written for (decks only;
 # add --run to compare real nwchem energies).
 add_test(NAME nwchem_cc_decks
   COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/nwchem_cc/run_tests.py)
+
+# #329: Quantum ESPRESSO molecular dynamics, DFT+U and dispersion: decks
+# always, real pw.x runs when pw.x and the SSSP library are installed.
+add_test(NAME qe_features
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/qe_features/run_tests.py)
 
 # tests/spectrum -- the wx-free IR/Raman spectrum model (#214): ticks, axis
 # reversal and zoom, broadening, sticks.
@@ -1926,6 +1948,14 @@ add_test(NAME gromacs_md
                  ${CMAKE_SOURCE_DIR}/tests/gromacs_md/run_tests.py
                  --includes-bin $<TARGET_FILE:gromacs_includes>)
 set_tests_properties(gromacs_md PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
+# tests/minff -- MINFF topology builder (scripts/minff_topology.py, #241)
+# against atomipy run directly, then grompp + a short EM.  SKIPs (77)
+# without atomipy, gmx, or network access to fetch min.ff.
+add_test(NAME minff
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/minff/run_tests.py)
+set_tests_properties(minff PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
 
 # tests/mqtt -- the messaging library against a private mosquitto on a Unix
 # socket; checks delivery, not just acknowledgement.  "auth" is the same on
@@ -2110,6 +2140,13 @@ if(PYTHON3_EXECUTABLE)
                    --libdir ${CMAKE_BINARY_DIR})
   set_tests_properties(look_element_colours PROPERTIES TIMEOUT 300)
 
+  # Run-state icons: flat and shaded both draw and differ (Preferences > Colours).
+  add_test(NAME look_state_icons
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/stateicons.py
+                   ${CMAKE_BINARY_DIR}/state-icons --libdir ${CMAKE_BINARY_DIR})
+  set_tests_properties(look_state_icons PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
+
   # The MO diagram's column headings do not overlap at docked widths.
   add_test(NAME look_modiagram_heads
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -2190,6 +2227,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_constraints PROPERTIES TIMEOUT 1500
                        SKIP_RETURN_CODE 77)
+  # The column's sashes move Build's edges and release the mouse.
+  add_test(NAME apps_builder_sash
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_sash_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_sash PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # The Calculation Editor is not frozen (no black areas) while the Code
   # Change question is open (#308).
   add_test(NAME apps_calced_code_change
@@ -2235,6 +2279,29 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/organizer_close_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_organizer_close PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # Modal dialogs are shown without the busy cursor and presented
+  # (ewxModalGuard); ECCE_DEBUG_MODAL.
+  add_test(NAME apps_modal_guard
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/modal_guard_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_modal_guard PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # Windows keep painting under a headless gnome-shell's Xwayland (GTK 3
+  # frame sync off, ewxModalGuard); skips without gnome-shell.
+  add_test(NAME apps_xwayland_paint
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/xwayland_paint_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_xwayland_paint PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # Preferences > Colours run-state icon style reaches the Organizer's tree.
+  add_test(NAME apps_state_icon_style
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/state_icon_style_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_state_icon_style PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # The project table's Progress column (#284): stored and live snapshots.
   add_test(NAME apps_progress_table

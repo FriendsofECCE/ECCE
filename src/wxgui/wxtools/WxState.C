@@ -252,6 +252,28 @@ void WxState::refresh()
  * won't take WxState which is essentially a wxPanel. On the other hand
  * wxDC is allowed to be passed in and drawn the state icon on it.
  */
+// The preference is read once and again by refreshStyle(), not on every
+// icon drawn.
+static int s_shaded = -1;
+
+bool WxState::shaded()
+{
+  if (s_shaded < 0) {
+    string style;
+    Preferences prefs(PrefLabels::GLOBALPREFFILE);
+    s_shaded = prefs.getString(PrefLabels::STATEICONSTYLE, style) &&
+               style == "flat" ? 0 : 1;
+  }
+  return s_shaded == 1;
+}
+
+
+void WxState::refreshStyle()
+{
+  s_shaded = -1;
+}
+
+
 void WxState::draw(wxDC & dc, ResourceDescriptor::RUNSTATE currentState,
                    bool useSystemColor, const wxRect& rect, bool clear)
 {
@@ -339,7 +361,17 @@ void WxState::draw(wxDC & dc, ResourceDescriptor::RUNSTATE currentState,
   if (gc) {
     gc->SetAntialiasMode(wxANTIALIAS_DEFAULT);
     gc->EnableOffset(false); // paths are already in exact device coordinates
-    gc->SetBrush(brush);
+    // Shaded: a gradient and an edge darker than the fill give the small
+    // tree icons some depth; shape and colour still carry the state.
+    if (shaded() && brush.IsOk() && brush.GetStyle() == wxBRUSHSTYLE_SOLID) {
+      const wxColour c = brush.GetColour();
+      gc->SetBrush(gc->CreateLinearGradientBrush(l, t, l, b,
+                                                 c.ChangeLightness(185), c.ChangeLightness(80)));
+      if (pen.GetColour() == c)
+        pen.SetColour(c.ChangeLightness(55));
+    } else {
+      gc->SetBrush(brush);
+    }
     gc->SetPen(pen);
     if (circle) {
       gc->DrawEllipse(l, t, r - l, b - t);

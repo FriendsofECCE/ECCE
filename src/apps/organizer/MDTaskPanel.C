@@ -17,6 +17,7 @@
 #include "dsm/TaskJob.H"
 #include "dsm/VDoc.H"
 
+#include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ForwardMouseEventHandler.H"
 #include "wxgui/WxResourceImageList.H"
@@ -192,7 +193,7 @@ void MDTaskPanel::OnRightClick( wxMouseEvent& event )
 
   wxMenu menu;
   p_parent->getCalcMgr()->getContextMenu(menu);
-  p_parent->PopupMenu(&menu);
+  ewxPopupMenu(p_parent, menu);
 }
 
 

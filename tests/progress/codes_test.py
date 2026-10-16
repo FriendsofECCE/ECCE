@@ -165,6 +165,10 @@ case("qe scf only", "qe.desc", fx("qe", "si_scf.pwout"),
      {"scf": {"converged": "yes", "scferr": target}})
 case("qe relax, step limit", "qe.desc", fx("qe", "capped.pwout"),
      {"opt": {"istep": "1", "converged": "no"}})
+# An md run ends on the step limit line a relax also uses, so it leaves an
+# "opt" stage with converged=no and no step; known, see qe.desc.
+case("qe md (pw.x 6.7)", "qe.desc", fx("qe", "si_md.pwout"),
+     {"md": {"point": "5/5"}})
 
 case("gromacs md (2025.2)", "gromacs.desc", fx("gromacs", "water_md.log"),
      {"md": {"point": "500/500"}})

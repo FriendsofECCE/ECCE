@@ -29,6 +29,7 @@ using std::vector;
 #include "inv/actions/SoGLRenderAction.H"
 #include "inv/manips/SoTrackballManip.H"
 
+#include <wx/settings.h>
 #include <wx/tglbtn.h>
 #include <wx/toolbar.h>
 #include <wx/utils.h>
@@ -210,6 +211,8 @@ using std::vector;
 #include <wx/spinctrl.h>
 #include <wx/accel.h>
 #include "Builder.H"
+
+static wxBitmapBundle shapeIcon(ShapeData::Shape shape);
 
 
 IMPLEMENT_CLASS( Builder, BuilderGUI )
@@ -536,25 +539,36 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   BuilderDockArt *art = new BuilderDockArt;
   art->setFoldedQuery([this](wxWindow *w) { return p_folded.count(w) > 0; });
   p_mgr.SetArtProvider(art);
+  //  wx's own pin handler floats the pane.  wx 3.2 pushes the manager onto
+  //  the frame, so ours must be on the manager to run first; wx 3.3 binds
+  //  its handler on the frame instead, so ours must be there too (bound
+  //  later, it runs first).  The pin event is never skipped, so the
+  //  handler runs once.
   p_mgr.Bind(wxEVT_AUI_PANE_BUTTON, &Builder::OnPaneButton, this);
-  
+  Bind(wxEVT_AUI_PANE_BUTTON, &Builder::OnPaneButton, this);
+  guardSashDrag();
+
   p_viewerEvtHandler = new ViewerEvtHandler(this);
   p_viewerEvtHandler->connectToolKitFW(this);
   PushEventHandler(p_viewerEvtHandler);
   Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(Builder::OnKeyDown));
+  //  The canvas has the focus, so the frame sees Esc only through the hook.
+  Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& ev) {
+    if (ev.GetKeyCode() != WXK_ESCAPE || !escapeKey()) ev.Skip();
+  });
   //  Key events go to the focused child (the 3-D canvas), never the frame,
   //  so Delete is an accelerator: deleteKey leaves editable text fields alone.
   //  The same holds for the File/Select/Mode menu shortcuts (Ctrl+S did
   //  nothing while the view had the focus).  Ctrl+X/C/V/Z are accelerators
   //  too, but go through editShortcut, which gives them to a focused text
-  //  field.  Ctrl+Y/A are left out.
+  //  field; Ctrl+A likewise (selectAllKey).  Ctrl+Y is left out.
   wxAcceleratorEntry keys[] = {
     wxAcceleratorEntry(wxACCEL_NORMAL, WXK_DELETE, ID_ACCEL_DELETE),
     wxAcceleratorEntry(wxACCEL_NORMAL, WXK_NUMPAD_DELETE, ID_ACCEL_DELETE),
     wxAcceleratorEntry(wxACCEL_CTRL, 'N', wxID_NEW),
     wxAcceleratorEntry(wxACCEL_CTRL, 'O', wxID_OPEN),
     wxAcceleratorEntry(wxACCEL_CTRL, 'W', wxID_CLOSE),
-    wxAcceleratorEntry(wxACCEL_CTRL, 'S', wxID_SAVE),
+    wxAcceleratorEntry(wxACCEL_CTRL, 'S', ID_ACCEL_SAVE),
     wxAcceleratorEntry(wxACCEL_CTRL, 'E', wxID_SAVEAS),
     wxAcceleratorEntry(wxACCEL_CTRL, 'Q', wxID_EXIT),
     wxAcceleratorEntry(wxACCEL_CTRL, 'D', wxID_DELETE),
@@ -567,11 +581,21 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
     wxAcceleratorEntry(wxACCEL_CTRL, 'C', ID_ACCEL_COPY),
     wxAcceleratorEntry(wxACCEL_CTRL, 'V', ID_ACCEL_PASTE),
     wxAcceleratorEntry(wxACCEL_CTRL, 'Z', ID_ACCEL_UNDO),
+    wxAcceleratorEntry(wxACCEL_CTRL, 'A', ID_ACCEL_SELECTALL),
   };
   SetAcceleratorTable(wxAcceleratorTable(sizeof(keys) / sizeof(keys[0]), keys));
   Bind(wxEVT_MENU, [this](wxCommandEvent& ev) { editShortcut(ev.GetId()); },
        ID_ACCEL_CUT, ID_ACCEL_UNDO);
+  //  With no calculation behind the Builder there is nothing to save
+  //  into, so Ctrl+S asks where, like Save As.
+  Bind(wxEVT_MENU, [this](wxCommandEvent&) {
+    const int id = dynamic_cast<DefaultCalculation*>(p_calculation)
+                   ? wxID_SAVEAS : wxID_SAVE;
+    wxCommandEvent ev(wxEVT_MENU, id);
+    ProcessWindowEvent(ev);
+  }, ID_ACCEL_SAVE);
   Bind(wxEVT_MENU, [this](wxCommandEvent&) { deleteKey(); }, ID_ACCEL_DELETE);
+  Bind(wxEVT_MENU, [this](wxCommandEvent&) { selectAllKey(); }, ID_ACCEL_SELECTALL);
 
   TPerTab tpt;
   ShapeData shapes;
@@ -708,8 +732,7 @@ void Builder::createToolbar()
                              "element selector: choose another)"), wxITEM_CHECK);
     p_modeToolbar->AddTool(ID_MODE_ELEMENT_LIST, _T(""), elementArrowIcon(),
                            _("Element selector"), wxITEM_NORMAL);
-    ewxBitmap shapeBitmap(ShapeData::shapeToSmallImage(ShapeData::tetrahedral));
-    p_modeToolbar->AddTool(ID_MODE_SHAPE, _T(""), shapeBitmap,
+    p_modeToolbar->AddTool(ID_MODE_SHAPE, _T(""), shapeIcon(ShapeData::tetrahedral),
                            _("Geometry"), wxITEM_NORMAL);
     p_modeToolbar->AddTool(ID_MODE_BOND, _T(""), bondIcon(TBond::Single),
                            _("Choose Build Bond"), wxITEM_CHECK);
@@ -916,7 +939,7 @@ void Builder::createMainPanel()
     p_mainSizer->Add(p_cmd, 0, wxEXPAND|wxALL, 0);
   }
    
-  setMode(ID_MODE_SELECT);
+  applyMode(ID_MODE_SELECT);   // the toolbar and panes do not exist yet
 
   p_mgr.AddPane(mainPanel, wxAuiPaneInfo().CenterPane().
           Name("Viewer").Caption("Viewer").CaptionVisible().
@@ -1332,7 +1355,9 @@ Command * Builder::createModeCommand(int modeId)
   case ID_MODE_BOND:
     cmd = new BondEditCmd("bond", getSG());
     cmd->getParameter("order")->setDouble(p_currentBond);
-    if (!(getSG()->getFragment()->onSameMolecule())) {
+    //  A Metal bond is never aligned (a pi ligand is placed over its site).
+    if (p_currentBond != TBond::Metal &&
+        !(getSG()->getFragment()->onSameMolecule())) {
       ewxMessageDialog mdlg(this, 
                             "The current selections are from two molecules.\n"
                             "Do you want to align them along the new bond?",
@@ -1512,7 +1537,6 @@ void Builder::setContext(const string& url, const bool& force)
   // We don't allow struct lib mode across context switches
   if (p_currentMode == ID_MODE_STRUCTLIB) {
     setMode(ID_MODE_SELECT);
-    toggleModeButton(ID_MODE_SELECT);
   }
 
   // If experiment was not previously opened, create it
@@ -1938,13 +1962,24 @@ void Builder::motionChanged(const MotionData& data)
 }
 
 /**
- * Set the builder mode.
+ * Set the builder mode: the one place that sets the mode in effect, the
+ * viewer, the toolbar and the Mode menu together, so they cannot disagree.
+ */
+void Builder::setMode(int modeId)
+{
+  applyMode(modeId);
+  toggleModeButton(modeId);
+}
+
+
+/**
+ * The mode in effect and the viewer's mode; setMode() adds the toolbar.
  *
  * All the builder modes are defined int the header file.
  * All the mbCam* modes set the viewer in viewing mode.
  * All the other modes set the viewer in selecting mode.
  */
-void Builder::setMode(int modeId)
+void Builder::applyMode(int modeId)
 {
   // @todo
   //  Pixel gray = EcceColorFactory::getColor(getBuilder(), Color::WINDOW);
@@ -2025,6 +2060,9 @@ void Builder::setMode(int modeId)
   // save new value for lastMode
   p_currentMode = modeId;
   updateModeText();
+  if (modeId == ID_MODE_STRUCTLIB)
+    showMessage("Structure Library: click an open site to attach, or press "
+                "Esc for Select");
 
   //  instructions(s_modeCmd[mode]);
 
@@ -2066,18 +2104,18 @@ void Builder::updateBondIcon()
 
 
 /**
- * The bond tool's icon in the toolbar's line style (the old one-size
- * pixmap looked like a stray "-H"); the pixmap only if the SVG is missing.
+ * The bond tool's icon: the drop-down's own ball-and-stick drawing.
  */
 wxBitmapBundle Builder::bondIcon(double order)
 {
-  const char *name = order == TBond::Double   ? "bond-double"
-                   : order == TBond::Triple   ? "bond-triple"
-                   : order == TBond::Aromatic ? "bond-aromatic"
-                   : order == TBond::Metal    ? "bond-metal"
-                   :                            "bond-single";
-  return ewxBitmap::svgIcon(name, wxSize(22, 22),
-                            TBond::orderToSmallImage(order));
+  return ewxBitmap::colorIcon(TBond::orderToSmallImage(order), wxSize(22, 22));
+}
+
+
+static wxBitmapBundle shapeIcon(ShapeData::Shape shape)
+{
+  return ewxBitmap::colorIcon(ShapeData::shapeToSmallImage(shape),
+                              wxSize(22, 22));
 }
 
 
@@ -2187,10 +2225,8 @@ void Builder::updateElementIcon()
  */
 void Builder::updateShapeIcon()
 {
-  string pixmap = ShapeData::shapeToSmallImage(ShapeData::stringToShape(p_currentShapes[p_currentElement]));
-  
-  ewxBitmap bitmap(pixmap.c_str());
-  p_modeToolbar->SetToolNormalBitmap(ID_MODE_SHAPE, bitmap);
+  p_modeToolbar->SetToolNormalBitmap(ID_MODE_SHAPE, shapeIcon(
+      ShapeData::stringToShape(p_currentShapes[p_currentElement])));
 }
 
 
@@ -2201,8 +2237,11 @@ void Builder::toggleModeButton(int modeId)
 {
   BuilderRedrawHold hold(this);
   if (modeId == ID_MODE_STRUCTLIB) {
-    savePaneLayout(NAME_LAYOUT_DEFAULT);
-    loadPaneLayout(NAME_LAYOUT_STRUCTLIB);
+    //  Once only: a second save would store the library layout as the default.
+    if (!p_mgr.GetPane(NAME_TOOL_STRUCTLIB).IsShown()) {
+      savePaneLayout(NAME_LAYOUT_DEFAULT);
+      loadPaneLayout(NAME_LAYOUT_STRUCTLIB);
+    }
   }
   else if (p_mgr.GetPane(NAME_TOOL_STRUCTLIB).IsShown()) {
     savePaneLayout(NAME_LAYOUT_STRUCTLIB);
@@ -2279,7 +2318,6 @@ void Builder::saveSettings()
    // We don't allow struct lib mode across context switches
    if (p_currentMode == ID_MODE_STRUCTLIB) {
      setMode(ID_MODE_SELECT);
-     toggleModeButton(ID_MODE_SELECT);
    }
  
    // Save the last perspective, if we have one
@@ -2573,7 +2611,20 @@ void Builder::importChemicalSystem(const string& path, wxString type,
   // GDB added 6/15/11 to finish off ECCE 6.1 changes
   PBC *pbc=dynamic_cast<PBC*>(p_mgr.GetPane(NAME_TOOL_PBC).window);
   if (pbc) {
-    pbc->updateSpaceGroup(); 
+    pbc->updateSpaceGroup();
+  }
+
+  //  The cell is drawn only while the Periodic Builder is open, so an
+  //  imported file that brings one (.gro, .car, a PDB with CRYST1) opens
+  //  it; otherwise the box the file defines is not seen.
+  SGFragment *frag = getSG()->getFragment();
+  if (pbc && frag && frag->getLattice() &&
+      !p_mgr.GetPane(NAME_TOOL_PBC).IsShown()) {
+    p_mgr.GetPane(NAME_TOOL_PBC).Show(true);
+    pbc->refresh();
+    GetMenuBar()->Check(
+        GetMenuBar()->FindMenuItem("Tools", NAME_TOOL_PBC), true);
+    updatePanes();
   }
 }
 
@@ -2670,6 +2721,9 @@ bool Builder::execute(Command *cmd, bool batch)
             didit = true;
             getCM()->append(cmd);
             updateUndoMenus();
+            // A command that succeeds may still have a note for the user.
+            string note = cmd->getErrorMessage();
+            if (note != "") showMessage(note);
          } else {
             // I guess false means that the command did nothing
             // See if there is an error message for backwards compatability
@@ -3007,6 +3061,22 @@ void Builder::OnDeleteClick( wxCommandEvent& event )
 }
 
 
+/// Ctrl+A selects all atoms, except in a text field, where it is that field's.
+void Builder::selectAllKey()
+{
+   wxWindow *focus = wxWindow::FindFocus();
+   if (wxTextEntry *te = dynamic_cast<wxTextEntry*>(focus)) {
+      te->SelectAll();
+      return;
+   }
+   if (dynamic_cast<wxSpinCtrl*>(focus) || dynamic_cast<wxSpinCtrlDouble*>(focus))
+      return;
+   wxCommandEvent ev(wxEVT_MENU, wxID_SELECTALL);
+   ev.SetEventObject(this);
+   GetEventHandler()->ProcessEvent(ev);
+}
+
+
 void Builder::deleteKey()
 {
    //  A read-only field (the Log) must not swallow the key; an editable,
@@ -3076,13 +3146,11 @@ void Builder::eventMCB(const Event& event)
      p_currentBond = TBond::strToOrder(value);
      setMode(ID_MODE_BOND);
      updateBondIcon();
-     toggleModeButton(ID_MODE_BOND);
    }
    else if (name == "ShapeChanged") {
      p_currentShapes[p_currentElement] = value;
      setMode(ID_MODE_ATOM);
      updateShapeIcon();
-     toggleModeButton(ID_MODE_ATOM);
    }
    else if (name == "SyncToggle") {
      wxCommandEvent * evt = (wxCommandEvent *)event.getObject();
@@ -3529,7 +3597,6 @@ void Builder::OnViewerChoice( wxCommandEvent& event )
 void Builder::OnModeClick( wxCommandEvent& event )
 {
   setMode(event.GetId());
-  toggleModeButton(event.GetId());
   event.Skip();
 }
 
@@ -3693,9 +3760,25 @@ void Builder::OnKeyDown(wxKeyEvent& event)
    } else if (event.GetKeyCode() == WXK_BACK) {
       deleteSelection();
    } else if (event.GetKeyCode() == WXK_ESCAPE) {
-      setMode(ID_MODE_SELECT);
+      escapeKey();
    }
    event.Skip();
+}
+
+
+/// Esc leaves Structure Library, Build and Bond for Select, except in a text
+/// field, where it is that field's (cancel an edit).  Returns true if it acted.
+bool Builder::escapeKey()
+{
+  wxWindow *focus = wxWindow::FindFocus();
+  if (dynamic_cast<wxTextEntry*>(focus) || dynamic_cast<wxSpinCtrl*>(focus) ||
+      dynamic_cast<wxSpinCtrlDouble*>(focus))
+    return false;
+  if (p_currentMode != ID_MODE_STRUCTLIB && p_currentMode != ID_MODE_ATOM &&
+      p_currentMode != ID_MODE_BOND)
+    return false;
+  setMode(ID_MODE_SELECT);
+  return true;
 }
 
 
@@ -3813,6 +3896,7 @@ void Builder::OnPaneButton(wxAuiManagerEvent& event)
   wxAuiPaneInfo *pane = event.GetPane();
   if (event.GetButton() != wxAUI_BUTTON_PIN || pane == 0 ||
       (dynamic_cast<PropertyPanel*>(pane->window) == 0 &&
+       !p_structureNames.count(pane->name.ToStdString()) &&
        pane->name != NAME_TOOL_LOG)) {
     event.Skip();
     return;
@@ -3853,8 +3937,15 @@ void Builder::foldPane(wxWindow *win, bool fold)
     return;
   }
   FoldState st = { pane.best_size, pane.min_size, pane.IsResizable(),
-                   pane.dock_proportion };
+                   pane.dock_proportion, win->GetMinSize() };
   p_folded[win] = st;
+  //  AUI floors a pane at its window's minimum, so a folded pane would
+  //  keep the content height until the window is hidden.
+  //  A property panel re-applies its own floor on every SetMinSize.
+  if (PropertyPanel *pp = dynamic_cast<PropertyPanel*>(win)) {
+    pp->setPaneMinHeight(1);
+  }
+  win->wxWindow::SetMinSize(wxSize(st.winMin.x, 1));
   unfocusPanel(win);
   pane.BestSize(wxSize(st.best.x, 1)).MinSize(wxSize(st.min.x, 1)).Fixed();
   pane.dock_proportion = 1;
@@ -3871,6 +3962,10 @@ void Builder::unfoldPane(wxAuiPaneInfo &pane)
   pane.BestSize(it->second.best).MinSize(it->second.min)
       .Resizable(it->second.resizable);
   pane.dock_proportion = it->second.proportion;
+  if (PropertyPanel *pp = dynamic_cast<PropertyPanel*>(pane.window)) {
+    pp->setPaneMinHeight(it->second.winMin.y);
+  }
+  pane.window->wxWindow::SetMinSize(it->second.winMin);
   p_folded.erase(it);
 }
 
@@ -3906,7 +4001,6 @@ void Builder::OnPaneClose(wxAuiManagerEvent& event)
 {
   if (event.pane->name == NAME_TOOL_STRUCTLIB) {
     setMode(ID_MODE_SELECT);
-    toggleModeButton(ID_MODE_SELECT);
     //wxCommandEvent event(wxEVT_COMMAND_MENU_SELECTED, ID_MODE_SELECT);
     //AddPendingEvent(event);
   } else {
@@ -4511,7 +4605,6 @@ void Builder::startInMode(int modeId)
     if (p_pendingMode != modeId) return;    // superseded by a later context
     p_pendingMode = 0;
     setMode(modeId);
-    toggleModeButton(modeId);
   });
 }
 
@@ -5045,6 +5138,16 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
         config->Read(layoutPrefix + pane.name, &info)) {
       unfoldPane(pane);     // the saved info carries the unfolded sizes
       p_mgr.LoadPaneInfo(info, pane);
+      //  Saved before tool panes could fold: no fold button in the info.
+      if (p_structureNames.count(pane.name.ToStdString()) ||
+          pane.name == NAME_TOOL_LOG) {
+        pane.PinButton(true);
+      }
+      //  Saved when Open structures was a fixed pane, without a sash.
+      if (pane.name == NAME_TOOL_CONTEXT && !p_folded.count(pane.window)) {
+        pane.Resizable(true);
+        if (pane.dock_proportion <= 0) pane.dock_proportion = 1;
+      }
       //  A layout saved under an older build carries whatever flat
       //  min_size.x was in force when it was saved (e.g. the old flat
       //  200) -- LoadPaneInfo() just restored it verbatim, overriding
@@ -5954,8 +6057,11 @@ void Builder::updatePropertyMenus()
         if (w[0].compare(0, 3, "pbc") == 0 || w[0] == "cmd" ||
             w[0] == "fragdump" || w[0] == "panelmode" ||
             w[0] == "toolmenu" || w[0] == "paneclose" ||
-            w[0] == "panestate" || w[0] == "xshot" ||
-            w[0] == "setcontext" || w[0] == "columntab")
+            w[0] == "panestate" || w[0] == "panefold" ||
+            w[0] == "foldclick" ||
+            w[0] == "sashdrag" || w[0] == "xshot" ||
+            w[0] == "setcontext" || w[0] == "columntab" ||
+            w[0] == "narrowcolumn" || w[0] == "toolfloat" || w[0] == "toolclip")
           return pbcTestCommand(s, w, outdir);
         //  "ptree <name>": the Properties list's highlighted entry beside
         //  the property panes that are shown, -> <name>.txt.
@@ -6162,7 +6268,6 @@ void Builder::updateReadOnly(const bool& loadPaneFlag)
   if (isReadOnly &&
           (p_currentMode > ID_MODE_ZOOM || p_currentMode < ID_MODE_SELECT)) {
     setMode(ID_MODE_SELECT);
-    toggleModeButton(ID_MODE_SELECT);
   }
 
   // Restore tool menu status based on layout info
@@ -6330,10 +6435,36 @@ void Builder::torsionPopup(int x, int y, AtomMeasureTorsion *torsion)
 static const int PANE_WIDTH_MIN = 200;
 static const int PANE_WIDTH_MAX = 600;
 
+static wxWindow *toolScroller(wxWindow *window);
+
+//  A tool panel's controls live in its ecceToolScroll window, whose
+//  vertical scroll bar takes width of its own; the sizer's minimum is
+//  re-read here because the controls change after the panel is added
+//  (element buttons, pickers).
+static int scrolledNeed(wxWindow *window)
+{
+  wxWindow *scroll = toolScroller(window);
+  if (!scroll || !scroll->GetSizer()) {
+    return 0;
+  }
+  //  Always reserved: the bar appears when the pane is short, and GTK
+  //  overlay-scrollbar themes report a metric smaller than the bar drawn.
+  const int bar = std::max(wxSystemSettings::GetMetric(wxSYS_VSCROLL_X, window),
+                           20);
+  const int need = scroll->GetSizer()->GetMinSize().x + bar;
+  scroll->SetMinSize(wxSize(need, 1));
+  window->SetMinSize(wxSize(need, -1));
+  return need;
+}
+
 static int contentMinWidth(wxWindow *window)
 {
   if (!window) {
     return PANE_WIDTH_MIN;
+  }
+  const int scrolled = scrolledNeed(window);
+  if (scrolled > 0) {
+    return std::min(std::max(scrolled, PANE_WIDTH_MIN), PANE_WIDTH_MAX);
   }
   // Lay out first -- GetMinSize()/GetBestSize() on a panel with a sizer
   // needs the sizer to have seen its children, and these can be called
@@ -6436,25 +6567,71 @@ static void debugPrintPaneSizes(wxAuiManager &mgr)
 }
 
 
+//  The column is never narrower than its widest docked pane needs.  A
+//  width saved by an earlier session, or one dragged narrow, is raised to
+//  this; returns the floor.
+int Builder::columnMinWidth()
+{
+  int floor = 0;
+  wxAuiPaneInfoArray &panes = p_mgr.GetAllPanes();
+  for (size_t i = 0; i < panes.GetCount(); ++i) {
+    wxAuiPaneInfo &pane = panes.Item(i);
+    //  A floating pane's frame is as wide as its own content needs.
+    if (pane.IsShown() && pane.IsFloating() && pane.window &&
+        toolScroller(pane.window)) {
+      const int w = contentMinWidth(pane.window);
+      pane.MinSize(wxSize(w, pane.min_size.y));
+      const wxSize chrome = pane.frame
+          ? pane.frame->GetSize() - pane.frame->GetClientSize() : wxSize(0, 0);
+      if (pane.floating_size.x < w + chrome.x)
+        pane.floating_size.x = w + chrome.x;
+      if (pane.frame && pane.frame->GetClientSize().x < w)
+        pane.frame->SetClientSize(w, pane.frame->GetClientSize().y);
+      continue;
+    }
+    if (!pane.IsShown() || pane.IsFloating() || pane.IsToolbar() ||
+        !pane.window || pane.dock_direction != wxAUI_DOCK_RIGHT ||
+        pane.dock_layer < 1 || !toolScroller(pane.window)) {
+      continue;
+    }
+    const int w = contentMinWidth(pane.window);
+    pane.MinSize(wxSize(w, pane.min_size.y));
+    floor = std::max(floor, w);
+  }
+  if (floor <= 0) return 0;
+  for (size_t i = 0; i < panes.GetCount(); ++i) {
+    wxAuiPaneInfo &pane = panes.Item(i);
+    if (!pane.IsShown() || pane.IsFloating() || pane.IsToolbar() ||
+        !pane.window || pane.dock_direction != wxAUI_DOCK_RIGHT ||
+        pane.dock_layer < 1 || pane.name == NAME_COLUMN_TOGGLE) {
+      continue;
+    }
+    if (pane.min_size.x < floor) pane.MinSize(wxSize(floor, pane.min_size.y));
+    if (pane.best_size.x < floor) pane.BestSize(wxSize(floor, pane.best_size.y));
+    if (pane.rect.width > 0 && pane.rect.width < floor) pane.rect.width = floor;
+  }
+  return floor;
+}
+
+
 void Builder::addToolPanel(wxWindow *panel, const string& name,
                            const bool& readOnlyDisabled,
                            const bool& alwaysFixed)
 {
   wxAuiPaneInfo pinfo;
   pinfo.Name(name).Caption(name).Show(false).CaptionVisible(true)
-          .Right().Position(p_toolCount).Fixed();
+          .Right().Position(p_toolCount).Fixed().PinButton(true);
   int minWidth = contentMinWidth(panel);
   if (alwaysFixed) {
     pinfo.MaximizeButton(false);
     //  Resizable, at a share of the column too small to take surplus, so a
     //  neighbour's sash can move past it; it keeps its content height as a
-    //  floor.  A fixed pane here stopped Build's sash at its edge (#293).
+    //  floor.  A fixed pane here stopped Build's sash at its edge (#293);
+    //  AUI gives a fixed pane no sash of its own.
+    pinfo.Resizable(true);
+    pinfo.dock_proportion = 1;
     if (name != NAME_TOOL_CONTEXT) {
-      pinfo.Resizable(true);
-      pinfo.dock_proportion = 1;
       p_contentFloored.insert(panel);
-    } else {
-      pinfo.Fixed();
     }
     //  The context pane is a list that scrolls: about three rows, see
     //  updateContextPane().

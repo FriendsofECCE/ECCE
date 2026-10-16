@@ -19,6 +19,7 @@
   using std::cout;
   using std::endl;
 #include <set>
+#include <map>
   using std::set;
   using std::find;
   using std::less;
@@ -2106,6 +2107,259 @@ bool Fragment::changeBond(TAtm *atm1, TAtm *atm2, float order)
 }
 
 
+namespace {
+
+typedef double V3[3];
+
+void vsub(const double *a, const double *b, V3 r) { for (int i=0;i<3;i++) r[i]=a[i]-b[i]; }
+double vdot(const double *a, const double *b) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
+void vcross(const double *a, const double *b, V3 r) {
+  r[0]=a[1]*b[2]-a[2]*b[1]; r[1]=a[2]*b[0]-a[0]*b[2]; r[2]=a[0]*b[1]-a[1]*b[0];
+}
+double vlen(const double *a) { return sqrt(vdot(a,a)); }
+void vnorm(V3 a) { double l=vlen(a); if (l>0) for (int i=0;i<3;i++) a[i]/=l; }
+
+// Rotate p about the origin by the rotation taking unit vector u to unit v.
+void rotateUV(const double *u, const double *v, V3 p)
+{
+  V3 k; vcross(u, v, k);
+  double s = vlen(k), c = vdot(u, v);
+  if (s < 1e-9) {
+    if (c > 0) return;
+    // Antiparallel: turn half a circle about any axis perpendicular to u.
+    V3 t = {1,0,0};
+    if (fabs(u[0]) > 0.9) { t[0]=0; t[1]=1; }
+    vcross(u, t, k); vnorm(k); s = 0; c = -1;
+  } else {
+    for (int i=0;i<3;i++) k[i] /= s;
+  }
+  V3 kp; vcross(k, p, kp);
+  double kd = vdot(k, p);
+  for (int i=0;i<3;i++) p[i] = p[i]*c + kp[i]*s + k[i]*kd*(1-c);
+}
+
+}
+
+/**
+ * Attach a pi ligand to a metal at one of its nubs (the coordination site).
+ * Bonded atoms: the picked ligand atoms if several, else the planar 3-7 ring
+ * through the picked atom, else its C=C / C#C partner pair (allyl is not
+ * recognised); a lone atom is just bonded where it is.  The ligand molecule
+ * is turned so its ring plane (pair axis) is perpendicular to the nub
+ * direction and the centroid sits on that direction, 1.7 A (ring) or 2.0 A
+ * (pair) from Fe, shifted by the covalent-radius difference for other metals.
+ * The nub is consumed; the ligand's own atoms and nubs are untouched.
+ */
+bool Fragment::bondPiLigand(TAtm *metalPick, const vector<TAtm*>& ligand,
+      const DisplayStyle& style, string& message)
+{
+   TAtm *nub = 0, *metal = metalPick;
+   if (metalPick && metalPick->atomicSymbol() == "Nub") {
+      nub = metalPick;
+      metal = nubParent(nub);
+   }
+   if (metal == 0 || ligand.empty()) {
+      throw EcceException("No bond sites are available to create this bond.", WHERE);
+   }
+
+   // The ligand molecule: everything connected to the first picked atom.
+   set<TAtm*> comp;
+   vector<TAtm*> stack(1, ligand[0]);
+   comp.insert(ligand[0]);
+   while (!stack.empty()) {
+      TAtm *a = stack.back(); stack.pop_back();
+      vector<TAtm*> *nb = a->connectedAtoms();
+      for (size_t i=0; i<nb->size(); i++)
+         if (comp.insert((*nb)[i]).second) stack.push_back((*nb)[i]);
+      delete nb;
+   }
+   // A ligand already sigma-bonded to the metal is not moved; its atoms are
+   // bonded (or their bond turned into a Metal bond) where they are.
+   bool joined = comp.count(metal) > 0;
+   for (size_t i=0; i<ligand.size(); i++) {
+      if (comp.count(ligand[i]) == 0 || ligand[i]->atomicSymbol() == "Nub" ||
+          ligand[i] == metal) {
+         throw EcceException("Select one metal nub and atoms of a single ligand.", WHERE);
+      }
+   }
+
+   // Choose the bonded atoms.
+   vector<TAtm*> bonded;
+   if (ligand.size() > 1) {
+      bonded = ligand;
+   } else {
+      TAtm *seed = ligand[0];
+      // Shortest ring (3-7 atoms) through seed.
+      vector<TAtm*> best;
+      vector<TAtm*> *sn = seed->connectedAtoms();
+      for (size_t i=0; i<sn->size(); i++) {
+         TAtm *first = (*sn)[i];
+         if (first->atomicSymbol() == "Nub") continue;
+         // BFS from first back to seed without using the seed-first edge.
+         map<TAtm*, TAtm*> prev; prev[first] = 0;
+         vector<TAtm*> q(1, first);
+         for (size_t h=0; h<q.size(); h++) {
+            TAtm *a = q[h];
+            int depth = 1;
+            for (TAtm *t=prev[a]; t; t=prev[t]) depth++;
+            if (depth >= 7) continue;
+            vector<TAtm*> *nb = a->connectedAtoms();
+            for (size_t j=0; j<nb->size(); j++) {
+               TAtm *b = (*nb)[j];
+               if (b->atomicSymbol() == "Nub") continue;
+               if (b == seed) {
+                  if (a == first) continue;
+                  vector<TAtm*> ring(1, seed);
+                  for (TAtm *t=a; t; t=prev[t]) ring.push_back(t);
+                  if (best.empty() || ring.size() < best.size()) best = ring;
+               } else if (prev.count(b) == 0) {
+                  prev[b] = a; q.push_back(b);
+               }
+            }
+            delete nb;
+         }
+      }
+      delete sn;
+      if (best.size() >= 3 && best.size() <= 7) {
+         // Planar to 0.2 A about the mean plane (Newell normal).
+         V3 c = {0,0,0}, nrm = {0,0,0};
+         for (size_t i=0; i<best.size(); i++)
+            for (int k=0;k<3;k++) c[k] += best[i]->coordinates()[k]/best.size();
+         for (size_t i=0; i<best.size(); i++) {
+            V3 p1, p2, x;
+            vsub(best[i]->coordinates(), c, p1);
+            vsub(best[(i+1)%best.size()]->coordinates(), c, p2);
+            vcross(p1, p2, x);
+            for (int k=0;k<3;k++) nrm[k] += x[k];
+         }
+         bool planar = vlen(nrm) > 1e-6;
+         vnorm(nrm);
+         for (size_t i=0; planar && i<best.size(); i++) {
+            V3 d; vsub(best[i]->coordinates(), c, d);
+            if (fabs(vdot(d, nrm)) > 0.2) planar = false;
+         }
+         if (planar) bonded = best;
+      }
+      if (bonded.empty()) {
+         vector<TAtm*> *nb = seed->connectedAtoms();
+         for (size_t i=0; i<nb->size() && bonded.empty(); i++) {
+            TBond *b = bond(atomIndex(*seed), atomIndex(*(*nb)[i]));
+            if (b && b->order() >= 2.0 && (*nb)[i]->atomicSymbol() != "Nub") {
+               bonded.push_back(seed); bonded.push_back((*nb)[i]);
+            }
+         }
+         delete nb;
+      }
+      if (bonded.empty()) bonded.push_back(seed);
+   }
+
+   int n = bonded.size();
+   // No pi system: an eta1 contact is an ordinary (Single) sigma bond.
+   if (n == 1) return false;
+
+   // Centroid and axis (ring normal, or the line through a pair) of the
+   // bonded atoms.
+   V3 cen = {0,0,0};
+   for (int i=0;i<n;i++)
+      for (int k=0;k<3;k++) cen[k] += bonded[i]->coordinates()[k]/n;
+   V3 axis = {0,0,0};
+   bool ringLike = (n >= 3);
+   if (ringLike) {
+      for (int i=0;i<n;i++) {
+         V3 p1, p2, x;
+         vsub(bonded[i]->coordinates(), cen, p1);
+         vsub(bonded[(i+1)%n]->coordinates(), cen, p2);
+         vcross(p1, p2, x);
+         for (int k=0;k<3;k++) axis[k] += x[k];
+      }
+      if (vlen(axis) < 1e-6) ringLike = false;
+   }
+   if (!ringLike) vsub(bonded[1]->coordinates(), bonded[0]->coordinates(), axis);
+   vnorm(axis);
+
+   // The metal's free nub nearest the ligand is the coordination site.
+   if (!nub && !joined) {
+      double best = 1e30;
+      vector<TAtm*> *mn = metal->connectedAtoms();
+      for (size_t i=0; i<mn->size(); i++) {
+         if ((*mn)[i]->atomicSymbol() != "Nub") continue;
+         V3 d; vsub((*mn)[i]->coordinates(), cen, d);
+         if (vlen(d) < best) { best = vlen(d); nub = (*mn)[i]; }
+      }
+      delete mn;
+   }
+   bool place = nub != 0 && !joined;
+
+   V3 dir = {0,0,1};
+   if (place) {
+      vsub(nub->coordinates(), metal->coordinates(), dir);
+      vnorm(dir);
+   }
+
+   TPerTab tpt;
+   double rFe = tpt.covalentRadius(26);
+   double rM = tpt.covalentRadius(metal->atomicNumber());
+   double dist = (ringLike ? 1.7 : 2.0) + ((rM > 0 && rFe > 0) ? rM - rFe : 0.0);
+   if (!place) {
+      V3 d; vsub(cen, metal->coordinates(), d);
+      dist = vlen(d);
+   }
+
+   // Ring normal along +-dir; pair axis perpendicular to dir.
+   V3 target;
+   if (ringLike) {
+      double sgn = vdot(axis, dir) >= 0 ? 1.0 : -1.0;
+      for (int k=0;k<3;k++) target[k] = sgn * dir[k];
+   } else {
+      double d = vdot(axis, dir);
+      for (int k=0;k<3;k++) target[k] = axis[k] - d*dir[k];
+      if (vlen(target) < 1e-6) {
+         V3 t = {1,0,0};
+         if (fabs(dir[0]) > 0.9) { t[0]=0; t[1]=1; }
+         vcross(dir, t, target);
+      }
+      vnorm(target);
+   }
+
+   for (set<TAtm*>::iterator it=comp.begin(); place && it!=comp.end(); ++it) {
+      V3 p; vsub((*it)->coordinates(), cen, p);
+      rotateUV(axis, target, p);
+      double np[3];
+      for (int k=0;k<3;k++) np[k] = metal->coordinates()[k] + dist*dir[k] + p[k];
+      (*it)->coordinates(np);
+   }
+
+   for (int i=0;i<n;i++) {
+      TBond *old = bond(atomIndex(*metal), atomIndex(*bonded[i]));
+      if (old) old->order(TBond::Metal);
+      else new TBond(metal, bonded[i], style, TBond::Metal);
+   }
+
+   // The metal nub is used up, and so are the nubs on the bonded ligand
+   // atoms (Structure Library ligands carry one per donor); they only stood
+   // for the coordination direction and would otherwise take hydrogens.
+   vector<int> gone;
+   if (nub && place) gone.push_back(atomIndex(*nub));
+   for (int i=0;i<n;i++) {
+      vector<TAtm*> *nb = bonded[i]->connectedAtoms();
+      for (size_t j=0; j<nb->size(); j++)
+         if ((*nb)[j]->atomicSymbol() == "Nub") gone.push_back(atomIndex(*(*nb)[j]));
+      delete nb;
+   }
+   sort(gone.begin(), gone.end());
+   gone.erase(unique(gone.begin(), gone.end()), gone.end());
+   for (int i=(int)gone.size()-1; i>=0; i--) deleteAtom(gone[i]);
+   // A donor atom with its nub gone is no longer four-coordinate (UFF would
+   // otherwise Clean it as sp3 and pucker the ring).
+   for (int i=0;i<n;i++) generateShape(bonded[i]);
+
+   char buf[160];
+   snprintf(buf, sizeof buf, "eta%d: %d Metal bonds, metal-centroid %.2f A",
+            n, n, dist);
+   message = buf;
+   return true;
+}
+
 /**
  * Bond two atoms that have nubs and remove nubs as needed.
  * An exception is thrown for user type errors such as bonding and atom
@@ -2115,6 +2369,24 @@ void Fragment::bondAtoms(TAtm *atm1, TAtm *atm2, float order,
       const DisplayStyle& style)
 {
    TAtm *parent1=0, *nub1=0, *parent2=0, *nub2=0;
+
+   // A Metal (pi) bond uses no valence, so it needs no nubs and leaves the
+   // nubs and hydrogens of both atoms alone; ring carbons have none to give.
+   if (order == TBond::Metal) {
+      parent1 = (atm1->atomicSymbol() == "Nub") ? nubParent(atm1) : atm1;
+      parent2 = (atm2->atomicSymbol() == "Nub") ? nubParent(atm2) : atm2;
+      if (parent1 == 0 || parent2 == 0) {
+         throw EcceException("No bond sites are available to create this bond.", WHERE);
+      }
+      if (parent1 == parent2) {
+         throw EcceException("Cannot bond an atom to itself.",WHERE);
+      }
+      if (bond(atomIndex(*parent1), atomIndex(*parent2)) != (TBond*)0) {
+         throw EcceException("The atoms are already bonded.",WHERE);
+      }
+      new TBond(parent1, parent2, style, order);
+      return;
+   }
 
    // First we need to make sure that we have nubs for bonding
    if (atm1->atomicSymbol() == "Nub") {
@@ -2210,11 +2482,13 @@ bool Fragment::generateShape(TAtm *atm)
    TAtm *atom3;
    double angle;
 
-   // This totally ignores metal-pi bonds!!!!
-   // Maybe not a big problem since this is only called after
-   // reading in a molecule which probably doesn't have metal-pi
-   // bonds?  This is a question not a statement.
-   switch (atm->bondList().size())
+   // Metal-pi (0.5) and hydrogen (0.1) bonds use no valence, so they do not
+   // count toward the shape: a ring carbon with a metal on its face is
+   // still trigonal planar.
+   vector<TBond*> bl;
+   for (size_t ib=0; ib<atm->bondList().size(); ib++)
+      if (atm->bondList()[ib]->order() >= 1.0) bl.push_back(atm->bondList()[ib]);
+   switch (bl.size())
    {
       case 0:
          atmShape = ShapeData::lone;
@@ -2224,12 +2498,12 @@ bool Fragment::generateShape(TAtm *atm)
          break;
       case 2:
          atmShape = ShapeData::linear;
-         atom1 = (atm->bondList()[0])->atom1();
+         atom1 = (bl[0])->atom1();
          if (atom1 == atm)
-            atom1 = (atm->bondList()[0])->atom2();
-         atom2 = (atm->bondList()[1])->atom1();
+            atom1 = (bl[0])->atom2();
+         atom2 = (bl[1])->atom1();
          if (atom2 == atm)
-            atom2 = (atm->bondList()[1])->atom2();
+            atom2 = (bl[1])->atom2();
          angle = atm->angleBetween(atom1,atom2);
          if (angle < 172 || angle > 188)
             atmShape = ShapeData::bent;
@@ -2237,15 +2511,15 @@ bool Fragment::generateShape(TAtm *atm)
       case 3:
          atmShape = ShapeData::trigonalPlanar;
          if ( atm->atomicSymbol() != "C" ) { // 3-coordinate C always planar
-            atom1 = (atm->bondList()[0])->atom1();
+            atom1 = (bl[0])->atom1();
             if (atom1 == atm)
-               atom1 = (atm->bondList()[0])->atom2();
-            atom2 = (atm->bondList()[1])->atom1();
+               atom1 = (bl[0])->atom2();
+            atom2 = (bl[1])->atom1();
             if (atom2 == atm)
-               atom2 = (atm->bondList()[1])->atom2();
-            atom3 = (atm->bondList()[2])->atom1();
+               atom2 = (bl[1])->atom2();
+            atom3 = (bl[2])->atom1();
             if (atom3 == atm)
-               atom3 = (atm->bondList()[2])->atom2();
+               atom3 = (bl[2])->atom2();
             double angle12, angle23, angle13;
             angle12 = atm->angleBetween(atom1,atom2);
             angle23 = atm->angleBetween(atom2,atom3);
@@ -4836,6 +5110,147 @@ bool Fragment::restoreXYZ(istream& infile, double mult, bool genBonds)
 
 
   return ((curAtom+1!=numAtoms) && !error );
+}
+
+// Element of a .gro atom from its name.  GROMACS names carry no element
+// column, so: a mixed-case name whose first two letters are an element
+// (MINFF's Alo, Sit, Mgo, Feo3, Cu2+) is that element; an upper-case
+// two-letter ion (NA, CL, CA) only when the residue has the same name, so
+// that a protein CA stays carbon; anything else is its first letter.
+static string groElement(const string& atomName, const string& resName)
+{
+  TPerTab tpt;
+  string a;
+  size_t i = 0;
+  while (i < atomName.size() && !isalpha((unsigned char)atomName[i])) i++;
+  for (; i < atomName.size() && isalpha((unsigned char)atomName[i]); i++) {
+    a += atomName[i];
+  }
+  if (a.empty()) return "X";
+  string first(1, (char)toupper((unsigned char)a[0]));
+  // O and H types (Osih, Ohmg, Ho...) would otherwise read as Os, Ho, Hf.
+  if (a.size() > 1 && first != "O" && first != "H") {
+    string two = first + (char)tolower((unsigned char)a[1]);
+    bool mixed = islower((unsigned char)a[1]) != 0;
+    bool ion = false;
+    if (!mixed) {
+      string r = STLUtil::upper(resName);
+      string an = STLUtil::upper(a);
+      ion = (r == an || r == an + "+" || r == an + "-");
+    }
+    if ((mixed || ion) && tpt.isValid(two.c_str())) return two;
+  }
+  return first;
+}
+
+bool Fragment::restoreGRO(istream& infile, bool genBonds)
+{
+  string line;
+  if (!getline(infile, line)) return false;
+  p_name = STLUtil::trim(line);
+  if (!getline(infile, line)) return false;
+  int natoms = atoi(line.c_str());
+  if (natoms <= 0) return false;
+
+  Residue *res = 0;
+  string oldResName;
+  int oldResNum = 0;
+  for (int n = 0; n < natoms; n++) {
+    if (!getline(infile, line)) return false;
+    // Columns are fixed (resnum 5, resname 5, atname 5, atnum 5); the
+    // coordinate width is the gap between the first two decimal points.
+    if (line.size() < 20) return false;
+    size_t d1 = line.find('.', 20);
+    size_t d2 = (d1 == string::npos) ? string::npos : line.find('.', d1 + 1);
+    if (d2 == string::npos) return false;
+    size_t w = d2 - d1;
+    if (line.size() < 20 + 3*w) return false;
+    string resName = STLUtil::trim(line.substr(5, 5));
+    string atName = STLUtil::trim(line.substr(10, 5));
+    int resNum = atoi(line.substr(0, 5).c_str());
+    double xyz[3];
+    for (int k = 0; k < 3; k++) {
+      xyz[k] = atof(line.substr(20 + k*w, w).c_str()) * 10.0;
+    }
+
+    string sym = groElement(atName, resName);
+    if (!TPerTab().isValid(sym.c_str())) sym = "X";
+    TAtm *atom = new TAtm(sym.c_str(), xyz);
+    atom->atomName(atName.substr(0, 4).c_str());
+    addAtom(atom);
+
+    if (res == 0 || resName != oldResName || resNum != oldResNum) {
+      string rn = resName.substr(0, 4);
+      res = new Residue(rn.c_str(), resNum);
+      addResidue(res);
+      res->name(rn.c_str());
+      res->number(resNum);
+      res->chain(' ');
+      res->firstAtomPtr(atom);
+      res->couplingInfo(Residue::MONOMER);
+      oldResName = resName;
+      oldResNum = resNum;
+    }
+    atom->atomResidue(res);
+  }
+
+  // Box, nm: 3 values (orthorhombic) or 9 (v1x v2y v3z v1y v1z v2x v2z
+  // v3x v3y).  A zero diagonal means no box.
+  if (getline(infile, line)) {
+    double b[9] = {0,0,0,0,0,0,0,0,0};
+    int nb = sscanf(line.c_str(), "%lf %lf %lf %lf %lf %lf %lf %lf %lf",
+                    &b[0],&b[1],&b[2],&b[3],&b[4],&b[5],&b[6],&b[7],&b[8]);
+    if ((nb == 3 || nb == 9) && b[0] > 0 && b[1] > 0 && b[2] > 0) {
+      MPoint v1(b[0]*10, b[3]*10, b[4]*10);
+      MPoint v2(b[5]*10, b[1]*10, b[6]*10);
+      MPoint v3(b[7]*10, b[8]*10, b[2]*10);
+      LatticeDef *lattice = new LatticeDef(1.,1.,1.,90.,90.,90.);
+      lattice->assign(v1, v2, v3);
+      setLattice(lattice);
+    }
+  }
+
+  if (genBonds) {
+    addCovalentBonds(true);
+    setEnvIndices();
+  }
+  return true;
+}
+
+// Counterpart of restoreGRO: nm, residues from the fragment, the lattice
+// as the box (always the 9-value form, which covers the orthorhombic case).
+bool Fragment::dumpGRO(ostream& out)
+{
+  char buf[200];
+  out << (p_name.empty() ? "ECCE structure" : p_name) << "\n";
+  out << numAtoms() << "\n";
+  for (int i = 0; i < numAtoms(); i++) {
+    TAtm *atom = atomRef(i);
+    Residue *res = atom->getResidue();
+    string rn = res ? res->name() : string("UNK");
+    int rnum = res ? res->number() : 1;
+    string an = atom->atomName();
+    if (an.empty()) an = atom->atomicSymbol();
+    const double *c = atom->coordinates();
+    snprintf(buf, sizeof(buf), "%5d%-5.5s%5.5s%5d%8.3f%8.3f%8.3f",
+             rnum % 100000, STLUtil::trim(rn).c_str(),
+             STLUtil::trim(an).c_str(), (i + 1) % 100000,
+             c[0]/10.0, c[1]/10.0, c[2]/10.0);
+    out << buf << "\n";
+  }
+  LatticeDef *lat = getLattice();
+  if (lat) {
+    vector<MPoint> *v = lat->toVectors();
+    MPoint a = (*v)[0], b = (*v)[1], c = (*v)[2];
+    delete v;
+    snprintf(buf, sizeof(buf), "%10.5f%10.5f%10.5f%10.5f%10.5f%10.5f%10.5f%10.5f%10.5f",
+             a.x()/10, b.y()/10, c.z()/10, a.y()/10, a.z()/10,
+             b.x()/10, b.z()/10, c.x()/10, c.y()/10);
+  } else {
+    snprintf(buf, sizeof(buf), "%10.5f%10.5f%10.5f", 0.0, 0.0, 0.0);
+  }
+  out << buf << "\n";
+  return out.good();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -7731,21 +8146,25 @@ bool Fragment::bondingAtoms(const Fragment& tmpfrag,
          fragnub = tmpfrag.childNub(fragparent);
       }
 
+      // A failed connect must leave the structure as it was, so the hydrogen
+      // below is turned into a Nub only once the other side is known to fit.
+      if (!fragnub || !fragparent) return false;
+
       // Now can we get a baseparent and basenub
       TAtm *batm = atomRef(fragconatom);
       if (batm && batm->atomicSymbol() == "Nub") {
          basenub = batm;
          baseparent = nubParent(basenub);
       } else if (batm && batm->atomicSymbol() == "H") {
-         TPerTab tpt;
-         // Lets just change this atom to a nub 
-         batm->atomicSymbol("Nub");
-         batm->atomicNumber( tpt.atomicNumber("Nub"));
-         basenub = batm;
-         baseparent = 0;
          vector<TAtm*> *bondedAtoms = batm->connectedAtoms();
          if (bondedAtoms->size() >= 1) baseparent = (*bondedAtoms)[0];
          delete bondedAtoms;
+         if (baseparent) {
+            TPerTab tpt;
+            batm->atomicSymbol("Nub");
+            batm->atomicNumber( tpt.atomicNumber("Nub"));
+            basenub = batm;
+         }
       } else {
          baseparent = batm;
          basenub = childNub(baseparent);
@@ -7911,6 +8330,29 @@ void Fragment::mergeFragment(Fragment& tmpfrag,
 
       } else {
          tmpfrag.translate(x-cmx,y-cmy,z-cmz);
+         // Free space: never land on existing atoms (a second click would
+         // stack an identical copy); if the clicked point is not clear, put
+         // the structure beside them, past the bounding box in +x.
+         if (numAtoms() > 0 && !newAtoms->empty()) {
+            const double clear2 = 1.5*1.5;
+            bool blocked = false;
+            double oldMaxX = -1e30, newMinX = 1e30;
+            for (int i=0; i<numAtoms(); i++) {
+               const double *a = atomRef(i)->coordinates();
+               if (a[0] > oldMaxX) oldMaxX = a[0];
+               for (size_t j=0; !blocked && j<newAtoms->size(); j++) {
+                  const double *b = (*newAtoms)[j]->coordinates();
+                  double d2 = 0;
+                  for (int k=0; k<3; k++) d2 += (a[k]-b[k])*(a[k]-b[k]);
+                  if (d2 < clear2) blocked = true;
+               }
+            }
+            if (blocked) {
+               for (size_t j=0; j<newAtoms->size(); j++)
+                  newMinX = std::min(newMinX, (*newAtoms)[j]->coordinates()[0]);
+               tmpfrag.translate(oldMaxX + 2.5 - newMinX, 0.0, 0.0);
+            }
+         }
          // No bonding action - easier
          if (numExistingResidues > 0) {
             if (curResIndex >= 0) {

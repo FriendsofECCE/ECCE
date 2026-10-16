@@ -1234,6 +1234,8 @@ bool FragUtil::load( istream& is,
       ret = frag->restoreMVM(is,mult,genBOs);
    } else if (STLUtil::compareString(type,string("CAR"))==0) {
       ret = frag->restoreCAR(is,mult,genBOs);
+   } else if (STLUtil::compareString(type,string("GRO"))==0) {
+      ret = frag->restoreGRO(is,genBOs);
    } else if (STLUtil::compareString(type,string("PDB"))==0) {
       bool groupFlg = true;
       bool readBonds = false;

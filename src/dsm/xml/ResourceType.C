@@ -188,6 +188,29 @@ vector<ResourceType*> ResourceType::getContains()
 }
 
 
+/**
+ * What New may create in this resource: getContains() without the reaction
+ * study steps (DirDyVTST, Polyrate, metadynamics), which are no longer
+ * offered (#331). getContains() itself stays whole, so existing studies
+ * still open and their members still load. An empty MD study can only
+ * start with Prepare.
+ */
+vector<ResourceType*> ResourceType::getOfferedContains(bool emptySession)
+{
+  vector<ResourceType*> offered;
+  for (size_t i = 0; i < p_containsResources.size(); i++) {
+    string name = p_containsResources[i]->getName();
+    if (name == "dirdyvtst" || name == "polyrate" || name == "rxn_solvate")
+      continue;
+    if (emptySession && (name == "nwchem_md_optimize" ||
+        name == "nwchem_md_energy" || name == "nwchem_md_dynamics"))
+      continue;
+    offered.push_back(p_containsResources[i]);
+  }
+  return offered;
+}
+
+
 vector<ResourceType*> ResourceType::getContainedBy()
 {
   return p_containedByResources;

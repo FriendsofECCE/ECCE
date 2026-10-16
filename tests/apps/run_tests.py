@@ -40,7 +40,11 @@ import apps                                                   # noqa: E402
 import cases as CASEDEFS                                      # noqa: E402
 import geomtrace_stress                                       # noqa: E402
 import nmode_edit_test                                        # noqa: E402
+import organizer_local_tree_test                              # noqa: E402
 import vib_frame_builder_test                                 # noqa: E402
+import builder_mode_test                                      # noqa: E402
+import builder_metal_test                                     # noqa: E402
+import builder_panes_test                                     # noqa: E402
 import pbc_edit_test                                          # noqa: E402
 import pbc_ux_test                                            # noqa: E402
 import fixture                                                # noqa: E402
@@ -56,7 +60,7 @@ import xdisplay                                               # noqa: E402
 #  and only the second one is worth relying on.
 #
 #  A healthy full run is about six minutes.
-DEFAULT_BUDGET = int(os.environ.get("ECCE_APPS_BUDGET", "1200"))
+DEFAULT_BUDGET = int(os.environ.get("ECCE_APPS_BUDGET", "1500"))
 
 
 class BudgetExpired(Exception):
@@ -677,7 +681,11 @@ def main():
                 pbc_edit_test.check(display, results, verbose=args.verbose)
                 nmode_edit_test.check(display, results)
                 vib_frame_builder_test.check(display, results)
+                builder_mode_test.check(display, results)
+                builder_metal_test.check(display, results)
+                builder_panes_test.check(display, results)
                 pbc_ux_test.check(display, results)
+                organizer_local_tree_test.check(display, results)
             finally:
                 restorePrefs()
             checkStale(results, set(swept))

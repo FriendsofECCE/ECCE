@@ -147,6 +147,16 @@ class Ecce
         }
         return name;
 #endif
+#ifdef __APPLE__
+        // bin/<tool> is a link into a helper bundle of ECCE.app; macOS
+        // names the process (Dock, menu bar) after the bundle only when
+        // it is started by the real path.  Bundle names have spaces.
+        char real[4096];
+        if (access(path.c_str(), X_OK) == 0 && realpath(path.c_str(), real)) {
+          string r = real;
+          return r.find(' ') == string::npos ? r : "\"" + r + "\"";
+        }
+#endif
         if (access(path.c_str(), X_OK) == 0) return path;
         return name;
       }

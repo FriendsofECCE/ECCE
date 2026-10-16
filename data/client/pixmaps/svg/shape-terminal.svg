@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+<line x1="8.5" y1="12" x2="17.1" y2="12" stroke="#9a9a9a" stroke-width="1.6"/><line x1="8.5" y1="11.65" x2="17.1" y2="11.65" stroke="#d4d4d4" stroke-width="0.48"/>
+<radialGradient id="g13" gradientUnits="userSpaceOnUse" cx="7.28" cy="10.6" r="5.25" fx="7.28" fy="10.6"><stop offset="0" stop-color="#e4e4e4"/><stop offset="0.5" stop-color="#909090"/><stop offset="1" stop-color="#4a4a4a"/></radialGradient><circle cx="8.5" cy="12" r="3.5" fill="url(#g13)"/>
+<radialGradient id="g12" gradientUnits="userSpaceOnUse" cx="16.3" cy="11.08" r="3.45" fx="16.3" fy="11.08"><stop offset="0" stop-color="#ffffff"/><stop offset="0.5" stop-color="#ececec"/><stop offset="1" stop-color="#a8a8a8"/></radialGradient><circle cx="17.1" cy="12" r="2.3" fill="url(#g12)" stroke="#6a6a6a" stroke-width="0.6"/>
+</svg>

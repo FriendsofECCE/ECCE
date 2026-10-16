@@ -182,6 +182,9 @@ def run(display, pngs):
               completed.index("plot energy") < completed.index("summary: ") and
               "s left" not in completed and "updated" not in completed,
               "completed: the plots stay, the outcome lines follow them", completed)
+        check(re.search(r"summary: Final energy -?\d+\.\d{6} Hartree$", completed)
+              is not None,
+              "completed: the last line is the final energy (#352)", completed)
         check(field(none, "shown") == "0", "never launched: no box", none)
         for n in ("progress-running-stored.png", "progress-running-live.png",
                   "progress-completed.png"):

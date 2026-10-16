@@ -271,6 +271,27 @@ def restrained(gmx, home, tmp):
           "a topology with [ position_restraints ] is accepted at launch and runs")
 
 
+def periodic_molecules(gmx, home, tmp, results):
+    """periodic-molecules is written only when the model asks for it (#262),
+    and grompp takes it."""
+    if "optimize" in results:
+        check("periodic-molecules" not in results["optimize"]["mdp"],
+              "periodic-molecules is absent when the model does not set it")
+    name, calc, spec = STAGES[0]
+    spec = dict(spec, interaction="    <PeriodicMolecules>1</PeriodicMolecules>")
+    res = stage(gmx, home, tmp, "periodic", calc, spec,
+                os.path.join(FIXTURES, "conf.gro"))
+    if res is not None:
+        check(res["mdp"].get("periodic-molecules") == "yes",
+              "PeriodicMolecules 1 in the model gives periodic-molecules = yes "
+              "and grompp accepts it")
+    off = dict(STAGES[0][2], interaction="    <PeriodicMolecules>0</PeriodicMolecules>")
+    rc, out = run([os.path.join(PARSERS, "md.gmxtask")],
+                  input=model(STAGES[0][1], **off).encode())
+    check(rc == 0 and "periodic-molecules" not in out,
+          "PeriodicMolecules 0 writes nothing")
+
+
 def local_forcefield(gmx, home, tmp, includes_bin):
     """A force field kept beside the topology (#260): found by following the
     #include lines, staged flat, put back in its folder by the job script."""
@@ -437,6 +458,7 @@ def main():
         #  grompp refuses [ position_restraints ] without a reference
         #  structure (-r); three SPC waters, the first one held in place.
         restrained(gmx, home, tmp)
+        periodic_molecules(gmx, home, tmp, results)
 
         # ---- includes kept beside the topology (#260) ------------------
         local_forcefield(gmx, home, tmp, args.includes_bin)

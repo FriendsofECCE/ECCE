@@ -93,6 +93,17 @@ private:
 };
 
 
+#ifdef __APPLE__
+// Takes the splash mark off the environment once the Organizer has had time
+// to start, so a later Organizer (restarted from another tool) shows none.
+class SplashMarkEnd : public wxTimer
+{
+public:
+  void Notify() override { unsetenv("ECCE_SPLASH"); delete this; }
+};
+#endif
+
+
 GatewayApp::GatewayApp()
   : WxJMSMessageDispatch(GATEWAY),
     p_gateway(NULL),
@@ -407,7 +418,14 @@ bool GatewayApp::OnInit()
     //  forcenew is 0: if an Organizer is somehow already up, raise it
     //  rather than opening a second one.
     //  After the login, while the Organizer loads: the slow part of a start.
+#ifdef __APPLE__
+    // The Organizer shows the splash: this process has no window to
+    // keep in front.  Only the Organizer started here is to see the mark.
+    setenv("ECCE_SPLASH", "1", 1);
+    (new SplashMarkEnd)->StartOnce(20000);
+#else
     ewxShowSplash();
+#endif
     Target myself("", getMyID());
     JMSMessage *startMsg = newMessage(myself);
     startMsg->addProperty("appname", "Organizer");
@@ -596,7 +614,8 @@ void GatewayApp::toolStartStatusMCB(JMSMessage& msg)
     p_sessionSeen = true;
     ewxMessageDialog * dlg = new ewxMessageDialog(dialogParent(),
                     "Unable to start the application.\n"
-                    "Please report it at https://github.com/FriendsofECCE/ECCE/issues .",
+                    "Please report it at https://github.com/FriendsofECCE/ECCE/issues .\n"
+                    "Help > Report a Problem... collects the diagnostic files.",
                     "System Error", wxOK|wxICON_EXCLAMATION, wxDefaultPosition);
     dlg->ShowModal();
     dlg->Destroy();

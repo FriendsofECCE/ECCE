@@ -9,6 +9,7 @@
 #include <fstream>
 
 #include <wx/app.h>
+#include <wx/scrolwin.h>
 #include <wx/spinctrl.h>
 #include <wx/utils.h>
 #include <wx/aui/aui.h>
@@ -107,6 +108,79 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     return true;
   }
 
+  //  "narrowcolumn <px>": as a layout saved narrow comes back: the column
+  //  is px wide, its panes ask for no more, then the panes are laid out.
+  if (c == "narrowcolumn" && w.size() == 2) {
+    const int px = atoi(w[1].c_str());
+    p_columnWidth = px;
+    wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
+    for (size_t i = 0; i < all.GetCount(); i++) {
+      wxAuiPaneInfo &pane = all.Item(i);
+      if (pane.IsShown() && !pane.IsFloating() && !pane.IsToolbar() &&
+          pane.dock_direction == wxAUI_DOCK_RIGHT && pane.dock_layer >= 1) {
+        pane.BestSize(wxSize(px, pane.best_size.y));
+        pane.rect.width = px;
+      }
+    }
+    updatePanes(true);
+    settle(400);
+    return true;
+  }
+
+  //  "toolfloat <tool>": the pane torn off into its own frame.
+  if (c == "toolfloat" && w.size() == 2) {
+    string name = w[1];
+    for (char& ch : name) if (ch == '_') ch = ' ';
+    wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(name));
+    if (!pane.IsOk()) return s.fail("toolfloat: no pane " + name);
+    pane.Float().Show(true);
+    p_mgr.Update();
+    updatePanes(true);
+    settle(400);
+    return true;
+  }
+
+  //  "toolclip <name> <tool>" -> <outdir>/<name>.txt: "pane <w>", then one
+  //  "clipped <class> <right edge> <width>" line per control of the tool's
+  //  scroll window that ends beyond its client width, and "hscroll 1" if
+  //  the window scrolls sideways.
+  if (c == "toolclip" && w.size() == 3) {
+    string name = w[2];
+    for (char& ch : name) if (ch == '_') ch = ' ';
+    std::ofstream out(outdir + "/" + w[1] + ".txt");
+    wxAuiPaneInfo &p = p_mgr.GetPane(wxString(name));
+    if (!p.IsOk() || !p.window) return s.fail("toolclip: no pane " + name);
+    out << "pane " << (p.IsFloating() && p.frame ? p.frame->GetClientSize().x
+                                                       : p.rect.width) << "\n";
+    wxScrolledWindow *scroll = 0;
+    for (wxWindow *k : p.window->GetChildren())
+      if (k->GetName() == "ecceToolScroll")
+        scroll = dynamic_cast<wxScrolledWindow*>(k);
+    if (!scroll) return s.fail("toolclip: " + name + " has no scroll window");
+    const int width = scroll->GetClientSize().x;
+    std::vector<wxWindow*> todo(scroll->GetChildren().begin(),
+                                scroll->GetChildren().end());
+    while (!todo.empty()) {
+      wxWindow *k = todo.back();
+      todo.pop_back();
+      if (!k->IsShown()) continue;
+      const wxPoint pos = k->GetPosition();
+      const wxPoint origin = k->GetParent() == scroll ? wxPoint(0, 0)
+          : k->GetParent()->ClientToScreen(wxPoint(0, 0)) -
+            scroll->ClientToScreen(wxPoint(0, 0));
+      const int right = origin.x + pos.x + k->GetSize().x;
+      if (right > width)
+        out << "clipped " << k->GetClassInfo()->GetClassName() << " "
+            << right << " " << width << "\n";
+      for (wxWindow *g : k->GetChildren()) todo.push_back(g);
+    }
+    out << "need " << scroll->GetSizer()->GetMinSize().x << "\n";
+    int vx = 0, vy = 0;
+    scroll->GetVirtualSize(&vx, &vy);
+    out << "hscroll " << (vx > width ? 1 : 0) << "\n";
+    return true;
+  }
+
   //  "xshot <file>": the whole screen -> <file> (ImageMagick import).
   if (c == "xshot" && w.size() == 2) {
     settle(500);
@@ -155,6 +229,72 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     return true;
   }
 
+  //  "panefold <tool>": the fold button on that pane's caption.
+  if (c == "panefold" && w.size() == 2) {
+    string name = w[1];
+    for (char& ch : name) if (ch == '_') ch = ' ';
+    wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(name));
+    if (!pane.IsOk() || !pane.HasPinButton())
+      return s.fail("panefold: no fold button on " + name);
+    toggleFold(pane.window);
+    settle(400);
+    return true;
+  }
+
+  //  "foldclick <pane>": a click on the fold button, dispatched as
+  //  wxAuiManager dispatches it (the frame first, then the manager), so
+  //  the toolkit's own pin handler competes as it does for the mouse.
+  if (c == "foldclick" && w.size() == 2) {
+    string name = w[1];
+    for (char& ch : name) if (ch == '_') ch = ' ';
+    wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(name));
+    if (!pane.IsOk() || !pane.HasPinButton())
+      return s.fail("foldclick: no fold button on " + name);
+    wxAuiManagerEvent e(wxEVT_AUI_PANE_BUTTON);
+    e.SetManager(&p_mgr);
+    e.SetPane(&pane);
+    e.SetButton(wxAUI_BUTTON_PIN);
+    if (!GetEventHandler()->ProcessEvent(e)) p_mgr.ProcessEvent(e);
+    settle(400);
+    return true;
+  }
+
+  //  "sashdrag <tool> <dy> [lost]": press on the sash under that pane, move
+  //  dy px in ten steps and release, as the mouse does it through the
+  //  frame's event chain (AUI first); "lost" drops the release and moves
+  //  once more without the button.  Appends "<tool> <dy> capture <0|1>"
+  //  to <outdir>/sash.txt: whether the frame still holds the mouse.
+  if (c == "sashdrag" && (w.size() == 3 || w.size() == 4)) {
+    string name = w[1];
+    for (char& ch : name) if (ch == '_') ch = ' ';
+    wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(name));
+    if (!pane.IsOk() || !pane.IsShown())
+      return s.fail("sashdrag: no shown pane " + name);
+    const int dy = atoi(w[2].c_str());
+    const int sash = p_mgr.GetArtProvider()->GetMetric(wxAUI_DOCKART_SASH_SIZE);
+    const int x = pane.rect.x + pane.rect.width / 2;
+    const int y0 = pane.rect.GetBottom() + 1 + sash / 2;
+    auto send = [this, x](wxEventType type, int y, bool down) {
+      wxMouseEvent e(type);
+      e.SetPosition(wxPoint(x, y));
+      e.m_leftDown = down;
+      e.SetEventObject(this);
+      GetEventHandler()->ProcessEvent(e);
+      wxTheApp->Yield(true);
+    };
+    send(wxEVT_LEFT_DOWN, y0, true);
+    for (int i = 1; i <= 10; i++) send(wxEVT_MOTION, y0 + dy * i / 10, true);
+    if (w.size() == 4) {
+      send(wxEVT_MOTION, y0 + dy + 3, false);
+    } else {
+      send(wxEVT_LEFT_UP, y0 + dy, false);
+    }
+    settle(400);
+    std::ofstream out(outdir + "/sash.txt", std::ios::app);
+    out << w[1] << " " << dy << " capture " << (HasCapture() ? 1 : 0) << "\n";
+    return true;
+  }
+
   //  "panestate <name> <tool>..." -> <outdir>/<name>.txt: one line per tool:
   //  shown, floating, close button, window child of the frame, menu ticked,
   //  rectangle; then the client size and every shown pane's name.
@@ -175,7 +315,9 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
           << " " << p.rect.height;
       wxSizer *content = p.IsOk() && p.window ? p.window->GetSizer() : 0;
       out << " need " << (content ? content->GetMinSize().x : 0) << " have "
-          << (p.IsOk() && p.window ? p.window->GetClientSize().x : 0) << "\n";
+          << (p.IsOk() && p.window ? p.window->GetClientSize().x : 0)
+          << " pin " << (p.IsOk() && p.HasPinButton()) << " folded "
+          << (p.IsOk() && p_folded.count(p.window)) << "\n";
     }
     out << "client " << GetClientSize().x << " " << GetClientSize().y << "\n";
     wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();

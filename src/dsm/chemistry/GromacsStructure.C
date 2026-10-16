@@ -3,6 +3,7 @@
  */
 
 #include <cctype>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -143,12 +144,26 @@ int GromacsStructure::groToPdb(const string& gro, string& pdb, string& err)
     out << buf << "\n";
   }
 
-  double bx = 0, by = 0, bz = 0;
-  if (sscanf(boxline.c_str(), "%lf %lf %lf", &bx, &by, &bz) == 3 &&
-      bx > 0 && by > 0 && bz > 0) {
+  // Box: v1x v2y v3z [v1y v1z v2x v2z v3x v3y], nm; the 9-value form is
+  // triclinic and needs the angles from the vectors.
+  double b[9] = {0,0,0,0,0,0,0,0,0};
+  int nb = sscanf(boxline.c_str(), "%lf %lf %lf %lf %lf %lf %lf %lf %lf",
+                  &b[0],&b[1],&b[2],&b[3],&b[4],&b[5],&b[6],&b[7],&b[8]);
+  if ((nb == 3 || nb == 9) && b[0] > 0 && b[1] > 0 && b[2] > 0) {
+    double v1[3] = {b[0], b[3], b[4]};
+    double v2[3] = {b[5], b[1], b[6]};
+    double v3[3] = {b[7], b[8], b[2]};
+    double la = sqrt(v1[0]*v1[0] + v1[1]*v1[1] + v1[2]*v1[2]);
+    double lb = sqrt(v2[0]*v2[0] + v2[1]*v2[1] + v2[2]*v2[2]);
+    double lc = sqrt(v3[0]*v3[0] + v3[1]*v3[1] + v3[2]*v3[2]);
+    double ca = (v2[0]*v3[0] + v2[1]*v3[1] + v2[2]*v3[2]) / (lb * lc);
+    double cb = (v1[0]*v3[0] + v1[1]*v3[1] + v1[2]*v3[2]) / (la * lc);
+    double cg = (v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]) / (la * lb);
+    const double deg = 180.0 / 3.14159265358979323846;
     snprintf(buf, sizeof(buf),
-             "CRYST1%9.3f%9.3f%9.3f  90.00  90.00  90.00 P 1           1",
-             bx * 10.0, by * 10.0, bz * 10.0);
+             "CRYST1%9.3f%9.3f%9.3f%7.2f%7.2f%7.2f P 1           1",
+             la * 10.0, lb * 10.0, lc * 10.0,
+             acos(ca) * deg, acos(cb) * deg, acos(cg) * deg);
     pdb = string(buf) + "\n";
   }
   pdb += out.str() + "END\n";

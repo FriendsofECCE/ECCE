@@ -43,7 +43,10 @@ install -m 755 "$HERE/launcher.sh" "$APP/Contents/MacOS/ecce"
 # The Python the Details dialogs and the first-start window run on.
 "$HERE/bundle-python.sh" "$RES/python"
 
-python3 "$HERE/bundle_libs.py" "$APP/Contents/Frameworks" "$RES/ecce"
+# Each wx program becomes its own small app (Dock icon, name, menu bar).
+"$HERE/make-helpers.sh" "$APP"
+
+python3 "$HERE/bundle_libs.py" "$APP/Contents/Frameworks" "$RES/ecce" "$APP/Contents/Helpers"
 
 # Every Mach-O in the bundle, for the Homebrew check and for signing.
 machos=$(mktemp)
@@ -61,6 +64,7 @@ fi
 # code, so each Mach-O is signed ad hoc, the bundle last.
 while read -r f; do codesign --force -s - "$f"; done < "$machos"
 rm -f "$machos"
+for b in "$APP"/Contents/Helpers/*.app; do codesign --force -s - "$b"; done
 codesign --force -s - "$APP"
 codesign --verify --verbose=2 "$APP"
 

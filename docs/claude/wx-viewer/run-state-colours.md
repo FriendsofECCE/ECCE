@@ -2,7 +2,7 @@
 type: rule
 title: "Run-state colours: submitted yellow, created sky blue, pale fills outlined in light themes; checked by tests/look/contrast.py"
 area: wx-viewer
-paths: ["data/client/config/EcceGlobal", "src/wxgui/wxtools/WxState.C", "include/wxgui/WxState.H", "tests/look/contrast.py", "tests/look/cvd.py", "tests/look/statelegend.py", "src/apps/organizer/CalcMgr.C"]
+paths: ["src/apps/organizer/CalcMgrApp.C", "tests/apps/state_icon_style_test.py", "data/client/config/EcceGlobal", "src/wxgui/wxtools/WxState.C", "include/wxgui/WxState.H", "tests/look/contrast.py", "tests/look/cvd.py", "tests/look/statelegend.py", "src/apps/organizer/CalcMgr.C"]
 issues: [210, 208]
 ---
 The run states are drawn as ~12 px icons whose shape groups them
@@ -42,3 +42,16 @@ in a user's own prefs file is ignored.
 
 `tests/look/statelegend.py OUTDIR [--ecce-home DIR]` renders the real
 Organizer legend (`WxState::createLegend`) in light and dark on Xvfb.
+
+Style: Preferences > Colours > "Run-state icons" chooses Flat (solid fill,
+the outline rule above) or Shaded (gradient, darker edge; the default).
+`WxState::shaded()` caches the `StateIconStyle` preference;
+`WxState::refreshStyle()` re-reads it. The Organizer redraws on the
+`ecce_preferences_misc` message (`CalcMgr::redrawStateIcons`); other apps
+pick it up when next opened. `look_state_icons` checks both styles differ.
+The Preferences dialog usually runs inside the Organizer, and
+`subscribe()` filters a process's own messages by default (MQTT No Local),
+so the Organizer subscribes to that topic unfiltered; filtered, only the
+legend (drawn from `WxState` directly) changed and the tree kept its old
+icons. `tests/apps/state_icon_style_test.py` (`iconstyle`, `treeicon`
+hooks) checks the tree.

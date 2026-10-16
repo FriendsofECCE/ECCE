@@ -86,6 +86,12 @@ bool JobProgress::parse(const string& text)
       }
     }
   }
+  //  pw.x ends an md run with the relax "maximum number of steps" line, which
+  //  arrives as an opt stage with no step; it is not an optimisation.
+  p_stages.erase(std::remove_if(p_stages.begin(), p_stages.end(),
+      [](const Stage& s) { return s.name == "opt" && s.field("step").empty() &&
+                                  s.field("istep").empty(); }),
+      p_stages.end());
   return !p_stages.empty();
 }
 

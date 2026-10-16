@@ -2147,6 +2147,14 @@ void WxLauncher::setContext(string cntxt)
         p_machinesChoice->Show(false);
         p_machineNameStaticText->SetLabel("(" + mesg + ".)");
         p_machineNameStaticText->Show();
+
+        //  A warning only: the user may register a machine and reopen.
+        if (p_taskJob != NULL)
+            p_messagesFeedback->setMessage(
+                "No machine is registered for " +
+                p_taskJob->application()->getCodeName() +
+                ". Use Tools > Register Machines in the Organizer, or see "
+                "Help > Running Codes on This Computer.", WxFeedback::WARNING);
     }
 
     this->Layout();

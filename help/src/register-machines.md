@@ -154,6 +154,17 @@ only if that command is in the setup. If several are found you choose one;
 if none is found the box is left as it was. A path already in the box is
 replaced only after you confirm.
 
+A program of the right name can still be the wrong program: on some
+Linux systems `orca` is the GNOME screen reader. ECCE looks inside the
+file for a sign that it belongs to the code, without running it. **Find**
+lists the programs with that sign first and marks the others "not
+confirmed". **Check**, next to Find, does the same for the path in the
+box and reports under it whether the file was found, looks like the code,
+or was not found or is not executable on the machine. A wrapper script has
+no such sign in it, so "does not look like" is expected for one. The result
+is only a warning: you can save the path either way. Codes without a
+known sign, such as GAMESS-US and the older Gaussian versions, are not checked.
+
 ## Set the environment for Gaussian 16
 
 Gaussian 16 needs `g16root` and a scratch directory before it starts. Set

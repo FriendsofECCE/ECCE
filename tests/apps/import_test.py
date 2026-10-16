@@ -32,6 +32,8 @@ CASES = [
     ("chains.pdb", 11),
     ("benzene.xyz", 12),
     ("benzene.car", 12),
+    ("minff_ortho.gro", 13),
+    ("minff_triclinic.gro", 13),
     ("no-such-file.pdb", None),
     # The shape the file dialog produced when its directory was lost.
     ("*/" + os.path.abspath(os.path.join(DATA, "benzene.xyz")), None),

@@ -10,10 +10,14 @@ using std::vector;
 #include "util/Event.H"
 using namespace ecce;
 
+#include "wxgui/ewxPanel.H"
 #include "wxviz/WxVizTool.H"
 
+#include <wx/weakref.h>
+#include <wx/window.h>
+
 class wxBoxSizer;
-class wxGridBagSizer;
+class wxWrapSizer;
 class wxToggleButton;
 class ImageDropDown;
 class wxConfigBase;
@@ -60,6 +64,9 @@ public:
   // Listener virtual(s)
   void eventMCB(const Event& event);
 
+  /// The periodic table popup the table button opened (null if none)
+  wxWindow *tablePanel() const { return p_table.get(); }
+
 protected:
   //void OnOpenCloseClick( wxCommandEvent& event );
 
@@ -87,7 +94,7 @@ protected:
 
   ewxPanel *p_extensionPanel;
   wxSizer* p_sizer;
-  wxGridBagSizer *p_gridSizer;
+  wxWrapSizer *p_gridSizer;
 
   string p_elements[NUM_ELT_BTN];
   wxToggleButton * p_eltBtns[NUM_ELT_BTN];
@@ -95,6 +102,7 @@ protected:
 
   ImageDropDown * p_bonds;
   ImageDropDown * p_shapes;
+  wxWeakRef<wxWindow> p_table;
 };
 
 #endif

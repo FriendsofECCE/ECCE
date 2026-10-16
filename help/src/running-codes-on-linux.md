@@ -90,7 +90,8 @@ licensed separately from the University of Wisconsin. After installing it:
 
 ## Tell ECCE where the codes are
 
-1. Choose **Register Machines** and select `localhost`.
+1. In the Organizer, choose **Tools > Register Machines...** (see
+   [Register Machines](register-machines.md)) and select `localhost`.
 2. On the **Codes** tab select a code and press **Find**. For a code from the
    package archive this finds the program in `/usr/bin`. For ORCA and
    Gaussian, enter the full path of the program in the **Program** field.

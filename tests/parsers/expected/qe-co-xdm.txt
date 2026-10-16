@@ -1,0 +1,158 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    qe-co-xdm
+desc:    qe.desc
+fixture: qe/co_xdm.pwout (361 lines)
+args:    '.' 'Energy' 'PW' 'PW' '0'
+
+[VERSION]  Script=qe.version  Freq=first  Skip=0  Lines=1
+  Begin=Program PWSCF
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=2 fed=1 rc=0 first-fed='     Program PWSCF v.6.7MaX starts on 15Oct2026 at 14:58:46'
+    key: VERSION
+      size: 1
+      values: PWSCF 6.7MaX
+
+[TE]  Script=qe.energy  Freq=all  Skip=0  Lines=1
+  Begin=^!\s*total energy
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=282 fed=1 rc=0 first-fed='!    total energy              =     -59.76424609 Ry'
+    key: TE
+      size: 1
+      values: -29.882123045
+      units: Hartree
+
+[EWVEC]  Script=qe.ewvec  Freq=all  Skip=0  Lines=1
+  Begin=^\s+total energy\s*=
+  begins=9 delivered=9 buffered_away=0
+  block 1: begin-line=142 fed=1 rc=0 first-fed='     total energy              =     -59.73691880 Ry'
+    key: EWVEC
+      size: 1
+      values: -29.8684594
+      units: Hartree
+  block 2: begin-line=153 fed=1 rc=0 first-fed='     total energy              =     -59.74195012 Ry'
+    key: EWVEC
+      size: 1
+      values: -29.87097506
+      units: Hartree
+  block 3: begin-line=164 fed=1 rc=0 first-fed='     total energy              =     -59.76305319 Ry'
+    key: EWVEC
+      size: 1
+      values: -29.881526595
+      units: Hartree
+  block 4: begin-line=175 fed=1 rc=0 first-fed='     total energy              =     -59.76283748 Ry'
+    key: EWVEC
+      size: 1
+      values: -29.88141874
+      units: Hartree
+  block 5: begin-line=186 fed=1 rc=0 first-fed='     total energy              =     -59.76334634 Ry'
+    key: EWVEC
+      size: 1
+      values: -29.88167317
+      units: Hartree
+  block 6: begin-line=197 fed=1 rc=0 first-fed='     total energy              =     -59.76334980 Ry'
+    key: EWVEC
+      size: 1
+      values: -29.8816749
+      units: Hartree
+  block 7: begin-line=208 fed=1 rc=0 first-fed='     total energy              =     -59.76339755 Ry'
+    key: EWVEC
+      size: 1
+      values: -29.881698775
+      units: Hartree
+  block 8: begin-line=219 fed=1 rc=0 first-fed='     total energy              =     -59.76339329 Ry'
+    key: EWVEC
+      size: 1
+      values: -29.881696645
+      units: Hartree
+  block 9: begin-line=230 fed=1 rc=0 first-fed='     total energy              =     -59.76339403 Ry'
+    key: EWVEC
+      size: 1
+      values: -29.881697015
+      units: Hartree
+
+[DELTAE]  Script=qe.deltae  Freq=all  Skip=0  Lines=1
+  Begin=estimated scf accuracy
+  begins=10 delivered=10 buffered_away=0
+  block 1: begin-line=143 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.12681146 Ry'
+    key: DELTAE
+      size: 1
+      values: 0.06340573
+      units: Hartree
+  block 2: begin-line=154 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.07787452 Ry'
+    key: DELTAE
+      size: 1
+      values: 0.03893726
+      units: Hartree
+  block 3: begin-line=165 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00746698 Ry'
+    key: DELTAE
+      size: 1
+      values: 0.00373349
+      units: Hartree
+  block 4: begin-line=176 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00140905 Ry'
+    key: DELTAE
+      size: 1
+      values: 0.000704525
+      units: Hartree
+  block 5: begin-line=187 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00056534 Ry'
+    key: DELTAE
+      size: 1
+      values: 0.00028267
+      units: Hartree
+  block 6: begin-line=198 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00009852 Ry'
+    key: DELTAE
+      size: 1
+      values: 4.926e-05
+      units: Hartree
+  block 7: begin-line=209 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00001376 Ry'
+    key: DELTAE
+      size: 1
+      values: 6.88e-06
+      units: Hartree
+  block 8: begin-line=220 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00001516 Ry'
+    key: DELTAE
+      size: 1
+      values: 7.58e-06
+      units: Hartree
+  block 9: begin-line=231 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000219 Ry'
+    key: DELTAE
+      size: 1
+      values: 1.095e-06
+      units: Hartree
+  block 10: begin-line=285 fed=1 rc=0 first-fed='     estimated scf accuracy    <       0.00000072 Ry'
+    key: DELTAE
+      size: 1
+      values: 3.6e-07
+      units: Hartree
+
+[EGRADVEC]  Script=qe.egradvec  Freq=last  Skip=2  Lines=-
+  Begin=Forces acting on atoms
+  End=Total force =
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=299 fed=4 rc=0 first-fed='     atom    1 type  1   force =     0.00000000    0.00000000   -0.10805362'
+    key: EGRADVEC
+      size: 2 3
+      rowlabels: 1 2
+      columnlabels: X Y Z
+      values: 0.0000000000 0.0000000000 0.0540268100 0.0000000000 0.0000000000 -0.0540268100
+      units: Hartree/Bohr
+
+[CPUSEC][ETIME]  Script=qe.time  Freq=last  Skip=0  Lines=1
+  Begin=^\s*PWSCF\s*:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=354 fed=1 rc=0 first-fed='     PWSCF        :      9.33s CPU      4.97s WALL'
+    key: CPUSEC
+      size: 1
+      values: 9.33
+    key: ETIME
+      size: 1
+      values: 4.97
+
+[EDISP]  Script=qe.disp  Freq=all  Skip=0  Lines=1
+  Begin=^\s+(Dispersion Correction|DFT-D3 Dispersion|Dispersion T-S Correction|Dispersion XDM Correction)\s+=
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=292 fed=1 rc=0 first-fed='     Dispersion XDM Correction =      -0.00085254 Ry'
+    key: EDISP
+      size: 1
+      values: -0.00042627
+      units: Hartree
+

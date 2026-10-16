@@ -178,6 +178,7 @@ public:
     static const wxWindowID wxID_STATIC_INTRCT_ESPLINE;
     static const wxWindowID ID_PANEL_INTRCT_FFTOPT;
     static const wxWindowID ID_CHECKBOX_INTRCT_QGRID;
+    static const wxWindowID ID_CHECKBOX_INTRCT_PERIODIC;
     static const wxWindowID ID_TEXTCTRL_INTRCT_GRID;
     static const wxWindowID ID_STATICTEXT1;
     static const wxWindowID ID_TEXTCTRL_INTRCT_LCUT;

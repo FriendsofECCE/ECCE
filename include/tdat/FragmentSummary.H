@@ -39,6 +39,8 @@ class FragmentSummary
       string getAltLocation() const;
       string getChain() const;
       string getName() const;
+      /** True when the scanned PDB had a CRYST1 cell (scanPDB only). */
+      bool isPeriodic() const;
 
       /**
        * Modifiers
@@ -92,6 +94,9 @@ class FragmentSummary
 
       /** name user enters in builder; default ""; not part of >> or << */
       string p_name;
+
+      /** CRYST1 seen by scanPDB; not part of >> or << */
+      bool p_periodic;
 
 };
 

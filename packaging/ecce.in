@@ -263,6 +263,7 @@ export ECCE_DEBUG_GL_VISUAL=1
 export ECCE_DEBUG_MACHNOTICE=1
 export ECCE_DEBUG_MOSYM_LOG="$ECCE_BUG_DIR/mosym.log"
 export ECCE_DEBUG_AUTHPARENT="$ECCE_BUG_DIR/authparent.log"
+export ECCE_DEBUG_MODAL="$ECCE_BUG_DIR/modal.log"
 
 statedir="$ECCE_REALUSERHOME/.ECCE"
 jobroot="${ECCE_TMPDIR:-/tmp}/ecce_${ECCE_REALUSER:-$(id -un)}/jobs"

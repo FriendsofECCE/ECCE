@@ -1,0 +1,32 @@
+&CONTROL
+  calculation = 'scf'
+  prefix = 'co'
+  outdir = './qe.scratch'
+  pseudo_dir = '/usr/share/espresso/pseudo/'
+  tprnfor = .true.
+  tstress = .false.
+/
+&SYSTEM
+  ibrav = 0
+  nat = 2
+  ntyp = 2
+  ecutwfc = 25.0
+  ecutrho = 200
+  occupations = 'fixed'
+  vdw_corr = 'xdm'
+/
+&ELECTRONS
+  conv_thr = 1.0e-6
+  mixing_beta = 0.7
+/
+ATOMIC_SPECIES
+  C      12.0107  C.pbe-n-kjpaw_psl.1.0.0.UPF
+  O      15.9994  O.pbe-n-kjpaw_psl.0.1.UPF
+CELL_PARAMETERS angstrom
+      6.5000000000     0.0000000000     0.0000000000
+      0.0000000000     6.5000000000     0.0000000000
+      0.0000000000     0.0000000000     6.5000000000
+ATOMIC_POSITIONS angstrom
+  C       0.0000000000     0.0000000000     0.0000000000
+  O       0.0000000000     0.0000000000     1.1300000000
+K_POINTS gamma

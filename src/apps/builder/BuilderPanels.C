@@ -313,7 +313,7 @@ void Builder::applyGeometry(bool resetSizes)
       } else {
         const map<string, int>::const_iterator idx = p_toolIndex.find(name);
         pane.Right().Layer(1).Row(0).Position(
-            idx == p_toolIndex.end() ? 0 : idx->second).PinButton(false);
+            idx == p_toolIndex.end() ? 0 : idx->second).PinButton(true);
         if (resetSizes && !p_folded.count(pane.window)) {
           pane.BestSize(wxDefaultSize).MinSize(wxSize(200, 150));
         }
@@ -324,6 +324,7 @@ void Builder::applyGeometry(bool resetSizes)
       const map<string, int>::const_iterator idx = p_toolIndex.find(name);
       const int at = idx == p_toolIndex.end() ? (int)p_toolIndex.size()
                                               : idx->second;
+      pane.PinButton(true);
       if (col) {
         pane.Right().Layer(1).Row(0).Position(at + 1);
       } else if (name == NAME_TOOL_ATOM_TABLE ||
@@ -594,6 +595,7 @@ void Builder::updatePanes(bool allowSwitch)
   updating = true;
   PanelGuard guard(p_panelBuildDepth);
   BuilderRedrawHold hold(this);
+  holdColumnWidth(false);
   syncColumn(allowSwitch);
   //  Update() shows a pane's window before it lays the frame out, so the
   //  window would first appear wherever it was (the frame's corner, over
@@ -607,6 +609,8 @@ void Builder::updatePanes(bool allowSwitch)
     }
   }
   keepColumnWidth();
+  columnMinWidth();
+  holdColumnWidth(true);
   p_mgr.Update();
   fitToolColumn();
   updating = false;
@@ -658,26 +662,106 @@ void Builder::setColumnTab(int tab, bool save)
 }
 
 
-//  List + detail: the column keeps one width (see below).
+//  The Properties list no longer asks for a width of its own (62 characters
+//  made the column jump when Properties was opened); holdColumnWidth() keeps
+//  the width, and a panel wider than it widens the column once.
 void Builder::keepColumnWidth()
 {
-  if (p_panelMode != PANELS_DETAIL) return;
-  //  The column keeps one width, so it does not change size when the shown
-  //  property does.  The MOs table (not measured until that panel is first
-  //  shown) is the widest, under 60 characters; a panel that needs more
-  //  widens the column once and it stays.
   wxAuiPaneInfo &idx = p_mgr.GetPane(wxString(NAME_PROPERTY_INDEX));
-  if (idx.IsOk() && !idx.IsFloating()) {
-    int w = std::max(std::max(idx.rect.width, idx.min_size.x),
-                     62 * GetCharWidth());
+  if (idx.IsOk() && idx.min_size.x > 200) {
+    idx.MinSize(wxSize(200, idx.min_size.y));
+  }
+}
+
+
+//  A sash drag between docked panes.  wxAUI (3.2) sizes panes from integer
+//  dock proportions; the column's panes carry 1 (stay at their floor) or
+//  100000 (take the rest), so the share it computes for a dragged pane
+//  rounds to nothing useful.  On the press every resizable pane of that
+//  column gets its present height as its proportion, so the drag moves
+//  pixels.  AUI also holds the frame's mouse capture for the drag and,
+//  live-resizing (GTK3), ends a drag inside a motion event when no
+//  resizable pane follows the sash and then captures again; the release
+//  no longer counts as the end of a drag and the capture stayed, so the
+//  window took no clicks.  A release, or a motion without the button,
+//  that finds the capture still held ends it.
+void Builder::guardSashDrag()
+{
+  p_mgr.Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& event) {
+    const int x = event.GetX();
+    //  AUI shares the dock among whole panes, caption and border included.
+    wxAuiDockArt *art = p_mgr.GetArtProvider();
+    const int caption = art->GetMetric(wxAUI_DOCKART_CAPTION_SIZE);
+    const int border = art->GetMetric(wxAUI_DOCKART_PANE_BORDER_SIZE);
     wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
     for (size_t i = 0; i < all.GetCount(); ++i) {
       wxAuiPaneInfo &pane = all.Item(i);
-      if (pane.window && !pane.IsFloating() &&
-          dynamic_cast<PropertyPanel*>(pane.window))
-        w = std::max(w, pane.window->GetMinSize().x);
+      if (pane.window && pane.IsShown() && !pane.IsFloating() &&
+          !pane.IsToolbar() && pane.IsResizable() &&
+          pane.dock_direction == wxAUI_DOCK_RIGHT &&
+          x >= pane.rect.x && x < pane.rect.GetRight() &&
+          pane.rect.height > 0) {
+        pane.dock_proportion = pane.rect.height +
+            (pane.HasCaption() ? caption : 0) +
+            (pane.HasBorder() ? 2 * border : 0);
+      }
     }
-    idx.MinSize(wxSize(w, idx.min_size.y)).BestSize(wxSize(w, idx.best_size.y));
+    event.Skip();
+  });
+  p_mgr.Bind(wxEVT_MOTION, [this](wxMouseEvent& event) {
+    if (HasCapture() && !event.LeftIsDown()) {
+      endStuckSashDrag();
+      return;
+    }
+    event.Skip();
+  });
+  p_mgr.Bind(wxEVT_LEFT_UP, [this](wxMouseEvent& event) {
+    event.Skip();
+    CallAfter([this]() {
+      if (HasCapture()) endStuckSashDrag();
+    });
+  });
+}
+
+
+void Builder::endStuckSashDrag()
+{
+  if (getenv("ECCE_DEBUG_SASH"))
+    fprintf(stderr, "ECCE_DEBUG_SASH: releasing a capture left by a drag\n");
+  ReleaseMouse();
+  wxMouseCaptureLostEvent lost(GetId());
+  lost.SetEventObject(this);
+  p_mgr.ProcessEvent(lost);
+}
+
+
+//  A one-column layout keeps the width the column last had.  AUI sizes the
+//  dock from the panes that are shown, so each tab would bring its own;
+//  apply=false records the width (a dragged sash included), apply=true
+//  tells every column pane to be that wide before the next layout.
+void Builder::holdColumnWidth(bool apply)
+{
+  if (!isColumnMode() || p_columnHidden) return;
+  const int floor = apply ? columnMinWidth() : 0;
+  wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
+  for (size_t i = 0; i < all.GetCount(); ++i) {
+    wxAuiPaneInfo &pane = all.Item(i);
+    if (!pane.window || pane.IsToolbar() || pane.IsFloating() ||
+        pane.dock_direction != wxAUI_DOCK_RIGHT || pane.dock_layer < 1 ||
+        pane.name == NAME_COLUMN_TOGGLE) {
+      continue;
+    }
+    if (!apply) {
+      if (pane.IsShown() && pane.window->IsShownOnScreen() &&
+          pane.rect.width >= 100) {
+        p_columnWidth = pane.rect.width;
+        return;
+      }
+    } else if (p_columnWidth > 0) {
+      const int w = std::max(p_columnWidth, floor);
+      pane.rect.width = w;
+      pane.BestSize(wxSize(w, pane.best_size.y));
+    }
   }
 }
 
@@ -1052,7 +1136,8 @@ void Builder::toolPaneResized(const string& name)
 
 /**
  * The Open structures pane is as tall as its rows: three at least, more as
- * structures are opened.  A fixed pane's height is its minimum size.
+ * structures are opened.  Its share of the column is too small to take
+ * surplus, so this minimum is its height until its sash is dragged.
  */
 void Builder::updateContextPane()
 {

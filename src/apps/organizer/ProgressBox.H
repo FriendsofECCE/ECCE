@@ -43,7 +43,13 @@ public:
   bool hasProgress() const { return !p_progress.empty(); }
   bool outOfContact() const { return p_lastHeard > 0 && !p_finished; }
   // Shown at all: progress to show, or a job out of contact.
-  bool wanted() const { return hasProgress() || outOfContact(); }
+  bool wanted() const
+  { return hasProgress() || outOfContact() ||
+           (p_finished && !p_finalEnergy.empty()); }
+
+  // The plain final energy line of a finished calculation, shown after the
+  // outcome; set before set().
+  void setFinalEnergy(const std::string& line) { p_finalEnergy = line; }
 
   bool collapsed() const { return p_collapsed; }
   // Folds or unfolds, remembers it for this user and lays out again.
@@ -70,6 +76,7 @@ private:
   wxSize layout(wxDC *dc);
   double age() const;
   std::string foldedText() const;
+  std::vector<std::string> outcome() const;
   int headingHeight() const;
 
   JobProgress p_progress;
@@ -79,6 +86,7 @@ private:
   bool p_completed;
   double p_lastHeard;
   std::vector<std::string> p_check;
+  std::string p_finalEnergy;
   bool p_collapsed;
   wxTimer p_timer;
   int p_paints;

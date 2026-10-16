@@ -193,8 +193,9 @@
           <ContainsResource name="ecceqm_es"/>
           <ContainsResource name="nwchem_md_study"/>
           <ContainsResource name="gromacs_md_study"/>
-          <ContainsResource name="gas_reaction_study"/>
-          <ContainsResource name="condensed_reaction_study"/>
+          <!-- The gas and condensed phase reaction studies are left out of
+               New: DirDyVTST (2008) and NWPW metadynamics are untested.
+               Their types stay, so existing studies still open (#330). -->
         </Contains>
         <ContainedBy>
           <ContainedByResource name="project"/>

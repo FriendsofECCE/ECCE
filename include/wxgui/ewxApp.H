@@ -43,6 +43,11 @@ class ewxApp : public wxApp
       // the theme's fading.  No-op elsewhere.
       static void applyBackdropStyle();
 
+#ifdef __WXMAC__
+      // A click on the tool's Dock icon brings its windows to the front.
+      void MacReopenApp() override;
+#endif
+
 
 };
 

@@ -38,6 +38,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [The per-user data server starts with no accounts; its login window offers to create one and to reset a password](per-user-server-offers-an-account.md)
 - [The release check: where it runs and what switches it off](release-check.md)
 - [The session id (`ECCE_SESSION_ID`) and session liveness](the-session-id.md)
+- [macOS: tools are bundles in ECCE.app, started by their real path](macos-tools-are-bundles-started-by-real-path.md)
 
 ### Pitfalls
 
@@ -68,3 +69,4 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Windows: a text-mode stream's tellg() is not the length of what it reads; DAV PUT 400 (#247)](windows-dav-put-text-mode.md)
 - [Windows MSI: install time goes by the file and the component; Strawberry keeps core modules in vendor\lib (#257)](windows-msi-time-goes-by-file.md)
 - [Preferences > Advanced: environment switches applied by Ecce::initialize; an explicit variable wins (#307)](preferences-advanced-switches.md)
+- [subscribe() skips the process's own messages by default (MQTT No Local); a topic the same app publishes needs filterSelf=false](subscribe-skips-own-messages.md)

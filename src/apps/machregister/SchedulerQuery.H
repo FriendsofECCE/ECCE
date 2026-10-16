@@ -77,6 +77,9 @@ namespace SchedulerQuery
         vector<string> examples;    // "/usr/bin/nwchem"; basename is in names
         string note;                // one sentence under the example, or ""
         string companion;
+        /// A byte string the real program's file contains; "" when no
+        /// copy was available to choose one, so the code is never checked.
+        string signature;
     };
     /// `windows`: the machine is this Windows computer, so the examples
     /// are Windows paths (the names Find looks for are the same).
@@ -86,6 +89,20 @@ namespace SchedulerQuery
     /// The examples as shown under the Program box ("a  or  b").
     string exampleText(const ProgramHelp& h);
     string findProgramScript(const ProgramHelp& h);
+    /// What the signature check found for one path.  `state`: "yes" (the
+    /// signature is in the file), "no", "missing" (not a file, or not
+    /// executable) or "found" (the code has no signature).  `resolved` is
+    /// the path with links followed.
+    struct ProgramCheck
+    {
+        string state, path, resolved;
+    };
+    /// sh text that prints one "ECCE-CHECK:<state>|<path>|<resolved>" line
+    /// per path.  The file is searched, never run: an unknown program of
+    /// the same name (the GNOME screen reader) would start.
+    string checkProgramsScript(const ProgramHelp& h,
+                               const vector<string>& paths);
+    vector<ProgramCheck> parseChecks(const string& output);
     /// More of that script: the program in a folder named after the code
     /// (any case of its first letter, version suffixes allowed) under each
     /// of `roots`, or in that folder's bin; for programs installed outside

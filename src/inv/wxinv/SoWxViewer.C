@@ -1521,6 +1521,18 @@ void SoWxViewer::actualRedraw()
   // update the headlight if necessary
   if (p_headlightFlag && p_camera)
     p_headlightRot->rotation.setValue(p_camera->orientation.getValue());
+
+  // ECCE_DEBUG_CAMERA=<file> logs the camera of every redraw, to tell a
+  // redraw with an old camera from an old frame shown by the display (#343).
+  static FILE *camLog = getenv("ECCE_DEBUG_CAMERA") ?
+      fopen(getenv("ECCE_DEBUG_CAMERA"), "a") : 0;
+  if (camLog && p_camera) {
+    float q0, q1, q2, q3;
+    p_camera->orientation.getValue().getValue(q0, q1, q2, q3);
+    fprintf(camLog, "%.4f %.6f %.6f %.6f %.6f\n",
+            SbTime::getTimeOfDay().getValue(), q0, q1, q2, q3);
+    fflush(camLog);
+  }
   
   // make sure that we have a valid sceneSize value - but don't compute
   // a new sceneSize value for every redraw since the walking speed should

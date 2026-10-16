@@ -248,6 +248,8 @@ class WxMachineRegister: public ewxFrame
         //  WxMachineRegisterTools.C)
         void discoverQueues();
         void findProgram();
+        string checkProgram();
+        void showProgramCheck(const string& text);
         void browseProgram();
         string defaultAccount() const;
         void saveDefaultAccount(const string& name);
@@ -366,6 +368,8 @@ class WxMachineRegister: public ewxFrame
         wxListBox           *p_codeList;
         wxStaticText        *p_codeTitle;
         wxStaticText        *p_codeExample;
+        wxStaticText        *p_codeCheck;
+        string              p_codeCheckText;
         wxStaticText        *p_setupNote, *p_wrapupNote;
         std::set<string>     p_discovered;   // the scheduler's queues, last Discover
         ewxTextCtrl         *p_defAccount;     // per-user, in MachPrefs

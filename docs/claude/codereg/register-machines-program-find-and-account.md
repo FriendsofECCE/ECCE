@@ -14,6 +14,20 @@ issues: [234]
   looks for. A code whose name a program shares (ORCA and the GNOME screen
   reader) needs a `companion` file; its search walks the PATH, because
   `command -v` returns only the first match.
+- `ProgramHelp::signature` is a byte string the real program's file contains;
+  Find and the **Check** button search the file with `grep -a -F` after
+  `readlink -f` and never run it (running an unknown `orca` starts the
+  screen reader). States: yes / no / missing / found (empty signature, so
+  never checked or warned about). Find lists confirmed candidates first and
+  marks the rest "not confirmed"; Check only reports (`code:check` label,
+  hook command `check-program <code> <path>`); a wrapper script is "no",
+  which the text says is expected. Warn, never block. Signatures were taken
+  from real binaries (g09/g16 "Entering Gaussian System", ORCA 6.1.1 "ORCA_",
+  Debian nwchem "NWChem", pw.x "PWSCF", mopac "MOPAC", gmx "GROMACS", cp2k
+  "CP2K") and each was checked to be absent from the others; "ORCA" alone is
+  also in the screen reader script, and "MOPAC" also occurs in cp2k.psmp.
+  GAMESS-US, Polyrate, Gaussian-03/98 and the rest have none: check a new
+  binary with `grep -a -c -F` before adding one.
 - On Windows, for this computer, the examples are Windows paths
   (`programHelp(code, true)`); when nothing is on the PATH, Find looks in a folder named after
   the code below the user folder, `AppData\Local[\Programs]`, Program Files

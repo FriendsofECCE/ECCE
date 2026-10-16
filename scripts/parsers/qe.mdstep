@@ -1,0 +1,52 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Per-step energies and temperature of a pw.x calculation='md' run, as the
+# step vectors the Geometry Trace panel plots beside GEOMTRACE.
+#
+# qe.desc feeds the three lines pw.x prints after every ionic move:
+#
+#      kinetic energy (Ekin) =           0.00570026 Ry
+#      temperature           =         600.00000000 K
+#      Ekin + Etot (const)   =         -22.63961585 Ry
+#
+# KEVEC is Ekin, TEVEC the conserved Ekin + Etot (the total energy of the
+# system), PEVEC their difference (the DFT energy of the ions) and TEMPVEC
+# the temperature.  They describe the state the forces were just computed
+# at, one time step before the ATOMIC_POSITIONS printed above them, which
+# is why the vectors are never longer than GEOMTRACE.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my ($ekin, $temp, $const);
+while (<STDIN>) {
+  if (/kinetic energy \(Ekin\)\s*=\s*(-?\d+\.?\d*([EeDd][-+]?\d+)?)/) {
+    $ekin = $1;
+  } elsif (/^\s*temperature\s*=\s*(-?\d+\.?\d*([EeDd][-+]?\d+)?)\s*K/) {
+    $temp = $1;
+  } elsif (/Ekin \+ Etot \(const\)\s*=\s*(-?\d+\.?\d*([EeDd][-+]?\d+)?)/) {
+    $const = $1;
+  }
+}
+exit(0) if (!defined($ekin) || !defined($temp) || !defined($const));
+foreach ($ekin, $temp, $const) { s/[Dd]/E/; }
+
+# pw.x prints Rydberg; ECCE energies are Hartree (1 Ry = 0.5 Hartree).
+my $te = $const * 0.5;
+my $ke = $ekin * 0.5;
+my $pe = ($const - $ekin) * 0.5;
+
+sub emit {
+  my ($name, $value, $units) = @_;
+  print "key: $name\nsize:\n1\nvalues:\n$value\nunits:\n$units\nEND\n";
+}
+emit("TEVEC", $te, "Hartree");
+emit("KEVEC", $ke, "Hartree");
+emit("PEVEC", $pe, "Hartree");
+emit("TEMPVEC", $temp, "Kelvin");
+exit(0);

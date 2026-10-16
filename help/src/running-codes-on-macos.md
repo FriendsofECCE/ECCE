@@ -100,7 +100,8 @@ installer that needs no administrator rights.
 
 ## Tell ECCE where the codes are
 
-1. Choose **Register Machines** and select `localhost`.
+1. In the Organizer, choose **Tools > Register Machines...** (see
+   [Register Machines](register-machines.md)) and select `localhost`.
 2. On the **Codes** tab select a code and enter the full path of its program
    in the **Program** field, or press **Find** after you have put the
    program's folder on the `PATH` in the script that **Script run at login**

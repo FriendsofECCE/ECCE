@@ -3,6 +3,7 @@
  *
  *
  */
+#include <algorithm>
 #include <iostream>
   using namespace std;
 
@@ -18,6 +19,7 @@
 #include "tdat/Measures.H"
 
 #include "viz/BondEditCmd.H"
+#include "tdat/TPerTab.H"
 #include "viz/SGFragment.H"
 #include "viz/SGContainer.H"
 
@@ -97,8 +99,46 @@ bool BondEditCmd::execute()
   }
 
   bool addedBond = false;
-  // If just two are selected then we might be adding a bond
-  if (frag->m_atomHighLight.size() == 2) {
+  // Metal order: one pick is a metal (or one of its nubs), the others atoms
+  // of a pi system: attach it with its full hapticity, whichever was picked
+  // first.  Anything else is a plain direct Metal bond below.
+  bool piDone = false;
+  if (order == TBond::Metal && frag->m_atomHighLight.size() >= 2) {
+    TPerTab tpt;
+    TAtm *metalPick = 0;
+    bool ambiguous = false;
+    vector<TAtm*> others;
+    for (size_t i=0; i<frag->m_atomHighLight.size(); i++) {
+      TAtm *a = frag->atomRef(frag->m_atomHighLight[i]);
+      TAtm *eff = a;
+      if (a->atomicSymbol() == "Nub") {
+        eff = frag->nubParent(a);
+        if (!eff) { ambiguous = true; break; }
+      }
+      if (tpt.metal(eff->atomicNumber()) == TPerTab::metallic) {
+        if (metalPick) { ambiguous = true; break; }
+        metalPick = a;
+      } else if (find(others.begin(), others.end(), eff) == others.end()) {
+        others.push_back(eff);
+      }
+    }
+    if (metalPick && !ambiguous && !others.empty()) {
+      try {
+        string msg;
+        if (frag->bondPiLigand(metalPick, others,
+                               frag->getMainDisplayStyle(), msg)) {
+          setErrorMessage(msg);
+          addedBond = ret = piDone = true;
+        }
+      } catch (EcceException& ex) {
+        setErrorMessage(ex.what());
+        piDone = true;   // reported; no direct bond on top of it
+      }
+    }
+  }
+
+  if (piDone) {
+  } else if (frag->m_atomHighLight.size() == 2) {
 
     TAtm *atm1, *atm2;
     int iatm1, iatm2;
@@ -119,7 +159,13 @@ bool BondEditCmd::execute()
       addedBond = ret = true;
     } else {
       try {
-        if (orient) {
+        if (orient && order == TBond::Metal) {
+          // Aligning works through the bonded nubs, which a Metal bond does
+          // not use, so the second molecule stays where it is.
+          frag->bondAtoms(atm1,atm2,order,frag->getMainDisplayStyle());
+          setErrorMessage("Metal bond made; the molecules were placed "
+                          "without aligning.");
+        } else if (orient) {
           int nAtoms = frag->numAtoms();
           int nBonds = frag->numBonds();
           vector<bool> atombits(nAtoms, false);

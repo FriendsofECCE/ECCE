@@ -42,6 +42,8 @@ class InteractionModel
      static const double LONGCUT;
      static const int SHORTFREQ;
      static const int LONGFREQ;
+     // -1: not chosen yet, 0: off, 1: on (GROMACS periodic-molecules)
+     static const int PERIODICMOL;
 
      /* Constructors */
      InteractionModel();
@@ -68,6 +70,7 @@ class InteractionModel
      double getLRCutoff() const;
      int getShortListUpdateFreq() const;
      int getLongListUpdateFreq() const;
+     int getPeriodicMolecules() const;
      bool getTouched() const;
 
      /* Modifiers */
@@ -90,6 +93,7 @@ class InteractionModel
      void setLRCutoff(double cutoff);
      void setShortListUpdateFreq(int freq);
      void setLongListUpdateFreq(int freq);
+     void setPeriodicMolecules(int opt);
      void setTouched(bool flag);
 
      /**
@@ -119,6 +123,7 @@ class InteractionModel
      int p_cutOpt;
      double p_sCut, p_lCut;
      int p_spFreq, p_lpFreq;
+     int p_periodicMol;
 
      int p_touched;
 };

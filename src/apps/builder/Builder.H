@@ -150,7 +150,11 @@ class Builder: public BuilderGUI,
       ID_ACCEL_PASTE,
       ID_ACCEL_UNDO,
       // the bare Delete key (deleteKey); Edit > Delete Selection is wxID_DELETE
-      ID_ACCEL_DELETE
+      ID_ACCEL_DELETE,
+      // Ctrl+A (selectAllKey); Edit > Select All is wxID_SELECTALL
+      ID_ACCEL_SELECTALL,
+      // Ctrl+S: Save, or Save As when there is nothing to save into
+      ID_ACCEL_SAVE
     };
 
     const static string NAME_TOOL_CONTEXT;
@@ -298,6 +302,9 @@ class Builder: public BuilderGUI,
       static void selectionChangeCB(void *  data, ChemSelection * sel);
       void processSelectionChange(ChemSelection *sel);
       void setMode(int modeId);
+      void applyMode(int modeId);
+      bool escapeKey();
+      void selectAllKey();
       int getMode();
 
       void deleteSelection();
@@ -472,10 +479,14 @@ class Builder: public BuilderGUI,
       void initShownPanels();
       void makeRoomFor(const wxString& name);
       bool fitToolColumn();
+      int columnMinWidth();
       void setColumnTab(int tab, bool save=true);
       void selectDetail(const string& name);
       void setDetail(wxWindow *win);
       void keepColumnWidth();
+      void guardSashDrag();
+      void endStuckSashDrag();
+      void holdColumnWidth(bool apply);
       void ensureDetail();
       void accordionNormalize(wxWindow *keepOpen=0);
       void foldPane(wxWindow *win, bool fold);
@@ -626,7 +637,8 @@ class Builder: public BuilderGUI,
       map<wxWindow*, wxString> p_propertyPanelInfo;
 
       // Property panes folded to their caption bar, with what to restore.
-      struct FoldState { wxSize best; wxSize min; bool resizable; int proportion; };
+      struct FoldState { wxSize best; wxSize min; bool resizable; int proportion;
+                         wxSize winMin; };
       map<wxWindow*, FoldState> p_folded;
       //  Each tool pane's own height floor; fitToolColumn() lowers the
       //  pane's min_size below it while the column is too short.
@@ -655,6 +667,7 @@ class Builder: public BuilderGUI,
       int p_columnTab = 0;               // 0 Structure, 1 Properties
       bool p_columnTabChosen = false;    // the user picked it, this calc
       bool p_columnHidden = false;       // F9
+      int p_columnWidth = 0;             // the column's width as last laid out
       set<wxWindow*> p_tabHidden;        // open, but hidden by tab/F9
       set<wxWindow*> p_columnSeen;       // property panes given mode defaults
       wxWindow *p_detail = 0;            // list + detail: the shown panel

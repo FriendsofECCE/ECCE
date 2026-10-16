@@ -197,11 +197,13 @@ static ProgramHelp baseHelp(const string& code)
     {
         h.names.push_back("nwchem");
         h.examples.push_back("/usr/bin/nwchem");
+        h.signature = "NWChem";
     }
     else if (code == "ORCA")
     {
         h.names.push_back("orca");
         h.companion = "orca_2mkl";
+        h.signature = "ORCA_";
         h.examples.push_back("/opt/orca/<version>/orca");
         h.note = "ORCA needs the full path for parallel runs.";
     }
@@ -210,11 +212,15 @@ static ProgramHelp baseHelp(const string& code)
         string g = "g" + code.substr(9);
         h.names.push_back(g);
         h.examples.push_back("/opt/" + g + "/" + g);
+        //  Tested on g09 and g16 only; the older programs get none.
+        if (code == "Gaussian-16" || code == "Gaussian-09")
+            h.signature = "Entering Gaussian System";
     }
     else if (code == "QuantumESPRESSO")
     {
         h.names.push_back("pw.x");
         h.examples.push_back("/usr/bin/pw.x");
+        h.signature = "PWSCF";
     }
     else if (code == "MOPAC")
     {
@@ -222,12 +228,14 @@ static ProgramHelp baseHelp(const string& code)
         h.names.push_back("mopac");
         h.examples.push_back("/opt/mopac/MOPAC2016.exe");
         h.examples.push_back("/usr/bin/mopac");
+        h.signature = "MOPAC";
     }
     else if (code == "GROMACS")
     {
         h.names.push_back("gmx");
         h.names.push_back("gmx_mpi");
         h.examples.push_back("/usr/bin/gmx");
+        h.signature = "GROMACS";
     }
     else if (code == "GAMESS-US")
     {
@@ -246,6 +254,8 @@ static ProgramHelp baseHelp(const string& code)
             l[i] = (char)tolower((unsigned char)l[i]);
         h.names.push_back(l);
         h.examples.push_back("/opt/" + l + "/bin/" + l);
+        if (code == "CP2K")
+            h.signature = "CP2K";
     }
     return h;
 }
@@ -279,6 +289,47 @@ string findProgramScript(const ProgramHelp& h)
                  "echo \"ECCE-FOUND:$r\"; fi; fi;; esac; done; IFS=$oIFS\n";
     }
     return s;
+}
+
+string checkProgramsScript(const ProgramHelp& h, const vector<string>& paths)
+{
+    //  A name without a slash is looked up on the PATH, as the job script
+    //  would; "$p.exe" is for Windows, where sh drops the extension.
+    string test = h.signature.empty() ? "true" :
+        "LC_ALL=C grep -a -q -F -- " + quote(h.signature) + " \"$r\"";
+    string s = "ecce_chk() { p=$1; case $p in */*) ;; *) q=$(command -v \"$p\" "
+        "2>/dev/null); [ -z \"$q\" ] || p=$q;; esac\n"
+        "[ -f \"$p\" ] || { [ -f \"$p.exe\" ] && p=$p.exe; }\n"
+        "if [ -f \"$p\" ] && [ -x \"$p\" ]; then "
+        "r=$(readlink -f \"$p\" 2>/dev/null); [ -n \"$r\" ] || r=$p; "
+        "if " + test + "; then echo \"ECCE-CHECK:" +
+        string(h.signature.empty() ? "found" : "yes") + "|$1|$r\"; "
+        "else echo \"ECCE-CHECK:no|$1|$r\"; fi; "
+        "else echo \"ECCE-CHECK:missing|$1|\"; fi; }\n";
+    for (size_t i = 0; i < paths.size(); i++)
+        s += "ecce_chk " + quote(paths[i]) + "\n";
+    return s;
+}
+
+vector<ProgramCheck> parseChecks(const string& output)
+{
+    vector<ProgramCheck> out;
+    vector<string> ls = lines(output);
+    for (size_t i = 0; i < ls.size(); i++)
+    {
+        string l = trim(ls[i]);
+        if (l.compare(0, 11, "ECCE-CHECK:") != 0)
+            continue;
+        size_t a = l.find('|'), b = l.rfind('|');
+        if (a == string::npos || a == b)
+            continue;
+        ProgramCheck c;
+        c.state = l.substr(11, a - 11);
+        c.path = l.substr(a + 1, b - a - 1);
+        c.resolved = l.substr(b + 1);
+        out.push_back(c);
+    }
+    return out;
 }
 
 string findInstallDirsScript(const ProgramHelp& h, const string& code,

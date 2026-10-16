@@ -1,0 +1,31 @@
+&CONTROL
+  calculation = 'scf'
+  prefix = 'ar2'
+  outdir = './qe.scratch'
+  pseudo_dir = '/usr/share/espresso/pseudo/'
+  tprnfor = .true.
+  tstress = .false.
+/
+&SYSTEM
+  ibrav = 0
+  nat = 2
+  ntyp = 1
+  ecutwfc = 30.0
+  occupations = 'fixed'
+  vdw_corr = 'grimme-d3'
+  dftd3_version = 3
+/
+&ELECTRONS
+  conv_thr = 1.0e-6
+  mixing_beta = 0.7
+/
+ATOMIC_SPECIES
+  Ar     39.9480  Ar_ONCV_PBE-1.1.oncvpsp.upf
+CELL_PARAMETERS angstrom
+     10.0000000000     0.0000000000     0.0000000000
+      0.0000000000    10.0000000000     0.0000000000
+      0.0000000000     0.0000000000    10.0000000000
+ATOMIC_POSITIONS angstrom
+  Ar      0.0000000000     0.0000000000     0.0000000000
+  Ar      0.0000000000     0.0000000000     3.8000000000
+K_POINTS gamma

@@ -93,6 +93,8 @@ void Torsions::initTorsionList(void)
     if (nbnd2 > 1) {
       for (i=0; i<nbnd2; i++) {
         bond32 = list2[i];
+        // No torsions through Metal-pi (0.5) or hydrogen (0.1) bonds.
+        if (bond32->order() < 1.0) continue;
         jat = bond32->atom1()->index();
         kat = bond32->atom2()->index();
         if (kat != iat) jat=kat;
@@ -106,11 +108,13 @@ void Torsions::initTorsionList(void)
             // associated with bond 32. We now need to find them.
             for (j=0; j<nbnd2; j++) {
               bond12 = list2[j];
+              if (bond12->order() < 1.0) continue;
               kat = bond12->atom1()->index();
               lat = bond12->atom2()->index();
               if (lat != iat) kat=lat;
               for (k=0; k<nbnd3; k++) {
                 bond43 = list3[k];
+                if (bond43->order() < 1.0) continue;
                 lat = bond43->atom1()->index();
                 mat = bond43->atom2()->index();
                 if (mat != jat) lat=mat;

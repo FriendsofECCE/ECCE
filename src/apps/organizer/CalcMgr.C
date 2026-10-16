@@ -352,6 +352,13 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   // #302: after the window is up, so the import shows in the tree.
   CallAfter([this]() { importExamplesOnce(); });
 
+  // File > New is offered before the first selection too.
+  {
+    wxMenuBar * mb = GetMenuBar();
+    int fm = mb ? mb->FindMenu(_("File")) : wxNOT_FOUND;
+    if (fm != wxNOT_FOUND) getFileMenu(*mb->GetMenu(fm), 0);
+  }
+
   stopDisabler();
 
   //  ECCE_TEST_CALCIMPORT=<file>: File > Import Calculation from Output File
@@ -761,6 +768,68 @@ void CalcMgr::runTestCommand(const string& line)
             outcome += " item=" + string(it->GetItemLabel().ToUTF8());
         }
       }
+    } else if (command == "helpmenu") {
+      // "helpmenu": the Help menu's labels, and the page that Help >
+      // Running Codes on This Computer opens and whether it is installed.
+      wxMenuBar *mb = GetMenuBar();
+      wxMenu *hm = mb->GetMenu(mb->FindMenu(_("&Help")));
+      outcome = "ok";
+      for (size_t i = 0; i < hm->GetMenuItemCount(); i++) {
+        wxMenuItem *it = hm->FindItemByPosition(i);
+        if (!it->IsSeparator())
+          outcome += " item=" + string(it->GetItemLabelText().ToUTF8());
+      }
+      string page = WxHelpViewer::pageForKey("RunningCodes");
+      string dir = WxHelpViewer::helpDir();
+      outcome += " page=" + page + " installed=" +
+                 (access((dir + "/index.html").c_str(), R_OK) != 0 ? "no" :
+                  access((dir + "/" + page).c_str(), R_OK) == 0 ? "yes" :
+                  "missing");
+    } else if (command == "toolsclick") {
+      // "toolsclick <label>": choose that item of the Tools menu for the
+      // current selection; the launch it sends is traced by startApp.
+      wxMenu menu;
+      getToolsMenu(menu, 0);
+      outcome = "no such item";
+      for (size_t i = 0; i < menu.GetMenuItemCount(); i++) {
+        wxMenuItem *it = menu.FindItemByPosition(i);
+        if (it->IsSeparator() || !it->IsEnabled() ||
+            string(it->GetItemLabelText().ToUTF8()) != calcName) continue;
+        wxCommandEvent ev(wxEVT_MENU, it->GetId());
+        if (it->GetId() == wxID_NEWSTRUCTURE) OnNewStructureClick(ev);
+        else ProcessEvent(ev);
+        outcome = "ok";
+        break;
+      }
+    } else if (command == "filemenu" || command == "newfrommenu") {
+      // "filemenu": labels of the File menu's New submenu, as the menu is
+      // now. "newfrommenu LABEL": click File > New > LABEL, no name
+      // prompt (the resource is named by its type label).
+      std::istringstream args(calcName);
+      string label, name;
+      args >> label >> name;
+      wxMenuBar *mb = GetMenuBar();
+      wxMenu *fm = mb->GetMenu(mb->FindMenu(_("File")));
+      outcome = command == "filemenu" ? "ok" : "no such item";
+      for (size_t i = 0; i < fm->GetMenuItemCount(); i++) {
+        wxMenuItem *it = fm->FindItemByPosition(i);
+        if (!it->GetSubMenu() || it->GetItemLabelText() != "New") continue;
+        wxMenu *sub = it->GetSubMenu();
+        for (size_t j = 0; j < sub->GetMenuItemCount(); j++) {
+          wxMenuItem *si = sub->FindItemByPosition(j);
+          string text = string(si->GetItemLabelText().ToUTF8());
+          if (command == "filemenu") {
+            outcome += " new=" + text;
+          } else if (text == label) {
+            bool ask = GetMenuBar()->IsChecked(wxID_ASKFORNAME);
+            GetMenuBar()->Check(wxID_ASKFORNAME, false);
+            wxCommandEvent ev(wxEVT_MENU, si->GetId());
+            OnNewResourceClick(ev);
+            GetMenuBar()->Check(wxID_ASKFORNAME, ask);
+            outcome = "ok";
+          }
+        }
+      }
     } else if (command == "contextmenu") {
       // "contextmenu <url>": the tree's item-menu event for <url>, as a
       // right click sends it, then the labels of the menu's New submenu.
@@ -844,6 +913,35 @@ void CalcMgr::runTestCommand(const string& line)
             " lost=" + std::to_string(WxResourceStateImageList::getImageIndex(
                 r, (ResourceDescriptor::RUNSTATE)WxState::OUT_OF_CONTACT)) +
             " outOfContact=" + (outOfContact(r, lastHeard) ? "1" : "0");
+      }
+    } else if (command == "iconstyle") {
+      // "iconstyle flat|shaded": what Preferences > Colours does, message
+      // included, then two seconds for the message to come back.
+      Preferences prefs(PrefLabels::GLOBALPREFFILE);
+      prefs.setString(PrefLabels::STATEICONSTYLE, calcName);
+      prefs.saveFile();
+      WxState::refreshStyle();
+      JMSMessage *msg = newMessage();
+      publish("ecce_preferences_misc", *msg);
+      delete msg;
+      for (int i = 0; i < 40; i++) { wxYield(); wxMilliSleep(50); }
+      outcome = "ok";
+    } else if (command == "treeicon") {
+      // "treeicon <url>": a checksum of the pixels of the tree icon shown.
+      WxResourceTreeItemData *node = p_treeCtrl->findNode(EcceURL(calcName),
+                                                          true, true);
+      wxImageList *list = p_treeCtrl->GetImageList();
+      if (!node || !list) {
+        outcome = "no node";
+      } else {
+        wxImage img = list->GetBitmap(
+            p_treeCtrl->GetItemImage(node->GetId())).ConvertToImage();
+        unsigned long sum = 0;
+        const size_t n = (size_t)img.GetWidth() * img.GetHeight();
+        for (size_t i = 0; i < 3 * n; i++) sum = sum * 31 + img.GetData()[i];
+        if (img.HasAlpha())
+          for (size_t i = 0; i < n; i++) sum = sum * 31 + img.GetAlpha()[i];
+        outcome = "sum=" + std::to_string(sum);
       }
     } else if (command == "size") {
       int w = 0, h = 0;
@@ -946,6 +1044,32 @@ void CalcMgr::runTestCommand(const string& line)
         GetMenuBar()->Check(wxID_ASKFORNAME, ask);
         outcome = "ok";
       }
+    } else if (command == "busyprompt") {
+      // A text prompt shown under a menu action's busy cursor and window
+      // disabler, answered after 1.5 s: ewxModalGuard must take the busy
+      // cursor off while it is up and put it back afterwards.
+      wxTimer answer;
+      answer.Bind(wxEVT_TIMER, [](wxTimerEvent&) {
+        for (wxWindowList::compatibility_iterator n =
+               wxTopLevelWindows.GetFirst(); n; n = n->GetNext()) {
+          wxDialog *d = dynamic_cast<wxDialog*>(n->GetData());
+          if (d && d->IsModal()) {
+            cerr << "ECCE_TEST_ORGANIZER: busyprompt: up busy="
+                 << (int)wxIsBusy() << " parentEnabled="
+                 << (d->GetParent() ? (int)d->GetParent()->IsEnabled() : -1)
+                 << endl;
+            d->EndModal(wxID_OK);
+          }
+        }
+      });
+      answer.StartOnce(1500);
+      startDisabler();
+      ewxTextEntryDialog prompt(this, "Name:", "Busy Prompt", "x",
+                                wxOK | wxCANCEL);
+      const int rc = prompt.ShowModal();
+      outcome = string(rc == wxID_OK ? "ok" : "cancelled") +
+                " busyAfter=" + (wxIsBusy() ? "1" : "0");
+      stopDisabler();
     } else if (command == "click") {
       // "click URL": selects a row already in the tree as a click does,
       // with no tree loading first (unlike "summary").
@@ -1483,7 +1607,7 @@ void CalcMgr::OnContextMenu( wxContextMenuEvent& event )
   wxMenu menu;
   getContextMenu(menu);
   p_popupOnTree = true;
-  PopupMenu(&menu);
+  ewxPopupMenu(this, menu);
   p_popupOnTree = false;
   /*
   wxPoint pt = event.GetPosition();
@@ -1525,6 +1649,12 @@ void CalcMgr::OnContextMenu( wxContextMenuEvent& event )
 void CalcMgr::OnHelpClick( wxCommandEvent& event )
 {
   WxHelpViewer::showKey("Organizer");
+}
+
+
+void CalcMgr::OnRunningCodesClick( wxCommandEvent& event )
+{
+  WxHelpViewer::showKey("RunningCodes");
 }
 
 
@@ -1940,6 +2070,29 @@ void CalcMgr::OnConfigureNwfsArchiveClick( wxCommandEvent& event )
 }
 
 
+/**
+ * The item, or its nearest ancestor, whose type can contain resType (any
+ * type when resType is 0); 0 if none. A calculation holds nothing, so New
+ * with one selected means "next to it", in its project.
+ */
+WxResourceTreeItemData * CalcMgr::nearestContainer(
+    WxResourceTreeItemData * node, ResourceType * resType)
+{
+  while (node) {
+    if (node->getResource() && node->getResource()->getDescriptor()) {
+      vector<ResourceType *> c =
+          node->getResource()->getDescriptor()->getContains();
+      if (resType == 0 && !c.empty()) return node;
+      for (size_t i = 0; i < c.size(); i++) if (c[i] == resType) return node;
+    }
+    WxResourceTreeItemData * up = p_treeCtrl->getParent(node);
+    if (up == node) break;
+    node = up;
+  }
+  return 0;
+}
+
+
 /*!
  * wxEVT_COMMAND_MENU_SELECTED event handler for all ID_RESOURCE
  */
@@ -1949,7 +2102,15 @@ void CalcMgr::OnNewResourceClick( wxCommandEvent& event )
 
   ResourceType * resType = ResourceDescriptor::getResourceDescriptor().
     getResourceType(event.GetId());
-  createResource(resType);
+  // The nearest ancestor of the selection (or the selection itself) that
+  // can contain this type, else the user's home.
+  WxResourceTreeItemData * parent = nearestContainer(
+      p_treeCtrl->getSelection(), resType);
+  if (!parent) {
+    EDSIServerCentral central;
+    parent = findNode(central.getDefaultUserHome(), true, true);
+  }
+  createResource(resType, parent);
 
   stopDisabler();
 }
@@ -3465,50 +3626,37 @@ void CalcMgr::getContextMenu(wxMenu & menu)
     return;
   }
 
-  // Whether the selected node is itself a calculation -- used below both
-  // to gate the Duplicate items (GitHub #47) and to fold them into this
-  // same "New..." submenu (per feedback on the first version of this fix:
-  // top-level Cut/Copy/Duplicate/etc. is the wrong place for something
-  // that's really "make a new thing from this one").
+  // Only a calculation can be duplicated (#47).
   bool isCalculationNode = itemData && itemData->getResource() &&
       itemData->getResource()->getContentType() ==
           ResourceDescriptor::CT_CALCULATION;
 
   // build the "new" part of the context menu first
   // the variables to iterate through what "can be contained"
+  //  What New offers comes from the nearest container: a calculation holds
+  //  nothing itself, so New beside it creates in its folder or project, as
+  //  OnNewResourceClick does.
+  WxResourceTreeItemData * container = nearestContainer(itemData, 0);
+  Session * containerSession =
+      container ? dynamic_cast<Session *>(container->getResource()) : 0;
   vector<ResourceType *> resVec;
-  resVec = resType->getContains();
-  vector<ResourceType *>::iterator resItor;
+  if (container && container->getResource() &&
+      container->getResource()->getDescriptor())
+    resVec = container->getResource()->getDescriptor()->getOfferedContains(
+        containerSession && containerSession->numMembers() == 0);
   wxMenu *newMenu = new wxMenu();
 
   // for each "contained", add to menu
-  for (resItor = resVec.begin(); resItor != resVec.end(); resItor++) {
+  for (size_t i = 0; i < resVec.size(); i++) {
     // need to remove redundant "New " from each sub menu item
-    string name((*resItor)->getMenuItem(), 4);
-    wxMenuItem * menuItem = new wxMenuItem(&menu, (*resItor)->getId(),
+    string name(resVec[i]->getMenuItem(), 4);
+    wxMenuItem * menuItem = new wxMenuItem(&menu, resVec[i]->getId(),
             name.c_str(), _T(""), wxITEM_NORMAL);
-    menuItem->SetBitmap(ewxBitmap((*resItor)->getIcon()));
+    menuItem->SetBitmap(ewxBitmap(resVec[i]->getIcon()));
     newMenu->Append(menuItem);
-
-    if ((*resItor)->getMenuItem() == "New NWChem MD Prepare..." &&
-        dynamic_cast<Session *>(itemData->getResource())->numMembers() == 0)
-      resItor += 3;
-    else if ((*resItor)->getMenuItem() ==
-        "New Direct Dynamics VTST Calculation..." &&
-        dynamic_cast<Session *>(itemData->getResource())->numMembers() == 0)
-      resItor += 5;
-  }
-  if (isCalculationNode) {
-    if (!resVec.empty())
-      newMenu->AppendSeparator();
-    newMenu->Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
-    newMenu->Append(wxID_DUPLICATE2, _("Duplicate Setup with Last Geometry"));
   }
   menu.Append(wxID_NEW, _T("New..."), newMenu);
-  // Enable "New..." if there's something to create under this node OR
-  // (a calculation can't contain anything, but still needs "New..."
-  // reachable for Duplicate, which now lives inside it) it's a calculation.
-  menu.Enable(wxID_NEW, !resVec.empty() || isCalculationNode);
+  menu.Enable(wxID_NEW, !resVec.empty());
   menu.AppendSeparator();
 
   // build the standard part of the context menu
@@ -3517,6 +3665,10 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   menu.Append(wxID_COPY, wxT("&Copy"));
   menu.Append(wxID_PASTE, wxT("&Paste"));
   menu.Enable(wxID_PASTE, !p_clipboard.empty());
+  if (isCalculationNode) {
+    menu.Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
+    menu.Append(wxID_DUPLICATE2, _("Duplicate Setup with Last Geometry"));
+  }
   menu.Append(wxID_RENAME, wxT("&Rename"));
   menu.Enable(wxID_RENAME, true);
   menu.Append(wxID_DELETE, wxT("&Delete"));
@@ -3593,28 +3745,37 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
   ResourceType * resType = 0;
   ResourceDescriptor::RUNSTATE state = ResourceDescriptor::STATE_ILLEGAL;
 
-  if (getTypeAndState(itemData, resType, state)) {
-    vector<ResourceType *> resVec = resType->getContains();
-    vector<ResourceType *>::iterator resItor = resVec.begin();
-    for (;resItor != resVec.end(); resItor++) {
-      wxMenuItem * menuItem = new wxMenuItem(&menu,(*resItor)->getId(),
-              (*resItor)->getMenuItem(), _T(""), wxITEM_NORMAL);
-      menuItem->SetBitmap(ewxBitmap((*resItor)->getIcon()));
-      menu.Append(menuItem);
+  // Without a selection the menu is still built, so New works before the
+  // first click; the same menu is built at construction time.
+  if (itemData == 0) itemData = p_treeCtrl->getSelection();
 
-      if ((*resItor)->getMenuItem() == "New NWChem MD Prepare..." &&
-          dynamic_cast<Session *>(itemData->getResource())->numMembers() == 0)
-        resItor += 3;
-      else if ((*resItor)->getMenuItem() ==
-          "New Direct Dynamics VTST Calculation..." &&
-          dynamic_cast<Session *>(itemData->getResource())->numMembers() == 0)
-        resItor += 5;
+  // New: what OnNewResourceClick would offer, which is the nearest
+  // container at or above the selection, else the user's home.
+  {
+    ResourceType * target = 0;
+    WxResourceTreeItemData * where = nearestContainer(itemData, 0);
+    if (where) target = where->getResource()->getDescriptor();
+    else target = ResourceDescriptor::getResourceDescriptor().
+        getResourceType("collection", "ecceProject", "");
+    Session * session = where ?
+        dynamic_cast<Session *>(where->getResource()) : 0;
+    vector<ResourceType *> types;
+    if (target) types = target->getOfferedContains(
+        session && session->numMembers() == 0);
+    wxMenu * newMenu = new wxMenu();
+    for (size_t i = 0; i < types.size(); i++) {
+      string label = types[i]->getMenuItem();
+      if (label.size() > 4) label = label.substr(4);
+      wxMenuItem * mi = new wxMenuItem(newMenu, types[i]->getId(),
+              wxString::FromUTF8(label.c_str()), _T(""), wxITEM_NORMAL);
+      mi->SetBitmap(ewxBitmap(types[i]->getIcon()));
+      newMenu->Append(mi);
     }
-    
-    if (resVec.size() > 0) {
-      menu.AppendSeparator();
-    }
-    
+    menu.Append(wxID_ANY, _("&New"), newMenu);
+    menu.AppendSeparator();
+  }
+
+  if (itemData && getTypeAndState(itemData, resType, state)) {
     // (The import entry used to be added here, gated on the selected node
     // being a "project". It is now added unconditionally below -- see there.)
 
@@ -3969,15 +4130,25 @@ void CalcMgr::getToolsMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
   ResourceType * resType = 0;
   ResourceDescriptor::RUNSTATE state = ResourceDescriptor::STATE_ILLEGAL;
 
-  if(!getTypeAndState(itemData, resType, state))
-    return; // no per-selection tools, but the global ones above stay
-
   vector<ResourceTool *> toolVec;
-  if (resType->getStateBased()) {
-    toolVec = resType->getTools(state);
+  if (getTypeAndState(itemData, resType, state)) {
+    toolVec = resType->getStateBased() ? resType->getTools(state)
+                                       : resType->getTools();
   }
-  else {
-    toolVec = resType->getTools();
+
+  // With nothing applicable selected, offer an empty Builder: the same
+  // entry as File > New Structure, so it needs no handler of its own.
+  if (toolVec.empty()) {
+    menu.Append(wxID_NEWSTRUCTURE, _("Builder"), _T(""), wxITEM_NORMAL);
+    return;
+  }
+
+  // Say which item the tools below act on.
+  if (itemData == 0) itemData = p_treeCtrl->getSelection();
+  if (itemData) {
+    wxMenuItem *head = menu.Append(wxID_ANY, wxString::Format(_("For %s:"),
+        p_treeCtrl->GetItemText(itemData->GetId())));
+    head->Enable(false);
   }
 
   vector<ResourceTool *>::iterator toolItor = toolVec.begin();
@@ -4066,6 +4237,13 @@ void CalcMgr::startApp(const string& app, int force, const string& url,
   //  cerr << "\nInvoke " << app << " with url " << url << endl;
   // Send the start app request to gateway:
   Target gateway(GATEWAY, "");
+
+  // Test hook: report the launch and, with ..._NOLAUNCH, do not send it.
+  if (getenv("ECCE_TEST_ORGANIZER")) {
+    cerr << "ECCE_TEST_ORGANIZER: startApp " << app << " force=" << force
+         << " url=" << url << endl;
+    if (getenv("ECCE_TEST_ORGANIZER_NOLAUNCH")) return;
+  }
 
   JMSMessage *msg = newMessage();
   msg->addProperty("action","start");
@@ -5963,8 +6141,8 @@ void CalcMgr::createResource(ResourceType * resType,
       ewxTextEntryDialog dialog(this, infoStr, "New " + name + " Name",
                                 name, wxOK | wxCANCEL);
       dialog.spacesToUnderscores();
-      //  Under the busy cursor and window disabler of a menu action, GTK
-      //  on XWayland does not draw what is typed into the dialog's field.
+      //  The menu action's window disabler and busy cursor are lifted
+      //  while the user types: the prompt is not busy work.
       const bool held = p_disabler != 0;
       if (held) {
         delete p_disabler;  p_disabler = 0;
@@ -7069,6 +7247,13 @@ void CalcMgr::updateSelectionMenus()
       enableTool(p_toolBar, wxID_DOWNLOAD, false);
     }
   }
+}
+
+
+void CalcMgr::redrawStateIcons()
+{
+  p_treeCtrl->recolorStatePixmaps();
+  p_treeCtrl->Refresh();
 }
 
 

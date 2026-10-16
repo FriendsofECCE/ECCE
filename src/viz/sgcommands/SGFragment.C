@@ -2563,7 +2563,7 @@ void SGFragment::addFragment(const string& type,
          tmpfrag.removeAtom(idx);
       }
    } else {
-      throw EcceException("Cannot unambigously connect fragments. Please select the sites that should be bonded.",WHERE);
+      throw EcceException("Cannot unambiguously connect fragments. Select one open site on each part, or press Esc.",WHERE);
    }
 
 }
@@ -3219,13 +3219,23 @@ bool SGFragment::syncNubSelection(vector<bool>& atomsToDelete)
    int cnt = atomsToDelete.size();
    TAtm *parent, *atm;
 
+   //  A selection of nubs only is a request to remove those open sites (a
+   //  metal's spare coordination sites); otherwise a stray nub picked
+   //  along with other atoms is kept.
+   bool onlyNubs = false;
+   for (int idx=0; idx<cnt; idx++) {
+      if (!atomsToDelete[idx]) continue;
+      if (atomRef(idx)->atomicSymbol() != "Nub") { onlyNubs = false; break; }
+      onlyNubs = true;
+   }
+
    for (int idx=0; idx<cnt; idx++) {
       if (atomsToDelete[idx] == true) {
          atm = atomRef(idx);
          if (atm->atomicSymbol() == "Nub") {
             parent = nubParent(atm);
             // A nub without an atom is simply deleted.
-            if (parent && atomsToDelete[parent->index()] == false) {
+            if (!onlyNubs && parent && atomsToDelete[parent->index()] == false) {
                atomsToDelete[idx] = false;
                ret = true;
             }
@@ -3425,6 +3435,10 @@ bool SGFragment::deleteSelectedAtoms(const vector<bool>& atomsToDelete)
    int numToDelete = ptrsToDelete.size();
    for (idx=0; idx<numToDelete; idx++) {
       src = ptrsToDelete[idx];
+
+      // A deleted nub leaves no bond to replace: giving its parent a new nub
+      // would put the nub back.
+      if (src->atomicSymbol() == "Nub") continue;
 
       // get src's connected atoms
       conAtoms = src->connectedAtoms();

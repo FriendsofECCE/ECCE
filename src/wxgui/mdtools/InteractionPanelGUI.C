@@ -52,6 +52,7 @@ const wxWindowID InteractionPanelGUI::wxID_STATIC_INTRCT_ULCUT = wxNewId();
 const wxWindowID InteractionPanelGUI::wxID_STATIC_INTRCT_ESPLINE = wxNewId();
 const wxWindowID InteractionPanelGUI::ID_PANEL_INTRCT_FFTOPT = wxNewId();
 const wxWindowID InteractionPanelGUI::ID_CHECKBOX_INTRCT_QGRID = wxNewId();
+const wxWindowID InteractionPanelGUI::ID_CHECKBOX_INTRCT_PERIODIC = wxNewId();
 const wxWindowID InteractionPanelGUI::ID_TEXTCTRL_INTRCT_GRID = wxNewId();
 const wxWindowID InteractionPanelGUI::ID_STATICTEXT1 = wxNewId();
 const wxWindowID InteractionPanelGUI::ID_TEXTCTRL_INTRCT_LCUT = wxNewId();
@@ -444,6 +445,13 @@ void InteractionPanelGUI::CreateControls()
 
     ewxTextCtrl* itemTextCtrl79 = new ewxTextCtrl( p_lcutoffPanel, ID_TEXTCTRL_INTRCT_LFREQ, _T(""), wxDefaultPosition, wxSize(30, -1), 0 );
     itemBoxSizer77->Add(itemTextCtrl79, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
+
+    // GROMACS only (InteractionPanel::applyGromacsProfile shows it); written
+    // by hand, not from the .pjd.
+    ewxCheckBox* periodicCheck = new ewxCheckBox( itemPanel1, ID_CHECKBOX_INTRCT_PERIODIC, _("Periodic molecules (bonds across the cell boundary)"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
+    periodicCheck->SetValue(false);
+    periodicCheck->Show(false);
+    p_mainVSizer->Add(periodicCheck, 0, wxALIGN_LEFT|wxALL, 5);
 
 ////@end InteractionPanelGUI content construction
 }

@@ -1415,7 +1415,7 @@
               <bool name="proxy-Enabled">0</bool>
               <string name="proxy-Platform">"&lt;Any platform&gt;"</string>
               <document>
-                <string name="title">"&amp;on Organizer...\tCtrl+H: wxID_HELP"</string>
+                <string name="title">"ECCE &amp;Help\tCtrl+H: wxID_HELP"</string>
                 <string name="type">"dialog-control-document"</string>
                 <string name="filename">""</string>
                 <string name="icon-name">"menuitem"</string>
@@ -1429,7 +1429,7 @@
                 <string name="event-handler-0">"wxEVT_COMMAND_MENU_SELECTED|OnHelpClick"</string>
                 <string name="proxy-Id name">"wxID_HELP"</string>
                 <long name="proxy-Id value">5009</long>
-                <string name="proxy-Label">"&amp;on Organizer...\tCtrl+H"</string>
+                <string name="proxy-Label">"ECCE &amp;Help\tCtrl+H"</string>
                 <string name="proxy-Kind">"Normal"</string>
                 <bool name="proxy-Checked">0</bool>
                 <bool name="proxy-Enabled">1</bool>

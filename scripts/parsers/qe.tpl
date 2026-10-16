@@ -7,3 +7,4 @@
 ##QECellParameters##
 ##QEAtomicPositions##
 ##QEKPoints##
+##QEHubbard##

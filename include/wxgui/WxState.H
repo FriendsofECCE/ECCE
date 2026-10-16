@@ -47,6 +47,9 @@ public:
   void refresh();
 
   static void resetToSystemDefault();
+  // Shaded or flat icons (Preferences > Colours); refreshStyle() re-reads it.
+  static bool shaded();
+  static void refreshStyle();
 
   static void finalize();
 

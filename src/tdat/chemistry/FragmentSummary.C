@@ -49,6 +49,7 @@ void FragmentSummary::init()
   p_altLocation = "";
   p_chain = "";
   p_name = "";
+  p_periodic = false;
 }
 
 void FragmentSummary::update(Fragment *frag, vector<int> selection)
@@ -224,6 +225,10 @@ string FragmentSummary::getName() const
 {
    return p_name;
 }
+bool FragmentSummary::isPeriodic() const
+{
+   return p_periodic;
+}
 
 /**
  * Modifiers
@@ -324,6 +329,10 @@ bool FragmentSummary::scanPDB(istream& infile)
     cptr = buf;
     strncpy(record,cptr,6);
     cptr += 6;
+
+    if (strncmp(record,"CRYST1",6) == 0 && atof(cptr) > 1.0) {
+      p_periodic = true;
+    }
 
 // Check to see if first six characters correspond to any of the records
 // currently being supported (ATOM, HETATM)

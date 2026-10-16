@@ -219,6 +219,9 @@ public:
   void OnHelpClick( wxCommandEvent& event );
   void OnPreferencesClick( wxCommandEvent& event );
 
+  /// Help > Running Codes on This Computer
+  void OnRunningCodesClick( wxCommandEvent& event );
+
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_MENU_SUPPORT
   void OnMenuSupportClick( wxCommandEvent& event );
 
@@ -270,6 +273,7 @@ public:
 
   void addRoot(const string& name, const string& url);
   WxFeedback * getFeedback();
+  void redrawStateIcons();
   void updateName(const EcceURL & oldUrl, const EcceURL & newUrl);
   void updateUrl(const EcceURL & url);
   void updateAddNode(const EcceURL & url);
@@ -378,6 +382,8 @@ protected:
   bool checkMovable(WxResourceTreeItemData * node);
   // Issue #93: selection-independent entries on the Tools menu.
   void addGlobalTools(wxMenu & menu);
+  WxResourceTreeItemData * nearestContainer(WxResourceTreeItemData * node,
+                                            ResourceType * resType);
   void OnGlobalTool(wxCommandEvent& event);
   // Ids already wired to OnGlobalTool, so rebuilding the menu does not
   // stack duplicate handlers.

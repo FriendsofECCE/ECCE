@@ -97,12 +97,16 @@ void Angles::initAngleList(void)
         kat = bond1->atom2()->index();
         if (kat != iat) jat = kat;
         obnd1 = bond1->order();
+        // Metal-pi (0.5) and hydrogen (0.1) bonds carry only a stretch term;
+        // an angle through them pulls a metal into the ligand plane.
+        if (obnd1 < 1.0) continue;
         for (j=i+1; j<nbnd; j++) {
           bond2 = list[j];
           kat = bond2->atom1()->index();
           lat = bond2->atom2()->index();
           if (lat != iat) kat = lat;
           obnd2 = bond2->order();
+          if (obnd2 < 1.0) continue;
           if (p_mask == (vector<bool>*)0) {
             Angle *angle = new Angle(jat,iat,kat,obnd1,obnd2);
             p_angleList.push_back(angle);

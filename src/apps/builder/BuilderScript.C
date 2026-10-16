@@ -10,9 +10,9 @@
 //    pbc ...                     Periodic Builder, see PBC::scriptCommand
 //    library PATH [ENTRY]        the Structure Library pane: open the folder
 //                                PATH (Teaching/Diatomics), select ENTRY
-//    mode atom|select|structlib  Mode menu
+//    mode atom|select|bond|structlib  Mode menu
 //    popup NAME                  the element chooser: its place and size
-//    key viewer|text cut|copy|paste|undo
+//    key viewer|text cut|copy|paste|undo|selectall
 //                                Ctrl+X/C/V/Z with the focus in the 3-D view
 //                                or in a text field (holding "abc")
 //    click                       a click in the 3D view in the current mode
@@ -22,6 +22,11 @@
 //    info                       atoms and lattice, on stderr
 //    libatom I                   select atom (a Nub) I of the library structure
 //    select I                    select atom (or Nub) I, as a click does; -1 none
+//    selectelem A                select the first atom of element A
+//    addelem A                   add the last atom of element A to the selection
+//    bondorder single|metal      the order Bond mode makes
+//    clean                       the viewer's Clean command
+//    key escape                  what the Esc key does with the view focused
 //    selectnub A                 select the first Nub of the last atom of element A
 //    bonds A B                   count the bonds from the last atom of element A
 //                                to atoms of element B
@@ -46,6 +51,8 @@
 //    ellipsoid PROP              each sphere under PROP's property switch, as
 //                                drawn: centre, and its three axes as semi-axis
 //                                length and unit direction, Angstrom
+//    pertab A                    press the Build panel's periodic-table button,
+//                                pick element A in it, report the Build element
 //    quit
 //  Each command is answered on stderr: "ECCE_BUILDER_SCRIPT: <line>: ok".
 
@@ -81,6 +88,8 @@
 #include "tdat/LatticeDef.H"
 #include "tdat/PropVector.H"
 #include "tdat/TBond.H"
+#include "tdat/TPerTab.H"
+#include "MiniPerTab.H"
 #include "viz/VRVector.H"
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
@@ -101,12 +110,14 @@
 #include "tdat/GeomConstraintRules.H"
 #include "tdat/GeomConstraintPick.H"
 #include "util/EventDispatcher.H"
+#include "viz/CleanCmd.H"
 #include "PBC.H"
 #include "dsm/IPropCalculation.H"
 #include "KeyValuePropertyPanel.H"
 #include "PropertyIndexPanel.H"
 #include "StructLib.H"
 #include "VizPropertyPanel.H"
+#include "wxgui/ewxModalGuard.H"
 
 namespace {
 
@@ -237,7 +248,7 @@ void Builder::runBuilderScript(const std::string& file)
         //  it selected; then the field's text.
         const int id = w[2] == "cut" ? ID_ACCEL_CUT : w[2] == "copy"
                      ? ID_ACCEL_COPY : w[2] == "paste" ? ID_ACCEL_PASTE
-                     : ID_ACCEL_UNDO;
+                     : w[2] == "selectall" ? ID_ACCEL_SELECTALL : ID_ACCEL_UNDO;
         wxTextCtrl *field = 0;
         std::function<void(wxWindow*)> find = [&](wxWindow *p) {
           for (wxWindow *c : p->GetChildren()) {
@@ -269,6 +280,32 @@ void Builder::runBuilderScript(const std::string& file)
                       .ToStdString();
         if (field) outcome += " text=[" + field->GetValue().ToStdString() + "]";
         else if (w[1] == "text") outcome = "FAIL: no text field";
+        if (frag)
+          outcome += " selected=" + std::to_string(frag->m_atomHighLight.size());
+      } else if (w[0] == "pertab" && w.size() == 2) {
+        //  The Build panel's periodic-table button, then a pick in the
+        //  table it opens: the Build element must follow.
+        wxWindow *button = p_pertab->FindWindow(ID_SHOW_TABLE);
+        if (!button) {
+          outcome = "FAIL: no periodic-table button";
+        } else {
+          wxCommandEvent press(wxEVT_BUTTON, ID_SHOW_TABLE);
+          press.SetEventObject(button);
+          button->GetEventHandler()->ProcessEvent(press);
+          for (int i = 0; i < 3; i++) wxTheApp->Yield(true);
+          PerTabPanel *table =
+              dynamic_cast<PerTabPanel*>(p_pertab->tablePanel());
+          TPerTab tpt;
+          const int z = tpt.atomicNumber(w[1]);
+          if (!table) {
+            outcome = "FAIL: the button opened no table";
+          } else {
+            table->setCurrentElement(z);
+            table->fireSelectionChanged(z);
+            fprintf(stderr, "BUILDER: pertab element=%s\n",
+                    p_currentElement.c_str());
+          }
+        }
       } else if (w[0] == "popup" && w.size() == 2) {
         //  The element chooser, as the arrow beside the element tool opens
         //  it, and where it is, straight after it is shown and half a
@@ -304,10 +341,16 @@ void Builder::runBuilderScript(const std::string& file)
         }
       } else if (w[0] == "mode" && w.size() == 2) {
         const int id = w[1] == "atom" ? ID_MODE_ATOM
-                     : w[1] == "select" ? ID_MODE_SELECT : ID_MODE_STRUCTLIB;
+                     : w[1] == "select" ? ID_MODE_SELECT
+                     : w[1] == "bond" ? ID_MODE_BOND : ID_MODE_STRUCTLIB;
         p_modeMenu->Check(id, true);
         wxCommandEvent modeEv(wxEVT_MENU, id);
         GetEventHandler()->ProcessEvent(modeEv);
+      } else if (w[0] == "key" && w.size() == 2 && w[1] == "escape") {
+        //  What the Esc key hook does with the 3-D view focused.
+        if (SoWxRenderArea *area = findViewerArea(p_viewer)) area->SetFocus();
+        for (int i = 0; i < 3; i++) wxTheApp->Yield(true);
+        outcome = std::string("ok acted=") + (escapeKey() ? "1" : "0");
       } else if (w[0] == "key" && w.size() == 2 && w[1] == "delete") {
         //  What the Delete accelerator sends.
         wxCommandEvent delEv(wxEVT_MENU, ID_ACCEL_DELETE);
@@ -376,13 +419,29 @@ void Builder::runBuilderScript(const std::string& file)
                   cp.min_size.y, (int)p_calculations.size());
         }
         LatticeDef *lat = frag ? frag->getLattice() : 0;
-        fprintf(stderr, "BUILDER: atoms=%d lattice=%s\n",
-                frag ? (int)frag->numAtoms() : -1, lat ? "yes" : "no");
+        int nubs = 0;
+        for (size_t i = 0; frag && i < frag->numAtoms(); i++)
+          if (frag->atomRef(i)->atomicSymbol() == "Nub") nubs++;
+        fprintf(stderr, "BUILDER: atoms=%d lattice=%s nubs=%d\n",
+                frag ? (int)frag->numAtoms() : -1, lat ? "yes" : "no", nubs);
+        fprintf(stderr, "BUILDER: frame=%lld\n", ewxModalGuard::frameCounter(this));
         fprintf(stderr, "BUILDER: periodic_builder=%s\n",
                 p_mgr.GetPane(NAME_TOOL_PBC).IsShown() ? "shown" : "hidden");
-        fprintf(stderr, "BUILDER: mode=%s\n",
-                p_currentMode == ID_MODE_ATOM ? "atom"
-                : p_currentMode == ID_MODE_SELECT ? "select" : "other");
+        //  The mode in effect, the mode the toolbar shows and whether the
+        //  viewer picks (a click selects) must name the same thing.
+        auto modeName = [](int id) {
+          return id == ID_MODE_ATOM ? "atom" : id == ID_MODE_SELECT ? "select"
+               : id == ID_MODE_STRUCTLIB ? "structlib" : "other";
+        };
+        int shown = 0, nShown = 0;
+        for (int id = ID_MODE_SELECT; id <= ID_MODE_STRUCTLIB; id++)
+          if (p_modeToolbar->FindById(id) && p_modeToolbar->GetToolState(id)) {
+            shown = id;
+            nShown++;
+          }
+        fprintf(stderr, "BUILDER: mode=%s toolbar=%s checked=%d viewer=%s\n",
+                modeName(p_currentMode), modeName(shown), nShown,
+                p_viewer->isViewing() ? "viewing" : "picking");
       } else if (w[0] == "libatom" && w.size() == 2) {
         p_structLib->setTestAtom(atoi(w[1].c_str()));
       } else if (w[0] == "select" && w.size() == 2 && frag) {
@@ -390,6 +449,30 @@ void Builder::runBuilderScript(const std::string& file)
         frag->m_atomHighLight.clear();
         if (atoi(w[1].c_str()) >= 0)
           frag->m_atomHighLight.assign(1, atoi(w[1].c_str()));
+      } else if (w[0] == "selectelem" && w.size() == 2 && frag) {
+        //  The first atom of element A, as a click on it selects it.
+        outcome = "FAIL: no such atom";
+        for (size_t i = 0; i < frag->numAtoms(); i++)
+          if (frag->atomRef(i)->atomicSymbol() == w[1]) {
+            frag->m_atomHighLight.assign(1, (int)i);
+            outcome = "ok";
+            break;
+          }
+      } else if (w[0] == "addelem" && w.size() == 2 && frag) {
+        //  Add the last atom of element A to the selection (a shift-click).
+        outcome = "FAIL: no such atom";
+        for (size_t i = frag->numAtoms(); i-- > 0; )
+          if (frag->atomRef(i)->atomicSymbol() == w[1]) {
+            frag->m_atomHighLight.push_back((int)i);
+            outcome = "ok";
+            break;
+          }
+      } else if (w[0] == "bondorder" && w.size() == 2) {
+        //  The order the Bond mode makes (the Bond tool's choice).
+        p_currentBond = w[1] == "metal" ? TBond::Metal : TBond::Single;
+      } else if (w[0] == "clean") {
+        //  The Clean command of the viewer's menu, with its default settings.
+        execute(new CleanCmd("Force Field Clean", getSG(), 0));
       } else if (w[0] == "selectnub" && w.size() == 2 && frag) {
         //  The first Nub on the last atom of element A.
         TAtm *last = 0;
@@ -462,6 +545,35 @@ void Builder::runBuilderScript(const std::string& file)
             sel += " " + std::to_string(frag->m_atomHighLight[i] + 1);
           fprintf(stderr, "BUILDER: selected after %s click on %s:%s\n",
                   w[1].c_str(), w[2].c_str(), sel.c_str());
+        }
+      } else if ((w[0] == "atompos" && w.size() == 2 && frag) ||
+                 (w[0] == "viewpos" && w.size() == 3)) {
+        //  Where atom N (1-based), or the point at fractions fx fy of the
+        //  view from its top left, is on the screen, for a test that clicks
+        //  there through the X server.
+        SoWxRenderArea *area = findViewerArea(p_viewer);
+        if (!area) {
+          outcome = "FAIL: no render area";
+        } else {
+          wxPoint at;
+          if (w[0] == "atompos") {
+            SbVec3f p = frag->getAtomCoordinates(atoi(w[1].c_str()) - 1), d;
+            const SbViewportRegion& vpr = p_viewer->getViewportRegion();
+            SbViewVolume vv = p_viewer->getCamera()->getViewVolume(
+                vpr.getViewportAspectRatio());
+            vv.projectToScreen(p, d);
+            SbVec2s sz = vpr.getViewportSizePixels();
+            const double sc = area->GetContentScaleFactor();
+            at = wxPoint((int)std::lround(d[0] * sz[0] / sc),
+                         (int)std::lround((sz[1] - 1 - d[1] * sz[1]) / sc));
+          } else {
+            const wxSize sz = area->GetClientSize();
+            at = wxPoint((int)(atof(w[1].c_str()) * sz.x),
+                         (int)(atof(w[2].c_str()) * sz.y));
+          }
+          at = area->ClientToScreen(at);
+          fprintf(stderr, "BUILDER: %s %s at %d %d\n", w[0].c_str(),
+                  w[1].c_str(), at.x, at.y);
         }
       } else if (w[0] == "element" && w.size() == 2) {
         //  The element chosen in the Build panel.
