@@ -77,7 +77,7 @@ TGBSConfigTags::TGBSConfigTags
   char* tag = strtok(tags, parseCharacters);
    while(tag) {
      //insert(begin(),tag);
-     push_back(tag);
+     push_back(TPerTab::canonicalSymbol(tag));
      tag = strtok((char*)0, parseCharacters);
   }
 

@@ -50,6 +50,7 @@ using namespace std;
 #include "util/StringTokenizer.H"
 
 map<string,int,less<string> > *TPerTab::p_symhash=0;
+static string oldPlaceholder(int z);
 vector<TRefElement*>       *TPerTab::p_refel=0;
 vector<TRefElement*>       *TPerTab::p_userel=0;
 
@@ -114,6 +115,11 @@ TPerTab::TPerTab(bool refOnly) {
       sym = (*p_refel)[idx]->atomicSymbol();
       for (size_t i=0; i<sym.size(); i++) sym[i] = tolower(sym[i]);
       (*p_symhash)[sym] = idx;
+    }
+    // Stored files from before the IUPAC names still carry these.
+    for (int z = 110; z <= 118 && z < cnt; z++) {
+      string old = oldPlaceholder(z);
+      (*p_symhash)[old] = z;
     }
 
   }
@@ -597,6 +603,24 @@ string TPerTab::colorName(int atomicNumber) const {
 }
 
 
+// Lower-case placeholder symbol of element z (110-118).
+static string oldPlaceholder(int z)
+{
+  static const char *old[] = {"uun","uuu","uub","uut","uuq","uup","uuh",
+                              "uus","uuo"};
+  return old[z-110];
+}
+
+string TPerTab::canonicalSymbol(const string& symbol)
+{
+  static const char *iupac[] = {"Ds","Rg","Cn","Nh","Fl","Mc","Lv","Ts","Og"};
+  string low = symbol;
+  for (size_t i=0; i<low.size(); i++) low[i] = tolower(low[i]);
+  for (int z = 110; z <= 118; z++)
+    if (low == oldPlaceholder(z)) return iupac[z-110];
+  return symbol;
+}
+
 string TPerTab::mixedCase(const string& oldSymbol) {
    // Don't dump core due to this - the  app must handle it
    if (oldSymbol.length() == 0) return "";
@@ -605,5 +629,5 @@ string TPerTab::mixedCase(const string& oldSymbol) {
    newSymbol[0] = toupper(oldSymbol[0]);
    for (size_t i = 1; i<oldSymbol.size(); i++) newSymbol[i] =
      tolower(oldSymbol[i]);
-   return newSymbol;
+   return canonicalSymbol(newSymbol);
 }
