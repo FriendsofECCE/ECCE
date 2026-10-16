@@ -145,6 +145,9 @@ public:
     /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_CALCED_CONSTRAINT
     virtual    void OnButtonCalcedConstraintClick( wxCommandEvent& event );
 
+    /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_CALCED_GUESS_DEFAULT
+    virtual    void OnButtonCalcedGuessDefaultClick( wxCommandEvent& event );
+
     /// wxEVT_COMMAND_BUTTON_CLICKED event handler for ID_BUTTON_CALCED_FINAL_EDIT
     virtual    void OnButtonCalcedFinalEditClick( wxCommandEvent& event );
 
@@ -178,6 +181,9 @@ public:
     wxPanel* p_basisInner;
     ewxStaticText* p_notReadyText;
     ewxStaticText* p_constraintNote;
+    wxBoxSizer* p_guessRow;
+    wxBoxSizer* p_guessColumn;
+    ewxStaticText* p_guessText;
     wxFlexGridSizer* p_theoryDetailsSizer;
     wxFlexGridSizer* p_runtypeDetailsSizer;
     wxBoxSizer* p_buttonRow;
@@ -202,6 +208,7 @@ public:
     static const wxWindowID ID_STATIC_CALCED_SPIN_MULT;
     static const wxWindowID ID_BUTTON_CALCED_FINAL_EDIT;
     static const wxWindowID ID_BUTTON_CALCED_VERIFY;
+    static const wxWindowID ID_BUTTON_CALCED_GUESS_DEFAULT;
     static const wxWindowID ID_STATICTEXT_CALCED_VERIFY_LIGHT;
     static const wxWindowID ID_STATICTEXT_CALCED_OPEN_SHELLS;
     static const wxWindowID ID_STATICTEXT_CALCED_FUNCTIONS;

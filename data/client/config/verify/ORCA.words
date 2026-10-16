@@ -50,12 +50,14 @@ $wrote
 %elprop\n
 %geom\n
 %maxcore
+%moinp
 %output\n
 %s
 %scf\n
 &$sub
 &$subname
 &$subname;
+&orbitalguessfile
 '$func'
 '$model'
 '$theory'.\n
@@ -279,6 +281,7 @@ es.theory.dft.xcfunctionals
 es.theory.scf.convergenceiterations
 es.theory.scf.convergencetolerance
 es.theory.scf.memorysize
+es.theory.scf.orbitalguessfile
 es.theory.scf.rijcosxauxbasis
 es.theory.scf.solvationmodel
 es.theory.scf.solvent
@@ -357,6 +360,7 @@ mini
 missing
 model
 molecular
+moread
 mp2
 mpw2plyp
 mult

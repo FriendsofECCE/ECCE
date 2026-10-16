@@ -492,7 +492,7 @@ void calcPutOutFileName(const string& fileName, const string& parseType)
 { 
   string outputFile = tmpStorage + "/" + fileName; 
   string key, value;
-  ifstream ifs(outputFile.c_str());
+  ifstream ifs(outputFile.c_str(), ios::in | ios::binary);
   VDoc *vdoc = EDSIFactory::getVdoc(calculation->getURL());
   if (vdoc != 0) {
 
@@ -1509,6 +1509,22 @@ void interactGetFiles(void)
 #endif
 
       calcPutOutFileName(fileName, "");
+    }
+  }
+
+  //  The auxiliary output a code asks to keep (ORCA's .gbw).  Only a
+  //  file that really arrived is stored; a failed job may leave none.
+  {
+    const JCode *jc = calculation->application();
+    string retain;
+    if (jc != 0 && jc->get_string("RetainAuxiliaryOutput", retain) &&
+        retain == "yes") {
+      vector<TypedFile> aux = jc->getCodeFiles(JCode::AUXILIARY_OUTPUT);
+      for (size_t a = 0; a < aux.size(); a++) {
+        if (!aux[a].name().empty() &&
+            localconn->exists(tmpStorage + "/" + aux[a].name()))
+          calcPutOutFileName(aux[a].name(), "");
+      }
     }
   }
 

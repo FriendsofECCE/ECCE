@@ -116,6 +116,7 @@ class CalcEd: public CalcEdGUI,
     virtual void OnButtonCalcedRuntypeClick( wxCommandEvent& event );
     virtual void OnButtonCalcedPartialClick( wxCommandEvent& event );
     virtual void OnButtonCalcedConstraintClick( wxCommandEvent& event );
+    virtual void OnButtonCalcedGuessDefaultClick( wxCommandEvent& event );
     virtual void OnButtonCalcedFinalEditClick( wxCommandEvent& event );
     virtual void OnButtonCalcedVerifyClick( wxCommandEvent& event );
     virtual void OnButtonCalcedLaunchClick( wxCommandEvent& event );
@@ -225,6 +226,7 @@ class CalcEd: public CalcEdGUI,
     void showBasisSetFields();
     void showDetailsFields();
     void showGeomEditor();
+    void refreshOrbitalGuess();
     void showPartialEditor();
 
     void makeRuntypeNoSphericalConsistent();

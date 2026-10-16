@@ -67,6 +67,10 @@ CASES = [
     ("orca-ethane.orcain",    "ORCA",             8, [("GOOD", "route"),
                                                       ("GOOD", "geomblock"),
                                                       ("GOOD", "geometry")]),
+    #  #75: the deck a duplicate with final orbitals generates; MORead is a
+    #  keyword ECCE writes, so it must not be reported as unknown.
+    ("orca-moread.orcain",    "ORCA",             3, [("GOOD", "route"),
+                                                      ("GOOD", "geometry")]),
     #  #148 "the miss found live": the ECP ORCA deck from
     #  /home/andy/jobs/iodimethane/orca.orcain, whose NewECP rows had no
     #  leading index column -- ORCA 6.1.1 stops on every one of these

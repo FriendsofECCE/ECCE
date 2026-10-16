@@ -50,6 +50,8 @@ chemical/x-gamessuk-input                .gki
 chemical/x-gamessuk-output               .gko
 chemical/x-orca-input                    .orcain
 chemical/x-orca-output                   .orcaout
+chemical/x-orca-gbw                      .gbw
+chemical/x-orca-guess                    .gbwin
 chemical/x-ecceqm-input                  .qmin
 chemical/x-ecceqm-output                 .qmout
 chemical/x-mopac-input                   .mop

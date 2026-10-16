@@ -2703,6 +2703,21 @@ if(PYTHON3_EXECUTABLE)
     set_tests_properties(launch_contact PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
   endif()
 
+  # #75: an ORCA job's final orbitals as the guess of the next (local data,
+  # then a data server); skipped (77) without ORCA 6 under /opt/orca.
+  add_test(NAME launch_orca_guess
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/orca_guess_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_orca_guess PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+  add_test(NAME launch_orca_guess_central
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/orca_guess_test.py
+                   --build ${CMAKE_BINARY_DIR} --central
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_orca_guess_central PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+
   # A GROMACS MD study through the real editors (private Xvfb), launches and
   # results; skipped (77) without gmx or Xvfb.  Needs the GUI apps built.
   add_test(NAME launch_gromacs

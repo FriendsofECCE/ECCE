@@ -702,12 +702,61 @@ string TaskJob::inputWarningsProp()
 }
 
 
+string TaskJob::orbitalGuessFile()
+{
+  return "guess.gbwin";
+}
+
+
+string TaskJob::orbitalGuessSourceProp()
+{
+  return VDoc::getEcceNamespace() + ":orbitalguesssource";
+}
+
+
+string TaskJob::orbitalGuessBasisProp()
+{
+  return VDoc::getEcceNamespace() + ":orbitalguessbasis";
+}
+
+
+bool TaskJob::hasOrbitalGuess() const
+{
+  try {
+    vector<EcceURL> urls = getVDoc()->getInputs();
+    for (size_t i = 0; i < urls.size(); i++)
+      if (urls[i].getFilePathTail() == orbitalGuessFile()) return true;
+  }
+  catch (...) {}
+  return false;
+}
+
+
+bool TaskJob::clearOrbitalGuess()
+{
+  bool ret = putInputFile(orbitalGuessFile(), (istream*)0);
+  addProp(orbitalGuessSourceProp(), "");
+  addProp(orbitalGuessBasisProp(), "");
+  return ret;
+}
+
+
 bool TaskJob::removeInputFiles()
 {
   bool ret = true;
 
   try {
-    getVDoc()->removeInputs();
+    //  The guess is not part of the generated deck, and every Save
+    //  regenerates the deck.
+    if (hasOrbitalGuess()) {
+      vector<EcceURL> urls = getVDoc()->getInputs();
+      for (size_t i = 0; i < urls.size(); i++) {
+        const string name = urls[i].getFilePathTail();
+        if (name != orbitalGuessFile()) getVDoc()->removeInput(name);
+      }
+    } else {
+      getVDoc()->removeInputs();
+    }
     // The warnings describe the deck just removed, and a duplicate
     // starts as a copy of them.
     if (!getProp(inputWarningsProp()).empty())
@@ -1091,7 +1140,7 @@ SFile *TaskJob::getAnyFile(const string& name, const SFile *dest) const
 
   EcceURL outputfileUrl = getVDoc()->getFile(name);
   getEDSI()->setURL(outputfileUrl);
-  ofstream ofs( sfile->path().c_str() );
+  ofstream ofs( sfile->path().c_str(), std::ios::out | std::ios::binary );
   if (! getEDSI()->getDataSet( ofs )) sfile = 0;
   ofs.close();
 

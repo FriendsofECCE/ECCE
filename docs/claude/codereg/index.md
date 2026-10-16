@@ -131,6 +131,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [Never point an `ai.<code>` script's `-t` at the repo's own template](never-point-an-ai-code-scripts-t.md)
 - [Codereg dialogs are never told which elements the structure contains](codereg-dialogs-are-never-told-which-elements.md)
 - [CalcEd's own ES.Theory.UseSymmetry key is lost whenever p_GUIValues is replaced](calced-owns-use-symmetry-key.md)
+- [ORCA final orbitals as the next job's guess (#75): five silent traps on the way from the .gbw to MORead](orca-final-orbitals-as-the-next-jobs-guess-75.md)
 - [genmol is handed the whole molecule after the Builder's Find, and must return it unchanged](genmol-is-handed-the-whole-molecule.md)
 - [A dialog's choice string must match the generator's expected string EXACTLY, or selecting it silently emits nothing](a-dialogs-choice-string-must-match-the.md)
 - [The basis-set writers decide *how* a basis reaches the deck, and every bug in them is silent](the-basis-set-writers-decide-how-a.md)

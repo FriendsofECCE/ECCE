@@ -762,6 +762,20 @@ bool Launch::validateCalculation(void)
           // process any auxiliary basis set files (Amica)
           vector<EcceURL> basvec = auxInputUrls();
           for (int ib=0; ib<basvec.size(); ib++) {
+            //  Binary, and the stream form of a stored file stops at the
+            //  first NUL byte, so this one goes straight to a file.
+            if (basvec[ib].getFilePathTail() == TaskJob::orbitalGuessFile()) {
+              inputFilePath = p_cache->directory + "/" +
+                              basvec[ib].getFilePathTail();
+              SFile guessDest(inputFilePath);
+              if (p_taskjob->getAnyFile(basvec[ib], &guessDest) == 0) {
+                ret = false;
+                p_lastMessage = "The orbital guess file could not be "
+                                "copied from the data server";
+                break;
+              }
+              continue;
+            }
             is = p_taskjob->getAnyFile(basvec[ib]);
             if (is) {
               inputFilePath = p_cache->directory + "/" + basvec[ib].getFilePathTail();
@@ -1360,6 +1374,18 @@ bool Launch::generateJobMonitoringFiles(void)
     substituteRealFileName(mdOutputFileName);
     if (!mdOutputFileName.empty()) {
       monitorConfigFile << "jobOutputFile6 " << mdOutputFileName << endl;
+    }
+
+    //  A code that keeps its auxiliary output (ORCA's .gbw) has the
+    //  monitor send it with the run's other files at the end.
+    {
+      string retain;
+      const JCode* jc = p_taskjob->application();
+      string aux = (*p_options)["##auxiliary##"];
+      substituteRealFileName(aux);
+      if (jc != 0 && !aux.empty() &&
+          jc->get_string("RetainAuxiliaryOutput", retain) && retain == "yes")
+        monitorConfigFile << "filesToTransfer " << aux << endl;
     }
 
     monitorConfigFile << "parseTypes ALL" << endl;

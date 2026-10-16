@@ -91,6 +91,7 @@ static std::string s_registerMessage;
 #include "dsm/Session.H"
 #include "dsm/VDoc.H"
 #include "dsm/ICalculation.H"
+#include "dsm/OrbitalGuess.H"
 #include "dsm/ChemistryTask.H"
 #include "dsm/TGBSConfig.H"
 #include "tdat/Fragment.H"
@@ -2413,6 +2414,52 @@ void CalcMgr::OnDuplicate2Click( wxCommandEvent& event )
 
 
 /*!
+ * wxEVT_COMMAND_MENU_SELECTED event handler for wxID_DUPLICATE3
+ *
+ * Like Duplicate Setup with Last Geometry, and the duplicate also carries
+ * the source's final orbitals, which belong to that geometry.
+ */
+void CalcMgr::OnDuplicate3Click( wxCommandEvent& event )
+{
+  startDisabler();
+  FrameHold hold(this);
+
+  if (getSelection()) {
+    WxResourceTreeItemData * sel = findNode(p_currentSelection[0], false, true);
+    TaskJob *source = dynamic_cast<TaskJob*>(sel->getResource());
+    string why;
+    if (source == 0) {
+      p_feedback->clearMessage();
+      setMessage("Duplicate is only applicable to calculations.");
+    } else if (!OrbitalGuess::available(source, why)) {
+      p_feedback->clearMessage();
+      setMessage(why, WxFeedback::WARNING);
+    } else {
+      WxResourceTreeItemData *dup = duplicate(sel, true);
+      if (dup) {
+        resetWithLastGeom(dup);
+        TaskJob *task = dynamic_cast<TaskJob*>(dup->getResource());
+        if (task) {
+          //  A deck copied from the source has no MORead in it: have the
+          //  Calculation Editor generate it again.
+          if (task->getState() != ResourceDescriptor::STATE_CREATED)
+            task->resetForRerun(ResourceDescriptor::STATE_CREATED);
+          if (!OrbitalGuess::attach(task, source, why)) {
+            p_feedback->clearMessage();
+            setMessage("The duplicate was made without the orbitals. " + why,
+                       WxFeedback::WARNING);
+          }
+        }
+        onSelectionChange(true);
+      }
+    }
+  }
+
+  stopDisabler();
+}
+
+
+/*!
  * wxEVT_COMMAND_MENU_SELECTED event handler for wxID_CUT
  *
  * The cut implementation will only support paste once after cut.
@@ -3668,6 +3715,14 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   if (isCalculationNode) {
     menu.Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
     menu.Append(wxID_DUPLICATE2, _("Duplicate Setup with Last Geometry"));
+    string why;
+    bool can = OrbitalGuess::available(
+        dynamic_cast<TaskJob*>(itemData->getResource()), why);
+    wxMenuItem *item = menu.Append(wxID_DUPLICATE3,
+        _("Duplicate with Final Orbitals"),
+        can ? _("Duplicate with the last geometry and start from this "
+                "calculation's final orbitals") : wxString(why));
+    item->Enable(can);
   }
   menu.Append(wxID_RENAME, wxT("&Rename"));
   menu.Enable(wxID_RENAME, true);
@@ -7137,6 +7192,7 @@ void CalcMgr::updateSelectionMenus()
     enableMenuItem(menuBar, wxID_ANNOTATION, false);
     enableMenuItem(menuBar, wxID_DUPLICATE, false);
     enableMenuItem(menuBar, wxID_DUPLICATE2, false);
+    enableMenuItem(menuBar, wxID_DUPLICATE3, false);
     enableTool(p_toolBar, wxID_RENAME, false);
     enableTool(p_toolBar, wxID_VIEW_PROPERTY, false);
     enableTool(p_toolBar, wxID_DOWNLOAD, false);
@@ -7205,6 +7261,18 @@ void CalcMgr::updateSelectionMenus()
       enableMenuItem(menuBar, wxID_ANNOTATION, !isSystemFolder);
       enableMenuItem(menuBar, wxID_DUPLICATE, isCalculation);
       enableMenuItem(menuBar, wxID_DUPLICATE2, isCalculation);
+      {
+        //  Offered where it works; elsewhere the help line says why not.
+        string why;
+        bool can = isCalculation && OrbitalGuess::available(
+            dynamic_cast<TaskJob*>(itemData->getResource()), why);
+        enableMenuItem(menuBar, wxID_DUPLICATE3, can);
+        wxMenuItem *item = menuBar->FindItem(wxID_DUPLICATE3);
+        if (item)
+          item->SetHelp(can ? _("Duplicate with the last geometry and start "
+                                "from this calculation's final orbitals")
+                            : wxString(why));
+      }
       enableMenuItem(menuBar, wxID_TEST_SUITE, isCalculation);
       enableTool(p_toolBar, wxID_CUT, !isSystemFolder);
       enableTool(p_toolBar, wxID_RENAME, !isSystemFolder);
@@ -7239,6 +7307,7 @@ void CalcMgr::updateSelectionMenus()
       enableMenuItem(menuBar, wxID_ANNOTATION, false);
       enableMenuItem(menuBar, wxID_DUPLICATE, false);
       enableMenuItem(menuBar, wxID_DUPLICATE2, false);
+      enableMenuItem(menuBar, wxID_DUPLICATE3, false);
       enableMenuItem(menuBar, wxID_TEST_SUITE, false);
       enableTool(p_toolBar, wxID_CUT, false);
       enableTool(p_toolBar, wxID_RENAME, false);

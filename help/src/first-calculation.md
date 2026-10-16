@@ -234,6 +234,28 @@ calculation:
 A geometry optimisation that has reached a minimum has no imaginary
 frequencies.
 
+## Starting from the orbitals of an earlier calculation (ORCA)
+
+An ORCA calculation keeps its final orbitals when it has finished. A
+follow-on calculation can start from them instead of from ORCA's own initial
+guess, which saves SCF iterations and helps difficult cases converge.
+
+1. Select the finished ORCA calculation and choose **Edit > Duplicate with
+   Final Orbitals**. The copy has the last geometry, as with **Duplicate
+   Setup with Last Geometry**, and the orbitals belong to that geometry.
+   The item is greyed out for other codes and for a calculation that has
+   no stored orbitals; its help line says which.
+2. Open the copy in the Calculation Editor. Under **Settings** it shows
+   **Initial guess: MOs from** the calculation they came from. Change the
+   method, the run type or the basis set as you need.
+3. If you choose another basis set, the line adds **(projected from** the
+   old basis set**)**: ORCA projects the old orbitals onto the new basis.
+4. **Use Default Guess** drops the orbitals and returns to ORCA's own
+   guess.
+
+The orbitals are a binary file of a few megabytes, copied to the machine
+that runs the job.
+
 ## Plane-wave calculations (NWPW)
 
 NWChem's plane-wave module, NWPW, has no code of its own in the list of
