@@ -1505,6 +1505,152 @@ sub ecceqm()
 # injected into the input file's keyword line by mopac.launchpp
 # (<LaunchPreprocessor>) before this script ever runs.
 ###########################################################################
+# A Prepare task (input gromacs.gmxprep, written by md.gmxprep): builds the
+# solvated, neutral system the later tasks start from.  Four steps, each
+# announced in the output file with its tool output below it; the first
+# failure puts that tool's words in the output file and ends the script
+# false.  Step 1 depends on SOURCE; the rest are shared.  A later SOURCE
+# (MINFF files staged from the client, a ligand through acpype) is another
+# arm of the case in step 1 and must leave step1.gro and topol.top.
+# Written for sh: no arrays, no [[ ]].
+sub gromacsPrepare()
+{
+  my ($t, $restart);
+  $restart = $::mdSystemName . "_" . $::mdCalcName . ".gro";
+  $t = <<'PREPEOF';
+
+@@CC@@ - Read the recipe; md.gmxprep has checked every value.
+SOURCE=protein FF=amber99sb-ildn WATER=tip3p HIS=auto IGNH=1 MERGE=1
+BOX=dodecahedron DIST=1.0 CONC=0.15 PNAME=NA NNAME=CL
+while IFS='=' read -r k v; do
+  case "$k" in
+    SOURCE) SOURCE=$v;; FF) FF=$v;; WATER) WATER=$v;; HIS) HIS=$v;;
+    IGNH) IGNH=$v;; MERGE) MERGE=$v;; BOX) BOX=$v;; DIST) DIST=$v;;
+    CONC) CONC=$v;; PNAME) PNAME=$v;; NNAME) NNAME=$v;;
+  esac
+done < @@IN@@
+rm -f @@OUT@@
+: > @@OUT@@
+
+prepStep() {
+  echo "ECCE-PREPARE step $1/4 $2" >> @@OUT@@
+  echo "ECCE-PREPARE step $1/4 $2" >> @@LOG@@
+}
+# Runs the command with its output kept; a failure ends the step.
+prepRun() {
+  "$@" > prep.step 2>&1 < /dev/null
+  prepRc=$?
+  cat prep.step >> @@LOG@@
+  cat prep.step >> @@OUT@@
+  if [ $prepRc -ne 0 ]; then
+    echo "$1 $2 failed with status $prepRc" >> @@LOG@@
+    return 1
+  fi
+}
+genionRun() {
+  echo SOL | "$gmx" genion -s ions.tpr -o ion.gro -p topol.top \
+      -pname "$PNAME" -nname "$NNAME" -neutral $GENION_CONC
+}
+
+case "$WATER" in
+  tip3p|spc|spce) WBOX=spc216.gro;;
+  tip4p|tip4pew)  WBOX=tip4p.gro;;
+  tip5p)          WBOX=tip5p.gro;;
+  *) echo "No water box is known for the water model $WATER" >> @@OUT@@; WBOX="";;
+esac
+GENION_CONC=""
+if [ "`echo "$CONC" | awk '{print ($1 > 0)}'`" = 1 ]; then GENION_CONC="-conc $CONC"; fi
+
+(
+  [ -n "$WBOX" ] || exit 1
+
+  prepStep 1 pdb2gmx
+  case "$SOURCE" in
+    protein)
+      set -- *.gmxpdb
+      pdb=$1
+      [ -f "$pdb" ] || pdb=@@SYS@@.pdb
+      # pdb2gmx goes by the extension, and a staged name may not end in .pdb
+      cp "$pdb" prep_in.pdb
+      pdb=prep_in.pdb
+      opts=""
+      [ "$IGNH" = 1 ] && opts="$opts -ignh"
+      [ "$MERGE" = 1 ] && opts="$opts -merge all"
+      prepRun "$gmx" pdb2gmx -f "$pdb" -ff "$FF" -water "$WATER" $opts \
+          -o step1.gro -p topol.top -i posre.itp || exit 1
+      cp prep.step prep.pdb2gmx
+      ;;
+    *) echo "Unknown SOURCE $SOURCE" >> @@OUT@@; exit 1;;
+  esac
+
+  prepStep 2 editconf
+  prepRun "$gmx" editconf -f step1.gro -o step2.gro -c -bt "$BOX" -d "$DIST" || exit 1
+  cp prep.step prep.editconf
+
+  prepStep 3 solvate
+  prepRun "$gmx" solvate -cp step2.gro -cs "$WBOX" -o step3.gro -p topol.top || exit 1
+
+  prepStep 4 genion
+  cat > ions.mdp <<'MDPEOF'
+integrator = steep
+nsteps = 0
+cutoff-scheme = Verlet
+coulombtype = cutoff
+rcoulomb = 1.0
+rvdw = 1.0
+pbc = xyz
+MDPEOF
+  # A net charge is only a note.  Every GROMOS force field draws one
+  # warning (its twin-range parametrisation), which is the one allowed here.
+  maxwarn=0
+  case "$FF" in gromos*) maxwarn=1;; esac
+  prepRun "$gmx" grompp -f ions.mdp -c step3.gro -p topol.top -o ions.tpr -maxwarn $maxwarn || exit 1
+  cp prep.step prep.grompp
+  prepRun genionRun || exit 1
+  cp ion.gro @@RESTART@@ || exit 1
+  cp topol.top @@SYS@@.gmxtop || exit 1
+  prepRun "$gmx" editconf -f @@RESTART@@ -o chemsys.pdb || exit 1
+
+  # The summary the Organizer and the Viewer show.  The numbers are gmx's
+  # own: the structure and topology it wrote, and what pdb2gmx, editconf
+  # and grompp said; a charge grompp does not mention is zero.
+  atoms=`sed -n 2p @@RESTART@@ | tr -d ' \r'`
+  resid=`sed -n 's/^Now there are \([0-9]*\) residues.*/\1/p' prep.pdb2gmx | tail -1`
+  [ -n "$resid" ] || resid=`sed -n 's/^.* and \([0-9]*\) residues with.*/\1/p' prep.pdb2gmx | tail -1`
+  molcount() { awk -v m="$1" '/\[ *molecules *\]/{f=1;next} f && $1==m {n+=$2} END{print n+0}' topol.top; }
+  waters=`molcount SOL`
+  npos=`molcount "$PNAME"`
+  nneg=`molcount "$NNAME"`
+  chargeOf() { q=`sed -n 's/.*System has non-zero total charge: *\([-0-9.eE+]*\).*/\1/p' "$1" | head -1`; echo "${q:-0}"; }
+  q0=`chargeOf prep.grompp`
+  if "$gmx" grompp -f ions.mdp -c @@RESTART@@ -p topol.top -o after.tpr -maxwarn $maxwarn > prep.after 2>&1 < /dev/null; then
+    q1=`chargeOf prep.after`
+  else
+    q1="?"
+  fi
+  boxv=`sed -n 's/^new box vectors : *\([0-9.]*\) *\([0-9.]*\) *\([0-9.]*\).*/\1 \2 \3/p' prep.editconf | tail -1`
+  boxa=`sed -n 's/^new box angles  : *\([0-9.]*\) *\([0-9.]*\) *\([0-9.]*\).*/\1 \2 \3/p' prep.editconf | tail -1`
+  set -- $boxv; ba=$1; bb=$2; bc=$3
+  set -- $boxa; aa=$1; ab=$2; ag=$3
+  {
+    echo "ECCE-PREPARE system atoms=$atoms residues=$resid waters=$waters pos=$npos neg=$nneg posname=$PNAME negname=$NNAME"
+    echo "ECCE-PREPARE box charge0=$q0 charge1=$q1 box=$BOX a=$ba b=$bb c=$bc alpha=$aa beta=$ab gamma=$ag"
+    echo "ECCE-PREPARE done"
+  } | tee -a @@LOG@@ >> @@OUT@@
+)
+prepStatus=$?
+( exit $prepStatus )
+PREPEOF
+  $t =~ s/\@\@CC\@\@/$::CC/g;
+  $t =~ s/\@\@IN\@\@/$::inFile/g;
+  $t =~ s/\@\@OUT\@\@/$::outFile/g;
+  $t =~ s/\@\@LOG\@\@/$::logfile/g;
+  $t =~ s/\@\@SYS\@\@/$::mdSystemName/g;
+  $t =~ s/\@\@RESTART\@\@/$restart/g;
+  return $t;
+}
+
+###########################################################################
 # GROMACS, run as a task of a GROMACS MD study (docs/GROMACS.md).
 #
 # GROMACS is not one binary reading one deck: grompp turns the .mdp (written
@@ -1543,6 +1689,8 @@ sub gromacs()
 
   if ($cmd ne "") {
     $retval .= "$cmd\n";
+  } elsif ($::inFile =~ /\.gmxprep$/) {
+    $retval .= &gromacsPrepare();
   } else {
     $restart = $::mdSystemName . "_" . $::mdCalcName . ".gro";
     $mpi = ($gmx =~ /gmx_mpi[^\/]*$/) ? 1 : 0;
@@ -1564,7 +1712,11 @@ sub gromacs()
     $retval .= "$::CC - mostly about the topology, go where the user will look.\n";
     #  -r: position restraints are held to the starting structure; grompp
     #  refuses a restrained topology without it and ignores it otherwise.
-    $retval .= "\"\$gmx\" grompp -f $::inFile -c conf.gro -r conf.gro -p topol.top -o topol.tpr -maxwarn 0 > grompp.out 2>&1\n";
+    #  A GROMOS force field makes grompp print one twin-range warning
+    #  whatever the system; any other warning still stops the job.
+    $retval .= "maxwarn=0\n";
+    $retval .= "grep -q '^[[:space:]]*#include[[:space:]]*\"gromos[^\"]*\\.ff/' topol.top && maxwarn=1\n";
+    $retval .= "\"\$gmx\" grompp -f $::inFile -c conf.gro -r conf.gro -p topol.top -o topol.tpr -maxwarn \$maxwarn > grompp.out 2>&1\n";
     $retval .= "if [ \$? -ne 0 ]; then\n";
     $retval .= "  cat grompp.out >> $::logfile\n";
     $retval .= "  cp grompp.out $::outFile\n";

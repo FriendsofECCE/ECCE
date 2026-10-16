@@ -240,7 +240,11 @@ Launch::Launch(TaskJob* task,
     // the task is searched first.
     const bool gromacs =
       (task->getApplicationType() == ResourceDescriptor::AT_GROMACS);
-    if (gromacs && task->getDataFiles(JCode::RESTART_OUTPUT).size() > 0) {
+    // (a GROMACS Prepare builds both, so its own earlier outputs are not
+    // its inputs)
+    const bool gromacsInputs = gromacs &&
+      task->getContentType() != ResourceDescriptor::CT_MDPREPARE;
+    if (gromacsInputs && task->getDataFiles(JCode::RESTART_OUTPUT).size() > 0) {
       p_restartProvider = task;
       finishedSearch = true;
     }
@@ -267,7 +271,7 @@ Launch::Launch(TaskJob* task,
     p_topologyProvider = 0;
     searchTask = dynamic_cast<TaskJob*>(EDSIFactory::getResource(task->getURL()));
     finishedSearch = false;
-    if (gromacs && task->getDataFiles(JCode::TOPOLOGY_OUTPUT).size() > 0) {
+    if (gromacsInputs && task->getDataFiles(JCode::TOPOLOGY_OUTPUT).size() > 0) {
       p_topologyProvider = task;
       finishedSearch = true;
     }
@@ -886,7 +890,8 @@ bool Launch::validateCalculation(void)
               }
               delete is;
               is = 0;
-            } else {
+            } else if (!(p_cache->isGromacs && hasGromacsSourcePdb())) {
+              // A GROMACS Prepare may start from an attached .gmxpdb instead
               ret = false;
               p_lastMessage = "Unable to find source for chemical system pdb file for MD Prepare task";
             }
@@ -1527,6 +1532,23 @@ bool Launch::generateDescriptorFile(const string& source, const string& target)
 // to any task of the study, and every later task needs them too, so the
 // earlier tasks are searched as well and the nearest file of a name wins.
 ///////////////////////////////////////////////////////////////////////////
+static bool isGromacsSourcePdb(const EcceURL& url)
+{
+  const string t = url.getFilePathTail();
+  return t.size() > 7 && t.compare(t.size() - 7, 7, ".gmxpdb") == 0;
+}
+
+
+bool Launch::hasGromacsSourcePdb() const
+{
+  vector<EcceURL> urls = p_taskjob->getDataFiles(JCode::AUXILIARY_INPUT);
+  for (size_t i = 0; i < urls.size(); i++) {
+    if (isGromacsSourcePdb(urls[i])) return true;
+  }
+  return false;
+}
+
+
 vector<EcceURL> Launch::auxInputUrls() const
 {
   vector<EcceURL> urls = p_taskjob->getDataFiles(JCode::AUXILIARY_INPUT);
@@ -1539,6 +1561,8 @@ vector<EcceURL> Launch::auxInputUrls() const
       if (t == 0) break;
       vector<EcceURL> more = t->getDataFiles(JCode::AUXILIARY_INPUT);
       for (size_t i = 0; i < more.size(); i++) {
+        // a Prepare's source PDB is for that Prepare only
+        if (isGromacsSourcePdb(more[i])) continue;
         bool have = false;
         for (size_t j = 0; j < urls.size(); j++) {
           if (urls[j].getFilePathTail() == more[i].getFilePathTail())
@@ -1729,10 +1753,14 @@ bool Launch::moveFiles(void)
     }
 
     // PDB File
+    // (a GROMACS Prepare that starts from an attached .gmxpdb writes none)
     if (p_cache->isMd && p_isPrepareTask) {
       pdbFileName = p_cache->mdSystemName + ".pdb";
-      incount++;
-      pdbIdx = incount -1;
+      if (!p_cache->isGromacs ||
+          ifstream((p_cache->directory + "/" + pdbFileName).c_str()).good()) {
+        incount++;
+        pdbIdx = incount -1;
+      }
     }
 
     char** fromFiles = (char**)malloc((incount+5) * sizeof(char*));

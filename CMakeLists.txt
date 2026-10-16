@@ -523,6 +523,8 @@ ecce_app(mdenergy src/apps/mdenergy WX
   LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(mdoptimize src/apps/mdoptimize WX
   LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_app(gmxprepare src/apps/gmxprepare WX
+  LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(mdprepare src/apps/mdprepare WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(msgdialog src/apps/messagedialog WX
@@ -989,7 +991,7 @@ install(PROGRAMS ${_remote_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMP
 # ------------------------------------------------------------------------
 set(ECCE_GUI_APPS
   basistool calced dirdyed gateway launcher machbrowser machregister
-  mddynamics mdenergy mdoptimize mdprepare msgdialog metadyn organizer
+  mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
   load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-site-admin mocomp
@@ -2726,6 +2728,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_gromacs PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+  # A GROMACS Prepare (pdb2gmx, editconf, solvate, genion) and the Optimize
+  # after it, through the real launch path; skipped (77) without gmx.
+  add_test(NAME launch_gromacs_prepare
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/gromacs_prepare_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_gromacs_prepare PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
   # The MD Optimize editor and the Organizer's editor button for a GROMACS
   # and an NWChem MD study (private Xvfb); skipped (77) without Xvfb.
   add_test(NAME launch_md_editors

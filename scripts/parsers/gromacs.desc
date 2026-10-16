@@ -116,3 +116,36 @@ Progress={integrator} converged=yes
 Begin=^(?:Steepest Descents|Polak-Ribiere Conjugate Gradients|Low-Memory BFGS Minimizer) did not converge to
 Progress={integrator} converged=no
 [END]
+
+# A GROMACS Prepare task (gensub echoes "ECCE-PREPARE ..." into the output
+# file).  Stage "prepare": the step under way, then the result lines that
+# the summary and the properties below read.
+[PROGRESS]
+Begin=^ECCE-PREPARE step (\d+)/(\d+) (\S+)
+Progress=prepare point=$1/$2 tool=$3
+[END]
+
+[PROGRESS]
+Begin=^ECCE-PREPARE system atoms=(\d+) residues=(\d*) waters=(\d+) pos=(\d+) neg=(\d+) posname=(\S+) negname=(\S+)
+Progress=prepare atoms=$1 residues=$2 waters=$3 pos=$4 neg=$5 posname=$6 negname=$7
+[END]
+
+[PROGRESS]
+Begin=^ECCE-PREPARE box charge0=(\S+) charge1=(\S+) box=(\S+) a=(\S+) b=(\S+) c=(\S+) alpha=(\S+) beta=(\S+) gamma=(\S+)
+Progress=prepare charge0=$1 charge1=$2 box=$3 a=$4 b=$5 c=$6 alpha=$7 beta=$8 gamma=$9
+[END]
+
+[PROGRESS]
+Begin=^ECCE-PREPARE done
+Progress=prepare done=yes
+[END]
+
+# The same two result lines as properties.  Frequency=last: one Prepare
+# prints them once, at the end, after the tools' own output.
+[NATOMS][NRESIDUES][NWATERS][NIONSPOS][NIONSNEG][SYSCHARGE0][SYSCHARGE][BOXA][BOXB][BOXC][BOXALPHA][BOXBETA][BOXGAMMA]
+Script=gromacs.prepare
+Begin=^ECCE-PREPARE system
+Frequency=last
+Skip=0
+Lines=2
+[END]

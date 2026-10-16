@@ -1,0 +1,88 @@
+#!/usr/bin/env perl
+###############################################################################
+#
+# Purpose:
+#   Writes the GROMACS Prepare recipe (gromacs.gmxprep) on stdout.
+#
+#   The recipe is plain KEY=value lines that the job script (gensub, the
+#   .gmxprep branch of sub gromacs) reads back and turns into pdb2gmx,
+#   editconf, solvate and genion calls.  Here are only the defaults, the
+#   checks and the writing; every value ends up in a shell command, so each
+#   is checked against a short whitelist and a bad one stops the launch.
+#
+#   Input (stdin) is either KEY=value lines (tests, hand-made recipes) or
+#   the task model XML.  Both front ends fill the same %R; only read_xml
+#   knows the model's element names.
+#
+# Keys: SOURCE FF WATER HIS IGNH MERGE BOX DIST CONC PNAME NNAME
+#   HIS=auto only: pdb2gmx has no non-interactive way to pick a histidine
+#   state, so it chooses, and a PDB that already names HID/HIE/HIP (or the
+#   force field's own spelling) is honoured as it stands.
+#
+###############################################################################
+
+use strict;
+
+my %DEFAULT = (SOURCE => "protein", FF => "amber99sb-ildn", WATER => "tip3p",
+               HIS => "auto", IGNH => 1, MERGE => 1, BOX => "dodecahedron",
+               DIST => 1.0, CONC => 0.15, PNAME => "NA", NNAME => "CL");
+
+my %R;
+
+sub read_kv {
+  my ($text) = @_;
+  foreach my $line (split(/\n/, $text)) {
+    $line =~ s/^\s+|\s+$//g;
+    next if ($line eq "" || $line =~ /^#/);
+    die "md.gmxprep: not a KEY=value line: $line\n" if ($line !~ /^([A-Z]+)=(.*)$/);
+    die "md.gmxprep: unknown key $1\n" if (!exists($DEFAULT{$1}));
+    $R{$1} = $2;
+  }
+}
+
+# GromacsPrepareModelXMLizer's elements; one without a value keeps the default.
+my %XMLKEY = (Source => "SOURCE", ForceField => "FF", WaterModel => "WATER",
+              Histidine => "HIS", IgnoreHydrogens => "IGNH",
+              MergeChains => "MERGE", BoxType => "BOX", BoxDistance => "DIST",
+              IonConcentration => "CONC", PositiveIon => "PNAME",
+              NegativeIon => "NNAME");
+sub read_xml {
+  my ($text) = @_;
+  die "md.gmxprep: not a GromacsPrepareModel document.\n"
+    if ($text !~ /<GromacsPrepareModel>/);
+  foreach my $line (split(/\n/, $text)) {
+    if ($line =~ /^\s*<([A-Za-z]+)>\s*([^<]*?)\s*<\/\1>\s*$/ && exists($XMLKEY{$1})) {
+      $R{$XMLKEY{$1}} = $2;
+    }
+  }
+}
+
+my $in = do { local $/; <STDIN> };
+if ($in =~ /^\s*</) { read_xml($in); } else { read_kv($in); }
+
+foreach my $k (keys %DEFAULT) {
+  $R{$k} = $DEFAULT{$k} if (!defined($R{$k}) || $R{$k} eq "");
+}
+
+sub need {
+  my ($k, $ok, $what) = @_;
+  die "md.gmxprep: $k=$R{$k} is not $what.\n" if ($R{$k} !~ $ok);
+}
+need("SOURCE", qr/^protein$/, "a source this version prepares (protein)");
+need("FF",     qr/^[A-Za-z0-9][A-Za-z0-9_.+-]*$/, "a force field directory name");
+need("WATER",  qr/^[a-z0-9]+$/, "a water model name");
+need("HIS",    qr/^auto$/, "auto (pdb2gmx chooses the histidine states)");
+need("IGNH",   qr/^[01]$/, "0 or 1");
+need("MERGE",  qr/^[01]$/, "0 or 1");
+need("BOX",    qr/^(cubic|dodecahedron|octahedron|triclinic)$/, "a box type");
+need("DIST",   qr/^\d+(\.\d+)?$/, "a distance in nm");
+need("CONC",   qr/^\d+(\.\d+)?$/, "a concentration in mol/L (0 neutralises only)");
+need("PNAME",  qr/^[A-Za-z0-9+-]+$/, "an ion name");
+need("NNAME",  qr/^[A-Za-z0-9+-]+$/, "an ion name");
+die "md.gmxprep: DIST=$R{DIST} must be above 0.\n" if ($R{DIST} <= 0);
+
+print "# ECCE GROMACS prepare recipe\n";
+foreach my $k (qw(SOURCE FF WATER HIS IGNH MERGE BOX DIST CONC PNAME NNAME)) {
+  print "$k=$R{$k}\n";
+}
+exit(0);

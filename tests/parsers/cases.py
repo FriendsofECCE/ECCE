@@ -1653,6 +1653,30 @@ CASES = [
         },
     ),
     dict(
+        #  A GROMACS Prepare (Trp-cage, dodecahedron, 0.15 M): the two
+        #  ECCE-PREPARE result lines gensub writes.  Every key comes out of
+        #  the one call (the script is found by the first key only).
+        name='gromacs-prepare',
+        desc='gromacs.desc',
+        fixture='gromacs/prepare.gmxlog',
+        parse_args=('.', 'Prepare', 'MD', 'AMBER', '0'),
+        expect={
+            'NATOMS][NRESIDUES][NWATERS][NIONSPOS][NIONSNEG][SYSCHARGE0]'
+            '[SYSCHARGE][BOXA][BOXB][BOXC][BOXALPHA][BOXBETA][BOXGAMMA':
+                dict(blocks=1, keys={
+                    'NATOMS': {'values': '5913', 'units': 'NA'},
+                    'NRESIDUES': {'values': '20'},
+                    'NWATERS': {'values': '1866'},
+                    'NIONSPOS': {'values': '5'},
+                    'NIONSNEG': {'values': '6'},
+                    'SYSCHARGE0': {'values': '1.000000'},
+                    'SYSCHARGE': {'values': '0'},
+                    'BOXA': {'values': '4.392', 'units': 'nm'},
+                    'BOXALPHA': {'values': '60.00', 'units': 'Degree'},
+                    'BOXGAMMA': {'values': '90.00', 'units': 'Degree'}}),
+        },
+    ),
+    dict(
         #  Variable-cell relaxation of silicon, started from a cell
         #  compressed to 2.60 A so the optimiser has work to do. The only
         #  fixture exercising [LATTICEVEC], and the only one where the

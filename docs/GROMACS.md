@@ -244,7 +244,54 @@ warning, which the test allows (counter-ions are a later step).
   then the same command. The test needs only the standard library of the
   python that runs it.
 
-## Step 2 (not built): Prepare
+## Step 2 (scripts, task and editor built): Prepare
+
+What exists so far is the part that runs, the resource type and the editor:
+
+* `gromacs_md_prepare` ("New GROMACS MD Prepare...", first in a GROMACS
+  study's list, a root task like NWChem's) in both resource descriptors;
+  its tool `GMXPrepare` (`./gmxprepare`, "GROMACS MD Prepare Editor") opens
+  the editor, one page on `MDEdBase` (`src/apps/gmxprepare`,
+  `GromacsPreparePanel`): source (protein), structure (the Builder's or a PDB
+  file stored as `.gmxpdb`), force field and the water models it offers
+  (a static table of the 15 force fields of GROMACS 2025.2, plus "Other
+  (GMXLIB)"), ignore hydrogens, merge chains (both on), box type and
+  distance (dodecahedron, 1.0 nm), salt concentration (0.15 mol/L, 0 =
+  neutralise only) and the ions.  Save writes `gromacs.gmxprep` through
+  `md.gmxprep`. `GROMACS.edml` declares `gromacs.gmxprep` as a second
+  primary input; the source structure is stored as `<name>.gmxpdb`.
+* The recipe's task model is `GromacsPrepareModel` /
+  `GromacsPrepareModelXMLizer` (`TaskJob::getSerializer`); `md.gmxprep`
+  reads that XML or `KEY=value` lines.
+* A finished Prepare stores `<sys>.gmxtop`, `<sys>_<calc>.gro`, `posre.itp`,
+  any `topol_*.itp` and `chemsys.pdb`; the tasks after it need nothing
+  attached (see `docs/claude/codereg/gromacs-prepare-outputs-come-back-*`).
+  They run grompp with `-maxwarn 1` for a GROMOS topology.
+* `scripts/parsers/md.gmxprep` writes the recipe `gromacs.gmxprep`
+  (`KEY=value`: `SOURCE FF WATER HIS IGNH MERGE BOX DIST CONC PNAME NNAME`)
+  from the task model XML or `KEY=value` lines on stdin and checks every
+  value; `HIS` is `auto` only.
+* `gensub`, for an input ending in `.gmxprep`, runs pdb2gmx (protein source,
+  from a `*.gmxpdb` or `<system>.pdb`), editconf, solvate with the box that
+  matches the water model, and grompp + genion (`CONC=0` neutralises only),
+  announcing `ECCE-PREPARE step k/4` in the output file; a failing step puts
+  gmx's output there and the job fails. It leaves `<system>_<calc>.gro`,
+  `<system>.gmxtop`, `posre.itp` and `chemsys.pdb`.
+* `gromacs.launchpp` runs pdb2gmx alone at launch and stops with its message.
+* A failed gmx tool's `Fatal error:` text is the reason the Organizer shows
+  (`JobFailureReason.H`).
+* `tests/gromacs_md/run_tests.py` runs Trp-cage (PDB 1L2Y) through all of it
+  and on into an Optimize task.
+
+* Results (piece 4): the Organizer's Progress box shows a *Prepare* stage
+  (steps pdb2gmx, box, solvate, ions) and, when complete, a summary (atoms,
+  protein residues, waters, ions added, net charge before and after, box);
+  the same numbers are the `Process` properties `NATOMS NRESIDUES NWATERS
+  NIONSPOS NIONSNEG SYSCHARGE0 SYSCHARGE BOXA..BOXGAMMA` (Run Statistics in the
+  Viewer). `gensub` takes them from gmx's own output; `gromacs.desc` reads them.
+
+Not done: a restrain-protein (POSRES) switch in the Equilibrate editor, histidine states other than pdb2gmx's own choice, ligands and MINFF as
+sources, and everything listed below that is not these scripts and the task.
 
 Everything above takes a system as given. A Prepare task would build one
 and, like NWChem's, be the first task of a study (`RootTask`) and the
@@ -252,8 +299,7 @@ provider of the topology and structure the tasks after it find through the
 same search the Inputs tab uses today (`TOPOLOGY_OUTPUT`, `RESTART_OUTPUT`
 on an earlier task). It needs:
 
-* a resource type `gromacs_md_prepare` and a `PrepareInputGenerator` in
-  `GROMACS.edml`; the Prepare editor (`src/apps/mdprepare` is 8400 lines
+* the Prepare editor (`src/apps/mdprepare` is 8400 lines
   around NWChem's segment model and is not the thing to extend: a small
   GROMACS-only editor over these steps is);
 * `pdb2gmx` with a **force-field picker**: the installed force fields are

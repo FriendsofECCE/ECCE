@@ -4,11 +4,10 @@
 # Purpose:
 # Generates a GROMACS .mdp run-control file from an ECCE calculation.
 #
-# STATUS: groundwork. There is no GROMACS.edml, so nothing here is
-# reachable from the GUI yet -- see docs/GROMACS_ROADMAP.md. What this
-# establishes is that the .mdp half of a GROMACS integration is ordinary
-# work of the same shape as ai.orca or ai.qe, and that it produces files
-# the real grompp accepts.
+# Called by md.gmxtask for GROMACS.edml's MD tasks; docs/GROMACS.md has the
+# whole picture.  The .mdp half of an integration is ordinary work of the
+# same shape as ai.orca or ai.qe, and it produces files the real grompp
+# accepts.
 #
 # WHAT THIS DELIBERATELY DOES NOT DO: build a topology. GROMACS takes
 # three inputs -- .mdp (run control), .top (topology and force field)

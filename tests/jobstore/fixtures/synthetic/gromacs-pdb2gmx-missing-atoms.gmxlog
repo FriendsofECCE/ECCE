@@ -1,0 +1,121 @@
+             :-) GROMACS - gmx pdb2gmx, 2025.2-Debian_2025.2_1 (-:
+
+Executable:   /usr/bin/gmx
+Data prefix:  /usr
+Working dir:  /tmp/claude-1000/-home-andy-tmp-ecce-ECCE/d6ab0aa8-a13b-4d98-a91f-1f7f3d1a9320/scratchpad/w1
+Command line:
+  gmx pdb2gmx -f fixtures/1l2y_broken.pdb -ff amber99sb-ildn -water tip3p -ignh -o s2.gro -p t2.top -i p2.itp
+
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.r2b
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/dna.r2b
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/rna.r2b
+All occupancies are one
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/atomtypes.atp
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.rtp
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/dna.rtp
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/rna.rtp
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.hdb
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/dna.hdb
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/rna.hdb
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.n.tdb
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.c.tdb
+9 out of 9 lines of specbond.dat converted successfully
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.arn
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/dna.arn
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/rna.arn
+
+atom CZ2 is missing in residue TRP 6 in the pdb file
+
+atom HZ2 is missing in residue TRP 6 in the pdb file
+
+You might need to add atom HZ2 to the hydrogen database of building block TRP in the file aminoacids.hdb (see the manual)
+
+atom CH2 is missing in residue TRP 6 in the pdb file
+
+atom HH2 is missing in residue TRP 6 in the pdb file
+
+You might need to add atom HH2 to the hydrogen database of building block TRP in the file aminoacids.hdb (see the manual)
+
+atom CZ3 is missing in residue TRP 6 in the pdb file
+
+atom HZ3 is missing in residue TRP 6 in the pdb file
+
+You might need to add atom HZ3 to the hydrogen database of building block TRP in the file aminoacids.hdb (see the manual)
+
+atom CE3 is missing in residue TRP 6 in the pdb file
+
+atom HE3 is missing in residue TRP 6 in the pdb file
+
+You might need to add atom HE3 to the hydrogen database of building block TRP in the file aminoacids.hdb (see the manual)
+
+-------------------------------------------------------
+Program:     gmx pdb2gmx, version 2025.2-Debian_2025.2_1
+Source file: src/gromacs/gmxpreprocess/pdb2top.cpp (line 1591)
+
+Fatal error:
+There were 8 missing atoms in molecule Protein_chain_A, if you want to use
+this incomplete topology anyhow, use the option -missing
+
+For more information and tips for troubleshooting, please check the GROMACS
+website at https://manual.gromacs.org/current/user-guide/run-time-errors.html
+-------------------------------------------------------
+Using the Amber99sb-ildn force field in directory amber99sb-ildn.ff
+
+going to rename amber99sb-ildn.ff/aminoacids.r2b
+
+going to rename amber99sb-ildn.ff/dna.r2b
+
+going to rename amber99sb-ildn.ff/rna.r2b
+Reading fixtures/1l2y_broken.pdb...
+Read 'NMR STRUCTURE OF TRP-CAGE MINIPROTEIN CONSTRUCT TC5B', 150 atoms
+
+Analyzing pdb file
+Splitting chemical chains based on TER records or chain id changing.
+
+There are 1 chains and 0 blocks of water and 20 residues with 150 atoms
+
+  chain  #res #atoms
+
+  1 'A'    20    150  
+
+All occupancies are one
+
+Reading residue database... (Amber99sb-ildn)
+
+Processing chain 1 'A' (150 atoms, 20 residues)
+
+Identified residue ASN1 as a starting terminus.
+
+Identified residue SER20 as a ending terminus.
+
+Checking for duplicate atoms....
+
+Generating any missing hydrogen atoms and/or adding termini.
+
+Now there are 20 residues with 296 atoms
+
+Making bonds...
+
+atom CZ2 is missing in residue TRP 6 in the pdb file
+
+atom HZ2 is missing in residue TRP 6 in the pdb file
+
+You might need to add atom HZ2 to the hydrogen database of building block TRP in the file aminoacids.hdb (see the manual)
+
+atom CH2 is missing in residue TRP 6 in the pdb file
+
+atom HH2 is missing in residue TRP 6 in the pdb file
+
+You might need to add atom HH2 to the hydrogen database of building block TRP in the file aminoacids.hdb (see the manual)
+
+atom CZ3 is missing in residue TRP 6 in the pdb file
+
+atom HZ3 is missing in residue TRP 6 in the pdb file
+
+You might need to add atom HZ3 to the hydrogen database of building block TRP in the file aminoacids.hdb (see the manual)
+
+atom CE3 is missing in residue TRP 6 in the pdb file
+
+atom HE3 is missing in residue TRP 6 in the pdb file
+
+You might need to add atom HE3 to the hydrogen database of building block TRP in the file aminoacids.hdb (see the manual)

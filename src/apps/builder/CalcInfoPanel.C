@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
   using std::cout;
   using std::endl;
@@ -256,17 +257,27 @@ void CalcInfoPanel::refresh()
   p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, "Run Statistics"));
   p_body->GetSizer()->AddSpacer(0);
   set<Property_Ref> processKeys = PropFactory::ofClassification("Process");
-  set<Property_Ref>::iterator propRef;
-  for (propRef = processKeys.begin(); propRef != processKeys.end(); ++propRef) {
-    TProperty *tprop = getCalculation()->getProperty(propRef->short_name);
+  //  In the properties file's order, so a code's statistics read as it lists them.
+  vector<Property_Ref> processRefs(processKeys.begin(), processKeys.end());
+  std::stable_sort(processRefs.begin(), processRefs.end(),
+                   [](const Property_Ref& x, const Property_Ref& y) {
+                     return x.order < y.order;
+                   });
+  for (const Property_Ref& propRef : processRefs) {
+    TProperty *tprop = getCalculation()->getProperty(propRef.short_name);
     if (tprop) {
-      string key = propRef->long_name + ":";
+      string key = propRef.long_name + ":";
       double scalar = tprop->scalarize();
       wxString valueStr;
-      if (propRef->units == "Time") {
+      if (propRef.units == "Time") {
         valueStr = secondsToString((int)rint(scalar));
       } else {
-        valueStr = wxString::Format("%f", scalar);
+        // Counts are not "5913.000000".
+        valueStr = scalar == rint(scalar) ? wxString::Format("%.0f", scalar)
+                                          : wxString::Format("%g", scalar);
+        const string units = tprop->units();
+        if (units == "Degree") valueStr += wxString::FromUTF8(" \xc2\xb0");
+        else if (!units.empty() && units != "NA") valueStr += " " + units;
       }
       p_body->GetSizer()->Add(new ewxNonBoldLabel(p_body, wxID_ANY, key), 0, wxALIGN_RIGHT);
       p_body->GetSizer()->Add(new ewxStaticText(p_body, wxID_ANY, valueStr.c_str()));

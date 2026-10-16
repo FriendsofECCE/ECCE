@@ -1,0 +1,37 @@
+              :-) GROMACS - gmx grompp, 2025.2-Debian_2025.2_1 (-:
+
+Executable:   /usr/bin/gmx
+Data prefix:  /usr
+Working dir:  /tmp/claude-1000/-home-andy-tmp-ecce-ECCE/d6ab0aa8-a13b-4d98-a91f-1f7f3d1a9320/scratchpad/w1
+Command line:
+  gmx grompp -f ions.mdp -c fixtures/conf.gro -p bad.top -o bad.tpr
+
+
+NOTE 1 [file ions.mdp]:
+  For a correct single-point energy evaluation with nsteps = 0, use
+  continuation = yes to avoid constraining the input coordinates.
+
+Generating 1-4 interactions: fudge = 0.5
+
+-------------------------------------------------------
+Program:     gmx grompp, version 2025.2-Debian_2025.2_1
+Source file: src/gromacs/gmxpreprocess/grompp.cpp (line 750)
+
+Fatal error:
+number of coordinates in coordinate file
+(fixtures/conf.gro,
+1398)
+             does not match topology (bad.top, 1413)
+
+For more information and tips for troubleshooting, please check the GROMACS
+website at https://manual.gromacs.org/current/user-guide/run-time-errors.html
+-------------------------------------------------------
+Setting the LD random seed to 2097143292
+
+Generated 330891 of the 330891 non-bonded parameter combinations
+
+Generated 330891 of the 330891 1-4 parameter combinations
+
+Excluding 2 bonded neighbours molecule type 'SOL'
+
+Excluding 2 bonded neighbours molecule type 'SOL'

@@ -1,0 +1,36 @@
+              :-) GROMACS - gmx grompp, 2025.2-Debian_2025.2_1 (-:
+
+Executable:   /usr/bin/gmx
+Data prefix:  /usr
+Working dir:  /tmp/claude-1000/-home-andy-tmp-ecce-ECCE/d6ab0aa8-a13b-4d98-a91f-1f7f3d1a9320/scratchpad/w1
+Command line:
+  gmx grompp -f bad.mdp -c fixtures/conf.gro -p fixtures/topol.top -o bad.tpr
+
+Generating 1-4 interactions: fudge = 0.5
+
+ERROR 1 [file topol.top, line 8]:
+  ERROR: The cut-off length is longer than half the shortest box vector or
+  longer than the smallest box diagonal element. Increase the box size or
+  decrease rlist.
+
+
+
+-------------------------------------------------------
+Program:     gmx grompp, version 2025.2-Debian_2025.2_1
+Source file: src/gromacs/gmxpreprocess/grompp.cpp (line 2400)
+
+Fatal error:
+There was 1 error in input file(s)
+
+For more information and tips for troubleshooting, please check the GROMACS
+website at https://manual.gromacs.org/current/user-guide/run-time-errors.html
+-------------------------------------------------------
+Setting the LD random seed to 1040055454
+
+Generated 330891 of the 330891 non-bonded parameter combinations
+
+Generated 330891 of the 330891 1-4 parameter combinations
+
+Excluding 2 bonded neighbours molecule type 'SOL'
+
+Taking velocities from 'fixtures/conf.gro', all velocities are zero

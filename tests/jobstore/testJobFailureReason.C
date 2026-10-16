@@ -146,6 +146,32 @@ int main(int argc, char** argv)
     expectContains("qe routine error text", reason, "bad line in namelist");
   }
 
+  // GROMACS: the Fatal error paragraph of the tool that failed (real gmx
+  // 2025.2 output); for grompp the ERROR paragraph above its own box.
+  {
+    vector<string> files;
+    files.push_back(fx + "/synthetic/gromacs-pdb2gmx-missing-atoms.gmxlog");
+    string reason = JobFailureReason::extractReason(files);
+    expectContains("gromacs pdb2gmx missing atoms", reason, "gmx pdb2gmx: ");
+    expectContains("gromacs pdb2gmx missing atoms text", reason,
+                   "8 missing atoms in molecule Protein_chain_A");
+    expectShortSingleLine("gromacs pdb2gmx reason is short", reason);
+    files.clear();
+    files.push_back(fx + "/synthetic/gromacs-pdb2gmx-bad-residue.gmxlog");
+    reason = JobFailureReason::extractReason(files);
+    expectContains("gromacs pdb2gmx residue type", reason, "do not have a consistent type");
+    files.clear();
+    files.push_back(fx + "/synthetic/gromacs-grompp-error.gmxlog");
+    reason = JobFailureReason::extractReason(files);
+    expectContains("gromacs grompp error names the cause", reason,
+                   "cut-off length is longer");
+    expectShortSingleLine("gromacs grompp error is short", reason);
+    files.clear();
+    files.push_back(fx + "/synthetic/gromacs-grompp-mismatch.gmxlog");
+    reason = JobFailureReason::extractReason(files);
+    expectContains("gromacs grompp mismatch", reason, "does not match topology");
+  }
+
   // No files, or a file with nothing recognizable: no match, not a
   // guess.
   {

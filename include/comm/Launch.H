@@ -125,6 +125,7 @@ private:
                              EcceMap& kv);
         void substituteRealFileName(string& fileName);
         vector<EcceURL> auxInputUrls() const;
+        bool hasGromacsSourcePdb() const;
 
   // The Operations
         bool validateCalculation(void);

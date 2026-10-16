@@ -1,0 +1,541 @@
+#!/usr/bin/env python3
+"""A GROMACS Prepare task, then the tasks after it, through the real launch path.
+
+Local data, no data server.  The tree's own binaries, never the real ~/.ECCE:
+
+  * a GROMACS MD study with a Prepare and an Optimize task is made through
+    Resource::createChild and Session::addMemberAsTarget (launchjob
+    gromacsprepstudy); the Prepare's source structure is attached as its
+    .gmxpdb and its recipe written as the editor will (the task model XML
+    through md.gmxprep);
+  * Prepare (pdb2gmx, editconf, solvate, genion) runs through the real
+    Launch, gensub, eccejobmaster, eccejobstore and eccejobmonitor and ends
+    Complete with the topology (.gmxtop), the structure (.gro), the
+    restraints (posre.itp) and chemsys.pdb stored as its outputs;
+  * Optimize then launches with nothing attached, finds the topology, the
+    structure and posre.itp on the Prepare, and completes;
+  * a Prepare that fails in its job (an ion name genion does not know) ends
+    Failed with gmx's own words as the reason, and a PDB with a side chain cut
+    short is refused at launch with pdb2gmx's message;
+  * the Organizer's New menu (its test hook) makes the Prepare with the
+    right application type;
+  * the editor (gmxprepare, private Xvfb, ECCE_TEST_MDED): a Prepare as New
+    makes it is opened, the force field, water model, salt concentration and
+    source PDB are set as a person would, Save stores the recipe and the
+    model, the water models follow the force field, and a Launch of that
+    task ends Complete; the Organizer names GMXPrepare for a GROMACS Prepare
+    and MDPrepare for an NWChem one.
+
+    tests/launch/gromacs_prepare_test.py [--build build-cmake] [--keep] [--png DIR]
+
+Exit status 77 (CTest SKIP) without gmx or the built binaries;
+ECCE_GROMACS_REQUIRE=1 turns the missing gmx into a failure.
+"""
+
+import argparse
+import glob
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.dirname(os.path.dirname(HERE))
+sys.path.insert(0, HERE)
+sys.path.insert(0, os.path.join(REPO, "tests", "apps"))
+
+import harness  # noqa: E402
+from harness import say  # noqa: E402
+
+FIXTURES = os.path.join(REPO, "tests", "gromacs_md", "fixtures")
+
+failures = []
+
+
+def check(ok, what):
+    say("  %s %s" % ("ok  " if ok else "FAIL", what))
+    if not ok:
+        failures.append(what)
+    return ok
+
+
+def outputs(task_url):
+    d = os.path.join(task_url.replace("file://", "").rstrip("/"), "Outputs")
+    return sorted(os.listdir(d)) if os.path.isdir(d) else []
+
+
+def last_run_file(rundir, name):
+    found = sorted(glob.glob(os.path.join(rundir, "**", name), recursive=True),
+                   key=os.path.getmtime)
+    return found[-1] if found else None
+
+
+def urls_of(out):
+    return [l.rstrip("/") + "/" for l in out.splitlines() if l.startswith("file://")]
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--build", default=os.path.join(REPO, "build-cmake"))
+    ap.add_argument("--keep", action="store_true")
+    ap.add_argument("--png", help="where the editor's screenshot goes "
+                    "(default: the test's state directory, with --keep)")
+    ap.add_argument("--editor-only", action="store_true",
+                    help="run only the editor section")
+    args = ap.parse_args()
+    build = os.path.abspath(args.build)
+
+    gmx = shutil.which("gmx")
+    if not gmx:
+        if os.environ.get("ECCE_GROMACS_REQUIRE"):
+            say("FAIL: gmx is not installed and ECCE_GROMACS_REQUIRE is set")
+            return 1
+        harness.skip("gmx is not installed")
+    harness.prerequisites(build, ())
+
+    s = harness.Session(build, "gmxprep", {"GROMACS": gmx}, local=True,
+                        keep=args.keep)
+    s.registerMachine("localhost", "Shell", {"GROMACS": gmx})
+    rundir = os.path.join(s.state, "run")
+    try:
+        if not s.services(True):
+            check(False, "services came up")
+            return 1
+
+        if args.editor_only:
+            editor_section(s, build, rundir, args.png or os.path.join(s.state, "png"))
+            failures.extend(gromacs_test_failures())
+            return 1 if failures else 0
+
+        # ---- Prepare then Optimize --------------------------------------
+        rc, out = s.driver("gromacsprepstudy", s.userUrl(), "trpcage",
+                           os.path.join(FIXTURES, "1l2y.pdb"),
+                           "ff=amber99sb-ildn", "water=tip3p", "conc=0.15")
+        urls = urls_of(out)
+        if not check(rc == 0 and len(urls) == 3,
+                     "a study with a Prepare and an Optimize was made: %s"
+                     % out.strip().replace("\n", " | ")[:300]):
+            return 1
+        study, prep, opt = urls
+        for u in (prep, opt):
+            rc, out = s.driver("mdsetup", u, "localhost", rundir, s.user())
+            check(rc == 0, "launch settings stored for %s"
+                  % u.rstrip("/").rsplit("/", 1)[-1])
+        rc, out = s.driver("apptype", prep)
+        check(out.split()[:2] == ["GROMACS", "ecceMdPrepare"],
+              "the Prepare is a GROMACS ecceMdPrepare: %s" % out.strip())
+        ptask = prep.replace("file://", "").rstrip("/")
+        inputs = sorted(os.listdir(os.path.join(ptask, "Inputs")))
+        say("  Prepare Inputs/: %s" % inputs)
+        check("gromacs.gmxprep" in inputs and "1l2y.gmxpdb" in inputs,
+              "the recipe and the source structure are stored as inputs")
+        recipe = open(os.path.join(ptask, "Inputs", "gromacs.gmxprep")).read()
+        check("FF=amber99sb-ildn" in recipe and "CONC=0.15" in recipe
+              and "HIS=auto" in recipe,
+              "md.gmxprep turned the task model into the recipe")
+
+        say("running Prepare")
+        rc, out = s.launch(prep)
+        check(rc == 0, "Launch accepted the Prepare: %s"
+              % out.strip().splitlines()[-3:])
+        state = s.waitState(prep, 600)
+        check(state in ("completed", "loaded"), "Prepare ran to %s" % state)
+        outs = outputs(prep)
+        say("  Prepare Outputs/: %s" % outs)
+        check("ecceSession_ecceMdPrepare.gro" in outs or
+              any(o.endswith(".gro") for o in outs),
+              "the structure (.gro) was stored")
+        check(any(o.endswith(".gmxtop") for o in outs),
+              "the topology (.gmxtop) was stored")
+        check("posre.itp" in outs, "posre.itp was stored")
+        check("chemsys.pdb" in outs, "chemsys.pdb was stored")
+        top = [o for o in outs if o.endswith(".gmxtop")]
+        if top:
+            text = open(os.path.join(ptask, "Outputs", top[0])).read()
+            check("[ molecules ]" in text and "SOL" in text and "Protein" in text,
+                  "the topology lists the protein and the solvent")
+
+        rc, stored = s.driver("progress", prep)
+        say("  stored progress: %s" % stored.strip().replace("\n", " | ")[:400])
+        check(re.search(r"^prepare point=4/4 .*tool=genion", stored, re.M)
+              and "done=yes" in stored and re.search(r"atoms=\d+", stored)
+              and "box=dodecahedron" in stored and "pos=" in stored,
+              "the stored progress has the Prepare's step 4/4 and its result")
+        props = s.props(prep)
+        say("  Prepare properties: %s" % props)
+        want = ["NATOMS", "NRESIDUES", "NWATERS", "NIONSPOS", "NIONSNEG",
+                "SYSCHARGE0", "SYSCHARGE", "BOXA", "BOXB", "BOXC", "BOXALPHA",
+                "BOXBETA", "BOXGAMMA"]
+        check(all(k in props for k in want),
+              "the Prepare stored its system as properties: missing %s"
+              % [k for k in want if k not in props])
+        logf = [o for o in outs if o.endswith(".gmxlog")]
+        if logf:
+            log = open(os.path.join(ptask, "Outputs", logf[0])).read()
+            # the job log is appended to the output, so the steps appear twice
+            check(set(re.findall(r"^ECCE-PREPARE step (\d)/4 ", log, re.M))
+                  == {"1", "2", "3", "4"} and "ECCE-PREPARE done" in log,
+                  "the output file announces four steps and the end")
+
+        say("running Optimize with nothing attached")
+        otask = opt.replace("file://", "").rstrip("/")
+        check(not os.path.isdir(os.path.join(otask, "Inputs")) or
+              not [f for f in os.listdir(os.path.join(otask, "Inputs"))
+                   if f.endswith((".gmxtop", ".gro", ".itp"))],
+              "the Optimize has no topology, structure or include attached")
+        rc, out = s.launch(opt)
+        check(rc == 0, "Launch accepted the Optimize: %s"
+              % out.strip().splitlines()[-3:])
+        state = s.waitState(opt, 900)
+        check(state in ("completed", "loaded"), "Optimize ran to %s" % state)
+        r = last_run_file(rundir, "topol.top")
+        d = os.path.dirname(r) if r else None
+        if d and os.path.exists(os.path.join(d, "conf.gro")):
+            check(os.path.exists(os.path.join(d, "posre.itp")),
+                  "posre.itp was staged in the Optimize's run directory")
+            conf = os.path.join(d, "conf.gro")
+            prepgro = [o for o in outs if o.endswith(".gro")]
+            check(prepgro and open(conf).read() == open(
+                os.path.join(ptask, "Outputs", prepgro[0])).read(),
+                "the Optimize started from the Prepare's structure")
+        else:
+            check(False, "the Optimize's run directory has topol.top and conf.gro")
+        props = s.props(opt)
+        check("TE" in props, "the Optimize stored its energies: %s" % props)
+
+        # ---- failures ----------------------------------------------------
+        # more salt than the box has water for: genion, the last step, refuses it
+        rc, out = s.driver("gromacsprepstudy", s.userUrl(), "saltbox",
+                           os.path.join(FIXTURES, "1l2y.pdb"), "conc=300")
+        bad = urls_of(out)
+        if check(rc == 0 and len(bad) == 3, "a second study was made"):
+            s.driver("mdsetup", bad[1], "localhost", rundir, s.user())
+            rc, out = s.launch(bad[1])
+            check(rc == 0, "Launch accepted it (pdb2gmx is fine with this PDB)")
+            state = s.waitState(bad[1], 300)
+            check(state in ("unsuccessful", "failed"),
+                  "a Prepare whose last step fails ends %s" % state)
+            rc, out = s.driver("reason", bad[1])
+            reason = out.strip().splitlines()[0] if out.strip() else ""
+            say("  reason: %s" % reason[:300])
+            check("Fatal error" in reason or "solvent" in reason.lower(),
+                  "the reason is gmx's own words, not a bare 'failed'")
+
+        rc, out = s.driver("gromacsprepstudy", s.userUrl(), "broken",
+                           os.path.join(FIXTURES, "1l2y_broken.pdb"))
+        brk = urls_of(out)
+        if check(rc == 0 and len(brk) == 3, "a study on a broken PDB was made"):
+            s.driver("mdsetup", brk[1], "localhost", rundir, s.user())
+            rc, out = s.launch(brk[1])
+            check(rc != 0 and ("missing" in out and "TRP" in out),
+                  "a side chain cut short is refused at launch with pdb2gmx's "
+                  "message: %s" % re.sub(r"\s+", " ", out.strip())[-200:])
+
+        # ---- the Organizer's New menu -----------------------------------
+        organizer_new(s, build, gmx)
+
+        # ---- the editor ---------------------------------------------------
+        editor_section(s, build, rundir, args.png or os.path.join(s.state, "png"))
+        failures.extend(gromacs_test_failures())
+    finally:
+        leftovers = s.stop()
+        if leftovers:
+            say("left running: %s" % leftovers)
+
+    say("%d failure(s)" % len(failures))
+    return 1 if failures else 0
+
+
+def editor_section(s, build, rundir, png):
+    """gmxprepare through ECCE_TEST_MDED, then Launch of what it saved."""
+    if not shutil.which("Xvfb"):
+        say("  (no Xvfb: the editor is not checked)")
+        return
+    for exe in ("gmxprepare", "organizer"):
+        if not os.access(os.path.join(build, exe), os.X_OK):
+            say("  (%s is not built: the editor is not checked)" % exe)
+            return
+    import xdisplay
+    import gromacs_test
+    from md_editors_test import summary
+    for exe in ("gmxprepare", "organizer"):
+        harness.link(os.path.join(build, exe), os.path.join(s.home, "bin", exe))
+    gw = os.path.join(REPO, "packaging", "gateway")
+    for name in os.listdir(gw):
+        if name.startswith("ecce-"):
+            harness.link(os.path.join(gw, name), os.path.join(s.home, "bin", name))
+    wrappers = os.path.join(s.state, "wrappers-ed")
+    shutil.rmtree(wrappers, ignore_errors=True)
+    shutil.copytree(os.path.join(build, "wrappers"), wrappers)
+    for entry in os.listdir(wrappers):
+        os.chmod(os.path.join(wrappers, entry), 0o755)
+    os.makedirs(png, exist_ok=True)
+
+    # closing the Organizer above ended the session; start it again
+    if not s.services(True):
+        check(False, "services came up again")
+        return
+
+    rc, out = s.driver("gromacsprepstudy", s.userUrl(), "edprep",
+                       os.path.join(FIXTURES, "1l2y.pdb"), "bare")
+    urls = urls_of(out)
+    if not check(rc == 0 and len(urls) == 3, "a study with a bare Prepare was made: %s"
+                 % out.strip().replace("\n", " | ")[:300]):
+        return
+    prep = urls[1]
+    ptask = prep.replace("file://", "").rstrip("/")
+    check(not os.path.isdir(os.path.join(ptask, "Inputs")) or not os.listdir(
+        os.path.join(ptask, "Inputs")), "the new Prepare has no inputs yet")
+    rc, out = s.driver("nwchemmdstudy", s.userUrl(), "edprepnw")
+    nw = [u.rstrip("/") + "/" for u in urls_of(out) if u.rstrip("/").endswith("/prepare")]
+
+    with xdisplay.Display() as display:
+        cmddir = os.path.join(s.state, "mded")
+        os.makedirs(cmddir, exist_ok=True)
+        genv = s.env({"DISPLAY": display.name, "ECCE_TEST_MDED": cmddir,
+                      "PATH": wrappers + os.pathsep + s.env()["PATH"]})
+        ed = gromacs_test.Editor(s, display, genv, wrappers, cmddir,
+                                 "gmxprepare", "GMXPrepare")
+        try:
+            if ed.up():
+                check(ed.cmd("open " + prep) == "ok", "the Prepare opens in gmxprepare")
+                check(ed.cmd("title") == "ECCE GROMACS MD Prepare",
+                      "the title: %s" % ed.cmd("title"))
+                check(ed.cmd("tabs") == "System", "one page: %s" % ed.cmd("tabs"))
+                recipe = ed.cmd("recipe")
+                check("FF=amber99sb-ildn" in recipe and "WATER=tip3p" in recipe
+                      and "MERGE=1" in recipe and "CONC=0.15" in recipe,
+                      "opening a new Prepare stores the default recipe: %s" % recipe)
+                fields = ed.cmd("fields")
+                check("structure=builder" in fields and "waters=tip3p,tip4p,tip4pew,tip5p,spc,spce " in fields,
+                      "the defaults and the AMBER water models: %s" % fields)
+
+                # the water models follow the force field
+                check(ed.cmd("set ff oplsaa") == "ok", "OPLS-AA chosen")
+                fields = ed.cmd("fields")
+                check("waters=tip4p,tip4pew,tip3p,tip5p,tip5pe,spc,spce " in fields
+                      and "water=tip3p" in fields,
+                      "OPLS-AA offers its own water models and keeps TIP3P: %s" % fields)
+                check(ed.cmd("set ff gromos54a7") == "ok", "GROMOS chosen")
+                fields = ed.cmd("fields")
+                check("waters=spc,spce " in fields and "water=spc " in fields,
+                      "GROMOS offers SPC and SPC/E, SPC chosen: %s" % fields)
+                check(ed.cmd("set water tip3p").startswith("refused"),
+                      "TIP3P is refused for GROMOS")
+                check(ed.cmd("set ff amber99sb-ildn") == "ok", "AMBER99SB-ILDN chosen")
+                check(ed.cmd("set water tip3p") == "ok", "TIP3P chosen")
+
+                # a bad number is not saved
+                ed.cmd("set conc abc")
+                ed.cmd("save")
+                check("CONC=0.15" in ed.cmd("recipe"),
+                      "a concentration that is not a number is not saved")
+                check(ed.cmd("set conc 0.15") == "ok", "0.15 mol/L set")
+                check(ed.cmd("set structure " + os.path.join(FIXTURES, "1l2y.pdb")) == "ok",
+                      "a PDB file chosen as the structure")
+                check("structure=1l2y.gmxpdb" in ed.cmd("fields"), "the editor shows it")
+                shot = os.path.join(png, "gmxprepare.png")
+                check(ed.cmd("snap " + shot) == "saved" and os.path.exists(shot),
+                      "window shot: %s" % shot)
+                ed.cmd("save")
+                recipe = ed.cmd("recipe")
+                check("FF=amber99sb-ildn" in recipe and "WATER=tip3p" in recipe
+                      and "CONC=0.15" in recipe and "BOX=dodecahedron" in recipe,
+                      "Save stored the recipe: %s" % recipe)
+                model = ed.cmd("model")
+                check("<ForceField>amber99sb-ildn</ForceField>" in model
+                      and "<WaterModel>tip3p</WaterModel>" in model,
+                      "and the model: %s" % model[:200])
+                inputs = sorted(os.listdir(os.path.join(ptask, "Inputs")))
+                check("1l2y.gmxpdb" in inputs and "gromacs.gmxprep" in inputs,
+                      "the task holds the source PDB and the recipe: %s" % inputs)
+                check(ed.proc.poll() is None, "gmxprepare is still up")
+
+                # the editor stays open: closing the last window of a session
+                # ends the session, and with it the broker the job needs
+                rc, out = s.driver("mdsetup", prep, "localhost", rundir, s.user())
+                check(rc == 0, "launch settings stored for the edited Prepare")
+                rc, out = s.launch(prep)
+                check(rc == 0, "Launch accepted the edited Prepare: %s"
+                      % out.strip().splitlines()[-3:])
+                state = s.waitState(prep, 600)
+                check(state in ("completed", "loaded"),
+                      "the edited Prepare ran to %s" % state)
+                outs = outputs(prep)
+                check(any(o.endswith(".gmxtop") for o in outs) and
+                      any(o.endswith(".gro") for o in outs),
+                      "with its topology and structure")
+                check(ed.proc.poll() is None, "gmxprepare is still up after the run")
+                viewer_section(s, build, display, genv, wrappers, prep, png)
+        finally:
+            ed.close()
+
+        # the Organizer opens the right editor for each code's Prepare
+        if nw:
+            answers, menus = summary(s, display, genv, wrappers, [prep, nw[0]], png)
+            for url, want, other in ((prep, "GROMACS MD Prepare", "NWChem MD Prepare"),
+                                     (nw[0], "NWChem MD Prepare", "GROMACS MD Prepare")):
+                tools = re.findall(r"tool=(.*?)(?= tool=|$)", answers.get(url, ""))
+                check(want in tools and other not in tools,
+                      "the Organizer's button for %s: %s" % (want, tools))
+                items = re.findall(r"item=(.*?)(?= item=|$)", menus.get(url, ""))
+                check(any(i.startswith(want) for i in items) and
+                      not any(i.startswith(other) for i in items),
+                      "the Tools menu for %s: %s" % (want, items))
+
+
+def viewer_section(s, build, display, genv, wrappers, prep, png):
+    """The finished Prepare in the Builder (the Viewer): structure and cell."""
+    if not os.access(os.path.join(build, "builder"), os.X_OK):
+        say("  (builder is not built: the Viewer is not checked)")
+        return
+    harness.link(os.path.join(build, "builder"), os.path.join(s.home, "bin", "builder"))
+    out = os.path.join(s.state, "viewer")
+    shutil.rmtree(out, ignore_errors=True)
+    os.makedirs(out)
+    shot = os.path.join(png, "prepare-viewer.png")
+    shot_cell = os.path.join(png, "prepare-viewer-cell.png")
+    shot_props = os.path.join(png, "prepare-viewer-properties.png")
+    scene = os.path.join(out, "scene")
+    with open(scene, "w") as h:
+        h.write("\n".join(["background 1 1 1", "viewall", "xshot " + shot,
+                           "fragdump before", "pbcopen", "viewall",
+                           "xshot " + shot_cell, "fragdump after", "columntab 1",
+                           "xshot " + shot_props, ""]))
+    env = dict(genv, ECCE_VIEWER_SCENE=scene, ECCE_VIEWER_SCENE_OUT=out,
+               ECCE_PANEL_FULLSCREEN="1")
+    log = os.path.join(s.state, "viewer.log")
+    proc = subprocess.Popen(
+        [os.path.join(wrappers, "ecce-builder"), "-context", prep], env=env,
+        cwd=os.path.join(s.home, "bin"), stdout=open(log, "w"),
+        stderr=subprocess.STDOUT, start_new_session=True)
+    try:
+        end = time.time() + 180
+        while time.time() < end and not os.path.exists(shot_props):
+            if proc.poll() is not None:
+                break
+            time.sleep(1)
+        time.sleep(2)
+    finally:
+        import gromacs_test
+        gromacs_test.stop(proc)
+    for name in ("before", "after"):
+        f = os.path.join(out, name + ".txt")
+        text = open(f).read() if os.path.exists(f) else ""
+        say("  viewer %s: %s" % (name, " | ".join(text.splitlines()[:8])))
+    check(os.path.exists(shot) and os.path.exists(shot_cell),
+          "the Viewer's screenshots were taken")
+    before = open(os.path.join(out, "before.txt")).read() \
+        if os.path.exists(os.path.join(out, "before.txt")) else ""
+    m = re.search(r"^atoms (\d+)$", before, re.M)
+    check(m is not None and int(m.group(1)) > 3000,
+          "the Viewer shows the solvated system (thousands of atoms)")
+    check("lattice 1" in before, "the structure carries the box as its cell")
+    # the cell against gmx's own box line of the .gro the Prepare stored
+    gro = [o for o in outputs(prep) if o.endswith(".gro")]
+    vec = [[float(x) * 0.1 for x in l.split()[1:4]]
+           for l in before.splitlines() if l.startswith("vector ")]
+    if gro and len(vec) == 3:
+        box = [float(x) for x in open(os.path.join(
+            prep.replace("file://", "").rstrip("/"), "Outputs",
+            gro[0])).read().split("\n")[-2].split()]
+        v = [[box[0], box[3], box[4]], [box[5], box[1], box[6]],
+             [box[7], box[8], box[2]]]
+        off = max(abs(vec[i][k] - v[i][k]) for i in range(3) for k in range(3))
+        check(off < 0.002, "the cell vectors are the .gro box's (largest "
+              "difference %.4f nm)" % off)
+
+
+def gromacs_test_failures():
+    import gromacs_test
+    return gromacs_test.failures
+
+
+def organizer_new(s, build, gmx):
+    """File > New > GROMACS MD Prepare, through the Organizer's test hook."""
+    for tool in ("Xvfb",):
+        if not shutil.which(tool):
+            say("  (no %s: the Organizer's New menu is not checked)" % tool)
+            return
+    if not os.access(os.path.join(build, "organizer"), os.X_OK):
+        say("  (organizer is not built: the New menu is not checked)")
+        return
+    import xdisplay
+    harness.link(os.path.join(build, "organizer"),
+                 os.path.join(s.home, "bin", "organizer"))
+    gw = os.path.join(REPO, "packaging", "gateway")
+    for name in os.listdir(gw):
+        if name.startswith("ecce-"):
+            harness.link(os.path.join(gw, name), os.path.join(s.home, "bin", name))
+    wrappers = os.path.join(s.state, "wrappers")
+    shutil.rmtree(wrappers, ignore_errors=True)
+    shutil.copytree(os.path.join(build, "wrappers"), wrappers)
+    for entry in os.listdir(wrappers):
+        os.chmod(os.path.join(wrappers, entry), 0o755)
+
+    rc, out = s.driver("gromacsstudy", s.userUrl(), "menu")
+    urls = urls_of(out)
+    if not check(rc == 0 and urls, "a project to make the study in"):
+        return
+    proj = urls[0].rsplit("/", 2)[0] + "/"
+    # a study with tasks already has its own; make an empty one with the hook
+    cmds = os.path.join(s.state, "organizer-commands")
+    open(cmds, "w").close()
+    log = os.path.join(s.state, "organizer.log")
+    with xdisplay.Display() as display:
+        env = s.env({"DISPLAY": display.name, "ECCE_TEST_ORGANIZER": cmds,
+                     "PATH": wrappers + os.pathsep + s.env()["PATH"]})
+        proc = subprocess.Popen(
+            [os.path.join(wrappers, "ecce-organizer")], env=env,
+            cwd=os.path.join(s.home, "bin"), stdout=open(log, "w"),
+            stderr=subprocess.STDOUT, start_new_session=True)
+
+        def send(line, timeout=120):
+            with open(cmds, "a") as h:
+                h.write(line + "\n")
+            want = "ECCE_TEST_ORGANIZER: %s: " % line
+            end = time.time() + timeout
+            while time.time() < end:
+                for t in open(log, errors="replace").read().splitlines():
+                    if t.startswith(want):
+                        return t[len(want):]
+                time.sleep(0.5)
+            return "no answer"
+
+        try:
+            ans = send("new %s gromacs_md_study" % proj)
+            check(ans == "ok", "Organizer New: a GROMACS MD Study: %s" % ans)
+            pdir = proj.replace("file://", "")
+            before = set(["menu"])
+            new_study = None
+            for x in sorted(os.listdir(pdir)):
+                full = os.path.join(pdir, x)
+                if x not in before and os.path.isdir(full) and \
+                        not any(os.path.isdir(os.path.join(full, y)) for y in os.listdir(full)):
+                    new_study = full
+            say("  project holds: %s -> new study %s" % (os.listdir(pdir), new_study))
+            if check(new_study, "the study made by the hook was found"):
+                ans = send("new file://%s gromacs_md_prepare" % new_study)
+                check(ans == "ok", "Organizer New: a GROMACS MD Prepare in the study: %s" % ans)
+                made = [x for x in os.listdir(new_study)
+                        if os.path.isdir(os.path.join(new_study, x))]
+                say("  study holds: %s" % made)
+                prep = [m for m in made if "repare" in m]
+                if check(prep, "the Prepare was created in the study"):
+                    rc, out = s.driver("apptype", "file://%s/%s" % (new_study, prep[0]))
+                    check(out.split()[:2] == ["GROMACS", "ecceMdPrepare"],
+                          "with the GROMACS application type: %s" % out.strip())
+        finally:
+            for sig in (15, 9):
+                try:
+                    os.killpg(proc.pid, sig)
+                    proc.wait(timeout=10)
+                    break
+                except Exception:
+                    pass
+
+
+if __name__ == "__main__":
+    sys.exit(main())

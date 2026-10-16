@@ -41,6 +41,7 @@
 #include "dsm/TaskJob.H"
 #include "dsm/Session.H"
 #include "dsm/PrepareModelXMLizer.H"
+#include "dsm/GromacsPrepareModelXMLizer.H"
 #include "dsm/NWChemMDModelXMLizer.H"
 #include "dsm/PolyrateModelXMLizer.H"
 #include "dsm/NWDirdyModelXMLizer.H"
@@ -1703,7 +1704,10 @@ Serializer* TaskJob::getSerializer(string& resourceName)
   ResourceDescriptor::APPLICATIONTYPE appType = getApplicationType();
   switch (taskType) {
     case ResourceDescriptor::CT_MDPREPARE:
-      serializer = new PrepareModelXMLizer();
+      if (appType == ResourceDescriptor::AT_GROMACS)
+        serializer = new GromacsPrepareModelXMLizer();
+      else
+        serializer = new PrepareModelXMLizer();
       resourceName = getVDoc()->getMdPrepareName();
       break;
     case ResourceDescriptor::CT_MDOPTIMIZE:

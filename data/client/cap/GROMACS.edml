@@ -28,9 +28,15 @@
 
 <DataFiles>
   <Input  type="primary" mimetype="chemical/x-gromacs-mdp" comment="true" commentstring=";">gromacs.mdp</Input>
+  <!-- A Prepare task's recipe (md.gmxprep writes it from the task model);
+       gensub runs pdb2gmx, editconf, solvate and genion from it.  The raw
+       PDB is stored as .gmxpdb, not .pdb: a .pdb is the task's fragment
+       and TaskJob::getDataFiles matches by type. -->
+  <Input  type="primary" mimetype="chemical/x-gromacs-prepare">gromacs.gmxprep</Input>
   <!-- Attached by the user, matched by type: .itp and .ndx files the
        topology includes. -->
   <Input  type="auxiliary" mimetype="chemical/x-gromacs-include"></Input>
+  <Input  type="auxiliary" mimetype="chemical/x-gromacs-source-pdb"></Input>
   <Output type="primary" mimetype="chemical/x-gromacs-log">gromacs.gmxlog</Output>
   <Output type="parse" verifypattern="GROMACS:" mimetype="chemical/x-gromacs-log">gromacs.gmxlog</Output>
   <!-- Attached by the user, matched by type.  "topology" and "restart" are

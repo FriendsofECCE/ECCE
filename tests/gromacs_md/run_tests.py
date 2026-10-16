@@ -369,6 +369,206 @@ def local_forcefield(gmx, home, tmp, includes_bin):
           "a topology with a force-field folder beside it launches and runs")
 
 
+# ---- Prepare: protein structure -> solvated, neutral system -----------------
+
+def prepare(gmx, home, tmp, name, recipe, pdb, ext=".pdb", expect_ok=True):
+    """md.gmxprep -> launchpp -> the job script gensub writes, for one recipe.
+    Returns the run directory, or None when a step did not do what a
+    successful run needs."""
+    print("== prepare %s" % name)
+    rundir = os.path.join(tmp, "run-prep-" + name)
+    os.makedirs(rundir)
+    rc, out = run([os.path.join(PARSERS, "md.gmxprep")], input=recipe.encode())
+    if not check(rc == 0, "md.gmxprep wrote the recipe"):
+        print(out)
+        return None
+    with open(os.path.join(rundir, "gromacs.gmxprep"), "w") as h:
+        h.write(out)
+    # the structure is staged as <system>.pdb or as a .gmxpdb
+    shutil.copy(pdb, os.path.join(rundir, "ecceSession" + ext))
+    with open(os.path.join(rundir, "postParams"), "w") as h:
+        h.write("inputFile: gromacs.gmxprep\nrunDir: %s\n" % rundir)
+    rc, out = run([os.path.join(PARSERS, "gromacs.launchpp"), "-p", "postParams"],
+                  cwd=rundir)
+    if expect_ok:
+        check(rc == 0 and "accepted" in out, "gromacs.launchpp: pdb2gmx accepts the structure")
+        if rc != 0:
+            print(out)
+            return None
+    else:
+        return rundir if rc != 0 and out else None
+    params = os.path.join(rundir, "subParams")
+    with open(params, "w") as h:
+        h.write(" -Q Shell\n -H localtest\n -d localhost\n -c GROMACS\n"
+                " -n 1\n -N 1\n -r %s\n -i gromacs.gmxprep\n -o gromacs.gmxlog\n"
+                " -f %s/submit__prep\n -S ecceSession\n -C prepare\n"
+                % (rundir, rundir))
+    rc, out = run([os.path.join(home.home, "scripts", "gensub"), "-v", "-p", params],
+                  env=home.env, cwd=rundir)
+    if not check(rc == 0, "gensub wrote the Prepare job script"):
+        print(out)
+        return None
+    rc, out = run(["sh", os.path.join(rundir, "submit__prep")], cwd=rundir)
+    status = open(os.path.join(rundir, ".ecce.status")).read().strip()
+    check(status == "0", "the Prepare job exits 0 (got %r)" % status)
+    return rundir if status == "0" else None
+
+
+def molecules(top):
+    """[ molecules ] of a topology as {name: count}."""
+    mols = {}
+    on = False
+    for line in open(top):
+        line = line.split(";")[0].strip()
+        if line.startswith("["):
+            on = line.replace(" ", "") == "[molecules]"
+        elif on and line:
+            n, c = line.split()
+            mols[n] = mols.get(n, 0) + int(c)
+    return mols
+
+
+def water_sites(rundir):
+    """Atoms of residue SOL in the prepared structure."""
+    gro = open(os.path.join(rundir, "ecceSession_prepare.gro")).read().splitlines()
+    return sum(1 for l in gro[2:-1] if l[5:10].strip() == "SOL")
+
+
+def check_prepared(gmx, rundir, maxwarn=0):
+    """What a prepared system has to be, judged by gmx and by the files."""
+    gro = os.path.join(rundir, "ecceSession_prepare.gro")
+    top = os.path.join(rundir, "ecceSession.gmxtop")
+    check(os.path.exists(gro) and os.path.exists(top),
+          "the structure and topology are written under the names the next task looks for")
+    pdb = os.path.join(rundir, "chemsys.pdb")
+    check(os.path.exists(pdb) and "CRYST1" in open(pdb).read(),
+          "chemsys.pdb for the Builder keeps the box (CRYST1)")
+    out = open(os.path.join(rundir, "gromacs.gmxlog"), errors="replace").read()
+    check(all(("ECCE-PREPARE step %d/4" % k) in out for k in (1, 2, 3, 4)),
+          "the output file announces all four steps")
+    natoms = int(open(gro).read().splitlines()[1])
+    rc, chk = run([gmx, "check", "-f", gro])
+    m = re.search(r"# Atoms\s+(\d+)", chk)
+    check(rc == 0 and m and int(m.group(1)) == natoms,
+          "gmx check reads the .gro (%d atoms)" % natoms)
+    mols = molecules(top)
+    check(any(k.startswith("Protein") for k in mols) and mols.get("SOL", 0) > 100,
+          "the topology lists the protein and solvent (%s)" % mols)
+    # grompp's own report of the net charge
+    # (gmx goes by the extension: the .gmxtop is staged as topol.top)
+    shutil.copy(os.path.join(rundir, "ions.mdp"), os.path.join(rundir, "chk.mdp"))
+    shutil.copy(top, os.path.join(rundir, "chk.top"))
+    rc, g = run([gmx, "grompp", "-f", "chk.mdp", "-c", gro, "-p", "chk.top",
+                 "-o", "chk.tpr", "-maxwarn", str(maxwarn)], cwd=rundir)
+    check(rc == 0 and "non-zero total charge" not in g,
+          "grompp finds the prepared system neutral")
+    return mols, natoms
+
+
+def prepare_tests(gmx, home, tmp, optimize_stage):
+    pdb = os.path.join(FIXTURES, "1l2y.pdb")
+    rcp = "SOURCE=protein\nFF=amber99sb-ildn\nWATER=tip3p\nBOX=dodecahedron\nDIST=1.0\n"
+
+    # the recipe writer's own checks
+    rc, out = run([os.path.join(PARSERS, "md.gmxprep")], input=b"")
+    check(rc == 0 and "FF=amber99sb-ildn" in out and "CONC=0.15" in out,
+          "md.gmxprep with no input writes the defaults")
+    for bad in ("FF=a;touch x\n", "BOX=hexagon\n", "DIST=-1\n", "CONC=lots\n",
+                "WATER=tip3p extra\n", "NOPE=1\n", "HIS=names\n"):
+        rc, out = run([os.path.join(PARSERS, "md.gmxprep")], input=bad.encode())
+        check(rc != 0, "md.gmxprep refuses %r" % bad.strip())
+
+    xml = ("<?xml version=\"1.0\"?>\n<GromacsPrepareModel>\n"
+           "<ForceField>charmm27</ForceField>\n<WaterModel>tip3p</WaterModel>\n"
+           "<Histidine>auto</Histidine>\n<BoxDistance>1.2</BoxDistance>\n"
+           "</GromacsPrepareModel>\n")
+    rc, out = run([os.path.join(PARSERS, "md.gmxprep")], input=xml.encode())
+    check(rc == 0 and "FF=charmm27" in out and "DIST=1.2" in out and "CONC=0.15" in out,
+          "md.gmxprep reads the task model XML")
+
+    # neutralise only: Trp-cage is +1, so one CL and no sodium
+    d = prepare(gmx, home, tmp, "neutral", rcp + "CONC=0\n", pdb)
+    if d:
+        mols, natoms = check_prepared(gmx, d)
+        check(mols.get("CL") == 1 and "NA" not in mols,
+              "CONC=0 neutralises with exactly one CL (%s)" % mols)
+        print("  1L2Y: %d atoms, %d waters, ions %s"
+              % (natoms, mols.get("SOL", 0),
+                 dict((k, v) for k, v in mols.items() if k in ("NA", "CL"))))
+        # the outputs go on through the Optimize stage
+        name, calc, spec = optimize_stage
+        res = stage(gmx, home, tmp, "prep-optimize", calc, spec,
+                    os.path.join(d, "ecceSession_prepare.gro"),
+                    topology=os.path.join(d, "ecceSession.gmxtop"),
+                    extras={"posre.itp": os.path.join(d, "posre.itp")})
+        if res:
+            pot = gmx_energy(gmx, res, "Potential")
+            check(len(pot) >= 2 and all(abs(p) < 1e9 for p in pot) and pot[-1] < pot[0],
+                  "Optimize on the prepared system lowers a finite potential "
+                  "energy (%.4g -> %.4g)" % (pot[0], pot[-1]) if pot else
+                  "Optimize on the prepared system wrote energies")
+
+    # a salt concentration: counter-ions and neutralising ions together
+    d = prepare(gmx, home, tmp, "salt", rcp + "CONC=0.15\n", pdb, ext=".gmxpdb")
+    if d:
+        mols, natoms = check_prepared(gmx, d)
+        check(mols.get("NA", 0) >= 1 and mols.get("CL", 0) == mols.get("NA", 0) + 1,
+              "CONC=0.15 adds salt and one extra CL for the +1 charge (%s)" % mols)
+
+    # a GROMOS force field and the SPC water box
+    d = prepare(gmx, home, tmp, "gromos",
+                "FF=gromos54a7\nWATER=spc\nBOX=cubic\nDIST=1.0\nCONC=0\n", pdb)
+    if d:
+        mols, natoms = check_prepared(gmx, d, maxwarn=1)
+        check(water_sites(d) == 3 * mols.get("SOL", 0),
+              "gromos54a7 with spc builds on the three-site water box")
+        # the MD tasks after it need grompp -maxwarn 1 for the twin-range warning
+        name, calc, spec = optimize_stage
+        res = stage(gmx, home, tmp, "gromos-optimize", calc, spec,
+                    os.path.join(d, "ecceSession_prepare.gro"),
+                    topology=os.path.join(d, "ecceSession.gmxtop"),
+                    extras={"posre.itp": os.path.join(d, "posre.itp")})
+        check(res is not None,
+              "a task after a GROMOS Prepare launches and runs (grompp -maxwarn 1)")
+
+    # the four-site water box is chosen for a four-site model
+    d = prepare(gmx, home, tmp, "tip4p", rcp + "WATER=tip4p\nCONC=0\n", pdb)
+    if d:
+        check_prepared(gmx, d)
+        check(water_sites(d) == 4 * molecules(
+            os.path.join(d, "ecceSession.gmxtop")).get("SOL", 0),
+              "WATER=tip4p solvates with the four-site box")
+
+    # a failure: launch stops with pdb2gmx's own words ...
+    broken = os.path.join(FIXTURES, "1l2y_broken.pdb")
+    rd = os.path.join(tmp, "run-prep-broken")
+    os.makedirs(rd)
+    rc, out = run([os.path.join(PARSERS, "md.gmxprep")], input=rcp.encode())
+    open(os.path.join(rd, "gromacs.gmxprep"), "w").write(out)
+    shutil.copy(broken, os.path.join(rd, "ecceSession.pdb"))
+    open(os.path.join(rd, "postParams"), "w").write("inputFile: gromacs.gmxprep\n")
+    rc, out = run([os.path.join(PARSERS, "gromacs.launchpp"), "-p", "postParams"],
+                  cwd=rd)
+    check(rc != 0 and "is missing in residue TRP 6" in out
+          and "missing atoms in molecule" in out,
+          "a side chain cut short stops the launch with pdb2gmx's message")
+    # ... and the job script, if it is run anyway, puts them in the output
+    with open(os.path.join(rd, "subParams"), "w") as h:
+        h.write(" -Q Shell\n -H localtest\n -d localhost\n -c GROMACS\n"
+                " -n 1\n -N 1\n -r %s\n -i gromacs.gmxprep\n -o gromacs.gmxlog\n"
+                " -f %s/submit__prep\n -S ecceSession\n -C prepare\n" % (rd, rd))
+    run([os.path.join(home.home, "scripts", "gensub"), "-v", "-p",
+         os.path.join(rd, "subParams")], env=home.env, cwd=rd)
+    run(["sh", os.path.join(rd, "submit__prep")], cwd=rd)
+    status = open(os.path.join(rd, ".ecce.status")).read().strip()
+    glog = open(os.path.join(rd, "gromacs.gmxlog"), errors="replace").read()
+    check(status != "0" and "Fatal error" in glog
+          and "ECCE-PREPARE step 1/4 pdb2gmx" in glog
+          and "step 2/4" not in glog,
+          "the job script stops at the failed step and leaves gmx's output "
+          "in the output file (status %s)" % status)
+
+
 def main():
     global verbose
     ap = argparse.ArgumentParser()
@@ -462,6 +662,9 @@ def main():
 
         # ---- includes kept beside the topology (#260) ------------------
         local_forcefield(gmx, home, tmp, args.includes_bin)
+
+        # ---- Prepare: PDB -> solvated, neutral system -------------------
+        prepare_tests(gmx, home, tmp, STAGES[0])
 
         # ---- an input mistake is reported, plainly, at launch ----------
         rd = os.path.join(tmp, "run-broken")
