@@ -3341,6 +3341,12 @@ void CalcEd::enableBasisSetFields()
   bool isSubmitted(hasCalc
           && p_iCalc->getState() >= ResourceDescriptor::STATE_SUBMITTED);
 
+  //  A theory without a basis set (MOPAC, plane waves) has nothing to
+  //  choose there, so the box is left out rather than greyed (#348).
+  if (p_basisMark && p_basisMark->IsShown() != needsBasis) {
+    p_basisMark->Show(needsBasis);
+    Layout();
+  }
   p_basisSetTool->Enable(hasFragment && needsBasis);
   FindWindow(ID_BUTTON_CALCED_BASIS_QUICK)->Enable(!isSubmitted
           && hasFragment && needsBasis);
