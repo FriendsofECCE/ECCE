@@ -3,6 +3,9 @@
 #include <iostream>
   using std::cout;
   using std::endl;
+#include <string>
+#include <vector>
+  using std::vector;
 
 #include "util/ErrMsg.H"
 #include "util/TDateTime.H"
@@ -188,26 +191,24 @@ PropertyInterpreter::processValues(istream& propStream, PropertyDoc* entry) {
   timer.start();
 #endif
 
-  const int MAXBUF = 2048;
   const int maxColumns = 4;
   string valueString;
   string token;
   int columnIndex = 1;
-  char buf[MAXBUF];
+  //  No line-length limit: ecceqm.parse writes a whole vector, or one MO's
+  //  coefficients, on one line.  A fixed 2048-byte buffer cut the property
+  //  short there and left the stream failed, losing every later property.
+  string line;
+  vector<char> lineBuf;
+  char *buf = 0;
   bool done = false;
   char *tag = 0;
-  while (propStream.good() && !done) {
+  while (!done && std::getline(propStream, line)) {
 
-    propStream.getline(buf,MAXBUF);
+    lineBuf.assign(line.begin(), line.end());
+    lineBuf.push_back('\0');
+    buf = lineBuf.data();
 
-    // This is here to help us notice when the parse scripts generate
-    // lines too long to be read and processed correctly.  Alternatively,
-    // we should modify this code to handle infinitly long lines.
-    // TODO this should be flagged as an error condition and the job
-    // should go to monitor error.
-    if (strlen(buf) == MAXBUF-1) {
-      cerr << "Line overflow " << entry->name() << buf << endl;
-    }
     if (entry->reference()->classType != TProperty::PROPSTRING)
     {
       tag = strtok(buf," \t\n");

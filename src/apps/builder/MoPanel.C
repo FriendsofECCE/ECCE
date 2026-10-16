@@ -428,13 +428,11 @@ void MoPanel::fillUI()
    PropVector    *orbOccBeta = (PropVector*) expt->getProperty("ORBOCCBETA");
    PropVecString *orbSymBeta = (PropVecString*) expt->getProperty("ORBSYMBETA");
 
-   INTERNALEXCEPTION(orbEnergy,"Orbital energy vector is null.");
    if (!orbEnergy) {
-      //  INTERNALEXCEPTION compiles to nothing in an INSTALL build, so
-      //  this is the live path there.  The other two ways of ending up
-      //  invalid (no basis set, no MO coefficients) each say so; this
-      //  one returned silently, and the user then got no explanation at
-      //  all until they pressed Compute and hit its guard.
+      //  Missing or unreadable (a stored vector whose length is not its
+      //  row count reads as null): say so in the panel.  No
+      //  INTERNALEXCEPTION here: INSTALL is never defined, so it threw,
+      //  and nothing above a panel catches it.
       getFW().showMessage("This calculation has no orbital energies, so "
             "orbitals cannot be computed.", false/*warning*/);
       p_isValid = False;
