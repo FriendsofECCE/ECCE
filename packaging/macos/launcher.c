@@ -19,17 +19,19 @@ static volatile pid_t child;
 static void forward(int sig) { if (child > 0) kill(child, sig); }
 
 int main(int argc, char **argv) {
-  char exe[PATH_MAX], real[PATH_MAX], script[PATH_MAX + 32];
+  char exe[PATH_MAX], script[PATH_MAX + 32];
   uint32_t n = sizeof exe;
-  if (_NSGetExecutablePath(exe, &n) != 0 || !realpath(exe, real)) {
+  if (_NSGetExecutablePath(exe, &n) != 0) {
     fprintf(stderr, "ECCE: cannot find its own path\n");
     return 127;
   }
   /* Contents/MacOS/ecce -> Contents/Resources/ecce.sh (a script in MacOS
      would be a code subcomponent that codesign wants signed). */
-  char *slash = strrchr(real, '/');
+  /* The path as spelled, not realpath()ed: the tests compare it with the
+     caller's spelling (/var vs /private/var). */
+  char *slash = strrchr(exe, '/');
   if (slash) *slash = 0;
-  snprintf(script, sizeof script, "%s/../Resources/ecce.sh", real);
+  snprintf(script, sizeof script, "%s/../Resources/ecce.sh", exe);
   char **av = calloc(argc + 3, sizeof *av);
   av[0] = "/bin/bash";
   av[1] = script;
