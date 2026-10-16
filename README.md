@@ -23,7 +23,7 @@ More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
 Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
 * **ECCE 9** (latest
-  [9.1.0](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.1.0)),
+  [9.2.0](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.2.0)),
   for Linux, macOS and Windows: the recommended version. The macOS and
   Windows clients are experimental.
 * **ECCE 8.18.x** (latest
@@ -40,35 +40,27 @@ Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases
 Then start `ecce` (on macOS and Windows: ECCE in Applications or the
 Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
-## Coming in 9.2.0
+## Coming in 9.3.0
 
-Done and being tested, not yet released:
+Planned, being worked on:
 
-* **Quantum ESPRESSO:** molecular dynamics, DFT+U and dispersion
-  corrections, and a help page on choosing the cutoff, k-points, smearing
-  and box ([#329](https://github.com/FriendsofECCE/ECCE/issues/329)).
-* **GROMACS:** `.gro` files open in the Builder with their box as the
-  periodic cell, and a periodic-molecules option
-  ([#262](https://github.com/FriendsofECCE/ECCE/issues/262)).
-* **Builder:** metal–π bonds (ferrocene, benzene and cyclopentadienyl
-  complexes) ([#325](https://github.com/FriendsofECCE/ECCE/issues/325)),
-  redrawn bond and shape icons, a periodic-table button
-  ([#323](https://github.com/FriendsofECCE/ECCE/issues/323)), Ctrl+S
-  always saves ([#338](https://github.com/FriendsofECCE/ECCE/issues/338)),
-  panes that fold and resize properly
-  ([#328](https://github.com/FriendsofECCE/ECCE/issues/328)).
-* **Organizer:** the Progress box ends with the final energy
-  ([#352](https://github.com/FriendsofECCE/ECCE/issues/352)); New and
-  Duplicate in the right-click menu; spaces in names become `_`
-  ([#333](https://github.com/FriendsofECCE/ECCE/issues/333)).
-* **Register Machines** checks that a program file really is the code
-  ([#318](https://github.com/FriendsofECCE/ECCE/issues/318)).
-* **Linux under Wayland:** dialogs and the Builder keep repainting, and
-  typed text shows in name prompts
-  ([#311](https://github.com/FriendsofECCE/ECCE/issues/311)).
-* **In progress:** macOS Dock icons and app names, saving in the Builder on
-  macOS, and access to Downloads
-  ([#344](https://github.com/FriendsofECCE/ECCE/issues/344)).
+* **GROMACS from start to finish:** preparing proteins (`pdb2gmx`), clay and
+  mineral systems (MINFF) and small molecules (AmberTools), and results shown
+  as plots and trajectories
+  ([#262](https://github.com/FriendsofECCE/ECCE/issues/262),
+  [#334](https://github.com/FriendsofECCE/ECCE/issues/334),
+  [#336](https://github.com/FriendsofECCE/ECCE/issues/336)).
+* **A finished job's orbitals as the starting guess** of the next
+  calculation, ORCA first
+  ([#75](https://github.com/FriendsofECCE/ECCE/issues/75)).
+* **Quantum ESPRESSO:** a full Verify and automatic choice of k-points and
+  cutoff ([#349](https://github.com/FriendsofECCE/ECCE/issues/349)).
+* **Windows that fit small screens:** the QE Theory Details, the plot
+  panels and the Basis Set Tool
+  ([#337](https://github.com/FriendsofECCE/ECCE/issues/337),
+  [#351](https://github.com/FriendsofECCE/ECCE/issues/351)).
+* **Calculation Editor:** no Basis Set box for MOPAC and Quantum ESPRESSO
+  ([#348](https://github.com/FriendsofECCE/ECCE/issues/348)).
 
 ## First steps
 
