@@ -1,0 +1,62 @@
+             :-) GROMACS - gmx pdb2gmx, 2025.2-Debian_2025.2_1 (-:
+
+Executable:   /usr/bin/gmx
+Data prefix:  /usr
+Working dir:  /tmp/claude-1000/-home-andy-tmp-ecce-ECCE/d6ab0aa8-a13b-4d98-a91f-1f7f3d1a9320/scratchpad/w1
+Command line:
+  gmx pdb2gmx -f unk.pdb -ff amber99sb-ildn -water tip3p -ignh -o u.gro -p u.top -i u.itp
+
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.r2b
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/dna.r2b
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/rna.r2b
+All occupancies are one
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/atomtypes.atp
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.rtp
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/dna.rtp
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/rna.rtp
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.hdb
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/dna.hdb
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/rna.hdb
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.n.tdb
+Opening force field file /usr/share/gromacs/top/amber99sb-ildn.ff/aminoacids.c.tdb
+
+-------------------------------------------------------
+Program:     gmx pdb2gmx, version 2025.2-Debian_2025.2_1
+Source file: src/gromacs/gmxpreprocess/pdb2gmx.cpp (line 1068)
+
+Fatal error:
+The residues in the chain ASN1--SER20 do not have a consistent type. The first
+residue has type 'Protein', while residue XYZ6 is of type 'Other'. Either
+there is a mistake in your chain, or it includes nonstandard residue names
+that have not yet been added to the residuetypes.dat file in the GROMACS
+library directory. If there are other molecules such as ligands, they should
+not have the same chain ID as the adjacent protein chain since it's a separate
+molecule.
+
+For more information and tips for troubleshooting, please check the GROMACS
+website at https://manual.gromacs.org/current/user-guide/run-time-errors.html
+-------------------------------------------------------
+Using the Amber99sb-ildn force field in directory amber99sb-ildn.ff
+
+going to rename amber99sb-ildn.ff/aminoacids.r2b
+
+going to rename amber99sb-ildn.ff/dna.r2b
+
+going to rename amber99sb-ildn.ff/rna.r2b
+Reading unk.pdb...
+Read 'NMR STRUCTURE OF XYZ-CAGE MINIPROTEIN CONSTRUCT TC5B', 154 atoms
+
+Analyzing pdb file
+Splitting chemical chains based on TER records or chain id changing.
+
+There are 1 chains and 0 blocks of water and 20 residues with 154 atoms
+
+  chain  #res #atoms
+
+  1 'A'    20    154  
+
+All occupancies are one
+
+Reading residue database... (Amber99sb-ildn)
+
+Processing chain 1 'A' (154 atoms, 20 residues)

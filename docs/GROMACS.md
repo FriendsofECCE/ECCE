@@ -244,7 +244,29 @@ warning, which the test allows (counter-ions are a later step).
   then the same command. The test needs only the standard library of the
   python that runs it.
 
-## Step 2 (not built): Prepare
+## Step 2 (scripts built, task not yet): Prepare
+
+What exists so far is the part that runs, without the task, editor or
+resource type around it:
+
+* `scripts/parsers/md.gmxprep` writes the recipe `gromacs.gmxprep`
+  (`KEY=value`: `SOURCE FF WATER HIS IGNH MERGE BOX DIST CONC PNAME NNAME`)
+  from `KEY=value` lines on stdin and checks every value; the task-model XML
+  front end is the one missing piece.
+* `gensub`, for an input ending in `.gmxprep`, runs pdb2gmx (protein source,
+  from a `*.gmxpdb` or `<system>.pdb`), editconf, solvate with the box that
+  matches the water model, and grompp + genion (`CONC=0` neutralises only),
+  announcing `ECCE-PREPARE step k/4` in the output file; a failing step puts
+  gmx's output there and the job fails. It leaves `<system>_<calc>.gro`,
+  `<system>.gmxtop`, `posre.itp` and `chemsys.pdb`.
+* `gromacs.launchpp` runs pdb2gmx alone at launch and stops with its message.
+* A failed gmx tool's `Fatal error:` text is the reason the Organizer shows
+  (`JobFailureReason.H`).
+* `tests/gromacs_md/run_tests.py` runs Trp-cage (PDB 1L2Y) through all of it
+  and on into an Optimize task.
+
+Not done: histidine states other than pdb2gmx's own choice, ligands and
+MINFF as sources, and everything listed below that is not these scripts.
 
 Everything above takes a system as given. A Prepare task would build one
 and, like NWChem's, be the first task of a study (`RootTask`) and the

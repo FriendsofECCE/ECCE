@@ -322,6 +322,69 @@ inline bool matchQuantumEspressoError(const std::vector<std::string>& lines,
 }
 
 // ------------------------------------------------------------------------
+// GROMACS tools end a failure with a box:
+//   Program:     gmx pdb2gmx, version ...
+//   Fatal error:
+//   <paragraph>
+// The paragraph is the reason.  grompp's own box only counts its errors
+// ("There was 1 error in input file(s)"); the cause is the "ERROR n [file
+// ..., line ...]:" paragraph above it, so that is quoted instead.
+// ------------------------------------------------------------------------
+inline std::string paragraphAfter(const std::vector<std::string>& lines,
+                                   size_t i)
+{
+  std::string text;
+  for (size_t j = i + 1; j < lines.size(); j++) {
+    std::string t = trimmed(lines[j]);
+    if (t.empty()) {
+      if (text.empty()) continue;
+      break;
+    }
+    text += (text.empty() ? "" : " ") + t;
+  }
+  return text;
+}
+
+inline bool matchGromacsError(const std::vector<std::string>& lines,
+                               std::string& reason)
+{
+  static const std::regex program("^Program:\\s+(gmx\\S*)\\s+([A-Za-z0-9_]+)");
+  static const std::regex grompErr("^ERROR\\s+[0-9]+\\s+\\[file ");
+  static const std::regex fatal("^Fatal error:\\s*$");
+
+  for (size_t i = 0; i < lines.size(); i++) {
+    std::smatch m;
+    if (!std::regex_search(lines[i], m, program))
+      continue;
+    std::string tool = m[1].str() + " " + m[2].str();
+    // Program: is followed by "Source file:" and a blank line, then
+    // "Fatal error:".
+    size_t f = i + 1;
+    while (f < lines.size() && f < i + 6 && !std::regex_search(lines[f], fatal))
+      f++;
+    if (f >= lines.size() || !std::regex_search(lines[f], fatal))
+      continue;
+    std::string detail;
+    if (m[2].str() == "grompp") {
+      for (size_t e = 0; e < i; e++) {
+        if (std::regex_search(lines[e], grompErr)) {
+          detail = paragraphAfter(lines, e);
+          break;
+        }
+      }
+    }
+    if (detail.empty())
+      detail = paragraphAfter(lines, f);
+    if (detail.empty())
+      continue;
+    reason = tool + ": \"" + truncate(detail, kMaxReasonLen - tool.size() - 6) +
+             "\"";
+    return true;
+  }
+  return false;
+}
+
+// ------------------------------------------------------------------------
 // Try every known pattern, in priority order (most specific/actionable
 // first), across the primary output file and then any auxiliary files
 // (stderr, etc) already available locally.  Returns "" if nothing
@@ -338,6 +401,7 @@ inline std::string extractReason(const std::vector<std::string>& filePaths)
     matchGaussianError,
     matchNWChemInputError,
     matchQuantumEspressoError,
+    matchGromacsError,
     matchOrcaError,
   };
 
