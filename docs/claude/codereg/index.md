@@ -165,4 +165,5 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [Geometry constraints are edited in the Builder and stored with the calculation; the input uses them only for Geometry/GeoVib](geometry-constraints-are-edited-in-the-builder-and-stored-with-the-calculation.md)
 - [Gaussian: describe ECCE's support for it; never publish a comparison of Gaussian with another program](what-may-be-published-about-gaussian.md)
 - [GROMACS Prepare: gmx goes by file extension (.gmxpdb, .gmxtop are not read), every GROMOS force field draws a grompp warning, and the PDB must name its histidines](gromacs-prepare-gmx-goes-by-file-extension-and-gromos-warns.md)
+- [GROMACS Prepare: how its outputs reach the next task (.gmxtop, .gro, posre.itp, topol_*.itp), and the places that treat a Prepare as NWChem's](gromacs-prepare-outputs-come-back-through-the-monitor-as-job-outputs.md)
 - [The Builder draws modes on the last GEOMTRACE step, so a code that reorients must deliver one (NWChem frequency-only runs did not)](geometry-and-normal-modes-share-the-codes-frame.md)

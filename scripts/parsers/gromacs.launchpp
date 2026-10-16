@@ -94,9 +94,15 @@ $mdp = "$cwd/$mdp" if ($mdp !~ m#^/#);
 # -r: a topology with [ position_restraints ] needs a reference structure,
 # and grompp ignores it otherwise; the starting structure is the reference,
 # as in the job script (gensub).
+# A GROMOS force field draws one twin-range warning whatever the system.
+my $maxwarn = 0;
+if (open(my $tf, "<", "topol.top")) {
+  while (<$tf>) { $maxwarn = 1 if (m#^\s*\#include\s*"gromos[^"]*\.ff/#); }
+  close($tf);
+}
 my @cmd = ($gmx, "grompp", "-f", $mdp, "-c", "conf.gro", "-r", "conf.gro",
            "-p", "topol.top",
-           "-o", "$tmp/check.tpr", "-po", "$tmp/mdout.mdp", "-maxwarn", "0");
+           "-o", "$tmp/check.tpr", "-po", "$tmp/mdout.mdp", "-maxwarn", $maxwarn);
 my $out = `@cmd 2>&1`;
 my $status = $? >> 8;
 if ($status != 0) {

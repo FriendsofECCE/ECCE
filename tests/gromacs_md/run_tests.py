@@ -474,9 +474,17 @@ def prepare_tests(gmx, home, tmp, optimize_stage):
     check(rc == 0 and "FF=amber99sb-ildn" in out and "CONC=0.15" in out,
           "md.gmxprep with no input writes the defaults")
     for bad in ("FF=a;touch x\n", "BOX=hexagon\n", "DIST=-1\n", "CONC=lots\n",
-                "WATER=tip3p extra\n", "NOPE=1\n"):
+                "WATER=tip3p extra\n", "NOPE=1\n", "HIS=names\n"):
         rc, out = run([os.path.join(PARSERS, "md.gmxprep")], input=bad.encode())
         check(rc != 0, "md.gmxprep refuses %r" % bad.strip())
+
+    xml = ("<?xml version=\"1.0\"?>\n<GromacsPrepareModel>\n"
+           "<ForceField>charmm27</ForceField>\n<WaterModel>tip3p</WaterModel>\n"
+           "<Histidine>auto</Histidine>\n<BoxDistance>1.2</BoxDistance>\n"
+           "</GromacsPrepareModel>\n")
+    rc, out = run([os.path.join(PARSERS, "md.gmxprep")], input=xml.encode())
+    check(rc == 0 and "FF=charmm27" in out and "DIST=1.2" in out and "CONC=0.15" in out,
+          "md.gmxprep reads the task model XML")
 
     # neutralise only: Trp-cage is +1, so one CL and no sodium
     d = prepare(gmx, home, tmp, "neutral", rcp + "CONC=0\n", pdb)
@@ -514,6 +522,14 @@ def prepare_tests(gmx, home, tmp, optimize_stage):
         mols, natoms = check_prepared(gmx, d, maxwarn=1)
         check(water_sites(d) == 3 * mols.get("SOL", 0),
               "gromos54a7 with spc builds on the three-site water box")
+        # the MD tasks after it need grompp -maxwarn 1 for the twin-range warning
+        name, calc, spec = optimize_stage
+        res = stage(gmx, home, tmp, "gromos-optimize", calc, spec,
+                    os.path.join(d, "ecceSession_prepare.gro"),
+                    topology=os.path.join(d, "ecceSession.gmxtop"),
+                    extras={"posre.itp": os.path.join(d, "posre.itp")})
+        check(res is not None,
+              "a task after a GROMOS Prepare launches and runs (grompp -maxwarn 1)")
 
     # the four-site water box is chosen for a four-site model
     d = prepare(gmx, home, tmp, "tip4p", rcp + "WATER=tip4p\nCONC=0\n", pdb)

@@ -2726,6 +2726,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_gromacs PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+  # A GROMACS Prepare (pdb2gmx, editconf, solvate, genion) and the Optimize
+  # after it, through the real launch path; skipped (77) without gmx.
+  add_test(NAME launch_gromacs_prepare
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/gromacs_prepare_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_gromacs_prepare PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
   # The MD Optimize editor and the Organizer's editor button for a GROMACS
   # and an NWChem MD study (private Xvfb); skipped (77) without Xvfb.
   add_test(NAME launch_md_editors

@@ -11,6 +11,13 @@
 //                                 a project <name>-project holding a GROMACS MD study <name> with an Optimize, an Equilibrate and a
 //                                 Dynamics task chained as the Organizer's New menu chains
 //                                 them; prints the study's and the tasks' URLs, one a line
+//   launchjob gromacsprepstudy <parentURL> <name> <pdbFile> [ff=F] [water=W] [box=B] [dist=D] [conc=C]
+//                                 [merge=0|1] [equilibrate]
+//                                 a project and a GROMACS MD study with a Prepare task on <pdbFile>
+//                                 (stored as its .gmxpdb, the recipe written as the editor
+//                                 would) and an Optimize task, plus an Equilibrate with the
+//                                 word "equilibrate"; prints the URLs, one a line
+//   launchjob apptype <url>       the application and content type of a resource
 //   launchjob nwchemmdstudy <parentURL> <name>
 //                                 the same with an NWChem MD study holding a Prepare and an Optimize task
 //   launchjob mdsetup <taskURL> <machine> <runDir> <user> [procs=P]
@@ -50,6 +57,8 @@
 // exactly as ecmd and eccejobmaster receive them.
 
 #include <cstdlib>
+#include <cstdio>
+#include <unistd.h>
 #include <cstring>
 #include <ctime>
 #ifndef _WIN32
@@ -66,6 +75,8 @@
 #include "comm/RunMgmt.H"
 #include "dsm/CodeFactory.H"
 #include "dsm/EDSIFactory.H"
+#include "dsm/GromacsMDModel.H"
+#include "dsm/GromacsPrepareModel.H"
 #include "dsm/JCode.H"
 #include "dsm/MdTask.H"
 #include "dsm/OrbitalGuess.H"
@@ -212,6 +223,96 @@ static int doMdStudy(const vector<string>& a, bool gromacs)
     if (!task) { cerr << "could not create " << names[i] << endl; return 1; }
     //  as CalcMgr does after createChild: the new task follows the last
     session->addMemberAsTarget(task, 0);
+    cout << task->getURL().toString() << endl;
+  }
+  return 0;
+}
+
+//  What MDEdBase::generateInputFile does: the model through the code's
+//  input generator, stored as the task's input.
+static bool generateInput(TaskJob* task, ITaskModel& model,
+                          const string& generator, const string& inputName)
+{
+  model.setUrl(task->getURL().toString());
+  task->setTaskModel(&model);
+  string xml = task->serializeModel(&model);
+  string tmp = string(getenv("TMPDIR") ? getenv("TMPDIR") : "/tmp") + "/launchjob-model-" + to_string(getpid()) + ".xml";
+  string out = tmp + ".out";
+  { ofstream f(tmp.c_str()); f << xml; }
+  string cmd = Ecce::scriptCommand(string(Ecce::ecceDataControllersPath()) +
+                                   "/" + generator) +
+               " < \"" + tmp + "\" > \"" + out + "\"";
+  int rc = system(cmd.c_str());
+  bool ok = (rc == 0);
+  if (ok) {
+    ifstream in(out.c_str());
+    ok = task->putInputFile(inputName, &in);
+  }
+  remove(tmp.c_str());
+  remove(out.c_str());
+  return ok;
+}
+
+static int doGromacsPrepStudy(const vector<string>& a)
+{
+  if (a.size() < 3) { cerr << "gromacsprepstudy: wrong argument count" << endl; return 2; }
+  Resource* parent = EDSIFactory::getResource(EcceURL(a[0]));
+  if (!parent) { cerr << "no such parent: " << a[0] << endl; return 1; }
+  ResourceType* studyType = typeNamed("gromacs_md_study");
+  ResourceType* projType = typeNamed("project");
+  Resource* project = projType ? parent->createChild(a[1] + "-project", projType) : 0;
+  if (!studyType || !project) { cerr << "could not create the project" << endl; return 1; }
+  Session* session = dynamic_cast<Session*>(project->createChild(a[1], studyType));
+  if (!session) { cerr << "could not create the study" << endl; return 1; }
+  cout << session->getURL().toString() << endl;
+
+  GromacsPrepareModel pm;
+  bool equilibrate = false;
+  for (size_t i = 3; i < a.size(); i++) {
+    string::size_type eq = a[i].find('=');
+    string k = a[i].substr(0, eq), v = eq == string::npos ? "" : a[i].substr(eq + 1);
+    if (k == "ff") pm.forceField(v);
+    else if (k == "water") pm.waterModel(v);
+    else if (k == "box") pm.boxType(v);
+    else if (k == "dist") pm.boxDistance(atof(v.c_str()));
+    else if (k == "conc") pm.ionConcentration(atof(v.c_str()));
+    else if (k == "merge") pm.mergeChains(v == "1");
+    else if (k == "equilibrate") equilibrate = true;
+    else { cerr << "gromacsprepstudy: unknown setting " << a[i] << endl; return 2; }
+  }
+
+  vector<string> names = { "prepare", "optimize" };
+  if (equilibrate) names.push_back("equilibrate");
+  for (size_t i = 0; i < names.size(); i++) {
+    ResourceType* tt = typeNamed("gromacs_md_" + names[i]);
+    Resource* r = tt ? session->createChild(names[i], tt) : 0;
+    TaskJob* task = r ? dynamic_cast<TaskJob*>(r) : 0;
+    if (!task) { cerr << "could not create " << names[i] << endl; return 1; }
+    session->addMemberAsTarget(task, 0);
+    if (names[i] == "prepare") {
+      //  the source structure, attached as the editor will
+      ifstream pdb(a[2].c_str());
+      string tail = a[2].substr(a[2].find_last_of('/') + 1);
+      tail = tail.substr(0, tail.find_last_of('.')) + ".gmxpdb";
+      if (!pdb || !task->putInputFile(tail, &pdb)) {
+        cerr << "could not store the source structure" << endl;
+        return 1;
+      }
+      if (!generateInput(task, pm, "md.gmxprep", "gromacs.gmxprep")) {
+        cerr << "could not write the recipe" << endl;
+        return 1;
+      }
+      task->setState(ResourceDescriptor::STATE_READY);
+    } else {
+      ResourceDescriptor::CONTENTTYPE ct = names[i] == "optimize"
+          ? ResourceDescriptor::CT_MDOPTIMIZE : ResourceDescriptor::CT_MDEQUILIBRATE;
+      GromacsMDModel mm(ct);
+      if (!generateInput(task, mm, "md.gmxtask", "gromacs.mdp")) {
+        cerr << "could not write the .mdp of " << names[i] << endl;
+        return 1;
+      }
+      task->setState(ResourceDescriptor::STATE_READY);
+    }
     cout << task->getURL().toString() << endl;
   }
   return 0;
@@ -458,6 +559,15 @@ int main(int argc, char** argv)
   if (mode == "listen") return doListen(a);
   if (mode == "mdsetup") return doMdSetup(a);
   if (mode == "gromacsstudy") return doMdStudy(a, true);
+  if (mode == "gromacsprepstudy") return doGromacsPrepStudy(a);
+  if (mode == "apptype" && a.size() == 1) {
+    Resource* r = EDSIFactory::getResource(EcceURL(a[0]));
+    ResourceType* t = r ? r->getDescriptor() : 0;
+    if (!t) { cerr << "no such resource: " << a[0] << endl; return 1; }
+    cout << t->getApplicationType() << " " << t->getContentType() << " "
+         << t->getName() << endl;
+    return 0;
+  }
   if (mode == "nwchemmdstudy") return doMdStudy(a, false);
   if (mode == "killflag" && a.size() >= 1) {
     TaskJob* t = getTask(a[0]);

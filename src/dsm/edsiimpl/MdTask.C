@@ -868,9 +868,11 @@ string MdTask::getRestartName() const
  */
 string MdTask::getTopologyName() const
 {
-  // A GROMACS task is given its topology; it never produces one.
+  // Only a GROMACS Prepare produces one (kept as .gmxtop, see GROMACS.edml);
+  // the other GROMACS tasks are given theirs.
   if (getApplicationType() == ResourceDescriptor::AT_GROMACS) {
-    return "";
+    return getContentType() == ResourceDescriptor::CT_MDPREPARE
+           ? getSystemName() + ".gmxtop" : "";
   }
   return getSystemName() + ".top";
 }

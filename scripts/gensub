@@ -1682,7 +1682,11 @@ sub gromacs()
     $retval .= "$::CC - mostly about the topology, go where the user will look.\n";
     #  -r: position restraints are held to the starting structure; grompp
     #  refuses a restrained topology without it and ignores it otherwise.
-    $retval .= "\"\$gmx\" grompp -f $::inFile -c conf.gro -r conf.gro -p topol.top -o topol.tpr -maxwarn 0 > grompp.out 2>&1\n";
+    #  A GROMOS force field makes grompp print one twin-range warning
+    #  whatever the system; any other warning still stops the job.
+    $retval .= "maxwarn=0\n";
+    $retval .= "grep -q '^[[:space:]]*#include[[:space:]]*\"gromos[^\"]*\\.ff/' topol.top && maxwarn=1\n";
+    $retval .= "\"\$gmx\" grompp -f $::inFile -c conf.gro -r conf.gro -p topol.top -o topol.tpr -maxwarn \$maxwarn > grompp.out 2>&1\n";
     $retval .= "if [ \$? -ne 0 ]; then\n";
     $retval .= "  cat grompp.out >> $::logfile\n";
     $retval .= "  cp grompp.out $::outFile\n";

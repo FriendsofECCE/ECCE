@@ -244,15 +244,27 @@ warning, which the test allows (counter-ions are a later step).
   then the same command. The test needs only the standard library of the
   python that runs it.
 
-## Step 2 (scripts built, task not yet): Prepare
+## Step 2 (scripts and task built, editor not yet): Prepare
 
-What exists so far is the part that runs, without the task, editor or
-resource type around it:
+What exists so far is the part that runs, with the resource type but not
+yet the editor:
 
+* `gromacs_md_prepare` ("New GROMACS MD Prepare...", first in a GROMACS
+  study's list, a root task like NWChem's) in both resource descriptors;
+  its tool `GMXPrepare` (`./gmxprepare`) is declared and the binary comes
+  with the editor. `GROMACS.edml` declares `gromacs.gmxprep` as a second
+  primary input; the source structure is stored as `<name>.gmxpdb`.
+* The recipe's task model is `GromacsPrepareModel` /
+  `GromacsPrepareModelXMLizer` (`TaskJob::getSerializer`); `md.gmxprep`
+  reads that XML or `KEY=value` lines.
+* A finished Prepare stores `<sys>.gmxtop`, `<sys>_<calc>.gro`, `posre.itp`,
+  any `topol_*.itp` and `chemsys.pdb`; the tasks after it need nothing
+  attached (see `docs/claude/codereg/gromacs-prepare-outputs-come-back-*`).
+  They run grompp with `-maxwarn 1` for a GROMOS topology.
 * `scripts/parsers/md.gmxprep` writes the recipe `gromacs.gmxprep`
   (`KEY=value`: `SOURCE FF WATER HIS IGNH MERGE BOX DIST CONC PNAME NNAME`)
-  from `KEY=value` lines on stdin and checks every value; the task-model XML
-  front end is the one missing piece.
+  from the task model XML or `KEY=value` lines on stdin and checks every
+  value; `HIS` is `auto` only.
 * `gensub`, for an input ending in `.gmxprep`, runs pdb2gmx (protein source,
   from a `*.gmxpdb` or `<system>.pdb`), editconf, solvate with the box that
   matches the water model, and grompp + genion (`CONC=0` neutralises only),
@@ -265,8 +277,9 @@ resource type around it:
 * `tests/gromacs_md/run_tests.py` runs Trp-cage (PDB 1L2Y) through all of it
   and on into an Optimize task.
 
-Not done: histidine states other than pdb2gmx's own choice, ligands and
-MINFF as sources, and everything listed below that is not these scripts.
+Not done: the editor (`gmxprepare` on `MDEdBase`, a `GromacsPreparePanel`),
+histidine states other than pdb2gmx's own choice, ligands and MINFF as
+sources, and everything listed below that is not these scripts and the task.
 
 Everything above takes a system as given. A Prepare task would build one
 and, like NWChem's, be the first task of a study (`RootTask`) and the
@@ -274,8 +287,7 @@ provider of the topology and structure the tasks after it find through the
 same search the Inputs tab uses today (`TOPOLOGY_OUTPUT`, `RESTART_OUTPUT`
 on an earlier task). It needs:
 
-* a resource type `gromacs_md_prepare` and a `PrepareInputGenerator` in
-  `GROMACS.edml`; the Prepare editor (`src/apps/mdprepare` is 8400 lines
+* the Prepare editor (`src/apps/mdprepare` is 8400 lines
   around NWChem's segment model and is not the thing to extend: a small
   GROMACS-only editor over these steps is);
 * `pdb2gmx` with a **force-field picker**: the installed force fields are

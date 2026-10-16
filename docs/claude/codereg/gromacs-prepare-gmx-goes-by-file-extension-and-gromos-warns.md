@@ -17,8 +17,9 @@ solvate, genion).
 - **GROMOS.** `gromos*` force fields make grompp print one WARNING (twin-range
   parametrisation), so the neutralising grompp in the Prepare job needs
   `-maxwarn 1` for them and `0` otherwise; a net charge is only a NOTE in
-  2025.2. The MD tasks' grompp uses `-maxwarn 0` and will refuse a GROMOS
-  topology until that is decided.
+  2025.2. The MD tasks' grompp (gensub and `gromacs.launchpp`) uses
+  `-maxwarn 1` when the staged `topol.top` includes a `gromos*.ff/` file, `0`
+  otherwise.
 - **Histidines.** `pdb2gmx -his` is interactive and there is no
   name-based option, so Prepare leaves it to pdb2gmx; a PDB that already says
   HID/HIE/HIP (the force field's own spelling) is honoured.

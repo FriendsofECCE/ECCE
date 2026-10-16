@@ -2492,6 +2492,19 @@ sub JobFilesGet
         &MsgSendFile($i, $MSG_TYPE_F_JOF);
     }
 
+    # A GROMACS Prepare's topology includes (posre.itp, one topol_*.itp per
+    # chain) have names only the run knows, so they go as outputs like .rst.
+    if ($gConfig{'mdPrepareTask'} eq 'yes')
+    {
+        opendir ITP_DIR, "." or Die "Could not open directory: $! \n";
+        my @itpFiles = grep /\.itp$/, readdir ITP_DIR;
+        closedir ITP_DIR;
+        foreach $i (@itpFiles)
+        {
+            &MsgSendFile($i, $MSG_TYPE_F_JOF);
+        }
+    }
+
     # send other files
     if ($gConfig{'filesToTransfer'})
     {

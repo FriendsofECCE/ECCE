@@ -2310,6 +2310,19 @@
         <State name="Failed"/>
         <State name="System"/>
       </Tool>
+    <Tool name="GMXPrepare">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
       <Tool name="Builder">
         <State name="Created"/>
         <State name="Ready"/>
@@ -3391,6 +3404,7 @@
     <Relationships>
       <Containment>
         <Contains>
+          <ContainsResource name="gromacs_md_prepare"/>
           <ContainsResource name="gromacs_md_optimize"/>
           <ContainsResource name="gromacs_md_energy"/>
           <ContainsResource name="gromacs_md_equilibrate"/>
@@ -3405,6 +3419,282 @@
     <EnabledTools/>
     <DefaultTools/>
     <EnabledRunManagementTasks/>
+  </ResourceType>
+  <!-- GROMACS MD Prepare resource -->
+  <ResourceType name="gromacs_md_prepare" resourceType="virtual_document" contentType="ecceMdPrepare"
+    applicationType="GROMACS">
+    <SortPriority>30</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>taskmdprepare.xpm</Normal>
+      <Selected>taskmdprepare.xpm</Selected>
+      <Expanded>taskmdprepare.xpm</Expanded>
+      <SelectedExpanded>taskmdprepare.xpm</SelectedExpanded>
+    </Icons>
+    <Label>Prepare</Label>
+    <!-- Indicates that this resource can be the initial task created in the study,
+         that is, the root task. -->
+    <RootTask>true</RootTask>
+    <StateBased>true</StateBased>
+    <MenuItem>New GROMACS MD Prepare...</MenuItem>
+    <DescriptorFile>GROMACS.edml</DescriptorFile>
+    <FactoryCategory>MdTask</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="gromacs_md_study"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="GMXPrepare">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="GMXPrepare">
+        <State name="Created"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="tailOutputFile">
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
+      <RunManagementTask name="shellInRunDir">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <!--
+      <RunManagementTask name="manageFiles">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      -->
+      <RunManagementTask name="terminateCalc">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJobOnMachine">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
+      <RunManagementTask name="reconnectJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="forceFail">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRerun">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+        <State name="Loaded"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetCompleted">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetIncomplete">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetImported">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetKilled">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="cleanRunDir">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewRunLog">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewInputFile">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewOutputFile">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
   </ResourceType>
   <!-- GROMACS MD Energy resource -->
   <ResourceType name="gromacs_md_energy" resourceType="virtual_document" contentType="ecceMdEnergy"
@@ -5285,6 +5575,28 @@
       </Property>
     </ToolPropertyView>
     <ToolPropertyView contentType="ecceMdPrepare" tool="MDPrepare">
+      <MenuItem>Code Setup</MenuItem>
+      <Order>5</Order>
+      <Property>
+        <Label>Calculation:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>state</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>runstateicon</Type>
+      </Property>
+      <Property>
+        <Label>Code:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>application</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>resourceicon</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdPrepare" tool="GMXPrepare">
       <MenuItem>Code Setup</MenuItem>
       <Order>5</Order>
       <Property>
