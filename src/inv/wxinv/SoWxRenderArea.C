@@ -15,6 +15,9 @@
 
 
 #include "wx/display.h"
+#if defined(__WXGTK__)
+#include <GL/glx.h>
+#endif
 
 #include <algorithm>
 #include <cmath>
@@ -39,6 +42,46 @@ static bool exceedsCap(const wxWindow *w, wxSize *capped)
   wxSize cap = canvasCap(w), size = w->GetSize();
   *capped = wxSize(wxMin(size.x, cap.x), wxMin(size.y, cap.y));
   return cap.x > 0 && cap.y > 0 && *capped != size;
+}
+
+
+//  ECCE_DEBUG_VIEWER_SIZE=1: one line per resize and per paint whose
+//  geometry differs from the last, for a scene drawn offset on one
+//  desktop only (XWayland).
+static void debugViewerSize(const wxWindow *w, const char *what,
+                            const SbVec2s &glx)
+{
+  static int on = -1;
+  if (on < 0) on = getenv("ECCE_DEBUG_VIEWER_SIZE") ? 1 : 0;
+  if (!on) return;
+  static wxString last;
+  const wxPoint pos = w->GetPosition(), scr = w->GetScreenPosition();
+  const wxSize client = w->GetClientSize(), size = w->GetSize(),
+               parent = w->GetParent() ? w->GetParent()->GetClientSize()
+                                       : wxSize(0, 0);
+  wxString line = wxString::Format(
+      "pos %d,%d screen %d,%d size %dx%d client %dx%d parent %dx%d "
+      "scale %.2f glx %dx%d", pos.x, pos.y, scr.x, scr.y, size.x, size.y,
+      client.x, client.y, parent.x, parent.y,
+      w->GetContentScaleFactor(), glx[0], glx[1]);
+#if defined(__WXGTK__)
+  if (strcmp(what, "paint") == 0) {
+    GLint vp[4] = {0, 0, 0, 0};
+    glGetIntegerv(GL_VIEWPORT, vp);
+    unsigned int dw = 0, dh = 0;
+    Display *dpy = glXGetCurrentDisplay();
+    GLXDrawable drw = glXGetCurrentDrawable();
+    if (dpy && drw) {
+      glXQueryDrawable(dpy, drw, GLX_WIDTH, &dw);
+      glXQueryDrawable(dpy, drw, GLX_HEIGHT, &dh);
+    }
+    line += wxString::Format(" viewport %d,%d %dx%d drawable %ux%u",
+                             vp[0], vp[1], vp[2], vp[3], dw, dh);
+  }
+#endif
+  if (line == last) return;
+  last = line;
+  fprintf(stderr, "[VIEWER] %s %s\n", what, (const char*)line.mb_str());
 }
 
 
@@ -822,6 +865,7 @@ void SoWxRenderArea::redraw()
     return;
 
   SetCurrent(*p_glContext);
+  debugViewerSize(this, "paint", p_glxSize);
 
   //  ECCE_DEBUG_GL_VISUAL=1 reports, once, what visual this canvas
   //  actually got.  No GL attributes are requested anywhere -- the whole
@@ -1446,6 +1490,7 @@ void SoWxRenderArea::OnSize(wxSizeEvent& event)
   ChemDisplayParam::setLineWidthScale(scale);
 
   p_windowResized = true;
+  debugViewerSize(this, "size", p_glxSize);
   
   //  cerr << "w: " << w << "    h: " << h << "\n";
 
