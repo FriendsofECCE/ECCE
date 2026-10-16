@@ -137,12 +137,22 @@ bool PBCLayerCmd::execute()
    // Wrap as Fold does: a bonded group moves as a unit, by whole cell
    // vectors; per atom only if that is not possible.
    if (!frag->makeMoleculesWhole(true)) {
+      // A water (O, H, H as added) moves by its O's cell vector so that it
+      // stays one molecule; layer atoms and ions fold one by one.
       frag->convertToFractionalCoords(false);
+      const int first = (int)frag->numAtoms() - (int)added.size();
       for (int i = 0; i < (int)frag->numAtoms(); i++) {
+         int nmove = 1;
+         if (i >= first && added[i - first].kind == WATER_O) nmove = 3;
+         double s[3];
          const double *f = frag->atomRef(i)->coordinates();
-         double g[3];
-         for (int k = 0; k < 3; k++) g[k] = f[k] - floor(f[k]);
-         frag->atomRef(i)->coordinates(g[0], g[1], g[2]);
+         for (int k = 0; k < 3; k++) s[k] = floor(f[k]);
+         for (int j = i; j < i + nmove; j++) {
+            const double *x = frag->atomRef(j)->coordinates();
+            frag->atomRef(j)->coordinates(x[0] - s[0], x[1] - s[1],
+                                          x[2] - s[2]);
+         }
+         i += nmove - 1;
       }
       frag->convertFromFractionalCoords();
    }

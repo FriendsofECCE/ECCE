@@ -83,9 +83,20 @@ void wrapPoint(const Cell c, double* x)
 void addImages(const Cell c, const double* n, const double* x, double lo,
                double hi, double margin, std::vector<double>& list)
 {
-  for (int ia = -1; ia <= 1; ia++)
-    for (int ib = -1; ib <= 1; ib++)
-      for (int ic = -1; ic <= 1; ic++) {
+  // One image each way is not enough when a cell width is below the
+  // margin (graphite's a is 2.46 A): take as many as the margin needs.
+  int r[3];
+  V3 bc, ca, ab;
+  cross(c[1], c[2], bc);
+  cross(c[2], c[0], ca);
+  cross(c[0], c[1], ab);
+  double vol = std::fabs(dot(c[0], bc));
+  const double* cr[3] = {bc, ca, ab};
+  for (int i = 0; i < 3; i++)
+    r[i] = 1 + (int)std::ceil(margin / (vol / std::sqrt(dot(cr[i], cr[i]))));
+  for (int ia = -r[0]; ia <= r[0]; ia++)
+    for (int ib = -r[1]; ib <= r[1]; ib++)
+      for (int ic = -r[2]; ic <= r[2]; ic++) {
         V3 y;
         for (int k = 0; k < 3; k++)
           y[k] = x[k] + ia*c[0][k] + ib*c[1][k] + ic*c[2][k];
