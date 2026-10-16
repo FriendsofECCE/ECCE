@@ -1,7 +1,7 @@
 #!/bin/bash
 # The Python inside ECCE.app (#133): with no other Python on the PATH, the
 # first-start window opens and a Theory Details dialog builds.  Everything
-# runs in the app's own environment (ECCE_APP_RUN, see launcher.sh) whose
+# runs in the app's own environment (ECCE_APP_RUN, see ecce.sh) whose
 # PATH holds only the bundled Python and /usr/bin and friends, so a Python
 # or wxPython of the machine's own cannot be what answers.
 # Usage: python-check.sh <ECCE.app> <out-dir>

@@ -37,7 +37,9 @@ for t in mosquitto mosquitto_passwd; do
 done
 
 sed "s/@VERSION@/$VERSION/" "$HERE/Info.plist.in" > "$APP/Contents/Info.plist"
-install -m 755 "$HERE/launcher.sh" "$APP/Contents/MacOS/ecce"
+install -m 755 "$HERE/ecce.sh" "$RES/ecce.sh"
+# A Mach-O, not the script: TCC's responsible process must be ECCE, not bash.
+cc -O2 -Wall -o "$APP/Contents/MacOS/ecce" "$HERE/launcher.c"
 "$HERE/make-icns.sh" "$RES/ecce.icns"
 
 # The Python the Details dialogs and the first-start window run on.
@@ -62,7 +64,11 @@ fi
 
 # install_name_tool voids signatures and arm64 will not run unsigned
 # code, so each Mach-O is signed ad hoc, the bundle last.
-while read -r f; do codesign --force -s - "$f"; done < "$machos"
+# The main executable is signed with the bundle: signed alone it demands
+# the Frameworks be signed first.
+while read -r f; do
+  [ "$f" = "$APP/Contents/MacOS/ecce" ] || codesign --force -s - "$f"
+done < "$machos"
 rm -f "$machos"
 for b in "$APP"/Contents/Helpers/*.app; do codesign --force -s - "$b"; done
 codesign --force -s - "$APP"

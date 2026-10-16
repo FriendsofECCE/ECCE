@@ -3,7 +3,7 @@ type: map
 title: "The first-start question: where a user keeps their work"
 area: services
 section: "The Gateway window and session end"
-paths: ["packaging/gateway/ecce-first-start", "packaging/ecce.in", "packaging/gateway/ecce-session-lib.sh", "packaging/dataserver/ecce-remote-setup", "include/util/RemoteServerDir.H", "packaging/windows/ecce.cmd", "packaging/macos/launcher.sh", "tests/apps/first_start_window_test.py", "tests/windows/ecce_cmd_test.py", "src/apps/organizer/CalcMgr.C", "tests/apps/first_start_test.py", "tests/tls/first_connect_test.py"]
+paths: ["packaging/gateway/ecce-first-start", "packaging/ecce.in", "packaging/gateway/ecce-session-lib.sh", "packaging/dataserver/ecce-remote-setup", "include/util/RemoteServerDir.H", "packaging/windows/ecce.cmd", "packaging/macos/ecce.sh", "tests/apps/first_start_window_test.py", "tests/windows/ecce_cmd_test.py", "src/apps/organizer/CalcMgr.C", "tests/apps/first_start_test.py", "tests/tls/first_connect_test.py"]
 issues: [240, 216]
 ---
 `ecce` runs `ecce-first-start` before it makes the session id (#240). It
