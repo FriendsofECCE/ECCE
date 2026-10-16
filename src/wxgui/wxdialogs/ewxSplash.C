@@ -35,6 +35,34 @@ private:
   wxWeakRef<wxSplashScreen> p_splash;
 };
 
+#ifdef __WXMAC__
+#include "wx/statbmp.h"
+
+// wxSplashScreen is a floating tool window on macOS, which the system hides
+// whenever the app is not the active one, so the splash never showed.  A
+// plain frame at the same level stays.
+class MacSplash : public wxFrame
+{
+public:
+  MacSplash(const wxBitmap& card, int ms)
+    : wxFrame(NULL, wxID_ANY, wxEmptyString, wxDefaultPosition, card.GetSize(),
+              wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxSTAY_ON_TOP)
+  {
+    wxStaticBitmap *pic = new wxStaticBitmap(this, wxID_ANY, card);
+    SetClientSize(card.GetSize());
+    CentreOnScreen();
+    pic->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent&) { Destroy(); });
+    p_timer.SetOwner(this);
+    Bind(wxEVT_TIMER, [this](wxTimerEvent&) { Destroy(); });
+    p_timer.StartOnce(ms);
+    Show();
+  }
+private:
+  wxTimer p_timer;
+};
+#endif
+
+
 // The Organizer takes a few seconds to appear after the login; the title
 // card says ECCE is starting.
 // Left out of test runs and with ECCE_NO_SPLASH.
@@ -59,6 +87,11 @@ void ewxShowSplash(int timeoutMs)
                 277, 190);
     dc.SelectObject(wxNullBitmap);
   }
+#ifdef __WXMAC__
+  new MacSplash(card, timeoutMs);
+  wxYield();
+  return;
+#endif
   wxSplashScreen *splash =
     new wxSplashScreen(card, wxSPLASH_CENTRE_ON_SCREEN | wxSPLASH_TIMEOUT,
                        timeoutMs, 0, wxID_ANY, wxDefaultPosition, wxDefaultSize,

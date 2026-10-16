@@ -30,6 +30,27 @@
 #include "wxgui/ewxReportProblem.H"
 #include "wxgui/ewxBitmap.H"
 
+#ifdef __WXMAC__
+#include <CoreFoundation/CoreFoundation.h>
+
+namespace {
+
+// The bundle's name for the app menu ("Quit ECCE Builder").
+wxString bundleDisplayName()
+{
+  CFBundleRef bundle = CFBundleGetMainBundle();
+  CFTypeRef v = bundle ? CFBundleGetValueForInfoDictionaryKey(
+                           bundle, CFSTR("CFBundleDisplayName")) : NULL;
+  char buf[256];
+  if (v && CFGetTypeID(v) == CFStringGetTypeID() &&
+      CFStringGetCString((CFStringRef)v, buf, sizeof(buf), kCFStringEncodingUTF8))
+    return wxString::FromUTF8(buf);
+  return wxString();
+}
+
+}  // namespace
+#endif
+
 #ifdef __WXGTK__
 #include <glib.h>
 #ifdef __WXGTK3__
@@ -174,6 +195,12 @@ bool ewxApp::OnInit()
 
    SetVendorName("EMSL");
    SetAppName("ECCE");
+#ifdef __WXMAC__
+   {
+      wxString shown = bundleDisplayName();
+      if (!shown.empty()) SetAppDisplayName(shown);
+   }
+#endif
    SetUseBestVisual(true);
 
    Ecce::initialize();
@@ -205,6 +232,20 @@ void ewxApp::processGlobalPreferenceChange()
    ewxWindowUtils::processGlobalPreferenceChange(top);
 
 }
+
+
+#ifdef __WXMAC__
+void ewxApp::MacReopenApp()
+{
+   for (wxWindowList::iterator it = wxTopLevelWindows.begin();
+        it != wxTopLevelWindows.end(); ++it) {
+      wxTopLevelWindow *w = wxDynamicCast(*it, wxTopLevelWindow);
+      if (!w || !w->IsShown()) continue;
+      if (w->IsIconized()) w->Iconize(false);
+      w->Raise();
+   }
+}
+#endif
 
 
 void ewxApp::OnReportProblem(wxCommandEvent& WXUNUSED(event))

@@ -13,6 +13,9 @@
   <key>LSMinimumSystemVersion</key><string>12.0</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSLocalNetworkUsageDescription</key><string>ECCE connects to the central ECCE server (data server and message broker) and to compute hosts on your network.</string>
+  <key>NSDownloadsFolderUsageDescription</key><string>ECCE reads the structure and input files you pick in your Downloads folder.</string>
+  <key>NSDesktopFolderUsageDescription</key><string>ECCE reads the structure and input files you pick on your Desktop.</string>
+  <key>NSDocumentsFolderUsageDescription</key><string>ECCE reads the structure and input files you pick in your Documents folder.</string>
   <key>LSApplicationCategoryType</key><string>public.app-category.education</string>
 </dict>
 </plist>
