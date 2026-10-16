@@ -1088,19 +1088,10 @@ void Builder::createToolPanels()
   ewxLogTextCtrl *logWindow = new ewxLogTextCtrl(log, GetStatusBar());
   delete wxLog::SetActiveTarget(logWindow);
   addToolPanel(log, NAME_TOOL_LOG, false, false);
-  //  In the one-column layouts the log lives collapsed to its caption bar
-  //  and opens by itself when something is written to it.
-  logWindow->setMessageHandler([this](wxLogLevel) {
-    CallAfter([this]() {
-      if (isColumnMode()) {
-        wxAuiPaneInfo &pane = p_mgr.GetPane(NAME_TOOL_LOG);
-        if (pane.IsOk() && pane.IsShown() && p_folded.count(pane.window)) {
-          foldPane(pane.window, false);
-          updatePanes();
-        }
-      }
-    });
-  });
+  //  In the one-column layouts the log lives collapsed to its caption bar.
+  //  It does not open by itself when written to: that resized the viewer
+  //  under the user (on XWayland the scene was then drawn offset), and
+  //  the message is shown in the status bar anyway.
 
   if (getenv("ECCE_DEVELOPER")) {
     p_toolMenu->AppendCheckItem(ID_SHOW_CMD, NAME_TOOL_COMMAND_LINE, "");
@@ -5162,6 +5153,14 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
           !pane.IsToolbar() && pane.name != NAME_TOOL_CONTEXT &&
           pane.name != NAME_COLUMN_TABS) {
         minSize.y = contentFixedHeight(pane.window);
+      }
+      //  Layouts saved before 9.2.2 hold the Log at 150 px minimum: about
+      //  eight lines, and it could not be dragged smaller.
+      if (pane.name == NAME_TOOL_LOG) {
+        const int line = pane.window->GetCharHeight();
+        minSize.y = 2 * line + 8;
+        if (pane.best_size.y > 3 * line + 8)
+          pane.BestSize(wxSize(pane.best_size.x, 3 * line + 8));
       }
       pane.MinSize(minSize);
     }

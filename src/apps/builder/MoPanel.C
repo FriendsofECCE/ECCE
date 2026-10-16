@@ -349,6 +349,17 @@ void MoPanel::updateUIOptions()
    if (densityOk) typewin->Insert("Density",0);
    typewin->Insert("MO",0);
    typewin->SetStringSelection(_("MO"));
+   //  A choice is as wide as its longest entry, and "Density (ESP from
+   //  atomic charges)" made the MOs panel, and with it the whole column,
+   //  wider than every other property.  The open list still shows it all.
+   typewin->InvalidateBestSize();
+   int longest = 0;
+   for (unsigned i = 0; i < typewin->GetCount(); i++)
+      longest = std::max(longest,
+                         typewin->GetTextExtent(typewin->GetString(i)).x);
+   const int pad = typewin->GetBestSize().x - longest;
+   typewin->SetMinSize(wxSize(pad + typewin->GetTextExtent("Spin Density").x,
+                              -1));
 
    //  The range controls belong to the ESP types alone.  Shown when one
    //  is chosen, which OnTypeSelected below keeps in step.

@@ -308,7 +308,9 @@ void Builder::applyGeometry(bool resetSizes)
       if (col) {
         pane.Bottom().Layer(0).Row(0).Position(0).PinButton(true);
         if (resetSizes && !p_folded.count(pane.window)) {
-          pane.BestSize(wxSize(300, 120)).MinSize(wxSize(100, 60));
+          const int line = pane.window->GetCharHeight();
+          pane.BestSize(wxSize(300, 3 * line + 8))
+              .MinSize(wxSize(100, 2 * line + 8));
         }
       } else {
         const map<string, int>::const_iterator idx = p_toolIndex.find(name);
