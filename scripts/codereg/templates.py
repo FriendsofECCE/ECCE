@@ -345,9 +345,11 @@ class EccePanel(wx.lib.scrolledpanel.ScrolledPanel):
     (#189).
     """
 
-    # What a window manager adds above the client area; a bare X server
-    # shows none, so it cannot be measured before the window is mapped.
-    TitleReserve = 36
+    # What a window manager adds around the client area (title bar, border,
+    # shadow); a bare X server shows none, so it cannot be measured before
+    # the window is mapped.  Generous, because a dialog that ends a few
+    # pixels past the screen has no title-bar-free way to be moved up (#351).
+    TitleReserve = 56
 
     def __init__(self, parent, helpURL=""):
         wx.lib.scrolledpanel.ScrolledPanel.__init__(
@@ -459,6 +461,10 @@ class EccePanel(wx.lib.scrolledpanel.ScrolledPanel):
         if height > capHeight:
             height = capHeight
             width += bar
+            # Frames are fixed-size by default; one that has to scroll must
+            # be resizable too, or the user cannot make room (#351).
+            frame.SetWindowStyleFlag(frame.GetWindowStyleFlag()
+                                     | wx.RESIZE_BORDER)
         width = min(max(width, footer.x), area.width)
         self.SetMinSize(wx.Size(width, height))
         self.SetupScrolling(scroll_x = False, scroll_y = True,
