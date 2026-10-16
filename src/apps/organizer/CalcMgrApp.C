@@ -134,12 +134,22 @@ bool CalcMgrApp::OnInit()
   // No gateway here: the Organizer has the session's login window.
   WxDavAuth::setRestartsOnSwitch(true);
   WxDavAuth::setOnSwitch(restartInLocalMode);
-  // ecce.cmd marks the start it makes; the tools started from here must
-  // not inherit the mark.  The Organizer is up a second later, so the
-  // splash goes after two seconds rather than lying over it.
+#endif
+#if defined(__WXMSW__) || defined(__WXMAC__)
+  // ecce.cmd (and on macOS the gateway) marks the start it makes; the
+  // tools started from here must not inherit the mark.
+#ifdef __WXMAC__
+  // The splash belongs to this process: the gateway has no windows, and
+  // a window of a background app does not stay in front of the Organizer's.
+  const int splashMs = 3000;
+#else
+  // The Organizer is up a second later, so the splash goes after two
+  // seconds rather than lying over it.
+  const int splashMs = 2000;
+#endif
   if (wxGetEnv("ECCE_SPLASH", NULL)) {
     wxUnsetEnv("ECCE_SPLASH");
-    ewxShowSplash(2000);
+    ewxShowSplash(splashMs);
   }
 #endif
 

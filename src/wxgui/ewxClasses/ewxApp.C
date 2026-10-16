@@ -30,6 +30,41 @@
 #include "wxgui/ewxReportProblem.H"
 #include "wxgui/ewxBitmap.H"
 
+#ifdef __WXMAC__
+#include <CoreFoundation/CoreFoundation.h>
+#include <unistd.h>
+#include "wx/stdpaths.h"
+
+namespace {
+
+// A tool started from the Dock or Finder (a kept Dock icon) has none of
+// ECCE's session environment; it starts ECCE itself instead of a lone tool.
+void startEcceInsteadOfTool()
+{
+  if (getenv("ECCE_HOME")) return;
+  std::string exe = wxStandardPaths::Get().GetExecutablePath().ToStdString();
+  size_t at = exe.find("/Contents/Helpers/");
+  if (at == std::string::npos) return;     // not inside ECCE.app
+  std::string app = exe.substr(0, at);
+  execl("/usr/bin/open", "open", "-a", app.c_str(), (char*)NULL);
+}
+
+// The bundle's name for the app menu ("Quit ECCE Builder").
+wxString bundleDisplayName()
+{
+  CFBundleRef bundle = CFBundleGetMainBundle();
+  CFTypeRef v = bundle ? CFBundleGetValueForInfoDictionaryKey(
+                           bundle, CFSTR("CFBundleDisplayName")) : NULL;
+  char buf[256];
+  if (v && CFGetTypeID(v) == CFStringGetTypeID() &&
+      CFStringGetCString((CFStringRef)v, buf, sizeof(buf), kCFStringEncodingUTF8))
+    return wxString::FromUTF8(buf);
+  return wxString();
+}
+
+}  // namespace
+#endif
+
 #ifdef __WXGTK__
 #include <glib.h>
 #ifdef __WXGTK3__
@@ -163,6 +198,9 @@ ewxApp::~ewxApp()
  */
 bool ewxApp::OnInit()
 {
+#ifdef __WXMAC__
+   startEcceInsteadOfTool();
+#endif
 #ifdef __WXGTK__
    g_log_set_writer_func(filterKnownBenignGtkPizzaWarnings, nullptr, nullptr);
 #endif
@@ -174,6 +212,12 @@ bool ewxApp::OnInit()
 
    SetVendorName("EMSL");
    SetAppName("ECCE");
+#ifdef __WXMAC__
+   {
+      wxString shown = bundleDisplayName();
+      if (!shown.empty()) SetAppDisplayName(shown);
+   }
+#endif
    SetUseBestVisual(true);
 
    Ecce::initialize();
@@ -205,6 +249,20 @@ void ewxApp::processGlobalPreferenceChange()
    ewxWindowUtils::processGlobalPreferenceChange(top);
 
 }
+
+
+#ifdef __WXMAC__
+void ewxApp::MacReopenApp()
+{
+   for (wxWindowList::iterator it = wxTopLevelWindows.begin();
+        it != wxTopLevelWindows.end(); ++it) {
+      wxTopLevelWindow *w = wxDynamicCast(*it, wxTopLevelWindow);
+      if (!w || !w->IsShown()) continue;
+      if (w->IsIconized()) w->Iconize(false);
+      w->Raise();
+   }
+}
+#endif
 
 
 void ewxApp::OnReportProblem(wxCommandEvent& WXUNUSED(event))

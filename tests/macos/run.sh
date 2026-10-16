@@ -61,6 +61,7 @@ backtrace() {
 # `./organizer` from $ECCE_HOME/bin, which "$ECCE_HOME/bin/" does not match.
 kill_ecce() {
   pkill -f "$ECCE_HOME/bin/" 2>/dev/null
+  pkill -f "/Contents/Helpers/ECCE .*\.app/Contents/MacOS/" 2>/dev/null
   pkill -f "^\./(organizer|builder|calced|basistool|machregister|machbrowser|pertable|launcher|gateway|viewer)( |\$)" 2>/dev/null
   pkill -f "$ECCE_REALUSERHOME" 2>/dev/null
 }
