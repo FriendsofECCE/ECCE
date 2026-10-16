@@ -95,6 +95,10 @@ K, kJ/mol, Pa and 1/Pa; only the last two are converted (to bar and 1/bar).
 | Dynamics: annealing | `annealing = single`, `annealing-time`, `annealing-temp` |
 | Dynamics: constant pressure, pressure, relaxation time, compressibility | `pcoupl = C-rescale`, `ref-p`, `tau-p`, `compressibility` |
 | Dynamics: continue | `continuation = yes`, `gen-vel = no`; otherwise `gen-vel = yes`, `gen-temp` |
+| Run settings: defines, restrain positions + name | `define` (user flags, then `-D<name>`); `refcoord-scaling = com` when a barostat is on |
+| Run settings: groups, centre-of-mass and thermostat choice | `comm-grps`, `tc-grps` (with `tau-t`/`ref-t` repeated per group); `; ecce-group name = RES` comments that `gromacs.mkndx` turns into `ecce_groups.ndx` at launch, passed to grompp with `-n` |
+| Run settings: barostat, coupling type, interval | `pcoupl`, `pcoupltype`, `nstpcouple`; `ref-p`/`compressibility` expanded per type |
+| Run settings: extra lines | merged last by `ai.gromacs`; a key replaces ours (`-`/`_`, case ignored) |
 | Files: write trajectory, interval | `nstxout-compressed` (`traj.xtc`, left in the run directory) |
 | Files: write energies, interval | `nstlog`, `nstenergy` (default: about a hundred over the run) |
 

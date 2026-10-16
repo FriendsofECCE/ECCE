@@ -169,3 +169,49 @@ int GromacsStructure::groToPdb(const string& gro, string& pdb, string& err)
   pdb += out.str() + "END\n";
   return n;
 }
+
+// Columns 6-10 of each atom line, as grompp reads them.
+vector<string> GromacsStructure::residueNames(const string& gro)
+{
+  vector<string> names;
+  std::istringstream in(gro);
+  string line;
+  std::getline(in, line);
+  if (!std::getline(in, line)) return names;
+  int n = atoi(line.c_str());
+  for (int i = 0; i < n && std::getline(in, line); i++) {
+    if (line.size() < 10) continue;
+    string r = trim(line.substr(5, 5));
+    bool seen = false;
+    for (size_t j = 0; j < names.size(); j++) if (names[j] == r) seen = true;
+    if (!seen) names.push_back(r);
+  }
+  return names;
+}
+
+vector<string> GromacsStructure::moleculeNames(const string& top)
+{
+  vector<string> names;
+  std::istringstream in(top);
+  string line;
+  bool inMolecules = false;
+  while (std::getline(in, line)) {
+    size_t semi = line.find(';');
+    if (semi != string::npos) line = line.substr(0, semi);
+    line = trim(line);
+    if (line.empty() || line[0] == '#') continue;
+    if (line[0] == '[') {
+      string sect = trim(line.substr(1, line.find(']') - 1));
+      inMolecules = (sect == "molecules");
+      continue;
+    }
+    if (!inMolecules) continue;
+    std::istringstream f(line);
+    string n;
+    f >> n;
+    bool seen = false;
+    for (size_t j = 0; j < names.size(); j++) if (names[j] == n) seen = true;
+    if (!seen) names.push_back(n);
+  }
+  return names;
+}

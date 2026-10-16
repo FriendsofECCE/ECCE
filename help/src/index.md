@@ -76,6 +76,9 @@ describe what you did and what happened.
 14. [Stacking layers: the Layer builder](layer-builder.md): build graphite,
    layered oxides or a clay from one layer, with a spacing, a sideways shift,
    and ions and water between the layers.
+15. [GROMACS MD: run settings](gromacs-md-settings.md): defines and position
+   restraints, groups by residue name, the barostat and its coupling type,
+   and extra `.mdp` lines.
 
 Reference:
 

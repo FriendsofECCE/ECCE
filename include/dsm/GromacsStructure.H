@@ -5,7 +5,9 @@
 #define GROMACSSTRUCTURE_HH
 
 #include <string>
+#include <vector>
 using std::string;
+using std::vector;
 
 /**
  * Reading what ECCE needs from a GROMACS structure (.gro) file.  The GROMACS
@@ -27,5 +29,17 @@ class GromacsStructure
 
       /** The atom count a .gro file declares on its second line, or -1. */
       static int atomCount(const string& gro);
+
+      /**
+       * The residue names of a .gro file, each once, in order of first
+       * appearance (the names the MD editor offers as groups).
+       */
+      static vector<string> residueNames(const string& gro);
+
+      /**
+       * The molecule names under [ molecules ] of a topology, each once, in
+       * order (a protein chain from pdb2gmx is one: Protein_chain_A).
+       */
+      static vector<string> moleculeNames(const string& top);
 };
 #endif

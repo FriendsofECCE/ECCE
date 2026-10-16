@@ -245,7 +245,36 @@ def main():
         check("(from optimize)" in out and "Ready" in out,
               "the topology and structure are found on the Optimize task: %s" % out)
         check(ed.cmd("set-steps 300") == "ok", "300 steps")
+        # the Run settings page: set through its widgets, as a user would
+        check("Run settings" in tabs and tabs.index("Run settings") == 1,
+              "the Run settings page follows Inputs")
+        check(ed.cmd("run-set defines -DFLEXIBLE") == "ok", "defines typed")
+        check(ed.cmd("run-set posres 1") == "ok", "Restrain positions ticked")
+        out = ed.cmd("run-set fill")
+        check(out == "ok" and "groups=[SOL = SOL]" in ed.cmd("run"),
+              "One group per residue name reads SOL from the structure of an earlier task: %s"
+              % ed.cmd("run"))
+        check(ed.cmd("run-set comgroups 1") == "ok" and ed.cmd("run-set tcgroups 1") == "ok",
+              "the group choices set")
+        check(ed.cmd("run-set extra nstcalcenergy = 50\\ntau_p = 3") == "ok", "extra lines typed")
         check(ed.cmd("save") == "ok", "Save")
+        mdp = open(os.path.join(eq.replace("file://", "").rstrip("/"), "Inputs",
+                                "gromacs.mdp")).read()
+        check(re.search(r"^define\s*=\s*-DFLEXIBLE -DPOSRES$", mdp, re.M)
+              and re.search(r"^comm-grps\s*=\s*SOL$", mdp, re.M)
+              and re.search(r"^tc-grps\s*=\s*SOL$", mdp, re.M)
+              and re.search(r"^nstcalcenergy\s*=\s*50$", mdp, re.M)
+              and "; ecce-group SOL = SOL" in mdp,
+              "the .mdp carries the settings the page holds")
+        ed.cmd("open " + opt)
+        ed.cmd("open " + eq)
+        out = ed.cmd("run")
+        check("model-defines=-DFLEXIBLE" in out and "posres=1" in out
+              and "comgroups=1" in out and "nstcalcenergy = 50" in out,
+              "the values survive saving and reopening the task: %s" % out)
+        # the water topology has no restraints; grompp warns of an unused define
+        check(ed.cmd("run-set posres 0") == "ok" and ed.cmd("save") == "ok",
+              "restraints off again (this topology has none)")
         check(ed.cmd("launch") == "enabled", "Launch is enabled with nothing attached here")
         ed.shots(png, "03-equilibrate", ["Inputs", "Interactions", "Constraints",
                                          "Dynamics", "Files"], "equilibrate")
@@ -270,6 +299,8 @@ def main():
             tpr_top = os.path.join(os.path.dirname(rundir_eq), "topol.top")
             check(os.path.exists(tpr_top) and open(tpr_top).read().startswith("#include"),
                   "and from the topology attached to the first task, staged as topol.top")
+            check(os.path.exists(os.path.join(os.path.dirname(rundir_eq), "ecce_groups.ndx")),
+                  "the index file Launch wrote from the group came along, and the job used it")
             check(os.path.exists(os.path.join(os.path.dirname(rundir_eq), "extra.itp")),
                   "and the include file came along")
         temps = gmx_series(gmx, rundir_eq and os.path.dirname(rundir_eq), "Temperature")

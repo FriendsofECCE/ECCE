@@ -30,6 +30,7 @@
 #include "wxgui/ewxMessageDialog.H"
 #include "wxgui/ewxNotebook.H"
 #include "wxgui/GromacsInputsPanel.H"
+#include "wxgui/GromacsRunPanel.H"
 #include "wxgui/GromacsPreparePanel.H"
 #include "wxgui/WxFeedback.H"
 #include "wxgui/WxJMSListener.H"
@@ -82,6 +83,16 @@ void GmxPrepare::constructor()
       }
       p_gmxInputs->Destroy();
       p_gmxInputs = 0;
+   }
+   if (p_gmxRun != 0) {
+      for (size_t i = 0; i < p_pages.size(); i++) {
+         if (p_pages[i].win == (wxWindow*)p_gmxRun) {
+            p_pages.erase(p_pages.begin() + i);
+            break;
+         }
+      }
+      p_gmxRun->Destroy();
+      p_gmxRun = 0;
    }
    SetTitle(wxString::FromUTF8(("ECCE " + getTitle()).c_str()));
 }

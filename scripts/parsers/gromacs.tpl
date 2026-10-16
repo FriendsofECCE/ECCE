@@ -1,9 +1,12 @@
 ##GMXRunControl##
+##GMXDefines##
+##GMXGroupDefs##
 ##GMXNeighbourSearching##
 ##GMXElectrostatics##
 ##GMXPeriodicMolecules##
 ##GMXTemperatureCoupling##
 ##GMXPressureCoupling##
+##GMXRefcoord##
 ##GMXVelocities##
 ##GMXCenterOfMass##
 ##GMXConstraints##

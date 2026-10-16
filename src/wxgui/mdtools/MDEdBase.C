@@ -54,6 +54,7 @@
 #include "wxgui/WxJMSMessageDispatch.H"
 
 #include "wxgui/GromacsInputsPanel.H"
+#include "wxgui/GromacsRunPanel.H"
 #include "wxgui/WindowShot.H"
 #include "wxgui/MDEdBase.H"
 
@@ -67,6 +68,7 @@ MDEdBase::MDEdBase( )
 {
    p_isGromacs = false;
    p_gmxInputs = 0;
+   p_gmxRun = 0;
    p_launchWanted = true;
 }
 
@@ -83,6 +85,7 @@ MDEdBase::MDEdBase( wxWindow* parent, wxWindowID id, const wxString& caption,
 {
    p_isGromacs = false;
    p_gmxInputs = 0;
+   p_gmxRun = 0;
    p_launchWanted = true;
 }
 
@@ -110,6 +113,10 @@ void MDEdBase::constructor()
    p_gmxInputs->Hide();
    PageEntry inputs = { p_gmxInputs, _("Inputs"), false };
    p_pages.insert(p_pages.begin(), inputs);
+   p_gmxRun = new GromacsRunPanel(this, p_notebook);
+   p_gmxRun->Hide();
+   PageEntry runSettings = { p_gmxRun, _("Run settings"), false };
+   p_pages.insert(p_pages.begin() + 1, runSettings);
 
    Fit();
 
@@ -167,6 +174,8 @@ void MDEdBase::startTestHook()
  * tab <title>          select a notebook page
  * tabs                 the notebook pages, in order
  * inputs               what the Inputs page shows
+ * run                  what the Run settings page holds
+ * run-set <field> <v>  set a field of that page as the user would (\n = newline)
  * launch               whether the Launch button is enabled
  * title                the window's title
  * snap <png>           the window as a PNG
@@ -223,6 +232,15 @@ string MDEdBase::runTestCommand(const string& line)
       return out;
    } else if (cmd == "inputs") {
       return p_gmxInputs ? p_gmxInputs->summary() : "no inputs page";
+   } else if (cmd == "run") {
+      return (p_gmxRun && p_isGromacs) ? p_gmxRun->summary() : "no run settings page";
+   } else if (cmd == "run-set") {
+      if (p_gmxRun == 0 || !p_isGromacs) return "not a GROMACS task";
+      size_t sp = arg.find(' ');
+      string val = sp == string::npos ? "" : arg.substr(sp + 1);
+      size_t bs;
+      while ((bs = val.find("\\n")) != string::npos) val.replace(bs, 2, "\n");
+      return p_gmxRun->setField(arg.substr(0, sp), val);
    } else if (cmd == "launch") {
       ewxButton* launch = ((ewxButton*)FindWindow(ID_BUTTON_LAUNCH));
       return launch->IsEnabled() ? "enabled" : "disabled";
@@ -264,6 +282,9 @@ void MDEdBase::updateDisabledState(ResourceDescriptor::RUNSTATE state, bool forc
 
    if (p_gmxInputs != 0) {
       p_gmxInputs->setEditable(state < ResourceDescriptor::STATE_SUBMITTED);
+   }
+   if (p_gmxRun != 0) {
+      p_gmxRun->setEditable(state < ResourceDescriptor::STATE_SUBMITTED);
    }
 
    if (state >= ResourceDescriptor::STATE_SUBMITTED) {
@@ -930,6 +951,7 @@ void MDEdBase::selectCode(bool gromacs)
       setPageShown(p_gmxInputs, gromacs);
       if (gromacs) p_notebook->SetSelection(0);
    }
+   if (p_gmxRun != 0) setPageShown(p_gmxRun, gromacs);
    delete old;
 
    SetTitle(wxString::FromUTF8(("ECCE " + getTitle()).c_str()));

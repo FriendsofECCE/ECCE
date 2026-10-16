@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <vector>
 
 #include "dsm/GromacsStructure.H"
 
@@ -15,6 +16,11 @@ int main(int argc, char **argv)
   std::ifstream in(argv[1], std::ios::binary);
   std::ostringstream ss;
   ss << in.rdbuf();
+  if (argc > 2 && std::string(argv[2]) == "--residues") {
+    std::vector<std::string> r = GromacsStructure::residueNames(ss.str());
+    for (size_t i = 0; i < r.size(); i++) std::cout << r[i] << std::endl;
+    return 0;
+  }
   std::string pdb, err;
   int n = GromacsStructure::groToPdb(ss.str(), pdb, err);
   if (n < 0) {

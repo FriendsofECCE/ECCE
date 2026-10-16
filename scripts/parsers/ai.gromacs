@@ -42,6 +42,7 @@ $ParamFILE = $baseName . ".param";
 &readDict;
 &verifyRunType;
 &modifyInputFile;
+&mergeExtraLines;
 &cleanup;
 exit(0);
 
@@ -174,23 +175,25 @@ sub GMXTemperatureCoupling {
   my $tcoupl = &stringOr("ES.Runtype.MD.Thermostat", "v-rescale");
   return "" if ($tcoupl eq "no" || $tcoupl eq "none");
 
+  #  One tau-t and ref-t per group: the panel has one value, repeated.
+  my @tc = &groupList("ES.Runtype.MD.TcGroups");
+  my $n = scalar(@tc) || 1;
+  my $tau = &numOr("ES.Runtype.MD.CouplingTime", "0.1");
+  my $ref = &numOr("ES.Runtype.MD.Temperature", "300");
   push(@l, "tcoupl                   = $tcoupl");
-  push(@l, "tc-grps                  = System");
-  push(@l, "tau-t                    = " .
-           &numOr("ES.Runtype.MD.CouplingTime", "0.1"));
-  push(@l, "ref-t                    = " .
-           &numOr("ES.Runtype.MD.Temperature", "300"));
+  push(@l, "tc-grps                  = " . (@tc ? join(" ", @tc) : "System"));
+  push(@l, "tau-t                    = " . join(" ", ($tau) x $n));
+  push(@l, "ref-t                    = " . join(" ", ($ref) x $n));
   #  Simulated annealing: the reference temperature moves linearly from
   #  ref-t to the final one between the two times (ps from the start).
   if (defined($AbiDict{"ES.Runtype.MD.AnnealTemperature"})) {
-    push(@l, "annealing                = single");
-    push(@l, "annealing-npoints        = 2");
-    push(@l, "annealing-time           = " .
+    push(@l, "annealing                = " . join(" ", ("single") x $n));
+    push(@l, "annealing-npoints        = " . join(" ", (2) x $n));
+    push(@l, "annealing-time           = " . join(" ", (
              &numOr("ES.Runtype.MD.AnnealStart", "0") . " " .
-             &numOr("ES.Runtype.MD.AnnealEnd", "100"));
-    push(@l, "annealing-temp           = " .
-             &numOr("ES.Runtype.MD.Temperature", "300") . " " .
-             $AbiDict{"ES.Runtype.MD.AnnealTemperature"});
+             &numOr("ES.Runtype.MD.AnnealEnd", "100")) x $n));
+    push(@l, "annealing-temp           = " . join(" ", (
+             $ref . " " . $AbiDict{"ES.Runtype.MD.AnnealTemperature"}) x $n));
   }
   my $r = join("\n", @l);
   $_ = $r;
@@ -204,13 +207,27 @@ sub GMXPressureCoupling {
   my @l = ();
   return "" if ($AbiDict{"RunType"} ne "Dynamics");
   return "" if (!defined($AbiDict{"ES.Runtype.MD.Pressure"}));
-  push(@l, "pcoupl                   = C-rescale");
-  push(@l, "pcoupltype               = isotropic");
+  #  ref-p and compressibility take as many values as the coupling type
+  #  has directions: P / P P / P P P 0 0 0 (the last three are the
+  #  off-diagonal terms).
+  my $type = lc(&stringOr("ES.Runtype.MD.PressureType", "isotropic"));
+  my $p = $AbiDict{"ES.Runtype.MD.Pressure"};
+  my $c = &numOr("ES.Runtype.MD.Compressibility", "4.5e-5");
+  my ($refp, $comp) = ($p, $c);
+  if ($type eq "semiisotropic") {
+    $refp = "$p $p"; $comp = "$c $c";
+  } elsif ($type eq "anisotropic") {
+    $refp = "$p $p $p 0 0 0"; $comp = "$c $c $c 0 0 0";
+  }
+  push(@l, "pcoupl                   = " .
+           &stringOr("ES.Runtype.MD.Barostat", "C-rescale"));
+  push(@l, "pcoupltype               = $type");
+  push(@l, "nstpcouple               = " . $AbiDict{"ES.Runtype.MD.PressureInterval"})
+    if (defined($AbiDict{"ES.Runtype.MD.PressureInterval"}));
   push(@l, "tau-p                    = " .
            &numOr("ES.Runtype.MD.PressureTime", "0.5"));
-  push(@l, "ref-p                    = " . $AbiDict{"ES.Runtype.MD.Pressure"});
-  push(@l, "compressibility          = " .
-           &numOr("ES.Runtype.MD.Compressibility", "4.5e-5"));
+  push(@l, "ref-p                    = $refp");
+  push(@l, "compressibility          = $comp");
   my $r = join("\n", @l);
   $_ = $r;
   return $r;
@@ -243,6 +260,8 @@ sub GMXCenterOfMass {
   return "" if (!defined($f));
   if ($f > 0) {
     push(@l, "comm-mode                = Linear");
+    my @com = &groupList("ES.Runtype.MD.ComGroups");
+    push(@l, "comm-grps                = " . join(" ", @com)) if (@com);
     push(@l, "nstcomm                  = $f");
   } else {
     push(@l, "comm-mode                = None");
@@ -263,6 +282,30 @@ sub GMXOutput {
   return $r;
 }
 
+#  The user's -D flags, then the position-restraint one.
+sub GMXDefines {
+  my $d = $AbiDict{"ES.Runtype.MD.Defines"};
+  $_ = (defined($d) && $d ne "") ? "define                    = $d" : "";
+  return $_;
+}
+
+sub GMXRefcoord {
+  my $v = $AbiDict{"ES.Runtype.MD.RefcoordScaling"};
+  $_ = (defined($v) && $v ne "") ? "refcoord-scaling         = $v" : "";
+  return $_;
+}
+
+#  What each group is made of, as comments: gromacs.launchpp reads them to
+#  write the index file (gromacs.mkndx), so the .mdp stays the one place that
+#  says which groups exist.
+sub GMXGroupDefs {
+  my $g = $AbiDict{"ES.Runtype.MD.GroupDefs"};
+  $_ = "";
+  return $_ if (!defined($g) || $g eq "");
+  $_ = join("\n", map { (my $d = $_) =~ s/=/ = /; "; ecce-group $d" } split(/\|/, $g));
+  return $_;
+}
+
 sub GMXConstraints {
   my @l = ();
   my $constraints = &stringOr("ES.Runtype.MD.Constraints", "h-bonds");
@@ -274,6 +317,46 @@ sub GMXConstraints {
 }
 
 ################################################################################
+
+sub groupList {
+  my $v = $AbiDict{$_[0]};
+  return (defined($v) && $v ne "") ? split(/\s+/, $v) : ();
+}
+
+#  Lines the user wrote in the task editor replace ours of the same key and
+#  are appended after the rest, so there are never two lines for one key.
+#  Keys are compared with - and _ alike and without regard to case, as grompp
+#  does.
+sub mdpKey {
+  my $k = shift;
+  $k =~ s/^\s+//; $k =~ s/\s+$//;
+  $k =~ s/_/-/g;
+  return lc($k);
+}
+
+sub mergeExtraLines {
+  my $x = $AbiDict{"ES.Runtype.MD.ExtraLines"};
+  return if (!defined($x) || $x eq "");
+  my (@order, %line);
+  foreach my $l (split(/\|/, $x)) {
+    $l =~ s/\s+$//;
+    my $k = ($l =~ /^\s*([^=;\s][^=;]*?)\s*=/) ? &mdpKey($1) : "\0$l";
+    push(@order, $k) if (!exists($line{$k}));
+    $line{$k} = $l;
+  }
+  open(IN, "tmpfile") || die "ai.gromacs error: Couldn't read tmpfile\n";
+  my @keep;
+  while (<IN>) {
+    chomp;
+    next if (/^\s*([^=;\s][^=;]*?)\s*=/ && exists($line{&mdpKey($1)}));
+    push(@keep, $_);
+  }
+  close(IN);
+  open(OUT, ">tmpfile") || die "ai.gromacs error: Couldn't write tmpfile\n";
+  print OUT join("\n", @keep, "; Lines written in the task editor",
+                 map { $line{$_} } @order), "\n";
+  close(OUT);
+}
 
 sub numOr {
   my ($key, $default) = @_;

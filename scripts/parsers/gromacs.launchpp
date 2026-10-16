@@ -26,6 +26,7 @@ use strict;
 use Getopt::Std;
 use File::Temp qw(tempdir);
 use Cwd ();
+use FindBin qw($Bin);
 
 our($opt_p, $opt_v);
 getopts('p:v');
@@ -62,6 +63,12 @@ if (@missing) {
   print STDERR "Attach the topology and the structure on the Inputs tab of the task editor.\n";
   exit 1;
 }
+
+# The index file for -n: one the user attached wins and its group names are
+# theirs; otherwise one is written from the groups the .mdp defines by residue
+# name.  It is written here, before anything is checked, because Launch ships
+# whatever is in this directory and the job script only passes -n.
+my $ndx = indexFile();
 
 if ($gmx eq "") {
   print "gmx is not on this machine, so the inputs are not checked here; grompp runs on the job's machine.\n";
@@ -100,10 +107,17 @@ if (open(my $tf, "<", "topol.top")) {
   while (<$tf>) { $maxwarn = 1 if (m#^\s*\#include\s*"gromos[^"]*\.ff/#); }
   close($tf);
 }
+# Berendsen coupling is a grompp warning whatever the system; the user chose it.
+if (open(my $mf, "<", $mdp)) {
+  while (<$mf>) { $maxwarn++ if (/^\s*pcoupl\s*=\s*berendsen\b/i); }
+  close($mf);
+}
 my @cmd = ($gmx, "grompp", "-f", $mdp, "-c", "conf.gro", "-r", "conf.gro",
-           "-p", "topol.top",
+           "-p", "topol.top", ($ndx ne "" ? ("-n", $ndx) : ()),
            "-o", "$tmp/check.tpr", "-po", "$tmp/mdout.mdp", "-maxwarn", $maxwarn);
 my $out = `@cmd 2>&1`;
+# leave the scratch directory so that its removal at exit can succeed
+chdir($cwd);
 my $status = $? >> 8;
 if ($status != 0) {
   print STDERR "grompp rejected the inputs, so the job was not submitted.\n";
@@ -119,6 +133,25 @@ if ($status != 0) {
 }
 print "grompp accepted the inputs.\n";
 exit 0;
+
+# The index file grompp is given, or "" for none.
+sub indexFile
+{
+  my $own = "ecce_groups.ndx";
+  my @user = sort grep { $_ ne $own && ! m#__SLASH__# && -f $_ } glob("*.ndx");
+  if (@user) {
+    unlink($own);
+    return $user[0];
+  }
+  unlink($own);
+  my $script = "$Bin/gromacs.mkndx";
+  my $out = `'$^X' '$script' conf.gro '$mdp' $own topol.top 2>&1`;
+  if ($? != 0) {
+    print STDERR "The index file for the groups of the task could not be made.\n$out";
+    exit 1;
+  }
+  return -s $own ? $own : "";
+}
 
 # A Prepare task has no topology or structure of its own to check; the
 # mistakes worth stopping for are pdb2gmx's (a residue it has no entry for,

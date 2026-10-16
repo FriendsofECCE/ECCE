@@ -1803,7 +1803,18 @@ sub gromacs()
     #  whatever the system; any other warning still stops the job.
     $retval .= "maxwarn=0\n";
     $retval .= "grep -q '^[[:space:]]*#include[[:space:]]*\"gromos[^\"]*\\.ff/' topol.top && maxwarn=1\n";
-    $retval .= "\"\$gmx\" grompp -f $::inFile -c conf.gro -r conf.gro -p topol.top -o topol.tpr -maxwarn \$maxwarn > grompp.out 2>&1\n";
+    #  Berendsen coupling draws a warning whatever the system, and the user
+    #  chose it in the task editor.
+    $retval .= "grep -qi '^[[:space:]]*pcoupl[[:space:]]*=[[:space:]]*berendsen' $::inFile && maxwarn=\$((maxwarn+1))\n";
+    #  An index file the user attached is used as it is; otherwise the one
+    #  gromacs.launchpp wrote from the groups in the .mdp (gromacs.mkndx),
+    #  which Launch shipped with the other inputs.
+    $retval .= "ndx=\n";
+    $retval .= "for f in *.ndx; do\n";
+    $retval .= "  [ -f \"\$f\" ] && [ \"\$f\" != ecce_groups.ndx ] && { ndx=\$f; break; }\n";
+    $retval .= "done\n";
+    $retval .= "[ -z \"\$ndx\" ] && [ -f ecce_groups.ndx ] && ndx=ecce_groups.ndx\n";
+    $retval .= "\"\$gmx\" grompp -f $::inFile -c conf.gro -r conf.gro -p topol.top \${ndx:+-n \"\$ndx\"} -o topol.tpr -maxwarn \$maxwarn > grompp.out 2>&1\n";
     $retval .= "if [ \$? -ne 0 ]; then\n";
     $retval .= "  cat grompp.out >> $::logfile\n";
     $retval .= "  cp grompp.out $::outFile\n";

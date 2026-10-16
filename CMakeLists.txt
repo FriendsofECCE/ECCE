@@ -1963,6 +1963,11 @@ add_test(NAME gromacs_md
                  ${CMAKE_SOURCE_DIR}/tests/gromacs_md/run_tests.py
                  --includes-bin $<TARGET_FILE:gromacs_includes>)
 set_tests_properties(gromacs_md PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+add_test(NAME gromacs_run_settings
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/gromacs_md/run_settings_test.py
+                 --groconv $<TARGET_FILE:gromacs_groconv>)
+set_tests_properties(gromacs_run_settings PROPERTIES TIMEOUT 600)
 
 # tests/minff -- MINFF topology builder (scripts/minff_topology.py, #241)
 # against atomipy run directly, then grompp + a short EM.  SKIPs (77)

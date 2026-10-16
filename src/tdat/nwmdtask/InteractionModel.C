@@ -33,6 +33,34 @@ const int InteractionModel::SHORTFREQ = 1;
 const int InteractionModel::LONGFREQ = 1;
 const int InteractionModel::PERIODICMOL = -1;
 
+GromacsRun::GromacsRun()
+  : posres(false), posresName("POSRES"), comGroups(0), tcGroups(0),
+    barostat(0), pcoupltype(0), nstpcouple(0)
+{
+}
+
+bool GromacsRun::operator==(const GromacsRun& o) const
+{
+  return defines == o.defines && posres == o.posres &&
+         posresName == o.posresName && groups == o.groups &&
+         comGroups == o.comGroups && tcGroups == o.tcGroups &&
+         barostat == o.barostat && pcoupltype == o.pcoupltype &&
+         nstpcouple == o.nstpcouple && extraMdp == o.extraMdp;
+}
+
+// Checked against grompp 2025.2: it refuses C-rescale with anisotropic
+// coupling; every other pairing is read.
+string GromacsRun::pairProblem(int barostat, int pcoupltype)
+{
+  if (barostat == 0 && pcoupltype == 2)
+    return "grompp does not support the C-rescale barostat with anisotropic "
+           "coupling; use Berendsen or Parrinello-Rahman.";
+  if (barostat == 1)
+    return "grompp warns that the Berendsen barostat does not give a correct "
+           "ensemble; ECCE lets it through, so use it for equilibration only.";
+  return "";
+}
+
 /**
  * Constructor
  */
@@ -177,6 +205,16 @@ bool InteractionModel::getTouched() const
   return p_touched;
 }
 
+const GromacsRun& InteractionModel::getGromacsRun() const
+{
+  return p_gmxRun;
+}
+
+void InteractionModel::setGromacsRun(const GromacsRun& run)
+{
+  p_gmxRun = run;
+}
+
 /**
  * Modifiers
  */
@@ -311,6 +349,7 @@ void InteractionModel::reset()
   setShortListUpdateFreq(InteractionModel::SHORTFREQ);
   setLongListUpdateFreq(InteractionModel::LONGFREQ);
   setPeriodicMolecules(InteractionModel::PERIODICMOL);
+  p_gmxRun = GromacsRun();
 }
 
 void InteractionModel::setDefaultGrid(FragmentSummary& fragSum)

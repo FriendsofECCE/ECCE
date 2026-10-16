@@ -1636,6 +1636,12 @@ bool Launch::moveFiles(void)
       vector<EcceURL> auxurls = auxInputUrls();
       for (size_t a = 0; a < auxurls.size(); a++)
         auxvec.push_back(auxurls[a].getFilePathTail());
+      // The index file gromacs.launchpp wrote from the task's groups is in
+      // the local directory, not on the data server.
+      if (p_cache->isGromacs) {
+        ifstream groups((p_cache->directory + "/ecce_groups.ndx").c_str());
+        if (groups.good()) auxvec.push_back("ecce_groups.ndx");
+      }
     }
     vector<string> invec;
     if (prvec.size() > 0) {

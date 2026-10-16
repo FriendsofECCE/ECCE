@@ -43,6 +43,7 @@
 #include "wxgui/WxJMSListener.H"
 
 #include "MDEnergy.H"
+#include "wxgui/GromacsRunPanel.H"
 
 
 MDEnergy::MDEnergy( )
@@ -169,6 +170,7 @@ void MDEnergy::refreshGUI()
 {
    p_interaction->refreshGUI();
    p_constraint->refreshGUI();
+   if (p_gmxRun != 0) p_gmxRun->refresh();
    p_control->refreshGUI();
    p_files->refreshGUI();
 
