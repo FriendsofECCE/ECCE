@@ -386,6 +386,11 @@ bool MdTask::getTaskFragmentSummary(FragmentSummary& fragSum)
   // GROMACS Prepare's chemsys.pdb carries the cell the next task needs.
   EcceURL url = getVDoc()->getOutput(getOutputFragmentName());
   getEDSI()->setURL(url);
+  if (!getEDSI()->exists()) {
+    //  Where it was looked for before; kept for NWChem MD tasks.
+    url = getVDoc()->getConfiguration(getOutputFragmentName());
+    getEDSI()->setURL(url);
+  }
   if (getEDSI()->exists()) {
     ret = getFragmentSummary(fragSum,url);
   } else {
