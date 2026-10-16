@@ -2,7 +2,7 @@
 type: pitfall
 title: "macOS: ECCE.app carries its own Python with wxPython; every python3 ECCE runs must find it first (#133)"
 area: services
-paths: [src/dsm/xml/JCode.C, src/apps/calced/CalcEd.C, packaging/macos/bundle-python.sh, packaging/macos/launcher.sh, packaging/ecce-home.sh.in, tests/macos/python-check.sh, help/src/running-codes-on-macos.md]
+paths: [src/dsm/xml/JCode.C, src/apps/calced/CalcEd.C, packaging/macos/bundle-python.sh, packaging/macos/ecce.sh, packaging/ecce-home.sh.in, tests/macos/python-check.sh, help/src/running-codes-on-macos.md]
 issues: [133]
 ---
 CalcEd starts `python3 <script>.py` for **Theory Details** and **Runtype
@@ -19,5 +19,5 @@ unset). The launcher puts `Resources/python/bin` first on PATH and sets
 Keep it that way: a new place that runs `python3` must get PATH from one of
 these, not from the caller's. `tests/macos/python-check.sh` (CI) runs the
 first-start window and a Theory dialog through `ECCE_APP_RUN=1 ecce CMD...`
-(launcher.sh), the app's own environment. ECCE-QM has no Runtype dialog, so
+(ecce.sh), the app's own environment. ECCE-QM has no Runtype dialog, so
 scripts must not wait for `ready` on it.

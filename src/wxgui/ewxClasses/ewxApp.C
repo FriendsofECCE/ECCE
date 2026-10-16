@@ -32,8 +32,41 @@
 
 #ifdef __WXMAC__
 #include <CoreFoundation/CoreFoundation.h>
+#include <objc/message.h>
+#include <objc/runtime.h>
 
 namespace {
+
+// A tool the gateway (a background UIElement app) starts is not made the
+// active app by macOS, so its window opened behind others or minimised.
+// NSApplication is reached through the runtime: no Objective-C source.
+void activateThisApp()
+{
+  typedef id (*Msg0)(id, SEL);
+  typedef void (*MsgB)(id, SEL, BOOL);
+  id app = ((Msg0)objc_msgSend)((id)objc_getClass("NSApplication"),
+                                sel_registerName("sharedApplication"));
+  if (app)
+    ((MsgB)objc_msgSend)(app, sel_registerName("activateIgnoringOtherApps:"), YES);
+}
+
+// On the first idle with a shown top-level window: un-minimise, raise, activate.
+void bringFirstWindowForward(wxIdleEvent& ev)
+{
+  static bool done = false;
+  ev.Skip();
+  if (done) return;
+  for (wxWindowList::iterator it = wxTopLevelWindows.begin();
+       it != wxTopLevelWindows.end(); ++it) {
+    wxTopLevelWindow *w = wxDynamicCast(*it, wxTopLevelWindow);
+    if (!w || !w->IsShown()) continue;
+    done = true;
+    if (w->IsIconized()) w->Iconize(false);
+    w->Raise();
+    activateThisApp();
+    return;
+  }
+}
 
 // The bundle's name for the app menu ("Quit ECCE Builder").
 wxString bundleDisplayName()
@@ -200,6 +233,7 @@ bool ewxApp::OnInit()
       wxString shown = bundleDisplayName();
       if (!shown.empty()) SetAppDisplayName(shown);
    }
+   Bind(wxEVT_IDLE, bringFirstWindowForward);
 #endif
    SetUseBestVisual(true);
 
