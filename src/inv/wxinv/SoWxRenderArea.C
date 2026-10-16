@@ -85,6 +85,174 @@ static void debugViewerSize(const wxWindow *w, const char *what,
 }
 
 
+#if defined(__linux__) && defined(OIV_COIN)
+//  Coin's depth peeling copies each layer out of the window's framebuffer
+//  with glCopyTexImage2D/glCopyTexSubImage2D.  The canvas is multisampled
+//  (#210), and GL does not define a copy from a multisampled read buffer:
+//  most drivers resolve it quietly, NVIDIA under XWayland drew the frame
+//  shifted (#360).  These definitions take precedence over libGL's for
+//  Coin's calls; a copy from a multisampled default framebuffer is first
+//  resolved into a single-sample framebuffer with glBlitFramebuffer, which
+//  is defined, and copied from there.
+#include <dlfcn.h>
+#include <GL/glext.h>
+#include <map>
+
+namespace {
+
+typedef void (*CopyTexImageFn)(GLenum, GLint, GLenum, GLint, GLint, GLsizei,
+                               GLsizei, GLint);
+typedef void (*CopyTexSubImageFn)(GLenum, GLint, GLint, GLint, GLint, GLint,
+                                  GLsizei, GLsizei);
+
+struct ResolveFns {
+  PFNGLGENFRAMEBUFFERSPROC genFramebuffers;
+  PFNGLBINDFRAMEBUFFERPROC bindFramebuffer;
+  PFNGLGENRENDERBUFFERSPROC genRenderbuffers;
+  PFNGLBINDRENDERBUFFERPROC bindRenderbuffer;
+  PFNGLRENDERBUFFERSTORAGEPROC renderbufferStorage;
+  PFNGLFRAMEBUFFERRENDERBUFFERPROC framebufferRenderbuffer;
+  PFNGLCHECKFRAMEBUFFERSTATUSPROC checkFramebufferStatus;
+  PFNGLBLITFRAMEBUFFERPROC blitFramebuffer;
+  bool ok;
+};
+
+const ResolveFns &resolveFns()
+{
+  static ResolveFns f;
+  static bool loaded = false;
+  if (!loaded) {
+    loaded = true;
+#define ECCE_GLPROC(T, n) (T)glXGetProcAddressARB((const GLubyte*)n)
+    f.genFramebuffers = ECCE_GLPROC(PFNGLGENFRAMEBUFFERSPROC, "glGenFramebuffers");
+    f.bindFramebuffer = ECCE_GLPROC(PFNGLBINDFRAMEBUFFERPROC, "glBindFramebuffer");
+    f.genRenderbuffers = ECCE_GLPROC(PFNGLGENRENDERBUFFERSPROC, "glGenRenderbuffers");
+    f.bindRenderbuffer = ECCE_GLPROC(PFNGLBINDRENDERBUFFERPROC, "glBindRenderbuffer");
+    f.renderbufferStorage = ECCE_GLPROC(PFNGLRENDERBUFFERSTORAGEPROC, "glRenderbufferStorage");
+    f.framebufferRenderbuffer = ECCE_GLPROC(PFNGLFRAMEBUFFERRENDERBUFFERPROC, "glFramebufferRenderbuffer");
+    f.checkFramebufferStatus = ECCE_GLPROC(PFNGLCHECKFRAMEBUFFERSTATUSPROC, "glCheckFramebufferStatus");
+    f.blitFramebuffer = ECCE_GLPROC(PFNGLBLITFRAMEBUFFERPROC, "glBlitFramebuffer");
+#undef ECCE_GLPROC
+    f.ok = f.genFramebuffers && f.bindFramebuffer && f.genRenderbuffers &&
+           f.bindRenderbuffer && f.renderbufferStorage &&
+           f.framebufferRenderbuffer && f.checkFramebufferStatus &&
+           f.blitFramebuffer;
+  }
+  return f;
+}
+
+//  One single-sample framebuffer per GL context, grown as needed.
+struct ResolveTarget { GLuint fbo, color, depth; GLsizei w, h; };
+
+//  Binds, as the read framebuffer, a single-sample copy of the region of
+//  the multisampled default framebuffer a copy is about to read; returns
+//  false (nothing changed) when no resolve is needed or possible.
+bool resolveForCopy(GLenum internalformat, GLint x, GLint y, GLsizei w,
+                    GLsizei h, GLint *savedReadBuffer)
+{
+  static int enabled = -1;
+  if (enabled < 0) {
+    const char *e = getenv("ECCE_GL_RESOLVE_COPIES");
+    enabled = (e && *e == '0') ? 0 : 1;
+  }
+  if (!enabled) return false;
+  GLint readFbo = 0, sampleBuffers = 0;
+  glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &readFbo);
+  if (readFbo != 0) return false;
+  glGetIntegerv(GL_SAMPLE_BUFFERS, &sampleBuffers);
+  if (sampleBuffers == 0) return false;
+  const ResolveFns &f = resolveFns();
+  if (!f.ok) return false;
+
+  const bool depth = internalformat == GL_DEPTH_COMPONENT ||
+                     internalformat == GL_DEPTH_COMPONENT16 ||
+                     internalformat == GL_DEPTH_COMPONENT24 ||
+                     internalformat == GL_DEPTH_COMPONENT32;
+  static std::map<GLXContext, ResolveTarget> targets;
+  ResolveTarget &t = targets[glXGetCurrentContext()];
+  const GLsizei needW = x + w, needH = y + h;
+  if (t.fbo == 0 || t.w < needW || t.h < needH) {
+    if (t.fbo == 0) {
+      f.genFramebuffers(1, &t.fbo);
+      f.genRenderbuffers(1, &t.color);
+      f.genRenderbuffers(1, &t.depth);
+    }
+    t.w = std::max(t.w, needW);
+    t.h = std::max(t.h, needH);
+    f.bindRenderbuffer(GL_RENDERBUFFER, t.color);
+    f.renderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, t.w, t.h);
+    f.bindRenderbuffer(GL_RENDERBUFFER, t.depth);
+    f.renderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, t.w, t.h);
+    f.bindRenderbuffer(GL_RENDERBUFFER, 0);
+    GLint drawFbo = 0;
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &drawFbo);
+    f.bindFramebuffer(GL_DRAW_FRAMEBUFFER, t.fbo);
+    f.framebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                              GL_RENDERBUFFER, t.color);
+    f.framebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                              GL_RENDERBUFFER, t.depth);
+    const GLenum status = f.checkFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+    f.bindFramebuffer(GL_DRAW_FRAMEBUFFER, drawFbo);
+    if (status != GL_FRAMEBUFFER_COMPLETE) return false;
+  }
+
+  GLint drawFbo = 0, readBuffer = GL_BACK;
+  glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &drawFbo);
+  glGetIntegerv(GL_READ_BUFFER, &readBuffer);
+  *savedReadBuffer = readBuffer;
+  while (glGetError() != GL_NO_ERROR) {}
+  f.bindFramebuffer(GL_DRAW_FRAMEBUFFER, t.fbo);
+  //  The blit is clipped by the scissor test like any draw.
+  const GLboolean scissor = glIsEnabled(GL_SCISSOR_TEST);
+  if (scissor) glDisable(GL_SCISSOR_TEST);
+  f.blitFramebuffer(x, y, x + w, y + h, x, y, x + w, y + h,
+                    depth ? GL_DEPTH_BUFFER_BIT : GL_COLOR_BUFFER_BIT,
+                    GL_NEAREST);
+  if (scissor) glEnable(GL_SCISSOR_TEST);
+  f.bindFramebuffer(GL_DRAW_FRAMEBUFFER, drawFbo);
+  if (glGetError() != GL_NO_ERROR) return false;
+  f.bindFramebuffer(GL_READ_FRAMEBUFFER, t.fbo);
+  if (!depth) glReadBuffer(GL_COLOR_ATTACHMENT0);
+  return true;
+}
+
+void endResolve(GLint readBuffer)
+{
+  resolveFns().bindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+  glReadBuffer((GLenum)readBuffer);
+}
+
+}  // namespace
+
+extern "C" void glCopyTexImage2D(GLenum target, GLint level,
+                                 GLenum internalformat, GLint x, GLint y,
+                                 GLsizei width, GLsizei height, GLint border)
+{
+  static CopyTexImageFn real =
+      (CopyTexImageFn)dlsym(RTLD_NEXT, "glCopyTexImage2D");
+  GLint rb = GL_BACK;
+  const bool resolved = resolveForCopy(internalformat, x, y, width, height, &rb);
+  real(target, level, internalformat, x, y, width, height, border);
+  if (resolved) endResolve(rb);
+}
+
+extern "C" void glCopyTexSubImage2D(GLenum target, GLint level,
+                                    GLint xoffset, GLint yoffset, GLint x,
+                                    GLint y, GLsizei width, GLsizei height)
+{
+  static CopyTexSubImageFn real =
+      (CopyTexSubImageFn)dlsym(RTLD_NEXT, "glCopyTexSubImage2D");
+  //  The texture's own format decides colour or depth.
+  GLint fmt = GL_RGBA;
+  glGetTexLevelParameteriv(target, level, GL_TEXTURE_INTERNAL_FORMAT, &fmt);
+  GLint rb = GL_BACK;
+  const bool resolved = resolveForCopy((GLenum)fmt, x, y, width, height, &rb);
+  real(target, level, xoffset, yoffset, x, y, width, height);
+  if (resolved) endResolve(rb);
+}
+#endif
+
+
 BEGIN_EVENT_TABLE(SoWxRenderArea, wxGLCanvas)
   EVT_SIZE(SoWxRenderArea::OnSize)
   EVT_PAINT(SoWxRenderArea::OnPaint)

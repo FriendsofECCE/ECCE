@@ -170,6 +170,7 @@ using std::vector;
 
 // Viewer based commands
 #include "wxviz/CenterViewCmd.H"
+#include "viz/PropCmd.H"
 #include "wxviz/AxisCmd.H"
 #include "wxviz/SetHomeCmd.H"
 #include "wxviz/GoHomeCmd.H"
@@ -2722,9 +2723,11 @@ bool Builder::execute(Command *cmd, bool batch)
             if (msg != "") reportError(msg);
          }
 
-         // Make camera view all after execute.
+         // Make camera view all after execute.  Not after a property
+         // display (an MO's grid, then its surface): the view zoomed in
+         // and out again while an orbital was computed.
          if (!batch) {
-            if (isAutoCenter() || 
+            if ((isAutoCenter() && !dynamic_cast<PropCmd*>(cmd)) ||
                   (startNumAtoms == 0 && getSG()->getFragment()->numAtoms() > 0)) {
                center();
             }
