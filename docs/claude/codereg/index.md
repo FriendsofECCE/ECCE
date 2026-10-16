@@ -168,4 +168,5 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [GROMACS Prepare: how its outputs reach the next task (.gmxtop, .gro, posre.itp, topol_*.itp), and the places that treat a Prepare as NWChem's](gromacs-prepare-outputs-come-back-through-the-monitor-as-job-outputs.md)
 - [GROMACS Prepare editor (gmxprepare): MDEdBase assumes an MDCompositeModel, and a tool listed in the wrong resource type opens beside NWChem's](gromacs-prepare-editor-borrows-mdedbase-but-not-its-model.md)
 - [GROMACS Prepare results: ECCE-PREPARE lines feed the Progress box and the properties; the property script is found by the first key and must print every key](gromacs-prepare-results-are-echo-lines-the-desc-reads-twice.md)
+- [GROMACS Prepare, MINFF source: built on the client and staged as .gmxmin plus includes; a layer split over z tears; genion and ions.itp name ions differently](gromacs-prepare-minff-source-traps.md)
 - [The Builder draws modes on the last GEOMTRACE step, so a code that reorients must deliver one (NWChem frequency-only runs did not)](geometry-and-normal-modes-share-the-codes-frame.md)

@@ -381,11 +381,13 @@ bool MdTask::getTaskFragmentSummary(FragmentSummary& fragSum)
 {
   bool ret = false;
 
-  // Get output fragment, if exists
-  EcceURL url = getVDoc()->getConfiguration(getOutputFragmentName());
+  // Get output fragment, if exists.  A task's output is stored under
+  // Outputs (as hasFragment looks), not among its configurations; a finished
+  // GROMACS Prepare's chemsys.pdb carries the cell the next task needs.
+  EcceURL url = getVDoc()->getOutput(getOutputFragmentName());
   getEDSI()->setURL(url);
   if (getEDSI()->exists()) {
-    ret = getFragmentSummary(fragSum,url); 
+    ret = getFragmentSummary(fragSum,url);
   } else {
     EcceURL url = getVDoc()->getConfiguration(getInputFragmentName());
     getEDSI()->setURL(url);

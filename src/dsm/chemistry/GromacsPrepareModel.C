@@ -19,6 +19,14 @@ void GromacsPrepareModel::reset()
    p_merge = true;
    p_dist = 1.0;
    p_conc = 0.15;
+   p_mvariant = "gminff";
+   p_mmineral = "";
+   p_mangle = 500;
+   p_mrep = "1 1 1";
+   p_msubs = "";
+   p_mseed = "";
+   p_mcell = "";
+   p_msummary = "";
 }
 
 GromacsPrepareModel::~GromacsPrepareModel()

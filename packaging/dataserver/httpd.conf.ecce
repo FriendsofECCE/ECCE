@@ -178,6 +178,7 @@ AddType  chemical/x-gromacs-include      .itp .ndx
 AddType  chemical/x-gromacs-log          .gmxlog
 AddType  chemical/x-gromacs-prepare      .gmxprep
 AddType  chemical/x-gromacs-source-pdb   .gmxpdb
+AddType  chemical/x-gromacs-source-mineral .gmxmin
 AddType  chemical/x-gromacs-tpr          .tpr
 AddType  chemical/x-gromacs-energy       .edr
 AddType  chemical/x-gromacs-trajectory   .xtc .trr

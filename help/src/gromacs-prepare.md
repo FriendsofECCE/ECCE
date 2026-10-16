@@ -18,7 +18,9 @@ first. A protein needs hydrogens only if you clear **Ignore hydrogens**.
 
 **Structure**
 
-- **Source:** *Protein (pdb2gmx)*. This is the only source for now.
+- **Source:** *Protein (pdb2gmx)* or *Mineral (MINFF)*. Choosing the mineral
+  hides the settings that belong to a protein (structure, force field,
+  histidines, box type); see "A mineral" below.
 - **Structure:** *from the Builder* uses the structure of the task, as it is
   when you launch. *PDB file...* asks for a file and stores a copy in the
   task, so later changes to the file do not matter. **Browse...** chooses
@@ -54,6 +56,45 @@ first. A protein needs hydrogens only if you clear **Ignore hydrogens**.
 - **Positive ion:** sodium or potassium. **Negative ion:** chloride.
 
 Save with the **Save** button, or let Launch save for you.
+
+## A mineral
+
+*Mineral (MINFF)* prepares a clay or other mineral with the MINFF force field.
+The topology is built on your computer when you press **Build topology**, and
+is stored in the task; Launch then only adds water and ions.
+
+- **Unit cell:** a `.pdb`, `.gro` or `.cif` file of the mineral's unit cell,
+  with its cell. **Repeat (a b c)** repeats it along the cell axes, for
+  example `4 3 3`. A layer or a stack drawn in the Builder, saved as a PDB
+  file with its cell, works too.
+- **Substitutions:** atoms replaced at random, as `FROM,TO,COUNT` separated by
+  semicolons. `Al,Mgo,4` puts four Mgo in place of Al, which gives the layer a
+  charge of -4. **Random seed** makes the draw repeatable.
+- **Parameters:** the general set (GMINFF), or the set tailored to one mineral
+  (TMINFF), whose name you give, for example `Montmorillonite`. **O-M-O angle
+  constant** is the force constant of the angles in the mineral, in
+  kJ/mol/rad2.
+- **Water model:** the water models of MINFF. The ions in the topology are the
+  ones that match it.
+- **Build topology** runs the build, and says how many atoms the mineral has,
+  its charge, and whether some atoms found no MINFF type. Press it again after
+  changing any of the settings above; the stored files are the ones of the
+  last build.
+
+The mineral keeps its cell. **Water layer above the mineral** (0 by default)
+makes the cell longer along its third axis (c) by that many nm and fills the
+new space with water, so the mineral should be one block along c, which the
+build arranges. With no water layer, no water is added; a charged mineral then
+keeps its charge and the later tasks need grompp's warning about a net charge
+to be allowed.
+
+**Ions:** with a water layer, the charge of the mineral is neutralised by
+counter-ions chosen from MINFF's ions (sodium, potassium, calcium, copper(II)
+and others); the salt concentration is added on top, 0 by default.
+
+The job has the same four steps as for a protein: the first reads the stored
+mineral instead of running pdb2gmx. The tasks after it run with periodic
+molecules switched on, because the mineral is bonded across the cell.
 
 ## What the job does
 
@@ -105,7 +146,8 @@ structure, attach that structure to the task as usual.
 
 ## Limits
 
-- Proteins only. Ligands and force fields built by ECCE are not offered yet.
+- Proteins and minerals only. Ligands and force fields built by ECCE are not
+  offered yet.
 - A single amino acid on its own (glycine, for instance) cannot be prepared:
   pdb2gmx needs a chain.
 - GROMOS force fields make `grompp` print one warning about the parametrisation;

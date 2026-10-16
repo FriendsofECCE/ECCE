@@ -53,6 +53,15 @@ void GromacsPrepareModelXMLizer::deserialize(const string& data,
       m->ionConcentration(atof(v.c_str()));
    if (!(v = getTagValue(root, "PositiveIon")).empty()) m->positiveIon(v);
    if (!(v = getTagValue(root, "NegativeIon")).empty()) m->negativeIon(v);
+   if (!(v = getTagValue(root, "MinffVariant")).empty()) m->minffVariant(v);
+   m->minffMineral(getTagValue(root, "MinffMineral"));
+   if (!(v = getTagValue(root, "MinffAngleK")).empty())
+      m->minffAngleK(atoi(v.c_str()));
+   if (!(v = getTagValue(root, "MinffReplicate")).empty()) m->minffReplicate(v);
+   m->minffSubstitutions(getTagValue(root, "MinffSubstitutions"));
+   m->minffSeed(getTagValue(root, "MinffSeed"));
+   m->minffCell(getTagValue(root, "MinffCell"));
+   m->minffSummary(getTagValue(root, "MinffSummary"));
 }
 
 void GromacsPrepareModelXMLizer::serialize(const Serializable& object,
@@ -78,6 +87,15 @@ void GromacsPrepareModelXMLizer::serialize(const Serializable& object,
       << "</IonConcentration>\n"
       << "<PositiveIon>" << m->positiveIon() << "</PositiveIon>\n"
       << "<NegativeIon>" << m->negativeIon() << "</NegativeIon>\n"
+      << "<MinffVariant>" << m->minffVariant() << "</MinffVariant>\n"
+      << "<MinffMineral>" << m->minffMineral() << "</MinffMineral>\n"
+      << "<MinffAngleK>" << m->minffAngleK() << "</MinffAngleK>\n"
+      << "<MinffReplicate>" << m->minffReplicate() << "</MinffReplicate>\n"
+      << "<MinffSubstitutions>" << m->minffSubstitutions()
+      << "</MinffSubstitutions>\n"
+      << "<MinffSeed>" << m->minffSeed() << "</MinffSeed>\n"
+      << "<MinffCell>" << m->minffCell() << "</MinffCell>\n"
+      << "<MinffSummary>" << m->minffSummary() << "</MinffSummary>\n"
       << "</" << ROOTELEMENT << ">\n";
    data = os.str();
 }

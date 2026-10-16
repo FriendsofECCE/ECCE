@@ -130,6 +130,7 @@ sub checkPrepare
     while (<$rf>) { $r{$1} = $2 if (/^\s*([A-Z]+)=(\S*)\s*$/); }
     close($rf);
   }
+  checkMinff() if (($r{SOURCE} || "") eq "minff");
   my @pdb = glob("*.gmxpdb");
   @pdb = glob("*.pdb") if (!@pdb);
   if (!@pdb) {
@@ -162,5 +163,59 @@ sub checkPrepare
     exit($status);
   }
   print "pdb2gmx accepted the structure.\n";
+  exit 0;
+}
+
+# A MINFF Prepare has no pdb2gmx step: its topology and structure were built
+# by the editor and are staged as topol.gmxmin and conf.gmxmin.  What is
+# worth stopping for is a topology grompp rejects, so grompp is run on them.
+sub checkMinff
+{
+  if (! -s "topol.gmxmin" || ! -s "conf.gmxmin") {
+    print STDERR "This Prepare has no mineral topology yet.\n";
+    print STDERR "Open it in the GROMACS Prepare editor, choose the unit cell and press Build topology.\n";
+    exit 1;
+  }
+  if ($gmx eq "") {
+    print "gmx is not on this machine, so grompp is not tried here; it runs on the job's machine.\n";
+    exit 0;
+  }
+  my $tmp = tempdir("gromacs.launchpp.XXXXXX", TMPDIR => 1, CLEANUP => 1);
+  my $cwd = Cwd::getcwd();
+  opendir(my $dh, ".") || die "gromacs.launchpp: cannot read the staging directory\n";
+  foreach my $f (readdir($dh)) {
+    next if ($f eq "." || $f eq ".." || ! -f $f);
+    (my $rel = $f) =~ s#__SLASH__#/#g;
+    next if ($rel =~ m#^/# || $rel =~ m#(^|/)\.\.(/|$)#);
+    if ($rel =~ m#/#) {
+      (my $dir = $rel) =~ s#/[^/]*$##;
+      system("mkdir", "-p", "$tmp/$dir");
+    }
+    symlink("$cwd/$f", "$tmp/$rel");
+  }
+  closedir($dh);
+  # gmx goes by the extension
+  symlink("$cwd/topol.gmxmin", "$tmp/topol.top");
+  symlink("$cwd/conf.gmxmin", "$tmp/conf.gro");
+  open(my $mf, ">", "$tmp/check.mdp") || die "gromacs.launchpp: cannot write in $tmp\n";
+  print $mf "integrator = steep\nnsteps = 0\ncutoff-scheme = Verlet\ncoulombtype = cutoff\n";
+  print $mf "rcoulomb = 0.5\nrvdw = 0.5\npbc = xyz\nperiodic-molecules = yes\n";
+  close($mf);
+  my @cmd = ($gmx, "grompp", "-f", "check.mdp", "-c", "conf.gro", "-p", "topol.top",
+             "-o", "check.tpr", "-po", "mdout.mdp");
+  my $out = `cd $tmp && @cmd 2>&1 </dev/null`;
+  my $status = $? >> 8;
+  if ($status != 0) {
+    print STDERR "grompp rejected the mineral topology, so the job was not submitted.\n";
+    print STDERR "  command: @cmd\n\n";
+    my @lines = split(/\n/, $out);
+    my $first = 0;
+    for (my $i = 0; $i < scalar(@lines); $i++) {
+      if ($lines[$i] =~ /^(ERROR|WARNING|Fatal error)/) { $first = $i; last; }
+    }
+    print STDERR join("\n", @lines[$first .. $#lines]) . "\n";
+    exit($status);
+  }
+  print "grompp accepted the mineral topology.\n";
   exit 0;
 }
