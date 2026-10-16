@@ -53,6 +53,18 @@ for exe in "$RES/ecce/bin"/*; do
   mv "$exe" "$b/Contents/MacOS/$name"
   ln -s "../../../Helpers/$dir.app/Contents/MacOS/$name" "$exe"
   cp "$RES/ecce.icns" "$b/Contents/Resources/ecce.icns"
+  # What the Dock or Finder starts (CFBundleExecutable).  Without ECCE's
+  # session environment a tool cannot run alone: start ECCE instead.  The
+  # session starts the program itself by its real path, not this script.
+  cat > "$b/Contents/MacOS/ecce-tool" <<TOOL
+#!/bin/bash
+here=\$(cd "\$(dirname "\$0")" && pwd)
+if [ -z "\${ECCE_HOME:-}" ]; then
+  exec /usr/bin/open -a "\$(cd "\$here/../../../../.." && pwd)"
+fi
+exec "\$here/$name" "\$@"
+TOOL
+  chmod 755 "$b/Contents/MacOS/ecce-tool"
   ui=""
   case "$accessory" in *" $name "*) ui="<key>LSUIElement</key><true/>" ;; esac
   # The folder descriptions are here too: the prompt names the program
@@ -65,7 +77,7 @@ for exe in "$RES/ecce/bin"/*; do
   <key>CFBundleName</key><string>$title</string>
   <key>CFBundleDisplayName</key><string>$title</string>
   <key>CFBundleIdentifier</key><string>org.friendsofecce.ecce.$name</string>
-  <key>CFBundleExecutable</key><string>$name</string>
+  <key>CFBundleExecutable</key><string>ecce-tool</string>
   <key>CFBundleIconFile</key><string>ecce</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>$VERSION</string>

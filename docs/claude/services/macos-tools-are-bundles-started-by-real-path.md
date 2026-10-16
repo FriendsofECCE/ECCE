@@ -17,7 +17,15 @@ contain spaces, so they quote it. `otool`/`osascript -e 'tell application
 "System Events"...'` on a Mac without developer tools or Automation consent
 open a dialog or hang: use `lsappinfo`.
 
-The splash is the Organizer's on macOS (the gateway is a UIElement, whose
-windows do not stay in front); the gateway only sets `ECCE_SPLASH` for it.
-A tool started from the Dock has no `ECCE_HOME` and runs `open -a ECCE.app`
-instead (`ewxApp::OnInit`).
+wxSplashScreen is a floating tool window on macOS and the system hides it
+whenever its app is not the active one (CGWindowList: layer 3, no
+`kCGWindowIsOnscreen`), so the splash never showed; `ewxShowSplash` uses a
+plain stay-on-top frame there (layer 8, on screen). It is the Organizer's:
+the gateway is a UIElement and only sets `ECCE_SPLASH` for it.
+
+What the Dock starts is `CFBundleExecutable` = `ecce-tool`, a script: without
+`ECCE_HOME` (no session) it runs `open -a ECCE.app`, else it execs the
+program. A check in C++ cannot do this: the ECCE libraries' static
+initialisers assert on a missing `ECCE_HOME` before any early hook of ours
+runs on Mach-O. A bundle name differing from the process's executable does
+not matter to LaunchServices.
