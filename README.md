@@ -245,6 +245,9 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
      releases; drop the oldest minor when a new one is added. Everything
      older is on the releases page. -->
 
+- **v8.18.12** — The Viewer no longer crashes opening the MOs of a calculation
+  with many orbitals (ORCA above about 245): parsed results longer than
+  2048 bytes per line were cut when stored.
 - **v8.18.11** — NWChem MP2 and coupled-cluster inputs are generated
   again, constraints survive a fixed atom, and frequency-only runs draw
   vibrations on NWChem's geometry; ORCA and NWChem imports are
