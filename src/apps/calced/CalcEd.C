@@ -3341,10 +3341,18 @@ void CalcEd::enableBasisSetFields()
   bool isSubmitted(hasCalc
           && p_iCalc->getState() >= ResourceDescriptor::STATE_SUBMITTED);
 
-  //  A theory without a basis set (MOPAC, plane waves) has nothing to
-  //  choose there, so the box is left out rather than greyed (#348).
-  if (p_basisMark && p_basisMark->IsShown() != needsBasis) {
-    p_basisMark->Show(needsBasis);
+  //  A code none of whose theories has a basis set (MOPAC, QE) gets no
+  //  box (#348). A code with both kinds (NWChem's plane waves) keeps it
+  //  greyed, so the layout does not jump while the theory is changed.
+  bool codeUsesBasis = !p_code;
+  if (p_code) {
+    vector<TTheory> *all = p_code->theories();
+    for (size_t i = 0; all && i < all->size() && !codeUsesBasis; i++)
+      codeUsesBasis = p_code->theoryNeedsBasis((*all)[i]);
+    delete all;
+  }
+  if (p_basisMark && p_basisMark->IsShown() != codeUsesBasis) {
+    p_basisMark->Show(codeUsesBasis);
     Layout();
   }
   p_basisSetTool->Enable(hasFragment && needsBasis);
