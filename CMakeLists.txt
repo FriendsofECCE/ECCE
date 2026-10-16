@@ -2379,7 +2379,7 @@ if(PYTHON3_EXECUTABLE)
   # Every app's main window and every codereg Theory/Runtype dialog fits a
   # small screen (#189): measured on private Xvfb screens, no window may
   # extend past the screen.  Same installed tree and isolation as `apps`.
-  foreach(size 1024x768 1024x600)
+  foreach(size 1366x768 1024x768 1024x600)
     add_test(NAME apps_smallscreen_${size}
              COMMAND ${PYTHON3_EXECUTABLE}
                      ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/smallscreen_test.py

@@ -56,6 +56,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [A structure opened from a file is not a calculation: `AbstractPropCalculation::getProperty()` throws](structure-file-calculations-throw-on-getproperty.md)
 - [wxMSW paints every intermediate state: panes before AUI places them, menu bars item by item; a disabled active window hands the activation away (#254, #255, #256)](windows-every-intermediate-state-is-painted.md)
 - [Every `ewxFrame`/`ewxDialog` is capped to its display and scrolls what does not fit (`fitToScreen()`); codereg dialogs scroll in `EccePanel` (#189)](windows-fit-small-screens-via-fittodisplay.md)
+- [smallscreen_test: dialogs open on the real Wayland screen; Wayland has no work area; the splitter hides the periodic table width (#337, #351)](smallscreen-test-and-wayland-display-traps.md)
 
 - [The ESP colour bar draws the surface's own ramp and the grid's colour range; it follows the surface on screen, not the type drop-down (#210)](esp-colour-bar-reads-the-surfaces-own-ramp.md)
 

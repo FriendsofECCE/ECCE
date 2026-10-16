@@ -64,7 +64,12 @@ opts = {"out": None, "size": (1024, 600)}
 
 
 def topLevels(display):
-    """[(title, width, height, x, y)] of the named top-level windows."""
+    """[(id, title, width, height, x, y)] of the named top-level windows.
+
+    The id is part of the tuple because successive dialogs have the same
+    title and geometry; without it a window not yet gone from the last
+    dialog hides the next one ("no window to measure").
+    """
     try:
         text = subprocess.run(
             ["xwininfo", "-display", display.name, "-root", "-children"],
@@ -79,7 +84,7 @@ def topLevels(display):
             continue
         w, h = int(m.group(3)), int(m.group(4))
         if w > 20 and h > 20:
-            found.append((m.group(2), w, h, int(m.group(7)),
+            found.append((m.group(1), m.group(2), w, h, int(m.group(7)),
                           int(m.group(8))))
     return found
 
@@ -103,8 +108,10 @@ def measure(display, label, before):
     shoot(display, label)
     if not wins:
         print("      %s: no window to measure" % label)
+        offenders.append("%s: no window opened, so nothing was measured"
+                         % label)
         return
-    for title, w, h, x, y in wins:
+    for _id, title, w, h, x, y in wins:
         right, bottom = x + w, y + h + TITLE_ALLOWANCE
         if x < 0 or y < 0 or right > sw or bottom > sh:
             offenders.append(
@@ -179,21 +186,42 @@ def dialogCheck(display, root, item, scratch):
             "0", "C1", "10", "1", "1", "5", "2", "3"]
     env = display.env()
     env["PYTHONPATH"] = root
+    #  On a Wayland desktop GTK3 ignores DISPLAY and opens the dialog on the
+    #  real screen, where the private Xvfb never sees it.
+    env["GDK_BACKEND"] = "x11"
+    env.pop("WAYLAND_DISPLAY", None)
     env["PYTHONDONTWRITEBYTECODE"] = "1"
-    before = set(topLevels(display))
-    proc = subprocess.Popen(argv, env=env, cwd=root, stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL, start_new_session=True)
-    try:
-        deadline = time.time() + 30
-        while time.time() < deadline and proc.poll() is None:
-            if [w for w in topLevels(display) if w not in before]:
-                break
-            time.sleep(0.3)
-        time.sleep(1.5)
-        measure(display, label, before)
-    finally:
-        apps._terminate(proc)
-        sock.close()
+    errPath = os.path.join(scratch, "stderr.txt")
+    #  A GTK assertion kills about one dialog in a hundred at start-up and
+    #  never the same one twice, so a signal before any window gets one retry.
+    for attempt in (1, 2):
+        before = set(topLevels(display))
+        err = open(errPath, "w")
+        proc = subprocess.Popen(argv, env=env, cwd=root,
+                                stdout=subprocess.DEVNULL, stderr=err,
+                                start_new_session=True)
+        try:
+            deadline = time.time() + 30
+            while time.time() < deadline and proc.poll() is None:
+                if [w for w in topLevels(display) if w not in before]:
+                    break
+                time.sleep(0.3)
+            time.sleep(1.5)
+            shown = [w for w in topLevels(display) if w not in before]
+            if not shown and attempt == 1 and (proc.poll() or 0) < 0:
+                print("      %s: died on signal %d before showing a window; "
+                      "retrying" % (label, -proc.poll()))
+                continue
+            measure(display, label, before)
+            if not shown:
+                err.flush()
+                print("      exit %s, stderr: %s"
+                      % (proc.poll(), open(errPath).read()[-400:].strip()))
+            break
+        finally:
+            apps._terminate(proc)
+            err.close()
+    sock.close()
 
 
 def sweep(display, results, only=None):
