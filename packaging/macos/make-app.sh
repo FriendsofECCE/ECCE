@@ -37,7 +37,7 @@ for t in mosquitto mosquitto_passwd; do
 done
 
 sed "s/@VERSION@/$VERSION/" "$HERE/Info.plist.in" > "$APP/Contents/Info.plist"
-install -m 755 "$HERE/ecce.sh" "$APP/Contents/MacOS/ecce.sh"
+install -m 755 "$HERE/ecce.sh" "$RES/ecce.sh"
 # A Mach-O, not the script: TCC's responsible process must be ECCE, not bash.
 cc -O2 -Wall -o "$APP/Contents/MacOS/ecce" "$HERE/launcher.c"
 "$HERE/make-icns.sh" "$RES/ecce.icns"
