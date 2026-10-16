@@ -247,7 +247,8 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
     }
     Criterion c;
     c.label = criterionLabel(st.name, f.first);
-    c.value = fmt("%.1e", v) + " / " + fmt("%.0e", t);
+    // Said in words: "a / b" was read as two values, not value and threshold.
+    c.value = fmt("%.1e", v) + " (limit " + fmt("%.0e", t) + ")";
     c.met = std::fabs(v) <= t ? 1 : 0;
     b.criteria.push_back(c);
   }
