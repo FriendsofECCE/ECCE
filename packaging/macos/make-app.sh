@@ -64,7 +64,11 @@ fi
 
 # install_name_tool voids signatures and arm64 will not run unsigned
 # code, so each Mach-O is signed ad hoc, the bundle last.
-while read -r f; do codesign --force -s - "$f"; done < "$machos"
+# The main executable is signed with the bundle: signed alone it demands
+# the Frameworks be signed first.
+while read -r f; do
+  [ "$f" = "$APP/Contents/MacOS/ecce" ] || codesign --force -s - "$f"
+done < "$machos"
 rm -f "$machos"
 for b in "$APP"/Contents/Helpers/*.app; do codesign --force -s - "$b"; done
 codesign --force -s - "$APP"
