@@ -387,7 +387,9 @@ void WxBasisTool::initControls()
     // attempts at an explicit min-size hint here were both left commented
     // out rather than landed; this is that fix, actually applied.
     // 200 is only a floor; the table's own best height follows the font.
-    p_elementsTable->SetMinSize(wxSize(-1,
+    // The width is a floor too: without it the window can be narrower than
+    // the table's 18 columns and the right-hand elements are cut off.
+    p_elementsTable->SetMinSize(wxSize(p_elementsTable->GetBestSize().x,
         wxMax(200, p_elementsTable->GetBestSize().y)));
     wxSizer* szrElmts = p_elementsPanel->GetSizer();
     szrElmts->Add(p_elementsTable, 1, wxGROW|wxALL, 3);
@@ -507,6 +509,11 @@ void WxBasisTool::initControls()
                     + p_cntxtOprtnsPanel->GetBestSize().y;
     int around = this->GetSize().y - p_mainSplitWindow->GetSize().y;
     best.y = wxMax(best.y, around + splitNeeded);
+    // Likewise the width (the basis set list plus the periodic table): the
+    // splitter does not pass the table's minimum width up to the window.
+    int aroundX = this->GetSize().x - p_mainSplitWindow->GetSize().x;
+    best.x = wxMax(best.x,
+        aroundX + p_cntxtMoleculePanel->GetParent()->GetBestSize().x);
     this->SetMinSize(wxSize(wxMax(best.x, WXBASISTOOL_WINDOW_MINWIDTH),
                             wxMax(best.y, WXBASISTOOL_WINDOW_MINHEIGHT)));
 }
