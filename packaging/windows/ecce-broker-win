@@ -52,7 +52,7 @@ stop() {
 # the rest); job monitors are not among them.
 gui_running() {
   tasklist //FO CSV //NH 2>/dev/null | tr -d '\r' | grep -Eiq \
-    '^"(organizer|builder|calced|basistool|launcher|machregister|machbrowser|pertable|vizthumbnail|mdprepare|mdoptimize|mdenergy|mddynamics|dirdyed|polyed|solvate|metadyn)\.exe"'
+    '^"(organizer|builder|calced|basistool|launcher|machregister|machbrowser|pertable|vizthumbnail|mdprepare|gmxprepare|mdoptimize|mdenergy|mddynamics|dirdyed|polyed|solvate|metadyn)\.exe"'
 }
 
 # watch: stop this session's broker once its windows are all closed.

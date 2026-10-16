@@ -523,6 +523,8 @@ ecce_app(mdenergy src/apps/mdenergy WX
   LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(mdoptimize src/apps/mdoptimize WX
   LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_app(gmxprepare src/apps/gmxprepare WX
+  LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(mdprepare src/apps/mdprepare WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(msgdialog src/apps/messagedialog WX
@@ -989,7 +991,7 @@ install(PROGRAMS ${_remote_wrapper} DESTINATION ${ECCE_WRAPPER_DESTINATION} COMP
 # ------------------------------------------------------------------------
 set(ECCE_GUI_APPS
   basistool calced dirdyed gateway launcher machbrowser machregister
-  mddynamics mdenergy mdoptimize mdprepare msgdialog metadyn organizer
+  mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable polyed solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
   load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-site-admin mocomp

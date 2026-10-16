@@ -60,6 +60,7 @@ std::string WxHelpViewer::pageForKey(const std::string& key)
         {"CalculationEditor", "first-calculation.html#4-set-up-the-calculation"},
         {"Launcher", "first-calculation.html#5-launch"},
         {"MachineBrowser", "machines.html"},
+        {"GROMACSMDPrepare", "gromacs-prepare.html"},
         //  The page for setting up codes on the platform ECCE runs on.
 #if defined(__APPLE__)
         {"RunningCodes", "running-codes-on-macos.html"},

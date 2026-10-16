@@ -12,11 +12,12 @@
 //                                 Dynamics task chained as the Organizer's New menu chains
 //                                 them; prints the study's and the tasks' URLs, one a line
 //   launchjob gromacsprepstudy <parentURL> <name> <pdbFile> [ff=F] [water=W] [box=B] [dist=D] [conc=C]
-//                                 [merge=0|1] [equilibrate]
+//                                 [merge=0|1] [equilibrate] [bare]
 //                                 a project and a GROMACS MD study with a Prepare task on <pdbFile>
 //                                 (stored as its .gmxpdb, the recipe written as the editor
 //                                 would) and an Optimize task, plus an Equilibrate with the
-//                                 word "equilibrate"; prints the URLs, one a line
+//                                 word "equilibrate"; "bare" leaves the Prepare without a
+//                                 structure or recipe, as New makes it; prints the URLs, one a line
 //   launchjob apptype <url>       the application and content type of a resource
 //   launchjob nwchemmdstudy <parentURL> <name>
 //                                 the same with an NWChem MD study holding a Prepare and an Optimize task
@@ -267,7 +268,7 @@ static int doGromacsPrepStudy(const vector<string>& a)
   cout << session->getURL().toString() << endl;
 
   GromacsPrepareModel pm;
-  bool equilibrate = false;
+  bool equilibrate = false, bare = false;
   for (size_t i = 3; i < a.size(); i++) {
     string::size_type eq = a[i].find('=');
     string k = a[i].substr(0, eq), v = eq == string::npos ? "" : a[i].substr(eq + 1);
@@ -278,6 +279,7 @@ static int doGromacsPrepStudy(const vector<string>& a)
     else if (k == "conc") pm.ionConcentration(atof(v.c_str()));
     else if (k == "merge") pm.mergeChains(v == "1");
     else if (k == "equilibrate") equilibrate = true;
+    else if (k == "bare") bare = true;
     else { cerr << "gromacsprepstudy: unknown setting " << a[i] << endl; return 2; }
   }
 
@@ -289,7 +291,9 @@ static int doGromacsPrepStudy(const vector<string>& a)
     TaskJob* task = r ? dynamic_cast<TaskJob*>(r) : 0;
     if (!task) { cerr << "could not create " << names[i] << endl; return 1; }
     session->addMemberAsTarget(task, 0);
-    if (names[i] == "prepare") {
+    if (names[i] == "prepare" && bare) {
+      //  as New makes it: the editor writes the recipe when it opens
+    } else if (names[i] == "prepare") {
       //  the source structure, attached as the editor will
       ifstream pdb(a[2].c_str());
       string tail = a[2].substr(a[2].find_last_of('/') + 1);

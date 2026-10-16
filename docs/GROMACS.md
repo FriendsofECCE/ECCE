@@ -244,15 +244,21 @@ warning, which the test allows (counter-ions are a later step).
   then the same command. The test needs only the standard library of the
   python that runs it.
 
-## Step 2 (scripts and task built, editor not yet): Prepare
+## Step 2 (scripts, task and editor built): Prepare
 
-What exists so far is the part that runs, with the resource type but not
-yet the editor:
+What exists so far is the part that runs, the resource type and the editor:
 
 * `gromacs_md_prepare` ("New GROMACS MD Prepare...", first in a GROMACS
   study's list, a root task like NWChem's) in both resource descriptors;
-  its tool `GMXPrepare` (`./gmxprepare`) is declared and the binary comes
-  with the editor. `GROMACS.edml` declares `gromacs.gmxprep` as a second
+  its tool `GMXPrepare` (`./gmxprepare`, "GROMACS MD Prepare Editor") opens
+  the editor, one page on `MDEdBase` (`src/apps/gmxprepare`,
+  `GromacsPreparePanel`): source (protein), structure (the Builder's or a PDB
+  file stored as `.gmxpdb`), force field and the water models it offers
+  (a static table of the 15 force fields of GROMACS 2025.2, plus "Other
+  (GMXLIB)"), ignore hydrogens, merge chains (both on), box type and
+  distance (dodecahedron, 1.0 nm), salt concentration (0.15 mol/L, 0 =
+  neutralise only) and the ions.  Save writes `gromacs.gmxprep` through
+  `md.gmxprep`. `GROMACS.edml` declares `gromacs.gmxprep` as a second
   primary input; the source structure is stored as `<name>.gmxpdb`.
 * The recipe's task model is `GromacsPrepareModel` /
   `GromacsPrepareModelXMLizer` (`TaskJob::getSerializer`); `md.gmxprep`
@@ -277,8 +283,7 @@ yet the editor:
 * `tests/gromacs_md/run_tests.py` runs Trp-cage (PDB 1L2Y) through all of it
   and on into an Optimize task.
 
-Not done: the editor (`gmxprepare` on `MDEdBase`, a `GromacsPreparePanel`),
-histidine states other than pdb2gmx's own choice, ligands and MINFF as
+Not done: results display for a Prepare, histidine states other than pdb2gmx's own choice, ligands and MINFF as
 sources, and everything listed below that is not these scripts and the task.
 
 Everything above takes a system as given. A Prepare task would build one

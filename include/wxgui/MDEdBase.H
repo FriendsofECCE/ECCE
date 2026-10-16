@@ -151,9 +151,10 @@ class MDEdBase: public MDEdBaseGUI,
        */
       void selectCode(bool gromacs);
 
-      /** Point every panel at the sub-models of the current model. */
-      string runTestCommand(const string& line);
+      /** The test hook's commands (see startTestHook); editors add their own. */
+      virtual string runTestCommand(const string& line);
 
+      /** Point every panel at the sub-models of the current model. */
       virtual void bindModels();
 
       /** Hide the controls that mean nothing for GROMACS, or show them. */

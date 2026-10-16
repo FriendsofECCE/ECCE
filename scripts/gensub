@@ -1520,7 +1520,7 @@ sub gromacsPrepare()
   $t = <<'PREPEOF';
 
 @@CC@@ - Read the recipe; md.gmxprep has checked every value.
-SOURCE=protein FF=amber99sb-ildn WATER=tip3p HIS=auto IGNH=1 MERGE=0
+SOURCE=protein FF=amber99sb-ildn WATER=tip3p HIS=auto IGNH=1 MERGE=1
 BOX=dodecahedron DIST=1.0 CONC=0.15 PNAME=NA NNAME=CL
 while IFS='=' read -r k v; do
   case "$k" in

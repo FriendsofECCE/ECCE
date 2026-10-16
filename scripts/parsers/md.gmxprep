@@ -24,7 +24,7 @@
 use strict;
 
 my %DEFAULT = (SOURCE => "protein", FF => "amber99sb-ildn", WATER => "tip3p",
-               HIS => "auto", IGNH => 1, MERGE => 0, BOX => "dodecahedron",
+               HIS => "auto", IGNH => 1, MERGE => 1, BOX => "dodecahedron",
                DIST => 1.0, CONC => 0.15, PNAME => "NA", NNAME => "CL");
 
 my %R;

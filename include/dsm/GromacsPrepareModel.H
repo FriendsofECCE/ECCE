@@ -44,6 +44,9 @@ class GromacsPrepareModel : public ITaskModel
       void positiveIon(const string& v) { p_pname = v; }
       void negativeIon(const string& v) { p_nname = v; }
 
+      /** The defaults; md.gmxprep and gensub carry the same ones. */
+      void reset();
+
       virtual void generateInputFile();
       virtual void run();
 

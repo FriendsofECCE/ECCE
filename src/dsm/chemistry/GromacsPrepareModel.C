@@ -2,10 +2,23 @@
 #include "util/NotImplementedException.H"
 
 GromacsPrepareModel::GromacsPrepareModel()
-  : p_source("protein"), p_ff("amber99sb-ildn"), p_water("tip3p"),
-    p_his("auto"), p_box("dodecahedron"), p_pname("NA"), p_nname("CL"),
-    p_ignh(true), p_merge(false), p_dist(1.0), p_conc(0.15)
 {
+   reset();
+}
+
+void GromacsPrepareModel::reset()
+{
+   p_source = "protein";
+   p_ff = "amber99sb-ildn";
+   p_water = "tip3p";
+   p_his = "auto";
+   p_box = "dodecahedron";
+   p_pname = "NA";
+   p_nname = "CL";
+   p_ignh = true;
+   p_merge = true;
+   p_dist = 1.0;
+   p_conc = 0.15;
 }
 
 GromacsPrepareModel::~GromacsPrepareModel()

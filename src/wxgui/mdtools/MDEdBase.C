@@ -1016,7 +1016,7 @@ void MDEdBase::OnButtonBuilderClick( wxCommandEvent& event )
 {
    try {
 
-      MDCompositeModel& model = getMDModel();
+      ITaskModel& model = *p_model;
       MdTask *task = 
          dynamic_cast<MdTask*>(EDSIFactory::getResource(model.getUrl()));
 
@@ -1047,7 +1047,7 @@ void MDEdBase::OnButtonFinaleditClick( wxCommandEvent& event )
 {
    try {
 
-     MDCompositeModel& model = getMDModel();
+     ITaskModel& model = *p_model;
      MdTask *task = dynamic_cast<MdTask*>(EDSIFactory::getResource(model.getUrl()));
 
      // Save if needed
@@ -1100,7 +1100,7 @@ void MDEdBase::processEditCompletion(const EditEvent& ee)
    string infile;
    TypedFile tinfile;
    MdTask *task = 
-       dynamic_cast<MdTask*>(EDSIFactory::getResource(getMDModel().getUrl()));
+       dynamic_cast<MdTask*>(EDSIFactory::getResource(p_model->getUrl()));
    task->getDataFile(JCode::PRIMARY_INPUT, tinfile);
    infile = tinfile.name();
 
@@ -1121,7 +1121,7 @@ void MDEdBase::OnButtonLaunchClick( wxCommandEvent& event )
 {
    try {
 
-      MDCompositeModel& model = getMDModel();
+      ITaskModel& model = *p_model;
       MdTask *task = 
          dynamic_cast<MdTask*>(EDSIFactory::getResource(model.getUrl()));
 

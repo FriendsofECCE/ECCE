@@ -2310,19 +2310,6 @@
         <State name="Failed"/>
         <State name="System"/>
       </Tool>
-    <Tool name="GMXPrepare">
-        <State name="Created"/>
-        <State name="Ready"/>
-        <State name="Submitted"/>
-        <State name="Running"/>
-        <State name="Waiting"/>
-        <State name="Complete"/>
-        <State name="Loaded"/>
-        <State name="Killed"/>
-        <State name="Unsuccessful"/>
-        <State name="Failed"/>
-        <State name="System"/>
-      </Tool>
       <Tool name="Builder">
         <State name="Created"/>
         <State name="Ready"/>
@@ -4882,6 +4869,13 @@
       <MenuItem>NWChem MD Prepare &amp;Editor...&#x9;Ctrl+E</MenuItem>
       <Label>NWChem MD Prepare Editor</Label>
       <InvokeArg>./mdprepare</InvokeArg>
+      <Icon>gweditor2.xpm</Icon>
+      <Gateway>-1</Gateway>
+    </Tool>
+    <Tool name="GMXPrepare">
+      <MenuItem>GROMACS MD Prepare &amp;Editor...&#x9;Ctrl+E</MenuItem>
+      <Label>GROMACS MD Prepare Editor</Label>
+      <InvokeArg>./gmxprepare</InvokeArg>
       <Icon>gweditor2.xpm</Icon>
       <Gateway>-1</Gateway>
     </Tool>

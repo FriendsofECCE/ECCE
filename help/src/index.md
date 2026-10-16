@@ -70,6 +70,9 @@ describe what you did and what happened.
    than one core.
 12. [Running codes on Windows](running-codes-on-windows.md): MOPAC and ORCA
    on a Windows PC, and Microsoft MPI for ORCA on more than one core.
+13. [Preparing a protein for GROMACS](gromacs-prepare.md): from a PDB file
+   to a solvated, neutral system ready for minimisation, with the GROMACS MD
+   Prepare task.
 
 Reference:
 
