@@ -164,3 +164,5 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [Geometry constraints are edited in the Builder and stored with the calculation; the input uses them only for Geometry/GeoVib](geometry-constraints-are-edited-in-the-builder-and-stored-with-the-calculation.md)
 - [Gaussian: describe ECCE's support for it; never publish a comparison of Gaussian with another program](what-may-be-published-about-gaussian.md)
 - [The Builder draws modes on the last GEOMTRACE step, so a code that reorients must deliver one (NWChem frequency-only runs did not)](geometry-and-normal-modes-share-the-codes-frame.md)
+- [Property value lines were cut at 2047 bytes, losing the rest of the batch (ECCE-QM MO crash above ~120 functions, ORCA above ~245)](property-value-lines-had-a-2048-byte-limit.md)
+- [def2-SVP on light elements showed as "Custom" for ECCE-QM: a removed ECP that covers nothing left its key behind](ecp-less-code-named-def2-basis-custom.md)

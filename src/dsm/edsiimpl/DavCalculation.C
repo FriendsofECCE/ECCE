@@ -216,6 +216,49 @@ GUIValues *DavCalculation::guiparams(const string& theoryType) const {
 }
 
 
+//  A group saved for a code without ECPs (ECCE-QM) lost the aggregate's ECP
+//  but kept its key in the orbital mapping, so it reads back as "Custom".
+//  When the library's ECP covers none of the group's elements (def2-SVP on
+//  C, H, O) the basis is the named one: forget the key.
+static void forgetUncoveredEcp(TGBSGroup* group, const string& tag)
+{
+  if (group->ecp() != 0) return;
+  const OrbitalMap* orbitals = group->getOrbitalGBSMappings();
+  if (orbitals == 0) return;
+  vector<string> uncovered;
+  for (OrbitalMap::const_iterator o = orbitals->begin(); o != orbitals->end();
+       o++) {
+    const set<string> stored(o->second.begin(), o->second.end());
+    const string ecpSuffix = string(":") +
+        TGaussianBasisSet::gbs_type_formatter[TGaussianBasisSet::ecp];
+    bool listsEcp = false;
+    for (set<string>::const_iterator k = stored.begin(); k != stored.end(); k++)
+      listsEcp = listsEcp || (k->size() > ecpSuffix.size() &&
+          k->compare(k->size() - ecpSuffix.size(), ecpSuffix.size(),
+                     ecpSuffix) == 0);
+    if (!listsEcp) continue;
+    //  The ECP is known only as a part of its aggregate.
+    EDSIServerCentral central;
+    EDSIGaussianBasisSetLibrary lib(central.getDefaultBasisSetLibrary());
+    vector<TGaussianBasisSet*> parts = lib.lookup(
+        o->first.c_str(), TGaussianBasisSet::UnknownGBSType, tag.c_str());
+    TGBSConfigTags elements(tag.c_str());
+    for (size_t p = 0; p < parts.size(); p++) {
+      if (parts[p]->p_type == TGaussianBasisSet::ecp &&
+          stored.count(parts[p]->getUniqueKey())) {
+        bool covers = false;
+        for (size_t e = 0; e < elements.size() && !covers; e++)
+          covers = parts[p]->p_contractions.count(elements[e]) > 0;
+        if (!covers) uncovered.push_back(parts[p]->getUniqueKey());
+      }
+      delete parts[p];
+    }
+  }
+  for (size_t i = 0; i < uncovered.size(); i++)
+    group->forgetAggregatePart(uncovered[i]);
+}
+
+
 //  A calculation saved while the library gave two parts of one aggregate the
 //  same name and type (#164) lists that key twice in its orbital mapping and
 //  holds only the first part's shells: 6-31G* with no d shell.  No other
@@ -329,6 +372,7 @@ void DavCalculation::parseConfigMapElement(
     delete [] xStr;
     delete [] tempStr;
     
+    if (repair) forgetUncoveredEcp(group, tag);
     TGBSGroup* repaired = repair ? repairLostAggregatePart(group, tag) : group;
     if (repaired != group) {
       superseded.push_back(group);

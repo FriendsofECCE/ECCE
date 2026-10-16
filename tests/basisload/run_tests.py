@@ -563,6 +563,51 @@ def runStored(driver, e, base, mode="--stored", cases=STORED_CASES):
     return problems
 
 
+#  The Calculation Editor's Basis Set box shows TGBSConfig::name(), on the
+#  pick, once a code without ECPs (ECCE-QM) has removed the ECP, and after
+#  the calculation is read back.  def2-SVP on C, H, O was "Custom": its
+#  aggregate lists Def2-ECP, which covers none of them, and the removal
+#  left its key behind.  The fixture is such a calculation saved by 9.1.0
+#  (benzoic acid, 156 functions).
+ECCEQM_PICKS = ["STO-3G", "3-21G", "6-31G", "6-31G*", "6-31+G*", "6-311G*",
+                "cc-pVDZ", "aug-cc-pVDZ", "cc-pVTZ", "def2-SVP"]
+BENZOIC = ["C"] * 7 + ["O"] * 2 + ["H"] * 6
+
+
+def runNames(driver, e, base, state):
+    problems = []
+    for pick in ECCEQM_PICKS:
+        proc = subprocess.run([driver, base, pick, "quick", "C O H"],
+                              env=dict(e, LOADBASIS_NO_ECP="1"),
+                              capture_output=True, text=True)
+        m = re.search(r"^NAME (.*)$", proc.stderr, re.M)
+        m2 = re.search(r"^NAME_NO_ECP (.*)$", proc.stderr, re.M)
+        if proc.returncode != 0 or not m or not m2:
+            problems.append("%s: driver exited %d" % (pick, proc.returncode))
+            continue
+        stored = os.path.join(state, "names.ecce_basisset")
+        with open(stored, "w") as handle:
+            handle.write(proc.stdout)
+        back = subprocess.run([driver, base, "--stored", stored, "C", "O",
+                               "H"], env=e, capture_output=True, text=True)
+        n = re.search(r"^NAME (.*)$", back.stdout, re.M)
+        names = (m.group(1), m2.group(1), n.group(1) if n else "?")
+        if names != (pick, pick, pick):
+            problems.append("%s: named %r when picked, %r without the ECP, "
+                            "%r when read back" % ((pick,) + names))
+    back = subprocess.run(
+        [driver, base, "--stored", os.path.join(
+            HERE, "fixtures", "benzoic-def2svp-ecceqm.ecce_basisset")]
+        + BENZOIC, env=e, capture_output=True, text=True)
+    n = re.search(r"^NAME (.*)$", back.stdout, re.M)
+    f = re.search(r"^FUNCTIONS spherical (\d+)", back.stdout, re.M)
+    if not n or n.group(1) != "def2-SVP" or not f or f.group(1) != "156":
+        problems.append("benzoic acid saved by 9.1.0: %s" % " ".join(
+            l for l in back.stdout.splitlines() if l.startswith(
+                ("NAME", "FUNCTIONS"))) + "; " + back.stderr[-400:])
+    return problems
+
+
 def report(label, problems, verbose=False):
     print("  %s %s" % ("FAIL" if problems else "ok  ", label))
     for p in problems:
@@ -622,6 +667,8 @@ def main():
                              "with an explicit deck had (#265)",
                              runStored(driver, e, base, "--stored-exact",
                                        EXACT_CASES))
+            failed += report("ECCE-QM's basis picks keep their names on "
+                             "C, H, O", runNames(driver, e, base, state))
             count, problems = runSweep(driver, e, base, args.verbose, whole)
             failed += report("every multi-file aggregate (%d)" % count,
                              problems or ([] if count else ["none found"]))
