@@ -1218,7 +1218,8 @@ void CalcEd::OnCheckboxCalcedIrreducibleClick( wxCommandEvent& event )
 
 /**
  * The basis sets the quick menu offers: the code's own short list when its
- * .edml gives one (ECCE-QM), otherwise the built-in list.  "-" is a separator.
+ * .edml gives one (ECCE-QM), otherwise the built-in list.  "-" is a separator,
+ * "#Name" a greyed group heading.
  */
 vector<string> CalcEd::quickPicks() const
 {
@@ -1238,6 +1239,9 @@ void CalcEd::OnButtonCalcedBasisQuickClick( wxCommandEvent& event )
   for (size_t i = 0; i < picks.size(); i++) {
     if (picks[i] == "-") {
       menu.AppendSeparator();
+    } else if (!picks[i].empty() && picks[i][0] == '#') {
+      menu.Append(wxID_ANY, wxString::FromUTF8(picks[i].substr(1).c_str()))
+          ->Enable(false);
     } else {
       menu.Append(ID_BASIS_PICK0 + (int)i, picks[i]);
     }
