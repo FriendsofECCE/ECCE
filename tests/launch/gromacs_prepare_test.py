@@ -157,6 +157,28 @@ def main():
             check("[ molecules ]" in text and "SOL" in text and "Protein" in text,
                   "the topology lists the protein and the solvent")
 
+        rc, stored = s.driver("progress", prep)
+        say("  stored progress: %s" % stored.strip().replace("\n", " | ")[:400])
+        check(re.search(r"^prepare point=4/4 .*tool=genion", stored, re.M)
+              and "done=yes" in stored and re.search(r"atoms=\d+", stored)
+              and "box=dodecahedron" in stored and "pos=" in stored,
+              "the stored progress has the Prepare's step 4/4 and its result")
+        props = s.props(prep)
+        say("  Prepare properties: %s" % props)
+        want = ["NATOMS", "NRESIDUES", "NWATERS", "NIONSPOS", "NIONSNEG",
+                "SYSCHARGE0", "SYSCHARGE", "BOXA", "BOXB", "BOXC", "BOXALPHA",
+                "BOXBETA", "BOXGAMMA"]
+        check(all(k in props for k in want),
+              "the Prepare stored its system as properties: missing %s"
+              % [k for k in want if k not in props])
+        logf = [o for o in outs if o.endswith(".gmxlog")]
+        if logf:
+            log = open(os.path.join(ptask, "Outputs", logf[0])).read()
+            # the job log is appended to the output, so the steps appear twice
+            check(set(re.findall(r"^ECCE-PREPARE step (\d)/4 ", log, re.M))
+                  == {"1", "2", "3", "4"} and "ECCE-PREPARE done" in log,
+                  "the output file announces four steps and the end")
+
         say("running Optimize with nothing attached")
         otask = opt.replace("file://", "").rstrip("/")
         check(not os.path.isdir(os.path.join(otask, "Inputs")) or
@@ -346,6 +368,7 @@ def editor_section(s, build, rundir, png):
                       any(o.endswith(".gro") for o in outs),
                       "with its topology and structure")
                 check(ed.proc.poll() is None, "gmxprepare is still up after the run")
+                viewer_section(s, build, display, genv, wrappers, prep, png)
         finally:
             ed.close()
 
@@ -361,6 +384,68 @@ def editor_section(s, build, rundir, png):
                 check(any(i.startswith(want) for i in items) and
                       not any(i.startswith(other) for i in items),
                       "the Tools menu for %s: %s" % (want, items))
+
+
+def viewer_section(s, build, display, genv, wrappers, prep, png):
+    """The finished Prepare in the Builder (the Viewer): structure and cell."""
+    if not os.access(os.path.join(build, "builder"), os.X_OK):
+        say("  (builder is not built: the Viewer is not checked)")
+        return
+    harness.link(os.path.join(build, "builder"), os.path.join(s.home, "bin", "builder"))
+    out = os.path.join(s.state, "viewer")
+    shutil.rmtree(out, ignore_errors=True)
+    os.makedirs(out)
+    shot = os.path.join(png, "prepare-viewer.png")
+    shot_cell = os.path.join(png, "prepare-viewer-cell.png")
+    shot_props = os.path.join(png, "prepare-viewer-properties.png")
+    scene = os.path.join(out, "scene")
+    with open(scene, "w") as h:
+        h.write("\n".join(["background 1 1 1", "viewall", "xshot " + shot,
+                           "fragdump before", "pbcopen", "viewall",
+                           "xshot " + shot_cell, "fragdump after", "columntab 1",
+                           "xshot " + shot_props, ""]))
+    env = dict(genv, ECCE_VIEWER_SCENE=scene, ECCE_VIEWER_SCENE_OUT=out,
+               ECCE_PANEL_FULLSCREEN="1")
+    log = os.path.join(s.state, "viewer.log")
+    proc = subprocess.Popen(
+        [os.path.join(wrappers, "ecce-builder"), "-context", prep], env=env,
+        cwd=os.path.join(s.home, "bin"), stdout=open(log, "w"),
+        stderr=subprocess.STDOUT, start_new_session=True)
+    try:
+        end = time.time() + 180
+        while time.time() < end and not os.path.exists(shot_props):
+            if proc.poll() is not None:
+                break
+            time.sleep(1)
+        time.sleep(2)
+    finally:
+        import gromacs_test
+        gromacs_test.stop(proc)
+    for name in ("before", "after"):
+        f = os.path.join(out, name + ".txt")
+        text = open(f).read() if os.path.exists(f) else ""
+        say("  viewer %s: %s" % (name, " | ".join(text.splitlines()[:8])))
+    check(os.path.exists(shot) and os.path.exists(shot_cell),
+          "the Viewer's screenshots were taken")
+    before = open(os.path.join(out, "before.txt")).read() \
+        if os.path.exists(os.path.join(out, "before.txt")) else ""
+    m = re.search(r"^atoms (\d+)$", before, re.M)
+    check(m is not None and int(m.group(1)) > 3000,
+          "the Viewer shows the solvated system (thousands of atoms)")
+    check("lattice 1" in before, "the structure carries the box as its cell")
+    # the cell against gmx's own box line of the .gro the Prepare stored
+    gro = [o for o in outputs(prep) if o.endswith(".gro")]
+    vec = [[float(x) * 0.1 for x in l.split()[1:4]]
+           for l in before.splitlines() if l.startswith("vector ")]
+    if gro and len(vec) == 3:
+        box = [float(x) for x in open(os.path.join(
+            prep.replace("file://", "").rstrip("/"), "Outputs",
+            gro[0])).read().split("\n")[-2].split()]
+        v = [[box[0], box[3], box[4]], [box[5], box[1], box[6]],
+             [box[7], box[8], box[2]]]
+        off = max(abs(vec[i][k] - v[i][k]) for i in range(3) for k in range(3))
+        check(off < 0.002, "the cell vectors are the .gro box's (largest "
+              "difference %.4f nm)" % off)
 
 
 def gromacs_test_failures():

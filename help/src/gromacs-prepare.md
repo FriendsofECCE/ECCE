@@ -71,8 +71,37 @@ The most common reasons are atoms missing from a residue in the PDB file and a
 residue name the force field does not have.
 
 When the task is complete, its results are the topology, the structure in the
-box, the position restraints and `chemsys.pdb`. An Optimize task after it
-needs nothing attached.
+box, the position restraints and `chemsys.pdb`.
+
+## What the results show
+
+**Progress.** While the job runs, the Progress box of the Organizer shows a
+*Prepare* stage with the step under way (*step 3 of 4 · solvate*) and a bar
+that fills as the steps finish. The steps are named *pdb2gmx*, *box*,
+*solvate* and *ions*. When the task has finished the box keeps the stage. A
+task that stopped says at which step.
+
+**Summary.** A complete task lists, under the Progress box, the number of atoms,
+protein residues and water molecules, how many positive and negative ions were
+added, the net charge before and after the ions, and the type and size of the
+box. The numbers are taken from the files and messages of the GROMACS tools, not
+counted again by ECCE. The same values are properties of the task: in the Viewer
+they are listed under **Run Statistics** (number of atoms, protein residues,
+water molecules, ions added, net charge before and after, box lengths and
+angles).
+
+**The box in the Viewer.** Open the finished task in the Viewer to see the
+solvated protein. Choose **Tools > Periodic Builder** to draw the cell around
+it; its lengths and angles are listed there. A rhombic dodecahedron or a
+truncated octahedron is a slanted cell, so its angles are not 90 degrees: the
+dodecahedron made here has angles of 60, 60 and 90 degrees.
+
+## The tasks after it
+
+Optimize, Equilibrate and Dynamics tasks added after a Prepare in the same
+study start from its structure and topology, and use its position restraints.
+Nothing has to be attached to them. To run a later task from a different
+structure, attach that structure to the task as usual.
 
 ## Limits
 

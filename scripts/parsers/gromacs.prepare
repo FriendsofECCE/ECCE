@@ -1,0 +1,54 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Turns the two result lines a GROMACS Prepare job writes (gensub, gromacsPrepare)
+# into properties:
+#
+#   ECCE-PREPARE system atoms=5913 residues=20 waters=1866 pos=5 neg=6 posname=NA negname=CL
+#   ECCE-PREPARE box charge0=1.000000 charge1=0 box=dodecahedron a=4.392 b=4.392 c=4.392 alpha=60.00 beta=60.00 gamma=90.00
+#
+# The numbers come from gmx's own files and messages (see gensub); a field
+# that is empty or "?" is left out rather than published as zero.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my %v;
+while (<STDIN>) {
+  next unless /^ECCE-PREPARE (?:system|box)\b/;
+  while (/(\w+)=(\S+)/g) { $v{$1} = $2; }
+}
+
+my %map = (
+  NATOMS     => ['atoms',    'NA'],
+  NRESIDUES  => ['residues', 'NA'],
+  NWATERS    => ['waters',   'NA'],
+  NIONSPOS   => ['pos',      'NA'],
+  NIONSNEG   => ['neg',      'NA'],
+  SYSCHARGE0 => ['charge0',  'NA'],
+  SYSCHARGE  => ['charge1',  'NA'],
+  BOXA       => ['a',        'nm'],
+  BOXB       => ['b',        'nm'],
+  BOXC       => ['c',        'nm'],
+  BOXALPHA   => ['alpha',    'Degree'],
+  BOXBETA    => ['beta',     'Degree'],
+  BOXGAMMA   => ['gamma',    'Degree'],
+);
+
+#  The monitor runs one script per [KEY][KEY]... entry, found through its
+#  first key, and the key it passes is not one to select by: every property
+#  is written on each call, as gromacs.energy does.
+foreach my $k (sort keys %map) {
+  my $val = $v{$map{$k}[0]};
+  next if (!defined($val) || $val !~ /^-?[0-9.]+(?:[eE][-+]?[0-9]+)?$/);
+  print "key: $k\n";
+  print "size:\n1\n";
+  print "values:\n$val\n";
+  print "units:\n$map{$k}[1]\n";
+  print "END\n";
+}
+exit(0);

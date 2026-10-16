@@ -174,6 +174,13 @@ case("gromacs md (2025.2)", "gromacs.desc", fx("gromacs", "water_md.log"),
      {"md": {"point": "500/500"}})
 case("gromacs minimisation", "gromacs.desc", fx("gromacs", "water_em.log"),
      {"steep": {"point": "4/200", "converged": "yes"}})
+case("gromacs prepare (Trp-cage, 2025.2)", "gromacs.desc",
+     fx("gromacs", "prepare.gmxlog"),
+     {"prepare": {"point": "4/4", "tool": "genion", "done": "yes",
+                  "atoms": "5913", "residues": "20", "waters": "1866",
+                  "pos": "5", "neg": "6", "posname": "NA", "negname": "CL",
+                  "charge0": "1.000000", "charge1": "0", "box": "dodecahedron",
+                  "a": "4.392", "alpha": "60.00", "gamma": "90.00"}})
 
 
 def run_case(name, desc, out, want, hist, out2):

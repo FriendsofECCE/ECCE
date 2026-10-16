@@ -1578,12 +1578,14 @@ if [ "`echo "$CONC" | awk '{print ($1 > 0)}'`" = 1 ]; then GENION_CONC="-conc $C
       [ "$MERGE" = 1 ] && opts="$opts -merge all"
       prepRun "$gmx" pdb2gmx -f "$pdb" -ff "$FF" -water "$WATER" $opts \
           -o step1.gro -p topol.top -i posre.itp || exit 1
+      cp prep.step prep.pdb2gmx
       ;;
     *) echo "Unknown SOURCE $SOURCE" >> @@OUT@@; exit 1;;
   esac
 
   prepStep 2 editconf
   prepRun "$gmx" editconf -f step1.gro -o step2.gro -c -bt "$BOX" -d "$DIST" || exit 1
+  cp prep.step prep.editconf
 
   prepStep 3 solvate
   prepRun "$gmx" solvate -cp step2.gro -cs "$WBOX" -o step3.gro -p topol.top || exit 1
@@ -1603,10 +1605,38 @@ MDPEOF
   maxwarn=0
   case "$FF" in gromos*) maxwarn=1;; esac
   prepRun "$gmx" grompp -f ions.mdp -c step3.gro -p topol.top -o ions.tpr -maxwarn $maxwarn || exit 1
+  cp prep.step prep.grompp
   prepRun genionRun || exit 1
   cp ion.gro @@RESTART@@ || exit 1
   cp topol.top @@SYS@@.gmxtop || exit 1
   prepRun "$gmx" editconf -f @@RESTART@@ -o chemsys.pdb || exit 1
+
+  # The summary the Organizer and the Viewer show.  The numbers are gmx's
+  # own: the structure and topology it wrote, and what pdb2gmx, editconf
+  # and grompp said; a charge grompp does not mention is zero.
+  atoms=`sed -n 2p @@RESTART@@ | tr -d ' \r'`
+  resid=`sed -n 's/^Now there are \([0-9]*\) residues.*/\1/p' prep.pdb2gmx | tail -1`
+  [ -n "$resid" ] || resid=`sed -n 's/^.* and \([0-9]*\) residues with.*/\1/p' prep.pdb2gmx | tail -1`
+  molcount() { awk -v m="$1" '/\[ *molecules *\]/{f=1;next} f && $1==m {n+=$2} END{print n+0}' topol.top; }
+  waters=`molcount SOL`
+  npos=`molcount "$PNAME"`
+  nneg=`molcount "$NNAME"`
+  chargeOf() { q=`sed -n 's/.*System has non-zero total charge: *\([-0-9.eE+]*\).*/\1/p' "$1" | head -1`; echo "${q:-0}"; }
+  q0=`chargeOf prep.grompp`
+  if "$gmx" grompp -f ions.mdp -c @@RESTART@@ -p topol.top -o after.tpr -maxwarn $maxwarn > prep.after 2>&1 < /dev/null; then
+    q1=`chargeOf prep.after`
+  else
+    q1="?"
+  fi
+  boxv=`sed -n 's/^new box vectors : *\([0-9.]*\) *\([0-9.]*\) *\([0-9.]*\).*/\1 \2 \3/p' prep.editconf | tail -1`
+  boxa=`sed -n 's/^new box angles  : *\([0-9.]*\) *\([0-9.]*\) *\([0-9.]*\).*/\1 \2 \3/p' prep.editconf | tail -1`
+  set -- $boxv; ba=$1; bb=$2; bc=$3
+  set -- $boxa; aa=$1; ab=$2; ag=$3
+  {
+    echo "ECCE-PREPARE system atoms=$atoms residues=$resid waters=$waters pos=$npos neg=$nneg posname=$PNAME negname=$NNAME"
+    echo "ECCE-PREPARE box charge0=$q0 charge1=$q1 box=$BOX a=$ba b=$bb c=$bc alpha=$aa beta=$ab gamma=$ag"
+    echo "ECCE-PREPARE done"
+  } | tee -a @@LOG@@ >> @@OUT@@
 )
 prepStatus=$?
 ( exit $prepStatus )

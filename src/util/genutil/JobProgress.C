@@ -109,6 +109,7 @@ string JobProgress::title(const string& stage)
   if (stage == "opt") return "Optimisation";
   if (stage == "scf") return "SCF";
   if (stage == "freq") return "Frequencies";
+  if (stage == "prepare") return "Prepare";
   // GROMACS names the stage by its integrator.
   if (stage == "steep" || stage == "cg" || stage == "l-bfgs" || stage == "nm")
     return "Minimisation";
@@ -184,6 +185,63 @@ string JobProgress::lastHeardText(double when, double now)
 }
 
 
+// The Prepare script announces gmx tool names; the box says what each makes.
+static string prepareStepName(const string& tool)
+{
+  if (tool == "editconf") return "box";
+  if (tool == "genion") return "ions";
+  return tool;
+}
+
+
+static string prepareBoxName(const string& box)
+{
+  if (box == "dodecahedron") return "rhombic dodecahedron";
+  if (box == "octahedron") return "truncated octahedron";
+  return box;
+}
+
+
+// The Prepare outcome: one line for the system, one for charge and box.
+static vector<string> prepareSummary(const JobProgress::Stage& st, bool completed)
+{
+  vector<string> out;
+  double k = 0, n = 0;
+  bool hasN = false;
+  JobProgress::split(st.field("point"), k, n, hasN);
+  if (st.field("done") != "yes") {
+    string line = completed ? "Prepare stopped" : "Prepare";
+    if (hasN)
+      line += fmt(" at step %.0f", k) + fmt(" of %.0f", n) + " (" +
+              prepareStepName(st.field("tool")) + ")";
+    out.push_back(line);
+    return out;
+  }
+  const string dot = " \xc2\xb7 ";
+  string a = "Prepare complete";
+  if (!st.field("atoms").empty()) a += dot + st.field("atoms") + " atoms";
+  if (!st.field("residues").empty())
+    a += dot + st.field("residues") + " protein residues";
+  if (!st.field("waters").empty()) a += dot + st.field("waters") + " waters";
+  if (!st.field("pos").empty())
+    a += dot + st.field("pos") + " " + st.field("posname") + ", " +
+         st.field("neg") + " " + st.field("negname");
+  out.push_back(a);
+  string b;
+  double c0, c1;
+  if (number(st.field("charge0"), c0) && number(st.field("charge1"), c1))
+    b = fmt("Net charge %.0f", c0) + fmt(" to %.0f", c1);
+  if (!st.field("box").empty()) {
+    b += string(b.empty() ? "" : dot) + prepareBoxName(st.field("box")) + " box " +
+         st.field("a") + " \xc3\x97 " + st.field("b") + " \xc3\x97 " +
+         st.field("c") + " nm, angles " + st.field("alpha") + "/" +
+         st.field("beta") + "/" + st.field("gamma");
+  }
+  if (!b.empty()) out.push_back(b);
+  return out;
+}
+
+
 JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
                                            bool finished) const
 {
@@ -205,6 +263,13 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
       b.fraction = std::min(1.0, std::max(0.0, k / n));
       first = string(st.name == "freq" ? "point" : "step") + fmt(" %.0f", k) +
               fmt(" of %.0f", n);
+      if (st.name == "prepare") {
+        // step k is under way, so the bar counts the finished ones
+        b.fraction = st.field("done") == "yes" ? 1.0 : (k - 1) / n;
+        if (!st.field("tool").empty())
+          first += " \xc2\xb7 " + prepareStepName(st.field("tool"));
+        if (st.field("done") == "yes") first += " \xc2\xb7 done";
+      }
       double eta;
       if (st.field("done") == "yes") {
         double real, imag;
@@ -212,7 +277,8 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
             number(st.field("imaginary"), imag))
           first += fmt(" \xc2\xb7 %.0f real", real) +
                    fmt(", %.0f imaginary", imag);
-      } else if (!finished && number(st.field("eta"), eta) && eta > 0) {
+      } else if (st.name != "prepare" && !finished &&
+                 number(st.field("eta"), eta) && eta > 0) {
         const double left = std::max(0.0, eta - age);
         first += left < 90 ? fmt(" \xc2\xb7 about %.0f s left", left)
                            : fmt(" \xc2\xb7 about %.0f min left", left / 60);
@@ -326,9 +392,14 @@ vector<string> JobProgress::summary(bool completed) const
                     fmt(" of %.0f", n));
     }
   }
+  if (const Stage *prep = stage("prepare")) {
+    vector<string> p = prepareSummary(*prep, completed);
+    out.insert(out.end(), p.begin(), p.end());
+  }
   // Runs counted in steps (GROMACS): where they got to.
   for (const auto& st : p_stages) {
-    if (st.name == "opt" || st.name == "freq" || st.name == "scf") continue;
+    if (st.name == "opt" || st.name == "freq" || st.name == "scf" ||
+        st.name == "prepare") continue;
     double k = 0, n = 0;
     bool hasN = false;
     if (!split(st.field("point"), k, n, hasN)) continue;
@@ -421,6 +492,10 @@ string JobProgress::shortLine() const
   for (const auto& st : p_stages) {       // runs counted in steps (GROMACS)
     double k, n;
     bool hasN;
+    if (st.name == "prepare" && split(st.field("point"), k, n, hasN))
+      return st.field("done") == "yes" ? string("Prepare done")
+                                       : "Prepare" + fmt(" %.0f", k) +
+                                         (hasN ? fmt("/%.0f", n) : string());
     if (st.name != "scf" && split(st.field("point"), k, n, hasN))
       return (title(st.name) == "Molecular dynamics" ? string("MD") : title(st.name)) +
              fmt(" %.0f", k) + (hasN ? fmt("/%.0f", n) : string());

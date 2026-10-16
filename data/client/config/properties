@@ -333,6 +333,21 @@ Energy		Van der Waals Energy			VDWEMDVEC	Energy		PropTSVector<Geometry Step>
 Energy		Electrostatic Energy			ELEMDVEC	Energy		PropTSVector<Geometry Step>
 Energy		Kinetic Energy				KEMDVEC		Energy		PropTSVector<Geometry Step>
 Energy		Simulation Volume			VMDVEC		Volume		PropTSVector<Geometry Step>
+#
+# GROMACS Prepare: the solvated system it built (shown under Run Statistics)
+Process		Number of Atoms				NATOMS		NA		PropValue
+Process		Protein Residues			NRESIDUES	NA		PropValue
+Process		Water Molecules				NWATERS		NA		PropValue
+Process		Positive Ions Added			NIONSPOS	NA		PropValue
+Process		Negative Ions Added			NIONSNEG	NA		PropValue
+Process		Net Charge Before Ions			SYSCHARGE0	NA		PropValue
+Process		Net Charge After Ions			SYSCHARGE	NA		PropValue
+Process		Box Length a				BOXA		Length		PropValue
+Process		Box Length b				BOXB		Length		PropValue
+Process		Box Length c				BOXC		Length		PropValue
+Process		Box Angle alpha				BOXALPHA	Angle		PropValue
+Process		Box Angle beta				BOXBETA		Angle		PropValue
+Process		Box Angle gamma				BOXGAMMA	Angle		PropValue
 
 #
 # POLYRATE properties

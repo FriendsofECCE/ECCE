@@ -86,3 +86,4 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [NanoSVG draws objectBoundingBox radial gradients flat: the Builder bond/geometry icons use per-sphere userSpaceOnUse gradients (#323)](nanosvg-renders-bounding-box-gradients-flat.md)
 - [macOS: Coin's own offscreen context fails, so every thumbnail failed until CoinCglOffscreen (#344)](macos-offscreen-render-needs-our-cgl-context.md)
 - [wx 3.3 binds wxAuiManager's pane-button handler on the frame, wx 3.2 pushes the manager: the fold handler must be on both (#344)](wx33-aui-pin-handler-is-bound-on-the-frame.md)
+- [A PDB's CRYST1 was never read into the lattice: a GROMACS box opened in the Viewer had no cell; LatticeDef(a,b,c,angles) is not the PDB frame (#930)](pdb-reader-took-no-cell-from-cryst1.md)

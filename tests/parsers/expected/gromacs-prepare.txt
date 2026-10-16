@@ -1,0 +1,63 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    gromacs-prepare
+desc:    gromacs.desc
+fixture: gromacs/prepare.gmxlog (305 lines)
+args:    '.' 'Prepare' 'MD' 'AMBER' '0'
+
+[NATOMS][NRESIDUES][NWATERS][NIONSPOS][NIONSNEG][SYSCHARGE0][SYSCHARGE][BOXA][BOXB][BOXC][BOXALPHA][BOXBETA][BOXGAMMA]  Script=gromacs.prepare  Freq=last  Skip=0  Lines=2
+  Begin=^ECCE-PREPARE system
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=302 fed=2 rc=0 first-fed='ECCE-PREPARE system atoms=5913 residues=20 waters=1866 pos=5 neg=6 posname=NA negname=CL'
+    key: BOXA
+      size: 1
+      values: 4.392
+      units: nm
+    key: BOXALPHA
+      size: 1
+      values: 60.00
+      units: Degree
+    key: BOXB
+      size: 1
+      values: 4.392
+      units: nm
+    key: BOXBETA
+      size: 1
+      values: 60.00
+      units: Degree
+    key: BOXC
+      size: 1
+      values: 4.392
+      units: nm
+    key: BOXGAMMA
+      size: 1
+      values: 90.00
+      units: Degree
+    key: NATOMS
+      size: 1
+      values: 5913
+      units: NA
+    key: NIONSNEG
+      size: 1
+      values: 6
+      units: NA
+    key: NIONSPOS
+      size: 1
+      values: 5
+      units: NA
+    key: NRESIDUES
+      size: 1
+      values: 20
+      units: NA
+    key: NWATERS
+      size: 1
+      values: 1866
+      units: NA
+    key: SYSCHARGE
+      size: 1
+      values: 0
+      units: NA
+    key: SYSCHARGE0
+      size: 1
+      values: 1.000000
+      units: NA
+

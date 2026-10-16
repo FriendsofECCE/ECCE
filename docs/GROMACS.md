@@ -283,7 +283,14 @@ What exists so far is the part that runs, the resource type and the editor:
 * `tests/gromacs_md/run_tests.py` runs Trp-cage (PDB 1L2Y) through all of it
   and on into an Optimize task.
 
-Not done: results display for a Prepare, histidine states other than pdb2gmx's own choice, ligands and MINFF as
+* Results (piece 4): the Organizer's Progress box shows a *Prepare* stage
+  (steps pdb2gmx, box, solvate, ions) and, when complete, a summary (atoms,
+  protein residues, waters, ions added, net charge before and after, box);
+  the same numbers are the `Process` properties `NATOMS NRESIDUES NWATERS
+  NIONSPOS NIONSNEG SYSCHARGE0 SYSCHARGE BOXA..BOXGAMMA` (Run Statistics in the
+  Viewer). `gensub` takes them from gmx's own output; `gromacs.desc` reads them.
+
+Not done: a restrain-protein (POSRES) switch in the Equilibrate editor, histidine states other than pdb2gmx's own choice, ligands and MINFF as
 sources, and everything listed below that is not these scripts and the task.
 
 Everything above takes a system as given. A Prepare task would build one
