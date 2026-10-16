@@ -105,10 +105,9 @@ current one, and **Close** closes it; an **Open structures** panel is
 part of the window. **Save As…** can store a calculation in any local
 folder as well as in the data server.
 
-A whole calculation, from the first start to the results, is shown in
-the videos [Your first calculation with ECCE-QM](https://youtu.be/HQarL7NbFjk)
-(3 minutes) and [Your first ORCA calculation with ECCE](https://youtu.be/8NzblPZJl5k)
-(4 minutes).
+Installing ECCE and a whole first calculation, from the first start to
+the results, are shown in the videos on the
+[chem4eva YouTube channel](https://www.youtube.com/@chem4eva).
 
 ## 4. Run on a compute machine
 
