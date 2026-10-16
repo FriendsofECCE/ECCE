@@ -47,6 +47,22 @@ const wxWindowID PBCGUI::ID_CHECKBOX_PBC_SHOWLATTICE = wxNewId();
 const wxWindowID PBCGUI::ID_TEXTCTRL_PBC_A2Z = wxNewId();
 const wxWindowID PBCGUI::ID_CHECKBOX_PBC_LOCK = wxNewId();
 const wxWindowID PBCGUI::ID_BUTTON_PBC_EQUIVRECT = wxNewId();
+const wxWindowID PBCGUI::ID_SPIN_LAYER_N = wxNewId();
+const wxWindowID PBCGUI::ID_TEXT_LAYER_SPACING = wxNewId();
+const wxWindowID PBCGUI::ID_TEXT_LAYER_SHIFTA = wxNewId();
+const wxWindowID PBCGUI::ID_TEXT_LAYER_SHIFTB = wxNewId();
+const wxWindowID PBCGUI::ID_TEXT_LAYER_ION1SYM = wxNewId();
+const wxWindowID PBCGUI::ID_SPIN_LAYER_ION1N = wxNewId();
+const wxWindowID PBCGUI::ID_TEXT_LAYER_ION1Q = wxNewId();
+const wxWindowID PBCGUI::ID_TEXT_LAYER_ION1MIN = wxNewId();
+const wxWindowID PBCGUI::ID_TEXT_LAYER_ION2SYM = wxNewId();
+const wxWindowID PBCGUI::ID_SPIN_LAYER_ION2N = wxNewId();
+const wxWindowID PBCGUI::ID_TEXT_LAYER_ION2Q = wxNewId();
+const wxWindowID PBCGUI::ID_TEXT_LAYER_ION2MIN = wxNewId();
+const wxWindowID PBCGUI::ID_SPIN_LAYER_WATER = wxNewId();
+const wxWindowID PBCGUI::ID_TEXT_LAYER_WATERMIN = wxNewId();
+const wxWindowID PBCGUI::ID_SPIN_LAYER_SEED = wxNewId();
+const wxWindowID PBCGUI::ID_BUTTON_LAYER_BUILD = wxNewId();
 const wxWindowID PBCGUI::ID_CHECKBOX_PBC_CENTER = wxNewId();
 const wxWindowID PBCGUI::ID_TEXTCTRL_PBC_B = wxNewId();
 const wxWindowID PBCGUI::ID_TEXTCTRL_PBC_A2X = wxNewId();
@@ -445,6 +461,80 @@ void PBCGUI::CreateControls()
 
     ewxButton* itemButton67 = new ewxButton( p_latticePanel, ID_BUTTON_PBC_SUPER, _("Super Lattice"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer62->Add(itemButton67, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+
+
+    //  Layer builder (hand-written; not in the .pjd): one layer in, N out.
+    wxStaticBox* layerBox = new wxStaticBox(p_latticePanel, wxID_ANY, _("Layer builder"));
+    wxStaticBoxSizer* layerSizer = new wxStaticBoxSizer(layerBox, wxVERTICAL);
+    itemBoxSizer7->Add(layerSizer, 0, wxGROW|wxTOP, 4);
+    wxFlexGridSizer* lg = new wxFlexGridSizer(0, 4, 2, 4);
+    layerSizer->Add(lg, 0, wxGROW|wxALL, 2);
+    wxWindow* lp = p_latticePanel;
+    ewxStaticText* t;
+    ewxTextCtrl* tc;
+    ewxSpinCtrl* sp;
+    t = new ewxStaticText(lp, wxID_STATIC, _("Layers:"));
+    lg->Add(t, 0, wxALIGN_CENTER_VERTICAL);
+    sp = new ewxSpinCtrl(lp, ID_SPIN_LAYER_N, _("2"), wxDefaultPosition, wxSize(55, -1), wxSP_ARROW_KEYS, 1, 100, 2);
+    sp->SetToolTip(_("Number of layers in the new cell"));
+    lg->Add(sp, 0, wxALIGN_CENTER_VERTICAL);
+    t = new ewxStaticText(lp, wxID_STATIC, _("Spacing (A):"));
+    lg->Add(t, 0, wxALIGN_CENTER_VERTICAL);
+    tc = new ewxTextCtrl(lp, ID_TEXT_LAYER_SPACING, _T(""), wxDefaultPosition, wxSize(55, -1), 0);
+    tc->SetToolTip(_("Distance from one layer to the next, measured along the normal of the a-b plane; the new c is Layers x Spacing"));
+    lg->Add(tc, 0, wxALIGN_CENTER_VERTICAL);
+    t = new ewxStaticText(lp, wxID_STATIC, _("Shift a:"));
+    lg->Add(t, 0, wxALIGN_CENTER_VERTICAL);
+    tc = new ewxTextCtrl(lp, ID_TEXT_LAYER_SHIFTA, _T("0"), wxDefaultPosition, wxSize(55, -1), 0);
+    tc->SetToolTip(_("Lateral shift of each layer relative to the one below, as a fraction of a"));
+    lg->Add(tc, 0, wxALIGN_CENTER_VERTICAL);
+    t = new ewxStaticText(lp, wxID_STATIC, _("Shift b:"));
+    lg->Add(t, 0, wxALIGN_CENTER_VERTICAL);
+    tc = new ewxTextCtrl(lp, ID_TEXT_LAYER_SHIFTB, _T("0"), wxDefaultPosition, wxSize(55, -1), 0);
+    tc->SetToolTip(_("Lateral shift of each layer relative to the one below, as a fraction of b"));
+    lg->Add(tc, 0, wxALIGN_CENTER_VERTICAL);
+
+    layerSizer->Add(new ewxStaticText(lp, wxID_STATIC, _("Between the layers, per gap:")), 0, wxLEFT|wxTOP, 3);
+    wxFlexGridSizer* ig = new wxFlexGridSizer(0, 8, 2, 3);
+    layerSizer->Add(ig, 0, wxGROW|wxALL, 2);
+    const wxWindowID ionIds[2][4] = {
+        {ID_TEXT_LAYER_ION1SYM, ID_SPIN_LAYER_ION1N, ID_TEXT_LAYER_ION1Q, ID_TEXT_LAYER_ION1MIN},
+        {ID_TEXT_LAYER_ION2SYM, ID_SPIN_LAYER_ION2N, ID_TEXT_LAYER_ION2Q, ID_TEXT_LAYER_ION2MIN}};
+    for (int r = 0; r < 2; r++) {
+        ig->Add(new ewxStaticText(lp, wxID_STATIC, _("Ion:")), 0, wxALIGN_CENTER_VERTICAL);
+        tc = new ewxTextCtrl(lp, ionIds[r][0], _T(""), wxDefaultPosition, wxSize(40, -1), 0);
+        tc->SetToolTip(_("Element symbol, e.g. Na"));
+        ig->Add(tc, 0, wxALIGN_CENTER_VERTICAL);
+        ig->Add(new ewxStaticText(lp, wxID_STATIC, _("n:")), 0, wxALIGN_CENTER_VERTICAL);
+        sp = new ewxSpinCtrl(lp, ionIds[r][1], _("0"), wxDefaultPosition, wxSize(55, -1), wxSP_ARROW_KEYS, 0, 10000, 0);
+        sp->SetToolTip(_("Ions of this element in each gap"));
+        ig->Add(sp, 0, wxALIGN_CENTER_VERTICAL);
+        ig->Add(new ewxStaticText(lp, wxID_STATIC, _("q:")), 0, wxALIGN_CENTER_VERTICAL);
+        tc = new ewxTextCtrl(lp, ionIds[r][2], _T("1"), wxDefaultPosition, wxSize(35, -1), 0);
+        tc->SetToolTip(_("Charge of the ion, stored as the atom charge"));
+        ig->Add(tc, 0, wxALIGN_CENTER_VERTICAL);
+        ig->Add(new ewxStaticText(lp, wxID_STATIC, _("min A:")), 0, wxALIGN_CENTER_VERTICAL);
+        tc = new ewxTextCtrl(lp, ionIds[r][3], _T("3.5"), wxDefaultPosition, wxSize(40, -1), 0);
+        tc->SetToolTip(_("Smallest distance to any atom already there"));
+        ig->Add(tc, 0, wxALIGN_CENTER_VERTICAL);
+    }
+    wxFlexGridSizer* wg = new wxFlexGridSizer(0, 6, 2, 3);
+    layerSizer->Add(wg, 0, wxGROW|wxALL, 2);
+    wg->Add(new ewxStaticText(lp, wxID_STATIC, _("Water:")), 0, wxALIGN_CENTER_VERTICAL);
+    sp = new ewxSpinCtrl(lp, ID_SPIN_LAYER_WATER, _("0"), wxDefaultPosition, wxSize(55, -1), wxSP_ARROW_KEYS, 0, 100000, 0);
+    sp->SetToolTip(_("Water molecules in each gap"));
+    wg->Add(sp, 0, wxALIGN_CENTER_VERTICAL);
+    wg->Add(new ewxStaticText(lp, wxID_STATIC, _("min A:")), 0, wxALIGN_CENTER_VERTICAL);
+    tc = new ewxTextCtrl(lp, ID_TEXT_LAYER_WATERMIN, _T("2.0"), wxDefaultPosition, wxSize(40, -1), 0);
+    tc->SetToolTip(_("Smallest distance from a water oxygen to any atom already there"));
+    wg->Add(tc, 0, wxALIGN_CENTER_VERTICAL);
+    wg->Add(new ewxStaticText(lp, wxID_STATIC, _("Seed:")), 0, wxALIGN_CENTER_VERTICAL);
+    sp = new ewxSpinCtrl(lp, ID_SPIN_LAYER_SEED, _("1"), wxDefaultPosition, wxSize(55, -1), wxSP_ARROW_KEYS, 0, 1000000, 1);
+    sp->SetToolTip(_("The same seed gives the same placement of ions and water"));
+    wg->Add(sp, 0, wxALIGN_CENTER_VERTICAL);
+    ewxButton* layerBtn = new ewxButton(lp, ID_BUTTON_LAYER_BUILD, _("Build Layers"));
+    layerBtn->SetToolTip(_("Stack the current structure and cell as one layer"));
+    layerSizer->Add(layerBtn, 0, wxALIGN_LEFT|wxALL, 3);
 
 ////@end PBCGUI content construction
 }

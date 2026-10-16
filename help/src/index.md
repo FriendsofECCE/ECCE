@@ -73,6 +73,9 @@ describe what you did and what happened.
 13. [Preparing a protein for GROMACS](gromacs-prepare.md): from a PDB file
    to a solvated, neutral system ready for minimisation, with the GROMACS MD
    Prepare task.
+14. [Stacking layers: the Layer builder](layer-builder.md): build graphite,
+   layered oxides or a clay from one layer, with a spacing, a sideways shift,
+   and ions and water between the layers.
 
 Reference:
 

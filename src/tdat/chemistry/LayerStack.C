@@ -12,8 +12,9 @@ namespace {
 const double kPi = 3.14159265358979323846;
 // Gas-phase water; the molecule's internal geometry is not an option.
 const double kOH = 0.9572, kHOH = 104.52;
-// The H of a placed water may not sit on top of another atom.
-const double kHMin = 1.0;
+// An H of a placed water stays this far from every other atom, outside the
+// covalent-bond cutoff, so that no bond to a layer atom is perceived.
+const double kHMin = 1.5;
 
 typedef double V3[3];
 

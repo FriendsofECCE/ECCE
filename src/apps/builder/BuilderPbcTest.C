@@ -73,6 +73,7 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     else if (b == "super") id = PBCGUI::ID_BUTTON_PBC_SUPER;
     else if (b == "fold") id = PBCGUI::ID_BUTTON_PBC_FOLD;
     else if (b == "delete") id = PBCGUI::ID_BUTTON_PBC_DELETE;
+    else if (b == "layers") id = PBCGUI::ID_BUTTON_LAYER_BUILD;
     else return s.fail("pbcpress: unknown button " + b);
     if (b == "replicate" && w.size() >= 3) {
       int n = atoi(w[2].c_str());
@@ -92,6 +93,45 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     btn->ProcessWindowEvent(ev);
     settle(200);
     return true;
+  }
+
+  //  "undo" / "redo": Edit > Undo / Redo.
+  if ((c == "undo" || c == "redo") && w.size() == 1) {
+    wxCommandEvent ev(wxEVT_MENU, c == "undo" ? wxID_UNDO : wxID_REDO);
+    if (c == "undo") OnUndoClick(ev); else OnRedoClick(ev);
+    settle(300);
+    return true;
+  }
+
+  //  "pblayer <field> <value>": set a Layer builder field (layers spacing
+  //  shifta shiftb ion1 ion1n ion1q ion1min ion2 ... water watermin seed).
+  if (c == "pblayer" && w.size() == 3) {
+    if (!pbc) return s.fail("pblayer: no Periodic Builder panel");
+    static const struct { const char* n; wxWindowID id; bool spin; } f[] = {
+      {"layers", PBCGUI::ID_SPIN_LAYER_N, true},
+      {"spacing", PBCGUI::ID_TEXT_LAYER_SPACING, false},
+      {"shifta", PBCGUI::ID_TEXT_LAYER_SHIFTA, false},
+      {"shiftb", PBCGUI::ID_TEXT_LAYER_SHIFTB, false},
+      {"ion1", PBCGUI::ID_TEXT_LAYER_ION1SYM, false},
+      {"ion1n", PBCGUI::ID_SPIN_LAYER_ION1N, true},
+      {"ion1q", PBCGUI::ID_TEXT_LAYER_ION1Q, false},
+      {"ion1min", PBCGUI::ID_TEXT_LAYER_ION1MIN, false},
+      {"ion2", PBCGUI::ID_TEXT_LAYER_ION2SYM, false},
+      {"ion2n", PBCGUI::ID_SPIN_LAYER_ION2N, true},
+      {"ion2q", PBCGUI::ID_TEXT_LAYER_ION2Q, false},
+      {"ion2min", PBCGUI::ID_TEXT_LAYER_ION2MIN, false},
+      {"water", PBCGUI::ID_SPIN_LAYER_WATER, true},
+      {"watermin", PBCGUI::ID_TEXT_LAYER_WATERMIN, false},
+      {"seed", PBCGUI::ID_SPIN_LAYER_SEED, true}};
+    for (const auto& e : f) {
+      if (w[1] != e.n) continue;
+      wxWindow *win = pbc->FindWindow(e.id);
+      if (!win) return s.fail("pblayer: no field " + w[1]);
+      if (e.spin) dynamic_cast<wxSpinCtrl*>(win)->SetValue(atoi(w[2].c_str()));
+      else dynamic_cast<wxTextCtrl*>(win)->SetValue(wxString(w[2]));
+      return true;
+    }
+    return s.fail("pblayer: unknown field " + w[1]);
   }
 
   //  "setcontext <url>": switch this Builder to another calculation.
