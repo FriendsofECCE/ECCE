@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 {
   string target;
   vector<string> mos;
-  bool beta = false, tsv = false, perFo = false, occOnly = false, diagram = false;
+  bool showAll = false, beta = false, tsv = false, perFo = false, occOnly = false, diagram = false;
   int mult = 1;
   FragmentOrbitals::LigandSet ligands = FragmentOrbitals::LIGAND_SHELL;
   vector<string> gfo;
@@ -71,6 +71,7 @@ int main(int argc, char **argv)
     else if (a == "--tsv") tsv = true;
     else if (a == "--perfo") perFo = true;
     else if (a == "--diagram") diagram = true;
+    else if (a == "--all") showAll = true;
     else if (a == "--gfo-occ") occOnly = true;
     else if (a == "--mult" && i+1 < argc) mult = atoi(argv[++i]);
     else if (a == "--gfo" && i+1 < argc) gfo.push_back(argv[++i]);
@@ -233,6 +234,7 @@ int main(int argc, char **argv)
     MoColumn centre;
     MoDiagram::groupByIrrep(e, o, vector<string>(), map<string,int>(), 5.0e-4,
                             centre.levels);
+    const vector<MoLevel> wholeSpectrum = centre.levels;
     MoDiagram::hideBelow(centre, MoDiagram::suggestCoreCutoff(centre.levels));
     MoDiagram::hideAbove(centre, MoDiagram::suggestVirtualCutoff(centre.levels));
     int room = 0;
@@ -252,13 +254,19 @@ int main(int argc, char **argv)
 
     FoDiagram::Result res;
     if (!FoDiagram::build(symbols, coords, frag->charge(), pb, S, rows, e,
-                          centre, res, why)) {
+                          centre, res, why, showAll, &wholeSpectrum)) {
       cerr << "fragorb: " << why << endl;
       return 1;
     }
     printf("%s\n", res.note.c_str());
-    printf("scale %.4f %.5f capture %.4f %.4f\n", res.slope, res.intercept,
-           res.captureMin, res.captureMax);
+    printf("group %s capture %.4f %.4f\n", res.group.c_str(), res.captureMin,
+           res.captureMax);
+    for (size_t i = 0; i < res.sets.size(); i++) {
+      const FoDiagram::SetInfo& si = res.sets[i];
+      printf("set %zu %s \"%s\" irrep=%s fock=%.5f eht=%.5f capture=%.3f deg=%d col=%d\n",
+             i, si.metal ? "metal" : "ligand", si.label.c_str(), si.irrep.c_str(),
+             si.eFock, si.eEht, si.capture, si.degeneracy, si.column);
+    }
     const MoColumn* cols[3] = { &res.left, &centre, &res.right };
     const char* names[3] = { "metal", "mo", "ligand" };
     for (int c = 0; c < 3; c++)
@@ -267,12 +275,30 @@ int main(int argc, char **argv)
         printf("%s %zu E=%.4f deg=%d occ=%.0f label=\"%s\" ann=\"%s\"", names[c], i,
                l.energy, l.degeneracy, l.occupancy, l.label.c_str(),
                l.annotation.c_str());
-        if (c == 1) printf(" mo=%d", l.orbitals.empty() ? 0 : l.orbitals[0] + 1);
+        if (c == 1) {
+          const FoDiagram::MoInfo& mi = res.mo[i];
+          printf(" mo=%d irrep=%s char=%d pair=%d", l.orbitals.empty() ? 0 : l.orbitals[0] + 1,
+                 mi.irrep.c_str(), (int)l.character, l.pairing);
+          printf(" top=");
+          for (size_t q = 0; q < mi.top.size() && q < 4; q++)
+            printf("%s%d:%.3f", q ? "," : "", mi.top[q].first, mi.top[q].second);
+        }
         printf("\n");
       }
     for (size_t i = 0; i < res.links.size(); i++)
       printf("link mo=%d left=%d right=%d weight=%.3f\n", res.links[i].centreLevel,
              res.links[i].leftLevel, res.links[i].rightLevel, res.links[i].weight);
+    for (size_t i = 0; i < res.pairInfo.size(); i++)
+      printf("pair %zu irrep=%s bonding=%d antibonding=%d metal=%d ligand=%d\n", i,
+             res.pairInfo[i].irrep.c_str(), res.pairInfo[i].bonding,
+             res.pairInfo[i].antibonding, res.pairInfo[i].metalSet,
+             res.pairInfo[i].ligandSet);
+    for (size_t i = 0; i < res.pairs.size(); i++)
+      printf("pairs %s bonding=%d antibonding=%d nonbonding=%d ok=%d\n",
+             res.pairs[i].irrep.c_str(), res.pairs[i].bonding,
+             res.pairs[i].antibonding, res.pairs[i].nonbonding, res.pairs[i].ok ? 1 : 0);
+    for (size_t i = 0; i < res.pairMessages.size(); i++)
+      printf("mismatch %s\n", res.pairMessages[i].c_str());
     return 0;
   }
   FragmentOrbitals::FoSet set;

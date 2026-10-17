@@ -200,7 +200,10 @@ class FragmentOrbitals
                         const vector<EspBasisFunction>& parentBasis,
                         const vector<double>& parentOverlap,
                         const vector< vector<double> >& moRows,
-                        vector<MoShares>& out, string& why);
+                        vector<MoShares>& out, string& why,
+                        vector< vector<double> >* amplitudes = 0);
+    //  `amplitudes`, if given, gets one row per MO with the signed
+    //  <FO~_k|psi> the weights are the squares of.
 
     /**
      * The same projection for fragment orbitals that are already

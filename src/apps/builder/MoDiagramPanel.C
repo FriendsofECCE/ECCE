@@ -79,7 +79,7 @@ IMPLEMENT_DYNAMIC_CLASS(MoDiagramPanel, VizPropertyPanel)
 
 
 MoDiagramPanel::MoDiagramPanel()
-  : p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0),
+  : p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0),
     p_fragmentation(MoFragments::NOT_BUILT),
     p_building(false), p_rebuildPending(false)
 {
@@ -89,7 +89,7 @@ MoDiagramPanel::MoDiagramPanel()
 MoDiagramPanel::MoDiagramPanel(IPropCalculation *calculation,
       wxWindow *parent, wxWindowID id, const wxPoint& pos,
       const wxSize& size, long style, const wxString& name)
-  : p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0),
+  : p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0),
     p_fragmentation(MoFragments::NOT_BUILT),
     p_building(false), p_rebuildPending(false)
 {
@@ -410,6 +410,16 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   p_showEnergies->SetToolTip("Write each level's energy beside its label");
   row->Add(p_showEnergies, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 
+  //  The fragment-orbital diagram draws only what interacts with the
+  //  metal; this puts back the ligand-internal and low-metal-share levels.
+  p_showAll = new ewxCheckBox(this, wxID_ANY, _("Show all levels"));
+  p_showAll->SetValue(getenv("ECCE_MODIAGRAM_SHOWALL") != 0);
+  p_showAll->SetToolTip("Fragment-orbital diagram: also draw the "
+                        "ligand-internal levels and the levels with little "
+                        "metal character, and their lines");
+  p_showAll->Enable(false);
+  row->Add(p_showAll, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+
   sizer->Add(row, 0, wxEXPAND);
 
   //  Bound on the controls themselves.  A static table does not reach
@@ -424,6 +434,7 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   p_fragments->Bind(wxEVT_CHECKLISTBOX, &MoDiagramPanel::onFragmentChanged,
                     this);
   p_showEnergies->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onShowEnergies, this);
+  p_showAll->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onFragmentChanged, this);
 
   p_fragments->Enable(false);
 }
@@ -2476,7 +2487,9 @@ void MoDiagramPanel::buildOnce()
       FoDiagram::Result fo;
       string foWhy;
       if (FoDiagram::build(storedSymbols, storedCoords, charge, moBasisFns,
-                           moSflat, moCoefficients, e, centre, fo, foWhy)) {
+                           moSflat, moCoefficients, e, centre, fo, foWhy,
+                           p_showAll != 0 && p_showAll->IsChecked(),
+                           &wholeSpectrum)) {
         left = fo.left;
         right = fo.right;
         links = fo.links;
@@ -2920,7 +2933,19 @@ void MoDiagramPanel::buildOnce()
     }
   }
 
+  if (p_showAll != 0) p_showAll->Enable(foDrawn);
   if (foDrawn) {
+    //  The fragment-orbital diagram labels the levels itself.
+    string sofar = note.str();
+    const string unlabelled =
+        "This calculation reports no orbital symmetry labels, so the "
+        "molecular levels are unlabelled and are correlated by what "
+        "they are built from rather than by symmetry.";
+    if (sofar.compare(0, unlabelled.size(), unlabelled) == 0) {
+      note.str("");
+      note << "Energies in Hartree." << sofar.substr(unlabelled.size());
+      note.seekp(0, std::ios::end);
+    }
     note << "  Molecular levels are the calculation's own orbital energies "
             "in Hartree.  " << foNote;
   }

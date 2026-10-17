@@ -1,19 +1,26 @@
 /**
  * @file
  *
- * The fragment-orbital correlation diagram (#301, route B stage 2): the
- * metal's valence AOs on the left, the ligand shell's extended Hueckel
- * orbitals on the right, the parent calculation's MOs in the middle at
- * their own energies, and a line from each MO to every fragment orbital
- * (FO) that makes up at least LINK_MIN of it.
+ * The fragment-orbital correlation diagram (#301, route B): the metal's
+ * valence AOs on the left, the ligand shell's extended Hueckel orbitals
+ * on the right, the parent calculation's MOs in the middle at their own
+ * energies, and a line from each MO to the fragment orbitals (FOs) that
+ * make it up.
  *
- * WHY A FIT.  An MO's energy is the calculation's; an FO's is extended
- * Hueckel, a different scale.  Placing each FO at the mean energy of
- * the MOs it became would put the 3d and the ligand orbitals wherever
- * the mixing pushed them, which is the opposite of what the picture is
- * for.  So all FOs share ONE linear map (least squares of the MO-mean
- * energy against the EHT energy), which keeps the metal and ligand
- * levels in their EHT order and spacing relative to each other.
+ * WHERE A FRAGMENT LEVEL SITS.  At the diagonal element of the parent's
+ * Fock operator in the Loewdin-orthogonalised FO basis,
+ * e_k = <FO~_k|F|FO~_k>, with F = S C eps C^T S known on the span of the
+ * reported MOs.  For any orthonormal basis the eigenvalues of a block
+ * bracket the diagonal elements it mixes, so a bonding MO lies below
+ * and an antibonding one above the FO levels it came from.  A fitted
+ * scale of the extended Hueckel energies cannot promise that.
+ * <FO~_k|F|FO~_k> = sum_m eps_m |<FO~_k|psi_m>|^2 (psi_m the MOs), the
+ * same F that MoLigandField::buildFock() writes out, without forming it.
+ *
+ * SYMMETRY.  Levels are labelled in the point group of the coordination
+ * skeleton (the metal and its donor atoms), because ligands with their
+ * own atoms (NH3) break the molecule's group but not the skeleton's.
+ * A metal d set therefore splits into its eg and t2g parts.
  *
  * No wx.  MoDiagramPanel only gathers the inputs and draws the result.
  */
@@ -22,6 +29,7 @@
 #define FODIAGRAM_HH
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "tdat/EspField.H"
@@ -35,17 +43,86 @@ class FoDiagram
 {
   public:
 
-    /** The smallest FO share that gets a line. */
+    /** The smallest share that gets a line. */
     static constexpr double LINK_MIN = 0.10;
+    /** The smallest metal share an MO needs to belong to a pair. */
+    static constexpr double PAIR_FLOOR = 0.05;
+    /** A fragment orbital described to less than this is marked. */
+    static constexpr double CAPTURE_OK = 0.90;
+
+    /** One fragment level: a set of FOs of one irrep. */
+    struct SetInfo
+    {
+      string label, irrep;
+      bool   metal;
+      double eFock;        // Hartree, <FO~|F|FO~> averaged over the set
+      double eEht;         // Hartree, extended Hueckel (qualitative)
+      double capture;      // mean norm of the FOs' projection on the MOs
+      int    degeneracy;
+      int    column;       // index in left/right, -1 if not drawn
+      SetInfo() : metal(false), eFock(0), eEht(0), capture(0),
+                  degeneracy(0), column(-1) {}
+    };
+
+    /** What the diagram knows of one drawn MO level. */
+    struct MoInfo
+    {
+      string irrep;                          // skeleton irrep, or ""
+      int    metalSet, ligandSet;            // indices into sets, or -1
+      vector< std::pair<int,double> > top;   // (set, share), largest first
+      MoInfo() : metalSet(-1), ligandSet(-1) {}
+    };
+
+    /** A bonding/antibonding pair and the two sets it comes from. */
+    struct PairInfo
+    {
+      int bonding, antibonding;     // indices into the drawn centre levels, -1 if undrawn
+      int metalSet, ligandSet;      // indices into sets
+      string irrep;
+      PairInfo() : bonding(-1), antibonding(-1), metalSet(-1), ligandSet(-1) {}
+    };
+
+    /** One level in the pair count. */
+    struct PairLevel
+    {
+      string irrep;
+      int    degeneracy;
+      MoLevel::Character character;
+      int    shown;        // 1 drawn, 0 not drawn: cut-off, -1 not drawn: filtered
+      PairLevel() : degeneracy(1), character(MoLevel::UNKNOWN), shown(1) {}
+    };
+
+    struct PairCount
+    {
+      string irrep;
+      int bonding, antibonding, nonbonding;   // drawn MOs, by degeneracy
+      int hiddenByCutoff, hiddenByFilter;     // undrawn bonding/antibonding
+      bool ok;
+      string message;                         // empty when ok
+      PairCount() : bonding(0), antibonding(0), nonbonding(0),
+                    hiddenByCutoff(0), hiddenByFilter(0), ok(true) {}
+    };
+
+    /**
+     * Orbitals are conserved: per irrep, drawn bonding MOs equal drawn
+     * antibonding MOs.  A mismatch is a message, not an error; MOs
+     * left undrawn count as missing partners and the message says why.
+     */
+    static vector<PairCount> countPairs(const vector<PairLevel>& levels);
 
     struct Result
     {
-      MoColumn left, right;                 // metal AOs, ligand FOs
-      vector<MoConnection> links;           // weight = the FO's share
+      MoColumn left, right;                 // metal sets, ligand sets
+      vector<MoConnection> links;           // weight = the set's share
       string note;                          // validity readout
-      double slope, intercept;              // E_axis = slope*E_EHT + intercept
+      vector<SetInfo> sets;                 // every fragment set
+      vector<MoInfo> mo;                    // one per drawn centre level
+      vector<PairInfo> pairInfo;            // every pair found
+      vector<PairCount> pairs;              // per skeleton irrep
+      vector<string> pairMessages;          // the mismatches, one line each
+      string group;                         // skeleton point group, or ""
       double captureMin, captureMax;        // over the drawn MOs
-      Result() : slope(0), intercept(0), captureMin(0), captureMax(0) {}
+      Result() : captureMin(0), captureMax(0) {}
     };
 
     /**
@@ -59,11 +136,19 @@ class FoDiagram
     /**
      * @param symbols, coordsAng  the parent's atoms in the frame its
      *                            basis functions and MO rows are in
-     * @param parentBasis, S, moRows  as FragmentOrbitals::compose()
+     * @param parentBasis, S, moRows  as FragmentOrbitals::compose();
+     *                            ALL the MO rows (the Fock operator is
+     *                            known on their span)
      * @param moEnergies          one per MO row, Hartree
-     * @param centre              the drawn molecular levels.  Each
-     *                            gets shareLeft/shareRight and the
-     *                            detail text for its tooltip.
+     * @param centre              the drawn molecular levels (after the
+     *                            panel's cut-offs).  Replaced by the
+     *                            levels this diagram draws.
+     * @param showAll             draw the ligand-internal and
+     *                            low-metal-share levels as well
+     * @param whole               every level before the cut-offs, so
+     *                            the antibonding partner of a drawn
+     *                            bonding level is found and drawn even
+     *                            past the cut-off; null = `centre`
      */
     static bool build(const vector<string>& symbols,
                       const vector<double>& coordsAng, int charge,
@@ -71,7 +156,9 @@ class FoDiagram
                       const vector<double>& S,
                       const vector< vector<double> >& moRows,
                       const vector<double>& moEnergies,
-                      MoColumn& centre, Result& out, string& why);
+                      MoColumn& centre, Result& out, string& why,
+                      bool showAll = false,
+                      const vector<MoLevel>* whole = 0);
 };
 
 #endif

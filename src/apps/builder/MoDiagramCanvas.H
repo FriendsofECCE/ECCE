@@ -502,6 +502,19 @@ class MoDiagramCanvas : public wxPanel
       } else if (under > 0) {
         for (size_t g = 0; g < groupY.size(); g++) groupY[g] += under;
       }
+
+      //  More levels than the plot has room for (every level of a complex
+      //  shown at once): squeezed into the plot, in order, rather than
+      //  running off an end.
+      const int top = plot.y + 6, room = plot.height - 12;
+      if (groupY[byHeight[byHeight.size() - 1].second] -
+          groupY[byHeight[0].second] > room) {
+        const int y0 = groupY[byHeight[0].second];
+        const double span = groupY[byHeight[byHeight.size() - 1].second] - y0;
+        for (size_t g = 0; g < groupY.size(); g++) {
+          groupY[g] = top + (int)((groupY[g] - y0)*room/span);
+        }
+      }
     }
 
     /** The row a single level sits on, for a line to end at. */
@@ -1363,13 +1376,9 @@ class MoDiagramCanvas : public wxPanel
           else tint = wxColour((tint.Red()   + 2*255)/3,
                                (tint.Green() + 2*255)/3,
                                (tint.Blue()  + 2*255)/3);
-          //  A weighted line (the fragment-orbital construction) is
-          //  solid and thicker the larger the share it stands for.
-          if (link.weight >= 0.0) {
-            dc.SetPen(wxPen(tint, 1 + (int)floor(5.0*link.weight)));
-          } else {
-            dc.SetPen(wxPen(tint, 1, wxPENSTYLE_SHORT_DASH));
-          }
+          //  One width for every construction: a thicker line reads as a
+          //  rendering artifact, and the share is in the level's text.
+          dc.SetPen(wxPen(tint, 1, wxPENSTYLE_SHORT_DASH));
 
           //  WHERE THE LEVEL IS DRAWN, not where its energy puts it.
           //

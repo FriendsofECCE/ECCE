@@ -238,7 +238,8 @@ bool generalised(const Mat& H, const Mat& S, vector<double>& E, Mat& C)
 //  w_k = |<FO~_k|psi>|^2 for psi = c normalised in the parent basis;
 //  X = Sff^-1/2, F[k][mu] = <FO_k|chi_mu>.  False if c has no norm.
 bool loewdinWeights(const Mat& F, const Mat& X, const vector<double>& S,
-                    const vector<double>& c, vector<double>& w, double& norm)
+                    const vector<double>& c, vector<double>& w, double& norm,
+                    vector<double>* amplitude = 0)
 {
    const size_t nP = c.size(), nk = F.size();
    norm = 0.0;
@@ -256,10 +257,12 @@ bool loewdinWeights(const Mat& F, const Mat& X, const vector<double>& S,
       b[k] = s*inv;
    }
    w.assign(nk, 0.0);
+   if (amplitude) amplitude->assign(nk, 0.0);
    for (size_t k = 0; k < nk; k++) {
       double t = 0.0;
       for (size_t l = 0; l < nk; l++) t += X[k][l]*b[l];
       w[k] = t*t;
+      if (amplitude) (*amplitude)[k] = t;
    }
    return true;
 }
@@ -447,7 +450,7 @@ bool FragmentOrbitals::build(const vector<string>& symbols,
    why.clear();
    if (!s_loaded) loadParameters();
    if (s_params.empty()) {
-      why = "The extended Hueckel parameter file could not be read.";
+      why = "The extended Hückel parameter file could not be read.";
       return false;
    }
    if (coordsAng.size() != 3*symbols.size()) {
@@ -456,7 +459,7 @@ bool FragmentOrbitals::build(const vector<string>& symbols,
    }
    string missing;
    if (!canSolve(symbols, missing)) {
-      why = "No extended Hueckel parameters for " + missing + ".";
+      why = "No extended Hückel parameters for " + missing + ".";
       return false;
    }
 
@@ -700,9 +703,11 @@ bool FragmentOrbitals::compose(const FoSet& set,
                                const vector<EspBasisFunction>& parent,
                                const vector<double>& S,
                                const vector< vector<double> >& rows,
-                               vector<MoShares>& out, string& why)
+                               vector<MoShares>& out, string& why,
+                               vector< vector<double> >* amplitudes)
 {
    out.clear();
+   if (amplitudes) amplitudes->clear();
    why.clear();
    const size_t nP = parent.size(), nf = set.funcs.size(), nk = set.fos.size();
    if (nP == 0 || nk == 0 || S.size() != nP*nP) {
@@ -757,10 +762,13 @@ bool FragmentOrbitals::compose(const FoSet& set,
    for (size_t r = 0; r < rows.size(); r++) {
       const vector<double>& c = rows[r];
       MoShares ms;
-      if (!loewdinWeights(F, X, S, c, ms.perFo, ms.norm)) {
+      vector<double> amp;
+      if (!loewdinWeights(F, X, S, c, ms.perFo, ms.norm,
+                          amplitudes ? &amp : 0)) {
          why = "An MO has no norm in the parent basis.";
          return false;
       }
+      if (amplitudes) amplitudes->push_back(amp);
       for (size_t k = 0; k < nk; k++) {
          ms.capture += ms.perFo[k];
          const Fragment& fr = set.fragments[set.fos[k].fragment];

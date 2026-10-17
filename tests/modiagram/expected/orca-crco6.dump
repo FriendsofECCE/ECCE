@@ -2,18 +2,19 @@ group: Oh
 formula: CrC6O6
 construction: Fragment orbitals (extended Hückel)
 headline: 
-note: Energies in Hartree.  Molecular levels are the calculation's own orbital energies in Hartree.  Fragment levels: extended Hueckel, placed by a fitted scale; qualitative.  The fragment orbitals describe the drawn molecular orbitals to 80% - 98% (capture).  Scale: E = 0.71 E(EHT) -0.151 Hartree, fit r = 0.66.  A line is drawn where a fragment orbital makes up at least 10% of an orbital; thicker is more.  14 ligand-internal levels (at least 80% on the ligands, no line to a metal orbital) not drawn.  1 fragment level the scale puts far outside the drawn orbitals not drawn.  6 levels the valence fragment orbitals do not describe (capture below 50%) not drawn.  Symmetry labels computed from the orbitals in Oh (cross-checked against the code's own D2H labels, which agreed on all 199 orbitals both sides could label, and every computed label subduces to match).
+note: Energies in Hartree.  Molecular levels are the calculation's own orbital energies in Hartree.  Fragment levels: extended Hückel orbitals placed at the diagonal of the calculation's Fock operator in the orthogonalised fragment-orbital basis; qualitative.  That operator is known only on the span of the reported MOs, so the levels depend on which were reported; each is captured to 75% - 98% (drawn MOs), 6 fragment levels below 90% are marked.  A line is drawn where a fragment orbital makes up at least 10% of an orbital, and from both members of a bonding/antibonding pair to both of their parents.  Symmetry labels are of the coordination skeleton's group, Oh (the ligands' own atoms may lower the molecule's).  14 ligand-internal or low-metal-share levels not drawn (tick Show all levels).  65 levels the valence fragment orbitals do not describe (capture below 50%) not drawn.  Symmetry labels computed from the orbitals in Oh (cross-checked against the code's own D2H labels, which agreed on all 199 orbitals both sides could label, and every computed label subduces to match).
 column left
-  title: Metal AOs (extended Hueckel)
+  title: Metal AOs (extended Hückel)
   fromHalves: 0
   hiddenCount: 0
   hiddenMaxEnergy: 0.000000
   hiddenSemicoreCount: 0
   hiddenAboveCount: 0
   shellKeys:
-  levels: 2
-  level 0 energy=-0.445457 tabulated=-11.220000 irrep=- label=Cr 3d character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=5 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="H_ii -11.22 eV"
-  level 1 energy=-0.378257 tabulated=-8.660000 irrep=- label=Cr 4s character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="H_ii -8.66 eV"
+  levels: 3
+  level 0 energy=-0.245659 tabulated=-11.220000 irrep=T2g label=Cr 3d character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="T2g" detail="Fock diagonal -0.2457 Hartree, captured 98% of the orbital by the calculation's MOs.\nEHT H_ii (qualitative): -11.22 eV"
+  level 1 energy=0.004953 tabulated=-11.220000 irrep=Eg label=Cr 3d character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="Eg  capture 73%" detail="Fock diagonal 0.0050 Hartree, captured 73% of the orbital by the calculation's MOs.\nEHT H_ii (qualitative): -11.22 eV"
+  level 2 energy=0.012176 tabulated=-8.660000 irrep=A1g label=Cr 4s character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="A1g  capture 60%" detail="Fock diagonal 0.0122 Hartree, captured 60% of the orbital by the calculation's MOs.\nEHT H_ii (qualitative): -8.66 eV"
 column centre
   title: Molecular orbitals
   fromHalves: 0
@@ -22,31 +23,39 @@ column centre
   hiddenSemicoreCount: 0
   hiddenAboveCount: 46
   shellKeys:
-  levels: 5
-  level 0 energy=-0.847900 tabulated=0.000000 irrep=A1G label=7A1g character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.1529 shareRight=0.7691 orbitals=[27] annotation="-0.8479" detail="Fragment orbitals (extended Hueckel): ligand, metal 15%, ligands 77%, captured 92% of the MO.\nLargest: ligands FO7 (occ) 69% [C 2s 54%, C 2p 26%]; Cr 4s 15%; ligands FO25 (occ) 6% [O 2p 75%, C 2p 23%]"
-  level 1 energy=-0.612860 tabulated=0.000000 irrep=EG label=4Eg character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.2011 shareRight=0.7714 orbitals=[46,47] annotation="-0.6129" detail="Fragment orbitals (extended Hueckel): mixed, metal 20%, ligands 77%, captured 97% of the MO (mean over its orbitals).\nLargest: ligands FO29-30 (occ) 71% [C 2p 45%, O 2p 34%]; Cr 3d 20%; ligands FO11-12 (occ) 4% [O 2p 55%, C 2s 37%]"
-  level 2 energy=-0.354060 tabulated=0.000000 irrep=T2G label=2T2g character=UNKNOWN pairing=-1 occupancy=6.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.7160 shareRight=0.2659 orbitals=[51,52,53] annotation="-0.3541" detail="Fragment orbitals (extended Hueckel): metal-centred, metal 72%, ligands 27%, captured 98% of the MO (mean over its orbitals).\nLargest: Cr 3d 72%; ligands FO31-33 (virt) 23% [C 2p 74%, O 2p 26%]; ligands FO13-15 (occ) 4% [O 2p 74%, C 2p 26%]"
-  level 3 energy=0.146300 tabulated=0.000000 irrep=T2G label=3T2g character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.2334 shareRight=0.6496 orbitals=[61,62,63] annotation="0.1463" detail="Fragment orbitals (extended Hueckel): mixed, metal 23%, ligands 65%, captured 88% of the MO (mean over its orbitals).\nLargest: ligands FO31-33 (virt) 65% [C 2p 74%, O 2p 26%]; Cr 3d 23%"
-  level 4 energy=0.284450 tabulated=0.000000 irrep=EG label=5Eg character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.5070 shareRight=0.2937 orbitals=[67,68] annotation="0.2844" detail="Fragment orbitals (extended Hueckel): metal-centred, metal 51%, ligands 29%, captured 80% of the MO (mean over its orbitals).\nLargest: Cr 3d 51%; ligands FO47-48 (virt) 17% [C 2p 44%, C 2s 24%]; ligands FO29-30 (occ) 8% [C 2p 45%, O 2p 34%]; ligands FO11-12 (occ) 3% [O 2p 55%, C 2s 37%]"
+  levels: 6
+  level 0 energy=-0.847900 tabulated=0.000000 irrep=A1g label=7A1g character=BONDING pairing=2 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.1529 shareRight=0.7691 orbitals=[27] annotation="-0.8479" detail="Fragment orbitals (extended Hückel): ligand, bonding, metal 15%, ligands 77%, captured 92% of the MO.  Irrep A1g of the skeleton's group Oh.\nLargest: FO7 A1g 69%; Cr 4s A1g 15%; FO25 A1g 6%"
+  level 1 energy=-0.612860 tabulated=0.000000 irrep=Eg label=4Eg character=BONDING pairing=1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.2011 shareRight=0.7714 orbitals=[46,47] annotation="-0.6129" detail="Fragment orbitals (extended Hückel): mixed, bonding, metal 20%, ligands 77%, captured 97% of the MO (mean over its orbitals).  Irrep Eg of the skeleton's group Oh.\nLargest: FO29-30 Eg 71%; Cr 3d Eg 20%; FO11-12 Eg 4%"
+  level 2 energy=-0.354060 tabulated=0.000000 irrep=T2g label=2T2g character=BONDING pairing=0 occupancy=6.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.7160 shareRight=0.2659 orbitals=[51,52,53] annotation="-0.3541" detail="Fragment orbitals (extended Hückel): metal-centred, bonding, metal 72%, ligands 27%, captured 98% of the MO (mean over its orbitals).  Irrep T2g of the skeleton's group Oh.\nLargest: Cr 3d T2g 72%; FO31-33 T2g 23%; FO13-15 T2g 4%"
+  level 3 energy=0.146300 tabulated=0.000000 irrep=T2g label=3T2g* character=ANTIBONDING pairing=0 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.2334 shareRight=0.6496 orbitals=[61,62,63] annotation="0.1463" detail="Fragment orbitals (extended Hückel): mixed, antibonding, metal 23%, ligands 65%, captured 88% of the MO (mean over its orbitals).  Irrep T2g of the skeleton's group Oh.\nLargest: FO31-33 T2g 65%; Cr 3d T2g 23%"
+  level 4 energy=0.284450 tabulated=0.000000 irrep=Eg label=5Eg* character=ANTIBONDING pairing=1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.5070 shareRight=0.2937 orbitals=[67,68] annotation="0.2844" detail="Fragment orbitals (extended Hückel): metal-centred, antibonding, metal 51%, ligands 29%, captured 80% of the MO (mean over its orbitals).  Irrep Eg of the skeleton's group Oh.\nLargest: Cr 3d Eg 51%; FO47-48 Eg 17%; FO29-30 Eg 8%; FO11-12 Eg 3%"
+  level 5 energy=0.681580 tabulated=0.000000 irrep=A1g label=11A1g* character=ANTIBONDING pairing=2 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.3390 shareRight=0.4150 orbitals=[81] annotation="0.6816" detail="Fragment orbitals (extended Hückel): mixed, antibonding, metal 34%, ligands 42%, captured 75% of the MO.  Irrep A1g of the skeleton's group Oh.\nLargest: Cr 4s A1g 34%; FO43 A1g 25%; FO7 A1g 10%; FO25 A1g 4%"
 column right
-  title: Ligand orbitals (extended Hueckel)
+  title: Ligand orbitals (extended Hückel)
   fromHalves: 0
   hiddenCount: 0
   hiddenMaxEnergy: 0.000000
   hiddenSemicoreCount: 0
   hiddenAboveCount: 0
   shellKeys:
-  levels: 3
-  level 0 energy=-0.723896 tabulated=-21.827167 irrep=- label=FO7 character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="C 2s 54%"
-  level 1 energy=-0.453065 tabulated=-11.509812 irrep=- label=FO29-30 character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="C 2p 45%"
-  level 2 energy=-0.415994 tabulated=-10.097597 irrep=- label=FO31-33 character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="C 2p 74%"
-links: 9
-  link 0 left=1 centre=0 right=-1 weight=0.1529
+  levels: 5
+  level 0 energy=-0.650611 tabulated=-21.827167 irrep=A1g label=FO7 character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="A1g  C 2s 54%  capture 81%" detail="Fock diagonal -0.6506 Hartree, captured 81% of the orbital by the calculation's MOs.\nEHT FO energy (qualitative): -21.83 eV"
+  level 1 energy=-0.594836 tabulated=-11.509812 irrep=Eg label=FO29-30 character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="Eg  C 2p 45%" detail="Fock diagonal -0.5948 Hartree, captured 91% of the orbital by the calculation's MOs.\nEHT FO energy (qualitative): -11.51 eV"
+  level 2 energy=0.008309 tabulated=-10.097597 irrep=T2g label=FO31-33 character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="T2g  C 2p 74%  capture 89%" detail="Fock diagonal 0.0083 Hartree, captured 89% of the orbital by the calculation's MOs.\nEHT FO energy (qualitative): -10.10 eV"
+  level 3 energy=0.223799 tabulated=46.143380 irrep=Eg label=FO47-48 character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="Eg  C 2p 44%  capture 18%" detail="Fock diagonal 0.2238 Hartree, captured 18% of the orbital by the calculation's MOs.\nEHT FO energy (qualitative): 46.14 eV"
+  level 4 energy=0.628437 tabulated=43.210770 irrep=A1g label=FO43 character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="A1g  C 2p 46%  capture 26%" detail="Fock diagonal 0.6284 Hartree, captured 26% of the orbital by the calculation's MOs.\nEHT FO energy (qualitative): 43.21 eV"
+links: 14
+  link 0 left=2 centre=0 right=-1 weight=0.1529
   link 1 left=-1 centre=0 right=0 weight=0.6861
-  link 2 left=0 centre=1 right=-1 weight=0.2011
+  link 2 left=1 centre=1 right=-1 weight=0.2011
   link 3 left=-1 centre=1 right=1 weight=0.7123
   link 4 left=0 centre=2 right=-1 weight=0.7160
   link 5 left=-1 centre=2 right=2 weight=0.2255
   link 6 left=0 centre=3 right=-1 weight=0.2334
   link 7 left=-1 centre=3 right=2 weight=0.6496
-  link 8 left=0 centre=4 right=-1 weight=0.5070
+  link 8 left=1 centre=4 right=-1 weight=0.5070
+  link 9 left=-1 centre=4 right=1 weight=0.0804
+  link 10 left=-1 centre=4 right=3 weight=0.1694
+  link 11 left=2 centre=5 right=-1 weight=0.3390
+  link 12 left=-1 centre=5 right=0 weight=0.1033
+  link 13 left=-1 centre=5 right=4 weight=0.2496

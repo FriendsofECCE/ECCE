@@ -9,6 +9,7 @@
 #include <cstring>
 #include <iostream>
 
+#include "tdat/FoDiagram.H"
 #include "tdat/FragmentOrbitals.H"
 
 using namespace std;
@@ -173,6 +174,36 @@ static void composeSelf(const char* xyz, int charge, const char* name, bool prin
   }
 }
 
+//  Orbitals are conserved: per irrep, drawn bonding = drawn antibonding.
+static void pairCounts()
+{
+  printf("the bonding/antibonding count\n");
+  typedef FoDiagram::PairLevel PL;
+  vector<PL> lv;
+  auto add = [&](const char* irrep, int deg, MoLevel::Character c, int shown) {
+    PL l; l.irrep = irrep; l.degeneracy = deg; l.character = c; l.shown = shown;
+    lv.push_back(l);
+  };
+  add("T2g", 3, MoLevel::BONDING, 1);
+  add("T2g", 3, MoLevel::ANTIBONDING, 1);
+  add("T1u", 3, MoLevel::BONDING, -1);       // hidden by the filter
+  add("T1u", 3, MoLevel::ANTIBONDING, 1);
+  add("A1g", 1, MoLevel::BONDING, 1);
+  add("A1g", 1, MoLevel::ANTIBONDING, 0);    // beyond the cut-off
+  add("Eg", 2, MoLevel::NONBONDING, 1);
+  vector<FoDiagram::PairCount> c = FoDiagram::countPairs(lv);
+  map<string, FoDiagram::PairCount> by;
+  for (size_t i = 0; i < c.size(); i++) by[c[i].irrep] = c[i];
+  check(by["T2g"].ok && by["T2g"].bonding == 3 && by["T2g"].antibonding == 3,
+        "a complete pair counts by degeneracy");
+  check(!by["T1u"].ok && by["T1u"].message ==
+        "T1u: 0 bonding, 3 antibonding: pairs incomplete; 3 partner orbitals "
+        "are hidden (tick Show all levels)", "a hidden bonding level is a mismatch, said why");
+  check(!by["A1g"].ok && by["A1g"].message.find("cut-off") != string::npos,
+        "a partner past the cut-off is a mismatch, said why");
+  check(by["Eg"].ok && by["Eg"].nonbonding == 2, "non-bonding levels do not count");
+}
+
 int main(int argc, char** argv)
 {
   if (argc >= 3 && !strcmp(argv[1], "--table")) {
@@ -250,6 +281,7 @@ int main(int argc, char** argv)
   printf("projection on a spanning FO set\n");
   composeSelf((dir + "/crco6.xyz").c_str(), 0, "Cr(CO)6", false);
   composeSelf((dir + "/conh36.xyz").c_str(), 3, "Co(NH3)6", false);
+  pairCounts();
   printf(fails ? "FAILED\n" : "ok\n");
   return fails ? 1 : 0;
 }

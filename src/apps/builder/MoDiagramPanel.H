@@ -141,6 +141,7 @@ class MoDiagramPanel : public VizPropertyPanel,
       wxChoice        *p_construction;
       wxCheckBox      *p_piOnly;
       wxCheckBox      *p_showEnergies;
+      wxCheckBox      *p_showAll;
 
       //  Re-entrancy guard (#170 progress dialog): ewxProgressDialog::
       //  Update() pumps the event loop, so a resize or a control the
