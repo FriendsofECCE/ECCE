@@ -490,7 +490,13 @@ bool ModelDiagram::build(const Input& in,
             //  The strongest bonding level pairs with the strongest antibonding
             //  one; the shared fragment sets only break ties.
             double score = std::min(cl[b].op, -cl[a].op);
-            for (size_t s = 0; s < sets.size(); s++) score += 1e-3*std::min(cl[b].share[s], cl[a].share[s]);
+            double similar = 0.0;
+            for (size_t s = 0; s < sets.size(); s++) similar += std::min(cl[b].share[s], cl[a].share[s]);
+            //  Without symmetry labels nothing else keeps an e level from
+            //  pairing with a t2: weigh in how much of the same fragment
+            //  levels the two are made of.
+            if (cl[a].irrep.empty() || cl[b].irrep.empty()) score *= 0.25 + similar;
+            score += 1e-3*similar;
             Cand cd; cd.score = score; cd.b = b; cd.a = a;
             cands.push_back(cd);
          }
@@ -760,7 +766,8 @@ bool ModelDiagram::build(const Input& in,
             pairs++;
             if (v[i]->calcEnergy > v[j]->calcEnergy + SAME_ENERGY) {
                out.inversions++;
-               if (bad.size() < 3) bad.push_back(v[i]->label + " / " + v[j]->label);
+               if (bad.size() < 3) bad.push_back("the model puts " + stripMarks(v[i]->label) + (v[i]->character == MoLevel::ANTIBONDING ? "*" : "") +
+                                                 " below " + stripMarks(v[j]->label) + (v[j]->character == MoLevel::ANTIBONDING ? "*" : ""));
             }
          }
       }
@@ -769,13 +776,15 @@ bool ModelDiagram::build(const Input& in,
       if (v.empty()) {
          out.verdict.clear();
       } else if (out.inversions == 0) {
-         out.verdict = "Model and calculation agree on the order of all " + std::to_string(v.size()) +
-                       " valence levels" + range + ".";
+         out.verdict = "This model explains your " + std::to_string(v.size()) +
+                       " valence orbitals in the right order" + range + ".";
       } else {
          out.verdictOk = false;
-         out.verdict = "Model and calculation disagree on the order of " + std::to_string(out.inversions) +
-                       " of " + std::to_string(pairs) + " pairs of the " + std::to_string(v.size()) +
-                       " valence levels" + range + ": " + joinNames(bad) + ".";
+         string first = joinNames(bad);
+         first[0] = (char)toupper((unsigned char)first[0]);
+         out.verdict = first + "; your calculation has " + (out.inversions == 1 ? "them" : "those") +
+                       " the other way round (" + std::to_string(out.inversions) + " of " + std::to_string(pairs) +
+                       " pairs of the " + std::to_string(v.size()) + " valence orbitals" + range + ").";
       }
       //  Delta_o of an octahedral complex.
       const MoLevel *t2g = 0, *eg = 0;
@@ -791,7 +800,7 @@ bool ModelDiagram::build(const Input& in,
          out.deltaCalcEv = fabs(eg->calcEnergy - t2g->calcEnergy)*HARTREE;
          if (!out.verdict.empty())
             out.verdict += " \xCE\x94o is " + fmt("%.1f", out.deltaModelEv) + " eV in the model and " +
-                           fmt("%.1f", out.deltaCalcEv) + " eV in the calculation.";
+                           fmt("%.1f", out.deltaCalcEv) + " eV in your calculation.";
       }
       int poor = 0;
       for (size_t i = 0; i < v.size(); i++) if (v[i]->calcOverlap < POOR_OVERLAP) poor++;
@@ -809,7 +818,8 @@ bool ModelDiagram::build(const Input& in,
       for (size_t i = 0; i < sets.size(); i++) total += (int)lround(sets[i].occupancy);
       char b[64];
       snprintf(b, sizeof b, "%d", electrons);
-      out.about = "**The model.** Every column is extended H\xC3\xBC" "ckel (Alvarez parameters). The middle "
+      out.about = "The extended H\xC3\xBC" "ckel diagram explains the calculation's orbitals: nothing more, nothing less.\n\n"
+          "**The model.** Every column is extended H\xC3\xBC" "ckel (Alvarez parameters). The middle "
           "column is the molecule's own extended H\xC3\xBC" "ckel run, the side columns are the two fragments' "
           "(" + leftName.formula + " and " + rightName.formula + "). The basis is the same in all three, so the lines "
           "are an exact projection of each model MO on the fragment orbitals: a line joins a model MO to a "
