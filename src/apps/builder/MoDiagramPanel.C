@@ -2309,6 +2309,13 @@ void MoDiagramPanel::buildOnce()
     Fragment *frag = fw.getSceneGraph().getFragment();
     if (frag != 0) charge = (int)frag->charge();
   }
+  //  The metal's unpaired d electrons follow it (fragment-orbital diagram).
+  int multiplicity = 1;
+  {
+    ICalculation *esCalc = dynamic_cast<ICalculation*>(getCalculation());
+    if (esCalc != 0 && esCalc->spinMultiplicity() != SpinMult::unknown)
+      multiplicity = (int)esCalc->spinMultiplicity();
+  }
 
   //  BUILD IN THE GROUP THE CALCULATION ACTUALLY USED.
   //
@@ -2489,7 +2496,7 @@ void MoDiagramPanel::buildOnce()
       if (FoDiagram::build(storedSymbols, storedCoords, charge, moBasisFns,
                            moSflat, moCoefficients, e, centre, fo, foWhy,
                            p_showAll != 0 && p_showAll->IsChecked(),
-                           &wholeSpectrum)) {
+                           &wholeSpectrum, multiplicity)) {
         left = fo.left;
         right = fo.right;
         links = fo.links;
