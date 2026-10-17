@@ -618,6 +618,12 @@ void SGViewer::myCallbackRoutine(void *userData, SoAction *action)
      //  node pushed the bottom-left text off the canvas.
      glLoadMatrixf(SoViewingMatrixElement::get(state)[0]);
 
+     //  Its own state: a transparency mode left blending on (additive for
+     //  DELAYED_ADD), and black text added to a white background vanished.
+     glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
+     glDisable(GL_BLEND);
+     glDisable(GL_DEPTH_TEST);
+     glDisable(GL_TEXTURE_2D);
      glDisable(GL_LIGHTING);  // so we don't have to set normals
 
      // Put text colors under user control
@@ -651,8 +657,7 @@ void SGViewer::myCallbackRoutine(void *userData, SoAction *action)
         glPopAttrib ();
      }
 
-     glEnable(GL_LIGHTING);
-
+     glPopAttrib();
 
      glPopMatrix();
   }
