@@ -2228,7 +2228,7 @@ void MoDiagramPanel::buildOnce()
   //  value, so this only removes the risk of two DIFFERENT same-named
   //  levels (unlikely, but the same-irrep guard below does not bound
   //  energy on its own) being averaged into one.
-  MoDiagram::groupByIrrep(e, o, s, dimensions, 1.0e-5, centre.levels);
+  MoDiagram::groupByIrrep(e, o, s, dimensions, 1.5e-5, centre.levels);
   centre.title = "Molecular orbitals";
 
   //  MERGE: one spatial level per alpha level, at the alpha energy

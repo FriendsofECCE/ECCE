@@ -83,6 +83,8 @@ FIXTURES = {
     #  charged ones carry their multiplicity and charge in .davprops.
     "orca-o2-triplet": os.path.join(FIXTURES_DIR, "orca-o2-triplet"),
     "orca-cocl4-quartet": os.path.join(FIXTURES_DIR, "orca-cocl4-quartet"),
+    "orca-bf3": os.path.join(FIXTURES_DIR, "orca-bf3"),
+    "orca-benzene": os.path.join(FIXTURES_DIR, "orca-benzene"),
 }
 
 

@@ -1385,11 +1385,14 @@ int SymmetryAnalysis::fullLabelSpectrum(const vector< vector<double> >& orbitals
    //  unlabelled with no error anywhere. 1e-5 keeps every genuine
    //  degenerate set together (CH4 t2, benzene's e sets, SF6, N2/CO's
    //  pi) while telling Cr(CO)6's t1u and eg apart.
+   //  ORCA prints orbital energies to 1e-5, so a true pair can differ by
+   //  that much from rounding alone (BF3's e', benzene's e sets): the
+   //  tolerance has to be above the print step, not at it.
    vector< vector<size_t> > sets;
    for (size_t i = 0; i < orbitals.size(); ) {
       size_t j = i;
       while (j + 1 < orbitals.size() && j + 1 < energies.size() &&
-             fabs(energies[j+1] - energies[j]) < 1.0e-5) {
+             fabs(energies[j+1] - energies[j]) < 1.5e-5) {
          j++;
       }
       vector<size_t> one;
