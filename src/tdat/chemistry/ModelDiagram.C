@@ -201,6 +201,13 @@ struct Cluster
                pairing(-1), occupancy(0), occupancyBeta(-1), drawn(true), clipped(false), shownEnergy(0) {}
 };
 
+string joinCaveats(const vector<string>& v)
+{
+   string r;
+   for (size_t i = 0; i < v.size(); i++) r += (i ? "; " : "") + v[i];
+   return r;
+}
+
 string joinNames(const vector<string>& v)
 {
    string s;
@@ -514,6 +521,7 @@ bool ModelDiagram::build(const Input& in,
          if (!used[c]) cl[c].character = MoLevel::NONBONDING;
    }
 
+   vector<string> caveats;               // tier B: one combined line
    //  --- what is drawn ----------------------------------------------
    const bool bandRule = in.leftAtoms.size() == 1 && in.rightAtoms.size() >= 2;
    for (size_t c = 0; c < cl.size(); c++)
@@ -550,14 +558,10 @@ bool ModelDiagram::build(const Input& in,
          }
       }
       if (clipped > 0)
-         out.warnings.push_back(std::to_string(clipped) + " empty model orbital" + (clipped == 1 ? " lies" : "s lie") +
-             " more than " + fmt("%.0f", WINDOW_EV) + " eV above the HOMO; " + (clipped == 1 ? "it is" : "they are") +
-             " drawn at the top of the axis (marked \xE2\x86\x91) with the model energy beside " +
-             (clipped == 1 ? "it" : "them") + ".");
+         caveats.push_back(std::to_string(clipped) + " high empty level" + (clipped == 1 ? "" : "s") +
+             " drawn at the top (true energy beside " + (clipped == 1 ? "it" : "them") + ")");
       if (n > 0)
-         out.warnings.push_back(std::to_string(n) + " empty model orbital" + (n == 1 ? " lies" : "s lie") +
-             " more than " + fmt("%.0f", WINDOW_EV) + " eV above the HOMO and sit" + (n == 1 ? "s" : "") +
-             " almost entirely on one fragment; not drawn.");
+         caveats.push_back(std::to_string(n) + " very high empty level" + (n == 1 ? "" : "s") + " not drawn");
    }
 
    //  Sets of the right side get the irrep of the levels they mostly sit in.
@@ -809,14 +813,22 @@ bool ModelDiagram::build(const Input& in,
       int poor = 0;
       for (size_t i = 0; i < v.size(); i++) if (v[i]->calcOverlap < POOR_OVERLAP) poor++;
       if (poor > 0)
-         out.warnings.push_back(std::to_string(poor) + (poor == 1 ? " model level has" : " model levels have") +
-             " no close calculated counterpart (overlap below " + fmt("%.2f", POOR_OVERLAP) +
-             "); read its calculated energy with care.");
+         caveats.push_back(std::to_string(poor) + (poor == 1 ? " level matches" : " levels match") +
+             " the calculation only loosely (overlap < " + fmt("%.2f", POOR_OVERLAP) + ")");
    }
+   if (!caveats.empty()) out.warnings.push_back(joinCaveats(caveats));
 
    //  --- the text ----------------------------------------------------
    out.summary = "Model from extended H\xC3\xBC" "ckel (qualitative) \xC2\xB7 model energies in eV \xC2\xB7 "
                  "calculation in Hartree";
+   if (!out.right.bands.empty()) {
+      string t;
+      for (size_t i = 0; i < out.right.bands.size(); i++) {
+         const string& l = out.right.bands[i].label;
+         t += i == 0 ? l : "; " + l.substr(l.find(": ") == string::npos ? 0 : l.find(": ") + 2);
+      }
+      out.summary += " \xC2\xB7 (" + t + " \xE2\x80\x94 not drawn; Show all levels)";
+   }
    {
       int total = 0;
       for (size_t i = 0; i < sets.size(); i++) total += (int)lround(sets[i].occupancy);
@@ -840,8 +852,16 @@ bool ModelDiagram::build(const Input& in,
           std::to_string((int)lround([&] { double s = 0; for (size_t i = 0; i < sets.size(); i++) if (sets[i].fragment == 1) s += sets[i].occupancy; return s; }())) + ").";
       (void)total;
       if (!out.right.bands.empty())
-         out.about += "\n\nThe grey bars are model levels that sit almost entirely on the " + rightName.formula +
+         out.about += "\n\nThe levels counted in the note under the diagram are model levels that sit almost entirely on the " + rightName.formula +
                       " and take no part in the interaction; they are counted, not drawn.";
+      if (!caveats.empty()) {
+         out.about += "\n\n**Caveats.** ";
+         for (size_t i = 0; i < caveats.size(); i++) out.about += (i ? "; " : "") + caveats[i];
+         out.about += ". Extended H\xC3\xBC" "ckel puts empty antibonding orbitals tens of eV up, so an empty level more than " +
+                      fmt("%.0f", WINDOW_EV) + " eV above the HOMO is drawn at the top of the axis with its model energy written "
+                      "beside it, or not at all when it sits almost entirely on one fragment. A loose match means no "
+                      "calculated orbital resembles the model level closely; read its calculated energy with care.";
+      }
    }
    return true;
 }

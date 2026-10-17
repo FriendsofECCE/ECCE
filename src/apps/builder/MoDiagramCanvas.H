@@ -1500,8 +1500,12 @@ class MoDiagramCanvas : public wxPanel
         //  occupancy now, and a diagram that does not draw it does not
         //  say which combinations are filled -- which is half of what
         //  it is for.  The offline renderer draws them; this did not.
-        drawBands(dc, p_left, xLeft, leftWidth, plot);
-        drawBands(dc, p_right, xRight, rightWidth, plot);
+        //  The model-first diagram counts its ligand-internal levels in
+        //  the note; nothing is drawn over levels there.
+        if (!model) {
+          drawBands(dc, p_left, xLeft, leftWidth, plot);
+          drawBands(dc, p_right, xRight, rightWidth, plot);
+        }
         drawColumn(dc, p_left, xLeft, leftWidth, plot, true, 0, -1, true);
         p_placed.clear();
       p_notes.clear();
