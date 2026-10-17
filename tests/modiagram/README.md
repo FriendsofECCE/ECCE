@@ -186,6 +186,9 @@ so the labels are the diagram's own. The summary line says `RHF` for these
 because the fixture builder records that theory; it is not what ran.
 Multiplicity and charge are in `.davprops` (calculation and
 `Parameters/chemsys.mvm`). `orca-b2h6` and `orca-agnh3` are refusals with a
-stated reason (no one-centre split; no EHT parameters for Ag). Known to be
-wrong and recorded as is: the metal column's d electrons in
-`orca-cocl4-quartet` (t2^5 e^2; the MOs have e^4 t2^3).
+stated reason (no one-centre split; no EHT parameters for Ag). `orca-ptcl4`
+([PtCl4]2-, d8, singlet) was added with the d-electron rule: the metal
+column's electrons are read off the occupied MOs, so b1g sigma* is empty and
+`orca-cocl4-quartet` is e^4 t2^3 (`check_pairs.py` asserts both, and Ni(CO)4
+d10). Ferrocene (e2' and a1' filled, e1'' empty) was checked once from a
+656 KB fixture that is not kept.

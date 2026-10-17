@@ -59,10 +59,16 @@ skeleton|central|halves|groups|sets|fragorb` picks one in tests).
   (core is told by capture) and adds their orbitals to the
   `hideBeyondValence` room, otherwise TiF6's eg* is cut.
 - Metal electrons: n = group number - oxidation state (ionic; the metal's
-  charge is what `autoFragments` leaves after the ligands'), put in the d
-  levels in Fock-diagonal order with multiplicity - 1 unpaired (Hund);
-  ns/np empty; outside 0-10 or a multiplicity the count cannot have draws
-  none and the note says why. The note's "Electrons:" line compares metal d
+  charge is what `autoFragments` leaves after the ligands'), with
+  multiplicity - 1 unpaired; ns/np empty; outside 0-10 or a multiplicity the
+  count cannot have draws none and the note says why. The d sets are filled
+  from the OCCUPIED MOs, not by Fock-diagonal aufbau: per spin, a set's
+  population is sum over occupied MOs of occupation x the MO's share of the
+  set, and the sets are filled whole in the order of population per orbital
+  until the spin's total (alpha = (n+u)/2, beta = (n-u)/2) is placed. Rounding
+  each set alone would give Cr(CO)6's eg its sigma-donation electrons. Gives
+  [PtCl4]2- b1g empty, [CoCl4]2- e4 t2^3, ferrocene e2'/a1' filled and e1''
+  empty (the Fock-diagonal order did the reverse). The note's "Electrons:" line compares metal d
   + ligand-FO electrons with the electrons in the valence MOs (capture >=
   50%) and says when they differ. The panel does not know the multiplicity
   and passes 1.

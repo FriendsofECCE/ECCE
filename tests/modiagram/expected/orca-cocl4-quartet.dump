@@ -13,8 +13,8 @@ column left
   hiddenAboveCount: 0
   shellKeys:
   levels: 3
-  level 0 energy=0.088796 tabulated=-13.180000 irrep=T2 label=Co 3d character=UNKNOWN pairing=-1 occupancy=3.0000 occupancyBeta=2.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="T2" detail="Fock diagonal 0.0888 Hartree, covered 99% of the orbital by the calculation's MOs.\nEHT H_ii (qualitative): -13.18 eV"
-  level 1 energy=0.126892 tabulated=-13.180000 irrep=E label=Co 3d character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=0.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="E" detail="Fock diagonal 0.1269 Hartree, covered 100% of the orbital by the calculation's MOs.\nEHT H_ii (qualitative): -13.18 eV"
+  level 0 energy=0.088796 tabulated=-13.180000 irrep=T2 label=Co 3d character=UNKNOWN pairing=-1 occupancy=3.0000 occupancyBeta=0.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="T2" detail="Fock diagonal 0.0888 Hartree, covered 99% of the orbital by the calculation's MOs.\nEHT H_ii (qualitative): -13.18 eV"
+  level 1 energy=0.126892 tabulated=-13.180000 irrep=E label=Co 3d character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=2.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="E" detail="Fock diagonal 0.1269 Hartree, covered 100% of the orbital by the calculation's MOs.\nEHT H_ii (qualitative): -13.18 eV"
   level 2 energy=0.297998 tabulated=-9.210000 irrep=A1 label=Co 4s character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="A1  covered 74%" detail="Fock diagonal 0.2980 Hartree, covered 74% of the orbital by the calculation's MOs.\nEHT H_ii (qualitative): -9.21 eV"
 column centre
   title: Molecular orbitals

@@ -91,6 +91,8 @@ FIXTURES = {
     "orca-nico4": os.path.join(FIXTURES_DIR, "orca-nico4"),
     "orca-cocl4-quartet": os.path.join(FIXTURES_DIR, "orca-cocl4-quartet"),
     "orca-agnh3": os.path.join(FIXTURES_DIR, "orca-agnh3"),
+    #  [PtCl4]2-, d8 square planar: the metal d electrons come from the MOs.
+    "orca-ptcl4": os.path.join(FIXTURES_DIR, "orca-ptcl4"),
 }
 
 

@@ -1332,18 +1332,47 @@ bool FoDiagram::build(const vector<string>& symbols,
                      + std::to_string(multiplicity);
       }
       if (reason.empty()) {
-         //  Pairs fill the lowest orbitals, the unpaired electrons the next
-         //  ones up (Hund's rule); a level's degeneracy counts orbitals.
-         int doubled = (ec.dCount - unpaired)/2, single = unpaired;
-         for (size_t i = 0; i < dsets.size(); i++) {
-            const size_t s = dsets[i].second;
-            int room = out.sets[s].degeneracy;
-            const int dbl = std::min(doubled, room);
-            doubled -= dbl; room -= dbl;
-            const int sgl = std::min(single, room);
-            single -= sgl;
-            dAlpha[s] = dbl + sgl;
-            dBeta[s] = dbl;
+         //  The d electrons are read off the occupied MOs: per spin, a d
+         //  set holds sum_m occ_m * share_m of its set (what the middle
+         //  column already shows), rounded to whole electrons with the
+         //  per-spin totals kept at the oxidation-state d count and
+         //  multiplicity.  A Fock-diagonal aufbau filled a sigma* d set
+         //  that is empty in the MOs (PtCl4 b1g, ferrocene e1'').
+         int total[2] = { (ec.dCount + unpaired)/2, (ec.dCount - unpaired)/2 };
+         vector<double> pop[2] = { vector<double>(ns, 0.0), vector<double>(ns, 0.0) };
+         for (size_t c = 0; c < merged.size(); c++) {
+            const MoLevel& lv = merged[c];
+            if (lv.orbitals.empty()) continue;
+            const double nA = lv.occupancyBeta >= 0 ? lv.occupancy : 0.5*lv.occupancy;
+            const double nB = lv.occupancyBeta >= 0 ? lv.occupancyBeta : 0.5*lv.occupancy;
+            for (size_t k = 0; k < lv.orbitals.size(); k++) {
+               const int m = lv.orbitals[k];
+               if (m < 0 || m >= (int)nMO) continue;
+               for (size_t i = 0; i < dsets.size(); i++) {
+                  const size_t s2 = dsets[i].second;
+                  pop[0][s2] += nA/lv.orbitals.size()*share[m][s2];
+                  pop[1][s2] += nB/lv.orbitals.size()*share[m][s2];
+               }
+            }
+         }
+         //  Whole electrons per spin: the sets in the order of their
+         //  population per orbital, each filled before the next (rounding
+         //  each set alone filled Cr(CO)6's eg with its sigma donation).
+         for (int spin = 0; spin < 2; spin++) {
+            vector< std::pair<double,size_t> > byDensity;
+            for (size_t i = 0; i < dsets.size(); i++) {
+               const size_t s2 = dsets[i].second;
+               byDensity.push_back(std::make_pair(
+                  -pop[spin][s2]/std::max(1, out.sets[s2].degeneracy), s2));
+            }
+            std::stable_sort(byDensity.begin(), byDensity.end());
+            int left = total[spin];
+            for (size_t i = 0; i < byDensity.size(); i++) {
+               const size_t s2 = byDensity[i].second;
+               const int x = std::min(left, out.sets[s2].degeneracy);
+               left -= x;
+               (spin == 0 ? dAlpha : dBeta)[s2] = x;
+            }
          }
          ec.placed = true;
       } else {

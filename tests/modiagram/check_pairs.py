@@ -105,6 +105,28 @@ def check_rules(d):
     return bad
 
 
+def check_d_electrons(d):
+    """Metal d electrons follow the occupied MOs (#301): [PtCl4]2- has the
+    sigma* b1g empty, [CoCl4]2- quartet is e4 t2^3 (alpha, beta), Ni(CO)4 d10."""
+    want = {
+        "orca-ptcl4": [("B2g", 2, -1), ("B1g", 0, -1), ("A1g", 2, -1), ("Eg", 4, -1)],
+        "orca-cocl4-quartet": [("T2", 3, 0), ("E", 2, 2)],
+        "orca-nico4": [("T2", 6, -1), ("E", 4, -1)],
+    }
+    bad = 0
+    for name, rows in want.items():
+        got = []
+        for line in open(os.path.join(d, name + ".dump")):
+            if "label=Pt 5d" in line or "label=Co 3d" in line or "label=Ni 3d" in line:
+                f = dict(re.findall(r'(\w+)=("[^"]*"|\S+)', line))
+                got.append((f["irrep"], int(float(f["occupancy"])),
+                            int(float(f["occupancyBeta"]))))
+        ok = got == rows
+        bad += not ok
+        print("%-20s d electrons %s %s" % (name, got, "ok" if ok else "FAIL (want %s)" % rows))
+    return bad
+
+
 def main():
     d = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "expected")
     bad = 0
@@ -124,6 +146,7 @@ def main():
               % (name, nb, na, got, "ok" if ok else "FAIL (want %s)" % want))
     bad += check_sp_mixing(d)
     bad += check_rules(d)
+    bad += check_d_electrons(d)
     return 1 if bad else 0
 
 
