@@ -1,0 +1,9 @@
+! RHF def2-SVP TightSCF
+%output
+  Print[P_MOs] 1
+  Print[P_OrbEn] 2
+end
+* xyz 0 1
+C 1.918 0 0
+O 3.059 0 0
+*

@@ -38,3 +38,5 @@ MOPAC → spec) is the bridge it would reuse.
 - [Hover and click text come from the MOs panel's own code; headings are measured, not placed (#132)](tooltip-composition-and-measured-headings.md)
 - [A homonuclear diatomic is classified by phase, not energy](a-homonuclear-diatomic-is-classified-by-phase.md)
 - [A spherical-only code on a Cartesian-flagged basis: columns unpermuted, no labels](a-spherical-only-code-on-a-cartesian-flagged-basis.md)
+- [Fragment orbitals from extended Hueckel, and the MO composition in them (#301)](fragment-orbitals-from-eht.md)
+- [EHTParameters: Alvarez 1993 via YAeHMOP (BSD), what was checked and what disagrees](eht-parameters-and-licence.md)

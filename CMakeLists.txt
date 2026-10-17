@@ -488,6 +488,13 @@ target_include_directories(mocomp PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(mocomp PRIVATE
   eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
   ${XercesC_LIBRARIES})
+# Fragment-orbital composition of a calculation's MOs (#301); a development
+# tool like mocomp, not installed.
+add_executable(fragorb tools/modiagram/fragorb.C)
+target_include_directories(fragorb PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(fragorb PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
+  ${XercesC_LIBRARIES})
 # flock(1) for the session scripts where util-linux is absent (macOS).
 if(NOT WIN32)   # the Windows client has no session scripts (#133)
   add_executable(ecce-flock src/apps/flock/ecce-flock.c)
@@ -2673,6 +2680,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/mocomp/run_tests.py
                    ${CMAKE_BINARY_DIR})
   set_tests_properties(mocomp PROPERTIES TIMEOUT 300)
+
+  # tests/fragorb: fragment orbitals and MO composition in them (#301);
+  # EHT against YAeHMOP, the projection against Multiwfn, ML6 classes.
+  add_test(NAME fragorb
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/fragorb/run_tests.py
+                   ${CMAKE_BINARY_DIR})
+  set_tests_properties(fragorb PROPERTIES TIMEOUT 600)
   add_test(NAME fragreaders
            COMMAND fragreaders ${CMAKE_CURRENT_SOURCE_DIR}/tests/fragreaders/data)
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/fragreaders-home)
