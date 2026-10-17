@@ -204,12 +204,18 @@ struct MoLevel
    bool           hasCalc;
    double         calcEnergy;
    double         calcOverlap;
+   /** The matched calculated level's own label (irrep), occupation and
+       number of orbitals, for the calculation column. */
+   string         calcLabel;
+   double         calcOccupancy, calcOccupancyBeta;
+   int            calcDegeneracy;
 
    MoLevel() : energy(0.0), occupancy(0.0), degeneracy(0),
                occupancyBeta(-1.0),
                shareLeft(-1.0), shareRight(-1.0), shell(-1), slot(-1),
                tabulated(0.0), character(UNKNOWN), pairing(-1),
-               model(false), hasCalc(false), calcEnergy(0.0), calcOverlap(0.0) {}
+               model(false), hasCalc(false), calcEnergy(0.0), calcOverlap(0.0),
+               calcOccupancy(0.0), calcOccupancyBeta(-1.0), calcDegeneracy(0) {}
 };
 
 

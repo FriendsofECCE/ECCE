@@ -615,6 +615,10 @@ bool ModelDiagram::build(const Input& in,
          lv.hasCalc = true;
          lv.calcEnergy = R.energy;
          lv.calcOverlap = L.overlap;
+         lv.calcLabel = stripMarks(R.label);
+         lv.calcOccupancy = R.occupancy;
+         lv.calcOccupancyBeta = R.occupancyBeta;
+         lv.calcDegeneracy = R.degeneracy > 0 ? R.degeneracy : (int)R.orbitals.size();
       }
       lv.annotation = (L.clipped ? string("\xE2\x86\x91 ") : string()) + signedNumber(L.energy*HARTREE, 2) + " eV";
       //  The hover text.

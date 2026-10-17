@@ -1169,7 +1169,13 @@ class MoDiagramCanvas : public wxPanel
       //  calculation is a narrow column of text on the right.
       const bool model = p_centre.levels[0].model;
       const double unit = model ? 27.211386245988 : 1.0;
-      const int calcWidth = model ? 150 : 0;
+      int calcDegMax = 1;
+      if (model)
+        for (size_t i = 0; i < p_centre.levels.size(); i++)
+          calcDegMax = max(calcDegMax, p_centre.levels[i].calcDegeneracy);
+      const int calcSlot = 14;
+      const int calcSegments = min(calcDegMax, 5)*calcSlot;
+      const int calcWidth = model ? calcSegments + 250 : 0;
 
       //  Energy range over everything that will be drawn.
       p_lo = p_hi = p_centre.levels[0].energy;
@@ -1533,18 +1539,36 @@ class MoDiagramCanvas : public wxPanel
           const MoLevel& l = p_centre.levels[i];
           if (!l.hasCalc) continue;
           const int cy = levelYIn(dc, p_centre, plot, true, (int)i);
-          dc.SetPen(wxPen(wxColour(90, 90, 90), 1));
-          dc.DrawLine(xCalc, cy, xCalc + 22, cy);
+          const int deg = min(max(l.calcDegeneracy, 1), 5);
+          dc.SetPen(wxPen(wxColour(90, 90, 90), 2));
+          for (int d = 0; d < deg; d++)
+            dc.DrawLine(xCalc + d*calcSlot, cy, xCalc + d*calcSlot + calcSlot - 4, cy);
+          MoLevel occ;
+          occ.degeneracy = deg;
+          occ.occupancy = l.calcOccupancy;
+          occ.occupancyBeta = l.calcOccupancyBeta;
+          drawElectrons(dc, occ, xCalc, calcSlot, calcSlot - 4, cy, 0, plot);
           const double e = fabs(l.calcEnergy) < 0.00005 ? 0.0 : l.calcEnergy;
-          wxString text = wxString::Format(wxT("%s%.2f  %.2f"),
-                                           e < 0 ? wxT("\u2212") : wxT("+"),
-                                           fabs(e), l.calcOverlap);
+          //  MO numbers (1-based), a range where they run on.
+          wxString mos;
+          for (size_t k = 0; k < l.orbitals.size(); ) {
+            size_t m = k;
+            while (m + 1 < l.orbitals.size() && l.orbitals[m + 1] == l.orbitals[m] + 1) m++;
+            if (!mos.empty()) mos += wxT(",");
+            mos += wxString::Format(wxT("%d"), l.orbitals[k] + 1);
+            if (m > k) mos += wxString::Format(wxT("\u2013%d"), l.orbitals[m] + 1);
+            k = m + 1;
+          }
+          wxString text = wxString(l.calcLabel.c_str(), wxConvUTF8);
+          if (!mos.empty()) text += wxT("  MO ") + mos;
+          text += wxString::Format(wxT("  %s%.2f  %.2f"), e < 0 ? wxT("\u2212") : wxT("+"),
+                                   fabs(e), l.calcOverlap);
           dc.SetTextForeground(l.calcOverlap < 0.80 ? wxColour(170, 80, 0)
                                                     : wxColour(60, 60, 60));
-          dc.DrawText(text, xCalc + 26, cy - dc.GetTextExtent(text).y/2);
+          dc.DrawText(text, xCalc + calcSegments + 4, cy - dc.GetTextExtent(text).y/2);
         }
         dc.SetTextForeground(wxColour(110, 110, 110));
-        dc.DrawText(wxT("energy / Ha   overlap"), xCalc, plot.y + plot.height + 2);
+        dc.DrawText(wxT("level  MOs  energy / Ha  overlap"), xCalc, plot.y + plot.height + 2);
       }
 
       //  The stack, from the bottom of the window upward: the

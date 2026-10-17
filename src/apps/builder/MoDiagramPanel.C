@@ -1628,7 +1628,11 @@ void dumpColumn(std::ofstream& out, const string& name, const MoColumn& col,
       out << " norm=" << (*normVals)[i];
     if (lv.hasCalc)
       out << " calcEnergy=" << std::setprecision(6) << lv.calcEnergy
-          << " calcOverlap=" << std::setprecision(4) << lv.calcOverlap;
+          << " calcOverlap=" << std::setprecision(4) << lv.calcOverlap
+          << " calcLabel=" << escapeDumpText(lv.calcLabel.empty() ? "-" : lv.calcLabel)
+          << " calcOcc=" << std::setprecision(4) << lv.calcOccupancy
+          << " calcOccBeta=" << lv.calcOccupancyBeta
+          << " calcDeg=" << lv.calcDegeneracy;
     //  SKELETON only (#183): metal-ligand overlap population, empty
     //  and so absent for every other construction/fixture.
     if (metalLigandOP != 0 && i < metalLigandOP->size())
