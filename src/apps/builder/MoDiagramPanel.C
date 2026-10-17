@@ -991,12 +991,24 @@ namespace {
    * side carries no usable labels of matching length, since that is the
    * best evidence left.
    */
-  void matchAlphaBeta(const vector<string>& sAlpha, const vector<string>& sBeta,
+  void matchAlphaBeta(const vector<string>& sAlphaIn, const vector<string>& sBetaIn,
                       int nAlpha, int nBeta, vector<int>& betaOfAlpha)
   {
     betaOfAlpha.assign(nAlpha, -1);
-    const bool haveLabels = (int)sAlpha.size() == nAlpha &&
-        (int)sBeta.size() == nBeta && !sAlpha.empty() && !sBeta.empty();
+    const bool haveLabels = (int)sAlphaIn.size() == nAlpha &&
+        (int)sBetaIn.size() == nBeta && !sAlphaIn.empty() && !sBetaIn.empty();
+    //  An orbital the labeller gave up on in one spin only (CoCl4's deep
+    //  Cl a1+t2 accident) would shift every later k-th match of that
+    //  irrep, so it is left out of both.
+    vector<string> sAlpha = sAlphaIn, sBeta = sBetaIn;
+    if (haveLabels && nAlpha == nBeta) {
+      for (int i = 0; i < nAlpha; i++) {
+        if (sAlpha[i].empty() != sBeta[i].empty()) {
+          sAlpha[i].clear();
+          sBeta[i].clear();
+        }
+      }
+    }
     if (haveLabels) {
       map<string, vector<int> > byIrrep;
       for (int i = 0; i < nBeta; i++) {
@@ -2126,9 +2138,9 @@ void MoDiagramPanel::buildOnce()
   //  otherwise `s` is untouched and the existing subgroup-downgrade
   //  path further down runs exactly as it already did.
   bool labelsInFullGroup = false;
+  double windowLow = -1.0e30, windowHigh = 1.0e30;
   {
     progressDlg.progress(20, _("Assigning full-group symmetry labels"));
-    double windowLow, windowHigh;
     drawnWindow(e, o, windowLow, windowHigh);
     vector<string> computedLabels;
     string computedNote;
@@ -2155,6 +2167,22 @@ void MoDiagramPanel::buildOnce()
     progressDlg.progress(40, _("Assigning full-group symmetry labels (beta)"));
     double windowLowB, windowHighB;
     drawnWindow(eB, oB, windowLowB, windowHighB);
+    //  The same orbitals as the alpha window, by index: spin-polarised
+    //  energies differ, and a window cut at different orbitals labels
+    //  different numbers of each irrep, so the k-th alpha and beta orbital
+    //  of an irrep no longer correspond (CoCl4's t2).
+    if (windowLow > -1.0e29 && windowHigh < 1.0e29 && eB.size() == e.size()) {
+      size_t lo = e.size(), hi = 0;
+      for (size_t i = 0; i < e.size(); i++) {
+        if (e[i] < windowLow || e[i] > windowHigh) continue;
+        lo = std::min(lo, i);
+        hi = std::max(hi, i);
+      }
+      if (lo <= hi) {
+        windowLowB = eB[lo] - 1.0e-9;
+        windowHighB = eB[hi] + 1.0e-9;
+      }
+    }
     vector<string> computedBetaLabels;
     string computedBetaNote;
     wxStopWatch throttle;
@@ -2179,6 +2207,11 @@ void MoDiagramPanel::buildOnce()
   if (linearMolecule && labelsInFullGroup) {
     for (size_t i = 0; i < s.size(); i++) {
       s[i] = linearName(MoDiagram::canonicalIrrep(s[i]));
+    }
+    //  The beta labels get the same spelling, or matchAlphaBeta() finds
+    //  no irrep in common and the triplet's beta electrons are not drawn.
+    for (size_t i = 0; i < sB.size(); i++) {
+      sB[i] = linearName(MoDiagram::canonicalIrrep(sB[i]));
     }
   }
 

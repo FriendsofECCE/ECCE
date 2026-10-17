@@ -78,6 +78,11 @@ FIXTURES = {
     #  --no-rotate): the methyl carbon, and the hydroxyl oxygen.
     "ecceqm-methanol-pick-c1": os.path.join(FIXTURES_DIR, "ecceqm-methanol"),
     "ecceqm-methanol-pick-o2": os.path.join(FIXTURES_DIR, "ecceqm-methanol"),
+    #  #301 validation set (ORCA BP86/def2-SVP, idealised geometries, no
+    #  UseSym, so the labels are the diagram's own).  The open-shell and
+    #  charged ones carry their multiplicity and charge in .davprops.
+    "orca-o2-triplet": os.path.join(FIXTURES_DIR, "orca-o2-triplet"),
+    "orca-cocl4-quartet": os.path.join(FIXTURES_DIR, "orca-cocl4-quartet"),
 }
 
 

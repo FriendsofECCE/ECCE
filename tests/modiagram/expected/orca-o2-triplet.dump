@@ -1,0 +1,60 @@
+group: D4h
+formula: O2
+construction: a central atom and its neighbours
+headline: 
+note: Fragments: a central atom and its neighbours · energies in Hartree · labels in D<sub>4h</sub> · 2 core orbitals hidden
+about: **What is drawn.** The molecular levels in the middle are the calculation's own orbital energies, in Hartree. This is an unrestricted calculation: the levels are drawn at their alpha energies, and the beta electrons are matched to them by symmetry.\n\n**Fragment levels.** Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, and kept in the atom's own shell order. Its free-atom energy is given beside it.\n\n**Symmetry.** Symmetry labels computed from the orbitals in D4h; the code reported none.\n\n**Not shown.** 2 core orbitals below −18.92 Hartree.
+column left
+  title: O
+  fromHalves: 0
+  hiddenCount: 0
+  hiddenMaxEnergy: 0.000000
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 0
+  shellKeys: O:0 O:1
+  levels: 2
+  level 0 energy=-0.925130 tabulated=-32.400000 irrep=- label=2s character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -1.19 Ha"
+  level 1 energy=-0.110210 tabulated=-15.900000 irrep=- label=2p character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=3 shell=1 slot=1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.58 Ha"
+column centre
+  title: Molecular orbitals
+  fromHalves: 0
+  hiddenCount: 2
+  hiddenMaxEnergy: -18.920130
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 8
+  shellKeys:
+  levels: 6
+  level 0 energy=-1.196770 tabulated=0.000000 irrep=SGG label=2SGG character=BONDING pairing=0 occupancy=1.0000 occupancyBeta=1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=0.3096 mullikenMax=0.5000 norm=1.0000 orbitals=[2] annotation="-1.1968"
+  level 1 energy=-0.727500 tabulated=0.000000 irrep=SGU label=2SGU* character=ANTIBONDING pairing=0 occupancy=1.0000 occupancyBeta=1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=-0.2669 mullikenMax=0.5000 norm=1.0000 orbitals=[3] annotation="-0.7275"
+  level 2 energy=-0.493870 tabulated=0.000000 irrep=PIU label=1PIU character=BONDING pairing=2 occupancy=2.0000 occupancyBeta=2.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=0.1736 mullikenMax=0.5000 norm=1.0000 orbitals=[4,5] annotation="-0.4939"
+  level 3 energy=-0.488670 tabulated=0.000000 irrep=SGG label=3SGG character=BONDING pairing=1 occupancy=1.0000 occupancyBeta=1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=-0.0035 mullikenMax=0.5000 norm=1.0000 orbitals=[6] annotation="-0.4887"
+  level 4 energy=-0.243840 tabulated=0.000000 irrep=PIG label=1PIG* character=ANTIBONDING pairing=2 occupancy=2.0000 occupancyBeta=0.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=-0.2996 mullikenMax=0.5000 norm=1.0000 orbitals=[7,8] annotation="-0.2438"
+  level 5 energy=0.161430 tabulated=0.000000 irrep=SGU label=3SGU* character=ANTIBONDING pairing=1 occupancy=0.0000 occupancyBeta=0.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=-5.0943 mullikenMax=0.5000 norm=1.0000 orbitals=[9] annotation="0.1614"
+column right
+  title: O
+  fromHalves: 0
+  hiddenCount: 0
+  hiddenMaxEnergy: 0.000000
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 0
+  shellKeys: O:0 O:1
+  levels: 2
+  level 0 energy=-0.925130 tabulated=-32.400000 irrep=- label=2s character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -1.19 Ha"
+  level 1 energy=-0.110210 tabulated=-15.900000 irrep=- label=2p character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=3 shell=1 slot=1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.58 Ha"
+links: 16
+  link 0 left=0 centre=0 right=-1
+  link 1 left=-1 centre=0 right=0
+  link 2 left=0 centre=1 right=-1
+  link 3 left=1 centre=1 right=-1
+  link 4 left=-1 centre=1 right=0
+  link 5 left=-1 centre=1 right=1
+  link 6 left=1 centre=2 right=-1
+  link 7 left=-1 centre=2 right=1
+  link 8 left=1 centre=3 right=-1
+  link 9 left=0 centre=3 right=-1
+  link 10 left=-1 centre=3 right=1
+  link 11 left=-1 centre=3 right=0
+  link 12 left=1 centre=4 right=-1
+  link 13 left=-1 centre=4 right=1
+  link 14 left=1 centre=5 right=-1
+  link 15 left=-1 centre=5 right=1
