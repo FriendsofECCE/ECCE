@@ -3,7 +3,7 @@
 
     makecalc.py CODE MOLECULE NOISE OUTDIR [--opt] [--seed N] [--keep]
 
-CODE is g16, orca, nwchem or ecceqm; MOLECULE one of h2o, nh3, ch4, co2,
+CODE is g16, orca, nwchem or ecceqm; MOLECULE one of h2o, nh3, ch4, co2, c2h4, c3h6,
 c2, he2, n2, co, hf (the last five are Teaching > Diatomics, bond along x).
 ecceqm runs the built-in engine (B3LYP/6-31G*), which keeps the input
 frame; --no-rotate leaves the molecule as the library has it.  NOISE
@@ -56,7 +56,27 @@ MOLECULES = {
             ("H", -_A, _A, -_A), ("H", _A, -_A, -_A)],
     "co2": [("C", 0.0, 0.0, 0.0), ("O", 0.0, 0.0, 1.16),
             ("O", 0.0, 0.0, -1.16)],
+    #  Ethene, D2h, C=C along x, molecule in the xy plane.
+    "c2h4": [("C", 0.6695, 0.0, 0.0), ("C", -0.6695, 0.0, 0.0),
+             ("H", 1.2321, 0.9289, 0.0), ("H", 1.2321, -0.9289, 0.0),
+             ("H", -1.2321, 0.9289, 0.0), ("H", -1.2321, -0.9289, 0.0)],
 }
+
+#  Cyclopropane, D3h: the smallest ring, for a bond whose cut does not
+#  split the molecule.
+_R = 0.8700
+for _k in range(3):
+    _t = math.pi / 2 + 2 * math.pi * _k / 3
+    _c = (_R * math.cos(_t), _R * math.sin(_t))
+    MOLECULES.setdefault("c3h6", []).append(("C", _c[0], _c[1], 0.0))
+for _k in range(3):
+    _t = math.pi / 2 + 2 * math.pi * _k / 3
+    _c = (_R * math.cos(_t), _R * math.sin(_t))
+    _o = (math.cos(_t), math.sin(_t))
+    _r, _z = 1.083 * math.cos(math.radians(57.5)), 1.083 * math.sin(math.radians(57.5))
+    for _sign in (1, -1):
+        MOLECULES["c3h6"].append(
+            ("H", _c[0] + _r * _o[0], _c[1] + _r * _o[1], _sign * _z))
 
 
 def libraryDiatomics():

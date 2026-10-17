@@ -120,6 +120,17 @@ class MoDiagramPanel : public VizPropertyPanel,
                                const vector<string>& elements);
       void onFragmentChanged(wxCommandEvent& event);
 
+      /** The first picked atom changed: the second one starts over. */
+      void onPickFirstChanged(wxCommandEvent& event);
+
+      /**
+       * Fill the two atom choosers for this molecule and read them (or
+       * ECCE_MODIAGRAM_PICK) into `first`/`second`, -1 for none.
+       */
+      void fillPickChoosers(const vector<double>& coords,
+                            const vector<string>& elements,
+                            int& first, int& second);
+
       /** Show or hide each level's energy. */
       void onShowEnergies(wxCommandEvent& event);
 
@@ -146,6 +157,10 @@ class MoDiagramPanel : public VizPropertyPanel,
       wxCheckBox      *p_showEnergies;
       wxCheckBox      *p_showAll;
       wxButton        *p_about;
+      wxChoice        *p_pickFirst;
+      wxChoice        *p_pickSecond;
+      vector<string>   p_atomLabels;     // "O1", "H2", ... as the Builder numbers
+      vector<int>      p_secondAtoms;    // atoms in the second chooser, after (none)
 
       //  Re-entrancy guard (#170 progress dialog): ewxProgressDialog::
       //  Update() pumps the event loop, so a resize or a control the

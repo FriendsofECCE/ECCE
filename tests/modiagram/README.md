@@ -161,3 +161,14 @@ goldens after an intentional engine change, and `--repeat N` to check
 determinism before trusting a capture (used here with `N=2` for every
 fixture). A single fixture can be named on the command line to avoid
 re-running all six.
+
+## Atom picks (#301)
+
+`ECCE_MODIAGRAM_PICK="O1"` (one atom) or `"C1,C2"` (a bond), labels as the
+Builder numbers atoms (symbol and number from 1), does what the panel's
+"Centre/first atom" and "Bonded to" choosers do. `ecceqm-water-pick-o1`,
+`orca-crco6-pick-cr1` and `ecceqm-c2h4-pick-c1c2` differ from the automatic
+goldens (`ecceqm-water`, `orca-crco6`, `ecceqm-c2h4`) only in the `note:`
+and `about:` lines, which name the pick. `ecceqm-c3h6-pick-ring` picks a
+ring bond and is refused (a spectrum and a tier-B line). `ecceqm-c2h4` and
+`ecceqm-c3h6` are `makecalc.py ecceqm c2h4|c3h6 0 DIR --no-rotate`.

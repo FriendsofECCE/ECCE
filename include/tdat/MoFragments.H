@@ -62,6 +62,17 @@ class MoFragments
                         ///< builds it, build() here never does
     };
 
+    /**
+     * An atom (or a bonded pair) the user picked to choose the diagram.
+     * Indices into the atom list; second is -1 for a single atom.
+     */
+    struct Pick
+    {
+      int first, second;
+      Pick() : first(-1), second(-1) {}
+      Pick(int a, int b = -1) : first(a), second(b) {}
+    };
+
     /** What to call a construction on screen. */
     static const char* fragmentationName(Fragmentation how);
 
@@ -475,6 +486,12 @@ class MoFragments
      *              -- someone who asked for a ligand field diagram of
      *              ethene needs to be told ethene has no metal, not
      *              handed a different diagram.
+     * @param pick  one atom: it against the atoms bonded to it (CENTRAL);
+     *              two bonded atoms: the molecule cut at that bond, as
+     *              HALVES when the sides are swapped by a symmetry
+     *              operation and GROUPS otherwise. Refused, with the
+     *              reason in `note`, for a ring bond, a metal, or a
+     *              piece the symmetry does not map onto itself.
      */
     static bool build(const vector<double>& coords,
                       const vector<string>& elements,
@@ -487,7 +504,8 @@ class MoFragments
                       vector<int>* rightAtoms = 0,
                       const vector<int>* sideOfOrbit = 0,
                       Fragmentation* how = 0,
-                      Fragmentation want = NOT_BUILT);
+                      Fragmentation want = NOT_BUILT,
+                      const Pick* pick = 0);
 };
 
 #endif

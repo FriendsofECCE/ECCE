@@ -1699,12 +1699,17 @@ static bool buildHalves(const vector<double>& coords,
                         const vector< vector<int> >& images,
                         const vector<int>& classOfOp,
                         int numAtoms,
-                        MoColumn& left, MoColumn& right, string& note)
+                        MoColumn& left, MoColumn& right, string& note,
+                        const vector<int>* givenA = 0,
+                        const vector<int>* givenB = 0)
 {
    const bool trace = (getenv("ECCE_DEBUG_HALVES") != 0);
 
    vector<int> halfA, halfB;
-   if (!splitAcrossBond(coords, elements, halfA, halfB)) {
+   if (givenA != 0 && givenB != 0) {
+      halfA = *givenA;
+      halfB = *givenB;
+   } else if (!splitAcrossBond(coords, elements, halfA, halfB)) {
       if (trace) fprintf(stderr, "[HALVES] no split across a bond\n");
       return false;
    }
@@ -2247,6 +2252,170 @@ void MoFragments::availableFragmentations(const vector<double>& coords,
 }
 
 
+/**
+ * The diagram the user asked for by picking an atom (b < 0) or a bond.
+ * Metals never get here when the fragment-orbital diagram is available;
+ * every refusal says why in `note`.
+ */
+static bool buildPicked(const vector<double>& coords,
+                        const vector<string>& elements,
+                        const CharacterTable& table,
+                        const vector<SymOp>& ops,
+                        const vector< vector<int> >& images,
+                        const vector<int>& classOfOp,
+                        int charge, int a, int b,
+                        MoColumn& left, MoColumn& right, string& note,
+                        vector<int>* leftAtoms, vector<int>* rightAtoms,
+                        MoFragments::Fragmentation* how)
+{
+   const int n = (int)elements.size();
+   double unused;
+   if (a < 0 || a >= n || b >= n) {
+      note = "The picked atom is not in this molecule.";
+      return false;
+   }
+   if (MoFragments::valenceEnergy(elements[a], 2, unused) ||
+       (b >= 0 && MoFragments::valenceEnergy(elements[b], 2, unused))) {
+      note = "A metal was picked, which needs the fragment-orbital "
+             "diagram, and that is not available for this calculation.";
+      return false;
+   }
+
+   vector< vector<int> > near(n);
+   for (int i = 0; i < n; i++)
+      for (int j = 0; j < n; j++)
+         if (j != i && bondedByRadii(i, j, coords, elements))
+            near[i].push_back(j);
+
+   vector<int> leftSet, rightSet;
+   bool diatomic = false;
+
+   if (b < 0) {
+      //  A centre has to be left in place by every operation, or its
+      //  orbitals are not symmetry orbitals of the molecule's group.
+      for (size_t op = 0; op < images.size(); op++) {
+         if (images[op][a] != a) {
+            note = "The picked atom is not on every symmetry element of " +
+                   table.name() + ", so it cannot be a fragment of its own "
+                   "in that symmetry. Pick a bond, or use Choose fragments.";
+            return false;
+         }
+      }
+      leftSet.assign(1, a);
+      rightSet = near[a];
+      if (rightSet.empty()) {
+         note = "The picked atom has no bonded atoms to be drawn against.";
+         return false;
+      }
+      const int otherAtoms = n - 1 - (int)rightSet.size();
+      diatomic = (n == 2);
+      if (how != 0) *how = MoFragments::CENTRAL;
+      note = "Drawn as the picked atom against the atoms bonded to it.";
+      if (otherAtoms > 0) {
+         ostringstream more;
+         more << " " << otherAtoms << " further atom"
+              << (otherAtoms == 1 ? " is" : "s are")
+              << " in neither fragment.";
+         note += more.str();
+      }
+   } else {
+      if (find(near[a].begin(), near[a].end(), b) == near[a].end()) {
+         note = "The two picked atoms are not bonded to each other.";
+         return false;
+      }
+      vector<bool> inA(n, false);
+      vector<int> stack(1, a);
+      inA[a] = true;
+      while (!stack.empty()) {
+         const int here = stack.back();
+         stack.pop_back();
+         for (size_t m = 0; m < near[here].size(); m++) {
+            const int next = near[here][m];
+            if ((here == a && next == b) || (here == b && next == a)) continue;
+            if (!inA[next]) { inA[next] = true; stack.push_back(next); }
+         }
+      }
+      if (inA[b]) {
+         note = "This bond is part of a ring, so cutting it does not "
+                "split the molecule in two and there is no pair of "
+                "fragments to draw from it. Use Choose fragments to "
+                "group the atoms yourself.";
+         return false;
+      }
+      for (int i = 0; i < n; i++) (inA[i] ? leftSet : rightSet).push_back(i);
+
+      bool swapped = false;
+      for (size_t op = 0; op < images.size(); op++) {
+         bool keeps = true, swaps = true;
+         for (int i = 0; i < n; i++) {
+            if (inA[images[op][i]] == inA[i]) swaps = false;
+            else keeps = false;
+         }
+         if (swaps) swapped = true;
+         else if (!keeps) {
+            note = "The two pieces on either side of this bond are not "
+                   "mapped onto themselves or onto each other by the "
+                   "symmetry of the molecule (" + table.name() + "), so "
+                   "they have no symmetry orbitals in it. Pick another "
+                   "bond, or use Choose fragments.";
+            return false;
+         }
+      }
+
+      if (swapped) {
+         if (!buildHalves(coords, elements, table, ops, images, classOfOp,
+                          n, left, right, note, &leftSet, &rightSet)) {
+            left = MoColumn();
+            right = MoColumn();
+            note = "The two sides of this bond are equivalent, but they "
+                   "could not be combined in phase and out of phase in "
+                   "a subgroup of " + table.name() + ".";
+            return false;
+         }
+         if (how != 0) *how = MoFragments::HALVES;
+         int total = 0;
+         for (int i = 0; i < n; i++)
+            total += MoFragments::valenceElectrons(elements[i]);
+         total -= charge;
+         fillColumn(left.levels,  total/2);
+         fillColumn(right.levels, total - total/2);
+         if (leftAtoms  != 0) *leftAtoms  = leftSet;
+         if (rightAtoms != 0) *rightAtoms = rightSet;
+         return true;
+      }
+      if (how != 0) *how = MoFragments::GROUPS;
+      note = "Drawn as the two pieces left when the picked bond is cut, " +
+             formulaOf(leftSet, elements) + " and " +
+             formulaOf(rightSet, elements) + ".";
+   }
+
+   if (leftAtoms  != 0) *leftAtoms  = leftSet;
+   if (rightAtoms != 0) *rightAtoms = rightSet;
+
+   buildColumn(leftSet, elements, coords, n, images, classOfOp, ops, table,
+               diatomic, left);
+   buildColumn(rightSet, elements, coords, n, images, classOfOp, ops, table,
+               diatomic, right);
+
+   int le = 0, re = 0;
+   for (size_t i = 0; i < leftSet.size(); i++)
+      le += MoFragments::valenceElectrons(elements[leftSet[i]]);
+   for (size_t i = 0; i < rightSet.size(); i++)
+      re += MoFragments::valenceElectrons(elements[rightSet[i]]);
+   fillColumn(left.levels,  le);
+   fillColumn(right.levels, re - charge);
+   if (b >= 0) {
+      left.title  = formulaOf(leftSet, elements);
+      right.title = formulaOf(rightSet, elements);
+   }
+   if (left.levels.empty() && right.levels.empty()) {
+      note = "No valence orbital energies for these atoms.";
+      return false;
+   }
+   return true;
+}
+
+
 bool MoFragments::build(const vector<double>& coords,
                         const vector<string>& elements,
                         const string& group,
@@ -2258,7 +2427,8 @@ bool MoFragments::build(const vector<double>& coords,
                         vector<int>* rightAtoms,
                         const vector<int>* sideOfOrbit,
                         Fragmentation* how,
-                        Fragmentation want)
+                        Fragmentation want,
+                        const Pick* pick)
 {
    if (leftAtoms  != 0) leftAtoms->clear();
    if (rightAtoms != 0) rightAtoms->clear();
@@ -2358,7 +2528,7 @@ bool MoFragments::build(const vector<double>& coords,
          double unusedD;
          const bool metalHub = valenceEnergy(elements[hub], 2, unusedD);
 
-         if (metalHub && sideOfOrbit == 0 &&
+         if (metalHub && sideOfOrbit == 0 && pick == 0 &&
              near.size() > 1 && near.size() < others.size()) {
             //  Only when this construction is the one wanted: asking
             //  for the chemical groups of a molecule must not be
@@ -2430,6 +2600,12 @@ bool MoFragments::build(const vector<double>& coords,
 
    vector< vector<int> > orbits;
    SymmetryAnalysis::orbits(images, numAtoms, orbits);
+
+   if (pick != 0 && pick->first >= 0) {
+      return buildPicked(coordsUsed, elementsUsed, *table, ops, images,
+                         classOfOp, charge, pick->first, pick->second,
+                         left, right, note, leftAtoms, rightAtoms, how);
+   }
 
    //  --- which atoms are on which side ------------------------------
    //

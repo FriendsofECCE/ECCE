@@ -66,12 +66,24 @@ FIXTURES = {
     "ecceqm-n2": os.path.join(FIXTURES_DIR, "ecceqm-n2"),
     "ecceqm-co-rotated": os.path.join(FIXTURES_DIR, "ecceqm-co-rotated"),
     "ecceqm-water": os.path.join(FIXTURES_DIR, "ecceqm-water"),
+    #  #301: ethene and cyclopropane (makecalc.py ecceqm c2h4 / c3h6 0
+    #  --no-rotate), and the atom picks that choose a diagram.
+    "ecceqm-c2h4": os.path.join(FIXTURES_DIR, "ecceqm-c2h4"),
+    "ecceqm-c2h4-pick-c1c2": os.path.join(FIXTURES_DIR, "ecceqm-c2h4"),
+    "ecceqm-c3h6-pick-ring": os.path.join(FIXTURES_DIR, "ecceqm-c3h6"),
+    "ecceqm-water-pick-o1": os.path.join(FIXTURES_DIR, "ecceqm-water"),
+    "orca-crco6-pick-cr1": os.path.join(FIXTURES_DIR, "orca-crco6"),
 }
 
 
 #  Extra environment per fixture: a construction asked for by name.
 FIXTURE_ENV = {
     "orca-crco6-skeleton": {"ECCE_MODIAGRAM_CONSTRUCTION": "skeleton"},
+    #  ECCE_MODIAGRAM_PICK: the atom (or "A,B" bond) the user picked.
+    "ecceqm-c2h4-pick-c1c2": {"ECCE_MODIAGRAM_PICK": "C1,C2"},
+    "ecceqm-c3h6-pick-ring": {"ECCE_MODIAGRAM_PICK": "C1,C2"},
+    "ecceqm-water-pick-o1": {"ECCE_MODIAGRAM_PICK": "O1"},
+    "orca-crco6-pick-cr1": {"ECCE_MODIAGRAM_PICK": "Cr1"},
 }
 
 

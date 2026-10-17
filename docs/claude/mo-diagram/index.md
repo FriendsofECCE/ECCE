@@ -42,3 +42,4 @@ MOPAC → spec) is the bridge it would reuse.
 - [Fragment orbitals from extended Hueckel, and the MO composition in them (#301)](fragment-orbitals-from-eht.md)
 - [EHTParameters: Alvarez 1993 via YAeHMOP (BSD), what was checked and what disagrees](eht-parameters-and-licence.md)
 - [The fragment-orbital diagram in the MO Diagram panel (#301, route B stage 2)](fragment-orbital-diagram.md)
+- [An atom pick chooses the MO diagram (#301)](an-atom-pick-chooses-the-diagram.md)

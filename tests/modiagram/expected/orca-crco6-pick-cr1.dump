@@ -1,0 +1,62 @@
+group: Oh
+formula: Cr(CO)6
+construction: Fragment orbitals (extended Hückel)
+headline: 
+note: Fragments: Cr1 against its ligands (extended Hückel, qualitative) · energies in Hartree · labels in O<sub>h</sub> · 14 levels hidden (Show all levels)
+about: **Where the fragment levels come from.** The left and right columns are the orbitals of the metal atom and of the ligands on their own, from a quick extended Hückel calculation. Each is placed at the energy it has inside the molecule before it mixes with anything. This puts every bonding level below the two levels it comes from and every antibonding level above them, as in a textbook diagram. Treat their positions as qualitative.\n\n**How reliable each fragment level is: 18–98 %.** A fragment level can only be placed using the orbitals the calculation reported. The percentage says how much of the fragment orbital those orbitals cover. Levels below 90 % show their percentage next to them; their positions are less certain.\n\n**Lines.** A line joins a molecular orbital to a fragment orbital that makes up at least 10 % of it. Both members of a bonding/antibonding pair are joined to both of their parents.\n\n**Symmetry labels** are in O<sub>h</sub>, the symmetry of the Cr and its six donor atoms. A ligand's own atoms can lower the symmetry of the whole molecule (the hydrogens of NH3, for example), so the labels may be higher than the molecule's own.\n\n**Not shown:** 65 molecular orbitals that are less than half made of the fragments' valence orbitals. Nearly all of them are high, empty orbitals. 14 further levels sit on the ligands alone or have little metal character; tick Show all levels to draw them. Also not shown: 18 core orbitals below −3.49 Hartree.\n\n**Total electrons: 66** (Cr d6, ligands 60).\n\n**Orbital labels.** Symmetry labels computed from the orbitals in Oh (cross-checked against the code's own D2H labels, which agreed on all 199 orbitals both sides could label, and every computed label subduces to match).\n\n**Picked atoms.** One atom is drawn against the atoms bonded to it; two bonded atoms cut that bond and the two sides are drawn against each other (in and out of phase when they are equal). A metal gives the fragment-orbital diagram, each ligand being a connected piece left when the metal is removed.
+column left
+  title: Metal AOs (extended Hückel)
+  fromHalves: 0
+  hiddenCount: 0
+  hiddenMaxEnergy: 0.000000
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 0
+  shellKeys:
+  levels: 3
+  level 0 energy=-0.245659 tabulated=-11.220000 irrep=T2g label=Cr 3d character=UNKNOWN pairing=-1 occupancy=6.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="T2g" detail="Fock diagonal -0.2457 Hartree, covered 98% of the orbital by the calculation's MOs.\nEHT H_ii (qualitative): -11.22 eV"
+  level 1 energy=0.004953 tabulated=-11.220000 irrep=Eg label=Cr 3d character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="Eg  covered 73%" detail="Fock diagonal 0.0050 Hartree, covered 73% of the orbital by the calculation's MOs.\nEHT H_ii (qualitative): -11.22 eV"
+  level 2 energy=0.012176 tabulated=-8.660000 irrep=A1g label=Cr 4s character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="A1g  covered 60%" detail="Fock diagonal 0.0122 Hartree, covered 60% of the orbital by the calculation's MOs.\nEHT H_ii (qualitative): -8.66 eV"
+column centre
+  title: Molecular orbitals
+  fromHalves: 0
+  hiddenCount: 18
+  hiddenMaxEnergy: -3.488180
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 46
+  shellKeys:
+  levels: 6
+  level 0 energy=-0.847900 tabulated=0.000000 irrep=A1g label=7A1g character=BONDING pairing=2 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.1529 shareRight=0.7691 orbitals=[27] annotation="-0.8479" detail="Fragment orbitals (extended Hückel): ligand, bonding, metal 15%, ligands 77%, covered 92% of the MO.  Irrep A1g of the skeleton's group Oh.\nLargest: FO7 A1g 69%; Cr 4s A1g 15%; FO25 A1g 6%"
+  level 1 energy=-0.612860 tabulated=0.000000 irrep=Eg label=4Eg character=BONDING pairing=1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.2011 shareRight=0.7714 orbitals=[46,47] annotation="-0.6129" detail="Fragment orbitals (extended Hückel): mixed, bonding, metal 20%, ligands 77%, covered 97% of the MO (mean over its orbitals).  Irrep Eg of the skeleton's group Oh.\nLargest: FO29-30 Eg 71%; Cr 3d Eg 20%; FO11-12 Eg 4%"
+  level 2 energy=-0.354060 tabulated=0.000000 irrep=T2g label=2T2g character=BONDING pairing=0 occupancy=6.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.7160 shareRight=0.2659 orbitals=[51,52,53] annotation="-0.3541" detail="Fragment orbitals (extended Hückel): metal-centred, bonding, metal 72%, ligands 27%, covered 98% of the MO (mean over its orbitals).  Irrep T2g of the skeleton's group Oh.\nLargest: Cr 3d T2g 72%; FO31-33 T2g 23%; FO13-15 T2g 4%"
+  level 3 energy=0.146300 tabulated=0.000000 irrep=T2g label=3T2g* character=ANTIBONDING pairing=0 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.2334 shareRight=0.6496 orbitals=[61,62,63] annotation="0.1463" detail="Fragment orbitals (extended Hückel): mixed, antibonding, metal 23%, ligands 65%, covered 88% of the MO (mean over its orbitals).  Irrep T2g of the skeleton's group Oh.\nLargest: FO31-33 T2g 65%; Cr 3d T2g 23%"
+  level 4 energy=0.284450 tabulated=0.000000 irrep=Eg label=5Eg* character=ANTIBONDING pairing=1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.5070 shareRight=0.2937 orbitals=[67,68] annotation="0.2844" detail="Fragment orbitals (extended Hückel): metal-centred, antibonding, metal 51%, ligands 29%, covered 80% of the MO (mean over its orbitals).  Irrep Eg of the skeleton's group Oh.\nLargest: Cr 3d Eg 51%; FO47-48 Eg 17%; FO29-30 Eg 8%; FO11-12 Eg 3%"
+  level 5 energy=0.681580 tabulated=0.000000 irrep=A1g label=11A1g* character=ANTIBONDING pairing=2 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.3390 shareRight=0.4150 orbitals=[81] annotation="0.6816" detail="Fragment orbitals (extended Hückel): mixed, antibonding, metal 34%, ligands 42%, covered 75% of the MO.  Irrep A1g of the skeleton's group Oh.\nLargest: Cr 4s A1g 34%; FO43 A1g 25%; FO7 A1g 10%; FO25 A1g 4%"
+column right
+  title: Ligand orbitals (extended Hückel)
+  fromHalves: 0
+  hiddenCount: 0
+  hiddenMaxEnergy: 0.000000
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 0
+  shellKeys:
+  levels: 5
+  level 0 energy=-0.650611 tabulated=-21.827167 irrep=A1g label=FO7 character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="A1g  C 2s 54%  covered 81%" detail="Fock diagonal -0.6506 Hartree, covered 81% of the orbital by the calculation's MOs.\nEHT FO energy (qualitative): -21.83 eV"
+  level 1 energy=-0.594836 tabulated=-11.509812 irrep=Eg label=FO29-30 character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="Eg  C 2p 45%" detail="Fock diagonal -0.5948 Hartree, covered 91% of the orbital by the calculation's MOs.\nEHT FO energy (qualitative): -11.51 eV"
+  level 2 energy=0.008309 tabulated=-10.097597 irrep=T2g label=FO31-33 character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="T2g  C 2p 74%  covered 89%" detail="Fock diagonal 0.0083 Hartree, covered 89% of the orbital by the calculation's MOs.\nEHT FO energy (qualitative): -10.10 eV"
+  level 3 energy=0.223799 tabulated=46.143380 irrep=Eg label=FO47-48 character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="Eg  C 2p 44%  covered 18%" detail="Fock diagonal 0.2238 Hartree, covered 18% of the orbital by the calculation's MOs.\nEHT FO energy (qualitative): 46.14 eV"
+  level 4 energy=0.628437 tabulated=43.210770 irrep=A1g label=FO43 character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="A1g  C 2p 46%  covered 26%" detail="Fock diagonal 0.6284 Hartree, covered 26% of the orbital by the calculation's MOs.\nEHT FO energy (qualitative): 43.21 eV"
+links: 14
+  link 0 left=2 centre=0 right=-1 weight=0.1529
+  link 1 left=-1 centre=0 right=0 weight=0.6861
+  link 2 left=1 centre=1 right=-1 weight=0.2011
+  link 3 left=-1 centre=1 right=1 weight=0.7123
+  link 4 left=0 centre=2 right=-1 weight=0.7160
+  link 5 left=-1 centre=2 right=2 weight=0.2255
+  link 6 left=0 centre=3 right=-1 weight=0.2334
+  link 7 left=-1 centre=3 right=2 weight=0.6496
+  link 8 left=1 centre=4 right=-1 weight=0.5070
+  link 9 left=-1 centre=4 right=1 weight=0.0804
+  link 10 left=-1 centre=4 right=3 weight=0.1694
+  link 11 left=2 centre=5 right=-1 weight=0.3390
+  link 12 left=-1 centre=5 right=0 weight=0.1033
+  link 13 left=-1 centre=5 right=4 weight=0.2496
