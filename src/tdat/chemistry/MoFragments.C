@@ -2179,6 +2179,8 @@ const char* MoFragments::fragmentationName(Fragmentation how)
       case HALVES:          return "two equivalent halves";
       case GROUPS:          return "its two chemical groups";
       case EQUIVALENT_SETS: return "its two sets of equivalent atoms";
+      case FRAGMENT_ORBITALS:
+                            return "Fragment orbitals (extended Hückel)";
       default:              return "";
    }
 }
@@ -2265,6 +2267,12 @@ bool MoFragments::build(const vector<double>& coords,
    left  = MoColumn();
    right = MoColumn();
    note.clear();
+
+   if (want == FRAGMENT_ORBITALS) {
+      note = "The fragment-orbital diagram is built by FoDiagram, "
+             "not here.";
+      return false;
+   }
 
    if (group.empty()) {
       note = "The molecule's point group is not known, so there is "

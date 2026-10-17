@@ -1,9 +1,7 @@
 # Extended Hueckel parameters, one line per element and valence shell.
 #
-# WHY.  The fragment-orbital analysis of the MO diagram (FragmentOrbitals)
-# needs EHT orbitals for atoms from H to the 5d metals, with d shells.  The
-# older HuckelParameters file (s and p only, H-Ne) is left alone because the
-# diagram's own EHT path still reads it.
+# WHY.  The extended Hueckel engine (FragmentOrbitals, also behind Huckel)
+# needs orbitals for atoms from H to the 5d metals, with d shells.
 #
 # SOURCE.  S. Alvarez, "Tables of parameters for extended
 # Hueckel calculations", Universitat de Barcelona, 1993, as distributed in
@@ -12,8 +10,10 @@
 # the copyright notice, the licence conditions and the disclaimer, which
 # are reproduced in docs/claude/mo-diagram/eht-parameters-and-licence.md).
 # The values are copied unchanged; rows whose exponent is 0 in the source
-# (placeholders: Ar, Kr, Xe, Y, Ag, and the p and d shells of Hf) are left out,
-# so those elements have no parameters here.  The source file gives no
+# (placeholders: Ar, Kr, Xe, Y, Ag, Zn 3d, Cd 4d, and the p and d exponents of
+# Hf, whose H_ii alone is given) are left out, so those elements have no
+# parameters here.  No other published set could be read for them (see the
+# docs entry); nothing in this file is derived or invented.  The source file gives no
 # per-row references; the values were checked against Hoffmann's and
 # Albright-Burdett-Whangbo's tables (see the docs entry).
 #

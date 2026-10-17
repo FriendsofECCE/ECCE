@@ -56,7 +56,10 @@ class MoFragments
       CENTRAL,         ///< a central atom against its terminal atoms
       HALVES,          ///< two equivalent groups, in and out of phase
       GROUPS,          ///< one chemical group against the other
-      EQUIVALENT_SETS  ///< the fallback: its two sets of like atoms
+      EQUIVALENT_SETS, ///< the fallback: its two sets of like atoms
+      FRAGMENT_ORBITALS ///< metal AOs and ligand-shell orbitals from
+                        ///< extended Hueckel (FoDiagram); the caller
+                        ///< builds it, build() here never does
     };
 
     /** What to call a construction on screen. */

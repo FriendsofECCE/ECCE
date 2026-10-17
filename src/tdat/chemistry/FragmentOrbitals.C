@@ -57,7 +57,7 @@ bool hasShell(const vector<Shell>& v, int l)
 }
 
 //  Valence electrons as the group number; a filled d shell that has no
-//  parameters (Zn, Cd, Hg) is core.
+//  parameters (Zn, Cd; Hg's 5d is in the file) is core.
 int valenceCount(const string& el)
 {
    const int z = atomicNumber(el);
@@ -74,7 +74,7 @@ int valenceCount(const string& el)
    else return 0;
    if (group >= 13) group -= 10;               // p block: s2 p(group-12)
    if (FragmentOrbitals::isTransitionMetal(el)) {
-      //  Zn, Cd, Hg have no d parameters: the d10 shell is core.
+      //  Zn and Cd have no d parameters: the d10 shell is core.
       map< string, vector<Shell> >::const_iterator it = s_params.find(el);
       if (it == s_params.end() || !hasShell(it->second, 2)) return 2;
    }
@@ -605,6 +605,97 @@ bool FragmentOrbitals::build(const vector<string>& symbols,
 }
 
 
+string FragmentOrbitals::classOf(double capture, double metal, double ligand)
+{
+   if (capture < CORE_CAPTURE) return "core";
+   if (metal >= SIDE_FRACTION*capture) return "metal";
+   if (metal >= CENTRED_FRACTION*capture) return "metal-centred";
+   if (ligand >= SIDE_FRACTION*capture) return "ligand";
+   return "mixed";
+}
+
+
+bool FragmentOrbitals::hii(const string& element, int l, double& eV)
+{
+   if (!s_loaded) loadParameters();
+   map< string, vector<Shell> >::const_iterator it = s_params.find(element);
+   if (it == s_params.end()) return false;
+   for (size_t i = 0; i < it->second.size(); i++) {
+      if (it->second[i].l == l) { eV = it->second[i].hii; return true; }
+   }
+   return false;
+}
+
+
+static string baseNameOf(const string& n)
+{
+   const string::size_type p = n.find(" (");
+   return p == string::npos ? n : n.substr(0, p);
+}
+
+
+void FragmentOrbitals::groupFos(const FoSet& set, vector< vector<int> >& groups)
+{
+   groups.clear();
+   const size_t nk = set.fos.size();
+   for (size_t k = 0; k < nk; k++) {
+      const FO& fk = set.fos[k];
+      const Fragment& frk = set.fragments[fk.fragment];
+      bool placed = false;
+      for (size_t g = 0; g < groups.size() && !placed; g++) {
+         const FO& ref = set.fos[groups[g][0]];
+         const Fragment& frr = set.fragments[ref.fragment];
+         const bool same = ref.fragment == fk.fragment ||
+             (frr.kind != METAL && frk.kind != METAL &&
+              baseNameOf(frr.name) == baseNameOf(frk.name));
+         if (same && fabs(ref.energy - fk.energy) < DEGENERATE_EH) {
+            groups[g].push_back((int)k);
+            placed = true;
+         }
+      }
+      if (!placed) groups.push_back(vector<int>(1, (int)k));
+   }
+}
+
+
+FragmentOrbitals::LevelShare
+FragmentOrbitals::describeGroup(const FoSet& set, const vector<int>& members)
+{
+   LevelShare ls;
+   const FO& f0 = set.fos[members[0]];
+   const Fragment& fr = set.fragments[f0.fragment];
+   ls.fragment = f0.fragment;
+   ls.energy = f0.energy*HARTREE;
+   ls.share = 0.0;
+   char buf[96];
+   if (fr.kind == METAL) {
+      //  The group's shell: any member's function names it.
+      int fnIdx = 0;
+      for (size_t a = 0; a < f0.coef.size(); a++)
+         if (f0.coef[a] != 0.0) { fnIdx = (int)a; break; }
+      snprintf(buf, sizeof buf, "%s %s", fr.name.c_str(),
+               dShellName(set.funcs[fnIdx].n, set.funcs[fnIdx].l).c_str());
+      ls.label = buf;
+   } else {
+      int i0 = f0.index, i1 = f0.index;
+      for (size_t q = 1; q < members.size(); q++) {
+         const FO& fq = set.fos[members[q]];
+         i0 = std::min(i0, fq.index);
+         i1 = std::max(i1, fq.index);
+      }
+      const string nm = baseNameOf(fr.name);
+      const char* occ = f0.occupancy > 0.5 ? "occ" : "virt";
+      if (i0 == i1)
+         snprintf(buf, sizeof buf, "%s FO%d (%s)", nm.c_str(), i0, occ);
+      else
+         snprintf(buf, sizeof buf, "%s FO%d-%d (%s)", nm.c_str(), i0, i1, occ);
+      ls.label = buf;
+      ls.character = f0.character;
+   }
+   return ls;
+}
+
+
 bool FragmentOrbitals::compose(const FoSet& set,
                                const vector<EspBasisFunction>& parent,
                                const vector<double>& S,
@@ -660,34 +751,8 @@ bool FragmentOrbitals::compose(const FoSet& set,
       return false;
    }
 
-   //  Degenerate FOs read as one level: within a fragment, and across the
-   //  same-formula ligands ("CO (1)".."CO (6)") of a per-ligand set.
-   auto baseName = [](const string& n) {
-      const string::size_type p = n.find(" (");
-      return p == string::npos ? n : n.substr(0, p);
-   };
-   vector<int> group(nk, -1);
    vector< vector<int> > groups;
-   for (size_t k = 0; k < nk; k++) {
-      const FO& fk = set.fos[k];
-      const Fragment& frk = set.fragments[fk.fragment];
-      for (size_t g = 0; g < groups.size(); g++) {
-         const FO& ref = set.fos[groups[g][0]];
-         const Fragment& frr = set.fragments[ref.fragment];
-         const bool same = ref.fragment == fk.fragment ||
-             (frr.kind != METAL && frk.kind != METAL &&
-              baseName(frr.name) == baseName(frk.name));
-         if (same && fabs(ref.energy - fk.energy) < DEGENERATE_EH) {
-            group[k] = (int)g;
-            groups[g].push_back((int)k);
-            break;
-         }
-      }
-      if (group[k] < 0) {
-         group[k] = (int)groups.size();
-         groups.push_back(vector<int>(1, (int)k));
-      }
-   }
+   groupFos(set, groups);
 
    for (size_t r = 0; r < rows.size(); r++) {
       const vector<double>& c = rows[r];
@@ -703,47 +768,16 @@ bool FragmentOrbitals::compose(const FoSet& set,
          else ms.ligand += ms.perFo[k];
       }
 
-      if (ms.capture < CORE_CAPTURE) ms.klass = "core";
-      else if (ms.metal >= SIDE_FRACTION*ms.capture) ms.klass = "metal";
-      else if (ms.ligand >= SIDE_FRACTION*ms.capture) ms.klass = "ligand";
-      else ms.klass = "mixed";
+      ms.klass = classOf(ms.capture, ms.metal, ms.ligand);
 
+      ms.perGroup.assign(groups.size(), 0.0);
       for (size_t g = 0; g < groups.size(); g++) {
          double w = 0.0;
          for (size_t q = 0; q < groups[g].size(); q++) w += ms.perFo[groups[g][q]];
+         ms.perGroup[g] = w;
          if (w < TOP_MIN) continue;
-         const FO& f0 = set.fos[groups[g][0]];
-         const Fragment& fr = set.fragments[f0.fragment];
-         LevelShare ls;
-         ls.fragment = f0.fragment;
-         ls.energy = f0.energy*HARTREE;
+         LevelShare ls = describeGroup(set, groups[g]);
          ls.share = w;
-         char buf[96];
-         if (fr.kind == METAL) {
-            //  The group's shell: any member's function names it.
-            int fnIdx = -1;
-            for (size_t a = 0; a < nf && fnIdx < 0; a++)
-               if (set.fos[groups[g][0]].coef[a] != 0.0) fnIdx = (int)a;
-            snprintf(buf, sizeof buf, "%s %s", fr.name.c_str(),
-                     dShellName(set.funcs[fnIdx].n, set.funcs[fnIdx].l).c_str());
-            ls.label = buf;
-         } else {
-            int i0 = f0.index, i1 = f0.index;
-            for (size_t q = 1; q < groups[g].size(); q++) {
-               const FO& fq = set.fos[groups[g][q]];
-               i0 = std::min(i0, fq.index);
-               i1 = std::max(i1, fq.index);
-            }
-            const string nm = baseName(fr.name);
-            const char* occ = f0.occupancy > 0.5 ? "occ" : "virt";
-            if (i0 == i1)
-               snprintf(buf, sizeof buf, "%s FO%d (%s)", nm.c_str(), i0, occ);
-            else
-               snprintf(buf, sizeof buf, "%s FO%d-%d (%s)", nm.c_str(),
-                        i0, i1, occ);
-            ls.label = buf;
-            ls.character = f0.character;
-         }
          ms.top.push_back(ls);
       }
       std::stable_sort(ms.top.begin(), ms.top.end(),
@@ -799,10 +833,7 @@ bool FragmentOrbitals::composeGaussian(const vector<Fragment>& fragments,
          if (fragments[foFragment[k]].kind == METAL) ms.metal += ms.perFo[k];
          else ms.ligand += ms.perFo[k];
       }
-      if (ms.capture < CORE_CAPTURE) ms.klass = "core";
-      else if (ms.metal >= SIDE_FRACTION*ms.capture) ms.klass = "metal";
-      else if (ms.ligand >= SIDE_FRACTION*ms.capture) ms.klass = "ligand";
-      else ms.klass = "mixed";
+      ms.klass = classOf(ms.capture, ms.metal, ms.ligand);
       out.push_back(ms);
    }
    return true;

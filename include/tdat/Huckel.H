@@ -26,6 +26,9 @@
  * is the wrong tool for anything quantitative.  It must not be used
  * where a real calculation exists -- and the caller, not this code,
  * is what has to know that.
+ *
+ * The engine is FragmentOrbitals' (s and p here, parameters from
+ * data/client/config/EHTParameters); this class is its H-Ne face.
  */
 
 #ifndef HUCKEL_HH

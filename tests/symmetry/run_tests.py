@@ -918,7 +918,11 @@ def checkFragments(tablePath, verbose):
            os.path.join(ROOT, "src/tdat/chemistry/BasisAngularNorm.C"),
            os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C"),
            os.path.join(ROOT, "src/tdat/chemistry/MoDiagram.C"),
-         os.path.join(ROOT, "src/tdat/chemistry/Huckel.C")]
+         os.path.join(ROOT, "src/tdat/chemistry/Huckel.C"),
+         os.path.join(ROOT, "src/tdat/chemistry/FragmentOrbitals.C"),
+         os.path.join(ROOT, "src/tdat/chemistry/EspField.C"),
+         os.path.join(ROOT, "src/tdat/chemistry/CoulombIntegrals.C"),
+         os.path.join(ROOT, "src/tdat/chemistry/SlaterExpansion.C")]
     build = subprocess.run(cmd, capture_output=True, text=True)
     if build.returncode != 0:
         print("  could not build the fragment test:")
@@ -1253,7 +1257,11 @@ def checkOracle(tablePath, verbose):
          os.path.join(ROOT, "src/tdat/chemistry/BasisAngularNorm.C"),
          os.path.join(ROOT, "src/tdat/chemistry/CharacterTable.C"),
          os.path.join(ROOT, "src/tdat/chemistry/MoDiagram.C"),
-         os.path.join(ROOT, "src/tdat/chemistry/Huckel.C")],
+         os.path.join(ROOT, "src/tdat/chemistry/Huckel.C"),
+         os.path.join(ROOT, "src/tdat/chemistry/FragmentOrbitals.C"),
+         os.path.join(ROOT, "src/tdat/chemistry/EspField.C"),
+         os.path.join(ROOT, "src/tdat/chemistry/CoulombIntegrals.C"),
+         os.path.join(ROOT, "src/tdat/chemistry/SlaterExpansion.C")],
         capture_output=True, text=True)
     if build.returncode != 0:
         print("  could not build the oracle driver:")
@@ -1516,7 +1524,7 @@ def main():
         return 1
 
     if standalone("testHuckel",
-                  ["src/tdat/chemistry/Huckel.C",
+                  ["src/tdat/chemistry/Huckel.C", "src/tdat/chemistry/FragmentOrbitals.C", "src/tdat/chemistry/EspField.C", "src/tdat/chemistry/CoulombIntegrals.C", "src/tdat/chemistry/SlaterExpansion.C",
                    "src/tdat/chemistry/MoFragments.C",
                    "src/tdat/chemistry/MoComposition.C",
                    "src/tdat/chemistry/SymmetryAnalysis.C",
@@ -1532,7 +1540,7 @@ def main():
     if standalone("testLowdinComposition",
                   ["src/tdat/chemistry/MoComposition.C",
                    "src/tdat/chemistry/MoFragments.C",
-                   "src/tdat/chemistry/Huckel.C",
+                   "src/tdat/chemistry/Huckel.C", "src/tdat/chemistry/FragmentOrbitals.C", "src/tdat/chemistry/EspField.C", "src/tdat/chemistry/CoulombIntegrals.C", "src/tdat/chemistry/SlaterExpansion.C",
                    "src/tdat/chemistry/SymmetryAnalysis.C",
                    "src/tdat/chemistry/ShellRotation.C",
                    "src/tdat/chemistry/TGBSAngFunc.C",
@@ -1553,7 +1561,7 @@ def main():
                    "src/tdat/chemistry/BasisAngularNorm.C",
                    "src/tdat/chemistry/CharacterTable.C",
                    "src/tdat/chemistry/MoDiagram.C",
-                   "src/tdat/chemistry/Huckel.C"]) != 0:
+                   "src/tdat/chemistry/Huckel.C", "src/tdat/chemistry/FragmentOrbitals.C", "src/tdat/chemistry/EspField.C", "src/tdat/chemistry/CoulombIntegrals.C", "src/tdat/chemistry/SlaterExpansion.C"]) != 0:
         print("FAILED  the ligand-field interaction model")
         return 1
 

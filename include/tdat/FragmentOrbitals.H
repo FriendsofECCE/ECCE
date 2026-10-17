@@ -147,21 +147,43 @@ class FragmentOrbitals
       double capture;      // sum of the shares, <= 1
       double metal;        // share on METAL FOs, fraction of the norm
       double ligand;       // share on LIGAND/SHELL FOs
-      string klass;        // "metal", "ligand", "mixed" or "core"
+      string klass;        // "metal", "metal-centred", "ligand", "mixed", "core"
       double norm;         // c.S.c of the input row
       vector<double>     perFo;   // one per FoSet::fos
+      vector<double>     perGroup;  // one per group of groupFos()
       vector<LevelShare> top;     // largest first, shares >= TOP_MIN
       MoShares() : capture(0), metal(0), ligand(0), norm(0) {}
     };
 
     //  Class thresholds, on shares of the captured part: one side
     //  holding at least SIDE_FRACTION of it decides metal or ligand;
-    //  below CORE_CAPTURE the FO set has not described the MO at all
-    //  (1s, 2s of a heavy atom are outside a valence EHT basis).
+    //  a metal share in [CENTRED_FRACTION, SIDE_FRACTION) is
+    //  "metal-centred" (a t2g that borrows 30% from pi* is still read
+    //  as the metal's); below CORE_CAPTURE the FO set has not described
+    //  the MO at all (1s, 2s of a heavy atom are outside a valence EHT
+    //  basis).
     static constexpr double SIDE_FRACTION = 0.80;
+    static constexpr double CENTRED_FRACTION = 0.60;
     static constexpr double CORE_CAPTURE  = 0.50;
     static constexpr double TOP_MIN       = 0.02;
     static constexpr double DEGENERATE_EH = 1.0e-4;
+
+    /** The class name for a capture and its metal and ligand parts. */
+    static string classOf(double capture, double metal, double ligand);
+
+    /**
+     * Degenerate FOs read as one level: within a fragment, and across the
+     * same-formula ligands of a per-ligand set.  Indices into set.fos.
+     */
+    static void groupFos(const FoSet& set, vector< vector<int> >& groups);
+
+    /** Label, character, EHT energy (eV) and fragment of one group;
+        `share` is left 0. */
+    static LevelShare describeGroup(const FoSet& set,
+                                    const vector<int>& members);
+
+    /** H_ii of an element's shell l, eV, from the parameter file. */
+    static bool hii(const string& element, int l, double& eV);
 
     /**
      * Project parent MOs on the FO set.

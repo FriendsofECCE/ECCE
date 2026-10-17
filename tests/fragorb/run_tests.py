@@ -162,14 +162,14 @@ def classes(build):
         return
     r = tsv(out)
     t2g = [r[m] for m in (41, 42, 43)]
-    check(all(x["klass"] == "mixed" and 0.5 < x["metal"] < 0.8 and
+    check(all(x["klass"] == "metal-centred" and 0.5 < x["metal"] < 0.8 and
               x["ligand"] > 0.15 for x in t2g) and
           all(any(t[0].startswith("ligands FO") and t[1] > 0.15 for t in x["top"])
               for x in t2g),
-          "TiF6: t2g* (MOs 41-43) mixed with F pi character > 15%")
+          "TiF6: t2g* (MOs 41-43) metal-centred with F pi character > 15%")
     eg = [r[m] for m in (44, 45)]
-    check(all(x["klass"] == "mixed" and x["ligand"] > 0.25 for x in eg),
-          "TiF6: eg* (MOs 44-45) mixed, ligand sigma character > 25%")
+    check(all(x["klass"] == "metal-centred" and x["ligand"] > 0.25 for x in eg),
+          "TiF6: eg* (MOs 44-45) metal-centred, ligand sigma character > 25%")
     check(all(r[m]["klass"] != "metal" and r[m]["ligand"] > 0.7
               for m in range(16, 40)),
           "TiF6: filled F levels (MOs 16-39) are never metal, ligand > 70%")
@@ -181,8 +181,9 @@ def classes(build):
             continue
         r = tsv(out)
         t2g = [r[m] for m in (52, 53, 54)]
-        check(all(0.6 < x["metal"] < 0.8 and x["klass"] == "mixed" for x in t2g),
-              "Cr(CO)6 (%s): t2g (MOs 52-54) 60-80%% Cr, mixed" % mode)
+        check(all(0.6 < x["metal"] < 0.8 and x["klass"] == "metal-centred"
+                  for x in t2g),
+              "Cr(CO)6 (%s): t2g (MOs 52-54) 60-80%% Cr, metal-centred" % mode)
         check(all(any("FO" in t[0] and "virt" in t[0] and t[1] > 0.15
                       for t in x["top"]) for x in t2g),
               "Cr(CO)6 (%s): t2g carries CO pi* (virtual FO) > 15%%" % mode)

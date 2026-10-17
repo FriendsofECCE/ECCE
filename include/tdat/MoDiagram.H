@@ -177,6 +177,12 @@ struct MoLevel
    double         occupancyBeta;
 
    /**
+    * Extra tooltip text, written after the composition line.  Only the
+    * fragment-orbital construction fills it (class, shares, capture).
+    */
+   string         detail;
+
+   /**
     * Each orbital's own energy, in the same order as `orbitals`.
     *
     * `energy` is their mean, which is where the level is drawn when
@@ -279,6 +285,11 @@ struct MoConnection
    int leftLevel;     // index into the left column, or -1
    int centreLevel;   // index into the centre column
    int rightLevel;    // index into the right column, or -1
+   double weight;     // 0..1 share the line stands for; -1 = not weighted
+   MoConnection() : leftLevel(-1), centreLevel(-1), rightLevel(-1),
+                    weight(-1.0) {}
+   MoConnection(int l, int c, int r) : leftLevel(l), centreLevel(c),
+                    rightLevel(r), weight(-1.0) {}
 };
 
 class CharacterTable;
