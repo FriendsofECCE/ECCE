@@ -2,7 +2,7 @@ group: D2h
 formula: C2H4
 construction: two equivalent halves
 headline: 
-note: Fragments: two equivalent halves · energies in Hartree · labels in D<sub>2h</sub> · 2 core orbitals hidden
+note: Fragments: two equivalent halves · energies in Hartree · labels in D<sub>2h</sub> · 2 core orbitals hidden\nB1U: 2B1u has no partner among the levels drawn and is shown as non-bonding
 about: **What is drawn.** The molecular levels in the middle are the calculation's own orbital energies, in Hartree.\n\n**Fragment levels.** Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, and kept in the atom's own shell order. Its free-atom energy is given beside it.\n\n**Symmetry.** Symmetry labels computed from the orbitals in D2h; the code reported none.\n\n**Not shown.** 2 core orbitals below −10.17 Hartree.
 column left
   title: CH2 (C2V)
@@ -24,8 +24,8 @@ column centre
   shellKeys:
   levels: 3
   level 0 energy=-0.261736 tabulated=0.000000 irrep=B1U label=1B1u character=BONDING pairing=0 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=0.2534 mullikenMax=0.5000 norm=1.0000 orbitals=[7] annotation="-0.2617"
-  level 1 energy=0.020669 tabulated=0.000000 irrep=B3G label=1B3g character=ANTIBONDING pairing=0 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=-0.7410 mullikenMax=0.5000 norm=1.0000 orbitals=[8] annotation="0.0207"
-  level 2 energy=0.553193 tabulated=0.000000 irrep=B1U label=2B1u* character=ANTIBONDING pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=0.1620 mullikenMax=0.5000 norm=1.0000 orbitals=[15] annotation="0.5532"
+  level 1 energy=0.020669 tabulated=0.000000 irrep=B3G label=1B3g* character=ANTIBONDING pairing=0 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=-0.7410 mullikenMax=0.5000 norm=1.0000 orbitals=[8] annotation="0.0207"
+  level 2 energy=0.553193 tabulated=0.000000 irrep=B1U label=2B1u nb character=NONBONDING pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.5000 shareRight=0.5000 lowdinMax=0.5000 OP=0.1620 mullikenMax=0.5000 norm=1.0000 orbitals=[15] annotation="0.5532"
 column right
   title: CH2 (C2V)
   fromHalves: 1

@@ -27,7 +27,7 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 CH = os.path.join(ROOT, "src", "tdat", "chemistry")
 SOURCES = ["FragmentOrbitals", "FoDiagram", "MoComposition", "MoFragments",
            "SymmetryAnalysis", "ShellRotation", "TGBSAngFunc",
-           "BasisAngularNorm", "CharacterTable", "MoDiagram", "EspField",
+           "BasisAngularNorm", "CharacterTable", "MoDiagram", "MoPairs", "EspField",
            "CoulombIntegrals", "SlaterExpansion", "Huckel"]
 failures = 0
 

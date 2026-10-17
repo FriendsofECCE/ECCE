@@ -467,49 +467,6 @@ struct Sub
 }  // namespace
 
 
-vector<FoDiagram::PairCount>
-FoDiagram::countPairs(const vector<PairLevel>& levels)
-{
-   std::map<string, PairCount> by;
-   vector<string> order;
-   for (size_t i = 0; i < levels.size(); i++) {
-      const PairLevel& l = levels[i];
-      if (!by.count(l.irrep)) { by[l.irrep].irrep = l.irrep; order.push_back(l.irrep); }
-      PairCount& c = by[l.irrep];
-      const bool inPair = l.character == MoLevel::BONDING ||
-                          l.character == MoLevel::ANTIBONDING;
-      if (l.shown > 0) {
-         if (l.character == MoLevel::BONDING) c.bonding += l.degeneracy;
-         else if (l.character == MoLevel::ANTIBONDING) c.antibonding += l.degeneracy;
-         else c.nonbonding += l.degeneracy;
-      } else if (inPair) {
-         (l.shown == 0 ? c.hiddenByCutoff : c.hiddenByFilter) += l.degeneracy;
-      }
-   }
-   vector<PairCount> out;
-   for (size_t i = 0; i < order.size(); i++) {
-      PairCount c = by[order[i]];
-      c.ok = c.bonding == c.antibonding;
-      if (!c.ok) {
-         std::ostringstream m;
-         m << (c.irrep.empty() ? string("MOs") : c.irrep) << ": " << c.bonding
-           << " bonding, " << c.antibonding << " antibonding: pairs incomplete";
-         if (c.hiddenByCutoff > 0)
-            m << "; " << c.hiddenByCutoff << " partner orbital"
-              << (c.hiddenByCutoff > 1 ? "s are" : " is")
-              << " beyond the levels cut-off";
-         if (c.hiddenByFilter > 0)
-            m << "; " << c.hiddenByFilter << " partner orbital"
-              << (c.hiddenByFilter > 1 ? "s are" : " is")
-              << " hidden (tick Show all levels)";
-         c.message = m.str();
-      }
-      out.push_back(c);
-   }
-   return out;
-}
-
-
 string FoDiagram::coreSentence(const MoColumn& centre) { return ::coreSentence(centre); }
 
 string FoDiagram::groupMarkup(const string& group)
@@ -1109,50 +1066,33 @@ bool FoDiagram::build(const vector<string>& symbols,
    //  PAIR_FLOOR in both).  Taken best first, so a ligand-internal level
    //  with a little metal in it does not displace the pair that carries
    //  the interaction.
-   struct Cand { double score; size_t b, a; int sm, sl; };
-   vector<Cand> cands;
-   for (size_t b = 0; b < nL; b++) {
-      Lv& vb = L[b];
-      vb.level.character = MoLevel::NONBONDING;
-      vb.level.pairing = -1;
-      if (!vb.valence || vb.irrep.empty() && haveSym) continue;
-      for (size_t a = 0; a < nL; a++) {
-         const Lv& va = L[a];
-         if (a == b || !va.valence || va.irrep != vb.irrep ||
-             va.level.degeneracy != vb.level.degeneracy) continue;
-         if (va.level.energy <= vb.level.energy) continue;
-         for (size_t s = 0; s < ns; s++) {
-            if (!subs[s].metal || (haveSym && subs[s].irrep != vb.irrep)) continue;
-            const double eM = out.sets[s].eFock;
-            if (!(vb.level.energy < eM && va.level.energy > eM)) continue;
-            const double mm = std::min(vb.share[s], va.share[s]);
-            if (mm < PAIR_FLOOR) continue;
-            for (size_t l = 0; l < ns; l++) {
-               if (subs[l].metal || (haveSym && subs[l].irrep != vb.irrep)) continue;
-               const double ml = std::min(vb.share[l], va.share[l]);
-               if (ml < PAIR_FLOOR) continue;
-               //  the interaction has to be a real one on at least one side
-               if (std::max(vb.share[s], va.share[s]) < LINK_MIN ||
-                   std::max(vb.share[l], va.share[l]) < LINK_MIN) continue;
-               Cand c; c.score = mm + ml; c.b = b; c.a = a; c.sm = (int)s; c.sl = (int)l;
-               cands.push_back(c);
-            }
-         }
-      }
+   vector<MoPairs::Parent> parents(ns);
+   vector<MoPairs::Level> pin(nL);
+   for (size_t s = 0; s < ns; s++) {
+      parents[s].irrep = subs[s].irrep;
+      parents[s].energy = out.sets[s].eFock;
+      parents[s].centre = subs[s].metal;
    }
-   std::sort(cands.begin(), cands.end(),
-             [](const Cand& x, const Cand& y) { return x.score > y.score; });
+   for (size_t b = 0; b < nL; b++) {
+      L[b].level.character = MoLevel::NONBONDING;
+      L[b].level.pairing = -1;
+      pin[b].irrep = L[b].irrep;
+      pin[b].degeneracy = L[b].level.degeneracy;
+      pin[b].energy = L[b].level.energy;
+      pin[b].valence = L[b].valence;
+      pin[b].share = L[b].share;
+   }
+   const vector<MoPairs::Pair> found =
+       MoPairs::pairByParents(parents, pin, haveSym, PAIR_FLOOR, LINK_MIN);
    vector< std::pair<size_t,size_t> > pairList;       // (bonding, anti)
    vector< std::pair<int,int> > pairParents;          // (metal set, ligand set)
    int nextPair = 0;
-   for (size_t i = 0; i < cands.size(); i++) {
-      const Cand& c = cands[i];
-      if (L[c.b].level.pairing >= 0 || L[c.a].level.pairing >= 0) continue;
-      L[c.b].level.character = MoLevel::BONDING;
-      L[c.a].level.character = MoLevel::ANTIBONDING;
-      L[c.b].level.pairing = L[c.a].level.pairing = nextPair++;
-      pairList.push_back(std::make_pair(c.b, c.a));
-      pairParents.push_back(std::make_pair(c.sm, c.sl));
+   for (size_t i = 0; i < found.size(); i++) {
+      L[found[i].bonding].level.character = MoLevel::BONDING;
+      L[found[i].antibonding].level.character = MoLevel::ANTIBONDING;
+      L[found[i].bonding].level.pairing = L[found[i].antibonding].level.pairing = nextPair++;
+      pairList.push_back(std::make_pair(found[i].bonding, found[i].antibonding));
+      pairParents.push_back(std::make_pair(found[i].centreParent, found[i].ligandParent));
    }
 
    //  --- what is drawn ----------------------------------------------------

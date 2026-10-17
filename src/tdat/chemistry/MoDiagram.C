@@ -12,6 +12,7 @@ using std::ostringstream;
 #include "tdat/CharacterTable.H"
 #include "tdat/MoComposition.H"
 #include "tdat/MoDiagram.H"
+#include "tdat/MoPairs.H"
 
 MoDiagram::MoDiagram()
 {
@@ -1995,7 +1996,8 @@ static bool classifyLinearByPhase(vector<MoLevel>& centre, int& nextPair)
 void MoDiagram::classifyByEnergy(const vector<MoLevel>& left,
                                  vector<MoLevel>& centre,
                                  const vector<MoLevel>& right,
-                                 const vector<MoConnection>& connections)
+                                 const vector<MoConnection>& connections,
+                                 vector<string>* pairWarnings)
 {
   //  WITHOUT IRREPS THERE IS NOTHING TO COUNT, but there is still
   //  something to read: an orbital below every fragment level it is
@@ -2134,6 +2136,9 @@ void MoDiagram::classifyByEnergy(const vector<MoLevel>& left,
       nextPair++;
     }
   }
+
+  //  One rule for every construction: a level without a partner is nb.
+  MoPairs::settle(centre, pairWarnings);
 }
 
 

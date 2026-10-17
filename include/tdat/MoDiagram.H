@@ -751,7 +751,8 @@ class MoDiagram
     static void classifyByEnergy(const vector<MoLevel>& left,
                                  vector<MoLevel>& centre,
                                  const vector<MoLevel>& right,
-                                 const vector<MoConnection>& connections);
+                                 const vector<MoConnection>& connections,
+                                 vector<string>* pairWarnings = 0);
 
     static void connect(const vector<MoLevel>& left,
                         const vector<MoLevel>& centre,

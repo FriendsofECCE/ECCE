@@ -2,7 +2,7 @@ group: C4v
 formula: CO
 construction: its two chemical groups
 headline: 
-note: Fragments: its two chemical groups · energies in Hartree · labels in C<sub>4v</sub> · 2 core orbitals hidden
+note: Fragments: its two chemical groups · energies in Hartree · labels in C<sub>4v</sub> · 2 core orbitals hidden\nSG: 5SG has no partner among the levels drawn and is shown as non-bonding
 about: **What is drawn.** Drawn as its two chemical groups, C and O. The molecular levels in the middle are the calculation's own orbital energies, in Hartree.\n\n**Fragment levels.** Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, and kept in the atom's own shell order. Its free-atom energy is given beside it.\n\n**Symmetry.** Symmetry labels computed from the orbitals in C4v; the code reported none.\n\n**Not shown.** 2 core orbitals below −10.29 Hartree.
 column left
   title: C
@@ -28,7 +28,7 @@ column centre
   level 0 energy=-1.159444 tabulated=0.000000 irrep=SG label=3SG character=BONDING pairing=0 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.3790 shareRight=0.6210 lowdinMax=0.6210 OP=0.3108 mullikenMax=0.7311 norm=1.0000 orbitals=[2] annotation="-1.1594"
   level 1 energy=-0.565773 tabulated=0.000000 irrep=SG label=4SG nb character=NONBONDING pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.1760 shareRight=0.8240 lowdinMax=0.8240 OP=-0.0169 mullikenMax=0.7977 norm=1.0000 orbitals=[3] annotation="-0.5658"
   level 2 energy=-0.466812 tabulated=0.000000 irrep=PI label=1PI character=BONDING pairing=1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.2928 shareRight=0.7072 lowdinMax=0.7072 OP=0.2120 mullikenMax=0.7309 norm=1.0000 orbitals=[4,5] annotation="-0.4668"
-  level 3 energy=-0.366368 tabulated=0.000000 irrep=SG label=5SG* character=ANTIBONDING pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.8745 shareRight=0.1255 lowdinMax=0.8745 OP=-0.1155 mullikenMax=0.9132 norm=1.0000 orbitals=[6] annotation="-0.3664"
+  level 3 energy=-0.366368 tabulated=0.000000 irrep=SG label=5SG nb character=NONBONDING pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.8745 shareRight=0.1255 lowdinMax=0.8745 OP=-0.1155 mullikenMax=0.9132 norm=1.0000 orbitals=[6] annotation="-0.3664"
   level 4 energy=-0.013906 tabulated=0.000000 irrep=PI label=2PI* character=ANTIBONDING pairing=1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.7060 shareRight=0.2940 lowdinMax=0.7060 OP=-0.5978 mullikenMax=0.7559 norm=1.0000 orbitals=[7,8] annotation="-0.0139"
   level 5 energy=0.268325 tabulated=0.000000 irrep=SG label=6SG* character=ANTIBONDING pairing=0 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.8546 shareRight=0.1454 lowdinMax=0.8546 OP=-12.8330 mullikenMax=1.4213 norm=1.0000 orbitals=[9] annotation="0.2683"
 column right

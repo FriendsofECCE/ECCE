@@ -3195,6 +3195,7 @@ void MoDiagramPanel::buildOnce()
 
   string fragmentAbout;
   NoteTiers tiers;
+  vector<string> pairWarnings;
   if (haveFragments && !foDrawn) {
     //  Without a usable irrep the centre levels carry none, so
     //  connect() matches on the shell a fragment level is and the
@@ -3249,7 +3250,7 @@ void MoDiagramPanel::buildOnce()
       }
     }
     MoDiagram::classifyByEnergy(left.levels, centre.levels,
-                                right.levels, links);
+                                right.levels, links, &pairWarnings);
 
     //  SAY WHICH OF THE TWO PLACEMENTS ACTUALLY HAPPENED.
     //
@@ -3350,6 +3351,7 @@ void MoDiagramPanel::buildOnce()
       return;
     }
 
+    tiers.warnings.insert(tiers.warnings.end(), pairWarnings.begin(), pairWarnings.end());
     fragmentAbout = "Each fragment level is placed at the mean of the molecular "
         "orbitals it became, weighted by its share of them, and kept in the "
         "atom's own shell order. Its free-atom energy is given beside it.";

@@ -2,7 +2,7 @@ group: D6h
 formula: C6H6
 construction: its two sets of equivalent atoms
 headline: 
-note: Fragments: its two sets of equivalent atoms · energies in Hartree · labels in D<sub>6h</sub> · 6 core orbitals hidden
+note: Fragments: its two sets of equivalent atoms · energies in Hartree · labels in D<sub>6h</sub> · 6 core orbitals hidden\nA2U: 1A2u has no partner among the levels drawn and is shown as non-bonding\nE1G: 1E1g has no partner among the levels drawn and is shown as non-bonding\nE2U: 1E2u has no partner among the levels drawn and is shown as non-bonding\nB2G: 1B2g has no partner among the levels drawn and is shown as non-bonding
 about: **What is drawn.** Drawn as its two sets of equivalent atoms. This molecule has no central atom, so there is no central-atom diagram; combining fragments of it instead needs a subgroup and a choice. The molecular levels in the middle are the calculation's own orbital energies, in Hartree.\n\n**Fragment levels.** Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, and kept in the atom's own shell order. Its free-atom energy is given beside it.\n\n**Symmetry.** Symmetry labels computed from the orbitals in D6h; the code reported none.\n\n**The circles beside each symmetry orbital** show the atoms as seen from one side, filled and open for opposite sign and sized by weight; a bar is a p lobe in the page.\n\n**Not shown.** 6 core orbitals below −9.92 Hartree.
 column left
   title: 6C TASOs
@@ -26,10 +26,10 @@ column centre
   hiddenAboveCount: 75
   shellKeys:
   levels: 4
-  level 0 energy=-0.331620 tabulated=0.000000 irrep=A2U label=1A2u character=BONDING pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.9899 shareRight=0.0101 lowdinMax=0.1650 OP=0.3329 mullikenMax=0.1661 norm=1.0000 orbitals=[16] annotation="-0.3316"
-  level 1 energy=-0.231300 tabulated=0.000000 irrep=E1G label=1E1g character=BONDING pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.9828 shareRight=0.0172 lowdinMax=0.1638 OP=0.2769 mullikenMax=0.1657 norm=1.0000 orbitals=[19,20] annotation="-0.2313"
-  level 2 energy=-0.040050 tabulated=0.000000 irrep=E2U label=1E2u* character=ANTIBONDING pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.9593 shareRight=0.0407 lowdinMax=0.1599 OP=-0.6482 mullikenMax=0.1647 norm=1.0000 orbitals=[21,22] annotation="-0.0401"
-  level 3 energy=0.103650 tabulated=0.000000 irrep=B2G label=1B2g* character=ANTIBONDING pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.9212 shareRight=0.0788 lowdinMax=0.1535 OP=-3.0906 mullikenMax=0.1629 norm=1.0000 orbitals=[26] annotation="0.1037"
+  level 0 energy=-0.331620 tabulated=0.000000 irrep=A2U label=1A2u nb character=NONBONDING pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.9899 shareRight=0.0101 lowdinMax=0.1650 OP=0.3329 mullikenMax=0.1661 norm=1.0000 orbitals=[16] annotation="-0.3316"
+  level 1 energy=-0.231300 tabulated=0.000000 irrep=E1G label=1E1g nb character=NONBONDING pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.9828 shareRight=0.0172 lowdinMax=0.1638 OP=0.2769 mullikenMax=0.1657 norm=1.0000 orbitals=[19,20] annotation="-0.2313"
+  level 2 energy=-0.040050 tabulated=0.000000 irrep=E2U label=1E2u nb character=NONBONDING pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.9593 shareRight=0.0407 lowdinMax=0.1599 OP=-0.6482 mullikenMax=0.1647 norm=1.0000 orbitals=[21,22] annotation="-0.0401"
+  level 3 energy=0.103650 tabulated=0.000000 irrep=B2G label=1B2g nb character=NONBONDING pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.9212 shareRight=0.0788 lowdinMax=0.1535 OP=-3.0906 mullikenMax=0.1629 norm=1.0000 orbitals=[26] annotation="0.1037"
 column right
   title: 6H TASOs
   fromHalves: 0

@@ -35,6 +35,7 @@
 #include "tdat/EspField.H"
 #include "tdat/FragmentOrbitals.H"
 #include "tdat/MoDiagram.H"
+#include "tdat/MoPairs.H"
 
 using std::string;
 using std::vector;
@@ -87,33 +88,11 @@ class FoDiagram
       PairInfo() : bonding(-1), antibonding(-1), metalSet(-1), ligandSet(-1) {}
     };
 
-    /** One level in the pair count. */
-    struct PairLevel
-    {
-      string irrep;
-      int    degeneracy;
-      MoLevel::Character character;
-      int    shown;        // 1 drawn, 0 not drawn: cut-off, -1 not drawn: filtered
-      PairLevel() : degeneracy(1), character(MoLevel::UNKNOWN), shown(1) {}
-    };
-
-    struct PairCount
-    {
-      string irrep;
-      int bonding, antibonding, nonbonding;   // drawn MOs, by degeneracy
-      int hiddenByCutoff, hiddenByFilter;     // undrawn bonding/antibonding
-      bool ok;
-      string message;                         // empty when ok
-      PairCount() : bonding(0), antibonding(0), nonbonding(0),
-                    hiddenByCutoff(0), hiddenByFilter(0), ok(true) {}
-    };
-
-    /**
-     * Orbitals are conserved: per irrep, drawn bonding MOs equal drawn
-     * antibonding MOs.  A mismatch is a message, not an error; MOs
-     * left undrawn count as missing partners and the message says why.
-     */
-    static vector<PairCount> countPairs(const vector<PairLevel>& levels);
+    /** The pair count and the pair rule are shared (MoPairs.H). */
+    typedef MoPairs::PairLevel PairLevel;
+    typedef MoPairs::PairCount PairCount;
+    static vector<PairCount> countPairs(const vector<PairLevel>& levels)
+    { return MoPairs::countPairs(levels); }
 
     /**
      * The electron bookkeeping (ionic convention): the metal's d count

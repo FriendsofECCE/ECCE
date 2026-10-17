@@ -61,6 +61,42 @@ def check_sp_mixing(d):
     return bad
 
 
+def check_rules(d):
+    """The one pair rule (#301): in every dump each bonding level has an
+    antibonding partner of its pairing number and the reverse, nothing is
+    MIXED, and the labels follow the character (`*`, `nb`).  BF3: 3A1'/5A1'*,
+    2E'/5E'* and the pi pair 1A2''/2A2''*, with 4A1' and 3E' non-bonding."""
+    bad = 0
+    for fn in sorted(os.listdir(d)):
+        if not fn.endswith(".dump"):
+            continue
+        lv = molecular_levels(os.path.join(d, fn))
+        by = {}
+        for label, ch, p in lv:
+            if ch == "MIXED":
+                bad += 1
+                print("%s: %s is MIXED" % (fn, label))
+            if ch in ("BONDING", "ANTIBONDING"):
+                by.setdefault(p, []).append(ch)
+        for p, chs in by.items():
+            if p < 0 or "BONDING" not in chs or "ANTIBONDING" not in chs:
+                bad += 1
+                print("%s: pairing %d has %s" % (fn, p, chs))
+    path = os.path.join(d, "orca-bf3.dump")
+    if os.path.exists(path):
+        want = {"3A1'": "BONDING", "5A1'": "ANTIBONDING", "2E'": "BONDING",
+                "5E'": "ANTIBONDING", "1A2''": "BONDING", "2A2''": "ANTIBONDING",
+                "4A1'": "NONBONDING", "3E'": "NONBONDING"}
+        have = dict((l[0].replace(" nb", ""), l[1])
+                    for l in molecular_levels(path))
+        for k, v in want.items():
+            if have.get(k) != v:
+                bad += 1
+                print("orca-bf3: %s is %s, want %s" % (k, have.get(k), v))
+    print("pair rule over every golden: %s" % ("FAIL" if bad else "ok"))
+    return bad
+
+
 def main():
     d = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "expected")
     bad = 0
@@ -79,6 +115,7 @@ def main():
         print("%-12s bonding=%d antibonding=%d pairs=%s %s"
               % (name, nb, na, got, "ok" if ok else "FAIL (want %s)" % want))
     bad += check_sp_mixing(d)
+    bad += check_rules(d)
     return 1 if bad else 0
 
 
