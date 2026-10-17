@@ -526,6 +526,37 @@ bool ModelDiagram::build(const Input& in,
    const bool bandRule = in.leftAtoms.size() == 1 && in.rightAtoms.size() >= 2;
    for (size_t c = 0; c < cl.size(); c++)
       cl[c].drawn = !(bandRule && cl[c].shareRight >= INTERNAL_SHARE);
+   //  The HOMO and the LUMO are never folded away, whatever fragment they sit on.
+   {
+      int homo = -1, lumo = -1;
+      for (size_t c = 0; c < cl.size(); c++) {
+         const bool occ = cl[c].occupancy + std::max(0.0, cl[c].occupancyBeta) > 0.0;
+         if (occ && (homo < 0 || cl[c].energy > cl[homo].energy)) homo = (int)c;
+         if (!occ && (lumo < 0 || cl[c].energy < cl[lumo].energy)) lumo = (int)c;
+      }
+      if (homo >= 0) cl[homo].drawn = true;
+      if (lumo >= 0) cl[lumo].drawn = true;
+   }
+   //  A level the match gave no irrep takes its partner's (g/u swapped when
+   //  the two fragments are equal), so it is not labelled by a bare number.
+   for (size_t c = 0; c < cl.size(); c++) {
+      if (!cl[c].irrep.empty() || cl[c].pairing < 0) continue;
+      for (size_t o = 0; o < cl.size(); o++) {
+         if (o == c || cl[o].pairing != cl[c].pairing || cl[o].irrep.empty()) continue;
+         string ir = cl[o].irrep;
+         if (equalFragments && !ir.empty()) {
+            char& ch = ir[ir.size() - 1];
+            if (ch == 'U') ch = 'G'; else if (ch == 'G') ch = 'U';
+            else if (ch == 'u') ch = 'g'; else if (ch == 'g') ch = 'u';
+         }
+         cl[c].irrep = ir;
+         bool digits = true;
+         for (size_t k = 0; k < cl[c].base.size(); k++)
+            if (!isdigit((unsigned char)cl[c].base[k])) digits = false;
+         if (digits) cl[c].base += ir;
+         break;
+      }
+   }
    for (size_t c = 0; c < cl.size(); c++) {      // a pair is drawn whole
       if (!cl[c].drawn || cl[c].pairing < 0) continue;
       for (size_t o = 0; o < cl.size(); o++)
@@ -619,7 +650,7 @@ bool ModelDiagram::build(const Input& in,
          lv.hasCalc = true;
          lv.calcEnergy = R.energy;
          lv.calcOverlap = L.overlap;
-         lv.calcLabel = stripMarks(R.label);
+         lv.calcLabel = R.irrep.empty() && !L.irrep.empty() ? L.base : stripMarks(R.label);
          lv.calcOccupancy = R.occupancy;
          lv.calcOccupancyBeta = R.occupancyBeta;
          lv.calcDegeneracy = R.degeneracy > 0 ? R.degeneracy : (int)R.orbitals.size();
