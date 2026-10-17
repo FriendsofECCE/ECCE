@@ -395,17 +395,18 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
                             "Left automatic it takes the construction that "
                             "suits the molecule. A pick overrides Built as.");
     wxArrayString nothing;
-    nothing.Add(_("(none)"));
+    nothing.Add(wxString::FromUTF8("\xE2\x80\x94"));
     p_pickSecond = new ewxChoice(this, wxID_ANY, wxDefaultPosition,
                                  wxDefaultSize, nothing);
     p_pickSecond->SetSelection(0);
     p_pickSecond->Enable(false);
     p_pickSecond->SetToolTip("An atom bonded to the first: the bond is cut "
-                             "and its two sides are drawn against each other");
-    row->Add(new ewxStaticText(this, wxID_ANY, _("Centre/first atom:")),
+                             "and its two sides are drawn against each other. "
+                             "\xE2\x80\x94 leaves the first atom as the centre.");
+    row->Add(new ewxStaticText(this, wxID_ANY, _("Atom:")),
              0, wxALIGN_CENTER_VERTICAL|wxLEFT, 4);
     row->Add(p_pickFirst, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
-    row->Add(new ewxStaticText(this, wxID_ANY, _("Bonded to:")),
+    row->Add(new ewxStaticText(this, wxID_ANY, _("Bond to:")),
              0, wxALIGN_CENTER_VERTICAL|wxLEFT, 4);
     row->Add(p_pickSecond, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
   }
@@ -625,7 +626,7 @@ void MoDiagramPanel::fillPickChoosers(const vector<double>& coords,
     p_pickFirst->SetSelection(0);
     p_secondAtoms.clear();
     p_pickSecond->Clear();
-    p_pickSecond->Append(_("(none)"));
+    p_pickSecond->Append(wxString::FromUTF8("\xE2\x80\x94"));
     p_pickSecond->SetSelection(0);
   }
 
@@ -673,7 +674,7 @@ void MoDiagramPanel::fillPickChoosers(const vector<double>& coords,
   if (bonded != p_secondAtoms) {
     p_secondAtoms = bonded;
     p_pickSecond->Clear();
-    p_pickSecond->Append(_("(none)"));
+    p_pickSecond->Append(wxString::FromUTF8("\xE2\x80\x94"));
     int restore = 0;
     for (size_t i = 0; i < bonded.size(); i++) {
       p_pickSecond->Append(wxString(labels[bonded[i]].c_str(), wxConvUTF8));
