@@ -289,13 +289,9 @@ def pairs_and_brackets(build):
                 check(False, "%s --diagram %s runs" % (name, tag), err.strip()[-200:])
                 continue
             d = parse_diagram(out)
-            if flag:
-                check(not d["mismatch"],
-                      "%s (%s): bonding = antibonding for every irrep" % (name, tag),
-                      d["mismatch"])
-            else:
-                print("  %s readout (%s): %s" % (name, tag,
-                      "; ".join(d["mismatch"]) or "no mismatch"))
+            check(not d["mismatch"],
+                  "%s (%s): bonding = antibonding for every irrep" % (name, tag),
+                  d["mismatch"])
             sets = d["sets"]
             col = {"metal": "left", "ligand": "right"}
             linked = {}

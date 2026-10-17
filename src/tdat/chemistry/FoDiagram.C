@@ -787,9 +787,11 @@ bool FoDiagram::build(const vector<string>& symbols,
       }
       v.shown = true;
    }
-   //  The antibonding partner of a drawn bonding level is always drawn.
+   //  A pair is drawn whole or not at all (past the cut-off and the filter too).
    for (size_t p = 0; p < pairList.size(); p++) {
-      if (L[pairList[p].first].shown) L[pairList[p].second].shown = true;
+      Lv& b = L[pairList[p].first];
+      Lv& a = L[pairList[p].second];
+      if (b.shown || a.shown) b.shown = a.shown = true;
    }
    for (size_t c = 0; c < nL; c++) {
       if (L[c].shown) L[c].why = 0;
