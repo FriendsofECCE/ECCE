@@ -85,6 +85,7 @@ FIXTURES = {
     "orca-cocl4-quartet": os.path.join(FIXTURES_DIR, "orca-cocl4-quartet"),
     "orca-bf3": os.path.join(FIXTURES_DIR, "orca-bf3"),
     "orca-benzene": os.path.join(FIXTURES_DIR, "orca-benzene"),
+    "orca-agnh3": os.path.join(FIXTURES_DIR, "orca-agnh3"),
 }
 
 

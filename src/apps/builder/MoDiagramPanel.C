@@ -2391,6 +2391,11 @@ void MoDiagramPanel::buildOnce()
         FoDiagram::applicable(storedSymbols, storedCoords, 0, foReason)) {
       if (moSemiempirical) foNotOffered = foSemiempirical;
       else if (foProjectable) foOffered = true;
+    } else if (foReason.compare(0, 11, "No extended") == 0) {
+      //  A metal complex with an element that has no EHT parameters (Ag)
+      //  would otherwise fall back to another construction without a word.
+      foNotOffered = "The fragment-orbital diagram is not available: " +
+                     foReason;
     }
   }
 
