@@ -81,13 +81,16 @@ FIXTURES = {
     #  #301 validation set (ORCA BP86/def2-SVP, idealised geometries, no
     #  UseSym, so the labels are the diagram's own).  The open-shell and
     #  charged ones carry their multiplicity and charge in .davprops.
-    "orca-o2-triplet": os.path.join(FIXTURES_DIR, "orca-o2-triplet"),
-    "orca-cocl4-quartet": os.path.join(FIXTURES_DIR, "orca-cocl4-quartet"),
     "orca-bf3": os.path.join(FIXTURES_DIR, "orca-bf3"),
     "orca-benzene": os.path.join(FIXTURES_DIR, "orca-benzene"),
-    "orca-agnh3": os.path.join(FIXTURES_DIR, "orca-agnh3"),
     "orca-benzene-pi": os.path.join(FIXTURES_DIR, "orca-benzene"),
     "ecceqm-c2h4-pi": os.path.join(FIXTURES_DIR, "ecceqm-c2h4"),
+    "orca-o2-triplet": os.path.join(FIXTURES_DIR, "orca-o2-triplet"),
+    "orca-no2": os.path.join(FIXTURES_DIR, "orca-no2"),
+    "orca-b2h6": os.path.join(FIXTURES_DIR, "orca-b2h6"),
+    "orca-nico4": os.path.join(FIXTURES_DIR, "orca-nico4"),
+    "orca-cocl4-quartet": os.path.join(FIXTURES_DIR, "orca-cocl4-quartet"),
+    "orca-agnh3": os.path.join(FIXTURES_DIR, "orca-agnh3"),
 }
 
 

@@ -175,3 +175,17 @@ ring bond and is refused (a spectrum and a tier-B line). `ecceqm-c2h4` and
 `ecceqm-methanol` (`makecalc.py ecceqm ch3oh 0 DIR --no-rotate`) picked at C1
 and at O2 is drawn by the fragment-orbital route with that atom as centre
 (CENTRAL would leave atoms out): `ecceqm-methanol-pick-c1`, `-pick-o2`.
+
+## Validation set (#301)
+
+`orca-bf3`, `-benzene` (also `orca-benzene-pi`, `ecceqm-c2h4-pi`: the `pi
+system only` box, `ECCE_MODIAGRAM_PIONLY=1`), `-o2-triplet`, `-no2`, `-b2h6`,
+`-nico4`, `-cocl4-quartet`, `-agnh3`: ORCA 6.1.1 BP86/def2-SVP (UKS for the
+open-shell ones), idealised textbook geometries (not optimised), no UseSym,
+so the labels are the diagram's own. The summary line says `RHF` for these
+because the fixture builder records that theory; it is not what ran.
+Multiplicity and charge are in `.davprops` (calculation and
+`Parameters/chemsys.mvm`). `orca-b2h6` and `orca-agnh3` are refusals with a
+stated reason (no one-centre split; no EHT parameters for Ag). Known to be
+wrong and recorded as is: the metal column's d electrons in
+`orca-cocl4-quartet` (t2^5 e^2; the MOs have e^4 t2^3).

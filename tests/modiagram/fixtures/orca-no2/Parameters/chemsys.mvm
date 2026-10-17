@@ -1,0 +1,15 @@
+title: 
+type: molecule
+fragment_attributes:
+  point_group: C1
+end_fragment_attributes:
+num_atoms: 3
+atom_info: symbol cart
+atom_list: 
+N 0.000000 0.000000 0.000000
+O 1.100300 0.000000 0.463654
+O -1.100300 0.000000 0.463654
+attr_list:
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0

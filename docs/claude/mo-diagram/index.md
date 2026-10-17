@@ -44,3 +44,5 @@ MOPAC → spec) is the bridge it would reuse.
 - [The fragment-orbital diagram in the MO Diagram panel (#301, route B stage 2)](fragment-orbital-diagram.md)
 - [An atom pick chooses the MO diagram (#301)](an-atom-pick-chooses-the-diagram.md)
 - [A single non-metal atom pick can be the centre of the fragment-orbital diagram (#301)](non-metal-centre-fragment-orbital-diagram.md)
+- [ORCA prints orbital energies to 1e-5, so a degenerate set is not 1e-5 tight (#301)](degenerate-pairs-from-orca-differ-by-its-print-step.md)
+- [The beta electrons of a merged level are matched by irrep: both spins must be spelled and labelled alike (#301)](open-shell-beta-match-needs-the-same-labelled-orbitals.md)
