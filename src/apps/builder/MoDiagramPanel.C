@@ -2956,10 +2956,17 @@ void MoDiagramPanel::buildOnce()
 
   progressDlg.progress(97, _("Drawing"));
   p_canvas->setGroup(group);
-  p_canvas->setFormula(MoDiagram::formula(elements, charge));
+  //  The fragment-orbital diagram heads a complex with its ligands grouped.
+  string headingFormula = MoDiagram::formula(elements, charge);
+  if (foDrawn) {
+    const string grouped =
+        FoDiagram::complexFormula(storedSymbols, storedCoords, charge);
+    if (!grouped.empty()) headingFormula = grouped;
+  }
+  p_canvas->setFormula(headingFormula);
   p_canvas->setDiagram(left, centre, right, links, haveFragments, note.str());
   if (!dumpPath.empty()) {
-    dumpMoDiagram(dumpPath, group, MoDiagram::formula(elements, charge),
+    dumpMoDiagram(dumpPath, group, headingFormula,
         MoFragments::fragmentationName(p_fragmentation),
         "", note.str(), left, centre, right, links,
         localisedShare, centreOP, mullikenMaxVec, normVec, metalLigandOP);

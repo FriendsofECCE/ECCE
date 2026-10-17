@@ -1,5 +1,5 @@
 group: Oh
-formula: CrC6O6
+formula: Cr(CO)6
 construction: Fragment orbitals (extended Hückel)
 headline: 
 note: Energies in Hartree.  Molecular levels are the calculation's own orbital energies in Hartree.  Fragment levels: extended Hückel orbitals placed at the diagonal of the calculation's Fock operator in the orthogonalised fragment-orbital basis; qualitative.  That operator is known only on the span of the reported MOs, so the levels depend on which were reported; each is captured to 75% - 98% (drawn MOs), 6 fragment levels below 90% are marked.  A line is drawn where a fragment orbital makes up at least 10% of an orbital, and from both members of a bonding/antibonding pair to both of their parents.  Symmetry labels are of the coordination skeleton's group, Oh (the ligands' own atoms may lower the molecule's).  14 ligand-internal or low-metal-share levels not drawn (tick Show all levels).  65 levels the valence fragment orbitals do not describe (capture below 50%) not drawn.  Symmetry labels computed from the orbitals in Oh (cross-checked against the code's own D2H labels, which agreed on all 199 orbitals both sides could label, and every computed label subduces to match).

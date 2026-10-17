@@ -356,6 +356,94 @@ FoDiagram::countPairs(const vector<PairLevel>& levels)
 }
 
 
+string FoDiagram::complexFormula(const vector<string>& symbols,
+                                 const vector<double>& coordsAng, int charge)
+{
+   vector<FragmentOrbitals::Fragment> frags;
+   string why;
+   if (!FragmentOrbitals::autoFragments(symbols, coordsAng, charge, 1, frags, why))
+      return string();
+
+   std::map<string,int> metals;
+   std::vector<int> metalAtoms;
+   for (size_t i = 0; i < frags.size(); i++)
+      if (frags[i].kind == FragmentOrbitals::METAL)
+         for (size_t k = 0; k < frags[i].atoms.size(); k++) {
+            metals[symbols[frags[i].atoms[k]]]++;
+            metalAtoms.push_back(frags[i].atoms[k]);
+         }
+   if (metalAtoms.empty()) return string();
+
+   auto count = [](const std::map<string,int>& c, const string& e) {
+      std::ostringstream o;
+      o << e;
+      std::map<string,int>::const_iterator it = c.find(e);
+      if (it != c.end() && it->second > 1) o << it->second;
+      return o.str();
+   };
+
+   std::map<string,int> kinds;                       // formula -> number
+   std::map<string,bool> isPoly;
+   for (size_t i = 0; i < frags.size(); i++) {
+      if (frags[i].kind != FragmentOrbitals::LIGAND) continue;
+      const vector<int>& at = frags[i].atoms;
+      string text;
+      if (at.size() == 1) {
+         text = symbols[at[0]];
+      } else {
+         //  The donor: the atom nearest a metal.
+         int donor = at[0];
+         double best = 1.0e30;
+         for (size_t k = 0; k < at.size(); k++)
+            for (size_t m = 0; m < metalAtoms.size(); m++) {
+               double d = 0.0;
+               for (int q = 0; q < 3; q++) {
+                  const double t = coordsAng[3*at[k]+q] - coordsAng[3*metalAtoms[m]+q];
+                  d += t*t;
+               }
+               if (d < best - 1.0e-9) { best = d; donor = at[k]; }
+            }
+         std::map<string,int> rest;
+         for (size_t k = 0; k < at.size(); k++)
+            if (at[k] != donor) rest[symbols[at[k]]]++;
+         std::map<string,int> all = rest;
+         all[symbols[donor]]++;
+         if (all.size() == 2 && all["H"] == 2 && all["O"] == 1) {
+            text = "H2O";
+         } else {
+            text = symbols[donor];
+            //  Hill order for the rest: C, H, then alphabetical.
+            const char* first[] = { "C", "H" };
+            for (int f = 0; f < 2; f++)
+               if (rest.count(first[f])) text += count(rest, first[f]);
+            for (std::map<string,int>::const_iterator it = rest.begin();
+                 it != rest.end(); ++it)
+               if (it->first != "C" && it->first != "H") text += count(rest, it->first);
+         }
+         isPoly[text] = true;
+      }
+      kinds[text]++;
+   }
+
+   string out;
+   for (std::map<string,int>::const_iterator it = metals.begin(); it != metals.end(); ++it)
+      out += count(metals, it->first);
+   for (std::map<string,int>::const_iterator it = kinds.begin(); it != kinds.end(); ++it) {
+      if (isPoly[it->first]) out += "(" + it->first + ")";
+      else out += it->first;
+      if (it->second > 1) out += std::to_string(it->second);
+   }
+   if (charge != 0) {
+      out = "[" + out + "]";
+      const int size = charge < 0 ? -charge : charge;
+      out += "^";
+      if (size > 1) out += std::to_string(size);
+      out += charge < 0 ? "-" : "+";
+   }
+   return out;
+}
+
+
 bool FoDiagram::applicable(const vector<string>& symbols,
                            const vector<double>& coordsAng, int charge,
                            string& why)

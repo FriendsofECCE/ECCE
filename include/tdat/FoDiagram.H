@@ -126,6 +126,18 @@ class FoDiagram
     };
 
     /**
+     * The heading formula of a complex, ligands grouped: Cr(CO)6,
+     * [Co(NH3)6]^3+, [TiF6]^2-, PtCl2(NH3)2.  Metals first, then the
+     * ligand kinds alphabetically; within a ligand the donor atom (the
+     * one nearest the metal) first, the rest in Hill order, water as H2O;
+     * a monatomic ligand is its bare symbol.  The charge is written
+     * "^3+" as MoDiagram::formula() writes it, and a charged complex goes
+     * in square brackets.  Empty when the structure is not a complex.
+     */
+    static string complexFormula(const vector<string>& symbols,
+                                 const vector<double>& coordsAng, int charge);
+
+    /**
      * Is this a complex the construction can describe?  Declines with
      * `why` for no metal, no ligand, or an element without parameters.
      */

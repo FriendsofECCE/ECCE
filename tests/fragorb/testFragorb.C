@@ -174,6 +174,61 @@ static void composeSelf(const char* xyz, int charge, const char* name, bool prin
   }
 }
 
+//  The heading formula of a complex, ligands grouped.
+static void formulas(const string& dir)
+{
+  printf("the heading formula\n");
+  auto want = [](const Mol& m, const char* text) {
+    const string got = FoDiagram::complexFormula(m.sym, m.xyz, m.charge);
+    char b[96];
+    snprintf(b, sizeof b, "%s (got %s)", text, got.c_str());
+    check(got == text, b);
+  };
+  want(readXyz((dir + "/crco6.xyz").c_str(), 0), "Cr(CO)6");
+  want(readXyz((dir + "/conh36.xyz").c_str(), 3), "[Co(NH3)6]^3+");
+  want(readXyz((dir + "/tif6.xyz").c_str(), -2), "[TiF6]^2-");
+
+  const double ax[6][3] = { {1,0,0}, {-1,0,0}, {0,1,0}, {0,-1,0}, {0,0,1}, {0,0,-1} };
+  {  // [Co(H2O)6]2+, hydrogens off the axis
+    Mol m; m.charge = 2; m.sym.push_back("Co"); m.xyz = { 0, 0, 0 };
+    for (int i = 0; i < 6; i++) {
+      const double* u = ax[i];
+      const double p[3] = { 2.1*u[0], 2.1*u[1], 2.1*u[2] };
+      m.sym.push_back("O"); m.xyz.insert(m.xyz.end(), p, p + 3);
+      const double v[3] = { u[1] + u[2], u[2] + u[0], u[0] + u[1] };   // perpendicular
+      for (int s = -1; s <= 1; s += 2) {
+        m.sym.push_back("H");
+        for (int k = 0; k < 3; k++) m.xyz.push_back(p[k] + 0.6*s*v[k] + 0.6*u[k]);
+      }
+    }
+    want(m, "[Co(H2O)6]^2+");
+  }
+  {  // PtCl2(NH3)2, square planar, cis
+    Mol m; m.charge = 0; m.sym = { "Pt", "Cl", "Cl", "N", "N" };
+    m.xyz = { 0,0,0,  2.3,0,0, 0,2.3,0, -2.05,0,0, 0,-2.05,0 };
+    for (int a = 3; a <= 4; a++) {
+      const double u[3] = { m.xyz[3*a]/2.05, m.xyz[3*a+1]/2.05, 0 };
+      for (int h = 0; h < 3; h++) {
+        const double ang = 2.0943951*h, c = cos(ang), s = sin(ang);
+        m.sym.push_back("H");
+        m.xyz.push_back(m.xyz[3*a] + 0.5*u[0] + 0.9*c*(u[1] != 0 ? 1 : 0));
+        m.xyz.push_back(m.xyz[3*a+1] + 0.5*u[1] + 0.9*c*(u[0] != 0 ? 1 : 0));
+        m.xyz.push_back(0.9*s);
+      }
+    }
+    want(m, "PtCl2(NH3)2");
+  }
+  {  // [Fe(CN)6]3-
+    Mol m; m.charge = -3; m.sym.push_back("Fe"); m.xyz = { 0, 0, 0 };
+    for (int i = 0; i < 6; i++) {
+      m.sym.push_back("C"); m.sym.push_back("N");
+      for (int k = 0; k < 3; k++) m.xyz.push_back(1.92*ax[i][k]);
+      for (int k = 0; k < 3; k++) m.xyz.push_back(3.08*ax[i][k]);
+    }
+    want(m, "[Fe(CN)6]^3-");
+  }
+}
+
 //  Orbitals are conserved: per irrep, drawn bonding = drawn antibonding.
 static void pairCounts()
 {
@@ -281,6 +336,7 @@ int main(int argc, char** argv)
   printf("projection on a spanning FO set\n");
   composeSelf((dir + "/crco6.xyz").c_str(), 0, "Cr(CO)6", false);
   composeSelf((dir + "/conh36.xyz").c_str(), 3, "Co(NH3)6", false);
+  formulas(dir);
   pairCounts();
   printf(fails ? "FAILED\n" : "ok\n");
   return fails ? 1 : 0;
