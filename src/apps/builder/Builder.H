@@ -638,7 +638,7 @@ class Builder: public BuilderGUI,
 
       // Property panes folded to their caption bar, with what to restore.
       struct FoldState { wxSize best; wxSize min; bool resizable; int proportion;
-                         wxSize winMin; };
+                         wxSize winMin; int row; };
       map<wxWindow*, FoldState> p_folded;
       //  Each tool pane's own height floor; fitToolColumn() lowers the
       //  pane's min_size below it while the column is too short.

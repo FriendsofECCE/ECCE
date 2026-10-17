@@ -306,7 +306,8 @@ void Builder::applyGeometry(bool resetSizes)
     }
     if (name == NAME_TOOL_LOG) {
       if (col) {
-        pane.Bottom().Layer(0).Row(0).Position(0).PinButton(true);
+        pane.Bottom().Layer(0).Row(p_folded.count(pane.window) ? 1 : 0)
+            .Position(0).PinButton(true);
         if (resetSizes && !p_folded.count(pane.window)) {
           const int line = pane.window->GetCharHeight();
           pane.BestSize(wxSize(300, 3 * line + 8))

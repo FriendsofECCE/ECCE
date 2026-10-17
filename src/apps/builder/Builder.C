@@ -3931,7 +3931,17 @@ void Builder::foldPane(wxWindow *win, bool fold)
     return;
   }
   FoldState st = { pane.best_size, pane.min_size, pane.IsResizable(),
-                   pane.dock_proportion, win->GetMinSize() };
+                   pane.dock_proportion, win->GetMinSize(), pane.dock_row };
+  //  A pane docked across the frame (the Log at the bottom): AUI keeps the
+  //  dock's height from when it was open, so a folded one stayed tall, and
+  //  Fixed() stopped it stretching along the frame (half width).  Fold it
+  //  in a row of its own, which AUI sizes from the caption, and remember
+  //  the height it had for unfolding.
+  const bool across = pane.dock_direction == wxAUI_DOCK_BOTTOM ||
+                      pane.dock_direction == wxAUI_DOCK_TOP;
+  if (across && pane.rect.height > 1) {
+    st.best.y = pane.rect.height;
+  }
   p_folded[win] = st;
   //  AUI floors a pane at its window's minimum, so a folded pane would
   //  keep the content height until the window is hidden.
@@ -3941,7 +3951,12 @@ void Builder::foldPane(wxWindow *win, bool fold)
   }
   win->wxWindow::SetMinSize(wxSize(st.winMin.x, 1));
   unfocusPanel(win);
-  pane.BestSize(wxSize(st.best.x, 1)).MinSize(wxSize(st.min.x, 1)).Fixed();
+  pane.BestSize(wxSize(st.best.x, 1)).MinSize(wxSize(st.min.x, 1));
+  if (across) {
+    pane.Row(st.row + 1);
+  } else {
+    pane.Fixed();
+  }
   pane.dock_proportion = 1;
 }
 
@@ -3954,7 +3969,7 @@ void Builder::unfoldPane(wxAuiPaneInfo &pane)
     return;
   }
   pane.BestSize(it->second.best).MinSize(it->second.min)
-      .Resizable(it->second.resizable);
+      .Resizable(it->second.resizable).Row(it->second.row);
   pane.dock_proportion = it->second.proportion;
   if (PropertyPanel *pp = dynamic_cast<PropertyPanel*>(pane.window)) {
     pp->setPaneMinHeight(it->second.winMin.y);
