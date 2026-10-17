@@ -254,11 +254,15 @@ int main(int argc, char **argv)
 
     FoDiagram::Result res;
     if (!FoDiagram::build(symbols, coords, frag->charge(), pb, S, rows, e,
-                          centre, res, why, showAll, &wholeSpectrum)) {
+                          centre, res, why, showAll, &wholeSpectrum, mult)) {
       cerr << "fragorb: " << why << endl;
       return 1;
     }
     printf("%s\n", res.note.c_str());
+    printf("electrons oxidation=%d d=%d ligands=%d mo=%.0f unpaired=%d placed=%d agree=%d\n",
+           res.electrons.oxidation, res.electrons.dCount, res.electrons.ligands,
+           res.electrons.moElectrons, res.electrons.unpaired,
+           res.electrons.placed ? 1 : 0, res.electrons.agree ? 1 : 0);
     printf("group %s capture %.4f %.4f\n", res.group.c_str(), res.captureMin,
            res.captureMax);
     for (size_t i = 0; i < res.sets.size(); i++) {

@@ -247,6 +247,11 @@ COMPLEXES = (("conh36", "Co 3d", "Co(NH3)6"), ("tif6", "Ti 3d", "TiF6"),
              ("crco6", "Cr 3d", "Cr(CO)6"))
 
 
+#  d count, oxidation state, (t2g, eg) electrons drawn
+EXPECT_D = {"conh36": (6, 3, (6.0, 0.0)), "tif6": (0, 4, (0.0, 0.0)),
+            "crco6": (6, 0, (6.0, 0.0))}
+
+
 def diagram(build):
     """The fragment-orbital diagram (FoDiagram) for the three ML6 types."""
     print("the fragment-orbital diagram")
@@ -271,6 +276,27 @@ def diagram(build):
         check(len(strong) == 2 and strong[0][1] == 3 and strong[1][1] == 2,
               "%s: t2g (3) below eg* (2) are the two levels that are "
               "half or more metal 3d" % name, strong)
+        el = [l for l in out.splitlines() if l.startswith("electrons ")]
+        kv = dict(x.split("=") for x in el[0].split()[1:]) if el else {}
+        want = EXPECT_D[fx]
+        check(el and int(kv["d"]) == want[0] and int(kv["oxidation"]) == want[1],
+              "%s: metal d%d (oxidation state %+d, group number - oxidation "
+              "state)" % (name, want[0], want[1]), kv)
+        eg = [d["metal"][i] for i in dm if d["metal"][i]["deg"] == 2]
+        t2g = [d["metal"][i] for i in dm if d["metal"][i]["deg"] == 3]
+        placed = (t2g[0]["occ"], eg[0]["occ"]) if eg and t2g else None
+        check(placed == want[2] and (t2g[0]["E"] < eg[0]["E"] or want[0] == 0),
+              "%s: d electrons placed t2g %s / eg %s (t2g below eg in the "
+              "fragment column), ns and np empty" %
+              (name, *(want[2])), placed)
+        check(all(m["occ"] == 0 for m in d["metal"] if '"%s"' % d_set not in m["line"]),
+              "%s: the metal ns and np levels draw no electrons" % name)
+        check(el and kv["placed"] == "1" and kv["agree"] == "1" and
+              int(kv["d"]) + int(kv["ligands"]) == int(kv["mo"]) and
+              "Electrons: metal d%d + ligands %s = %d" %
+              (want[0], kv["ligands"], int(kv["mo"])) in out,
+              "%s: metal d + ligand electrons = valence MO electrons, "
+              "stated in the note" % name, kv)
         check(0 < len(d["ligand"]) <= 6,
               "%s: ligand internals do not crowd the right column" % name,
               len(d["ligand"]))

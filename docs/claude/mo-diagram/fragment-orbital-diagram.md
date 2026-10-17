@@ -58,6 +58,14 @@ skeleton|central|halves|groups|sets|fragorb` picks one in tests).
   very levels the diagram is about. With FO wanted the panel keeps them
   (core is told by capture) and adds their orbitals to the
   `hideBeyondValence` room, otherwise TiF6's eg* is cut.
+- Metal electrons: n = group number - oxidation state (ionic; the metal's
+  charge is what `autoFragments` leaves after the ligands'), put in the d
+  levels in Fock-diagonal order with multiplicity - 1 unpaired (Hund);
+  ns/np empty; outside 0-10 or a multiplicity the count cannot have draws
+  none and the note says why. The note's "Electrons:" line compares metal d
+  + ligand-FO electrons with the electrons in the valence MOs (capture >=
+  50%) and says when they differ. The panel does not know the multiplicity
+  and passes 1.
 - `tools/modiagram/fragorb CALC --diagram [--all]` prints the same model (sets,
   levels, pairs, lines); the headless PNG route is `plotshot`
   (`ECCE_PLOTSHOT_POS=x,y` moves the floating panel off the Builder's own

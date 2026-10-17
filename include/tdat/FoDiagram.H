@@ -110,6 +110,23 @@ class FoDiagram
      */
     static vector<PairCount> countPairs(const vector<PairLevel>& levels);
 
+    /**
+     * The electron bookkeeping (ionic convention): the metal's d count
+     * n = group number - oxidation state, the ligand fragment orbitals'
+     * electrons, and the electrons in the valence MOs (capture >= 50%).
+     */
+    struct ElectronCount
+    {
+      int    oxidation, dCount, ligands, unpaired;
+      double moElectrons;
+      bool   placed;      // the d electrons are drawn
+      bool   agree;       // metal + ligands = valence MO electrons
+      string why;         // when not placed
+      string line;        // the note's line
+      ElectronCount() : oxidation(0), dCount(0), ligands(0), unpaired(0),
+                        moElectrons(0), placed(false), agree(false) {}
+    };
+
     struct Result
     {
       MoColumn left, right;                 // metal sets, ligand sets
@@ -121,6 +138,7 @@ class FoDiagram
       vector<PairCount> pairs;              // per skeleton irrep
       vector<string> pairMessages;          // the mismatches, one line each
       string group;                         // skeleton point group, or ""
+      ElectronCount electrons;
       double captureMin, captureMax;        // over the drawn MOs
       Result() : captureMin(0), captureMax(0) {}
     };
@@ -161,6 +179,8 @@ class FoDiagram
      *                            the antibonding partner of a drawn
      *                            bonding level is found and drawn even
      *                            past the cut-off; null = `centre`
+     * @param multiplicity        of the molecule: multiplicity - 1 of the
+     *                            metal d electrons are drawn unpaired
      */
     static bool build(const vector<string>& symbols,
                       const vector<double>& coordsAng, int charge,
@@ -170,7 +190,8 @@ class FoDiagram
                       const vector<double>& moEnergies,
                       MoColumn& centre, Result& out, string& why,
                       bool showAll = false,
-                      const vector<MoLevel>* whole = 0);
+                      const vector<MoLevel>* whole = 0,
+                      int multiplicity = 1);
 };
 
 #endif

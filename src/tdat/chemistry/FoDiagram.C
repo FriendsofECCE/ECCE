@@ -490,6 +490,20 @@ struct Lv
           shM(0), shL(0), valence(false), shown(false), why(0) {}
 };
 
+//  Periodic-table group of a d-block element (La counts as 3), 0 otherwise.
+int groupNumber(const string& el)
+{
+   static const char* rows[3][10] = {
+      { "Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn" },
+      { "Y","Zr","Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd" },
+      { "Lu","Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg" } };
+   if (el == "La") return 3;
+   for (int r = 0; r < 3; r++)
+      for (int g = 0; g < 10; g++)
+         if (el == rows[r][g]) return g + 3;
+   return 0;
+}
+
 }  // namespace
 
 
@@ -500,7 +514,8 @@ bool FoDiagram::build(const vector<string>& symbols,
                       const vector< vector<double> >& moRows,
                       const vector<double>& moEnergies,
                       MoColumn& centre, Result& out, string& why,
-                      bool showAll, const vector<MoLevel>* whole)
+                      bool showAll, const vector<MoLevel>* whole,
+                      int multiplicity)
 {
    out = Result();
    why.clear();
@@ -965,6 +980,118 @@ bool FoDiagram::build(const vector<string>& symbols,
       return false;
    }
 
+   //  --- electrons: the metal d count, placed; the bookkeeping ----------
+   //  Ionic convention: the ligands carry their charges (autoFragments),
+   //  the metal the rest, and n = group number - oxidation state.
+   vector<double> dAlpha(ns, 0.0), dBeta(ns, 0.0);
+   vector<bool> isD(ns, false);
+   {
+      ElectronCount& ec = out.electrons;
+      int nMetal = 0;
+      string metalSym;
+      for (size_t i = 0; i < frags.size(); i++)
+         if (frags[i].kind == FragmentOrbitals::METAL) {
+            nMetal++;
+            if (nMetal == 1) {
+               ec.oxidation = frags[i].charge;
+               metalSym = symbols[frags[i].atoms[0]];
+            }
+         }
+      double ligElectrons = 0.0;
+      for (size_t k = 0; k < set.fos.size(); k++)
+         if (set.fragments[set.fos[k].fragment].kind != FragmentOrbitals::METAL)
+            ligElectrons += set.fos[k].occupancy;
+      ec.ligands = (int)lround(ligElectrons);
+      for (size_t c = 0; c < merged.size(); c++) {
+         const MoLevel& lv = merged[c];
+         bool valence = false;
+         for (size_t k = 0; k < lv.orbitals.size(); k++) {
+            const int m = lv.orbitals[k];
+            if (m >= 0 && m < (int)nMO && sh[m].klass != "core") valence = true;
+         }
+         if (!valence) continue;
+         ec.moElectrons += lv.occupancy + (lv.occupancyBeta >= 0 ? lv.occupancyBeta : 0.0);
+      }
+      const int group = groupNumber(metalSym);
+      string reason;
+      if (nMetal != 1 || group == 0) {
+         reason = "the metal's d count is given for a single transition metal only";
+      } else {
+         ec.dCount = group - ec.oxidation;
+         if (ec.dCount < 0 || ec.dCount > 10) {
+            char b[160];
+            snprintf(b, sizeof b, "the ionic d count is %d (group %d, oxidation state %+d), "
+                     "outside 0-10", ec.dCount, group, ec.oxidation);
+            reason = b;
+         }
+      }
+      const int unpaired = multiplicity > 1 ? multiplicity - 1 : 0;
+      ec.unpaired = unpaired;
+      vector< std::pair<double,size_t> > dsets;
+      if (reason.empty()) {
+         for (size_t s = 0; s < ns; s++) {
+            if (!subs[s].metal) continue;
+            const vector<int>& K = groups[subs[s].group];
+            size_t best = 0; double bc = -1.0;
+            for (size_t f = 0; f < nf; f++) {
+               const double a = fabs(set.fos[K[0]].coef[f]);
+               if (a > bc) { bc = a; best = f; }
+            }
+            if (set.funcs[best].l == 2) {
+               isD[s] = true;
+               dsets.push_back(std::make_pair(out.sets[s].eFock, s));
+            }
+         }
+         std::sort(dsets.begin(), dsets.end());
+         int orbitals = 0;
+         for (size_t i = 0; i < dsets.size(); i++) orbitals += out.sets[dsets[i].second].degeneracy;
+         const int rest = ec.dCount - unpaired;
+         if (orbitals != 5) reason = "the five d orbitals are not all found";
+         else if (rest < 0 || rest % 2 != 0 || rest/2 + unpaired > 5)
+            reason = "a d" + std::to_string(ec.dCount) + " ion cannot have multiplicity "
+                     + std::to_string(multiplicity);
+      }
+      if (reason.empty()) {
+         //  Pairs fill the lowest orbitals, the unpaired electrons the next
+         //  ones up (Hund's rule); a level's degeneracy counts orbitals.
+         int doubled = (ec.dCount - unpaired)/2, single = unpaired;
+         for (size_t i = 0; i < dsets.size(); i++) {
+            const size_t s = dsets[i].second;
+            int room = out.sets[s].degeneracy;
+            const int dbl = std::min(doubled, room);
+            doubled -= dbl; room -= dbl;
+            const int sgl = std::min(single, room);
+            single -= sgl;
+            dAlpha[s] = dbl + sgl;
+            dBeta[s] = dbl;
+         }
+         ec.placed = true;
+      } else {
+         ec.why = reason;
+         isD.assign(ns, false);
+      }
+      const double diff = (ec.placed ? ec.dCount : 0) + ec.ligands - ec.moElectrons;
+      ec.agree = ec.placed && fabs(diff) < 0.5;
+      char b[400];
+      if (ec.placed) {
+         snprintf(b, sizeof b, "Electrons: metal d%d + ligands %d = %d in the drawn "
+                  "valence orbitals", ec.dCount, ec.ligands, ec.dCount + ec.ligands);
+         ec.line = b;
+         if (ec.agree) ec.line += ", the same as the " + std::to_string((int)lround(ec.moElectrons))
+                                  + " in the valence MOs.";
+         else {
+            snprintf(b, sizeof b, "; the valence MOs the diagram considers (capture "
+                     "%.0f%% or more) hold %.0f, so the two sides do not agree.",
+                     100*FragmentOrbitals::CORE_CAPTURE, ec.moElectrons);
+            ec.line += b;
+         }
+      } else {
+         snprintf(b, sizeof b, "Electrons: no metal d electrons drawn, %s.  Ligands "
+                  "%d; the valence MOs hold %.0f.", ec.why.c_str(), ec.ligands, ec.moElectrons);
+         ec.line = b;
+      }
+   }
+
    int lowCapture = 0;
    for (int side = 0; side < 2; side++) {
       std::sort(order[side].begin(), order[side].end());
@@ -983,6 +1110,13 @@ bool FoDiagram::build(const vector<string>& symbols,
              FragmentOrbitals::describeGroup(set, groups[subs[s].group]);
          lv.label = si.label;
          if (!si.irrep.empty()) lv.annotation = si.irrep;
+         if (side == 0 && out.electrons.placed && isD[s]) {
+            lv.occupancy = dAlpha[s] + dBeta[s];
+            if (out.electrons.unpaired > 0) {
+               lv.occupancy = dAlpha[s];
+               lv.occupancyBeta = dBeta[s];
+            }
+         }
          if (side == 1) {
             const string c = firstCharacter(d.character);
             lv.annotation = si.irrep.empty() ? c : si.irrep + "  " + c;
@@ -1122,6 +1256,7 @@ bool FoDiagram::build(const vector<string>& symbols,
         << percent(FragmentOrbitals::CORE_CAPTURE) << ") not drawn.";
    for (size_t i = 0; i < out.pairMessages.size(); i++)
       n << "\n" << out.pairMessages[i] << ".";
+   n << "\n" << out.electrons.line;
    out.note = n.str();
    return true;
 }
