@@ -273,6 +273,24 @@ void MoDiagramPanel::orbitalClicked(int orbengIndex)
 }
 
 
+//  Where the molecular levels come from, for the summary line: the fragment
+//  levels say they are extended Hückel, so the middle column says what it is.
+static string levelSource(IPropCalculation *calc)
+{
+  ICalculation *esCalc = dynamic_cast<ICalculation*>(calc);
+  if (esCalc == 0) return string();
+  string what;
+  TTheory *theory = esCalc->theory();
+  if (theory) {
+    what = theory->toConciseString();
+    delete theory;
+  }
+  TGBSConfig *config = esCalc->gbsConfig();
+  if (config && !config->empty() && !config->name().empty())
+    what += (what.empty() ? "" : ", ") + config->name();
+  return what.empty() ? string() : "MO levels: " + what + " \xC2\xB7 ";
+}
+
 bool MoDiagramPanel::Create(IPropCalculation *calculation,
       wxWindow *parent, wxWindowID id, const wxPoint& pos,
       const wxSize& size, long style, const wxString& name)
@@ -3062,7 +3080,8 @@ void MoDiagramPanel::buildOnce()
       p_canvas->setGroup(group);
       p_canvas->setFormula(MoDiagram::formula(elements, charge));
       p_canvas->setDiagram(left, centre, right, links, false, "", headline);
-      p_canvas->setNotes(tiers.summary, tiers.warnings, tiers.about);
+      p_canvas->setNotes(levelSource(getCalculation()) + tiers.summary,
+                         tiers.warnings, tiers.about);
       if (!dumpPath.empty()) {
         dumpMoDiagram(dumpPath, group, MoDiagram::formula(elements, charge),
             MoFragments::fragmentationName(p_fragmentation),
@@ -3138,7 +3157,8 @@ void MoDiagramPanel::buildOnce()
   }
   p_canvas->setFormula(headingFormula);
   p_canvas->setDiagram(left, centre, right, links, haveFragments, "");
-  p_canvas->setNotes(tiers.summary, tiers.warnings, tiers.about);
+  p_canvas->setNotes(levelSource(getCalculation()) + tiers.summary,
+                     tiers.warnings, tiers.about);
   if (!dumpPath.empty()) {
     dumpMoDiagram(dumpPath, group, headingFormula,
         MoFragments::fragmentationName(p_fragmentation),

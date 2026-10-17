@@ -1336,11 +1336,8 @@ bool FoDiagram::build(const vector<string>& symbols,
    out.warnings.clear();
    for (size_t i = 0; i < out.pairMessages.size(); i++)
       out.warnings.push_back(out.pairMessages[i] + ".");
-   if (lowCapture > 0)
-      out.warnings.push_back(plural(lowCapture, "fragment level is", "fragment levels are") +
-         " covered less than " + spacedPercent(CAPTURE_OK) +
-         " by the calculation's orbitals, so " + (lowCapture == 1 ? "its position is" : "their positions are") +
-         " less certain.");
+   //  Low coverage only concerns the marked levels, so it is explained in the
+   //  About text, next to the percentages, not raised as a warning.
    {
       const ElectronCount& ec = out.electrons;
       char b[300];
