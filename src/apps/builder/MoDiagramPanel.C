@@ -655,6 +655,10 @@ bool MoDiagramPanel::isRelevant(IPropCalculation *propCalc) const
   ICalculation *esCalc = dynamic_cast<ICalculation*>(propCalc);
   if (esCalc != 0) {
     const JCode *app = esCalc->application();
+    //  Not for MOPAC for now (Andy, 2026-10-17): its orthonormal basis gives
+    //  the fragment-orbital diagram nothing to project on, and the symmetry
+    //  route alone is not worth offering for it yet.
+    if (app != 0 && app->name() == "MOPAC") return false;
     if (app != 0 && !app->supportsMODiagram()) {
       Preferences prefs(PrefLabels::GLOBALPREFFILE);
       //  Must match GlobalPrefs' default for an unset preference.
