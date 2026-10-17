@@ -193,7 +193,7 @@ def png(src, dest, crop=None):
 
 
 def shootOrganizer(display, auth, out):
-    """The Organizer on benzene, at 1280x800.
+    """The Organizer on benzene, at 1280x900 (room for the Progress pane).
 
     The code editor and the Launcher open from it, but with no window
     manager on the display they come up undecorated, overlapping and only
@@ -208,12 +208,12 @@ def shootOrganizer(display, auth, out):
             return "no Organizer window; windows: %s" % display.windows()
         wid = org[0]
         xdo(display, "windowmove", wid, "0", "0")
-        xdo(display, "windowsize", wid, "1280", "800")
+        xdo(display, "windowsize", wid, "1280", "900")
         time.sleep(25)
         shots = os.path.join(out, "organizer-full.png")
         subprocess.run(["import", "-display", display.name, "-window", "root",
                         shots])
-        png(shots, os.path.join(out, "organizer.png"), "1280x800+0+0")
+        png(shots, os.path.join(out, "organizer.png"), "1280x900+0+0")
         os.unlink(shots)
     finally:
         for p in procs:

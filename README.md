@@ -14,8 +14,8 @@ nothing else installed. ECCE was developed at Pacific Northwest National
 Laboratory, which stopped supporting it around 2017; it is maintained
 here since, with PNNL's blessing.
 
-<a href="docs/images/organizer.png"><img src="docs/images/organizer.png" width="400" alt="The Organizer: projects and calculations, with a completed ORCA calculation selected"></a>
-<a href="docs/images/viewer.png"><img src="docs/images/viewer.png" width="389" alt="The viewer, showing a molecular orbital of benzene"></a>
+<a href="docs/images/organizer.png"><img src="docs/images/organizer.png" width="384" alt="The Organizer: projects and calculations, with a completed ORCA calculation selected"></a>
+<a href="docs/images/viewer.png"><img src="docs/images/viewer.png" width="420" alt="The viewer, showing a molecular orbital of benzene"></a>
 
 More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
 
