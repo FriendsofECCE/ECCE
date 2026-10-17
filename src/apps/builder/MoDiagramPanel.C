@@ -359,7 +359,7 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   //  plane holds the atoms. Better to offer nothing there than to
   //  guess which plane was meant.
   p_piOnly = new ewxCheckBox(this, wxID_ANY, _("pi system only"));
-  p_piOnly->SetValue(false);
+  p_piOnly->SetValue(getenv("ECCE_MODIAGRAM_PIONLY") != 0);
   p_piOnly->Show(false);
   p_piOnly->SetToolTip("Show only the orbitals that change sign in the "
                        "molecular plane");

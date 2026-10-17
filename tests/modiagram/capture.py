@@ -86,6 +86,8 @@ FIXTURES = {
     "orca-bf3": os.path.join(FIXTURES_DIR, "orca-bf3"),
     "orca-benzene": os.path.join(FIXTURES_DIR, "orca-benzene"),
     "orca-agnh3": os.path.join(FIXTURES_DIR, "orca-agnh3"),
+    "orca-benzene-pi": os.path.join(FIXTURES_DIR, "orca-benzene"),
+    "ecceqm-c2h4-pi": os.path.join(FIXTURES_DIR, "ecceqm-c2h4"),
 }
 
 
@@ -99,6 +101,9 @@ FIXTURE_ENV = {
     "orca-crco6-pick-cr1": {"ECCE_MODIAGRAM_PICK": "Cr1"},
     "ecceqm-methanol-pick-c1": {"ECCE_MODIAGRAM_PICK": "C1"},
     "ecceqm-methanol-pick-o2": {"ECCE_MODIAGRAM_PICK": "O2"},
+    #  ECCE_MODIAGRAM_PIONLY: the "pi system only" box ticked.
+    "orca-benzene-pi": {"ECCE_MODIAGRAM_PIONLY": "1"},
+    "ecceqm-c2h4-pi": {"ECCE_MODIAGRAM_PIONLY": "1"},
 }
 
 
