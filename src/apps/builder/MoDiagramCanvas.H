@@ -537,6 +537,30 @@ class MoDiagramCanvas : public wxPanel
       }
     }
 
+    /** Merged non-bonding levels: one grey block per band. */
+    void drawBands(wxDC& dc, const MoColumn& column, int x, int width,
+                   const wxRect& plot)
+    {
+      for (size_t i = 0; i < column.bands.size(); i++) {
+        const MoBand& b = column.bands[i];
+        int top = yFor(b.high, plot), bottom = yFor(b.low, plot);
+        dc.SetFont(*wxSMALL_FONT);
+        const int row = dc.GetTextExtent(wxT("Xg")).y;
+        if (bottom - top < row + 6) {
+          const int mid = (top + bottom)/2;
+          top = mid - row/2 - 3;
+          bottom = mid + row/2 + 3;
+        }
+        dc.SetBrush(wxBrush(wxColour(222, 222, 222)));
+        dc.SetPen(wxPen(wxColour(160, 160, 160), 1));
+        dc.DrawRectangle(x, top, width, bottom - top);
+        const wxString text(b.label.c_str(), wxConvUTF8);
+        const wxSize ext = dc.GetTextExtent(text);
+        dc.SetTextForeground(wxColour(70, 70, 70));
+        dc.DrawText(text, x + (width - ext.x)/2, top + 2);   // top edge: a level may cross the middle
+      }
+    }
+
     /** The row a single level sits on, for a line to end at. */
     int levelYIn(wxDC& dc, const MoColumn& column, const wxRect& plot,
                  bool spread, int which)
@@ -1446,6 +1470,8 @@ class MoDiagramCanvas : public wxPanel
         //  occupancy now, and a diagram that does not draw it does not
         //  say which combinations are filled -- which is half of what
         //  it is for.  The offline renderer draws them; this did not.
+        drawBands(dc, p_left, xLeft, leftWidth, plot);
+        drawBands(dc, p_right, xRight, rightWidth, plot);
         drawColumn(dc, p_left, xLeft, leftWidth, plot, true, 0, -1, true);
         p_placed.clear();
       p_notes.clear();
@@ -1455,6 +1481,7 @@ class MoDiagramCanvas : public wxPanel
       }
 
       p_hits.clear();
+      drawBands(dc, p_centre, xCentre, centreWidth, plot);
       //  SPREAD THE MOLECULAR ORBITALS TOO.
       //
       //  The fragment columns have always been drawn with a minimum

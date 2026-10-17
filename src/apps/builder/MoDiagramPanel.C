@@ -457,7 +457,9 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   p_showAll->SetValue(getenv("ECCE_MODIAGRAM_SHOWALL") != 0);
   p_showAll->SetToolTip("Fragment-orbital diagram: also draw the "
                         "ligand-internal levels and the levels with little "
-                        "metal character, and their lines");
+                        "metal character, and their lines. Central atom: "
+                        "draw every level and line, including the non-bonding "
+                        "ones the simplified view merges or leaves out");
   p_showAll->Enable(false);
   row->Add(p_showAll, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 
@@ -1589,6 +1591,11 @@ void dumpColumn(std::ofstream& out, const string& name, const MoColumn& col,
   out << "  shellKeys:";
   for (size_t i = 0; i < col.shellKeys.size(); i++) out << " " << col.shellKeys[i];
   out << "\n";
+  for (size_t i = 0; i < col.bands.size(); i++)
+    out << "  band " << i << " low=" << std::fixed << std::setprecision(6)
+        << col.bands[i].low << " high=" << col.bands[i].high
+        << " levels=" << col.bands[i].levels
+        << " label=" << escapeDumpText(col.bands[i].label) << "\n";
   out << "  levels: " << col.levels.size() << "\n";
   out << std::fixed;
   for (size_t i = 0; i < col.levels.size(); i++) {
@@ -3194,6 +3201,7 @@ void MoDiagramPanel::buildOnce()
   }
 
   string fragmentAbout;
+  string simplifiedNote;
   NoteTiers tiers;
   vector<string> pairWarnings;
   if (haveFragments && !foDrawn) {
@@ -3249,6 +3257,15 @@ void MoDiagramPanel::buildOnce()
         mosymPrintf("\n");
       }
     }
+    //  A main-group fragment's electrons: whole pairs in the placed
+    //  energy order, not singly occupied symmetry orbitals.
+    const bool centralMainGroup = [&]() {
+      if (p_fragmentation != MoFragments::CENTRAL || elements.size() < 3) return false;
+      for (size_t i = 0; i < elements.size(); i++)
+        if (MoFragments::valenceOrbitals(elements[i]) > 4) return false;
+      return true;
+    }();
+    if (centralMainGroup) MoDiagram::fillWholePairs(right.levels);
     MoDiagram::classifyByEnergy(left.levels, centre.levels,
                                 right.levels, links, &pairWarnings);
 
@@ -3352,6 +3369,31 @@ void MoDiagramPanel::buildOnce()
     }
 
     tiers.warnings.insert(tiers.warnings.end(), pairWarnings.begin(), pairWarnings.end());
+    if (centralMainGroup && !(p_showAll != 0 && p_showAll->IsChecked())) {
+      vector<bool> gone;
+      int leftOut = 0, blockLevels = 0;
+      const size_t linksBefore = links.size();
+      MoDiagram::simplifyCentral(left, centre, right, links, gone,
+                                 leftOut, blockLevels);
+      vector<double>* parallel[] = { &localisedShare, &centreOP, &mullikenMaxVec,
+                                     &normVec, &metalLigandOP };
+      for (size_t v = 0; v < sizeof parallel/sizeof parallel[0]; v++) {
+        if (parallel[v]->size() != gone.size()) continue;
+        vector<double> keep;
+        for (size_t i = 0; i < gone.size(); i++)
+          if (!gone[i]) keep.push_back((*parallel[v])[i]);
+        parallel[v]->swap(keep);
+      }
+      if (leftOut > 0 || blockLevels > 0 || links.size() != linksBefore) {
+      simplifiedNote = "Lines to non-bonding levels are not drawn";
+      if (leftOut > 0)
+        simplifiedNote += "; " + std::to_string(leftOut) + " ligand s orbital" +
+                          (leftOut == 1 ? " is" : "s are") + " left out (under 10 % of any level drawn)";
+      if (blockLevels > 0)
+        simplifiedNote += "; the ligands' non-bonding levels are one grey block";
+      simplifiedNote += ". Tick Show all levels to draw everything.";
+      }
+    }
     fragmentAbout = "Each fragment level is placed at the mean of the molecular "
         "orbitals it became, weighted by its share of them, and kept in the "
         "atom's own shell order. Its free-atom energy is given beside it.";
@@ -3365,7 +3407,9 @@ void MoDiagramPanel::buildOnce()
     }
   }
 
-  if (p_showAll != 0) p_showAll->Enable(foDrawn);
+  if (!simplifiedNote.empty()) fragmentAbout += "\n\n**Simplified.** " + simplifiedNote;
+  if (p_showAll != 0)
+    p_showAll->Enable(foDrawn || (haveFragments && p_fragmentation == MoFragments::CENTRAL));
   if (!why.empty()) {
     if (whyWarn) tiers.warnings.push_back(why);
   }
@@ -3423,6 +3467,7 @@ void MoDiagramPanel::buildOnce()
         ? "Fragments: " + (pickSummary.empty() ? construction : pickSummary)
         : string("Molecular levels only");
     tiers.summary += " \xC2\xB7 energies in Hartree";
+    if (!simplifiedNote.empty()) tiers.summary += " \xC2\xB7 simplified (Show all levels draws everything)";
     if (!group.empty() && !s.empty())
       tiers.summary += " \xC2\xB7 labels in " + FoDiagram::groupMarkup(group);
     else if (s.empty())

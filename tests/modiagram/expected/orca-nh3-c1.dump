@@ -2,8 +2,8 @@ group: C3
 formula: NH3
 construction: a central atom and its neighbours
 headline: 
-note: Fragments: a central atom and its neighbours · energies in Hartree · no symmetry labels · 1 core orbital hidden
-about: **What is drawn.** The molecular levels in the middle are the calculation's own orbital energies, in Hartree.\n\n**Fragment levels.** Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, and kept in the atom's own shell order. Its free-atom energy is given beside it.\n\n**Symmetry.** This calculation reports no orbital symmetry labels, so the molecular levels are unlabelled and are correlated by what they are built from rather than by symmetry. The structure was symmetrised to C3 for this diagram (atoms moved by up to 0.001 Angstrom); the orbitals are the calculation's own.\n\n**The circles beside each symmetry orbital** show the atoms as seen from one side, filled and open for opposite sign and sized by weight; a bar is a p lobe in the page.\n\n**Not shown.** 1 core orbital below −15.54 Hartree.
+note: Fragments: a central atom and its neighbours · energies in Hartree · simplified (Show all levels draws everything) · no symmetry labels · 1 core orbital hidden
+about: **What is drawn.** The molecular levels in the middle are the calculation's own orbital energies, in Hartree.\n\n**Fragment levels.** Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, and kept in the atom's own shell order. Its free-atom energy is given beside it.\n\n**Simplified.** Lines to non-bonding levels are not drawn. Tick Show all levels to draw everything.\n\n**Symmetry.** This calculation reports no orbital symmetry labels, so the molecular levels are unlabelled and are correlated by what they are built from rather than by symmetry. The structure was symmetrised to C3 for this diagram (atoms moved by up to 0.001 Angstrom); the orbitals are the calculation's own.\n\n**The circles beside each symmetry orbital** show the atoms as seen from one side, filled and open for opposite sign and sized by weight; a bar is a p lobe in the page.\n\n**Not shown.** 1 core orbital below −15.54 Hartree.
 column left
   title: N
   fromHalves: 0
@@ -41,9 +41,9 @@ column right
   hiddenAboveCount: 0
   shellKeys: H:0
   levels: 2
-  level 0 energy=-0.121479 tabulated=-13.600000 irrep=A label=A  (1s) character=UNKNOWN pairing=-1 occupancy=1.0000 occupancyBeta=-1.0000 degeneracy=1 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.50 Ha"
-  level 1 energy=-0.121479 tabulated=-13.600000 irrep=E label=E  (1s) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=2 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.50 Ha"
-links: 24
+  level 0 energy=-0.121479 tabulated=-13.600000 irrep=A label=A  (1s) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.50 Ha"
+  level 1 energy=-0.121479 tabulated=-13.600000 irrep=E label=E  (1s) character=UNKNOWN pairing=-1 occupancy=1.0000 occupancyBeta=-1.0000 degeneracy=2 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.50 Ha"
+links: 22
   link 0 left=0 centre=0 right=-1
   link 1 left=-1 centre=0 right=0
   link 2 left=-1 centre=0 right=1
@@ -55,16 +55,14 @@ links: 24
   link 8 left=2 centre=2 right=-1
   link 9 left=-1 centre=2 right=0
   link 10 left=-1 centre=2 right=1
-  link 11 left=1 centre=3 right=-1
-  link 12 left=2 centre=3 right=-1
-  link 13 left=0 centre=4 right=-1
-  link 14 left=-1 centre=4 right=0
-  link 15 left=-1 centre=4 right=1
-  link 16 left=1 centre=5 right=-1
-  link 17 left=2 centre=5 right=-1
-  link 18 left=-1 centre=5 right=0
-  link 19 left=-1 centre=5 right=1
-  link 20 left=1 centre=6 right=-1
-  link 21 left=2 centre=6 right=-1
-  link 22 left=-1 centre=6 right=0
-  link 23 left=-1 centre=6 right=1
+  link 11 left=0 centre=4 right=-1
+  link 12 left=-1 centre=4 right=0
+  link 13 left=-1 centre=4 right=1
+  link 14 left=1 centre=5 right=-1
+  link 15 left=2 centre=5 right=-1
+  link 16 left=-1 centre=5 right=0
+  link 17 left=-1 centre=5 right=1
+  link 18 left=1 centre=6 right=-1
+  link 19 left=2 centre=6 right=-1
+  link 20 left=-1 centre=6 right=0
+  link 21 left=-1 centre=6 right=1

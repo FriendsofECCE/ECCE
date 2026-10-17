@@ -201,10 +201,26 @@ struct MoLevel
 };
 
 
+/**
+ * Several levels drawn as one grey block between two energies (ligand
+ * lone pairs that take no part in bonding).  No lines go to a block.
+ */
+struct MoBand
+{
+   double low, high;       // Hartree
+   string label;
+   int    levels;          // how many levels it stands for
+   MoBand() : low(0.0), high(0.0), levels(0) {}
+};
+
+
 /** One column of the diagram. */
 struct MoColumn
 {
    string           title;
+
+   /** Merged non-bonding levels, drawn as grey blocks. */
+   vector<MoBand>   bands;
 
    /**
     * This column's shells, named by element and angular momentum.
@@ -753,6 +769,29 @@ class MoDiagram
                                  const vector<MoLevel>& right,
                                  const vector<MoConnection>& connections,
                                  vector<string>* pairWarnings = 0);
+
+    /**
+     * Fill a fragment column's electrons as whole pairs, in energy order
+     * (a main-group fragment's TASOs: the neutral valence count, never
+     * the singly occupied symmetry orbitals of the split atoms).  The
+     * total is the column's present total; an odd one leaves one
+     * electron in the next level.
+     */
+    static void fillWholePairs(vector<MoLevel>& levels);
+
+    /**
+     * The central-atom simplification, after classification:
+     * lines to non-bonding levels are dropped; ligand s TASOs that make
+     * up under 10 % of every drawn MO are left out; the non-bonding MOs
+     * that are at least 80 % on the ligands, and the TASOs left with no
+     * line, are merged into one grey block each (MoColumn::bands).
+     * `removedCentre` marks the centre levels that went, for parallel
+     * per-level vectors.
+     */
+    static void simplifyCentral(MoColumn& left, MoColumn& centre,
+                                MoColumn& right, vector<MoConnection>& links,
+                                vector<bool>& removedCentre,
+                                int& leftOut, int& blockLevels);
 
     static void connect(const vector<MoLevel>& left,
                         const vector<MoLevel>& centre,

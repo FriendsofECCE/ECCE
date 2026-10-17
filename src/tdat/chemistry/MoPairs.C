@@ -140,6 +140,7 @@ void MoPairs::settle(vector<MoLevel>& L, vector<string>* messages)
    map<string, vector<string> > byIrrep;
    for (size_t k = 0; k < lonely.size(); k++) {
       MoLevel& a = L[lonely[k]];
+      if (a.irrep.empty()) continue;      // nothing to pair by: not a mismatch
       if (!byIrrep.count(a.irrep)) order.push_back(a.irrep);
       byIrrep[a.irrep].push_back(stripMark(a.label).empty() ? a.irrep : stripMark(a.label));
       a.character = MoLevel::NONBONDING;

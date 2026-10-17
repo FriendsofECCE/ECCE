@@ -65,7 +65,7 @@ def check_rules(d):
     """The one pair rule (#301): in every dump each bonding level has an
     antibonding partner of its pairing number and the reverse, nothing is
     MIXED, and the labels follow the character (`*`, `nb`).  BF3: 3A1'/5A1'*,
-    2E'/5E'* and the pi pair 1A2''/2A2''*, with 4A1' and 3E' non-bonding."""
+    2E'/5E'* and the pi pair 1A2''/2A2''*, with 4A1' and 3E' non-bonding (merged into the F lone-pair block)."""
     bad = 0
     for fn in sorted(os.listdir(d)):
         if not fn.endswith(".dump"):
@@ -85,14 +85,22 @@ def check_rules(d):
     path = os.path.join(d, "orca-bf3.dump")
     if os.path.exists(path):
         want = {"3A1'": "BONDING", "5A1'": "ANTIBONDING", "2E'": "BONDING",
-                "5E'": "ANTIBONDING", "1A2''": "BONDING", "2A2''": "ANTIBONDING",
-                "4A1'": "NONBONDING", "3E'": "NONBONDING"}
+                "5E'": "ANTIBONDING", "1A2''": "BONDING", "2A2''": "ANTIBONDING"}
+        #  4A1', 3E' (and 4E', 1E'', 1A2') are nb and sit in the lone-pair block
         have = dict((l[0].replace(" nb", ""), l[1])
                     for l in molecular_levels(path))
         for k, v in want.items():
             if have.get(k) != v:
                 bad += 1
                 print("orca-bf3: %s is %s, want %s" % (k, have.get(k), v))
+    if os.path.exists(path):
+        text = open(path).read()
+        if "label=F lone pairs (nb)" not in text:
+            bad += 1
+            print("orca-bf3: no 'F lone pairs (nb)' block")
+        if "levels=8 " not in text:
+            bad += 1
+            print("orca-bf3: the block should stand for 8 MOs")
     print("pair rule over every golden: %s" % ("FAIL" if bad else "ok"))
     return bad
 
