@@ -118,6 +118,7 @@ class MoDiagramCanvas : public wxPanel
       p_haveFragments = haveFragments;
       p_note = note;
       p_summary.clear();
+      p_verdict.clear();
       p_warnings.clear();
       p_about.clear();
       p_headline = headline;
@@ -143,6 +144,14 @@ class MoDiagramCanvas : public wxPanel
       Refresh();
     }
     const string& aboutText() const { return p_about; }
+
+    /** The model-against-calculation line of the model-first diagram. */
+    void setVerdict(const string& text, bool ok)
+    {
+      p_verdict = text;
+      p_verdictOk = ok;
+      Refresh();
+    }
 
   private:
 
@@ -1156,6 +1165,12 @@ class MoDiagramCanvas : public wxPanel
         return;
       }
 
+      //  The model-first diagram: model energies are drawn in eV and the
+      //  calculation is a narrow column of text on the right.
+      const bool model = p_centre.levels[0].model;
+      const double unit = model ? 27.211386245988 : 1.0;
+      const int calcWidth = model ? 150 : 0;
+
       //  Energy range over everything that will be drawn.
       p_lo = p_hi = p_centre.levels[0].energy;
       const MoColumn* cols[3] = { &p_left, &p_centre, &p_right };
@@ -1202,7 +1217,8 @@ class MoDiagramCanvas : public wxPanel
       const bool oneLine = !hint ||
           dc.GetTextExtent(firstSentence + hintSentence).x <= size.x - 16;
 
-      int footerLines = (int)infoLines.size() + (int)warnLines.size() +
+      const vector<wxString> verdictLines = wrapText(dc, p_verdict, size.x - 16);
+      int footerLines = (int)verdictLines.size() + (int)infoLines.size() + (int)warnLines.size() +
                         (int)summaryLines.size() + (hint && !oneLine ? 2 : 1);
       if (p_summary.empty()) footerLines += (int)noteLines.size();
       if (p_centre.hiddenCount > 0)  footerLines += 2;      // band and text
@@ -1335,10 +1351,12 @@ class MoDiagramCanvas : public wxPanel
       const int centreWidth = max(levelWidth,
                                   min(3*levelWidth, 26*widestRow(p_centre)));
 
-      const int xLeft   = size.x/6 - (leftWidth - levelWidth)/2;
-      const int xCentre = size.x/2 - centreWidth/2;
-      const int xRight  = (5*size.x)/6 - levelWidth
+      const int usable  = size.x - calcWidth;
+      const int xLeft   = usable/6 - (leftWidth - levelWidth)/2;
+      const int xCentre = usable/2 - centreWidth/2;
+      const int xRight  = (5*usable)/6 - levelWidth
                           - (rightWidth - levelWidth)/2;
+      const int xCalc   = size.x - calcWidth + 8;
 
       //  The energy axis.  A correlation diagram without one is a set
       //  of floating dashes: the reader has to be told which way is up
@@ -1359,14 +1377,15 @@ class MoDiagramCanvas : public wxPanel
         //  assuming a range.
         static const double steps[] = { 0.02, 0.05, 0.1, 0.2, 0.5,
                                         1, 2, 5, 10, 20, 50 };
+        const double dLo = p_lo*unit, dHi = p_hi*unit;
         double step = steps[10];
         for (int i = 0; i < 11; i++) {
-          if ((p_hi - p_lo)/steps[i] <= 12) { step = steps[i]; break; }
+          if ((dHi - dLo)/steps[i] <= 12) { step = steps[i]; break; }
         }
 
-        const double first = ceil(p_lo/step)*step;
-        for (double v = first; v <= p_hi; v += step) {
-          const int y = yFor(v, plot);
+        const double first = ceil(dLo/step)*step;
+        for (double v = first; v <= dHi; v += step) {
+          const int y = yFor(v/unit, plot);
           dc.DrawLine(ax - 3, y, ax + 3, y);
           //  Rounded to the step, so a tick that should read 0 does
           //  not come out as -5.55112e-17.  The offline renderer was
@@ -1377,7 +1396,7 @@ class MoDiagramCanvas : public wxPanel
           wxString text = wxString::Format(wxT("%g"), shown);
           dc.DrawText(text, ax + 6, y - dc.GetTextExtent(text).y/2);
         }
-        dc.DrawText(wxT("E / Hartree"), 4, plot.y - 16);
+        dc.DrawText(model ? wxT("E / eV (model)") : wxT("E / Hartree"), 4, plot.y - 16);
       }
 
       //  Column headings.
@@ -1416,6 +1435,11 @@ class MoDiagramCanvas : public wxPanel
         if (haveL) dc.DrawText(tl, xl, top - 38);
         if (haveR) dc.DrawText(tr, xr, top - 38);
         dc.DrawText(tc, xCentre, top - 38);
+        if (model) {
+          dc.DrawText(wxT("Calculation"), xCalc, top - 38);
+          dc.SetPen(wxPen(wxColour(210, 210, 210), 1));
+          dc.DrawLine(xCalc - 12, top - 40, xCalc - 12, plot.y + plot.height);
+        }
       }
 
       //  Correlation lines first, so the levels sit on top of them.
@@ -1500,6 +1524,29 @@ class MoDiagramCanvas : public wxPanel
       drawColumn(dc, p_centre, xCentre, centreWidth, plot, true, &p_hits,
                  -1, true);
 
+      //  THE CALCULATION: one tick and one line of text per model level,
+      //  at the model level's height.  Its energy is Hartree text, not
+      //  a second axis: the calculation's scale is not the model's.
+      if (model) {
+        dc.SetFont(*wxSMALL_FONT);
+        for (size_t i = 0; i < p_centre.levels.size(); i++) {
+          const MoLevel& l = p_centre.levels[i];
+          if (!l.hasCalc) continue;
+          const int cy = levelYIn(dc, p_centre, plot, true, (int)i);
+          dc.SetPen(wxPen(wxColour(90, 90, 90), 1));
+          dc.DrawLine(xCalc, cy, xCalc + 22, cy);
+          const double e = fabs(l.calcEnergy) < 0.00005 ? 0.0 : l.calcEnergy;
+          wxString text = wxString::Format(wxT("%s%.2f  %.2f"),
+                                           e < 0 ? wxT("\u2212") : wxT("+"),
+                                           fabs(e), l.calcOverlap);
+          dc.SetTextForeground(l.calcOverlap < 0.80 ? wxColour(170, 80, 0)
+                                                    : wxColour(60, 60, 60));
+          dc.DrawText(text, xCalc + 26, cy - dc.GetTextExtent(text).y/2);
+        }
+        dc.SetTextForeground(wxColour(110, 110, 110));
+        dc.DrawText(wxT("energy / Ha   overlap"), xCalc, plot.y + plot.height + 2);
+      }
+
       //  The stack, from the bottom of the window upward: the
       //  warnings, the summary, the experimental line, what was clicked.
       int line = size.y - 4;
@@ -1553,6 +1600,12 @@ class MoDiagramCanvas : public wxPanel
       for (size_t i = infoLines.size(); i > 0; i--) {
         line -= lineHeight;
         dc.DrawText(infoLines[i-1], 8, line);
+      }
+      //  Model against calculation: green when they agree, orange when not.
+      dc.SetTextForeground(p_verdictOk ? wxColour(30, 110, 40) : wxColour(170, 80, 0));
+      for (size_t i = verdictLines.size(); i > 0; i--) {
+        line -= lineHeight;
+        dc.DrawText(verdictLines[i-1], 8, line);
       }
       dc.SetTextForeground(wxColour(110, 110, 110));
 
@@ -1740,8 +1793,10 @@ class MoDiagramCanvas : public wxPanel
         out << "MO " << l.orbitals[0] + 1;
       }
       char e[64];
-      snprintf(e, sizeof e, "%.4f", l.energy);
-      out << ", E = " << e << " Hartree";
+      //  A model level names the calculated orbital it was matched to (the
+      //  one a click shows); the model's own numbers are in `detail`.
+      snprintf(e, sizeof e, "%.4f", l.model && l.hasCalc ? l.calcEnergy : l.energy);
+      out << ", E = " << e << " Hartree" << (l.model ? " (calculated)" : "");
       if (!l.irrep.empty()) out << ", " << l.irrep;
       if (l.occupancyBeta >= 0.0)
         out << ", occupancy " << l.occupancy << " alpha, "
@@ -1810,6 +1865,8 @@ class MoDiagramCanvas : public wxPanel
     int p_tipLevel = -1;
     string p_note;
     string p_summary, p_about;
+    string p_verdict;
+    bool p_verdictOk = true;
     vector<string> p_warnings;
     mutable double p_lo, p_hi;
     //  Every label placed in the column being drawn, as (y, notch), so

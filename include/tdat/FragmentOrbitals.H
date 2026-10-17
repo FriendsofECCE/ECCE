@@ -138,6 +138,15 @@ class FragmentOrbitals
                       const vector<Fragment>& fragments, LigandSet ligands,
                       FoSet& out, string& why);
 
+    /**
+     * The extended Hueckel orbitals of ALL the atoms of `set` together
+     * (the whole molecule when its fragments cover every atom): the
+     * model MOs of the model-first diagram.  `energies` ascending,
+     * Hartree; `rows` one per orbital over set.funcs, c.S.c = 1.
+     */
+    static bool solveWhole(const FoSet& set, vector<double>& energies,
+                           vector< vector<double> >& rows, string& why);
+
     //  ---- composition ----
 
     /** FO share of one MO, grouped over degenerate FOs of one fragment. */

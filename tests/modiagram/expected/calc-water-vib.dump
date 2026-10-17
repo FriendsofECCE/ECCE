@@ -2,55 +2,54 @@ group: C2v
 formula: H2O
 construction: a central atom and its neighbours
 headline: 
-note: Fragments: a central atom and its neighbours · energies in Hartree · simplified (Show all levels draws everything) · labels in C<sub>2v</sub> · 1 core orbital hidden
-about: **What is drawn.** The molecular levels in the middle are the calculation's own orbital energies, in Hartree.\n\n**Fragment levels.** Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, and kept in the atom's own shell order. Its free-atom energy is given beside it. A shell with a non-bonding orbital (one that is at least 99 % that shell, of the orbitals drawn) is drawn at that orbital's energy instead.\n\n**Simplified.** Lines to non-bonding levels are not drawn. Tick Show all levels to draw everything.\n\n**Symmetry.** Symmetry labels computed from the orbitals in C2v; the code reported none.\n\n**The circles beside each symmetry orbital** show the atoms as seen from one side, filled and open for opposite sign and sized by weight; a bar is a p lobe in the page.\n\n**Not shown.** 1 core orbital below −19.19 Hartree.
+note: Model from extended Hückel (qualitative) · model energies in eV · calculation in Hartree · labels in C<sub>2v</sub>\n2 model levels have no close calculated counterpart (overlap below 0.80); read its calculated energy with care.
+about: **The model.** Every column is extended Hückel (Alvarez parameters). The middle column is the molecule's own extended Hückel run, the side columns are the two fragments' (O and H2). The basis is the same in all three, so the lines are an exact projection of each model MO on the fragment orbitals: a line joins a model MO to a fragment level that makes up at least 10 % of it.\n\n**Bonding and antibonding** are read from the sign of each model MO's overlap population between the two fragments, then paired per symmetry label and degeneracy, so each antibonding level has its bonding partner; a level without a partner is non-bonding. Colours mark the pairs.\n\n**The calculation** is the narrow column on the right. For each model level it shows the calculated orbital (or set of near-degenerate orbitals) with the largest overlap with it, its energy in Hartree and the overlap value (1 is identical). Labels are those of the matched calculated orbital. Clicking a level shows that orbital in 3-D.\n\n**Total electrons: 8** (O 6, H2 2).\n\n**Orbital labels.** Symmetry labels computed from the orbitals in C2v; the code reported none.
+verdict: differs Model and calculation disagree on the order of 1 of 15 pairs of the 6 valence levels (overlap 0.71–1.00): 2B1* / 4A1*.
 column left
-  title: O
+  title: O (extended Hückel)
   fromHalves: 0
   hiddenCount: 0
   hiddenMaxEnergy: 0.000000
   hiddenSemicoreCount: 0
   hiddenAboveCount: 0
-  shellKeys: O:0 O:1
-  levels: 4
-  level 0 energy=-0.800723 tabulated=-32.400000 irrep=A1 label=A1  (2s) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -1.19 Ha"
-  level 1 energy=-0.305437 tabulated=-15.900000 irrep=A1 label=A1  (2p) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=1 slot=1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.58 Ha"
-  level 2 energy=-0.305437 tabulated=-15.900000 irrep=B1 label=B1  (2p) character=UNKNOWN pairing=-1 occupancy=1.0000 occupancyBeta=-1.0000 degeneracy=1 shell=1 slot=1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.58 Ha"
-  level 3 energy=-0.305437 tabulated=-15.900000 irrep=B2 label=B2  (2p) character=UNKNOWN pairing=-1 occupancy=1.0000 occupancyBeta=-1.0000 degeneracy=1 shell=1 slot=1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.58 Ha"
+  shellKeys:
+  levels: 2
+  level 0 energy=-1.187003 tabulated=0.000000 irrep=- label=2s character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="−32.30 eV" detail="Fragment orbital set from extended Hückel, E = −32.30 eV, 2 electrons."
+  level 1 energy=-0.543890 tabulated=0.000000 irrep=- label=2p character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="−14.80 eV" detail="Fragment orbital set from extended Hückel, E = −14.80 eV, 4 electrons."
 column centre
-  title: Molecular orbitals
+  title: Model MOs
   fromHalves: 0
-  hiddenCount: 1
-  hiddenMaxEnergy: -19.192990
+  hiddenCount: 0
+  hiddenMaxEnergy: 0.000000
   hiddenSemicoreCount: 0
-  hiddenAboveCount: 4
+  hiddenAboveCount: 0
   shellKeys:
   levels: 6
-  level 0 energy=-1.007174 tabulated=0.000000 irrep=A1 label=2A1 character=BONDING pairing=0 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.6136 shareRight=0.3864 lowdinMax=0.6136 OP=0.3262 mullikenMax=0.7273 norm=1.0000 orbitals=[1] annotation="-1.0072"
-  level 1 energy=-0.526216 tabulated=0.000000 irrep=B1 label=1B1 character=BONDING pairing=1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.6252 shareRight=0.3748 lowdinMax=0.6252 OP=0.3526 mullikenMax=0.5803 norm=1.0000 orbitals=[2] annotation="-0.5262"
-  level 2 energy=-0.382798 tabulated=0.000000 irrep=A1 label=3A1 nb character=NONBONDING pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.8930 shareRight=0.1070 lowdinMax=0.8930 OP=-0.0549 mullikenMax=0.8662 norm=1.0000 orbitals=[3] annotation="-0.3828"
-  level 3 energy=-0.305437 tabulated=0.000000 irrep=B2 label=1B2 nb character=NONBONDING pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.9447 shareRight=0.0553 lowdinMax=0.9447 OP=0.0372 mullikenMax=0.9794 norm=1.0000 orbitals=[4] annotation="-0.3054"
-  level 4 energy=0.063780 tabulated=0.000000 irrep=A1 label=4A1* character=ANTIBONDING pairing=0 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.1421 shareRight=0.8579 lowdinMax=0.4290 OP=-3.0458 mullikenMax=0.5404 norm=1.0000 orbitals=[5] annotation="0.0638"
-  level 5 energy=0.142660 tabulated=0.000000 irrep=B1 label=2B1* character=ANTIBONDING pairing=1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.1620 shareRight=0.8380 lowdinMax=0.4190 OP=-1.2968 mullikenMax=0.4604 norm=1.0000 orbitals=[6] annotation="0.1427"
+  level 0 energy=-1.249529 tabulated=0.000000 irrep=A1 label=2A1 character=BONDING pairing=1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.7579 shareRight=0.2421 calcEnergy=-1.007174 calcOverlap=0.9530 orbitals=[1] annotation="−34.00 eV" detail="Model MO (extended Hückel), E = −34.00 eV.  Bonding (overlap population 0.24).\nMade of: O 2s 76 %; H2 A1 24 %\nCalculation: MO 2, E = −1.0072 Hartree, overlap 0.95."
+  level 1 energy=-0.627507 tabulated=0.000000 irrep=B1 label=1B1 character=BONDING pairing=0 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.6462 shareRight=0.3538 calcEnergy=-0.526216 calcOverlap=0.9955 orbitals=[2] annotation="−17.08 eV" detail="Model MO (extended Hückel), E = −17.08 eV.  Bonding (overlap population 0.30).\nMade of: O 2p 65 %; H2 B1 35 %\nCalculation: MO 3, E = −0.5262 Hartree, overlap 1.00."
+  level 2 energy=-0.564209 tabulated=0.000000 irrep=A1 label=3A1 nb character=NONBONDING pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.9294 shareRight=0.0706 calcEnergy=-0.382798 calcOverlap=0.9499 orbitals=[3] annotation="−15.35 eV" detail="Model MO (extended Hückel), E = −15.35 eV.  Non-bonding (overlap population 0.07).\nMade of: O 2p 91 %; H2 A1 7 %\nCalculation: MO 4, E = −0.3828 Hartree, overlap 0.95."
+  level 3 energy=-0.543890 tabulated=0.000000 irrep=B2 label=1B2 nb character=NONBONDING pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=1.0000 shareRight=0.0000 calcEnergy=-0.305437 calcOverlap=0.9789 orbitals=[4] annotation="−14.80 eV" detail="Model MO (extended Hückel), E = −14.80 eV.  Non-bonding (overlap population 0.00).\nMade of: O 2p 100 %\nCalculation: MO 5, E = −0.3054 Hartree, overlap 0.98."
+  level 4 energy=-0.017670 tabulated=0.000000 irrep=B1 label=2B1* character=ANTIBONDING pairing=0 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.3538 shareRight=0.6462 calcEnergy=0.142660 calcOverlap=0.7143 orbitals=[6] annotation="−0.48 eV" detail="Model MO (extended Hückel), E = −0.48 eV.  Antibonding (overlap population −0.94).\nMade of: H2 B1 65 %; O 2p 35 %\nCalculation: MO 7, E = 0.1427 Hartree, overlap 0.71.  A poor match: no calculated orbital resembles this model level."
+  level 5 energy=0.509890 tabulated=0.000000 irrep=A1 label=4A1* character=ANTIBONDING pairing=1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.3127 shareRight=0.6873 calcEnergy=0.063780 calcOverlap=0.7293 orbitals=[5] annotation="13.87 eV" detail="Model MO (extended Hückel), E = 13.87 eV.  Antibonding (overlap population −1.86).\nMade of: H2 A1 69 %; O 2s 23 %; O 2p 9 %\nCalculation: MO 6, E = 0.0638 Hartree, overlap 0.73.  A poor match: no calculated orbital resembles this model level."
 column right
-  title: 2H TASOs
+  title: 2 H combinations
   fromHalves: 0
   hiddenCount: 0
   hiddenMaxEnergy: 0.000000
   hiddenSemicoreCount: 0
   hiddenAboveCount: 0
-  shellKeys: H:0
+  shellKeys:
   levels: 2
-  level 0 energy=-0.263889 tabulated=-13.600000 irrep=A1 label=A1  (1s) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.50 Ha"
-  level 1 energy=-0.079982 tabulated=-13.600000 irrep=B1 label=B1  (1s) character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=0 slot=0 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="free atom -0.50 Ha"
+  level 0 energy=-0.569518 tabulated=0.000000 irrep=A1 label=A1 character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="−15.50 eV" detail="Fragment orbital set from extended Hückel, E = −15.50 eV, 2 electrons."
+  level 1 energy=-0.388755 tabulated=0.000000 irrep=B1 label=B1 character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="−10.58 eV" detail="Fragment orbital set from extended Hückel, E = −10.58 eV, 0 electrons."
 links: 10
-  link 0 left=0 centre=0 right=-1
-  link 1 left=1 centre=0 right=-1
-  link 2 left=-1 centre=0 right=0
-  link 3 left=2 centre=1 right=-1
-  link 4 left=-1 centre=1 right=1
-  link 5 left=1 centre=4 right=-1
-  link 6 left=0 centre=4 right=-1
-  link 7 left=-1 centre=4 right=0
-  link 8 left=2 centre=5 right=-1
-  link 9 left=-1 centre=5 right=1
+  link 0 left=0 centre=0 right=-1 weight=0.7576
+  link 1 left=-1 centre=0 right=0 weight=0.2421
+  link 2 left=1 centre=1 right=-1 weight=0.6462
+  link 3 left=-1 centre=1 right=1 weight=0.3538
+  link 4 left=1 centre=2 right=-1 weight=0.9121
+  link 5 left=1 centre=3 right=-1 weight=1.0000
+  link 6 left=1 centre=4 right=-1 weight=0.3538
+  link 7 left=-1 centre=4 right=1 weight=0.6462
+  link 8 left=0 centre=5 right=-1 weight=0.2251
+  link 9 left=-1 centre=5 right=0 weight=0.6873

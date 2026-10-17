@@ -37,6 +37,7 @@
 #include "tdat/FoDiagram.H"
 #include "tdat/FragmentOrbitals.H"
 #include "tdat/MoDiagram.H"
+#include "tdat/ModelDiagram.H"
 #include "tdat/MoFragments.H"
 #include "tdat/MoAoBasis.H"
 #include "tdat/PropVecString.H"
@@ -60,7 +61,8 @@ int main(int argc, char **argv)
 {
   string target;
   vector<string> mos;
-  bool showAll = false, beta = false, tsv = false, perFo = false, occOnly = false, diagram = false;
+  bool showAll = false, beta = false, tsv = false, perFo = false, occOnly = false, diagram = false, model = false;
+  string leftList;
   int mult = 1, pickAtom = -1;
   FragmentOrbitals::LigandSet ligands = FragmentOrbitals::LIGAND_SHELL;
   vector<string> gfo;
@@ -72,6 +74,8 @@ int main(int argc, char **argv)
     else if (a == "--tsv") tsv = true;
     else if (a == "--perfo") perFo = true;
     else if (a == "--diagram") diagram = true;
+    else if (a == "--model") model = true;
+    else if (a == "--left" && i+1 < argc) leftList = argv[++i];
     else if (a == "--all") showAll = true;
     else if (a == "--gfo-occ") occOnly = true;
     else if (a == "--mult" && i+1 < argc) mult = atoi(argv[++i]);
@@ -214,6 +218,80 @@ int main(int argc, char **argv)
       }
       printf("\n");
     }
+    return 0;
+  }
+  if (model) {
+    //  --model [--left 1,2] [--atom N] [--mult M]: the model-first diagram,
+    //  the left atoms against the rest (default: the metal, or --atom).
+    ModelDiagram::Input in;
+    in.symbols = symbols; in.coordsAng = coords; in.charge = frag->charge();
+    in.multiplicity = mult;
+    if (!leftList.empty()) {
+      for (size_t pos = 0; pos < leftList.size();) {
+        in.leftAtoms.push_back(atoi(leftList.c_str() + pos) - 1);
+        const string::size_type comma = leftList.find(',', pos);
+        if (comma == string::npos) break;
+        pos = comma + 1;
+      }
+      in.leftCharge = in.charge;
+    } else {
+      if (!FragmentOrbitals::autoFragments(symbols, coords, frag->charge(), mult,
+                                           frags, why, pickAtom)) {
+        cerr << "fragorb: " << why << endl;
+        return 1;
+      }
+      for (size_t i = 0; i < frags.size(); i++)
+        if (frags[i].kind == FragmentOrbitals::METAL) {
+          for (size_t k = 0; k < frags[i].atoms.size(); k++) in.leftAtoms.push_back(frags[i].atoms[k]);
+          in.leftCharge += frags[i].charge;
+          in.leftMetal = pickAtom < 0;
+        }
+    }
+    vector<bool> isLeft(symbols.size(), false);
+    for (size_t i = 0; i < in.leftAtoms.size(); i++) isLeft[in.leftAtoms[i]] = true;
+    for (size_t i = 0; i < symbols.size(); i++) if (!isLeft[i]) in.rightAtoms.push_back((int)i);
+    in.rightCharge = in.charge - in.leftCharge;
+    PropVector *en = (PropVector*) calc->getProperty(beta ? "ORBENGBETA" : "ORBENG");
+    PropVector *oc = (PropVector*) calc->getProperty(beta ? "ORBOCCBETA" : "ORBOCC");
+    PropVecString *sy = (PropVecString*) calc->getProperty(beta ? "ORBSYMBETA" : "ORBSYM");
+    if (!en || en->rows() != (int)rows.size()) { cerr << "fragorb: no orbital energies\n"; return 1; }
+    vector<double> e, o;
+    vector<string> sl;
+    for (int m = 0; m < en->rows(); m++) {
+      e.push_back(en->value(m));
+      o.push_back(oc && m < oc->rows() ? oc->value(m) : 0.0);
+      if (sy && m < sy->rows()) sl.push_back(MoDiagram::canonicalIrrep(sy->value(m)));
+    }
+    MoColumn whole;
+    MoDiagram::groupByIrrep(e, o, sl.size() == e.size() ? sl : vector<string>(),
+                            map<string,int>(), 1.5e-5, whole.levels);
+    ModelDiagram::Result res;
+    if (!ModelDiagram::build(in, pb, S, rows, e, whole.levels, res, why)) {
+      cerr << "fragorb: " << why << endl;
+      return 1;
+    }
+    printf("%s\n%s\n", res.summary.c_str(), res.verdict.c_str());
+    for (size_t w = 0; w < res.warnings.size(); w++) printf("warning: %s\n", res.warnings[w].c_str());
+    const MoColumn* cols[3] = { &res.left, &res.centre, &res.right };
+    const char* names[3] = { "left", "model", "right" };
+    for (int c = 0; c < 3; c++) {
+      printf("%s: %s\n", names[c], cols[c]->title.c_str());
+      for (size_t i = 0; i < cols[c]->levels.size(); i++) {
+        const MoLevel& l = cols[c]->levels[i];
+        printf("  %zu E=%.3f eV deg=%d occ=%.0f/%.0f label=\"%s\" char=%d pair=%d", i,
+               l.energy*27.2114, l.degeneracy, l.occupancy, l.occupancyBeta,
+               l.label.c_str(), (int)l.character, l.pairing);
+        if (l.hasCalc) printf(" calc=%.4f Ha ov=%.3f mo=%d", l.calcEnergy, l.calcOverlap,
+                              l.orbitals.empty() ? 0 : l.orbitals[0] + 1);
+        printf(" L=%.2f R=%.2f\n", l.shareLeft, l.shareRight);
+      }
+      for (size_t b = 0; b < cols[c]->bands.size(); b++)
+        printf("  band %.3f..%.3f eV %s\n", cols[c]->bands[b].low*27.2114,
+               cols[c]->bands[b].high*27.2114, cols[c]->bands[b].label.c_str());
+    }
+    for (size_t i = 0; i < res.links.size(); i++)
+      printf("link mo=%d left=%d right=%d w=%.3f\n", res.links[i].centreLevel,
+             res.links[i].leftLevel, res.links[i].rightLevel, res.links[i].weight);
     return 0;
   }
   if (!FragmentOrbitals::autoFragments(symbols, coords, frag->charge(), mult,

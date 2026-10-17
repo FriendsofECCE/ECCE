@@ -12,9 +12,12 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 EXPECT = {
-    "ecceqm-c2":  [("2SGG", "2SGU"), ("3SGG", "3SGU"), ("1PIU", "1PIG")],
-    "ecceqm-n2":  [("2SGG", "2SGU"), ("3SGG", "3SGU"), ("1PIU", "1PIG")],
-    "ecceqm-he2": [("1SGG", "1SGU")],
+    #  The model's own pairs (extended Hueckel overlap population): the book
+    #  pairs 2sg/2su* and 3sg/3su* too, but in the model 2su and 3sg are
+    #  sp-mixed and non-bonding, so the sigma pair is 2sg/4su*.
+    "ecceqm-c2":  [("2SGG", "4SGU"), ("1PIU", "1PIG")],
+    "ecceqm-n2":  [("2SGG", "4SGU"), ("1PIU", "1PIG")],
+    "ecceqm-he2": [],
 }
 
 
@@ -49,11 +52,11 @@ def mixing_links(path):
 
 
 def check_sp_mixing(d):
-    """3sg of C2 and N2 is linked to both the 2s (0) and 2p (1) of both atoms (#287)."""
+    """3sg of C2 and N2 is linked to the 2p (1) of both atoms (the model's 2s share is under 10 %)."""
     bad = 0
     for name in ("ecceqm-c2", "ecceqm-n2"):
         links = mixing_links(os.path.join(d, name + ".dump")).get("3SGG", set())
-        want = {("left", 0), ("left", 1), ("right", 0), ("right", 1)}
+        want = {("left", 1), ("right", 1)}
         ok = want <= links
         bad += not ok
         print("%-12s 3SGG s-p mixing links %s" % (name, "ok" if ok else
@@ -85,7 +88,7 @@ def check_rules(d):
     path = os.path.join(d, "orca-bf3.dump")
     if os.path.exists(path):
         want = {"3A1'": "BONDING", "5A1'": "ANTIBONDING", "2E'": "BONDING",
-                "5E'": "ANTIBONDING", "1A2''": "BONDING", "2A2''": "ANTIBONDING"}
+                "6E'": "ANTIBONDING", "1A2''": "BONDING", "2A2''": "ANTIBONDING"}
         #  4A1', 3E' (and 4E', 1E'', 1A2') are nb and sit in the lone-pair block
         have = dict((l[0].replace(" nb", ""), l[1])
                     for l in molecular_levels(path))
@@ -95,9 +98,9 @@ def check_rules(d):
                 print("orca-bf3: %s is %s, want %s" % (k, have.get(k), v))
     if os.path.exists(path):
         text = open(path).read()
-        if "label=F lone pairs (nb)" not in text:
+        if "label=F3 internal: 8 levels, 16 e" not in text:
             bad += 1
-            print("orca-bf3: no 'F lone pairs (nb)' block")
+            print("orca-bf3: no 'F3 internal' block")
         if "levels=8 " not in text:
             bad += 1
             print("orca-bf3: the block should stand for 8 MOs")
@@ -106,24 +109,20 @@ def check_rules(d):
 
 
 def check_d_electrons(d):
-    """Metal d electrons follow the occupied MOs (#301): [PtCl4]2- has the
-    sigma* b1g empty, [CoCl4]2- quartet is e4 t2^3 (alpha, beta), Ni(CO)4 d10."""
-    want = {
-        "orca-ptcl4": [("B2g", 2, -1), ("B1g", 0, -1), ("A1g", 2, -1), ("Eg", 4, -1)],
-        "orca-cocl4-quartet": [("T2", 3, 0), ("E", 2, 2)],
-        "orca-nico4": [("T2", 6, -1), ("E", 4, -1)],
-    }
+    """Metal d electrons are the ionic count (group number - charge) in the one
+    d set of the left column: [PtCl4]2- d8, [CoCl4]2- d7, Ni(CO)4 d10."""
+    want = {"orca-ptcl4": 8, "orca-cocl4-quartet": 7, "orca-nico4": 10}
     bad = 0
-    for name, rows in want.items():
-        got = []
+    for name, n in want.items():
+        got = None
         for line in open(os.path.join(d, name + ".dump")):
-            if "label=Pt 5d" in line or "label=Co 3d" in line or "label=Ni 3d" in line:
-                f = dict(re.findall(r'(\w+)=("[^"]*"|\S+)', line))
-                got.append((f["irrep"], int(float(f["occupancy"])),
-                            int(float(f["occupancyBeta"]))))
-        ok = got == rows
+            f = dict(re.findall(r'(\w+)=("[^"]*"|\S+)', line))
+            if line.lstrip().startswith("level ") and f.get("label") in ("5d", "3d"):
+                got = int(float(f["occupancy"]))
+                break
+        ok = got == n
         bad += not ok
-        print("%-20s d electrons %s %s" % (name, got, "ok" if ok else "FAIL (want %s)" % rows))
+        print("%-20s d electrons %s %s" % (name, got, "ok" if ok else "FAIL (want %d)" % n))
     return bad
 
 

@@ -194,10 +194,22 @@ struct MoLevel
     */
    vector<double> energies;
 
+   /**
+    * The model-first diagram (ModelDiagram): this level is a model MO
+    * from extended Hueckel, `energy` is the model's, and `orbitals`
+    * names the calculated MO(s) it was matched to.  hasCalc: the
+    * matched energy (Hartree) and the overlap value are filled.
+    */
+   bool           model;
+   bool           hasCalc;
+   double         calcEnergy;
+   double         calcOverlap;
+
    MoLevel() : energy(0.0), occupancy(0.0), degeneracy(0),
                occupancyBeta(-1.0),
                shareLeft(-1.0), shareRight(-1.0), shell(-1), slot(-1),
-               tabulated(0.0), character(UNKNOWN), pairing(-1) {}
+               tabulated(0.0), character(UNKNOWN), pairing(-1),
+               model(false), hasCalc(false), calcEnergy(0.0), calcOverlap(0.0) {}
 };
 
 

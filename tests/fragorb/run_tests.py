@@ -428,6 +428,30 @@ def non_metal_centre(build):
               % (name, len(d["pair"]), exceptions))
 
 
+def model(build):
+    """The model-first diagram (ModelDiagram) of Cr(CO)6 and Co(NH3)6 3+."""
+    print("model-first diagram")
+    for name, levels, band in (("crco6", 8, "(CO)6 internal: 24 levels, 48 e"),
+                               ("conh36", None, None)):
+        rc, out, err = run(build, [name, "--model"])
+        check(rc == 0, "fragorb --model %s runs" % name, err.strip()[-200:])
+        if rc != 0:
+            continue
+        mo = [l for l in out.splitlines() if l.startswith("  ") and "ov=" in l]
+        # every model level has a matched calculated orbital and overlap
+        check(len(mo) > 0 and all("calc=" in l for l in mo),
+              "%s: every model level is matched" % name, "%d levels" % len(mo))
+        ovs = [float(l.split("ov=")[1].split()[0]) for l in mo]
+        check(all(0.5 < o <= 1.0 for o in ovs), "%s: overlaps in (0.5, 1]" % name)
+        # bonding levels have antibonding partners (drawn pairs complete)
+        ch = [int(l.split("char=")[1].split()[0]) for l in mo]
+        check(ch.count(1) == ch.count(3), "%s: bonding = antibonding" % name,
+              "%d/%d" % (ch.count(1), ch.count(3)))
+        if levels:
+            check(len(mo) == levels, "%s: %d valence levels" % (name, levels))
+            check(band in out, "%s: band '%s'" % (name, band))
+
+
 def main():
     status = unit()
     if status != 0:
@@ -443,6 +467,7 @@ def main():
     diagram(build)
     pairs_and_brackets(build)
     non_metal_centre(build)
+    model(build)
     print("\nFAILED" if failures else "\nok")
     return 1 if failures else 0
 

@@ -624,6 +624,33 @@ bool FragmentOrbitals::build(const vector<string>& symbols,
 }
 
 
+bool FragmentOrbitals::solveWhole(const FoSet& set, vector<double>& energies,
+                                  vector< vector<double> >& rows, string& why)
+{
+   why.clear();
+   const size_t nf = set.funcs.size();
+   if (nf == 0 || set.overlap.size() != nf*nf) {
+      why = "There are no basis functions.";
+      return false;
+   }
+   Mat S(nf, vector<double>(nf)), H(nf, vector<double>(nf)), C;
+   for (size_t i = 0; i < nf; i++)
+     for (size_t j = 0; j < nf; j++) {
+        S[i][j] = set.overlap[i*nf + j];
+        H[i][j] = (i == j) ? set.funcs[i].hii
+            : hij(set.funcs[i].hii, set.funcs[j].hii, S[i][j]);
+     }
+   if (!generalised(H, S, energies, C)) {
+      why = "The basis of the whole molecule is linearly dependent at this geometry.";
+      return false;
+   }
+   rows.assign(nf, vector<double>(nf, 0.0));
+   for (size_t k = 0; k < nf; k++)
+     for (size_t i = 0; i < nf; i++) rows[k][i] = C[i][k];
+   return true;
+}
+
+
 string FragmentOrbitals::classOf(double capture, double metal, double ligand)
 {
    if (capture < CORE_CAPTURE) return "core";

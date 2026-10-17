@@ -38,6 +38,7 @@
 #include "tdat/MoComposition.H"
 #include "tdat/MoFragments.H"
 #include "tdat/FoDiagram.H"
+#include "tdat/ModelDiagram.H"
 #include "tdat/MoLigandField.H"
 #include "tdat/PropTable.H"
 #include "tdat/TGBSAngFunc.H"
@@ -1512,6 +1513,9 @@ struct NoteTiers
   string summary;
   vector<string> warnings;
   string about;
+  string verdict;          // model against calculation (model-first diagram)
+  bool verdictOk;
+  NoteTiers() : verdictOk(true) {}
 };
 
 /** What is shown under the diagram, as one text: summary then warnings. */
@@ -1622,6 +1626,9 @@ void dumpColumn(std::ofstream& out, const string& name, const MoColumn& col,
       out << " mullikenMax=" << (*mullikenMax)[i];
     if (normVals != 0 && i < normVals->size())
       out << " norm=" << (*normVals)[i];
+    if (lv.hasCalc)
+      out << " calcEnergy=" << std::setprecision(6) << lv.calcEnergy
+          << " calcOverlap=" << std::setprecision(4) << lv.calcOverlap;
     //  SKELETON only (#183): metal-ligand overlap population, empty
     //  and so absent for every other construction/fixture.
     if (metalLigandOP != 0 && i < metalLigandOP->size())
@@ -1656,6 +1663,8 @@ void dumpMoDiagram(const string& path, const string& group,
   out << "headline: " << escapeDumpText(headline) << "\n";
   out << "note: " << escapeDumpText(shownNotes(tiers)) << "\n";
   out << "about: " << escapeDumpText(tiers.about) << "\n";
+  if (!tiers.verdict.empty())
+    out << "verdict: " << (tiers.verdictOk ? "ok " : "differs ") << escapeDumpText(tiers.verdict) << "\n";
   dumpColumn(out, "left", left, 0, 0, 0, 0);
   dumpColumn(out, "centre", centre,
              &localisedShare, &centreOP, &mullikenMax, &normVals, &metalLigandOP);
@@ -2402,7 +2411,7 @@ void MoDiagramPanel::buildOnce()
       //  A metal complex with an element that has no EHT parameters (Ag)
       //  would otherwise fall back to another construction without a word.
       foNotOffered = "The fragment-orbital diagram is not available: " +
-                     foReason;
+                     foReason + " Use the MOs panel to look at the orbitals.";
     }
   }
 
@@ -2433,7 +2442,8 @@ void MoDiagramPanel::buildOnce()
       } else if (!FoDiagram::applicable(storedSymbols, storedCoords, charge,
                                         foReason, pickA)) {
         foNotOffered = "The fragment-orbital diagram is not available for "
-                       "this atom: " + foReason;
+                       "this atom: " + foReason +
+                       " Use the MOs panel to look at the orbitals.";
       } else if (foProjectable) {
         pickCentre = pickA;
       }
@@ -2807,6 +2817,11 @@ void MoDiagramPanel::buildOnce()
   bool foDrawn = false;
   string foSummary, foAbout, foPieces;
   vector<string> foWarnings;
+  //  The model-first diagram (ModelDiagram) draws through the same
+  //  plumbing as the fragment-orbital one.
+  bool modelDrawn = false;
+  string modelVerdict;
+  bool modelVerdictOk = true;
 
   if (!elements.empty()) {
     //  OFFER THE CHOICE, AND HONOUR IT.
@@ -2898,7 +2913,87 @@ void MoDiagramPanel::buildOnce()
     }
 
     progressDlg.progress(50, _("Building fragment orbitals"));
+
+    //  THE MODEL-FIRST DIAGRAM (#301): extended Hueckel for the fragments,
+    //  the lines and the middle column, the calculation as a column of its
+    //  own.  `la`/`ra` are the two fragments' atoms, in the stored frame.
+    auto buildModel = [&](const vector<int>& la, const vector<int>& ra,
+                          int leftCharge, bool leftMetal, string& mwhy) -> bool {
+      if (!foProjectable || storedSymbols.size() != elements.size() ||
+          la.empty() || ra.empty()) {
+        return false;
+      }
+      ModelDiagram::Input in;
+      in.symbols = storedSymbols;
+      in.coordsAng = storedCoords;
+      in.charge = charge;
+      in.multiplicity = multiplicity;
+      in.leftAtoms = la;
+      in.rightAtoms = ra;
+      //  Atoms in neither fragment (the rest of a ligand whose donor atoms
+      //  the construction names) belong to the right one.
+      {
+        vector<bool> used(storedSymbols.size(), false);
+        for (size_t k = 0; k < la.size(); k++) if (la[k] >= 0 && la[k] < (int)used.size()) used[la[k]] = true;
+        for (size_t k = 0; k < ra.size(); k++) if (ra[k] >= 0 && ra[k] < (int)used.size()) used[ra[k]] = true;
+        for (size_t a = 0; a < used.size(); a++) if (!used[a]) in.rightAtoms.push_back((int)a);
+      }
+      in.leftCharge = leftCharge;
+      in.rightCharge = charge - leftCharge;
+      in.leftMetal = leftMetal;
+      ModelDiagram::Result mr;
+      if (!ModelDiagram::build(in, moBasisFns, moSflat, moCoefficients, e,
+                               wholeSpectrum, mr, mwhy)) {
+        return false;
+      }
+      left = mr.left;
+      right = mr.right;
+      const string title = centre.title;
+      centre = mr.centre;
+      centre.title = mr.centre.title.empty() ? title : mr.centre.title;
+      links = mr.links;
+      foSummary = mr.summary;
+      foWarnings = mr.warnings;
+      foAbout = mr.about;
+      modelVerdict = mr.verdict;
+      modelVerdictOk = mr.verdictOk;
+      haveFragments = true;
+      foDrawn = true;
+      modelDrawn = true;
+      return true;
+    };
+
     if (want == MoFragments::FRAGMENT_ORBITALS) {
+      bool done = false;
+      {
+        vector<FragmentOrbitals::Fragment> frs;
+        string w2;
+        if (FragmentOrbitals::autoFragments(storedSymbols, storedCoords, charge,
+                                            multiplicity, frs, w2, pickCentre)) {
+          vector<int> la, ra;
+          int lc = 0;
+          vector<bool> isLeft(storedSymbols.size(), false);
+          for (size_t f = 0; f < frs.size(); f++) {
+            if (frs[f].kind != FragmentOrbitals::METAL) continue;
+            for (size_t k = 0; k < frs[f].atoms.size(); k++) {
+              la.push_back(frs[f].atoms[k]);
+              isLeft[frs[f].atoms[k]] = true;
+            }
+            lc += frs[f].charge;
+          }
+          for (size_t a = 0; a < storedSymbols.size(); a++)
+            if (!isLeft[a]) ra.push_back((int)a);
+          string mw;
+          done = buildModel(la, ra, lc, pickCentre < 0, mw);
+          if (!done && !mw.empty())
+            foNotOffered = "The model diagram could not be made: " + mw;
+        }
+      }
+      if (done) {
+        p_fragmentation = MoFragments::FRAGMENT_ORBITALS;
+        foPieces = "its ligands";
+      }
+      if (!done) {
       FoDiagram::Result fo;
       string foWhy;
       if (FoDiagram::build(storedSymbols, storedCoords, charge, moBasisFns,
@@ -2921,6 +3016,7 @@ void MoDiagramPanel::buildOnce()
                        foWhy;
         want = MoFragments::NOT_BUILT;
       }
+      }
     }
     if (!foDrawn) {
       haveFragments = MoFragments::build(coords, elements, group, charge,
@@ -2929,6 +3025,20 @@ void MoDiagramPanel::buildOnce()
                                          &p_fragmentation, want,
                                          pickActive ? &pickSel : 0);
       whyWarn = !haveFragments;
+      if (haveFragments && !piOnlyApplied && !leftAtoms.empty() &&
+          !rightAtoms.empty() && !storedSymbols.empty() && foProjectable) {
+        string mw;
+        if (!ModelDiagram::applicable(storedSymbols, mw)) {
+          if (foNotOffered.empty())
+            foNotOffered = "The model diagram is not available: " + mw +
+                           " Use the MOs panel to look at the orbitals.";
+        } else if (buildModel(leftAtoms, rightAtoms, charge, false, mw)) {
+          leftAtoms.clear();
+          rightAtoms.clear();
+        } else if (!mw.empty()) {
+          foNotOffered = "The model diagram could not be made: " + mw;
+        }
+      }
     }
   }
 
@@ -3409,7 +3519,8 @@ void MoDiagramPanel::buildOnce()
 
   if (!simplifiedNote.empty()) fragmentAbout += "\n\n**Simplified.** " + simplifiedNote;
   if (p_showAll != 0)
-    p_showAll->Enable(foDrawn || (haveFragments && p_fragmentation == MoFragments::CENTRAL));
+    p_showAll->Enable((foDrawn && !modelDrawn) ||
+                      (haveFragments && !modelDrawn && p_fragmentation == MoFragments::CENTRAL));
   if (!why.empty()) {
     if (whyWarn) tiers.warnings.push_back(why);
   }
@@ -3419,9 +3530,9 @@ void MoDiagramPanel::buildOnce()
   string pickSummary, pickAbout;
   if (pickActive && haveFragments) {
     const string dash = "\xE2\x80\x93";
-    if (foDrawn && pickCentre >= 0)
+    if (foDrawn && pickCentre >= 0 && !modelDrawn)
       pickSummary = pickLabelA + " against " + foPieces;
-    else if (foDrawn)
+    else if (foDrawn && !modelDrawn)
       pickSummary = pickLabelOfMetal(elements, pickMetalAtom) +
                     " against its ligands";
     else if (p_fragmentation == MoFragments::CENTRAL)
@@ -3461,6 +3572,12 @@ void MoDiagramPanel::buildOnce()
     if (group == symmetrisedGroup) extra += "\n\n" + symmetrisedNote;
     tiers.about = foAbout + extra;
     if (!pickAbout.empty()) tiers.about += "\n\n" + pickAbout;
+    if (modelDrawn) {
+      tiers.verdict = modelVerdict;
+      tiers.verdictOk = modelVerdictOk;
+      if (!group.empty() && !s.empty())
+        tiers.summary += " \xC2\xB7 labels in " + FoDiagram::groupMarkup(group);
+    }
   } else {
     string construction = MoFragments::fragmentationName(p_fragmentation);
     tiers.summary = haveFragments && !construction.empty()
@@ -3500,6 +3617,7 @@ void MoDiagramPanel::buildOnce()
   p_canvas->setDiagram(left, centre, right, links, haveFragments, "");
   p_canvas->setNotes(levelSource(getCalculation()) + tiers.summary,
                      tiers.warnings, tiers.about);
+  p_canvas->setVerdict(tiers.verdict, tiers.verdictOk);
   if (!dumpPath.empty()) {
     dumpMoDiagram(dumpPath, group, headingFormula,
         MoFragments::fragmentationName(p_fragmentation),
