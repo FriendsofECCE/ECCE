@@ -1,3 +1,5 @@
 # Basis set libraries (text data), not BASIC or VBA source: keep them out
 # of GitHub's language statistics.
 data/admin/basissets/*.BAS linguist-detectable=false
+# Perl modules; GitHub's heuristic takes some for Raku.
+*.pm linguist-language=Perl
