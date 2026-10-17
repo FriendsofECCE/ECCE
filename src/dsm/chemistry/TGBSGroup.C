@@ -555,6 +555,14 @@ bool TGBSGroup::removeGBS(string gbsType, string gbsName)
   if (type == TGaussianBasisSet::ecp) {
 
     if (p_ecp != (TGaussianBasisSet*) 0) {
+      //  An aggregate's ECP that covers none of the group's elements (def2's
+      //  on C, H, O) leaves the basis unchanged: forget it, or name() calls
+      //  the group "Custom" (a code without ECPs, ECCE-QM, removes it).
+      bool covers = false;
+      for (ElementToGBSInfoMap::const_iterator e = p_contractionInfoMap.begin();
+           e != p_contractionInfoMap.end() && !covers; e++)
+        covers = p_ecp->p_contractions.count(e->first) > 0;
+      if (!covers) forgetAggregatePart(p_ecp->getUniqueKey());
       delete p_ecp;
       p_ecp = (TGaussianBasisSet*) 0;
       ret = true;
@@ -649,7 +657,16 @@ void TGBSGroup::removeOrderedGBS(TGaussianBasisSet* gbs) {
 
           Note that removing a GBS completely deletes the GBS object.
 *******************************************************************/
-bool TGBSGroup::removeGBS(TGaussianBasisSet::GBSType type) 
+void TGBSGroup::forgetAggregatePart(const string& key)
+{
+  for (OrbitalMap::iterator it = p_orbitals.begin(); it != p_orbitals.end();
+       it++)
+    it->second.erase(std::remove(it->second.begin(), it->second.end(), key),
+                     it->second.end());
+  p_gbsCount.erase(key);
+}
+
+bool TGBSGroup::removeGBS(TGaussianBasisSet::GBSType type)
 {
   string typeStr = TGaussianBasisSet::gbs_type_formatter[(int) type];
   return removeGBS(typeStr, "All");

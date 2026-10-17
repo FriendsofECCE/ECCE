@@ -312,6 +312,7 @@ static int storedOne(int argc, char** argv, bool repair)
   map<string, TGaussianBasisSet*, less<string> > cache;
   calc.parseConfigDataElement(*doc, &config, cache);
   calc.parseConfigMapElement(*doc, &config, cache, repair);
+  cout << "NAME " << config.name() << endl;
 
   int spherical = 0, cartesian = 0;
   set<string> printed;
@@ -400,6 +401,14 @@ int main(int argc, char** argv)
     }
   }
 
+  //  The name the Calculation Editor's Basis Set box shows.
+  cerr << "NAME " << config->name() << endl;
+  //  LOADBASIS_NO_ECP: what makeConsistent does for a code without ECPs
+  //  (ECCE-QM), so the document is the one such a code saves.
+  if (getenv("LOADBASIS_NO_ECP")) {
+    config->clearType(TGaussianBasisSet::ecp);
+    cerr << "NAME_NO_ECP " << config->name() << endl;
+  }
   DavCalculation calc(EcceURL("http://localhost/unused"));
   ostrstream output;
   output << "<MolecularConfig>\n";

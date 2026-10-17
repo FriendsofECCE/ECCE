@@ -348,7 +348,7 @@ void SoWxViewer::CreateControls()
     memcpy(deep, gl_attrib, sizeof deep);
     for (int i = 0; deep[i] != 0; i++)
       if (deep[i] == WX_GL_DEPTH_SIZE) { deep[i + 1] = 24; break; }
-    if (wxGLCanvas::IsDisplaySupported(deep))
+    if (!getenv("ECCE_GL_ANY_DEPTH") && wxGLCanvas::IsDisplaySupported(deep))
       memcpy(gl_attrib, deep, sizeof gl_attrib);
   }
 #endif

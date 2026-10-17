@@ -349,6 +349,17 @@ void MoPanel::updateUIOptions()
    if (densityOk) typewin->Insert("Density",0);
    typewin->Insert("MO",0);
    typewin->SetStringSelection(_("MO"));
+   //  A choice is as wide as its longest entry, and "Density (ESP from
+   //  atomic charges)" made the MOs panel, and with it the whole column,
+   //  wider than every other property.  The open list still shows it all.
+   typewin->InvalidateBestSize();
+   int longest = 0;
+   for (unsigned i = 0; i < typewin->GetCount(); i++)
+      longest = std::max(longest,
+                         typewin->GetTextExtent(typewin->GetString(i)).x);
+   const int pad = typewin->GetBestSize().x - longest;
+   typewin->SetMinSize(wxSize(pad + typewin->GetTextExtent("Spin Density").x,
+                              -1));
 
    //  The range controls belong to the ESP types alone.  Shown when one
    //  is chosen, which OnTypeSelected below keeps in step.
@@ -484,13 +495,11 @@ void MoPanel::fillUI()
    PropVector    *orbOccBeta = (PropVector*) expt->getProperty("ORBOCCBETA");
    PropVecString *orbSymBeta = (PropVecString*) expt->getProperty("ORBSYMBETA");
 
-   INTERNALEXCEPTION(orbEnergy,"Orbital energy vector is null.");
    if (!orbEnergy) {
-      //  INTERNALEXCEPTION compiles to nothing in an INSTALL build, so
-      //  this is the live path there.  The other two ways of ending up
-      //  invalid (no basis set, no MO coefficients) each say so; this
-      //  one returned silently, and the user then got no explanation at
-      //  all until they pressed Compute and hit its guard.
+      //  Missing or unreadable (a stored vector whose length is not its
+      //  row count reads as null): say so in the panel.  No
+      //  INTERNALEXCEPTION here: INSTALL is never defined, so it threw,
+      //  and nothing above a panel catches it.
       getFW().showMessage("This calculation has no orbital energies, so "
             "orbitals cannot be computed.", false/*warning*/);
       p_isValid = false;

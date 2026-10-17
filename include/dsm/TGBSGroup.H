@@ -89,7 +89,9 @@ class TGBSGroup : public multimap<TGaussianBasisSet::GBSType,
      // SAME GOES FOR THE REMOVE METHODS:
      bool removeGBS(TGaussianBasisSet::GBSType type);
      bool removeGBS(string gbsType, string gbsName);
-     void removeOrbitalGBS(string bsName);   
+     void removeOrbitalGBS(string bsName);
+     // Drop a part (unique key) from the aggregate mappings only.
+     void forgetAggregatePart(const string& key);
      void removeAll(void); // removes all basis sets
 
      void setOrbitalGBSMappings(const OrbitalMap& map);

@@ -173,3 +173,5 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [GROMACS Prepare, MINFF source: built on the client and staged as .gmxmin plus includes; a layer split over z tears; genion and ions.itp name ions differently](gromacs-prepare-minff-source-traps.md)
 - [The Builder draws modes on the last GEOMTRACE step, so a code that reorients must deliver one (NWChem frequency-only runs did not)](geometry-and-normal-modes-share-the-codes-frame.md)
 - [Every release updates the bundled atomipy and min.ff](every-release-updates-bundled-atomipy-and-minff.md)
+- [Property value lines were cut at 2047 bytes, losing the rest of the batch (ECCE-QM MO crash above ~120 functions, ORCA above ~245)](property-value-lines-had-a-2048-byte-limit.md)
+- [def2-SVP on light elements showed as "Custom" for ECCE-QM: a removed ECP that covers nothing left its key behind](ecp-less-code-named-def2-basis-custom.md)

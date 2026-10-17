@@ -23,11 +23,11 @@ More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
 Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
 * **ECCE 9** (latest
-  [9.2.0](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.2.0)),
+  [9.2.2](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.2.2)),
   for Linux, macOS and Windows: the recommended version. The macOS and
   Windows clients are experimental.
 * **ECCE 8.18.x** (latest
-  [8.18.10](https://github.com/FriendsofECCE/ECCE/releases/tag/v8.18.10)),
+  [8.18.12](https://github.com/FriendsofECCE/ECCE/releases/tag/v8.18.12)),
   Linux only: the older line, which still gets bug fixes.
 
 | System | File | Install |
@@ -64,11 +64,10 @@ Planned, being worked on:
 
 ## First steps
 
-The same pages are in ECCE under **Help**. To see it done first, watch
-[Your first calculation with ECCE-QM](https://youtu.be/HQarL7NbFjk)
-(3 minutes, nothing else to install) or
-[Your first ORCA calculation with ECCE](https://youtu.be/8NzblPZJl5k)
-(4 minutes); both have subtitles.
+The same pages are in ECCE under **Help**. To see it done first, the
+[chem4eva YouTube channel](https://www.youtube.com/@chem4eva) has short
+videos with subtitles: installing ECCE, a first calculation with ECCE-QM
+(nothing else to install) and a first ORCA calculation.
 
 1. [Installation](help/src/installation.md): what you see the first time
    ECCE starts, and where your work is kept.
