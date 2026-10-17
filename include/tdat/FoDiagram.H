@@ -123,6 +123,7 @@ class FoDiagram
       bool   agree;       // metal + ligands = valence MO electrons
       string why;         // when not placed
       string line;        // the note's line
+      string metal;       // symbol of the metal, "" when none
       ElectronCount() : oxidation(0), dCount(0), ligands(0), unpaired(0),
                         moElectrons(0), placed(false), agree(false) {}
     };
@@ -131,7 +132,13 @@ class FoDiagram
     {
       MoColumn left, right;                 // metal sets, ligand sets
       vector<MoConnection> links;           // weight = the set's share
-      string note;                          // validity readout
+      string note;                          // validity readout (the full legacy text)
+      //  The three tiers of the text under the diagram (UTF-8, with
+      //  <sub>..</sub> in the point group): `summary` is always shown,
+      //  `warnings` only when something is wrong, `about` is the pop-up.
+      string summary;
+      vector<string> warnings;
+      string about;
       vector<SetInfo> sets;                 // every fragment set
       vector<MoInfo> mo;                    // one per drawn centre level
       vector<PairInfo> pairInfo;            // every pair found
@@ -142,6 +149,12 @@ class FoDiagram
       double captureMin, captureMax;        // over the drawn MOs
       Result() : captureMin(0), captureMax(0) {}
     };
+
+    /** "Also not shown: 18 core orbitals below -3.49 Hartree.", or "". */
+    static string coreSentence(const MoColumn& centre);
+
+    /** A point group as a chemist writes it, "O<sub>h</sub>"; "" for "". */
+    static string groupMarkup(const string& group);
 
     /**
      * The heading formula of a complex, ligands grouped: Cr(CO)6,

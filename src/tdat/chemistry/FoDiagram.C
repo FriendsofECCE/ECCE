@@ -27,6 +27,46 @@ string percent(double x)
    return b;
 }
 
+
+//  "75–98 %": the about text writes a space before the percent sign.
+string spacedPercent(double x)
+{
+   char b[16];
+   snprintf(b, sizeof b, "%.0f %%", 100.0*x);
+   return b;
+}
+
+string countWord(int n)
+{
+   static const char* w[] = { "no", "one", "two", "three", "four", "five", "six",
+                              "seven", "eight", "nine", "ten", "eleven", "twelve" };
+   return (n >= 0 && n <= 12) ? w[n] : std::to_string(n);
+}
+
+string plural(int n, const char* one, const char* many)
+{
+   return std::to_string(n) + " " + (n == 1 ? one : many);
+}
+
+//  The panel's own cut-off removes the deepest orbitals before this is
+//  called; say how many, in the words the diagram's band uses.
+string coreSentence(const MoColumn& c)
+{
+   if (c.hiddenCount <= 0 && c.hiddenSemicoreCount <= 0) return "";
+   char e[32];
+   snprintf(e, sizeof e, "%s%.2f", c.hiddenMaxEnergy < 0 ? "\xE2\x88\x92" : "",
+            fabs(c.hiddenMaxEnergy));
+   string t = "Also not shown: ";
+   if (c.hiddenCount > 0 && c.hiddenSemicoreCount > 0)
+      t += std::to_string(c.hiddenCount) + " core and " +
+           std::to_string(c.hiddenSemicoreCount) + " semicore orbitals";
+   else if (c.hiddenSemicoreCount > 0)
+      t += plural(c.hiddenSemicoreCount, "semicore orbital", "semicore orbitals");
+   else
+      t += plural(c.hiddenCount, "core orbital", "core orbitals");
+   return t + " below " + e + " Hartree.";
+}
+
 //  The text before the first comma: a ligand FO's dominant character.
 string firstCharacter(const string& c)
 {
@@ -355,6 +395,20 @@ FoDiagram::countPairs(const vector<PairLevel>& levels)
    return out;
 }
 
+
+string FoDiagram::coreSentence(const MoColumn& centre) { return ::coreSentence(centre); }
+
+string FoDiagram::groupMarkup(const string& group)
+{
+   if (group.empty()) return "";
+   string g = group;
+   for (size_t i = 0; i < g.size(); i++)
+      g[i] = i == 0 ? toupper((unsigned char)g[i]) : tolower((unsigned char)g[i]);
+   if (g == "Dinfh") return "D<sub>\xE2\x88\x9Eh</sub>";
+   if (g == "Cinfv") return "C<sub>\xE2\x88\x9Ev</sub>";
+   if (g.size() == 1) return g;
+   return g.substr(0, 1) + "<sub>" + g.substr(1) + "</sub>";
+}
 
 string FoDiagram::complexFormula(const vector<string>& symbols,
                                  const vector<double>& coordsAng, int charge)
@@ -878,7 +932,7 @@ bool FoDiagram::build(const vector<string>& symbols,
    }
 
    //  --- what is drawn ----------------------------------------------------
-   int hiddenLigand = 0, hiddenCore = 0, hiddenCut = 0;
+   int hiddenLigand = 0, hiddenCore = 0, hiddenCut = 0, coreEmpty = 0;
    for (size_t c = 0; c < nL; c++) {
       Lv& v = L[c];
       if (!v.valence) { v.why = 3; continue; }
@@ -898,7 +952,10 @@ bool FoDiagram::build(const vector<string>& symbols,
    }
    for (size_t c = 0; c < nL; c++) {
       if (L[c].shown) L[c].why = 0;
-      else if (L[c].why == 3 && L[c].valence == false) hiddenCore++;
+      else if (L[c].why == 3 && L[c].valence == false) {
+         hiddenCore++;
+         if (L[c].level.occupancy + std::max(L[c].level.occupancyBeta, 0.0) < 0.01) coreEmpty++;
+      }
       else if (L[c].why == 2) hiddenLigand++;
       else if (L[c].why == 1) hiddenCut++;
    }
@@ -995,6 +1052,7 @@ bool FoDiagram::build(const vector<string>& symbols,
             if (nMetal == 1) {
                ec.oxidation = frags[i].charge;
                metalSym = symbols[frags[i].atoms[0]];
+               ec.metal = metalSym;
             }
          }
       double ligElectrons = 0.0;
@@ -1080,7 +1138,7 @@ bool FoDiagram::build(const vector<string>& symbols,
          if (ec.agree) ec.line += ", the same as the " + std::to_string((int)lround(ec.moElectrons))
                                   + " in the valence MOs.";
          else {
-            snprintf(b, sizeof b, "; the valence MOs the diagram considers (capture "
+            snprintf(b, sizeof b, "; the valence MOs the diagram considers (covered "
                      "%.0f%% or more) hold %.0f, so the two sides do not agree.",
                      100*FragmentOrbitals::CORE_CAPTURE, ec.moElectrons);
             ec.line += b;
@@ -1126,14 +1184,14 @@ bool FoDiagram::build(const vector<string>& symbols,
          }
          if (si.capture < CAPTURE_OK) {
             lv.annotation += (lv.annotation.empty() ? "" : "  ")
-                             + string("capture ") + percent(si.capture);
+                             + string("covered ") + percent(si.capture);
             lowCapture++;
          }
          char eb[96];
          snprintf(eb, sizeof eb, "%s (qualitative): %.2f eV",
                   side == 0 ? "EHT H_ii" : "EHT FO energy", si.eEht*HARTREE);
          char fb[320];
-         snprintf(fb, sizeof fb, "Fock diagonal %.4f Hartree, captured %s of the "
+         snprintf(fb, sizeof fb, "Fock diagonal %.4f Hartree, covered %s of the "
                   "orbital by the calculation's MOs.\n%s", si.eFock,
                   percent(si.capture).c_str(), eb);
          lv.detail = fb;
@@ -1177,7 +1235,7 @@ bool FoDiagram::build(const vector<string>& symbols,
                        : "non-bonding";
       t << "Fragment orbitals (extended H\xC3\xBC" "ckel): " << v.klass << ", " << kind
         << ", metal " << percent(v.metal) << ", ligands " << percent(v.ligand)
-        << ", captured " << percent(v.capture) << " of the MO";
+        << ", covered " << percent(v.capture) << " of the MO";
       if (lv.degeneracy > 1) t << " (mean over its orbitals)";
       t << ".";
       if (!v.irrep.empty()) t << "  Irrep " << v.irrep << " of the skeleton's group " << sk.group << ".";
@@ -1233,7 +1291,7 @@ bool FoDiagram::build(const vector<string>& symbols,
         "calculation's Fock operator in the orthogonalised fragment-orbital "
         "basis; qualitative.  That operator is known only on the span of the "
         "reported MOs, so the levels depend on which were reported; each is "
-        "captured to " << percent(out.captureMin) << " - "
+        "covered to " << percent(out.captureMin) << " - "
      << percent(out.captureMax) << " (drawn MOs)";
    if (lowCapture > 0)
       n << ", " << lowCapture << " fragment level" << (lowCapture > 1 ? "s" : "")
@@ -1252,11 +1310,125 @@ bool FoDiagram::build(const vector<string>& symbols,
         << " far outside the drawn orbitals not drawn.";
    if (hiddenCore > 0)
       n << "  " << hiddenCore << " level" << (hiddenCore > 1 ? "s" : "")
-        << " the valence fragment orbitals do not describe (capture below "
+        << " the valence fragment orbitals do not describe (covered below "
         << percent(FragmentOrbitals::CORE_CAPTURE) << ") not drawn.";
    for (size_t i = 0; i < out.pairMessages.size(); i++)
       n << "\n" << out.pairMessages[i] << ".";
    n << "\n" << out.electrons.line;
    out.note = n.str();
+
+   //  --- the text under the diagram, in three tiers -----------------------
+   double covMin = 1.0, covMax = 0.0;
+   for (size_t i = 0; i < out.sets.size(); i++) {
+      if (out.sets[i].column < 0) continue;
+      covMin = std::min(covMin, out.sets[i].capture);
+      covMax = std::max(covMax, out.sets[i].capture);
+   }
+   const string groupText = haveSym ? groupMarkup(sk.group) : string();
+   {
+      string t = "Fragment levels from extended H\xC3\xBC" "ckel (qualitative) \xC2\xB7 energies in Hartree";
+      if (haveSym) t += " \xC2\xB7 labels in " + groupText;
+      if (hiddenLigand > 0)
+         t += " \xC2\xB7 " + plural(hiddenLigand, "level", "levels") + " hidden (Show all levels)";
+      out.summary = t;
+   }
+
+   out.warnings.clear();
+   for (size_t i = 0; i < out.pairMessages.size(); i++)
+      out.warnings.push_back(out.pairMessages[i] + ".");
+   if (lowCapture > 0)
+      out.warnings.push_back(plural(lowCapture, "fragment level is", "fragment levels are") +
+         " covered less than " + spacedPercent(CAPTURE_OK) +
+         " by the calculation's orbitals, so " + (lowCapture == 1 ? "its position is" : "their positions are") +
+         " less certain.");
+   {
+      const ElectronCount& ec = out.electrons;
+      char b[300];
+      if (ec.placed && !ec.agree) {
+         snprintf(b, sizeof b, "The electron count does not add up: metal d%d + ligands %d = %d, "
+                  "but the valence orbitals the diagram considers hold %.0f.",
+                  ec.dCount, ec.ligands, ec.dCount + ec.ligands, ec.moElectrons);
+         out.warnings.push_back(b);
+      } else if (!ec.placed) {
+         snprintf(b, sizeof b, "No metal d electrons are drawn: %s.", ec.why.c_str());
+         out.warnings.push_back(b);
+      }
+   }
+
+   {
+      std::ostringstream a;
+      a << "**Where the fragment levels come from.** The left and right columns are the "
+           "orbitals of the metal atom and of the ligands on their own, from a quick "
+           "extended H\xC3\xBC" "ckel calculation. Each is placed at the energy it has inside "
+           "the molecule before it mixes with anything. This puts every bonding level "
+           "below the two levels it comes from and every antibonding level above them, "
+           "as in a textbook diagram. Treat their positions as qualitative.\n\n";
+      {
+         char lo[16], hi[16];
+         snprintf(lo, sizeof lo, "%.0f", 100.0*covMin);
+         snprintf(hi, sizeof hi, "%.0f", 100.0*covMax);
+         a << "**How reliable each fragment level is: " << lo;
+         if (string(lo) != hi) a << "\xE2\x80\x93" << hi;
+         a << " %";
+      }
+      a << ".** A fragment level can only be placed using the orbitals the calculation "
+           "reported. The percentage says how much of the fragment orbital those orbitals "
+           "cover. Levels below " << spacedPercent(CAPTURE_OK)
+        << " show their percentage next to them; their positions are less certain.\n\n";
+      a << "**Lines.** A line joins a molecular orbital to a fragment orbital that makes up "
+           "at least " << spacedPercent(LINK_MIN) << " of it. Both members of a "
+           "bonding/antibonding pair are joined to both of their parents.\n\n";
+      if (haveSym) {
+         int donors = 0;
+         for (size_t i = 0; i < sk.inSkeleton.size(); i++) if (sk.inSkeleton[i]) donors++;
+         donors = std::max(donors - 1, 0);
+         a << "**Symmetry labels** are in " << groupText << ", the symmetry of the "
+           << (out.electrons.metal.empty() ? string("metal") : out.electrons.metal)
+           << " and its " << countWord(donors) << " donor atom" << (donors == 1 ? "" : "s")
+           << ". A ligand's own atoms can lower the symmetry of the whole molecule (the "
+              "hydrogens of NH3, for example), so the labels may be higher than the "
+              "molecule's own.\n\n";
+      }
+      const string core = coreSentence(centre);
+      if (hiddenCore > 0 || hiddenLigand > 0 || farAway > 0 || !core.empty()) {
+         a << "**Not shown:**";
+         if (hiddenCore > 0) {
+            a << " " << hiddenCore << " molecular orbital" << (hiddenCore == 1 ? "" : "s")
+              << " that " << (hiddenCore == 1 ? "is" : "are")
+              << " less than half made of the fragments' valence orbitals.";
+            if (coreEmpty*5 >= hiddenCore*4)
+               a << " " << (coreEmpty == hiddenCore ? "All" : "Nearly all") << " of them are high, empty orbitals.";
+            else
+               a << " " << coreEmpty << " of them " << (coreEmpty == 1 ? "is" : "are")
+                 << " empty and " << hiddenCore - coreEmpty << " "
+                 << (hiddenCore - coreEmpty == 1 ? "is" : "are") << " occupied.";
+         }
+         if (hiddenLigand > 0)
+            a << " " << plural(hiddenLigand, "further level sits", "further levels sit")
+              << " on the ligands alone or "
+              << (hiddenLigand == 1 ? "has" : "have")
+              << " little metal character; tick Show all levels to draw "
+              << (hiddenLigand == 1 ? "it" : "them") << ".";
+         if (farAway > 0)
+            a << " " << plural(farAway, "fragment level lies", "fragment levels lie") << " far outside "
+                 "the energy range of the drawn orbitals.";
+         if (!core.empty()) a << " " << core;
+         a << "\n\n";
+      }
+      {
+         const ElectronCount& ec = out.electrons;
+         char b[200];
+         if (ec.placed) {
+            snprintf(b, sizeof b, "**Total electrons: %d** (%s d%d, ligands %d).",
+                     ec.dCount + ec.ligands, ec.metal.c_str(), ec.dCount, ec.ligands);
+         } else {
+            snprintf(b, sizeof b, "**Total electrons:** the metal's d electrons are not drawn "
+                     "(%s). The ligands bring %d; the valence orbitals hold %.0f.",
+                     ec.why.c_str(), ec.ligands, ec.moElectrons);
+         }
+         a << b;
+      }
+      out.about = a.str();
+   }
    return true;
 }

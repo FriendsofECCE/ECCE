@@ -12,6 +12,9 @@
 #include <utility>
 
 #include <wx/app.h>
+#include <wx/button.h>
+#include <wx/dialog.h>
+#include <wx/textctrl.h>
 #include <wx/dcbuffer.h>
 #include <wx/link.h>
 #include <wx/sizer.h>
@@ -79,8 +82,9 @@ IMPLEMENT_DYNAMIC_CLASS(MoDiagramPanel, VizPropertyPanel)
 
 
 MoDiagramPanel::MoDiagramPanel()
-  : p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0),
-    p_fragmentation(MoFragments::NOT_BUILT),
+  : p_fragmentation(MoFragments::NOT_BUILT),
+    p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0),
+    p_about(0),
     p_building(false), p_rebuildPending(false)
 {
 }
@@ -89,8 +93,9 @@ MoDiagramPanel::MoDiagramPanel()
 MoDiagramPanel::MoDiagramPanel(IPropCalculation *calculation,
       wxWindow *parent, wxWindowID id, const wxPoint& pos,
       const wxSize& size, long style, const wxString& name)
-  : p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0),
-    p_fragmentation(MoFragments::NOT_BUILT),
+  : p_fragmentation(MoFragments::NOT_BUILT),
+    p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0),
+    p_about(0),
     p_building(false), p_rebuildPending(false)
 {
   Create(calculation, parent, id, pos, size, style, name);
@@ -363,6 +368,13 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
            0, wxALIGN_CENTER_VERTICAL|wxLEFT, 4);
   row->Add(p_construction, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 
+  //  Next to the construction, where a narrow window does not push it off.
+  p_about = new wxButton(this, wxID_ANY, _("About this diagram..."),
+                         wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+  p_about->SetToolTip("About this diagram: how it is made, how far to trust it, and "
+                      "what is left out");
+  row->Add(p_about, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+
   p_autoFragments = new ewxCheckBox(this, wxID_ANY, _("Choose fragments"));
   p_autoFragments->SetValue(false);
   //  AN OVERRIDE, NOT A MODE.
@@ -379,24 +391,6 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
                               "yourself, instead of the construction "
                               "the diagram chose");
   row->Add(p_autoFragments, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
-
-  //  SAY WHAT A FRAGMENT IS, ON THE PANEL.
-  //
-  //  "Choose fragments" with a list of atom counts beside it does not
-  //  explain itself, and the explanation was in a tooltip, which is
-  //  invisible until you already suspect there is something to learn.
-  //  A diagram correlates a molecule against TWO groups of atoms, and
-  //  the only thing being chosen here is which group each set goes in.
-  p_fragmentHint = new ewxStaticText(this, wxID_ANY,
-      _("Ticked sets become the left column, the rest the right"));
-  row->Add(p_fragmentHint, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
-
-  p_fragments = new wxCheckListBox(this, wxID_ANY, wxDefaultPosition,
-                                   wxSize(220, 70));
-  p_fragments->SetToolTip("Each row is a set of atoms the symmetry makes "
-                          "equivalent. Ticked sets form the left column of "
-                          "the diagram; the rest form the right.");
-  row->Add(p_fragments, 1, wxEXPAND|wxALL, 4);
 
   //  TWELVE LABELS AND TWELVE NUMBERS IS A LOT OF TEXT.
   //
@@ -420,6 +414,25 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   p_showAll->Enable(false);
   row->Add(p_showAll, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 
+  //  Last in the row: a narrow window clips this, not the checkboxes.
+  //  SAY WHAT A FRAGMENT IS, ON THE PANEL.
+  //
+  //  "Choose fragments" with a list of atom counts beside it does not
+  //  explain itself, and the explanation was in a tooltip, which is
+  //  invisible until you already suspect there is something to learn.
+  //  A diagram correlates a molecule against TWO groups of atoms, and
+  //  the only thing being chosen here is which group each set goes in.
+  p_fragmentHint = new ewxStaticText(this, wxID_ANY,
+      _("Ticked sets become the left column, the rest the right"));
+  row->Add(p_fragmentHint, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+
+  p_fragments = new wxCheckListBox(this, wxID_ANY, wxDefaultPosition,
+                                   wxSize(220, 70));
+  p_fragments->SetToolTip("Each row is a set of atoms the symmetry makes "
+                          "equivalent. Ticked sets form the left column of "
+                          "the diagram; the rest form the right.");
+  row->Add(p_fragments, 1, wxEXPAND|wxALL, 4);
+
   sizer->Add(row, 0, wxEXPAND);
 
   //  Bound on the controls themselves.  A static table does not reach
@@ -435,6 +448,7 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
                     this);
   p_showEnergies->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onShowEnergies, this);
   p_showAll->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onFragmentChanged, this);
+  p_about->Bind(wxEVT_BUTTON, &MoDiagramPanel::onAbout, this);
 
   p_fragments->Enable(false);
 }
@@ -479,6 +493,57 @@ void MoDiagramPanel::onShowEnergies(wxCommandEvent& WXUNUSED(event))
   //  The energies change how much room each row needs, so the whole
   //  layout is recomputed, not just repainted.
   p_canvas->Refresh();
+}
+
+
+/**
+ * The pop-up: the canvas's about text, read-only and wrapped.  The text
+ * carries **bold** headings and <sub> tags; the dialog shows the headings
+ * bold and the subscripts as plain letters.
+ */
+void MoDiagramPanel::onAbout(wxCommandEvent& WXUNUSED(event))
+{
+  if (p_canvas == 0) return;
+  string raw = p_canvas->aboutText();
+  if (raw.empty()) raw = "There is nothing more to say about this diagram.";
+
+  string plain;
+  vector< std::pair<size_t,size_t> > bold;
+  size_t open = string::npos;
+  for (size_t i = 0; i < raw.size(); ) {
+    if (raw.compare(i, 2, "**") == 0) {
+      if (open == string::npos) open = plain.size();
+      else { bold.push_back(std::make_pair(open, plain.size())); open = string::npos; }
+      i += 2;
+    } else if (raw.compare(i, 5, "<sub>") == 0) {
+      i += 5;
+    } else if (raw.compare(i, 6, "</sub>") == 0) {
+      i += 6;
+    } else {
+      plain += raw[i++];
+    }
+  }
+
+  wxDialog dlg(this, wxID_ANY, _("About this diagram"), wxDefaultPosition,
+               wxSize(560, 520), wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER);
+  wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+  wxTextCtrl *text = new wxTextCtrl(&dlg, wxID_ANY, wxEmptyString,
+      wxDefaultPosition, wxDefaultSize,
+      wxTE_MULTILINE|wxTE_READONLY|wxTE_WORDWRAP|wxTE_RICH2|wxBORDER_NONE);
+  text->SetValue(wxString::FromUTF8(plain.c_str()));
+  //  Positions are in characters, not bytes.
+  wxFont boldFont = text->GetFont();
+  boldFont.SetWeight(wxFONTWEIGHT_BOLD);
+  for (size_t k = 0; k < bold.size(); k++) {
+    const long from = (long)wxString::FromUTF8(plain.substr(0, bold[k].first).c_str()).length();
+    const long to = (long)wxString::FromUTF8(plain.substr(0, bold[k].second).c_str()).length();
+    text->SetStyle(from, to, wxTextAttr(wxNullColour, wxNullColour, boldFont));
+  }
+  text->SetInsertionPoint(0);
+  top->Add(text, 1, wxEXPAND|wxALL, 10);
+  top->Add(dlg.CreateButtonSizer(wxOK), 0, wxEXPAND|wxALL, 8);
+  dlg.SetSizer(top);
+  dlg.ShowModal();
 }
 
 
@@ -1270,6 +1335,64 @@ string escapeDumpText(const string& s)
   return out;
 }
 
+/** The text under the diagram in its three tiers (see FoDiagram::Result). */
+struct NoteTiers
+{
+  string summary;
+  vector<string> warnings;
+  string about;
+};
+
+/** What is shown under the diagram, as one text: summary then warnings. */
+string shownNotes(const NoteTiers& t)
+{
+  string out = t.summary;
+  for (size_t i = 0; i < t.warnings.size(); i++) out += "\n" + t.warnings[i];
+  return out;
+}
+
+/**
+ * The About text of a diagram that is not the fragment-orbital one:
+ * one paragraph per subject, each present only when there is something
+ * to say.  `lead` is how the construction drew the molecule.
+ */
+string aboutText(const string& lead, const string& fragments,
+                 const string& beta, const string& unlabelled,
+                 const string& symmetry, const string& symmetrised,
+                 const MoColumn& centre, const MoColumn& left,
+                 const MoColumn& right)
+{
+  string out = "**What is drawn.** ";
+  if (!lead.empty()) out += lead + " ";
+  out += "The molecular levels in the middle are the calculation's own "
+         "orbital energies, in Hartree.";
+  if (!beta.empty()) out += " " + beta;
+  if (!fragments.empty()) out += "\n\n**Fragment levels.** " + fragments;
+
+  string labels;
+  const string parts[3] = { unlabelled, symmetry, symmetrised };
+  for (int k = 0; k < 3; k++) {
+    if (parts[k].empty()) continue;
+    labels += (labels.empty() ? "" : " ") + parts[k];
+  }
+  if (!labels.empty()) out += "\n\n**Symmetry.** " + labels;
+
+  bool sketch = false;
+  for (size_t i = 0; i < left.levels.size(); i++)
+    if (!left.levels[i].phases.empty()) sketch = true;
+  for (size_t i = 0; i < right.levels.size(); i++)
+    if (!right.levels[i].phases.empty()) sketch = true;
+  if (sketch)
+    out += "\n\n**The circles beside each symmetry orbital** show the atoms as "
+           "seen from one side, filled and open for opposite sign and sized by "
+           "weight; a bar is a p lobe in the page.";
+
+  const string core = FoDiagram::coreSentence(centre);
+  if (!core.empty())
+    out += "\n\n**Not shown.** " + core.substr(string("Also not shown: ").size());
+  return out;
+}
+
 const char* levelCharacterName(MoLevel::Character c)
 {
   switch (c) {
@@ -1342,7 +1465,7 @@ void dumpColumn(std::ofstream& out, const string& name, const MoColumn& col,
 
 void dumpMoDiagram(const string& path, const string& group,
     const string& formula, const string& construction,
-    const string& headline, const string& note,
+    const string& headline, const NoteTiers& tiers,
     const MoColumn& left, const MoColumn& centre, const MoColumn& right,
     const vector<MoConnection>& links,
     const vector<double>& localisedShare, const vector<double>& centreOP,
@@ -1355,7 +1478,8 @@ void dumpMoDiagram(const string& path, const string& group,
   out << "formula: " << (formula.empty() ? "-" : formula) << "\n";
   out << "construction: " << (construction.empty() ? "-" : construction) << "\n";
   out << "headline: " << escapeDumpText(headline) << "\n";
-  out << "note: " << escapeDumpText(note) << "\n";
+  out << "note: " << escapeDumpText(shownNotes(tiers)) << "\n";
+  out << "about: " << escapeDumpText(tiers.about) << "\n";
   dumpColumn(out, "left", left, 0, 0, 0, 0);
   dumpColumn(out, "centre", centre,
              &localisedShare, &centreOP, &mullikenMax, &normVals, &metalLigandOP);
@@ -1583,9 +1707,11 @@ void MoDiagramPanel::buildOnce()
   if (energies == 0) {
     const string note = "This calculation has no orbital energies.";
     p_canvas->setDiagram(left, centre, right, links, false, note);
+    NoteTiers noEnergies;
+    noEnergies.summary = note;
     if (!dumpPath.empty()) {
       dumpMoDiagram(dumpPath, "", "",
-          MoFragments::fragmentationName(p_fragmentation), "", note,
+          MoFragments::fragmentationName(p_fragmentation), "", noEnergies,
           left, centre, right, links,
           localisedShare, centreOP, mullikenMaxVec, normVec);
       exitAfterDumpIfRequested();
@@ -1666,6 +1792,9 @@ void MoDiagramPanel::buildOnce()
   //  C2 axis -- a correlation diagram in Cs instead of C2v, with no
   //  error and no way to tell from the picture.
   string group, why;
+  //  Whether `why` says something went wrong (a warning under the diagram) or
+  //  only how the diagram was drawn (the About text).
+  bool whyWarn = true;
   vector<double> coords;
   vector<string> elements;
   //  Set below from coordinationSkeleton(), central atom first (#183):
@@ -1754,10 +1883,10 @@ void MoDiagramPanel::buildOnce()
   //  drawing without symmetry.
   //  What the diagram did to the symmetry, said on it.  Kept apart from
   //  `why`, which MoFragments::build() overwrites.
-  string symmetryNote;
+  string symmetryNote, symmetryWarning;
   if (!group.empty() && CharacterTable::lookup(group) == 0) {
-    symmetryNote = "There is no character table for " + group + " here, "
-                   "so the diagram is drawn without symmetry (C1).";
+    symmetryWarning = "There is no character table for " + group + " here, "
+                      "so the diagram is drawn without symmetry (C1).";
     group = "C1";
   }
 
@@ -2278,18 +2407,15 @@ void MoDiagramPanel::buildOnce()
   //  could not be drawn.
   const bool haveSymmetryLabels = !s.empty();
 
-  ostringstream note;
-  if (s.empty()) {
-    note << "This calculation reports no orbital symmetry labels, so the "
-            "molecular levels are unlabelled and are correlated by what "
-            "they are built from rather than by symmetry.";
-  } else {
-    note << "Energies in Hartree.";
-  }
-  if (haveBeta) {
-    note << "  Unrestricted: levels at alpha energies; beta electrons "
-            "matched by symmetry.";
-  }
+  //  What the diagram has to say about itself, in three tiers: a summary
+  //  line, warnings (only when something is wrong) and the About text.
+  const string unlabelledText =
+      "This calculation reports no orbital symmetry labels, so the molecular "
+      "levels are unlabelled and are correlated by what they are built from "
+      "rather than by symmetry.";
+  const string betaText =
+      "This is an unrestricted calculation: the levels are drawn at their "
+      "alpha energies, and the beta electrons are matched to them by symmetry.";
 
   //  --- the fragment columns -----------------------------------------
   //
@@ -2390,7 +2516,7 @@ void MoDiagramPanel::buildOnce()
              << group << " -- ORCA and some other codes adapt orbitals "
                 "only in abelian groups -- so the diagram is drawn in "
              << best << " to match it.";
-        if (why.empty()) why = text.str();
+        if (why.empty()) { why = text.str(); whyWarn = false; }
         group = best;
       }
     }
@@ -2404,7 +2530,8 @@ void MoDiagramPanel::buildOnce()
   //  lines, placement and note; none of the symmetry-based machinery
   //  below runs for it.
   bool foDrawn = false;
-  string foNote;
+  string foSummary, foAbout;
+  vector<string> foWarnings;
 
   if (!elements.empty()) {
     //  OFFER THE CHOICE, AND HONOUR IT.
@@ -2500,7 +2627,9 @@ void MoDiagramPanel::buildOnce()
         left = fo.left;
         right = fo.right;
         links = fo.links;
-        foNote = fo.note;
+        foSummary = fo.summary;
+        foWarnings = fo.warnings;
+        foAbout = fo.about;
         p_fragmentation = MoFragments::FRAGMENT_ORBITALS;
         haveFragments = true;
         foDrawn = true;
@@ -2516,6 +2645,7 @@ void MoDiagramPanel::buildOnce()
                                          left, right, why, &leftAtoms,
                                          &rightAtoms, chosen,
                                          &p_fragmentation, want);
+      whyWarn = !haveFragments;
     }
   }
 
@@ -2753,6 +2883,7 @@ void MoDiagramPanel::buildOnce()
                               mismatch)) {
       byIrrep = false;
       why = mismatch;
+      whyWarn = true;
     }
   }
 
@@ -2781,10 +2912,13 @@ void MoDiagramPanel::buildOnce()
              << group << ", so the levels are correlated by what they are "
                 "built from rather than by symmetry.";
         why = text.str();
+        whyWarn = true;
       }
     }
   }
 
+  string fragmentAbout;
+  NoteTiers tiers;
   if (haveFragments && !foDrawn) {
     //  Without a usable irrep the centre levels carry none, so
     //  connect() matches on the shell a fragment level is and the
@@ -2850,9 +2984,6 @@ void MoDiagramPanel::buildOnce()
     //  order only when nothing connected at all.  This note claimed
     //  the fallback unconditionally, so in the normal case it
     //  described the opposite of what had been done.
-    note << "  Molecular levels are the calculation's own orbital "
-            "energies in Hartree.";
-
     //  NOTHING CORRELATED MEANS THERE IS NO CORRELATION DIAGRAM.
     //
     //  Drawing the fragment columns anyway puts two sets of levels
@@ -2878,29 +3009,43 @@ void MoDiagramPanel::buildOnce()
       right = MoColumn();
       haveFragments = false;
 
-      note.str("");
-      note << "No correlation diagram can be drawn for this calculation.";
+      vector<string> noDiagram;
+      noDiagram.push_back("No correlation diagram can be drawn for this calculation.");
       if (!haveSymmetryLabels) {
         //  NOT NAMED BY CODE.  This said "Gaussian jobs are generated
         //  with symmetry switched off", which was shown verbatim on an
         //  ORCA calculation.  The remedy is the same wherever the
         //  calculation came from, and it is now in one place.
-        note << "  It reports no orbital symmetry labels, and without them "
+        noDiagram.push_back("It reports no orbital symmetry labels, and without them "
                 "there is nothing to match the fragment orbitals against. "
                 "A job run with symmetry switched off reports none: tick "
                 "\"Use symmetry\" in the Calculation Editor, beside the "
-                "point group, and run it again.";
+                "point group, and run it again.");
       } else {
-        note << "  Its orbital labels could not be reconciled with the "
+        noDiagram.push_back("Its orbital labels could not be reconciled with the "
                 "symmetry of the structure, so the fragment orbitals and "
                 "the orbitals cannot be matched up. Running Find Symmetry "
                 "on the structure, so that it agrees with the symmetry the "
-                "calculation used, is usually what is needed.";
+                "calculation used, is usually what is needed.");
       }
-      note << "  The orbital energies are shown on their own below.";
-      if (!why.empty()) note << "  " << why;
-      if (!symmetryNote.empty()) note << "  " << symmetryNote;
-      if (group == symmetrisedGroup) note << "  " << symmetrisedNote;
+      {
+        string first = noDiagram[0];
+        for (size_t k = 1; k < noDiagram.size(); k++) first += " " + noDiagram[k];
+        tiers.warnings.push_back(first);
+      }
+      if (!why.empty()) tiers.warnings.push_back(why);
+      if (!foNotOffered.empty()) tiers.warnings.push_back(foNotOffered);
+      if (!symmetryWarning.empty()) tiers.warnings.push_back(symmetryWarning);
+      tiers.summary = "Molecular levels only \xC2\xB7 energies in Hartree";
+      if (!group.empty() && haveSymmetryLabels)
+        tiers.summary += " \xC2\xB7 labels in " + FoDiagram::groupMarkup(group);
+      tiers.about = aboutText(
+          "The orbital energies are shown on their own, without fragment "
+          "columns or lines.",
+          string(), haveBeta ? betaText : string(),
+          haveSymmetryLabels ? string() : unlabelledText,
+          symmetryNote, group == symmetrisedGroup ? symmetrisedNote : string(),
+          centre, left, right);
 
       //  SAID ONCE, LOUDLY, AT THE TOP.
       //
@@ -2916,50 +3061,71 @@ void MoDiagramPanel::buildOnce()
       progressDlg.progress(97, _("Drawing"));
       p_canvas->setGroup(group);
       p_canvas->setFormula(MoDiagram::formula(elements, charge));
-      p_canvas->setDiagram(left, centre, right, links, false, note.str(),
-                           headline);
+      p_canvas->setDiagram(left, centre, right, links, false, "", headline);
+      p_canvas->setNotes(tiers.summary, tiers.warnings, tiers.about);
       if (!dumpPath.empty()) {
         dumpMoDiagram(dumpPath, group, MoDiagram::formula(elements, charge),
             MoFragments::fragmentationName(p_fragmentation),
-            headline, note.str(), left, centre, right, links,
+            headline, tiers, left, centre, right, links,
             localisedShare, centreOP, mullikenMaxVec, normVec, metalLigandOP);
         exitAfterDumpIfRequested();
       }
       return;
     }
 
-    note << " Each fragment level is placed at the mean of the "
-            "molecular orbitals it became, weighted by its share of "
-            "them, kept in the atom's own shell order; its free-atom "
-            "energy is given beside it.";
+    fragmentAbout = "Each fragment level is placed at the mean of the molecular "
+        "orbitals it became, weighted by its share of them, and kept in the "
+        "atom's own shell order. Its free-atom energy is given beside it.";
     if (pinnedShells > 0) {
-      note << " A shell with a non-bonding orbital (one that is at "
-              "least " << (int)lround(100.0*MoDiagram::NONBONDING_SHELL_SHARE)
-           << "% that shell, of the orbitals drawn) is drawn at that "
-              "orbital's energy instead.";
+      char share[16];
+      snprintf(share, sizeof share, "%d %%",
+               (int)lround(100.0*MoDiagram::NONBONDING_SHELL_SHARE));
+      fragmentAbout += string(" A shell with a non-bonding orbital (one that is at "
+          "least ") + share + " that shell, of the orbitals drawn) is drawn at "
+          "that orbital's energy instead.";
     }
   }
 
   if (p_showAll != 0) p_showAll->Enable(foDrawn);
-  if (foDrawn) {
-    //  The fragment-orbital diagram labels the levels itself.
-    string sofar = note.str();
-    const string unlabelled =
-        "This calculation reports no orbital symmetry labels, so the "
-        "molecular levels are unlabelled and are correlated by what "
-        "they are built from rather than by symmetry.";
-    if (sofar.compare(0, unlabelled.size(), unlabelled) == 0) {
-      note.str("");
-      note << "Energies in Hartree." << sofar.substr(unlabelled.size());
-      note.seekp(0, std::ios::end);
-    }
-    note << "  Molecular levels are the calculation's own orbital energies "
-            "in Hartree.  " << foNote;
+  if (!why.empty()) {
+    if (whyWarn) tiers.warnings.push_back(why);
   }
-  if (!why.empty()) note << "  " << why;
-  if (!foNotOffered.empty()) note << "  " << foNotOffered;
-  if (!symmetryNote.empty()) note << "  " << symmetryNote;
-  if (group == symmetrisedGroup) note << "  " << symmetrisedNote;
+  if (!foNotOffered.empty()) tiers.warnings.push_back(foNotOffered);
+  if (!symmetryWarning.empty()) tiers.warnings.push_back(symmetryWarning);
+  if (foDrawn) {
+    tiers.summary = foSummary;
+    tiers.warnings.insert(tiers.warnings.begin(), foWarnings.begin(),
+                          foWarnings.end());
+    //  The fragment-orbital text is complete as it stands; what the panel
+    //  adds follows it.
+    string extra;
+    if (!why.empty() && !whyWarn) extra += "\n\n" + why;
+    if (haveBeta) extra += "\n\n**Unrestricted calculation.** " + betaText;
+    if (!symmetryNote.empty()) extra += "\n\n**Orbital labels.** " + symmetryNote;
+    if (group == symmetrisedGroup) extra += "\n\n" + symmetrisedNote;
+    tiers.about = foAbout + extra;
+  } else {
+    string construction = MoFragments::fragmentationName(p_fragmentation);
+    tiers.summary = haveFragments && !construction.empty()
+        ? "Fragments: " + construction : string("Molecular levels only");
+    tiers.summary += " \xC2\xB7 energies in Hartree";
+    if (!group.empty() && !s.empty())
+      tiers.summary += " \xC2\xB7 labels in " + FoDiagram::groupMarkup(group);
+    else if (s.empty())
+      tiers.summary += " \xC2\xB7 no symmetry labels";
+    const int hiddenCores = centre.hiddenCount + centre.hiddenSemicoreCount;
+    if (hiddenCores > 0)
+      tiers.summary += " \xC2\xB7 " + std::to_string(hiddenCores) +
+                       (centre.hiddenSemicoreCount > 0 ? " core and semicore orbitals"
+                        : hiddenCores == 1 ? " core orbital" : " core orbitals") +
+                       " hidden";
+    tiers.about = aboutText(
+        (why.empty() || whyWarn) ? string() : why, fragmentAbout,
+        haveBeta ? betaText : string(),
+        s.empty() ? unlabelledText : string(), symmetryNote,
+        group == symmetrisedGroup ? symmetrisedNote : string(),
+        centre, left, right);
+  }
 
   progressDlg.progress(97, _("Drawing"));
   p_canvas->setGroup(group);
@@ -2971,11 +3137,12 @@ void MoDiagramPanel::buildOnce()
     if (!grouped.empty()) headingFormula = grouped;
   }
   p_canvas->setFormula(headingFormula);
-  p_canvas->setDiagram(left, centre, right, links, haveFragments, note.str());
+  p_canvas->setDiagram(left, centre, right, links, haveFragments, "");
+  p_canvas->setNotes(tiers.summary, tiers.warnings, tiers.about);
   if (!dumpPath.empty()) {
     dumpMoDiagram(dumpPath, group, headingFormula,
         MoFragments::fragmentationName(p_fragmentation),
-        "", note.str(), left, centre, right, links,
+        "", tiers, left, centre, right, links,
         localisedShare, centreOP, mullikenMaxVec, normVec, metalLigandOP);
 
     //  The fragment-orbital ligand-field MODEL (#162 follow-up): only

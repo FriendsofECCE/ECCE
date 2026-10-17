@@ -117,12 +117,32 @@ class MoDiagramCanvas : public wxPanel
       p_links = links;
       p_haveFragments = haveFragments;
       p_note = note;
+      p_summary.clear();
+      p_warnings.clear();
+      p_about.clear();
       p_headline = headline;
       p_info.clear();
       p_tips.clear();
       p_tipLevel = -1;
       Refresh();
     }
+
+    /**
+     * The text under the diagram in tiers (#301 follow-up).  `summary`
+     * is the always-shown second line (with <sub>..</sub> allowed),
+     * `warnings` are drawn in orange only when something is wrong, and
+     * `about` is the longer text behind the panel's "About this
+     * diagram" button.  Without a summary, the plain note is drawn.
+     */
+    void setNotes(const string& summary, const vector<string>& warnings,
+                  const string& about)
+    {
+      p_summary = summary;
+      p_warnings = warnings;
+      p_about = about;
+      Refresh();
+    }
+    const string& aboutText() const { return p_about; }
 
   private:
 
@@ -1143,11 +1163,25 @@ class MoDiagramCanvas : public wxPanel
       const int lineHeight = dc.GetTextExtent(wxT("Xg")).y + 1;
       const vector<wxString> noteLines = wrapNote(dc, size.x - 16);
       const vector<wxString> infoLines = wrapText(dc, p_info, size.x - 16);
+      vector<wxString> warnLines;
+      for (size_t i = 0; i < p_warnings.size(); i++) {
+        const vector<wxString> w = wrapText(dc, p_warnings[i], size.x - 16);
+        warnLines.insert(warnLines.end(), w.begin(), w.end());
+      }
+      const vector< vector<Piece> > summaryLines =
+          layoutSummary(dc, size.x - 16);
+      const wxString firstSentence = wxT("Experimental: check the orbitals "
+                                         "themselves before relying on this "
+                                         "diagram.");
+      const wxString hintSentence = wxT(" Click a level to show its orbital.");
+      const bool hint = p_owner != 0;
+      const bool oneLine = !hint ||
+          dc.GetTextExtent(firstSentence + hintSentence).x <= size.x - 16;
 
-      int footerLines = (int)noteLines.size() + (int)infoLines.size();
-      if (!p_centre.levels.empty()) footerLines++;          // the hint
+      int footerLines = (int)infoLines.size() + (int)warnLines.size() +
+                        (int)summaryLines.size() + (hint && !oneLine ? 2 : 1);
+      if (p_summary.empty()) footerLines += (int)noteLines.size();
       if (p_centre.hiddenCount > 0)  footerLines += 2;      // band and text
-      footerLines++;                                         // "Experimental"
 
       const int footerHeight = footerLines*lineHeight + 6;
 
@@ -1439,15 +1473,53 @@ class MoDiagramCanvas : public wxPanel
       drawColumn(dc, p_centre, xCentre, centreWidth, plot, true, &p_hits,
                  -1, true);
 
-      //  The stack, from the bottom of the window upward.
+      //  The stack, from the bottom of the window upward: the
+      //  warnings, the summary, the experimental line, what was clicked.
       int line = size.y - 4;
       dc.SetFont(*wxSMALL_FONT);
       dc.SetTextForeground(wxColour(110, 110, 110));
 
-      for (size_t i = noteLines.size(); i > 0; i--) {
+      const wxColour warn(170, 80, 0);
+      for (size_t i = warnLines.size(); i > 0; i--) {
         line -= lineHeight;
-        dc.DrawText(noteLines[i-1], 8, line);
+        dc.SetTextForeground(warn);
+        dc.DrawText(warnLines[i-1], 8, line);
       }
+      dc.SetTextForeground(wxColour(110, 110, 110));
+
+      if (p_summary.empty()) {
+        for (size_t i = noteLines.size(); i > 0; i--) {
+          line -= lineHeight;
+          dc.DrawText(noteLines[i-1], 8, line);
+        }
+      } else {
+        wxFont base = *wxSMALL_FONT;
+        wxFont sub = base;
+        sub.SetPointSize(max(5, base.GetPointSize() - 2));
+        for (size_t i = summaryLines.size(); i > 0; i--) {
+          line -= lineHeight;
+          drawPieces(dc, summaryLines[i-1], 8, line, base, sub, lineHeight);
+        }
+        dc.SetFont(*wxSMALL_FONT);
+        dc.SetTextForeground(wxColour(110, 110, 110));
+      }
+
+      //  The diagram can look authoritative while being wrong, so it
+      //  says what it is.  The click hint shares the line where it fits;
+      //  where it cannot do anything (the standalone program has no 3-D
+      //  viewer) it is left out.
+      if (hint && !oneLine) {
+        line -= lineHeight;
+        dc.DrawText(hintSentence.Mid(1), 8, line);
+      }
+      line -= lineHeight;
+      dc.SetTextForeground(warn);
+      dc.DrawText(firstSentence, 8, line);
+      if (hint && oneLine) {
+        dc.SetTextForeground(wxColour(110, 110, 110));
+        dc.DrawText(hintSentence, 8 + dc.GetTextExtent(firstSentence).x, line);
+      }
+      dc.SetTextForeground(wxColour(110, 110, 110));
 
       //  What the last clicked level is, in the diagram's own words.
       dc.SetTextForeground(wxColour(30, 30, 30));
@@ -1455,43 +1527,6 @@ class MoDiagramCanvas : public wxPanel
         line -= lineHeight;
         dc.DrawText(infoLines[i-1], 8, line);
       }
-      dc.SetTextForeground(wxColour(110, 110, 110));
-
-      //  Only where a click can actually do something.  The
-      //  standalone program has no 3-D viewer to show an orbital in,
-      //  and an instruction that does nothing is worse than none.
-      if (!p_hits.empty() && p_owner != 0) {
-        line -= lineHeight;
-        dc.DrawText(wxT("Click a level to show that orbital"), 8, line);
-      }
-
-      //  WHAT THE CIRCLES MEAN.  The phase sketches are the thing that
-      //  makes a symmetry orbital a picture instead of a label -- a1
-      //  and t2 both say "three orbitals" and neither says which
-      //  combination -- and they are no use at all to a reader who
-      //  cannot tell what the marks are.  Said only when some are
-      //  drawn.
-      bool anySketch = false;
-      const MoColumn* sides[2] = { &p_left, &p_right };
-      for (int k = 0; k < 2; k++) {
-        for (size_t i = 0; i < sides[k]->levels.size(); i++) {
-          if (!sides[k]->levels[i].phases.empty()) anySketch = true;
-        }
-      }
-      if (anySketch) {
-        line -= lineHeight;
-        dc.DrawText(wxT("Beside each symmetry orbital: the atoms as seen "
-                        "from one side, filled and open for opposite sign, "
-                        "sized by weight; a bar is a p lobe in the page."),
-                    8, line);
-      }
-
-      //  The diagram can look authoritative while being wrong, so it
-      //  says what it is, above everything else it explains.
-      line -= lineHeight;
-      dc.SetTextForeground(wxColour(170, 80, 0));
-      dc.DrawText(wxT("Experimental: check the orbitals themselves "
-                      "before relying on this diagram."), 8, line);
       dc.SetTextForeground(wxColour(110, 110, 110));
 
       //  The folded core, said out loud rather than silently dropped:
@@ -1526,6 +1561,71 @@ class MoDiagramCanvas : public wxPanel
         dc.DrawLine(xCentre - 30, line + lineHeight/2,
                     xCentre + centreWidth + 30, line + lineHeight/2);
       }
+    }
+
+    /** Text with <sub>..</sub> as pieces. */
+    static void splitMarkup(const string& text, vector<Piece>& out)
+    {
+      out.clear();
+      size_t i = 0;
+      while (i < text.size()) {
+        const bool sub = text.compare(i, 5, "<sub>") == 0;
+        size_t end;
+        string run;
+        if (sub) {
+          end = text.find("</sub>", i + 5);
+          if (end == string::npos) end = text.size();
+          run = text.substr(i + 5, end - i - 5);
+          i = std::min(text.size(), end + 6);
+        } else {
+          end = text.find("<sub>", i);
+          if (end == string::npos) end = text.size();
+          run = text.substr(i, end - i);
+          i = end;
+        }
+        Piece p;
+        p.text = wxString::FromUTF8(run.c_str());
+        p.kind = sub ? 1 : 0;
+        out.push_back(p);
+      }
+    }
+
+    /** The summary broken into lines at its " . " separators. */
+    vector< vector<Piece> > layoutSummary(wxDC& dc, int width)
+    {
+      vector< vector<Piece> > lines;
+      if (p_summary.empty()) return lines;
+      wxFont base = *wxSMALL_FONT;
+      wxFont sub = base;
+      sub.SetPointSize(max(5, base.GetPointSize() - 2));
+      const string sep = " \xC2\xB7 ";
+      vector<string> parts;
+      size_t at = 0;
+      for (;;) {
+        const size_t k = p_summary.find(sep, at);
+        if (k == string::npos) { parts.push_back(p_summary.substr(at)); break; }
+        parts.push_back(p_summary.substr(at, k - at));
+        at = k + sep.size();
+      }
+      string current;
+      for (size_t i = 0; i < parts.size(); i++) {
+        const string candidate = current.empty() ? parts[i]
+                                                 : current + sep + parts[i];
+        vector<Piece> pieces;
+        splitMarkup(candidate, pieces);
+        if (!current.empty() &&
+            measurePieces(dc, pieces, base, sub).x > width) {
+          splitMarkup(current, pieces);
+          lines.push_back(pieces);
+          current = parts[i];
+        } else {
+          current = candidate;
+        }
+      }
+      vector<Piece> pieces;
+      splitMarkup(current, pieces);
+      lines.push_back(pieces);
+      return lines;
     }
 
     /** The note, broken into lines that fit. */
@@ -1682,6 +1782,8 @@ class MoDiagramCanvas : public wxPanel
     std::map<int,string> p_tips;         // level -> text, see describeLevel()
     int p_tipLevel = -1;
     string p_note;
+    string p_summary, p_about;
+    vector<string> p_warnings;
     mutable double p_lo, p_hi;
     //  Every label placed in the column being drawn, as (y, notch), so
     //  a new one can be pushed clear of all of them.

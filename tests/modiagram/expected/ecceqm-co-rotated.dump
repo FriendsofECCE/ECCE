@@ -2,7 +2,8 @@ group: C4v
 formula: CO
 construction: its two chemical groups
 headline: 
-note: Energies in Hartree.  Molecular levels are the calculation's own orbital energies in Hartree. Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, kept in the atom's own shell order; its free-atom energy is given beside it.  Drawn as its two chemical groups, C and O.  Symmetry labels computed from the orbitals in C4v; the code reported none.
+note: Fragments: its two chemical groups · energies in Hartree · labels in C<sub>4v</sub> · 2 core orbitals hidden
+about: **What is drawn.** Drawn as its two chemical groups, C and O. The molecular levels in the middle are the calculation's own orbital energies, in Hartree.\n\n**Fragment levels.** Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, and kept in the atom's own shell order. Its free-atom energy is given beside it.\n\n**Symmetry.** Symmetry labels computed from the orbitals in C4v; the code reported none.\n\n**Not shown.** 2 core orbitals below −10.29 Hartree.
 column left
   title: C
   fromHalves: 0

@@ -123,6 +123,9 @@ class MoDiagramPanel : public VizPropertyPanel,
       /** Show or hide each level's energy. */
       void onShowEnergies(wxCommandEvent& event);
 
+      /** The longer explanation of the diagram, in a pop-up. */
+      void onAbout(wxCommandEvent& event);
+
       virtual void initialize();
 
    private:
@@ -142,6 +145,7 @@ class MoDiagramPanel : public VizPropertyPanel,
       wxCheckBox      *p_piOnly;
       wxCheckBox      *p_showEnergies;
       wxCheckBox      *p_showAll;
+      wxButton        *p_about;
 
       //  Re-entrancy guard (#170 progress dialog): ewxProgressDialog::
       //  Update() pumps the event loop, so a resize or a control the

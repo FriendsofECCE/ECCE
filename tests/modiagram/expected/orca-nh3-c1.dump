@@ -2,7 +2,8 @@ group: C3
 formula: NH3
 construction: a central atom and its neighbours
 headline: 
-note: This calculation reports no orbital symmetry labels, so the molecular levels are unlabelled and are correlated by what they are built from rather than by symmetry.  Molecular levels are the calculation's own orbital energies in Hartree. Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, kept in the atom's own shell order; its free-atom energy is given beside it.  The structure was symmetrised to C3 for this diagram (atoms moved by up to 0.001 Angstrom); the orbitals are the calculation's own.
+note: Fragments: a central atom and its neighbours · energies in Hartree · no symmetry labels · 1 core orbital hidden
+about: **What is drawn.** The molecular levels in the middle are the calculation's own orbital energies, in Hartree.\n\n**Fragment levels.** Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, and kept in the atom's own shell order. Its free-atom energy is given beside it.\n\n**Symmetry.** This calculation reports no orbital symmetry labels, so the molecular levels are unlabelled and are correlated by what they are built from rather than by symmetry. The structure was symmetrised to C3 for this diagram (atoms moved by up to 0.001 Angstrom); the orbitals are the calculation's own.\n\n**The circles beside each symmetry orbital** show the atoms as seen from one side, filled and open for opposite sign and sized by weight; a bar is a p lobe in the page.\n\n**Not shown.** 1 core orbital below −15.54 Hartree.
 column left
   title: N
   fromHalves: 0

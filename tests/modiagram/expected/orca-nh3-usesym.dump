@@ -2,7 +2,8 @@ group: C3v
 formula: NH3
 construction: a central atom and its neighbours
 headline: 
-note: Energies in Hartree.  Molecular levels are the calculation's own orbital energies in Hartree. Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, kept in the atom's own shell order; its free-atom energy is given beside it.  Symmetry labels computed from the orbitals in C3v (cross-checked against the code's own CS labels, which agreed on all 29 orbitals both sides could label, and every computed label subduces to match).
+note: Fragments: a central atom and its neighbours · energies in Hartree · labels in C<sub>3v</sub> · 1 core orbital hidden
+about: **What is drawn.** The molecular levels in the middle are the calculation's own orbital energies, in Hartree.\n\n**Fragment levels.** Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, and kept in the atom's own shell order. Its free-atom energy is given beside it.\n\n**Symmetry.** Symmetry labels computed from the orbitals in C3v (cross-checked against the code's own CS labels, which agreed on all 29 orbitals both sides could label, and every computed label subduces to match).\n\n**The circles beside each symmetry orbital** show the atoms as seen from one side, filled and open for opposite sign and sized by weight; a bar is a p lobe in the page.\n\n**Not shown.** 1 core orbital below −15.54 Hartree.
 column left
   title: N
   fromHalves: 0

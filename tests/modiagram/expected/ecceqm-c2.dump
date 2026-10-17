@@ -2,7 +2,8 @@ group: D4h
 formula: C2
 construction: a central atom and its neighbours
 headline: 
-note: Energies in Hartree.  Molecular levels are the calculation's own orbital energies in Hartree. Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, kept in the atom's own shell order; its free-atom energy is given beside it.  Symmetry labels computed from the orbitals in D4h; the code reported none.
+note: Fragments: a central atom and its neighbours · energies in Hartree · labels in D<sub>4h</sub> · 2 core orbitals hidden
+about: **What is drawn.** The molecular levels in the middle are the calculation's own orbital energies, in Hartree.\n\n**Fragment levels.** Each fragment level is placed at the mean of the molecular orbitals it became, weighted by its share of them, and kept in the atom's own shell order. Its free-atom energy is given beside it.\n\n**Symmetry.** Symmetry labels computed from the orbitals in D4h; the code reported none.\n\n**Not shown.** 2 core orbitals below −10.28 Hartree.
 column left
   title: C
   fromHalves: 0
