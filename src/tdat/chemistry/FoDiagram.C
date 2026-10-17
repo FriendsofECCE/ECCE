@@ -146,32 +146,17 @@ void cross(const double* a, const double* b, double* c)
 
 double norm3(const double* a) { return sqrt(a[0]*a[0] + a[1]*a[1] + a[2]*a[2]); }
 
-bool findSkeleton(const vector<string>& symbols, const vector<double>& coords,
-                  const vector<FragmentOrbitals::Fragment>& frags,
-                  Skeleton& sk)
+//  The operations that map the skeleton onto itself, found from two
+//  non-collinear bond vectors.  `p` is every atom relative to the origin
+//  atom; `tol` is how far (same units) an image may be from an atom.
+//  Returns false when no frame can be made (linear skeleton).
+bool collectOps(const vector<string>& symbols, const vector<int>& keep,
+                int origin, const vector<double>& p, double tol,
+                vector<SymOp>& opsOut, vector< vector<int> >& imagesOut)
 {
    const int n = (int)symbols.size();
-   int origin = -1, metals = 0;
-   for (size_t i = 0; i < frags.size(); i++) {
-      if (frags[i].kind == FragmentOrbitals::METAL && !frags[i].atoms.empty()) {
-         origin = frags[i].atoms[0]; metals++;
-      }
-   }
-   if (metals != 1) return false;
-
-   vector<int> keep;
-   if (!MoFragments::coordinationSkeleton(coords, symbols, keep)) {
-      keep.clear();
-      for (int i = 0; i < n; i++) keep.push_back(i);
-   }
-   if (std::find(keep.begin(), keep.end(), origin) == keep.end()) return false;
-
-   sk.inSkeleton.assign(n, false);
-   for (size_t i = 0; i < keep.size(); i++) sk.inSkeleton[keep[i]] = true;
-
-   vector<double> p(3*n, 0.0);
-   for (int i = 0; i < n; i++)
-      for (int k = 0; k < 3; k++) p[3*i+k] = coords[3*i+k] - coords[3*origin+k];
+   opsOut.clear();
+   imagesOut.clear();
 
    //  Two non-collinear bond vectors: a, then the b that makes the
    //  largest angle with it.
@@ -198,7 +183,6 @@ bool findSkeleton(const vector<string>& symbols, const vector<double>& coords,
    for (int r = 0; r < 3; r++) for (int c = 0; c < 3; c++) Am[r][c] = Af[3*r+c];
    if (!inverse(Am, Ainv)) return false;
 
-   const double tol = 0.05;
    for (size_t ci = 0; ci < keep.size(); ci++) {
       const int i = keep[ci];
       if (i == origin || symbols[i] != symbols[ia]) continue;
@@ -246,13 +230,51 @@ bool findSkeleton(const vector<string>& symbols, const vector<double>& coords,
                else { used[hit] = true; img[q] = hit; }
             }
             if (!ok) continue;
-            sk.ops.push_back(R);
-            sk.images.push_back(img);
+            opsOut.push_back(R);
+            imagesOut.push_back(img);
          }
       }
    }
-   if (sk.ops.empty()) return false;
+   return !opsOut.empty();
+}
 
+//  How far (Angstrom) a non-metal skeleton's atoms may be from the ideal
+//  ones of a larger group and still be labelled in it.
+const double NEAR_TOL = 0.15;
+
+//  The nearest orthogonal matrix (polar decomposition by Newton steps).
+void snapOrthogonal(SymOp& R)
+{
+   for (int it = 0; it < 30; it++) {
+      SymOp Q;
+      //  Q = 0.5 (R + R^-T), R^-T from the adjugate.
+      double inv[3][3];
+      const double (*m)[3] = R.m;
+      const double det = R.determinant();
+      if (fabs(det) < 1e-9) return;
+      inv[0][0] = (m[1][1]*m[2][2]-m[1][2]*m[2][1])/det;
+      inv[0][1] = (m[0][2]*m[2][1]-m[0][1]*m[2][2])/det;
+      inv[0][2] = (m[0][1]*m[1][2]-m[0][2]*m[1][1])/det;
+      inv[1][0] = (m[1][2]*m[2][0]-m[1][0]*m[2][2])/det;
+      inv[1][1] = (m[0][0]*m[2][2]-m[0][2]*m[2][0])/det;
+      inv[1][2] = (m[0][2]*m[1][0]-m[0][0]*m[1][2])/det;
+      inv[2][0] = (m[1][0]*m[2][1]-m[1][1]*m[2][0])/det;
+      inv[2][1] = (m[0][1]*m[2][0]-m[0][0]*m[2][1])/det;
+      inv[2][2] = (m[0][0]*m[1][1]-m[0][1]*m[1][0])/det;
+      double change = 0.0;
+      for (int r = 0; r < 3; r++)
+         for (int c = 0; c < 3; c++) {
+            Q.m[r][c] = 0.5*(R.m[r][c] + inv[c][r]);
+            change += fabs(Q.m[r][c] - R.m[r][c]);
+         }
+      R = Q;
+      if (change < 1e-14) break;
+   }
+}
+
+//  The character table the operations make up, if any.
+bool matchTable(Skeleton& sk)
+{
    vector< vector<int> > classes;
    SymmetryAnalysis::conjugacyClasses(sk.ops, classes);
    const vector<string> names = CharacterTable::names();
@@ -266,6 +288,98 @@ bool findSkeleton(const vector<string>& symbols, const vector<double>& coords,
       }
    }
    return false;
+}
+
+//  `centre` >= 0: a non-metal centre.  Its skeleton is the atom and its
+//  bonded atoms; when they are only nearly symmetric the group is the
+//  nearest one (the skeleton is idealised by averaging over the
+//  operations found loosely, until they are exact) and the result says so.
+bool findSkeleton(const vector<string>& symbols, const vector<double>& coords,
+                  const vector<FragmentOrbitals::Fragment>& frags,
+                  Skeleton& sk, int centre = -1)
+{
+   const int n = (int)symbols.size();
+   int origin = -1, metals = 0;
+   for (size_t i = 0; i < frags.size(); i++) {
+      if (frags[i].kind == FragmentOrbitals::METAL && !frags[i].atoms.empty()) {
+         origin = frags[i].atoms[0]; metals++;
+      }
+   }
+   if (metals != 1) return false;
+
+   vector<int> keep;
+   if (centre >= 0) {
+      keep.push_back(centre);
+      vector< std::pair<int,int> > bonds;
+      MoFragments::covalentBonds(coords, symbols, bonds);
+      for (int i = 0; i < n; i++)
+         for (size_t b = 0; b < bonds.size(); b++)
+            if ((bonds[b].first == centre && bonds[b].second == i) ||
+                (bonds[b].second == centre && bonds[b].first == i)) {
+               keep.push_back(i);
+               break;
+            }
+   } else if (!MoFragments::coordinationSkeleton(coords, symbols, keep)) {
+      keep.clear();
+      for (int i = 0; i < n; i++) keep.push_back(i);
+   }
+   if (std::find(keep.begin(), keep.end(), origin) == keep.end()) return false;
+
+   sk.inSkeleton.assign(n, false);
+   for (size_t i = 0; i < keep.size(); i++) sk.inSkeleton[keep[i]] = true;
+
+   vector<double> p(3*n, 0.0);
+   for (int i = 0; i < n; i++)
+      for (int k = 0; k < 3; k++) p[3*i+k] = coords[3*i+k] - coords[3*origin+k];
+
+   if (!collectOps(symbols, keep, origin, p, 0.05, sk.ops, sk.images))
+      return false;
+   if (centre < 0) {
+      if (sk.ops.empty()) return false;
+      return matchTable(sk);
+   }
+   //  A non-metal centre: the exact group if there is one, unless the
+   //  skeleton is nearly a larger one (CH3 of methanol is C3v to within
+   //  its torsional distortion, exactly only Cs).  A group of order one
+   //  carries no labels.
+   Skeleton exact = sk;
+   const bool haveExact = sk.ops.size() > 1 && matchTable(exact);
+   const size_t exactOrder = haveExact ? exact.ops.size() : 1;
+   sk.ops.clear(); sk.images.clear(); sk.table = 0;
+   for (int pass = 0; pass < 40; pass++) {
+      vector<SymOp> ops;
+      vector< vector<int> > images;
+      if (!collectOps(symbols, keep, origin, p, pass == 0 ? NEAR_TOL : 0.1, ops, images))
+         break;
+      if (ops.size() <= exactOrder) break;
+      for (size_t o = 0; o < ops.size(); o++) snapOrthogonal(ops[o]);
+      vector<double> q(3*n, 0.0);
+      for (size_t k = 0; k < keep.size(); k++) {
+         const int a = keep[k];
+         for (size_t o = 0; o < ops.size(); o++) {
+            const int im = images[o][a];
+            for (int r = 0; r < 3; r++)
+               for (int c = 0; c < 3; c++)
+                  q[3*a+r] += ops[o].m[c][r]*p[3*im+c]/ops.size();
+         }
+      }
+      p = q;
+      sk.ops.clear(); sk.images.clear();
+      if (collectOps(symbols, keep, origin, p, 0.01, sk.ops, sk.images) &&
+          sk.ops.size() > 1) {
+         for (size_t o = 0; o < sk.ops.size(); o++) snapOrthogonal(sk.ops[o]);
+         if (sk.ops.size() > exactOrder && matchTable(sk)) {
+            //  The ideal geometry only found the group; the functions are
+            //  rotated by its operations on the real atoms.
+            return true;
+         }
+      }
+   }
+   if (!haveExact) return false;
+   const vector<bool> in = sk.inSkeleton;
+   sk = exact;
+   sk.inSkeleton = in;
+   return true;
 }
 
 //  Angular part of a function at a unit vector.
@@ -500,11 +614,11 @@ string FoDiagram::complexFormula(const vector<string>& symbols,
 
 bool FoDiagram::applicable(const vector<string>& symbols,
                            const vector<double>& coordsAng, int charge,
-                           string& why)
+                           string& why, int centre)
 {
    vector<FragmentOrbitals::Fragment> frags;
    if (!FragmentOrbitals::autoFragments(symbols, coordsAng, charge, 1,
-                                        frags, why)) {
+                                        frags, why, centre)) {
       return false;
    }
    bool ligand = false;
@@ -512,7 +626,8 @@ bool FoDiagram::applicable(const vector<string>& symbols,
       if (frags[i].kind == FragmentOrbitals::SHELL) ligand = true;
    }
    if (!ligand) {
-      why = "Not applicable: no ligand bonded to the metal.";
+      why = centre >= 0 ? "Not applicable: the picked atom has no bonded atoms."
+                        : "Not applicable: no ligand bonded to the metal.";
       return false;
    }
    string missing;
@@ -536,11 +651,12 @@ struct Lv
    string klass;
    bool inCentre;
    int sm, sl;                    // dominant metal / ligand set
+   double fit;                    // fit to the local label (non-metal centre)
    double shM, shL;
    bool valence;                  // described by the valence FOs
    bool shown;
    int why;                       // 0 shown, 1 cut-off, 2 filtered
-   Lv() : capture(0), metal(0), ligand(0), inCentre(true), sm(-1), sl(-1),
+   Lv() : capture(0), metal(0), ligand(0), inCentre(true), sm(-1), sl(-1), fit(1.0),
           shM(0), shL(0), valence(false), shown(false), why(0) {}
 };
 
@@ -569,7 +685,7 @@ bool FoDiagram::build(const vector<string>& symbols,
                       const vector<double>& moEnergies,
                       MoColumn& centre, Result& out, string& why,
                       bool showAll, const vector<MoLevel>* whole,
-                      int multiplicity)
+                      int multiplicity, int pickAtom)
 {
    out = Result();
    why.clear();
@@ -580,8 +696,17 @@ bool FoDiagram::build(const vector<string>& symbols,
 
    vector<FragmentOrbitals::Fragment> frags;
    if (!FragmentOrbitals::autoFragments(symbols, coordsAng, charge, 1,
-                                        frags, why)) {
+                                        frags, why, pickAtom)) {
       return false;
+   }
+   const bool atomCentre = pickAtom >= 0;
+   out.centreAtom = atomCentre;
+   for (size_t i = 0; i < frags.size(); i++) {
+      if (frags[i].kind != FragmentOrbitals::LIGAND) continue;
+      string nm = frags[i].name;
+      const string::size_type pr = nm.find(" (");
+      if (pr != string::npos) nm = nm.substr(0, pr);
+      out.pieces += (out.pieces.empty() ? "" : ", ") + nm;
    }
    FragmentOrbitals::FoSet set;
    if (!FragmentOrbitals::build(symbols, coordsAng, frags,
@@ -597,14 +722,20 @@ bool FoDiagram::build(const vector<string>& symbols,
       return false;
    }
    vector< vector<int> > groups;
-   FragmentOrbitals::groupFos(set, groups);
+   //  A non-metal centre's skeleton is only nearly symmetric, so FOs a few
+   //  tenths of an eV apart are one level.
+   FragmentOrbitals::groupFos(set, groups,
+                              atomCentre ? 0.01 : FragmentOrbitals::DEGENERATE_EH);
    const size_t ng = groups.size();
 
    //  --- the skeleton's symmetry, and the fragment sets --------------
    Skeleton sk;
-   bool haveSym = findSkeleton(symbols, coordsAng, frags, sk);
+   bool haveSym = findSkeleton(symbols, coordsAng, frags, sk, pickAtom);
    const size_t nf = set.funcs.size();
    vector<Sub> subs;
+   //  A non-metal centre: every irrep a FO has any weight in, unrounded,
+   //  to say how far the skeleton's label is from the truth.
+   vector<Sub> rawSubs;
    for (size_t g = 0; g < ng; g++) {
       const vector<int>& K = groups[g];
       const size_t n = K.size();
@@ -679,10 +810,37 @@ bool FoDiagram::build(const vector<string>& symbols,
                      P[k][l] = P[l][k] = 0.5*(P[k][l] + P[l][k]);
                   tr += P[k][k];
                }
+               if (atomCentre && tr > 0.02) {
+                  Sub rs; rs.group = (int)g; rs.irrep = irreps[r]; rs.members = K;
+                  rs.P = P; rs.metal = metal;
+                  rawSubs.push_back(rs);
+               }
                if (tr < 0.5) continue;
                Sub s; s.group = (int)g; s.irrep = irreps[r]; s.members = K;
                s.P = P; s.metal = metal;
                mine.push_back(s);
+            }
+            if (atomCentre && !mine.empty()) {
+               //  The skeleton is only nearly symmetric: a FO is drawn whole
+               //  in the irrep it is mostly in, a degenerate set with whole
+               //  orbitals per irrep, so no level carries a fraction of an
+               //  orbital.
+               if (n == 1) {
+                  size_t top = 0;
+                  for (size_t i = 1; i < mine.size(); i++)
+                     if (mine[i].P[0][0] > mine[top].P[0][0]) top = i;
+                  Sub keep1 = mine[top];
+                  keep1.P[0][0] = 1.0;
+                  mine.assign(1, keep1);
+               } else {
+                  for (size_t i = 0; i < mine.size(); i++) {
+                     double tr = 0.0;
+                     for (size_t k = 0; k < n; k++) tr += mine[i].P[k][k];
+                     const double f = std::max(1.0, std::floor(tr + 0.5))/tr;
+                     for (size_t k = 0; k < n; k++)
+                        for (size_t l = 0; l < n; l++) mine[i].P[k][l] *= f;
+                  }
+               }
             }
          }
       }
@@ -753,15 +911,68 @@ bool FoDiagram::build(const vector<string>& symbols,
 
    //  --- MO skeleton irreps, per orbital -------------------------------
    vector<string> moIrrep(nMO);
+   //  How well each MO fits its local label (non-metal centre only): the
+   //  share of its skeleton part in the label's irrep, times the weight
+   //  of the MO on the skeleton's atoms (Mulliken, from the parent).  The
+   //  skeleton's operations say nothing about atoms outside it.
+   vector<double> moFit(nMO, 1.0);
    if (haveSym) {
+      vector<int> atomOf;
+      if (atomCentre) {
+         const double bohr = 0.529177210903;
+         for (size_t f = 0; f < parentBasis.size(); f++) {
+            int near = 0; double dm = 1e30;
+            for (size_t a = 0; a < symbols.size(); a++) {
+               double d = 0.0;
+               for (int k = 0; k < 3; k++) {
+                  const double x = parentBasis[f].center[k] - coordsAng[3*a+k]/bohr;
+                  d += x*x;
+               }
+               if (d < dm) { dm = d; near = (int)a; }
+            }
+            atomOf.push_back(near);
+         }
+      }
+      const size_t nb = parentBasis.size();
       for (size_t m = 0; m < nMO; m++) {
          std::map<string, double> by;
-         for (size_t s = 0; s < ns; s++) by[subs[s].irrep] += share[m][s];
+         double all = 0.0;
+         for (size_t s = 0; s < ns; s++) { by[subs[s].irrep] += share[m][s]; all += share[m][s]; }
          double top = 0.0;
          for (std::map<string,double>::const_iterator it = by.begin();
               it != by.end(); ++it)
             if (it->second > top) { top = it->second; moIrrep[m] = it->first; }
          if (top < 0.05) moIrrep[m].clear();
+         if (!atomCentre) continue;
+         if (moIrrep[m].empty() || all <= 0.0) { moFit[m] = 0.0; continue; }
+         //  The label's weight among every irrep the FOs of this MO reach.
+         {
+            double rawAll = 0.0, rawTop = 0.0;
+            for (size_t q = 0; q < rawSubs.size(); q++) {
+               const Sub& rs = rawSubs[q];
+               double w = 0.0;
+               for (size_t k = 0; k < rs.members.size(); k++)
+                  for (size_t l = 0; l < rs.members.size(); l++)
+                     w += rs.P[k][l]*amp[m][rs.members[k]]*amp[m][rs.members[l]];
+               w = std::max(0.0, w);
+               rawAll += w;
+               if (rs.irrep == moIrrep[m]) rawTop += w;
+            }
+            if (rawAll > 0.0) top = rawTop, all = rawAll;
+         }
+         double skel = 1.0;
+         if (S.size() == nb*nb && moRows[m].size() == nb) {
+            double tot = 0.0, on = 0.0;
+            for (size_t i = 0; i < nb; i++) {
+               double sc = 0.0;
+               for (size_t j = 0; j < nb; j++) sc += S[i*nb+j]*moRows[m][j];
+               const double w = moRows[m][i]*sc;
+               tot += w;
+               if (sk.inSkeleton[atomOf[i]]) on += w;
+            }
+            skel = tot > 0.0 ? std::min(1.0, std::max(0.0, on/tot)) : 0.0;
+         }
+         moFit[m] = (top/all)*skel;
       }
    }
 
@@ -871,6 +1082,14 @@ bool FoDiagram::build(const vector<string>& symbols,
       v.klass = FragmentOrbitals::classOf(v.capture, v.metal, v.ligand);
       v.valence = v.klass != "core";
       v.irrep = moIrrep[v.level.orbitals[0]];
+      if (atomCentre) {
+         double f = 0.0; int k2 = 0;
+         for (size_t k = 0; k < v.level.orbitals.size(); k++) {
+            const int m = v.level.orbitals[k];
+            if (m >= 0 && m < (int)nMO) { f += moFit[m]; k2++; }
+         }
+         v.fit = k2 > 0 ? f/k2 : 0.0;
+      }
       for (size_t s = 0; s < ns; s++) {
          if (!v.irrep.empty() && subs[s].irrep != v.irrep) continue;
          if (subs[s].metal) { if (v.sm < 0 || v.share[s] > v.shM) { v.sm = (int)s; v.shM = v.share[s]; } }
@@ -1070,6 +1289,64 @@ bool FoDiagram::build(const vector<string>& symbols,
          if (!valence) continue;
          ec.moElectrons += lv.occupancy + (lv.occupancyBeta >= 0 ? lv.occupancyBeta : 0.0);
       }
+      ec.centreAtom = atomCentre;
+      if (atomCentre) {
+         //  Neutral pieces: the centre keeps its own valence electrons
+         //  less its charge, put in its s and p levels by aufbau (the
+         //  Fock diagonals order them) and Hund's rule, as the d
+         //  electrons of a metal are.
+         string reason;
+         int c = FragmentOrbitals::valenceElectrons(metalSym) - ec.oxidation;
+         ec.dCount = c;
+         if (nMetal != 1 || c < 0 || c > 8)
+            reason = "the centre's valence electron count is " + std::to_string(c);
+         vector< std::pair<double,size_t> > sSets, pSets;
+         if (reason.empty()) {
+            for (size_t s = 0; s < ns; s++) {
+               if (!subs[s].metal) continue;
+               const vector<int>& K = groups[subs[s].group];
+               size_t best = 0; double bc = -1.0;
+               for (size_t f = 0; f < nf; f++) {
+                  const double a = fabs(set.fos[K[0]].coef[f]);
+                  if (a > bc) { bc = a; best = f; }
+               }
+               if (set.funcs[best].l == 0) sSets.push_back(std::make_pair(out.sets[s].eFock, s));
+               if (set.funcs[best].l == 1) pSets.push_back(std::make_pair(out.sets[s].eFock, s));
+            }
+            int so = 0, po = 0;
+            for (size_t i = 0; i < sSets.size(); i++) so += out.sets[sSets[i].second].degeneracy;
+            for (size_t i = 0; i < pSets.size(); i++) po += out.sets[pSets[i].second].degeneracy;
+            if (so != 1 || (po != 3 && symbols[pickAtom] != "H" && symbols[pickAtom] != "He"))
+               reason = "the centre's s and p orbitals are not all found";
+         }
+         if (reason.empty()) {
+            const int sE = std::min(c, 2), pE = c - sE;
+            const int uS = sE % 2, uP = pE <= 3 ? pE : 6 - pE;
+            ec.unpaired = uS + uP;
+            std::sort(sSets.begin(), sSets.end());
+            std::sort(pSets.begin(), pSets.end());
+            const vector< std::pair<double,size_t> >* lists[2] = { &sSets, &pSets };
+            const int doubles[2] = { (sE - uS)/2, (pE - uP)/2 };
+            const int singles[2] = { uS, uP };
+            for (int w = 0; w < 2; w++) {
+               int doubled = doubles[w], single = singles[w];
+               for (size_t i = 0; i < lists[w]->size(); i++) {
+                  const size_t s = (*lists[w])[i].second;
+                  int room = out.sets[s].degeneracy;
+                  const int dbl = std::min(doubled, room);
+                  doubled -= dbl; room -= dbl;
+                  const int sgl = std::min(single, room);
+                  single -= sgl;
+                  dAlpha[s] = dbl + sgl;
+                  dBeta[s] = dbl;
+                  isD[s] = true;
+               }
+            }
+            ec.placed = true;
+         } else {
+            ec.why = reason;
+         }
+      } else {
       const int group = groupNumber(metalSym);
       string reason;
       if (nMetal != 1 || group == 0) {
@@ -1128,12 +1405,15 @@ bool FoDiagram::build(const vector<string>& symbols,
          ec.why = reason;
          isD.assign(ns, false);
       }
+      }
       const double diff = (ec.placed ? ec.dCount : 0) + ec.ligands - ec.moElectrons;
       ec.agree = ec.placed && fabs(diff) < 0.5;
       char b[400];
       if (ec.placed) {
-         snprintf(b, sizeof b, "Electrons: metal d%d + ligands %d = %d in the drawn "
-                  "valence orbitals", ec.dCount, ec.ligands, ec.dCount + ec.ligands);
+         snprintf(b, sizeof b, "Electrons: %s%d + %s %d = %d in the drawn "
+                  "valence orbitals",
+                  atomCentre ? (ec.metal + " ").c_str() : "metal d", ec.dCount,
+                  atomCentre ? "pieces" : "ligands", ec.ligands, ec.dCount + ec.ligands);
          ec.line = b;
          if (ec.agree) ec.line += ", the same as the " + std::to_string((int)lround(ec.moElectrons))
                                   + " in the valence MOs.";
@@ -1144,8 +1424,10 @@ bool FoDiagram::build(const vector<string>& symbols,
             ec.line += b;
          }
       } else {
-         snprintf(b, sizeof b, "Electrons: no metal d electrons drawn, %s.  Ligands "
-                  "%d; the valence MOs hold %.0f.", ec.why.c_str(), ec.ligands, ec.moElectrons);
+         snprintf(b, sizeof b, "Electrons: no %s electrons drawn, %s.  %s "
+                  "%d; the valence MOs hold %.0f.",
+                  atomCentre ? "centre-atom" : "metal d", ec.why.c_str(),
+                  atomCentre ? "Pieces" : "Ligands", ec.ligands, ec.moElectrons);
          ec.line = b;
       }
    }
@@ -1198,8 +1480,12 @@ bool FoDiagram::build(const vector<string>& symbols,
          col.levels.push_back(lv);
       }
    }
-   out.left.title = "Metal AOs (extended H\xC3\xBC" "ckel)";
-   out.right.title = "Ligand orbitals (extended H\xC3\xBC" "ckel)";
+   out.left.title = atomCentre
+       ? symbols[pickAtom] + " AOs (extended H\xC3\xBC" "ckel)"
+       : string("Metal AOs (extended H\xC3\xBC" "ckel)");
+   out.right.title = atomCentre
+       ? string("Orbitals of the other atoms (extended H\xC3\xBC" "ckel)")
+       : string("Ligand orbitals (extended H\xC3\xBC" "ckel)");
 
    //  --- the drawn levels, their text and their lines ---------------------
    vector<MoLevel> kept;
@@ -1209,10 +1495,16 @@ bool FoDiagram::build(const vector<string>& symbols,
       MoLevel& lv = v.level;
       lv.shareLeft = v.metal;
       lv.shareRight = v.ligand;
-      if (merged[shownIdx[i]].irrep.empty() && !v.irrep.empty()) lv.label = v.irrep;
+      if (atomCentre) {
+         //  The local skeleton's label, shown as far as it fits.
+         lv.label = v.irrep.empty() || v.fit < FIT_LABEL_MIN ? string()
+                  : (v.fit < FIT_LABEL_OK ? "~" + v.irrep : v.irrep);
+      } else if (merged[shownIdx[i]].irrep.empty() && !v.irrep.empty()) {
+         lv.label = v.irrep;
+      }
       lv.irrep = v.irrep;
       if (lv.character == MoLevel::ANTIBONDING) lv.label += "*";
-      else if (lv.character == MoLevel::NONBONDING) lv.label += " nb";
+      else if (lv.character == MoLevel::NONBONDING) lv.label += lv.label.empty() ? "nb" : " nb";
       {
          char e4[32];
          snprintf(e4, sizeof e4, "%.4f", lv.energy);   // as the panel writes it
@@ -1221,6 +1513,7 @@ bool FoDiagram::build(const vector<string>& symbols,
 
       MoInfo mi;
       mi.irrep = v.irrep; mi.metalSet = v.sm; mi.ligandSet = v.sl;
+      mi.fit = v.fit;
       vector< std::pair<double,int> > rank;
       for (size_t s = 0; s < ns; s++)
          if (v.share[s] >= FragmentOrbitals::TOP_MIN) rank.push_back(std::make_pair(-v.share[s], (int)s));
@@ -1238,7 +1531,11 @@ bool FoDiagram::build(const vector<string>& symbols,
         << ", covered " << percent(v.capture) << " of the MO";
       if (lv.degeneracy > 1) t << " (mean over its orbitals)";
       t << ".";
-      if (!v.irrep.empty()) t << "  Irrep " << v.irrep << " of the skeleton's group " << sk.group << ".";
+      if (!v.irrep.empty()) {
+         t << "  Irrep " << v.irrep << " of the skeleton's group " << sk.group;
+         if (atomCentre) t << ", fit " << percent(v.fit) << " (local, approximate)";
+         t << ".";
+      }
       for (size_t q = 0; q < mi.top.size() && q < 4; q++) {
          const SetInfo& si = out.sets[mi.top[q].first];
          t << (q ? "; " : "\nLargest: ") << si.label;
@@ -1301,7 +1598,8 @@ bool FoDiagram::build(const vector<string>& symbols,
         "bonding/antibonding pair to both of their parents.";
    if (haveSym)
       n << "  Symmetry labels are of the coordination skeleton's group, "
-        << sk.group << " (the ligands' own atoms may lower the molecule's).";
+        << sk.group << (atomCentre ? " (local, approximate: the rest of the molecule breaks it)."
+                                   : " (the ligands' own atoms may lower the molecule's).");
    if (hiddenLigand > 0)
       n << "  " << hiddenLigand << " ligand-internal or low-metal-share level"
         << (hiddenLigand > 1 ? "s" : "") << " not drawn (tick Show all levels).";
@@ -1327,7 +1625,8 @@ bool FoDiagram::build(const vector<string>& symbols,
    const string groupText = haveSym ? groupMarkup(sk.group) : string();
    {
       string t = "Fragment levels from extended H\xC3\xBC" "ckel (qualitative) \xC2\xB7 energies in Hartree";
-      if (haveSym) t += " \xC2\xB7 labels in " + groupText;
+      if (haveSym) t += " \xC2\xB7 labels in " + groupText +
+                        (atomCentre ? " (local, approximate)" : "");
       if (hiddenLigand > 0)
          t += " \xC2\xB7 " + plural(hiddenLigand, "level", "levels") + " hidden (Show all levels)";
       out.summary = t;
@@ -1342,18 +1641,30 @@ bool FoDiagram::build(const vector<string>& symbols,
       const ElectronCount& ec = out.electrons;
       char b[300];
       if (ec.placed && !ec.agree) {
-         snprintf(b, sizeof b, "The electron count does not add up: metal d%d + ligands %d = %d, "
+         snprintf(b, sizeof b, "The electron count does not add up: %s%d + %s %d = %d, "
                   "but the valence orbitals the diagram considers hold %.0f.",
-                  ec.dCount, ec.ligands, ec.dCount + ec.ligands, ec.moElectrons);
+                  atomCentre ? (ec.metal + " ").c_str() : "metal d", ec.dCount,
+                  atomCentre ? "pieces" : "ligands", ec.ligands,
+                  ec.dCount + ec.ligands, ec.moElectrons);
          out.warnings.push_back(b);
       } else if (!ec.placed) {
-         snprintf(b, sizeof b, "No metal d electrons are drawn: %s.", ec.why.c_str());
+         snprintf(b, sizeof b, "No %s electrons are drawn: %s.",
+                  atomCentre ? "centre-atom" : "metal d", ec.why.c_str());
          out.warnings.push_back(b);
       }
    }
 
    {
       std::ostringstream a;
+      if (atomCentre)
+         a << "**Where the fragment levels come from.** The left column is the valence "
+              "orbitals of the picked " << symbols[pickAtom] << " atom, the right column the orbitals of "
+              "the pieces left when it is removed (" << out.pieces << "), each piece neutral, "
+              "from a quick extended H\xC3\xBC" "ckel calculation. Each is placed at the energy it has inside "
+              "the molecule before it mixes with anything. This puts every bonding level "
+              "below the two levels it comes from and every antibonding level above them, "
+              "as in a textbook diagram. Treat their positions as qualitative.\n\n";
+      else
       a << "**Where the fragment levels come from.** The left and right columns are the "
            "orbitals of the metal atom and of the ligands on their own, from a quick "
            "extended H\xC3\xBC" "ckel calculation. Each is placed at the energy it has inside "
@@ -1375,7 +1686,20 @@ bool FoDiagram::build(const vector<string>& symbols,
       a << "**Lines.** A line joins a molecular orbital to a fragment orbital that makes up "
            "at least " << spacedPercent(LINK_MIN) << " of it. Both members of a "
            "bonding/antibonding pair are joined to both of their parents.\n\n";
-      if (haveSym) {
+      if (haveSym && atomCentre) {
+         int donors = 0;
+         for (size_t i = 0; i < sk.inSkeleton.size(); i++) if (sk.inSkeleton[i]) donors++;
+         donors = std::max(donors - 1, 0);
+         a << "**Symmetry labels** are those of the local skeleton, " << symbols[pickAtom]
+           << " and its " << countWord(donors) << " bonded atom" << (donors == 1 ? "" : "s")
+           << " (" << groupText << "), and are approximate: the rest of the molecule breaks "
+              "that symmetry. Beside each orbital is how well it fits its label. A label is "
+              "shown as it is when the fit is " << spacedPercent(FIT_LABEL_OK) << " or more, with a ~ in front "
+              "from " << spacedPercent(FIT_LABEL_MIN) << ", and left off below that.\n\n";
+      } else if (atomCentre) {
+         a << "**Symmetry labels** are not given: the picked atom and the atoms bonded to it "
+              "have no symmetry to label the orbitals by.\n\n";
+      } else if (haveSym) {
          int donors = 0;
          for (size_t i = 0; i < sk.inSkeleton.size(); i++) if (sk.inSkeleton[i]) donors++;
          donors = std::max(donors - 1, 0);
@@ -1416,12 +1740,17 @@ bool FoDiagram::build(const vector<string>& symbols,
          const ElectronCount& ec = out.electrons;
          char b[200];
          if (ec.placed) {
-            snprintf(b, sizeof b, "**Total electrons: %d** (%s d%d, ligands %d).",
-                     ec.dCount + ec.ligands, ec.metal.c_str(), ec.dCount, ec.ligands);
+            if (atomCentre)
+               snprintf(b, sizeof b, "**Total electrons: %d** (%s %d, pieces %d).",
+                        ec.dCount + ec.ligands, ec.metal.c_str(), ec.dCount, ec.ligands);
+            else
+               snprintf(b, sizeof b, "**Total electrons: %d** (%s d%d, ligands %d).",
+                        ec.dCount + ec.ligands, ec.metal.c_str(), ec.dCount, ec.ligands);
          } else {
-            snprintf(b, sizeof b, "**Total electrons:** the metal's d electrons are not drawn "
-                     "(%s). The ligands bring %d; the valence orbitals hold %.0f.",
-                     ec.why.c_str(), ec.ligands, ec.moElectrons);
+            snprintf(b, sizeof b, "**Total electrons:** the %s electrons are not drawn "
+                     "(%s). The %s bring %d; the valence orbitals hold %.0f.",
+                     atomCentre ? "centre atom's" : "metal's d", ec.why.c_str(),
+                     atomCentre ? "pieces" : "ligands", ec.ligands, ec.moElectrons);
          }
          a << b;
       }

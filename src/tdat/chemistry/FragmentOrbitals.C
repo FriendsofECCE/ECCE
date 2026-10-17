@@ -321,6 +321,12 @@ bool FragmentOrbitals::isTransitionMetal(const string& el)
           || z == 57;
 }
 
+int FragmentOrbitals::valenceElectrons(const string& el)
+{
+   if (!s_loaded) loadParameters();
+   return valenceCount(el);
+}
+
 bool FragmentOrbitals::canSolve(const vector<string>& elements, string& missing)
 {
    if (!s_loaded) loadParameters();
@@ -344,7 +350,8 @@ bool FragmentOrbitals::canSolve(const vector<string>& elements, string& missing)
 bool FragmentOrbitals::autoFragments(const vector<string>& symbols,
                                      const vector<double>& coordsAng,
                                      int totalCharge, int multiplicity,
-                                     vector<Fragment>& out, string& why)
+                                     vector<Fragment>& out, string& why,
+                                     int centre)
 {
    out.clear();
    why.clear();
@@ -356,8 +363,16 @@ bool FragmentOrbitals::autoFragments(const vector<string>& symbols,
    if (!s_loaded) loadParameters();
 
    vector<int> metals;
-   for (size_t i = 0; i < n; i++)
-      if (isTransitionMetal(symbols[i])) metals.push_back((int)i);
+   if (centre >= 0) {
+      if (centre >= (int)n) {
+         why = "The picked atom is not in this molecule.";
+         return false;
+      }
+      metals.push_back(centre);
+   } else {
+      for (size_t i = 0; i < n; i++)
+         if (isTransitionMetal(symbols[i])) metals.push_back((int)i);
+   }
    if (metals.empty()) {
       why = "Not applicable: no transition metal.";
       return false;
@@ -403,7 +418,8 @@ bool FragmentOrbitals::autoFragments(const vector<string>& symbols,
          if (!count[symbols[i]]++) order.push_back(symbols[i]);
          electrons += atomicNumber(symbols[i]);
       }
-      f.charge = (electrons % 2) ? -1 : 0;
+      //  A non-metal centre is homolytic: neutral pieces, radicals allowed.
+      f.charge = (centre < 0 && (electrons % 2)) ? -1 : 0;
       ligandCharge += f.charge;
       for (size_t k = 0; k < order.size(); k++) {
          f.name += order[k];
@@ -637,7 +653,8 @@ static string baseNameOf(const string& n)
 }
 
 
-void FragmentOrbitals::groupFos(const FoSet& set, vector< vector<int> >& groups)
+void FragmentOrbitals::groupFos(const FoSet& set, vector< vector<int> >& groups,
+                                double tolerance)
 {
    groups.clear();
    const size_t nk = set.fos.size();
@@ -651,7 +668,7 @@ void FragmentOrbitals::groupFos(const FoSet& set, vector< vector<int> >& groups)
          const bool same = ref.fragment == fk.fragment ||
              (frr.kind != METAL && frk.kind != METAL &&
               baseNameOf(frr.name) == baseNameOf(frk.name));
-         if (same && fabs(ref.energy - fk.energy) < DEGENERATE_EH) {
+         if (same && fabs(ref.energy - fk.energy) < tolerance) {
             groups[g].push_back((int)k);
             placed = true;
          }

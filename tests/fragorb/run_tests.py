@@ -216,7 +216,10 @@ def parse_diagram(out):
                     a, b = t.split(":")
                     top.append((int(a), float(b)))
             d[f[0]].append(dict(E=float(kv["E"]), deg=int(kv["deg"]),
-                                occ=float(kv["occ"]), line=l, top=top,
+                                occ=float(kv["occ"]), occb=float(kv.get("occb", 0)),
+                                line=l, top=top,
+                                fit=float(kv.get("fit", 1.0)),
+                                label=l.split('label="')[1].split('"')[0],
                                 irrep=kv.get("irrep", ""),
                                 char=int(kv.get("char", 0)),
                                 pair=int(kv.get("pair", -1)),
@@ -361,6 +364,70 @@ def pairs_and_brackets(build):
                       "E=%.4f, sets %.4f / %.4f" % (lv["E"], a["fock"], b["fock"]))
 
 
+def non_metal_centre(build):
+    """A single non-metal atom pick as the centre: methanol at C and at O."""
+    print("a non-metal centre (methanol)")
+    for atom, name, group, want in ((1, "methanol at C", "C3v", (4, 10, 2)),
+                                    (2, "methanol at O", "Cs", (6, 8, 2))):
+        rc, out, err = run(build, ["methanol", "--diagram", "--atom", str(atom)])
+        if rc != 0:
+            check(False, "%s --diagram runs" % name, err.strip()[-200:])
+            continue
+        d = parse_diagram(out)
+        el = [l for l in out.splitlines() if l.startswith("electrons ")]
+        kv = dict(x.split("=") for x in el[0].split()[1:]) if el else {}
+        check(any(l.startswith("group " + group) for l in out.splitlines()),
+              "%s: labels from the local skeleton's group %s" % (name, group))
+        check(el and kv["placed"] == "1" and kv["agree"] == "1" and
+              (int(kv["d"]), int(kv["ligands"]), int(kv["unpaired"])) == want and
+              int(kv["d"]) + int(kv["ligands"]) == int(kv["mo"]),
+              "%s: centre %d + pieces %d electrons = %d in the valence MOs, "
+              "%d unpaired on the centre" % (name, want[0], want[1],
+                                             want[0] + want[1], want[2]), kv)
+        left = sum(m["occ"] + m["occb"] for m in d["metal"])
+        right = sum(m["occ"] for m in d["ligand"])
+        check(abs(left - want[0]) < 1e-6 and abs(right - want[1]) < 1e-6,
+              "%s: the electrons drawn add up (centre column %.2f, pieces %.2f)"
+              % (name, left, right))
+        check(all(abs(m["occ"] - round(m["occ"])) < 1e-6 for m in d["ligand"]),
+              "%s: no level carries a fraction of an orbital" % name)
+        check("Electrons: %s %d + pieces %d = %d" % (
+              "C" if atom == 1 else "O", want[0], want[1], want[0] + want[1]) in out,
+              "%s: the bookkeeping line is in the note" % name)
+        check(not d["mismatch"], "%s: bonding = antibonding for every irrep" % name,
+              d["mismatch"])
+        sets = d["sets"]
+        for lv in d["mo"]:
+            fit, lab = lv["fit"], lv["label"]
+            ok = 0.0 <= fit <= 1.0 and (
+                (fit >= 0.9 and lab.startswith(lv["irrep"])) or
+                (0.5 <= fit < 0.9 and lab.startswith("~" + lv["irrep"])) or
+                (fit < 0.5 and lv["irrep"] not in lab))
+            check(ok, "%s: MO %d fit %.2f is labelled by the 0.9 / 0.5 rule"
+                  % (name, lv["mo"], fit), lab)
+        exceptions = 0
+        for p in d["pair"]:
+            if p["b"] < 0 or p["a"] < 0:
+                continue
+            eb, ea = d["mo"][p["b"]]["E"], d["mo"][p["a"]]["E"]
+            for kind, idx in (("centre", p["metal"]), ("piece", p["ligand"])):
+                e = sets[idx]["fock"]
+                ok = eb < e < ea
+                if kind == "centre":
+                    check(ok, "%s: pair %s MO %d/%d brackets the %s %s level" %
+                          (name, p["irrep"], d["mo"][p["b"]]["mo"],
+                           d["mo"][p["a"]]["mo"], kind, sets[idx]["label"]),
+                          "E %.4f < %.4f < %.4f" % (eb, e, ea))
+                elif not ok:
+                    exceptions += 1
+                    print("  EXCEPTION %s: pair %s MO %d/%d does not bracket "
+                          "its piece level %s: E %.4f, level %.4f, E* %.4f" %
+                          (name, p["irrep"], d["mo"][p["b"]]["mo"],
+                           d["mo"][p["a"]]["mo"], sets[idx]["label"], eb, e, ea))
+        print("  %s: %d pairs, %d piece-level bracket exceptions reported above"
+              % (name, len(d["pair"]), exceptions))
+
+
 def main():
     status = unit()
     if status != 0:
@@ -375,6 +442,7 @@ def main():
     print()
     diagram(build)
     pairs_and_brackets(build)
+    non_metal_centre(build)
     print("\nFAILED" if failures else "\nok")
     return 1 if failures else 0
 

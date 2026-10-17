@@ -3,7 +3,7 @@
 
     makecalc.py CODE MOLECULE NOISE OUTDIR [--opt] [--seed N] [--keep]
 
-CODE is g16, orca, nwchem or ecceqm; MOLECULE one of h2o, nh3, ch4, co2, c2h4, c3h6,
+CODE is g16, orca, nwchem or ecceqm; MOLECULE one of h2o, nh3, ch4, co2, c2h4, c3h6, ch3oh,
 c2, he2, n2, co, hf (the last five are Teaching > Diatomics, bond along x).
 ecceqm runs the built-in engine (B3LYP/6-31G*), which keeps the input
 frame; --no-rotate leaves the molecule as the library has it.  NOISE
@@ -60,6 +60,14 @@ MOLECULES = {
     "c2h4": [("C", 0.6695, 0.0, 0.0), ("C", -0.6695, 0.0, 0.0),
              ("H", 1.2321, 0.9289, 0.0), ("H", 1.2321, -0.9289, 0.0),
              ("H", -1.2321, 0.9289, 0.0), ("H", -1.2321, -0.9289, 0.0)],
+    #  Methanol, Cs (C-O-H in the xz plane), staggered, experimental
+    #  geometry: a carbon whose neighbours are not all alike and an atom
+    #  (the hydroxyl H) bonded to none of the methyl's atoms.
+    "ch3oh": [("C", 0.0, 0.0, 0.0), ("O", 0.0, 0.0, 1.4246),
+              ("H", 0.8962, 0.0, 1.7245),
+              ("H", -1.0451, 0.0, -0.3232),
+              ("H", 0.5086, 0.8809, -0.4012),
+              ("H", 0.5086, -0.8809, -0.4012)],
 }
 
 #  Cyclopropane, D3h: the smallest ring, for a bond whose cut does not

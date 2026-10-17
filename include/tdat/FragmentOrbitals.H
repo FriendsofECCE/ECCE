@@ -111,11 +111,20 @@ class FragmentOrbitals
      * ("not applicable"): existing constructions then apply unchanged.
      *
      * Result order: metals, then ligands, then one SHELL fragment.
+     *
+     * `centre` >= 0 names a non-metal atom that takes the metal's place
+     * (#301): the ligands are the connected pieces left when it alone is
+     * removed, every piece is neutral (a radical such as OH is allowed)
+     * and the centre keeps the whole charge.
      */
     static bool autoFragments(const vector<string>& symbols,
                               const vector<double>& coordsAng,
                               int totalCharge, int multiplicity,
-                              vector<Fragment>& out, string& why);
+                              vector<Fragment>& out, string& why,
+                              int centre = -1);
+
+    /** Neutral valence electrons of an element (group number; 0 if unknown). */
+    static int valenceElectrons(const string& element);
 
     //  ---- orbitals ----
 
@@ -174,8 +183,11 @@ class FragmentOrbitals
     /**
      * Degenerate FOs read as one level: within a fragment, and across the
      * same-formula ligands of a per-ligand set.  Indices into set.fos.
+     * `tolerance` (Hartree) widens "degenerate" for a skeleton whose
+     * symmetry is only approximate.
      */
-    static void groupFos(const FoSet& set, vector< vector<int> >& groups);
+    static void groupFos(const FoSet& set, vector< vector<int> >& groups,
+                         double tolerance = DEGENERATE_EH);
 
     /** Label, character, EHT energy (eV) and fragment of one group;
         `share` is left 0. */

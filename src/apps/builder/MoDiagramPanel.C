@@ -2315,6 +2315,23 @@ void MoDiagramPanel::buildOnce()
     }
   }
 
+  //  The charge, so the fragment levels carry the right electron
+  //  count -- NO2- has one more than its atoms bring -- and so the
+  //  heading can show it, which is what a reader checks the formula
+  //  for.
+  int charge = 0;
+  {
+    Fragment *frag = fw.getSceneGraph().getFragment();
+    if (frag != 0) charge = (int)frag->charge();
+  }
+  //  The metal's unpaired d electrons follow it (fragment-orbital diagram).
+  int multiplicity = 1;
+  {
+    ICalculation *esCalc = dynamic_cast<ICalculation*>(getCalculation());
+    if (esCalc != 0 && esCalc->spinMultiplicity() != SpinMult::unknown)
+      multiplicity = (int)esCalc->spinMultiplicity();
+  }
+
   //  FRAGMENT ORBITALS (#301): offered when the parent's basis and
   //  overlap are in hand and the structure is a metal with ligands.  A
   //  code whose coefficients are orthonormalised (MOPAC) cannot be
@@ -2322,26 +2339,65 @@ void MoDiagramPanel::buildOnce()
   //  cutoffs: they must not fold away the metal's own occupied d levels.
   bool foOffered = false;
   string foNotOffered;
+  //  The parent's basis and overlap are in hand and can be projected on.
+  bool foProjectable = false;
+  {
+    const size_t nb = moBasisFns.size();
+    if (!moSemiempirical && nb > 0 && moSflat.size() == nb*nb &&
+        moCoefficients.size() == e.size() &&
+        !moCoefficients.empty() && moCoefficients[0].size() == nb) {
+      foProjectable = true;
+    }
+  }
+  const string foSemiempirical = "Fragment orbitals are not offered for this "
+      "calculation: its orbitals are in an orthonormalised basis, "
+      "so they cannot be projected on fragment orbitals.";
   {
     string foReason;
-    const size_t nb = moBasisFns.size();
     if (!storedSymbols.empty() &&
         FoDiagram::applicable(storedSymbols, storedCoords, 0, foReason)) {
+      if (moSemiempirical) foNotOffered = foSemiempirical;
+      else if (foProjectable) foOffered = true;
+    }
+  }
+
+  //  A single non-metal atom pick goes the fragment-orbital way when the
+  //  one-atom diagram (the atom against its bonded atoms, in the
+  //  molecule's group) would refuse it or leave atoms out (#301).
+  int pickCentre = -1;
+  if (pickActive && !pickMetal && pickB < 0 &&
+      storedSymbols.size() == elements.size()) {
+    MoColumn l2, r2;
+    string n2;
+    MoFragments::Fragmentation how2 = MoFragments::NOT_BUILT;
+    const bool drawn = MoFragments::build(coords, elements, group, charge, l2,
+                                          r2, n2, 0, 0, 0, &how2,
+                                          MoFragments::NOT_BUILT, &pickSel);
+    vector< std::pair<int,int> > bonds2;
+    MoFragments::covalentBonds(coords, elements, bonds2);
+    size_t neighbours = 0;
+    for (size_t b = 0; b < bonds2.size(); b++) {
+      if (bonds2[b].first == pickA || bonds2[b].second == pickA) neighbours++;
+    }
+    const bool whole = drawn && how2 == MoFragments::CENTRAL &&
+                       neighbours + 1 == elements.size();
+    if (!whole) {
+      string foReason;
       if (moSemiempirical) {
-        foNotOffered = "Fragment orbitals are not offered for this "
-            "calculation: its orbitals are in an orthonormalised basis, "
-            "so they cannot be projected on fragment orbitals.";
-      } else if (nb > 0 && moSflat.size() == nb*nb &&
-                 moCoefficients.size() == e.size() &&
-                 !moCoefficients.empty() && moCoefficients[0].size() == nb) {
-        foOffered = true;
+        foNotOffered = foSemiempirical;
+      } else if (!FoDiagram::applicable(storedSymbols, storedCoords, charge,
+                                        foReason, pickA)) {
+        foNotOffered = "The fragment-orbital diagram is not available for "
+                       "this atom: " + foReason;
+      } else if (foProjectable) {
+        pickCentre = pickA;
       }
     }
   }
   bool foWanted = foOffered;
   const MoFragments::Fragmentation fromEnv = constructionFromEnv();
   if (pickActive) {
-    foWanted = foOffered && pickMetal;
+    foWanted = (foOffered && pickMetal) || pickCentre >= 0;
   } else if (fromEnv != MoFragments::NOT_BUILT &&
       fromEnv != MoFragments::FRAGMENT_ORBITALS) {
     foWanted = false;
@@ -2617,23 +2673,6 @@ void MoDiagramPanel::buildOnce()
   //  would be worse than saying why the rest is missing.
   bool haveFragments = false;
 
-  //  The charge, so the fragment levels carry the right electron
-  //  count -- NO2- has one more than its atoms bring -- and so the
-  //  heading can show it, which is what a reader checks the formula
-  //  for.
-  int charge = 0;
-  {
-    Fragment *frag = fw.getSceneGraph().getFragment();
-    if (frag != 0) charge = (int)frag->charge();
-  }
-  //  The metal's unpaired d electrons follow it (fragment-orbital diagram).
-  int multiplicity = 1;
-  {
-    ICalculation *esCalc = dynamic_cast<ICalculation*>(getCalculation());
-    if (esCalc != 0 && esCalc->spinMultiplicity() != SpinMult::unknown)
-      multiplicity = (int)esCalc->spinMultiplicity();
-  }
-
   //  BUILD IN THE GROUP THE CALCULATION ACTUALLY USED.
   //
   //  ORCA symmetry-adapts orbitals only in ABELIAN point groups.  It
@@ -2721,7 +2760,7 @@ void MoDiagramPanel::buildOnce()
   //  lines, placement and note; none of the symmetry-based machinery
   //  below runs for it.
   bool foDrawn = false;
-  string foSummary, foAbout;
+  string foSummary, foAbout, foPieces;
   vector<string> foWarnings;
 
   if (!elements.empty()) {
@@ -2804,8 +2843,8 @@ void MoDiagramPanel::buildOnce()
 
     //  A pick decides by itself, whatever Built as says.
     if (pickActive) {
-      want = (pickMetal && foOffered) ? MoFragments::FRAGMENT_ORBITALS
-                                      : MoFragments::NOT_BUILT;
+      want = ((pickMetal && foOffered) || pickCentre >= 0)
+             ? MoFragments::FRAGMENT_ORBITALS : MoFragments::NOT_BUILT;
     }
 
     //  Automatic means the fragment-orbital diagram where it is offered.
@@ -2820,13 +2859,14 @@ void MoDiagramPanel::buildOnce()
       if (FoDiagram::build(storedSymbols, storedCoords, charge, moBasisFns,
                            moSflat, moCoefficients, e, centre, fo, foWhy,
                            p_showAll != 0 && p_showAll->IsChecked(),
-                           &wholeSpectrum, multiplicity)) {
+                           &wholeSpectrum, multiplicity, pickCentre)) {
         left = fo.left;
         right = fo.right;
         links = fo.links;
         foSummary = fo.summary;
         foWarnings = fo.warnings;
         foAbout = fo.about;
+        foPieces = fo.pieces;
         p_fragmentation = MoFragments::FRAGMENT_ORBITALS;
         haveFragments = true;
         foDrawn = true;
@@ -3295,7 +3335,9 @@ void MoDiagramPanel::buildOnce()
   string pickSummary, pickAbout;
   if (pickActive && haveFragments) {
     const string dash = "\xE2\x80\x93";
-    if (foDrawn)
+    if (foDrawn && pickCentre >= 0)
+      pickSummary = pickLabelA + " against " + foPieces;
+    else if (foDrawn)
       pickSummary = pickLabelOfMetal(elements, pickMetalAtom) +
                     " against its ligands";
     else if (p_fragmentation == MoFragments::CENTRAL)
@@ -3307,6 +3349,13 @@ void MoDiagramPanel::buildOnce()
         "against each other (in and out of phase when they are equal). A "
         "metal gives the fragment-orbital diagram, each ligand being a "
         "connected piece left when the metal is removed.";
+    if (pickCentre >= 0) {
+      pickAbout += " A single atom that is not a metal is drawn the same way "
+          "when it is not fixed by every symmetry operation of the molecule, "
+          "or when atoms are bonded to neither it nor its neighbours: the "
+          "atom against the connected pieces left when it is removed, each "
+          "piece neutral.";
+    }
   }
   if (foDrawn) {
     tiers.summary = foSummary;

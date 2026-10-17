@@ -43,3 +43,4 @@ MOPAC → spec) is the bridge it would reuse.
 - [EHTParameters: Alvarez 1993 via YAeHMOP (BSD), what was checked and what disagrees](eht-parameters-and-licence.md)
 - [The fragment-orbital diagram in the MO Diagram panel (#301, route B stage 2)](fragment-orbital-diagram.md)
 - [An atom pick chooses the MO diagram (#301)](an-atom-pick-chooses-the-diagram.md)
+- [A single non-metal atom pick can be the centre of the fragment-orbital diagram (#301)](non-metal-centre-fragment-orbital-diagram.md)

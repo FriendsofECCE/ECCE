@@ -2,7 +2,8 @@
 //
 //   fragorb CALC [--ligands shell|each] [--beta] [--mo N|homo|lumo|all]...
 //                [--mult M] [--tsv]
-//   fragorb CALC --diagram
+//   fragorb CALC --diagram [--all] [--atom N]
+//       --atom N: a non-metal centre (1-based), as a single atom pick
 //   fragorb CALC --gfo FRAGCALC:ATOMS ... [--mo ...]
 //
 // --diagram prints what the Builder's fragment-orbital diagram draws: the
@@ -60,7 +61,7 @@ int main(int argc, char **argv)
   string target;
   vector<string> mos;
   bool showAll = false, beta = false, tsv = false, perFo = false, occOnly = false, diagram = false;
-  int mult = 1;
+  int mult = 1, pickAtom = -1;
   FragmentOrbitals::LigandSet ligands = FragmentOrbitals::LIGAND_SHELL;
   vector<string> gfo;
 
@@ -74,6 +75,7 @@ int main(int argc, char **argv)
     else if (a == "--all") showAll = true;
     else if (a == "--gfo-occ") occOnly = true;
     else if (a == "--mult" && i+1 < argc) mult = atoi(argv[++i]);
+    else if (a == "--atom" && i+1 < argc) pickAtom = atoi(argv[++i]) - 1;
     else if (a == "--gfo" && i+1 < argc) gfo.push_back(argv[++i]);
     else if (a == "--ligands" && i+1 < argc) {
       string v = argv[++i];
@@ -215,7 +217,7 @@ int main(int argc, char **argv)
     return 0;
   }
   if (!FragmentOrbitals::autoFragments(symbols, coords, frag->charge(), mult,
-                                       frags, why)) {
+                                       frags, why, pickAtom)) {
     cerr << "fragorb: " << why << endl;
     return 1;
   }
@@ -254,7 +256,7 @@ int main(int argc, char **argv)
 
     FoDiagram::Result res;
     if (!FoDiagram::build(symbols, coords, frag->charge(), pb, S, rows, e,
-                          centre, res, why, showAll, &wholeSpectrum, mult)) {
+                          centre, res, why, showAll, &wholeSpectrum, mult, pickAtom)) {
       cerr << "fragorb: " << why << endl;
       return 1;
     }
@@ -276,13 +278,14 @@ int main(int argc, char **argv)
     for (int c = 0; c < 3; c++)
       for (size_t i = 0; i < cols[c]->levels.size(); i++) {
         const MoLevel& l = cols[c]->levels[i];
-        printf("%s %zu E=%.4f deg=%d occ=%.0f label=\"%s\" ann=\"%s\"", names[c], i,
-               l.energy, l.degeneracy, l.occupancy, l.label.c_str(),
+        printf("%s %zu E=%.4f deg=%d occ=%.2f occb=%.2f label=\"%s\" ann=\"%s\"", names[c], i,
+               l.energy, l.degeneracy, l.occupancy,
+               l.occupancyBeta > 0.0 ? l.occupancyBeta : 0.0, l.label.c_str(),
                l.annotation.c_str());
         if (c == 1) {
           const FoDiagram::MoInfo& mi = res.mo[i];
-          printf(" mo=%d irrep=%s char=%d pair=%d", l.orbitals.empty() ? 0 : l.orbitals[0] + 1,
-                 mi.irrep.c_str(), (int)l.character, l.pairing);
+          printf(" mo=%d irrep=%s fit=%.3f char=%d pair=%d", l.orbitals.empty() ? 0 : l.orbitals[0] + 1,
+                 mi.irrep.c_str(), mi.fit, (int)l.character, l.pairing);
           printf(" top=");
           for (size_t q = 0; q < mi.top.size() && q < 4; q++)
             printf("%s%d:%.3f", q ? "," : "", mi.top[q].first, mi.top[q].second);

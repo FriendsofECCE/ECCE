@@ -73,6 +73,11 @@ FIXTURES = {
     "ecceqm-c3h6-pick-ring": os.path.join(FIXTURES_DIR, "ecceqm-c3h6"),
     "ecceqm-water-pick-o1": os.path.join(FIXTURES_DIR, "ecceqm-water"),
     "orca-crco6-pick-cr1": os.path.join(FIXTURES_DIR, "orca-crco6"),
+    #  #301: a non-metal pick that the one-atom CENTRAL cannot draw cleanly
+    #  goes to the fragment-orbital route (makecalc.py ecceqm ch3oh 0
+    #  --no-rotate): the methyl carbon, and the hydroxyl oxygen.
+    "ecceqm-methanol-pick-c1": os.path.join(FIXTURES_DIR, "ecceqm-methanol"),
+    "ecceqm-methanol-pick-o2": os.path.join(FIXTURES_DIR, "ecceqm-methanol"),
 }
 
 
@@ -84,6 +89,8 @@ FIXTURE_ENV = {
     "ecceqm-c3h6-pick-ring": {"ECCE_MODIAGRAM_PICK": "C1,C2"},
     "ecceqm-water-pick-o1": {"ECCE_MODIAGRAM_PICK": "O1"},
     "orca-crco6-pick-cr1": {"ECCE_MODIAGRAM_PICK": "Cr1"},
+    "ecceqm-methanol-pick-c1": {"ECCE_MODIAGRAM_PICK": "C1"},
+    "ecceqm-methanol-pick-o2": {"ECCE_MODIAGRAM_PICK": "O2"},
 }
 
 

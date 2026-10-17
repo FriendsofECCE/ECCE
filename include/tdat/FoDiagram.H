@@ -49,6 +49,10 @@ class FoDiagram
     static constexpr double PAIR_FLOOR = 0.05;
     /** A fragment orbital described to less than this is marked. */
     static constexpr double CAPTURE_OK = 0.90;
+    /** Non-metal centre: a local label is shown plain from this fit up,
+        with "~" from FIT_LABEL_MIN, and not at all below that. */
+    static constexpr double FIT_LABEL_OK = 0.90;
+    static constexpr double FIT_LABEL_MIN = 0.50;
 
     /** One fragment level: a set of FOs of one irrep. */
     struct SetInfo
@@ -70,7 +74,8 @@ class FoDiagram
       string irrep;                          // skeleton irrep, or ""
       int    metalSet, ligandSet;            // indices into sets, or -1
       vector< std::pair<int,double> > top;   // (set, share), largest first
-      MoInfo() : metalSet(-1), ligandSet(-1) {}
+      double fit;      // non-metal centre: how well it fits its local label, else 1
+      MoInfo() : metalSet(-1), ligandSet(-1), fit(1.0) {}
     };
 
     /** A bonding/antibonding pair and the two sets it comes from. */
@@ -123,9 +128,11 @@ class FoDiagram
       bool   agree;       // metal + ligands = valence MO electrons
       string why;         // when not placed
       string line;        // the note's line
-      string metal;       // symbol of the metal, "" when none
+      string metal;       // symbol of the metal (or centre atom), "" when none
+      bool   centreAtom;  // a non-metal centre: neutral pieces, s and p drawn
       ElectronCount() : oxidation(0), dCount(0), ligands(0), unpaired(0),
-                        moElectrons(0), placed(false), agree(false) {}
+                        moElectrons(0), placed(false), agree(false),
+                        centreAtom(false) {}
     };
 
     struct Result
@@ -145,9 +152,11 @@ class FoDiagram
       vector<PairCount> pairs;              // per skeleton irrep
       vector<string> pairMessages;          // the mismatches, one line each
       string group;                         // skeleton point group, or ""
+      bool   centreAtom;                    // built round a non-metal atom
+      string pieces;                        // its pieces, "OH, H, H, H"
       ElectronCount electrons;
       double captureMin, captureMax;        // over the drawn MOs
-      Result() : captureMin(0), captureMax(0) {}
+      Result() : centreAtom(false), captureMin(0), captureMax(0) {}
     };
 
     /** "Also not shown: 18 core orbitals below -3.49 Hartree.", or "". */
@@ -174,7 +183,7 @@ class FoDiagram
      */
     static bool applicable(const vector<string>& symbols,
                            const vector<double>& coordsAng, int charge,
-                           string& why);
+                           string& why, int centre = -1);
 
     /**
      * @param symbols, coordsAng  the parent's atoms in the frame its
@@ -194,6 +203,12 @@ class FoDiagram
      *                            past the cut-off; null = `centre`
      * @param multiplicity        of the molecule: multiplicity - 1 of the
      *                            metal d electrons are drawn unpaired
+     * @param pickAtom            >= 0: the atom a single non-metal pick
+     *                            names, in the metal's place (#301).  The
+     *                            pieces are neutral, its s and p electrons
+     *                            are drawn by aufbau and Hund, and each
+     *                            orbital's label is those of the local
+     *                            skeleton with its fit to it.
      */
     static bool build(const vector<string>& symbols,
                       const vector<double>& coordsAng, int charge,
@@ -204,7 +219,7 @@ class FoDiagram
                       MoColumn& centre, Result& out, string& why,
                       bool showAll = false,
                       const vector<MoLevel>* whole = 0,
-                      int multiplicity = 1);
+                      int multiplicity = 1, int pickAtom = -1);
 };
 
 #endif

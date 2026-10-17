@@ -1,0 +1,129 @@
+<MolecularConfig>
+<Map>
+<Group Tag="C" Name="6-31G*">
+<OrderedList>
+<BasisSet Type="pople">6-31G*</BasisSet>
+</OrderedList>
+<OrbitalMapping>
+<OrbitalBasisSet Name="6-31G*">
+<BasisSet Type="pople">6-31G*</BasisSet>
+</OrbitalBasisSet>
+</OrbitalMapping>
+<ContractionInfoMap>
+<Element tag="C">
+<BasisSet uniqueKey="6-31G*:pople">
+<DeleteFlags>false false false false false false false false </DeleteFlags>
+<UncontractFlags>
+false false false false false false false false </UncontractFlags>
+</BasisSet>
+</Element>
+</ContractionInfoMap>
+<DiffuseMap>
+<Element tag="C">
+0 0 0 0 0 0 0 0 </Element>
+</DiffuseMap>
+<TightMap>
+<Element tag="C">
+0 0 0 0 0 0 0 0 </Element>
+</TightMap>
+</Group>
+<Group Tag="O" Name="6-31G*">
+<OrderedList>
+<BasisSet Type="pople">6-31G*</BasisSet>
+</OrderedList>
+<OrbitalMapping>
+<OrbitalBasisSet Name="6-31G*">
+<BasisSet Type="pople">6-31G*</BasisSet>
+</OrbitalBasisSet>
+</OrbitalMapping>
+<ContractionInfoMap>
+<Element tag="O">
+<BasisSet uniqueKey="6-31G*:pople">
+<DeleteFlags>false false false false false false false false </DeleteFlags>
+<UncontractFlags>
+false false false false false false false false </UncontractFlags>
+</BasisSet>
+</Element>
+</ContractionInfoMap>
+<DiffuseMap>
+<Element tag="O">
+0 0 0 0 0 0 0 0 </Element>
+</DiffuseMap>
+<TightMap>
+<Element tag="O">
+0 0 0 0 0 0 0 0 </Element>
+</TightMap>
+</Group>
+<Group Tag="H" Name="6-31G*">
+<OrderedList>
+<BasisSet Type="pople">6-31G*</BasisSet>
+</OrderedList>
+<OrbitalMapping>
+<OrbitalBasisSet Name="6-31G*">
+<BasisSet Type="pople">6-31G*</BasisSet>
+</OrbitalBasisSet>
+</OrbitalMapping>
+<ContractionInfoMap>
+<Element tag="H">
+<BasisSet uniqueKey="6-31G*:pople">
+<DeleteFlags>false false false false false false false false </DeleteFlags>
+<UncontractFlags>
+false false false false false false false false </UncontractFlags>
+</BasisSet>
+</Element>
+</ContractionInfoMap>
+<DiffuseMap>
+<Element tag="H">
+0 0 0 0 0 0 0 0 </Element>
+</DiffuseMap>
+<TightMap>
+<Element tag="H">
+0 0 0 0 0 0 0 0 </Element>
+</TightMap>
+</Group>
+</Map>
+<Data>
+BasisSet=6-31G*
+Type=pople Category=ORBITAL Spherical=UnknownCoordSys ContType=UnknownContType
+element=C
+contraction shell=S num_primitives=6 num_coefficients=1
+3047.5249 0.0018347
+457.36951 0.0140373
+103.94869 0.0688426
+29.210155 0.2321844
+9.2866630 0.4679413
+3.1639270 0.3623120
+contraction shell=SP num_primitives=3 num_coefficients=2
+7.8682724 -0.1193324 0.0689991
+1.8812885 -0.1608542 0.3164240
+0.5442493 1.1434564 0.7443083
+contraction shell=SP num_primitives=1 num_coefficients=2
+0.1687144 1.0000000 1.0000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.800000 1.000000
+element=O
+contraction shell=S num_primitives=6 num_coefficients=1
+5484.6717 0.0018311
+825.23495 0.0139501
+188.04696 0.0684451
+52.964500 0.2327143
+16.897570 0.4701930
+5.7996353 0.3585209
+contraction shell=SP num_primitives=3 num_coefficients=2
+15.539616 -0.1107775 0.0708743
+3.5999336 -0.1480263 0.3397528
+1.0137618 1.1307670 0.7271586
+contraction shell=SP num_primitives=1 num_coefficients=2
+0.2700058 1.0000000 1.0000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.800000 1.000000
+element=H
+contraction shell=S num_primitives=3 num_coefficients=1
+18.731137 0.03349460
+2.8253937 0.23472695
+0.6401217 0.81375733
+contraction shell=S num_primitives=1 num_coefficients=1
+0.1612778 1.00000000
+EndBasisSet
+</Data>
+</MolecularConfig>

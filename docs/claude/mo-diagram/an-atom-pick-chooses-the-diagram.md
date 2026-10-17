@@ -9,8 +9,13 @@ The option row's "Centre/first atom" and "Bonded to" choosers (labels:
 symbol + atom number from 1, as the Builder numbers atoms) pick the diagram;
 both empty is Automatic. A pick overrides "Built as"; "Choose fragments" wins
 over a pick. One metal: the fragment-orbital diagram. One other atom X: X
-against its bonded atoms (`MoFragments::build(..., pick)`, CENTRAL), refused
-unless every symmetry operation leaves X in place. A bond: cut it; a ring
+against its bonded atoms (`MoFragments::build(..., pick)`, CENTRAL, with its
+TASOs) when that draws the whole molecule (X fixed by every symmetry
+operation and every other atom bonded to X: water at O, NH3 at N, CH4 at C).
+Otherwise (refused, or atoms left out: methanol at C or at O) X is the centre
+of the fragment-orbital diagram, see `non-metal-centre-fragment-orbital-diagram.md`.
+The panel decides early with a trial `MoFragments::build`, because the
+semicore/valence cut-offs depend on which diagram it is. A bond: cut it; a ring
 bond is refused; sides swapped by a symmetry operation are HALVES, sides each
 mapped onto themselves are GROUPS, anything else is refused (the pieces are
 not unions of orbits, so they have no symmetry orbitals). A refusal is a
