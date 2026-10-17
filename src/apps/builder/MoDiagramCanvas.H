@@ -1363,7 +1363,13 @@ class MoDiagramCanvas : public wxPanel
           else tint = wxColour((tint.Red()   + 2*255)/3,
                                (tint.Green() + 2*255)/3,
                                (tint.Blue()  + 2*255)/3);
-          dc.SetPen(wxPen(tint, 1, wxPENSTYLE_SHORT_DASH));
+          //  A weighted line (the fragment-orbital construction) is
+          //  solid and thicker the larger the share it stands for.
+          if (link.weight >= 0.0) {
+            dc.SetPen(wxPen(tint, 1 + (int)floor(5.0*link.weight)));
+          } else {
+            dc.SetPen(wxPen(tint, 1, wxPENSTYLE_SHORT_DASH));
+          }
 
           //  WHERE THE LEVEL IS DRAWN, not where its energy puts it.
           //
@@ -1610,6 +1616,7 @@ class MoDiagramCanvas : public wxPanel
         const string comp = p_owner->orbitalComposition(l.orbitals);
         if (!comp.empty()) out << "\n" << comp;
       }
+      if (!l.detail.empty()) out << "\n" << l.detail;
       p_tips[level] = out.str();
       return p_tips[level];
     }

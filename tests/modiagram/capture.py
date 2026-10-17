@@ -50,6 +50,9 @@ FIXTURES = {
     "gaussian-water": os.path.join(FIXTURES_DIR, "gaussian-water"),
     "gaussian-co": os.path.join(FIXTURES_DIR, "gaussian-co"),
     "orca-crco6": os.path.join(FIXTURES_DIR, "orca-crco6"),
+    #  The same calculation drawn by the SKELETON construction, which was
+    #  the metal default before the fragment-orbital diagram (#301).
+    "orca-crco6-skeleton": os.path.join(FIXTURES_DIR, "orca-crco6"),
     "nwchem-water": os.path.join(FIXTURES_DIR, "nwchem-water"),
     #  #132: unsymmetrised input, symmetry on in the deck (makecalc.py).
     "orca-nh3-usesym": os.path.join(FIXTURES_DIR, "orca-nh3-usesym"),
@@ -63,6 +66,12 @@ FIXTURES = {
     "ecceqm-n2": os.path.join(FIXTURES_DIR, "ecceqm-n2"),
     "ecceqm-co-rotated": os.path.join(FIXTURES_DIR, "ecceqm-co-rotated"),
     "ecceqm-water": os.path.join(FIXTURES_DIR, "ecceqm-water"),
+}
+
+
+#  Extra environment per fixture: a construction asked for by name.
+FIXTURE_ENV = {
+    "orca-crco6-skeleton": {"ECCE_MODIAGRAM_CONSTRUCTION": "skeleton"},
 }
 
 
@@ -164,6 +173,7 @@ def captureOne(name, source, outfile, timeout, png=None):
         env = display.env()
         env["ECCE_OPEN_PANEL"] = "MO Diagram"
         env["ECCE_MODIAGRAM_DUMP"] = outfile
+        env.update(FIXTURE_ENV.get(name, {}))
         env["ECCE_EXIT_AFTER_DUMP"] = "1"
         if png:
             #  Long enough to find the window, let it settle and shoot it;

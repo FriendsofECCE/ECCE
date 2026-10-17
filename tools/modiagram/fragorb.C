@@ -2,7 +2,12 @@
 //
 //   fragorb CALC [--ligands shell|each] [--beta] [--mo N|homo|lumo|all]...
 //                [--mult M] [--tsv]
+//   fragorb CALC --diagram
 //   fragorb CALC --gfo FRAGCALC:ATOMS ... [--mo ...]
+//
+// --diagram prints what the Builder's fragment-orbital diagram draws: the
+// drawn molecular levels (cut off as MoSpec does), the metal and ligand
+// columns, the fitted scale and the lines with their shares.
 //
 // The second form is the projection check: each FRAGCALC is a calculation
 // of one fragment in the parent's basis (ATOMS: its 1-based parent atom
@@ -28,7 +33,10 @@
 #include "util/EcceURL.H"
 #include "tdat/EspField.H"
 #include "tdat/Fragment.H"
+#include "tdat/FoDiagram.H"
 #include "tdat/FragmentOrbitals.H"
+#include "tdat/MoDiagram.H"
+#include "tdat/MoFragments.H"
 #include "tdat/MoAoBasis.H"
 #include "tdat/PropVecString.H"
 #include "tdat/PropVector.H"
@@ -51,7 +59,7 @@ int main(int argc, char **argv)
 {
   string target;
   vector<string> mos;
-  bool beta = false, tsv = false, perFo = false, occOnly = false;
+  bool beta = false, tsv = false, perFo = false, occOnly = false, diagram = false;
   int mult = 1;
   FragmentOrbitals::LigandSet ligands = FragmentOrbitals::LIGAND_SHELL;
   vector<string> gfo;
@@ -62,6 +70,7 @@ int main(int argc, char **argv)
     else if (a == "--beta") beta = true;
     else if (a == "--tsv") tsv = true;
     else if (a == "--perfo") perFo = true;
+    else if (a == "--diagram") diagram = true;
     else if (a == "--gfo-occ") occOnly = true;
     else if (a == "--mult" && i+1 < argc) mult = atoi(argv[++i]);
     else if (a == "--gfo" && i+1 < argc) gfo.push_back(argv[++i]);
@@ -208,6 +217,63 @@ int main(int argc, char **argv)
                                        frags, why)) {
     cerr << "fragorb: " << why << endl;
     return 1;
+  }
+  if (diagram) {
+    PropVector *en = (PropVector*) calc->getProperty(beta ? "ORBENGBETA" : "ORBENG");
+    PropVector *oc = (PropVector*) calc->getProperty(beta ? "ORBOCCBETA" : "ORBOCC");
+    if (!en || en->rows() != (int)rows.size()) {
+      cerr << "fragorb: no orbital energies\n";
+      return 1;
+    }
+    vector<double> e, o;
+    for (int m = 0; m < en->rows(); m++) {
+      e.push_back(en->value(m));
+      o.push_back(oc && m < oc->rows() ? oc->value(m) : 0.0);
+    }
+    MoColumn centre;
+    MoDiagram::groupByIrrep(e, o, vector<string>(), map<string,int>(), 5.0e-4,
+                            centre.levels);
+    MoDiagram::hideBelow(centre, MoDiagram::suggestCoreCutoff(centre.levels));
+    MoDiagram::hideAbove(centre, MoDiagram::suggestVirtualCutoff(centre.levels));
+    int room = 0;
+    for (size_t i = 0; i < symbols.size(); i++)
+      room += MoFragments::valenceOrbitals(symbols[i]);
+    //  The panel keeps a metal's semicore levels (the diagram tells core by
+    //  capture), and they take room: occupied orbitals beyond the valence
+    //  electron pairs.
+    int pairs = -frag->charge();
+    for (size_t i = 0; i < symbols.size(); i++)
+      pairs += MoFragments::valenceElectrons(symbols[i]);
+    pairs /= 2;
+    int occupied = 0;
+    for (size_t i = 0; i < centre.levels.size(); i++)
+      if (centre.levels[i].occupancy > 0.0) occupied += centre.levels[i].degeneracy;
+    MoDiagram::hideBeyondValence(centre, room + (occupied > pairs ? occupied - pairs : 0));
+
+    FoDiagram::Result res;
+    if (!FoDiagram::build(symbols, coords, frag->charge(), pb, S, rows, e,
+                          centre, res, why)) {
+      cerr << "fragorb: " << why << endl;
+      return 1;
+    }
+    printf("%s\n", res.note.c_str());
+    printf("scale %.4f %.5f capture %.4f %.4f\n", res.slope, res.intercept,
+           res.captureMin, res.captureMax);
+    const MoColumn* cols[3] = { &res.left, &centre, &res.right };
+    const char* names[3] = { "metal", "mo", "ligand" };
+    for (int c = 0; c < 3; c++)
+      for (size_t i = 0; i < cols[c]->levels.size(); i++) {
+        const MoLevel& l = cols[c]->levels[i];
+        printf("%s %zu E=%.4f deg=%d occ=%.0f label=\"%s\" ann=\"%s\"", names[c], i,
+               l.energy, l.degeneracy, l.occupancy, l.label.c_str(),
+               l.annotation.c_str());
+        if (c == 1) printf(" mo=%d", l.orbitals.empty() ? 0 : l.orbitals[0] + 1);
+        printf("\n");
+      }
+    for (size_t i = 0; i < res.links.size(); i++)
+      printf("link mo=%d left=%d right=%d weight=%.3f\n", res.links[i].centreLevel,
+             res.links[i].leftLevel, res.links[i].rightLevel, res.links[i].weight);
+    return 0;
   }
   FragmentOrbitals::FoSet set;
   if (!FragmentOrbitals::build(symbols, coords, frags, ligands, set, why)) {

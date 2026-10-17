@@ -194,6 +194,49 @@ def classes(build):
         check(not core, "Cr(CO)6 (%s): 1s/2s/2p cores (MOs 1-17) are class core" % mode, core)
 
 
+def diagram(build):
+    """The fragment-orbital diagram (FoDiagram) for the three ML6 types."""
+    print("the fragment-orbital diagram")
+    for fx, d_set in (("conh36", "Co 3d"), ("tif6", "Ti 3d"),
+                      ("crco6", "Cr 3d")):
+        rc, out, err = run(build, [fx, "--diagram"])
+        if rc != 0:
+            check(False, "%s --diagram runs" % fx, err.strip()[-200:])
+            continue
+        lines = out.splitlines()
+        scale = [l.split() for l in lines if l.startswith("scale ")]
+        levels = {"metal": [], "mo": [], "ligand": []}
+        links = []
+        for l in lines:
+            f = l.split()
+            if f and f[0] in levels:
+                kv = dict(x.split("=", 1) for x in f[2:] if "=" in x)
+                levels[f[0]].append((float(kv["E"]), int(kv["deg"]),
+                                     float(kv["occ"]), l))
+            elif f and f[0] == "link":
+                kv = dict(x.split("=") for x in f[1:])
+                links.append((int(kv["mo"]), int(kv["left"]), int(kv["right"]),
+                              float(kv["weight"])))
+        check(bool(scale) and float(scale[0][1]) > 0,
+              "%s: one fitted scale with a positive slope" % fx)
+        check(links and all(0.10 <= w <= 1.0 for _, _, _, w in links),
+              "%s: every line is a share of at least 10%%" % fx)
+        d = [i for i, (_, deg, _, l) in enumerate(levels["metal"])
+             if '"%s"' % d_set in l]
+        check(len(d) == 1 and levels["metal"][d[0]][1] == 5,
+              "%s: the metal column has the five 3d as one level" % fx)
+        if d:
+            strong = sorted((levels["mo"][mo][0], levels["mo"][mo][1])
+                            for mo, left, _, w in links
+                            if left == d[0] and w >= 0.5)
+            check(len(strong) == 2 and strong[0][1] == 3 and strong[1][1] == 2,
+                  "%s: t2g (3) below eg* (2) are the two levels that are "
+                  "half or more metal 3d" % fx, strong)
+        check(0 < len(levels["ligand"]) <= 6,
+              "%s: ligand internals do not crowd the right column" % fx,
+              len(levels["ligand"]))
+
+
 def main():
     status = unit()
     if status != 0:
@@ -205,6 +248,8 @@ def main():
     print()
     projection(build)
     classes(build)
+    print()
+    diagram(build)
     print("\nFAILED" if failures else "\nok")
     return 1 if failures else 0
 

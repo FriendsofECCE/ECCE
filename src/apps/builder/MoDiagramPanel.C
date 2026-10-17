@@ -34,6 +34,7 @@
 #include "tdat/MoAoBasis.H"
 #include "tdat/MoComposition.H"
 #include "tdat/MoFragments.H"
+#include "tdat/FoDiagram.H"
 #include "tdat/MoLigandField.H"
 #include "tdat/PropTable.H"
 #include "tdat/TGBSAngFunc.H"
@@ -170,7 +171,8 @@ static bool functionsPerAtom(IPropCalculation *expt, SGFragment *sgfrag,
 static bool buildBasisOverlap(IPropCalculation *expt, SGFragment *sgfrag,
                               int coefficientWidth,
                               vector<int>& perAtom, vector<double>& Sflat,
-                              std::function<void(double)> onRow = nullptr)
+                              std::function<void(double)> onRow = nullptr,
+                              vector<EspBasisFunction> *basisOut = 0)
 {
   vector<string> symbols;
   vector<double> coords;
@@ -179,7 +181,7 @@ static bool buildBasisOverlap(IPropCalculation *expt, SGFragment *sgfrag,
     return false;
   }
   return MoAoBasis::overlapMatrix(expt, symbols, coords, coefficientWidth,
-                                  perAtom, Sflat, onRow);
+                                  perAtom, Sflat, onRow, basisOut);
 }
 
 
@@ -1320,7 +1322,10 @@ void dumpColumn(std::ofstream& out, const string& name, const MoColumn& col,
       out << lv.orbitals[k];
     }
     out << "]";
-    out << " annotation=\"" << escapeDumpText(lv.annotation) << "\"\n";
+    out << " annotation=\"" << escapeDumpText(lv.annotation) << "\"";
+    if (!lv.detail.empty())
+      out << " detail=\"" << escapeDumpText(lv.detail) << "\"";
+    out << "\n";
   }
 }
 
@@ -1348,7 +1353,10 @@ void dumpMoDiagram(const string& path, const string& group,
   for (size_t i = 0; i < links.size(); i++) {
     out << "  link " << i << " left=" << links[i].leftLevel
         << " centre=" << links[i].centreLevel
-        << " right=" << links[i].rightLevel << "\n";
+        << " right=" << links[i].rightLevel;
+    if (links[i].weight >= 0.0)
+      out << " weight=" << std::setprecision(4) << links[i].weight;
+    out << "\n";
   }
 }
 
@@ -1491,6 +1499,23 @@ void exitAfterDumpIfRequested()
 }
 
 }  // namespace
+
+
+//  ECCE_MODIAGRAM_CONSTRUCTION=skeleton|central|halves|groups|sets|fragorb
+//  asks for one construction as the Built-as menu would (tests/modiagram).
+static MoFragments::Fragmentation constructionFromEnv()
+{
+  const char *v = getenv("ECCE_MODIAGRAM_CONSTRUCTION");
+  if (v == 0) return MoFragments::NOT_BUILT;
+  const string w(v);
+  if (w == "skeleton") return MoFragments::SKELETON;
+  if (w == "central")  return MoFragments::CENTRAL;
+  if (w == "halves")   return MoFragments::HALVES;
+  if (w == "groups")   return MoFragments::GROUPS;
+  if (w == "sets")     return MoFragments::EQUIVALENT_SETS;
+  if (w == "fragorb")  return MoFragments::FRAGMENT_ORBITALS;
+  return MoFragments::NOT_BUILT;
+}
 
 
 void MoDiagramPanel::build()
@@ -1888,6 +1913,12 @@ void MoDiagramPanel::buildOnce()
   vector<int> moPerAtom, moShellOf, moPerAtomS;
   vector< vector<double> > moCoefficients;
   vector<double> moSflat, moSqrtS;
+  //  The parent's own basis functions and atoms, in the stored frame the
+  //  coefficients are in: the fragment-orbital construction projects in
+  //  that frame, not in the symmetrised copy `coords` above.
+  vector<EspBasisFunction> moBasisFns;
+  vector<string> storedSymbols;
+  vector<double> storedCoords;
   bool moHaveSqrtS = false;
   bool moSemiempirical = false;
   {
@@ -1931,7 +1962,8 @@ void MoDiagramPanel::buildOnce()
                               overlapThrottle.Start();
                               progressDlg.progress(44 + (int)(frac*4),
                                   _("Computing overlap integrals"));
-                            })) {
+                            }, &moBasisFns)) {
+        fragmentSymbols(sgfrag, storedSymbols, storedCoords);
         //  S^{1/2}, once per diagram -- every MO below reuses it, only
         //  c changes per orbital (#170, then reused again for #175).
         progressDlg.progress(48, _("Orthogonalising the basis (Lowdin)"));
@@ -1951,6 +1983,42 @@ void MoDiagramPanel::buildOnce()
                 "Lowdin share.";
         }
       }
+    }
+  }
+
+  //  FRAGMENT ORBITALS (#301): offered when the parent's basis and
+  //  overlap are in hand and the structure is a metal with ligands.  A
+  //  code whose coefficients are orthonormalised (MOPAC) cannot be
+  //  projected on them, and the panel says so.  Decided here, before the
+  //  cutoffs: they must not fold away the metal's own occupied d levels.
+  bool foOffered = false;
+  string foNotOffered;
+  {
+    string foReason;
+    const size_t nb = moBasisFns.size();
+    if (!storedSymbols.empty() &&
+        FoDiagram::applicable(storedSymbols, storedCoords, 0, foReason)) {
+      if (moSemiempirical) {
+        foNotOffered = "Fragment orbitals are not offered for this "
+            "calculation: its orbitals are in an orthonormalised basis, "
+            "so they cannot be projected on fragment orbitals.";
+      } else if (nb > 0 && moSflat.size() == nb*nb &&
+                 moCoefficients.size() == e.size() &&
+                 !moCoefficients.empty() && moCoefficients[0].size() == nb) {
+        foOffered = true;
+      }
+    }
+  }
+  bool foWanted = foOffered;
+  const MoFragments::Fragmentation fromEnv = constructionFromEnv();
+  if (fromEnv != MoFragments::NOT_BUILT &&
+      fromEnv != MoFragments::FRAGMENT_ORBITALS) {
+    foWanted = false;
+  } else if (foOffered && p_construction != 0) {
+    const int picked = p_construction->GetSelection();
+    if (picked > 0 && picked <= (int)p_offered.size() &&
+        p_offered[picked - 1] != MoFragments::FRAGMENT_ORBITALS) {
+      foWanted = false;
     }
   }
 
@@ -2037,7 +2105,20 @@ void MoDiagramPanel::buildOnce()
       if (level.energy < 2.0*mostNegative) isSemicore[i] = true;
     }
   }
-  MoDiagram::hideSemicore(centre, isSemicore);
+  //  The fragment-orbital diagram tells a core level by its capture, and a
+  //  Co(III) t2g sits below twice its VOIE: the semicore rule would fold
+  //  away the very levels the diagram is about.
+  int keptSemicore = 0;
+  if (foWanted) {
+    for (size_t i = 0; i < isSemicore.size() && i < centre.levels.size(); i++) {
+      if (isSemicore[i]) {
+        keptSemicore += centre.levels[i].degeneracy > 0
+                        ? centre.levels[i].degeneracy : 1;
+      }
+    }
+  } else {
+    MoDiagram::hideSemicore(centre, isSemicore);
+  }
 
   //  PROTECT A METAL-HEAVY VIRTUAL FROM THE CUTOFFS (#183, "partner
   //  always shown"): suggestVirtualCutoff() folds by counting/gaps
@@ -2169,7 +2250,8 @@ void MoDiagramPanel::buildOnce()
     //  partners -- which suggestVirtualCutoff()'s own protection above
     //  already keeps whenever a partner is genuinely close to the
     //  valence region, confirmed against this fixture.
-    MoDiagram::hideBeyondValence(centre, valenceRoom);
+    //  The semicore levels kept for the fragment-orbital diagram take room.
+    MoDiagram::hideBeyondValence(centre, valenceRoom + keptSemicore);
   }
 
   for (size_t i = 0; i < centre.levels.size(); i++) {
@@ -2300,6 +2382,12 @@ void MoDiagramPanel::buildOnce()
   //  compute each molecular level's composition, not just its irrep.
   vector<int> leftAtoms, rightAtoms;
 
+  //  The fragment-orbital construction (FoDiagram) has its own columns,
+  //  lines, placement and note; none of the symmetry-based machinery
+  //  below runs for it.
+  bool foDrawn = false;
+  string foNote;
+
   if (!elements.empty()) {
     //  OFFER THE CHOICE, AND HONOUR IT.
     //
@@ -2344,6 +2432,9 @@ void MoDiagramPanel::buildOnce()
     if (p_construction != 0) {
       vector<MoFragments::Fragmentation> offers;
       MoFragments::availableFragmentations(coords, elements, group, offers);
+      if (foOffered) {
+        offers.insert(offers.begin(), MoFragments::FRAGMENT_ORBITALS);
+      }
 
       if (offers != p_offered) {
         const MoFragments::Fragmentation was = want;
@@ -2370,11 +2461,42 @@ void MoDiagramPanel::buildOnce()
       }
     }
 
+    if (fromEnv != MoFragments::NOT_BUILT &&
+        (fromEnv != MoFragments::FRAGMENT_ORBITALS || foOffered)) {
+      want = fromEnv;
+    }
+
+    //  Automatic means the fragment-orbital diagram where it is offered.
+    if (want == MoFragments::NOT_BUILT && foOffered) {
+      want = MoFragments::FRAGMENT_ORBITALS;
+    }
+
     progressDlg.progress(50, _("Building fragment orbitals"));
-    haveFragments = MoFragments::build(coords, elements, group, charge,
-                                       left, right, why, &leftAtoms,
-                                       &rightAtoms, chosen,
-                                       &p_fragmentation, want);
+    if (want == MoFragments::FRAGMENT_ORBITALS) {
+      FoDiagram::Result fo;
+      string foWhy;
+      if (FoDiagram::build(storedSymbols, storedCoords, charge, moBasisFns,
+                           moSflat, moCoefficients, e, centre, fo, foWhy)) {
+        left = fo.left;
+        right = fo.right;
+        links = fo.links;
+        foNote = fo.note;
+        p_fragmentation = MoFragments::FRAGMENT_ORBITALS;
+        haveFragments = true;
+        foDrawn = true;
+      } else {
+        //  Said, and the usual construction drawn instead.
+        foNotOffered = "The fragment-orbital diagram could not be made: " +
+                       foWhy;
+        want = MoFragments::NOT_BUILT;
+      }
+    }
+    if (!foDrawn) {
+      haveFragments = MoFragments::build(coords, elements, group, charge,
+                                         left, right, why, &leftAtoms,
+                                         &rightAtoms, chosen,
+                                         &p_fragmentation, want);
+    }
   }
 
   //  COMPOSITION, SUPPLIED WHENEVER IT IS AVAILABLE -- not only as a
@@ -2575,7 +2697,7 @@ void MoDiagramPanel::buildOnce()
   //  to composition -- which fragment and which shell an orbital
   //  actually draws from, from its own coefficients.  That needs no
   //  symmetry labels at all.
-  bool byIrrep = haveFragments;
+  bool byIrrep = haveFragments && !foDrawn;
 
   //  COLUMNS THAT CARRY NO IRREP ARE NOT COLUMNS THAT DISAGREE.
   //
@@ -2594,7 +2716,7 @@ void MoDiagramPanel::buildOnce()
   }
 
   //  The fragment columns are always in the full stand-in group.
-  if (linearMolecule) {
+  if (linearMolecule && !foDrawn) {
     for (size_t j = 0; j < left.levels.size(); j++)
       left.levels[j].irrep = linearName(left.levels[j].irrep);
     for (size_t j = 0; j < right.levels.size(); j++)
@@ -2643,7 +2765,7 @@ void MoDiagramPanel::buildOnce()
     }
   }
 
-  if (haveFragments) {
+  if (haveFragments && !foDrawn) {
     //  Without a usable irrep the centre levels carry none, so
     //  connect() matches on the shell a fragment level is and the
     //  share an orbital holds of it.  Left in place they would match
@@ -2798,7 +2920,12 @@ void MoDiagramPanel::buildOnce()
     }
   }
 
+  if (foDrawn) {
+    note << "  Molecular levels are the calculation's own orbital energies "
+            "in Hartree.  " << foNote;
+  }
   if (!why.empty()) note << "  " << why;
+  if (!foNotOffered.empty()) note << "  " << foNotOffered;
   if (!symmetryNote.empty()) note << "  " << symmetryNote;
   if (group == symmetrisedGroup) note << "  " << symmetrisedNote;
 

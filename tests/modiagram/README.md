@@ -140,6 +140,13 @@ computes them. The basis is recorded Cartesian (`.davprops`, applied by
 `capture.py` over WebDAV): that is the case that used to draw no labels.
 Preferences' `EcceQmMoDiagram` is switched on by `capture.py`.
 
+## Constructions (#301)
+
+`orca-crco6` is drawn by the fragment-orbital construction, the default for
+a metal complex; `orca-crco6-skeleton` is the same calculation forced to
+SKELETON (`ECCE_MODIAGRAM_CONSTRUCTION=skeleton`) and keeps the golden the
+metal case had before it.
+
 ## Reproducing
 
 ```

@@ -150,7 +150,7 @@ bool FoDiagram::build(const vector<string>& symbols,
    const size_t nc = centre.levels.size();
    vector< vector<double> > share(nc, vector<double>(ng, 0.0));
    out.captureMin = 1.0; out.captureMax = 0.0;
-   int uncaptured = 0;
+   vector<string> klass(nc);
    for (size_t c = 0; c < nc; c++) {
       MoLevel& level = centre.levels[c];
       double capture = 0, metal = 0, ligand = 0;
@@ -168,14 +168,13 @@ bool FoDiagram::build(const vector<string>& symbols,
       capture /= n; metal /= n; ligand /= n;
       level.shareLeft = metal;
       level.shareRight = ligand;
+      klass[c] = FragmentOrbitals::classOf(capture, metal, ligand);
       out.captureMin = std::min(out.captureMin, capture);
       out.captureMax = std::max(out.captureMax, capture);
-      if (capture < FragmentOrbitals::CORE_CAPTURE) uncaptured++;
 
       //  The tooltip text: class, shares, capture, the largest FOs.
       std::ostringstream t;
-      t << "Fragment orbitals (extended Hueckel): "
-        << FragmentOrbitals::classOf(capture, metal, ligand)
+      t << "Fragment orbitals (extended Hueckel): " << klass[c]
         << ", metal " << percent(metal) << ", ligands " << percent(ligand)
         << ", captured " << percent(capture) << " of the MO";
       if (n > 1) t << " (mean over its orbitals)";
@@ -197,11 +196,83 @@ bool FoDiagram::build(const vector<string>& symbols,
       level.detail = t.str();
    }
 
-   //  --- the fragment columns: levels with at least one line --------
-   vector<bool> linked(ng, false);
+   //  --- ligand-internal and core levels are not drawn ---------------
+   //  They took part in the fit above (they pin the ligand scale), but a
+   //  level that is 80% ligand and has no line to a metal orbital has no
+   //  metal interaction to show, and a hundred of them bury the picture.
+   //  Said in the note, counted.
+   vector<bool> metalGroup(ng, false);
+   for (size_t g = 0; g < ng; g++)
+      metalGroup[g] = set.fragments[set.fos[groups[g][0]].fragment].kind ==
+                      FragmentOrbitals::METAL;
+   vector<int> newIndex(nc, -1);
+   vector<MoLevel> kept;
+   int hiddenLigand = 0, hiddenCore = 0;
+   out.captureMin = 1.0; out.captureMax = 0.0;
+   for (size_t c = 0; c < nc; c++) {
+      if (klass[c] == "core") { hiddenCore++; continue; }
+      if (klass[c] == "ligand") {
+         double toMetal = 0.0;
+         for (size_t g = 0; g < ng; g++)
+            if (metalGroup[g]) toMetal = std::max(toMetal, share[c][g]);
+         if (toMetal < LINK_MIN) { hiddenLigand++; continue; }
+      }
+      newIndex[c] = (int)kept.size();
+      kept.push_back(centre.levels[c]);
+   }
+   if (kept.empty()) {
+      why = "Every drawn orbital is on the ligands alone (or core).";
+      return false;
+   }
+   {
+      //  Capture range of what is drawn.
+      for (size_t c = 0; c < nc; c++) {
+         if (newIndex[c] < 0) continue;
+         double cap = 0; int n = 0;
+         for (size_t k = 0; k < centre.levels[c].orbitals.size(); k++) {
+            const int m = centre.levels[c].orbitals[k];
+            if (m < 0 || m >= (int)rowOf.size() || rowOf[m] < 0) continue;
+            cap += sh[rowOf[m]].capture; n++;
+         }
+         if (n == 0) continue;
+         cap /= n;
+         out.captureMin = std::min(out.captureMin, cap);
+         out.captureMax = std::max(out.captureMax, cap);
+      }
+   }
+   vector< vector<double> > shareKept(kept.size());
    for (size_t c = 0; c < nc; c++)
-      for (size_t g = 0; g < ng; g++)
-         if (share[c][g] >= LINK_MIN) linked[g] = true;
+      if (newIndex[c] >= 0) shareKept[newIndex[c]] = share[c];
+   share.swap(shareKept);
+   centre.levels = kept;
+   const size_t ncKept = kept.size();
+
+   //  --- the fragment columns: levels with at least one line --------
+   //  A fragment level the fit puts far outside the drawn orbitals (a
+   //  high ligand sigma* with 10% of one virtual) would stretch the
+   //  energy axis over the whole picture, so it is left out and counted.
+   double lo = 1.0e30, hi = -1.0e30;
+   for (size_t c = 0; c < ncKept; c++) {
+      lo = std::min(lo, centre.levels[c].energy);
+      hi = std::max(hi, centre.levels[c].energy);
+   }
+   const double margin = 0.25*(hi - lo);
+   vector<bool> linked(ng, false);
+   int farAway = 0;
+   for (size_t g = 0; g < ng; g++) {
+      bool any = false;
+      for (size_t c = 0; c < ncKept; c++)
+         if (share[c][g] >= LINK_MIN) any = true;
+      if (!any) continue;
+      const double placed = out.slope*set.fos[groups[g][0]].energy
+                            + out.intercept;
+      if (placed < lo - margin || placed > hi + margin) {
+         farAway++;
+         for (size_t c = 0; c < ncKept; c++) share[c][g] = 0.0;
+         continue;
+      }
+      linked[g] = true;
+   }
 
    vector< std::pair<double,size_t> > order[2];       // 0 metal, 1 ligand
    for (size_t g = 0; g < ng; g++) {
@@ -253,7 +324,7 @@ bool FoDiagram::build(const vector<string>& symbols,
    out.left.title = "Metal AOs (extended Hueckel)";
    out.right.title = "Ligand orbitals (extended Hueckel)";
 
-   for (size_t c = 0; c < nc; c++) {
+   for (size_t c = 0; c < ncKept; c++) {
       for (size_t g = 0; g < ng; g++) {
          if (share[c][g] < LINK_MIN) continue;
          MoConnection link;
@@ -280,11 +351,18 @@ bool FoDiagram::build(const vector<string>& symbols,
      << " (capture).  " << fit
      << "  A line is drawn where a fragment orbital makes up at least "
      << percent(LINK_MIN) << " of an orbital; thicker is more.";
-   if (uncaptured > 0)
-      n << "  " << uncaptured << " drawn level"
-        << (uncaptured > 1 ? "s are" : " is")
-        << " not described by the valence fragment orbitals (capture "
-           "below " << percent(FragmentOrbitals::CORE_CAPTURE) << ").";
+   if (hiddenLigand > 0)
+      n << "  " << hiddenLigand << " ligand-internal level"
+        << (hiddenLigand > 1 ? "s" : "") << " (at least "
+        << percent(FragmentOrbitals::SIDE_FRACTION)
+        << " on the ligands, no line to a metal orbital) not drawn.";
+   if (farAway > 0)
+      n << "  " << farAway << " fragment level" << (farAway > 1 ? "s" : "")
+        << " the scale puts far outside the drawn orbitals not drawn.";
+   if (hiddenCore > 0)
+      n << "  " << hiddenCore << " level" << (hiddenCore > 1 ? "s" : "")
+        << " the valence fragment orbitals do not describe (capture below "
+        << percent(FragmentOrbitals::CORE_CAPTURE) << ") not drawn.";
    out.note = n.str();
    return true;
 }
