@@ -43,7 +43,7 @@ column right
   hiddenSemicoreCount: 0
   hiddenAboveCount: 0
   shellKeys:
-  band 0 low=-1.292931 high=-0.521971 levels=22 label=(CO)6 internal: 22 levels, 44 e
+  band 0 low=-0.921559 high=-0.521971 levels=22 label=(CO)6 internal: 22 levels, 44 e
   band 1 low=-0.326045 high=-0.296069 levels=9 label=(CO)6 internal: 9 levels, empty
   levels: 6
   level 0 energy=-0.802134 tabulated=0.000000 irrep=A1G label=A1G character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="−21.83 eV" detail="Fragment orbital set from extended Hückel, E = −21.83 eV, 2 electrons."

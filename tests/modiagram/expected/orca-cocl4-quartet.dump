@@ -42,7 +42,7 @@ column right
   hiddenSemicoreCount: 0
   hiddenAboveCount: 0
   shellKeys:
-  band 0 low=-0.986241 high=-0.509529 levels=7 label=Cl4 internal: 7 levels, 14 e
+  band 0 low=-0.686613 high=-0.509529 levels=7 label=Cl4 internal: 7 levels, 14 e
   levels: 4
   level 0 energy=-0.553413 tabulated=0.000000 irrep=A1 label=A1 character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="−15.06 eV" detail="Fragment orbital set from extended Hückel, E = −15.06 eV, 2 electrons."
   level 1 energy=-0.535534 tabulated=0.000000 irrep=T2 label=T2 (FO6-8) character=UNKNOWN pairing=-1 occupancy=6.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="−14.57 eV" detail="Fragment orbital set from extended Hückel, E = −14.57 eV, 6 electrons."

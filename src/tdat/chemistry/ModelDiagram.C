@@ -728,6 +728,14 @@ bool ModelDiagram::build(const Input& in,
          e += cl[c].occupancy + std::max(0.0, cl[c].occupancyBeta);
       }
       if (levels == 0) continue;
+      //  A bar never runs off the axis the drawn levels make.
+      double floorE = 1e30, ceilE = -1e30;
+      for (size_t i = 0; i < out.centre.levels.size(); i++) {
+         floorE = std::min(floorE, out.centre.levels[i].energy);
+         if (!cl.empty()) ceilE = std::max(ceilE, out.centre.levels[i].energy);
+      }
+      if (floorE < 1e29) { lo = std::max(lo, floorE - 3.0/HARTREE); hi = std::min(hi, ceilE); }
+      if (hi < lo) hi = lo;
       MoBand b;
       b.low = lo; b.high = hi; b.levels = levels;
       b.label = rightName.formula + (bandRule ? " internal" : "") + ": " + std::to_string(levels) +
