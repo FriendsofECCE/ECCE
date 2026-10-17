@@ -906,6 +906,11 @@ bool FoDiagram::build(const vector<string>& symbols,
          const string::size_type fo = d.label.find("FO");
          const string::size_type sp = d.label.find(" (", fo);
          si.label = d.label.substr(fo, sp == string::npos ? string::npos : sp - fo);
+         //  A degenerate set split across irreps (methanol's CH3 e pair is
+         //  a' + a'' in Cs) must not give two levels one label.
+         size_t same = 0;
+         for (size_t q = 0; q < ns; q++) same += subs[q].group == sub.group;
+         if (atomCentre && same > 1 && !sub.irrep.empty()) si.label += " " + sub.irrep;
       }
    }
 
