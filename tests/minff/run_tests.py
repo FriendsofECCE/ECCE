@@ -101,6 +101,34 @@ def minimise(out, label, charged=False):
     check(pe[-1] < pe[0], label + ": energy decreases %.4g -> %.4g kJ/mol" % (pe[0], pe[-1]))
 
 
+def posres_noh(out, label):
+    """-DPOSRES_noH: grompp accepts the block and restrains every heavy atom and no H."""
+    with open(os.path.join(out, "pr.mdp"), "w") as f:
+        f.write(EM_MDP + "define = -DPOSRES_noH\n")
+    r = run(["gmx", "grompp", "-f", "pr.mdp", "-c", "conf.gro", "-p", "topol.top",
+             "-r", "conf.gro", "-o", "pr.tpr", "-pp", "pr.top"], cwd=out)
+    check(r.returncode == 0, label + ": grompp -DPOSRES_noH")
+    if r.returncode:
+        print(r.stderr[-1500:])
+        return
+    heavy, sec = set(), None
+    for l in open(os.path.join(out, "min.itp")):
+        t = l.split(";")[0].strip()
+        if t.startswith("["):
+            sec = t.strip("[] ")
+        elif t and sec == "atoms" and float(t.split()[7]) > 2.0:
+            heavy.add(t.split()[0])
+    rest, sec = [], None
+    for l in open(os.path.join(out, "pr.top")):
+        t = l.split(";")[0].strip()
+        if t.startswith("["):
+            sec = t.strip("[] ")
+        elif t and sec == "position_restraints":
+            rest.append(t.split()[0])
+    check(rest and set(rest) == heavy and len(rest) == len(heavy),
+          label + ": POSRES_noH restrains the %d heavy atoms, no hydrogen" % len(heavy))
+
+
 def mineral_only(src, dst):
     """The MIN residues of a hydrated .gro (water and ions dropped)."""
     L = open(src).read().splitlines()
@@ -135,6 +163,7 @@ def main():
         check(abs(s["total_charge"]) < 1e-4 and not s["untyped_atoms"],
               "kaolinite: neutral, no untyped atoms")
         minimise(out, "kaolinite")
+        posres_noh(out, "kaolinite")
 
     # 2. montmorillonite, tailored MINFF; the mineral layer of the authors'
     #    hydrated example (UC_conf has no montmorillonite)

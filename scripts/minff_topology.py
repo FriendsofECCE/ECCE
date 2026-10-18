@@ -313,6 +313,30 @@ def contiguous_z(path):
     return moved
 
 
+def add_posres_noh(path, fc=1000):
+    """Append `#ifdef POSRES_noH`: restrain every heavy atom (mass > 2 u).
+    The name and the 1000 kJ/mol/nm2 force constant are the ones MINFF
+    workflows use (-DPOSRES_noH); atomipy only writes POSRES and POSRES_MINFF.
+    Returns the number of restrained atoms."""
+    heavy, sec = [], None
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            s = line.split(";")[0].strip()
+            if s.startswith("["):
+                sec = s.strip("[] ").lower()
+            elif s and sec == "atoms":
+                p = s.split()
+                if float(p[7]) > 2.0:
+                    heavy.append(p[0])
+    with open(path, "a", encoding="utf-8") as f:
+        f.write("\n#ifdef POSRES_noH\n[ position_restraints ]\n"
+                "; atom  type      fx      fy      fz\n")
+        for i in heavy:
+            f.write("%-6s 1     %d  %d  %d\n" % (i, fc, fc, fc))
+        f.write("#endif\n")
+    return len(heavy)
+
+
 def read_itp_atoms(path):
     """[(type, charge)] from the [ atoms ] section of an itp."""
     out, sec = [], None
@@ -372,6 +396,7 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
         shutil.copy(itp_tmp, os.path.join(outdir, "min.itp"))
         shutil.copy(gro_tmp, os.path.join(outdir, "conf.gro"))
 
+    add_posres_noh(os.path.join(outdir, "min.itp"))
     z_moved = contiguous_z(os.path.join(outdir, "conf.gro"))
     dst = os.path.join(outdir, "min.ff")
     if os.path.isdir(dst):
