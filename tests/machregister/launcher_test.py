@@ -60,6 +60,25 @@ def path_without_mpi(root):
     return farm
 
 
+def launchwarn_check(disp, build, tmp):
+    """The dialog for a launch-check problem: Cancel stops, Launch anyway goes on."""
+    e = g.Env(tmp, "launcher-warn")
+    for answer, want in (("cancel", "cancel"), ("yes", "go")):
+        g.write(os.path.join(e.root, "lscript"),
+                "launchwarn 'grompp warns about the inputs. The job will fail at this point when it is run.'\nquit\n")
+        env = e.env(disp)
+        env.pop("ECCE_MACHREG_SCRIPT", None)
+        env.update({"ECCE_REALUSER": "eccetest", "ECCE_TEST_DIALOG_CLOSE": "1",
+                    "ECCE_TEST_DIALOG_ANSWER": answer,
+                    "ECCE_LAUNCHER_SCRIPT": os.path.join(e.root, "lscript")})
+        p = subprocess.run([os.path.join(build, "launcher")], env=env, cwd=e.root,
+                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                           text=True, timeout=120)
+        g.check("[Launch check] grompp warns" in p.stdout
+                and "launchwarn: %s" % want in p.stdout,
+                "launch-check dialog answered %s: %s" % (answer, want))
+
+
 def mpi_check(disp, build, tmp):
     """Launch's MPI check on this computer: a missing mpirun for ORCA on
     4 cores offers "Run on 1 core" (taken by ECCE_TEST_DIALOG_CLOSE) and
@@ -210,6 +229,7 @@ quit
         g.check("gpu" in q and "short|defProcessors:" in q,
                 "the save really went through Register Machines")
         mpi_check(disp, build, tmp)
+        launchwarn_check(disp, build, tmp)
     finally:
         disp.__exit__(None, None, None)
         shutil.rmtree(tmp, ignore_errors=True)

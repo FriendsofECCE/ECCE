@@ -142,6 +142,9 @@ int LauncherScript::runCommand(const vector<string>& w)
     else if (cmd == "sizecheck" && n == 1)
         fprintf(stderr, "[LAUNCHER] sizecheck: %s\n",
                 p_frame->confirmQmSize() ? "go" : "cancel");
+    else if (cmd == "launchwarn" && n == 2)
+        fprintf(stderr, "[LAUNCHER] launchwarn: %s\n",
+                p_frame->confirmLaunchWarning(w[1]) ? "go" : "cancel");
     else if (cmd == "rundir" && n == 2)
         p_frame->setRunDirectory(w[1]);
     else if (cmd == "reload")

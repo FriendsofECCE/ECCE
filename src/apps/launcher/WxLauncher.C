@@ -1420,6 +1420,20 @@ bool WxLauncher::confirmMpiLauncher(const string& code)
 }
 
 
+/**
+ * A problem the code's launch check found that the job will meet.  Only a
+ * warning: the user knows best, so launching anyway is the default.  False
+ * when the user cancelled.
+ */
+bool WxLauncher::confirmLaunchWarning(const string& text)
+{
+    ewxMessageDialog dlg(this, text, "Launch check", wxICON_EXCLAMATION);
+    dlg.AddButton(wxID_CANCEL, "Cancel");
+    dlg.AddButton(wxID_YES, "Launch anyway")->SetDefault();
+    return dlg.ShowModal() == wxID_YES;
+}
+
+
 void WxLauncher::ensureEditsApplied(bool itemToFront)
 {
     int slctnIdx = p_machinesChoice->GetSelection();
@@ -2487,6 +2501,20 @@ void WxLauncher::launchCalc(const bool& fullLaunchFlag)
 
         else if (p_launchData->info() != "")
             p_messagesFeedback->setMessage(p_launchData->info(), WxFeedback::INFO, false, true);
+
+        if (valid && p_launchData->launchWarning() != "")
+        {
+            string warning = p_launchData->launchWarning();
+            p_launchData->clearLaunchWarning();
+            if (!confirmLaunchWarning(warning))
+            {
+                p_messagesFeedback->setMessage("Launch cancelled.", WxFeedback::INFO);
+                p_launchData->removeStaging();
+                delete p_launchData;
+                p_launchData = NULL;
+                return;
+            }
+        }
 
         this->UpdateWindowUI();
     }
