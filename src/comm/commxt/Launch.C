@@ -899,7 +899,9 @@ bool Launch::validateCalculation(void)
             } else if (!(p_cache->isGromacs && hasGromacsSourcePdb())) {
               // A GROMACS Prepare may start from an attached .gmxpdb instead
               ret = false;
-              p_lastMessage = "Unable to find source for chemical system pdb file for MD Prepare task";
+              p_lastMessage = "This Prepare task has no structure. Open it in the "
+                "Builder (Builder... button), build or load the structure, "
+                "and Save.";
             }
           }
         } 

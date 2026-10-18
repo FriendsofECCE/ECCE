@@ -86,6 +86,8 @@ def main():
                     help="run only the MINFF section")
     ap.add_argument("--editor-only", action="store_true",
                     help="run only the editor section")
+    ap.add_argument("--builder-save-only", action="store_true",
+                    help="run only the Builder-save section")
     ap.add_argument("--organizer-only", action="store_true",
                     help="run only the Organizer section")
     args = ap.parse_args()
@@ -111,6 +113,10 @@ def main():
         if args.minff_only:
             minff_section(s, build, rundir, args.png or os.path.join(s.state, "png"))
             failures.extend(gromacs_test_failures())
+            return 1 if failures else 0
+
+        if args.builder_save_only:
+            builder_save_section(s, rundir)
             return 1 if failures else 0
 
         if args.organizer_only:
@@ -246,6 +252,8 @@ def main():
                   "a side chain cut short is reported at launch with pdb2gmx's "
                   "message: %s" % re.sub(r"\s+", " ", out.strip())[-200:])
 
+        builder_save_section(s, rundir)
+
         # ---- the Organizer's New menu -----------------------------------
         organizer_new(s, build, gmx)
 
@@ -260,6 +268,40 @@ def main():
 
     say("%d failure(s)" % len(failures))
     return 1 if failures else 0
+
+
+def builder_save_section(s, rundir):
+    """A structure the Builder saved once is the Prepare's source (G-g).
+
+    The first Builder save is stored as the task's original fragment only;
+    Launch used to look for the input fragment and refused the launch.
+    """
+    rc, out = s.driver("gromacsprepstudy", s.userUrl(), "bldsave",
+                       os.path.join(FIXTURES, "1l2y.pdb"),
+                       "frag=" + os.path.join(FIXTURES, "1l2y.pdb"))
+    urls = urls_of(out)
+    if not check(rc == 0 and len(urls) == 3, "a study whose Prepare has one Builder save: %s"
+                 % out.strip().replace("\n", " | ")[:300]):
+        return
+    prep = urls[1]
+    ptask = prep.replace("file://", "").rstrip("/")
+    s.driver("mdsetup", prep, "localhost", rundir, s.user())
+    rc, out = s.launch(prep)
+    check(rc == 0, "Launch finds the structure of a Prepare saved once in the Builder: %s"
+          % re.sub(r"\s+", " ", out.strip())[-200:])
+    state = s.waitState(prep, 600)
+    check(state in ("completed", "loaded"), "that Prepare ran to %s" % state)
+
+    # nothing at all: the message says what to do
+    rc, out = s.driver("gromacsprepstudy", s.userUrl(), "nostruct",
+                       os.path.join(FIXTURES, "1l2y.pdb"), "frag=-")
+    urls = urls_of(out)
+    if check(rc == 0 and len(urls) == 3, "a study with an empty Prepare"):
+        s.driver("mdsetup", urls[1], "localhost", rundir, s.user())
+        rc, out = s.driver("launch", urls[1], extra={"LAUNCHJOB_WARNING": "cancel"})
+        text = re.sub(r"\s+", " ", out)
+        check(rc != 0 and "has no structure" in text and "Builder" in text,
+              "a Prepare with no structure is refused and told what to do: %s" % text[-200:])
 
 
 def editor_section(s, build, rundir, png):

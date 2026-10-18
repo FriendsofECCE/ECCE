@@ -631,6 +631,13 @@ istream *MdTask::getInputFragmentAsFile()
   getEDSI()->setURL(url);
   if (getEDSI()->exists()) {
     ret = getEDSI()->getDataSet();
+  } else {
+    // The first Builder save is stored as the original fragment only.
+    url = getVDoc()->getConfiguration(getVDoc()->getOriginalMoleculeName());
+    getEDSI()->setURL(url);
+    if (getEDSI()->exists()) {
+      ret = getEDSI()->getDataSet();
+    }
   }
 
   return ret;

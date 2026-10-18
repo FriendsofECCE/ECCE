@@ -12,12 +12,15 @@
 //                                 Dynamics task chained as the Organizer's New menu chains
 //                                 them; prints the study's and the tasks' URLs, one a line
 //   launchjob gromacsprepstudy <parentURL> <name> <pdbFile> [ff=F] [water=W] [box=B] [dist=D] [conc=C]
-//                                 [merge=0|1] [equilibrate] [bare]
+//                                 [merge=0|1] [equilibrate] [bare] [frag=<pdb>|-]
 //                                 a project and a GROMACS MD study with a Prepare task on <pdbFile>
 //                                 (stored as its .gmxpdb, the recipe written as the editor
 //                                 would) and an Optimize task, plus an Equilibrate with the
 //                                 word "equilibrate"; "bare" leaves the Prepare without a
-//                                 structure or recipe, as New makes it; prints the URLs, one a line
+//                                 structure or recipe, as New makes it; prints the URLs, one a line.
+//                                 frag=<pdb> instead of the .gmxpdb stores <pdb> as the Builder's
+//                                 save does (MdTask::fragment: the first save is the original
+//                                 fragment); frag=- stores the recipe and no structure
 //   launchjob apptype <url>       the application and content type of a resource
 //   launchjob nwchemmdstudy <parentURL> <name>
 //                                 the same with an NWChem MD study holding a Prepare and an Optimize task
@@ -88,6 +91,7 @@
 #include "dsm/ResourceType.H"
 #include "dsm/Session.H"
 #include "dsm/TaskJob.H"
+#include "tdat/Fragment.H"
 #include "dsm/VDoc.H"
 #include "tdat/AuthCache.H"
 #include "tdat/DefaultDavAuth.H"
@@ -269,6 +273,7 @@ static int doGromacsPrepStudy(const vector<string>& a)
 
   GromacsPrepareModel pm;
   bool equilibrate = false, bare = false;
+  string fragFile;
   for (size_t i = 3; i < a.size(); i++) {
     string::size_type eq = a[i].find('=');
     string k = a[i].substr(0, eq), v = eq == string::npos ? "" : a[i].substr(eq + 1);
@@ -280,6 +285,7 @@ static int doGromacsPrepStudy(const vector<string>& a)
     else if (k == "merge") pm.mergeChains(v == "1");
     else if (k == "equilibrate") equilibrate = true;
     else if (k == "bare") bare = true;
+    else if (k == "frag") fragFile = v;
     else { cerr << "gromacsprepstudy: unknown setting " << a[i] << endl; return 2; }
   }
 
@@ -298,7 +304,18 @@ static int doGromacsPrepStudy(const vector<string>& a)
       ifstream pdb(a[2].c_str());
       string tail = a[2].substr(a[2].find_last_of('/') + 1);
       tail = tail.substr(0, tail.find_last_of('.')) + ".gmxpdb";
-      if (!pdb || !task->putInputFile(tail, &pdb)) {
+      if (fragFile == "-") {
+        // recipe only: a Prepare whose editor was saved before any structure
+      } else if (!fragFile.empty()) {
+        ifstream fin(fragFile.c_str());
+        Fragment frag;
+        MdTask* md = dynamic_cast<MdTask*>(task);
+        if (!fin || !md || !frag.restorePDB(fin, 1.0, true, 1, " ", true, false, " ")
+            || !md->fragment(&frag)) {
+          cerr << "could not store the fragment " << fragFile << endl;
+          return 1;
+        }
+      } else if (!pdb || !task->putInputFile(tail, &pdb)) {
         cerr << "could not store the source structure" << endl;
         return 1;
       }
