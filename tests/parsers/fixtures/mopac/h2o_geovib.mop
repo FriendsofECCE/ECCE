@@ -1,0 +1,10 @@
+PM7 EF CHARGE=0 SINGLET PRECISE
+water optimization then vibrational analysis
+ECCE MOPAC regression fixture
+O    0.000000    0.000000    0.000000
+H    0.000000    0.000000    0.960000
+H    0.926000    0.000000   -0.240000
+
+PM7 FORCE THERMO OLDGEO CHARGE=0 SINGLET PRECISE
+water optimization then vibrational analysis
+Vibrational analysis at the optimized geometry

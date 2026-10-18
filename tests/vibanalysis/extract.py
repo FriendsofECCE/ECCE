@@ -4,8 +4,11 @@ The text goes through the real .desc files and parser scripts (the same
 replay tests/parsers uses), so the geometry, the normal modes and the
 code's own VIBSYM labels are what ECCE would store for the job.
 """
+import atexit
 import os
+import shutil
 import sys
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
@@ -27,9 +30,14 @@ def records(fixture, descName, runtype):
             delivered.append((block.begin_line, entry, block))
     delivered.sort(key=lambda t: t[0])
     found = {}
+    #  One directory for all the scripts, as in the real monitor: mopac.vib
+    #  reads what mopac.geomtrace left there.
+    workdir = tempfile.mkdtemp(prefix="ecce-vibanalysis-")
+    atexit.register(shutil.rmtree, workdir, True)
     for _line, entry, block in delivered:
         out, _err, _rc = run_parser(SCRIPTS, entry, block,
-                                    (".", runtype, "SCF", "RHF", "0"))
+                                    (".", runtype, "SCF", "RHF", "0"),
+                                    workdir=workdir)
         for rec in parse_parser_output(out):
             found.setdefault(rec["key"], []).append(rec["flat"])
     return found
@@ -37,24 +45,6 @@ def records(fixture, descName, runtype):
 
 def floats(text):
     return [float(t) for t in text.replace("D", "e").split()]
-
-
-def mopac_force_geometry(path):
-    """(elements, flat xyz) of MOPAC's "ORIENTATION OF MOLECULE IN FORCE
-    CALCULATION" block, the frame its normal modes are printed in."""
-    lines = open(path).read().splitlines()
-    start = [i for i, l in enumerate(lines)
-             if "ORIENTATION OF MOLECULE IN FORCE CALCULATION" in l][-1]
-    elements, xyz = [], []
-    for l in lines[start + 1:]:
-        f = l.split()
-        if len(f) != 5 or not f[0].isdigit():
-            if elements:
-                break
-            continue
-        elements.append(f[1])
-        xyz += [float(v) for v in f[2:]]
-    return elements, xyz
 
 
 def modes_file(fixture, descName, runtype, elements=None, bonds=None,

@@ -84,12 +84,14 @@ CASES = [
     ("H2O", "ORCA", os.path.join(FIX, "orca/h2o_freq_raman.out"), "orca.desc", "Vibration", None),
     ("H2O", "NWChem", os.path.join(FIX, "nwchem/h2o_freq.eprint"), "nwchem.desc", "Vibration", "OHH"),
     ("H2O", "Gaussian", os.path.join(FIX, "gaussian-16/h2o_optfreq.log"), "gaussian-16.desc", "GeoVib", None),
+    ("H2O", "MOPAC", os.path.join(FIX, "mopac/h2o_geovib.out"), "mopac.desc", "GeoVib", None),
     ("H2O", "ECCE-QM", os.path.join(FIX, "ecceqm/h2o_optfreq.qmout"), "ecceqm.desc", "GeoVib", "OHH"),
     ("CH4", "ORCA", os.path.join(FIX, "orca/ch4_freq_raman.out"), "orca.desc", "Vibration", None),
     ("CH4", "MOPAC", os.path.join(FIX, "mopac/ch4_force.out"), "mopac.desc", "Vibration", None),
     ("CH4", "ECCE-QM", os.path.join(QM, "ch4_optfreq.qmout"), "ecceqm.desc", "GeoVib", "CHHHH"),
     ("NH3", "Gaussian", os.path.join(REPO, "tests/progress/fixtures/gaussian-16/nh3_optfreq.log"),
      "gaussian-16.desc", "GeoVib", None),
+    ("NH3", "MOPAC", os.path.join(FIX, "mopac/nh3_geovib.out"), "mopac.desc", "GeoVib", None),
     ("NH3", "ECCE-QM", os.path.join(QM, "nh3_optfreq.qmout"), "ecceqm.desc", "GeoVib", "NHHH"),
     ("CO2", "ECCE-QM", os.path.join(QM, "co2_optfreq.qmout"), "ecceqm.desc", "GeoVib", "COO"),
     ("HCHO", "ECCE-QM", os.path.join(QM, "hcho_optfreq.qmout"), "ecceqm.desc", "GeoVib", "COHH"),
@@ -218,18 +220,6 @@ def main():
             check(False, "%s: fixture %s exists" % (name, fixture))
             continue
         geometry = None
-        if code == "MOPAC":
-            #  MOPAC prints its modes in the orientation of its force run, not
-            #  the one ECCE stores: the stored one must be refused, and the
-            #  modes analysed in their own frame.
-            stored, _s, _f = extract.modes_file(fixture, desc, runtype, None, None)
-            got = run(cli, env, stored, name + " (stored geometry)")
-            if got is not None:
-                check(got[0] == "" or got[0] == "-", "%s: modes in another orientation than the stored structure are not labelled (%s)"
-                      % (name, got[1]))
-                check(all(m["irrep"] == "-" and m["label"] == "-" for m in got[2]),
-                      "%s: and nothing is said about them" % name)
-            geometry = extract.mopac_force_geometry(fixture)
         text, codeSym, freqs = extract.modes_file(
             fixture, desc, runtype, list(elements) if elements else None, BONDS.get(mol),
             geometry)
@@ -283,7 +273,7 @@ def main():
 
     #  The same molecule gives the same irreps whichever code's modes it gets.
     h2o = [v for k, v in table.items() if k.startswith("H2O")]
-    labels = {tuple(m["irrep"] for m in v[1] if abs(m["freq"]) >= 10) for v in h2o}
+    labels = {tuple(sorted(m["irrep"] for m in v[1] if abs(m["freq"]) >= 10)) for v in h2o}
     check(len(labels) <= 1, "H2O irreps are the same for every code's output: %s" % sorted(labels))
 
     print("%d checks, %d failed" % (checks[0], len(failures)))

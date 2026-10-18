@@ -1,0 +1,26 @@
+#!/usr/bin/env perl
+################################################################################
+#
+# Purpose:
+# Keeps the atom table of MOPAC's "ORIENTATION OF MOLECULE IN FORCE
+# CALCULATION" in $key/mopacForceGeom, for mopac.vib to rotate the normal
+# modes (printed in that frame) back into the stored geometry's frame.
+# Publishes no property.
+#
+################################################################################
+
+$| = 1;
+
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my @rows;
+while (<STDIN>) {
+  if (/^\s*\d+\s+([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/) {
+    push(@rows, "$1 $2 $3 $4\n");
+  }
+}
+if (@rows && open(AUXFILE, ">" . $key . "/mopacForceGeom")) {
+  print AUXFILE @rows;
+  close(AUXFILE);
+}
+exit(0);

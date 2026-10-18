@@ -14,9 +14,12 @@ frame; the control rotates the geometry and must fail.
 
     tests/parsers/vib_frame_test.py
 """
+import atexit
 import math
 import os
+import shutil
 import sys
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
@@ -40,7 +43,26 @@ CASES = [
      "NWChem autosym, optimisation then frequencies"),
     ("nwchem/h2o_freq.eprint", "nwchem.desc", "Vibration",
      "NWChem, input already in the symmetry frame"),
+    ("mopac/ch4_force.out", "mopac.desc", "Vibration",
+     "MOPAC FORCE: modes printed in its own force orientation"),
+    ("mopac/ch4_force_nothermo.out", "mopac.desc", "GeoVib",
+     "MOPAC Opt then FORCE, no THERMO"),
+    ("mopac/ch4_geovib.out", "mopac.desc", "GeoVib",
+     "MOPAC Opt then FORCE with THERMO"),
+    ("mopac/h2o_geovib.out", "mopac.desc", "GeoVib",
+     "MOPAC water, input far from the symmetry frame"),
+    ("mopac/nh3_geovib.out", "mopac.desc", "GeoVib",
+     "MOPAC ammonia, input far from the symmetry frame"),
+    (os.path.join(REPO, "tests/progress/fixtures/mopac/gv.out"),
+     "mopac.desc", "GeoVib", "MOPAC Opt then FORCE (progress fixture)"),
+    (os.path.join(REPO, "data/client/examples/mopac-ammonia/ammonia.out"),
+     "mopac.desc", "GeoVib", "MOPAC ammonia example"),
 ]
+
+#  Largest share of any vibration (mass-weighted) inside the six rigid
+#  motions of the stored structure; the modes belong to it when this is small.
+MAX_RIGID = 0.02
+MASS = {"H": 1.00794, "C": 12.0107, "N": 14.0067, "O": 15.9994}
 
 #  Elements of the codes that do not label geometry rows with them.
 GIVEN = {"nwchem/h2o_sym_freq.eprint": "OHH",
@@ -52,7 +74,11 @@ HIGH = 2500.0
 
 
 def records(fixture, descName, runtype):
-    """({key: [flat record in file order]}, last geometry rows)."""
+    """{key: [flat record in file order]}."""
+    #  One directory for all the scripts: mopac.geomtrace leaves the input
+    #  geometry there for mopac.vib, as in the real monitor.
+    workdir = tempfile.mkdtemp(prefix="ecce-vibframe-")
+    atexit.register(shutil.rmtree, workdir, True)
     desc = read_desc(os.path.join(SCRIPTS, descName))
     result = replay(desc, os.path.join(HERE, "fixtures", fixture))
     delivered = []
@@ -63,7 +89,8 @@ def records(fixture, descName, runtype):
     found = {}
     for _line, entry, block in delivered:
         out, _err, _rc = run_parser(SCRIPTS, entry, block,
-                                    ("." , runtype, "SCF", "RHF", "0"))
+                                    ("." , runtype, "SCF", "RHF", "0"),
+                                    workdir=workdir)
         for rec in parse_parser_output(out):
             found.setdefault(rec["key"], []).append(rec["flat"])
     return found
@@ -120,6 +147,32 @@ def worst(found, given):
     return min(cosines(atoms)), min(cosines(turned)), nmodes
 
 
+def rigid_share(found, given):
+    """Largest share of a vibration inside rotations and translations of the
+    last stored geometry, mass-weighted."""
+    import numpy as np
+    geo = found["GEOMTRACE"][-1]
+    xyz = np.array(numbers(geo["values"])).reshape(-1, 3)
+    mass = np.array([MASS[e] for e in symbols(geo, given)])
+    vib = found["VIB"][-1]
+    nmodes, natoms, _ = (int(v) for v in vib["size"].split())
+    modes = np.array(numbers(vib["values"])).reshape(nmodes, natoms, 3)
+    root = np.sqrt(mass)[:, None]
+    centre = (xyz * mass[:, None]).sum(axis=0) / mass.sum()
+    rigid = []
+    for k in range(3):
+        e = np.zeros(3)
+        e[k] = 1.0
+        rigid.append((root * e).ravel())
+        rigid.append((root * np.cross(e, xyz - centre)).ravel())
+    basis, _r = np.linalg.qr(np.array(rigid).T)
+    shares = []
+    for m in modes:
+        u = (root * m).ravel()
+        shares.append(float(np.sum((basis.T @ u) ** 2) / np.sum(u ** 2)))
+    return max(shares)
+
+
 def main():
     bad = 0
     for fixture, descName, runtype, what in CASES:
@@ -132,11 +185,13 @@ def main():
             bad += 1
             continue
         good, control, nmodes = worst(found, given)
-        ok = good >= MIN_COS and control < MIN_COS
+        #  The other codes list the rigid motions among their modes.
+        share = rigid_share(found, given) if "mopac" in fixture else 0.0
+        ok = good >= MIN_COS and control < MIN_COS and share <= MAX_RIGID
         print("%s %s (%s): X-H stretch alignment %.3f, rotated control "
-              "%.3f, %d modes, %d geometry steps"
+              "%.3f, rigid-motion share %.2e, %d modes, %d geometry steps"
               % ("ok  " if ok else "FAIL", fixture, what, good, control,
-                 nmodes, len(found["GEOMTRACE"])))
+                 share, nmodes, len(found["GEOMTRACE"])))
         bad += not ok
     return 1 if bad else 0
 

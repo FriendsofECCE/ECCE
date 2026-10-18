@@ -1157,6 +1157,10 @@ CASES = [
         desc='mopac.desc',
         fixture='mopac/ch4_force.out',
         parse_args=('.', 'Vibration', 'SE', 'RPM7', '0'),
+        silent_ok={
+            'MOPFORCEFRAME': 'Leaves the force orientation in a side file '
+                             'for mopac.vib; no property.',
+        },
         expect={
             'VIBFREQ][VIBSYM][VIB': dict(blocks=1, keys={
                 'VIBFREQ': {
@@ -1200,6 +1204,10 @@ CASES = [
         desc='mopac.desc',
         fixture='mopac/ch4_geovib.out',
         parse_args=('.', 'GeoVib', 'SE', 'RPM7', '0'),
+        silent_ok={
+            'MOPFORCEFRAME': 'Leaves the force orientation in a side file '
+                             'for mopac.vib; no property.',
+        },
         expect={
             #  Thermochemistry.  THERMOTEMP is the load-bearing one:
             #  MOPAC prints 298 K first and then scans upward from
@@ -1804,6 +1812,10 @@ CASES = [
         desc='mopac.desc',
         fixture='mopac/ch4_force_nothermo.out',
         parse_args=('.', 'Vibration', 'SE', 'PM7', '0'),
+        silent_ok={
+            'MOPFORCEFRAME': 'Leaves the force orientation in a side file '
+                             'for mopac.vib; no property.',
+        },
         expect={
             'TE][TEVEC][HFENERGY': dict(keys={'TE': {}}),
             'VIBFREQ][VIBSYM][VIB': dict(keys={
