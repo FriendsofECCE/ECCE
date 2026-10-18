@@ -13,8 +13,8 @@ separate regular expression, never with values worked out here.
 
 QE_FEATURES_KEEP=<dir> keeps every deck and pw.x output there (the parser fixtures).
 
-Exit 77 (skip) is not used: the deck part always runs, the pw.x part says
-"skipped" when pw.x or the pseudopotentials are missing.
+Exit 77 (skip) when the SSSP pseudopotentials are missing, since ai.qe will
+not write a deck without them; the pw.x part says "skipped" without pw.x.
 """
 import os
 import re
@@ -366,6 +366,9 @@ def run_tests(work):
 
 
 if __name__ == "__main__":
+    if not os.path.isdir(PSEUDO):
+        print("SKIP: %s missing (apt install quantum-espresso-data-sssp)" % PSEUDO)
+        sys.exit(77)
     print("decks")
     deck_tests()
     if "--no-run" not in sys.argv:

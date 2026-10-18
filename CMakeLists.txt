@@ -1894,6 +1894,7 @@ add_test(NAME nwchem_cc_decks
 # always, real pw.x runs when pw.x and the SSSP library are installed.
 add_test(NAME qe_features
   COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/qe_features/run_tests.py)
+set_tests_properties(qe_features PROPERTIES SKIP_RETURN_CODE 77)
 
 # tests/spectrum -- the wx-free IR/Raman spectrum model (#214): ticks, axis
 # reversal and zoom, broadening, sticks.
@@ -2210,7 +2211,7 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/look/modiagramheads.py
                    --libdir ${CMAKE_BINARY_DIR})
-  set_tests_properties(look_modiagram_heads PROPERTIES TIMEOUT 300)
+  set_tests_properties(look_modiagram_heads PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
 
   # tests/guivalues -- memory sizes saved before the GB-everywhere change
   # (Megawords, Megabytes) are converted by GUIValues::load() before a

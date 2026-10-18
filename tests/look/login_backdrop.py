@@ -50,7 +50,8 @@ def build(src, work, o):
            + ["-L" + o.libdir, "-Wl,-rpath," + o.libdir]
            + ["-l" + lib for lib in LIBS]
            + libs + ["-lxerces-c", "-lssh", "-lmosquitto", "-lssl",
-                     "-lcrypto", "-lgtk-3", "-lgdk-3", "-lgobject-2.0", "-lglib-2.0"])
+                     "-lcrypto", "-lgtk-3", "-lgdk-3", "-lgobject-2.0", "-lglib-2.0",
+                     "-lX11"])
     b = out(cmd)
     if b.returncode:
         print(b.stderr[-3000:])
