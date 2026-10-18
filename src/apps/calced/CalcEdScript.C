@@ -272,6 +272,8 @@ void CalcEd::runCalcEdScript(const string& file)
                 p_notReadyText->GetLabel().utf8_str().data(),
                 p_chemSysMark->GetBackgroundColour() == red ? "chemsys" : "none",
                 p_basisMark->GetBackgroundColour() == red ? "basis" : "none");
+        fprintf(stderr, "CALCED: basisbox=%s\n",
+                p_basisMark && p_basisMark->IsShown() ? "shown" : "hidden");
         //  The Verify lamp: empty (not checked), else its tooltip.
         wxWindow *lamp = FindWindow(ID_STATICTEXT_CALCED_VERIFY_LIGHT);
         wxString lampText = !lamp || lamp->GetLabel().IsEmpty()
