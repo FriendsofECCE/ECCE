@@ -113,6 +113,14 @@ CASES = [
     ("qe-nio-hubbard-card-nospin.qein", "QuantumESPRESSO", 2,
      [("GOOD", "hubbard"), ("UNSURE", "hubbard")]),
 
+    #  CP2K decks written by ai.cp2k and run by cp2k.psmp 2025.1.
+    ("cp2k-silicon.cp2kin",   "CP2K",             2, [("GOOD", "sections"),
+                                                      ("GOOD", "kinds"),
+                                                      ("GOOD", "geometry")]),
+    ("cp2k-nio-u-opt.cp2kin", "CP2K",             2, [("GOOD", "run"),
+                                                      ("GOOD", "spin"),
+                                                      ("GOOD", "plus_u")]),
+
     #  --- the two real failures ---------------------------------------
     #  Three faults, not one: the binary bytes, the basis block they
     #  destroyed, and the terminating blank line the file therefore
