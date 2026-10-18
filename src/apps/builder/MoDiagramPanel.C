@@ -1,3 +1,4 @@
+#include "wx/wrapsizer.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdarg>
@@ -336,7 +337,12 @@ bool MoDiagramPanel::Create(IPropCalculation *calculation,
 /////////////////////////////////////////////////////////////////////////////
 void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
 {
-  wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+  //  Three rows that wrap rather than run off a docked window: what is
+  //  drawn (pick, construction, About), how it is shown (check boxes),
+  //  and the free choice of fragments.
+  wxWrapSizer *row = new wxWrapSizer(wxHORIZONTAL);
+  wxWrapSizer *views = new wxWrapSizer(wxHORIZONTAL);
+  wxBoxSizer *fragRow = new wxBoxSizer(wxHORIZONTAL);
 
   //  THE CLASS IS WHAT A CHEMIST WOULD WANT TO OVERRIDE.
   //
@@ -371,7 +377,7 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   p_piOnly->Show(false);
   p_piOnly->SetToolTip("Show only the orbitals that change sign in the "
                        "molecular plane");
-  row->Add(p_piOnly, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+  views->Add(p_piOnly, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 
   //  FILLED PER MOLECULE, in build(), with the constructions that
   //  molecule can actually be drawn by.
@@ -445,7 +451,7 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   p_autoFragments->SetToolTip("Group the sets of equivalent atoms "
                               "yourself, instead of the construction "
                               "the diagram chose");
-  row->Add(p_autoFragments, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+  fragRow->Add(p_autoFragments, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 
   //  TWELVE LABELS AND TWELVE NUMBERS IS A LOT OF TEXT.
   //
@@ -457,7 +463,7 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   p_showEnergies = new ewxCheckBox(this, wxID_ANY, _("Show energies"));
   p_showEnergies->SetValue(true);
   p_showEnergies->SetToolTip("Write each level's energy beside its label");
-  row->Add(p_showEnergies, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+  views->Add(p_showEnergies, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 
   p_ligandField = new ewxCheckBox(this, wxID_ANY, _("Ligand-field view"));
   p_ligandField->SetValue(getenv("ECCE_MODIAGRAM_LFVIEW") != 0);
@@ -477,9 +483,8 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
                         "draw every level and line, including the non-bonding "
                         "ones the simplified view merges or leaves out");
   p_showAll->Enable(false);
-  row->Add(p_showAll, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+  views->Add(p_showAll, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 
-  //  Last in the row: a narrow window clips this, not the checkboxes.
   //  SAY WHAT A FRAGMENT IS, ON THE PANEL.
   //
   //  "Choose fragments" with a list of atom counts beside it does not
@@ -489,21 +494,19 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   //  the only thing being chosen here is which group each set goes in.
   p_fragmentHint = new ewxStaticText(this, wxID_ANY,
       _("Ticked sets become the left column, the rest the right"));
-  row->Add(p_fragmentHint, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+  fragRow->Add(p_fragmentHint, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 
   p_fragments = new wxCheckListBox(this, wxID_ANY, wxDefaultPosition,
                                    wxSize(220, 70));
   p_fragments->SetToolTip("Each row is a set of atoms the symmetry makes "
                           "equivalent. Ticked sets form the left column of "
                           "the diagram; the rest form the right.");
-  row->Add(p_fragments, 1, wxEXPAND|wxALL, 4);
+  fragRow->Add(p_fragments, 1, wxEXPAND|wxALL, 4);
 
+  views->Add(p_ligandField, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
   sizer->Add(row, 0, wxEXPAND);
-
-  //  A row of its own: the first one is already wider than a docked window.
-  wxBoxSizer *viewRow = new wxBoxSizer(wxHORIZONTAL);
-  viewRow->Add(p_ligandField, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
-  sizer->Add(viewRow, 0, wxEXPAND);
+  sizer->Add(views, 0, wxEXPAND);
+  sizer->Add(fragRow, 0, wxEXPAND);
 
   //  Bound on the controls themselves.  A static table does not reach
   //  this panel for a control with a pushed handler chain, which is
