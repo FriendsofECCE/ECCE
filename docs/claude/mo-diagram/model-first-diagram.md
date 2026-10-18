@@ -21,7 +21,7 @@ refusal text plus "use the MOs panel"), keep the old drawing.
   fragments are equal (halves combine g/u). Unpaired = nb. This is the model's
   reading, not the book's: N2 2su comes out nb (sp mixing), pair 2sg/4su*.
 - Calculation column (layout C): its own energy axis in eV, to scale, ticks
-  on the right (header "Your calculation (eV, own scale)"; no common scale with the model), broken like the model's for the high empty levels; no lines to
+  on the right (header = the method, "BP86/def2-SVP", "Your calculation" if unknown; axis titled "eV"; no common scale with the model), broken like the model's for the high empty levels; no lines to
   the model. Each model level is matched to the calculated level (the panel's
   `wholeSpectrum`) with the largest subspace overlap, via the mixed STO/Gaussian S;
   distinct calculated levels are drawn once, at their own energy, in the colour of
@@ -31,7 +31,7 @@ refusal text plus "use the MOs panel"), keep the old drawing.
   (`MoDiagramCanvas::layoutCalc`, `openRows`); the stretched part of the calculation axis is dotted and closed by slanted strokes. `MoLevel::orbitals` are the calculated MOs, so a click
   shows them. Verdict: only the occupied levels, plus the LUMO when the model's
   LUMO matches the calculation's; a different LUMO is named; order above the LUMO
-  is only in About. Delta_o for t2g/eg.
+  is only in About. Delta_o of the calculation (t2g/eg) is in the About text only; the model has none.
 - Hover: a model level shows the model's fragment composition and "Matches your MO a-b";
   a calculation-column level shows its own MOs-panel composition (`MoPanel::compositionText`)
   and "matches model <label>, overlap x". The calculation's HOMO and LUMO are always drawn:
