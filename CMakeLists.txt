@@ -1098,6 +1098,18 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/minff_topology.py)
           COMPONENT client)
 endif()
 
+# Bundled atomipy and min.ff (third_party/, see its README): minff_topology.py
+# looks for them at $ECCE_HOME/lib/python/atomipy and data/minff/min.ff.
+if(EXISTS ${CMAKE_SOURCE_DIR}/third_party/python/atomipy)
+  install(DIRECTORY ${CMAKE_SOURCE_DIR}/third_party/python/atomipy
+          DESTINATION lib/python
+          COMPONENT client
+          PATTERN "__pycache__" EXCLUDE)
+  install(DIRECTORY ${CMAKE_SOURCE_DIR}/third_party/minff/
+          DESTINATION data/minff
+          COMPONENT client)
+endif()
+
 # scripts/gensub: job-submission-script generator, invoked as a bare
 # command (Launch.C:2372, `p_localconn->execout("gensub -v  -p subParams",
 # ...)`, relying entirely on $PATH -- unlike processmachine/std2NWChem
@@ -1537,7 +1549,7 @@ set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 # mod_ssl is in the apache2 package on Debian but its own package on RPM.
 # xterm: editing an input file with the default editor (vi) opens it in
 # an xterm (UserEditor.C).
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, mosquitto, libaprutil1, perl, xterm, openssl")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, python3-numpy, python3-tqdm, python3-gemmi, mosquitto, libaprutil1, perl, xterm, openssl")
 # NWChem is a real Debian package (confirmed working: /usr/bin/nwchem,
 # symlinked to nwchem.openmpi by the package itself) and the auto-register-
 # this-machine flow (RunMgmt::registerLocalMachine()) defaults new machine
@@ -1592,7 +1604,7 @@ if(RPMBUILD_EXECUTABLE)
   set(CPACK_RPM_PACKAGE_LICENSE "ECL-2.0")
   set(CPACK_RPM_PACKAGE_GROUP "Applications/Engineering")
   set(CPACK_RPM_PACKAGE_URL "https://github.com/FriendsofECCE/ECCE")
-  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, mod_ssl, openssl, python3-wxpython4, perl, xterm, mosquitto, apr-util${_coin_rpm}")
+  set(CPACK_RPM_PACKAGE_REQUIRES "httpd, httpd-tools, mod_ssl, openssl, python3-wxpython4, python3-numpy, python3-tqdm, perl, xterm, mosquitto, apr-util${_coin_rpm}")
   set(CPACK_RPM_PACKAGE_SUGGESTS "nwchem, openssh-clients, firefox")
   set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
   #  /opt/ecce is ours, but /opt itself is owned by filesystem(5).  Without
@@ -1736,7 +1748,7 @@ if(ECCE_SPLIT_PACKAGES)
   # -remote client only needs the library, and the package's own system
   # service is of no use to it.
   set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS
-      "python3-wxgtk4.0, perl, xterm, libmosquitto1, curl, openssl")
+      "python3-wxgtk4.0, python3-numpy, python3-tqdm, python3-gemmi, perl, xterm, libmosquitto1, curl, openssl")
   # A client on the SAME machine as a server benefits from it (the
   # default "everything on one box" case this project still ships), but
   # a client of an already-central server (#167/#138 -- the teaching
@@ -1772,7 +1784,7 @@ if(ECCE_SPLIT_PACKAGES)
     set(CPACK_RPM_CLIENT_FILE_NAME RPM-DEFAULT)
     # mosquitto provides both the library and the broker on RPM distros.
     set(CPACK_RPM_CLIENT_PACKAGE_REQUIRES
-        "python3-wxpython4, perl, xterm, mosquitto, curl, openssl${_coin_rpm}")
+        "python3-wxpython4, python3-numpy, python3-tqdm, perl, xterm, mosquitto, curl, openssl${_coin_rpm}")
     set(CPACK_RPM_CLIENT_PACKAGE_SUGGESTS
         "ecce-server, nwchem, openssh-clients, firefox")
     # RPM has no direct Breaks/Replaces pair; Obsoletes+Provides is the
@@ -1986,7 +1998,7 @@ add_test(NAME resource_tool_views
 
 # tests/minff -- MINFF topology builder (scripts/minff_topology.py, #241)
 # against atomipy run directly, then grompp + a short EM.  SKIPs (77)
-# without atomipy, gmx, or network access to fetch min.ff.
+# without gmx or network access (the example systems are fetched).
 add_test(NAME minff
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/minff/run_tests.py)

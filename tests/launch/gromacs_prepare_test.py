@@ -585,7 +585,7 @@ def minff_section(s, build, rundir, png):
     try:
         import minff_topology as mt
         py = mt.find_atomipy_python()
-        ffdir = mt.minff_dir()
+        ffdir = mt.fetch_pinned()
     except Exception as e:
         say("  (MINFF is not checked: %s)" % e)
         return

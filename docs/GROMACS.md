@@ -220,16 +220,20 @@ These are `#define`s in the topology, not `define =` in the `.mdp`, so the
 box, and without it `mdrun` stops with "inconsistent shifts" / a domain
 decomposition error.
 
-**min.ff** is not in this repository (the minff repository has no licence
-yet). It is fetched at a pinned commit (`MINFF_COMMIT` in the script) into
-`~/.cache/ecce/minff/<commit>` (`$XDG_CACHE_HOME` is honoured);
-`ECCE_MINFF_DIR` points at an existing checkout instead.
-
-**atomipy** is found through `ECCE_ATOMIPY_PYTHON` (a python that has it),
-else `python3`; without it the script says `pip install atomipy`.
+**atomipy and min.ff are bundled** (`third_party/`, installed to
+`lib/python/atomipy` and `data/minff/min.ff` of the client package; versions
+in `third_party/README.md`), so the MINFF route needs nothing installed or
+downloaded. atomipy needs `python3-numpy`, `python3-tqdm` and (for CIF unit
+cells) `python3-gemmi`, which the Debian client package depends on.
+`ECCE_ATOMIPY_PYTHON` (a python that has atomipy) and `ECCE_MINFF_DIR` (a
+minff checkout) override the bundled copies; with neither the bundle nor an
+override present the script says the installation is incomplete.
+`minff_topology.py fetch` downloads the pinned minff commit (`MINFF_COMMIT`)
+into `~/.cache/ecce/minff/<commit>`; only the tests use it, for minff's
+example systems.
 
 **Tests**: `tests/minff/run_tests.py` (ctest `minff`; exit 77 = skipped
-without atomipy, `gmx` or network for min.ff). It builds kaolinite (GMINFF,
+without `gmx` or network for the example systems). It builds kaolinite (GMINFF,
 k=500), the montmorillonite layer of the authors' hydrated example
 `Systems/conf/preem27.gro` (TMINFF; `UC_conf` has none) and pyrophyllite
 with 4 Al-to-Mg substitutions. Types, charges and total charge are compared
@@ -240,13 +244,12 @@ potential energy must be finite and lower at the end. Charged systems
 (montmorillonite -48, substituted pyrophyllite -4) give grompp's net-charge
 warning, which the test allows (counter-ions are a later step).
 
-* **Linux:** `pip install atomipy` (a venv is fine; point
-  `ECCE_ATOMIPY_PYTHON` at its `python`), `apt install gromacs`, then
-  `python3 tests/minff/run_tests.py` or `ctest -R minff` from a build.
-* **macOS:** `brew install gromacs`, `python3 -m pip install atomipy`
-  (use a venv if the system Python refuses; set `ECCE_ATOMIPY_PYTHON`),
-  then the same command. The test needs only the standard library of the
-  python that runs it.
+* **Linux:** `apt install gromacs python3-numpy python3-tqdm python3-gemmi`,
+  then `python3 tests/minff/run_tests.py` or `ctest -R minff` from a build
+  (the bundled atomipy in `third_party/` is used from a source tree).
+* **macOS, Windows:** the installers must carry numpy, tqdm and gemmi for
+  the python that runs `minff_topology.py`; the test needs only the standard
+  library of the python that runs it.
 
 ## Step 2 (scripts, task and editor built): Prepare
 

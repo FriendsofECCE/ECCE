@@ -11,12 +11,13 @@ atomipy assign MINFF atom types and charges, and writes a GROMACS system:
     min.ff/    copy of the MINFF parameter directory, so the run directory
                is self-contained on any machine
 
-A bundled atomipy (<ECCE_HOME>/lib/python/atomipy) and min.ff
-(<ECCE_HOME>/data/minff/min.ff) win over everything below.
-atomipy is found through ECCE_ATOMIPY_PYTHON (a python that has it), else the
-python running this script.  min.ff is fetched from github.com/mholmboe/minff
-at a pinned commit into ~/.cache/ecce/minff/<commit> (ECCE_MINFF_DIR points
-at an existing checkout instead).  Its files are never stored in this repo.
+ECCE ships atomipy (<ECCE_HOME>/lib/python/atomipy) and min.ff
+(<ECCE_HOME>/data/minff/min.ff); in a source tree they are in third_party/.
+They win over everything below.  Otherwise atomipy is found through
+ECCE_ATOMIPY_PYTHON (a python that has it), else the python running this
+script, and ECCE_MINFF_DIR points at a minff checkout.  Only `fetch` (used
+by the tests, which need minff's example systems) downloads anything: the
+minff commit MINFF_COMMIT into ~/.cache/ecce/minff/<commit>.
 
     minff_topology.py build CELL -o OUTDIR [--replicate NA NB NC]
         [--substitute FROM TO COUNT]... [--min-distance A] [--seed N]
@@ -54,8 +55,9 @@ WATER_MODELS = {
 # min.ff, plus the example systems the tests use (the rest of the repo is 80 MB)
 FETCH_PATHS = ("min.ff/", "Systems/UC_conf/", "Systems/conf/", "Systems/conf.mdp",
                "Systems/topol.top", "Systems/itp/min27.itp")
-ATOMIPY_HINT = ("atomipy is not available. Install it with:  pip install atomipy\n"
-                "(or set ECCE_ATOMIPY_PYTHON to a python that has it).")
+ATOMIPY_HINT = ("atomipy is not available: this ECCE installation is incomplete "
+                "(its lib/python/atomipy is missing).\n"
+                "Reinstall ECCE, or set ECCE_ATOMIPY_PYTHON to a python that has atomipy.")
 
 
 class MinffError(Exception):
@@ -71,34 +73,42 @@ def cache_root():
 
 def bundle_roots():
     """Install roots to look in for bundled copies: $ECCE_HOME, and the tree
-    or install this script sits in (scripts/ is next to lib/ and data/)."""
+    or install this script sits in (scripts/ is next to lib/ and data/); the
+    realpath covers a test $ECCE_HOME whose scripts/ links to the source tree."""
     roots = [os.environ.get("ECCE_HOME"),
-             os.path.dirname(os.path.dirname(os.path.abspath(__file__)))]
+             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+             os.path.dirname(os.path.dirname(os.path.realpath(__file__)))]
     return [r for r in roots if r]
+
+
+# install layout, then the source tree's third_party/
+_PY_SUBDIRS = (("lib", "python"), ("third_party", "python"))
+_FF_SUBDIRS = (("data", "minff"), ("third_party", "minff"))
 
 
 def bundled_atomipy_dir():
     """Directory holding the bundled atomipy package, or None.
     Bundled layout: <root>/lib/python/atomipy/."""
     for r in bundle_roots():
-        d = os.path.join(r, "lib", "python")
-        if os.path.isfile(os.path.join(d, "atomipy", "__init__.py")):
-            return d
+        for sub in _PY_SUBDIRS:
+            d = os.path.join(r, *sub)
+            if os.path.isfile(os.path.join(d, "atomipy", "__init__.py")):
+                return d
     return None
 
 
 def bundled_minff_dir():
     """Bundled directory that contains min.ff/: <root>/data/minff."""
     for r in bundle_roots():
-        d = os.path.join(r, "data", "minff")
-        if os.path.isfile(os.path.join(d, "min.ff", "forcefield.itp")):
-            return d
+        for sub in _FF_SUBDIRS:
+            d = os.path.join(r, *sub)
+            if os.path.isfile(os.path.join(d, "min.ff", "forcefield.itp")):
+                return d
     return None
 
 
-def minff_dir(fetch=True):
-    """Directory that contains min.ff/: the bundled copy, else
-    ECCE_MINFF_DIR, else the pinned download in the cache."""
+def minff_dir():
+    """Directory that contains min.ff/: the bundled copy, else ECCE_MINFF_DIR."""
     d = bundled_minff_dir()
     if d:
         return d
@@ -107,11 +117,16 @@ def minff_dir(fetch=True):
         if not os.path.isfile(os.path.join(d, "min.ff", "forcefield.itp")):
             raise MinffError("ECCE_MINFF_DIR=%s has no min.ff/forcefield.itp" % d)
         return d
+    raise MinffError("min.ff is missing: this ECCE installation is incomplete "
+                     "(data/minff/min.ff); reinstall ECCE or set ECCE_MINFF_DIR")
+
+
+def fetch_pinned():
+    """Download the minff commit MINFF_COMMIT (min.ff and the example systems
+    the tests use) into the cache; return its directory.  Not used by builds."""
     d = os.path.join(cache_root(), MINFF_COMMIT)
-    if os.path.isfile(os.path.join(d, "min.ff", "forcefield.itp")):
+    if os.path.isfile(os.path.join(d, "Systems", "UC_conf", "Kaolinite_GII_0.0487.pdb")):
         return d
-    if not fetch:
-        raise MinffError("min.ff not fetched yet; run: minff_topology.py fetch")
     url = "https://github.com/%s/archive/%s.tar.gz" % (MINFF_REPO, MINFF_COMMIT)
     os.makedirs(cache_root(), exist_ok=True)
     tmp = tempfile.mkdtemp(dir=cache_root(), prefix="fetch-")
@@ -421,7 +436,7 @@ def main(argv=None):
     b.add_argument("--water", default="opc3", choices=sorted(WATER_MODELS))
     m = sub.add_parser("minerals", help="list the TMINFF minerals")
     m.add_argument("--angle-k", type=int, default=500, choices=ANGLE_KS)
-    sub.add_parser("fetch", help="download min.ff to the cache and print its directory")
+    sub.add_parser("fetch", help="download the pinned minff commit (for the tests) and print its directory")
     a = p.parse_args(argv)
     if a.cmd == "build" and not os.environ.get("ECCE_MINFF_REEXEC"):
         try:
@@ -436,7 +451,7 @@ def main(argv=None):
                 sys.argv[1:] if argv is None else list(argv)), env=env)
     try:
         if a.cmd == "fetch":
-            print(minff_dir())
+            print(fetch_pinned())
         elif a.cmd == "minerals":
             print("\n".join(list_minerals(a.angle_k)))
         else:

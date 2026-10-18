@@ -1,0 +1,199 @@
+* CLAYFF - Clay Force Field for OpenMM/NAMD
+* Based on CLAYFF parameters from Cygan et al. 2004 (CLAYFF_EXT block)
+* Water model: SPC/E (rigid, r_OH=1.0 A, theta=109.47 deg)
+*
+* References:
+* 1. Cygan, Liang, Kalinichev, J. Phys. Chem. B 2004, 108, 1255-1266
+* 2. SPC/E water: Berendsen, Grigera, Straatsma, J. Phys. Chem. 1987, 91, 6269
+*
+* CLAYFF is a non-bonded force field: no mineral angle terms.
+* Only O-H bonds and water geometry are defined.
+*
+* Unit conversions from Gromacs to CHARMM format:
+*   Gromacs uses V = (1/2)*k*(x-x0)^2, CHARMM uses V = k*(x-x0)^2
+*   Bonds:  Kb_charmm = Kb_gmx / 2 / 4.184 / 100  (kJ/mol/nm^2 -> kcal/mol/A^2)
+*   Angles: Ka_charmm = Ka_gmx / 2 / 4.184          (kJ/mol/rad^2 -> kcal/mol/rad^2)
+*   LJ:     Rmin/2 = sigma_nm * 10 * 2^(1/6) / 2    (nm -> A)
+*           epsilon = epsilon_kJ / 4.184              (kJ/mol -> kcal/mol)
+*
+
+ATOMS - CLAYFF Atom Types (using MINFF-style names from ap.clayff())
+MASS -1 H       1.00794   ! Hydroxyl hydrogen
+MASS -1 He      1.00794   ! Edge hydroxyl hydrogen
+MASS -1 Du      0.00000   ! Dummy atom
+MASS -1 Lio     6.94100   ! Octahedral Li
+MASS -1 O      15.99940   ! Bridging oxygen (generic)
+MASS -1 Oahs   15.99940   ! Edge O, Al-OhH-Si
+MASS -1 Oal    15.99940   ! Edge O, Al-O
+MASS -1 Oalh   15.99940   ! Edge O, Al-O-H
+MASS -1 Oalhh  15.99940   ! Edge Al-OH2 oxygen
+MASS -1 Oalsi  15.99940   ! Edge O, Al-O-Si
+MASS -1 Oalt   15.99940   ! Bridging (basal) O, Si-O-Al(t)
+MASS -1 Ob     15.99940   ! Bridging oxygen, Ex. Si-O-Si
+MASS -1 Obt    15.99940   ! Bridging oxygen
+MASS -1 Obs    15.99940   ! Bridging O with subst.
+MASS -1 Odsub  15.99940   ! Bridging O, double isomorphic subst.
+MASS -1 Oh     15.99940   ! Hydroxyl oxygen
+MASS -1 Ohmg   15.99940   ! Hydroxyl oxygen, isomorphic subst site
+MASS -1 Oli    15.99940   ! Li oxide O
+MASS -1 Ome    15.99940   ! Edge Mg-O
+MASS -1 Omg    15.99940   ! Bridging/apical O, Ex. in Al-O-Mg
+MASS -1 Omhh   15.99940   ! Edge Mg-OH2
+MASS -1 Op     15.99940   ! Apical O, Ex. in Al-O-Si
+MASS -1 Ops    15.99940   ! Apical O, Ex. in Al-O-Al(t)
+MASS -1 Osi    15.99940   ! Edge Si-O
+MASS -1 Osih   15.99940   ! Edge Si-O-H
+MASS -1 Fs     18.99840   ! Fluorine
+MASS -1 Mgh    24.30500   ! Mg hydroxide, Ex. Brucite
+MASS -1 Mgo    24.30500   ! Mg oxide, Ex. Periclase
+MASS -1 Alo    26.98154   ! Octahedral Al
+MASS -1 Ale    26.98154   ! Edge Al
+MASS -1 Alt    26.98154   ! Tetrahedral Al
+MASS -1 Sit    28.08550   ! Tetrahedral Si
+MASS -1 Cah    40.07800   ! Ca hydroxide
+MASS -1 Cao    40.07800   ! Ca oxide
+MASS -1 Feo    55.84500   ! Octahedral Fe (CLAYFF: single Fe type)
+MASS -1 Fe2o   55.84500   ! Octahedral Fe2+
+MASS -1 Fe3o   55.84500   ! Octahedral Fe3+
+MASS -1 Fe2t   55.84500   ! Tetrahedral Fe2+
+MASS -1 Fe3t   55.84500   ! Tetrahedral Fe3+
+MASS -1 Tio    47.86700   ! Ti oxide
+MASS -1 Na     22.98977   ! Sodium Ion
+MASS -1 K      39.09830   ! Potassium Ion
+MASS -1 Cs    132.90545   ! Cesium Ion
+MASS -1 Cl     35.45000   ! Chloride Ion
+MASS -1 Ow     15.99940   ! Water Oxygen (SPC/E)
+MASS -1 Hw      1.00800   ! Water Hydrogen (SPC/E)
+
+BONDS
+! V(bond) = Kb(b-b0)**2
+! Kb: kcal/mole/A**2
+! b0: A
+!
+! CLAYFF only defines O-H bonds. No Metal-O bonds.
+!
+! atom types    Kb        b0       ! description
+!
+! Water O-H bond (SPC/E: b0=0.1 nm = 1.0 A, rigid model)
+Ow     Hw      554.1349   1.0000   ! SPC/E Water O-H (rigid)
+!
+! Mineral O-H bonds (CLAYFF standard: b0=0.1 nm = 1.0 A)
+Oh     H       554.1349   1.0000   ! Hydroxyl O-H
+Ob     H       554.1349   1.0000   ! Bridging O-H  
+Ohmg   H       554.1349   1.0000   ! Mg-hydroxyl O-H
+Oalh   H       554.1349   1.0000   ! Al-hydroxyl O-H
+Oalhh  H       554.1349   1.0000   ! Al-dihydroxyl O-H
+Osih   H       554.1349   1.0000   ! Si-hydroxyl O-H
+!
+! Metal-O edge bonds (same as MINFF)
+Alo    Oalh    554.1349   1.9500   ! Al-O (b0=0.195 nm)
+Alo    Oalhh   554.1349   1.9500   ! Al-O (b0=0.195 nm)
+Sit    Osih    554.1349   1.6000   ! Si-O (b0=0.160 nm)
+
+ANGLES
+! V(angle) = Ktheta(Theta - Theta0)**2
+! Ktheta: kcal/mole/rad**2
+! Theta0: degrees
+!
+! CLAYFF has NO mineral angle terms (purely non-bonded for the mineral).
+! Only the water angle is included for topology parsing.
+!
+! atom types         Ktheta   Theta0   ! description
+!
+! Water angle (SPC/E: theta0=109.47, rigid model)
+Hw     Ow     Hw      45.76960   109.47   ! SPC/E H-O-H (rigid)
+
+DIHEDRALS
+! Note: CLAYFF does not define dihedral parameters
+
+IMPROPER
+! Note: CLAYFF does not define improper parameters
+
+NONBONDED NBXMOD 5 ATOM CDIEL FSHIFT VATOM VDISTANCE VFSWITCH -
+     CUTNB 14.0 CTOFNB 12.0 CTONNB 10.0 EPS 1.0 E14FAC 1.0 WMIN 1.5
+!
+! V(Lennard-Jones) = Eps,i,j[(Rmin,i,j/ri,j)**12 - 2(Rmin,i,j/ri,j)**6]
+!
+! epsilon: kcal/mole, Eps,i,j = sqrt(eps,i * eps,j)
+! Rmin/2: A, Rmin,i,j = Rmin/2,i + Rmin/2,j
+!
+! Parameters from CLAYFF_EXT (Cygan et al. 2004, with MINFF-style names)
+! Cross-checked against ffnonbonded_gminff.itp #ifdef CLAYFF_EXT
+! All O types: sigma=0.316556 nm, epsilon=0.65017 kJ/mol
+!
+! atom     ignored   epsilon      Rmin/2    ! description
+!
+! Hydrogen types
+H         0.0      -0.000000     0.0000    ! Hydroxyl hydrogen
+He        0.0      -0.000000     0.0000    ! Edge hydroxyl hydrogen
+!
+! Lithium (sigma=0.421 nm, epsilon=3.77807e-05 kJ/mol)
+Lio       0.0      -0.0000090298 2.3628    ! Octahedral Li
+!
+! Oxygen types (all have sigma=0.316556 nm, epsilon=0.65017 kJ/mol)
+O         0.0      -0.155394     1.7766    ! Bridging oxygen (generic)
+Oahs      0.0      -0.155394     1.7766    ! Edge O, Al-OhH-Si
+Oal       0.0      -0.155394     1.7766    ! Edge O, Al-O
+Oalh      0.0      -0.155394     1.7766    ! Edge O, Al-O-H
+Oalhh     0.0      -0.155394     1.7766    ! Edge Al-OH2
+Oalsi     0.0      -0.155394     1.7766    ! Edge O, Al-O-Si
+Oalt      0.0      -0.155394     1.7766    ! Bridging O, Si-O-Al(t)
+Ob        0.0      -0.155394     1.7766    ! Bridging oxygen
+Obt       0.0      -0.155394     1.7766    ! Bridging oxygen
+Obs       0.0      -0.155394     1.7766    ! Bridging O with subst.
+Odsub     0.0      -0.155394     1.7766    ! Double subst. O
+Oh        0.0      -0.155394     1.7766    ! Hydroxyl oxygen
+Ohmg      0.0      -0.155394     1.7766    ! Mg-hydroxyl O
+Oli       0.0      -0.155394     1.7766    ! Li oxide O
+Ome       0.0      -0.155394     1.7766    ! Edge Mg-O
+Omg       0.0      -0.155394     1.7766    ! Mg bridging O
+Omhh      0.0      -0.155394     1.7766    ! Edge Mg-OH2
+Op        0.0      -0.155394     1.7766    ! Apical O
+Ops       0.0      -0.155394     1.7766    ! Apical O Al(t)
+Osi       0.0      -0.155394     1.7766    ! Deprotonated silanol O
+Osih      0.0      -0.155394     1.7766    ! Silanol O-H
+!
+! Fluorine (using MINFF Fs value - CLAYFF does not define F explicitly)
+Fs        0.0      -0.045186     1.7747    ! Fluorine
+!
+! Magnesium types (sigma=0.5264 nm, epsilon=3.77807e-06 kJ/mol)
+Mgh       0.0      -0.0000009030 2.9543    ! Mg hydroxide
+Mgo       0.0      -0.0000009030 2.9543    ! Mg oxide
+!
+! Aluminum types
+Alo       0.0      -0.0000013298 2.3970    ! Octahedral Al (sigma=0.4271)
+Ale       0.0      -0.0000013298 2.3970    ! Edge Al (sigma=0.4271)
+Alt       0.0      -0.0000018405 1.8532    ! Tetrahedral Al (sigma=0.3302)
+!
+! Silicon (sigma=0.3302 nm, epsilon=7.70065e-06 kJ/mol)
+Sit       0.0      -0.0000018405 1.8532    ! Tetrahedral Si
+!
+! Calcium types (sigma=0.5567 nm, epsilon=2.10447e-05 kJ/mol)
+Cah       0.0      -0.0000050298 3.1244    ! Ca hydroxide
+Cao       0.0      -0.0000050298 3.1244    ! Ca oxide
+!
+! Iron types (CLAYFF has single Feo; also include Fe2o/Fe3o for ap.clayff())
+! sigma=0.407222 nm, epsilon=3.77671e-05 kJ/mol
+Feo       0.0      -0.0000090266 2.2855    ! Octahedral Fe
+Fe2o      0.0      -0.0000090266 2.2855    ! Octahedral Fe2+
+Fe3o      0.0      -0.0000090266 2.2855    ! Octahedral Fe3+
+Fe2t      0.0      -0.0000090266 2.2855    ! Tetrahedral Fe2+
+Fe3t      0.0      -0.0000090266 2.2855    ! Tetrahedral Fe3+
+!
+! Titanium (using MINFF value - CLAYFF does not define Ti explicitly)
+Tio       0.0      -0.192681     1.0563    ! Ti oxide
+!
+! Dummy atom
+Du        0.0      -0.000000     0.0000    ! Dummy atom
+!
+! Common ions (SPC/E compatible, from Li & Merz IOD)
+Na        0.0      -0.030374     1.4699    ! Na+
+K         0.0      -0.168695     1.7432    ! K+
+Cs        0.0      -0.389422     1.9902    ! Cs+
+Cl        0.0      -0.529931     2.1608    ! Cl-
+!
+! Water (SPC/E)
+Ow        0.0      -0.155394     1.7766    ! SPC/E water oxygen
+Hw        0.0      -0.000000     0.0000    ! SPC/E water hydrogen
+
+END

@@ -231,7 +231,7 @@ def main():
         print("SKIP: gmx is not installed")
         return 77
     try:
-        ffdir = mt.minff_dir()
+        ffdir = mt.fetch_pinned()
     except mt.MinffError as e:
         print("SKIP: %s" % e)
         return 77

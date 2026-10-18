@@ -12,7 +12,9 @@ release tag:
 
 1. Fetch the newest atomipy release from PyPI and the newest min.ff commit,
    and record both versions (MINFF_COMMIT in the script, the atomipy version
-   next to the bundled copy).
+   in `third_party/README.md`). The bundle is `third_party/python/atomipy`
+   (the unused `structures/` libraries are left out) and
+   `third_party/minff/min.ff`, with their licences.
 2. Run `tests/minff/run_tests.py` against them (types, charges, grompp, a
    steepest-descent minimisation).
 3. Passed: ship them and name both versions in the release notes. Failed:

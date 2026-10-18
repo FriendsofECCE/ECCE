@@ -1,0 +1,217 @@
+* MINFF - Mineral Force Field for OpenMM/NAMD
+* Based on GMINFF_k0 parameters from atomipy
+* Water model: OPC3 (rigid, r_OH=0.97888 A, theta=109.47 deg)
+*
+* References:
+* 1. GMINFF Version 1.0 - General MINFF parameter sets
+* 2. M-O-H angles: Pouvreau, Greathouse, Cygan and Kalinichev, 
+*    J. Phys. Chem. C 2019, 123, 11628-11638
+* 3. OPC3 water: Izadi & Onufriev, J. Chem. Phys. 145, 074501 (2016)
+*
+* Unit conversions from Gromacs to CHARMM format:
+*   Gromacs uses V = (1/2)*k*(x-x0)^2, CHARMM uses V = k*(x-x0)^2
+*   Bonds:  Kb_charmm = Kb_gmx / 2 / 4.184 / 100  (kJ/mol/nm^2 -> kcal/mol/A^2)
+*   Angles: Ka_charmm = Ka_gmx / 2 / 4.184          (kJ/mol/rad^2 -> kcal/mol/rad^2)
+*   LJ:     Rmin/2 = sigma_nm * 10 * 2^(1/6) / 2    (nm -> A)
+*           epsilon = epsilon_kJ / 4.184              (kJ/mol -> kcal/mol)
+*
+
+ATOMS - MINFF Atom Types
+MASS -1 H       1.00794   ! Hydroxyl hydrogen
+MASS -1 He      1.00794   ! Edge hydroxyl hydrogen  
+MASS -1 Lio     6.94000   ! Octahedral Li, Ex. Li2O
+MASS -1 Oahs   15.99941   ! Edge O, Al-OhH-Si
+MASS -1 Oal    15.99941   ! Edge O, Al-O
+MASS -1 Oalh   15.99941   ! Edge O, Al-O-H
+MASS -1 Oalhh  15.99941   ! Edge Al-OH2 oxygen
+MASS -1 Oalsi  15.99941   ! Edge O, Al-O-Si
+MASS -1 Oalt   15.99941   ! Bridging (basal) O, Si-O-Al(t)
+MASS -1 Ob     15.99941   ! Bridging oxygen, Ex. Si-O-Si
+MASS -1 Obt    15.99941   ! Bridging oxygen, Ex. Akdalaite
+MASS -1 Obs    15.99941   ! Bridging O with subst., Ex. Mica
+MASS -1 Odsub  15.99941   ! Bridging O, double isomorphic subst.
+MASS -1 Oh     15.99941   ! Hydroxyl oxygen
+MASS -1 Ohmg   15.99941   ! Hydroxyl oxygen, isomorphic subst site
+MASS -1 Oli    15.99941   ! Ex. Li2O
+MASS -1 Omg    15.99941   ! Bridging/apical O, Ex. in Al-O-Mg
+MASS -1 Op     15.99941   ! Apical O, Ex. in Al-O-Si
+MASS -1 Ops    15.99941   ! Apical O, Ex. in Al-O-Al(t)
+MASS -1 Osi    15.99941   ! Edge Si-O
+MASS -1 Osih   15.99941   ! Edge Si-O-H
+MASS -1 Fs     18.99840   ! Fluorine, Ex. Hectorite
+MASS -1 Mgh    24.30500   ! Mg hydroxide, Ex. Brucite
+MASS -1 Mgo    24.30500   ! Mg oxide, Ex. Periclase
+MASS -1 Alo    26.98154   ! Octahedral Al, Ex. Corundum
+MASS -1 Ale    26.98154   ! Edge Al
+MASS -1 Alt    26.98154   ! Tetrahedral Al
+MASS -1 Sit    28.08538   ! Tetrahedral Si, Ex. SiO2, clays
+MASS -1 Cah    40.07800   ! Ca hydroxide, Ex. Portlandite
+MASS -1 Cao    40.07800   ! Ca oxide, Ex. Lime
+MASS -1 Fet2   55.84500   ! Tetrahedral Fe2+
+MASS -1 Fee2   55.84500   ! Edge Fe2+
+MASS -1 Feo2   55.84500   ! Octahedral Fe2+, Ex. Wustite
+MASS -1 Fet3   55.84500   ! Tetrahedral Fe3+
+MASS -1 Fee3   55.84500   ! Edge Fe3+
+MASS -1 Feo3   55.84500   ! Octahedral Fe3+, Ex. Hematite
+MASS -1 Tio    47.86700   ! Ti oxide, Ex. TiO2
+MASS -1 Na     22.98977   ! Sodium Ion
+MASS -1 K      39.09830   ! Potassium Ion
+MASS -1 Cs    132.90545   ! Cesium Ion
+MASS -1 Cl     35.45000   ! Chloride Ion
+MASS -1 Ow     15.99940   ! Water Oxygen (OPC3)
+MASS -1 Hw      1.00800   ! Water Hydrogen (OPC3)
+
+BONDS
+! V(bond) = Kb(b-b0)**2
+! Kb: kcal/mole/A**2
+! b0: A
+!
+! Parameters from MINFF ffbonded.itp, converted from Gromacs units
+! Original: kb in kJ/mol/nm^2, b0 in nm
+! Converted: Kb_charmm = kb_gmx / 2 / 4.184 / 100
+!
+! atom types    Kb        b0       ! description
+!
+! Water O-H bond (OPC3: b0=0.097888 nm = 0.97888 A, rigid model)
+Ow     Hw      527.115   0.97888  ! OPC3 Water O-H (rigid)
+!
+! Mineral O-H bonds (kb=441050 kJ/mol/nm^2, b0=0.09572 nm)
+Oh     H       527.115   0.9572   ! Hydroxyl O-H
+Ob     H       527.115   0.9572   ! Bridging O-H  
+Ohmg   H       527.115   0.9572   ! Mg-hydroxyl O-H
+Oalh   H       527.115   0.9572   ! Al-hydroxyl O-H
+Oalhh  H       527.115   0.9572   ! Al-dihydroxyl O-H
+Osih   H       527.115   0.9572   ! Si-hydroxyl O-H
+!
+! Metal-O edge bonds (kb=441050 kJ/mol/nm^2)
+Alo    Oalh    527.115   1.9500   ! Al-O (b0=0.195 nm)
+Alo    Oalhh   527.115   1.9500   ! Al-O (b0=0.195 nm)
+Sit    Osih    527.115   1.6000   ! Si-O (b0=0.160 nm)
+
+ANGLES
+! V(angle) = Ktheta(Theta - Theta0)**2
+! Ktheta: kcal/mole/rad**2
+! Theta0: degrees
+!
+! M-O-H angles from Pouvreau, Greathouse, Cygan and Kalinichev,
+! J. Phys. Chem. C 2019, 123, 11628-11638
+! Original: ka=125.52 kJ/mol/rad^2, theta0=110.0 deg
+! Converted: Ka_charmm = 125.52 / 2 / 4.184 = 15.0 kcal/mol/rad^2
+!
+! Note: Only universal M-O-H angles and water angle are included.
+! Structural (non-H) angles are system-dependent and should not be
+! hardcoded. For ka>0 paramsets, generate angles from the structure.
+!
+! atom types         Ktheta   Theta0   ! description
+!
+Alo    Oh     H       15.0000   110.00   ! Al(oct)-OH-H
+Mgh    Oh     H       15.0000   110.00   ! Mg(hyd)-OH-H
+Mgo    Oh     H       15.0000   110.00   ! Mg(oct)-OH-H
+Feo2   Oh     H       15.0000   110.00   ! Fe2+(oct)-OH-H
+Feo3   Oh     H       15.0000   110.00   ! Fe3+(oct)-OH-H
+Cah    Oh     H       15.0000   110.00   ! Ca(hyd)-OH-H
+Mgh    Ohmg   H       15.0000   110.00   ! Mg(hyd)-OHmg-H
+Mgo    Ohmg   H       15.0000   110.00   ! Mg(oct)-OHmg-H
+Alo    Ohmg   H       15.0000   110.00   ! Al(oct)-OHmg-H
+Alo    Oalh   H       15.0000   110.00   ! Al(oct)-OalH-H
+Alo    Oalhh  H       15.0000   110.00   ! Al(oct)-OalHH-H
+Sit    Osih   H       15.0000   110.00   ! Si(tet)-OsiH-H
+! Water angle (OPC3: theta0=109.47, rigid model)
+Hw     Ow     Hw      45.7696   109.47   ! OPC3 H-O-H (rigid)
+
+DIHEDRALS
+! V(dihedral) = Kchi(1 + cos(n(chi) - delta))
+! Kchi: kcal/mole
+! n: multiplicity
+! delta: degrees
+!
+! Note: MINFF does not define dihedral parameters
+
+IMPROPER
+!
+! Note: MINFF does not define improper parameters
+
+NONBONDED NBXMOD 5 ATOM CDIEL FSHIFT VATOM VDISTANCE VFSWITCH -
+     CUTNB 14.0 CTOFNB 12.0 CTONNB 10.0 EPS 1.0 E14FAC 1.0 WMIN 1.5
+!
+! V(Lennard-Jones) = Eps,i,j[(Rmin,i,j/ri,j)**12 - 2(Rmin,i,j/ri,j)**6]
+!
+! epsilon: kcal/mole, Eps,i,j = sqrt(eps,i * eps,j)
+! Rmin/2: A, Rmin,i,j = Rmin/2,i + Rmin/2,j
+!
+! Parameters from GMINFF_k0
+! Converted: Rmin/2 = sigma * 10 * 2^(1/6) / 2
+!            epsilon_kcal = epsilon_kJ / 4.184
+!
+! atom     ignored   epsilon      Rmin/2    ! description
+!
+! Hydrogen types
+H         0.0      -0.000000     0.0000    ! Hydroxyl hydrogen
+He        0.0      -0.000000     0.0000    ! Edge hydroxyl hydrogen
+!
+! Lithium
+Lio       0.0      -0.052483     1.0754    ! Octahedral Li
+!
+! Oxygen types (all have sigma=0.317427 nm, epsilon=0.68369 kJ/mol)
+Oahs      0.0      -0.163406     1.7815    ! Edge O, Al-OhH-Si
+Oal       0.0      -0.163406     1.7815    ! Edge O, Al-O
+Oalh      0.0      -0.163406     1.7815    ! Edge O, Al-O-H
+Oalhh     0.0      -0.163406     1.7815    ! Edge Al-OH2
+Oalsi     0.0      -0.163406     1.7815    ! Edge O, Al-O-Si
+Oalt      0.0      -0.163406     1.7815    ! Bridging O, Si-O-Al(t)
+Ob        0.0      -0.163406     1.7815    ! Bridging oxygen
+Obt       0.0      -0.163406     1.7815    ! Bridging oxygen
+Obs       0.0      -0.163406     1.7815    ! Bridging O with subst.
+Odsub     0.0      -0.163406     1.7815    ! Double subst. O
+Oh        0.0      -0.163406     1.7815    ! Hydroxyl oxygen
+Ohmg      0.0      -0.163406     1.7815    ! Mg-hydroxyl O
+Oli       0.0      -0.163406     1.7815    ! Li oxide O
+Omg       0.0      -0.163406     1.7815    ! Mg bridging O
+Op        0.0      -0.163406     1.7815    ! Apical O
+Ops       0.0      -0.163406     1.7815    ! Apical O Al(t)
+Osi       0.0      -0.163406     1.7815    ! Edge Si-O
+Osih      0.0      -0.163406     1.7815    ! Edge Si-O-H
+!
+! Fluorine
+Fs        0.0      -0.045186     1.7747    ! Fluorine
+!
+! Magnesium types
+Mgh       0.0      -0.236294     1.0555    ! Mg hydroxide
+Mgo       0.0      -0.175459     1.0975    ! Mg oxide
+!
+! Aluminum types
+Alo       0.0      -0.113263     0.8087    ! Octahedral Al
+Ale       0.0      -0.088241     0.8925    ! Edge Al
+Alt       0.0      -0.042601     0.9498    ! Tetrahedral Al
+!
+! Silicon
+Sit       0.0      -0.100961     0.4615    ! Tetrahedral Si
+!
+! Calcium types
+Cah       0.0      -0.208675     1.5256    ! Ca hydroxide
+Cao       0.0      -0.349312     1.4634    ! Ca oxide
+!
+! Iron types Fe2+
+Fet2      0.0      -0.040930     0.8266    ! Tetrahedral Fe2+
+Fee2      0.0      -0.055168     1.2117    ! Edge Fe2+
+Feo2      0.0      -0.055168     1.2117    ! Octahedral Fe2+
+!
+! Iron types Fe3+
+Fet3      0.0      -0.028463     1.1091    ! Tetrahedral Fe3+
+Fee3      0.0      -0.092080     0.9438    ! Edge Fe3+
+Feo3      0.0      -0.092080     0.9438    ! Octahedral Fe3+
+!
+! Titanium
+Tio       0.0      -0.192681     1.0563    ! Ti oxide
+!
+! Common ions (from Li & Merz OPC3 IOD parameters)
+Na        0.0      -0.030374     1.4699    ! Na+
+K         0.0      -0.168695     1.7432    ! K+
+Cs        0.0      -0.389422     1.9902    ! Cs+
+Cl        0.0      -0.529931     2.1608    ! Cl-
+!
+! Water (OPC3)
+Ow        0.0      -0.163406     1.7815    ! OPC3 water oxygen
+Hw        0.0      -0.000000     0.0000    ! OPC3 water hydrogen
+
+END
