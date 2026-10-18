@@ -21,6 +21,7 @@
 //                                and press the key; prints the cell and
 //                                whether its editor is still open
 //    residues                    the residue names of the structure, on stderr
+//    menustate NAME              whether Tools > NAME is enabled, on stderr
 //    save                        File > Save
 //    savemenu                    the File > Save menu event, if enabled
 //    savestate                   dirty flag and Save menu/toolbar enabled state
@@ -418,6 +419,11 @@ void Builder::runBuilderScript(const std::string& file)
           std::string key = w.size() > 5 ? w[5] : "enter";
           outcome = tbl->scriptEdit(atoi(w[2].c_str()), atoi(w[3].c_str()), w[4], key);
         }
+      } else if (w[0] == "menustate" && w.size() >= 2) {
+        std::string name = line.substr(line.find("menustate") + 10);
+        int id = p_toolMenu->FindItem(name);
+        fprintf(stderr, "BUILDER: menu %s enabled=%d\n", name.c_str(),
+                id == wxNOT_FOUND ? -1 : (p_toolMenu->IsEnabled(id) ? 1 : 0));
       } else if (w[0] == "residues") {
         std::string names;
         for (int i = 0; i < frag->numResidues(); i++)

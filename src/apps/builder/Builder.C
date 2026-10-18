@@ -142,6 +142,7 @@ using std::vector;
 #include "viz/HydrogenBondsCmd.H"
 #include "viz/HydrogensCmd.H"
 #include "viz/InsertResidueCmd.H"
+#include "viz/MakeResidueCmd.H"
 #include "viz/LengthEditCmd.H"
 #include "viz/NewFragmentCmd.H"
 #include "viz/RingsCmd.H"
@@ -3854,6 +3855,14 @@ void Builder::OnToolMenuClick( wxCommandEvent& event )
     PBC *pbcPanel = dynamic_cast<PBC*>(pane.window);
     if (pbcPanel && !event.IsChecked()) pbcPanel->showLattice(false);
   }
+  // A bare atom or fragment has no residue to rename: give it the default
+  // ones, as Make into Residue-Based System does, so the table has rows.
+  if (pane.name == NAME_TOOL_RESIDUE_TABLE && event.IsChecked() && !isReadOnly()) {
+    Fragment *frag = getSG()->getFragment();
+    if (frag->numResidues() == 0 && frag->numAtoms() > 0) {
+      getFW().execute(new MakeResidueCmd("Make Residue", getSG()));
+    }
+  }
   pane.Show(event.IsChecked());
   if (!event.IsChecked()) {
     p_tabHidden.erase(pane.window);
@@ -5495,7 +5504,9 @@ void Builder::updateMenus()
    bool enable = frag->numResidues() > 0;
    p_editMenu->Enable(ID_SELECT_BACKBONE, enable);
    p_editMenu->Enable(ID_SELECT_SIDECHAINS, enable);
-   GetMenuBar()->Enable(GetMenuBar()->FindMenuItem("Tools", "Residue Table"), enable);
+   // Never greyed: opening it on a structure without residues gives that
+   // structure default ones to name (OnToolMenuClick).
+   GetMenuBar()->Enable(GetMenuBar()->FindMenuItem("Tools", "Residue Table"), true);
 }
 
 /**

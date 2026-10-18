@@ -416,6 +416,33 @@ def builder_flow_section(s, build, rundir):
     if not s.services(True):
         check(False, "services came up again after the Builder")
         return
+    # R1: a bare atom, nothing saved yet: the Residue Table is not greyed out
+    # and opening it gives the atom a residue to name
+    rc, out = s.driver("gromacsprepstudy", s.userUrl(), "naion2",
+                       os.path.join(FIXTURES, "1l2y.pdb"), "frag=-",
+                       "ff=amber99sb-ildn", "water=tip3p", "box=cubic",
+                       "dist=1.0", "conc=0")
+    urls2 = urls_of(out)
+    if check(rc == 0 and len(urls2) == 3, "a second study with an empty Prepare"):
+        with xdisplay.Display() as display2:
+            log2 = run_builder(s, build, display2, urls2[1], [
+                "wait 5000", "add Na Terminal 0 0 0",
+                "menustate Residue Table", "residues",
+                "panel Residue Table", "wait 1500", "residues",
+                "cell residue 0 2 NA enter", "residues", "savestate",
+                "save", "wait 3000", "quit"], "naion2")
+        check("BUILDER: menu Residue Table enabled=1" in log2,
+              "the Residue Table menu item is enabled for a bare atom")
+        res2 = [n.strip() for n in re.findall(r"BUILDER: residues=(.*)", log2)]
+        check(res2 == ["", "UNK", "NA"],
+              "opening the table gives the atom a default residue, which is renamed: %s" % res2)
+        pd = sorted(glob.glob(os.path.join(urls2[1].replace("file://", "").rstrip("/"),
+                                           "Parameters", "*.pdb")), key=os.path.getmtime)
+        check(pd and " NA " in open(pd[-1]).read(), "and the saved structure holds residue NA")
+        # closing that Builder ended the session too
+        if not s.services(True):
+            check(False, "services came up again after the second Builder")
+            return
     prepare_then_optimize(s, rundir, prep, opt, "Na+ in water", charged=False)
 
     # the same ion left UNK by the Builder (no Residue Table edit): the job names it
