@@ -28,9 +28,8 @@ Installed to `lib/python/atomipy` and `data/minff/min.ff` of the client package.
 commit's `Systems/UC_conf` (the `.log` files are left out). They are what the
 Prepare editor's unit-cell Browse... opens; installed to `data/minff/unit_cells`.
 They come from the same repository and commit as min.ff and go out under the
-same permission; that permission is recorded for min.ff by name
-(`minff/README-ECCE.md`), so it should be confirmed with the MINFF authors that
-it covers the unit cells too.
+same permission, which covers everything in the repository
+(`minff/README-ECCE.md`).
 
 ## clayff/clayff.ff
 
