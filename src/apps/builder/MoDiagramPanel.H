@@ -80,6 +80,9 @@ class MoDiagramPanel : public VizPropertyPanel,
 
       /** What the diagram shows for a molecular level (tooltip text). */
       string levelText(int level);
+      /** The calculation column's hover text: n indexes the centre levels,
+          then the levels without a model partner. */
+      string calcLevelText(int n);
 
       /** The MOs panel's composition line for a level's orbitals. */
       virtual string orbitalComposition(const vector<int>& orbengIndices);

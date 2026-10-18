@@ -666,9 +666,9 @@ bool ModelDiagram::build(const Input& in,
          if (L.share[s] < 0.03) continue;
          const string nm = sets[s].fragment == 0
              ? (frags[0].kind == FragmentOrbitals::METAL ? in.symbols[in.leftAtoms[0]] + " " + sets[s].shell
-                                                         : leftName.formula + " " + (sets[s].irrep.empty() ? string("FO") : sets[s].irrep))
+                                                         : leftName.formula + " " + (sets[s].irrep.empty() ? string("FO") : lower(sets[s].irrep)))
              : (frags[1].kind == FragmentOrbitals::METAL ? in.symbols[in.rightAtoms[0]] + " " + sets[s].shell
-                                                         : rightName.formula + " " + (sets[s].irrep.empty() ? string("FO") : sets[s].irrep));
+                                                         : rightName.formula + " " + (sets[s].irrep.empty() ? string("FO") : lower(sets[s].irrep)));
          parts.push_back(std::make_pair(-L.share[s], nm + " " + percent(L.share[s])));
       }
       std::sort(parts.begin(), parts.end());
@@ -676,13 +676,18 @@ bool ModelDiagram::build(const Input& in,
                     " eV.  " + (L.character == MoLevel::BONDING ? "Bonding"
                       : L.character == MoLevel::ANTIBONDING ? "Antibonding" : "Non-bonding") +
                     " (overlap population " + signedNumber(L.op, 2) + ").\nMade of: ";
-      for (size_t k = 0; k < parts.size() && k < 5; k++) text += (k ? "; " : "") + parts[k].second;
+      for (size_t k = 0; k < parts.size() && k < 5; k++) text += (k ? ", " : "") + parts[k].second;
       if (L.realLevel >= 0) {
          const MoLevel& R = real[L.realLevel];
-         text += "\nCalculation: ";
-         for (size_t k = 0; k < lv.orbitals.size(); k++)
-            text += (k ? ", " : "MO ") + std::to_string(lv.orbitals[k] + 1);
-         text += ", E = " + signedNumber(R.energy, 4) + " Hartree, overlap " + fmt("%.2f", L.overlap) + ".";
+         text += "\nMatches your MO ";
+         for (size_t k = 0; k < lv.orbitals.size();) {
+            size_t e = k;
+            while (e + 1 < lv.orbitals.size() && lv.orbitals[e + 1] == lv.orbitals[e] + 1) e++;
+            text += (k ? ", " : "") + std::to_string(lv.orbitals[k] + 1);
+            if (e > k) text += "\xE2\x80\x93" + std::to_string(lv.orbitals[e] + 1);
+            k = e + 1;
+         }
+         text += " (E = " + signedNumber(R.energy, 4) + " Hartree, overlap " + fmt("%.2f", L.overlap) + ").";
          if (L.overlap < POOR_OVERLAP) text += "  A poor match: no calculated orbital resembles this model level.";
       }
       lv.detail = text;
@@ -705,7 +710,7 @@ bool ModelDiagram::build(const Input& in,
       lv.occupancy = sets[s].occupancy;
       lv.irrep = sets[s].irrep;
       if (frags[sets[s].fragment].kind == FragmentOrbitals::METAL) lv.label = sets[s].shell;
-      else if (!sets[s].irrep.empty()) lv.label = sets[s].irrep;
+      else if (!sets[s].irrep.empty()) lv.label = lower(sets[s].irrep);
       else {
          int i0 = 1 << 30, i1 = 0;
          for (size_t q = 0; q < sets[s].fos.size(); q++) {
@@ -838,6 +843,29 @@ bool ModelDiagram::build(const Input& in,
                 out.centre.levels[vi[a2]].calcEnergy > out.centre.levels[vi[b2]].calcEnergy + SAME_ENERGY)
                aboveDiffers = true;
          }
+
+      //  The calculation's HOMO and LUMO are always drawn, matched or not.
+      int calcHomo = -1;
+      for (size_t R = 0; R < real.size(); R++)
+         if (real[R].occupancy + std::max(0.0, real[R].occupancyBeta) > 0.0 &&
+             (calcHomo < 0 || real[R].energy > real[calcHomo].energy)) calcHomo = (int)R;
+      for (int pass = 0; pass < 2; pass++) {
+         const int R = pass == 0 ? calcHomo : calcLumo;
+         if (R < 0 || std::find(centreReal.begin(), centreReal.end(), R) != centreReal.end()) continue;
+         MoLevel lv;
+         lv.energy = real[R].energy;
+         lv.irrep = real[R].irrep;
+         lv.label = lv.calcLabel = lower(stripMarks(real[R].label));
+         lv.orbitals = real[R].orbitals;
+         std::sort(lv.orbitals.begin(), lv.orbitals.end());
+         lv.occupancy = lv.calcOccupancy = real[R].occupancy;
+         lv.occupancyBeta = lv.calcOccupancyBeta = real[R].occupancyBeta;
+         lv.degeneracy = lv.calcDegeneracy = real[R].degeneracy > 0 ? real[R].degeneracy : (int)real[R].orbitals.size();
+         lv.hasCalc = true;
+         lv.calcEnergy = real[R].energy;
+         lv.detail = pass == 0 ? "Your HOMO: no model partner." : "Your LUMO: no model partner.";
+         out.centre.calcOnly.push_back(lv);
+      }
 
       //  The judged levels, in the model's energy order.
       vector<int> judged;

@@ -6136,6 +6136,8 @@ void Builder::updatePropertyMenus()
           const int n = atoi(w[3].c_str());
           if (w[2] == "tip") {
             out << md->levelText(n) << "\n";
+          } else if (w[2] == "ctip") {
+            out << md->calcLevelText(n) << "\n";
           } else {
             md->orbitalClicked(n);
             SingleGrid *grid = getSG()->getCurrentGrid();
