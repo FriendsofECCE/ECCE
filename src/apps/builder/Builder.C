@@ -1604,6 +1604,12 @@ void Builder::setContext(const string& url, const bool& force)
     setDirty(false);
     setImport(false);
 
+    // A structure that carries a cell shows it, without the Periodic
+    // Builder open (the Viewer of a Prepare has no use for the panel).
+    PBC *pbcPanel = dynamic_cast<PBC*>(p_mgr.GetPane(NAME_TOOL_PBC).window);
+    if (pbcPanel && getSG()->getFragment()->getLattice())
+      pbcPanel->showLattice(true);
+
     // The constraints follow the atoms of this fragment from here on.
     const string ctxUrl = p_calculation->getURL().toString();
     delete p_constraintModels[ctxUrl];
@@ -3842,7 +3848,12 @@ void Builder::OnToolOrientClick( wxCommandEvent& event )
 void Builder::OnToolMenuClick( wxCommandEvent& event )
 {
   wxAuiPaneInfo &pane = p_mgr.GetPane(GetMenuBar()->GetLabel(event.GetId()));
-  if (pane.name == NAME_TOOL_PBC) p_pbcAutoShown = false;
+  if (pane.name == NAME_TOOL_PBC) {
+    p_pbcAutoShown = false;
+    // Switching the tool off takes the box with it.
+    PBC *pbcPanel = dynamic_cast<PBC*>(pane.window);
+    if (pbcPanel && !event.IsChecked()) pbcPanel->showLattice(false);
+  }
   pane.Show(event.IsChecked());
   if (!event.IsChecked()) {
     p_tabHidden.erase(pane.window);
@@ -4015,7 +4026,11 @@ void Builder::OnPaneClose(wxAuiManagerEvent& event)
   } else {
     wxString name(event.pane->name);
     wxWindow *win = event.pane->window;
-    if (name == NAME_TOOL_PBC) p_pbcAutoShown = false;
+    if (name == NAME_TOOL_PBC) {
+      p_pbcAutoShown = false;
+      PBC *pbcPanel = dynamic_cast<PBC*>(win);
+      if (pbcPanel) pbcPanel->showLattice(false);
+    }
     unfoldPane(*event.pane);
     p_tabHidden.erase(win);
     if (p_detail == win) {

@@ -52,6 +52,9 @@ class GromacsPreparePanel : public ewxPanel
       /** Set a field as a person would (test hook); false with a reason. */
       bool testSet(const string& field, const string& value, string& message);
 
+      /** The built mineral's cell vectors in nm, c with the water layer. */
+      bool cellVectors(double v[3][3]) const;
+
       /** The fields in words (test hook). */
       string summary() const;
 

@@ -471,6 +471,11 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
         << "\norphanNubs " << orphans << "\n";
     LatticeDef *lattice = frag->getLattice();
     out << "lattice " << (lattice ? 1 : 0) << "\n";
+    {
+      PBC *pbcPanel = dynamic_cast<PBC*>(p_mgr.GetPane(NAME_TOOL_PBC).window);
+      out << "latticeshown " << (pbcPanel && pbcPanel->latticeShown() ? 1 : 0)
+          << "\n";
+    }
     MPoint d, e, f, origin;
     double volume = 0.0;
     if (lattice) {

@@ -42,3 +42,11 @@ the table extended, and "Other (GMXLIB)" covers it meanwhile.
 
 Merge chains (`-merge all`) is on by default now (model, `md.gmxprep` and
 `gensub` agree); a recipe written before that has `MERGE=0` stored.
+
+The System page sits in a `wxScrolledWindow` (minimum 700 x 420) so the
+window opens compact and scrolls; `GromacsPreparePanel::relayout` must not
+grow the top-level window again, it only re-lays out the scrolled parent.
+The Verify button (beside Launch) shows the recipe, the gmx commands and
+`ions.mdp` from `GmxPrepare::verifyText`, which mirrors `gromacsPrepare()`
+in `scripts/gensub` by hand: a change to the job's commands or its cut-off
+rule needs the same change there. Hooks: `verify`, `size`.

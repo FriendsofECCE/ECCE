@@ -655,6 +655,12 @@ void PBC::showLattice(bool showit)
     }
 }
 
+bool PBC::latticeShown()
+{
+    SoSwitch *s = (SoSwitch*)getFW().getSceneGraph().findNode("latticeswitch");
+    return s && s->whichChild.getValue() == SO_SWITCH_ALL;
+}
+
 /**
  * User changed one of the a,b,c,alpha,beta,gamma...
  */

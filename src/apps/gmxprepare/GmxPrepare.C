@@ -27,6 +27,9 @@
 #include "dsm/JCode.H"
 #include "dsm/MdTask.H"
 
+#include <algorithm>
+#include <cmath>
+#include "wxgui/ewxButton.H"
 #include "wxgui/ewxMessageDialog.H"
 #include "wxgui/ewxNotebook.H"
 #include "wxgui/GromacsInputsPanel.H"
@@ -95,6 +98,21 @@ void GmxPrepare::constructor()
       p_gmxRun = 0;
    }
    SetTitle(wxString::FromUTF8(("ECCE " + getTitle()).c_str()));
+
+   // Verify sits beside Launch, as in the other editors.
+   wxWindow *launch = FindWindow(ID_BUTTON_LAUNCH);
+   if (launch != 0 && launch->GetContainingSizer() != 0) {
+      wxSizer *row = launch->GetContainingSizer();
+      ewxButton *verify = new ewxButton(launch->GetParent(), wxID_ANY, _("Verify..."));
+      verify->Bind(wxEVT_BUTTON, &GmxPrepare::OnVerifyClick, this);
+      size_t at = 0;
+      for (wxSizerItemList::compatibility_iterator n = row->GetChildren().GetFirst();
+           n; n = n->GetNext(), at++)
+         if (n->GetData()->GetWindow() == launch) break;
+      row->Insert(at, verify, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
+   }
+   // The base fitted the window to its content; it may shrink below that.
+   SetMinSize(wxSize(420, 320));
 }
 
 
@@ -112,8 +130,16 @@ GromacsPrepareModel *GmxPrepare::prepModel() const
 void GmxPrepare::createPanels()
 {
    if (p_notebook->GetPageCount() == 0) {
-      p_panel = new GromacsPreparePanel(this, p_notebook);
-      p_notebook->AddPage(p_panel, _("System"));
+      // The page is taller than a laptop screen with a mineral chosen: it
+      // scrolls inside a compact window instead of forcing the window up.
+      wxScrolledWindow *scroll = new wxScrolledWindow(p_notebook, wxID_ANY);
+      scroll->SetScrollRate(10, 10);
+      scroll->SetMinSize(wxSize(700, 420));
+      p_panel = new GromacsPreparePanel(this, scroll);
+      wxBoxSizer *fill = new wxBoxSizer(wxVERTICAL);
+      fill->Add(p_panel, 1, wxEXPAND);
+      scroll->SetSizer(fill);
+      p_notebook->AddPage(scroll, _("System"));
       p_panel->setModel(prepModel());
       p_panel->refreshGUI();
       p_notebook->Refresh();
@@ -207,7 +233,7 @@ void GmxPrepare::saveModelAndInputFile(MdTask *task)
  * The model through md.gmxprep, stored as the task's gromacs.gmxprep.
  * @throw IOException with md.gmxprep's own message if it refuses a value.
  */
-void GmxPrepare::generateInputFile(MdTask *task)
+string GmxPrepare::recipeText(MdTask *task)
 {
    SFile *tmpModel = TempStorage::getTempFile();
    ofstream outfile(tmpModel->path().c_str());
@@ -221,22 +247,17 @@ void GmxPrepare::generateInputFile(MdTask *task)
                 " < \"" + tmpModel->path() + "\" > \"" + tmpInput->path() +
                 "\" 2> \"" + tmpErr->path() + "\"";
    int istatus = Ecce::runCommand(cmd);
-   string err;
+   string err, recipe;
    if (istatus != 0) {
       ifstream ef(tmpErr->path().c_str());
       std::ostringstream es;
       es << ef.rdbuf();
       err = es.str();
-   }
-
-   if (istatus == 0) {
+   } else {
       ifstream ifs(tmpInput->path().c_str());
-      if (task->putInputFile(RECIPE_NAME, &ifs)) {
-         task->setState(ResourceDescriptor::STATE_READY);
-         setRunState(ResourceDescriptor::STATE_READY);
-      } else {
-         p_feedback->setMessage("Failed to save input file", WxFeedback::ERROR);
-      }
+      std::ostringstream rs;
+      rs << ifs.rdbuf();
+      recipe = rs.str();
    }
 
    SFile *tmps[] = { tmpModel, tmpInput, tmpErr };
@@ -245,6 +266,132 @@ void GmxPrepare::generateInputFile(MdTask *task)
    if (istatus != 0) {
       throw IOException("Input file generation failed. " + err, WHERE);
    }
+   return recipe;
+}
+
+
+void GmxPrepare::generateInputFile(MdTask *task)
+{
+   std::istringstream ifs(recipeText(task));
+   if (task->putInputFile(RECIPE_NAME, &ifs)) {
+      task->setState(ResourceDescriptor::STATE_READY);
+      setRunState(ResourceDescriptor::STATE_READY);
+   } else {
+      p_feedback->setMessage("Failed to save input file", WxFeedback::ERROR);
+   }
+}
+
+
+static string recipeValue(const string& recipe, const string& key,
+                          const string& dflt)
+{
+   std::istringstream in(recipe);
+   string l;
+   while (std::getline(in, l))
+      if (l.compare(0, key.size() + 1, key + "=") == 0) return l.substr(key.size() + 1);
+   return dflt;
+}
+
+string GmxPrepare::verifyText()
+{
+   MdTask *task = dynamic_cast<MdTask*>(EDSIFactory::getResource(p_model->getUrl()));
+   if (task == 0) return "No task is open.";
+   string recipe;
+   try {
+      recipe = recipeText(task);
+   } catch (IOException& e) {
+      return e.what();
+   }
+   GromacsPrepareModel *m = prepModel();
+   const bool minff = m->source() == "minff";
+   const bool water = !minff || m->boxDistance() > 0;
+   const string w = m->waterModel();
+   string wbox = "spc216.gro";
+   if (w == "tip4p" || w == "tip4pew" || w == "opc" || w == "tip4p-fb") wbox = "tip4p.gro";
+   else if (w == "tip5p") wbox = "tip5p.gro";
+   char num[64];
+   std::ostringstream o;
+
+   o << "The recipe stored with this task (gromacs.gmxprep):\n\n" << recipe
+     << "\nThe job runs these commands, in its own directory, with the gmx "
+        "it finds on the compute machine:\n\n";
+   if (minff) {
+      o << "1. (mineral) the topology and structure built here are used as "
+           "they are: topol.top, step1.gro\n";
+   } else {
+      o << "1. gmx pdb2gmx -f <structure.pdb> -ff " << m->forceField()
+        << " -water " << w << (m->ignoreHydrogens() ? " -ignh" : "")
+        << (m->mergeChains() ? " -merge all" : "")
+        << " -o step1.gro -p topol.top -i posre.itp\n";
+   }
+   if (minff) {
+      snprintf(num, sizeof num, "%g", m->boxDistance());
+      o << "2. the cell is kept; c is lengthened by the water layer ("
+        << (water ? num : "none") << " nm)\n";
+   } else {
+      snprintf(num, sizeof num, "%g", m->boxDistance());
+      o << "2. gmx editconf -f step1.gro -o step2.gro -c -bt " << m->boxType()
+        << " -d " << num << "\n";
+   }
+   if (water) {
+      o << "3. gmx solvate -cp step2.gro -cs " << wbox
+        << " -o step3.gro -p topol.top\n";
+   } else {
+      o << "3. no water layer: step2.gro is used as it is\n";
+   }
+
+   // genion's cut-off, as gensub works it out: 1 nm, or for a mineral at
+   // most 0.5 nm and what its cell holds.
+   string rc = "1.0", periodic;
+   if (minff) {
+      double v[3][3];
+      double lim = 0.5;
+      if (p_panel != 0 && p_panel->cellVectors(v)) {
+         for (int i = 0; i < 3; i++) {
+            lim = std::min(lim, 0.5 * std::sqrt(v[i][0]*v[i][0] + v[i][1]*v[i][1] + v[i][2]*v[i][2]));
+            lim = std::min(lim, v[i][i]);
+         }
+         snprintf(num, sizeof num, "%.3f", int(lim / 1.05 * 980) / 1000.0);
+         rc = num;
+      } else {
+         rc = "0.5 (the mineral has not been built here yet)";
+      }
+      periodic = "periodic-molecules = yes\n";
+   }
+   o << "4. gmx grompp -f ions.mdp -c step3.gro -p topol.top -o ions.tpr\n";
+   if (water) {
+      snprintf(num, sizeof num, "%g", m->ionConcentration());
+      o << "   echo SOL | gmx genion -s ions.tpr -o ion.gro -p topol.top -pname "
+        << m->positiveIon() << " -pq " << recipeValue(recipe, "PQ", "1")
+        << " -nname " << m->negativeIon() << " -neutral"
+        << (m->ionConcentration() > 0 ? string(" -conc ") + num : string())
+        << "\n";
+   } else {
+      o << "   (no solvent to replace with ions: the mineral's charge is left as it is)\n";
+   }
+   o << "5. gmx editconf -f <system>_<calculation>.gro -o chemsys.pdb\n"
+     << "\nions.mdp, which grompp reads in step 4:\n\n"
+     << "integrator = steep\nnsteps = 0\ncutoff-scheme = Verlet\n"
+        "coulombtype = cutoff\nrcoulomb = " << rc << "\nrvdw = " << rc
+     << "\npbc = xyz\n" << periodic;
+   return o.str();
+}
+
+
+void GmxPrepare::OnVerifyClick(wxCommandEvent&)
+{
+   wxDialog dlg(this, wxID_ANY, _("Verify GROMACS Prepare"), wxDefaultPosition,
+                wxSize(760, 560), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER);
+   wxBoxSizer *col = new wxBoxSizer(wxVERTICAL);
+   wxTextCtrl *text = new wxTextCtrl(&dlg, wxID_ANY,
+       wxString::FromUTF8(verifyText().c_str()), wxDefaultPosition,
+       wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP);
+   text->SetFont(wxFont(wxFontInfo().Family(wxFONTFAMILY_TELETYPE)));
+   col->Add(text, 1, wxEXPAND | wxALL, 8);
+   col->Add(dlg.CreateStdDialogButtonSizer(wxCLOSE), 0, wxEXPAND | wxALL, 8);
+   dlg.SetSizer(col);
+   dlg.SetEscapeId(wxID_CLOSE);
+   dlg.ShowModal();
 }
 
 
@@ -284,6 +431,19 @@ string GmxPrepare::runTestCommand(const string& line)
       string message;
       bool ok = p_panel->testSet(arg.substr(0, sp), arg.substr(sp + 1), message);
       return ok ? "ok" : "refused: " + message;
+   } else if (cmd == "size") {
+      wxScrolledWindow *page = dynamic_cast<wxScrolledWindow*>(p_panel->GetParent());
+      wxSize f = GetSize(), c = page ? page->GetClientSize() : wxSize(0, 0),
+             v = page ? page->GetVirtualSize() : wxSize(0, 0);
+      char b[200];
+      snprintf(b, sizeof b, "frame %d %d page %d %d virtual %d %d", f.x, f.y,
+               c.x, c.y, v.x, v.y);
+      return b;
+   } else if (cmd == "verify") {
+      string text = verifyText(), out, l;
+      std::istringstream in(text);
+      while (std::getline(in, l)) out += (out.empty() ? "" : " | ") + l;
+      return out;
    } else if (cmd == "fields") {
       return p_panel->summary();
    } else if (cmd == "recipe" || cmd == "model") {

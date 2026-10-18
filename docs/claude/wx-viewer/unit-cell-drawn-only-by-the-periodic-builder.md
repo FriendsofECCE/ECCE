@@ -1,18 +1,15 @@
 ---
 type: pitfall
-title: "The unit cell is drawn only while the Periodic Builder panel is open; a loaded lattice alone shows nothing"
+title: "The unit cell is drawn by the `latticeswitch` node: a loaded lattice turns it on, and closing or unticking the Periodic Builder turns it off"
 area: wx-viewer
-paths: [src/viz/sgcommands/SGContainer.C, src/apps/builder/PBC.C, src/tdat/chemistry/Fragment.C]
-issues: []
+paths: [src/viz/sgcommands/SGContainer.C, src/apps/builder/PBC.C, src/apps/builder/Builder.C, src/tdat/chemistry/Fragment.C]
+issues: [930]
 ---
-`Fragment::restoreCAR` (PBC=ON) sets the fragment's `LatticeDef`,
-and `SGLattice` would draw it, but `SGContainer` creates its parent
-`latticeswitch` as `SO_SWITCH_NONE` and the only code that turns it on is
-`PBC::showLattice()`, from `PBC::refresh()`. That runs when the Periodic
-Builder panel is opened (Tools > Periodic Builder, via
-`Builder::OnToolMenuClick`) and on scene events while it is shown, and
-follows its "Show Lattice" check box (checked by default). So opening a
-periodic `.car` shows the atoms and no cell until that panel is opened.
-This is the original design (`PBC::refresh` avoids stashing fragments while
-the toolkit is irrelevant), not a lost event. Closing the panel leaves the
-switch as it was.
+`SGContainer` creates `latticeswitch` as `SO_SWITCH_NONE`; `PBC::showLattice`
+is the only code that changes it. `Builder::setContext` switches it on for a
+structure that carries a lattice (a Prepare's `chemsys.pdb`, a periodic `.car`)
+without opening the Periodic Builder; an import opens the panel as well.
+`OnToolMenuClick` and `OnPaneClose` switch it off when the Periodic Builder
+is unticked or closed. While the panel is shown, `PBC::refresh` follows its
+"Show Lattice" box. Test hook: `fragdump` prints `latticeshown`; tests
+`tests/apps/pbc_layers_test.py` (box-hides) and `tests/launch/gromacs_prepare_test.py`.

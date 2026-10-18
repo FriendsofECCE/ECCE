@@ -32,6 +32,16 @@ class GmxPrepare: public MDEdBase, public WxJMSListener
                                        bool forceMsg=false);
       void resetPanel();
 
+      /** The recipe md.gmxprep makes of the model (throws IOException). */
+      string recipeText(MdTask *task);
+
+      /**
+       * What the job will run: the recipe, the gmx commands it implies and
+       * the ions.mdp, for the Verify button.  Mirrors gromacsPrepare() in
+       * scripts/gensub; a change there needs one here.
+       */
+      string verifyText();
+
    protected:
       virtual void initializeModel();
       virtual void createPanels();
@@ -40,6 +50,7 @@ class GmxPrepare: public MDEdBase, public WxJMSListener
       virtual string getAppName() const;
       virtual string runTestCommand(const string& line);
       virtual void OnButtonResetaClick( wxCommandEvent& event );
+      void OnVerifyClick( wxCommandEvent& event );
 
       void initializeMessaging();
       void invokeMCB(JMSMessage& msg);

@@ -478,7 +478,7 @@ void PBCGUI::CreateControls()
     sp = new ewxSpinCtrl(lp, ID_SPIN_LAYER_N, _("2"), wxDefaultPosition, wxSize(55, -1), wxSP_ARROW_KEYS, 1, 100, 2);
     sp->SetToolTip(_("Number of layers in the new cell"));
     lg->Add(sp, 0, wxALIGN_CENTER_VERTICAL);
-    t = new ewxStaticText(lp, wxID_STATIC, _("Spacing (A):"));
+    t = new ewxStaticText(lp, wxID_STATIC, wxString::FromUTF8("Spacing (\u00c5):"));
     lg->Add(t, 0, wxALIGN_CENTER_VERTICAL);
     tc = new ewxTextCtrl(lp, ID_TEXT_LAYER_SPACING, _T(""), wxDefaultPosition, wxSize(55, -1), 0);
     tc->SetToolTip(_("Distance from one layer to the next, measured along the normal of the a-b plane; the new c is Layers x Spacing"));
@@ -513,7 +513,7 @@ void PBCGUI::CreateControls()
         tc = new ewxTextCtrl(lp, ionIds[r][2], _T("1"), wxDefaultPosition, wxSize(35, -1), 0);
         tc->SetToolTip(_("Charge of the ion, stored as the atom charge"));
         ig->Add(tc, 0, wxALIGN_CENTER_VERTICAL);
-        ig->Add(new ewxStaticText(lp, wxID_STATIC, _("min A:")), 0, wxALIGN_CENTER_VERTICAL);
+        ig->Add(new ewxStaticText(lp, wxID_STATIC, wxString::FromUTF8("min \u00c5:")), 0, wxALIGN_CENTER_VERTICAL);
         tc = new ewxTextCtrl(lp, ionIds[r][3], _T("3.5"), wxDefaultPosition, wxSize(40, -1), 0);
         tc->SetToolTip(_("Smallest distance to any atom already there"));
         ig->Add(tc, 0, wxALIGN_CENTER_VERTICAL);
@@ -524,7 +524,7 @@ void PBCGUI::CreateControls()
     sp = new ewxSpinCtrl(lp, ID_SPIN_LAYER_WATER, _("0"), wxDefaultPosition, wxSize(55, -1), wxSP_ARROW_KEYS, 0, 100000, 0);
     sp->SetToolTip(_("Water molecules in each gap"));
     wg->Add(sp, 0, wxALIGN_CENTER_VERTICAL);
-    wg->Add(new ewxStaticText(lp, wxID_STATIC, _("min A:")), 0, wxALIGN_CENTER_VERTICAL);
+    wg->Add(new ewxStaticText(lp, wxID_STATIC, wxString::FromUTF8("min \u00c5:")), 0, wxALIGN_CENTER_VERTICAL);
     tc = new ewxTextCtrl(lp, ID_TEXT_LAYER_WATERMIN, _T("2.0"), wxDefaultPosition, wxSize(40, -1), 0);
     tc->SetToolTip(_("Smallest distance from a water oxygen to any atom already there"));
     wg->Add(tc, 0, wxALIGN_CENTER_VERTICAL);
