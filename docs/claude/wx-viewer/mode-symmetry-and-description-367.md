@@ -34,9 +34,17 @@ Builder, `ECCE_NMODE_TABLE_DUMP=<path>`).
   credited to BXB, or the HCHO scissor reads half HCH and half HCO.
   Torsions use one dihedral per bond through the heaviest neighbours (nine
   H-C-C-H would outvote everything).
-- **Layout**: the grid is not `AutoSize()`d (that resizes the window); the
+- **Translations/rotations**: the zero rows get Tx..Rz and their irreps from
+  the projection operator of the group's own table on the ideal motions in
+  the symmetry frame (planar C2v: x and y renamed with the B1/B2 swap). A row
+  with a displacement is named only if one ideal motion holds more than 90 %
+  of it; a row with none (ORCA, ECCE-QM print zeros) is named by position,
+  Tx Ty Tz Rx Ry Rz, with a remark in its tooltip; a mixture stays unnamed.
+- **nu**: the stretch symbol is nu with a combining tilde; a bare nu is
+  drawn as a v in Cantarell.
+- **Layout**: the detail line is two wrapped lines (under the table, and
+  under the plot in the Graph view next to a frequency line), the grid is not `AutoSize()`d (that resizes the window); the
   Mode column takes what is left of the grid's width up to 190 px and the
-  cell text is ellipsized beyond, the detail line under the table is an
-  ellipsized static text with a tiny minimum width. Neither may widen the
+  cell text is ellipsized beyond; the detail lines have a tiny minimum width. Neither may widen the
   docked panel; `panel_test.py` compares each molecule's panel size with
   water's.

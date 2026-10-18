@@ -210,7 +210,9 @@ double bondOrder(const Topology& t, int a, int b)
    return it == t.order.end() ? 1.0 : it->second;
 }
 
-const char *NU = "\xce\xbd", *DELTA = "\xce\xb4", *RHO = "\xcf\x81",
+//  nu with a combining tilde (the wavenumber symbol): a bare nu is drawn
+//  as a v in Cantarell and most UI fonts.
+const char *NU = "\xce\xbd\xcc\x83", *DELTA = "\xce\xb4", *RHO = "\xcf\x81",
            *OMEGA = "\xcf\x89", *TAU = "\xcf\x84", *GAMMA = "\xce\xb3";
 const char *ENDASH = "\xe2\x80\x93";
 
@@ -301,6 +303,157 @@ string VibAnalysis::linearName(const string& irrep, const string& group)
 }
 
 
+
+//  The six zero-frequency rows are the translations and rotations of the
+//  whole molecule.  Each ideal motion (in the symmetry frame, where the
+//  axes are the group's) belongs to one irrep, found with the projection
+//  operator of the group's own character table.  Which row is which is only
+//  known from the displacements: a row that is dominated by one ideal motion
+//  gets its name; a row without any displacement (ORCA, ECCE-QM print
+//  zeros) gets the names in the order every code lists them, Tx Ty Tz Rx Ry
+//  Rz, and says so; a row that is a mixture of them stays unnamed.
+static void labelRigid(const VibInput& in, const vector<Vec>& modes,
+                const vector<double>& stdCoords, const vector<SymOp>& ops,
+                const CharacterTable& table, const vector<string>& shown,
+                const vector<int>& classOfOp, bool linear, const string& group,
+                VibResult& out)
+{
+   const size_t N = in.elements.size(), nm = in.modes.size();
+   TPerTab pt(true);
+   vector<double> mass;
+   for (size_t a = 0; a < N; a++)
+      mass.push_back(pt.atomicWeight(pt.atomicNumber(in.elements[a])));
+   double com[3] = { 0, 0, 0 }, M = 0.0;
+   for (size_t a = 0; a < N; a++) {
+      if (mass[a] <= 0) return;
+      M += mass[a];
+      for (int k = 0; k < 3; k++) com[k] += mass[a]*stdCoords[3*a+k];
+   }
+   for (int k = 0; k < 3; k++) com[k] /= M;
+
+   //  The ideal motions, mass-weighted, normalised; axis k of the frame.
+   struct Ideal { string name, kind; Vec v; string irrep; bool rotation; int axis; };
+   vector<Ideal> ideals;
+   //  The planar-C2v display swap renames B1/B2; the axes follow it, so
+   //  that Tx is B1 and Ty is B2 as in the textbooks.
+   bool swapped = false;
+   for (size_t i = 0; i < shown.size(); i++)
+      if (table.irreps()[i] != shown[i]) swapped = true;
+   const char *axis = "xyz";
+   for (int rot = 0; rot < 2; rot++) {
+      for (int k = 0; k < 3; k++) {
+         Ideal id;
+         id.rotation = rot == 1;
+         id.axis = k;
+         id.v.assign(3*N, 0.0);
+         for (size_t a = 0; a < N; a++) {
+            const double r[3] = { stdCoords[3*a]-com[0], stdCoords[3*a+1]-com[1],
+                                  stdCoords[3*a+2]-com[2] };
+            const double s = sqrt(mass[a]);
+            double e[3] = { 0, 0, 0 };
+            e[k] = 1.0;
+            if (!rot) { for (int c = 0; c < 3; c++) id.v[3*a+c] = s*e[c]; }
+            else {
+               const double cr[3] = { e[1]*r[2]-e[2]*r[1], e[2]*r[0]-e[0]*r[2],
+                                      e[0]*r[1]-e[1]*r[0] };
+               for (int c = 0; c < 3; c++) id.v[3*a+c] = s*cr[c];
+            }
+         }
+         const double l = sqrt(dot(id.v, id.v));
+         if (l < 1e-6) continue;           // no rotation about a linear molecule's axis
+         for (size_t i = 0; i < id.v.size(); i++) id.v[i] /= l;
+
+         //  Irrep: the one whose projection operator leaves the unit vector alone.
+         id.irrep.clear();
+         for (size_t g = 0; g < table.irreps().size(); g++) {
+            const vector<double> *chi = table.characters(table.irreps()[g]);
+            if (chi == 0) continue;
+            double p[3] = { 0, 0, 0 };
+            for (size_t o = 0; o < ops.size(); o++) {
+               const double sign = rot ? ops[o].determinant() : 1.0;
+               const double w = (*chi)[classOfOp[o]]*sign;
+               for (int r = 0; r < 3; r++) p[r] += w*ops[o].m[r][k];
+            }
+            const double d = table.dimension(table.irreps()[g]);
+            double len2 = 0.0;
+            for (int r = 0; r < 3; r++) { p[r] *= d/ops.size(); len2 += p[r]*p[r]; }
+            if (fabs(len2 - 1.0) < 0.02) {
+               id.irrep = linear ? VibAnalysis::linearName(shown[g], group) : shown[g];
+               break;
+            }
+         }
+         int shownAxis = k;
+         if (swapped && k < 2) shownAxis = 1 - k;
+         id.name = string(rot ? "R" : "T") + axis[shownAxis];
+         id.kind = string(rot ? "rotation about " : "translation along ") + axis[shownAxis];
+         ideals.push_back(id);
+      }
+   }
+   std::sort(ideals.begin(), ideals.end(), [](const Ideal& a, const Ideal& b) {
+      return a.name < b.name; });
+   //  Tx Ty Tz Rx Ry Rz: "R" sorts after "T" otherwise.
+   std::stable_sort(ideals.begin(), ideals.end(), [](const Ideal& a, const Ideal& b) {
+      return a.rotation < b.rotation; });
+
+   vector<size_t> rows;
+   for (size_t m = 0; m < nm; m++)
+      if (fabs(in.freqs[m]) < ZERO_FREQ) rows.push_back(m);
+   if (rows.size() != ideals.size()) return;
+
+   vector<bool> hasVector(nm, false);
+   bool anyVector = false;
+   for (size_t k = 0; k < rows.size(); k++) {
+      const Vec& d = modes[rows[k]];
+      hasVector[rows[k]] = sqrt(dot(d, d)) > 1e-4;
+      anyVector = anyVector || hasVector[rows[k]];
+   }
+
+   vector<int> given(ideals.size(), 0);
+   auto name = [&](size_t m, size_t which, bool nominal) {
+      VibModeInfo& info = out.modes[m];
+      info.rigid = true;
+      info.label = ideals[which].name;
+      info.irrep = ideals[which].irrep;
+      info.detail = ideals[which].kind;
+      if (nominal)
+         info.remark = "The output holds no displacement for this row, so it is named "
+                       "by position: translations x y z, then rotations x y z.";
+      given[which]++;
+   };
+   if (!anyVector) {
+      for (size_t k = 0; k < rows.size(); k++) name(rows[k], k, true);
+      return;
+   }
+   for (size_t k = 0; k < rows.size(); k++) {
+      const size_t m = rows[k];
+      if (!hasVector[m]) continue;
+      Vec q(3*N);
+      for (size_t a = 0; a < N; a++)
+         for (int c = 0; c < 3; c++) q[3*a+c] = sqrt(mass[a])*modes[m][3*a+c];
+      const double qq = dot(q, q);
+      int best = -1;
+      double bestShare = 0.0;
+      for (size_t w = 0; w < ideals.size(); w++) {
+         const double p = dot(q, ideals[w].v);
+         const double share = p*p/qq;
+         if (share > bestShare) { bestShare = share; best = (int)w; }
+      }
+      if (best >= 0 && bestShare > 0.9) name(m, (size_t)best, false);
+   }
+   //  Two rows claiming one motion: neither is trusted.
+   for (size_t w = 0; w < ideals.size(); w++) {
+      if (given[w] < 2) continue;
+      for (size_t m : rows)
+         if (out.modes[m].rigid && out.modes[m].label == ideals[w].name) {
+            out.modes[m].rigid = false;
+            out.modes[m].label.clear();
+            out.modes[m].irrep.clear();
+            out.modes[m].detail.clear();
+         }
+   }
+}
+
+
 bool VibAnalysis::symmetry(const VibInput& in, const string& group,
                            const vector<double>& stdCoords,
                            const vector<SymOp>& ops, VibResult& out)
@@ -312,6 +465,7 @@ bool VibAnalysis::symmetry(const VibInput& in, const string& group,
       out.modes[m].irrep.clear();
       out.modes[m].activityKnown = false;
       out.modes[m].ir = out.modes[m].raman = false;
+      out.modes[m].rigid = false;
    }
    if (N == 0 || in.coords.size() != 3*N || stdCoords.size() != 3*N) return false;
 
@@ -480,6 +634,7 @@ bool VibAnalysis::symmetry(const VibInput& in, const string& group,
       }
       i = j;
    }
+   labelRigid(in, modes, stdCoords, ops, *table, irreps, classOfOp, linear, group, out);
    return true;
 }
 
@@ -953,6 +1108,7 @@ bool VibAnalysis::analyse(const VibInput& in, VibResult& out)
    for (size_t m = 0; m < out.modes.size(); m++) {
       out.modes[m].activityKnown = false;
       out.modes[m].ir = out.modes[m].raman = false;
+      out.modes[m].rigid = false;
    }
 
    //  The modes must belong to this geometry before anything is said.
@@ -1002,6 +1158,12 @@ bool VibAnalysis::analyse(const VibInput& in, VibResult& out)
          out.modes[m].activityKnown = sym.modes[m].activityKnown;
          out.modes[m].ir = sym.modes[m].ir;
          out.modes[m].raman = sym.modes[m].raman;
+         if (sym.modes[m].rigid) {
+            out.modes[m].rigid = true;
+            out.modes[m].label = sym.modes[m].label;
+            out.modes[m].detail = sym.modes[m].detail;
+            out.modes[m].remark = sym.modes[m].remark;
+         }
       }
    } else {
       out.note = sym.note;

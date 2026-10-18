@@ -29,7 +29,7 @@ import extract  # noqa: E402
 FIX = os.path.join(REPO, "tests", "parsers", "fixtures")
 QM = os.path.join(HERE, "fixtures")
 
-NU, DELTA, RHO, OMEGA = "ν", "δ", "ρ", "ω"
+NU, DELTA, RHO, OMEGA = "ν̃", "δ", "ρ", "ω"
 SIGMA, PI = "Σ", "Π"
 MINUS = "−"
 
@@ -98,6 +98,20 @@ CASES = [
     ("BENZENE", "ECCE-QM", os.path.join(QM, "c6h6_optfreq.qmout"), "ecceqm.desc", "GeoVib",
      "CCCCCCHHHHHH"),
 ]
+
+#  Irreps of the translations and rotations (Tx..Rz), textbook values, in
+#  the frames the vibrations are labelled in (planar C2v in the yz plane).
+SIGMA, PI = "Σ", "Π"
+RIGID = {
+    "H2O": dict(Tx="B1", Ty="B2", Tz="A1", Rx="B2", Ry="B1", Rz="A2"),
+    "HCHO": dict(Tx="B1", Ty="B2", Tz="A1", Rx="B2", Ry="B1", Rz="A2"),
+    "NH3": dict(Tx="E", Ty="E", Tz="A1", Rx="E", Ry="E", Rz="A2"),
+    "CH4": dict(Tx="T2", Ty="T2", Tz="T2", Rx="T1", Ry="T1", Rz="T1"),
+    "CO2": dict(Tx=PI + "u", Ty=PI + "u", Tz=SIGMA + "u+", Rx=PI + "g", Ry=PI + "g"),
+    "BENZENE": dict(Tx="E1u", Ty="E1u", Tz="A2u", Rx="E1g", Ry="E1g", Rz="A2g"),
+}
+#  Codes that print no displacement for the six zero rows: all six are named.
+NO_ZERO_VECTORS = ("ORCA", "ECCE-QM")
 
 failures = []
 checks = [0]
@@ -229,6 +243,19 @@ def main():
         group, note, modes = got
         table[name] = (group, modes)
         vib = [m for m in modes if abs(m["freq"]) >= 10]
+        if mol in RIGID:
+            zero = [m for m in modes if abs(m["freq"]) < 10]
+            named = [m for m in zero if m["label"] != "-"]
+            check(all(RIGID[mol].get(m["label"]) == m["irrep"] for m in named),
+                  "%s: translations and rotations carry textbook irreps (%s)"
+                  % (name, " ".join("%s:%s" % (m["label"], m["irrep"]) for m in named)))
+            if code in NO_ZERO_VECTORS:
+                check([m["label"] for m in zero] == list(RIGID[mol]),
+                      "%s: the zero rows are named Tx..Rz in order (got %s)"
+                      % (name, [m["label"] for m in zero]))
+            else:
+                check(len({m["label"] for m in named}) == len(named),
+                      "%s: no motion is named twice" % name)
         if args.verbose:
             print("  %s: group %s %s" % (name, group, note))
             for m in modes:

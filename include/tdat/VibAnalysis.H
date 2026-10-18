@@ -43,8 +43,10 @@ struct VibModeInfo
    bool   activityKnown; // ir/raman are only meaningful when true
    bool   ir;
    bool   raman;
-   string label;         // short form, UTF-8: nu_as(OH), delta(HOH)
+   string label;         // short form, UTF-8: nu_as(OH), delta(HOH); Tx..Rz for rigid motion
    string detail;        // long form with percentages, UTF-8
+   bool   rigid;         // a translation or rotation of the whole molecule
+   string remark;        // how a rigid label was found, when it is not certain
 };
 
 struct VibResult

@@ -85,6 +85,8 @@ class NModePanel : public NModesGUI,
       /** Mode column width and text for the grid's current width. */
       void fitModeColumn();
       void showModeDetail(int row);
+      /** Sets a description label to `text`, wrapped to two lines at its width. */
+      static void setWrapped(wxStaticText *label, const wxString& text);
       void dumpTableIfRequested();
       wxString cellTip(int row, int col) const;
       void OnGridMotion(wxMouseEvent& event);
@@ -150,7 +152,12 @@ class NModePanel : public NModesGUI,
       VibResult p_vib;
       vector<string> p_codeSym;
       vector<wxString> p_modeFull;   // untruncated Mode cells
+      //  The selected mode's frequency and description: under the table, and
+      //  under the plot in the Graph view (p_graphFreq, p_graphDetail).
       wxStaticText *p_modeDetail = NULL;
+      wxStaticText *p_graphFreq = NULL;
+      wxStaticText *p_graphDetail = NULL;
+      wxString p_detailText;          // unwrapped, for re-wrapping on a resize
       int         p_mode;
       int         p_numAnimations;
       bool        p_isValid;

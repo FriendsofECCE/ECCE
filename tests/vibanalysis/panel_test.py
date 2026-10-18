@@ -46,6 +46,7 @@ rt = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(rt)
 
 check = bo.check
+RIGID = ("Tx", "Ty", "Tz", "Rx", "Ry", "Rz")
 #  The helpers the symmetry analysis starts.
 SYMMETRY = ("autosym", "cleansym", "symops", "genmol", "getfrag")
 TEMPLATE = os.path.join(REPO, "tests", "ecceqm", "fixtures", "h2o-vibration")
@@ -157,6 +158,8 @@ def readDump(path):
                 label=g[11] if len(g) > 11 else "-", detail=detail)
         elif f[0] == "detail":
             d["detail"] = line[7:]
+        elif f[0] == "detailshown":
+            d["shown"] = line[12:]
     return d
 
 
@@ -247,7 +250,7 @@ def main():
                       ir="IR" if m["ir"] else "-", raman="Raman" if m["raman"] else "-",
                       label=m["label"])
                  for i, m in sorted(d["modes"].items())
-                 if m["irrep"] != "-"]
+                 if m["irrep"] != "-" and m["label"] not in RIGID]
         rt.match_textbook("panel " + name, modes, rt.TEXTBOOK[key]) if key in rt.TEXTBOOK else None
         if key == "BENZENE":
             counts = {}
@@ -270,6 +273,18 @@ def main():
         row8 = d["modes"].get(8)
         if row8 and row8["detail"]:
             check(row8["detail"] in d["detail"], "%s: the detail line holds the mode's description" % name)
+            check(d["detail"].count(" \u00b7 ") >= 1 and d["detail"].split(" \u00b7 ")[0] == d["cells"][(8, 1)][2],
+                  "%s: the detail line reads 'irrep \u00b7 description \u00b7 activity': %s" % (name, d["detail"]))
+        check(d.get("shown", "").count("|") <= 1, "%s: the detail line is at most two lines: %s" % (name, d.get("shown")))
+        #  The six zero rows: Tx..Rz and their irreps in the Sym column.
+        zero = [r for r in sorted(d["modes"]) if d["modes"][r]["label"] in RIGID]
+        check([d["cells"][(r, 2)][2] for r in zero] == [x for x in RIGID if x in
+              [d["modes"][r]["label"] for r in zero]],
+              "%s: the zero rows are Tx..Rz in the Mode column" % name)
+        check(len(zero) == (5 if name == "co2" else 6),
+              "%s: %d translation/rotation rows named" % (name, len(zero)))
+        check(all(d["cells"][(r, 1)][2] == d["modes"][r]["irrep"] != "-" for r in zero),
+              "%s: and their irreps are in the Sym column" % name)
         #  Sym column: ECCE's labels where the code printed none.
         for r, m in d["modes"].items():
             cell = d["cells"].get((r, 1))

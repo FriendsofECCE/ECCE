@@ -147,11 +147,16 @@ The **Table** has a row for each vibration:
   as happens with a structure that is only nearly symmetric.
 - **Mode**: what moves, in the standard notation of vibrational
   spectroscopy. Hold the pointer over a cell for the shares, or select the
-  row to read them in the line under the table.
+  row to read them in the line under the table (also under the plot in the
+  Graph view): irrep, description, and which of IR and Raman it is active in.
+  The six zero-frequency rows are the translations and rotations of the
+  molecule (**Tx** to **Rz**), with their irreps. Where the output prints no
+  displacement for them, ECCE names them in the usual order, translations
+  then rotations, and the tooltip says so.
 
 | Symbol | Meaning |
 |---|---|
-| ν | stretch |
+| ν̃ | stretch |
 | δ | bend |
 | ρ | rock (CH2, CH3) |
 | ω | wag, out-of-plane motion of CH2 |
@@ -159,8 +164,8 @@ The **Table** has a row for each vibration:
 | γ | out-of-plane bend |
 | s, as | symmetric, antisymmetric: equivalent bonds or angles moving in phase, or not |
 
-Examples are ν(C=O), νas(OH), δ(HOH) and ρ(CH2). Two terms, as in
-ν(C=O) + δ(HCH), mean two comparable contributions; a trailing … means
+Examples are ν̃(C=O), ν̃as(OH), δ(HOH) and ρ(CH2). Two terms, as in
+ν̃(C=O) + δ(HCH), mean two comparable contributions; a trailing … means
 more. The shares come from projecting the vibration on the bonds, angles and
 torsions of the structure, so they say what moves, not how much each
 contributes to the energy. The structure's bonds and their orders (C=O,

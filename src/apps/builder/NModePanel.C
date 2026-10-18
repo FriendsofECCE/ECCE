@@ -181,20 +181,26 @@ bool NModePanel::Create(IPropCalculation *calculation,
    p_grid = (wxGrid*)FindWindow(ID_GRID_NMODE);
    p_grid->SetRowLabelSize(0);
 
-   //  One line under the table for the selected mode.  Ellipsized with a
-   //  tiny minimum width, so a long description never widens the docked
+   //  Two lines under the table for the selected mode: wrapped to the
+   //  width the dock gives, a tiny minimum width so it never widens the
    //  panel; the whole text is its tooltip.
    {
       wxSizer *gs = p_grid->GetContainingSizer();
-      p_modeDetail = new wxStaticText(this, wxID_ANY, "", wxDefaultPosition,
-                                      wxDefaultSize, wxST_ELLIPSIZE_END);
-      p_modeDetail->SetMinSize(wxSize(50, -1));
+      p_modeDetail = new wxStaticText(this, wxID_ANY, "");
+      p_modeDetail->SetMinSize(wxSize(50, 2*p_modeDetail->GetCharHeight() + 2));
       wxBoxSizer *col = new wxBoxSizer(wxVERTICAL);
       gs->Detach(p_grid);
       col->Add(p_grid, 1, wxEXPAND);
       col->Add(p_modeDetail, 0, wxEXPAND | wxTOP, 3);
       gs->Insert(0, col, 1, wxGROW | wxALL, 3);
+      //  A window made now is shown whatever its sizer item's state is.
+      p_modeDetail->Show(!isGraphShown());
    }
+   for (wxStaticText *t : { p_modeDetail, p_graphDetail })
+      t->Bind(wxEVT_SIZE, [this, t](wxSizeEvent& e) {
+         setWrapped(t, p_detailText);
+         e.Skip();
+      });
    p_grid->GetGridWindow()->Bind(wxEVT_MOTION, &NModePanel::OnGridMotion, this);
    p_grid->GetGridColLabelWindow()->Bind(wxEVT_MOTION, &NModePanel::OnLabelMotion, this);
    p_grid->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) { fitModeColumn(); e.Skip(); });
@@ -453,6 +459,15 @@ void NModePanel::createSpectrumPane()
    p_spectrum->setShowSticks(sticks);
    col->Add(p_spectrum, 1, wxEXPAND);
 
+   //  The selected mode: its frequency on one line, its description on a
+   //  full-width line of its own under the plot (see showModeDetail()).
+   p_graphFreq = new wxStaticText(pane, wxID_ANY, "");
+   p_graphFreq->SetMinSize(wxSize(50, -1));
+   col->Add(p_graphFreq, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 6);
+   p_graphDetail = new wxStaticText(pane, wxID_ANY, "");
+   p_graphDetail->SetMinSize(wxSize(50, 2*p_graphDetail->GetCharHeight() + 2));
+   col->Add(p_graphDetail, 0, wxEXPAND | wxLEFT | wxRIGHT, 6);
+
    wxWrapSizer *row = new wxWrapSizer(wxHORIZONTAL);
    const int gap = 6;
 
@@ -519,10 +534,13 @@ void NModePanel::createSpectrumPane()
    //  screen (1366x768) the pane is about 140 px, room for the plot alone.
    pane->Bind(wxEVT_SIZE, [pane, col, row, noRoom, this](wxSizeEvent& e) {
       const int h = e.GetSize().y;
-      const bool plot = h >= 110, settings = h >= 190;
-      if (col->IsShown(p_spectrum) != plot || col->IsShown(row) != settings) {
+      const bool plot = h >= 110, settings = h >= 190, text = h >= 150;
+      if (col->IsShown(p_spectrum) != plot || col->IsShown(row) != settings ||
+          col->IsShown(p_graphDetail) != text) {
          col->Show(p_spectrum, plot);
          col->Show(row, settings);
+         col->Show(p_graphFreq, text);
+         col->Show(p_graphDetail, text);
          col->Show(noRoom, !plot);
       }
       e.Skip();
@@ -871,8 +889,10 @@ void NModePanel::dumpTableIfRequested()
       }
       //  The selected row's detail line, as the panel shows it.
       selectMode(std::min(p_grid->GetNumberRows() - 1, 7));
-      fprintf(out, "detail %s\n", p_modeDetail ?
-              (const char*)p_modeDetail->GetLabel().utf8_str() : "");
+      fprintf(out, "detail %s\n", (const char*)p_detailText.utf8_str());
+      wxString shown = p_modeDetail ? p_modeDetail->GetLabel() : wxString();
+      shown.Replace("\n", "|");
+      fprintf(out, "detailshown %s\n", (const char*)shown.utf8_str());
       fclose(out);
       if (getenv("ECCE_EXIT_AFTER_DUMP") != 0)
          wxTheApp->CallAfter([]() {
@@ -1058,6 +1078,7 @@ wxString NModePanel::cellTip(int row, int col) const
       wxString t = wxString::FromUTF8(v.detail);
       const wxString act = activityText(v);
       if (!act.empty()) t += (t.empty() ? "" : "\n") + act;
+      if (!v.remark.empty()) t += (t.empty() ? "" : "\n") + wxString::FromUTF8(v.remark);
       return t;
    }
    if (col == p_symColumn) {
@@ -1101,7 +1122,7 @@ void NModePanel::OnLabelMotion(wxMouseEvent& event)
    if (col == p_modeColumn) {
       tip = wxString::FromUTF8(
          "What the motion is, from the bonds, angles and torsions it "
-         "changes.\n\xCE\xBD stretch, \xCE\xB4 bend, \xCF\x81 rock, "
+         "changes.\n\xCE\xBD\xCC\x83 stretch, \xCE\xB4 bend, \xCF\x81 rock, "
          "\xCF\x89 wag, \xCF\x84 torsion, \xCE\xB3 out-of-plane bend; "
          "s symmetric, as antisymmetric.\n"
          "Two terms: both contribute; \xE2\x80\xA6 more. Hover a row for "
@@ -1116,24 +1137,64 @@ void NModePanel::OnLabelMotion(wxMouseEvent& event)
 }
 
 
+//  Greedy word wrap into at most two lines, the second ellipsized: a
+//  wxStaticText's own wrapping has no limit on the lines.
+void NModePanel::setWrapped(wxStaticText *label, const wxString& text)
+{
+   if (label == 0) return;
+   label->SetToolTip(text.empty() ? NULL : new wxToolTip(text));
+   const int width = label->GetClientSize().x;
+   wxString shown = text;
+   if (width > 40 && !text.empty()) {
+      wxClientDC dc(label);
+      dc.SetFont(label->GetFont());
+      wxString first, rest = text;
+      while (!rest.empty()) {
+         const size_t cut = rest.find(' ');
+         const wxString word = cut == wxString::npos ? rest : rest.substr(0, cut);
+         const wxString tryLine = first.empty() ? word : first + " " + word;
+         if (!first.empty() && dc.GetTextExtent(tryLine).x > width) break;
+         first = tryLine;
+         rest = cut == wxString::npos ? wxString() : rest.substr(cut + 1);
+      }
+      shown = first;
+      if (!rest.empty())
+         shown += "\n" + wxControl::Ellipsize(rest, dc, wxELLIPSIZE_END, width);
+   }
+   if (label->GetLabel() != shown) label->SetLabel(shown);
+}
+
+
+static wxString activityShort(const VibModeInfo& v)
+{
+   if (!v.activityKnown) return wxString();
+   if (v.ir && v.raman) return "IR, Raman";
+   if (v.ir) return "IR";
+   if (v.raman) return "Raman";
+   return "inactive";
+}
+
+
 void NModePanel::showModeDetail(int row)
 {
    if (p_modeDetail == 0) return;
-   wxString text;
+   wxString freq, text;
    if (row >= 0 && row < (int)p_vib.modes.size() && p_grid != 0 &&
        row < p_grid->GetNumberRows()) {
       const VibModeInfo& v = p_vib.modes[row];
       wxString sym = p_grid->GetNumberCols() > p_symColumn && p_symColumn >= 0
                         ? p_grid->GetCellValue(row, p_symColumn) : wxString();
-      text = p_grid->GetCellValue(row, 0) +
+      freq = p_grid->GetCellValue(row, 0) +
              wxString::FromUTF8(" cm\xE2\x81\xBB\xC2\xB9");
-      if (!sym.empty()) text += ", " + sym;
-      if (!v.detail.empty()) text += ": " + wxString::FromUTF8(v.detail);
-      const wxString act = activityText(v);
-      if (!act.empty()) text += ". " + act;
+      const wxString parts[3] = { sym, wxString::FromUTF8(v.detail),
+                                  activityShort(v) };
+      for (int i = 0; i < 3; i++)
+         if (!parts[i].empty()) text += (text.empty() ? "" : wxString::FromUTF8(" \xC2\xB7 ")) + parts[i];
    }
-   p_modeDetail->SetLabel(text);
-   p_modeDetail->SetToolTip(text.empty() ? NULL : new wxToolTip(text));
+   p_detailText = text;
+   setWrapped(p_modeDetail, text);
+   if (p_graphFreq != 0) p_graphFreq->SetLabel(freq);
+   setWrapped(p_graphDetail, text);
 }
 
 
