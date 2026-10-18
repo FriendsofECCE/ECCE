@@ -27,6 +27,8 @@ use Getopt::Std;
 use File::Temp qw(tempdir);
 use Cwd ();
 use FindBin qw($Bin);
+use lib $FindBin::Bin;
+use GromppWarn;
 
 our($opt_p, $opt_v);
 getopts('p:v');
@@ -101,17 +103,10 @@ $mdp = "$cwd/$mdp" if ($mdp !~ m#^/#);
 # -r: a topology with [ position_restraints ] needs a reference structure,
 # and grompp ignores it otherwise; the starting structure is the reference,
 # as in the job script (gensub).
-# A GROMOS force field draws one twin-range warning whatever the system.
-my $maxwarn = 0;
-if (open(my $tf, "<", "topol.top")) {
-  while (<$tf>) { $maxwarn = 1 if (m#^\s*\#include\s*"gromos[^"]*\.ff/#); }
-  close($tf);
-}
-# Berendsen coupling is a grompp warning whatever the system; the user chose it.
-if (open(my $mf, "<", $mdp)) {
-  while (<$mf>) { $maxwarn++ if (/^\s*pcoupl\s*=\s*berendsen\b/i); }
-  close($mf);
-}
+# grompp is run with a -maxwarn no real run reaches, and the warnings it
+# printed are sorted afterwards (GromppWarn): the harmless ones are allowed,
+# any other would stop the job, so it stops the launch.
+my $maxwarn = 999;
 my @cmd = ($gmx, "grompp", "-f", $mdp, "-c", "conf.gro", "-r", "conf.gro",
            "-p", "topol.top", ($ndx ne "" ? ("-n", $ndx) : ()),
            "-o", "$tmp/check.tpr", "-po", "$tmp/mdout.mdp", "-maxwarn", $maxwarn);
@@ -131,7 +126,21 @@ if ($status != 0) {
   print STDERR join("\n", @lines[$first .. $#lines]) . "\n";
   exit($status);
 }
+my @warn = GromppWarn::parse($out);
+my @stop = grep { !$_->{harmless} } @warn;
+if (@stop) {
+  print STDERR "grompp warns about the inputs, and the job would stop at this warning, so it was not submitted:\n";
+  foreach my $w (@warn) {
+    print STDERR "\n  [" . ($w->{harmless} ? "harmless" : "STOPPING") . "] $w->{text}\n";
+  }
+  print STDERR "\nA warning marked harmless is let through by the job; the others are not.\n"
+             . "Fix the cause, or change the inputs so grompp no longer warns.\n";
+  exit 1;
+}
 print "grompp accepted the inputs.\n";
+foreach my $w (@warn) {
+  print "  harmless warning, the job is not stopped by it: $w->{text}\n    ($w->{why})\n";
+}
 exit 0;
 
 # The index file grompp is given, or "" for none.

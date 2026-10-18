@@ -1810,13 +1810,12 @@ sub gromacs()
     $retval .= "$::CC - mostly about the topology, go where the user will look.\n";
     #  -r: position restraints are held to the starting structure; grompp
     #  refuses a restrained topology without it and ignores it otherwise.
-    #  A GROMOS force field makes grompp print one twin-range warning
-    #  whatever the system; any other warning still stops the job.
-    $retval .= "maxwarn=0\n";
-    $retval .= "grep -q '^[[:space:]]*#include[[:space:]]*\"gromos[^\"]*\\.ff/' topol.top && maxwarn=1\n";
-    #  Berendsen coupling draws a warning whatever the system, and the user
-    #  chose it in the task editor.
-    $retval .= "grep -qi '^[[:space:]]*pcoupl[[:space:]]*=[[:space:]]*berendsen' $::inFile && maxwarn=\$((maxwarn+1))\n";
+    #  grompp runs once with a -maxwarn no real run reaches; the warnings are
+    #  sorted by the table in parsers/GromppWarn.pm and the harmless ones
+    #  counted.  With any other warning grompp is run again with that count,
+    #  so that it stops with its own message.
+    require "$FindBin::RealBin/parsers/GromppWarn.pm";
+    $retval .= "cat > ecce_gromppwarn.awk << 'ECCE_AWK_END'\n" . GromppWarn::awkProgram() . "ECCE_AWK_END\n";
     #  An index file the user attached is used as it is; otherwise the one
     #  gromacs.launchpp wrote from the groups in the .mdp (gromacs.mkndx),
     #  which Launch shipped with the other inputs.
@@ -1825,8 +1824,19 @@ sub gromacs()
     $retval .= "  [ -f \"\$f\" ] && [ \"\$f\" != ecce_groups.ndx ] && { ndx=\$f; break; }\n";
     $retval .= "done\n";
     $retval .= "[ -z \"\$ndx\" ] && [ -f ecce_groups.ndx ] && ndx=ecce_groups.ndx\n";
-    $retval .= "\"\$gmx\" grompp -f $::inFile -c conf.gro -r conf.gro -p topol.top \${ndx:+-n \"\$ndx\"} -o topol.tpr -maxwarn \$maxwarn > grompp.out 2>&1\n";
-    $retval .= "if [ \$? -ne 0 ]; then\n";
+    $retval .= "grompp_args=\"-f $::inFile -c conf.gro -r conf.gro -p topol.top \${ndx:+-n \$ndx} -o topol.tpr\"\n";
+    $retval .= "\"\$gmx\" grompp \$grompp_args -maxwarn 999 > grompp.out 2>&1\n";
+    $retval .= "grompp_rc=\$?\n";
+    $retval .= "if [ \$grompp_rc -eq 0 ]; then\n";
+    $retval .= "  awk -f ecce_gromppwarn.awk grompp.out > grompp.warn\n";
+    $retval .= "  grep -E '^(harmless|stopping):' grompp.warn >> $::logfile\n";
+    $retval .= "  if [ \"`sed -n 's/^stopping //p' grompp.warn`\" != 0 ]; then\n";
+    $retval .= "    rm -f topol.tpr\n";
+    $retval .= "    \"\$gmx\" grompp \$grompp_args -maxwarn `sed -n 's/^harmless //p' grompp.warn` > grompp.out 2>&1\n";
+    $retval .= "    grompp_rc=\$?\n";
+    $retval .= "  fi\n";
+    $retval .= "fi\n";
+    $retval .= "if [ \$grompp_rc -ne 0 ]; then\n";
     $retval .= "  cat grompp.out >> $::logfile\n";
     $retval .= "  cp grompp.out $::outFile\n";
     $retval .= "  echo \"grompp failed; see $::outFile\" >> $::logfile\n";
