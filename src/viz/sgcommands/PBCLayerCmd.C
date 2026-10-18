@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <iostream>
 #include <string>
@@ -10,6 +12,8 @@ using namespace ecce;
 
 #include "tdat/LatticeDef.H"
 #include "tdat/LayerStack.H"
+#include "tdat/Residue.H"
+#include "tdat/TAtm.H"
 #include "viz/PBCLayerCmd.H"
 #include "viz/SGFragment.H"
 #include "viz/SGContainer.H"
@@ -121,10 +125,28 @@ bool PBCLayerCmd::execute()
    }
    delete base;
 
+   // A structure read with residues (.gro, .pdb) is drawn and numbered per
+   // residue, and every atom must have one: each ion and water gets its own.
+   const bool residues = frag->numResidues() > 0;
+   int resNum = 0;
+   for (size_t r = 0; r < frag->numResidues(); r++)
+      resNum = max(resNum, frag->findResidue((int)r)->number());
    for (size_t i = 0; i < added.size(); i++) {
       frag->addAtom(added[i].symbol, added[i].xyz);
-      if (added[i].kind == ION)
-         frag->atomRef(frag->numAtoms() - 1)->partialCharge(added[i].charge);
+      TAtm *atom = frag->atomRef(frag->numAtoms() - 1);
+      if (added[i].kind == ION) atom->partialCharge(added[i].charge);
+      if (!residues) continue;
+      if (added[i].kind != WATER_H) {
+         string name = added[i].kind == WATER_O ? "HOH" : added[i].symbol;
+         for (char& ch : name) ch = toupper((unsigned char)ch);
+         Residue *res = new Residue(name.c_str(), ++resNum);
+         res->name(name.c_str());
+         res->chain(' ');
+         res->couplingInfo(Residue::MONOMER);
+         res->firstAtomPtr(atom);
+         frag->addResidue(res);
+      }
+      atom->atomResidue(frag->findResidue((int)frag->numResidues() - 1));
    }
 
    MPoint a, b, c;

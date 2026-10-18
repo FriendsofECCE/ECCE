@@ -107,6 +107,37 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     return true;
   }
 
+  //  "importfile <path>": Add Structure from File, the type from the
+  //  file's extension.
+  if (c == "importfile" && w.size() == 2) {
+    const size_t dot = w[1].rfind('.');
+    if (dot == string::npos) return s.fail("importfile: no extension");
+    importChemicalSystem(w[1], "", wxString(w[1].substr(dot + 1)));
+    settle(500);
+    return true;
+  }
+
+  //  "tooldock <tool> <left|right>": the pane dragged to that side.
+  if (c == "tooldock" && w.size() == 3) {
+    string name = w[1];
+    for (char& ch : name) if (ch == '_') ch = ' ';
+    wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(name));
+    if (!pane.IsOk()) return s.fail("tooldock: no pane " + name);
+    if (w[2] == "left") pane.Left().Layer(0).Row(0);
+    else pane.Right();
+    pane.Show(true);
+    updatePanes(true);
+    settle(400);
+    return true;
+  }
+
+  //  "collapse <0|1>": View > Hide Side Panels off or on.
+  if (c == "collapse" && w.size() == 2) {
+    setColumnCollapsed(w[1] == "1");
+    settle(400);
+    return true;
+  }
+
   //  "undo" / "redo": Edit > Undo / Redo.
   if ((c == "undo" || c == "redo") && w.size() == 1) {
     wxCommandEvent ev(wxEVT_MENU, c == "undo" ? wxID_UNDO : wxID_REDO);

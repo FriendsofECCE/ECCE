@@ -30,12 +30,31 @@ CASES = (
     ("stack-undo", LAYER + ["pbclayer layers 3", "pbclayer spacing 4",
                             "pbcpress layers", "fragdump built", "undo"],
      {"C": 1, "H": 4}, "C"),
+    #  A .gro brings residues, and every added ion and water needs one
+    #  (Build Layers on a MINFF .gro crashed in the residue drawing).
+    ("gro-residues", ["cmd clear", "importfile @GRO@", "pbclayer layers 2",
+                      "pbclayer spacing 9", "pbclayer water 4",
+                      "pbclayer ion1 Na", "pbclayer ion1n 2",
+                      "pbclayer seed 5", "pbcpress layers"],
+     {"C": 2, "H": 8 + 16, "O": 8, "Na": 4}, "C"),
     ("water-ions", LAYER + ["pbclayer layers 2", "pbclayer spacing 9",
                             "pbclayer water 4", "pbclayer ion1 Na",
                             "pbclayer ion1n 2", "pbclayer seed 5",
                             "pbcpress layers"],
      {"C": 2, "H": 8 + 16, "O": 8, "Na": 4}, "C"),
 )
+
+
+#  Methane in a 5 A cell as GROMACS writes it: one residue, nm.
+GRO = """methane layer
+    5
+    1MOL      C    1   0.250   0.250   0.250
+    1MOL     H1    2   0.313   0.313   0.313
+    1MOL     H2    3   0.187   0.187   0.313
+    1MOL     H3    4   0.187   0.313   0.187
+    1MOL     H4    5   0.313   0.187   0.187
+   0.50000   0.50000   0.50000
+"""
 
 
 def problems(work, case):
@@ -62,7 +81,7 @@ def problems(work, case):
         built = pe.readDump(os.path.join(work, "built.txt"))
         if len(built["atoms"]) != 15:
             found.append("built: %d atoms before undo" % len(built["atoms"]))
-    if name == "water-ions":
+    if name in ("water-ions", "gro-residues"):
         atoms = final["atoms"]
         for i, (sym, xyz, nb, _f) in enumerate(atoms):
             if sym != "O":
@@ -79,11 +98,21 @@ def problems(work, case):
 
 
 def main():
-    pe.CASES = CASES
+    run = pe.check
+
+    def check(*args, **kwargs):
+        #  Written only now, inside the isolated state directory.
+        gro = os.path.join(pe.fixture.stateHome(), "pbc-layers-methane.gro")
+        with open(gro, "w") as handle:
+            handle.write(GRO)
+        pe.CASES = tuple((n, [l.replace("@GRO@", gro) for l in sc], e, h)
+                         for n, sc, e, h in CASES)
+        return run(*args, **kwargs)
+
+    pe.check = check
     pe.problems = problems
     pe.FIXTURE = "pbc-layers-water"
     return pe.main()
-
 
 if __name__ == "__main__":
     sys.exit(main())
