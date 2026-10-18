@@ -8,8 +8,9 @@ issues: [301]
 `ModelDiagram::build` (tdat, no wx) draws the diagram for every construction
 whose two fragments cover the molecule and have EHT parameters (CENTRAL,
 HALVES, GROUPS, EQUIVALENT_SETS, CHOSEN, SKELETON and the fragment-orbital
-route; the rest of a ligand goes to the right fragment). Not pi-only, and not
-without a basis/overlap (MOPAC); those, and elements without parameters (Ag,
+route; the rest of a ligand goes to the right fragment). Also "pi system only"
+(`Input::piOnly`, see `pi-only-through-the-model-diagram.md`). Not without a
+basis/overlap (MOPAC); that, and elements without parameters (Ag,
 refusal text plus "use the MOs panel"), keep the old drawing.
 
 - Middle column = the molecule's own EHT run (`FragmentOrbitals::solveWhole`);
@@ -61,3 +62,10 @@ refusal text plus "use the MOs panel"), keep the old drawing.
   is a different number). The calculation's unmatched LUMO is not drawn and the
   LUMO is not judged in this view. check_pairs.py skips the pair rule for `*-lfview`
   goldens (the antibonding partners are hidden on purpose).
+- Phase sketches: a fragment column of several atoms of one element carries the
+  sign and size of each atom's s coefficient, or its p vector, of the set's first
+  orbital (`sketchPhases`, drawn by `MoDiagramCanvas::drawSketch`), in the
+  atoms' own principal-axis frame (`principalAxes`), so a structure stored in any
+  orientation is drawn flat. They came from the symmetry projection
+  (`MoFragments`) before the model built its own sets, and so vanished from every
+  model-first diagram. Not for mixed fragments, d sets or one atom.

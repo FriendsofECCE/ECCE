@@ -167,6 +167,59 @@ void fillByEnergy(const vector<double>& energy, const vector<int>& deg,
    }
 }
 
+//  How much of an orbital (coefficients over the functions) changes sign on
+//  reflection through the plane with unit normal n: the p and d parts only,
+//  s is even.  A planar molecule's orbitals are exactly even (sigma) or odd (pi).
+double oddFraction(const FragmentOrbitals::FoSet& set, const vector<double>& coef,
+                   const double n[3])
+{
+   struct Key { int atom, nq, l; bool operator<(const Key& o) const {
+      if (atom != o.atom) return atom < o.atom; if (nq != o.nq) return nq < o.nq; return l < o.l; } };
+   map<Key, vector<double> > shell;       // l=1: x y z; l=2: z2 x2-y2 xy xz yz
+   double total = 0.0;
+   for (size_t i = 0; i < set.funcs.size(); i++) {
+      const FragmentOrbitals::Function& f = set.funcs[i];
+      total += coef[i]*coef[i];
+      if (f.l < 1 || f.l > 2) continue;
+      Key k; k.atom = f.atom; k.nq = f.n; k.l = f.l;
+      vector<double>& v = shell[k];
+      if (v.empty()) v.assign(f.l == 1 ? 3 : 5, 0.0);
+      const string& c = f.component;
+      int idx = 0;
+      if (f.l == 1) idx = c == "x" ? 0 : c == "y" ? 1 : 2;
+      else idx = c == "z2" ? 0 : c == "x2-y2" ? 1 : c == "xy" ? 2 : c == "xz" ? 3 : 4;
+      v[idx] = coef[i];
+   }
+   if (total <= 0.0) return 0.0;
+   const double r3 = sqrt(3.0);
+   double odd = 0.0;
+   for (map<Key, vector<double> >::iterator it = shell.begin(); it != shell.end(); ++it) {
+      const vector<double>& v = it->second;
+      if (it->first.l == 1) {
+         double d = 0.0;
+         for (int k = 0; k < 3; k++) d += v[k]*n[k];
+         odd += d*d;
+      } else {
+         //  The d function as a symmetric 3x3 form; its odd part under
+         //  Q -> R Q R, R = 1 - 2 n n^T, is (Q - RQR)/2.
+         double q[3][3] = {{0}};
+         q[2][2] += v[0]; q[0][0] += -0.5*v[0]; q[1][1] += -0.5*v[0];
+         q[0][0] += r3/2*v[1]; q[1][1] -= r3/2*v[1];
+         q[0][1] += r3/2*v[2]; q[1][0] += r3/2*v[2];
+         q[0][2] += r3/2*v[3]; q[2][0] += r3/2*v[3];
+         q[1][2] += r3/2*v[4]; q[2][1] += r3/2*v[4];
+         double R[3][3], t[3][3], rq[3][3];
+         for (int a = 0; a < 3; a++) for (int b = 0; b < 3; b++) R[a][b] = (a == b ? 1.0 : 0.0) - 2.0*n[a]*n[b];
+         for (int a = 0; a < 3; a++) for (int b = 0; b < 3; b++) { t[a][b] = 0; for (int c = 0; c < 3; c++) t[a][b] += R[a][c]*q[c][b]; }
+         for (int a = 0; a < 3; a++) for (int b = 0; b < 3; b++) { rq[a][b] = 0; for (int c = 0; c < 3; c++) rq[a][b] += t[a][c]*R[c][b]; }
+         double fro = 0.0;
+         for (int a = 0; a < 3; a++) for (int b = 0; b < 3; b++) { const double x = 0.5*(q[a][b] - rq[a][b]); fro += x*x; }
+         odd += fro/1.5;
+      }
+   }
+   return odd/total;
+}
+
 struct SetD
 {
    int fragment;                 // 0 left, 1 right
@@ -208,7 +261,7 @@ struct Cluster
 //  orbital is antibonding inside the ligand), "NH3 sigma" for a larger one.
 void ligandCharacter(const FragmentOrbitals::FoSet& set, const vector<int>& members,
                      const vector<string>& symbols, const vector<double>& coords,
-                     const vector<int>& atoms, map<string,double>& out)
+                     const vector<int>& atoms, map<string,double>& out, bool piOnly = false)
 {
    out.clear();
    const size_t nf = set.funcs.size();
@@ -265,7 +318,10 @@ void ligandCharacter(const FragmentOrbitals::FoSet& set, const vector<int>& memb
          const FragmentOrbitals::Function& fn = set.funcs[i];
          const int u = comp[fn.atom];
          if (u < 0) continue;
-         if (unit[u].size() == 1) {
+         if (piOnly) {
+            //  The pi system is one p orbital per atom: named for it, whatever the unit.
+            mine2[fn.element + " " + std::to_string(fn.n) + "spdfg"[fn.l] + " \xCF\x80"] += w;
+         } else if (unit[u].size() == 1) {
             mine2[fn.element + " " + std::to_string(fn.n) + "spdfg"[fn.l]] += w;
          } else if (unit[u].size() == 2 && fn.l == 1) {
             double ax[3];
@@ -287,6 +343,115 @@ void ligandCharacter(const FragmentOrbitals::FoSet& set, const vector<int>& memb
    }
    if (total > 0.0)
       for (map<string,double>::iterator it = out.begin(); it != out.end(); ++it) it->second /= total;
+}
+
+
+//  The atoms' principal axes about their mean, widest spread first, each
+//  signed so its largest component is positive (so the picture does not
+//  flip from run to run).  The sketches are drawn in this frame, whatever
+//  frame the structure was stored in.
+void principalAxes(const vector<double>& coords, const vector<int>& atoms,
+                   double mean[3], double axes[3][3])
+{
+   for (int k = 0; k < 3; k++) mean[k] = 0.0;
+   for (size_t i = 0; i < atoms.size(); i++)
+      for (int k = 0; k < 3; k++) mean[k] += coords[3*atoms[i] + k]/atoms.size();
+   double a[3][3] = {{0}}, v[3][3] = {{1,0,0},{0,1,0},{0,0,1}};
+   for (size_t i = 0; i < atoms.size(); i++)
+      for (int r = 0; r < 3; r++)
+         for (int c = 0; c < 3; c++)
+            a[r][c] += (coords[3*atoms[i] + r] - mean[r])*(coords[3*atoms[i] + c] - mean[c]);
+   for (int sweep = 0; sweep < 30; sweep++) {          // Jacobi
+      double off = fabs(a[0][1]) + fabs(a[0][2]) + fabs(a[1][2]);
+      if (off < 1e-14) break;
+      for (int p = 0; p < 2; p++)
+         for (int q = p + 1; q < 3; q++) {
+            if (fabs(a[p][q]) < 1e-300) continue;
+            const double th = (a[q][q] - a[p][p])/(2.0*a[p][q]);
+            const double t = (th >= 0 ? 1.0 : -1.0)/(fabs(th) + sqrt(th*th + 1.0));
+            const double c = 1.0/sqrt(t*t + 1.0), sn = t*c;
+            for (int k = 0; k < 3; k++) {
+               const double akp = a[k][p], akq = a[k][q];
+               a[k][p] = c*akp - sn*akq; a[k][q] = sn*akp + c*akq;
+            }
+            for (int k = 0; k < 3; k++) {
+               const double apk = a[p][k], aqk = a[q][k];
+               a[p][k] = c*apk - sn*aqk; a[q][k] = sn*apk + c*aqk;
+            }
+            for (int k = 0; k < 3; k++) {
+               const double vkp = v[k][p], vkq = v[k][q];
+               v[k][p] = c*vkp - sn*vkq; v[k][q] = sn*vkp + c*vkq;
+            }
+         }
+   }
+   int order[3] = {0, 1, 2};
+   std::sort(order, order + 3, [&](int x, int y) { return a[x][x] > a[y][y]; });
+   for (int j = 0; j < 3; j++) {
+      int big = 0;
+      for (int k = 1; k < 3; k++) if (fabs(v[k][order[j]]) > fabs(v[big][order[j]]) + 1e-9) big = k;
+      const double sgn = v[big][order[j]] < 0 ? -1.0 : 1.0;
+      for (int k = 0; k < 3; k++) axes[j][k] = sgn*v[k][order[j]];
+   }
+}
+
+//  The positions the sketches of one fragment column are drawn at.
+void sketchFrame(const vector<double>& coords, const vector<int>& atoms, MoColumn& col)
+{
+   col.sketchX.clear(); col.sketchY.clear();
+   if (atoms.size() < 2) return;
+   double mean[3], ax[3][3];
+   principalAxes(coords, atoms, mean, ax);
+   double big = 0.0;
+   for (size_t i = 0; i < atoms.size(); i++) {
+      double x = 0, y = 0;
+      for (int k = 0; k < 3; k++) {
+         x += (coords[3*atoms[i] + k] - mean[k])*ax[0][k];
+         y += (coords[3*atoms[i] + k] - mean[k])*ax[1][k];
+      }
+      col.sketchX.push_back(x); col.sketchY.push_back(y);
+      big = std::max(big, std::max(fabs(x), fabs(y)));
+   }
+   if (big <= 1e-9) { col.sketchX.clear(); col.sketchY.clear(); return; }
+   for (size_t i = 0; i < col.sketchX.size(); i++) { col.sketchX[i] /= big; col.sketchY[i] /= big; }
+   col.sketchNormal = 2;
+}
+
+//  The phase pattern of a fragment orbital: the sign and size of its s
+//  coefficient on each atom, or of its p vector (in the sketch frame), by
+//  whichever shell it is mostly made of.  Only for a fragment of several
+//  atoms of one element, where the picture says something a label does not.
+void sketchPhases(const FragmentOrbitals::FoSet& set, const FragmentOrbitals::FO& fo,
+                  const vector<string>& symbols, const vector<double>& coords,
+                  const vector<int>& atoms, MoLevel& lv)
+{
+   if (atoms.size() < 2) return;
+   for (size_t i = 1; i < atoms.size(); i++)
+      if (symbols[atoms[i]] != symbols[atoms[0]]) return;
+   double ws = 0.0, wp = 0.0, total = 0.0;
+   for (size_t i = 0; i < set.funcs.size(); i++) {
+      const double w = fo.coef[i]*fo.coef[i];
+      total += w;
+      if (set.funcs[i].l == 0) ws += w; else if (set.funcs[i].l == 1) wp += w;
+   }
+   if (total <= 0.0 || std::max(ws, wp) < 0.5*total) return;
+   double mean[3], ax[3][3];
+   principalAxes(coords, atoms, mean, ax);
+   const bool sType = ws >= wp;
+   vector<double> ph(atoms.size()*(sType ? 1 : 3), 0.0);
+   for (size_t i = 0; i < set.funcs.size(); i++) {
+      if (fo.coef[i] == 0.0) continue;
+      const FragmentOrbitals::Function& f = set.funcs[i];
+      size_t a = 0;
+      while (a < atoms.size() && atoms[a] != f.atom) a++;
+      if (a == atoms.size()) continue;
+      if (sType && f.l == 0) ph[a] += fo.coef[i];
+      else if (!sType && f.l == 1) {
+         const int dir = f.component == "x" ? 0 : f.component == "y" ? 1 : 2;
+         for (int k = 0; k < 3; k++) ph[3*a + k] += fo.coef[i]*ax[k][dir];
+      }
+   }
+   lv.phases = ph;
+   lv.phaseAtoms = atoms;
 }
 
 string characterTag(const map<string,double>& acc, double floor_)
@@ -371,6 +536,21 @@ bool ModelDiagram::build(const Input& in,
    }
    if (!applicable(in.symbols, why)) return false;
 
+   //  Pi only: the plane's normal, and a molecule that has a plane.
+   double planeN[3] = {0, 0, 1};
+   if (in.piOnly) {
+      vector<int> all(nAtoms);
+      for (size_t i = 0; i < nAtoms; i++) all[i] = (int)i;
+      double mean[3], ax[3][3];
+      principalAxes(in.coordsAng, all, mean, ax);
+      for (int k = 0; k < 3; k++) planeN[k] = ax[2][k];
+      for (size_t i = 0; i < nAtoms; i++) {
+         double d = 0.0;
+         for (int k = 0; k < 3; k++) d += (in.coordsAng[3*i + k] - mean[k])*planeN[k];
+         if (fabs(d) > 0.15) { why = "The pi system is only defined for a planar molecule."; return false; }
+      }
+   }
+
    //  --- fragments and the model ------------------------------------
    const Naming leftName = nameAtoms(in.symbols, in.coordsAng, in.leftAtoms);
    const Naming rightName = nameAtoms(in.symbols, in.coordsAng, in.rightAtoms);
@@ -433,24 +613,10 @@ bool ModelDiagram::build(const Input& in,
          if (!s.shell.empty())
             s.chars[in.symbols[frags[s.fragment].atoms[0]] + " " + s.shell.substr(s.shell.size() - 1)] = 1.0;
       } else {
-         ligandCharacter(set, groups[g], in.symbols, in.coordsAng, frags[s.fragment].atoms, s.chars);
+         ligandCharacter(set, groups[g], in.symbols, in.coordsAng, frags[s.fragment].atoms, s.chars, in.piOnly);
       }
       sets.push_back(s);
    }
-   for (int f = 0; f < 2; f++) {
-      int n = -frags[f].charge;
-      for (size_t k = 0; k < frags[f].atoms.size(); k++)
-         n += FragmentOrbitals::valenceElectrons(in.symbols[frags[f].atoms[k]]);
-      vector<size_t> mine;
-      vector<double> en;
-      vector<int> dg;
-      for (size_t s = 0; s < sets.size(); s++)
-         if (sets[s].fragment == f) { mine.push_back(s); en.push_back(sets[s].energy); dg.push_back(sets[s].degeneracy); }
-      vector<double> occ;
-      fillByEnergy(en, dg, n < 0 ? 0 : n, 2, occ);
-      for (size_t k = 0; k < mine.size(); k++) sets[mine[k]].occupancy = occ[k];
-   }
-
    //  --- the model's levels, electrons -------------------------------
    vector<Cluster> cl;
    for (size_t m = 0; m < nf; m++) {
@@ -493,6 +659,14 @@ bool ModelDiagram::build(const Input& in,
    }
 
    //  --- shares on the sets, overlap population ----------------------
+   std::set< std::pair<int,int> > bondedAtoms;
+   if (in.piOnly) {
+      vector< std::pair<int,int> > bonds;
+      MoFragments::covalentBonds(in.coordsAng, in.symbols, bonds);
+      for (size_t b = 0; b < bonds.size(); b++)
+         bondedAtoms.insert(std::make_pair(std::min(bonds[b].first, bonds[b].second),
+                                           std::max(bonds[b].first, bonds[b].second)));
+   }
    vector<bool> onLeft(nf, false);
    for (size_t i = 0; i < nf; i++)
       for (size_t a = 0; a < in.leftAtoms.size(); a++)
@@ -508,6 +682,16 @@ bool ModelDiagram::build(const Input& in,
                const double a = amp[m][sets[s].fos[q]];
                L.share[s] += a*a/L.degeneracy;
             }
+         if (in.piOnly) {
+            //  Nothing of the pi system is shared between the fragments (the
+            //  hydrogens have no pi orbital): bonding is between the bonded atoms.
+            for (size_t i = 0; i < nf; i++)
+               for (size_t j = i + 1; j < nf; j++) {
+                  const int ai = set.funcs[i].atom, aj = set.funcs[j].atom;
+                  if (ai == aj || !bondedAtoms.count(std::make_pair(std::min(ai, aj), std::max(ai, aj)))) continue;
+                  op += 2.0*modelRows[m][i]*modelRows[m][j]*set.overlap[i*nf+j];
+               }
+         } else
          for (size_t i = 0; i < nf; i++) {
             if (!onLeft[i]) continue;
             for (size_t j = 0; j < nf; j++)
@@ -517,6 +701,51 @@ bool ModelDiagram::build(const Input& in,
       L.op = op/L.degeneracy;
       for (size_t s = 0; s < sets.size(); s++)
          (sets[s].fragment == 0 ? L.shareLeft : L.shareRight) += L.share[s];
+   }
+
+   //  --- pi only: the levels that change sign in the molecular plane --
+   vector<bool> setOdd(sets.size(), true);
+   int piElectrons = 0;
+   if (in.piOnly) {
+      for (size_t s2 = 0; s2 < sets.size(); s2++)
+         setOdd[s2] = oddFraction(set, set.fos[sets[s2].fos[0]].coef, planeN) > 0.5;
+      vector<Cluster> keep;
+      for (size_t c = 0; c < cl.size(); c++) {
+         double odd = 0.0;
+         for (size_t k = 0; k < cl[c].mos.size(); k++)
+            odd += oddFraction(set, modelRows[cl[c].mos[k]], planeN);
+         if (odd/cl[c].degeneracy > 0.5) {
+            keep.push_back(cl[c]);
+            piElectrons += (int)lround(cl[c].occupancy + std::max(0.0, cl[c].occupancyBeta));
+         }
+      }
+      cl = keep;
+   }
+
+   //  --- the fragments' electrons ------------------------------------
+   //  Neutral fragments (the metal ionic), by energy; in the pi system the
+   //  electrons the molecule's pi orbitals put on the fragment.
+   for (int f = 0; f < 2; f++) {
+      int n = -frags[f].charge;
+      for (size_t k = 0; k < frags[f].atoms.size(); k++)
+         n += FragmentOrbitals::valenceElectrons(in.symbols[frags[f].atoms[k]]);
+      vector<size_t> mine;
+      vector<double> en, pop;
+      vector<int> dg;
+      double piPop = 0.0;
+      for (size_t s2 = 0; s2 < sets.size(); s2++) {
+         if (sets[s2].fragment != f || !setOdd[s2]) continue;
+         mine.push_back(s2); en.push_back(sets[s2].energy); dg.push_back(sets[s2].degeneracy);
+         double e = 0.0;
+         for (size_t c = 0; c < cl.size(); c++)
+            e += (cl[c].occupancy + std::max(0.0, cl[c].occupancyBeta))*cl[c].share[s2];
+         pop.push_back(e);
+         piPop += e;
+      }
+      if (in.piOnly) n = (int)lround(piPop);
+      vector<double> occ;
+      fillByEnergy(en, dg, n < 0 ? 0 : n, 2, occ);
+      for (size_t k = 0; k < mine.size(); k++) sets[mine[k]].occupancy = occ[k];
    }
 
    //  --- the calculation's levels, and the match ---------------------
@@ -560,6 +789,25 @@ bool ModelDiagram::build(const Input& in,
          }
       }
    }
+   //  Pi only: the calculated levels that are mostly odd model orbitals.
+   if (in.piOnly) {
+      vector<bool> oddModel(nf, false);
+      for (size_t m = 0; m < nf; m++) oddModel[m] = oddFraction(set, modelRows[m], planeN) > 0.5;
+      vector<MoLevel> kept;
+      for (size_t R = 0; R < real.size(); R++) {
+         double odd = 0.0, all = 0.0;
+         for (size_t q = 0; q < real[R].orbitals.size(); q++) {
+            const int r = real[R].orbitals[q];
+            if (r < 0 || r >= (int)nMO) continue;
+            for (size_t m = 0; m < nf; m++) {
+               all += O[m][r]*O[m][r];
+               if (oddModel[m]) odd += O[m][r]*O[m][r];
+            }
+         }
+         if (all > 0.0 && odd/all > 0.5) kept.push_back(real[R]);
+      }
+      real = kept;
+   }
    for (size_t c = 0; c < cl.size(); c++) {
       Cluster& L = cl[c];
       double best = -1.0;
@@ -599,9 +847,10 @@ bool ModelDiagram::build(const Input& in,
             //  Equal fragments (N + N, CH2 + CH2) combine in phase and out of
             //  phase, and those carry different irreps: the partners of a
             //  pair then differ in irrep by construction.
-            if (!equalFragments && !cl[a].irrep.empty() && !cl[b].irrep.empty() &&
+            if (!equalFragments && !in.piOnly && !cl[a].irrep.empty() && !cl[b].irrep.empty() &&
                 cl[a].irrep != cl[b].irrep) continue;
-            if (std::min(std::min(cl[a].shareLeft, cl[a].shareRight),
+            if (!in.piOnly &&
+                std::min(std::min(cl[a].shareLeft, cl[a].shareRight),
                          std::min(cl[b].shareLeft, cl[b].shareRight)) < PAIR_FLOOR) continue;
             //  The strongest bonding level pairs with the strongest antibonding
             //  one; the shared fragment sets only break ties.
@@ -865,6 +1114,11 @@ bool ModelDiagram::build(const Input& in,
       lv.detail = "Fragment orbital set from extended H\xC3\xBC" "ckel, E = " +
                   signedNumber(sets[s].energy*HARTREE, 2) + " eV, " +
                   std::to_string((int)lround(sets[s].occupancy)) + " electrons.";
+      if (col.sketchX.empty() && frags[sets[s].fragment].atoms.size() > 1)
+         sketchFrame(in.coordsAng, frags[sets[s].fragment].atoms, col);
+      if (!col.sketchX.empty())
+         sketchPhases(set, set.fos[sets[s].fos[0]], in.symbols, in.coordsAng,
+                      frags[sets[s].fragment].atoms, lv);
       sets[s].drawn = (int)col.levels.size();
       col.levels.push_back(lv);
    }
@@ -1135,7 +1389,7 @@ bool ModelDiagram::build(const Input& in,
       aboutVerdict += "Virtual orbitals above the LUMO depend strongly on the basis set.";
       for (size_t i = 0; i < sets.size(); i++) total += (int)lround(sets[i].occupancy);
       char b[64];
-      snprintf(b, sizeof b, "%d", electrons);
+      snprintf(b, sizeof b, "%d", in.piOnly ? piElectrons : electrons);
       out.about = "The extended H\xC3\xBC" "ckel diagram explains the calculation's orbitals: nothing more, nothing less.\n\n"
           "**The model.** Every column is extended H\xC3\xBC" "ckel (Alvarez parameters). The middle "
           "column is the molecule's own extended H\xC3\xBC" "ckel run, the side columns are the two fragments' "

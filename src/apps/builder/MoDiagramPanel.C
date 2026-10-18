@@ -3034,6 +3034,7 @@ void MoDiagramPanel::buildOnce()
       in.leftMetal = leftMetal;
       in.showAll = p_showAll != 0 && p_showAll->IsChecked();
       in.ligandFieldView = p_ligandField != 0 && p_ligandField->IsChecked();
+      in.piOnly = piOnlyApplied;
       ModelDiagram::Result mr;
       if (!ModelDiagram::build(in, moBasisFns, moSflat, moCoefficients, e,
                                wholeSpectrum, mr, mwhy)) {
@@ -3120,7 +3121,7 @@ void MoDiagramPanel::buildOnce()
                                          &p_fragmentation, want,
                                          pickActive ? &pickSel : 0);
       whyWarn = !haveFragments;
-      if (haveFragments && !piOnlyApplied && !leftAtoms.empty() &&
+      if (haveFragments && !leftAtoms.empty() &&
           !rightAtoms.empty() && !storedSymbols.empty() && foProjectable) {
         string mw;
         if (!ModelDiagram::applicable(storedSymbols, mw)) {

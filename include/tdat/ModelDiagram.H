@@ -74,8 +74,9 @@ class ModelDiagram
       bool leftMetal;                      // ionic d count, not neutral
       bool showAll;                        // draw the ligand-internal levels too
       bool ligandFieldView;                // fold empty ligand-centred levels above the d levels
+      bool piOnly;                         // planar molecule: only the levels that change sign in the plane
       Input() : charge(0), multiplicity(1), leftCharge(0), rightCharge(0),
-                leftMetal(false), showAll(false), ligandFieldView(false) {}
+                leftMetal(false), showAll(false), ligandFieldView(false), piOnly(false) {}
     };
 
     struct Result
