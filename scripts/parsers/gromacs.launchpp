@@ -93,7 +93,7 @@ my $cwd = Cwd::getcwd();
 opendir(my $dh, ".") || die "gromacs.launchpp: cannot read the staging directory\n";
 foreach my $f (readdir($dh)) {
   next if ($f eq "." || $f eq ".." || ! -f $f);
-  (my $rel = $f) =~ s#__SLASH__#/#g;
+  (my $rel = $f) =~ s#__SLASH__#/#g; $rel =~ s#\.gmxff$##;
   if ($rel =~ m#^/# || $rel =~ m#(^|/)\.\.(/|$)#) { next; }
   if ($rel =~ m#/#) {
     (my $dir = $rel) =~ s#/[^/]*$##;
@@ -268,7 +268,7 @@ sub checkMinff
   opendir(my $dh, ".") || die "gromacs.launchpp: cannot read the staging directory\n";
   foreach my $f (readdir($dh)) {
     next if ($f eq "." || $f eq ".." || ! -f $f);
-    (my $rel = $f) =~ s#__SLASH__#/#g;
+    (my $rel = $f) =~ s#__SLASH__#/#g; $rel =~ s#\.gmxff$##;
     next if ($rel =~ m#^/# || $rel =~ m#(^|/)\.\.(/|$)#);
     if ($rel =~ m#/#) {
       (my $dir = $rel) =~ s#/[^/]*$##;

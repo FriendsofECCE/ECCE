@@ -33,6 +33,7 @@ chemical/x-gromacs-log                   .gmxlog
 chemical/x-gromacs-prepare               .gmxprep
 chemical/x-gromacs-source-pdb            .gmxpdb
 chemical/x-gromacs-source-mineral        .gmxmin
+chemical/x-gromacs-forcefield            .gmxff
 chemical/x-nwdirdy-file30                .file30
 chemical/x-polyrate-input                .fu5
 chemical/x-polyrate-output               .fu6

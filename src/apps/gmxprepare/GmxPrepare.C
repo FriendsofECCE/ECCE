@@ -424,6 +424,7 @@ void GmxPrepare::OnButtonResetaClick(wxCommandEvent&)
 /**
  * set <field> <value>   as a person would: ff water ignh merge box dist conc
  *                       pname structure (builder or a PDB path)
+ * ffchoices             the force field choice, joined by |
  * fields                the model and the water choices, in words
  * recipe                the stored gromacs.gmxprep, lines joined by " | "
  * model                 the model XML as stored
@@ -453,6 +454,8 @@ string GmxPrepare::runTestCommand(const string& line)
       std::istringstream in(text);
       while (std::getline(in, l)) out += (out.empty() ? "" : " | ") + l;
       return out;
+   } else if (cmd == "ffchoices") {
+      return p_panel->forceFieldChoices();
    } else if (cmd == "fields") {
       return p_panel->summary();
    } else if (cmd == "recipe" || cmd == "model") {
