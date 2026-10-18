@@ -42,6 +42,9 @@ class GmxPrepare: public MDEdBase, public WxJMSListener
        */
       string verifyText();
 
+      /** The input files the job is given, with sizes (Verify's lower pane). */
+      string verifyFilesText();
+
    protected:
       virtual void initializeModel();
       virtual void createPanels();
@@ -51,6 +54,8 @@ class GmxPrepare: public MDEdBase, public WxJMSListener
       virtual string runTestCommand(const string& line);
       virtual void OnButtonResetaClick( wxCommandEvent& event );
       void OnVerifyClick( wxCommandEvent& event );
+      wxDialog *makeVerifyDialog();
+      string verifyDialogReport(const string& png);
 
       void initializeMessaging();
       void invokeMCB(JMSMessage& msg);
@@ -67,6 +72,7 @@ class GmxPrepare: public MDEdBase, public WxJMSListener
    private:
       GromacsPrepareModel *prepModel() const;
       GromacsPreparePanel *p_panel;
+      wxScrolledWindow *p_scroll;
 };
 
 #endif

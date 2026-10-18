@@ -56,6 +56,18 @@ class GromacsPreparePanel : public ewxPanel
       /** The built mineral's cell vectors in nm, c with the water layer. */
       bool cellVectors(double v[3][3]) const;
 
+      /** The cut-off warning for the built cell; empty when it holds (test hook too). */
+      string cellWarning() const;
+
+      /** Where the unit cell's Browse... starts (also a test hook). */
+      string cellStartDir() const;
+
+      /** The size the page needs in its most demanding state (all sources). */
+      wxSize bestSizeAllSources();
+
+      /** What each box asks for (test hook). */
+      string layoutReport() const;
+
       /** The fields in words (test hook). */
       string summary() const;
 
@@ -100,7 +112,6 @@ class GromacsPreparePanel : public ewxPanel
       void fillIons();
       void showIonNote();
       void minffStale();
-      string cellWarning() const;
       void showCellWarning();
       void detachMineral();
       bool buildMineral(bool withDialog, string& message);
@@ -122,13 +133,13 @@ class GromacsPreparePanel : public ewxPanel
       vector<std::pair<string, string> > p_ffItems;   // id, label of the choice
       vector<wxWindow*> p_proteinOnly, p_minffOnly, p_clayffOnly;
       vector<wxWindow*> p_minffFfOnly;   // the MINFF parameter choices, off with ClayFF
-      wxStaticBox *p_ffBox, *p_waterBox;
+      wxStaticBox *p_ffBox, *p_waterBox, *p_mineralBox;
       ewxStaticText *p_distLabel, *p_ionNote, *p_summaryLabel, *p_cellLabel;
       ewxTextCtrl *p_mrep, *p_msubs, *p_mmineral, *p_mseed;
       ewxChoice *p_mvariant, *p_mangle, *p_mions, *p_mff, *p_mbend;
       ewxCheckBox *p_mrigid;
       ewxButton *p_mcellBtn, *p_mbuild;
-      wxSizer *p_leftSizer, *p_minffSizer;
+      wxSizer *p_leftSizer, *p_rightSizer, *p_minffSizer;
 
       ewxChoice *p_source;
       ewxChoice *p_structure;

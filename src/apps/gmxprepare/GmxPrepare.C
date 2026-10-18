@@ -29,12 +29,14 @@
 
 #include <algorithm>
 #include <cmath>
+#include <wx/display.h>
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxMessageDialog.H"
 #include "wxgui/ewxNotebook.H"
 #include "wxgui/GromacsInputsPanel.H"
 #include "wxgui/GromacsRunPanel.H"
 #include "wxgui/GromacsPreparePanel.H"
+#include "wxgui/WindowShot.H"
 #include "wxgui/WxFeedback.H"
 #include "wxgui/WxJMSListener.H"
 #include "wxgui/WxJMSMessageDispatch.H"
@@ -47,14 +49,14 @@ static const char *RECIPE_GENERATOR = "md.gmxprep";
 static const char *RECIPE_NAME = "gromacs.gmxprep";
 
 
-GmxPrepare::GmxPrepare() : MDEdBase(), WxJMSListener(), p_panel(0)
+GmxPrepare::GmxPrepare() : MDEdBase(), WxJMSListener(), p_panel(0), p_scroll(0)
 {
    constructor();
 }
 
 GmxPrepare::GmxPrepare( wxWindow* parent, wxWindowID id, const wxString& caption,
       const wxPoint& pos, const wxSize& size, long style )
-: MDEdBase(parent, id, caption, pos, size, style), WxJMSListener(), p_panel(0)
+: MDEdBase(parent, id, caption, pos, size, style), WxJMSListener(), p_panel(0), p_scroll(0)
 {
    constructor();
 }
@@ -111,7 +113,18 @@ void GmxPrepare::constructor()
          if (n->GetData()->GetWindow() == launch) break;
       row->Insert(at, verify, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
    }
-   // The base fitted the window to its content; it may shrink below that.
+   // The base fitted the window to its content; keep it on the screen (the
+   // page then scrolls) and let it shrink below that.
+   if (p_scroll != 0) {
+      int idx = wxDisplay::GetFromWindow(this);
+      wxRect area = wxDisplay(idx == wxNOT_FOUND ? 0 : idx).GetClientArea();
+      int over = GetSize().y - (area.height - 60);
+      if (over > 0) {
+         wxSize m = p_scroll->GetMinSize();
+         p_scroll->SetMinSize(wxSize(m.x, std::max(300, m.y - over)));
+         Fit();
+      }
+   }
    SetMinSize(wxSize(420, 320));
 }
 
@@ -139,10 +152,17 @@ void GmxPrepare::createPanels()
       wxBoxSizer *fill = new wxBoxSizer(wxVERTICAL);
       fill->Add(p_panel, 1, wxEXPAND);
       scroll->SetSizer(fill);
-      // opens wide enough for the content (plus a scroll bar), no wider
-      scroll->SetMinSize(wxSize(p_panel->GetBestSize().x + 24, 420));
-      p_notebook->AddPage(scroll, _("System"));
       p_panel->setModel(prepModel());
+      // The window opens at what the page needs in its tallest state (a
+      // mineral), so no box needs scrolling; the width is capped at 60% of
+      // the screen and the constructor trims the height to the screen.
+      wxSize best = p_panel->bestSizeAllSources();
+      int idx = wxDisplay::GetFromWindow(this);
+      wxRect area = wxDisplay(idx == wxNOT_FOUND ? 0 : idx).GetClientArea();
+      int w = std::min(best.x + 48, std::max(700, area.width * 6 / 10));
+      scroll->SetMinSize(wxSize(w, std::max(best.y + 8, 420)));
+      p_scroll = scroll;
+      p_notebook->AddPage(scroll, _("System"));
       p_panel->refreshGUI();
       p_notebook->Refresh();
       p_notebook->Layout();
@@ -387,20 +407,114 @@ string GmxPrepare::verifyText()
 }
 
 
+// The input files the job gets, with their sizes, and for a mineral the
+// start of its topology.  Names are as stored with the task (include
+// folders flat, <folder>__SLASH__<file>).
+string GmxPrepare::verifyFilesText()
+{
+   MdTask *task = dynamic_cast<MdTask*>(EDSIFactory::getResource(p_model->getUrl()));
+   if (task == 0) return "No task is open.";
+   vector<string> names = task->getDataFileNames(JCode::PRIMARY_INPUT);
+   vector<string> aux = task->getDataFileNames(JCode::AUXILIARY_INPUT);
+   names.insert(names.end(), aux.begin(), aux.end());
+   std::ostringstream o;
+   o << "Input files that will be staged for the job:\n\n";
+   size_t width = 0;
+   for (size_t i = 0; i < names.size(); i++) width = std::max(width, names[i].size());
+   string topology;
+   for (size_t i = 0; i < names.size(); i++) {
+      istream *is = task->getAnyFile(names[i]);
+      long size = 0;
+      string head;
+      if (is != 0) {
+         char buf[4096];
+         while (is->read(buf, sizeof buf) || is->gcount() > 0) {
+            if (names[i] == "topol.gmxmin" && head.size() < 4000)
+               head.append(buf, is->gcount());
+            size += is->gcount();
+         }
+         delete is;
+      }
+      if (names[i] == "topol.gmxmin") topology = head;
+      char line[64];
+      snprintf(line, sizeof line, "  %9ld bytes", size);
+      o << "  " << names[i] << string(width - names[i].size(), ' ') << line << "\n";
+   }
+   if (prepModel()->source() != "minff" && p_panel->sourceFile().empty())
+      o << "  <system>.pdb: the Builder's structure, written when the job is launched\n";
+   if (names.empty()) o << "  (none yet)\n";
+   if (!topology.empty()) {
+      o << "\nThe mineral topology (topol.gmxmin), first lines:\n\n";
+      std::istringstream in(topology);
+      string l;
+      for (int n = 0; n < 25 && std::getline(in, l); n++) o << "  " << l << "\n";
+   }
+   return o.str();
+}
+
+
+// Upper pane: what will run. Lower pane: what it will be given.
+wxDialog *GmxPrepare::makeVerifyDialog()
+{
+   wxDialog *dlg = new wxDialog(this, wxID_ANY, _("Verify GROMACS Prepare"),
+                                wxDefaultPosition, wxSize(760, 620),
+                                wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER);
+   wxBoxSizer *col = new wxBoxSizer(wxVERTICAL);
+   const wxFont mono(wxFontInfo().Family(wxFONTFAMILY_TELETYPE));
+   const long style = wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP;
+   col->Add(new wxStaticText(dlg, wxID_ANY, _("What will run")), 0, wxLEFT | wxTOP, 8);
+   wxTextCtrl *upper = new wxTextCtrl(dlg, wxID_ANY,
+       wxString::FromUTF8(verifyText().c_str()), wxDefaultPosition,
+       wxSize(-1, 280), style);
+   upper->SetFont(mono);
+   upper->SetName("verify-upper");
+   upper->SetInsertionPoint(0);
+   upper->ShowPosition(0);
+   col->Add(upper, 3, wxEXPAND | wxALL, 8);
+   col->Add(new wxStaticText(dlg, wxID_ANY, _("Input files")), 0, wxLEFT, 8);
+   wxTextCtrl *lower = new wxTextCtrl(dlg, wxID_ANY,
+       wxString::FromUTF8(verifyFilesText().c_str()), wxDefaultPosition,
+       wxSize(-1, 180), style);
+   lower->SetFont(mono);
+   lower->SetName("verify-lower");
+   lower->SetInsertionPoint(0);
+   lower->ShowPosition(0);
+   col->Add(lower, 2, wxEXPAND | wxALL, 8);
+   col->Add(dlg->CreateStdDialogButtonSizer(wxCLOSE), 0, wxEXPAND | wxALL, 8);
+   dlg->SetSizer(col);
+   dlg->SetEscapeId(wxID_CLOSE);
+   dlg->Layout();
+   return dlg;
+}
+
+
 void GmxPrepare::OnVerifyClick(wxCommandEvent&)
 {
-   wxDialog dlg(this, wxID_ANY, _("Verify GROMACS Prepare"), wxDefaultPosition,
-                wxSize(760, 560), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER);
-   wxBoxSizer *col = new wxBoxSizer(wxVERTICAL);
-   wxTextCtrl *text = new wxTextCtrl(&dlg, wxID_ANY,
-       wxString::FromUTF8(verifyText().c_str()), wxDefaultPosition,
-       wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP);
-   text->SetFont(wxFont(wxFontInfo().Family(wxFONTFAMILY_TELETYPE)));
-   col->Add(text, 1, wxEXPAND | wxALL, 8);
-   col->Add(dlg.CreateStdDialogButtonSizer(wxCLOSE), 0, wxEXPAND | wxALL, 8);
-   dlg.SetSizer(col);
-   dlg.SetEscapeId(wxID_CLOSE);
-   dlg.ShowModal();
+   wxDialog *dlg = makeVerifyDialog();
+   dlg->ShowModal();
+   dlg->Destroy();
+}
+
+
+// Test hook: build the dialog, show it, report the size and text of each
+// pane, optionally save a picture, and close it.
+string GmxPrepare::verifyDialogReport(const string& png)
+{
+   wxDialog *dlg = makeVerifyDialog();
+   dlg->Show();
+   for (int i = 0; i < 6; i++) wxYield();
+   wxTextCtrl *u = dynamic_cast<wxTextCtrl*>(dlg->FindWindow("verify-upper"));
+   wxTextCtrl *l = dynamic_cast<wxTextCtrl*>(dlg->FindWindow("verify-lower"));
+   char b[200];
+   snprintf(b, sizeof b, "upper %d x %d chars %d | lower %d x %d chars %d | shown %d",
+            u ? u->GetSize().x : 0, u ? u->GetSize().y : 0, u ? (int)u->GetValue().size() : 0,
+            l ? l->GetSize().x : 0, l ? l->GetSize().y : 0, l ? (int)l->GetValue().size() : 0,
+            dlg->IsShown() ? 1 : 0);
+   string out = b;
+   if (!png.empty())
+      out += ecceWindowShot(dlg, wxString::FromUTF8(png.c_str())) ? " | saved" : " | not saved";
+   dlg->Destroy();
+   return out;
 }
 
 
@@ -424,6 +538,10 @@ void GmxPrepare::OnButtonResetaClick(wxCommandEvent&)
 /**
  * set <field> <value>   as a person would: ff water ignh merge box dist conc
  *                       pname structure (builder or a PDB path)
+ * verifyfiles           the Verify dialog's lower pane (input files), lines joined by " | "
+ * verifydialog [PNG]     opens the Verify dialog, reports its two panes, closes it
+ * cellwarning           the cut-off warning for the built mineral cell
+ * mcelldir               where the unit cell's Browse... starts
  * ffchoices             the force field choice, joined by |
  * fields                the model and the water choices, in words
  * recipe                the stored gromacs.gmxprep, lines joined by " | "
@@ -451,6 +569,19 @@ string GmxPrepare::runTestCommand(const string& line)
       return b;
    } else if (cmd == "verify") {
       string text = verifyText(), out, l;
+      std::istringstream in(text);
+      while (std::getline(in, l)) out += (out.empty() ? "" : " | ") + l;
+      return out;
+   } else if (cmd == "cellwarning") {
+      return p_panel->cellWarning();
+   } else if (cmd == "mcelldir") {
+      return p_panel->cellStartDir();
+   } else if (cmd == "layout") {
+      return p_panel->layoutReport();
+   } else if (cmd == "verifydialog") {
+      return verifyDialogReport(arg);
+   } else if (cmd == "verifyfiles") {
+      string text = verifyFilesText(), out, l;
       std::istringstream in(text);
       while (std::getline(in, l)) out += (out.empty() ? "" : " | ") + l;
       return out;
