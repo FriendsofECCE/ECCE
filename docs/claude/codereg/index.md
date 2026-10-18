@@ -60,6 +60,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 ### Getting a calculation set up (the "code registration" system)
 
 - [A GROMACS MD study has the application type of its tasks; NWChem's study has its own](gromacs-study-shares-its-tasks-application-type.md)
+- [Every enabled tool needs a ToolPropertyView for the content type, or the Organizer crashes on selection](every-enabled-tool-needs-a-tool-property-view.md)
 - [A GROMACS topology's local includes (min.ff/...) are collected on attach and staged flat as folder__SLASH__file (#260)](gromacs-includes-in-folders-travel-flat.md)
 - [GROMACS run settings (defines, residue-name groups, barostat type, extra .mdp lines): model, md.gmxtask, ai.gromacs, and the index file written at launch](gromacs-run-settings-travel-md-gmxtask-ai-launchpp-gensub.md)
 - [grompp 2025.2: C-rescale does not support anisotropic coupling, Berendsen draws a warning, atom-name mismatches are warnings](grompp-2025-takes-every-barostat-pair-except-c-rescale-anisotropic.md)

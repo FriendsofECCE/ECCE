@@ -28,3 +28,9 @@ issues: [357]
 - The random placement uses its own mapping from mt19937, not
   std::uniform_real_distribution, so a seed gives the same stack on every
   standard library.
+- A structure read from a .gro or .pdb has residues, and the Builder's
+  residue drawing (`SGFragment::generateProteinAttributes`) dereferences
+  every atom's residue: an added ion or water without one crashed Build
+  Layers. Each added ion and water gets its own residue (`HOH`, the ion's
+  symbol) when the fragment has residues. Scene hook `importfile <path>`
+  loads such a file headless (`pbc_layers_test.py` gro-residues).

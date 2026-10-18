@@ -1648,8 +1648,19 @@ if [ "`echo "$CONC" | awk '{print ($1 > 0)}'`" = 1 ]; then GENION_CONC="-conc $C
   PERIODIC=""
   if [ "$SOURCE" = minff ]; then
     # genion only reads charges from the .tpr; a small mineral cell cannot
-    # hold the usual 1 nm cut-off
-    RC=0.5
+    # hold the usual 1 nm cut-off: at most 0.5 nm, less if the box needs it
+    # (the pair list, 5% longer, must fit in half the shortest box vector)
+    RC=`tail -n 1 step3.gro | awk '
+      { for (i = NF + 1; i <= 9; i++) $i = 0
+        v[0,0] = $1; v[0,1] = $4; v[0,2] = $5; v[1,0] = $6; v[1,1] = $2; v[1,2] = $7
+        v[2,0] = $8; v[2,1] = $9; v[2,2] = $3; m = 0.5
+        for (k = 0; k < 3; k++) {
+          l = 0.5 * sqrt(v[k,0] ^ 2 + v[k,1] ^ 2 + v[k,2] ^ 2)
+          if (l < m) m = l
+          if (v[k,k] < m) m = v[k,k]
+        }
+        printf "%.3f\n", int(m / 1.05 * 980) / 1000 }'`
+    [ -n "$RC" ] || RC=0.5
     PERIODIC="periodic-molecules = yes"
   fi
   cat > ions.mdp <<MDPEOF

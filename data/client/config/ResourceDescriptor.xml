@@ -5678,6 +5678,28 @@
         <Type>resourceicon</Type>
       </Property>
     </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdEquilibrate" tool="MDDynamics">
+      <MenuItem>Code Setup</MenuItem>
+      <Order>5</Order>
+      <Property>
+        <Label>Calculation:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>state</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>runstateicon</Type>
+      </Property>
+      <Property>
+        <Label>Code:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>application</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>resourceicon</Type>
+      </Property>
+    </ToolPropertyView>
     <ToolPropertyView contentType="ecceCalculation" tool="Builder">
       <MenuItem>Chemical System</MenuItem>
       <Order>6</Order>
@@ -5833,6 +5855,28 @@
         <Type>cdata</Type>
       </Property>
     </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdEquilibrate" tool="Builder">
+      <MenuItem>Chemical System</MenuItem>
+      <Order>6</Order>
+      <Property>
+        <Label>Atoms:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numAtoms</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Residues:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numResidues</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+    </ToolPropertyView>
     <ToolPropertyView contentType="ecceCalculation" tool="Builder">
       <MenuItem>Chemical System</MenuItem>
       <Order>6</Order>
@@ -5967,6 +6011,28 @@
       </Property>
     </ToolPropertyView>
     <ToolPropertyView contentType="ecceMdDynamics" tool="Builder">
+      <MenuItem>Chemical System</MenuItem>
+      <Order>6</Order>
+      <Property>
+        <Label>Atoms:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numAtoms</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Residues:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numResidues</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdEquilibrate" tool="Builder">
       <MenuItem>Chemical System</MenuItem>
       <Order>6</Order>
       <Property>
@@ -6255,6 +6321,46 @@
         <Type>datetime</Type>
       </Property>
     </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdEquilibrate" tool="Launcher">
+      <MenuItem>Launcher</MenuItem>
+      <Order>8</Order>
+      <Property>
+        <Label>Machine:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>launch_machine</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Processors:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>launch_totalprocs</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Start Date:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>startdate</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+      <Property>
+        <Label>Comp. Date:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>completiondate</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+    </ToolPropertyView>
     <ToolPropertyView contentType="ecceCalculation" tool="CalculationViewer">
       <MenuItem>Viewer</MenuItem>
       <Order>9</Order>
@@ -6344,6 +6450,28 @@
       </Property>
     </ToolPropertyView>
     <ToolPropertyView contentType="ecceMdDynamics" tool="CalculationViewer">
+      <MenuItem>Viewer</MenuItem>
+      <Order>9</Order>
+      <Property>
+        <Label>Viewed:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>reviewed</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>check</Type>
+      </Property>
+      <Property>
+        <Label>View Date:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>reviewedDate</Name>
+        <Order>2</Order>
+        <Display>false</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdEquilibrate" tool="CalculationViewer">
       <MenuItem>Viewer</MenuItem>
       <Order>9</Order>
       <Property>

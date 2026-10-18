@@ -199,6 +199,31 @@ sub checkPrepare
   exit 0;
 }
 
+# A cut-off grompp accepts for the box on the last line of a .gro: its pair
+# list (5% longer than the cut-off for a minimisation) must stay below half
+# the shortest box vector and the smallest diagonal element.  At most 0.5 nm.
+sub minffCheckCutoff
+{
+  my ($gro) = @_;
+  my $last = "";
+  if (open(my $g, "<", $gro)) {
+    while (my $l = <$g>) { $last = $l if ($l =~ /\S/); }
+    close($g);
+  }
+  my @b = split(' ', $last);
+  return 0.5 if (scalar(@b) != 3 && scalar(@b) != 9);
+  push(@b, (0) x 6) if (scalar(@b) == 3);
+  my @v = ([$b[0], $b[3], $b[4]], [$b[5], $b[1], $b[6]], [$b[7], $b[8], $b[2]]);
+  my $max = 0.5;
+  for my $i (0 .. 2) {
+    my $len = sqrt($v[$i][0]**2 + $v[$i][1]**2 + $v[$i][2]**2);
+    $max = 0.5 * $len if (0.5 * $len < $max);
+    $max = $v[$i][$i] if ($v[$i][$i] < $max);
+  }
+  my $rc = int($max / 1.05 * 0.98 * 1000) / 1000;
+  return $rc > 0 ? $rc : 0.5;
+}
+
 # A MINFF Prepare has no pdb2gmx step: its topology and structure were built
 # by the editor and are staged as topol.gmxmin and conf.gmxmin.  What is
 # worth stopping for is a topology grompp rejects, so grompp is run on them.
@@ -232,7 +257,10 @@ sub checkMinff
   symlink("$cwd/conf.gmxmin", "$tmp/conf.gro");
   open(my $mf, ">", "$tmp/check.mdp") || die "gromacs.launchpp: cannot write in $tmp\n";
   print $mf "integrator = steep\nnsteps = 0\ncutoff-scheme = Verlet\ncoulombtype = cutoff\n";
-  print $mf "rcoulomb = 0.5\nrvdw = 0.5\npbc = xyz\nperiodic-molecules = yes\n";
+  # Only the topology is checked here: a cut-off the bare mineral cell can
+  # hold, since the water layer the job adds is not in it yet.
+  my $rc = minffCheckCutoff("conf.gmxmin");
+  print $mf "rcoulomb = $rc\nrvdw = $rc\npbc = xyz\nperiodic-molecules = yes\n";
   close($mf);
   my @cmd = ($gmx, "grompp", "-f", "check.mdp", "-c", "conf.gro", "-p", "topol.top",
              "-o", "check.tpr", "-po", "mdout.mdp");

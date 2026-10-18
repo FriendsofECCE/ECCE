@@ -86,6 +86,8 @@ def main():
                     help="run only the MINFF section")
     ap.add_argument("--editor-only", action="store_true",
                     help="run only the editor section")
+    ap.add_argument("--organizer-only", action="store_true",
+                    help="run only the Organizer section")
     args = ap.parse_args()
     build = os.path.abspath(args.build)
 
@@ -109,6 +111,10 @@ def main():
         if args.minff_only:
             minff_section(s, build, rundir, args.png or os.path.join(s.state, "png"))
             failures.extend(gromacs_test_failures())
+            return 1 if failures else 0
+
+        if args.organizer_only:
+            organizer_new(s, build, gmx)
             return 1 if failures else 0
 
         if args.editor_only:
@@ -506,6 +512,8 @@ def organizer_new(s, build, gmx):
             want = "ECCE_TEST_ORGANIZER: %s: " % line
             end = time.time() + timeout
             while time.time() < end:
+                if proc.poll() is not None:
+                    return "the Organizer ended (%s)" % proc.returncode
                 for t in open(log, errors="replace").read().splitlines():
                     if t.startswith(want):
                         return t[len(want):]
@@ -513,6 +521,13 @@ def organizer_new(s, build, gmx):
             return "no answer"
 
         try:
+            # selecting each task builds its summary panel from the tool
+            # views of its content type (an Equilibrate had none: SIGSEGV)
+            for u in urls[1:]:
+                ans = send("summary " + u)
+                check(ans.startswith("ok") and proc.poll() is None,
+                      "the Organizer shows the %s task: %s"
+                      % (u.rstrip("/").rsplit("/", 1)[-1], ans[:60]))
             ans = send("new %s gromacs_md_study" % proj)
             check(ans == "ok", "Organizer New: a GROMACS MD Study: %s" % ans)
             pdir = proj.replace("file://", "")

@@ -1975,6 +1975,10 @@ add_test(NAME gromacs_run_settings
                  ${CMAKE_SOURCE_DIR}/tests/gromacs_md/run_settings_test.py
                  --groconv $<TARGET_FILE:gromacs_groconv>)
 set_tests_properties(gromacs_run_settings PROPERTIES TIMEOUT 600)
+# Every tool a resource type enables has a summary view for its content type.
+add_test(NAME resource_tool_views
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/gromacs_md/tool_views_test.py)
 
 # tests/minff -- MINFF topology builder (scripts/minff_topology.py, #241)
 # against atomipy run directly, then grompp + a short EM.  SKIPs (77)
