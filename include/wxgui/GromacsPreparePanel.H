@@ -83,6 +83,8 @@ class GromacsPreparePanel : public ewxPanel
       bool isMinff() const;
       void fillIons();
       void minffStale();
+      string cellWarning() const;
+      void showCellWarning();
       void detachMineral();
       bool buildMineral(bool withDialog, string& message);
       bool storeMineral(const string& dir, string& message);

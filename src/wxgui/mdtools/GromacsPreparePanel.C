@@ -5,6 +5,7 @@
 #include "wx/wx.h"
 #endif
 
+#include <cmath>
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
@@ -24,6 +25,7 @@
 #include "dsm/GromacsPrepareModel.H"
 #include "dsm/JCode.H"
 #include "dsm/MdTask.H"
+#include "tdat/InteractionModel.H"
 
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxCheckBox.H"
@@ -667,6 +669,56 @@ void GromacsPreparePanel::minffStale()
   relayout();
 }
 
+// The cell the MD tasks after this Prepare get (the built mineral's box,
+// its c lengthened by the water layer) against grompp's limit for the
+// cut-off: half the shortest box vector and the smallest diagonal element.
+// Empty when it holds the default cut-off of those tasks.
+string GromacsPreparePanel::cellWarning() const
+{
+  if (p_model == 0 || !isMinff() || !p_built) return "";
+  MdTask *t = task();
+  istream *is = t ? t->getAnyFile(string("conf.gmxmin")) : 0;
+  if (is == 0) return "";
+  string line, last;
+  while (std::getline(*is, line))
+    if (line.find_first_not_of(" \t\r") != string::npos) last = line;
+  delete is;
+  double b[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+  std::istringstream in(last);
+  int n = 0;
+  while (n < 9 && in >> b[n]) n++;
+  if (n != 3 && n != 9) return "";
+  if (p_model->boxDistance() > 0) b[2] += p_model->boxDistance();
+  const double v[3][3] = {{b[0], b[3], b[4]}, {b[5], b[1], b[6]}, {b[7], b[8], b[2]}};
+  double limit = 1e30;
+  for (int i = 0; i < 3; i++) {
+    limit = std::min(limit, 0.5 * std::sqrt(v[i][0]*v[i][0] + v[i][1]*v[i][1] + v[i][2]*v[i][2]));
+    limit = std::min(limit, v[i][i]);
+  }
+  // grompp checks the pair list, which mdrun's buffer makes about 0.1 nm
+  // longer than the cut-off.
+  const double cut = InteractionModel::SHORTCUT;
+  if (limit >= cut + 0.1) return "";
+  char buf[400];
+  snprintf(buf, sizeof buf,
+           "The cell is too small for the %.1f nm cut-off the MD tasks use: "
+           "with its pair-list buffer it must stay below %.2f nm here (half "
+           "the shortest box vector). "
+           "Repeat the cell more often, add water, or lower the cut-off in "
+           "the tasks.", cut, limit);
+  return buf;
+}
+
+// A warning only: the user may lower the cut-off in the tasks.
+void GromacsPreparePanel::showCellWarning()
+{
+  if (p_owner == 0) return;
+  string warn = cellWarning();
+  string why;
+  if (!warn.empty()) p_owner->getFeedback().setMessage(warn, WxFeedback::WARNING);
+  else if (validate(why)) p_owner->getFeedback().clearMessage();
+}
+
 bool GromacsPreparePanel::validate(string& why) const
 {
   if (!p_badDistance.empty()) { why = p_badDistance; return false; }
@@ -1018,6 +1070,7 @@ bool GromacsPreparePanel::buildMineral(bool withDialog, string& message)
   p_model->minffSummary("Built from " + cell + ": " + atoms + " atoms, charge " + charge +
                         ", water " + water + "." + untyped);
   showMineral();
+  showCellWarning();
   changed();
   return true;
 }
@@ -1043,8 +1096,8 @@ void GromacsPreparePanel::OnNumber(wxCommandEvent&)
   }
   if (p_owner != 0) {
     string why;
-    if (validate(why)) p_owner->getFeedback().clearMessage();
-    else p_owner->getFeedback().setMessage(why, WxFeedback::ERROR);
+    if (!validate(why)) p_owner->getFeedback().setMessage(why, WxFeedback::ERROR);
+    else showCellWarning();
   }
   changed();
 }
@@ -1233,6 +1286,7 @@ string GromacsPreparePanel::summary() const
      << " ignh=" << p_model->ignoreHydrogens()
      << " merge=" << p_model->mergeChains()
      << " source=" << p_model->source() << " built=" << (p_built ? 1 : 0)
-     << " mineral=" << p_model->minffSummary();
+     << " mineral=" << p_model->minffSummary()
+     << " cellwarning=" << (cellWarning().empty() ? 0 : 1);
   return os.str();
 }
