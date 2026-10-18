@@ -3702,6 +3702,13 @@ void CalcMgr::getContextMenu(wxMenu & menu)
     menuItem->SetBitmap(ewxBitmap(resVec[i]->getIcon()));
     newMenu->Append(menuItem);
   }
+  //  An imported output is a new calculation too; users look for it here,
+  //  not only under File.
+  if (!resVec.empty()) {
+    newMenu->AppendSeparator();
+    newMenu->Append(wxID_IMPORT,
+                    _("Import Calculation from Output File..."));
+  }
   menu.Append(wxID_NEW, _T("New..."), newMenu);
   menu.Enable(wxID_NEW, !resVec.empty());
   menu.AppendSeparator();
