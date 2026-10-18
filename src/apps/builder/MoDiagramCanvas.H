@@ -1659,7 +1659,7 @@ class MoDiagramCanvas : public wxPanel
     //  Oblique view of an octahedral or tetrahedral ligand set: the frame's
     //  Y is up, X across, and Z (depth) runs up and to the right.
     static constexpr double OBLIQUE_X = 0.45, OBLIQUE_Y = 0.25;
-    static constexpr int    REACH_3D = 18;
+    static constexpr int    REACH_3D = 16;
 
     /** Half the height of the box a column's sketch needs, from the centre of its row. */
     static int sketchHalfHeight(const MoColumn& column)
@@ -1672,7 +1672,7 @@ class MoDiagramCanvas : public wxPanel
           y = fabs(column.sketchY[i] + OBLIQUE_Y*column.sketchZ[i]);
         if (y > top) top = y;
       }
-      return (int)(top*(oblique ? REACH_3D : 11)) + (oblique ? 12 : 6);
+      return (int)(top*(oblique ? REACH_3D : 11)) + 6;
     }
 
     /** A drawn sketch is centred this far out from its row's label block. */
@@ -1721,28 +1721,14 @@ class MoDiagramCanvas : public wxPanel
         const double vx = level.phases[3*i], vy = level.phases[3*i + 1], vz = level.phases[3*i + 2];
         const double len = sqrt(vx*vx + vy*vy + vz*vz);
         if (len < 0.08*biggest) continue;
-        const double k = 8.0/biggest;
-        drawDumbbell(dc, sx[i], sy[i], (vx + OBLIQUE_X*vz)*k, (vy + OBLIQUE_Y*vz)*k, len/biggest);
+        const double k = 8.0*(len/biggest)/len;
+        const int dx = (int)((vx + OBLIQUE_X*vz)*k), dy = (int)((vy + OBLIQUE_Y*vz)*k);
+        dc.SetPen(wxPen(ink, 2));
+        dc.SetBrush(wxBrush(ink));
+        dc.DrawLine(sx[i] - dx, sy[i] + dy, sx[i] + dx, sy[i] - dy);
+        dc.DrawCircle(sx[i] + dx, sy[i] - dy, 2);
       }
       dc.SetBrush(*wxTRANSPARENT_BRUSH);
-    }
-
-    /**
-     * A p orbital as a dumbbell: the lobe on the +vector side filled, the other
-     * open, both sized by `size` (0..1).  (dx, dy) is the vector on screen, y up.
-     */
-    static void drawDumbbell(wxDC& dc, int x, int y, double dx, double dy, double size)
-    {
-      const wxColour ink(60, 60, 60);
-      const int r = 2 + (int)(3.0*sqrt(size));
-      const double len = sqrt(dx*dx + dy*dy);
-      const double ux = len > 1e-6 ? dx/len : 1.0, uy = len > 1e-6 ? dy/len : 0.0;
-      const double off = r + 1 + 0.5*len;
-      dc.SetPen(wxPen(ink, 1));
-      dc.SetBrush(*wxWHITE_BRUSH);
-      dc.DrawCircle((int)(x - ux*off), (int)(y + uy*off), r);
-      dc.SetBrush(wxBrush(ink));
-      dc.DrawCircle((int)(x + ux*off), (int)(y - uy*off), r);
     }
 
     /** The same, for a symmetry orbital built from p shells. */
@@ -1780,7 +1766,13 @@ class MoDiagramCanvas : public wxPanel
 
         const double length = sqrt(inA*inA + inB*inB);
         if (length > 0.08*biggest) {
-          drawDumbbell(dc, x, y, inA*9.0/biggest, inB*9.0/biggest, length/biggest);
+          const double scale = 9.0*(length/biggest)/length;
+          const int dx = (int)(inA*scale);
+          const int dy = (int)(inB*scale);
+          dc.SetPen(wxPen(wxColour(60, 60, 60), 2));
+          dc.DrawLine(x - dx, y + dy, x + dx, y - dy);
+          //  A head on the positive end, so the sign is readable.
+          dc.DrawCircle(x + dx, y - dy, 2);
         }
       }
       dc.SetBrush(*wxTRANSPARENT_BRUSH);
