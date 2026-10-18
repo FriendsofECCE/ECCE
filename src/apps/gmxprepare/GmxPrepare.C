@@ -139,6 +139,8 @@ void GmxPrepare::createPanels()
       wxBoxSizer *fill = new wxBoxSizer(wxVERTICAL);
       fill->Add(p_panel, 1, wxEXPAND);
       scroll->SetSizer(fill);
+      // opens wide enough for the content (plus a scroll bar), no wider
+      scroll->SetMinSize(wxSize(p_panel->GetBestSize().x + 24, 420));
       p_notebook->AddPage(scroll, _("System"));
       p_panel->setModel(prepModel());
       p_panel->refreshGUI();
