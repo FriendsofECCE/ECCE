@@ -1,0 +1,63 @@
+; ClayFF bonded parameters.
+;
+; The paper writes every harmonic term as k (x - x0)^2, without the 1/2 that
+; GROMACS has, so kb = 2 k and ktheta = 2 k (kcal -> kJ x 4.184, 1/A^2 ->
+; 1/nm^2 x 100). Cygan, Liang and Kalinichev 2004 (Table 2) give no mineral
+; bond or angle terms except the O-H stretch of hydroxyl groups; the M-O-H
+; bend of Table 2 (30 kcal/mol/rad^2, 109.47 deg, "any metal") is an optional
+; feature of that paper and is off unless CLAYFF_MOH_2004 is defined. The
+; Pouvreau et al. 2017 set (Al 15, Mg 6 kcal/mol/rad^2, 110 deg, Morse O-H) is
+; selected by CLAYFF_MOH. Define either in the .mdp (define = -DCLAYFF_MOH);
+; min.itp lists the M-O-H angles only inside those switches, and the Morse
+; bond only inside CLAYFF_MOH. M-O-H is applied to hydroxyl groups only, not
+; to the OH2 of water molecules (as in Pouvreau et al.).
+
+[ bondtypes ]
+;  i     j   func   b0(nm)   kb(kJ/mol/nm2)
+Oh      H     1     0.1000   463700.1   ; oh-ho, Table 2: 554.1349 kcal/mol/A^2, 1.0000 A
+Ohmg    H     1     0.1000   463700.1   ; ohs-ho
+#ifdef CLAYFF_MOH
+; Morse O-H of Pouvreau et al. 2017, Table 2: D0 132.2491 kcal/mol, alpha
+; 2.1350 1/A, r0 0.9572 A; GROMACS function 3 is D [1 - exp(-beta (r-b0))]^2
+;  i     j   func   b0(nm)   D(kJ/mol)   beta(1/nm)
+Oh      H     3     0.09572  553.33   21.350
+Ohmg    H     3     0.09572  553.33   21.350
+#endif
+
+[ angletypes ]
+;  i     j      k    func  theta0(deg)  ktheta(kJ/mol/rad2)
+; Water H-O-H (Table 2: 45.7696 kcal/mol/rad^2, 109.47 deg), used by the
+; flexible SPC water of spc.itp.
+Hw      Ow      Hw    1     109.47    383.00
+#ifdef CLAYFF_MOH
+; Pouvreau et al. 2017: theta0 = 110 deg, k(Al-O-H) = 15, k(Mg-O-H) = 6
+; kcal/mol/rad^2. Only Al and Mg are given; other metals get no M-O-H term.
+Alo     Oh      H     1     110.0     125.52
+Alo     Ohmg    H     1     110.0     125.52
+Mgo     Oh      H     1     110.0     50.21
+Mgo     Ohmg    H     1     110.0     50.21
+Mgh     Oh      H     1     110.0     50.21
+Mgh     Ohmg    H     1     110.0     50.21
+#else
+#ifdef CLAYFF_MOH_2004
+; Cygan et al. 2004, Table 2: "Metal" oh ho and "Metal" ohs ho, 30 kcal/mol/rad^2
+Alo     Oh      H     1     109.47    251.04
+Alo     Ohmg    H     1     109.47    251.04
+Alt     Oh      H     1     109.47    251.04
+Alt     Ohmg    H     1     109.47    251.04
+Sit     Oh      H     1     109.47    251.04
+Sit     Ohmg    H     1     109.47    251.04
+Mgo     Oh      H     1     109.47    251.04
+Mgo     Ohmg    H     1     109.47    251.04
+Mgh     Oh      H     1     109.47    251.04
+Mgh     Ohmg    H     1     109.47    251.04
+Cao     Oh      H     1     109.47    251.04
+Cao     Ohmg    H     1     109.47    251.04
+Cah     Oh      H     1     109.47    251.04
+Cah     Ohmg    H     1     109.47    251.04
+Feo     Oh      H     1     109.47    251.04
+Feo     Ohmg    H     1     109.47    251.04
+Lio     Oh      H     1     109.47    251.04
+Lio     Ohmg    H     1     109.47    251.04
+#endif
+#endif

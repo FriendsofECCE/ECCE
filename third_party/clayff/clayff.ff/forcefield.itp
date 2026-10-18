@@ -1,0 +1,15 @@
+#define _FF_CLAYFF
+
+; ClayFF (Cygan, Liang, Kalinichev, J. Phys. Chem. B 2004, 108, 1255-1266),
+; transcribed from the paper; see forcefield.doc for the conversions.
+; Switches for the .mdp "define" line:
+;   -DCLAYFF_MOH       Pouvreau et al. 2017 M-O-H bend (Al, Mg) and Morse O-H
+;   -DCLAYFF_MOH_2004  the optional M-O-H bend of the 2004 paper (any metal)
+;   -DRIGID_WATER      SETTLE-constrained SPC water instead of flexible
+
+[ defaults ]
+; nbfunc        comb-rule       gen-pairs       fudgeLJ fudgeQQ
+1               2               no              1.0     1.0
+
+#include "ffnonbonded.itp"
+#include "ffbonded.itp"
