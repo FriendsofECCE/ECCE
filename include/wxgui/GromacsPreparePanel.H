@@ -5,6 +5,7 @@
 #define _GROMACSPREPAREPANEL_H_
 
 #include <string>
+#include <utility>
 #include <vector>
 using std::vector;
 using std::string;
@@ -58,8 +59,12 @@ class GromacsPreparePanel : public ewxPanel
       /** The fields in words (test hook). */
       string summary() const;
 
+      /** The force field choice, entries joined by "|" (test hook). */
+      string forceFieldChoices() const;
+
    protected:
       void OnForceField(wxCommandEvent& event);
+      void OnImportForceField(wxCommandEvent& event);
       void OnWater(wxCommandEvent& event);
       void OnStructure(wxCommandEvent& event);
       void OnBrowse(wxCommandEvent& event);
@@ -78,6 +83,12 @@ class GromacsPreparePanel : public ewxPanel
       MdTask *task() const;
       void changed();
       void fillWaters(const string& preferred);
+      void fillForceFields();
+      int otherIndex() const;
+      int ffIndex(const string& id) const;
+      string ffId(int index) const;
+      void stageForceField(bool force);
+      bool importForceField(const string& path, int clash, string& message);
       bool chooseFile();
       bool attachPdb(const string& path, string& message);
       void detachPdb();
@@ -104,6 +115,9 @@ class GromacsPreparePanel : public ewxPanel
       string p_buildWarnings;   // minff_topology.py warnings of the last build
       string p_cellPath;        // the unit cell chosen for MINFF, this session
       bool p_built;
+      bool p_staging;
+      int p_testClash;          // test hook: 1 replace, 2 cancel on a name clash
+      vector<std::pair<string, string> > p_ffItems;   // id, label of the choice
       vector<wxWindow*> p_proteinOnly, p_minffOnly;
       wxStaticBox *p_ffBox, *p_waterBox;
       ewxStaticText *p_distLabel, *p_ionNote, *p_summaryLabel, *p_cellLabel;
@@ -117,6 +131,7 @@ class GromacsPreparePanel : public ewxPanel
       ewxButton *p_browse;
       ewxStaticText *p_file;
       ewxChoice *p_ff;
+      ewxButton *p_ffImport;
       ewxTextCtrl *p_otherFf;
       ewxChoice *p_water;
       ewxCheckBox *p_ignh, *p_neut;

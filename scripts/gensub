@@ -1588,7 +1588,7 @@ GENION_RMIN=""
       fi
       for f in *__SLASH__*; do
         [ -f "$f" ] || continue
-        d=`echo "$f" | sed 's#__SLASH__#/#g'`
+        d=`echo "$f" | sed 's#__SLASH__#/#g;s#\.gmxff$##'`
         mkdir -p "`dirname "$d"`" && mv "$f" "$d"
       done
       cp topol.gmxmin topol.top
@@ -1596,6 +1596,13 @@ GENION_RMIN=""
       : > prep.pdb2gmx
       ;;
     protein)
+      # an imported force field arrives flat as <name>.ff__SLASH__<file>;
+      # pdb2gmx searches the current directory first
+      for f in *__SLASH__*; do
+        [ -f "$f" ] || continue
+        d=`echo "$f" | sed 's#__SLASH__#/#g;s#\.gmxff$##'`
+        mkdir -p "`dirname "$d"`" && mv "$f" "$d"
+      done
       set -- *.gmxpdb
       pdb=$1
       [ -f "$pdb" ] || pdb=@@SYS@@.pdb
@@ -1817,7 +1824,7 @@ sub gromacs()
     $retval .= "\n$::CC - Recreate the include sub-folders of the topology.\n";
     $retval .= "for f in *__SLASH__*; do\n";
     $retval .= "  [ -f \"\$f\" ] || continue\n";
-    $retval .= "  d=`echo \"\$f\" | sed 's#__SLASH__#/#g'`\n";
+    $retval .= "  d=`echo \"\$f\" | sed 's#__SLASH__#/#g;s#\\.gmxff\$##'`\n";
     $retval .= "  mkdir -p \"`dirname \"\$d\"`\" && mv \"\$f\" \"\$d\"\n";
     $retval .= "done\n";
 

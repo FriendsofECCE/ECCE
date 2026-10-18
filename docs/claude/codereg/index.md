@@ -176,3 +176,4 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [Every release updates the bundled atomipy and min.ff](every-release-updates-bundled-atomipy-and-minff.md)
 - [Property value lines were cut at 2047 bytes, losing the rest of the batch (ECCE-QM MO crash above ~120 functions, ORCA above ~245)](property-value-lines-had-a-2048-byte-limit.md)
 - [def2-SVP on light elements showed as "Custom" for ECCE-QM: a removed ECP that covers nothing left its key behind](ecp-less-code-named-def2-basis-custom.md)
+- [GROMACS Prepare, imported force fields: per-user library on the client, staged with the Prepare as <name>.ff__SLASH__<file>.gmxff inputs](gromacs-prepare-imported-force-fields.md)

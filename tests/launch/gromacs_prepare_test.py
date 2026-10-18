@@ -19,6 +19,10 @@ Local data, no data server.  The tree's own binaries, never the real ~/.ECCE:
     short is reported at launch with pdb2gmx's message (Cancel stops it);
   * the Organizer's New menu (its test hook) makes the Prepare with the
     right application type;
+  * a force field imported in the editor (a copy of a built-in under a new
+    name, as a folder and as a zip) is chosen, staged with the Prepare as
+    <name>.ff__SLASH__<file>.gmxff inputs, and the Prepare and the Optimize after it
+    complete with it; folders and zips that are not usable are refused;
   * the editor (gmxprepare, private Xvfb, ECCE_TEST_MDED): a Prepare as New
     makes it is opened, the force field, water model, salt concentration and
     source PDB are set as a person would, Save stores the recipe and the
@@ -91,6 +95,8 @@ def main():
                     help="run only the Builder-save section")
     ap.add_argument("--builder-flow-only", action="store_true",
                     help="run only the Builder (Na ion) section")
+    ap.add_argument("--ffimport-only", action="store_true",
+                    help="run only the force-field Import section")
     ap.add_argument("--organizer-only", action="store_true",
                     help="run only the Organizer section")
     args = ap.parse_args()
@@ -128,6 +134,11 @@ def main():
 
         if args.organizer_only:
             organizer_new(s, build, gmx)
+            return 1 if failures else 0
+
+        if args.ffimport_only:
+            ffimport_section(s, build, rundir, gmx)
+            failures.extend(gromacs_test_failures())
             return 1 if failures else 0
 
         if args.editor_only:
@@ -267,6 +278,7 @@ def main():
         # ---- the editor ---------------------------------------------------
         editor_section(s, build, rundir, args.png or os.path.join(s.state, "png"))
         minff_section(s, build, rundir, args.png or os.path.join(s.state, "png"))
+        ffimport_section(s, build, rundir, gmx)
         failures.extend(gromacs_test_failures())
     finally:
         leftovers = s.stop()
@@ -958,6 +970,207 @@ def minff_section(s, build, rundir, png):
                     check(r is not None, "the force field includes reached the Optimize's run")
             finally:
                 oed.close()
+        finally:
+            ed.close()
+
+
+def gmx_top(gmx):
+    """The directory of GROMACS's force field folders, or None."""
+    cands = [os.environ.get("GMXDATA", "") and os.path.join(os.environ["GMXDATA"], "top"),
+             os.path.join(os.path.dirname(os.path.dirname(gmx)), "share", "gromacs", "top"),
+             "/usr/share/gromacs/top", "/usr/local/gromacs/share/gromacs/top"]
+    for c in cands:
+        if c and os.path.isdir(os.path.join(c, "amber99sb-ildn.ff")):
+            return c
+    return None
+
+
+def ffimport_section(s, build, rundir, gmx):
+    """Import a force field in the Prepare editor and run Prepare + Optimize with it."""
+    import zipfile
+    if not shutil.which("Xvfb"):
+        say("  (no Xvfb: force-field import is not checked)")
+        return
+    top = gmx_top(gmx)
+    if top is None:
+        say("  (no GROMACS force field folders found: force-field import is not checked)")
+        return
+    for exe in ("gmxprepare",):
+        if not os.access(os.path.join(build, exe), os.X_OK):
+            say("  (%s is not built: force-field import is not checked)" % exe)
+            return
+    import xdisplay
+    import gromacs_test
+    harness.link(os.path.join(build, "gmxprepare"), os.path.join(s.home, "bin", "gmxprepare"))
+    gw = os.path.join(REPO, "packaging", "gateway")
+    for name in os.listdir(gw):
+        if name.startswith("ecce-"):
+            harness.link(os.path.join(gw, name), os.path.join(s.home, "bin", name))
+    wrappers = os.path.join(s.state, "wrappers-ff")
+    shutil.rmtree(wrappers, ignore_errors=True)
+    shutil.copytree(os.path.join(build, "wrappers"), wrappers)
+    for entry in os.listdir(wrappers):
+        os.chmod(os.path.join(wrappers, entry), 0o755)
+    if not s.services(True):
+        check(False, "services came up for the import section")
+        return
+
+    # the test force fields: a built-in copied under a new name
+    work = os.path.join(s.state, "fftest")
+    shutil.rmtree(work, ignore_errors=True)
+    os.makedirs(work)
+    good = os.path.join(work, "ecce-test-amber.ff")
+    shutil.copytree(os.path.join(top, "amber99sb-ildn.ff"), good)
+    with open(os.path.join(good, "forcefield.doc"), "w") as h:
+        h.write("\nECCE test copy of AMBER99SB-ILDN\n")
+    zgood = os.path.join(work, "ecce-test-amber.zip")
+    with zipfile.ZipFile(zgood, "w") as z:
+        for dp, _, fs in os.walk(good):
+            for f in fs:
+                full = os.path.join(dp, f)
+                z.write(full, os.path.join("ecce-test-amber.ff", os.path.relpath(full, good)))
+    noitp = os.path.join(work, "noitp.ff")
+    shutil.copytree(good, noitp)
+    os.unlink(os.path.join(noitp, "forcefield.itp"))
+    nortp = os.path.join(work, "nortp.ff")
+    shutil.copytree(good, nortp)
+    for f in glob.glob(os.path.join(nortp, "*.rtp")):
+        os.unlink(f)
+    noext = os.path.join(work, "plainfolder")
+    shutil.copytree(good, noext)
+    zdots = os.path.join(work, "dots.zip")
+    with zipfile.ZipFile(zdots, "w") as z:
+        z.write(os.path.join(good, "forcefield.itp"), "evil.ff/forcefield.itp")
+        z.write(os.path.join(good, "aminoacids.rtp"), "evil.ff/../../escape.rtp")
+    zabs = os.path.join(work, "abs.zip")
+    with zipfile.ZipFile(zabs, "w") as z:
+        z.write(os.path.join(good, "forcefield.itp"), "evil.ff/forcefield.itp")
+        z.writestr(zipfile.ZipInfo("/tmp/escape.rtp"), "x")
+    zempty = os.path.join(work, "nothing.zip")
+    with zipfile.ZipFile(zempty, "w") as z:
+        z.writestr("readme.txt", "no force field here")
+    lib = os.path.join(s.env()["ECCE_REALUSERHOME"], ".ECCE", "forcefields")
+
+    rc, out = s.driver("gromacsprepstudy", s.userUrl(), "ffimp",
+                       os.path.join(FIXTURES, "1l2y.pdb"),
+                       "ff=amber99sb-ildn", "water=tip3p", "conc=0.15")
+    urls = urls_of(out)
+    if not check(rc == 0 and len(urls) == 3, "a study for the import was made: %s"
+                 % out.strip().replace("\n", " | ")[:300]):
+        return
+    study, prep, opt = urls
+    ptask = prep.replace("file://", "").rstrip("/")
+    for u in (prep, opt):
+        s.driver("mdsetup", u, "localhost", rundir, s.user())
+
+    with xdisplay.Display() as display:
+        cmddir = os.path.join(s.state, "mded-ff")
+        os.makedirs(cmddir, exist_ok=True)
+        genv = s.env({"DISPLAY": display.name, "ECCE_TEST_MDED": cmddir,
+                      "PATH": wrappers + os.pathsep + s.env()["PATH"]})
+        ed = gromacs_test.Editor(s, display, genv, wrappers, cmddir,
+                                 "gmxprepare", "GMXPrepare")
+        try:
+            if not ed.up():
+                return
+            check(ed.cmd("open " + prep) == "ok", "the Prepare opens in gmxprepare")
+
+            # ---- refusals: nothing reaches the library -------------------
+            r = ed.cmd("set ffimport " + noitp)
+            check(r.startswith("refused") and "forcefield.itp" in r, "no forcefield.itp: %s" % r)
+            r = ed.cmd("set ffimport " + nortp)
+            check(r.startswith("refused") and ".rtp" in r and "topology" in r,
+                  "no .rtp, pdb2gmx cannot use it: %s" % r)
+            r = ed.cmd("set ffimport " + noext)
+            check(r.startswith("refused") and ".ff" in r, "a folder not named .ff: %s" % r)
+            r = ed.cmd("set ffimport " + zdots)
+            check(r.startswith("refused") and ".." in r, "a zip entry with ..: %s" % r)
+            r = ed.cmd("set ffimport " + zabs)
+            check(r.startswith("refused") and "absolute" in r, "a zip entry with an absolute path: %s" % r)
+            r = ed.cmd("set ffimport " + zempty)
+            check(r.startswith("refused") and ".ff" in r, "a zip without a .ff folder: %s" % r)
+            check(not os.path.exists("/tmp/escape.rtp") and
+                  not os.path.exists(os.path.join(os.path.dirname(lib), "escape.rtp")),
+                  "nothing was written outside the library")
+            check(not os.path.isdir(lib) or not [f for f in os.listdir(lib)],
+                  "the refusals left the library empty: %s"
+                  % (os.listdir(lib) if os.path.isdir(lib) else "no library"))
+            check("ff=amber99sb-ildn" in ed.cmd("fields"), "the choice is unchanged by them")
+
+            # ---- a folder, then the same as a zip ------------------------
+            r = ed.cmd("set ffimport " + good)
+            check(r == "ok", "the folder is imported: %s" % r)
+            check(os.path.isfile(os.path.join(lib, "ecce-test-amber.ff", "forcefield.itp"))
+                  and os.path.isfile(os.path.join(lib, "ecce-test-amber.ff", "aminoacids.rtp")),
+                  "it is in the user's library: %s" % lib)
+            check("ff=ecce-test-amber " in ed.cmd("fields") + " ", "and selected: %s" % ed.cmd("fields"))
+            choices = ed.cmd("ffchoices")
+            check(choices.endswith("ECCE test copy of AMBER99SB-ILDN (imported)|Other (GMXLIB)"),
+                  "the choice lists it as imported, before Other: %s" % choices)
+            r = ed.cmd("set ffimport " + good)
+            check(r.startswith("refused") and "cancelled" in r, "a second import of the name asks: %s" % r)
+            ed.cmd("set ffclash replace")
+            r = ed.cmd("set ffimport " + zgood)
+            check(r == "ok", "replacing it from the zip works: %s" % r)
+            ed.cmd("set ffclash cancel")
+            # a built-in name is a clash too
+            builtin = os.path.join(work, "amber99sb-ildn.ff")
+            shutil.copytree(good, builtin)
+            r = ed.cmd("set ffimport " + builtin)
+            check(r.startswith("refused") and "cancelled" in r, "a built-in name asks as well: %s" % r)
+            check(ed.cmd("set ff ecce-test-amber") == "ok", "the imported force field is chosen")
+            check(ed.cmd("set water tip3p") == "ok", "TIP3P chosen")
+            ed.cmd("save")
+            recipe = ed.cmd("recipe")
+            check("FF=ecce-test-amber" in recipe, "the recipe names the folder: %s" % recipe)
+            check("<ForceField>ecce-test-amber</ForceField>" in ed.cmd("model"),
+                  "and the model does")
+            inputs = sorted(os.listdir(os.path.join(ptask, "Inputs")))
+            say("  Prepare Inputs/: %s" % inputs)
+            check("ecce-test-amber.ff__SLASH__forcefield.itp.gmxff" in inputs and
+                  "ecce-test-amber.ff__SLASH__aminoacids.rtp.gmxff" in inputs and
+                  "ecce-test-amber.ff__SLASH__watermodels.dat.gmxff" in inputs,
+                  "the folder's files are inputs of the Prepare")
+            n = len([f for f in os.listdir(good)])
+            check(len([f for f in inputs if "ecce-test-amber.ff__SLASH__" in f]) == n,
+                  "all %d of them" % n)
+
+            # ---- Prepare, then the Optimize with nothing attached --------
+            rc, out = s.launch(prep)
+            check(rc == 0, "Launch accepted the Prepare: %s" % out.strip().splitlines()[-3:])
+            state = s.waitState(prep, 600)
+            check(state in ("completed", "loaded"), "the Prepare ran to %s" % state)
+            outs = outputs(prep)
+            tops = [o for o in outs if o.endswith(".gmxtop")]
+            check(bool(tops) and any(o.endswith(".gro") for o in outs),
+                  "with its topology and structure: %s" % outs)
+            if tops:
+                text = open(os.path.join(ptask, "Outputs", tops[0])).read()
+                check("ecce-test-amber.ff/forcefield.itp" in text,
+                      "the topology includes the imported force field")
+            r = last_run_file(rundir, "topol.top")
+            check(r is not None and os.path.isfile(os.path.join(
+                os.path.dirname(r), "ecce-test-amber.ff", "forcefield.itp")),
+                "the Prepare's run directory holds <name>.ff")
+            rc, out = s.launch(opt)
+            check(rc == 0, "Launch accepted the Optimize: %s" % out.strip().splitlines()[-3:])
+            state = s.waitState(opt, 900)
+            check(state in ("completed", "loaded"), "the Optimize ran to %s" % state)
+            r = last_run_file(rundir, "topol.top")
+            check(r is not None and os.path.isfile(os.path.join(
+                os.path.dirname(r), "ecce-test-amber.ff", "forcefield.itp"))
+                and os.path.isfile(os.path.join(os.path.dirname(r), "conf.gro")),
+                "the Optimize's own run directory holds <name>.ff")
+            check("TE" in s.props(opt), "the Optimize stored its energies")
+
+            # ---- the library entry gone: the task keeps what it staged ---
+            shutil.rmtree(os.path.join(lib, "ecce-test-amber.ff"))
+            check(ed.cmd("open " + prep) == "ok", "the Prepare opens again")
+            f = ed.cmd("fields")
+            check("ff=ecce-test-amber " in f + " ", "the name is kept without the library entry: %s" % f)
+            check("ecce-test-amber.ff__SLASH__forcefield.itp.gmxff" in
+                  os.listdir(os.path.join(ptask, "Inputs")),
+                  "and the staged copy stays with the task")
         finally:
             ed.close()
 

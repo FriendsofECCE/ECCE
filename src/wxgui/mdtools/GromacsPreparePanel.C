@@ -5,6 +5,7 @@
 #include "wx/wx.h"
 #endif
 
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
@@ -34,9 +35,12 @@
 #include "wxgui/ewxProgressDialog.H"
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxTextCtrl.H"
+#include "wxgui/GromacsForceFieldLibrary.H"
 #include "wxgui/MDEdBase.H"
 #include "wxgui/WxFeedback.H"
 #include "wxgui/GromacsPreparePanel.H"
+
+static string slurp(const string& path);
 
 static const wxWindowID ID_SOURCE = wxNewId();
 static const wxWindowID ID_MREP = wxNewId();
@@ -49,6 +53,7 @@ static const wxWindowID ID_MCELL = wxNewId();
 static const wxWindowID ID_MBUILD = wxNewId();
 static const wxWindowID ID_FF = wxNewId();
 static const wxWindowID ID_OTHERFF = wxNewId();
+static const wxWindowID ID_FFIMPORT = wxNewId();
 static const wxWindowID ID_WATER = wxNewId();
 static const wxWindowID ID_STRUCT = wxNewId();
 static const wxWindowID ID_BROWSE = wxNewId();
@@ -93,7 +98,6 @@ static const ForceFieldInfo FORCEFIELDS[] = {
   { "gromos54a7",     "GROMOS96 54a7",    "spc spce" },
 };
 static const int NFF = sizeof(FORCEFIELDS) / sizeof(FORCEFIELDS[0]);
-static const int OTHER_FF = NFF;   // the last entry of the choice
 
 static const char *BOXES[][2] = {
   { "dodecahedron", "Rhombic dodecahedron" }, { "cubic", "Cubic" },
@@ -142,17 +146,17 @@ static string waterLabel(const string& id)
   return id;
 }
 
-static int forceFieldIndex(const string& id)
-{
-  for (int i = 0; i < NFF; i++) if (id == FORCEFIELDS[i].id) return i;
-  return OTHER_FF;
-}
-
-static vector<string> watersOf(int ff)
+static vector<string> watersOf(const string& id)
 {
   vector<string> out;
-  std::istringstream in(ff < NFF ? FORCEFIELDS[ff].waters
-                                 : "tip3p tip4p tip4pew tip5p tip5pe tips3p spc spce");
+  GromacsForceFieldLibrary::Entry e;
+  if (GromacsForceFieldLibrary::find(id, e)) {
+    out = GromacsForceFieldLibrary::waterModels(e);
+    if (!out.empty()) return out;
+  }
+  const char *list = "tip3p tip4p tip4pew tip5p tip5pe tips3p spc spce";
+  for (int i = 0; i < NFF; i++) if (id == FORCEFIELDS[i].id) list = FORCEFIELDS[i].waters;
+  std::istringstream in(list);
   string w;
   while (in >> w) out.push_back(w);
   return out;
@@ -197,6 +201,8 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   p_editable = true;
   p_refreshing = false;
   p_built = false;
+  p_staging = false;
+  p_testClash = 2;
 
   wxBoxSizer *columns = new wxBoxSizer(wxHORIZONTAL);
   wxBoxSizer *left = new wxBoxSizer(wxVERTICAL);
@@ -335,12 +341,18 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   lab = label(box, _("Force field:"));
   p_proteinOnly.push_back(lab);
   g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
-  wxArrayString ffs;
-  for (int i = 0; i < NFF; i++) ffs.Add(U(FORCEFIELDS[i].label));
-  ffs.Add(_("Other (GMXLIB)"));
-  p_ff = new ewxChoice(box, ID_FF, wxDefaultPosition, wxDefaultSize, ffs);
+  p_ff = new ewxChoice(box, ID_FF);
+  fillForceFields();
   p_proteinOnly.push_back(p_ff);
-  g->Add(p_ff, 0);
+  p_ffImport = new ewxButton(box, ID_FFIMPORT, _("Import..."));
+  p_ffImport->SetToolTip(_("Add a GROMACS force field folder (<name>.ff) or a "
+                           ".zip holding one to this user's library. The files "
+                           "travel with the job, so a server needs nothing installed."));
+  p_proteinOnly.push_back(p_ffImport);
+  wxBoxSizer *ffRow = new wxBoxSizer(wxHORIZONTAL);
+  ffRow->Add(p_ff, 0, wxALIGN_CENTER_VERTICAL);
+  ffRow->Add(p_ffImport, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, 6);
+  g->Add(ffRow, 0);
   lab = label(box, _("Directory name:"));
   p_proteinOnly.push_back(lab);
   g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
@@ -432,6 +444,7 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   Bind(wxEVT_BUTTON, &GromacsPreparePanel::OnMinffCell, this, ID_MCELL);
   Bind(wxEVT_BUTTON, &GromacsPreparePanel::OnMinffBuild, this, ID_MBUILD);
   Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnForceField, this, ID_FF);
+  Bind(wxEVT_BUTTON, &GromacsPreparePanel::OnImportForceField, this, ID_FFIMPORT);
   Bind(wxEVT_TEXT, &GromacsPreparePanel::OnOtherForceField, this, ID_OTHERFF);
   Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnWater, this, ID_WATER);
   Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnStructure, this, ID_STRUCT);
@@ -521,12 +534,13 @@ bool GromacsPreparePanel::isMinff() const
 void GromacsPreparePanel::showFields()
 {
   bool minff = isMinff();
-  bool other = p_ff->GetSelection() == OTHER_FF;
+  bool other = p_ff->GetSelection() == otherIndex();
   p_source->Enable(p_editable);
   p_source->SetSelection(minff ? 1 : 0);
   p_structure->Enable(p_editable);
   p_browse->Enable(p_editable && p_structure->GetSelection() == 1);
   p_ff->Enable(p_editable);
+  p_ffImport->Enable(p_editable);
   p_otherFf->Enable(p_editable && other);
   p_water->Enable(p_editable);
   p_ignh->Enable(p_editable);
@@ -600,7 +614,7 @@ void GromacsPreparePanel::fillWaters(const string& preferred)
   if (isMinff()) {
     for (int i = 0; i < NMINFF_WATER; i++) ids.push_back(MINFF_WATERS[i].id);
   } else {
-    ids = watersOf(p_ff->GetSelection());
+    ids = watersOf(ffId(p_ff->GetSelection()));
   }
   p_water->Clear();
   int pick = 0;
@@ -656,9 +670,10 @@ void GromacsPreparePanel::refreshGUI()
 {
   if (p_model == 0) return;
   p_refreshing = true;
-  int ff = forceFieldIndex(p_model->forceField());
+  fillForceFields();
+  int ff = ffIndex(p_model->forceField());
   p_ff->SetSelection(ff);
-  p_otherFf->SetValue(ff == OTHER_FF ? U(p_model->forceField().c_str())
+  p_otherFf->SetValue(ff == otherIndex() ? U(p_model->forceField().c_str())
                                      : wxString());
   fillWaters(p_model->waterModel());
   p_ignh->SetValue(p_model->ignoreHydrogens());
@@ -698,6 +713,152 @@ void GromacsPreparePanel::refreshGUI()
   p_refreshing = false;
   showStructure();
   showMineral();
+  stageForceField(false);
+}
+
+// The choice: built-ins (unless an imported folder of that name replaces
+// one), the imported ones, then Other.
+void GromacsPreparePanel::fillForceFields()
+{
+  vector<GromacsForceFieldLibrary::Entry> lib = GromacsForceFieldLibrary::list();
+  p_ffItems.clear();
+  for (int i = 0; i < NFF; i++) {
+    bool replaced = false;
+    for (size_t k = 0; k < lib.size(); k++) if (lib[k].name == FORCEFIELDS[i].id) replaced = true;
+    if (!replaced) p_ffItems.push_back(std::make_pair(string(FORCEFIELDS[i].id),
+                                                      string(FORCEFIELDS[i].label)));
+  }
+  for (size_t k = 0; k < lib.size(); k++)
+    p_ffItems.push_back(std::make_pair(lib[k].name, lib[k].label + " (imported)"));
+  p_ff->Clear();
+  for (size_t i = 0; i < p_ffItems.size(); i++) p_ff->Append(U(p_ffItems[i].second.c_str()));
+  p_ff->Append(_("Other (GMXLIB)"));
+}
+
+int GromacsPreparePanel::otherIndex() const { return (int)p_ffItems.size(); }
+
+int GromacsPreparePanel::ffIndex(const string& id) const
+{
+  for (size_t i = 0; i < p_ffItems.size(); i++) if (p_ffItems[i].first == id) return (int)i;
+  return otherIndex();
+}
+
+string GromacsPreparePanel::ffId(int index) const
+{
+  return index >= 0 && index < otherIndex() ? p_ffItems[index].first : string();
+}
+
+static const string FF_SEP = "__SLASH__";
+
+// Names of the task's inputs that hold a force field folder other than min.ff.
+static vector<string> stagedForceFieldFiles(MdTask *t, const string& only)
+{
+  vector<string> out;
+  vector<string> names = t->getDataFileNames(JCode::AUXILIARY_INPUT);
+  for (size_t i = 0; i < names.size(); i++) {
+    size_t p = names[i].find(".ff" + FF_SEP);
+    if (p == string::npos || !endsWith(names[i], ".gmxff") || names[i].compare(0, 6 + FF_SEP.size(), "min.ff" + FF_SEP) == 0)
+      continue;
+    if (only.empty() || names[i].compare(0, p, only) == 0) out.push_back(names[i]);
+  }
+  return out;
+}
+
+// The imported force field the model names travels with the task as flat
+// inputs <name>.ff__SLASH__<file>.gmxff (the extension types any file name
+// for the data server), like min.ff's includes, so every later
+// task and a remote data server get it with no client path in the job.
+void GromacsPreparePanel::stageForceField(bool force)
+{
+  MdTask *t = task();
+  if (t == 0 || !p_editable || p_model == 0 || p_staging) return;
+  p_staging = true;
+  string ff = isMinff() ? "" : p_model->forceField();
+  GromacsForceFieldLibrary::Entry e;
+  bool inLibrary = !ff.empty() && GromacsForceFieldLibrary::find(ff, e);
+  vector<string> have = stagedForceFieldFiles(t, "");
+  vector<string> want;
+  if (inLibrary) {
+    vector<string> rel = GromacsForceFieldLibrary::files(e);
+    for (size_t i = 0; i < rel.size(); i++)
+      want.push_back(GromacsIncludes::encodeName(ff + ".ff/" + rel[i]) + ".gmxff");
+  } else if (!ff.empty()) {
+    // not in this library: keep the copy the task already holds
+    want = stagedForceFieldFiles(t, ff);
+    if (!want.empty() && !isMinff() && p_owner != 0)
+      p_owner->getFeedback().setMessage("The imported force field " + ff +
+          " is no longer in your library; the copy stored with this task is used.",
+          WxFeedback::WARNING);
+  }
+  for (size_t i = 0; i < have.size(); i++)
+    if (std::find(want.begin(), want.end(), have[i]) == want.end()) t->putInputFile(have[i], 0);
+  if (inLibrary) {
+    for (size_t i = 0; i < want.size(); i++) {
+      if (!force && std::find(have.begin(), have.end(), want[i]) != have.end()) continue;
+      string rel = GromacsIncludes::decodeName(want[i]).substr(ff.size() + 4);
+      std::istringstream in(slurp(e.path + "/" + rel.substr(0, rel.size() - 6)));
+      t->putInputFile(want[i], &in);
+    }
+  }
+  p_staging = false;
+}
+
+void GromacsPreparePanel::OnImportForceField(wxCommandEvent&)
+{
+  wxMessageDialog ask(this, _("Import a force field from a folder (<name>.ff) or a zip file holding one?"),
+                      _("Import force field"), wxYES_NO | wxCANCEL | wxICON_QUESTION);
+  ask.SetYesNoCancelLabels(_("Folder..."), _("Zip file..."), _("Cancel"));
+  int a = ask.ShowModal();
+  if (a == wxID_CANCEL) return;
+  wxString path;
+  if (a == wxID_YES) {
+    wxDirDialog dlg(this, _("Choose the <name>.ff folder"), wxEmptyString,
+                    wxDD_DIR_MUST_EXIST);
+    if (dlg.ShowModal() != wxID_OK) return;
+    path = dlg.GetPath();
+  } else {
+    wxFileDialog dlg(this, _("Choose the zip file"), wxEmptyString, wxEmptyString,
+                     "Zip files (*.zip)|*.zip", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    if (dlg.ShowModal() != wxID_OK) return;
+    path = dlg.GetPath();
+  }
+  string message;
+  bool ok = importForceField(string(path.ToUTF8()), 0, message);
+  if (!ok && !message.empty())
+    wxMessageBox(U(message.c_str()), "ECCE GROMACS Prepare", wxOK | wxICON_ERROR, this);
+}
+
+// clash: 0 ask, 1 replace, 2 cancel (the test hook answers without a dialog).
+bool GromacsPreparePanel::importForceField(const string& path, int clash, string& message)
+{
+  vector<string> builtIn;
+  for (int i = 0; i < NFF; i++) builtIn.push_back(FORCEFIELDS[i].id);
+  string name;
+  GromacsForceFieldLibrary::Result r =
+    GromacsForceFieldLibrary::import(path, clash == 1, builtIn, name, message);
+  if (r == GromacsForceFieldLibrary::CLASH) {
+    bool replace = clash == 1;
+    if (clash == 0) {
+      replace = wxMessageBox(U((message + " Replace it?").c_str()), _("Import force field"),
+                             wxYES_NO | wxNO_DEFAULT | wxICON_QUESTION, this) == wxYES;
+    }
+    if (!replace) { message = "cancelled: " + message; return false; }
+    r = GromacsForceFieldLibrary::import(path, true, builtIn, name, message);
+  }
+  if (r != GromacsForceFieldLibrary::OK) return false;
+  if (p_model != 0) {
+    p_model->source("protein");
+    p_refreshing = true;
+    p_source->SetSelection(0);
+    p_refreshing = false;
+    p_model->forceField(name);
+    refreshGUI();
+    stageForceField(true);
+    showFields();
+    changed();
+  }
+  message = "imported " + name;
+  return true;
 }
 
 // What the stored mineral is, in words; the task's inputs say whether one is there.
@@ -796,7 +957,7 @@ bool GromacsPreparePanel::validate(string& why) const
   if (!p_badDistance.empty()) { why = p_badDistance; return false; }
   if (!p_badConcentration.empty()) { why = p_badConcentration; return false; }
   if (!p_badRmin.empty()) { why = p_badRmin; return false; }
-  if (p_ff->GetSelection() == OTHER_FF) {
+  if (p_ff->GetSelection() == otherIndex()) {
     string n(p_otherFf->GetValue().ToUTF8());
     if (n.empty()) {
       why = "Give the directory name of the force field.";
@@ -817,8 +978,8 @@ void GromacsPreparePanel::OnForceField(wxCommandEvent&)
 {
   if (p_refreshing || p_model == 0) return;
   int ff = p_ff->GetSelection();
-  if (ff < NFF) {
-    p_model->forceField(FORCEFIELDS[ff].id);
+  if (ff >= 0 && ff < otherIndex()) {
+    p_model->forceField(p_ffItems[ff].first);
   } else {
     string n(p_otherFf->GetValue().ToUTF8());
     if (!n.empty()) p_model->forceField(n);
@@ -827,12 +988,13 @@ void GromacsPreparePanel::OnForceField(wxCommandEvent&)
   fillWaters(p_model->waterModel());
   p_refreshing = false;
   showFields();
+  stageForceField(false);
   changed();
 }
 
 void GromacsPreparePanel::OnOtherForceField(wxCommandEvent&)
 {
-  if (p_refreshing || p_model == 0 || p_ff->GetSelection() != OTHER_FF) return;
+  if (p_refreshing || p_model == 0 || p_ff->GetSelection() != otherIndex()) return;
   string n(p_otherFf->GetValue().ToUTF8());
   if (!n.empty()) p_model->forceField(n);
   changed();
@@ -1291,10 +1453,14 @@ bool GromacsPreparePanel::testSet(const string& field, const string& value,
   if (p_model == 0) { message = "no model"; return false; }
   wxCommandEvent ev;
   if (field == "ff") {
-    int ff = forceFieldIndex(value);
+    int ff = ffIndex(value);
     p_ff->SetSelection(ff);
-    if (ff == OTHER_FF) p_otherFf->SetValue(U(value.c_str()));
+    if (ff == otherIndex()) p_otherFf->SetValue(U(value.c_str()));
     OnForceField(ev);
+  } else if (field == "ffclash") {
+    p_testClash = value == "replace" ? 1 : 2;
+  } else if (field == "ffimport") {
+    return importForceField(value, p_testClash, message);
   } else if (field == "water") {
     vector<string> ids;
     for (unsigned k = 0; k < p_water->GetCount(); k++)
@@ -1386,6 +1552,14 @@ bool GromacsPreparePanel::testSet(const string& field, const string& value,
     return false;
   }
   return true;
+}
+
+string GromacsPreparePanel::forceFieldChoices() const
+{
+  string out;
+  for (unsigned i = 0; i < p_ff->GetCount(); i++)
+    out += (i ? "|" : "") + string(p_ff->GetString(i).ToUTF8());
+  return out;
 }
 
 string GromacsPreparePanel::summary() const
