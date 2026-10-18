@@ -27,6 +27,7 @@ struct MoLevel
    string         label;           // what to draw
    string         irrep;           // canonical irrep name, for matching
    string         annotation;      // extra text, e.g. a fragment's VOIE
+   string         tag;             // model levels: dominant fragment-orbital character, "Cr d + CO pi*"
 
    /**
     * How much of this level sits on each fragment, 0 to 1.

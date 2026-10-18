@@ -50,6 +50,11 @@ class ModelDiagram
     /** Empty levels more than this (eV) above the model HOMO are not drawn:
         extended Hueckel puts sigma* orbitals tens of eV up. */
     static constexpr double WINDOW_EV = 30.0;
+    /** Ligand-field view: an empty level above the d levels with at least this
+        share on the ligands is ligand-centred (the model's t2g* of Cr(CO)6 is 61 %). */
+    static constexpr double LF_LIGAND_SHARE = 0.50;
+    /** A fragment character is named in a level's tag from this share up. */
+    static constexpr double CHARACTER_MIN = 0.20;
     /** An overlap population this small (electrons) is non-bonding. */
     static constexpr double OP_TOLERANCE = 0.02;
     /** Model levels this close (Hartree) are one degenerate level. */
@@ -68,8 +73,9 @@ class ModelDiagram
       int  leftCharge, rightCharge;        // sum = charge
       bool leftMetal;                      // ionic d count, not neutral
       bool showAll;                        // draw the ligand-internal levels too
+      bool ligandFieldView;                // fold empty ligand-centred levels above the d levels
       Input() : charge(0), multiplicity(1), leftCharge(0), rightCharge(0),
-                leftMetal(false), showAll(false) {}
+                leftMetal(false), showAll(false), ligandFieldView(false) {}
     };
 
     struct Result
@@ -84,10 +90,11 @@ class ModelDiagram
       int    valenceLevels, inversions;
       double overlapMin, overlapMax;
       bool   haveDeltaO;
+      bool   lfApplicable;             // a complex: the Ligand-field view means something
       bool   foldedAny;                // ligand-internal levels were folded into bars
       double deltaModelEv, deltaCalcEv;
       Result() : verdictOk(true), valenceLevels(0), inversions(0),
-                 overlapMin(0), overlapMax(0), haveDeltaO(false), foldedAny(false),
+                 overlapMin(0), overlapMax(0), haveDeltaO(false), lfApplicable(false), foldedAny(false),
                  deltaModelEv(0), deltaCalcEv(0) {}
     };
 

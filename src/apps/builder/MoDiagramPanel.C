@@ -84,7 +84,7 @@ IMPLEMENT_DYNAMIC_CLASS(MoDiagramPanel, VizPropertyPanel)
 
 MoDiagramPanel::MoDiagramPanel()
   : p_fragmentation(MoFragments::NOT_BUILT),
-    p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0),
+    p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0), p_ligandField(0),
     p_about(0), p_pickFirst(0), p_pickSecond(0),
     p_building(false), p_rebuildPending(false)
 {
@@ -95,7 +95,7 @@ MoDiagramPanel::MoDiagramPanel(IPropCalculation *calculation,
       wxWindow *parent, wxWindowID id, const wxPoint& pos,
       const wxSize& size, long style, const wxString& name)
   : p_fragmentation(MoFragments::NOT_BUILT),
-    p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0),
+    p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0), p_ligandField(0),
     p_about(0), p_pickFirst(0), p_pickSecond(0),
     p_building(false), p_rebuildPending(false)
 {
@@ -459,6 +459,14 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   p_showEnergies->SetToolTip("Write each level's energy beside its label");
   row->Add(p_showEnergies, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 
+  p_ligandField = new ewxCheckBox(this, wxID_ANY, _("Ligand-field view"));
+  p_ligandField->SetValue(getenv("ECCE_MODIAGRAM_LFVIEW") != 0);
+  p_ligandField->SetToolTip("Complexes: hide the empty ligand-centred levels "
+                            "(such as CO pi*) above the d levels, leaving the "
+                            "textbook picture. Transitions into the hidden "
+                            "levels are charge transfer, not d-d");
+  p_ligandField->Enable(false);
+
   //  The fragment-orbital diagram draws only what interacts with the
   //  metal; this puts back the ligand-internal and low-metal-share levels.
   p_showAll = new ewxCheckBox(this, wxID_ANY, _("Show all levels"));
@@ -492,6 +500,11 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
 
   sizer->Add(row, 0, wxEXPAND);
 
+  //  A row of its own: the first one is already wider than a docked window.
+  wxBoxSizer *viewRow = new wxBoxSizer(wxHORIZONTAL);
+  viewRow->Add(p_ligandField, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+  sizer->Add(viewRow, 0, wxEXPAND);
+
   //  Bound on the controls themselves.  A static table does not reach
   //  this panel for a control with a pushed handler chain, which is
   //  what the ewx classes install -- the same reason #81's radio box
@@ -507,6 +520,7 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
                     this);
   p_showEnergies->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onShowEnergies, this);
   p_showAll->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onFragmentChanged, this);
+  p_ligandField->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onFragmentChanged, this);
   p_about->Bind(wxEVT_BUTTON, &MoDiagramPanel::onAbout, this);
 
   p_fragments->Enable(false);
@@ -1620,6 +1634,7 @@ void dumpColumn(std::ofstream& out, const string& name, const MoColumn& col,
         << " tabulated=" << lv.tabulated
         << " irrep=" << (lv.irrep.empty() ? "-" : lv.irrep)
         << " label=" << escapeDumpText(lv.label.empty() ? "-" : lv.label)
+        << (lv.tag.empty() ? string() : " tag=" + escapeDumpText(lv.tag))
         << " character=" << levelCharacterName(lv.character)
         << " pairing=" << lv.pairing
         << " occupancy=" << std::setprecision(4) << lv.occupancy
@@ -2885,6 +2900,7 @@ void MoDiagramPanel::buildOnce()
   //  plumbing as the fragment-orbital one.
   bool modelDrawn = false;
   bool modelFolded = false;
+  bool modelLfApplicable = false;
   string modelVerdict;
   bool modelVerdictOk = true;
 
@@ -3007,6 +3023,7 @@ void MoDiagramPanel::buildOnce()
       in.rightCharge = charge - leftCharge;
       in.leftMetal = leftMetal;
       in.showAll = p_showAll != 0 && p_showAll->IsChecked();
+      in.ligandFieldView = p_ligandField != 0 && p_ligandField->IsChecked();
       ModelDiagram::Result mr;
       if (!ModelDiagram::build(in, moBasisFns, moSflat, moCoefficients, e,
                                wholeSpectrum, mr, mwhy)) {
@@ -3027,6 +3044,7 @@ void MoDiagramPanel::buildOnce()
       foDrawn = true;
       modelDrawn = true;
       modelFolded = mr.foldedAny;
+      modelLfApplicable = mr.lfApplicable;
       return true;
     };
 
@@ -3585,6 +3603,8 @@ void MoDiagramPanel::buildOnce()
   }
 
   if (!simplifiedNote.empty()) fragmentAbout += "\n\n**Simplified.** " + simplifiedNote;
+  if (p_ligandField != 0)
+    p_ligandField->Enable(modelDrawn && (modelLfApplicable || p_ligandField->IsChecked()));
   if (p_showAll != 0)
     p_showAll->Enable((foDrawn && !modelDrawn) ||
                       (modelDrawn && (modelFolded || p_showAll->IsChecked())) ||

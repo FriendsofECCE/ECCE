@@ -1092,8 +1092,20 @@ class MoDiagramCanvas : public wxPanel
         //  clears every label already placed.  Vertical, because
         //  pushing them sideways walks them into the next column.
         const string annotation = p_showEnergies ? level.annotation : string();
-        const int tall = annotation.empty()
-            ? extent.y + 2 : 2*extent.y + 2;
+        //  The character tag (grey, a size smaller) is a line of its own under
+        //  the energy; the block is as wide as its widest line, measured.
+        wxFont tagFont = base;
+        tagFont.SetPointSize(base.GetPointSize() - 1 > 5 ? base.GetPointSize() - 1 : 5);
+        const wxString tagText(level.tag.c_str(), wxConvUTF8);
+        int tagW = 0;
+        if (!level.tag.empty()) {
+          dc.SetFont(tagFont);
+          tagW = dc.GetTextExtent(tagText).x;
+          dc.SetFont(base);
+        }
+        const int blockW = max(extent.x, tagW);
+        const int lines = 1 + (annotation.empty() ? 0 : 1) + (level.tag.empty() ? 0 : 1);
+        const int tall = lines*extent.y + 2;
         const int home = y - extent.y/2;
 
         //  SIDEWAYS FIRST, THEN A FREE ROW.
@@ -1125,16 +1137,18 @@ class MoDiagramCanvas : public wxPanel
         //  eight it was printing over the left-hand end of the level
         //  it names.
         const int lx = (p_outward < 0)
-            ? x - extent.x - 14 - step*(extent.x + 10)
-            : x + width + 14 + step*(extent.x + 10);
+            ? x - blockW - 14 - step*(blockW + 10)
+            : x + width + 14 + step*(blockW + 10);
+        //  Right-aligned block on the left of a column, left-aligned on the right.
+        const int ox = (p_outward < 0) ? lx + blockW - extent.x : lx;
 
-        drawPieces(dc, pieces, lx, ly, base, small, extent.y);
+        drawPieces(dc, pieces, ox, ly, base, small, extent.y);
 
         //  Clear of the annotation, which is written under the label
         //  and is about as wide again: at thirty the chlorine 3p
         //  sketch was drawn over its own "free atom" line.
         drawSketch(dc, level, *p_sketchColumn,
-                   (p_outward < 0) ? lx - 34 : lx + extent.x + 54,
+                   (p_outward < 0) ? ox - 34 : ox + extent.x + 54,
                    ly + extent.y/2);
 
         //  ONCE PER SHELL.  Oxygen's b2, a1 and b1 2p levels all
@@ -1152,8 +1166,16 @@ class MoDiagramCanvas : public wxPanel
           const wxString extra(annotation.c_str(), wxConvUTF8);
           dc.DrawText(extra,
                       (p_outward < 0)
-                          ? lx + extent.x - dc.GetTextExtent(extra).x : lx,
+                          ? ox + extent.x - dc.GetTextExtent(extra).x : ox,
                       ly + extent.y);
+        }
+        if (!level.tag.empty()) {
+          dc.SetFont(tagFont);
+          dc.SetTextForeground(wxColour(130, 130, 130));
+          dc.DrawText(tagText,
+                      (p_outward < 0) ? ox + extent.x - tagW : ox,
+                      ly + (annotation.empty() ? 1 : 2)*extent.y);
+          dc.SetFont(base);
         }
       } else {
         drawPieces(dc, pieces, x + (width - extent.x)/2, y - extent.y - 6,
@@ -2079,6 +2101,7 @@ class MoDiagramCanvas : public wxPanel
       //  A model level shows the model's own composition (fragment
       //  orbitals) and the calculated orbitals it matches.
       if (l.model && !calc) {
+        if (!l.tag.empty()) out << l.tag << "\n";
         out << l.label << ": " << l.detail;
         p_tips[key] = out.str();
         return p_tips[key];

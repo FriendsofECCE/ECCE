@@ -82,6 +82,8 @@ def check_rules(d):
             if ch in ("BONDING", "ANTIBONDING"):
                 by.setdefault(p, []).append(ch)
         for p, chs in by.items():
+            if fn.endswith("-lfview.dump"):
+                break        # the Ligand-field view hides the antibonding partners on purpose
             if p < 0 or "BONDING" not in chs or "ANTIBONDING" not in chs:
                 bad += 1
                 print("%s: pairing %d has %s" % (fn, p, chs))
@@ -105,6 +107,47 @@ def check_rules(d):
             bad += 1
             print("orca-bf3: the block should stand for 6 MOs")
     print("pair rule over every golden: %s" % ("FAIL" if bad else "ok"))
+    return bad
+
+
+def check_lfview(d):
+    """Ligand-field view of Cr(CO)6 (#301): t2g, then eg* straight above the
+    HOMO (a Cr d level), and nothing that is 80 % or more CO drawn above the d
+    levels; the full view tags every level and still shows the CO pi* levels."""
+    bad = 0
+    def centre(path):
+        rows, inside = [], False
+        for line in open(path):
+            if line.startswith("column "):
+                inside = line.strip() == "column centre"
+            elif inside and line.lstrip().startswith("level "):
+                f = dict(re.findall(r'(\w+)=("[^"]*"|\S+)', line))
+                tag = re.search(r' tag=(.*?) character=', line)   # the tag holds spaces
+                if tag:
+                    f["tag"] = tag.group(1)
+                rows.append(f)
+        return rows
+    lf = centre(os.path.join(d, "orca-crco6-lfview.dump"))
+    full = centre(os.path.join(d, "orca-crco6.dump"))
+    homo = max((i for i, f in enumerate(lf) if float(f["occupancy"]) > 0 and float(f["shareLeft"]) >= 0.5),
+               key=lambda i: float(lf[i]["energy"]))
+    above = sorted((i for i in range(len(lf)) if float(lf[i]["energy"]) > float(lf[homo]["energy"])),
+                   key=lambda i: float(lf[i]["energy"]))
+    ok = bool(above) and lf[above[0]]["label"].lower().startswith("5eg*") and \
+        lf[above[0]].get("tag", "").startswith("Cr d")
+    print("orca-crco6-lfview    level above the HOMO: %s tag %s %s" % (
+        lf[above[0]]["label"] if above else None, lf[above[0]].get("tag") if above else None,
+        "ok" if ok else "FAIL (want eg*, Cr d)"))
+    bad += not ok
+    hidden = [f for f in lf if float(f["occupancy"]) == 0 and float(f["shareRight"]) >= 0.5]
+    print("orca-crco6-lfview    empty levels >= 50 %% on CO drawn: %d %s" % (len(hidden), "ok" if not hidden else "FAIL"))
+    bad += bool(hidden)
+    untagged = [f["label"] for f in lf + full if "tag" not in f]
+    print("orca-crco6           every model level tagged: %s" % ("ok" if not untagged else "FAIL %s" % untagged))
+    bad += bool(untagged)
+    pistar = [f for f in full if "CO \u03c0*" in f.get("tag", "")]
+    print("orca-crco6           full view has CO pi* levels: %d %s" % (len(pistar), "ok" if pistar else "FAIL"))
+    bad += not pistar
     return bad
 
 
@@ -146,6 +189,7 @@ def main():
     bad += check_sp_mixing(d)
     bad += check_rules(d)
     bad += check_d_electrons(d)
+    bad += check_lfview(d)
     return 1 if bad else 0
 
 

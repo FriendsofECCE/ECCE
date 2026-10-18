@@ -159,6 +159,7 @@ class MoDiagramPanel : public VizPropertyPanel,
       wxCheckBox      *p_piOnly;
       wxCheckBox      *p_showEnergies;
       wxCheckBox      *p_showAll;
+      wxCheckBox      *p_ligandField;
       wxButton        *p_about;
       wxChoice        *p_pickFirst;
       wxChoice        *p_pickSecond;
