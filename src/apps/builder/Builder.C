@@ -6135,7 +6135,7 @@ void Builder::updatePropertyMenus()
           GetEventHandler()->ProcessEvent(ev);
           return true;
         }
-        //  "modiagram <name> tip|click <n>": the diagram's text for molecular
+        //  "modiagram <name> tip|click|overlaps <n>": the diagram's text for molecular
         //  level <n> (the tooltip), or a click on orbital <n> (0-based ORBENG
         //  index); -> <name>.txt, with whether a surface was computed.
         if (w[0] == "modiagram" && w.size() == 4) {
@@ -6153,6 +6153,8 @@ void Builder::updatePropertyMenus()
             out << md->levelText(n) << "\n";
           } else if (w[2] == "ctip") {
             out << md->calcLevelText(n) << "\n";
+          } else if (w[2] == "overlaps") {
+            out << "overlaps " << md->centreOverlaps() << "\n";
           } else {
             md->orbitalClicked(n);
             SingleGrid *grid = getSG()->getCurrentGrid();

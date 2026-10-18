@@ -83,3 +83,12 @@ refusal text plus "use the MOs panel"), keep the old drawing.
   possible to the populations the occupied model orbitals put on them
   (`fillByPopulation`: whole sets, one electron on one non-degenerate set at most),
   so total = B 3 + F3 21 = 24 and no e' set is half filled.
+- Middle column in lanes (`MoDiagramCanvas::layoutCentreLanes`): the lines of levels
+  whose arrows would meet go in side-by-side lanes, every line at its own energy
+  (the column is not opened out any more). Labels are one row each ("label energy
+  tag") in a column left of the lanes, moved apart only as far as they must and
+  joined to their lines by a thin leader, on a white patch so connectors run behind
+  the text. At most as many lanes as fit in 55 % of the width; a denser spectrum
+  (a whole big complex) shares the last lane. Test hook: scene
+  `modiagram <name> overlaps 0` prints the number of overlapping pairs
+  (`orca-ptcl4-overlaps` in tests/modiagram/capture.py).

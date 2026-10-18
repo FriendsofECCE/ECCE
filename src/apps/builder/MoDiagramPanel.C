@@ -623,6 +623,12 @@ void MoDiagramPanel::onAbout(wxCommandEvent& WXUNUSED(event))
 }
 
 
+int MoDiagramPanel::centreOverlaps() const
+{
+  return p_canvas != 0 ? p_canvas->centreOverlaps() : -1;
+}
+
+
 void MoDiagramPanel::onPickFirstChanged(wxCommandEvent& event)
 {
   if (p_pickSecond != 0) p_pickSecond->SetSelection(0);

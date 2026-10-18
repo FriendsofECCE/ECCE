@@ -126,6 +126,12 @@ class MoDiagramPanel : public VizPropertyPanel,
       /** The first picked atom changed: the second one starts over. */
       void onPickFirstChanged(wxCommandEvent& event);
 
+   public:
+      /** Levels of the model column whose blocks overlap as last drawn (-1: none drawn). */
+      int centreOverlaps() const;
+
+   protected:
+
       /**
        * Fill the two atom choosers for this molecule and read them (or
        * ECCE_MODIAGRAM_PICK) into `first`/`second`, -1 for none.
