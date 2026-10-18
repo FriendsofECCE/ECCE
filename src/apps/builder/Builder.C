@@ -6163,6 +6163,24 @@ void Builder::updatePropertyMenus()
           }
           return true;
         }
+        //  "modipick <name> <atom|-> [<bonded atom>]": choose the atom (and
+        //  bond) in the MO diagram and press Compute, as clicked; the text
+        //  under the diagram afterwards -> <name>.txt.
+        if (w[0] == "modipick" && w.size() >= 3 && w.size() <= 4) {
+          MoDiagramPanel *md = 0;
+          set<PropertyPanel*> dp =
+              PropertyPanel::getPanels(p_calculation->getURL().toString());
+          for (set<PropertyPanel*>::iterator it = dp.begin();
+               it != dp.end() && !md; ++it)
+            md = dynamic_cast<MoDiagramPanel*>(*it);
+          if (!md) return s.fail("modipick: no MO diagram panel");
+          if (!md->computePick(w[2] == "-" ? string() : w[2],
+                               w.size() == 4 ? w[3] : string()))
+            return s.fail("modipick: no such atom or bond: " + w[2]);
+          std::ofstream out(outdir + "/" + w[1] + ".txt");
+          out << md->noteText() << "\n";
+          return true;
+        }
         //  "mofield <type>": the MO panel's field-type choice, as clicked.
         if (w[0] == "mofield" && w.size() >= 2) {
           string type = w[1];

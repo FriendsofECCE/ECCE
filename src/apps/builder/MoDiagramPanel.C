@@ -87,7 +87,8 @@ IMPLEMENT_DYNAMIC_CLASS(MoDiagramPanel, VizPropertyPanel)
 MoDiagramPanel::MoDiagramPanel()
   : p_fragmentation(MoFragments::NOT_BUILT),
     p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0), p_ligandField(0),
-    p_about(0), p_pickFirst(0), p_pickSecond(0),
+    p_about(0), p_pickFirst(0), p_pickSecond(0), p_compute(0),
+    p_pickA(-1), p_pickB(-1), p_pickEnvDone(false),
     p_building(false), p_rebuildPending(false)
 {
 }
@@ -98,7 +99,8 @@ MoDiagramPanel::MoDiagramPanel(IPropCalculation *calculation,
       const wxSize& size, long style, const wxString& name)
   : p_fragmentation(MoFragments::NOT_BUILT),
     p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0), p_ligandField(0),
-    p_about(0), p_pickFirst(0), p_pickSecond(0),
+    p_about(0), p_pickFirst(0), p_pickSecond(0), p_compute(0),
+    p_pickA(-1), p_pickB(-1), p_pickEnvDone(false),
     p_building(false), p_rebuildPending(false)
 {
   Create(calculation, parent, id, pos, size, style, name);
@@ -469,6 +471,12 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
     row->Add(new ewxStaticText(this, wxID_ANY, _("Bond to:")),
              0, wxALIGN_CENTER_VERTICAL|wxLEFT, 4);
     row->Add(p_pickSecond, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+    p_compute = new wxButton(this, wxID_ANY, _("Compute"), wxDefaultPosition,
+                             wxDefaultSize, wxBU_EXACTFIT);
+    p_compute->SetToolTip("Draw the diagram for the atom, or the bond, chosen "
+                          "here. Nothing is drawn until this is pressed, so a "
+                          "pick can be made in two steps.");
+    row->Add(p_compute, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
   }
 
   row->Add(new ewxStaticText(this, wxID_ANY, _("Built as:")),
@@ -563,7 +571,7 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   p_construction->Bind(wxEVT_CHOICE, &MoDiagramPanel::onFragmentChanged,
                        this);
   p_pickFirst->Bind(wxEVT_CHOICE, &MoDiagramPanel::onPickFirstChanged, this);
-  p_pickSecond->Bind(wxEVT_CHOICE, &MoDiagramPanel::onFragmentChanged, this);
+  p_compute->Bind(wxEVT_BUTTON, &MoDiagramPanel::onCompute, this);
   p_piOnly->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onFragmentChanged, this);
   p_fragments->Bind(wxEVT_CHECKLISTBOX, &MoDiagramPanel::onFragmentChanged,
                     this);
@@ -669,16 +677,92 @@ void MoDiagramPanel::onAbout(wxCommandEvent& WXUNUSED(event))
 }
 
 
+void MoDiagramPanel::onPickFirstChanged(wxCommandEvent& event)
+{
+  //  Only the second chooser follows; the diagram waits for Compute.
+  refreshSecondChooser(p_pickFirst->GetSelection() - 1);
+  event.Skip();
+}
+
+
+void MoDiagramPanel::onCompute(wxCommandEvent& event)
+{
+  const int first = p_pickFirst->GetSelection() - 1;
+  const int sel = p_pickSecond->GetSelection();
+  p_pickA = first >= 0 ? first : -1;
+  p_pickB = (first >= 0 && sel > 0 && sel <= (int)p_secondAtoms.size())
+            ? p_secondAtoms[sel - 1] : -1;
+  onFragmentChanged(event);
+}
+
+
 int MoDiagramPanel::centreOverlaps() const
 {
   return p_canvas != 0 ? p_canvas->centreOverlaps() : -1;
 }
 
 
-void MoDiagramPanel::onPickFirstChanged(wxCommandEvent& event)
+bool MoDiagramPanel::computePick(const string& first, const string& second)
 {
-  if (p_pickSecond != 0) p_pickSecond->SetSelection(0);
-  onFragmentChanged(event);
+  if (p_pickFirst == 0) return false;
+  ensureInitialized();
+  struct Find {
+    static int label(const vector<string>& labels, const string& want) {
+      for (size_t i = 0; i < labels.size(); i++)
+        if (strcasecmp(labels[i].c_str(), want.c_str()) == 0) return (int)i;
+      return -1;
+    }
+  };
+  const int a = first.empty() ? -1 : Find::label(p_atomLabels, first);
+  if (!first.empty() && a < 0) return false;
+  p_pickFirst->SetSelection(a + 1);
+  refreshSecondChooser(a);
+  if (!second.empty()) {
+    const int b = Find::label(p_atomLabels, second);
+    int at = -1;
+    for (size_t i = 0; i < p_secondAtoms.size(); i++)
+      if (p_secondAtoms[i] == b) at = (int)i + 1;
+    if (at < 0) return false;
+    p_pickSecond->SetSelection(at);
+  }
+  wxCommandEvent ev(wxEVT_BUTTON, p_compute->GetId());
+  ev.SetEventObject(p_compute);
+  p_compute->GetEventHandler()->ProcessEvent(ev);
+  return true;
+}
+
+
+void MoDiagramPanel::refreshSecondChooser(int first)
+{
+  vector<int> bonded;
+  if (first >= 0 && first < (int)p_pickElements.size()) {
+    vector< std::pair<int,int> > bonds;
+    MoFragments::covalentBonds(p_pickCoords, p_pickElements, bonds);
+    for (size_t k = 0; k < bonds.size(); k++) {
+      if (bonds[k].first == first) bonded.push_back(bonds[k].second);
+      else if (bonds[k].second == first) bonded.push_back(bonds[k].first);
+    }
+    std::sort(bonded.begin(), bonded.end());
+  }
+  int wasSecond = -1;
+  {
+    const int sel = p_pickSecond->GetSelection();
+    if (sel > 0 && sel <= (int)p_secondAtoms.size())
+      wasSecond = p_secondAtoms[sel - 1];
+  }
+  if (bonded != p_secondAtoms) {
+    p_secondAtoms = bonded;
+    p_pickSecond->Clear();
+    p_pickSecond->Append(wxString::FromUTF8("\xE2\x80\x94"));
+    int restore = 0;
+    for (size_t i = 0; i < bonded.size(); i++) {
+      p_pickSecond->Append(wxString(p_atomLabels[bonded[i]].c_str(), wxConvUTF8));
+      if (bonded[i] == wasSecond) restore = (int)i + 1;
+    }
+    p_pickSecond->SetSelection(restore);
+  }
+  p_pickSecond->Enable(first >= 0 &&
+      !(p_autoFragments != 0 && p_autoFragments->GetValue()));
 }
 
 
@@ -707,75 +791,47 @@ void MoDiagramPanel::fillPickChoosers(const vector<double>& coords,
     p_pickSecond->Clear();
     p_pickSecond->Append(wxString::FromUTF8("\xE2\x80\x94"));
     p_pickSecond->SetSelection(0);
+    p_pickA = p_pickB = -1;
   }
+  p_pickCoords = coords;
+  p_pickElements = elements;
 
-  //  ECCE_MODIAGRAM_PICK="O1" or "C1,C2" drives a pick in tests.
-  string envFirst, envSecond;
-  if (const char *v = getenv("ECCE_MODIAGRAM_PICK")) {
-    const string w(v);
-    const size_t comma = w.find(',');
-    envFirst = w.substr(0, comma);
-    if (comma != string::npos) envSecond = w.substr(comma + 1);
-  }
-  struct Find {
-    static int label(const vector<string>& labels, const string& want) {
-      for (size_t i = 0; i < labels.size(); i++) {
-        if (strcasecmp(labels[i].c_str(), want.c_str()) == 0) return (int)i;
+  //  ECCE_MODIAGRAM_PICK="O1" or "C1,C2" drives a pick in tests, once.
+  if (!p_pickEnvDone) {
+    p_pickEnvDone = true;
+    if (const char *v = getenv("ECCE_MODIAGRAM_PICK")) {
+      const string w(v);
+      const size_t comma = w.find(',');
+      const string envFirst = w.substr(0, comma);
+      const string envSecond = comma != string::npos ? w.substr(comma + 1) : string();
+      auto find = [&](const string& want) {
+        for (size_t i = 0; i < labels.size(); i++)
+          if (strcasecmp(labels[i].c_str(), want.c_str()) == 0) return (int)i;
+        return -1;
+      };
+      const int a = envFirst.empty() ? -1 : find(envFirst);
+      if (a >= 0) {
+        p_pickFirst->SetSelection(a + 1);
+        refreshSecondChooser(a);
+        p_pickA = a;
+        const int b = envSecond.empty() ? -1 : find(envSecond);
+        for (size_t i = 0; i < p_secondAtoms.size(); i++)
+          if (p_secondAtoms[i] == b) { p_pickSecond->SetSelection((int)i + 1); p_pickB = b; }
       }
-      return -1;
     }
-  };
-  if (!envFirst.empty()) {
-    const int a = Find::label(labels, envFirst);
-    if (a >= 0) p_pickFirst->SetSelection(a + 1);
   }
 
-  first = p_pickFirst->GetSelection() - 1;
-  if (first >= (int)labels.size()) first = -1;
+  const bool chosen = p_autoFragments != 0 && p_autoFragments->GetValue();
+  p_pickFirst->Enable(!chosen);
+  p_pickSecond->Enable(!chosen && p_pickFirst->GetSelection() > 0 && !p_secondAtoms.empty());
+  p_compute->Enable(!chosen);
 
-  //  Only the atoms bonded to the first one are offered.
-  vector<int> bonded;
-  if (first >= 0) {
-    vector< std::pair<int,int> > bonds;
-    MoFragments::covalentBonds(coords, elements, bonds);
-    for (size_t k = 0; k < bonds.size(); k++) {
-      if (bonds[k].first == first) bonded.push_back(bonds[k].second);
-      else if (bonds[k].second == first) bonded.push_back(bonds[k].first);
-    }
-    std::sort(bonded.begin(), bonded.end());
-  }
-  int wasSecond = -1;
-  {
-    const int sel = p_pickSecond->GetSelection();
-    if (sel > 0 && sel <= (int)p_secondAtoms.size())
-      wasSecond = p_secondAtoms[sel - 1];
-  }
-  if (bonded != p_secondAtoms) {
-    p_secondAtoms = bonded;
-    p_pickSecond->Clear();
-    p_pickSecond->Append(wxString::FromUTF8("\xE2\x80\x94"));
-    int restore = 0;
-    for (size_t i = 0; i < bonded.size(); i++) {
-      p_pickSecond->Append(wxString(labels[bonded[i]].c_str(), wxConvUTF8));
-      if (bonded[i] == wasSecond) restore = (int)i + 1;
-    }
-    p_pickSecond->SetSelection(restore);
-  }
-  if (!envSecond.empty() && first >= 0) {
-    const int b = Find::label(labels, envSecond);
-    for (size_t i = 0; i < bonded.size(); i++)
-      if (bonded[i] == b) p_pickSecond->SetSelection((int)i + 1);
-  }
-  p_pickSecond->Enable(first >= 0 &&
-      !(p_autoFragments != 0 && p_autoFragments->GetValue()));
-  p_pickFirst->Enable(
-      !(p_autoFragments != 0 && p_autoFragments->GetValue()));
-
-  const int sel = p_pickSecond->GetSelection();
-  if (first >= 0 && sel > 0 && sel <= (int)p_secondAtoms.size())
-    second = p_secondAtoms[sel - 1];
   //  Choose fragments is the more explicit request, and wins.
-  if (p_autoFragments != 0 && p_autoFragments->GetValue()) first = second = -1;
+  if (chosen) return;
+  if (p_pickA >= 0 && p_pickA < (int)labels.size()) {
+    first = p_pickA;
+    if (p_pickB >= 0 && p_pickB < (int)labels.size()) second = p_pickB;
+  }
 }
 
 
@@ -1148,7 +1204,9 @@ namespace {
                               const char *moPropertyName = "MO",
                               double windowLow = -1.0e30,
                               double windowHigh = 1.0e30,
-                              std::function<void(double)> onRow = nullptr)
+                              std::function<void(double)> onRow = nullptr,
+                              bool trustComputed = false,
+                              vector< vector<double> > *rotatedOut = 0)
   {
     if (mosymDebug()) {
       mosymPrintf("[MOSYM] group %s, %d orbitals, %d reported labels\n",
@@ -1323,9 +1381,11 @@ namespace {
         orbitals[m][mu] = moCoefs->value(m, mu);
 
     vector<string> fullDerived;
+    vector< vector<double> > rotated;
     const int fullLabelled = SymmetryAnalysis::fullLabelSpectrum(
         orbitals, e, perAtom, shellTypeOf, S, images, classOfOp,
-        opsInCoeffFrame, angfunc, *table, 1.0e-4, fullDerived);
+        opsInCoeffFrame, angfunc, *table, 1.0e-4, fullDerived,
+        trustComputed ? &rotated : 0, trustComputed);
     if (fullLabelled <= 0) return mosymFail(131, "fullLabelled <= 0");
 
     //  NO CODE LABELS TO CROSS-CHECK AGAINST (#132).
@@ -1349,11 +1409,16 @@ namespace {
     //  valence window -- and default to "everything" for a caller that
     //  has not computed them, which keeps this exactly as strict as it
     //  used to be for anyone that does not pass them.
-    if (reported.empty()) {
+    //  A pick's subgroup that the code's own labels (in its abelian subgroup of
+    //  the full group) cannot be a subgroup of: nothing to cross-check against.
+    if (reported.empty() || trustComputed) {
       bool windowLabelled = true;
-      for (int i = 0; i < norb && windowLabelled; i++) {
+      for (int i = 0; i < norb && (windowLabelled || mosymDebug()); i++) {
         if (e[i] < windowLow || e[i] > windowHigh) continue;   // not drawn
-        if (fullDerived[i].empty()) windowLabelled = false;
+        if (fullDerived[i].empty()) {
+          windowLabelled = false;
+          if (mosymDebug()) mosymPrintf("[MOSYM]   orbital %d (%.5f) not labelled\n", i + 1, e[i]);
+        }
       }
       if (!windowLabelled)
         return mosymFail(132, "reported.empty() && a DRAWN orbital was not labelled");
@@ -1362,9 +1427,11 @@ namespace {
       for (int i = 0; i < norb && i < (int)computed.size(); i++) {
         if (!fullDerived[i].empty()) computed[i] = fullDerived[i];
       }
+      if (trustComputed && rotatedOut != 0) *rotatedOut = rotated;
       ostringstream text;
       text << "Symmetry labels computed from the orbitals in " << group
-           << "; the code reported none.";
+           << (trustComputed ? "; the code's own labels belong to a different subgroup."
+                             : "; the code reported none.");
       note = text.str();
       return true;
     }
@@ -2172,9 +2239,9 @@ void MoDiagramPanel::buildOnce()
   fillPickChoosers(coords, elements, pickA, pickB);
   if (pickA >= 0 && pickA < (int)elements.size()) {
     double eV;
-    pickMetal = MoFragments::valenceEnergy(elements[pickA], 2, eV) ||
-                (pickB >= 0 && pickB < (int)elements.size() &&
-                 MoFragments::valenceEnergy(elements[pickB], 2, eV));
+    //  A metal alone asks for the fragment-orbital diagram; a bond from a
+    //  metal (Co-Cl) cuts that bond like any other.
+    pickMetal = pickB < 0 && MoFragments::valenceEnergy(elements[pickA], 2, eV);
   } else {
     pickA = pickB = -1;
   }
@@ -2269,6 +2336,35 @@ void MoDiagramPanel::buildOnce()
     }
   }
 
+  //  A bond that the molecule's own symmetry does not keep (one Co-Cl of CoCl4
+  //  in Td, one Cr-C of Cr(CO)6 in Oh): the diagram is drawn, and the orbitals
+  //  labelled, in the largest subgroup that keeps the two sides.
+  string subgroupNote, subgroupWhy;
+  string fullGroup;
+  if (pickActive && pickB >= 0 && !group.empty() && group != "C1" &&
+      !coords.empty()) {
+    vector<int> sideA;
+    string bondNote;
+    if (MoFragments::bondSides(coords, elements, pickA, pickB, sideA, bondNote)) {
+      string sub, why2;
+      vector<double> subCoords;
+      if (MoFragments::subgroupKeeping(coords, elements, group, sideA, sub,
+                                       subCoords, why2)) {
+        if (sub != group) {
+          fullGroup = group;
+          subgroupNote = "Cutting " + pickLabelA + "\xE2\x80\x93" + pickLabelB +
+              " does not keep the symmetry of the molecule (" + group + "); the "
+              "orbitals are labelled in " + sub + ", the largest subgroup that "
+              "keeps the two sides.";
+          group = sub;
+          coords = subCoords;
+        }
+      } else {
+        subgroupWhy = why2;
+      }
+    }
+  }
+
   //  --- the molecular orbitals ---------------------------------------
   //
   //  Grouped by irrep DIMENSION where the group is known.  A degenerate
@@ -2293,6 +2389,7 @@ void MoDiagramPanel::buildOnce()
   //  otherwise `s` is untouched and the existing subgroup-downgrade
   //  path further down runs exactly as it already did.
   bool labelsInFullGroup = false;
+  vector< vector<double> > rotatedAlpha;      // a subgroup's orbitals, split by irrep
   double windowLow = -1.0e30, windowHigh = 1.0e30;
   {
     progressDlg.progress(20, _("Assigning full-group symmetry labels"));
@@ -2308,7 +2405,7 @@ void MoDiagramPanel::buildOnce()
                                  throttle.Start();
                                  progressDlg.progress(20 + (int)(frac*20),
                                      _("Assigning full-group symmetry labels"));
-                               })) {
+                               }, !fullGroup.empty(), &rotatedAlpha)) {
       s = computedLabels;
       labelsInFullGroup = true;
       symmetryNote += (symmetryNote.empty() ? "" : "  ") + computedNote;
@@ -2356,7 +2453,7 @@ void MoDiagramPanel::buildOnce()
                                  throttle.Start();
                                  progressDlg.progress(40 + (int)(frac*10),
                                      _("Assigning full-group symmetry labels (beta)"));
-                               })) {
+                               }, !fullGroup.empty())) {
       sB = computedBetaLabels;
     }
   }
@@ -2477,6 +2574,11 @@ void MoDiagramPanel::buildOnce()
       for (int m = 0; m < norb; m++)
         for (int mu = 0; mu < nbasis; mu++)
           moCoefficients[m][mu] = moCoefs->value(m, mu);
+      //  Orbitals of a degenerate level that a pick's subgroup splits (t2 into
+      //  a1 + e) are the combinations of one irrep each.
+      if (rotatedAlpha.size() == moCoefficients.size() && !rotatedAlpha.empty() &&
+          rotatedAlpha[0].size() == moCoefficients[0].size())
+        moCoefficients = rotatedAlpha;
 
       progressDlg.progress(44, _("Computing overlap integrals"));
       wxStopWatch overlapThrottle;
@@ -3593,6 +3695,7 @@ void MoDiagramPanel::buildOnce()
       if (!why.empty()) tiers.warnings.push_back(why);
       if (!foNotOffered.empty()) tiers.warnings.push_back(foNotOffered);
       if (!symmetryWarning.empty()) tiers.warnings.push_back(symmetryWarning);
+      if (!subgroupWhy.empty()) tiers.warnings.push_back(subgroupWhy);
       tiers.summary = "Molecular levels only \xC2\xB7 energies in Hartree";
       if (!group.empty() && haveSymmetryLabels)
         tiers.summary += " \xC2\xB7 labels in " + FoDiagram::groupMarkup(group);
@@ -3619,6 +3722,8 @@ void MoDiagramPanel::buildOnce()
       p_canvas->setGroup(group);
       p_canvas->setFormula(MoDiagram::formula(elements, charge));
       p_canvas->setDiagram(left, centre, right, links, false, "", headline);
+      p_lastNote = levelSource(getCalculation()) + tiers.summary;
+      for (size_t k = 0; k < tiers.warnings.size(); k++) p_lastNote += "\n" + tiers.warnings[k];
       p_canvas->setNotes(levelSource(getCalculation()) + tiers.summary,
                          tiers.warnings, tiers.about);
       if (!dumpPath.empty()) {
@@ -3682,6 +3787,7 @@ void MoDiagramPanel::buildOnce()
   }
   if (!foNotOffered.empty()) tiers.warnings.push_back(foNotOffered);
   if (!symmetryWarning.empty()) tiers.warnings.push_back(symmetryWarning);
+  if (!subgroupWhy.empty()) tiers.warnings.push_back(subgroupWhy);
   //  What the pick means, for the summary line and the About text.
   string pickSummary, pickAbout;
   if (pickActive && haveFragments) {
@@ -3725,6 +3831,7 @@ void MoDiagramPanel::buildOnce()
     if (!why.empty() && !whyWarn) extra += "\n\n" + why;
     if (haveBeta) extra += "\n\n**Unrestricted calculation.** " + betaText;
     if (!symmetryNote.empty()) extra += "\n\n**Orbital labels.** " + symmetryNote;
+    if (!subgroupNote.empty()) extra += "\n\n" + subgroupNote;
     if (group == symmetrisedGroup) extra += "\n\n" + symmetrisedNote;
     tiers.about = foAbout + extra;
     if (!pickAbout.empty()) tiers.about += "\n\n" + pickAbout;
@@ -3732,7 +3839,8 @@ void MoDiagramPanel::buildOnce()
       tiers.verdict = modelVerdict;
       tiers.verdictOk = modelVerdictOk;
       if (!group.empty() && !s.empty())
-        tiers.summary += " \xC2\xB7 labels in " + FoDiagram::groupMarkup(group);
+        tiers.summary += " \xC2\xB7 labels in " + FoDiagram::groupMarkup(group) +
+            (fullGroup.empty() ? string() : " (lowered from " + FoDiagram::groupMarkup(fullGroup) + " by the pick)");
     }
   } else {
     string construction = MoFragments::fragmentationName(p_fragmentation);
@@ -3742,7 +3850,8 @@ void MoDiagramPanel::buildOnce()
     tiers.summary += " \xC2\xB7 energies in Hartree";
     if (!simplifiedNote.empty()) tiers.summary += " \xC2\xB7 simplified (Show all levels draws everything)";
     if (!group.empty() && !s.empty())
-      tiers.summary += " \xC2\xB7 labels in " + FoDiagram::groupMarkup(group);
+      tiers.summary += " \xC2\xB7 labels in " + FoDiagram::groupMarkup(group) +
+          (fullGroup.empty() ? string() : " (lowered from " + FoDiagram::groupMarkup(fullGroup) + " by the pick)");
     else if (s.empty())
       tiers.summary += " \xC2\xB7 no symmetry labels";
     const int hiddenCores = centre.hiddenCount + centre.hiddenSemicoreCount;
@@ -3770,14 +3879,20 @@ void MoDiagramPanel::buildOnce()
     if (!grouped.empty()) headingFormula = grouped;
   }
   p_canvas->setFormula(headingFormula);
-  p_canvas->setDiagram(left, centre, right, links, haveFragments, "");
+  //  A pick that could not be drawn says so across the top, as the other
+  //  refusals do; the reason is in the lines under the diagram.
+  const string pickHeadline = (pickActive && !haveFragments && !why.empty())
+      ? "The picked atoms cannot be drawn as two fragments" : string();
+  p_canvas->setDiagram(left, centre, right, links, haveFragments, "", pickHeadline);
+  p_lastNote = levelSource(getCalculation()) + tiers.summary;
+  for (size_t k = 0; k < tiers.warnings.size(); k++) p_lastNote += "\n" + tiers.warnings[k];
   p_canvas->setNotes(levelSource(getCalculation()) + tiers.summary,
                      tiers.warnings, tiers.about);
   p_canvas->setVerdict(tiers.verdict, tiers.verdictOk);
   if (!dumpPath.empty()) {
     dumpMoDiagram(dumpPath, group, headingFormula,
         MoFragments::fragmentationName(p_fragmentation),
-        "", tiers, left, centre, right, links,
+        pickHeadline, tiers, left, centre, right, links,
         localisedShare, centreOP, mullikenMaxVec, normVec, metalLigandOP);
 
     //  The fragment-orbital ligand-field MODEL (#162 follow-up): only

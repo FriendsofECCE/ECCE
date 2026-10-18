@@ -49,3 +49,4 @@ MOPAC → spec) is the bridge it would reuse.
 - [One pair rule for every construction](one-pair-rule-in-every-construction.md)
 - [The model-first MO diagram: EHT for every column, the calculation as its own column (#301)](model-first-diagram.md)
 - ["pi system only" goes through the model diagram, as a subset of it](pi-only-through-the-model-diagram.md)
+- [Labels in a pick's subgroup: a degenerate level is split by projection, and the code's own labels cannot check them](labels-in-a-subgroup-split-degenerate-levels.md)

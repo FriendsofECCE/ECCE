@@ -93,7 +93,13 @@ FIXTURES = {
     "orca-b2h6": os.path.join(FIXTURES_DIR, "orca-b2h6"),
     "orca-nico4": os.path.join(FIXTURES_DIR, "orca-nico4"),
     "orca-cocl4-quartet": os.path.join(FIXTURES_DIR, "orca-cocl4-quartet"),
+    #  A bond pick that breaks the molecule's symmetry: drawn and labelled in
+    #  the subgroup that keeps the two sides (Td -> C3v, Oh -> C4v).
+    "orca-cocl4-pick-cocl3": os.path.join(FIXTURES_DIR, "orca-cocl4-quartet"),
+    "orca-crco6-pick-crc": os.path.join(FIXTURES_DIR, "orca-crco6"),
     "orca-ptcl4-overlaps": os.path.join(FIXTURES_DIR, "orca-ptcl4"),
+    "orca-cocl4-compute": os.path.join(FIXTURES_DIR, "orca-cocl4-quartet"),
+    "orca-benzene-compute-ring": os.path.join(FIXTURES_DIR, "orca-benzene"),
     "orca-agnh3": os.path.join(FIXTURES_DIR, "orca-agnh3"),
     #  [PtCl4]2-, d8 square planar: the metal d electrons come from the MOs.
     "orca-ptcl4": os.path.join(FIXTURES_DIR, "orca-ptcl4"),
@@ -109,6 +115,8 @@ FIXTURE_ENV = {
     "ecceqm-c3h6-pick-ring": {"ECCE_MODIAGRAM_PICK": "C1,C2"},
     "ecceqm-water-pick-o1": {"ECCE_MODIAGRAM_PICK": "O1"},
     "orca-crco6-pick-cr1": {"ECCE_MODIAGRAM_PICK": "Cr1"},
+    "orca-cocl4-pick-cocl3": {"ECCE_MODIAGRAM_PICK": "Co1,Cl2"},
+    "orca-crco6-pick-crc": {"ECCE_MODIAGRAM_PICK": "Cr1,C2"},
     "ecceqm-methanol-pick-c1": {"ECCE_MODIAGRAM_PICK": "C1"},
     "ecceqm-methanol-pick-o2": {"ECCE_MODIAGRAM_PICK": "O2"},
     #  ECCE_MODIAGRAM_PIONLY: the "pi system only" box ticked.
@@ -124,6 +132,13 @@ FIXTURE_SCENE = {
     #  No two labels or arrows of the model column on top of each other.
     "orca-ptcl4-overlaps": ("hold 2\nmodiagram overlaps overlaps 0\n",
                             {"overlaps": r"overlaps 0\b"}),
+    #  The live Compute button: pick a bond, press it, and the diagram is
+    #  redrawn in the subgroup that keeps the two sides.
+    "orca-cocl4-compute": ("hold 2\nmodipick pick Co1 Cl2\n",
+                           {"pick": r"labels in C.*3.*lowered from"}),
+    #  A bond that cannot be cut (a ring bond) is said on the panel.
+    "orca-benzene-compute-ring": ("hold 2\nmodipick pick C1 C2\n",
+                                  {"pick": r"part of a ring"}),
 }
 
 

@@ -939,30 +939,32 @@ class MoDiagramCanvas : public wxPanel
       for (int i = 0; i < n; i++) order[i] = i;
       std::stable_sort(order.begin(), order.end(),
                        [&](int a, int b) { return p_cLanes[a].y < p_cLanes[b].y; });
-      vector<int> laneBottom, laneW;
-      //  Only as many lanes as fit beside the labels; a spectrum denser than
-      //  that (every level of a big complex) shares its last lane.
-      int widest = 3*centreSlot();
-      for (int i = 0; i < n; i++) widest = max(widest, p_cLanes[i].slotsW);
-      const size_t maxLanes = (size_t)max(1, (maxWidth - labelCol - 16 + 8)/(widest + 8));
-      for (int k = 0; k < n; k++) {
-        CentreLane& c = p_cLanes[order[k]];
-        size_t ln = 0;
-        while (ln < laneBottom.size() && laneBottom[ln] + 1 > c.top) ln++;
-        if (ln >= maxLanes) ln = maxLanes - 1;
-        if (ln == laneBottom.size()) { laneBottom.push_back(-1000000); laneW.push_back(0); }
-        laneBottom[ln] = c.bottom;
-        laneW[ln] = max(laneW[ln], c.slotsW);
-        c.lane = (int)ln;
-      }
-      vector<int> laneX(laneW.size(), 0);
-      int total = labelCol + 16;
+      //  As many lanes as the arrows need; if the column would be wider than
+      //  the room, fewer, the densest levels sharing the last lane.
+      vector<int> laneBottom, laneW, laneX;
+      int total = 0;
       p_cLabelRight = labelCol;
-      for (size_t ln = 0; ln < laneW.size(); ln++) {
-        laneX[ln] = total;
-        total += laneW[ln] + 8;
+      for (size_t maxLanes = (size_t)n; maxLanes >= 1; maxLanes--) {
+        laneBottom.clear(); laneW.clear();
+        for (int k = 0; k < n; k++) {
+          CentreLane& c = p_cLanes[order[k]];
+          size_t ln = 0;
+          while (ln < laneBottom.size() && laneBottom[ln] + 1 > c.top) ln++;
+          if (ln >= maxLanes) ln = maxLanes - 1;
+          if (ln == laneBottom.size()) { laneBottom.push_back(-1000000); laneW.push_back(0); }
+          laneBottom[ln] = c.bottom;
+          laneW[ln] = max(laneW[ln], c.slotsW);
+          c.lane = (int)ln;
+        }
+        laneX.assign(laneW.size(), 0);
+        total = labelCol + 16;
+        for (size_t ln = 0; ln < laneW.size(); ln++) {
+          laneX[ln] = total;
+          total += laneW[ln] + 8;
+        }
+        total -= 8;
+        if (total <= maxWidth || maxLanes == 1) break;
       }
-      total -= 8;
       for (int i = 0; i < n; i++) p_cLanes[i].lineX = laneX[p_cLanes[i].lane];
 
       //  Labels: one row each, in energy order, moved apart only as far as
@@ -1886,16 +1888,22 @@ class MoDiagramCanvas : public wxPanel
       //  CCl4 puts 3t2 and 1t1 -- six lines -- on one row.
       int centreWidth = max(levelWidth,
                             min(3*levelWidth, 26*widestRow(p_centre)));
-      if (model) centreWidth = layoutCentreLanes(dc, plot, (int)(0.55*size.x));
 
       vector<CalcItem> calcItems;
       int calcAxisX = 0;
       const int calcWidth = model ? layoutCalc(dc, plot, size.x, calcItems, calcAxisX) : 0;
       const int usable  = size.x - calcWidth;
       const int xLeft   = usable/6 - (leftWidth - levelWidth)/2;
-      const int xCentre = usable/2 - centreWidth/2;
       const int xRight  = (5*usable)/6 - levelWidth
                           - (rightWidth - levelWidth)/2;
+      //  The model's middle column (lanes) takes what lies between the
+      //  fragment columns, but never less than a few lanes' worth.
+      if (model) {
+        const int between = xRight - (xLeft + leftWidth) - 80;
+        centreWidth = layoutCentreLanes(dc, plot,
+                                        max(300, min((int)(0.55*size.x), between)));
+      }
+      const int xCentre = usable/2 - centreWidth/2;
       const int xCalc   = size.x - calcWidth + 8;
 
       //  The energy axis.  A correlation diagram without one is a set
@@ -1988,7 +1996,8 @@ class MoDiagramCanvas : public wxPanel
         if (haveL && xl < 2) xl = 2;
         if (haveL) dc.DrawText(tl, xl, top - 38);
         if (haveR) dc.DrawText(tr, xr, top - 38);
-        dc.DrawText(tc, xCentre, top - 38);
+        //  Not over the banner of a diagram that could not be drawn.
+        if (p_headline.empty() || p_haveFragments) dc.DrawText(tc, xCentre, top - 38);
         if (model) {
           dc.DrawText(wxT("Your calculation (Ha)"), xCalc, top - 38);
           dc.SetPen(wxPen(wxColour(210, 210, 210), 1));

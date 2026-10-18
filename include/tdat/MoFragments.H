@@ -123,6 +123,32 @@ class MoFragments
     static bool symmetryOperations(const string& group, vector<SymOp>& ops);
 
     /**
+     * The two sides of a cut bond a-b: the atoms that stay with a, and the
+     * rest.  False, with `note`, for a bond in a ring (cutting it splits
+     * nothing) or two atoms that are not bonded.
+     */
+    static bool bondSides(const vector<double>& coords,
+                          const vector<string>& elements, int a, int b,
+                          vector<int>& sideA, string& note);
+
+    /**
+     * The largest subgroup of `group` that keeps a pick's two sides (`sideA`
+     * and the rest) each on itself.  Where every operation of `group` keeps
+     * them or swaps them (the usual fragments of a symmetric molecule) that is
+     * `group` itself and nothing changes.  Otherwise `subName` is the
+     * subgroup's name (Td with one Co-Cl cut gives C3v) and `subCoords` the
+     * coordinates in that subgroup's standard frame, which is what labelling
+     * the orbitals in it needs.  False, with `note`, when the subgroup cannot
+     * be named or oriented.
+     */
+    static bool subgroupKeeping(const vector<double>& coords,
+                                const vector<string>& elements,
+                                const string& group,
+                                const vector<int>& sideA,
+                                string& subName, vector<double>& subCoords,
+                                string& note);
+
+    /**
      * A valence orbital ionisation energy, in eV, negative.
      *
      * @param l  0 for the valence s, 1 for the valence p

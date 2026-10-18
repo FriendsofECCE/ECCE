@@ -366,7 +366,28 @@ class SymmetryAnalysis
                                  TGBSAngFunc *angfunc,
                                  const CharacterTable& table,
                                  double shellResidualTol,
-                                 vector<string>& derived);
+                                 vector<string>& derived,
+                                 vector< vector<double> >* rotated = 0,
+                                 bool splitReducible = false);
+
+    /**
+     * A set of degenerate orbitals that is not one irrep (a t2 level seen from
+     * C3v is a1 + e) split by projection operators into orbitals of one irrep
+     * each.  `split` has the rotated orbitals, S-orthonormal, in the order of
+     * `labels`.  False if the set is not a sum of whole irreps.
+     */
+    static bool fullOrbitalSplit(const vector< vector<double> >& orbitals,
+                                 const vector<int>& perAtom,
+                                 const vector<int>& shellTypeOf,
+                                 const vector< vector<double> >& overlap,
+                                 const vector< vector<int> >& images,
+                                 const vector<int>& classOfOp,
+                                 const vector<SymOp>& opsInCoeffFrame,
+                                 TGBSAngFunc *angfunc,
+                                 const CharacterTable& table,
+                                 double shellResidualTol,
+                                 vector<string>& labels,
+                                 vector< vector<double> >& split);
 
     static bool projectOrbit(const vector<int>& orbit,
                              const vector< vector<int> >& images,
