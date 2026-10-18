@@ -396,6 +396,7 @@ class MoDiagramCanvas : public wxPanel
     struct CalcItem
     {
       int level;                 // the centre level it is matched to (click, hover, colour)
+      int only;                  // >= 0: index into calcOnly (no model partner)
       double e;                  // Hartree
       int deg;
       bool strip, loose;
@@ -422,6 +423,16 @@ class MoDiagramCanvas : public wxPanel
 
     static const int calcSlot = 14;
 
+    //  Hover keys: a model level is its index; a calculation-column level
+    //  carries one of these bits (matched: centre index; no partner: calcOnly index).
+    static const int CALC_BIT = 1 << 20;
+    static const int ONLY_BIT = 1 << 21;
+
+    const MoLevel& itemLevel(const CalcItem& it) const
+    {
+      return it.only >= 0 ? p_centre.calcOnly[it.only] : p_centre.levels[it.level];
+    }
+
     /**
      * Lays out the calculation column: one item per distinct calculated
      * level, at its own energy.  Items whose boxes would overlap vertically
@@ -446,7 +457,13 @@ class MoDiagramCanvas : public wxPanel
         }
         if (dup) continue;
         CalcItem it;
-        it.level = (int)i; it.e = l.calcEnergy; it.strip = l.clipped;
+        it.level = (int)i; it.only = -1; it.e = l.calcEnergy; it.strip = l.clipped;
+        it.deg = 1; it.loose = false; it.y = it.top = it.bottom = it.w = it.lane = it.x = 0;
+        items.push_back(it);
+      }
+      for (size_t i = 0; i < p_centre.calcOnly.size(); i++) {
+        CalcItem it;
+        it.level = -1; it.only = (int)i; it.e = p_centre.calcOnly[i].calcEnergy; it.strip = false;
         it.deg = 1; it.loose = false; it.y = it.top = it.bottom = it.w = it.lane = it.x = 0;
         items.push_back(it);
       }
@@ -488,9 +505,9 @@ class MoDiagramCanvas : public wxPanel
 
       for (size_t k = 0; k < items.size(); k++) {
         CalcItem& it = items[k];
-        const MoLevel& l = p_centre.levels[it.level];
+        const MoLevel& l = itemLevel(it);
         it.deg = min(max(l.calcDegeneracy, 1), 5);
-        it.loose = l.calcOverlap < 0.80;
+        it.loose = it.only < 0 && l.calcOverlap < 0.80;
         splitLabel(l.calcLabel, it.pieces);
         const double e = fabs(it.e) < 0.005 ? 0.0 : it.e;
         it.energy = wxString::Format(wxT("%s%.2f"), e < 0 ? wxT("−") : wxT("+"), fabs(e));
@@ -571,8 +588,8 @@ class MoDiagramCanvas : public wxPanel
 
       for (size_t k = 0; k < items.size(); k++) {
         const CalcItem& it = items[k];
-        const MoLevel& l = p_centre.levels[it.level];
-        const wxColour colour = levelColour(l);
+        const MoLevel& l = itemLevel(it);
+        const wxColour colour = it.only >= 0 ? wxColour(130, 130, 130) : levelColour(l);
         dc.SetPen(wxPen(colour, 2));
         for (int d = 0; d < it.deg; d++)
           dc.DrawLine(it.x + d*calcSlot, it.y, it.x + d*calcSlot + calcSlot - 4, it.y);
@@ -588,7 +605,7 @@ class MoDiagramCanvas : public wxPanel
           Hit hit;
           hit.box = wxRect(it.x + d*calcSlot - 2, it.y - 8, calcSlot, 17);
           hit.orbital = orbs[(size_t)d < orbs.size() ? (size_t)d : orbs.size() - 1];
-          hit.level = it.level;
+          hit.level = it.only >= 0 ? (ONLY_BIT | it.only) : (CALC_BIT | it.level);
           p_hits.push_back(hit);
         }
 
@@ -2040,16 +2057,32 @@ class MoDiagramCanvas : public wxPanel
      * need the overlap integrals.
      */
     /** The text of the last clicked level, shown under the diagram. */
+    /** Hover key of calculation-column level n (matched levels, then the unmatched). */
+    int calcKey(int n) const
+    {
+      const int nl = (int)p_centre.levels.size();
+      return n < nl ? (CALC_BIT | n) : (ONLY_BIT | (n - nl));
+    }
     const string& infoText() const { return p_info; }
 
-    string describeLevel(int level)
+    string describeLevel(int key)
     {
-      if (level < 0 || level >= (int)p_centre.levels.size()) return "";
-      std::map<int,string>::const_iterator hit = p_tips.find(level);
+      const bool only = (key & ONLY_BIT) != 0;
+      const bool calc = only || (key & CALC_BIT) != 0;
+      const int level = key & ~(CALC_BIT | ONLY_BIT);
+      if (level < 0 || level >= (int)(only ? p_centre.calcOnly.size() : p_centre.levels.size())) return "";
+      std::map<int,string>::const_iterator hit = p_tips.find(key);
       if (hit != p_tips.end()) return hit->second;
 
-      const MoLevel& l = p_centre.levels[level];
+      const MoLevel& l = only ? p_centre.calcOnly[level] : p_centre.levels[level];
       ostringstream out;
+      //  A model level shows the model's own composition (fragment
+      //  orbitals) and the calculated orbitals it matches.
+      if (l.model && !calc) {
+        out << l.label << ": " << l.detail;
+        p_tips[key] = out.str();
+        return p_tips[key];
+      }
       if (l.orbitals.size() > 1) {
         out << "MOs ";
         for (size_t k = 0; k < l.orbitals.size(); k++)
@@ -2058,23 +2091,29 @@ class MoDiagramCanvas : public wxPanel
         out << "MO " << l.orbitals[0] + 1;
       }
       char e[64];
-      //  A model level names the calculated orbital it was matched to (the
-      //  one a click shows); the model's own numbers are in `detail`.
-      snprintf(e, sizeof e, "%.4f", l.model && l.hasCalc ? l.calcEnergy : l.energy);
-      out << ", E = " << e << " Hartree" << (l.model ? " (calculated)" : "");
-      if (!l.irrep.empty()) out << ", " << l.irrep;
-      if (l.occupancyBeta >= 0.0)
-        out << ", occupancy " << l.occupancy << " alpha, "
-            << l.occupancyBeta << " beta";
-      else
-        out << ", occupancy " << l.occupancy;
+      snprintf(e, sizeof e, "%.4f", calc ? l.calcEnergy : l.energy);
+      out << ", E = " << e << " Hartree";
+      if (calc && !l.calcLabel.empty()) out << ", " << l.calcLabel;
+      else if (!l.irrep.empty()) out << ", " << l.irrep;
+      const double oa = calc ? l.calcOccupancy : l.occupancy;
+      const double ob = calc ? l.calcOccupancyBeta : l.occupancyBeta;
+      if (ob >= 0.0) out << ", occupancy " << oa << " alpha, " << ob << " beta";
+      else out << ", occupancy " << oa;
       if (p_owner != 0 && !l.orbitals.empty()) {
         const string comp = p_owner->orbitalComposition(l.orbitals);
         if (!comp.empty()) out << "\n" << comp;
       }
-      if (!l.detail.empty()) out << "\n" << l.detail;
-      p_tips[level] = out.str();
-      return p_tips[level];
+      if (calc && !only) {
+        char o[32];
+        snprintf(o, sizeof o, "%.2f", l.calcOverlap);
+        out << "\nThis level matches model " << l.label << ", overlap " << o << ".";
+      } else if (only) {
+        out << "\n" << l.detail;
+      } else if (!l.detail.empty()) {
+        out << "\n" << l.detail;
+      }
+      p_tips[key] = out.str();
+      return p_tips[key];
     }
 
   private:

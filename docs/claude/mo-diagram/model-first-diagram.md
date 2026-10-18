@@ -31,6 +31,12 @@ refusal text plus "use the MOs panel"), keep the old drawing.
   shows them. Verdict: only the occupied levels, plus the LUMO when the model's
   LUMO matches the calculation's; a different LUMO is named; order above the LUMO
   is only in About. Delta_o for t2g/eg.
+- Hover: a model level shows the model's fragment composition and "Matches your MO a-b";
+  a calculation-column level shows its own MOs-panel composition (`MoPanel::compositionText`)
+  and "matches model <label>, overlap x". The calculation's HOMO and LUMO are always drawn:
+  without a model partner they sit in `MoColumn::calcOnly`, in grey ("no model partner").
+  Fragment-column symmetry labels are lower-case (a1g, t2g); AO names stay (3d). Test hooks:
+  builder scene `modiagram <n> tip|ctip <i>`.
 - Energies: model in eV on the axis. Empty levels > 30 eV above the HOMO are
   drawn at the top of the axis, marked with an up arrow, true energy beside
   them (EHT puts sigma* tens of eV up; the partner of a drawn level is never

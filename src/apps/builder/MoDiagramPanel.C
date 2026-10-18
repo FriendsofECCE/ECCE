@@ -233,6 +233,13 @@ string MoDiagramPanel::levelText(int level)
 }
 
 
+string MoDiagramPanel::calcLevelText(int n)
+{
+  if (!p_canvas) return string();
+  return p_canvas->describeLevel(p_canvas->calcKey(n));
+}
+
+
 string MoDiagramPanel::orbitalComposition(const vector<int>& orbengIndices)
 {
   IPropCalculation *calc = getCalculation();
@@ -1602,6 +1609,10 @@ void dumpColumn(std::ofstream& out, const string& name, const MoColumn& col,
         << " label=" << escapeDumpText(col.bands[i].label) << "\n";
   out << "  levels: " << col.levels.size() << "\n";
   out << std::fixed;
+  for (size_t i = 0; i < col.calcOnly.size(); i++)
+    out << "  calconly " << i << " energy=" << std::setprecision(6) << col.calcOnly[i].calcEnergy
+        << " label=" << escapeDumpText(col.calcOnly[i].label)
+        << " occupancy=" << std::setprecision(4) << col.calcOnly[i].calcOccupancy << "\n";
   for (size_t i = 0; i < col.levels.size(); i++) {
     const MoLevel& lv = col.levels[i];
     out << "  level " << i

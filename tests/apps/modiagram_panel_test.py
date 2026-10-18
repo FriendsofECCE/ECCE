@@ -88,6 +88,7 @@ def main():
             scene = "hold 3\n"
             for n in range(0, 8):
                 scene += "modiagram tip%d tip %d\n" % (n, n)
+                scene += "modiagram ctip%d ctip %d\n" % (n, n)
             scene += "modiagram click click 4\nmogrid grid\n"
             result = base.runBuilder(display, url, out, scene,
                                      panel="MO Diagram")
@@ -102,7 +103,12 @@ def main():
                   "first (%s)" % click.strip())
             check("cannot be computed" not in log,
                   "no 'cannot be computed' message")
-            tips = [text(out, "tip%d" % n) or "" for n in range(0, 8)]
+            tips = [text(out, "ctip%d" % n) or "" for n in range(0, 8)]
+            mtips = [text(out, "tip%d" % n) or "" for n in range(0, 8)]
+            check(any("Made of:" in t and "Matches your MO" in t for t in mtips),
+                  "a model level's hover gives its fragment composition and its match")
+            check(any("matches model" in t for t in tips),
+                  "a calculation level's hover names its model partner")
             shown = [t for t in tips if t.strip()]
             check(len(shown) >= 3, "level tooltips exist (%d)" % len(shown))
             heads = [t.splitlines()[0] for t in shown]
@@ -121,7 +127,7 @@ def main():
             out = os.path.join(work, "benzene")
             scene = "hold 3\n"
             for n in range(0, 30):
-                scene += "modiagram tip%d tip %d\n" % (n, n)
+                scene += "modiagram tip%d ctip %d\n" % (n, n)
             res = base.runBuilder(display, url, out, scene, panel="MO Diagram")
             tips = [text(out, "tip%d" % n) or "" for n in range(0, 30)]
             if not any(t.strip() for t in tips):

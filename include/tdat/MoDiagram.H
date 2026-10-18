@@ -242,6 +242,10 @@ struct MoColumn
    /** Merged non-bonding levels, drawn as grey blocks. */
    vector<MoBand>   bands;
 
+   /** Model-first diagram, centre column: calculated levels (the HOMO and
+       LUMO) that match no model level.  Drawn in the calculation column only. */
+   vector<MoLevel>  calcOnly;
+
    /**
     * This column's shells, named by element and angular momentum.
     *
