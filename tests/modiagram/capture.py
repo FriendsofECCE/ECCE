@@ -53,6 +53,7 @@ FIXTURES = {
     #  The same calculation drawn by the SKELETON construction, which was
     #  the metal default before the fragment-orbital diagram (#301).
     "orca-crco6-skeleton": os.path.join(FIXTURES_DIR, "orca-crco6"),
+    "orca-crco6-lfview": os.path.join(FIXTURES_DIR, "orca-crco6"),
     "nwchem-water": os.path.join(FIXTURES_DIR, "nwchem-water"),
     #  #132: unsymmetrised input, symmetry on in the deck (makecalc.py).
     "orca-nh3-usesym": os.path.join(FIXTURES_DIR, "orca-nh3-usesym"),
@@ -99,6 +100,7 @@ FIXTURES = {
 #  Extra environment per fixture: a construction asked for by name.
 FIXTURE_ENV = {
     "orca-crco6-skeleton": {"ECCE_MODIAGRAM_CONSTRUCTION": "skeleton"},
+    "orca-crco6-lfview": {"ECCE_MODIAGRAM_LFVIEW": "1"},
     #  ECCE_MODIAGRAM_PICK: the atom (or "A,B" bond) the user picked.
     "ecceqm-c2h4-pick-c1c2": {"ECCE_MODIAGRAM_PICK": "C1,C2"},
     "ecceqm-c3h6-pick-ring": {"ECCE_MODIAGRAM_PICK": "C1,C2"},

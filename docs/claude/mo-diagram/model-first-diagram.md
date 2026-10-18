@@ -47,3 +47,17 @@ refusal text plus "use the MOs panel"), keep the old drawing.
 - Test hook: `fragorb CALC --model [--left 1,2]`; dump has `verdict:` and
   `calcEnergy/calcOverlap`; PNGs with `ECCE_XVFB_SCREEN=1900x1100x24`
   (the panel is wider than the default screen).
+- Character tags (`MoLevel::tag`): every model level carries the fragment-orbital
+  characters with >= 20 % of it ("Cr d + CO π*"): metal = symbol + shell letter;
+  ligand = one-atom unit "F 2p", diatomic unit "CO σ"/"CO π" (p along/across the
+  bond; `*` when the intra-ligand overlap population is < -0.10), larger unit
+  "NH3 σ". Drawn as a third grey line under the energy (`drawLabel` measures the
+  block, right-aligned left of the centre column) and first in the hover text.
+- Ligand-field view (`Input::ligandFieldView`, check box, `ECCE_MODIAGRAM_LFVIEW=1`;
+  transition-metal centre + >= 2 ligand atoms only): empty levels above the
+  metal-based HOMO with >= `LF_LIGAND_SHARE` (50 %) on the ligands are folded into a
+  band "ligand π* levels: N levels, empty (Ligand-field view)". The threshold is
+  50 %, not 80 %: the model's 3t2g* of Cr(CO)6 is 61 % ligand (the DFT's 78 % CO π*
+  is a different number). The calculation's unmatched LUMO is not drawn and the
+  LUMO is not judged in this view. check_pairs.py skips the pair rule for `*-lfview`
+  goldens (the antibonding partners are hidden on purpose).

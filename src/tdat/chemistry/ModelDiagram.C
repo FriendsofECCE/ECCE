@@ -177,6 +177,7 @@ struct SetD
    double occupancy;
    string irrep;
    int drawn;                    // index in its column, -1
+   map<string,double> chars;     // orbital character -> fraction (sums to 1)
    SetD() : fragment(0), energy(0), degeneracy(0), occupancy(0), drawn(-1) {}
 };
 
@@ -194,12 +195,114 @@ struct Cluster
    MoLevel::Character character;
    int pairing;
    double occupancy, occupancyBeta;
-   bool drawn, clipped;
+   bool drawn, clipped, lfFold;
    double shownEnergy;
    Cluster() : energy(0), degeneracy(0), shareLeft(0), shareRight(0), op(0),
                realLevel(-1), overlap(0), character(MoLevel::NONBONDING),
-               pairing(-1), occupancy(0), occupancyBeta(-1), drawn(true), clipped(false), shownEnergy(0) {}
+               pairing(-1), occupancy(0), occupancyBeta(-1), drawn(true), clipped(false), lfFold(false), shownEnergy(0) {}
 };
+
+//  The orbital character of a ligand fragment orbital, as the fragment's own
+//  names: "F 2p" for a one-atom ligand, "CO sigma"/"CO pi*" for a diatomic
+//  one (p functions along the bond are sigma, across it pi; a star when the
+//  orbital is antibonding inside the ligand), "NH3 sigma" for a larger one.
+void ligandCharacter(const FragmentOrbitals::FoSet& set, const vector<int>& members,
+                     const vector<string>& symbols, const vector<double>& coords,
+                     const vector<int>& atoms, map<string,double>& out)
+{
+   out.clear();
+   const size_t nf = set.funcs.size();
+   vector<int> comp(symbols.size(), -1);
+   vector< std::pair<int,int> > bonds;
+   MoFragments::covalentBonds(coords, symbols, bonds);
+   std::set<int> mine(atoms.begin(), atoms.end());
+   vector< vector<int> > unit;
+   for (size_t a = 0; a < atoms.size(); a++) {
+      if (comp[atoms[a]] >= 0) continue;
+      const int id = (int)unit.size();
+      unit.push_back(vector<int>());
+      vector<int> stack(1, atoms[a]);
+      comp[atoms[a]] = id;
+      while (!stack.empty()) {
+         const int x = stack.back(); stack.pop_back();
+         unit[id].push_back(x);
+         for (size_t b = 0; b < bonds.size(); b++) {
+            int o = -1;
+            if (bonds[b].first == x) o = bonds[b].second;
+            else if (bonds[b].second == x) o = bonds[b].first;
+            if (o < 0 || !mine.count(o) || comp[o] >= 0) continue;
+            comp[o] = id;
+            stack.push_back(o);
+         }
+      }
+   }
+   vector<string> unitName(unit.size());
+   for (size_t u = 0; u < unit.size(); u++) {
+      vector<int> sorted = unit[u];
+      std::sort(sorted.begin(), sorted.end());
+      unitName[u] = pieceFormula(symbols, sorted);
+   }
+   double total = 0.0;
+   for (size_t m = 0; m < members.size(); m++) {
+      const FragmentOrbitals::FO& fo = set.fos[members[m]];
+      vector<double> sc(nf, 0.0);
+      double intra = 0.0;
+      for (size_t i = 0; i < nf; i++) {
+         if (fo.coef[i] == 0.0) continue;
+         for (size_t j = 0; j < nf; j++) {
+            if (fo.coef[j] == 0.0) continue;
+            sc[i] += set.overlap[i*nf + j]*fo.coef[j];
+            const int ai = set.funcs[i].atom, aj = set.funcs[j].atom;
+            if (ai != aj && comp[ai] >= 0 && comp[ai] == comp[aj])
+               intra += fo.coef[i]*set.overlap[i*nf + j]*fo.coef[j];
+         }
+      }
+      const bool star = intra < -0.10;
+      map<string,double> mine2;
+      for (size_t i = 0; i < nf; i++) {
+         if (fo.coef[i] == 0.0) continue;
+         const double w = fo.coef[i]*sc[i];
+         const FragmentOrbitals::Function& fn = set.funcs[i];
+         const int u = comp[fn.atom];
+         if (u < 0) continue;
+         if (unit[u].size() == 1) {
+            mine2[fn.element + " " + std::to_string(fn.n) + "spdfg"[fn.l]] += w;
+         } else if (unit[u].size() == 2 && fn.l == 1) {
+            double ax[3];
+            for (int k = 0; k < 3; k++)
+               ax[k] = coords[3*unit[u][0] + k] - coords[3*unit[u][1] + k];
+            const double len = sqrt(ax[0]*ax[0] + ax[1]*ax[1] + ax[2]*ax[2]);
+            const int dir = fn.component == "x" ? 0 : fn.component == "y" ? 1 : 2;
+            const double c2 = len > 0 ? ax[dir]*ax[dir]/(len*len) : 1.0;
+            mine2[unitName[u] + " \xCF\x83" + (star ? "*" : "")] += w*c2;
+            mine2[unitName[u] + " \xCF\x80" + (star ? "*" : "")] += w*(1.0 - c2);
+         } else {
+            mine2[unitName[u] + " \xCF\x83" + (star ? "*" : "")] += w;
+         }
+      }
+      for (map<string,double>::iterator it = mine2.begin(); it != mine2.end(); ++it) {
+         out[it->first] += it->second;
+         total += it->second;
+      }
+   }
+   if (total > 0.0)
+      for (map<string,double>::iterator it = out.begin(); it != out.end(); ++it) it->second /= total;
+}
+
+string characterTag(const map<string,double>& acc, double floor_)
+{
+   vector< std::pair<double,string> > r;
+   for (map<string,double>::const_iterator it = acc.begin(); it != acc.end(); ++it)
+      r.push_back(std::make_pair(-it->second, it->first));
+   std::sort(r.begin(), r.end());
+   string t;
+   for (size_t i = 0; i < r.size(); i++) {
+      if (i > 0 && -r[i].first < floor_) break;
+      if (i > 3) break;
+      t += (i ? " + " : "") + r[i].second;
+   }
+   return t;
+}
 
 string joinCaveats(const vector<string>& v)
 {
@@ -325,6 +428,12 @@ bool ModelDiagram::build(const Input& in,
          const FragmentOrbitals::LevelShare d = FragmentOrbitals::describeGroup(set, groups[g]);
          const string::size_type sp = d.label.find(' ');
          s.shell = sp == string::npos ? d.label : d.label.substr(sp + 1);
+      }
+      if (frags[s.fragment].kind == FragmentOrbitals::METAL) {
+         if (!s.shell.empty())
+            s.chars[in.symbols[frags[s.fragment].atoms[0]] + " " + s.shell.substr(s.shell.size() - 1)] = 1.0;
+      } else {
+         ligandCharacter(set, groups[g], in.symbols, in.coordsAng, frags[s.fragment].atoms, s.chars);
       }
       sets.push_back(s);
    }
@@ -522,6 +631,7 @@ bool ModelDiagram::build(const Input& in,
    }
 
    vector<string> caveats;               // tier B: one combined line
+   bool lfFolded = false;
    //  --- what is drawn ----------------------------------------------
    const bool bandRule = !in.showAll && in.leftAtoms.size() == 1 && in.rightAtoms.size() >= 2;
    for (size_t c = 0; c < cl.size(); c++)
@@ -562,6 +672,37 @@ bool ModelDiagram::build(const Input& in,
       for (size_t o = 0; o < cl.size(); o++)
          if (cl[o].pairing == cl[c].pairing) cl[o].drawn = true;
    }
+   //  Character of every model level, from the fragment orbitals it is made of.
+   vector<map<string,double> > charAcc(cl.size());
+   for (size_t c = 0; c < cl.size(); c++)
+      for (size_t s = 0; s < sets.size(); s++)
+         for (map<string,double>::iterator it = sets[s].chars.begin(); it != sets[s].chars.end(); ++it)
+            charAcc[c][it->first] += cl[c].share[s]*it->second;
+
+   //  The ligand-field view: empty levels that sit on the ligands and lie above
+   //  the metal-based HOMO are folded into a note, whatever else would draw them.
+   const bool lfEligible = frags[0].kind == FragmentOrbitals::METAL &&
+                       frags[1].kind == FragmentOrbitals::LIGAND && in.rightAtoms.size() >= 2 &&
+                       FragmentOrbitals::isTransitionMetal(in.symbols[in.leftAtoms[0]]);
+   const bool lfView = in.ligandFieldView && lfEligible;
+   out.lfApplicable = lfEligible;
+   if (lfView) {
+      int homo = -1, metalHomo = -1;
+      for (size_t c = 0; c < cl.size(); c++) {
+         if (cl[c].occupancy + std::max(0.0, cl[c].occupancyBeta) <= 0.0) continue;
+         if (homo < 0 || cl[c].energy > cl[homo].energy) homo = (int)c;
+         if (cl[c].shareLeft >= 0.5 && (metalHomo < 0 || cl[c].energy > cl[metalHomo].energy)) metalHomo = (int)c;
+      }
+      if (metalHomo < 0) metalHomo = homo;
+      if (metalHomo >= 0)
+         for (size_t c = 0; c < cl.size(); c++) {
+            if (!cl[c].drawn || cl[c].occupancy + std::max(0.0, cl[c].occupancyBeta) > 0.0) continue;
+            if (cl[c].shareRight < LF_LIGAND_SHARE || cl[c].energy <= cl[metalHomo].energy) continue;
+            cl[c].drawn = false;
+            cl[c].lfFold = true;
+         }
+   }
+
    //  The window above the HOMO: nothing up there is a model of anything.
    vector<bool> tooHigh(cl.size(), false);
    vector<size_t> order0(cl.size());
@@ -583,7 +724,7 @@ bool ModelDiagram::build(const Input& in,
             cl[c].shownEnergy = windowTop + (1.5 + 1.0*clipped)/HARTREE;
             cl[c].clipped = true;
             clipped += cl[c].degeneracy;
-         } else {
+         } else if (!cl[c].lfFold) {
             tooHigh[c] = true;
             n += cl[c].degeneracy;
          }
@@ -660,6 +801,7 @@ bool ModelDiagram::build(const Input& in,
          lv.calcDegeneracy = R.degeneracy > 0 ? R.degeneracy : (int)R.orbitals.size();
       }
       lv.annotation = (L.clipped ? string("\xE2\x86\x91 ") : string()) + signedNumber(L.energy*HARTREE, 2) + " eV";
+      lv.tag = characterTag(charAcc[order[oi]], CHARACTER_MIN);
       //  The hover text.
       vector< std::pair<double,string> > parts;
       for (size_t s = 0; s < sets.size(); s++) {
@@ -777,7 +919,7 @@ bool ModelDiagram::build(const Input& in,
       int levels = 0;
       double e = 0.0;
       for (size_t c = 0; c < cl.size(); c++) {
-         if (cl[c].drawn || tooHigh[c]) continue;
+         if (cl[c].drawn || tooHigh[c] || cl[c].lfFold) continue;
          if ((cl[c].occupancy + std::max(0.0, cl[c].occupancyBeta) > 0.0) != (occupied == 1)) continue;
          lo = std::min(lo, cl[c].energy); hi = std::max(hi, cl[c].energy);
          levels += cl[c].degeneracy;
@@ -798,6 +940,32 @@ bool ModelDiagram::build(const Input& in,
                 (levels == 1 ? " level" : " levels") +
                 (occupied == 1 ? ", " + std::to_string((int)lround(e)) + " e" : string(", empty"));
       out.right.bands.push_back(b);
+   }
+
+   //  The ligand-field view's own note: what it folded away, and that it did.
+   if (lfView) {
+      double lo = 1e30, hi = -1e30;
+      int levels = 0;
+      map<string,double> acc;
+      for (size_t c = 0; c < cl.size(); c++) {
+         if (!cl[c].lfFold) continue;
+         lo = std::min(lo, cl[c].energy); hi = std::max(hi, cl[c].energy);
+         levels += cl[c].degeneracy;
+         for (map<string,double>::iterator it = charAcc[c].begin(); it != charAcc[c].end(); ++it)
+            acc[it->first] += it->second*cl[c].degeneracy;
+      }
+      if (levels > 0) {
+         string kind = "ligand-centred";
+         string top = characterTag(acc, 1e9);          // the single largest
+         const string::size_type sp = top.find(' ');
+         if (!top.empty() && sp != string::npos && top.find(" + ") == string::npos) kind = "ligand " + top.substr(sp + 1);
+         MoBand b;
+         b.low = lo; b.high = hi; b.levels = levels;
+         b.label = kind + " levels: " + std::to_string(levels) + (levels == 1 ? " level" : " levels") +
+                   ", empty (Ligand-field view)";
+         out.right.bands.push_back(b);
+         lfFolded = true;
+      }
    }
 
    //  --- the verdict -------------------------------------------------
@@ -831,6 +999,7 @@ bool ModelDiagram::build(const Input& in,
          if (occupied(vi[k])) continue;
          if (modelLumo < 0 || centreTrueE[vi[k]] < centreTrueE[modelLumo]) modelLumo = vi[k];
       }
+      if (lfView) modelLumo = -1;           // the empty ligand levels are not drawn, so not judged
       if (modelLumo >= 0 && calcLumo >= 0) {
          if (centreReal[modelLumo] == calcLumo) lumoJudged = true;
          else lumoDiffers = true;
@@ -850,6 +1019,7 @@ bool ModelDiagram::build(const Input& in,
          if (real[R].occupancy + std::max(0.0, real[R].occupancyBeta) > 0.0 &&
              (calcHomo < 0 || real[R].energy > real[calcHomo].energy)) calcHomo = (int)R;
       for (int pass = 0; pass < 2; pass++) {
+         if (pass == 1 && lfView) continue;      // its LUMO is a ligand level
          const int R = pass == 0 ? calcHomo : calcLumo;
          if (R < 0 || std::find(centreReal.begin(), centreReal.end(), R) != centreReal.end()) continue;
          MoLevel lv;
@@ -942,11 +1112,16 @@ bool ModelDiagram::build(const Input& in,
                  "calculation in Hartree";
    if (!out.right.bands.empty()) {
       string t;
+      bool plainBands = false;
       for (size_t i = 0; i < out.right.bands.size(); i++) {
          const string& l = out.right.bands[i].label;
-         t += i == 0 ? l : "; " + l.substr(l.find(": ") == string::npos ? 0 : l.find(": ") + 2);
+         const bool lf = l.find("(Ligand-field view)") != string::npos;
+         if (!lf) plainBands = true;
+         t += i == 0 || lf ? (i ? "; " : "") + l : "; " + l.substr(l.find(": ") == string::npos ? 0 : l.find(": ") + 2);
       }
-      out.summary += " \xC2\xB7 not drawn: " + t + "; tick Show all levels";
+      out.summary += " \xC2\xB7 not drawn: " + t;
+      if (plainBands) out.summary += "; tick Show all levels";
+      if (lfFolded) out.summary += "; untick Ligand-field view to draw them";
       out.foldedAny = true;
    }
    {
@@ -978,7 +1153,10 @@ bool ModelDiagram::build(const Input& in,
           ", " + rightName.formula + " " +
           std::to_string((int)lround([&] { double s = 0; for (size_t i = 0; i < sets.size(); i++) if (sets[i].fragment == 1) s += sets[i].occupancy; return s; }())) + ").";
       (void)total;
-      if (!out.right.bands.empty())
+      out.about += "\n\nEach model level carries a short grey tag naming the fragment orbitals it is mostly made of "
+                   "(shares of at least 20 %), such as Cr d or CO \xCF\x80*. Ligand-field view hides empty "
+                   "ligand-centred levels such as CO \xCF\x80*; transitions into them are charge transfer, not d\xE2\x80\x93" "d.";
+      if (out.foldedAny)
          out.about += "\n\nThe levels counted in the note under the diagram are model levels that sit almost entirely on the " + rightName.formula +
                       " and take no part in the interaction; they are counted, not drawn.";
       if (!caveats.empty()) {
