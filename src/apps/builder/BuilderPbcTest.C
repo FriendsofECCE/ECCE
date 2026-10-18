@@ -342,7 +342,8 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     return true;
   }
 
-  //  "sashdrag <tool> <dy> [lost]": press on the sash under that pane, move
+  //  "sashdrag <tool> <dy> [lost|top]": press on the sash under that pane
+  //  ("top": on the pane's own top edge, the sash of the pane above), move
   //  dy px in ten steps and release, as the mouse does it through the
   //  frame's event chain (AUI first); "lost" drops the release and moves
   //  once more without the button.  Appends "<tool> <dy> capture <0|1>"
@@ -356,7 +357,13 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     const int dy = atoi(w[2].c_str());
     const int sash = p_mgr.GetArtProvider()->GetMetric(wxAUI_DOCKART_SASH_SIZE);
     const int x = pane.rect.x + pane.rect.width / 2;
-    const int y0 = pane.rect.GetBottom() + 1 + sash / 2;
+    const bool top = w.size() == 4 && w[3] == "top";
+    //  rect is the client area; the caption and border lie above it.
+    wxAuiDockArt *art = p_mgr.GetArtProvider();
+    const int y0 = top
+        ? pane.rect.y - art->GetMetric(wxAUI_DOCKART_CAPTION_SIZE) -
+              art->GetMetric(wxAUI_DOCKART_PANE_BORDER_SIZE) - 1
+        : pane.rect.GetBottom() + 1 + sash / 2;
     auto send = [this, x](wxEventType type, int y, bool down) {
       wxMouseEvent e(type);
       e.SetPosition(wxPoint(x, y));
@@ -367,7 +374,7 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     };
     send(wxEVT_LEFT_DOWN, y0, true);
     for (int i = 1; i <= 10; i++) send(wxEVT_MOTION, y0 + dy * i / 10, true);
-    if (w.size() == 4) {
+    if (w.size() == 4 && !top) {
       send(wxEVT_MOTION, y0 + dy + 3, false);
     } else {
       send(wxEVT_LEFT_UP, y0 + dy, false);

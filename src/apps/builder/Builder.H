@@ -668,6 +668,12 @@ class Builder: public BuilderGUI,
       bool p_columnTabChosen = false;    // the user picked it, this calc
       bool p_columnHidden = false;       // F9
       int p_columnWidth = 0;             // the column's width as last laid out
+      //  A drag of a pane's top edge beside folded panes (#346): the two
+      //  panes it moves, the press position and their heights at the press.
+      wxWindow *p_edgeAbove = 0;
+      wxWindow *p_edgeBelow = 0;
+      int p_edgeY0 = 0, p_edgeHeightAbove = 0, p_edgeHeightBelow = 0;
+      void endEdgeDrag();
       set<wxWindow*> p_tabHidden;        // open, but hidden by tab/F9
       set<wxWindow*> p_columnSeen;       // property panes given mode defaults
       wxWindow *p_detail = 0;            // list + detail: the shown panel
