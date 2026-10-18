@@ -26,6 +26,8 @@ class GromacsPrepareModel : public ITaskModel
       string histidine() const { return p_his; }
       bool ignoreHydrogens() const { return p_ignh; }
       bool mergeChains() const { return p_merge; }
+      // genion -neutral; off leaves the net charge of the structure as it is
+      bool neutralise() const { return p_neut; }
       string boxType() const { return p_box; }
       double boxDistance() const { return p_dist; }
       double ionConcentration() const { return p_conc; }
@@ -50,6 +52,7 @@ class GromacsPrepareModel : public ITaskModel
       void histidine(const string& v) { p_his = v; }
       void ignoreHydrogens(bool v) { p_ignh = v; }
       void mergeChains(bool v) { p_merge = v; }
+      void neutralise(bool v) { p_neut = v; }
       void boxType(const string& v) { p_box = v; }
       void boxDistance(double v) { p_dist = v; }
       void ionConcentration(double v) { p_conc = v; }
@@ -74,7 +77,7 @@ class GromacsPrepareModel : public ITaskModel
       string p_source, p_ff, p_water, p_his, p_box, p_pname, p_nname;
       string p_mvariant, p_mmineral, p_mrep, p_msubs, p_mseed, p_mcell, p_msummary;
       int p_mangle;
-      bool p_ignh, p_merge;
+      bool p_ignh, p_merge, p_neut;
       double p_dist, p_conc;
 };
 

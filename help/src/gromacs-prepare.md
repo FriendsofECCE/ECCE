@@ -50,9 +50,12 @@ first. A protein needs hydrogens only if you clear **Ignore hydrogens**.
 
 **Ions**
 
-- The system is always neutralised.
+- **Neutralise with counter-ions:** ticked by default, so the system ends with
+  net charge zero. Untick it to keep the net charge of the structure, for
+  example a single ion in water; the tasks after the Prepare then do not stop
+  at GROMACS's warning about a charged system.
 - **Salt concentration:** added on top, in mol/L. The default is 0.15. Give
-  0 to neutralise only.
+  0 to neutralise only (or, with Neutralise unticked, to add no ions).
 - **Positive ion:** sodium or potassium. **Negative ion:** chloride.
 
 Save with the **Save** button, or let Launch save for you.
@@ -104,8 +107,8 @@ Launch runs four steps, and the output file tells which one is running
 1. `pdb2gmx` builds the topology with the force field and water model.
 2. `editconf` puts the protein in a box of the chosen type and size.
 3. `solvate` fills the box with water of the chosen model.
-4. `genion` replaces water molecules with ions to neutralise the system and
-   to reach the salt concentration.
+4. `genion` replaces water molecules with ions to neutralise the system (if
+   ticked) and to reach the salt concentration.
 
 A task that stops says why, in the words of the GROMACS tool that stopped.
 The most common reasons are atoms missing from a residue in the PDB file and a

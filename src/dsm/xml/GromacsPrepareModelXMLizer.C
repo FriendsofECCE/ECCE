@@ -46,6 +46,9 @@ void GromacsPrepareModelXMLizer::deserialize(const string& data,
       m->ignoreHydrogens(atoi(v.c_str()) != 0);
    if (!(v = getTagValue(root, "MergeChains")).empty())
       m->mergeChains(atoi(v.c_str()) != 0);
+   // a task stored before the option existed neutralises, as it always did
+   if (!(v = getTagValue(root, "Neutralise")).empty())
+      m->neutralise(atoi(v.c_str()) != 0);
    if (!(v = getTagValue(root, "BoxType")).empty()) m->boxType(v);
    if (!(v = getTagValue(root, "BoxDistance")).empty())
       m->boxDistance(atof(v.c_str()));
@@ -81,6 +84,7 @@ void GromacsPrepareModelXMLizer::serialize(const Serializable& object,
       << "<IgnoreHydrogens>" << (m->ignoreHydrogens() ? 1 : 0)
       << "</IgnoreHydrogens>\n"
       << "<MergeChains>" << (m->mergeChains() ? 1 : 0) << "</MergeChains>\n"
+      << "<Neutralise>" << (m->neutralise() ? 1 : 0) << "</Neutralise>\n"
       << "<BoxType>" << m->boxType() << "</BoxType>\n"
       << "<BoxDistance>" << m->boxDistance() << "</BoxDistance>\n"
       << "<IonConcentration>" << m->ionConcentration()

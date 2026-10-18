@@ -1520,18 +1520,19 @@ sub gromacsPrepare()
   $t = <<'PREPEOF';
 
 @@CC@@ - Read the recipe; md.gmxprep has checked every value.
-SOURCE=protein FF=amber99sb-ildn WATER=tip3p HIS=auto IGNH=1 MERGE=1
+SOURCE=protein FF=amber99sb-ildn WATER=tip3p HIS=auto IGNH=1 MERGE=1 NEUT=1
 BOX=dodecahedron DIST=1.0 CONC=0.15 PNAME=NA NNAME=CL PQ=1
 while IFS='=' read -r k v; do
   case "$k" in
     SOURCE) SOURCE=$v;; FF) FF=$v;; WATER) WATER=$v;; HIS) HIS=$v;;
-    IGNH) IGNH=$v;; MERGE) MERGE=$v;; BOX) BOX=$v;; DIST) DIST=$v;;
+    IGNH) IGNH=$v;; NEUT) NEUT=$v;; MERGE) MERGE=$v;; BOX) BOX=$v;; DIST) DIST=$v;;
     CONC) CONC=$v;; PNAME) PNAME=$v;; NNAME) NNAME=$v;; PQ) PQ=$v;;
   esac
 done < @@IN@@
 rm -f @@OUT@@
 : > @@OUT@@
 
+@@IONAWK@@
 prepStep() {
   echo "ECCE-PREPARE step $1/4 $2" >> @@OUT@@
   echo "ECCE-PREPARE step $1/4 $2" >> @@LOG@@
@@ -1549,7 +1550,7 @@ prepRun() {
 }
 genionRun() {
   echo SOL | "$gmx" genion -s ions.tpr -o ion.gro -p topol.top \
-      -pname "$PNAME" -pq "$PQ" -nname "$NNAME" -neutral $GENION_CONC
+      -pname "$PNAME" -pq "$PQ" -nname "$NNAME" $GENION_NEUT $GENION_CONC
 }
 
 case "$WATER" in
@@ -1559,6 +1560,8 @@ case "$WATER" in
   *) echo "No water box is known for the water model $WATER" >> @@OUT@@; WBOX="";;
 esac
 GENION_CONC=""
+GENION_NEUT="-neutral"
+[ "$NEUT" = 0 ] && GENION_NEUT=""
 if [ "`echo "$CONC" | awk '{print ($1 > 0)}'`" = 1 ]; then GENION_CONC="-conc $CONC"; fi
 
 (
@@ -1593,8 +1596,10 @@ if [ "`echo "$CONC" | awk '{print ($1 > 0)}'`" = 1 ]; then GENION_CONC="-conc $C
       set -- *.gmxpdb
       pdb=$1
       [ -f "$pdb" ] || pdb=@@SYS@@.pdb
-      # pdb2gmx goes by the extension, and a staged name may not end in .pdb
-      cp "$pdb" prep_in.pdb
+      # pdb2gmx goes by the extension, and a staged name may not end in .pdb;
+      # a lone UNK atom that is an ion gets the force field's name for it
+      awk -v ff="$FF" -f ecce_ions.awk "$pdb" > prep_in.pdb 2> prep.ions
+      cat prep.ions >> @@OUT@@
       pdb=prep_in.pdb
       opts=""
       [ "$IGNH" = 1 ] && opts="$opts -ignh"
@@ -1646,14 +1651,16 @@ if [ "`echo "$CONC" | awk '{print ($1 > 0)}'`" = 1 ]; then GENION_CONC="-conc $C
   prepStep 4 genion
   RC=1.0
   PERIODIC=""
-  if [ "$SOURCE" = minff ]; then
-    # genion only reads charges from the .tpr; a small mineral cell cannot
-    # hold the usual 1 nm cut-off: at most 0.5 nm, less if the box needs it
-    # (the pair list, 5% longer, must fit in half the shortest box vector)
-    RC=`tail -n 1 step3.gro | awk '
+  RCCAP=1.0
+  if [ "$SOURCE" = minff ]; then RCCAP=0.5; PERIODIC="periodic-molecules = yes"; fi
+  # genion only reads charges from the .tpr, but grompp still wants the pair
+  # list (5% longer than the cut-off) inside half the shortest box vector: a
+  # small box (one ion in water) or a mineral cell needs a shorter cut-off
+  {
+    RC=`tail -n 1 step3.gro | awk -v cap=$RCCAP '
       { for (i = NF + 1; i <= 9; i++) $i = 0
         v[0,0] = $1; v[0,1] = $4; v[0,2] = $5; v[1,0] = $6; v[1,1] = $2; v[1,2] = $7
-        v[2,0] = $8; v[2,1] = $9; v[2,2] = $3; m = 0.5
+        v[2,0] = $8; v[2,1] = $9; v[2,2] = $3; m = cap
         for (k = 0; k < 3; k++) {
           l = 0.5 * sqrt(v[k,0] ^ 2 + v[k,1] ^ 2 + v[k,2] ^ 2)
           if (l < m) m = l
@@ -1661,8 +1668,7 @@ if [ "`echo "$CONC" | awk '{print ($1 > 0)}'`" = 1 ]; then GENION_CONC="-conc $C
         }
         printf "%.3f\n", int(m / 1.05 * 980) / 1000 }'`
     [ -n "$RC" ] || RC=0.5
-    PERIODIC="periodic-molecules = yes"
-  fi
+  }
   cat > ions.mdp <<MDPEOF
 integrator = steep
 nsteps = 0
@@ -1681,6 +1687,9 @@ MDPEOF
   cp prep.step prep.grompp
   if [ "$SOURCE" = minff ] && [ $MINFF_WATER = 0 ]; then
     echo "No solvent to replace with ions; the charge of the mineral is left as it is." >> @@OUT@@
+    cp step3.gro ion.gro
+  elif [ "$NEUT" = 0 ] && [ -z "$GENION_CONC" ]; then
+    echo "Neutralising is off and the salt concentration is 0: no ions are added." >> @@OUT@@
     cp step3.gro ion.gro
   else
     prepRun genionRun || exit 1
@@ -1706,6 +1715,9 @@ MDPEOF
     fi
   fi
   cp ion.gro @@RESTART@@ || exit 1
+  # An unticked "Neutralise" is a decision; the MD tasks' grompp reads the
+  # marker and lets the net-charge warning through instead of stopping.
+  [ "$NEUT" = 0 ] && echo "; ECCE-NETCHARGE-INTENDED" >> topol.top
   cp topol.top @@SYS@@.gmxtop || exit 1
   prepRun "$gmx" editconf -f @@RESTART@@ -o chemsys.pdb || exit 1
 
@@ -1739,6 +1751,9 @@ MDPEOF
 prepStatus=$?
 ( exit $prepStatus )
 PREPEOF
+  require "$FindBin::RealBin/parsers/GmxIons.pm";
+  my $ionawk = "cat > ecce_ions.awk << 'ECCE_AWK_END'\n" . GmxIons::awkProgram() . "ECCE_AWK_END\n";
+  $t =~ s/\@\@IONAWK\@\@\n/$ionawk/;
   $t =~ s/\@\@CC\@\@/$::CC/g;
   $t =~ s/\@\@IN\@\@/$::inFile/g;
   $t =~ s/\@\@OUT\@\@/$::outFile/g;
@@ -1825,10 +1840,11 @@ sub gromacs()
     $retval .= "done\n";
     $retval .= "[ -z \"\$ndx\" ] && [ -f ecce_groups.ndx ] && ndx=ecce_groups.ndx\n";
     $retval .= "grompp_args=\"-f $::inFile -c conf.gro -r conf.gro -p topol.top \${ndx:+-n \$ndx} -o topol.tpr\"\n";
+    $retval .= "marked=0\ngrep -q ECCE-NETCHARGE-INTENDED topol.top && marked=1\n";
     $retval .= "\"\$gmx\" grompp \$grompp_args -maxwarn 999 > grompp.out 2>&1\n";
     $retval .= "grompp_rc=\$?\n";
     $retval .= "if [ \$grompp_rc -eq 0 ]; then\n";
-    $retval .= "  awk -f ecce_gromppwarn.awk grompp.out > grompp.warn\n";
+    $retval .= "  awk -v marked=\$marked -f ecce_gromppwarn.awk grompp.out > grompp.warn\n";
     $retval .= "  grep -E '^(harmless|stopping):' grompp.warn >> $::logfile\n";
     $retval .= "  if [ \"`sed -n 's/^stopping //p' grompp.warn`\" != 0 ]; then\n";
     $retval .= "    rm -f topol.tpr\n";

@@ -54,6 +54,7 @@ static const wxWindowID ID_STRUCT = wxNewId();
 static const wxWindowID ID_BROWSE = wxNewId();
 static const wxWindowID ID_IGNH = wxNewId();
 static const wxWindowID ID_MERGE = wxNewId();
+static const wxWindowID ID_NEUT = wxNewId();
 static const wxWindowID ID_BOX = wxNewId();
 static const wxWindowID ID_DIST = wxNewId();
 static const wxWindowID ID_CONC = wxNewId();
@@ -359,9 +360,13 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
 
   sb = new wxStaticBoxSizer(wxVERTICAL, this, _("Ions"));
   box = sb->GetStaticBox();
-  p_ionNote = label(box,
-      _("The system is always neutralised. Salt is added on top."));
-  sb->Add(p_ionNote, 0, wxALL, 6);
+  p_neut = new ewxCheckBox(box, ID_NEUT, _("Neutralise with counter-ions"));
+  p_neut->SetValue(true);
+  p_neut->SetToolTip(_("genion -neutral. Unticked, only the salt below is added "
+                       "and the system keeps the net charge of the structure."));
+  sb->Add(p_neut, 0, wxALL, 6);
+  p_ionNote = label(box, wxEmptyString);
+  sb->Add(p_ionNote, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
   g = new wxFlexGridSizer(3, 6, 8);
   g->AddGrowableCol(1);
   g->Add(label(box, _("Salt concentration:")), 0, wxALIGN_CENTER_VERTICAL);
@@ -401,6 +406,7 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   Bind(wxEVT_BUTTON, &GromacsPreparePanel::OnBrowse, this, ID_BROWSE);
   Bind(wxEVT_CHECKBOX, &GromacsPreparePanel::OnCheck, this, ID_IGNH);
   Bind(wxEVT_CHECKBOX, &GromacsPreparePanel::OnCheck, this, ID_MERGE);
+  Bind(wxEVT_CHECKBOX, &GromacsPreparePanel::OnCheck, this, ID_NEUT);
   Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnBox, this, ID_BOX);
   Bind(wxEVT_TEXT, &GromacsPreparePanel::OnNumber, this, ID_DIST);
   Bind(wxEVT_TEXT, &GromacsPreparePanel::OnNumber, this, ID_CONC);
@@ -490,6 +496,7 @@ void GromacsPreparePanel::showFields()
   p_otherFf->Enable(p_editable && other);
   p_water->Enable(p_editable);
   p_ignh->Enable(p_editable);
+  p_neut->Enable(p_editable);
   p_merge->Enable(p_editable);
   p_box->Enable(p_editable);
   p_dist->Enable(p_editable);
@@ -519,10 +526,22 @@ void GromacsPreparePanel::showFields()
           "mineral's cell as it is and adds no water; a charged mineral is then "
           "not neutralised, because there is no water to replace by ions.")
       : _("The distance from the solute to the box edge."));
-  p_ionNote->SetLabel(minff
-      ? _("With a water layer the mineral's charge is neutralised by counter-ions.")
-      : _("The system is always neutralised. Salt is added on top."));
+  showIonNote();
   relayout();
+}
+
+// What the Ions box does, for the state of the tick box and the source.
+void GromacsPreparePanel::showIonNote()
+{
+  bool neut = p_neut->GetValue();
+  if (isMinff())
+    p_ionNote->SetLabel(neut
+        ? _("With a water layer the mineral's charge is neutralised by counter-ions.")
+        : _("The mineral keeps its charge; only the salt below is added."));
+  else
+    p_ionNote->SetLabel(neut
+        ? _("The system is neutralised first; salt is added on top.")
+        : _("The system keeps its net charge; only the salt below is added."));
 }
 
 // The mineral page is taller than the protein page; the scrolled window
@@ -607,6 +626,8 @@ void GromacsPreparePanel::refreshGUI()
   fillWaters(p_model->waterModel());
   p_ignh->SetValue(p_model->ignoreHydrogens());
   p_merge->SetValue(p_model->mergeChains());
+  p_neut->SetValue(p_model->neutralise());
+  showIonNote();
   int b = 0;
   for (int i = 0; i < NBOX; i++) if (p_model->boxType() == BOXES[i][0]) b = i;
   p_box->SetSelection(b);
@@ -785,6 +806,8 @@ void GromacsPreparePanel::OnCheck(wxCommandEvent&)
   if (p_refreshing || p_model == 0) return;
   p_model->ignoreHydrogens(p_ignh->GetValue());
   p_model->mergeChains(p_merge->GetValue());
+  p_model->neutralise(p_neut->GetValue());
+  showIonNote();
   changed();
 }
 
@@ -1202,8 +1225,8 @@ bool GromacsPreparePanel::testSet(const string& field, const string& value,
     }
     message = "not offered for this force field";
     return false;
-  } else if (field == "ignh" || field == "merge") {
-    (field == "ignh" ? p_ignh : p_merge)->SetValue(value == "1");
+  } else if (field == "ignh" || field == "merge" || field == "neut") {
+    (field == "ignh" ? p_ignh : field == "merge" ? p_merge : p_neut)->SetValue(value == "1");
     OnCheck(ev);
   } else if (field == "box") {
     for (int i = 0; i < NBOX; i++) {

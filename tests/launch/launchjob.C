@@ -11,7 +11,7 @@
 //                                 a project <name>-project holding a GROMACS MD study <name> with an Optimize, an Equilibrate and a
 //                                 Dynamics task chained as the Organizer's New menu chains
 //                                 them; prints the study's and the tasks' URLs, one a line
-//   launchjob gromacsprepstudy <parentURL> <name> <pdbFile> [ff=F] [water=W] [box=B] [dist=D] [conc=C]
+//   launchjob gromacsprepstudy <parentURL> <name> <pdbFile> [ff=F] [water=W] [box=B] [dist=D] [conc=C] [neut=0|1]
 //                                 [merge=0|1] [equilibrate] [bare] [frag=<pdb>|-]
 //                                 a project and a GROMACS MD study with a Prepare task on <pdbFile>
 //                                 (stored as its .gmxpdb, the recipe written as the editor
@@ -282,6 +282,7 @@ static int doGromacsPrepStudy(const vector<string>& a)
     else if (k == "box") pm.boxType(v);
     else if (k == "dist") pm.boxDistance(atof(v.c_str()));
     else if (k == "conc") pm.ionConcentration(atof(v.c_str()));
+    else if (k == "neut") pm.neutralise(v != "0");
     else if (k == "merge") pm.mergeChains(v == "1");
     else if (k == "equilibrate") equilibrate = true;
     else if (k == "bare") bare = true;

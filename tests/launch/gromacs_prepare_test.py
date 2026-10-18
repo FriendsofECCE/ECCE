@@ -50,6 +50,7 @@ import harness  # noqa: E402
 from harness import say  # noqa: E402
 
 FIXTURES = os.path.join(REPO, "tests", "gromacs_md", "fixtures")
+NA_UNK = os.path.join(FIXTURES, "na_unk.pdb")
 
 failures = []
 
@@ -391,6 +392,58 @@ def builder_flow_section(s, build, rundir):
     check(len(texts) == 2 and " UNK " in texts[0] and " NA " in texts[1]
           and " UNK " not in texts[1],
           "the second save stored residue NA (first save kept UNK)")
+    # closing the Builder ended the session; start it again
+    if not s.services(True):
+        check(False, "services came up again after the Builder")
+        return
+    prepare_then_optimize(s, rundir, prep, opt, "Na+ in water", charged=False)
+
+    # the same ion left UNK by the Builder (no Residue Table edit): the job names it
+    rc, out = s.driver("gromacsprepstudy", s.userUrl(), "naunk",
+                       os.path.join(FIXTURES, "1l2y.pdb"), "frag=" + NA_UNK,
+                       "box=cubic", "dist=1.0", "conc=0")
+    urls = urls_of(out)
+    if check(rc == 0 and len(urls) == 3, "a study with a lone UNK Na as the Builder saves it"):
+        for u in urls[1:]:
+            s.driver("mdsetup", u, "localhost", rundir, s.user())
+        prepare_then_optimize(s, rundir, urls[1], urls[2], "UNK Na+ in water", charged=False)
+
+    # "Neutralise" unticked: the +1 stays, and the Optimize launches without
+    # the Launch-check dialog (LAUNCHJOB_WARNING=cancel would make it fail)
+    rc, out = s.driver("gromacsprepstudy", s.userUrl(), "naoff", os.path.join(FIXTURES, "1l2y.pdb"),
+                       "frag=" + NA_UNK, "box=cubic", "dist=1.0", "conc=0", "neut=0")
+    urls = urls_of(out)
+    if check(rc == 0 and len(urls) == 3, "a study with Neutralise unticked"):
+        for u in urls[1:]:
+            s.driver("mdsetup", u, "localhost", rundir, s.user())
+        prepare_then_optimize(s, rundir, urls[1], urls[2], "Na+ unneutralised", charged=True)
+
+
+def prepare_then_optimize(s, rundir, prep, opt, what, charged):
+    """Launch the Prepare, check its system, then the Optimize after it."""
+    rc, out = s.launch(prep)
+    check(rc == 0, "%s: Launch accepted the Prepare: %s" % (what, re.sub(r"\s+", " ", out.strip())[-150:]))
+    state = s.waitState(prep, 600)
+    check(state in ("completed", "loaded"), "%s: Prepare ran to %s" % (what, state))
+    ptask = prep.replace("file://", "").rstrip("/")
+    top = [o for o in outputs(prep) if o.endswith(".gmxtop")]
+    mol = open(os.path.join(ptask, "Outputs", top[0])).read() if top else ""
+    mols = [l.split()[0] for l in mol.split("[ molecules ]")[-1].splitlines()
+            if l.strip() and not l.lstrip().startswith(";")]
+    say("  %s: molecules %s" % (what, " ".join(mols[:12])))
+    check(("NA" in mols or "Ion" in mols) and "SOL" in mols and ("CL" in mols) == (not charged),
+          "%s: the system holds Na+ and water%s" % (what, "" if charged else " and the Cl- that neutralises it"))
+    rc, stored = s.driver("progress", prep)
+    m = re.search(r"charge0=(\S+) charge1=(\S+)", stored)
+    say("  %s: net charge before/after ions %s" % (what, m.groups() if m else stored.strip()[:200]))
+    want = "1" if charged else "0"
+    check(m is not None and float(m.group(2)) == (1.0 if charged else 0.0),
+          "%s: the stored net charge after the ions is %s" % (what, want))
+    rc, out = s.driver("launch", opt, extra={"LAUNCHJOB_WARNING": "cancel"})
+    check(rc == 0, "%s: Launch accepted the Optimize without a dialog: %s"
+          % (what, re.sub(r"\s+", " ", out.strip())[-150:]))
+    state = s.waitState(opt, 900)
+    check(state in ("completed", "loaded"), "%s: Optimize ran to %s" % (what, state))
 
 
 def editor_section(s, build, rundir, png):
