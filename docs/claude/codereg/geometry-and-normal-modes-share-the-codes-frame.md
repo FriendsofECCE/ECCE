@@ -19,3 +19,16 @@ Check with `tests/parsers/vib_frame_test.py`: the hydrogen that moves most
 in a mode above 2500 cm-1 moves along its own X-H bond only if geometry and
 modes share a frame. ORCA's NumFreq turns symmetry off and keeps the input
 frame, so it needs no care.
+
+**MOPAC is not covered by that check and fails it.** A MOPAC force run
+reorients the molecule ("ORIENTATION OF MOLECULE IN FORCE CALCULATION") and
+prints its normal modes in that frame, while `[GEOMTRACE]` keeps the
+`CARTESIAN COORDINATES` blocks, which are in the input orientation. For
+methane (`tests/parsers/fixtures/mopac/ch4_force.out`, `ch4_geovib.out`,
+`ch4_force_nothermo.out`) the modes are not orthogonal to the stored
+structure's rotations, so the arrows in the Builder point in the wrong
+directions. `VibAnalysis` measures exactly that (the largest share of any
+vibration inside the six rigid motions, mass-weighted) and labels nothing
+when it exceeds 10 %; `tests/vibanalysis/run_tests.py` asserts the refusal
+for the stored MOPAC geometry and analyses the same modes in the force
+orientation read from the output.

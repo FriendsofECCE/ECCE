@@ -134,6 +134,39 @@ orbital energies and occupations.
    normal mode**. **Scale:** sets the size of the displacement and
    **Delay:** the speed. **stop animation** ends it.
 
+The **Table** has a row for each vibration:
+
+- **Frequency**, and the **Infrared** and **Raman** intensities the code
+  computed.
+- **Sym**: the irreducible representation of the vibration in the
+  molecule's point group, found by ECCE from the displacements, so every
+  code gets it. A code that prints its own labels (Gaussian, MOPAC) is
+  shown with the code's label. Hold the pointer over a cell to see whether
+  the vibration is IR active and Raman active, which follows from the
+  irrep. `?` means the vibration is not a clean irrep of the group found,
+  as happens with a structure that is only nearly symmetric.
+- **Mode**: what moves, in the standard notation of vibrational
+  spectroscopy. Hold the pointer over a cell for the shares, or select the
+  row to read them in the line under the table.
+
+| Symbol | Meaning |
+|---|---|
+| ν | stretch |
+| δ | bend |
+| ρ | rock (CH2, CH3) |
+| ω | wag, out-of-plane motion of CH2 |
+| τ | torsion |
+| γ | out-of-plane bend |
+| s, as | symmetric, antisymmetric: equivalent bonds or angles moving in phase, or not |
+
+Examples are ν(C=O), νas(OH), δ(HOH) and ρ(CH2). Two terms, as in
+ν(C=O) + δ(HCH), mean two comparable contributions; a trailing … means
+more. The shares come from projecting the vibration on the bonds, angles and
+torsions of the structure, so they say what moves, not how much each
+contributes to the energy. The structure's bonds and their orders (C=O,
+C≡N) are those of the Builder. A wide **Mode** cell is cut short in a
+narrow panel; the tooltip has all of it.
+
 See [Your first calculation](first-calculation.md#vibrations-optional) for
 the same steps on a calculation you ran yourself.
 

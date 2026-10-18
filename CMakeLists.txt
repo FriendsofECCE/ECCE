@@ -1901,6 +1901,15 @@ set_tests_properties(qe_features PROPERTIES SKIP_RETURN_CODE 77)
 add_executable(vibspectrum_test tests/spectrum/vibspectrum_test.C)
 target_link_libraries(vibspectrum_test PRIVATE eccetdat ecceutil)
 add_test(NAME vibspectrum COMMAND vibspectrum_test)
+
+# tests/vibanalysis -- mode symmetry and description (#367): real code output
+# through the real parsers, against textbook assignments.
+add_executable(vibanalysis_cli tests/vibanalysis/vibanalysis_cli.C)
+target_link_libraries(vibanalysis_cli PRIVATE eccetdat ecceutil)
+add_test(NAME vibanalysis
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/vibanalysis/run_tests.py
+          --cli $<TARGET_FILE:vibanalysis_cli> --build ${CMAKE_BINARY_DIR})
+set_tests_properties(vibanalysis PROPERTIES SKIP_RETURN_CODE 77)
 # The canvas painted onto a bitmap (tools/spectrum/render) from the numbers
 # the codes printed; needs wx, g++ and xvfb-run, SKIPs without them.
 find_program(PYTHON3_FOR_SPECTRUM NAMES python3)
@@ -2827,6 +2836,16 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_ecceqm_vib_builder PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+  # The vibration table's Sym and Mode columns for six molecules: the
+  # textbook assignments through the panel, every cell whole at the docked
+  # width, nothing widening the dock (#367).
+  add_test(NAME apps_vibration_modes
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/vibanalysis/panel_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/vibanalysis)
+  set_tests_properties(apps_vibration_modes PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
   # The Energies panel's groups and their fold state (#283).
   add_test(NAME apps_energies_groups

@@ -91,3 +91,4 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [Layer builder: spacing is along the a-b normal, shifts accumulate, tilt wraps differently from an orthogonal reference, water H 1.5 A from everything (#357)](layer-builder-traps.md)
 - [Depth peeling copies from a multisampled window (#360)](depth-peeling-copies-from-a-multisampled-window.md)
 - [Auto-centre after property commands](auto-centre-after-property-commands.md)
+- [The Vibrational Frequencies table's Sym and Mode columns are VibAnalysis (#367): irreps from ECCE's own operations, a projection on internal coordinates, and what makes it refuse](mode-symmetry-and-description-367.md)
