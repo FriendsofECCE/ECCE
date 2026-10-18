@@ -23,8 +23,10 @@ a separate suite with its own service-startup code (see tests/apps/README).
 """
 import argparse
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -91,6 +93,13 @@ FIXTURES = {
     "orca-b2h6": os.path.join(FIXTURES_DIR, "orca-b2h6"),
     "orca-nico4": os.path.join(FIXTURES_DIR, "orca-nico4"),
     "orca-cocl4-quartet": os.path.join(FIXTURES_DIR, "orca-cocl4-quartet"),
+    #  A bond pick that breaks the molecule's symmetry: drawn and labelled in
+    #  the subgroup that keeps the two sides (Td -> C3v, Oh -> C4v).
+    "orca-cocl4-pick-cocl3": os.path.join(FIXTURES_DIR, "orca-cocl4-quartet"),
+    "orca-crco6-pick-crc": os.path.join(FIXTURES_DIR, "orca-crco6"),
+    "orca-ptcl4-overlaps": os.path.join(FIXTURES_DIR, "orca-ptcl4"),
+    "orca-cocl4-compute": os.path.join(FIXTURES_DIR, "orca-cocl4-quartet"),
+    "orca-benzene-compute-ring": os.path.join(FIXTURES_DIR, "orca-benzene"),
     "orca-agnh3": os.path.join(FIXTURES_DIR, "orca-agnh3"),
     #  [PtCl4]2-, d8 square planar: the metal d electrons come from the MOs.
     "orca-ptcl4": os.path.join(FIXTURES_DIR, "orca-ptcl4"),
@@ -106,11 +115,30 @@ FIXTURE_ENV = {
     "ecceqm-c3h6-pick-ring": {"ECCE_MODIAGRAM_PICK": "C1,C2"},
     "ecceqm-water-pick-o1": {"ECCE_MODIAGRAM_PICK": "O1"},
     "orca-crco6-pick-cr1": {"ECCE_MODIAGRAM_PICK": "Cr1"},
+    "orca-cocl4-pick-cocl3": {"ECCE_MODIAGRAM_PICK": "Co1,Cl2"},
+    "orca-crco6-pick-crc": {"ECCE_MODIAGRAM_PICK": "Cr1,C2"},
     "ecceqm-methanol-pick-c1": {"ECCE_MODIAGRAM_PICK": "C1"},
     "ecceqm-methanol-pick-o2": {"ECCE_MODIAGRAM_PICK": "O2"},
     #  ECCE_MODIAGRAM_PIONLY: the "pi system only" box ticked.
     "orca-benzene-pi": {"ECCE_MODIAGRAM_PIONLY": "1"},
     "ecceqm-c2h4-pi": {"ECCE_MODIAGRAM_PIONLY": "1"},
+}
+
+
+#  Scripted checks run in the Builder after the diagram is up (the scene
+#  commands of Builder.C): name -> (scene text, {output file: regex it must
+#  match}).  Scene fixtures share a source directory with a plain one.
+FIXTURE_SCENE = {
+    #  No two labels or arrows of the model column on top of each other.
+    "orca-ptcl4-overlaps": ("hold 2\nmodiagram overlaps overlaps 0\n",
+                            {"overlaps": r"overlaps 0\b"}),
+    #  The live Compute button: pick a bond, press it, and the diagram is
+    #  redrawn in the subgroup that keeps the two sides.
+    "orca-cocl4-compute": ("hold 2\nmodipick pick Co1 Cl2\n",
+                           {"pick": r"labels in C.*3.*lowered from"}),
+    #  A bond that cannot be cut (a ring bond) is said on the panel.
+    "orca-benzene-compute-ring": ("hold 2\nmodipick pick C1 C2\n",
+                                  {"pick": r"part of a ring"}),
 }
 
 
@@ -213,7 +241,17 @@ def captureOne(name, source, outfile, timeout, png=None):
         env["ECCE_OPEN_PANEL"] = "MO Diagram"
         env["ECCE_MODIAGRAM_DUMP"] = outfile
         env.update(FIXTURE_ENV.get(name, {}))
-        env["ECCE_EXIT_AFTER_DUMP"] = "1"
+        sceneOut = None
+        if name in FIXTURE_SCENE:
+            #  The scene runs after the first build and ends the app itself.
+            sceneOut = tempfile.mkdtemp(prefix=name + "-scene-",
+                                        dir=os.path.dirname(state))
+            with open(os.path.join(sceneOut, "script"), "w") as handle:
+                handle.write(FIXTURE_SCENE[name][0])
+            env["ECCE_VIEWER_SCENE"] = os.path.join(sceneOut, "script")
+            env["ECCE_VIEWER_SCENE_OUT"] = sceneOut
+        else:
+            env["ECCE_EXIT_AFTER_DUMP"] = "1"
         if png:
             #  Long enough to find the window, let it settle and shoot it;
             #  short enough not to make a --png run noticeably slower.
@@ -263,7 +301,7 @@ def captureOne(name, source, outfile, timeout, png=None):
             time.sleep(0.5)
 
         try:
-            proc.wait(timeout=15)
+            proc.wait(timeout=60 if sceneOut else 15)
         except subprocess.TimeoutExpired:
             try:
                 os.killpg(os.getpgid(proc.pid), 15)
@@ -282,6 +320,23 @@ def captureOne(name, source, outfile, timeout, png=None):
 
         apps.stopServices(display)
         restorePrefs()
+
+        if sceneOut:
+            import re
+            problem = None
+            for fileName, pattern in FIXTURE_SCENE[name][1].items():
+                path = os.path.join(sceneOut, fileName + ".txt")
+                text = open(path).read() if os.path.exists(path) else ""
+                if not re.search(pattern, text):
+                    failed = os.path.join(sceneOut, "FAILED")
+                    problem = ("scene check %s: %r does not match %r%s"
+                               % (fileName, text[:300], pattern,
+                                  (" (" + open(failed).read() + ")")
+                                  if os.path.exists(failed) else ""))
+                    break
+            shutil.rmtree(sceneOut, ignore_errors=True)
+            if problem:
+                return problem
 
         if not os.path.exists(outfile):
             tail = out.decode("utf-8", "replace")[-4000:]

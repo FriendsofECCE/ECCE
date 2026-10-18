@@ -20,3 +20,15 @@ Charge and spin multiplicity of a fixture reach the Builder as DAV
 properties (`.davprops`: `spinmultiplicity` on the calculation, `charge` on
 `Parameters/chemsys.mvm`); the `charge:` line inside chemsys.mvm is not
 what the Builder reads on this route.
+**A third way, found on a real import (2026-10-18):** a run imported through
+the Organizer carries `ORBSYM` and `ORBSYMBETA` in the code's own subgroup
+spelling (ORCA's `UseSym` writes D2: `A B1 B2 B3`). The alpha labels were
+replaced by computed Td/D4h labels, but the beta ones were only computed when
+the code had reported none, so the two spins shared no irrep, `matchAlphaBeta`
+matched nothing and every level kept one arrow. Beta labels are now computed
+whenever the alpha ones were, and two label sets with no irrep in common are
+matched by energy order. The fixtures `orca-cocl4-quartet` and
+`orca-o2-triplet` are copies of an Organizer import of the real ORCA output
+(stored properties and metadata as the import wrote them, `Outputs` dropped);
+the earlier `makecalc.py` fixtures had no `ORBSYM` at all and so never showed
+it. Build an open-shell fixture by importing, not by `makecalc.py`.

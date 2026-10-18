@@ -1,0 +1,90 @@
+group: C3v
+formula: [CoCl4]^2-
+construction: its two chemical groups
+headline: 
+source: MO levels: UKS BP86, def2-SVP · 
+note: Model from extended Hückel (qualitative) · model energies in eV · calculation in Hartree · electrons: Cl3Co 32, drawn 32; Cl 7 (neutral: 1 unpaired e), drawn 7; model and calculation: 39 drawn + 0 folded (0 levels) = 39 · labels in C<sub>3v</sub> (lowered from T<sub>d</sub> by the pick)\n6 levels match the calculation only loosely (overlap < 0.80)
+about: The extended Hückel diagram explains the calculation's orbitals: nothing more, nothing less.\n\n**The model.** Every column is extended Hückel (Alvarez parameters). The middle column is the molecule's own extended Hückel run, the side columns are the two fragments' (Cl3Co and Cl). The basis is the same in all three, so the lines are an exact projection of each model MO on the fragment orbitals: a line joins a model MO to a fragment level that makes up at least 10 % of it.\n\n**Bonding and antibonding** are read from the sign of each model MO's overlap population between the two fragments, then paired per symmetry label and degeneracy, so each antibonding level has its bonding partner; a level without a partner is non-bonding. Colours mark the pairs.\n\n**The calculation** is the column on the right, on its own energy axis in Hartree and to scale. For each model level it shows the calculated orbital (or set of near-degenerate orbitals) with the largest overlap with it, at its calculated energy, in the colour of the model level it matches. A level marked ≈ matches only loosely (overlap below 0.80; the value is in the hover text). Labels are those of the matched calculated orbital. Clicking a level shows that orbital in 3-D.\n\nVirtual orbitals above the LUMO depend strongly on the basis set.\n\n**Total electrons: 39** (Cl3Co 32, Cl 7).\n\nEach model level carries a short grey tag naming the fragment orbitals it is mostly made of (shares of at least 20 %), such as Cr d or CO π*. Ligand-field view hides empty ligand-centred levels such as CO π*; transitions into them are charge transfer, not d–d.\n\n**Caveats.** 6 levels match the calculation only loosely (overlap < 0.80). Extended Hückel puts empty antibonding orbitals tens of eV up, so an empty level more than 30 eV above the HOMO is drawn at the top of the axis with its model energy written beside it, or not at all when it sits almost entirely on one fragment. A loose match means no calculated orbital resembles the model level closely; read its calculated energy with care.\n\nDrawn as the two pieces left when the picked bond is cut, Cl3Co and Cl.\n\n**Unrestricted calculation.** This is an unrestricted calculation: the levels are drawn at their alpha energies, and the beta electrons are matched to them by symmetry.\n\n**Orbital labels.** Symmetry labels computed from the orbitals in C3v; every level is the subduction of its label in the parent group, which the code's own labels validated.\n\nCutting Co1–Cl2 does not keep the symmetry of the molecule (Td); the orbitals are labelled in C3v, the largest subgroup that keeps the two sides.\n\n**Picked atoms.** One atom is drawn against the atoms bonded to it; two bonded atoms cut that bond and the two sides are drawn against each other (in and out of phase when they are equal). A metal gives the fragment-orbital diagram, each ligand being a connected piece left when the metal is removed.
+verdict: differs The model puts 11e below 10e, the model puts 15e* below 14e*; your calculation has those the other way round (2 of 36 pairs of the 9 levels judged). The empty levels differ: your LUMO is 19a1, the model's is 16e.
+column left
+  title: Cl3Co (extended Hückel)
+  fromHalves: 0
+  hiddenCount: 0
+  hiddenMaxEnergy: 0.000000
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 0
+  shellKeys:
+  levels: 14
+  level 0 energy=-0.983256 tabulated=0.000000 irrep=A1 label=a1 (FO1) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="−26.76 eV" detail="Fragment orbital set from extended Hückel, E = −26.76 eV, 2 electrons."
+  level 1 energy=-0.971868 tabulated=0.000000 irrep=E label=e (FO2-3) character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="−26.45 eV" detail="Fragment orbital set from extended Hückel, E = −26.45 eV, 4 electrons."
+  level 2 energy=-0.570178 tabulated=0.000000 irrep=A1 label=a1 (FO4) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="−15.52 eV" detail="Fragment orbital set from extended Hückel, E = −15.52 eV, 2 electrons."
+  level 3 energy=-0.545069 tabulated=0.000000 irrep=E label=e (FO5-6) character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="−14.83 eV" detail="Fragment orbital set from extended Hückel, E = −14.83 eV, 4 electrons."
+  level 4 energy=-0.541972 tabulated=0.000000 irrep=E label=e (FO7-8) character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="−14.75 eV" detail="Fragment orbital set from extended Hückel, E = −14.75 eV, 4 electrons."
+  level 5 energy=-0.538563 tabulated=0.000000 irrep=E label=e (FO9) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="−14.66 eV" detail="Fragment orbital set from extended Hückel, E = −14.66 eV, 2 electrons."
+  level 6 energy=-0.523841 tabulated=0.000000 irrep=E label=e (FO10-11) character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="−14.25 eV" detail="Fragment orbital set from extended Hückel, E = −14.25 eV, 4 electrons."
+  level 7 energy=-0.509125 tabulated=0.000000 irrep=E label=e (FO12) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="−13.85 eV" detail="Fragment orbital set from extended Hückel, E = −13.85 eV, 2 electrons."
+  level 8 energy=-0.471837 tabulated=0.000000 irrep=E label=e (FO13) character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="−12.84 eV" detail="Fragment orbital set from extended Hückel, E = −12.84 eV, 0 electrons."
+  level 9 energy=-0.464969 tabulated=0.000000 irrep=E label=e (FO14-15) character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="−12.65 eV" detail="Fragment orbital set from extended Hückel, E = −12.65 eV, 4 electrons."
+  level 10 energy=-0.436433 tabulated=0.000000 irrep=E label=e (FO16-17) character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="−11.88 eV" detail="Fragment orbital set from extended Hückel, E = −11.88 eV, 4 electrons."
+  level 11 energy=-0.195292 tabulated=0.000000 irrep=E label=e (FO18) character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="−5.31 eV" detail="Fragment orbital set from extended Hückel, E = −5.31 eV, 0 electrons."
+  level 12 energy=0.156463 tabulated=0.000000 irrep=E label=e character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="4.26 eV" detail="Fragment orbital set from extended Hückel, E = 4.26 eV, 0 electrons."
+  level 13 energy=0.222754 tabulated=0.000000 irrep=A1 label=a1 character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="6.06 eV" detail="Fragment orbital set from extended Hückel, E = 6.06 eV, 0 electrons."
+column centre
+  title: Model MOs
+  fromHalves: 0
+  hiddenCount: 0
+  hiddenMaxEnergy: 0.000000
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 0
+  shellKeys:
+  levels: 11
+  calconly 0 energy=0.327350 label=19a1 occupancy=0.0000
+  level 0 energy=-0.986861 tabulated=0.000000 irrep=A1 label=13a1 nb tag=Cl3Co σ + Cl s character=NONBONDING pairing=-1 occupancy=1.0000 occupancyBeta=1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.7706 shareRight=0.2294 calcEnergy=-0.341280 calcOverlap=0.9509 calcLabel=13a1 calcOcc=1.0000 calcOccBeta=1.0000 calcDeg=1 orbitals=[29] annotation="−26.85 eV" detail="Model MO (extended Hückel), E = −26.85 eV.  Non-bonding (overlap population 0.03).\nMade of: Cl3Co a1 76 %, Cl 3s 23 %\nMatches your MO 30 (E = −0.3413 Hartree, overlap 0.95)."
+  level 1 energy=-0.971873 tabulated=0.000000 irrep=E label=9e nb tag=Cl3Co σ + Cl s character=NONBONDING pairing=-1 occupancy=3.0000 occupancyBeta=3.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.7647 shareRight=0.2353 calcEnergy=-0.332600 calcOverlap=0.7763 calcLabel=9e calcOcc=2.0000 calcOccBeta=2.0000 calcDeg=2 orbitals=[31,32] annotation="−26.45 eV" detail="Model MO (extended Hückel), E = −26.45 eV.  Non-bonding (overlap population 0.01).\nMade of: Cl3Co e 67 %, Cl 3s 23 %, Cl3Co a1 8 %\nMatches your MO 32–33 (E = −0.3326 Hartree, overlap 0.78).  A poor match: no calculated orbital resembles this model level."
+  level 2 energy=-0.576839 tabulated=0.000000 irrep=A1 label=15a1 tag=Cl3Co σ + Cl p character=BONDING pairing=0 occupancy=1.0000 occupancyBeta=1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.7877 shareRight=0.2123 calcEnergy=0.021880 calcOverlap=0.9625 calcLabel=15a1 calcOcc=1.0000 calcOccBeta=1.0000 calcDeg=1 orbitals=[33] annotation="−15.70 eV" detail="Model MO (extended Hückel), E = −15.70 eV.  Bonding (overlap population 0.07).\nMade of: Cl3Co a1 76 %, Cl 3p 21 %\nMatches your MO 34 (E = 0.0219 Hartree, overlap 0.96)."
+  level 3 energy=-0.546669 tabulated=0.000000 irrep=E label=11e tag=Cl3Co σ character=BONDING pairing=2 occupancy=2.0000 occupancyBeta=2.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.8105 shareRight=0.1895 calcEnergy=0.072500 calcOverlap=0.9797 calcLabel=11e calcOcc=2.0000 calcOccBeta=2.0000 calcDeg=2 orbitals=[37,38] annotation="−14.88 eV" detail="Model MO (extended Hückel), E = −14.88 eV.  Bonding (overlap population 0.03).\nMade of: Cl3Co e 51 %, Cl3Co e 20 %, Cl 3p 19 %, Cl3Co e 9 %\nMatches your MO 38–39 (E = 0.0725 Hartree, overlap 0.98)."
+  level 4 energy=-0.544020 tabulated=0.000000 irrep=E label=10e tag=Cl3Co σ + Cl p character=BONDING pairing=1 occupancy=3.0000 occupancyBeta=3.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.7966 shareRight=0.2034 calcEnergy=0.038080 calcOverlap=0.6308 calcLabel=10e calcOcc=2.0000 calcOccBeta=2.0000 calcDeg=2 orbitals=[35,36] annotation="−14.80 eV" detail="Model MO (extended Hückel), E = −14.80 eV.  Bonding (overlap population 0.03).\nMade of: Cl3Co e 31 %, Cl3Co e 28 %, Cl 3p 20 %, Cl3Co a1 7 %, Cl3Co e 6 %\nMatches your MO 36–37 (E = 0.0381 Hartree, overlap 0.63).  A poor match: no calculated orbital resembles this model level."
+  level 5 energy=-0.537882 tabulated=0.000000 irrep=E label=12e nb tag=Cl3Co σ character=NONBONDING pairing=-1 occupancy=3.0000 occupancyBeta=3.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.8169 shareRight=0.1831 calcEnergy=0.077170 calcOverlap=0.6298 calcLabel=12e calcOcc=2.0000 calcOccBeta=2.0000 calcDeg=2 orbitals=[40,41] annotation="−14.64 eV" detail="Model MO (extended Hückel), E = −14.64 eV.  Non-bonding (overlap population 0.02).\nMade of: Cl3Co e 30 %, Cl3Co e 25 %, Cl3Co e 22 %, Cl 3p 18 %\nMatches your MO 41–42 (E = 0.0772 Hartree, overlap 0.63).  A poor match: no calculated orbital resembles this model level."
+  level 6 energy=-0.509125 tabulated=0.000000 irrep=E label=13e nb tag=Cl3Co σ + Cl p character=NONBONDING pairing=-1 occupancy=3.0000 occupancyBeta=3.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.7513 shareRight=0.2487 calcEnergy=0.107200 calcOverlap=0.7935 calcLabel=13e calcOcc=2.0000 calcOccBeta=2.0000 calcDeg=2 orbitals=[43,44] annotation="−13.85 eV" detail="Model MO (extended Hückel), E = −13.85 eV.  Non-bonding (overlap population −0.02).\nMade of: Cl3Co e 35 %, Cl3Co e 33 %, Cl 3p 25 %, Cl3Co e 4 %\nMatches your MO 44–45 (E = 0.1072 Hartree, overlap 0.79).  A poor match: no calculated orbital resembles this model level."
+  level 7 energy=-0.459626 tabulated=0.000000 irrep=E label=15e* tag=Cl3Co σ character=ANTIBONDING pairing=2 occupancy=2.0000 occupancyBeta=2.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=0.9401 shareRight=0.0599 calcEnergy=0.151050 calcOverlap=0.9893 calcLabel=15e* calcOcc=2.0000 calcOccBeta=0.0000 calcDeg=2 orbitals=[48,49] annotation="−12.51 eV" detail="Model MO (extended Hückel), E = −12.51 eV.  Antibonding (overlap population −0.02).\nMade of: Cl3Co e 89 %, Cl 3p 6 %, Cl3Co e 4 %\nMatches your MO 49–50 (E = 0.1510 Hartree, overlap 0.99)."
+  level 8 energy=-0.431599 tabulated=0.000000 irrep=E label=14e* tag=Cl3Co σ* + Cl3Co σ character=ANTIBONDING pairing=1 occupancy=3.0000 occupancyBeta=0.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.9206 shareRight=0.0794 calcEnergy=0.147700 calcOverlap=0.7851 calcLabel=14e* calcOcc=2.0000 calcOccBeta=2.0000 calcDeg=2 orbitals=[46,47] annotation="−11.74 eV" detail="Model MO (extended Hückel), E = −11.74 eV.  Antibonding (overlap population −0.04).\nMade of: Cl3Co e 62 %, Cl3Co e 24 %, Cl 3p 8 %, Cl3Co e 4 %\nMatches your MO 47–48 (E = 0.1477 Hartree, overlap 0.79).  A poor match: no calculated orbital resembles this model level."
+  level 9 energy=0.167802 tabulated=0.000000 irrep=E label=16e nb tag=Cl3Co σ* character=NONBONDING pairing=-1 occupancy=0.0000 occupancyBeta=0.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=0.9533 shareRight=0.0467 calcEnergy=0.508690 calcOverlap=0.6642 calcLabel=16e calcOcc=0.0000 calcOccBeta=0.0000 calcDeg=2 orbitals=[53,54] annotation="4.57 eV" detail="Model MO (extended Hückel), E = 4.57 eV.  Non-bonding (overlap population −0.26).\nMade of: Cl3Co e 66 %, Cl3Co e 19 %, Cl3Co a1 10 %, Cl 3p 3 %\nMatches your MO 54–55 (E = 0.5087 Hartree, overlap 0.66).  A poor match: no calculated orbital resembles this model level."
+  level 10 energy=0.248712 tabulated=0.000000 irrep=A1 label=20a1* tag=Cl3Co σ* character=ANTIBONDING pairing=0 occupancy=0.0000 occupancyBeta=0.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=0.9306 shareRight=0.0694 calcEnergy=0.437820 calcOverlap=0.8503 calcLabel=20a1* calcOcc=0.0000 calcOccBeta=0.0000 calcDeg=1 orbitals=[51] annotation="6.77 eV" detail="Model MO (extended Hückel), E = 6.77 eV.  Antibonding (overlap population −0.37).\nMade of: Cl3Co a1 71 %, Cl3Co e 21 %, Cl 3p 5 %\nMatches your MO 52 (E = 0.4378 Hartree, overlap 0.85)."
+column right
+  title: Cl (extended Hückel)
+  fromHalves: 0
+  hiddenCount: 0
+  hiddenMaxEnergy: 0.000000
+  hiddenSemicoreCount: 0
+  hiddenAboveCount: 0
+  shellKeys:
+  levels: 2
+  level 0 energy=-0.966507 tabulated=0.000000 irrep=- label=3s character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="−26.30 eV" detail="Fragment orbital set from extended Hückel, E = −26.30 eV, 2 electrons."
+  level 1 energy=-0.521840 tabulated=0.000000 irrep=- label=3p character=UNKNOWN pairing=-1 occupancy=5.0000 occupancyBeta=-1.0000 degeneracy=3 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="−14.20 eV" detail="Fragment orbital set from extended Hückel, E = −14.20 eV, 5 electrons."
+links: 26
+  link 0 left=0 centre=0 right=-1 weight=0.7561
+  link 1 left=-1 centre=0 right=0 weight=0.2292
+  link 2 left=1 centre=1 right=-1 weight=0.6666
+  link 3 left=-1 centre=1 right=0 weight=0.2349
+  link 4 left=2 centre=2 right=-1 weight=0.7603
+  link 5 left=-1 centre=2 right=1 weight=0.2071
+  link 6 left=3 centre=3 right=-1 weight=0.5061
+  link 7 left=4 centre=3 right=-1 weight=0.2024
+  link 8 left=-1 centre=3 right=1 weight=0.1895
+  link 9 left=3 centre=4 right=-1 weight=0.3051
+  link 10 left=4 centre=4 right=-1 weight=0.2782
+  link 11 left=-1 centre=4 right=1 weight=0.2018
+  link 12 left=4 centre=5 right=-1 weight=0.2463
+  link 13 left=5 centre=5 right=-1 weight=0.2983
+  link 14 left=6 centre=5 right=-1 weight=0.2186
+  link 15 left=-1 centre=5 right=1 weight=0.1830
+  link 16 left=6 centre=6 right=-1 weight=0.3524
+  link 17 left=7 centre=6 right=-1 weight=0.3333
+  link 18 left=-1 centre=6 right=1 weight=0.2487
+  link 19 left=9 centre=7 right=-1 weight=0.8913
+  link 20 left=8 centre=8 right=-1 weight=0.2384
+  link 21 left=10 centre=8 right=-1 weight=0.6177
+  link 22 left=11 centre=9 right=-1 weight=0.1853
+  link 23 left=12 centre=9 right=-1 weight=0.6631
+  link 24 left=11 centre=10 right=-1 weight=0.2054
+  link 25 left=13 centre=10 right=-1 weight=0.7126

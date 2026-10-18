@@ -1,7 +1,8 @@
 group: D3h
 formula: C3H6
 construction: -
-headline: 
+headline: The picked atoms cannot be drawn as two fragments
+source: MO levels: RHF, 6-31G* · 
 note: Molecular levels only · energies in Hartree · labels in D<sub>3h</sub> · 3 core orbitals hidden\nThis bond is part of a ring, so cutting it does not split the molecule in two and there is no pair of fragments to draw from it. Use Choose fragments to group the atoms yourself.
 about: **What is drawn.** The molecular levels in the middle are the calculation's own orbital energies, in Hartree.\n\n**Symmetry.** Symmetry labels computed from the orbitals in D3h; the code reported none.\n\n**Not shown.** 3 core orbitals below −10.17 Hartree.
 column left

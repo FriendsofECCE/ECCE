@@ -22,3 +22,15 @@ not unions of orbits, so they have no symmetry orbitals). A refusal is a
 tier-B line plus the bare spectrum, never a different diagram.
 `ECCE_MODIAGRAM_PICK="O1"` / `"C1,C2"` drives it in tests. Not done: falling
 back to the molecule's lower symmetry when a pick breaks the group.
+
+**Compute, and what a bond the symmetry does not keep does (2026-10-18).** The
+choosers no longer rebuild on every click: the "Compute" button takes the choice
+(`MoDiagramPanel::onCompute`; scene `modipick <name> Co1 Cl2` presses it through
+the button's own event, test `orca-cocl4-compute`). A metal with a bonded atom is a
+bond cut like any other (CoCl3 against Cl); only a lone metal is the
+fragment-orbital diagram. A cut that some operation neither keeps nor swaps
+(Co-Cl in Td) is drawn in the largest subgroup that keeps the two sides
+(`MoFragments::subgroupKeeping`: Td gives C3v, Oh gives C4v), the orbitals are
+labelled there and the summary says "labels in C3v (lowered from Td by the pick)".
+A refusal (a ring bond, a subgroup without a table) is a tier-B line on the panel.
+See `labels-in-a-subgroup-split-degenerate-levels.md`.

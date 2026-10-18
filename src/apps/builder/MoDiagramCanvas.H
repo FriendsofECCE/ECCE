@@ -866,6 +866,241 @@ class MoDiagramCanvas : public wxPanel
       return widest;
     }
 
+
+    //  THE MODEL'S MIDDLE COLUMN IN LANES.
+    //
+    //  Levels close in energy have their lines in side-by-side lanes (as the
+    //  calculation column's), every line at its own energy.  Their labels are
+    //  one row each in a column to the left, spread just far enough apart to be
+    //  read, and joined to their lines by a thin leader where they had to move.
+    struct CentreLane
+    {
+      int lane;        // 0, 1, ...
+      int lineX;       // left of the lines, from the column's start
+      int y;           // the level
+      int slotsW;      // width of the lines
+      int labelY;      // centre of the label's row
+      int labelW;      // width of the label's row
+      int top, bottom; // the arrows
+    };
+    vector<CentreLane> p_cLanes;
+    int p_cLaneTotal = 0;
+    int p_cLabelRight = 0;          // right edge of the label column, from the column's start
+
+    int centreSlot() const { return 24; }
+
+    /** The label row of a centre level: label, energy, tag. */
+    void centreRow(wxDC& dc, const MoLevel& l, vector<Piece>& pieces, int& wLabel,
+                   int& wEnergy, int& wTag) const
+    {
+      wxFont base = *wxSMALL_FONT, small = base;
+      small.SetPointSize(base.GetPointSize() - 2 > 4 ? base.GetPointSize() - 2 : 5);
+      wxFont tagFont = base;
+      tagFont.SetPointSize(base.GetPointSize() - 1 > 5 ? base.GetPointSize() - 1 : 5);
+      splitLabel(l.label, pieces);
+      wLabel = measurePieces(dc, pieces, base, small).x;
+      dc.SetFont(base);
+      wEnergy = (p_showEnergies && !l.annotation.empty())
+          ? dc.GetTextExtent(wxString(l.annotation.c_str(), wxConvUTF8)).x : 0;
+      wTag = 0;
+      if (!l.tag.empty()) {
+        dc.SetFont(tagFont);
+        wTag = dc.GetTextExtent(wxString(l.tag.c_str(), wxConvUTF8)).x;
+        dc.SetFont(base);
+      }
+    }
+
+    /** Every centre level's lane and label row, and the width the column needs. */
+    int layoutCentreLanes(wxDC& dc, const wxRect& plot, int maxWidth)
+    {
+      const int n = (int)p_centre.levels.size();
+      p_cLanes.assign(n, CentreLane());
+      dc.SetFont(*wxSMALL_FONT);
+      const int row = dc.GetTextExtent(wxT("Xg")).y;
+
+      int labelCol = 0;
+      for (int i = 0; i < n; i++) {
+        const MoLevel& l = p_centre.levels[i];
+        vector<Piece> pieces;
+        int wl, we, wt;
+        centreRow(dc, l, pieces, wl, we, wt);
+        CentreLane& c = p_cLanes[i];
+        c.labelW = wl + (we ? 8 + we : 0) + (wt ? 8 + wt : 0);
+        labelCol = max(labelCol, c.labelW);
+        const int count = l.degeneracy > 0 ? l.degeneracy : 1;
+        c.y = yFor(l.energy, plot);
+        c.slotsW = count*centreSlot();
+        c.top = c.y - 11;
+        c.bottom = c.y + 11;
+      }
+
+      //  Lines: top to bottom, each into the first lane where its arrows fit.
+      vector<int> order(n);
+      for (int i = 0; i < n; i++) order[i] = i;
+      std::stable_sort(order.begin(), order.end(),
+                       [&](int a, int b) { return p_cLanes[a].y < p_cLanes[b].y; });
+      //  As many lanes as the arrows need; if the column would be wider than
+      //  the room, fewer, the densest levels sharing the last lane.
+      vector<int> laneBottom, laneW, laneX;
+      int total = 0;
+      p_cLabelRight = labelCol;
+      for (size_t maxLanes = (size_t)n; maxLanes >= 1; maxLanes--) {
+        laneBottom.clear(); laneW.clear();
+        for (int k = 0; k < n; k++) {
+          CentreLane& c = p_cLanes[order[k]];
+          size_t ln = 0;
+          while (ln < laneBottom.size() && laneBottom[ln] + 1 > c.top) ln++;
+          if (ln >= maxLanes) ln = maxLanes - 1;
+          if (ln == laneBottom.size()) { laneBottom.push_back(-1000000); laneW.push_back(0); }
+          laneBottom[ln] = c.bottom;
+          laneW[ln] = max(laneW[ln], c.slotsW);
+          c.lane = (int)ln;
+        }
+        laneX.assign(laneW.size(), 0);
+        total = labelCol + 16;
+        for (size_t ln = 0; ln < laneW.size(); ln++) {
+          laneX[ln] = total;
+          total += laneW[ln] + 8;
+        }
+        total -= 8;
+        if (total <= maxWidth || maxLanes == 1) break;
+      }
+      for (int i = 0; i < n; i++) p_cLanes[i].lineX = laneX[p_cLanes[i].lane];
+
+      //  Labels: one row each, in energy order, moved apart only as far as
+      //  needed; a crowded group is centred on where its levels are.
+      const int R = row + 2;
+      struct Group { int first, last; double top; };
+      vector<Group> gs;
+      for (int k = 0; k < n; k++) {
+        Group g; g.first = g.last = k; g.top = p_cLanes[order[k]].y - R/2.0;
+        gs.push_back(g);
+      }
+      for (bool merged = true; merged; ) {
+        merged = false;
+        for (size_t g = 0; g + 1 < gs.size(); g++) {
+          const double bottom = gs[g].top + (gs[g].last - gs[g].first + 1)*R;
+          if (bottom > gs[g + 1].top + 0.5) {
+            gs[g].last = gs[g + 1].last;
+            double sum = 0.0;
+            for (int k = gs[g].first; k <= gs[g].last; k++)
+              sum += (p_cLanes[order[k]].y - R/2.0) - (k - gs[g].first)*R;
+            gs[g].top = sum/(gs[g].last - gs[g].first + 1);
+            gs.erase(gs.begin() + g + 1);
+            merged = true;
+            break;
+          }
+        }
+      }
+      for (size_t g = 0; g < gs.size(); g++)
+        for (int k = gs[g].first; k <= gs[g].last; k++)
+          p_cLanes[order[k]].labelY = (int)(gs[g].top + (k - gs[g].first)*R + R/2.0);
+
+      //  Inside the plot, top and bottom, keeping the spacing.
+      {
+        int lim = plot.y + plot.height - R/2;
+        for (int k = n - 1; k >= 0; k--) {
+          CentreLane& c = p_cLanes[order[k]];
+          if (c.labelY > lim) c.labelY = lim;
+          lim = c.labelY - R;
+        }
+        lim = plot.y + R/2;
+        for (int k = 0; k < n; k++) {
+          CentreLane& c = p_cLanes[order[k]];
+          if (c.labelY < lim) c.labelY = lim;
+          lim = c.labelY + R;
+        }
+      }
+
+      p_cLaneTotal = total;
+      return total;
+    }
+
+    /** The model's middle column: lines, electrons, labels and hit boxes. */
+    void drawCentreLanes(wxDC& dc, int x0, const wxRect& plot, vector<Hit>* hits)
+    {
+      p_outward = -1;
+      p_sketchColumn = &p_centre;
+      const int slot = centreSlot();
+      wxFont base = *wxSMALL_FONT, small = base;
+      small.SetPointSize(base.GetPointSize() - 2 > 4 ? base.GetPointSize() - 2 : 5);
+      wxFont tagFont = base;
+      tagFont.SetPointSize(base.GetPointSize() - 1 > 5 ? base.GetPointSize() - 1 : 5);
+      for (size_t i = 0; i < p_centre.levels.size(); i++) {
+        const MoLevel& level = p_centre.levels[i];
+        const CentreLane& c = p_cLanes[i];
+        const int count = level.degeneracy > 0 ? level.degeneracy : 1;
+        const wxColour colour = levelColour(level);
+        dc.SetPen(wxPen(colour, 2));
+        for (int d = 0; d < count; d++) {
+          const int lx = x0 + c.lineX + d*slot;
+          dc.DrawLine(lx, c.y, lx + slot - 4, c.y);
+        }
+        drawElectrons(dc, level, x0 + c.lineX, slot, slot - 4, c.y, 0, plot);
+
+        //  The label row, right-aligned at the label column's edge; lines
+        //  run behind the text, not through it.
+        vector<Piece> pieces;
+        int wl, we, wt;
+        centreRow(dc, level, pieces, wl, we, wt);
+        dc.SetFont(base);
+        const int row = dc.GetTextExtent(wxT("Xg")).y;
+        const int right = x0 + p_cLabelRight;
+        const int top = c.labelY - row/2;
+        const int xTag = right - wt;
+        const int xEnergy = (wt ? xTag - 8 : right) - we;
+        const int xLabel = ((we ? xEnergy : (wt ? xTag : right + 8)) - 8) - wl;
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        dc.SetBrush(*wxWHITE_BRUSH);
+        dc.DrawRectangle(xLabel - 2, top, right - xLabel + 4, row);
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        if (wt) {
+          dc.SetFont(tagFont);
+          dc.SetTextForeground(wxColour(130, 130, 130));
+          dc.DrawText(wxString(level.tag.c_str(), wxConvUTF8), xTag, top);
+          dc.SetFont(base);
+        }
+        if (we) {
+          dc.SetTextForeground(wxColour(130, 130, 130));
+          dc.DrawText(wxString(level.annotation.c_str(), wxConvUTF8), xEnergy, top);
+        }
+        dc.SetTextForeground(colour);
+        drawPieces(dc, pieces, xLabel, top, base, small, row);
+        if (abs(c.labelY - c.y) > 3 || c.lane > 0) {
+          dc.SetPen(wxPen(wxColour(200, 200, 200), 1));
+          dc.DrawLine(x0 + p_cLabelRight + 3, c.labelY, x0 + c.lineX - 3, c.y);
+        }
+        if (hits != 0 && !level.orbitals.empty()) {
+          for (int d = 0; d < count; d++) {
+            const size_t oi = (size_t)d < level.orbitals.size()
+                              ? (size_t)d : level.orbitals.size() - 1;
+            Hit hit;
+            hit.box = wxRect(x0 + c.lineX + d*slot - 6, c.y - 7, slot + 8, 15);
+            hit.orbital = level.orbitals[oi];
+            hit.level = (int)i;
+            hits->push_back(hit);
+          }
+        }
+      }
+    }
+
+  public:
+    /** Pairs of levels of the model column whose blocks overlap (a test hook). */
+    int centreOverlaps() const
+    {
+      int n = 0;
+      for (size_t a = 0; a < p_cLanes.size(); a++)
+        for (size_t b = a + 1; b < p_cLanes.size(); b++) {
+          const CentreLane &u = p_cLanes[a], &v = p_cLanes[b];
+          if (u.lane == v.lane && u.top < v.bottom && v.top < u.bottom) n++;
+          //  Two label rows on one line of text.
+          if (abs(u.labelY - v.labelY) < 12) n++;
+        }
+      return n;
+    }
+
+  private:
+
     void drawColumn(wxDC& dc, const MoColumn& column, int x, int width,
                     const wxRect& plot, bool withOccupancy,
                     vector<Hit>* hits, int outward = -1,
@@ -1651,17 +1886,24 @@ class MoDiagramCanvas : public wxPanel
       //  The molecular column too: a row of near-degenerate levels
       //  drawn side by side needs room for all of their lines, and
       //  CCl4 puts 3t2 and 1t1 -- six lines -- on one row.
-      const int centreWidth = max(levelWidth,
-                                  min(3*levelWidth, 26*widestRow(p_centre)));
+      int centreWidth = max(levelWidth,
+                            min(3*levelWidth, 26*widestRow(p_centre)));
 
       vector<CalcItem> calcItems;
       int calcAxisX = 0;
       const int calcWidth = model ? layoutCalc(dc, plot, size.x, calcItems, calcAxisX) : 0;
       const int usable  = size.x - calcWidth;
       const int xLeft   = usable/6 - (leftWidth - levelWidth)/2;
-      const int xCentre = usable/2 - centreWidth/2;
       const int xRight  = (5*usable)/6 - levelWidth
                           - (rightWidth - levelWidth)/2;
+      //  The model's middle column (lanes) takes what lies between the
+      //  fragment columns, but never less than a few lanes' worth.
+      if (model) {
+        const int between = xRight - (xLeft + leftWidth) - 80;
+        centreWidth = layoutCentreLanes(dc, plot,
+                                        max(300, min((int)(0.55*size.x), between)));
+      }
+      const int xCentre = usable/2 - centreWidth/2;
       const int xCalc   = size.x - calcWidth + 8;
 
       //  The energy axis.  A correlation diagram without one is a set
@@ -1754,7 +1996,8 @@ class MoDiagramCanvas : public wxPanel
         if (haveL && xl < 2) xl = 2;
         if (haveL) dc.DrawText(tl, xl, top - 38);
         if (haveR) dc.DrawText(tr, xr, top - 38);
-        dc.DrawText(tc, xCentre, top - 38);
+        //  Not over the banner of a diagram that could not be drawn.
+        if (p_headline.empty() || p_haveFragments) dc.DrawText(tc, xCentre, top - 38);
         if (model) {
           dc.DrawText(wxT("Your calculation (Ha)"), xCalc, top - 38);
           dc.SetPen(wxPen(wxColour(210, 210, 210), 1));
@@ -1790,17 +2033,26 @@ class MoDiagramCanvas : public wxPanel
           //  un-nudged position instead, so the lines stopped short of
           //  the levels they belong to. The fragment ends below were
           //  always spread-aware; only the molecular end was not.
-          const int cy = levelYIn(dc, p_centre, plot, true,
-                                  link.centreLevel);
+          const int cy = (model && (size_t)link.centreLevel < p_cLanes.size())
+              ? p_cLanes[link.centreLevel].y
+              : levelYIn(dc, p_centre, plot, true, link.centreLevel);
 
+          //  In lanes the connector meets the level's own lines.
+          int cxL = xCentre, cxR = xCentre + centreWidth;
+          if (model && (size_t)link.centreLevel < p_cLanes.size()) {
+            const CentreLane& c = p_cLanes[link.centreLevel];
+            const int count = max(1, p_centre.levels[link.centreLevel].degeneracy);
+            cxL = xCentre + c.lineX - 2;
+            cxR = xCentre + c.lineX + count*centreSlot() - 2;
+          }
           if (link.leftLevel >= 0 && link.leftLevel < (int)p_left.levels.size()) {
             dc.DrawLine(xLeft + leftWidth,
                         levelYIn(dc, p_left, plot, true, link.leftLevel),
-                        xCentre, cy);
+                        cxL, cy);
           }
           if (link.rightLevel >= 0 &&
               link.rightLevel < (int)p_right.levels.size()) {
-            dc.DrawLine(xCentre + centreWidth, cy,
+            dc.DrawLine(cxR, cy,
                         xRight,
                         levelYIn(dc, p_right, plot, true, link.rightLevel));
           }
@@ -1845,8 +2097,9 @@ class MoDiagramCanvas : public wxPanel
       //  printed beside every level, so the number is still exact,
       //  whereas two overprinted labels are not readable at all.  A
       //  qualitative diagram is what this is for.
-      drawColumn(dc, p_centre, xCentre, centreWidth, plot, true, &p_hits,
-                 -1, true);
+      if (model) drawCentreLanes(dc, xCentre, plot, &p_hits);
+      else drawColumn(dc, p_centre, xCentre, centreWidth, plot, true, &p_hits,
+                      -1, true);
 
       //  THE CALCULATION: its own column, axis and scale (see layoutCalc).
       if (model) drawCalc(dc, plot, calcItems, calcAxisX);

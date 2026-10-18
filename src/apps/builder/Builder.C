@@ -6135,7 +6135,7 @@ void Builder::updatePropertyMenus()
           GetEventHandler()->ProcessEvent(ev);
           return true;
         }
-        //  "modiagram <name> tip|click <n>": the diagram's text for molecular
+        //  "modiagram <name> tip|click|overlaps <n>": the diagram's text for molecular
         //  level <n> (the tooltip), or a click on orbital <n> (0-based ORBENG
         //  index); -> <name>.txt, with whether a surface was computed.
         if (w[0] == "modiagram" && w.size() == 4) {
@@ -6153,12 +6153,32 @@ void Builder::updatePropertyMenus()
             out << md->levelText(n) << "\n";
           } else if (w[2] == "ctip") {
             out << md->calcLevelText(n) << "\n";
+          } else if (w[2] == "overlaps") {
+            out << "overlaps " << md->centreOverlaps() << "\n";
           } else {
             md->orbitalClicked(n);
             SingleGrid *grid = getSG()->getCurrentGrid();
             out << "grid " << (grid && grid->fieldMax() > grid->fieldMin()
                                ? "yes" : "no") << "\n";
           }
+          return true;
+        }
+        //  "modipick <name> <atom|-> [<bonded atom>]": choose the atom (and
+        //  bond) in the MO diagram and press Compute, as clicked; the text
+        //  under the diagram afterwards -> <name>.txt.
+        if (w[0] == "modipick" && w.size() >= 3 && w.size() <= 4) {
+          MoDiagramPanel *md = 0;
+          set<PropertyPanel*> dp =
+              PropertyPanel::getPanels(p_calculation->getURL().toString());
+          for (set<PropertyPanel*>::iterator it = dp.begin();
+               it != dp.end() && !md; ++it)
+            md = dynamic_cast<MoDiagramPanel*>(*it);
+          if (!md) return s.fail("modipick: no MO diagram panel");
+          if (!md->computePick(w[2] == "-" ? string() : w[2],
+                               w.size() == 4 ? w[3] : string()))
+            return s.fail("modipick: no such atom or bond: " + w[2]);
+          std::ofstream out(outdir + "/" + w[1] + ".txt");
+          out << md->noteText() << "\n";
           return true;
         }
         //  "mofield <type>": the MO panel's field-type choice, as clicked.

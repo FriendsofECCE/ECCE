@@ -2274,8 +2274,9 @@ static bool buildPicked(const vector<double>& coords,
       note = "The picked atom is not in this molecule.";
       return false;
    }
-   if (MoFragments::valenceEnergy(elements[a], 2, unused) ||
-       (b >= 0 && MoFragments::valenceEnergy(elements[b], 2, unused))) {
+   //  A bond may have a metal at one end (CoCl3 against Cl); a lone metal is the
+   //  fragment-orbital diagram's.
+   if (b < 0 && MoFragments::valenceEnergy(elements[a], 2, unused)) {
       note = "A metal was picked, which needs the fragment-orbital "
              "diagram, and that is not available for this calculation.";
       return false;
@@ -2413,6 +2414,313 @@ static bool buildPicked(const vector<double>& coords,
       return false;
    }
    return true;
+}
+
+
+bool MoFragments::bondSides(const vector<double>& coords,
+                            const vector<string>& elements, int a, int b,
+                            vector<int>& sideA, string& note)
+{
+   const int n = (int)elements.size();
+   sideA.clear();
+   if (a < 0 || b < 0 || a >= n || b >= n || a == b ||
+       !bondedByRadii(a, b, coords, elements)) {
+      note = "The two picked atoms are not bonded to each other.";
+      return false;
+   }
+   vector<bool> inA(n, false);
+   vector<int> stack(1, a);
+   inA[a] = true;
+   while (!stack.empty()) {
+      const int here = stack.back();
+      stack.pop_back();
+      for (int next = 0; next < n; next++) {
+         if (next == here || !bondedByRadii(here, next, coords, elements)) continue;
+         if ((here == a && next == b) || (here == b && next == a)) continue;
+         if (!inA[next]) { inA[next] = true; stack.push_back(next); }
+      }
+   }
+   if (inA[b]) {
+      note = "This bond is part of a ring, so cutting it does not split "
+             "the molecule in two and there is no pair of fragments to "
+             "draw from it. Use Choose fragments to group the atoms yourself.";
+      return false;
+   }
+   for (int i = 0; i < n; i++) if (inA[i]) sideA.push_back(i);
+   return true;
+}
+
+
+namespace {
+
+struct Axis { double v[3]; int order; };
+
+double dot3(const double* x, const double* y) { return x[0]*y[0] + x[1]*y[1] + x[2]*y[2]; }
+
+//  Name a point group from the operations it has (a closed set of 3x3
+//  orthogonal matrices), and the direction its principal axis (or mirror
+//  normal) points.  Cubic groups and the rarer dihedral ones are not named.
+bool nameGroup(const vector<SymOp>& ops, string& name, double axis[3], vector<Axis>& c2s)
+{
+   axis[0] = axis[1] = 0.0; axis[2] = 1.0;
+   c2s.clear();
+   const size_t h = ops.size();
+   if (h == 1) { name = "C1"; return true; }
+
+   vector<Axis> axes;                    // proper rotations about distinct axes (highest order each)
+   vector< vector<double> > mirrorNormals;
+   bool inversion = false;
+   int improperAbout = 0;                // S_n, n even, about the principal axis (found below)
+   vector<Axis> improper;
+   for (size_t o = 0; o < h; o++) {
+      const SymOp& r = ops[o];
+      const double det = r.determinant();
+      const double tr = r.trace();
+      if (det > 0) {
+         if (tr > 2.999) continue;                       // identity
+         const double cosT = (tr - 1.0)/2.0;
+         const double theta = acos(std::max(-1.0, std::min(1.0, cosT)));
+         const int order = (int)floor(2.0*M_PI/theta + 0.5);
+         //  The axis: the antisymmetric part of the matrix (or, for a half turn, the
+         //  largest column of (R + 1)).
+         double v[3];
+         if (order == 2) {
+            int best = 0; double bn = -1;
+            double cols[3][3];
+            for (int j = 0; j < 3; j++) {
+               for (int i = 0; i < 3; i++) cols[j][i] = r.m[i][j] + (i == j ? 1.0 : 0.0);
+               const double nn = dot3(cols[j], cols[j]);
+               if (nn > bn) { bn = nn; best = j; }
+            }
+            for (int i = 0; i < 3; i++) v[i] = cols[best][i];
+         } else {
+            v[0] = r.m[2][1] - r.m[1][2]; v[1] = r.m[0][2] - r.m[2][0]; v[2] = r.m[1][0] - r.m[0][1];
+         }
+         const double len = sqrt(dot3(v, v));
+         if (len < 1e-9) continue;
+         for (int i = 0; i < 3; i++) v[i] /= len;
+         bool found = false;
+         for (size_t k = 0; k < axes.size(); k++)
+            if (fabs(fabs(dot3(axes[k].v, v)) - 1.0) < 1e-4) {
+               found = true;
+               axes[k].order = std::max(axes[k].order, order);
+            }
+         if (!found) { Axis a; for (int i = 0; i < 3; i++) a.v[i] = v[i]; a.order = order; axes.push_back(a); }
+      } else {
+         if (tr < -2.999) { inversion = true; continue; }
+         if (fabs(tr - 1.0) < 1e-6) {                    // a mirror: the normal is the -1 eigenvector
+            double v[3]; int best = 0; double bn = -1; double cols[3][3];
+            for (int j = 0; j < 3; j++) {
+               for (int i = 0; i < 3; i++) cols[j][i] = (i == j ? 1.0 : 0.0) - r.m[i][j];
+               const double nn = dot3(cols[j], cols[j]);
+               if (nn > bn) { bn = nn; best = j; }
+            }
+            for (int i = 0; i < 3; i++) v[i] = cols[best][i];
+            const double len = sqrt(dot3(v, v));
+            for (int i = 0; i < 3; i++) v[i] /= len;
+            mirrorNormals.push_back(vector<double>(v, v + 3));
+         } else {
+            improperAbout++;
+            //  S_n: -R is a proper rotation about the same axis.
+            const double cosT = (-tr - 1.0)/2.0;
+            const double theta = acos(std::max(-1.0, std::min(1.0, cosT)));
+            const double v0[3] = { -(r.m[2][1] - r.m[1][2]), -(r.m[0][2] - r.m[2][0]), -(r.m[1][0] - r.m[0][1]) };
+            double v[3] = { v0[0], v0[1], v0[2] };
+            const double len = sqrt(dot3(v, v));
+            if (len > 1e-9) { for (int i = 0; i < 3; i++) v[i] /= len; }
+            Axis a; for (int i = 0; i < 3; i++) a.v[i] = v[i];
+            a.order = (int)floor(2.0*M_PI/(M_PI - theta) + 0.5);
+            improper.push_back(a);
+         }
+      }
+   }
+
+   if (axes.empty()) {
+      if (mirrorNormals.size() == 1 && h == 2) {
+         name = "Cs";
+         for (int i = 0; i < 3; i++) axis[i] = mirrorNormals[0][i];
+         return true;
+      }
+      if (inversion && h == 2) { name = "Ci"; return true; }
+      return false;
+   }
+
+   int N = 0;
+   for (size_t k = 0; k < axes.size(); k++) N = std::max(N, axes[k].order);
+   vector<size_t> top;
+   for (size_t k = 0; k < axes.size(); k++) if (axes[k].order == N) top.push_back(k);
+   if (N >= 3 && top.size() > 1) return false;           // cubic
+   const Axis principal = axes[top[0]];
+   for (int i = 0; i < 3; i++) axis[i] = principal.v[i];
+
+   int perpC2 = 0;
+   for (size_t k = 0; k < axes.size(); k++) {
+      if (k == top[0]) continue;
+      if (axes[k].order >= 2 && fabs(dot3(axes[k].v, principal.v)) < 1e-4) { perpC2++; c2s.push_back(axes[k]); }
+   }
+   int nH = 0, nV = 0;
+   for (size_t k = 0; k < mirrorNormals.size(); k++) {
+      const double d = fabs(dot3(&mirrorNormals[k][0], principal.v));
+      if (d > 1.0 - 1e-4) nH++;
+      else if (d < 1e-4) nV++;
+   }
+   const string n = std::to_string(N);
+   if (perpC2 == N || (N == 2 && perpC2 == 2)) {
+      if (nH > 0) { name = "D" + n + "h"; return true; }
+      if ((int)mirrorNormals.size() == N && nV == 0) { name = "D" + n + "d"; return true; }
+      if (mirrorNormals.empty() && !inversion) { name = "D" + n; return true; }
+      return false;
+   }
+   if (perpC2 == 0) {
+      if (nV == N && nH == 0) { name = "C" + n + "v"; return true; }
+      if (nH > 0 && nV == 0) { name = "C" + n + "h"; return true; }
+      if (nH == 0 && nV == 0 && mirrorNormals.empty() && !inversion && improper.empty()) { name = "C" + n; return true; }
+      return false;
+   }
+   return false;
+}
+
+void rotateAbout(const double axis[3], double angle, double m[3][3])
+{
+   const double c = cos(angle), s = sin(angle), t = 1.0 - c;
+   const double x = axis[0], y = axis[1], z = axis[2];
+   m[0][0] = t*x*x + c;   m[0][1] = t*x*y - s*z; m[0][2] = t*x*z + s*y;
+   m[1][0] = t*x*y + s*z; m[1][1] = t*y*y + c;   m[1][2] = t*y*z - s*x;
+   m[2][0] = t*x*z - s*y; m[2][1] = t*y*z + s*x; m[2][2] = t*z*z + c;
+}
+
+//  A rotation taking the unit vector `from` onto z.
+void rotationToZ(const double from[3], double m[3][3])
+{
+   const double z[3] = { 0.0, 0.0, 1.0 };
+   const double d = from[2];
+   if (d > 1.0 - 1e-12) { for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++) m[i][j] = i == j; return; }
+   if (d < -1.0 + 1e-12) {                       // a half turn about x
+      for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++) m[i][j] = 0.0;
+      m[0][0] = 1.0; m[1][1] = -1.0; m[2][2] = -1.0;
+      return;
+   }
+   double ax[3] = { from[1]*z[2] - from[2]*z[1], from[2]*z[0] - from[0]*z[2], from[0]*z[1] - from[1]*z[0] };
+   const double len = sqrt(dot3(ax, ax));
+   for (int i = 0; i < 3; i++) ax[i] /= len;
+   rotateAbout(ax, acos(d), m);
+}
+
+}  // namespace
+
+
+bool MoFragments::subgroupKeeping(const vector<double>& coords,
+                                  const vector<string>& elements,
+                                  const string& group,
+                                  const vector<int>& sideA,
+                                  string& subName, vector<double>& subCoords,
+                                  string& note)
+{
+   subName = group;
+   subCoords = coords;
+   note.clear();
+   const int n = (int)elements.size();
+   vector<SymOp> ops;
+   vector< vector<int> > images;
+   if (!symmetryOperations(group, ops) ||
+       !SymmetryAnalysis::atomImages(coords, elements, ops, 0.05, images)) {
+      note = "The symmetry operations of " + group + " could not be applied to this structure.";
+      return false;
+   }
+   vector<bool> inA(n, false);
+   for (size_t k = 0; k < sideA.size(); k++) inA[sideA[k]] = true;
+
+   vector<SymOp> kept;
+   bool allKeepOrSwap = true;
+   for (size_t o = 0; o < ops.size(); o++) {
+      bool keeps = true, swaps = true;
+      for (int i = 0; i < n; i++) {
+         if (inA[images[o][i]] == inA[i]) swaps = false;
+         else keeps = false;
+      }
+      if (keeps) kept.push_back(ops[o]);
+      else if (!swaps) allKeepOrSwap = false;
+   }
+   if (allKeepOrSwap) return true;
+
+   string name;
+   double axis[3];
+   vector<Axis> c2s;
+   if (!nameGroup(kept, name, axis, c2s) || CharacterTable::lookup(name) == 0) {
+      note = "The pick lowers the symmetry of " + group + " to a group this diagram "
+             "cannot label. Pick another bond, or use Choose fragments.";
+      return false;
+   }
+   if (name == "C1") {
+      subName = name;
+      return true;
+   }
+
+   vector<SymOp> subOps;
+   if (!symmetryOperations(name, subOps)) {
+      note = "The symmetry operations of " + name + " are not available.";
+      return false;
+   }
+   //  Axis candidates: the group's own, or any perpendicular C2 for the D groups
+   //  (which of the equivalent ones leads depends on the standard frame).
+   vector<vector<double> > candidates(1, vector<double>(axis, axis + 3));
+   for (size_t k = 0; k < c2s.size(); k++) candidates.push_back(vector<double>(c2s[k].v, c2s[k].v + 3));
+   for (size_t c = 0; c < candidates.size(); c++) {
+      double toZ[3][3];
+      rotationToZ(&candidates[c][0], toZ);
+      vector<double> turned(coords.size());
+      for (int a = 0; a < n; a++)
+         for (int i = 0; i < 3; i++) {
+            double v = 0.0;
+            for (int j = 0; j < 3; j++) v += toZ[i][j]*coords[3*a + j];
+            turned[3*a + i] = v;
+         }
+      //  Spin it about z until every operation of the standard group maps atoms onto atoms.
+      vector<double> good;
+      const double z[3] = { 0.0, 0.0, 1.0 };
+      const double step = 0.25*M_PI/180.0;
+      for (int k = 0; k < 1440; k++) {
+         double rot[3][3];
+         rotateAbout(z, k*step, rot);
+         vector<double> trial(coords.size());
+         for (int a = 0; a < n; a++)
+            for (int i = 0; i < 3; i++) {
+               double v = 0.0;
+               for (int j = 0; j < 3; j++) v += rot[i][j]*turned[3*a + j];
+               trial[3*a + i] = v;
+            }
+         vector< vector<int> > img;
+         if (SymmetryAnalysis::atomImages(trial, elements, subOps, 0.05, img)) good.push_back(k*step);
+         if (name == "Cs" || name == "C1" || name == "Ci") break;
+      }
+      if (good.empty()) continue;
+      //  The angle that needs the least moving to be exactly symmetric.
+      const double phi0 = good[good.size()/2];
+      double bestShift = 1e30;
+      vector<double> bestCoords;
+      for (int k = -25; k <= 25; k++) {
+         double rot[3][3];
+         rotateAbout(z, phi0 + k*0.02*M_PI/180.0, rot);
+         vector<double> trial(coords.size());
+         for (int a = 0; a < n; a++)
+            for (int i = 0; i < 3; i++) {
+               double v = 0.0;
+               for (int j = 0; j < 3; j++) v += rot[i][j]*turned[3*a + j];
+               trial[3*a + i] = v;
+            }
+         double shift = 0.0;
+         if (!SymmetryAnalysis::symmetrise(trial, elements, subOps, 0.05, &shift)) continue;
+         if (shift < bestShift) { bestShift = shift; bestCoords = trial; }
+         if (name == "Cs" || name == "C1" || name == "Ci") break;
+      }
+      if (bestCoords.empty()) continue;
+      subCoords = bestCoords;
+      subName = name;
+      return true;
+   }
+   note = "The pick lowers the symmetry of " + group + " to " + name + ", but the "
+          "molecule could not be put into that group's standard orientation.";
+   return false;
 }
 
 

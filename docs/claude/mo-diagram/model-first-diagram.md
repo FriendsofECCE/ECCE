@@ -8,8 +8,9 @@ issues: [301]
 `ModelDiagram::build` (tdat, no wx) draws the diagram for every construction
 whose two fragments cover the molecule and have EHT parameters (CENTRAL,
 HALVES, GROUPS, EQUIVALENT_SETS, CHOSEN, SKELETON and the fragment-orbital
-route; the rest of a ligand goes to the right fragment). Not pi-only, and not
-without a basis/overlap (MOPAC); those, and elements without parameters (Ag,
+route; the rest of a ligand goes to the right fragment). Also "pi system only"
+(`Input::piOnly`, see `pi-only-through-the-model-diagram.md`). Not without a
+basis/overlap (MOPAC); that, and elements without parameters (Ag,
 refusal text plus "use the MOs panel"), keep the old drawing.
 
 - Middle column = the molecule's own EHT run (`FragmentOrbitals::solveWhole`);
@@ -61,3 +62,40 @@ refusal text plus "use the MOs panel"), keep the old drawing.
   is a different number). The calculation's unmatched LUMO is not drawn and the
   LUMO is not judged in this view. check_pairs.py skips the pair rule for `*-lfview`
   goldens (the antibonding partners are hidden on purpose).
+- Phase sketches: a fragment column of several atoms of one element carries the
+  sign and size of each atom's s coefficient, or its p vector, of the set's first
+  orbital (`sketchPhases`, drawn by `MoDiagramCanvas::drawSketch`), in the
+  atoms' own principal-axis frame (`principalAxes`), so a structure stored in any
+  orientation is drawn flat. They came from the symmetry projection
+  (`MoFragments`) before the model built its own sets, and so vanished from every
+  model-first diagram. Not for mixed fragments, d sets or one atom.
+- Ligand ns is core-like in a central-atom diagram (one atom against >= 2): the ns
+  of a ligand atom that also has np (F 2s, Cl 3s; not H 1s, not the CO sigma
+  unit) is `SetD::nsShare`; a model level with >= 50 % of it is `Cluster::core`,
+  never a bonding or antibonding partner, folded with the internal levels (so
+  BF3's sigma bond is F 2p-sigma with B, as in the textbooks, and the pair drawn
+  against 5a1'* is a1' of 2p). The fragment column does not draw such sets either.
+- What is folded as internal is folded on both sides: a calculated level whose
+  model partner is folded is not drawn as "your HOMO/LUMO" either, and the note
+  and About say so once.
+- Fragment electrons: neutral ligands, by energy; when that leaves a degenerate
+  set half full (three F atoms are 21 electrons) the sets are chosen as close as
+  possible to the populations the occupied model orbitals put on them
+  (`fillByPopulation`: whole sets, one electron on one non-degenerate set at most),
+  so total = B 3 + F3 21 = 24 and no e' set is half filled.
+- Middle column in lanes (`MoDiagramCanvas::layoutCentreLanes`): the lines of levels
+  whose arrows would meet go in side-by-side lanes, every line at its own energy
+  (the column is not opened out any more). Labels are one row each ("label energy
+  tag") in a column left of the lanes, moved apart only as far as they must and
+  joined to their lines by a thin leader, on a white patch so connectors run behind
+  the text. At most as many lanes as fit in 55 % of the width; a denser spectrum
+  (a whole big complex) shares the last lane. Test hook: scene
+  `modiagram <name> overlaps 0` prints the number of overlapping pairs
+  (`orca-ptcl4-overlaps` in tests/modiagram/capture.py).- Electron bookkeeping (summary part "electrons: ..."): per fragment drawn + folded
+  as core-like ns + folded as internal = its total (the About's), and the model
+  column's drawn + folded = the molecule's total; the calculation column folds the
+  same levels. `check_pairs.py::check_electrons` asserts it on every golden. The
+  band's level count is MOs, not fragment orbitals (BF3: 6 + 6 occupied MOs; the 6
+  folded are 3 core-like F 2s + 3 lone pairs). A neutral odd fragment (F3, 21 e)
+  keeps one unpaired electron, on the highest-lying non-core non-degenerate set,
+  and the note says "(neutral: 1 unpaired e)".
