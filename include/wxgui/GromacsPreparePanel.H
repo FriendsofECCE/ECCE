@@ -76,6 +76,7 @@ class GromacsPreparePanel : public ewxPanel
       void OnSource(wxCommandEvent& event);
       void OnMinffText(wxCommandEvent& event);
       void OnMinffChoice(wxCommandEvent& event);
+      void OnMineralForceField(wxCommandEvent& event);
       void OnMinffCell(wxCommandEvent& event);
       void OnMinffBuild(wxCommandEvent& event);
 
@@ -95,6 +96,7 @@ class GromacsPreparePanel : public ewxPanel
       void showStructure();
       void showFields();
       bool isMinff() const;
+      bool isClayff() const;
       void fillIons();
       void showIonNote();
       void minffStale();
@@ -118,11 +120,13 @@ class GromacsPreparePanel : public ewxPanel
       bool p_staging;
       int p_testClash;          // test hook: 1 replace, 2 cancel on a name clash
       vector<std::pair<string, string> > p_ffItems;   // id, label of the choice
-      vector<wxWindow*> p_proteinOnly, p_minffOnly;
+      vector<wxWindow*> p_proteinOnly, p_minffOnly, p_clayffOnly;
+      vector<wxWindow*> p_minffFfOnly;   // the MINFF parameter choices, off with ClayFF
       wxStaticBox *p_ffBox, *p_waterBox;
       ewxStaticText *p_distLabel, *p_ionNote, *p_summaryLabel, *p_cellLabel;
       ewxTextCtrl *p_mrep, *p_msubs, *p_mmineral, *p_mseed;
-      ewxChoice *p_mvariant, *p_mangle, *p_mions;
+      ewxChoice *p_mvariant, *p_mangle, *p_mions, *p_mff, *p_mbend;
+      ewxCheckBox *p_mrigid;
       ewxButton *p_mcellBtn, *p_mbuild;
       wxSizer *p_leftSizer, *p_minffSizer;
 

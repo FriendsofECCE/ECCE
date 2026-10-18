@@ -24,6 +24,7 @@ minff commit MINFF_COMMIT into ~/.cache/ecce/minff/<commit>.
         [--variant gminff|tminff] [--mineral NAME] [--angle-k 0|250|500|1500]
         [--water opc3] [--add-gap [NM]] [--ion-set HFE|IOD] [--gui]
         [--forcefield minff|clayff] [--clayff-bend none|moh|moh2004]
+        [--clayff-rigid-water]
     minff_topology.py minerals [--angle-k K]
     minff_topology.py fetch
 """
@@ -502,7 +503,7 @@ def clayff_types(ffdir):
     return types
 
 
-def topol_text_clayff(bend):
+def topol_text_clayff(bend, rigid_water=False):
     d = _CLAYFF_BEND_DEFINE[bend]
     L = ["; ClayFF system written by ECCE minff_topology.py",
          "; Cygan, Liang and Kalinichev, J. Phys. Chem. B 2004, 108, 1255 (clayff.ff/forcefield.doc)",
@@ -512,6 +513,8 @@ def topol_text_clayff(bend):
          ""]
     if d:
         L.append("#define %s" % d)
+    if rigid_water:
+        L.append("#define RIGID_WATER")
     L += ['#include "clayff.ff/forcefield.itp"', '#include "clayff.ff/ions.itp"',
           '#include "clayff.ff/spc.itp"', '#include "min.itp"', "",
           "[ system ]", "ClayFF mineral", "",
@@ -607,7 +610,7 @@ def clayff_charges(atoms):
 def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
           seed=None, variant="gminff", mineral=None, angle_k=500, water="opc3",
           log=sys.stderr, add_gap=None, ion_set="HFE", gui=False,
-          forcefield="minff", clayff_bend="none"):
+          forcefield="minff", clayff_bend="none", clayff_rigid_water=False):
     if forcefield not in ("minff", "clayff"):
         raise MinffError("force field must be minff or clayff")
     if clayff_bend not in CLAYFF_BENDS:
@@ -678,7 +681,7 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
         with open(os.path.join(outdir, "min_bonded.itp"), "w", encoding="utf-8") as f:
             f.write(restrict_bonded(os.path.join(ffdir, "min.ff", "ffbonded.itp"), known))
     with open(os.path.join(outdir, "topol.top"), "w", encoding="utf-8") as f:
-        f.write(topol_text_clayff(clayff_bend) if clay else
+        f.write(topol_text_clayff(clayff_bend, clayff_rigid_water) if clay else
                 topol_text(variant, angle_k, mineral, water, ion_set))
 
     itp = read_itp_atoms(os.path.join(outdir, "min.itp"))
@@ -691,6 +694,7 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
         "variant": variant.upper() if variant in ("gminff", "clayff") else "TMINFF",
         "forcefield": forcefield,
         "clayff_bend": clayff_bend if clay else None,
+        "clayff_rigid_water": bool(clay and clayff_rigid_water),
         "charges_differing_from_atomipy": {t: v for t, v in charge_diff.items()} if clay else None,
         "mineral": mineral,
         "angle_k": angle_k,
@@ -731,7 +735,8 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
             try:
                 s2 = build(wide, trial, (1, 1, 1), (), min_distance, seed, variant,
                            mineral, angle_k, water, log, ion_set=ion_set, gui=gui,
-                           forcefield=forcefield, clayff_bend=clayff_bend)
+                           forcefield=forcefield, clayff_bend=clayff_bend,
+                           clayff_rigid_water=clayff_rigid_water)
                 if not s2["warnings"] and not s2["untyped_atoms"]:
                     for fn in os.listdir(trial):
                         dst = os.path.join(outdir, fn)
@@ -800,6 +805,8 @@ def main(argv=None):
     b.add_argument("--clayff-bend", choices=CLAYFF_BENDS, default="none",
                    help="with --forcefield clayff, the M-O-H bend written into "
                    "topol.top: none (default), moh (Pouvreau 2017) or moh2004")
+    b.add_argument("--clayff-rigid-water", action="store_true",
+                   help="with --forcefield clayff, write #define RIGID_WATER (SETTLE SPC)")
     b.add_argument("--gui", action="store_true",
                    help="worded for the ECCE editor: warnings do not name command-line flags")
     m = sub.add_parser("minerals", help="list the TMINFF minerals")
@@ -832,7 +839,8 @@ def main(argv=None):
             s = build(a.cell, a.outdir, a.replicate, subs, a.min_distance, a.seed,
                       a.variant, a.mineral, a.angle_k, a.water, add_gap=a.add_gap,
                       ion_set=a.ion_set, gui=a.gui, forcefield=a.forcefield,
-                      clayff_bend=a.clayff_bend)
+                      clayff_bend=a.clayff_bend,
+                      clayff_rigid_water=a.clayff_rigid_water)
             print(json.dumps(s, indent=2))
     except MinffError as e:
         print("minff_topology: %s" % e, file=sys.stderr)

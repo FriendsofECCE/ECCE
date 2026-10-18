@@ -95,6 +95,8 @@ def main():
                     help="run only the Builder-save section")
     ap.add_argument("--builder-flow-only", action="store_true",
                     help="run only the Builder (Na ion) section")
+    ap.add_argument("--clayff-only", action="store_true",
+                    help="run only the ClayFF section")
     ap.add_argument("--ffimport-only", action="store_true",
                     help="run only the force-field Import section")
     ap.add_argument("--organizer-only", action="store_true",
@@ -121,6 +123,11 @@ def main():
 
         if args.minff_only:
             minff_section(s, build, rundir, args.png or os.path.join(s.state, "png"))
+            failures.extend(gromacs_test_failures())
+            return 1 if failures else 0
+
+        if args.clayff_only:
+            clayff_section(s, build, os.path.join(s.state, "run-clayff"))
             failures.extend(gromacs_test_failures())
             return 1 if failures else 0
 
@@ -278,6 +285,7 @@ def main():
         # ---- the editor ---------------------------------------------------
         editor_section(s, build, rundir, args.png or os.path.join(s.state, "png"))
         minff_section(s, build, rundir, args.png or os.path.join(s.state, "png"))
+        clayff_section(s, build, os.path.join(s.state, "run-clayff"))
         ffimport_section(s, build, rundir, gmx)
         failures.extend(gromacs_test_failures())
     finally:
@@ -970,6 +978,169 @@ def minff_section(s, build, rundir, png):
                     check(r is not None, "the force field includes reached the Optimize's run")
             finally:
                 oed.close()
+        finally:
+            ed.close()
+
+
+def clayff_section(s, build, rundir):
+    """The ClayFF source of the mineral box: a brucite supercell built in the
+    editor, Prepare through the real Launch, then an Optimize.
+
+    Built twice: with no M-O-H bend (no define in the topology), then with the
+    Pouvreau bend and rigid water, whose defines must be in the staged
+    topology and in the run directory grompp reads.  Skipped without atomipy,
+    the minff repository download (for the cell) or the editors."""
+    sys.path.insert(0, os.path.join(REPO, "scripts"))
+    try:
+        import minff_topology as mt
+        py = mt.find_atomipy_python()
+        ffdir = mt.fetch_pinned()
+    except Exception as e:
+        say("  (ClayFF is not checked: %s)" % e)
+        return
+    if not py:
+        say("  (ClayFF is not checked: atomipy is not installed)")
+        return
+    if not shutil.which("Xvfb"):
+        say("  (no Xvfb: the ClayFF editor is not checked)")
+        return
+    for exe in ("gmxprepare", "mdoptimize"):
+        if not os.access(os.path.join(build, exe), os.X_OK):
+            say("  (%s is not built: ClayFF is not checked)" % exe)
+            return
+    import xdisplay
+    import gromacs_test
+    for exe in ("gmxprepare", "mdoptimize"):
+        harness.link(os.path.join(build, exe), os.path.join(s.home, "bin", exe))
+    wrappers = os.path.join(s.state, "wrappers-clayff")
+    shutil.rmtree(wrappers, ignore_errors=True)
+    shutil.copytree(os.path.join(build, "wrappers"), wrappers)
+    for entry in os.listdir(wrappers):
+        os.chmod(os.path.join(wrappers, entry), 0o755)
+    if not s.services(True):
+        check(False, "services came up for the ClayFF section")
+        return
+
+    cell = os.path.join(ffdir, "Systems", "UC_conf", "Brucite_GII_0.0027.pdb")
+    rc, out = s.driver("gromacsprepstudy", s.userUrl(), "clayffprep",
+                       os.path.join(FIXTURES, "1l2y.pdb"), "bare")
+    urls = urls_of(out)
+    if not check(rc == 0 and len(urls) == 3, "a study with a bare Prepare was made (ClayFF)"):
+        return
+    prep, opt = urls[1], urls[2]
+    ptask = prep.replace("file://", "").rstrip("/")
+    otask = opt.replace("file://", "").rstrip("/")
+
+    def staged(name):
+        f = os.path.join(ptask, "Inputs", name)
+        return open(f).read() if os.path.isfile(f) else ""
+
+    with xdisplay.Display() as display:
+        cmddir = os.path.join(s.state, "mded-clayff")
+        os.makedirs(cmddir, exist_ok=True)
+        genv = s.env({"DISPLAY": display.name, "ECCE_TEST_MDED": cmddir,
+                      "ECCE_ATOMIPY_PYTHON": py, "ECCE_MINFF_DIR": ffdir,
+                      "PATH": wrappers + os.pathsep + s.env()["PATH"]})
+        ed = gromacs_test.Editor(s, display, genv, wrappers, cmddir,
+                                 "gmxprepare", "GMXPrepare")
+        try:
+            if not ed.up():
+                return
+            check(ed.cmd("open " + prep) == "ok", "the Prepare opens (ClayFF)")
+            check(ed.cmd("set source minff") == "ok", "source: Mineral")
+            fields = ed.cmd("fields")
+            check("mff=minff" in fields and "water=opc3" in fields,
+                  "MINFF is the default force field of the mineral: %s" % fields)
+            check(ed.cmd("set mff clayff") == "ok", "force field: ClayFF")
+            fields = ed.cmd("fields")
+            check("mff=clayff" in fields and "water=spc " in fields
+                  and "waters=spc " in fields and "ions=Na,Cl" in fields
+                  and "bend=none" in fields and "rigid=0" in fields,
+                  "ClayFF: SPC water, its ions, no bend, flexible water: %s" % fields)
+            check(ed.cmd("set pname Mg").startswith("refused"),
+                  "an ion ClayFF has no parameters for is not offered")
+            check(ed.cmd("set mcell " + cell) == "ok", "the unit cell is chosen")
+            check(ed.cmd("set mrep 8 8 4") == "ok", "repeat 8 8 4")
+            check(ed.cmd("set dist 1") == "ok" and ed.cmd("set conc 0") == "ok",
+                  "1 nm of water, no salt")
+            out = ed.cmd("set mbuild go", timeout=600)
+            fields = ed.cmd("fields")
+            check(out == "ok" and "1280 atoms" in fields and "ClayFF" in fields
+                  and "buildwarn=0" in fields,
+                  "Build topology with ClayFF: %s %s" % (out, fields.split("mineral=")[-1][:200]))
+            top = staged("topol.gmxmin")
+            check('#include "clayff.ff/forcefield.itp"' in top
+                  and "CLAYFF_MOH" not in top and "RIGID_WATER" not in top,
+                  "bend none: no define in the topology")
+            # an option changed after a build: the old topology stays until Build
+            check(ed.cmd("set mbend moh") == "ok" and ed.cmd("set mrigid 1") == "ok",
+                  "M-O-H bend of Pouvreau 2017, rigid water")
+            check("bend=moh" in ed.cmd("fields") and "CLAYFF_MOH" not in staged("topol.gmxmin"),
+                  "the stored topology is stale until Build")
+            out = ed.cmd("set mbuild go", timeout=600)
+            top = staged("topol.gmxmin")
+            check(out == "ok" and re.search(r"^#define CLAYFF_MOH$", top, re.M)
+                  and re.search(r"^#define RIGID_WATER$", top, re.M),
+                  "the rebuilt topology defines CLAYFF_MOH and RIGID_WATER: %s" % out)
+            ed.cmd("save")
+            recipe = ed.cmd("recipe")
+            check("SOURCE=minff" in recipe and "WATER=spc" in recipe,
+                  "the recipe has the mineral source and SPC water: %s" % recipe)
+            model = ed.cmd("model")
+            check("<MineralForceField>clayff</MineralForceField>" in model
+                  and "<ClayffBend>moh</ClayffBend>" in model
+                  and "<ClayffRigidWater>1</ClayffRigidWater>" in model,
+                  "and ClayFF, the bend and the water in the model")
+            inputs = sorted(os.listdir(os.path.join(ptask, "Inputs")))
+            say("  Prepare Inputs/: %s" % inputs)
+            need = ["conf.gmxmin", "topol.gmxmin", "min.itp", "gromacs.gmxprep"] + [
+                "clayff.ff__SLASH__" + f for f in
+                ("forcefield.itp", "ffnonbonded.itp", "ffbonded.itp", "ions.itp", "spc.itp")]
+            check(all(f in inputs for f in need)
+                  and not any(f.startswith("min.ff__") for f in inputs),
+                  "the task holds the clayff.ff files, not min.ff's")
+
+            rc, out = s.driver("mdsetup", prep, "localhost", rundir, s.user())
+            check(rc == 0, "launch settings stored for the ClayFF Prepare")
+            rc, out = s.launch(prep)
+            check(rc == 0, "Launch accepted the ClayFF Prepare: %s"
+                  % out.strip().splitlines()[-3:])
+            state = s.waitState(prep, 900)
+            check(state in ("completed", "loaded"), "the ClayFF Prepare ran to %s" % state)
+            outs = outputs(prep)
+            check(any(o.endswith(".gmxtop") for o in outs) and "chemsys.pdb" in outs,
+                  "with its topology and chemsys.pdb: %s" % outs)
+            rt = last_run_file(rundir, "topol.top")
+            rtext = open(rt).read() if rt else ""
+            check("#define CLAYFF_MOH" in rtext and "#define RIGID_WATER" in rtext
+                  and re.search(r"^SOL\s+\d+", rtext, re.M),
+                  "the run's topology holds the defines and the water layer")
+            check(last_run_file(rundir, "forcefield.itp") is not None,
+                  "clayff.ff's folder was restored in the run directory")
+
+            oed = gromacs_test.Editor(s, display, genv, wrappers, cmddir,
+                                      "mdoptimize", "MDOptimize")
+            try:
+                if oed.up():
+                    check(oed.cmd("open " + opt) == "ok", "the Optimize opens")
+                    check(oed.cmd("set-steps 50") == "ok" and oed.cmd("save") == "ok",
+                          "50 steps, Save")
+                    rc, out = s.driver("mdsetup", opt, "localhost", rundir, s.user())
+                    rc, out = s.launch(opt)
+                    check(rc == 0, "Launch accepted the Optimize: %s"
+                          % out.strip().splitlines()[-3:])
+                    state = s.waitState(opt, 900)
+                    check(state in ("completed", "loaded"), "the ClayFF Optimize ran to %s" % state)
+                    check("TE" in s.props(opt), "the Optimize stored its energies")
+                    ro = last_run_file(rundir, "clayff.ff/ffbonded.itp")
+                    check(ro is not None and os.path.dirname(ro) != os.path.dirname(rt or ""),
+                          "the ClayFF includes reached the Optimize's own run directory")
+            finally:
+                oed.close()
+
+            # back to MINFF in the editor: its water and ions return
+            check(ed.cmd("set mff minff") == "ok" and "water=opc3" in ed.cmd("fields")
+                  and "mff=minff" in ed.cmd("fields"), "MINFF again: its water model returns")
         finally:
             ed.close()
 

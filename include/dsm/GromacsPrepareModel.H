@@ -49,6 +49,11 @@ class GromacsPrepareModel : public ITaskModel
       string minffSummary() const { return p_msummary; }
       // min.ff's ion parameter set: HFE or IOD
       string minffIonSet() const { return p_mions; }
+      // the mineral's force field: "minff" or "clayff"; with ClayFF the M-O-H
+      // bend (none, moh, moh2004) and whether the SPC water is rigid
+      string mineralForceField() const { return p_mff; }
+      string clayffBend() const { return p_mbend; }
+      bool clayffRigidWater() const { return p_mrigid; }
 
       void source(const string& v) { p_source = v; }
       void forceField(const string& v) { p_ff = v; }
@@ -72,6 +77,9 @@ class GromacsPrepareModel : public ITaskModel
       void minffCell(const string& v) { p_mcell = v; }
       void minffSummary(const string& v) { p_msummary = v; }
       void minffIonSet(const string& v) { p_mions = v; }
+      void mineralForceField(const string& v) { p_mff = v; }
+      void clayffBend(const string& v) { p_mbend = v; }
+      void clayffRigidWater(bool v) { p_mrigid = v; }
 
       /** The defaults; md.gmxprep and gensub carry the same ones. */
       void reset();
@@ -82,8 +90,9 @@ class GromacsPrepareModel : public ITaskModel
    private:
       string p_source, p_ff, p_water, p_his, p_box, p_pname, p_nname;
       string p_mvariant, p_mmineral, p_mrep, p_msubs, p_mseed, p_mcell, p_msummary, p_mions;
+      string p_mff, p_mbend;
       int p_mangle;
-      bool p_ignh, p_merge, p_neut;
+      bool p_ignh, p_merge, p_neut, p_mrigid;
       double p_dist, p_conc, p_rmin;
 };
 
