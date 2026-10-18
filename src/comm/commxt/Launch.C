@@ -474,6 +474,12 @@ string Launch::message(void) const
 string Launch::info(void) const
 { return p_infoMessage; }
 
+string Launch::launchWarning(void) const
+{ return p_launchWarning; }
+
+void Launch::clearLaunchWarning(void)
+{ p_launchWarning = ""; }
+
 // ---------- General Methods  ----------
 
 //////////////////////////////////////////////////////////////////////////////
@@ -2443,6 +2449,17 @@ bool Launch::postProcessInput(void)
         p_lastMessage += output;
       }
     } else {
+       // A launch check that found a problem the job will meet reports it
+       // after this marker; it is the user's decision, so it is not a failure.
+       // (RCommand returns every newline as CR LF.)
+       size_t mark = output.find("ECCE-LAUNCH-WARNING");
+       if (mark != string::npos) {
+         p_launchWarning = output.substr(mark + 19);
+         size_t cr;
+         while ((cr = p_launchWarning.find('\r')) != string::npos)
+           p_launchWarning.erase(cr, 1);
+         p_launchWarning.erase(0, p_launchWarning.find_first_not_of('\n'));
+       }
        // Write it back out to dav.
        // I had to use the full path or I got corrupted data.  I don't know why.
        ifstream ifs((p_cache->directory + "/" + p_inputFile).c_str());

@@ -16,7 +16,7 @@ Local data, no data server.  The tree's own binaries, never the real ~/.ECCE:
     structure and posre.itp on the Prepare, and completes;
   * a Prepare that fails in its job (an ion name genion does not know) ends
     Failed with gmx's own words as the reason, and a PDB with a side chain cut
-    short is refused at launch with pdb2gmx's message;
+    short is reported at launch with pdb2gmx's message (Cancel stops it);
   * the Organizer's New menu (its test hook) makes the Prepare with the
     right application type;
   * the editor (gmxprepare, private Xvfb, ECCE_TEST_MDED): a Prepare as New
@@ -241,9 +241,9 @@ def main():
         brk = urls_of(out)
         if check(rc == 0 and len(brk) == 3, "a study on a broken PDB was made"):
             s.driver("mdsetup", brk[1], "localhost", rundir, s.user())
-            rc, out = s.launch(brk[1])
+            rc, out = s.driver("launch", brk[1], extra={"LAUNCHJOB_WARNING": "cancel"})
             check(rc != 0 and ("missing" in out and "TRP" in out),
-                  "a side chain cut short is refused at launch with pdb2gmx's "
+                  "a side chain cut short is reported at launch with pdb2gmx's "
                   "message: %s" % re.sub(r"\s+", " ", out.strip())[-200:])
 
         # ---- the Organizer's New menu -----------------------------------

@@ -112,6 +112,7 @@ class WxLauncher : public WxLauncherGUI,
         string hookGet(const string& what);
         bool confirmMpiLauncher(const string& code);
         bool confirmQmSize();
+        bool confirmLaunchWarning(const string& text);
         void setProcessors(int n);
         void stageLaunchMenuItemClickCB(wxCommandEvent& event);
         void finishLaunchMenuItemClickCB(wxCommandEvent& event);

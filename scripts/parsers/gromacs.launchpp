@@ -10,8 +10,11 @@
 #   that grompp needs are there, and, if gmx is on this machine, runs grompp
 #   on them into a scratch .tpr.  grompp's diagnostics are good -- a
 #   topology that does not match the structure is the first thing a new user
-#   hits -- and are printed as they are.  A non-zero exit stops the launch;
-#   Launch shows what was printed.
+#   hits -- and are passed on as they are.  Nothing here blocks the launch:
+#   a rejection or a stopping warning is printed after the line
+#   ECCE-LAUNCH-WARNING and the exit status is 0; Launch hands the text to the
+#   Launcher, which asks whether to launch anyway.  Harmless warnings are not
+#   reported.  Missing files still exit 1.
 #
 #   The job script runs grompp again on the machine that runs the job (that
 #   is where the .tpr that mdrun reads is built, and that machine may be a
@@ -115,33 +118,31 @@ my $out = `@cmd 2>&1`;
 chdir($cwd);
 my $status = $? >> 8;
 if ($status != 0) {
-  print STDERR "grompp rejected the inputs, so the job was not submitted.\n";
-  print STDERR "  command: @cmd\n\n";
   # the useful part of grompp's output starts at its first ERROR/WARNING
   my @lines = split(/\n/, $out);
   my $first = 0;
   for (my $i = 0; $i < scalar(@lines); $i++) {
     if ($lines[$i] =~ /^(ERROR|WARNING|Fatal error)/) { $first = $i; last; }
   }
-  print STDERR join("\n", @lines[$first .. $#lines]) . "\n";
-  exit($status);
+  warnAndExit("grompp rejects the inputs.", "command: @cmd\n\n" . join("\n", @lines[$first .. $#lines]));
 }
 my @warn = GromppWarn::parse($out);
 my @stop = grep { !$_->{harmless} } @warn;
 if (@stop) {
-  print STDERR "grompp warns about the inputs, and the job would stop at this warning, so it was not submitted:\n";
-  foreach my $w (@warn) {
-    print STDERR "\n  [" . ($w->{harmless} ? "harmless" : "STOPPING") . "] $w->{text}\n";
-  }
-  print STDERR "\nA warning marked harmless is let through by the job; the others are not.\n"
-             . "Fix the cause, or change the inputs so grompp no longer warns.\n";
-  exit 1;
+  warnAndExit("grompp warns about the inputs.",
+              join("\n\n", map { $_->{text} } @stop));
 }
 print "grompp accepted the inputs.\n";
-foreach my $w (@warn) {
-  print "  harmless warning, the job is not stopped by it: $w->{text}\n    ($w->{why})\n";
-}
 exit 0;
+
+# Report a problem the job will meet and leave the decision to the user.
+sub warnAndExit
+{
+  my ($what, $detail) = @_;
+  print "ECCE-LAUNCH-WARNING\n$what The job will fail at this point when it is run: "
+      . "the job script runs grompp again, and lets through only the harmless warnings.\n\n$detail\n";
+  exit 0;
+}
 
 # The index file grompp is given, or "" for none.
 sub indexFile
@@ -194,15 +195,12 @@ sub checkPrepare
   my $out = `cd $tmp && @cmd 2>&1 </dev/null`;
   my $status = $? >> 8;
   if ($status != 0) {
-    print STDERR "pdb2gmx rejected the structure, so the job was not submitted.\n";
-    print STDERR "  command: @cmd\n\n";
     my @lines = split(/\n/, $out);
     my $first = 0;
     for (my $i = 0; $i < scalar(@lines); $i++) {
       if ($lines[$i] =~ /(is missing in residue|not found in|^Fatal error|^Program:)/) { $first = $i; last; }
     }
-    print STDERR join("\n", @lines[$first .. $#lines]) . "\n";
-    exit($status);
+    warnAndExit("pdb2gmx rejects the structure.", "command: @cmd\n\n" . join("\n", @lines[$first .. $#lines]));
   }
   print "pdb2gmx accepted the structure.\n";
   exit 0;
@@ -276,15 +274,12 @@ sub checkMinff
   my $out = `cd $tmp && @cmd 2>&1 </dev/null`;
   my $status = $? >> 8;
   if ($status != 0) {
-    print STDERR "grompp rejected the mineral topology, so the job was not submitted.\n";
-    print STDERR "  command: @cmd\n\n";
     my @lines = split(/\n/, $out);
     my $first = 0;
     for (my $i = 0; $i < scalar(@lines); $i++) {
       if ($lines[$i] =~ /^(ERROR|WARNING|Fatal error)/) { $first = $i; last; }
     }
-    print STDERR join("\n", @lines[$first .. $#lines]) . "\n";
-    exit($status);
+    warnAndExit("grompp rejects the mineral topology.", "command: @cmd\n\n" . join("\n", @lines[$first .. $#lines]));
   }
   print "grompp accepted the mineral topology.\n";
   exit 0;

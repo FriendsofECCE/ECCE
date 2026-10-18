@@ -3,11 +3,12 @@
 
 Real gmx on two small systems made from the water fixture:
   * the structure's atom names differ from the topology's: a harmless
-    warning, so the launch check passes (and says so) and the job script
+    warning, so the launch check says nothing about it and the job script
     runs grompp with -maxwarn 1;
   * a Na+ ion with PME: a net-charge warning that is not harmless, so the
-    launch check stops with it marked STOPPING and the job script fails with
-    grompp's own message.
+    launch check reports it after ECCE-LAUNCH-WARNING (exit 0: the Launcher
+    asks whether to launch anyway) and the job script fails with grompp's
+    own message.
 The table itself is also run against canned warning text.
 
     tests/gromacs_md/grompp_warn_test.py [-v]
@@ -118,15 +119,17 @@ def main():
 
         d = system(tmp, "names", False)
         rc, out = run(launch, cwd=d)
-        check(rc == 0 and "accepted" in out and "non-matching atom names" in out,
-              "launch check: the atom-name warning is shown and does not stop the launch")
+        check(rc == 0 and "ECCE-LAUNCH-WARNING" not in out and "non-matching" not in out
+              and "harmless" not in out,
+              "launch check: the harmless atom-name warning is not shown and does not stop the launch")
         status, text = job(home, d, "names")
         check(status == "0", "job script: runs grompp with -maxwarn 1 and the job completes (status %s)" % status)
 
         d = system(tmp, "charge", True)
         rc, out = run(launch, cwd=d)
-        check(rc != 0 and "STOPPING" in out and "net charge" in out and "[harmless]" in out,
-              "launch check: the net-charge warning is marked STOPPING, the atom-name one harmless")
+        check(rc == 0 and out.startswith("ECCE-LAUNCH-WARNING\n") and "net charge" in out
+              and "will fail at this point" in out and "non-matching" not in out,
+              "launch check: the net-charge warning is reported without blocking, the atom-name one is not")
         status, text = job(home, d, "charge")
         check(status != "0" and "net charge" in text,
               "job script: grompp stops at the net-charge warning with its own message")

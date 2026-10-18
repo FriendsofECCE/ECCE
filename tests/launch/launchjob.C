@@ -402,6 +402,18 @@ static int doLaunch(const string& url)
   while (valid && !launch.done()) {
     cout << "launch: " << launch.description() << endl;
     valid = launch.nextOperation();
+    //  The Launcher asks; here LAUNCHJOB_WARNING=cancel answers Cancel and
+    //  anything else Launch anyway.
+    if (valid && !launch.launchWarning().empty()) {
+      cout << "launch warning: " << launch.launchWarning() << endl;
+      launch.clearLaunchWarning();
+      const char *answer = getenv("LAUNCHJOB_WARNING");
+      if (answer && string(answer) == "cancel") {
+        cerr << "launch cancelled" << endl;
+        launch.removeStaging();
+        return 1;
+      }
+    }
     if (!valid) cerr << "launch failed: " << launch.message() << endl;
     else if (!launch.message().empty()) cout << "  " << launch.message() << endl;
     else if (!launch.info().empty()) cout << "  " << launch.info() << endl;

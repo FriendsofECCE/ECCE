@@ -67,6 +67,10 @@ public:
         string description(void) const;
         string message(void) const;
         string info(void) const;
+        // A problem the launch check found that the user decides about
+        // (the Launcher asks); "" when there is none.
+        string launchWarning(void) const;
+        void clearLaunchWarning(void);
 
         // Where the generated input deck and submit script were written.
         // Meaningful for a noRemoteAccess launch (issue #94), where that
@@ -114,6 +118,7 @@ private:
         bool                    p_storeStarted;
         string                  p_lastMessage;
         string                  p_infoMessage;
+        string                  p_launchWarning;
         CalcInfo               *p_cache;
         string                  p_inputFile;
 

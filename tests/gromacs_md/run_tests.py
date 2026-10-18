@@ -549,9 +549,9 @@ def prepare_tests(gmx, home, tmp, optimize_stage):
     open(os.path.join(rd, "postParams"), "w").write("inputFile: gromacs.gmxprep\n")
     rc, out = run([os.path.join(PARSERS, "gromacs.launchpp"), "-p", "postParams"],
                   cwd=rd)
-    check(rc != 0 and "is missing in residue TRP 6" in out
+    check(rc == 0 and out.startswith("ECCE-LAUNCH-WARNING") and "is missing in residue TRP 6" in out
           and "missing atoms in molecule" in out,
-          "a side chain cut short stops the launch with pdb2gmx's message")
+          "a side chain cut short is reported to the Launcher with pdb2gmx's message")
     # ... and the job script, if it is run anyway, puts them in the output
     with open(os.path.join(rd, "subParams"), "w") as h:
         h.write(" -Q Shell\n -H localtest\n -d localhost\n -c GROMACS\n"
@@ -681,9 +681,9 @@ def main():
         if os.path.exists(os.path.join(rd, "gromacs.mdp")):
             rc, out = run([os.path.join(PARSERS, "gromacs.launchpp"), "-p",
                            "postParams"], cwd=rd)
-            check(rc != 0 and "does not match" in out,
-                  "a topology with the wrong number of molecules stops the launch "
-                  "and grompp's own words are in the message")
+            check(rc == 0 and out.startswith("ECCE-LAUNCH-WARNING") and "does not match" in out,
+                  "a topology with the wrong number of molecules is reported to the "
+                  "Launcher in grompp's own words")
         rd2 = os.path.join(tmp, "run-missing")
         os.makedirs(rd2)
         open(os.path.join(rd2, "gromacs.mdp"), "w").write("integrator = md\n")

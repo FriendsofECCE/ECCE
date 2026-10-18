@@ -16,6 +16,8 @@
  *                          machine; logs "go" or "cancel"
  *    sizecheck             Launch's ECCE-QM size warning for the calculation
  *                          the Launcher was opened on; logs "go" or "cancel"
+ *    launchwarn TEXT       Launch's dialog for a launch-check problem with this
+ *                          text; logs "go" or "cancel"
  *    click machine-settings   the "Machine settings..." button
  *    reload                what a saved Register Machines causes
  *    exec COMMAND          run a shell command (for example a Register
