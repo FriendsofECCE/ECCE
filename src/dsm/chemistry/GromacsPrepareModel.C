@@ -30,6 +30,9 @@ void GromacsPrepareModel::reset()
    p_mcell = "";
    p_msummary = "";
    p_mions = "HFE";
+   p_mff = "minff";
+   p_mbend = "none";
+   p_mrigid = false;
 }
 
 GromacsPrepareModel::~GromacsPrepareModel()

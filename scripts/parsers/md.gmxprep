@@ -38,7 +38,7 @@ my %MINFF_POS = (Li => 1, Na => 1, K => 1, Rb => 1, Cs => 1, "Cu+" => 1,
                  Cd => 2, "Fe2+" => 2, "Co2+" => 2, "Cu2+" => 2,
                  "Al3+" => 3, "Fe3+" => 3, "Cr3+" => 3, "La3+" => 3);
 my %MINFF_NEG = (F => 1, Cl => 1, Br => 1, I => 1);
-my %MINFF_WATER = map { $_ => 1 } qw(opc3 opc spce tip3p tip3p-fb tip4p-fb tip4pew);
+my %MINFF_WATER = map { $_ => 1 } qw(opc3 opc spc spce tip3p tip3p-fb tip4p-fb tip4pew);
 
 my %R;
 

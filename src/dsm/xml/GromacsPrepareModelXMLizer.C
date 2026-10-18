@@ -68,6 +68,11 @@ void GromacsPrepareModelXMLizer::deserialize(const string& data,
    m->minffCell(getTagValue(root, "MinffCell"));
    m->minffSummary(getTagValue(root, "MinffSummary"));
    if (!(v = getTagValue(root, "MinffIonSet")).empty()) m->minffIonSet(v);
+   // a task stored before ClayFF was offered is MINFF
+   if (!(v = getTagValue(root, "MineralForceField")).empty()) m->mineralForceField(v);
+   if (!(v = getTagValue(root, "ClayffBend")).empty()) m->clayffBend(v);
+   if (!(v = getTagValue(root, "ClayffRigidWater")).empty())
+      m->clayffRigidWater(atoi(v.c_str()) != 0);
 }
 
 void GromacsPrepareModelXMLizer::serialize(const Serializable& object,
@@ -105,6 +110,10 @@ void GromacsPrepareModelXMLizer::serialize(const Serializable& object,
       << "<MinffCell>" << m->minffCell() << "</MinffCell>\n"
       << "<MinffSummary>" << m->minffSummary() << "</MinffSummary>\n"
       << "<MinffIonSet>" << m->minffIonSet() << "</MinffIonSet>\n"
+      << "<MineralForceField>" << m->mineralForceField() << "</MineralForceField>\n"
+      << "<ClayffBend>" << m->clayffBend() << "</ClayffBend>\n"
+      << "<ClayffRigidWater>" << (m->clayffRigidWater() ? 1 : 0)
+      << "</ClayffRigidWater>\n"
       << "</" << ROOTELEMENT << ">\n";
    data = os.str();
 }

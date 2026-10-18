@@ -65,6 +65,9 @@ static const wxWindowID ID_DIST = wxNewId();
 static const wxWindowID ID_CONC = wxNewId();
 static const wxWindowID ID_RMIN = wxNewId();
 static const wxWindowID ID_MIONS = wxNewId();
+static const wxWindowID ID_MFF = wxNewId();
+static const wxWindowID ID_MBEND = wxNewId();
+static const wxWindowID ID_MRIGID = wxNewId();
 static const wxWindowID ID_PION = wxNewId();
 static const wxWindowID ID_NION = wxNewId();
 
@@ -131,6 +134,19 @@ static const WaterInfo MINFF_WATERS[] = {
   { "tip3p-fb", "TIP3P-FB" }, { "tip4p-fb", "TIP4P-FB" }, { "tip4pew", "TIP4P-Ew" },
 };
 static const int NMINFF_WATER = sizeof(MINFF_WATERS) / sizeof(MINFF_WATERS[0]);
+// ClayFF (third_party/clayff): its ions.itp holds these, and its water is SPC.
+static const IonInfo CLAYFF_POSITIVE[] = {
+  { "Na", "Sodium (Na)" }, { "K", "Potassium (K)" }, { "Cs", "Caesium (Cs)" },
+  { "Ca", "Calcium (Ca)" }, { "Ba", "Barium (Ba)" },
+};
+static const IonInfo CLAYFF_NEGATIVE[] = { { "Cl", "Chloride (Cl)" } };
+static const WaterInfo CLAYFF_WATERS[] = { { "spc", "SPC (flexible; rigid below)" } };
+// the id is what minff_topology.py --clayff-bend takes
+static const WaterInfo CLAYFF_BENDS[] = {
+  { "none", "None" }, { "moh", "Pouvreau 2017 (Al, Mg)" },
+  { "moh2004", "Cygan 2004 generic" },
+};
+static const int NCLAYFF_BENDS = sizeof(CLAYFF_BENDS) / sizeof(CLAYFF_BENDS[0]);
 static const int ANGLE_KS[] = { 0, 250, 500, 1500 };
 // min.ff's ion parameter sets, in the order of the choice (the id is what
 // minff_topology.py --ion-set takes).
@@ -250,6 +266,18 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   p_minffOnly.push_back(box);
   g = new wxFlexGridSizer(2, 6, 8);
   g->AddGrowableCol(1);
+  lab = label(box, _("Force field:"));
+  p_minffOnly.push_back(lab);
+  g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
+  wxArrayString mffs;
+  mffs.Add(_("MINFF"));
+  mffs.Add(_("ClayFF"));
+  p_mff = new ewxChoice(box, ID_MFF, wxDefaultPosition, wxDefaultSize, mffs);
+  p_mff->SetToolTip(_("MINFF is the default. ClayFF (Cygan, Liang and Kalinichev "
+                      "2004) has its own parameters, flexible SPC water and no "
+                      "O-M-O angles."));
+  p_minffOnly.push_back(p_mff);
+  g->Add(p_mff, 0);
   lab = label(box, _("Unit cell:"));
   p_minffOnly.push_back(lab);
   g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
@@ -287,32 +315,39 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   g->Add(shortField(p_mseed), 0);
   lab = label(box, _("Parameters:"));
   p_minffOnly.push_back(lab);
+  p_minffFfOnly.push_back(lab);
   g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
   wxArrayString variants;
   variants.Add(_("General (GMINFF)"));
   variants.Add(_("Tailored to one mineral (TMINFF)"));
   p_mvariant = new ewxChoice(box, ID_MVARIANT, wxDefaultPosition, wxDefaultSize, variants);
   p_minffOnly.push_back(p_mvariant);
+  p_minffFfOnly.push_back(p_mvariant);
   g->Add(p_mvariant, 0);
   lab = label(box, _("Mineral (TMINFF):"));
   p_minffOnly.push_back(lab);
+  p_minffFfOnly.push_back(lab);
   g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
   p_mmineral = new ewxTextCtrl(box, ID_MMINERAL, wxEmptyString);
   p_mmineral->SetToolTip(_("The name of the mineral in MINFF's tailored set, for "
                            "example Montmorillonite or Kaolinite."));
   p_minffOnly.push_back(p_mmineral);
+  p_minffFfOnly.push_back(p_mmineral);
   g->Add(p_mmineral, 1, wxEXPAND);
   lab = label(box, _("O-M-O angle constant:"));
   p_minffOnly.push_back(lab);
+  p_minffFfOnly.push_back(lab);
   g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
   wxArrayString ks;
   for (size_t i = 0; i < sizeof(ANGLE_KS) / sizeof(ANGLE_KS[0]); i++)
     ks.Add(wxString::Format("%d kJ/mol/rad2", ANGLE_KS[i]));
   p_mangle = new ewxChoice(box, ID_MANGLE, wxDefaultPosition, wxDefaultSize, ks);
   p_minffOnly.push_back(p_mangle);
+  p_minffFfOnly.push_back(p_mangle);
   g->Add(p_mangle, 0);
   lab = label(box, _("Ion parameters:"));
   p_minffOnly.push_back(lab);
+  p_minffFfOnly.push_back(lab);
   g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
   wxArrayString is;
   for (int i = 0; i < NMINFF_IONSETS; i++) is.Add(U(MINFF_IONSETS[i].label));
@@ -321,7 +356,26 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
                         "chosen water model: fitted to the hydration free energy "
                         "or to the ion-oxygen distance."));
   p_minffOnly.push_back(p_mions);
+  p_minffFfOnly.push_back(p_mions);
   g->Add(p_mions, 0);
+  lab = label(box, _("M-O-H bend:"));
+  p_clayffOnly.push_back(lab);
+  g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
+  wxArrayString bends;
+  for (int i = 0; i < NCLAYFF_BENDS; i++) bends.Add(U(CLAYFF_BENDS[i].label));
+  p_mbend = new ewxChoice(box, ID_MBEND, wxDefaultPosition, wxDefaultSize, bends);
+  p_mbend->SetToolTip(_("Cygan 2004 includes a generic M-O-H bend for hydroxyl "
+                        "groups, and Pouvreau 2017 fits one (with a Morse O-H bond) "
+                        "to Al and Mg. None leaves it out, as the 2004 paper does "
+                        "for the bulk phases."));
+  p_clayffOnly.push_back(p_mbend);
+  g->Add(p_mbend, 0);
+  g->AddSpacer(0);
+  p_mrigid = new ewxCheckBox(box, ID_MRIGID, _("Rigid water"));
+  p_mrigid->SetToolTip(_("SETTLE-constrained SPC water (-DRIGID_WATER in the "
+                         "topology) instead of ClayFF's flexible SPC."));
+  p_clayffOnly.push_back(p_mrigid);
+  g->Add(p_mrigid, 0);
   sb->Add(g, 0, wxALL | wxEXPAND, 6);
   p_mbuild = new ewxButton(box, ID_MBUILD, _("Build topology"));
   p_minffOnly.push_back(p_mbuild);
@@ -457,6 +511,9 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   Bind(wxEVT_TEXT, &GromacsPreparePanel::OnNumber, this, ID_CONC);
   Bind(wxEVT_TEXT, &GromacsPreparePanel::OnNumber, this, ID_RMIN);
   Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnMinffChoice, this, ID_MIONS);
+  Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnMineralForceField, this, ID_MFF);
+  Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnMinffChoice, this, ID_MBEND);
+  Bind(wxEVT_CHECKBOX, &GromacsPreparePanel::OnMinffChoice, this, ID_MRIGID);
   Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnIon, this, ID_PION);
   Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnIon, this, ID_NION);
 }
@@ -531,6 +588,11 @@ bool GromacsPreparePanel::isMinff() const
   return p_model != 0 && p_model->source() == "minff";
 }
 
+bool GromacsPreparePanel::isClayff() const
+{
+  return isMinff() && p_model->mineralForceField() == "clayff";
+}
+
 void GromacsPreparePanel::showFields()
 {
   bool minff = isMinff();
@@ -561,12 +623,20 @@ void GromacsPreparePanel::showFields()
   p_mmineral->Enable(p_editable && p_mvariant->GetSelection() == 1);
   p_mangle->Enable(p_editable);
   p_mions->Enable(p_editable);
+  p_mff->Enable(p_editable);
+  p_mbend->Enable(p_editable);
+  p_mrigid->Enable(p_editable);
   p_mcellBtn->Enable(p_editable);
   p_mbuild->Enable(p_editable);
 
   // What does not apply to the source is hidden, not just greyed
   for (size_t i = 0; i < p_proteinOnly.size(); i++) p_proteinOnly[i]->Show(!minff);
   p_leftSizer->Show(p_minffSizer, minff, true);
+  // ClayFF has no variants, angle constants or ion sets; its own bend and
+  // water choices show only for it
+  bool clay = isClayff();
+  for (size_t i = 0; i < p_minffFfOnly.size(); i++) p_minffFfOnly[i]->Show(minff && !clay);
+  for (size_t i = 0; i < p_clayffOnly.size(); i++) p_clayffOnly[i]->Show(clay);
   p_ffBox->SetLabel(minff ? _("Water model") : _("Force field"));
   p_waterBox->SetLabel(minff ? _("Water layer") : _("Box and water"));
   p_distLabel->SetLabel(minff ? _("Water layer above the mineral:")
@@ -611,7 +681,9 @@ void GromacsPreparePanel::relayout()
 void GromacsPreparePanel::fillWaters(const string& preferred)
 {
   vector<string> ids;
-  if (isMinff()) {
+  if (isClayff()) {
+    ids.push_back(CLAYFF_WATERS[0].id);
+  } else if (isMinff()) {
     for (int i = 0; i < NMINFF_WATER; i++) ids.push_back(MINFF_WATERS[i].id);
   } else {
     ids = watersOf(ffId(p_ff->GetSelection()));
@@ -620,7 +692,8 @@ void GromacsPreparePanel::fillWaters(const string& preferred)
   int pick = 0;
   for (size_t i = 0; i < ids.size(); i++) {
     string lab = waterLabel(ids[i]);
-    if (isMinff())
+    if (isClayff()) lab = CLAYFF_WATERS[0].label;
+    else if (isMinff())
       for (int k = 0; k < NMINFF_WATER; k++)
         if (ids[i] == MINFF_WATERS[k].id) lab = MINFF_WATERS[k].label;
     p_water->Append(U(lab.c_str()), new wxStringClientData(U(ids[i].c_str())));
@@ -638,11 +711,14 @@ void GromacsPreparePanel::fillWaters(const string& preferred)
 void GromacsPreparePanel::fillIons()
 {
   bool minff = isMinff();
-  const IonInfo *pos = minff ? MINFF_POSITIVE : POSITIVE;
-  int np = minff ? (int)(sizeof(MINFF_POSITIVE) / sizeof(IonInfo))
+  bool clay = isClayff();
+  const IonInfo *pos = clay ? CLAYFF_POSITIVE : minff ? MINFF_POSITIVE : POSITIVE;
+  int np = clay ? (int)(sizeof(CLAYFF_POSITIVE) / sizeof(IonInfo))
+         : minff ? (int)(sizeof(MINFF_POSITIVE) / sizeof(IonInfo))
                  : (int)(sizeof(POSITIVE) / sizeof(IonInfo));
-  const IonInfo *neg = minff ? MINFF_NEGATIVE : NEGATIVE;
-  int nn = minff ? (int)(sizeof(MINFF_NEGATIVE) / sizeof(IonInfo))
+  const IonInfo *neg = clay ? CLAYFF_NEGATIVE : minff ? MINFF_NEGATIVE : NEGATIVE;
+  int nn = clay ? (int)(sizeof(CLAYFF_NEGATIVE) / sizeof(IonInfo))
+         : minff ? (int)(sizeof(MINFF_NEGATIVE) / sizeof(IonInfo))
                  : (int)(sizeof(NEGATIVE) / sizeof(IonInfo));
   bool was = p_refreshing;
   p_refreshing = true;
@@ -706,6 +782,12 @@ void GromacsPreparePanel::refreshGUI()
   for (int i = 0; i < NMINFF_IONSETS; i++)
     if (p_model->minffIonSet() == MINFF_IONSETS[i].id) is = i;
   p_mions->SetSelection(is);
+  p_mff->SetSelection(p_model->mineralForceField() == "clayff" ? 1 : 0);
+  int bd = 0;
+  for (int i = 0; i < NCLAYFF_BENDS; i++)
+    if (p_model->clayffBend() == CLAYFF_BENDS[i].id) bd = i;
+  p_mbend->SetSelection(bd);
+  p_mrigid->SetValue(p_model->clayffRigidWater());
   p_badRmin.clear();
   p_buildWarnings.clear();
   p_badDistance.clear();
@@ -1049,6 +1131,7 @@ void GromacsPreparePanel::OnSource(wxCommandEvent&)
   p_model->source(minff ? "minff" : "protein");
   // each source starts from its own defaults
   GromacsPrepareModel d;
+  p_model->mineralForceField(d.mineralForceField());
   p_model->waterModel(minff ? "opc3" : d.waterModel());
   p_model->positiveIon(minff ? "Na" : d.positiveIon());
   p_model->negativeIon(minff ? "Cl" : d.negativeIon());
@@ -1078,7 +1161,25 @@ void GromacsPreparePanel::OnMinffChoice(wxCommandEvent&)
     p_model->minffAngleK(ANGLE_KS[k]);
   int is = p_mions->GetSelection();
   if (is >= 0 && is < NMINFF_IONSETS) p_model->minffIonSet(MINFF_IONSETS[is].id);
+  int bd = p_mbend->GetSelection();
+  if (bd >= 0 && bd < NCLAYFF_BENDS) p_model->clayffBend(CLAYFF_BENDS[bd].id);
+  p_model->clayffRigidWater(p_mrigid->GetValue());
   p_mmineral->Enable(p_editable && p_mvariant->GetSelection() == 1);
+  minffStale();
+  changed();
+}
+
+// MINFF or ClayFF: the water model and the ions are those of the force field.
+void GromacsPreparePanel::OnMineralForceField(wxCommandEvent&)
+{
+  if (p_refreshing || p_model == 0) return;
+  bool clay = p_mff->GetSelection() == 1;
+  p_model->mineralForceField(clay ? "clayff" : "minff");
+  p_refreshing = true;
+  fillWaters(clay ? CLAYFF_WATERS[0].id : "opc3");
+  fillIons();
+  p_refreshing = false;
+  showFields();
   minffStale();
   changed();
 }
@@ -1190,6 +1291,26 @@ static string jsonStrings(const string& text, const string& key)
   return out;
 }
 
+// The keys of a JSON object whose values are lists, joined by spaces.
+static string jsonObjectKeys(const string& text, const string& key)
+{
+  string::size_type p = text.find("\"" + key + "\": {");
+  if (p == string::npos) return "";
+  string::size_type i = text.find('{', p);
+  if (text.compare(i, 2, "{}") == 0) return "";
+  string::size_type e = text.find("\n  }", p);
+  if (e == string::npos) return "";
+  string out;
+  while (i < e) {
+    string::size_type a = text.find("\": [", i);
+    if (a == string::npos || a > e) break;
+    string::size_type b = text.rfind('"', a - 1);
+    out += (out.empty() ? "" : " ") + text.substr(b + 1, a - b - 1);
+    i = text.find(']', a);
+  }
+  return out;
+}
+
 class MinffProcess : public wxProcess
 {
   public:
@@ -1262,22 +1383,32 @@ bool GromacsPreparePanel::buildMineral(bool withDialog, string& message)
     argv.push_back("--seed");
     argv.push_back(p_model->minffSeed());
   }
-  argv.push_back("--variant");
-  argv.push_back(p_model->minffVariant());
-  if (p_model->minffVariant() == "tminff") {
-    if (p_model->minffMineral().empty()) {
-      message = "TMINFF needs the name of the mineral, for example Montmorillonite.";
-      return false;
+  const bool clay = isClayff();
+  if (clay) {
+    // ClayFF takes its water (SPC) and has no variants, angles or ion sets
+    argv.push_back("--forcefield");
+    argv.push_back("clayff");
+    argv.push_back("--clayff-bend");
+    argv.push_back(p_model->clayffBend());
+    if (p_model->clayffRigidWater()) argv.push_back("--clayff-rigid-water");
+  } else {
+    argv.push_back("--variant");
+    argv.push_back(p_model->minffVariant());
+    if (p_model->minffVariant() == "tminff") {
+      if (p_model->minffMineral().empty()) {
+        message = "TMINFF needs the name of the mineral, for example Montmorillonite.";
+        return false;
+      }
+      argv.push_back("--mineral");
+      argv.push_back(p_model->minffMineral());
     }
-    argv.push_back("--mineral");
-    argv.push_back(p_model->minffMineral());
+    argv.push_back("--angle-k");
+    argv.push_back(std::to_string(p_model->minffAngleK()));
+    argv.push_back("--water");
+    argv.push_back(p_model->waterModel());
+    argv.push_back("--ion-set");
+    argv.push_back(p_model->minffIonSet());
   }
-  argv.push_back("--angle-k");
-  argv.push_back(std::to_string(p_model->minffAngleK()));
-  argv.push_back("--water");
-  argv.push_back(p_model->waterModel());
-  argv.push_back("--ion-set");
-  argv.push_back(p_model->minffIonSet());
   // a bare cell gets the vacuum MINFF needs, instead of a layer bonded to itself
   argv.push_back("--add-gap");
   argv.push_back("--gui");
@@ -1332,9 +1463,27 @@ bool GromacsPreparePanel::buildMineral(bool withDialog, string& message)
   string gapText = gap.empty() ? "" : " The cell's c was lengthened by " + gap +
                    " nm so that the layer is not bonded to its own periodic image.";
   p_buildWarnings = jsonStrings(so, "warnings");
+  string ffText = "";
+  if (clay) {
+    string missing = jsonStrings(so, "types_missing_from_ff");
+    for (string::size_type i = 0; i < missing.size(); i++) if (missing[i] == '\n') missing[i] = ' ';
+    string differing = jsonObjectKeys(so, "charges_differing_from_atomipy");
+    if (!missing.empty())
+      p_buildWarnings += (p_buildWarnings.empty() ? "" : "\n") +
+          string("ClayFF has no parameters for the atom types ") + missing +
+          "; grompp will stop on them.";
+    if (!differing.empty())
+      p_buildWarnings += (p_buildWarnings.empty() ? "" : "\n") +
+          string("The charges of Table 1 of the ClayFF paper replace atomipy's for ") +
+          differing + ".";
+    ffText = "ClayFF, M-O-H bend " + p_model->clayffBend() +
+             (p_model->clayffRigidWater() ? ", rigid water" : "") + ", ";
+    untyped = "";
+    water = "SPC";
+  }
   p_model->minffCell(cell);
   p_model->minffSummary("Built from " + cell + ": " + atoms + " atoms, charge " + charge +
-                        ", water " + water + "." + untyped + gapText);
+                        ", " + ffText + "water " + water + "." + untyped + gapText);
   showMineral();
   showCellWarning();
   changed();
@@ -1533,6 +1682,16 @@ bool GromacsPreparePanel::testSet(const string& field, const string& value,
     for (size_t i = 0; i < sizeof(ANGLE_KS) / sizeof(ANGLE_KS[0]); i++)
       if (std::to_string(ANGLE_KS[i]) == value) p_mangle->SetSelection((int)i);
     OnMinffChoice(ev);
+  } else if (field == "mff") {
+    p_mff->SetSelection(value == "clayff" ? 1 : 0);
+    OnMineralForceField(ev);
+  } else if (field == "mbend") {
+    for (int i = 0; i < NCLAYFF_BENDS; i++)
+      if (value == CLAYFF_BENDS[i].id) p_mbend->SetSelection(i);
+    OnMinffChoice(ev);
+  } else if (field == "mrigid") {
+    p_mrigid->SetValue(value == "1");
+    OnMinffChoice(ev);
   } else if (field == "mbuild") {
     return buildMineral(false, message);
   } else if (field == "structure") {
@@ -1582,6 +1741,9 @@ string GromacsPreparePanel::summary() const
      << " mineral=" << p_model->minffSummary()
      << " rmin=" << p_model->ionMinDistance()
      << " ionset=" << p_model->minffIonSet()
+     << " mff=" << p_model->mineralForceField()
+     << " bend=" << p_model->clayffBend()
+     << " rigid=" << (p_model->clayffRigidWater() ? 1 : 0)
      << " buildwarn=" << (p_buildWarnings.empty() ? 0 : 1)
      << " cellwarning=" << (cellWarning().empty() ? 0 : 1);
   return os.str();
