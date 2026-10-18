@@ -88,6 +88,8 @@ def main():
                     help="run only the editor section")
     ap.add_argument("--builder-save-only", action="store_true",
                     help="run only the Builder-save section")
+    ap.add_argument("--builder-flow-only", action="store_true",
+                    help="run only the Builder (Na ion) section")
     ap.add_argument("--organizer-only", action="store_true",
                     help="run only the Organizer section")
     args = ap.parse_args()
@@ -117,6 +119,10 @@ def main():
 
         if args.builder_save_only:
             builder_save_section(s, rundir)
+            return 1 if failures else 0
+
+        if args.builder_flow_only:
+            builder_flow_section(s, build, rundir)
             return 1 if failures else 0
 
         if args.organizer_only:
@@ -302,6 +308,89 @@ def builder_save_section(s, rundir):
         text = re.sub(r"\s+", " ", out)
         check(rc != 0 and "has no structure" in text and "Builder" in text,
               "a Prepare with no structure is refused and told what to do: %s" % text[-200:])
+
+
+def run_builder(s, build, display, ctx, script, tag):
+    """The real Builder on a task, driven by ECCE_BUILDER_SCRIPT; its stderr."""
+    harness.link(os.path.join(build, "builder"), os.path.join(s.home, "bin", "builder"))
+    gw = os.path.join(REPO, "packaging", "gateway")
+    for name in os.listdir(gw):
+        if name.startswith("ecce-"):
+            harness.link(os.path.join(gw, name), os.path.join(s.home, "bin", name))
+    wrappers = os.path.join(s.state, "wrappers-bld")
+    shutil.rmtree(wrappers, ignore_errors=True)
+    shutil.copytree(os.path.join(build, "wrappers"), wrappers)
+    for entry in os.listdir(wrappers):
+        os.chmod(os.path.join(wrappers, entry), 0o755)
+    path = os.path.join(s.state, tag + ".script")
+    with open(path, "w") as h:
+        h.write("\n".join(script) + "\n")
+    env = s.env({"DISPLAY": display.name, "ECCE_BUILDER_SCRIPT": path,
+                 "ECCE_FEEDBACK_STDERR": "1",
+                 "PATH": wrappers + os.pathsep + s.env()["PATH"]})
+    r = subprocess.run([os.path.join(wrappers, "ecce-builder"), "-context", ctx],
+                       env=env, cwd=os.path.join(s.home, "bin"),
+                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=240)
+    log = r.stdout.decode("utf-8", "replace")
+    open(os.path.join(s.state, tag + ".log"), "w").write(log)
+    return log
+
+
+def builder_flow_section(s, build, rundir):
+    """One Na drawn in the Builder, residue renamed in the Residue Table,
+    saved once; then the Prepare as the editor leaves it (G-b, G-d, G-h)."""
+    if not shutil.which("Xvfb") or not os.access(os.path.join(build, "builder"), os.X_OK):
+        say("  (no Xvfb or no builder: the Builder is not checked)")
+        return
+    import xdisplay
+    if not s.services(True):
+        check(False, "services came up for the Builder")
+        return
+    rc, out = s.driver("gromacsprepstudy", s.userUrl(), "naion",
+                       os.path.join(FIXTURES, "1l2y.pdb"), "frag=-",
+                       "ff=amber99sb-ildn", "water=tip3p", "box=cubic",
+                       "dist=1.0", "conc=0")
+    urls = urls_of(out)
+    if not check(rc == 0 and len(urls) == 3, "a study with an empty Prepare"):
+        return
+    study, prep, opt = urls
+    for u in (prep, opt):
+        s.driver("mdsetup", u, "localhost", rundir, s.user())
+    with xdisplay.Display() as display:
+        log = run_builder(s, build, display, prep, [
+            "wait 5000", "add Na Terminal 0 0 0", "save", "wait 3000",
+            "panel Residue Table", "wait 1500", "residues",
+            "cell residue 0 2 ZZ esc", "cell residue 0 2 NA enter", "residues",
+            "panel Atom Table", "wait 1500", "cell atom 0 2 0.5 enter",
+            "cell atom 0 2 7 esc", "savestate", "save",
+            "wait 3000", "quit"], "naion")
+    say("  " + "\n  ".join(l for l in log.splitlines()
+                           if "residues=" in l or "cell " in l))
+    ptask = prep.replace("file://", "").rstrip("/")
+    names = [n.strip() for n in re.findall(r"BUILDER: residues=(.*)", log)]
+    def cell(what):
+        m = re.search(r"cell %s: value=\[(.*?)\] editing=(\w+)" % what, log)
+        return m.groups() if m else None
+    check(cell("residue 0 2 NA enter") == ("NA", "no"),
+          "Enter commits a Residue Table edit and closes the editor: %s"
+          % (cell("residue 0 2 NA enter"),))
+    check(cell("residue 0 2 ZZ esc")[0].strip() == "UNK",
+          "Esc cancels a Residue Table edit: %s" % (cell("residue 0 2 ZZ esc"),))
+    check(cell("atom 0 2 0.5 enter") == ("0.5", "no") and
+          cell("atom 0 2 7 esc")[0] == "0.5",
+          "Enter commits and Esc cancels in the Atom Table: %s, %s"
+          % (cell("atom 0 2 0.5 enter"), cell("atom 0 2 7 esc")))
+    check(names[:2] == ["UNK", "NA"],
+          "the table showed the saved UNK residue and the edit reached the structure: %s" % names)
+    st = re.findall(r"BUILDER: dirty=(\d) save_enabled=(\d)", log)
+    check(st and st[-1] == ("1", "1"), "the rename marks the structure unsaved: %s" % st)
+    pdbs = sorted(glob.glob(os.path.join(ptask, "Parameters", "*.pdb")),
+                  key=os.path.getmtime)
+    texts = [open(f).read() for f in pdbs]
+    say("  stored: %s" % [os.path.basename(f) for f in pdbs])
+    check(len(texts) == 2 and " UNK " in texts[0] and " NA " in texts[1]
+          and " UNK " not in texts[1],
+          "the second save stored residue NA (first save kept UNK)")
 
 
 def editor_section(s, build, rundir, png):
