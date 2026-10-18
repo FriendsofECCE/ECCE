@@ -135,7 +135,9 @@ class GromacsPreparePanel : public ewxPanel
       vector<wxWindow*> p_minffFfOnly;   // the MINFF parameter choices, off with ClayFF
       wxStaticBox *p_ffBox, *p_waterBox, *p_mineralBox;
       ewxStaticText *p_distLabel, *p_ionNote, *p_summaryLabel, *p_cellLabel;
-      ewxTextCtrl *p_mrep, *p_msubs, *p_mmineral, *p_mseed;
+      ewxTextCtrl *p_mrep[3], *p_msubs, *p_mmineral, *p_mseed;
+      string repeat() const;
+      void setRepeat(const string& value);
       ewxChoice *p_mvariant, *p_mangle, *p_mions, *p_mff, *p_mbend;
       ewxCheckBox *p_mrigid;
       ewxButton *p_mcellBtn, *p_mbuild;

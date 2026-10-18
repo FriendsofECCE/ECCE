@@ -78,7 +78,8 @@ def last_run_file(rundir, name):
 
 
 def urls_of(out):
-    return [l.rstrip("/") + "/" for l in out.splitlines() if l.startswith("file://")]
+    return [l.rstrip("/") + "/" for l in out.splitlines()
+            if l.startswith(("file://", "http://"))]
 
 
 def main():
@@ -114,7 +115,9 @@ def main():
         harness.skip("gmx is not installed")
     harness.prerequisites(build, ())
 
-    s = harness.Session(build, "gmxprep", {"GROMACS": gmx}, local=True,
+    #  ECCE_TEST_DAV=1: the same run against a data server, not a folder.
+    local = not os.environ.get("ECCE_TEST_DAV")
+    s = harness.Session(build, "gmxprep", {"GROMACS": gmx}, local=local,
                         keep=args.keep)
     s.registerMachine("localhost", "Shell", {"GROMACS": gmx})
     rundir = os.path.join(s.state, "run")
@@ -754,7 +757,8 @@ def organizer_new(s, build, gmx):
         env = s.env({"DISPLAY": display.name, "ECCE_TEST_ORGANIZER": cmds,
                      "PATH": wrappers + os.pathsep + s.env()["PATH"]})
         proc = subprocess.Popen(
-            [os.path.join(wrappers, "ecce-organizer")], env=env,
+            [os.path.join(wrappers, "ecce-organizer")]
+            + ([] if s.local else ["-pipe", s.authFile()]), env=env,
             cwd=os.path.join(s.home, "bin"), stdout=open(log, "w"),
             stderr=subprocess.STDOUT, start_new_session=True)
 
@@ -782,26 +786,36 @@ def organizer_new(s, build, gmx):
                       % (u.rstrip("/").rsplit("/", 1)[-1], ans[:60]))
             ans = send("new %s gromacs_md_study" % proj)
             check(ans == "ok", "Organizer New: a GROMACS MD Study: %s" % ans)
-            pdir = proj.replace("file://", "")
-            before = set(["menu"])
+            def where(u):
+                """The folder behind a task URL: local data, or the data
+                server's document root."""
+                if u.startswith("file://"):
+                    return u[len("file://"):].rstrip("/")
+                import fixture
+                return os.path.join(fixture.stateDir(), "htdocs",
+                                    u.split("/", 3)[3].rstrip("/"))
+
+            pdir = where(proj)
+            before = set(["menu", ".DAV"])
             new_study = None
             for x in sorted(os.listdir(pdir)):
                 full = os.path.join(pdir, x)
                 if x not in before and os.path.isdir(full) and \
-                        not any(os.path.isdir(os.path.join(full, y)) for y in os.listdir(full)):
-                    new_study = full
+                        not any(os.path.isdir(os.path.join(full, y)) for y in os.listdir(full) if not y.startswith(".")):
+                    new_study = proj.rstrip("/") + "/" + x
             say("  project holds: %s -> new study %s" % (os.listdir(pdir), new_study))
             if check(new_study, "the study made by the hook was found"):
-                ans = send("new file://%s gromacs_md_prepare" % new_study)
+                ans = send("new %s gromacs_md_prepare" % new_study)
                 check(ans == "ok", "Organizer New: a GROMACS MD Prepare in the study: %s" % ans)
-                made = [x for x in os.listdir(new_study)
-                        if os.path.isdir(os.path.join(new_study, x))]
+                made = [x for x in os.listdir(where(new_study)) if not x.startswith(".")
+                        and os.path.isdir(os.path.join(where(new_study), x))]
                 say("  study holds: %s" % made)
                 prep = [m for m in made if "repare" in m]
                 if check(prep, "the Prepare was created in the study"):
-                    rc, out = s.driver("apptype", "file://%s/%s" % (new_study, prep[0]))
+                    rc, out = s.driver("apptype", "%s/%s" % (new_study, prep[0]))
                     check(out.split()[:2] == ["GROMACS", "ecceMdPrepare"],
                           "with the GROMACS application type: %s" % out.strip())
+                    fresh_prepare_in_editor(s, build, display, wrappers, "%s/%s" % (new_study, prep[0]))
         finally:
             for sig in (15, 9):
                 try:
@@ -810,6 +824,44 @@ def organizer_new(s, build, gmx):
                     break
                 except Exception:
                     pass
+
+
+def fresh_prepare_in_editor(s, build, display, wrappers, url):
+    """A Prepare made by Organizer New, opened for the first time, shows the
+    model's defaults: the Repeat field as '1 1 1', spaces kept."""
+    import gromacs_test
+    harness.link(os.path.join(build, "gmxprepare"), os.path.join(s.home, "bin", "gmxprepare"))
+    cmddir = os.path.join(s.state, "mded-fresh")
+    os.makedirs(cmddir, exist_ok=True)
+    genv = s.env({"DISPLAY": display.name, "ECCE_TEST_MDED": cmddir,
+                  "PATH": wrappers + os.pathsep + s.env()["PATH"]})
+    #  The desktop font of GNOME: its narrow spaces made "1 1 1" read "111".
+    cfg = os.path.join(s.state, "xdg", "gtk-3.0")
+    os.makedirs(cfg, exist_ok=True)
+    with open(os.path.join(cfg, "settings.ini"), "w") as h:
+        h.write("[Settings]\ngtk-font-name=%s\n"
+                % os.environ.get("ECCE_TEST_GTK_FONT", "Cantarell 11"))
+    genv["XDG_CONFIG_HOME"] = os.path.join(s.state, "xdg")
+    ed = gromacs_test.Editor(s, display, genv, wrappers, cmddir,
+                             "gmxprepare", "GMXPrepare")
+    try:
+        if not ed.up():
+            check(False, "the editor starts for a fresh Prepare")
+            return
+        check(ed.cmd("open " + url) == "ok", "a fresh Prepare opens in gmxprepare")
+        f = ed.cmd("fields")
+        say("  fresh fields: %s" % f)
+        shown = f.split("repshown=")[-1].split(" repfields")[0]
+        check(shown == "1 1 1", "the fresh Repeat is '1 1 1': %r" % shown)
+        check("repfields=1|1|1 " in f + " ",
+              "shown in three fields of their own: %s" % f.split("repfields=")[-1][:12])
+        ed.cmd("set source minff")
+        f = ed.cmd("fields")
+        shown = f.split("repshown=")[-1].split(" repfields")[0]
+        check(shown == "1 1 1", "and after choosing Mineral: %r" % shown)
+        ed.cmd("snap " + os.path.join(s.state, "fresh-minff.png"))
+    finally:
+        ed.close()
 
 
 def ui_section(s, build, png):
@@ -883,7 +935,7 @@ def ui_section(s, build, png):
                 ed.cmd("set mrep " + rep)
                 check("<MinffReplicate>%s</MinffReplicate>" % rep in ed.cmd("model"),
                       "repeat %r reaches the model as typed" % rep)
-            check(ed.cmd("set mrep 1 1 1") == "ok" and "repshown=1 1 1 " in ed.cmd("fields") + " ",
+            check(ed.cmd("set mrep 1 1 1") == "ok" and "repshown=1 1 1 repfields=1|1|1 " in ed.cmd("fields") + " ",
                   "and the field shows '1 1 1': %s" % ed.cmd("fields").split("repshown=")[-1][:12])
             # P4: Browse starts in the unit cells that ship
             cells = ed.cmd("mcelldir")
@@ -917,7 +969,7 @@ def ui_section(s, build, png):
                     check(False, "the editor reopens")
                     return
                 f = ed.cmd("fields")
-                check("repshown=%s source_label" % rep in f,
+                check("repshown=%s repfields=%s " % (rep, "|".join(rep.split())) in f + " ",
                       "reopened, the repeat shows %r: %s" % (rep, f.split("repshown=")[-1][:20]))
         finally:
             ed.close()

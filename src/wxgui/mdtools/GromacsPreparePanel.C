@@ -311,11 +311,18 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   lab = label(box, _("Repeat (a b c):"));
   p_minffOnly.push_back(lab);
   g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
-  p_mrep = new ewxTextCtrl(box, ID_MREP, wxEmptyString);
-  p_mrep->SetToolTip(_("How many times the unit cell is repeated along its a, b "
-                       "and c axes, for example 4 3 3."));
-  p_minffOnly.push_back(p_mrep);
-  g->Add(shortField(p_mrep), 0);
+  // Three fields, not "1 1 1" in one: a proportional font draws the spaces
+  // so narrow that the repeat reads as "111".
+  wxBoxSizer *repRow = new wxBoxSizer(wxHORIZONTAL);
+  for (int i = 0; i < 3; i++) {
+    p_mrep[i] = new ewxTextCtrl(box, ID_MREP, wxEmptyString);
+    p_mrep[i]->SetToolTip(_("How many times the unit cell is repeated along its "
+                            "a, b and c axes, for example 4 3 3."));
+    p_mrep[i]->SetMinSize(wxSize(p_mrep[i]->GetTextExtent("00000").x + 24, -1));
+    p_minffOnly.push_back(p_mrep[i]);
+    repRow->Add(p_mrep[i], 0, wxRIGHT, 8);
+  }
+  g->Add(repRow, 0);
   lab = label(box, _("Substitutions:"));
   p_minffOnly.push_back(lab);
   g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
@@ -638,9 +645,11 @@ void GromacsPreparePanel::showFields()
   p_pion->Enable(p_editable);
   p_nion->Enable(p_editable);
   for (int i = 0; i < 2; i++) {
-    wxWindow *w = i == 0 ? (wxWindow*)p_mrep : (wxWindow*)p_msubs;
+    wxWindow *w = i == 0 ? (wxWindow*)p_mrep[0] : (wxWindow*)p_msubs;
     w->Enable(p_editable);
   }
+  p_mrep[1]->Enable(p_editable);
+  p_mrep[2]->Enable(p_editable);
   p_mseed->Enable(p_editable);
   p_mvariant->Enable(p_editable);
   p_mmineral->Enable(p_editable && p_mvariant->GetSelection() == 1);
@@ -839,7 +848,7 @@ void GromacsPreparePanel::refreshGUI()
   orm << p_model->ionMinDistance();
   p_rmin->SetValue(U(orm.str().c_str()));
   fillIons();
-  p_mrep->SetValue(U(p_model->minffReplicate().c_str()));
+  setRepeat(p_model->minffReplicate());
   p_msubs->SetValue(U(p_model->minffSubstitutions().c_str()));
   p_mseed->SetValue(U(p_model->minffSeed().c_str()));
   p_mmineral->SetValue(U(p_model->minffMineral().c_str()));
@@ -1232,10 +1241,33 @@ void GromacsPreparePanel::OnSource(wxCommandEvent&)
   changed();
 }
 
+// The model keeps the repeat as "a b c"; an empty field counts as missing.
+string GromacsPreparePanel::repeat() const
+{
+  string out;
+  for (int i = 0; i < 3; i++) {
+    string v(p_mrep[i]->GetValue().ToUTF8());
+    std::istringstream in(v);
+    string word;
+    while (in >> word) out += (out.empty() ? "" : " ") + word;
+  }
+  return out;
+}
+
+void GromacsPreparePanel::setRepeat(const string& value)
+{
+  std::istringstream in(value);
+  for (int i = 0; i < 3; i++) {
+    string word;
+    in >> word;
+    p_mrep[i]->SetValue(U(word.c_str()));
+  }
+}
+
 void GromacsPreparePanel::OnMinffText(wxCommandEvent&)
 {
   if (p_refreshing || p_model == 0) return;
-  p_model->minffReplicate(string(p_mrep->GetValue().ToUTF8()));
+  p_model->minffReplicate(repeat());
   p_model->minffSubstitutions(string(p_msubs->GetValue().ToUTF8()));
   p_model->minffSeed(string(p_mseed->GetValue().ToUTF8()));
   p_model->minffMineral(string(p_mmineral->GetValue().ToUTF8()));
@@ -1777,8 +1809,9 @@ bool GromacsPreparePanel::testSet(const string& field, const string& value,
     changed();
   } else if (field == "mrep" || field == "msubs" || field == "mseed" ||
              field == "mmineral") {
-    (field == "mrep" ? p_mrep : field == "msubs" ? p_msubs :
-     field == "mseed" ? p_mseed : p_mmineral)->SetValue(U(value.c_str()));
+    if (field == "mrep") setRepeat(value);
+    else (field == "msubs" ? p_msubs :
+          field == "mseed" ? p_mseed : p_mmineral)->SetValue(U(value.c_str()));
     OnMinffText(ev);
   } else if (field == "mvariant") {
     p_mvariant->SetSelection(value == "tminff" ? 1 : 0);
@@ -1851,7 +1884,9 @@ string GromacsPreparePanel::summary() const
      << " rigid=" << (p_model->clayffRigidWater() ? 1 : 0)
      << " buildwarn=" << (p_buildWarnings.empty() ? 0 : 1)
      << " cellwarning=" << (cellWarning().empty() ? 0 : 1)
-     << " repshown=" << p_mrep->GetValue().ToUTF8()
+     << " repshown=" << repeat()
+     << " repfields=" << p_mrep[0]->GetValue().ToUTF8() << "|"
+     << p_mrep[1]->GetValue().ToUTF8() << "|" << p_mrep[2]->GetValue().ToUTF8()
      << " source_label=" << p_source->GetString(p_source->GetSelection()).ToUTF8()
      << " mineral_title=" << p_mineralBox->GetLabel().ToUTF8();
   return os.str();
