@@ -232,6 +232,44 @@ def check_electrons(d):
     return bad
 
 
+def right_sets(path):
+    """The right (ligand) fragment's drawn sets: (label, degeneracy, electrons)."""
+    rows, inside = [], False
+    for line in open(path):
+        if line.startswith("column "):
+            inside = line.strip() == "column right"
+        elif inside and line.lstrip().startswith("level "):
+            f = dict(re.findall(r'(\w+)=("[^"]*"|\S+)', line))
+            rows.append((f["label"], int(f["degeneracy"]), float(f["occupancy"])))
+    return rows
+
+
+def check_neutral_ligands(d):
+    """Covalent model: the neutral ligand atoms' unpaired electrons sit one to
+    each SIGMA ligand group orbital and the pi sets are full.  BF3: a1' 1 e,
+    sigma e' 1+1, a2'' and the in-plane pi e' full; water's H2 and NH3's H3
+    are the same rule with s sigma orbitals."""
+    bad = 0
+    want = {
+        #  (sets in energy order: label, electrons); core-like F 2s is folded away.
+        #  BF3: a1' sigma 1, in-plane pi e' 4, a2'' pi 2, sigma e' 1+1.
+        "orca-bf3": [("a1'", 1), ("e'", 4), ("a2''", 2), ("e'", 2)],
+        "ecceqm-water": [("a1", 1), ("b2", 1)],
+        "orca-nh3-usesym": [("a1", 1), ("e", 2)],
+    }
+    for name, sets in want.items():
+        path = os.path.join(d, name + ".dump")
+        if not os.path.exists(path):
+            continue
+        have = [(l.split(" ")[0].lower() if name != "orca-bf3" else l.split(" ")[0], round(o))
+                for l, dg, o in right_sets(path)]
+        ok = [(a.lower(), b) for a, b in have] == [(a.lower(), b) for a, b in sets]
+        bad += not ok
+        print("%-16s neutral ligand fill %s %s" % (name, have, "ok" if ok else "FAIL (want %s)" % sets))
+    print("neutral ligand fill: %s" % ("FAIL" if bad else "ok"))
+    return bad
+
+
 def main():
     d = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "expected")
     bad = 0
@@ -254,6 +292,7 @@ def main():
     bad += check_d_electrons(d)
     bad += check_lfview(d)
     bad += check_electrons(d)
+    bad += check_neutral_ligands(d)
     return 1 if bad else 0
 
 
