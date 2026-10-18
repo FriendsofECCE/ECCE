@@ -78,7 +78,15 @@ refusal text plus "use the MOs panel"), keep the old drawing.
 - What is folded as internal is folded on both sides: a calculated level whose
   model partner is folded is not drawn as "your HOMO/LUMO" either, and the note
   and About say so once.
-- Fragment electrons: neutral ligands, by energy; when that leaves a degenerate
+- Fragment electrons, covalent rule: a neutral ligand fragment of separate atoms
+  against one central atom (F3, H3, H2 on B, N, O) puts one electron into each SIGMA
+  ligand group orbital and fills every other set (`fillRadicalLigands`; sigma = s plus
+  p along the atom-to-centre bond, `sigmaFraction`). BF3: a1' 1 e, sigma e' 1+1, pi sets
+  full. The sigma sets are the nSigma (= atoms) sets of highest sigma share, not a cut-off:
+  F3's own e' sigma (0.82) and in-plane pi (0.18) mix. Falls back to the rule below when
+  the sets do not divide that way (O2 on C, OH, CH3 groups). Ionic fragments and
+  one-atom/metal fragments are untouched.
+- Fragment electrons otherwise: neutral ligands, by energy; when that leaves a degenerate
   set half full (three F atoms are 21 electrons) the sets are chosen as close as
   possible to the populations the occupied model orbitals put on them
   (`fillByPopulation`: whole sets, one electron on one non-degenerate set at most),
@@ -98,4 +106,4 @@ refusal text plus "use the MOs panel"), keep the old drawing.
   band's level count is MOs, not fragment orbitals (BF3: 6 + 6 occupied MOs; the 6
   folded are 3 core-like F 2s + 3 lone pairs). A neutral odd fragment (F3, 21 e)
   keeps one unpaired electron, on the highest-lying non-core non-degenerate set,
-  and the note says "(neutral: 1 unpaired e)".
+  and the note says "(neutral: 1 unpaired e)" (the covalent rule above leaves one per sigma orbital: "neutral: 3 unpaired e" for F3).

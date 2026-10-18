@@ -212,6 +212,70 @@ void fillByPopulation(const vector<double>& pop, const vector<double>& energy,
    }
 }
 
+//  How much of an orbital points along the bonds to `centre`: the s part and
+//  the p part along each atom's own direction to it.  The rest (p across the
+//  bond, d) is pi-like.
+double sigmaFraction(const FragmentOrbitals::FoSet& set, const vector<double>& coef,
+                     const vector<double>& coords, const double centre[3])
+{
+   struct Key { int atom, nq; bool operator<(const Key& o) const {
+      return atom != o.atom ? atom < o.atom : nq < o.nq; } };
+   map<Key, vector<double> > p;
+   double total = 0.0, sigma = 0.0;
+   for (size_t i = 0; i < set.funcs.size(); i++) {
+      const FragmentOrbitals::Function& f = set.funcs[i];
+      const double c2 = coef[i]*coef[i];
+      total += c2;
+      if (f.l == 0) { sigma += c2; continue; }
+      if (f.l != 1) continue;
+      Key k; k.atom = f.atom; k.nq = f.n;
+      vector<double>& v = p[k];
+      if (v.empty()) v.assign(3, 0.0);
+      v[f.component == "x" ? 0 : f.component == "y" ? 1 : 2] = coef[i];
+   }
+   for (map<Key, vector<double> >::iterator it = p.begin(); it != p.end(); ++it) {
+      double u[3], len = 0.0, d = 0.0;
+      for (int k = 0; k < 3; k++) { u[k] = centre[k] - coords[3*it->first.atom + k]; len += u[k]*u[k]; }
+      len = sqrt(len);
+      if (len < 1e-9) continue;
+      for (int k = 0; k < 3; k++) d += it->second[k]*u[k]/len;
+      sigma += d*d;
+   }
+   return total > 0.0 ? sigma/total : 0.0;
+}
+
+//  A neutral ligand fragment of separate one-valence-bond atoms (F3, H3, Cl4):
+//  each atom brings one unpaired electron into its sigma orbital and the rest
+//  are pairs, so the `nSigma` sigma ligand group orbitals hold one electron each
+//  and every other set is full.  The sigma sets are the ones with the most
+//  sigma character (the fragment's own e' sigma and in-plane pi mix, so no
+//  fixed cut-off tells them apart); false when they do not make exactly
+//  nSigma orbitals or the electrons do not add up.
+bool fillRadicalLigands(const vector<double>& sigmaShare, const vector<bool>& core,
+                        const vector<int>& deg, int electrons, int nSigma, vector<double>& occ)
+{
+   vector<size_t> order;
+   for (size_t k = 0; k < deg.size(); k++) if (!core[k]) order.push_back(k);
+   std::stable_sort(order.begin(), order.end(),
+                    [&](size_t a, size_t b) { return sigmaShare[a] > sigmaShare[b]; });
+   occ.assign(deg.size(), 0.0);
+   int sigma = 0, need = 0;
+   size_t taken = 0;
+   for (; taken < order.size() && sigma < nSigma; taken++) {
+      const size_t k = order[taken];
+      if (sigmaShare[k] <= 0.5) return false;
+      occ[k] = deg[k];
+      sigma += deg[k];
+   }
+   if (sigma != nSigma) return false;
+   if (taken < order.size() && sigmaShare[order[taken]] >= sigmaShare[order[taken - 1]] - 1e-6) return false;
+   for (size_t k = 0; k < deg.size(); k++) {
+      if (occ[k] == 0.0) occ[k] = 2.0*deg[k];
+      need += (int)occ[k];
+   }
+   return need == electrons;
+}
+
 //  How much of an orbital (coefficients over the functions) changes sign on
 //  reflection through the plane with unit normal n: the p and d parts only,
 //  s is even.  A planar molecule's orbitals are exactly even (sigma) or odd (pi).
@@ -822,6 +886,18 @@ bool ModelDiagram::build(const Input& in,
          if (coreSet[k] && occ[k] < 2.0*dg[k] - 1e-9) partial = true;
       if (partial && frags[f].kind != FragmentOrbitals::METAL)
          fillByPopulation(pop, en, dg, n < 0 ? 0 : n, occ, coreSet);
+      //  Covalent model: neutral ligand atoms put their unpaired electrons in
+      //  the sigma group orbitals, not wherever the energy order or the
+      //  molecule's populations leave them.
+      if (centralAtom && f == 1 && !in.piOnly && frags[f].charge == 0 &&
+          frags[f].kind != FragmentOrbitals::METAL) {
+         double c0[3];
+         for (int k = 0; k < 3; k++) c0[k] = in.coordsAng[3*frags[0].atoms[0] + k];
+         vector<double> sg, rad;
+         for (size_t k = 0; k < mine.size(); k++)
+            sg.push_back(sigmaFraction(set, set.fos[sets[mine[k]].fos[0]].coef, in.coordsAng, c0));
+         if (fillRadicalLigands(sg, coreSet, dg, n < 0 ? 0 : n, (int)frags[f].atoms.size(), rad)) occ = rad;
+      }
       for (size_t k = 0; k < mine.size(); k++) sets[mine[k]].occupancy = occ[k];
    }
 
