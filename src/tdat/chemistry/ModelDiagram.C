@@ -1756,11 +1756,7 @@ bool ModelDiagram::build(const Input& in,
       }
       if (t2g && eg && in.leftMetal) {
          out.haveDeltaO = true;
-         out.deltaModelEv = fabs(eg->energy - t2g->energy)*HARTREE;
          out.deltaCalcEv = fabs(eg->calcEnergy - t2g->calcEnergy)*HARTREE;
-         if (!out.verdict.empty())
-            out.verdict += " \xCE\x94o is " + fmt("%.1f", out.deltaModelEv) + " eV in the model and " +
-                           fmt("%.1f", out.deltaCalcEv) + " eV in your calculation.";
       }
       int poor = 0;
       for (size_t i = 0; i < v.size(); i++) if (v[i]->calcOverlap < POOR_OVERLAP) poor++;
@@ -1772,7 +1768,9 @@ bool ModelDiagram::build(const Input& in,
 
    //  --- the text ----------------------------------------------------
    out.summary = "Model: order and approximate spacing from extended H\xC3\xBC" "ckel (qualitative) \xC2\xB7 "
-                 "calculation: eV, own scale";
+                 "calculation in eV";
+   if (out.haveDeltaO)
+      out.summary += " \xC2\xB7 \xCE\x94o in your calculation: " + fmt("%.1f", out.deltaCalcEv) + " eV";
    if (!out.right.bands.empty()) {
       string t;
       bool plainBands = false;

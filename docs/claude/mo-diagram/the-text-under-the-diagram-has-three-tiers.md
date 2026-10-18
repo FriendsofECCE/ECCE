@@ -5,11 +5,14 @@ area: mo-diagram
 paths: [src/apps/builder/MoDiagramPanel.C, src/apps/builder/MoDiagramCanvas.H, src/tdat/chemistry/FoDiagram.C]
 issues: [301]
 ---
-Tier A is always drawn: the "Experimental ... Click a level" line and one
-summary line (construction, unit, `labels in O<sub>h</sub>`, hidden count).
-Tier B is orange and present only when something is wrong (incomplete
+Under the diagram only "Click a level to show its orbital." is drawn (plus
+the reasons of a refused diagram); "experimental" is a tag beside the title.
+Tier A (summary line: construction, unit, `labels in O<sub>h</sub>`, hidden
+count, model verdict) and tier B (only when something is wrong: incomplete
 pairs, electron count, poorly covered fragment levels, a `why` that is a
-failure). Tier C is the "About this diagram..." dialog. Add a new sentence
+failure) are the "This diagram" bullets at the top of the dialog
+(`MoDiagramCanvas::aboutText()`), in front of tier C, the "About this
+diagram..." text. Add a new sentence
 to the tier it belongs in (`NoteTiers` in `MoDiagramPanel.C`,
 `FoDiagram::Result::{summary,warnings,about}`), not to a running note.
 The dump has `note:` (tiers A and B) and `about:` (tier C); the goldens

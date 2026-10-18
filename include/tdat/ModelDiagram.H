@@ -93,10 +93,10 @@ class ModelDiagram
       bool   haveDeltaO;
       bool   lfApplicable;             // a complex: the Ligand-field view means something
       bool   foldedAny;                // ligand-internal levels were folded into bars
-      double deltaModelEv, deltaCalcEv;
+      double deltaCalcEv;
       Result() : verdictOk(true), valenceLevels(0), inversions(0),
                  overlapMin(0), overlapMax(0), haveDeltaO(false), lfApplicable(false), foldedAny(false),
-                 deltaModelEv(0), deltaCalcEv(0) {}
+                 deltaCalcEv(0) {}
     };
 
     /** Can extended Hueckel treat every element?  `why` says what not. */

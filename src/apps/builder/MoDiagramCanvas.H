@@ -144,7 +144,36 @@ class MoDiagramCanvas : public wxPanel
       p_about = about;
       Refresh();
     }
-    const string& aboutText() const { return p_about; }
+    /**
+     * The About text with a "This diagram" section in front: what used
+     * to be written under the diagram (verdict, source, folded levels,
+     * electron count, warnings), one bullet each.
+     */
+    string aboutText() const
+    {
+      const string dot = "\xE2\x80\xA2 ";
+      const string sep = " \xC2\xB7 ";
+      string out = "**This diagram**\n" + dot +
+          "Experimental: check the orbitals themselves before relying on "
+          "this diagram.\n";
+      if (!p_verdict.empty()) out += dot + p_verdict + "\n";
+      size_t at = 0;
+      while (!p_summary.empty()) {
+        const size_t k = p_summary.find(sep, at);
+        out += dot + p_summary.substr(at, k == string::npos ? k : k - at) + "\n";
+        if (k == string::npos) break;
+        at = k + sep.size();
+      }
+      for (size_t i = 0; i < p_warnings.size(); i++) out += dot + p_warnings[i] + "\n";
+      return p_about.empty() ? out : out + "\n" + p_about;
+    }
+
+    /** The calculation column's heading: the method, e.g. "BP86/def2-SVP". */
+    void setCalcHeader(const string& text)
+    {
+      p_calcHeader = text.empty() ? string("Your calculation") : text;
+      Refresh();
+    }
 
     /** The model-against-calculation line of the model-first diagram. */
     void setVerdict(const string& text, bool ok)
@@ -602,7 +631,7 @@ class MoDiagramCanvas : public wxPanel
         }
         const int total = widest;
       dc.SetFont(*wxNORMAL_FONT);
-      const int header = dc.GetTextExtent(wxT("Your calculation (eV, own scale)")).x;
+      const int header = dc.GetTextExtent(wxString::FromUTF8(p_calcHeader.c_str())).x;
       const int axisW = 44;
       int width = max(total + 20, header + 20) + axisW;
       width = max(width, 150);
@@ -650,6 +679,7 @@ class MoDiagramCanvas : public wxPanel
         dc.DrawText(text, axisX + 6, y - dc.GetTextExtent(text).y/2);
       }
       drawStretchMarks(dc, axisX, p_calcSpans);
+      dc.DrawText(wxT("eV"), axisX + 7, plot.y - dc.GetTextExtent(wxT("eV")).y - 2);
 
       for (size_t k = 0; k < items.size(); k++) {
         const CalcItem& it = items[k];
@@ -1967,19 +1997,13 @@ class MoDiagramCanvas : public wxPanel
         const vector<wxString> w = wrapText(dc, p_warnings[i], size.x - 16);
         warnLines.insert(warnLines.end(), w.begin(), w.end());
       }
-      const vector< vector<Piece> > summaryLines =
-          layoutSummary(dc, size.x - 16);
-      const wxString firstSentence = wxT("Experimental: check the orbitals "
-                                         "themselves before relying on this "
-                                         "diagram.");
-      const wxString hintSentence = wxT(" Click a level to show its orbital.");
+      const wxString hintSentence = wxT("Click a level to show its orbital.");
       const bool hint = p_owner != 0;
-      const bool oneLine = !hint ||
-          dc.GetTextExtent(firstSentence + hintSentence).x <= size.x - 16;
-
-      const vector<wxString> verdictLines = wrapText(dc, p_verdict, size.x - 16);
-      int footerLines = (int)verdictLines.size() + (int)infoLines.size() + (int)warnLines.size() +
-                        (int)summaryLines.size() + (hint && !oneLine ? 2 : 1);
+      //  Only the click hint is permanent; the rest is in the About text.
+      //  A diagram that could not be drawn keeps its reasons on screen.
+      const bool refused = !p_headline.empty();
+      if (!refused) warnLines.clear();
+      int footerLines = (int)infoLines.size() + (int)warnLines.size() + (hint ? 1 : 0);
       if (p_summary.empty()) footerLines += (int)noteLines.size();
       if (p_centre.hiddenCount > 0)  footerLines += 2;      // band and text
 
@@ -2034,7 +2058,13 @@ class MoDiagramCanvas : public wxPanel
                             : measurePieces(dc, formula, heading, small);
         const int gap = formula.empty() ? 0 : 18;
 
-        const int wide = formulaSize.x + gap + stemSize.x + subSize.x;
+        const wxString tag = wxString::FromUTF8("\xC2\xB7 experimental");
+        dc.SetFont(*wxSMALL_FONT);
+        const wxSize tagSize = dc.GetTextExtent(tag);
+        dc.SetFont(heading);
+        const int tagGap = 12;
+        const int wide = formulaSize.x + gap + stemSize.x + subSize.x +
+                         tagGap + tagSize.x;
         int titleX = (size.x - wide)/2;
 
         if (!formula.empty()) {
@@ -2049,6 +2079,11 @@ class MoDiagramCanvas : public wxPanel
         dc.SetFont(small);
         dc.DrawText(sub, titleX + stemSize.x,
                     6 + stemSize.y - subSize.y + 1);
+        dc.SetFont(*wxSMALL_FONT);
+        dc.SetTextForeground(wxColour(190, 120, 40));
+        dc.DrawText(tag, titleX + stemSize.x + subSize.x + tagGap,
+                    6 + stemSize.y - tagSize.y - 1);
+        dc.SetTextForeground(wxColour(30, 30, 30));
         dc.SetFont(heading);
         top += 22;
       }
@@ -2236,7 +2271,7 @@ class MoDiagramCanvas : public wxPanel
         //  Not over the banner of a diagram that could not be drawn.
         if (p_headline.empty() || p_haveFragments) dc.DrawText(tc, xCentre, top - 38);
         if (model) {
-          dc.DrawText(wxT("Your calculation (eV, own scale)"), xCalc, top - 38);
+          dc.DrawText(wxString::FromUTF8(p_calcHeader.c_str()), xCalc, top - 38);
           dc.SetPen(wxPen(wxColour(210, 210, 210), 1));
           dc.DrawLine(xCalc - 12, top - 40, xCalc - 12, plot.y + plot.height);
         }
@@ -2359,8 +2394,8 @@ class MoDiagramCanvas : public wxPanel
       //  THE CALCULATION: its own column, axis and scale (see layoutCalc).
       if (model) drawCalc(dc, plot, calcItems, calcAxisX);
 
-      //  The stack, from the bottom of the window upward: the
-      //  warnings, the summary, the experimental line, what was clicked.
+      //  The stack, from the bottom of the window upward: the reasons
+      //  of a refused diagram, the click hint, what was clicked.
       int line = size.y - 4;
       dc.SetFont(*wxSMALL_FONT);
       dc.SetTextForeground(wxColour(110, 110, 110));
@@ -2378,34 +2413,12 @@ class MoDiagramCanvas : public wxPanel
           line -= lineHeight;
           dc.DrawText(noteLines[i-1], 8, line);
         }
-      } else {
-        wxFont base = *wxSMALL_FONT;
-        wxFont sub = base;
-        sub.SetPointSize(max(5, base.GetPointSize() - 2));
-        for (size_t i = summaryLines.size(); i > 0; i--) {
-          line -= lineHeight;
-          drawPieces(dc, summaryLines[i-1], 8, line, base, sub, lineHeight);
-        }
-        dc.SetFont(*wxSMALL_FONT);
-        dc.SetTextForeground(wxColour(110, 110, 110));
       }
 
-      //  The diagram can look authoritative while being wrong, so it
-      //  says what it is.  The click hint shares the line where it fits;
-      //  where it cannot do anything (the standalone program has no 3-D
-      //  viewer) it is left out.
-      if (hint && !oneLine) {
+      if (hint) {
         line -= lineHeight;
-        dc.DrawText(hintSentence.Mid(1), 8, line);
+        dc.DrawText(hintSentence, 8, line);
       }
-      line -= lineHeight;
-      dc.SetTextForeground(warn);
-      dc.DrawText(firstSentence, 8, line);
-      if (hint && oneLine) {
-        dc.SetTextForeground(wxColour(110, 110, 110));
-        dc.DrawText(hintSentence, 8 + dc.GetTextExtent(firstSentence).x, line);
-      }
-      dc.SetTextForeground(wxColour(110, 110, 110));
 
       //  What the last clicked level is, in the diagram's own words.
       dc.SetTextForeground(wxColour(30, 30, 30));
@@ -2413,14 +2426,6 @@ class MoDiagramCanvas : public wxPanel
         line -= lineHeight;
         dc.DrawText(infoLines[i-1], 8, line);
       }
-      //  Model against calculation: green when they agree, orange when not.
-      dc.SetTextForeground(p_verdictOk ? wxColour(30, 110, 40) : wxColour(170, 80, 0));
-      for (size_t i = verdictLines.size(); i > 0; i--) {
-        line -= lineHeight;
-        dc.DrawText(verdictLines[i-1], 8, line);
-      }
-      dc.SetTextForeground(wxColour(110, 110, 110));
-
       //  The folded core, said out loud rather than silently dropped:
       //  an absence the reader cannot see is worse than a cluttered
       //  diagram.
@@ -2694,6 +2699,7 @@ class MoDiagramCanvas : public wxPanel
     bool p_showEnergies;
     string p_group;
     string p_formula;
+    string p_calcHeader = "Your calculation";
 
     vector<Hit> p_hits;
     string p_info;                       // the clicked level, in the footer

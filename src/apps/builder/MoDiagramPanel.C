@@ -86,7 +86,7 @@ IMPLEMENT_DYNAMIC_CLASS(MoDiagramPanel, VizPropertyPanel)
 
 MoDiagramPanel::MoDiagramPanel()
   : p_fragmentation(MoFragments::NOT_BUILT),
-    p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0), p_ligandField(0),
+    p_canvas(0), p_fragPanel(0), p_fragToggle(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0), p_ligandField(0),
     p_about(0), p_pickFirst(0), p_pickSecond(0), p_compute(0),
     p_pickA(-1), p_pickB(-1), p_pickEnvDone(false),
     p_building(false), p_rebuildPending(false)
@@ -98,7 +98,7 @@ MoDiagramPanel::MoDiagramPanel(IPropCalculation *calculation,
       wxWindow *parent, wxWindowID id, const wxPoint& pos,
       const wxSize& size, long style, const wxString& name)
   : p_fragmentation(MoFragments::NOT_BUILT),
-    p_canvas(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0), p_ligandField(0),
+    p_canvas(0), p_fragPanel(0), p_fragToggle(0), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0), p_ligandField(0),
     p_about(0), p_pickFirst(0), p_pickSecond(0), p_compute(0),
     p_pickA(-1), p_pickB(-1), p_pickEnvDone(false),
     p_building(false), p_rebuildPending(false)
@@ -318,7 +318,7 @@ static string basisAsCodeWrites(const string& code, const string& name)
 //  levels say they are extended Hückel, so the middle column says what it is.
 //  A DFT run is named by its functional, not by the theory ("BP86", not
 //  "RDFT"); an unrestricted one is told by UKS.
-static string levelSource(IPropCalculation *calc)
+static string levelSource(IPropCalculation *calc, bool slash = false)
 {
   ICalculation *esCalc = dynamic_cast<ICalculation*>(calc);
   if (esCalc == 0) return string();
@@ -343,8 +343,9 @@ static string levelSource(IPropCalculation *calc)
     string code;
     if (TaskJob *tj = dynamic_cast<TaskJob*>(calc))
       if (const JCode *jc = tj->application()) code = jc->name();
-    what += (what.empty() ? "" : ", ") + basisAsCodeWrites(code, config->name());
+    what += (what.empty() ? "" : slash ? "/" : ", ") + basisAsCodeWrites(code, config->name());
   }
+  if (slash) return what;
   return what.empty() ? string() : "MO levels: " + what + " \xC2\xB7 ";
 }
 
@@ -391,6 +392,15 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   wxWrapSizer *row = new wxWrapSizer(wxHORIZONTAL);
   wxWrapSizer *views = new wxWrapSizer(wxHORIZONTAL);
   wxBoxSizer *fragRow = new wxBoxSizer(wxHORIZONTAL);
+  //  Closed by default: choosing fragments is rare.  Not a
+  //  wxCollapsiblePane (it resizes the docked frame), as in the machine
+  //  register.
+  p_fragToggle = new wxButton(this, wxID_ANY,
+      wxString::FromUTF8("\xe2\x96\xb8 Fragments..."), wxDefaultPosition,
+      wxDefaultSize, wxBU_EXACTFIT|wxBORDER_NONE);
+  p_fragPanel = new wxPanel(this);
+  p_fragPanel->Hide();
+  p_fragPanel->SetSizer(fragRow);
 
   //  THE CLASS IS WHAT A CHEMIST WOULD WANT TO OVERRIDE.
   //
@@ -490,7 +500,7 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
                       "what is left out");
   row->Add(p_about, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 
-  p_autoFragments = new ewxCheckBox(this, wxID_ANY, _("Choose fragments"));
+  p_autoFragments = new ewxCheckBox(p_fragPanel, wxID_ANY, _("Choose fragments"));
   p_autoFragments->SetValue(false);
   //  AN OVERRIDE, NOT A MODE.
   //
@@ -546,11 +556,11 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   //  invisible until you already suspect there is something to learn.
   //  A diagram correlates a molecule against TWO groups of atoms, and
   //  the only thing being chosen here is which group each set goes in.
-  p_fragmentHint = new ewxStaticText(this, wxID_ANY,
+  p_fragmentHint = new ewxStaticText(p_fragPanel, wxID_ANY,
       _("Ticked sets become the left column, the rest the right"));
   fragRow->Add(p_fragmentHint, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 
-  p_fragments = new wxCheckListBox(this, wxID_ANY, wxDefaultPosition,
+  p_fragments = new wxCheckListBox(p_fragPanel, wxID_ANY, wxDefaultPosition,
                                    wxSize(220, 70));
   p_fragments->SetToolTip("Each row is a set of atoms the symmetry makes "
                           "equivalent. Ticked sets form the left column of "
@@ -560,7 +570,11 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   views->Add(p_ligandField, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
   sizer->Add(row, 0, wxEXPAND);
   sizer->Add(views, 0, wxEXPAND);
-  sizer->Add(fragRow, 0, wxEXPAND);
+  sizer->Add(p_fragToggle, 0, wxALL, 2);
+  sizer->Add(p_fragPanel, 0, wxEXPAND);
+  p_fragToggle->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    setFragmentsOpen(!p_fragPanel->IsShown());
+  });
 
   //  Bound on the controls themselves.  A static table does not reach
   //  this panel for a control with a pushed handler chain, which is
@@ -581,6 +595,17 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   p_about->Bind(wxEVT_BUTTON, &MoDiagramPanel::onAbout, this);
 
   p_fragments->Enable(false);
+}
+
+
+void MoDiagramPanel::setFragmentsOpen(bool open)
+{
+  if (p_fragPanel == 0) return;
+  p_fragPanel->Show(open);
+  p_fragToggle->SetLabel(wxString::FromUTF8(
+      open ? "\xe2\x96\xbe Fragments..." : "\xe2\x96\xb8 Fragments..."));
+  Layout();
+  if (GetParent() != 0) GetParent()->Layout();
 }
 
 
@@ -3824,7 +3849,8 @@ void MoDiagramPanel::buildOnce()
       p_canvas->setGroup(group);
       p_canvas->setFormula(MoDiagram::formula(elements, charge));
       p_canvas->setDiagram(left, centre, right, links, false, "", headline);
-      p_lastNote = levelSource(getCalculation()) + tiers.summary;
+      p_canvas->setCalcHeader(levelSource(getCalculation(), true));
+  p_lastNote = levelSource(getCalculation()) + tiers.summary;
       for (size_t k = 0; k < tiers.warnings.size(); k++) p_lastNote += "\n" + tiers.warnings[k];
       p_canvas->setNotes(levelSource(getCalculation()) + tiers.summary,
                          tiers.warnings, tiers.about);
@@ -3986,6 +4012,7 @@ void MoDiagramPanel::buildOnce()
   const string pickHeadline = (pickActive && !haveFragments && !why.empty())
       ? "The picked atoms cannot be drawn as two fragments" : string();
   p_canvas->setDiagram(left, centre, right, links, haveFragments, "", pickHeadline);
+  p_canvas->setCalcHeader(levelSource(getCalculation(), true));
   p_lastNote = levelSource(getCalculation()) + tiers.summary;
   for (size_t k = 0; k < tiers.warnings.size(); k++) p_lastNote += "\n" + tiers.warnings[k];
   p_canvas->setNotes(levelSource(getCalculation()) + tiers.summary,
