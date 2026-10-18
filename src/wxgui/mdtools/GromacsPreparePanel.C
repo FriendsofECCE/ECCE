@@ -525,22 +525,16 @@ void GromacsPreparePanel::showFields()
   relayout();
 }
 
-// The mineral page is taller than the protein page; the window grows to fit
-// instead of squeezing the boxes over each other.
+// The mineral page is taller than the protein page; the scrolled window
+// holding this panel (GmxPrepare) takes the new size, so the window stays put.
 void GromacsPreparePanel::relayout()
 {
   Layout();
-  wxSizer *s = GetSizer();
-  if (s == 0) return;
-  wxSize need = s->CalcMin(), have = GetClientSize();
-  int dx = need.x > have.x ? need.x - have.x : 0;
-  int dy = need.y > have.y ? need.y - have.y : 0;
-  wxWindow *top = wxGetTopLevelParent(this);
-  if ((dx > 0 || dy > 0) && top != 0 && top != this) {
-    wxSize ts = top->GetSize();
-    top->SetSize(ts.x + dx, ts.y + dy);
+  wxWindow *parent = GetParent();
+  if (parent != 0) {
+    parent->Layout();
+    parent->FitInside();
   }
-  Layout();
 }
 
 /** Offer the water models of the chosen force field; keep one if it is there. */
@@ -675,21 +669,8 @@ void GromacsPreparePanel::minffStale()
 // Empty when it holds the default cut-off of those tasks.
 string GromacsPreparePanel::cellWarning() const
 {
-  if (p_model == 0 || !isMinff() || !p_built) return "";
-  MdTask *t = task();
-  istream *is = t ? t->getAnyFile(string("conf.gmxmin")) : 0;
-  if (is == 0) return "";
-  string line, last;
-  while (std::getline(*is, line))
-    if (line.find_first_not_of(" \t\r") != string::npos) last = line;
-  delete is;
-  double b[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
-  std::istringstream in(last);
-  int n = 0;
-  while (n < 9 && in >> b[n]) n++;
-  if (n != 3 && n != 9) return "";
-  if (p_model->boxDistance() > 0) b[2] += p_model->boxDistance();
-  const double v[3][3] = {{b[0], b[3], b[4]}, {b[5], b[1], b[6]}, {b[7], b[8], b[2]}};
+  double v[3][3];
+  if (!cellVectors(v)) return "";
   double limit = 1e30;
   for (int i = 0; i < 3; i++) {
     limit = std::min(limit, 0.5 * std::sqrt(v[i][0]*v[i][0] + v[i][1]*v[i][1] + v[i][2]*v[i][2]));
@@ -707,6 +688,29 @@ string GromacsPreparePanel::cellWarning() const
            "Repeat the cell more often, add water, or lower the cut-off in "
            "the tasks.", cut, limit);
   return buf;
+}
+
+// The built mineral's cell vectors (nm), c lengthened by the water layer.
+bool GromacsPreparePanel::cellVectors(double v[3][3]) const
+{
+  if (p_model == 0 || !isMinff() || !p_built) return false;
+  MdTask *t = task();
+  istream *is = t ? t->getAnyFile(string("conf.gmxmin")) : 0;
+  if (is == 0) return false;
+  string line, last;
+  while (std::getline(*is, line))
+    if (line.find_first_not_of(" \t\r") != string::npos) last = line;
+  delete is;
+  double b[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+  std::istringstream in(last);
+  int n = 0;
+  while (n < 9 && in >> b[n]) n++;
+  if (n != 3 && n != 9) return false;
+  if (p_model->boxDistance() > 0) b[2] += p_model->boxDistance();
+  const double m[3][3] = {{b[0], b[3], b[4]}, {b[5], b[1], b[6]}, {b[7], b[8], b[2]}};
+  for (int i = 0; i < 3; i++)
+    for (int k = 0; k < 3; k++) v[i][k] = m[i][k];
+  return true;
 }
 
 // A warning only: the user may lower the cut-off in the tasks.

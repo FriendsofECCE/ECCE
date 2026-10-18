@@ -326,6 +326,18 @@ def editor_section(s, build, rundir, png):
                 check("structure=builder" in fields and "waters=tip3p,tip4p,tip4pew,tip5p,spc,spce " in fields,
                       "the defaults and the AMBER water models: %s" % fields)
 
+                # G3: Verify shows what the job will run
+                ver = ed.cmd("verify")
+                check("gmx pdb2gmx -f <structure.pdb> -ff amber99sb-ildn -water tip3p -ignh -merge all" in ver
+                      and "gmx editconf -f step1.gro -o step2.gro -c -bt dodecahedron -d 1" in ver
+                      and "gmx solvate -cp step2.gro -cs spc216.gro" in ver
+                      and "-pname NA -pq 1 -nname CL -neutral -conc 0.15" in ver
+                      and "rcoulomb = 1.0" in ver and "FF=amber99sb-ildn" in ver,
+                      "Verify lists the protein Prepare's commands and ions.mdp: %s" % ver)
+                sz = [int(x) for x in re.findall(r"\d+", ed.cmd("size"))]
+                check(len(sz) == 6 and sz[0] <= 1000 and sz[1] <= 760,
+                      "the editor opens compact: %s" % sz)
+
                 # the water models follow the force field
                 check(ed.cmd("set ff oplsaa") == "ok", "OPLS-AA chosen")
                 fields = ed.cmd("fields")
@@ -634,6 +646,15 @@ def minff_section(s, build, rundir, png):
             # G7: a 6 x 4 x 1 cell is wide but 0.9 nm high; the editor warns
             # until the water layer lengthens c (synthetic stand-in for the
             # .gro of the report)
+            # G1: compact and scrollable, with the tall mineral page showing
+            sz = [int(x) for x in re.findall(r"\d+", ed.cmd("size"))]
+            check(len(sz) == 6 and sz[0] <= 1000 and sz[1] <= 760
+                  and sz[5] > sz[3],
+                  "the editor opens compact and scrolls its page: %s" % sz)
+            ver = ed.cmd("verify")
+            check("SOURCE=minff" in ver and "no water layer: step2.gro" in ver
+                  and "(mineral)" in ver,
+                  "Verify before a build names the mineral recipe: %s" % ver[:200])
             check(ed.cmd("set mrep 6 4 1") == "ok", "repeat 6 4 1")
             out = ed.cmd("set mbuild go", timeout=600)
             check(out == "ok", "Build topology of the flat cell: %s" % out)
@@ -641,6 +662,11 @@ def minff_section(s, build, rundir, png):
                   "no water: the editor warns the cell is too small for the cut-off")
             check(ed.cmd("set dist 2") == "ok" and "cellwarning=0" in ed.cmd("fields"),
                   "2 nm of water: no warning")
+            ver = ed.cmd("verify")
+            check("gmx solvate -cp step2.gro -cs spc216.gro" in ver
+                  and re.search(r"rcoulomb = 0\.[0-5]\d*\b", ver) and "periodic-molecules = yes" in ver
+                  and "-pname Na" in ver and "-neutral" in ver,
+                  "Verify lists solvate, genion and the mineral's ions.mdp: %s" % ver[-420:])
             check(ed.cmd("set dist 0") == "ok" and "cellwarning=1" in ed.cmd("fields"),
                   "water layer off again: the warning returns")
             check(ed.cmd("set mrep 4 3 3") == "ok" and
