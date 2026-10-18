@@ -386,11 +386,59 @@ class MoDiagramCanvas : public wxPanel
         }
         energy = min(energy, p_hi);
         const int top = plot.y + p_stripH + 4 + p_breakGap;
-        const double f = (energy - p_lo)/(p_hi - p_lo);
+        const double f = fracOf(energy);
         return plot.y + plot.height - (int)(f*(plot.y + plot.height - top));
       }
-      const double f = (energy - p_lo)/(p_hi - p_lo);
+      const double f = fracOf(energy);
       return plot.y + plot.height - (int)(f*plot.height);
+    }
+
+    /**
+     * Where an energy falls between p_lo and p_hi, 0..1.  Linear for the old
+     * drawings; in the model diagram a monotone map through the energies drawn
+     * (p_kE/p_kF), where a gap much larger than the typical spacing counts only
+     * logarithmically, so the occupied valence levels keep a usable share of the
+     * height.  The model is not to scale, so only the order and rough spacing
+     * mean anything.
+     */
+    double fracOf(double energy) const
+    {
+      if (p_kE.size() < 2) return (energy - p_lo)/(p_hi - p_lo);
+      if (energy <= p_kE.front()) return 0.0;
+      if (energy >= p_kE.back()) return 1.0;
+      size_t k = std::upper_bound(p_kE.begin(), p_kE.end(), energy) - p_kE.begin();
+      const double t = (energy - p_kE[k-1])/(p_kE[k] - p_kE[k-1]);
+      return p_kF[k-1] + t*(p_kF[k] - p_kF[k-1]);
+    }
+
+    void buildMap(const MoColumn* const cols[3])
+    {
+      p_kE.clear(); p_kF.clear();
+      vector<double> e;
+      e.push_back(p_lo); e.push_back(p_hi);
+      for (int c = 0; c < 3; c++)
+        for (size_t i = 0; i < cols[c]->levels.size(); i++) {
+          const double v = cols[c]->levels[i].energy;
+          if (v > p_lo && v < p_hi && !(p_stripRows > 0 && v >= p_stripLo - 1.0e-9)) e.push_back(v);
+        }
+      std::sort(e.begin(), e.end());
+      vector<double> k;
+      for (size_t i = 0; i < e.size(); i++)
+        if (k.empty() || e[i] - k.back() > 1.0e-6) k.push_back(e[i]);
+      if (k.size() < 3) return;
+      vector<double> gaps;
+      for (size_t i = 1; i < k.size(); i++) gaps.push_back(k[i] - k[i-1]);
+      vector<double> sorted = gaps;
+      std::sort(sorted.begin(), sorted.end());
+      const double cap = 2.0*sorted[sorted.size()/2];
+      double total = 0.0;
+      vector<double> cum(1, 0.0);
+      for (size_t i = 0; i < gaps.size(); i++) {
+        total += gaps[i] <= cap ? gaps[i] : cap*(1.0 + 0.5*std::log(gaps[i]/cap));
+        cum.push_back(total);
+      }
+      p_kE = k;
+      for (size_t i = 0; i < cum.size(); i++) p_kF.push_back(cum[i]/total);
     }
 
     //  A calculated level in the calculation column: where, how wide, which lane.
@@ -424,6 +472,8 @@ class MoDiagramCanvas : public wxPanel
 
     static const int calcSlot = 14;
     static constexpr double HARTREE_EV = 27.211386;
+    //  Half the height an electron-arrow glyph (18 px, 2 px pen) needs between rows.
+    static constexpr int ARROW_HALF = 12;
 
     //  Hover keys: a model level is its index; a calculation-column level
     //  carries one of these bits (matched: centre index; no partner: calcOnly index).
@@ -534,15 +584,20 @@ class MoDiagramCanvas : public wxPanel
           widest = max(widest, items[k].w);
         }
         y = natural;
-        const int half = max(9, labelH/2);
-        openRows(y, [&](size_t, size_t) { return 2*half + 1; },
-                 plot.y + half, plot.y + plot.height - half);
+        vector<int> halves;
+        for (size_t k = 0; k < items.size(); k++) {
+          const MoLevel& l = itemLevel(items[k]);
+          halves.push_back(l.calcOccupancy > 0.0 || l.calcOccupancyBeta > 0.0
+                           ? (int)ARROW_HALF : max(9, labelH/2));
+        }
+        openRows(y, [&](size_t a, size_t b) { return halves[a] + halves[b]; },
+                 plot.y + ARROW_HALF, plot.y + plot.height - ARROW_HALF);
         p_calcSpans.clear();
         stretchedSpans(natural, y, p_calcSpans);
         for (size_t k = 0; k < items.size(); k++) {
-          items[k].top += y[k] - items[k].y;
-          items[k].bottom += y[k] - items[k].y;
           items[k].y = y[k];
+          items[k].top = y[k] - halves[k];
+          items[k].bottom = y[k] + halves[k];
           items[k].lane = 0;
         }
         const int total = widest;
@@ -735,8 +790,16 @@ class MoDiagramCanvas : public wxPanel
       //  energy (placeFragments() moves each level to the mean of the
       //  orbitals it became), so array order would stack it wrongly.
       vector<double> en;
-      for (size_t g = 0; g < groups.size(); g++) en.push_back(column.levels[groups[g].first].energy);
-      openRows(groupY, [&](size_t upper, size_t) { return needs[upper]; },
+      vector<bool> occ;
+      for (size_t g = 0; g < groups.size(); g++) {
+        en.push_back(column.levels[groups[g].first].energy);
+        bool o = false;
+        for (size_t i = groups[g].first; i <= groups[g].second; i++)
+          if (column.levels[i].occupancy > 0.0 || column.levels[i].occupancyBeta > 0.0) o = true;
+        occ.push_back(o);
+      }
+      openRows(groupY, [&](size_t upper, size_t lower) {
+                 return (occ[upper] && occ[lower]) ? max(needs[upper], 2*(int)ARROW_HALF) : needs[upper]; },
                plot.y + 6, plot.y + plot.height - 6, &en);
     }
 
@@ -953,7 +1016,8 @@ class MoDiagramCanvas : public wxPanel
     int p_cLabelRight = 0;          // right edge of the label column, from the column's start
     vector< std::pair<int,int> > p_calcSpans;     // ... by the calculation column
     int p_zeroY = -1;                             // 0 eV on the model's arrow, -1 if none
-    vector<CalcItem> p_calcRows;                  // the calculation column as laid out
+    vector<CalcItem> p_calcRows;
+    vector< std::pair<int,bool> > p_fragRows[2];  // fragment columns as drawn: (y, has arrows)                  // the calculation column as laid out
 
     int centreSlot() const { return 24; }
 
@@ -1004,7 +1068,7 @@ class MoDiagramCanvas : public wxPanel
         slotsMax = max(slotsMax, c.slotsW);
         natural[i] = yFor(l.energy, plot);
         //  Electron arrows are 18 px tall; an empty level needs only its label.
-        half[i] = (l.occupancy > 0.0 || l.occupancyBeta > 0.0) ? max(R/2, 10) : R/2;
+        half[i] = (l.occupancy > 0.0 || l.occupancyBeta > 0.0) ? max(R/2, (int)ARROW_HALF) : R/2;
       }
 
       vector<int> y = natural;
@@ -1130,23 +1194,41 @@ class MoDiagramCanvas : public wxPanel
      */
     int centreOverlaps() const
     {
+      //  Measured from the drawn heights and the arrow glyph's real size,
+      //  not from the boxes the layout reserved.
       int n = 0;
       for (size_t a = 0; a < p_cLanes.size(); a++)
         for (size_t b = a + 1; b < p_cLanes.size(); b++) {
           const CentreLane &u = p_cLanes[a], &v = p_cLanes[b];
+          const int d = abs(u.y - v.y);
           if (u.lineX != v.lineX) n++;
-          if (u.top < v.bottom && v.top < u.bottom) n++;
-          if (abs(u.labelY - v.labelY) < u.labelH) n++;
+          if (hasArrows(p_centre.levels[a].occupancy, p_centre.levels[a].occupancyBeta) &&
+              hasArrows(p_centre.levels[b].occupancy, p_centre.levels[b].occupancyBeta) &&
+              d < 2*ARROW_HALF) n++;
+          if (d < u.labelH) n++;
         }
-      n += zeroTickProblems();
       for (size_t a = 0; a < p_calcRows.size(); a++)
         for (size_t b = a + 1; b < p_calcRows.size(); b++) {
           const CalcItem &u = p_calcRows[a], &v = p_calcRows[b];
+          const MoLevel &lu = itemLevel(u), &lv = itemLevel(v);
+          const int d = abs(u.y - v.y);
           if (u.x != v.x) n++;
-          if (u.top < v.bottom && v.top < u.bottom) n++;
+          if (hasArrows(lu.calcOccupancy, lu.calcOccupancyBeta) &&
+              hasArrows(lv.calcOccupancy, lv.calcOccupancyBeta) && d < 2*ARROW_HALF) n++;
+          if (d < 14) n++;
         }
+      for (int c = 0; c < 2; c++)
+        for (size_t a = 0; a < p_fragRows[c].size(); a++)
+          for (size_t b = a + 1; b < p_fragRows[c].size(); b++) {
+            const int d = abs(p_fragRows[c][a].first - p_fragRows[c][b].first);
+            if (p_fragRows[c][a].second && p_fragRows[c][b].second && d < 2*ARROW_HALF) n++;
+            if (d < 12) n++;
+          }
+      n += zeroTickProblems();
       return n;
     }
+
+    static bool hasArrows(double a, double b) { return a > 0.0 || b > 0.0; }
 
   private:
 
@@ -1770,6 +1852,7 @@ class MoDiagramCanvas : public wxPanel
       const double pad = 0.06*(p_hi - p_lo);
       p_lo -= pad;
       p_hi += pad;
+      p_kE.clear(); p_kF.clear();
 
       //  THE POINT GROUP IS THE DIAGRAM'S PREMISE, so it is a heading
       //  and not a footnote: every label below it -- a1, t2, eg -- is a
@@ -1912,6 +1995,7 @@ class MoDiagramCanvas : public wxPanel
       const wxRect plot(0, top, size.x,
                         max(40, size.y - top - footerHeight - 6));
       if (p_stripRows > 0) p_stripH = max(1, min(plot.height/3, 44*(p_stripRows - 1)));
+      if (model) buildMap(cols);
 
       const int levelWidth = p_haveFragments ? 70 : 120;
 
@@ -2064,6 +2148,20 @@ class MoDiagramCanvas : public wxPanel
           dc.DrawText(wxT("Your calculation (eV, own scale)"), xCalc, top - 38);
           dc.SetPen(wxPen(wxColour(210, 210, 210), 1));
           dc.DrawLine(xCalc - 12, top - 40, xCalc - 12, plot.y + plot.height);
+        }
+      }
+
+      for (int c = 0; c < 2; c++) {
+        const MoColumn& col = c == 0 ? p_left : p_right;
+        vector< std::pair<size_t,size_t> > groups;
+        vector<int> gy;
+        columnGeometry(dc, col, plot, true, groups, gy);
+        p_fragRows[c].clear();
+        for (size_t g = 0; g < groups.size(); g++) {
+          bool o = false;
+          for (size_t i = groups[g].first; i <= groups[g].second; i++)
+            o = o || hasArrows(col.levels[i].occupancy, col.levels[i].occupancyBeta);
+          p_fragRows[c].push_back(std::make_pair(gy[g], o));
         }
       }
 
@@ -2515,6 +2613,7 @@ class MoDiagramCanvas : public wxPanel
     mutable double p_stripLo, p_stripHi;   // the levels above the axis break
     mutable int p_stripH = 0, p_breakGap = 0;   // pixels; 0 = no break
     mutable int p_stripRows = 0;
+    vector<double> p_kE, p_kF;   // the model's monotone energy map (knots)
     mutable double p_clo = 0, p_chi = 1, p_cstripLo = 1e30, p_cstripHi = -1e30;   // the calculation column's scale
     mutable int p_cstripH = 0;
     //  Every label placed in the column being drawn, as (y, notch), so

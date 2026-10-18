@@ -38,7 +38,10 @@ refusal text plus "use the MOs panel"), keep the old drawing.
   without a model partner they sit in `MoColumn::calcOnly`, in grey ("no model partner").
   Fragment-column symmetry labels are lower-case (a1g, t2g); AO names stay (3d). Test hooks:
   builder scene `modiagram <n> tip|ctip <i>`.
-- Model positions: monotone in EHT energy, not on a scale. The model side has a
+- Model positions: monotone in EHT energy, not on a scale (`fracOf`/`buildMap`: a gap above
+  2x the median level spacing counts only logarithmically; model and fragment columns share it).
+  Rows are at least 24 px apart where both have electron arrows (`ARROW_HALF`);
+  the `overlaps` scene measures this from the drawn heights (BF3, PtCl4, Cr(CO)6, benzene). The model side has a
   plain "E" arrow with one tick, "0 eV" (between the highest negative and the
   lowest positive model level as drawn: `p_zeroY`), and no model energy is printed
   beside a level (it is in the hover text); "Show energies" governs only the

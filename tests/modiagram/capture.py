@@ -99,6 +99,8 @@ FIXTURES = {
     "orca-crco6-pick-crc": os.path.join(FIXTURES_DIR, "orca-crco6"),
     "orca-ptcl4-overlaps": os.path.join(FIXTURES_DIR, "orca-ptcl4"),
     "orca-bf3-overlaps": os.path.join(FIXTURES_DIR, "orca-bf3"),
+    "orca-crco6-overlaps": os.path.join(FIXTURES_DIR, "orca-crco6"),
+    "orca-benzene-overlaps": os.path.join(FIXTURES_DIR, "orca-benzene"),
     "orca-cocl4-compute": os.path.join(FIXTURES_DIR, "orca-cocl4-quartet"),
     "orca-benzene-compute-ring": os.path.join(FIXTURES_DIR, "orca-benzene"),
     "orca-agnh3": os.path.join(FIXTURES_DIR, "orca-agnh3"),
@@ -137,6 +139,10 @@ FIXTURE_SCENE = {
     #  0 eV tick between the negative and the positive model levels.
     "orca-bf3-overlaps": ("hold 2\nmodiagram overlaps overlaps 0\n",
                           {"overlaps": r"overlaps 0\b"}),
+    "orca-crco6-overlaps": ("hold 2\nmodiagram overlaps overlaps 0\n",
+                            {"overlaps": r"overlaps 0\b"}),
+    "orca-benzene-overlaps": ("hold 2\nmodiagram overlaps overlaps 0\n",
+                              {"overlaps": r"overlaps 0\b"}),
     #  The live Compute button: pick a bond, press it, and the diagram is
     #  redrawn in the subgroup that keeps the two sides.
     "orca-cocl4-compute": ("hold 2\nmodipick pick Co1 Cl2\n",
