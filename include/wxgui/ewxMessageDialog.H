@@ -7,6 +7,7 @@
 #define _EWXMESSAGEDIALOG_H  
 
 #include "wx/sizer.h"
+#include "wx/collpane.h"
 #include "wxgui/ewxDialog.H"
 #include "wxgui/ewxStaticText.H"
 
@@ -40,12 +41,18 @@ public:
   wxButton * AddButton(int id, wxString label);
   // Name a standard button after its action, e.g. OK -> "Quit".
   void SetButtonLabel(int id, const wxString& label);
+  // A closed pane under the message holding text that is only for those who
+  // want it (a tool's original message); the test hook logs it too.
+  void AddDetails(const wxString& title, const wxString& details);
 
 protected:
   void OnButtonClick( wxCommandEvent& event );
+  void OnPaneChanged( wxCollapsiblePaneEvent& event );
 
   wxBoxSizer * p_topSizer;
   wxBoxSizer * p_labelSizer;
+  wxBoxSizer * p_textSizer;
+  wxString p_details;
   ewxStaticText * p_label;
   wxString p_message;   // whole text; p_label holds its first paragraph
   wxSizer * p_buttonSizer;

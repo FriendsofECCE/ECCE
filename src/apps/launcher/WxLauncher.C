@@ -1431,7 +1431,24 @@ bool WxLauncher::confirmMpiLauncher(const string& code)
  */
 bool WxLauncher::confirmLaunchWarning(const string& text)
 {
-    ewxMessageDialog dlg(this, text, "Launch check", wxICON_EXCLAMATION);
+    // A check that reworded the tool's message sends the original after a
+    // marker line; it goes in a closed pane.
+    string shown = text, original;
+    const string mark = "\nECCE-ORIGINAL-MESSAGE\n";
+    size_t at = text.find(mark);
+    if (at != string::npos)
+    {
+        shown = text.substr(0, at);
+        original = text.substr(at + mark.size());
+    }
+    // the text is UTF-8 (a real minus sign); a byte string that is not falls
+    // back to the 8-bit reading
+    wxString msg = wxString::FromUTF8(shown.c_str());
+    if (msg.empty() && !shown.empty())
+        msg = wxString::From8BitData(shown.c_str());
+    ewxMessageDialog dlg(this, msg, "Launch check", wxICON_EXCLAMATION);
+    if (!original.empty())
+        dlg.AddDetails("grompp's message", wxString::FromUTF8(original.c_str()));
     dlg.AddButton(wxID_CANCEL, "Cancel");
     dlg.AddButton(wxID_YES, "Launch anyway")->SetDefault();
     return dlg.ShowModal() == wxID_YES;

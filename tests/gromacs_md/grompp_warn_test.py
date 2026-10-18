@@ -60,6 +60,39 @@ WARNING 4 [file a.mdp]:
     outs = [run(["perl", "-e", c], input=big.encode())[1].strip() for c in (code, code1)]
     check(outs == ["1,1,0,0", "1,1,1,0"],
           "table: a net charge of 1 stops, unless the Prepare marked it intended (%s)" % outs)
+    # ECCE's wording of common stopping warnings
+    more = """WARNING 1 [file a.mdp]:
+  For proper integration of the V-rescale thermostat, tau-t (0.01) should be at
+  least 20 times larger than nsttcouple*dt (0.04)
+
+WARNING 2 [file a.mdp]:
+  You are using constraints on all bonds, whereas the forcefield has been
+  parametrized only with constraints involving hydrogen atoms.
+
+WARNING 3 [file a.mdp]:
+  You are using a plain Coulomb cut-off, which might produce artifacts.
+
+WARNING 4 [file a.mdp]:
+  Something nobody has classified.
+
+NOTE 1 [file topol.top, line 10]:
+  System has non-zero total charge: -1.000000
+
+WARNING 5 [file topol.top, line 10]:
+  You are using Ewald electrostatics in a system with net charge. This can
+  lead to severe artifacts.
+"""
+    code2 = ("use lib '%s'; use GromppWarn; local $/; my $o = <STDIN>;"
+             "print join('|', map { GromppWarn::explain($_) // 'NONE' } GromppWarn::parse($o)), qq{\\n};"
+             % PARSERS)
+    rc, ex = run(["perl", "-e", code2], input=more.encode())
+    parts = ex.strip().split("|")
+    check(len(parts) == 5 and "tau-t (0.01 ps)" in parts[0] and "0.8 ps or more" in parts[0]
+          and "thermostat" in parts[0] and "h-bonds" in parts[1] and "PME" in parts[2]
+          and parts[3] == "NONE" and parts[4].startswith("Net charge "),
+          "explain: tau, constraints, plain cut-off and net charge are worded, an unknown one is not (%s)" % ex.strip()[:300])
+    check("Net charge \u22121 e." in ex,
+          "explain: a negative net charge uses a real minus sign")
     prog = subprocess.run(["perl", "-I" + PARSERS, "-MGromppWarn", "-e",
                            "print GromppWarn::awkProgram()"],
                           stdout=subprocess.PIPE).stdout
@@ -141,9 +174,16 @@ def main():
 
         d = system(tmp, "charge", True)
         rc, out = run(launch, cwd=d)
-        check(rc == 0 and out.startswith("ECCE-LAUNCH-WARNING\n") and "net charge" in out
-              and "will fail at this point" in out and "non-matching" not in out,
+        head, _, orig = out.partition("\nECCE-ORIGINAL-MESSAGE\n")
+        check(rc == 0 and head.startswith("ECCE-LAUNCH-WARNING\nThe job will stop at grompp with this error:\n\n")
+              and "non-matching" not in out,
               "launch check: the net-charge warning is reported without blocking, the atom-name one is not")
+        check("Net charge \u2212" not in head and "Net charge 1 e. With PME" in head
+              and "Neutralise the system with counter-ions (Prepare: Neutralise)" in head
+              and " we " not in head and " you " not in head.lower()
+              and "Ewald electrostatics in a system with net charge" in orig
+              and "Ewald" not in head,
+              "launch check: the net charge is worded by ECCE with the number, grompp's text follows the marker")
         status, text = job(home, d, "charge")
         check(status != "0" and "net charge" in text,
               "job script: grompp stops at the net-charge warning with its own message")

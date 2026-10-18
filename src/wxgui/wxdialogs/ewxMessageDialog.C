@@ -53,6 +53,7 @@ ewxMessageDialog::ewxMessageDialog( wxWindow* parent,
   // A question or headline followed by an explanation: the first paragraph
   // in bold, as desktop message boxes set it, so it reads at a glance.
   wxBoxSizer * text = new wxBoxSizer(wxVERTICAL);
+  p_textSizer = text;
   p_labelSizer->Add(text, 1, wxALIGN_TOP);
   wxString head = message, body;
   int split = message.Find("\n\n");
@@ -142,6 +143,31 @@ void ewxMessageDialog::SetButtonLabel(int id, const wxString& label)
 }
 
 
+void ewxMessageDialog::AddDetails(const wxString& title, const wxString& details)
+{
+  p_details = details;
+  wxCollapsiblePane * pane = new wxCollapsiblePane(this, wxID_ANY, title);
+  wxWindow * inner = pane->GetPane();
+  wxTextCtrl * box = new wxTextCtrl(inner, wxID_ANY, details, wxDefaultPosition,
+      wxSize(460, 150), wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP);
+  box->SetFont(wxFont(wxFontInfo().Family(wxFONTFAMILY_TELETYPE)));
+  wxBoxSizer * in = new wxBoxSizer(wxVERTICAL);
+  in->Add(box, 1, wxEXPAND | wxTOP, 4);
+  inner->SetSizer(in);
+  p_textSizer->Add(pane, 0, wxEXPAND | wxTOP, 8);
+  pane->Bind(wxEVT_COLLAPSIBLEPANE_CHANGED, &ewxMessageDialog::OnPaneChanged, this);
+  Layout();
+  Fit();
+}
+
+
+void ewxMessageDialog::OnPaneChanged(wxCollapsiblePaneEvent&)
+{
+  Layout();
+  Fit();
+}
+
+
 void ewxMessageDialog::OnButtonClick( wxCommandEvent& event )
 {
   EndModal(event.GetId());
@@ -158,8 +184,11 @@ int ewxMessageDialog::ShowModal()
   if (!secs)
     return ewxDialog::ShowModal();
   fprintf(stderr, "ECCE_TEST_DIALOG: [%s] %s\n",
-          (const char *)GetTitle().mb_str(),
-          (const char *)p_message.mb_str());
+          (const char *)GetTitle().utf8_str(),
+          (const char *)p_message.utf8_str());
+  if (!p_details.empty())
+    fprintf(stderr, "ECCE_TEST_DIALOG_DETAILS: %s\n",
+            (const char *)p_details.utf8_str());
   // A frozen parent is not repainted where the dialog uncovers it.
   if (GetParent())
     fprintf(stderr, "ECCE_TEST_DIALOG_PARENT: %s\n",
