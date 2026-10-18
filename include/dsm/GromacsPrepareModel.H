@@ -31,6 +31,8 @@ class GromacsPrepareModel : public ITaskModel
       string boxType() const { return p_box; }
       double boxDistance() const { return p_dist; }
       double ionConcentration() const { return p_conc; }
+      // genion -rmin (nm): how close an ion may sit to solute and to other ions
+      double ionMinDistance() const { return p_rmin; }
       string positiveIon() const { return p_pname; }
       string negativeIon() const { return p_nname; }
 
@@ -45,6 +47,8 @@ class GromacsPrepareModel : public ITaskModel
       string minffSeed() const { return p_mseed; }
       string minffCell() const { return p_mcell; }
       string minffSummary() const { return p_msummary; }
+      // min.ff's ion parameter set: HFE or IOD
+      string minffIonSet() const { return p_mions; }
 
       void source(const string& v) { p_source = v; }
       void forceField(const string& v) { p_ff = v; }
@@ -56,6 +60,7 @@ class GromacsPrepareModel : public ITaskModel
       void boxType(const string& v) { p_box = v; }
       void boxDistance(double v) { p_dist = v; }
       void ionConcentration(double v) { p_conc = v; }
+      void ionMinDistance(double v) { p_rmin = v; }
       void positiveIon(const string& v) { p_pname = v; }
       void negativeIon(const string& v) { p_nname = v; }
       void minffVariant(const string& v) { p_mvariant = v; }
@@ -66,6 +71,7 @@ class GromacsPrepareModel : public ITaskModel
       void minffSeed(const string& v) { p_mseed = v; }
       void minffCell(const string& v) { p_mcell = v; }
       void minffSummary(const string& v) { p_msummary = v; }
+      void minffIonSet(const string& v) { p_mions = v; }
 
       /** The defaults; md.gmxprep and gensub carry the same ones. */
       void reset();
@@ -75,10 +81,10 @@ class GromacsPrepareModel : public ITaskModel
 
    private:
       string p_source, p_ff, p_water, p_his, p_box, p_pname, p_nname;
-      string p_mvariant, p_mmineral, p_mrep, p_msubs, p_mseed, p_mcell, p_msummary;
+      string p_mvariant, p_mmineral, p_mrep, p_msubs, p_mseed, p_mcell, p_msummary, p_mions;
       int p_mangle;
       bool p_ignh, p_merge, p_neut;
-      double p_dist, p_conc;
+      double p_dist, p_conc, p_rmin;
 };
 
 #endif

@@ -369,8 +369,12 @@ string GmxPrepare::verifyText()
       o << "   echo SOL | gmx genion -s ions.tpr -o ion.gro -p topol.top -pname "
         << m->positiveIon() << " -pq " << recipeValue(recipe, "PQ", "1")
         << " -nname " << m->negativeIon() << (m->neutralise() ? " -neutral" : "")
-        << (m->ionConcentration() > 0 ? string(" -conc ") + num : string())
-        << "\n";
+        << (m->ionConcentration() > 0 ? string(" -conc ") + num : string());
+      if (m->ionMinDistance() != 0.6) {
+         snprintf(num, sizeof num, "%g", m->ionMinDistance());
+         o << " -rmin " << num;
+      }
+      o << "\n";
    } else {
       o << "   (no solvent to replace with ions: the mineral's charge is left as it is)\n";
    }

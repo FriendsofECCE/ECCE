@@ -22,7 +22,7 @@ minff commit MINFF_COMMIT into ~/.cache/ecce/minff/<commit>.
     minff_topology.py build CELL -o OUTDIR [--replicate NA NB NC]
         [--substitute FROM TO COUNT]... [--min-distance A] [--seed N]
         [--variant gminff|tminff] [--mineral NAME] [--angle-k 0|250|500|1500]
-        [--water opc3] [--add-gap [NM]]
+        [--water opc3] [--add-gap [NM]] [--ion-set HFE|IOD] [--gui]
     minff_topology.py minerals [--angle-k K]
     minff_topology.py fetch
 """
@@ -226,7 +226,14 @@ def find_atomipy_python():
 
 # ----------------------------------------------------------------- build
 
-def topol_text(variant, k, mineral, water, ion_set=True):
+# Ion parameter sets min.ff's ions.itp defines for every water model: hydration
+# free energy (HFE) or ion-oxygen distance (IOD) fitted.
+ION_SETS = ("HFE", "IOD")
+# For these waters ions.itp takes the monovalent IOD ions from one shared block.
+SHARED_MONOVALENT_IOD = ("spce", "tip3p", "tip4pew")
+
+
+def topol_text(variant, k, mineral, water, ion_set="HFE"):
     wfile, wdef, ionsuf = WATER_MODELS[water]
     block = ("%s_k%d" % (mineral, k)) if variant == "tminff" else ("GMINFF_k%d" % k)
     L = ["; MINFF system written by ECCE minff_topology.py",
@@ -237,8 +244,10 @@ def topol_text(variant, k, mineral, water, ion_set=True):
          "#define KANGLE %.2f" % k,
          "#define %s          ; selects the parameter block in min.ff" % block,
          "#define %s          ; water model types" % wdef,
-         "#define %s_HFE_LM   ; ion parameters matching the water model" % ionsuf,
-         ""]
+         "#define %s_%s_LM   ; ion parameters matching the water model" % (ionsuf, ion_set)]
+    if ion_set == "IOD" and water in SHARED_MONOVALENT_IOD:
+        L.append("#define all_IOD_LM   ; monovalent IOD ions of this water model")
+    L.append("")
     if variant == "gminff":
         L.append('#include "min.ff/forcefield.itp"')
     else:
@@ -449,7 +458,9 @@ def read_itp_atoms(path):
 
 def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
           seed=None, variant="gminff", mineral=None, angle_k=500, water="opc3",
-          log=sys.stderr, add_gap=None):
+          log=sys.stderr, add_gap=None, ion_set="HFE", gui=False):
+    if ion_set not in ION_SETS:
+        raise MinffError("ion set must be one of %s" % (ION_SETS,))
     if variant not in ("gminff", "tminff"):
         raise MinffError("variant must be gminff or tminff")
     if angle_k not in ANGLE_KS:
@@ -502,7 +513,7 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
         with open(os.path.join(outdir, "min_bonded.itp"), "w", encoding="utf-8") as f:
             f.write(restrict_bonded(os.path.join(ffdir, "min.ff", "ffbonded.itp"), known))
     with open(os.path.join(outdir, "topol.top"), "w", encoding="utf-8") as f:
-        f.write(topol_text(variant, angle_k, mineral, water))
+        f.write(topol_text(variant, angle_k, mineral, water, ion_set))
 
     itp = read_itp_atoms(os.path.join(outdir, "min.itp"))
     counts = {}
@@ -544,7 +555,7 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
             regap(os.path.join(outdir, "conf.gro"), wide, z0, max(add_gap - g, 0.0), names0)
             try:
                 s2 = build(wide, trial, (1, 1, 1), (), min_distance, seed, variant,
-                           mineral, angle_k, water, log)
+                           mineral, angle_k, water, log, ion_set=ion_set, gui=gui)
                 if not s2["warnings"] and not s2["untyped_atoms"]:
                     for fn in os.listdir(trial):
                         dst = os.path.join(outdir, fn)
@@ -571,7 +582,7 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
                 "%.1f nm), so its layer is bonded to itself.%s Lengthen the cell "
                 "along c%s." % (wound, gap, GAP_NM,
                                 " Adding a gap automatically did not work." if add_gap else "",
-                                "" if add_gap else ", or build with --add-gap"))
+                                "" if add_gap or gui else ", or build with --add-gap"))
     for w in summary["warnings"]:
         print("minff_topology: WARNING: " + w, file=sys.stderr)
     with open(os.path.join(outdir, "minff.json"), "w", encoding="utf-8") as f:
@@ -604,6 +615,11 @@ def main(argv=None):
                    metavar="NM", help="lengthen the cell along c so that the mineral has "
                    "NM (default %.1f) of vacuum to its periodic image; off by default, "
                    "a bare cell is only warned about" % GAP_NM)
+    b.add_argument("--ion-set", choices=ION_SETS, default="HFE",
+                   help="ion parameter set of min.ff: HFE (hydration free energy, "
+                   "default) or IOD (ion-oxygen distance)")
+    b.add_argument("--gui", action="store_true",
+                   help="worded for the ECCE editor: warnings do not name command-line flags")
     m = sub.add_parser("minerals", help="list the TMINFF minerals")
     m.add_argument("--angle-k", type=int, default=500, choices=ANGLE_KS)
     sub.add_parser("fetch", help="download the pinned minff commit (for the tests) and print its directory")
@@ -632,7 +648,8 @@ def main(argv=None):
                 except ValueError:
                     raise MinffError("substitution count must be an integer: %s" % cnt)
             s = build(a.cell, a.outdir, a.replicate, subs, a.min_distance, a.seed,
-                      a.variant, a.mineral, a.angle_k, a.water, add_gap=a.add_gap)
+                      a.variant, a.mineral, a.angle_k, a.water, add_gap=a.add_gap,
+                      ion_set=a.ion_set, gui=a.gui)
             print(json.dumps(s, indent=2))
     except MinffError as e:
         print("minff_topology: %s" % e, file=sys.stderr)

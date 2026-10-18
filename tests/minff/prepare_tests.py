@@ -259,6 +259,9 @@ def main():
     check(r.returncode == 0 and "PQ=2" in r.stdout and "DIST=0" in r.stdout
           and "WATER=opc3" in r.stdout and "CONC=0\n" in r.stdout,
           "md.gmxprep: minff defaults and the charge of Cu2+ (PQ=2)")
+    check("RMIN=0.6\n" in r.stdout, "md.gmxprep: RMIN defaults to genion's 0.6 nm")
+    r = run([os.path.join(PARSERS, "md.gmxprep")], input="RMIN=abc\n")
+    check(r.returncode != 0, "md.gmxprep refuses RMIN=abc")
 
     # 1. kaolinite, neutral: keep the cell, then add a water layer
     k = os.path.join(tmp, "kaol")
@@ -279,6 +282,20 @@ def main():
         d = prepare(gmx, tmp, "pyro-na", p, "SOURCE=minff\nDIST=2\nCONC=0\nPNAME=Na\n", 1, -4)
         if d:
             judge(gmx, d, "pyrophyllite, Na+", None, 2.0, s["total_charge"], {"Na": 4})
+        # a lowered -rmin must reach genion's command line; the default must not
+        if d:
+            lines = [l for l in open(os.path.join(d, "gromacs.gmxlog")).read().split("\n")
+                     if "gmx genion" in l and "-s ions.tpr" in l]
+            check(lines and not any("-rmin" in l for l in lines),
+                  "RMIN left at 0.6: genion gets no -rmin")
+        d = prepare(gmx, tmp, "pyro-rmin", p,
+                    "SOURCE=minff\nDIST=2\nCONC=0\nPNAME=Na\nRMIN=0.45\n", 1, -4)
+        if d:
+            lines = [l for l in open(os.path.join(d, "gromacs.gmxlog")).read().split("\n")
+                     if "gmx genion" in l and "-s ions.tpr" in l]
+            check(any("-rmin 0.45" in l for l in lines),
+                  "RMIN=0.45 reaches the genion command line")
+            judge(gmx, d, "pyrophyllite, Na+, rmin 0.45", None, 2.0, s["total_charge"], {"Na": 4})
         d = prepare(gmx, tmp, "pyro-ca", p, "SOURCE=minff\nDIST=2\nCONC=0\nPNAME=Ca\n", 1, -4)
         if d:
             judge(gmx, d, "pyrophyllite, Ca2+", None, 2.0, s["total_charge"], {"Ca": 2})

@@ -20,6 +20,7 @@ void GromacsPrepareModel::reset()
    p_neut = true;
    p_dist = 1.0;
    p_conc = 0.15;
+   p_rmin = 0.6;
    p_mvariant = "gminff";
    p_mmineral = "";
    p_mangle = 500;
@@ -28,6 +29,7 @@ void GromacsPrepareModel::reset()
    p_mseed = "";
    p_mcell = "";
    p_msummary = "";
+   p_mions = "HFE";
 }
 
 GromacsPrepareModel::~GromacsPrepareModel()

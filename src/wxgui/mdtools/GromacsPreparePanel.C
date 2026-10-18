@@ -58,6 +58,8 @@ static const wxWindowID ID_NEUT = wxNewId();
 static const wxWindowID ID_BOX = wxNewId();
 static const wxWindowID ID_DIST = wxNewId();
 static const wxWindowID ID_CONC = wxNewId();
+static const wxWindowID ID_RMIN = wxNewId();
+static const wxWindowID ID_MIONS = wxNewId();
 static const wxWindowID ID_PION = wxNewId();
 static const wxWindowID ID_NION = wxNewId();
 
@@ -126,6 +128,12 @@ static const WaterInfo MINFF_WATERS[] = {
 };
 static const int NMINFF_WATER = sizeof(MINFF_WATERS) / sizeof(MINFF_WATERS[0]);
 static const int ANGLE_KS[] = { 0, 250, 500, 1500 };
+// min.ff's ion parameter sets, in the order of the choice (the id is what
+// minff_topology.py --ion-set takes).
+static const WaterInfo MINFF_IONSETS[] = {
+  { "HFE", "Hydration free energy (HFE)" }, { "IOD", "Ion-oxygen distance (IOD)" },
+};
+static const int NMINFF_IONSETS = sizeof(MINFF_IONSETS) / sizeof(MINFF_IONSETS[0]);
 
 static string waterLabel(const string& id)
 {
@@ -297,6 +305,17 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   p_mangle = new ewxChoice(box, ID_MANGLE, wxDefaultPosition, wxDefaultSize, ks);
   p_minffOnly.push_back(p_mangle);
   g->Add(p_mangle, 0);
+  lab = label(box, _("Ion parameters:"));
+  p_minffOnly.push_back(lab);
+  g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
+  wxArrayString is;
+  for (int i = 0; i < NMINFF_IONSETS; i++) is.Add(U(MINFF_IONSETS[i].label));
+  p_mions = new ewxChoice(box, ID_MIONS, wxDefaultPosition, wxDefaultSize, is);
+  p_mions->SetToolTip(_("Which of min.ff's parameter sets the ions use, for the "
+                        "chosen water model: fitted to the hydration free energy "
+                        "or to the ion-oxygen distance."));
+  p_minffOnly.push_back(p_mions);
+  g->Add(p_mions, 0);
   sb->Add(g, 0, wxALL | wxEXPAND, 6);
   p_mbuild = new ewxButton(box, ID_MBUILD, _("Build topology"));
   p_minffOnly.push_back(p_mbuild);
@@ -382,6 +401,13 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   p_conc = new ewxTextCtrl(box, ID_CONC, wxEmptyString);
   p_conc->SetToolTip(_("0 neutralises only."));
   g->Add(withUnit(box, shortField(p_conc), _("mol/L")), 0);
+  g->Add(label(box, _("Minimum ion distance:")), 0, wxALIGN_CENTER_VERTICAL);
+  p_rmin = new ewxTextCtrl(box, ID_RMIN, wxEmptyString);
+  p_rmin->SetToolTip(_("genion -rmin: how close an ion may be placed to the solute "
+                       "and to other ions. 0.6 nm is GROMACS's default; lower it "
+                       "when genion stops with \"No more replaceable solvent\", "
+                       "as in a thin water layer."));
+  g->Add(withUnit(box, shortField(p_rmin), _("nm")), 0);
   g->Add(label(box, _("Positive ion:")), 0, wxALIGN_CENTER_VERTICAL);
   p_pion = new ewxChoice(box, ID_PION);
   g->Add(p_pion, 0);
@@ -416,6 +442,8 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnBox, this, ID_BOX);
   Bind(wxEVT_TEXT, &GromacsPreparePanel::OnNumber, this, ID_DIST);
   Bind(wxEVT_TEXT, &GromacsPreparePanel::OnNumber, this, ID_CONC);
+  Bind(wxEVT_TEXT, &GromacsPreparePanel::OnNumber, this, ID_RMIN);
+  Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnMinffChoice, this, ID_MIONS);
   Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnIon, this, ID_PION);
   Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnIon, this, ID_NION);
 }
@@ -507,6 +535,7 @@ void GromacsPreparePanel::showFields()
   p_box->Enable(p_editable);
   p_dist->Enable(p_editable);
   p_conc->Enable(p_editable);
+  p_rmin->Enable(p_editable);
   p_pion->Enable(p_editable);
   p_nion->Enable(p_editable);
   for (int i = 0; i < 2; i++) {
@@ -517,6 +546,7 @@ void GromacsPreparePanel::showFields()
   p_mvariant->Enable(p_editable);
   p_mmineral->Enable(p_editable && p_mvariant->GetSelection() == 1);
   p_mangle->Enable(p_editable);
+  p_mions->Enable(p_editable);
   p_mcellBtn->Enable(p_editable);
   p_mbuild->Enable(p_editable);
 
@@ -644,6 +674,9 @@ void GromacsPreparePanel::refreshGUI()
   std::ostringstream oc;
   oc << p_model->ionConcentration();
   p_conc->SetValue(U(oc.str().c_str()));
+  std::ostringstream orm;
+  orm << p_model->ionMinDistance();
+  p_rmin->SetValue(U(orm.str().c_str()));
   fillIons();
   p_mrep->SetValue(U(p_model->minffReplicate().c_str()));
   p_msubs->SetValue(U(p_model->minffSubstitutions().c_str()));
@@ -654,6 +687,12 @@ void GromacsPreparePanel::refreshGUI()
   for (size_t i = 0; i < sizeof(ANGLE_KS) / sizeof(ANGLE_KS[0]); i++)
     if (ANGLE_KS[i] == p_model->minffAngleK()) k = (int)i;
   p_mangle->SetSelection(k);
+  int is = 0;
+  for (int i = 0; i < NMINFF_IONSETS; i++)
+    if (p_model->minffIonSet() == MINFF_IONSETS[i].id) is = i;
+  p_mions->SetSelection(is);
+  p_badRmin.clear();
+  p_buildWarnings.clear();
   p_badDistance.clear();
   p_badConcentration.clear();
   p_refreshing = false;
@@ -746,6 +785,7 @@ void GromacsPreparePanel::showCellWarning()
 {
   if (p_owner == 0) return;
   string warn = cellWarning();
+  if (!p_buildWarnings.empty()) warn += (warn.empty() ? "" : "\n") + p_buildWarnings;
   string why;
   if (!warn.empty()) p_owner->getFeedback().setMessage(warn, WxFeedback::WARNING);
   else if (validate(why)) p_owner->getFeedback().clearMessage();
@@ -755,6 +795,7 @@ bool GromacsPreparePanel::validate(string& why) const
 {
   if (!p_badDistance.empty()) { why = p_badDistance; return false; }
   if (!p_badConcentration.empty()) { why = p_badConcentration; return false; }
+  if (!p_badRmin.empty()) { why = p_badRmin; return false; }
   if (p_ff->GetSelection() == OTHER_FF) {
     string n(p_otherFf->GetValue().ToUTF8());
     if (n.empty()) {
@@ -873,6 +914,8 @@ void GromacsPreparePanel::OnMinffChoice(wxCommandEvent&)
   int k = p_mangle->GetSelection();
   if (k >= 0 && k < (int)(sizeof(ANGLE_KS) / sizeof(ANGLE_KS[0])))
     p_model->minffAngleK(ANGLE_KS[k]);
+  int is = p_mions->GetSelection();
+  if (is >= 0 && is < NMINFF_IONSETS) p_model->minffIonSet(MINFF_IONSETS[is].id);
   p_mmineral->Enable(p_editable && p_mvariant->GetSelection() == 1);
   minffStale();
   changed();
@@ -967,6 +1010,24 @@ static string jsonField(const string& text, const string& key)
   return text.substr(p, e - p);
 }
 
+// The strings of a JSON array of strings, one per line of the result.
+static string jsonStrings(const string& text, const string& key)
+{
+  string::size_type p = text.find("\"" + key + "\": [");
+  if (p == string::npos) return "";
+  string::size_type e = text.find(']', p);
+  string out, cur;
+  bool in = false;
+  for (string::size_type i = text.find('[', p) + 1; i < e && i < text.size(); i++) {
+    char c = text[i];
+    if (!in) { if (c == '"') { in = true; cur.clear(); } continue; }
+    if (c == '\\' && i + 1 < text.size()) { cur += text[++i]; continue; }
+    if (c == '"') { in = false; out += (out.empty() ? "" : "\n") + cur; continue; }
+    cur += c;
+  }
+  return out;
+}
+
 class MinffProcess : public wxProcess
 {
   public:
@@ -1053,6 +1114,11 @@ bool GromacsPreparePanel::buildMineral(bool withDialog, string& message)
   argv.push_back(std::to_string(p_model->minffAngleK()));
   argv.push_back("--water");
   argv.push_back(p_model->waterModel());
+  argv.push_back("--ion-set");
+  argv.push_back(p_model->minffIonSet());
+  // a bare cell gets the vacuum MINFF needs, instead of a layer bonded to itself
+  argv.push_back("--add-gap");
+  argv.push_back("--gui");
 
   vector<const char*> cargv;
   for (size_t i = 0; i < argv.size(); i++) cargv.push_back(argv[i].c_str());
@@ -1100,9 +1166,13 @@ bool GromacsPreparePanel::buildMineral(bool withDialog, string& message)
   string cell = p_cellPath.substr(p_cellPath.find_last_of("/\\") == string::npos
                                   ? 0 : p_cellPath.find_last_of("/\\") + 1);
   string water = p_model->waterModel();
+  string gap = jsonField(so, "gap_added_nm");
+  string gapText = gap.empty() ? "" : " The cell's c was lengthened by " + gap +
+                   " nm so that the layer is not bonded to its own periodic image.";
+  p_buildWarnings = jsonStrings(so, "warnings");
   p_model->minffCell(cell);
   p_model->minffSummary("Built from " + cell + ": " + atoms + " atoms, charge " + charge +
-                        ", water " + water + "." + untyped);
+                        ", water " + water + "." + untyped + gapText);
   showMineral();
   showCellWarning();
   changed();
@@ -1128,6 +1198,13 @@ void GromacsPreparePanel::OnNumber(wxCommandEvent&)
     p_badConcentration.clear();
   } else {
     p_badConcentration = "The salt concentration must be a number, 0 or more mol/L.";
+  }
+  string r(p_rmin->GetValue().ToUTF8());
+  if (isNumber(r, v, true)) {
+    p_model->ionMinDistance(v);
+    p_badRmin.clear();
+  } else {
+    p_badRmin = "The minimum ion distance must be a number, 0 or more nm.";
   }
   if (p_owner != 0) {
     string why;
@@ -1251,6 +1328,13 @@ bool GromacsPreparePanel::testSet(const string& field, const string& value,
   } else if (field == "conc") {
     p_conc->SetValue(U(value.c_str()));
     OnNumber(ev);
+  } else if (field == "rmin") {
+    p_rmin->SetValue(U(value.c_str()));
+    OnNumber(ev);
+  } else if (field == "mions") {
+    for (int i = 0; i < NMINFF_IONSETS; i++)
+      if (value == MINFF_IONSETS[i].id) p_mions->SetSelection(i);
+    OnMinffChoice(ev);
   } else if (field == "pname" || field == "nname") {
     ewxChoice *c = field == "pname" ? p_pion : p_nion;
     for (unsigned i = 0; i < c->GetCount(); i++) {
@@ -1322,6 +1406,9 @@ string GromacsPreparePanel::summary() const
      << " merge=" << p_model->mergeChains()
      << " source=" << p_model->source() << " built=" << (p_built ? 1 : 0)
      << " mineral=" << p_model->minffSummary()
+     << " rmin=" << p_model->ionMinDistance()
+     << " ionset=" << p_model->minffIonSet()
+     << " buildwarn=" << (p_buildWarnings.empty() ? 0 : 1)
      << " cellwarning=" << (cellWarning().empty() ? 0 : 1);
   return os.str();
 }

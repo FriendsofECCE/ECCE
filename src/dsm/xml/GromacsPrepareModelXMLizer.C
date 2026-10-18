@@ -54,6 +54,8 @@ void GromacsPrepareModelXMLizer::deserialize(const string& data,
       m->boxDistance(atof(v.c_str()));
    if (!(v = getTagValue(root, "IonConcentration")).empty())
       m->ionConcentration(atof(v.c_str()));
+   if (!(v = getTagValue(root, "IonMinDistance")).empty())
+      m->ionMinDistance(atof(v.c_str()));
    if (!(v = getTagValue(root, "PositiveIon")).empty()) m->positiveIon(v);
    if (!(v = getTagValue(root, "NegativeIon")).empty()) m->negativeIon(v);
    if (!(v = getTagValue(root, "MinffVariant")).empty()) m->minffVariant(v);
@@ -65,6 +67,7 @@ void GromacsPrepareModelXMLizer::deserialize(const string& data,
    m->minffSeed(getTagValue(root, "MinffSeed"));
    m->minffCell(getTagValue(root, "MinffCell"));
    m->minffSummary(getTagValue(root, "MinffSummary"));
+   if (!(v = getTagValue(root, "MinffIonSet")).empty()) m->minffIonSet(v);
 }
 
 void GromacsPrepareModelXMLizer::serialize(const Serializable& object,
@@ -89,6 +92,7 @@ void GromacsPrepareModelXMLizer::serialize(const Serializable& object,
       << "<BoxDistance>" << m->boxDistance() << "</BoxDistance>\n"
       << "<IonConcentration>" << m->ionConcentration()
       << "</IonConcentration>\n"
+      << "<IonMinDistance>" << m->ionMinDistance() << "</IonMinDistance>\n"
       << "<PositiveIon>" << m->positiveIon() << "</PositiveIon>\n"
       << "<NegativeIon>" << m->negativeIon() << "</NegativeIon>\n"
       << "<MinffVariant>" << m->minffVariant() << "</MinffVariant>\n"
@@ -100,6 +104,7 @@ void GromacsPrepareModelXMLizer::serialize(const Serializable& object,
       << "<MinffSeed>" << m->minffSeed() << "</MinffSeed>\n"
       << "<MinffCell>" << m->minffCell() << "</MinffCell>\n"
       << "<MinffSummary>" << m->minffSummary() << "</MinffSummary>\n"
+      << "<MinffIonSet>" << m->minffIonSet() << "</MinffIonSet>\n"
       << "</" << ROOTELEMENT << ">\n";
    data = os.str();
 }

@@ -839,6 +839,29 @@ def minff_section(s, build, rundir, png):
             check("SOURCE=minff" in ver and "no water layer: step2.gro" in ver
                   and "(mineral)" in ver,
                   "Verify before a build names the mineral recipe: %s" % ver[:200])
+            # a bare cell: the editor builds it with a vacuum gap and says so
+            bare = os.path.join(s.state, "bare-cell.pdb")
+            with open(cell) as fin, open(bare, "w") as fout:
+                for line in fin:
+                    fout.write(re.sub(r"^(CRYST1\s+\S+\s+\S+)\s+\S+", r"\1   7.9000", line)
+                               if line.startswith("CRYST1") else line)
+            check(ed.cmd("set mcell " + bare) == "ok", "a bare cell is chosen")
+            out = ed.cmd("set mbuild go", timeout=600)
+            fields = ed.cmd("fields")
+            check(out == "ok" and "was lengthened by" in fields
+                  and "buildwarn=0" in fields,
+                  "the bare cell is built with a gap, and the summary says so: %s"
+                  % fields.split("mineral=")[-1][:200])
+            check(ed.cmd("set mions IOD") == "ok" and "ionset=IOD" in ed.cmd("fields"),
+                  "the IOD ion set is chosen")
+            check(ed.cmd("set mions HFE") == "ok" and "ionset=HFE" in ed.cmd("fields"),
+                  "and HFE again")
+            check("rmin=0.6 " in ed.cmd("fields"), "minimum ion distance starts at 0.6 nm")
+            ed.cmd("set rmin abc")
+            ed.cmd("save")
+            check("RMIN=0.6" in ed.cmd("recipe"), "an rmin that is not a number is not saved")
+            check(ed.cmd("set rmin 0.45") == "ok", "minimum ion distance 0.45 nm")
+            check(ed.cmd("set mcell " + cell) == "ok", "the unit cell is chosen again")
             check(ed.cmd("set mrep 6 4 1") == "ok", "repeat 6 4 1")
             out = ed.cmd("set mbuild go", timeout=600)
             check(out == "ok", "Build topology of the flat cell: %s" % out)
@@ -849,7 +872,7 @@ def minff_section(s, build, rundir, png):
             ver = ed.cmd("verify")
             check("gmx solvate -cp step2.gro -cs spc216.gro" in ver
                   and re.search(r"rcoulomb = 0\.[0-5]\d*\b", ver) and "periodic-molecules = yes" in ver
-                  and "-pname Na" in ver and "-neutral" in ver,
+                  and "-pname Na" in ver and "-neutral" in ver and "-rmin 0.45" in ver,
                   "Verify lists solvate, genion and the mineral's ions.mdp: %s" % ver[-420:])
             check(ed.cmd("set dist 0") == "ok" and "cellwarning=1" in ed.cmd("fields"),
                   "water layer off again: the warning returns")

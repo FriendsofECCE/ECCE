@@ -161,6 +161,12 @@ int main(int argc, char** argv)
     reason = JobFailureReason::extractReason(files);
     expectContains("gromacs pdb2gmx residue type", reason, "do not have a consistent type");
     files.clear();
+    files.push_back(fx + "/synthetic/gromacs-genion-no-solvent.gmxlog");
+    reason = JobFailureReason::extractReason(files);
+    expectContains("gromacs genion names the control", reason,
+                   "Lower the Minimum ion distance");
+    expectShortSingleLine("gromacs genion reason is short", reason);
+    files.clear();
     files.push_back(fx + "/synthetic/gromacs-grompp-error.gmxlog");
     reason = JobFailureReason::extractReason(files);
     expectContains("gromacs grompp error names the cause", reason,

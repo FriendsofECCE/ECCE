@@ -1521,12 +1521,12 @@ sub gromacsPrepare()
 
 @@CC@@ - Read the recipe; md.gmxprep has checked every value.
 SOURCE=protein FF=amber99sb-ildn WATER=tip3p HIS=auto IGNH=1 MERGE=1 NEUT=1
-BOX=dodecahedron DIST=1.0 CONC=0.15 PNAME=NA NNAME=CL PQ=1
+BOX=dodecahedron DIST=1.0 CONC=0.15 RMIN=0.6 PNAME=NA NNAME=CL PQ=1
 while IFS='=' read -r k v; do
   case "$k" in
     SOURCE) SOURCE=$v;; FF) FF=$v;; WATER) WATER=$v;; HIS) HIS=$v;;
     IGNH) IGNH=$v;; NEUT) NEUT=$v;; MERGE) MERGE=$v;; BOX) BOX=$v;; DIST) DIST=$v;;
-    CONC) CONC=$v;; PNAME) PNAME=$v;; NNAME) NNAME=$v;; PQ) PQ=$v;;
+    CONC) CONC=$v;; RMIN) RMIN=$v;; PNAME) PNAME=$v;; NNAME) NNAME=$v;; PQ) PQ=$v;;
   esac
 done < @@IN@@
 rm -f @@OUT@@
@@ -1550,7 +1550,7 @@ prepRun() {
 }
 genionRun() {
   echo SOL | "$gmx" genion -s ions.tpr -o ion.gro -p topol.top \
-      -pname "$PNAME" -pq "$PQ" -nname "$NNAME" $GENION_NEUT $GENION_CONC
+      -pname "$PNAME" -pq "$PQ" -nname "$NNAME" $GENION_NEUT $GENION_CONC $GENION_RMIN
 }
 
 case "$WATER" in
@@ -1563,6 +1563,9 @@ GENION_CONC=""
 GENION_NEUT="-neutral"
 [ "$NEUT" = 0 ] && GENION_NEUT=""
 if [ "`echo "$CONC" | awk '{print ($1 > 0)}'`" = 1 ]; then GENION_CONC="-conc $CONC"; fi
+# genion's own default is 0.6 nm; it is passed only when it differs
+GENION_RMIN=""
+[ "`echo "$RMIN" | awk '{print ($1 != 0.6)}'`" = 1 ] && GENION_RMIN="-rmin $RMIN"
 
 (
   [ -n "$WBOX" ] || exit 1

@@ -100,14 +100,15 @@ class GromacsPreparePanel : public ewxPanel
       string p_url;
       bool p_editable;
       bool p_refreshing;
-      string p_badDistance, p_badConcentration;
+      string p_badDistance, p_badConcentration, p_badRmin;
+      string p_buildWarnings;   // minff_topology.py warnings of the last build
       string p_cellPath;        // the unit cell chosen for MINFF, this session
       bool p_built;
       vector<wxWindow*> p_proteinOnly, p_minffOnly;
       wxStaticBox *p_ffBox, *p_waterBox;
       ewxStaticText *p_distLabel, *p_ionNote, *p_summaryLabel, *p_cellLabel;
       ewxTextCtrl *p_mrep, *p_msubs, *p_mmineral, *p_mseed;
-      ewxChoice *p_mvariant, *p_mangle;
+      ewxChoice *p_mvariant, *p_mangle, *p_mions;
       ewxButton *p_mcellBtn, *p_mbuild;
       wxSizer *p_leftSizer, *p_minffSizer;
 
@@ -123,6 +124,7 @@ class GromacsPreparePanel : public ewxPanel
       ewxChoice *p_box;
       ewxTextCtrl *p_dist;
       ewxTextCtrl *p_conc;
+      ewxTextCtrl *p_rmin;
       ewxChoice *p_pion;
       ewxChoice *p_nion;
 };

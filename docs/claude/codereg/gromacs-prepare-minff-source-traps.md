@@ -45,3 +45,16 @@ issues: [930, 241, 262]
   `ECCE_ATOMIPY_PYTHON` / `ECCE_MINFF_DIR`, then the pinned download. A
   bundled atomipy still needs numpy, scipy and tqdm from the python that runs
   it.
+- **genion -rmin.** The editor's "Minimum ion distance" is recipe key `RMIN`
+  (model `ionMinDistance`, default 0.6 nm = genion's own); `gensub` passes
+  `-rmin` only when it differs, and `GmxPrepare::verifyText` mirrors that. A
+  thin interlayer slab fails with "No more replaceable solvent";
+  `JobFailureReason::matchGromacsError` then names the control in the reason.
+  It is never lowered automatically.
+- **Ion parameter set.** Chosen at Build time (`--ion-set HFE|IOD`, model
+  `minffIonSet`), because it is a `#define` in the built `topol.top`, not in
+  the recipe. spce, tip3p and tip4pew take their monovalent IOD ions from
+  `all_IOD_LM`, so `topol_text` defines that as well for IOD.
+- **Bare cell.** The editor builds with `--add-gap --gui`; `gap_added_nm` goes
+  into the summary and any `warnings` of minff.json are shown as a WARNING
+  (`--gui` keeps the CLI flag out of the text).

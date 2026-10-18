@@ -377,6 +377,13 @@ inline bool matchGromacsError(const std::vector<std::string>& lines,
       detail = paragraphAfter(lines, f);
     if (detail.empty())
       continue;
+    if (m[2].str() == "genion" &&
+        detail.find("No more replaceable solvent") != std::string::npos) {
+      // short enough to survive truncate(): the advice is the point
+      reason = tool + ": no more replaceable solvent. Lower the Minimum ion "
+               "distance in the Prepare editor.";
+      return true;
+    }
     reason = tool + ": \"" + truncate(detail, kMaxReasonLen - tool.size() - 6) +
              "\"";
     return true;

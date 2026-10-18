@@ -230,6 +230,25 @@ def main():
               "k=1500 reaches the angles and topol.top")
     check("Kaolinite" in mt.list_minerals(500, ffdir), "mineral list has Kaolinite")
 
+    # 4b. the ion parameter set reaches topol.top; the three waters whose
+    #     monovalent IOD ions share one block also need all_IOD_LM
+    kcell = os.path.join(uc, "Kaolinite_GII_0.0487.pdb")
+    for water, want, shared in (("opc3", "OPC3_IOD_LM", False), ("tip3p", "TIP3P_IOD_LM", True)):
+        out = os.path.join(work, "ions-" + water)
+        s = build(kcell, out, "--replicate", "4", "3", "3", "--water", water, "--ion-set", "IOD")
+        if s:
+            top = open(os.path.join(out, "topol.top")).read()
+            check(("#define " + want) in top and "_HFE_LM" not in top,
+                  "ion set IOD with %s: topol.top defines %s, no HFE" % (water, want))
+            check(("#define all_IOD_LM" in top) == shared,
+                  "ion set IOD with %s: all_IOD_LM %s" % (water, "defined" if shared else "not needed"))
+            minimise(out, "ion set IOD, " + water)
+    out = os.path.join(work, "ions-default")
+    s = build(kcell, out, "--replicate", "4", "3", "3")
+    if s:
+        check("#define OPC3_HFE_LM" in open(os.path.join(out, "topol.top")).read(),
+              "default ion set stays HFE")
+
     # 5. a bare cell: one montmorillonite layer with 0.1 nm of vacuum, sitting over
     #    the z boundary, is bonded to its own image.  Warned about by default;
     #    --add-gap makes the same topology as a cell with a proper gap.
@@ -245,6 +264,11 @@ def main():
     check(ref and not ref["warnings"], "a cell with 0.5 nm of vacuum: no warning")
     check(s.get("warnings") and "WARNING" in r.stderr and "--add-gap" in r.stderr,
           "bare cell: warns, and says how to fix it (build still succeeds)")
+    r = run([PY, SCRIPT, "build", bare, "-o", os.path.join(work, "bare-gui"), "--variant", "tminff",
+             "--mineral", "Montmorillonite", "--gui"])
+    s = json.loads(r.stdout) if r.returncode == 0 else {}
+    check(s.get("warnings") and "--add-gap" not in r.stderr and "--add-gap" not in s["warnings"][0],
+          "bare cell with --gui: the warning does not name a command-line flag")
     out = os.path.join(work, "bare-gap")
     s = build(bare, out, "--variant", "tminff", "--mineral", "Montmorillonite", "--add-gap")
     if s and ref:
