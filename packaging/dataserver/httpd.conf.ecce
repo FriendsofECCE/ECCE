@@ -267,6 +267,12 @@ AddType  chemical/x-mopac-output .mopout
 AddType  chemical/x-qe-input  .pwin
 AddType  chemical/x-qe-output .pwout
 
+# CP2K. The input is given with "-i" and the report goes to stdout, so, as
+# for pw.x, the extensions are free; generic .inp/.out would be typed
+# text/plain and the primary-input lookup would not find the deck.
+AddType  chemical/x-cp2k-input  .cp2kin
+AddType  chemical/x-cp2k-output .cp2kout
+
 # ECCE Server Side Compression: deferred, see header comment. The
 # SetOutputFilter/SetInputFilter SS_COMPRESSION directives and their
 # ssc* settings from the legacy template are intentionally omitted here.

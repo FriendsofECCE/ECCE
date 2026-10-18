@@ -62,6 +62,8 @@ chemical/x-mopac-input                   .mop
 chemical/x-mopac-output                  .mopout
 chemical/x-qe-input                      .pwin
 chemical/x-qe-output                     .pwout
+chemical/x-cp2k-input                    .cp2kin
+chemical/x-cp2k-output                   .cp2kout
 application/x-compress                   .Z
 application/x-gzip                       .gz .tgz
 image/x-icon                             .ico

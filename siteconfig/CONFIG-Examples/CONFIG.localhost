@@ -15,4 +15,5 @@ Gaussian-09: g09
 ORCA: orca
 MOPAC: mopac
 QuantumESPRESSO: pw.x
+CP2K: cp2k.psmp
 perlPath: /usr/bin/perl

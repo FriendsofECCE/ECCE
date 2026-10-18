@@ -1,0 +1,23 @@
+#!/usr/bin/env perl
+###############################################################################
+# CP2K has nothing in its input that depends on the launch (it writes its
+# files into the run directory it is started in, and finds its own data
+# directory), but Launch::postProcessInput() shells out to the code's
+# <LaunchPreprocessor> without checking that one is named, so the script has
+# to exist.  It leaves the input file as ai.cp2k wrote it.
+###############################################################################
+
+use Getopt::Std;
+
+&getopts('p:v');
+
+if ($opt_v) {
+  $revision = '$Revision: 1.0';
+  $revision =~ (s/\$//g);
+  print "$revision\n";
+  exit 0;
+}
+
+open(PARAMDICT, "<$opt_p") || die "parameter file does not exist!\n";
+close(PARAMDICT);
+exit(0);

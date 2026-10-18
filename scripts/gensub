@@ -1993,6 +1993,49 @@ sub quantumespresso()
   nouse strict vars;
 }
 
+###########################################################################
+# CP2K.  The sub name is lc(applicationType) of cp2k_es; the CONFIG key is
+# "cp2k" for the path of cp2k.psmp (MPI + OpenMP), cp2k.popt (MPI) or
+# cp2k.ssmp / cp2k.sopt (one process, threads).
+#
+# cp2k writes its report to stdout and its restart, wavefunction and
+# trajectory files (<project>-pos-1.xyz, ...) into the run directory.  An MPI
+# build gets one rank per process and one OpenMP thread each unless the
+# user's CONFIG or environment says otherwise; a threads-only build gets
+# the process count as threads, since mpirun would start it N times.
+###########################################################################
+sub cp2k()
+{
+  use strict vars;
+  my ($retval,$cp2k,$cmd);
+  $retval = "";
+  $cp2k = $::config{$::lccode};
+  if ($cp2k eq "") { die "Path for CP2K not found"; }
+  $cmd = &userCmd("cp2kcommand");
+
+  $retval .= &pathVar("cp2k", "$cp2k", "ECCE_CP2K");
+  $retval .= "echo \"Using CP2K path: \$cp2k\" >> $::logfile\n";
+
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } elsif ($::totalprocs <= 1) {
+    $retval .= "\"\$cp2k\" -i $::inFile > $::outFile 2>&1\n";
+  } else {
+    $retval .= "\n$::CC - a threads-only build (ssmp, sopt) runs once with\n";
+    $retval .= "$::CC - $::totalprocs threads; an MPI build is wrapped in mpirun.\n";
+    $retval .= "case \"\$cp2k\" in\n";
+    $retval .= "  *.ssmp|*.sopt)\n";
+    $retval .= "    OMP_NUM_THREADS=$::totalprocs; export OMP_NUM_THREADS\n";
+    $retval .= "    \"\$cp2k\" -i $::inFile > $::outFile 2>&1 ;;\n";
+    $retval .= "  *)\n";
+    $retval .= "    OMP_NUM_THREADS=\${OMP_NUM_THREADS:-1}; export OMP_NUM_THREADS\n";
+    $retval .= "    mpirun -np $::totalprocs \"\$cp2k\" -i $::inFile > $::outFile 2>&1 < /dev/null ;;\n";
+    $retval .= "esac\n";
+  }
+  return $retval;
+  nouse strict vars;
+}
+
 sub gamessuk()
 {
   use strict vars;

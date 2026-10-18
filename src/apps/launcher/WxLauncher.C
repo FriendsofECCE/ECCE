@@ -1332,7 +1332,7 @@ static string missingMpiLauncher(const string& code, RefMachine *mach)
     if (key == "nwchemmd")
         key = "nwchem";          // gensub runs NWChemMD with the nwchem entry
     if (key != "nwchem" && key != "orca" && key != "quantumespresso" &&
-        key != "gromacs")
+        key != "cp2k" && key != "gromacs")
         return "";
 
     map<string,string> cfg = RefMachine::config(mach->refname());
@@ -1349,6 +1349,10 @@ static string missingMpiLauncher(const string& code, RefMachine *mach)
     string base = slash == string::npos ? exe : exe.substr(slash + 1);
     if (key == "gromacs" && base.compare(0, 7, "gmx_mpi") != 0)
         return "";               // thread-MPI gmx needs no mpirun
+    if (key == "cp2k" && base.size() >= 4 &&
+        (base.compare(base.size() - 4, 4, "ssmp") == 0 ||
+         base.compare(base.size() - 4, 4, "sopt") == 0))
+        return "";               // the threads-only builds run without mpirun
 
 #ifdef __WXMSW__
     string launcher = key == "orca" ? "mpiexec" : "mpirun";
