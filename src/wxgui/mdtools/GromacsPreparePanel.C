@@ -1081,7 +1081,8 @@ void GromacsPreparePanel::OnNumber(wxCommandEvent&)
   if (p_refreshing || p_model == 0) return;
   double v;
   string d(p_dist->GetValue().ToUTF8());
-  if (isNumber(d, v, false)) {
+  // A mineral may have no water layer (0), a protein needs a box around it.
+  if (isNumber(d, v, isMinff())) {
     p_model->boxDistance(v);
     p_badDistance.clear();
   } else {

@@ -447,6 +447,8 @@ def viewer_section(s, build, display, genv, wrappers, prep, png):
     check(m is not None and int(m.group(1)) > 3000,
           "the Viewer shows the solvated system (thousands of atoms)")
     check("lattice 1" in before, "the structure carries the box as its cell")
+    # G4: opened in the Viewer the box is drawn, with no panel opened by hand
+    check("latticeshown 1" in before, "the Viewer draws the box when it opens")
     # the cell against gmx's own box line of the .gro the Prepare stored
     gro = [o for o in outputs(prep) if o.endswith(".gro")]
     vec = [[float(x) * 0.1 for x in l.split()[1:4]]
@@ -629,6 +631,18 @@ def minff_section(s, build, rundir, png):
                   and "ions=Na,Cl" in fields and "built=0" in fields,
                   "MINFF's water models, ions and no water layer: %s" % fields)
             check(ed.cmd("set mcell " + cell) == "ok", "the unit cell is chosen")
+            # G7: a 6 x 4 x 1 cell is wide but 0.9 nm high; the editor warns
+            # until the water layer lengthens c (synthetic stand-in for the
+            # .gro of the report)
+            check(ed.cmd("set mrep 6 4 1") == "ok", "repeat 6 4 1")
+            out = ed.cmd("set mbuild go", timeout=600)
+            check(out == "ok", "Build topology of the flat cell: %s" % out)
+            check("cellwarning=1" in ed.cmd("fields"),
+                  "no water: the editor warns the cell is too small for the cut-off")
+            check(ed.cmd("set dist 2") == "ok" and "cellwarning=0" in ed.cmd("fields"),
+                  "2 nm of water: no warning")
+            check(ed.cmd("set dist 0") == "ok" and "cellwarning=1" in ed.cmd("fields"),
+                  "water layer off again: the warning returns")
             check(ed.cmd("set mrep 4 3 3") == "ok" and
                   ed.cmd("set msubs Al,Mgo,4") == "ok" and
                   ed.cmd("set mseed 1") == "ok", "repeat 4 3 3, 4 Al -> Mgo, seed 1")

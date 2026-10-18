@@ -37,6 +37,10 @@ CASES = (
                       "pbclayer ion1 Na", "pbclayer ion1n 2",
                       "pbclayer seed 5", "pbcpress layers"],
      {"C": 2, "H": 8 + 16, "O": 8, "Na": 4}, "C"),
+    #  G6: unticking Tools > Periodic Builder takes the drawn box with it.
+    ("box-hides", ["cmd clear", "importfile @GRO@", "fragdump boxon",
+                   "toolmenu Periodic_Builder off", "fragdump boxoff"],
+     {"C": 1, "H": 4}, "C"),
     ("water-ions", LAYER + ["pbclayer layers 2", "pbclayer spacing 9",
                             "pbclayer water 4", "pbclayer ion1 Na",
                             "pbclayer ion1n 2", "pbclayer seed 5",
@@ -77,6 +81,12 @@ def problems(work, case):
         found.append("final: c height %.4f, expected 3 x 4 = 12" % cz)
     if name == "stack-undo" and abs(cz - 5.0) > 1e-6:
         found.append("final: c height %.4f after undo, expected 5" % cz)
+    if name == "box-hides":
+        for dump, want in (("boxon", 1), ("boxoff", 0)):
+            have = pe.readDump(os.path.join(work, dump + ".txt"))
+            if have["counts"].get("latticeshown") != want:
+                found.append("%s: latticeshown %s, expected %d"
+                             % (dump, have["counts"].get("latticeshown"), want))
     if name == "stack-undo":
         built = pe.readDump(os.path.join(work, "built.txt"))
         if len(built["atoms"]) != 15:
