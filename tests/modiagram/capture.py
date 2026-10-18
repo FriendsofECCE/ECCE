@@ -101,6 +101,10 @@ FIXTURES = {
     "orca-bf3-overlaps": os.path.join(FIXTURES_DIR, "orca-bf3"),
     "orca-crco6-overlaps": os.path.join(FIXTURES_DIR, "orca-crco6"),
     "orca-benzene-overlaps": os.path.join(FIXTURES_DIR, "orca-benzene"),
+    #  Ligand-set phase sketches (#368): Oh and Td, with every level drawn.
+    "orca-crco6-all": os.path.join(FIXTURES_DIR, "orca-crco6"),
+    "orca-cocl4-overlaps": os.path.join(FIXTURES_DIR, "orca-cocl4-quartet"),
+    "orca-nico4-overlaps": os.path.join(FIXTURES_DIR, "orca-nico4"),
     "orca-cocl4-compute": os.path.join(FIXTURES_DIR, "orca-cocl4-quartet"),
     "orca-benzene-compute-ring": os.path.join(FIXTURES_DIR, "orca-benzene"),
     "orca-agnh3": os.path.join(FIXTURES_DIR, "orca-agnh3"),
@@ -113,6 +117,7 @@ FIXTURES = {
 FIXTURE_ENV = {
     "orca-crco6-skeleton": {"ECCE_MODIAGRAM_CONSTRUCTION": "skeleton"},
     "orca-crco6-lfview": {"ECCE_MODIAGRAM_LFVIEW": "1"},
+    "orca-crco6-all": {"ECCE_MODIAGRAM_SHOWALL": "1"},
     #  ECCE_MODIAGRAM_PICK: the atom (or "A,B" bond) the user picked.
     "ecceqm-c2h4-pick-c1c2": {"ECCE_MODIAGRAM_PICK": "C1,C2"},
     "ecceqm-c3h6-pick-ring": {"ECCE_MODIAGRAM_PICK": "C1,C2"},
@@ -140,6 +145,10 @@ FIXTURE_SCENE = {
     "orca-bf3-overlaps": ("hold 2\nmodiagram overlaps overlaps 0\n",
                           {"overlaps": r"overlaps 0\b"}),
     "orca-crco6-overlaps": ("hold 2\nmodiagram overlaps overlaps 0\n",
+                            {"overlaps": r"overlaps 0\b"}),
+    "orca-cocl4-overlaps": ("hold 2\nmodiagram overlaps overlaps 0\n",
+                            {"overlaps": r"overlaps 0\b"}),
+    "orca-nico4-overlaps": ("hold 2\nmodiagram overlaps overlaps 0\n",
                             {"overlaps": r"overlaps 0\b"}),
     "orca-benzene-overlaps": ("hold 2\nmodiagram overlaps overlaps 0\n",
                               {"overlaps": r"overlaps 0\b"}),

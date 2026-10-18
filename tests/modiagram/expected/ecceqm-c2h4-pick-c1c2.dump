@@ -21,6 +21,7 @@ column left
   level 3 energy=-0.418942 tabulated=0.000000 irrep=B3U label=b3u character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −11.40 eV, 0 electrons."
   level 4 energy=0.235114 tabulated=0.000000 irrep=B2U label=b2u character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = 6.40 eV, 0 electrons."
   level 5 energy=0.689178 tabulated=0.000000 irrep=B1U label=b1u character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = 18.75 eV, 0 electrons."
+  sketch view=0 normal=2 points=[0.0000,-0.4038,0.0000;1.0000,0.2019,0.0000;-1.0000,0.2019,0.0000]
 column centre
   title: Model MOs
   fromHalves: 0
@@ -57,6 +58,7 @@ column right
   level 3 energy=-0.418942 tabulated=0.000000 irrep=B3U label=b3u character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −11.40 eV, 0 electrons."
   level 4 energy=0.235114 tabulated=0.000000 irrep=B3G label=b3g character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = 6.40 eV, 0 electrons."
   level 5 energy=0.689178 tabulated=0.000000 irrep=AG label=ag character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = 18.75 eV, 0 electrons."
+  sketch view=0 normal=2 points=[0.0000,0.4038,0.0000;1.0000,-0.2019,0.0000;-1.0000,-0.2019,0.0000]
 links: 30
   link 0 left=0 centre=0 right=-1 weight=0.4620
   link 1 left=-1 centre=0 right=0 weight=0.4620

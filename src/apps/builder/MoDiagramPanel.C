@@ -1867,7 +1867,23 @@ void dumpColumn(std::ofstream& out, const string& name, const MoColumn& col,
     out << " annotation=\"" << escapeDumpText(lv.annotation) << "\"";
     if (!lv.detail.empty())
       out << " detail=\"" << escapeDumpText(lv.detail) << "\"";
+    if (!lv.phases.empty()) {
+      out << " phases=[";
+      for (size_t k = 0; k < lv.phases.size(); k++)
+        out << (k ? "," : "") << std::setprecision(4) << lv.phases[k];
+      out << "] phaseAtoms=[";
+      for (size_t k = 0; k < lv.phaseAtoms.size(); k++)
+        out << (k ? "," : "") << lv.phaseAtoms[k];
+      out << "]";
+    }
     out << "\n";
+  }
+  if (!col.sketchX.empty()) {
+    out << "  sketch view=" << col.sketchView << " normal=" << col.sketchNormal << " points=[";
+    for (size_t k = 0; k < col.sketchX.size(); k++)
+      out << (k ? ";" : "") << std::setprecision(4) << col.sketchX[k] << ","
+          << col.sketchY[k] << "," << (k < col.sketchZ.size() ? col.sketchZ[k] : 0.0);
+    out << "]\n";
   }
 }
 

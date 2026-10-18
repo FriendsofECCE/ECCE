@@ -43,10 +43,11 @@ column right
   shellKeys:
   band 0 low=-0.748554 high=-0.748554 levels=2 label=O2 internal: 2 levels, 4 e (2 core-like levels)
   levels: 4
-  level 0 energy=-0.556837 tabulated=0.000000 irrep=SGG label=sgg character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −15.15 eV, 0 electrons."
-  level 1 energy=-0.546094 tabulated=0.000000 irrep=PIU label=piu character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −14.86 eV, 4 electrons."
-  level 2 energy=-0.541662 tabulated=0.000000 irrep=PIG label=pig character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −14.74 eV, 4 electrons."
-  level 3 energy=-0.527468 tabulated=0.000000 irrep=SGU label=sgu character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −14.35 eV, 0 electrons."
+  level 0 energy=-0.556837 tabulated=0.000000 irrep=SGG label=sgg character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −15.15 eV, 0 electrons." phases=[-0.6949,0.0000,0.0000,0.6949,0.0000,0.0000] phaseAtoms=[1,2]
+  level 1 energy=-0.546094 tabulated=0.000000 irrep=PIU label=piu character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −14.86 eV, 4 electrons." phases=[0.0000,0.7052,0.0000,0.0000,0.7052,0.0000] phaseAtoms=[1,2]
+  level 2 energy=-0.541662 tabulated=0.000000 irrep=PIG label=pig character=UNKNOWN pairing=-1 occupancy=4.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −14.74 eV, 4 electrons." phases=[0.0000,0.7090,0.0000,0.0000,-0.7090,0.0000] phaseAtoms=[1,2]
+  level 3 energy=-0.527468 tabulated=0.000000 irrep=SGU label=sgu character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −14.35 eV, 0 electrons." phases=[0.7202,0.0000,0.0000,0.7202,0.0000,0.0000] phaseAtoms=[1,2]
+  sketch view=0 normal=2 points=[-1.0000,0.0000,0.0000;1.0000,0.0000,0.0000]
 links: 12
   link 0 left=0 centre=0 right=-1 weight=0.1336
   link 1 left=-1 centre=0 right=0 weight=0.7940

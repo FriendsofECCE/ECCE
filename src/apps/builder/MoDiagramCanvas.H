@@ -770,7 +770,7 @@ class MoDiagramCanvas : public wxPanel
       dc.SetFont(*wxSMALL_FONT);
       const int row = dc.GetTextExtent(wxT("Xg")).y;
 
-      vector<int> needs(groups.size(), row + 8);
+      vector<int> needs(groups.size(), row + 8), tall(groups.size(), 0);
       for (size_t g = 0; g < groups.size(); g++) {
         bool sketch = false, note = false;
         for (size_t i = groups[g].first; i <= groups[g].second; i++) {
@@ -784,6 +784,11 @@ class MoDiagramCanvas : public wxPanel
         }
         if (note)   needs[g] = 2*row + 10;
         if (sketch && needs[g] < 46) needs[g] = 46;
+        //  The octahedron or tetrahedron is taller than a flat sketch.
+        if (sketch && column.sketchView == 1) {
+          tall[g] = 2*sketchHalfHeight(column) + 4;
+          if (needs[g] < tall[g]) needs[g] = tall[g];
+        }
       }
 
       //  In the order they are DRAWN: a fragment column is not sorted by
@@ -799,7 +804,8 @@ class MoDiagramCanvas : public wxPanel
         occ.push_back(o);
       }
       openRows(groupY, [&](size_t upper, size_t lower) {
-                 return (occ[upper] && occ[lower]) ? max(needs[upper], 2*(int)ARROW_HALF) : needs[upper]; },
+                 const int g0 = (occ[upper] && occ[lower]) ? max(needs[upper], 2*(int)ARROW_HALF) : needs[upper];
+                 return max(g0, (tall[upper] + tall[lower])/2); },
                plot.y + 6, plot.y + plot.height - 6, &en);
     }
 
@@ -1017,6 +1023,7 @@ class MoDiagramCanvas : public wxPanel
     vector< std::pair<int,int> > p_calcSpans;     // ... by the calculation column
     int p_zeroY = -1;                             // 0 eV on the model's arrow, -1 if none
     vector<CalcItem> p_calcRows;
+    vector<int> p_fragSketch[2];              // half height of the sketch box of each row, 0 for none
     vector< std::pair<int,bool> > p_fragRows[2];  // fragment columns as drawn: (y, has arrows)                  // the calculation column as laid out
 
     int centreSlot() const { return 24; }
@@ -1223,6 +1230,10 @@ class MoDiagramCanvas : public wxPanel
             const int d = abs(p_fragRows[c][a].first - p_fragRows[c][b].first);
             if (p_fragRows[c][a].second && p_fragRows[c][b].second && d < 2*ARROW_HALF) n++;
             if (d < 12) n++;
+            //  Sketch boxes, each centred on its row.
+            if (b < p_fragSketch[c].size() && a < p_fragSketch[c].size() &&
+                p_fragSketch[c][a] > 0 && p_fragSketch[c][b] > 0 &&
+                d < p_fragSketch[c][a] + p_fragSketch[c][b]) n++;
           }
       n += zeroTickProblems();
       return n;
@@ -1514,7 +1525,8 @@ class MoDiagramCanvas : public wxPanel
         //  and is about as wide again: at thirty the chlorine 3p
         //  sketch was drawn over its own "free atom" line.
         drawSketch(dc, level, *p_sketchColumn,
-                   (p_outward < 0) ? ox - 34 : ox + extent.x + 54,
+                   (p_outward < 0) ? ox - sketchOffset(*p_sketchColumn)
+                                   : ox + extent.x + sketchOffset(*p_sketchColumn) + 20,
                    ly + extent.y/2);
 
         //  ONCE PER SHELL.  Oxygen's b2, a1 and b1 2p levels all
@@ -1600,6 +1612,10 @@ class MoDiagramCanvas : public wxPanel
                     int cx, int cy)
     {
       if (level.phases.empty()) return;
+      if (column.sketchView == 1) {
+        drawSketch3D(dc, level, column, cx, cy);
+        return;
+      }
 
       const size_t atoms = column.sketchX.size();
 
@@ -1636,6 +1652,81 @@ class MoDiagramCanvas : public wxPanel
         dc.SetBrush(w > 0.0 ? wxBrush(wxColour(60, 60, 60))
                             : *wxWHITE_BRUSH);
         dc.DrawCircle(x, y, r);
+      }
+      dc.SetBrush(*wxTRANSPARENT_BRUSH);
+    }
+
+    //  Oblique view of an octahedral or tetrahedral ligand set: the frame's
+    //  Y is up, X across, and Z (depth) runs up and to the right.
+    static constexpr double OBLIQUE_X = 0.45, OBLIQUE_Y = 0.25;
+    static constexpr int    REACH_3D = 16;
+
+    /** Half the height of the box a column's sketch needs, from the centre of its row. */
+    static int sketchHalfHeight(const MoColumn& column)
+    {
+      double top = 0.0;
+      const bool oblique = column.sketchView == 1;
+      for (size_t i = 0; i < column.sketchY.size(); i++) {
+        double y = fabs(column.sketchY[i]);
+        if (oblique && i < column.sketchZ.size())
+          y = fabs(column.sketchY[i] + OBLIQUE_Y*column.sketchZ[i]);
+        if (y > top) top = y;
+      }
+      return (int)(top*(oblique ? REACH_3D : 11)) + 6;
+    }
+
+    /** A drawn sketch is centred this far out from its row's label block. */
+    static int sketchOffset(const MoColumn& column) { return column.sketchView == 1 ? 46 : 34; }
+
+    /** The octahedron or tetrahedron of a ligand set, signs on the donor atoms. */
+    void drawSketch3D(wxDC& dc, const MoLevel& level, const MoColumn& column,
+                      int cx, int cy)
+    {
+      const size_t n = column.sketchX.size();
+      if (column.sketchZ.size() != n) return;
+      const bool vec = level.phases.size() == 3*n;
+      if (!vec && level.phases.size() != n) return;
+      double biggest = 0.0;
+      for (size_t i = 0; i < level.phases.size(); i++)
+        if (fabs(level.phases[i]) > biggest) biggest = fabs(level.phases[i]);
+      if (biggest <= 0.0) return;
+
+      vector<int> sx(n), sy(n), order(n);
+      for (size_t i = 0; i < n; i++) {
+        sx[i] = cx + (int)((column.sketchX[i] + OBLIQUE_X*column.sketchZ[i])*REACH_3D);
+        sy[i] = cy - (int)((column.sketchY[i] + OBLIQUE_Y*column.sketchZ[i])*REACH_3D);
+        order[i] = (int)i;
+      }
+      //  Far ligands first, so the near ones are drawn over them.
+      std::sort(order.begin(), order.end(), [&](int a, int b) {
+        return column.sketchZ[a] > column.sketchZ[b]; });
+
+      dc.SetPen(wxPen(wxColour(205, 205, 205), 1));
+      for (size_t i = 0; i < n; i++) dc.DrawLine(cx, cy, sx[i], sy[i]);
+      dc.SetBrush(wxBrush(wxColour(205, 205, 205)));
+      dc.DrawCircle(cx, cy, 2);
+
+      const wxColour ink(60, 60, 60);
+      for (size_t o = 0; o < n; o++) {
+        const size_t i = order[o];
+        if (!vec) {
+          const double w = level.phases[i];
+          if (fabs(w) < 1.0e-6) continue;
+          const int r = 2 + (int)(3.0*sqrt(fabs(w)/biggest));
+          dc.SetPen(wxPen(ink, 1));
+          dc.SetBrush(w > 0.0 ? wxBrush(ink) : *wxWHITE_BRUSH);
+          dc.DrawCircle(sx[i], sy[i], r);
+          continue;
+        }
+        const double vx = level.phases[3*i], vy = level.phases[3*i + 1], vz = level.phases[3*i + 2];
+        const double len = sqrt(vx*vx + vy*vy + vz*vz);
+        if (len < 0.08*biggest) continue;
+        const double k = 8.0*(len/biggest)/len;
+        const int dx = (int)((vx + OBLIQUE_X*vz)*k), dy = (int)((vy + OBLIQUE_Y*vz)*k);
+        dc.SetPen(wxPen(ink, 2));
+        dc.SetBrush(wxBrush(ink));
+        dc.DrawLine(sx[i] - dx, sy[i] + dy, sx[i] + dx, sy[i] - dy);
+        dc.DrawCircle(sx[i] + dx, sy[i] - dy, 2);
       }
       dc.SetBrush(*wxTRANSPARENT_BRUSH);
     }
@@ -2157,11 +2248,15 @@ class MoDiagramCanvas : public wxPanel
         vector<int> gy;
         columnGeometry(dc, col, plot, true, groups, gy);
         p_fragRows[c].clear();
+        p_fragSketch[c].clear();
         for (size_t g = 0; g < groups.size(); g++) {
-          bool o = false;
-          for (size_t i = groups[g].first; i <= groups[g].second; i++)
+          bool o = false, sk = false;
+          for (size_t i = groups[g].first; i <= groups[g].second; i++) {
             o = o || hasArrows(col.levels[i].occupancy, col.levels[i].occupancyBeta);
+            sk = sk || !col.levels[i].phases.empty();
+          }
           p_fragRows[c].push_back(std::make_pair(gy[g], o));
+          p_fragSketch[c].push_back(sk ? sketchHalfHeight(col) : 0);
         }
       }
 

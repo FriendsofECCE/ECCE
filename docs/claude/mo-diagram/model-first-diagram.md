@@ -74,7 +74,25 @@ refusal text plus "use the MOs panel"), keep the old drawing.
   atoms' own principal-axis frame (`principalAxes`), so a structure stored in any
   orientation is drawn flat. They came from the symmetry projection
   (`MoFragments`) before the model built its own sets, and so vanished from every
-  model-first diagram. Not for mixed fragments, d sets or one atom.
+  model-first diagram. Not for d sets or one atom.
+- Phase sketches of a central-atom diagram go through `findDonorSketch`: one point
+  per ligand unit (bonded piece of the ligand fragment), at its donor atom, the unit
+  atom nearest the centre; CO, CN-, NH3, H2O, PR3 get one like Cl does. Sigma sets
+  (the donor's s plus p along centre-donor, signed by the lobe facing the centre)
+  are one number per donor, pi sets (p across the bond) a 3-vector in the sketch
+  frame, whichever the donor carries more of. A unit with no donor 0.25 A ahead of
+  its other atoms (eta-2 ligands) gives no sketches, and the caveats say which unit.
+  Single-atom ligands in a planar set keep the old path unchanged (BF3, PtCl4).
+  6 non-planar donors on three orthogonal trans axes (Oh) and 4 at the tetrahedral
+  angle (Td) are drawn oblique (`MoColumn::sketchView` 1, `sketchZ` = depth): the
+  frame comes from the donor directions, not the point-group name, and the view
+  from a planarity test of those directions. The dump has `phases=`/`sketch`, and
+  `tests/modiagram/check_sketch.py` checks each set against the textbook pattern
+  (a1g/a1 all equal, eg trans-equal and sum zero, t1u/t2 linear in the position,
+  t2g and t1u pi as gradients of xy/yz/zx and as a translation across the bonds).
+  The t1u pi set of Cr(CO)6 has no line to the molecule in the default diagram, so
+  it is checked in the `orca-crco6-all` (Show all levels) golden. With every level
+  drawn there are too many rows for 50 px sketches and they overlap.
 - Ligand ns is core-like in a central-atom diagram (one atom against >= 2): the ns
   of a ligand atom that also has np (F 2s, Cl 3s; not H 1s, not the CO sigma
   unit) is `SetD::nsShare`; a model level with >= 50 % of it is `Cluster::core`,

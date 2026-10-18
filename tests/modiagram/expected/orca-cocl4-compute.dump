@@ -29,6 +29,7 @@ column left
   level 11 energy=-0.195292 tabulated=0.000000 irrep=E label=e (FO18) character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −5.31 eV, 0 electrons."
   level 12 energy=0.156463 tabulated=0.000000 irrep=E label=e character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = 4.26 eV, 0 electrons."
   level 13 energy=0.222754 tabulated=0.000000 irrep=A1 label=a1 character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = 6.06 eV, 0 electrons."
+  sketch view=0 normal=2 points=[0.0000,0.0000,0.0000;1.0000,0.0000,0.0000;-0.5000,-0.8660,0.0000;-0.5000,0.8660,0.0000]
 column centre
   title: Model MOs
   fromHalves: 0

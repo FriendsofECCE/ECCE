@@ -16,6 +16,7 @@ column left
   shellKeys:
   levels: 1
   level 0 energy=-0.418942 tabulated=0.000000 irrep=B3U label=b3u character=UNKNOWN pairing=-1 occupancy=1.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −11.40 eV, 1 electrons."
+  sketch view=0 normal=2 points=[0.0000,-0.4038,0.0000;1.0000,0.2019,0.0000;-1.0000,0.2019,0.0000]
 column centre
   title: Model MOs
   fromHalves: 0
@@ -37,6 +38,7 @@ column right
   shellKeys:
   levels: 1
   level 0 energy=-0.418942 tabulated=0.000000 irrep=B3U label=b3u character=UNKNOWN pairing=-1 occupancy=1.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −11.40 eV, 1 electrons."
+  sketch view=0 normal=2 points=[0.0000,0.4038,0.0000;1.0000,-0.2019,0.0000;-1.0000,-0.2019,0.0000]
 links: 4
   link 0 left=0 centre=0 right=-1 weight=0.5000
   link 1 left=-1 centre=0 right=0 weight=0.5000

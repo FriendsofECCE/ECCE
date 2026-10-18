@@ -274,6 +274,10 @@ struct MoColumn
    /** Where to draw this column's atoms, for the phase sketches. */
    vector<double>   sketchX;
    vector<double>   sketchY;
+   /** Depth, for an oblique 3-D sketch (sketchView 1); empty otherwise. */
+   vector<double>   sketchZ;
+   /** 0: flat, as seen along the third axis; 1: octahedron/tetrahedron, oblique view. */
+   int              sketchView;
 
    /**
     * Which Cartesian axis was flattened away making those positions.
@@ -316,7 +320,7 @@ struct MoColumn
    int    hiddenAboveCount;
 
    MoColumn() : fromHalves(false), hiddenCount(0), hiddenMaxEnergy(0.0),
-               hiddenSemicoreCount(0), hiddenAboveCount(0), sketchNormal(2) {}
+               hiddenSemicoreCount(0), hiddenAboveCount(0), sketchView(0), sketchNormal(2) {}
 };
 
 

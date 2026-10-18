@@ -42,8 +42,9 @@ column right
   hiddenAboveCount: 0
   shellKeys:
   levels: 2
-  level 0 energy=-0.569007 tabulated=0.000000 irrep=A1 label=a1 character=UNKNOWN pairing=-1 occupancy=1.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −15.48 eV, 1 electrons."
-  level 1 energy=-0.390044 tabulated=0.000000 irrep=B2 label=b2 character=UNKNOWN pairing=-1 occupancy=1.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −10.61 eV, 1 electrons."
+  level 0 energy=-0.569007 tabulated=0.000000 irrep=A1 label=a1 character=UNKNOWN pairing=-1 occupancy=1.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −15.48 eV, 1 electrons." phases=[0.6385,0.6385] phaseAtoms=[1,2]
+  level 1 energy=-0.390044 tabulated=0.000000 irrep=B2 label=b2 character=UNKNOWN pairing=-1 occupancy=1.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −10.61 eV, 1 electrons." phases=[0.8040,-0.8040] phaseAtoms=[1,2]
+  sketch view=0 normal=2 points=[1.0000,0.0000,0.0000;-1.0000,0.0000,0.0000]
 links: 10
   link 0 left=0 centre=0 right=-1 weight=0.7552
   link 1 left=-1 centre=0 right=0 weight=0.2445

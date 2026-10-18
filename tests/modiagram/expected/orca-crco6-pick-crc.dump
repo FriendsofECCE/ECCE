@@ -52,6 +52,7 @@ column left
   level 34 energy=1.700413 tabulated=0.000000 irrep=A1 label=a1 (FO47) character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = 46.27 eV, 0 electrons."
   level 35 energy=1.722742 tabulated=0.000000 irrep=A1 label=a1 (FO48) character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = 46.88 eV, 0 electrons."
   level 36 energy=2.521452 tabulated=0.000000 irrep=A1 label=a1 character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = 68.61 eV, 0 electrons."
+  sketch view=0 normal=2 points=[0.0000,0.0000,0.0000;0.0000,0.0000,0.0000;0.6270,0.0000,0.0000;-0.6270,0.0000,0.0000;0.0000,0.6270,0.0000;0.0000,-0.6270,0.0000;0.0000,0.0000,0.0000;1.0000,0.0000,0.0000;-1.0000,0.0000,0.0000;0.0000,1.0000,0.0000;0.0000,-1.0000,0.0000]
 column centre
   title: Model MOs
   fromHalves: 0
@@ -102,6 +103,7 @@ column right
   level 3 energy=-0.490010 tabulated=0.000000 irrep=E label=e (FO5) character=UNKNOWN pairing=-1 occupancy=2.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −13.33 eV, 2 electrons."
   level 4 energy=-0.338845 tabulated=0.000000 irrep=E label=e character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=2 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = −9.22 eV, 0 electrons."
   level 5 energy=1.658088 tabulated=0.000000 irrep=A1 label=a1 character=UNKNOWN pairing=-1 occupancy=0.0000 occupancyBeta=-1.0000 degeneracy=1 shell=-1 slot=-1 shareLeft=-1.0000 shareRight=-1.0000 orbitals=[] annotation="" detail="Fragment orbital set from extended Hückel, E = 45.12 eV, 0 electrons."
+  sketch view=0 normal=2 points=[-1.0000,0.0000,0.0000;1.0000,0.0000,0.0000]
 links: 69
   link 0 left=0 centre=0 right=-1 weight=0.8276
   link 1 left=-1 centre=0 right=0 weight=0.1642

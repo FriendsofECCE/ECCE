@@ -565,6 +565,238 @@ void sketchPhases(const FragmentOrbitals::FoSet& set, const FragmentOrbitals::FO
    lv.phaseAtoms = atoms;
 }
 
+//  Phase sketches of a central-atom diagram: one point per ligand unit (a
+//  connected piece of the ligand fragment), at its donor atom, the atom nearest
+//  the centre.  A recognisable octahedron or non-planar tetrahedron is drawn in
+//  an oblique 3-D view; the frame is built from the ligand directions, not from
+//  the point-group name.
+struct DonorSketch
+{
+   enum View { NONE, LEGACY, FLAT, OBLIQUE };
+   View view;
+   vector<int> donors;
+   vector<double> dir;                    // unit centre -> donor, 3 each
+   double frame[3][3];                    // rows X (across), Y (up), Z (depth), world axes
+   double mean[3];
+   vector<double> px, py, pz;
+   string why;                            // set when view == NONE and a unit is the reason
+   DonorSketch() : view(NONE) {
+      for (int a = 0; a < 3; a++) { mean[a] = 0; for (int b = 0; b < 3; b++) frame[a][b] = a == b; }
+   }
+};
+
+double dot3(const double a[3], const double b[3]) { return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]; }
+
+void cross3(const double a[3], const double b[3], double c[3])
+{
+   c[0] = a[1]*b[2] - a[2]*b[1]; c[1] = a[2]*b[0] - a[0]*b[2]; c[2] = a[0]*b[1] - a[1]*b[0];
+}
+
+bool unit3(double a[3])
+{
+   const double n = sqrt(dot3(a, a));
+   if (n < 1e-9) return false;
+   for (int k = 0; k < 3; k++) a[k] /= n;
+   return true;
+}
+
+//  Octahedron: three trans pairs along orthogonal axes; the frame is those axes.
+bool octahedronFrame(const vector<double>& dir, double frame[3][3])
+{
+   if (dir.size() != 18) return false;
+   double a[3] = { dir[0], dir[1], dir[2] }, b[3] = {0, 0, 0};
+   bool trans = false;
+   for (size_t i = 1; i < 6; i++) {
+      const double d[3] = { dir[3*i], dir[3*i+1], dir[3*i+2] };
+      if (dot3(a, d) < -0.8) trans = true;
+      else if (fabs(dot3(a, d)) < 0.4 && b[0] == 0 && b[1] == 0 && b[2] == 0)
+         for (int k = 0; k < 3; k++) b[k] = d[k];
+   }
+   if (!trans) return false;
+   const double ab = dot3(a, b);
+   for (int k = 0; k < 3; k++) b[k] -= ab*a[k];
+   if (!unit3(b)) return false;
+   double c[3];
+   cross3(a, b, c);
+   //  Y up = a, Z depth = b, X = Y x Z.
+   for (int k = 0; k < 3; k++) { frame[1][k] = a[k]; frame[2][k] = b[k]; }
+   cross3(frame[1], frame[2], frame[0]);
+   for (size_t i = 0; i < 6; i++) {
+      const double d[3] = { dir[3*i], dir[3*i+1], dir[3*i+2] };
+      double big = 0.0;
+      for (int f = 0; f < 3; f++) big = std::max(big, fabs(dot3(d, frame[f])));
+      if (big < 0.85) return false;
+   }
+   return true;
+}
+
+//  Tetrahedron: all pairs near the tetrahedral angle; the frame is the cube's axes.
+bool tetrahedronFrame(const vector<double>& dir, double frame[3][3])
+{
+   if (dir.size() != 12) return false;
+   for (int i = 0; i < 4; i++)
+      for (int j = i + 1; j < 4; j++) {
+         const double d1[3] = { dir[3*i], dir[3*i+1], dir[3*i+2] }, d2[3] = { dir[3*j], dir[3*j+1], dir[3*j+2] };
+         if (fabs(dot3(d1, d2) + 1.0/3.0) > 0.25) return false;
+      }
+   double x[3], a[3], b[3];
+   for (int k = 0; k < 3; k++) { x[k] = dir[k] + dir[3+k]; a[k] = dir[k] - dir[3+k]; }
+   if (!unit3(x) || !unit3(a)) return false;
+   cross3(x, a, b);
+   const double r = sqrt(0.5);
+   for (int k = 0; k < 3; k++) {
+      frame[0][k] = x[k];
+      frame[1][k] = (a[k] - b[k])*r;
+      frame[2][k] = (a[k] + b[k])*r;
+   }
+   for (int i = 0; i < 4; i++) {
+      const double d[3] = { dir[3*i], dir[3*i+1], dir[3*i+2] };
+      for (int f = 0; f < 3; f++) if (fabs(fabs(dot3(d, frame[f])) - sqrt(1.0/3.0)) > 0.15) return false;
+   }
+   return true;
+}
+
+void findDonorSketch(const vector<string>& symbols, const vector<double>& coords,
+                     int centre, const vector<int>& ligandAtoms, DonorSketch& ds)
+{
+   ds = DonorSketch();
+   vector< std::pair<int,int> > bonds;
+   MoFragments::covalentBonds(coords, symbols, bonds);
+   std::set<int> mine(ligandAtoms.begin(), ligandAtoms.end());
+   std::map<int,int> comp;
+   vector< vector<int> > unit;
+   for (size_t a = 0; a < ligandAtoms.size(); a++) {
+      if (comp.count(ligandAtoms[a])) continue;
+      const int id = (int)unit.size();
+      unit.push_back(vector<int>());
+      vector<int> stack(1, ligandAtoms[a]);
+      comp[ligandAtoms[a]] = id;
+      while (!stack.empty()) {
+         const int x = stack.back(); stack.pop_back();
+         unit[id].push_back(x);
+         for (size_t b = 0; b < bonds.size(); b++) {
+            int o = -1;
+            if (bonds[b].first == x) o = bonds[b].second;
+            else if (bonds[b].second == x) o = bonds[b].first;
+            if (o < 0 || !mine.count(o) || comp.count(o)) continue;
+            comp[o] = id;
+            stack.push_back(o);
+         }
+      }
+   }
+   bool allSingle = true;
+   for (size_t u = 0; u < unit.size(); u++) if (unit[u].size() > 1) allSingle = false;
+   for (size_t u = 0; u < unit.size(); u++) {
+      double best = 1e30, second = 1e30;
+      int donor = -1;
+      for (size_t i = 0; i < unit[u].size(); i++) {
+         double d2 = 0.0;
+         for (int k = 0; k < 3; k++) {
+            const double d = coords[3*unit[u][i] + k] - coords[3*centre + k];
+            d2 += d*d;
+         }
+         const double d = sqrt(d2);
+         if (d < best) { second = best; best = d; donor = unit[u][i]; }
+         else if (d < second) second = d;
+      }
+      if (donor < 0 || second - best < 0.25) {
+         vector<int> sorted = unit[u];
+         std::sort(sorted.begin(), sorted.end());
+         if (!allSingle) ds.why = pieceFormula(symbols, sorted);
+         return;
+      }
+      ds.donors.push_back(donor);
+      double d[3];
+      for (int k = 0; k < 3; k++) d[k] = coords[3*donor + k] - coords[3*centre + k];
+      unit3(d);
+      for (int k = 0; k < 3; k++) ds.dir.push_back(d[k]);
+   }
+   const size_t n = ds.donors.size();
+   if (n < 2) return;
+
+   //  Planar through the centre?  Mirror every direction so the mean is zero.
+   vector<double> sym;
+   vector<int> idx;
+   for (size_t i = 0; i < n; i++)
+      for (int sgn = -1; sgn <= 1; sgn += 2) {
+         for (int k = 0; k < 3; k++) sym.push_back(sgn*ds.dir[3*i + k]);
+         idx.push_back((int)idx.size());
+      }
+   double m0[3], ax[3][3];
+   principalAxes(sym, idx, m0, ax);
+   bool planar = true;
+   for (size_t i = 0; i < n; i++) {
+      const double d[3] = { ds.dir[3*i], ds.dir[3*i+1], ds.dir[3*i+2] };
+      if (fabs(dot3(d, ax[2])) > 0.2) planar = false;
+   }
+
+   bool oblique = false;
+   if (!planar && n == 6) oblique = octahedronFrame(ds.dir, ds.frame);
+   else if (!planar && n == 4) oblique = tetrahedronFrame(ds.dir, ds.frame);
+   if (oblique) {
+      ds.view = DonorSketch::OBLIQUE;
+      double big = 0.0;
+      for (size_t i = 0; i < n; i++) {
+         const double d[3] = { ds.dir[3*i], ds.dir[3*i+1], ds.dir[3*i+2] };
+         ds.px.push_back(dot3(d, ds.frame[0]));
+         ds.py.push_back(dot3(d, ds.frame[1]));
+         ds.pz.push_back(dot3(d, ds.frame[2]));
+         big = std::max(big, std::max(fabs(ds.px[i]), std::max(fabs(ds.py[i]), fabs(ds.pz[i]))));
+      }
+      for (size_t i = 0; i < n; i++) { ds.px[i] /= big; ds.py[i] /= big; ds.pz[i] /= big; }
+      return;
+   }
+   if (allSingle) { ds.view = DonorSketch::LEGACY; return; }
+
+   //  Flat, in the donors' own principal-axis frame.
+   principalAxes(coords, ds.donors, ds.mean, ds.frame);
+   double big = 0.0;
+   for (size_t i = 0; i < n; i++) {
+      double x = 0, y = 0;
+      for (int k = 0; k < 3; k++) {
+         x += (coords[3*ds.donors[i] + k] - ds.mean[k])*ds.frame[0][k];
+         y += (coords[3*ds.donors[i] + k] - ds.mean[k])*ds.frame[1][k];
+      }
+      ds.px.push_back(x); ds.py.push_back(y); ds.pz.push_back(0.0);
+      big = std::max(big, std::max(fabs(x), fabs(y)));
+   }
+   if (big <= 1e-9) { ds.view = DonorSketch::NONE; return; }
+   for (size_t i = 0; i < n; i++) { ds.px[i] /= big; ds.py[i] /= big; }
+   ds.view = DonorSketch::FLAT;
+}
+
+//  The donor atoms' share of a fragment orbital: s and the p along centre-donor
+//  (a sigma lobe, signed by the lobe that faces the centre) or the p across it
+//  (a pi vector, in the sketch frame), whichever the donors carry more of.
+void donorPhases(const DonorSketch& ds, const FragmentOrbitals::FoSet& set,
+                 const FragmentOrbitals::FO& fo, MoLevel& lv)
+{
+   const size_t n = ds.donors.size();
+   vector<double> sg(n, 0.0), pi(3*n, 0.0);
+   double total = 0.0, wSigma = 0.0, wPi = 0.0;
+   for (size_t i = 0; i < set.funcs.size(); i++) total += fo.coef[i]*fo.coef[i];
+   for (size_t k = 0; k < n; k++) {
+      double s = 0.0, P[3] = {0, 0, 0};
+      for (size_t i = 0; i < set.funcs.size(); i++) {
+         const FragmentOrbitals::Function& f = set.funcs[i];
+         if (f.atom != ds.donors[k] || fo.coef[i] == 0.0) continue;
+         if (f.l == 0) s += fo.coef[i];
+         else if (f.l == 1) P[f.component == "x" ? 0 : f.component == "y" ? 1 : 2] += fo.coef[i];
+      }
+      const double u[3] = { ds.dir[3*k], ds.dir[3*k+1], ds.dir[3*k+2] };
+      const double along = dot3(P, u);
+      sg[k] = s - along;
+      double across[3];
+      for (int a = 0; a < 3; a++) across[a] = P[a] - along*u[a];
+      for (int f = 0; f < 3; f++) pi[3*k + f] = dot3(across, ds.frame[f]);
+      wSigma += s*s + along*along;
+      wPi += dot3(across, across);
+   }
+   if (total <= 0.0 || std::max(wSigma, wPi) < 0.15*total) return;
+   lv.phases = wSigma >= wPi ? sg : pi;
+   lv.phaseAtoms = ds.donors;
+}
+
 string characterTag(const map<string,double>& acc, double floor_)
 {
    vector< std::pair<double,string> > r;
@@ -1241,6 +1473,12 @@ bool ModelDiagram::build(const Input& in,
       centreTrueE.push_back(L.energy);
    }
 
+   DonorSketch ds;
+   if (centralAtom) {
+      findDonorSketch(in.symbols, in.coordsAng, in.leftAtoms[0], frags[1].atoms, ds);
+      if (ds.view == DonorSketch::NONE && !ds.why.empty())
+         caveats.push_back("no phase sketches: " + ds.why + " has no single donor atom");
+   }
    //  Fragment sets that carry a line (or a pair) are drawn.
    for (size_t s = 0; s < sets.size(); s++) {
       bool lined = false;
@@ -1267,11 +1505,22 @@ bool ModelDiagram::build(const Input& in,
       lv.detail = "Fragment orbital set from extended H\xC3\xBC" "ckel, E = " +
                   signedNumber(sets[s].energy*HARTREE, 2) + " eV, " +
                   std::to_string((int)lround(sets[s].occupancy)) + " electrons.";
-      if (col.sketchX.empty() && frags[sets[s].fragment].atoms.size() > 1)
-         sketchFrame(in.coordsAng, frags[sets[s].fragment].atoms, col);
-      if (!col.sketchX.empty())
-         sketchPhases(set, set.fos[sets[s].fos[0]], in.symbols, in.coordsAng,
-                      frags[sets[s].fragment].atoms, lv);
+      const bool donorMode = centralAtom && sets[s].fragment == 1 &&
+                             (ds.view == DonorSketch::FLAT || ds.view == DonorSketch::OBLIQUE);
+      if (donorMode) {
+         if (col.sketchX.empty()) {
+            col.sketchX = ds.px; col.sketchY = ds.py; col.sketchZ = ds.pz;
+            col.sketchView = ds.view == DonorSketch::OBLIQUE ? 1 : 0;
+            col.sketchNormal = 2;
+         }
+         donorPhases(ds, set, set.fos[sets[s].fos[0]], lv);
+      } else if (!(centralAtom && sets[s].fragment == 1 && ds.view != DonorSketch::LEGACY)) {
+         if (col.sketchX.empty() && frags[sets[s].fragment].atoms.size() > 1)
+            sketchFrame(in.coordsAng, frags[sets[s].fragment].atoms, col);
+         if (!col.sketchX.empty())
+            sketchPhases(set, set.fos[sets[s].fos[0]], in.symbols, in.coordsAng,
+                         frags[sets[s].fragment].atoms, lv);
+      }
       sets[s].drawn = (int)col.levels.size();
       col.levels.push_back(lv);
    }
