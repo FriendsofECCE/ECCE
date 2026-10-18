@@ -1,6 +1,6 @@
 #!/bin/bash
 # Run a long ECCE build or test suite on an offload machine.
-#   run-offload.sh [--host radium|carbon|auto] <git ref> <build|ctest [-R re]|teaching|apps|clip|run ...> [args]
+#   run-offload.sh [--host radium|auto] <git ref> <build|ctest [-R re]|teaching|apps|clip|run ...> [args]
 # The ref must already be pushed to GitHub.  See tools/offload/README.md.
 set -eu
 host=auto
@@ -15,8 +15,6 @@ here=$(cd "$(dirname "$0")" && pwd)
 conf() {
     case $1 in
       radium)    echo 'OFF=$HOME/ecce-offload MODE=container SLOTS=2 JOBS=6 KEEP=8' ;;
-      # carbon: not in the automatic choice until its power supply is replaced
-      carbon)    echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=1 JOBS=8 CTEST_JOBS=4 KEEP=8' ;;
       *) echo "unknown host $1" >&2; return 1 ;;
     esac
 }
@@ -36,7 +34,7 @@ if [ "$host" != auto ] && ! host_free "$host"; then
     exit 3
 fi
 if [ "$host" = auto ]; then
-    # Only radium is in the automatic choice; carbon only with --host carbon.
+    # radium is the only host.
     # A host that does not answer is skipped; a full one queues the job.
     order="radium"
     host= queue=

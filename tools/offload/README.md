@@ -1,9 +1,9 @@
 # Offloading long builds and test suites
 
 Full builds and `tests/teaching` take long enough to overload the developer
-machine. `run-offload.sh` runs them on radium instead (carbon on request).
+machine. `run-offload.sh` runs them on radium instead.
 
-    tools/offload/run-offload.sh [--host radium|carbon|auto] <git ref> <command> [args]
+    tools/offload/run-offload.sh [--host radium|auto] <git ref> <command> [args]
 
 `<git ref>` is a branch, `origin/<branch>` or a commit that is **already
 pushed to GitHub**: the host fetches from GitHub, not from this machine.
@@ -28,12 +28,10 @@ exit status is the command's (77 is SKIP). Examples:
 
 ## Hosts
 
-| | carbon | radium |
-| --- | --- | --- |
-| role | only with `--host carbon`: it switches off under full load until its power supply is replaced | everything (`--host auto`) |
-| system | Debian 13 native, i7-4930K 6c/12t, 31 GB | Debian 12, 6c/12t, 15 GB; build and tests in the `ecce-trixie-build` rootless podman image (`Containerfile`, `--memory 12g`) |
-| work root | `~/ecce-offload` | `~/ecce-offload` |
-| concurrency | 1 job, `ninja -j8`, `ctest -j4` (its power supply is old) | 2 jobs, `ninja -j6`; nothing started 17:00-21:00 |
+radium: Debian 12, 6c/12t, 15 GB. Build and tests run in the
+`ecce-trixie-build` rootless podman image (`Containerfile`, `--memory 12g`),
+under `~/ecce-offload`, 2 jobs at a time with `ninja -j6`; nothing is started
+from 17:00 to 21:00.
 
 Each host keeps the 8 most recent build trees (8-16 GB each) and removes older
 ones before a job; a job refuses to start with less than 30 GB free. The CPU
@@ -43,7 +41,7 @@ reachable the script exits 3 and says so; run the command locally then.
 Slots are `flock` files in `<work root>/locks`, so waiting jobs queue
 instead of failing. One job per ref at a time (the build dir is per ref).
 
-Packages on a native host: the list in `Containerfile`, plus `gromacs
+Packages for a native (non-container) host: the list in `Containerfile`, plus `gromacs
 python3-numpy python3-tqdm python3-gemmi quantum-espresso
 quantum-espresso-data-sssp libeigen3-dev libxc-dev lm-sensors smartmontools`.
 
