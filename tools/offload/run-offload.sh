@@ -14,7 +14,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 # Per-host settings: work root, container or native, parallel jobs, ninja -j.
 conf() {
     case $1 in
-      radium)    echo 'OFF=$HOME/ecce-offload MODE=container SLOTS=2 JOBS=6 KEEP=8' ;;
+      radium)    echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=2 JOBS=6 CTEST_JOBS=4 KEEP=8' ;;
       *) echo "unknown host $1" >&2; return 1 ;;
     esac
 }

@@ -28,10 +28,10 @@ exit status is the command's (77 is SKIP). Examples:
 
 ## Hosts
 
-radium: Debian 12, 6c/12t, 15 GB. Build and tests run in the
-`ecce-trixie-build` rootless podman image (`Containerfile`, `--memory 12g`),
-under `~/ecce-offload`, 2 jobs at a time with `ninja -j6`; nothing is started
-from 17:00 to 21:00.
+radium: Debian 13, 6c/12t, 15 GB. Build and tests run natively under
+`~/ecce-offload`, 2 jobs at a time with `ninja -j6`; nothing is started from
+17:00 to 21:00. The `Containerfile` image (`MODE=container`) remains for a
+host whose system is older than the CI's Debian.
 
 Each host keeps the 8 most recent build trees (8-16 GB each) and removes older
 ones before a job; a job refuses to start with less than 30 GB free. The CPU
