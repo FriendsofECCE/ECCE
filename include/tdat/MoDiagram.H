@@ -201,6 +201,8 @@ struct MoLevel
     * matched energy (Hartree) and the overlap value are filled.
     */
    bool           model;
+   /** Drawn in the strip above the axis break, in order but not to scale. */
+   bool           clipped;
    bool           hasCalc;
    double         calcEnergy;
    double         calcOverlap;
@@ -214,7 +216,7 @@ struct MoLevel
                occupancyBeta(-1.0),
                shareLeft(-1.0), shareRight(-1.0), shell(-1), slot(-1),
                tabulated(0.0), character(UNKNOWN), pairing(-1),
-               model(false), hasCalc(false), calcEnergy(0.0), calcOverlap(0.0),
+               model(false), clipped(false), hasCalc(false), calcEnergy(0.0), calcOverlap(0.0),
                calcOccupancy(0.0), calcOccupancyBeta(-1.0), calcDegeneracy(0) {}
 };
 

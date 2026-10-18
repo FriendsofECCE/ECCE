@@ -369,10 +369,25 @@ class MoDiagramCanvas : public wxPanel
       dc.SetFont(base);
     }
 
-    /** Energy to pixels, with the occupied region given the room. */
+    /**
+     * Energy to pixels.  With a broken axis the levels above the break
+     * (MoLevel::clipped) share a short strip at the top, in order but not
+     * to scale, and the valence region below it gets all the rest.
+     */
     int yFor(double energy, const wxRect& plot) const
     {
       if (p_hi <= p_lo) return plot.y + plot.height/2;
+      if (p_stripH > 0) {
+        if (energy >= p_stripLo - 1.0e-9) {
+          const double f = p_stripHi > p_stripLo
+                         ? (p_stripHi - energy)/(p_stripHi - p_stripLo) : 0.0;
+          return plot.y + 4 + (int)(f*p_stripH);
+        }
+        energy = min(energy, p_hi);
+        const int top = plot.y + p_stripH + 4 + p_breakGap;
+        const double f = (energy - p_lo)/(p_hi - p_lo);
+        return plot.y + plot.height - (int)(f*(plot.y + plot.height - top));
+      }
       const double f = (energy - p_lo)/(p_hi - p_lo);
       return plot.y + plot.height - (int)(f*plot.height);
     }
@@ -1177,13 +1192,51 @@ class MoDiagramCanvas : public wxPanel
       const int calcSegments = min(calcDegMax, 5)*calcSlot;
       const int calcWidth = model ? calcSegments + 250 : 0;
 
-      //  Energy range over everything that will be drawn.
+      //  Energy range over everything that will be drawn; levels above an
+      //  axis break are laid out in a strip of their own.
       p_lo = p_hi = p_centre.levels[0].energy;
+      p_stripH = 0;
+      p_stripRows = 0;
+      p_stripLo = 1e30; p_stripHi = -1e30;
       const MoColumn* cols[3] = { &p_left, &p_centre, &p_right };
-      for (int c = 0; c < 3; c++) {
-        for (size_t i = 0; i < cols[c]->levels.size(); i++) {
-          p_lo = min(p_lo, cols[c]->levels[i].energy);
-          p_hi = max(p_hi, cols[c]->levels[i].energy);
+      {
+        bool any = false;
+        for (size_t i = 0; i < p_centre.levels.size(); i++) {
+          if (!p_centre.levels[i].clipped) continue;
+          any = true;
+          p_stripLo = min(p_stripLo, p_centre.levels[i].energy);
+          p_stripHi = max(p_stripHi, p_centre.levels[i].energy);
+        }
+        bool valence = false;
+        for (int c = 0; c < 3; c++) {
+          for (size_t i = 0; i < cols[c]->levels.size(); i++) {
+            if (any && cols[c]->levels[i].energy >= p_stripLo - 1.0e-9) continue;
+            if (!valence) { p_lo = p_hi = cols[c]->levels[i].energy; valence = true; }
+            p_lo = min(p_lo, cols[c]->levels[i].energy);
+            p_hi = max(p_hi, cols[c]->levels[i].energy);
+          }
+        }
+        if (any && valence) {
+          //  One label row (44 pixels) per distinct strip energy, at most a third of the plot.
+          int rows = 1;
+          vector<double> seen;
+          for (size_t i = 0; i < p_centre.levels.size(); i++) {
+            if (!p_centre.levels[i].clipped) continue;
+            bool dup = false;
+            for (size_t k = 0; k < seen.size(); k++) if (fabs(seen[k] - p_centre.levels[i].energy) < 1e-9) dup = true;
+            if (!dup) { seen.push_back(p_centre.levels[i].energy); }
+          }
+          rows = (int)seen.size();
+          p_stripRows = rows;
+          p_breakGap = 26;
+        } else if (any) {
+          //  Nothing below the strip: no break to draw.
+          p_stripLo = 1e30; p_stripHi = -1e30;
+          for (int c = 0; c < 3; c++)
+            for (size_t i = 0; i < cols[c]->levels.size(); i++) {
+              p_lo = min(p_lo, cols[c]->levels[i].energy);
+              p_hi = max(p_hi, cols[c]->levels[i].energy);
+            }
         }
       }
       if (p_hi - p_lo < 1e-6) { p_hi = p_lo + 1.0; }
@@ -1331,6 +1384,7 @@ class MoDiagramCanvas : public wxPanel
 
       const wxRect plot(0, top, size.x,
                         max(40, size.y - top - footerHeight - 6));
+      if (p_stripRows > 0) p_stripH = max(1, min(plot.height/3, 44*(p_stripRows - 1)));
 
       const int levelWidth = p_haveFragments ? 70 : 120;
 
@@ -1371,7 +1425,21 @@ class MoDiagramCanvas : public wxPanel
       {
         const int ax = 22;
         dc.SetPen(wxPen(wxColour(120, 120, 120), 1));
-        dc.DrawLine(ax, plot.y, ax, plot.y + plot.height);
+        if (p_stripH > 0) {
+          //  Broken axis: the strip above holds the high levels in order,
+          //  not to scale; the break is two slanted strokes.
+          const int valenceTop = plot.y + p_stripH + 4 + p_breakGap;
+          const int mid = valenceTop - p_breakGap/2;
+          dc.DrawLine(ax, plot.y + plot.height, ax, mid + 5);
+          dc.DrawLine(ax, mid - 5, ax, plot.y);
+          dc.DrawLine(ax - 6, mid + 6, ax + 6, mid + 1);
+          dc.DrawLine(ax - 6, mid - 1, ax + 6, mid - 6);
+          dc.SetFont(*wxSMALL_FONT);
+          dc.SetTextForeground(wxColour(110, 110, 110));
+          dc.DrawText(wxT("not to scale"), ax + 8, mid - dc.GetTextExtent(wxT("X")).y/2);
+        } else {
+          dc.DrawLine(ax, plot.y, ax, plot.y + plot.height);
+        }
         dc.DrawLine(ax, plot.y, ax - 4, plot.y + 7);
         dc.DrawLine(ax, plot.y, ax + 4, plot.y + 7);
 
@@ -1897,6 +1965,9 @@ class MoDiagramCanvas : public wxPanel
     bool p_verdictOk = true;
     vector<string> p_warnings;
     mutable double p_lo, p_hi;
+    mutable double p_stripLo, p_stripHi;   // the levels above the axis break
+    mutable int p_stripH = 0, p_breakGap = 0;   // pixels; 0 = no break
+    mutable int p_stripRows = 0;
     //  Every label placed in the column being drawn, as (y, notch), so
     //  a new one can be pushed clear of all of them.
     vector< std::pair<int,int> > p_placed;

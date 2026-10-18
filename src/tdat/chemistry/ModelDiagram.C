@@ -629,6 +629,7 @@ bool ModelDiagram::build(const Input& in,
       if (!L.drawn) continue;
       MoLevel lv;
       lv.model = true;
+      lv.clipped = L.clipped;
       lv.energy = L.clipped ? L.shownEnergy : L.energy;
       lv.irrep = L.irrep;
       lv.label = L.base;
@@ -777,7 +778,7 @@ bool ModelDiagram::build(const Input& in,
       double floorE = 1e30, ceilE = -1e30;
       for (size_t i = 0; i < out.centre.levels.size(); i++) {
          floorE = std::min(floorE, out.centre.levels[i].energy);
-         if (!cl.empty()) ceilE = std::max(ceilE, out.centre.levels[i].energy);
+         if (!out.centre.levels[i].clipped) ceilE = std::max(ceilE, out.centre.levels[i].energy);
       }
       if (floorE < 1e29) { lo = std::max(lo, floorE - 3.0/HARTREE); hi = std::min(hi, ceilE); }
       if (hi < lo) hi = lo;
