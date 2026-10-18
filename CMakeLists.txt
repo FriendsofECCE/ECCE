@@ -1110,6 +1110,14 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/third_party/python/atomipy)
           COMPONENT client)
 endif()
 
+# third_party/clayff/clayff.ff: ClayFF for GROMACS, transcribed from Cygan et
+# al. 2004; minff_topology.py --forcefield clayff finds it at data/clayff.
+if(EXISTS ${CMAKE_SOURCE_DIR}/third_party/clayff/clayff.ff)
+  install(DIRECTORY ${CMAKE_SOURCE_DIR}/third_party/clayff/
+          DESTINATION data/clayff
+          COMPONENT client)
+endif()
+
 # scripts/gensub: job-submission-script generator, invoked as a bare
 # command (Launch.C:2372, `p_localconn->execout("gensub -v  -p subParams",
 # ...)`, relying entirely on $PATH -- unlike processmachine/std2NWChem
@@ -2017,6 +2025,14 @@ add_test(NAME minff
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/minff/run_tests.py)
 set_tests_properties(minff PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+
+# tests/clayff -- ClayFF force field (third_party/clayff) and
+# minff_topology.py --forcefield clayff; the NPT comparison with the papers
+# is `run_tests.py --long` and is not part of ctest.
+add_test(NAME clayff
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/clayff/run_tests.py)
+set_tests_properties(clayff PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
 
 # The same systems through a GROMACS Prepare with the MINFF source:
 # md.gmxprep, gromacs.launchpp and the gensub job script, run for real.

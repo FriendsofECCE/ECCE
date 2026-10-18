@@ -1,0 +1,36 @@
+ClayFF force field for GROMACS, transcribed from the original paper.
+
+Cygan, R. T.; Liang, J.-J.; Kalinichev, A. G. "Molecular Models of Hydroxide,
+Oxyhydroxide, and Clay Phases and the Development of a General Force Field",
+J. Phys. Chem. B 2004, 108, 1255-1266, DOI 10.1021/jp0363287.
+  Table 1: charges and Lennard-Jones parameters; Table 2: O-H stretch, H-O-H
+  bend, optional M-O-H bend.
+
+Optional M-O-H bending terms and the Morse O-H stretch (-DCLAYFF_MOH):
+Pouvreau, M.; Greathouse, J. A.; Cygan, R. T.; Kalinichev, A. G. "Structure
+of Hydrated Gibbsite and Brucite Edge Surfaces: DFT Results and Further
+Development of the ClayFF Classical Force Field with Metal-O-H Angle Bending
+Terms", J. Phys. Chem. C 2017, 121, 14757-14771, DOI 10.1021/acs.jpcc.7b05362.
+  Table 2 and text: theta0 = 110 deg for Al-O-H and Mg-O-H, k = 15 and
+  6 kcal/mol/rad^2; Morse O-H D0 132.2491 kcal/mol, alpha 2.1350 1/A,
+  r0 0.9572 A.
+
+Context: Cygan, R. T.; Greathouse, J. A.; Kalinichev, A. G. "Advances in
+ClayFF Molecular Simulation of Layered and Nanoporous Materials and Their
+Aqueous Interfaces", J. Phys. Chem. C 2021, 125, 17573-17589.
+
+Conversions (stated again in the .itp files):
+  Lennard-Jones   paper E = D0 [(R0/r)^12 - 2 (R0/r)^6]
+                  sigma = R0 / 2^(1/6)  (A -> nm /10), epsilon = D0 x 4.184
+                  R0 arithmetic and D0 geometric mean = GROMACS comb-rule 2
+  Harmonic terms  paper k (x - x0)^2 (no 1/2), GROMACS kb = 2 k
+  Water           flexible SPC, q(O) -0.82, q(H) 0.41
+
+Table 1 prints R0 6.2484 for cao and 6.2428 for cah; both are kept as printed
+and may be a misprint of one value.
+
+Types follow atomipy's clayff() names: Alo ao, Alt at, Sit st, Mgo mgo, Mgh
+mgh, Cao cao, Cah cah, Feo feo, Lio lio, H ho, Oh oh, Ohmg ohs, Ob/Op/O ob,
+Omg obos, Oalt obts, Odsub obss, Ow o*, Hw h*; ions Na K Cs Ca Ba Cl.
+Not in the paper (so not parameterised here): atomipy's Ale, Oalh, Oalhh,
+Oalsi, Ome, Omhh, Oli, Osih, Osi, Oal, Ohli, Fe3t and similar edge types.

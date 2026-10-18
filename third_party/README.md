@@ -23,3 +23,12 @@ this was bundled (`22ebd627`) renamed the parameter files and defines, which
 `minff_topology.py` and `tests/minff` do not follow yet, so it was not taken.
 
 Installed to `lib/python/atomipy` and `data/minff/min.ff` of the client package.
+
+## clayff/clayff.ff
+
+ClayFF for GROMACS, written for ECCE by transcribing Tables 1 and 2 of Cygan,
+Liang and Kalinichev, J. Phys. Chem. B 2004, 108, 1255, and the M-O-H bend and
+Morse O-H of Pouvreau et al., J. Phys. Chem. C 2017, 121, 14757 (full citations
+and the unit conversions in `clayff.ff/forcefield.doc`). Only numbers from the
+papers are used. Installed to `data/clayff/clayff.ff`; selected with
+`minff_topology.py --forcefield clayff`; checked by `tests/clayff`.

@@ -23,6 +23,7 @@ minff commit MINFF_COMMIT into ~/.cache/ecce/minff/<commit>.
         [--substitute FROM TO COUNT]... [--min-distance A] [--seed N]
         [--variant gminff|tminff] [--mineral NAME] [--angle-k 0|250|500|1500]
         [--water opc3] [--add-gap [NM]] [--ion-set HFE|IOD] [--gui]
+        [--forcefield minff|clayff] [--clayff-bend none|moh|moh2004]
     minff_topology.py minerals [--angle-k K]
     minff_topology.py fetch
 """
@@ -84,6 +85,7 @@ def bundle_roots():
 # install layout, then the source tree's third_party/
 _PY_SUBDIRS = (("lib", "python"), ("third_party", "python"))
 _FF_SUBDIRS = (("data", "minff"), ("third_party", "minff"))
+_CLAYFF_SUBDIRS = (("data", "clayff"), ("third_party", "clayff"))
 
 
 def bundled_atomipy_dir():
@@ -105,6 +107,17 @@ def bundled_minff_dir():
             if os.path.isfile(os.path.join(d, "min.ff", "forcefield.itp")):
                 return d
     return None
+
+
+def clayff_dir():
+    """Directory that contains clayff.ff/ (bundled: <root>/data/clayff)."""
+    for r in bundle_roots():
+        for sub in _CLAYFF_SUBDIRS:
+            d = os.path.join(r, *sub)
+            if os.path.isfile(os.path.join(d, "clayff.ff", "forcefield.itp")):
+                return d
+    raise MinffError("clayff.ff is missing: this ECCE installation is incomplete "
+                     "(data/clayff/clayff.ff); reinstall ECCE")
 
 
 def minff_dir():
@@ -427,7 +440,7 @@ def add_posres_noh(path, fc=1000):
             s = line.split(";")[0].strip()
             if s.startswith("["):
                 sec = s.strip("[] ").lower()
-            elif s and sec == "atoms":
+            elif s and sec == "atoms" and s[0] != "#":
                 p = s.split()
                 if float(p[7]) > 2.0:
                     heavy.append(p[0])
@@ -450,15 +463,156 @@ def read_itp_atoms(path):
                 continue
             if s.startswith("["):
                 sec = s.strip("[] ").lower()
-            elif sec == "atoms":
+            elif sec == "atoms" and s[0] != "#":
                 p = s.split()
                 out.append((p[1], float(p[6])))
     return out
 
 
+# ----------------------------------------------------------------- ClayFF
+
+# Charges of Table 1 of Cygan, Liang and Kalinichev, J. Phys. Chem. B 2004,
+# 108, 1255, under atomipy's type names.  atomipy's clayff() computes the
+# oxygen charges from the valence sum instead and gives Lio 0.86, so the
+# paper's values are written into min.itp and the differences are reported.
+CLAYFF_CHARGES = {
+    "H": 0.425, "Oh": -0.95, "Ob": -1.05, "Op": -1.05, "O": -1.05,
+    "Omg": -1.1808, "Oalt": -1.1688, "Odsub": -1.2996, "Ohmg": -1.0808,
+    "Sit": 2.1, "Alo": 1.575, "Alt": 1.575, "Mgo": 1.36, "Mgh": 1.05,
+    "Cao": 1.36, "Cah": 1.05, "Feo": 1.575, "Lio": 0.525,
+    "Ow": -0.82, "Hw": 0.41, "Na": 1.0, "K": 1.0, "Cs": 1.0, "Ca": 2.0,
+    "Ba": 2.0, "Cl": -1.0,
+}
+CLAYFF_BENDS = ("none", "moh", "moh2004")
+_CLAYFF_BEND_DEFINE = {"none": None, "moh": "CLAYFF_MOH", "moh2004": "CLAYFF_MOH_2004"}
+_CLAYFF_HYDROXYL_O = ("Oh", "Ohmg")
+_CLAYFF_MOH_METALS = ("Alo", "Mgo", "Mgh")
+
+
+def clayff_types(ffdir):
+    """Atom type names of clayff.ff/ffnonbonded.itp."""
+    types, sec = set(), None
+    with open(os.path.join(ffdir, "clayff.ff", "ffnonbonded.itp"), encoding="utf-8") as f:
+        for line in f:
+            s = line.split(";")[0].strip()
+            if s.startswith("["):
+                sec = s.strip("[] ")
+            elif s and sec == "atomtypes":
+                types.add(s.split()[0])
+    return types
+
+
+def topol_text_clayff(bend):
+    d = _CLAYFF_BEND_DEFINE[bend]
+    L = ["; ClayFF system written by ECCE minff_topology.py",
+         "; Cygan, Liang and Kalinichev, J. Phys. Chem. B 2004, 108, 1255 (clayff.ff/forcefield.doc)",
+         "; M-O-H bend: %s" % {"none": "none (the paper's bulk setting)",
+                               "moh": "Pouvreau et al. 2017 (Al, Mg) with Morse O-H",
+                               "moh2004": "optional term of the 2004 paper, all metals"}[bend],
+         ""]
+    if d:
+        L.append("#define %s" % d)
+    L += ['#include "clayff.ff/forcefield.itp"', '#include "clayff.ff/ions.itp"',
+          '#include "clayff.ff/spc.itp"', '#include "min.itp"', "",
+          "[ system ]", "ClayFF mineral", "",
+          "[ molecules ]", "; name  count", "MIN    1", ""]
+    return "\n".join(L)
+
+
+def clayff_itp(path):
+    """Make atomipy's min.itp a ClayFF one.  ClayFF has no mineral bond or
+    angle terms, so the O-M-O angles atomipy writes (they are MINFF's) go;
+    the O-H bonds stay, as harmonic or, inside CLAYFF_MOH, Morse bonds, and
+    the M-O-H angles are listed only inside CLAYFF_MOH (Al, Mg) and
+    CLAYFF_MOH_2004 (any metal); their parameters are clayff.ff's angletypes."""
+    lines = open(path, encoding="utf-8").readlines()
+    cut = next((n for n, l in enumerate(lines) if l.lstrip().startswith("#ifdef POSRES")),
+               len(lines))
+    tail = lines[cut:]                 # the position-restraint blocks, as written
+    secs, cur, head = {}, None, []
+    for line in lines[:cut]:
+        t = line.split(";")[0].strip()
+        if t.startswith("["):
+            cur = t.strip("[] ").lower()
+            secs[cur] = []
+        elif cur is None:
+            head.append(line)
+        else:
+            secs[cur].append(line)
+    types = {}
+    for line in secs["atoms"]:
+        p = line.split(";")[0].split()
+        if len(p) > 1:
+            types[int(p[0])] = p[1]
+    bonds = [tuple(int(x) for x in l.split(";")[0].split()[:2])
+             for l in secs.get("bonds", []) if l.split(";")[0].split()]
+    moh = []                          # (i, j, k, metal type)
+    for l in secs.get("angles", []):
+        p = l.split(";")[0].split()
+        if len(p) < 3:
+            continue
+        i, j, k = int(p[0]), int(p[1]), int(p[2])
+        if types[j] not in _CLAYFF_HYDROXYL_O:
+            continue
+        if types[i] == "H" and types[k] != "H":
+            moh.append((k, j, i, types[k]))
+        elif types[k] == "H" and types[i] != "H":
+            moh.append((i, j, k, types[i]))
+    out = head + ["\n[ moleculetype ]\n"] + secs["moleculetype"]
+    out += ["\n[ atoms ]\n"] + secs["atoms"]
+    out += ["\n#ifdef CLAYFF_MOH\n[ bonds ]\n; i  j  funct (Morse)\n"]
+    out += ["%d %d 3\n" % b for b in bonds]
+    out += ["#else\n[ bonds ]\n; i  j  funct (harmonic)\n"]
+    out += ["%d %d 1\n" % b for b in bonds]
+    out += ["#endif\n"]
+    hdr = "[ angles ]\n; M  O  H  funct\n"
+    out += ["\n#ifdef CLAYFF_MOH\n" + hdr]
+    out += ["%d %d %d 1  ; %s-O-H\n" % (i, j, k, m) for i, j, k, m in moh
+            if m in _CLAYFF_MOH_METALS]
+    out += ["#else\n#ifdef CLAYFF_MOH_2004\n" + hdr]
+    out += ["%d %d %d 1  ; %s-O-H\n" % (i, j, k, m) for i, j, k, m in moh]
+    out += ["#endif\n#endif\n"]
+    out += ["\n"] + tail
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("".join(out))
+
+
+def clayff_retype(atoms):
+    """atomipy types every six-coordinate Ca as Cao.  Table 1 has cah for the
+    calcium of a hydroxide (portlandite), whose six oxygens all carry an H;
+    retype those."""
+    for a in atoms:
+        if a["type"] != "Cao":
+            continue
+        os_ = [atoms[j] for j in a.get("neigh", []) if atoms[j].get("element") == "O"]
+        if os_ and all(any(atoms[k].get("element") == "H" for k in o.get("neigh", []))
+                       for o in os_):
+            a["type"] = a["fftype"] = "Cah"
+
+
+def clayff_charges(atoms):
+    """Set the paper's Table 1 charge on every atom whose type it lists; return
+    {type: [atomipy charges that differ]} for the report."""
+    diff = {}
+    for a in atoms:
+        q = CLAYFF_CHARGES.get(a["type"])
+        if q is None:
+            continue
+        if abs(a["charge"] - q) > 6e-5:
+            diff.setdefault(a["type"], set()).add(round(a["charge"], 4))
+        a["charge"] = q
+    return {t: sorted(v) for t, v in diff.items()}
+
+
 def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
           seed=None, variant="gminff", mineral=None, angle_k=500, water="opc3",
-          log=sys.stderr, add_gap=None, ion_set="HFE", gui=False):
+          log=sys.stderr, add_gap=None, ion_set="HFE", gui=False,
+          forcefield="minff", clayff_bend="none"):
+    if forcefield not in ("minff", "clayff"):
+        raise MinffError("force field must be minff or clayff")
+    if clayff_bend not in CLAYFF_BENDS:
+        raise MinffError("ClayFF bend must be one of %s" % (CLAYFF_BENDS,))
+    clay = forcefield == "clayff"
     if ion_set not in ION_SETS:
         raise MinffError("ion set must be one of %s" % (ION_SETS,))
     if variant not in ("gminff", "tminff"):
@@ -470,8 +624,10 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
     if not os.path.isfile(cell):
         raise MinffError("unit cell file not found: %s" % cell)
     ap = import_atomipy()
-    ffdir = minff_dir()
-    if variant == "tminff":
+    ffdir = clayff_dir() if clay else minff_dir()
+    if clay:
+        variant, mineral, water = "clayff", None, "spc"
+    elif variant == "tminff":
         minerals = list_minerals(angle_k, ffdir)
         if mineral not in minerals:
             raise MinffError("TMINFF needs --mineral NAME, one of: %s" % ", ".join(minerals))
@@ -493,10 +649,18 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
             for frm, to, count in substitutions:
                 atoms, box, _ = ap.substitute(atoms, box, count, frm, to, min_distance)
         names0 = [str(a.get("type", "")) for a in atoms]   # what minff() started from
-        atoms = ap.minff(atoms, box)
+        charge_diff = {}
+        if clay:
+            atoms = ap.clayff(atoms, box)
+            clayff_retype(atoms)
+            charge_diff = clayff_charges(atoms)
+        else:
+            atoms = ap.minff(atoms, box)
         itp_tmp = os.path.join(tmp, "min.itp")
         ap.write_itp(atoms, box, itp_tmp, molecule_name="MIN", KANGLE=angle_k,
-                     water_model=water)
+                     water_model="spce" if clay else water)
+        if clay:
+            clayff_itp(itp_tmp)
         gro_tmp = os.path.join(tmp, "conf.gro")
         ap.write_gro(atoms, box, gro_tmp)
         shutil.copy(itp_tmp, os.path.join(outdir, "min.itp"))
@@ -504,16 +668,18 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
 
     add_posres_noh(os.path.join(outdir, "min.itp"))
     z_moved = contiguous_z(os.path.join(outdir, "conf.gro"))
-    dst = os.path.join(outdir, "min.ff")
+    ffname = "clayff.ff" if clay else "min.ff"
+    dst = os.path.join(outdir, ffname)
     if os.path.isdir(dst):
         shutil.rmtree(dst)
-    shutil.copytree(os.path.join(ffdir, "min.ff"), dst)
-    known = ff_block_types(ffdir, variant, angle_k, mineral)
+    shutil.copytree(os.path.join(ffdir, ffname), dst)
+    known = clayff_types(ffdir) if clay else ff_block_types(ffdir, variant, angle_k, mineral)
     if variant == "tminff":
         with open(os.path.join(outdir, "min_bonded.itp"), "w", encoding="utf-8") as f:
             f.write(restrict_bonded(os.path.join(ffdir, "min.ff", "ffbonded.itp"), known))
     with open(os.path.join(outdir, "topol.top"), "w", encoding="utf-8") as f:
-        f.write(topol_text(variant, angle_k, mineral, water, ion_set))
+        f.write(topol_text_clayff(clayff_bend) if clay else
+                topol_text(variant, angle_k, mineral, water, ion_set))
 
     itp = read_itp_atoms(os.path.join(outdir, "min.itp"))
     counts = {}
@@ -522,7 +688,10 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
     # atomipy leaves an atom it cannot classify with its element as type
     untyped = [i + 1 for i, (t, _) in enumerate(itp) if t not in known]
     summary = {
-        "variant": variant.upper() if variant == "gminff" else "TMINFF",
+        "variant": variant.upper() if variant in ("gminff", "clayff") else "TMINFF",
+        "forcefield": forcefield,
+        "clayff_bend": clayff_bend if clay else None,
+        "charges_differing_from_atomipy": {t: v for t, v in charge_diff.items()} if clay else None,
         "mineral": mineral,
         "angle_k": angle_k,
         "water": water,
@@ -536,13 +705,19 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
         "untyped_atoms": untyped,      # 1-based; no parameters in the chosen set
         "z_moved_atoms": z_moved,      # atoms shifted by a cell vector to make the layer contiguous
         "types_missing_from_ff": sorted(t for t in counts if t not in known),
-        "minff_commit": MINFF_COMMIT if not os.environ.get("ECCE_MINFF_DIR") else "ECCE_MINFF_DIR",
+        "minff_commit": None if clay else MINFF_COMMIT if not os.environ.get("ECCE_MINFF_DIR") else "ECCE_MINFF_DIR",
         "files": {"topology": "topol.top", "molecule": "min.itp", "structure": "conf.gro"},
     }
     z, c = read_gro_z(os.path.join(outdir, "conf.gro"))
     edges = itp_edges(os.path.join(outdir, "min.itp"))
     summary["warnings"] = []
-    wound = winding_bonds(z, c, edges) if z and c > 0 else 0
+    if clay and abs(summary["total_charge"] - round(summary["total_charge"])) > 1e-4:
+        summary["warnings"].append(
+            "the charges of Table 1 of the ClayFF paper give this structure a net charge "
+            "of %.4f e; its oxygens are not all of the kinds the table lists "
+            "(see charges_differing_from_atomipy in minff.json)" % summary["total_charge"])
+    # ClayFF has no bonds across a layer, so a layer touching its image is no error
+    wound = winding_bonds(z, c, edges) if z and c > 0 and not clay else 0
     if wound:
         cuts = widest_gaps(z, c)
         gap = cuts[0][1] if cuts else 0.0
@@ -555,7 +730,8 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
             regap(os.path.join(outdir, "conf.gro"), wide, z0, max(add_gap - g, 0.0), names0)
             try:
                 s2 = build(wide, trial, (1, 1, 1), (), min_distance, seed, variant,
-                           mineral, angle_k, water, log, ion_set=ion_set, gui=gui)
+                           mineral, angle_k, water, log, ion_set=ion_set, gui=gui,
+                           forcefield=forcefield, clayff_bend=clayff_bend)
                 if not s2["warnings"] and not s2["untyped_atoms"]:
                     for fn in os.listdir(trial):
                         dst = os.path.join(outdir, fn)
@@ -618,6 +794,12 @@ def main(argv=None):
     b.add_argument("--ion-set", choices=ION_SETS, default="HFE",
                    help="ion parameter set of min.ff: HFE (hydration free energy, "
                    "default) or IOD (ion-oxygen distance)")
+    b.add_argument("--forcefield", choices=("minff", "clayff"), default="minff",
+                   help="minff (default) or clayff (Cygan et al. 2004, clayff.ff; "
+                   "types with atomipy's clayff(), water is flexible SPC)")
+    b.add_argument("--clayff-bend", choices=CLAYFF_BENDS, default="none",
+                   help="with --forcefield clayff, the M-O-H bend written into "
+                   "topol.top: none (default), moh (Pouvreau 2017) or moh2004")
     b.add_argument("--gui", action="store_true",
                    help="worded for the ECCE editor: warnings do not name command-line flags")
     m = sub.add_parser("minerals", help="list the TMINFF minerals")
@@ -649,7 +831,8 @@ def main(argv=None):
                     raise MinffError("substitution count must be an integer: %s" % cnt)
             s = build(a.cell, a.outdir, a.replicate, subs, a.min_distance, a.seed,
                       a.variant, a.mineral, a.angle_k, a.water, add_gap=a.add_gap,
-                      ion_set=a.ion_set, gui=a.gui)
+                      ion_set=a.ion_set, gui=a.gui, forcefield=a.forcefield,
+                      clayff_bend=a.clayff_bend)
             print(json.dumps(s, indent=2))
     except MinffError as e:
         print("minff_topology: %s" % e, file=sys.stderr)
