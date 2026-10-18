@@ -89,9 +89,11 @@ def check_rules(d):
                 print("%s: pairing %d has %s" % (fn, p, chs))
     path = os.path.join(d, "orca-bf3.dump")
     if os.path.exists(path):
-        want = {"3A1'": "BONDING", "5A1'": "ANTIBONDING", "2E'": "BONDING",
+        #  The sigma bonds are F 2p (F 2s is core-like: folded with the lone
+        #  pairs): 4a1' and 3e' pair with 5a1'* and 6e'*, 1a2'' with 2a2''*.
+        want = {"4A1'": "BONDING", "5A1'": "ANTIBONDING", "3E'": "BONDING",
                 "6E'": "ANTIBONDING", "1A2''": "BONDING", "2A2''": "ANTIBONDING"}
-        #  4A1', 3E' (and 4E', 1E'', 1A2') are nb and sit in the lone-pair block
+        #  4E' is nb (a lone pair); the F 2s levels, 1E'' and 1A2' sit in the block
         have = dict((l[0].replace(" nb", ""), l[1])
                     for l in molecular_levels(path))
         for k, v in want.items():

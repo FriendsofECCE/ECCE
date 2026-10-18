@@ -167,6 +167,40 @@ void fillByEnergy(const vector<double>& energy, const vector<int>& deg,
    }
 }
 
+//  Electrons into whole sets, as close as can be to what the molecule's
+//  occupied orbitals put on each set (`pop`, in electrons): the subset of
+//  sets that adds up to the fragment's electrons and lies closest to the
+//  populations.  An odd count puts one electron on a single non-degenerate
+//  set, never a half-filled degenerate one.
+void fillByPopulation(const vector<double>& pop, const vector<double>& energy,
+                      const vector<int>& deg, int electrons, vector<double>& occ)
+{
+   const size_t m = pop.size();
+   if (m > 18) { fillByEnergy(energy, deg, electrons, 2, occ); return; }
+   double bestCost = 1e30;
+   unsigned long bestMask = 0;
+   int bestPartial = -1;
+   for (unsigned long mask = 0; mask < (1UL << m); mask++) {
+      int sum = 0;
+      for (size_t k = 0; k < m; k++) if (mask & (1UL << k)) sum += 2*deg[k];
+      const int need = electrons - sum;
+      if (need != 0 && need != 1) continue;
+      for (int partial = -1; partial < (need ? (int)m : 0); partial++) {
+         if (need == 1 && (partial < 0 || deg[partial] != 1 || (mask & (1UL << partial)))) continue;
+         double cost = 0.0;
+         for (size_t k = 0; k < m; k++) {
+            const double o = (mask & (1UL << k)) ? 2.0*deg[k] : ((int)k == partial ? 1.0 : 0.0);
+            cost += (o - pop[k])*(o - pop[k]);
+         }
+         if (cost < bestCost - 1e-9) { bestCost = cost; bestMask = mask; bestPartial = partial; }
+      }
+   }
+   if (bestCost > 1e29) { fillByEnergy(energy, deg, electrons, 2, occ); return; }
+   occ.assign(m, 0.0);
+   for (size_t k = 0; k < m; k++) if (bestMask & (1UL << k)) occ[k] = 2.0*deg[k];
+   if (bestPartial >= 0) occ[bestPartial] = 1.0;
+}
+
 //  How much of an orbital (coefficients over the functions) changes sign on
 //  reflection through the plane with unit normal n: the p and d parts only,
 //  s is even.  A planar molecule's orbitals are exactly even (sigma) or odd (pi).
@@ -231,7 +265,8 @@ struct SetD
    string irrep;
    int drawn;                    // index in its column, -1
    map<string,double> chars;     // orbital character -> fraction (sums to 1)
-   SetD() : fragment(0), energy(0), degeneracy(0), occupancy(0), drawn(-1) {}
+   double nsShare;               // of it, the ns of a ligand atom that also has np (F 2s, Cl 3s)
+   SetD() : fragment(0), energy(0), degeneracy(0), occupancy(0), drawn(-1), nsShare(0) {}
 };
 
 struct Cluster
@@ -248,11 +283,12 @@ struct Cluster
    MoLevel::Character character;
    int pairing;
    double occupancy, occupancyBeta;
+   bool core;                    // mostly ligand ns: core-like, never a bond of the diagram
    bool drawn, clipped, lfFold;
    double shownEnergy;
    Cluster() : energy(0), degeneracy(0), shareLeft(0), shareRight(0), op(0),
                realLevel(-1), overlap(0), character(MoLevel::NONBONDING),
-               pairing(-1), occupancy(0), occupancyBeta(-1), drawn(true), clipped(false), lfFold(false), shownEnergy(0) {}
+               pairing(-1), occupancy(0), occupancyBeta(-1), core(false), drawn(true), clipped(false), lfFold(false), shownEnergy(0) {}
 };
 
 //  The orbital character of a ligand fragment orbital, as the fragment's own
@@ -614,6 +650,15 @@ bool ModelDiagram::build(const Input& in,
             s.chars[in.symbols[frags[s.fragment].atoms[0]] + " " + s.shell.substr(s.shell.size() - 1)] = 1.0;
       } else {
          ligandCharacter(set, groups[g], in.symbols, in.coordsAng, frags[s.fragment].atoms, s.chars, in.piOnly);
+         //  The ns of an atom that also has np (F 2s, Cl 3s) is core-like in a
+         //  central-atom diagram: the textbook sigma bonds are made of np.
+         for (map<string,double>::iterator it = s.chars.begin(); it != s.chars.end(); ++it) {
+            const string::size_type sp = it->first.find(' ');
+            if (sp == string::npos || it->first.back() != 's') continue;
+            const string el = it->first.substr(0, sp);
+            for (size_t q = 0; q < set.funcs.size(); q++)
+               if (set.funcs[q].element == el && set.funcs[q].l == 1) { s.nsShare += it->second; break; }
+         }
       }
       sets.push_back(s);
    }
@@ -703,6 +748,14 @@ bool ModelDiagram::build(const Input& in,
          (sets[s].fragment == 0 ? L.shareLeft : L.shareRight) += L.share[s];
    }
 
+   const bool centralAtom = in.leftAtoms.size() == 1 && in.rightAtoms.size() >= 2;
+   if (centralAtom)
+      for (size_t c = 0; c < cl.size(); c++) {
+         double ns = 0.0;
+         for (size_t s2 = 0; s2 < sets.size(); s2++) ns += cl[c].share[s2]*sets[s2].nsShare;
+         cl[c].core = ns >= 0.5;
+      }
+
    //  --- pi only: the levels that change sign in the molecular plane --
    vector<bool> setOdd(sets.size(), true);
    int piElectrons = 0;
@@ -723,8 +776,9 @@ bool ModelDiagram::build(const Input& in,
    }
 
    //  --- the fragments' electrons ------------------------------------
-   //  Neutral fragments (the metal ionic), by energy; in the pi system the
-   //  electrons the molecule's pi orbitals put on the fragment.
+   //  Neutral fragments (the metal ionic).  A one-atom fragment fills by
+   //  energy; a ligand puts its electrons where the molecule's occupied
+   //  orbitals put them.
    for (int f = 0; f < 2; f++) {
       int n = -frags[f].charge;
       for (size_t k = 0; k < frags[f].atoms.size(); k++)
@@ -745,6 +799,14 @@ bool ModelDiagram::build(const Input& in,
       if (in.piOnly) n = (int)lround(piPop);
       vector<double> occ;
       fillByEnergy(en, dg, n < 0 ? 0 : n, 2, occ);
+      //  A ligand that the energy order leaves with a half-filled set (three
+      //  neutral F atoms are an odd number of electrons) is filled the way
+      //  the molecule's own orbitals fill it.
+      bool partial = false;
+      for (size_t k = 0; k < occ.size(); k++)
+         if (occ[k] > 0.0 && occ[k] < 2.0*dg[k] - 1e-9 && dg[k] > 1) partial = true;
+      if (partial && frags[f].kind != FragmentOrbitals::METAL)
+         fillByPopulation(pop, en, dg, n < 0 ? 0 : n, occ);
       for (size_t k = 0; k < mine.size(); k++) sets[mine[k]].occupancy = occ[k];
    }
 
@@ -840,9 +902,9 @@ bool ModelDiagram::build(const Input& in,
       struct Cand { double score; size_t b, a; };
       vector<Cand> cands;
       for (size_t b = 0; b < cl.size(); b++) {
-         if (cl[b].character != MoLevel::BONDING) continue;
+         if (cl[b].character != MoLevel::BONDING || cl[b].core) continue;
          for (size_t a = 0; a < cl.size(); a++) {
-            if (cl[a].character != MoLevel::ANTIBONDING) continue;
+            if (cl[a].character != MoLevel::ANTIBONDING || cl[a].core) continue;
             if (cl[a].energy <= cl[b].energy || cl[a].degeneracy != cl[b].degeneracy) continue;
             //  Equal fragments (N + N, CH2 + CH2) combine in phase and out of
             //  phase, and those carry different irreps: the partners of a
@@ -876,7 +938,7 @@ bool ModelDiagram::build(const Input& in,
          cl[cands[i].b].pairing = cl[cands[i].a].pairing = next++;
       }
       for (size_t c = 0; c < cl.size(); c++)
-         if (!used[c]) cl[c].character = MoLevel::NONBONDING;
+         if (!used[c] || cl[c].core) cl[c].character = MoLevel::NONBONDING;
    }
 
    vector<string> caveats;               // tier B: one combined line
@@ -884,7 +946,7 @@ bool ModelDiagram::build(const Input& in,
    //  --- what is drawn ----------------------------------------------
    const bool bandRule = !in.showAll && in.leftAtoms.size() == 1 && in.rightAtoms.size() >= 2;
    for (size_t c = 0; c < cl.size(); c++)
-      cl[c].drawn = !(bandRule && cl[c].shareRight >= INTERNAL_SHARE);
+      cl[c].drawn = !(bandRule && (cl[c].shareRight >= INTERNAL_SHARE || cl[c].core));
    //  The HOMO and the LUMO are never folded away, whatever fragment they sit on.
    {
       int homo = -1, lumo = -1;
@@ -1093,7 +1155,7 @@ bool ModelDiagram::build(const Input& in,
       bool lined = false;
       for (size_t c = 0; c < cl.size(); c++)
          if (cl[c].drawn && cl[c].share[s] >= LINK_MIN) lined = true;
-      if (!lined) continue;
+      if (!lined || (bandRule && sets[s].nsShare >= 0.5)) continue;
       MoColumn& col = sets[s].fragment == 0 ? out.left : out.right;
       MoLevel lv;
       lv.energy = sets[s].energy;
@@ -1276,6 +1338,11 @@ bool ModelDiagram::build(const Input& in,
          if (pass == 1 && lfView) continue;      // its LUMO is a ligand level
          const int R = pass == 0 ? calcHomo : calcLumo;
          if (R < 0 || std::find(centreReal.begin(), centreReal.end(), R) != centreReal.end()) continue;
+         //  What the model folds as internal is folded in the calculation too.
+         bool folded = false;
+         for (size_t c = 0; c < cl.size(); c++)
+            if (!cl[c].drawn && !tooHigh[c] && !cl[c].lfFold && cl[c].realLevel == R) folded = true;
+         if (folded) continue;
          MoLevel lv;
          lv.energy = real[R].energy;
          lv.irrep = real[R].irrep;
@@ -1412,7 +1479,9 @@ bool ModelDiagram::build(const Input& in,
                    "ligand-centred levels such as CO \xCF\x80*; transitions into them are charge transfer, not d\xE2\x80\x93" "d.";
       if (out.foldedAny)
          out.about += "\n\nThe levels counted in the note under the diagram are model levels that sit almost entirely on the " + rightName.formula +
-                      " and take no part in the interaction; they are counted, not drawn.";
+                      " and take no part in the interaction; they are counted, not drawn, in the calculation's column as well. "
+                      "The ns orbitals of a ligand atom that also has np (F 2s, Cl 3s) are treated as core-like here: "
+                      "the textbook sigma bonds are made of np.";
       if (!caveats.empty()) {
          out.about += "\n\n**Caveats.** ";
          for (size_t i = 0; i < caveats.size(); i++) out.about += (i ? "; " : "") + caveats[i];

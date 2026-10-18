@@ -69,3 +69,17 @@ refusal text plus "use the MOs panel"), keep the old drawing.
   orientation is drawn flat. They came from the symmetry projection
   (`MoFragments`) before the model built its own sets, and so vanished from every
   model-first diagram. Not for mixed fragments, d sets or one atom.
+- Ligand ns is core-like in a central-atom diagram (one atom against >= 2): the ns
+  of a ligand atom that also has np (F 2s, Cl 3s; not H 1s, not the CO sigma
+  unit) is `SetD::nsShare`; a model level with >= 50 % of it is `Cluster::core`,
+  never a bonding or antibonding partner, folded with the internal levels (so
+  BF3's sigma bond is F 2p-sigma with B, as in the textbooks, and the pair drawn
+  against 5a1'* is a1' of 2p). The fragment column does not draw such sets either.
+- What is folded as internal is folded on both sides: a calculated level whose
+  model partner is folded is not drawn as "your HOMO/LUMO" either, and the note
+  and About say so once.
+- Fragment electrons: neutral ligands, by energy; when that leaves a degenerate
+  set half full (three F atoms are 21 electrons) the sets are chosen as close as
+  possible to the populations the occupied model orbitals put on them
+  (`fillByPopulation`: whole sets, one electron on one non-degenerate set at most),
+  so total = B 3 + F3 21 = 24 and no e' set is half filled.
