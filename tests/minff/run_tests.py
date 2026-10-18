@@ -129,6 +129,31 @@ def posres_noh(out, label):
           label + ": POSRES_noH restrains the %d heavy atoms, no hydrogen" % len(heavy))
 
 
+def layer_cell(src, dst, vacuum, shift=0.0):
+    """The lower layer of a two-layer .gro as its own cell, `vacuum` nm to its
+    image along c, moved up by `shift` (wrapped, so it may straddle the boundary)."""
+    L = open(src).read().rstrip("\n").split("\n")
+    n = int(L[1])
+    z = sorted(float(l[36:44]) for l in L[2:2 + n])
+    cut = max(range(1, n), key=lambda i: z[i] - z[i - 1])
+    keep = [l for l in L[2:2 + n] if float(l[36:44]) < z[cut - 1] + 1e-6]
+    z0, span = min(float(l[36:44]) for l in keep), z[cut - 1] - z[0]
+    c = span + vacuum
+    rows = [l[:36] + "%8.3f" % (((float(l[36:44]) - z0) + shift) % c) + l[44:] for l in keep]
+    b = L[2 + n].split()
+    open(dst, "w").write("\n".join([L[0], str(len(rows))] + rows +
+                                   ["%10.5f%10.5f%10.5f" % (float(b[0]), float(b[1]), c)]) + "\n")
+
+
+def angle_count(out):
+    """Number of distinct bonded pairs the angles of min.itp span."""
+    return len(mt.itp_edges(os.path.join(out, "min.itp")))
+
+
+def box_c(out):
+    return mt.read_gro_z(os.path.join(out, "conf.gro"))[1]
+
+
 def mineral_only(src, dst):
     """The MIN residues of a hydrated .gro (water and ions dropped)."""
     L = open(src).read().splitlines()
@@ -160,8 +185,8 @@ def main():
     s = build(cell, out, "--replicate", "4", "3", "3")
     if s:
         compare(out, oracle(cell, 4, 3, 3), "kaolinite")
-        check(abs(s["total_charge"]) < 1e-4 and not s["untyped_atoms"],
-              "kaolinite: neutral, no untyped atoms")
+        check(abs(s["total_charge"]) < 1e-4 and not s["untyped_atoms"] and not s["warnings"],
+              "kaolinite: neutral, no untyped atoms, no warning")
         minimise(out, "kaolinite")
         posres_noh(out, "kaolinite")
 
@@ -204,6 +229,30 @@ def main():
         check("1500.00" in itp and "GMINFF_k1500" in open(os.path.join(out, "topol.top")).read(),
               "k=1500 reaches the angles and topol.top")
     check("Kaolinite" in mt.list_minerals(500, ffdir), "mineral list has Kaolinite")
+
+    # 5. a bare cell: one montmorillonite layer with 0.1 nm of vacuum, sitting over
+    #    the z boundary, is bonded to its own image.  Warned about by default;
+    #    --add-gap makes the same topology as a cell with a proper gap.
+    two = os.path.join(work, "montmorillonite.gro")
+    bare = os.path.join(work, "bare.gro")
+    roomy = os.path.join(work, "roomy.gro")
+    layer_cell(two, bare, 0.10, shift=0.45)
+    layer_cell(two, roomy, 0.50)
+    ref = build(roomy, os.path.join(work, "roomy"), "--variant", "tminff", "--mineral", "Montmorillonite")
+    out = os.path.join(work, "bare")
+    r = run([PY, SCRIPT, "build", bare, "-o", out, "--variant", "tminff", "--mineral", "Montmorillonite"])
+    s = json.loads(r.stdout) if r.returncode == 0 else {}
+    check(ref and not ref["warnings"], "a cell with 0.5 nm of vacuum: no warning")
+    check(s.get("warnings") and "WARNING" in r.stderr and "--add-gap" in r.stderr,
+          "bare cell: warns, and says how to fix it (build still succeeds)")
+    out = os.path.join(work, "bare-gap")
+    s = build(bare, out, "--variant", "tminff", "--mineral", "Montmorillonite", "--add-gap")
+    if s and ref:
+        check(not s["warnings"] and s.get("gap_added_nm", 0) > 0, "bare cell with --add-gap: gap added, no warning")
+        check(angle_count(out) == angle_count(os.path.join(work, "roomy")),
+              "bare cell with --add-gap: the angles are those of the layer without a false bond")
+        check(abs(box_c(out) - box_c(os.path.join(work, "roomy")) + 0.2) < 0.01,
+              "bare cell with --add-gap: vacuum is 0.3 nm")
 
     if not failures:
         shutil.rmtree(work, ignore_errors=True)
