@@ -53,6 +53,12 @@ these dumps verbatim.
   - `calc-water-vib` is NOT duplicated here -- `capture.py` points
     straight at `tests/apps/fixtures/calc-water-vib` (Gaussian-16 water,
     STO-3G, opt+freq, C2v), reusing it rather than a second copy.
+- `orca-cocl4-quartet`, `orca-o2-triplet` (open shell, ORCA UKS BP86/def2-SVP,
+  `UseSym`) are copies of an Organizer import of the real output (the stored
+  properties and metadata as the import wrote them, `Outputs` dropped), not
+  `makecalc.py` runs: the import keeps ORCA's own `ORBSYM`/`ORBSYMBETA` in its D2
+  spelling, which is what the beta matching has to cope with, and the functional
+  the import stores for the summary line.
 - `expected/<name>.dump` -- the golden `ECCE_MODIAGRAM_DUMP` output for
   each fixture, captured from the real `builder` binary at commit
   `809fbae` (headless, `ECCE_OPEN_PANEL="MO Diagram"` +

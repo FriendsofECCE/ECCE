@@ -1,10 +1,11 @@
-! UKS BP86 def2-SVP
+! UKS BP86 def2-SVP def2/J UseSym
+%maxcore 2000
 %output
   Print[P_MOs] 1
   Print[P_OrbEn] 2
 end
 
 * xyz 0 3
- O       0.000000     0.000000     0.603500
- O       0.000000     0.000000    -0.603500
+  O     0.000000     0.000000     0.000000
+  O     0.000000     0.000000     1.207000
 *

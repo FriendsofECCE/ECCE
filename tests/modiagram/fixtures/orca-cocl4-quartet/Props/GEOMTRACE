@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
-<tsvectable columnLabel="Atom" columnLabels="X Y Z" columns="3" name="GEOMTRACE" rowLabel="Geometry Step" rowLabels="0 1 2 3 4" rows="5" units="Angstrom" vectorLabel="Coordinate" vectors="1">
+<tsvectable columnLabel="Atom" columnLabels="X Y Z" columns="3" name="GEOMTRACE" rowLabel="Geometry Step" rowLabels="1-Co 2-Cl 3-Cl 4-Cl 5-Cl" rows="5" units="Angstrom" vectorLabel="Coordinate" vectors="1">
 
-  <step number="1">0.000000   0.000000   0.000000   1.322132
-1.322132   1.322132   -1.322132   -1.322132
-1.322132   -1.322132   1.322132   -1.322132
-1.322132   -1.322132   -1.322132</step>
+  <step number="1">0.000000   0.000000   0.000000   1.316359
+1.316359   1.316359   -1.316359   -1.316359
+1.316359   -1.316359   1.316359   -1.316359
+1.316359   -1.316359   -1.316359</step>
 
 </tsvectable>

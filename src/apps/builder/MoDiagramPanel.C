@@ -1051,6 +1051,11 @@ namespace {
         size_t& n = next[c];
         if (n < it->second.size()) betaOfAlpha[i] = it->second[n++];
       }
+      //  Labels in two different spellings share no irrep: by energy order.
+      bool any = false;
+      for (int i = 0; i < nAlpha; i++) if (betaOfAlpha[i] >= 0) any = true;
+      if (!any)
+        for (int i = 0; i < nAlpha && i < nBeta; i++) betaOfAlpha[i] = i;
     } else {
       for (int i = 0; i < nAlpha && i < nBeta; i++) betaOfAlpha[i] = i;
     }
@@ -2261,7 +2266,9 @@ void MoDiagramPanel::buildOnce()
   //  THE SAME, FOR BETA -- computed only when the code did not report
   //  ORBSYMBETA itself, since that is what the alpha-beta irrep match
   //  above needs to prefer irrep over energy order (#132).
-  if (haveBeta && sB.empty()) {
+  //  Also when the code reported beta labels but the alpha ones were replaced
+  //  by full-group labels: ORCA's D2 names for beta would match none of them.
+  if (haveBeta && (sB.empty() || labelsInFullGroup)) {
     progressDlg.progress(40, _("Assigning full-group symmetry labels (beta)"));
     double windowLowB, windowHighB;
     drawnWindow(eB, oB, windowLowB, windowHighB);

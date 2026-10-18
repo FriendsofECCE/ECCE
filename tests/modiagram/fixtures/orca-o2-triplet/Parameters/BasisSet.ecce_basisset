@@ -3,12 +3,10 @@
 <Group Tag="O" Name="def2-svp">
 <OrderedList>
 <BasisSet Type="ECPOrbital">def2-svp</BasisSet>
-<ECP Type="ecp">Def2-ECP</ECP>
 </OrderedList>
 <OrbitalMapping>
 <OrbitalBasisSet Name="def2-svp">
 <BasisSet Type="ECPOrbital">def2-svp</BasisSet>
-<ECP Type="ecp">Def2-ECP</ECP>
 </OrbitalBasisSet>
 </OrbitalMapping>
 <ContractionInfoMap>
@@ -31,30 +29,27 @@ false false false false false false false false </UncontractFlags>
 </Group>
 </Map>
 <Data>
-BasisSet=Def2-ECP
-Type=ecp Category=AUXILIARY Spherical=UnknownCoordSys ContType=UnknownContType
-EndBasisSet
 BasisSet=def2-svp
 Type=ECPOrbital Category=ORBITAL Spherical=UnknownCoordSys ContType=UnknownContType
 element=O
 contraction shell=S num_primitives=5 num_coefficients=1
-2266.1767785 -0.53431809926E-02
-340.87010191 -0.39890039230E-01
-77.363135167 -0.17853911985
-21.479644940 -0.46427684959
-6.6589433124 -0.44309745172
+2266.176778500000 -0.005343180993
+340.870101910000 -0.039890039230
+77.363135167000 -0.178539119850
+21.479644940000 -0.464276849590
+6.658943312400 -0.443097451720
 contraction shell=S num_primitives=1 num_coefficients=1
-0.80975975668 1.0000000
+0.809759756680 1.000000000000
 contraction shell=S num_primitives=1 num_coefficients=1
-0.25530772234 1.0000000
+0.255307722340 1.000000000000
 contraction shell=P num_primitives=3 num_coefficients=1
-17.721504317 0.43394573193E-01
-3.8635505440 0.23094120765
-1.0480920883 0.51375311064
+17.721504317000 0.043394573193
+3.863550544000 0.230941207650
+1.048092088300 0.513753110640
 contraction shell=P num_primitives=1 num_coefficients=1
-0.27641544411 1.0000000
+0.276415444110 1.000000000000
 contraction shell=D num_primitives=1 num_coefficients=1
-1.2000000 1.0000000
+1.200000000000 1.000000000000
 EndBasisSet
 </Data>
 </MolecularConfig>
