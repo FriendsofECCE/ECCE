@@ -67,8 +67,9 @@ class ModelDiagram
       vector<int> leftAtoms, rightAtoms;   // together every atom
       int  leftCharge, rightCharge;        // sum = charge
       bool leftMetal;                      // ionic d count, not neutral
+      bool showAll;                        // draw the ligand-internal levels too
       Input() : charge(0), multiplicity(1), leftCharge(0), rightCharge(0),
-                leftMetal(false) {}
+                leftMetal(false), showAll(false) {}
     };
 
     struct Result
@@ -83,9 +84,10 @@ class ModelDiagram
       int    valenceLevels, inversions;
       double overlapMin, overlapMax;
       bool   haveDeltaO;
+      bool   foldedAny;                // ligand-internal levels were folded into bars
       double deltaModelEv, deltaCalcEv;
       Result() : verdictOk(true), valenceLevels(0), inversions(0),
-                 overlapMin(0), overlapMax(0), haveDeltaO(false),
+                 overlapMin(0), overlapMax(0), haveDeltaO(false), foldedAny(false),
                  deltaModelEv(0), deltaCalcEv(0) {}
     };
 

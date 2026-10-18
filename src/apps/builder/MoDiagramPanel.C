@@ -2111,6 +2111,50 @@ void MoDiagramPanel::buildOnce()
     group = "C1";
   }
 
+  //  MULLIKEN'S AXES for a planar C2v or D2h molecule (J. Chem. Phys. 23,
+  //  1997 (1955)): the molecule lies in the yz plane, x is perpendicular to
+  //  it, and in D2h z is the in-plane axis the atoms extend furthest along
+  //  (C=C in ethene).  autosym leaves the plane where it likes, which made
+  //  water's HOMO 1b2.  The model columns and the calculation's labels both
+  //  take their frame from `coords`, so they cannot disagree.
+  if (group == "C2v" || group == "C2V" || group == "D2h" || group == "D2H") {
+    const size_t n = coords.size() / 3;
+    double ext[3] = { 0, 0, 0 };
+    for (size_t a = 0; a < n; a++)
+      for (int k = 0; k < 3; k++) ext[k] = std::max(ext[k], fabs(coords[3*a + k]));
+    int normal = -1;
+    for (int k = 0; k < 3; k++) if (ext[k] < 0.01) normal = k;
+    if (normal >= 0) {
+      int inPlane[2], m = 0;
+      for (int k = 0; k < 3; k++) if (k != normal) inPlane[m++] = k;
+      int zAxis, yAxis;
+      if (group == "C2v" || group == "C2V") {
+        //  The principal axis is the in-plane axis the atoms are not
+        //  symmetric about: autosym puts C2 along z.
+        zAxis = 2;
+        if (normal == 2) zAxis = -1;
+        yAxis = zAxis >= 0 ? (inPlane[0] == zAxis ? inPlane[1] : inPlane[0]) : -1;
+      } else {
+        zAxis = ext[inPlane[0]] >= ext[inPlane[1]] ? inPlane[0] : inPlane[1];
+        yAxis = zAxis == inPlane[0] ? inPlane[1] : inPlane[0];
+      }
+      if (zAxis >= 0 && yAxis >= 0) {
+        //  new x = old normal, new y = old yAxis, new z = old zAxis; a
+        //  sign keeps the frame right-handed.
+        static const int cyc[3][3] = { {0,1,2}, {1,2,0}, {2,0,1} };
+        bool even = false;
+        for (int c = 0; c < 3; c++)
+          if (cyc[c][0] == normal && cyc[c][1] == yAxis && cyc[c][2] == zAxis) even = true;
+        for (size_t a = 0; a < n; a++) {
+          const double o[3] = { coords[3*a], coords[3*a+1], coords[3*a+2] };
+          coords[3*a]   = even ? o[normal] : -o[normal];
+          coords[3*a+1] = o[yAxis];
+          coords[3*a+2] = o[zAxis];
+        }
+      }
+    }
+  }
+
   //  autosym accepts a group within its tolerance but leaves the atoms
   //  only that close to symmetric, while the fragment analysis matches
   //  atoms to 0.001 Angstrom: a code's own geometry, symmetric to 1e-6
@@ -2179,6 +2223,11 @@ void MoDiagramPanel::buildOnce()
       symmetryNote += (symmetryNote.empty() ? "" : "  ") + computedNote;
     }
   }
+
+  if (!s.empty() && (group == "C2v" || group == "C2V" || group == "D2h" || group == "D2H"))
+    symmetryNote += (symmetryNote.empty() ? "" : "  ") +
+        string("b1 and b2 (b2 and b3 in D2h) depend on the choice of axes; "
+               "ECCE follows Mulliken's convention, as most textbooks do.");
 
   //  THE SAME, FOR BETA -- computed only when the code did not report
   //  ORBSYMBETA itself, since that is what the alpha-beta irrep match
@@ -2824,6 +2873,7 @@ void MoDiagramPanel::buildOnce()
   //  The model-first diagram (ModelDiagram) draws through the same
   //  plumbing as the fragment-orbital one.
   bool modelDrawn = false;
+  bool modelFolded = false;
   string modelVerdict;
   bool modelVerdictOk = true;
 
@@ -2945,6 +2995,7 @@ void MoDiagramPanel::buildOnce()
       in.leftCharge = leftCharge;
       in.rightCharge = charge - leftCharge;
       in.leftMetal = leftMetal;
+      in.showAll = p_showAll != 0 && p_showAll->IsChecked();
       ModelDiagram::Result mr;
       if (!ModelDiagram::build(in, moBasisFns, moSflat, moCoefficients, e,
                                wholeSpectrum, mr, mwhy)) {
@@ -2964,6 +3015,7 @@ void MoDiagramPanel::buildOnce()
       haveFragments = true;
       foDrawn = true;
       modelDrawn = true;
+      modelFolded = mr.foldedAny;
       return true;
     };
 
@@ -3524,6 +3576,7 @@ void MoDiagramPanel::buildOnce()
   if (!simplifiedNote.empty()) fragmentAbout += "\n\n**Simplified.** " + simplifiedNote;
   if (p_showAll != 0)
     p_showAll->Enable((foDrawn && !modelDrawn) ||
+                      (modelDrawn && (modelFolded || p_showAll->IsChecked())) ||
                       (haveFragments && !modelDrawn && p_fragmentation == MoFragments::CENTRAL));
   if (!why.empty()) {
     if (whyWarn) tiers.warnings.push_back(why);

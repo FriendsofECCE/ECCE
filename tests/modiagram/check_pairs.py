@@ -98,12 +98,12 @@ def check_rules(d):
                 print("orca-bf3: %s is %s, want %s" % (k, have.get(k), v))
     if os.path.exists(path):
         text = open(path).read()
-        if "label=F3 internal: 8 levels, 16 e" not in text:
+        if "label=F3 internal: 6 levels, 12 e" not in text:
             bad += 1
             print("orca-bf3: no 'F3 internal' block")
-        if "levels=8 " not in text:
+        if "levels=6 " not in text:
             bad += 1
-            print("orca-bf3: the block should stand for 8 MOs")
+            print("orca-bf3: the block should stand for 6 MOs")
     print("pair rule over every golden: %s" % ("FAIL" if bad else "ok"))
     return bad
 

@@ -523,7 +523,7 @@ bool ModelDiagram::build(const Input& in,
 
    vector<string> caveats;               // tier B: one combined line
    //  --- what is drawn ----------------------------------------------
-   const bool bandRule = in.leftAtoms.size() == 1 && in.rightAtoms.size() >= 2;
+   const bool bandRule = !in.showAll && in.leftAtoms.size() == 1 && in.rightAtoms.size() >= 2;
    for (size_t c = 0; c < cl.size(); c++)
       cl[c].drawn = !(bandRule && cl[c].shareRight >= INTERNAL_SHARE);
    //  The HOMO and the LUMO are never folded away, whatever fragment they sit on.
@@ -858,7 +858,8 @@ bool ModelDiagram::build(const Input& in,
          const string& l = out.right.bands[i].label;
          t += i == 0 ? l : "; " + l.substr(l.find(": ") == string::npos ? 0 : l.find(": ") + 2);
       }
-      out.summary += " \xC2\xB7 (" + t + " \xE2\x80\x94 not drawn; Show all levels)";
+      out.summary += " \xC2\xB7 not drawn: " + t + "; tick Show all levels";
+      out.foldedAny = true;
    }
    {
       int total = 0;
