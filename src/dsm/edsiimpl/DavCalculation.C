@@ -2245,6 +2245,23 @@ void DavCalculation::processImportParameters(const Preferences& params)
       spinMultiplicity((SpinMult::SpinMultEnum)number);
    }
 
+   //  The functional the output was run with, so a DFT calculation can be
+   //  named by it ("BP86") rather than only by its theory ("RDFT").
+   string functional;
+   if (params.getString("ES.Theory.DFT.XCFunctionals", functional) &&
+       !functional.empty()) {
+      GUIValues *gui = guiparams();
+      GUIValue *entry = new GUIValue();
+      entry->m_key = "ES.Theory.DFT.XCFunctionals";
+      entry->m_type = "menu_input";
+      entry->m_sensitive = true;
+      entry->m_write = true;
+      entry->setValue(functional);
+      gui->set(entry->m_key, entry);
+      guiparams(gui);
+      delete gui;
+   }
+
 }
 
 

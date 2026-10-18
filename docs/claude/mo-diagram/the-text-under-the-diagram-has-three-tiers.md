@@ -15,3 +15,11 @@ to the tier it belongs in (`NoteTiers` in `MoDiagramPanel.C`,
 The dump has `note:` (tiers A and B) and `about:` (tier C); the goldens
 in `tests/modiagram/expected` carry both. "Covered", never "captured", in
 anything the user reads.
+
+The "MO levels: ..." text before the summary names a DFT run by its functional
+(`UKS BP86`; U only for an unrestricted run) and the basis as the code writes it
+(`def2-SVP` from the code's `wr<Code>GBS.pm` table, not ECCE's key `def2-svp`);
+Hartree-Fock keeps RHF/UHF. The functional is `ES.Theory.DFT.XCFunctionals` in
+the calculation's SetupParams: written by the Calculation Editor, and now also by
+an Organizer import (`DavCalculation::processImportParameters`), which stored only
+category and theory before. The dump has a `source:` line for it.

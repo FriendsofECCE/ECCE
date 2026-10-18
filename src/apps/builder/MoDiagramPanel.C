@@ -46,6 +46,7 @@
 #include "dsm/TGBSConfig.H"
 #include "dsm/TGaussianBasisSet.H"
 #include "dsm/ICalculation.H"
+#include "dsm/TaskJob.H"
 #include "dsm/ICalcUtils.H"
 #include "dsm/JCode.H"
 #include "tdat/CharacterTable.H"
@@ -282,8 +283,39 @@ void MoDiagramPanel::orbitalClicked(int orbengIndex)
 }
 
 
+//  The basis as the code writes it ("def2-SVP", not ECCE's key "def2-svp"),
+//  from the same table the input writer translates with.
+static string basisAsCodeWrites(const string& code, const string& name)
+{
+  string stem;
+  for (size_t i = 0; i < code.size(); i++)
+    if (isalnum((unsigned char)code[i])) stem += code[i];
+  if (stem.empty()) return name;
+  std::ifstream in((string(Ecce::ecceHome()) + "/scripts/parsers/wr" + stem +
+                    "GBS.pm").c_str());
+  //  A basis of several groups is named "def2-svp..." (the heaviest atom's, and more).
+  string shown = name;
+  if (shown.size() > 3 && shown.compare(shown.size() - 3, 3, "...") == 0) shown.erase(shown.size() - 3);
+  string want = shown;
+  for (size_t i = 0; i < want.size(); i++) want[i] = (char)tolower((unsigned char)want[i]);
+  string line;
+  while (std::getline(in, line)) {
+    const size_t k = line.find("$NameToBasis{\"");
+    if (k == string::npos) continue;
+    const size_t a = k + 14, b = line.find('"', a);
+    if (b == string::npos || line.compare(a, b - a, want) != 0) continue;
+    const size_t c = line.find('"', line.find('=', b));
+    const size_t d = c == string::npos ? c : line.find('"', c + 1);
+    if (d != string::npos) return line.substr(c + 1, d - c - 1);
+  }
+  return shown;
+}
+
+
 //  Where the molecular levels come from, for the summary line: the fragment
 //  levels say they are extended Hückel, so the middle column says what it is.
+//  A DFT run is named by its functional, not by the theory ("BP86", not
+//  "RDFT"); an unrestricted one is told by UKS.
 static string levelSource(IPropCalculation *calc)
 {
   ICalculation *esCalc = dynamic_cast<ICalculation*>(calc);
@@ -292,11 +324,25 @@ static string levelSource(IPropCalculation *calc)
   TTheory *theory = esCalc->theory();
   if (theory) {
     what = theory->toConciseString();
+    if (theory->category() == "DFT") {
+      GUIValues *params = esCalc->guiparams();
+      GUIValue *value = params ? params->get("ES.Theory.DFT.XCFunctionals") : 0;
+      string functional = value ? value->getValueAsString() : string();
+      const size_t paren = functional.find(" (");
+      if (paren != string::npos) functional.erase(paren);
+      if (!functional.empty())
+        what = (what.size() && what[0] == 'U' ? "UKS " : "") + functional;
+      delete params;
+    }
     delete theory;
   }
   TGBSConfig *config = esCalc->gbsConfig();
-  if (config && !config->empty() && !config->name().empty())
-    what += (what.empty() ? "" : ", ") + config->name();
+  if (config && !config->empty() && !config->name().empty()) {
+    string code;
+    if (TaskJob *tj = dynamic_cast<TaskJob*>(calc))
+      if (const JCode *jc = tj->application()) code = jc->name();
+    what += (what.empty() ? "" : ", ") + basisAsCodeWrites(code, config->name());
+  }
   return what.empty() ? string() : "MO levels: " + what + " \xC2\xB7 ";
 }
 
@@ -1529,6 +1575,9 @@ class MoDiagramProgress
  */
 namespace {
 
+//  The "MO levels: ..." text of the summary line, for the dump (test oracle).
+string dumpLevelSource;
+
 string escapeDumpText(const string& s)
 {
   string out;
@@ -1705,6 +1754,7 @@ void dumpMoDiagram(const string& path, const string& group,
   out << "formula: " << (formula.empty() ? "-" : formula) << "\n";
   out << "construction: " << (construction.empty() ? "-" : construction) << "\n";
   out << "headline: " << escapeDumpText(headline) << "\n";
+  if (!dumpLevelSource.empty()) out << "source: " << escapeDumpText(dumpLevelSource) << "\n";
   out << "note: " << escapeDumpText(shownNotes(tiers)) << "\n";
   out << "about: " << escapeDumpText(tiers.about) << "\n";
   if (!tiers.verdict.empty())
@@ -1931,6 +1981,7 @@ void MoDiagramPanel::buildOnce()
   //  the same names regardless of how early it returns.
   const char *dumpPathEnv = getenv("ECCE_MODIAGRAM_DUMP");
   const string dumpPath = dumpPathEnv != 0 ? string(dumpPathEnv) : string();
+  dumpLevelSource = dumpPath.empty() ? string() : levelSource(calc);
   vector<double> localisedShare, centreOP, mullikenMaxVec, normVec;
   //  SKELETON only (#183): the metal's own Lowdin share of each centre
   //  level, and its Mulliken overlap population against every ligand
