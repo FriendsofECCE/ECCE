@@ -22,7 +22,7 @@ minff commit MINFF_COMMIT into ~/.cache/ecce/minff/<commit>.
     minff_topology.py build CELL -o OUTDIR [--replicate NA NB NC]
         [--substitute FROM TO COUNT]... [--min-distance A] [--seed N]
         [--variant gminff|tminff] [--mineral NAME] [--angle-k 0|250|500|1500]
-        [--water opc3]
+        [--water opc3] [--add-gap [NM]]
     minff_topology.py minerals [--angle-k K]
     minff_topology.py fetch
 """
@@ -313,6 +313,124 @@ def contiguous_z(path):
     return moved
 
 
+GAP_NM = 0.3
+
+
+def read_gro_z(path):
+    """(z of each atom, c) of a .gro; c is the box vector's z component."""
+    lines = open(path, encoding="utf-8").read().split("\n")
+    n = int(lines[1])
+    box = [float(x) for x in lines[2 + n].split()]
+    return [float(a[36:44]) for a in lines[2:2 + n]], box[2]
+
+
+def itp_edges(path):
+    """Atom index pairs (0-based) joined by an angle in min.itp: every M-O
+    and O-H bond of the mineral."""
+    edges, sec = set(), None
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            t = line.split(";")[0].strip()
+            if t.startswith("["):
+                sec = t.strip("[] ").lower()
+            elif t and sec == "angles" and t[0] != "#":
+                i, j, k = (int(x) - 1 for x in t.split()[:3])
+                edges.update(((min(i, j), max(i, j)), (min(j, k), max(j, k))))
+    return sorted(edges)
+
+
+def winding_bonds(z, c, edges):
+    """Number of bonds that close a loop around the cell along c, i.e. join the
+    mineral to its own periodic image.  Unwrap the bond graph along c from a
+    spanning tree; a bond whose ends then differ by a whole cell is one."""
+    nbr = {}
+    for i, j in edges:
+        nbr.setdefault(i, []).append(j)
+        nbr.setdefault(j, []).append(i)
+    u, bad = {}, 0
+
+    def d(i, j):
+        x = (z[j] - z[i]) / c
+        return x - round(x)
+    for root in nbr:
+        if root in u:
+            continue
+        u[root] = 0.0
+        todo = [root]
+        while todo:
+            i = todo.pop()
+            for j in nbr[i]:
+                if j not in u:
+                    u[j] = u[i] + d(i, j)
+                    todo.append(j)
+    for i, j in edges:
+        if abs(u[j] - u[i] - d(i, j)) > 0.5:
+            bad += 1
+    return bad
+
+
+def widest_gaps(z, c, count=4, least=0.04):
+    """[(z0, gap)]: the largest empty z-distances between atoms (the cell
+    boundary included, at least `least` nm, so not within an atom plane) and
+    the plane in the middle of each.  A layer is opened at one of them to
+    lengthen the cell: the vacuum, unless that is narrower than the spacing
+    of the layer's own atom planes, so the next ones are kept to try."""
+    order = sorted(v % c for v in z)
+    gaps = []
+    for i, v in enumerate(order):
+        nxt = order[i + 1] if i + 1 < len(order) else order[0] + c
+        if nxt - v >= least:
+            gaps.append((nxt - v, (v + (nxt - v) / 2.0) % c))
+    gaps.sort(reverse=True)
+    return [(z0, g) for g, z0 in gaps[:count]]
+
+
+def regap(gro_in, gro_out, z0, need_nm, names):
+    """Copy of a .gro opened at z = z0 (atoms move by whole cell vectors so
+    the layer is contiguous from 0) with the cell lengthened along c by need_nm,
+    the box's tilt kept.  `names` are the atom names the first pass started
+    from: its output names were assigned from image-bonded environments and
+    would carry the error into the second."""
+    lines = open(gro_in, encoding="utf-8").read().split("\n")
+    n = int(lines[1])
+    box = [float(x) for x in lines[2 + n].split()]
+    box += [0.0] * (9 - len(box))
+    c, vx, vy = box[2], box[7], box[8]
+    for i in range(n):
+        a = lines[2 + i]
+        x, y, z = float(a[20:28]), float(a[28:36]), float(a[36:44])
+        k = math.floor((z - z0) / c)
+        lines[2 + i] = (a[:10] + "%5s" % names[i][:5] + a[15:20] +
+                        "%8.3f%8.3f%8.3f" % (x - k * vx, y - k * vy, z - k * c - z0) + a[44:])
+    box[2] += need_nm
+    lines[2 + n] = "".join("%10.5f" % v for v in box)
+    open(gro_out, "w", encoding="utf-8").write("\n".join(lines))
+
+
+def add_posres_noh(path, fc=1000):
+    """Append `#ifdef POSRES_noH`: restrain every heavy atom (mass > 2 u).
+    The name and the 1000 kJ/mol/nm2 force constant are the ones MINFF
+    workflows use (-DPOSRES_noH); atomipy only writes POSRES and POSRES_MINFF.
+    Returns the number of restrained atoms."""
+    heavy, sec = [], None
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            s = line.split(";")[0].strip()
+            if s.startswith("["):
+                sec = s.strip("[] ").lower()
+            elif s and sec == "atoms":
+                p = s.split()
+                if float(p[7]) > 2.0:
+                    heavy.append(p[0])
+    with open(path, "a", encoding="utf-8") as f:
+        f.write("\n#ifdef POSRES_noH\n[ position_restraints ]\n"
+                "; atom  type      fx      fy      fz\n")
+        for i in heavy:
+            f.write("%-6s 1     %d  %d  %d\n" % (i, fc, fc, fc))
+        f.write("#endif\n")
+    return len(heavy)
+
+
 def read_itp_atoms(path):
     """[(type, charge)] from the [ atoms ] section of an itp."""
     out, sec = [], None
@@ -331,7 +449,7 @@ def read_itp_atoms(path):
 
 def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
           seed=None, variant="gminff", mineral=None, angle_k=500, water="opc3",
-          log=sys.stderr):
+          log=sys.stderr, add_gap=None):
     if variant not in ("gminff", "tminff"):
         raise MinffError("variant must be gminff or tminff")
     if angle_k not in ANGLE_KS:
@@ -363,6 +481,7 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
                 np.random.seed(seed)
             for frm, to, count in substitutions:
                 atoms, box, _ = ap.substitute(atoms, box, count, frm, to, min_distance)
+        names0 = [str(a.get("type", "")) for a in atoms]   # what minff() started from
         atoms = ap.minff(atoms, box)
         itp_tmp = os.path.join(tmp, "min.itp")
         ap.write_itp(atoms, box, itp_tmp, molecule_name="MIN", KANGLE=angle_k,
@@ -372,6 +491,7 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
         shutil.copy(itp_tmp, os.path.join(outdir, "min.itp"))
         shutil.copy(gro_tmp, os.path.join(outdir, "conf.gro"))
 
+    add_posres_noh(os.path.join(outdir, "min.itp"))
     z_moved = contiguous_z(os.path.join(outdir, "conf.gro"))
     dst = os.path.join(outdir, "min.ff")
     if os.path.isdir(dst):
@@ -408,6 +528,52 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
         "minff_commit": MINFF_COMMIT if not os.environ.get("ECCE_MINFF_DIR") else "ECCE_MINFF_DIR",
         "files": {"topology": "topol.top", "molecule": "min.itp", "structure": "conf.gro"},
     }
+    z, c = read_gro_z(os.path.join(outdir, "conf.gro"))
+    edges = itp_edges(os.path.join(outdir, "min.itp"))
+    summary["warnings"] = []
+    wound = winding_bonds(z, c, edges) if z and c > 0 else 0
+    if wound:
+        cuts = widest_gaps(z, c)
+        gap = cuts[0][1] if cuts else 0.0
+        fixed = None
+        for z0, g in (cuts if add_gap else ()):
+            # rebuild from the structure opened here, the cell lengthened; the
+            # right place leaves no false bonds and every atom typed
+            wide = os.path.join(outdir, "conf_gap.gro")
+            trial = tempfile.mkdtemp(dir=outdir, prefix="gap-")
+            regap(os.path.join(outdir, "conf.gro"), wide, z0, max(add_gap - g, 0.0), names0)
+            try:
+                s2 = build(wide, trial, (1, 1, 1), (), min_distance, seed, variant,
+                           mineral, angle_k, water, log)
+                if not s2["warnings"] and not s2["untyped_atoms"]:
+                    for fn in os.listdir(trial):
+                        dst = os.path.join(outdir, fn)
+                        if os.path.isdir(dst):
+                            shutil.rmtree(dst)
+                        elif os.path.exists(dst):
+                            os.remove(dst)
+                        shutil.move(os.path.join(trial, fn), dst)
+                    s2.update(cell=summary["cell"], replicate=summary["replicate"],
+                              substitutions=summary["substitutions"], seed=seed,
+                              z_moved_atoms=z_moved, gap_added_nm=round(max(add_gap - g, 0.0), 3))
+                    fixed = s2
+            finally:
+                os.remove(wide)
+                shutil.rmtree(trial, ignore_errors=True)
+            if fixed:
+                break
+        if fixed:
+            summary = fixed
+        else:
+            summary["warnings"].append(
+                "%d bonds join the mineral to its own periodic image along c: the "
+                "cell has too little vacuum (at most about %.2f nm; MINFF needs about "
+                "%.1f nm), so its layer is bonded to itself.%s Lengthen the cell "
+                "along c%s." % (wound, gap, GAP_NM,
+                                " Adding a gap automatically did not work." if add_gap else "",
+                                "" if add_gap else ", or build with --add-gap"))
+    for w in summary["warnings"]:
+        print("minff_topology: WARNING: " + w, file=sys.stderr)
     with open(os.path.join(outdir, "minff.json"), "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
         f.write("\n")
@@ -434,6 +600,10 @@ def main(argv=None):
     b.add_argument("--mineral", help="mineral block for --variant tminff")
     b.add_argument("--angle-k", type=int, default=500, choices=ANGLE_KS)
     b.add_argument("--water", default="opc3", choices=sorted(WATER_MODELS))
+    b.add_argument("--add-gap", type=float, nargs="?", const=GAP_NM, default=None,
+                   metavar="NM", help="lengthen the cell along c so that the mineral has "
+                   "NM (default %.1f) of vacuum to its periodic image; off by default, "
+                   "a bare cell is only warned about" % GAP_NM)
     m = sub.add_parser("minerals", help="list the TMINFF minerals")
     m.add_argument("--angle-k", type=int, default=500, choices=ANGLE_KS)
     sub.add_parser("fetch", help="download the pinned minff commit (for the tests) and print its directory")
@@ -462,7 +632,7 @@ def main(argv=None):
                 except ValueError:
                     raise MinffError("substitution count must be an integer: %s" % cnt)
             s = build(a.cell, a.outdir, a.replicate, subs, a.min_distance, a.seed,
-                      a.variant, a.mineral, a.angle_k, a.water)
+                      a.variant, a.mineral, a.angle_k, a.water, add_gap=a.add_gap)
             print(json.dumps(s, indent=2))
     except MinffError as e:
         print("minff_topology: %s" % e, file=sys.stderr)
