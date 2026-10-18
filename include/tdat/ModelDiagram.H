@@ -15,7 +15,7 @@
  * degeneracy, so every antibonding level has its bonding partner; a
  * level left over is non-bonding.
  *
- * The real calculation is a narrow column of its own.  For each model
+ * The real calculation is a column of its own, on its own energy axis.  For each model
  * level the calculated MO (or near-degenerate set) with the largest
  * overlap is found with the mixed STO/Gaussian overlaps and its energy
  * and the overlap value are shown.  The verdict says whether the model

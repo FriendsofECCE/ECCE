@@ -624,6 +624,8 @@ bool ModelDiagram::build(const Input& in,
    out.left.title = leftName.title;
    out.right.title = rightName.title;
    vector<int> centreIndex(cl.size(), -1);
+   vector<int> centreReal;           // per centre level: the calculated level it matched
+   vector<double> centreTrueE;       // its model energy, also when drawn at the top
    for (size_t oi = 0; oi < order.size(); oi++) {
       const Cluster& L = cl[order[oi]];
       if (!L.drawn) continue;
@@ -632,7 +634,7 @@ bool ModelDiagram::build(const Input& in,
       lv.clipped = L.clipped;
       lv.energy = L.clipped ? L.shownEnergy : L.energy;
       lv.irrep = L.irrep;
-      lv.label = L.base;
+      lv.label = lower(L.base);
       if (L.character == MoLevel::ANTIBONDING) lv.label += "*";
       else if (L.character == MoLevel::NONBONDING && !lv.label.empty()) lv.label += " nb";
       lv.character = L.character;
@@ -651,7 +653,8 @@ bool ModelDiagram::build(const Input& in,
          lv.hasCalc = true;
          lv.calcEnergy = R.energy;
          lv.calcOverlap = L.overlap;
-         lv.calcLabel = R.irrep.empty() && !L.irrep.empty() ? L.base : stripMarks(R.label);
+         lv.calcLabel = lower(R.irrep.empty() && !L.irrep.empty() ? L.base : stripMarks(R.label)) +
+                        (L.character == MoLevel::ANTIBONDING ? "*" : "");
          lv.calcOccupancy = R.occupancy;
          lv.calcOccupancyBeta = R.occupancyBeta;
          lv.calcDegeneracy = R.degeneracy > 0 ? R.degeneracy : (int)R.orbitals.size();
@@ -685,6 +688,8 @@ bool ModelDiagram::build(const Input& in,
       lv.detail = text;
       centreIndex[order[oi]] = (int)out.centre.levels.size();
       out.centre.levels.push_back(lv);
+      centreReal.push_back(L.realLevel);
+      centreTrueE.push_back(L.energy);
    }
 
    //  Fragment sets that carry a line (or a pair) are drawn.
@@ -791,41 +796,95 @@ bool ModelDiagram::build(const Input& in,
    }
 
    //  --- the verdict -------------------------------------------------
+   //  Only the occupied levels, and the LUMO when the model's LUMO is the
+   //  calculation's; order above the LUMO is a basis-set matter (About).
+   bool lumoDiffers = false, lumoJudged = false, aboveDiffers = false;
    {
-      vector<const MoLevel*> v;
-      for (size_t i = 0; i < out.centre.levels.size(); i++)
-         if (out.centre.levels[i].hasCalc) v.push_back(&out.centre.levels[i]);
-      out.valenceLevels = (int)v.size();
+      const size_t nC = out.centre.levels.size();
+      auto occupied = [&](size_t i) {
+         const MoLevel& l = out.centre.levels[i];
+         return l.occupancy + std::max(0.0, l.occupancyBeta) > 0.0;
+      };
+      auto plain = [](string t) { if (t.size() > 3 && t.compare(t.size() - 3, 3, " nb") == 0) t.erase(t.size() - 3); return t; };
+      vector<int> vi;                        // levels with a calculated partner
+      for (size_t i = 0; i < nC; i++)
+         if (out.centre.levels[i].hasCalc) vi.push_back((int)i);
+
+      //  The calculation's LUMO: its lowest level without electrons.
+      int calcLumo = -1;
+      bool anyOcc = false;
+      for (size_t R = 0; R < real.size(); R++)
+         if (real[R].occupancy + std::max(0.0, real[R].occupancyBeta) > 0.0) anyOcc = true;
+      if (anyOcc)
+         for (size_t R = 0; R < real.size(); R++) {
+            if (real[R].occupancy + std::max(0.0, real[R].occupancyBeta) > 0.0) continue;
+            if (calcLumo < 0 || real[R].energy < real[calcLumo].energy) calcLumo = (int)R;
+         }
+      //  The model's LUMO: its lowest drawn empty level.
+      int modelLumo = -1;
+      for (size_t k = 0; k < vi.size(); k++) {
+         if (occupied(vi[k])) continue;
+         if (modelLumo < 0 || centreTrueE[vi[k]] < centreTrueE[modelLumo]) modelLumo = vi[k];
+      }
+      if (modelLumo >= 0 && calcLumo >= 0) {
+         if (centreReal[modelLumo] == calcLumo) lumoJudged = true;
+         else lumoDiffers = true;
+      }
+      //  Above the LUMO: does the model's order of the empty levels hold?
+      for (size_t a2 = 0; a2 < vi.size(); a2++)
+         for (size_t b2 = 0; b2 < vi.size(); b2++) {
+            if (occupied(vi[a2]) || occupied(vi[b2]) || vi[a2] == modelLumo || vi[b2] == modelLumo) continue;
+            if (centreTrueE[vi[a2]] < centreTrueE[vi[b2]] &&
+                out.centre.levels[vi[a2]].calcEnergy > out.centre.levels[vi[b2]].calcEnergy + SAME_ENERGY)
+               aboveDiffers = true;
+         }
+
+      //  The judged levels, in the model's energy order.
+      vector<int> judged;
+      for (size_t k = 0; k < vi.size(); k++)
+         if (occupied(vi[k]) || (lumoJudged && vi[k] == modelLumo)) judged.push_back(vi[k]);
+      std::stable_sort(judged.begin(), judged.end(), [&](int a2, int b2) { return centreTrueE[a2] < centreTrueE[b2]; });
+      out.valenceLevels = (int)judged.size();
       int pairs = 0;
       vector<string> bad;
       double lo = 1.0, hi = 0.0;
-      for (size_t i = 0; i < v.size(); i++) {
-         lo = std::min(lo, v[i]->calcOverlap);
-         hi = std::max(hi, v[i]->calcOverlap);
-         for (size_t j = i + 1; j < v.size(); j++) {
+      for (size_t x = 0; x < judged.size(); x++) {
+         const MoLevel& i1 = out.centre.levels[judged[x]];
+         lo = std::min(lo, i1.calcOverlap);
+         hi = std::max(hi, i1.calcOverlap);
+         for (size_t y = x + 1; y < judged.size(); y++) {
             pairs++;
-            if (v[i]->calcEnergy > v[j]->calcEnergy + SAME_ENERGY) {
+            const MoLevel& j1 = out.centre.levels[judged[y]];
+            if (i1.calcEnergy > j1.calcEnergy + SAME_ENERGY) {
                out.inversions++;
-               if (bad.size() < 3) bad.push_back("the model puts " + stripMarks(v[i]->label) + (v[i]->character == MoLevel::ANTIBONDING ? "*" : "") +
-                                                 " below " + stripMarks(v[j]->label) + (v[j]->character == MoLevel::ANTIBONDING ? "*" : ""));
+               if (bad.size() < 3) bad.push_back("the model puts " + plain(i1.label) + " below " + plain(j1.label));
             }
          }
       }
       out.overlapMin = lo; out.overlapMax = hi;
-      const string range = " (overlap " + fmt("%.2f", lo) + "\xE2\x80\x93" + fmt("%.2f", hi) + ")";
-      if (v.empty()) {
-         out.verdict.clear();
+
+      string lumoSentence;
+      if (lumoDiffers)
+         lumoSentence = "The empty levels differ: your LUMO is " + lower(stripMarks(real[calcLumo].label)) +
+                        ", the model's is " + plain(out.centre.levels[modelLumo].label) + ".";
+      if (judged.empty()) {
+         out.verdict = lumoSentence;
+         if (lumoDiffers) out.verdictOk = false;
       } else if (out.inversions == 0) {
-         out.verdict = "This model explains your " + std::to_string(v.size()) +
-                       " valence orbitals in the right order" + range + ".";
+         out.verdict = string("The model explains your occupied orbitals") + (lumoJudged ? " and the LUMO" : "") +
+                       " in the right order.";
+         if (lumoDiffers) { out.verdict += " " + lumoSentence; out.verdictOk = false; }
       } else {
          out.verdictOk = false;
          string first = joinNames(bad);
          first[0] = (char)toupper((unsigned char)first[0]);
          out.verdict = first + "; your calculation has " + (out.inversions == 1 ? "them" : "those") +
                        " the other way round (" + std::to_string(out.inversions) + " of " + std::to_string(pairs) +
-                       " pairs of the " + std::to_string(v.size()) + " valence orbitals" + range + ").";
+                       " pairs of the " + std::to_string(judged.size()) + " levels judged).";
+         if (lumoDiffers) out.verdict += " " + lumoSentence;
       }
+      vector<const MoLevel*> v;              // every level with a calculated partner
+      for (size_t k = 0; k < vi.size(); k++) v.push_back(&out.centre.levels[vi[k]]);
       //  Delta_o of an octahedral complex.
       const MoLevel *t2g = 0, *eg = 0;
       for (size_t i = 0; i < v.size(); i++) {
@@ -864,6 +923,13 @@ bool ModelDiagram::build(const Input& in,
    }
    {
       int total = 0;
+      string aboutVerdict;
+      if (out.valenceLevels > 0 && out.inversions == 0)
+         aboutVerdict = string("The model explains your occupied orbitals") + (lumoJudged ? " and the LUMO" : "") +
+                        " in the right order. ";
+      if (aboveDiffers)
+         aboutVerdict += "The order of some empty levels above the LUMO differs between the model and your calculation. ";
+      aboutVerdict += "Virtual orbitals above the LUMO depend strongly on the basis set.";
       for (size_t i = 0; i < sets.size(); i++) total += (int)lround(sets[i].occupancy);
       char b[64];
       snprintf(b, sizeof b, "%d", electrons);
@@ -876,10 +942,10 @@ bool ModelDiagram::build(const Input& in,
           "**Bonding and antibonding** are read from the sign of each model MO's overlap population between the "
           "two fragments, then paired per symmetry label and degeneracy, so each antibonding level has its bonding "
           "partner; a level without a partner is non-bonding. Colours mark the pairs.\n\n"
-          "**The calculation** is the narrow column on the right. For each model level it shows the calculated "
-          "orbital (or set of near-degenerate orbitals) with the largest overlap with it, its energy in Hartree "
-          "and the overlap value (1 is identical). Labels are those of the matched calculated orbital. Clicking a "
-          "level shows that orbital in 3-D.\n\n**Total electrons: " + string(b) + "** (" + leftName.formula + " " +
+          "**The calculation** is the column on the right, on its own energy axis in Hartree and to scale. For each model level it shows the calculated "
+          "orbital (or set of near-degenerate orbitals) with the largest overlap with it, at its calculated energy, "
+          "in the colour of the model level it matches. A level marked \xE2\x89\x88 matches only loosely (overlap below 0.80; the value is in the hover text). Labels are those of the matched calculated orbital. Clicking a "
+          "level shows that orbital in 3-D.\n\n" + aboutVerdict + "\n\n**Total electrons: " + string(b) + "** (" + leftName.formula + " " +
           std::to_string((int)lround([&] { double s = 0; for (size_t i = 0; i < sets.size(); i++) if (sets[i].fragment == 0) s += sets[i].occupancy; return s; }())) +
           ", " + rightName.formula + " " +
           std::to_string((int)lround([&] { double s = 0; for (size_t i = 0; i < sets.size(); i++) if (sets[i].fragment == 1) s += sets[i].occupancy; return s; }())) + ").";

@@ -19,12 +19,18 @@ refusal text plus "use the MOs panel"), keep the old drawing.
   paired strongest-with-strongest per degeneracy; same irrep unless the two
   fragments are equal (halves combine g/u). Unpaired = nb. This is the model's
   reading, not the book's: N2 2su comes out nb (sp mixing), pair 2sg/4su*.
-- Calculation column: each model level is matched to the calculated level
-  (the panel's `wholeSpectrum`) with the largest subspace overlap, via the mixed
-  STO/Gaussian S. Labels and irreps are the matched level's; `MoLevel::orbitals`
-  are the calculated MOs, so a click shows them. Energy (Hartree) and overlap
-  are text. Verdict: inversions of the calculated order among drawn levels,
-  overlap range, Delta_o for t2g/eg.
+- Calculation column (layout C): its own energy axis in Hartree, to scale, ticks
+  on the right, broken like the model's for the high empty levels; no lines to
+  the model. Each model level is matched to the calculated level (the panel's
+  `wholeSpectrum`) with the largest subspace overlap, via the mixed STO/Gaussian S;
+  distinct calculated levels are drawn once, at their own energy, in the colour of
+  the model partner, labelled like the model (lower-case Mulliken, `*` from the
+  partner) with the energy below; overlap < 0.80 adds a grey "≈" (value in the hover
+  text only). Levels whose boxes would overlap vertically go side by side in lanes
+  (`MoDiagramCanvas::layoutCalc`). `MoLevel::orbitals` are the calculated MOs, so a click
+  shows them. Verdict: only the occupied levels, plus the LUMO when the model's
+  LUMO matches the calculation's; a different LUMO is named; order above the LUMO
+  is only in About. Delta_o for t2g/eg.
 - Energies: model in eV on the axis. Empty levels > 30 eV above the HOMO are
   drawn at the top of the axis, marked with an up arrow, true energy beside
   them (EHT puts sigma* tens of eV up; the partner of a drawn level is never

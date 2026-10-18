@@ -28,7 +28,7 @@ def molecular_levels(path):
             inside = line.strip() == "column centre"
         elif inside and line.lstrip().startswith("level "):
             f = dict(re.findall(r'(\w+)=("[^"]*"|\S+)', line))
-            levels.append((f["label"].rstrip("*"), f["character"],
+            levels.append((f["label"].rstrip("*").upper().replace(" NB", " nb"), f["character"],
                            int(f["pairing"])))
     return levels
 
@@ -41,7 +41,7 @@ def mixing_links(path):
         if line.startswith("column "):
             inside = line.strip() == "column centre"
         elif inside and line.lstrip().startswith("level "):
-            labels.append(re.search(r'label=(\S+)', line).group(1).rstrip("*"))
+            labels.append(re.search(r'label=(\S+)', line).group(1).rstrip("*").upper())
         elif line.lstrip().startswith("link "):
             f = dict(re.findall(r'(\w+)=(-?\d+)', line))
             c = int(f["centre"])
