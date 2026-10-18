@@ -17,9 +17,13 @@ things the full-group labelling did not:
   `moCoefficients` rows (not the stored MO table: a click on such a level shows
   the stored orbital of the set);
 - the cross-check against the code's labels (`subgroupLabelSpectrum`) needs the
-  code's abelian subgroup to be a subgroup of the group. D2 is not one of C3v, so
-  the computed labels are accepted on the weaker "every drawn orbital labelled"
-  condition (`trustComputed`).
+  code's abelian subgroup to be a subgroup of the group; D2 is not one of C3v. The
+  orbitals are therefore labelled in the parent group first (validated against the
+  code as usual) and every degenerate level of it must have come out as exactly
+  the irreps it subduces to (characters of the subgroup's operations carried into
+  the parent's classes through the frame alignment): t2 in Td gives a1 + e in C3v.
+  A disagreement, or a parent that cannot be labelled, refuses the subgroup labels
+  with the reason as a tier-B line.
 
 The subgroup comes from `MoFragments::subgroupKeeping`: the operations that keep
 both sides, named by their axes and mirrors (cubic and rare dihedral subgroups are

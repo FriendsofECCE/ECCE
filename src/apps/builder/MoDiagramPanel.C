@@ -1063,8 +1063,10 @@ namespace {
       fflush(log);
     }
   }
+  static string& lastMosymFail() { static string why; return why; }
   static bool mosymFail(int where, const char *why)
   {
+    lastMosymFail() = why;
     if (mosymDebug()) {
       mosymPrintf("[MOSYM] full-group labels not computed (step %d): %s\n",
                   where, why);
@@ -1206,7 +1208,10 @@ namespace {
                               double windowHigh = 1.0e30,
                               std::function<void(double)> onRow = nullptr,
                               bool trustComputed = false,
-                              vector< vector<double> > *rotatedOut = 0)
+                              vector< vector<double> > *rotatedOut = 0,
+                              const vector<string> *parentLabels = 0,
+                              const string *parentGroup = 0,
+                              const vector<double> *parentCoords = 0)
   {
     if (mosymDebug()) {
       mosymPrintf("[MOSYM] group %s, %d orbitals, %d reported labels\n",
@@ -1423,6 +1428,64 @@ namespace {
       if (!windowLabelled)
         return mosymFail(132, "reported.empty() && a DRAWN orbital was not labelled");
 
+      //  A pick's subgroup: each degenerate level of the validated parent group
+      //  must have been split into exactly the irreps it subduces to.
+      if (trustComputed && parentLabels != 0 && parentGroup != 0 && parentCoords != 0) {
+        const CharacterTable *pt = CharacterTable::lookup(*parentGroup);
+        vector<SymOp> pops;
+        vector< vector<int> > pcls;
+        vector<int> pClassOfOp;
+        SymOp Qs; double r2;
+        if (pt == 0 || !MoFragments::symmetryOperations(*parentGroup, pops))
+          return mosymFail(133, "the parent group's operations are not available");
+        SymmetryAnalysis::conjugacyClasses(pops, pcls);
+        if (!SymmetryAnalysis::matchClasses(pops, pcls, *pt, pClassOfOp) ||
+            !SymmetryAnalysis::alignFrames(*parentCoords, probeCoords, Qs, r2) || r2 > 0.1)
+          return mosymFail(134, "the subgroup's frame cannot be tied to the parent group's");
+        vector<int> toParent(ops.size(), -1);
+        for (size_t k = 0; k < ops.size(); k++) {
+          const SymOp w = SymmetryAnalysis::conjugate(ops[k], Qs);
+          for (size_t o = 0; o < pops.size() && toParent[k] < 0; o++) {
+            bool same = true;
+            for (int a = 0; a < 3 && same; a++)
+              for (int b = 0; b < 3 && same; b++)
+                if (fabs(w.m[a][b] - pops[o].m[a][b]) > 2.0e-2) same = false;
+            if (same) toParent[k] = pClassOfOp[o];
+          }
+          if (toParent[k] < 0) return mosymFail(135, "a subgroup operation is not one of the parent group's");
+        }
+        const vector<string>& subNames = table->irreps();
+        for (int i = 0; i < norb; ) {
+          int j = i;
+          const string& P = (*parentLabels)[i];
+          while (j + 1 < norb && (*parentLabels)[j + 1] == P && fabs(e[j + 1] - e[j]) < 1.5e-5) j++;
+          const bool inWindow = e[i] >= windowLow && e[i] <= windowHigh;
+          if (!P.empty() && inWindow) {
+            const vector<double> *chiP = pt->characters(P);
+            if (chiP == 0) return mosymFail(136, "the parent label has no characters");
+            for (size_t x = 0; x < subNames.size(); x++) {
+              const vector<double> *chiX = table->characters(subNames[x]);
+              if (chiX == 0) return mosymFail(137, "a subgroup irrep has no characters");
+              double sum = 0.0;
+              for (size_t k = 0; k < ops.size(); k++) sum += (*chiP)[toParent[k]]*(*chiX)[classOfOp[k]];
+              const int want = (int)floor(sum/ops.size() + 0.5)*table->dimension(subNames[x]);
+              int have = 0;
+              for (int m = i; m <= j; m++)
+                if (fullDerived[m] == subNames[x]) have++;
+              if (want != have) {
+                ostringstream why;
+                why << "the " << P << " level at " << e[i] << " Hartree gives " << have << " orbital(s) of "
+                    << subNames[x] << " in " << group << " but subduces to " << want;
+                lastMosymFail() = why.str();
+                if (mosymDebug()) mosymPrintf("[MOSYM] %s\n", why.str().c_str());
+                return false;
+              }
+            }
+          }
+          i = j + 1;
+        }
+      }
+
       computed.assign(e.size(), string());
       for (int i = 0; i < norb && i < (int)computed.size(); i++) {
         if (!fullDerived[i].empty()) computed[i] = fullDerived[i];
@@ -1430,7 +1493,9 @@ namespace {
       if (trustComputed && rotatedOut != 0) *rotatedOut = rotated;
       ostringstream text;
       text << "Symmetry labels computed from the orbitals in " << group
-           << (trustComputed ? "; the code's own labels belong to a different subgroup."
+           << (trustComputed ? (parentLabels != 0
+                   ? "; every level is the subduction of its label in the parent group, which the code's own labels validated."
+                   : "; the code's own labels belong to a different subgroup.")
                              : "; the code reported none.");
       note = text.str();
       return true;
@@ -2340,6 +2405,7 @@ void MoDiagramPanel::buildOnce()
   //  in Td, one Cr-C of Cr(CO)6 in Oh): the diagram is drawn, and the orbitals
   //  labelled, in the largest subgroup that keeps the two sides.
   string subgroupNote, subgroupWhy;
+  vector<double> parentCoords;
   string fullGroup;
   if (pickActive && pickB >= 0 && !group.empty() && group != "C1" &&
       !coords.empty()) {
@@ -2357,6 +2423,7 @@ void MoDiagramPanel::buildOnce()
               "orbitals are labelled in " + sub + ", the largest subgroup that "
               "keeps the two sides.";
           group = sub;
+          parentCoords = coords;
           coords = subCoords;
         }
       } else {
@@ -2397,7 +2464,20 @@ void MoDiagramPanel::buildOnce()
     vector<string> computedLabels;
     string computedNote;
     wxStopWatch throttle;
-    if (computeFullGroupLabels(calc, group, table, sgfrag, coords, elements,
+    //  The pick's subgroup is checked against the parent group's labels, which
+    //  are validated against the code's own as usual.
+    vector<string> parentLabels;
+    bool parentOk = fullGroup.empty();
+    if (!fullGroup.empty()) {
+      string parentNote;
+      parentOk = computeFullGroupLabels(calc, fullGroup, CharacterTable::lookup(fullGroup), sgfrag,
+                                        parentCoords, elements, e, s, parentLabels, parentNote, "MO",
+                                        windowLow, windowHigh);
+      if (!parentOk)
+        subgroupWhy = "The orbitals could not be labelled in " + fullGroup + " (" + lastMosymFail() +
+                      "), so the labels in " + group + " cannot be checked against it.";
+    }
+    if (parentOk && computeFullGroupLabels(calc, group, table, sgfrag, coords, elements,
                                e, s, computedLabels, computedNote, "MO",
                                windowLow, windowHigh,
                                [&](double frac) {
@@ -2405,10 +2485,16 @@ void MoDiagramPanel::buildOnce()
                                  throttle.Start();
                                  progressDlg.progress(20 + (int)(frac*20),
                                      _("Assigning full-group symmetry labels"));
-                               }, !fullGroup.empty(), &rotatedAlpha)) {
+                               }, !fullGroup.empty(), &rotatedAlpha,
+                               fullGroup.empty() ? 0 : &parentLabels,
+                               fullGroup.empty() ? 0 : &fullGroup,
+                               fullGroup.empty() ? 0 : &parentCoords)) {
       s = computedLabels;
       labelsInFullGroup = true;
       symmetryNote += (symmetryNote.empty() ? "" : "  ") + computedNote;
+    } else if (parentOk && !fullGroup.empty()) {
+      subgroupWhy = "The labels in " + group + " could not be verified against " + fullGroup + ": " +
+                    lastMosymFail() + ".";
     }
   }
 
